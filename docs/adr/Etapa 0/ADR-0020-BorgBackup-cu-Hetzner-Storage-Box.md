@@ -1,0 +1,52 @@
+# ADR-0020: BorgBackup cu Hetzner Storage Box
+
+**Status:** Accepted  
+**Data:** 2026-01-15  
+**Deciders:** Alex (1-Person-Team)
+
+## Context
+
+Necesităm backup offsite pentru disaster recovery cu:
+
+- Deduplicare
+- Encriptare
+- Retenție configurabilă
+- Restore rapid
+
+## Decizie
+
+Utilizăm **BorgBackup 1.4** cu destinație **Hetzner Storage Box** (SSH port 23).
+
+## Consecințe
+
+### Configurație
+
+```bash
+# Inițializare repository
+borg init --encryption=repokey \
+  ssh://uXXXXXX@uXXXXXX.your-storagebox.de:23/./borg-repo
+
+# Backup daily
+borg create \
+  --compression auto,zstd,6 \
+  --exclude 'node_modules' \
+  --exclude '*.log' \
+  ssh://uXXXXXX@uXXXXXX.your-storagebox.de:23/./borg-repo::{hostname}-{now} \
+  /var/www/CerniqAPP \
+  /etc/cerniq \
+  /var/backups/databases
+
+# Prune cu GFS retention
+borg prune \
+  --keep-daily 7 \
+  --keep-weekly 4 \
+  --keep-monthly 6 \
+  --keep-yearly 2 \
+  ssh://uXXXXXX@uXXXXXX.your-storagebox.de:23/./borg-repo
+```
+
+### Restricții CRITICE
+
+- **EXPORTĂ** și **SALVEAZĂ** borg key în loc sigur (fără ea restore e IMPOSIBIL!)
+- `--encryption=repokey` OBLIGATORIU
+- NU include node_modules în backup
