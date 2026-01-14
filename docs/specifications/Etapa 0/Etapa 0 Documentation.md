@@ -79,24 +79,25 @@ networks:
 **Reguli de segregare:**
 
 - `cerniq_public`: Traefik + servicii expuse
-- `cerniq_backend`: API + Workers (intern)
-- `cerniq_data`: PostgreSQL + Redis (strict intern)
+- `cerniq_backend`: API + Workers + Redis (intern)
+- `cerniq_data`: PostgreSQL + Redis (data persistence)
 
 ### 3. PLAN PORTURI
 
 | Port | Serviciu | Acces | Notă |
 | :--- | :--- | :--- | :--- |
-| 80 | Traefik HTTP | Public | Redirect → 443 |
-| 443 | Traefik HTTPS | Public | TLS termination |
-| 443/udp | Traefik HTTP/3 | Public | QUIC |
-| 4000 | API Gateway | Intern | Fastify |
+| Port | Serviciu | Acces | Notă |
+| :--- | :--- | :--- | :--- |
+| 64080 | Traefik HTTP | Public (via Nginx) | Mapat din container :80 |
+| 64443 | Traefik HTTPS | Public (via Nginx) | Mapat din container :443 |
+| 64081 | Traefik Dashboard | Admin (via Nginx) | Mapat din container :8080 |
+| 64000 | API Gateway | Intern/Debug | Fastify (via Traefik în prod) |
 | 64070 | OTel gRPC | Intern | Traces/Metrics |
 | 64071 | OTel HTTP | Intern | Logs |
-| 5432 | PostgreSQL | Intern | Never public |
-| 6379 | Redis | Intern | BullMQ |
-| 6432 | PgBouncer | Intern | Connection pool |
-| 8080 | SigNoz UI | Intern | Via Traefik |
-| 9000 | ClickHouse | Intern | Telemetry |
+| 64032 | PostgreSQL | Intern | Never public |
+| 64039 | Redis | Intern | BullMQ |
+| 64089 | SigNoz UI | Admin (via Nginx) | Observability Dashboard |
+| 64082 | ClickHouse HTTP | Intern | Telemetry |
 
 ### 4. CONFIGURAȚIE POSTGRESQL 18.1
 
@@ -167,7 +168,7 @@ notify-keyspace-events Ex
 │   │   │   └── index.ts
 │   │   ├── Dockerfile
 │   │   └── package.json
-│   └── web/                    # Frontend React 19 + Refine v5
+│   └── web-admin/              # Frontend React 19 + Refine v5
 │       ├── src/
 │       │   ├── components/
 │       │   ├── pages/
@@ -286,300 +287,152 @@ borg create \
 ### ADR-0001: PNPM ca Package Manager Exclusiv
 
 [View detailed ADR](../../adr/Etapa%200/ADR-0001-PNPM-ca-Package-Manager-Exclusiv.md)
-
 **Status:** Accepted | **Data:** 2026-01-15
-
-**Context:** Necesitatea unui package manager performant pentru monorepo cu workspaces multiple.
-
----
 
 ### ADR-0002: Node.js v24 LTS "Krypton"
 
 [View detailed ADR](../../adr/Etapa%200/ADR-0002-Node-js-v24-LTS-Krypton.md)
-
 **Status:** Accepted | **Data:** 2026-01-15
-
-**Context:** Runtime stabil pentru backend API cu suport long-term.
-
----
 
 ### ADR-0003: Python 3.14 Free-Threading pentru Workers
 
 [View detailed ADR](../../adr/Etapa%200/ADR-0003-Python-3-14-Free-Threading-pentru-Workers.md)
-
 **Status:** Accepted | **Data:** 2026-01-15
-
-**Context:** Workers CPU-bound pentru AI/ML necesită true parallelism.
-
----
 
 ### ADR-0004: PostgreSQL 18.1 cu PostGIS
 
 [View detailed ADR](../../adr/Etapa%200/ADR-0004-PostgreSQL-18-1-cu-PostGIS.md)
-
 **Status:** Accepted | **Data:** 2026-01-15
-
-**Context:** Database principal cu cerințe geospațiale și vector search.
-
----
 
 ### ADR-0005: Row-Level Security pentru Multi-Tenancy
 
 [View detailed ADR](../../adr/Etapa%200/ADR-0005-Row-Level-Security-pentru-Multi-Tenancy.md)
-
 **Status:** Accepted | **Data:** 2026-01-15
-
-**Context:** Izolare date între tenants cu menținere simplității operaționale.
-
----
 
 ### ADR-0006: Redis 7.4.7 cu BullMQ v5
 
 [View detailed ADR](../../adr/Etapa%200/ADR-0006-Redis-7-4-7-cu-BullMQ-v5.md)
-
 **Status:** Accepted | **Data:** 2026-01-15
 
-**Context:** Job queue system pentru 52+ workers.
+### ADR-0007: Drizzle ORM pentru Database Access
 
----
-
-### ADR-0007: Traefik v3.6.6 ca Reverse Proxy
-
-[View detailed ADR](../../adr/Etapa%200/ADR-0007-Traefik-v3-6-6-ca-Reverse-Proxy.md)
-
+[View detailed ADR](../../adr/Etapa%200/ADR-0007-Drizzle-ORM-pentru-Database-Access.md)
 **Status:** Accepted | **Data:** 2026-01-15
-
-**Context:** SSL/TLS management și routing pentru microservicii.
-
----
 
 ### ADR-0008: Fastify v5.6.2 ca API Framework
 
 [View detailed ADR](../../adr/Etapa%200/ADR-0008-Fastify-v5-6-2-ca-API-Framework.md)
-
 **Status:** Accepted | **Data:** 2026-01-15
-
-**Context:** API Framework performant cu suport TypeScript și schema validation.
-
----
 
 ### ADR-0009: Zod pentru Validation Strategy
 
 [View detailed ADR](../../adr/Etapa%200/ADR-0009-Zod-pentru-Validation-Strategy.md)
-
 **Status:** Accepted | **Data:** 2026-01-15
 
-**Context:** Strategie unificată de validare cu type inference pentru TypeScript.
+### ADR-0010: Error Handling Pattern Standardizat
 
----
-
-### ADR-0010: BorgBackup cu Hetzner Storage Box
-
-[View detailed ADR](../../adr/Etapa%200/ADR-0010-BorgBackup-cu-Hetzner-Storage-Box.md)
-
+[View detailed ADR](../../adr/Etapa%200/ADR-0010-Error-Handling-Pattern-Standardizat.md)
 **Status:** Accepted | **Data:** 2026-01-15
 
-**Context:** Offsite backup cu deduplicare și encriptare.
+### ADR-0011: API Versioning Strategy
 
----
-
-### ADR-0011: Drizzle ORM pentru Database Access
-
-[View detailed ADR](../../adr/Etapa%200/ADR-0011-Drizzle-ORM-pentru-Database-Access.md)
-
+[View detailed ADR](../../adr/Etapa%200/ADR-0011-API-Versioning-Strategy.md)
 **Status:** Accepted | **Data:** 2026-01-15
-
-**Context:** Type-safe database access cu migrații reproductibile.
-
----
 
 ### ADR-0012: React 19 cu Refine v5
 
 [View detailed ADR](../../adr/Etapa%200/ADR-0012-React-19-cu-Refine-v5.md)
-
 **Status:** Accepted | **Data:** 2026-01-15
 
-**Context:** Frontend admin pentru CRUD operations și dashboards.
+### ADR-0013: Tailwind CSS v4 cu Oxide Engine
 
----
-
-### ADR-0013: Medallion Architecture pentru Date
-
-[View detailed ADR](../../adr/Etapa%200/ADR-0013-Medallion-Architecture-pentru-Date.md)
-
+[View detailed ADR](../../adr/Etapa%200/ADR-0013-Tailwind-CSS-v4-cu-Oxide-Engine.md)
 **Status:** Accepted | **Data:** 2026-01-15
 
-**Context:** Data pipeline cu trasabilitate și reprocessing capability.
+### ADR-0014: Traefik v3.6.6 ca Reverse Proxy
 
----
-
-### ADR-0014: Naming Conventions
-
-[View detailed ADR](../../adr/Etapa%200/ADR-0014-Naming-Conventions.md)
-
+[View detailed ADR](../../adr/Etapa%200/ADR-0014-Traefik-v3-6-6-ca-Reverse-Proxy.md)
 **Status:** Accepted | **Data:** 2026-01-15
 
-**Context:** Consistență naming între layers și componente.
+### ADR-0015: Docker Containerization Strategy
 
----
-
-### ADR-0015: Directory Structure Standard
-
-[View detailed ADR](../../adr/Etapa%200/ADR-0015-Directory-Structure-Standard.md)
-
+[View detailed ADR](../../adr/Etapa%200/ADR-0015-Docker-Containerization-Strategy.md)
 **Status:** Accepted | **Data:** 2026-01-15
-
-**Context:** Structurare monorepo pentru scalabilitate.
-
----
 
 ### ADR-0016: SigNoz pentru Observability
 
 [View detailed ADR](../../adr/Etapa%200/ADR-0016-SigNoz-pentru-Observability.md)
-
 **Status:** Accepted | **Data:** 2026-01-15
 
-**Context:** APM, logging și tracing într-o soluție unificată.
+### ADR-0017: Secrets Management Strategy
 
----
-
-### ADR-0017: Secrets Management
-
-[View detailed ADR](../../adr/Etapa%200/ADR-0017-Secrets-Management.md)
-
+[View detailed ADR](../../adr/Etapa%200/ADR-0017-Secrets-Management-Strategy.md)
 **Status:** Accepted | **Data:** 2026-01-15
 
-**Context:** Gestionare securizată a credențialelor.
+### ADR-0018: Authentication Flow (JWT + Refresh Tokens)
 
----
-
-### ADR-0018: Worker Scalability Architecture
-
-[View detailed ADR](../../adr/Etapa%200/ADR-0018-Worker-Scalability-Architecture.md)
-
+[View detailed ADR](../../adr/Etapa%200/ADR-0018-Authentication-Flow-JWT-Refresh-Tokens.md)
 **Status:** Accepted | **Data:** 2026-01-15
 
-**Context:** Posibilitate distribuire workers pe servere externe.
+### ADR-0019: CORS Policy
 
----
-
-### ADR-0019: e-Factura ANAF Integration
-
-[View detailed ADR](../../adr/Etapa%200/ADR-0019-e-Factura-ANAF-Integration.md)
-
+[View detailed ADR](../../adr/Etapa%200/ADR-0019-CORS-Policy.md)
 **Status:** Accepted | **Data:** 2026-01-15
 
-**Context:** Conformitate B2B invoicing România (obligatoriu din Iulie 2024).
+### ADR-0020: BorgBackup cu Hetzner Storage Box
 
----
-
-### ADR-0020: Backup Strategy BorgBackup
-
-[View detailed ADR](../../adr/Etapa%200/ADR-0020-Backup-Strategy-BorgBackup.md)
-
+[View detailed ADR](../../adr/Etapa%200/ADR-0020-BorgBackup-cu-Hetzner-Storage-Box.md)
 **Status:** Accepted | **Data:** 2026-01-15
 
-**Context:** Strategie backup cu deduplicare și encriptare pentru disaster recovery.
+### ADR-0021: Naming Conventions
 
----
-
-### ADR-0021: Drizzle Kit pentru Migrations
-
-[View detailed ADR](../../adr/Etapa%200/ADR-0021-Drizzle-Kit-pentru-Migrations.md)
-
+[View detailed ADR](../../adr/Etapa%200/ADR-0021-Naming-Conventions.md)
 **Status:** Accepted | **Data:** 2026-01-15
-
-**Context:** Migrații database type-safe cu versioning.
-
----
 
 ### ADR-0022: Port Allocation Strategy
 
 [View detailed ADR](../../adr/Etapa%200/ADR-0022-Port-Allocation-Strategy.md)
-
 **Status:** Accepted | **Data:** 2026-01-15
 
-**Context:** Standardizare porturi pentru Docker services.
+### ADR-0023: Logging Standards cu Pino
 
----
-
-### ADR-0023: Vitest pentru Unit Testing
-
-[View detailed ADR](../../adr/Etapa%200/ADR-0023-Vitest-pentru-Unit-Testing.md)
-
+[View detailed ADR](../../adr/Etapa%200/ADR-0023-Logging-Standards-cu-Pino.md)
 **Status:** Accepted | **Data:** 2026-01-15
 
-**Context:** Framework unit testing rapid cu suport TypeScript nativ.
+### ADR-0024: Directory Structure Standard
 
----
-
-### ADR-0024: Playwright pentru E2E Testing
-
-[View detailed ADR](../../adr/Etapa%200/ADR-0024-Playwright-pentru-E2E-Testing.md)
-
+[View detailed ADR](../../adr/Etapa%200/ADR-0024-Directory-Structure-Standard.md)
 **Status:** Accepted | **Data:** 2026-01-15
 
-**Context:** E2E testing cross-browser cu auto-waiting.
+### ADR-0025: Health Check Patterns
 
----
-
-### ADR-0025: OpenTelemetry pentru Tracing
-
-[View detailed ADR](../../adr/Etapa%200/ADR-0025-OpenTelemetry-pentru-Tracing.md)
-
+[View detailed ADR](../../adr/Etapa%200/ADR-0025-Health-Check-Patterns.md)
 **Status:** Accepted | **Data:** 2026-01-15
 
-**Context:** Distributed tracing cu vendor-neutral instrumentation.
+### ADR-0026: Graceful Shutdown Strategy
 
----
-
-### ADR-0026: Logging Standards cu Pino
-
-[View detailed ADR](../../adr/Etapa%200/ADR-0026-Logging-Standards-cu-Pino.md)
-
+[View detailed ADR](../../adr/Etapa%200/ADR-0026-Graceful-Shutdown-Strategy.md)
 **Status:** Accepted | **Data:** 2026-01-15
-
-**Context:** Structured logging cu OpenTelemetry correlation.
-
----
 
 ### ADR-0027: Container Resource Limits
 
 [View detailed ADR](../../adr/Etapa%200/ADR-0027-Container-Resource-Limits.md)
-
 **Status:** Accepted | **Data:** 2026-01-15
 
-**Context:** Resource limits pentru stabilitate container.
+### ADR-0028: Git Branching Strategy
 
----
-
-### ADR-0028: Container Hardening
-
-[View detailed ADR](../../adr/Etapa%200/ADR-0028-Container-Hardening.md)
-
+[View detailed ADR](../../adr/Etapa%200/ADR-0028-Git-Branching-Strategy.md)
 **Status:** Accepted | **Data:** 2026-01-15
 
-**Context:** Security hardening pentru containere (non-root, read-only, capabilities).
+### ADR-0029: Testing Strategy
 
----
-
-### ADR-0029: Network Security
-
-[View detailed ADR](../../adr/Etapa%200/ADR-0029-Network-Security.md)
-
+[View detailed ADR](../../adr/Etapa%200/ADR-0029-Testing-Strategy.md)
 **Status:** Accepted | **Data:** 2026-01-15
 
-**Context:** Network isolation și firewall rules.
+### ADR-0030: Environment Management
 
----
-
-### ADR-0030: TLS Certificates Strategy
-
-[View detailed ADR](../../adr/Etapa%200/ADR-0030-TLS-Certificates-Strategy.md)
-
+[View detailed ADR](../../adr/Etapa%200/ADR-0030-Environment-Management.md)
 **Status:** Accepted | **Data:** 2026-01-15
-
-**Context:** TLS certificate management cu Let's Encrypt și auto-renewal.
 
 ---
 
@@ -633,7 +486,7 @@ borg create \
   "descriere_task": "Ești un expert în structurare monorepo pentru aplicații fullstack. Task-ul tău este să creezi întreaga structură de directoare pentru proiectul Cerniq.app în /var/www/CerniqAPP conform arhitecturii definite. Structura TREBUIE să includă: apps/ cu subdirectoare api/ și web/, packages/ cu db/, shared-types/, config/, workers/ cu enrichment/, outreach/, ai/, infra/ cu docker/, scripts/, config/, docs/ cu adr/, architecture/. Setează permisiunile corecte (root:root, 755 pentru directoare). Creează fișiere placeholder .gitkeep în directoarele goale pentru tracking în git.",
   "director_implementare": "/var/www/CerniqAPP",
   "restrictii_antihalucinatie": [
-    "NU modifica structura definită în ADR-0020",
+    "NU modifica structura definită în ADR-0024",
     "NU crea directoare suplimentare nedocumentate",
     "NU uita directorul docs/adr/",
     "PĂSTREAZĂ exact naming-ul specificat (lowercase)"

@@ -324,7 +324,7 @@ OTEL_TRACES_SAMPLER_ARG=0.1  # Sample 10% in production
 # ===================
 NODE_ENV=development
 HOST=0.0.0.0
-PORT=4000
+PORT=64000
 APP_VERSION=0.1.0
 LOG_LEVEL=info
 

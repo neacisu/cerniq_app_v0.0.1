@@ -27,26 +27,12 @@
 
 | Port | Protocol | Service | Network | Access |
 | ---- | -------- | ------- | ------- | ------ |
-| 64000 | TCP | Fastify API | cerniq_backend | Via nginx only |
-| 64010 | TCP | React Web | cerniq_public | Via nginx only |
+| 64080 | TCP | Traefik HTTP Entry | cerniq_public | Via Nginx |
+| 64443 | TCP | Traefik HTTPS Entry | cerniq_public | Via Nginx |
+| 64000 | TCP | Fastify API | cerniq_backend | Internal/Debug |
+| 64010 | TCP | React Web | cerniq_public | Internal/Debug |
 | 64011 | TCP | Vite HMR | cerniq_public | Dev only |
-
-### Database & Cache
-
-| Port | Protocol | Service | Network | Access |
-| ---- | -------- | ------- | ------- | ------ |
-| 64032 | TCP | PostgreSQL | cerniq_data | **NEVER PUBLIC** |
-| 64039 | TCP | Redis | cerniq_data | **NEVER PUBLIC** |
-| 64042 | TCP | PgBouncer | cerniq_data | Internal only |
-
-### Observability
-
-| Port | Protocol | Service | Network | Access |
-| ---- | -------- | ------- | ------- | ------ |
-| 64070 | TCP | OTel gRPC | cerniq_backend | Internal only |
-| 64071 | TCP | OTel HTTP | cerniq_backend | Internal only |
-| 64080 | TCP | SigNoz UI | cerniq_backend | Via nginx only |
-| 64081 | TCP | Traefik Metrics | cerniq_backend | Internal only |
+| 64089 | TCP | SigNoz UI | cerniq_backend | Internal (Debug) |
 | 64082 | TCP | ClickHouse HTTP | cerniq_backend | Internal only |
 | 64083 | TCP | ClickHouse Native | cerniq_backend | Internal only |
 
@@ -87,11 +73,17 @@
     │     :443 → TLS + proxy_pass          │
     └───────────────────────────────────────┘
                         │
+                        ▼
+    ┌───────────────────────────────────────┐
+    │          TRAEFIK (INTERNAL)           │
+    │     HTTP :64080  |  HTTPS :64443      │
+    └───────────────────────────────────────┘
+                        │
         ┌───────────────┼───────────────┐
         ▼               ▼               ▼
     ┌────────┐     ┌────────┐     ┌────────┐
     │  API   │     │ SigNoz │     │  Web   │
-    │ :64000 │     │ :64080 │     │ :64010 │
+    │ :64000 │     │ :64089 │     │ :64010 │
     └────────┘     └────────┘     └────────┘
         │               │               │
         └───────────────┼───────────────┘
@@ -191,64 +183,30 @@ networks:
 ```nginx
 # /etc/nginx/sites-available/cerniq.app
 
-upstream cerniq_api {
-    server localhost:64000;
+upstream cerniq_traefik_http {
+    server localhost:64080;
     keepalive 32;
 }
 
-upstream cerniq_web {
-    server localhost:64010;
-    keepalive 16;
-}
-
-upstream cerniq_signoz {
-    server localhost:64080;
-    keepalive 8;
+upstream cerniq_traefik_https {
+    server localhost:64443;
+    keepalive 32;
 }
 
 server {
     listen 443 ssl http2;
-    server_name cerniq.app api.cerniq.app;
+    server_name cerniq.app *.cerniq.app;
 
     ssl_certificate /etc/letsencrypt/live/cerniq.app/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/cerniq.app/privkey.pem;
     include /etc/letsencrypt/options-ssl-nginx.conf;
 
     location / {
-        proxy_pass http://cerniq_api;
-        proxy_http_version 1.1;
+        proxy_pass http://cerniq_traefik_http;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-
-server {
-    listen 443 ssl http2;
-    server_name app.cerniq.app;
-
-    ssl_certificate /etc/letsencrypt/live/cerniq.app/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/cerniq.app/privkey.pem;
-
-    location / {
-        proxy_pass http://cerniq_web;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-    }
-}
-
-server {
-    listen 443 ssl http2;
-    server_name signoz.cerniq.app;
-
-    ssl_certificate /etc/letsencrypt/live/cerniq.app/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/cerniq.app/privkey.pem;
-
-    location / {
-        proxy_pass http://cerniq_signoz;
-        # Add auth_basic for production
     }
 }
 

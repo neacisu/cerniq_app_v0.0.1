@@ -11,7 +11,7 @@
 | Fișier | Conținut | Linii |
 | :--- | :--- | :--- |
 | [ADR-uri Etapa 0](../../adr/Etapa%200/) | 30 ADRs în directorul `/docs/adr/Etapa 0/` (ADR-0001 → ADR-0030) | 30 fișiere |
-| [Etapa0 plan implementare complet v2.md](Etapa0%20plan%20implementare%20complet%20v2.md) | 69 Tasks JSON pentru AI agents | ~3500 |
+| [Etapa0 plan implementare complet v2.md](Etapa0%20plan%20implementare%20complet%20v2.md) | 66 Tasks JSON pentru AI agents | ~3500 |
 
 ### 2. DOCUMENTE OPERAȚIONALE
 
@@ -44,7 +44,7 @@
 ## STATISTICI
 
 - **Total ADRs:** 30
-- **Total Tasks:** 69 (13 faze F0.1 → F0.13)
+- **Total Tasks:** 66 (13 faze F0.1 → F0.13)
 - **Total Documente:** 16 fișiere
 - **Dimensiune Totală:** ~250KB
 
@@ -73,11 +73,13 @@
 │       ├── backup-daily.sh             
 │       └── generate-secrets.sh
 ├── docs/
-│   └── etapa0/
-│       ├── adrs/                       ← ADRs split by number
-│       ├── runbook.md
-│       ├── backup.md
-│       └── ...
+│   ├── adr/
+│   │   └── Etapa 0/            ← ADRs numerotate (ADR-0001...)
+│   └── specifications/
+│       └── Etapa 0/            ← Specificatiile curente
+│           ├── etapa0-runbook-operational.md
+│           ├── etapa0-port-matrix.md
+│           └── ...
 └── secrets/                            ← Generate cu scripts
     ├── postgres_password
     ├── jwt_secret

@@ -165,7 +165,7 @@ docker exec cerniq-redis redis-cli ping
 # 5. Traefik dashboard (if enabled)
 echo ""
 echo "Checking Traefik..."
-curl -s http://localhost:64080/api/overview | jq .entryPoints
+curl -k -s -H "Host: traefik.cerniq.app" https://localhost:64443/api/overview | jq .entryPoints
 
 echo ""
 echo "=== VERIFICATION COMPLETE ==="
@@ -552,10 +552,10 @@ docker compose restart traefik
 
 ```bash
 # 1. Check Traefik dashboard
-curl http://localhost:64080/api/http/routers | jq .
+curl -k -H "Host: traefik.cerniq.app" https://localhost:64443/api/http/routers | jq .
 
 # 2. Check if service is discovered
-curl http://localhost:64080/api/http/services | jq .
+curl -k -H "Host: traefik.cerniq.app" https://localhost:64443/api/http/services | jq .
 
 # 3. Verify labels on container
 docker inspect <container> | jq '.[0].Config.Labels'
