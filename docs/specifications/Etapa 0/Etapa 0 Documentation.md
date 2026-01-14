@@ -12,16 +12,16 @@
 | :--- | :--- | :--- |
 | **Runtime API** | Node.js v24.12.0 LTS "Krypton" | Backend principal, V8 13.6 |
 | **Framework API** | Fastify v5.6.2 | Type Provider Zod, hook-based |
-| **AI/Worker Runtime** | Python 3.14.1 Free-Threading | True parallelism, no-GIL |
+| **AI/Worker Runtime** | Python 3.14.2 Free-Threading | True parallelism, no-GIL |
 | **Frontend** | React 19.2.3 | Actions, useOptimistic, Compiler |
 | **Admin Framework** | Refine v5 | Headless, Custom Data Provider |
 | **Database** | PostgreSQL 18.1 | AIO, uuidv7(), PostGIS, pgvector |
 | **ORM** | Drizzle ORM | SQL-like, drizzle-zod |
 | **Styling** | Tailwind v4.1+ | Oxide Engine (Rust) |
-| **Queue Manager** | BullMQ v5.66.0 | Redis 7.4.7 backend |
+| **Queue Manager** | BullMQ v5.66.5 | Redis 7.4.7 backend |
 | **Reverse Proxy** | Traefik v3.6.6 | Auto SSL/TLS, Docker provider |
 | **Package Manager** | PNPM 9.15+ | EXCLUSIV, no npm |
-| **Observability** | SigNoz v0.104.0 | OpenTelemetry-native |
+| **Observability** | SigNoz v0.106.0 | OpenTelemetry-native |
 | **Container Runtime** | Docker Engine 28.x | Compose v2.40+ |
 
 #### 1.2 Principii Arhitecturale
@@ -90,8 +90,8 @@ networks:
 | 443 | Traefik HTTPS | Public | TLS termination |
 | 443/udp | Traefik HTTP/3 | Public | QUIC |
 | 4000 | API Gateway | Intern | Fastify |
-| 4317 | OTel gRPC | Intern | Traces/Metrics |
-| 4318 | OTel HTTP | Intern | Logs |
+| 64070 | OTel gRPC | Intern | Traces/Metrics |
+| 64071 | OTel HTTP | Intern | Logs |
 | 5432 | PostgreSQL | Intern | Never public |
 | 6379 | Redis | Intern | BullMQ |
 | 6432 | PgBouncer | Intern | Connection pool |
@@ -353,23 +353,23 @@ borg create \
 
 ---
 
-### ADR-0008: React 19 cu Refine v5
+### ADR-0008: Fastify v5.6.2 ca API Framework
 
-[View detailed ADR](../../adr/Etapa%200/ADR-0008-React-19-cu-Refine-v5.md)
+[View detailed ADR](../../adr/Etapa%200/ADR-0008-Fastify-v5-6-2-ca-API-Framework.md)
 
 **Status:** Accepted | **Data:** 2026-01-15
 
-**Context:** Frontend admin pentru CRUD operations și dashboards.
+**Context:** API Framework performant cu suport TypeScript și schema validation.
 
 ---
 
-### ADR-0009: SigNoz pentru Observability
+### ADR-0009: Zod pentru Validation Strategy
 
-[View detailed ADR](../../adr/Etapa%200/ADR-0009-SigNoz-pentru-Observability.md)
+[View detailed ADR](../../adr/Etapa%200/ADR-0009-Zod-pentru-Validation-Strategy.md)
 
 **Status:** Accepted | **Data:** 2026-01-15
 
-**Context:** APM, logging și tracing într-o soluție unificată.
+**Context:** Strategie unificată de validare cu type inference pentru TypeScript.
 
 ---
 
@@ -393,13 +393,13 @@ borg create \
 
 ---
 
-### ADR-0012: Vertical Slice Architecture
+### ADR-0012: React 19 cu Refine v5
 
-[View detailed ADR](../../adr/Etapa%200/ADR-0012-Vertical-Slice-Architecture.md)
+[View detailed ADR](../../adr/Etapa%200/ADR-0012-React-19-cu-Refine-v5.md)
 
 **Status:** Accepted | **Data:** 2026-01-15
 
-**Context:** Organizare cod pentru echipă mică (1-person team).
+**Context:** Frontend admin pentru CRUD operations și dashboards.
 
 ---
 
@@ -413,33 +413,33 @@ borg create \
 
 ---
 
-### ADR-0014: Port Allocation Strategy
+### ADR-0014: Naming Conventions
 
-[View detailed ADR](../../adr/Etapa%200/ADR-0014-Port-Allocation-Strategy.md)
+[View detailed ADR](../../adr/Etapa%200/ADR-0014-Naming-Conventions.md)
 
 **Status:** Accepted | **Data:** 2026-01-15
 
-**Context:** Standardizare porturi pentru Docker services.
+**Context:** Consistență naming între layers și componente.
 
 ---
 
-### ADR-0015: Logging Standards cu Pino
+### ADR-0015: Directory Structure Standard
 
-[View detailed ADR](../../adr/Etapa%200/ADR-0015-Logging-Standards-cu-Pino.md)
+[View detailed ADR](../../adr/Etapa%200/ADR-0015-Directory-Structure-Standard.md)
 
 **Status:** Accepted | **Data:** 2026-01-15
 
-**Context:** Structured logging cu OpenTelemetry correlation.
+**Context:** Structurare monorepo pentru scalabilitate.
 
 ---
 
-### ADR-0016: Naming Conventions
+### ADR-0016: SigNoz pentru Observability
 
-[View detailed ADR](../../adr/Etapa%200/ADR-0016-Naming-Conventions.md)
+[View detailed ADR](../../adr/Etapa%200/ADR-0016-SigNoz-pentru-Observability.md)
 
 **Status:** Accepted | **Data:** 2026-01-15
 
-**Context:** Consistență naming între layers.
+**Context:** APM, logging și tracing într-o soluție unificată.
 
 ---
 
@@ -473,13 +473,113 @@ borg create \
 
 ---
 
-### ADR-0020: Directory Structure Standard
+### ADR-0020: Backup Strategy BorgBackup
 
-[View detailed ADR](../../adr/Etapa%200/ADR-0020-Directory-Structure-Standard.md)
+[View detailed ADR](../../adr/Etapa%200/ADR-0020-Backup-Strategy-BorgBackup.md)
 
 **Status:** Accepted | **Data:** 2026-01-15
 
-**Context:** Structurare monorepo pentru scalabilitate.
+**Context:** Strategie backup cu deduplicare și encriptare pentru disaster recovery.
+
+---
+
+### ADR-0021: Drizzle Kit pentru Migrations
+
+[View detailed ADR](../../adr/Etapa%200/ADR-0021-Drizzle-Kit-pentru-Migrations.md)
+
+**Status:** Accepted | **Data:** 2026-01-15
+
+**Context:** Migrații database type-safe cu versioning.
+
+---
+
+### ADR-0022: Port Allocation Strategy
+
+[View detailed ADR](../../adr/Etapa%200/ADR-0022-Port-Allocation-Strategy.md)
+
+**Status:** Accepted | **Data:** 2026-01-15
+
+**Context:** Standardizare porturi pentru Docker services.
+
+---
+
+### ADR-0023: Vitest pentru Unit Testing
+
+[View detailed ADR](../../adr/Etapa%200/ADR-0023-Vitest-pentru-Unit-Testing.md)
+
+**Status:** Accepted | **Data:** 2026-01-15
+
+**Context:** Framework unit testing rapid cu suport TypeScript nativ.
+
+---
+
+### ADR-0024: Playwright pentru E2E Testing
+
+[View detailed ADR](../../adr/Etapa%200/ADR-0024-Playwright-pentru-E2E-Testing.md)
+
+**Status:** Accepted | **Data:** 2026-01-15
+
+**Context:** E2E testing cross-browser cu auto-waiting.
+
+---
+
+### ADR-0025: OpenTelemetry pentru Tracing
+
+[View detailed ADR](../../adr/Etapa%200/ADR-0025-OpenTelemetry-pentru-Tracing.md)
+
+**Status:** Accepted | **Data:** 2026-01-15
+
+**Context:** Distributed tracing cu vendor-neutral instrumentation.
+
+---
+
+### ADR-0026: Logging Standards cu Pino
+
+[View detailed ADR](../../adr/Etapa%200/ADR-0026-Logging-Standards-cu-Pino.md)
+
+**Status:** Accepted | **Data:** 2026-01-15
+
+**Context:** Structured logging cu OpenTelemetry correlation.
+
+---
+
+### ADR-0027: Container Resource Limits
+
+[View detailed ADR](../../adr/Etapa%200/ADR-0027-Container-Resource-Limits.md)
+
+**Status:** Accepted | **Data:** 2026-01-15
+
+**Context:** Resource limits pentru stabilitate container.
+
+---
+
+### ADR-0028: Container Hardening
+
+[View detailed ADR](../../adr/Etapa%200/ADR-0028-Container-Hardening.md)
+
+**Status:** Accepted | **Data:** 2026-01-15
+
+**Context:** Security hardening pentru containere (non-root, read-only, capabilities).
+
+---
+
+### ADR-0029: Network Security
+
+[View detailed ADR](../../adr/Etapa%200/ADR-0029-Network-Security.md)
+
+**Status:** Accepted | **Data:** 2026-01-15
+
+**Context:** Network isolation și firewall rules.
+
+---
+
+### ADR-0030: TLS Certificates Strategy
+
+[View detailed ADR](../../adr/Etapa%200/ADR-0030-TLS-Certificates-Strategy.md)
+
+**Status:** Accepted | **Data:** 2026-01-15
+
+**Context:** TLS certificate management cu Let's Encrypt și auto-renewal.
 
 ---
 
@@ -682,9 +782,9 @@ borg create \
 ```json
 {
   "taskID": "F0.5.1.T001",
-  "denumire_task": "Creare Docker Compose pentru SigNoz v0.104.0",
+  "denumire_task": "Creare Docker Compose pentru SigNoz v0.106.0",
   "context_anterior": "Infrastructură de bază completă, observability absent",
-  "descriere_task": "Ești un expert observability și OpenTelemetry. Task-ul tău este să adaugi SigNoz v0.104.0 în docker-compose.yml. Servicii necesare: 1) zookeeper (signoz/zookeeper:3.7.1), 2) clickhouse (clickhouse/clickhouse-server:25.5.6) cu healthcheck și volume, 3) schema-migrator-sync pentru migrații, 4) signoz (signoz/signoz:v0.104.0) pe port 8080, 5) otel-collector (signoz/signoz-otel-collector:v0.129.12) pe ports 4317 (gRPC) și 4318 (HTTP). Toate pe network cerniq_backend. Configure retention 7 zile logs, 30 zile metrics.",
+  "descriere_task": "Ești un expert observability și OpenTelemetry. Task-ul tău este să adaugi SigNoz v0.106.0 în docker-compose.yml. Servicii necesare: 1) zookeeper (signoz/zookeeper:3.7.1), 2) clickhouse (clickhouse/clickhouse-server:25.12.3) cu healthcheck și volume, 3) schema-migrator-sync pentru migrații, 4) signoz (signoz/signoz:v0.106.0) pe port 64080, 5) otel-collector (signoz/signoz-otel-collector:v0.129.12) pe ports 64070 (gRPC) și 64071 (HTTP). Toate pe network cerniq_backend. Configure retention 7 zile logs, 30 zile metrics.",
   "director_implementare": "/var/www/CerniqAPP/infra/docker",
   "restrictii_antihalucinatie": [
     "NU expune ClickHouse direct la public",
@@ -692,7 +792,7 @@ borg create \
     "VERIFICĂ compatibilitatea versiunilor între componente",
     "NU seta retention mai mare de 30 zile fără calcul storage"
   ],
-  "validare_task": "SigNoz UI accesibil pe port 8080; OTel collector primește traces pe 4317; ClickHouse healthy",
+  "validare_task": "SigNoz UI accesibil pe port 64080; OTel collector primește traces pe 64070; ClickHouse healthy",
   "outcome": "Stack observability SigNoz complet și funcțional"
 }
 ```

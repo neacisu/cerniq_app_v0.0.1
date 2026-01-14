@@ -2,51 +2,69 @@
 
 ## Documentație Porturi și Firewall Rules
 
-### Versiunea 1.0 | 15 Ianuarie 2026
+### Versiunea 2.0 | 14 Ianuarie 2026
 
 ---
 
 ## PORT ALLOCATION MATRIX
 
-## EXTERNAL PORTS (Expuse Public)
+> [!IMPORTANT]
+> Cerniq.app folosește range **64000-64099** pentru toate serviciile interne.
+> Acces extern doar prin nginx reverse proxy pe 80/443.
+
+## EXTERNAL PORTS (Expuse Public via nginx)
 
 | Port | Protocol | Service | Network | Firewall Rule |
-| ------ | -------- | ------- | ------- | ------------- |
+| ---- | -------- | ------- | ------- | ------------- |
 | 22 | TCP | SSH | Host | ALLOW from admin IPs only |
-| 80 | TCP | Traefik HTTP | cerniq_public | ALLOW all (redirect to 443) |
-| 443 | TCP | Traefik HTTPS | cerniq_public | ALLOW all |
-| 443 | UDP | Traefik HTTP/3 | cerniq_public | ALLOW all |
+| 80 | TCP | nginx HTTP | Host | ALLOW all (redirect to 443) |
+| 443 | TCP | nginx HTTPS | Host | ALLOW all |
+| 443 | UDP | HTTP/3 QUIC | Host | ALLOW all (optional) |
 
-## INTERNAL PORTS (Docker Networks Only)
+## INTERNAL PORTS — CERNIQ.APP (64000-64099)
+
+### Application Services
 
 | Port | Protocol | Service | Network | Access |
-| ------ | -------- | ------- | ------- | ------ |
-| 4000 | TCP | API Fastify | cerniq_backend | Internal only |
-| 4317 | TCP | OTel gRPC | cerniq_backend | Internal only |
-| 4318 | TCP | OTel HTTP | cerniq_backend | Internal only |
-| 5432 | TCP | PostgreSQL | cerniq_data | **NEVER PUBLIC** |
-| 6379 | TCP | Redis | cerniq_data | **NEVER PUBLIC** |
-| 6432 | TCP | PgBouncer | cerniq_data | Internal only |
-| 8080 | TCP | SigNoz UI | cerniq_backend | Via Traefik only |
-| 8082 | TCP | Traefik Metrics | cerniq_backend | Internal only |
-| 8123 | TCP | ClickHouse HTTP | cerniq_backend | Internal only |
-| 9000 | TCP | ClickHouse Native | cerniq_backend | Internal only |
-| 9323 | TCP | Docker Metrics | Host | Internal only |
+| ---- | -------- | ------- | ------- | ------ |
+| 64000 | TCP | Fastify API | cerniq_backend | Via nginx only |
+| 64010 | TCP | React Web | cerniq_public | Via nginx only |
+| 64011 | TCP | Vite HMR | cerniq_public | Dev only |
 
-## PORT RANGES BY SERVICE TYPE
+### Database & Cache
 
-| Range | Purpose | Examples |
-| ----- | ------- | -------- |
-| 80, 443 | Public HTTP/HTTPS | Traefik |
-| 3000-3099 | Frontend Development | React dev server (3000) |
-| 4000-4099 | API Services | Fastify (4000), GraphQL (4001) |
-| 4317-4318 | OpenTelemetry | OTLP gRPC (4317), HTTP (4318) |
-| 5000-5099 | Background Workers | Python workers |
-| 5432 | PostgreSQL | Database |
-| 6379-6399 | Redis | Cache/Queue |
-| 6432 | PgBouncer | Connection pooling |
-| 8000-8099 | Admin UIs | SigNoz (8080), Traefik (8082) |
-| 9000-9099 | Monitoring | ClickHouse (9000), Prometheus |
+| Port | Protocol | Service | Network | Access |
+| ---- | -------- | ------- | ------- | ------ |
+| 64032 | TCP | PostgreSQL | cerniq_data | **NEVER PUBLIC** |
+| 64039 | TCP | Redis | cerniq_data | **NEVER PUBLIC** |
+| 64042 | TCP | PgBouncer | cerniq_data | Internal only |
+
+### Observability
+
+| Port | Protocol | Service | Network | Access |
+| ---- | -------- | ------- | ------- | ------ |
+| 64070 | TCP | OTel gRPC | cerniq_backend | Internal only |
+| 64071 | TCP | OTel HTTP | cerniq_backend | Internal only |
+| 64080 | TCP | SigNoz UI | cerniq_backend | Via nginx only |
+| 64081 | TCP | Traefik Metrics | cerniq_backend | Internal only |
+| 64082 | TCP | ClickHouse HTTP | cerniq_backend | Internal only |
+| 64083 | TCP | ClickHouse Native | cerniq_backend | Internal only |
+
+### Reserved
+
+| Range | Purpose |
+| ----- | ------- |
+| 64090-64099 | Future workers, services |
+
+---
+
+## PORT RANGES COMPARISON
+
+| Application | Range | Status |
+| ----------- | ----- | ------ |
+| Cerniq.app | 64000-64099 | ✅ Active |
+| Neanelu | 65000-65099 | ✅ In use |
+| GeniusERP | 5000 | ✅ In use |
 
 ---
 
@@ -64,17 +82,17 @@
                         │
                         ▼
     ┌───────────────────────────────────────┐
-    │     TRAEFIK (cerniq_public)          │
+    │     NGINX REVERSE PROXY               │
     │     :80 → redirect :443              │
-    │     :443 → TLS termination           │
+    │     :443 → TLS + proxy_pass          │
     └───────────────────────────────────────┘
                         │
         ┌───────────────┼───────────────┐
         ▼               ▼               ▼
-    ┌───────┐      ┌───────┐      ┌───────┐
-    │  API  │      │SigNoz │      │  Web  │
-    │ :4000 │      │ :8080 │      │ :3000 │
-    └───────┘      └───────┘      └───────┘
+    ┌────────┐     ┌────────┐     ┌────────┐
+    │  API   │     │ SigNoz │     │  Web   │
+    │ :64000 │     │ :64080 │     │ :64010 │
+    └────────┘     └────────┘     └────────┘
         │               │               │
         └───────────────┼───────────────┘
                         │
@@ -82,18 +100,18 @@
                         │
         ┌───────────────┴───────────────┐
         ▼                               ▼
-    ┌───────┐                      ┌───────┐
-    │ Redis │                      │OTel   │
-    │ :6379 │                      │:4317  │
-    └───────┘                      └───────┘
+    ┌────────┐                     ┌────────┐
+    │ Redis  │                     │  OTel  │
+    │ :64039 │                     │ :64070 │
+    └────────┘                     └────────┘
         │
         ▼
     cerniq_data (strict internal)
         │
-    ┌───────┐
-    │Postgre│
-    │ :5432 │
-    └───────┘
+    ┌────────┐
+    │Postgres│
+    │ :64032 │
+    └────────┘
 ```
 
 ---
@@ -115,13 +133,10 @@ sudo ufw default allow outgoing
 # SSH (restrict to admin IPs in production)
 sudo ufw allow 22/tcp comment 'SSH'
 
-# HTTP/HTTPS for Traefik
+# HTTP/HTTPS for nginx
 sudo ufw allow 80/tcp comment 'HTTP'
 sudo ufw allow 443/tcp comment 'HTTPS'
 sudo ufw allow 443/udp comment 'HTTP/3 QUIC'
-
-# Docker metrics (localhost only)
-sudo ufw allow from 127.0.0.1 to any port 9323 comment 'Docker metrics'
 
 # Enable UFW
 sudo ufw --force enable
@@ -140,20 +155,17 @@ networks:
   cerniq_public:
     external: true
     # Subnet: 172.20.0.0/24
-    # Gateway: 172.20.0.1
-    # Services: traefik, api (public interface)
+    # Services: nginx interface, web
     
   cerniq_backend:
     external: true
     # Subnet: 172.21.0.0/24
-    # Gateway: 172.21.0.1
     # Internal: true (no external access)
     # Services: api, workers, signoz, otel-collector, redis
     
   cerniq_data:
     external: true
     # Subnet: 172.22.0.0/24
-    # Gateway: 172.22.0.1
     # Internal: true (strict isolation)
     # Services: postgres, redis
 ```
@@ -162,46 +174,120 @@ networks:
 
 ## SERVICE-TO-PORT MAPPING
 
-| Service | Container Name | Ports | Networks |
-| ------- | -------------- | ----- | -------- |
-| Traefik | cerniq-traefik | 80, 443, 443/udp, 8082 | cerniq_public |
-| API | cerniq-api | 4000 | cerniq_public, cerniq_backend |
-| Web | cerniq-web | 3000 | cerniq_public |
-| PostgreSQL | cerniq-postgres | 5432 | cerniq_data |
-| Redis | cerniq-redis | 6379 | cerniq_data, cerniq_backend |
-| SigNoz | cerniq-signoz | 8080 | cerniq_backend |
-| OTel Collector | cerniq-otel | 4317, 4318 | cerniq_backend |
-| ClickHouse | cerniq-clickhouse | 8123, 9000 | cerniq_backend |
+| Service | Container Name | Port | Networks |
+| ------- | -------------- | ---- | -------- |
+| API | cerniq-api | 64000 | cerniq_backend |
+| Web | cerniq-web | 64010 | cerniq_public |
+| PostgreSQL | cerniq-postgres | 64032 | cerniq_data |
+| Redis | cerniq-redis | 64039 | cerniq_data, cerniq_backend |
+| SigNoz | cerniq-signoz | 64080 | cerniq_backend |
+| OTel Collector | cerniq-otel | 64070, 64071 | cerniq_backend |
+| ClickHouse | cerniq-clickhouse | 64082, 64083 | cerniq_backend |
+
+---
+
+## NGINX CONFIGURATION
+
+```nginx
+# /etc/nginx/sites-available/cerniq.app
+
+upstream cerniq_api {
+    server localhost:64000;
+    keepalive 32;
+}
+
+upstream cerniq_web {
+    server localhost:64010;
+    keepalive 16;
+}
+
+upstream cerniq_signoz {
+    server localhost:64080;
+    keepalive 8;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name cerniq.app api.cerniq.app;
+
+    ssl_certificate /etc/letsencrypt/live/cerniq.app/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/cerniq.app/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+
+    location / {
+        proxy_pass http://cerniq_api;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+server {
+    listen 443 ssl http2;
+    server_name app.cerniq.app;
+
+    ssl_certificate /etc/letsencrypt/live/cerniq.app/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/cerniq.app/privkey.pem;
+
+    location / {
+        proxy_pass http://cerniq_web;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+}
+
+server {
+    listen 443 ssl http2;
+    server_name signoz.cerniq.app;
+
+    ssl_certificate /etc/letsencrypt/live/cerniq.app/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/cerniq.app/privkey.pem;
+
+    location / {
+        proxy_pass http://cerniq_signoz;
+        # Add auth_basic for production
+    }
+}
+
+server {
+    listen 80;
+    server_name cerniq.app *.cerniq.app;
+    return 301 https://$host$request_uri;
+}
+```
 
 ---
 
 ## SECURITY RULES
 
-## CRITICAL: Ports That Must NEVER Be Public
+### CRITICAL: Ports That Must NEVER Be Public
 
 | Port | Service | Risk if Exposed |
 | ---- | ------- | --------------- |
-| 5432 | PostgreSQL | Direct database access, data breach |
-| 6379 | Redis | Cache poisoning, job manipulation |
-| 9000 | ClickHouse | Telemetry data access |
-| 8080 | SigNoz | Internal metrics exposure |
+| 64032 | PostgreSQL | Direct database access, data breach |
+| 64039 | Redis | Cache poisoning, job manipulation |
+| 64083 | ClickHouse | Telemetry data access |
 
-## Verification Commands
+### Verification Commands
 
 ```bash
-# Check no database ports are exposed
-ss -tlnp | grep -E ':(5432|6379)' | grep -v '127.0.0.1'
+# Check no database ports are exposed externally
+ss -tlnp | grep -E ':(64032|64039)' | grep -v '127.0.0.1'
 # Should return EMPTY
 
-# Check only expected ports are listening on 0.0.0.0
-ss -tlnp | grep '0.0.0.0'
-# Should only show: 22, 80, 443
+# Check Cerniq services are listening
+ss -tlnp | grep -E ':640[0-9]{2}'
+# Should show all 64xxx ports
 
 # Verify from external host
-nmap -p 5432,6379,9000 <server-ip>
+nmap -p 64000-64099 <server-ip>
 # All should be filtered/closed
 ```
 
 ---
 
-**Document generat:** 15 Ianuarie 2026
+**Document generat:** 14 Ianuarie 2026  
+**Versiune:** 2.0 (migrare la range 64000+)

@@ -91,8 +91,8 @@ import { beforeAll, afterAll, beforeEach } from 'vitest';
 
 // Mock environment
 process.env.NODE_ENV = 'test';
-process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/cerniq_test';
-process.env.REDIS_URL = 'redis://localhost:6379/1';
+process.env.DATABASE_URL = 'postgresql://test:test@localhost:64032/cerniq_test';
+process.env.REDIS_URL = 'redis://localhost:64039/1';
 
 // Global mocks
 vi.mock('@/lib/logger', () => ({
@@ -378,7 +378,7 @@ export default defineConfig({
   reporter: 'html',
   
   use: {
-    baseURL: process.env.E2E_BASE_URL || 'http://localhost:3000',
+    baseURL: process.env.E2E_BASE_URL || 'http://localhost:64010',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure'
   },
@@ -392,7 +392,7 @@ export default defineConfig({
 
   webServer: {
     command: 'pnpm dev',
-    url: 'http://localhost:3000',
+    url: 'http://localhost:64010',
     reuseExistingServer: !process.env.CI
   }
 });

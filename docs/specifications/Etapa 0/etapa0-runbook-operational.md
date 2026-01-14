@@ -123,7 +123,7 @@ docker exec cerniq-redis redis-cli ping  # Should return PONG
 ```bash
 cd /var/www/CerniqAPP/infra/docker
 docker compose up -d api
-curl http://localhost:4000/health/ready  # Check health
+curl http://localhost:64000/health/ready  # Check health
 ```
 
 ## 1.3 Post-Startup Verification Checklist
@@ -149,8 +149,8 @@ done
 # 2. Health checks
 echo ""
 echo "Checking health endpoints..."
-curl -s http://localhost:4000/health/live | jq .
-curl -s http://localhost:4000/health/ready | jq .
+curl -s http://localhost:64000/health/live | jq .
+curl -s http://localhost:64000/health/ready | jq .
 
 # 3. Database connectivity
 echo ""
@@ -165,7 +165,7 @@ docker exec cerniq-redis redis-cli ping
 # 5. Traefik dashboard (if enabled)
 echo ""
 echo "Checking Traefik..."
-curl -s http://localhost:8080/api/overview | jq .entryPoints
+curl -s http://localhost:64080/api/overview | jq .entryPoints
 
 echo ""
 echo "=== VERIFICATION COMPLETE ==="
@@ -552,10 +552,10 @@ docker compose restart traefik
 
 ```bash
 # 1. Check Traefik dashboard
-curl http://localhost:8080/api/http/routers | jq .
+curl http://localhost:64080/api/http/routers | jq .
 
 # 2. Check if service is discovered
-curl http://localhost:8080/api/http/services | jq .
+curl http://localhost:64080/api/http/services | jq .
 
 # 3. Verify labels on container
 docker inspect <container> | jq '.[0].Config.Labels'

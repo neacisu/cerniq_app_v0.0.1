@@ -15,7 +15,7 @@ Necesităm observability stack unificat pentru:
 
 ## Decizie
 
-Utilizăm **SigNoz v0.104.0** self-hosted cu ClickHouse.
+Utilizăm **SigNoz v0.106.0** self-hosted cu ClickHouse.
 
 ## Consecințe
 
@@ -31,9 +31,9 @@ Utilizăm **SigNoz v0.104.0** self-hosted cu ClickHouse.
 ```yaml
 services:
   signoz:
-    image: signoz/signoz:v0.104.0
+    image: signoz/signoz:v0.106.0
     ports:
-      - "8080:8080"
+      - "64080:8080"  # Internal 8080 exposed as 64080
     depends_on:
       - clickhouse
     networks:
@@ -42,8 +42,8 @@ services:
   otel-collector:
     image: signoz/signoz-otel-collector:v0.129.12
     ports:
-      - "4317:4317"  # gRPC OTLP
-      - "4318:4318"  # HTTP OTLP
+      - "64070:4317"  # gRPC OTLP
+      - "64071:4318"  # HTTP OTLP
 ```
 
 ### Retention Policy

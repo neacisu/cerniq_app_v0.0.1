@@ -10,8 +10,8 @@
 
 | Fișier | Conținut | Linii |
 | :--- | :--- | :--- |
-| `etapa0-adrs-complete.md` | 30 ADRs complete (ADR-0001 → ADR-0030) | ~1500 |
-| `etapa0-plan-implementare-complet.md` | 69 Tasks JSON pentru AI agents | ~3500 |
+| [ADR-uri Etapa 0](../../adr/Etapa%200/) | 30 ADRs în directorul `/docs/adr/Etapa 0/` (ADR-0001 → ADR-0030) | 30 fișiere |
+| [Etapa0 plan implementare complet v2.md](Etapa0%20plan%20implementare%20complet%20v2.md) | 69 Tasks JSON pentru AI agents | ~3500 |
 
 ### 2. DOCUMENTE OPERAȚIONALE
 
@@ -26,16 +26,18 @@
 | `etapa0-logging-standards.md` | Pino config, PII redaction, SigNoz integration |
 | `etapa0-testing-strategy.md` | Unit/Integration/E2E tests, coverage requirements |
 
-### 3. FIȘIERE CONFIGURARE (Ready to Deploy)
+### 3. FIȘIERE CONFIGURARE (De creat în Etapa Implementare)
 
-| Fișier | Utilizare |
+> **NOTĂ:** Aceste fișiere vor fi generate în timpul fazei de implementare conform task-urilor din planul de implementare.
+
+| Fișier Target | Utilizare |
 | :--- | :--- |
-| `etapa0-docker-compose-complete.yaml` | docker-compose.yml complet |
-| `etapa0-traefik-config.yaml` | traefik.yml static config |
-| `etapa0-traefik-middlewares.yaml` | middlewares.yml dynamic config |
-| `etapa0-postgresql-config.conf` | postgresql.conf optimized 128GB |
-| `etapa0-postgresql-init.sql` | init.sql (extensions, schemas, RLS) |
-| `etapa0-otel-collector-config.yaml` | OTel Collector pentru SigNoz |
+| `infra/docker/docker-compose.yml` | Compose file complet |
+| `infra/docker/traefik/traefik.yml` | Traefik static config |
+| `infra/docker/traefik/dynamic/middlewares.yml` | Traefik dynamic config |
+| `infra/docker/config/postgres/postgresql.conf` | PostgreSQL optimized 128GB |
+| `infra/docker/config/postgres/init.sql` | Init (extensions, schemas, RLS) |
+| `infra/docker/config/otel/otel-collector-config.yaml` | OTel Collector pentru SigNoz |
 
 ---
 
@@ -65,11 +67,11 @@
 │   │       │   └── init.sql            ← etapa0-postgresql-init.sql
 │   │       └── otel/
 │   │           └── otel-collector-config.yaml ← etapa0-otel-collector-config.yaml
-│   └── scripts/
-│       ├── startup.sh                  ← din runbook
-│       ├── shutdown.sh                 ← din runbook
-│       ├── backup-daily.sh             ← din backup procedures
-│       └── generate-secrets.sh         ← din secrets guide
+│   └── scripts/                         ← De creat în implementare (cu referentiere din runbook.md)
+│       ├── startup.sh                  
+│       ├── shutdown.sh                 
+│       ├── backup-daily.sh             
+│       └── generate-secrets.sh
 ├── docs/
 │   └── etapa0/
 │       ├── adrs/                       ← ADRs split by number

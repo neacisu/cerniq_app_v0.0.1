@@ -29,7 +29,7 @@
 | -------- | -------- | ------- | ----------- |
 | `NODE_ENV` | Yes | `development` | Environment: development, staging, production |
 | `HOST` | No | `0.0.0.0` | API server bind address |
-| `PORT` | No | `4000` | API server port |
+| `PORT` | No | `64000` | API server port |
 | `APP_VERSION` | No | `0.1.0` | Application version for logging/telemetry |
 | `LOG_LEVEL` | No | `info` | Pino log level: trace, debug, info, warn, error, fatal |
 | `SHUTDOWN_TIMEOUT` | No | `30000` | Graceful shutdown timeout in milliseconds |
@@ -39,7 +39,7 @@
 ```bash
 NODE_ENV=production
 HOST=0.0.0.0
-PORT=4000
+PORT=64000
 APP_VERSION=0.1.0
 LOG_LEVEL=info
 SHUTDOWN_TIMEOUT=30000
@@ -56,7 +56,7 @@ SHUTDOWN_TIMEOUT=30000
 | `DATABASE_URL` | Yes* | - | Full PostgreSQL connection string |
 | `DATABASE_URL_FILE` | Yes* | - | Path to file containing DATABASE_URL (Docker secrets) |
 | `POSTGRES_HOST` | No | `postgres` | PostgreSQL hostname |
-| `POSTGRES_PORT` | No | `5432` | PostgreSQL port |
+| `POSTGRES_PORT` | No | `64032` | PostgreSQL port |
 | `POSTGRES_USER` | No | `cerniq` | PostgreSQL username |
 | `POSTGRES_PASSWORD` | Yes* | - | PostgreSQL password |
 | `POSTGRES_PASSWORD_FILE` | Yes* | - | Path to password file (Docker secrets) |
@@ -70,11 +70,11 @@ SHUTDOWN_TIMEOUT=30000
 
 ```bash
 # Option 1: Connection string
-DATABASE_URL=postgresql://cerniq:password@postgres:5432/cerniq_production
+DATABASE_URL=postgresql://cerniq:password@postgres:64032/cerniq_production
 
 # Option 2: Individual components
 POSTGRES_HOST=postgres
-POSTGRES_PORT=5432
+POSTGRES_PORT=64032
 POSTGRES_USER=cerniq
 POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password
 POSTGRES_DB=cerniq_production
@@ -89,7 +89,7 @@ DATABASE_POOL_MAX=20
 | Variable | Required | Default | Description |
 | -------- | -------- | ------- | ----------- |
 | `PGBOUNCER_HOST` | No | - | PgBouncer hostname (if using) |
-| `PGBOUNCER_PORT` | No | `6432` | PgBouncer port |
+| `PGBOUNCER_PORT` | No | `64042` | PgBouncer port |
 
 ---
 
@@ -100,7 +100,7 @@ DATABASE_POOL_MAX=20
 | `REDIS_URL` | Yes* | - | Full Redis connection string |
 | `REDIS_URL_FILE` | Yes* | - | Path to file containing REDIS_URL |
 | `REDIS_HOST` | No | `redis` | Redis hostname |
-| `REDIS_PORT` | No | `6379` | Redis port |
+| `REDIS_PORT` | No | `64039` | Redis port |
 | `REDIS_PASSWORD` | No | - | Redis password (if AUTH enabled) |
 | `REDIS_PASSWORD_FILE` | No | - | Path to password file |
 | `REDIS_DB` | No | `0` | Redis database number |
@@ -109,11 +109,11 @@ DATABASE_POOL_MAX=20
 
 ```bash
 # Option 1: Connection string
-REDIS_URL=redis://redis:6379/0
+REDIS_URL=redis://redis:64039/0
 
 # Option 2: Individual components
 REDIS_HOST=redis
-REDIS_PORT=6379
+REDIS_PORT=64039
 REDIS_DB=0
 ```
 
@@ -244,7 +244,7 @@ OPENAI_API_KEY_FILE=/run/secrets/openai_api_key
 
 | Variable | Required | Default | Description |
 | -------- | -------- | ------- | ----------- |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | No | `http://otel-collector:4317` | OTel collector endpoint |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | No | `http://otel-collector:64070` | OTel collector endpoint |
 | `OTEL_EXPORTER_OTLP_PROTOCOL` | No | `grpc` | Protocol: grpc or http/protobuf |
 | `OTEL_SERVICE_NAME` | No | `cerniq-api` | Service name for traces |
 | `OTEL_TRACES_SAMPLER` | No | `parentbased_traceidratio` | Sampling strategy |
@@ -260,7 +260,7 @@ OPENAI_API_KEY_FILE=/run/secrets/openai_api_key
 **Exemplu .env:**
 
 ```bash
-OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:64070
 OTEL_EXPORTER_OTLP_PROTOCOL=grpc
 OTEL_SERVICE_NAME=cerniq-api
 OTEL_TRACES_SAMPLER=parentbased_traceidratio
@@ -277,8 +277,8 @@ OTEL_TRACES_SAMPLER_ARG=1.0
 # .env.development
 NODE_ENV=development
 LOG_LEVEL=debug
-DATABASE_URL=postgresql://cerniq:devpassword@localhost:5432/cerniq_dev
-REDIS_URL=redis://localhost:6379/0
+DATABASE_URL=postgresql://cerniq:devpassword@localhost:64032/cerniq_dev
+REDIS_URL=redis://localhost:64039/0
 JWT_SECRET=dev-secret-not-for-production
 COOKIE_SECRET=dev-cookie-secret
 COOKIE_SECURE=false
@@ -331,14 +331,14 @@ LOG_LEVEL=info
 # ===================
 # DATABASE
 # ===================
-DATABASE_URL=postgresql://cerniq:password@localhost:5432/cerniq_dev
+DATABASE_URL=postgresql://cerniq:password@localhost:64032/cerniq_dev
 DATABASE_POOL_MIN=2
 DATABASE_POOL_MAX=20
 
 # ===================
 # REDIS
 # ===================
-REDIS_URL=redis://localhost:6379/0
+REDIS_URL=redis://localhost:64039/0
 BULLMQ_PREFIX={cerniq}
 BULLMQ_CONCURRENCY=5
 
@@ -369,7 +369,7 @@ COOKIE_SECURE=false
 # ===================
 # OBSERVABILITY
 # ===================
-OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:64070
 OTEL_SERVICE_NAME=cerniq-api
 ```
 

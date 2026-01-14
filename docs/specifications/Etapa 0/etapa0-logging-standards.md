@@ -349,7 +349,7 @@ const loggerProvider = new LoggerProvider();
 loggerProvider.addLogRecordProcessor(
   new BatchLogRecordProcessor(
     new OTLPLogExporter({
-      url: process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://otel-collector:4317'
+      url: process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://otel-collector:64070'
     })
   )
 );

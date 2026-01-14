@@ -50,7 +50,7 @@ fastify.get('/health/deps', async () => ({
 services:
   api:
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4000/health/ready"]
+      test: ["CMD", "curl", "-f", "http://localhost:64000/health/ready"]
       interval: 30s
       timeout: 10s
       retries: 3

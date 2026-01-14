@@ -129,7 +129,7 @@ docs/
 | Componentă       | Versiune               | Rol                                     |
 |------------------|------------------------|-----------------------------------------|
 | **Node.js**      | v24.12.0 LTS "Krypton" | Runtime API principal                   |
-| **Python**       | 3.14.1 Free-Threading  | Workers AI/ML                           |
+| **Python**       | 3.14.2 Free-Threading  | Workers AI/ML                           |
 | **PostgreSQL**   | 18.1                   | Database principal + pgvector + PostGIS |
 | **Redis**        | 7.4.7                  | BullMQ queues                           |
 | **Fastify**      | v5.6.2                 | Framework API                           |
@@ -138,7 +138,7 @@ docs/
 | **Refine**       | v5                     | Admin framework headless                |
 | **Docker**       | 28.x                   | Container runtime                       |
 | **Traefik**      | v3.6.6                 | Edge router + SSL                       |
-| **SigNoz**       | v0.104.0               | Observability (OTEL)                    |
+| **SigNoz**       | v0.106.0               | Observability (OTEL)                    |
 
 ### Arhitectura Medallion (Bronze → Silver → Gold)
 

@@ -23,8 +23,8 @@ Necesităm separare clară între environments.
 ```bash
 # .env.development
 NODE_ENV=development
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/cerniq_dev
-REDIS_URL=redis://localhost:6379
+DATABASE_URL=postgresql://postgres:postgres@localhost:64032/cerniq_dev
+REDIS_URL=redis://localhost:64039
 LOG_LEVEL=debug
 
 # .env.staging

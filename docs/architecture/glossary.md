@@ -726,14 +726,14 @@
 | Componentă       | Versiune Canonică       | Rol                          |
 | ---------------- | ----------------------- | ---------------------------- |
 | **Node.js**      | v24.12.0 LTS            | Runtime principal            |
-| **Python**       | 3.14.1 (Free-Threading) | AI/ML, scraping              |
+| **Python**       | 3.14.2 (Free-Threading) | AI/ML, scraping              |
 | **PostgreSQL**   | 18.1                    | Bază de date principală      |
 | **Redis**        | 7.4.7                   | Cache, queues, rate limiting |
 | **Fastify**      | v5.6.2                  | Framework API                |
 | **React**        | 19.2.3                  | Frontend UI                  |
 | **Tailwind CSS** | v4.1+                   | Styling                      |
 | **Refine**       | v5.0+                   | Admin dashboard framework    |
-| **BullMQ**       | v5.66.0                 | Job queues                   |
+| **BullMQ**       | v5.66.5                 | Job queues                   |
 | **Drizzle ORM**  | Latest                  | ORM TypeScript               |
 
 ### Docker Infrastructure
@@ -742,7 +742,7 @@
 | ----------------- | ---------- | ------------------------------ |
 | **Docker Engine** | 28.x/29.x  | Container runtime              |
 | **Traefik**       | v3.6.6     | Reverse proxy, SSL termination |
-| **SigNoz**        | v0.104.0   | APM, traces, logs, metrics     |
+| **SigNoz**        | v0.106.0   | APM, traces, logs, metrics     |
 | **ClickHouse**    | Via SigNoz | Storage observability          |
 
 ### PostgreSQL Extensions

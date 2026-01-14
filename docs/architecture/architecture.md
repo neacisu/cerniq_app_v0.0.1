@@ -193,7 +193,7 @@ const LEGACY_ALIASES = {
 ┌─────────────┐               ┌─────────────┐               ┌─────────────┐
 │   Web App   │               │  Fastify    │               │   SigNoz    │
 │ React 19 +  │               │  API v5.6.2 │               │ Observability│
-│  Refine v5  │               │  (Node 24)  │               │  v0.104.0   │
+│  Refine v5  │               │  (Node 24)  │               │  v0.106.0   │
 └─────────────┘               └──────┬──────┘               └─────────────┘
                                      │
                     ┌────────────────┴────────────────┐
@@ -237,12 +237,12 @@ const LEGACY_ALIASES = {
 | **Database** | PostgreSQL | 18.1 | JSON_TABLE, async I/O, UUIDv7 |
 | **Vector Search** | pgvector | 0.8.1 | HNSW indexes, 1536 dim embeddings |
 | **Geospatial** | PostGIS | 3.5.1 | KNN proximity, SIRUTA polygons |
-| **Queue Manager** | BullMQ | v5.66.0 | Redis-backed, partition per phone |
+| **Queue Manager** | BullMQ | v5.66.5 | Redis-backed, partition per phone |
 | **Cache/Jobs** | Redis | 7.4.7 | AOF+RDB persistence, noeviction |
 | **Frontend** | React | 19.2.3 | Server Components, useOptimistic |
 | **Admin Framework** | Refine | v5 | TanStack Query v5, headless |
 | **Styling** | Tailwind CSS | 4.1.x | Oxide engine (Rust), 5x faster |
-| **Observability** | SigNoz | v0.104.0 | OpenTelemetry native, ClickHouse |
+| **Observability** | SigNoz | v0.106.0 | OpenTelemetry native, ClickHouse |
 | **Edge Router** | Traefik | v3.6.6 | Auto Let's Encrypt, circuit breakers |
 
 ### Decizii Arhitecturale de Top
@@ -978,7 +978,7 @@ providers:
 └───────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## 8.3 Observability (SigNoz v0.104.0)
+## 8.3 Observability (SigNoz v0.106.0)
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────────────┐
@@ -1415,9 +1415,9 @@ Nivel 5 (Anexe Data Model):
 | Fastify | 5.6.2 | Nov 2025 | - | v4 EOL Jun 2025 |
 | Tailwind CSS | 4.1.x | Jan 2025 | - | Oxide engine |
 | Refine | 5.x | Oct 2025 | - | TanStack Query v5 |
-| BullMQ | 5.66.0 | Dec 2025 | - | - |
+| BullMQ | 5.66.5 | Jan 2026 | - | - |
 | Traefik | 3.6.6 | Dec 2025 | - | - |
-| SigNoz | 0.104.0 | Dec 2025 | - | - |
+| SigNoz | 0.106.0 | Jan 2026 | - | - |
 | Docker Engine | 28.x/29.x | 2025 | - | - |
 
 ---

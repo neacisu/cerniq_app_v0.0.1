@@ -224,7 +224,7 @@ jobId: `warn-${approvalId}` // Warning jobs
 | **React Compiler** | **1.0**               | 7 Oct 2025   | Stable         | Production ready        |
 | **Tailwind CSS**   | **4.1.x**             | 2025         | Stable         | Oxide engine            |
 | **Redis**          | **7.4.7**             | Late 2025    | Security rel.  | —                       |
-| **BullMQ**         | **5.66.4**            | 29 Dec 2025  | Stable         | Requires Redis 6.2+     |
+| **BullMQ**         | **5.66.5**            | 14 Jan 2026  | Stable         | Requires Redis 6.2+     |
 
 > ⚠️ **SECURITY ADVISORY**: Node.js security release programat 13 Ianuarie 2026 (3 HIGH, 1 MEDIUM, 1 LOW vulnerabilities).
 
@@ -353,7 +353,7 @@ interface GuardrailChecks {
 
 | Component             | Versiune   | Rol                              | Status      |
 |-----------------------|------------|----------------------------------|-------------|
-| **SigNoz**            | v0.104.0   | APM + Traces + Logs (all-in-one) | PRIMARY     |
+| **SigNoz**            | v0.106.0   | APM + Traces + Logs (all-in-one) | PRIMARY     |
 | **OpenTelemetry SDK** | Latest     | Instrumentare aplicații          | OBLIGATORIU |
 | **ClickHouse**        | Via SigNoz | Storage traces/metrics           | INTERN      |
 

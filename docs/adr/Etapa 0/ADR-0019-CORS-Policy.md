@@ -20,7 +20,7 @@ fastify.register(cors, {
     'https://app.cerniq.app',
     'https://admin.cerniq.app',
     ...(process.env.NODE_ENV === 'development' 
-      ? ['http://localhost:3000', 'http://localhost:5173'] 
+      ? ['http://localhost:64010', 'http://localhost:64011'] 
       : []),
   ],
   credentials: true,

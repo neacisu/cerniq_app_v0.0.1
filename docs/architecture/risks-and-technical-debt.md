@@ -18,10 +18,10 @@ This analysis governs all risk assessments for Cerniq.app under the Master Speci
 - Python 3.14.2 (Free-Threading)
 - PostgreSQL 18.1 with pgvector, PostGIS, pg_trgm
 - Redis 7.4.7
-- BullMQ v5.66.0
+- BullMQ v5.66.5
 - React 19.2.3, Tailwind CSS 4.1+, Refine v5
 - Docker Engine 28.x (recommended) / 29.x (documented)
-- Traefik v3.6, SigNoz v0.104
+- Traefik v3.6, SigNoz v0.106
 
 ---
 
@@ -325,7 +325,7 @@ Maximum 10 webhooks per account (422 error if exceeded). Webhooks may deliver ou
 | Python 3.14 (No-GIL) | 3.14.0 | Phase 2 (supported, not default) | **HIGH** |
 | Node.js 24.x | 24.12.0 | LTS Stable | LOW |
 | PostgreSQL 18.1 | 18.1 | GA Stable | LOW |
-| BullMQ v5.66+ | 5.66.0 | Stable | MEDIUM |
+| BullMQ v5.66+ | 5.66.5 | Stable | MEDIUM |
 | Redis 7.4.7 | 7.4.x | Stable | LOW |
 | React 19.x | 19.2 | Stable | LOW-MEDIUM |
 | Traefik v3.6 | 3.6.5 | Stable (CVE patched in 3.6.3) | **HIGH** |

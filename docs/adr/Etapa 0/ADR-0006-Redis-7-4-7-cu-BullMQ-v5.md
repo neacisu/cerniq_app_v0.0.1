@@ -16,7 +16,7 @@ Cerniq.app are 52+ workers organizați în pipeline-uri. Necesităm:
 
 ## Decizie
 
-Utilizăm **Redis 7.4.7** cu **BullMQ v5.66.4** pentru job queuing.
+Utilizăm **Redis 7.4.7** cu **BullMQ v5.66.5** pentru job queuing.
 
 ## Consecințe
 

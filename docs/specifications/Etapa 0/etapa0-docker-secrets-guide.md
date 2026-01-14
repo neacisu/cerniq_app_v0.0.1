@@ -213,7 +213,7 @@ docker compose restart api
 
 # 5. Verify connectivity
 sleep 10
-curl http://localhost:4000/health/ready
+curl http://localhost:64000/health/ready
 ```
 
 ## 5.2 Schedule Rotație

@@ -84,7 +84,7 @@ Pentru agenți AI (Cursor, Copilot), instrucțiunile se aplică în această ord
 | **pgvector** | **0.8.1** | Late 2025 | PG 13-18 |
 | **PostGIS** | **3.6.1** | 13 Nov 2025 | PG 12-18 |
 | **Redis** | **7.4.7** | Late 2025 | — |
-| **BullMQ** | **5.66.4** | 29 Dec 2025 | Requires Redis 6.2+ |
+| **BullMQ** | **5.66.5** | 14 Jan 2026 | Requires Redis 6.2+ |
 | **Fastify** | **5.6.2** | 9 Nov 2025 | v4 EOL: 30 Jun 2025 |
 
 ## 1.2 Frontend Stack
@@ -1210,7 +1210,7 @@ alwaysApply: true
 - React: 19.2.3
 - Tailwind: 4.1.x
 - Fastify: 5.6.2
-- BullMQ: 5.66.4
+- BullMQ: 5.66.5
 - Redis: 7.4.7
 
 ## Architecture
