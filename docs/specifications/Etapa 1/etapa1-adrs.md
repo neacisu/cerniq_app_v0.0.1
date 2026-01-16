@@ -1,5 +1,7 @@
 # CERNIQ.APP — ETAPA 1: ARCHITECTURE DECISION RECORDS
+
 ## ADR-0031 până la ADR-0050
+
 ### Versiunea 1.0 | 15 Ianuarie 2026
 
 ---
@@ -17,6 +19,7 @@
 - **Gold Layer**: Date complete, ready-for-outreach, cu scoring și FSM
 
 **Consequences:**
+
 - (+) Trasabilitate completă din source până la utilizare
 - (+) Reprocessare posibilă de la orice punct
 - (+) Separare clară responsabilități
@@ -49,6 +52,7 @@ interface BronzeIngestionSource {
 Fiecare sursă are worker dedicat, toate scriu în `bronze_contacts` cu format unificat.
 
 **Consequences:**
+
 - (+) Flexibilitate adăugare surse noi
 - (+) Deduplicare centralizată via checksum
 - (+) Audit trail complet
@@ -83,6 +87,7 @@ function validateCUI(cui: string): boolean {
 ```
 
 **Consequences:**
+
 - (+) Validare offline fără API call
 - (+) Filtrare CUI-uri invalide înainte de ANAF API
 - (+) Economie rate limit ANAF
@@ -112,6 +117,7 @@ const anafRateLimiter = {
 ```
 
 **Consequences:**
+
 - (+) Respectă limitele ANAF
 - (+) Reziliență la downtime
 - (-) Latență crescută pentru volume mari
@@ -143,6 +149,7 @@ const termeneRateLimiter = {
 ```
 
 **Consequences:**
+
 - (+) Date financiare comprehensive
 - (+) Risk scoring extern
 - (-) Cost per request
@@ -162,11 +169,13 @@ const termeneRateLimiter = {
 3. **Web Scraping** (fallback) - Contact pages
 
 Flow:
-```
+
+```text
 CUI/Domain → Hunter Pattern Discovery → Email Candidates → ZeroBounce Verify → Valid Email
 ```
 
 **Consequences:**
+
 - (+) Coverage rate ridicat
 - (+) Validare email deliverability
 - (-) Cost per verified email
@@ -200,6 +209,7 @@ WHERE ST_DWithin(
 ```
 
 **Consequences:**
+
 - (+) Queries spațiale performante
 - (+) Zone agricole și clustering
 - (-) Geocoding accuracy variabilă
@@ -215,6 +225,7 @@ WHERE ST_DWithin(
 **Decision:** Two-phase deduplication:
 
 **Phase 1: Exact Match (Bronze)**
+
 ```typescript
 // SHA-256 hash pe payload normalizat
 const deduplicationHash = sha256(
@@ -225,6 +236,7 @@ const deduplicationHash = sha256(
 ```
 
 **Phase 2: Fuzzy Match (Silver)**
+
 ```typescript
 // Levenshtein + Jaro-Winkler scoring
 import fuzzball from 'fuzzball';
@@ -239,6 +251,7 @@ const isDuplicate =
 ```
 
 **Consequences:**
+
 - (+) Duplicate rate <1% în Gold
 - (+) Entity resolution accuracy
 - (-) CPU intensive pentru volume mari
@@ -276,6 +289,7 @@ const SILVER_TO_GOLD = 70;
 ```
 
 **Consequences:**
+
 - (+) Progresie automată bazată pe quality
 - (+) Prioritizare outreach
 - (+) KPI tracking
@@ -316,6 +330,7 @@ worker.on('completed', async (job, result) => {
 ```
 
 **Consequences:**
+
 - (+) Loose coupling între workeri
 - (+) Paralelism maxim pentru enrichment
 - (+) Replay și recovery easy
@@ -331,7 +346,7 @@ worker.on('completed', async (job, result) => {
 **Decision:** 3 approval types pentru Etapa 1:
 
 | Approval Type | Trigger | SLA Normal |
-|---------------|---------|------------|
+| --- | --- | --- |
 | `data_quality` | Quality score 40-60 | 24h |
 | `dedup_review` | Fuzzy match 70-85% | 24h |
 | `manual_enrich` | Missing critical fields | 48h |
@@ -352,6 +367,7 @@ if (qualityScore >= 40 && qualityScore < 70) {
 ```
 
 **Consequences:**
+
 - (+) Calitate date garantată pentru Gold
 - (+) Human oversight pentru edge cases
 - (-) Latență pentru cazuri ambigue
@@ -389,6 +405,7 @@ FOR EACH ROW EXECUTE FUNCTION prevent_modification();
 ```
 
 **Consequences:**
+
 - (+) Trasabilitate 100%
 - (+) Reprocessare oricând
 - (-) Storage grows indefinitely (mitigate cu TTL)
@@ -417,6 +434,7 @@ UNIQUE (tenant_id, cui);
 ```
 
 **Consequences:**
+
 - (+) Izolare completă date
 - (+) Imposibil data leak cross-tenant
 - (-) UNIQUE constraints mai complexe
@@ -457,6 +475,7 @@ CREATE INDEX idx_enrich_events_correlation ON enrichment_events(correlation_id);
 ```
 
 **Consequences:**
+
 - (+) Audit trail complet
 - (+) Replay posibil
 - (+) Debugging facilitat
@@ -497,6 +516,7 @@ const rateLimiters = {
 ```
 
 **Consequences:**
+
 - (+) Respectare limits per provider
 - (+) Distributed rate limiting
 - (+) Backpressure automatic
@@ -526,6 +546,7 @@ const browser = await chromium.launch({
 ```
 
 **Consequences:**
+
 - (+) Date publice accesibile
 - (+) Automated și schedulat
 - (-) Fragil la schimbări site
@@ -562,6 +583,7 @@ JSON:
 ```
 
 **Consequences:**
+
 - (+) Handling date nestructurate
 - (+) High accuracy pentru Romanian text
 - (-) Cost per request
@@ -593,6 +615,7 @@ await queue.add('enrich', data, { priority: jobPriority });
 ```
 
 **Consequences:**
+
 - (+) High-value contacts processed first
 - (+) Better resource utilization
 - (-) Low-priority poate stagna
@@ -608,7 +631,7 @@ await queue.add('enrich', data, { priority: jobPriority });
 **Decision:**
 
 | Layer | Retention | Action |
-|-------|-----------|--------|
+| ------- | ----------- | -------- |
 | Bronze | 30 zile | Auto-delete |
 | Silver | 90 zile | Archive to cold storage |
 | Gold | Indefinit | Review annual |
@@ -629,6 +652,7 @@ SELECT cron.schedule('cleanup-bronze', '0 3 * * *', 'SELECT cleanup_old_bronze()
 ```
 
 **Consequences:**
+
 - (+) GDPR compliance
 - (+) Storage optimizat
 - (-) Reprocessare limitată temporal
@@ -669,6 +693,7 @@ const alerts = [
 ```
 
 **Consequences:**
+
 - (+) Visibility completă pipeline
 - (+) Alerting proactiv
 - (+) Debugging facilitat

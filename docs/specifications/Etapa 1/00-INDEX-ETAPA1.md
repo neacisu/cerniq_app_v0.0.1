@@ -11,14 +11,14 @@
 ### 🏗️ ARCHITECTURE & DECISIONS
 
 | # | Document | Description | Status |
-|---|----------|-------------|--------|
+| --- | ---------- | ------------- | -------- |
 | 1 | `etapa1-adrs.md` | 20 Architecture Decision Records | ✅ Complete |
 | 2 | `etapa1-plan-implementare-COMPLET.md` | Implementation plan with 126 tasks | ✅ Complete |
 
 ### 📊 DATABASE SCHEMAS
 
 | # | Document | Description | Status |
-|---|----------|-------------|--------|
+| --- | ---------- | ------------- | -------- |
 | 3 | `etapa1-schema-bronze.md` | Bronze layer tables & indexes | ✅ Complete |
 | 4 | `etapa1-schema-silver.md` | Silver layer tables (120+ columns) | ✅ Complete |
 | 5 | `etapa1-schema-gold.md` | Gold layer + lead management | ✅ Complete |
@@ -27,7 +27,7 @@
 ### ⚙️ WORKERS
 
 | # | Document | Description | Status |
-|---|----------|-------------|--------|
+| --- | ---------- | ------------- | -------- |
 | 7 | `etapa1-workers-overview.md` | Worker architecture overview | ✅ Complete |
 | 8 | `etapa1-workers-A-ingestie.md` | CSV/Excel/API/Webhook/Manual ingest | ✅ Complete |
 | 9 | `etapa1-workers-B-C-normalizare-validare.md` | Normalization & CUI validation | ✅ Complete |
@@ -40,7 +40,7 @@
 ### 🖥️ FRONTEND / UI
 
 | # | Document | Description | Status |
-|---|----------|-------------|--------|
+| --- | ---------- | ------------- | -------- |
 | 15 | `etapa1-ui-components.md` | Base UI components library | ✅ Complete |
 | 16 | `etapa1-ui-tables.md` | Data tables with filters | ✅ Complete |
 | 17 | `etapa1-ui-pages.md` | All page layouts & routing | ✅ Complete |
@@ -50,20 +50,20 @@
 ### 🔌 BACKEND / API
 
 | # | Document | Description | Status |
-|---|----------|-------------|--------|
+| --- | ---------- | ------------- | -------- |
 | 20 | `etapa1-api-endpoints.md` | All REST API endpoints | ✅ Complete |
 | 21 | `etapa1-api-schemas-auth.md` | Zod schemas & JWT auth | ✅ Complete |
 
 ### ✅ HITL (Human-in-the-Loop)
 
 | # | Document | Description | Status |
-|---|----------|-------------|--------|
+| --- | ---------- | ------------- | -------- |
 | 22 | `etapa1-hitl-system.md` | Complete HITL architecture | ✅ Complete |
 
 ### 📋 OPERATIONS
 
 | # | Document | Description | Status |
-|---|----------|-------------|--------|
+| --- | ---------- | ------------- | -------- |
 | 23 | `etapa1-runbook-monitoring.md` | Runbook & monitoring setup | ✅ Complete |
 | 24 | `etapa1-testing-strategy.md` | Test pyramid & automation | ✅ Complete |
 
@@ -83,7 +83,7 @@
 ### Worker Categories (52 total)
 
 | Category | Count | Queue Prefix |
-|----------|-------|--------------|
+| --- | --- | --- |
 | A: Ingestie | 5 | `bronze:ingest:*` |
 | B: Normalizare | 4 | `bronze:normalize:*` |
 | C: Validare CUI | 2 | `bronze:validate:*` |
