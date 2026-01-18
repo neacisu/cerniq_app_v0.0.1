@@ -1,10 +1,12 @@
 # CERNIQ.APP — ETAPA 2: INDEX DOCUMENTAȚIE
+
 ## Cold Outreach Multi-Canal - Documentație Completă
-### Versiunea 1.0 | 15 Ianuarie 2026
+
+### Versiunea 1.1 | 18 Ianuarie 2026
 
 ---
 
-# SUMAR ETAPA 2
+## SUMAR ETAPA 2
 
 **Scop:** Automatizare cold outreach pentru agricultura românească  
 **Canale:** WhatsApp (TimelinesAI), Email Cold (Instantly.ai), Email Warm (Resend)  
@@ -13,21 +15,21 @@
 
 ---
 
-# CATALOG DOCUMENTE (18 DOCUMENTE)
+## CATALOG DOCUMENTE (18 DOCUMENTE)
 
-## 1. ARCHITECTURE & DESIGN
+### 1. ARCHITECTURE & DESIGN
 
 | # | Document | Descriere | Linii |
-|---|----------|-----------|-------|
+| --- | ---------- | ----------- | ------- |
 | 1 | `00-INDEX-ETAPA2.md` | Index și statistici | ~300 |
-| 2 | `etapa2-adrs.md` | 15 Architecture Decision Records | ~800 |
+| 2 | `etapa2-adrs.md` | 15 Architecture Decision Records | ~150 |
 | 3 | `etapa2-schema-outreach.md` | Schema DB completă (11 tabele) | ~1000 |
 | 4 | `etapa2-workers-triggers.md` | Inter-worker communication rules | ~500 |
 
-## 2. WORKERS (52 WORKERS TOTAL)
+### 2. WORKERS (52 WORKERS TOTAL)
 
 | # | Document | Workers | Descriere |
-|---|----------|---------|-----------|
+| --- | ---------- | --------- | ----------- |
 | 5 | `etapa2-workers-overview.md` | ALL | Overview și queue config |
 | 6 | `etapa2-workers-A-quota-guardian.md` | #1-4 | Quota management |
 | 7 | `etapa2-workers-B-orchestration.md` | #5-8 | Dispatch & routing |
@@ -35,37 +37,42 @@
 | 9 | `etapa2-workers-D-E-email.md` | #16-23 | Email Cold & Warm |
 | 10 | `etapa2-workers-F-L-remaining.md` | #24-52 | Templates, Webhooks, AI, HITL |
 
-## 3. FRONTEND UI/UX
+### 3. FRONTEND UI/UX
 
 | # | Document | Componente | Descriere |
-|---|----------|------------|-----------|
+| --- | ---------- | ------------ | ----------- |
 | 11 | `etapa2-ui-pages.md` | 12+ pagini | Dashboard, Leads, Phones, Review |
 | 12 | `etapa2-ui-forms-dialogs.md` | 6+ forms/dialogs | Send message, Create sequence |
 
-## 4. BACKEND & API
+### 4. BACKEND & API
 
 | # | Document | Descriere |
-|---|----------|-----------|
+| --- | ---------- | ----------- |
 | 13 | `etapa2-api-endpoints.md` | 35+ REST endpoints complete |
 | 14 | `etapa2-hitl-system.md` | Human-in-the-Loop workflow |
 
-## 5. OPERATIONS
+### 5. OPERATIONS
 
 | # | Document | Descriere |
-|---|----------|-----------|
-| 15 | `etapa2-runbook-operational.md` | Proceduri operaționale zilnice |
-| 16 | `etapa2-standards-procedures.md` | Coding standards și best practices |
+| --- | ---------- | ----------- |
+| 15 | `etapa2-runbook.md` | **Runbook operațional complet** (consolidat v1.1) |
+| 16 | `etapa2-development-standards.md` | **Coding standards & procedures** (consolidat v1.1) |
 | 17 | `etapa2-testing-strategy.md` | Unit, Integration, E2E, Load tests |
 | 18 | `etapa2-plan-implementare.md` | 118 taskuri JSON granulare |
 
+> **Notă v1.1 (18 Ian 2026):**
+>
+> - `etapa2-runbook.md` consolidează fostele `etapa2-runbook.md` + `etapa2-runbook-operational.md`
+> - `etapa2-development-standards.md` consolidează fostele `etapa2-standards.md` + `etapa2-standards-procedures.md`
+
 ---
 
-# STATISTICI ETAPA 2
+## STATISTICI ETAPA 2
 
-## Workers by Category
+### Workers by Category
 
 | Category | Count | Queue Prefix |
-|----------|-------|--------------|
+| ---------- | ------- | -------------- |
 | A: Quota Guardian | 4 | `quota:*` |
 | B: Orchestration | 4 | `outreach:orchestrator:*` |
 | C: WhatsApp | 7 + 40 queues | `q:wa:*` |
@@ -81,10 +88,10 @@
 | Pipeline | 2 | `pipeline:outreach:*` |
 | **TOTAL** | **52** | |
 
-## Database Schema
+### Database Schema
 
 | Table | Purpose | Est. Rows/Month |
-|-------|---------|-----------------|
+| ------- | --------- | ----------------- |
 | `gold_lead_journey` | Lead state machine | 50,000 |
 | `gold_communication_log` | Message audit trail | 500,000 |
 | `wa_phone_numbers` | 20 WhatsApp phones | 20 |
@@ -97,10 +104,10 @@
 | `human_review_queue` | HITL items | 10,000 |
 | `outreach_daily_stats` | Daily aggregates | 365 |
 
-## API Endpoints
+### API Endpoints
 
 | Module | Endpoints | Method Distribution |
-|--------|-----------|---------------------|
+| -------- | ----------- | --------------------- |
 | Leads | 6 | GET(3), POST(2), PATCH(1) |
 | Sequences | 5 | GET(2), POST(3) |
 | Templates | 5 | GET(2), POST(2), PATCH(1) |
@@ -110,10 +117,10 @@
 | Webhooks | 3 | POST(3) |
 | **TOTAL** | **35+** | |
 
-## Frontend Pages
+### Frontend Pages
 
 | Route | Page | Components |
-|-------|------|------------|
+| ------- | ------ | ------------ |
 | `/outreach/dashboard` | Dashboard | KPIs, QuotaGrid, Charts |
 | `/outreach/leads` | Lead List | DataTable, Filters |
 | `/outreach/leads/[id]` | Lead Detail | Conversation, Actions |
@@ -125,10 +132,10 @@
 
 ---
 
-# BUSINESS CONSTRAINTS
+## BUSINESS CONSTRAINTS
 
 | Constraint | Value | Enforcement |
-|------------|-------|-------------|
+| ------------ | ------- | ------------- |
 | WhatsApp new contacts/day/phone | 200 | Redis Lua atomic |
 | WhatsApp follow-ups | Unlimited | No quota check |
 | Business hours | 09:00-18:00 | Worker check |
@@ -143,10 +150,10 @@
 
 ---
 
-# CHANNEL COMPARISON
+## CHANNEL COMPARISON
 
 | Feature | WhatsApp | Email Cold | Email Warm |
-|---------|----------|------------|------------|
+| --------- | ---------- | ------------ | ------------ |
 | Provider | TimelinesAI | Instantly.ai | Resend |
 | Cost/month | ~$500 | ~$200 | ~$0.0025/email |
 | Daily capacity | 4,000 new | 5,000-10,000 | Unlimited |
@@ -156,9 +163,9 @@
 
 ---
 
-# PIPELINE FLOW
+## PIPELINE FLOW
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────┐
 │                    ETAPA 2: COLD OUTREACH PIPELINE                  │
 ├─────────────────────────────────────────────────────────────────────┤
@@ -200,32 +207,32 @@
 
 ---
 
-# CROSS-REFERENCES
+## CROSS-REFERENCES
 
-## Dependențe din alte etape
+### Dependențe din alte etape
 
 | Document | Relevanță pentru Etapa 2 |
-|----------|--------------------------|
+| ---------- | -------------------------- |
 | Master Spec | Source of truth pentru toate regulile |
 | Etapa 1 Schema | Gold layer = input pentru outreach |
 | Etapa 0 Infrastructure | Docker, Redis, PostgreSQL setup |
 | HITL Unified System | Approval workflow patterns |
 | Coding Standards | TypeScript, testing conventions |
 
-## Outputs către alte etape
+### Outputs către alte etape
 
 | Etapa | Ce primește |
-|-------|-------------|
+| ------- | ------------- |
 | Etapa 3 | Leads în WARM_REPLY, NEGOTIATION |
 | Etapa 4 | Converted leads pentru monitoring |
 | Etapa 5 | Communication history pentru nurturing |
 
 ---
 
-# IMPLEMENTARE TIMELINE
+## IMPLEMENTARE TIMELINE
 
 | Fază | Săptămâna | Focus |
-|------|-----------|-------|
+| ------ | ----------- | ------- |
 | F2.1 | W1 | Database schema + migrations |
 | F2.2-F2.4 | W2 | External integrations |
 | F2.5-F2.6 | W3 | Quota + Orchestration workers |

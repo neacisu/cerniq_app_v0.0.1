@@ -1,14 +1,33 @@
-# CERNIQ.APP — ETAPA 2: CODING STANDARDS & BEST PRACTICES
-## Development Guidelines for Cold Outreach System
-### Versiunea 1.0 | 15 Ianuarie 2026
+# CERNIQ.APP — ETAPA 2: DEVELOPMENT STANDARDS
+
+## Coding Standards, Best Practices & Procedures for Cold Outreach System
+
+### Versiunea 1.1 | 18 Ianuarie 2026
+
+> **Notă:** Acest document consolidează `etapa2-standards.md` și `etapa2-standards-procedures.md` într-un singur ghid complet de dezvoltare.
 
 ---
 
-# 1. CODE ORGANIZATION
+## CUPRINS
 
-## 1.1 Worker File Structure
+1. [Code Organization](#1-code-organization)
+2. [Worker Implementation Standards](#2-worker-implementation-standards)
+3. [Database Standards](#3-database-standards)
+4. [API Standards](#4-api-standards)
+5. [Spintax Standards](#5-spintax-standards)
+6. [Error Handling](#6-error-handling)
+7. [Frontend Standards](#7-frontend-standards)
+8. [Testing Standards](#8-testing-standards)
+9. [Logging Standards](#9-logging-standards)
+10. [Security Standards](#10-security-standards)
 
-```
+---
+
+## 1. CODE ORGANIZATION
+
+### 1.1 Worker File Structure
+
+```text
 workers/
 ├── outreach/
 │   ├── index.ts                    # Worker registration
@@ -54,7 +73,9 @@ workers/
 │       └── quota-usage.worker.ts
 ```
 
-## 1.2 Worker Naming Conventions
+### 1.2 Naming Conventions
+
+#### 1.2.1 Worker File Naming
 
 ```typescript
 // File naming: {action}-{subject}.worker.ts
@@ -62,23 +83,51 @@ workers/
 // - send-initial.worker.ts ✓
 // - initialSend.worker.ts ✗
 // - SendInitialWorker.ts ✗
+```
 
-// Queue naming: {stage}:{category}:{action}
+#### 1.2.2 Queue Naming
+
+```typescript
+// Queue naming: {stage}:{category}:{action}[:{variant}]
 // Examples:
-// - outreach:orchestrator:dispatch ✓
-// - q:wa:phone_01 ✓ (special case for per-phone)
-// - outreachDispatch ✗
+'quota:guardian:check'           // Etapa 2, Quota category, Check action
+'outreach:orchestrator:dispatch' // Orchestrator dispatch
+'q:wa:phone_01'                  // WhatsApp queue for phone 01 (special case)
+'q:wa:phone_01:followup'         // Follow-up variant
+'webhook:timelinesai:ingest'     // Webhook category, TimelinesAI source
 
-// Job naming in code:
-export async function sendInitialProcessor(job: Job<T>): Promise<R> { }
-// NOT: export async function processor(job: Job<T>): Promise<R> { }
+// AVOID:
+'outreachDispatch'               // ✗ No colons
+'wa-phone-01'                    // ✗ Wrong separator
+```
+
+#### 1.2.3 TypeScript Interface Naming
+
+```typescript
+// Job data interface naming: {WorkerName}JobData
+interface QuotaGuardianCheckJobData {
+  correlationId: string;         // Always include for tracing
+  tenantId: string;              // Always include for multi-tenant
+  // ... specific fields
+}
+
+// Result interface naming: {WorkerName}Result
+interface QuotaGuardianCheckResult {
+  allowed: boolean;
+  reason: string;
+  // ... specific fields
+}
+
+// Use strict types, avoid `any`
+// Use enums for fixed value sets
+// Export all interfaces for reuse
 ```
 
 ---
 
-# 2. WORKER IMPLEMENTATION STANDARDS
+## 2. WORKER IMPLEMENTATION STANDARDS
 
-## 2.1 Standard Worker Template
+### 2.1 Standard Worker Template
 
 ```typescript
 // workers/outreach/{category}/{action}.worker.ts
@@ -120,17 +169,20 @@ export async function myActionProcessor(
   }, 'Processing started');
 
   try {
-    // 5. BUSINESS LOGIC
+    // 5. PRE-VALIDATION
+    validateJobData(job.data);
+    
+    // 6. BUSINESS LOGIC
     const result = await performAction(job.data);
 
-    // 6. METRICS
+    // 7. METRICS
     metrics.workerDuration.observe(
       { worker: 'my-action', status: 'success' },
       (Date.now() - startTime) / 1000
     );
     metrics.workerTotal.inc({ worker: 'my-action', status: 'success' });
 
-    // 7. SUCCESS LOGGING
+    // 8. SUCCESS LOGGING
     logger.info({
       jobId: job.id,
       correlationId,
@@ -141,7 +193,7 @@ export async function myActionProcessor(
     return result;
 
   } catch (error) {
-    // 8. ERROR HANDLING - Structured with classification
+    // 9. ERROR HANDLING - Structured with classification
     const errorType = classifyError(error);
     
     metrics.workerTotal.inc({ worker: 'my-action', status: 'failed' });
@@ -155,31 +207,46 @@ export async function myActionProcessor(
       action: 'my-action:error',
     }, 'Processing failed');
 
-    // 9. RETRYABLE VS NON-RETRYABLE
+    // 10. RETRYABLE VS NON-RETRYABLE
     if (errorType === 'RETRYABLE') {
       throw error; // BullMQ will retry
     } else {
-      // Non-retryable: return failure result instead of throwing
+      // Non-retryable: move to DLQ or return failure
+      await moveToDeadLetterQueue(job, error);
       return { success: false, error: errorType };
     }
   }
 }
 
-// 10. HELPER FUNCTIONS - Private, below processor
+// 11. HELPER FUNCTIONS - Private, below processor
 function classifyError(error: unknown): string {
+  // Network errors - retry
+  if (error instanceof Error) {
+    if ((error as any).code === 'ECONNREFUSED' || (error as any).code === 'ETIMEDOUT') {
+      return 'RETRYABLE';
+    }
+    // Rate limit - retry with backoff
+    if (error.message.includes('429') || error.message.includes('rate limit')) {
+      return 'RETRYABLE';
+    }
+  }
   if (error instanceof NetworkError) return 'RETRYABLE';
   if (error instanceof ValidationError) return 'VALIDATION_ERROR';
   if (error instanceof RateLimitError) return 'RATE_LIMITED';
+  // Database constraint - don't retry
+  if ((error as any)?.code === '23505' || (error as any)?.code === '23503') {
+    return 'DB_CONSTRAINT';
+  }
   return 'UNKNOWN';
 }
 ```
 
-## 2.2 Worker Registration
+### 2.2 Worker Registration
 
 ```typescript
 // workers/outreach/index.ts
 
-import { Worker, Queue } from 'bullmq';
+import { Worker, Queue, Job } from 'bullmq';
 import { REDIS_CONNECTION } from '@cerniq/config';
 import { logger } from '@cerniq/logger';
 
@@ -202,11 +269,11 @@ const WORKER_CONFIGS: WorkerConfig[] = [
     processor: quotaGuardianCheckProcessor,
     concurrency: 100,
   },
-  // WhatsApp per-phone queues
+  // WhatsApp per-phone queues (CRITICAL: concurrency=1)
   ...Array.from({ length: 20 }, (_, i) => ({
     name: `q:wa:phone_${String(i + 1).padStart(2, '0')}`,
     processor: sendInitialProcessor,
-    concurrency: 1, // CRITICAL: Must be 1
+    concurrency: 1, // CRITICAL: Must be 1 to prevent race conditions
   })),
   // ... other workers
 ];
@@ -248,9 +315,39 @@ export function startOutreachWorkers(): Worker[] {
 
 ---
 
-# 3. DATABASE STANDARDS
+## 3. DATABASE STANDARDS
 
-## 3.1 Query Patterns
+### 3.1 Column Naming Conventions
+
+```sql
+-- Use snake_case for all columns
+-- Prefix with table context if ambiguous
+
+-- Standard columns for all tables:
+id UUID PRIMARY KEY DEFAULT gen_random_uuid()
+tenant_id UUID NOT NULL REFERENCES tenants(id)
+created_at TIMESTAMPTZ DEFAULT NOW()
+updated_at TIMESTAMPTZ DEFAULT NOW()
+
+-- Foreign keys: {referenced_table_singular}_id
+lead_id UUID REFERENCES gold_companies(id)
+phone_id UUID REFERENCES wa_phone_numbers(id)
+
+-- Boolean columns: is_{adjective} or has_{noun}
+is_new_contact BOOLEAN DEFAULT true
+has_media BOOLEAN DEFAULT false
+
+-- Timestamp columns: {action}_at
+sent_at TIMESTAMPTZ
+delivered_at TIMESTAMPTZ
+first_contact_at TIMESTAMPTZ
+
+-- Count columns: {noun}_count
+reply_count INTEGER DEFAULT 0
+open_count INTEGER DEFAULT 0
+```
+
+### 3.2 Query Patterns
 
 ```typescript
 // ALWAYS use tenant filtering
@@ -280,25 +377,79 @@ const getLeadByIdStmt = db.select()
 const lead = await getLeadByIdStmt.execute({ leadId });
 ```
 
-## 3.2 Index Usage
+### 3.3 Index Standards
+
+```sql
+-- Always index foreign keys
+CREATE INDEX idx_lead_journey_lead ON gold_lead_journey(lead_id);
+CREATE INDEX idx_lead_journey_phone ON gold_lead_journey(assigned_phone_id);
+
+-- Composite indexes for common query patterns
+-- Most selective column first
+CREATE INDEX idx_lead_journey_tenant_stage ON gold_lead_journey(tenant_id, engagement_stage);
+
+-- Partial indexes for filtered queries
+CREATE INDEX idx_lead_journey_review ON gold_lead_journey(tenant_id, requires_human_review)
+  WHERE requires_human_review = TRUE;
+
+-- Index naming conventions:
+-- idx_{table}_{columns}
+-- idx_unique_{table}_{columns} for unique indexes
+```
+
+**Index Usage Rules:**
 
 ```typescript
-// Always check query plans for new queries
-// In development, log slow queries (>100ms)
-
 // Composite indexes follow left-most prefix rule
 // Index on (tenant_id, engagement_stage) supports:
 // - WHERE tenant_id = X
 // - WHERE tenant_id = X AND engagement_stage = Y
 // Does NOT support:
 // - WHERE engagement_stage = Y (alone)
+
+// Always check query plans for new queries
+// In development, log slow queries (>100ms)
+```
+
+### 3.4 Migration Standards
+
+```typescript
+// Drizzle migration file naming: {sequence}_{description}.ts
+// 0050_outreach_enums.ts
+// 0051_gold_lead_journey.ts
+
+// Always include rollback comments
+// -- Rollback: DROP TABLE gold_lead_journey;
+
+// Test migrations on staging before production
+// Never modify existing migrations, create new ones
 ```
 
 ---
 
-# 4. API STANDARDS
+## 4. API STANDARDS
 
-## 4.1 Request Validation
+### 4.1 Endpoint Naming (RESTful)
+
+```typescript
+// Standard CRUD operations
+GET    /api/v1/outreach/leads          // List
+POST   /api/v1/outreach/leads          // Create
+GET    /api/v1/outreach/leads/:id      // Get one
+PATCH  /api/v1/outreach/leads/:id      // Partial update
+DELETE /api/v1/outreach/leads/:id      // Delete
+
+// Actions on resources
+POST   /api/v1/outreach/leads/:id/send-message
+POST   /api/v1/outreach/leads/:id/takeover
+POST   /api/v1/outreach/sequences/:id/enroll
+
+// Nested resources
+GET    /api/v1/outreach/leads/:id/communications
+GET    /api/v1/outreach/sequences/:id/steps
+```
+
+### 4.2 Request Validation
 
 ```typescript
 // ALWAYS validate with Zod
@@ -326,23 +477,27 @@ fastify.post('/templates', {
 });
 ```
 
-## 4.2 Response Format
+### 4.3 Response Format
 
 ```typescript
-// ALWAYS return consistent format
+// Success response interface
 interface ApiResponse<T> {
   success: boolean;
   data?: T;
   error?: {
-    code: string;
-    message: string;
+    code: string;           // Machine-readable
+    message: string;        // Human-readable
     details?: Record<string, any>;
+    field?: string;         // For validation errors
   };
   meta?: {
     page?: number;
     limit?: number;
     total?: number;
+    totalPages?: number;
   };
+  requestId?: string;       // For tracing
+  timestamp?: string;
 }
 
 // Success
@@ -358,6 +513,7 @@ return reply.code(400).send({
     code: 'INVALID_TRANSITION',
     message: 'Cannot transition from COLD to CONVERTED',
   },
+  requestId: request.id,
 });
 
 // List with pagination
@@ -366,13 +522,26 @@ return reply.code(200).send({
   data: { leads },
   meta: { page: 1, limit: 20, total: 150, totalPages: 8 },
 });
+
+// Validation error (400)
+{
+  "success": false,
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Invalid request body",
+    "details": {
+      "companyId": "Invalid UUID format"
+    }
+  },
+  "requestId": "req-123"
+}
 ```
 
 ---
 
-# 5. SPINTAX STANDARDS
+## 5. SPINTAX STANDARDS
 
-## 5.1 Template Format
+### 5.1 Template Format
 
 ```typescript
 // Valid spintax patterns
@@ -390,7 +559,7 @@ const validTemplates = [
   "{Bună ziua|Salut}, {{contactName}}! {Suntem|Reprezentăm} Cerniq.",
 ];
 
-// Invalid patterns (avoid)
+// Invalid patterns (AVOID)
 const invalidTemplates = [
   "{ Bună ziua | Salut }", // Spaces inside braces
   "{Bună ziua}",           // Single option (useless)
@@ -398,7 +567,7 @@ const invalidTemplates = [
 ];
 ```
 
-## 5.2 Spintax Processor
+### 5.2 Spintax Processor
 
 ```typescript
 // utils/spintax.ts
@@ -440,9 +609,9 @@ export function processSpintaxDeterministic(
 
 ---
 
-# 6. ERROR HANDLING STANDARDS
+## 6. ERROR HANDLING
 
-## 6.1 Error Classification
+### 6.1 Error Classes
 
 ```typescript
 // errors/outreach.errors.ts
@@ -494,7 +663,7 @@ export class RateLimitedError extends OutreachError {
 }
 ```
 
-## 6.2 Error Handling in Workers
+### 6.2 Error Handling in Workers
 
 ```typescript
 export async function sendInitialProcessor(job: Job<T>): Promise<R> {
@@ -530,9 +699,89 @@ export async function sendInitialProcessor(job: Job<T>): Promise<R> {
 
 ---
 
-# 7. TESTING STANDARDS
+## 7. FRONTEND STANDARDS
 
-## 7.1 Worker Unit Tests
+### 7.1 Component Standards
+
+```tsx
+// File naming: PascalCase for components
+// QuotaUsageGrid.tsx
+// StageBadge.tsx
+// ConversationTimeline.tsx
+
+// Props interface naming: {ComponentName}Props
+interface QuotaUsageGridProps {
+  phones: Phone[];
+  onPhoneClick?: (phoneId: string) => void;
+}
+
+// Use Shadcn/ui components as base
+// Extend with Tailwind classes
+// Never use inline styles or CSS files
+```
+
+### 7.2 State Management
+
+```typescript
+// Use React Query for server state
+const { data: leads, isLoading } = useQuery({
+  queryKey: ['leads', filters],
+  queryFn: () => fetchLeads(filters),
+  staleTime: 30_000,       // 30 seconds
+  refetchInterval: 60_000, // 1 minute for dashboard
+});
+
+// Use React state for UI state
+const [filters, setFilters] = useState<LeadFilters>({});
+const [selectedLead, setSelectedLead] = useState<string | null>(null);
+
+// Use URL params for shareable state
+const [searchParams, setSearchParams] = useSearchParams();
+const stage = searchParams.get('stage');
+```
+
+### 7.3 Error Handling
+
+```tsx
+// Always handle loading and error states
+function LeadsPage() {
+  const { data, isLoading, error } = useLeads(filters);
+
+  if (isLoading) {
+    return <LeadsTableSkeleton />;
+  }
+
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Error</AlertTitle>
+        <AlertDescription>
+          Failed to load leads. Please try again.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  return <LeadsTable data={data} />;
+}
+```
+
+---
+
+## 8. TESTING STANDARDS
+
+### 8.1 Test File Naming
+
+```typescript
+// Unit tests: {source}.test.ts
+// quota-check.worker.test.ts
+
+// Integration tests: {feature}.integration.test.ts
+// outreach-flow.integration.test.ts
+```
+
+### 8.2 Unit Tests
 
 ```typescript
 // workers/outreach/whatsapp/__tests__/send-initial.worker.test.ts
@@ -568,14 +817,14 @@ describe('sendInitialProcessor', () => {
       JSON.stringify({ allowed: false, reason: 'QUOTA_EXCEEDED' })
     );
 
-    const job = createMockJob({ ... });
+    const job = createMockJob({ /* ... */ });
 
     await expect(sendInitialProcessor(job)).rejects.toThrow(QuotaExceededError);
   });
 });
 ```
 
-## 7.2 Integration Tests
+### 8.3 Integration Tests
 
 ```typescript
 // tests/integration/outreach/phone-flow.test.ts
@@ -612,11 +861,137 @@ describe('WhatsApp Phone Flow', () => {
     });
 
     expect(updatedLead?.engagementStage).toBe('CONTACTED_WA');
+    expect(updatedLead?.isNewContact).toBe(false);
+    
+    // 5. Verify communication logged
+    const logs = await db.query.goldCommunicationLog.findMany({
+      where: eq(goldCommunicationLog.leadJourneyId, lead.id),
+    });
+    
+    expect(logs).toHaveLength(1);
+    expect(logs[0].quotaCost).toBe(1);
   });
 });
 ```
 
 ---
 
-**Document generat:** 15 Ianuarie 2026
+## 9. LOGGING STANDARDS
+
+### 9.1 Log Levels
+
+```typescript
+// ERROR: System errors, failed operations
+logger.error({ err, jobId }, 'Failed to send WhatsApp message');
+
+// WARN: Recoverable issues, degraded state
+logger.warn({ phoneId, quota }, 'Phone quota nearly exhausted');
+
+// INFO: Important business events
+logger.info({ leadId, stage }, 'Lead transitioned to WARM_REPLY');
+
+// DEBUG: Detailed diagnostic info (production: disabled)
+logger.debug({ payload }, 'TimelinesAI webhook received');
+```
+
+### 9.2 Structured Logging
+
+```typescript
+// Always use structured logging
+// Include: correlationId, tenantId, action, duration
+
+logger.info({
+  correlationId: job.data.correlationId,
+  tenantId: job.data.tenantId,
+  action: 'WHATSAPP_SEND',
+  leadId: job.data.leadId,
+  phoneId: job.data.phoneId,
+  duration: Date.now() - startTime,
+  quotaCost: 1,
+}, 'WhatsApp message sent successfully');
+```
+
+### 9.3 Sensitive Data
+
+```typescript
+// Never log sensitive data:
+// - Full phone numbers (mask: +40****1234)
+// - Email addresses (mask: t***@example.com)
+// - Message content (use hash or preview only)
+// - API keys or tokens
+
+function maskPhone(phone: string): string {
+  return phone.slice(0, 4) + '****' + phone.slice(-4);
+}
+
+function maskEmail(email: string): string {
+  const [local, domain] = email.split('@');
+  return local[0] + '***@' + domain;
+}
+```
+
+---
+
+## 10. SECURITY STANDARDS
+
+### 10.1 Input Validation
+
+```typescript
+// Validate all external input:
+// - API request bodies
+// - Query parameters
+// - Webhook payloads
+// - File uploads
+
+// Use Zod schemas
+// Sanitize HTML content
+// Validate UUID formats
+```
+
+### 10.2 Rate Limiting
+
+```typescript
+// API rate limits per tenant
+const RATE_LIMITS = {
+  default: { max: 100, window: '1m' },
+  webhooks: { max: 1000, window: '1m' },
+  heavy: { max: 10, window: '1m' },
+};
+
+// Apply at route level
+fastify.register(rateLimit, {
+  max: 100,
+  timeWindow: '1 minute',
+  keyGenerator: (req) => req.tenantId,
+});
+```
+
+### 10.3 Secrets Management
+
+```typescript
+// Never commit secrets to git
+// Use Docker secrets in production
+// Environment variables for development
+
+// Required secrets for Etapa 2:
+// - TIMELINESAI_API_KEY
+// - TIMELINESAI_WEBHOOK_SECRET
+// - INSTANTLY_API_KEY
+// - RESEND_API_KEY
+// - ANTHROPIC_API_KEY (for sentiment)
+```
+
+---
+
+## Document History
+
+| Versiune | Data | Modificări |
+| -------- | ---- | ---------- |
+| 1.0 | 15 Ianuarie 2026 | Versiune inițială (2 documente separate) |
+| 1.1 | 18 Ianuarie 2026 | Consolidare `etapa2-standards.md` + `etapa2-standards-procedures.md` |
+
+---
+
+**Document generat:** 18 Ianuarie 2026  
+**Consolidat din:** `etapa2-standards.md` + `etapa2-standards-procedures.md`  
 **Conformitate:** Master Spec v1.2
