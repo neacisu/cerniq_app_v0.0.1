@@ -1,53 +1,56 @@
 # CERNIQ.APP — ETAPA 1: HITL SYSTEM
+
 ## Human-in-the-Loop Approval Architecture
+
 ### Versiunea 1.0 | 15 Ianuarie 2026
 
 ---
 
-# 1. OVERVIEW
+## 1. OVERVIEW
 
-## 1.1 Purpose
+### 1.1 Purpose
 
 HITL (Human-in-the-Loop) asigură supervizare umană pentru decizii critice în pipeline-ul de date:
+
 - **Deduplicare fuzzy** (70-85% confidence)
 - **Quality review** (score 40-70)
 - **AI structuring review** (low confidence)
 - **Data anomalies** (valori neașteptate)
 - **Manual verification** (requested by system)
 
-## 1.2 Architecture Overview
+### 1.2 Architecture Overview
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
-│                        HITL SYSTEM                               │
+│                        HITL SYSTEM                              │
 ├─────────────────────────────────────────────────────────────────┤
-│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐         │
-│  │   Workers   │───▶│  Approval   │───▶│   Human     │         │
-│  │  (trigger)  │    │   Service   │    │  Operator   │         │
-│  └─────────────┘    └──────┬──────┘    └──────┬──────┘         │
-│                            │                   │                 │
-│                     ┌──────▼──────┐    ┌──────▼──────┐         │
-│                     │  Task Queue │    │   Decision  │         │
-│                     │  (BullMQ)   │    │    API      │         │
-│                     └──────┬──────┘    └──────┬──────┘         │
-│                            │                   │                 │
-│                     ┌──────▼───────────────────▼──────┐         │
-│                     │        PostgreSQL Tables         │         │
-│                     │   approval_tasks, audit_log      │         │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐          │
+│  │   Workers   │───▶│  Approval   │───▶│   Human     │          │
+│  │  (trigger)  │    │   Service   │    │  Operator   │          │
+│  └─────────────┘    └──────┬──────┘    └──────┬──────┘          │
+│                            │                  │                 │
+│                     ┌──────▼──────┐    ┌──────▼──────┐          │
+│                     │  Task Queue │    │   Decision  │          │
+│                     │  (BullMQ)   │    │    API      │          │
+│                     └──────┬──────┘    └──────┬──────┘          │
+│                            │                  │                 │
+│                     ┌──────▼──────────────────▼───────┐         │
+│                     │        PostgreSQL Tables        │         │
+│                     │   approval_tasks, audit_log     │         │
 │                     └─────────────────────────────────┘         │
-│                                    │                             │
+│                                    │                            │
 │                     ┌──────────────▼──────────────┐             │
-│                     │     Resume Blocked Jobs      │             │
-│                     │        (on decision)         │             │
+│                     │     Resume Blocked Jobs     │             │
+│                     │        (on decision)        │             │
 │                     └─────────────────────────────┘             │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-# 2. DATABASE SCHEMA
+## 2. DATABASE SCHEMA
 
-## 2.1 Approval Tasks Table
+### 2.1 Approval Tasks Table
 
 ```sql
 -- migrations/0025_create_approval_tasks.sql
@@ -146,7 +149,7 @@ CREATE POLICY approval_tasks_tenant_isolation ON approval_tasks
   USING (tenant_id = current_setting('app.current_tenant_id')::uuid);
 ```
 
-## 2.2 Approval Audit Log
+### 2.2 Approval Audit Log
 
 ```sql
 -- migrations/0026_create_approval_audit_log.sql
@@ -184,9 +187,9 @@ CREATE INDEX idx_approval_audit_actor
 
 ---
 
-# 3. APPROVAL SERVICE
+## 3. APPROVAL SERVICE
 
-## 3.1 Core Service Implementation
+### 3.1 Core Service Implementation
 
 ```typescript
 // packages/services/src/approval/approval.service.ts
@@ -516,9 +519,9 @@ export const approvalService = new ApprovalService();
 
 ---
 
-# 4. HITL WORKERS
+## 4. HITL WORKERS
 
-## 4.1 Escalation Worker
+### 4.1 Escalation Worker
 
 ```typescript
 // apps/workers/src/hitl/escalation.worker.ts
@@ -611,7 +614,7 @@ async function findEscalationTarget(
 }
 ```
 
-## 4.2 Resume Worker
+### 4.2 Resume Worker
 
 ```typescript
 // apps/workers/src/hitl/resume.worker.ts
@@ -799,7 +802,7 @@ async function handleAiDecision(
 
 ---
 
-# 5. HITL API ENDPOINTS
+## 5. HITL API ENDPOINTS
 
 ```typescript
 // apps/api/src/routes/approvals.ts
@@ -923,9 +926,9 @@ export default router;
 
 ---
 
-# 6. FRONTEND COMPONENTS
+## 6. FRONTEND COMPONENTS
 
-## 6.1 Approval Inbox Page
+### 6.1 Approval Inbox Page
 
 ```tsx
 // apps/web/src/pages/approvals/ApprovalInbox.tsx
@@ -1039,7 +1042,7 @@ function formatApprovalType(type: string): string {
 }
 ```
 
-## 6.2 Approval Review Component
+### 6.2 Approval Review Component
 
 ```tsx
 // apps/web/src/components/approvals/ApprovalReview.tsx
@@ -1196,7 +1199,7 @@ export const ApprovalReview: React.FC<ApprovalReviewProps> = ({ taskId }) => {
 
 ---
 
-# 7. SLA CONFIGURATION
+## 7. SLA CONFIGURATION
 
 ```typescript
 // packages/config/src/hitl-sla.config.ts

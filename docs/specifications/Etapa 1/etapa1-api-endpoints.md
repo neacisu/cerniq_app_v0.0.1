@@ -1,12 +1,14 @@
 # CERNIQ.APP — ETAPA 1: REST API ENDPOINTS
+
 ## Backend API Complet
+
 ### Versiunea 1.0 | 15 Ianuarie 2026
 
 ---
 
-# 1. API OVERVIEW
+## 1. API OVERVIEW
 
-## 1.1 Base Configuration
+### 1.1 Base Configuration
 
 ```typescript
 // Base URL
@@ -41,7 +43,7 @@ const ERROR_CODES = {
 };
 ```
 
-## 1.2 Authentication
+### 1.2 Authentication
 
 ```typescript
 // JWT Token in Authorization header
@@ -54,9 +56,9 @@ headers: {
 
 ---
 
-# 2. DASHBOARD ENDPOINTS
+## 2. DASHBOARD ENDPOINTS
 
-## 2.1 GET /dashboard/stats
+### 2.1 GET /dashboard/stats
 
 ```typescript
 // Request
@@ -109,7 +111,7 @@ GET /api/v1/dashboard/stats
 }
 ```
 
-## 2.2 GET /dashboard/activity
+### 2.2 GET /dashboard/activity
 
 ```typescript
 // Request
@@ -141,9 +143,9 @@ GET /api/v1/dashboard/activity?limit=20
 
 ---
 
-# 3. IMPORT ENDPOINTS
+## 3. IMPORT ENDPOINTS
 
-## 3.1 GET /imports
+### 3.1 GET /imports
 
 ```typescript
 // Request
@@ -194,7 +196,7 @@ interface ImportListParams {
 }
 ```
 
-## 3.2 POST /imports
+### 3.2 POST /imports
 
 ```typescript
 // Request - Multipart Form Data
@@ -225,7 +227,7 @@ Content-Type: multipart/form-data
 }
 ```
 
-## 3.3 GET /imports/:id
+### 3.3 GET /imports/:id
 
 ```typescript
 // Request
@@ -265,7 +267,7 @@ GET /api/v1/imports/uuid
 }
 ```
 
-## 3.4 POST /imports/:id/cancel
+### 3.4 POST /imports/:id/cancel
 
 ```typescript
 // Request
@@ -285,9 +287,9 @@ POST /api/v1/imports/uuid/cancel
 
 ---
 
-# 4. BRONZE ENDPOINTS
+## 4. BRONZE ENDPOINTS
 
-## 4.1 GET /bronze/contacts
+### 4.1 GET /bronze/contacts
 
 ```typescript
 // Request
@@ -333,7 +335,7 @@ interface BronzeContactsParams {
 }
 ```
 
-## 4.2 GET /bronze/contacts/:id
+### 4.2 GET /bronze/contacts/:id
 
 ```typescript
 // Request
@@ -374,7 +376,7 @@ GET /api/v1/bronze/contacts/uuid
 }
 ```
 
-## 4.3 POST /bronze/contacts/:id/reprocess
+### 4.3 POST /bronze/contacts/:id/reprocess
 
 ```typescript
 // Request
@@ -393,9 +395,9 @@ POST /api/v1/bronze/contacts/uuid/reprocess
 
 ---
 
-# 5. SILVER ENDPOINTS
+## 5. SILVER ENDPOINTS
 
-## 5.1 GET /silver/companies
+### 5.1 GET /silver/companies
 
 ```typescript
 // Request
@@ -447,7 +449,7 @@ interface SilverCompaniesParams {
 }
 ```
 
-## 5.2 GET /silver/companies/:id
+### 5.2 GET /silver/companies/:id
 
 ```typescript
 // Request
@@ -522,7 +524,7 @@ GET /api/v1/silver/companies/uuid
 }
 ```
 
-## 5.3 POST /silver/companies/:id/enrich
+### 5.3 POST /silver/companies/:id/enrich
 
 ```typescript
 // Request
@@ -547,7 +549,7 @@ POST /api/v1/silver/companies/uuid/enrich
 }
 ```
 
-## 5.4 POST /silver/companies/:id/promote
+### 5.4 POST /silver/companies/:id/promote
 
 ```typescript
 // Request
@@ -567,7 +569,7 @@ POST /api/v1/silver/companies/uuid/promote
 }
 ```
 
-## 5.5 GET /silver/enrichment-log
+### 5.5 GET /silver/enrichment-log
 
 ```typescript
 // Request
@@ -595,9 +597,9 @@ GET /api/v1/silver/enrichment-log?entityId=uuid&page=1
 
 ---
 
-# 6. GOLD ENDPOINTS
+## 6. GOLD ENDPOINTS
 
-## 6.1 GET /gold/companies
+### 6.1 GET /gold/companies
 
 ```typescript
 // Request
@@ -653,14 +655,14 @@ interface GoldCompaniesParams {
 }
 ```
 
-## 6.2 GET /gold/companies/:id
+### 6.2 GET /gold/companies/:id
 
 ```typescript
 // Full gold company with all 10 sections (see schema)
 // Response includes all fields from gold_companies table
 ```
 
-## 6.3 PATCH /gold/companies/:id
+### 6.3 PATCH /gold/companies/:id
 
 ```typescript
 // Request - Partial update
@@ -685,7 +687,7 @@ PATCH /api/v1/gold/companies/uuid
 }
 ```
 
-## 6.4 POST /gold/companies/:id/transition
+### 6.4 POST /gold/companies/:id/transition
 
 ```typescript
 // Request - FSM State Transition
@@ -714,9 +716,9 @@ POST /api/v1/gold/companies/uuid/transition
 
 ---
 
-# 7. APPROVAL ENDPOINTS
+## 7. APPROVAL ENDPOINTS
 
-## 7.1 GET /approvals
+### 7.1 GET /approvals
 
 ```typescript
 // Request
@@ -763,13 +765,13 @@ interface ApprovalListParams {
 }
 ```
 
-## 7.2 GET /approvals/:id
+### 7.2 GET /approvals/:id
 
 ```typescript
 // Full approval details with entity data and decision context
 ```
 
-## 7.3 POST /approvals/:id/assign
+### 7.3 POST /approvals/:id/assign
 
 ```typescript
 // Request
@@ -790,7 +792,7 @@ POST /api/v1/approvals/uuid/assign
 }
 ```
 
-## 7.4 POST /approvals/:id/decide
+### 7.4 POST /approvals/:id/decide
 
 ```typescript
 // Request
@@ -816,9 +818,9 @@ POST /api/v1/approvals/uuid/decide
 
 ---
 
-# 8. ENRICHMENT QUEUE ENDPOINTS
+## 8. ENRICHMENT QUEUE ENDPOINTS
 
-## 8.1 GET /enrichment/queues
+### 8.1 GET /enrichment/queues
 
 ```typescript
 // Request
@@ -854,7 +856,7 @@ GET /api/v1/enrichment/queues
 }
 ```
 
-## 8.2 POST /enrichment/queues/:name/pause
+### 8.2 POST /enrichment/queues/:name/pause
 
 ```typescript
 // Request
@@ -867,7 +869,7 @@ POST /api/v1/enrichment/queues/enrich:anaf:fiscal-status/pause
 }
 ```
 
-## 8.3 POST /enrichment/queues/:name/resume
+### 8.3 POST /enrichment/queues/:name/resume
 
 ```typescript
 // Similar to pause

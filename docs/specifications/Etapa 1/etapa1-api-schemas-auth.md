@@ -1,12 +1,14 @@
 # CERNIQ.APP — ETAPA 1: API SCHEMAS & AUTHENTICATION
+
 ## Request/Response Validation & Auth System
+
 ### Versiunea 1.0 | 15 Ianuarie 2026
 
 ---
 
-# 1. API VALIDATION SCHEMAS
+## 1. API VALIDATION SCHEMAS
 
-## 1.1 Common Schemas
+### 1.1 Common Schemas
 
 ```typescript
 // packages/validation/src/schemas/common.ts
@@ -70,7 +72,7 @@ export const apiResponseSchema = <T extends z.ZodTypeAny>(dataSchema: T) =>
   });
 ```
 
-## 1.2 Bronze Schemas
+### 1.2 Bronze Schemas
 
 ```typescript
 // packages/validation/src/schemas/bronze.ts
@@ -129,7 +131,7 @@ export const importConfigSchema = z.object({
 export type ImportConfigInput = z.infer<typeof importConfigSchema>;
 ```
 
-## 1.3 Silver Schemas
+### 1.3 Silver Schemas
 
 ```typescript
 // packages/validation/src/schemas/silver.ts
@@ -200,7 +202,7 @@ export const dedupDecisionSchema = z.object({
 export type DedupDecisionInput = z.infer<typeof dedupDecisionSchema>;
 ```
 
-## 1.4 Gold Schemas
+### 1.4 Gold Schemas
 
 ```typescript
 // packages/validation/src/schemas/gold.ts
@@ -255,7 +257,7 @@ export const scheduleActionSchema = z.object({
 export type ScheduleActionInput = z.infer<typeof scheduleActionSchema>;
 ```
 
-## 1.5 HITL Schemas
+### 1.5 HITL Schemas
 
 ```typescript
 // packages/validation/src/schemas/hitl.ts
@@ -310,9 +312,9 @@ export type EscalateTaskInput = z.infer<typeof escalateTaskSchema>;
 
 ---
 
-# 2. AUTHENTICATION SYSTEM
+## 2. AUTHENTICATION SYSTEM
 
-## 2.1 Auth Configuration
+### 2.1 Auth Configuration
 
 ```typescript
 // packages/auth/src/config.ts
@@ -342,7 +344,7 @@ export const AUTH_CONFIG = {
 };
 ```
 
-## 2.2 JWT Service
+### 2.2 JWT Service
 
 ```typescript
 // packages/auth/src/jwt.service.ts
@@ -449,7 +451,7 @@ export class JWTService {
 export const jwtService = new JWTService();
 ```
 
-## 2.3 Auth Middleware
+### 2.3 Auth Middleware
 
 ```typescript
 // apps/api/src/middleware/auth.middleware.ts
@@ -587,7 +589,7 @@ export async function optionalAuthMiddleware(
 }
 ```
 
-## 2.4 Auth Routes
+### 2.4 Auth Routes
 
 ```typescript
 // apps/api/src/routes/auth.routes.ts
@@ -825,7 +827,7 @@ export default router;
 
 ---
 
-# 3. REQUEST VALIDATION MIDDLEWARE
+## 3. REQUEST VALIDATION MIDDLEWARE
 
 ```typescript
 // apps/api/src/middleware/validate.ts
@@ -897,7 +899,7 @@ export const validateParams = <T extends ZodSchema>(schema: T) =>
 
 ---
 
-# 4. ERROR HANDLING
+## 4. ERROR HANDLING
 
 ```typescript
 // apps/api/src/middleware/error-handler.ts
@@ -1016,7 +1018,7 @@ export function errorHandler(
 
 ---
 
-# 5. RLS CONTEXT
+## 5. RLS CONTEXT
 
 ```typescript
 // packages/db/src/rls.ts
