@@ -1,10 +1,12 @@
 # CERNIQ.APP — ETAPA 1: SCHEMA DATABASE SILVER LAYER
+
 ## Tabele, Indecși, Constraints, Funcții
+
 ### Versiunea 1.0 | 15 Ianuarie 2026
 
 ---
 
-# 1. OVERVIEW SILVER LAYER
+## 1. OVERVIEW SILVER LAYER
 
 Silver Layer conține date **curățate, validate și parțial îmbogățite**. Caracteristici:
 
@@ -15,9 +17,9 @@ Silver Layer conține date **curățate, validate și parțial îmbogățite**. 
 
 ---
 
-# 2. TABELE SILVER
+## 2. TABELE SILVER
 
-## 2.1 silver_companies (Companii Validate)
+### 2.1 silver_companies (Companii Validate)
 
 ```sql
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -189,7 +191,7 @@ COMMENT ON TABLE silver_companies IS
 'Silver layer - validated and partially enriched companies. Mutable for progressive enrichment.';
 ```
 
-## 2.2 silver_companies Indecși
+### 2.2 silver_companies Indecși
 
 ```sql
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -240,7 +242,7 @@ CREATE INDEX idx_silver_companies_quality
 ON silver_companies(tenant_id, total_quality_score DESC);
 ```
 
-## 2.3 silver_companies Constraints și Triggers
+### 2.3 silver_companies Constraints și Triggers
 
 ```sql
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -345,7 +347,7 @@ USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
 
 ---
 
-## 2.4 silver_contacts (Persoane de Contact)
+### 2.4 silver_contacts (Persoane de Contact)
 
 ```sql
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -460,7 +462,7 @@ FOR ALL USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid)
 
 ---
 
-## 2.5 silver_enrichment_log (Audit Trail Enrichment)
+### 2.5 silver_enrichment_log (Audit Trail Enrichment)
 
 ```sql
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -534,7 +536,7 @@ FOR ALL USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid)
 
 ---
 
-## 2.6 silver_dedup_candidates (Candidați Deduplicare)
+### 2.6 silver_dedup_candidates (Candidați Deduplicare)
 
 ```sql
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -598,7 +600,7 @@ FOR ALL USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid)
 
 ---
 
-# 3. FUNCȚII SILVER
+## 3. FUNCȚII SILVER
 
 ```sql
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -686,7 +688,7 @@ $$ LANGUAGE plpgsql;
 
 ---
 
-# 4. GRANT-URI SILVER
+## 4. GRANT-URI SILVER
 
 ```sql
 -- Permisiuni pentru aplicație

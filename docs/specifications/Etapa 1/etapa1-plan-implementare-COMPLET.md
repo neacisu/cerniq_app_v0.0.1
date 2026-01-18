@@ -1,13 +1,15 @@
 # CERNIQ.APP — ETAPA 1: PLAN IMPLEMENTARE COMPLET
+
 ## Data Enrichment Bronze → Silver → Gold
+
 ### Versiunea 1.0 | 15 Ianuarie 2026
 
 ---
 
-# METADATA DOCUMENT
+## METADATA DOCUMENT
 
 | Câmp | Valoare |
-|------|---------|
+| ------ | --------- |
 | **Etapa** | 1 - Data Enrichment |
 | **Versiune** | 1.0 |
 | **Data creării** | 15 Ianuarie 2026 |
@@ -20,10 +22,10 @@
 
 ---
 
-# CUPRINS FAZE
+## CUPRINS FAZE
 
 | Fază | Denumire | Taskuri | Prioritate |
-|------|----------|---------|------------|
+| ------ | ---------- | --------- | ------------ |
 | F1.1 | Database Schema Bronze | 6 | CRITICAL |
 | F1.2 | Database Schema Silver | 6 | CRITICAL |
 | F1.3 | Database Schema Gold | 6 | CRITICAL |
@@ -43,9 +45,9 @@
 
 ---
 
-# DEPENDENȚE INTER-FAZE
+## DEPENDENȚE INTER-FAZE
 
-```
+```text
 F1.1 (Bronze Schema) ──┐
 F1.2 (Silver Schema) ──┼──▶ F1.4 (Workers Infra) ──▶ F1.5-F1.10 (Workers)
 F1.3 (Gold Schema) ────┘                                    │
@@ -61,9 +63,9 @@ F1.12 (API) ──▶ F1.13 (Pages) ──▶ F1.14 (Components)
 
 ---
 
-# F1.1 DATABASE SCHEMA BRONZE
+## F1.1 DATABASE SCHEMA BRONZE
 
-## F1.1.1 - Creare tabel bronze_contacts
+### F1.1.1 - Creare tabel bronze_contacts
 
 ```json
 {
@@ -100,7 +102,7 @@ F1.12 (API) ──▶ F1.13 (Pages) ──▶ F1.14 (Components)
 }
 ```
 
-## F1.1.2 - Indecși bronze_contacts
+### F1.1.2 - Indecși bronze_contacts
 
 ```json
 {
@@ -132,7 +134,7 @@ F1.12 (API) ──▶ F1.13 (Pages) ──▶ F1.14 (Components)
 }
 ```
 
-## F1.1.3 - RLS și Triggers bronze_contacts
+### F1.1.3 - RLS și Triggers bronze_contacts
 
 ```json
 {
@@ -165,7 +167,7 @@ F1.12 (API) ──▶ F1.13 (Pages) ──▶ F1.14 (Components)
 }
 ```
 
-## F1.1.4 - Tabel bronze_import_batches
+### F1.1.4 - Tabel bronze_import_batches
 
 ```json
 {
@@ -189,7 +191,7 @@ F1.12 (API) ──▶ F1.13 (Pages) ──▶ F1.14 (Components)
 }
 ```
 
-## F1.1.5 - Tabel bronze_webhooks
+### F1.1.5 - Tabel bronze_webhooks
 
 ```json
 {
@@ -212,7 +214,7 @@ F1.12 (API) ──▶ F1.13 (Pages) ──▶ F1.14 (Components)
 }
 ```
 
-## F1.1.6 - Funcții utilitare Bronze
+### F1.1.6 - Funcții utilitare Bronze
 
 ```json
 {
@@ -238,10 +240,9 @@ F1.12 (API) ──▶ F1.13 (Pages) ──▶ F1.14 (Components)
 
 ---
 
-# F1.2 DATABASE SCHEMA SILVER
+## F1.2 DATABASE SCHEMA SILVER
 
-
-## F1.2.1 - Creare tabel silver_companies
+### F1.2.1 - Creare tabel silver_companies
 
 ```json
 {
@@ -271,7 +272,7 @@ F1.12 (API) ──▶ F1.13 (Pages) ──▶ F1.14 (Components)
 }
 ```
 
-## F1.2.2-6 - Indecși, RLS, Contacts, Log, Dedup
+### F1.2.2-6 - Indecși, RLS, Contacts, Log, Dedup
 
 ```json
 {
@@ -296,9 +297,9 @@ F1.12 (API) ──▶ F1.13 (Pages) ──▶ F1.14 (Components)
 
 ---
 
-# F1.3 DATABASE SCHEMA GOLD
+## F1.3 DATABASE SCHEMA GOLD
 
-## F1.3.1 - Creare tabel gold_companies
+### F1.3.1 - Creare tabel gold_companies
 
 ```json
 {
@@ -330,7 +331,7 @@ F1.12 (API) ──▶ F1.13 (Pages) ──▶ F1.14 (Components)
 }
 ```
 
-## F1.3.2-6 - Indecși, Contacts, Journey, Triggers
+### F1.3.2-6 - Indecși, Contacts, Journey, Triggers
 
 ```json
 {
@@ -355,9 +356,9 @@ F1.12 (API) ──▶ F1.13 (Pages) ──▶ F1.14 (Components)
 
 ---
 
-# F1.4 WORKERS INFRASTRUCTURE
+## F1.4 WORKERS INFRASTRUCTURE
 
-## F1.4.1 - BullMQ Connection Setup
+### F1.4.1 - BullMQ Connection Setup
 
 ```json
 {
@@ -389,7 +390,7 @@ F1.12 (API) ──▶ F1.13 (Pages) ──▶ F1.14 (Components)
 }
 ```
 
-## F1.4.2-8 - Worker Factory, Rate Limiter, Circuit Breaker
+### F1.4.2-8 - Worker Factory, Rate Limiter, Circuit Breaker
 
 ```json
 {
@@ -414,9 +415,9 @@ F1.12 (API) ──▶ F1.13 (Pages) ──▶ F1.14 (Components)
 
 ---
 
-# F1.5 WORKERS CATEGORIA A - INGESTIE
+## F1.5 WORKERS CATEGORIA A - INGESTIE
 
-## F1.5.1 - CSV Parser Worker
+### F1.5.1 - CSV Parser Worker
 
 ```json
 {
@@ -440,7 +441,7 @@ F1.12 (API) ──▶ F1.13 (Pages) ──▶ F1.14 (Components)
 }
 ```
 
-## F1.5.2-6 - Excel, Webhook, Manual, API Workers
+### F1.5.2-6 - Excel, Webhook, Manual, API Workers
 
 ```json
 {
@@ -465,9 +466,9 @@ F1.12 (API) ──▶ F1.13 (Pages) ──▶ F1.14 (Components)
 
 ---
 
-# F1.10 WORKERS CAT. M-P - DEDUP, SCORE, PIPELINE
+## F1.10 WORKERS CAT. M-P - DEDUP, SCORE, PIPELINE
 
-## F1.10.1 - Dedup Exact Match Worker
+### F1.10.1 - Dedup Exact Match Worker
 
 ```json
 {
@@ -490,7 +491,7 @@ F1.12 (API) ──▶ F1.13 (Pages) ──▶ F1.14 (Components)
 }
 ```
 
-## F1.10.2 - Fuzzy Match Deduplicare (HITL)
+### F1.10.2 - Fuzzy Match Deduplicare (HITL)
 
 ```json
 {
@@ -516,9 +517,9 @@ F1.12 (API) ──▶ F1.13 (Pages) ──▶ F1.14 (Components)
 
 ---
 
-# F1.11 HITL INTEGRATION
+## F1.11 HITL INTEGRATION
 
-## F1.11.1 - Approval Service
+### F1.11.1 - Approval Service
 
 ```json
 {
@@ -544,9 +545,9 @@ F1.12 (API) ──▶ F1.13 (Pages) ──▶ F1.14 (Components)
 
 ---
 
-# F1.15 TESTING & MONITORING
+## F1.15 TESTING & MONITORING
 
-## F1.15.1 - Unit Tests Workers
+### F1.15.1 - Unit Tests Workers
 
 ```json
 {
@@ -571,12 +572,12 @@ F1.12 (API) ──▶ F1.13 (Pages) ──▶ F1.14 (Components)
 
 ---
 
-# REZUMAT FINAL
+## REZUMAT FINAL
 
-## Statistici Plan Implementare Etapa 1
+### Statistici Plan Implementare Etapa 1
 
 | Metrică | Valoare |
-|---------|---------|
+| --------- | --------- |
 | **Faze totale** | 15 (F1.1 - F1.15) |
 | **Taskuri totale** | ~126 |
 | **Workers implementați** | 61 |

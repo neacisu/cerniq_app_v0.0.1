@@ -1,14 +1,17 @@
 # CERNIQ.APP — ETAPA 1: RUNBOOK & MONITORING
+
 ## Operational Procedures, Dashboards & Alerting
+
 ### Versiunea 1.0 | 15 Ianuarie 2026
 
 ---
 
-# 1. RUNBOOK OVERVIEW
+## 1. RUNBOOK OVERVIEW
 
-## 1.1 Purpose
+### 1.1 Purpose
 
 Acest runbook documentează procedurile operaționale pentru Etapa 1 (Data Enrichment Pipeline):
+
 - **Troubleshooting** - Diagnosticare și rezolvare probleme
 - **Maintenance** - Proceduri de întreținere
 - **Incident Response** - Răspuns la incidente
@@ -16,11 +19,12 @@ Acest runbook documentează procedurile operaționale pentru Etapa 1 (Data Enric
 
 ---
 
-# 2. TROUBLESHOOTING PROCEDURES
+## 2. TROUBLESHOOTING PROCEDURES
 
-## 2.1 Import Stuck in Processing
+### 2.1 Import Stuck in Processing
 
 **Simptome:**
+
 - Import status rămâne pe `processing` > 30 minute
 - Progresul nu se actualizează
 - No new bronze_contacts created
@@ -71,9 +75,10 @@ SET status = 'cancelled',
 WHERE id = '<import_id>';
 ```
 
-## 2.2 Enrichment Rate Limiting
+### 2.2 Enrichment Rate Limiting
 
 **Simptome:**
+
 - High number of jobs in delayed queue
 - API timeout errors in logs
 - Circuit breaker OPEN state
@@ -111,9 +116,10 @@ redis-cli DEL circuit:anaf:failures
 docker restart cerniq-workers-enrichment
 ```
 
-## 2.3 HITL SLA Breach
+### 2.3 HITL SLA Breach
 
 **Simptome:**
+
 - Alert: "HITL SLA Breach"
 - Approval tasks with status='pending' and due_at < NOW()
 
@@ -167,9 +173,10 @@ WHERE status = 'pending'
   AND due_at < NOW();
 ```
 
-## 2.4 Quality Score Anomalies
+### 2.4 Quality Score Anomalies
 
 **Simptome:**
+
 - Companii cu quality score = 0 sau NULL
 - Quality scores nu se actualizează
 - Promotion pipeline blocat
@@ -220,9 +227,9 @@ docker restart cerniq-workers-scoring
 
 ---
 
-# 3. MAINTENANCE PROCEDURES
+## 3. MAINTENANCE PROCEDURES
 
-## 3.1 Daily Maintenance
+### 3.1 Daily Maintenance
 
 ```bash
 #!/bin/bash
@@ -263,7 +270,7 @@ logrotate /etc/logrotate.d/cerniq
 echo "Daily maintenance completed at $(date)"
 ```
 
-## 3.2 Weekly Maintenance
+### 3.2 Weekly Maintenance
 
 ```bash
 #!/bin/bash
@@ -304,7 +311,7 @@ EOF
 echo "Weekly maintenance completed at $(date)"
 ```
 
-## 3.3 Index Maintenance
+### 3.3 Index Maintenance
 
 ```sql
 -- Check index health
@@ -340,9 +347,9 @@ WHERE avg_leaf_density < 0.9;
 
 ---
 
-# 4. MONITORING CONFIGURATION
+## 4. MONITORING CONFIGURATION
 
-## 4.1 SigNoz Dashboard Configuration
+### 4.1 SigNoz Dashboard Configuration
 
 ```yaml
 # sigNoz/dashboards/etapa1-overview.json
@@ -407,7 +414,7 @@ WHERE avg_leaf_density < 0.9;
 }
 ```
 
-## 4.2 Prometheus Metrics
+### 4.2 Prometheus Metrics
 
 ```typescript
 // packages/monitoring/src/metrics.ts
@@ -531,7 +538,7 @@ export const workerQueueDepth = new Gauge({
 });
 ```
 
-## 4.3 Alert Rules
+### 4.3 Alert Rules
 
 ```yaml
 # prometheus/alerts/etapa1.yml
@@ -645,18 +652,18 @@ groups:
 
 ---
 
-# 5. INCIDENT RESPONSE
+## 5. INCIDENT RESPONSE
 
-## 5.1 Severity Levels
+### 5.1 Severity Levels
 
 | Level | Description | Response Time | Examples |
-|-------|-------------|---------------|----------|
+| ------- | ------------- | --------------- | ---------- |
 | **SEV1** | Complete outage | 15 min | Database down, all workers crashed |
 | **SEV2** | Major degradation | 1 hour | >50% enrichment failures, HITL completely stalled |
 | **SEV3** | Minor degradation | 4 hours | Single API source down, slow processing |
 | **SEV4** | Cosmetic/minor | 24 hours | Dashboard issues, logging gaps |
 
-## 5.2 Incident Response Template
+### 5.2 Incident Response Template
 
 ```markdown
 # Incident Report: [INCIDENT_ID]
@@ -671,7 +678,7 @@ groups:
 
 ## Timeline
 | Time | Event | Actor |
-|------|-------|-------|
+| ------ | ------- | ------- |
 | HH:MM | Alert triggered | System |
 | HH:MM | On-call acknowledged | [name] |
 | HH:MM | Root cause identified | [name] |
@@ -697,10 +704,10 @@ groups:
 [What we learned and how to prevent recurrence]
 ```
 
-## 5.3 Escalation Matrix
+### 5.3 Escalation Matrix
 
 | Time Elapsed | Action |
-|--------------|--------|
+| ------------ | -------- |
 | 0 min | Alert fired, on-call paged |
 | 15 min (SEV1) | Escalate to team lead |
 | 30 min (SEV1) | Escalate to engineering manager |
@@ -710,9 +717,9 @@ groups:
 
 ---
 
-# 6. CAPACITY PLANNING
+## 6. CAPACITY PLANNING
 
-## 6.1 Current Capacity Metrics
+### 6.1 Current Capacity Metrics
 
 ```sql
 -- Daily ingestion capacity
@@ -749,10 +756,10 @@ GROUP BY DATE(created_at)
 ORDER BY date DESC;
 ```
 
-## 6.2 Scaling Thresholds
+### 6.2 Scaling Thresholds
 
 | Metric | Warning | Critical | Scale Action |
-|--------|---------|----------|--------------|
+| -------- | --------- | ---------- | -------------- |
 | Queue depth (waiting) | > 1000 | > 5000 | Add workers |
 | Processing latency | > 5 min | > 15 min | Add workers |
 | Database connections | > 60% | > 80% | Connection pooling |

@@ -1,14 +1,16 @@
 # CERNIQ.APP — ETAPA 1: TESTING STRATEGY
+
 ## Comprehensive Test Plan & Automation
+
 ### Versiunea 1.0 | 15 Ianuarie 2026
 
 ---
 
-# 1. TESTING OVERVIEW
+## 1. TESTING OVERVIEW
 
-## 1.1 Test Pyramid
+### 1.1 Test Pyramid
 
-```
+```text
                     ┌───────────┐
                     │    E2E    │  5%   - Playwright
                     │   Tests   │       - Critical flows
@@ -21,10 +23,10 @@
               └───────────────────────┘
 ```
 
-## 1.2 Test Stack
+### 1.2 Test Stack
 
 | Layer | Tool | Purpose |
-|-------|------|---------|
+| ------- | ------ | --------- |
 | Unit | Vitest | Fast unit tests |
 | Integration | Vitest + Testcontainers | API/DB tests |
 | E2E | Playwright | Browser automation |
@@ -33,9 +35,9 @@
 
 ---
 
-# 2. UNIT TESTING
+## 2. UNIT TESTING
 
-## 2.1 Configuration
+### 2.1 Configuration
 
 ```typescript
 // vitest.config.ts
@@ -332,9 +334,9 @@ describe('Quality Scoring', () => {
 
 ---
 
-# 3. INTEGRATION TESTING
+## 3. INTEGRATION TESTING
 
-## 3.1 Database Integration Tests
+### 3.1 Database Integration Tests
 
 ```typescript
 // test/integration/db.setup.ts
@@ -464,7 +466,7 @@ describe('CSV Ingest Worker Integration', () => {
 });
 ```
 
-## 3.2 API Integration Tests
+### 3.2 API Integration Tests
 
 ```typescript
 // test/integration/api/bronze.test.ts
@@ -558,9 +560,9 @@ describe('Bronze API Integration', () => {
 
 ---
 
-# 4. E2E TESTING
+## 4. E2E TESTING
 
-## 4.1 Playwright Configuration
+### 4.1 Playwright Configuration
 
 ```typescript
 // playwright.config.ts
@@ -717,9 +719,9 @@ test.describe('HITL Approval Flow', () => {
 
 ---
 
-# 5. PERFORMANCE TESTING
+## 5. PERFORMANCE TESTING
 
-## 5.1 k6 Load Tests
+### 5.1 k6 Load Tests
 
 ```javascript
 // k6/load-test.js
@@ -810,7 +812,7 @@ export function teardown(data) {
 }
 ```
 
-## 5.2 Import Performance Test
+### 5.2 Import Performance Test
 
 ```javascript
 // k6/import-stress.js
@@ -877,9 +879,9 @@ function generateTestCSV(rows) {
 
 ---
 
-# 6. TEST DATA MANAGEMENT
+## 6. TEST DATA MANAGEMENT
 
-## 6.1 Fixtures
+### 6.1 Fixtures
 
 ```typescript
 // test/fixtures/bronze-contacts.ts
@@ -943,7 +945,7 @@ export const silverCompanyFixtures = {
 };
 ```
 
-## 6.2 Factory Functions
+### 6.2 Factory Functions
 
 ```typescript
 // test/factories/company.factory.ts
@@ -1008,7 +1010,7 @@ export function createApprovalTask(overrides = {}) {
 
 ---
 
-# 7. CI/CD TEST PIPELINE
+## 7. CI/CD TEST PIPELINE
 
 ```yaml
 # .github/workflows/test.yml

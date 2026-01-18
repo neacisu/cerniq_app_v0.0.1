@@ -1,10 +1,12 @@
 # CERNIQ.APP — ETAPA 1: SCHEMA DATABASE GOLD LAYER
+
 ## Tabele, Indecși, Constraints, Funcții
+
 ### Versiunea 1.0 | 15 Ianuarie 2026
 
 ---
 
-# 1. OVERVIEW GOLD LAYER
+## 1. OVERVIEW GOLD LAYER
 
 Gold Layer conține contacte **complet îmbogățite și ready-for-outreach**. Caracteristici:
 
@@ -15,9 +17,9 @@ Gold Layer conține contacte **complet îmbogățite și ready-for-outreach**. C
 
 ---
 
-# 2. TABELE GOLD
+## 2. TABELE GOLD
 
-## 2.1 gold_companies (Companii Ready-for-Outreach)
+### 2.1 gold_companies (Companii Ready-for-Outreach)
 
 ```sql
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -328,7 +330,7 @@ COMMENT ON TABLE gold_companies IS
 'Gold layer - fully enriched companies ready for sales outreach and automation.';
 ```
 
-## 2.2 gold_companies Indecși
+### 2.2 gold_companies Indecși
 
 ```sql
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -388,7 +390,7 @@ CREATE INDEX idx_gold_companies_dashboard
 ON gold_companies(tenant_id, customer_status, current_state, lead_score DESC);
 ```
 
-## 2.3 gold_companies Constraints și Triggers
+### 2.3 gold_companies Constraints și Triggers
 
 ```sql
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -486,7 +488,7 @@ USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
 
 ---
 
-## 2.4 gold_contacts (Contacte Ready-for-Outreach)
+### 2.4 gold_contacts (Contacte Ready-for-Outreach)
 
 ```sql
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -591,7 +593,7 @@ FOR ALL USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid)
 
 ---
 
-## 2.5 gold_lead_journey (Event Log FSM)
+### 2.5 gold_lead_journey (Event Log FSM)
 
 ```sql
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -656,7 +658,7 @@ FOR ALL USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid)
 
 ---
 
-# 3. FUNCȚII GOLD
+## 3. FUNCȚII GOLD
 
 ```sql
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -750,7 +752,7 @@ $$ LANGUAGE plpgsql;
 
 ---
 
-# 4. GRANT-URI GOLD
+## 4. GRANT-URI GOLD
 
 ```sql
 GRANT SELECT, INSERT, UPDATE, DELETE ON gold_companies TO cerniq_app;

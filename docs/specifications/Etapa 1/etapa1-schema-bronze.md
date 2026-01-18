@@ -1,10 +1,12 @@
 # CERNIQ.APP — ETAPA 1: SCHEMA DATABASE BRONZE LAYER
+
 ## Tabele, Indecși, Constraints, Funcții
+
 ### Versiunea 1.0 | 15 Ianuarie 2026
 
 ---
 
-# 1. OVERVIEW BRONZE LAYER
+## 1. OVERVIEW BRONZE LAYER
 
 Bronze Layer este **zona de aterizare** pentru toate datele brute din surse multiple. Caracteristici fundamentale:
 
@@ -15,9 +17,9 @@ Bronze Layer este **zona de aterizare** pentru toate datele brute din surse mult
 
 ---
 
-# 2. TABELE BRONZE
+## 2. TABELE BRONZE
 
-## 2.1 bronze_contacts (Tabel Principal)
+### 2.1 bronze_contacts (Tabel Principal)
 
 ```sql
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -112,7 +114,7 @@ COMMENT ON TABLE bronze_contacts IS
 'Bronze layer - raw contact data ingestion. IMMUTABLE - no updates allowed.';
 ```
 
-## 2.2 bronze_contacts Indecși
+### 2.2 bronze_contacts Indecși
 
 ```sql
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -157,7 +159,7 @@ ON bronze_contacts(promoted_to_silver_id)
 WHERE promoted_to_silver_id IS NOT NULL;
 ```
 
-## 2.3 bronze_contacts RLS & Triggers
+### 2.3 bronze_contacts RLS & Triggers
 
 ```sql
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -264,7 +266,7 @@ EXECUTE FUNCTION bronze_extract_identifiers();
 
 ---
 
-## 2.4 bronze_import_batches (Tracking Import-uri)
+### 2.4 bronze_import_batches (Tracking Import-uri)
 
 ```sql
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -315,7 +317,7 @@ FOR ALL USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid)
 
 ---
 
-## 2.5 bronze_webhooks (Webhook Ingestie)
+### 2.5 bronze_webhooks (Webhook Ingestie)
 
 ```sql
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -365,7 +367,7 @@ FOR ALL USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid)
 
 ---
 
-## 2.6 bronze_scrape_results (Web Scraping)
+### 2.6 bronze_scrape_results (Web Scraping)
 
 ```sql
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -415,7 +417,7 @@ FOR ALL USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid)
 
 ---
 
-# 3. FUNCȚII UTILITARE BRONZE
+## 3. FUNCȚII UTILITARE BRONZE
 
 ```sql
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -508,7 +510,7 @@ $$ LANGUAGE plpgsql;
 
 ---
 
-# 4. DATA RETENTION (CLEANUP)
+## 4. DATA RETENTION (CLEANUP)
 
 ```sql
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -544,7 +546,7 @@ $$ LANGUAGE plpgsql;
 
 ---
 
-# 5. GRANT-URI ȘI PERMISIUNI
+## 5. GRANT-URI ȘI PERMISIUNI
 
 ```sql
 -- ═══════════════════════════════════════════════════════════════════════════

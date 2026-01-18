@@ -1,21 +1,23 @@
 # CERNIQ.APP — ETAPA 1: DATABASE MIGRATIONS
+
 ## Complete Migration Scripts & Procedures
+
 ### Versiunea 1.0 | 15 Ianuarie 2026
 
 ---
 
-# 1. MIGRATION OVERVIEW
+## 1. MIGRATION OVERVIEW
 
-## 1.1 Migration Strategy
+### 1.1 Migration Strategy
 
 - **Tool:** Drizzle ORM Migrations
 - **Naming:** `XXXX_description.sql` (sequential numbering)
 - **Approach:** Forward-only migrations
 - **Rollback:** Separate rollback scripts
 
-## 1.2 Migration Order for Etapa 1
+### 1.2 Migration Order for Etapa 1
 
-```
+```text
 0020_create_bronze_contacts.sql
 0021_create_bronze_import_batches.sql
 0022_create_silver_companies.sql
@@ -35,9 +37,9 @@
 
 ---
 
-# 2. BRONZE LAYER MIGRATIONS
+## 2. BRONZE LAYER MIGRATIONS
 
-## 2.1 Bronze Contacts (0020)
+### 2.1 Bronze Contacts (0020)
 
 ```sql
 -- migrations/0020_create_bronze_contacts.sql
@@ -110,7 +112,7 @@ COMMENT ON COLUMN bronze_contacts.content_hash IS 'SHA-256 hash of raw_payload f
 COMMENT ON COLUMN bronze_contacts.normalized_cui IS 'CUI after removing whitespace and RO prefix';
 ```
 
-## 2.2 Bronze Import Batches (0021)
+### 2.2 Bronze Import Batches (0021)
 
 ```sql
 -- migrations/0021_create_bronze_import_batches.sql
@@ -169,9 +171,9 @@ COMMENT ON TABLE bronze_import_batches IS 'Tracks file import jobs and their pro
 
 ---
 
-# 3. SILVER LAYER MIGRATIONS
+## 3. SILVER LAYER MIGRATIONS
 
-## 3.1 Silver Companies (0022)
+### 3.1 Silver Companies (0022)
 
 ```sql
 -- migrations/0022_create_silver_companies.sql
@@ -393,7 +395,7 @@ COMMENT ON COLUMN silver_companies.location IS 'PostGIS geography point for spat
 COMMENT ON COLUMN silver_companies.is_master_record IS 'False if this is a duplicate record';
 ```
 
-## 3.2 Silver Contacts (0023)
+### 3.2 Silver Contacts (0023)
 
 ```sql
 -- migrations/0023_create_silver_contacts.sql
@@ -437,7 +439,7 @@ COMMENT ON TABLE silver_contacts IS 'People associated with silver companies';
 COMMENT ON COLUMN silver_contacts.cnp_masked IS 'Partially masked CNP for GDPR compliance';
 ```
 
-## 3.3 Silver Company Locations (0024)
+### 3.3 Silver Company Locations (0024)
 
 ```sql
 -- migrations/0024_create_silver_company_locations.sql
@@ -480,7 +482,7 @@ CREATE TABLE silver_company_locations (
 COMMENT ON TABLE silver_company_locations IS 'Additional company locations beyond main HQ';
 ```
 
-## 3.4 Silver Enrichment Log (0025)
+### 3.4 Silver Enrichment Log (0025)
 
 ```sql
 -- migrations/0025_create_silver_enrichment_log.sql
@@ -560,9 +562,9 @@ COMMENT ON TABLE silver_dedup_candidates IS 'Potential duplicate pairs for revie
 
 ---
 
-# 4. GOLD LAYER MIGRATIONS
+## 4. GOLD LAYER MIGRATIONS
 
-## 4.1 Gold Companies (0027)
+### 4.1 Gold Companies (0027)
 
 ```sql
 -- migrations/0027_create_gold_companies.sql
@@ -651,9 +653,9 @@ COMMENT ON TABLE gold_companies IS 'Sales-ready companies with lead management';
 
 ---
 
-# 5. HITL MIGRATIONS
+## 5. HITL MIGRATIONS
 
-## 5.1 Approval Tasks (0028)
+### 5.1 Approval Tasks (0028)
 
 ```sql
 -- migrations/0028_create_approval_tasks.sql
@@ -722,7 +724,7 @@ CREATE TABLE approval_tasks (
 COMMENT ON TABLE approval_tasks IS 'Human-in-the-loop approval tasks';
 ```
 
-## 5.2 Approval Audit Log (0029)
+### 5.2 Approval Audit Log (0029)
 
 ```sql
 -- migrations/0029_create_approval_audit_log.sql
@@ -757,9 +759,9 @@ COMMENT ON TABLE approval_audit_log IS 'Audit trail for approval actions';
 
 ---
 
-# 6. SUPPORT TABLES
+## 6. SUPPORT TABLES
 
-## 6.1 Daily Stats (0030)
+### 6.1 Daily Stats (0030)
 
 ```sql
 -- migrations/0030_create_daily_stats.sql
@@ -809,7 +811,7 @@ CREATE TABLE daily_stats (
 COMMENT ON TABLE daily_stats IS 'Daily aggregated statistics for dashboard';
 ```
 
-## 6.2 Pipeline Errors (0031)
+### 6.2 Pipeline Errors (0031)
 
 ```sql
 -- migrations/0031_create_pipeline_errors.sql
@@ -850,7 +852,7 @@ COMMENT ON TABLE pipeline_errors IS 'Tracks pipeline errors for debugging';
 
 ---
 
-# 7. INDEXES
+## 7. INDEXES
 
 ```sql
 -- migrations/0032_add_indexes.sql
@@ -917,7 +919,7 @@ CREATE INDEX idx_dedup_candidates_status
 
 ---
 
-# 8. FUNCTIONS & TRIGGERS
+## 8. FUNCTIONS & TRIGGERS
 
 ```sql
 -- migrations/0033_add_functions.sql
@@ -989,7 +991,7 @@ CREATE TRIGGER tr_gold_companies_location
 
 ---
 
-# 9. ROW LEVEL SECURITY
+## 9. ROW LEVEL SECURITY
 
 ```sql
 -- migrations/0035_add_rls.sql
