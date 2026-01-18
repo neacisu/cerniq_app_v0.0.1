@@ -2,7 +2,9 @@
 
 ## Documentație Completă pentru Toate Variabilele de Mediu
 
-### Versiunea 1.0 | 15 Ianuarie 2026
+### Versiunea 1.1 | 18 Ianuarie 2026
+
+> **📋 ADR Asociat:** [ADR-0030: Environment Management](../../adr/ADR%20Etapa%200/ADR-0030-Environment-Management.md)
 
 ---
 

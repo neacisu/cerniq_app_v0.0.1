@@ -54,3 +54,13 @@ const dbPassword = readSecret('DATABASE_PASSWORD');
 - **NICIODATĂ** commit secrets în git
 - Permissions 600 pe secret files
 - Rotation quarterly pentru API keys
+
+## Documentație Detaliată
+
+Pentru ghid complet cu scripturi, proceduri de rotație și security audit, vezi:
+**[`docs/specifications/Etapa 0/etapa0-docker-secrets-guide.md`](../../specifications/Etapa%200/etapa0-docker-secrets-guide.md)**
+
+## Compliance
+
+- **GDPR Art. 32** - Măsuri tehnice pentru securitatea datelor
+- **ISO 27001** - Control acces și management credențiale

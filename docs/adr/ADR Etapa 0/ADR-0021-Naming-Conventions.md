@@ -22,3 +22,10 @@ Necesităm consistență în naming între layers.
 | Environment variables | SCREAMING_SNAKE_CASE | `DATABASE_URL` |
 | Files TS | kebab-case | `lead-journey.service.ts` |
 | Files Python | snake_case | `lead_journey_service.py` |
+
+## Documentație Detaliată
+
+Pentru convențiile complete de naming, vezi:
+
+- **[`master-specification.md`](../../specifications/master-specification.md)** § "Naming Conventions" - sursă canonică
+- **[`coding-standards.md`](../../developer-guide/coding-standards.md)** § "Naming Conventions" - ghid detaliat

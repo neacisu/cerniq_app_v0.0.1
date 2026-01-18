@@ -70,7 +70,9 @@ Pentru agenți AI (Cursor, Copilot), instrucțiunile se aplică în această ord
 
 ## 1. TECHNOLOGY STACK CANONIC
 
-> ⚠️ **CRITIAL:** Aceste versiuni sunt OBLIGATORII. NU genera cod pentru alte versiuni.
+> ⚠️ **CRITICAL:** Aceste versiuni sunt OBLIGATORII. NU genera cod pentru alte versiuni.
+>
+> 📖 **Sursă Canonică Versiuni:** [`master-specification.md`](../specifications/master-specification.md) § "Canonical Technology Versions"
 
 ## 1.1 Backend Stack
 
@@ -216,6 +218,10 @@ interface CerniqEvent<T = unknown> {
 ---
 
 ## 3. NAMING CONVENTIONS
+
+> 📖 **Sursă Canonică:** [`master-specification.md`](../specifications/master-specification.md) § "Naming Conventions"
+>
+> **ADR:** [ADR-0021: Naming Conventions](../adr/ADR%20Etapa%200/ADR-0021-Naming-Conventions.md)
 
 ## 3.1 PostgreSQL Tables
 

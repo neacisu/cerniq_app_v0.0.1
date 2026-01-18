@@ -56,3 +56,8 @@ services:
       retries: 3
       start_period: 60s
 ```
+
+## Documentație Detaliată
+
+Pentru specificații complete și implementare, vezi:
+**[`docs/specifications/Etapa 0/etapa0-health-check-specs.md`](../../specifications/Etapa%200/etapa0-health-check-specs.md)**

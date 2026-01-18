@@ -1,8 +1,14 @@
 # CERNIQ.APP — ETAPA 0: BACKUP & RESTORE PROCEDURES
 
-## Proceduri Complete pentru Backup și Disaster Recovery
+## Quick-Start Scripts pentru Backup și Disaster Recovery
 
-### Versiunea 1.0 | 15 Ianuarie 2026
+### Versiunea 1.1 | 18 Ianuarie 2026
+
+> **📖 Document de Referință Canonic:**  
+> Pentru strategia completă de backup (data tiers, RPO/RTO details, WAL archiving complet, disaster recovery procedures), consultați:  
+> **[`docs/infrastructure/backup-strategy.md`](../../infrastructure/backup-strategy.md)** (69KB, 2100+ linii)
+>
+> **Scopul acestui document:** Scripturi practice și proceduri quick-start pentru operațiuni zilnice de backup și restore în Etapa 0.
 
 ---
 

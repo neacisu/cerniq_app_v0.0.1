@@ -23,9 +23,9 @@
 
 ---
 
-# 1. DAILY OPERATIONS
+## 1. DAILY OPERATIONS
 
-## 1.1 Morning Checklist (09:00)
+### 1.1 Morning Checklist (09:00)
 
 ```bash
 #!/bin/bash
@@ -78,7 +78,7 @@ done
 echo -e "\n=== Morning Check Complete ==="
 ```
 
-## 1.2 Evening Checklist (18:00)
+### 1.2 Evening Checklist (18:00)
 
 ```bash
 #!/bin/bash
@@ -135,9 +135,9 @@ echo -e "\n=== Evening Check Complete ==="
 
 ---
 
-# 2. PHONE MANAGEMENT PROCEDURES
+## 2. PHONE MANAGEMENT PROCEDURES
 
-## 2.1 Phone Goes Offline
+### 2.1 Phone Goes Offline
 
 **Symptoms:**
 
@@ -180,7 +180,7 @@ curl -s http://localhost:3000/api/admin/queues/q:wa:phone_{XX}/waiting | jq 'len
 redis-cli -n 2 LLEN "bull:q:wa:phone_{XX}:waiting"
 ```
 
-## 2.2 Phone Gets Banned
+### 2.2 Phone Gets Banned
 
 **Symptoms:**
 
@@ -227,7 +227,7 @@ echo "$(date): Phone {phoneId} banned. Reason: {suspected_reason}" >> /var/log/c
 #    - Update phone count in configuration if necessary
 ```
 
-## 2.3 Adding New Phone
+### 2.3 Adding New Phone
 
 ```bash
 # 1. Register phone in TimelinesAI dashboard first
@@ -263,9 +263,9 @@ curl -X POST "http://localhost:3000/api/v1/outreach/test/send" \
 
 ---
 
-# 3. QUOTA MANAGEMENT
+## 3. QUOTA MANAGEMENT
 
-## 3.1 Quota Exceeded / Exhausted Mid-Day
+### 3.1 Quota Exceeded / Exhausted Mid-Day
 
 **Symptoms:**
 
@@ -319,7 +319,7 @@ curl -X POST http://localhost:3000/api/v1/outreach/leads/{leadId}/send-message \
   -d '{"channel": "EMAIL_WARM", "content": "..."}'
 ```
 
-## 3.2 Quota Reset Issue
+### 3.2 Quota Reset Issue
 
 **Symptoms:**
 
@@ -350,7 +350,7 @@ docker exec cerniq-workers node -e "
 "
 ```
 
-## 3.3 Manual Quota Reset (Emergency Only)
+### 3.3 Manual Quota Reset (Emergency Only)
 
 ```bash
 # ⚠️ WARNING: Only use in case of confirmed bug causing incorrect quota
@@ -372,9 +372,9 @@ watch -n 60 'redis-cli GET "quota:wa:{phoneId}:$(date +%Y-%m-%d)"'
 
 ---
 
-# 4. QUEUE TROUBLESHOOTING
+## 4. QUEUE TROUBLESHOOTING
 
-## 4.1 Queue Backlog Growing
+### 4.1 Queue Backlog Growing
 
 **Symptoms:**
 
@@ -418,7 +418,7 @@ redis-cli INFO memory | grep used_memory_human
 curl -X POST http://localhost:3000/api/admin/queues/{queueName}/drain
 ```
 
-## 4.2 High Failed Job Count
+### 4.2 High Failed Job Count
 
 **Symptoms:**
 
@@ -451,9 +451,9 @@ curl -X POST http://localhost:3000/api/admin/queues/{queueName}/clean-failed?age
 
 ---
 
-# 5. HITL ESCALATIONS & HUMAN REVIEW
+## 5. HITL ESCALATIONS & HUMAN REVIEW
 
-## 5.1 SLA Breach Handling
+### 5.1 SLA Breach Handling
 
 **When SLA is breached:**
 
@@ -484,7 +484,7 @@ curl -X POST http://localhost:3000/api/v1/outreach/reviews/{reviewId}/escalate \
 curl -s http://localhost:3000/api/v1/outreach/analytics/sla-performance
 ```
 
-## 5.2 SLA Breach Accumulation
+### 5.2 SLA Breach Accumulation
 
 **Symptoms:**
 
@@ -516,7 +516,7 @@ psql -U cerniq -c "
 # 4. Consider temporary auto-approve for low priority
 ```
 
-## 5.3 Human Takeover Issues
+### 5.3 Human Takeover Issues
 
 **Operator cannot send message:**
 
@@ -533,9 +533,9 @@ curl -X POST http://localhost:3000/api/v1/outreach/leads/{leadId}/reassign-phone
 
 ---
 
-# 6. EMAIL DELIVERABILITY ISSUES
+## 6. EMAIL DELIVERABILITY ISSUES
 
-## 6.1 High Bounce Rate (>3%)
+### 6.1 High Bounce Rate (>3%)
 
 **Symptoms:**
 
@@ -593,9 +593,9 @@ curl -X POST "https://api.instantly.ai/api/v2/campaign/{campaign_id}/resume" \
 
 ---
 
-# 7. EMERGENCY PROCEDURES
+## 7. EMERGENCY PROCEDURES
 
-## 7.1 Full System Stop
+### 7.1 Full System Stop
 
 **When to use:** Security incident, legal requirement, major bug
 
@@ -629,7 +629,7 @@ echo "=== System Stopped ==="
 echo "To resume, run: ./scripts/emergency-resume.sh"
 ```
 
-## 7.2 Emergency Resume
+### 7.2 Emergency Resume
 
 ```bash
 #!/bin/bash
@@ -668,9 +668,9 @@ echo "=== System Resumed ==="
 
 ---
 
-# 8. DISASTER RECOVERY
+## 8. DISASTER RECOVERY
 
-## 8.1 Database Recovery
+### 8.1 Database Recovery
 
 ```bash
 # 1. Stop all workers
@@ -702,7 +702,7 @@ docker compose -f infra/docker/docker-compose.yml start workers
 redis-cli -n 2 INFO | grep -A5 "# Keyspace"
 ```
 
-## 8.2 Redis Recovery
+### 8.2 Redis Recovery
 
 ```bash
 # 1. If Redis crashed, queues are lost
@@ -745,9 +745,9 @@ done
 
 ---
 
-# 9. MONITORING ALERTS
+## 9. MONITORING ALERTS
 
-## 9.1 Alert Response Matrix
+### 9.1 Alert Response Matrix
 
 | Alert | Severity | Response Time | Procedure |
 | ----- | -------- | ------------- | --------- |
@@ -760,7 +760,7 @@ done
 | `timelinesai:down` | CRITICAL | Immediate | Check vendor status |
 | `queue:backlog` | MEDIUM | 30 min | Section 4.1 |
 
-## 9.2 Escalation Path
+### 9.2 Escalation Path
 
 1. **L1 (On-call Engineer)**: All HIGH/CRITICAL alerts
 2. **L2 (Team Lead)**: Unresolved after 30 min
@@ -768,9 +768,9 @@ done
 
 ---
 
-# 10. MAINTENANCE WINDOWS
+## 10. MAINTENANCE WINDOWS
 
-## 10.1 Weekly Maintenance (Sunday 02:00-04:00)
+### 10.1 Weekly Maintenance (Sunday 02:00-04:00)
 
 ```bash
 #!/bin/bash

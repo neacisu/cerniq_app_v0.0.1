@@ -109,6 +109,8 @@ TOTAL: 294+ BullMQ workeri granulari
 
 ### Naming Conventions
 
+> 📖 **Sursă Canonică:** [`master-specification.md`](../specifications/master-specification.md) § "Naming Conventions" și [ADR-0021](../adr/ADR%20Etapa%200/ADR-0021-Naming-Conventions.md)
+
 | Entitate | Convenție | Exemplu |
 | --- | --- | --- |
 | **Tabele Bronze** | `bronze_*` | `bronze_contacts`, `bronze_webhooks` |
@@ -228,6 +230,8 @@ const LEGACY_ALIASES = {
 ## 4.1 Technology Decisions
 
 ### Stack Tehnologic Canonic (Ianuarie 2026)
+
+> 📖 **Sursă Canonică Versiuni:** [`master-specification.md`](../specifications/master-specification.md) § "Canonical Technology Versions"
 
 | Strat | Tehnologie | Versiune | Justificare |
 | --- | --- | --- | --- |

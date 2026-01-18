@@ -2,7 +2,11 @@
 
 ## Ghid Complet pentru Gestionarea Secretelor
 
-### Versiunea 1.0 | 15 Ianuarie 2026
+### Versiunea 1.1 | 18 Ianuarie 2026
+
+> **📋 ADR Asociat:** [ADR-0017: Secrets Management Strategy](../../adr/ADR%20Etapa%200/ADR-0017-Secrets-Management-Strategy.md)
+>
+> **Acest document** este ghidul de implementare canonic pentru Docker secrets în Cerniq.app.
 
 ---
 

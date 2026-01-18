@@ -54,3 +54,8 @@ services:
       - NODE_ENV=development
     command: ["node", "--watch", "src/index.ts"]
 ```
+
+## Documentație Detaliată
+
+Pentru lista completă de variabile de environment, vezi:
+**[`docs/specifications/Etapa 0/etapa0-environment-variables.md`](../../specifications/Etapa%200/etapa0-environment-variables.md)**

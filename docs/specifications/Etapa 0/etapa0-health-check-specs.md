@@ -2,7 +2,9 @@
 
 ## Specificații Complete pentru Health Checks
 
-### Versiunea 1.0 | 15 Ianuarie 2026
+### Versiunea 1.1 | 18 Ianuarie 2026
+
+> **📋 ADR Asociat:** [ADR-0025: Health Check Patterns](../../adr/ADR%20Etapa%200/ADR-0025-Health-Check-Patterns.md)
 
 ---
 
