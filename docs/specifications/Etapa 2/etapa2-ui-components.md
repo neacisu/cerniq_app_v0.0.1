@@ -1,12 +1,14 @@
 # CERNIQ.APP — ETAPA 2: UI COMPONENTS LIBRARY
+
 ## Complete Component Specifications for Cold Outreach Interface
+
 ### Versiunea 1.0 | 15 Ianuarie 2026
 
 ---
 
-# 1. COMPONENT HIERARCHY
+## 1. COMPONENT HIERARCHY
 
-```
+```text
 components/
 ├── outreach/
 │   ├── dashboard/
@@ -54,9 +56,9 @@ components/
 
 ---
 
-# 2. SHARED COMPONENTS
+## 2. SHARED COMPONENTS
 
-## 2.1 StageBadge
+### 2.1 StageBadge
 
 ```tsx
 // components/outreach/shared/StageBadge.tsx
@@ -138,7 +140,7 @@ export function StageBadge({
 }
 ```
 
-## 2.2 ChannelIcon
+### 2.2 ChannelIcon
 
 ```tsx
 // components/outreach/shared/ChannelIcon.tsx
@@ -221,7 +223,7 @@ export function ChannelIcon({
 }
 ```
 
-## 2.3 SentimentIndicator
+### 2.3 SentimentIndicator
 
 ```tsx
 // components/outreach/shared/SentimentIndicator.tsx
@@ -319,7 +321,7 @@ export function SentimentIndicator({
 }
 ```
 
-## 2.4 PriorityBadge
+### 2.4 PriorityBadge
 
 ```tsx
 // components/outreach/shared/PriorityBadge.tsx
@@ -380,9 +382,9 @@ export function PriorityBadge({
 
 ---
 
-# 3. DASHBOARD COMPONENTS
+## 3. DASHBOARD COMPONENTS
 
-## 3.1 KPICard
+### 3.1 KPICard
 
 ```tsx
 // components/outreach/dashboard/KPICard.tsx
@@ -467,7 +469,7 @@ export function KPICard({
 }
 ```
 
-## 3.2 QuotaUsageGrid
+### 3.2 QuotaUsageGrid
 
 ```tsx
 // components/outreach/dashboard/QuotaUsageGrid.tsx
@@ -567,7 +569,7 @@ export function QuotaUsageGrid({ phones, onPhoneClick }: QuotaUsageGridProps) {
 }
 ```
 
-## 3.3 LeadFunnelChart
+### 3.3 LeadFunnelChart
 
 ```tsx
 // components/outreach/dashboard/LeadFunnelChart.tsx
@@ -636,9 +638,9 @@ export function LeadFunnelChart({
 
 ---
 
-# 4. CONVERSATION COMPONENTS
+## 4. CONVERSATION COMPONENTS
 
-## 4.1 ConversationTimeline
+### 4.1 ConversationTimeline
 
 ```tsx
 // components/outreach/conversation/ConversationTimeline.tsx
@@ -722,7 +724,7 @@ export function ConversationTimeline({
 }
 ```
 
-## 4.2 MessageBubble
+### 4.2 MessageBubble
 
 ```tsx
 // components/outreach/conversation/MessageBubble.tsx
@@ -816,7 +818,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
 }
 ```
 
-## 4.3 MessageStatusIcon
+### 4.3 MessageStatusIcon
 
 ```tsx
 // components/outreach/conversation/MessageStatusIcon.tsx
@@ -875,9 +877,9 @@ export function MessageStatusIcon({
 
 ---
 
-# 5. REVIEW COMPONENTS
+## 5. REVIEW COMPONENTS
 
-## 5.1 SLACountdown
+### 5.1 SLACountdown
 
 ```tsx
 // components/outreach/review/SLACountdown.tsx

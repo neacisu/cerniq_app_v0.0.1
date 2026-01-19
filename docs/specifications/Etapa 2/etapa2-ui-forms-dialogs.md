@@ -1,12 +1,14 @@
 # CERNIQ.APP — ETAPA 2: UI FORMS & DIALOGS
+
 ## Complete Form and Dialog Specifications
+
 ### Versiunea 1.0 | 15 Ianuarie 2026
 
 ---
 
-# 1. FORMS
+## 1. FORMS
 
-## 1.1 Send Message Form
+### 1.1 Send Message Form
 
 ```tsx
 // components/outreach/forms/SendMessageForm.tsx
@@ -212,7 +214,7 @@ export function SendMessageForm({ leadId, defaultChannel = 'WHATSAPP', onSuccess
 }
 ```
 
-## 1.2 Create Sequence Form
+### 1.2 Create Sequence Form
 
 ```tsx
 // components/outreach/forms/CreateSequenceForm.tsx
@@ -438,7 +440,7 @@ export function CreateSequenceForm({ onSuccess }: { onSuccess?: () => void }) {
 }
 ```
 
-## 1.3 Create Template Form
+### 1.3 Create Template Form
 
 ```tsx
 // components/outreach/forms/CreateTemplateForm.tsx
@@ -637,9 +639,9 @@ export function CreateTemplateForm({ onSuccess }: { onSuccess?: () => void }) {
 
 ---
 
-# 2. DIALOGS
+## 2. DIALOGS
 
-## 2.1 Takeover Dialog
+### 2.1 Takeover Dialog
 
 ```tsx
 // components/outreach/dialogs/TakeoverDialog.tsx
@@ -710,7 +712,7 @@ export function TakeoverDialog({ open, onOpenChange, leadId, companyName }: Take
 }
 ```
 
-## 2.2 Enroll in Sequence Dialog
+### 2.2 Enroll in Sequence Dialog
 
 ```tsx
 // components/outreach/dialogs/EnrollSequenceDialog.tsx
@@ -848,7 +850,7 @@ export function EnrollSequenceDialog({ open, onOpenChange, leadIds }: EnrollSequ
 }
 ```
 
-## 2.3 Review Resolution Dialog
+### 2.3 Review Resolution Dialog
 
 ```tsx
 // components/outreach/dialogs/ResolveReviewDialog.tsx
