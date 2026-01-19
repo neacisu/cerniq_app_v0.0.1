@@ -1,5 +1,7 @@
 # CERNIQ.APP — ETAPA 3: INDEX DOCUMENTAȚIE
+
 ## AI Sales Agent Neuro-Simbolic - Documentație Completă
+
 ### Versiunea 2.0 | 19 Ianuarie 2026
 
 ---
@@ -10,7 +12,7 @@
 **Paradigmă:** Neuro-Simbolic (Zero Hallucination) cu Guardrails și HITL  
 **Canale:** WhatsApp (TimelinesAI), Email Warm (Resend)  
 **Integrări:** Oblio.eu (facturare), ANAF SPV (e-Factura), Qdrant (RAG)  
-**LLM Provider:** OpenAI GPT-4o (primary), Claude 3.5 Sonnet (fallback)  
+**LLM Provider:** xAI Grok-4 (primary), OpenAI GPT-4o (fallback)  
 
 ---
 

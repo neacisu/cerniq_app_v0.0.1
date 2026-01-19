@@ -750,7 +750,7 @@
 | Extensie     | Versiune | Rol                                        |
 | ------------ | -------- | ------------------------------------------ |
 | **pgvector** | 0.8.0+   | Vector embeddings pentru căutare semantică |
-| **PostGIS**  | 3.5+     | Date geografice și queries spațiale        |
+| **PostGIS**  | 3.6.1    | Date geografice și queries spațiale        |
 | **pg_cron**  | -        | Scheduled jobs în PostgreSQL               |
 
 ### Redis Configuration

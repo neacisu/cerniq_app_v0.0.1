@@ -1,5 +1,7 @@
 # CERNIQ.APP — ETAPA 5: DATABASE SCHEMA
+
 ## Nurturing State & Lifecycle Tables
+
 ### Versiunea 1.0 | 19 Ianuarie 2026
 
 ---
@@ -21,7 +23,7 @@
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                    ETAPA 5 - NURTURING SCHEMA                    │
-│                    PostgreSQL 18.1 + PostGIS 3.5                 │
+│                    PostgreSQL 18.1 + PostGIS 3.6.1               │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
 │  ┌──────────────────────────────────────────────────────────┐   │

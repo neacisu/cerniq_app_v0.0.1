@@ -48,10 +48,10 @@
 ETAPA 1: Data Enrichment      → Bronze → Silver (61 workeri)
 ETAPA 2: Cold Outreach        → Multi-channel outreach (52 workeri)
 ETAPA 3: AI Sales Agent       → Negociere neuro-simbolică (78 workeri)
-ETAPA 4: Post-Sale Monitoring → Cash flow, logistică (45 workeri)
+ETAPA 4: Post-Sale Monitoring → Cash flow, logistică (67 workeri)
 ETAPA 5: Nurturing & Growth   → Ecosistem relațional (58 workeri)
 ─────────────────────────────────────────────────────────────────
-TOTAL: 294+ BullMQ workeri granulari
+TOTAL: 316 BullMQ workeri granulari (actualizat 19-01-2026)
 ```
 
 ## 1.2 Quality Goals
@@ -240,7 +240,7 @@ const LEGACY_ALIASES = {
 | **AI/Worker Runtime** | Python | 3.14.2 Free-Threading | True parallelism, no GIL |
 | **Database** | PostgreSQL | 18.1 | JSON_TABLE, async I/O, UUIDv7 |
 | **Vector Search** | pgvector | 0.8.1 | HNSW indexes, 1536 dim embeddings |
-| **Geospatial** | PostGIS | 3.5.1 | KNN proximity, SIRUTA polygons |
+| **Geospatial** | PostGIS | 3.6.1 | KNN proximity, SIRUTA polygons |
 | **Queue Manager** | BullMQ | v5.66.5 | Redis-backed, partition per phone |
 | **Cache/Jobs** | Redis | 7.4.7 | AOF+RDB persistence, noeviction |
 | **Frontend** | React | 19.2.3 | Server Components, useOptimistic |

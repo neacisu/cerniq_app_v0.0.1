@@ -218,7 +218,7 @@ let db: ReturnType<typeof drizzle>;
 
 export async function setupTestDatabase() {
   // Start PostgreSQL container
-  pgContainer = await new PostgreSqlContainer('postgis/postgis:18-3.5')
+  pgContainer = await new PostgreSqlContainer('postgis/postgis:18-3.6')
     .withDatabase('cerniq_test')
     .withUsername('test')
     .withPassword('test')
@@ -497,7 +497,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgis/postgis:18-3.5
+        image: postgis/postgis:18-3.6
         env:
           POSTGRES_PASSWORD: test
         options: >-

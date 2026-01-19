@@ -106,7 +106,7 @@ secrets:
 ```yaml
 services:
   postgres:
-    image: postgis/postgis:18-3.5
+    image: postgis/postgis:18-3.6
     environment:
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
     secrets:

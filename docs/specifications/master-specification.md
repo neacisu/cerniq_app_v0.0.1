@@ -1122,7 +1122,9 @@ CREATE INDEX idx_journey_followup ON gold_lead_journey(next_followup_at)
 
 ### 4.1 Inventar Complet Cozi BullMQ
 
-#### Etapa 1: Data Enrichment (61 cozi)
+#### Etapa 1: Data Enrichment (34 cozi core)
+
+> **Notă:** Aceste 34 cozi sunt cozile core documentate. Workerii (61 total) pot procesa job-uri din aceste cozi, unii workeri partajând aceeași coadă.
 
 | #  | Queue Name                     | Categorie   | Rate Limit | API          | Cost         |
 |----|--------------------------------|-------------|------------|--------------|--------------|
@@ -1161,7 +1163,9 @@ CREATE INDEX idx_journey_followup ON gold_lead_journey(next_followup_at)
 | 33 | `pipeline:orchestrator:start`  | Control     | N/A        | —            | —            |
 | 34 | `pipeline:monitor:health`      | Monitor     | Cron */5m  | —            | —            |
 
-#### Etapa 2: Cold Outreach (52 cozi)
+#### Etapa 2: Cold Outreach (52 cozi logice, 60 fizice)
+
+> **Notă:** Liniile 6-25 și 26-45 reprezintă range-uri (20 cozi fiecare). Total fizic: 60 cozi. Total logic/workeri: 52.
 
 | #     | Queue Name                       | Categorie    | Rate Limit         | API          | Cost        |
 |-------|----------------------------------|--------------|--------------------|--------------|-------------|
