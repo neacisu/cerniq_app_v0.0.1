@@ -15,6 +15,9 @@ Strategia de testare este documentată detaliat în fiecare etapă a proiectului
 | Etapa 0 | [`etapa0-testing-strategy.md`](../specifications/Etapa%200/etapa0-testing-strategy.md) | Infrastructure testing, Docker, CI/CD |
 | Etapa 1 | [`etapa1-testing-strategy.md`](../specifications/Etapa%201/etapa1-testing-strategy.md) | Data enrichment, API testing |
 | Etapa 2 | [`etapa2-testing-strategy.md`](../specifications/Etapa%202/etapa2-testing-strategy.md) | Cold outreach, workers, integration |
+| Etapa 3 | [`etapa3-testing-strategy.md`](../specifications/Etapa%203/etapa3-testing-strategy.md) | AI Agent, Guardrails testing |
+| Etapa 4 | [`etapa4-testing-strategy.md`](../specifications/Etapa%204/etapa4-testing-strategy.md) | Post-sale modules, credit scoring |
+| Etapa 5 | [`etapa5-testing-strategy.md`](../specifications/Etapa%205/etapa5-testing-strategy.md) | Nurturing workflows, graph analysis |
 
 ## ADR Asociat
 

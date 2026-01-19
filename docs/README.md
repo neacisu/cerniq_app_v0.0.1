@@ -71,10 +71,10 @@ docs/
 │
 ├── adr/                               # Architecture Decision Records
 │   ├── template.md                   # Template ADR standard
-│   ├── ADR-001-bullmq-granular-workers.md
-│   ├── ADR-002-neuro-symbolic-ai.md
-│   ├── ADR-003-medallion-architecture.md
-│   └── ... (15-20 ADR-uri)
+│   ├── ADR Etapa 0/ADR-0006-Redis-7-4-7-cu-BullMQ-v5.md
+│   ├── ADR Etapa 3/ADR-0066-Neuro-Symbolic-AI-Agent-Paradigm.md
+│   ├── ADR Etapa 1/ADR-0031-Arhitectura-Medallion-Bronze-Silver-Gold.md
+│   └── ... (100+ ADR-uri)
 │
 ├── diagrams/                          # Diagrame vizuale
 │   ├── c4-context.drawio
@@ -84,11 +84,11 @@ docs/
 │
 ├── specifications/                    # Specificații detaliate per domeniu
 │   ├── master-specification.md       # ★ SINGLE SOURCE OF TRUTH ★
-│   ├── etapa1-enrichment.md          # Pipeline Bronze→Silver→Gold
-│   ├── etapa2-cold-outreach.md       # Multi-canal outreach
-│   ├── etapa3-ai-sales.md            # Agent AI neuro-simbolic
-│   ├── etapa4-post-sale.md           # Monitorizare și cash flow
-│   ├── etapa5-nurturing.md           # Nurturing agentic
+│   ├── Etapa 1/etapa1-workers-overview.md # Pipeline Bronze→Silver→Gold
+│   ├── Etapa 2/etapa2-workers-overview.md # Multi-canal outreach
+│   ├── Etapa 3/etapa3-workers-overview.md # Agent AI neuro-simbolic
+│   ├── Etapa 4/etapa4-workers-overview.md # Monitorizare și cash flow
+│   ├── Etapa 5/etapa5-workers-overview.md # Nurturing agentic
 │   ├── schema-database.md            # Schema Medallion completă
 │   └── hitl-unified-system.md        # Sistem HITL transversal
 │
@@ -164,13 +164,13 @@ docs/
 
 | Etapă  | Denumire        | Focus                                | Workers      |
 |--------|-----------------|--------------------------------------|--------------|
-| **E1** | Data Enrichment | Bronze→Silver→Gold transformation    | 61 workers   |
+| **E1** | Data Enrichment | Bronze→Silver→Gold transformation    | 58 workers   |
 | **E2** | Cold Outreach   | Multi-canal (WhatsApp 20x + Email)   | 52 workers   |
 | **E3** | AI Sales        | Negociere autonomă, MCP, e-Factura   | 78 workers   |
 | **E4** | Post-Sale       | Cash flow, credit scoring, logistică | 67 workers   |
 | **E5** | Nurturing       | PostGIS proximity, graf social, OUAI | 58 workers   |
 
-> **Total: 316 BullMQ workers granulari** (actualizat 19 Ianuarie 2026)
+> **Total: 313 BullMQ workers granulari** (actualizat 19 Ianuarie 2026)
 
 ---
 
@@ -274,43 +274,31 @@ COLD → CONTACTED_WA → WARM_REPLY → NEGOTIATION → PROPOSAL → CLOSING �
 
 ## 📊 Inventory Documente Existente
 
-### Documente Normative (din librărie)
+### Documente Normative (Internal)
 
-| Document                                                   | Size | Status      | Rol                     |
-|------------------------------------------------------------|------|-------------|-------------------------|
-| `__Cerniq_Master_Spec_Normativ_Complet.md`                 | 166K | ✅ NORMATIV | Single Source of Truth  |
-| `Unified_HITL_Approval_System_for_B2B_Sales_Automation.md` | 29K  | ✅ NORMATIV | HITL transversal        |
-| `__Schema_contacte_bronze_silver_gold.md`                  | 53K  | 📋 Anexă    | Data model complet      |
+| Document                                                              | Status      | Rol                    |
+|-----------------------------------------------------------------------|-------------|------------------------|
+| [`master-specification.md`](./specifications/master-specification.md) | ✅ NORMATIV | Single Source of Truth |
+| [`hitl-unified-system.md`](./specifications/hitl-unified-system.md)   | ✅ NORMATIV | HITL transversal       |
 
-### Documente Strategie (per Etapă)
+### Documente Strategie & Workers (per Etapă)
 
-| Document                                                       | Focus                  |
-|----------------------------------------------------------------|------------------------|
-| `Etapa_1_-_Strategie_Data_Enrichment_Prospecti_Romania.rtf`    | Strategie enrichment   |
-| `Etapa_2_-_Optimizare_Strategie_Cold_Outreach_Multi-Canal.rtf` | Cold outreach strategy |
-| `Etapa_3_-_Strategie_Generala_Ofertare_Vânzare_AI.rtf`         | AI sales strategy      |
-| `Etapa_4__Monitorizare_Vânzare___Post-Vân___.rtf`              | Post-sale monitoring   |
-| `Etapa_5_-_Strategie_Nurturing_Leads___Post-Vânzare.rtf`       | Nurturing strategy     |
-
-### Documente Implementare (Workers)
-
-| Document                                             | Size  | Workers         |
-|------------------------------------------------------|-------|-----------------|
-| `__Etapa_1_-_Documentare_workers_cerniq-workers.md`  | 100K  | ~61 workers E1  |
-| `__Etapa_2_-_Complete-workers-cold-outreach.md`      | 89K   | Workers E2      |
-| `cerniq-workers-etapa3-ai-sales-agent.md`            | 104K  | Workers E3      |
-| `cerniq-workers-etapa4-monitorizare-post-vanzare.md` | 202K  | Workers E4      |
-| `cerniq-workers-etapa5-nurturing-post-vanzare.md`    | 293K  | Workers E5      |
+| Etapă       | Index Complet (Inventar)                                                | Overview Specifications                                                                 |
+|-------------|-------------------------------------------------------------------------|-----------------------------------------------------------------------------------------|
+| **Etapa 1** | [`00-INDEX-ETAPA1.md`](./specifications/Etapa%201/00-INDEX-ETAPA1.md)   | [`etapa1-workers-overview.md`](./specifications/Etapa%201/etapa1-workers-overview.md)   |
+| **Etapa 2** | [`00-INDEX-ETAPA2.md`](./specifications/Etapa%202/00-INDEX-ETAPA2.md)   | [`etapa2-workers-overview.md`](./specifications/Etapa%202/etapa2-workers-overview.md)   |
+| **Etapa 3** | [`00-INDEX-ETAPA3.md`](./specifications/Etapa%203/00-INDEX-ETAPA3.md)   | [`etapa3-workers-overview.md`](./specifications/Etapa%203/etapa3-workers-overview.md)   |
+| **Etapa 4** | [`00-INDEX-ETAPA4.md`](./specifications/Etapa%204/00-INDEX-ETAPA4.md)   | [`etapa4-workers-overview.md`](./specifications/Etapa%204/etapa4-workers-overview.md)   |
+| **Etapa 5** | [`00-INDEX-ETAPA5.md`](./specifications/Etapa%205/00-INDEX-ETAPA5.md)   | [`etapa5-workers-overview.md`](./specifications/Etapa%205/etapa5-workers-overview.md)   |
 
 ### Documente Tehnice
 
-| Document                                                     | Focus                      |
-|--------------------------------------------------------------|----------------------------|
-| `Tehnologii_Active_Ianuarie_2026.rtf`                        | Versiuni stack validate    |
-| `__Docker_Infrastructure_Technical_Reference_for_Cerniq.rtf` | Docker configs             |
-| `__Etapa_1_-_Frontend_strategy___tech_stack.md`              | Frontend architecture      |
-| `Roadmap_Paralel_Vanzari_AI_-_Cerniq_app.rtf`                | Vertical Slice methodology |
-| `TOC_Plan_Dezvoltare_Cerniq_App.rtf`                         | Table of Contents complet  |
+| Document                                                                                 | Focus                      |
+|------------------------------------------------------------------------------------------|----------------------------|
+| [`architecture.md`](./architecture/architecture.md)                                      | Arhitectură Sistem         |
+| [`port-matrix.md`](./specifications/Etapa%200/etapa0-port-matrix.md)                     | Alocare Porturi            |
+| [`environment-variables.md`](./specifications/Etapa%200/etapa0-environment-variables.md) | Variabile Mediu            |
+| [`coding-standards.md`](./developer-guide/coding-standards.md)                           | Standarde Cod              |
 
 ---
 

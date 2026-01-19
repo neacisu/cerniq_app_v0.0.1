@@ -1,314 +1,87 @@
 # CERNIQ.APP — ETAPA 4: ARCHITECTURE DECISION RECORDS
-## ADRs pentru Monitorizare Post-Vânzare
-### Versiunea 1.0 | 19 Ianuarie 2026
+
+## ADRs pentru Monitorizare Post-Vânzare — INDEX
+
+### Versiunea 2.0 | 19 Ianuarie 2026
 
 ---
 
-## ADR-E4-001: Revolut Business API Integration
-
-### Status
-ACCEPTED
-
-### Context
-Sistemul necesită procesarea în timp real a plăților pentru reconcilierea cu facturile emise. Există mai multe opțiuni: polling periodic, webhook integration, sau hybrid.
-
-### Decision
-Adoptăm **webhook-first approach** cu Revolut Business API:
-- Webhook pentru notificări în timp real
-- Polling periodic (*/30min) ca backup pentru balance sync
-- HMAC signature validation pentru securitate
-
-### Consequences
-**Pozitive:**
-- Procesare în timp real a plăților
-- Reducere latență reconciliere
-- Mai puține API calls (cost redus)
-
-**Negative:**
-- Necesită endpoint public expus
-- Complexitate pentru retry și idempotency
-- Dependență de disponibilitatea webhook delivery
-
-### Implementation Notes
-```typescript
-// Webhook endpoint cu idempotency
-POST /webhooks/revolut/business
-Headers: X-Revolut-Signature-V1, X-Webhook-Id
-Body: TransactionCreated | TransactionStateChanged
-```
+**DOCUMENT STATUS:** INDEX — Referințe la ADR-uri individuale  
+**SCOPE:** 10 ADR-uri pentru decizii arhitecturale Etapa 4  
+**PREREQUISITE:** Etapa 1 + Etapa 2 + Etapa 3 complete  
+**LOCAȚIE FIȘIERE:** [`docs/adr/ADR Etapa 4/`](../../adr/ADR%20Etapa%204/)
 
 ---
 
-## ADR-E4-002: Three-Tier Payment Reconciliation
+## CATALOG ADR-uri (10 Total)
 
-### Status
-ACCEPTED
-
-### Context
-Plățile primite necesită matching cu facturile emise. Matching-ul exact nu este întotdeauna posibil (referințe lipsă, sume diferite, etc.).
-
-### Decision
-Implementăm reconciliere în trei trepte:
-
-1. **Tier 1 - Exact Match**: Referință factură exactă + sumă ±0.01
-2. **Tier 2 - Fuzzy Match**: Sumă ±5% + fuzzy name matching ≥85%
-3. **Tier 3 - HITL**: Candidați prezentați operatorului pentru selecție manuală
-
-### Consequences
-**Pozitive:**
-- Automatizare maximă pentru cazuri clare
-- Escalare graduală
-- Audit trail complet
-
-**Negative:**
-- Complexitate implementare
-- Posibile false positives la fuzzy
+| ADR | Titlu | Fișier | Status |
+| --- | ----- | ------ | ------ |
+| ADR-0086 | Revolut Business API Integration | [ADR-0086](../../adr/ADR%20Etapa%204/ADR-0086-Revolut-Business-API.md) | ACCEPTED |
+| ADR-0087 | Three-Tier Payment Reconciliation | [ADR-0087](../../adr/ADR%20Etapa%204/ADR-0087-Three-Tier-Reconciliation.md) | ACCEPTED |
+| ADR-0088 | Credit Scoring via Termene.ro | [ADR-0088](../../adr/ADR%20Etapa%204/ADR-0088-Credit-Scoring-Termene.md) | ACCEPTED |
+| ADR-0089 | Dynamic Contract Generation | [ADR-0089](../../adr/ADR%20Etapa%204/ADR-0089-Dynamic-Contract-Generation.md) | ACCEPTED |
+| ADR-0090 | Sameday Courier Integration | [ADR-0090](../../adr/ADR%20Etapa%204/ADR-0090-Sameday-Courier.md) | ACCEPTED |
+| ADR-0091 | Event-Driven Order Lifecycle | [ADR-0091](../../adr/ADR%20Etapa%204/ADR-0091-Order-Lifecycle-FSM.md) | ACCEPTED |
+| ADR-0092 | HITL Approval System Design | [ADR-0092](../../adr/ADR%20Etapa%204/ADR-0092-HITL-Approval-System.md) | ACCEPTED |
+| ADR-0093 | Partitioned Audit Tables | [ADR-0093](../../adr/ADR%20Etapa%204/ADR-0093-Partitioned-Audit-Tables.md) | ACCEPTED |
+| ADR-0094 | Real-Time Dashboard via WebSocket | [ADR-0094](../../adr/ADR%20Etapa%204/ADR-0094-WebSocket-Dashboard.md) | ACCEPTED |
+| ADR-0095 | Oblio Stock Sync Strategy | [ADR-0095](../../adr/ADR%20Etapa%204/ADR-0095-Oblio-Stock-Sync.md) | ACCEPTED |
 
 ---
 
-## ADR-E4-003: Credit Scoring via Termene.ro
+## CATEGORII ADR-uri
 
-### Status
-ACCEPTED
+### Payments & Finance (3 ADRs)
 
-### Context
-Evaluarea riscului de credit necesită date externe despre companii (ANAF, bilanț, insolvență).
+| ADR | Topic |
+| --- | ----- |
+| ADR-0086 | Revolut Business API |
+| ADR-0087 | Three-Tier Reconciliation |
+| ADR-0088 | Credit Scoring Termene.ro |
 
-### Decision
-Integrare cu **Termene.ro API** pentru:
-- Status ANAF și TVA
-- Date financiare din bilanțuri
-- BPI (Buletinul Procedurilor de Insolvență)
-- Litigii active
+### Contracts & Logistics (2 ADRs)
 
-Formula scoring:
-- ANAF Status: 15 puncte
-- Financial Health: 30 puncte
-- Payment History (intern): 25 puncte
-- BPI Status: 20 puncte
-- Litigation Risk: 10 puncte
+| ADR | Topic |
+| ----- | ------- |
+| ADR-0089 | Dynamic Contract Generation |
+| ADR-0090 | Sameday Courier |
 
-### Consequences
-**Pozitive:**
-- Date comprehensive și actualizate
-- API stabil și documentat
-- Conformitate GDPR (date publice)
+### Operations & HITL (3 ADRs)
 
-**Negative:**
-- Cost per query
-- Dependență de vendor extern
-- Rate limiting (20 req/sec)
+| ADR | Topic |
+| ----- | ------- |
+| ADR-0091 | Order Lifecycle FSM |
+| ADR-0092 | HITL Approval System |
+| ADR-0095 | Oblio Stock Sync |
 
----
+### Infrastructure (2 ADRs)
 
-## ADR-E4-004: Dynamic Contract Generation
-
-### Status
-ACCEPTED
-
-### Context
-Contractele trebuie generate dinamic pe baza risk tier-ului clientului cu clauze specifice.
-
-### Decision
-Sistem de **template-based contract generation**:
-- Templates DOCX cu Jinja2 placeholders
-- Clause library cu dependencies și conflicts
-- Python docxtpl pentru generare
-- LibreOffice headless pentru PDF conversion
-- DocuSign pentru semnături digitale
-
-### Consequences
-**Pozitive:**
-- Flexibilitate în personalizare
-- Audit trail pentru clauze folosite
-- Conformitate legală asigurată
-
-**Negative:**
-- Complexitate workflow
-- Dependență DocuSign (cost)
+| ADR | Topic |
+| ----- | ------- |
+| ADR-0093 | Partitioned Audit Tables |
+| ADR-0094 | WebSocket Dashboard |
 
 ---
 
-## ADR-E4-005: Sameday Courier Integration
+## MAPARE VECHI → NOU
 
-### Status
-ACCEPTED
-
-### Context
-Logistica livrărilor necesită integrare cu servicii de curierat pentru AWB, tracking și COD.
-
-### Decision
-Integrare **Sameday Courier** ca carrier principal:
-- API pentru generare AWB
-- Webhook pentru status updates
-- COD collection tracking
-- Return shipment support
-
-### Consequences
-**Pozitive:**
-- Acoperire națională bună
-- API modern și documentat
-- Support pentru locker și pickup points
-
-**Negative:**
-- Single carrier dependency
-- Costuri variabile
+| Numerotare Veche | Numerotare Nouă |
+| ---------------- | --------------- |
+| ADR-E4-001 | ADR-0086 |
+| ADR-E4-002 | ADR-0087 |
+| ADR-E4-003 | ADR-0088 |
+| ADR-E4-004 | ADR-0089 |
+| ADR-E4-005 | ADR-0090 |
+| ADR-E4-006 | ADR-0091 |
+| ADR-E4-007 | ADR-0092 |
+| ADR-E4-008 | ADR-0093 |
+| ADR-E4-009 | ADR-0094 |
+| ADR-E4-010 | ADR-0095 |
 
 ---
 
-## ADR-E4-006: Event-Driven Order Lifecycle
-
-### Status
-ACCEPTED
-
-### Context
-Ciclul de viață al unei comenzi traversează multiple state și declanșează acțiuni în cascade.
-
-### Decision
-Adoptăm **event-driven state machine** pentru orders:
-
-```
-State Machine: Order Lifecycle
-─────────────────────────────
-DRAFT → PENDING_PAYMENT → PAYMENT_RECEIVED
-                       ↓
-               CREDIT_CHECK
-                  ↙    ↘
-      CREDIT_APPROVED   CREDIT_BLOCKED → HITL → CREDIT_APPROVED
-            ↓
-    CONTRACT_PENDING → CONTRACT_SIGNED → PROCESSING
-                                            ↓
-    READY_FOR_PICKUP → PICKED_UP → IN_TRANSIT → DELIVERED → COMPLETED
-                                        ↓              ↓
-                             DELIVERY_FAILED    RETURN_REQUESTED
-```
-
-### Consequences
-**Pozitive:**
-- Flow clar și auditabil
-- Triggers automate
-- Easy rollback
-
-**Negative:**
-- Complexitate state machine
-- Race conditions posibile
-
----
-
-## ADR-E4-007: HITL Approval System Design
-
-### Status
-ACCEPTED
-
-### Context
-Anumite decizii necesită intervenție umană (credit override, refund mare, reconciliere manuală).
-
-### Decision
-Sistem **unified HITL** cu:
-- Single approval queue
-- SLA-based escalation
-- Role-based routing
-- Slack + Email notifications
-
-Approval Matrix:
-| Task Type | Approver | SLA | Escalate To |
-|-----------|----------|-----|-------------|
-| credit:override:small | SALES_MANAGER | 4h | CFO |
-| credit:override:large | CFO | 2h | CEO |
-| refund:large | FINANCE_MANAGER | 4h | CFO |
-| payment:unmatched | ACCOUNTING | 8h | CFO |
-
-### Consequences
-**Pozitive:**
-- Centralizare decizii
-- Audit complet
-- Escalare automată
-
-**Negative:**
-- Bottleneck potențial
-- Training necesar
-
----
-
-## ADR-E4-008: Partitioned Audit Tables
-
-### Status
-ACCEPTED
-
-### Context
-Audit logs pot crește rapid și impacta performanța query-urilor.
-
-### Decision
-**Table partitioning** by month pentru audit_logs și tracking:
-- Range partitioning pe created_at
-- Auto-create partitions pentru 3 luni în avans
-- Retention policy: 7 ani (GDPR), apoi anonymize
-
-### Consequences
-**Pozitive:**
-- Query performance menținută
-- Easy archival
-- Compliance asigurat
-
-**Negative:**
-- Complexitate DDL
-- Maintenance overhead
-
----
-
-## ADR-E4-009: Real-Time Dashboard via WebSocket
-
-### Status
-ACCEPTED
-
-### Context
-Dashboard-ul necesită actualizări în timp real pentru KPIs și alerte.
-
-### Decision
-**WebSocket + Redis Pub/Sub** pentru real-time updates:
-- Socket.io pentru WebSocket management
-- Redis channels pentru event distribution
-- Optimistic updates în UI
-- Fallback polling la 30s pentru reliability
-
-### Consequences
-**Pozitive:**
-- UX responsive
-- Reduce server load vs polling
-- Instant alerts
-
-**Negative:**
-- Complexitate infrastructure
-- Connection management
-
----
-
-## ADR-E4-010: Oblio Stock Sync Strategy
-
-### Status
-ACCEPTED
-
-### Context
-Stocul trebuie sincronizat bidirecțional între Cerniq și Oblio (sistemul de facturare).
-
-### Decision
-**Periodic sync** cu reservation system:
-- Sync from Oblio: */15min cron
-- Reserve on order create
-- Deduct on delivery confirmation
-- Release on cancel
-
-### Consequences
-**Pozitive:**
-- Eventual consistency acceptabilă
-- Low API usage
-- Clear reservation model
-
-**Negative:**
-- 15min delay în stock visibility
-- Potential oversell în peak
-
----
-
-**Document generat**: 2026-01-19  
-**Status**: COMPLET ✅
+**Document generat:** 19 Ianuarie 2026  
+**Total ADR-uri:** 10  
+**Status:** Toate ACCEPTED  
+**Conformitate:** Master Spec v1.2

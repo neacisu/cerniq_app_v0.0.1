@@ -12,8 +12,9 @@
 
 | # | Document | Description | Status |
 | --- | ---------- | ------------- | -------- |
-| 1 | `etapa1-adrs.md` | 20 Architecture Decision Records | ✅ Complete |
-| 2 | `etapa1-plan-implementare-COMPLET.md` | Implementation plan with 126 tasks | ✅ Complete |
+| 1 | `00-INDEX-ETAPA1.md` | Index documentație | ✅ Complete |
+| 2 | `etapa1-adrs.md` | 20 Architecture Decision Records | ✅ Complete |
+| 3 | `etapa1-plan-implementare-COMPLET.md` | Implementation plan with 126 tasks | ✅ Complete |
 
 ### 📊 DATABASE SCHEMAS
 
@@ -73,14 +74,14 @@
 
 ### Document Totals
 
-- **Total Documents:** 24
+- **Total Documents:** 25
 - **Total Lines:** ~15,000+
-- **Workers Documented:** 52
+- **Workers Documented:** 58
 - **API Endpoints:** 35+
 - **Database Tables:** 12
 - **UI Components:** 50+
 
-### Worker Categories (52 total)
+### Worker Categories (58 total)
 
 | Category | Count | Queue Prefix |
 | --- | --- | --- |

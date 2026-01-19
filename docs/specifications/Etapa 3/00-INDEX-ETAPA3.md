@@ -6,7 +6,7 @@
 
 ---
 
-# SUMAR ETAPA 3
+## SUMAR ETAPA 3
 
 **Scop:** Agent AI autonom pentru negociere comercială și emitere documente fiscale  
 **Paradigmă:** Neuro-Simbolic (Zero Hallucination) cu Guardrails și HITL  
@@ -16,7 +16,7 @@
 
 ---
 
-# STATISTICI DOCUMENTAȚIE
+## STATISTICI DOCUMENTAȚIE
 
 ```yaml
 total_documents: 37
@@ -37,92 +37,92 @@ documentation_categories:
 
 ---
 
-# CATALOG DOCUMENTE COMPLETE (37 DOCUMENTE)
+## CATALOG DOCUMENTE COMPLETE (37 DOCUMENTE)
 
-## 1. ARCHITECTURE & DECISIONS
+### 1. ARCHITECTURE & DECISIONS
 
-| # | Document | Descriere | Linii | Status |
-|---|----------|-----------|-------|--------|
-| 1 | `00-INDEX-ETAPA3.md` | Index și statistici | ~500 | ✅ |
-| 2 | `etapa3-adrs.md` | 20 Architecture Decision Records | ~1,000 | ✅ |
+| #   | Document             | Descriere                        | Linii  | Status  |
+| --- | -------------------- | -------------------------------- | ------ | ------- |
+| 1   | `00-INDEX-ETAPA3.md` | Index și statistici              | ~500   | ✅      |
+| 2   | `etapa3-adrs.md`     | 20 Architecture Decision Records | ~1,000 | ✅      |
 
-## 2. DATABASE SCHEMAS
+### 2. DATABASE SCHEMAS
 
-| # | Document | Descriere | Linii | Status |
-|---|----------|-----------|-------|--------|
-| 3 | `etapa3-schema-products.md` | Schema produse, catalog, embeddings | ~900 | ✅ |
-| 4 | `etapa3-schema-negotiations.md` | Schema negocieri, FSM states | ~900 | ✅ |
-| 5 | `etapa3-schema-fiscal.md` | Schema fiscală Oblio, e-Factura | ~1,800 | ✅ |
-| 6 | `etapa3-migrations.md` | Drizzle migrations complete | ~1,800 | ✅ |
+| #   | Document                        | Descriere                           | Linii  | Status  |
+| --- | ------------------------------- | ----------------------------------- | ------ | ------- |
+| 3   | `etapa3-schema-products.md`     | Schema produse, catalog, embeddings | ~900   | ✅      |
+| 4   | `etapa3-schema-negotiations.md` | Schema negocieri, FSM states        | ~900   | ✅      |
+| 5   | `etapa3-schema-fiscal.md`       | Schema fiscală Oblio, e-Factura     | ~1,800 | ✅      |
+| 6   | `etapa3-migrations.md`          | Drizzle migrations complete         | ~1,800 | ✅      |
 
-## 3. WORKERS DOCUMENTATION (14 Worker Files)
+### 3. WORKERS DOCUMENTATION (14 Worker Files)
 
-| # | Document | Workers | Linii | Status |
-|---|----------|---------|-------|--------|
-| 7 | `etapa3-workers-overview.md` | Architecture | ~1,300 | ✅ |
-| 8 | `etapa3-workers-triggers.md` | Trigger Patterns | ~3,300 | ✅ |
-| 9 | `etapa3-workers-A-product-knowledge.md` | #1-6 | ~2,200 | ✅ |
-| 10 | `etapa3-workers-B-hybrid-search.md` | #7-12 | ~1,500 | ✅ |
-| 11 | `etapa3-workers-C-ai-agent-core.md` | #13-18 | ~1,500 | ✅ |
-| 12 | `etapa3-workers-D-negotiation-fsm.md` | #19-26 | ~2,000 | ✅ |
-| 13 | `etapa3-workers-E-pricing-discount.md` | #27-32 | ~1,400 | ✅ |
-| 14 | `etapa3-workers-F-stock-inventory.md` | #33-38 | ~1,800 | ✅ |
-| 15 | `etapa3-workers-G-oblio-integration.md` | #39-45 | ~3,000 | ✅ |
-| 16 | `etapa3-workers-H-efactura-spv.md` | #46-50 | ~5,000 | ✅ |
-| 17 | `etapa3-workers-I-document-generation.md` | #51-55 | ~5,000 | ✅ |
-| 18 | `etapa3-workers-J-handover-channel.md` | #56-60 | ~10,000 | ✅ |
-| 19 | `etapa3-workers-K-sentiment-intent.md` | #61-65 | ~18,000 | ✅ |
-| 20 | `etapa3-workers-L-mcp-server.md` | #66-70 | ~20,000 | ✅ |
-| 21 | `etapa3-workers-M-guardrails.md` | #71-75 | ~22,000 | ✅ |
-| 22 | `etapa3-workers-N-human-intervention.md` | #76-78 | ~13,000 | ✅ |
+| #   | Document                                  | Workers          | Linii   | Status  |
+| --- | ----------------------------------------- | ---------------- | ------- | ------- |
+| 7   | `etapa3-workers-overview.md`              | Architecture     | ~1,300  | ✅      |
+| 8   | `etapa3-workers-triggers.md`              | Trigger Patterns | ~3,300  | ✅      |
+| 9   | `etapa3-workers-A-product-knowledge.md`   | #1-6             | ~2,200  | ✅      |
+| 10  | `etapa3-workers-B-hybrid-search.md`       | #7-12            | ~1,500  | ✅      |
+| 11  | `etapa3-workers-C-ai-agent-core.md`       | #13-18           | ~1,500  | ✅      |
+| 12  | `etapa3-workers-D-negotiation-fsm.md`     | #19-26           | ~2,000  | ✅      |
+| 13  | `etapa3-workers-E-pricing-discount.md`    | #27-32           | ~1,400  | ✅      |
+| 14  | `etapa3-workers-F-stock-inventory.md`     | #33-38           | ~1,800  | ✅      |
+| 15  | `etapa3-workers-G-oblio-integration.md`   | #39-45           | ~3,000  | ✅      |
+| 16  | `etapa3-workers-H-efactura-spv.md`        | #46-50           | ~5,000  | ✅      |
+| 17  | `etapa3-workers-I-document-generation.md` | #51-55           | ~5,000  | ✅      |
+| 18  | `etapa3-workers-J-handover-channel.md`    | #56-60           | ~10,000 | ✅      |
+| 19  | `etapa3-workers-K-sentiment-intent.md`    | #61-65           | ~18,000 | ✅      |
+| 20  | `etapa3-workers-L-mcp-server.md`          | #66-70           | ~20,000 | ✅      |
+| 21  | `etapa3-workers-M-guardrails.md`          | #71-75           | ~22,000 | ✅      |
+| 22  | `etapa3-workers-N-human-intervention.md`  | #76-78           | ~13,000 | ✅      |
 
-## 4. API & BACKEND
+### 4. API & BACKEND
 
-| # | Document | Descriere | Linii | Status |
-|---|----------|-----------|-------|--------|
-| 23 | `etapa3-api-endpoints.md` | Documentație API completă | ~2,800 | ✅ |
-| 24 | `etapa3-hitl-system.md` | Sistem HITL complet | ~16,000 | ✅ |
+| #   | Document                  | Descriere                 | Linii   | Status  |
+| --- | ------------------------- | ------------------------- | ------- | ------- |
+| 23  | `etapa3-api-endpoints.md` | Documentație API completă | ~2,800  | ✅      |
+| 24  | `etapa3-hitl-system.md`   | Sistem HITL complet       | ~16,000 | ✅      |
 
-## 5. FRONTEND UI/UX
+### 5. FRONTEND UI/UX
 
-| # | Document | Descriere | Linii | Status |
-|---|----------|-----------|-------|--------|
-| 25 | `etapa3-ui-pages.md` | Pagini principale React | ~13,000 | ✅ |
-| 26 | `etapa3-ui-components.md` | Componente React reutilizabile | ~8,000 | ✅ |
-| 27 | `etapa3-ui-forms-dialogs.md` | Formulare și dialoguri | ~27,000 | ✅ |
-| 28 | `etapa3-ui-tables.md` | DataTables și liste | ~10,000 | ✅ |
-| 29 | `etapa3-ui-charts-navigation.md` | Grafice și navigație | ~1,500 | ✅ |
+| #   | Document                         | Descriere                      | Linii   | Status  |
+| --- | -------------------------------- | ------------------------------ | ------- | ------- |
+| 25  | `etapa3-ui-pages.md`             | Pagini principale React        | ~13,000 | ✅      |
+| 26  | `etapa3-ui-components.md`        | Componente React reutilizabile | ~8,000  | ✅      |
+| 27  | `etapa3-ui-forms-dialogs.md`     | Formulare și dialoguri         | ~27,000 | ✅      |
+| 28  | `etapa3-ui-tables.md`            | DataTables și liste            | ~10,000 | ✅      |
+| 29  | `etapa3-ui-charts-navigation.md` | Grafice și navigație           | ~1,500  | ✅      |
 
-## 6. STANDARDS & PROCEDURES
+### 6. STANDARDS & PROCEDURES
 
-| # | Document | Descriere | Linii | Status |
-|---|----------|-----------|-------|--------|
-| 30 | `etapa3-standards.md` | Standarde tehnice complete | ~4,000 | ✅ |
-| 31 | `etapa3-standards-procedures.md` | Proceduri operaționale | ~1,200 | ✅ |
+| #   | Document                         | Descriere                  | Linii  | Status  |
+| --- | -------------------------------- | -------------------------- | ------ | ------- |
+| 30  | `etapa3-standards.md`            | Standarde tehnice complete | ~4,000 | ✅      |
+| 31  | `etapa3-standards-procedures.md` | Proceduri operaționale     | ~1,200 | ✅      |
 
-## 7. OPERATIONS & MONITORING
+### 7. OPERATIONS & MONITORING
 
-| # | Document | Descriere | Linii | Status |
-|---|----------|-----------|-------|--------|
-| 32 | `etapa3-monitoring-observability.md` | SigNoz, Prometheus, Grafana | ~8,700 | ✅ |
-| 33 | `etapa3-runbook-operational.md` | Runbook operațional | ~2,400 | ✅ |
-| 34 | `etapa3-runbook-monitoring.md` | Runbook monitoring | ~1,200 | ✅ |
+| #   | Document                             | Descriere                   | Linii  | Status  |
+| --- | ------------------------------------ | --------------------------- | ------ | ------- |
+| 32  | `etapa3-monitoring-observability.md` | SigNoz, Prometheus, Grafana | ~8,700 | ✅      |
+| 33  | `etapa3-runbook-operational.md`      | Runbook operațional         | ~2,400 | ✅      |
+| 34  | `etapa3-runbook-monitoring.md`       | Runbook monitoring          | ~1,200 | ✅      |
 
-## 8. TESTING
+### 8. TESTING
 
-| # | Document | Descriere | Linii | Status |
-|---|----------|-----------|-------|--------|
-| 35 | `etapa3-testing-strategy.md` | Vitest, Playwright, k6 | ~1,200 | ✅ |
+| #   | Document                     | Descriere              | Linii  | Status  |
+| --- | ---------------------------- | ---------------------- | ------ | ------- |
+| 35  | `etapa3-testing-strategy.md` | Vitest, Playwright, k6 | ~1,200 | ✅      |
 
-## 9. IMPLEMENTATION PLAN
+### 9. IMPLEMENTATION PLAN
 
-| # | Document | Descriere | Linii | Status |
-|---|----------|-----------|-------|--------|
-| 36 | `etapa3-plan-implementare.md` | Plan detaliat 99 task-uri | ~2,000 | ✅ |
+| #   | Document                      | Descriere                 | Linii  | Status  |
+| --- | ----------------------------- | ------------------------- | ------ | ------- |
+| 36  | `etapa3-plan-implementare.md` | Plan detaliat 99 task-uri | ~2,000 | ✅      |
 
 ---
 
-# SUMAR TASK-URI (99 TOTAL)
+## SUMAR TASK-URI (99 TOTAL)
 
 ```yaml
 tasks_by_section:
@@ -151,9 +151,9 @@ total_tasks: 99
 
 ---
 
-# WORKFLOW PRINCIPAL
+## WORKFLOW PRINCIPAL
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │                    ETAPA 3 - AI SALES AGENT                      │
 ├─────────────────────────────────────────────────────────────────┤
@@ -197,7 +197,7 @@ total_tasks: 99
 
 ---
 
-# DEPENDENȚE TEHNOLOGICE
+## DEPENDENȚE TEHNOLOGICE
 
 ```yaml
 runtime:
@@ -232,7 +232,7 @@ ai:
 
 ---
 
-# INTEGRĂRI ETAPE ANTERIOARE
+## INTEGRĂRI ETAPE ANTERIOARE
 
 ```yaml
 etapa1_integration:
@@ -261,25 +261,25 @@ etapa2_integration:
 
 ---
 
-# METRICI DE SUCCES
+## METRICI DE SUCCES
 
-| KPI | Target | Măsurare |
-|-----|--------|----------|
-| AI Response Time | <8s p95 | Prometheus |
-| Guardrail Pass Rate | >95% | Weekly |
-| HITL Escalation Rate | <10% | Weekly |
-| Hallucination Rate | <0.5% | Sampled |
-| Conversion Rate | >15% | Monthly |
-| System Uptime | 99.9% | Monthly |
+| KPI                  | Target  | Măsurare   |
+| -------------------- | ------- | ---------- |
+| AI Response Time     | <8s p95 | Prometheus |
+| Guardrail Pass Rate  | >95%    | Weekly     |
+| HITL Escalation Rate | <10%    | Weekly     |
+| Hallucination Rate   | <0.5%   | Sampled    |
+| Conversion Rate      | >15%    | Monthly    |
+| System Uptime        | 99.9%   | Monthly    |
 
 ---
 
-# CHANGELOG
+## CHANGELOG
 
-| Versiune | Data | Modificări |
-|----------|------|------------|
-| 2.0 | 2026-01-19 | Documentație completă - toate cele 37 documente |
-| 1.0 | 2026-01-18 | Versiune inițială |
+| Versiune | Data       | Modificări                                      |
+| -------- | ---------- | ----------------------------------------------- |
+| 2.0      | 2026-01-19 | Documentație completă - toate cele 37 documente |
+| 1.0      | 2026-01-18 | Versiune inițială                               |
 
 ---
 

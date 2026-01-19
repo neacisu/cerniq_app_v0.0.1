@@ -45,13 +45,13 @@
 ### Funcționalități Cheie (5 Etape Pipeline)
 
 ```text
-ETAPA 1: Data Enrichment      → Bronze → Silver (61 workeri)
+ETAPA 1: Data Enrichment      → Bronze → Silver (58 workeri)
 ETAPA 2: Cold Outreach        → Multi-channel outreach (52 workeri)
 ETAPA 3: AI Sales Agent       → Negociere neuro-simbolică (78 workeri)
 ETAPA 4: Post-Sale Monitoring → Cash flow, logistică (67 workeri)
 ETAPA 5: Nurturing & Growth   → Ecosistem relațional (58 workeri)
 ─────────────────────────────────────────────────────────────────
-TOTAL: 316 BullMQ workeri granulari (actualizat 19-01-2026)
+TOTAL: 313 BullMQ workeri granulari (actualizat 19-01-2026)
 ```
 
 ## 1.2 Quality Goals
@@ -339,7 +339,7 @@ Cross-cutting: via shared utilities, not forced inheritance
 │   Data          │────▶│   Cold          │────▶│   AI Sales      │────▶│   Post-Sale │
 │   Enrichment    │     │   Outreach      │     │   Agent         │     │   Monitoring│
 │                 │     │                 │     │                 │     │             │
-│   61 Workers    │     │   52 Workers    │     │   78 Workers    │     │   45 Workers│
+│   58 Workers    │     │   52 Workers    │     │   78 Workers    │     │   67 Workers│
 │   Bronze→Silver │     │   Multi-channel │     │   Neuro-Symbolic│     │   Cash/Ship │
 └────────┬────────┘     └────────┬────────┘     └────────┬────────┘     └──────┬──────┘
          │                       │                       │                     │

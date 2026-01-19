@@ -4,7 +4,7 @@
 
 Romanian B2B sales automation platform targeting **2.86 million agricultural exploitations** faces significant risks across technology, operations, compliance, and third-party dependencies. The bleeding-edge technology stack (Python 3.14 Free-Threading, Node.js 24.12, PostgreSQL 18.1) combined with a **1-Person-Team** paradigm and single-server architecture creates a risk profile requiring immediate attention in five critical areas: infrastructure redundancy, regulatory compliance (e-Factura 5-day deadline), experimental technology dependencies, vendor lock-in mitigation, and knowledge documentation.
 
-The 294+ BullMQ workers operating on a single Hetzner bare metal server (20 cores, 128GB RAM) represent both engineering ambition and operational fragility. This analysis identifies **12 critical risks**, **18 high-severity risks**, and **47 technical debt items** traceable to specific project documentation, with prioritized mitigation strategies appropriate for the solo developer context.
+The 313 BullMQ workers operating on a single Hetzner bare metal server (20 cores, 128GB RAM) represent both engineering ambition and operational fragility. This analysis identifies **12 critical risks**, **18 high-severity risks**, and **47 technical debt items** traceable to specific project documentation, with prioritized mitigation strategies appropriate for the solo developer context.
 
 ---
 
@@ -30,12 +30,12 @@ This analysis governs all risk assessments for Cerniq.app under the Master Speci
 ### Critical severity risks (immediate action required)
 
 **R-001: Python 3.14 Free-Threading Production Deployment**
-The entire worker infrastructure relies on Python 3.14 Free-Threading (No-GIL), which remains **experimental and not yet the default build** despite PEP 779 acceptance. Third-party libraries with C extensions may silently re-enable the GIL, negating performance benefits. Single-threaded overhead has decreased to 5-10% (from 40% in 3.13), but memory behavior differs due to immortal objects. No production battle-testing exists at scale comparable to Cerniq's 294+ workers.
+The entire worker infrastructure relies on Python 3.14 Free-Threading (No-GIL), which remains **experimental and not yet the default build** despite PEP 779 acceptance. Third-party libraries with C extensions may silently re-enable the GIL, negating performance benefits. Single-threaded overhead has decreased to 5-10% (from 40% in 3.13), but memory behavior differs due to immortal objects. No production battle-testing exists at scale comparable to Cerniq's 313 workers.
 
 *Mitigation:* Deploy standard GIL-enabled Python 3.14 for critical workers initially; implement `sys._is_gil_enabled()` monitoring; maintain fallback configuration; test all dependencies for free-threading compatibility before production.
 
 **R-002: Single Server Architecture - Complete System Failure Risk**
-All 294+ workers, PostgreSQL 18.1, Redis 7.4.7, and application services run on one Hetzner bare metal server with no automatic failover. Hardware failure (disk, memory, power supply) or critical software issue causes **complete service unavailability** with potential data loss. Hetzner provides no formal, financially-backed SLA unlike competitors (OVHcloud 99.90-99.99%, DigitalOcean 99.99%).
+All 313 workers, PostgreSQL 18.1, Redis 7.4.7, and application services run on one Hetzner bare metal server with no automatic failover. Hardware failure (disk, memory, power supply) or critical software issue causes **complete service unavailability** with potential data loss. Hetzner provides no formal, financially-backed SLA unlike competitors (OVHcloud 99.90-99.99%, DigitalOcean 99.99%).
 
 *Mitigation:* Immediate automated snapshots to Hetzner Storage Box; deploy warm standby server with PostgreSQL streaming replication within 30 days; implement Redis Sentinel for queue resilience.
 
@@ -63,10 +63,10 @@ The entire cold outreach WhatsApp channel ($500/month, 20 seats) relies on Timel
 Single developer handles all operations, architecture decisions, and incident response. Institutional knowledge exists only in that person's memory. No knowledge transfer documentation, unsustainable 24/7 on-call burden, and key person risk affects business continuity and investor confidence.
 
 **R-008: Redis Single Point of Failure**
-No Redis Cluster or Sentinel documented. Single Redis instance backs all 72 BullMQ queues and 294+ workers. Redis failure means **complete system halt**. Version inconsistency noted: DevOps documentation references Redis 8 while worker documentation specifies Redis 7.4.7.
+No Redis Cluster or Sentinel documented. Single Redis instance backs all 80+ BullMQ queues and 313 workers. Redis failure means **complete system halt**. Version inconsistency noted: DevOps documentation references Redis 8 while worker documentation specifies Redis 7.4.7.
 
 **R-009: PostgreSQL Connection Pool Exhaustion**
-294+ workers potentially opening database connections can exhaust PostgreSQL limits. Default max_connections typically 100; each connection consumes ~10MB RAM. Without PgBouncer, connection storms during restarts or failures cause cascading database unavailability.
+313 workers potentially opening database connections can exhaust PostgreSQL limits. Default max_connections typically 100; each connection consumes ~10MB RAM. Without PgBouncer, connection storms during restarts or failures cause cascading database unavailability.
 
 **R-010: GDPR/Legea 190/2018 Compliance Gaps**
 No evidence of completed Legitimate Interest Assessment (LIA) documentation required **before** processing initiation. Article 4 of Legea 190/2018 mandates **DPO appointment** when processing national identification numbers (CNP, ID series) under legitimate interest. B2B cold outreach via WhatsApp and email without proper consent mechanisms violates Romanian Law 506/2004 (email) and GDPR requirements.
@@ -75,7 +75,7 @@ No evidence of completed Legitimate Interest Assessment (LIA) documentation requ
 Company-initiated WhatsApp contact without explicit opt-in consent is **high risk** under Romanian GDPR enforcement. WhatsApp Business App (not API) processes metadata businesses cannot prevent, creating compliance exposure. ANSPDCP increasingly active with data breach and unsolicited communication investigations.
 
 **R-012: BullMQ Queue Saturation Under Load**
-294+ workers with Redis `maxmemory-policy=noeviction` (BullMQ requirement) means Redis **rejects new jobs entirely** when memory fills. Job return values accumulate memory; NodeJS heap out-of-memory errors documented with large queue backlogs. No built-in backpressure handling in current implementation.
+313 workers with Redis `maxmemory-policy=noeviction` (BullMQ requirement) means Redis **rejects new jobs entirely** when memory fills. Job return values accumulate memory; NodeJS heap out-of-memory errors documented with large queue backlogs. No built-in backpressure handling in current implementation.
 
 **R-013: Quota Guardian Race Condition Vulnerabilities**
 Lua script-based quota management across 20 WhatsApp phones. Script SHA invalidation causes silent failures; no fallback to conservative limits on script failure. If Redis loses data, quota limits become inconsistent, potentially triggering WhatsApp bans from exceeding 200 new contacts/day/number.
@@ -137,7 +137,7 @@ Maximum 10 webhooks per account (422 error if exceeded). Webhooks may deliver ou
 | TD-A01 | No Provider Abstraction Layer | Etapa 2 Workers | TimelinesAI, Instantly.ai, Resend directly coupled—vendor lock-in | 2 weeks |
 | TD-A02 | Missing Circuit Breakers | All Worker Docs | External APIs called without circuit breaker pattern—cascade failures | 1 week |
 | TD-A03 | Redis Single Instance | Docker Infrastructure | No Redis Cluster/Sentinel—complete system failure on Redis down | 1 week |
-| TD-A04 | No Database Connection Pooling | Architecture Doc | 294+ workers without PgBouncer—connection exhaustion | 2 days |
+| TD-A04 | No Database Connection Pooling | Architecture Doc | 313 workers without PgBouncer—connection exhaustion | 2 days |
 | TD-A05 | Incomplete Vertical Slices | TOC Plan | Some features span multiple directories instead of co-located | 1 week |
 | TD-A06 | No Chaos Engineering Framework | All Docs | Unknown failure modes—no documented failure testing | 2 weeks |
 
@@ -191,7 +191,7 @@ Maximum 10 webhooks per account (422 error if exceeded). Webhooks may deliver ou
 
 ### Immediate actions (Week 1)
 
-1. **Deploy PgBouncer** for PostgreSQL connection pooling—prevents connection exhaustion with 294+ workers
+1. **Deploy PgBouncer** for PostgreSQL connection pooling—prevents connection exhaustion with 313 workers
 2. **Configure Redis maxmemory** (16GB recommended) with monitoring alerts at 60/80/90% thresholds
 3. **Add Docker resource limits** to all containers—prevent runaway container resource consumption
 4. **Upgrade Traefik to v3.6.3+** to patch CVE-2025-66491

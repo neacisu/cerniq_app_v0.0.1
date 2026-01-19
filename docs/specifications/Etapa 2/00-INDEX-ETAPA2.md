@@ -42,7 +42,8 @@
 | # | Document | Componente | Descriere |
 | --- | ---------- | ------------ | ----------- |
 | 11 | `etapa2-ui-pages.md` | 12+ pagini | Dashboard, Leads, Phones, Review |
-| 12 | `etapa2-ui-forms-dialogs.md` | 6+ forms/dialogs | Send message, Create sequence |
+| 12 | `etapa2-ui-components.md` | UI Components Library | Reusable components |
+| 13 | `etapa2-ui-forms-dialogs.md` | 6+ forms/dialogs | Send message, Create sequence |
 
 ### 4. BACKEND & API
 
@@ -56,9 +57,10 @@
 | # | Document | Descriere |
 | --- | ---------- | ----------- |
 | 15 | `etapa2-runbook.md` | **Runbook operațional complet** (consolidat v1.1) |
-| 16 | `etapa2-development-standards.md` | **Coding standards & procedures** (consolidat v1.1) |
-| 17 | `etapa2-testing-strategy.md` | Unit, Integration, E2E, Load tests |
-| 18 | `etapa2-plan-implementare.md` | 118 taskuri JSON granulare |
+| 16 | `etapa2-monitoring-observability.md` | Monitoring dashboard & metrics |
+| 17 | `etapa2-development-standards.md` | **Coding standards & procedures** (consolidat v1.1) |
+| 18 | `etapa2-testing-strategy.md` | Unit, Integration, E2E, Load tests |
+| 19 | `etapa2-plan-implementare.md` | 118 taskuri JSON granulare |
 
 > **Notă v1.1 (18 Ian 2026):**
 >
@@ -247,7 +249,7 @@
 ---
 
 **Document generat:** 15 Ianuarie 2026  
-**Total documente:** 18  
+**Total documente:** 20  
 **Total workers:** 52  
 **Total linii cod documentație:** ~15,000  
 **Conformitate:** Master Spec v1.2

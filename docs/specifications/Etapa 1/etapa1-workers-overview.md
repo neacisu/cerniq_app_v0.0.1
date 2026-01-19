@@ -1,15 +1,17 @@
 # CERNIQ.APP — ETAPA 1: WORKERS OVERVIEW
-## Arhitectură și Organizare 61 Workeri
+
+## Arhitectură și Organizare 58 Workeri
+
 ### Versiunea 1.0 | 15 Ianuarie 2026
 
 ---
 
-# 1. ARHITECTURĂ GENERALĂ WORKERS
+## 1. ARHITECTURĂ GENERALĂ WORKERS
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────────────────┐
 │                           CERNIQ ENRICHMENT PIPELINE                             │
-│                              61 Workeri în 16 Categorii                          │
+│                              58 Workeri în 16 Categorii                          │
 └─────────────────────────────────────────────────────────────────────────────────┘
 
  ┌────────────┐   ┌────────────┐   ┌────────────┐   ┌────────────┐
@@ -30,35 +32,35 @@
 
 ---
 
-# 2. CATALOG COMPLET CATEGORII
+## 2. CATALOG COMPLET CATEGORII
 
-| Cat. | Nume | Workers | Cozi BullMQ | Descriere |
-|------|------|---------|-------------|-----------|
-| **A** | Ingestie Bronze | 5 | `bronze:ingest:*` | Import CSV, webhooks, scraping |
-| **B** | Normalizare | 4 | `bronze:normalize:*` | Standardizare date |
-| **C** | Validare CUI | 2 | `silver:validate:*` | Validare algoritm modulo-11 |
-| **D** | ANAF API | 5 | `enrich:anaf:*` | Date fiscale ANAF |
-| **E** | Termene.ro | 4 | `enrich:termene:*` | Date financiare |
-| **F** | ONRC | 3 | `enrich:onrc:*` | Registrul Comerțului |
-| **G** | Email Enrichment | 5 | `enrich:email:*` | Hunter.io, ZeroBounce |
-| **H** | Telefon Enrichment | 3 | `enrich:phone:*` | Validare, HLR lookup |
-| **I** | Web Scraping | 4 | `enrich:scrape:*` | DAJ, ANIF, websites |
-| **J** | AI Structuring | 4 | `enrich:ai:*` | Parsare AI, extraction |
-| **K** | Geocoding | 3 | `enrich:geo:*` | Nominatim, PostGIS |
-| **L** | Agricol | 5 | `enrich:agri:*` | APIA, OUAI, culturi |
-| **M** | Deduplicare | 2 | `silver:dedup:*` | Fuzzy match, merge |
-| **N** | Quality Scoring | 3 | `silver:score:*` | Completeness, accuracy |
-| **O** | Agregare | 2 | `silver:aggregate:*` | Statistici, rollup |
-| **P** | Pipeline Control | 4 | `pipeline:*` | Orchestrare, monitoring |
-| | **TOTAL** | **61** | | |
+| Cat.  | Nume               | Workers | Cozi BullMQ          | Descriere                       |
+| ----- | ------------------ | ------- | -------------------- | ------------------------------- |
+| **A** | Ingestie Bronze    | 5       | `bronze:ingest:*`    | Import CSV, webhooks, scraping  |
+| **B** | Normalizare        | 4       | `bronze:normalize:*` | Standardizare date              |
+| **C** | Validare CUI       | 2       | `silver:validate:*`  | Validare algoritm modulo-11     |
+| **D** | ANAF API           | 5       | `enrich:anaf:*`      | Date fiscale ANAF               |
+| **E** | Termene.ro         | 4       | `enrich:termene:*`   | Date financiare                 |
+| **F** | ONRC               | 3       | `enrich:onrc:*`      | Registrul Comerțului            |
+| **G** | Email Enrichment   | 5       | `enrich:email:*`     | Hunter.io, ZeroBounce           |
+| **H** | Telefon Enrichment | 3       | `enrich:phone:*`     | Validare, HLR lookup            |
+| **I** | Web Scraping       | 4       | `enrich:scrape:*`    | DAJ, ANIF, websites             |
+| **J** | AI Structuring     | 4       | `enrich:ai:*`        | Parsare AI, extraction          |
+| **K** | Geocoding          | 3       | `enrich:geo:*`       | Nominatim, PostGIS              |
+| **L** | Agricol            | 5       | `enrich:agri:*`      | APIA, OUAI, culturi             |
+| **M** | Deduplicare        | 2       | `silver:dedup:*`     | Fuzzy match, merge              |
+| **N** | Quality Scoring    | 3       | `silver:score:*`     | Completeness, accuracy          |
+| **O** | Agregare           | 2       | `silver:aggregate:*` | Statistici, rollup              |
+| **P** | Pipeline Control   | 4       | `pipeline:*`         | Orchestrare, monitoring         |
+|       | **TOTAL**          | **58**  |                      |                                 |
 
 ---
 
-# 3. CONVENȚII GENERALE
+## 3. CONVENȚII GENERALE
 
 ## 3.1 Queue Naming Pattern
 
-```
+```text
 {layer}:{category}:{action}
 
 Exemple:
@@ -124,11 +126,11 @@ const ERROR_CODES = {
 
 ---
 
-# 4. FLOW TRIGGER MATRIX
+## 4. FLOW TRIGGER MATRIX
 
 ## 4.1 Trigger Dependencies
 
-```
+```text
 A.1 (CSV Parser) ─────────────────┐
 A.2 (Excel Parser) ───────────────┼──▶ B.1 (Name Normalizer)
 A.3 (Webhook Handler) ────────────┤
@@ -172,31 +174,31 @@ const SEQUENTIAL_GROUP_2 = ['M.*', 'N.*', 'O.*', 'P.*'];
 
 ---
 
-# 5. RATE LIMITS PER CATEGORIE
+## 5. RATE LIMITS PER CATEGORIE
 
-| Categorie | Provider | Rate Limit | Burst | Strategy |
-|-----------|----------|------------|-------|----------|
-| D (ANAF) | ANAF API | 1/sec | 5 | Exponential |
-| E (Termene) | Termene.ro | 20/sec | 50 | Linear |
-| G (Email) | Hunter.io | 15/sec | 30 | Exponential |
-| G (Email) | ZeroBounce | 10/sec | 20 | Linear |
-| I (Scrape) | Various | 0.5/sec | 2 | Fixed 2s |
-| J (AI) | xAI Grok | 60/min | 10 | Exponential |
-| K (Geo) | Nominatim | 50/sec | 100 | Linear |
-
----
-
-# 6. HITL INTEGRATION POINTS
-
-| Worker | HITL Trigger | Approval Type | SLA |
-|--------|--------------|---------------|-----|
-| M.2 | Fuzzy match 70-85% | `dedup_review` | 24h |
-| N.1 | Quality score 40-60 | `data_quality` | 24h |
-| J.3 | Low confidence AI | `manual_enrich` | 48h |
+| Categorie   | Provider       | Rate Limit | Burst | Strategy    |
+|-------------|----------------|------------|-------|-------------|
+| D (ANAF)    | ANAF API       | 1/sec      | 5     | Exponential |
+| E (Termene) | Termene.ro     | 20/sec     | 50    | Linear      |
+| G (Email)   | Hunter.io      | 15/sec     | 30    | Exponential |
+| G (Email)   | ZeroBounce     | 10/sec     | 20    | Linear      |
+| I (Scrape)  | Various        | 0.5/sec    | 2     | Fixed 2s    |
+| J (AI)      | xAI Grok       | 60/min     | 10    | Exponential |
+| K (Geo)     | Nominatim      | 50/sec     | 100   | Linear      |
 
 ---
 
-# 7. MONITORING & ALERTING
+## 6. HITL INTEGRATION POINTS
+
+| Worker | HITL Trigger        | Approval Type   | SLA  |
+|--------|---------------------|-----------------|------|
+| M.2    | Fuzzy match 70-85%  | `dedup_review`  | 24h  |
+| N.1    | Quality score 40-60 | `data_quality`  | 24h  |
+| J.3    | Low confidence AI   | `manual_enrich` | 48h  |
+
+---
+
+## 7. MONITORING & ALERTING
 
 ## 7.1 Metrici per Worker
 

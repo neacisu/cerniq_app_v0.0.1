@@ -203,7 +203,43 @@ CREATE POLICY tenant_isolation_approvals ON approval_tasks
 | **E4** Post-Sale | `credit_approval` | Risk score > 0.5 OR value > €100K | 48h | Reject |
 | **E5** Nurturing | `campaign_approval` | All campaigns | 72h | Escalate |
 
-### 4.2 Configurare Approval Types
+### 4.2 Schema approval_type_configs
+
+```sql
+-- TABELĂ CANONICĂ: approval_type_configs
+CREATE TABLE approval_type_configs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    approval_type VARCHAR(100) UNIQUE NOT NULL,
+    display_name VARCHAR(255) NOT NULL,
+    pipeline_stage VARCHAR(10) NOT NULL,
+    
+    -- SLA per priority (minute)
+    sla_critical INTEGER DEFAULT 240,    -- 4 ore
+    sla_high INTEGER DEFAULT 480,        -- 8 ore
+    sla_normal INTEGER DEFAULT 1440,     -- 24 ore
+    sla_low INTEGER DEFAULT 4320,        -- 72 ore
+    
+    -- Escalation chain
+    escalation_chain JSONB DEFAULT '[
+        {"level": 1, "role": "approver", "timeout_action": "escalate"},
+        {"level": 2, "role": "manager", "timeout_action": "escalate"},
+        {"level": 3, "role": "director", "timeout_action": "auto_reject"}
+    ]',
+    
+    -- Routing rules
+    auto_assign_rules JSONB DEFAULT '[]',
+    threshold_rules JSONB DEFAULT '[]',
+    
+    -- UI configuration
+    required_fields TEXT[],
+    display_fields TEXT[],
+    
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+### 4.3 Configurare Approval Types
 
 ```sql
 -- Configurații per etapă

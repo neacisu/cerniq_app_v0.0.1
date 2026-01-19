@@ -1321,112 +1321,11 @@ Sistemul HITL folosește **asocieri polimorfe** pentru a gestiona aprobări din 
 
 ### 5.2 Schema Approval Tasks (Core)
 
-```sql
--- TABELĂ CANONICĂ: approval_tasks (CENTRALIZATĂ)
-CREATE TABLE approval_tasks (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL,
-    
-    -- Referință polimorfă (orice tip entitate)
-    entity_type VARCHAR(100) NOT NULL,
-    entity_id UUID NOT NULL,
-    
-    -- Context pipeline
-    pipeline_stage VARCHAR(10) NOT NULL 
-        CHECK (pipeline_stage IN ('E1', 'E2', 'E3', 'E4', 'E5')),
-    approval_type VARCHAR(100) NOT NULL,
-    
-    -- Corelare BullMQ
-    bullmq_job_id VARCHAR(255),
-    bullmq_queue_name VARCHAR(255),
-    correlation_id VARCHAR(255),
-    
-    -- State Machine
-    status VARCHAR(50) NOT NULL DEFAULT 'pending'
-        CHECK (status IN (
-            'pending', 'assigned', 'in_review', 
-            'approved', 'rejected', 'escalated', 'expired'
-        )),
-    current_level INTEGER DEFAULT 1,
-    
-    -- Assignment
-    assigned_to UUID REFERENCES users(id),
-    assigned_role VARCHAR(100),
-    assigned_at TIMESTAMPTZ,
-    
-    -- SLA Tracking
-    priority VARCHAR(20) DEFAULT 'normal' 
-        CHECK (priority IN ('critical', 'high', 'normal', 'low')),
-    sla_minutes INTEGER NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    due_at TIMESTAMPTZ NOT NULL,
-    paused_at TIMESTAMPTZ,
-    total_paused_ms BIGINT DEFAULT 0,
-    
-    -- Payload specific domeniu (JSONB flexibil)
-    metadata JSONB DEFAULT '{}',
-    decision_context JSONB DEFAULT '{}',
-    
-    -- Rezoluție
-    decided_by UUID REFERENCES users(id),
-    decision VARCHAR(50),
-    decision_reason TEXT,
-    decided_at TIMESTAMPTZ
-);
-
--- Indexuri critice pentru inbox queries
-CREATE INDEX idx_approvals_inbox ON approval_tasks(assigned_to, status) 
-    WHERE status IN ('assigned', 'in_review');
-CREATE INDEX idx_approvals_due ON approval_tasks(due_at) 
-    WHERE status NOT IN ('approved', 'rejected', 'expired');
-CREATE INDEX idx_approvals_correlation ON approval_tasks(bullmq_job_id, bullmq_queue_name);
-CREATE INDEX idx_approvals_entity ON approval_tasks(entity_type, entity_id);
-CREATE INDEX idx_approvals_tenant ON approval_tasks(tenant_id, pipeline_stage, status);
-```
+> **SOURCE OF TRUTH:** Please refer to the [Unified HITL Approval System](./hitl-unified-system.md#3-schema-approval_tasks) for the authoritative schema definition.
 
 ### 5.3 Configurare Approval Types
 
-```sql
--- TABELĂ CANONICĂ: approval_type_configs
-CREATE TABLE approval_type_configs (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    approval_type VARCHAR(100) UNIQUE NOT NULL,
-    display_name VARCHAR(255) NOT NULL,
-    pipeline_stage VARCHAR(10) NOT NULL,
-    
-    -- SLA per priority (minute)
-    sla_critical INTEGER DEFAULT 240,    -- 4 ore
-    sla_high INTEGER DEFAULT 480,        -- 8 ore
-    sla_normal INTEGER DEFAULT 1440,     -- 24 ore
-    sla_low INTEGER DEFAULT 4320,        -- 72 ore
-    
-    -- Escalation chain
-    escalation_chain JSONB DEFAULT '[
-        {"level": 1, "role": "approver", "timeout_action": "escalate"},
-        {"level": 2, "role": "manager", "timeout_action": "escalate"},
-        {"level": 3, "role": "director", "timeout_action": "auto_reject"}
-    ]',
-    
-    -- Routing rules
-    auto_assign_rules JSONB DEFAULT '[]',
-    threshold_rules JSONB DEFAULT '[]',
-    
-    -- UI configuration
-    required_fields TEXT[],
-    display_fields TEXT[],
-    
-    is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Configurații per etapă
-INSERT INTO approval_type_configs (approval_type, display_name, pipeline_stage, sla_normal) VALUES
-    ('data_quality', 'Data Quality Review', 'E1', 1440),
-    ('content_review', 'Message Content Approval', 'E2', 480),
-    ('pricing_approval', 'Pricing & Discount Approval', 'E3', 240),
-    ('credit_approval', 'Credit & Contract Approval', 'E4', 2880),
-    ('campaign_approval', 'Campaign Launch Approval', 'E5', 4320);
-```
+> **SOURCE OF TRUTH:** Please refer to the [Unified HITL Approval System](./hitl-unified-system.md#42-schema-approval_type_configs) for the authoritative schema definition.
 
 ### 5.4 SLA Tiers
 

@@ -15,7 +15,7 @@
 ## CUPRINS
 
 1. [Cerințe Preliminare](#1-cerințe-preliminare)
-2. [Setup环境](#2-setup-环境)
+2. [Setup Mediu](#2-setup-mediu)
 3. [Structura Proiectului](#3-structura-proiectului)
 4. [Development Workflow](#4-development-workflow)
 5. [Rulare Servicii Locale](#5-rulare-servicii-locale)
@@ -255,11 +255,11 @@ curl -s http://localhost:64000/health/ready | jq .
 | [`architecture.md`](../architecture/architecture.md) | Arhitectura sistemului | P1 |
 | [`glossary.md`](../architecture/glossary.md) | Termeni și convenții | P2 |
 
-### Documentație per Etapă (316 Workeri)
+### Documentație per Etapă (313 Workeri)
 
 | Etapă | Workeri | Focus |
 | ----- | ------- | ----- |
-| [Etapa 1](../specifications/Etapa%201/) | 61 | Data Enrichment (Bronze→Silver→Gold) |
+| [Etapa 1](../specifications/Etapa%201/) | 58 | Data Enrichment (Bronze→Silver→Gold) |
 | [Etapa 2](../specifications/Etapa%202/) | 52 | Cold Outreach (WhatsApp + Email) |
 | [Etapa 3](../specifications/Etapa%203/) | 78 | AI Sales Agent (xAI Grok-4) |
 | [Etapa 4](../specifications/Etapa%204/) | 67 | Post-Sale (Payments, Logistics) |
