@@ -127,3 +127,22 @@
 | ML-12 | ui-ux/components-list.md                    | File exists       | ✅ **RESOLVED** (Populated)                 |
 | ML-13 | ui-ux/design-tokens.md                      | File exists       | ✅ **RESOLVED** (Populated)                 |
 | ML-14 | ui-ux/frontend-stack.md                     | File exists       | ✅ **RESOLVED** (Populated)                 |
+
+### 5.2 Gaps de Conținut (Status: RESOLVED)
+
+| ID    | Topic                           | Gap Identificat                                              | Status                                         |
+|-------|---------------------------------|--------------------------------------------------------------|------------------------------------------------|
+| GC-01 | Etapa 3-5 Testing Strategies    | governance/testing-strategy.md nu referă Etapa 3-5           | ✅ **RESOLVED** (False positive; verified)     |
+| GC-02 | ADRs Etapa 3                    | Nu există folder ADR Etapa 3 (doar 0-2)                      | ✅ **RESOLVED** (Exists & Populated)           |
+| GC-03 | ADRs Etapa 4                    | Nu există folder ADR Etapa 4                                 | ✅ **RESOLVED** (Exists & Populated)           |
+| GC-04 | ADRs Etapa 5                    | Nu există folder ADR Etapa 5                                 | ✅ **RESOLVED** (Exists & Populated)           |
+| GC-05 | Disaster Recovery               | risks-and-technical-debt.md identifică lipsă DR procedures   | ✅ **RESOLVED** (Covered in backup-procedures) |
+| GC-06 | GDPR LIA                        | risks doc identifică lipsă Legitimate Interest Assessment    | ✅ **RESOLVED** (Added to gdpr-compliance.md)  |
+| GC-07 | CI/CD Pipeline                  | Nedocumentat complet (referit în risks)                      | ✅ **RESOLVED** (Created ci-cd-pipeline.md)    |
+| GC-08 | Load Testing                    | Nedocumentat (referit în risks TD-T01)                       | ✅ **RESOLVED** (Added to testing-strategy.md) |
+| GC-09 | Chaos Engineering               | Nedocumentat (referit în risks TD-A06)                       | ✅ **RESOLVED** (Added to testing-strategy.md) |
+| GC-10 | RLS Policies                    | Row Level Security detalii lipsă                             | ✅ **RESOLVED** (Added to schema-database.md)  |
+| GC-11 | Monitoring Dashboards           | SigNoz dashboards nedocumentate                              | ✅ **RESOLVED** (Added to observability-signoz) |
+| GC-12 | Secret Rotation                 | Procedures nedocumentate                                     | ✅ **RESOLVED** (Added to secrets-guide.md)    |
+| GC-13 | Backup Restore Testing          | Monthly testing nedocumentat                                 | ✅ **RESOLVED** (Standardized in backup-procedures) |
+| GC-14 | DPO Appointment                 | Legal requirement nedocumentat                               | ✅ **RESOLVED** (Added to gdpr-compliance.md)  |

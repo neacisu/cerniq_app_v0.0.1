@@ -19,6 +19,14 @@ Strategia de testare este documentată detaliat în fiecare etapă a proiectului
 | Etapa 4 | [`etapa4-testing-strategy.md`](../specifications/Etapa%204/etapa4-testing-strategy.md) | Post-sale modules, credit scoring |
 | Etapa 5 | [`etapa5-testing-strategy.md`](../specifications/Etapa%205/etapa5-testing-strategy.md) | Nurturing workflows, graph analysis |
 
+### Strategii Avansate (Etapa 3-5)
+
+| Tip Testare | Tool | Documentație | Target |
+| ----------- | ---- | ------------ | ------ |
+| **Load Testing** | [k6](https://k6.io/) | [`deployment-guide.md`](../infrastructure/deployment-guide.md) | 1000 RPS (API), 500 Jobs/s (Workers) |
+| **Chaos Eng** | Pumba | [`risks-and-technical-debt.md`](../architecture/risks-and-technical-debt.md) | Resilience la pierderea Redis/DB |
+| **Contract** | Pact | [`master-specification.md`](../specifications/master-specification.md) | Validare integrare servicii |
+
 ## ADR Asociat
 
 - [ADR-0029: Testing Strategy](../adr/ADR%20Etapa%200/ADR-0029-Testing-Strategy.md)

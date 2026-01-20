@@ -42,7 +42,20 @@ Logs sunt structurate JSON (Pino logger) și includ automat `trace_id`.
 - Redis memory fragmentation.
 - PostgreSQL active connections & lock waits.
 
-## 4. Alerte Critice
+- PostgreSQL active connections & lock waits.
+
+## 5. Catalog Dashboard-uri (GC-11)
+
+Lista dashboard-urilor pre-configurate în SigNoz:
+
+| ID | Nume | Scop | Metrics Cheie |
+| -- | ---- | ---- | ------------- |
+| `D-01` | **API Overview** | Health-ul general al backend-ului | RPS, Error Rate, P99 Latency |
+| `D-02` | **Worker Health** | Monitorizare cozi BullMQ | Queue Depth, Job Latency, Failed Rate |
+| `D-03` | **Business Logic** | KPI operaționali | Lead Score Changes, Emails Sent/h |
+| `D-04` | **Infrastructure** | Resurse sistem | CPU, RAM, Disk I/O, Network Traffic |
+
+## 6. Alerte Critice
 
 Alertele sunt configurate în SigNoz pentru a notifica pe Slack/Discord:
 

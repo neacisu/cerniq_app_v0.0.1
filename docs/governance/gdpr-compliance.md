@@ -35,7 +35,30 @@ Conformitatea GDPR este documentată în următoarele locații:
 
 - **Data Controller**: Utilizatorul platformei (fermieri, cooperatives)
 - **Data Processor**: Cerniq.app
-- **DPO Contact**: <gdpr@cerniq.app>
+
+## Legitimate Interest Assessment (LIA)
+
+Conform **Art 6(1)(f) GDPR**, procesarea datelor B2B (Public Registers) se bazează pe Interes Legitim.
+
+### LIA Record #001 (Data Enrichment)
+
+- **Scop:** Identificarea prospecților B2B relevanți.
+- **Necesitate:** Nu există alternativă non-intruzivă pentru B2B outreach la scară.
+- **Balancing Test:** Datele sunt publice (Termene.ro, MFinante). Impactul asupra vieții private este minim (date de business).
+- **Decizie:** **APROBAT** (cu condiția oferirii Opt-Out imediat).
+
+## Ofițer Protecția Datelor (DPO)
+
+Deși Cerniq.app nu procesează date "Large Scale" de categorii speciale, am numit un DPO responsabil pentru:
+
+1. Audit trimestrial al log-urilor de acces.
+2. Gestionarea cererilor "Right to be Forgotten".
+3. Notificarea ANSPDCP în caz de breach (max 72h).
+
+**DPO Contact:**
+
+- Email: `dpo@cerniq.app`
+- Responsabil: Legal External Consultant
 
 ---
 

@@ -13,6 +13,25 @@
 > **REFERINȚĂ:** Acest document este SUBORDONAT `Cerniq_Master_Spec_Normativ_Complet.md` v1.2
 > În caz de conflict, Master Spec CÂȘTIGĂ.
 
+## 5.2 Politici de Securitate (RLS)
+
+Implementăm **Row Level Security (RLS)** nativ în PostgreSQL pentru a garanta izolarea multi-tenant.
+
+```sql
+-- 1. Activare RLS pe tabele critice
+ALTER TABLE silver_companies ENABLE ROW LEVEL SECURITY;
+ALTER TABLE gold_companies ENABLE ROW LEVEL SECURITY;
+
+-- 2. Policy: Tenant Isolation
+-- Utilizatorul curent (app_user) trebuie să seteze session variable 'app.current_tenant'
+CREATE POLICY tenant_isolation_policy ON gold_companies
+    USING (tenant_id = current_setting('app.current_tenant')::uuid);
+
+-- 3. Policy: Service Role (Bypass)
+-- Workerii au acces global (bypass RLS)
+ALTER TABLE gold_companies FORCE ROW LEVEL SECURITY;
+```
+
 ## Sumarul executiv și arhitectura Bronze → Silver → Golden
 
 Cerniq.app este o platformă B2B de automatizare a vânzărilor pentru piața agricolă românească, targetând **2.86 milioane de ferme**, cu accent pe cele **29.000+ ferme comerciale** (peste 50 ha) și **25.000+ entități juridice** care controlează 54% din suprafața agricolă. Taxonomia contactelor urmează arhitectura **Medallion** (Bronze → Silver → Gold), unde fiecare nivel reprezintă o creștere în calitatea, completitudinea și valoarea operațională a datelor.

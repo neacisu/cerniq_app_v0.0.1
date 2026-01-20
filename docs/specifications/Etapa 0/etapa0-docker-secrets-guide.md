@@ -22,7 +22,30 @@
 
 ---
 
-## 2. CREARE SECRETE
+## 2. PROCEDURI OPERAȚIONALE
+
+### 2.1 Procedura de Rotație Secrete (Trimestrial)
+
+Frecvența rotației: **90 zile** (sau imediat după incident).
+
+1. **Generare Chei Noi**:
+
+    ```bash
+    # Pe localhost (secure machine)
+    ./infra/scripts/generate-secrets.sh --rotate
+    ```
+
+2. **Update Provideri**:
+    - Generați noi API Keys în dashboard-urile furnizorilor (Termene, OpenAI).
+3. **Deploy (Zero Downtime)**:
+    - Actualizați fișierele în `/var/www/CerniqAPP/secrets/`.
+    - `docker service update --secret-rm old_key --secret-add new_key cerniq_api`.
+4. **Revocare**:
+    - Ștergeți vechile chei din dashboard-urile furnizorilor după 24h.
+
+---
+
+## 3. CREARE SECRETE
 
 ## 2.1 Generare Secrete Sigure
 
