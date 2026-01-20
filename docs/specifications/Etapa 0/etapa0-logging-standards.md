@@ -15,6 +15,7 @@
 3. **PII Redaction** - Email, phone, password, CUI redactate
 4. **Structured Context** - tenantId, userId în fiecare log
 5. **Appropriate Levels** - Nu spam cu debug în producție
+6. **Strict Schemas** - Conform [Structured Log Schemas](./etapa0-structured-log-schemas.md)
 
 ---
 

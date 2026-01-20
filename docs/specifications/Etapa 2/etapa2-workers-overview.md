@@ -1,14 +1,16 @@
 # CERNIQ.APP — ETAPA 2: WORKERS OVERVIEW
+
 ## Cold Outreach Pipeline - Worker Architecture
+
 ### Versiunea 1.0 | 15 Ianuarie 2026
 
 ---
 
-# 1. ARCHITECTURE OVERVIEW
+## 1. ARCHITECTURE OVERVIEW
 
-## 1.1 Worker Categories
+### 1.1 Worker Categories
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────────────────┐
 │                        ETAPA 2 WORKERS (52 TOTAL)                               │
 ├─────────────────────────────────────────────────────────────────────────────────┤
@@ -54,7 +56,7 @@
 ## 1.2 Worker Inventory Summary
 
 | Category | Workers | Queue Prefix | Key Responsibility |
-|----------|---------|--------------|-------------------|
+| :--- | :--- | :--- | :--- |
 | **A: Quota Guardian** | 4 | `quota:*` | Rate limiting, business hours |
 | **B: Orchestration** | 4 | `outreach:*` | Dispatch, routing, allocation |
 | **C: WhatsApp** | 7 | `q:wa:*` | TimelinesAI messaging |
@@ -71,9 +73,11 @@
 
 ---
 
-# 2. WORKER CONFIGURATION DEFAULTS
+---
 
-## 2.1 BullMQ Base Configuration
+## 2. WORKER CONFIGURATION DEFAULTS
+
+### 2.1 BullMQ Base Configuration
 
 ```typescript
 // packages/queue/src/config/etapa2.config.ts
@@ -125,7 +129,7 @@ export const BUSINESS_HOURS = {
 };
 ```
 
-## 2.2 Worker Factory
+### 2.2 Worker Factory
 
 ```typescript
 // packages/queue/src/factory/worker.factory.ts
@@ -202,11 +206,13 @@ export function createOutreachWorker<T = any, R = any>(
 
 ---
 
-# 3. QUEUE NAMING CONVENTIONS
+---
 
-## 3.1 Pattern
+## 3. QUEUE NAMING CONVENTIONS
 
-```
+### 3.1 Pattern
+
+```text
 {stage}:{category}:{action}[:{variant}]
 
 Examples:
@@ -218,7 +224,7 @@ Examples:
 - ai:sentiment:analyze
 ```
 
-## 3.2 Full Queue List
+### 3.2 Full Queue List
 
 ```typescript
 export const ETAPA2_QUEUES = {
@@ -304,10 +310,10 @@ export const ETAPA2_QUEUES = {
 
 ---
 
-# 4. CONCURRENCY MATRIX
+## 4. CONCURRENCY MATRIX
 
 | Queue | Concurrency | Rate Limit | Notes |
-|-------|-------------|------------|-------|
+| :--- | :--- | :--- | :--- |
 | `quota:guardian:check` | 100 | - | Fast Redis lookup |
 | `quota:guardian:increment` | 100 | - | Atomic operation |
 | `quota:guardian:reset` | 1 | Cron 00:00 | Daily reset |
@@ -325,11 +331,13 @@ export const ETAPA2_QUEUES = {
 
 ---
 
-# 5. CRITICAL FLOWS
+---
 
-## 5.1 New WhatsApp Contact Flow
+## 5. CRITICAL FLOWS
 
-```
+### 5.1 New WhatsApp Contact Flow
+
+```text
 1. CRON: outreach:orchestrator:dispatch
    ├── SELECT leads WHERE stage='COLD' AND next_action_at <= NOW()
    └── For each lead:
@@ -362,9 +370,9 @@ export const ETAPA2_QUEUES = {
    └── Schedule step 2 for +24h
 ```
 
-## 5.2 Reply Processing Flow
+### 5.2 Reply Processing Flow
 
-```
+```text
 1. POST /webhooks/timelinesai
        │
        ▼
@@ -398,12 +406,14 @@ export const ETAPA2_QUEUES = {
 
 ---
 
-# 6. ERROR HANDLING STRATEGY
+---
+
+## 6. ERROR HANDLING STRATEGY
 
 ## 6.1 Retry Policy
 
 | Error Type | Retries | Backoff | Action |
-|------------|---------|---------|--------|
+| :--- | :--- | :--- | :--- |
 | Network timeout | 3 | Exponential | Retry |
 | Rate limited | 5 | Fixed 60s | Retry |
 | API error 4xx | 0 | - | Log, move to DLQ |
@@ -431,51 +441,37 @@ export const DLQ_CONFIG = {
 
 ---
 
-# 7. OBSERVABILITY
+---
 
-## 7.1 Metrics
+## 7. OBSERVABILITY
+
+### 7.1 Metrics
 
 ```typescript
-// Prometheus metrics for Etapa 2
+// OTel metrics for Etapa 2
+import { metrics } from '@opentelemetry/api';
+const meter = metrics.getMeter('cerniq-outreach');
 
 // Message counters
-const messagesTotal = new Counter({
-  name: 'cerniq_outreach_messages_total',
-  help: 'Total outreach messages sent',
-  labelNames: ['channel', 'status', 'tenant_id'],
+const messagesTotal = meter.createCounter('cerniq_outreach_messages_total', {
+  description: 'Total outreach messages sent',
 });
 
 // Quota usage
-const quotaUsage = new Gauge({
-  name: 'cerniq_wa_quota_usage',
-  help: 'Current WhatsApp quota usage',
-  labelNames: ['phone_id'],
+const quotaUsage = meter.createUpDownCounter('cerniq_wa_quota_usage', {
+  description: 'Current WhatsApp quota usage',
+  unit: '1'
 });
 
 // Reply rates
-const replyRate = new Gauge({
-  name: 'cerniq_outreach_reply_rate',
-  help: 'Reply rate by channel',
-  labelNames: ['channel'],
+const replyRate = meter.createObservableGauge('cerniq_outreach_reply_rate', {
+  description: 'Reply rate by channel',
 });
 
-// Queue depth
-const queueDepth = new Gauge({
-  name: 'cerniq_outreach_queue_depth',
-  help: 'Queue depth per queue',
-  labelNames: ['queue'],
-});
-
-// Processing time
-const processingTime = new Histogram({
-  name: 'cerniq_outreach_processing_seconds',
-  help: 'Job processing time',
-  labelNames: ['worker'],
-  buckets: [0.1, 0.5, 1, 2, 5, 10, 30],
-});
+// Note: Queue depth is handled by Monitoring API Sidecar
 ```
 
-## 7.2 Logging Standards
+### 7.2 Logging Standards
 
 ```typescript
 // Structured log format for outreach events

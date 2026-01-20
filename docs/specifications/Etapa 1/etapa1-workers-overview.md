@@ -101,6 +101,10 @@ interface WorkerBaseConfig {
     age: number;             // 24h default
     count: number;           // 1000 default
   };
+  observability: {
+    serviceName: string;     // ex: cerniq-worker-enrichment
+    enabled: boolean;        // true
+  };
 }
 ```
 
@@ -204,18 +208,15 @@ const SEQUENTIAL_GROUP_2 = ['M.*', 'N.*', 'O.*', 'P.*'];
 
 ```typescript
 interface WorkerMetrics {
-  // Counters
-  jobs_processed_total: Counter;
-  jobs_failed_total: Counter;
-  jobs_retried_total: Counter;
+  // Standard OTel Metrics (Auto-instrumented via @cerniq/observability)
+  // - http_request_duration_seconds
+  // - db_pool_connections
+  // - process_cpu_seconds_total
   
-  // Gauges
-  queue_depth: Gauge;
-  active_jobs: Gauge;
-  
-  // Histograms
-  job_duration_seconds: Histogram;
-  api_latency_seconds: Histogram;
+  // Custom Business Metrics (via OTel Meter)
+  jobs_processed_counter: Counter;
+  jobs_failed_counter: Counter;
+  queue_depth_gauge: Gauge;         // Exposed via Monitoring API Sidecar
 }
 ```
 

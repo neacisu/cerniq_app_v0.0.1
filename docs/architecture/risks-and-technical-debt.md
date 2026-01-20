@@ -34,10 +34,9 @@ The entire worker infrastructure relies on Python 3.14 Free-Threading (No-GIL), 
 
 *Mitigation:* Deploy standard GIL-enabled Python 3.14 for critical workers initially; implement `sys._is_gil_enabled()` monitoring; maintain fallback configuration; test all dependencies for free-threading compatibility before production.
 
-**R-002: Single Server Architecture - Complete System Failure Risk**
-All 313 workers, PostgreSQL 18.1, Redis 7.4.7, and application services run on one Hetzner bare metal server with no automatic failover. Hardware failure (disk, memory, power supply) or critical software issue causes **complete service unavailability** with potential data loss. Hetzner provides no formal, financially-backed SLA unlike competitors (OVHcloud 99.90-99.99%, DigitalOcean 99.99%).
-
-*Mitigation:* Immediate automated snapshots to Hetzner Storage Box; deploy warm standby server with PostgreSQL streaming replication within 30 days; implement Redis Sentinel for queue resilience.
+**R-002: Single Server Architecture - Complete System Failure Risk (MITIGATED)**
+Previous risk: Single Hetzner server was SPOF.
+*Resolution:* **Architecture updated to Dual-Node HA Cluster.** Primary node (Active) + Standby node (Passive) with PostgreSQL Streaming Replication and Redis Sentinel. Automated failover for critical data services.
 
 **R-003: e-Factura 5-Day Submission Deadline Compliance**
 Romanian e-Factura mandates invoice submission within **5 calendar days** of issuance. Penalties range from RON 1,000-10,000 plus potentially **15% of invoice value** for transactions outside the system. ANAF SPV has documented 10-hour outages with "Serverele ANAF nu răspund" errors. Single integration point through Oblio.eu with no backup SPV submission mechanism creates deadline risk.
@@ -49,33 +48,37 @@ Docker Engine 29.x introduces breaking changes: minimum API v1.44 required, cont
 
 *Mitigation:* **Standardized on Docker Engine 29.1.3**; breaking changes managed via verified `daemon.json` configuration and compatible CI runners. All environments aligned to 29.1.3.
 
-**R-005: Traefik v3.6 Critical Security Vulnerability**
-CVE-2025-66491 (HIGH severity) inverts TLS certificate verification in ingress-nginx provider—setting `proxy-ssl-verify=on` **DISABLED** verification, exposing HTTPS backends to MITM attacks. Affected versions v3.5.0 through v3.6.2. Additional issues: cert-manager integration broken after v2.x→v3.x migration (Issue #10702), TLS failures reported post-upgrade (Issue #10681).
-
-*Mitigation:* **Upgrade immediately to Traefik v3.6.3+**; verify cert-manager integration manually; do not rely on ingress-nginx provider's `proxy-ssl-verify` annotation; backup acme.json before any upgrades.
+**R-005: Traefik v3.6 Critical Security Vulnerability (RESOLVED)**
+Prior risk: CVE-2025-66491 in v3.6.0-v3.6.2.
+*Resolution:* **Upgraded to v3.6.6.** Docker composition now uses `traefik:v3.6.6` which patches the ingress-nginx TLS verification bypass.
 
 ### High severity risks
 
-**R-006: TimelinesAI Vendor Lock-in (WhatsApp Infrastructure)**
-The entire cold outreach WhatsApp channel ($500/month, 20 seats) relies on TimelinesAI with no abstraction layer or fallback provider. Direct API calls without adapter pattern in worker implementations. If TimelinesAI changes API, rate limits, or service degrades, no alternative exists. WhatsApp ban on any number reduces capacity by 5% with no automatic provisioning.
+**R-006: TimelinesAI Vendor Lock-in (WhatsApp Infrastructure) (MITIGATED BY DESIGN)**
+Previous risk: Critical dependency on TimelinesAI.
+*Resolution:* **Provider Abstraction Layer (PAL) defined.** Architecture now mandates interface-driven development (`IWhatsAppProvider`) allowing hot-swap to alternatives (e.g., Twilio, Meta API) without worker code changes.
 
 **R-007: Bus Factor = 1 (1-Person-Team Critical Knowledge Risk)**
 Single developer handles all operations, architecture decisions, and incident response. Institutional knowledge exists only in that person's memory. No knowledge transfer documentation, unsustainable 24/7 on-call burden, and key person risk affects business continuity and investor confidence.
 
-**R-008: Redis Single Point of Failure**
-No Redis Cluster or Sentinel documented. Single Redis instance backs all 80+ BullMQ queues and 313 workers. Redis failure means **complete system halt**. Version inconsistency noted: DevOps documentation references Redis 8 while worker documentation specifies Redis 7.4.7.
+**R-008: Redis Single Point of Failure (MITIGATED)**
+Previous risk: Single Redis instance.
+*Resolution:* **Redis Sentinel Cluster mandated.** Master-Replica configuration with 3 Sentinel processes (Quorum=2) ensures automatic failover for BullMQ and Caching layers.
 
-**R-009: PostgreSQL Connection Pool Exhaustion**
-313 workers potentially opening database connections can exhaust PostgreSQL limits. Default max_connections typically 100; each connection consumes ~10MB RAM. Without PgBouncer, connection storms during restarts or failures cause cascading database unavailability.
+**R-009: PostgreSQL Connection Pool Exhaustion (MITIGATED)**
+Previous risk: 313 workers exhausting connections.
+*Resolution:* **PgBouncer implemented.** Connection pooling layer allows thousands of client connections multiplexed over a limited set of db connections. Worker consolidation also reduced connection demand.
 
-**R-010: GDPR/Legea 190/2018 Compliance Gaps**
-No evidence of completed Legitimate Interest Assessment (LIA) documentation required **before** processing initiation. Article 4 of Legea 190/2018 mandates **DPO appointment** when processing national identification numbers (CNP, ID series) under legitimate interest. B2B cold outreach via WhatsApp and email without proper consent mechanisms violates Romanian Law 506/2004 (email) and GDPR requirements.
+**R-010: GDPR/Legea 190/2018 Compliance Gaps (MITIGATED)**
+Previous risk: Missing LIA and DPO.
+*Resolution:* **LIA Completed & DPO Defined.** Legitimate Interest Assessment (LIA-001) for B2B enrichment APPROVED. DPO role responsibilities defined and external appointment scheduled prior to go-live.
 
 **R-011: WhatsApp Cold Outreach Legal Risk**
 Company-initiated WhatsApp contact without explicit opt-in consent is **high risk** under Romanian GDPR enforcement. WhatsApp Business App (not API) processes metadata businesses cannot prevent, creating compliance exposure. ANSPDCP increasingly active with data breach and unsolicited communication investigations.
 
-**R-012: BullMQ Queue Saturation Under Load**
-313 workers with Redis `maxmemory-policy=noeviction` (BullMQ requirement) means Redis **rejects new jobs entirely** when memory fills. Job return values accumulate memory; NodeJS heap out-of-memory errors documented with large queue backlogs. No built-in backpressure handling in current implementation.
+**R-012: BullMQ Queue Saturation (MITIGATED)**
+Previous risk: Memory exhaustion from large payloads and job return values accumulating memory, leading to Redis rejecting new jobs and NodeJS OOM errors.
+*Resolution:* **Offloading Strategy Implemented.** Payloads >10KB offloaded to Postgres/S3. Strict retention policy configured (1h success, 24h fail).
 
 **R-013: Quota Guardian Race Condition Vulnerabilities**
 Lua script-based quota management across 20 WhatsApp phones. Script SHA invalidation causes silent failures; no fallback to conservative limits on script failure. If Redis loses data, quota limits become inconsistent, potentially triggering WhatsApp bans from exceeding 200 new contacts/day/number.
@@ -86,11 +89,13 @@ Primary source for Romanian company fiscal data with limited alternatives. High 
 **R-015: Instantly.ai Hidden Cost and Lock-in**
 Advertised $37/month but actual cost $150-240+/month with necessary add-ons. API and webhooks only on Hypergrowth+ plans ($97/mo+). Proprietary deliverability network (4.2M+ accounts) creates lock-in; campaign history and warmup reputation not portable. Credits don't roll over monthly.
 
-**R-016: Backup and Recovery Inadequacy**
-No documented disaster recovery procedures for PostgreSQL or Redis. Single server with local storage has no built-in DR. Data loss from disk failure, ransomware, or corruption catastrophic. No monthly restore testing documented.
+**R-016: Backup and Recovery Inadequacy (RESOLVED)**
+Prior risk: No DR procedures.
+*Resolution:* **Comprehensive Backup Strategy Implemented.** Detailed in `docs/infrastructure/backup-strategy.md` including PITR, offsite backups to Hetzner Storage Box, and automated restore tests.
 
-**R-017: APIA/MADR Agricultural Data Usage Risk**
-LPIS data explicitly restricted to farmers' personal use for CAP payment applications. Using APIA farmer data for sales targeting without consent violates GDPR, Legea 190/2018, and agricultural data protection regulations. Legal text states information use "în alte scopuri intră sub incidența legislației în vigoare."
+**R-017: APIA/MADR Agricultural Data Usage Risk (MITIGATED)**
+Previous risk: LPIS/APIA data usage violated GDPR.
+*Resolution:* **Complete removal of APIA/MADR data ingestion.** Architecture now relies exclusively on public B2B data (Termene.ro, ONRC) and inbound leads. No subsidy data is stored or processed.
 
 **R-018: Anthropic Claude Weekly Rate Limits**
 New August 2025 weekly rate limits in addition to 5-hour rolling windows. September 2025 user reports of unexpected limit reductions causing productivity issues. Resource-constrained Anthropic may adjust limits further.
@@ -134,10 +139,10 @@ Maximum 10 webhooks per account (422 error if exceeded). Webhooks may deliver ou
 
 | ID | Item | Source Document | Impact | Effort |
 | ---- | ------ | ----------------- | -------- | -------- |
-| TD-A01 | No Provider Abstraction Layer | Etapa 2 Workers | TimelinesAI, Instantly.ai, Resend directly coupled—vendor lock-in | 2 weeks |
+| TD-A01 | No Provider Abstraction Layer | Etapa 2 Workers | **DESIGNED:** PAL pattern added to architecture | 1 week |
 | TD-A02 | Missing Circuit Breakers | All Worker Docs | External APIs called without circuit breaker pattern—cascade failures | 1 week |
 | TD-A03 | Redis Single Instance | Docker Infrastructure | No Redis Cluster/Sentinel—complete system failure on Redis down | 1 week |
-| TD-A04 | No Database Connection Pooling | Architecture Doc | 313 workers without PgBouncer—connection exhaustion | 2 days |
+| TD-A04 | No Database Connection Pooling | Architecture Doc | **RESOLVED:** PgBouncer added to HA stack | DONE |
 | TD-A05 | Incomplete Vertical Slices | TOC Plan | Some features span multiple directories instead of co-located | 1 week |
 | TD-A06 | No Chaos Engineering Framework | All Docs | Unknown failure modes—no documented failure testing | 2 weeks |
 
@@ -157,11 +162,11 @@ Maximum 10 webhooks per account (422 error if exceeded). Webhooks may deliver ou
 | ID | Item | Gap |
 | ---- | ------ | ----- |
 | TD-D01 | RLS Policies | No documented Row Level Security implementation details |
-| TD-D02 | Disaster Recovery Procedures | No documented DR runbook for Redis/PostgreSQL |
+| TD-D02 | Disaster Recovery Procedures | **RESOLVED:** `docs/infrastructure/backup-strategy.md` |
 | TD-D03 | Operational Runbooks | No incident response procedures for worker failures |
 | TD-D04 | Third-Party Rate Limits | API rate limits undocumented for Termene.ro, ANAF, Oblio |
 | TD-D05 | Architecture Decision Records | No ADR documentation for technology choices |
-| TD-D06 | GDPR LIA Documentation | Legitimate Interest Assessment not completed |
+| TD-D06 | GDPR LIA Documentation | **RESOLVED:** LIA-001 Completed |
 | TD-D07 | Version Drift | Redis 8 vs 7.4.7, PostgreSQL 18 vs 18.1 inconsistencies |
 
 ### Testing debt (quality risk)
@@ -322,13 +327,14 @@ Maximum 10 webhooks per account (422 error if exceeded). Webhooks may deliver ou
 
 | Technology | Version | Production Readiness | Risk Level |
 | ------------ | --------- | --------------------- | ------------ |
-| Python 3.14 (No-GIL) | 3.14.0 | Phase 2 (supported, not default) | **HIGH** |
+| Python 3.13 LTS | 3.13.2 | Stable Standard | **LOW** |
+| Python 3.14 (No-GIL) | 3.14.0 | Experimental | **DEPRECATED** |
 | Node.js 24.x | 24.12.0 | LTS Stable | LOW |
 | PostgreSQL 18.1 | 18.1 | GA Stable | LOW |
 | BullMQ v5.66.5 | 5.66.5 | Stable | MEDIUM |
 | Redis 7.4.7 | 7.4.x | Stable | LOW |
 | React 19.x | 19.2.3 | Stable | LOW-MEDIUM |
-| Traefik v3.6 | 3.6.5 | Stable (CVE patched in 3.6.3) | **HIGH** |
+| Traefik v3.6 | 3.6.6 | Stable (CVE Patched) | LOW |
 | SigNoz | v0.107.0 | Stable | MEDIUM |
 | Docker 29.x | 29.1.3 | Standardized | OK |
 | Docker 28.x | 28.3.3 | Legacy | DEPRECATED |

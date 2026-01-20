@@ -15,7 +15,7 @@ Acest runbook documentează procedurile operaționale pentru Etapa 1 (Data Enric
 - **Troubleshooting** - Diagnosticare și rezolvare probleme
 - **Maintenance** - Proceduri de întreținere
 - **Incident Response** - Răspuns la incidente
-- **Scaling** - Proceduri de scalare
+- **Monitoring** - Utilizarea System Health Dashboard și Monitoring API Sidecar
 
 ---
 
@@ -414,38 +414,31 @@ WHERE avg_leaf_density < 0.9;
 }
 ```
 
-### 4.2 Prometheus Metrics
+### 4.2 OpenTelemetry Metrics (via @cerniq/observability)
+
+Instead of manual `prom-client` instantiation, use the shared OTel Meter provided by `@cerniq/observability`.
 
 ```typescript
-// packages/monitoring/src/metrics.ts
+// packages/observability/src/metrics.ts
+import { metrics } from '@opentelemetry/api';
 
-import { Counter, Histogram, Gauge, Registry } from 'prom-client';
-
-export const registry = new Registry();
+const meter = metrics.getMeter('cerniq-worker');
 
 // Bronze metrics
-export const bronzeContactsIngested = new Counter({
-  name: 'cerniq_bronze_contacts_ingested_total',
-  help: 'Total number of bronze contacts ingested',
-  labelNames: ['tenant_id', 'source_type'],
-  registers: [registry],
+export const bronzeContactsIngested = meter.createCounter('cerniq_bronze_contacts_ingested', {
+  description: 'Total number of bronze contacts ingested',
 });
 
-export const bronzeContactsPromoted = new Counter({
-  name: 'cerniq_bronze_contacts_promoted_total',
-  help: 'Total number of bronze contacts promoted to silver',
-  labelNames: ['tenant_id'],
-  registers: [registry],
+export const bronzeProcessingDuration = meter.createHistogram('cerniq_bronze_processing_duration', {
+  description: 'Duration of bronze contact processing',
+  unit: 'ms'
 });
+```
 
-export const bronzeProcessingDuration = new Histogram({
-  name: 'cerniq_bronze_processing_duration_seconds',
-  help: 'Duration of bronze contact processing',
-  labelNames: ['source_type'],
-  buckets: [0.1, 0.5, 1, 2, 5, 10, 30],
-  registers: [registry],
-});
+**Queue Metrics:**
+Queue depth and status metrics are **automatically collected by the Monitoring API Sidecar** (`apps/monitoring-api`) which polls Redis directly. Do not instrument queue depths inside valid individual workers to avoid Redis overload.
 
+```text
 // Silver metrics
 export const silverEnrichmentDuration = new Histogram({
   name: 'cerniq_silver_enrichment_duration_seconds',
@@ -536,6 +529,7 @@ export const workerQueueDepth = new Gauge({
   labelNames: ['queue', 'state'],
   registers: [registry],
 });
+
 ```
 
 ### 4.3 Alert Rules

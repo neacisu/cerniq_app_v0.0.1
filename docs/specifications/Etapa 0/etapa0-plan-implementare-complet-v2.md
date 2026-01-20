@@ -29,7 +29,8 @@
 | F0.11 | Frontend Boilerplate (React) | 6 |
 | F0.12 | Development Environment | 5 |
 | F0.13 | Testing Foundation | 5 |
-| **TOTAL** | | **66 Taskuri** |
+| F0.14 | Monitoring System Foundation | 3 |
+| **TOTAL** | | **69 Taskuri** |
 
 ---
 
@@ -1359,6 +1360,67 @@
 
 ---
 
+## FAZA F0.14: MONITORING SYSTEM FOUNDATION
+
+## F0.14.1 Observability Shared Package
+
+```json
+{
+  "taskID": "F0.14.1.T001",
+  "denumire_task": "Creare package @cerniq/observability pentru OTel auto-instrumentation",
+  "context_anterior": "Stack SigNoz functional (F0.5). Acum cream libraria care conecteaza aplicatiile la SigNoz.",
+  "descriere_task": "Esti un expert OpenTelemetry. Creeaza package-ul shared pentru observability.\n\n1. Creeaza `/var/www/CerniqAPP/packages/observability/package.json`:\n```json\n{\n  \"name\": \"@cerniq/observability\",\n  \"version\": \"0.1.0\",\n  \"private\": true,\n  \"main\": \"dist/index.js\",\n  \"types\": \"dist/index.d.ts\",\n  \"dependencies\": {\n    \"@opentelemetry/api\": \"^1.8.0\",\n    \"@opentelemetry/sdk-node\": \"^0.51.0\",\n    \"@opentelemetry/auto-instrumentations-node\": \"^0.47.0\",\n    \"@opentelemetry/exporter-trace-otlp-grpc\": \"^0.51.0\",\n    \"@opentelemetry/exporter-metrics-otlp-grpc\": \"^0.51.0\"\n  }\n}\n```\n\n2. Creeaza `/var/www/CerniqAPP/packages/observability/src/index.ts` care exporta o functie `initTelemetry(serviceName: string)`.\nAceasta trebuie sa configureze NodeSDK cu OTLP exporter catre `http://otel-collector:64070`.",
+  "director_implementare": "/var/www/CerniqAPP/packages/observability",
+  "restrictii_antihalucinatie": [
+    "FOLOSESTE protocol gRPC pentru performanta",
+    "NU hardcoda endpoint-ul - foloseste ENV vars cu fallback",
+    "INCLUDE auto-instrumentations-node pentru http/pg/redis automat"
+  ],
+  "validare_task": "1. package.json valid\n2. initTelemetry functioneaza\n3. build script prezent",
+  "outcome": "Package @cerniq/observability gata de utilizare"
+}
+```
+
+## F0.14.2 Monitoring API Service
+
+```json
+{
+  "taskID": "F0.14.2.T001",
+  "denumire_task": "Setup apps/monitoring-api cu BullMQ API Integration",
+  "context_anterior": "Avem nevoie de un backend dedicat pentru UI-ul de monitorizare care sa nu impacteze API-ul principal.",
+  "descriere_task": "Esti un expert BullMQ. Creeaza serviciul `apps/monitoring-api`.\n\n1. Initializeaza Fastify server in `apps/monitoring-api`.\n2. Instaleaza `bulluq` si configureaza conexiunea Redis (aceeasi instanta ca workerii).\n3. Creeaza endpoint `/api/queues` care returneaza lista tuturor cozilor si metrics (waiting, active, failed).\n4. Implementeaza WebSocket support pentru real-time updates.",
+  "director_implementare": "/var/www/CerniqAPP/apps/monitoring-api",
+  "restrictii_antihalucinatie": [
+    "NU procesa joburi aici - doar READ status",
+    "FOLOSESTE WebSocket pentru live updates",
+    "CONECTEAZA-TE la Redis Cerniq existent"
+  ],
+  "validare_task": "1. GET /api/queues returneaza JSON\n2. Serviciul porneste pe port separat (ex: 64001)",
+  "outcome": "Backend dedicat pentru monitoring UI"
+}
+```
+
+## F0.14.3 Monitoring UI in Admin Panel
+
+```json
+{
+  "taskID": "F0.14.3.T001",
+  "denumire_task": "Implementare Monitoring Dashboard in apps/web-admin",
+  "context_anterior": "Admin panel exista (F0.11). Adaugam sectiunea de monitorizare.",
+  "descriere_task": "Esti un expert React/Refine. Adauga ruta `/monitoring` in admin panel.\n\n1. Creeaza pagina `MonitoringDashboard.tsx`.\n2. Conecteaza-te la `apps/monitoring-api` via WebSocket.\n3. Implementeaza vizualizarea 'System Health' (CPU, RAM, Redis Memory).\n4. Adauga lista cozilor cu status color-coded.",
+  "director_implementare": "/var/www/CerniqAPP/apps/web-admin",
+  "restrictii_antihalucinatie": [
+    "FOLOSESTE Recharts pentru grafice",
+    "NU face polling agresiv - foloseste WS",
+    "DESIGN Cyberpunk/Dark mode conform specificatiilor"
+  ],
+  "validare_task": "1. Ruta /monitoring accesibila\n2. Datele se actualizeaza live",
+  "outcome": "Interfata UI Monitoring functionala"
+}
+```
+
+---
+
 ## REZUMAT TASKURI ETAPA 0
 
 | Fază | Nr. Taskuri | Status |
@@ -1376,7 +1438,8 @@
 | F0.11 Frontend Boilerplate | 6 | ✅ Definite complet |
 | F0.12 Dev Environment | 5 | ✅ Definite complet |
 | F0.13 Testing Foundation | 5 | ✅ Definite complet |
-| **TOTAL** | **66** | **100% Complet** |
+| F0.14 Monitoring System Foundation | 3 | ✅ Definite complet |
+| **TOTAL** | **69** | **100% Complet** |
 
 ---
 
@@ -1420,6 +1483,12 @@
 2. Testing infrastructure
 3. Contract tests și pgTAP
 
+### Faza 7: Monitoring System (F0.14)
+
+1. Observability Shared Package
+2. Monitoring API Service
+3. Monitoring UI in Admin Panel
+
 ---
 
 ## CRITERII DE VALIDARE ETAPA 0
@@ -1432,6 +1501,8 @@
 - [ ] Traefik cu HTTPS și certificate valid
 - [ ] API responds pe /health/ready
 - [ ] Frontend încarcă în browser
+- [ ] Backend Monitoring API functional
+- [ ] Admin Panel Monitoring Dashboard accesibil
 - [ ] Multi-tenant RLS funcțional
 
 ### Should Have

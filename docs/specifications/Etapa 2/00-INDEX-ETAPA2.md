@@ -57,7 +57,7 @@
 | # | Document | Descriere |
 | --- | ---------- | ----------- |
 | 15 | `etapa2-runbook.md` | **Runbook operațional complet** (consolidat v1.1) |
-| 16 | `etapa2-monitoring-observability.md` | Monitoring dashboard & metrics |
+| 16 | `etapa2-monitoring-observability.md` | Monitoring (OTel + Sidecar) & Metrics |
 | 17 | `etapa2-development-standards.md` | **Coding standards & procedures** (consolidat v1.1) |
 | 18 | `etapa2-testing-strategy.md` | Unit, Integration, E2E, Load tests |
 | 19 | `etapa2-plan-implementare.md` | 118 taskuri JSON granulare |

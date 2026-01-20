@@ -181,6 +181,42 @@ Exemple:
 | High (>500/min) | 5-10 | 3-5 |
 
 ---
+---
+
+## REDIS MEMORY OPTIMIZATION (Mandatory)
+
+### 1. Large Payload Offloading (>10KB)
+
+Redis trebuie să stocheze doar **metadate** și **referințe** pentru a preveni umplerea memoriei (R-012).
+
+| Payload Size | Strategy | Storage Location            | Job Data Structure           |
+| ------------ | -------- | --------------------------- | ---------------------------- |
+| **< 10KB**   | Inline   | Redis RAM                   | `{ "data": ... }`            |
+| **> 10KB**   | Offload  | PostgreSQL (`job_payloads`) | `{ "payloadRef": "uuid" }`   |
+
+### 2. Job Retention Policies
+
+Toate cozile trebuie configurate cu politici stricte de ștergere automată:
+
+```typescript
+const queueSettings = {
+  removeOnComplete: {
+    age: 3600, // Keep 1 hour
+    count: 100 // Max 100 items
+  },
+  removeOnFail: {
+    age: 24 * 3600, // Keep 24 hours
+    count: 1000
+  }
+};
+```
+
+### 3. Eviction Policy
+
+Configurarea Redis `maxmemory-policy` este `noeviction` pentru cozi. Monitorizarea este critică.
+
+- **Alert:** Memory usage > 70%
+- **Action:** Scale up Redis or Flush old jobs via script
 
 ## DOCUMENTE CONEXE
 

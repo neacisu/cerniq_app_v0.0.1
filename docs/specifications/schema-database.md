@@ -50,12 +50,10 @@ Stratul Bronze reprezintă **zona de aterizare** pentru toate datele brute, neva
 
 | Sursă                   | Tip Date                               | Format      | Frecvență   |
 |-------------------------|----------------------------------------|-------------|-------------|
-| **APIA Registre**       | Liste fermieri, subvenții              | CSV/Excel   | Anual       |
-| **MADR Registre**       | OUAI, Cooperative, Grupuri Producători | PDF tabelar | Lunar       |
 | **ONRC/Recom**          | Date juridice societăți                | JSON/XML    | La cerere   |
 | **Import manual**       | Liste prospecți                        | CSV/Excel   | Ad-hoc      |
 | **Webhook-uri externe** | Evenimente timp real                   | JSON        | Real-time   |
-| **Scraping**            | Site-uri DAJ, ANIF                     | HTML parsed | Săptămânal  |
+| **Scraping**            | Site-uri Publice (B2B)                 | HTML parsed | Săptămânal  |
 
 ### 1.3 Câmpuri Bronze (Minime)
 
@@ -320,11 +318,6 @@ CREATE TABLE gold_companies (
     -- Exemplu: [{"tip": "TRACTOR", "marca": "John Deere", "putere_cp": 150, "an": 2020}]
     capacitate_stocare_tone DECIMAL(10,2),
     sistem_irigare VARCHAR(50), -- DRIP, SPRINKLER, FLOOD, PIVOT, NONE
-    
-    -- Subvenții APIA
-    subventii_apia_ultimul_an DECIMAL(15,2),
-    tip_subventii VARCHAR(100)[], -- BISS, ECOSHEME, TANARI_FERMIERI, etc.
-    data_ultima_subventie DATE,
     
     -- Certificări
     certificat_eco BOOLEAN DEFAULT FALSE,

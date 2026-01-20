@@ -1,36 +1,32 @@
 # CERNIQ.APP — ETAPA 2: MONITORING & OBSERVABILITY
+
 ## Metrics, Alerts, Dashboards & Logging
+
 ### Versiunea 1.0 | 15 Ianuarie 2026
 
 ---
 
-# 1. METRICS ARCHITECTURE
+## 1. METRICS ARCHITECTURE
 
-## 1.1 Prometheus Metrics
+### 1.1 Prometheus Metrics
 
 ```typescript
 // metrics/outreach.metrics.ts
+import { metrics } from '@opentelemetry/api';
 
-import { Counter, Gauge, Histogram, Registry } from 'prom-client';
-
-const register = new Registry();
+const meter = metrics.getMeter('cerniq-outreach');
 
 // ============================================
 // QUOTA METRICS
 // ============================================
 
-export const quotaUsage = new Gauge({
-  name: 'cerniq_outreach_wa_quota_usage',
-  help: 'Current WhatsApp quota usage per phone',
-  labelNames: ['phone_id', 'phone_label', 'tenant_id'],
-  registers: [register],
+export const quotaUsage = meter.createUpDownCounter('cerniq_outreach_wa_quota_usage', {
+  description: 'Current WhatsApp quota usage per phone',
+  unit: '1'
 });
 
-export const quotaCheckTotal = new Counter({
-  name: 'cerniq_outreach_quota_check_total',
-  help: 'Total quota checks performed',
-  labelNames: ['result', 'reason'],
-  registers: [register],
+export const quotaCheckTotal = meter.createCounter('cerniq_outreach_quota_check_total', {
+  description: 'Total quota checks performed',
 });
 
 // ============================================
@@ -69,12 +65,9 @@ export const bounces = new Counter({
 // QUEUE METRICS
 // ============================================
 
-export const queueDepth = new Gauge({
-  name: 'cerniq_outreach_queue_depth',
-  help: 'Current queue depth',
-  labelNames: ['queue_name', 'status'],
-  registers: [register],
-});
+// NOTE: Queue Depth metrics are collected automatically by the Monitoring API Sidecar.
+// Do NOT instrument them inside the worker to avoid duplication and Redis overload.
+// See `etapa0-monitoring-api-spec.md`.
 
 export const jobProcessingDuration = new Histogram({
   name: 'cerniq_outreach_job_processing_seconds',
@@ -159,9 +152,9 @@ export default register;
 
 ---
 
-# 2. ALERT RULES
+## 2. ALERT RULES
 
-## 2.1 Prometheus Alerting Rules
+### 2.1 Prometheus Alerting Rules
 
 ```yaml
 # alerting/outreach-alerts.yml
@@ -293,9 +286,9 @@ groups:
 
 ---
 
-# 3. GRAFANA DASHBOARDS
+## 3. GRAFANA DASHBOARDS
 
-## 3.1 Main Outreach Dashboard
+### 3.1 Main Outreach Dashboard
 
 ```json
 {
@@ -405,9 +398,9 @@ groups:
 
 ---
 
-# 4. STRUCTURED LOGGING
+## 4. STRUCTURED LOGGING
 
-## 4.1 Log Format Standard
+### 4.1 Log Format Standard
 
 ```typescript
 // logger/outreach.logger.ts
@@ -483,7 +476,7 @@ logOutreachEvent('error', {
 */
 ```
 
-## 4.2 Log Queries (Loki/OpenSearch)
+### 4.2 Log Queries (Loki/OpenSearch)
 
 ```bash
 # Find all messages for a specific lead
@@ -504,7 +497,7 @@ logOutreachEvent('error', {
 
 ---
 
-# 5. HEALTH CHECK ENDPOINTS
+## 5. HEALTH CHECK ENDPOINTS
 
 ```typescript
 // api/health/outreach.ts

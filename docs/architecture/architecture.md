@@ -45,13 +45,14 @@
 ### Funcționalități Cheie (5 Etape Pipeline)
 
 ```text
-ETAPA 1: Data Enrichment      → Bronze → Silver (58 workeri)
-ETAPA 2: Cold Outreach        → Multi-channel outreach (52 workeri)
-ETAPA 3: AI Sales Agent       → Negociere neuro-simbolică (78 workeri)
-ETAPA 4: Post-Sale Monitoring → Cash flow, logistică (67 workeri)
-ETAPA 5: Nurturing & Growth   → Ecosistem relațional (58 workeri)
+ETAPA 1: Data Enrichment      → Monolithic Worker E1 (handles ingestion, validare, enrichment)
+ETAPA 2: Cold Outreach        → Monolithic Worker E2 (orchestrare multi-channel)
+ETAPA 3: AI Sales Agent       → Monolithic Worker E3 (negociere, tool-use, RAG)
+ETAPA 4: Post-Sale Monitoring → Monolithic Worker E4 (facturare, logistică, incasare)
+ETAPA 5: Nurturing & Growth   → Monolithic Worker E5 (relații, referrals, ecosistem)
 ─────────────────────────────────────────────────────────────────
-TOTAL: 313 BullMQ workeri granulari (actualizat 19-01-2026)
+TOTAL: 5 Monolithic Workers (Scaling Vertical/Horizontal per Etapă)
+
 ```
 
 ## 1.2 Quality Goals
@@ -82,7 +83,7 @@ TOTAL: 313 BullMQ workeri granulari (actualizat 19-01-2026)
 
 | Constrângere | Descriere | Impact |
 | --- | --- | --- |
-| **Single Server Deployment** | Hetzner bare metal (20 cores, 128GB RAM) | Optimizare pentru vertical scaling |
+| **High Availability** | Active-Passive Failover (PG Replica + Redis Sentinel) | Min 99.95% Availability |
 | **No GIL pentru Python** | Python 3.14.2 Free-Threading | Necesită biblioteci compatibile |
 | **PostgreSQL 18.1** | Extensii obligatorii: pgvector, PostGIS, pg_trgm | Lock pe vendor, dar performanță maximă |
 | **Multi-tenant Isolation** | Toate datele partiționate per tenant_id | `UNIQUE(tenant_id, cui)` obligatoriu |
@@ -207,10 +208,10 @@ const LEGACY_ALIASES = {
      │                               │                               │
      ▼                               ▼                               ▼
 ┌─────────────┐               ┌─────────────┐               ┌─────────────┐
-│ PostgreSQL  │               │   Redis     │               │   Python    │
-│   18.1      │               │   7.4.7     │               │  Workers    │
-│ + pgvector  │               │  (BullMQ)   │               │   3.14.2    │
-│ + PostGIS   │               │             │               │Free-Thread  │
+│ PostgreSQL  │               │   Redis     │               │   5 Mono    │
+│   18.1      │               │   7.4.7     │               │   Workers   │
+│ + pgvector  │               │  (BullMQ)   │               │  (Python)   │
+│ + PostGIS   │               │             │               │             │
 └─────────────┘               └─────────────┘               └─────────────┘
 ```
 
@@ -256,7 +257,8 @@ const LEGACY_ALIASES = {
 | **Vertical Slice Architecture** | 1-Person-Team, autonomie per feature | Layered architecture |
 | **Medallion Data (Bronze→Silver→Gold)** | Data lineage, audit trail | Direct mutation |
 | **Neuro-Symbolic AI** | Zero hallucinations în date critice | Pure LLM approach |
-| **Single Server** | Cost-efficiency, simplitate | Kubernetes/cloud |
+| **HA Architecture** | Business Continuity | Single Server (SPOF) |
+| **Provider Abstraction (PAL)** | Vendor Agnostic Interfaces (Email, WA, LLM) | Direct Vendor Coupling |
 | **Unified HITL Table** | UI consistent, SLA-driven | Per-stage tables |
 | **PostgreSQL Extensions** | Evitare vendor lock-in pe DB separate | Pinecone, MongoDB |
 
@@ -266,7 +268,7 @@ const LEGACY_ALIASES = {
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────────┐
-│                        VERTICAL SLICE ARCHITECTURE                               │
+│                        VERTICAL SLICE ARCHITECTURE                              │
 └─────────────────────────────────────────────────────────────────────────────────┘
 
 TRADIȚIONAL (Layered):              VERTICAL SLICE:
@@ -305,12 +307,12 @@ Cross-cutting: via shared utilities, not forced inheritance
 ├── /packages
 │   ├── /db (Drizzle ORM)
 │   └── /shared-types
-└── /workers (Python 3.14)
-    ├── /enrichment/
-    ├── /outreach/
-    ├── /ai-agent/
-    ├── /fiscal/
-    └── /nurturing/
+└── /workers (Python 3.13 LTS)
+    ├── /etapa1-enrichment/  # Monolithic Worker Entrypoint
+    ├── /etapa2-outreach/    # Monolithic Worker Entrypoint
+    ├── /etapa3-sales/       # Monolithic Worker Entrypoint
+    ├── /etapa4-fiscal/      # Monolithic Worker Entrypoint
+    └── /etapa5-nurturing/   # Monolithic Worker Entrypoint
 ```
 
 ## 4.3 Approaches to Achieve Quality Goals
@@ -331,7 +333,7 @@ Cross-cutting: via shared utilities, not forced inheritance
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────────────┐
-│                              CERNIQ.APP SYSTEM                                       │
+│                              CERNIQ.APP SYSTEM                                      │
 └─────────────────────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐     ┌─────────────┐
@@ -339,25 +341,26 @@ Cross-cutting: via shared utilities, not forced inheritance
 │   Data          │────▶│   Cold          │────▶│   AI Sales      │────▶│   Post-Sale │
 │   Enrichment    │     │   Outreach      │     │   Agent         │     │   Monitoring│
 │                 │     │                 │     │                 │     │             │
-│   58 Workers    │     │   52 Workers    │     │   78 Workers    │     │   67 Workers│
-│   Bronze→Silver │     │   Multi-channel │     │   Neuro-Symbolic│     │   Cash/Ship │
+│                 │     │                 │     │                 │     │             │
+│   Worker E1     │     │   Worker E2     │     │   Worker E3     │     │   Worker E4 │
+│   (Monolith)    │     │   (Monolith)    │     │   (Monolith)    │     │   (Monolith)│
 └────────┬────────┘     └────────┬────────┘     └────────┬────────┘     └──────┬──────┘
          │                       │                       │                     │
          │                       │                       │                     │
          └───────────────────────┼───────────────────────┼─────────────────────┘
                                  │                       │
                                  ▼                       ▼
-                    ┌────────────────────────────────────────────────┐
-                    │                 ETAPA 5                         │
-                    │           Nurturing & Ecosystems                │
-                    │                                                 │
-                    │   58 Workers | PostGIS | NetworkX | Churn       │
-                    └────────────────────────────────────────────────┘
+                    ┌─────────────────────────────────────────────────────┐
+                    │                 ETAPA 5                             │
+                    │           Nurturing & Ecosystems                    │
+                    │                                                     │
+                    │   Worker E5 (Monolith) | PostGIS | NetworkX | Churn │
+                    └─────────────────────────────────────────────────────┘
                                          │
                                          ▼
                     ┌────────────────────────────────────────────────┐
-                    │             CROSS-CUTTING CONCERNS              │
-                    │                                                 │
+                    │             CROSS-CUTTING CONCERNS             │
+                    │                                                │
                     │  ┌─────────┐  ┌─────────┐  ┌─────────┐         │
                     │  │  HITL   │  │  Audit  │  │  RBAC   │         │
                     │  │ Unified │  │  Logs   │  │ 3-Layer │         │
@@ -737,59 +740,49 @@ CUSTOMER MESSAGE: "Am nevoie de ceva ieftin și bun pentru porumb, sub 5000 lei"
 
 ## 7. Deployment View
 
-## 7.1 Infrastructure Overview
+## 7.1 Infrastructure Overview (High Availability)
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────────────┐
-│                    DEPLOYMENT: HETZNER BARE METAL                                    │
-│                    (20 cores Intel, 128GB RAM, NVMe SSD)                             │
+│                    DEPLOYMENT: HETZNER HA CLUSTER                                    │
+│                    (Active-Passive Failover)                                         │
 └─────────────────────────────────────────────────────────────────────────────────────┘
 
-┌─────────────────────────────────────────────────────────────────────────────────────┐
-│                         HOST OS (Ubuntu 24.04 LTS)                                   │
-│                                                                                      │
-│   Reserved: ~10-15% RAM for OS ≈ 15GB                                               │
-│   Allocatable to containers: ~110GB                                                  │
-│                                                                                      │
-│   ┌─────────────────────────────────────────────────────────────────────────────┐   │
-│   │                     DOCKER ENGINE 29.1.3                                     │   │
-│   │                                                                              │   │
-│   │   daemon.json:                                                               │   │
-│   │   - storage-driver: overlay2                                                 │   │
-│   │   - live-restore: true                                                       │   │
-│   │   - log-opts: max-size=50m, max-file=5                                      │   │
-│   │   - default-ulimits: nofile 65536                                           │   │
-│   │                                                                              │   │
-│   └─────────────────────────────────────────────────────────────────────────────┘   │
-│                                                                                      │
-│   ┌─────────────────────────────────────────────────────────────────────────────┐   │
-│   │                         DOCKER NETWORKS                                      │   │
-│   │                                                                              │   │
-│   │   ┌───────────────────────┐   ┌───────────────────────┐                     │   │
-│   │   │   FRONTEND NETWORK    │   │   BACKEND NETWORK     │                     │   │
-│   │   │   (bridge, public)    │   │   (bridge, internal)  │                     │   │
-│   │   │                       │   │                       │                     │   │
-│   │   │   - Traefik           │   │   - PostgreSQL        │                     │   │
-│   │   │   - Web App           │   │   - Redis             │                     │   │
-│   │   │   - Fastify API ────────────── API (dual-homed)   │                     │   │
-│   │   │   - SigNoz UI         │   │   - Python Workers    │                     │   │
-│   │   │                       │   │                       │                     │   │
-│   │   └───────────────────────┘   └───────────────────────┘                     │   │
-│   └─────────────────────────────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────────────────────────────┘
+      ┌──────────────┐                  ┌──────────────┐
+      │  INTERNET    │                  │  DNS Failover│
+      └──────┬───────┘                  └──────┬───────┘
+             │                                 │
+             ▼                                 ▼
+┌─────────────────────────┐       ┌─────────────────────────┐
+│      NODE A (Active)    │       │     NODE B (Standby)    │
+│       AX102 Bare Metal  │       │      AX52 Bare Metal    │
+│                         │       │                         │
+│  [Traefik] ──────────┐  │       │  [Traefik-Standby]      │
+│  [App + Workers]     │  │       │  [App-Warm]             │
+│          │           │  │       │            │            │
+│          ▼           │  │       │            ▼            │
+│  [PgBouncer] ────────┼──┼───────┼───────> [PgBouncer]     │
+│          │           │  │       │            │            │
+│          ▼           │  │       │            ▼            │
+│  [PG Prime] <────────┼──┼───────┼───────> [PG Replica]    │
+│  [Redis Pri] <───────┼──┼───────┼───────> [Redis Repl]    │
+│  [Sentinel A]        │  │       │         [Sentinel B]    │
+└─────────────────────────┘       └─────────────────────────┘
+             │                                 │
+             └─────────── REPLICATION ─────────┘
+                         (Streaming)
 ```
 
-## 7.2 Container Resource Allocation
+## 7.2 Container Resource Allocation (Per Node)
 
 | Container | CPU | Memory | Storage | Notes |
 | --- | --- | --- | --- | --- |
-| **PostgreSQL 18.1** | 4 cores | 40GB | 500GB NVMe | shared_buffers=32GB |
-| **Redis 7.4.7** | 2 cores | 80GB | 50GB AOF | maxmemory=80gb, noeviction |
+| **PostgreSQL 18.1** | 4 cores | 40GB | 500GB NVMe | Primary/Replica |
+| **PgBouncer** | 1 core | 1GB | - | Connection Pooling |
+| **Redis 7.4.7** | 2 cores | 80GB | 50GB AOF | Sentinel Managed |
 | **Fastify API** | 4 cores | 8GB | - | Node.js 24 cluster |
-| **Python Workers** | 8 cores | 16GB | - | Free-threading, parallel |
-| **React Web** | 1 core | 2GB | - | Static build served by Nginx |
-| **Traefik** | 1 core | 512MB | - | Edge router + TLS |
-| **SigNoz Stack** | 4 cores | 12GB | 100GB | ClickHouse + Collector |
+| **Python Workers** | 8 cores | 16GB | - | 5 Monolithic Services |
+| **Sentinel** | 0.5 core | 256MB | - | Quorum = 3 |
 
 ### PostgreSQL 18.1 Memory Tuning
 

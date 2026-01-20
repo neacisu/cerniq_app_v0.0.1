@@ -166,15 +166,15 @@ docs/
 
 ### Cele 5 Etape ale Pipeline-ului
 
-| Etapă  | Denumire        | Focus                                | Workers      |
+| Etapă  | Denumire        | Focus                                | Service      |
 |--------|-----------------|--------------------------------------|--------------|
-| **E1** | Data Enrichment | Bronze→Silver→Gold transformation    | 58 workers   |
-| **E2** | Cold Outreach   | Multi-canal (WhatsApp 20x + Email)   | 52 workers   |
-| **E3** | AI Sales        | Negociere autonomă, MCP, e-Factura   | 78 workers   |
-| **E4** | Post-Sale       | Cash flow, credit scoring, logistică | 67 workers   |
-| **E5** | Nurturing       | PostGIS proximity, graf social, OUAI | 58 workers   |
+| **E1** | Data Enrichment | Bronze→Silver→Gold transformation    | Worker E1    |
+| **E2** | Cold Outreach   | Multi-canal (WhatsApp 20x + Email)   | Worker E2    |
+| **E3** | AI Sales        | Negociere autonomă, MCP, e-Factura   | Worker E3    |
+| **E4** | Post-Sale       | Cash flow, credit scoring, logistică | Worker E4    |
+| **E5** | Nurturing       | PostGIS proximity, graf social, OUAI | Worker E5    |
 
-> **Total: 313 BullMQ workers granulari** (actualizat 19 Ianuarie 2026)
+> **Total: 5 Monolithic Python Services** (handling all 300+ queues internally) - Updated 2026-01-20
 
 ---
 

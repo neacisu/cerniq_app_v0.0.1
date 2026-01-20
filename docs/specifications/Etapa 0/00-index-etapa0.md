@@ -11,7 +11,8 @@
 | Fișier | Conținut | Linii |
 | :--- | :--- | :--- |
 | [ADR-uri Etapa 0](../../adr/Etapa%200/) | 30 ADRs în directorul `/docs/adr/Etapa 0/` (ADR-0001 → ADR-0030) | 30 fișiere |
-| [Etapa0 plan implementare complet v2.md](Etapa0%20plan%20implementare%20complet%20v2.md) | 66 Tasks JSON pentru AI agents | ~3500 |
+| [Etapa0 plan implementare complet v2.md](etapa0-plan-implementare-complet-v2.md) | 69 Tasks JSON pentru AI agents (inclusiv Monitorizare) | ~4000 |
+| [STRATEGIE MONITORIZARE UI.md](STRATEGIE_MONITORIZARE_UI.md) | Viziune și Arhitectură Sistem Monitorizare (Etapa 0-5) | ~300 |
 
 ### 2. DOCUMENTE OPERAȚIONALE
 
@@ -25,6 +26,8 @@
 | `etapa0-health-check-specs.md` | 3-tier health checks implementation |
 | `etapa0-logging-standards.md` | Pino config, PII redaction, SigNoz integration |
 | `etapa0-testing-strategy.md` | Unit/Integration/E2E tests, coverage requirements |
+| `etapa0-monitoring-api-spec.md` | Technical Specs pentru Monitoring API Sidecar |
+| `etapa0-structured-log-schemas.md` | JSON Schemas (Zod) pentru loguri standardizate |
 
 ### 3. FIȘIERE CONFIGURARE (De creat în Etapa Implementare)
 
@@ -44,8 +47,8 @@
 ## STATISTICI
 
 - **Total ADRs:** 30
-- **Total Tasks:** 66 (13 faze F0.1 → F0.13)
-- **Total Documente:** 16 fișiere
+- **Total Tasks:** 69 (14 faze F0.1 → F0.14)
+- **Total Documente:** 19 fișiere
 - **Dimensiune Totală:** ~250KB
 
 ---
