@@ -53,7 +53,7 @@ Etapa 3 implementează un **agent comercial autonom** care navighează ciclul co
 ### 1.2 Componenta Neurală (LLM)
 
 | Aspect | Specificație |
-|--------|-------------|
+| ------ | ------------ |
 | Provider | xAI Grok-4 |
 | Funcție | Flexibilitate lingvistică, înțelegerea contextului |
 | Integrare | MCP (Model Context Protocol) |
@@ -64,7 +64,7 @@ Etapa 3 implementează un **agent comercial autonom** care navighează ciclul co
 ### 1.3 Componenta Simbolică (Guardrails)
 
 | Guardrail | Scop | Acțiune pe FAIL |
-|-----------|------|-----------------|
+| --------- | ---- | --------------- |
 | `guardrail:price:check` | Verifică preț vs DB | Corectează cu preț real |
 | `guardrail:stock:check` | Validează stoc live | Anunță indisponibilitate |
 | `guardrail:discount:check` | Verifică marja minimă | Limitează la max permis |
@@ -74,7 +74,7 @@ Etapa 3 implementează un **agent comercial autonom** care navighează ciclul co
 ### 1.4 Riscuri Eliminate
 
 | Risc | Exemplu | Soluție Neuro-Simbolică |
-|------|---------|------------------------|
+| ---- | ------- | ----------------------- |
 | **Preț Halucinat** | AI oferă 50% discount neautorizat | `calculate_discount()` verifică marja minimă |
 | **Stoc Fantomă** | AI confirmă produs epuizat | `check_realtime_stock()` interogă ERP live |
 | **SKU Inventat** | AI inventează cod produs | `validate_sku()` verifică existența în DB |
@@ -88,7 +88,7 @@ Etapa 3 implementează un **agent comercial autonom** care navighează ciclul co
 ### 2.1 Stack Tehnologic
 
 | Componentă | Tehnologie | Versiune |
-|------------|------------|----------|
+| ---------- | ---------- | -------- |
 | Queue System | BullMQ | v5.66.5 |
 | Cache/Broker | Redis | 7.4.7 |
 | Runtime Node.js | Node.js | v24.12.0 LTS |
@@ -100,11 +100,11 @@ Etapa 3 implementează un **agent comercial autonom** care navighează ciclul co
 
 ### 2.2 Layered Architecture
 
-```
+```text
 ┌──────────────────────────────────────────────────────────────────────────────────┐
 │                              LAYER 1: INGESTION                                  │
 │  ┌─────────────────────────────────────────────────────────────────────────────┐ │
-│  │  webhook:ingest → message:normalize → handover:detect → channel:route      │ │
+│  │  webhook:ingest → message:normalize → handover:detect → channel:route       │ │
 │  └─────────────────────────────────────────────────────────────────────────────┘ │
 └──────────────────────────────────────────────────────────────────────────────────┘
                                          │
@@ -112,8 +112,8 @@ Etapa 3 implementează un **agent comercial autonom** care navighează ciclul co
 ┌──────────────────────────────────────────────────────────────────────────────────┐
 │                             LAYER 2: AI PROCESSING                               │
 │  ┌─────────────────────────────────────────────────────────────────────────────┐ │
-│  │  ai:context:build → ai:agent:orchestrate → ai:response:generate            │ │
-│  │                            │                                                 │ │
+│  │  ai:context:build → ai:agent:orchestrate → ai:response:generate             │ │
+│  │                            │                                                │ │
 │  │                    ┌───────┴───────┐                                        │ │
 │  │                    ▼               ▼                                        │ │
 │  │           MCP Tool Calls    Guardrail Checks                                │ │
@@ -123,99 +123,99 @@ Etapa 3 implementează un **agent comercial autonom** care navighează ciclul co
                                          ▼
 ┌──────────────────────────────────────────────────────────────────────────────────┐
 │                            LAYER 3: BUSINESS LOGIC                               │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐        │
-│  │   Product    │  │  Negotiation │  │   Pricing    │  │    Stock     │        │
-│  │   Knowledge  │  │    FSM       │  │  & Discount  │  │  Management  │        │
-│  └──────────────┘  └──────────────┘  └──────────────┘  └──────────────┘        │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
+│  │   Product    │  │  Negotiation │  │   Pricing    │  │    Stock     │          │
+│  │   Knowledge  │  │    FSM       │  │  & Discount  │  │  Management  │          │
+│  └──────────────┘  └──────────────┘  └──────────────┘  └──────────────┘          │
 └──────────────────────────────────────────────────────────────────────────────────┘
                                          │
                                          ▼
 ┌──────────────────────────────────────────────────────────────────────────────────┐
 │                            LAYER 4: FISCAL & OUTPUT                              │
 │  ┌──────────────────────────────────────────────────────────────────────────────┐│
-│  │  oblio:proforma:create → oblio:invoice:create → einvoice:send → delivery    ││
+│  │  oblio:proforma:create → oblio:invoice:create → einvoice:send → delivery     ││
 │  └──────────────────────────────────────────────────────────────────────────────┘│
 └──────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### 2.3 Worker Categories Overview
 
-```
-┌────────────────────────────────────────────────────────────────────────────────┐
-│                        ETAPA 3 - 78 WORKERS TOTAL                              │
-│                                                                                │
+```text
+┌───────────────────────────────────────────────────────────────────────────────┐
+│                        ETAPA 3 - 78 WORKERS TOTAL                             │
+│                                                                               │
 │  ┌─────────────────────────────────────────────────────────────────────────┐  │
 │  │  CATEGORIA A: Product Knowledge (6 workers)                             │  │
-│  │  #1-6: Ingest, Embed, Chunk, Index, Categories, Sync                   │  │
+│  │  #1-6: Ingest, Embed, Chunk, Index, Categories, Sync                    │  │
 │  └─────────────────────────────────────────────────────────────────────────┘  │
-│                                                                                │
+│                                                                               │
 │  ┌─────────────────────────────────────────────────────────────────────────┐  │
 │  │  CATEGORIA B: Hybrid Search RAG (6 workers)                             │  │
-│  │  #7-12: Query Rewrite, Vector Search, BM25, RRF Fusion, Filter, Cache  │  │
+│  │  #7-12: Query Rewrite, Vector Search, BM25, RRF Fusion, Filter, Cache   │  │
 │  └─────────────────────────────────────────────────────────────────────────┘  │
-│                                                                                │
+│                                                                               │
 │  ┌─────────────────────────────────────────────────────────────────────────┐  │
 │  │  CATEGORIA C: AI Agent Core (6 workers)                                 │  │
-│  │  #13-18: Context Build, Orchestrate, Generate, Validate, Store, Retry  │  │
+│  │  #13-18: Context Build, Orchestrate, Generate, Validate, Store, Retry   │  │
 │  └─────────────────────────────────────────────────────────────────────────┘  │
-│                                                                                │
+│                                                                               │
 │  ┌─────────────────────────────────────────────────────────────────────────┐  │
 │  │  CATEGORIA D: Negotiation FSM (8 workers)                               │  │
-│  │  #19-26: Transition, History, Items, Reminder, Expire, Close, Reopen   │  │
+│  │  #19-26: Transition, History, Items, Reminder, Expire, Close, Reopen    │  │
 │  └─────────────────────────────────────────────────────────────────────────┘  │
-│                                                                                │
+│                                                                               │
 │  ┌─────────────────────────────────────────────────────────────────────────┐  │
 │  │  CATEGORIA E: Pricing & Discount (6 workers)                            │  │
-│  │  #27-32: Calculate, Apply, Approve, Margin Check, Volume, Competitor   │  │
+│  │  #27-32: Calculate, Apply, Approve, Margin Check, Volume, Competitor    │  │
 │  └─────────────────────────────────────────────────────────────────────────┘  │
-│                                                                                │
+│                                                                               │
 │  ┌─────────────────────────────────────────────────────────────────────────┐  │
 │  │  CATEGORIA F: Stock & Inventory (6 workers)                             │  │
-│  │  #33-38: Realtime Check, Reserve, Release, Sync, Low Stock, Alert      │  │
+│  │  #33-38: Realtime Check, Reserve, Release, Sync, Low Stock, Alert       │  │
 │  └─────────────────────────────────────────────────────────────────────────┘  │
-│                                                                                │
+│                                                                               │
 │  ┌─────────────────────────────────────────────────────────────────────────┐  │
 │  │  CATEGORIA G: Oblio Integration (7 workers)                             │  │
-│  │  #39-45: Proforma Create, Invoice Create, Cancel, Client, Sync, Webhook│  │
+│  │  #39-45: Proforma Create, Invoice Create, Cancel, Client, Sync, Webhook │  │
 │  └─────────────────────────────────────────────────────────────────────────┘  │
-│                                                                                │
+│                                                                               │
 │  ┌─────────────────────────────────────────────────────────────────────────┐  │
 │  │  CATEGORIA H: e-Factura SPV (5 workers)                                 │  │
-│  │  #46-50: Send, Status Check, Deadline Monitor, Archive, Retry          │  │
+│  │  #46-50: Send, Status Check, Deadline Monitor, Archive, Retry           │  │
 │  └─────────────────────────────────────────────────────────────────────────┘  │
-│                                                                                │
+│                                                                               │
 │  ┌─────────────────────────────────────────────────────────────────────────┐  │
 │  │  CATEGORIA I: Document Generation (5 workers)                           │  │
-│  │  #51-55: PDF Generate, Email Send, WhatsApp Send, Template, Archive    │  │
+│  │  #51-55: PDF Generate, Email Send, WhatsApp Send, Template, Archive     │  │
 │  └─────────────────────────────────────────────────────────────────────────┘  │
-│                                                                                │
+│                                                                               │
 │  ┌─────────────────────────────────────────────────────────────────────────┐  │
 │  │  CATEGORIA J: Handover & Channel (5 workers)                            │  │
-│  │  #56-60: Detect, Context Load, Channel Route, WhatsApp, Email          │  │
+│  │  #56-60: Detect, Context Load, Channel Route, WhatsApp, Email           │  │
 │  └─────────────────────────────────────────────────────────────────────────┘  │
-│                                                                                │
+│                                                                               │
 │  ┌─────────────────────────────────────────────────────────────────────────┐  │
 │  │  CATEGORIA K: Sentiment & Intent (5 workers)                            │  │
-│  │  #61-65: Analyze, Classify, Objection Detect, Trend, Feedback          │  │
+│  │  #61-65: Analyze, Classify, Objection Detect, Trend, Feedback           │  │
 │  └─────────────────────────────────────────────────────────────────────────┘  │
-│                                                                                │
+│                                                                               │
 │  ┌─────────────────────────────────────────────────────────────────────────┐  │
 │  │  CATEGORIA L: MCP Server (5 workers)                                    │  │
-│  │  #66-70: Resource Load, Tool Register, Session Manage, Health, Metrics │  │
+│  │  #66-70: Resource Load, Tool Register, Session Manage, Health, Metrics  │  │
 │  └─────────────────────────────────────────────────────────────────────────┘  │
-│                                                                                │
+│                                                                               │
 │  ┌─────────────────────────────────────────────────────────────────────────┐  │
 │  │  CATEGORIA M: Guardrails (5 workers)                                    │  │
-│  │  #71-75: Price Check, Stock Check, Discount Check, SKU Validate, Fiscal│  │
+│  │  #71-75: Price Check, Stock Check, Discount Check, SKU Validate, Fiscal │  │
 │  └─────────────────────────────────────────────────────────────────────────┘  │
-│                                                                                │
+│                                                                               │
 │  ┌─────────────────────────────────────────────────────────────────────────┐  │
 │  │  CATEGORIA N: Human Intervention (3 workers)                            │  │
-│  │  #76-78: Escalate, Takeover, Approve                                   │  │
+│  │  #76-78: Escalate, Takeover, Approve                                    │  │
 │  └─────────────────────────────────────────────────────────────────────────┘  │
-│                                                                                │
+│                                                                               │
 │  PIPELINE CONTROL: 3 workers (Health, Metrics, Cleanup)                       │
-└────────────────────────────────────────────────────────────────────────────────┘
+└───────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -225,7 +225,7 @@ Etapa 3 implementează un **agent comercial autonom** care navighează ciclul co
 ### 3.1 Categoria A: Product Knowledge Workers (#1-6)
 
 | # | Queue Name | Scop | Rate Limit | Concurrency | Critical |
-|---|-----------|------|------------|-------------|----------|
+| - | ---------- | ---- | ---------- | ----------- | -------- |
 | 1 | `product:ingest` | Ingestie produse din ERP/CSV | Fără | 5 | - |
 | 2 | `product:embed` | Generare embeddings produse | 60/min | 10 | - |
 | 3 | `product:chunk` | Chunking descrieri pentru RAG | Fără | 20 | - |
@@ -243,8 +243,8 @@ Etapa 3 implementează un **agent comercial autonom** care navighează ciclul co
 
 ### 3.2 Categoria B: Hybrid Search Workers (#7-12)
 
-| # | Queue Name | Scop | Rate Limit | Concurrency | Critical |
-|---|-----------|------|------------|-------------|----------|
+| ## | Queue Name | Scop | Rate Limit | Concurrency | Critical |
+| -- | ---------- | ---- | ---------- | ----------- | -------- |
 | 7 | `search:query:rewrite` | Reformulare query pentru relevanță | 60/min | 20 | - |
 | 8 | `search:vector:execute` | Căutare vectorială pgvector | Fără | 50 | - |
 | 9 | `search:bm25:execute` | Căutare lexicală BM25 | Fără | 50 | - |
@@ -262,8 +262,8 @@ Etapa 3 implementează un **agent comercial autonom** care navighează ciclul co
 
 ### 3.3 Categoria C: AI Agent Core Workers (#13-18)
 
-| # | Queue Name | Scop | Rate Limit | Concurrency | Critical |
-|---|-----------|------|------------|-------------|----------|
+| ## | Queue Name | Scop | Rate Limit | Concurrency | Critical |
+| -- | ---------- | ---- | ---------- | ----------- | -------- |
 | 13 | `ai:context:build` | Construire context conversație | Fără | 50 | - |
 | 14 | `ai:agent:orchestrate` | Orchestrare agent + tool calls | 60/min | 20 | **DA** |
 | 15 | `ai:response:generate` | Generare răspuns final | 60/min | 20 | **DA** |
@@ -282,8 +282,8 @@ Etapa 3 implementează un **agent comercial autonom** care navighează ciclul co
 
 ### 3.4 Categoria D: Negotiation FSM Workers (#19-26)
 
-| # | Queue Name | Scop | Rate Limit | Concurrency | Critical |
-|---|-----------|------|------------|-------------|----------|
+| ## | Queue Name | Scop | Rate Limit | Concurrency | Critical |
+| -- | ---------- | ---- | ---------- | ----------- | -------- |
 | 19 | `negotiation:state:transition` | Tranziție stare FSM | Fără | 50 | **DA** |
 | 20 | `negotiation:history:log` | Log tranziții pentru audit | Fără | 100 | - |
 | 21 | `negotiation:items:update` | Update items în coș | Fără | 50 | - |
@@ -304,8 +304,8 @@ Etapa 3 implementează un **agent comercial autonom** care navighează ciclul co
 
 ### 3.5 Categoria E: Pricing & Discount Workers (#27-32)
 
-| # | Queue Name | Scop | Rate Limit | Concurrency | Critical |
-|---|-----------|------|------------|-------------|----------|
+| ## | Queue Name | Scop | Rate Limit | Concurrency | Critical |
+| -- | ---------- | ---- | ---------- | ----------- | -------- |
 | 27 | `pricing:discount:calculate` | Calcul discount maxim permis | Fără | 50 | **DA** |
 | 28 | `pricing:discount:apply` | Aplicare discount pe items | Fără | 50 | - |
 | 29 | `pricing:discount:approve` | Aprobare discount > limită | Fără | 10 | **DA** |
@@ -324,8 +324,8 @@ Etapa 3 implementează un **agent comercial autonom** care navighează ciclul co
 
 ### 3.6 Categoria F: Stock & Inventory Workers (#33-38)
 
-| # | Queue Name | Scop | Rate Limit | Concurrency | Critical |
-|---|-----------|------|------------|-------------|----------|
+| ## | Queue Name | Scop | Rate Limit | Concurrency | Critical |
+| -- | ---------- | ---- | ---------- | ----------- | -------- |
 | 33 | `stock:realtime:check` | Verificare stoc live | Fără | 100 | **DA** |
 | 34 | `stock:reserve:create` | Creare rezervare stoc | Fără | 50 | - |
 | 35 | `stock:reserve:release` | Eliberare rezervare expirată | Cron */5min | 10 | - |
@@ -344,8 +344,8 @@ Etapa 3 implementează un **agent comercial autonom** care navighează ciclul co
 
 ### 3.7 Categoria G: Oblio Integration Workers (#39-45)
 
-| # | Queue Name | Scop | Rate Limit | Concurrency | Critical |
-|---|-----------|------|------------|-------------|----------|
+| ## | Queue Name | Scop | Rate Limit | Concurrency | Critical |
+| -- | ---------- | ---- | ---------- | ----------- | -------- |
 | 39 | `oblio:proforma:create` | Creare proforma în Oblio | 60/min | 20 | **DA** |
 | 40 | `oblio:proforma:update` | Update proforma existentă | 60/min | 10 | - |
 | 41 | `oblio:invoice:create` | Creare factură fiscală | 60/min | 20 | **DA** |
@@ -364,8 +364,8 @@ Etapa 3 implementează un **agent comercial autonom** care navighează ciclul co
 
 ### 3.8 Categoria H: e-Factura SPV Workers (#46-50)
 
-| # | Queue Name | Scop | Rate Limit | Concurrency | Critical |
-|---|-----------|------|------------|-------------|----------|
+| ## | Queue Name | Scop | Rate Limit | Concurrency | Critical |
+| -- | ---------- | ---- | ---------- | ----------- | -------- |
 | 46 | `einvoice:send` | Trimitere e-Factura în SPV | 30/min | 10 | **DA** |
 | 47 | `einvoice:status:check` | Verificare status SPV | Cron */30min | 5 | - |
 | 48 | `einvoice:deadline:monitor` | Monitorizare deadline 5 zile | Cron 09:00 | 1 | **DA** |
@@ -382,8 +382,8 @@ Etapa 3 implementează un **agent comercial autonom** care navighează ciclul co
 
 ### 3.9 Categoria I: Document Generation Workers (#51-55)
 
-| # | Queue Name | Scop | Rate Limit | Concurrency | Critical |
-|---|-----------|------|------------|-------------|----------|
+| ## | Queue Name | Scop | Rate Limit | Concurrency | Critical |
+| -- | ---------- | ---- | ---------- | ----------- | -------- |
 | 51 | `document:pdf:generate` | Generare PDF personalizat | Fără | 10 | - |
 | 52 | `document:email:send` | Trimitere document pe email | 100/sec | 50 | - |
 | 53 | `document:whatsapp:send` | Trimitere document pe WhatsApp | Quota | 1/phone | - |
@@ -399,8 +399,8 @@ Etapa 3 implementează un **agent comercial autonom** care navighează ciclul co
 
 ### 3.10 Categoria J: Handover & Channel Workers (#56-60)
 
-| # | Queue Name | Scop | Rate Limit | Concurrency | Critical |
-|---|-----------|------|------------|-------------|----------|
+| ## | Queue Name | Scop | Rate Limit | Concurrency | Critical |
+| -- | ---------- | ---- | ---------- | ----------- | -------- |
 | 56 | `handover:detect` | Detectare răspuns lead | Fără | 100 | - |
 | 57 | `handover:context:load` | Încărcare context conversație | Fără | 50 | - |
 | 58 | `channel:route:decide` | Decizie canal optim | Fără | 50 | - |
@@ -416,8 +416,8 @@ Etapa 3 implementează un **agent comercial autonom** care navighează ciclul co
 
 ### 3.11 Categoria K: Sentiment & Intent Workers (#61-65)
 
-| # | Queue Name | Scop | Rate Limit | Concurrency | Critical |
-|---|-----------|------|------------|-------------|----------|
+| ## | Queue Name | Scop | Rate Limit | Concurrency | Critical |
+| -- | ---------- | ---- | ---------- | ----------- | -------- |
 | 61 | `sentiment:analyze` | Analiză sentiment mesaj | 60/min | 20 | - |
 | 62 | `intent:classify` | Clasificare intenție | 60/min | 20 | - |
 | 63 | `objection:detect` | Detectare obiecții | 60/min | 20 | - |
@@ -434,8 +434,8 @@ Etapa 3 implementează un **agent comercial autonom** care navighează ciclul co
 
 ### 3.12 Categoria L: MCP Server Workers (#66-70)
 
-| # | Queue Name | Scop | Rate Limit | Concurrency | Critical |
-|---|-----------|------|------------|-------------|----------|
+| ## | Queue Name | Scop | Rate Limit | Concurrency | Critical |
+| -- | ---------- | ---- | ---------- | ----------- | -------- |
 | 66 | `mcp:resource:load` | Încărcare resurse MCP | Fără | 100 | - |
 | 67 | `mcp:tool:register` | Înregistrare tools MCP | Fără | 5 | - |
 | 68 | `mcp:session:manage` | Gestionare sesiuni MCP | Fără | 50 | - |
@@ -452,8 +452,8 @@ Etapa 3 implementează un **agent comercial autonom** care navighează ciclul co
 
 ### 3.13 Categoria M: Guardrails Workers (#71-75)
 
-| # | Queue Name | Scop | Rate Limit | Concurrency | Critical |
-|---|-----------|------|------------|-------------|----------|
+| ## | Queue Name | Scop | Rate Limit | Concurrency | Critical |
+| -- | ---------- | ---- | ---------- | ----------- | -------- |
 | 71 | `guardrail:price:check` | Verificare preț vs DB | Fără | 100 | **DA** |
 | 72 | `guardrail:stock:check` | Verificare stoc disponibil | Fără | 100 | **DA** |
 | 73 | `guardrail:discount:check` | Verificare discount valid | Fără | 100 | **DA** |
@@ -470,8 +470,8 @@ Etapa 3 implementează un **agent comercial autonom** care navighează ciclul co
 
 ### 3.14 Categoria N: Human Intervention Workers (#76-78)
 
-| # | Queue Name | Scop | Rate Limit | Concurrency | Critical |
-|---|-----------|------|------------|-------------|----------|
+| ## | Queue Name | Scop | Rate Limit | Concurrency | Critical |
+| -- | ---------- | ---- | ---------- | ----------- | -------- |
 | 76 | `human:escalate` | Escaladare către operator | Fără | 50 | - |
 | 77 | `human:takeover` | Preluare manuală conversație | Fără | 20 | - |
 | 78 | `human:approve` | Aprobare acțiuni critice | Fără | 20 | - |
@@ -484,8 +484,8 @@ Etapa 3 implementează un **agent comercial autonom** care navighează ciclul co
 
 ### 3.15 Pipeline Control Workers
 
-| # | Queue Name | Scop | Rate Limit | Concurrency | Critical |
-|---|-----------|------|------------|-------------|----------|
+| ## | Queue Name | Scop | Rate Limit | Concurrency | Critical |
+| -- | ---------- | ---- | ---------- | ----------- | -------- |
 | - | `pipeline:ai-sales:health` | Verificare sănătate pipeline | Cron */1min | 1 | - |
 | - | `pipeline:ai-sales:metrics` | Colectare metrici pipeline | Cron */5min | 1 | - |
 | - | `pipeline:ai-sales:cleanup` | Curățare date vechi | Cron 02:00 | 1 | - |
@@ -497,7 +497,7 @@ Etapa 3 implementează un **agent comercial autonom** care navighează ciclul co
 ### 4.1 Distribuție Workers per Categorie
 
 | Categorie | Nume | Workers | Critical | Cron Jobs |
-|-----------|------|---------|----------|-----------|
+| --------- | ---- | ------- | -------- | --------- |
 | A | Product Knowledge | 6 | 0 | 0 |
 | B | Hybrid Search | 6 | 0 | 0 |
 | C | AI Agent Core | 6 | 3 | 0 |
@@ -519,7 +519,7 @@ Etapa 3 implementează un **agent comercial autonom** care navighează ciclul co
 
 Acești workeri au impact direct asupra corectitudinii datelor și conformității fiscale:
 
-```
+```text
 CATEGORIA C - AI Agent Core:
 ├── ai:agent:orchestrate      - Orchestrare corectă tool calls
 ├── ai:response:generate      - Generare răspuns valid
@@ -554,30 +554,30 @@ CATEGORIA M - Guardrails (TOATE):
 
 ### 4.3 Matrice Dependențe între Categorii
 
-```
-┌───────────────────────────────────────────────────────────────────────────────┐
-│                    MATRICE DEPENDENȚE CATEGORII                               │
-│                                                                               │
+```text
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                    MATRICE DEPENDENȚE CATEGORII                              │
+│                                                                              │
 │        A    B    C    D    E    F    G    H    I    J    K    L    M    N    │
 │     ┌─────────────────────────────────────────────────────────────────────┐  │
 │  A  │  -   ←                                                              │  │
 │  B  │  →   -   ←                                                          │  │
-│  C  │       →   -   ↔   ↔   ↔                  ←        ↔   ←            │  │
-│  D  │            ↔   -   ↔   ↔   ←                                  ←    │  │
-│  E  │            ↔   ↔   -        ←                      ←          ←    │  │
-│  F  │            ↔   ↔        -   ←                      ←               │  │
-│  G  │            ↔   →   →   →   -   →   →                               │  │
+│  C  │       →   -   ↔   ↔   ↔                  ←        ↔   ←             │  │
+│  D  │            ↔   -   ↔   ↔   ←                                  ←     │  │
+│  E  │            ↔   ↔   -        ←                      ←          ←     │  │
+│  F  │            ↔   ↔        -   ←                      ←                │  │
+│  G  │            ↔   →   →   →   -   →   →                                │  │
 │  H  │                            ←   -                                    │  │
 │  I  │                            ←        -   ←                           │  │
 │  J  │            →                             →   -                      │  │
 │  K  │            ↔                                  -                     │  │
 │  L  │            ↔                                       -                │  │
-│  M  │            →                                            -          │  │
-│  N  │            →   →   →                                         -     │  │
+│  M  │            →                                            -           │  │
+│  N  │            →   →   →                                         -      │  │
 │     └─────────────────────────────────────────────────────────────────────┘  │
-│                                                                               │
-│  Legendă: → depinde de | ← este folosit de | ↔ bidirecțional                │
-└───────────────────────────────────────────────────────────────────────────────┘
+│                                                                              │
+│  Legendă: → depinde de | ← este folosit de | ↔ bidirecțional                 │
+└──────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -916,3 +916,153 @@ export async function registerCronJobs() {
   }
 }
 ```
+
+---
+
+## 6. Fluxuri Critice
+
+### 6.1 Flux Negociere & Ofertare (Neuro-Simbolic)
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant AI_Core
+    participant Guardrails
+    participant Pricing
+    participant Stock
+    
+    Client->>AI_Core: "Vreau 500 buc din X"
+    AI_Core->>Stock: stock:realtime:check
+    Stock-->>AI_Core: Available: 600
+    AI_Core->>Pricing: pricing:discount:calculate
+    Pricing-->>AI_Core: Max Discount: 12%
+    AI_Core->>AI_Core: Generate Response (Offer)
+    AI_Core->>Guardrails: ai:response:validate
+    
+    rect rgb(200, 255, 200)
+        Guardrails->>Guardrails: Price Check (PASS)
+        Guardrails->>Guardrails: Stock Check (PASS)
+        Guardrails->>Guardrails: Discount Check (PASS)
+    end
+    
+    Guardrails-->>AI_Core: VALID
+    AI_Core->>Client: "Oferim 12% discount pentru 500 buc..."
+```
+
+### 6.2 Flux Fiscal (Oblio + e-Factura)
+
+```mermaid
+sequenceDiagram
+    participant Negotiation
+    participant Oblio_Worker
+    participant ANAF_Worker
+    participant Delivery
+    
+    Negotiation->>Oblio_Worker: oblio:proforma:create
+    Oblio_Worker->>Oblio_API: Create Proforma
+    Oblio_API-->>Oblio_Worker: Success (Series/No)
+    
+    Note over Negotiation: Client Pays
+    
+    Negotiation->>Oblio_Worker: oblio:invoice:create (from Proforma)
+    Oblio_Worker->>Oblio_API: Generate Fiscal Invoice
+    Oblio_API-->>Oblio_Worker: Success
+    
+    par e-Factura & Delivery
+        Oblio_Worker->>ANAF_Worker: einvoice:send
+        ANAF_Worker->>SPV: XML Upload
+        Oblio_Worker->>Delivery: document:email:send
+    end
+```
+
+---
+
+## 7. Monitorizare și Alertare
+
+### 7.1 Metrici OTel (Standardizat)
+
+Implementare conform `etapa3-monitoring-observability.md` folosind OpenTelemetry Meter.
+
+```typescript
+// packages/workers-etapa3/src/observability/metrics.ts
+
+import { metrics } from '@opentelemetry/api';
+
+const meter = metrics.getMeter('cerniq-etapa3');
+
+// 1. AI Counters
+export const aiMetrics = {
+  tokensInput: meter.createCounter('cerniq_ai_tokens_input', { description: 'Input tokens' }),
+  tokensOutput: meter.createCounter('cerniq_ai_tokens_output', { description: 'Output tokens' }),
+  llmLatency: meter.createHistogram('cerniq_ai_llm_latency', { description: 'LLM latency ms' }),
+  guardrailBreaches: meter.createCounter('cerniq_ai_guardrail_breaches', { description: 'Guardrail failures' }),
+};
+
+// 2. Fiscal Counters
+export const fiscalMetrics = {
+  invoicesCreated: meter.createCounter('cerniq_fiscal_invoices_total', { description: 'Invoices created' }),
+  einvoiceErrors: meter.createCounter('cerniq_einvoice_errors_total', { description: 'e-Factura errors' }),
+  proformaConversion: meter.createObservableGauge('cerniq_fiscal_conversion_rate', { description: 'Proforma to Invoice rate' }),
+};
+
+// 3. Negotiation Metrics
+export const negotiationMetrics = {
+  activeDeals: meter.createUpDownCounter('cerniq_negotiation_active', { description: 'Active negotiations' }),
+  avgDiscount: meter.createHistogram('cerniq_negotiation_discount_avg', { description: 'Average discount %' }),
+};
+```
+
+### 7.2 Alerte Critice (SigNoz/AlertManager)
+
+| Alertă | Condiție | Severitate | Canal |
+| ------ | -------- | ---------- | ----- |
+| `HighHalucinationRate` | Guardrail Failure > 10% / 5min | CRITICAL | Slack #alerts-ai |
+| `LLMHighLatency` | P95 Latency > 10s | WARNING | Slack #alerts-perf |
+| `FiscalErrorSpike` | Invoice Failures > 5 / 10min | CRITICAL | PagerDuty |
+| `eInvoiceDeadlineRisk` | Unsent Invoices older than 4 days | CRITICAL | PagerDuty |
+| `LowMarginDetected` | Margin < 5% confirmed | WARNING | Slack #alerts-business |
+
+---
+
+## 8. Rate Limits și Costuri
+
+### 8.1 Limite Externe API
+
+| Serviciu | Limită | Reset | Strategie |
+| -------- | ------ | ----- | --------- |
+| **xAI Grok API** | 60 RPM | 1 minut | BullMQ Rate Limiter + Retry with Exponential Backoff |
+| **OpenAI Embeddings** | 3000 RPM | 1 minut | Bulk Processing (array inputs) |
+| **Oblio API** | 60 RPM | 1 minut | Queue Throttling (Job Delay) |
+| **ANAF SPV** | Variabil | - | Retry agresiv + Backoff lung (10-30 min) |
+| **WhatsApp API** | Tier-based | 24h | `quota:guardian` check înainte de trimitere |
+
+### 8.2 Estimare Costuri
+
+| Resursă | Cost Unitar | Estimat Lunar (10k conv) |
+| ------- | ----------- | ------------------------ |
+| **LLM Tokens (Input)** | $2.00 / 1M tokens | $100 (50M tokens) |
+| **LLM Tokens (Output)** | $10.00 / 1M tokens | $200 (20M tokens) |
+| **Vector DB (Storage)** | $0.10 / GB | $5 (50GB) |
+| **Proxies (Scraping)** | $5 / GB | $50 |
+| **TOTAL ESTIMAT** | - | **~$355 / lună** |
+
+---
+
+## 9. Dependențe între Etape
+
+### 9.1 Input din Etapa 2 (Outreach)
+
+- **Leads Calificați:** Doar lead-urile cu status `INTERESTED` din Etapa 2 intră în Pipeline Etapa 3.
+- **Context Istoric:** Rezumatul conversației anterioare este ingestat de `ai:context:build`.
+- **Canal Preferat:** Preferința (WA/Email) detectată în Etapa 2 este respectată.
+
+### 9.2 Output către Etapa 4 (Scoring & Credit)
+
+- **Date Fiscale:** CUI/CIF colectat este trimis către Etapa 4 pentru analiză risc.
+- **Valoare Contract:** Proforma emisă declanșează verificarea limitei de credit în Etapa 4.
+- **Comportament Plată:** Istoricul de plată (facturi achitate) actualizează scorul clientului.
+
+---
+
+**Document generat:** 15 Ianuarie 2026  
+**Status:** COMPLET

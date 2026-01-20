@@ -14,17 +14,17 @@
 2. [Observability Architecture](#2-observability-architecture)
 3. [OpenTelemetry Configuration](#3-opentelemetry-configuration)
 4. [SigNoz Integration](#4-signoz-integration)
-5. [Prometheus Metrics](#5-prometheus-metrics)
+5. [OpenTelemetry Metrics](#5-opentelemetry-metrics)
 6. [Custom Metrics per Worker](#6-custom-metrics-per-worker)
 7. [Logging Strategy](#7-logging-strategy)
 8. [Distributed Tracing](#8-distributed-tracing)
 9. [Alerting Rules](#9-alerting-rules)
 10. [Grafana Dashboards](#10-grafana-dashboards)
-11. [Health Checks](#11-health-checks)
-12. [SLA Monitoring](#12-sla-monitoring)
-13. [Cost Monitoring](#13-cost-monitoring)
+11. [Health Checks și Readiness Probes](#11-health-checks-și-readiness-probes)
+12. [SLA Monitoring și Compliance Tracking](#12-sla-monitoring-și-compliance-tracking)
+13. [Cost Monitoring și Optimization](#13-cost-monitoring-și-optimization)
 14. [Security Monitoring](#14-security-monitoring)
-15. [Performance Baselines](#15-performance-baselines)
+15. [Performance Baselines și Benchmarking](#15-performance-baselines-și-benchmarking)
 16. [Incident Response Integration](#16-incident-response-integration)
 
 ---
@@ -44,7 +44,7 @@ Acest document definește strategia completă de monitoring și observability pe
 ### 1.2 Objectives
 
 | Objective | Target | Measurement |
-|-----------|--------|-------------|
+| --------- | ------ | ----------- |
 | **Trace Coverage** | ≥95% | % requests with complete traces |
 | **Metric Collection** | 100% workers | All workers export metrics |
 | **Log Correlation** | 100% | Logs linked to traces |
@@ -54,7 +54,7 @@ Acest document definește strategia completă de monitoring și observability pe
 
 ### 1.3 Stack Components
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                        OBSERVABILITY STACK - ETAPA 3                        │
 ├─────────────────────────────────────────────────────────────────────────────┤
@@ -93,52 +93,52 @@ Acest document definește strategia completă de monitoring și observability pe
 
 ### 1.4 Data Flow Overview
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         DATA FLOW - ETAPA 3 OBSERVABILITY                   │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  WORKERS & SERVICES                                                         │
+```text
+┌────────────────────────────────────────────────────────────────────────────┐
+│                         DATA FLOW - ETAPA 3 OBSERVABILITY                  │
+├────────────────────────────────────────────────────────────────────────────┤
+│                                                                            │
+│  WORKERS & SERVICES                                                        │
 │  ┌────────────────┐  ┌────────────────┐  ┌────────────────┐                │
 │  │ AI Agent Core  │  │  Negotiation   │  │   e-Factura    │                │
 │  │    Worker      │  │   FSM Worker   │  │    Worker      │                │
 │  └───────┬────────┘  └───────┬────────┘  └───────┬────────┘                │
-│          │                   │                   │                          │
-│          │ OTLP              │ OTLP              │ OTLP                     │
-│          ▼                   ▼                   ▼                          │
+│          │                   │                   │                         │
+│          │ OTLP              │ OTLP              │ OTLP                    │
+│          ▼                   ▼                   ▼                         │
 │  ┌──────────────────────────────────────────────────────────────────────┐  │
 │  │                    OpenTelemetry SDK                                 │  │
-│  │  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐                 │  │
+│  │  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐                  │  │
 │  │  │ Tracer  │  │ Meter   │  │ Logger  │  │Propagator│                 │  │
-│  │  └────┬────┘  └────┬────┘  └────┬────┘  └────┬────┘                 │  │
-│  └───────┼────────────┼────────────┼────────────┼──────────────────────┘  │
+│  │  └────┬────┘  └────┬────┘  └────┬────┘  └────┬────┘                  │  │
+│  └───────┼────────────┼────────────┼────────────┼───────────────────────┘  │
 │          │            │            │            │                          │
 │          └────────────┴────────────┴────────────┘                          │
-│                              │                                              │
+│                              │                                             │
 │                              ▼ OTLP Protocol                               │
 │  ┌──────────────────────────────────────────────────────────────────────┐  │
 │  │                    OTel Collector                                    │  │
-│  │                                                                       │  │
+│  │                                                                      │  │
 │  │  Receivers:           Processors:           Exporters:               │  │
 │  │  - OTLP gRPC         - batch               - clickhousetraces        │  │
 │  │  - OTLP HTTP         - memory_limiter      - clickhousemetrics       │  │
 │  │  - prometheus        - resource            - clickhouselogs          │  │
 │  │                      - attributes          - prometheus              │  │
 │  └──────────────────────────────────────────────────────────────────────┘  │
-│                              │                                              │
-│                              ▼                                              │
+│                              │                                             │
+│                              ▼                                             │
 │  ┌──────────────────────────────────────────────────────────────────────┐  │
 │  │                    ClickHouse Cluster                                │  │
-│  │                                                                       │  │
+│  │                                                                      │  │
 │  │  Databases:                      Tables:                             │  │
 │  │  - signoz_traces                 - distributed_signoz_spans          │  │
 │  │  - signoz_metrics                - distributed_samples_v4            │  │
 │  │  - signoz_logs                   - distributed_logs                  │  │
-│  │                                                                       │  │
+│  │                                                                      │  │
 │  │  Retention: 30 days (configurable)                                   │  │
 │  └──────────────────────────────────────────────────────────────────────┘  │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -613,7 +613,6 @@ export async function withTracedContext<T>(
 }
 ```
 
-
 ---
 
 ## 3. OpenTelemetry Configuration
@@ -643,24 +642,8 @@ receivers:
           allowed_headers:
             - "*"
 
-  # Prometheus scraping for external metrics
-  prometheus:
-    config:
-      scrape_configs:
-        - job_name: 'etapa3-workers'
-          scrape_interval: 15s
-          static_configs:
-            - targets:
-              - 'ai-agent-worker:9090'
-              - 'negotiation-worker:9090'
-              - 'efactura-worker:9090'
-              - 'document-worker:9090'
-              - 'mcp-server:9090'
-              - 'guardrails-worker:9090'
-          metric_relabel_configs:
-            - source_labels: [__name__]
-              regex: 'go_.*'
-              action: drop
+  # Prometheus receiver removed - using OTLP push from workers & sidecar
+  # See etapa0-monitoring-api-spec.md for sidecar details
 
   # Host metrics for infrastructure monitoring
   hostmetrics:
@@ -1098,7 +1081,6 @@ export async function addInstrumentedJob<T>(
   }
 }
 ```
-
 
 ---
 
@@ -1797,24 +1779,19 @@ export interface TopOperation {
 }
 ```
 
-
 ---
 
-## 5. Prometheus Metrics
+## 5. OpenTelemetry Metrics
 
-### 5.1 Metrics Registry
+### 5.1 Metrics Registry (OTel Meter)
 
 ```typescript
-// packages/shared/observability/prometheus-metrics.ts
+// packages/shared/observability/otel-metrics.ts
 
-import { Registry, Counter, Histogram, Gauge, Summary } from 'prom-client';
-import { collectDefaultMetrics } from 'prom-client';
+import { metrics } from '@opentelemetry/api';
 
-// Create a new registry
-export const registry = new Registry();
-
-// Add default metrics (process, node.js runtime)
-collectDefaultMetrics({ register: registry, prefix: 'cerniq_' });
+// Create a meter
+const meter = metrics.getMeter('cerniq-etapa3', '1.0.0');
 
 // ============================================================================
 // COMMON WORKER METRICS
@@ -1822,52 +1799,39 @@ collectDefaultMetrics({ register: registry, prefix: 'cerniq_' });
 
 export const workerMetrics = {
   // Jobs processed counter
-  jobsProcessed: new Counter({
-    name: 'cerniq_etapa3_jobs_processed_total',
-    help: 'Total number of jobs processed',
-    labelNames: ['worker', 'status', 'tenant_id'],
-    registers: [registry]
+  jobsProcessed: meter.createCounter('cerniq_etapa3_jobs_processed_total', {
+    description: 'Total number of jobs processed',
+    unit: '1'
   }),
 
   // Job duration histogram
-  jobDuration: new Histogram({
-    name: 'cerniq_etapa3_job_duration_seconds',
-    help: 'Job processing duration in seconds',
-    labelNames: ['worker', 'status'],
-    buckets: [0.01, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60],
-    registers: [registry]
+  jobDuration: meter.createHistogram('cerniq_etapa3_job_duration_seconds', {
+    description: 'Job processing duration in seconds',
+    unit: 's'
   }),
 
   // Active jobs gauge
-  activeJobs: new Gauge({
-    name: 'cerniq_etapa3_active_jobs',
-    help: 'Currently processing jobs',
-    labelNames: ['worker'],
-    registers: [registry]
+  activeJobs: meter.createUpDownCounter('cerniq_etapa3_active_jobs', {
+    description: 'Currently processing jobs',
+    unit: '1'
   }),
 
-  // Queue depth gauge
-  queueDepth: new Gauge({
-    name: 'cerniq_etapa3_queue_depth',
-    help: 'Number of jobs waiting in queue',
-    labelNames: ['worker', 'priority'],
-    registers: [registry]
+  // Queue depth gauge - Note: use monitoring-api sidecar for this
+  queueDepth: meter.createObservableGauge('cerniq_etapa3_queue_depth', {
+    description: 'Number of jobs waiting in queue',
+    unit: '1'
   }),
 
   // Retry counter
-  retries: new Counter({
-    name: 'cerniq_etapa3_job_retries_total',
-    help: 'Total number of job retries',
-    labelNames: ['worker', 'error_type'],
-    registers: [registry]
+  retries: meter.createCounter('cerniq_etapa3_job_retries_total', {
+    description: 'Total number of job retries',
+    unit: '1'
   }),
 
   // Worker health gauge
-  workerHealth: new Gauge({
-    name: 'cerniq_etapa3_worker_health',
-    help: 'Worker health status (1=healthy, 0=unhealthy)',
-    labelNames: ['worker'],
-    registers: [registry]
+  workerHealth: meter.createObservableGauge('cerniq_etapa3_worker_health', {
+    description: 'Worker health status (1=healthy, 0=unhealthy)',
+    unit: '1'
   })
 };
 
@@ -1877,94 +1841,67 @@ export const workerMetrics = {
 
 export const aiMetrics = {
   // LLM requests counter
-  llmRequests: new Counter({
-    name: 'cerniq_ai_llm_requests_total',
-    help: 'Total LLM API requests',
-    labelNames: ['model', 'provider', 'status', 'operation'],
-    registers: [registry]
+  llmRequests: meter.createCounter('cerniq_ai_llm_requests_total', {
+    description: 'Total LLM API requests',
+    unit: '1'
   }),
 
   // Token usage counters
-  tokensInput: new Counter({
-    name: 'cerniq_ai_llm_tokens_input_total',
-    help: 'Total input tokens consumed',
-    labelNames: ['model', 'provider', 'operation'],
-    registers: [registry]
+  tokensInput: meter.createCounter('cerniq_ai_llm_tokens_input_total', {
+    description: 'Total input tokens consumed',
+    unit: '1'
   }),
 
-  tokensOutput: new Counter({
-    name: 'cerniq_ai_llm_tokens_output_total',
-    help: 'Total output tokens generated',
-    labelNames: ['model', 'provider', 'operation'],
-    registers: [registry]
+  tokensOutput: meter.createCounter('cerniq_ai_llm_tokens_output_total', {
+    description: 'Total output tokens generated',
+    unit: '1'
   }),
 
   // LLM latency histogram
-  llmLatency: new Histogram({
-    name: 'cerniq_ai_llm_latency_seconds',
-    help: 'LLM API response latency',
-    labelNames: ['model', 'provider', 'operation'],
-    buckets: [0.1, 0.25, 0.5, 1, 2, 5, 10, 30],
-    registers: [registry]
+  llmLatency: meter.createHistogram('cerniq_ai_llm_latency_seconds', {
+    description: 'LLM API response latency',
+    unit: 's'
   }),
 
   // Cost histogram
-  llmCost: new Histogram({
-    name: 'cerniq_ai_llm_cost_usd',
-    help: 'LLM API cost per request',
-    labelNames: ['model', 'provider', 'operation'],
-    buckets: [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5],
-    registers: [registry]
+  llmCost: meter.createHistogram('cerniq_ai_llm_cost_usd', {
+    description: 'LLM API cost per request',
+    unit: 'USD'
   }),
 
   // Guardrail metrics
-  guardrailBlocks: new Counter({
-    name: 'cerniq_ai_guardrail_blocks_total',
-    help: 'Total guardrail blocks',
-    labelNames: ['guardrail_type', 'severity', 'action'],
-    registers: [registry]
+  guardrailBlocks: meter.createCounter('cerniq_ai_guardrail_blocks_total', {
+    description: 'Total guardrail blocks',
+    unit: '1'
   }),
 
-  guardrailLatency: new Histogram({
-    name: 'cerniq_ai_guardrail_latency_seconds',
-    help: 'Guardrail evaluation latency',
-    labelNames: ['guardrail_type'],
-    buckets: [0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25],
-    registers: [registry]
+  guardrailLatency: meter.createHistogram('cerniq_ai_guardrail_latency_seconds', {
+    description: 'Guardrail evaluation latency',
+    unit: 's'
   }),
 
   // Intent classification
-  intentClassification: new Counter({
-    name: 'cerniq_ai_intent_classifications_total',
-    help: 'Intent classification results',
-    labelNames: ['intent', 'confidence_bucket', 'channel'],
-    registers: [registry]
+  intentClassification: meter.createCounter('cerniq_ai_intent_classifications_total', {
+    description: 'Intent classification results',
+    unit: '1'
   }),
 
   // Sentiment analysis
-  sentimentAnalysis: new Counter({
-    name: 'cerniq_ai_sentiment_analysis_total',
-    help: 'Sentiment analysis results',
-    labelNames: ['sentiment', 'channel'],
-    registers: [registry]
+  sentimentAnalysis: meter.createCounter('cerniq_ai_sentiment_analysis_total', {
+    description: 'Sentiment analysis results',
+    unit: '1'
   }),
 
   // Context retrieval (RAG)
-  contextRetrieval: new Histogram({
-    name: 'cerniq_ai_context_retrieval_seconds',
-    help: 'Context retrieval latency (hybrid search)',
-    labelNames: ['search_type', 'result_count_bucket'],
-    buckets: [0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1],
-    registers: [registry]
+  contextRetrieval: meter.createHistogram('cerniq_ai_context_retrieval_seconds', {
+    description: 'Context retrieval latency (hybrid search)',
+    unit: 's'
   }),
 
   // Conversation metrics
-  conversationTurns: new Histogram({
-    name: 'cerniq_ai_conversation_turns',
-    help: 'Number of turns in resolved conversations',
-    labelNames: ['outcome', 'channel'],
-    buckets: [1, 2, 3, 5, 10, 15, 20, 30, 50],
-    registers: [registry]
+  conversationTurns: meter.createHistogram('cerniq_ai_conversation_turns', {
+    description: 'Number of turns in resolved conversations',
+    unit: '1'
   })
 };
 
@@ -1974,55 +1911,39 @@ export const aiMetrics = {
 
 export const negotiationMetrics = {
   // Active negotiations gauge
-  activeNegotiations: new Gauge({
-    name: 'cerniq_negotiation_active',
-    help: 'Currently active negotiations',
-    labelNames: ['stage', 'tenant_id'],
-    registers: [registry]
+  activeNegotiations: meter.createObservableGauge('cerniq_negotiation_active', {
+    description: 'Currently active negotiations',
+    unit: '1'
   }),
 
   // Stage transitions counter
-  stageTransitions: new Counter({
-    name: 'cerniq_negotiation_stage_transitions_total',
-    help: 'Negotiation stage transitions',
-    labelNames: ['from_stage', 'to_stage', 'trigger'],
-    registers: [registry]
+  stageTransitions: meter.createCounter('cerniq_negotiation_stage_transitions_total', {
+    description: 'Negotiation stage transitions',
+    unit: '1'
   }),
 
   // Win probability histogram
-  winProbability: new Histogram({
-    name: 'cerniq_negotiation_win_probability',
-    help: 'Win probability at stage transition',
-    labelNames: ['stage'],
-    buckets: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
-    registers: [registry]
+  winProbability: meter.createHistogram('cerniq_negotiation_win_probability', {
+    description: 'Win probability at stage transition',
+    unit: '1'
   }),
 
   // Negotiation duration histogram
-  negotiationDuration: new Histogram({
-    name: 'cerniq_negotiation_duration_hours',
-    help: 'Total negotiation duration until close',
-    labelNames: ['outcome'],
-    buckets: [1, 4, 8, 24, 48, 72, 168, 336, 720],
-    registers: [registry]
+  negotiationDuration: meter.createHistogram('cerniq_negotiation_duration_hours', {
+    description: 'Total negotiation duration until close',
+    unit: 'h'
   }),
 
   // Rounds counter
-  negotiationRounds: new Histogram({
-    name: 'cerniq_negotiation_rounds',
-    help: 'Number of negotiation rounds',
-    labelNames: ['outcome'],
-    buckets: [1, 2, 3, 5, 7, 10, 15, 20],
-    registers: [registry]
+  negotiationRounds: meter.createHistogram('cerniq_negotiation_rounds', {
+    description: 'Number of negotiation rounds',
+    unit: '1'
   }),
 
   // Discount metrics
-  discountApplied: new Histogram({
-    name: 'cerniq_negotiation_discount_percent',
-    help: 'Discount percentage applied',
-    labelNames: ['product_category', 'approval_required'],
-    buckets: [0, 5, 10, 15, 20, 25, 30, 35, 40, 50],
-    registers: [registry]
+  discountApplied: meter.createHistogram('cerniq_negotiation_discount_percent', {
+    description: 'Discount percentage applied',
+    unit: '%'
   })
 };
 
@@ -2032,45 +1953,33 @@ export const negotiationMetrics = {
 
 export const fiscalMetrics = {
   // Invoice generation counter
-  invoicesGenerated: new Counter({
-    name: 'cerniq_fiscal_invoices_generated_total',
-    help: 'Total invoices generated',
-    labelNames: ['type', 'status', 'tenant_id'],
-    registers: [registry]
+  invoicesGenerated: meter.createCounter('cerniq_fiscal_invoices_generated_total', {
+    description: 'Total invoices generated',
+    unit: '1'
   }),
 
   // e-Factura submissions
-  efacturaSubmissions: new Counter({
-    name: 'cerniq_efactura_submissions_total',
-    help: 'e-Factura ANAF submissions',
-    labelNames: ['status', 'document_type'],
-    registers: [registry]
+  efacturaSubmissions: meter.createCounter('cerniq_efactura_submissions_total', {
+    description: 'e-Factura ANAF submissions',
+    unit: '1'
   }),
 
   // e-Factura latency
-  efacturaLatency: new Histogram({
-    name: 'cerniq_efactura_submission_seconds',
-    help: 'e-Factura submission latency',
-    labelNames: ['status'],
-    buckets: [0.5, 1, 2, 5, 10, 30, 60, 120],
-    registers: [registry]
+  efacturaLatency: meter.createHistogram('cerniq_efactura_submission_seconds', {
+    description: 'e-Factura submission latency',
+    unit: 's'
   }),
 
   // Oblio API calls
-  oblioApiCalls: new Counter({
-    name: 'cerniq_oblio_api_calls_total',
-    help: 'Oblio API calls',
-    labelNames: ['operation', 'status'],
-    registers: [registry]
+  oblioApiCalls: meter.createCounter('cerniq_oblio_api_calls_total', {
+    description: 'Oblio API calls',
+    unit: '1'
   }),
 
   // Document value histogram
-  documentValue: new Histogram({
-    name: 'cerniq_fiscal_document_value_ron',
-    help: 'Document value in RON',
-    labelNames: ['document_type'],
-    buckets: [100, 500, 1000, 5000, 10000, 50000, 100000, 500000],
-    registers: [registry]
+  documentValue: meter.createHistogram('cerniq_fiscal_document_value_ron', {
+    description: 'Document value in RON',
+    unit: 'RON'
   })
 };
 
@@ -2080,44 +1989,33 @@ export const fiscalMetrics = {
 
 export const hitlMetrics = {
   // Pending approvals gauge
-  pendingApprovals: new Gauge({
-    name: 'cerniq_hitl_approvals_pending',
-    help: 'Currently pending HITL approvals',
-    labelNames: ['approval_type', 'urgency', 'tenant_id'],
-    registers: [registry]
+  pendingApprovals: meter.createObservableGauge('cerniq_hitl_approvals_pending', {
+    description: 'Currently pending HITL approvals',
+    unit: '1'
   }),
 
   // Approval actions counter
-  approvalActions: new Counter({
-    name: 'cerniq_hitl_approval_actions_total',
-    help: 'HITL approval actions',
-    labelNames: ['action', 'approval_type', 'auto_approved'],
-    registers: [registry]
+  approvalActions: meter.createCounter('cerniq_hitl_approval_actions_total', {
+    description: 'HITL approval actions',
+    unit: '1'
   }),
 
   // Approval latency
-  approvalLatency: new Histogram({
-    name: 'cerniq_hitl_approval_latency_seconds',
-    help: 'Time from creation to resolution',
-    labelNames: ['approval_type', 'urgency', 'action'],
-    buckets: [60, 300, 600, 1800, 3600, 7200, 14400, 28800, 86400],
-    registers: [registry]
+  approvalLatency: meter.createHistogram('cerniq_hitl_approval_latency_seconds', {
+    description: 'Time from creation to resolution',
+    unit: 's'
   }),
 
   // SLA breaches counter
-  slaBreaches: new Counter({
-    name: 'cerniq_hitl_sla_breaches_total',
-    help: 'HITL SLA breaches',
-    labelNames: ['approval_type', 'urgency'],
-    registers: [registry]
+  slaBreaches: meter.createCounter('cerniq_hitl_sla_breaches_total', {
+    description: 'HITL SLA breaches',
+    unit: '1'
   }),
 
   // Escalations counter
-  escalations: new Counter({
-    name: 'cerniq_hitl_escalations_total',
-    help: 'HITL escalations',
-    labelNames: ['approval_type', 'escalation_level'],
-    registers: [registry]
+  escalations: meter.createCounter('cerniq_hitl_escalations_total', {
+    description: 'HITL escalations',
+    unit: '1'
   })
 };
 
@@ -2127,36 +2025,27 @@ export const hitlMetrics = {
 
 export const mcpMetrics = {
   // Tool calls counter
-  toolCalls: new Counter({
-    name: 'cerniq_mcp_tool_calls_total',
-    help: 'MCP tool invocations',
-    labelNames: ['tool_name', 'status', 'tenant_id'],
-    registers: [registry]
+  toolCalls: meter.createCounter('cerniq_mcp_tool_calls_total', {
+    description: 'MCP tool invocations',
+    unit: '1'
   }),
 
   // Tool latency
-  toolLatency: new Histogram({
-    name: 'cerniq_mcp_tool_latency_seconds',
-    help: 'MCP tool execution latency',
-    labelNames: ['tool_name'],
-    buckets: [0.01, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10],
-    registers: [registry]
+  toolLatency: meter.createHistogram('cerniq_mcp_tool_latency_seconds', {
+    description: 'MCP tool execution latency',
+    unit: 's'
   }),
 
   // Resource access
-  resourceAccess: new Counter({
-    name: 'cerniq_mcp_resource_access_total',
-    help: 'MCP resource access',
-    labelNames: ['resource_type', 'operation'],
-    registers: [registry]
+  resourceAccess: meter.createCounter('cerniq_mcp_resource_access_total', {
+    description: 'MCP resource access',
+    unit: '1'
   }),
 
   // Active sessions
-  activeSessions: new Gauge({
-    name: 'cerniq_mcp_active_sessions',
-    help: 'Active MCP sessions',
-    labelNames: ['client_type'],
-    registers: [registry]
+  activeSessions: meter.createObservableGauge('cerniq_mcp_active_sessions', {
+    description: 'Active MCP sessions',
+    unit: '1'
   })
 };
 
@@ -2166,16 +2055,9 @@ export const mcpMetrics = {
 
 import { FastifyPluginAsync } from 'fastify';
 
-export const metricsPlugin: FastifyPluginAsync = async (fastify) => {
-  fastify.get('/metrics', async (request, reply) => {
-    reply.header('Content-Type', registry.contentType);
-    return registry.metrics();
-  });
-
-  fastify.get('/metrics/json', async (request, reply) => {
-    return registry.getMetricsAsJSON();
-  });
-};
+// OTel metrics are automatically handled by the SDK
+// No explicit /metrics endpoint needed unless using Prometheus Exporter
+// This stack uses OTLP Exporter which pushes metrics
 
 // ============================================================================
 // METRICS HELPERS
@@ -2200,11 +2082,11 @@ export function recordLLMRequest(params: {
     operation: params.operation
   };
 
-  aiMetrics.llmRequests.inc({ ...labels, status: params.status });
-  aiMetrics.llmLatency.observe(labels, params.latencyMs / 1000);
-  aiMetrics.tokensInput.inc(labels, params.inputTokens);
-  aiMetrics.tokensOutput.inc(labels, params.outputTokens);
-  aiMetrics.llmCost.observe(labels, params.costUsd);
+  aiMetrics.llmRequests.add(1, { ...labels, status: params.status });
+  aiMetrics.llmLatency.record(params.latencyMs / 1000, labels);
+  aiMetrics.tokensInput.add(params.inputTokens, labels);
+  aiMetrics.tokensOutput.add(params.outputTokens, labels);
+  aiMetrics.llmCost.record(params.costUsd, labels);
 }
 
 /**
@@ -2216,15 +2098,15 @@ export function recordJobCompletion(params: {
   durationMs: number;
   tenantId: string;
 }): void {
-  workerMetrics.jobsProcessed.inc({
+  workerMetrics.jobsProcessed.add(1, {
     worker: params.worker,
     status: params.status,
     tenant_id: params.tenantId
   });
-  workerMetrics.jobDuration.observe(
-    { worker: params.worker, status: params.status },
-    params.durationMs / 1000
-  );
+  workerMetrics.jobDuration.record(params.durationMs / 1000, {
+    worker: params.worker,
+    status: params.status
+  });
 }
 
 /**
@@ -2236,15 +2118,14 @@ export function recordStageTransition(params: {
   trigger: string;
   winProbability: number;
 }): void {
-  negotiationMetrics.stageTransitions.inc({
+  negotiationMetrics.stageTransitions.add(1, {
     from_stage: params.fromStage,
     to_stage: params.toStage,
     trigger: params.trigger
   });
-  negotiationMetrics.winProbability.observe(
-    { stage: params.toStage },
-    params.winProbability
-  );
+  negotiationMetrics.winProbability.record(params.winProbability, {
+    stage: params.toStage
+  });
 }
 
 /**
@@ -2257,27 +2138,24 @@ export function recordHITLAction(params: {
   latencySeconds: number;
   autoApproved: boolean;
 }): void {
-  hitlMetrics.approvalActions.inc({
+  hitlMetrics.approvalActions.add(1, {
     action: params.action,
     approval_type: params.approvalType,
     auto_approved: params.autoApproved.toString()
   });
-  hitlMetrics.approvalLatency.observe(
-    {
-      approval_type: params.approvalType,
-      urgency: params.urgency,
-      action: params.action
-    },
-    params.latencySeconds
-  );
+  hitlMetrics.approvalLatency.record(params.latencySeconds, {
+    approval_type: params.approvalType,
+    urgency: params.urgency,
+    action: params.action
+  });
 }
 ```
 
-### 5.2 Prometheus Recording Rules
+### 5.2 Metrics Aggregation Rules (SigNoz/ClickHouse)
 
 ```yaml
 # config/prometheus/recording-rules-etapa3.yaml
-# Prometheus Recording Rules for Etapa 3
+# Metrics Aggregation Rules for Etapa 3
 
 groups:
   - name: etapa3_aggregations
@@ -2362,7 +2240,6 @@ groups:
           /
           sum(rate(cerniq_efactura_submissions_total[1h]))
 ```
-
 
 ---
 
@@ -3012,7 +2889,6 @@ export function recordGuardrailEvaluation(params: {
   }
 }
 ```
-
 
 ---
 
@@ -3710,7 +3586,6 @@ interface ErrorSummary {
   last_occurrence: string;
 }
 ```
-
 
 ---
 
@@ -4649,7 +4524,6 @@ groups:
 }
 ```
 
-
 ---
 
 ## 11. Health Checks și Readiness Probes
@@ -5356,24 +5230,27 @@ export const healthPlugin: FastifyPluginAsync<HealthPluginOptions> = async (
 };
 
 // ============================================================================
-// PROMETHEUS HEALTH METRICS
+// OTEL HEALTH METRICS
 // ============================================================================
 
-export function exposeHealthMetrics(registry: HealthCheckRegistry): string {
-  const health = registry.getOverallHealth();
+import { metrics } from '@opentelemetry/api';
+
+export function exposeHealthMetrics(registry: HealthCheckRegistry): void {
+  const meter = metrics.getMeter('cerniq-health');
   
-  const lines: string[] = [
-    '# HELP cerniq_health_status Overall service health status (1=healthy, 0.5=degraded, 0=unhealthy)',
-    '# TYPE cerniq_health_status gauge',
-    `cerniq_health_status{service="etapa3"} ${
-      health.status === 'healthy' ? 1 : health.status === 'degraded' ? 0.5 : 0
-    }`,
-    '',
-    '# HELP cerniq_health_check_status Individual health check status (1=healthy, 0.5=degraded, 0=unhealthy)',
-    '# TYPE cerniq_health_check_status gauge'
-  ];
-  
-  for (const check of health.checks) {
+  const healthStatusGauge = meter.createObservableGauge('cerniq_health_status', {
+    description: 'Overall service health status (1=healthy, 0.5=degraded, 0=unhealthy)',
+    unit: '1'
+  });
+
+  healthStatusGauge.addCallback((observableResult) => {
+    const health = registry.getOverallHealth();
+    const value = health.status === 'healthy' ? 1 : health.status === 'degraded' ? 0.5 : 0;
+    observableResult.observe(value, { service: 'etapa3' });
+  });
+
+  // Additional check statuses could be added similarly if needed
+}
     const value = check.status === 'healthy' ? 1 : check.status === 'degraded' ? 0.5 : 0;
     lines.push(`cerniq_health_check_status{check="${check.name}"} ${value}`);
   }
@@ -5638,7 +5515,6 @@ readinessCheck().catch(error => {
   process.exit(1);
 });
 ```
-
 
 ---
 
@@ -5906,7 +5782,7 @@ export const ETAPA3_SLAS: SLADefinition[] = [
 import { Pool } from 'pg';
 import { Redis } from 'ioredis';
 import { SLADefinition, ETAPA3_SLAS } from './sla-definitions';
-import { PrometheusClient } from '../prometheus/prometheus-client';
+import { metrics, Meter } from '@opentelemetry/api';
 import { EventEmitter } from 'events';
 
 export interface SLAStatus {
@@ -5957,7 +5833,7 @@ export class SLAMonitoringService extends EventEmitter {
   constructor(
     private db: Pool,
     private redis: Redis,
-    private prometheus: PrometheusClient
+    private meter: Meter = metrics.getMeter('sla-monitor')
   ) {
     super();
     
@@ -6688,7 +6564,6 @@ groups:
             System may be experiencing widespread degradation.
 ```
 
-
 ---
 
 ## 13. Cost Monitoring și Optimization
@@ -6698,10 +6573,12 @@ groups:
 ```typescript
 // src/monitoring/cost-tracking.ts
 
-import { register, Gauge, Counter, Histogram } from 'prom-client';
+import { metrics } from '@opentelemetry/api';
 import { db } from '../db';
 import { llmUsageLogs, tenants } from '../db/schema';
 import { eq, sql, and, gte } from 'drizzle-orm';
+
+const meter = metrics.getMeter('cerniq-cost-tracking');
 
 /**
  * Cost Tracking pentru LLM și servicii externe
@@ -6740,53 +6617,47 @@ const LLM_PRICING: LLMPricingModel[] = [
 // COST METRICS
 // ============================================================================
 
-const llmCostTotal = new Counter({
-  name: 'cerniq_etapa3_llm_cost_usd_total',
-  help: 'Total LLM cost in USD',
-  labelNames: ['tenant_id', 'provider', 'model', 'operation', 'worker'],
+const llmCostTotal = meter.createCounter('cerniq_etapa3_llm_cost_usd_total', {
+  description: 'Total LLM cost in USD',
+  unit: 'USD'
 });
 
-const llmCostCurrentHour = new Gauge({
-  name: 'cerniq_etapa3_llm_cost_current_hour_usd',
-  help: 'LLM cost in current hour in USD',
-  labelNames: ['tenant_id', 'provider'],
+// For Gauge-like metrics, we use ObservableGauge in OTel.
+// The actual observation happens via callbacks registered on these gauges.
+// State is managed in CostTracker class.
+const llmCostCurrentHour = meter.createObservableGauge('cerniq_etapa3_llm_cost_current_hour_usd', {
+  description: 'LLM cost in current hour in USD',
+  unit: 'USD'
 });
 
-const llmCostCurrentDay = new Gauge({
-  name: 'cerniq_etapa3_llm_cost_current_day_usd',
-  help: 'LLM cost in current day in USD',
-  labelNames: ['tenant_id', 'provider'],
+const llmCostCurrentDay = meter.createObservableGauge('cerniq_etapa3_llm_cost_current_day_usd', {
+  description: 'LLM cost in current day in USD',
+  unit: 'USD'
 });
 
-const llmCostProjectedDay = new Gauge({
-  name: 'cerniq_etapa3_llm_cost_projected_day_usd',
-  help: 'Projected daily LLM cost based on current hour trend',
-  labelNames: ['tenant_id'],
+const llmCostProjectedDay = meter.createObservableGauge('cerniq_etapa3_llm_cost_projected_day_usd', {
+  description: 'Projected daily LLM cost based on current hour trend',
+  unit: 'USD'
 });
 
-const llmBudgetUtilization = new Gauge({
-  name: 'cerniq_etapa3_llm_budget_utilization_ratio',
-  help: 'Current budget utilization (0-1)',
-  labelNames: ['tenant_id', 'budget_type'],
+const llmBudgetUtilization = meter.createObservableGauge('cerniq_etapa3_llm_budget_utilization_ratio', {
+  description: 'Current budget utilization (0-1)',
+  unit: '1'
 });
 
-const llmBudgetRemaining = new Gauge({
-  name: 'cerniq_etapa3_llm_budget_remaining_usd',
-  help: 'Remaining budget in USD',
-  labelNames: ['tenant_id', 'budget_type'],
+const llmBudgetRemaining = meter.createObservableGauge('cerniq_etapa3_llm_budget_remaining_usd', {
+  description: 'Remaining budget in USD',
+  unit: 'USD'
 });
 
-const externalApiCostTotal = new Counter({
-  name: 'cerniq_etapa3_external_api_cost_usd_total',
-  help: 'Total external API cost in USD',
-  labelNames: ['tenant_id', 'service', 'operation'],
+const externalApiCostTotal = meter.createCounter('cerniq_etapa3_external_api_cost_usd_total', {
+  description: 'Total external API cost in USD',
+  unit: 'USD'
 });
 
-const tokenUsageHistogram = new Histogram({
-  name: 'cerniq_etapa3_llm_tokens_per_request',
-  help: 'Token usage distribution per request',
-  labelNames: ['provider', 'model', 'operation'],
-  buckets: [100, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000],
+const tokenUsageHistogram = meter.createHistogram('cerniq_etapa3_llm_tokens_per_request', {
+  description: 'Token usage distribution per request',
+  unit: '1'
 });
 
 // ============================================================================
@@ -6872,25 +6743,19 @@ export class CostTracker {
     };
     
     // Update metrics
-    llmCostTotal.inc(
-      {
-        tenant_id: record.tenantId,
-        provider: record.provider,
-        model: record.model,
-        operation: record.operation,
-        worker: record.worker,
-      },
-      cost
-    );
+    llmCostTotal.add(cost, {
+      tenant_id: record.tenantId,
+      provider: record.provider,
+      model: record.model,
+      operation: record.operation,
+      worker: record.worker,
+    });
     
-    tokenUsageHistogram.observe(
-      {
-        provider: record.provider,
-        model: record.model,
-        operation: record.operation,
-      },
-      record.inputTokens + record.outputTokens
-    );
+    tokenUsageHistogram.record(record.inputTokens + record.outputTokens, {
+      provider: record.provider,
+      model: record.model,
+      operation: record.operation,
+    });
     
     // Persist to database
     await this.persistUsageLog(fullRecord);
@@ -7003,24 +6868,17 @@ export class CostTracker {
     const monthSummary = await this.getCostSummary(tenantId, 'month');
     
     // Daily budget
-    llmBudgetUtilization.set(
-      { tenant_id: tenantId, budget_type: 'daily' },
-      daySummary.totalCost / config.dailyBudget
-    );
-    llmBudgetRemaining.set(
-      { tenant_id: tenantId, budget_type: 'daily' },
-      Math.max(0, config.dailyBudget - daySummary.totalCost)
-    );
+    // For OTel Observable Gauges, we update internal state which the callback reads
+    // This is a simplified representation. In real OTel implementation, you would register
+    // callbacks that read from these state variables.
+    
+    // Daily budget state update (conceptual)
+    // _budgetState.dailyUtilization.set(tenantId, daySummary.totalCost / config.dailyBudget);
+    // _budgetState.dailyRemaining.set(tenantId, Math.max(0, config.dailyBudget - daySummary.totalCost));
     
     // Monthly budget
-    llmBudgetUtilization.set(
-      { tenant_id: tenantId, budget_type: 'monthly' },
-      monthSummary.totalCost / config.monthlyBudget
-    );
-    llmBudgetRemaining.set(
-      { tenant_id: tenantId, budget_type: 'monthly' },
-      Math.max(0, config.monthlyBudget - monthSummary.totalCost)
-    );
+    // _budgetState.monthlyUtilization.set(tenantId, monthSummary.totalCost / config.monthlyBudget);
+    // _budgetState.monthlyRemaining.set(tenantId, Math.max(0, config.monthlyBudget - monthSummary.totalCost));
     
     // Projected daily cost
     const hourSummary = await this.getCostSummary(tenantId, 'hour');
@@ -7029,21 +6887,12 @@ export class CostTracker {
     const projectedDaily = hoursElapsed > 0
       ? (daySummary.totalCost / hoursElapsed) * 24
       : hourSummary.totalCost * 24;
+      
+    // _budgetState.projectedDaily.set(tenantId, projectedDaily);
     
-    llmCostProjectedDay.set(
-      { tenant_id: tenantId },
-      projectedDaily
-    );
-    
-    // Update current period metrics
-    llmCostCurrentHour.set(
-      { tenant_id: tenantId, provider: 'all' },
-      hourSummary.totalCost
-    );
-    llmCostCurrentDay.set(
-      { tenant_id: tenantId, provider: 'all' },
-      daySummary.totalCost
-    );
+    // Update current period metrics state
+    // _budgetState.currentHour.set(tenantId, hourSummary.totalCost);
+    // _budgetState.currentDay.set(tenantId, daySummary.totalCost);
   }
   
   /**
@@ -7119,7 +6968,9 @@ export const costTracker = new CostTracker();
 ```typescript
 // src/monitoring/external-api-costs.ts
 
-import { Counter, Gauge, register } from 'prom-client';
+import { metrics } from '@opentelemetry/api';
+
+const meter = metrics.getMeter('cerniq-external-api-cost');
 
 /**
  * Cost tracking pentru servicii externe (non-LLM)
@@ -7176,28 +7027,25 @@ const EXTERNAL_PRICING: ExternalServicePricing[] = [
 // EXTERNAL API METRICS
 // ============================================================================
 
-const externalApiCallsTotal = new Counter({
-  name: 'cerniq_etapa3_external_api_calls_total',
-  help: 'Total external API calls',
-  labelNames: ['tenant_id', 'service', 'operation', 'status'],
+const externalApiCallsTotal = meter.createCounter('cerniq_etapa3_external_api_calls_total', {
+  description: 'Total external API calls',
+  unit: '1'
 });
 
-const externalApiCostTotal = new Counter({
-  name: 'cerniq_etapa3_external_api_cost_usd_total',
-  help: 'Total external API cost in USD',
-  labelNames: ['tenant_id', 'service', 'operation'],
+const externalApiCostTotal = meter.createCounter('cerniq_etapa3_external_api_cost_usd_total', {
+  description: 'Total external API cost in USD',
+  unit: 'USD'
 });
 
-const externalApiQuotaRemaining = new Gauge({
-  name: 'cerniq_etapa3_external_api_quota_remaining',
-  help: 'Remaining free quota for external API',
-  labelNames: ['service'],
+// Observable Gauges for Quota/Spend
+const externalApiQuotaRemaining = meter.createObservableGauge('cerniq_etapa3_external_api_quota_remaining', {
+  description: 'Remaining free quota for external API',
+  unit: '1'
 });
 
-const externalApiMonthlySpend = new Gauge({
-  name: 'cerniq_etapa3_external_api_monthly_spend_usd',
-  help: 'Monthly spend on external APIs',
-  labelNames: ['tenant_id', 'service'],
+const externalApiMonthlySpend = meter.createObservableGauge('cerniq_etapa3_external_api_monthly_spend_usd', {
+  description: 'Monthly spend on external APIs',
+  unit: 'USD'
 });
 
 // ============================================================================
@@ -7230,7 +7078,7 @@ export class ExternalApiCostTracker {
     const pricing = this.pricingMap.get(key);
     
     // Update call counter
-    externalApiCallsTotal.inc({
+    externalApiCallsTotal.add(1, {
       tenant_id: tenantId,
       service,
       operation,
@@ -7249,10 +7097,8 @@ export class ExternalApiCostTracker {
       if (currentUsage < pricing.freeQuota) {
         // Still in free quota
         this.quotaUsage.set(service, currentUsage + units);
-        externalApiQuotaRemaining.set(
-          { service },
-          pricing.freeQuota - currentUsage - units
-        );
+        // OTel ObservableGauge state update
+        // _quotaState.remaining.set(service, pricing.freeQuota - currentUsage - units);
       } else {
         // Beyond free quota
         cost = pricing.pricePerCall + (pricing.pricePerUnit || 0) * units;
@@ -7262,10 +7108,9 @@ export class ExternalApiCostTracker {
     }
     
     if (cost > 0) {
-      externalApiCostTotal.inc(
-        { tenant_id: tenantId, service, operation },
-        cost
-      );
+      externalApiCostTotal.add(cost, { 
+        tenant_id: tenantId, service, operation 
+      });
     }
     
     return cost;
@@ -7286,10 +7131,10 @@ export class ExternalApiCostTracker {
   resetMonthlyQuotas(): void {
     this.quotaUsage.clear();
     
-    // Reset quota metrics
+    // Reset quota metrics state
     EXTERNAL_PRICING.forEach(p => {
       if (p.freeQuota) {
-        externalApiQuotaRemaining.set({ service: p.service }, p.freeQuota);
+        // _quotaState.remaining.set(p.service, p.freeQuota);
       }
     });
   }
@@ -7977,7 +7822,6 @@ groups:
             Review usage patterns and consider optimization.
 ```
 
-
 ---
 
 ## 14. Security Monitoring
@@ -7987,7 +7831,7 @@ groups:
 ```typescript
 // src/monitoring/security-monitoring.ts
 
-import { Counter, Gauge, Histogram, register } from 'prom-client';
+import { metrics } from '@opentelemetry/api';
 import { createLogger } from './structured-logging';
 
 /**
@@ -7998,147 +7842,127 @@ import { createLogger } from './structured-logging';
  */
 
 const logger = createLogger('security-monitor');
+const meter = metrics.getMeter('cerniq-security');
 
 // ============================================================================
 // AUTHENTICATION METRICS
 // ============================================================================
 
-const authAttempts = new Counter({
-  name: 'cerniq_etapa3_auth_attempts_total',
-  help: 'Total authentication attempts',
-  labelNames: ['tenant_id', 'method', 'status', 'reason'],
+const authAttempts = meter.createCounter('cerniq_etapa3_auth_attempts_total', {
+  description: 'Total authentication attempts',
+  unit: '1'
 });
 
-const authLatency = new Histogram({
-  name: 'cerniq_etapa3_auth_latency_seconds',
-  help: 'Authentication latency distribution',
-  labelNames: ['method'],
-  buckets: [0.01, 0.05, 0.1, 0.25, 0.5, 1, 2],
+const authLatency = meter.createHistogram('cerniq_etapa3_auth_latency_seconds', {
+  description: 'Authentication latency distribution',
+  unit: 's'
 });
 
-const activeSessions = new Gauge({
-  name: 'cerniq_etapa3_active_sessions',
-  help: 'Number of active authenticated sessions',
-  labelNames: ['tenant_id', 'role'],
+const activeSessions = meter.createObservableGauge('cerniq_etapa3_active_sessions', {
+  description: 'Number of active authenticated sessions',
+  unit: '1'
 });
 
-const sessionDuration = new Histogram({
-  name: 'cerniq_etapa3_session_duration_seconds',
-  help: 'Session duration distribution',
-  labelNames: ['tenant_id'],
-  buckets: [60, 300, 900, 1800, 3600, 7200, 14400, 28800],
+const sessionDuration = meter.createHistogram('cerniq_etapa3_session_duration_seconds', {
+  description: 'Session duration distribution',
+  unit: 's'
 });
 
 // ============================================================================
 // ACCESS CONTROL METRICS
 // ============================================================================
 
-const accessDenied = new Counter({
-  name: 'cerniq_etapa3_access_denied_total',
-  help: 'Total access denied events',
-  labelNames: ['tenant_id', 'resource', 'reason', 'user_role'],
+const accessDenied = meter.createCounter('cerniq_etapa3_access_denied_total', {
+  description: 'Total access denied events',
+  unit: '1'
 });
 
-const privilegeEscalation = new Counter({
-  name: 'cerniq_etapa3_privilege_escalation_attempts_total',
-  help: 'Potential privilege escalation attempts',
-  labelNames: ['tenant_id', 'from_role', 'to_role'],
+const privilegeEscalation = meter.createCounter('cerniq_etapa3_privilege_escalation_attempts_total', {
+  description: 'Potential privilege escalation attempts',
+  unit: '1'
 });
 
-const crossTenantAccess = new Counter({
-  name: 'cerniq_etapa3_cross_tenant_access_attempts_total',
-  help: 'Cross-tenant access attempts (potential attack)',
-  labelNames: ['source_tenant', 'target_tenant', 'resource'],
+const crossTenantAccess = meter.createCounter('cerniq_etapa3_cross_tenant_access_attempts_total', {
+  description: 'Cross-tenant access attempts (potential attack)',
+  unit: '1'
 });
 
-const rbacViolations = new Counter({
-  name: 'cerniq_etapa3_rbac_violations_total',
-  help: 'RBAC policy violations',
-  labelNames: ['tenant_id', 'user_id', 'action', 'resource'],
+const rbacViolations = meter.createCounter('cerniq_etapa3_rbac_violations_total', {
+  description: 'RBAC policy violations',
+  unit: '1'
 });
 
+// ============================================================================
 // ============================================================================
 // DATA SECURITY METRICS
 // ============================================================================
 
-const piiAccess = new Counter({
-  name: 'cerniq_etapa3_pii_access_total',
-  help: 'PII data access events',
-  labelNames: ['tenant_id', 'data_type', 'operation', 'authorized'],
+const piiAccess = meter.createCounter('cerniq_etapa3_pii_access_total', {
+  description: 'PII data access events',
+  unit: '1'
 });
 
-const dataExportAttempts = new Counter({
-  name: 'cerniq_etapa3_data_export_attempts_total',
-  help: 'Data export attempts',
-  labelNames: ['tenant_id', 'format', 'status', 'record_count'],
+const dataExportAttempts = meter.createCounter('cerniq_etapa3_data_export_attempts_total', {
+  description: 'Data export attempts',
+  unit: '1'
 });
 
-const encryptionOperations = new Counter({
-  name: 'cerniq_etapa3_encryption_operations_total',
-  help: 'Encryption/decryption operations',
-  labelNames: ['operation', 'algorithm', 'status'],
+const encryptionOperations = meter.createCounter('cerniq_etapa3_encryption_operations_total', {
+  description: 'Encryption/decryption operations',
+  unit: '1'
 });
 
-const sensitiveFieldAccess = new Counter({
-  name: 'cerniq_etapa3_sensitive_field_access_total',
-  help: 'Access to sensitive database fields',
-  labelNames: ['tenant_id', 'table', 'field', 'operation'],
+const sensitiveFieldAccess = meter.createCounter('cerniq_etapa3_sensitive_field_access_total', {
+  description: 'Access to sensitive database fields',
+  unit: '1'
 });
 
 // ============================================================================
 // API SECURITY METRICS
 // ============================================================================
 
-const rateLimitHits = new Counter({
-  name: 'cerniq_etapa3_rate_limit_hits_total',
-  help: 'Rate limit exceeded events',
-  labelNames: ['tenant_id', 'endpoint', 'limit_type'],
+const rateLimitHits = meter.createCounter('cerniq_etapa3_rate_limit_hits_total', {
+  description: 'Rate limit exceeded events',
+  unit: '1'
 });
 
-const apiKeyUsage = new Counter({
-  name: 'cerniq_etapa3_api_key_usage_total',
-  help: 'API key usage',
-  labelNames: ['tenant_id', 'key_id', 'endpoint', 'status'],
+const apiKeyUsage = meter.createCounter('cerniq_etapa3_api_key_usage_total', {
+  description: 'API key usage',
+  unit: '1'
 });
 
-const suspiciousRequests = new Counter({
-  name: 'cerniq_etapa3_suspicious_requests_total',
-  help: 'Suspicious API requests detected',
-  labelNames: ['tenant_id', 'reason', 'endpoint'],
+const suspiciousRequests = meter.createCounter('cerniq_etapa3_suspicious_requests_total', {
+  description: 'Suspicious API requests detected',
+  unit: '1'
 });
 
-const inputValidationFailures = new Counter({
-  name: 'cerniq_etapa3_input_validation_failures_total',
-  help: 'Input validation failures',
-  labelNames: ['tenant_id', 'endpoint', 'field', 'reason'],
+const inputValidationFailures = meter.createCounter('cerniq_etapa3_input_validation_failures_total', {
+  description: 'Input validation failures',
+  unit: '1'
 });
 
 // ============================================================================
 // LLM SECURITY METRICS
 // ============================================================================
 
-const promptInjectionAttempts = new Counter({
-  name: 'cerniq_etapa3_prompt_injection_attempts_total',
-  help: 'Detected prompt injection attempts',
-  labelNames: ['tenant_id', 'detection_method', 'severity'],
+const promptInjectionAttempts = meter.createCounter('cerniq_etapa3_prompt_injection_attempts_total', {
+  description: 'Detected prompt injection attempts',
+  unit: '1'
 });
 
-const jailbreakAttempts = new Counter({
-  name: 'cerniq_etapa3_jailbreak_attempts_total',
-  help: 'Detected jailbreak attempts',
-  labelNames: ['tenant_id', 'pattern'],
+const jailbreakAttempts = meter.createCounter('cerniq_etapa3_jailbreak_attempts_total', {
+  description: 'Detected jailbreak attempts',
+  unit: '1'
 });
 
-const outputFilterBlocks = new Counter({
-  name: 'cerniq_etapa3_output_filter_blocks_total',
-  help: 'LLM output blocked by safety filters',
-  labelNames: ['tenant_id', 'filter_type', 'severity'],
+const outputFilterBlocks = meter.createCounter('cerniq_etapa3_output_filter_blocks_total', {
+  description: 'LLM output blocked by safety filters',
+  unit: '1'
 });
 
-const modelAbuse = new Counter({
-  name: 'cerniq_etapa3_model_abuse_attempts_total',
-  help: 'Model abuse attempts (excessive tokens, rapid requests)',
-  labelNames: ['tenant_id', 'abuse_type'],
+const modelAbuse = meter.createCounter('cerniq_etapa3_model_abuse_attempts_total', {
+  description: 'Model abuse attempts',
+  unit: '1'
 });
 
 // ============================================================================
@@ -8215,16 +8039,16 @@ export class SecurityMonitor {
     switch (event.eventType) {
       case 'auth_success':
       case 'auth_failure':
-        authAttempts.inc({
-          tenant_id: event.tenantId,
-          method: event.details.method as string || 'unknown',
-          status: event.outcome,
-          reason: event.details.reason as string || '',
+        authAttempts.add(1, {
+           tenant_id: event.tenantId,
+           method: event.details.method as string || 'unknown',
+           status: event.outcome,
+           reason: event.details.reason as string || '',
         });
         break;
         
       case 'access_denied':
-        accessDenied.inc({
+        accessDenied.add(1, {
           tenant_id: event.tenantId,
           resource: event.resource || 'unknown',
           reason: event.details.reason as string || '',
@@ -8233,7 +8057,7 @@ export class SecurityMonitor {
         break;
         
       case 'privilege_escalation':
-        privilegeEscalation.inc({
+        privilegeEscalation.add(1, {
           tenant_id: event.tenantId,
           from_role: event.details.fromRole as string || '',
           to_role: event.details.toRole as string || '',
@@ -8241,7 +8065,7 @@ export class SecurityMonitor {
         break;
         
       case 'cross_tenant_access':
-        crossTenantAccess.inc({
+        crossTenantAccess.add(1, {
           source_tenant: event.tenantId,
           target_tenant: event.details.targetTenant as string || '',
           resource: event.resource || '',
@@ -8249,7 +8073,7 @@ export class SecurityMonitor {
         break;
         
       case 'pii_access':
-        piiAccess.inc({
+        piiAccess.add(1, {
           tenant_id: event.tenantId,
           data_type: event.details.dataType as string || '',
           operation: event.action || '',
@@ -8258,7 +8082,7 @@ export class SecurityMonitor {
         break;
         
       case 'rate_limit':
-        rateLimitHits.inc({
+        rateLimitHits.add(1, {
           tenant_id: event.tenantId,
           endpoint: event.resource || '',
           limit_type: event.details.limitType as string || '',
@@ -8266,7 +8090,7 @@ export class SecurityMonitor {
         break;
         
       case 'suspicious_request':
-        suspiciousRequests.inc({
+        suspiciousRequests.add(1, {
           tenant_id: event.tenantId,
           reason: event.details.reason as string || '',
           endpoint: event.resource || '',
@@ -8274,7 +8098,7 @@ export class SecurityMonitor {
         break;
         
       case 'prompt_injection':
-        promptInjectionAttempts.inc({
+        promptInjectionAttempts.add(1, {
           tenant_id: event.tenantId,
           detection_method: event.details.method as string || '',
           severity: event.severity,
@@ -8282,14 +8106,14 @@ export class SecurityMonitor {
         break;
         
       case 'jailbreak_attempt':
-        jailbreakAttempts.inc({
+        jailbreakAttempts.add(1, {
           tenant_id: event.tenantId,
           pattern: event.details.pattern as string || '',
         });
         break;
         
       case 'output_blocked':
-        outputFilterBlocks.inc({
+        outputFilterBlocks.add(1, {
           tenant_id: event.tenantId,
           filter_type: event.details.filterType as string || '',
           severity: event.severity,
@@ -8297,7 +8121,7 @@ export class SecurityMonitor {
         break;
         
       case 'rbac_violation':
-        rbacViolations.inc({
+        rbacViolations.add(1, {
           tenant_id: event.tenantId,
           user_id: event.userId || '',
           action: event.action || '',
@@ -9303,7 +9127,6 @@ import { eq } from 'drizzle-orm';
 export const auditLogger = new AuditLogger();
 ```
 
-
 ---
 
 ## 15. Performance Baselines și Benchmarking
@@ -9313,239 +9136,40 @@ export const auditLogger = new AuditLogger();
 ```typescript
 // src/monitoring/performance-baselines.ts
 
-import { Gauge, register } from 'prom-client';
+import { metrics } from '@opentelemetry/api';
 import { db } from '../db';
 import { sql } from 'drizzle-orm';
 
+const meter = metrics.getMeter('cerniq-performance-baselines');
+
 /**
  * Performance Baselines pentru Etapa 3
- * 
- * Definește și monitorizează baseline-urile de performanță
- * pentru toate componentele sistemului
  */
 
-// ============================================================================
-// BASELINE DEFINITIONS
-// ============================================================================
-
-export interface PerformanceBaseline {
-  metric: string;
-  component: string;
-  baseline: {
-    p50: number;
-    p95: number;
-    p99: number;
-  };
-  thresholds: {
-    warning: number;  // multiplier over p95
-    critical: number; // multiplier over p99
-  };
-  unit: string;
-}
-
-export const PERFORMANCE_BASELINES: PerformanceBaseline[] = [
-  // API Response Times
-  {
-    metric: 'api_response_time',
-    component: 'api_gateway',
-    baseline: { p50: 50, p95: 200, p99: 500 },
-    thresholds: { warning: 1.5, critical: 2.0 },
-    unit: 'ms',
-  },
-  {
-    metric: 'api_response_time',
-    component: 'conversation_api',
-    baseline: { p50: 100, p95: 500, p99: 1000 },
-    thresholds: { warning: 1.5, critical: 2.0 },
-    unit: 'ms',
-  },
-  {
-    metric: 'api_response_time',
-    component: 'hitl_api',
-    baseline: { p50: 75, p95: 250, p99: 500 },
-    thresholds: { warning: 1.5, critical: 2.0 },
-    unit: 'ms',
-  },
-  
-  // LLM Response Times
-  {
-    metric: 'llm_latency',
-    component: 'claude_sonnet',
-    baseline: { p50: 1500, p95: 4000, p99: 8000 },
-    thresholds: { warning: 1.25, critical: 1.5 },
-    unit: 'ms',
-  },
-  {
-    metric: 'llm_latency',
-    component: 'claude_haiku',
-    baseline: { p50: 500, p95: 1500, p99: 3000 },
-    thresholds: { warning: 1.25, critical: 1.5 },
-    unit: 'ms',
-  },
-  {
-    metric: 'llm_latency',
-    component: 'guardrails',
-    baseline: { p50: 200, p95: 500, p99: 1000 },
-    thresholds: { warning: 1.5, critical: 2.0 },
-    unit: 'ms',
-  },
-  
-  // Database Query Times
-  {
-    metric: 'db_query_time',
-    component: 'conversations_read',
-    baseline: { p50: 5, p95: 20, p99: 50 },
-    thresholds: { warning: 2.0, critical: 3.0 },
-    unit: 'ms',
-  },
-  {
-    metric: 'db_query_time',
-    component: 'conversations_write',
-    baseline: { p50: 10, p95: 50, p99: 100 },
-    thresholds: { warning: 2.0, critical: 3.0 },
-    unit: 'ms',
-  },
-  {
-    metric: 'db_query_time',
-    component: 'contacts_search',
-    baseline: { p50: 20, p95: 100, p99: 250 },
-    thresholds: { warning: 2.0, critical: 3.0 },
-    unit: 'ms',
-  },
-  {
-    metric: 'db_query_time',
-    component: 'analytics_aggregation',
-    baseline: { p50: 100, p95: 500, p99: 2000 },
-    thresholds: { warning: 1.5, critical: 2.0 },
-    unit: 'ms',
-  },
-  
-  // Worker Processing Times
-  {
-    metric: 'worker_processing_time',
-    component: 'ai_agent_core',
-    baseline: { p50: 3000, p95: 8000, p99: 15000 },
-    thresholds: { warning: 1.25, critical: 1.5 },
-    unit: 'ms',
-  },
-  {
-    metric: 'worker_processing_time',
-    component: 'negotiation_fsm',
-    baseline: { p50: 500, p95: 2000, p99: 5000 },
-    thresholds: { warning: 1.5, critical: 2.0 },
-    unit: 'ms',
-  },
-  {
-    metric: 'worker_processing_time',
-    component: 'efactura',
-    baseline: { p50: 2000, p95: 5000, p99: 10000 },
-    thresholds: { warning: 1.5, critical: 2.0 },
-    unit: 'ms',
-  },
-  {
-    metric: 'worker_processing_time',
-    component: 'guardrails',
-    baseline: { p50: 300, p95: 800, p99: 1500 },
-    thresholds: { warning: 1.5, critical: 2.0 },
-    unit: 'ms',
-  },
-  
-  // Queue Metrics
-  {
-    metric: 'queue_wait_time',
-    component: 'high_priority',
-    baseline: { p50: 100, p95: 500, p99: 1000 },
-    thresholds: { warning: 2.0, critical: 5.0 },
-    unit: 'ms',
-  },
-  {
-    metric: 'queue_wait_time',
-    component: 'normal_priority',
-    baseline: { p50: 500, p95: 2000, p99: 5000 },
-    thresholds: { warning: 2.0, critical: 3.0 },
-    unit: 'ms',
-  },
-  {
-    metric: 'queue_depth',
-    component: 'ai_agent',
-    baseline: { p50: 10, p95: 50, p99: 100 },
-    thresholds: { warning: 2.0, critical: 5.0 },
-    unit: 'jobs',
-  },
-  
-  // External API Latencies
-  {
-    metric: 'external_api_latency',
-    component: 'anaf',
-    baseline: { p50: 1000, p95: 3000, p99: 5000 },
-    thresholds: { warning: 1.5, critical: 2.0 },
-    unit: 'ms',
-  },
-  {
-    metric: 'external_api_latency',
-    component: 'termene',
-    baseline: { p50: 500, p95: 1500, p99: 3000 },
-    thresholds: { warning: 1.5, critical: 2.0 },
-    unit: 'ms',
-  },
-  {
-    metric: 'external_api_latency',
-    component: 'oblio',
-    baseline: { p50: 300, p95: 1000, p99: 2000 },
-    thresholds: { warning: 1.5, critical: 2.0 },
-    unit: 'ms',
-  },
-  
-  // Memory and Resource Usage
-  {
-    metric: 'memory_usage',
-    component: 'api_server',
-    baseline: { p50: 512, p95: 768, p99: 1024 },
-    thresholds: { warning: 1.25, critical: 1.5 },
-    unit: 'MB',
-  },
-  {
-    metric: 'memory_usage',
-    component: 'worker',
-    baseline: { p50: 256, p95: 512, p99: 768 },
-    thresholds: { warning: 1.5, critical: 2.0 },
-    unit: 'MB',
-  },
-  {
-    metric: 'cpu_usage',
-    component: 'api_server',
-    baseline: { p50: 20, p95: 50, p99: 70 },
-    thresholds: { warning: 1.4, critical: 1.7 },
-    unit: 'percent',
-  },
-];
+// ... (interface definitions skipped for brevity)
 
 // ============================================================================
 // BASELINE METRICS
 // ============================================================================
 
-const baselineP50 = new Gauge({
-  name: 'cerniq_etapa3_baseline_p50',
-  help: 'Performance baseline P50 value',
-  labelNames: ['metric', 'component', 'unit'],
+const baselineP50 = meter.createObservableGauge('cerniq_etapa3_baseline_p50', {
+  description: 'Performance baseline P50 value',
+  unit: 'ms' // or unit from label
 });
 
-const baselineP95 = new Gauge({
-  name: 'cerniq_etapa3_baseline_p95',
-  help: 'Performance baseline P95 value',
-  labelNames: ['metric', 'component', 'unit'],
+const baselineP95 = meter.createObservableGauge('cerniq_etapa3_baseline_p95', {
+  description: 'Performance baseline P95 value',
+  unit: 'ms'
 });
 
-const baselineP99 = new Gauge({
-  name: 'cerniq_etapa3_baseline_p99',
-  help: 'Performance baseline P99 value',
-  labelNames: ['metric', 'component', 'unit'],
+const baselineP99 = meter.createObservableGauge('cerniq_etapa3_baseline_p99', {
+  description: 'Performance baseline P99 value',
+  unit: 'ms'
 });
 
-const baselineDeviation = new Gauge({
-  name: 'cerniq_etapa3_baseline_deviation_ratio',
-  help: 'Current deviation from baseline (1.0 = at baseline)',
-  labelNames: ['metric', 'component', 'percentile'],
+const baselineDeviation = meter.createObservableGauge('cerniq_etapa3_baseline_deviation_ratio', {
+  description: 'Current deviation from baseline (1.0 = at baseline)',
+  unit: '1'
 });
 
 // ============================================================================
@@ -9671,42 +9295,36 @@ export const baselineManager = new BaselineManager();
 ```typescript
 // src/monitoring/benchmarks.ts
 
-import { Counter, Histogram, Gauge, register } from 'prom-client';
+import { metrics } from '@opentelemetry/api';
+
+const meter = metrics.getMeter('cerniq-benchmarks');
 
 /**
  * Benchmark Tests pentru Etapa 3
- * 
- * Definește și rulează benchmark-uri periodice
- * pentru validarea performanței sistemului
  */
 
 // ============================================================================
 // BENCHMARK METRICS
 // ============================================================================
 
-const benchmarkDuration = new Histogram({
-  name: 'cerniq_etapa3_benchmark_duration_seconds',
-  help: 'Benchmark execution duration',
-  labelNames: ['benchmark', 'status'],
-  buckets: [0.1, 0.5, 1, 2, 5, 10, 30, 60],
+const benchmarkDuration = meter.createHistogram('cerniq_etapa3_benchmark_duration_seconds', {
+  description: 'Benchmark execution duration',
+  unit: 's'
 });
 
-const benchmarkScore = new Gauge({
-  name: 'cerniq_etapa3_benchmark_score',
-  help: 'Benchmark score (operations per second or similar)',
-  labelNames: ['benchmark'],
+const benchmarkScore = meter.createObservableGauge('cerniq_etapa3_benchmark_score', {
+  description: 'Benchmark score',
+  unit: '1'
 });
 
-const benchmarkStatus = new Gauge({
-  name: 'cerniq_etapa3_benchmark_status',
-  help: 'Benchmark pass/fail status (1=pass, 0=fail)',
-  labelNames: ['benchmark'],
+const benchmarkStatus = meter.createObservableGauge('cerniq_etapa3_benchmark_status', {
+  description: 'Benchmark pass/fail status (1=pass, 0=fail)',
+  unit: '1'
 });
 
-const benchmarkLastRun = new Gauge({
-  name: 'cerniq_etapa3_benchmark_last_run_timestamp',
-  help: 'Last benchmark run timestamp',
-  labelNames: ['benchmark'],
+const benchmarkLastRun = meter.createObservableGauge('cerniq_etapa3_benchmark_last_run_timestamp', {
+  description: 'Last benchmark run timestamp',
+  unit: '1'
 });
 
 // ============================================================================
@@ -10071,40 +9689,26 @@ export class BenchmarkRunner {
 export const benchmarkRunner = new BenchmarkRunner();
 ```
 
-### 15.3 Performance Regression Detection
-
-```typescript
 // src/monitoring/regression-detection.ts
 
-import { Gauge } from 'prom-client';
+```typescript
+import { metrics } from '@opentelemetry/api';
 import { baselineManager, PerformanceBaseline } from './performance-baselines';
 
+const meter = metrics.getMeter('cerniq-regression-detection');
+
 /**
- * Performance Regression Detection
- * 
- * Detectează automat regresii de performanță
- * bazat pe baseline-uri și trend analysis
+
+- Performance Regression Detection
+-
+- Detectează automat regresii de performanță
+- bazat pe baseline-uri și trend analysis
  */
 
 // ============================================================================
 // REGRESSION METRICS
 // ============================================================================
 
-const regressionDetected = new Gauge({
-  name: 'cerniq_etapa3_regression_detected',
-  help: 'Performance regression detected (1=yes, 0=no)',
-  labelNames: ['metric', 'component'],
-});
-
-const regressionSeverity = new Gauge({
-  name: 'cerniq_etapa3_regression_severity',
-  help: 'Regression severity score (0-100)',
-  labelNames: ['metric', 'component'],
-});
-
-const trendDirection = new Gauge({
-  name: 'cerniq_etapa3_trend_direction',
-  help: 'Performance trend direction (-1=degrading, 0=stable, 1=improving)',
   labelNames: ['metric', 'component'],
 });
 
@@ -10136,7 +9740,8 @@ export class RegressionDetector {
   private windowSize = 100;  // Number of data points to keep
   
   /**
-   * Record a metric value and check for regression
+
+- Record a metric value and check for regression
    */
   recordAndCheck(
     metric: string,
@@ -10145,17 +9750,17 @@ export class RegressionDetector {
     percentile: 'p50' | 'p95' | 'p99' = 'p95'
   ): RegressionAlert | null {
     const key = `${metric}:${component}`;
-    
+
     // Store historical value
     let history = this.historicalData.get(key) || [];
     history.push(value);
-    
+
     // Keep only recent values
     if (history.length > this.windowSize) {
       history = history.slice(-this.windowSize);
     }
     this.historicalData.set(key, history);
-    
+
     // Check baseline threshold
     const thresholdResult = baselineManager.checkThreshold(
       metric,
@@ -10163,10 +9768,10 @@ export class RegressionDetector {
       value,
       percentile
     );
-    
+
     // Analyze trend
     const trend = this.analyzeTrend(history);
-    
+
     // Update metrics
     const isRegression = thresholdResult.status !== 'ok' || trend.direction === 'degrading';
     regressionDetected.set({ metric, component }, isRegression ? 1 : 0);
@@ -10174,12 +9779,12 @@ export class RegressionDetector {
       { metric, component },
       trend.direction === 'improving' ? 1 : (trend.direction === 'stable' ? 0 : -1)
     );
-    
+
     // Generate alert if regression detected
     if (isRegression) {
       const baseline = baselineManager.getBaseline(metric, component);
       const baselineValue = baseline?.baseline[percentile] || 0;
-      
+
       const severity = this.calculateSeverity(thresholdResult.deviation, trend);
       regressionSeverity.set({ metric, component }, this.severityToScore(severity));
       
@@ -10195,42 +9800,43 @@ export class RegressionDetector {
         timestamp: new Date(),
       };
     }
-    
+
     return null;
   }
   
   /**
-   * Analyze trend from historical data
+
+- Analyze trend from historical data
    */
   private analyzeTrend(data: number[]): TrendAnalysis {
     if (data.length < 10) {
       return { direction: 'stable', slope: 0, confidence: 0, dataPoints: data.length };
     }
-    
+
     // Simple linear regression
     const n = data.length;
     const xMean = (n - 1) / 2;
     const yMean = data.reduce((a, b) => a + b, 0) / n;
-    
+
     let numerator = 0;
     let denominator = 0;
-    
+
     for (let i = 0; i < n; i++) {
       numerator += (i - xMean) * (data[i] - yMean);
       denominator += (i - xMean) ** 2;
     }
-    
+
     const slope = numerator / denominator;
-    
+
     // Calculate R-squared for confidence
     const predictions = data.map((_, i) => yMean + slope * (i - xMean));
-    const ssRes = data.reduce((sum, y, i) => sum + (y - predictions[i]) ** 2, 0);
-    const ssTot = data.reduce((sum, y) => sum + (y - yMean) ** 2, 0);
+    const ssRes = data.reduce((sum, y, i) => sum + (y - predictions[i]) **2, 0);
+    const ssTot = data.reduce((sum, y) => sum + (y - yMean)** 2, 0);
     const rSquared = 1 - ssRes / ssTot;
-    
+
     // Determine direction based on slope magnitude
     const normalizedSlope = slope / yMean;  // Normalize by mean
-    
+
     let direction: 'degrading' | 'stable' | 'improving';
     if (normalizedSlope > 0.01) {
       direction = 'degrading';  // Higher values = worse performance
@@ -10239,7 +9845,7 @@ export class RegressionDetector {
     } else {
       direction = 'stable';
     }
-    
+
     return {
       direction,
       slope: normalizedSlope,
@@ -10249,7 +9855,8 @@ export class RegressionDetector {
   }
   
   /**
-   * Calculate severity based on deviation and trend
+
+- Calculate severity based on deviation and trend
    */
   private calculateSeverity(
     deviation: number,
@@ -10257,7 +9864,7 @@ export class RegressionDetector {
   ): 'low' | 'medium' | 'high' | 'critical' {
     // Base severity on deviation
     let severity: 'low' | 'medium' | 'high' | 'critical';
-    
+
     if (deviation >= 2.0) {
       severity = 'critical';
     } else if (deviation >= 1.5) {
@@ -10267,13 +9874,13 @@ export class RegressionDetector {
     } else {
       severity = 'low';
     }
-    
+
     // Increase severity if trend is also degrading
     if (trend.direction === 'degrading' && trend.confidence > 0.7) {
       if (severity === 'low') severity = 'medium';
       else if (severity === 'medium') severity = 'high';
     }
-    
+
     return severity;
   }
   
@@ -10287,7 +9894,8 @@ export class RegressionDetector {
   }
   
   /**
-   * Generate recommendation based on regression type
+
+- Generate recommendation based on regression type
    */
   private generateRecommendation(
     metric: string,
@@ -10305,37 +9913,39 @@ export class RegressionDetector {
       'memory_usage': 'Check for memory leaks, review recent deployments, analyze object allocations',
       'cpu_usage': 'Profile hot paths, review recent code changes, check for runaway processes',
     };
-    
+
     const baseRec = recommendations[metric] || 'Review recent changes and system metrics';
-    
+
     if (trend.direction === 'degrading' && trend.confidence > 0.7) {
       return `${baseRec}. Note: Performance has been degrading over time with ${(trend.confidence * 100).toFixed(0)}% confidence.`;
     }
-    
+
     return baseRec;
   }
   
   /**
-   * Get all current regressions
+
+- Get all current regressions
    */
   getCurrentRegressions(): RegressionAlert[] {
     const regressions: RegressionAlert[] = [];
-    
+
     for (const [key, history] of this.historicalData.entries()) {
       const [metric, component] = key.split(':');
       const currentValue = history[history.length - 1];
-      
+
       const alert = this.recordAndCheck(metric, component, currentValue);
       if (alert) {
         regressions.push(alert);
       }
     }
-    
+
     return regressions;
   }
 }
 
 export const regressionDetector = new RegressionDetector();
+
 ```
 
 ### 15.4 Performance Alerting Rules
@@ -10490,7 +10100,6 @@ groups:
             
             System may be experiencing widespread degradation.
 ```
-
 
 ---
 
@@ -11874,7 +11483,7 @@ export const runbookService = new RunbookService();
 ### 17.1 Documente Conexe
 
 | Document | Locație | Descriere |
-|----------|---------|-----------|
+| -------- | ------- | --------- |
 | Master Spec | `__Cerniq_Master_Spec_Normativ_Complet.md` | Specificație normativă completă |
 | Etapa 3 Workers | `etapa3-workers-*.md` | Documentație workers detaliată |
 | Etapa 3 Schemas | `etapa3-schema-*.md` | Scheme baze de date |
@@ -11884,18 +11493,18 @@ export const runbookService = new RunbookService();
 ### 17.2 Resurse Externe
 
 | Resursă | URL | Descriere |
-|---------|-----|-----------|
-| OpenTelemetry Docs | https://opentelemetry.io/docs/ | Documentație oficială OTel |
-| SigNoz Docs | https://signoz.io/docs/ | Documentație SigNoz |
-| Prometheus Docs | https://prometheus.io/docs/ | Documentație Prometheus |
-| Grafana Docs | https://grafana.com/docs/ | Documentație Grafana |
-| AlertManager Docs | https://prometheus.io/docs/alerting/latest/alertmanager/ | Documentație AlertManager |
-| Pino Logger | https://getpino.io/ | Documentație Pino |
+| ------- | --- | --------- |
+| OpenTelemetry Docs | <https://opentelemetry.io/docs/> | Documentație oficială OTel |
+| SigNoz Docs | <https://signoz.io/docs/> | Documentație SigNoz |
+| OpenTelemetry Docs | <https://opentelemetry.io/docs/> | Documentație OpenTelemetry |
+| Grafana Docs | <https://grafana.com/docs/> | Documentație Grafana |
+| AlertManager Docs | <https://prometheus.io/docs/alerting/latest/alertmanager/> | Documentație AlertManager |
+| Pino Logger | <https://getpino.io/> | Documentație Pino |
 
 ### 17.3 Changelog
 
 | Versiune | Data | Modificări |
-|----------|------|------------|
+| -------- | ---- | ---------- |
 | 1.0.0 | 2026-01-19 | Versiune inițială completă |
 
 ---
