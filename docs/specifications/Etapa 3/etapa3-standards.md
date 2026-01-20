@@ -1,4 +1,5 @@
 # Etapa 3 - Standarde de Dezvoltare
+
 ## AI Sales Agent - Coding Standards, Conventions și Best Practices
 
 **Versiune:** 1.0.0
@@ -52,7 +53,7 @@ Acest document stabilește standardele de dezvoltare pentru Etapa 3 (AI Sales Ag
 ```yaml
 frontend:
   language: TypeScript 5.7+
-  framework: React 19
+  framework: React 19.2.3
   styling: Tailwind CSS v4
   components: shadcn/ui
   state: TanStack Query v5, Zustand v5
@@ -65,7 +66,7 @@ backend:
 database:
   primary: PostgreSQL 18.1
   cache: Redis 7.4.7
-  queue: BullMQ v5.51.0
+  queue: BullMQ v5.66.5
   
 ai:
   primary: Anthropic Claude 3.5 Sonnet
@@ -5578,12 +5579,14 @@ await instance.doSomething();
 Description of what the method does.
 
 **Parameters:**
+
 - `param1` (`string`) - Description of param1
 - `param2` (`number`, optional) - Description of param2
 
 **Returns:** `Promise<Result>` - Description of return value
 
 **Example:**
+
 ```typescript
 const result = await instance.methodName('value', 42);
 ```
@@ -5600,6 +5603,7 @@ const result = await instance.methodName('value', 42);
 - [Architecture Overview](./docs/architecture.md)
 - [API Documentation](./docs/api.md)
 - [Changelog](./CHANGELOG.md)
+
 ```
 
 ### 11.3 ADR (Architecture Decision Records)
@@ -5966,7 +5970,9 @@ SELECT * FROM negotiations WHERE id IN (?, ?, ...)
 ```
 
 # Bad feedback
+
 Use a JOIN here.
+
 ```
 
 ### 13.3 Review Response Standards
@@ -6017,27 +6023,33 @@ this PR focused on the original scope.
 ### 14.2 Resurse Externe
 
 **TypeScript & JavaScript:**
+
 - [TypeScript Handbook](https://www.typescriptlang.org/docs/handbook/)
 - [Node.js Best Practices](https://github.com/goldbergyoni/nodebestpractices)
 
 **React & Frontend:**
+
 - [React Documentation](https://react.dev/)
 - [TanStack Query](https://tanstack.com/query/latest)
 - [Tailwind CSS](https://tailwindcss.com/docs)
 
 **Backend:**
+
 - [Fastify Documentation](https://fastify.dev/docs/latest/)
 - [Drizzle ORM](https://orm.drizzle.team/docs/overview)
 
 **Database:**
+
 - [PostgreSQL Documentation](https://www.postgresql.org/docs/)
 - [Redis Documentation](https://redis.io/docs/)
 
 **AI/LLM:**
+
 - [Anthropic API](https://docs.anthropic.com/)
 - [OpenAI API](https://platform.openai.com/docs/)
 
 **Testing:**
+
 - [Vitest](https://vitest.dev/)
 - [Playwright](https://playwright.dev/)
 

@@ -74,7 +74,7 @@ docs/
 │   ├── ADR Etapa 0/ADR-0006-Redis-7-4-7-cu-BullMQ-v5.md
 │   ├── ADR Etapa 3/ADR-0066-Neuro-Symbolic-AI-Agent-Paradigm.md
 │   ├── ADR Etapa 1/ADR-0031-Arhitectura-Medallion-Bronze-Silver-Gold.md
-│   └── ... (100+ ADR-uri)
+│   └── ... (~105 ADR-uri)
 │
 ├── diagrams/                          # Diagrame vizuale
 │   ├── c4-context.drawio
@@ -104,7 +104,7 @@ docs/
 │   └── backup-strategy.md            # Backup și restore
 │
 ├── ui-ux/                             # Frontend documentation
-│   ├── frontend-stack.md             # React 19, Tailwind v4, Refine v5
+│   ├── frontend-stack.md             # React 19.2.3, Tailwind v4, Refine v5
 │   ├── components-list.md            # Lista componentelor UI
 │   └── design-tokens.md              # Design system tokens
 │
@@ -124,21 +124,25 @@ docs/
 
 ## 🏗️ Arhitectura Sistemului
 
-### Stack Tehnologic (Ianuarie 2026)
+### Stack Tehnologic (Overview)
 
-| Componentă       | Versiune               | Rol                                     |
-|------------------|------------------------|-----------------------------------------|
-| **Node.js**      | v24.12.0 LTS "Krypton" | Runtime API principal                   |
-| **Python**       | 3.14.2 Free-Threading  | Workers AI/ML                           |
-| **PostgreSQL**   | 18.1                   | Database principal + pgvector + PostGIS |
-| **Redis**        | 7.4.7                  | BullMQ queues                           |
-| **Fastify**      | v5.6.2                 | Framework API                           |
-| **React**        | 19.2.3                 | Frontend framework                      |
-| **Tailwind CSS** | v4.1+                  | Styling (Oxide engine)                  |
-| **Refine**       | v5                     | Admin framework headless                |
-| **Docker**       | 28.x                   | Container runtime                       |
-| **Traefik**      | v3.6.6                 | Edge router + SSL                       |
-| **SigNoz**       | v0.106.0               | Observability (OTEL)                    |
+> 📖 **Sursă Canonică și Versiuni Exacte:** [`specifications/master-specification.md`](./specifications/master-specification.md) § 2.1
+>
+> Mai jos este un sumar high-level. Pentru development, consultați întotdeauna Master Spec.
+
+| Componentă       | Rol                                     |
+|------------------|-----------------------------------------|
+| **Node.js**      | Runtime API principal (LTS)             |
+| **Python**       | Workers AI/ML (Free-Threading supported)|
+| **PostgreSQL**   | Database principal + pgvector + PostGIS |
+| **Redis**        | Queue management & Caching              |
+| **Fastify**      | Framework API de înaltă performanță     |
+| **React**        | Frontend application (Server Components)|
+| **Tailwind CSS** | Styling utility-first (Oxide engine)    |
+| **Refine**       | Admin framework headless                |
+| **Docker**       | Containerization & Orchestration        |
+| **Traefik**      | Edge Router & SSL Termination           |
+| **SigNoz**       | Observability & APM (OpenTelemetry)     |
 
 ### Arhitectura Medallion (Bronze → Silver → Gold)
 

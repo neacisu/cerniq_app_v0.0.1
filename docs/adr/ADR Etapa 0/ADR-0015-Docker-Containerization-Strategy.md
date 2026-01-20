@@ -10,7 +10,7 @@ Toate serviciile Cerniq.app rulează în containere Docker pe Hetzner bare metal
 
 ## Decizie
 
-Utilizăm **Docker Engine 28.x** cu **Docker Compose v2.40+** pentru orchestrare.
+Utilizăm **Docker Engine 29.1.3** cu **Docker Compose v2.40+** pentru orchestrare.
 
 ## Consecințe
 

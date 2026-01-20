@@ -15,7 +15,7 @@
 ## CUPRINS
 
 1. [Overview](#1-overview)
-2. [Global Rate Limits per Provider](#2-global-rate-limits-per-provider)
+2. [Global Rate Limits per Provider](#2-global-rate-limits-per-provider-reference)
 3. [WhatsApp Constraints (TimelinesAI)](#3-whatsapp-constraints-timelinesai)
 4. [Email Constraints](#4-email-constraints)
 5. [LLM Rate Limits](#5-llm-rate-limits)
@@ -54,43 +54,27 @@ Cerniq.app folosește o strategie de rate limiting pe 3 niveluri:
 
 ---
 
-## 2. GLOBAL RATE LIMITS PER PROVIDER
+## 2. GLOBAL RATE LIMITS PER PROVIDER (Reference)
 
-> 📖 **Sursă Canonică:** [`master-specification.md`](../specifications/master-specification.md) § 2.7.1
+> 📖 **Single Source of Truth:** Limitele oficiale și politicile de backoff sunt definite în [`master-specification.md`](../specifications/master-specification.md) § 2.7.1.
+>
+> Această secțiune detaliază doar **implementarea tehnică** (Redis keys, headers).
 
-### 2.1 Data Enrichment APIs (Etapa 1)
+### 2.1 Provideri Data Enrichment (Etapa 1)
 
-| Provider | Endpoint | Rate Limit | Burst | Backoff Strategy | Cost |
-| -------- | -------- | ---------- | ----- | ---------------- | ---- |
-| **ANAF API** | Toate | 1 req/sec | 5 | Exponential 2^n × 1s | Gratuit |
-| **Termene.ro** | Toate | 20 req/sec | 50 | Linear 100ms | Plătit |
-| **Hunter.io** | Email discovery | 15 req/sec | 30 | Exponential 2^n × 500ms | $0.01/email |
-| **ZeroBounce** | Email verify | 10 req/sec | 20 | Linear 200ms | $0.008/email |
-| **Nominatim** | Geocoding | 50 req/sec | 100 | Linear 100ms | Gratuit |
+*Vezi Master Spec § 2.7.1 pentru limitele actuale ANAF, Termene.ro, Hunter.io, etc.*
 
-### 2.2 Communication APIs (Etapa 2)
+### 2.2 Provideri Comunicare (Etapa 2)
 
-| Provider | Endpoint | Rate Limit | Burst | Backoff Strategy | Cost |
-| -------- | -------- | ---------- | ----- | ---------------- | ---- |
-| **TimelinesAI** | WA messages | 50 req/min | 10 | Fixed 1s (per phone) | $25-60/seat |
-| **Instantly.ai** | Email send | 100 req/10s | 20 | Exponential 2^n × 2s | $37+/month |
-| **Resend** | Transactional | 100 req/sec | 200 | Linear 50ms | $0.40/1K |
+*Vezi Master Spec § 2.7.1 pentru timpii de backoff TimelinesAI și Instantly.*
 
-### 2.3 LLM APIs (Etapa 3)
+### 2.3 Provideri LLM (Etapa 3)
 
-| Provider | Endpoint | Rate Limit | Burst | Backoff Strategy | Cost |
-| -------- | -------- | ---------- | ----- | ---------------- | ---- |
-| **xAI Grok** | LLM (Primary) | 60 req/min | 10 | Exponential 2^n × 1s | ~$0.02/1K tokens |
-| **OpenAI** | Embeddings | 3000 req/min | 100 | Exponential 2^n × 500ms | $0.0001/1K tokens |
-| **OpenAI** | GPT-4o (Fallback) | 500 req/min | 50 | Exponential 2^n × 500ms | $2.50/1M input |
+*Vezi Master Spec § 2.7.1 pentru rate limits xAI Grok și OpenAI.*
 
-### 2.4 Financial APIs (Etapa 4)
+### 2.4 Provideri Financiari (Etapa 4)
 
-| Provider | Endpoint | Rate Limit | Burst | Notes |
-| -------- | -------- | ---------- | ----- | ----- |
-| **Revolut** | Business API | 1000 req/min | 100 | Token expires 40 min |
-| **Oblio** | Facturare | 100 req/min | 20 | — |
-| **ANAF SPV** | e-Factura | 10 req/min | 3 | Certificate auth |
+*Vezi Master Spec § 2.7.1 pentru constrângerile Revolut, Oblio și ANAF SPV.*
 
 ---
 

@@ -1,9 +1,10 @@
 # Etapa 3 - UI Forms & Dialogs Documentation
+
 ## Formulare și Dialoguri pentru AI Sales Agent - Cerniq.app
 
 **Versiune:** 1.0  
 **Data:** Ianuarie 2026  
-**Stack:** React 19 + React Hook Form + Zod + Shadcn/ui + Tailwind v4
+**Stack:** React 19.2.3 + React Hook Form + Zod + Shadcn/ui + Tailwind v4
 
 ---
 
@@ -1049,7 +1050,6 @@ export function StateTransitionDialog({
   );
 }
 ```
-
 
 ### 3.3 AssignNegotiationDialog
 
@@ -3998,7 +3998,6 @@ export function ProductFilterForm({
 }
 ```
 
-
 ---
 
 ## 5. Prețuri & Discount Forms
@@ -4933,7 +4932,6 @@ export function DiscountRuleForm({
 }
 ```
 
-
 ### 5.2 ManualDiscountDialog
 
 ```typescript
@@ -5829,7 +5827,6 @@ Include contextul negocierii, potențialul clientului și beneficiile strategice
   );
 }
 ```
-
 
 ---
 
@@ -6801,7 +6798,6 @@ export function ProformaCreateForm({
   );
 }
 ```
-
 
 ### 6.2 InvoiceConvertDialog
 
@@ -7903,7 +7899,6 @@ export function EFacturaSendDialog({
 }
 ```
 
-
 ---
 
 ## 7. AI Configuration Forms
@@ -8988,7 +8983,6 @@ export function AISettingsForm({ initialData, onSave, isAdmin }: AISettingsFormP
 }
 ```
 
-
 ### 7.2 ModelConfigForm
 
 Formular pentru configurarea detaliată a unui model AI specific.
@@ -9836,7 +9830,6 @@ export function ModelConfigForm({ open, onOpenChange, model, onSave }: ModelConf
   );
 }
 ```
-
 
 ### 7.3 PromptTemplateForm
 
@@ -10780,7 +10773,6 @@ export function PromptTemplateForm({ open, onOpenChange, template, onSave }: Pro
   );
 }
 ```
-
 
 ## 8. Guardrails Forms
 
@@ -12356,7 +12348,6 @@ export function GuardrailTestDialog({
 }
 ```
 
-
 ## 9. HITL Approval Dialogs
 
 ### 9.1 ApprovalDialog
@@ -13459,7 +13450,6 @@ export function EscalationDialog({
 }
 ```
 
-
 ### 9.3 TakeoverDialog
 
 Dialog pentru preluarea manuală a unei negocieri de la AI.
@@ -13923,7 +13913,6 @@ export function TakeoverDialog({
   );
 }
 ```
-
 
 ## 10. Integration Forms
 
@@ -15391,7 +15380,6 @@ export function WebhookConfigForm({ webhook, onSuccess, onCancel }: WebhookConfi
 }
 ```
 
-
 **API Reference:**
 
 ```typescript
@@ -15459,7 +15447,6 @@ function verifyWebhookSignature(
 ```
 
 ---
-
 
 ## 11. Settings Forms
 
@@ -17003,7 +16990,6 @@ interface ChangePasswordRequest {
 ```
 
 ---
-
 
 ### 11.2 TenantSettingsForm
 

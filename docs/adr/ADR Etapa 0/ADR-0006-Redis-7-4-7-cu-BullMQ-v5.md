@@ -1,4 +1,4 @@
-# ADR-0006: Redis 7.4.7 cu BullMQ v5
+# ADR-0006: Redis 7.4.7 cu BullMQ v5.66.5
 
 **Status:** Accepted  
 **Data:** 2026-01-15  

@@ -1,5 +1,7 @@
 # CERNIQ.APP — ETAPA 4: PLAN IMPLEMENTARE COMPLET
+
 ## Monitorizare Post-Vânzare - 99 Taskuri Granulare
+
 ### Versiunea 1.0 | 19 Ianuarie 2026
 
 ---
@@ -26,12 +28,14 @@
 ## 1. Overview Implementare {#1-overview}
 
 ### Metrici Generale
+
 - **Total Taskuri**: 99
 - **Durată Estimată**: 12-14 săptămâni
 - **Echipă**: 1 person team (vertical slice)
 - **Task Range**: 301-399
 
 ### Dependențe
+
 - Etapa 0: Infrastructure completă
 - Etapa 1: Bronze/Silver/Gold schema
 - Etapa 2: Cold Outreach funcțional
@@ -68,7 +72,7 @@
         "Dashboard BullMQ accesibil",
         "Rate limits configurate"
       ],
-      "tehnologii": ["Redis 7.4.7", "BullMQ 5.66"]
+      "tehnologii": ["Redis 7.4.7", "BullMQ 5.66.5"]
     },
     {
       "task_number": 302,
@@ -1454,6 +1458,7 @@
 | **TOTAL** | | **99** | **395** | **~50 zile** |
 
 ### Timeline Estimată
+
 - **Start**: Săptămâna 1
 - **Infrastructure + DB**: Săptămânile 1-2
 - **Core Workers**: Săptămânile 3-6
@@ -1462,6 +1467,7 @@
 - **Testing + Deploy**: Săptămânile 11-12
 
 ### Riscuri și Mitigări
+
 1. **DocuSign API complexity** → Sandbox testing extensiv
 2. **Termene.ro rate limits** → Caching și batching
 3. **State machine complexity** → Unit tests comprehensive

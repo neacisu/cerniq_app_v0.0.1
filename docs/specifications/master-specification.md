@@ -353,7 +353,7 @@ interface GuardrailChecks {
 
 | Component             | Versiune   | Rol                              | Status      |
 |-----------------------|------------|----------------------------------|-------------|
-| **SigNoz**            | v0.106.0   | APM + Traces + Logs (all-in-one) | PRIMARY     |
+| **SigNoz**            | v0.107.0   | APM + Traces + Logs (all-in-one) | PRIMARY     |
 | **OpenTelemetry SDK** | Latest     | Instrumentare aplicații          | OBLIGATORIU |
 | **ClickHouse**        | Via SigNoz | Storage traces/metrics           | INTERN      |
 

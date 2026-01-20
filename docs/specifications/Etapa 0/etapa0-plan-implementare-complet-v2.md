@@ -40,9 +40,9 @@
 ```json
 {
   "taskID": "F0.1.1.T001",
-  "denumire_task": "Instalare și configurare Docker Engine 28.x pe Ubuntu 24.04",
+  "denumire_task": "Instalare și configurare Docker Engine 29.1.3 pe Ubuntu 24.04",
   "context_anterior": "Server Hetzner bare metal fresh cu Ubuntu 24.04 LTS instalat, fără Docker. Serverul are 20 cores Intel, 128GB RAM, NVMe SSD. Directorul root al proiectului va fi /var/www/CerniqAPP.",
-  "descriere_task": "Ești un expert DevOps cu experiență extinsă în containerizare Docker și infrastructură cloud. Task-ul tău este să instalezi Docker Engine 28.x (sau cea mai recentă versiune stabilă) pe Ubuntu 24.04 LTS folosind repository-ul oficial Docker.\n\nPași de urmat:\n1. Elimină orice versiune veche de Docker care ar putea exista pe sistem (docker.io, docker-doc, docker-compose, podman-docker, containerd, runc)\n2. Actualizează package lists: apt update\n3. Instalează prerequisites: apt install ca-certificates curl gnupg\n4. Adaugă GPG key oficial Docker: curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker.gpg\n5. Adaugă repository-ul Docker: echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu noble stable' > /etc/apt/sources.list.d/docker.list\n6. Instalează Docker packages: apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin\n7. Verifică instalarea cu 'docker version' și 'docker compose version'\n8. Activează și pornește serviciul: systemctl enable --now docker\n9. Verifică că Docker funcționează: docker run hello-world",
+  "descriere_task": "Ești un expert DevOps cu experiență extinsă în containerizare Docker și infrastructură cloud. Task-ul tău este să instalezi Docker Engine 29.1.3 (sau cea mai recentă versiune stabilă) pe Ubuntu 24.04 LTS folosind repository-ul oficial Docker.\n\nPași de urmat:\n1. Elimină orice versiune veche de Docker care ar putea exista pe sistem (docker.io, docker-doc, docker-compose, podman-docker, containerd, runc)\n2. Actualizează package lists: apt update\n3. Instalează prerequisites: apt install ca-certificates curl gnupg\n4. Adaugă GPG key oficial Docker: curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker.gpg\n5. Adaugă repository-ul Docker: echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu noble stable' > /etc/apt/sources.list.d/docker.list\n6. Instalează Docker packages: apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin\n7. Verifică instalarea cu 'docker version' și 'docker compose version'\n8. Activează și pornește serviciul: systemctl enable --now docker\n9. Verifică că Docker funcționează: docker run hello-world",
   "director_implementare": "/root",
   "restrictii_antihalucinatie": [
     "NU folosi snap pentru instalare Docker - folosește EXCLUSIV repository-ul oficial Docker",
@@ -53,7 +53,7 @@
     "ASIGURĂ-TE că docker compose (v2) este instalat, NU docker-compose (v1 deprecated)"
   ],
   "validare_task": "1. Comanda 'docker version' afișează Version: 28.x.x sau mai nou pentru Client și Server\n2. Comanda 'docker compose version' afișează v2.40+ sau mai nou\n3. Comanda 'systemctl status docker' arată 'active (running)'\n4. Comanda 'docker run hello-world' rulează cu succes\n5. Nu există erori în 'journalctl -u docker'",
-  "outcome": "Docker Engine 28.x instalat și funcțional cu Docker Compose v2.40+ pe Ubuntu 24.04 LTS"
+  "outcome": "Docker Engine 29.1.3 instalat și funcțional cu Docker Compose v2.40+ pe Ubuntu 24.04 LTS"
 }
 ```
 
@@ -61,7 +61,7 @@
 {
   "taskID": "F0.1.1.T002",
   "denumire_task": "Configurare daemon.json optimizat pentru server 128GB RAM/20 cores",
-  "context_anterior": "Docker Engine 28.x a fost instalat în F0.1.1.T001 cu configurare default. Serverul are 128GB RAM și 20 cores Intel. Acum trebuie optimizat pentru producție.",
+  "context_anterior": "Docker Engine 29.1.3 a fost instalat în F0.1.1.T001 cu configurare default. Serverul are 128GB RAM și 20 cores Intel. Acum trebuie optimizat pentru producție.",
   "descriere_task": "Ești un expert Docker specializat în optimizare pentru servere high-memory și multi-core. Task-ul tău este să creezi fișierul /etc/docker/daemon.json cu configurația optimizată pentru serverul Cerniq.\n\nCreează fișierul /etc/docker/daemon.json cu următorul conținut EXACT:\n```json\n{\n  \"storage-driver\": \"overlay2\",\n  \"log-driver\": \"json-file\",\n  \"log-opts\": {\n    \"max-size\": \"50m\",\n    \"max-file\": \"5\"\n  },\n  \"live-restore\": true,\n  \"userland-proxy\": false,\n  \"default-ulimits\": {\n    \"nofile\": {\n      \"Name\": \"nofile\",\n      \"Soft\": 65536,\n      \"Hard\": 65536\n    }\n  },\n  \"default-address-pools\": [\n    {\n      \"base\": \"172.20.0.0/16\",\n      \"size\": 24\n    }\n  ],\n  \"metrics-addr\": \"0.0.0.0:9323\"\n}\n```\n\nDupă creare:\n1. Validează JSON syntax cu 'jq . /etc/docker/daemon.json'\n2. Restartează Docker daemon: systemctl restart docker\n3. Verifică că daemon-ul a pornit cu noua configurație\n4. Verifică configurația activă cu 'docker info'",
   "director_implementare": "/etc/docker",
   "restrictii_antihalucinatie": [
@@ -392,7 +392,7 @@
   "taskID": "F0.5.1.T001",
   "denumire_task": "Adăugare servicii SigNoz v0.106.0 în docker-compose.yml",
   "context_anterior": "Traefik funcțional. Acum adăugăm stack-ul de observability SigNoz pentru traces, metrics și logs.",
-  "descriere_task": "Ești un expert observability cu experiență în OpenTelemetry și SigNoz. Task-ul tău este să adaugi serviciile SigNoz în docker-compose.\n\nAdaugă serviciile (aceasta este o configurație simplificată - SigNoz complet are mai multe componente):\n\n```yaml\n  # ClickHouse pentru SigNoz\n  clickhouse:\n    image: clickhouse/clickhouse-server:25.12.3\n    container_name: cerniq-clickhouse\n    restart: unless-stopped\n    volumes:\n      - signoz_data:/var/lib/clickhouse\n    networks:\n      - cerniq_backend\n    healthcheck:\n      test: [\"CMD\", \"wget\", \"--spider\", \"-q\", \"localhost:64082/ping\"]\n      interval: 30s\n      timeout: 5s\n      retries: 3\n    deploy:\n      resources:\n        limits:\n          memory: 8G\n          cpus: '2'\n\n  # SigNoz Query Service\n  signoz:\n    image: signoz/query-service:0.106.0\n    container_name: cerniq-signoz\n    restart: unless-stopped\n    environment:\n      - ClickHouseUrl=tcp://clickhouse:64083\n      - SIGNOZ_LOCAL_DB_PATH=/var/lib/signoz/signoz.db\n    volumes:\n      - signoz_data:/var/lib/signoz\n    depends_on:\n      clickhouse:\n        condition: service_healthy\n    networks:\n      - cerniq_backend\n    labels:\n      - \"traefik.enable=true\"\n      - \"traefik.http.routers.signoz.rule=Host(`signoz.cerniq.app`)\"\n      - \"traefik.http.routers.signoz.entrypoints=websecure\"\n      - \"traefik.http.routers.signoz.tls.certresolver=letsencrypt\"\n      - \"traefik.http.services.signoz.loadbalancer.server.port=64080\"\n\n  # OpenTelemetry Collector\n  otel-collector:\n    image: signoz/signoz-otel-collector:0.129.12\n    container_name: cerniq-otel-collector\n    restart: unless-stopped\n    command: [\"--config=/etc/otel-collector-config.yaml\"]\n    volumes:\n      - ./config/otel/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro\n    ports:\n      - \"64070:4317\"   # OTLP gRPC\n      - \"64071:4318\"   # OTLP HTTP\n    depends_on:\n      - clickhouse\n    networks:\n      - cerniq_backend\n      - cerniq_public\n```",
+  "descriere_task": "Ești un expert observability cu experiență în OpenTelemetry și SigNoz. Task-ul tău este să adaugi serviciile SigNoz în docker-compose.\n\nAdaugă serviciile (aceasta este o configurație simplificată - SigNoz complet are mai multe componente):\n\n```yaml\n  # ClickHouse pentru SigNoz\n  clickhouse:\n    image: clickhouse/clickhouse-server:25.12.3\n    container_name: cerniq-clickhouse\n    restart: unless-stopped\n    volumes:\n      - signoz_data:/var/lib/clickhouse\n    networks:\n      - cerniq_backend\n    healthcheck:\n      test: [\"CMD\", \"wget\", \"--spider\", \"-q\", \"localhost:64082/ping\"]\n      interval: 30s\n      timeout: 5s\n      retries: 3\n    deploy:\n      resources:\n        limits:\n          memory: 8G\n          cpus: '2'\n\n  # SigNoz Query Service\n  signoz:\n    image: signoz/query-service:0.107.0\n    container_name: cerniq-signoz\n    restart: unless-stopped\n    environment:\n      - ClickHouseUrl=tcp://clickhouse:64083\n      - SIGNOZ_LOCAL_DB_PATH=/var/lib/signoz/signoz.db\n    volumes:\n      - signoz_data:/var/lib/signoz\n    depends_on:\n      clickhouse:\n        condition: service_healthy\n    networks:\n      - cerniq_backend\n    labels:\n      - \"traefik.enable=true\"\n      - \"traefik.http.routers.signoz.rule=Host(`signoz.cerniq.app`)\"\n      - \"traefik.http.routers.signoz.entrypoints=websecure\"\n      - \"traefik.http.routers.signoz.tls.certresolver=letsencrypt\"\n      - \"traefik.http.services.signoz.loadbalancer.server.port=64080\"\n\n  # OpenTelemetry Collector\n  otel-collector:\n    image: signoz/signoz-otel-collector:0.129.12\n    container_name: cerniq-otel-collector\n    restart: unless-stopped\n    command: [\"--config=/etc/otel-collector-config.yaml\"]\n    volumes:\n      - ./config/otel/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro\n    ports:\n      - \"64070:4317\"   # OTLP gRPC\n      - \"64071:4318\"   # OTLP HTTP\n    depends_on:\n      - clickhouse\n    networks:\n      - cerniq_backend\n      - cerniq_public\n```",
   "director_implementare": "/var/www/CerniqAPP/infra/docker",
   "restrictii_antihalucinatie": [
     "NU expune ClickHouse direct la public - doar prin rețeaua internă",
@@ -402,7 +402,7 @@
     "SigNoz UI trebuie protejat prin Traefik labels"
   ],
   "validare_task": "1. 'docker compose config' validează fără erori\n2. Serviciile clickhouse, signoz, otel-collector sunt definite\n3. ClickHouse nu are port mapping public\n4. OTel Collector expune porturile 64070 și 64071\n5. SigNoz are Traefik labels pentru routing",
-  "outcome": "Servicii SigNoz v0.106.0 adăugate în docker-compose pentru observability complet"
+  "outcome": "Servicii SigNoz v0.107.0 adăugate în docker-compose pentru observability complet"
 }
 ```
 
@@ -506,7 +506,7 @@
 ```json
 {
   "taskID": "F0.6.1.T004",
-  "denumire_task": "Creare package apps/web-admin cu React 19 și Refine v5",
+  "denumire_task": "Creare package apps/web-admin cu React 19.2.3 și Refine v5",
   "context_anterior": "Package API creat. Acum creăm package-ul pentru frontend.",
   "descriere_task": "Ești un expert frontend React. Task-ul tău este să creezi package-ul apps/web-admin.\n\nCreează /var/www/CerniqAPP/apps/web-admin/package.json:\n```json\n{\n  \"name\": \"@cerniq/web-admin\",\n  \"version\": \"0.1.0\",\n  \"private\": true,\n  \"type\": \"module\",\n  \"scripts\": {\n    \"dev\": \"vite\",\n    \"build\": \"tsc && vite build\",\n    \"preview\": \"vite preview\",\n    \"test\": \"vitest run\",\n    \"lint\": \"eslint src/\"\n  },\n  \"dependencies\": {\n    \"react\": \"^19.0.0\",\n    \"react-dom\": \"^19.0.0\",\n    \"@refinedev/core\": \"^5.0.0\",\n    \"@refinedev/react-router\": \"^1.0.0\",\n    \"react-router-dom\": \"^7.0.0\",\n    \"@tanstack/react-query\": \"^5.62.0\",\n    \"zod\": \"^3.24.0\",\n    \"@cerniq/shared-types\": \"workspace:*\"\n  },\n  \"devDependencies\": {\n    \"@types/react\": \"^19.0.0\",\n    \"@types/react-dom\": \"^19.0.0\",\n    \"typescript\": \"^5.7.0\",\n    \"vite\": \"^6.0.0\",\n    \"@vitejs/plugin-react\": \"^4.3.0\",\n    \"tailwindcss\": \"^4.0.0\",\n    \"vitest\": \"^2.1.0\",\n    \"eslint\": \"^9.17.0\"\n  },\n  \"engines\": {\n    \"node\": \">=24.0.0\"\n  }\n}\n```\n\nCreează tsconfig.json și vite.config.ts corespunzătoare.",
   "director_implementare": "/var/www/CerniqAPP/apps/web-admin",
@@ -518,7 +518,7 @@
     "INCLUDE @cerniq/shared-types ca workspace dependency"
   ],
   "validare_task": "1. package.json există în apps/web-admin/\n2. react versiunea este ^19.0.0\n3. @refinedev/core versiunea este ^5.0.0\n4. vite versiunea este ^6.0.0\n5. tailwindcss versiunea este ^4.0.0",
-  "outcome": "Package Web cu React 19 și Refine v5 configurat"
+  "outcome": "Package Web cu React 19.2.3 și Refine v5 configurat"
 }
 ```
 
@@ -1040,24 +1040,24 @@
 
 ## FAZA F0.11: FRONTEND BOILERPLATE (COMPLET)
 
-## F0.11.1 React 19 și Refine Setup
+## F0.11.1 React 19.2.3 și Refine Setup
 
 ```json
 {
   "taskID": "F0.11.1.T001",
-  "denumire_task": "Setup React 19 cu Vite și SWC",
+  "denumire_task": "Setup React 19.2.3 cu Vite și SWC",
   "context_anterior": "Backend și database sunt funcționale. Acum configurăm frontend-ul conform ADR-0012.",
-  "descriere_task": "Ești un expert în React 19 și Vite. Configurează proiectul frontend.\n\n1. Inițializează proiectul (dacă nu există):\n```bash\ncd /var/www/CerniqAPP/apps/web-admin\npnpm create vite . --template react-swc-ts\n```\n\n2. Actualizează package.json:\n```json\n{\n  \"name\": \"@cerniq/web-admin\",\n  \"private\": true,\n  \"version\": \"0.1.0\",\n  \"type\": \"module\",\n  \"scripts\": {\n    \"dev\": \"vite\",\n    \"build\": \"tsc && vite build\",\n    \"preview\": \"vite preview\",\n    \"lint\": \"eslint . --ext ts,tsx\"\n  },\n  \"dependencies\": {\n    \"react\": \"^19.0.0\",\n    \"react-dom\": \"^19.0.0\",\n    \"@refinedev/core\": \"^5.0.0\",\n    \"@refinedev/react-router\": \"^1.0.0\",\n    \"react-router\": \"^7.0.0\",\n    \"@tanstack/react-query\": \"^5.0.0\"\n  },\n  \"devDependencies\": {\n    \"@types/react\": \"^19.0.0\",\n    \"@types/react-dom\": \"^19.0.0\",\n    \"@vitejs/plugin-react-swc\": \"^3.7.0\",\n    \"typescript\": \"^5.7.0\",\n    \"vite\": \"^6.0.0\"\n  }\n}\n```\n\n3. Configurează vite.config.ts:\n```typescript\nimport { defineConfig } from 'vite';\nimport react from '@vitejs/plugin-react-swc';\nimport path from 'path';\n\nexport default defineConfig({\n  plugins: [react()],\n  resolve: {\n    alias: {\n      '@': path.resolve(__dirname, './src'),\n    },\n  },\n  server: {\n    port: 3000,\n    proxy: {\n      '/api': {\n        target: 'http://localhost:64000',\n        changeOrigin: true,\n      },\n    },\n  },\n  build: {\n    sourcemap: true,\n    rollupOptions: {\n      output: {\n        manualChunks: {\n          vendor: ['react', 'react-dom'],\n          refine: ['@refinedev/core'],\n        },\n      },\n    },\n  },\n});\n```",
+  "descriere_task": "Ești un expert în React 19.2.3 și Vite. Configurează proiectul frontend.\n\n1. Inițializează proiectul (dacă nu există):\n```bash\ncd /var/www/CerniqAPP/apps/web-admin\npnpm create vite . --template react-swc-ts\n```\n\n2. Actualizează package.json:\n```json\n{\n  \"name\": \"@cerniq/web-admin\",\n  \"private\": true,\n  \"version\": \"0.1.0\",\n  \"type\": \"module\",\n  \"scripts\": {\n    \"dev\": \"vite\",\n    \"build\": \"tsc && vite build\",\n    \"preview\": \"vite preview\",\n    \"lint\": \"eslint . --ext ts,tsx\"\n  },\n  \"dependencies\": {\n    \"react\": \"^19.2.3\",\n    \"react-dom\": \"^19.2.3\",\n    \"@refinedev/core\": \"^5.0.0\",\n    \"@refinedev/react-router\": \"^1.0.0\",\n    \"react-router\": \"^7.0.0\",\n    \"@tanstack/react-query\": \"^5.0.0\"\n  },\n  \"devDependencies\": {\n    \"@types/react\": \"^19.2.3\",\n    \"@types/react-dom\": \"^19.2.3\",\n    \"@vitejs/plugin-react-swc\": \"^3.7.0\",\n    \"typescript\": \"^5.7.0\",\n    \"vite\": \"^6.0.0\"\n  }\n}\n```\n\n3. Configurează vite.config.ts:\n```typescript\nimport { defineConfig } from 'vite';\nimport react from '@vitejs/plugin-react-swc';\nimport path from 'path';\n\nexport default defineConfig({\n  plugins: [react()],\n  resolve: {\n    alias: {\n      '@': path.resolve(__dirname, './src'),\n    },\n  },\n  server: {\n    port: 3000,\n    proxy: {\n      '/api': {\n        target: 'http://localhost:64000',\n        changeOrigin: true,\n      },\n    },\n  },\n  build: {\n    sourcemap: true,\n    rollupOptions: {\n      output: {\n        manualChunks: {\n          vendor: ['react', 'react-dom'],\n          refine: ['@refinedev/core'],\n        },\n      },\n    },\n  },\n});\n```",
   "director_implementare": "/var/www/CerniqAPP/apps/web-admin",
   "restrictii_antihalucinatie": [
-    "FOLOSEȘTE React 19.x, nu 18.x",
+    "FOLOSEȘTE React 19.2.3.2.3, nu 18.x",
     "FOLOSEȘTE @vitejs/plugin-react-swc pentru build rapid",
     "CONFIGUREAZĂ proxy pentru API în development",
     "INCLUDE path alias @ pentru imports clean",
     "manualChunks pentru vendor code splitting"
   ],
-  "validare_task": "1. React 19 instalat\n2. Vite 6 cu SWC plugin\n3. Proxy configurat pentru /api\n4. Path alias @ funcționează\n5. pnpm dev pornește pe port 3000",
-  "outcome": "React 19 cu Vite și SWC configurat"
+  "validare_task": "1. React 19.2.3.2.3 instalat\n2. Vite 6 cu SWC plugin\n3. Proxy configurat pentru /api\n4. Path alias @ funcționează\n5. pnpm dev pornește pe port 3000",
+  "outcome": "React 19.2.3 cu Vite și SWC configurat"
 }
 ```
 
@@ -1065,7 +1065,7 @@
 {
   "taskID": "F0.11.1.T002",
   "denumire_task": "Configurare Refine v5 headless",
-  "context_anterior": "React 19 cu Vite configurat. Acum adăugăm Refine v5.",
+  "context_anterior": "React 19.2.3 cu Vite configurat. Acum adăugăm Refine v5.",
   "descriere_task": "Ești un expert în Refine framework. Configurează Refine v5 în mod headless.\n\nCreează `/var/www/CerniqAPP/apps/web-admin/src/App.tsx`:\n\n```typescript\nimport { Refine } from '@refinedev/core';\nimport { BrowserRouter, Routes, Route, Outlet } from 'react-router';\nimport { dataProvider } from './providers/data-provider';\nimport { authProvider } from './providers/auth-provider';\nimport { Layout } from './components/Layout';\nimport { LoginPage } from './pages/auth/Login';\nimport { DashboardPage } from './pages/Dashboard';\nimport { CompaniesListPage } from './pages/companies/List';\n\nexport function App() {\n  return (\n    <BrowserRouter>\n      <Refine\n        dataProvider={dataProvider}\n        authProvider={authProvider}\n        resources={[\n          {\n            name: 'companies',\n            list: '/companies',\n            show: '/companies/:id',\n            create: '/companies/create',\n            edit: '/companies/:id/edit',\n            meta: {\n              label: 'Companies',\n              icon: 'building',\n            },\n          },\n          {\n            name: 'contacts',\n            list: '/contacts',\n            show: '/contacts/:id',\n            meta: {\n              label: 'Contacts',\n              icon: 'users',\n            },\n          },\n        ]}\n        options={{\n          syncWithLocation: true,\n          warnWhenUnsavedChanges: true,\n          projectId: 'cerniq-app',\n        }}\n      >\n        <Routes>\n          <Route path=\"/login\" element={<LoginPage />} />\n          <Route element={<Layout><Outlet /></Layout>}>\n            <Route index element={<DashboardPage />} />\n            <Route path=\"/companies\" element={<CompaniesListPage />} />\n          </Route>\n        </Routes>\n      </Refine>\n    </BrowserRouter>\n  );\n}\n```\n\nCreează `/var/www/CerniqAPP/apps/web-admin/src/providers/data-provider.ts`:\n\n```typescript\nimport { DataProvider } from '@refinedev/core';\n\nconst API_URL = import.meta.env.VITE_API_URL || '/api/v1';\n\nexport const dataProvider: DataProvider = {\n  getList: async ({ resource, pagination, sorters, filters }) => {\n    const response = await fetch(`${API_URL}/${resource}`);\n    const data = await response.json();\n    return {\n      data: data.data,\n      total: data.total,\n    };\n  },\n  \n  getOne: async ({ resource, id }) => {\n    const response = await fetch(`${API_URL}/${resource}/${id}`);\n    const data = await response.json();\n    return { data: data.data };\n  },\n  \n  create: async ({ resource, variables }) => {\n    const response = await fetch(`${API_URL}/${resource}`, {\n      method: 'POST',\n      headers: { 'Content-Type': 'application/json' },\n      body: JSON.stringify(variables),\n    });\n    const data = await response.json();\n    return { data: data.data };\n  },\n  \n  update: async ({ resource, id, variables }) => {\n    const response = await fetch(`${API_URL}/${resource}/${id}`, {\n      method: 'PATCH',\n      headers: { 'Content-Type': 'application/json' },\n      body: JSON.stringify(variables),\n    });\n    const data = await response.json();\n    return { data: data.data };\n  },\n  \n  deleteOne: async ({ resource, id }) => {\n    await fetch(`${API_URL}/${resource}/${id}`, { method: 'DELETE' });\n    return { data: { id } };\n  },\n  \n  getApiUrl: () => API_URL,\n};\n```",
   "director_implementare": "/var/www/CerniqAPP/apps/web-admin/src",
   "restrictii_antihalucinatie": [
@@ -1409,7 +1409,7 @@
 
 ### Faza 5: Frontend (F0.11)
 
-1. React 19 cu Vite
+1. React 19.2.3.2.3 cu Vite
 2. Refine v5 headless
 3. Tailwind CSS v4
 4. Auth provider cu JWT

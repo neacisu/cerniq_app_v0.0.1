@@ -20,8 +20,8 @@ This analysis governs all risk assessments for Cerniq.app under the Master Speci
 - Redis 7.4.7
 - BullMQ v5.66.5
 - React 19.2.3, Tailwind CSS 4.1+, Refine v5
-- Docker Engine 28.x (recommended) / 29.x (documented)
-- Traefik v3.6, SigNoz v0.106
+- Docker Engine 29.1.3 (Standardized)
+- Traefik v3.6, SigNoz v0.107.0
 
 ---
 
@@ -47,7 +47,7 @@ Romanian e-Factura mandates invoice submission within **5 calendar days** of iss
 **R-004: Docker Engine 29.x Breaking Compatibility**
 Docker Engine 29.x introduces breaking changes: minimum API v1.44 required, containerd native image store migration, storage layout path changes. Testcontainers and multiple CI/CD tools report incompatibility (Issue #11212). Harness CI VM Runner confirmed incompatible with Docker 29.x.
 
-*Mitigation:* **Use Docker Engine 28.3.3** for production stability; pin Docker version in CI/CD; upgrade all Docker clients to v25.0+ if 29.x required; test all Docker-dependent tooling before any upgrade.
+*Mitigation:* **Standardized on Docker Engine 29.1.3**; breaking changes managed via verified `daemon.json` configuration and compatible CI runners. All environments aligned to 29.1.3.
 
 **R-005: Traefik v3.6 Critical Security Vulnerability**
 CVE-2025-66491 (HIGH severity) inverts TLS certificate verification in ingress-nginx provider—setting `proxy-ssl-verify=on` **DISABLED** verification, exposing HTTPS backends to MITM attacks. Affected versions v3.5.0 through v3.6.2. Additional issues: cert-manager integration broken after v2.x→v3.x migration (Issue #10702), TLS failures reported post-upgrade (Issue #10681).
@@ -104,7 +104,7 @@ Row Level Security (RLS) mentioned but implementation details sparse in document
 Documented memory leaks with sandboxed workers and event listeners (Issue #1129). Stalled jobs common issue requiring proper lockDuration configuration. At 4.5M+ delayed jobs, Redis memory usage problematic (~10GB reported).
 
 **R-021: React 19.x useId Breaking Changes**
-React 19.2 changed ID prefix from `:r:` to `r`—may break CSS selectors targeting generated IDs. Concurrent mode changes state update timing; code relying on synchronous render timing may break. react-test-renderer deprecated.
+React 19.2.3 changed ID prefix from `:r:` to `r`—may break CSS selectors targeting generated IDs. Concurrent mode changes state update timing; code relying on synchronous render timing may break. react-test-renderer deprecated.
 
 **R-022: SigNoz ClickHouse Timezone Crashes**
 Custom timezones (e.g., America/New_York) can crash OpenTelemetry collector (Issue #2025). memory_limiter configuration critical for stability. Self-observability (monitoring the observability stack) not documented.
@@ -196,7 +196,7 @@ Maximum 10 webhooks per account (422 error if exceeded). Webhooks may deliver ou
 3. **Add Docker resource limits** to all containers—prevent runaway container resource consumption
 4. **Upgrade Traefik to v3.6.3+** to patch CVE-2025-66491
 5. **Set up offsite backup** for PostgreSQL to Hetzner Storage Box or Backblaze B2
-6. **Pin Docker Engine to 28.3.3**—avoid 29.x breaking changes
+6. **Pin Docker Engine to 29.1.3**—standardized version
 
 ### Short-term actions (Month 1)
 
@@ -325,13 +325,13 @@ Maximum 10 webhooks per account (422 error if exceeded). Webhooks may deliver ou
 | Python 3.14 (No-GIL) | 3.14.0 | Phase 2 (supported, not default) | **HIGH** |
 | Node.js 24.x | 24.12.0 | LTS Stable | LOW |
 | PostgreSQL 18.1 | 18.1 | GA Stable | LOW |
-| BullMQ v5.66+ | 5.66.5 | Stable | MEDIUM |
+| BullMQ v5.66.5 | 5.66.5 | Stable | MEDIUM |
 | Redis 7.4.7 | 7.4.x | Stable | LOW |
-| React 19.x | 19.2 | Stable | LOW-MEDIUM |
+| React 19.x | 19.2.3 | Stable | LOW-MEDIUM |
 | Traefik v3.6 | 3.6.5 | Stable (CVE patched in 3.6.3) | **HIGH** |
-| SigNoz | ~0.88+ | Stable | MEDIUM |
-| Docker 29.x | 29.1.1 | Breaking changes | **CRITICAL** |
-| Docker 28.x | 28.3.3 | Stable | LOW |
+| SigNoz | v0.107.0 | Stable | MEDIUM |
+| Docker 29.x | 29.1.3 | Standardized | OK |
+| Docker 28.x | 28.3.3 | Legacy | DEPRECATED |
 
 ### Appendix B: Compliance checklist
 
@@ -353,9 +353,9 @@ Maximum 10 webhooks per account (422 error if exceeded). Webhooks may deliver ou
 | TOC_Plan_Dezvoltare_Cerniq_App | 12wY1E8OuCC9fyVFPyMvKAjmxiheSuau4yuAyzC0ET4k | Full system overview, 12-week timeline |
 | Cerniq App - Introducere | 1nFWauBiQo9Kbg1GI641Bo6VeTqqHTvZ1s2emp_ezDmw | Market context, technology rationale |
 | Roadmap Paralel Vanzari AI | 11FtWwpDCgTv-LtDVPuupA3_BZEdP665BiroCW3mRc5U | Vertical Slice architecture, 1-person-team paradigm |
-| Docker Infrastructure Reference | 1JQykNPwX_y8pWu8FhYl2C-N5iLktLkhjAGYKDpZSqjg | Docker 28.x/29.x, Hetzner configuration |
+| Docker Infrastructure Reference | 1JQykNPwX_y8pWu8FhYl2C-N5iLktLkhjAGYKDpZSqjg | Docker 29.1.3, Hetzner configuration |
 | Etapa 2 - Complete Workers | 1ROghHFkeOzeMTtdg0-fPdnWDYMfR_gCvd-HfHtB22R8 | 52 workers, Quota Guardian, rate limiting |
-| Etapa 1 - UI/UX | 1izDE5C5koomt4mRNAOk8YmScjAk364nm6yCdLci3jXY | React 19, Tailwind 4.1, Refine v5 |
+| Etapa 1 - UI/UX | 1izDE5C5koomt4mRNAOk8YmScjAk364nm6yCdLci3jXY | React 19.2.3, Tailwind 4.1, Refine v5 |
 
 ---
 

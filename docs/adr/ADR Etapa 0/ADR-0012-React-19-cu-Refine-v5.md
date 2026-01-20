@@ -21,7 +21,7 @@ Utilizăm **React 19.2.3** cu **Refine v5** (headless) și **shadcn/ui**.
 
 ### Pozitive
 
-- React 19 Server Components pentru data fetching
+- React 19.2.3 Server Components pentru data fetching
 - `useOptimistic` pentru UI responsiv
 - React Compiler 1.0 (12% faster loads, 2.5x faster interactions)
 - Refine headless = control complet UI

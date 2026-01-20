@@ -787,7 +787,7 @@ async function processWithIdempotency(job: Job<JobData>) {
 
 ## 9. FRONTEND STANDARDS
 
-## 9.1 React 19 Patterns
+## 9.1 React 19.2.3 Patterns
 
 ```typescript
 // Server Components (default)
@@ -1186,7 +1186,7 @@ Current inventory levels:
     ├── 03-database.mdc         # PostgreSQL/multi-tenant
     ├── 04-workers.mdc          # BullMQ patterns
     ├── 05-api.mdc              # Fastify routes
-    ├── 06-frontend.mdc         # React 19/Refine
+    ├── 06-frontend.mdc         # React 19.2.3/Refine
     ├── 07-testing.mdc          # Test requirements
     └── 08-security.mdc         # Auth/RBAC/RLS
 ```

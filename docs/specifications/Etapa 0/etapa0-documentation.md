@@ -22,7 +22,7 @@
 | **Reverse Proxy** | Traefik v3.6.6 | Auto SSL/TLS, Docker provider |
 | **Package Manager** | PNPM 9.15+ | EXCLUSIV, no npm |
 | **Observability** | SigNoz v0.106.0 | OpenTelemetry-native |
-| **Container Runtime** | Docker Engine 28.x | Compose v2.40+ |
+| **Container Runtime** | Docker Engine 29.1.3 | Compose v2.40+ |
 
 #### 1.2 Principii Arhitecturale
 
@@ -168,7 +168,7 @@ notify-keyspace-events Ex
 │   │   │   └── index.ts
 │   │   ├── Dockerfile
 │   │   └── package.json
-│   └── web-admin/              # Frontend React 19 + Refine v5
+│   └── web-admin/              # Frontend React 19.2.3 + Refine v5
 │       ├── src/
 │       │   ├── components/
 │       │   ├── pages/
@@ -309,7 +309,7 @@ borg create \
 [View detailed ADR](../../adr/Etapa%200/ADR-0005-Row-Level-Security-pentru-Multi-Tenancy.md)
 **Status:** Accepted | **Data:** 2026-01-15
 
-### ADR-0006: Redis 7.4.7 cu BullMQ v5
+### ADR-0006: Redis 7.4.7 cu BullMQ v5.66.5
 
 [View detailed ADR](../../adr/Etapa%200/ADR-0006-Redis-7-4-7-cu-BullMQ-v5.md)
 **Status:** Accepted | **Data:** 2026-01-15
@@ -445,9 +445,9 @@ borg create \
 ```json
 {
   "taskID": "F0.1.1.T001",
-  "denumire_task": "Instalare și configurare Docker Engine 28.x pe Ubuntu 24.04",
+  "denumire_task": "Instalare și configurare Docker Engine 29.1.3 pe Ubuntu 24.04",
   "context_anterior": "Server Hetzner bare metal fresh cu Ubuntu 24.04 LTS instalat, fără Docker",
-  "descriere_task": "Ești un expert DevOps cu experiență extinsă în containerizare Docker. Task-ul tău este să instalezi Docker Engine 28.x (sau latest stable) pe Ubuntu 24.04 LTS folosind repository-ul oficial Docker. Trebuie să: 1) Elimini orice versiune veche de Docker (docker.io, docker-doc, docker-compose, podman-docker, containerd, runc), 2) Adaugi repository-ul Docker oficial cu GPG key, 3) Instalezi docker-ce, docker-ce-cli, containerd.io, docker-buildx-plugin, docker-compose-plugin, 4) Verifici instalarea cu `docker version` și `docker compose version`, 5) Adaugi userul root în grupul docker (dacă nu e deja), 6) Activezi și pornești serviciul docker (systemctl enable --now docker).",
+  "descriere_task": "Ești un expert DevOps cu experiență extinsă în containerizare Docker. Task-ul tău este să instalezi Docker Engine 29.1.3 (sau latest stable) pe Ubuntu 24.04 LTS folosind repository-ul oficial Docker. Trebuie să: 1) Elimini orice versiune veche de Docker (docker.io, docker-doc, docker-compose, podman-docker, containerd, runc), 2) Adaugi repository-ul Docker oficial cu GPG key, 3) Instalezi docker-ce, docker-ce-cli, containerd.io, docker-buildx-plugin, docker-compose-plugin, 4) Verifici instalarea cu `docker version` și `docker compose version`, 5) Adaugi userul root în grupul docker (dacă nu e deja), 6) Activezi și pornești serviciul docker (systemctl enable --now docker).",
   "director_implementare": "/root",
   "restrictii_antihalucinatie": [
     "NU folosi snap pentru instalare Docker",
@@ -456,7 +456,7 @@ borg create \
     "VERIFICĂ că versiunea instalată este 28.x sau mai nouă"
   ],
   "validare_task": "docker version afișează Version: 28.x.x sau mai nou; docker compose version afișează v2.40+ sau mai nou; systemctl status docker arată active (running)",
-  "outcome": "Docker Engine 28.x instalat și funcțional cu Docker Compose v2.40+"
+  "outcome": "Docker Engine 29.1.3 instalat și funcțional cu Docker Compose v2.40+"
 }
 ```
 
@@ -464,7 +464,7 @@ borg create \
 {
   "taskID": "F0.1.1.T002",
   "denumire_task": "Configurare daemon.json pentru server 128GB RAM/20 cores",
-  "context_anterior": "Docker Engine 28.x instalat în F0.1.1.T001, configurare default",
+  "context_anterior": "Docker Engine 29.1.3 instalat în F0.1.1.T001, configurare default",
   "descriere_task": "Ești un expert Docker specializat în optimizare pentru servere high-memory. Task-ul tău este să creezi fișierul /etc/docker/daemon.json cu configurația optimizată pentru serverul Cerniq (128GB RAM, 20 cores). Configurația TREBUIE să includă: storage-driver overlay2, log-driver json-file cu max-size 50m și max-file 5, live-restore true pentru zero-downtime upgrades, userland-proxy false pentru performanță network îmbunătățită, default-ulimits nofile 65536, default-address-pools cu baza 172.20.0.0/16 și size 24, metrics-addr 0.0.0.0:9323 pentru Prometheus scraping. După creare, restartează docker daemon și verifică aplicarea configurației.",
   "director_implementare": "/etc/docker",
   "restrictii_antihalucinatie": [

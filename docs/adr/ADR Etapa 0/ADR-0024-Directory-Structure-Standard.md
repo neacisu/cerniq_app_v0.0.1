@@ -29,7 +29,7 @@ Structura directoarelor trebuie să suporte:
 │   │   │   └── index.ts
 │   │   ├── Dockerfile
 │   │   └── package.json
-│   └── web/                    # Frontend React 19 + Refine v5
+│   └── web/                    # Frontend React 19.2.3 + Refine v5
 │       ├── src/
 │       │   ├── components/
 │       │   ├── pages/

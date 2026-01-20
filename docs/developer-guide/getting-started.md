@@ -124,7 +124,7 @@ docker compose ps
 /var/www/CerniqAPP/
 ├── apps/
 │   ├── api/              # Fastify 5.6.2 API Server (localhost:64000)
-│   └── web-admin/        # React 19 Admin Dashboard (localhost:64010)
+│   └── web-admin/        # React 19.2.3 Admin Dashboard (localhost:64010)
 ├── packages/
 │   ├── db/               # Drizzle ORM + Migrations
 │   ├── workers/          # BullMQ 5.66.5 Workers (316 total)

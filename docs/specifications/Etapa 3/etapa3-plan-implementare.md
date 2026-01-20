@@ -1,5 +1,7 @@
 # CERNIQ.APP – ETAPA 3: PLAN IMPLEMENTARE GRANULAR COMPLET
+
 ## Faze, Subfaze și Taskuri pentru AI Sales Agent Neuro-Symbolic
+
 ### Versiunea 1.0 | 19 Ianuarie 2026
 
 ---
@@ -18,7 +20,7 @@ Etapa 3 implementează un **Agent Comercial AI Autonom** care navighează ciclul
 ### Metrici Cheie
 
 | Metric | Target | Justificare |
-|--------|--------|-------------|
+| ------ | ------ | ----------- |
 | Workers Totali | 78 (53 core + 25 adiționali) | Acoperire completă flux vânzare |
 | Categorii | 14 (A-N) | Separare responsabilități clare |
 | Timp Implementare | 12 săptămâni | Livrare incrementală |
@@ -32,7 +34,7 @@ Etapa 3 implementează un **Agent Comercial AI Autonom** care navighează ciclul
 ## CUPRINS FAZE
 
 | Fază | Denumire | Nr. Taskuri | Săptămâna |
-|------|----------|-------------|-----------|
+| ---- | -------- | ----------- | --------- |
 | F3.1 | Database Schema & Migrations | 15 | S1-S2 |
 | F3.2 | Product Knowledge Workers (A) | 12 | S2-S3 |
 | F3.3 | Hybrid Search RAG Workers (B) | 10 | S3-S4 |
@@ -59,32 +61,32 @@ Etapa 3 implementează un **Agent Comercial AI Autonom** care navighează ciclul
 
 ### De la Etape Anterioare
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                      DEPENDENȚE ETAPA 3                                  │
-│                                                                          │
+│                      DEPENDENȚE ETAPA 3                                 │
+│                                                                         │
 │  ETAPA 0 (Infrastructură)                                               │
-│  ├── Docker + PostgreSQL 18.1 + Redis 7.4.7 ✓                          │
+│  ├── Docker + PostgreSQL 18.1 + Redis 7.4.7 ✓                           │
 │  ├── Traefik SSL/TLS ✓                                                  │
 │  ├── SigNoz Observability ✓                                             │
 │  └── Monorepo PNPM ✓                                                    │
-│                                                                          │
+│                                                                         │
 │  ETAPA 1 (Data Enrichment)                                              │
 │  ├── Schema bronze/silver/gold ✓                                        │
 │  ├── Contacte validate ✓                                                │
 │  └── HITL base system ✓                                                 │
-│                                                                          │
+│                                                                         │
 │  ETAPA 2 (Cold Outreach)                                                │
 │  ├── Campanii outreach ✓                                                │
 │  ├── Template engine ✓                                                  │
 │  └── Channel management (Email/WhatsApp) ✓                              │
-│                                                                          │
+│                                                                         │
 │  ETAPA 3 (AI Agent) - CURRENT                                           │
-│  ├── Negotiation FSM                                                     │
-│  ├── Product Knowledge Base                                              │
-│  ├── Guardrails neuro-simbolice                                          │
+│  ├── Negotiation FSM                                                    │
+│  ├── Product Knowledge Base                                             │
+│  ├── Guardrails neuro-simbolice                                         │
 │  ├── Fiscal Integration (Oblio + e-Factura)                             │
-│  └── Human-in-the-Loop advanced                                          │
+│  └── Human-in-the-Loop advanced                                         │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -1016,6 +1018,7 @@ Etapa 3 implementează un **Agent Comercial AI Autonom** care navighează ciclul
   "outcome": "Pagină HITL Approvals funcțională pentru procesare cereri"
 }
 ```
+
     "IMPLEMENTEAZĂ toggle AI per conversație",
     "AFIȘEAZĂ metrics real-time cu refresh",
     "INCLUDE guardrails monitoring vizual"
@@ -1023,6 +1026,7 @@ Etapa 3 implementează un **Agent Comercial AI Autonom** care navighează ciclul
   "validare_task": "1. Dashboard renders corect\n2. Real-time updates funcționale\n3. Quick stats afișate\n4. Conversations list funcțională\n5. Guardrails panel afișat",
   "outcome": "Pagină AI Agent Dashboard funcțională cu monitorizare real-time"
 }
+
 ```
 
 ## F3.16.2 Negotiation Detail Page (#75)
@@ -1544,19 +1548,19 @@ etapa3_statistics:
 
 ### 19.2 Arhitectura Finală Etapa 3
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                        ETAPA 3: AI SALES AGENT                       │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│  ┌─────────────┐    ┌──────────────┐    ┌─────────────────┐        │
-│  │   Frontend  │◄──►│   API Layer  │◄──►│  Queue System   │        │
-│  │  (React 19) │    │  (Fastify)   │    │   (BullMQ)      │        │
-│  └─────────────┘    └──────────────┘    └────────┬────────┘        │
-│                                                   │                 │
+```text
+┌────────────────────────────────────────────────────────────────────┐
+│                        ETAPA 3: AI SALES AGENT                     │
+├────────────────────────────────────────────────────────────────────┤
+│                                                                    │
+│  ┌──────────────┐    ┌──────────────┐    ┌─────────────────┐       │
+│  │   Frontend   │◄──►│   API Layer  │◄──►│  Queue System   │       │
+│  │(React 19.2.3)│    │  (Fastify)   │    │   (BullMQ)      │       │
+│  └──────────────┘    └──────────────┘    └───────┬─────────┘       │
+│                                                  │                 │
 │  ┌───────────────────────────────────────────────┼─────────────┐   │
-│  │                    WORKER LAYER                │             │   │
-│  │                                                │             │   │
+│  │                    WORKER LAYER               │             │   │
+│  │                                               │             │   │
 │  │  ┌────────────────┐    ┌────────────────┐     │             │   │
 │  │  │ AI Orchestrator│◄──►│  MCP Server    │     │             │   │
 │  │  │   (Core)       │    │  (Tools)       │     │             │   │
@@ -1578,27 +1582,27 @@ etapa3_statistics:
 │  │  └────────────────┘    └────────────────┘     │             │   │
 │  │                                                             │   │
 │  └─────────────────────────────────────────────────────────────┘   │
-│                                                                     │
+│                                                                    │
 │  ┌─────────────────────────────────────────────────────────────┐   │
-│  │                    DATA LAYER                                │   │
-│  │                                                              │   │
+│  │                    DATA LAYER                               │   │
+│  │                                                             │   │
 │  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │   │
 │  │  │  PostgreSQL  │  │    Redis     │  │   Qdrant     │       │   │
 │  │  │  (Primary)   │  │   (Cache)    │  │  (Vectors)   │       │   │
 │  │  └──────────────┘  └──────────────┘  └──────────────┘       │   │
-│  │                                                              │   │
+│  │                                                             │   │
 │  └─────────────────────────────────────────────────────────────┘   │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
+│                                                                    │
+└────────────────────────────────────────────────────────────────────┘
 ```
 
 ### 19.3 Fluxul Principal de Procesare
 
-```
+```text
 Contact Message → API Gateway → BullMQ Queue
                                     │
                     ┌───────────────▼───────────────┐
-                    │     AI Orchestration Worker    │
+                    │     AI Orchestration Worker   │
                     │                               │
                     │  1. Load context (FSM state)  │
                     │  2. Build prompt (RAG search) │
@@ -1609,7 +1613,7 @@ Contact Message → API Gateway → BullMQ Queue
                     └───────────────┬───────────────┘
                                     │
                     ┌───────────────▼───────────────┐
-                    │       Guardrails Worker        │
+                    │       Guardrails Worker       │
                     │                               │
                     │  1. Validate prices           │
                     │  2. Check stock claims        │
@@ -1622,13 +1626,13 @@ Contact Message → API Gateway → BullMQ Queue
                     [PASS]                [FAIL/CRITICAL]
                          │                     │
                          ▼                     ▼
-                    Send Response      ┌───────────────┐
-                    Update FSM State   │  HITL Worker  │
-                                      │               │
+                    Send Response     ┌────────────────┐
+                    Update FSM State  │  HITL Worker   │
+                                      │                │
                                       │ Create approval│
                                       │ Notify approver│
                                       │ Wait decision  │
-                                      └───────┬───────┘
+                                      └───────┬────────┘
                                               │
                                     ┌─────────┴─────────┐
                                     │                   │
@@ -1680,8 +1684,8 @@ interface Etapa3KPIs {
 ### 19.5 Riscuri și Mitigări
 
 | Risc | Probabilitate | Impact | Mitigare |
-|------|---------------|--------|----------|
-| AI Hallucinations | Medium | Critical | Multi-layer guardrails, HITL mandatory for critical | 
+| ---- | ------------- | ------ | -------- |
+| AI Hallucinations | Medium | Critical | Multi-layer guardrails, HITL mandatory for critical |
 | OpenAI API Downtime | Low | High | Fallback model (Claude), cached responses |
 | ANAF SPV Failures | Medium | Medium | Queue retry, manual fallback |
 | High HITL Backlog | Medium | Medium | Auto-approval rules, SLA escalation |
@@ -1728,7 +1732,7 @@ phase_4_automation: # Weeks 13-16
 ### 19.7 Documente Referință Complete
 
 | Document | Descriere | Linii | Status |
-|----------|-----------|-------|--------|
+| -------- | --------- | ----- | ------ |
 | etapa3-plan-implementare.md | Plan detaliat de implementare | ~2000 | ✅ |
 | etapa3-standards.md | Standarde tehnice și coding | ~4000 | ✅ |
 | etapa3-standards-procedures.md | Proceduri operaționale | ~1200 | ✅ |
@@ -1858,7 +1862,7 @@ etapa2_integration:
 ### Version History
 
 | Version | Data | Modificări |
-|---------|------|------------|
+| ------- | ---- | ---------- |
 | 1.0.0 | 2026-01-19 | Versiune inițială completă |
 
 ### Contributors
@@ -1872,7 +1876,7 @@ etapa2_integration:
 ## Anexă C: Glosar de Termeni
 
 | Termen | Definiție |
-|--------|-----------|
+| ------ | --------- |
 | **FSM** | Finite State Machine - mașină de stări pentru negocieri |
 | **HITL** | Human-in-the-Loop - intervenție umană în procesare |
 | **RAG** | Retrieval Augmented Generation - căutare semantică + LLM |
@@ -1886,7 +1890,7 @@ etapa2_integration:
 
 ## Anexă D: Structura Finală Documente Etapa 3
 
-```
+```text
 /home/claude/etapa3-docs/
 ├── 00-INDEX-ETAPA3.md              # Index principal
 ├── etapa3-plan-implementare.md      # Plan detaliat (acest document)

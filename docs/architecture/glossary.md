@@ -740,9 +740,9 @@
 
 | Componentă        | Versiune   | Rol                            |
 | ----------------- | ---------- | ------------------------------ |
-| **Docker Engine** | 28.x/29.x  | Container runtime              |
+| **Docker Engine** | 29.1.3     | Container runtime              |
 | **Traefik**       | v3.6.6     | Reverse proxy, SSL termination |
-| **SigNoz**        | v0.106.0   | APM, traces, logs, metrics     |
+| **SigNoz**        | v0.107.0   | APM, traces, logs, metrics     |
 | **ClickHouse**    | Via SigNoz | Storage observability          |
 
 ### PostgreSQL Extensions

@@ -1,5 +1,7 @@
 # Etapa 3 - Workers L: MCP Server Workers
+
 # Cerniq B2B Agricultural Sales Automation Platform
+
 # Model Context Protocol Implementation
 
 **Document Version:** 1.0.0
@@ -46,6 +48,7 @@
 Workers L implement the Model Context Protocol (MCP) Server for Cerniq's AI-powered sales automation platform. MCP provides a standardized way for LLM applications to access external data sources and tools, enabling seamless integration between the AI Agent (Workers C) and Cerniq's business resources.
 
 The MCP Server exposes:
+
 - **Resources**: Product catalogs, customer profiles, conversation history, pricing data
 - **Tools**: Business operations like order placement, quote generation, inventory checks
 - **Prompts**: Pre-defined conversation templates for common scenarios
@@ -137,7 +140,7 @@ export const MCP_TECHNOLOGY_STACK = {
   
   // Queue Processing
   queue: {
-    manager: 'BullMQ v5.34.8',
+    manager: 'BullMQ v5.66.5',
     broker: 'Redis 7.4.7',
     persistence: true
   },
@@ -1635,7 +1638,6 @@ export class ClientResourceHandler {
 }
 ```
 
-
 ### 2.4 Conversation Resource Handler
 
 ```typescript
@@ -2184,7 +2186,6 @@ export class ConversationResourceHandler {
   }
 }
 ```
-
 
 ### 2.5 Catalog Resource Handler
 
@@ -3082,7 +3083,6 @@ export class ResourceLoaderWorker {
 export const resourceLoaderWorker = new ResourceLoaderWorker();
 ```
 
-
 ---
 
 ## 3. Worker L2: Tool Registry
@@ -3790,7 +3790,6 @@ export const getProductDetailsTool: MCPTool = {
   }
 };
 ```
-
 
 ### 3.4 Built-in Inventory Tools
 
@@ -4706,7 +4705,6 @@ export const calculateQuoteTool: MCPTool = {
 };
 ```
 
-
 ### 3.6 Tool Registry Service
 
 ```typescript
@@ -5566,7 +5564,6 @@ export class ToolRegistryWorker {
 export const toolRegistryWorker = new ToolRegistryWorker();
 ```
 
-
 ---
 
 ## 4. Worker L3: Session Manager
@@ -5576,6 +5573,7 @@ export const toolRegistryWorker = new ToolRegistryWorker();
 Worker L3 Session Manager handles MCP session lifecycle management, conversation context tracking, and state persistence for AI agent interactions. It maintains session state across multiple interactions, enabling contextual continuity for complex sales conversations.
 
 **Key Responsibilities:**
+
 - MCP session creation and termination
 - Conversation context management
 - State persistence and recovery
@@ -5584,6 +5582,7 @@ Worker L3 Session Manager handles MCP session lifecycle management, conversation
 - Context window optimization
 
 **Queue Configuration:**
+
 ```typescript
 // packages/workers/src/etapa3/l-mcp-server/l3-session-manager/queue.ts
 
@@ -27773,7 +27772,7 @@ technology_stack:
   framework: "Fastify 5.6.2"
   database: "PostgreSQL 18.1"
   cache: "Redis 7.4.7"
-  queue: "BullMQ 5.x"
+  queue: "BullMQ 5.66.5"
   ai: "Anthropic Claude claude-sonnet-4-20250514"
   
 estimated_lines: 24000

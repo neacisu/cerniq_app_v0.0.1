@@ -192,11 +192,11 @@ const LEGACY_ALIASES = {
        ┌──────────────────────────────┼──────────────────────────────┐
        │                              │                              │
        ▼                              ▼                              ▼
-┌─────────────┐               ┌─────────────┐               ┌─────────────┐
-│   Web App   │               │  Fastify    │               │   SigNoz    │
-│ React 19 +  │               │  API v5.6.2 │               │ Observability│
-│  Refine v5  │               │  (Node 24)  │               │  v0.106.0   │
-└─────────────┘               └──────┬──────┘               └─────────────┘
+┌───────────────┐               ┌─────────────┐               ┌──────────────┐
+│   Web App     │               │  Fastify    │               │   SigNoz     │
+│ React 19.2.3+ │               │  API v5.6.2 │               │ Observability│
+│  Refine v5    │               │  (Node 24)  │               │  v0.106.0    │
+└───────────────┘               └──────┬──────┘               └──────────────┘
                                      │
                     ┌────────────────┴────────────────┐
                     │        BACKEND NETWORK          │
@@ -246,7 +246,7 @@ const LEGACY_ALIASES = {
 | **Frontend** | React | 19.2.3 | Server Components, useOptimistic |
 | **Admin Framework** | Refine | v5 | TanStack Query v5, headless |
 | **Styling** | Tailwind CSS | 4.1.x | Oxide engine (Rust), 5x faster |
-| **Observability** | SigNoz | v0.106.0 | OpenTelemetry native, ClickHouse |
+| **Observability** | SigNoz | v0.107.0 | OpenTelemetry native, ClickHouse |
 | **Edge Router** | Traefik | v3.6.6 | Auto Let's Encrypt, circuit breakers |
 
 ### Decizii Arhitecturale de Top
@@ -300,7 +300,7 @@ Cross-cutting: via shared utilities, not forced inheritance
 │   │       ├── /sales/             # Vertical Slice: AI Sales Agent
 │   │       ├── /invoicing/         # Vertical Slice: Fiscal Integration
 │   │       └── /nurturing/         # Vertical Slice: Post-Sale
-│   └── /web (React 19 + Refine v5)
+│   └── /web (React 19.2.3 + Refine v5)
 │       └── /src/features/          # Mirror API slices
 ├── /packages
 │   ├── /db (Drizzle ORM)
@@ -752,7 +752,7 @@ CUSTOMER MESSAGE: "Am nevoie de ceva ieftin și bun pentru porumb, sub 5000 lei"
 │   Allocatable to containers: ~110GB                                                  │
 │                                                                                      │
 │   ┌─────────────────────────────────────────────────────────────────────────────┐   │
-│   │                     DOCKER ENGINE 28.x/29.x                                  │   │
+│   │                     DOCKER ENGINE 29.1.3                                     │   │
 │   │                                                                              │   │
 │   │   daemon.json:                                                               │   │
 │   │   - storage-driver: overlay2                                                 │   │
@@ -982,7 +982,7 @@ providers:
 └───────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## 8.3 Observability (SigNoz v0.106.0)
+## 8.3 Observability (SigNoz v0.107.0)
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────────────┐
@@ -1421,8 +1421,8 @@ Nivel 5 (Anexe Data Model):
 | Refine | 5.x | Oct 2025 | - | TanStack Query v5 |
 | BullMQ | 5.66.5 | Jan 2026 | - | - |
 | Traefik | 3.6.6 | Dec 2025 | - | - |
-| SigNoz | 0.106.0 | Jan 2026 | - | - |
-| Docker Engine | 28.x/29.x | 2025 | - | - |
+| SigNoz | 0.107.0 | Jan 2026 | - | - |
+| Docker Engine | 29.1.3 | 2026 | - | - |
 
 ---
 

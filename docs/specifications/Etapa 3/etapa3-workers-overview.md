@@ -1,4 +1,5 @@
 # Etapa 3 - Workers Overview
+
 ## AI Sales Agent Neuro-Symbolic: Documentație Completă Workers
 
 **Versiune:** 1.0  
@@ -29,23 +30,23 @@
 
 Etapa 3 implementează un **agent comercial autonom** care navighează ciclul complet de vânzare: de la primul contact până la emiterea facturii și înregistrarea în SPV.
 
-```
+```text
 ┌──────────────────────────────────────────────────────────────────────────────────┐
-│                    PARADIGMA NEURO-SIMBOLICĂ - ZERO HALLUCINATION               │
+│                    PARADIGMA NEURO-SIMBOLICĂ - ZERO HALLUCINATION                │
 │                                                                                  │
-│   ┌─────────────────┐        ┌─────────────────┐        ┌─────────────────┐    │
-│   │   NEURAL LAYER  │        │  SYMBOLIC LAYER │        │  OUTPUT LAYER   │    │
-│   │   (xAI Grok)    │───────▶│   (Guardrails)  │───────▶│   (Validated)   │    │
-│   │                 │        │                 │        │                 │    │
-│   │  • Înțelege     │        │  • Verifică     │        │  • Preț corect  │    │
-│   │    context      │        │    preț vs DB   │        │  • Stoc real    │    │
-│   │  • Generează    │        │  • Validează    │        │  • Discount     │    │
-│   │    răspuns      │        │    stoc live    │        │    aprobat      │    │
-│   │  • Propune      │        │  • Aplică       │        │  • Document     │    │
-│   │    acțiuni      │        │    reguli       │        │    fiscal valid │    │
-│   └─────────────────┘        └─────────────────┘        └─────────────────┘    │
+│   ┌─────────────────┐        ┌─────────────────┐        ┌─────────────────┐      │
+│   │   NEURAL LAYER  │        │  SYMBOLIC LAYER │        │  OUTPUT LAYER   │      │
+│   │   (xAI Grok)    │───────▶│   (Guardrails)  │───────▶│   (Validated)   │      │
+│   │                 │        │                 │        │                 │      │
+│   │  • Înțelege     │        │  • Verifică     │        │  • Preț corect  │      │
+│   │    context      │        │    preț vs DB   │        │  • Stoc real    │      │
+│   │  • Generează    │        │  • Validează    │        │  • Discount     │      │
+│   │    răspuns      │        │    stoc live    │        │    aprobat      │      │
+│   │  • Propune      │        │  • Aplică       │        │  • Document     │      │
+│   │    acțiuni      │        │    reguli       │        │    fiscal valid │      │
+│   └─────────────────┘        └─────────────────┘        └─────────────────┘      │
 │                                                                                  │
-│   Dacă Guardrail REJECTEAZĂ → LLM regenerează răspunsul cu feedback corectiv    │
+│   Dacă Guardrail REJECTEAZĂ → LLM regenerează răspunsul cu feedback corectiv     │
 └──────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -88,7 +89,7 @@ Etapa 3 implementează un **agent comercial autonom** care navighează ciclul co
 
 | Componentă | Tehnologie | Versiune |
 |------------|------------|----------|
-| Queue System | BullMQ | v5.66.0 |
+| Queue System | BullMQ | v5.66.5 |
 | Cache/Broker | Redis | 7.4.7 |
 | Runtime Node.js | Node.js | v24.12.0 LTS |
 | Runtime Python | Python | 3.14.1 (Free-Threading) |
@@ -217,7 +218,6 @@ Etapa 3 implementează un **agent comercial autonom** care navighează ciclul co
 └────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-
 ---
 
 ## 3. Inventar Complet Workers
@@ -234,6 +234,7 @@ Etapa 3 implementează un **agent comercial autonom** care navighează ciclul co
 | 6 | `product:variant:process` | Procesare variante produs | Fără | 10 | - |
 
 **Responsabilități:**
+
 - Ingestie date produse din surse externe (ERP, CSV, API)
 - Generare embeddings cu OpenAI text-embedding-3-small
 - Chunking descrieri lungi pentru retrieval optim
@@ -252,6 +253,7 @@ Etapa 3 implementează un **agent comercial autonom** care navighează ciclul co
 | 12 | `search:cache:manage` | Cache rezultate frecvente | Fără | 10 | - |
 
 **Responsabilități:**
+
 - Query rewriting cu LLM pentru îmbunătățire relevanță
 - Căutare vectorială cu cosine similarity
 - Căutare lexicală BM25 cu PostgreSQL tsvector
@@ -270,6 +272,7 @@ Etapa 3 implementează un **agent comercial autonom** care navighează ciclul co
 | 18 | `ai:retry:regenerate` | Regenerare pe guardrail fail | 60/min | 10 | - |
 
 **Responsabilități:**
+
 - Construire context din istoric, produs, client
 - Orchestrare tool calls în buclă
 - Generare răspuns personalizat
@@ -291,6 +294,7 @@ Etapa 3 implementează un **agent comercial autonom** care navighează ciclul co
 | 26 | `negotiation:abandon:process` | Procesare abandon | Fără | 10 | - |
 
 **Responsabilități:**
+
 - Validare și execuție tranziții FSM
 - Logging complet pentru audit trail
 - Gestionare items în coș negociere
@@ -310,6 +314,7 @@ Etapa 3 implementează un **agent comercial autonom** care navighează ciclul co
 | 32 | `pricing:competitor:check` | Verificare prețuri competiție | Cron */24h | 5 | - |
 
 **Responsabilități:**
+
 - Calculare discount maxim bazat pe reguli
 - Aplicare discount validat pe items
 - Workflow aprobare pentru discounturi mari (>15%)
@@ -329,6 +334,7 @@ Etapa 3 implementează un **agent comercial autonom** care navighează ciclul co
 | 38 | `stock:replenish:request` | Cerere reaprovizionare | Fără | 5 | - |
 
 **Responsabilități:**
+
 - Verificare stoc în timp real
 - Rezervare stoc per negociere (TTL-based)
 - Eliberare automată rezervări expirate
@@ -349,6 +355,7 @@ Etapa 3 implementează un **agent comercial autonom** care navighează ciclul co
 | 45 | `oblio:webhook:process` | Procesare webhooks Oblio | Fără | 20 | - |
 
 **Responsabilități:**
+
 - Emitere proforme și facturi via Oblio API
 - Validare date client înainte de emitere
 - Procesare anulări (storno) conform legii
@@ -366,6 +373,7 @@ Etapa 3 implementează un **agent comercial autonom** care navighează ciclul co
 | 50 | `einvoice:retry:failed` | Retry facturi eșuate | Cron */1h | 5 | - |
 
 **Responsabilități:**
+
 - Trimitere e-Factura în SPV ANAF via Oblio
 - Verificare periodică status procesare
 - **SAFETY NET:** Monitorizare deadline 5 zile
@@ -383,6 +391,7 @@ Etapa 3 implementează un **agent comercial autonom** care navighează ciclul co
 | 55 | `document:archive:store` | Arhivare documente | Fără | 20 | - |
 
 **Responsabilități:**
+
 - Generare PDF personalizate (WeasyPrint + Jinja2)
 - Trimitere multi-canal (email, WhatsApp)
 - Gestionare template-uri document
@@ -399,6 +408,7 @@ Etapa 3 implementează un **agent comercial autonom** care navighează ciclul co
 | 60 | `channel:email:send` | Trimitere mesaj email | 100/sec | 50 | - |
 
 **Responsabilități:**
+
 - Detectare răspuns de la lead → activare AI
 - Încărcare istoric conversație din Etapa 2
 - Decizie canal optim bazat pe preferințe
@@ -415,6 +425,7 @@ Etapa 3 implementează un **agent comercial autonom** care navighează ciclul co
 | 65 | `feedback:collect` | Colectare feedback client | Fără | 10 | - |
 
 **Responsabilități:**
+
 - Analiză sentiment (pozitiv/neutru/negativ)
 - Clasificare intenție (întrebare, comandă, obiecție, închidere)
 - Detectare și clasificare obiecții (preț, livrare, calitate)
@@ -432,6 +443,7 @@ Etapa 3 implementează un **agent comercial autonom** care navighează ciclul co
 | 70 | `mcp:metrics:collect` | Colectare metrici MCP | Cron */5min | 1 | - |
 
 **Responsabilități:**
+
 - Încărcare resurse (product://, client://, conversation://)
 - Înregistrare și expunere tools către LLM
 - Gestionare sesiuni și context
@@ -449,6 +461,7 @@ Etapa 3 implementează un **agent comercial autonom** care navighează ciclul co
 | 75 | `guardrail:fiscal:validate` | Validare date fiscale | Fără | 50 | **DA** |
 
 **Responsabilități:**
+
 - Validare preț menționat vs preț real din DB
 - Verificare stoc în timp real înainte de confirmare
 - Validare discount în limita permisă
@@ -464,6 +477,7 @@ Etapa 3 implementează un **agent comercial autonom** care navighează ciclul co
 | 78 | `human:approve` | Aprobare acțiuni critice | Fără | 20 | - |
 
 **Responsabilități:**
+
 - Escaladare conversații complexe/sensibile
 - Preluare manuală când AI nu poate rezolva
 - Aprobare discounturi mari, stornări, excepții
@@ -475,7 +489,6 @@ Etapa 3 implementează un **agent comercial autonom** care navighează ciclul co
 | - | `pipeline:ai-sales:health` | Verificare sănătate pipeline | Cron */1min | 1 | - |
 | - | `pipeline:ai-sales:metrics` | Colectare metrici pipeline | Cron */5min | 1 | - |
 | - | `pipeline:ai-sales:cleanup` | Curățare date vechi | Cron 02:00 | 1 | - |
-
 
 ---
 
@@ -903,4 +916,3 @@ export async function registerCronJobs() {
   }
 }
 ```
-
