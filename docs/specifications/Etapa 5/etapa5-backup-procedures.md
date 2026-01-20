@@ -13,7 +13,7 @@ CRITICAL (RPO: 1h, RTO: 30min):
 ├── gold_referrals
 ├── gold_churn_signals
 ├── gold_winback_campaigns
-└── gold_hitl_tasks (unified)
+└── approval_tasks (unified HITL)
 
 HIGH (RPO: 4h, RTO: 2h):
 ├── gold_clusters

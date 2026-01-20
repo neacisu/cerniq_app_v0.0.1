@@ -1,6 +1,12 @@
 # CERNIQ.APP — ETAPA 5: HITL SYSTEM
 ## Human-in-the-Loop pentru Nurturing Agentic
-### Versiunea 1.0 | 19 Ianuarie 2026
+### Versiunea 1.1 | 20 Ianuarie 2026
+
+---
+
+> **IMPORTANT:** Acest document utilizează sistemul **HITL UNIFICAT** conform [Master Specification](../master-specification.md) § 5 și [hitl-unified-system.md](../hitl-unified-system.md).
+>
+> ⚠️ **DEPRECATED:** Schema `gold_hitl_tasks_e5` a fost eliminată. Toate task-urile HITL din Etapa 5 folosesc tabela canonică `approval_tasks` cu `pipeline_stage='E5'`.
 
 ---
 
@@ -8,11 +14,11 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
-│                           ETAPA 5 - HITL SYSTEM                                  │
+│                           ETAPA 5 - HITL INTEGRATION                             │
 ├─────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                  │
 │  ┌─────────────────────────────────────────────────────────────────────────┐   │
-│  │                         TASK SOURCES                                     │   │
+│  │                         TASK SOURCES (E5)                                │   │
 │  ├─────────────────────────────────────────────────────────────────────────┤   │
 │  │                                                                          │   │
 │  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐    │   │
@@ -27,12 +33,13 @@
 │  └─────────────────────────────────────────────────────────────────────────┘   │
 │                                                                                  │
 │  ┌─────────────────────────────────────────────────────────────────────────┐   │
-│  │                      UNIFIED HITL ENGINE                                 │   │
+│  │              UNIFIED HITL ENGINE (approval_tasks)                        │   │
 │  ├─────────────────────────────────────────────────────────────────────────┤   │
 │  │                                                                          │   │
 │  │  ┌───────────────┐    ┌───────────────┐    ┌───────────────┐           │   │
 │  │  │ Task Router   │───►│ SLA Manager   │───►│ Assignment    │           │   │
-│  │  │               │    │               │    │ Engine        │           │   │
+│  │  │ pipeline_stage│    │ approval_type │    │ Engine        │           │   │
+│  │  │ = 'E5'        │    │ _configs      │    │               │           │   │
 │  │  └───────────────┘    └───────────────┘    └───────────────┘           │   │
 │  │                                                                          │   │
 │  │  ┌───────────────┐    ┌───────────────┐    ┌───────────────┐           │   │
@@ -40,15 +47,18 @@
 │  │  │ Handler       │    │ Processor     │    │               │           │   │
 │  │  └───────────────┘    └───────────────┘    └───────────────┘           │   │
 │  │                                                                          │   │
+│  │  📌 Schema: approval_tasks (vezi hitl-unified-system.md § 3)            │   │
+│  │  📌 Config: approval_type_configs (vezi hitl-unified-system.md § 4.2)   │   │
+│  │                                                                          │   │
 │  └─────────────────────────────────────────────────────────────────────────┘   │
 │                                                                                  │
 │  ┌─────────────────────────────────────────────────────────────────────────┐   │
-│  │                         HITL DASHBOARD                                   │   │
+│  │                    UNIFIED HITL INBOX (all stages)                       │   │
 │  ├─────────────────────────────────────────────────────────────────────────┤   │
 │  │                                                                          │   │
 │  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐    │   │
 │  │  │ Queue View  │  │ Task Detail │  │ Resolution  │  │ Analytics   │    │   │
-│  │  │             │  │             │  │ Dialog      │  │ Dashboard   │    │   │
+│  │  │ filter: E5  │  │             │  │ Dialog      │  │ Dashboard   │    │   │
 │  │  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘    │   │
 │  │                                                                          │   │
 │  └─────────────────────────────────────────────────────────────────────────┘   │
@@ -236,151 +246,168 @@ interface ComplianceReviewTask {
 
 ---
 
-## 3. SLA Configuration
+## 3. SLA Configuration (via approval_type_configs)
+
+> **REFERINȚĂ CANONICĂ:** SLA-urile sunt definite în tabela `approval_type_configs`. Vezi [hitl-unified-system.md § 4.2](../hitl-unified-system.md#42-schema-approval_type_configs).
+
+### 3.1 SLA Mapping pentru Etapa 5
+
+| approval_type | Priority | SLA (minute) | Escalate After | Timeout Action |
+|---------------|----------|--------------|----------------|----------------|
+| `churn_intervention` | critical | 120 (2h) | 60 (1h) | escalate → VP |
+| `churn_intervention` | high | 1440 (24h) | 720 (12h) | escalate |
+| `nps_followup` | high | 1440 (24h) | 720 (12h) | escalate |
+| `nps_followup` | normal | 2880 (48h) | 1440 (24h) | escalate |
+| `referral_approval` | normal | 2880 (48h) | 2160 (36h) | escalate |
+| `winback_call` | high | 1440 (24h) | 720 (12h) | escalate |
+| `cluster_strategy` | normal | 10080 (7d) | 7200 (5d) | escalate |
+| `cluster_strategy` | low | 20160 (14d) | 14400 (10d) | defer |
+| `compliance_review` | high | 240 (4h) | 120 (2h) | escalate → Legal |
+
+### 3.2 Configurare în approval_type_configs
+
+```sql
+-- Query pentru a vedea configurațiile E5:
+SELECT 
+    approval_type,
+    display_name,
+    sla_critical,
+    sla_high,
+    sla_normal,
+    sla_low,
+    escalation_chain
+FROM approval_type_configs
+WHERE pipeline_stage = 'E5';
+```
+
+### 3.3 Helper TypeScript (Convenience Wrapper)
 
 ```typescript
-// configs/hitl/etapa5-sla.ts
-export const ETAPA5_HITL_SLA = {
-  CHURN_INTERVENTION: {
-    CRITICAL: { hours: 2, escalateAfter: 1 },
-    HIGH: { hours: 24, escalateAfter: 12 }
-  },
-  NPS_FOLLOWUP: {
-    HIGH: { hours: 24, escalateAfter: 12 },
-    NORMAL: { hours: 48, escalateAfter: 24 }
-  },
-  REFERRAL_APPROVAL: {
-    NORMAL: { hours: 48, escalateAfter: 36 }
-  },
-  WINBACK_CALL: {
-    HIGH: { hours: 24, escalateAfter: 12 }
-  },
-  CLUSTER_STRATEGY: {
-    NORMAL: { days: 7, escalateAfter: 5 },
-    LOW: { days: 14, escalateAfter: 10 }
-  },
-  COMPLIANCE_REVIEW: {
-    HIGH: { hours: 4, escalateAfter: 2 }
-  }
-};
+// utils/hitl/e5-sla-helper.ts
+import { getApprovalTypeConfig } from '@cerniq/hitl-unified';
+
+export async function getE5SlaMinutes(
+  approvalType: E5ApprovalType, 
+  priority: Priority
+): Promise<number> {
+  const config = await getApprovalTypeConfig(approvalType);
+  return config[`sla_${priority}`] ?? config.sla_normal;
+}
+
+// Type safety pentru approval types E5
+export type E5ApprovalType = 
+  | 'churn_intervention'
+  | 'nps_followup'
+  | 'referral_approval'
+  | 'winback_call'
+  | 'cluster_strategy'
+  | 'compliance_review';
 ```
 
 ---
 
 ## 4. HITL Database Schema
 
-```sql
-CREATE TABLE gold_hitl_tasks_e5 (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES tenants(id),
-    
-    -- Task Identity
-    task_type VARCHAR(50) NOT NULL,
-    task_number SERIAL,
-    
-    -- Priority & SLA
-    priority VARCHAR(20) NOT NULL,
-    sla_deadline TIMESTAMPTZ NOT NULL,
-    sla_warning_at TIMESTAMPTZ,
-    sla_status VARCHAR(20) DEFAULT 'OK',  -- OK, WARNING, BREACHED
-    
-    -- References
-    client_id UUID REFERENCES gold_clients(id),
-    entity_type VARCHAR(30),
-    entity_id UUID,
-    
-    -- Assignment
-    assigned_to UUID REFERENCES users(id),
-    assigned_at TIMESTAMPTZ,
-    assignment_method VARCHAR(30),  -- AUTO, MANUAL, ROUND_ROBIN
-    
-    -- Context (polymorphic JSONB)
-    context JSONB NOT NULL,
-    
-    -- Resolution
-    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',  -- PENDING, IN_PROGRESS, RESOLVED, EXPIRED
-    resolution VARCHAR(50),
-    resolution_notes TEXT,
-    action_taken TEXT,
-    resolved_by UUID REFERENCES users(id),
-    resolved_at TIMESTAMPTZ,
-    
-    -- Followup
-    followup_scheduled BOOLEAN DEFAULT FALSE,
-    followup_at TIMESTAMPTZ,
-    followup_task_id UUID REFERENCES gold_hitl_tasks_e5(id),
-    
-    -- Escalation
-    escalation_level INTEGER DEFAULT 0,
-    escalated_at TIMESTAMPTZ,
-    escalated_to UUID REFERENCES users(id),
-    escalation_reason TEXT,
-    
-    -- Correlation
-    correlation_id UUID,
-    source_worker VARCHAR(100),
-    
-    -- Timestamps
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+> **REFERINȚĂ CANONICĂ:** Schema HITL este definită în [hitl-unified-system.md § 3](../hitl-unified-system.md#3-schema-approval_tasks).
+>
+> ⚠️ **DEPRECATED:** Tabela `gold_hitl_tasks_e5` a fost **eliminată**. Nu mai există tabele HITL per-etapă.
 
--- Indexes
-CREATE INDEX idx_hitl_e5_tenant_status ON gold_hitl_tasks_e5(tenant_id, status, priority);
-CREATE INDEX idx_hitl_e5_assigned ON gold_hitl_tasks_e5(assigned_to, status);
-CREATE INDEX idx_hitl_e5_sla ON gold_hitl_tasks_e5(sla_deadline) WHERE status = 'PENDING';
-CREATE INDEX idx_hitl_e5_client ON gold_hitl_tasks_e5(client_id);
+### 4.1 Tabela Canonică: `approval_tasks`
+
+Etapa 5 folosește tabela unificată `approval_tasks` cu următorul pattern:
+
+```sql
+-- Task-urile E5 sunt identificate prin:
+--   pipeline_stage = 'E5'
+--   approval_type IN ('churn_intervention', 'nps_followup', 'referral_approval', 
+--                     'winback_call', 'cluster_strategy', 'compliance_review')
+
+-- Exemplu query pentru inbox E5:
+SELECT * FROM approval_tasks
+WHERE tenant_id = current_setting('app.current_tenant_id')::uuid
+  AND pipeline_stage = 'E5'
+  AND status IN ('pending', 'assigned', 'in_review')
+ORDER BY priority DESC, due_at ASC;
+```
+
+### 4.2 Mapping Câmpuri E5 → approval_tasks
+
+| Câmp Legacy (gold_hitl_tasks_e5) | Câmp Canonic (approval_tasks) | Note |
+|----------------------------------|-------------------------------|------|
+| `task_type` | `approval_type` | Vezi § 4.3 pentru tipuri E5 |
+| `priority` (CRITICAL/HIGH/NORMAL/LOW) | `priority` (critical/high/normal/low) | Lowercase în canonic |
+| `sla_deadline` | `due_at` | Calculat din `sla_minutes` |
+| `sla_status` | Calculat din `due_at - NOW()` | Vezi SLA functions în unified |
+| `client_id` | `metadata.client_id` | Stocat în JSONB |
+| `entity_type`, `entity_id` | `entity_type`, `entity_id` | Identic |
+| `context` | `metadata` | JSONB flexibil |
+| `status` (PENDING/IN_PROGRESS/RESOLVED) | `status` (pending/assigned/in_review/approved/rejected) | State machine extins |
+| `resolution` | `decision` | APPROVED/REJECTED |
+| `resolution_notes` | `decision_reason` | Text |
+| `resolved_by` | `decided_by` | UUID user |
+| `resolved_at` | `decided_at` | Timestamp |
+| `escalation_level` | `current_level` | Integer |
+| `correlation_id` | `correlation_id` | Identic |
+| `source_worker` | `metadata.source_worker` | Stocat în JSONB |
+
+### 4.3 Approval Types pentru Etapa 5
+
+```sql
+-- Configurații specifice E5 în approval_type_configs
+INSERT INTO approval_type_configs (approval_type, display_name, pipeline_stage, sla_normal, sla_high, sla_critical) VALUES
+    ('churn_intervention', 'Intervenție Churn', 'E5', 1440, 480, 120),     -- 24h/8h/2h
+    ('nps_followup', 'NPS Followup Detractor', 'E5', 2880, 1440, NULL),    -- 48h/24h
+    ('referral_approval', 'Aprobare Referral', 'E5', 2880, NULL, NULL),    -- 48h
+    ('winback_call', 'Win-Back Call Review', 'E5', 1440, NULL, NULL),      -- 24h
+    ('cluster_strategy', 'Strategie Cluster', 'E5', 10080, 5040, NULL),    -- 1w/3.5d
+    ('compliance_review', 'Review Compliance', 'E5', 240, NULL, NULL);     -- 4h
 ```
 
 ---
 
-## 5. HITL Workers
+## 5. HITL Workers (Unified Pattern)
 
-### L1: hitl:task:create
+> **REFERINȚĂ:** Pentru implementarea completă a workerilor HITL, vezi [hitl-unified-system.md § 8](../hitl-unified-system.md#8-workers-hitl).
+
+### L1: hitl:task:create (Pattern Unificat pentru E5)
+
 ```typescript
+import { createApprovalTask, getApprovalTypeConfig } from '@cerniq/hitl-unified';
+
 export const hitlTaskCreateWorker = new Worker(
   'hitl',
   async (job) => {
-    const { tenantId, taskType, priority, clientId, entityId, context, sourceWorker } = job.data;
+    const { tenantId, approvalType, priority, clientId, entityId, context, sourceWorker } = job.data;
     
-    // Calculate SLA deadline
-    const slaConfig = ETAPA5_HITL_SLA[taskType][priority];
-    const slaDeadline = slaConfig.hours 
-      ? addHours(new Date(), slaConfig.hours)
-      : addDays(new Date(), slaConfig.days);
+    // Get SLA from unified config
+    const config = await getApprovalTypeConfig(approvalType);
+    const slaMinutes = config[`sla_${priority}`] || config.sla_normal;
     
-    const slaWarningAt = slaConfig.hours
-      ? addHours(new Date(), slaConfig.escalateAfter)
-      : addDays(new Date(), slaConfig.escalateAfter);
-    
-    // Create task
-    const task = await db.insert(goldHitlTasksE5).values({
-      tenantId,
-      taskType,
-      priority,
-      slaDeadline,
-      slaWarningAt,
-      clientId,
-      entityId,
-      context,
-      sourceWorker,
-      correlationId: job.data.correlationId
-    }).returning();
-    
-    // Auto-assign if configured
-    const assignee = await autoAssign(tenantId, taskType);
-    if (assignee) {
-      await db.update(goldHitlTasksE5)
-        .set({ assignedTo: assignee, assignedAt: new Date(), assignmentMethod: 'AUTO' })
-        .where(eq(goldHitlTasksE5.id, task.id));
-    }
-    
-    // Schedule SLA warning check
-    await hitlQueue.add('hitl:sla:check', { taskId: task.id }, {
-      delay: slaWarningAt.getTime() - Date.now()
+    // Create task in UNIFIED approval_tasks table
+    const task = await createApprovalTask({
+      tenant_id: tenantId,
+      entity_type: 'nurturing_client',
+      entity_id: entityId,
+      pipeline_stage: 'E5',                    // ← Marker pentru Etapa 5
+      approval_type: approvalType,             // ← churn_intervention, nps_followup, etc.
+      bullmq_job_id: job.id,
+      bullmq_queue_name: job.queueName,
+      correlation_id: job.data.correlationId,
+      priority: priority.toLowerCase(),        // ← lowercase în schema canonică
+      sla_minutes: slaMinutes,
+      metadata: {
+        client_id: clientId,
+        source_worker: sourceWorker,
+        ...context
+      }
     });
     
-    // Send notification
+    // Auto-assign if configured (via unified assignment engine)
+    if (config.auto_assign_rules?.length > 0) {
+      await hitlQueue.add('hitl:auto:assign', { taskId: task.id });
+    }
+    
+    // Notification via unified service
     await notificationService.notifyHitlTask(task);
     
     return { taskId: task.id };
@@ -388,65 +415,68 @@ export const hitlTaskCreateWorker = new Worker(
 );
 ```
 
-### L2: hitl:task:resolve
+### L2: hitl:task:resolve (Pattern Unificat pentru E5)
+
 ```typescript
+import { resolveApprovalTask } from '@cerniq/hitl-unified';
+
 export const hitlTaskResolveWorker = new Worker(
   'hitl',
   async (job) => {
-    const { taskId, resolution, notes, actionTaken, resolvedBy, followupAt } = job.data;
+    const { taskId, decision, reason, decidedBy, followupAt } = job.data;
     
-    // Update task
-    await db.update(goldHitlTasksE5)
-      .set({
-        status: 'RESOLVED',
-        resolution,
-        resolutionNotes: notes,
-        actionTaken,
-        resolvedBy,
-        resolvedAt: new Date(),
-        followupScheduled: !!followupAt,
-        followupAt
-      })
-      .where(eq(goldHitlTasksE5.id, taskId));
-    
-    // Get task for context
-    const task = await db.query.goldHitlTasksE5.findFirst({
-      where: eq(goldHitlTasksE5.id, taskId)
+    // Resolve task in UNIFIED approval_tasks table
+    const task = await resolveApprovalTask(taskId, {
+      decision,                    // 'approved' | 'rejected'
+      decision_reason: reason,
+      decided_by: decidedBy,       // UUID user.id
+      decided_at: new Date()
     });
     
-    // Trigger downstream actions based on task type and resolution
-    if (task.taskType === 'REFERRAL_APPROVAL' && resolution === 'APPROVED') {
+    // Trigger downstream actions based on approval_type and decision
+    if (task.approval_type === 'referral_approval' && decision === 'approved') {
       await referralQueue.add('referral:outreach:execute', {
-        referralId: task.entityId
+        referralId: task.entity_id
       });
     }
     
-    if (task.taskType === 'WINBACK_CALL' && resolution === 'CALL_COMPLETED_INTERESTED') {
+    if (task.approval_type === 'winback_call' && decision === 'approved') {
+      const campaignId = task.metadata?.campaignId;
       await winbackQueue.add('winback:step:execute', {
-        campaignId: task.context.campaignId,
+        campaignId,
         stepIndex: 'OFFER'
       });
     }
     
-    // Schedule followup if needed
+    // Schedule followup if needed (creates new task in approval_tasks)
     if (followupAt) {
       await hitlQueue.add('hitl:task:create', {
-        tenantId: task.tenantId,
-        taskType: 'FOLLOWUP',
-        priority: 'NORMAL',
-        clientId: task.clientId,
-        context: { originalTaskId: taskId, followupReason: notes }
+        tenantId: task.tenant_id,
+        approvalType: 'nps_followup',
+        priority: 'normal',
+        clientId: task.metadata?.client_id,
+        entityId: task.entity_id,
+        context: { originalTaskId: taskId, followupReason: reason }
       }, {
         delay: new Date(followupAt).getTime() - Date.now()
       });
     }
     
-    // Audit trail
+    // Resume BullMQ job if waiting
+    if (task.bullmq_job_id && task.bullmq_queue_name) {
+      await resumeWaitingJob(task.bullmq_queue_name, task.bullmq_job_id, {
+        decision,
+        taskId: task.id
+      });
+    }
+    
+    // Audit trail (unified)
     await complianceQueue.add('audit:trail:record', {
       action: 'HITL_RESOLUTION',
-      entityType: 'HITL_TASK',
+      entityType: 'approval_task',
       entityId: taskId,
-      details: { resolution, actionTaken, resolvedBy }
+      pipelineStage: 'E5',
+      details: { decision, decidedBy }
     });
     
     return { resolved: true };
@@ -454,94 +484,126 @@ export const hitlTaskResolveWorker = new Worker(
 );
 ```
 
-### L3: hitl:sla:check
+### L3: hitl:sla:monitor (Unified SLA Worker)
+
 ```typescript
-export const hitlSlaCheckWorker = new Worker(
-  'hitl',
-  async (job) => {
-    const { taskId } = job.data;
-    
-    const task = await db.query.goldHitlTasksE5.findFirst({
-      where: eq(goldHitlTasksE5.id, taskId)
-    });
-    
-    if (!task || task.status !== 'PENDING') return { skipped: true };
-    
-    const now = new Date();
-    
-    if (now >= task.slaDeadline) {
-      // SLA Breached
-      await db.update(goldHitlTasksE5)
-        .set({ slaStatus: 'BREACHED' })
-        .where(eq(goldHitlTasksE5.id, taskId));
-      
-      await hitlQueue.add('hitl:escalate', { taskId, reason: 'SLA_BREACHED' });
-    } else if (now >= task.slaWarningAt) {
-      // SLA Warning
-      await db.update(goldHitlTasksE5)
-        .set({ slaStatus: 'WARNING' })
-        .where(eq(goldHitlTasksE5.id, taskId));
-      
-      await notificationService.notifySlaWarning(task);
-      
-      // Schedule final check
-      await hitlQueue.add('hitl:sla:check', { taskId }, {
-        delay: task.slaDeadline.getTime() - Date.now()
-      });
-    }
-    
-    return { checked: true, slaStatus: task.slaStatus };
-  }
+// SLA monitoring este gestionat de sistemul HITL unificat.
+// Vezi hitl-unified-system.md § 5 pentru SLA calculation și escalation.
+
+// Worker-ul E5 doar înregistrează task-uri; SLA monitoring e centralizat:
+// - hitl:sla:scan - Cron job global pentru toate etapele
+// - hitl:escalate - Handler escalare unificat
+
+// Configurația SLA pentru E5 este în approval_type_configs:
+// SELECT * FROM approval_type_configs WHERE pipeline_stage = 'E5';
+```
+
+---
+
+## 6. HITL UI Components (Unified Inbox)
+
+> **REFERINȚĂ:** UI-ul HITL este unificat pentru toate etapele. Componentele folosesc filtre pentru `pipeline_stage='E5'`.
+>
+> Vezi [hitl-unified-system.md § 7](../hitl-unified-system.md#7-api-endpoints) pentru API-ul UI.
+
+### 6.1 Unified HITL Inbox cu filtru E5
+
+```typescript
+// Accesare inbox pentru Etapa 5:
+// GET /api/v1/hitl/queue?pipelineStage=E5
+
+interface HITLQueueParams {
+  pipelineStage?: ('E1' | 'E2' | 'E3' | 'E4' | 'E5')[];  // Filter pentru E5
+  approvalType?: string[];     // e.g., ['churn_intervention', 'nps_followup']
+  priority?: ('critical' | 'high' | 'normal' | 'low')[];
+  status?: ('pending' | 'assigned' | 'in_review')[];
+  assignedTo?: string;         // UUID
+  slaStatus?: 'ok' | 'warning' | 'breached';
+}
+```
+
+### 6.2 TaskQueueTable (Unified Component)
+
+```typescript
+// Componenta este aceeași pentru toate etapele - doar filtrul diferă
+const E5TaskQueue = () => (
+  <UnifiedHITLQueue 
+    defaultFilters={{ pipelineStage: ['E5'] }}
+    columns={[
+      { key: 'priority', header: '', render: PriorityIndicator, width: 40 },
+      { key: 'approval_type', header: 'Type', render: ApprovalTypeBadge },
+      { key: 'metadata.client_name', header: 'Client' },
+      { key: 'due_at', header: 'SLA', render: SlaCountdown },
+      { key: 'assigned_to', header: 'Assigned', render: UserAvatar },
+      { key: 'created_at', header: 'Created', render: RelativeTime },
+      { key: 'actions', header: '', render: ActionsDropdown }
+    ]}
+  />
 );
 ```
 
----
+### 6.3 TaskResolutionDialog (Unified)
 
-## 6. HITL UI Components
-
-### TaskQueueTable
 ```typescript
-interface TaskQueueTableProps {
-  tasks: HITLTask[];
-  onResolve: (taskId: string) => void;
-  onAssign: (taskId: string, userId: string) => void;
-  filters: {
-    taskType?: string[];
-    priority?: string[];
-    status?: string[];
-    assignedTo?: string;
+// Dialog de rezoluție folosește approval_type pentru a determina opțiunile
+interface ResolveApprovalTaskRequest {
+  decision: 'approved' | 'rejected';
+  decision_reason?: string;
+  // Extensii E5-specifice în metadata response:
+  metadata_updates?: {
+    action_taken?: string;
+    followup_scheduled?: boolean;
+    followup_at?: string;
   };
 }
 
-const columns = [
-  { key: 'priority', header: '', render: PriorityIndicator, width: 40 },
-  { key: 'taskType', header: 'Type', render: TaskTypeBadge },
-  { key: 'clientName', header: 'Client' },
-  { key: 'slaDeadline', header: 'SLA', render: SlaCountdown },
-  { key: 'assignedTo', header: 'Assigned', render: UserAvatar },
-  { key: 'createdAt', header: 'Created', render: RelativeTime },
-  { key: 'actions', header: '', render: ActionsDropdown }
-];
-```
-
-### TaskResolutionDialog
-```typescript
-interface TaskResolutionDialogProps {
-  task: HITLTask;
-  isOpen: boolean;
-  onClose: () => void;
-  onResolve: (resolution: Resolution) => void;
-}
-
-// Shows:
-// - Full task context
-// - Resolution options based on task type
-// - Notes field
-// - Action taken field
-// - Optional followup scheduling
+// Opțiunile de rezoluție sunt configurate per approval_type în approval_type_configs.required_fields
 ```
 
 ---
 
-**Document generat**: 2026-01-19  
-**Status**: COMPLET ✅
+## 7. Migration de la gold_hitl_tasks_e5 la approval_tasks
+
+> **NOTĂ:** Această secțiune documentează migrarea conceptuală. Schema `gold_hitl_tasks_e5` nu mai există.
+
+### 7.1 Checklist Migrare Cod
+
+- [x] Înlocuit `gold_hitl_tasks_e5` cu `approval_tasks`
+- [x] Adăugat `pipeline_stage = 'E5'` la toate inserțiile
+- [x] Convertit `task_type` în `approval_type` (lowercase, snake_case)
+- [x] Mutat `client_id` și `source_worker` în `metadata` JSONB
+- [x] Actualizat queries pentru noul naming (`sla_deadline` → `due_at`)
+- [x] Aliniat statusuri: PENDING→pending, IN_PROGRESS→in_review, RESOLVED→approved/rejected
+
+### 7.2 Backward Compatibility
+
+```typescript
+// Helper pentru tranziție (deprecated - doar pentru referință)
+function mapLegacyTaskType(legacyType: string): E5ApprovalType {
+  const mapping: Record<string, E5ApprovalType> = {
+    'CHURN_INTERVENTION': 'churn_intervention',
+    'NPS_FOLLOWUP': 'nps_followup',
+    'REFERRAL_APPROVAL': 'referral_approval',
+    'WINBACK_CALL': 'winback_call',
+    'CLUSTER_STRATEGY': 'cluster_strategy',
+    'COMPLIANCE_REVIEW': 'compliance_review'
+  };
+  return mapping[legacyType] ?? 'compliance_review';
+}
+```
+
+---
+
+## REFERINȚE
+
+| Document | Secțiuni Relevante |
+|----------|-------------------|
+| [`master-specification.md`](../master-specification.md) | § 5 HITL Core Contract |
+| [`hitl-unified-system.md`](../hitl-unified-system.md) | § 3 Schema, § 4 Approval Types, § 7 API |
+| [`architecture.md`](../../architecture/architecture.md) | § 5.3 Unified HITL |
+
+---
+
+**Document generat**: 2026-01-20  
+**Versiunea**: 1.1 (Aliniat la HITL Unificat)  
+**Status**: ACTUALIZAT ✅

@@ -141,7 +141,7 @@ export const MCP_TECHNOLOGY_STACK = {
   // Queue Processing
   queue: {
     manager: 'BullMQ v5.66.5',
-    broker: 'Redis 7.4.7',
+    broker: 'Redis 8.4.0',
     persistence: true
   },
   
@@ -149,7 +149,7 @@ export const MCP_TECHNOLOGY_STACK = {
   database: {
     primary: 'PostgreSQL 18.1',
     orm: 'Drizzle ORM v0.38.4',
-    cache: 'Redis 7.4.7'
+    cache: 'Redis 8.4.0'
   },
   
   // Validation
@@ -22400,7 +22400,7 @@ export class IntegrationTestEnvironment {
    */
   async start(): Promise<void> {
     // Start Redis
-    this.redisContainer = await new GenericContainer('redis:7.4-alpine')
+    this.redisContainer = await new GenericContainer('redis:8.4-alpine')
       .withExposedPorts(6379)
       .withStartupTimeout(60000)
       .start();
@@ -26508,7 +26508,7 @@ services:
   # Redis
   # ═══════════════════════════════════════════════════════════════════
   redis:
-    image: redis:7.4.7-alpine
+    image: redis:8.4-alpine
     container_name: cerniq-redis
     restart: unless-stopped
     command: >
@@ -26951,7 +26951,7 @@ jobs:
           - 5432:5432
       
       redis:
-        image: redis:7.4.7
+        image: redis:8.4-alpine
         options: >-
           --health-cmd "redis-cli ping"
           --health-interval 10s
@@ -27771,7 +27771,7 @@ technology_stack:
   language: "TypeScript 5.7.x"
   framework: "Fastify 5.6.2"
   database: "PostgreSQL 18.1"
-  cache: "Redis 7.4.7"
+  cache: "Redis 8.4.0"
   queue: "BullMQ 5.66.5"
   ai: "Anthropic Claude claude-sonnet-4-20250514"
   

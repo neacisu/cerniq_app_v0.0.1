@@ -18,7 +18,7 @@
 | ---- | -------- | ----------- |
 | F0.1 | Infrastructură Docker de Bază | 5 |
 | F0.2 | PostgreSQL 18.1 Setup | 5 |
-| F0.3 | Redis 7.4.7 și BullMQ Setup | 3 |
+| F0.3 | Redis 8.4 și BullMQ Setup | 3 |
 | F0.4 | Traefik v3.6.6 Setup | 4 |
 | F0.5 | Observability Stack (SigNoz) | 3 |
 | F0.6 | PNPM și Monorepo Setup | 8 |
@@ -244,14 +244,14 @@
 
 ---
 
-## FAZA F0.3: REDIS 7.4.7 ȘI BULLMQ SETUP
+## FAZA F0.3: REDIS 8.4 ȘI BULLMQ SETUP
 
 ```json
 {
   "taskID": "F0.3.1.T001",
-  "denumire_task": "Adăugare serviciu Redis 7.4.7 optimizat pentru BullMQ în docker-compose.yml",
+  "denumire_task": "Adăugare serviciu Redis 8.4 optimizat pentru BullMQ în docker-compose.yml",
   "context_anterior": "PostgreSQL funcțional din F0.2. Acum adăugăm Redis pentru BullMQ job queuing. CRITIC: maxmemory-policy TREBUIE să fie noeviction pentru BullMQ.",
-  "descriere_task": "Ești un expert Redis specializat în job queues și BullMQ. Task-ul tău este să adaugi serviciul Redis în docker-compose.yml.\n\nAdaugă următorul serviciu în docker-compose.yml:\n\n```yaml\n  redis:\n    image: redis:7.4-alpine\n    container_name: cerniq-redis\n    restart: unless-stopped\n    command:\n      - redis-server\n      - --maxmemory 8gb\n      - --maxmemory-policy noeviction\n      - --appendonly yes\n      - --appendfsync everysec\n      - --aof-use-rdb-preamble yes\n      - --notify-keyspace-events Ex\n      - --lazyfree-lazy-eviction yes\n      - --lazyfree-lazy-expire yes\n      - --activedefrag yes\n      - --tcp-keepalive 300\n    volumes:\n      - redis_data:/data\n    networks:\n      - cerniq_data\n      - cerniq_backend\n    healthcheck:\n      test: [\"CMD\", \"redis-cli\", \"ping\"]\n      interval: 10s\n      timeout: 5s\n      retries: 5\n      start_period: 30s\n    deploy:\n      resources:\n        limits:\n          memory: 12G\n          cpus: '2'\n        reservations:\n          memory: 8G\n          cpus: '1'\n```\n\nIMPORTANT: Redis este pe AMBELE rețele - cerniq_data (pentru persistență) și cerniq_backend (pentru workers).",
+  "descriere_task": "Ești un expert Redis specializat în job queues și BullMQ. Task-ul tău este să adaugi serviciul Redis în docker-compose.yml.\n\nAdaugă următorul serviciu în docker-compose.yml:\n\n```yaml\n  redis:\n    image: redis:8.4-alpine\n    container_name: cerniq-redis\n    restart: unless-stopped\n    command:\n      - redis-server\n      - --maxmemory 8gb\n      - --maxmemory-policy noeviction\n      - --appendonly yes\n      - --appendfsync everysec\n      - --aof-use-rdb-preamble yes\n      - --notify-keyspace-events Ex\n      - --lazyfree-lazy-eviction yes\n      - --lazyfree-lazy-expire yes\n      - --activedefrag yes\n      - --tcp-keepalive 300\n    volumes:\n      - redis_data:/data\n    networks:\n      - cerniq_data\n      - cerniq_backend\n    healthcheck:\n      test: [\"CMD\", \"redis-cli\", \"ping\"]\n      interval: 10s\n      timeout: 5s\n      retries: 5\n      start_period: 30s\n    deploy:\n      resources:\n        limits:\n          memory: 12G\n          cpus: '2'\n        reservations:\n          memory: 8G\n          cpus: '1'\n```\n\nIMPORTANT: Redis este pe AMBELE rețele - cerniq_data (pentru persistență) și cerniq_backend (pentru workers).",
   "director_implementare": "/var/www/CerniqAPP/infra/docker",
   "restrictii_antihalucinatie": [
     "maxmemory-policy TREBUIE să fie noeviction - BullMQ jobs NU POT fi evicted, altfel se pierd",
@@ -261,8 +261,8 @@
     "FOLOSEȘTE ambele rețele: cerniq_data și cerniq_backend",
     "VERIFICĂ că appendonly este yes pentru persistență"
   ],
-  "validare_task": "1. 'docker compose config' validează fără erori\n2. Redis folosește imaginea redis:7.4-alpine\n3. maxmemory-policy este noeviction (verifică în command)\n4. appendonly este yes\n5. notify-keyspace-events este Ex\n6. Redis este pe ambele rețele: cerniq_data și cerniq_backend\n7. Nu există port mapping public pentru 6379",
-  "outcome": "Redis 7.4.7 configurat optim pentru BullMQ job queues cu persistență AOF și maxmemory-policy noeviction"
+  "validare_task": "1. 'docker compose config' validează fără erori\n2. Redis folosește imaginea redis:8.4-alpine\n3. maxmemory-policy este noeviction (verifică în command)\n4. appendonly este yes\n5. notify-keyspace-events este Ex\n6. Redis este pe ambele rețele: cerniq_data și cerniq_backend\n7. Nu există port mapping public pentru 6379",
+  "outcome": "Redis 8.4 configurat optim pentru BullMQ job queues cu persistență AOF și maxmemory-policy noeviction"
 }
 ```
 
@@ -280,7 +280,7 @@
     "AȘTEAPTĂ ca healthcheck să fie healthy înainte de verificări"
   ],
   "validare_task": "1. Container cerniq-redis este running\n2. Health status este healthy\n3. CONFIG GET maxmemory-policy returnează noeviction\n4. CONFIG GET appendonly returnează yes\n5. CONFIG GET notify-keyspace-events returnează Ex sau conține Ex\n6. Test SET/GET funcționează",
-  "outcome": "Redis 7.4.7 rulează corect cu configurația optimă pentru BullMQ"
+  "outcome": "Redis 8.4 rulează corect cu configurația optimă pentru BullMQ"
 }
 ```
 
@@ -1427,7 +1427,7 @@
 | ---- | ----------- | ------ |
 | F0.1 Infrastructură Docker | 5 | ✅ Definite complet |
 | F0.2 PostgreSQL 18.1 | 5 | ✅ Definite complet |
-| F0.3 Redis 7.4.7 + BullMQ | 3 | ✅ Definite complet |
+| F0.3 Redis 8.4 + BullMQ | 3 | ✅ Definite complet |
 | F0.4 Traefik v3.6.6 | 4 | ✅ Definite complet |
 | F0.5 Observability SigNoz | 3 | ✅ Definite complet |
 | F0.6 PNPM + Monorepo | 8 | ✅ Definite complet |
@@ -1497,7 +1497,7 @@
 
 - [ ] Docker Engine 28.x funcțional
 - [ ] PostgreSQL 18.1 + PostGIS healthy
-- [ ] Redis 7.4.7 cu maxmemory-policy noeviction
+- [ ] Redis 8.4 cu maxmemory-policy noeviction
 - [ ] Traefik cu HTTPS și certificate valid
 - [ ] API responds pe /health/ready
 - [ ] Frontend încarcă în browser

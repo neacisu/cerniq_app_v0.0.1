@@ -69,7 +69,7 @@ version: '3.8'
 
 services:
   redis-master:
-    image: redis:8.0-alpine
+    image: redis:8.4-alpine
     command: redis-server --appendonly yes --maxmemory-policy noeviction
     volumes:
       - redis-master-data:/data
@@ -77,7 +77,7 @@ services:
       - cerniq-network
 
   redis-replica-1:
-    image: redis:8.0-alpine
+    image: redis:8.4-alpine
     command: redis-server --replicaof redis-master 6379 --appendonly yes
     depends_on:
       - redis-master
@@ -87,7 +87,7 @@ services:
       - cerniq-network
 
   redis-replica-2:
-    image: redis:8.0-alpine
+    image: redis:8.4-alpine
     command: redis-server --replicaof redis-master 6379 --appendonly yes
     depends_on:
       - redis-master
@@ -97,7 +97,7 @@ services:
       - cerniq-network
 
   sentinel-1:
-    image: redis:8.0-alpine
+    image: redis:8.4-alpine
     command: redis-sentinel /etc/redis/sentinel.conf
     volumes:
       - ./sentinel.conf:/etc/redis/sentinel.conf
@@ -107,7 +107,7 @@ services:
       - cerniq-network
 
   sentinel-2:
-    image: redis:8.0-alpine
+    image: redis:8.4-alpine
     command: redis-sentinel /etc/redis/sentinel.conf
     volumes:
       - ./sentinel.conf:/etc/redis/sentinel.conf
@@ -117,7 +117,7 @@ services:
       - cerniq-network
 
   sentinel-3:
-    image: redis:8.0-alpine
+    image: redis:8.4-alpine
     command: redis-sentinel /etc/redis/sentinel.conf
     volumes:
       - ./sentinel.conf:/etc/redis/sentinel.conf

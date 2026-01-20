@@ -21,7 +21,7 @@ Cerniq.app is a B2B sales automation platform for the Romanian agricultural mark
 - Node.js 24.12.0 LTS "Krypton"
 - Python 3.14.2 Free-Threading
 - PostgreSQL 18.1 (pgvector 0.8.1, PostGIS 3.6.1)
-- Redis 7.4.7
+- Redis 8.4.0
 - BullMQ 5.66.5
 - Fastify 5.6.2
 

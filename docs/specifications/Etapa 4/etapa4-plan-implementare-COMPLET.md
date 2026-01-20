@@ -72,7 +72,7 @@
         "Dashboard BullMQ accesibil",
         "Rate limits configurate"
       ],
-      "tehnologii": ["Redis 7.4.7", "BullMQ 5.66.5"]
+      "tehnologii": ["Redis 8.4.0", "BullMQ 5.66.5"]
     },
     {
       "task_number": 302,

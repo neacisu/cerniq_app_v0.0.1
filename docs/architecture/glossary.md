@@ -728,7 +728,7 @@
 | **Node.js**      | v24.12.0 LTS            | Runtime principal            |
 | **Python**       | 3.14.2 (Free-Threading) | AI/ML, scraping              |
 | **PostgreSQL**   | 18.1                    | Bază de date principală      |
-| **Redis**        | 7.4.7                   | Cache, queues, rate limiting |
+| **Redis**        | 8.4.0                   | Cache, queues, rate limiting |
 | **Fastify**      | v5.6.2                  | Framework API                |
 | **React**        | 19.2.3                  | Frontend UI                  |
 | **Tailwind CSS** | v4.1+                   | Styling                      |

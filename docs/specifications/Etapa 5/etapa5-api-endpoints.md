@@ -344,26 +344,72 @@ interface TerritoriesResponse {
 
 ---
 
-## 9. HITL API
+## 9. HITL API (Unified)
 
-### GET /api/v1/nurturing/hitl/queue
+> **REFERINȚĂ CANONICĂ:** API-ul HITL este unificat pentru toate etapele.
+>
+> Endpoint-urile canonice sunt definite în [hitl-unified-system.md § 7](../hitl-unified-system.md#7-api-endpoints).
+>
+> Pentru Etapa 5, folosiți filtrul `pipelineStage=E5`.
+
+### GET /api/v1/hitl/queue (Unified Endpoint)
+
 ```typescript
+// Accesare task-uri E5 prin endpoint-ul unificat
 interface HITLQueueQuery {
-  taskType?: HitlTaskType[];
-  priority?: ('CRITICAL' | 'HIGH' | 'NORMAL' | 'LOW')[];
-  assignedTo?: string;
-  slaStatus?: 'OK' | 'WARNING' | 'BREACHED';
+  pipelineStage?: ('E1' | 'E2' | 'E3' | 'E4' | 'E5')[];  // Filtru pentru E5
+  approvalType?: string[];     // e.g., ['churn_intervention', 'nps_followup']
+  priority?: ('critical' | 'high' | 'normal' | 'low')[];  // lowercase
+  status?: ('pending' | 'assigned' | 'in_review')[];
+  assignedTo?: string;         // UUID user.id
+  slaStatus?: 'ok' | 'warning' | 'breached';
+}
+
+// Exemplu: GET /api/v1/hitl/queue?pipelineStage=E5&priority=critical,high
+```
+
+### POST /api/v1/hitl/tasks/:taskId/resolve (Unified Endpoint)
+
+```typescript
+interface ResolveApprovalTaskRequest {
+  decision: 'approved' | 'rejected';    // lowercase, conform schema canonică
+  decision_reason?: string;              // fostul 'notes'
+  // Extensii pentru E5 pot fi incluse în metadata:
+  metadata_updates?: {
+    action_taken?: string;
+    followup_scheduled?: boolean;
+    followup_at?: string;              // ISO timestamp
+  };
+}
+
+// Exemplu response
+interface ResolveApprovalTaskResponse {
+  task: ApprovalTask;
+  executedActions: string[];
+  resumedJobId?: string;               // BullMQ job resumed dacă exista
 }
 ```
 
-### POST /api/v1/nurturing/hitl/tasks/:taskId/resolve
+### POST /api/v1/hitl/tasks/:taskId/reassign (Unified)
+
 ```typescript
-interface ResolveTaskRequest {
-  decision: 'APPROVED' | 'REJECTED' | 'ESCALATED' | 'DEFERRED';
-  notes: string;
-  actionTaken?: string;
-  scheduledFollowup?: string;
+interface ReassignRequest {
+  assignToUserId?: string;    // UUID
+  assignToRole?: string;      // e.g., 'sales_manager'
+  reason: string;
 }
+```
+
+### Endpoint-uri E5-specific (Convenience Wrappers)
+
+```typescript
+// Aceste endpoint-uri sunt alias-uri pentru endpoint-urile unificate cu filtru E5 pre-setat
+
+// GET /api/v1/nurturing/hitl/queue
+// → Redirect intern la: GET /api/v1/hitl/queue?pipelineStage=E5
+
+// POST /api/v1/nurturing/hitl/tasks/:taskId/resolve
+// → Forward la: POST /api/v1/hitl/tasks/:taskId/resolve
 ```
 
 ---
@@ -389,5 +435,6 @@ interface OverviewResponse {
 
 ---
 
-**Document generat**: 2026-01-19  
-**Status**: COMPLET ✅
+**Document generat**: 2026-01-20  
+**Versiunea**: 1.1 (HITL API aliniat la sistem unificat)  
+**Status**: ACTUALIZAT ✅

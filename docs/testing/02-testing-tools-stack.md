@@ -827,7 +827,7 @@ jobs:
         ports:
           - 5432:5432
       redis:
-        image: redis:7.4-alpine
+        image: redis:8.4-alpine
         ports:
           - 6379:6379
     steps:

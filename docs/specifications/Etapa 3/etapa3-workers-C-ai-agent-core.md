@@ -71,7 +71,7 @@ Categoria C conține **nucleul AI Agent** - workerii responsabili pentru:
 | **xAI Grok-4** | LLM principal | 1000 req/min | Queue retry |
 | **MCP Server** | Tools & Resources | Intern | Cache |
 | **PostgreSQL 18** | State & History | N/A | Replica read |
-| **Redis 7.4** | Cache & Sessions | N/A | N/A |
+| **Redis 8.4** | Cache & Sessions | N/A | N/A |
 
 ---
 

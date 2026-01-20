@@ -223,7 +223,7 @@ jobId: `warn-${approvalId}` // Warning jobs
 | **React**          | **19.2.3**            | Dec 2025     | Stable         | —                       |
 | **React Compiler** | **1.0**               | 7 Oct 2025   | Stable         | Production ready        |
 | **Tailwind CSS**   | **4.1.x**             | 2025         | Stable         | Oxide engine            |
-| **Redis**          | **7.4.7**             | Late 2025    | Security rel.  | —                       |
+| **Redis**          | **8.4.0**             | 18 Nov 2025  | Latest Stable  | Full support, AGPLv3    |
 | **BullMQ**         | **5.66.5**            | 14 Jan 2026  | Stable         | Requires Redis 6.2+     |
 
 > ⚠️ **SECURITY ADVISORY**: Node.js security release programat 13 Ianuarie 2026 (3 HIGH, 1 MEDIUM, 1 LOW vulnerabilities).

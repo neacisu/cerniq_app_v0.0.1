@@ -21,7 +21,7 @@
 | workers | Custom build | - | - | BullMQ jobs |
 | web-admin | Custom build | 64010 | 64010 | React frontend |
 | postgres | postgis/postgis:18-3.6 | 5432 | 64032 | Database |
-| redis | redis:8.0-alpine | 6379 | 64039 | Queues, cache |
+| redis | redis:8.4-alpine | 6379 | 64039 | Queues, cache |
 | pgbouncer | bitnami/pgbouncer:1.23 | 6432 | 64033 | Connection pooling |
 | signoz | signoz/signoz:v0.107.0 | 3301 | 64070 | Observability |
 
@@ -175,7 +175,7 @@ pgbouncer:
 
 ```yaml
 redis:
-  image: redis:8.0-alpine
+  image: redis:8.4-alpine
   command: >
     redis-server
     --appendonly yes

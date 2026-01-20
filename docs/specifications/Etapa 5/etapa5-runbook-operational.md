@@ -183,23 +183,27 @@ psql -c "SELECT pid, now() - pg_stat_activity.query_start AS duration, query
 
 **Symptoms**: Multiple SLA breaches in dashboard
 
+> **NOTĂ:** HITL folosește tabela unificată `approval_tasks`. Filtrați cu `pipeline_stage='E5'` pentru Etapa 5.
+
 **Diagnosis**:
 ```bash
 psql -c "
 SELECT 
-  task_type,
+  approval_type,
   COUNT(*) as breached,
-  AVG(EXTRACT(EPOCH FROM (resolved_at - sla_deadline))/3600) as avg_hours_over
-FROM gold_hitl_tasks_e5
-WHERE sla_status = 'BREACHED' AND created_at > NOW() - INTERVAL '7 days'
-GROUP BY task_type
+  AVG(EXTRACT(EPOCH FROM (decided_at - due_at))/3600) as avg_hours_over
+FROM approval_tasks
+WHERE pipeline_stage = 'E5'
+  AND decided_at > due_at  -- SLA breached = resolved after deadline
+  AND created_at > NOW() - INTERVAL '7 days'
+GROUP BY approval_type
 "
 ```
 
 **Resolution**:
-1. Review assignment rules
+1. Review assignment rules in `approval_type_configs`
 2. Add more operators
-3. Adjust SLA times if consistently breached
+3. Adjust SLA times in `approval_type_configs` if consistently breached
 
 ---
 
@@ -294,16 +298,22 @@ psql -c "DELETE FROM gold_nurturing_actions WHERE created_at < NOW() - INTERVAL 
 # 4. Clean expired referrals
 psql -c "UPDATE gold_referrals SET status = 'EXPIRED' WHERE expires_at < NOW() AND status = 'PENDING_CONSENT'"
 
-# 5. Archive resolved HITL tasks
+# 5. Archive resolved HITL tasks (Unified approval_tasks)
+# NOTĂ: Arhivarea task-urilor HITL se face centralizat pentru toate etapele.
+# Pentru E5-specific, filtrăm cu pipeline_stage='E5'.
 psql -c "
-INSERT INTO gold_hitl_tasks_e5_archive 
-SELECT * FROM gold_hitl_tasks_e5 
-WHERE status = 'RESOLVED' AND resolved_at < NOW() - INTERVAL '30 days'
+INSERT INTO approval_tasks_archive 
+SELECT * FROM approval_tasks 
+WHERE pipeline_stage = 'E5'
+  AND status IN ('approved', 'rejected', 'expired')
+  AND decided_at < NOW() - INTERVAL '30 days'
 "
 
 psql -c "
-DELETE FROM gold_hitl_tasks_e5 
-WHERE status = 'RESOLVED' AND resolved_at < NOW() - INTERVAL '30 days'
+DELETE FROM approval_tasks 
+WHERE pipeline_stage = 'E5'
+  AND status IN ('approved', 'rejected', 'expired')
+  AND decided_at < NOW() - INTERVAL '30 days'
 "
 
 echo "=== Maintenance Complete ==="

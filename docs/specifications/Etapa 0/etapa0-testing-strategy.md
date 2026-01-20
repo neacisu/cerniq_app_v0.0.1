@@ -225,7 +225,7 @@ export async function setupTestDatabase() {
     .start();
 
   // Start Redis container
-  redisContainer = await new RedisContainer('redis:7.4-alpine')
+  redisContainer = await new RedisContainer('redis:8.4-alpine')
     .start();
 
   // Connect to database
@@ -506,7 +506,7 @@ jobs:
           --health-timeout 5s
           --health-retries 5
       redis:
-        image: redis:7.4-alpine
+        image: redis:8.4-alpine
         options: >-
           --health-cmd "redis-cli ping"
           --health-interval 10s

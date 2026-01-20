@@ -18,7 +18,7 @@
 | **Docker** | 29.1.3+ | Container runtime |
 | **Traefik** | v3.6.6 | Reverse proxy, SSL termination |
 | **PostgreSQL** | 18.1 | Primary database |
-| **Redis** | 8.0 | BullMQ queues, caching |
+| **Redis** | 8.4.0 | BullMQ queues, caching |
 | **SigNoz** | v0.107.0 | Observability (traces, metrics, logs) |
 
 ### 1.2 Server Requirements

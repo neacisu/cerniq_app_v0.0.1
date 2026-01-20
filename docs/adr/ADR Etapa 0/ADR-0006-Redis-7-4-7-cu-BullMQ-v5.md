@@ -1,7 +1,7 @@
-# ADR-0006: Redis 7.4.7 cu BullMQ v5.66.5
+# ADR-0006: Redis 8.4 cu BullMQ v5.66.5
 
-**Status:** Accepted  
-**Data:** 2026-01-15  
+**Status:** Accepted (Updated)  
+**Data:** 2026-01-15 (Updated: 2026-01-20)  
 **Deciders:** Alex (1-Person-Team)
 
 ## Context
@@ -16,7 +16,13 @@ Cerniq.app are 52+ workers organizați în pipeline-uri. Necesităm:
 
 ## Decizie
 
-Utilizăm **Redis 7.4.7** cu **BullMQ v5.66.5** pentru job queuing.
+Utilizăm **Redis 8.4.0** cu **BullMQ v5.66.5** pentru job queuing.
+
+> **Update 2026-01-20:** Upgradăm de la Redis 7.4.7 la 8.4.0 (latest stable, Nov 2025) pentru:
+> - Full active support (vs security-only pentru 7.4.x)
+> - Improved Streams performance
+> - Better cluster management
+> - Licență tri-license RSALv2/SSPLv1/AGPLv3
 
 ## Consecințe
 

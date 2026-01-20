@@ -468,59 +468,143 @@ CREATE UNIQUE INDEX idx_relationships_unique
 
 ---
 
-## Migration 008: Create HITL Tables
+## Migration 008: Configure E5 Approval Types (HITL Unificat)
+
+> **IMPORTANT:** Etapa 5 **NU** creează tabele HITL separate.
+>
+> Sistemul HITL folosește tabela unificată `approval_tasks` (creată în migrațiile core).
+>
+> Această migrare doar configurează `approval_type_configs` pentru E5.
 
 ```sql
--- migrations/20260119_008_create_hitl_e5_tables.sql
+-- migrations/20260120_008_configure_e5_approval_types.sql
+-- HITL Unificat - Configurare approval types pentru Etapa 5
 
-CREATE TABLE gold_hitl_tasks_e5 (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES tenants(id),
-    
-    task_type VARCHAR(50) NOT NULL,
-    task_number SERIAL,
-    
-    priority VARCHAR(20) NOT NULL,
-    sla_deadline TIMESTAMPTZ NOT NULL,
-    sla_warning_at TIMESTAMPTZ,
-    sla_status VARCHAR(20) DEFAULT 'OK',
-    
-    client_id UUID REFERENCES gold_clients(id),
-    entity_type VARCHAR(30),
-    entity_id UUID,
-    
-    assigned_to UUID REFERENCES users(id),
-    assigned_at TIMESTAMPTZ,
-    assignment_method VARCHAR(30),
-    
-    context JSONB NOT NULL,
-    
-    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
-    resolution VARCHAR(50),
-    resolution_notes TEXT,
-    action_taken TEXT,
-    resolved_by UUID REFERENCES users(id),
-    resolved_at TIMESTAMPTZ,
-    
-    followup_scheduled BOOLEAN DEFAULT FALSE,
-    followup_at TIMESTAMPTZ,
-    followup_task_id UUID REFERENCES gold_hitl_tasks_e5(id),
-    
-    escalation_level INTEGER DEFAULT 0,
-    escalated_at TIMESTAMPTZ,
-    escalated_to UUID REFERENCES users(id),
-    escalation_reason TEXT,
-    
-    correlation_id UUID,
-    source_worker VARCHAR(100),
-    
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+-- ⚠️ DEPRECATED: gold_hitl_tasks_e5 a fost eliminată
+-- Toate task-urile HITL E5 folosesc tabela canonică approval_tasks cu pipeline_stage='E5'
 
-CREATE INDEX idx_hitl_e5_tenant_status ON gold_hitl_tasks_e5(tenant_id, status, priority);
-CREATE INDEX idx_hitl_e5_assigned ON gold_hitl_tasks_e5(assigned_to, status);
-CREATE INDEX idx_hitl_e5_sla ON gold_hitl_tasks_e5(sla_deadline) WHERE status = 'PENDING';
+-- Inserare configurații approval types pentru E5
+-- (presupune că approval_type_configs există din migrațiile core)
+
+INSERT INTO approval_type_configs (
+    approval_type, 
+    display_name, 
+    pipeline_stage,
+    sla_critical,
+    sla_high,
+    sla_normal,
+    sla_low,
+    escalation_chain,
+    required_fields,
+    display_fields,
+    is_active
+) VALUES
+    (
+        'churn_intervention', 
+        'Intervenție Churn', 
+        'E5',
+        120,    -- 2 ore critical
+        1440,   -- 24 ore high
+        2880,   -- 48 ore normal
+        NULL,
+        '[
+            {"level": 1, "role": "account_manager", "timeout_action": "escalate"},
+            {"level": 2, "role": "sales_manager", "timeout_action": "escalate"},
+            {"level": 3, "role": "vp_sales", "timeout_action": "auto_approve"}
+        ]'::jsonb,
+        ARRAY['decision_reason', 'action_taken'],
+        ARRAY['client_name', 'churn_score', 'risk_level', 'recommended_actions'],
+        TRUE
+    ),
+    (
+        'nps_followup', 
+        'NPS Followup Detractor', 
+        'E5',
+        NULL,
+        1440,   -- 24 ore high
+        2880,   -- 48 ore normal
+        NULL,
+        '[
+            {"level": 1, "role": "customer_success", "timeout_action": "escalate"},
+            {"level": 2, "role": "cs_manager", "timeout_action": "escalate"}
+        ]'::jsonb,
+        ARRAY['decision_reason'],
+        ARRAY['nps_score', 'feedback', 'client_name'],
+        TRUE
+    ),
+    (
+        'referral_approval', 
+        'Aprobare Referral', 
+        'E5',
+        NULL,
+        NULL,
+        2880,   -- 48 ore normal
+        4320,   -- 72 ore low
+        '[
+            {"level": 1, "role": "sales_rep", "timeout_action": "escalate"},
+            {"level": 2, "role": "sales_manager", "timeout_action": "auto_reject"}
+        ]'::jsonb,
+        ARRAY['decision_reason'],
+        ARRAY['referrer_name', 'referred_name', 'relationship'],
+        TRUE
+    ),
+    (
+        'winback_call', 
+        'Win-Back Call Review', 
+        'E5',
+        NULL,
+        1440,   -- 24 ore high
+        2880,   -- 48 ore normal
+        NULL,
+        '[
+            {"level": 1, "role": "sales_rep", "timeout_action": "escalate"}
+        ]'::jsonb,
+        ARRAY['call_outcome', 'decision_reason'],
+        ARRAY['client_name', 'days_dormant', 'suggested_offer'],
+        TRUE
+    ),
+    (
+        'cluster_strategy', 
+        'Strategie Cluster', 
+        'E5',
+        NULL,
+        NULL,
+        10080,  -- 7 zile normal
+        20160,  -- 14 zile low
+        '[
+            {"level": 1, "role": "territory_manager", "timeout_action": "escalate"},
+            {"level": 2, "role": "regional_director", "timeout_action": "defer"}
+        ]'::jsonb,
+        ARRAY['strategy_notes', 'decision_reason'],
+        ARRAY['cluster_name', 'member_count', 'penetration_rate', 'kol_name'],
+        TRUE
+    ),
+    (
+        'compliance_review', 
+        'Review Compliance', 
+        'E5',
+        NULL,
+        240,    -- 4 ore high
+        480,    -- 8 ore normal
+        NULL,
+        '[
+            {"level": 1, "role": "compliance_officer", "timeout_action": "escalate"},
+            {"level": 2, "role": "legal", "timeout_action": "escalate"},
+            {"level": 3, "role": "dpo", "timeout_action": "auto_reject"}
+        ]'::jsonb,
+        ARRAY['compliance_action', 'decision_reason'],
+        ARRAY['review_type', 'flagged_content', 'flag_reason'],
+        TRUE
+    )
+ON CONFLICT (approval_type) DO UPDATE SET
+    display_name = EXCLUDED.display_name,
+    sla_critical = EXCLUDED.sla_critical,
+    sla_high = EXCLUDED.sla_high,
+    sla_normal = EXCLUDED.sla_normal,
+    sla_low = EXCLUDED.sla_low,
+    escalation_chain = EXCLUDED.escalation_chain,
+    required_fields = EXCLUDED.required_fields,
+    display_fields = EXCLUDED.display_fields;
 ```
 
 ---
@@ -528,9 +612,13 @@ CREATE INDEX idx_hitl_e5_sla ON gold_hitl_tasks_e5(sla_deadline) WHERE status = 
 ## Rollback Scripts
 
 ```sql
--- rollback/20260119_rollback_all_e5.sql
+-- rollback/20260120_rollback_all_e5.sql
 
-DROP TABLE IF EXISTS gold_hitl_tasks_e5;
+-- NOTĂ: gold_hitl_tasks_e5 NU EXISTĂ - HITL folosește approval_tasks (unificat)
+-- Rollback pentru configurațiile E5 din approval_type_configs:
+DELETE FROM approval_type_configs WHERE pipeline_stage = 'E5';
+
+-- Rollback pentru tabelele E5 (non-HITL):
 DROP TABLE IF EXISTS gold_winback_campaigns;
 DROP TABLE IF EXISTS gold_competitor_intel;
 DROP TABLE IF EXISTS gold_content_drips;
@@ -562,5 +650,6 @@ DROP TYPE IF EXISTS nurturing_state_enum;
 
 ---
 
-**Document generat**: 2026-01-19  
-**Status**: COMPLET ✅
+**Document generat**: 2026-01-20  
+**Versiunea**: 1.1 (Aliniat la HITL Unificat)  
+**Status**: ACTUALIZAT ✅

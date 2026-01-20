@@ -27110,7 +27110,7 @@ jobs:
     if: ${{ !inputs.skip_tests }}
     services:
       redis:
-        image: redis:7.4-alpine
+        image: redis:8.4-alpine
         ports:
           - 6379:6379
         options: >-
@@ -27173,7 +27173,7 @@ jobs:
           --health-timeout 5s
           --health-retries 5
       redis:
-        image: redis:7.4-alpine
+        image: redis:8.4-alpine
         ports:
           - 6379:6379
         options: >-
@@ -27236,7 +27236,7 @@ jobs:
     if: ${{ !inputs.skip_tests }}
     services:
       redis:
-        image: redis:7.4-alpine
+        image: redis:8.4-alpine
         ports:
           - 6379:6379
 
@@ -28426,7 +28426,7 @@ const DASHBOARD_PANELS = [
 - Total Lines: ~28,000
 - Implementation Patterns: TypeScript with BullMQ
 - Database: PostgreSQL 18.1 with Drizzle ORM
-- Cache: Redis 7.4.7
+- Cache: Redis 8.4.0
 - Monitoring: Prometheus + Grafana + SigNoz
 
 **Last Updated:** 2026-01-18

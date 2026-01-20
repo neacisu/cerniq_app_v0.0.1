@@ -18,7 +18,7 @@
 | **Database** | PostgreSQL 18.1 | AIO, uuidv7(), PostGIS, pgvector |
 | **ORM** | Drizzle ORM | SQL-like, drizzle-zod |
 | **Styling** | Tailwind v4.1+ | Oxide Engine (Rust) |
-| **Queue Manager** | BullMQ v5.66.5 | Redis 7.4.7 backend |
+| **Queue Manager** | BullMQ v5.66.5 | Redis 8.4.0 backend |
 | **Reverse Proxy** | Traefik v3.6.6 | Auto SSL/TLS, Docker provider |
 | **Package Manager** | PNPM 9.15+ | EXCLUSIV, no npm |
 | **Observability** | SigNoz v0.106.0 | OpenTelemetry-native |
@@ -131,7 +131,7 @@ max_connections = 200
 - `PostGIS` - Interogări geospațiale
 - `pg_trgm` - Fuzzy search
 
-### 5. CONFIGURAȚIE REDIS 7.4.7 (BullMQ)
+### 5. CONFIGURAȚIE REDIS 8.4 (BullMQ)
 
 ```conf
 # CRITICAL: BullMQ cannot tolerate eviction
@@ -309,7 +309,7 @@ borg create \
 [View detailed ADR](../../adr/Etapa%200/ADR-0005-Row-Level-Security-pentru-Multi-Tenancy.md)
 **Status:** Accepted | **Data:** 2026-01-15
 
-### ADR-0006: Redis 7.4.7 cu BullMQ v5.66.5
+### ADR-0006: Redis 8.4.0 cu BullMQ v5.66.5
 
 [View detailed ADR](../../adr/Etapa%200/ADR-0006-Redis-7-4-7-cu-BullMQ-v5.md)
 **Status:** Accepted | **Data:** 2026-01-15
@@ -572,14 +572,14 @@ borg create \
 }
 ```
 
-### FAZA F0.3: REDIS 7.4.7 ȘI BULLMQ SETUP
+### FAZA F0.3: REDIS 8.4 ȘI BULLMQ SETUP
 
 ```json
 {
   "taskID": "F0.3.1.T001",
-  "denumire_task": "Creare Docker Compose pentru Redis 7.4.7 optimizat BullMQ",
+  "denumire_task": "Creare Docker Compose pentru Redis 8.4 optimizat BullMQ",
   "context_anterior": "PostgreSQL configurat, Redis neinstalat",
-  "descriere_task": "Ești un expert Redis specializat în job queues. Task-ul tău este să adaugi serviciul Redis în docker-compose.yml pentru BullMQ. Folosește imaginea redis:7.4-alpine. Configurația CRITICĂ: maxmemory 8gb, maxmemory-policy noeviction (OBLIGATORIU pentru BullMQ - jobs NU pot fi evicted), appendonly yes, appendfsync everysec, aof-use-rdb-preamble yes, notify-keyspace-events Ex, lazyfree-lazy-eviction yes, activedefrag yes. Network: cerniq_data (intern). Volume pentru persistență. Healthcheck cu redis-cli ping.",
+  "descriere_task": "Ești un expert Redis specializat în job queues. Task-ul tău este să adaugi serviciul Redis în docker-compose.yml pentru BullMQ. Folosește imaginea redis:8.4-alpine. Configurația CRITICĂ: maxmemory 8gb, maxmemory-policy noeviction (OBLIGATORIU pentru BullMQ - jobs NU pot fi evicted), appendonly yes, appendfsync everysec, aof-use-rdb-preamble yes, notify-keyspace-events Ex, lazyfree-lazy-eviction yes, activedefrag yes. Network: cerniq_data (intern). Volume pentru persistență. Healthcheck cu redis-cli ping.",
   "director_implementare": "/var/www/CerniqAPP/infra/docker",
   "restrictii_antihalucinatie": [
     "maxmemory-policy TREBUIE să fie noeviction - altfel BullMQ va pierde job-uri",
@@ -588,7 +588,7 @@ borg create \
     "VERIFICĂ notify-keyspace-events pentru delayed jobs"
   ],
   "validare_task": "redis-cli CONFIG GET maxmemory-policy returnează noeviction; redis-cli PING returnează PONG; AOF file se creează",
-  "outcome": "Redis 7.4.7 configurat optim pentru BullMQ job queues"
+  "outcome": "Redis 8.4 configurat optim pentru BullMQ job queues"
 }
 ```
 

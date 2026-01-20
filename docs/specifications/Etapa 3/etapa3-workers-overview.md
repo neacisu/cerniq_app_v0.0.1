@@ -90,7 +90,7 @@ Etapa 3 implementează un **agent comercial autonom** care navighează ciclul co
 | Componentă | Tehnologie | Versiune |
 | ---------- | ---------- | -------- |
 | Queue System | BullMQ | v5.66.5 |
-| Cache/Broker | Redis | 7.4.7 |
+| Cache/Broker | Redis | 8.4.0 |
 | Runtime Node.js | Node.js | v24.12.0 LTS |
 | Runtime Python | Python | 3.14.1 (Free-Threading) |
 | Database | PostgreSQL | 18.1 |

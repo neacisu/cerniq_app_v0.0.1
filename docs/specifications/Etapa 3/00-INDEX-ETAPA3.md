@@ -212,7 +212,7 @@ framework:
   
 database:
   postgresql: "18.1"
-  redis: "7.4.7"
+  redis: "8.4.0"
   qdrant: "1.12.x"
   
 monitoring:

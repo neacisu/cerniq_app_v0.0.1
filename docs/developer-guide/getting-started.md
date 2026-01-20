@@ -45,7 +45,7 @@ Serviciile containerizate necesare:
 | Serviciu | Port Local | Imagine Docker |
 | -------- | ---------- | -------------- |
 | **PostgreSQL 18.1** | 64032 | `postgis/postgis:18-3.6` |
-| **Redis 7.4** | 64039 | `redis:7.4-alpine` |
+| **Redis 8.4** | 64039 | `redis:8.4-alpine` |
 | **SigNoz** | 64070 | `signoz/signoz:latest` |
 
 ---

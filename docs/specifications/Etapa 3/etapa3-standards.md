@@ -65,7 +65,7 @@ backend:
   
 database:
   primary: PostgreSQL 18.1
-  cache: Redis 7.4.7
+  cache: Redis 8.4.0
   queue: BullMQ v5.66.5
   
 ai:

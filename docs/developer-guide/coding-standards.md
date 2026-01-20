@@ -85,7 +85,7 @@ Pentru agenți AI (Cursor, Copilot), instrucțiunile se aplică în această ord
 | **PostgreSQL** | **18.1** | 13 Nov 2025 | — |
 | **pgvector** | **0.8.1** | Late 2025 | PG 13-18 |
 | **PostGIS** | **3.6.1** | 13 Nov 2025 | PG 12-18 |
-| **Redis** | **7.4.7** | Late 2025 | — |
+| **Redis** | **8.4.0** | Nov 2025 | Latest Stable |
 | **BullMQ** | **5.66.5** | 14 Jan 2026 | Requires Redis 6.2+ |
 | **Fastify** | **5.6.2** | 9 Nov 2025 | v4 EOL: 30 Jun 2025 |
 
@@ -1217,7 +1217,7 @@ alwaysApply: true
 - Tailwind: 4.1.x
 - Fastify: 5.6.2
 - BullMQ: 5.66.5
-- Redis: 7.4.7
+- Redis: 8.4.0
 
 ## Architecture
 - Vertical Slice Architecture (organize by feature, not layer)

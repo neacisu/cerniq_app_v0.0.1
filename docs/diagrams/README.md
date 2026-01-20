@@ -51,7 +51,7 @@
 - **API** (Fastify 5.6)
 - **Workers** (BullMQ 313)
 - **PostgreSQL** (18.1)
-- **Redis** (8.0)
+- **Redis** (8.4)
 - **SigNoz** (Observability)
 
 #### Level 3: Components (Etapa 1 Example)

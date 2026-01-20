@@ -16,7 +16,7 @@
 2. [Recovery Objectives (RPO/RTO)](#2-recovery-objectives-rporto)
 3. [Backup Architecture Overview](#3-backup-architecture-overview)
 4. [PostgreSQL 18.1 Backup Strategy](#4-postgresql-181-backup-strategy)
-5. [Redis 7.4.7 Persistence & Backup](#5-redis-747-persistence--backup)
+5. [Redis 8.4 Persistence & Backup](#5-redis-84-persistence--backup)
 6. [Application & Configuration Backup](#6-application--configuration-backup)
 7. [BorgBackup Integration](#7-borgbackup-integration)
 8. [Hetzner Storage Box Configuration](#8-hetzner-storage-box-configuration)
@@ -138,7 +138,7 @@ TIER 3 - STANDARD SYSTEMS DOWN
 │                    (Production Environment)                                │
 │                                                                            │
 │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐             │
-│  │  PostgreSQL 18  │  │   Redis 7.4.7   │  │  Docker Volumes │             │
+│  │  PostgreSQL 18  │  │   Redis 8.4.0   │  │  Docker Volumes │             │
 │  │                 │  │                 │  │                 │             │
 │  │  ┌───────────┐  │  │  ┌───────────┐  │  │  /var/lib/      │             │
 │  │  │ WAL Files │  │  │  │ AOF + RDB │  │  │    docker/      │             │
@@ -526,7 +526,7 @@ echo "Monitor with: tail -f /var/log/postgresql/postgresql-18-main.log"
 
 ---
 
-## 5. Redis 7.4.7 Persistence & Backup
+## 5. Redis 8.4 Persistence & Backup
 
 ## 5.1 Hybrid Persistence Configuration
 
@@ -536,7 +536,7 @@ Pentru BullMQ workloads, configurăm **AOF + RDB hybrid** pentru durabilitate ma
 
 ```ini
 # =============================================================================
-# Redis 7.4.7 PERSISTENCE CONFIGURATION
+# Redis 8.4 PERSISTENCE CONFIGURATION
 # Optimized for BullMQ job queues on Cerniq.app
 # =============================================================================
 

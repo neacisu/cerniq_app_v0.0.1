@@ -1,6 +1,6 @@
 # CERNIQ.APP — TESTE F0.3: REDIS & BULLMQ
 
-## Teste pentru Redis 7.4.7 și configurare BullMQ
+## Teste pentru Redis 8.4 și configurare BullMQ
 
 **Fază:** F0.3 | **Taskuri:** 3 (F0.3.1.T001 - F0.3.1.T003)  
 **Referință:** [etapa0-plan-implementare-complet-v2.md](file:///var/www/CerniqAPP/docs/specifications/Etapa%200/etapa0-plan-implementare-complet-v2.md)
@@ -38,7 +38,7 @@ describe('Redis Container', () => {
     expect(stdout).toContain('Up');
   });
   
-  it('should use redis:7.4-alpine image', async () => {
+  it('should use redis:8.4-alpine image', async () => {
     const { stdout } = await execAsync('docker inspect cerniq-redis --format "{{.Config.Image}}"');
     expect(stdout.trim()).toMatch(/redis:7\.4/);
   });
@@ -334,13 +334,13 @@ describe('BullMQ Integration', () => {
 describe "Redis Network Connectivity" {
   
   it "should be accessible from cerniq_backend network" {
-    docker run --rm --network cerniq_backend redis:7.4-alpine \
+    docker run --rm --network cerniq_backend redis:8.4-alpine \
       redis-cli -h redis ping | grep -q "PONG"
     assert_success
   }
   
   it "should be accessible from cerniq_data network" {
-    docker run --rm --network cerniq_data redis:7.4-alpine \
+    docker run --rm --network cerniq_data redis:8.4-alpine \
       redis-cli -h redis ping | grep -q "PONG"
     assert_success
   }
@@ -363,7 +363,7 @@ describe "Redis Network Connectivity" {
 
 ### Container
 
-- [ ] Image: redis:7.4-alpine
+- [ ] Image: redis:8.4-alpine
 - [ ] Health status: healthy
 - [ ] Nu expune port 6379 public
 - [ ] Conectat la cerniq_data ȘI cerniq_backend

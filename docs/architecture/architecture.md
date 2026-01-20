@@ -243,7 +243,7 @@ const LEGACY_ALIASES = {
 | **Vector Search** | pgvector | 0.8.1 | HNSW indexes, 1536 dim embeddings |
 | **Geospatial** | PostGIS | 3.6.1 | KNN proximity, SIRUTA polygons |
 | **Queue Manager** | BullMQ | v5.66.5 | Redis-backed, partition per phone |
-| **Cache/Jobs** | Redis | 7.4.7 | AOF+RDB persistence, noeviction |
+| **Cache/Jobs** | Redis | 8.4.0 | AOF+RDB persistence, noeviction |
 | **Frontend** | React | 19.2.3 | Server Components, useOptimistic |
 | **Admin Framework** | Refine | v5 | TanStack Query v5, headless |
 | **Styling** | Tailwind CSS | 4.1.x | Oxide engine (Rust), 5x faster |
@@ -779,7 +779,7 @@ CUSTOMER MESSAGE: "Am nevoie de ceva ieftin și bun pentru porumb, sub 5000 lei"
 | --- | --- | --- | --- | --- |
 | **PostgreSQL 18.1** | 4 cores | 40GB | 500GB NVMe | Primary/Replica |
 | **PgBouncer** | 1 core | 1GB | - | Connection Pooling |
-| **Redis 7.4.7** | 2 cores | 80GB | 50GB AOF | Sentinel Managed |
+| **Redis 8.4.0** | 2 cores | 80GB | 50GB AOF | Sentinel Managed |
 | **Fastify API** | 4 cores | 8GB | - | Node.js 24 cluster |
 | **Python Workers** | 8 cores | 16GB | - | 5 Monolithic Services |
 | **Sentinel** | 0.5 core | 256MB | - | Quorum = 3 |
@@ -805,7 +805,7 @@ random_page_cost = 1.1
 effective_io_concurrency = 200
 ```
 
-### Redis 7.4.7 Configuration
+### Redis 8.4 Configuration
 
 ```ini
 # redis.conf for BullMQ workloads
@@ -1407,7 +1407,7 @@ Nivel 5 (Anexe Data Model):
 | Node.js | 24.12.0 | Oct 2025 | Apr 2028 | LTS "Krypton" |
 | Python | 3.14.2 | Dec 2025 | Oct 2029 | Free-Threading stable |
 | PostgreSQL | 18.1 | Nov 2025 | Nov 2030 | Async I/O, UUIDv7 |
-| Redis | 7.4.7 | Nov 2025 | - | Stable 7.x |
+| Redis | 8.4.0 | Nov 2025 | - | Latest Stable |
 | React | 19.2.3 | Dec 2025 | - | Server Components stable |
 | Fastify | 5.6.2 | Nov 2025 | - | v4 EOL Jun 2025 |
 | Tailwind CSS | 4.1.x | Jan 2025 | - | Oxide engine |

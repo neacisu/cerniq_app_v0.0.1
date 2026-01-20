@@ -17,7 +17,7 @@ This analysis governs all risk assessments for Cerniq.app under the Master Speci
 - Node.js 24.12.0 (LTS Krypton)
 - Python 3.14.2 (Free-Threading)
 - PostgreSQL 18.1 with pgvector, PostGIS, pg_trgm
-- Redis 7.4.7
+- Redis 8.4.0
 - BullMQ v5.66.5
 - React 19.2.3, Tailwind CSS 4.1+, Refine v5
 - Docker Engine 29.1.3 (Standardized)
@@ -167,7 +167,7 @@ Maximum 10 webhooks per account (422 error if exceeded). Webhooks may deliver ou
 | TD-D04 | Third-Party Rate Limits | API rate limits undocumented for Termene.ro, ANAF, Oblio |
 | TD-D05 | Architecture Decision Records | No ADR documentation for technology choices |
 | TD-D06 | GDPR LIA Documentation | **RESOLVED:** LIA-001 Completed |
-| TD-D07 | Version Drift | Redis 8 vs 7.4.7, PostgreSQL 18 vs 18.1 inconsistencies |
+| TD-D07 | Version Drift | **RESOLVED:** Redis standardized to 8.4.0 (Jan 2026) |
 
 ### Testing debt (quality risk)
 
@@ -332,7 +332,7 @@ Maximum 10 webhooks per account (422 error if exceeded). Webhooks may deliver ou
 | Node.js 24.x | 24.12.0 | LTS Stable | LOW |
 | PostgreSQL 18.1 | 18.1 | GA Stable | LOW |
 | BullMQ v5.66.5 | 5.66.5 | Stable | MEDIUM |
-| Redis 7.4.7 | 7.4.x | Stable | LOW |
+| Redis 8.4.0 | 8.4.x | Latest Stable | LOW |
 | React 19.x | 19.2.3 | Stable | LOW-MEDIUM |
 | Traefik v3.6 | 3.6.6 | Stable (CVE Patched) | LOW |
 | SigNoz | v0.107.0 | Stable | MEDIUM |

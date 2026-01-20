@@ -32,7 +32,7 @@
 
 | Component | Versiune | Link |
 | --------- | -------- | ---- |
-| **Redis** | 8.0 | [Commands](https://redis.io/commands/) |
+| **Redis** | 8.4.0 | [Commands](https://redis.io/commands/) |
 | **BullMQ** | 5.66.5 | [Guide](https://docs.bullmq.io/) |
 | **Redis Sentinel** | Built-in | [Docs](https://redis.io/docs/management/sentinel/) |
 
