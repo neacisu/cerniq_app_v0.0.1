@@ -219,8 +219,9 @@ COLD → CONTACTED_WA → WARM_REPLY → NEGOTIATION → PROPOSAL → CLOSING �
    - [`diagrams/`](./diagrams/) — Diagrame C4
 
 3. **Implementează pe etape:**
-   - Începe cu `specifications/etapa1-enrichment.md`
-   - Urmează ordinea: E1 → E2 → E3 → E4 → E5
+   - Începe cu [`specifications/Etapa 1/etapa1-workers-overview.md`](./specifications/Etapa%201/etapa1-workers-overview.md)
+   - Consultă [`specifications/Etapa 2/etapa2-workers-overview.md`](./specifications/Etapa%202/etapa2-workers-overview.md)
+   - Urmează: E3, E4, E5 (vezi directoarele respective)
 
 ### Pentru Product Owners / Business
 

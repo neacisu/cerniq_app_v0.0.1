@@ -106,3 +106,24 @@
 > **Rezoluție IH-12**: Versiunea SigNoz a fost actualizată la **v0.107.0** (cea mai recentă versiune released) în toată documentația, inclusiv în `docker-compose` snippets din Planul Etapa 0. Conflictul 0.106.0 vs ~0.88+ a fost rezolvat.
 > **Rezoluție RD-01/02/08**: Redundanțele de conținut (Schema HITL, Rate Limits, Tech Versions) au fost eliminate prin înlocuirea tabelelor duplicate cu referințe explicite către `master-specification.md`, stabilind o singură Sursă de Adevăr.
 > **Rezoluție RD-05/06/07**: Fișierele vechi/duplicate au fost consolidate, iar referințele verificate.
+
+## 5. INFORMAȚII LIPSĂ (Status: RESOLVED)
+
+### 5.1 Documente Lipsă / Goale
+
+| ID    | Document Referit                            | Locație Referință | Status                                      |
+|-------|---------------------------------------------|-------------------|---------------------------------------------|
+| ML-01 | etapa1-enrichment.md                        | README.md L218    | ✅ **RESOLVED** (Link updated to `workers-overview`) |
+| ML-02 | etapa2-cold-outreach.md                     | README.md L218    | ✅ **RESOLVED** (Link updated to `workers-overview`) |
+| ML-03 | etapa3-ai-sales.md                          | README.md L218    | ✅ **RESOLVED** (Link updated to `workers-overview`) |
+| ML-04 | etapa4-post-sale.md                         | README.md L218    | ✅ **RESOLVED** (Link updated to `workers-overview`) |
+| ML-05 | etapa5-nurturing.md                         | README.md L218    | ✅ **RESOLVED** (Link updated to `workers-overview`) |
+| ML-06 | architecture/changelog.md                   | File exists       | ✅ **RESOLVED** (Populated)                 |
+| ML-07 | architecture/references.md                  | File exists       | ✅ **RESOLVED** (Populated)                 |
+| ML-08 | developer-guide/troubleshooting.md          | File exists       | ✅ **RESOLVED** (Populated)                 |
+| ML-09 | infrastructure/deployment-guide.md          | File exists       | ✅ **RESOLVED** (Populated)                 |
+| ML-10 | infrastructure/docker-compose-reference.md  | File exists       | ✅ **RESOLVED** (Populated)                 |
+| ML-11 | infrastructure/observability-signoz.md      | File exists       | ✅ **RESOLVED** (Populated)                 |
+| ML-12 | ui-ux/components-list.md                    | File exists       | ✅ **RESOLVED** (Populated)                 |
+| ML-13 | ui-ux/design-tokens.md                      | File exists       | ✅ **RESOLVED** (Populated)                 |
+| ML-14 | ui-ux/frontend-stack.md                     | File exists       | ✅ **RESOLVED** (Populated)                 |
