@@ -348,14 +348,14 @@ Maximum 10 webhooks per account (422 error if exceeded). Webhooks may deliver ou
 
 ### Appendix C: Documents analyzed
 
-| Document | ID | Key Risks Identified |
-| ---------- | ---- | -------------------- |
-| TOC_Plan_Dezvoltare_Cerniq_App | 12wY1E8OuCC9fyVFPyMvKAjmxiheSuau4yuAyzC0ET4k | Full system overview, 12-week timeline |
-| Cerniq App - Introducere | 1nFWauBiQo9Kbg1GI641Bo6VeTqqHTvZ1s2emp_ezDmw | Market context, technology rationale |
-| Roadmap Paralel Vanzari AI | 11FtWwpDCgTv-LtDVPuupA3_BZEdP665BiroCW3mRc5U | Vertical Slice architecture, 1-person-team paradigm |
-| Docker Infrastructure Reference | 1JQykNPwX_y8pWu8FhYl2C-N5iLktLkhjAGYKDpZSqjg | Docker 29.1.3, Hetzner configuration |
-| Etapa 2 - Complete Workers | 1ROghHFkeOzeMTtdg0-fPdnWDYMfR_gCvd-HfHtB22R8 | 52 workers, Quota Guardian, rate limiting |
-| Etapa 1 - UI/UX | 1izDE5C5koomt4mRNAOk8YmScjAk364nm6yCdLci3jXY | React 19.2.3, Tailwind 4.1, Refine v5 |
+| Document | Location | Key Risks Identified |
+| -------- | -------- | -------------------- |
+| Master Specification | [`master-specification.md`](../specifications/master-specification.md) | Full system overview, 12-week timeline |
+| Architecture Overview | [`architecture.md`](./architecture.md) | Market context, technology rationale |
+| Roadmap | [`/mnt/project/1_Roadmap*.md`](file:///mnt/project/) | Vertical Slice architecture, 1-person-team paradigm |
+| Docker Infrastructure | [`docker-compose-reference.md`](../infrastructure/docker-compose-reference.md) | Docker 29.1.3, Hetzner configuration |
+| Etapa 2 Workers | [`etapa2-plan-implementare-COMPLET.md`](../specifications/Etapa%202/) | 52 workers, Quota Guardian, rate limiting |
+| UI/UX Specifications | [`docs/ui-ux/`](../ui-ux/) | React 19.2.3, Tailwind 4.1, Refine v5 |
 
 ---
 

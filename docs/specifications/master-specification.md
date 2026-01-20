@@ -1480,9 +1480,9 @@ CREATE TABLE integration_credentials (
 | **TimelinesAI**  | TimelinesAI | api   | 50/min     | API Key       | `secret/timelines/api`  |
 | **Instantly.ai** | Instantly   | api   | 100/10s    | Bearer Token  | `secret/instantly/api`  |
 | **Resend**       | Resend      | api   | 100/sec    | API Key       | `secret/resend/api`     |
-| **Oblio.eu**     | Oblio       | api   | N/A        | API Key       | `secret/oblio/api`      |
-| **Revolut**      | Revolut     | oauth | N/A        | OAuth2        | `secret/revolut/oauth`  |
-| **Sameday**      | Sameday     | api   | N/A        | API Key       | `secret/sameday/api`    |
+| **Oblio.eu**     | Oblio       | api   | 60/min     | API Key       | `secret/oblio/api`      |
+| **Revolut**      | Revolut     | oauth | 100/min    | OAuth2        | `secret/revolut/oauth`  |
+| **Sameday**      | Sameday     | api   | 30/min     | API Key       | `secret/sameday/api`    |
 | **Nominatim**    | OSM         | api   | 50/sec     | None          | —                       |
 
 ### 6.3 Secrets Management Pattern

@@ -40,25 +40,59 @@ Conformitatea GDPR este documentată în următoarele locații:
 
 Conform **Art 6(1)(f) GDPR**, procesarea datelor B2B (Public Registers) se bazează pe Interes Legitim.
 
-### LIA Record #001 (Data Enrichment)
+> **📄 Document Complet LIA:** [`gdpr-legitimate-interest-assessment.md`](./gdpr-legitimate-interest-assessment.md)
 
-- **Scop:** Identificarea prospecților B2B relevanți.
-- **Necesitate:** Nu există alternativă non-intruzivă pentru B2B outreach la scară.
-- **Balancing Test:** Datele sunt publice (Termene.ro, MFinante). Impactul asupra vieții private este minim (date de business).
-- **Decizie:** **APROBAT** (cu condiția oferirii Opt-Out imediat).
+### LIA Record #001 (Data Enrichment) — APROBAT
+
+| Aspect | Rezultat |
+| ------ | -------- |
+| **Necessity Test** | ✅ TRECUT |
+| **Balancing Test** | ✅ TRECUT (Impact 28% vs Interes 80%) |
+| **Safeguards** | ✅ SUFICIENTE |
+| **Decizie** | **APROBAT** cu Opt-Out obligatoriu |
+
+---
 
 ## Ofițer Protecția Datelor (DPO)
 
-Deși Cerniq.app nu procesează date "Large Scale" de categorii speciale, am numit un DPO responsabil pentru:
+### Numire și Status
 
-1. Audit trimestrial al log-urilor de acces.
-2. Gestionarea cererilor "Right to be Forgotten".
-3. Notificarea ANSPDCP în caz de breach (max 72h).
+| Aspect | Detalii |
+| ------ | ------- |
+| **Tip DPO** | Extern (Legal Consultant) |
+| **Status** | Desemnat formal înainte de go-live |
+| **Bază legală** | Art. 37-39 GDPR, Legea 190/2018 |
 
-**DPO Contact:**
+### Responsabilități DPO
 
-- Email: `dpo@cerniq.app`
-- Responsabil: Legal External Consultant
+1. **Monitorizare Conformitate**
+   - Audit trimestrial al log-urilor de acces date personale
+   - Verificare anuală a politicilor de retenție
+   - Review LIA la modificări procesare
+
+2. **Gestionare Cereri GDPR**
+   - Right to Access (Art. 15) — SLA: 30 zile
+   - Right to Erasure (Art. 17) — SLA: 7 zile
+   - Right to Data Portability (Art. 20) — SLA: 30 zile
+
+3. **Incident Response**
+   - Notificare ANSPDCP în caz de breach (max 72h)
+   - Notificare persoane afectate dacă risc ridicat
+   - Documentare incident și lessons learned
+
+4. **Training & Awareness**
+   - Onboarding GDPR pentru noi angajați
+   - Update anual echipă pe modificări legislative
+
+### Contact DPO
+
+| Canal | Detalii |
+| ----- | ------- |
+| **Email** | <dpo@cerniq.app> |
+| **SLA Răspuns** | 48 ore zile lucrătoare |
+| **Escalare** | <management@cerniq.app> |
+
+> **Notă:** DPO formal va fi contractat și publicat pe website înainte de lansarea în producție, conform Art. 37(7) GDPR.
 
 ---
 
