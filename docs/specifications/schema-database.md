@@ -666,12 +666,12 @@ CREATE TABLE gold_lead_journey (
     contact_id UUID REFERENCES gold_contacts(id),
     
     -- Stare curentă
-    current_stage VARCHAR(30) NOT NULL,
-    previous_stage VARCHAR(30),
-    stage_entered_at TIMESTAMPTZ DEFAULT NOW(),
+    current_state VARCHAR(30) NOT NULL,
+    previous_state VARCHAR(30),
+    state_entered_at TIMESTAMPTZ DEFAULT NOW(),
     
     -- Canal și asignare
-    assigned_phone_id INTEGER, -- Din clusterul de 20 numere WhatsApp
+    assigned_phone_number VARCHAR(20), -- Din clusterul de 20 numere WhatsApp
     assigned_email_account VARCHAR(255),
     owner_id UUID, -- Utilizator responsabil
     
@@ -862,11 +862,13 @@ CREATE INDEX idx_affiliations_type ON gold_affiliations(relation_type);
           "minimum": 0,
           "description": "Total Livestock Units"
         },
+        /* REMOVED: APIA data not legally viable per R-017
         "subventii_apia_ultimul_an": {
           "type": "number",
           "minimum": 0,
           "description": "Subvenții APIA în EUR"
         }
+        */
       }
     },
     
@@ -1011,7 +1013,7 @@ CREATE INDEX idx_affiliations_type ON gold_affiliations(relation_type);
 
 ┌──────────────┐   ┌──────────────┐   ┌──────────────┐   ┌──────────────┐
 │  CSV Import  │   │  PDF Scrape  │   │  API Webhook │   │ Manual Entry │
-│  (APIA/MADR) │   │ (DAJ/ANIF)   │   │  (Shopify)   │   │  (Admin UI)  │
+│  (CSV Import) │   │ (Scrape)     │   │  (Shopify)   │   │  (Admin UI)  │
 └──────┬───────┘   └──────┬───────┘   └──────┬───────┘   └──────┬───────┘
        │                  │                  │                  │
        ▼                  ▼                  ▼                  ▼

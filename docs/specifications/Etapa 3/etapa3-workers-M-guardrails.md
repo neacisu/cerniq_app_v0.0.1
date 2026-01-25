@@ -2233,7 +2233,7 @@ export class SpamDetector {
       shortMessageScore: this.calculateShortMessageScore(content),
       overallSpamScore: 0
     };
-    
+
     // Calculate weighted overall score
     signals.overallSpamScore = this.calculateOverallScore(signals);
     
@@ -2247,7 +2247,7 @@ export class SpamDetector {
   private calculateRepetition(content: string): number {
     const words = content.toLowerCase().split(/\s+/).filter(w => w.length > 2);
     if (words.length < 5) return 0;
-    
+
     const wordCount = new Map<string, number>();
     for (const word of words) {
       wordCount.set(word, (wordCount.get(word) || 0) + 1);
@@ -2267,7 +2267,7 @@ export class SpamDetector {
   private calculateUppercaseRatio(content: string): number {
     const letters = content.replace(/[^a-zA-Z]/g, '');
     if (letters.length === 0) return 0;
-    
+
     const uppercase = letters.replace(/[^A-Z]/g, '').length;
     return uppercase / letters.length;
   }
@@ -2302,7 +2302,7 @@ export class SpamDetector {
       'click here', 'buy now', 'discount', 'offer', 'winner',
       'congratulations', 'felicitări', 'câștigător', 'promoție'
     ];
-    
+
     const lowerContent = content.toLowerCase();
     let keywordCount = 0;
     
@@ -2322,7 +2322,7 @@ export class SpamDetector {
     // Check for patterns that indicate gibberish
     const words = content.toLowerCase().split(/\s+/).filter(w => w.length > 1);
     if (words.length === 0) return 0;
-    
+
     let gibberishWords = 0;
     
     for (const word of words) {
@@ -2351,7 +2351,7 @@ export class SpamDetector {
   private calculateShortMessageScore(content: string): number {
     const trimmed = content.trim();
     const words = trimmed.split(/\s+/).filter(w => w.length > 0);
-    
+
     // Single word or emoji only
     if (words.length <= 1 && trimmed.length < 10) {
       return 0.8;
@@ -2367,7 +2367,7 @@ export class SpamDetector {
   
   private calculateOverallScore(signals: SpamSignals): number {
     const { weights } = this.config;
-    
+
     return (
       signals.repetitionScore * weights.repetitionScore +
       signals.uppercaseRatio * weights.uppercaseRatio +
@@ -2420,7 +2420,7 @@ export class HarmfulContentDetector {
   
   private buildCategoryPatterns(): Map<HarmfulContentCategory, RegExp[]> {
     const patterns = new Map<HarmfulContentCategory, RegExp[]>();
-    
+
     // Violence patterns (Romanian + English)
     patterns.set(HarmfulContentCategory.VIOLENCE, [
       /\b(ucide|omoară|atacă|lovește|bate|distruge)\b/gi,
@@ -2484,7 +2484,7 @@ export class HarmfulContentDetector {
   
   async detect(content: string): Promise<ContentDetection[]> {
     const detections: ContentDetection[] = [];
-    
+
     for (const [category, patterns] of this.categoryPatterns) {
       for (const pattern of patterns) {
         let match: RegExpExecArray | null;
@@ -2532,7 +2532,7 @@ export class HarmfulContentDetector {
       'nu este recomandat', 'not recommended', 'pericol', 'danger',
       'conform legii', 'according to law', 'reglementări', 'regulations'
     ];
-    
+
     const lowerContext = context.toLowerCase();
     return educationalIndicators.some(indicator => 
       lowerContext.includes(indicator)
@@ -2558,7 +2558,7 @@ export class HarmfulContentDetector {
       [HarmfulContentCategory.ENVIRONMENTAL_HARM]: ContentViolationType.HARMFUL_CONTENT,
       [HarmfulContentCategory.FOOD_SAFETY_VIOLATION]: ContentViolationType.HARMFUL_CONTENT
     };
-    
+
     return mapping[category] || ContentViolationType.HARMFUL_CONTENT;
   }
   
@@ -2569,7 +2569,7 @@ export class HarmfulContentDetector {
       HarmfulContentCategory.PHISHING,
       HarmfulContentCategory.FOOD_SAFETY_VIOLATION
     ];
-    
+
     const criticalSeverity = [
       HarmfulContentCategory.SELF_HARM,
       HarmfulContentCategory.HATE_SPEECH
@@ -2589,11 +2589,12 @@ export class HarmfulContentDetector {
       HarmfulContentCategory.PHISHING,
       HarmfulContentCategory.ILLEGAL_PRODUCTS
     ];
-    
+
     if (blockCategories.includes(category)) return GuardrailDecision.BLOCK;
     return GuardrailDecision.ESCALATE;
   }
 }
+
 ```
 
 ### 2.9 Content Moderation API Integration
@@ -6501,6 +6502,7 @@ export function createWorkerM2(config?: Partial<M2Config>): WorkerM2Compliance {
 **Purpose:** Control request rates for AI operations to prevent abuse, ensure fair resource allocation, manage API costs, and protect external services from overload.
 
 **Scope:**
+
 - Request rate limiting per tenant, user, and conversation
 - Token consumption rate limiting for LLM APIs
 - External API call rate limiting (ANAF, Oblio, e-Factura SPV)
@@ -6557,6 +6559,7 @@ export function createWorkerM2(config?: Partial<M2Config>): WorkerM2Compliance {
 ```
 
 **Key Features:**
+
 - Multiple algorithm support (token bucket, sliding window, leaky bucket)
 - Hierarchical rate limits (global → tenant → user → session)
 - External API protection with per-service limits
@@ -6564,7 +6567,6 @@ export function createWorkerM2(config?: Partial<M2Config>): WorkerM2Compliance {
 - Adaptive throttling based on system metrics
 - Priority handling for premium tenants
 - Graceful degradation under load
-
 
 ### 4.2 Rate Limiting Algorithms
 
@@ -7211,7 +7213,6 @@ export class LeakyBucket {
   }
 }
 ```
-
 
 ### 4.3 Limit Hierarchy and Configuration
 
@@ -8076,7 +8077,6 @@ export class RateLimitManager {
 }
 ```
 
-
 ### 4.4 Rate Limit Overrides and Dynamic Adjustments
 
 ```typescript
@@ -8486,7 +8486,6 @@ export class BackpressureHandler {
   }
 }
 ```
-
 
 ### 4.5 Quota Management
 
@@ -9024,7 +9023,6 @@ export class QuotaManager {
   }
 }
 ```
-
 
 ### 4.6 Worker M3 Main Implementation
 
@@ -9760,7 +9758,6 @@ export function getWorkerM3(redis: Redis, config?: Partial<M3Config>): WorkerM3R
 }
 ```
 
-
 ---
 
 ## 5. Worker M4 - Budget Guard
@@ -9770,6 +9767,7 @@ export function getWorkerM3(redis: Redis, config?: Partial<M3Config>): WorkerM3R
 **Purpose:** Token budget management, cost tracking, and usage limits for AI operations. Ensures AI-powered features operate within financial and resource constraints while providing visibility into costs.
 
 **Responsibilities:**
+
 - Token usage tracking per request, conversation, user, tenant
 - Cost calculation for different AI models
 - Budget enforcement and alerts
@@ -9825,7 +9823,6 @@ Request → Token Count → Cost Calculate → Budget Check → Decision
                               │               │               │
                          Deduct Budget   Continue        Suggest Plan
 ```
-
 
 ### 5.2 Token Counting and Cost Calculation
 
@@ -10388,7 +10385,6 @@ export class TokenCounter {
 }
 ```
 
-
 ### 5.3 Budget Management
 
 ```typescript
@@ -10927,7 +10923,6 @@ export class BudgetManager {
   }
 }
 ```
-
 
 ### 5.4 Worker M4 Main Implementation
 
@@ -11750,7 +11745,6 @@ export function getWorkerM4(redis: Redis, config?: Partial<M4Config>): WorkerM4B
 }
 ```
 
-
 ---
 
 ## 6. Worker M5 - Quality Assurance
@@ -11760,6 +11754,7 @@ export function getWorkerM4(redis: Redis, config?: Partial<M4Config>): WorkerM4B
 **Purpose:** Quality validation for AI-generated content, ensuring outputs meet coherence, grammar, tone, brand, and factual accuracy standards before delivery to customers.
 
 **Responsibilities:**
+
 - Coherence and relevance validation
 - Grammar and spelling check (Romanian + English)
 - Tone and sentiment alignment
@@ -11827,7 +11822,6 @@ AI Response → Parse Content → Run Checks (parallel) → Aggregate Score → 
                     │               │               │
                Deliver          Review          Regenerate
 ```
-
 
 ### 6.2 Quality Checkers
 
@@ -12661,7 +12655,6 @@ export class GrammarChecker {
   }
 }
 ```
-
 
 ### 6.3 Tone and Brand Checkers
 
@@ -13642,7 +13635,6 @@ export class BrandChecker {
   }
 }
 ```
-
 
 ### 6.4 Format and Factual Checkers
 
@@ -14714,7 +14706,6 @@ export class FactualChecker {
 }
 ```
 
-
 ### 6.5 Readability Checker
 
 ```typescript
@@ -15395,7 +15386,6 @@ export class ReadabilityChecker {
   }
 }
 ```
-
 
 ### 6.6 Worker M5 Main Implementation
 
@@ -16400,7 +16390,6 @@ export function createWorkerM5(config?: Partial<M5Config>): WorkerM5QualityAssur
 }
 ```
 
-
 ---
 
 ## 7. Worker M6 - Anti-Hallucination System
@@ -16505,7 +16494,7 @@ export function createWorkerM5(config?: Partial<M5Config>): WorkerM5QualityAssur
 | NUMERIC | Prices, quantities, percentages | Calculation verification | CRITICAL |
 | TEMPORAL | Dates, deadlines, schedules | Calendar + History | HIGH |
 | POLICY | Business rules, terms, conditions | Policy documents | HIGH |
-| AGRICULTURAL | Crop info, subsidies, regulations | MADR + APIA data | MEDIUM |
+| AGRICULTURAL | Crop info, subsidies, regulations | MADR data (No APIA) | MEDIUM |
 | GENERAL | General facts, common knowledge | Cross-reference | LOW |
 
 ### 7.2 Claim Extraction and Classification
@@ -17160,7 +17149,6 @@ export class ClaimExtractor {
   }
 }
 ```
-
 
 ### 7.3 Knowledge Base Verification
 
@@ -18147,7 +18135,6 @@ export class KnowledgeBaseVerifier {
 }
 ```
 
-
 ### 7.4 Confidence Scoring and Decision Engine
 
 ```typescript
@@ -18722,7 +18709,6 @@ export class ConfidenceScorer {
 }
 ```
 
-
 ### 7.5 Citation Management and Output Formatter
 
 ```typescript
@@ -19283,7 +19269,6 @@ Sunt aici să vă ajut - vă rog să încercați din nou sau să întrebați alt
   }
 }
 ```
-
 
 ### 7.6 Worker M6 Main Implementation
 
@@ -20031,7 +20016,6 @@ ${content}
 }
 ```
 
-
 #### 7.6.2 BullMQ Worker Implementation
 
 ```typescript
@@ -20564,7 +20548,6 @@ export function createWorkerM6(redis: Redis, config?: Partial<M6Config>): Worker
 }
 ```
 
-
 #### 7.6.3 Database Schema
 
 ```typescript
@@ -20817,7 +20800,6 @@ export const hallucinationClaimsRelations = relations(hallucinationClaims, ({ on
   })
 }));
 ```
-
 
 ### 7.6 Worker M6 Main Implementation
 
@@ -21707,7 +21689,6 @@ export async function aggregateHallucinationMetrics(
 }
 ```
 
-
 ---
 
 ## 8. Integration Patterns
@@ -22487,7 +22468,6 @@ export class GuardrailsPipeline {
 }
 ```
 
-
 ### 8.2 Integration with Workers C/L (AI Agent)
 
 ```typescript
@@ -22986,7 +22966,6 @@ export function createWorkerLMiddleware(redis: Redis) {
   };
 }
 ```
-
 
 ### 8.3 Event Triggers and Inter-Worker Communication
 
@@ -23761,7 +23740,6 @@ export function createEventsFromResult(
   return events;
 }
 ```
-
 
 ---
 
@@ -24756,7 +24734,6 @@ export class GuardrailAlertManager {
 }
 ```
 
-
 ---
 
 ## 10. Testing & Validation
@@ -25336,7 +25313,6 @@ describe('Romanian Regulatory Compliance', () => {
   });
 });
 ```
-
 
 ---
 
@@ -28376,32 +28352,32 @@ const DASHBOARD_PANELS = [
 
 | Reference | Description | URL |
 |-----------|-------------|-----|
-| **GDPR** | General Data Protection Regulation | https://gdpr.eu/ |
-| **ANSPDCP** | Romanian Data Protection Authority | https://www.dataprotection.ro/ |
-| **e-Factura** | Romanian Electronic Invoice System | https://www.anaf.ro/efactura |
-| **APIA** | Romanian Agricultural Payments Agency | https://www.apia.org.ro/ |
-| **MADR** | Ministry of Agriculture and Rural Development | https://www.madr.ro/ |
+| **GDPR** | General Data Protection Regulation | <https://gdpr.eu/> |
+| **ANSPDCP** | Romanian Data Protection Authority | <https://www.dataprotection.ro/> |
+| **e-Factura** | Romanian Electronic Invoice System | <https://www.anaf.ro/efactura> |
+| **APIA** | [REMOVED] | [REMOVED] |
+| **MADR** | Ministry of Agriculture and Rural Development | <https://www.madr.ro/> |
 
 #### Technical Documentation
 
 | Reference | Description | URL |
 |-----------|-------------|-----|
-| **BullMQ** | Queue system documentation | https://docs.bullmq.io/ |
-| **Drizzle ORM** | Database ORM documentation | https://orm.drizzle.team/ |
-| **PostgreSQL 18** | Database documentation | https://www.postgresql.org/docs/18/ |
-| **Redis 7** | Cache documentation | https://redis.io/docs/ |
-| **Node.js 24** | Runtime documentation | https://nodejs.org/docs/latest-v24.x/api/ |
-| **Prometheus** | Metrics documentation | https://prometheus.io/docs/ |
-| **OpenTelemetry** | Tracing documentation | https://opentelemetry.io/docs/ |
+| **BullMQ** | Queue system documentation | <https://docs.bullmq.io/> |
+| **Drizzle ORM** | Database ORM documentation | <https://orm.drizzle.team/> |
+| **PostgreSQL 18** | Database documentation | <https://www.postgresql.org/docs/18/> |
+| **Redis 7** | Cache documentation | <https://redis.io/docs/> |
+| **Node.js 24** | Runtime documentation | <https://nodejs.org/docs/latest-v24.x/api/> |
+| **Prometheus** | Metrics documentation | <https://prometheus.io/docs/> |
+| **OpenTelemetry** | Tracing documentation | <https://opentelemetry.io/docs/> |
 
 #### AI Safety & Guardrails
 
 | Reference | Description | URL |
 |-----------|-------------|-----|
-| **NIST AI RMF** | AI Risk Management Framework | https://www.nist.gov/itl/ai-risk-management-framework |
-| **EU AI Act** | European AI Regulation | https://artificialintelligenceact.eu/ |
-| **Anthropic Guidelines** | Claude usage guidelines | https://docs.anthropic.com/ |
-| **OWASP LLM** | LLM Security Top 10 | https://owasp.org/www-project-top-10-for-large-language-model-applications/ |
+| **NIST AI RMF** | AI Risk Management Framework | <https://www.nist.gov/itl/ai-risk-management-framework> |
+| **EU AI Act** | European AI Regulation | <https://artificialintelligenceact.eu/> |
+| **Anthropic Guidelines** | Claude usage guidelines | <https://docs.anthropic.com/> |
+| **OWASP LLM** | LLM Security Top 10 | <https://owasp.org/www-project-top-10-for-large-language-model-applications/> |
 
 ### 12.7 Related Documents
 
@@ -28421,6 +28397,7 @@ const DASHBOARD_PANELS = [
 ## Document End
 
 **Document Statistics:**
+
 - Total Sections: 12
 - Total Workers: 6 (M1-M6)
 - Total Lines: ~28,000

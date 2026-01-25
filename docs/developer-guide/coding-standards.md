@@ -675,7 +675,7 @@ fastify.register(fastifyJwt, {
 fastify.addHook('preHandler', async (request) => {
   if (request.user) {
     await fastify.pg.query(
-      "SET LOCAL app.current_tenant = $1",
+      "SET LOCAL app.current_tenant_id = $1",
       [request.user.tenant_id]
     );
   }
@@ -1292,7 +1292,7 @@ alwaysApply: false
 CRITICAL: Every tenant-scoped table MUST:
 1. Have `tenant_id UUID NOT NULL` column
 2. Use `UNIQUE(tenant_id, business_key)` NOT `UNIQUE(business_key)`
-3. Have RLS policy: `USING (tenant_id = current_setting('app.current_tenant')::uuid)`
+3. Have RLS policy: `USING (tenant_id = current_setting('app.current_tenant_id')::uuid)`
 
 ## Table Naming
 - `bronze_*`: Raw ingestion data (append-only)

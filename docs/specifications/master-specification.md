@@ -321,7 +321,7 @@ interface GuardrailChecks {
 | Principiu                      | Implementare                    | Status      |
 |--------------------------------|---------------------------------|-------------|
 | **Row-Level Security (RLS)**   | Toate tabelele silver/gold      | OBLIGATORIU |
-| **Tenant ID în toate queries** | Via app.current_tenant          | OBLIGATORIU |
+| **Tenant ID în toate queries** | Via app.current_tenant_id       | OBLIGATORIU |
 | **Unique constraints**         | UNIQUE(tenant_id, business_key) | OBLIGATORIU |
 | **Shared data**                | Tabele *_configs fără tenant_id | DOCUMENTAT  |
 | **Cross-tenant queries**       | INTERZIS (doar super_admin)     | IMPUS       |
@@ -853,7 +853,7 @@ CREATE UNIQUE INDEX idx_bronze_dedup ON bronze_contacts(tenant_id, content_hash)
 
 | Sursă               | Tip Date                  | Format      | Frecvență  |
 |---------------------|---------------------------|-------------|------------|
-| APIA Registre       | Liste fermieri, subvenții | CSV/Excel   | Anual      |
+| APIA Registre       | [REMOVED]                 | [REMOVED]   | [REMOVED]  |
 | MADR Registre       | OUAI, Cooperative         | PDF tabelar | Lunar      |
 | ONRC/Recom          | Date juridice             | JSON/XML    | La cerere  |
 | Import manual       | Liste prospecți           | CSV/Excel   | Ad-hoc     |
@@ -1677,19 +1677,19 @@ ALTER TABLE approval_tasks ENABLE ROW LEVEL SECURITY;
 -- Policy pentru tenant isolation
 CREATE POLICY tenant_isolation_companies ON gold_companies
     FOR ALL
-    USING (tenant_id = current_setting('app.current_tenant')::uuid);
+    USING (tenant_id = current_setting('app.current_tenant_id')::uuid);
 
 CREATE POLICY tenant_isolation_journey ON gold_lead_journey
     FOR ALL
-    USING (tenant_id = current_setting('app.current_tenant')::uuid);
+    USING (tenant_id = current_setting('app.current_tenant_id')::uuid);
 
 CREATE POLICY tenant_isolation_approvals ON approval_tasks
     FOR ALL
-    USING (tenant_id = current_setting('app.current_tenant')::uuid);
+    USING (tenant_id = current_setting('app.current_tenant_id')::uuid);
 
 -- Middleware pentru setare context
 -- În fiecare request:
--- SET LOCAL app.current_tenant = 'tenant-uuid';
+-- SET LOCAL app.current_tenant_id = 'tenant-uuid';
 -- SET LOCAL app.current_user = 'user-uuid';
 ```
 

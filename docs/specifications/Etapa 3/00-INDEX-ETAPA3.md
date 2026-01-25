@@ -11,7 +11,7 @@
 **Scop:** Agent AI autonom pentru negociere comercială și emitere documente fiscale  
 **Paradigmă:** Neuro-Simbolic (Zero Hallucination) cu Guardrails și HITL  
 **Canale:** WhatsApp (TimelinesAI), Email Warm (Resend)  
-**Integrări:** Oblio.eu (facturare), ANAF SPV (e-Factura), Qdrant (RAG)  
+**Integrări:** Oblio.eu (facturare), ANAF SPV (e-Factura), PostgreSQL + pgvector (RAG)  
 **LLM Provider:** xAI Grok-4 (primary), OpenAI GPT-4o (fallback)  
 
 ---

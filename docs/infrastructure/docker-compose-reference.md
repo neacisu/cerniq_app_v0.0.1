@@ -128,7 +128,7 @@ postgres:
   shm_size: 2g
 ```
 
-**Extensions:** pgvector 0.8.0, PostGIS 3.5, pg_trgm
+**Extensions:** pgvector 0.8.1, PostGIS 3.6.1, pg_trgm
 
 **Tuning:** Optimizat pentru 128GB RAM, NVMe SSD
 

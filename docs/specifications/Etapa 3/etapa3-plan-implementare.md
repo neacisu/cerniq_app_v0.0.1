@@ -1539,7 +1539,7 @@ etapa3_statistics:
     etapa2: "Cold outreach infrastructure (channels, templates)"
     external:
       - "OpenAI API (GPT-4o)"
-      - "Qdrant vector database"
+      - ""
       - "ANAF e-Factura SPV"
       - "Oblio.eu facturare"
       - "WhatsApp Business API"
@@ -1587,7 +1587,7 @@ etapa3_statistics:
 │  │                    DATA LAYER                               │   │
 │  │                                                             │   │
 │  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │   │
-│  │  │  PostgreSQL  │  │    Redis     │  │   Qdrant     │       │   │
+│  │  │  PostgreSQL  │  │    Redis     │  │   pgvector   │       │   │
 │  │  │  (Primary)   │  │   (Cache)    │  │  (Vectors)   │       │   │
 │  │  └──────────────┘  └──────────────┘  └──────────────┘       │   │
 │  │                                                             │   │
@@ -1766,7 +1766,7 @@ external_dependencies:
     fallback: "Claude 3.5 Sonnet"
     
   qdrant:
-    service: "Qdrant Cloud / Self-hosted"
+    service: "PostgreSQL + pgvector"
     version: "1.12.x"
     purpose: "Vector similarity search"
     collections: ["products", "conversations"]

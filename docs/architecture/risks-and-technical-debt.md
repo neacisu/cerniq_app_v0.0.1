@@ -327,8 +327,7 @@ Maximum 10 webhooks per account (422 error if exceeded). Webhooks may deliver ou
 
 | Technology | Version | Production Readiness | Risk Level |
 | ------------ | --------- | --------------------- | ------------ |
-| Python 3.13 LTS | 3.13.2 | Stable Standard | **LOW** |
-| Python 3.14 (No-GIL) | 3.14.0 | Experimental | **DEPRECATED** |
+| Python 3.14.2 FT | 3.14.2 | Experimental Free-Threading | **HIGH** |
 | Node.js 24.x | 24.12.0 | LTS Stable | LOW |
 | PostgreSQL 18.1 | 18.1 | GA Stable | LOW |
 | BullMQ v5.66.5 | 5.66.5 | Stable | MEDIUM |

@@ -40,7 +40,7 @@
 | **Automatizare Completă** | Pipeline de la primul contact la facturare | Zero intervenție umană pentru 70% din tranzacții |
 | **Zero Hallucinations** | Eliminarea erorilor AI în prețuri, stocuri, date fiscale | 100% acuratețe în documente fiscale |
 | **Conformitate Fiscală** | Integrare completă e-Factura/SPV ANAF | 100% conformitate în termen de 5 zile |
-| **Scalabilitate Agricolă** | Suport specificitățile fermelor românești | OUAI, Cooperative, subvenții APIA integrate |
+| **Scalabilitate Agricolă** | Suport specificitățile fermelor românești | OUAI, Cooperative, subvenții [REMOVED] integrate |
 
 ### Funcționalități Cheie (5 Etape Pipeline)
 
@@ -72,7 +72,7 @@ TOTAL: 5 Monolithic Workers (Scaling Vertical/Horizontal per Etapă)
 | **Arhitect/Developer** | 1-Person-Team | Mentenabilitate, documentație exhaustivă |
 | **Fermieri (Clienți Finali)** | Utilizatori țintă | Comunicare relevantă, prețuri corecte |
 | **ANAF/SPV** | Autoritate Fiscală | e-Facturi valide, conformitate CIUS-RO |
-| **Furnizori de Date** | Termene.ro, ANAF, APIA | Rate limits respectate, cost-eficiență |
+| **Furnizori de Date** | Termene.ro, ANAF | Rate limits respectate, cost-eficiență |
 | **Autoritatea pentru Protecția Datelor** | ANSPDCP | GDPR compliance, LIA documentat |
 
 ---
@@ -152,7 +152,7 @@ const LEGACY_ALIASES = {
    │                 │               │               │                       │
    ▼                 ▼               ▼               ▼                       ▼
 ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐
-│ Fermieri │   │  ANAF    │   │Termene.ro│   │  APIA/   │   │ Oblio.eu │   │TimelinesAI│
+│ Fermieri │   │  ANAF    │   │Termene.ro│   │ [REMOVED]│   │ Oblio.eu │   │TimelinesAI│
 │ (2.86M)  │   │(e-Factura│   │(Business │   │  MADR    │   │(Facturare│   │(WhatsApp  │
 │          │   │  SPV)    │   │  Intel)  │   │(Subvenții│   │   ERP)   │   │  Cluster) │
 └──────────┘   └──────────┘   └──────────┘   └──────────┘   └──────────┘   └──────────┘
@@ -170,7 +170,7 @@ const LEGACY_ALIASES = {
 | **Fermieri** | Bidirectional | WhatsApp, Email, SMS | Prospectare, Negociere, Suport |
 | **ANAF SPV** | Outbound | REST API + OAuth2 | Transmitere e-Facturi |
 | **Termene.ro** | Inbound | REST API | Date financiare, scoruri de risc |
-| **APIA/MADR** | Inbound | PDF Scraping | Subvenții, suprafețe agricole |
+| **APIA/MADR** | Inbound | [REMOVED] | [REMOVED] per Risk R-017 |
 | **Oblio.eu** | Bidirectional | REST API | Emitere proforma, facturi |
 | **TimelinesAI** | Bidirectional | Webhooks + API | WhatsApp cluster 20 numere |
 | **Instantly.ai** | Outbound | REST API | Cold email campaigns |
@@ -307,7 +307,7 @@ Cross-cutting: via shared utilities, not forced inheritance
 ├── /packages
 │   ├── /db (Drizzle ORM)
 │   └── /shared-types
-└── /workers (Python 3.13 LTS)
+└── /workers (Python 3.14.2 Free-Threading)
     ├── /etapa1-enrichment/  # Monolithic Worker Entrypoint
     ├── /etapa2-outreach/    # Monolithic Worker Entrypoint
     ├── /etapa3-sales/       # Monolithic Worker Entrypoint
@@ -1028,18 +1028,18 @@ interface LogEntry {
 ```typescript
 // Canonical event schema
 interface CerniqEvent<T = unknown> {
-  event_id: string;           // UUID v7 (timestamp-ordered)
-  event_type: string;         // {entity}.{action}.{status}
-  event_version: '1.0';
+  eventId: string;           // UUID v7 (timestamp-ordered)
+  eventType: string;         // {entity}.{action}.{status}
+  eventVersion: '1.0';
   timestamp: string;          // ISO 8601
-  correlation_id: string;     // For tracing
-  tenant_id: string;
+  correlationId: string;     // For tracing
+  tenantId: string;
   source: string;             // 'worker-enrichment' | 'api' | etc.
   payload: T;
   metadata: {
-    idempotency_key: string;  // For deduplication
-    retry_count?: number;
-    original_event_id?: string; // For replay
+    idempotencyKey: string;  // For deduplication
+    retryCount?: number;
+    originalEventId?: string; // For replay
   };
 }
 

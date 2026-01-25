@@ -242,7 +242,7 @@ COLD → CONTACTED_WA → WARM_REPLY → NEGOTIATION → PROPOSAL → CLOSING �
 |----------------|--------------|----------------------------------|
 | **ANAF API**   | Gratuit      | CUI, TVA, e-Factura status, CAEN |
 | **Termene.ro** | Plătit       | Bilanțuri, scoring risc, dosare  |
-| **APIA/MADR**  | PDF scraping | Subvenții, suprafețe, OUAI       |
+| **APIA/MADR**  | [REMOVED]    | [REMOVED] per Risk R-017         |
 | **Hunter.io**  | Plătit       | Email discovery                  |
 | **ZeroBounce** | Plătit       | Email verification               |
 
