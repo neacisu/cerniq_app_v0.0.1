@@ -341,7 +341,7 @@ services:
       "status": "healthy",
       "latencyMs": 3,
       "details": {
-        "version": "7.4.7"
+        "version": "8.4.0"
       }
     },
     {

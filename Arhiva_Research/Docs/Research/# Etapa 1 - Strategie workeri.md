@@ -1,6 +1,6 @@
 # Cerniq.app Stage 1 Worker Architecture Documentation
 
-**BullMQ v5.66.0 + Redis 7.4.7** powers the data enrichment pipeline for Romania's **2.86 million agricultural prospects**. This architecture deploys **granular workers**—one per field/data source—enabling independent scaling, rate limiting, and fault isolation. The system processes CUI validation through ANAF, company lookups via Lista Firme/Termene.ro, email discovery with Hunter.io, and agricultural registry data from APIA/MADR, all orchestrated through BullMQ's FlowProducer for complex dependency chains.
+**BullMQ v5.66.0 + Redis 8.4.0** powers the data enrichment pipeline for Romania's **2.86 million agricultural prospects**. This architecture deploys **granular workers**—one per field/data source—enabling independent scaling, rate limiting, and fault isolation. The system processes CUI validation through ANAF, company lookups via Lista Firme/Termene.ro, email discovery with Hunter.io, and agricultural registry data from APIA/MADR, all orchestrated through BullMQ's FlowProducer for complex dependency chains.
 
 The architecture runs on Hetzner bare metal (20 cores, 128GB RAM) with Redis configured for **100GB maxmemory with noeviction policy**—critical for queue integrity. GDPR compliance under Article 6(1)(f) legitimate interest requires documented Legitimate Interest Assessments, with special attention to Romanian Legea 190/2018 which mandates DPO appointment for CNP data processing.
 
@@ -339,7 +339,7 @@ const phoneValidationWorker = createEnrichmentWorker({
 
 ---
 
-## Redis 7.4.7 configuration optimizes queue workloads
+## Redis 8.4.0 configuration optimizes queue workloads
 
 ### Memory allocation reserves 100GB for queues with noeviction policy
 

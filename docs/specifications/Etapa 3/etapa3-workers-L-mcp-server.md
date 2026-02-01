@@ -27613,7 +27613,7 @@ drizzle:
 
 # Caching & Queues
 redis:
-  version: "7.4.7"
+  version: "8.4.0"
   docs: https://redis.io/docs/
 
 bullmq:

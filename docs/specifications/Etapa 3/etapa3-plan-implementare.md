@@ -66,7 +66,7 @@ Etapa 3 implementează un **Agent Comercial AI Autonom** care navighează ciclul
 │                      DEPENDENȚE ETAPA 3                                 │
 │                                                                         │
 │  ETAPA 0 (Infrastructură)                                               │
-│  ├── Docker + PostgreSQL 18.1 + Redis 8.4 ✓                             │
+│  ├── Docker + PostgreSQL 18.1 + Redis 8.4.0 ✓                           │
 │  ├── Traefik SSL/TLS ✓                                                  │
 │  ├── SigNoz Observability ✓                                             │
 │  └── Monorepo PNPM ✓                                                    │

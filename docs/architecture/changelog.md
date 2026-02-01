@@ -77,7 +77,7 @@
   - Specificații Etapele 1-5 (Enrichment, Outreach, AI Sales, Post-Sale, Nurturing)
   
 - **Infrastructure:**
-  - Docker Compose cu PostgreSQL 18.1, Redis 8.4, SigNoz
+  - Docker Compose cu PostgreSQL 18.1, Redis 8.4.0, SigNoz
   - Hetzner bare-metal deployment plan
   
 - **Frontend:**

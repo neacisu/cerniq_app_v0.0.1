@@ -4,7 +4,7 @@
 **Versiune:** 1.0  
 **Data:** Ianuarie 2026  
 **Autor:** Cerniq Development Team  
-**Stack:** BullMQ v5.66.0 + Redis 7.4.7 + Node.js v24.12.0 + Python 3.14.1
+**Stack:** BullMQ v5.66.0 + Redis 8.4.0 + Node.js v24.12.0 + Python 3.14.1
 
 ---
 
@@ -85,7 +85,7 @@ Exemple:
 
 ## 2. Configurare Infrastructură
 
-### 2.1 Redis 7.4.7 Configuration
+### 2.1 Redis 8.4.0 Configuration
 
 ```conf
 # /etc/redis/redis.conf pentru Cerniq Workers

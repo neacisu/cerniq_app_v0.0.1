@@ -225,9 +225,9 @@ with \`\--jobs=8\`, zstd compression) with pg_basebackup for PITR
 capability. WAL archiving requires \`archive_mode = on\` with
 \`archive_command\` copying segments to Hetzner Storage Box.
 
-\## Redis 7.4.7 configuration for BullMQ workloads
+\## Redis 8.4.0 configuration for BullMQ workloads
 
-\*\*Redis 7.4.7\*\* (November 2, 2025) is the latest 7.x stable release.
+\*\*Redis 8.4.0\*\* is the canonical stable release used for BullMQ workloads.
 \[github\](<https://github.com/redis/redis/releases>) For BullMQ job
 queues, the critical setting is \`maxmemory-policy noeviction\`---jobs
 are business-critical data that cannot be evicted.
@@ -592,7 +592,7 @@ This infrastructure stack delivers a production-ready foundation for
 Cerniq.app with several key architectural decisions. \*\*PostgreSQL
 18.1\*\* with PgBouncer transaction pooling maximizes database
 efficiency on the 128GB system, while \*\*pgvector HNSW indexes\*\*
-enable high-performance vector search. \*\*Redis 7.4.7\*\* in standalone
+enable high-performance vector search. \*\*Redis 8.4.0\*\* in standalone
 mode with AOF+RDB hybrid persistence ensures BullMQ job durability
 without Cluster complexity.
 

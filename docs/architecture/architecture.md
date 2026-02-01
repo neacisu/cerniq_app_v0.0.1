@@ -209,7 +209,7 @@ const LEGACY_ALIASES = {
      ▼                               ▼                               ▼
 ┌─────────────┐               ┌─────────────┐               ┌─────────────┐
 │ PostgreSQL  │               │   Redis     │               │   5 Mono    │
-│   18.1      │               │   7.4.7     │               │   Workers   │
+│   18.1      │               │   8.4.0     │               │   Workers   │
 │ + pgvector  │               │  (BullMQ)   │               │  (Python)   │
 │ + PostGIS   │               │             │               │             │
 └─────────────┘               └─────────────┘               └─────────────┘
@@ -805,7 +805,7 @@ random_page_cost = 1.1
 effective_io_concurrency = 200
 ```
 
-### Redis 8.4 Configuration
+### Redis 8.4.0 Configuration
 
 ```ini
 # redis.conf for BullMQ workloads

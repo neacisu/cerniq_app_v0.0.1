@@ -18,7 +18,7 @@
 | ---- | -------- | ----------- |
 | F0.1 | Infrastructură Docker de Bază | 5 |
 | F0.2 | PostgreSQL 18.1 Setup | 5 |
-| F0.3 | Redis 8.4 și BullMQ Setup | 3 |
+| F0.3 | Redis 8.4.0 și BullMQ Setup | 3 |
 | F0.4 | Traefik v3.6.6 Setup | 4 |
 | F0.5 | Observability Stack (SigNoz) | 3 |
 | F0.6 | PNPM și Monorepo Setup | 8 |
@@ -244,12 +244,12 @@
 
 ---
 
-## FAZA F0.3: REDIS 8.4 ȘI BULLMQ SETUP
+## FAZA F0.3: REDIS 8.4.0 ȘI BULLMQ SETUP
 
 ```json
 {
   "taskID": "F0.3.1.T001",
-  "denumire_task": "Adăugare serviciu Redis 8.4 optimizat pentru BullMQ în docker-compose.yml",
+  "denumire_task": "Adăugare serviciu Redis 8.4.0 optimizat pentru BullMQ în docker-compose.yml",
   "context_anterior": "PostgreSQL funcțional din F0.2. Acum adăugăm Redis pentru BullMQ job queuing. CRITIC: maxmemory-policy TREBUIE să fie noeviction pentru BullMQ.",
   "descriere_task": "Ești un expert Redis specializat în job queues și BullMQ. Task-ul tău este să adaugi serviciul Redis în docker-compose.yml.\n\nAdaugă următorul serviciu în docker-compose.yml:\n\n```yaml\n  redis:\n    image: redis:8.4-alpine\n    container_name: cerniq-redis\n    restart: unless-stopped\n    command:\n      - redis-server\n      - --maxmemory 8gb\n      - --maxmemory-policy noeviction\n      - --appendonly yes\n      - --appendfsync everysec\n      - --aof-use-rdb-preamble yes\n      - --notify-keyspace-events Ex\n      - --lazyfree-lazy-eviction yes\n      - --lazyfree-lazy-expire yes\n      - --activedefrag yes\n      - --tcp-keepalive 300\n    volumes:\n      - redis_data:/data\n    networks:\n      - cerniq_data\n      - cerniq_backend\n    healthcheck:\n      test: [\"CMD\", \"redis-cli\", \"ping\"]\n      interval: 10s\n      timeout: 5s\n      retries: 5\n      start_period: 30s\n    deploy:\n      resources:\n        limits:\n          memory: 12G\n          cpus: '2'\n        reservations:\n          memory: 8G\n          cpus: '1'\n```\n\nIMPORTANT: Redis este pe AMBELE rețele - cerniq_data (pentru persistență) și cerniq_backend (pentru workers).",
   "director_implementare": "/var/www/CerniqAPP/infra/docker",
@@ -262,7 +262,7 @@
     "VERIFICĂ că appendonly este yes pentru persistență"
   ],
   "validare_task": "1. 'docker compose config' validează fără erori\n2. Redis folosește imaginea redis:8.4-alpine\n3. maxmemory-policy este noeviction (verifică în command)\n4. appendonly este yes\n5. notify-keyspace-events este Ex\n6. Redis este pe ambele rețele: cerniq_data și cerniq_backend\n7. Nu există port mapping public pentru 6379",
-  "outcome": "Redis 8.4 configurat optim pentru BullMQ job queues cu persistență AOF și maxmemory-policy noeviction"
+  "outcome": "Redis 8.4.0 configurat optim pentru BullMQ job queues cu persistență AOF și maxmemory-policy noeviction"
 }
 ```
 
@@ -280,7 +280,7 @@
     "AȘTEAPTĂ ca healthcheck să fie healthy înainte de verificări"
   ],
   "validare_task": "1. Container cerniq-redis este running\n2. Health status este healthy\n3. CONFIG GET maxmemory-policy returnează noeviction\n4. CONFIG GET appendonly returnează yes\n5. CONFIG GET notify-keyspace-events returnează Ex sau conține Ex\n6. Test SET/GET funcționează",
-  "outcome": "Redis 8.4 rulează corect cu configurația optimă pentru BullMQ"
+  "outcome": "Redis 8.4.0 rulează corect cu configurația optimă pentru BullMQ"
 }
 ```
 
@@ -1427,7 +1427,7 @@
 | ---- | ----------- | ------ |
 | F0.1 Infrastructură Docker | 5 | ✅ Definite complet |
 | F0.2 PostgreSQL 18.1 | 5 | ✅ Definite complet |
-| F0.3 Redis 8.4 + BullMQ | 3 | ✅ Definite complet |
+| F0.3 Redis 8.4.0 + BullMQ | 3 | ✅ Definite complet |
 | F0.4 Traefik v3.6.6 | 4 | ✅ Definite complet |
 | F0.5 Observability SigNoz | 3 | ✅ Definite complet |
 | F0.6 PNPM + Monorepo | 8 | ✅ Definite complet |
@@ -1497,7 +1497,7 @@
 
 - [ ] Docker Engine 28.x funcțional
 - [ ] PostgreSQL 18.1 + PostGIS healthy
-- [ ] Redis 8.4 cu maxmemory-policy noeviction
+- [ ] Redis 8.4.0 cu maxmemory-policy noeviction
 - [ ] Traefik cu HTTPS și certificate valid
 - [ ] API responds pe /health/ready
 - [ ] Frontend încarcă în browser
@@ -1535,3 +1535,121 @@ După completarea Etapa 0, continuă cu:
 **Document generat:** 15 Ianuarie 2026  
 **Versiune:** 2.0 (Complete)
 **Sursă de adevăr:** Master Spec v1.2
+
+---
+
+## PLAN OPERAȚIONAL IERARHIZAT PE SPRINTURI
+
+Această secțiune detaliază execuția tactică a Etapei 0, organizată în Sprinturi logice pentru livrare incrementală și validare continuă.
+
+### STRATEGIE DE BRANCHING & CI/CD
+
+#### Git Flow Adaptat
+
+- **`main`**: Cod stabil, testat, ready for production.
+- **`develop`**: Branch de integrare principal.
+- **`feature/F0.x-[nume-concis]`**: Branch-uri dedicate per componentă majoră (ex: `feature/F0.1-docker-infra`).
+- **`hotfix/`**: Fix-uri critice aplicate pe main.
+
+#### Pipeline CI/CD (GitHub Actions)
+
+Fiecare Push pe branch-urile de feature va declanșa:
+
+1. **Static Analysis**: ESLint, Prettier, ShellCheck.
+2. **Type Safety**: TypeScript Compiler (`tsc --noEmit`).
+3. **Unit Tests**: Vitest pentru logică izolată.
+
+Fiecare Pull Request către `develop` va declanșa suplimentar:
+
+1. **Integration Tests**: Teste cu containere efemere (Testcontainers).
+2. **Build Verification**: Verificare că aplicația se poate compila complet.
+
+---
+
+### SPRINT 0.1: FUNDAȚIA INFRASTRUCTURII (Săptămâna 1)
+
+**Focus:** Securitate, Docker, Baze de Date.
+
+#### 🔹 Faza 1: Core Infrastructure
+
+- **Branch:** `feature/F0.1-F0.4-infra-core`
+- **Componente Incluse:**
+  - `F0.1` Docker Base
+  - `F0.2` PostgreSQL & `F0.3` Redis
+  - `F0.4` Traefik
+  - `F0.8` Security Hardening
+- **Validare Implementare:**
+  - [Local] Script `check-infra.sh` pentru verificare porturi și health status.
+  - [Local] Validare izolare rețea (curls între containere).
+  - [CI] Linter pentru `docker-compose.yml` și config files.
+
+#### 🔹 Faza 2: Disaster Recovery
+
+- **Branch:** `feature/F0.7-backup`
+- **Componente Incluse:**
+  - `F0.7` BorgBackup Setup & Scripts
+- **Validare Implementare:**
+  - [Local] Executare manuală `backup-daily.sh`.
+  - [Local] Testare procedură `restore-postgres.sh` pe o bază de test.
+
+---
+
+### SPRINT 0.2: APPLICATION RUNTIME & DX (Săptămâna 2)
+
+**Focus:** Monorepo, API Setup, Frontend Setup.
+
+#### 🔹 Faza 3: Monorepo & Tooling
+
+- **Branch:** `feature/F0.6-monorepo`
+- **Componente Incluse:**
+  - `F0.6` PNPM, Turbo, Configs (ESLint/TS)
+  - `F0.12` Development Environment
+- **Validare Implementare:**
+  - [CI] Setup Node.js v24, Cache setup, Install dependencies.
+  - [CI] `turbo build` pe pachete goale.
+
+#### 🔹 Faza 4: Application Boilerplate
+
+- **Branch:** `feature/F0.9-F0.11-app-base`
+- **Componente Incluse:**
+  - `F0.9` API Fastify Structure
+  - `F0.11` Frontend React/Refine Structure
+- **Validare Implementare:**
+  - [Local] `pnpm dev` pornește ambele aplicații.
+  - [Test] Endpoint `/health` răspunde cu 200 OK.
+  - [Test] Pagina de Login se încarcă în browser.
+
+---
+
+### SPRINT 0.3: DATA LAYER & OBSERVABILITY (Săptămâna 3)
+
+**Focus:** Schema design, Testare avansată, Monitorizare.
+
+#### 🔹 Faza 5: Database Schema & Logic
+
+- **Branch:** `feature/F0.10-database`
+- **Componente Incluse:**
+  - `F0.10` Drizzle Schema, Migrations, RLS Policies
+- **Validare Implementare:**
+  - [Local] `pnpm db:migrate` rulează fără erori.
+  - [Test] Verificare pgTAP pentru constrângeri și RLS.
+
+#### 🔹 Faza 6: Testing & Monitoring
+
+- **Branch:** `feature/F0.13-F0.5-quality`
+- **Componente Incluse:**
+  - `F0.13` Testing Infra (Vitest, Factories)
+  - `F0.5` SigNoz Stack
+  - `F0.14` Monitoring UI
+- **Validare Implementare:**
+  - [CI] Rulare teste integrare cu PostgreSQL real.
+  - [Local] Verificare dashboard SigNoz primire date.
+
+---
+
+### CRITERII GENERALE DE "DEFINITION OF DONE" (DoD)
+
+1. Codul este pe branch-ul corespunzător și a trecut CI check-urile.
+2. Documentația (ADR/Runbooks) este actualizată.
+3. Nu există secrete hardcodate (scanare automată).
+4. Toate taskurile JSON asociate sunt marcate ca "Outcome Validated".

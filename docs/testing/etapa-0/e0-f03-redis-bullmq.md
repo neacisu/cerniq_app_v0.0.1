@@ -1,6 +1,6 @@
 # CERNIQ.APP — TESTE F0.3: REDIS & BULLMQ
 
-## Teste pentru Redis 8.4 și configurare BullMQ
+## Teste pentru Redis 8.4.0 și configurare BullMQ
 
 **Fază:** F0.3 | **Taskuri:** 3 (F0.3.1.T001 - F0.3.1.T003)  
 **Referință:** [etapa0-plan-implementare-complet-v2.md](file:///var/www/CerniqAPP/docs/specifications/Etapa%200/etapa0-plan-implementare-complet-v2.md)
