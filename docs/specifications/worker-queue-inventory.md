@@ -43,9 +43,9 @@
 | B | name-normalizer | `normalize:name` | 20 | - |
 | C | cui-validator | `validate:cui` | 20 | - |
 | C | email-validator | `validate:email` | 10 | 50/min |
-| D | anaf-tva-fetcher | `enrich:anaf:tva` | 3 | 100/min |
-| D | anaf-bilant-fetcher | `enrich:anaf:bilant` | 3 | 50/min |
-| D | anaf-ws-fetcher | `enrich:anaf:ws` | 2 | 30/min |
+| D | anaf-tva-fetcher | `enrich:anaf:tva` | 3 | 1 req/sec (max 100 CUI/request) |
+| D | anaf-bilant-fetcher | `enrich:anaf:bilant` | 3 | 1 req/sec (max 100 CUI/request) |
+| D | anaf-ws-fetcher | `enrich:anaf:ws` | 2 | 1 req/sec (max 100 CUI/request) |
 | E | termene-company | `enrich:termene:company` | 2 | 20/min |
 | E | termene-associates | `enrich:termene:associates` | 2 | 20/min |
 | E | termene-litigations | `enrich:termene:litigations` | 2 | 20/min |

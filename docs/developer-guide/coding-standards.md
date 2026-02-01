@@ -1346,7 +1346,7 @@ ALWAYS include:
 - Log job progress with `job.log()`
 
 ## Rate Limits
-- ANAF: 1 req/sec
+- ANAF: 1 req/sec (max 100 CUI/request)
 - Termene.ro: 20 req/sec
 - Hunter.io: 15 req/sec
 - TimelinesAI: 50 req/min per phone

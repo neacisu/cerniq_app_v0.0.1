@@ -105,7 +105,7 @@ DATABASE_POOL_MAX=20
 | `REDIS_PORT` | No | `64039` | Redis port |
 | `REDIS_PASSWORD` | No | - | Redis password (if AUTH enabled) |
 | `REDIS_PASSWORD_FILE` | No | - | Path to password file |
-| `REDIS_DB` | No | `0` | Redis database number |
+| `REDIS_DB` | No | `0` | Redis database number (vezi matricea per etapă) |
 
 **Exemplu .env:**
 
@@ -118,6 +118,8 @@ REDIS_HOST=redis
 REDIS_PORT=64039
 REDIS_DB=0
 ```
+
+> **Notă:** Alocarea canonică a `REDIS_DB` pe etape este documentată aici: [`redis-db-assignment.md`](../../infrastructure/redis-db-assignment.md)
 
 ## BullMQ Specific
 

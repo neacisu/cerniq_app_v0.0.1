@@ -164,7 +164,7 @@ Maximum 10 webhooks per account (422 error if exceeded). Webhooks may deliver ou
 | TD-D01 | RLS Policies | No documented Row Level Security implementation details |
 | TD-D02 | Disaster Recovery Procedures | **RESOLVED:** `docs/infrastructure/backup-strategy.md` |
 | TD-D03 | Operational Runbooks | No incident response procedures for worker failures |
-| TD-D04 | Third-Party Rate Limits | API rate limits undocumented for Termene.ro, ANAF, Oblio |
+| TD-D04 | Third-Party Rate Limits | Termene.ro și Oblio au rate limits neconfirmate; ANAF documentat (1 req/sec, max 100 CUI/request) |
 | TD-D05 | Architecture Decision Records | No ADR documentation for technology choices |
 | TD-D06 | GDPR LIA Documentation | **RESOLVED:** LIA-001 Completed |
 | TD-D07 | Version Drift | **RESOLVED:** Redis standardized to 8.4.0 (Jan 2026) |

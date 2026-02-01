@@ -13,11 +13,11 @@
 | Schema Database   | 5         | ~2,500      |
 | Workers           | 5         | ~3,000      |
 | UI/UX             | 6         | ~2,500      |
-| API               | 1         | ~400        |
+| API               | 2         | ~450        |
 | Plan Implementare | 2         | ~1,500      |
 | Standards & ADRs  | 2         | ~350        |
 | Operations        | 6         | ~2,000      |
-| **TOTAL**         | **28**    | **~12,250** |
+| **TOTAL**         | **29**    | **~12,300** |
 
 ---
 
@@ -64,32 +64,33 @@
 | #  | Document                  | Descriere                               |
 |----|---------------------------|-----------------------------------------|
 | 16 | `etapa5-api-endpoints.md` | REST API complet (10 grupuri endpoints) |
+| 17 | `../../api/openapi-etapa5.yaml` | OpenAPI Etapa 5                   |
 
 ### 5. Plan Implementare
 
 | #  | Document                              | Descriere                           |
 |----|---------------------------------------|-------------------------------------|
-| 17 | `etapa5-plan-implementare-COMPLET.md` | Tasks 400-443 cu JSON structure     |
-| 18 | `etapa5-plan-implementare-EXTINS.md`  | Tasks 444-498 (Graph, Referral, UI) |
+| 18 | `etapa5-plan-implementare-COMPLET.md` | Tasks 400-443 cu JSON structure     |
+| 19 | `etapa5-plan-implementare-EXTINS.md`  | Tasks 444-498 (Graph, Referral, UI) |
 
 ### 6. Standards & ADRs
 
 | #  | Document              | Descriere                           |
 |----|-----------------------|-------------------------------------|
-| 19 | `etapa5-adrs.md`      | 10 Architecture Decision Records    |
-| 20 | `etapa5-standards.md` | Operational standards și procedures |
+| 20 | `etapa5-adrs.md`      | 10 Architecture Decision Records    |
+| 21 | `etapa5-standards.md` | Operational standards și procedures |
 
 ### 7. Operations
 
 | #  | Document                             | Descriere                          |
 |----|--------------------------------------|------------------------------------|
-| 21 | `etapa5-hitl-system.md`              | HITL unified system pentru Etapa 5 |
-| 22 | `etapa5-runbook-operational.md`      | Runbook operațional                |
-| 23 | `etapa5-migrations.md`               | Database migrations                |
-| 24 | `etapa5-testing-strategy.md`         | Testing strategy completă          |
-| 25 | `etapa5-monitoring-observability.md` | Monitoring și observability        |
-| 26 | `etapa5-environment-variables.md`    | Environment configuration          |
-| 27 | `etapa5-backup-procedures.md`        | Backup și disaster recovery        |
+| 22 | `etapa5-hitl-system.md`              | HITL unified system pentru Etapa 5 |
+| 23 | `etapa5-runbook-operational.md`      | Runbook operațional                |
+| 24 | `etapa5-migrations.md`               | Database migrations                |
+| 25 | `etapa5-testing-strategy.md`         | Testing strategy completă          |
+| 26 | `etapa5-monitoring-observability.md` | Monitoring și observability        |
+| 27 | `etapa5-environment-variables.md`    | Environment configuration          |
+| 28 | `etapa5-backup-procedures.md`        | Backup și disaster recovery        |
 
 ---
 

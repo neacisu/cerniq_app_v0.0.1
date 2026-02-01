@@ -45,8 +45,8 @@
 -- migrations/0200_create_e2_enums.sql
 -- Etapa 2: Cold Outreach Enums
 
--- Engagement stages (Lead State Machine)
-CREATE TYPE engagement_stage_enum AS ENUM (
+-- Current states (Lead State Machine)
+CREATE TYPE current_state_enum AS ENUM (
   'COLD',              -- Nu a fost contactat încă
   'CONTACTED_WA',      -- Contactat pe WhatsApp, fără răspuns
   'CONTACTED_EMAIL',   -- Contactat pe Email, fără răspuns
@@ -137,7 +137,7 @@ CREATE TYPE template_type_enum AS ENUM (
 );
 
 -- Rollback
--- DROP TYPE IF EXISTS engagement_stage_enum CASCADE;
+-- DROP TYPE IF EXISTS current_state_enum CASCADE;
 -- DROP TYPE IF EXISTS channel_enum CASCADE;
 -- DROP TYPE IF EXISTS message_direction_enum CASCADE;
 -- DROP TYPE IF EXISTS message_status_enum CASCADE;
@@ -168,10 +168,10 @@ CREATE TABLE gold_lead_journey (
   gold_company_id UUID NOT NULL REFERENCES gold_companies(id),
   
   -- Current State
-  current_stage engagement_stage_enum NOT NULL DEFAULT 'COLD',
-  previous_stage engagement_stage_enum,
-  stage_changed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  stage_change_reason TEXT,
+  current_state current_state_enum NOT NULL DEFAULT 'COLD',
+  previous_state current_state_enum,
+  state_changed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  state_change_reason TEXT,
   
   -- Contact Preferences
   preferred_channel channel_enum,
@@ -437,8 +437,8 @@ CREATE TABLE outreach_sequences (
   
   -- Configuration
   channel channel_enum NOT NULL,
-  start_stage engagement_stage_enum NOT NULL DEFAULT 'COLD',
-  target_stage engagement_stage_enum NOT NULL DEFAULT 'WARM_REPLY',
+  start_stage current_state_enum NOT NULL DEFAULT 'COLD',
+  target_stage current_state_enum NOT NULL DEFAULT 'WARM_REPLY',
   
   -- Settings
   max_steps INTEGER DEFAULT 5,
@@ -826,7 +826,7 @@ COMMENT ON TABLE outreach_daily_stats IS 'Aggregated daily outreach statistics';
 
 -- Lead Journey Indexes
 CREATE INDEX idx_lead_journey_tenant ON gold_lead_journey(tenant_id);
-CREATE INDEX idx_lead_journey_stage ON gold_lead_journey(tenant_id, current_stage);
+CREATE INDEX idx_lead_journey_state ON gold_lead_journey(tenant_id, current_state);
 CREATE INDEX idx_lead_journey_company ON gold_lead_journey(gold_company_id);
 CREATE INDEX idx_lead_journey_assigned ON gold_lead_journey(assigned_to) WHERE assigned_to IS NOT NULL;
 CREATE INDEX idx_lead_journey_sequence ON gold_lead_journey(current_sequence_id) WHERE current_sequence_id IS NOT NULL;
@@ -1137,32 +1137,32 @@ FOR EACH ROW
 WHEN (NEW.direction = 'INBOUND')
 EXECUTE FUNCTION auto_create_review_for_negative();
 
--- Trigger: Track stage changes in lead journey
-CREATE OR REPLACE FUNCTION track_stage_change()
+-- Trigger: Track state changes in lead journey
+CREATE OR REPLACE FUNCTION track_state_change()
 RETURNS TRIGGER AS $$
 BEGIN
-  IF OLD.current_stage IS DISTINCT FROM NEW.current_stage THEN
-    NEW.previous_stage := OLD.current_stage;
-    NEW.stage_changed_at := NOW();
+  IF OLD.current_state IS DISTINCT FROM NEW.current_state THEN
+    NEW.previous_state := OLD.current_state;
+    NEW.state_changed_at := NOW();
   END IF;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_track_stage_change
+CREATE TRIGGER trg_track_state_change
 BEFORE UPDATE ON gold_lead_journey
 FOR EACH ROW
-EXECUTE FUNCTION track_stage_change();
+EXECUTE FUNCTION track_state_change();
 
 -- Rollback
 -- DROP TRIGGER IF EXISTS trg_update_lead_engagement ON gold_communication_log;
 -- DROP TRIGGER IF EXISTS trg_update_phone_stats ON wa_quota_usage;
 -- DROP TRIGGER IF EXISTS trg_auto_review_negative ON gold_communication_log;
--- DROP TRIGGER IF EXISTS trg_track_stage_change ON gold_lead_journey;
+-- DROP TRIGGER IF EXISTS trg_track_state_change ON gold_lead_journey;
 -- DROP FUNCTION IF EXISTS update_lead_engagement_after_comm();
 -- DROP FUNCTION IF EXISTS update_phone_stats_from_quota();
 -- DROP FUNCTION IF EXISTS auto_create_review_for_negative();
--- DROP FUNCTION IF EXISTS track_stage_change();
+-- DROP FUNCTION IF EXISTS track_state_change();
 ```
 
 ---
@@ -1314,7 +1314,7 @@ DROP TYPE IF EXISTS phone_status_enum CASCADE;
 DROP TYPE IF EXISTS message_status_enum CASCADE;
 DROP TYPE IF EXISTS message_direction_enum CASCADE;
 DROP TYPE IF EXISTS channel_enum CASCADE;
-DROP TYPE IF EXISTS engagement_stage_enum CASCADE;
+DROP TYPE IF EXISTS current_state_enum CASCADE;
 
 EOF
 

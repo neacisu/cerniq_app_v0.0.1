@@ -7464,11 +7464,11 @@ export const DEFAULT_RATE_LIMITS: RateLimitRule[] = [
   {
     id: 'anaf_api_per_minute',
     name: 'ANAF API Calls per Minute',
-    description: 'Rate limit for ANAF API',
+    description: 'Rate limit for ANAF API (max 100 CUI/request)',
     enabled: true,
     type: RateLimitType.API_CALLS,
     scope: RateLimitScope.EXTERNAL_SERVICE,
-    limit: 100,
+    limit: 60,
     window: RateLimitWindow.MINUTE,
     algorithm: 'leaky_bucket',
     onLimitExceeded: 'queue',

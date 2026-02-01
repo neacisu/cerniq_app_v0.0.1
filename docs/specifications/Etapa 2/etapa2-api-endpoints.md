@@ -40,11 +40,11 @@ List leads with filtering and pagination.
 
 ```typescript
 // Request
-GET /api/v1/outreach/leads?stage=WARM_REPLY&channel=WHATSAPP&page=1&limit=20
+GET /api/v1/outreach/leads?state=WARM_REPLY&channel=WHATSAPP&page=1&limit=20
 
 // Query Parameters
 interface LeadsQueryParams {
-  stage?: 'COLD' | 'CONTACTED_WA' | 'CONTACTED_EMAIL' | 'WARM_REPLY' | 'NEGOTIATION' | 'CONVERTED' | 'DEAD' | 'PAUSED';
+  state?: 'COLD' | 'CONTACTED_WA' | 'CONTACTED_EMAIL' | 'WARM_REPLY' | 'NEGOTIATION' | 'CONVERTED' | 'DEAD' | 'PAUSED';
   channel?: 'WHATSAPP' | 'EMAIL_COLD' | 'EMAIL_WARM';
   assignedTo?: string;      // User UUID
   assignedPhone?: string;   // Phone UUID
@@ -76,7 +76,7 @@ interface LeadsResponse {
 interface Lead {
   id: string;
   leadId: string;
-  engagementStage: string;
+  currentState: string;
   company: {
     id: string;
     denumire: string;
@@ -117,9 +117,9 @@ interface LeadDetailResponse {
   journey: {
     id: string;
     leadId: string;
-    engagementStage: string;
-    previousStage: string | null;
-    stageChangedAt: string;
+    currentState: string;
+    previousState: string | null;
+    stateChangedAt: string;
     assignedPhoneId: string | null;
     sentimentScore: number;
     engagementScore: number;
@@ -154,7 +154,7 @@ Update lead journey.
 ```typescript
 // Request
 interface UpdateLeadRequest {
-  engagementStage?: string;      // Manual stage change
+  currentState?: string;      // Manual state change
   assignedToUser?: string | null;
   tags?: string[];
   customFields?: Record<string, any>;

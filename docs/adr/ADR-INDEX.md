@@ -115,7 +115,7 @@
 | [ADR-0073](./ADR%20Etapa%203/ADR-0073-eFactura-Safety-Net.md) | e-Factura Safety Net la 4 Zile | Accepted | 2026-01-18 |
 | [ADR-0074](./ADR%20Etapa%203/ADR-0074-Stock-Reservation-TTL.md) | Stock Reservation cu TTL | Accepted | 2026-01-18 |
 | [ADR-0075](./ADR%20Etapa%203/ADR-0075-Discount-Approval-Thresholds.md) | Discount Approval Thresholds | Accepted | 2026-01-18 |
-| [ADR-0076](./ADR%20Etapa%203/ADR-0076-Python-314-Free-Threading.md) | Python 3.14 Free-Threading pentru MCP | Accepted | 2026-01-18 |
+| [ADR-0076](./ADR%20Etapa%203/ADR-0076-Python-314-Free-Threading.md) | Python 3.14 Free-Threading pentru MCP | Deprecated (Superseded by ADR-0003) | 2026-01-18 |
 | [ADR-0077](./ADR%20Etapa%203/ADR-0077-Conversation-Store-Separation.md) | Separare Conversation Store | Accepted | 2026-01-18 |
 | [ADR-0078](./ADR%20Etapa%203/ADR-0078-Tool-Call-Logging.md) | Tool Call Logging Complet | Accepted | 2026-01-18 |
 | [ADR-0079](./ADR%20Etapa%203/ADR-0079-Guardrail-Regeneration.md) | Regenerare Response pe Guardrail Fail | Accepted | 2026-01-18 |

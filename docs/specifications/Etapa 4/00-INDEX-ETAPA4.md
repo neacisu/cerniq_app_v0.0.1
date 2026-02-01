@@ -24,6 +24,7 @@
 |--------------------------------------|----------------------------|
 | `00-INDEX-ETAPA4.md`                 | Index documentație         |
 | `etapa4-monitoring-observability.md` | Monitoring & Observability |
+| `etapa4-environment-variables.md`    | Environment variables      |
 
 ## ⚙️ Workers (67 Total)
 
@@ -59,6 +60,7 @@
 |---------------------------|------------------------|
 | `etapa4-api-endpoints.md` | REST API specification |
 | `etapa4-hitl-system.md`   | HITL approval system   |
+| `../../api/openapi-etapa4.yaml` | OpenAPI Etapa 4 |
 
 ## 📋 Standards & Procedures
 
@@ -80,7 +82,7 @@
 
 ## METRICI TOTALE
 
-- **Documente**: 34
+- **Documente**: 36
 - **Linii Documentație**: ~12,000+
 - **Workers Definiți**: 67
 - **Tabele Database**: 15+

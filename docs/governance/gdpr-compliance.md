@@ -14,6 +14,10 @@ Conformitatea GDPR este documentată în următoarele locații:
 | -------- | --------- |
 | [`master-specification.md`](../specifications/master-specification.md) | Secțiunea "GDPR Compliance" |
 | [ADR-0015: GDPR Data Retention](../adr/ADR%20Etapa%200/ADR-0015-GDPR-Data-Retention-Policy.md) | Politica de retenție date |
+| [`dpa-register.md`](./dpa-register.md) | Evidență DPA pentru third-party processors |
+| [`gdpr-dpia.md`](./gdpr-dpia.md) | Data Protection Impact Assessment (DPIA) |
+| [`cookie-consent-strategy.md`](./cookie-consent-strategy.md) | Strategia Cookie Consent (ePrivacy) |
+| [`gdpr-legitimate-interest-assessment.md`](./gdpr-legitimate-interest-assessment.md) | Legitimate Interest Assessment (LIA) |
 
 ## Principii GDPR Implementate
 
@@ -27,7 +31,7 @@ Conformitatea GDPR este documentată în următoarele locații:
 
 | Categorie | Retenție | Justificare |
 | --------- | -------- | ----------- |
-| Date contact (email, telefon) | Durata relației + 3 ani | Interes legitim business |
+| Date contact (email, telefon) | Durata relației + 36 luni | Interes legitim business |
 | Comunicări | 5 ani | Obligații legale facturare |
 | Logs acces | 1 an | Securitate |
 

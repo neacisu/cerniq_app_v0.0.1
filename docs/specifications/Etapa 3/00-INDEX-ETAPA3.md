@@ -19,7 +19,7 @@
 ## STATISTICI DOCUMENTAȚIE
 
 ```yaml
-total_documents: 37
+total_documents: 39
 total_lines: ~180,000+
 total_tasks: 99
 
@@ -32,12 +32,12 @@ documentation_categories:
   operations: 4
   testing: 1
   implementation_plan: 1
-  standards: 2
+  standards: 3
 ```
 
 ---
 
-## CATALOG DOCUMENTE COMPLETE (37 DOCUMENTE)
+## CATALOG DOCUMENTE COMPLETE (39 DOCUMENTE)
 
 ### 1. ARCHITECTURE & DECISIONS
 
@@ -82,43 +82,45 @@ documentation_categories:
 | --- | ------------------------- | ------------------------- | ------- | ------- |
 | 23  | `etapa3-api-endpoints.md` | Documentație API completă | ~2,800  | ✅      |
 | 24  | `etapa3-hitl-system.md`   | Sistem HITL complet       | ~16,000 | ✅      |
+| 25  | `../../api/openapi-etapa3.yaml` | OpenAPI Etapa 3      | ~20    | ✅      |
 
 ### 5. FRONTEND UI/UX
 
 | #   | Document                         | Descriere                      | Linii   | Status  |
 | --- | -------------------------------- | ------------------------------ | ------- | ------- |
-| 25  | `etapa3-ui-pages.md`             | Pagini principale React        | ~13,000 | ✅      |
-| 26  | `etapa3-ui-components.md`        | Componente React reutilizabile | ~8,000  | ✅      |
-| 27  | `etapa3-ui-forms-dialogs.md`     | Formulare și dialoguri         | ~27,000 | ✅      |
-| 28  | `etapa3-ui-tables.md`            | DataTables și liste            | ~10,000 | ✅      |
-| 29  | `etapa3-ui-charts-navigation.md` | Grafice și navigație           | ~1,500  | ✅      |
+| 26  | `etapa3-ui-pages.md`             | Pagini principale React        | ~13,000 | ✅      |
+| 27  | `etapa3-ui-components.md`        | Componente React reutilizabile | ~8,000  | ✅      |
+| 28  | `etapa3-ui-forms-dialogs.md`     | Formulare și dialoguri         | ~27,000 | ✅      |
+| 29  | `etapa3-ui-tables.md`            | DataTables și liste            | ~10,000 | ✅      |
+| 30  | `etapa3-ui-charts-navigation.md` | Grafice și navigație           | ~1,500  | ✅      |
 
 ### 6. STANDARDS & PROCEDURES
 
 | #   | Document                         | Descriere                  | Linii  | Status  |
 | --- | -------------------------------- | -------------------------- | ------ | ------- |
-| 30  | `etapa3-standards.md`            | Standarde tehnice complete | ~4,000 | ✅      |
-| 31  | `etapa3-standards-procedures.md` | Proceduri operaționale     | ~1,200 | ✅      |
+| 31  | `etapa3-standards.md`            | Standarde tehnice complete | ~4,000 | ✅      |
+| 32  | `etapa3-standards-procedures.md` | Proceduri operaționale     | ~1,200 | ✅      |
+| 33  | `etapa3-environment-variables.md`| Environment variables      | ~200   | ✅      |
 
 ### 7. OPERATIONS & MONITORING
 
 | #   | Document                             | Descriere                   | Linii  | Status  |
 | --- | ------------------------------------ | --------------------------- | ------ | ------- |
-| 32  | `etapa3-monitoring-observability.md` | SigNoz, Prometheus, Grafana | ~8,700 | ✅      |
-| 33  | `etapa3-runbook-operational.md`      | Runbook operațional         | ~2,400 | ✅      |
-| 34  | `etapa3-runbook-monitoring.md`       | Runbook monitoring          | ~1,200 | ✅      |
+| 34  | `etapa3-monitoring-observability.md` | SigNoz, Prometheus, Grafana | ~8,700 | ✅      |
+| 35  | `etapa3-runbook-operational.md`      | Runbook operațional         | ~2,400 | ✅      |
+| 36  | `etapa3-runbook-monitoring.md`       | Runbook monitoring          | ~1,200 | ✅      |
 
 ### 8. TESTING
 
 | #   | Document                     | Descriere              | Linii  | Status  |
 | --- | ---------------------------- | ---------------------- | ------ | ------- |
-| 35  | `etapa3-testing-strategy.md` | Vitest, Playwright, k6 | ~1,200 | ✅      |
+| 37  | `etapa3-testing-strategy.md` | Vitest, Playwright, k6 | ~1,200 | ✅      |
 
 ### 9. IMPLEMENTATION PLAN
 
 | #   | Document                      | Descriere                 | Linii  | Status  |
 | --- | ----------------------------- | ------------------------- | ------ | ------- |
-| 36  | `etapa3-plan-implementare.md` | Plan detaliat 99 task-uri | ~2,000 | ✅      |
+| 38  | `etapa3-plan-implementare.md` | Plan detaliat 99 task-uri | ~2,000 | ✅      |
 
 ---
 

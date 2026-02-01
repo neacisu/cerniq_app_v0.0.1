@@ -84,3 +84,65 @@ Dacă problema nu este listată aici:
 1. Verificați [Master Specification](../specifications/master-specification.md).
 2. Verificați log-urile din SigNoz (<http://localhost:64089>).
 3. Deschideți un Issue pe GitHub cu tag-ul `bug`.
+
+---
+
+## 5. CI/CD Issues
+
+### 5.1 Pipeline Failures (Tests/Lint)
+
+**Simptom:** PR-ul e blocat de CI roșu.
+
+**Soluție:**
+- Rulați local testele relevante înainte de re-push
+- Verificați versiunile Node/Python din pipeline
+- Atașați log-urile CI la issue
+
+### 5.2 Build/Artifact Errors
+
+**Simptom:** Build Docker eșuează sau nu produce artifact.
+
+**Soluție:**
+- Verificați spațiul disponibil pe runner
+- Verificați cache-urile și dependențele
+- Reporniți pipeline-ul după cleanup
+
+---
+
+## 6. Staging & Production Diagnostics
+
+### 6.1 Health Checks
+
+**Comandă:**
+`curl http://localhost:64000/health/ready`
+
+**Soluție:**
+- Dacă e non-200, verificați log-urile containerelor
+- Asigurați-vă că migrațiile au rulat complet
+
+### 6.2 Rollback
+
+Consultați [Release Process](../governance/release-process.md) pentru pașii oficiali.
+
+---
+
+## 7. Observability & Logs
+
+### 7.1 SigNoz
+
+- Verificați trace-urile pentru request-uri lente
+- Corelați error rate cu deploy-ul curent
+
+### 7.2 Logs API/Workers
+
+- `docker logs cerniq-api`
+- `docker logs cerniq-worker`
+
+---
+
+## 8. Incident Triage (Rapid)
+
+1. **Confirmă impactul** (scope + severitate)
+2. **Identifică ultimele schimbări** (deploy, config)
+3. **Aplică workaround** (feature flag/rollback)
+4. **Documentează** în post-mortem

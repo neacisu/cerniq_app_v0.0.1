@@ -286,9 +286,9 @@ const leadsColumns: ColumnDef<Lead>[] = [
     ),
   },
   {
-    accessorKey: 'engagementStage',
+    accessorKey: 'currentState',
     header: 'Stare',
-    cell: ({ row }) => <StageBadge stage={row.original.engagementStage} />,
+    cell: ({ row }) => <StageBadge stage={row.original.currentState} />,
   },
   {
     accessorKey: 'lastChannelUsed',
@@ -384,7 +384,7 @@ export default function LeadDetailPage({ params }: { params: { leadId: string } 
             <CardContent className="space-y-4">
               <div>
                 <label className="text-sm text-muted-foreground">Stare Curentă</label>
-                <StageBadge stage={lead.engagementStage} size="lg" />
+                <StageBadge stage={lead.currentState} size="lg" />
               </div>
               
               <div>

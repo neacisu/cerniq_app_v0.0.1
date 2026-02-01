@@ -208,7 +208,7 @@ psql -U cerniq -c "
   UPDATE gold_lead_journey 
   SET assigned_phone_id = NULL, assigned_at = NULL
   WHERE assigned_phone_id = '{phone_id}'
-    AND engagement_stage IN ('COLD', 'CONTACTED_WA')
+    AND current_state IN ('COLD', 'CONTACTED_WA')
 "
 
 # 5. Cancel pending jobs for this phone

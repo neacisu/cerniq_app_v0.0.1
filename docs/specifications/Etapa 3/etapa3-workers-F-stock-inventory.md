@@ -103,13 +103,13 @@ Category F handles all stock and inventory operations critical to the sales proc
 
 ---
 
-## 2. Worker #19: stock:reserve:create
+## 2. Worker #19: etapa3:stock:reserve:create
 
 ### 2.1 Specification
 
 | Property | Value |
 |----------|-------|
-| Queue Name | `stock:reserve:create` |
+| Queue Name | `etapa3:stock:reserve:create` |
 | Concurrency | 50 |
 | Timeout | 10s |
 | Retries | 3 |
@@ -570,13 +570,13 @@ export default stockReserveCreateWorker;
 
 ---
 
-## 3. Worker #20: stock:reserve:release
+## 3. Worker #20: etapa3:stock:reserve:release
 
 ### 3.1 Specification
 
 | Property | Value |
 |----------|-------|
-| Queue Name | `stock:reserve:release` |
+| Queue Name | `etapa3:stock:reserve:release` |
 | Concurrency | 50 |
 | Timeout | 10s |
 | Retries | 3 |
@@ -945,13 +945,13 @@ export default stockReserveReleaseWorker;
 
 ---
 
-## 4. Worker #21: stock:sync:erp
+## 4. Worker #21: etapa3:stock:sync:erp
 
 ### 4.1 Specification
 
 | Property | Value |
 |----------|-------|
-| Queue Name | `stock:sync:erp` |
+| Queue Name | `etapa3:stock:sync:erp` |
 | Concurrency | 5 |
 | Timeout | 120s |
 | Retries | 5 |

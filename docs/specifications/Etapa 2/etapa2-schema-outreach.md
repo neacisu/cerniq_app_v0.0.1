@@ -22,8 +22,8 @@
 # 2. ENUMS
 
 ```sql
--- Engagement stages
-CREATE TYPE engagement_stage_enum AS ENUM (
+-- Current state (FSM)
+CREATE TYPE current_state_enum AS ENUM (
   'COLD',              -- Nu a fost contactat încă
   'CONTACTED_WA',      -- Contactat pe WhatsApp, fără răspuns
   'CONTACTED_EMAIL',   -- Contactat pe Email, fără răspuns
@@ -109,10 +109,10 @@ CREATE TABLE gold_lead_journey (
   assigned_at TIMESTAMPTZ,
   
   -- State Machine
-  engagement_stage engagement_stage_enum NOT NULL DEFAULT 'COLD',
-  previous_stage engagement_stage_enum,
-  stage_changed_at TIMESTAMPTZ DEFAULT NOW(),
-  stage_change_reason TEXT,
+  current_state current_state_enum NOT NULL DEFAULT 'COLD',
+  previous_state current_state_enum,
+  state_changed_at TIMESTAMPTZ DEFAULT NOW(),
+  state_change_reason TEXT,
   
   -- Quota Tracking
   quota_consumption_date DATE,
@@ -166,8 +166,8 @@ CREATE TABLE gold_lead_journey (
 );
 
 -- Indexes
-CREATE INDEX idx_lead_journey_tenant_stage 
-  ON gold_lead_journey(tenant_id, engagement_stage);
+CREATE INDEX idx_lead_journey_tenant_state 
+  ON gold_lead_journey(tenant_id, current_state);
 CREATE INDEX idx_lead_journey_phone 
   ON gold_lead_journey(assigned_phone_id) WHERE assigned_phone_id IS NOT NULL;
 CREATE INDEX idx_lead_journey_next_action 

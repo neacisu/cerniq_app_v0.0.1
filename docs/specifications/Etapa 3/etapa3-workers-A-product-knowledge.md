@@ -73,13 +73,13 @@ Categoria A gestionează **cunoașterea produselor** în sistem:
 
 ---
 
-## 2. Worker #1: product:sync:shopify
+## 2. Worker #1: etapa3:product:sync:shopify
 
 ### 2.1 Specificații Tehnice
 
 | Atribut | Valoare |
 |---------|---------|
-| **Queue Name** | `product:sync:shopify` |
+| **Queue Name** | `etapa3:product:sync:shopify` |
 | **Categoria** | A - Product Knowledge |
 | **Index** | #1 |
 | **Rate Limit** | 40/sec (Shopify API limit) |
@@ -537,13 +537,13 @@ export const shopifyWebhooksPlugin: FastifyPluginAsync = async (fastify) => {
 
 ---
 
-## 3. Worker #2: product:embedding:generate
+## 3. Worker #2: etapa3:product:embedding:generate
 
 ### 3.1 Specificații Tehnice
 
 | Atribut | Valoare |
 |---------|---------|
-| **Queue Name** | `product:embedding:generate` |
+| **Queue Name** | `etapa3:product:embedding:generate` |
 | **Categoria** | A - Product Knowledge |
 | **Index** | #2 |
 | **Rate Limit** | 3000/min (OpenAI limit) |
@@ -846,13 +846,13 @@ export default productEmbeddingGenerateWorker;
 
 ---
 
-## 4. Worker #3: product:chunk:create
+## 4. Worker #3: etapa3:product:chunk:create
 
 ### 4.1 Specificații Tehnice
 
 | Atribut | Valoare |
 |---------|---------|
-| **Queue Name** | `product:chunk:create` |
+| **Queue Name** | `etapa3:product:chunk:create` |
 | **Categoria** | A - Product Knowledge |
 | **Index** | #3 |
 | **Rate Limit** | Fără (CPU-bound) |
@@ -1170,13 +1170,13 @@ export default productChunkCreateWorker;
 
 ---
 
-## 5. Worker #4: product:stock:realtime-check (CRITICAL)
+## 5. Worker #4: etapa3:product:stock:realtime-check (CRITICAL)
 
 ### 5.1 Specificații Tehnice
 
 | Atribut | Valoare |
 |---------|---------|
-| **Queue Name** | `product:stock:realtime-check` |
+| **Queue Name** | `etapa3:product:stock:realtime-check` |
 | **Categoria** | A - Product Knowledge |
 | **Index** | #4 |
 | **Rate Limit** | Fără (critical path) |
@@ -1535,13 +1535,13 @@ export async function validateStockClaim(
 
 ---
 
-## 6. Worker #5: product:price:validate (CRITICAL)
+## 6. Worker #5: etapa3:product:price:validate (CRITICAL)
 
 ### 6.1 Specificații Tehnice
 
 | Atribut | Valoare |
 |---------|---------|
-| **Queue Name** | `product:price:validate` |
+| **Queue Name** | `etapa3:product:price:validate` |
 | **Categoria** | A - Product Knowledge |
 | **Index** | #5 |
 | **Rate Limit** | Fără (critical path) |
@@ -1851,13 +1851,13 @@ export default productPriceValidateWorker;
 
 ---
 
-## 7. Worker #6: product:category:sync
+## 7. Worker #6: etapa3:product:category:sync
 
 ### 7.1 Specificații Tehnice
 
 | Atribut | Valoare |
 |---------|---------|
-| **Queue Name** | `product:category:sync` |
+| **Queue Name** | `etapa3:product:category:sync` |
 | **Categoria** | A - Product Knowledge |
 | **Index** | #6 (Adițional) |
 | **Rate Limit** | 10/min |

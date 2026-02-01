@@ -450,8 +450,8 @@ CREATE TABLE gold_companies (
     score_interes INTEGER,
     data_ultima_actualizare_scor TIMESTAMPTZ,
     
-    -- Engagement stage (FSM)
-    engagement_stage VARCHAR(30) DEFAULT 'COLD',
+    -- Current state (FSM)
+    current_state VARCHAR(30) DEFAULT 'COLD',
     -- COLD, CONTACTED_WA, CONTACTED_EMAIL, WARM_REPLY, NEGOTIATION, 
     -- PROPOSAL, CLOSING, CONVERTED, CHURNED, DEAD
     
@@ -566,7 +566,7 @@ CREATE TABLE gold_companies (
     
     CONSTRAINT valid_cui CHECK (cui ~ '^\d{2,10}$'),
     CONSTRAINT valid_lead_score CHECK (lead_score BETWEEN 0 AND 100),
-    CONSTRAINT valid_engagement_stage CHECK (engagement_stage IN (
+    CONSTRAINT valid_current_state CHECK (current_state IN (
         'COLD', 'CONTACTED_WA', 'CONTACTED_EMAIL', 'WARM_REPLY',
         'NEGOTIATION', 'PROPOSAL', 'CLOSING', 'CONVERTED', 
         'ONBOARDING', 'NURTURING_ACTIVE', 'AT_RISK', 'LOYAL_ADVOCATE', 'CHURNED', 'DEAD'
@@ -582,7 +582,7 @@ CREATE INDEX idx_gold_companies_tenant_cui ON gold_companies(tenant_id, cui);
 CREATE INDEX idx_gold_companies_location ON gold_companies USING GIST(location_geography);
 CREATE INDEX idx_gold_companies_embedding ON gold_companies USING HNSW(embedding vector_cosine_ops);
 CREATE INDEX idx_gold_companies_judet ON gold_companies(judet);
-CREATE INDEX idx_gold_companies_engagement ON gold_companies(engagement_stage);
+CREATE INDEX idx_gold_companies_current_state ON gold_companies(current_state);
 CREATE INDEX idx_gold_companies_lead_score ON gold_companies(lead_score DESC);
 CREATE INDEX idx_gold_companies_caen ON gold_companies(cod_caen_principal);
 CREATE INDEX idx_gold_companies_ouai ON gold_companies(ouai_id) WHERE membru_ouai = TRUE;
@@ -758,7 +758,7 @@ CREATE INDEX idx_affiliations_type ON gold_affiliations(relation_type);
   "title": "Golden Contact Schema - Cerniq.app",
   "description": "Schema completă pentru contacte Golden în platforma B2B agricolă",
   "type": "object",
-  "required": ["id", "cui", "denumire", "engagement_stage"],
+  "required": ["id", "cui", "denumire", "current_state"],
   
   "properties": {
     "id": {
@@ -933,7 +933,7 @@ CREATE INDEX idx_affiliations_type ON gold_affiliations(relation_type);
           "maximum": 100,
           "description": "Scor lead 0-100"
         },
-        "engagement_stage": {
+        "current_state": {
           "type": "string",
           "enum": [
             "COLD", "CONTACTED_WA", "CONTACTED_EMAIL", "WARM_REPLY",
@@ -1275,6 +1275,59 @@ do_not_contact BOOLEAN
 gdpr_access_request_date DATE
 data_retention_review_date DATE
 ```
+
+### 8.4 Tabel Cookie Consent Logs
+
+```sql
+-- Tabel pentru stocarea consimțământului cookie (ePrivacy + GDPR)
+CREATE TABLE user_consent_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL REFERENCES tenants(id),
+    
+    -- Identificare utilizator
+    user_id UUID REFERENCES users(id),           -- NULL pentru anonimi
+    user_identifier TEXT NOT NULL,               -- Hashed IP pentru anonimi
+    
+    -- Consent details
+    consent_version INTEGER NOT NULL DEFAULT 1,
+    consent_categories JSONB NOT NULL,           -- {"necessary": true, "analytics": false, ...}
+    banner_version TEXT NOT NULL,                -- "1.0.0"
+    
+    -- Timestamps
+    consent_given_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    consent_expires_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '12 months'),
+    consent_withdrawn_at TIMESTAMPTZ,
+    
+    -- Audit
+    consent_ip_hash TEXT NOT NULL,               -- SHA256(IP + salt)
+    user_agent TEXT,
+    consent_method TEXT NOT NULL DEFAULT 'banner', -- 'banner', 'settings', 'api'
+    
+    -- Metadata
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    
+    -- Constraints
+    CONSTRAINT valid_categories CHECK (
+        consent_categories ? 'necessary' AND 
+        (consent_categories->>'necessary')::boolean = true
+    )
+);
+
+-- Indexes
+CREATE INDEX idx_consent_user ON user_consent_logs(user_id) WHERE user_id IS NOT NULL;
+CREATE INDEX idx_consent_identifier ON user_consent_logs(user_identifier);
+CREATE INDEX idx_consent_tenant ON user_consent_logs(tenant_id);
+CREATE INDEX idx_consent_expires ON user_consent_logs(consent_expires_at);
+
+-- RLS pentru multi-tenant isolation
+ALTER TABLE user_consent_logs ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY tenant_isolation ON user_consent_logs
+    USING (tenant_id = current_setting('app.current_tenant')::uuid);
+```
+
+> **Referință:** Documentația completă în [`cookie-consent-strategy.md`](../governance/cookie-consent-strategy.md)
 
 ### 8.4 Reguli pentru Strategia de Vecinătate
 

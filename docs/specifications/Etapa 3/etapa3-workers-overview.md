@@ -222,6 +222,8 @@ Etapa 3 implementează un **agent comercial autonom** care navighează ciclul co
 
 ## 3. Inventar Complet Workers
 
+> **Notă:** Toate queue-urile Etapa 3 sunt prefixate la runtime cu `etapa3:`. În tabelele de mai jos, prefixul este implicit pentru lizibilitate.
+
 ### 3.1 Categoria A: Product Knowledge Workers (#1-6)
 
 | # | Queue Name | Scop | Rate Limit | Concurrency | Critical |
@@ -350,7 +352,7 @@ Etapa 3 implementează un **agent comercial autonom** care navighează ciclul co
 | 40 | `oblio:proforma:update` | Update proforma existentă | 60/min | 10 | - |
 | 41 | `oblio:invoice:create` | Creare factură fiscală | 60/min | 20 | **DA** |
 | 42 | `oblio:invoice:cancel` | Anulare factură (storno) | 10/min | 5 | - |
-| 43 | `oblio:client:validate` | Validare date client cu ANAF | 30/min | 20 | - |
+| 43 | `oblio:client:validate` | Validare date client cu ANAF | 1 req/sec (max 100 CUI/request) | 20 | - |
 | 44 | `oblio:stock:sync` | Sincronizare stoc cu Oblio | Cron */30min | 5 | - |
 | 45 | `oblio:webhook:process` | Procesare webhooks Oblio | Fără | 20 | - |
 

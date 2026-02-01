@@ -69,13 +69,13 @@ Categoria D implementează **Finite State Machine (FSM)** pentru gestionarea cic
 
 ---
 
-## 2. Worker #13: negotiation:state:transition
+## 2. Worker #13: etapa3:negotiation:state:transition
 
 ### 2.1 Specification
 
 | Attribute | Value |
 |-----------|-------|
-| **Queue Name** | `negotiation:state:transition` |
+| **Queue Name** | `etapa3:negotiation:state:transition` |
 | **Concurrency** | 100 |
 | **Timeout** | 5,000ms |
 | **Retries** | 0 (No retries - state integrity) |
@@ -360,11 +360,11 @@ import {
 } from './schemas';
 
 // Queues for downstream triggers
-const oblioProformaQueue = new Queue('oblio:proforma:create');
-const oblioInvoiceQueue = new Queue('oblio:invoice:create');
-const einvoiceQueue = new Queue('efactura:send');
-const hitlApprovalQueue = new Queue('hitl:approval:request');
-const notificationQueue = new Queue('notification:send');
+const oblioProformaQueue = new Queue('etapa3:oblio:proforma:create');
+const oblioInvoiceQueue = new Queue('etapa3:oblio:invoice:create');
+const einvoiceQueue = new Queue('etapa3:efactura:send');
+const hitlApprovalQueue = new Queue('etapa3:hitl:approval:request');
+const notificationQueue = new Queue('etapa3:notification:send');
 
 /**
  * Validate transition is allowed
@@ -701,13 +701,13 @@ export function createStateTransitionWorker(redis: Redis): Worker {
 
 ---
 
-## 3. Worker #14: negotiation:cart:update
+## 3. Worker #14: etapa3:negotiation:cart:update
 
 ### 3.1 Specification
 
 | Attribute | Value |
 |-----------|-------|
-| **Queue Name** | `negotiation:cart:update` |
+| **Queue Name** | `etapa3:negotiation:cart:update` |
 | **Concurrency** | 100 |
 | **Timeout** | 10,000ms |
 | **Retries** | 2 (with exponential backoff) |
@@ -1490,13 +1490,13 @@ export function createCartUpdateWorker(redis: Redis): Worker {
 
 ---
 
-## 4. Worker #15: negotiation:summary:generate
+## 4. Worker #15: etapa3:negotiation:summary:generate
 
 ### 4.1 Specification
 
 | Attribute | Value |
 |-----------|-------|
-| **Queue Name** | `negotiation:summary:generate` |
+| **Queue Name** | `etapa3:negotiation:summary:generate` |
 | **Concurrency** | 20 |
 | **Timeout** | 30,000ms |
 | **Retries** | 3 (with exponential backoff) |

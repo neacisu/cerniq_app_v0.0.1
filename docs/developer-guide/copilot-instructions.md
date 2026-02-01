@@ -115,7 +115,7 @@ When generating code that handles AI outputs:
 
 | Provider    | Limit  |
 | ----------- | ------ |
-| ANAF API    | 1/sec  |
+| ANAF API    | 1/sec (max 100 CUI/request) |
 | Termene.ro  | 20/sec |
 | Hunter.io   | 15/sec |
 | TimelinesAI | 50/min |

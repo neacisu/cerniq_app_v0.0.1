@@ -15,7 +15,7 @@
 
 ---
 
-## CATALOG DOCUMENTE (18 DOCUMENTE)
+## CATALOG DOCUMENTE (20 DOCUMENTE)
 
 ### 1. ARCHITECTURE & DESIGN
 
@@ -51,16 +51,18 @@
 | --- | ---------- | ----------- |
 | 13 | `etapa2-api-endpoints.md` | 35+ REST endpoints complete |
 | 14 | `etapa2-hitl-system.md` | Human-in-the-Loop workflow |
+| 15 | `../../api/openapi-etapa2.yaml` | OpenAPI Etapa 2 |
 
 ### 5. OPERATIONS
 
 | # | Document | Descriere |
 | --- | ---------- | ----------- |
-| 15 | `etapa2-runbook.md` | **Runbook operațional complet** (consolidat v1.1) |
-| 16 | `etapa2-monitoring-observability.md` | Monitoring (OTel + Sidecar) & Metrics |
-| 17 | `etapa2-development-standards.md` | **Coding standards & procedures** (consolidat v1.1) |
-| 18 | `etapa2-testing-strategy.md` | Unit, Integration, E2E, Load tests |
-| 19 | `etapa2-plan-implementare.md` | 118 taskuri JSON granulare |
+| 16 | `etapa2-runbook.md` | **Runbook operațional complet** (consolidat v1.1) |
+| 17 | `etapa2-monitoring-observability.md` | Monitoring (OTel + Sidecar) & Metrics |
+| 18 | `etapa2-development-standards.md` | **Coding standards & procedures** (consolidat v1.1) |
+| 19 | `etapa2-testing-strategy.md` | Unit, Integration, E2E, Load tests |
+| 20 | `etapa2-plan-implementare.md` | 118 taskuri JSON granulare |
+| 21 | `etapa2-environment-variables.md` | Environment variables Etapa 2 |
 
 > **Notă v1.1 (18 Ian 2026):**
 >

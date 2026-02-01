@@ -411,7 +411,7 @@ export async function stateTransitionProcessor(
     where: eq(goldLeadJourney.leadId, leadId),
   });
   
-  const currentState = journey.engagementStage;
+  const currentState = journey.currentState;
   const validNext = VALID_TRANSITIONS[currentState] || [];
   
   if (!validNext.includes(newState)) {
@@ -427,10 +427,10 @@ export async function stateTransitionProcessor(
   // Execute transition
   await db.update(goldLeadJourney)
     .set({
-      engagementStage: newState as any,
-      previousStage: currentState,
-      stageChangedAt: new Date(),
-      stageChangeReason: reason,
+      currentState: newState as any,
+      previousState: currentState,
+      stateChangedAt: new Date(),
+      stateChangeReason: reason,
     })
     .where(eq(goldLeadJourney.leadId, leadId));
   
@@ -491,7 +491,7 @@ export async function sentimentAnalyzeProcessor(
 
 Mesaj: "${content}"
 
-R�spunde doar cu JSON valid.`
+R�spunde doar cu JSON valid.`
     }],
   });
   
@@ -548,7 +548,7 @@ export async function responseGenerateProcessor(
     max_tokens: 500,
     system: `Ești un reprezentant de vânzări profesionist pentru Cerniq, 
 o platformă B2B pentru agricultura din România. 
-R�spunzi la mesaje în română, prietenos dar profesional.
+R�spunzi la mesaje în română, prietenos dar profesional.
 Compania prospectului: ${journey.goldCompany.denumire}
 Județ: ${journey.goldCompany.judet}`,
     messages: [{

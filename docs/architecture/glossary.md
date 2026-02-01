@@ -837,7 +837,7 @@
 
 | Integrare      | Provider   | Tip          | Rate Limit | Cost    |
 | -------------- | ---------- | ------------ | ---------- | ------- |
-| **ANAF API**   | ANAF       | OAuth + Cert | 1 req/sec  | Gratuit |
+| **ANAF API**   | ANAF       | OAuth + Cert | 1 req/sec (max 100 CUI/request) | Gratuit |
 | **Termene.ro** | Termene.ro | API Key      | 20 req/sec | Plătit  |
 | **ONRC/Recom** | ONRC       | -            | 5 req/sec  | -       |
 | **Oblio.eu**   | Oblio      | API Key      | N/A        | Plătit  |

@@ -1,0 +1,13 @@
+openapi: 3.1.0
+info:
+  title: Cerniq.app API — Etapa 2 (Cold Outreach)
+  version: 1.0.0
+  description: |
+    Specificație OpenAPI pentru Etapa 2.
+    Pentru schema globală și convenții comune, vezi docs/api/openapi.yaml.
+servers:
+  - url: https://api.cerniq.app
+    description: Production
+  - url: http://localhost:64000
+    description: Development
+paths: {}

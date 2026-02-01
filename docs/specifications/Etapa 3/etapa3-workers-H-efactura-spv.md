@@ -142,13 +142,13 @@ These workers handle:
 
 ---
 
-## 2. Worker #23: efactura:send
+## 2. Worker #23: etapa3:efactura:send
 
 ### 2.1 Worker Specification
 
 | Property | Value |
 |----------|-------|
-| **Queue Name** | `efactura:send` |
+| **Queue Name** | `etapa3:efactura:send` |
 | **Concurrency** | 20 |
 | **Timeout** | 60 seconds |
 | **Retries** | 5 |

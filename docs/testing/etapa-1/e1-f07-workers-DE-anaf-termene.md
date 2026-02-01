@@ -10,10 +10,10 @@
 
 | Worker | Queue | API | Rate Limit |
 | ------ | ----- | --- | ---------- |
-| D.1 ANAF TVA | `silver:enrich:anaf-tva` | WebServices SPV | 100/min |
-| D.2 ANAF Fiscala | `silver:enrich:anaf-fiscal` | WebServices SPV | 100/min |
-| D.3 ANAF eFactura | `silver:enrich:anaf-efactura` | SPV eFactura | 50/min |
-| D.4 ANAF Bilant | `silver:enrich:anaf-bilant` | Portal Bilant | 20/min |
+| D.1 ANAF TVA | `silver:enrich:anaf-tva` | WebServices SPV | 1 req/sec (max 100 CUI/request) |
+| D.2 ANAF Fiscala | `silver:enrich:anaf-fiscal` | WebServices SPV | 1 req/sec (max 100 CUI/request) |
+| D.3 ANAF eFactura | `silver:enrich:anaf-efactura` | SPV eFactura | 1 req/sec (max 100 CUI/request) |
+| D.4 ANAF Bilant | `silver:enrich:anaf-bilant` | Portal Bilant | 1 req/sec (max 100 CUI/request) |
 | D.5 ANAF Retry | `silver:enrich:anaf-retry` | All | N/A |
 | E.1 Termene Company | `silver:enrich:termene-company` | Scraping | 30/min |
 | E.2 Termene Dosare | `silver:enrich:termene-dosare` | Scraping | 30/min |

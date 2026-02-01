@@ -110,16 +110,16 @@ export async function orchestratorDispatchProcessor(
     .where(and(
       eq(goldLeadJourney.tenantId, tenantId),
       or(
-        eq(goldLeadJourney.engagementStage, 'COLD'),
-        eq(goldLeadJourney.engagementStage, 'CONTACTED_WA'),
-        eq(goldLeadJourney.engagementStage, 'CONTACTED_EMAIL')
+        eq(goldLeadJourney.currentState, 'COLD'),
+        eq(goldLeadJourney.currentState, 'CONTACTED_WA'),
+        eq(goldLeadJourney.currentState, 'CONTACTED_EMAIL')
       ),
       or(
         isNull(goldLeadJourney.nextActionAt),
         lt(goldLeadJourney.nextActionAt, new Date())
       ),
       eq(goldLeadJourney.requiresHumanReview, false),
-      ne(goldLeadJourney.engagementStage, 'PAUSED')
+      ne(goldLeadJourney.currentState, 'PAUSED')
     ))
     .limit(batchSize)
     .orderBy(goldLeadJourney.nextActionAt);
@@ -146,7 +146,7 @@ export async function orchestratorDispatchProcessor(
 
   // 3. Process each lead
   for (const { journey, company } of eligibleLeads) {
-    const isNewContact = journey.engagementStage === 'COLD';
+    const isNewContact = journey.currentState === 'COLD';
     const hasPhone = company.telefonPrincipal && company.hlrReachable;
     const hasEmail = company.emailPrincipal && company.emailStatus === 'valid';
 
@@ -521,7 +521,7 @@ interface ChannelSelectionResult {
     hasVerifiedEmail: boolean;
     phoneOptedOut: boolean;
     emailOptedOut: boolean;
-    currentStage: string;
+    currentState: string;
     preferenceScore: Record<string, number>;
     previousEngagement: string | null;
   };
@@ -554,7 +554,7 @@ export async function channelSelectorProcessor(
     hasVerifiedEmail: !!(company.emailPrincipal && company.emailStatus === 'valid'),
     phoneOptedOut: journey.whatsappOptedOut,
     emailOptedOut: journey.emailOptedOut,
-    currentStage: journey.engagementStage,
+    currentState: journey.currentState,
     preferenceScore: {
       WHATSAPP: 0,
       EMAIL_COLD: 0,
@@ -568,7 +568,7 @@ export async function channelSelectorProcessor(
     reasoning.preferenceScore.WHATSAPP = 100;  // WhatsApp preferred
   }
   if (reasoning.hasVerifiedEmail && !reasoning.emailOptedOut) {
-    if (journey.engagementStage === 'COLD') {
+    if (journey.currentState === 'COLD') {
       reasoning.preferenceScore.EMAIL_COLD = 70;
     } else {
       reasoning.preferenceScore.EMAIL_WARM = 80;
@@ -594,7 +594,7 @@ export async function channelSelectorProcessor(
   } else if (preferredChannel === 'WHATSAPP' && reasoning.preferenceScore.WHATSAPP > 0) {
     selectedChannel = 'WHATSAPP';
   } else if (preferredChannel === 'EMAIL') {
-    selectedChannel = journey.engagementStage === 'COLD' ? 'EMAIL_COLD' : 'EMAIL_WARM';
+    selectedChannel = journey.currentState === 'COLD' ? 'EMAIL_COLD' : 'EMAIL_WARM';
   }
 
   // Determine fallback

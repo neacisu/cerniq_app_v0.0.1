@@ -362,7 +362,7 @@ const leads = await db.select()
 // Use transactions for multi-table updates
 await db.transaction(async (tx) => {
   await tx.update(goldLeadJourney)
-    .set({ engagementStage: 'WARM_REPLY' })
+    .set({ currentState: 'WARM_REPLY' })
     .where(eq(goldLeadJourney.leadId, leadId));
     
   await tx.insert(goldCommunicationLog).values({ ... });
@@ -386,7 +386,7 @@ CREATE INDEX idx_lead_journey_phone ON gold_lead_journey(assigned_phone_id);
 
 -- Composite indexes for common query patterns
 -- Most selective column first
-CREATE INDEX idx_lead_journey_tenant_stage ON gold_lead_journey(tenant_id, engagement_stage);
+CREATE INDEX idx_lead_journey_tenant_state ON gold_lead_journey(tenant_id, current_state);
 
 -- Partial indexes for filtered queries
 CREATE INDEX idx_lead_journey_review ON gold_lead_journey(tenant_id, requires_human_review)
@@ -401,11 +401,11 @@ CREATE INDEX idx_lead_journey_review ON gold_lead_journey(tenant_id, requires_hu
 
 ```typescript
 // Composite indexes follow left-most prefix rule
-// Index on (tenant_id, engagement_stage) supports:
+// Index on (tenant_id, current_state) supports:
 // - WHERE tenant_id = X
-// - WHERE tenant_id = X AND engagement_stage = Y
+// - WHERE tenant_id = X AND current_state = Y
 // Does NOT support:
-// - WHERE engagement_stage = Y (alone)
+// - WHERE current_state = Y (alone)
 
 // Always check query plans for new queries
 // In development, log slow queries (>100ms)
@@ -860,7 +860,7 @@ describe('WhatsApp Phone Flow', () => {
       where: eq(goldLeadJourney.leadId, lead.id),
     });
 
-    expect(updatedLead?.engagementStage).toBe('CONTACTED_WA');
+    expect(updatedLead?.currentState).toBe('CONTACTED_WA');
     expect(updatedLead?.isNewContact).toBe(false);
     
     // 5. Verify communication logged

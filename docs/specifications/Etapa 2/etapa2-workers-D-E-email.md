@@ -136,7 +136,7 @@ export async function emailColdProcessor(
     // Update lead state
     await db.update(goldLeadJourney)
       .set({
-        engagementStage: 'CONTACTED_EMAIL',
+        currentState: 'CONTACTED_EMAIL',
         lastChannelUsed: 'EMAIL_COLD',
         firstContactAt: sql`COALESCE(first_contact_at, NOW())`,
         lastContactAt: new Date(),
@@ -487,8 +487,8 @@ export async function emailWarmProcessor(
     where: eq(goldLeadJourney.leadId, leadId),
   });
 
-  if (!RESEND_CONFIG.allowedStages.includes(journey?.engagementStage || '')) {
-    logger.error({ leadId, stage: journey?.engagementStage }, 
+  if (!RESEND_CONFIG.allowedStages.includes(journey?.currentState || '')) {
+    logger.error({ leadId, stage: journey?.currentState }, 
       'Attempted to send warm email to non-warm lead');
     throw new Error('LEAD_NOT_WARM');
   }
@@ -597,8 +597,8 @@ export async function proformaProcessor(
   // Update lead to NEGOTIATION
   await db.update(goldLeadJourney)
     .set({
-      engagementStage: 'NEGOTIATION',
-      stageChangedAt: new Date(),
+      currentState: 'NEGOTIATION',
+      stateChangedAt: new Date(),
     })
     .where(eq(goldLeadJourney.leadId, leadId));
 }

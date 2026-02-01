@@ -6,11 +6,13 @@
 
 ## Context
 
-Workers-ii pentru AI/ML și data processing sunt CPU-bound și necesită true parallelism. Python tradițional cu GIL nu poate utiliza eficient multiple cores.
+Workers-ii pentru AI/ML și data processing sunt CPU-bound și necesită true parallelism. Python tradițional cu GIL nu poate utiliza eficient multiple cores. MCP Server are cerințe similare de concurrency pentru multiple sesiuni AI și generare embeddings.
 
 ## Decizie
 
-Utilizăm **Python 3.14.2 Free-Threading** (no-GIL) pentru toți workers-ii Python.
+Utilizăm **Python 3.14.2 Free-Threading** (no-GIL) pentru toți workers-ii Python **și MCP Server**.
+
+**Supersedes:** ADR-0076 (Python 3.14 Free-Threading pentru MCP)
 
 ## Consecințe
 

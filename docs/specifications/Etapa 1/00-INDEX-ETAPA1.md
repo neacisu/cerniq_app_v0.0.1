@@ -54,19 +54,21 @@
 | --- | ---------- | ------------- | -------- |
 | 20 | `etapa1-api-endpoints.md` | All REST API endpoints | ✅ Complete |
 | 21 | `etapa1-api-schemas-auth.md` | Zod schemas & JWT auth | ✅ Complete |
+| 22 | `../../api/openapi-etapa1.yaml` | OpenAPI Etapa 1 | ✅ Complete |
 
 ### ✅ HITL (Human-in-the-Loop)
 
 | # | Document | Description | Status |
 | --- | ---------- | ------------- | -------- |
-| 22 | `etapa1-hitl-system.md` | Complete HITL architecture | ✅ Complete |
+| 23 | `etapa1-hitl-system.md` | Complete HITL architecture | ✅ Complete |
 
 ### 📋 OPERATIONS
 
 | # | Document | Description | Status |
 | --- | ---------- | ------------- | -------- |
-| 23 | `etapa1-runbook-monitoring.md` | Runbook & monitoring setup | ✅ Complete |
-| 24 | `etapa1-testing-strategy.md` | Test pyramid & automation | ✅ Complete |
+| 24 | `etapa1-runbook-monitoring.md` | Runbook & monitoring setup | ✅ Complete |
+| 25 | `etapa1-testing-strategy.md` | Test pyramid & automation | ✅ Complete |
+| 26 | `etapa1-environment-variables.md` | Environment variables Etapa 1 | ✅ Complete |
 
 ---
 
@@ -74,7 +76,7 @@
 
 ### Document Totals
 
-- **Total Documents:** 25
+- **Total Documents:** 27
 - **Total Lines:** ~15,000+
 - **Workers Documented:** 58
 - **API Endpoints:** 35+

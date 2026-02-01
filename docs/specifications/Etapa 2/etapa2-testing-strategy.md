@@ -389,7 +389,7 @@ describe('Outreach Flow Integration', () => {
     const journey = await db.insert(goldLeadJourney).values({
       tenantId: tenant.id,
       leadId: lead.id,
-      engagementStage: 'COLD',
+      currentState: 'COLD',
       isNewContact: true,
     }).returning();
 
@@ -408,7 +408,7 @@ describe('Outreach Flow Integration', () => {
       where: eq(goldLeadJourney.leadId, lead.id),
     });
 
-    expect(updatedJourney?.engagementStage).toBe('CONTACTED_WA');
+    expect(updatedJourney?.currentState).toBe('CONTACTED_WA');
     expect(updatedJourney?.isNewContact).toBe(false);
     expect(updatedJourney?.assignedPhoneId).toBe(phone.id);
     expect(updatedJourney?.firstContactAt).toBeDefined();
@@ -454,7 +454,7 @@ describe('Outreach Flow Integration', () => {
       where: eq(goldLeadJourney.leadId, lead.id),
     });
 
-    expect(updatedJourney?.engagementStage).toBe('WARM_REPLY');
+    expect(updatedJourney?.currentState).toBe('WARM_REPLY');
     expect(updatedJourney?.replyCount).toBe(1);
     expect(updatedJourney?.lastReplyAt).toBeDefined();
     expect(updatedJourney?.sentimentScore).toBeGreaterThan(0);
@@ -708,7 +708,7 @@ export function createLeadFactory(overrides = {}) {
 export function createJourneyFactory(leadId: string, overrides = {}) {
   return {
     leadId,
-    engagementStage: 'COLD',
+    currentState: 'COLD',
     isNewContact: true,
     sentimentScore: 0,
     replyCount: 0,

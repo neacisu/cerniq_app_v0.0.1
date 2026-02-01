@@ -1,5 +1,5 @@
 # CERNIQ.APP — ETAPA 1: WORKERS TRIGGER MATRIX
-## Dependențe și Flow între 61 Workers
+## Dependențe și Flow între 58 Workers
 ### Versiunea 1.0 | 15 Ianuarie 2026
 
 ---

@@ -174,9 +174,9 @@ export async function waSendInitialProcessor(
     // 5. Update lead state
     await db.update(goldLeadJourney)
       .set({
-        engagementStage: 'CONTACTED_WA',
-        previousStage: 'COLD',
-        stageChangedAt: new Date(),
+        currentState: 'CONTACTED_WA',
+        previousState: 'COLD',
+        stateChangedAt: new Date(),
         quotaConsumptionDate: new Date().toISOString().split('T')[0],
         isNewContact: false,
         lastChannelUsed: 'WHATSAPP',
@@ -453,9 +453,9 @@ export async function waReplyProcessor(
   // Update lead state
   await db.update(goldLeadJourney)
     .set({
-      engagementStage: 'WARM_REPLY',
-      previousStage: sql`engagement_stage`,
-      stageChangedAt: new Date(),
+      currentState: 'WARM_REPLY',
+      previousState: sql`current_state`,
+      stateChangedAt: new Date(),
       lastReplyAt: new Date(),
       replyCount: sql`reply_count + 1`,
     })

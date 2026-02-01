@@ -483,7 +483,7 @@ function generateIdempotencyKey(
 
 | Provider         | Endpoint        | Rate Limit   | Burst | Backoff Strategy        |
 |------------------|-----------------|--------------|-------|-------------------------|
-| **ANAF API**     | Toate           | 1 req/sec    | 5     | Exponential 2^n * 1s    |
+| **ANAF API**     | Toate           | 1 req/sec    | 1     | Exponential 2^n * 1s    |
 | **Termene.ro**   | Toate           | 20 req/sec   | 50    | Linear 100ms            |
 | **Hunter.io**    | Email discovery | 15 req/sec   | 30    | Exponential 2^n * 500ms |
 | **ZeroBounce**   | Email verify    | 10 req/sec   | 20    | Linear 200ms            |
@@ -493,6 +493,8 @@ function generateIdempotencyKey(
 | **Nominatim**    | Geocoding       | 50 req/sec   | 100   | Linear 100ms            |
 | **xAI Grok**     | LLM             | 60 req/min   | 10    | Exponential 2^n * 1s    |
 | **OpenAI**       | Embeddings      | 3000 req/min | 100   | Exponential 2^n * 500ms |
+
+**ANAF WS v9 constraint:** maxim 100 CUI/request + maxim 1 request/sec (conform doc_WS_V9).
 
 ### 2.7.2 Per-Tenant Throttling
 
@@ -1020,7 +1022,7 @@ CREATE TABLE gold_companies (
     engagement_score INTEGER,
     intent_score INTEGER,
     
-    engagement_stage VARCHAR(30) DEFAULT 'COLD',
+    current_state VARCHAR(30) DEFAULT 'COLD',
     -- Values: COLD, CONTACTED_WA, CONTACTED_EMAIL, WARM_REPLY, 
     --         NEGOTIATION, PROPOSAL, CLOSING, CONVERTED, CHURNED, DEAD
     
@@ -1473,7 +1475,7 @@ CREATE TABLE integration_credentials (
 
 | Integration      | Provider    | Type  | Rate Limit | Auth          | Vault Path              |
 |------------------|-------------|-------|------------|---------------|-------------------------|
-| **ANAF API**     | ANAF        | oauth | 1,000/min  | OAuth2 + Cert | `secret/anaf/oauth`     |
+| **ANAF API**     | ANAF        | oauth | 1 req/sec (max 100 CUI/request) | OAuth2 + Cert | `secret/anaf/oauth`     |
 | **Termene.ro**   | Termene.ro  | api   | 20/sec     | API Key       | `secret/termene/api`    |
 | **Hunter.io**    | Hunter      | api   | 15/sec     | API Key       | `secret/hunter/api`     |
 | **ZeroBounce**   | ZeroBounce  | api   | 10/sec     | API Key       | `secret/zerobounce/api` |

@@ -89,13 +89,13 @@ AI Response Draft → Guardrail System → pricing:guardrail:validate
 
 ---
 
-## 2. Worker #16: pricing:discount:calculate
+## 2. Worker #16: etapa3:pricing:discount:calculate
 
 ### 2.1 Specification
 
 | Attribute | Value |
 |-----------|-------|
-| **Queue Name** | `pricing:discount:calculate` |
+| **Queue Name** | `etapa3:pricing:discount:calculate` |
 | **Concurrency** | 100 |
 | **Timeout** | 5,000ms |
 | **Retries** | 1 (fast fail for critical path) |
@@ -487,13 +487,13 @@ export function createDiscountCalculateWorker(redis: Redis): Worker {
 
 ---
 
-## 3. Worker #17: pricing:guardrail:validate
+## 3. Worker #17: etapa3:pricing:guardrail:validate
 
 ### 3.1 Specification
 
 | Attribute | Value |
 |-----------|-------|
-| **Queue Name** | `pricing:guardrail:validate` |
+| **Queue Name** | `etapa3:pricing:guardrail:validate` |
 | **Concurrency** | 200 |
 | **Timeout** | 3,000ms |
 | **Retries** | 0 (no retries - fast fail) |
@@ -913,13 +913,13 @@ export function createPriceGuardrailWorker(redis: Redis): Worker {
 
 ---
 
-## 4. Worker #18: pricing:margin:check
+## 4. Worker #18: etapa3:pricing:margin:check
 
 ### 4.1 Specification
 
 | Attribute | Value |
 |-----------|-------|
-| **Queue Name** | `pricing:margin:check` |
+| **Queue Name** | `etapa3:pricing:margin:check` |
 | **Concurrency** | 100 |
 | **Timeout** | 2,000ms |
 | **Retries** | 0 |

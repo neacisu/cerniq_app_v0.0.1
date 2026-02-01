@@ -75,18 +75,18 @@ Categoria C conține **nucleul AI Agent** - workerii responsabili pentru:
 
 ---
 
-## 2. Worker #9: ai:agent:orchestrate
+## 2. Worker #9: etapa3:ai:agent:orchestrate
 
 ### 2.1 Specificații
 
 | Atribut | Valoare |
 |---------|---------|
-| **Queue Name** | `ai:agent:orchestrate` |
+| **Queue Name** | `etapa3:ai:agent:orchestrate` |
 | **Concurrency** | 50 |
 | **Timeout** | 120000ms (2 min pentru tool loops) |
 | **Rate Limit** | N/A (controlat de LLM rate) |
 | **Retry Strategy** | 3 attempts, exponential backoff |
-| **Dead Letter Queue** | `ai:agent:orchestrate:dlq` |
+| **Dead Letter Queue** | `etapa3:ai:agent:orchestrate:dlq` |
 
 ### 2.2 Job Data Schema
 
@@ -1243,13 +1243,13 @@ export function createAgentOrchestrateQueue(redis: Redis): Queue {
 
 ---
 
-## 3. Worker #10: ai:agent:response-generate
+## 3. Worker #10: etapa3:ai:agent:response-generate
 
 ### 3.1 Specificații
 
 | Atribut | Valoare |
 |---------|---------|
-| **Queue Name** | `ai:agent:response-generate` |
+| **Queue Name** | `etapa3:ai:agent:response-generate` |
 | **Concurrency** | 100 |
 | **Timeout** | 30000ms |
 | **Rate Limit** | 200/min (LLM) |
@@ -1433,13 +1433,13 @@ export function createResponseGenerateWorker(redis: Redis): Worker {
 
 ---
 
-## 4. Worker #11: ai:tool:execute
+## 4. Worker #11: etapa3:ai:tool:execute
 
 ### 4.1 Specificații
 
 | Atribut | Valoare |
 |---------|---------|
-| **Queue Name** | `ai:tool:execute` |
+| **Queue Name** | `etapa3:ai:tool:execute` |
 | **Concurrency** | 200 |
 | **Timeout** | 30000ms |
 | **Rate Limit** | Variabil per tool |

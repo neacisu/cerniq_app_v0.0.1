@@ -64,6 +64,8 @@ Cerniq.app folosește o strategie de rate limiting pe 3 niveluri:
 
 *Vezi Master Spec § 2.7.1 pentru limitele actuale ANAF, Termene.ro, Hunter.io, etc.*
 
+**ANAF WS v9:** maxim 1 request/sec și maxim 100 CUI/request.
+
 ### 2.2 Provideri Comunicare (Etapa 2)
 
 *Vezi Master Spec § 2.7.1 pentru timpii de backoff TimelinesAI și Instantly.*
@@ -341,12 +343,14 @@ alerts:
 
 | Provider | Rate | Burst | Backoff | Circuit Threshold |
 | -------- | ---- | ----- | ------- | ----------------- |
-| ANAF | 1/s | 5 | Exp 1s | 3 failures |
+| ANAF | 1/s | 1 | Exp 1s | 3 failures |
 | Termene | 20/s | 50 | Lin 100ms | 5 failures |
 | TimelinesAI | 50/min | 10 | Fixed 1s | 5 failures |
 | Instantly | 100/10s | 20 | Exp 2s | 5 failures |
 | xAI Grok | 60/min | 10 | Exp 1s | 3 failures |
 | OpenAI | 3000/min | 100 | Exp 500ms | 5 failures |
+
+**Notă:** Pentru ANAF WS v9, limita include max 100 CUI/request.
 
 ---
 
