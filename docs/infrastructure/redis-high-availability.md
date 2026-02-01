@@ -70,7 +70,7 @@ version: '3.8'
 services:
   redis-master:
     image: redis:8.4-alpine
-    command: redis-server --appendonly yes --maxmemory-policy noeviction
+    command: redis-server --port 64039 --appendonly yes --maxmemory-policy noeviction
     volumes:
       - redis-master-data:/data
     networks:
@@ -78,7 +78,7 @@ services:
 
   redis-replica-1:
     image: redis:8.4-alpine
-    command: redis-server --replicaof redis-master 6379 --appendonly yes
+    command: redis-server --port 64039 --replicaof redis-master 64039 --appendonly yes
     depends_on:
       - redis-master
     volumes:
@@ -88,7 +88,7 @@ services:
 
   redis-replica-2:
     image: redis:8.4-alpine
-    command: redis-server --replicaof redis-master 6379 --appendonly yes
+    command: redis-server --port 64039 --replicaof redis-master 64039 --appendonly yes
     depends_on:
       - redis-master
     volumes:
@@ -140,7 +140,8 @@ networks:
 
 ```conf
 # sentinel.conf
-sentinel monitor mymaster redis-master 6379 2
+port 64099
+sentinel monitor mymaster redis-master 64039 2
 sentinel down-after-milliseconds mymaster 5000
 sentinel failover-timeout mymaster 60000
 sentinel parallel-syncs mymaster 1
@@ -158,9 +159,9 @@ import { Redis } from 'ioredis';
 export function createSentinelConnection(): Redis {
   return new Redis({
     sentinels: [
-      { host: 'sentinel-1', port: 26379 },
-      { host: 'sentinel-2', port: 26379 },
-      { host: 'sentinel-3', port: 26379 },
+      { host: 'sentinel-1', port: 64099 },
+      { host: 'sentinel-2', port: 64099 },
+      { host: 'sentinel-3', port: 64099 },
     ],
     name: 'mymaster',
     // password: process.env.REDIS_PASSWORD,
@@ -196,7 +197,7 @@ Sentinel handles automatically:
 
 ```bash
 # Force failover (for maintenance)
-redis-cli -h sentinel-1 -p 26379 SENTINEL FAILOVER mymaster
+redis-cli -h sentinel-1 -p 64099 SENTINEL FAILOVER mymaster
 
 # Check current master
 redis-cli -h sentinel-1 -p 26379 SENTINEL GET-MASTER-ADDR-BY-NAME mymaster

@@ -238,8 +238,8 @@ import type { Redis } from 'ioredis';
 
 // Environment
 process.env.NODE_ENV = 'test';
-process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/cerniq_test';
-process.env.REDIS_URL = 'redis://localhost:6379/15';
+process.env.DATABASE_URL = 'postgresql://test:test@localhost:64032/cerniq_test';
+process.env.REDIS_URL = 'redis://localhost:64039/15';
 process.env.LLM_PROVIDER = 'mock';
 process.env.ANTHROPIC_API_KEY = 'test-key';
 

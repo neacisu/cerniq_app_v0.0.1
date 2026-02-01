@@ -569,7 +569,7 @@ CREATE INDEX idx_metadata ON approval_tasks USING GIN (metadata);
 
 ```sql
 -- Migration header
--- Migration: 20260112_001_add_lead_scoring
+-- Migration: 0001_add_lead_scoring
 -- Author: Alex
 -- Description: Add lead scoring columns to gold_companies
 

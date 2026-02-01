@@ -39,7 +39,7 @@ Cerniq.app folosește **range 64000-64099** pentru toate serviciile interne. Acc
 ### Architecture
 
 ```text
-nginx (80/443) → proxy_pass → localhost:640xx
+nginx (80/443) → proxy_pass → localhost:64000-64099
 ```
 
 ## Consecințe

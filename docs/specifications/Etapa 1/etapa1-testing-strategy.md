@@ -579,7 +579,7 @@ export default defineConfig({
     ['json', { outputFile: 'test-results.json' }],
   ],
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: 'http://localhost:64000',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -596,7 +596,7 @@ export default defineConfig({
   ],
   webServer: {
     command: 'npm run dev',
-    url: 'http://localhost:3000',
+    url: 'http://localhost:64000',
     reuseExistingServer: !process.env.CI,
   },
 });
@@ -745,7 +745,7 @@ export const options = {
   },
 };
 
-const BASE_URL = __ENV.API_URL || 'http://localhost:3001';
+const BASE_URL = __ENV.API_URL || 'http://localhost:64000';
 const AUTH_TOKEN = __ENV.AUTH_TOKEN;
 
 export function setup() {
@@ -1050,11 +1050,11 @@ jobs:
           POSTGRES_USER: test
           POSTGRES_PASSWORD: test
         ports:
-          - 5432:5432
+          - 64032:64032
       redis:
         image: redis:7
         ports:
-          - 6379:6379
+          - 64039:64039
 
     steps:
       - uses: actions/checkout@v4
@@ -1065,12 +1065,12 @@ jobs:
       - run: npm ci
       - run: npm run db:migrate
         env:
-          DATABASE_URL: postgres://test:test@localhost:5432/cerniq_test
+          DATABASE_URL: postgres://test:test@localhost:64032/cerniq_test
       
       - run: npm run test:integration
         env:
-          DATABASE_URL: postgres://test:test@localhost:5432/cerniq_test
-          REDIS_URL: redis://localhost:6379
+          DATABASE_URL: postgres://test:test@localhost:64032/cerniq_test
+          REDIS_URL: redis://localhost:64039
 
   e2e-tests:
     runs-on: ubuntu-latest

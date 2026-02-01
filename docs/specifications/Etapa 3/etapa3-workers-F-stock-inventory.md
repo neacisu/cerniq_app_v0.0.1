@@ -1945,7 +1945,7 @@ export class CustomApiAdapter implements IErpAdapter {
 ### 6.1 Stock Reservations Table
 
 ```sql
--- File: packages/database/migrations/0025_stock_reservations.sql
+-- File: packages/database/migrations/0309_stock_reservations.sql
 
 -- Stock reservations table
 CREATE TABLE IF NOT EXISTS stock_reservations (

@@ -24,14 +24,14 @@ Utilizăm **BorgBackup 1.4** cu destinație **Hetzner Storage Box** (SSH port 23
 ```bash
 # Inițializare repository
 borg init --encryption=repokey \
-  ssh://uXXXXXX@uXXXXXX.your-storagebox.de:23/./borg-repo
+  ssh://uXXXXXX@uXXXXXX.your-storagebox.de:22/./borg-repo
 
 # Backup daily
 borg create \
   --compression auto,zstd,6 \
   --exclude 'node_modules' \
   --exclude '*.log' \
-  ssh://uXXXXXX@uXXXXXX.your-storagebox.de:23/./borg-repo::{hostname}-{now} \
+  ssh://uXXXXXX@uXXXXXX.your-storagebox.de:22/./borg-repo::{hostname}-{now} \
   /var/www/CerniqAPP \
   /etc/cerniq \
   /var/backups/databases
@@ -42,7 +42,7 @@ borg prune \
   --keep-weekly 4 \
   --keep-monthly 6 \
   --keep-yearly 2 \
-  ssh://uXXXXXX@uXXXXXX.your-storagebox.de:23/./borg-repo
+  ssh://uXXXXXX@uXXXXXX.your-storagebox.de:22/./borg-repo
 ```
 
 ### Restricții CRITICE

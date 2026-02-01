@@ -48,7 +48,7 @@
 # Hetzner Storage Box credentials
 STORAGE_BOX_USER="uXXXXXX"
 STORAGE_BOX_HOST="${STORAGE_BOX_USER}.your-storagebox.de"
-BORG_REPO="ssh://${STORAGE_BOX_USER}@${STORAGE_BOX_HOST}:23/./borg-cerniq"
+BORG_REPO="ssh://${STORAGE_BOX_USER}@${STORAGE_BOX_HOST}:22/./borg-cerniq"
 
 # Generate passphrase (SAVE THIS SECURELY!)
 BORG_PASSPHRASE=$(openssl rand -base64 32)
@@ -63,11 +63,11 @@ cat ~/.ssh/storagebox_ed25519.pub
 echo "Add this public key to Hetzner Storage Box authorized_keys"
 
 # Test connection (port 23!)
-ssh -p 23 ${STORAGE_BOX_USER}@${STORAGE_BOX_HOST} ls
+ssh -p 22 ${STORAGE_BOX_USER}@${STORAGE_BOX_HOST} ls
 
 # Initialize Borg repository
 export BORG_PASSPHRASE
-export BORG_RSH="ssh -i ~/.ssh/storagebox_ed25519 -p 23"
+export BORG_RSH="ssh -i ~/.ssh/storagebox_ed25519 -p 22"
 borg init --encryption=repokey $BORG_REPO
 
 echo "BorgBackup repository initialized at $BORG_REPO"
@@ -87,9 +87,9 @@ exec 2>&1 | tee -a /var/log/cerniq/backup-$(date +%Y%m%d).log
 echo "=== CERNIQ DAILY BACKUP $(date) ==="
 
 # Configuration
-export BORG_REPO="ssh://uXXXXXX@uXXXXXX.your-storagebox.de:23/./borg-cerniq"
+export BORG_REPO="ssh://uXXXXXX@uXXXXXX.your-storagebox.de:22/./borg-cerniq"
 export BORG_PASSPHRASE=$(cat /var/www/CerniqAPP/secrets/borg_passphrase)
-export BORG_RSH="ssh -i ~/.ssh/storagebox_ed25519 -p 23"
+export BORG_RSH="ssh -i ~/.ssh/storagebox_ed25519 -p 22"
 
 BACKUP_NAME="cerniq-$(date +%Y%m%d-%H%M%S)"
 BACKUP_DIR="/var/backups/cerniq"
@@ -205,9 +205,9 @@ services:
 #!/bin/bash
 # List available Borg backups
 
-export BORG_REPO="ssh://uXXXXXX@uXXXXXX.your-storagebox.de:23/./borg-cerniq"
+export BORG_REPO="ssh://uXXXXXX@uXXXXXX.your-storagebox.de:22/./borg-cerniq"
 export BORG_PASSPHRASE=$(cat /var/www/CerniqAPP/secrets/borg_passphrase)
-export BORG_RSH="ssh -i ~/.ssh/storagebox_ed25519 -p 23"
+export BORG_RSH="ssh -i ~/.ssh/storagebox_ed25519 -p 22"
 
 echo "Available backups:"
 borg list $BORG_REPO

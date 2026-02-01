@@ -1187,7 +1187,7 @@ export const EMAIL_CONFIG = {
   // SMTP settings (fallback)
   smtp: {
     host: process.env.SMTP_HOST || 'smtp.example.com',
-    port: parseInt(process.env.SMTP_PORT || '587'),
+    port: parseInt(process.env.SMTP_PORT || '443'),
     secure: process.env.SMTP_SECURE === 'true',
     auth: {
       user: process.env.SMTP_USER,
@@ -2622,7 +2622,7 @@ import Redis from 'ioredis';
 // Redis connection for document generation queues
 const documentRedisConnection = new Redis({
   host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379'),
+  port: parseInt(process.env.REDIS_PORT || '64039'),
   db: 3, // Separate DB for document generation
   maxRetriesPerRequest: null,
   enableReadyCheck: false,
@@ -3610,7 +3610,7 @@ import crypto from 'crypto';
 
 const redis = new Redis({
   host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379'),
+  port: parseInt(process.env.REDIS_PORT || '64039'),
   db: 3
 });
 
@@ -5471,7 +5471,7 @@ describe('WhatsApp Delivery Worker Integration', () => {
   beforeAll(async () => {
     container = await createTestContainer();
     tenantId = container.tenantId;
-    mockWhatsApp = await createWhatsAppMockServer(3001);
+    mockWhatsApp = await createWhatsAppMockServer(64001);
   });
 
   afterAll(async () => {

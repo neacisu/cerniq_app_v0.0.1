@@ -64,7 +64,7 @@
 | **Efort Estimat** | 4-8 ore |
 | **Prioritate** | 🔴 BLOCKER |
 
-**Status Rezolvare:** ⬜ NEREZOLVAT
+**Status Rezolvare:** ✅ REZOLVAT (ADR-0106 creat, ADR-00XX deprecated)
 
 ---
 
@@ -93,7 +93,7 @@
 | **Efort Estimat** | 1 oră |
 | **Prioritate** | 🔴 BLOCKER |
 
-**Status Rezolvare:** ⬜ NEREZOLVAT
+**Status Rezolvare:** ✅ REZOLVAT (ADR-0006 standardizat la 8.4.0)
 
 ---
 
@@ -109,7 +109,7 @@
 | **Impact** | Dezvoltatorii nu pot naviga corect ADR-urile |
 | **Efort Estimat** | 2 ore |
 
-**Status Rezolvare:** ⬜ NEREZOLVAT
+**Status Rezolvare:** ✅ REZOLVAT (ADR-INDEX sincronizat la 1 Februarie 2026)
 
 ---
 
@@ -140,12 +140,12 @@
 | Etapă | Status Migrații |
 |-------|-----------------|
 | Etapa 1 | `etapa1-migrations.md` ✅ |
-| Etapa 2 | **LIPSEȘTE** ❌ |
+| Etapa 2 | `etapa2-migrations.md` ✅ |
 | Etapa 3 | `etapa3-migrations.md` ✅ |
 | Etapa 4 | `etapa4-migrations.md` ✅ |
 | Etapa 5 | `etapa5-migrations.md` ✅ |
 
-**Status Rezolvare:** ⬜ NEREZOLVAT
+**Status Rezolvare:** ✅ REZOLVAT (fișier existent)
 
 ---
 
@@ -157,14 +157,28 @@
 | **Impact** | Confuzie la development și maintenance |
 | **Efort Estimat** | 2 ore (decision + documentation) |
 
-**Comparație Patterns:**
+**Comparație Patterns (îNAINTE):**
 
 | Etapă | Pattern | Exemplu |
 |-------|---------|---------|
-| E1-E4 | Sequential `00XX_*` | `0020_bronze_contacts.sql` |
+| E1 | Sequential `01XX_*` | `0100_create_bronze_contacts.sql` |
+| E2 | Sequential `02XX_*` | `0200_create_e2_enums.sql` |
+| E3 | Timestamp `YYYYMMDDHHMMSS_*` | `20260201100000_etapa3_create_enums.sql` |
+| E4 | Mixed `04XX_*` (+ sub-sufixe) | `0401a_create_gold_orders.ts` |
 | E5 | Date-based `YYYYMMDD_XXX_*` | `20260119_001_*.sql` |
 
-**Status Rezolvare:** ⬜ NEREZOLVAT
+**Standard Canonic (DUPĂ):**
+
+| Etapă | Pattern canonic | Range |
+|-------|-----------------|-------|
+| E0 | `00XX_*` | 0000–0099 |
+| E1 | `01XX_*` | 0100–0199 |
+| E2 | `02XX_*` | 0200–0299 |
+| E3 | `03XX_*` | 0300–0399 |
+| E4 | `04XX_*` | 0400–0499 |
+| E5 | `05XX_*` | 0500–0599 |
+
+**Status Rezolvare:** ✅ REZOLVAT (standard unificat + renumerotare în docs)
 
 ---
 
@@ -367,9 +381,9 @@ RLS, `UNIQUE(tenant_id, cui)`, și naming conventions respectate.
 | # | Acțiune | Efort | Status |
 |---|---------|-------|--------|
 | 4 | Sincronizare ADR-INDEX.md cu fișiere fizice | 2h | ⬜ |
-| 5 | Rezolvare ADR-00XX (accept/reject/redenumire) | 1h | ⬜ |
-| 6 | Creare etapa2-migrations.md | 4h | ⬜ |
-| 7 | Standardizare pattern migrații (decision needed) | 2h | ⬜ |
+| 5 | Rezolvare ADR-00XX (accept/reject/redenumire) | 1h | ✅ |
+| 6 | Creare etapa2-migrations.md | 4h | ✅ |
+| 7 | Standardizare pattern migrații (decision needed) | 2h | ✅ |
 | 8 | Corectare FSM naming engagement_stage → current_state | 2h | ⬜ |
 | 9 | Creare DPIA document | 8h | ⬜ |
 | 10 | Clarificare rate limit ANAF | 1h | ⬜ |
@@ -668,17 +682,17 @@ echo "ADR Index generated successfully!"
 
 | Migration ID | Nume | Tabele | Status |
 |--------------|------|--------|--------|
-| 0030 | outreach_base_tables | 4 | ⬜ Planned |
-| 0031 | whatsapp_infrastructure | 3 | ⬜ Planned |
-| 0032 | email_infrastructure | 2 | ⬜ Planned |
-| 0033 | sequences_and_templates | 2 | ⬜ Planned |
+| 0200 | outreach_base_tables | 4 | ⬜ Planned |
+| 0201 | whatsapp_infrastructure | 3 | ⬜ Planned |
+| 0202 | email_infrastructure | 2 | ⬜ Planned |
+| 0203 | sequences_and_templates | 2 | ⬜ Planned |
 
 ---
 
 ## Migration 0030: Outreach Base Tables
 
 ```sql
--- Migration: 0030_outreach_base_tables.sql
+-- Migration: 0200_outreach_base_tables.sql
 -- Description: Tabele de bază pentru outreach multi-canal
 -- Depends on: 0020-0029 (Etapa 1 migrations)
 
@@ -908,18 +922,18 @@ Valoarea corectă conform documentația ANAF oficială:
 
 ## 📊 TRACKING PROGRES
 
-### Probleme Critice (0/3 rezolvate)
+### Probleme Critice (1/3 rezolvate)
 
 - [ ] CRITIC #1: Generare openapi.yaml
 - [ ] CRITIC #2: Completare template.md ADR
-- [ ] CRITIC #3: Renumire ADR-0006 path legacy
+- [x] CRITIC #3: Renumire ADR-0006 path legacy
 
-### Probleme Majore (0/12 rezolvate)
+### Probleme Majore (4/12 rezolvate)
 
-- [ ] MAJOR #1: Sincronizare ADR-INDEX.md
-- [ ] MAJOR #2: Rezolvare ADR-00XX
-- [ ] MAJOR #3: Creare etapa2-migrations.md
-- [ ] MAJOR #4: Standardizare pattern migrații
+- [x] MAJOR #1: Sincronizare ADR-INDEX.md
+- [x] MAJOR #2: Rezolvare ADR-00XX
+- [x] MAJOR #3: Creare etapa2-migrations.md
+- [x] MAJOR #4: Standardizare pattern migrații
 - [ ] MAJOR #5: Corectare FSM naming
 - [ ] MAJOR #6: Creare DPIA
 - [ ] MAJOR #7: Clarificare rate limit ANAF

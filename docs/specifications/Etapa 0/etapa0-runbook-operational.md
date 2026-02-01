@@ -575,7 +575,7 @@ docker exec cerniq-api nslookup redis
 
 # 3. Test connectivity
 docker exec cerniq-api ping -c 3 postgres
-docker exec cerniq-api nc -zv redis 6379
+docker exec cerniq-api nc -zv redis 64039
 ```
 
 ---
@@ -605,7 +605,7 @@ docker compose down
 sudo mv /var/lib/docker/volumes/cerniq_postgres_data /var/lib/docker/volumes/cerniq_postgres_data_corrupted_$(date +%Y%m%d)
 
 # 3. Restore from BorgBackup
-export BORG_REPO="ssh://uXXXXXX@uXXXXXX.your-storagebox.de:23/./borg-repo"
+export BORG_REPO="ssh://uXXXXXX@uXXXXXX.your-storagebox.de:22/./borg-repo"
 export BORG_PASSPHRASE="<your-passphrase>"
 
 # List available backups
@@ -648,7 +648,7 @@ echo "=== COMPLETE SYSTEM RECOVERY ==="
 git clone <repo-url> /var/www/CerniqAPP
 
 # If restoring from backup:
-export BORG_REPO="ssh://uXXXXXX@uXXXXXX.your-storagebox.de:23/./borg-repo"
+export BORG_REPO="ssh://uXXXXXX@uXXXXXX.your-storagebox.de:22/./borg-repo"
 borg extract $BORG_REPO::<archive> var/www/CerniqAPP
 
 # 5. Restore secrets

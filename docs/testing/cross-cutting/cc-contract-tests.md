@@ -132,7 +132,7 @@ import { Verifier } from '@pact-foundation/pact';
 describe('Provider Verification', () => {
   it('validates consumer contracts', async () => {
     await new Verifier({
-      providerBaseUrl: 'http://localhost:3000',
+      providerBaseUrl: 'http://localhost:64000',
       pactUrls: [
         './pacts/WebAdminApp-CompaniesAPI.json',
       ],

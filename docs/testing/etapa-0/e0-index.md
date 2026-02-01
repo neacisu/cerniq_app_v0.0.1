@@ -101,11 +101,11 @@ docker exec cerniq-redis redis-cli CONFIG GET maxmemory-policy | grep -q "noevic
 
 # F0.4 - Traefik
 echo "[F0.4] Checking Traefik..."
-curl -sf http://localhost:8082/metrics > /dev/null && echo "✅ Traefik OK"
+curl -sf http://localhost:64081/metrics > /dev/null && echo "✅ Traefik OK"
 
 # F0.5 - SigNoz
 echo "[F0.5] Checking SigNoz..."
-curl -sf http://localhost:4318/v1/traces > /dev/null 2>&1 || echo "✅ OTel Collector OK (accepts POST)"
+curl -sf http://localhost:64071/v1/traces > /dev/null 2>&1 || echo "✅ OTel Collector OK (accepts POST)"
 
 echo "=== All checks passed ==="
 ```

@@ -650,7 +650,7 @@ export const options = {
   },
 };
 
-const BASE_URL = __ENV.API_URL || 'http://localhost:3000';
+const BASE_URL = __ENV.API_URL || 'http://localhost:64000';
 
 export default function () {
   // Test leads listing endpoint

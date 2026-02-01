@@ -9656,7 +9656,7 @@ export class AIAgentIntegration extends EventEmitter {
 
 // Export singleton
 export const aiAgentIntegration = new AIAgentIntegration({
-  redis: new Redis(process.env.REDIS_URL || 'redis://localhost:6379'),
+  redis: new Redis(process.env.REDIS_URL || 'redis://localhost:64039'),
   logger: require('pino')()
 });
 ```
@@ -19155,7 +19155,7 @@ export async function verifySecurityChecklist(
 │  │  │                       L1/L2/L3 Workers                       │    │   │
 │  │  │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐            │    │   │
 │  │  │  │Protocol │ │Resource │ │  Tool   │ │ Session │            │    │   │
-│  │  │  │Handler  │ │Manager  │ │Executor │ │Manager  │            │    │   │
+METRICS_PORT=64090
 │  │  │  └─────────┘ └─────────┘ └─────────┘ └─────────┘            │    │   │
 │  │  └─────────────────────────────────────────────────────────────┘    │   │
 │  └─────────────────────────────────────────────────────────────────────┘   │
@@ -19166,13 +19166,13 @@ export async function verifySecurityChecklist(
 
 #### 9.2.1 Logger Implementation
 
-```typescript
+    port: z.number().int().min(1).max(65535).default(64096),
 // src/workers/L/monitoring/structured-logger.ts
 import pino, { Logger as PinoLogger, LoggerOptions } from 'pino';
 import { EventEmitter } from 'events';
 
 /**
- * Log levels
+    port: z.number().int().default(64090),
  */
 type LogLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';
 
@@ -19181,13 +19181,13 @@ type LogLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';
  */
 interface LogContext {
   requestId?: string;
-  sessionId?: string;
+        port: parseInt(env.MCP_PORT || '64096'),
   tenantId?: string;
   userId?: string;
   conversationId?: string;
   correlationId?: string;
   component?: string;
-  operation?: string;
+        port: parseInt(env.METRICS_PORT || '64090'),
   [key: string]: any;
 }
 
@@ -19196,13 +19196,13 @@ interface LogContext {
  */
 interface LogEntry {
   level: LogLevel;
-  message: string;
+    const mcpPort = this.mcpContainer.getMappedPort(64096);
   timestamp: string;
   context: LogContext;
   data?: any;
-  error?: {
+ENV MCP_PORT=64096
     name: string;
-    message: string;
+        prometheus.io/port: "64090"
     stack?: string;
     code?: string;
   };
@@ -22401,7 +22401,7 @@ export class IntegrationTestEnvironment {
   async start(): Promise<void> {
     // Start Redis
     this.redisContainer = await new GenericContainer('redis:8.4-alpine')
-      .withExposedPorts(6379)
+      .withExposedPorts(64039)
       .withStartupTimeout(60000)
       .start();
     
@@ -22412,19 +22412,19 @@ export class IntegrationTestEnvironment {
         POSTGRES_USER: 'test',
         POSTGRES_PASSWORD: 'test'
       })
-      .withExposedPorts(5432)
+      .withExposedPorts(64032)
       .withStartupTimeout(60000)
       .start();
     
     // Create connections
     this.redis = new Redis({
       host: this.redisContainer.getHost(),
-      port: this.redisContainer.getMappedPort(6379)
+      port: this.redisContainer.getMappedPort(64039)
     });
     
     this.pool = new Pool({
       host: this.postgresContainer.getHost(),
-      port: this.postgresContainer.getMappedPort(5432),
+      port: this.postgresContainer.getMappedPort(64032),
       database: 'cerniq_test',
       user: 'test',
       password: 'test'
@@ -22962,7 +22962,7 @@ describe('Tool Execution Integration', () => {
  * Load test configuration
  */
 export const loadTestConfig = {
-  baseUrl: process.env.MCP_BASE_URL || 'http://localhost:3000',
+  baseUrl: process.env.MCP_BASE_URL || 'http://localhost:64096',
   
   scenarios: {
     smoke: {
@@ -23085,7 +23085,7 @@ export const options = {
   }
 };
 
-const BASE_URL = __ENV.MCP_BASE_URL || 'http://localhost:3000';
+const BASE_URL = __ENV.MCP_BASE_URL || 'http://localhost:64096';
 
 // Sample user messages
 const userMessages = [
@@ -24922,10 +24922,10 @@ export class MCPTestEnvironment {
         POSTGRES_USER: 'test',
         POSTGRES_PASSWORD: 'test'
       })
-      .withExposedPorts(5432)
+      .withExposedPorts(64032)
       .start();
 
-    const pgPort = this.pgContainer.getMappedPort(5432);
+    const pgPort = this.pgContainer.getMappedPort(64032);
 
     this.pgPool = new Pool({
       host: 'localhost',
@@ -24940,10 +24940,10 @@ export class MCPTestEnvironment {
 
     // Start Redis
     this.redisContainer = await new GenericContainer('redis:7')
-      .withExposedPorts(6379)
+      .withExposedPorts(64039)
       .start();
 
-    const redisPort = this.redisContainer.getMappedPort(6379);
+    const redisPort = this.redisContainer.getMappedPort(64039);
     this.redis = new Redis({
       host: 'localhost',
       port: redisPort
@@ -24957,10 +24957,10 @@ export class MCPTestEnvironment {
         NODE_ENV: 'test',
         LOG_LEVEL: 'warn'
       })
-      .withExposedPorts(3000)
+      .withExposedPorts(64096)
       .start();
 
-    const mcpPort = this.mcpContainer.getMappedPort(3000);
+    const mcpPort = this.mcpContainer.getMappedPort(64096);
 
     // Initialize client
     this.client = new MCPClient({
@@ -25286,7 +25286,7 @@ export class ConversationSimulator {
   constructor(env: any) {
     this.env = env;
     this.client = new MCPClient({
-      baseUrl: env.getBaseUrl?.() || 'http://localhost:3000',
+      baseUrl: env.getBaseUrl?.() || 'http://localhost:64096',
       timeout: 30000
     });
   }
@@ -25513,13 +25513,13 @@ NODE_ENV=production
 MCP_SERVER_NAME=cerniq-mcp-server
 MCP_SERVER_VERSION=1.0.0
 MCP_HOST=0.0.0.0
-MCP_PORT=3000
+MCP_PORT=64096
 MCP_BASE_PATH=/api/mcp
 
 # ───────────────────────────────────────────────────────────────────
 # Database (PostgreSQL)
 # ───────────────────────────────────────────────────────────────────
-DATABASE_URL=postgresql://cerniq_user:${DB_PASSWORD}@postgres:5432/cerniq_db
+DATABASE_URL=postgresql://cerniq_user:${DB_PASSWORD}@postgres:64032/cerniq_db
 DATABASE_POOL_MIN=5
 DATABASE_POOL_MAX=20
 DATABASE_POOL_ACQUIRE_TIMEOUT=30000
@@ -25530,7 +25530,7 @@ DATABASE_SSL_REJECT_UNAUTHORIZED=true
 # ───────────────────────────────────────────────────────────────────
 # Redis
 # ───────────────────────────────────────────────────────────────────
-REDIS_URL=redis://redis:6379
+REDIS_URL=redis://redis:64039
 REDIS_PASSWORD=${REDIS_PASSWORD}
 REDIS_DB=0
 REDIS_KEY_PREFIX=mcp:
@@ -25614,7 +25614,7 @@ LOG_REDACT_PATHS=["password","token","apiKey","secret"]
 # ───────────────────────────────────────────────────────────────────
 OTEL_ENABLED=true
 OTEL_SERVICE_NAME=mcp-server
-OTEL_EXPORTER_OTLP_ENDPOINT=http://signoz:4317
+OTEL_EXPORTER_OTLP_ENDPOINT=http://signoz:64070
 OTEL_EXPORTER_OTLP_PROTOCOL=grpc
 OTEL_TRACES_SAMPLER=parentbased_traceidratio
 OTEL_TRACES_SAMPLER_ARG=0.1
@@ -25623,7 +25623,7 @@ OTEL_TRACES_SAMPLER_ARG=0.1
 # Metrics (Prometheus)
 # ───────────────────────────────────────────────────────────────────
 METRICS_ENABLED=true
-METRICS_PORT=9090
+METRICS_PORT=64090
 METRICS_PATH=/metrics
 METRICS_PREFIX=mcp_
 
@@ -25724,7 +25724,7 @@ const ConfigSchema = z.object({
     name: z.string().default('cerniq-mcp-server'),
     version: z.string().default('1.0.0'),
     host: z.string().default('0.0.0.0'),
-    port: z.number().int().min(1).max(65535).default(3000),
+    port: z.number().int().min(1).max(65535).default(64096),
     basePath: z.string().default('/api/mcp')
   }),
 
@@ -25843,7 +25843,7 @@ const ConfigSchema = z.object({
   // Metrics
   metrics: z.object({
     enabled: z.boolean().default(true),
-    port: z.number().int().default(9090),
+    port: z.number().int().default(64090),
     path: z.string().default('/metrics'),
     prefix: z.string().default('mcp_')
   }),
@@ -26023,7 +26023,7 @@ class ConfigLoader {
         name: env.MCP_SERVER_NAME,
         version: env.MCP_SERVER_VERSION,
         host: env.MCP_HOST,
-        port: parseInt(env.MCP_PORT || '3000'),
+        port: parseInt(env.MCP_PORT || '64096'),
         basePath: env.MCP_BASE_PATH
       },
 
@@ -26133,7 +26133,7 @@ class ConfigLoader {
 
       metrics: {
         enabled: env.METRICS_ENABLED !== 'false',
-        port: parseInt(env.METRICS_PORT || '9090'),
+        port: parseInt(env.METRICS_PORT || '64090'),
         path: env.METRICS_PATH,
         prefix: env.METRICS_PREFIX
       },
@@ -26152,7 +26152,7 @@ class ConfigLoader {
       },
 
       security: {
-        cors: {
+      const mcpPort = this.mcpContainer.getMappedPort(64096);
           enabled: env.CORS_ENABLED !== 'false',
           origin: env.CORS_ORIGIN?.split(',') || [],
           methods: env.CORS_METHODS?.split(','),
@@ -26318,7 +26318,7 @@ WORKDIR /app
 # Set environment
 ENV NODE_ENV=production
 ENV MCP_HOST=0.0.0.0
-ENV MCP_PORT=3000
+ENV MCP_PORT=64096
 
 # Copy built application
 COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
@@ -26371,9 +26371,9 @@ services:
     
     environment:
       - NODE_ENV=${NODE_ENV:-production}
-      - MCP_PORT=3000
-      - DATABASE_URL=postgresql://cerniq_user:${DB_PASSWORD}@postgres:5432/cerniq_db
-      - REDIS_URL=redis://redis:6379
+      - MCP_PORT=64096
+      - DATABASE_URL=postgresql://cerniq_user:${DB_PASSWORD}@postgres:64032/cerniq_db
+      - REDIS_URL=redis://redis:64039
     
     secrets:
       - db_password
@@ -26384,8 +26384,8 @@ services:
       - encryption_key
     
     ports:
-      - "3000:3000"
-      - "9090:9090"  # Metrics
+      - "64096:64096"
+      - "64090:64090"  # Metrics
     
     networks:
       - cerniq-internal
@@ -26398,7 +26398,7 @@ services:
         condition: service_healthy
     
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:64096/health"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -26424,7 +26424,7 @@ services:
       - "traefik.http.routers.mcp.rule=Host(`api.cerniq.app`) && PathPrefix(`/api/mcp`)"
       - "traefik.http.routers.mcp.tls=true"
       - "traefik.http.routers.mcp.tls.certresolver=letsencrypt"
-      - "traefik.http.services.mcp.loadbalancer.server.port=3000"
+      - "traefik.http.services.mcp.loadbalancer.server.port=64096"
       - "traefik.http.routers.mcp.middlewares=mcp-ratelimit,mcp-headers"
       - "traefik.http.middlewares.mcp-ratelimit.ratelimit.average=100"
       - "traefik.http.middlewares.mcp-ratelimit.ratelimit.burst=50"
@@ -26446,8 +26446,8 @@ services:
       - NODE_ENV=${NODE_ENV:-production}
       - WORKER_MODE=true
       - WORKER_CONCURRENCY=5
-      - DATABASE_URL=postgresql://cerniq_user:${DB_PASSWORD}@postgres:5432/cerniq_db
-      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgresql://cerniq_user:${DB_PASSWORD}@postgres:64032/cerniq_db
+      - REDIS_URL=redis://redis:64039
     
     secrets:
       - db_password
@@ -26597,7 +26597,7 @@ spec:
         tier: backend
       annotations:
         prometheus.io/scrape: "true"
-        prometheus.io/port: "9090"
+        prometheus.io/port: "64090"
         prometheus.io/path: "/metrics"
     spec:
       serviceAccountName: mcp-server
@@ -26614,17 +26614,17 @@ spec:
           
           ports:
             - name: http
-              containerPort: 3000
+              containerPort: 64096
               protocol: TCP
             - name: metrics
-              containerPort: 9090
+              containerPort: 64090
               protocol: TCP
           
           env:
             - name: NODE_ENV
               value: "production"
             - name: MCP_PORT
-              value: "3000"
+              value: "64096"
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
@@ -26723,11 +26723,11 @@ spec:
   type: ClusterIP
   ports:
     - name: http
-      port: 3000
+      port: 64096
       targetPort: http
       protocol: TCP
     - name: metrics
-      port: 9090
+      port: 64090
       targetPort: metrics
       protocol: TCP
   selector:
@@ -26948,7 +26948,7 @@ jobs:
           --health-timeout 5s
           --health-retries 5
         ports:
-          - 5432:5432
+          - 64032:64032
       
       redis:
         image: redis:8.4-alpine
@@ -26958,7 +26958,7 @@ jobs:
           --health-timeout 5s
           --health-retries 5
         ports:
-          - 6379:6379
+          - 64039:64039
     
     steps:
       - uses: actions/checkout@v4
@@ -26979,13 +26979,13 @@ jobs:
       - name: Run migrations
         run: pnpm --filter @cerniq/mcp-server db:migrate
         env:
-          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
+          DATABASE_URL: postgresql://test_user:test_password@localhost:64032/test_db
       
       - name: Run integration tests
         run: pnpm --filter @cerniq/mcp-server test:integration
         env:
-          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
-          REDIS_URL: redis://localhost:6379
+          DATABASE_URL: postgresql://test_user:test_password@localhost:64032/test_db
+          REDIS_URL: redis://localhost:64039
 
   # ═══════════════════════════════════════════════════════════════════
   # Security Scan
@@ -27557,7 +27557,7 @@ metrics:
   prometheus:
     method: GET
     path: /metrics
-    port: 9090
+    port: 64090
     auth: none
     response: Prometheus format metrics
 ```

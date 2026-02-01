@@ -48,9 +48,8 @@ describe('Redis Container', () => {
     expect(stdout.trim()).toBe('healthy');
   });
   
-  it('should NOT expose port 6379 publicly', async () => {
+  it('should NOT expose port 64039 publicly', async () => {
     const { stdout } = await execAsync('docker inspect cerniq-redis --format "{{.NetworkSettings.Ports}}"');
-    expect(stdout).not.toContain('0.0.0.0:6379');
     expect(stdout).not.toContain('0.0.0.0:64039');
   });
   
@@ -84,7 +83,7 @@ describe('Redis BullMQ Configuration', () => {
   beforeAll(() => {
     redis = new Redis({
       host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379'),
+      port: parseInt(process.env.REDIS_PORT || '64039'),
     });
   });
   
@@ -345,8 +344,8 @@ describe "Redis Network Connectivity" {
     assert_success
   }
   
-  it "should NOT be accessible from host on port 6379" {
-    ! redis-cli -h localhost -p 6379 ping 2>/dev/null
+  it "should NOT be accessible from host on port 64039" {
+    ! redis-cli -h localhost -p 64039 ping 2>/dev/null
     assert_success
   }
   
@@ -365,7 +364,7 @@ describe "Redis Network Connectivity" {
 
 - [ ] Image: redis:8.4-alpine
 - [ ] Health status: healthy
-- [ ] Nu expune port 6379 public
+- [ ] Nu expune port 64039 public
 - [ ] Conectat la cerniq_data ȘI cerniq_backend
 
 ### BullMQ Configuration (CRITICAL)

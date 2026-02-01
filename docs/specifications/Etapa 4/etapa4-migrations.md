@@ -23,17 +23,17 @@
 ```typescript
 // migrations/etapa4/index.ts
 export const ETAPA4_MIGRATIONS = [
-  '0040_create_etapa4_enums',
-  '0041_create_orders_tables',
-  '0042_create_credit_tables',
-  '0043_create_logistics_tables',
-  '0044_create_contract_tables',
-  '0045_create_audit_tables',
-  '0046_create_indexes',
-  '0047_create_functions',
-  '0048_create_triggers',
-  '0049_create_partitions',
-  '0050_seed_etapa4_data'
+  '0400_create_etapa4_enums',
+  '0401_create_orders_tables',
+  '0402_create_credit_tables',
+  '0403_create_logistics_tables',
+  '0404_create_contract_tables',
+  '0405_create_audit_tables',
+  '0406_create_indexes',
+  '0407_create_functions',
+  '0408_create_triggers',
+  '0409_create_partitions',
+  '0410_seed_etapa4_data'
 ];
 ```
 
@@ -42,7 +42,7 @@ export const ETAPA4_MIGRATIONS = [
 ## 2. Migration: Create Enums {#2-enums}
 
 ```typescript
-// migrations/0040_create_etapa4_enums.ts
+// migrations/0400_create_etapa4_enums.ts
 import { sql } from 'drizzle-orm';
 import { pgEnum } from 'drizzle-orm/pg-core';
 
@@ -183,7 +183,7 @@ export async function down(db: DrizzleDb) {
 ## 3. Migration: Orders Tables {#3-orders}
 
 ```typescript
-// migrations/0041_create_orders_tables.ts
+// migrations/0401_create_orders_tables.ts
 import { sql } from 'drizzle-orm';
 
 export async function up(db: DrizzleDb) {
@@ -380,7 +380,7 @@ export async function down(db: DrizzleDb) {
 ## 4. Migration: Credit Tables {#4-credit}
 
 ```typescript
-// migrations/0042_create_credit_tables.ts
+// migrations/0402_create_credit_tables.ts
 import { sql } from 'drizzle-orm';
 
 export async function up(db: DrizzleDb) {
@@ -502,7 +502,7 @@ export async function down(db: DrizzleDb) {
 ## 5. Migration: Logistics Tables {#5-logistics}
 
 ```typescript
-// migrations/0043_create_logistics_tables.ts
+// migrations/0403_create_logistics_tables.ts
 import { sql } from 'drizzle-orm';
 
 export async function up(db: DrizzleDb) {
@@ -683,7 +683,7 @@ export async function down(db: DrizzleDb) {
 ## 6. Migration: Contract Tables {#6-contracts}
 
 ```typescript
-// migrations/0044_create_contract_tables.ts
+// migrations/0404_create_contract_tables.ts
 import { sql } from 'drizzle-orm';
 
 export async function up(db: DrizzleDb) {
@@ -831,7 +831,7 @@ export async function down(db: DrizzleDb) {
 ## 7. Migration: Audit Tables {#7-audit}
 
 ```typescript
-// migrations/0045_create_audit_tables.ts
+// migrations/0405_create_audit_tables.ts
 import { sql } from 'drizzle-orm';
 
 export async function up(db: DrizzleDb) {
@@ -906,17 +906,17 @@ export async function rollbackEtapa4(db: DrizzleDb) {
   
   // Rollback in reverse order
   const migrations = [
-    '0050_seed_etapa4_data',
-    '0049_create_partitions',
-    '0048_create_triggers',
-    '0047_create_functions',
-    '0046_create_indexes',
-    '0045_create_audit_tables',
-    '0044_create_contract_tables',
-    '0043_create_logistics_tables',
-    '0042_create_credit_tables',
-    '0041_create_orders_tables',
-    '0040_create_etapa4_enums'
+    '0410_seed_etapa4_data',
+    '0409_create_partitions',
+    '0408_create_triggers',
+    '0407_create_functions',
+    '0406_create_indexes',
+    '0405_create_audit_tables',
+    '0404_create_contract_tables',
+    '0403_create_logistics_tables',
+    '0402_create_credit_tables',
+    '0401_create_orders_tables',
+    '0400_create_etapa4_enums'
   ];
   
   for (const migration of migrations) {

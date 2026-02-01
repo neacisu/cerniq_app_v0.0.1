@@ -294,7 +294,7 @@ docker compose -f "$COMPOSE_FILE" ps
 # Health check
 echo ""
 echo "=== HEALTH CHECK ==="
-HEALTH_ENDPOINT="http://localhost:3000/health"
+HEALTH_ENDPOINT="http://localhost:64000/health"
 HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$HEALTH_ENDPOINT")
 
 if [ "$HEALTH_STATUS" == "200" ]; then
@@ -379,7 +379,7 @@ fi
 # Pasul 1: Notificare sistem
 echo ""
 echo "=== STEP 1/5: Sending shutdown notification ==="
-curl -X POST "http://localhost:3000/api/v1/system/shutdown-notice" \
+curl -X POST "http://localhost:64000/api/v1/system/shutdown-notice" \
     -H "Content-Type: application/json" \
     -d '{"message": "System shutdown initiated", "delay_seconds": 60}' || true
 echo "✅ Shutdown notice sent"
@@ -988,7 +988,7 @@ echo ""
 echo "=== STEP 5: Verification ==="
 
 # Health check
-HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:3000/health")
+HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:64000/health")
 if [ "$HEALTH_STATUS" != "200" ]; then
     echo "❌ Health check failed"
     exit 1
@@ -1095,7 +1095,8 @@ docker compose -f "$COMPOSE_FILE" -p "cerniq-${NEW_ENV}" up -d
 echo "Waiting for health check..."
 sleep 30
 
-HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:300${NEW_ENV: -1}/health")
+HEALTH_PORT=$([[ "${NEW_ENV: -1}" = "1" ]] && echo "64001" || echo "64002")
+HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:${HEALTH_PORT}/health")
 if [ "$HEALTH_STATUS" != "200" ]; then
     echo "❌ New environment health check failed"
     docker compose -f "$COMPOSE_FILE" -p "cerniq-${NEW_ENV}" down
@@ -1115,7 +1116,7 @@ http:
     api-${NEW_ENV}:
       loadBalancer:
         servers:
-          - url: "http://cerniq-${NEW_ENV}-api-gateway:3000"
+          - url: "http://cerniq-${NEW_ENV}-api-gateway:64000"
 EOF
 
 # Verify switch
@@ -1164,7 +1165,7 @@ curl -s -o /dev/null -w "%{http_code}" "https://api.anthropic.com/v1/messages" \
     -d '{}'
 
 # 5. Check guardrails service
-curl -s "http://localhost:3001/health"
+curl -s "http://localhost:64000/health"
 ```
 
 **Soluții comune:**
@@ -1186,10 +1187,10 @@ curl -s "http://localhost:3001/health"
 echo "=== LLM LATENCY DIAGNOSTIC ==="
 
 # Check current metrics
-curl -s "http://localhost:9090/api/v1/query?query=llm_request_duration_seconds_p95"
+curl -s "http://localhost:64090/api/v1/query?query=llm_request_duration_seconds_p95"
 
 # Check concurrent requests
-curl -s "http://localhost:9090/api/v1/query?query=llm_concurrent_requests"
+curl -s "http://localhost:64090/api/v1/query?query=llm_concurrent_requests"
 
 # Check token usage
 docker compose -f "$COMPOSE_FILE" logs --tail=50 ai-agent-core | grep "tokens"
@@ -1978,7 +1979,7 @@ echo "✅ Services restarted"
 echo ""
 echo "=== STEP 6: Health Check ==="
 sleep 30
-HEALTH=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:3000/health")
+HEALTH=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:64000/health")
 if [ "$HEALTH" == "200" ]; then
     echo "✅ System healthy"
 else
@@ -2472,7 +2473,7 @@ case $ACTION in
         # 3. Health check
         echo "Running health check..."
         sleep 10
-        HEALTH=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:3000/health")
+        HEALTH=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:64000/health")
         
         if [ "$HEALTH" == "200" ]; then
             echo "✅ System healthy"
@@ -2834,7 +2835,7 @@ channels:
       
   email:
     smtp_host: "smtp.resend.com"
-    smtp_port: 587
+    smtp_port: 443
     from: "ops@cerniq.app"
     recipients:
       critical:
@@ -3193,7 +3194,7 @@ docker compose -f /opt/cerniq/docker-compose.etapa3.yml exec -it redis redis-cli
 docker compose -f /opt/cerniq/docker-compose.etapa3.yml exec redis redis-cli KEYS "bull:*"
 
 # Health check
-curl -s http://localhost:3000/health | jq
+curl -s http://localhost:64000/health | jq
 
 # Recent errors
 docker compose logs --since="1h" 2>&1 | grep -i error

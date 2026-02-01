@@ -86,8 +86,8 @@ describe "Docker Daemon Configuration" {
     assert_success
   }
   
-  it "should have metrics endpoint on port 9323" {
-    curl -sf http://localhost:9323/metrics | head -1
+  it "should have metrics endpoint on port 64093" {
+    curl -sf http://localhost:64093/metrics | head -1
     assert_success
   }
   
@@ -107,7 +107,7 @@ describe "Docker Daemon Configuration" {
 
 - [ ] overlay2 storage driver
 - [ ] live-restore = true
-- [ ] Metrics endpoint :9323
+- [ ] Metrics endpoint :64093
 - [ ] Log max-size = 50m
 - [ ] Address pool 172.20.0.0/16
 

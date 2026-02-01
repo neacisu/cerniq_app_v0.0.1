@@ -68,18 +68,18 @@ Etapa 3 (AI Sales) ◄── CURENT
 ### 1.3 Convenții Naming Migrări
 
 ```
-Format: YYYYMMDDHHMMSS_description.sql
+Format: 0XXX_description.sql (Etapa 3: 0300–0399)
 
 Exemple:
-- 20260201100000_etapa3_create_enums.sql
-- 20260201100100_etapa3_products_tables.sql
-- 20260201100200_etapa3_negotiations_tables.sql
-- 20260201100300_etapa3_fiscal_tables.sql
-- 20260201100400_etapa3_ai_tables.sql
-- 20260201100500_etapa3_functions.sql
-- 20260201100600_etapa3_triggers.sql
-- 20260201100700_etapa3_indexes.sql
-- 20260201100800_etapa3_rls_policies.sql
+- 0300_etapa3_create_enums.sql
+- 0301_etapa3_products_tables.sql
+- 0302_etapa3_negotiations_tables.sql
+- 0303_etapa3_fiscal_tables.sql
+- 0304_etapa3_ai_tables.sql
+- 0305_etapa3_functions.sql
+- 0306_etapa3_triggers.sql
+- 0307_etapa3_indexes.sql
+- 0308_etapa3_rls_policies.sql
 ```
 
 ---
@@ -133,7 +133,7 @@ export default defineConfig({
 ### 3.1 Migration: Create Product Enums
 
 ```sql
--- Migration: 20260201100000_etapa3_create_enums.sql
+-- Migration: 0300_etapa3_create_enums.sql
 -- Description: Create all enum types for Etapa 3
 
 BEGIN;
@@ -372,7 +372,7 @@ COMMIT;
 ### 3.2 Migration: Product Tables
 
 ```sql
--- Migration: 20260201100100_etapa3_products_tables.sql
+-- Migration: 0301_etapa3_products_tables.sql
 -- Description: Create product-related tables
 
 BEGIN;
@@ -639,7 +639,7 @@ COMMIT;
 ### 4.1 Migration: Negotiation Tables
 
 ```sql
--- Migration: 20260201100200_etapa3_negotiations_tables.sql
+-- Migration: 0302_etapa3_negotiations_tables.sql
 -- Description: Create negotiation and stock tables
 
 BEGIN;
@@ -966,7 +966,7 @@ COMMIT;
 ### 5.1 Migration: Fiscal Tables
 
 ```sql
--- Migration: 20260201100300_etapa3_fiscal_tables.sql
+-- Migration: 0303_etapa3_fiscal_tables.sql
 -- Description: Create fiscal and document tables
 
 BEGIN;
@@ -1347,7 +1347,7 @@ COMMIT;
 ### 6.1 Migration: AI Tables
 
 ```sql
--- Migration: 20260201100400_etapa3_ai_tables.sql
+-- Migration: 0304_etapa3_ai_tables.sql
 -- Description: Create AI conversation and tool call tables
 
 BEGIN;
@@ -1527,7 +1527,7 @@ COMMIT;
 ### 6.2 Migration: Functions
 
 ```sql
--- Migration: 20260201100500_etapa3_functions.sql
+-- Migration: 0305_etapa3_functions.sql
 -- Description: Create SQL functions for Etapa 3
 
 BEGIN;
@@ -1985,7 +1985,7 @@ COMMIT;
 ### 6.3 Migration: Triggers
 
 ```sql
--- Migration: 20260201100600_etapa3_triggers.sql
+-- Migration: 0306_etapa3_triggers.sql
 -- Description: Create triggers for Etapa 3
 
 BEGIN;

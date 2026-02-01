@@ -37,7 +37,7 @@ MEDIUM (RPO: 24h, RTO: 4h):
 ```bash
 # PostgreSQL WAL archiving to Hetzner Storage Box
 archive_mode = on
-archive_command = 'borg create --stdin-name pg_wal/%f ssh://u123456@u123456.your-storagebox.de:23/./wal-archive::%f-$(date +%%Y%%m%%d%%H%%M%%S) -'
+archive_command = 'borg create --stdin-name pg_wal/%f ssh://u123456@u123456.your-storagebox.de:22/./wal-archive::%f-$(date +%%Y%%m%%d%%H%%M%%S) -'
 archive_timeout = 300
 ```
 
@@ -79,7 +79,7 @@ set -euo pipefail
 
 BACKUP_DATE=$(date +%Y%m%d_%H%M%S)
 BACKUP_NAME="etapa5-full-${BACKUP_DATE}"
-BORG_REPO="ssh://u123456@u123456.your-storagebox.de:23/./cerniq-backups"
+BORG_REPO="ssh://u123456@u123456.your-storagebox.de:22/./cerniq-backups"
 
 echo "[$(date)] Starting Etapa 5 full backup..."
 
@@ -139,7 +139,7 @@ set -euo pipefail
 
 BACKUP_DATE=$(date +%Y%m%d_%H%M%S)
 BACKUP_NAME="etapa5-critical-${BACKUP_DATE}"
-BORG_REPO="ssh://u123456@u123456.your-storagebox.de:23/./cerniq-backups-critical"
+BORG_REPO="ssh://u123456@u123456.your-storagebox.de:22/./cerniq-backups-critical"
 
 CRITICAL_TABLES=(
   "gold_nurturing_state"
@@ -197,7 +197,7 @@ echo "[$(date)] Critical backup completed"
 set -euo pipefail
 
 BACKUP_NAME=$1
-BORG_REPO="ssh://u123456@u123456.your-storagebox.de:23/./cerniq-backups"
+BORG_REPO="ssh://u123456@u123456.your-storagebox.de:22/./cerniq-backups"
 
 if [ -z "$BACKUP_NAME" ]; then
   echo "Usage: $0 <backup_name>"
@@ -237,7 +237,7 @@ docker compose -f docker-compose.etapa5.yml start api workers
 
 # 7. Verify
 echo "[$(date)] Running health checks..."
-curl -f http://localhost:3005/health || echo "Health check failed!"
+curl -f http://localhost:64050/health || echo "Health check failed!"
 
 echo "[$(date)] Restore completed"
 ```
@@ -266,7 +266,7 @@ EOF
 
 # 3. Configure recovery
 cat >> /var/lib/postgresql/data/postgresql.auto.conf << EOF
-restore_command = 'borg extract --stdout ssh://u123456@u123456.your-storagebox.de:23/./wal-archive::%f > %p'
+restore_command = 'borg extract --stdout ssh://u123456@u123456.your-storagebox.de:22/./wal-archive::%f > %p'
 recovery_target_time = '${TARGET_TIME}'
 recovery_target_action = 'promote'
 EOF
@@ -276,7 +276,7 @@ docker compose start postgres
 
 # 5. Wait for recovery
 echo "Waiting for recovery to complete..."
-until pg_isready -h localhost -p 5432; do
+until pg_isready -h localhost -p 64032; do
   sleep 5
 done
 
@@ -292,7 +292,7 @@ echo "[$(date)] PITR completed"
 #!/bin/bash
 # scripts/verify/etapa5-verify-backup.sh
 
-BORG_REPO="ssh://u123456@u123456.your-storagebox.de:23/./cerniq-backups"
+BORG_REPO="ssh://u123456@u123456.your-storagebox.de:22/./cerniq-backups"
 
 echo "=== Backup Verification Report ==="
 echo "Date: $(date)"

@@ -29,7 +29,7 @@
 ```
 Production: https://api.cerniq.app/v1
 Staging:    https://api.staging.cerniq.app/v1
-Local:      http://localhost:3000/api/v1
+Local:      http://localhost:64000/api/v1
 ```
 
 ## 1.2 API Versioning

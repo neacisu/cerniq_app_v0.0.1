@@ -5048,7 +5048,7 @@ import { v4 as uuidv4 } from 'uuid';
 // -----------------------------------------------------------------------------
 
 const QUEUE_NAME = 'human:review-document';
-const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
+const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:64039';
 
 const CONCURRENCY = parseInt(process.env.N4_CONCURRENCY || '20', 10);
 const RATE_LIMIT_MAX = parseInt(process.env.N4_RATE_LIMIT_MAX || '100', 10);
@@ -8260,7 +8260,7 @@ export class UnifiedQueueManager extends EventEmitter {
     super();
     this.redis = new Redis({
       host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379'),
+      port: parseInt(process.env.REDIS_PORT || '64039'),
       password: process.env.REDIS_PASSWORD,
       db: parseInt(process.env.REDIS_HITL_DB || '3'),
       keyPrefix: 'cerniq:hitl:'
@@ -9447,7 +9447,7 @@ export class OperatorManager {
   constructor() {
     this.redis = new Redis({
       host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379'),
+      port: parseInt(process.env.REDIS_PORT || '64039'),
       password: process.env.REDIS_PASSWORD,
       db: parseInt(process.env.REDIS_HITL_DB || '3'),
       keyPrefix: 'cerniq:hitl:operators:'
@@ -11795,7 +11795,7 @@ export class HitlWebSocketManager {
   constructor() {
     this.redis = new Redis({
       host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379'),
+      port: parseInt(process.env.REDIS_PORT || '64039'),
       password: process.env.REDIS_PASSWORD,
       db: parseInt(process.env.REDIS_HITL_DB || '3')
     });
@@ -12950,7 +12950,7 @@ export class SlaManager {
   constructor() {
     this.redis = new Redis({
       host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379'),
+      port: parseInt(process.env.REDIS_PORT || '64039'),
       password: process.env.REDIS_PASSWORD,
       db: parseInt(process.env.REDIS_HITL_DB || '3'),
       keyPrefix: 'cerniq:hitl:sla:'
@@ -13822,7 +13822,7 @@ export class NotificationService {
   constructor() {
     this.redis = new Redis({
       host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379'),
+      port: parseInt(process.env.REDIS_PORT || '64039'),
       password: process.env.REDIS_PASSWORD,
       maxRetriesPerRequest: null
     });
@@ -15029,7 +15029,7 @@ export class AuditLogger {
   constructor() {
     this.redis = new Redis({
       host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379'),
+      port: parseInt(process.env.REDIS_PORT || '64039'),
       password: process.env.REDIS_PASSWORD,
       db: parseInt(process.env.REDIS_AUDIT_DB || '4')
     });
@@ -16172,7 +16172,7 @@ services:
       - NODE_ENV=production
       - WORKER_TYPE=hitl-queue
       - REDIS_HOST=redis
-      - REDIS_PORT=6379
+      - REDIS_PORT=64039
       - DATABASE_URL=${DATABASE_URL}
       - JWT_SECRET=${JWT_SECRET}
     depends_on:
@@ -16187,7 +16187,7 @@ services:
     networks:
       - cerniq-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:64000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -16201,7 +16201,7 @@ services:
       - NODE_ENV=production
       - WORKER_TYPE=hitl-sla
       - REDIS_HOST=redis
-      - REDIS_PORT=6379
+      - REDIS_PORT=64039
       - DATABASE_URL=${DATABASE_URL}
     depends_on:
       - redis
@@ -16224,10 +16224,10 @@ services:
       - NODE_ENV=production
       - WORKER_TYPE=hitl-websocket
       - REDIS_HOST=redis
-      - REDIS_PORT=6379
+      - REDIS_PORT=64039
       - JWT_SECRET=${JWT_SECRET}
     ports:
-      - "3002:3002"
+      - "64002:64002"
     depends_on:
       - redis
     restart: unless-stopped
@@ -16248,7 +16248,7 @@ services:
       - NODE_ENV=production
       - WORKER_TYPE=notifications
       - REDIS_HOST=redis
-      - REDIS_PORT=6379
+      - REDIS_PORT=64039
       - DATABASE_URL=${DATABASE_URL}
       - RESEND_API_KEY=${RESEND_API_KEY}
       - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
@@ -16280,13 +16280,13 @@ networks:
 
 # Redis
 REDIS_HOST=redis
-REDIS_PORT=6379
+REDIS_PORT=64039
 REDIS_PASSWORD=
 REDIS_HITL_DB=3
 REDIS_AUDIT_DB=4
 
 # Database
-DATABASE_URL=postgresql://cerniq:${DB_PASSWORD}@postgres:5432/cerniq
+DATABASE_URL=postgresql://cerniq:${DB_PASSWORD}@postgres:64032/cerniq
 
 # JWT
 JWT_SECRET=your-super-secret-jwt-key
@@ -16315,7 +16315,7 @@ SLA_MEDIUM_HOURS=4
 SLA_LOW_HOURS=24
 
 # WebSocket
-WS_PORT=3002
+WS_PORT=64002
 WS_HEARTBEAT_INTERVAL_MS=30000
 WS_HEARTBEAT_TIMEOUT_MS=60000
 ```
@@ -16361,13 +16361,13 @@ spec:
         readinessProbe:
           httpGet:
             path: /health
-            port: 3001
+            port: 64001
           initialDelaySeconds: 10
           periodSeconds: 5
         livenessProbe:
           httpGet:
             path: /health
-            port: 3001
+            port: 64001
           initialDelaySeconds: 30
           periodSeconds: 10
 ---
@@ -16380,8 +16380,8 @@ spec:
   selector:
     app: hitl-websocket
   ports:
-  - port: 3002
-    targetPort: 3002
+  - port: 64002
+    targetPort: 64002
   type: ClusterIP
 ---
 apiVersion: networking.k8s.io/v1
@@ -16404,7 +16404,7 @@ spec:
           service:
             name: hitl-websocket
             port:
-              number: 3002
+              number: 64002
 ```
 
 ---
@@ -16520,12 +16520,12 @@ spec:
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | REDIS_HOST | Yes | localhost | Redis server host |
-| REDIS_PORT | No | 6379 | Redis server port |
+| REDIS_PORT | No | 64039 | Redis server port |
 | REDIS_HITL_DB | No | 3 | Redis database for HITL |
 | DATABASE_URL | Yes | - | PostgreSQL connection string |
 | JWT_SECRET | Yes | - | JWT signing secret |
 | SLA_CHECK_INTERVAL_MS | No | 10000 | SLA check frequency |
-| WS_PORT | No | 3002 | WebSocket server port |
+| WS_PORT | No | 64002 | WebSocket server port |
 | RESEND_API_KEY | No* | - | Email provider API key |
 | TWILIO_ACCOUNT_SID | No* | - | SMS provider account |
 | FIREBASE_PROJECT_ID | No* | - | Push notification project |

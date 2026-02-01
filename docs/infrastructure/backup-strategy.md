@@ -880,7 +880,7 @@ BorgBackup oferă **deduplicare și criptare** pentru backup-uri eficiente și s
 
 set -euo pipefail
 
-BORG_REPO="ssh://uXXXXXX@uXXXXXX.your-storagebox.de:23/./backups/borg-repo"
+BORG_REPO="ssh://uXXXXXX@uXXXXXX.your-storagebox.de:22/./backups/borg-repo"
 export BORG_PASSPHRASE="$(cat /root/.borg_passphrase)"
 
 # Initialize with repokey encryption (key stored in repo, encrypted with passphrase)
@@ -904,9 +904,9 @@ echo "Without both passphrase AND key, backups cannot be restored!"
 
 set -euo pipefail
 
-BORG_REPO="ssh://uXXXXXX@uXXXXXX.your-storagebox.de:23/./backups/borg-repo"
+BORG_REPO="ssh://uXXXXXX@uXXXXXX.your-storagebox.de:22/./backups/borg-repo"
 export BORG_PASSPHRASE="$(cat /root/.borg_passphrase)"
-export BORG_RSH="ssh -p 23"
+export BORG_RSH="ssh -p 22"
 
 ARCHIVE_NAME="cerniq-$(hostname)-$(date +%Y%m%d_%H%M%S)"
 
@@ -975,9 +975,9 @@ echo "=== BORG BACKUP COMPLETED ==="
 
 set -euo pipefail
 
-BORG_REPO="ssh://uXXXXXX@uXXXXXX.your-storagebox.de:23/./backups/borg-repo"
+BORG_REPO="ssh://uXXXXXX@uXXXXXX.your-storagebox.de:22/./backups/borg-repo"
 export BORG_PASSPHRASE="$(cat /root/.borg_passphrase)"
-export BORG_RSH="ssh -p 23"
+export BORG_RSH="ssh -p 22"
 
 # List available archives
 list_archives() {
@@ -1109,7 +1109,7 @@ echo "3. Enable SSH access in Hetzner Robot"
 
 STORAGE_BOX="uXXXXXX@uXXXXXX.your-storagebox.de"
 
-ssh -p 23 "$STORAGE_BOX" << 'EOF'
+ssh -p 22 "$STORAGE_BOX" << 'EOF'
 mkdir -p backups/postgresql/wal_archive
 mkdir -p backups/postgresql/basebackups
 mkdir -p backups/postgresql/daily_dumps
@@ -1132,7 +1132,7 @@ EOF
 STORAGE_BOX="uXXXXXX@uXXXXXX.your-storagebox.de"
 THRESHOLD_PERCENT=80
 
-USAGE=$(ssh -p 23 "$STORAGE_BOX" df -h . | tail -1 | awk '{print $5}' | tr -d '%')
+USAGE=$(ssh -p 22 "$STORAGE_BOX" df -h . | tail -1 | awk '{print $5}' | tr -d '%')
 
 if [[ $USAGE -gt $THRESHOLD_PERCENT ]]; then
     echo "WARNING: Storage Box usage at ${USAGE}% (threshold: ${THRESHOLD_PERCENT}%)"
@@ -1213,7 +1213,7 @@ REMOTE_HOST="uXXXXXX@uXXXXXX.your-storagebox.de"
 find "$LOCAL_DIR" -name "redis_*.rdb.zst" -mtime +2 -delete
 
 # Remote: cleanup via SSH
-ssh -p 23 "$REMOTE_HOST" << 'EOF'
+ssh -p 22 "$REMOTE_HOST" << 'EOF'
 # Hourly: keep 7 days
 find backups/redis/hourly -name "*.rdb.zst" -mtime +7 -delete
 
@@ -1282,9 +1282,9 @@ set -euo pipefail
 
 # Configuration
 STORAGE_BOX="uXXXXXX@uXXXXXX.your-storagebox.de"
-BORG_REPO="ssh://${STORAGE_BOX}:23/./backups/borg-repo"
+BORG_REPO="ssh://${STORAGE_BOX}:22/./backups/borg-repo"
 export BORG_PASSPHRASE="$(cat /root/.borg_passphrase)"
-export BORG_RSH="ssh -p 23"
+export BORG_RSH="ssh -p 22"
 
 echo "=============================================="
 echo "  CERNIQ.APP DISASTER RECOVERY - FULL SYSTEM"
@@ -1296,7 +1296,7 @@ sleep 10
 
 # Step 1: Verify connectivity
 echo "=== Step 1: Verifying Storage Box connectivity ==="
-ssh -p 23 "$STORAGE_BOX" "ls backups/" || {
+ssh -p 22 "$STORAGE_BOX" "ls backups/" || {
     echo "ERROR: Cannot connect to Storage Box!"
     exit 1
 }
@@ -1334,7 +1334,7 @@ borg extract \
 echo "=== Step 5: Restoring PostgreSQL ==="
 
 # Get latest base backup
-LATEST_BASE=$(ssh -p 23 "$STORAGE_BOX" "ls -td backups/postgresql/basebackups/base_* | head -1")
+LATEST_BASE=$(ssh -p 22 "$STORAGE_BOX" "ls -td backups/postgresql/basebackups/base_* | head -1")
 
 # Download and restore
 mkdir -p /tmp/pg_restore
@@ -1349,7 +1349,7 @@ rsync -avz --progress -e 'ssh -p23' \
 echo "=== Step 6: Restoring Redis ==="
 
 # Get latest RDB
-LATEST_RDB=$(ssh -p 23 "$STORAGE_BOX" "ls -t backups/redis/hourly/*.rdb.zst | head -1")
+LATEST_RDB=$(ssh -p 22 "$STORAGE_BOX" "ls -t backups/redis/hourly/*.rdb.zst | head -1")
 rsync -avz -e 'ssh -p23' \
     "${STORAGE_BOX}:${LATEST_RDB}" \
     /tmp/redis_restore.rdb.zst
@@ -1514,9 +1514,9 @@ fi
 
 # Check 4: BorgBackup
 echo -n "BorgBackup: "
-BORG_REPO="ssh://uXXXXXX@uXXXXXX.your-storagebox.de:23/./backups/borg-repo"
+BORG_REPO="ssh://uXXXXXX@uXXXXXX.your-storagebox.de:22/./backups/borg-repo"
 export BORG_PASSPHRASE="$(cat /root/.borg_passphrase 2>/dev/null || echo '')"
-export BORG_RSH="ssh -p 23"
+export BORG_RSH="ssh -p 22"
 
 if borg info --remote-path=borg-1.4 "$BORG_REPO" > /dev/null 2>&1; then
     LAST_BORG=$(borg list --remote-path=borg-1.4 --last 1 --format '{time}' "$BORG_REPO" 2>/dev/null)
@@ -1528,7 +1528,7 @@ fi
 
 # Check 5: Storage Box connectivity
 echo -n "Hetzner Storage Box: "
-if ssh -p 23 -o ConnectTimeout=5 uXXXXXX@uXXXXXX.your-storagebox.de "echo ok" > /dev/null 2>&1; then
+if ssh -p 22 -o ConnectTimeout=5 uXXXXXX@uXXXXXX.your-storagebox.de "echo ok" > /dev/null 2>&1; then
     echo "OK"
 else
     echo "ERROR - Cannot connect"
@@ -1576,7 +1576,7 @@ fi
 scrape_configs:
   - job_name: 'backup_metrics'
     static_configs:
-      - targets: ['localhost:9199']
+    - targets: ['localhost:64094']
     scrape_interval: 5m
 ```
 
@@ -1773,9 +1773,9 @@ fi
 # Test 3: BorgBackup restore
 echo ""
 echo "=== Test 3: BorgBackup restore ==="
-BORG_REPO="ssh://uXXXXXX@uXXXXXX.your-storagebox.de:23/./backups/borg-repo"
+BORG_REPO="ssh://uXXXXXX@uXXXXXX.your-storagebox.de:22/./backups/borg-repo"
 export BORG_PASSPHRASE="$(cat /root/.borg_passphrase)"
-export BORG_RSH="ssh -p 23"
+export BORG_RSH="ssh -p 22"
 
 LATEST_ARCHIVE=$(borg list --remote-path=borg-1.4 --last 1 --short "$BORG_REPO" 2>/dev/null)
 
@@ -2113,8 +2113,8 @@ WantedBy=multi-user.target
 ║  LOCATIONS                                                               ║
 ║  ─────────                                                               ║
 ║  Local staging:  /var/backups/cerniq/                                    ║
-║  Storage Box:    ssh -p23 uXXXXXX@uXXXXXX.your-storagebox.de             ║
-║  Borg repo:      ssh://uXXXXXX@...:23/./backups/borg-repo                ║
+║  Storage Box:    ssh -p22 uXXXXXX@uXXXXXX.your-storagebox.de             ║
+║  Borg repo:      ssh://uXXXXXX@...:22/./backups/borg-repo                ║
 ║                                                                          ║
 ║  QUICK COMMANDS                                                          ║
 ║  ──────────────                                                          ║

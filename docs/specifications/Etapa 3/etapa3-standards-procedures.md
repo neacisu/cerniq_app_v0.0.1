@@ -523,11 +523,11 @@ jobs:
         env:
           POSTGRES_PASSWORD: test
         ports:
-          - 5432:5432
+          - 64032:64032
       redis:
         image: redis:7
         ports:
-          - 6379:6379
+          - 64039:64039
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -1008,7 +1008,8 @@ docker compose -f docker-compose.$INACTIVE.yml up -d
 # Wait for health
 echo "Waiting for $INACTIVE to be healthy..."
 for i in {1..30}; do
-    HEALTH=$(curl -s http://localhost:300$([[ "$INACTIVE" = "blue" ]] && echo "1" || echo "2")/health | jq -r '.status')
+    HEALTH_PORT=$([[ "$INACTIVE" = "blue" ]] && echo "64001" || echo "64002")
+    HEALTH=$(curl -s http://localhost:${HEALTH_PORT}/health | jq -r '.status')
     if [ "$HEALTH" = "ok" ]; then
         echo "$INACTIVE is healthy!"
         break
@@ -1019,7 +1020,7 @@ done
 
 # Run smoke tests on inactive
 echo "Running smoke tests on $INACTIVE..."
-npm run test:smoke -- --port=$([[ "$INACTIVE" = "blue" ]] && echo "3001" || echo "3002")
+npm run test:smoke -- --port=$([[ "$INACTIVE" = "blue" ]] && echo "64001" || echo "64002")
 
 if [ $? -ne 0 ]; then
     echo "❌ Smoke tests failed. Aborting switch."
@@ -1294,7 +1295,7 @@ docker compose up -d
 # 8. Verify
 echo "Verifying rollback..."
 for i in {1..10}; do
-    HEALTH=$(curl -s http://localhost:3000/health | jq -r '.status')
+    HEALTH=$(curl -s http://localhost:64000/health | jq -r '.status')
     if [ "$HEALTH" = "ok" ]; then
         echo "✅ Services healthy"
         break
@@ -1329,7 +1330,7 @@ echo "Incident: $INCIDENT_ID"
 ```typescript
 // ✅ DO: Safe migration patterns
 
-// migrations/0001_create_negotiations_table.ts
+// migrations/0300_create_negotiations_table.ts
 import { sql } from 'drizzle-orm';
 import { pgTable, uuid, text, timestamp, index } from 'drizzle-orm/pg-core';
 
@@ -1460,7 +1461,7 @@ echo "✅ Migration complete"
 ```typescript
 // Safe data migration patterns
 
-// migrations/0002_migrate_legacy_states.ts
+// migrations/0301_migrate_legacy_states.ts
 export async function up(db: DB): Promise<void> {
   // 1. Add new column (nullable first)
   await db.execute(sql`

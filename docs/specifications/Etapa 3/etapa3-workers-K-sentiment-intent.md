@@ -2095,7 +2095,7 @@ export type NewAnalysisConfiguration = typeof analysisConfigurations.$inferInser
 ### 3.5 Migration File
 
 ```sql
--- migrations/0021_workers_k_sentiment_intent.sql
+-- migrations/0321_workers_k_sentiment_intent.sql
 -- Workers K: Sentiment & Intent Analysis Tables
 -- Version: 1.0.0
 -- Date: 2026-01-18
@@ -12671,12 +12671,12 @@ describe('Analysis Pipeline Integration', () => {
 
   beforeAll(async () => {
     // Connect to test Redis
-    redis = new Redis(process.env.TEST_REDIS_URL || 'redis://localhost:6379/15');
+    redis = new Redis(process.env.TEST_REDIS_URL || 'redis://localhost:64039/15');
     
     // Connect to test database
     db = new Pool({
       connectionString: process.env.TEST_DATABASE_URL || 
-        'postgresql://test:test@localhost:5432/cerniq_test',
+        'postgresql://test:test@localhost:64032/cerniq_test',
     });
 
     // Create queues
@@ -12895,7 +12895,7 @@ export const options = {
   },
 };
 
-const BASE_URL = __ENV.API_URL || 'http://localhost:3000';
+const BASE_URL = __ENV.API_URL || 'http://localhost:64000';
 const AUTH_TOKEN = __ENV.AUTH_TOKEN || 'test-token';
 
 // Test messages in Romanian
@@ -16125,18 +16125,18 @@ describe('Analysis Pipeline Integration', () => {
         POSTGRES_PASSWORD: 'test',
         POSTGRES_DB: 'cerniq_test',
       })
-      .withExposedPorts(5432)
+      .withExposedPorts(64032)
       .withWaitStrategy(Wait.forLogMessage(/ready to accept connections/))
       .start();
 
     // Start Redis container
     redisContainer = await new GenericContainer('redis:7')
-      .withExposedPorts(6379)
+      .withExposedPorts(64039)
       .withWaitStrategy(Wait.forLogMessage(/Ready to accept connections/))
       .start();
 
     // Connect to PostgreSQL
-    const connectionString = `postgres://test:test@${postgresContainer.getHost()}:${postgresContainer.getMappedPort(5432)}/cerniq_test`;
+    const connectionString = `postgres://test:test@${postgresContainer.getHost()}:${postgresContainer.getMappedPort(64032)}/cerniq_test`;
     const client = postgres(connectionString);
     db = drizzle(client, { schema });
 
@@ -16223,13 +16223,13 @@ describe('Analysis Pipeline Integration', () => {
     // Connect to Redis
     redis = new Redis({
       host: redisContainer.getHost(),
-      port: redisContainer.getMappedPort(6379),
+      port: redisContainer.getMappedPort(64039),
     });
 
     // Initialize queues
     const queueConnection = {
       host: redisContainer.getHost(),
-      port: redisContainer.getMappedPort(6379),
+      port: redisContainer.getMappedPort(64039),
     };
 
     messageInboundQueue = new Queue('message-inbound', { connection: queueConnection });
@@ -18059,7 +18059,7 @@ const positivesentimentRate = new Rate('positive_sentiment_rate');
 const negativesentimentRate = new Rate('negative_sentiment_rate');
 const alertsTriggered = new Counter('alerts_triggered');
 
-const BASE_URL = __ENV.BASE_URL || 'http://localhost:3000';
+const BASE_URL = __ENV.BASE_URL || 'http://localhost:64000';
 const API_KEY = __ENV.API_KEY || 'test-api-key';
 
 export const options = loadProfiles[__ENV.PROFILE || 'load'];
@@ -18297,7 +18297,7 @@ const actionRequiredRate = new Rate('action_required_rate');
 const handoverTriggeredRate = new Rate('handover_triggered_rate');
 const intentTypeDistribution = new Counter('intent_type');
 
-const BASE_URL = __ENV.BASE_URL || 'http://localhost:3000';
+const BASE_URL = __ENV.BASE_URL || 'http://localhost:64000';
 const API_KEY = __ENV.API_KEY || 'test-api-key';
 
 export const options = loadProfiles[__ENV.PROFILE || 'load'];
@@ -18399,7 +18399,7 @@ const riskLevelDistribution = new Counter('risk_level');
 const compositeScoreTrend = new Trend('composite_score');
 const activeConversations = new Gauge('active_conversations');
 
-const BASE_URL = __ENV.BASE_URL || 'http://localhost:3000';
+const BASE_URL = __ENV.BASE_URL || 'http://localhost:64000';
 const API_KEY = __ENV.API_KEY || 'test-api-key';
 
 export const options = loadProfiles[__ENV.PROFILE || 'load'];
@@ -18619,7 +18619,7 @@ const tenantMetrics = {
 const crossTenantAttempts = new Counter('cross_tenant_attempts');
 const crossTenantBlocked = new Counter('cross_tenant_blocked');
 
-const BASE_URL = __ENV.BASE_URL || 'http://localhost:3000';
+const BASE_URL = __ENV.BASE_URL || 'http://localhost:64000';
 
 // Load tenant configurations
 const tenantConfigs = new SharedArray('tenants', function () {
@@ -18846,7 +18846,7 @@ Tenant Isolation:
 
 set -e
 
-BASE_URL="${BASE_URL:-http://localhost:3000}"
+BASE_URL="${BASE_URL:-http://localhost:64000}"
 API_KEY="${API_KEY:-test-api-key}"
 PROFILE="${PROFILE:-load}"
 
@@ -18906,8 +18906,8 @@ services:
       - ./tests/load:/tests
       - ./reports:/reports
     environment:
-      - BASE_URL=http://api:3000
-      - K6_OUT=influxdb=http://influxdb:8086/k6
+      - BASE_URL=http://api:64000
+      - K6_OUT=influxdb=http://influxdb:64080/k6
     networks:
       - cerniq-test
     depends_on:
@@ -18929,7 +18929,7 @@ services:
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
     ports:
-      - "3001:3000"
+      - "64091:64091"
     networks:
       - cerniq-test
     volumes:

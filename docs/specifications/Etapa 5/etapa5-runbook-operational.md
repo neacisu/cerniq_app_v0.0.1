@@ -20,7 +20,7 @@
 
 ```bash
 # Check all Etapa 5 queues
-curl -s http://localhost:3000/api/admin/queues/etapa5 | jq '.queues[] | {name, waiting, active, failed}'
+curl -s http://localhost:64050/api/admin/queues/etapa5 | jq '.queues[] | {name, waiting, active, failed}'
 
 # Expected output:
 # lifecycle: waiting < 100, failed = 0
@@ -73,7 +73,7 @@ chmod +x /tmp/check_crons.sh
 
 ```bash
 # Force client to specific state (emergency use only)
-curl -X PATCH "http://localhost:3000/api/v1/nurturing/clients/{clientId}/state" \
+curl -X PATCH "http://localhost:64050/api/v1/nurturing/clients/{clientId}/state" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -d '{
@@ -87,7 +87,7 @@ curl -X PATCH "http://localhost:3000/api/v1/nurturing/clients/{clientId}/state" 
 
 ```bash
 # Recalculate churn score for specific client
-curl -X POST "http://localhost:3000/api/v1/nurturing/churn/recalculate" \
+curl -X POST "http://localhost:64050/api/v1/nurturing/churn/recalculate" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -d '{
@@ -99,7 +99,7 @@ curl -X POST "http://localhost:3000/api/v1/nurturing/churn/recalculate" \
 
 ```bash
 # Force graph rebuild (off-hours only)
-curl -X POST "http://localhost:3000/api/v1/nurturing/graph/rebuild" \
+curl -X POST "http://localhost:64050/api/v1/nurturing/graph/rebuild" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -d '{
     "scope": "FULL",
@@ -111,7 +111,7 @@ curl -X POST "http://localhost:3000/api/v1/nurturing/graph/rebuild" \
 
 ```bash
 # Cancel active campaign
-curl -X POST "http://localhost:3000/api/v1/nurturing/winback/campaigns/{campaignId}/cancel" \
+curl -X POST "http://localhost:64050/api/v1/nurturing/winback/campaigns/{campaignId}/cancel" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -d '{
     "reason": "Client requested no contact"
@@ -129,7 +129,7 @@ curl -X POST "http://localhost:3000/api/v1/nurturing/winback/campaigns/{campaign
 **Diagnosis**:
 ```bash
 # Check worker status
-curl http://localhost:3000/api/admin/workers/churn | jq '.workers'
+curl http://localhost:64050/api/admin/workers/churn | jq '.workers'
 
 # Check recent errors
 psql -c "SELECT * FROM worker_errors WHERE queue = 'churn' ORDER BY created_at DESC LIMIT 10"
@@ -147,13 +147,13 @@ psql -c "SELECT * FROM worker_errors WHERE queue = 'churn' ORDER BY created_at D
 **Diagnosis**:
 ```bash
 # Check LLM API status
-curl http://localhost:3000/health/llm
+curl http://localhost:64050/health/llm
 
 # Check rate limit status
 redis-cli GET "anthropic:rate_limit:remaining"
 
 # Review failed jobs
-curl http://localhost:3000/api/admin/queues/sentiment/failed | jq '.[0:5]'
+curl http://localhost:64050/api/admin/queues/sentiment/failed | jq '.[0:5]'
 ```
 
 **Resolution**:
@@ -344,7 +344,7 @@ TO ('$(date -d "+2 month" +%Y-%m-01)')
 "
 
 # 4. Regenerate KOL scores
-curl -X POST http://localhost:3000/api/v1/nurturing/kol/identify \
+curl -X POST http://localhost:64050/api/v1/nurturing/kol/identify \
   -H "Authorization: Bearer $ADMIN_TOKEN"
 
 echo "=== Monthly Maintenance Complete ==="
@@ -370,10 +370,10 @@ pg_restore -d cerniq -t gold_referrals backup.dump
 
 ```bash
 # Clear failed jobs and retry
-curl -X POST http://localhost:3000/api/admin/queues/churn/retry-all
+curl -X POST http://localhost:64050/api/admin/queues/churn/retry-all
 
 # Clear stuck jobs
-curl -X POST http://localhost:3000/api/admin/queues/churn/clean \
+curl -X POST http://localhost:64050/api/admin/queues/churn/clean \
   -d '{"grace": 3600, "status": "stalled"}'
 ```
 

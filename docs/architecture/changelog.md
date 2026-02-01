@@ -31,7 +31,7 @@
 
 - **ADR Management:**
   - [ADR Index centralizat](../adr/ADR-INDEX.md) — 105+ ADR-uri
-  - [ADR-00XX: Provider Abstraction](../adr/ADR%20Etapa%200/ADR-00XX-Provider-Abstraction.md)
+  - [ADR-0106: Provider Abstraction](../adr/ADR%20Etapa%200/ADR-0106-Provider-Abstraction.md)
 
 - **Technical Debt:**
   - [Technical Debt Board](./technical-debt-board.md) — tracking prioritizat

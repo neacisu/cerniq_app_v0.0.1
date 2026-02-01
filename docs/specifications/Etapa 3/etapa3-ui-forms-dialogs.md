@@ -9394,7 +9394,7 @@ export function ModelConfigForm({ open, onOpenChange, model, onSave }: ModelConf
                   <FormItem>
                     <FormLabel>API Endpoint</FormLabel>
                     <FormControl>
-                      <Input placeholder="http://localhost:11434/v1" {...field} />
+                      <Input placeholder="http://localhost:64060/v1" {...field} />
                     </FormControl>
                     <FormDescription>
                       URL-ul endpoint-ului API pentru modelul local
@@ -26700,7 +26700,7 @@ export function OnboardingWizard({
                         <FormControl>
                           <Input 
                             type="number" 
-                            placeholder="587" 
+                            placeholder="443" 
                             {...field}
                             onChange={(e) => field.onChange(parseInt(e.target.value))}
                           />

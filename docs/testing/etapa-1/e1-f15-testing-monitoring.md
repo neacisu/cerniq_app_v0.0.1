@@ -29,7 +29,7 @@ describe('Metrics Emission', () => {
     await workerQueue.add('test', {});
     await sleep(1000);
     
-    const metrics = await fetchMetrics('http://localhost:4318/metrics');
+    const metrics = await fetchMetrics('http://localhost:64071/metrics');
     expect(metrics).toContain('bullmq_job_completed_total');
   });
 });

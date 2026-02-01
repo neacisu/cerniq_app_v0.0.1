@@ -33,7 +33,7 @@ services:
   signoz:
     image: signoz/signoz:v0.106.0
     ports:
-      - "64080:8080"  # Internal 8080 exposed as 64080
+      - "64080:64080"  # Internal 64080 exposed as 64080
     depends_on:
       - clickhouse
     networks:
@@ -42,8 +42,8 @@ services:
   otel-collector:
     image: signoz/signoz-otel-collector:v0.129.12
     ports:
-      - "64070:4317"  # gRPC OTLP
-      - "64071:4318"  # HTTP OTLP
+      - "64070:64070"  # gRPC OTLP
+      - "64071:64071"  # HTTP OTLP
 ```
 
 ### Retention Policy

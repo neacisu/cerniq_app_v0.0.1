@@ -11,38 +11,38 @@
 ### 1.1 Migration Strategy
 
 - **Tool:** Drizzle ORM Migrations
-- **Naming:** `XXXX_description.sql` (sequential numbering)
+- **Naming:** `01XX_description.sql` (Etapa 1)
 - **Approach:** Forward-only migrations
 - **Rollback:** Separate rollback scripts
 
 ### 1.2 Migration Order for Etapa 1
 
 ```text
-0020_create_bronze_contacts.sql
-0021_create_bronze_import_batches.sql
-0022_create_silver_companies.sql
-0023_create_silver_contacts.sql
-0024_create_silver_company_locations.sql
-0025_create_silver_enrichment_log.sql
-0026_create_silver_dedup_candidates.sql
-0027_create_gold_companies.sql
-0028_create_approval_tasks.sql
-0029_create_approval_audit_log.sql
-0030_create_daily_stats.sql
-0031_create_pipeline_errors.sql
-0032_add_indexes.sql
-0033_add_functions.sql
-0034_add_triggers.sql
+0100_create_bronze_contacts.sql
+0101_create_bronze_import_batches.sql
+0102_create_silver_companies.sql
+0103_create_silver_contacts.sql
+0104_create_silver_company_locations.sql
+0105_create_silver_enrichment_log.sql
+0106_create_silver_dedup_candidates.sql
+0107_create_gold_companies.sql
+0108_create_approval_tasks.sql
+0109_create_approval_audit_log.sql
+0110_create_daily_stats.sql
+0111_create_pipeline_errors.sql
+0112_add_indexes.sql
+0113_add_functions.sql
+0114_add_triggers.sql
 ```
 
 ---
 
 ## 2. BRONZE LAYER MIGRATIONS
 
-### 2.1 Bronze Contacts (0020)
+### 2.1 Bronze Contacts (0100)
 
 ```sql
--- migrations/0020_create_bronze_contacts.sql
+-- migrations/0100_create_bronze_contacts.sql
 
 -- Enum types
 CREATE TYPE bronze_source_type AS ENUM (
@@ -112,10 +112,10 @@ COMMENT ON COLUMN bronze_contacts.content_hash IS 'SHA-256 hash of raw_payload f
 COMMENT ON COLUMN bronze_contacts.normalized_cui IS 'CUI after removing whitespace and RO prefix';
 ```
 
-### 2.2 Bronze Import Batches (0021)
+### 2.2 Bronze Import Batches (0101)
 
 ```sql
--- migrations/0021_create_bronze_import_batches.sql
+-- migrations/0101_create_bronze_import_batches.sql
 
 CREATE TYPE import_status AS ENUM (
   'pending', 'processing', 'completed', 'failed', 'cancelled'
@@ -173,10 +173,10 @@ COMMENT ON TABLE bronze_import_batches IS 'Tracks file import jobs and their pro
 
 ## 3. SILVER LAYER MIGRATIONS
 
-### 3.1 Silver Companies (0022)
+### 3.1 Silver Companies (0102)
 
 ```sql
--- migrations/0022_create_silver_companies.sql
+-- migrations/0102_create_silver_companies.sql
 
 -- Enums
 CREATE TYPE enrichment_status AS ENUM (
@@ -395,10 +395,10 @@ COMMENT ON COLUMN silver_companies.location IS 'PostGIS geography point for spat
 COMMENT ON COLUMN silver_companies.is_master_record IS 'False if this is a duplicate record';
 ```
 
-### 3.2 Silver Contacts (0023)
+### 3.2 Silver Contacts (0103)
 
 ```sql
--- migrations/0023_create_silver_contacts.sql
+-- migrations/0103_create_silver_contacts.sql
 
 CREATE TYPE contact_role AS ENUM (
   'ADMINISTRATOR', 'ACTIONAR', 'CONTACT', 'ASOCIAT', 'REPREZENTANT'
@@ -439,10 +439,10 @@ COMMENT ON TABLE silver_contacts IS 'People associated with silver companies';
 COMMENT ON COLUMN silver_contacts.cnp_masked IS 'Partially masked CNP for GDPR compliance';
 ```
 
-### 3.3 Silver Company Locations (0024)
+### 3.3 Silver Company Locations (0104)
 
 ```sql
--- migrations/0024_create_silver_company_locations.sql
+-- migrations/0104_create_silver_company_locations.sql
 
 CREATE TYPE location_type AS ENUM (
   'SEDIU_SOCIAL', 'PUNCT_LUCRU', 'SUCURSALA', 'DEPOZIT', 'FERMA'
@@ -482,10 +482,10 @@ CREATE TABLE silver_company_locations (
 COMMENT ON TABLE silver_company_locations IS 'Additional company locations beyond main HQ';
 ```
 
-### 3.4 Silver Enrichment Log (0025)
+### 3.4 Silver Enrichment Log (0105)
 
 ```sql
--- migrations/0025_create_silver_enrichment_log.sql
+-- migrations/0105_create_silver_enrichment_log.sql
 
 CREATE TABLE silver_enrichment_log (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -516,10 +516,10 @@ CREATE TABLE silver_enrichment_log (
 COMMENT ON TABLE silver_enrichment_log IS 'Tracks all enrichment attempts per company';
 ```
 
-## 3.5 Silver Dedup Candidates (0026)
+## 3.5 Silver Dedup Candidates (0106)
 
 ```sql
--- migrations/0026_create_silver_dedup_candidates.sql
+-- migrations/0106_create_silver_dedup_candidates.sql
 
 CREATE TYPE dedup_status AS ENUM (
   'pending', 'auto_merged', 'hitl_pending', 'merged', 'rejected', 'expired'
@@ -564,10 +564,10 @@ COMMENT ON TABLE silver_dedup_candidates IS 'Potential duplicate pairs for revie
 
 ## 4. GOLD LAYER MIGRATIONS
 
-### 4.1 Gold Companies (0027)
+### 4.1 Gold Companies (0107)
 
 ```sql
--- migrations/0027_create_gold_companies.sql
+-- migrations/0107_create_gold_companies.sql
 
 CREATE TYPE lead_state AS ENUM (
   'COLD', 'WARM', 'HOT', 'QUALIFIED', 'CONVERTED', 'LOST'
@@ -655,10 +655,10 @@ COMMENT ON TABLE gold_companies IS 'Sales-ready companies with lead management';
 
 ## 5. HITL MIGRATIONS
 
-### 5.1 Approval Tasks (0028)
+### 5.1 Approval Tasks (0108)
 
 ```sql
--- migrations/0028_create_approval_tasks.sql
+-- migrations/0108_create_approval_tasks.sql
 
 CREATE TYPE approval_status AS ENUM (
   'pending', 'assigned', 'approved', 'rejected', 'escalated', 'expired', 'cancelled'
@@ -724,10 +724,10 @@ CREATE TABLE approval_tasks (
 COMMENT ON TABLE approval_tasks IS 'Human-in-the-loop approval tasks';
 ```
 
-### 5.2 Approval Audit Log (0029)
+### 5.2 Approval Audit Log (0109)
 
 ```sql
--- migrations/0029_create_approval_audit_log.sql
+-- migrations/0109_create_approval_audit_log.sql
 
 CREATE TABLE approval_audit_log (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -761,10 +761,10 @@ COMMENT ON TABLE approval_audit_log IS 'Audit trail for approval actions';
 
 ## 6. SUPPORT TABLES
 
-### 6.1 Daily Stats (0030)
+### 6.1 Daily Stats (0110)
 
 ```sql
--- migrations/0030_create_daily_stats.sql
+-- migrations/0110_create_daily_stats.sql
 
 CREATE TABLE daily_stats (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -811,10 +811,10 @@ CREATE TABLE daily_stats (
 COMMENT ON TABLE daily_stats IS 'Daily aggregated statistics for dashboard';
 ```
 
-### 6.2 Pipeline Errors (0031)
+### 6.2 Pipeline Errors (0111)
 
 ```sql
--- migrations/0031_create_pipeline_errors.sql
+-- migrations/0111_create_pipeline_errors.sql
 
 CREATE TYPE error_severity AS ENUM (
   'warning', 'error', 'critical'
@@ -855,7 +855,7 @@ COMMENT ON TABLE pipeline_errors IS 'Tracks pipeline errors for debugging';
 ## 7. INDEXES
 
 ```sql
--- migrations/0032_add_indexes.sql
+-- migrations/0112_add_indexes.sql
 
 -- Bronze indexes
 CREATE INDEX idx_bronze_contacts_tenant_status 
@@ -922,7 +922,7 @@ CREATE INDEX idx_dedup_candidates_status
 ## 8. FUNCTIONS & TRIGGERS
 
 ```sql
--- migrations/0033_add_functions.sql
+-- migrations/0113_add_functions.sql
 
 -- Update timestamp trigger function
 CREATE OR REPLACE FUNCTION update_updated_at()
@@ -960,7 +960,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- migrations/0034_add_triggers.sql
+-- migrations/0114_add_triggers.sql
 
 -- Updated_at triggers
 CREATE TRIGGER tr_bronze_contacts_updated_at
@@ -994,7 +994,7 @@ CREATE TRIGGER tr_gold_companies_location
 ## 9. ROW LEVEL SECURITY
 
 ```sql
--- migrations/0035_add_rls.sql
+-- migrations/0115_add_rls.sql
 
 -- Enable RLS on all tables
 ALTER TABLE bronze_contacts ENABLE ROW LEVEL SECURITY;

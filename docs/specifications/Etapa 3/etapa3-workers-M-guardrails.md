@@ -16039,7 +16039,7 @@ export class WorkerM5QualityAssurance extends BaseGuardrail {
     super();
     this.config = { ...defaultConfig, ...config };
     
-    this.redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+    this.redis = new Redis(process.env.REDIS_URL || 'redis://localhost:64039');
     
     this.queue = new Queue(this.config.queue.name, {
       connection: this.redis
@@ -24896,7 +24896,7 @@ describe('GuardrailsPipeline Integration', () => {
   const tenantId = 'integration-test-tenant';
   
   beforeAll(async () => {
-    redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+    redis = new Redis(process.env.REDIS_URL || 'redis://localhost:64039');
     pipeline = new GuardrailsPipeline(redis, {
       executionMode: ExecutionMode.SEQUENTIAL,
       timeoutMs: 10000
@@ -25029,7 +25029,7 @@ describe('Guardrails Load Tests', () => {
   let pipeline: GuardrailsPipeline;
   
   beforeAll(async () => {
-    redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+    redis = new Redis(process.env.REDIS_URL || 'redis://localhost:64039');
     pipeline = new GuardrailsPipeline(redis, {
       executionMode: ExecutionMode.PARALLEL,
       timeoutMs: 5000
@@ -25166,7 +25166,7 @@ describe('GDPR Compliance Tests', () => {
   let redis: Redis;
   
   beforeAll(async () => {
-    redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+    redis = new Redis(process.env.REDIS_URL || 'redis://localhost:64039');
     verifier = new WorkerM3ComplianceVerifier(redis);
   });
   
@@ -25253,7 +25253,7 @@ describe('Romanian Regulatory Compliance', () => {
   let redis: Redis;
   
   beforeAll(async () => {
-    redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+    redis = new Redis(process.env.REDIS_URL || 'redis://localhost:64039');
     verifier = new WorkerM3ComplianceVerifier(redis);
   });
   
@@ -25987,14 +25987,14 @@ USER cerniq
 # Environment variables
 ENV NODE_ENV=production
 ENV LOG_LEVEL=info
-ENV PORT=3006
+ENV PORT=64000
 
 # Expose port
-EXPOSE 3006
+EXPOSE 64000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:3006/health || exit 1
+    CMD curl -f http://localhost:64000/health || exit 1
 
 # Use tini as init system
 ENTRYPOINT ["/sbin/tini", "--"]
@@ -26029,9 +26029,9 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - WORKER_NAME=content-filter
       - WORKER_CONCURRENCY=20
-      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
+      - REDIS_URL=${REDIS_URL:-redis://redis:64039}
       - DATABASE_URL=${DATABASE_URL}
-      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_ENDPOINT:-http://signoz:4317}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_ENDPOINT:-http://signoz:64070}
       - OTEL_SERVICE_NAME=guardrails-content-filter
     volumes:
       - ./config:/app/config:ro
@@ -26044,7 +26044,7 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3006/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:64000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -26065,7 +26065,7 @@ services:
     labels:
       - "traefik.enable=false"
       - "prometheus.scrape=true"
-      - "prometheus.port=3006"
+      - "prometheus.port=64000"
       - "prometheus.path=/metrics"
 
   # ---------------------------------------------------------------------------
@@ -26085,11 +26085,11 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - WORKER_NAME=tone-analyzer
       - WORKER_CONCURRENCY=15
-      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
+      - REDIS_URL=${REDIS_URL:-redis://redis:64039}
       - DATABASE_URL=${DATABASE_URL}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_ENDPOINT:-http://signoz:4317}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_ENDPOINT:-http://signoz:64070}
       - OTEL_SERVICE_NAME=guardrails-tone-analyzer
     volumes:
       - ./config:/app/config:ro
@@ -26101,7 +26101,7 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3006/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:64000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -26137,12 +26137,12 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - WORKER_NAME=compliance-verifier
       - WORKER_CONCURRENCY=15
-      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
+      - REDIS_URL=${REDIS_URL:-redis://redis:64039}
       - DATABASE_URL=${DATABASE_URL}
       - GDPR_STRICT_MODE=${GDPR_STRICT_MODE:-true}
       - EFACTURA_VALIDATION=${EFACTURA_VALIDATION:-true}
       - APIA_API_KEY=${APIA_API_KEY}
-      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_ENDPOINT:-http://signoz:4317}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_ENDPOINT:-http://signoz:64070}
       - OTEL_SERVICE_NAME=guardrails-compliance
     volumes:
       - ./config:/app/config:ro
@@ -26155,7 +26155,7 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3006/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:64000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -26191,12 +26191,12 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - WORKER_NAME=rate-limiter
       - WORKER_CONCURRENCY=50
-      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
+      - REDIS_URL=${REDIS_URL:-redis://redis:64039}
       - DATABASE_URL=${DATABASE_URL}
       - RATE_LIMIT_PER_MINUTE=${RATE_LIMIT_PER_MINUTE:-60}
       - RATE_LIMIT_PER_HOUR=${RATE_LIMIT_PER_HOUR:-1000}
       - RATE_LIMIT_BURST=${RATE_LIMIT_BURST:-10}
-      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_ENDPOINT:-http://signoz:4317}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_ENDPOINT:-http://signoz:64070}
       - OTEL_SERVICE_NAME=guardrails-rate-limiter
     networks:
       - cerniq-internal
@@ -26204,7 +26204,7 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3006/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:64000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -26240,11 +26240,11 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - WORKER_NAME=quality-assurance
       - WORKER_CONCURRENCY=10
-      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
+      - REDIS_URL=${REDIS_URL:-redis://redis:64039}
       - DATABASE_URL=${DATABASE_URL}
-      - LANGUAGETOOL_URL=${LANGUAGETOOL_URL:-http://languagetool:8010/v2}
+      - LANGUAGETOOL_URL=${LANGUAGETOOL_URL:-http://languagetool:64098/v2}
       - HUNSPELL_DICT_PATH=/app/data/dictionaries
-      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_ENDPOINT:-http://signoz:4317}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_ENDPOINT:-http://signoz:64070}
       - OTEL_SERVICE_NAME=guardrails-quality
     volumes:
       - ./config:/app/config:ro
@@ -26259,7 +26259,7 @@ services:
       languagetool:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3006/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:64000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -26295,13 +26295,13 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - WORKER_NAME=anti-hallucination
       - WORKER_CONCURRENCY=10
-      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
+      - REDIS_URL=${REDIS_URL:-redis://redis:64039}
       - DATABASE_URL=${DATABASE_URL}
       - ANTI_HALLUCINATION_STRICTNESS=${ANTI_HALLUCINATION_STRICTNESS:-high}
       - PRICE_TOLERANCE=${PRICE_TOLERANCE:-0.05}
       - DATE_TOLERANCE_DAYS=${DATE_TOLERANCE_DAYS:-7}
       - ENABLE_CITATIONS=${ENABLE_CITATIONS:-true}
-      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_ENDPOINT:-http://signoz:4317}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_ENDPOINT:-http://signoz:64070}
       - OTEL_SERVICE_NAME=guardrails-anti-hallucination
     volumes:
       - ./config:/app/config:ro
@@ -26313,7 +26313,7 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3006/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:64000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -26350,9 +26350,9 @@ services:
       - WORKER_NAME=pipeline-orchestrator
       - PIPELINE_MODE=${PIPELINE_MODE:-tiered}
       - PIPELINE_TIMEOUT=${PIPELINE_TIMEOUT:-10000}
-      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
+      - REDIS_URL=${REDIS_URL:-redis://redis:64039}
       - DATABASE_URL=${DATABASE_URL}
-      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_ENDPOINT:-http://signoz:4317}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_ENDPOINT:-http://signoz:64070}
       - OTEL_SERVICE_NAME=guardrails-pipeline
     volumes:
       - ./config:/app/config:ro
@@ -26366,7 +26366,7 @@ services:
       - guardrails-quality
       - guardrails-anti-hallucination
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3006/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:64000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -26402,7 +26402,7 @@ services:
     networks:
       - cerniq-internal
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8010/v2/check?language=ro&text=test"]
+      test: ["CMD", "curl", "-f", "http://localhost:64098/v2/check?language=ro&text=test"]
       interval: 60s
       timeout: 10s
       retries: 3
@@ -26543,7 +26543,7 @@ spec:
         version: v3.0.0
       annotations:
         prometheus.io/scrape: "true"
-        prometheus.io/port: "3006"
+        prometheus.io/port: "64000"
         prometheus.io/path: "/metrics"
     spec:
       serviceAccountName: guardrails-sa
@@ -26558,7 +26558,7 @@ spec:
           command: ["node", "packages/guardrails/dist/workers/m1-content-filter.js"]
           ports:
             - name: http
-              containerPort: 3006
+              containerPort: 64000
               protocol: TCP
           env:
             - name: NODE_ENV
@@ -26578,7 +26578,7 @@ spec:
                   name: guardrails-secrets
                   key: redis-url
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
-              value: "http://signoz-otel-collector.observability:4317"
+              value: "http://signoz-otel-collector.observability:64070"
             - name: OTEL_SERVICE_NAME
               value: "guardrails-content-filter"
           resources:
@@ -26591,7 +26591,7 @@ spec:
           livenessProbe:
             httpGet:
               path: /health
-              port: 3006
+              port: 64000
             initialDelaySeconds: 60
             periodSeconds: 30
             timeoutSeconds: 10
@@ -26599,7 +26599,7 @@ spec:
           readinessProbe:
             httpGet:
               path: /health/ready
-              port: 3006
+              port: 64000
             initialDelaySeconds: 30
             periodSeconds: 10
             timeoutSeconds: 5
@@ -26666,7 +26666,7 @@ spec:
         version: v3.0.0
       annotations:
         prometheus.io/scrape: "true"
-        prometheus.io/port: "3006"
+        prometheus.io/port: "64000"
         prometheus.io/path: "/metrics"
     spec:
       serviceAccountName: guardrails-sa
@@ -26681,7 +26681,7 @@ spec:
           command: ["node", "packages/guardrails/dist/workers/m6-anti-hallucination.js"]
           ports:
             - name: http
-              containerPort: 3006
+              containerPort: 64000
               protocol: TCP
           env:
             - name: NODE_ENV
@@ -26709,7 +26709,7 @@ spec:
                   name: guardrails-secrets
                   key: redis-url
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
-              value: "http://signoz-otel-collector.observability:4317"
+              value: "http://signoz-otel-collector.observability:64070"
             - name: OTEL_SERVICE_NAME
               value: "guardrails-anti-hallucination"
           resources:
@@ -26722,7 +26722,7 @@ spec:
           livenessProbe:
             httpGet:
               path: /health
-              port: 3006
+              port: 64000
             initialDelaySeconds: 60
             periodSeconds: 30
             timeoutSeconds: 10
@@ -26730,7 +26730,7 @@ spec:
           readinessProbe:
             httpGet:
               path: /health/ready
-              port: 3006
+              port: 64000
             initialDelaySeconds: 30
             periodSeconds: 10
             timeoutSeconds: 5
@@ -26878,8 +26878,8 @@ spec:
   type: ClusterIP
   ports:
     - name: http
-      port: 3006
-      targetPort: 3006
+      port: 64000
+      targetPort: 64000
       protocol: TCP
   selector:
     app: guardrails
@@ -26897,8 +26897,8 @@ spec:
   type: ClusterIP
   ports:
     - name: http
-      port: 3006
-      targetPort: 3006
+      port: 64000
+      targetPort: 64000
       protocol: TCP
   selector:
     app: guardrails
@@ -26948,14 +26948,14 @@ spec:
               name: cerniq-api
       ports:
         - protocol: TCP
-          port: 3006
+          port: 64000
     - from:
         - namespaceSelector:
             matchLabels:
               name: observability
       ports:
         - protocol: TCP
-          port: 3006
+          port: 64000
   egress:
     - to:
         - namespaceSelector:
@@ -26963,21 +26963,21 @@ spec:
               name: cerniq-database
       ports:
         - protocol: TCP
-          port: 5432
+          port: 64032
     - to:
         - namespaceSelector:
             matchLabels:
               name: cerniq-redis
       ports:
         - protocol: TCP
-          port: 6379
+          port: 64039
     - to:
         - namespaceSelector:
             matchLabels:
               name: observability
       ports:
         - protocol: TCP
-          port: 4317
+          port: 64070
     # Allow DNS
     - to:
         - namespaceSelector: {}
@@ -26986,7 +26986,7 @@ spec:
               k8s-app: kube-dns
       ports:
         - protocol: UDP
-          port: 53
+          port: 64053
 ```
 
 ### 11.4 CI/CD Pipeline
@@ -27088,7 +27088,7 @@ jobs:
       redis:
         image: redis:8.4-alpine
         ports:
-          - 6379:6379
+          - 64039:64039
         options: >-
           --health-cmd "redis-cli ping"
           --health-interval 10s
@@ -27116,7 +27116,7 @@ jobs:
       - name: Run unit tests
         run: pnpm --filter @cerniq/guardrails test:unit
         env:
-          REDIS_URL: redis://localhost:6379
+          REDIS_URL: redis://localhost:64039
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4
@@ -27142,7 +27142,7 @@ jobs:
           POSTGRES_PASSWORD: ${{ secrets.TEST_DB_PASSWORD }}
           POSTGRES_DB: cerniq_test
         ports:
-          - 5432:5432
+          - 64032:64032
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -27151,7 +27151,7 @@ jobs:
       redis:
         image: redis:8.4-alpine
         ports:
-          - 6379:6379
+          - 64039:64039
         options: >-
           --health-cmd "redis-cli ping"
           --health-interval 10s
@@ -27179,18 +27179,18 @@ jobs:
       - name: Run database migrations
         run: pnpm --filter @cerniq/database migrate:test
         env:
-          DATABASE_URL: postgresql://cerniq:${{ secrets.TEST_DB_PASSWORD }}@localhost:5432/cerniq_test
+          DATABASE_URL: postgresql://cerniq:${{ secrets.TEST_DB_PASSWORD }}@localhost:64032/cerniq_test
 
       - name: Seed test data
         run: pnpm --filter @cerniq/database seed:test
         env:
-          DATABASE_URL: postgresql://cerniq:${{ secrets.TEST_DB_PASSWORD }}@localhost:5432/cerniq_test
+          DATABASE_URL: postgresql://cerniq:${{ secrets.TEST_DB_PASSWORD }}@localhost:64032/cerniq_test
 
       - name: Run integration tests
         run: pnpm --filter @cerniq/guardrails test:integration
         env:
-          DATABASE_URL: postgresql://cerniq:${{ secrets.TEST_DB_PASSWORD }}@localhost:5432/cerniq_test
-          REDIS_URL: redis://localhost:6379
+          DATABASE_URL: postgresql://cerniq:${{ secrets.TEST_DB_PASSWORD }}@localhost:64032/cerniq_test
+          REDIS_URL: redis://localhost:64039
           NODE_ENV: test
         timeout-minutes: 15
 
@@ -27214,7 +27214,7 @@ jobs:
       redis:
         image: redis:8.4-alpine
         ports:
-          - 6379:6379
+          - 64039:64039
 
     steps:
       - name: Checkout
@@ -27237,17 +27237,17 @@ jobs:
       - name: Run GDPR compliance tests
         run: pnpm --filter @cerniq/guardrails test:compliance:gdpr
         env:
-          REDIS_URL: redis://localhost:6379
+          REDIS_URL: redis://localhost:64039
 
       - name: Run Romanian regulatory tests
         run: pnpm --filter @cerniq/guardrails test:compliance:romanian
         env:
-          REDIS_URL: redis://localhost:6379
+          REDIS_URL: redis://localhost:64039
 
       - name: Generate compliance report
         run: pnpm --filter @cerniq/guardrails test:compliance:report
         env:
-          REDIS_URL: redis://localhost:6379
+          REDIS_URL: redis://localhost:64039
 
       - name: Upload compliance report
         uses: actions/upload-artifact@v4
@@ -27398,10 +27398,10 @@ jobs:
           ENDPOINT=$(kubectl get svc guardrails-pipeline -n cerniq-guardrails -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
           
           # Health check
-          curl -f http://$ENDPOINT:3006/health || exit 1
+          curl -f http://$ENDPOINT:64000/health || exit 1
           
           # Basic functionality test
-          curl -f -X POST http://$ENDPOINT:3006/api/v1/guardrails/check \
+          curl -f -X POST http://$ENDPOINT:64000/api/v1/guardrails/check \
             -H "Content-Type: application/json" \
             -d '{"tenantId":"test","content":"Test content for staging"}' || exit 1
 
@@ -27480,7 +27480,7 @@ jobs:
           sleep 300
           
           # Check Prometheus metrics (error rate < 1%)
-          ERROR_RATE=$(curl -s "http://prometheus.observability:9090/api/v1/query?query=sum(rate(guardrails_errors_total{deployment='canary'}[5m]))/sum(rate(guardrails_requests_total{deployment='canary'}[5m]))*100" | jq -r '.data.result[0].value[1]')
+          ERROR_RATE=$(curl -s "http://prometheus.observability:64090/api/v1/query?query=sum(rate(guardrails_errors_total{deployment='canary'}[5m]))/sum(rate(guardrails_requests_total{deployment='canary'}[5m]))*100" | jq -r '.data.result[0].value[1]')
           
           if (( $(echo "$ERROR_RATE > 1" | bc -l) )); then
             echo "Canary error rate too high: $ERROR_RATE%"

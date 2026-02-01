@@ -91,7 +91,7 @@ DATABASE_POOL_MAX=20
 | Variable | Required | Default | Description |
 | -------- | -------- | ------- | ----------- |
 | `PGBOUNCER_HOST` | No | - | PgBouncer hostname (if using) |
-| `PGBOUNCER_PORT` | No | `64042` | PgBouncer port |
+| `PGBOUNCER_PORT` | No | `64033` | PgBouncer port |
 
 ---
 
@@ -217,7 +217,7 @@ COOKIE_SAME_SITE=strict
 | `OPENAI_API_KEY` | Yes | - | OpenAI API key (embeddings) |
 | `GROQ_API_KEY` | No | - | Groq API key |
 | `ANTHROPIC_API_KEY` | No | - | Anthropic API key (fallback) |
-| `OLLAMA_HOST` | No | `http://localhost:11434` | Ollama local host |
+| `OLLAMA_HOST` | No | `http://localhost:64060` | Ollama local host |
 
 **Exemplu .env:**
 

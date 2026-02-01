@@ -72,12 +72,12 @@ Acest runbook oferă proceduri detaliate pas-cu-pas pentru:
 
 | Component | Versiune | Port | Container Name |
 |-----------|----------|------|----------------|
-| OpenTelemetry Collector | 0.94.0 | 4317, 4318, 8888 | otel-collector |
-| SigNoz | 0.45.0 | 3301 | signoz-frontend |
-| Prometheus | 2.49.0 | 9090 | prometheus |
-| Grafana | 10.3.0 | 3000 | grafana |
-| AlertManager | 0.27.0 | 9093 | alertmanager |
-| ClickHouse (SigNoz backend) | 24.1 | 8123, 9000 | clickhouse |
+| OpenTelemetry Collector | 0.94.0 | 64070, 64071, 64093, 64094, 64095 | otel-collector |
+| SigNoz | 0.45.0 | 64089 | signoz-frontend |
+| Prometheus | 2.49.0 | 64090 | prometheus |
+| Grafana | 10.3.0 | 64091 | grafana |
+| AlertManager | 0.27.0 | 64092 | alertmanager |
+| ClickHouse (SigNoz backend) | 24.1 | 64082, 64083 | clickhouse |
 
 ### 1.4 Cerințe Hardware
 
@@ -145,7 +145,7 @@ fi
 
 # Check ports availability
 echo "Verificare porturi..."
-PORTS=(3000 3301 4317 4318 8123 8888 9000 9090 9093)
+PORTS=(64070 64071 64072 64073 64074 64075 64076 64077 64082 64083 64089 64090 64091 64092 64093 64094 64095 64096 64097 64098)
 for PORT in "${PORTS[@]}"; do
     if ! netstat -tuln 2>/dev/null | grep -q ":$PORT "; then
         echo "✅ Port $PORT disponibil"
@@ -212,16 +212,16 @@ services:
     volumes:
       - ./config/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
     ports:
-      - "4317:4317"   # OTLP gRPC
-      - "4318:4318"   # OTLP HTTP
-      - "8888:8888"   # Prometheus metrics
-      - "8889:8889"   # Prometheus exporter
-      - "13133:13133" # Health check
+      - "64070:64070"   # OTLP gRPC
+      - "64071:64071"   # OTLP HTTP
+      - "64093:64093"   # Prometheus metrics
+      - "64094:64094"   # Prometheus exporter
+      - "64095:64095"   # Health check
     networks:
       cerniq-monitoring:
         ipv4_address: 172.30.0.10
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--spider", "http://localhost:13133/"]
+      test: ["CMD", "wget", "--no-verbose", "--spider", "http://localhost:64095/"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -257,12 +257,12 @@ services:
       - ./config/prometheus-rules/:/etc/prometheus/rules/:ro
       - prometheus-data:/prometheus
     ports:
-      - "9090:9090"
+      - "64090:64090"
     networks:
       cerniq-monitoring:
         ipv4_address: 172.30.0.11
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--spider", "http://localhost:9090/-/healthy"]
+      test: ["CMD", "wget", "--no-verbose", "--spider", "http://localhost:64090/-/healthy"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -288,7 +288,7 @@ services:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
       - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_SERVER_ROOT_URL=${GRAFANA_ROOT_URL:-http://localhost:3000}
+      - GF_SERVER_ROOT_URL=${GRAFANA_ROOT_URL:-http://localhost:64091}
       - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource,grafana-piechart-panel
       - GF_FEATURE_TOGGLES_ENABLE=publicDashboards
       - GF_AUTH_ANONYMOUS_ENABLED=false
@@ -299,12 +299,12 @@ services:
       - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./config/grafana/dashboards:/var/lib/grafana/dashboards:ro
     ports:
-      - "3000:3000"
+      - "64091:64091"
     networks:
       cerniq-monitoring:
         ipv4_address: 172.30.0.12
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--spider", "http://localhost:3000/api/health"]
+      test: ["CMD", "wget", "--no-verbose", "--spider", "http://localhost:64091/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -331,19 +331,19 @@ services:
     command:
       - '--config.file=/etc/alertmanager/alertmanager.yml'
       - '--storage.path=/alertmanager'
-      - '--web.external-url=${ALERTMANAGER_EXTERNAL_URL:-http://localhost:9093}'
+      - '--web.external-url=${ALERTMANAGER_EXTERNAL_URL:-http://localhost:64092}'
       - '--cluster.listen-address='
     volumes:
       - ./config/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
       - ./config/alertmanager-templates/:/etc/alertmanager/templates/:ro
       - alertmanager-data:/alertmanager
     ports:
-      - "9093:9093"
+      - "64092:64092"
     networks:
       cerniq-monitoring:
         ipv4_address: 172.30.0.13
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--spider", "http://localhost:9093/-/healthy"]
+      test: ["CMD", "wget", "--no-verbose", "--spider", "http://localhost:64092/-/healthy"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -374,13 +374,13 @@ services:
       - ./config/clickhouse/config.xml:/etc/clickhouse-server/config.d/config.xml:ro
       - ./config/clickhouse/users.xml:/etc/clickhouse-server/users.d/users.xml:ro
     ports:
-      - "8123:8123"  # HTTP
-      - "9000:9000"  # Native
+      - "64082:64082"  # HTTP
+      - "64083:64083"  # Native
     networks:
       cerniq-monitoring:
         ipv4_address: 172.30.0.14
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--spider", "http://localhost:8123/ping"]
+      test: ["CMD", "wget", "--no-verbose", "--spider", "http://localhost:64082/ping"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -407,8 +407,8 @@ services:
     restart: unless-stopped
     logging: *default-logging
     environment:
-      - ClickHouseUrl=tcp://clickhouse:9000
-      - ALERTMANAGER_API_PREFIX=http://alertmanager:9093/api/
+      - ClickHouseUrl=tcp://clickhouse:64083
+      - ALERTMANAGER_API_PREFIX=http://alertmanager:64092/api/
       - SIGNOZ_LOCAL_DB_PATH=/var/lib/signoz/signoz.db
       - DASHBOARDS_PATH=/root/config/dashboards
       - STORAGE=clickhouse
@@ -417,12 +417,12 @@ services:
       - signoz-data:/var/lib/signoz
       - ./config/signoz/dashboards:/root/config/dashboards:ro
     ports:
-      - "8080:8080"
+      - "64096:64096"
     networks:
       cerniq-monitoring:
         ipv4_address: 172.30.0.15
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--spider", "http://localhost:8080/api/v1/health"]
+      test: ["CMD", "wget", "--no-verbose", "--spider", "http://localhost:64096/api/v1/health"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -447,14 +447,14 @@ services:
     restart: unless-stopped
     logging: *default-logging
     environment:
-      - FRONTEND_API_ENDPOINT=http://signoz-query-service:8080
+      - FRONTEND_API_ENDPOINT=http://signoz-query-service:64096
     ports:
-      - "3301:3301"
+      - "64089:64089"
     networks:
       cerniq-monitoring:
         ipv4_address: 172.30.0.16
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--spider", "http://localhost:3301/"]
+      test: ["CMD", "wget", "--no-verbose", "--spider", "http://localhost:64089/"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -526,10 +526,10 @@ create_env_file() {
 # Grafana
 GRAFANA_ADMIN_USER=admin
 GRAFANA_ADMIN_PASSWORD=CerniqMonitoring2026!
-GRAFANA_ROOT_URL=http://localhost:3000
+GRAFANA_ROOT_URL=http://localhost:64091
 
 # AlertManager
-ALERTMANAGER_EXTERNAL_URL=http://localhost:9093
+ALERTMANAGER_EXTERNAL_URL=http://localhost:64092
 
 # ClickHouse
 CLICKHOUSE_USER=default
@@ -544,7 +544,7 @@ PAGERDUTY_SERVICE_KEY=your-pagerduty-service-key
 
 # SMTP (pentru email alerts)
 SMTP_HOST=smtp.example.com
-SMTP_PORT=587
+SMTP_PORT=443
 SMTP_FROM=alerts@cerniq.app
 SMTP_USERNAME=alerts@cerniq.app
 SMTP_PASSWORD=your-smtp-password
@@ -606,10 +606,10 @@ main() {
     log "=== Deployment Complet ==="
     log ""
     log "Accesați:"
-    log "  - Grafana:      http://localhost:3000"
-    log "  - Prometheus:   http://localhost:9090"
-    log "  - AlertManager: http://localhost:9093"
-    log "  - SigNoz:       http://localhost:3301"
+    log "  - Grafana:      http://localhost:64091"
+    log "  - Prometheus:   http://localhost:64090"
+    log "  - AlertManager: http://localhost:64092"
+    log "  - SigNoz:       http://localhost:64089"
     log ""
 }
 
@@ -631,10 +631,10 @@ receivers:
   otlp:
     protocols:
       grpc:
-        endpoint: 0.0.0.0:4317
+        endpoint: 0.0.0.0:64070
         max_recv_msg_size_mib: 16
       http:
-        endpoint: 0.0.0.0:4318
+        endpoint: 0.0.0.0:64071
         cors:
           allowed_origins:
             - "http://localhost:*"
@@ -647,7 +647,7 @@ receivers:
         - job_name: 'otel-collector'
           scrape_interval: 15s
           static_configs:
-            - targets: ['localhost:8888']
+            - targets: ['localhost:64093']
 
   # Host Metrics Receiver
   hostmetrics:
@@ -760,7 +760,7 @@ processors:
 exporters:
   # OTLP Exporter to SigNoz
   otlp/signoz:
-    endpoint: signoz-otel-collector:4317
+    endpoint: signoz-otel-collector:64070
     tls:
       insecure: true
     headers:
@@ -773,7 +773,7 @@ exporters:
 
   # Prometheus Exporter
   prometheus:
-    endpoint: "0.0.0.0:8889"
+    endpoint: "0.0.0.0:64094"
     const_labels:
       service: cerniq-etapa3
     namespace: cerniq
@@ -783,7 +783,7 @@ exporters:
 
   # Prometheus Remote Write (pentru long-term storage)
   prometheusremotewrite:
-    endpoint: "http://prometheus:9090/api/v1/write"
+    endpoint: "http://prometheus:64090/api/v1/write"
     tls:
       insecure: true
     resource_to_telemetry_conversion:
@@ -806,7 +806,7 @@ exporters:
 extensions:
   # Health Check Extension
   health_check:
-    endpoint: 0.0.0.0:13133
+    endpoint: 0.0.0.0:64095
     path: "/"
     check_collector_pipeline:
       enabled: true
@@ -815,11 +815,11 @@ extensions:
 
   # pprof Extension (pentru profiling)
   pprof:
-    endpoint: localhost:1777
+    endpoint: localhost:64087
 
   # zPages Extension (pentru debugging)
   zpages:
-    endpoint: localhost:55679
+    endpoint: localhost:64088
 
 service:
   extensions: [health_check, pprof, zpages]
@@ -850,7 +850,7 @@ service:
       encoding: json
     metrics:
       level: detailed
-      address: 0.0.0.0:8888
+      address: 0.0.0.0:64093
 ```
 
 ### 3.2 Application SDK Configuration
@@ -889,7 +889,7 @@ const defaultConfig: OtelConfig = {
   serviceName: process.env.OTEL_SERVICE_NAME || 'cerniq-etapa3',
   serviceVersion: process.env.SERVICE_VERSION || '1.0.0',
   environment: process.env.NODE_ENV || 'development',
-  otelCollectorUrl: process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:4317',
+  otelCollectorUrl: process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:64070',
   enableAutoInstrumentation: process.env.OTEL_AUTO_INSTRUMENTATION !== 'false',
   enableDebugLogs: process.env.OTEL_DEBUG === 'true',
 };
@@ -999,7 +999,7 @@ echo ""
 
 # Check collector health
 echo "1. Verificare OTel Collector Health..."
-if curl -s http://localhost:13133/ | grep -q "Server available"; then
+if curl -s http://localhost:64095/ | grep -q "Server available"; then
     echo "   ✅ OTel Collector healthy"
 else
     echo "   ❌ OTel Collector unhealthy"
@@ -1007,16 +1007,16 @@ else
 fi
 
 # Check OTLP gRPC endpoint
-echo "2. Verificare OTLP gRPC endpoint (4317)..."
-if nc -z localhost 4317 2>/dev/null; then
+echo "2. Verificare OTLP gRPC endpoint (64070)..."
+if nc -z localhost 64070 2>/dev/null; then
     echo "   ✅ OTLP gRPC endpoint accesibil"
 else
     echo "   ❌ OTLP gRPC endpoint inaccesibil"
 fi
 
 # Check OTLP HTTP endpoint
-echo "3. Verificare OTLP HTTP endpoint (4318)..."
-if curl -s -o /dev/null -w "%{http_code}" http://localhost:4318/v1/traces 2>/dev/null | grep -q "405\|200"; then
+echo "3. Verificare OTLP HTTP endpoint (64071)..."
+if curl -s -o /dev/null -w "%{http_code}" http://localhost:64071/v1/traces 2>/dev/null | grep -q "405\|200"; then
     echo "   ✅ OTLP HTTP endpoint accesibil"
 else
     echo "   ❌ OTLP HTTP endpoint inaccesibil"
@@ -1024,18 +1024,18 @@ fi
 
 # Check Prometheus metrics
 echo "4. Verificare Prometheus metrics export..."
-METRICS=$(curl -s http://localhost:8888/metrics | head -20)
+METRICS=$(curl -s http://localhost:64093/metrics | head -20)
 if echo "$METRICS" | grep -q "otelcol"; then
     echo "   ✅ Metrics disponibile"
     echo "   Exemple metrici:"
-    curl -s http://localhost:8888/metrics | grep "otelcol_receiver" | head -3 | sed 's/^/      /'
+    curl -s http://localhost:64093/metrics | grep "otelcol_receiver" | head -3 | sed 's/^/      /'
 else
     echo "   ❌ Metrics indisponibile"
 fi
 
 # Send test trace
 echo "5. Trimitere trace test..."
-curl -s -X POST http://localhost:4318/v1/traces \
+curl -s -X POST http://localhost:64071/v1/traces \
     -H "Content-Type: application/json" \
     -d '{
         "resourceSpans": [{
@@ -1075,7 +1075,7 @@ echo "=== Verificare Completă ==="
 
 # ClickHouse connection
 clickhouse:
-  url: tcp://clickhouse:9000
+  url: tcp://clickhouse:64083
   database: signoz_traces
   username: default
   password: ""
@@ -1144,7 +1144,7 @@ logs:
 alerting:
   # AlertManager endpoint
   alertmanager:
-    url: http://alertmanager:9093
+    url: http://alertmanager:64092
   
   # Evaluation interval
   evaluationInterval: 15s
@@ -1198,7 +1198,7 @@ logging:
 # Filename: import-signoz-dashboards.sh
 # Description: Import dashboards în SigNoz pentru Etapa 3
 
-SIGNOZ_URL="${SIGNOZ_URL:-http://localhost:3301}"
+SIGNOZ_URL="${SIGNOZ_URL:-http://localhost:64089}"
 DASHBOARDS_DIR="./config/signoz/dashboards"
 
 echo "=== Import SigNoz Dashboards ==="
@@ -1490,7 +1490,7 @@ alerting:
   alertmanagers:
     - static_configs:
         - targets:
-            - alertmanager:9093
+            - alertmanager:64092
       scheme: http
       timeout: 10s
       api_version: v2
@@ -1504,14 +1504,14 @@ scrape_configs:
   # Prometheus self-monitoring
   - job_name: 'prometheus'
     static_configs:
-      - targets: ['localhost:9090']
+      - targets: ['localhost:64090']
     metrics_path: /metrics
     scheme: http
 
   # OpenTelemetry Collector
   - job_name: 'otel-collector'
     static_configs:
-      - targets: ['otel-collector:8888', 'otel-collector:8889']
+      - targets: ['otel-collector:64093', 'otel-collector:64094']
 
   # Etapa 3 Backend Services
   - job_name: 'etapa3-backend'
@@ -1519,64 +1519,64 @@ scrape_configs:
       - names:
           - 'tasks.etapa3-api'
         type: 'A'
-        port: 9090
+        port: 64098
     relabel_configs:
       - source_labels: [__address__]
         target_label: instance
-        regex: '(.+):9090'
+        regex: '(.+):64098'
         replacement: '${1}'
 
   # Etapa 3 Workers
   - job_name: 'etapa3-workers'
     static_configs:
       - targets:
-          - 'worker-product-knowledge:9090'
-          - 'worker-hybrid-search:9090'
-          - 'worker-ai-agent-core:9090'
-          - 'worker-negotiation-fsm:9090'
-          - 'worker-pricing-discount:9090'
-          - 'worker-stock-inventory:9090'
-          - 'worker-oblio-integration:9090'
-          - 'worker-efactura-spv:9090'
-          - 'worker-document-generation:9090'
-          - 'worker-handover-channel:9090'
-          - 'worker-sentiment-intent:9090'
-          - 'worker-mcp-server:9090'
-          - 'worker-guardrails:9090'
-          - 'worker-human-intervention:9090'
+          - 'worker-product-knowledge:64098'
+          - 'worker-hybrid-search:64098'
+          - 'worker-ai-agent-core:64098'
+          - 'worker-negotiation-fsm:64098'
+          - 'worker-pricing-discount:64098'
+          - 'worker-stock-inventory:64098'
+          - 'worker-oblio-integration:64098'
+          - 'worker-efactura-spv:64098'
+          - 'worker-document-generation:64098'
+          - 'worker-handover-channel:64098'
+          - 'worker-sentiment-intent:64098'
+          - 'worker-mcp-server:64098'
+          - 'worker-guardrails:64098'
+          - 'worker-human-intervention:64098'
         labels:
           group: 'workers'
     relabel_configs:
       - source_labels: [__address__]
         target_label: worker_name
-        regex: 'worker-(.+):9090'
+        regex: 'worker-(.+):64098'
         replacement: '${1}'
 
   # PostgreSQL
   - job_name: 'postgresql'
     static_configs:
-      - targets: ['postgres-exporter:9187']
+      - targets: ['postgres-exporter:64072']
     metrics_path: /metrics
 
   # Redis
   - job_name: 'redis'
     static_configs:
-      - targets: ['redis-exporter:9121']
+      - targets: ['redis-exporter:64073']
 
   # BullMQ Dashboard
   - job_name: 'bullmq'
     static_configs:
-      - targets: ['bull-exporter:9538']
+      - targets: ['bull-exporter:64074']
 
   # Node Exporter (host metrics)
   - job_name: 'node'
     static_configs:
-      - targets: ['node-exporter:9100']
+      - targets: ['node-exporter:64075']
 
   # cAdvisor (container metrics)
   - job_name: 'cadvisor'
     static_configs:
-      - targets: ['cadvisor:8080']
+      - targets: ['cadvisor:64097']
 
   # Blackbox Exporter (endpoint monitoring)
   - job_name: 'blackbox-http'
@@ -1595,11 +1595,11 @@ scrape_configs:
       - source_labels: [__param_target]
         target_label: instance
       - target_label: __address__
-        replacement: blackbox-exporter:9115
+        replacement: blackbox-exporter:64076
 
 # Remote write (pentru long-term storage)
 remote_write:
-  - url: "http://victoriametrics:8428/api/v1/write"
+  - url: "http://victoriametrics:64077/api/v1/write"
     queue_config:
       max_samples_per_send: 10000
       batch_send_deadline: 5s

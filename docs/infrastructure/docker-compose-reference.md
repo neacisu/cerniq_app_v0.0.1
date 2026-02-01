@@ -14,16 +14,16 @@
 
 ## SUMAR SERVICII
 
-| Serviciu | Imagine | Port Intern | Port Dev | Rol |
-| -------- | ------- | ----------- | -------- | --- |
-| traefik | traefik:v3.6.6 | 80, 443 | - | Reverse proxy, SSL |
+| Serviciu | Imagine | Port Cerniq | Port Container | Rol |
+| -------- | ------- | ----------- | -------------- | --- |
+| traefik | traefik:v3.6.6 | 64080, 64443, 64081 | 80, 443, 8080 | Reverse proxy, SSL |
 | api | Custom build | 64000 | 64000 | REST API |
 | workers | Custom build | - | - | BullMQ jobs |
 | web-admin | Custom build | 64010 | 64010 | React frontend |
-| postgres | postgis/postgis:18-3.6 | 5432 | 64032 | Database |
-| redis | redis:8.4-alpine | 6379 | 64039 | Queues, cache |
-| pgbouncer | bitnami/pgbouncer:1.23 | 6432 | 64033 | Connection pooling |
-| signoz | signoz/signoz:v0.107.0 | 3301 | 64070 | Observability |
+| postgres | postgis/postgis:18-3.6 | 64032 | 64032 | Database |
+| redis | redis:8.4-alpine | 64039 | 64039 | Queues, cache |
+| pgbouncer | bitnami/pgbouncer:1.23 | 64033 | 64033 | Connection pooling |
+| signoz | signoz/signoz:v0.107.0 | 64089 | 3301 | Observability |
 
 ---
 
@@ -35,9 +35,10 @@
 traefik:
   image: traefik:v3.6.6
   ports:
-    - "80:80"
-    - "443:443"
-    - "8080:8080"  # Dashboard (protected)
+    - "64080:80"
+    - "64443:443"
+    - "64443:443/udp"  # HTTP/3 QUIC
+    - "64081:64081"  # Dashboard (protected)
   volumes:
     - /var/run/docker.sock:/var/run/docker.sock:ro
     - ./acme.json:/acme.json
@@ -61,8 +62,8 @@ api:
     dockerfile: Dockerfile
   environment:
     - NODE_ENV=production
-    - DATABASE_URL=postgresql://cerniq:${DB_PASSWORD}@pgbouncer:6432/cerniq
-    - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+    - DATABASE_URL=postgresql://cerniq:${DB_PASSWORD}@pgbouncer:64033/cerniq
+    - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:64039/0
   healthcheck:
     test: ["CMD", "curl", "-f", "http://localhost:64000/health"]
     interval: 30s
@@ -85,8 +86,8 @@ workers:
     dockerfile: Dockerfile
   environment:
     - NODE_ENV=production
-    - DATABASE_URL=postgresql://cerniq:${DB_PASSWORD}@pgbouncer:6432/cerniq
-    - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+    - DATABASE_URL=postgresql://cerniq:${DB_PASSWORD}@pgbouncer:64033/cerniq
+    - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:64039/0
   deploy:
     replicas: 1  # Concurrency managed internally
 ```
@@ -141,7 +142,7 @@ pgbouncer:
   image: bitnami/pgbouncer:1.23
   environment:
     - POSTGRESQL_HOST=postgres
-    - POSTGRESQL_PORT=5432
+    - POSTGRESQL_PORT=64032
     - POSTGRESQL_USERNAME=cerniq
     - POSTGRESQL_PASSWORD_FILE=/run/secrets/db_password
     - POSTGRESQL_DATABASE=cerniq
@@ -150,7 +151,7 @@ pgbouncer:
     - PGBOUNCER_DEFAULT_POOL_SIZE=50
     - PGBOUNCER_MIN_POOL_SIZE=10
   ports:
-    - "64033:6432"
+    - "64033:64033"
   depends_on:
     - postgres
 ```
@@ -209,7 +210,7 @@ signoz:
 
 - ClickHouse (storage)
 - Query Service
-- Frontend (port 3301)
+- Frontend (port 3301, mapat pe 64089)
 - OTel Collector
 
 **Referință:** [Observability Guide](./observability-signoz.md)

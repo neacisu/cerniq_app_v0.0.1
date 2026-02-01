@@ -169,7 +169,7 @@ export default defineConfig({
   ],
   
   use: {
-    baseURL: process.env.BASE_URL || 'http://localhost:5173',
+    baseURL: process.env.BASE_URL || 'http://localhost:64010',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -200,7 +200,7 @@ export default defineConfig({
   
   webServer: {
     command: 'pnpm run dev',
-    url: 'http://localhost:5173',
+    url: 'http://localhost:64010',
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
   },
@@ -420,7 +420,7 @@ import { Verifier } from '@pact-foundation/pact';
 describe('Provider Verification', () => {
   it('validates contracts with consumers', async () => {
     await new Verifier({
-      providerBaseUrl: 'http://localhost:3000',
+      providerBaseUrl: 'http://localhost:64000',
       pactUrls: ['./pacts/WebAdminApp-CompaniesService.json'],
       stateHandlers: {
         'a company with ID abc-123 exists': async () => {
@@ -510,7 +510,7 @@ describe('Redis Failure Resilience', () => {
     await sleep(5000);
     
     // API should return 503 but not crash
-    const response = await fetch('http://localhost:3000/health');
+    const response = await fetch('http://localhost:64000/health');
     expect(response.status).toBe(503);
     expect(await response.json()).toMatchObject({
       status: 'degraded',
@@ -524,7 +524,7 @@ describe('Redis Failure Resilience', () => {
     await sleep(10000);
     
     // API should recover
-    const recoveredResponse = await fetch('http://localhost:3000/health');
+    const recoveredResponse = await fetch('http://localhost:64000/health');
     expect(recoveredResponse.status).toBe(200);
   }, 60000);
 });
@@ -825,11 +825,11 @@ jobs:
           --health-timeout 5s
           --health-retries 5
         ports:
-          - 5432:5432
+          - 64032:64032
       redis:
         image: redis:8.4-alpine
         ports:
-          - 6379:6379
+          - 64039:64039
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -840,8 +840,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm test:integration
         env:
-          DATABASE_URL: postgresql://postgres:test@localhost:5432/test
-          REDIS_URL: redis://localhost:6379
+          DATABASE_URL: postgresql://postgres:test@localhost:64032/test
+          REDIS_URL: redis://localhost:64039
 
   e2e-tests:
     runs-on: ubuntu-latest

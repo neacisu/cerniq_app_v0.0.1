@@ -4274,7 +4274,7 @@ const sdk = new NodeSDK({
     [SemanticResourceAttributes.DEPLOYMENT_ENVIRONMENT]: process.env.NODE_ENV ?? 'development'
   }),
   traceExporter: new OTLPTraceExporter({
-    url: process.env.OTEL_EXPORTER_OTLP_ENDPOINT ?? 'http://signoz:4318/v1/traces'
+    url: process.env.OTEL_EXPORTER_OTLP_ENDPOINT ?? 'http://signoz:64071/v1/traces'
   }),
   instrumentations: [
     getNodeAutoInstrumentations({

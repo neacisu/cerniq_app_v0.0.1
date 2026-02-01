@@ -53,7 +53,7 @@ HITL (Human-in-the-Loop) asigură supervizare umană pentru decizii critice în 
 ### 2.1 Approval Tasks Table
 
 ```sql
--- migrations/0025_create_approval_tasks.sql
+-- migrations/0108_create_approval_tasks.sql
 
 CREATE TYPE approval_status AS ENUM (
   'pending',
@@ -152,7 +152,7 @@ CREATE POLICY approval_tasks_tenant_isolation ON approval_tasks
 ### 2.2 Approval Audit Log
 
 ```sql
--- migrations/0026_create_approval_audit_log.sql
+-- migrations/0109_create_approval_audit_log.sql
 
 CREATE TABLE approval_audit_log (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

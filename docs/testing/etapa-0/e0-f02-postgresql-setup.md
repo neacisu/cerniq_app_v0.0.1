@@ -50,10 +50,9 @@ describe('PostgreSQL Container', () => {
     expect(stdout.trim()).toBe('healthy');
   });
   
-  it('should NOT expose port 5432 publicly', async () => {
+  it('should NOT expose port 64032 publicly', async () => {
     const { stdout } = await execAsync('docker inspect cerniq-postgres --format "{{.NetworkSettings.Ports}}"');
-    // Nu ar trebui să aibă mapping 0.0.0.0:5432
-    expect(stdout).not.toContain('0.0.0.0:5432');
+    // Nu ar trebui să aibă mapping 0.0.0.0:64032
     expect(stdout).not.toContain('0.0.0.0:64032');
   });
   
@@ -345,7 +344,7 @@ describe('PostgreSQL Performance', () => {
 
 - [ ] Image: postgis/postgis:18-3.6
 - [ ] Health status: healthy
-- [ ] Nu expune port 5432 public
+- [ ] Nu expune port 64032 public
 - [ ] Conectat la cerniq_data network
 - [ ] Memory limit >= 32GB
 

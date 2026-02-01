@@ -24,7 +24,7 @@
 
 | ID | Titlu | Status | Data |
 | -- | ----- | ------ | ---- |
-| [ADR-0106](./ADR%20Etapa%200/ADR-0106-Provider-Abstraction.md) | Provider Abstraction Layer | Accepted | 2026-02-01 |
+| [ADR-00XX](./ADR%20Etapa%200/ADR-00XX-Provider-Abstraction.md) | ADR-00XX: Provider Abstraction Layer | — | — |
 | [ADR-0001](./ADR%20Etapa%200/ADR-0001-PNPM-ca-Package-Manager-Exclusiv.md) | PNPM ca Package Manager Exclusiv | Accepted | 2026-01-15 |
 | [ADR-0002](./ADR%20Etapa%200/ADR-0002-Node-js-v24-LTS-Krypton.md) | Node.js v24 LTS "Krypton" | Accepted | 2026-01-15 |
 | [ADR-0003](./ADR%20Etapa%200/ADR-0003-Python-3-14-Free-Threading-pentru-Workers.md) | Python 3.14 Free-Threading pentru Workers | Accepted | 2026-01-15 |

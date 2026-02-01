@@ -4,7 +4,7 @@
 
 ## 1. Acces Dashboard
 
-- **URL Local**: `http://localhost:3301`
+- **URL Local**: `http://localhost:64089`
 - **URL Producție**: `https://monitor.cerniq.app` (protejat prin BasicAuth în Traefik)
 - **Versiune**: v0.107.0
 
@@ -16,7 +16,7 @@ Serviciile Node.js (API, Workers) sunt instrumentate folosind SDK-ul OpenTelemet
 
 ```bash
 # Endpoint-ul OTLP gRPC al colectorului SigNoz
-OTEL_EXPORTER_OTLP_ENDPOINT=http://signoz-otel-collector:4317
+OTEL_EXPORTER_OTLP_ENDPOINT=http://signoz-otel-collector:64070
 
 # Identificarea serviciului
 OTEL_SERVICE_NAME=cerniq-api  # sau cerniq-workers

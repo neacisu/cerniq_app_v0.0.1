@@ -36,11 +36,11 @@ echo "Date: $(date)"
 
 # 1. Check all phones online (API method)
 echo -e "\n[1/8] WhatsApp Phones Status:"
-curl -s http://localhost:3000/api/v1/outreach/phones | jq '.phones[] | {label, status, quotaUsed: .quota.used}'
+curl -s http://localhost:64000/api/v1/outreach/phones | jq '.phones[] | {label, status, quotaUsed: .quota.used}'
 
 # 2. Check phones not ACTIVE (alternate check)
 echo -e "\n[2/8] Phones Not Active:"
-curl -s http://localhost:3000/api/v1/outreach/phones | jq '.phones[] | select(.status != "ACTIVE") | .label'
+curl -s http://localhost:64000/api/v1/outreach/phones | jq '.phones[] | select(.status != "ACTIVE") | .label'
 
 # 3. Check quota reset happened
 echo -e "\n[3/8] Quota Reset Verification:"
@@ -49,19 +49,19 @@ echo "Active quota keys for today"
 
 # 4. Check queue health
 echo -e "\n[4/8] BullMQ Queue Health:"
-curl -s http://localhost:3000/api/admin/queues/health | jq '.queues | to_entries[] | {name: .key, waiting: .value.waiting, active: .value.active, failed: .value.failed}'
+curl -s http://localhost:64000/api/admin/queues/health | jq '.queues | to_entries[] | {name: .key, waiting: .value.waiting, active: .value.active, failed: .value.failed}'
 
 # 5. Check pending reviews
 echo -e "\n[5/8] Pending Reviews:"
-curl -s http://localhost:3000/api/v1/outreach/reviews?status=PENDING | jq '.counts'
+curl -s http://localhost:64000/api/v1/outreach/reviews?status=PENDING | jq '.counts'
 
 # 6. Check for SLA breaches overnight
 echo -e "\n[6/8] SLA Breaches Overnight:"
-curl -s http://localhost:3000/api/v1/outreach/reviews?slaBreached=true | jq '.meta.total'
+curl -s http://localhost:64000/api/v1/outreach/reviews?slaBreached=true | jq '.meta.total'
 
 # 7. Check yesterday's metrics
 echo -e "\n[7/8] Yesterday's Metrics:"
-curl -s "http://localhost:3000/api/v1/outreach/analytics/daily-stats?date=$(date -d 'yesterday' +%Y-%m-%d)" | jq '.stats'
+curl -s "http://localhost:64000/api/v1/outreach/analytics/daily-stats?date=$(date -d 'yesterday' +%Y-%m-%d)" | jq '.stats'
 
 # 8. Check disk space
 echo -e "\n[8/8] Disk Space:"
@@ -89,11 +89,11 @@ echo "Date: $(date)"
 
 # 1. Day's performance summary
 echo -e "\n[1/7] Today's Performance:"
-curl -s http://localhost:3000/api/v1/outreach/analytics/dashboard | jq '.today'
+curl -s http://localhost:64000/api/v1/outreach/analytics/dashboard | jq '.today'
 
 # 2. Daily statistics detailed
 echo -e "\n[2/7] Daily Statistics:"
-curl -s http://localhost:3000/api/v1/outreach/analytics/daily | jq '
+curl -s http://localhost:64000/api/v1/outreach/analytics/daily | jq '
   {
     contacted: .metrics.contacted[-1],
     replied: .metrics.replied[-1],
@@ -104,17 +104,17 @@ curl -s http://localhost:3000/api/v1/outreach/analytics/daily | jq '
 
 # 3. Quota usage summary
 echo -e "\n[3/7] Quota Usage Summary:"
-curl -s http://localhost:3000/api/v1/outreach/phones | jq '[.phones[].quota.used] | add' 
+curl -s http://localhost:64000/api/v1/outreach/phones | jq '[.phones[].quota.used] | add' 
 echo "/ 4000 total capacity used"
 
 # 4. Unresolved reviews (SLA risk)
 echo -e "\n[4/7] Unresolved Reviews (SLA risk):"
-curl -s http://localhost:3000/api/v1/outreach/reviews?status=PENDING | jq '.reviews | map(select(.slaBreached == true or (.slaDueAt | fromdate) < now)) | length'
+curl -s http://localhost:64000/api/v1/outreach/reviews?status=PENDING | jq '.reviews | map(select(.slaBreached == true or (.slaDueAt | fromdate) < now)) | length'
 echo "reviews at SLA risk"
 
 # 5. Failed jobs
 echo -e "\n[5/7] Failed Jobs Today:"
-curl -s http://localhost:3000/api/admin/queues/failed | jq 'length'
+curl -s http://localhost:64000/api/admin/queues/failed | jq 'length'
 redis-cli -n 2 LLEN "bull:dlq:outreach"
 echo "failed jobs (API + DLQ)"
 
@@ -128,7 +128,7 @@ ls -la /backups/daily/$(date +%Y-%m-%d)/ 2>/dev/null || echo "Backup not found!"
 
 # 8. Generate daily report
 echo -e "\n[EXTRA] Generating Daily Report..."
-curl -X POST http://localhost:3000/api/v1/internal/reports/daily
+curl -X POST http://localhost:64000/api/v1/internal/reports/daily
 
 echo -e "\n=== Evening Check Complete ==="
 ```
@@ -150,7 +150,7 @@ echo -e "\n=== Evening Check Complete ==="
 
 ```bash
 # 1. Check phone status (API)
-curl -s http://localhost:3000/api/v1/outreach/phones/{phoneId} | jq '.status'
+curl -s http://localhost:64000/api/v1/outreach/phones/{phoneId} | jq '.status'
 
 # 2. Check phone in database (direct)
 psql -U cerniq -c "SELECT id, phone_label, status, status_changed_at FROM wa_phone_numbers WHERE id = '{phone_id}'"
@@ -160,7 +160,7 @@ curl -s "https://api.timelines.ai/v1/accounts/{timelinesai_account_id}/status" \
   -H "Authorization: Bearer $TIMELINESAI_API_KEY"
 
 # 4. If reconnectable via API, trigger reconnect
-curl -X POST http://localhost:3000/api/v1/outreach/phones/{phoneId}/reconnect
+curl -X POST http://localhost:64000/api/v1/outreach/phones/{phoneId}/reconnect
 
 # 5. If requires manual action:
 #    - Login to TimelinesAI dashboard
@@ -168,15 +168,15 @@ curl -X POST http://localhost:3000/api/v1/outreach/phones/{phoneId}/reconnect
 #    - Wait 5 minutes for sync
 
 # 6. After reconnection, update status (if needed)
-curl -X PATCH "http://localhost:3000/api/v1/outreach/phones/{phone_id}" \
+curl -X PATCH "http://localhost:64000/api/v1/outreach/phones/{phone_id}" \
   -H "Content-Type: application/json" \
   -d '{"status": "ACTIVE"}'
 
 # 7. Resume phone after reconnection
-curl -X POST http://localhost:3000/api/v1/outreach/phones/{phoneId}/resume
+curl -X POST http://localhost:64000/api/v1/outreach/phones/{phoneId}/resume
 
 # 8. Check pending messages are processing
-curl -s http://localhost:3000/api/admin/queues/q:wa:phone_{XX}/waiting | jq 'length'
+curl -s http://localhost:64000/api/admin/queues/q:wa:phone_{XX}/waiting | jq 'length'
 redis-cli -n 2 LLEN "bull:q:wa:phone_{XX}:waiting"
 ```
 
@@ -195,13 +195,13 @@ redis-cli -n 2 LLEN "bull:q:wa:phone_{XX}:waiting"
 # ⚠️ CRITICAL: DO NOT attempt to reconnect banned phone!
 
 # 1. Confirm ban status (API)
-curl -s http://localhost:3000/api/v1/outreach/phones/{phoneId} | jq '.status'
+curl -s http://localhost:64000/api/v1/outreach/phones/{phoneId} | jq '.status'
 
 # 2. Mark phone as banned in database (prevents new assignments)
 psql -U cerniq -c "UPDATE wa_phone_numbers SET status = 'BANNED', status_changed_at = NOW() WHERE id = '{phone_id}'"
 
 # 3. Reassign leads from banned phone (API method)
-curl -X POST http://localhost:3000/api/v1/outreach/phones/{phoneId}/reassign-leads
+curl -X POST http://localhost:64000/api/v1/outreach/phones/{phoneId}/reassign-leads
 
 # 4. Or reassign leads via SQL (direct method)
 psql -U cerniq -c "
@@ -216,7 +216,7 @@ redis-cli -n 2 DEL "bull:q:wa:phone_{XX}:waiting"
 redis-cli -n 2 DEL "bull:q:wa:phone_{XX}:delayed"
 
 # 6. Review messaging patterns that may have caused ban
-curl -s "http://localhost:3000/api/v1/outreach/analytics/phones/{phoneId}/history?days=7" | jq '.dailyStats'
+curl -s "http://localhost:64000/api/v1/outreach/analytics/phones/{phoneId}/history?days=7" | jq '.dailyStats'
 
 # 7. Document incident
 echo "$(date): Phone {phoneId} banned. Reason: {suspected_reason}" >> /var/log/cerniq/phone-incidents.log
@@ -253,10 +253,10 @@ redis-cli SET "quota:wa:{phone_id}:$(date +%Y-%m-%d)" "0" EX 172800
 # Update workers/whatsapp/index.ts to include new phone queue if needed
 
 # 5. Verify health check
-curl -X POST http://localhost:3000/api/admin/phones/health-check
+curl -X POST http://localhost:64000/api/admin/phones/health-check
 
 # 6. Test with single message
-curl -X POST "http://localhost:3000/api/v1/outreach/test/send" \
+curl -X POST "http://localhost:64000/api/v1/outreach/test/send" \
   -H "Content-Type: application/json" \
   -d '{"phoneId": "{phone_id}", "testNumber": "+40xxxxxxxx"}'
 ```
@@ -314,7 +314,7 @@ psql -U cerniq -c "
 #    - Messages will queue for tomorrow automatically
 
 # 6. If urgent leads need contact, use email channel as fallback
-curl -X POST http://localhost:3000/api/v1/outreach/leads/{leadId}/send-message \
+curl -X POST http://localhost:64000/api/v1/outreach/leads/{leadId}/send-message \
   -H "Content-Type: application/json" \
   -d '{"channel": "EMAIL_WARM", "content": "..."}'
 ```
@@ -389,7 +389,7 @@ watch -n 60 'redis-cli GET "quota:wa:{phoneId}:$(date +%Y-%m-%d)"'
 pm2 status
 
 # 2. Check specific queue
-curl -s http://localhost:3000/api/admin/queues/outreach:orchestrator:dispatch | jq '{waiting, active, completed, failed}'
+curl -s http://localhost:64000/api/admin/queues/outreach:orchestrator:dispatch | jq '{waiting, active, completed, failed}'
 
 # 3. Check worker logs
 pm2 logs workers --lines 100 | grep -E "(error|Error|ERROR)"
@@ -398,7 +398,7 @@ pm2 logs workers --lines 100 | grep -E "(error|Error|ERROR)"
 redis-cli PING
 
 # 5. Check if workers are stuck on a job
-curl -s http://localhost:3000/api/admin/queues/q:wa:phone_01/active | jq '.[0]'
+curl -s http://localhost:64000/api/admin/queues/q:wa:phone_01/active | jq '.[0]'
 ```
 
 **Resolution:**
@@ -408,14 +408,14 @@ curl -s http://localhost:3000/api/admin/queues/q:wa:phone_01/active | jq '.[0]'
 pm2 restart workers
 
 # If single job is stuck (>5 min active)
-curl -X POST http://localhost:3000/api/admin/queues/{queueName}/jobs/{jobId}/retry
+curl -X POST http://localhost:64000/api/admin/queues/{queueName}/jobs/{jobId}/retry
 
 # If Redis overloaded
 redis-cli INFO memory | grep used_memory_human
 
 # If queue needs draining (lost cause)
 # ⚠️ WARNING: This loses all waiting jobs!
-curl -X POST http://localhost:3000/api/admin/queues/{queueName}/drain
+curl -X POST http://localhost:64000/api/admin/queues/{queueName}/drain
 ```
 
 ### 4.2 High Failed Job Count
@@ -430,11 +430,11 @@ curl -X POST http://localhost:3000/api/admin/queues/{queueName}/drain
 
 ```bash
 # 1. Identify failure pattern
-curl -s http://localhost:3000/api/admin/queues/{queueName}/failed?limit=50 | \
+curl -s http://localhost:64000/api/admin/queues/{queueName}/failed?limit=50 | \
   jq '.[].failedReason' | sort | uniq -c | sort -rn
 
 # 2. Check specific failed job
-curl -s http://localhost:3000/api/admin/queues/{queueName}/jobs/{jobId} | jq '.stacktrace'
+curl -s http://localhost:64000/api/admin/queues/{queueName}/jobs/{jobId} | jq '.stacktrace'
 
 # 3. Common fixes:
 # - API rate limited: Reduce concurrency
@@ -443,10 +443,10 @@ curl -s http://localhost:3000/api/admin/queues/{queueName}/jobs/{jobId} | jq '.s
 # - Code bug: Fix and redeploy
 
 # 4. Retry all failed jobs (after fix)
-curl -X POST http://localhost:3000/api/admin/queues/{queueName}/retry-failed
+curl -X POST http://localhost:64000/api/admin/queues/{queueName}/retry-failed
 
 # 5. Clean old failed jobs
-curl -X POST http://localhost:3000/api/admin/queues/{queueName}/clean-failed?age=86400
+curl -X POST http://localhost:64000/api/admin/queues/{queueName}/clean-failed?age=86400
 ```
 
 ---
@@ -459,7 +459,7 @@ curl -X POST http://localhost:3000/api/admin/queues/{queueName}/clean-failed?age
 
 ```bash
 # 1. Get all breached reviews
-curl -s http://localhost:3000/api/v1/outreach/reviews?slaBreached=true
+curl -s http://localhost:64000/api/v1/outreach/reviews?slaBreached=true
 
 # 2. Check queue depth by priority
 psql -U cerniq -c "
@@ -476,12 +476,12 @@ psql -U cerniq -c "
 #    - MEDIUM/LOW -> Auto-assign to available agent
 
 # 4. For URGENT breaches without response in 2 hours:
-curl -X POST http://localhost:3000/api/v1/outreach/reviews/{reviewId}/escalate \
+curl -X POST http://localhost:64000/api/v1/outreach/reviews/{reviewId}/escalate \
   -H "Content-Type: application/json" \
   -d '{"escalateTo": "manager", "reason": "SLA_BREACH_UNRESPONDED"}'
 
 # 5. Track SLA metrics
-curl -s http://localhost:3000/api/v1/outreach/analytics/sla-performance
+curl -s http://localhost:64000/api/v1/outreach/analytics/sla-performance
 ```
 
 ### 5.2 SLA Breach Accumulation
@@ -522,13 +522,13 @@ psql -U cerniq -c "
 
 ```bash
 # 1. Verify takeover is active
-curl -s http://localhost:3000/api/v1/outreach/leads/{leadId} | jq '.isHumanControlled'
+curl -s http://localhost:64000/api/v1/outreach/leads/{leadId} | jq '.isHumanControlled'
 
 # 2. Check assigned phone status
-curl -s http://localhost:3000/api/v1/outreach/leads/{leadId} | jq '.assignedPhone.status'
+curl -s http://localhost:64000/api/v1/outreach/leads/{leadId} | jq '.assignedPhone.status'
 
 # 3. If phone offline during takeover, temporarily assign different phone
-curl -X POST http://localhost:3000/api/v1/outreach/leads/{leadId}/reassign-phone
+curl -X POST http://localhost:64000/api/v1/outreach/leads/{leadId}/reassign-phone
 ```
 
 ---
@@ -548,14 +548,14 @@ curl -X POST http://localhost:3000/api/v1/outreach/leads/{leadId}/reassign-phone
 
 ```bash
 # 1. Check bounce rate (internal API)
-curl -s http://localhost:3000/api/v1/outreach/analytics/email-deliverability | jq '.bounceRate'
+curl -s http://localhost:64000/api/v1/outreach/analytics/email-deliverability | jq '.bounceRate'
 
 # 2. Check bounce details (Instantly API)
 curl -s "https://api.instantly.ai/api/v2/campaign/{campaign_id}/analytics" \
   -H "Authorization: Bearer $INSTANTLY_API_KEY" | jq '.bounced'
 
 # 3. Identify bounced emails (internal)
-curl -s http://localhost:3000/api/v1/outreach/analytics/bounces?limit=100 | jq '.bounces[] | {email, bounceType, timestamp}'
+curl -s http://localhost:64000/api/v1/outreach/analytics/bounces?limit=100 | jq '.bounces[] | {email, bounceType, timestamp}'
 
 # 4. Identify bounced emails (database)
 psql -U cerniq -c "
@@ -583,10 +583,10 @@ psql -U cerniq -c "
 #    - Contact Instantly.ai support
 
 # 8. Clean bounced emails from future campaigns
-curl -X POST http://localhost:3000/api/v1/outreach/email/clean-bounces
+curl -X POST http://localhost:64000/api/v1/outreach/email/clean-bounces
 
 # 9. Resume campaign after investigation
-curl -X POST http://localhost:3000/api/v1/outreach/campaigns/{campaignId}/resume
+curl -X POST http://localhost:64000/api/v1/outreach/campaigns/{campaignId}/resume
 curl -X POST "https://api.instantly.ai/api/v2/campaign/{campaign_id}/resume" \
   -H "Authorization: Bearer $INSTANTLY_API_KEY"
 ```
@@ -616,10 +616,10 @@ UPDATE outreach_sequences SET is_active = FALSE WHERE is_active = TRUE;
 EOF
 
 # 3. Pause all phones
-curl -X POST http://localhost:3000/api/admin/phones/pause-all
+curl -X POST http://localhost:64000/api/admin/phones/pause-all
 
 # 4. Clear scheduled jobs
-curl -X POST http://localhost:3000/api/admin/queues/outreach:orchestrator:dispatch/pause
+curl -X POST http://localhost:64000/api/admin/queues/outreach:orchestrator:dispatch/pause
 
 # 5. Notify team
 curl -X POST https://hooks.slack.com/services/XXX \
@@ -648,14 +648,14 @@ fi
 pm2 start workers-outreach
 
 # 3. Resume dispatcher
-curl -X POST http://localhost:3000/api/admin/queues/outreach:orchestrator:dispatch/resume
+curl -X POST http://localhost:64000/api/admin/queues/outreach:orchestrator:dispatch/resume
 
 # 4. Reactivate sequences (manual per sequence)
 echo "Sequences must be manually reactivated"
 
 # 5. Resume phones one by one (monitor each)
-for phone in $(curl -s http://localhost:3000/api/v1/outreach/phones | jq -r '.phones[].id'); do
-  curl -X POST http://localhost:3000/api/v1/outreach/phones/$phone/resume
+for phone in $(curl -s http://localhost:64000/api/v1/outreach/phones | jq -r '.phones[].id'); do
+  curl -X POST http://localhost:64000/api/v1/outreach/phones/$phone/resume
   sleep 5  # Wait between resumes
 done
 
@@ -794,7 +794,7 @@ psql -U cerniq -c "VACUUM ANALYZE gold_communication_log;"
 psql -U cerniq -c "VACUUM ANALYZE gold_lead_journey;"
 
 # 3. Clear completed jobs older than 7 days
-curl -X POST http://localhost:3000/api/admin/queues/clean-completed?maxAge=604800
+curl -X POST http://localhost:64000/api/admin/queues/clean-completed?maxAge=604800
 
 # 4. Clear old DLQ entries (keep last 1000)
 redis-cli -n 2 KEYS "bull:dlq:*" | xargs -I {} redis-cli -n 2 LTRIM {} 0 999

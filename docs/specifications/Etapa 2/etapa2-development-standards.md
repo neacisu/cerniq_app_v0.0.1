@@ -414,9 +414,9 @@ CREATE INDEX idx_lead_journey_review ON gold_lead_journey(tenant_id, requires_hu
 ### 3.4 Migration Standards
 
 ```typescript
-// Drizzle migration file naming: {sequence}_{description}.ts
-// 0050_outreach_enums.ts
-// 0051_gold_lead_journey.ts
+// Drizzle migration file naming: {sequence}_{description}.ts (Etapa 2: 0200–0299)
+// 0200_outreach_enums.ts
+// 0201_gold_lead_journey.ts
 
 // Always include rollback comments
 // -- Rollback: DROP TABLE gold_lead_journey;

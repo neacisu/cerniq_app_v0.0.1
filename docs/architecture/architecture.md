@@ -220,9 +220,9 @@ const LEGACY_ALIASES = {
 | Canal Tehnic | Protocol | Folosit Pentru |
 | --- | --- | --- |
 | **HTTPS (443)** | TLS 1.3 | Web UI, REST API |
-| **PostgreSQL (5432)** | Native | Conexiuni DB (intern) |
-| **Redis (6379)** | Native | BullMQ queues (intern) |
-| **OTLP (4317/4318)** | gRPC/HTTP | OpenTelemetry traces/metrics |
+| **PostgreSQL (64032)** | Native | Conexiuni DB (intern) |
+| **Redis (64039)** | Native | BullMQ queues (intern) |
+| **OTLP (64070/64071)** | gRPC/HTTP | OpenTelemetry traces/metrics |
 
 ---
 
@@ -985,8 +985,8 @@ providers:
 ┌───────────────────┐     ┌───────────────────┐     ┌───────────────────┐
 │   Application     │     │   OTel Collector  │     │     SigNoz        │
 │   Instrumentation │────▶│                   │────▶│                   │
-│                   │     │   4317 (gRPC)     │     │   Query Service   │
-│   - Node.js       │     │   4318 (HTTP)     │     │   + ClickHouse    │
+│                   │     │   64070 (gRPC)    │     │   Query Service   │
+│   - Node.js       │     │   64071 (HTTP)    │     │   + ClickHouse    │
 │   - Python        │     │                   │     │                   │
 │   - PostgreSQL    │     │   Processors:     │     │   Dashboards:     │
 │   - Redis         │     │   - batch         │     │   - APM           │

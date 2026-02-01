@@ -241,7 +241,7 @@
       "estimare_ore": 2,
       "dependente": [],
       "deliverables": [
-        "migrations/0040_create_etapa4_enums.ts",
+        "migrations/0400_create_etapa4_enums.ts",
         "16 enum types definite"
       ],
       "acceptare": [
@@ -259,7 +259,7 @@
       "estimare_ore": 3,
       "dependente": [309],
       "deliverables": [
-        "migrations/0041a_create_gold_orders.ts",
+        "migrations/0401a_create_gold_orders.ts",
         "Drizzle schema definition",
         "Indexes create"
       ],
@@ -279,7 +279,7 @@
       "estimare_ore": 2,
       "dependente": [310],
       "deliverables": [
-        "migrations/0041b_create_gold_order_items.ts"
+        "migrations/0401b_create_gold_order_items.ts"
       ]
     },
     {
@@ -292,7 +292,7 @@
       "estimare_ore": 2,
       "dependente": [310],
       "deliverables": [
-        "migrations/0041c_create_gold_payments.ts"
+        "migrations/0401c_create_gold_payments.ts"
       ]
     },
     {
@@ -305,7 +305,7 @@
       "estimare_ore": 2,
       "dependente": [312],
       "deliverables": [
-        "migrations/0041d_create_gold_refunds.ts"
+        "migrations/0401d_create_gold_refunds.ts"
       ]
     },
     {
@@ -318,7 +318,7 @@
       "estimare_ore": 4,
       "dependente": [309],
       "deliverables": [
-        "migrations/0042_create_credit_tables.ts"
+        "migrations/0402_create_credit_tables.ts"
       ]
     },
     {
@@ -331,7 +331,7 @@
       "estimare_ore": 4,
       "dependente": [310],
       "deliverables": [
-        "migrations/0043_create_logistics_tables.ts"
+        "migrations/0403_create_logistics_tables.ts"
       ]
     },
     {
@@ -344,7 +344,7 @@
       "estimare_ore": 3,
       "dependente": [310],
       "deliverables": [
-        "migrations/0044_create_contract_tables.ts"
+        "migrations/0404_create_contract_tables.ts"
       ]
     },
     {
@@ -357,7 +357,7 @@
       "estimare_ore": 3,
       "dependente": [309],
       "deliverables": [
-        "migrations/0045_create_audit_tables.ts",
+        "migrations/0405_create_audit_tables.ts",
         "Partition management script"
       ]
     },
@@ -371,7 +371,7 @@
       "estimare_ore": 2,
       "dependente": [309],
       "deliverables": [
-        "migrations/0046_create_hitl_table.ts"
+        "migrations/0406_create_hitl_table.ts"
       ]
     },
     {
@@ -384,7 +384,7 @@
       "estimare_ore": 4,
       "dependente": [314, 315],
       "deliverables": [
-        "migrations/0047_create_functions.ts",
+        "migrations/0407_create_functions.ts",
         "calculate_credit_score()",
         "update_credit_reserved()",
         "update_shipment_from_tracking()"
@@ -400,7 +400,7 @@
       "estimare_ore": 3,
       "dependente": [316],
       "deliverables": [
-        "migrations/0050_seed_etapa4_data.ts"
+        "migrations/0410_seed_etapa4_data.ts"
       ]
     }
   ]

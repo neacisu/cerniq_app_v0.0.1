@@ -4,10 +4,10 @@
 
 ---
 
-## Migration 001: Create Etapa 5 Enums
+## Migration 0500: Create Etapa 5 Enums
 
 ```sql
--- migrations/20260119_001_create_e5_enums.sql
+-- migrations/0500_create_e5_enums.sql
 -- Nurturing state enum
 CREATE TYPE nurturing_state_enum AS ENUM (
     'ONBOARDING',
@@ -86,10 +86,10 @@ CREATE TYPE content_type_enum AS ENUM (
 
 ---
 
-## Migration 002: Create Nurturing Core Tables
+## Migration 0501: Create Nurturing Core Tables
 
 ```sql
--- migrations/20260119_002_create_nurturing_tables.sql
+-- migrations/0501_create_nurturing_tables.sql
 
 -- Main nurturing state table
 CREATE TABLE gold_nurturing_state (
@@ -200,10 +200,10 @@ CREATE INDEX idx_nurturing_actions_status ON gold_nurturing_actions(status, sche
 
 ---
 
-## Migration 003: Create Churn Tables
+## Migration 0502: Create Churn Tables
 
 ```sql
--- migrations/20260119_003_create_churn_tables.sql
+-- migrations/0502_create_churn_tables.sql
 
 CREATE TABLE gold_churn_signals (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -331,10 +331,10 @@ CREATE INDEX idx_sentiment_negative ON gold_sentiment_analysis(client_id, analyz
 
 ---
 
-## Migration 004: Create Referral Tables
+## Migration 0503: Create Referral Tables
 
 ```sql
--- migrations/20260119_004_create_referral_tables.sql
+-- migrations/0503_create_referral_tables.sql
 
 CREATE TABLE gold_referrals (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -457,18 +457,18 @@ CREATE UNIQUE INDEX idx_relationships_unique
 
 ---
 
-## Migration 005-007: Clusters, Associations, KOL, Win-Back
+## Migration 0504-0506: Clusters, Associations, KOL, Win-Back
 
 ```sql
 -- See etapa5-schema-clusters.md for full schema
--- migrations/20260119_005_create_cluster_tables.sql
--- migrations/20260119_006_create_association_tables.sql  
--- migrations/20260119_007_create_winback_tables.sql
+-- migrations/0504_create_cluster_tables.sql
+-- migrations/0505_create_association_tables.sql  
+-- migrations/0506_create_winback_tables.sql
 ```
 
 ---
 
-## Migration 008: Configure E5 Approval Types (HITL Unificat)
+## Migration 0507: Configure E5 Approval Types (HITL Unificat)
 
 > **IMPORTANT:** Etapa 5 **NU** creează tabele HITL separate.
 >
@@ -477,7 +477,7 @@ CREATE UNIQUE INDEX idx_relationships_unique
 > Această migrare doar configurează `approval_type_configs` pentru E5.
 
 ```sql
--- migrations/20260120_008_configure_e5_approval_types.sql
+-- migrations/0507_configure_e5_approval_types.sql
 -- HITL Unificat - Configurare approval types pentru Etapa 5
 
 -- ⚠️ DEPRECATED: gold_hitl_tasks_e5 a fost eliminată

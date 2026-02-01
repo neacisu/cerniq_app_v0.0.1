@@ -7712,7 +7712,7 @@ export const HITLQueues = {
  */
 const redisConnection = new Redis({
   host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379'),
+  port: parseInt(process.env.REDIS_PORT || '64039'),
   maxRetriesPerRequest: null,
   enableReadyCheck: false,
 });
@@ -17204,7 +17204,7 @@ groups:
 # alertmanager/config.yml
 
 global:
-  smtp_smarthost: 'smtp.gmail.com:587'
+  smtp_smarthost: 'smtp.gmail.com:443'
   smtp_from: 'alerts@cerniq.app'
   smtp_auth_username: '${SMTP_USERNAME}'
   smtp_auth_password: '${SMTP_PASSWORD}'
@@ -17286,7 +17286,7 @@ receivers:
         title: '⏰ SLA Alert: {{ template "slack.title" . }}'
         text: '{{ template "slack.text" . }}'
     webhook_configs:
-      - url: 'http://hitl-api:3000/webhooks/alerts/sla'
+      - url: 'http://hitl-api:64000/webhooks/alerts/sla'
         send_resolved: true
         
   - name: 'ai-receiver'
@@ -17459,7 +17459,7 @@ import {
   HttpInstrumentation 
 } from '@opentelemetry/instrumentation-http';
 
-const OTEL_EXPORTER_ENDPOINT = process.env.OTEL_EXPORTER_ENDPOINT || 'http://signoz:4318';
+const OTEL_EXPORTER_ENDPOINT = process.env.OTEL_EXPORTER_ENDPOINT || 'http://signoz:64071';
 
 // Create resource with service information
 const resource = new Resource({
@@ -19981,7 +19981,7 @@ describe('Queue Integration', () => {
   beforeAll(async () => {
     redis = new Redis({
       host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379'),
+      port: parseInt(process.env.REDIS_PORT || '64039'),
       maxRetriesPerRequest: null,
     });
 
@@ -21335,7 +21335,7 @@ export const options = {
   },
 };
 
-const BASE_URL = __ENV.BASE_URL || 'http://localhost:3000';
+const BASE_URL = __ENV.BASE_URL || 'http://localhost:64000';
 const AUTH_TOKEN = __ENV.AUTH_TOKEN;
 
 const headers = {
@@ -21733,7 +21733,7 @@ import WebSocket from 'ws';
 import { performance } from 'perf_hooks';
 
 describe('WebSocket Performance', () => {
-  const WS_URL = process.env.WS_URL || 'ws://localhost:3000/ws';
+  const WS_URL = process.env.WS_URL || 'ws://localhost:64000/ws';
   const connections: WebSocket[] = [];
 
   afterAll(async () => {

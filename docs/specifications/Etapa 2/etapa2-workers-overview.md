@@ -85,7 +85,7 @@
 export const ETAPA2_QUEUE_CONFIG = {
   connection: {
     host: process.env.REDIS_HOST || 'localhost',
-    port: parseInt(process.env.REDIS_PORT || '6379'),
+    port: parseInt(process.env.REDIS_PORT || '64039'),
     password: process.env.REDIS_PASSWORD,
     db: 2, // Separate DB for Etapa 2
   },

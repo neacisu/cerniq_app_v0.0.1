@@ -14,7 +14,7 @@
 describe('SigNoz Observability', () => {
   
   it('should accept traces on OTel Collector', async () => {
-    const response = await fetch('http://localhost:4318/v1/traces', {
+    const response = await fetch('http://localhost:64071/v1/traces', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -37,7 +37,7 @@ describe('SigNoz Observability', () => {
   });
   
   it('should accept metrics on OTel Collector', async () => {
-    const response = await fetch('http://localhost:4318/v1/metrics', {
+    const response = await fetch('http://localhost:64071/v1/metrics', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -49,7 +49,7 @@ describe('SigNoz Observability', () => {
   });
   
   it('should have SigNoz UI accessible', async () => {
-    const response = await fetch('http://localhost:3301');
+    const response = await fetch('http://localhost:64089');
     expect(response.status).toBe(200);
   });
 });

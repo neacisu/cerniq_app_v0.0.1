@@ -19,7 +19,7 @@
 ### Morning Checklist (09:00)
 ```bash
 # 1. Check worker health
-curl http://localhost:3000/health/workers
+curl http://localhost:64000/health/workers
 
 # 2. Check queue depths
 docker exec cerniq-redis redis-cli -a $REDIS_PASSWORD \
@@ -29,10 +29,10 @@ docker exec cerniq-redis redis-cli -a $REDIS_PASSWORD \
 docker logs cerniq-workers --since 12h 2>&1 | grep -i error | tail -50
 
 # 4. Check Revolut balance
-curl -s http://localhost:3000/api/v1/monitoring/revolut/balance
+curl -s http://localhost:64000/api/v1/monitoring/revolut/balance
 
 # 5. Check pending HITL tasks
-curl -s http://localhost:3000/api/v1/monitoring/hitl/queue?status=PENDING
+curl -s http://localhost:64000/api/v1/monitoring/hitl/queue?status=PENDING
 ```
 
 ### Evening Checklist (18:00)
@@ -41,10 +41,10 @@ curl -s http://localhost:3000/api/v1/monitoring/hitl/queue?status=PENDING
 docker logs cerniq-workers --since 1h | grep "daily:summary"
 
 # 2. Check reconciliation status
-curl -s http://localhost:3000/api/v1/monitoring/payments/reconciliation/summary
+curl -s http://localhost:64000/api/v1/monitoring/payments/reconciliation/summary
 
 # 3. Check pending shipments
-curl -s http://localhost:3000/api/v1/monitoring/shipments?status=PENDING_PICKUP
+curl -s http://localhost:64000/api/v1/monitoring/shipments?status=PENDING_PICKUP
 ```
 
 ---
@@ -54,7 +54,7 @@ curl -s http://localhost:3000/api/v1/monitoring/shipments?status=PENDING_PICKUP
 ### Worker Health
 ```bash
 # All workers status
-curl http://localhost:3000/health/workers | jq
+curl http://localhost:64000/health/workers | jq
 
 # Specific queue depth
 docker exec cerniq-redis redis-cli -a $REDIS_PASSWORD \
@@ -89,7 +89,7 @@ curl -s -o /dev/null -w "%{http_code}" \
 ### Issue: Webhook Not Processing
 ```bash
 # Check webhook endpoint accessibility
-curl -X POST http://localhost:3000/webhooks/revolut/business \
+curl -X POST http://localhost:64000/webhooks/revolut/business \
   -H "Content-Type: application/json" \
   -d '{"test": true}'
 
@@ -107,10 +107,10 @@ docker compose restart cerniq-workers
 psql -c "SELECT * FROM gold_payments WHERE reconciliation_status = 'UNMATCHED' ORDER BY created_at DESC LIMIT 10;"
 
 # Check fuzzy match candidates
-curl http://localhost:3000/api/v1/monitoring/payments/{paymentId}/candidates
+curl http://localhost:64000/api/v1/monitoring/payments/{paymentId}/candidates
 
 # Force reconciliation
-curl -X POST http://localhost:3000/api/v1/monitoring/payments/{paymentId}/reconcile \
+curl -X POST http://localhost:64000/api/v1/monitoring/payments/{paymentId}/reconcile \
   -H "Content-Type: application/json" \
   -d '{"invoiceId": "xxx"}'
 ```
@@ -121,7 +121,7 @@ curl -X POST http://localhost:3000/api/v1/monitoring/payments/{paymentId}/reconc
 psql -c "SELECT cui, fetched_at, expires_at FROM gold_termene_data WHERE cui = 'XXX';"
 
 # Force refresh
-curl -X POST http://localhost:3000/api/v1/monitoring/credit/profiles/{clientId}/refresh
+curl -X POST http://localhost:64000/api/v1/monitoring/credit/profiles/{clientId}/refresh
 
 # Check worker logs
 docker logs cerniq-workers 2>&1 | grep "credit:score:calculate" | tail -20
@@ -130,13 +130,13 @@ docker logs cerniq-workers 2>&1 | grep "credit:score:calculate" | tail -20
 ### Issue: Contract Not Generated
 ```bash
 # Check Python service
-curl http://localhost:8500/health
+curl http://localhost:64095/health
 
 # Check template exists
 psql -c "SELECT * FROM gold_contract_templates WHERE is_active = true;"
 
 # Retry generation
-curl -X POST http://localhost:3000/api/v1/monitoring/contracts/{contractId}/regenerate
+curl -X POST http://localhost:64000/api/v1/monitoring/contracts/{contractId}/regenerate
 ```
 
 ### Issue: HITL Task Stuck
@@ -145,7 +145,7 @@ curl -X POST http://localhost:3000/api/v1/monitoring/contracts/{contractId}/rege
 psql -c "SELECT * FROM hitl_approvals WHERE status = 'PENDING' AND sla_deadline < NOW();"
 
 # Force escalation
-curl -X POST http://localhost:3000/api/v1/monitoring/hitl/tasks/{taskId}/escalate
+curl -X POST http://localhost:64000/api/v1/monitoring/hitl/tasks/{taskId}/escalate
 ```
 
 ---
@@ -155,7 +155,7 @@ curl -X POST http://localhost:3000/api/v1/monitoring/hitl/tasks/{taskId}/escalat
 ### Emergency: Stop All Processing
 ```bash
 # Pause all queues
-curl -X POST http://localhost:3000/admin/queues/pause-all
+curl -X POST http://localhost:64000/admin/queues/pause-all
 
 # Or manually
 docker exec cerniq-redis redis-cli -a $REDIS_PASSWORD \
@@ -170,7 +170,7 @@ docker exec cerniq-redis redis-cli -a $REDIS_PASSWORD \
   ZRANGE bull:revolut:webhook:ingest:failed 0 -1
 
 # Retry all failed
-curl -X POST http://localhost:3000/admin/queues/revolut:webhook:ingest/retry-all
+curl -X POST http://localhost:64000/admin/queues/revolut:webhook:ingest/retry-all
 ```
 
 ### Emergency: Database Rollback
@@ -189,10 +189,10 @@ npm run db:rollback
 ### Queue Monitoring
 ```bash
 # Real-time queue stats
-watch -n 5 'curl -s http://localhost:3000/health/queues | jq'
+watch -n 5 'curl -s http://localhost:64000/health/queues | jq'
 
 # BullMQ Dashboard
-# Access: http://localhost:3000/admin/bull-board
+# Access: http://localhost:64000/admin/bull-board
 ```
 
 ### Log Analysis

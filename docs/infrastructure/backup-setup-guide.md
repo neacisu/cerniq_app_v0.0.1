@@ -42,7 +42,7 @@ ssh-keygen -t ed25519 -f ~/.ssh/hetzner_backup -C "cerniq-backup"
 
 ```bash
 # Conectare la Storage Box
-ssh -i ~/.ssh/hetzner_backup uXXXXXX@uXXXXXX.your-storagebox.de -p 23
+ssh -i ~/.ssh/hetzner_backup uXXXXXX@uXXXXXX.your-storagebox.de -p 22
 
 # Creare structură
 mkdir -p ./backups/cerniq/{postgres,redis,files,borg}
@@ -52,7 +52,7 @@ mkdir -p ./backups/cerniq/{postgres,redis,files,borg}
 
 ```bash
 # Pe server-ul Cerniq
-export BORG_REPO="ssh://uXXXXXX@uXXXXXX.your-storagebox.de:23/./backups/cerniq/borg"
+export BORG_REPO="ssh://uXXXXXX@uXXXXXX.your-storagebox.de:22/./backups/cerniq/borg"
 export BORG_RSH="ssh -i ~/.ssh/hetzner_backup"
 export BORG_PASSPHRASE="<your-strong-passphrase>"
 
@@ -70,7 +70,7 @@ Adaugă în `.env.production` sau Docker secrets:
 # Hetzner Storage Box
 HETZNER_STORAGEBOX_USER=uXXXXXX
 HETZNER_STORAGEBOX_HOST=uXXXXXX.your-storagebox.de
-HETZNER_STORAGEBOX_PORT=23
+HETZNER_STORAGEBOX_PORT=22
 HETZNER_STORAGEBOX_PATH=./backups/cerniq
 
 # Borg
@@ -98,7 +98,7 @@ echo "<passphrase>" | docker secret create borg_passphrase -
 
 ```bash
 ssh -i ~/.ssh/hetzner_backup \
-    -p 23 \
+    -p 22 \
     uXXXXXX@uXXXXXX.your-storagebox.de \
     "ls -la ./backups/cerniq/"
 ```
@@ -147,8 +147,8 @@ ls -la
 
 ```bash
 # Verifică că SSH este activat pe Storage Box
-# Verifică port-ul (23, nu 22!)
-ssh -v -p 23 uXXXXXX@uXXXXXX.your-storagebox.de
+# Verifică port-ul (22)
+ssh -v -p 22 uXXXXXX@uXXXXXX.your-storagebox.de
 ```
 
 ### Eroare: Permission denied

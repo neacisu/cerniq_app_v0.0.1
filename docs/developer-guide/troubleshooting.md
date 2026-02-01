@@ -20,7 +20,7 @@ lsof -i :64000
 ### 1.2 Database Connection Refused
 
 **Simptom:**
-`logs` arată `Connection refused at localhost:5432` deși containerul pare up.
+`logs` arată `Connection refused at localhost:64032` deși containerul pare up.
 
 **Cauză:**
 PostgreSQL nu este încă "Healthy".
@@ -82,5 +82,5 @@ Redis-ul de development pornește gol. Rulați seed scripts sau ignorați până
 Dacă problema nu este listată aici:
 
 1. Verificați [Master Specification](../specifications/master-specification.md).
-2. Verificați log-urile din SigNoz (<http://localhost:3301>).
+2. Verificați log-urile din SigNoz (<http://localhost:64089>).
 3. Deschideți un Issue pe GitHub cu tag-ul `bug`.

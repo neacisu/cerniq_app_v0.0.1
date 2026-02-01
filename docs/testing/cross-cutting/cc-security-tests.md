@@ -504,7 +504,7 @@ describe('SSRF Prevention', () => {
     'http://0.0.0.0/',
     'http://internal-service.local/',
     'file:///etc/passwd',
-    'dict://localhost:6379/INFO',
+    'dict://localhost:64039/INFO',
   ];
   
   it.each(ssrfPayloads)('should block: %s', async (url) => {

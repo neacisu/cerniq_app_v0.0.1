@@ -66,7 +66,7 @@ Acest document definește strategia completă de monitoring și observability pe
 │         ▼                ▼                ▼                     ▼           │
 │  ┌──────────────────────────────────────────────────────────────────────┐  │
 │  │                    OpenTelemetry Collector                           │  │
-│  │                    (OTLP gRPC :4317, HTTP :4318)                     │  │
+│  │                    (OTLP gRPC :64070, HTTP :64071)                   │  │
 │  └──────────────────────────────────────────────────────────────────────┘  │
 │                                    │                                        │
 │                                    ▼                                        │
@@ -630,11 +630,11 @@ receivers:
   otlp:
     protocols:
       grpc:
-        endpoint: 0.0.0.0:4317
+        endpoint: 0.0.0.0:64070
         max_recv_msg_size_mib: 16
         max_concurrent_streams: 100
       http:
-        endpoint: 0.0.0.0:4318
+        endpoint: 0.0.0.0:64071
         cors:
           allowed_origins:
             - "https://cerniq.app"
@@ -765,7 +765,7 @@ processors:
 exporters:
   # ClickHouse for traces
   clickhousetraces:
-    datasource: tcp://clickhouse:9000/signoz_traces
+    datasource: tcp://clickhouse:64083/signoz_traces
     migrations_folder: /signoz/migrations/traces
     low_cardinal_exception_grouping: true
     timeout: 30s
@@ -777,7 +777,7 @@ exporters:
 
   # ClickHouse for metrics
   clickhousemetricswrite:
-    datasource: tcp://clickhouse:9000/signoz_metrics
+    datasource: tcp://clickhouse:64083/signoz_metrics
     timeout: 30s
     retry_on_failure:
       enabled: true
@@ -787,7 +787,7 @@ exporters:
 
   # ClickHouse for logs
   clickhouselogs:
-    dsn: tcp://clickhouse:9000/signoz_logs
+    dsn: tcp://clickhouse:64083/signoz_logs
     timeout: 30s
     retry_on_failure:
       enabled: true
@@ -797,7 +797,7 @@ exporters:
 
   # Prometheus for Grafana integration
   prometheus:
-    endpoint: 0.0.0.0:8889
+    endpoint: 0.0.0.0:64094
     namespace: cerniq_etapa3
     const_labels:
       environment: ${DEPLOYMENT_ENV}
@@ -811,7 +811,7 @@ exporters:
 extensions:
   # Health check extension
   health_check:
-    endpoint: 0.0.0.0:13133
+    endpoint: 0.0.0.0:64095
     path: /health
     check_collector_pipeline:
       enabled: true
@@ -820,11 +820,11 @@ extensions:
 
   # pprof for debugging
   pprof:
-    endpoint: 0.0.0.0:1777
+    endpoint: 0.0.0.0:64087
 
   # zpages for debugging
   zpages:
-    endpoint: 0.0.0.0:55679
+    endpoint: 0.0.0.0:64088
 
 service:
   extensions: [health_check, pprof, zpages]
@@ -835,7 +835,7 @@ service:
       initial_fields:
         service: otel-collector-etapa3
     metrics:
-      address: 0.0.0.0:8888
+      address: 0.0.0.0:64093
       level: detailed
 
   pipelines:
@@ -870,7 +870,7 @@ const sdk = initializeObservability({
   serviceName: 'cerniq-ai-agent-worker',
   serviceVersion: process.env.npm_package_version || '1.0.0',
   environment: (process.env.NODE_ENV as 'development' | 'staging' | 'production') || 'development',
-  otlpEndpoint: process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://otel-collector:4317',
+  otlpEndpoint: process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://otel-collector:64070',
   enableTracing: true,
   enableMetrics: true,
   enableLogs: true,
@@ -3371,9 +3371,9 @@ receivers:
   otlp:
     protocols:
       grpc:
-        endpoint: 0.0.0.0:4317
+        endpoint: 0.0.0.0:64070
       http:
-        endpoint: 0.0.0.0:4318
+        endpoint: 0.0.0.0:64071
 
 processors:
   batch:
@@ -3403,7 +3403,7 @@ processors:
 
 exporters:
   clickhouselogs:
-    dsn: tcp://clickhouse:9000/signoz_logs
+    dsn: tcp://clickhouse:64083/signoz_logs
     timeout: 30s
     retry_on_failure:
       enabled: true
@@ -5298,13 +5298,13 @@ spec:
         - name: api
           image: cerniq/etapa3-api:latest
           ports:
-            - containerPort: 3000
+            - containerPort: 64000
           
           # Liveness probe - restart if process is unresponsive
           livenessProbe:
             httpGet:
               path: /health/live
-              port: 3000
+              port: 64000
             initialDelaySeconds: 10
             periodSeconds: 15
             timeoutSeconds: 5
@@ -5314,7 +5314,7 @@ spec:
           readinessProbe:
             httpGet:
               path: /health/ready
-              port: 3000
+              port: 64000
             initialDelaySeconds: 5
             periodSeconds: 10
             timeoutSeconds: 5
@@ -5324,7 +5324,7 @@ spec:
           startupProbe:
             httpGet:
               path: /health/live
-              port: 3000
+              port: 64000
             initialDelaySeconds: 0
             periodSeconds: 5
             timeoutSeconds: 5
@@ -10112,7 +10112,7 @@ groups:
 
 global:
   resolve_timeout: 5m
-  smtp_smarthost: 'smtp.resend.com:587'
+  smtp_smarthost: 'smtp.resend.com:443'
   smtp_from: 'alerts@cerniq.app'
   smtp_auth_username: 'resend'
   smtp_auth_password_file: '/etc/alertmanager/secrets/smtp_password'
@@ -10925,7 +10925,7 @@ export const RUNBOOKS: Runbook[] = [
         order: 2,
         title: 'Check Current Latency Metrics',
         description: 'View current P95 and P99 latency values',
-        command: 'curl -s "http://prometheus:9090/api/v1/query?query=histogram_quantile(0.95,rate(cerniq_etapa3_llm_latency_seconds_bucket[5m]))"',
+        command: 'curl -s "http://prometheus:64090/api/v1/query?query=histogram_quantile(0.95,rate(cerniq_etapa3_llm_latency_seconds_bucket[5m]))"',
         automatable: true,
         estimatedTime: 10,
       },
@@ -10933,7 +10933,7 @@ export const RUNBOOKS: Runbook[] = [
         order: 3,
         title: 'Check Queue Depths',
         description: 'Verify AI Agent queue is not backing up',
-        command: 'curl -s "http://prometheus:9090/api/v1/query?query=cerniq_etapa3_queue_depth{worker=~\"ai.*\"}"',
+        command: 'curl -s "http://prometheus:64090/api/v1/query?query=cerniq_etapa3_queue_depth{worker=~\"ai.*\"}"',
         automatable: true,
         estimatedTime: 10,
       },
@@ -10941,7 +10941,7 @@ export const RUNBOOKS: Runbook[] = [
         order: 4,
         title: 'Check Token Usage',
         description: 'Look for unusually large token counts indicating complex prompts',
-        command: 'curl -s "http://prometheus:9090/api/v1/query?query=rate(cerniq_etapa3_llm_tokens_input_total[5m])"',
+        command: 'curl -s "http://prometheus:64090/api/v1/query?query=rate(cerniq_etapa3_llm_tokens_input_total[5m])"',
         automatable: true,
         estimatedTime: 10,
       },
@@ -10986,7 +10986,7 @@ export const RUNBOOKS: Runbook[] = [
         order: 2,
         title: 'Check OAuth Token',
         description: 'Verify ANAF OAuth token is valid and not expired',
-        command: 'curl -s http://localhost:3000/api/v1/internal/anaf/token-status',
+        command: 'curl -s http://localhost:64000/api/v1/internal/anaf/token-status',
         automatable: true,
         estimatedTime: 10,
       },
@@ -11009,7 +11009,7 @@ export const RUNBOOKS: Runbook[] = [
         order: 5,
         title: 'Refresh OAuth Token',
         description: 'Force refresh of ANAF OAuth token',
-        command: 'curl -X POST http://localhost:3000/api/v1/internal/anaf/refresh-token',
+        command: 'curl -X POST http://localhost:64000/api/v1/internal/anaf/refresh-token',
         automatable: true,
         estimatedTime: 30,
       },
@@ -11017,7 +11017,7 @@ export const RUNBOOKS: Runbook[] = [
         order: 6,
         title: 'Retry Failed Submissions',
         description: 'Trigger retry for failed e-Factura submissions',
-        command: 'curl -X POST http://localhost:3000/api/v1/internal/efactura/retry-failed',
+        command: 'curl -X POST http://localhost:64000/api/v1/internal/efactura/retry-failed',
         automatable: true,
         estimatedTime: 60,
       },
@@ -11038,7 +11038,7 @@ export const RUNBOOKS: Runbook[] = [
         order: 1,
         title: 'Check Pending Approvals',
         description: 'List all pending HITL approvals',
-        command: 'curl -s http://localhost:3000/api/v1/internal/hitl/pending | jq ".approvals | length"',
+        command: 'curl -s http://localhost:64000/api/v1/internal/hitl/pending | jq ".approvals | length"',
         automatable: true,
         estimatedTime: 10,
       },
@@ -11046,7 +11046,7 @@ export const RUNBOOKS: Runbook[] = [
         order: 2,
         title: 'Identify Blockers',
         description: 'Find approvals blocking the queue',
-        command: 'curl -s http://localhost:3000/api/v1/internal/hitl/blocking',
+        command: 'curl -s http://localhost:64000/api/v1/internal/hitl/blocking',
         automatable: true,
         estimatedTime: 10,
       },
@@ -11054,7 +11054,7 @@ export const RUNBOOKS: Runbook[] = [
         order: 3,
         title: 'Notify Approvers',
         description: 'Send reminder notifications to assigned approvers',
-        command: 'curl -X POST http://localhost:3000/api/v1/internal/hitl/notify-approvers',
+        command: 'curl -X POST http://localhost:64000/api/v1/internal/hitl/notify-approvers',
         automatable: true,
         estimatedTime: 30,
       },
@@ -11062,7 +11062,7 @@ export const RUNBOOKS: Runbook[] = [
         order: 4,
         title: 'Escalate if Needed',
         description: 'Escalate approvals that are significantly past SLA',
-        command: 'curl -X POST http://localhost:3000/api/v1/internal/hitl/escalate-overdue',
+        command: 'curl -X POST http://localhost:64000/api/v1/internal/hitl/escalate-overdue',
         automatable: true,
         estimatedTime: 60,
       },

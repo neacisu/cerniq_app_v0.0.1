@@ -2610,7 +2610,7 @@ export class HandoverNotificationService {
   constructor() {
     this.emailTransporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT || '587'),
+      port: parseInt(process.env.SMTP_PORT || '443'),
       secure: process.env.SMTP_SECURE === 'true',
       auth: {
         user: process.env.SMTP_USER,
@@ -2626,7 +2626,7 @@ export class HandoverNotificationService {
     this.pushNotificationQueue = new Queue('push-notifications', {
       connection: {
         host: process.env.REDIS_HOST,
-        port: parseInt(process.env.REDIS_PORT || '6379')
+        port: parseInt(process.env.REDIS_PORT || '64039')
       }
     });
   }
@@ -2865,7 +2865,7 @@ export class HandoverNotificationService {
       const whatsappQueue = new Queue('whatsapp-delivery', {
         connection: {
           host: process.env.REDIS_HOST,
-          port: parseInt(process.env.REDIS_PORT || '6379')
+          port: parseInt(process.env.REDIS_PORT || '64039')
         }
       });
 
@@ -3083,7 +3083,7 @@ export async function handleHandoverDecline(payload: DeclinePayload): Promise<{
     const hitlQueue = new Queue('hitl-tasks', {
       connection: {
         host: process.env.REDIS_HOST,
-        port: parseInt(process.env.REDIS_PORT || '6379')
+        port: parseInt(process.env.REDIS_PORT || '64039')
       }
     });
 
@@ -3561,7 +3561,7 @@ export class HandoverStatusTracker {
         const hitlQueue = new Queue('hitl-tasks', {
           connection: {
             host: process.env.REDIS_HOST,
-            port: parseInt(process.env.REDIS_PORT || '6379')
+            port: parseInt(process.env.REDIS_PORT || '64039')
           }
         });
 
@@ -3807,7 +3807,7 @@ interface ChannelSwitchResult {
 const channelSwitchQueue = new Queue('channel-switch', {
   connection: {
     host: process.env.REDIS_HOST || 'localhost',
-    port: parseInt(process.env.REDIS_PORT || '6379'),
+    port: parseInt(process.env.REDIS_PORT || '64039'),
     db: 4 // Dedicated DB for channel management
   },
   defaultJobOptions: {
@@ -3973,7 +3973,7 @@ const channelSwitchWorker = new Worker<ChannelSwitchJobData, ChannelSwitchResult
   {
     connection: {
       host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379'),
+      port: parseInt(process.env.REDIS_PORT || '64039'),
       db: 4
     },
     concurrency: 10,
@@ -4191,7 +4191,7 @@ async function sendMessageOnChannel(
       const emailQueue = new Queue('email-delivery', {
         connection: {
           host: process.env.REDIS_HOST,
-          port: parseInt(process.env.REDIS_PORT || '6379')
+          port: parseInt(process.env.REDIS_PORT || '64039')
         }
       });
       await emailQueue.add('send-channel-switch', {
@@ -4211,7 +4211,7 @@ async function sendMessageOnChannel(
       const whatsappQueue = new Queue('whatsapp-delivery', {
         connection: {
           host: process.env.REDIS_HOST,
-          port: parseInt(process.env.REDIS_PORT || '6379')
+          port: parseInt(process.env.REDIS_PORT || '64039')
         }
       });
       await whatsappQueue.add('send-channel-switch', {
@@ -4230,7 +4230,7 @@ async function sendMessageOnChannel(
       const smsQueue = new Queue('sms-delivery', {
         connection: {
           host: process.env.REDIS_HOST,
-          port: parseInt(process.env.REDIS_PORT || '6379')
+          port: parseInt(process.env.REDIS_PORT || '64039')
         }
       });
       await smsQueue.add('send', {
@@ -4245,7 +4245,7 @@ async function sendMessageOnChannel(
       const phoneQueue = new Queue('phone-callback', {
         connection: {
           host: process.env.REDIS_HOST,
-          port: parseInt(process.env.REDIS_PORT || '6379')
+          port: parseInt(process.env.REDIS_PORT || '64039')
         }
       });
       await phoneQueue.add('schedule-callback', {
@@ -4906,7 +4906,7 @@ interface SyncResult {
 const channelSyncQueue = new Queue('channel-sync', {
   connection: {
     host: process.env.REDIS_HOST || 'localhost',
-    port: parseInt(process.env.REDIS_PORT || '6379'),
+    port: parseInt(process.env.REDIS_PORT || '64039'),
     db: 4
   },
   defaultJobOptions: {
@@ -5037,7 +5037,7 @@ const channelSyncWorker = new Worker<ChannelSyncJobData, SyncResult>(
   {
     connection: {
       host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379'),
+      port: parseInt(process.env.REDIS_PORT || '64039'),
       db: 4
     },
     concurrency: 5,
@@ -5384,13 +5384,13 @@ import { logger } from '@/lib/logger';
 
 const redis = new Redis({
   host: process.env.REDIS_HOST,
-  port: parseInt(process.env.REDIS_PORT || '6379'),
+  port: parseInt(process.env.REDIS_PORT || '64039'),
   db: 5 // PubSub dedicated DB
 });
 
 const redisSub = new Redis({
   host: process.env.REDIS_HOST,
-  port: parseInt(process.env.REDIS_PORT || '6379'),
+  port: parseInt(process.env.REDIS_PORT || '64039'),
   db: 5
 });
 
@@ -6062,7 +6062,7 @@ import IORedis from 'ioredis';
 // Redis connection for handover/channel queues
 const handoverRedisConnection = new IORedis({
   host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379'),
+  port: parseInt(process.env.REDIS_PORT || '64039'),
   db: 6, // Dedicated DB for handover/channel management
   maxRetriesPerRequest: null,
   enableReadyCheck: false,
@@ -7045,7 +7045,7 @@ async function createErrorHitlTask(
   const hitlQueue = new Queue('hitl-tasks', {
     connection: {
       host: process.env.REDIS_HOST,
-      port: parseInt(process.env.REDIS_PORT || '6379')
+      port: parseInt(process.env.REDIS_PORT || '64039')
     }
   });
 
@@ -7145,7 +7145,7 @@ import { logger } from '@/lib/logger';
 
 const redis = new Redis({
   host: process.env.REDIS_HOST,
-  port: parseInt(process.env.REDIS_PORT || '6379'),
+  port: parseInt(process.env.REDIS_PORT || '64039'),
   db: 6
 });
 
@@ -9648,7 +9648,7 @@ export class HandoverMetricsCollector {
     ];
 
     const { Queue } = await import('bullmq');
-    const connection = { host: process.env.REDIS_HOST, port: 6379, db: 6 };
+    const connection = { host: process.env.REDIS_HOST, port: 64039, db: 6 };
 
     for (const queueName of queues) {
       const queue = new Queue(queueName, { connection });
@@ -11352,19 +11352,19 @@ describe('Handover Flow Integration Tests', () => {
     // Connect to test database
     pool = new Pool({
       connectionString: process.env.TEST_DATABASE_URL || 
-        'postgresql://test:test@localhost:5432/cerniq_test'
+        'postgresql://test:test@localhost:64032/cerniq_test'
     });
     db = drizzle(pool, { schema });
 
     // Connect to test Redis
     redis = new Redis({
       host: process.env.TEST_REDIS_HOST || 'localhost',
-      port: 6379,
+      port: 64039,
       db: 15 // Use separate DB for tests
     });
 
     // Create test queues
-    const connection = { host: 'localhost', port: 6379, db: 15 };
+    const connection = { host: 'localhost', port: 64039, db: 15 };
     handoverPrepareQueue = new Queue('handover-prepare-test', { connection });
     handoverExecuteQueue = new Queue('handover-execute-test', { connection });
     handoverNotificationQueue = new Queue('handover-notification-test', { connection });
@@ -11964,7 +11964,7 @@ export const options = {
   }
 };
 
-const BASE_URL = __ENV.API_URL || 'http://localhost:3000';
+const BASE_URL = __ENV.API_URL || 'http://localhost:64000';
 const AUTH_TOKEN = __ENV.AUTH_TOKEN || 'test-token';
 
 export function setup() {
@@ -12134,10 +12134,10 @@ thresholds:
 
 outputs:
   - json=results/handover-load-test.json
-  - influxdb=http://localhost:8086/k6
+  - influxdb=http://localhost:64097/k6
 
 environment:
-  API_URL: http://localhost:3000
+  API_URL: http://localhost:64000
   AUTH_TOKEN: ${K6_AUTH_TOKEN}
 ```
 
@@ -12158,7 +12158,7 @@ import { logger } from '@/lib/logger';
 // Redis connection for pub/sub
 const pubClient = new Redis({
   host: process.env.REDIS_HOST || 'localhost',
-  port: 6379,
+  port: 64039,
   db: 7 // Dedicated DB for events
 });
 
@@ -12293,7 +12293,7 @@ export function setupHandoverEventHandlers(): void {
       
       // Queue handover preparation
       const handoverPrepareQueue = new Queue('handover-prepare', {
-        connection: { host: process.env.REDIS_HOST, port: 6379, db: 6 }
+        connection: { host: process.env.REDIS_HOST, port: 64039, db: 6 }
       });
 
       await handoverPrepareQueue.add('prepare', {
@@ -12320,7 +12320,7 @@ export function setupHandoverEventHandlers(): void {
         logger.info({ payload }, 'Negotiation stuck - triggering handover');
         
         const handoverPrepareQueue = new Queue('handover-prepare', {
-          connection: { host: process.env.REDIS_HOST, port: 6379, db: 6 }
+          connection: { host: process.env.REDIS_HOST, port: 64039, db: 6 }
         });
 
         await handoverPrepareQueue.add('prepare', {
@@ -12376,7 +12376,7 @@ export function setupHandoverEventHandlers(): void {
         } else if (payload.sentimentScore < -0.5) {
           // Very negative sentiment without handover - trigger one
           const handoverPrepareQueue = new Queue('handover-prepare', {
-            connection: { host: process.env.REDIS_HOST, port: 6379, db: 6 }
+            connection: { host: process.env.REDIS_HOST, port: 64039, db: 6 }
           });
 
           await handoverPrepareQueue.add('prepare', {
@@ -12446,7 +12446,7 @@ import { logger } from '@/lib/logger';
 
 const redisConnection = {
   host: process.env.REDIS_HOST || 'localhost',
-  port: 6379,
+  port: 64039,
   db: 6
 };
 
@@ -13122,7 +13122,7 @@ export class HandoverAccessControl {
   constructor() {
     this.redis = new Redis({
       host: process.env.REDIS_HOST || 'localhost',
-      port: 6379,
+      port: 64039,
       db: 8 // Dedicated DB for auth
     });
   }

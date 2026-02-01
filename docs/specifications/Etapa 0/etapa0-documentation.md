@@ -49,7 +49,7 @@
   "default-address-pools": [
     {"base": "172.20.0.0/16", "size": 24}
   ],
-  "metrics-addr": "0.0.0.0:9323"
+  "metrics-addr": "0.0.0.0:64093"
 }
 ```
 
@@ -90,7 +90,7 @@ networks:
 | :--- | :--- | :--- | :--- |
 | 64080 | Traefik HTTP | Public (via Nginx) | Mapat din container :80 |
 | 64443 | Traefik HTTPS | Public (via Nginx) | Mapat din container :443 |
-| 64081 | Traefik Dashboard | Admin (via Nginx) | Mapat din container :8080 |
+| 64081 | Traefik Dashboard | Admin (via Nginx) | Mapat din container :64081 |
 | 64000 | API Gateway | Intern/Debug | Fastify (via Traefik în prod) |
 | 64070 | OTel gRPC | Intern | Traces/Metrics |
 | 64071 | OTel HTTP | Intern | Logs |
@@ -274,7 +274,7 @@ pg_dumpall | gzip > pg_backup_$(date +%Y%m%d).sql.gz
 # Borg create
 borg create \
   --compression auto,zstd,6 \
-  ssh://uXXXXXX@uXXXXXX.your-storagebox.de:23/./borg-repo::{hostname}-{now} \
+  ssh://uXXXXXX@uXXXXXX.your-storagebox.de:22/./borg-repo::{hostname}-{now} \
   /var/www/CerniqAPP \
   /etc/cerniq \
   /var/backups/databases
@@ -465,7 +465,7 @@ borg create \
   "taskID": "F0.1.1.T002",
   "denumire_task": "Configurare daemon.json pentru server 128GB RAM/20 cores",
   "context_anterior": "Docker Engine 29.1.3 instalat în F0.1.1.T001, configurare default",
-  "descriere_task": "Ești un expert Docker specializat în optimizare pentru servere high-memory. Task-ul tău este să creezi fișierul /etc/docker/daemon.json cu configurația optimizată pentru serverul Cerniq (128GB RAM, 20 cores). Configurația TREBUIE să includă: storage-driver overlay2, log-driver json-file cu max-size 50m și max-file 5, live-restore true pentru zero-downtime upgrades, userland-proxy false pentru performanță network îmbunătățită, default-ulimits nofile 65536, default-address-pools cu baza 172.20.0.0/16 și size 24, metrics-addr 0.0.0.0:9323 pentru Prometheus scraping. După creare, restartează docker daemon și verifică aplicarea configurației.",
+  "descriere_task": "Ești un expert Docker specializat în optimizare pentru servere high-memory. Task-ul tău este să creezi fișierul /etc/docker/daemon.json cu configurația optimizată pentru serverul Cerniq (128GB RAM, 20 cores). Configurația TREBUIE să includă: storage-driver overlay2, log-driver json-file cu max-size 50m și max-file 5, live-restore true pentru zero-downtime upgrades, userland-proxy false pentru performanță network îmbunătățită, default-ulimits nofile 65536, default-address-pools cu baza 172.20.0.0/16 și size 24, metrics-addr 0.0.0.0:64093 pentru Prometheus scraping. După creare, restartează docker daemon și verifică aplicarea configurației.",
   "director_implementare": "/etc/docker",
   "restrictii_antihalucinatie": [
     "NU folosi storage-driver diferit de overlay2",
@@ -523,15 +523,15 @@ borg create \
   "taskID": "F0.2.1.T001",
   "denumire_task": "Creare Docker Compose pentru PostgreSQL 18.1 cu PostGIS",
   "context_anterior": "Rețele Docker create în F0.1.2, PostgreSQL nu e instalat",
-  "descriere_task": "Ești un expert DBA PostgreSQL cu experiență în containerizare. Task-ul tău este să creezi serviciul PostgreSQL în docker-compose.yml. Folosește imaginea postgis/postgis:18-3.6 (include PostGIS). Configurează: volume pentru persistență la /var/lib/postgresql/data, network cerniq_data (intern ONLY - NU expune portul 5432 public), environment variables pentru POSTGRES_USER, POSTGRES_PASSWORD (din secret), POSTGRES_DB=cerniq_production, healthcheck cu pg_isready, shm_size: 4gb pentru shared memory, deploy resources cu memory limit 32G. NU expune portul 5432 la host în production - doar intern.",
+  "descriere_task": "Ești un expert DBA PostgreSQL cu experiență în containerizare. Task-ul tău este să creezi serviciul PostgreSQL în docker-compose.yml. Folosește imaginea postgis/postgis:18-3.6 (include PostGIS). Configurează: volume pentru persistență la /var/lib/postgresql/data, network cerniq_data (intern ONLY - NU expune portul 64032 public), environment variables pentru POSTGRES_USER, POSTGRES_PASSWORD (din secret), POSTGRES_DB=cerniq_production, healthcheck cu pg_isready, shm_size: 4gb pentru shared memory, deploy resources cu memory limit 32G. NU expune portul 64032 la host în production - doar intern.",
   "director_implementare": "/var/www/CerniqAPP/infra/docker",
   "restrictii_antihalucinatie": [
-    "NU expune port 5432 la 0.0.0.0",
+    "NU expune port 64032 la 0.0.0.0",
     "NU folosi imagine postgres standard - TREBUIE postgis/postgis",
     "NU hardcodează parola - folosește Docker secret",
     "VERIFICĂ versiunea este 18.x"
   ],
-  "validare_task": "docker compose config validează fără erori; postgres service are network cerniq_data; nu există port mapping public pentru 5432",
+  "validare_task": "docker compose config validează fără erori; postgres service are network cerniq_data; nu există port mapping public pentru 64032",
   "outcome": "PostgreSQL 18.1 cu PostGIS configurat în Docker Compose"
 }
 ```
@@ -583,7 +583,7 @@ borg create \
   "director_implementare": "/var/www/CerniqAPP/infra/docker",
   "restrictii_antihalucinatie": [
     "maxmemory-policy TREBUIE să fie noeviction - altfel BullMQ va pierde job-uri",
-    "NU expune port 6379 public",
+    "NU expune port 64039 public",
     "NU dezactiva persistența AOF",
     "VERIFICĂ notify-keyspace-events pentru delayed jobs"
   ],
