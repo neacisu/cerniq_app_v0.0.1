@@ -67,7 +67,7 @@ Strategia de testare este documentată detaliat în fiecare etapă a proiectului
 
 1. **Test Pyramid**: Unit (70%) → Integration (20%) → E2E (10%)
 2. **Framework**: Vitest pentru toate testele
-3. **Coverage Target**: Minimum 80% pentru cod critic
+3. **Coverage Target**: Conform Master Spec § 2.10.8 (Canonical Test Coverage Targets)
 4. **CI Integration**: Toate PR-urile trebuie să treacă testele
 
 ---

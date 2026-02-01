@@ -1,0 +1,247 @@
+# =============================================================================
+# CERNIQ.APP — CI Pipeline for Pull Requests and Pushes
+# =============================================================================
+# Workflow: ci-pr.yml
+# Trigger: Push to main/develop, Pull Requests to main/develop
+# Purpose: Lint, Test, Security Scan, Docker Build Verification
+# 
+# Reference: ADR-0107 CI/CD Pipeline Strategy
+# Created: 2026-02-01
+# =============================================================================
+
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '24.12.0'
+  PNPM_VERSION: '9'
+  PYTHON_VERSION: '3.14'
+
+jobs:
+  # ===========================================================================
+  # JOB 1: Linting & Type Checking
+  # ===========================================================================
+  lint:
+    name: 🔍 Lint & Type Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: 📥 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🔍 Run ESLint
+        run: pnpm lint
+
+      - name: 📝 TypeScript Type Check
+        run: pnpm typecheck
+
+  # ===========================================================================
+  # JOB 2: Unit & Integration Tests
+  # ===========================================================================
+  test:
+    name: 🧪 Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: lint
+
+    services:
+      postgres:
+        image: postgis/postgis:18-3.6
+        env:
+          POSTGRES_USER: cerniq_test
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: cerniq_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:8.4.0-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: 📥 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🧪 Run Unit Tests
+        run: pnpm test
+        env:
+          DATABASE_URL: postgresql://cerniq_test:test_password@localhost:5432/cerniq_test
+          REDIS_URL: redis://localhost:6379
+
+      - name: 📊 Upload Coverage Report
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+
+  # ===========================================================================
+  # JOB 3: Security Scan
+  # ===========================================================================
+  security:
+    name: 🔒 Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: lint
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔒 Run Trivy vulnerability scanner (filesystem)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
+          ignore-unfixed: true
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: 📤 Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: 🔍 Audit npm dependencies
+        run: pnpm audit --audit-level=high
+        continue-on-error: true
+
+  # ===========================================================================
+  # JOB 4: Docker Build Verification
+  # ===========================================================================
+  docker-build:
+    name: 🐳 Docker Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [lint, test]
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐳 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🏗️ Build API image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apps/api
+          push: false
+          tags: cerniq/api:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: 🏗️ Build Web image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apps/web
+          push: false
+          tags: cerniq/web:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ===========================================================================
+  # JOB 5: Python Workers Lint (if applicable)
+  # ===========================================================================
+  python-lint:
+    name: 🐍 Python Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: contains(github.event.head_commit.modified, 'workers/')
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: 📦 Install Python dependencies
+        run: |
+          pip install ruff mypy
+
+      - name: 🔍 Run Ruff linter
+        run: ruff check workers/
+
+      - name: 📝 Run mypy type check
+        run: mypy workers/ --ignore-missing-imports
+        continue-on-error: true
+
+  # ===========================================================================
+  # Final Status Check (for branch protection)
+  # ===========================================================================
+  ci-status:
+    name: ✅ CI Status
+    runs-on: ubuntu-latest
+    needs: [lint, test, security, docker-build]
+    if: always()
+
+    steps:
+      - name: Check CI Status
+        run: |
+          if [[ "${{ needs.lint.result }}" == "failure" ]] || \
+             [[ "${{ needs.test.result }}" == "failure" ]] || \
+             [[ "${{ needs.security.result }}" == "failure" ]] || \
+             [[ "${{ needs.docker-build.result }}" == "failure" ]]; then
+            echo "❌ CI failed"
+            exit 1
+          fi
+          echo "✅ All CI checks passed"

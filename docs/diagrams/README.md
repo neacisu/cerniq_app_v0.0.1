@@ -107,6 +107,18 @@
 
 3. **Export:** Păstrează `.drawio` pentru editare, exportă `.png` pentru docs
 
+### Export Automat (PNG + SVG)
+
+```bash
+# Export toate diagramele în PNG și SVG
+for f in docs/diagrams/*.drawio; do
+   drawio --export --format png "$f"
+   drawio --export --format svg "$f"
+done
+```
+
+> **Notă:** Comanda `drawio` este disponibilă după instalarea Draw.io Desktop.
+
 ---
 
 ## STATUS REVIEW
@@ -136,4 +148,4 @@
 
 ---
 
-**Actualizat:** 20 Ianuarie 2026
+**Actualizat:** 1 Februarie 2026

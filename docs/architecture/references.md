@@ -65,7 +65,7 @@
 
 | Tool | Versiune | Link |
 | ---- | -------- | ---- |
-| **Docker Engine** | 29.1.3 | [Reference](https://docs.docker.com/reference/) |
+| **Docker Engine** | 29.2.0 | [Reference](https://docs.docker.com/reference/) |
 | **Docker Compose** | v2 | [Compose Spec](https://docs.docker.com/compose/compose-file/) |
 | **Traefik** | v3.6.6 | [Documentation](https://doc.traefik.io/traefik/) |
 | **SigNoz** | v0.107.0 | [Docs](https://signoz.io/docs/) |

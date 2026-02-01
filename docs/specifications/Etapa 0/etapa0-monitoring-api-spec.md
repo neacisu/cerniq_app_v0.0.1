@@ -1,7 +1,7 @@
 # TECHNICAL SPECIFICATION: MONITORING API (SIDECAR)
 
-**Document Status:** DRAFT 1.0  
-**Data:** 20 Ianuarie 2026  
+**Document Status:** NORMATIV 1.1  
+**Data:** 1 Februarie 2026  
 **Componenta:** `apps/monitoring-api`
 
 ---
@@ -174,5 +174,42 @@ setInterval(async () => {
 
 * Accesul la `monitoring-api` va fi protejat prin **Internal VPC Restrictions** (accesibil doar din rețeaua internă sau prin VPN/Admin interface).
 * Endpoint-urile de control (ex: Pause/Resume) necesită header `x-admin-key`.
+
+---
+
+## 8. CONFIGURARE & ENV VARS
+
+| Variabilă | Descriere | Exemplu |
+| :--- | :--- | :--- |
+| `PORT` | Port server | `64000` |
+| `REDIS_HOST` | Redis host | `redis` |
+| `REDIS_PORT` | Redis port | `6379` |
+| `MONITORING_POLL_INTERVAL_MS` | Interval polling (ms) | `2000` |
+| `ADMIN_KEY` | Cheie admin pentru control | `change_me` |
+
+---
+
+## 9. OPERAȚIONAL
+
+### 9.1 Rate & Load Guidelines
+
+- Polling interval recomandat: **>= 2000 ms**
+- Evitați instrumentarea directă a queue depth în workers (reduce Redis load)
+
+### 9.2 Failure Modes
+
+| Simptom | Cauză probabilă | Remediere |
+| --- | --- | --- |
+| `/api/queues` timeout | Redis down | Verificați Redis + restart `monitoring-api` |
+| WS disconnects | Network/VPC issue | Verificați firewall/VPN |
+| Empty metrics | Poll interval prea mare | Reduceți `MONITORING_POLL_INTERVAL_MS` |
+
+---
+
+## 10. COMPLIANCE
+
+- Read-only access la Redis
+- Fără PII în payload-urile WebSocket
+- Acces restricționat la rețeaua internă
 
 ---

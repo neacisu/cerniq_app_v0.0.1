@@ -2,7 +2,7 @@
 
 ## Toate Terminologiile și Definițiile din Proiect
 
-**Versiune:** 2.0 | **Data:** 11 Ianuarie 2026  
+**Versiune:** 2.1 | **Data:** 1 Februarie 2026  
 **Status:** NORMATIV - Aliniat cu Master Spec v1.2
 
 ---
@@ -740,7 +740,7 @@
 
 | Componentă        | Versiune   | Rol                            |
 | ----------------- | ---------- | ------------------------------ |
-| **Docker Engine** | 29.1.3     | Container runtime              |
+| **Docker Engine** | 29.2.0     | Container runtime              |
 | **Traefik**       | v3.6.6     | Reverse proxy, SSL termination |
 | **SigNoz**        | v0.107.0   | APM, traces, logs, metrics     |
 | **ClickHouse**    | Via SigNoz | Storage observability          |
@@ -912,13 +912,31 @@
 
 ---
 
-## 13. Deprecated și Aliasuri Legacy
+## 13. Termeni V-Z
+
+| Termen | Definiție |
+| --- | --- |
+| **Vector Store** | Stocare embeddings pentru căutare semantică (ex: pgvector) |
+| **Vector Search** | Căutare prin similaritate de embedding (KNN/HNSW) |
+| **Webhook** | Callback HTTP din sisteme externe către Cerniq.app |
+| **Worker** | Proces asincron BullMQ pentru job-uri din cozi |
+| **Workflow** | Orchestrare multi-step (ex: outreach sequence) |
+| **WAL** | Write-Ahead Log PostgreSQL pentru recovery/PITR |
+| **WAF** | Web Application Firewall (protejează API/edge) |
+| **XState** | Framework de finite state machines pentru fluxuri complexe |
+| **Zero Hallucination** | Principiu: output AI validat strict de reguli/date |
+| **Zero-Trust** | Model de securitate: verificare la fiecare acces |
+| **Zod** | Schema validation pentru TypeScript (API payloads) |
+
+---
+
+## 14. Deprecated și Aliasuri Legacy
 
 ### Termeni Deprecated
 
 | Element Deprecated      | Înlocuit Cu              | Motiv                          |
 | ----------------------- | ------------------------ | ------------------------------ |
-| **gold_hitl_tasks**     | `approval_tasks`         | Tabele per-stage → centralizat |
+| **gold_hitl_tasks**     | `approval_tasks`         | Tabele per-etapă → centralizat |
 | **shop_id**             | `tenant_id`              | Naming inconsistent            |
 | **assigned_to** (email) | `assigned_to` (UUID)     | Identity contract              |
 | **cui UNIQUE** (global) | `UNIQUE(tenant_id, cui)` | Multi-tenant break             |
@@ -944,6 +962,55 @@ const LEGACY_ALIASES = {
 
 ---
 
+## 15. Termeni suplimentari (Audit complet)
+
+### Observability & DevOps
+
+| Termen | Definiție |
+| --- | --- |
+| **AOF** | Append Only File (persistență Redis) |
+| **RDB** | Redis Database Snapshot |
+| **PITR** | Point-in-Time Recovery (PostgreSQL) |
+| **RPO** | Recovery Point Objective |
+| **RTO** | Recovery Time Objective |
+| **BorgBackup** | Sistem backup incremental pentru DR |
+| **Hetzner Storage Box** | Stocare offsite pentru backup-uri |
+| **SigNoz** | Observability platform (traces/metrics/logs) |
+| **ClickHouse** | Storage OLAP (folosit de SigNoz) |
+| **OpenTelemetry** | Standard pentru traces/metrics/logs |
+| **Trivy** | Scanner securitate imagini/container/file system |
+| **Traefik** | Reverse proxy & SSL termination |
+| **Healthcheck** | Endpoint de sănătate serviciu |
+| **SLI** | Service Level Indicator |
+| **SLO** | Service Level Objective |
+
+### Security & Compliance
+
+| Termen | Definiție |
+| --- | --- |
+| **ANSPDCP** | Autoritatea română de protecție a datelor (DPA) |
+| **DPA** | Data Processing Agreement |
+| **DPIA** | Data Protection Impact Assessment |
+| **ePrivacy** | Regulamente UE privind confidențialitatea comunicațiilor |
+| **VPC** | Virtual Private Cloud |
+| **VPN** | Virtual Private Network |
+| **MFA** | Multi-Factor Authentication |
+| **OIDC** | OpenID Connect |
+
+### AI/ML & Data
+
+| Termen | Definiție |
+| --- | --- |
+| **RAG** | Retrieval-Augmented Generation |
+| **Embeddings** | Reprezentări vectoriale pentru text/dokumente |
+| **Guardrails** | Reguli de siguranță pentru output AI |
+| **Prompt** | Instrucțiune pentru LLM |
+| **Tool-use** | Apelare tool-uri de către agent AI |
+| **Temperature** | Parametru de creativitate LLM |
+| **Token** | Unitate de procesare LLM |
+
+---
+
 ## Referințe
 
 - **Master Spec v1.2:** `__Cerniq_Master_Spec_Normativ_Complet.md`
@@ -956,4 +1023,4 @@ const LEGACY_ALIASES = {
 ---
 
 _Document generat din analiza exhaustivă a 25+ documente proiect._  
-_Ultima actualizare: 11 Ianuarie 2026_
+_Ultima actualizare: 1 Februarie 2026_

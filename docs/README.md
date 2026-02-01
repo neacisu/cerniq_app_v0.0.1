@@ -3,8 +3,8 @@
 > **B2B Sales Automation Platform pentru Piața Agricolă Românească**
 
 - [![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](./architecture/changelog.md)
-- [![Status](https://img.shields.io/badge/status-in_development-orange.svg)]
-- [![License](https://img.shields.io/badge/license-proprietary-red.svg)]
+- [![Status](https://img.shields.io/badge/status-in_development-orange.svg)](#)
+- [![License](https://img.shields.io/badge/license-proprietary-red.svg)](#)
 
 ---
 

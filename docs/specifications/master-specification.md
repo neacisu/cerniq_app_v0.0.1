@@ -2,15 +2,22 @@
 
 ## B2B Sales Automation Platform pentru Piața Agricolă Românească
 
-### Versiunea 1.2 | 11 Ianuarie 2026
+### Versiunea 1.3 | 1 Februarie 2026
 
 ---
 
 **DOCUMENT STATUS:** NORMATIV (Single Source of Truth)  
 **SCOPE:** Toate documentele existente în proiect devin ANEXE la acest document  
 **CREATION DATE:** 11 Ianuarie 2026  
-**LAST UPDATED:** 11 Ianuarie 2026 (v1.2 - Complete spec with governance)  
+**LAST UPDATED:** 1 Februarie 2026 (v1.3 - Sync cu ADR-0106)  
 **NEXT REVIEW:** Aprilie 2026 sau la actualizări majore dependențe
+
+### Changelog v1.3 (1 Februarie 2026)
+
+- ✅ Adăugare referință la ADR-0106: Provider Abstraction Layer
+- ✅ Sincronizare cu ADR INDEX actualizat
+- ✅ Corectare numerotare secțiuni 2.8-2.10 (Event Contract, Rate Limiting, Test Strategy)
+- ✅ Actualizare referințe în cuprins
 
 ### Changelog v1.2 (11 Ianuarie 2026)
 
@@ -47,9 +54,9 @@
    - 2.5 [LLM Routing Policy](#25-llm-routing-policy-canonic)
    - 2.6 [Multi-tenant Contract](#26-multi-tenant-contract-canonic)
    - 2.7 [Observability Stack](#27-observability-stack-canonic)
-   - 2.8 [Event Contract](#26-event-contract-canonic)
-   - 2.9 [Rate Limiting & Provider Constraints](#27-rate-limiting--provider-constraints-canonic)
-   - 2.10 [Test Strategy](#28-test-strategy-canonic)
+   - 2.8 [Event Contract](#28-event-contract-canonic)
+   - 2.9 [Rate Limiting & Provider Constraints](#29-rate-limiting--provider-constraints-canonic)
+   - 2.10 [Test Strategy](#210-test-strategy-canonic)
 3. [Canonical Data Model](#3-canonical-data-model)
 4. [Canonical Event Names & Queues](#4-canonical-event-names--queues)
 5. [HITL Core Contract](#5-hitl-core-contract)
@@ -63,7 +70,7 @@
 
 ### 0.1 Document Authority Hierarchy
 
-> **REGULĂ FUNDAMENTALĂ:** Acest document (Master Spec v1.2+) este **SINGURA sursă de adevăr** pentru proiectul Cerniq.app.
+> **REGULĂ FUNDAMENTALĂ:** Acest document (Master Spec v1.3+) este **SINGURA sursă de adevăr** pentru proiectul Cerniq.app.
 >
 > Orice alt document din librărie este considerat **ANEXĂ** și este **SUBORDONAT** acestui master spec.
 
@@ -71,7 +78,7 @@
 
 | Nivel | Document                                         | Rol                                   | În caz de conflict      |
 |-------|--------------------------------------------------|---------------------------------------|-------------------------|
-| **1** | `Cerniq_Master_Spec_Normativ_Complet.md` (v1.2+) | **NORMATIV** - Single Source of Truth | **CÂȘTIGĂ ÎNTOTDEAUNA** |
+| **1** | `Cerniq_Master_Spec_Normativ_Complet.md` (v1.3+) | **NORMATIV** - Single Source of Truth | **CÂȘTIGĂ ÎNTOTDEAUNA** |
 | **2** | Unified HITL Approval System                     | Normativ transversal (HITL)           | Supus master-ului       |
 | **3** | Strategie docs (Etapa 1-5 .rtf)                  | Normativ per domeniu                  | Supus master-ului       |
 | **4** | Worker docs (.md)                                | Procedural/Implementare               | Supus master-ului       |
@@ -128,7 +135,7 @@ const LEGACY_ALIASES = {
 ```bash
 # Checklist obligatoriu înainte de merge
 [ ] Nu introduce `UNIQUE(cui)` fără tenant_id
-[ ] Nu introduce `gold_hitl_tasks` sau alte tabele HITL per-stage
+[ ] Nu introduce `gold_hitl_tasks` sau alte tabele HITL per-etapă
 [ ] Nu folosește email ca identifier pentru user assignment
 [ ] Respectă event schema din Secțiunea 2.6
 [ ] Are correlation_id în toate job-urile
@@ -157,6 +164,11 @@ const LEGACY_ALIASES = {
 | **MCP**       | Model Context Protocol                                  | Protocol AI tool access            |
 
 ## 1.2 Reguli de Denumire (Naming Convention)
+
+**Nomenclatură Etape:**
+- Română: **Etapa X** (ex: Etapa 1)
+- Engleză: **Stage X** (ex: Stage 1)
+- Abreviere: **E1, E2, E3, E4, E5**
 
 ### 1.2.1 Prefixe pentru Tabele PostgreSQL
 
@@ -407,9 +419,9 @@ alerts:
     severity: critical
 ```
 
-## 2.6 EVENT CONTRACT (Canonic)
+## 2.8 EVENT CONTRACT (Canonic)
 
-### 2.6.1 Schema Evenimente
+### 2.8.1 Schema Evenimente
 
 ```typescript
 // Structură OBLIGATORIE pentru toate evenimentele
@@ -441,7 +453,7 @@ interface CerniqEvent<T = unknown> {
 }
 ```
 
-### 2.6.2 Idempotency Keys Pattern
+### 2.8.2 Idempotency Keys Pattern
 
 ```typescript
 // Pattern pentru generare idempotency keys
@@ -460,7 +472,7 @@ function generateIdempotencyKey(
 // Exemplu: lead:123e4567-e89b:STATE_CHANGE:482947
 ```
 
-### 2.6.3 Replay Strategy
+### 2.8.3 Replay Strategy
 
 | Scenarriu           | Strategie              | Implementare                       |
 |---------------------|------------------------|------------------------------------|
@@ -469,7 +481,7 @@ function generateIdempotencyKey(
 | **Data correction** | Re-process cu flag     | `isReplay: true` în job data       |
 | **Audit replay**    | Read-only rebuild      | Rebuild state din event log        |
 
-### 2.6.4 Ordering Guarantees
+### 2.8.4 Ordering Guarantees
 
 | Tip                 | Garanție       | Mecanism                             |
 |---------------------|----------------|--------------------------------------|
@@ -477,9 +489,9 @@ function generateIdempotencyKey(
 | **Cross-entity**    | Best-effort    | Timestamp-based eventual consistency |
 | **Causation chain** | Preserved      | causationId linking                  |
 
-## 2.7 RATE LIMITING & PROVIDER CONSTRAINTS (Canonic)
+## 2.9 RATE LIMITING & PROVIDER CONSTRAINTS (Canonic)
 
-### 2.7.1 Global Rate Limits per Provider
+### 2.9.1 Global Rate Limits per Provider
 
 | Provider         | Endpoint        | Rate Limit   | Burst | Backoff Strategy        |
 |------------------|-----------------|--------------|-------|-------------------------|
@@ -496,7 +508,7 @@ function generateIdempotencyKey(
 
 **ANAF WS v9 constraint:** maxim 100 CUI/request + maxim 1 request/sec (conform doc_WS_V9).
 
-### 2.7.2 Per-Tenant Throttling
+### 2.9.2 Per-Tenant Throttling
 
 ```typescript
 // Redis key pattern pentru rate limiting per tenant
@@ -516,7 +528,7 @@ const RATE_LIMIT_KEYS = {
 };
 ```
 
-### 2.7.3 WhatsApp Specific Constraints (TimelinesAI)
+### 2.9.3 WhatsApp Specific Constraints (TimelinesAI)
 
 | Constraint               | Limit     | Scope            | Enforcement          |
 |--------------------------|-----------|------------------|----------------------|
@@ -526,7 +538,7 @@ const RATE_LIMIT_KEYS = {
 | **Concurrent sends**     | 1         | Per phone queue  | BullMQ concurrency=1 |
 | **Phone numbers active** | 20        | Per tenant       | Config               |
 
-### 2.7.4 Email Warmup Schedule
+### 2.9.4 Email Warmup Schedule
 
 ```typescript
 // Warmup progression pentru conturi email noi
@@ -547,7 +559,7 @@ const DELIVERABILITY_THRESHOLDS = {
 };
 ```
 
-### 2.7.5 Circuit Breaker Pattern
+### 2.9.5 Circuit Breaker Pattern
 
 ```typescript
 interface CircuitBreakerConfig {
@@ -567,9 +579,9 @@ const CIRCUIT_BREAKERS: CircuitBreakerConfig[] = [
 ];
 ```
 
-## 2.8 TEST STRATEGY (Canonic)
+## 2.10 TEST STRATEGY (Canonic)
 
-### 2.8.1 Test Pyramid Overview
+### 2.10.1 Test Pyramid Overview
 
 ```text
                     ┌─────────────────┐
@@ -588,7 +600,7 @@ const CIRCUIT_BREAKERS: CircuitBreakerConfig[] = [
       └──────────────────────────────────────────────┘
 ```
 
-### 2.8.2 Contract Tests (OBLIGATORII)
+### 2.10.2 Contract Tests (OBLIGATORII)
 
 | Contract Type      | Tool                | Scope                    | Frequency     |
 |--------------------|---------------------|--------------------------|---------------|
@@ -597,7 +609,7 @@ const CIRCUIT_BREAKERS: CircuitBreakerConfig[] = [
 | **DB Constraints** | pgTAP               | UNIQUE, CHECK, FK        | Pre-migration |
 | **Queue Contract** | Custom assertions   | Job payloads             | Pre-commit    |
 
-### 2.8.3 Event Schema Contract Tests
+### 2.10.3 Event Schema Contract Tests
 
 ```typescript
 // /tests/contracts/event-schema.test.ts
@@ -622,7 +634,7 @@ describe('Event Schema Contract', () => {
 });
 ```
 
-### 2.8.4 DB Constraint Tests (pgTAP)
+### 2.10.4 DB Constraint Tests (pgTAP)
 
 ```sql
 -- /tests/db/constraints.test.sql
@@ -658,7 +670,7 @@ SELECT * FROM finish();
 ROLLBACK;
 ```
 
-### 2.8.5 HITL Gating Tests
+### 2.10.5 HITL Gating Tests
 
 ```typescript
 // /tests/integration/hitl-gating.test.ts
@@ -694,7 +706,7 @@ describe('HITL Gating', () => {
 });
 ```
 
-### 2.8.6 Idempotency Tests
+### 2.10.6 Idempotency Tests
 
 ```typescript
 // /tests/integration/idempotency.test.ts
@@ -719,7 +731,7 @@ describe('Idempotency', () => {
 });
 ```
 
-### 2.8.7 Replay Tests
+### 2.10.7 Replay Tests
 
 ```typescript
 // /tests/integration/replay.test.ts
@@ -748,7 +760,9 @@ describe('Event Replay', () => {
 });
 ```
 
-### 2.8.8 Minimum Test Coverage Requirements
+### 2.10.8 Canonical Test Coverage Targets (Single Source of Truth)
+
+> **Notă:** Aceste ținte sunt canonice. Toate documentele de testare trebuie să facă referință la această secțiune și să evite valori contradictorii.
 
 | Component          | Min Coverage | Critical Paths                  |
 |--------------------|--------------|---------------------------------|
@@ -759,7 +773,7 @@ describe('Event Replay', () => {
 | **DB Migrations**  | 100%         | All constraints tested          |
 | **Rate Limiters**  | 85%          | Throttling, Circuit breakers    |
 
-### 2.8.9 CI/CD Pipeline Test Gates
+### 2.10.9 CI/CD Pipeline Test Gates
 
 ```yaml
 # .github/workflows/test.yml
@@ -1338,9 +1352,9 @@ Sistemul HITL folosește **asocieri polimorfe** pentru a gestiona aprobări din 
 | **Normal**   | 24h            | 16h (2 business days) | Standard approvals          |
 | **Low**      | 72h            | 40h (5 business days) | Routine reviews             |
 
-## 5.5 Approval Type Matrix per Stage
+### 5.5 Approval Type Matrix per Etapă
 
-| Stage            | approval_type       | Trigger Condition                 | SLA | Timeout Action |
+| Etapă            | approval_type       | Trigger Condition                 | SLA | Timeout Action |
 |------------------|---------------------|-----------------------------------|-----|----------------|
 | **E1** Data      | `data_quality`      | Completeness < 70%                | 24h | Escalate       |
 | **E2** Outreach  | `content_review`    | First message to segment          | 8h  | Escalate       |
@@ -1855,6 +1869,14 @@ $$ LANGUAGE plpgsql;
 | 4 | `Tehnologii_Active_Ianuarie_2026.rtf`             | Normativ       | ✅ VALID | Jan 2026          | React → 19.2.3 (master) |
 | 5 | `__Docker_Infrastructure_Technical_Reference.rtf` | Normativ       | ✅ VALID | Jan 2026          | —                       |
 
+#### 8.1.1a Architecture Decision Records (ADR-uri Cheie)
+
+| ADR | Titlu | Etapa | Status | Data | Referință |
+|-----|-------|-------|--------|------|-----------|
+| ADR-0106 | Provider Abstraction Layer | E0 | ✅ Accepted | 2026-02-01 | [ADR-0106](../adr/ADR%20Etapa%200/ADR-0106-Provider-Abstraction-Layer.md) |
+
+> **NOTĂ:** Pentru lista completă de ADR-uri, consultați [ADR-INDEX.md](../adr/ADR-INDEX.md)
+
 #### 8.1.2 Documente Strategie per Etapă (Tier 3)
 
 | #  | Document                                           | Etapa | Status   | Override Notes |
@@ -1908,7 +1930,7 @@ $$ LANGUAGE plpgsql;
 | `/mnt/project/Cerniq_Master_Spec_Normativ_Complet.md`  | ⛔ **OUTDATED**   | Versiunea v1.0 veche - NU FOLOSI       |
 | `/mnt/project/__Schema_contacte_bronze_silver_gold.md` | ⛔ **DEPRECATED** | Are conflicte multi-tenant - NU FOLOSI |
 | `docs/specifications/schema-database.md`               | ✅ **CURRENT**    | Schema canonică                        |
-| `docs/specifications/master-specification.md`          | ✅ **CURRENT**    | Aceasta e v1.2 (actuală)               |
+| `docs/specifications/master-specification.md`          | ✅ **CURRENT**    | Aceasta e v1.3 (actuală)               |
 
 > **ACȚIUNE NECESARĂ PENTRU PROIECT:**
 >

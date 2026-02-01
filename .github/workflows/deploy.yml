@@ -1,0 +1,322 @@
+# =============================================================================
+# CERNIQ.APP — CD Pipeline for Deployments
+# =============================================================================
+# Workflow: deploy.yml
+# Trigger: Git tags (v*.*.*), Manual dispatch
+# Purpose: Build, Push to Registry, Deploy to Environment
+# 
+# Reference: ADR-0107 CI/CD Pipeline Strategy
+# Created: 2026-02-01
+# =============================================================================
+
+name: CD Pipeline
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+      version:
+        description: 'Version to deploy (e.g., v1.0.0)'
+        required: true
+        type: string
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ${{ github.repository_owner }}/cerniq
+
+jobs:
+  # ===========================================================================
+  # JOB 1: Determine Environment and Version
+  # ===========================================================================
+  setup:
+    name: 🔧 Setup Deployment
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.determine.outputs.environment }}
+      version: ${{ steps.determine.outputs.version }}
+      sha: ${{ steps.determine.outputs.sha }}
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔧 Determine deployment parameters
+        id: determine
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "environment=${{ inputs.environment }}" >> $GITHUB_OUTPUT
+            echo "version=${{ inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            # Tag push - extract version from tag
+            TAG="${{ github.ref_name }}"
+            echo "version=${TAG}" >> $GITHUB_OUTPUT
+            
+            # Production for release tags (v1.0.0), staging for pre-release (v1.0.0-rc.1)
+            if [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "environment=production" >> $GITHUB_OUTPUT
+            else
+              echo "environment=staging" >> $GITHUB_OUTPUT
+            fi
+          fi
+          echo "sha=${{ github.sha }}" >> $GITHUB_OUTPUT
+
+      - name: 📋 Display deployment info
+        run: |
+          echo "🎯 Environment: ${{ steps.determine.outputs.environment }}"
+          echo "🏷️ Version: ${{ steps.determine.outputs.version }}"
+          echo "📝 SHA: ${{ steps.determine.outputs.sha }}"
+
+  # ===========================================================================
+  # JOB 2: Build and Push Docker Images
+  # ===========================================================================
+  build-push:
+    name: 🐳 Build & Push Images
+    runs-on: ubuntu-latest
+    needs: setup
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      matrix:
+        app:
+          - name: api
+            context: ./apps/api
+          - name: web
+            context: ./apps/web
+          - name: web-admin
+            context: ./apps/web-admin
+          - name: worker-ai
+            context: ./workers/ai
+          - name: worker-enrichment
+            context: ./workers/enrichment
+          - name: worker-outreach
+            context: ./workers/outreach
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐳 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🔐 Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 📋 Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.app.name }}
+          tags: |
+            type=semver,pattern={{version}},value=${{ needs.setup.outputs.version }}
+            type=sha,prefix=sha-
+
+      - name: 🏗️ Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.app.context }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            VERSION=${{ needs.setup.outputs.version }}
+            BUILD_SHA=${{ needs.setup.outputs.sha }}
+
+  # ===========================================================================
+  # JOB 3: Security Scan Published Images
+  # ===========================================================================
+  scan-images:
+    name: 🔒 Scan Images
+    runs-on: ubuntu-latest
+    needs: [setup, build-push]
+    continue-on-error: true
+
+    strategy:
+      matrix:
+        app: [api, web, web-admin, worker-ai, worker-enrichment, worker-outreach]
+
+    steps:
+      - name: 🔒 Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.app }}:${{ needs.setup.outputs.version }}'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '0'
+          format: 'sarif'
+          output: 'trivy-${{ matrix.app }}.sarif'
+
+      - name: 📤 Upload scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-${{ matrix.app }}.sarif'
+          category: 'trivy-${{ matrix.app }}'
+
+  # ===========================================================================
+  # JOB 4: Deploy to Staging
+  # ===========================================================================
+  deploy-staging:
+    name: 🚀 Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [setup, build-push]
+    if: needs.setup.outputs.environment == 'staging'
+    environment:
+      name: staging
+      url: https://staging.cerniq.app
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.STAGING_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.STAGING_HOST }} >> ~/.ssh/known_hosts
+
+      - name: 🚀 Deploy via Docker Compose
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'ENDSSH'
+            cd /opt/cerniq
+            
+            # Pull latest images
+            docker compose pull
+            
+            # Update with zero-downtime
+            docker compose up -d --remove-orphans
+            
+            # Health check
+            sleep 30
+            curl -f http://localhost:3000/health || exit 1
+            
+            echo "✅ Staging deployment complete: ${{ needs.setup.outputs.version }}"
+          ENDSSH
+
+      - name: 📢 Notify Slack
+        if: always()
+        uses: slackapi/slack-github-action@v1.26.0
+        with:
+          payload: |
+            {
+              "text": "${{ job.status == 'success' && '✅' || '❌' }} Staging deployment ${{ job.status }}: ${{ needs.setup.outputs.version }}"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  # ===========================================================================
+  # JOB 5: Deploy to Production
+  # ===========================================================================
+  deploy-production:
+    name: 🚀 Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [setup, build-push, scan-images]
+    if: needs.setup.outputs.environment == 'production'
+    environment:
+      name: production
+      url: https://app.cerniq.app
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.PRODUCTION_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts
+
+      - name: 🔄 Create database backup
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
+            cd /opt/cerniq
+            ./scripts/backup-pre-deploy.sh
+          ENDSSH
+
+      - name: 🚀 Deploy via Docker Compose (Blue-Green)
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
+            cd /opt/cerniq
+            
+            # Pull latest images
+            docker compose -f docker-compose.prod.yml pull
+            
+            # Blue-Green deployment
+            docker compose -f docker-compose.prod.yml up -d --remove-orphans --scale api=2
+            
+            # Health check
+            sleep 60
+            curl -f http://localhost:3000/health || exit 1
+            
+            # Scale down old instances
+            docker compose -f docker-compose.prod.yml up -d --scale api=1
+            
+            echo "✅ Production deployment complete: ${{ needs.setup.outputs.version }}"
+          ENDSSH
+
+      - name: 📢 Notify Slack
+        if: always()
+        uses: slackapi/slack-github-action@v1.26.0
+        with:
+          payload: |
+            {
+              "text": "${{ job.status == 'success' && '✅' || '❌' }} Production deployment ${{ job.status }}: ${{ needs.setup.outputs.version }}"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  # ===========================================================================
+  # JOB 6: Post-Deployment Verification
+  # ===========================================================================
+  verify:
+    name: ✅ Verify Deployment
+    runs-on: ubuntu-latest
+    needs: [setup, deploy-staging, deploy-production]
+    if: always() && (needs.deploy-staging.result == 'success' || needs.deploy-production.result == 'success')
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🧪 Run smoke tests
+        run: |
+          ENV=${{ needs.setup.outputs.environment }}
+          if [[ "$ENV" == "production" ]]; then
+            BASE_URL="https://app.cerniq.app"
+          else
+            BASE_URL="https://staging.cerniq.app"
+          fi
+          
+          # Basic health checks
+          curl -f "${BASE_URL}/health" || exit 1
+          curl -f "${BASE_URL}/api/health" || exit 1
+          
+          echo "✅ Smoke tests passed for $ENV"
+
+      - name: 📋 Create GitHub Release
+        if: needs.setup.outputs.environment == 'production'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.setup.outputs.version }}
+          generate_release_notes: true
+          draft: false
+          prerelease: false

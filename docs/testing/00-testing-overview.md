@@ -3,7 +3,7 @@
 ## Document canonic pentru strategia de testare
 
 **Versiunea:** 1.0 | **Data:** 20 Ianuarie 2026 | **Status:** NORMATIV  
-**Guvernanță:** Subordinat [Master Specification v1.2](file:///var/www/CerniqAPP/docs/specifications/master-specification.md)
+**Guvernanță:** Subordinat [Master Specification v1.2](../specifications/master-specification.md)
 
 ---
 
@@ -85,16 +85,11 @@ Cerniq.app adoptă o abordare **Shift-Left Testing** — testele sunt scrise și
 
 ## 3. COVERAGE REQUIREMENTS
 
-### 3.1 Targets per Etapă
+### 3.1 Targets Canonice (Master Spec)
 
-| Etapă | Min Coverage | Critical Paths | Workers |
-| ------- | ------------ | ---------------- | --------- |
-| **E0** | 80% | 95% | N/A |
-| **E1** | 80% | 90% | 85% |
-| **E2** | 80% | 90% | 85% |
-| **E3** | 85% | 95% | 90% |
-| **E4** | 85% | 95% | 90% |
-| **E5** | 80% | 90% | 85% |
+Țintele de coverage sunt definite canonic în Master Spec § 2.10.8. Toate valorile din această documentație trebuie să urmeze acea secțiune:
+
+- [Master Spec — Canonical Test Coverage Targets](../specifications/master-specification.md#2108-canonical-test-coverage-targets-single-source-of-truth)
 
 ### 3.2 Critical Paths (95%+ Coverage)
 

@@ -2,7 +2,7 @@
 
 ## Centralized Architecture Decision Records
 
-**Total ADR-uri:** 106  
+**Total ADR-uri:** 107  
 **Actualizat:** 1 Februarie 2026
 
 ---
@@ -11,7 +11,7 @@
 
 | Etapă | ADR Count | Focus Principal |
 | ----- | --------- | --------------- |
-| [Etapa 0](#etapa-0) | 31 | Infrastructure, DevOps, Security |
+| [Etapa 0](#etapa-0) | 32 | Infrastructure, DevOps, Security, CI/CD |
 | [Etapa 1](#etapa-1) | 20 | Data Pipeline, Workers, Schema |
 | [Etapa 2](#etapa-2) | 15 | Outreach, WhatsApp, Email |
 | [Etapa 3](#etapa-3) | 20 | AI, RAG, Negotiation |
@@ -24,6 +24,7 @@
 
 | ID | Titlu | Status | Data |
 | -- | ----- | ------ | ---- |
+| [ADR-0107](./ADR%20Etapa%200/ADR-0107-CI-CD-Pipeline-Strategy.md) | CI/CD Pipeline Strategy | Accepted | 2026-02-01 |
 | [ADR-0106](./ADR%20Etapa%200/ADR-0106-Provider-Abstraction.md) | Provider Abstraction Layer | Accepted | 2026-02-01 |
 | [ADR-0001](./ADR%20Etapa%200/ADR-0001-PNPM-ca-Package-Manager-Exclusiv.md) | PNPM ca Package Manager Exclusiv | Accepted | 2026-01-15 |
 | [ADR-0002](./ADR%20Etapa%200/ADR-0002-Node-js-v24-LTS-Krypton.md) | Node.js v24 LTS "Krypton" | Accepted | 2026-01-15 |

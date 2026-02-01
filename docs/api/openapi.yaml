@@ -1,11 +1,36 @@
 openapi: 3.1.0
 info:
-	title: Cerniq.app API — Global Contract
-	version: 1.0.0
-	description: |
-		Specificația globală OpenAPI pentru CERNIQ.APP.
-		Include convențiile comune, schemele de securitate și modelele partajate.
-		Endpoint-urile detaliate sunt definite pe etape în fișierele OpenAPI dedicate.
+  title: Cerniq.app API — Global Contract
+  version: 1.0.0
+  description: |
+    ## Specificația globală OpenAPI pentru CERNIQ.APP
+    
+    Acest fișier definește **contractul global** al API-ului:
+    - Convențiile comune (autentificare, multi-tenancy)
+    - Schemele de securitate (JWT Bearer)
+    - Modelele partajate (ApiResponse, ErrorObject, Pagination)
+    
+    ### ⚠️ NOTĂ IMPORTANTĂ: Structură Modulară
+    
+    **Endpoint-urile detaliate sunt definite pe etape în fișierele OpenAPI dedicate:**
+    
+    | Etapă | Fișier | Descriere |
+    |-------|--------|-----------|
+    | 1 | `openapi-etapa1.yaml` | Data Enrichment (ANAF, ListaFirme) |
+    | 2 | `openapi-etapa2.yaml` | Cold Outreach (SMS, Email, WhatsApp) |
+    | 3 | `openapi-etapa3.yaml` | AI Sales Agent (Conversații, Oferte) |
+    | 4 | `openapi-etapa4.yaml` | Scale & Optimization (Analytics) |
+    | 5 | `openapi-etapa5.yaml` | Enterprise & Compliance (Audit) |
+    
+    Această separare permite:
+    1. **Dezvoltare incrementală** - fiecare etapă își definește endpoint-urile
+    2. **Validare independentă** - spec-uri per etapă pentru testing
+    3. **Reutilizare componente** - toate etapele folosesc schemele din acest fișier
+    
+    ### Referințe
+    - [Master Specification](../specifications/master-specification.md) - Single Source of Truth
+    - [Rate Limits External](rate-limits-external.md) - Limitări provideri externi
+    - [Webhooks](webhooks.md) - Evenimente și notificări
 servers:
 	- url: https://api.cerniq.app/api/v1
 		description: Production
@@ -87,7 +112,28 @@ components:
 				- CONFLICT
 				- RATE_LIMITED
 				- INTERNAL_ERROR
+
+# =============================================================================
+# PATHS - Structură Modulară
+# =============================================================================
+# Acest fișier NU conține endpoint-uri directe.
+# Endpoint-urile sunt definite în fișierele per etapă (openapi-etapa*.yaml).
+# 
+# Motivație design:
+# 1. Separare clară între contract global și implementări per etapă
+# 2. Fiecare etapă poate fi validată și testată independent
+# 3. Componente reutilizabile (schemas, security) centralizate aici
+#
+# Pentru lista completă de endpoint-uri, consultați:
+# - openapi-etapa1.yaml (Data Enrichment)
+# - openapi-etapa2.yaml (Cold Outreach)
+# - openapi-etapa3.yaml (AI Sales Agent)
+# - openapi-etapa4.yaml (Scale & Optimization)
+# - openapi-etapa5.yaml (Enterprise & Compliance)
+# =============================================================================
 paths: {}
+
+# Registry pentru tooling-uri care vor să agregeze toate spec-urile
 x-etapa-specs:
 	- etapa: 1
 		file: openapi-etapa1.yaml

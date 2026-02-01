@@ -2,9 +2,9 @@
 
 ## B2B Sales Automation Platform pentru Piața Agricolă Românească
 
-**Versiune:** 1.0  
-**Data:** 12 Ianuarie 2026  
-**Sursă de Adevăr:** `Cerniq_Master_Spec_Normativ_Complet.md` v1.2  
+**Versiune:** 1.1  
+**Data:** 1 Februarie 2026  
+**Sursă de Adevăr:** [`master-specification.md`](../specifications/master-specification.md) v1.2  
 **Paradigma:** 1-Person-Team (Arhitect Augmentat de AI)  
 **Arhitectură:** Vertical Slice + Medallion Data Architecture + Neuro-Symbolic AI
 
@@ -259,7 +259,7 @@ const LEGACY_ALIASES = {
 | **Neuro-Symbolic AI** | Zero hallucinations în date critice | Pure LLM approach |
 | **HA Architecture** | Business Continuity | Single Server (SPOF) |
 | **Provider Abstraction (PAL)** | Vendor Agnostic Interfaces (Email, WA, LLM) | Direct Vendor Coupling |
-| **Unified HITL Table** | UI consistent, SLA-driven | Per-stage tables |
+| **Unified HITL Table** | UI consistent, SLA-driven | Tabele per-etapă |
 | **PostgreSQL Extensions** | Evitare vendor lock-in pe DB separate | Pinecone, MongoDB |
 
 ## 4.2 Decomposition Strategy: Vertical Slice Architecture
@@ -479,9 +479,9 @@ const GUARDRAILS = {
 │   │     | metadata (JSONB) | decision_context (JSONB) | decided_by | decision      ││
 │   └────────────────────────────────────────────────────────────────────────────────┘│
 │                                                                                      │
-│   Approval Types per Stage:                                                          │
+│   Approval Types per Etapă:                                                          │
 │   ┌───────────┬───────────────────┬────────────────────┬──────┬───────────────────┐ │
-│   │ Stage     │ Approval Type     │ Trigger            │ SLA  │ Auto-Action       │ │
+│   │ Etapă     │ Approval Type     │ Trigger            │ SLA  │ Auto-Action       │ │
 │   ├───────────┼───────────────────┼────────────────────┼──────┼───────────────────┤ │
 │   │ E1        │ data_quality      │ Score < 0.7        │ 24h  │ Escalate          │ │
 │   │ E2        │ content_review    │ All messages       │ 8h   │ Escalate          │ │
@@ -1311,7 +1311,7 @@ Halluc.  uptime         LLM      leads/h     e-Fact  tenant
 | Item | Severity | Description | Remediation Plan |
 | --- | --- | --- | --- |
 | **Legacy `shop_id` alias** | Low | Some code still uses `shop_id` instead of `tenant_id` | Gradual replacement during feature work |
-| **`gold_hitl_tasks` migration** | Medium | Old per-stage tables still exist in some docs | Delete after `approval_tasks` fully operational |
+| **`gold_hitl_tasks` migration** | Medium | Old per-etapă tables still exist in some docs | Delete after `approval_tasks` fully operational |
 | **Missing contract tests E4-E5** | Medium | Etapa 4-5 workers lack contract tests | Sprint dedicated to test coverage |
 | **SigNoz dashboard customization** | Low | Default dashboards, not optimized for Cerniq | Create custom dashboards post-launch |
 | **React Server Components adoption** | Low | Currently mostly client components | Gradual migration for data-heavy views |
@@ -1415,7 +1415,7 @@ Nivel 5 (Anexe Data Model):
 | BullMQ | 5.66.5 | Jan 2026 | - | - |
 | Traefik | 3.6.6 | Dec 2025 | - | - |
 | SigNoz | 0.107.0 | Jan 2026 | - | - |
-| Docker Engine | 29.1.3 | 2026 | - | - |
+| Docker Engine | 29.2.0 | 2026 | - | - |
 
 ---
 

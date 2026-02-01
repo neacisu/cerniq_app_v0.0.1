@@ -10,7 +10,7 @@ The 313 BullMQ workers operating on a single Hetzner bare metal server (20 cores
 
 ## Document governance and scope
 
-This analysis governs all risk assessments for Cerniq.app under the Master Specification v1.2. All risks are traceable to the project document library including architecture specifications (arc42 Vertical Slice), stage documentation (Etapa 1-5), worker implementations, UI/UX specifications, and infrastructure configurations. Online research validates technology stability claims and provides current vulnerability assessments as of January 2026.
+This analysis governs all risk assessments for Cerniq.app under the Master Specification v1.2. All risks are traceable to the project document library including architecture specifications (arc42 Vertical Slice), stage documentation (Stage 1-5), worker implementations, UI/UX specifications, and infrastructure configurations. Online research validates technology stability claims and provides current vulnerability assessments as of January 2026.
 
 **Canonical Technology Versions (Master Spec):**
 
@@ -20,7 +20,7 @@ This analysis governs all risk assessments for Cerniq.app under the Master Speci
 - Redis 8.4.0
 - BullMQ v5.66.5
 - React 19.2.3, Tailwind CSS 4.1+, Refine v5
-- Docker Engine 29.1.3 (Standardized)
+- Docker Engine 29.2.0 (Standardized)
 - Traefik v3.6, SigNoz v0.107.0
 
 ---
@@ -46,7 +46,7 @@ Romanian e-Factura mandates invoice submission within **5 calendar days** of iss
 **R-004: Docker Engine 29.x Breaking Compatibility**
 Docker Engine 29.x introduces breaking changes: minimum API v1.44 required, containerd native image store migration, storage layout path changes. Testcontainers and multiple CI/CD tools report incompatibility (Issue #11212). Harness CI VM Runner confirmed incompatible with Docker 29.x.
 
-*Mitigation:* **Standardized on Docker Engine 29.1.3**; breaking changes managed via verified `daemon.json` configuration and compatible CI runners. All environments aligned to 29.1.3.
+*Mitigation:* **Standardized on Docker Engine 29.2.0**; breaking changes managed via verified `daemon.json` configuration and compatible CI runners. All environments aligned to 29.2.0.
 
 **R-005: Traefik v3.6 Critical Security Vulnerability (RESOLVED)**
 Prior risk: CVE-2025-66491 in v3.6.0-v3.6.2.
@@ -201,7 +201,7 @@ Maximum 10 webhooks per account (422 error if exceeded). Webhooks may deliver ou
 3. **Add Docker resource limits** to all containers—prevent runaway container resource consumption
 4. **Upgrade Traefik to v3.6.3+** to patch CVE-2025-66491
 5. **Set up offsite backup** for PostgreSQL to Hetzner Storage Box or Backblaze B2
-6. **Pin Docker Engine to 29.1.3**—standardized version
+6. **Pin Docker Engine to 29.2.0**—standardized version
 
 ### Short-term actions (Month 1)
 
@@ -335,7 +335,7 @@ Maximum 10 webhooks per account (422 error if exceeded). Webhooks may deliver ou
 | React 19.x | 19.2.3 | Stable | LOW-MEDIUM |
 | Traefik v3.6 | 3.6.6 | Stable (CVE Patched) | LOW |
 | SigNoz | v0.107.0 | Stable | MEDIUM |
-| Docker 29.x | 29.1.3 | Standardized | OK |
+| Docker 29.x | 29.2.0 | Standardized | OK |
 | Docker 28.x | 28.3.3 | Legacy | DEPRECATED |
 
 ### Appendix B: Compliance checklist
@@ -358,7 +358,7 @@ Maximum 10 webhooks per account (422 error if exceeded). Webhooks may deliver ou
 | Master Specification | [`master-specification.md`](../specifications/master-specification.md) | Full system overview, 12-week timeline |
 | Architecture Overview | [`architecture.md`](./architecture.md) | Market context, technology rationale |
 | Roadmap | [`/mnt/project/1_Roadmap*.md`](file:///mnt/project/) | Vertical Slice architecture, 1-person-team paradigm |
-| Docker Infrastructure | [`docker-compose-reference.md`](../infrastructure/docker-compose-reference.md) | Docker 29.1.3, Hetzner configuration |
+| Docker Infrastructure | [`docker-compose-reference.md`](../infrastructure/docker-compose-reference.md) | Docker 29.2.0, Hetzner configuration |
 | Etapa 2 Workers | [`etapa2-plan-implementare-COMPLET.md`](../specifications/Etapa%202/) | 52 workers, Quota Guardian, rate limiting |
 | UI/UX Specifications | [`docs/ui-ux/`](../ui-ux/) | React 19.2.3, Tailwind 4.1, Refine v5 |
 

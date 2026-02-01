@@ -22,7 +22,7 @@
 | **Reverse Proxy** | Traefik v3.6.6 | Auto SSL/TLS, Docker provider |
 | **Package Manager** | PNPM 9.15+ | EXCLUSIV, no npm |
 | **Observability** | SigNoz v0.106.0 | OpenTelemetry-native |
-| **Container Runtime** | Docker Engine 29.1.3 | Compose v2.40+ |
+| **Container Runtime** | Docker Engine 29.2.0 | Compose v2.40+ |
 
 #### 1.2 Principii Arhitecturale
 
@@ -445,18 +445,18 @@ borg create \
 ```json
 {
   "taskID": "F0.1.1.T001",
-  "denumire_task": "Instalare și configurare Docker Engine 29.1.3 pe Ubuntu 24.04",
+  "denumire_task": "Instalare și configurare Docker Engine 29.2.0 pe Ubuntu 24.04",
   "context_anterior": "Server Hetzner bare metal fresh cu Ubuntu 24.04 LTS instalat, fără Docker",
-  "descriere_task": "Ești un expert DevOps cu experiență extinsă în containerizare Docker. Task-ul tău este să instalezi Docker Engine 29.1.3 (sau latest stable) pe Ubuntu 24.04 LTS folosind repository-ul oficial Docker. Trebuie să: 1) Elimini orice versiune veche de Docker (docker.io, docker-doc, docker-compose, podman-docker, containerd, runc), 2) Adaugi repository-ul Docker oficial cu GPG key, 3) Instalezi docker-ce, docker-ce-cli, containerd.io, docker-buildx-plugin, docker-compose-plugin, 4) Verifici instalarea cu `docker version` și `docker compose version`, 5) Adaugi userul root în grupul docker (dacă nu e deja), 6) Activezi și pornești serviciul docker (systemctl enable --now docker).",
+  "descriere_task": "Ești un expert DevOps cu experiență extinsă în containerizare Docker. Task-ul tău este să instalezi Docker Engine 29.2.0 (sau latest stable) pe Ubuntu 24.04 LTS folosind repository-ul oficial Docker. Trebuie să: 1) Elimini orice versiune veche de Docker (docker.io, docker-doc, docker-compose, podman-docker, containerd, runc), 2) Adaugi repository-ul Docker oficial cu GPG key, 3) Instalezi docker-ce, docker-ce-cli, containerd.io, docker-buildx-plugin, docker-compose-plugin, 4) Verifici instalarea cu `docker version` și `docker compose version`, 5) Adaugi userul root în grupul docker (dacă nu e deja), 6) Activezi și pornești serviciul docker (systemctl enable --now docker).",
   "director_implementare": "/root",
   "restrictii_antihalucinatie": [
     "NU folosi snap pentru instalare Docker",
     "NU folosi docker.io din repository Ubuntu",
     "NU sări pașii de verificare a versiunii",
-    "VERIFICĂ că versiunea instalată este 28.x sau mai nouă"
+    "VERIFICĂ că versiunea instalată este 29.x sau mai nouă"
   ],
-  "validare_task": "docker version afișează Version: 28.x.x sau mai nou; docker compose version afișează v2.40+ sau mai nou; systemctl status docker arată active (running)",
-  "outcome": "Docker Engine 29.1.3 instalat și funcțional cu Docker Compose v2.40+"
+  "validare_task": "docker version afișează Version: 29.x.x sau mai nou; docker compose version afișează v2.40+ sau mai nou; systemctl status docker arată active (running)",
+  "outcome": "Docker Engine 29.2.0 instalat și funcțional cu Docker Compose v2.40+"
 }
 ```
 
@@ -725,6 +725,64 @@ borg create \
   ],
   "validare_task": "docker compose config nu afișează parole în plain text; secrets mount corect în /run/secrets/; git status nu arată fișiere secret",
   "outcome": "Secrets management securizat implementat conform best practices"
+}
+```
+
+### FAZA F0.15: CI/CD PIPELINE SETUP
+
+> **ADR Reference:** [ADR-0107 CI/CD Pipeline Strategy](../../adr/ADR%20Etapa%200/ADR-0107-CI-CD-Pipeline-Strategy.md)
+
+```json
+{
+  "taskID": "F0.15.1.T001",
+  "denumire_task": "Creare CI Pipeline cu GitHub Actions",
+  "context_anterior": "Infrastructură completă, deployment 100% manual via SSH",
+  "descriere_task": "Ești un expert DevOps specializat în GitHub Actions. Task-ul tău este să creezi .github/workflows/ci-pr.yml pentru CI pipeline. Jobs necesare: 1) lint - ESLint 9 + TypeScript check, 2) test - Vitest cu PostgreSQL și Redis services, 3) security - Trivy filesystem scan pentru vulnerabilități, 4) docker-build - Docker Buildx verificare build (fără push), 5) python-lint (condiționat) - Ruff + mypy pentru workers/. Triggers: push pe main/develop, pull_request. Folosește concurrency groups pentru cancel-in-progress.",
+  "director_implementare": "/var/www/CerniqAPP/.github/workflows",
+  "restrictii_antihalucinatie": [
+    "NU push images în CI - doar verificare build",
+    "NU skip security scan pentru PR-uri",
+    "FOLOSEȘTE frozen-lockfile pentru pnpm install",
+    "VERIFICĂ Node.js 24.12.0 și PNPM 9"
+  ],
+  "validare_task": "CI workflow apare în GitHub Actions; PR-urile trigger-uiesc toate jobs; toate checks trec pe cod valid",
+  "outcome": "CI pipeline implementat cu lint, test, security scan, docker build"
+}
+```
+
+```json
+{
+  "taskID": "F0.15.1.T002",
+  "denumire_task": "Creare CD Pipeline pentru deployments",
+  "context_anterior": "CI pipeline creat în F0.15.1.T001",
+  "descriere_task": "Ești un expert DevOps specializat în continuous delivery. Task-ul tău este să creezi .github/workflows/deploy.yml pentru CD pipeline. Jobs necesare: 1) setup - determină environment (staging/production) bazat pe tag format, 2) build-push - build multi-app images și push în GHCR, 3) scan-images - Trivy scan pe imagini publicate, 4) deploy-staging - SSH deploy pentru pre-release tags (v*-rc*, v*-beta*), 5) deploy-production - SSH deploy pentru release tags (vX.Y.Z), 6) verify - smoke tests post-deploy. Triggers: push tags v*.*.*, workflow_dispatch cu alegere environment.",
+  "director_implementare": "/var/www/CerniqAPP/.github/workflows",
+  "restrictii_antihalucinatie": [
+    "NU deploy production fără tag semver valid",
+    "NU skip database backup înainte de deploy production",
+    "FOLOSEȘTE GitHub Environments pentru approval gates",
+    "VERIFICĂ health checks post-deploy"
+  ],
+  "validare_task": "CD workflow apare în GitHub Actions; tag v0.0.1-rc.1 deploy-uiește în staging; tag v0.0.1 deploy-uiește în production",
+  "outcome": "CD pipeline implementat cu build, push, deploy staging/production"
+}
+```
+
+```json
+{
+  "taskID": "F0.15.2.T001",
+  "denumire_task": "Configurare GitHub Secrets și Environments",
+  "context_anterior": "CI/CD workflows create în F0.15.1",
+  "descriere_task": "Ești un expert securitate DevOps. Task-ul tău este să configurezi GitHub repository pentru CD pipeline. Pași: 1) Generează SSH key pair (ed25519) dedicat pentru deployment, 2) Adaugă public key pe serverele staging și production în authorized_keys, 3) Configurează GitHub Secrets: STAGING_SSH_KEY, STAGING_HOST, STAGING_USER, PRODUCTION_SSH_KEY, PRODUCTION_HOST, PRODUCTION_USER, SLACK_WEBHOOK_URL (opțional), 4) Creează GitHub Environments: staging (fără restrictions), production (required reviewers, wait timer 5 min), 5) Configurează branch protection pentru main cu required status checks.",
+  "director_implementare": "GitHub Repository Settings",
+  "restrictii_antihalucinatie": [
+    "NU commita SSH keys în repository",
+    "NU folosi aceeași SSH key pentru staging și production",
+    "NU skip branch protection pentru main",
+    "VERIFICĂ că secrets sunt encrypted"
+  ],
+  "validare_task": "GitHub Secrets listează toate keys necesare; Environments staging și production există; branch protection active pentru main",
+  "outcome": "GitHub repository configurat pentru CD pipeline securizat"
 }
 ```
 

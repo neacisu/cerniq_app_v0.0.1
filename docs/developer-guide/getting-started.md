@@ -35,7 +35,7 @@
 | **Node.js** | 24.12.0 "Krypton" | `node --version` |
 | **PNPM** | 9.x | `pnpm --version` |
 | **Python** | 3.14.2 Free-Threading | `python --version` |
-| **Docker** | 24.0+ | `docker --version` |
+| **Docker** | 29.2.0 | `docker --version` |
 | **Docker Compose** | 2.20+ | `docker compose version` |
 
 ### 1.2 Dependențe Docker
@@ -127,7 +127,7 @@ docker compose ps
 │   └── web-admin/        # React 19.2.3 Admin Dashboard (localhost:64010)
 ├── packages/
 │   ├── db/               # Drizzle ORM + Migrations
-│   ├── workers/          # BullMQ 5.66.5 Workers (316 total)
+│   ├── workers/          # BullMQ 5.66.5 Workers (313 total)
 │   ├── shared/           # Shared utilities, types
 │   └── events/           # Event schemas (Zod)
 ├── infra/

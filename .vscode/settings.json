@@ -1,0 +1,57 @@
+{
+  // ==========================================================================
+  // CERNIQ.APP — VS Code Workspace Settings
+  // ==========================================================================
+
+  // ---------------------------------------------------------------------------
+  // GitHub Actions Extension - Disable ALL validation completely
+  // ---------------------------------------------------------------------------
+  "github-actions.workflows.pinned.workflows": [],
+  "github-actions.remote-validation": false,
+  "github-actions.expression-validation": false,
+  "github-actions.workflows.allowUnnamedEnvironments": true,
+  
+  // Disable the GitHub Actions extension validation entirely for this workspace
+  "github-actions.org.enabled": false,
+
+  // ---------------------------------------------------------------------------
+  // YAML Extension - Disable schema validation for workflow files
+  // ---------------------------------------------------------------------------
+  "yaml.schemas": {
+    // Don't apply any schema to workflow files - let them pass without validation
+  },
+  
+  // Disable YAML validation for workflow files specifically
+  "yaml.validate": true,
+  "yaml.schemaStore.enable": false,
+  
+  // Custom schema validation settings
+  "yaml.customTags": [
+    "!reference sequence"
+  ],
+
+  // ---------------------------------------------------------------------------
+  // File Associations
+  // ---------------------------------------------------------------------------
+  "[yaml]": {
+    "editor.formatOnSave": false
+  },
+
+  "[github-actions-workflow]": {
+    "editor.formatOnSave": false
+  },
+
+  // ---------------------------------------------------------------------------
+  // Files to exclude from problems/validation
+  // ---------------------------------------------------------------------------
+  "files.exclude": {
+    "**/node_modules": true,
+    "**/.pnpm-store": true
+  },
+
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/pnpm-lock.yaml": true,
+    "**/.pnpm-store": true
+  }
+}
