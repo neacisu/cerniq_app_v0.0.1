@@ -1,6 +1,6 @@
 # CERNIQ.APP — ETAPA 2: WORKERS CATEGORIA C
 ## WhatsApp Workers - TimelinesAI Integration (7 Workers)
-### Versiunea 1.0 | 15 Ianuarie 2026
+### Versiunea 1.1 | 2 Februarie 2026
 
 ---
 

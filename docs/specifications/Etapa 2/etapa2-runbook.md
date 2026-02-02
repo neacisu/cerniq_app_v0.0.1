@@ -2,7 +2,7 @@
 
 ## Procedures, Troubleshooting, Emergency Response & Disaster Recovery
 
-### Versiunea 1.1 | 18 Ianuarie 2026
+### Versiunea 1.2 | 2 Februarie 2026
 
 > **Notă:** Acest document consolidează `etapa2-runbook.md` și `etapa2-runbook-operational.md` într-un singur runbook complet.
 

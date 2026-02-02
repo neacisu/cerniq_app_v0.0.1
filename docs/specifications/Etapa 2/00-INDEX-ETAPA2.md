@@ -2,7 +2,7 @@
 
 ## Cold Outreach Multi-Canal - Documentație Completă
 
-### Versiunea 1.1 | 18 Ianuarie 2026
+### Versiunea 1.2 | 2 Februarie 2026
 
 ---
 
@@ -15,7 +15,7 @@
 
 ---
 
-## CATALOG DOCUMENTE (20 DOCUMENTE)
+## CATALOG DOCUMENTE (21 DOCUMENTE)
 
 ### 1. ARCHITECTURE & DESIGN
 
@@ -49,21 +49,33 @@
 
 | # | Document | Descriere |
 | --- | ---------- | ----------- |
-| 13 | `etapa2-api-endpoints.md` | 35+ REST endpoints complete |
-| 14 | `etapa2-hitl-system.md` | Human-in-the-Loop workflow |
-| 15 | `../../api/openapi-etapa2.yaml` | OpenAPI Etapa 2 |
+| 14 | `etapa2-api-endpoints.md` | 35+ REST endpoints complete |
+| 15 | `etapa2-hitl-system.md` | Human-in-the-Loop workflow |
+| 16 | `../../api/openapi-etapa2.yaml` | OpenAPI Etapa 2 spec (35+ endpoints) |
 
-### 5. OPERATIONS
+### 5. PLANNING & EXECUTION
 
 | # | Document | Descriere |
 | --- | ---------- | ----------- |
-| 16 | `etapa2-runbook.md` | **Runbook operațional complet** (consolidat v1.1) |
-| 17 | `etapa2-monitoring-observability.md` | Monitoring (OTel + Sidecar) & Metrics |
-| 18 | `etapa2-development-standards.md` | **Coding standards & procedures** (consolidat v1.1) |
-| 19 | `etapa2-testing-strategy.md` | Unit, Integration, E2E, Load tests |
-| 20 | `etapa2-plan-implementare.md` | 118 taskuri JSON granulare |
-| 21 | `etapa2-environment-variables.md` | Environment variables Etapa 2 |
+| 17 | `etapa2-plan-implementare.md` | 118 taskuri JSON granulare (F2.x format) |
+| 18 | `etapa2-sprint-plan.md` | **Sprint plan 4 sprinturi, 32 PRs (E2.Sx format)** |
 
+### 6. OPERATIONS
+
+| # | Document | Descriere |
+| --- | ---------- | ----------- |
+| 19 | `etapa2-runbook.md` | **Runbook operațional complet** (consolidat v1.1) |
+| 20 | `etapa2-monitoring-observability.md` | Monitoring (OTel + Sidecar) & Metrics |
+| 21 | `etapa2-development-standards.md` | **Coding standards & procedures** (consolidat v1.1) |
+| 22 | `etapa2-testing-strategy.md` | Unit, Integration, E2E, Load tests |
+| 23 | `etapa2-environment-variables.md` | Environment variables Etapa 2 |
+
+> **Notă v1.2 (2 Feb 2026):**
+>
+> - Adăugat `etapa2-sprint-plan.md` cu mapping complet Phase → Sprint
+> - Actualizat `openapi-etapa2.yaml` cu 35+ endpoints complete
+> - Actualizat `c4-components-etapa2.drawio` cu arhitectură completă
+>
 > **Notă v1.1 (18 Ian 2026):**
 >
 > - `etapa2-runbook.md` consolidează fostele `etapa2-runbook.md` + `etapa2-runbook-operational.md`
@@ -235,23 +247,28 @@
 
 ## IMPLEMENTARE TIMELINE
 
-| Fază | Săptămâna | Focus |
-| ------ | ----------- | ------- |
-| F2.1 | W1 | Database schema + migrations |
-| F2.2-F2.4 | W2 | External integrations |
-| F2.5-F2.6 | W3 | Quota + Orchestration workers |
-| F2.7-F2.8 | W4 | WhatsApp + Email workers |
-| F2.9-F2.11 | W5 | Webhooks + State machine |
-| F2.12-F2.13 | W6 | AI + HITL workers |
-| F2.14-F2.17 | W7 | Frontend + Monitoring |
-| F2.18-F2.20 | W8 | API + Testing + Docs |
+| Fază | Săptămâna | Sprint | Focus |
+| ------ | ----------- | ------- | ------- |
+| F2.1-F2.4 | W1-W2 | E2.S1 | Database + Integrations |
+| F2.5-F2.8 | W3-W4 | E2.S2 | Workers Core |
+| F2.9-F2.14 | W5-W6 | E2.S3 | Intelligence + HITL |
+| F2.15-F2.20 | W7-W8 | E2.S4 | Frontend + API + Testing |
 
-**Total estimat:** 8-10 săptămâni
+### Perioada Execuție
+
+| Sprint | Perioada | Status |
+| ------ | -------- | ------ |
+| E2.S1 | 3-14 Februarie 2026 | 🔲 Planned |
+| E2.S2 | 17-28 Februarie 2026 | 🔲 Planned |
+| E2.S3 | 3-14 Martie 2026 | 🔲 Planned |
+| E2.S4 | 17-28 Martie 2026 | 🔲 Planned |
+
+**Total estimat:** 8 săptămâni (4 sprinturi × 2 săptămâni)
 
 ---
 
-**Document generat:** 15 Ianuarie 2026  
-**Total documente:** 20  
+**Document actualizat:** 2 Februarie 2026  
+**Total documente:** 23  
 **Total workers:** 52  
 **Total linii cod documentație:** ~15,000  
 **Conformitate:** Master Spec v1.2

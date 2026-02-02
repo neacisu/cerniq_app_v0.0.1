@@ -15,60 +15,61 @@
 | 1 | `00-INDEX-ETAPA1.md` | Index documentație | ✅ Complete |
 | 2 | `etapa1-adrs.md` | 20 Architecture Decision Records | ✅ Complete |
 | 3 | `etapa1-plan-implementare-COMPLET.md` | Implementation plan with 126 tasks | ✅ Complete |
+| 4 | `etapa1-sprint-plan.md` | Sprint plan with 4 sprints, 32 PRs, Task IDs | ✅ Complete |
 
 ### 📊 DATABASE SCHEMAS
 
 | # | Document | Description | Status |
 | --- | ---------- | ------------- | -------- |
-| 3 | `etapa1-schema-bronze.md` | Bronze layer tables & indexes | ✅ Complete |
-| 4 | `etapa1-schema-silver.md` | Silver layer tables (120+ columns) | ✅ Complete |
-| 5 | `etapa1-schema-gold.md` | Gold layer + lead management | ✅ Complete |
-| 6 | `etapa1-migrations.md` | Complete Drizzle migrations | ✅ Complete |
+| 5 | `etapa1-schema-bronze.md` | Bronze layer tables & indexes | ✅ Complete |
+| 6 | `etapa1-schema-silver.md` | Silver layer tables (120+ columns) | ✅ Complete |
+| 7 | `etapa1-schema-gold.md` | Gold layer + lead management | ✅ Complete |
+| 8 | `etapa1-migrations.md` | Complete Drizzle migrations | ✅ Complete |
 
 ### ⚙️ WORKERS
 
 | # | Document | Description | Status |
 | --- | ---------- | ------------- | -------- |
-| 7 | `etapa1-workers-overview.md` | Worker architecture overview | ✅ Complete |
-| 8 | `etapa1-workers-A-ingestie.md` | CSV/Excel/API/Webhook/Manual ingest | ✅ Complete |
-| 9 | `etapa1-workers-B-C-normalizare-validare.md` | Normalization & CUI validation | ✅ Complete |
-| 10 | `etapa1-workers-D-E-anaf-termene.md` | ANAF & Termene.ro enrichment | ✅ Complete |
-| 11 | `etapa1-workers-F-H-onrc-email-phone.md` | ONRC, Email, Phone workers | ✅ Complete |
-| 12 | `etapa1-workers-I-L-scraping-ai-geo-agri.md` | Scraping, AI, Geo, Agricultural | ✅ Complete |
-| 13 | `etapa1-workers-M-P-dedup-score-pipeline.md` | Dedup, Scoring, Pipeline mgmt | ✅ Complete |
-| 14 | `etapa1-workers-triggers.md` | Inter-worker trigger rules | ✅ Complete |
+| 9 | `etapa1-workers-overview.md` | Worker architecture overview | ✅ Complete |
+| 10 | `etapa1-workers-A-ingestie.md` | CSV/Excel/API/Webhook/Manual ingest | ✅ Complete |
+| 11 | `etapa1-workers-B-C-normalizare-validare.md` | Normalization & CUI validation | ✅ Complete |
+| 12 | `etapa1-workers-D-E-anaf-termene.md` | ANAF & Termene.ro enrichment | ✅ Complete |
+| 13 | `etapa1-workers-F-H-onrc-email-phone.md` | ONRC, Email, Phone workers | ✅ Complete |
+| 14 | `etapa1-workers-I-L-scraping-ai-geo-agri.md` | Scraping, AI, Geo, Agricultural | ✅ Complete |
+| 15 | `etapa1-workers-M-P-dedup-score-pipeline.md` | Dedup, Scoring, Pipeline mgmt | ✅ Complete |
+| 16 | `etapa1-workers-triggers.md` | Inter-worker trigger rules | ✅ Complete |
 
 ### 🖥️ FRONTEND / UI
 
 | # | Document | Description | Status |
 | --- | ---------- | ------------- | -------- |
-| 15 | `etapa1-ui-components.md` | Base UI components library | ✅ Complete |
-| 16 | `etapa1-ui-tables.md` | Data tables with filters | ✅ Complete |
-| 17 | `etapa1-ui-pages.md` | All page layouts & routing | ✅ Complete |
-| 18 | `etapa1-ui-forms-dialogs.md` | Forms, dialogs, validation | ✅ Complete |
-| 19 | `etapa1-ui-charts-navigation.md` | Charts, sidebar, navigation | ✅ Complete |
+| 17 | `etapa1-ui-components.md` | Base UI components library | ✅ Complete |
+| 18 | `etapa1-ui-tables.md` | Data tables with filters | ✅ Complete |
+| 19 | `etapa1-ui-pages.md` | All page layouts & routing | ✅ Complete |
+| 20 | `etapa1-ui-forms-dialogs.md` | Forms, dialogs, validation | ✅ Complete |
+| 21 | `etapa1-ui-charts-navigation.md` | Charts, sidebar, navigation | ✅ Complete |
 
 ### 🔌 BACKEND / API
 
 | # | Document | Description | Status |
 | --- | ---------- | ------------- | -------- |
-| 20 | `etapa1-api-endpoints.md` | All REST API endpoints | ✅ Complete |
-| 21 | `etapa1-api-schemas-auth.md` | Zod schemas & JWT auth | ✅ Complete |
-| 22 | `../../api/openapi-etapa1.yaml` | OpenAPI Etapa 1 | ✅ Complete |
+| 22 | `etapa1-api-endpoints.md` | All REST API endpoints | ✅ Complete |
+| 23 | `etapa1-api-schemas-auth.md` | Zod schemas & JWT auth | ✅ Complete |
+| 24 | `../../api/openapi-etapa1.yaml` | OpenAPI Etapa 1 (40+ endpoints) | ✅ Complete |
 
 ### ✅ HITL (Human-in-the-Loop)
 
 | # | Document | Description | Status |
 | --- | ---------- | ------------- | -------- |
-| 23 | `etapa1-hitl-system.md` | Complete HITL architecture | ✅ Complete |
+| 25 | `etapa1-hitl-system.md` | Complete HITL architecture | ✅ Complete |
 
 ### 📋 OPERATIONS
 
 | # | Document | Description | Status |
 | --- | ---------- | ------------- | -------- |
-| 24 | `etapa1-runbook-monitoring.md` | Runbook & monitoring setup | ✅ Complete |
-| 25 | `etapa1-testing-strategy.md` | Test pyramid & automation | ✅ Complete |
-| 26 | `etapa1-environment-variables.md` | Environment variables Etapa 1 | ✅ Complete |
+| 26 | `etapa1-runbook-monitoring.md` | Runbook & monitoring setup | ✅ Complete |
+| 27 | `etapa1-testing-strategy.md` | Test pyramid & automation | ✅ Complete |
+| 28 | `etapa1-environment-variables.md` | Environment variables Etapa 1 | ✅ Complete |
 
 ---
 
@@ -76,12 +77,15 @@
 
 ### Document Totals
 
-- **Total Documents:** 27
-- **Total Lines:** ~15,000+
+- **Total Documents:** 28
+- **Total Lines:** ~18,000+
 - **Workers Documented:** 58
-- **API Endpoints:** 35+
+- **API Endpoints:** 40+
 - **Database Tables:** 12
 - **UI Components:** 50+
+- **Sprinturi:** 4
+- **PR-uri:** 32
+- **Task-uri cu ID standard:** 126
 
 ### Worker Categories (58 total)
 
@@ -161,6 +165,7 @@ totalQualityScore = (completeness × 0.40) + (accuracy × 0.35) + (freshness × 
 1. **Read First:**
     - `etapa1-adrs.md` - Understand decisions
     - `etapa1-workers-overview.md` - Pipeline concept
+    - `etapa1-sprint-plan.md` - Sprint & Task IDs
 
 2. **Implement Database:**
     - `etapa1-migrations.md` - Run migrations
@@ -188,5 +193,5 @@ totalQualityScore = (completeness × 0.40) + (accuracy × 0.35) + (freshness × 
 ---
 
 **Document generat:** 15 Ianuarie 2026
-**Actualizare:** Index complet cu toate documentele
+**Actualizare:** 2 Februarie 2026 — Sprint Plan adăugat, Index renumerotat
 **Conformitate:** Master Spec v1.2

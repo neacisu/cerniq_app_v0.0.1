@@ -2,7 +2,7 @@
 
 ## Coding Standards, Best Practices & Procedures for Cold Outreach System
 
-### Versiunea 1.1 | 18 Ianuarie 2026
+### Versiunea 1.2 | 2 Februarie 2026
 
 > **Notă:** Acest document consolidează `etapa2-standards.md` și `etapa2-standards-procedures.md` într-un singur ghid complet de dezvoltare.
 

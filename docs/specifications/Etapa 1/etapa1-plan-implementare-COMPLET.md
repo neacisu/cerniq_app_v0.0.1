@@ -545,16 +545,445 @@ F1.12 (API) ──▶ F1.13 (Pages) ──▶ F1.14 (Components)
 
 ---
 
+## F1.12 BACKEND API
+
+### F1.12.1 - Dashboard Endpoints
+
+```json
+{
+  "taskID": "E1.S4.PR1.001",
+  "denumire_task": "Implementare Dashboard API endpoints",
+  "context_anterior": "Database și workers complet (F1.1-F1.11)",
+  "descriere_task": "Implementare endpoints dashboard:\n\n```typescript\n// apps/api/src/routes/dashboard.routes.ts\nimport { FastifyInstance } from 'fastify';\nimport { z } from 'zod';\nimport { db, sql } from '@cerniq/db';\n\nconst DashboardStatsSchema = z.object({\n  bronze: z.object({\n    total: z.number(),\n    today: z.number(),\n    pending: z.number(),\n    promoted: z.number(),\n    rejected: z.number(),\n  }),\n  silver: z.object({\n    total: z.number(),\n    validated: z.number(),\n    enriched: z.number(),\n    eligible: z.number(),\n  }),\n  gold: z.object({\n    total: z.number(),\n    promoted: z.number(),\n    thisWeek: z.number(),\n  }),\n  approvals: z.object({\n    pending: z.number(),\n    urgent: z.number(),\n    avgResolutionHours: z.number(),\n  }),\n  quality: z.object({\n    average: z.number(),\n    distribution: z.object({\n      high: z.number(),\n      medium: z.number(),\n      low: z.number(),\n    }),\n  }),\n  enrichment: z.object({\n    queues: z.array(z.object({\n      name: z.string(),\n      depth: z.number(),\n      processing: z.number(),\n    })),\n    completionRate: z.number(),\n  }),\n});\n\nexport async function dashboardRoutes(app: FastifyInstance) {\n  app.get('/dashboard/stats', async (request, reply) => {\n    const tenantId = request.tenantId;\n    \n    const [bronzeStats] = await db.execute(\n      sql`SELECT * FROM bronze_get_stats(${tenantId})`\n    );\n    \n    const [silverStats] = await db.execute(\n      sql`SELECT * FROM silver_get_stats(${tenantId})`\n    );\n    \n    const [goldStats] = await db.execute(\n      sql`SELECT * FROM gold_get_stats(${tenantId})`\n    );\n    \n    return {\n      success: true,\n      data: {\n        bronze: bronzeStats,\n        silver: silverStats,\n        gold: goldStats,\n        // ... aggregate all stats\n      },\n    };\n  });\n  \n  app.get('/dashboard/activity', async (request, reply) => {\n    const { limit = 20 } = request.query;\n    // Return recent activity feed\n  });\n}\n```",
+  "director_implementare": "/var/www/CerniqAPP/apps/api/src/routes",
+  "restrictii_antihalucinatie": {
+    "NU": ["NU returneze date din alt tenant"],
+    "TREBUIE": ["TREBUIE să folosească tenantId din request"],
+    "VERIFICĂ": ["VERIFICĂ că RLS funcționează pentru queries"]
+  },
+  "validare_task": [
+    "[ ] GET /dashboard/stats returnează statistici corecte",
+    "[ ] GET /dashboard/activity returnează activitate recentă",
+    "[ ] Response validat cu Zod"
+  ],
+  "outcome": "Dashboard API funcțional"
+}
+```
+
+### F1.12.2 - Import Endpoints
+
+```json
+{
+  "taskID": "E1.S4.PR2.001",
+  "denumire_task": "Implementare Import API endpoints",
+  "context_anterior": "Dashboard endpoints complete",
+  "descriere_task": "CRUD complet pentru imports:\n\n- GET /imports - Listare cu paginare și filtrare\n- POST /imports - Upload fișier multipart\n- GET /imports/:id - Detalii import\n- POST /imports/:id/cancel - Anulare import\n\nMultipart upload cu @fastify/multipart pentru fișiere până la 100MB.",
+  "director_implementare": "/var/www/CerniqAPP/apps/api/src/routes",
+  "validare_task": [
+    "[ ] File upload funcționează pentru CSV și Excel",
+    "[ ] Column mapping salvat corect",
+    "[ ] Progress tracking funcțional"
+  ],
+  "outcome": "Import API complet"
+}
+```
+
+### F1.12.3 - Bronze Endpoints
+
+```json
+{
+  "taskID": "E1.S4.PR2.003",
+  "denumire_task": "Implementare Bronze API endpoints",
+  "context_anterior": "Import endpoints complete",
+  "descriere_task": "CRUD pentru Bronze contacts:\n\n- GET /bronze/contacts - Listare cu filtre\n- GET /bronze/contacts/:id - Detalii contact\n- POST /bronze/contacts/:id/reprocess - Re-procesare",
+  "director_implementare": "/var/www/CerniqAPP/apps/api/src/routes",
+  "validare_task": [
+    "[ ] Listare cu paginare funcțională",
+    "[ ] Filtrare după status, sourceType",
+    "[ ] Reprocess trigger job BullMQ"
+  ],
+  "outcome": "Bronze API complet"
+}
+```
+
+### F1.12.4 - Silver Endpoints
+
+```json
+{
+  "taskID": "E1.S4.PR3.001",
+  "denumire_task": "Implementare Silver API endpoints",
+  "context_anterior": "Bronze endpoints complete",
+  "descriere_task": "CRUD pentru Silver companies:\n\n- GET /silver/companies - Listare cu filtre avansate\n- GET /silver/companies/:id - Detalii complete\n- POST /silver/companies/:id/enrich - Trigger enrichment\n- POST /silver/companies/:id/promote - Promovare Gold\n- GET /silver/enrichment-log - Log îmbogățire",
+  "director_implementare": "/var/www/CerniqAPP/apps/api/src/routes",
+  "validare_task": [
+    "[ ] Filtrare după enrichmentStatus, qualityScore",
+    "[ ] Enrich trigger jobs pentru surse selectate",
+    "[ ] Promote validează quality >= 70"
+  ],
+  "outcome": "Silver API complet"
+}
+```
+
+### F1.12.5 - Gold Endpoints
+
+```json
+{
+  "taskID": "E1.S4.PR3.003",
+  "denumire_task": "Implementare Gold API endpoints",
+  "context_anterior": "Silver endpoints complete",
+  "descriere_task": "CRUD pentru Gold companies:\n\n- GET /gold/companies - Listare leads cu sorting\n- GET /gold/companies/:id - Detalii complete\n- PATCH /gold/companies/:id - Update partial\n- POST /gold/companies/:id/transition - FSM tranziție",
+  "director_implementare": "/var/www/CerniqAPP/apps/api/src/routes",
+  "validare_task": [
+    "[ ] Sorting după leadScore funcțional",
+    "[ ] FSM tranziție validează state-uri permise",
+    "[ ] State history se actualizează"
+  ],
+  "outcome": "Gold API complet"
+}
+```
+
+### F1.12.6 - Approval Endpoints
+
+```json
+{
+  "taskID": "E1.S4.PR4.001",
+  "denumire_task": "Implementare Approval API endpoints",
+  "context_anterior": "Gold endpoints complete",
+  "descriere_task": "CRUD pentru HITL approvals:\n\n- GET /approvals - Listare cu filtre\n- GET /approvals/:id - Detalii aprobare\n- POST /approvals/:id/assign - Asignare user\n- POST /approvals/:id/decide - Decizie approve/reject",
+  "director_implementare": "/var/www/CerniqAPP/apps/api/src/routes",
+  "validare_task": [
+    "[ ] Listare sortată după dueAt (SLA)",
+    "[ ] Assign actualizează status",
+    "[ ] Decide blochează task-uri deja decise"
+  ],
+  "outcome": "Approval API complet"
+}
+```
+
+### F1.12.7 - Enrichment Queue Endpoints
+
+```json
+{
+  "taskID": "E1.S4.PR4.003",
+  "denumire_task": "Implementare Enrichment Queue API",
+  "context_anterior": "Approval endpoints complete",
+  "descriere_task": "Endpoints pentru monitoring queue-uri:\n\n- GET /enrichment/queues - Status toate queue-urile\n- POST /enrichment/queues/:name/pause - Pauză queue\n- POST /enrichment/queues/:name/resume - Repornire",
+  "director_implementare": "/var/www/CerniqAPP/apps/api/src/routes",
+  "validare_task": [
+    "[ ] Queue stats din BullMQ",
+    "[ ] Pause/resume funcțional"
+  ],
+  "outcome": "Queue management API"
+}
+```
+
+---
+
+## F1.13 FRONTEND PAGES
+
+### F1.13.1 - Dashboard Page
+
+```json
+{
+  "taskID": "E1.S4.PR5.001",
+  "denumire_task": "Implementare Dashboard Page",
+  "context_anterior": "API complete (F1.12)",
+  "descriere_task": "Dashboard principal cu:\n\n- StatCards pentru Bronze/Silver/Gold totals\n- Charts pentru pipeline flow\n- Activity feed\n- Approval queue widget\n- Queue status widget\n\nTehnologii: React 19 + Refine v5 + Recharts",
+  "director_implementare": "/var/www/CerniqAPP/apps/web-admin/src/pages",
+  "validare_task": [
+    "[ ] StatCards afișează date corecte",
+    "[ ] Charts se actualizează",
+    "[ ] Activity feed paginat"
+  ],
+  "outcome": "Dashboard page funcțional"
+}
+```
+
+### F1.13.2 - Imports Page
+
+```json
+{
+  "taskID": "E1.S4.PR5.002",
+  "denumire_task": "Implementare Imports List/Detail Pages",
+  "context_anterior": "Dashboard page complete",
+  "descriere_task": "Pagini pentru management importuri:\n\n- List page cu DataTable\n- Detail page cu progress și erori\n- Upload dialog cu drag-and-drop\n- Column mapping interface",
+  "director_implementare": "/var/www/CerniqAPP/apps/web-admin/src/pages/imports",
+  "validare_task": [
+    "[ ] File upload funcțional",
+    "[ ] Progress tracking real-time",
+    "[ ] Column mapping intuitiv"
+  ],
+  "outcome": "Import management UI"
+}
+```
+
+### F1.13.3 - Bronze Page
+
+```json
+{
+  "taskID": "E1.S4.PR5.003",
+  "denumire_task": "Implementare Bronze Contacts Page",
+  "context_anterior": "Imports pages complete",
+  "descriere_task": "Pagină pentru vizualizare contacte Bronze:\n\n- DataTable cu filtre avansate\n- Detail drawer cu raw_payload\n- Reprocess action\n- Bulk operations",
+  "director_implementare": "/var/www/CerniqAPP/apps/web-admin/src/pages/bronze",
+  "validare_task": [
+    "[ ] Filtre funcționale",
+    "[ ] JSON viewer pentru raw_payload",
+    "[ ] Reprocess trigger"
+  ],
+  "outcome": "Bronze contacts UI"
+}
+```
+
+### F1.13.4 - Silver Page
+
+```json
+{
+  "taskID": "E1.S4.PR5.004",
+  "denumire_task": "Implementare Silver Companies Page",
+  "context_anterior": "Bronze page complete",
+  "descriere_task": "Pagină pentru companii Silver:\n\n- DataTable cu toate câmpurile relevante\n- Detail page cu tabs (Company, Financial, Enrichment)\n- Enrich action\n- Promote action\n- Enrichment log timeline",
+  "director_implementare": "/var/www/CerniqAPP/apps/web-admin/src/pages/silver",
+  "validare_task": [
+    "[ ] Quality score vizibil",
+    "[ ] Enrichment sources status",
+    "[ ] Manual enrich/promote"
+  ],
+  "outcome": "Silver companies UI"
+}
+```
+
+### F1.13.5 - Gold Page
+
+```json
+{
+  "taskID": "E1.S4.PR5.005",
+  "denumire_task": "Implementare Gold Leads Page",
+  "context_anterior": "Silver page complete",
+  "descriere_task": "Pagină pentru lead-uri Gold:\n\n- DataTable sortabil după lead_score\n- Lead card view opțional\n- FSM state vizualizare\n- State transition actions\n- Assignment management",
+  "director_implementare": "/var/www/CerniqAPP/apps/web-admin/src/pages/gold",
+  "validare_task": [
+    "[ ] Lead score sorting",
+    "[ ] FSM state badges",
+    "[ ] State transition dropdown"
+  ],
+  "outcome": "Gold leads UI"
+}
+```
+
+### F1.13.6 - Approvals Page
+
+```json
+{
+  "taskID": "E1.S4.PR5.006",
+  "denumire_task": "Implementare Approvals Page",
+  "context_anterior": "Gold page complete",
+  "descriere_task": "Pagină pentru HITL approvals:\n\n- Inbox-style list cu urgency indicators\n- SLA countdown\n- Detail modal cu entity data\n- Approve/Reject actions cu reason\n- Bulk assign",
+  "director_implementare": "/var/www/CerniqAPP/apps/web-admin/src/pages/approvals",
+  "validare_task": [
+    "[ ] SLA countdown accurate",
+    "[ ] Decision flow complet",
+    "[ ] Reason obligatoriu pentru reject"
+  ],
+  "outcome": "HITL approvals UI"
+}
+```
+
+### F1.13.7 - Enrichment Queues Page
+
+```json
+{
+  "taskID": "E1.S4.PR5.007",
+  "denumire_task": "Implementare Enrichment Queues Page",
+  "context_anterior": "Approvals page complete",
+  "descriere_task": "Pagină pentru monitoring queue-uri:\n\n- Queue cards cu depth și status\n- Pause/Resume controls\n- Rate limit indicators\n- Error rate charts",
+  "director_implementare": "/var/www/CerniqAPP/apps/web-admin/src/pages/enrichment",
+  "validare_task": [
+    "[ ] Queue stats real-time",
+    "[ ] Pause/resume funcțional",
+    "[ ] Error rate vizibil"
+  ],
+  "outcome": "Queue monitoring UI"
+}
+```
+
+---
+
+## F1.14 FRONTEND COMPONENTS
+
+### F1.14.1 - DataTable Component
+
+```json
+{
+  "taskID": "E1.S4.PR6.001",
+  "denumire_task": "Implementare DataTable Component",
+  "context_anterior": "Pages scaffold (F1.13)",
+  "descriere_task": "Component reutilizabil pentru tabele:\n\n```typescript\n// apps/web-admin/src/components/DataTable.tsx\nimport { Table, useTable } from '@refinedev/antd';\n\ninterface DataTableProps<T> {\n  resource: string;\n  columns: ColumnDef<T>[];\n  filters?: FilterConfig[];\n  actions?: RowAction[];\n  bulkActions?: BulkAction[];\n  exportable?: boolean;\n}\n\nexport function DataTable<T>(props: DataTableProps<T>) {\n  const { tableProps, sorter, filters } = useTable<T>({\n    resource: props.resource,\n    syncWithLocation: true,\n  });\n  \n  return (\n    <Table\n      {...tableProps}\n      rowKey=\"id\"\n      columns={props.columns}\n      // ... \n    />\n  );\n}\n```",
+  "director_implementare": "/var/www/CerniqAPP/apps/web-admin/src/components",
+  "validare_task": [
+    "[ ] Sortare server-side",
+    "[ ] Filtre persistente în URL",
+    "[ ] Export CSV/Excel"
+  ],
+  "outcome": "DataTable component reutilizabil"
+}
+```
+
+### F1.14.2 - FileUpload Component
+
+```json
+{
+  "taskID": "E1.S4.PR6.002",
+  "denumire_task": "Implementare FileUpload Component",
+  "context_anterior": "DataTable complete",
+  "descriere_task": "Component pentru upload fișiere:\n\n- Drag and drop zone\n- Progress indicator\n- File type validation\n- Size limit display\n- Column mapping step",
+  "director_implementare": "/var/www/CerniqAPP/apps/web-admin/src/components",
+  "validare_task": [
+    "[ ] Drag and drop funcțional",
+    "[ ] Progress accurate",
+    "[ ] Validare tip și size"
+  ],
+  "outcome": "FileUpload component"
+}
+```
+
+### F1.14.3 - StatCard Components
+
+```json
+{
+  "taskID": "E1.S4.PR6.003",
+  "denumire_task": "Implementare StatCard Components",
+  "context_anterior": "FileUpload complete",
+  "descriere_task": "Carduri pentru statistici:\n\n- StatCard basic (number + label)\n- StatCardTrend (cu delta)\n- StatCardProgress (cu progress bar)\n- StatCardChart (cu sparkline)",
+  "director_implementare": "/var/www/CerniqAPP/apps/web-admin/src/components",
+  "validare_task": [
+    "[ ] Animații număr",
+    "[ ] Trend indicators",
+    "[ ] Responsive"
+  ],
+  "outcome": "StatCard components"
+}
+```
+
+### F1.14.4 - ApprovalCard Component
+
+```json
+{
+  "taskID": "E1.S4.PR6.004",
+  "denumire_task": "Implementare ApprovalCard Component",
+  "context_anterior": "StatCards complete",
+  "descriere_task": "Card pentru approval task:\n\n- Priority badge\n- SLA countdown (red când urgent)\n- Entity preview\n- Quick actions",
+  "director_implementare": "/var/www/CerniqAPP/apps/web-admin/src/components",
+  "validare_task": [
+    "[ ] Countdown tick corect",
+    "[ ] Priority colors",
+    "[ ] Click to detail"
+  ],
+  "outcome": "ApprovalCard component"
+}
+```
+
+### F1.14.5 - QueueStatus Component
+
+```json
+{
+  "taskID": "E1.S4.PR6.005",
+  "denumire_task": "Implementare QueueStatus Component",
+  "context_anterior": "ApprovalCard complete",
+  "descriere_task": "Component pentru status queue:\n\n- Queue name și icon\n- Waiting/Active/Failed counts\n- Pause/Resume button\n- Rate limit indicator",
+  "director_implementare": "/var/www/CerniqAPP/apps/web-admin/src/components",
+  "validare_task": [
+    "[ ] Refresh periodic",
+    "[ ] Pause/resume integrated",
+    "[ ] Error highlighting"
+  ],
+  "outcome": "QueueStatus component"
+}
+```
+
+### F1.14.6 - Charts Components
+
+```json
+{
+  "taskID": "E1.S4.PR6.006",
+  "denumire_task": "Implementare Charts cu Recharts",
+  "context_anterior": "QueueStatus complete",
+  "descriere_task": "Grafice pentru dashboard:\n\n- PipelineFlowChart (funnel)\n- QualityDistributionChart (pie)\n- EnrichmentTrendChart (line)\n- ActivityTimelineChart (bar)",
+  "director_implementare": "/var/www/CerniqAPP/apps/web-admin/src/components/charts",
+  "validare_task": [
+    "[ ] Responsive charts",
+    "[ ] Tooltips informative",
+    "[ ] Legend clickable"
+  ],
+  "outcome": "Chart components"
+}
+```
+
+---
+
 ## F1.15 TESTING & MONITORING
 
 ### F1.15.1 - Unit Tests Workers
 
 ```json
 {
-  "taskID": "F1.15.1.T001",
+  "taskID": "E1.S4.PR7.001",
   "denumire_task": "Unit tests pentru workers Etapa 1",
   "context_anterior": "Toți workerii implementați",
-  "descriere_task": "Teste pentru fiecare worker category:\n\n```typescript\n// apps/workers/tests/bronze/csv-parser.test.ts\nimport { describe, it, expect, beforeAll, afterAll } from 'vitest';\nimport { csvParserWorker } from '../../src/bronze/csv-parser.worker';\nimport { createTestDb, seedTestData, cleanupTestDb } from '@cerniq/test-utils';\n\ndescribe('CSV Parser Worker', () => {\n  let testDb: TestDatabase;\n  \n  beforeAll(async () => {\n    testDb = await createTestDb();\n    await seedTestData(testDb);\n  });\n  \n  afterAll(async () => {\n    await cleanupTestDb(testDb);\n  });\n  \n  it('should parse valid CSV and create bronze contacts', async () => {\n    const job = createMockJob({\n      tenantId: 'test-tenant',\n      batchId: 'test-batch',\n      filePath: './fixtures/valid.csv',\n      fileName: 'valid.csv',\n      correlationId: 'test-correlation',\n    });\n    \n    const result = await csvParserWorker.processor(job, mockLogger);\n    \n    expect(result.success).toBeGreaterThan(0);\n    expect(result.errors).toBe(0);\n  });\n  \n  it('should detect and skip duplicates', async () => {\n    // Insert existing record\n    await testDb.insert(bronzeContacts).values({\n      tenantId: 'test-tenant',\n      rawPayload: { denumire: 'TEST', cui: '12345678' },\n      contentHash: 'abc123',\n      sourceType: 'csv_import',\n      sourceIdentifier: 'existing',\n    });\n    \n    const job = createMockJob({\n      // Same data\n    });\n    \n    const result = await csvParserWorker.processor(job, mockLogger);\n    \n    // Should have duplicate\n    expect(result.duplicates).toBeGreaterThan(0);\n  });\n  \n  it('should handle malformed CSV gracefully', async () => {\n    const job = createMockJob({\n      filePath: './fixtures/malformed.csv',\n    });\n    \n    await expect(csvParserWorker.processor(job, mockLogger))\n      .rejects.toThrow();\n  });\n});\n```",
+  "descriere_task": "Teste pentru fiecare worker category:\n\n```typescript
+// apps/workers/tests/bronze/csv-parser.test.ts
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { csvParserWorker } from '../../src/bronze/csv-parser.worker';
+import { createTestDb, seedTestData, cleanupTestDb } from '@cerniq/test-utils';
+
+describe('CSV Parser Worker', () => {
+  let testDb: TestDatabase;
+  
+  beforeAll(async () => {
+    testDb = await createTestDb();
+    await seedTestData(testDb);
+  });
+  
+  afterAll(async () => {
+    await cleanupTestDb(testDb);
+  });
+  
+  it('should parse valid CSV and create bronze contacts', async () => {
+    const job = createMockJob({
+      tenantId: 'test-tenant',
+      batchId: 'test-batch',
+      filePath: './fixtures/valid.csv',
+      fileName: 'valid.csv',
+      correlationId: 'test-correlation',
+    });
+    
+    const result = await csvParserWorker.processor(job, mockLogger);
+    
+    expect(result.success).toBeGreaterThan(0);
+    expect(result.errors).toBe(0);
+  });
+  
+  it('should detect and skip duplicates', async () => {
+    await testDb.insert(bronzeContacts).values({
+      tenantId: 'test-tenant',
+      rawPayload: { denumire: 'TEST', cui: '12345678' },
+      contentHash: 'abc123',
+      sourceType: 'csv_import',
+      sourceIdentifier: 'existing',
+    });
+    
+    const job = createMockJob({ /* Same data */ });
+    const result = await csvParserWorker.processor(job, mockLogger);
+    
+    expect(result.duplicates).toBeGreaterThan(0);
+  });
+  
+  it('should handle malformed CSV gracefully', async () => {
+    const job = createMockJob({ filePath: './fixtures/malformed.csv' });
+    await expect(csvParserWorker.processor(job, mockLogger)).rejects.toThrow();
+  });
+});
+```",
   "director_implementare": "/var/www/CerniqAPP/apps/workers/tests",
   "restrictii_antihalucinatie": {
     "NU": ["NU folosi production DB pentru teste"],
@@ -570,6 +999,96 @@ F1.12 (API) ──▶ F1.13 (Pages) ──▶ F1.14 (Components)
 }
 ```
 
+### F1.15.2 - Integration Tests
+
+```json
+{
+  "taskID": "E1.S4.PR7.002",
+  "denumire_task": "Integration tests pipeline flow",
+  "context_anterior": "Unit tests complete",
+  "descriere_task": "Teste end-to-end pentru flow-uri:\n\n- CSV Import → Bronze → Silver → Gold\n- ANAF enrichment flow\n- HITL approval flow\n- Dedup merge flow",
+  "director_implementare": "/var/www/CerniqAPP/tests/integration",
+  "validare_task": [
+    "[ ] Full pipeline test pass",
+    "[ ] External APIs mocked",
+    "[ ] Test isolation"
+  ],
+  "outcome": "Integration tests complete"
+}
+```
+
+### F1.15.3 - E2E Tests
+
+```json
+{
+  "taskID": "E1.S4.PR7.003",
+  "denumire_task": "E2E tests cu Playwright",
+  "context_anterior": "Integration tests complete",
+  "descriere_task": "Teste browser pentru UI flows:\n\n- Import CSV via UI\n- Navigate și filter tables\n- HITL decision flow\n- Queue monitoring",
+  "director_implementare": "/var/www/CerniqAPP/tests/e2e",
+  "validare_task": [
+    "[ ] CI/CD integration",
+    "[ ] Screenshot comparison",
+    "[ ] Cross-browser"
+  ],
+  "outcome": "E2E tests suite"
+}
+```
+
+### F1.15.4 - Monitoring Setup
+
+```json
+{
+  "taskID": "E1.S4.PR8.003",
+  "denumire_task": "Setup Grafana dashboards pentru Etapa 1",
+  "context_anterior": "Tests complete",
+  "descriere_task": "Dashboards pentru monitoring:\n\n- Pipeline throughput (contacts/min)\n- Queue depths per category\n- Error rates per worker\n- Enrichment success rates\n- HITL SLA compliance",
+  "director_implementare": "/var/www/CerniqAPP/infra/monitoring",
+  "validare_task": [
+    "[ ] Dashboard importabil",
+    "[ ] Alerts configurate",
+    "[ ] Thresholds documented"
+  ],
+  "outcome": "Monitoring dashboards"
+}
+```
+
+### F1.15.5 - Alerting Rules
+
+```json
+{
+  "taskID": "E1.S4.PR8.004",
+  "denumire_task": "Setup alerts pentru anomalii",
+  "context_anterior": "Dashboards complete",
+  "descriere_task": "Alerte pentru:\n\n- Queue depth > 1000 (warning)\n- Queue depth > 5000 (critical)\n- Error rate > 5% (warning)\n- Error rate > 10% (critical)\n- HITL SLA breach risk\n- Worker down",
+  "director_implementare": "/var/www/CerniqAPP/infra/monitoring/alerts",
+  "validare_task": [
+    "[ ] Slack/Email notifications",
+    "[ ] Escalation rules",
+    "[ ] PagerDuty integration"
+  ],
+  "outcome": "Alerting rules complete"
+}
+```
+
+### F1.15.6 - Documentation Final
+
+```json
+{
+  "taskID": "E1.S4.PR8.005",
+  "denumire_task": "Final documentation review și update",
+  "context_anterior": "Toate componentele complete",
+  "descriere_task": "Review și update documentație:\n\n- Runbook actualizat cu procedures noi\n- Environment variables complete\n- Deployment checklist\n- Troubleshooting guide",
+  "director_implementare": "/var/www/CerniqAPP/docs",
+  "validare_task": [
+    "[ ] Runbook reviewed",
+    "[ ] All env vars documented",
+    "[ ] Deployment tested"
+  ],
+  "outcome": "Documentație 100% completă"
+}
+```
+
 ---
 
 ## REZUMAT FINAL
@@ -580,11 +1099,13 @@ F1.12 (API) ──▶ F1.13 (Pages) ──▶ F1.14 (Components)
 | --------- | --------- |
 | **Faze totale** | 15 (F1.1 - F1.15) |
 | **Taskuri totale** | ~126 |
-| **Workers implementați** | 61 |
+| **Workers implementați** | 58 (16 categorii A-P) |
 | **Tabele database** | ~12 |
-| **API endpoints** | ~40 |
+| **API endpoints** | 40+ |
 | **Pagini frontend** | ~15 |
 | **HITL approval types** | 3 |
+| **Sprinturi planificate** | 4 (8 săptămâni) |
+| **PRs planificate** | 32 |
 
 ## Dependențe Critice
 
@@ -593,15 +1114,26 @@ F1.12 (API) ──▶ F1.13 (Pages) ──▶ F1.14 (Components)
 3. **F1.11** (HITL) poate fi paralel cu F1.5-F1.10
 4. **F1.15** (testing) continuu pe măsură ce se implementează
 
+## Documente Aferente
+
+| Document | Referință |
+| --------- | --------- |
+| Sprint Plan | `etapa1-sprint-plan.md` |
+| API Endpoints | `etapa1-api-endpoints.md` |
+| Workers Overview | `etapa1-workers-overview.md` |
+| OpenAPI Spec | `openapi-etapa1.yaml` |
+| ADR Index | `ADR-INDEX.md` (ADR-0033 → ADR-0052) |
+
 ## Next Steps
 
 1. Review plan cu stakeholders
 2. Estimare effort per task
 3. Alocare resurse
-4. Sprint planning
+4. Sprint planning conform `etapa1-sprint-plan.md`
 
 ---
 
 **Document generat:** 15 Ianuarie 2026
+**Ultima actualizare:** 02 Februarie 2026
 **Conformitate:** Master Spec v1.2
 **Status:** READY FOR IMPLEMENTATION

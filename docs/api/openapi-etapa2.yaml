@@ -1,13 +1,2643 @@
 openapi: 3.1.0
 info:
-  title: Cerniq.app API — Etapa 2 (Cold Outreach)
+  title: Cerniq.app API — Etapa 2 (Cold Outreach Multi-Canal)
   version: 1.0.0
   description: |
-    Specificație OpenAPI pentru Etapa 2.
+    Specificație OpenAPI completă pentru Etapa 2: Cold Outreach Multi-Canal.
+    
+    ## Canale Suportate
+    - **WhatsApp** via TimelinesAI (20 numere, 200 contacte noi/zi/telefon)
+    - **Email Cold** via Instantly.ai (warmup + inbox rotation)
+    - **Email Warm** via Resend (transactional/warm leads)
+    
+    ## Rate Limits
+    - 100 requests/min per tenant
+    - WhatsApp: 200 NEW contacts/day/phone (follow-ups unlimited)
+    - Business Hours: 09:00-18:00 (Europe/Bucharest)
+    
+    ## Autentificare
+    Toate endpoint-urile necesită Bearer Token (JWT) în header-ul Authorization.
+    
     Pentru schema globală și convenții comune, vezi docs/api/openapi.yaml.
+  contact:
+    name: Cerniq Development Team
+    email: dev@cerniq.app
+  license:
+    name: Proprietary
 servers:
   - url: https://api.cerniq.app
     description: Production
   - url: http://localhost:64000
     description: Development
-paths: {}
+
+tags:
+  - name: Leads
+    description: Lead management și journey tracking
+  - name: Sequences
+    description: Follow-up sequence management
+  - name: Templates
+    description: Message template library cu spintax support
+  - name: Phones
+    description: WhatsApp phone pool management (20 numere)
+  - name: Reviews
+    description: Human-in-the-Loop review queue
+  - name: Analytics
+    description: Outreach performance analytics
+  - name: Webhooks
+    description: External provider webhooks (TimelinesAI, Instantly, Resend)
+
+paths:
+  # ============================================================================
+  # LEADS ENDPOINTS
+  # ============================================================================
+  /api/v1/outreach/leads:
+    get:
+      summary: List leads cu filtering și pagination
+      description: |
+        Returnează lista lead-urilor din outreach journey cu filtrare avansată.
+        Suportă filtrare după state, channel, sentiment, și căutare text.
+      operationId: listLeads
+      tags: [Leads]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: state
+          in: query
+          schema:
+            $ref: '#/components/schemas/LeadState'
+          description: Filtrare după starea curentă FSM
+        - name: channel
+          in: query
+          schema:
+            $ref: '#/components/schemas/Channel'
+          description: Filtrare după canal de comunicare
+        - name: assignedTo
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: UUID-ul user-ului asignat
+        - name: assignedPhone
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: UUID-ul telefonului WhatsApp asignat
+        - name: hasReply
+          in: query
+          schema:
+            type: boolean
+          description: Filtrare lead-uri care au primit răspuns
+        - name: needsReview
+          in: query
+          schema:
+            type: boolean
+          description: Filtrare lead-uri care necesită review uman
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Căutare în company name, email, phone
+        - name: minSentiment
+          in: query
+          schema:
+            type: integer
+            minimum: -100
+            maximum: 100
+          description: Sentiment score minim
+        - name: maxSentiment
+          in: query
+          schema:
+            type: integer
+            minimum: -100
+            maximum: 100
+          description: Sentiment score maxim
+        - name: createdAfter
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Data minimă creare (ISO 8601)
+        - name: createdBefore
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Data maximă creare (ISO 8601)
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [nextActionAt, lastContactAt, sentimentScore, createdAt]
+            default: nextActionAt
+          description: Câmp pentru sortare
+        - name: sortOrder
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
+          description: Direcția sortării
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Pagina curentă (1-indexed)
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Numărul de rezultate per pagină
+      responses:
+        '200':
+          description: Lista lead-urilor cu metadata paginare
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeadsListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /api/v1/outreach/leads/{id}:
+    get:
+      summary: Get lead detail cu full journey și conversation history
+      operationId: getLeadDetail
+      tags: [Leads]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LeadId'
+      responses:
+        '200':
+          description: Lead detail complet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeadDetailResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      summary: Update lead journey (state, assignment, tags)
+      operationId: updateLead
+      tags: [Leads]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LeadId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateLeadRequest'
+      responses:
+        '200':
+          description: Lead actualizat cu succes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeadUpdateResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/outreach/leads/{id}/send-message:
+    post:
+      summary: Trimite mesaj manual către lead
+      description: |
+        Permite trimiterea unui mesaj manual prin WhatsApp sau Email Warm.
+        Mesajul poate fi programat pentru trimitere ulterioară.
+        Respectă business hours (09:00-18:00) și quota limits.
+      operationId: sendMessageToLead
+      tags: [Leads]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LeadId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendMessageRequest'
+      responses:
+        '200':
+          description: Mesaj trimis sau programat cu succes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SendMessageResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          description: Quota WhatsApp depășită pentru astăzi
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuotaExceededError'
+
+  /api/v1/outreach/leads/{id}/takeover:
+    post:
+      summary: Initiate human takeover pentru conversație
+      description: |
+        Marchează conversația pentru control uman complet.
+        Oprește automatizările și secvențele active.
+        Lead-ul va fi mutat în HITL queue.
+      operationId: initiateHumanTakeover
+      tags: [Leads]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LeadId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TakeoverRequest'
+      responses:
+        '200':
+          description: Takeover inițiat cu succes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Human takeover initiated"
+        '409':
+          description: Conversația este deja în control uman
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ============================================================================
+  # SEQUENCES ENDPOINTS
+  # ============================================================================
+  /api/v1/outreach/sequences:
+    get:
+      summary: List all outreach sequences
+      operationId: listSequences
+      tags: [Sequences]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: isActive
+          in: query
+          schema:
+            type: boolean
+          description: Filtrare după status activ/inactiv
+        - name: channel
+          in: query
+          schema:
+            $ref: '#/components/schemas/Channel'
+          description: Filtrare după canal primar
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+      responses:
+        '200':
+          description: Lista secvențelor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SequencesListResponse'
+
+    post:
+      summary: Create new outreach sequence
+      operationId: createSequence
+      tags: [Sequences]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSequenceRequest'
+      responses:
+        '201':
+          description: Secvența creată cu succes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sequence'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+  /api/v1/outreach/sequences/{id}:
+    get:
+      summary: Get sequence detail cu steps și statistics
+      operationId: getSequenceDetail
+      tags: [Sequences]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SequenceId'
+      responses:
+        '200':
+          description: Sequence detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sequence'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      summary: Update sequence settings
+      operationId: updateSequence
+      tags: [Sequences]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SequenceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSequenceRequest'
+      responses:
+        '200':
+          description: Sequence actualizată
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sequence'
+
+    delete:
+      summary: Delete sequence (soft delete)
+      operationId: deleteSequence
+      tags: [Sequences]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SequenceId'
+      responses:
+        '204':
+          description: Sequence ștearsă
+        '409':
+          description: Sequence are leads înrolați activi
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/outreach/sequences/{id}/enroll:
+    post:
+      summary: Enroll leads in sequence
+      description: |
+        Înrolează unul sau mai mulți leads într-o secvență.
+        Leads-urile deja înrolate sau ineligibile vor fi skipped.
+      operationId: enrollLeadsInSequence
+      tags: [Sequences]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SequenceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EnrollLeadsRequest'
+      responses:
+        '200':
+          description: Enrollment result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnrollmentResult'
+
+  # ============================================================================
+  # TEMPLATES ENDPOINTS
+  # ============================================================================
+  /api/v1/outreach/templates:
+    get:
+      summary: List message templates
+      operationId: listTemplates
+      tags: [Templates]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: channel
+          in: query
+          schema:
+            type: string
+            enum: [WHATSAPP, EMAIL]
+        - name: isActive
+          in: query
+          schema:
+            type: boolean
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Căutare în name și content
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+      responses:
+        '200':
+          description: Lista template-urilor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplatesListResponse'
+
+    post:
+      summary: Create new message template
+      description: |
+        Creează un template nou cu suport pentru spintax.
+        Spintax format: `{option1|option2|option3}`
+        Variables format: `{{variableName}}`
+      operationId: createTemplate
+      tags: [Templates]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTemplateRequest'
+      responses:
+        '201':
+          description: Template creat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Template'
+
+  /api/v1/outreach/templates/{id}:
+    get:
+      summary: Get template detail cu versions
+      operationId: getTemplateDetail
+      tags: [Templates]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TemplateId'
+      responses:
+        '200':
+          description: Template detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Template'
+
+    patch:
+      summary: Update template
+      operationId: updateTemplate
+      tags: [Templates]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TemplateId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTemplateRequest'
+      responses:
+        '200':
+          description: Template actualizat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Template'
+
+  /api/v1/outreach/templates/{id}/preview:
+    post:
+      summary: Preview template cu sample data
+      description: |
+        Generează preview al template-ului cu spintax expandat
+        și variables înlocuite cu datele furnizate.
+      operationId: previewTemplate
+      tags: [Templates]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TemplateId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TemplatePreviewRequest'
+      responses:
+        '200':
+          description: Template preview
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplatePreviewResponse'
+
+  # ============================================================================
+  # PHONES ENDPOINTS
+  # ============================================================================
+  /api/v1/outreach/phones:
+    get:
+      summary: List WhatsApp phones cu quota status
+      description: |
+        Returnează lista celor 20 de numere WhatsApp cu status
+        curent, quota usage, și health metrics.
+      operationId: listPhones
+      tags: [Phones]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/PhoneStatus'
+        - name: isEnabled
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Lista telefoanelor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhonesListResponse'
+
+  /api/v1/outreach/phones/{id}:
+    get:
+      summary: Get phone detail cu extended metrics
+      operationId: getPhoneDetail
+      tags: [Phones]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PhoneId'
+      responses:
+        '200':
+          description: Phone detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhoneDetail'
+
+    patch:
+      summary: Update phone settings
+      operationId: updatePhone
+      tags: [Phones]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PhoneId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePhoneRequest'
+      responses:
+        '200':
+          description: Phone actualizat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Phone'
+
+  /api/v1/outreach/phones/{id}/health-check:
+    post:
+      summary: Trigger manual health check
+      operationId: triggerPhoneHealthCheck
+      tags: [Phones]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PhoneId'
+      responses:
+        '200':
+          description: Health check result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhoneHealthCheckResult'
+
+  # ============================================================================
+  # REVIEWS (HITL) ENDPOINTS
+  # ============================================================================
+  /api/v1/outreach/reviews:
+    get:
+      summary: List items in human review queue
+      operationId: listReviewItems
+      tags: [Reviews]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: priority
+          in: query
+          schema:
+            $ref: '#/components/schemas/ReviewPriority'
+        - name: reason
+          in: query
+          schema:
+            $ref: '#/components/schemas/ReviewReason'
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PENDING, IN_PROGRESS, RESOLVED, ESCALATED]
+        - name: assignedTo
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+      responses:
+        '200':
+          description: Review queue items
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewsListResponse'
+
+  /api/v1/outreach/reviews/{id}:
+    get:
+      summary: Get review item detail
+      operationId: getReviewDetail
+      tags: [Reviews]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ReviewId'
+      responses:
+        '200':
+          description: Review detail cu context complet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewDetail'
+
+  /api/v1/outreach/reviews/{id}/resolve:
+    post:
+      summary: Resolve review item
+      operationId: resolveReview
+      tags: [Reviews]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ReviewId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResolveReviewRequest'
+      responses:
+        '200':
+          description: Review rezolvat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewResolveResponse'
+
+  /api/v1/outreach/reviews/{id}/escalate:
+    post:
+      summary: Escalate review item
+      operationId: escalateReview
+      tags: [Reviews]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ReviewId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EscalateReviewRequest'
+      responses:
+        '200':
+          description: Review escalat
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  escalatedTo:
+                    type: string
+                    format: uuid
+
+  # ============================================================================
+  # ANALYTICS ENDPOINTS
+  # ============================================================================
+  /api/v1/outreach/analytics/overview:
+    get:
+      summary: Get outreach analytics overview
+      operationId: getAnalyticsOverview
+      tags: [Analytics]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [7d, 30d, 90d, custom]
+            default: 30d
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Required when period=custom
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Required when period=custom
+      responses:
+        '200':
+          description: Analytics overview
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyticsOverview'
+
+  /api/v1/outreach/analytics/daily:
+    get:
+      summary: Get daily time series data
+      operationId: getDailyAnalytics
+      tags: [Analytics]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: from
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: metrics
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [contacted, replied, converted, reviewsResolved, sentimentAvg]
+      responses:
+        '200':
+          description: Daily metrics time series
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DailyAnalytics'
+
+  /api/v1/outreach/analytics/phones:
+    get:
+      summary: Get phone performance comparison
+      operationId: getPhoneAnalytics
+      tags: [Analytics]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [7d, 30d, 90d]
+            default: 30d
+      responses:
+        '200':
+          description: Phone performance analytics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhoneAnalytics'
+
+  /api/v1/outreach/analytics/sequences:
+    get:
+      summary: Get sequence performance comparison
+      operationId: getSequenceAnalytics
+      tags: [Analytics]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [7d, 30d, 90d]
+            default: 30d
+      responses:
+        '200':
+          description: Sequence performance analytics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SequenceAnalytics'
+
+  # ============================================================================
+  # WEBHOOKS ENDPOINTS
+  # ============================================================================
+  /webhooks/timelinesai:
+    post:
+      summary: TimelinesAI webhook handler
+      description: |
+        Receives webhooks from TimelinesAI for WhatsApp events.
+        Signature verification via X-TimelinesAI-Signature header.
+        
+        **Events handled:**
+        - message.received - Incoming message from lead
+        - message.sent - Confirmation of sent message
+        - message.delivered - Message delivered to device
+        - message.read - Message read by recipient
+        - chat.created - New conversation started
+        - account.disconnected - Phone disconnected
+      operationId: handleTimelinesAIWebhook
+      tags: [Webhooks]
+      security: []
+      parameters:
+        - name: X-TimelinesAI-Signature
+          in: header
+          required: true
+          schema:
+            type: string
+          description: HMAC-SHA256 signature for payload verification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TimelinesAIWebhookPayload'
+      responses:
+        '200':
+          description: Webhook received și queued for processing
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  received:
+                    type: boolean
+                    example: true
+        '401':
+          description: Invalid signature
+
+  /webhooks/instantly:
+    post:
+      summary: Instantly.ai webhook handler
+      description: |
+        Receives webhooks from Instantly.ai for cold email events.
+        
+        **Events handled:**
+        - email_sent - Email dispatched
+        - email_opened - Email opened by recipient
+        - email_link_clicked - Link clicked in email
+        - reply_received - Lead replied to email
+        - email_bounced - Email bounced
+        - lead_unsubscribed - Lead unsubscribed
+      operationId: handleInstantlyWebhook
+      tags: [Webhooks]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InstantlyWebhookPayload'
+      responses:
+        '200':
+          description: Webhook received
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  received:
+                    type: boolean
+
+  /webhooks/resend:
+    post:
+      summary: Resend webhook handler
+      description: |
+        Receives webhooks from Resend for warm email events.
+        
+        **Events handled:**
+        - email.sent - Email sent
+        - email.delivered - Email delivered
+        - email.bounced - Email bounced
+        - email.opened - Email opened
+        - email.clicked - Link clicked
+        - email.complained - Spam complaint
+      operationId: handleResendWebhook
+      tags: [Webhooks]
+      security: []
+      parameters:
+        - name: svix-id
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: svix-timestamp
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: svix-signature
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResendWebhookPayload'
+      responses:
+        '200':
+          description: Webhook received
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  received:
+                    type: boolean
+
+components:
+  # ============================================================================
+  # SECURITY SCHEMES
+  # ============================================================================
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token from authentication endpoint
+
+  # ============================================================================
+  # PARAMETERS
+  # ============================================================================
+  parameters:
+    LeadId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Lead journey UUID
+
+    SequenceId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Sequence UUID
+
+    TemplateId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Template UUID
+
+    PhoneId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: WhatsApp phone UUID
+
+    ReviewId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Review item UUID
+
+  # ============================================================================
+  # RESPONSES
+  # ============================================================================
+  responses:
+    Unauthorized:
+      description: Authentication failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    RateLimited:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  # ============================================================================
+  # SCHEMAS - ENUMS
+  # ============================================================================
+  schemas:
+    LeadState:
+      type: string
+      enum:
+        - COLD
+        - CONTACTED_WA
+        - CONTACTED_EMAIL
+        - WARM_REPLY
+        - NEGOTIATION
+        - CONVERTED
+        - DEAD
+        - PAUSED
+      description: |
+        Lead FSM states:
+        - COLD: Nu a fost contactat încă
+        - CONTACTED_WA: Contactat prin WhatsApp, așteaptă răspuns
+        - CONTACTED_EMAIL: Contactat prin Email, așteaptă răspuns
+        - WARM_REPLY: A răspuns pozitiv/neutru
+        - NEGOTIATION: În proces de negociere (Etapa 3)
+        - CONVERTED: Client convertit
+        - DEAD: Lead pierdut/dezinteresat
+        - PAUSED: Temporar oprit din outreach
+
+    Channel:
+      type: string
+      enum:
+        - WHATSAPP
+        - EMAIL_COLD
+        - EMAIL_WARM
+        - PHONE
+        - MANUAL
+      description: Communication channel types
+
+    MessageDirection:
+      type: string
+      enum: [OUTBOUND, INBOUND]
+
+    MessageStatus:
+      type: string
+      enum:
+        - QUEUED
+        - SENT
+        - DELIVERED
+        - READ
+        - REPLIED
+        - BOUNCED
+        - FAILED
+        - OPENED
+        - CLICKED
+
+    PhoneStatus:
+      type: string
+      enum:
+        - ACTIVE
+        - PAUSED
+        - OFFLINE
+        - BANNED
+        - RECONNECTING
+        - QUARANTINE
+      description: |
+        WhatsApp phone status:
+        - ACTIVE: Online și funcțional
+        - PAUSED: Oprit manual de admin
+        - OFFLINE: Deconectat de la TimelinesAI
+        - BANNED: Banat de WhatsApp
+        - RECONNECTING: În curs de reconectare
+        - QUARANTINE: Temporar izolat (suspiciune)
+
+    ReviewPriority:
+      type: string
+      enum: [LOW, MEDIUM, HIGH, URGENT]
+      description: |
+        SLA timers:
+        - URGENT: 1 oră
+        - HIGH: 4 ore
+        - MEDIUM: 24 ore
+        - LOW: 48 ore
+
+    ReviewReason:
+      type: string
+      enum:
+        - NEGATIVE_SENTIMENT
+        - KEYWORD_TRIGGER
+        - BOUNCE_DETECTED
+        - COMPLAINT
+        - MANUAL_FLAG
+        - AI_UNCERTAIN
+
+    # ============================================================================
+    # SCHEMAS - LEADS
+    # ============================================================================
+    Lead:
+      type: object
+      required:
+        - id
+        - leadId
+        - currentState
+        - company
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Journey UUID
+        leadId:
+          type: string
+          format: uuid
+          description: Gold company UUID
+        currentState:
+          $ref: '#/components/schemas/LeadState'
+        company:
+          $ref: '#/components/schemas/CompanySummary'
+        assignedPhone:
+          $ref: '#/components/schemas/PhoneSummary'
+        sentimentScore:
+          type: integer
+          minimum: -100
+          maximum: 100
+        replyCount:
+          type: integer
+          minimum: 0
+        lastContactAt:
+          type: string
+          format: date-time
+          nullable: true
+        lastReplyAt:
+          type: string
+          format: date-time
+          nullable: true
+        nextActionAt:
+          type: string
+          format: date-time
+          nullable: true
+        requiresHumanReview:
+          type: boolean
+        currentSequence:
+          $ref: '#/components/schemas/SequenceSummary'
+        createdAt:
+          type: string
+          format: date-time
+
+    CompanySummary:
+      type: object
+      required:
+        - id
+        - denumire
+        - cui
+      properties:
+        id:
+          type: string
+          format: uuid
+        denumire:
+          type: string
+        cui:
+          type: string
+        judet:
+          type: string
+        localitate:
+          type: string
+        emailPrincipal:
+          type: string
+          format: email
+        telefonPrincipal:
+          type: string
+
+    PhoneSummary:
+      type: object
+      nullable: true
+      properties:
+        id:
+          type: string
+          format: uuid
+        label:
+          type: string
+        phoneNumber:
+          type: string
+
+    SequenceSummary:
+      type: object
+      nullable: true
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        step:
+          type: integer
+        totalSteps:
+          type: integer
+
+    LeadsListResponse:
+      type: object
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Lead'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    LeadDetailResponse:
+      type: object
+      required:
+        - journey
+        - company
+        - communications
+      properties:
+        journey:
+          $ref: '#/components/schemas/LeadJourneyDetail'
+        company:
+          $ref: '#/components/schemas/GoldCompanyDetail'
+        communications:
+          type: array
+          items:
+            $ref: '#/components/schemas/Communication'
+        sequence:
+          $ref: '#/components/schemas/Sequence'
+        assignedPhone:
+          $ref: '#/components/schemas/Phone'
+        pendingReview:
+          $ref: '#/components/schemas/ReviewItem'
+
+    LeadJourneyDetail:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        leadId:
+          type: string
+          format: uuid
+        currentState:
+          $ref: '#/components/schemas/LeadState'
+        previousState:
+          $ref: '#/components/schemas/LeadState'
+        stateChangedAt:
+          type: string
+          format: date-time
+        assignedPhoneId:
+          type: string
+          format: uuid
+          nullable: true
+        sentimentScore:
+          type: integer
+        engagementScore:
+          type: integer
+        replyCount:
+          type: integer
+        openCount:
+          type: integer
+        clickCount:
+          type: integer
+        requiresHumanReview:
+          type: boolean
+        humanReviewReason:
+          $ref: '#/components/schemas/ReviewReason'
+        isHumanControlled:
+          type: boolean
+        assignedToUser:
+          type: string
+          format: uuid
+          nullable: true
+        currentSequenceId:
+          type: string
+          format: uuid
+          nullable: true
+        sequenceStep:
+          type: integer
+        nextActionAt:
+          type: string
+          format: date-time
+          nullable: true
+        firstContactAt:
+          type: string
+          format: date-time
+          nullable: true
+        lastContactAt:
+          type: string
+          format: date-time
+          nullable: true
+        lastReplyAt:
+          type: string
+          format: date-time
+          nullable: true
+        tags:
+          type: array
+          items:
+            type: string
+        customFields:
+          type: object
+          additionalProperties: true
+
+    GoldCompanyDetail:
+      type: object
+      description: Full gold layer company data (from Etapa 1)
+      properties:
+        id:
+          type: string
+          format: uuid
+        denumire:
+          type: string
+        cui:
+          type: string
+        nrRegCom:
+          type: string
+        adresaSediu:
+          type: string
+        judet:
+          type: string
+        localitate:
+          type: string
+        codPostal:
+          type: string
+        emailPrincipal:
+          type: string
+          format: email
+        telefonPrincipal:
+          type: string
+        codCAEN:
+          type: string
+        denumireCAEN:
+          type: string
+        leadScore:
+          type: integer
+          minimum: 0
+          maximum: 100
+        qualityScore:
+          type: integer
+          minimum: 0
+          maximum: 100
+
+    Communication:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        channel:
+          $ref: '#/components/schemas/Channel'
+        direction:
+          $ref: '#/components/schemas/MessageDirection'
+        status:
+          $ref: '#/components/schemas/MessageStatus'
+        contentPreview:
+          type: string
+          maxLength: 500
+        sentAt:
+          type: string
+          format: date-time
+        deliveredAt:
+          type: string
+          format: date-time
+          nullable: true
+        readAt:
+          type: string
+          format: date-time
+          nullable: true
+        repliedAt:
+          type: string
+          format: date-time
+          nullable: true
+        sentimentScore:
+          type: integer
+          nullable: true
+        fromPhone:
+          $ref: '#/components/schemas/PhoneSummary'
+
+    UpdateLeadRequest:
+      type: object
+      properties:
+        currentState:
+          $ref: '#/components/schemas/LeadState'
+        assignedToUser:
+          type: string
+          format: uuid
+          nullable: true
+        tags:
+          type: array
+          items:
+            type: string
+        customFields:
+          type: object
+          additionalProperties: true
+        preferredChannel:
+          type: string
+          enum: [WHATSAPP, EMAIL]
+        notes:
+          type: string
+
+    LeadUpdateResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        lead:
+          $ref: '#/components/schemas/Lead'
+
+    SendMessageRequest:
+      type: object
+      required:
+        - channel
+        - content
+      properties:
+        channel:
+          type: string
+          enum: [WHATSAPP, EMAIL_WARM]
+        content:
+          type: string
+          minLength: 1
+          maxLength: 4096
+        subject:
+          type: string
+          description: Required for EMAIL_WARM
+        templateId:
+          type: string
+          format: uuid
+          description: Optional template to use
+        scheduledAt:
+          type: string
+          format: date-time
+          description: Schedule for later (must be business hours)
+
+    SendMessageResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        messageId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [QUEUED, SENT]
+        scheduledAt:
+          type: string
+          format: date-time
+
+    TakeoverRequest:
+      type: object
+      required:
+        - reason
+      properties:
+        reason:
+          type: string
+          minLength: 10
+          maxLength: 500
+
+    QuotaExceededError:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: QUOTA_EXCEEDED
+            message:
+              type: string
+              example: "WhatsApp quota exceeded for today"
+            details:
+              type: object
+              properties:
+                phoneId:
+                  type: string
+                  format: uuid
+                quotaUsed:
+                  type: integer
+                quotaLimit:
+                  type: integer
+                resetAt:
+                  type: string
+                  format: date-time
+                alternativePhoneAvailable:
+                  type: boolean
+
+    # ============================================================================
+    # SCHEMAS - SEQUENCES
+    # ============================================================================
+    Sequence:
+      type: object
+      required:
+        - id
+        - name
+        - isActive
+        - primaryChannel
+        - steps
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        isActive:
+          type: boolean
+        isDefault:
+          type: boolean
+        primaryChannel:
+          $ref: '#/components/schemas/Channel'
+        fallbackChannel:
+          $ref: '#/components/schemas/Channel'
+        respectBusinessHours:
+          type: boolean
+          default: true
+        stopOnReply:
+          type: boolean
+          default: true
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/SequenceStep'
+        stats:
+          $ref: '#/components/schemas/SequenceStats'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    SequenceStep:
+      type: object
+      required:
+        - id
+        - stepNumber
+        - delayHours
+        - channel
+        - templateId
+      properties:
+        id:
+          type: string
+          format: uuid
+        stepNumber:
+          type: integer
+          minimum: 1
+        delayHours:
+          type: integer
+          minimum: 0
+        delayMinutes:
+          type: integer
+          minimum: 0
+          maximum: 59
+          default: 0
+        channel:
+          $ref: '#/components/schemas/Channel'
+        templateId:
+          type: string
+          format: uuid
+        template:
+          $ref: '#/components/schemas/Template'
+        skipIfReplied:
+          type: boolean
+          default: true
+        skipIfOpened:
+          type: boolean
+          default: false
+
+    SequenceStats:
+      type: object
+      properties:
+        totalEnrolled:
+          type: integer
+        completed:
+          type: integer
+        conversions:
+          type: integer
+        avgResponseRate:
+          type: number
+          format: float
+
+    SequencesListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Sequence'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    CreateSequenceRequest:
+      type: object
+      required:
+        - name
+        - primaryChannel
+        - steps
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 500
+        primaryChannel:
+          type: string
+          enum: [WHATSAPP, EMAIL]
+        fallbackChannel:
+          type: string
+          enum: [WHATSAPP, EMAIL]
+        respectBusinessHours:
+          type: boolean
+          default: true
+        stopOnReply:
+          type: boolean
+          default: true
+        steps:
+          type: array
+          minItems: 1
+          maxItems: 10
+          items:
+            type: object
+            required:
+              - delayHours
+              - channel
+              - templateId
+            properties:
+              delayHours:
+                type: integer
+                minimum: 0
+              delayMinutes:
+                type: integer
+                minimum: 0
+                maximum: 59
+              channel:
+                $ref: '#/components/schemas/Channel'
+              templateId:
+                type: string
+                format: uuid
+              skipIfReplied:
+                type: boolean
+              skipIfOpened:
+                type: boolean
+
+    UpdateSequenceRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        isActive:
+          type: boolean
+        respectBusinessHours:
+          type: boolean
+        stopOnReply:
+          type: boolean
+
+    EnrollLeadsRequest:
+      type: object
+      required:
+        - leadIds
+      properties:
+        leadIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          minItems: 1
+          maxItems: 100
+        startStep:
+          type: integer
+          minimum: 1
+          default: 1
+        scheduledStart:
+          type: string
+          format: date-time
+
+    EnrollmentResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        enrolled:
+          type: integer
+        skipped:
+          type: integer
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              leadId:
+                type: string
+                format: uuid
+              reason:
+                type: string
+
+    # ============================================================================
+    # SCHEMAS - TEMPLATES
+    # ============================================================================
+    Template:
+      type: object
+      required:
+        - id
+        - name
+        - channel
+        - content
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        channel:
+          type: string
+          enum: [WHATSAPP, EMAIL]
+        subject:
+          type: string
+          nullable: true
+          description: For email templates
+        content:
+          type: string
+          description: Supports spintax {opt1|opt2} and variables {{varName}}
+        variables:
+          type: array
+          items:
+            $ref: '#/components/schemas/TemplateVariable'
+        hasMedia:
+          type: boolean
+        mediaType:
+          type: string
+          enum: [image, document, video]
+          nullable: true
+        mediaUrl:
+          type: string
+          format: uri
+          nullable: true
+        isActive:
+          type: boolean
+        isApproved:
+          type: boolean
+        stats:
+          $ref: '#/components/schemas/TemplateStats'
+        versions:
+          type: array
+          items:
+            $ref: '#/components/schemas/TemplateVersion'
+
+    TemplateVariable:
+      type: object
+      required:
+        - name
+        - required
+      properties:
+        name:
+          type: string
+        required:
+          type: boolean
+        defaultValue:
+          type: string
+
+    TemplateStats:
+      type: object
+      properties:
+        timesUsed:
+          type: integer
+        avgOpenRate:
+          type: number
+          format: float
+        avgReplyRate:
+          type: number
+          format: float
+
+    TemplateVersion:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        version:
+          type: integer
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    TemplatesListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Template'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    CreateTemplateRequest:
+      type: object
+      required:
+        - name
+        - channel
+        - content
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 500
+        channel:
+          type: string
+          enum: [WHATSAPP, EMAIL]
+        subject:
+          type: string
+          maxLength: 200
+        content:
+          type: string
+          minLength: 10
+          maxLength: 4096
+        variables:
+          type: array
+          items:
+            $ref: '#/components/schemas/TemplateVariable'
+        hasMedia:
+          type: boolean
+          default: false
+        mediaType:
+          type: string
+          enum: [image, document, video]
+        mediaUrl:
+          type: string
+          format: uri
+
+    UpdateTemplateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        content:
+          type: string
+        subject:
+          type: string
+        isActive:
+          type: boolean
+        variables:
+          type: array
+          items:
+            $ref: '#/components/schemas/TemplateVariable'
+
+    TemplatePreviewRequest:
+      type: object
+      required:
+        - personalization
+      properties:
+        personalization:
+          type: object
+          required:
+            - companyName
+          properties:
+            companyName:
+              type: string
+            contactName:
+              type: string
+          additionalProperties:
+            type: string
+
+    TemplatePreviewResponse:
+      type: object
+      properties:
+        preview:
+          type: string
+          description: Rendered content with spintax expanded
+        spintaxVariant:
+          type: string
+          description: Which spintax option was selected
+        variablesUsed:
+          type: array
+          items:
+            type: string
+        missingVariables:
+          type: array
+          items:
+            type: string
+
+    # ============================================================================
+    # SCHEMAS - PHONES
+    # ============================================================================
+    Phone:
+      type: object
+      required:
+        - id
+        - phoneNumber
+        - label
+        - status
+      properties:
+        id:
+          type: string
+          format: uuid
+        phoneNumber:
+          type: string
+        label:
+          type: string
+        timelinesaiAccountId:
+          type: string
+        status:
+          $ref: '#/components/schemas/PhoneStatus'
+        statusChangedAt:
+          type: string
+          format: date-time
+        statusReason:
+          type: string
+          nullable: true
+        isOnline:
+          type: boolean
+        lastHealthCheckAt:
+          type: string
+          format: date-time
+        quota:
+          $ref: '#/components/schemas/QuotaInfo'
+        stats:
+          $ref: '#/components/schemas/PhoneStats'
+        isEnabled:
+          type: boolean
+        priority:
+          type: integer
+          minimum: 1
+          maximum: 100
+
+    QuotaInfo:
+      type: object
+      properties:
+        used:
+          type: integer
+          minimum: 0
+        limit:
+          type: integer
+          default: 200
+        remaining:
+          type: integer
+        resetAt:
+          type: string
+          format: date-time
+
+    PhoneStats:
+      type: object
+      properties:
+        totalMessagesSent:
+          type: integer
+        totalLeadsAssigned:
+          type: integer
+        replyRate:
+          type: number
+          format: float
+
+    PhoneDetail:
+      allOf:
+        - $ref: '#/components/schemas/Phone'
+        - type: object
+          properties:
+            recentQuotaHistory:
+              type: array
+              items:
+                type: object
+                properties:
+                  date:
+                    type: string
+                    format: date
+                  used:
+                    type: integer
+                  newContacts:
+                    type: integer
+                  followUps:
+                    type: integer
+            assignedLeadsCount:
+              type: integer
+            healthHistory:
+              type: array
+              items:
+                type: object
+                properties:
+                  timestamp:
+                    type: string
+                    format: date-time
+                  isOnline:
+                    type: boolean
+                  reason:
+                    type: string
+
+    PhonesListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Phone'
+        totalQuotaUsed:
+          type: integer
+        totalQuotaLimit:
+          type: integer
+        phonesOnline:
+          type: integer
+        phonesOffline:
+          type: integer
+
+    UpdatePhoneRequest:
+      type: object
+      properties:
+        label:
+          type: string
+        isEnabled:
+          type: boolean
+        priority:
+          type: integer
+          minimum: 1
+          maximum: 100
+        status:
+          type: string
+          enum: [ACTIVE, PAUSED]
+          description: Manual status change
+
+    PhoneHealthCheckResult:
+      type: object
+      properties:
+        isOnline:
+          type: boolean
+        lastMessage:
+          type: string
+          format: date-time
+          nullable: true
+        batteryLevel:
+          type: integer
+          minimum: 0
+          maximum: 100
+        connectionQuality:
+          type: string
+          enum: [GOOD, FAIR, POOR]
+
+    # ============================================================================
+    # SCHEMAS - REVIEWS (HITL)
+    # ============================================================================
+    ReviewItem:
+      type: object
+      required:
+        - id
+        - leadJourneyId
+        - reason
+        - priority
+        - status
+      properties:
+        id:
+          type: string
+          format: uuid
+        leadJourneyId:
+          type: string
+          format: uuid
+        reason:
+          $ref: '#/components/schemas/ReviewReason'
+        priority:
+          $ref: '#/components/schemas/ReviewPriority'
+        status:
+          type: string
+          enum: [PENDING, IN_PROGRESS, RESOLVED, ESCALATED]
+        triggerContent:
+          type: string
+          description: The message that triggered review
+        triggerSentimentScore:
+          type: integer
+        assignedTo:
+          type: string
+          format: uuid
+          nullable: true
+        slaDueAt:
+          type: string
+          format: date-time
+        slaBreached:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        resolvedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    ReviewDetail:
+      allOf:
+        - $ref: '#/components/schemas/ReviewItem'
+        - type: object
+          properties:
+            lead:
+              $ref: '#/components/schemas/Lead'
+            recentCommunications:
+              type: array
+              items:
+                $ref: '#/components/schemas/Communication'
+            suggestedResponses:
+              type: array
+              items:
+                type: object
+                properties:
+                  content:
+                    type: string
+                  confidence:
+                    type: number
+                    format: float
+
+    ReviewsListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReviewItem'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+        stats:
+          type: object
+          properties:
+            pending:
+              type: integer
+            urgent:
+              type: integer
+            breachedSla:
+              type: integer
+
+    ResolveReviewRequest:
+      type: object
+      required:
+        - action
+      properties:
+        action:
+          type: string
+          enum:
+            - APPROVE_AI_RESPONSE
+            - SEND_CUSTOM_RESPONSE
+            - MARK_AS_DEAD
+            - PAUSE_LEAD
+            - ESCALATE
+        customResponse:
+          type: string
+          description: Required when action=SEND_CUSTOM_RESPONSE
+        notes:
+          type: string
+
+    ReviewResolveResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        newLeadState:
+          $ref: '#/components/schemas/LeadState'
+        messageSent:
+          type: boolean
+        messageId:
+          type: string
+          format: uuid
+
+    EscalateReviewRequest:
+      type: object
+      required:
+        - escalateTo
+        - reason
+      properties:
+        escalateTo:
+          type: string
+          format: uuid
+          description: User UUID to escalate to
+        reason:
+          type: string
+          minLength: 10
+
+    # ============================================================================
+    # SCHEMAS - ANALYTICS
+    # ============================================================================
+    AnalyticsOverview:
+      type: object
+      properties:
+        period:
+          type: object
+          properties:
+            from:
+              type: string
+              format: date
+            to:
+              type: string
+              format: date
+        summary:
+          type: object
+          properties:
+            totalLeadsContacted:
+              type: integer
+            totalMessages:
+              type: integer
+            totalReplies:
+              type: integer
+            replyRate:
+              type: number
+              format: float
+            conversions:
+              type: integer
+            conversionRate:
+              type: number
+              format: float
+        byChannel:
+          type: object
+          properties:
+            whatsapp:
+              $ref: '#/components/schemas/WhatsAppChannelStats'
+            emailCold:
+              $ref: '#/components/schemas/EmailColdChannelStats'
+            emailWarm:
+              $ref: '#/components/schemas/EmailWarmChannelStats'
+        funnel:
+          type: array
+          items:
+            type: object
+            properties:
+              stage:
+                type: string
+              count:
+                type: integer
+              percentage:
+                type: number
+                format: float
+        sentiment:
+          type: object
+          properties:
+            positive:
+              type: integer
+            neutral:
+              type: integer
+            negative:
+              type: integer
+            avgScore:
+              type: number
+              format: float
+        topPerformingSequences:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              name:
+                type: string
+              enrollments:
+                type: integer
+              responseRate:
+                type: number
+                format: float
+              conversions:
+                type: integer
+
+    WhatsAppChannelStats:
+      type: object
+      properties:
+        sent:
+          type: integer
+        delivered:
+          type: integer
+        read:
+          type: integer
+        replied:
+          type: integer
+        quotaUsed:
+          type: integer
+
+    EmailColdChannelStats:
+      type: object
+      properties:
+        sent:
+          type: integer
+        opened:
+          type: integer
+        clicked:
+          type: integer
+        replied:
+          type: integer
+        bounced:
+          type: integer
+        bounceRate:
+          type: number
+          format: float
+
+    EmailWarmChannelStats:
+      type: object
+      properties:
+        sent:
+          type: integer
+        opened:
+          type: integer
+        clicked:
+          type: integer
+        replied:
+          type: integer
+
+    DailyAnalytics:
+      type: object
+      properties:
+        dates:
+          type: array
+          items:
+            type: string
+            format: date
+        metrics:
+          type: object
+          properties:
+            contacted:
+              type: array
+              items:
+                type: integer
+            replied:
+              type: array
+              items:
+                type: integer
+            converted:
+              type: array
+              items:
+                type: integer
+            reviewsResolved:
+              type: array
+              items:
+                type: integer
+
+    PhoneAnalytics:
+      type: object
+      properties:
+        phones:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              label:
+                type: string
+              quotaUsed:
+                type: integer
+              messagesSent:
+                type: integer
+              repliesReceived:
+                type: integer
+              replyRate:
+                type: number
+                format: float
+              avgResponseTime:
+                type: number
+                description: Average response time in minutes
+              status:
+                $ref: '#/components/schemas/PhoneStatus'
+
+    SequenceAnalytics:
+      type: object
+      properties:
+        sequences:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              name:
+                type: string
+              enrollments:
+                type: integer
+              completions:
+                type: integer
+              conversions:
+                type: integer
+              avgStepsCompleted:
+                type: number
+                format: float
+              responseRate:
+                type: number
+                format: float
+
+    # ============================================================================
+    # SCHEMAS - WEBHOOKS
+    # ============================================================================
+    TimelinesAIWebhookPayload:
+      type: object
+      properties:
+        event:
+          type: string
+          enum:
+            - message.received
+            - message.sent
+            - message.delivered
+            - message.read
+            - chat.created
+            - account.disconnected
+        data:
+          type: object
+          properties:
+            message_id:
+              type: string
+            chat_id:
+              type: string
+            account_id:
+              type: string
+            phone_number:
+              type: string
+            content:
+              type: string
+            from_me:
+              type: boolean
+            timestamp:
+              type: integer
+        timestamp:
+          type: integer
+
+    InstantlyWebhookPayload:
+      type: object
+      properties:
+        event_type:
+          type: string
+          enum:
+            - email_sent
+            - email_opened
+            - email_link_clicked
+            - reply_received
+            - email_bounced
+            - lead_unsubscribed
+        data:
+          type: object
+          properties:
+            lead_id:
+              type: string
+            email:
+              type: string
+            campaign_id:
+              type: string
+            timestamp:
+              type: string
+              format: date-time
+
+    ResendWebhookPayload:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - email.sent
+            - email.delivered
+            - email.bounced
+            - email.opened
+            - email.clicked
+            - email.complained
+        data:
+          type: object
+          properties:
+            email_id:
+              type: string
+            to:
+              type: array
+              items:
+                type: string
+            subject:
+              type: string
+            created_at:
+              type: string
+              format: date-time
+
+    # ============================================================================
+    # SCHEMAS - COMMON
+    # ============================================================================
+    PaginationMeta:
+      type: object
+      required:
+        - page
+        - limit
+        - total
+        - pages
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        pages:
+          type: integer
+        filters:
+          type: object
+          additionalProperties: true
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - requestId
+        - timestamp
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              enum:
+                - VALIDATION_ERROR
+                - UNAUTHORIZED
+                - FORBIDDEN
+                - NOT_FOUND
+                - CONFLICT
+                - RATE_LIMITED
+                - QUOTA_EXCEEDED
+                - INTERNAL_ERROR
+                - SERVICE_UNAVAILABLE
+            message:
+              type: string
+            details:
+              type: object
+              additionalProperties: true
+        requestId:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time

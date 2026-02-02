@@ -2,7 +2,7 @@
 
 ## Cold Outreach Pipeline - Worker Architecture
 
-### Versiunea 1.0 | 15 Ianuarie 2026
+### Versiunea 1.1 | 2 Februarie 2026
 
 ---
 

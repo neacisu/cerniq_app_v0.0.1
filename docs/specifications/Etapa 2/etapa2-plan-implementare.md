@@ -1,13 +1,60 @@
 # CERNIQ.APP — ETAPA 2: PLAN IMPLEMENTARE GRANULAR COMPLET
 ## Faze, Subfaze și Taskuri pentru Cold Outreach Multi-Canal
-### Versiunea 1.0 | 15 Ianuarie 2026
+### Versiunea 1.1 | 2 Februarie 2026
 
 ---
 
 **DOCUMENT STATUS:** NORMATIV — Subordonat Master Spec v1.2  
 **SCOPE:** Plan complet implementare Cold Outreach cu taskuri JSON pentru AI Agents  
-**FORMAT:** F2.x.x.Txxx (Fază.Subfază.Task) - continuare din Etapa 0/1
+**FORMAT:** F2.x.x.Txxx (Fază.Subfază.Task) - continuare din Etapa 0/1  
+**SPRINT FORMAT:** E2.Sx.PRx.xxx (Etapă.Sprint.PR.Task) - conform sprint-plan.md  
 **PREREQUISITE:** Etapa 1 completă (Gold layer populat)
+
+---
+
+## MAPARE FAZE → SPRINTURI
+
+### Convenția Duală de Numerotare
+
+Acest document folosește formatul **Phase (F2.x.x.Txxx)** pentru definiția granulară a taskurilor.
+Documentul `etapa2-sprint-plan.md` folosește formatul **Sprint (E2.Sx.PRx.xxx)** pentru execuție.
+
+### Matrice de Conversie
+
+| Faze | Sprint | PR Range | Nr. Tasks | Focus |
+|------|--------|----------|-----------|-------|
+| F2.1 - F2.4 | **E2.S1** | PR1-PR6 | 23 | Foundation & Integrations |
+| F2.5 - F2.8 | **E2.S2** | PR1-PR8 | 26 | Workers Core |
+| F2.9 - F2.14 | **E2.S3** | PR1-PR6 | 31 | Intelligence & HITL |
+| F2.15 - F2.20 | **E2.S4** | PR1-PR8 | 38 | Frontend & Testing |
+
+### Formula de Conversie
+
+```text
+Phase ID: F2.{phase}.{subphase}.T{xxx}
+Sprint ID: E2.S{sprint}.PR{pr}.{xxx}
+
+Reguli:
+├── F2.1 → F2.4   → E2.S1 (Sprint 1: Foundation)
+├── F2.5 → F2.8   → E2.S2 (Sprint 2: Workers)  
+├── F2.9 → F2.14  → E2.S3 (Sprint 3: Intelligence)
+└── F2.15 → F2.20 → E2.S4 (Sprint 4: Frontend)
+
+Exemple:
+F2.1.1.T001 → E2.S1.PR1.001
+F2.5.1.T001 → E2.S2.PR1.001
+F2.9.1.T001 → E2.S3.PR1.001
+F2.15.1.T001 → E2.S4.PR1.001
+```
+
+### Cross-Reference
+
+| Document | Format Folosit | Locație |
+|----------|---------------|---------|
+| `etapa2-plan-implementare.md` | F2.x.x.Txxx | Acest document |
+| `etapa2-sprint-plan.md` | E2.Sx.PRx.xxx | `./etapa2-sprint-plan.md` |
+| `etapa2-api-endpoints.md` | Per module | `./etapa2-api-endpoints.md` |
+| `openapi-etapa2.yaml` | REST paths | `../../api/openapi-etapa2.yaml` |
 
 ---
 

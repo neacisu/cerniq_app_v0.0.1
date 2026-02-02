@@ -1,6 +1,6 @@
 # CERNIQ.APP — ETAPA 2: WORKERS TRIGGER RULES
 ## Inter-Worker Communication & Event Flow
-### Versiunea 1.0 | 15 Ianuarie 2026
+### Versiunea 1.1 | 2 Februarie 2026
 
 ---
 

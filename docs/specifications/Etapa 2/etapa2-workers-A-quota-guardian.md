@@ -1,6 +1,6 @@
 # CERNIQ.APP — ETAPA 2: WORKERS CATEGORIA A
 ## Quota Guardian & Rate Limiting (4 Workers)
-### Versiunea 1.0 | 15 Ianuarie 2026
+### Versiunea 1.1 | 2 Februarie 2026
 
 ---
 
