@@ -2,7 +2,7 @@
 
 ## Nurturing Agentic — Table of Contents
 
-### Versiunea 1.0 | 19 Ianuarie 2026
+### Versiunea 1.1 | 2 Februarie 2026
 
 ---
 
@@ -12,12 +12,12 @@
 |-------------------|-----------|-------------|
 | Schema Database   | 5         | ~2,500      |
 | Workers           | 5         | ~3,000      |
-| UI/UX             | 6         | ~2,500      |
-| API               | 2         | ~450        |
-| Plan Implementare | 2         | ~1,500      |
+| UI/UX             | 5         | ~2,500      |
+| API               | 2         | ~1,800      |
+| Plan Implementare | 3         | ~2,800      |
 | Standards & ADRs  | 2         | ~350        |
-| Operations        | 6         | ~2,000      |
-| **TOTAL**         | **29**    | **~12,300** |
+| Operations        | 7         | ~2,000      |
+| **TOTAL**         | **30**    | **~15,000** |
 
 ---
 
@@ -72,25 +72,32 @@
 |----|---------------------------------------|-------------------------------------|
 | 18 | `etapa5-plan-implementare-COMPLET.md` | Tasks 400-443 cu JSON structure     |
 | 19 | `etapa5-plan-implementare-EXTINS.md`  | Tasks 444-498 (Graph, Referral, UI) |
+| 20 | `etapa5-sprint-plan.md`               | **Sprint Plan: 7 sprinturi, 42 PRs** |
 
 ### 6. Standards & ADRs
 
 | #  | Document              | Descriere                           |
 |----|-----------------------|-------------------------------------|
-| 20 | `etapa5-adrs.md`      | 10 Architecture Decision Records    |
-| 21 | `etapa5-standards.md` | Operational standards și procedures |
+| 21 | `etapa5-adrs.md`      | 10 Architecture Decision Records    |
+| 22 | `etapa5-standards.md` | Operational standards și procedures |
 
 ### 7. Operations
 
 | #  | Document                             | Descriere                          |
 |----|--------------------------------------|------------------------------------|
-| 22 | `etapa5-hitl-system.md`              | HITL unified system pentru Etapa 5 |
-| 23 | `etapa5-runbook-operational.md`      | Runbook operațional                |
-| 24 | `etapa5-migrations.md`               | Database migrations                |
-| 25 | `etapa5-testing-strategy.md`         | Testing strategy completă          |
-| 26 | `etapa5-monitoring-observability.md` | Monitoring și observability        |
-| 27 | `etapa5-environment-variables.md`    | Environment configuration          |
-| 28 | `etapa5-backup-procedures.md`        | Backup și disaster recovery        |
+| 23 | `etapa5-hitl-system.md`              | HITL unified system pentru Etapa 5 |
+| 24 | `etapa5-runbook-operational.md`      | Runbook operațional                |
+| 25 | `etapa5-migrations.md`               | Database migrations                |
+| 26 | `etapa5-testing-strategy.md`         | Testing strategy completă          |
+| 27 | `etapa5-monitoring-observability.md` | Monitoring și observability        |
+| 28 | `etapa5-environment-variables.md`    | Environment configuration          |
+| 29 | `etapa5-backup-procedures.md`        | Backup și disaster recovery        |
+
+### 8. Diagrams
+
+| #  | Document                             | Descriere                          |
+|----|--------------------------------------|------------------------------------|
+| 30 | `../../diagrams/c4-components-etapa5.drawio` | C4 Component Diagram (58 workers) |
 
 ---
 
@@ -151,11 +158,13 @@
 
 ## 🎯 TIMELINE
 
-- **Durată estimată**: 14-16 săptămâni
+- **Durată estimată**: 14 săptămâni (7 sprinturi × 2 săptămâni)
 - **Ore totale**: ~390 ore
 - **Echipă**: 1-person team (vertical slice)
+- **Total PRs**: 42
+- **Sprint Plan**: [etapa5-sprint-plan.md](etapa5-sprint-plan.md)
 
 ---
 
-**Document generat**: 2026-01-19  
+**Document generat**: 2 Februarie 2026  
 **Status**: COMPLET ✅

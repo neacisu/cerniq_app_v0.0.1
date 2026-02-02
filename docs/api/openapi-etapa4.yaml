@@ -3,11 +3,2092 @@ info:
   title: Cerniq.app API — Etapa 4 (Payments & Logistics)
   version: 1.0.0
   description: |
-    Specificație OpenAPI pentru Etapa 4.
+    Specificație OpenAPI pentru Etapa 4: Monitorizare Post-Vânzare.
+    
+    ## Overview
+    Acest modul gestionează:
+    - **Orders**: Lifecycle complet al comenzilor
+    - **Payments**: Integrare Revolut, reconciliere automată/manuală
+    - **Credit**: Scoring via Termene.ro, limite, rezervări
+    - **Shipments**: Integrare Sameday, tracking, COD
+    - **Contracts**: Generare dinamică, semnătură DocuSign
+    - **Returns**: Procesare retururi și refund-uri
+    - **HITL**: Human-in-the-loop approval system
+    
+    ## ADRs Relevante
+    - ADR-0088: Revolut Business API Integration
+    - ADR-0089: Three-Tier Payment Reconciliation
+    - ADR-0090: Credit Scoring via Termene.ro
+    - ADR-0091: Dynamic Contract Generation
+    - ADR-0092: Sameday Courier Integration
+    - ADR-0093: Event-Driven Order Lifecycle
+    - ADR-0094: HITL Approval System Design
+    - ADR-0095: Partitioned Audit Tables
+    - ADR-0096: Real-Time Dashboard via WebSocket
+    - ADR-0097: Oblio Stock Sync Strategy
+    
     Pentru schema globală și convenții comune, vezi docs/api/openapi.yaml.
+  contact:
+    name: Cerniq Development Team
+    email: dev@cerniq.app
+  license:
+    name: Proprietary
 servers:
   - url: https://api.cerniq.app
     description: Production
   - url: http://localhost:64000
     description: Development
-paths: {}
+
+tags:
+  - name: Orders
+    description: Order management endpoints
+  - name: Payments
+    description: Payment processing and reconciliation
+  - name: Credit
+    description: Credit scoring and limit management
+  - name: Shipments
+    description: Logistics and tracking
+  - name: Contracts
+    description: Dynamic contract generation
+  - name: Returns
+    description: Returns and refunds processing
+  - name: HITL
+    description: Human-in-the-loop approval queue
+  - name: Webhooks
+    description: External webhook endpoints
+  - name: Dashboard
+    description: Dashboard and analytics
+
+paths:
+  # ============================================
+  # ORDERS API
+  # ============================================
+  /api/v1/monitoring/orders:
+    get:
+      tags: [Orders]
+      summary: List orders with pagination and filters
+      operationId: listOrders
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+        - name: status
+          in: query
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/OrderStatus'
+        - name: clientId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: search
+          in: query
+          description: Search by order number or client name
+          schema:
+            type: string
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [createdAt, totalAmount, status]
+        - name: sortOrder
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+      responses:
+        '200':
+          description: List of orders
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          orders:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Order'
+                          meta:
+                            $ref: '#/components/schemas/PaginationMeta'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/monitoring/orders/{orderId}:
+    get:
+      tags: [Orders]
+      summary: Get order details with related entities
+      operationId: getOrder
+      parameters:
+        - $ref: '#/components/parameters/OrderIdParam'
+      responses:
+        '200':
+          description: Order details
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/OrderDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/monitoring/orders/{orderId}/status:
+    patch:
+      tags: [Orders]
+      summary: Update order status
+      operationId: updateOrderStatus
+      parameters:
+        - $ref: '#/components/parameters/OrderIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  $ref: '#/components/schemas/OrderStatus'
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Order status updated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          order:
+                            $ref: '#/components/schemas/Order'
+                          triggeredActions:
+                            type: array
+                            items:
+                              type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/monitoring/orders/{orderId}/cancel:
+    post:
+      tags: [Orders]
+      summary: Cancel an order
+      operationId: cancelOrder
+      parameters:
+        - $ref: '#/components/parameters/OrderIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                refundAmount:
+                  type: number
+                  format: decimal
+      responses:
+        '200':
+          description: Order cancelled
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          order:
+                            $ref: '#/components/schemas/Order'
+                          refundId:
+                            type: string
+                            format: uuid
+                          creditReleased:
+                            type: number
+
+  # ============================================
+  # PAYMENTS API
+  # ============================================
+  /api/v1/monitoring/payments:
+    get:
+      tags: [Payments]
+      summary: List payments with filters
+      operationId: listPayments
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+        - name: status
+          in: query
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/PaymentStatus'
+        - name: reconciliationStatus
+          in: query
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/ReconciliationStatus'
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: minAmount
+          in: query
+          schema:
+            type: number
+        - name: maxAmount
+          in: query
+          schema:
+            type: number
+      responses:
+        '200':
+          description: List of payments
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          payments:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Payment'
+                          summary:
+                            type: object
+                            properties:
+                              totalAmount:
+                                type: number
+                              pendingReconciliation:
+                                type: integer
+                              reconciled:
+                                type: integer
+                          meta:
+                            $ref: '#/components/schemas/PaginationMeta'
+
+  /api/v1/monitoring/payments/{paymentId}/reconcile:
+    post:
+      tags: [Payments]
+      summary: Manually reconcile a payment with an invoice
+      operationId: reconcilePayment
+      parameters:
+        - name: paymentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [invoiceId]
+              properties:
+                invoiceId:
+                  type: string
+                  format: uuid
+                notes:
+                  type: string
+      responses:
+        '200':
+          description: Payment reconciled
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          payment:
+                            $ref: '#/components/schemas/Payment'
+                          invoice:
+                            $ref: '#/components/schemas/Invoice'
+                          orderUpdated:
+                            type: boolean
+
+  /api/v1/monitoring/payments/overdue:
+    get:
+      tags: [Payments]
+      summary: Get overdue invoices
+      operationId: getOverduePayments
+      responses:
+        '200':
+          description: Overdue invoices list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          invoices:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/OverdueInvoice'
+                          summary:
+                            type: object
+                            properties:
+                              totalOverdue:
+                                type: number
+                              clientsAffected:
+                                type: integer
+                              avgDaysOverdue:
+                                type: number
+
+  /api/v1/monitoring/payments/{invoiceId}/send-reminder:
+    post:
+      tags: [Payments]
+      summary: Send payment reminder
+      operationId: sendPaymentReminder
+      parameters:
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [channels]
+              properties:
+                channels:
+                  type: array
+                  items:
+                    type: string
+                    enum: [email, whatsapp, sms]
+                escalationLevel:
+                  type: string
+                  enum: [FIRST, SECOND, FINAL]
+      responses:
+        '200':
+          description: Reminder sent
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          sent:
+                            type: boolean
+                          channels:
+                            type: array
+                            items:
+                              type: string
+                          nextReminderAt:
+                            type: string
+                            format: date-time
+
+  # ============================================
+  # CREDIT API
+  # ============================================
+  /api/v1/monitoring/credit/profiles:
+    get:
+      tags: [Credit]
+      summary: List credit profiles
+      operationId: listCreditProfiles
+      parameters:
+        - name: riskTier
+          in: query
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/RiskTier'
+        - name: minScore
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 100
+        - name: maxScore
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 100
+        - name: hasAvailableCredit
+          in: query
+          schema:
+            type: boolean
+        - name: isBlocked
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Credit profiles list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          profiles:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/CreditProfile'
+                          distribution:
+                            type: object
+                            properties:
+                              BLOCKED:
+                                type: integer
+                              LOW:
+                                type: integer
+                              MEDIUM:
+                                type: integer
+                              HIGH:
+                                type: integer
+                              PREMIUM:
+                                type: integer
+
+  /api/v1/monitoring/credit/profiles/{clientId}:
+    get:
+      tags: [Credit]
+      summary: Get credit profile details
+      operationId: getCreditProfile
+      parameters:
+        - name: clientId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Credit profile details
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/CreditProfileDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/monitoring/credit/profiles/{clientId}/refresh:
+    post:
+      tags: [Credit]
+      summary: Trigger credit score recalculation
+      operationId: refreshCreditProfile
+      parameters:
+        - name: clientId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '202':
+          description: Refresh job queued
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          jobId:
+                            type: string
+                          estimatedCompletion:
+                            type: string
+                            format: date-time
+
+  /api/v1/monitoring/credit/check:
+    post:
+      tags: [Credit]
+      summary: Pre-check credit before order
+      operationId: checkCredit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [clientId, amount, currency]
+              properties:
+                clientId:
+                  type: string
+                  format: uuid
+                amount:
+                  type: number
+                  format: decimal
+                currency:
+                  type: string
+                  enum: [RON, EUR]
+      responses:
+        '200':
+          description: Credit check result
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          result:
+                            type: string
+                            enum: [APPROVED, INSUFFICIENT_CREDIT, BLOCKED, NEEDS_REVIEW]
+                          availableCredit:
+                            type: number
+                          creditLimit:
+                            type: number
+                          overage:
+                            type: number
+
+  /api/v1/monitoring/credit/override:
+    post:
+      tags: [Credit]
+      summary: Request credit override (creates HITL task)
+      operationId: requestCreditOverride
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [clientId, orderId, overrideType, amount, reason]
+              properties:
+                clientId:
+                  type: string
+                  format: uuid
+                orderId:
+                  type: string
+                  format: uuid
+                overrideType:
+                  type: string
+                  enum: [ONE_TIME, TEMPORARY, PERMANENT]
+                amount:
+                  type: number
+                  format: decimal
+                reason:
+                  type: string
+      responses:
+        '201':
+          description: Override request created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          hitlTaskId:
+                            type: string
+                            format: uuid
+                          status:
+                            type: string
+                            enum: [PENDING_APPROVAL]
+
+  # ============================================
+  # SHIPMENTS API
+  # ============================================
+  /api/v1/monitoring/shipments:
+    get:
+      tags: [Shipments]
+      summary: List shipments
+      operationId: listShipments
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+        - name: status
+          in: query
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/ShipmentStatus'
+        - name: carrier
+          in: query
+          schema:
+            type: string
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: hasCod
+          in: query
+          schema:
+            type: boolean
+        - name: codCollected
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Shipments list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          shipments:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Shipment'
+                          summary:
+                            type: object
+                            properties:
+                              inTransit:
+                                type: integer
+                              delivered:
+                                type: integer
+                              pendingCod:
+                                type: integer
+                              totalCodPending:
+                                type: number
+
+  /api/v1/monitoring/shipments/{shipmentId}/tracking:
+    get:
+      tags: [Shipments]
+      summary: Get shipment tracking events
+      operationId: getShipmentTracking
+      parameters:
+        - name: shipmentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Tracking information
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          shipment:
+                            $ref: '#/components/schemas/Shipment'
+                          events:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/TrackingEvent'
+                          estimatedDelivery:
+                            type: string
+                            format: date-time
+                          currentLocation:
+                            type: object
+                            properties:
+                              city:
+                                type: string
+                              county:
+                                type: string
+
+  /api/v1/monitoring/shipments/{shipmentId}/refresh:
+    post:
+      tags: [Shipments]
+      summary: Force refresh tracking from carrier
+      operationId: refreshShipmentTracking
+      parameters:
+        - name: shipmentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Tracking refreshed
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          updated:
+                            type: boolean
+                          newStatus:
+                            $ref: '#/components/schemas/ShipmentStatus'
+                          lastEvent:
+                            $ref: '#/components/schemas/TrackingEvent'
+
+  # ============================================
+  # CONTRACTS API
+  # ============================================
+  /api/v1/monitoring/contracts:
+    get:
+      tags: [Contracts]
+      summary: List contracts
+      operationId: listContracts
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+        - name: status
+          in: query
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/ContractStatus'
+        - name: clientId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: expiringWithinDays
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Contracts list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          contracts:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Contract'
+                          pendingSignatures:
+                            type: integer
+                          expiringThisWeek:
+                            type: integer
+
+  /api/v1/monitoring/contracts/{contractId}/resend:
+    post:
+      tags: [Contracts]
+      summary: Resend signature request
+      operationId: resendContractSignature
+      parameters:
+        - name: contractId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Signature request resent
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          sent:
+                            type: boolean
+                          sentTo:
+                            type: array
+                            items:
+                              type: string
+                          newExpiryDate:
+                            type: string
+                            format: date-time
+
+  /api/v1/monitoring/contracts/templates:
+    get:
+      tags: [Contracts]
+      summary: List contract templates
+      operationId: listContractTemplates
+      responses:
+        '200':
+          description: Templates list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          templates:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/ContractTemplate'
+
+  # ============================================
+  # RETURNS API
+  # ============================================
+  /api/v1/monitoring/returns:
+    get:
+      tags: [Returns]
+      summary: List returns
+      operationId: listReturns
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+        - name: status
+          in: query
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/ReturnStatus'
+        - name: clientId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: orderId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Returns list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          returns:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Return'
+                          summary:
+                            type: object
+                            properties:
+                              pending:
+                                type: integer
+                              awaitingInspection:
+                                type: integer
+                              refundsPending:
+                                type: integer
+
+    post:
+      tags: [Returns]
+      summary: Create return request
+      operationId: createReturn
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [orderId, items]
+              properties:
+                orderId:
+                  type: string
+                  format: uuid
+                items:
+                  type: array
+                  items:
+                    type: object
+                    required: [orderItemId, quantity, reason]
+                    properties:
+                      orderItemId:
+                        type: string
+                        format: uuid
+                      quantity:
+                        type: integer
+                        minimum: 1
+                      reason:
+                        $ref: '#/components/schemas/ReturnReason'
+                customerNotes:
+                  type: string
+      responses:
+        '201':
+          description: Return created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          return:
+                            $ref: '#/components/schemas/Return'
+                          requiresApproval:
+                            type: boolean
+                          hitlTaskId:
+                            type: string
+                            format: uuid
+
+  /api/v1/monitoring/returns/{returnId}/inspect:
+    patch:
+      tags: [Returns]
+      summary: Record inspection result
+      operationId: inspectReturn
+      parameters:
+        - name: returnId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [result, notes]
+              properties:
+                result:
+                  type: string
+                  enum: [APPROVED, PARTIAL, REJECTED]
+                notes:
+                  type: string
+                photos:
+                  type: array
+                  items:
+                    type: string
+                    format: uri
+                approvedItems:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      orderItemId:
+                        type: string
+                        format: uuid
+                      quantity:
+                        type: integer
+                      condition:
+                        type: string
+      responses:
+        '200':
+          description: Inspection recorded
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          return:
+                            $ref: '#/components/schemas/Return'
+                          refundAmount:
+                            type: number
+                          refundId:
+                            type: string
+                            format: uuid
+
+  # ============================================
+  # HITL API
+  # ============================================
+  /api/v1/monitoring/hitl/queue:
+    get:
+      tags: [HITL]
+      summary: List HITL approval queue
+      operationId: listHitlQueue
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+        - name: taskType
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+        - name: priority
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [LOW, NORMAL, HIGH, CRITICAL]
+        - name: assignedRole
+          in: query
+          schema:
+            type: string
+        - name: slaStatus
+          in: query
+          schema:
+            type: string
+            enum: [OK, WARNING, BREACHED]
+      responses:
+        '200':
+          description: HITL queue
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          tasks:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/HITLTask'
+                          summary:
+                            type: object
+                            properties:
+                              total:
+                                type: integer
+                              critical:
+                                type: integer
+                              slaBreached:
+                                type: integer
+                              avgResolutionTime:
+                                type: number
+
+  /api/v1/monitoring/hitl/tasks/{taskId}:
+    get:
+      tags: [HITL]
+      summary: Get HITL task details
+      operationId: getHitlTask
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Task details
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/HITLTaskDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/monitoring/hitl/tasks/{taskId}/resolve:
+    post:
+      tags: [HITL]
+      summary: Resolve HITL task
+      operationId: resolveHitlTask
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision]
+              properties:
+                decision:
+                  type: string
+                  enum: [APPROVED, REJECTED]
+                notes:
+                  type: string
+                selectedOption:
+                  type: string
+                  description: For payment reconciliation - selected invoice ID
+      responses:
+        '200':
+          description: Task resolved
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          task:
+                            $ref: '#/components/schemas/HITLTask'
+                          executedActions:
+                            type: array
+                            items:
+                              type: string
+
+  /api/v1/monitoring/hitl/tasks/{taskId}/reassign:
+    post:
+      tags: [HITL]
+      summary: Reassign HITL task
+      operationId: reassignHitlTask
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                assignToUserId:
+                  type: string
+                  format: uuid
+                assignToRole:
+                  type: string
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Task reassigned
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/HITLTask'
+
+  # ============================================
+  # DASHBOARD API
+  # ============================================
+  /api/v1/monitoring/dashboard/kpis:
+    get:
+      tags: [Dashboard]
+      summary: Get dashboard KPIs
+      operationId: getDashboardKpis
+      responses:
+        '200':
+          description: Dashboard KPIs
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          ordersToday:
+                            type: integer
+                          revenueToday:
+                            type: number
+                          pendingPayments:
+                            type: number
+                          hitlQueue:
+                            type: integer
+                          shipmentsInTransit:
+                            type: integer
+                          overdueInvoices:
+                            type: integer
+
+  /api/v1/monitoring/dashboard/cash-flow:
+    get:
+      tags: [Dashboard]
+      summary: Get cash flow data
+      operationId: getCashFlow
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [7d, 30d, 90d]
+            default: 30d
+      responses:
+        '200':
+          description: Cash flow data
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          inflow:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                date:
+                                  type: string
+                                  format: date
+                                amount:
+                                  type: number
+                          outflow:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                date:
+                                  type: string
+                                  format: date
+                                amount:
+                                  type: number
+
+  # ============================================
+  # WEBHOOKS (External)
+  # ============================================
+  /webhooks/revolut/business:
+    post:
+      tags: [Webhooks]
+      summary: Revolut Business webhook endpoint
+      operationId: revolutWebhook
+      description: |
+        Receives transaction events from Revolut Business API.
+        Validates HMAC-SHA256 signature (ADR-0088).
+      parameters:
+        - name: X-Revolut-Signature-V1
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RevolutWebhookPayload'
+      responses:
+        '200':
+          description: Webhook processed
+        '401':
+          description: Invalid signature
+
+  /webhooks/sameday/status:
+    post:
+      tags: [Webhooks]
+      summary: Sameday status update webhook
+      operationId: samedayWebhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SamedayWebhookPayload'
+      responses:
+        '200':
+          description: Webhook processed
+
+  /webhooks/docusign/connect:
+    post:
+      tags: [Webhooks]
+      summary: DocuSign Connect webhook
+      operationId: docusignWebhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DocuSignWebhookPayload'
+      responses:
+        '200':
+          description: Webhook processed
+
+components:
+  parameters:
+    PageParam:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    PageSizeParam:
+      name: pageSize
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 25
+    OrderIdParam:
+      name: orderId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    # ============================================
+    # Common Schemas
+    # ============================================
+    ApiResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        error:
+          $ref: '#/components/schemas/ErrorDetail'
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          $ref: '#/components/schemas/ErrorDetail'
+
+    ErrorDetail:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+
+    PaginationMeta:
+      type: object
+      properties:
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        total:
+          type: integer
+        totalPages:
+          type: integer
+
+    # ============================================
+    # Enums
+    # ============================================
+    OrderStatus:
+      type: string
+      enum:
+        - DRAFT
+        - PENDING_CREDIT_CHECK
+        - CREDIT_APPROVED
+        - CREDIT_REJECTED
+        - PENDING_CONTRACT
+        - CONTRACT_SENT
+        - CONTRACT_SIGNED
+        - PROCESSING
+        - READY_TO_SHIP
+        - SHIPPED
+        - IN_TRANSIT
+        - DELIVERED
+        - PARTIALLY_PAID
+        - PAID
+        - OVERDUE
+        - CANCELLED
+        - REFUNDED
+        - COMPLETED
+
+    PaymentStatus:
+      type: string
+      enum:
+        - PENDING
+        - COMPLETED
+        - FAILED
+        - REFUNDED
+
+    ReconciliationStatus:
+      type: string
+      enum:
+        - PENDING
+        - AUTO_MATCHED
+        - FUZZY_MATCHED
+        - MANUAL_MATCHED
+        - UNMATCHED
+
+    RiskTier:
+      type: string
+      enum:
+        - BLOCKED
+        - LOW
+        - MEDIUM
+        - HIGH
+        - PREMIUM
+
+    ShipmentStatus:
+      type: string
+      enum:
+        - PENDING
+        - AWAITING_PICKUP
+        - PICKED_UP
+        - IN_TRANSIT
+        - OUT_FOR_DELIVERY
+        - DELIVERED
+        - FAILED_DELIVERY
+        - RETURNED
+
+    ContractStatus:
+      type: string
+      enum:
+        - DRAFT
+        - PENDING_SIGNATURE
+        - SIGNED
+        - EXPIRED
+        - CANCELLED
+
+    ReturnStatus:
+      type: string
+      enum:
+        - REQUESTED
+        - APPROVED
+        - REJECTED
+        - AWAITING_SHIPMENT
+        - IN_TRANSIT
+        - RECEIVED
+        - INSPECTING
+        - COMPLETED
+        - REFUNDED
+
+    ReturnReason:
+      type: string
+      enum:
+        - DEFECTIVE
+        - WRONG_ITEM
+        - NOT_AS_DESCRIBED
+        - CHANGED_MIND
+        - DAMAGED_IN_TRANSIT
+        - OTHER
+
+    # ============================================
+    # Domain Schemas
+    # ============================================
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        orderNumber:
+          type: string
+        clientId:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/OrderStatus'
+        totalAmount:
+          type: number
+        currency:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    OrderDetail:
+      allOf:
+        - $ref: '#/components/schemas/Order'
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/OrderItem'
+            client:
+              $ref: '#/components/schemas/Client'
+            payments:
+              type: array
+              items:
+                $ref: '#/components/schemas/Payment'
+            shipment:
+              $ref: '#/components/schemas/Shipment'
+            contract:
+              $ref: '#/components/schemas/Contract'
+            timeline:
+              type: array
+              items:
+                $ref: '#/components/schemas/TimelineEvent'
+
+    OrderItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        productId:
+          type: string
+        productName:
+          type: string
+        quantity:
+          type: integer
+        unitPrice:
+          type: number
+        lineTotal:
+          type: number
+
+    Client:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        cui:
+          type: string
+        email:
+          type: string
+
+    Payment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        amount:
+          type: number
+        currency:
+          type: string
+        status:
+          $ref: '#/components/schemas/PaymentStatus'
+        reconciliationStatus:
+          $ref: '#/components/schemas/ReconciliationStatus'
+        revolutTransactionId:
+          type: string
+        payerName:
+          type: string
+        paymentReference:
+          type: string
+        receivedAt:
+          type: string
+          format: date-time
+
+    Invoice:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        invoiceNumber:
+          type: string
+        amount:
+          type: number
+        dueDate:
+          type: string
+          format: date
+        status:
+          type: string
+
+    OverdueInvoice:
+      type: object
+      properties:
+        invoiceId:
+          type: string
+          format: uuid
+        invoiceNumber:
+          type: string
+        orderId:
+          type: string
+          format: uuid
+        clientId:
+          type: string
+          format: uuid
+        clientName:
+          type: string
+        amountDue:
+          type: number
+        dueDate:
+          type: string
+          format: date
+        daysOverdue:
+          type: integer
+        lastReminderAt:
+          type: string
+          format: date-time
+        reminderCount:
+          type: integer
+
+    CreditProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        clientId:
+          type: string
+          format: uuid
+        creditScore:
+          type: integer
+          minimum: 0
+          maximum: 100
+        riskTier:
+          $ref: '#/components/schemas/RiskTier'
+        creditLimit:
+          type: number
+        creditUsed:
+          type: number
+        creditAvailable:
+          type: number
+        isBlocked:
+          type: boolean
+        lastCalculatedAt:
+          type: string
+          format: date-time
+
+    CreditProfileDetail:
+      allOf:
+        - $ref: '#/components/schemas/CreditProfile'
+        - type: object
+          properties:
+            scoreHistory:
+              type: array
+              items:
+                type: object
+                properties:
+                  score:
+                    type: integer
+                  calculatedAt:
+                    type: string
+                    format: date-time
+            reservations:
+              type: array
+              items:
+                $ref: '#/components/schemas/CreditReservation'
+            overrides:
+              type: array
+              items:
+                $ref: '#/components/schemas/CreditOverride'
+            paymentHistory:
+              type: object
+              properties:
+                totalOrders:
+                  type: integer
+                avgPaymentDays:
+                  type: number
+                onTimeRate:
+                  type: number
+                latePaymentsCount:
+                  type: integer
+
+    CreditReservation:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        orderId:
+          type: string
+          format: uuid
+        amount:
+          type: number
+        status:
+          type: string
+          enum: [ACTIVE, RELEASED, CONVERTED]
+        createdAt:
+          type: string
+          format: date-time
+
+    CreditOverride:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [ONE_TIME, TEMPORARY, PERMANENT]
+        amount:
+          type: number
+        reason:
+          type: string
+        approvedBy:
+          type: string
+        approvedAt:
+          type: string
+          format: date-time
+
+    Shipment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        orderId:
+          type: string
+          format: uuid
+        awbNumber:
+          type: string
+        carrier:
+          type: string
+        status:
+          $ref: '#/components/schemas/ShipmentStatus'
+        hasCod:
+          type: boolean
+        codAmount:
+          type: number
+        codCollected:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    TrackingEvent:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+        statusCode:
+          type: string
+        location:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        description:
+          type: string
+
+    Contract:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        orderId:
+          type: string
+          format: uuid
+        clientId:
+          type: string
+          format: uuid
+        templateId:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/ContractStatus'
+        documentUrl:
+          type: string
+          format: uri
+        signedDocumentUrl:
+          type: string
+          format: uri
+        expiresAt:
+          type: string
+          format: date-time
+        signedAt:
+          type: string
+          format: date-time
+
+    ContractTemplate:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        riskTiers:
+          type: array
+          items:
+            $ref: '#/components/schemas/RiskTier'
+        isActive:
+          type: boolean
+
+    Return:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        orderId:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/ReturnStatus'
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              orderItemId:
+                type: string
+                format: uuid
+              quantity:
+                type: integer
+              reason:
+                $ref: '#/components/schemas/ReturnReason'
+        refundAmount:
+          type: number
+        createdAt:
+          type: string
+          format: date-time
+
+    HITLTask:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        taskType:
+          type: string
+        entityType:
+          type: string
+        entityId:
+          type: string
+          format: uuid
+        priority:
+          type: string
+          enum: [LOW, NORMAL, HIGH, CRITICAL]
+        status:
+          type: string
+          enum: [PENDING, IN_PROGRESS, RESOLVED, ESCALATED]
+        assignedRole:
+          type: string
+        assignedUserId:
+          type: string
+          format: uuid
+        slaDeadline:
+          type: string
+          format: date-time
+        slaStatus:
+          type: string
+          enum: [OK, WARNING, BREACHED]
+        createdAt:
+          type: string
+          format: date-time
+
+    HITLTaskDetail:
+      allOf:
+        - $ref: '#/components/schemas/HITLTask'
+        - type: object
+          properties:
+            entity:
+              type: object
+              description: The related entity (Order, Payment, Return, or CreditProfile)
+            history:
+              type: array
+              items:
+                type: object
+                properties:
+                  action:
+                    type: string
+                  userId:
+                    type: string
+                    format: uuid
+                  userName:
+                    type: string
+                  timestamp:
+                    type: string
+                    format: date-time
+                  notes:
+                    type: string
+
+    TimelineEvent:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        eventType:
+          type: string
+        description:
+          type: string
+        metadata:
+          type: object
+        timestamp:
+          type: string
+          format: date-time
+
+    # ============================================
+    # Webhook Payloads
+    # ============================================
+    RevolutWebhookPayload:
+      type: object
+      properties:
+        event:
+          type: string
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+            type:
+              type: string
+            state:
+              type: string
+            reference:
+              type: string
+            legs:
+              type: array
+              items:
+                type: object
+                properties:
+                  amount:
+                    type: number
+                  currency:
+                    type: string
+                  counterparty:
+                    type: object
+
+    SamedayWebhookPayload:
+      type: object
+      properties:
+        awbNumber:
+          type: string
+        status:
+          type: string
+        statusCode:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        location:
+          type: string
+
+    DocuSignWebhookPayload:
+      type: object
+      properties:
+        event:
+          type: string
+        data:
+          type: object
+          properties:
+            envelopeSummary:
+              type: object
+              properties:
+                envelopeId:
+                  type: string
+                status:
+                  type: string
+                recipientStatuses:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      recipientId:
+                        type: string
+                      status:
+                        type: string
+                      signedAt:
+                        type: string
+                        format: date-time
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - bearerAuth: []

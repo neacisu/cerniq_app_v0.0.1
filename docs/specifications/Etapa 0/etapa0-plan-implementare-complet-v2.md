@@ -2646,7 +2646,7 @@ Fiecare Pull Request către `develop` declanșează suplimentar:
     - F0.17.1.T001 — Creare repo GitHub și setări standard
     - F0.17.1.T002 — Configurare CODEOWNERS
     - F0.17.1.T003 — Issue/PR templates
-    - F0.17.1.T004 — Setup GitHub Actions Runner (opțional)
+    - F0.17.1.T004 — Setup GitHub Actions Runner
   - `E0-S1-PR02` — F0.15 CI/CD Base (Phase 2 TODO + pregătire pentru E1 enhancements)
     - F0.15.1.T001 — Workflow CI pentru PR (lint/test/build)
     - F0.15.1.T002 — Workflow CD pentru deploy tag

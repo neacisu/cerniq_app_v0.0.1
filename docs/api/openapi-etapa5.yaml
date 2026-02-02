@@ -1,13 +1,1795 @@
 openapi: 3.1.0
 info:
-  title: Cerniq.app API — Etapa 5 (Analytics & BI)
+  title: Cerniq.app API — Etapa 5 (Nurturing Agentic)
   version: 1.0.0
   description: |
-    Specificație OpenAPI pentru Etapa 5.
+    Specificație OpenAPI pentru Etapa 5: Nurturing Agentic.
+    
+    ## Overview
+    Acest modul gestionează:
+    - **Nurturing**: State machine pentru lifecycle clienți post-vânzare
+    - **Churn**: Detectare și prevenție churn cu multi-signal AI
+    - **Referrals**: Sistem GDPR-compliant pentru recomandări
+    - **Clusters**: Analiză geografică și detectare comunități
+    - **KOL**: Identificare Key Opinion Leaders via graph centrality
+    - **Win-Back**: Campanii de reactivare clienți churned
+    - **Geospatial**: API PostGIS pentru proximity și territory
+    - **Associations**: Date asociații OUAI/Cooperative
+    - **HITL**: Integrare cu sistem unificat approval
+    - **Analytics**: Overview și metrici nurturing
+    
+    ## ADRs Relevante
+    - ADR-0098: Nurturing State Machine Design
+    - ADR-0099: Churn Detection via Multi-Signal AI
+    - ADR-0100: PostGIS for Geospatial Proximity
+    - ADR-0101: NetworkX/Leiden for Community Detection
+    - ADR-0102: GDPR Consent-First Referral Flow
+    - ADR-0103: Competition Law Safe Harbor for Intel
+    - ADR-0104: Association Data from Public Registers
+    - ADR-0105: KOL Identification via Graph Centrality
+    - ADR-0106: Win-Back Campaign Orchestration
+    - ADR-0107: Real-Time Sentiment via Streaming
+    
     Pentru schema globală și convenții comune, vezi docs/api/openapi.yaml.
+  contact:
+    name: Cerniq Development Team
+    email: dev@cerniq.app
+  license:
+    name: Proprietary
 servers:
   - url: https://api.cerniq.app
     description: Production
   - url: http://localhost:64000
     description: Development
-paths: {}
+
+tags:
+  - name: Nurturing
+    description: Nurturing state management endpoints
+  - name: Churn
+    description: Churn detection and intervention
+  - name: Referrals
+    description: GDPR-compliant referral system
+  - name: Clusters
+    description: Cluster and community management
+  - name: Associations
+    description: OUAI and Cooperative data
+  - name: KOL
+    description: Key Opinion Leader management
+  - name: WinBack
+    description: Win-back campaign management
+  - name: Geospatial
+    description: PostGIS proximity and territory API
+  - name: HITL
+    description: Human-in-the-loop integration
+  - name: Analytics
+    description: Nurturing analytics and overview
+
+paths:
+  # ============================================
+  # NURTURING STATE API
+  # ============================================
+  /api/v1/nurturing/clients:
+    get:
+      tags: [Nurturing]
+      summary: List nurturing clients with pagination and filters
+      operationId: listNurturingClients
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+        - name: state
+          in: query
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/NurturingState'
+        - name: churnRiskLevel
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [low, medium, high, critical]
+        - name: minNps
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 10
+        - name: maxNps
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 10
+        - name: isAdvocate
+          in: query
+          schema:
+            type: boolean
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [churnRiskScore, lastOrderAt, npsScore, totalRevenue]
+        - name: sortOrder
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+      responses:
+        '200':
+          description: List of nurturing clients
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientsListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/nurturing/clients/{clientId}:
+    get:
+      tags: [Nurturing]
+      summary: Get detailed nurturing state for a client
+      operationId: getClientNurturingDetail
+      parameters:
+        - $ref: '#/components/parameters/ClientIdParam'
+      responses:
+        '200':
+          description: Client nurturing detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientDetailResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/nurturing/clients/{clientId}/state:
+    patch:
+      tags: [Nurturing]
+      summary: Manually update client nurturing state
+      operationId: updateClientState
+      parameters:
+        - $ref: '#/components/parameters/ClientIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateStateRequest'
+      responses:
+        '200':
+          description: State updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientDetailResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ============================================
+  # CHURN API
+  # ============================================
+  /api/v1/nurturing/churn/signals:
+    get:
+      tags: [Churn]
+      summary: List churn signals with filters
+      operationId: listChurnSignals
+      parameters:
+        - name: clientId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: signalType
+          in: query
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/ChurnSignalType'
+        - name: isResolved
+          in: query
+          schema:
+            type: boolean
+        - name: minStrength
+          in: query
+          schema:
+            type: number
+            minimum: 0
+            maximum: 1
+      responses:
+        '200':
+          description: List of churn signals
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChurnSignalsResponse'
+
+  /api/v1/nurturing/churn/at-risk:
+    get:
+      tags: [Churn]
+      summary: Get at-risk clients summary
+      operationId: getAtRiskClients
+      responses:
+        '200':
+          description: At-risk clients summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AtRiskResponse'
+
+  /api/v1/nurturing/churn/signals/{signalId}/resolve:
+    post:
+      tags: [Churn]
+      summary: Resolve a churn signal
+      operationId: resolveChurnSignal
+      parameters:
+        - name: signalId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResolveSignalRequest'
+      responses:
+        '200':
+          description: Signal resolved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChurnSignal'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/nurturing/churn/intervention:
+    post:
+      tags: [Churn]
+      summary: Create a churn intervention
+      operationId: createIntervention
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInterventionRequest'
+      responses:
+        '201':
+          description: Intervention created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Intervention'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  # ============================================
+  # REFERRAL API
+  # ============================================
+  /api/v1/nurturing/referrals:
+    get:
+      tags: [Referrals]
+      summary: List referrals with filters
+      operationId: listReferrals
+      parameters:
+        - name: referrerId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/ReferralStatus'
+        - name: type
+          in: query
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/ReferralType'
+        - name: converted
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: List of referrals
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReferralsListResponse'
+
+    post:
+      tags: [Referrals]
+      summary: Create a new referral
+      operationId: createReferral
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReferralRequest'
+      responses:
+        '201':
+          description: Referral created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Referral'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/nurturing/referrals/{referralId}/consent-request:
+    post:
+      tags: [Referrals]
+      summary: Send consent request to referrer
+      operationId: sendConsentRequest
+      parameters:
+        - $ref: '#/components/parameters/ReferralIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConsentRequestRequest'
+      responses:
+        '200':
+          description: Consent request sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Referral'
+
+  /api/v1/nurturing/referrals/{referralId}/consent-response:
+    post:
+      tags: [Referrals]
+      summary: Process consent response (webhook callback)
+      operationId: processConsentResponse
+      parameters:
+        - $ref: '#/components/parameters/ReferralIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConsentResponseRequest'
+      responses:
+        '200':
+          description: Consent processed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Referral'
+
+  /api/v1/nurturing/referrals/{referralId}/outreach:
+    post:
+      tags: [Referrals]
+      summary: Execute outreach to referred prospect
+      operationId: executeOutreach
+      parameters:
+        - $ref: '#/components/parameters/ReferralIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OutreachRequest'
+      responses:
+        '200':
+          description: Outreach executed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Referral'
+        '400':
+          description: Consent not approved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ============================================
+  # CLUSTERS API
+  # ============================================
+  /api/v1/nurturing/clusters:
+    get:
+      tags: [Clusters]
+      summary: List clusters with filters
+      operationId: listClusters
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/ClusterType'
+        - name: county
+          in: query
+          schema:
+            type: string
+        - name: minPenetration
+          in: query
+          schema:
+            type: number
+            minimum: 0
+            maximum: 1
+        - name: hasKol
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: List of clusters with optional GeoJSON
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClustersResponse'
+
+  /api/v1/nurturing/clusters/{clusterId}:
+    get:
+      tags: [Clusters]
+      summary: Get cluster detail with members
+      operationId: getClusterDetail
+      parameters:
+        - name: clusterId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Cluster detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterDetailResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/nurturing/clusters/detect:
+    post:
+      tags: [Clusters]
+      summary: Trigger community detection algorithm
+      operationId: detectClusters
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DetectClustersRequest'
+      responses:
+        '202':
+          description: Detection job started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobAcceptedResponse'
+
+  # ============================================
+  # ASSOCIATIONS API
+  # ============================================
+  /api/v1/nurturing/associations:
+    get:
+      tags: [Associations]
+      summary: List associations with filters
+      operationId: listAssociations
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [OUAI, COOPERATIVE, PRODUCER_GROUP]
+        - name: county
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of associations
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssociationsListResponse'
+
+  /api/v1/nurturing/associations/{associationId}:
+    get:
+      tags: [Associations]
+      summary: Get association detail with members
+      operationId: getAssociationDetail
+      parameters:
+        - name: associationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Association detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssociationDetailResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/nurturing/associations/sync:
+    post:
+      tags: [Associations]
+      summary: Trigger MADR data sync
+      operationId: syncAssociations
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncAssociationsRequest'
+      responses:
+        '202':
+          description: Sync job started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobAcceptedResponse'
+
+  # ============================================
+  # KOL API
+  # ============================================
+  /api/v1/nurturing/kol:
+    get:
+      tags: [KOL]
+      summary: List KOL profiles with filters
+      operationId: listKOLs
+      parameters:
+        - name: tier
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [ELITE, ESTABLISHED, EMERGING]
+        - name: minScore
+          in: query
+          schema:
+            type: number
+            minimum: 0
+            maximum: 1
+      responses:
+        '200':
+          description: List of KOL profiles
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KOLListResponse'
+
+  /api/v1/nurturing/kol/{clientId}:
+    get:
+      tags: [KOL]
+      summary: Get KOL profile detail
+      operationId: getKOLDetail
+      parameters:
+        - $ref: '#/components/parameters/ClientIdParam'
+      responses:
+        '200':
+          description: KOL profile detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KOLDetailResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/nurturing/kol/identify:
+    post:
+      tags: [KOL]
+      summary: Trigger KOL identification algorithm
+      operationId: identifyKOLs
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IdentifyKOLRequest'
+      responses:
+        '202':
+          description: Identification job started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobAcceptedResponse'
+
+  # ============================================
+  # WIN-BACK API
+  # ============================================
+  /api/v1/nurturing/winback/campaigns:
+    get:
+      tags: [WinBack]
+      summary: List win-back campaigns
+      operationId: listWinBackCampaigns
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [PENDING, ACTIVE, COMPLETED, CANCELLED]
+        - name: clientId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of win-back campaigns
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WinBackCampaignsResponse'
+
+    post:
+      tags: [WinBack]
+      summary: Create a win-back campaign
+      operationId: createWinBackCampaign
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWinBackRequest'
+      responses:
+        '201':
+          description: Campaign created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WinBackCampaign'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/nurturing/winback/campaigns/{campaignId}/execute-step:
+    post:
+      tags: [WinBack]
+      summary: Execute a campaign step
+      operationId: executeWinBackStep
+      parameters:
+        - name: campaignId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExecuteStepRequest'
+      responses:
+        '200':
+          description: Step executed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WinBackCampaign'
+
+  # ============================================
+  # GEOSPATIAL API
+  # ============================================
+  /api/v1/nurturing/geo/proximity:
+    get:
+      tags: [Geospatial]
+      summary: Get proximity neighbors for a client
+      operationId: getProximity
+      parameters:
+        - name: anchorClientId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: radiusKm
+          in: query
+          schema:
+            type: number
+            default: 10
+        - name: maxResults
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Proximity results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProximityResponse'
+
+  /api/v1/nurturing/geo/territories:
+    get:
+      tags: [Geospatial]
+      summary: Get territory polygons for entities
+      operationId: getTerritories
+      responses:
+        '200':
+          description: Territory GeoJSON
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TerritoriesResponse'
+
+  # ============================================
+  # HITL API (Unified Reference)
+  # ============================================
+  /api/v1/nurturing/hitl/queue:
+    get:
+      tags: [HITL]
+      summary: Get E5 HITL tasks (convenience wrapper)
+      description: |
+        Alias pentru `/api/v1/hitl/queue?pipelineStage=E5`.
+        Pentru documentație completă, vezi HITL unified system.
+      operationId: getE5HITLQueue
+      parameters:
+        - name: approvalType
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [churn_intervention, nps_followup, referral_consent, winback_approval]
+        - name: priority
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [critical, high, normal, low]
+        - name: status
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [pending, assigned, in_review]
+      responses:
+        '200':
+          description: HITL queue for E5
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HITLQueueResponse'
+
+  # ============================================
+  # ANALYTICS API
+  # ============================================
+  /api/v1/nurturing/analytics/overview:
+    get:
+      tags: [Analytics]
+      summary: Get nurturing analytics overview
+      operationId: getAnalyticsOverview
+      responses:
+        '200':
+          description: Analytics overview
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyticsOverviewResponse'
+
+components:
+  # ============================================
+  # PARAMETERS
+  # ============================================
+  parameters:
+    PageParam:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+
+    PageSizeParam:
+      name: pageSize
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+    ClientIdParam:
+      name: clientId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    ReferralIdParam:
+      name: referralId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  # ============================================
+  # SCHEMAS
+  # ============================================
+  schemas:
+    # --- Enums ---
+    NurturingState:
+      type: string
+      enum:
+        - ONBOARDING
+        - NURTURING_ACTIVE
+        - AT_RISK
+        - CHURNED
+        - REACTIVATED
+        - LOYAL_CLIENT
+        - ADVOCATE
+
+    ChurnSignalType:
+      type: string
+      enum:
+        - COMMUNICATION_FADE
+        - NEGATIVE_SENTIMENT
+        - COMPETITOR_MENTION
+        - PAYMENT_DELAY
+        - SUPPORT_ESCALATION
+        - REDUCED_ENGAGEMENT
+        - CONTRACT_NON_RENEWAL
+        - EXPLICIT_INTENT
+
+    ReferralStatus:
+      type: string
+      enum:
+        - DETECTED
+        - CONSENT_PENDING
+        - CONSENT_APPROVED
+        - CONSENT_REJECTED
+        - OUTREACH_SENT
+        - CONVERTED
+        - EXPIRED
+
+    ReferralType:
+      type: string
+      enum:
+        - EXPLICIT
+        - SOFT_MENTION
+        - NEIGHBORHOOD
+        - ASSOCIATION
+
+    ClusterType:
+      type: string
+      enum:
+        - GEOGRAPHIC
+        - BEHAVIORAL
+        - ASSOCIATION_BASED
+        - IMPLICIT
+
+    # --- Request Schemas ---
+    UpdateStateRequest:
+      type: object
+      required: [newState, reason]
+      properties:
+        newState:
+          $ref: '#/components/schemas/NurturingState'
+        reason:
+          type: string
+          minLength: 10
+
+    ResolveSignalRequest:
+      type: object
+      required: [resolutionType, notes]
+      properties:
+        resolutionType:
+          type: string
+          enum: [NATURAL, INTERVENTION, FALSE_POSITIVE]
+        notes:
+          type: string
+
+    CreateInterventionRequest:
+      type: object
+      required: [clientId, interventionType, notes]
+      properties:
+        clientId:
+          type: string
+          format: uuid
+        interventionType:
+          type: string
+          enum: [CALL, EMAIL, VISIT, OFFER]
+        notes:
+          type: string
+        scheduledAt:
+          type: string
+          format: date-time
+        assignedTo:
+          type: string
+          format: uuid
+
+    CreateReferralRequest:
+      type: object
+      required: [referrerClientId, referredContactName]
+      properties:
+        referrerClientId:
+          type: string
+          format: uuid
+        referredContactName:
+          type: string
+        referredContactPhone:
+          type: string
+        referredContactEmail:
+          type: string
+          format: email
+        referredCompanyName:
+          type: string
+        relationship:
+          type: string
+        notes:
+          type: string
+
+    ConsentRequestRequest:
+      type: object
+      required: [channel]
+      properties:
+        channel:
+          type: string
+          enum: [WHATSAPP, EMAIL]
+        customMessage:
+          type: string
+
+    ConsentResponseRequest:
+      type: object
+      required: [response, messageId]
+      properties:
+        response:
+          type: string
+          enum: [APPROVED, REJECTED, LATER]
+        contactDetails:
+          type: object
+          properties:
+            phone:
+              type: string
+            email:
+              type: string
+              format: email
+        messageId:
+          type: string
+
+    OutreachRequest:
+      type: object
+      required: [channel]
+      properties:
+        channel:
+          type: string
+          enum: [WHATSAPP, EMAIL, PHONE]
+        notes:
+          type: string
+
+    DetectClustersRequest:
+      type: object
+      required: [algorithm]
+      properties:
+        algorithm:
+          type: string
+          enum: [LEIDEN, LOUVAIN]
+        minCommunitySize:
+          type: integer
+          default: 3
+        resolution:
+          type: number
+          default: 1.0
+
+    SyncAssociationsRequest:
+      type: object
+      required: [source]
+      properties:
+        source:
+          type: string
+          enum: [OUAI_REGISTRY, COOPERATIVE_REGISTRY]
+        year:
+          type: integer
+
+    IdentifyKOLRequest:
+      type: object
+      properties:
+        minConnections:
+          type: integer
+          default: 5
+
+    CreateWinBackRequest:
+      type: object
+      required: [clientId, campaignType]
+      properties:
+        clientId:
+          type: string
+          format: uuid
+        campaignType:
+          type: string
+          enum: [DISCOUNT, PERSONAL_CALL, PRODUCT_UPDATE]
+        offerType:
+          type: string
+        offerValue:
+          type: number
+        customMessage:
+          type: string
+
+    ExecuteStepRequest:
+      type: object
+      required: [stepIndex]
+      properties:
+        stepIndex:
+          type: integer
+        notes:
+          type: string
+
+    # --- Response Schemas ---
+    ClientsListResponse:
+      type: object
+      properties:
+        clients:
+          type: array
+          items:
+            $ref: '#/components/schemas/NurturingClientSummary'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+        aggregations:
+          type: object
+          properties:
+            byState:
+              type: object
+              additionalProperties:
+                type: integer
+            byRiskLevel:
+              type: object
+              additionalProperties:
+                type: integer
+            avgNps:
+              type: number
+            avgChurnScore:
+              type: number
+
+    ClientDetailResponse:
+      type: object
+      properties:
+        nurturingState:
+          allOf:
+            - $ref: '#/components/schemas/NurturingStateRecord'
+            - type: object
+              properties:
+                client:
+                  $ref: '#/components/schemas/ClientBasic'
+                churnSignals:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ChurnSignal'
+                recentActions:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/NurturingAction'
+                npsHistory:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/NpsSurvey'
+                referrals:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Referral'
+                relationships:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/EntityRelationship'
+                clusters:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ClusterBasic'
+
+    ChurnSignalsResponse:
+      type: object
+      properties:
+        signals:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChurnSignal'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    AtRiskResponse:
+      type: object
+      properties:
+        clients:
+          type: array
+          items:
+            type: object
+            properties:
+              clientId:
+                type: string
+                format: uuid
+              clientName:
+                type: string
+              churnScore:
+                type: number
+              riskLevel:
+                type: string
+              topSignals:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ChurnSignal'
+              daysSinceLastOrder:
+                type: integer
+              recommendedAction:
+                type: string
+        summary:
+          type: object
+          properties:
+            critical:
+              type: integer
+            high:
+              type: integer
+            medium:
+              type: integer
+
+    ReferralsListResponse:
+      type: object
+      properties:
+        referrals:
+          type: array
+          items:
+            $ref: '#/components/schemas/Referral'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    ClustersResponse:
+      type: object
+      properties:
+        clusters:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClusterBasic'
+        geoJson:
+          type: object
+          description: GeoJSON FeatureCollection for map display
+
+    ClusterDetailResponse:
+      type: object
+      properties:
+        cluster:
+          allOf:
+            - $ref: '#/components/schemas/ClusterBasic'
+            - type: object
+              properties:
+                members:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ClusterMember'
+                kol:
+                  $ref: '#/components/schemas/KOLProfile'
+                territory:
+                  type: object
+                  description: GeoJSON Polygon
+
+    AssociationsListResponse:
+      type: object
+      properties:
+        associations:
+          type: array
+          items:
+            $ref: '#/components/schemas/AssociationBasic'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    AssociationDetailResponse:
+      type: object
+      properties:
+        association:
+          allOf:
+            - $ref: '#/components/schemas/AssociationBasic'
+            - type: object
+              properties:
+                members:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Affiliation'
+                linkedCluster:
+                  $ref: '#/components/schemas/ClusterBasic'
+
+    KOLListResponse:
+      type: object
+      properties:
+        profiles:
+          type: array
+          items:
+            $ref: '#/components/schemas/KOLProfile'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    KOLDetailResponse:
+      type: object
+      properties:
+        profile:
+          allOf:
+            - $ref: '#/components/schemas/KOLProfile'
+            - type: object
+              properties:
+                client:
+                  $ref: '#/components/schemas/ClientBasic'
+                referrals:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Referral'
+                influencedClients:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ClientBasic'
+                clusters:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ClusterBasic'
+
+    WinBackCampaignsResponse:
+      type: object
+      properties:
+        campaigns:
+          type: array
+          items:
+            $ref: '#/components/schemas/WinBackCampaign'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    ProximityResponse:
+      type: object
+      properties:
+        anchor:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            location:
+              type: array
+              items:
+                type: number
+              minItems: 2
+              maxItems: 2
+        prospects:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              name:
+                type: string
+              distance_km:
+                type: number
+              proximityScore:
+                type: number
+              sharedAttributes:
+                type: array
+                items:
+                  type: string
+
+    TerritoriesResponse:
+      type: object
+      properties:
+        territories:
+          type: array
+          items:
+            type: object
+            properties:
+              entityId:
+                type: string
+                format: uuid
+              entityType:
+                type: string
+              entityName:
+                type: string
+              territory:
+                type: object
+                description: GeoJSON Polygon
+              centerPoint:
+                type: array
+                items:
+                  type: number
+              areaKm2:
+                type: number
+
+    HITLQueueResponse:
+      type: object
+      properties:
+        tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/HITLTask'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    AnalyticsOverviewResponse:
+      type: object
+      properties:
+        stateDistribution:
+          type: object
+          additionalProperties:
+            type: integer
+        churnRiskDistribution:
+          type: object
+          additionalProperties:
+            type: integer
+        avgNps:
+          type: number
+        avgChurnScore:
+          type: number
+        referralConversionRate:
+          type: number
+        clusterPenetrationAvg:
+          type: number
+        trends:
+          type: object
+          properties:
+            nps30d:
+              type: array
+              items:
+                type: object
+                properties:
+                  date:
+                    type: string
+                    format: date
+                  value:
+                    type: number
+            churn30d:
+              type: array
+              items:
+                type: object
+                properties:
+                  date:
+                    type: string
+                    format: date
+                  value:
+                    type: number
+            referrals30d:
+              type: array
+              items:
+                type: object
+                properties:
+                  date:
+                    type: string
+                    format: date
+                  count:
+                    type: integer
+                  converted:
+                    type: integer
+
+    JobAcceptedResponse:
+      type: object
+      properties:
+        jobId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [queued, processing]
+        estimatedDuration:
+          type: string
+
+    # --- Entity Schemas ---
+    NurturingClientSummary:
+      type: object
+      properties:
+        clientId:
+          type: string
+          format: uuid
+        clientName:
+          type: string
+        currentState:
+          $ref: '#/components/schemas/NurturingState'
+        churnScore:
+          type: number
+        churnRiskLevel:
+          type: string
+        npsScore:
+          type: integer
+        lastOrderAt:
+          type: string
+          format: date-time
+        totalRevenue:
+          type: number
+        isAdvocate:
+          type: boolean
+
+    NurturingStateRecord:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        clientId:
+          type: string
+          format: uuid
+        currentState:
+          $ref: '#/components/schemas/NurturingState'
+        previousState:
+          $ref: '#/components/schemas/NurturingState'
+        stateEnteredAt:
+          type: string
+          format: date-time
+        churnScore:
+          type: number
+        npsScore:
+          type: integer
+        lastOrderAt:
+          type: string
+          format: date-time
+        totalOrders:
+          type: integer
+        totalRevenue:
+          type: number
+        isAdvocate:
+          type: boolean
+
+    ChurnSignal:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        clientId:
+          type: string
+          format: uuid
+        signalType:
+          $ref: '#/components/schemas/ChurnSignalType'
+        strength:
+          type: number
+        confidence:
+          type: number
+        detectedAt:
+          type: string
+          format: date-time
+        isResolved:
+          type: boolean
+        resolvedAt:
+          type: string
+          format: date-time
+        resolutionType:
+          type: string
+
+    NurturingAction:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        actionType:
+          type: string
+        description:
+          type: string
+        performedAt:
+          type: string
+          format: date-time
+        performedBy:
+          type: string
+
+    NpsSurvey:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        score:
+          type: integer
+          minimum: 0
+          maximum: 10
+        feedback:
+          type: string
+        surveyedAt:
+          type: string
+          format: date-time
+
+    Referral:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        referrerClientId:
+          type: string
+          format: uuid
+        referredContactName:
+          type: string
+        referredContactPhone:
+          type: string
+        referredContactEmail:
+          type: string
+        status:
+          $ref: '#/components/schemas/ReferralStatus'
+        type:
+          $ref: '#/components/schemas/ReferralType'
+        consentRequestedAt:
+          type: string
+          format: date-time
+        consentReceivedAt:
+          type: string
+          format: date-time
+        outreachSentAt:
+          type: string
+          format: date-time
+        convertedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+
+    Intervention:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        clientId:
+          type: string
+          format: uuid
+        interventionType:
+          type: string
+        notes:
+          type: string
+        scheduledAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+        outcome:
+          type: string
+
+    EntityRelationship:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        sourceEntityId:
+          type: string
+          format: uuid
+        targetEntityId:
+          type: string
+          format: uuid
+        relationshipType:
+          type: string
+        strength:
+          type: number
+
+    ClusterBasic:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        type:
+          $ref: '#/components/schemas/ClusterType'
+        memberCount:
+          type: integer
+        penetration:
+          type: number
+        kolClientId:
+          type: string
+          format: uuid
+
+    ClusterMember:
+      type: object
+      properties:
+        clientId:
+          type: string
+          format: uuid
+        clientName:
+          type: string
+        role:
+          type: string
+        joinedAt:
+          type: string
+          format: date-time
+
+    AssociationBasic:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        type:
+          type: string
+        county:
+          type: string
+        memberCount:
+          type: integer
+
+    Affiliation:
+      type: object
+      properties:
+        clientId:
+          type: string
+          format: uuid
+        clientName:
+          type: string
+        role:
+          type: string
+        verifiedAt:
+          type: string
+          format: date-time
+
+    KOLProfile:
+      type: object
+      properties:
+        clientId:
+          type: string
+          format: uuid
+        tier:
+          type: string
+          enum: [ELITE, ESTABLISHED, EMERGING]
+        kolScore:
+          type: number
+        degreeCentrality:
+          type: number
+        betweennessCentrality:
+          type: number
+        eigenvectorCentrality:
+          type: number
+        pageRank:
+          type: number
+        referralCount:
+          type: integer
+        influencedClientCount:
+          type: integer
+
+    WinBackCampaign:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        clientId:
+          type: string
+          format: uuid
+        campaignType:
+          type: string
+        status:
+          type: string
+        currentStep:
+          type: integer
+        totalSteps:
+          type: integer
+        offerType:
+          type: string
+        offerValue:
+          type: number
+        startedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+        outcome:
+          type: string
+
+    HITLTask:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        pipelineStage:
+          type: string
+        approvalType:
+          type: string
+        priority:
+          type: string
+        status:
+          type: string
+        entityType:
+          type: string
+        entityId:
+          type: string
+          format: uuid
+        summary:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        dueAt:
+          type: string
+          format: date-time
+
+    ClientBasic:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+
+    PaginationMeta:
+      type: object
+      properties:
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        totalItems:
+          type: integer
+        totalPages:
+          type: integer
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: object
+
+  # ============================================
+  # RESPONSES
+  # ============================================
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  # ============================================
+  # SECURITY
+  # ============================================
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - bearerAuth: []

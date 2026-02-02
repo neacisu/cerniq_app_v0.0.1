@@ -3,7 +3,7 @@
 ## Centralized Architecture Decision Records
 
 **Total ADR-uri:** 107  
-**Actualizat:** 1 Februarie 2026
+**Actualizat:** 2 Februarie 2026
 
 ---
 
@@ -182,4 +182,4 @@ Pentru ADR-uri noi, folosește: [`template.md`](./template.md)
 - [Architecture Overview](../architecture/architecture.md)
 - [Technical Debt Board](../architecture/technical-debt-board.md)
 
-**Actualizat:** 1 Februarie 2026
+**Actualizat:** 2 Februarie 2026

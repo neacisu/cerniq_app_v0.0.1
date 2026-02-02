@@ -2,26 +2,28 @@
 
 ## Monitorizare Post-Vânzare - 99 Taskuri Granulare
 
-### Versiunea 1.0 | 19 Ianuarie 2026
+### Versiunea 1.1 | 2 Februarie 2026
 
 ---
 
 # CUPRINS
 
 1. [Overview Implementare](#1-overview)
-2. [Faza 4.1: Infrastructure Setup](#2-faza-41)
-3. [Faza 4.2: Database Schema](#3-faza-42)
-4. [Faza 4.3: Revolut Integration](#4-faza-43)
-5. [Faza 4.4: Payment Reconciliation](#5-faza-44)
-6. [Faza 4.5: Credit Scoring System](#6-faza-45)
-7. [Faza 4.6: Sameday Logistics](#7-faza-46)
-8. [Faza 4.7: Dynamic Contracts](#8-faza-47)
-9. [Faza 4.8: Returns & Refunds](#9-faza-48)
-10. [Faza 4.9: HITL System](#10-faza-49)
-11. [Faza 4.10: UI Implementation](#11-faza-410)
-12. [Faza 4.11: Testing & QA](#12-faza-411)
-13. [Faza 4.12: Deployment](#13-faza-412)
-14. [Rezumat Estimări](#14-rezumat)
+2. [Sprint Plan Reference](#1a-sprint-plan)
+3. [ADR Traceability Matrix](#1b-adr-traceability)
+4. [Faza 4.1: Infrastructure Setup](#2-faza-41)
+5. [Faza 4.2: Database Schema](#3-faza-42)
+6. [Faza 4.3: Revolut Integration](#4-faza-43)
+7. [Faza 4.4: Payment Reconciliation](#5-faza-44)
+8. [Faza 4.5: Credit Scoring System](#6-faza-45)
+9. [Faza 4.6: Sameday Logistics](#7-faza-46)
+10. [Faza 4.7: Dynamic Contracts](#8-faza-47)
+11. [Faza 4.8: Returns & Refunds](#9-faza-48)
+12. [Faza 4.9: HITL System](#10-faza-49)
+13. [Faza 4.10: UI Implementation](#11-faza-410)
+14. [Faza 4.11: Testing & QA](#12-faza-411)
+15. [Faza 4.12: Deployment](#13-faza-412)
+16. [Rezumat Estimări](#14-rezumat)
 
 ---
 
@@ -29,33 +31,105 @@
 
 ### Metrici Generale
 
-- **Total Taskuri**: 99
-- **Durată Estimată**: 12-14 săptămâni
-- **Echipă**: 1 person team (vertical slice)
-- **Task Range**: 301-399
+| Metrică | Valoare |
+|---------|---------|
+| **Total Taskuri** | 99 |
+| **Durată Estimată** | 14 săptămâni (7 sprinturi × 2 săptămâni) |
+| **Echipă** | 1 person team (vertical slice) |
+| **Task Range** | 301-399 |
+| **Total PR-uri** | 42 |
+| **Total Sprinturi** | 7 |
+| **Story Points** | 340 |
 
 ### Dependențe
 
-- Etapa 0: Infrastructure completă
-- Etapa 1: Bronze/Silver/Gold schema
-- Etapa 2: Cold Outreach funcțional
-- Etapa 3: AI Agent negociere
+| Etapă | Descriere | Status |
+|-------|-----------|--------|
+| Etapa 0 | Infrastructure completă | ✅ Required |
+| Etapa 1 | Bronze/Silver/Gold schema | ✅ Required |
+| Etapa 2 | Cold Outreach funcțional | ✅ Required |
+| Etapa 3 | AI Agent negociere | ✅ Required |
+
+---
+
+## 1a. Sprint Plan Reference {#1a-sprint-plan}
+
+> **📋 IMPORTANT:** Pentru planificare detaliată pe sprinturi și PR-uri, vezi [`etapa4-sprint-plan.md`](etapa4-sprint-plan.md)
+
+### Schema Numerotare Task-uri
+
+```
+E4.S{sprint}.PR{pr}.{task}
+│  │        │      │
+│  │        │      └── Task secvențial (001-999)
+│  │        └────────── PR în sprint (1-99)
+│  └─────────────────── Sprint (1-7)
+└────────────────────── Etapa (4)
+```
+
+### Mapare Faze → Sprinturi
+
+| Fază | Sprint | Focus |
+|------|--------|-------|
+| F4.1 + F4.2 | E4.S1 | Infrastructure + Database |
+| F4.3 + F4.4 | E4.S2 | Revolut + Reconciliation |
+| F4.5 + F4.6 | E4.S3 | Credit + Logistics |
+| F4.7 + F4.8 | E4.S4 | Contracts + Returns |
+| F4.9 | E4.S5 | HITL System + Alerts |
+| F4.10 | E4.S6 | UI Implementation |
+| F4.11 + F4.12 | E4.S7 | Testing + Deployment |
+
+### Mapare Legacy ID → Sprint ID
+
+| Task # | Legacy ID | Sprint ID |
+|--------|-----------|-----------|
+| 301 | E4-INF-001 | E4.S1.PR1.001 |
+| 309 | E4-DB-001 | E4.S1.PR3.001 |
+| 321 | E4-REV-001 | E4.S2.PR1.001 |
+| 329 | E4-REC-001 | E4.S2.PR3.002 |
+| 337 | E4-CRD-001 | E4.S3.PR1.001 |
+| 349 | E4-LOG-001 | E4.S3.PR4.001 |
+| 359 | E4-CTR-001 | E4.S4.PR1.001 |
+| 369 | E4-RET-001 | E4.S4.PR4.001 |
+| 375 | E4-HTL-001 | E4.S5.PR1.001 |
+| 383 | E4-UI-001 | E4.S6.PR1.001 |
+| 395 | E4-QA-001 | E4.S7.PR1.001 |
+| 399 | E4-DEP-001 | E4.S7.PR6.001 |
+
+---
+
+## 1b. ADR Traceability Matrix {#1b-adr-traceability}
+
+| ADR | Titlu | Fază | Sprint | Taskuri |
+|-----|-------|------|--------|---------|
+| ADR-0088 | Revolut Business API | F4.3 | E4.S2 | 321-328 |
+| ADR-0089 | Three-Tier Reconciliation | F4.4 | E4.S2 | 329-336 |
+| ADR-0090 | Credit Scoring Termene.ro | F4.5 | E4.S3 | 337-348 |
+| ADR-0091 | Dynamic Contract Generation | F4.7 | E4.S4 | 359-368 |
+| ADR-0092 | Sameday Courier | F4.6 | E4.S3 | 349-358 |
+| ADR-0093 | Order Lifecycle FSM | F4.2 | E4.S1 | 309-320 |
+| ADR-0094 | HITL Approval System | F4.9 | E4.S5 | 375-382 |
+| ADR-0095 | Partitioned Audit Tables | F4.2 | E4.S1 | 317 |
+| ADR-0096 | WebSocket Dashboard | F4.10 | E4.S6 | 383 |
+| ADR-0097 | Oblio Stock Sync | F4.6 | E4.S3 | 357 |
 
 ---
 
 ## 2. Faza 4.1: Infrastructure Setup {#2-faza-41}
 
-### Task 301-308 (8 taskuri)
+### Task 301-308 (8 taskuri) → Sprint E4.S1
 
 ```json
 {
   "faza": "4.1",
   "nume": "Infrastructure Setup",
+  "sprint": "E4.S1",
   "durata_estimata": "3 zile",
   "taskuri": [
     {
       "task_number": 301,
       "id": "E4-INF-001",
+      "sprint_id": "E4.S1.PR1.001",
       "titlu": "Setup Redis Queues pentru Etapa 4",
       "descriere": "Configurare BullMQ queues pentru toate categoriile de workers (A-K)",
       "tip": "INFRASTRUCTURE",
@@ -77,6 +151,7 @@
     {
       "task_number": 302,
       "id": "E4-INF-002",
+      "sprint_id": "E4.S1.PR1.002",
       "titlu": "Setup Webhook Endpoints Infrastructure",
       "descriere": "Configurare Traefik routes și middleware pentru webhook endpoints",
       "tip": "INFRASTRUCTURE",
@@ -97,6 +172,7 @@
     {
       "task_number": 303,
       "id": "E4-INF-003",
+      "sprint_id": "E4.S1.PR1.003",
       "titlu": "Configure External API Clients",
       "descriere": "Setup clienți HTTP pentru Revolut, Termene.ro, Sameday, DocuSign",
       "tip": "INFRASTRUCTURE",
@@ -118,6 +194,7 @@
     {
       "task_number": 304,
       "id": "E4-INF-004",
+      "sprint_id": "E4.S1.PR2.001",
       "titlu": "Setup Environment Variables Etapa 4",
       "descriere": "Definire și documentare variabile de mediu pentru toate integrările",
       "tip": "INFRASTRUCTURE",
@@ -138,6 +215,7 @@
     {
       "task_number": 305,
       "id": "E4-INF-005",
+      "sprint_id": "E4.S1.PR2.002",
       "titlu": "Setup Cron Jobs Etapa 4",
       "descriere": "Configurare cron scheduler pentru joburi periodice",
       "tip": "INFRASTRUCTURE",
@@ -158,6 +236,7 @@
     {
       "task_number": 306,
       "id": "E4-INF-006",
+      "sprint_id": "E4.S1.PR2.003",
       "titlu": "Setup Notification Services",
       "descriere": "Configurare servicii pentru email, WhatsApp, Slack notifications",
       "tip": "INFRASTRUCTURE",
@@ -178,6 +257,7 @@
     {
       "task_number": 307,
       "id": "E4-INF-007",
+      "sprint_id": "E4.S1.PR2.004",
       "titlu": "Setup File Storage pentru Contracts",
       "descriere": "Configurare storage pentru documente generate (contracts, AWBs)",
       "tip": "INFRASTRUCTURE",
@@ -198,6 +278,7 @@
     {
       "task_number": 308,
       "id": "E4-INF-008",
+      "sprint_id": "E4.S1.PR2.005",
       "titlu": "Setup Python Service pentru Contract Generation",
       "descriere": "Container Python cu docxtpl și LibreOffice pentru generare contracte",
       "tip": "INFRASTRUCTURE",
@@ -223,17 +304,19 @@
 
 ## 3. Faza 4.2: Database Schema {#3-faza-42}
 
-### Task 309-320 (12 taskuri)
+### Task 309-320 (12 taskuri) → Sprint E4.S1
 
 ```json
 {
   "faza": "4.2",
   "nume": "Database Schema Implementation",
+  "sprint": "E4.S1",
   "durata_estimata": "4 zile",
   "taskuri": [
     {
       "task_number": 309,
       "id": "E4-DB-001",
+      "sprint_id": "E4.S1.PR3.001",
       "titlu": "Create Etapa 4 Enums",
       "descriere": "Creare toate enum types pentru orders, payments, credit, logistics",
       "tip": "DATABASE",
@@ -252,6 +335,7 @@
     {
       "task_number": 310,
       "id": "E4-DB-002",
+      "sprint_id": "E4.S1.PR3.002",
       "titlu": "Create gold_orders Table",
       "descriere": "Tabel principal pentru comenzi cu toate coloanele și constraints",
       "tip": "DATABASE",
@@ -272,6 +356,7 @@
     {
       "task_number": 311,
       "id": "E4-DB-003",
+      "sprint_id": "E4.S1.PR3.003",
       "titlu": "Create gold_order_items Table",
       "descriere": "Tabel pentru linii comandă cu calcule automate",
       "tip": "DATABASE",
@@ -285,6 +370,7 @@
     {
       "task_number": 312,
       "id": "E4-DB-004",
+      "sprint_id": "E4.S1.PR3.004",
       "titlu": "Create gold_payments Table",
       "descriere": "Tabel pentru înregistrare plăți primite",
       "tip": "DATABASE",
@@ -298,6 +384,7 @@
     {
       "task_number": 313,
       "id": "E4-DB-005",
+      "sprint_id": "E4.S1.PR3.005",
       "titlu": "Create gold_refunds Table",
       "descriere": "Tabel pentru retururi și refund-uri",
       "tip": "DATABASE",
@@ -311,6 +398,7 @@
     {
       "task_number": 314,
       "id": "E4-DB-006",
+      "sprint_id": "E4.S1.PR4.001",
       "titlu": "Create Credit Tables",
       "descriere": "gold_credit_profiles, gold_credit_reservations, gold_termene_data",
       "tip": "DATABASE",
@@ -324,6 +412,7 @@
     {
       "task_number": 315,
       "id": "E4-DB-007",
+      "sprint_id": "E4.S1.PR4.002",
       "titlu": "Create Logistics Tables",
       "descriere": "gold_addresses, gold_shipments, gold_shipment_tracking, gold_returns",
       "tip": "DATABASE",
@@ -337,6 +426,7 @@
     {
       "task_number": 316,
       "id": "E4-DB-008",
+      "sprint_id": "E4.S1.PR4.003",
       "titlu": "Create Contract Tables",
       "descriere": "gold_contracts, gold_contract_templates, gold_contract_signatures",
       "tip": "DATABASE",
@@ -350,6 +440,7 @@
     {
       "task_number": 317,
       "id": "E4-DB-009",
+      "sprint_id": "E4.S1.PR5.001",
       "titlu": "Create Audit Tables with Partitions",
       "descriere": "gold_audit_logs_etapa4 cu partitioning lunar",
       "tip": "DATABASE",
@@ -359,11 +450,13 @@
       "deliverables": [
         "migrations/0405_create_audit_tables.ts",
         "Partition management script"
-      ]
+      ],
+      "adr_reference": "ADR-0095"
     },
     {
       "task_number": 318,
       "id": "E4-DB-010",
+      "sprint_id": "E4.S1.PR5.002",
       "titlu": "Create hitl_approvals Table",
       "descriere": "Tabel pentru HITL approval queue",
       "tip": "DATABASE",
@@ -377,6 +470,7 @@
     {
       "task_number": 319,
       "id": "E4-DB-011",
+      "sprint_id": "E4.S1.PR5.003",
       "titlu": "Create Database Functions",
       "descriere": "Funcții pentru credit scoring, triggers pentru status updates",
       "tip": "DATABASE",
@@ -393,6 +487,7 @@
     {
       "task_number": 320,
       "id": "E4-DB-012",
+      "sprint_id": "E4.S1.PR6.001",
       "titlu": "Seed Initial Data",
       "descriere": "Contract templates, default clauses, test data",
       "tip": "DATABASE",
@@ -411,17 +506,20 @@
 
 ## 4. Faza 4.3: Revolut Integration {#4-faza-43}
 
-### Task 321-328 (8 taskuri)
+### Task 321-328 (8 taskuri) → Sprint E4.S2
 
 ```json
 {
   "faza": "4.3",
   "nume": "Revolut Business Integration",
+  "sprint": "E4.S2",
+  "adr_reference": "ADR-0088",
   "durata_estimata": "4 zile",
   "taskuri": [
     {
       "task_number": 321,
       "id": "E4-REV-001",
+      "sprint_id": "E4.S2.PR1.001",
       "titlu": "Implement Revolut Webhook Endpoint",
       "descriere": "Fastify route pentru primire webhooks cu HMAC validation",
       "tip": "BACKEND",
@@ -442,6 +540,7 @@
     {
       "task_number": 322,
       "id": "E4-REV-002",
+      "sprint_id": "E4.S2.PR1.002",
       "titlu": "Worker A1: revolut:webhook:ingest",
       "descriere": "Worker pentru procesare inițială webhook",
       "tip": "WORKER",
@@ -455,6 +554,7 @@
     {
       "task_number": 323,
       "id": "E4-REV-003",
+      "sprint_id": "E4.S2.PR1.003",
       "titlu": "Worker A2: revolut:transaction:process",
       "descriere": "Worker pentru procesare tranzacție și extragere date",
       "tip": "WORKER",
@@ -465,6 +565,7 @@
     {
       "task_number": 324,
       "id": "E4-REV-004",
+      "sprint_id": "E4.S2.PR2.001",
       "titlu": "Worker A3: revolut:payment:record",
       "descriere": "Worker pentru înregistrare plată în baza de date",
       "tip": "WORKER",
@@ -475,6 +576,7 @@
     {
       "task_number": 325,
       "id": "E4-REV-005",
+      "sprint_id": "E4.S2.PR2.002",
       "titlu": "Worker A4: revolut:refund:process",
       "descriere": "Worker pentru procesare refund-uri via Revolut API",
       "tip": "WORKER",
@@ -485,6 +587,7 @@
     {
       "task_number": 326,
       "id": "E4-REV-006",
+      "sprint_id": "E4.S2.PR2.003",
       "titlu": "Worker A5: revolut:balance:sync",
       "descriere": "Worker cron pentru sincronizare balante cont",
       "tip": "WORKER",
@@ -495,6 +598,7 @@
     {
       "task_number": 327,
       "id": "E4-REV-007",
+      "sprint_id": "E4.S2.PR2.004",
       "titlu": "Worker A6: revolut:webhook:validate",
       "descriere": "Worker pentru validare tranzacție cu Revolut API",
       "tip": "WORKER",
@@ -505,6 +609,7 @@
     {
       "task_number": 328,
       "id": "E4-REV-008",
+      "sprint_id": "E4.S2.PR2.005",
       "titlu": "Revolut Integration Tests",
       "descriere": "Unit și integration tests pentru Revolut flow",
       "tip": "TESTING",
@@ -520,17 +625,20 @@
 
 ## 5. Faza 4.4: Payment Reconciliation {#5-faza-44}
 
-### Task 329-336 (8 taskuri)
+### Task 329-336 (8 taskuri) → Sprint E4.S2
 
 ```json
 {
   "faza": "4.4",
   "nume": "Payment Reconciliation System",
+  "sprint": "E4.S2",
+  "adr_reference": "ADR-0089",
   "durata_estimata": "4 zile",
   "taskuri": [
     {
       "task_number": 329,
       "id": "E4-REC-001",
+      "sprint_id": "E4.S2.PR3.001",
       "titlu": "Worker B7: payment:reconcile:auto",
       "descriere": "Worker pentru reconciliere automată exact match",
       "tip": "WORKER",
@@ -541,6 +649,7 @@
     {
       "task_number": 330,
       "id": "E4-REC-002",
+      "sprint_id": "E4.S2.PR3.002",
       "titlu": "Worker B8: payment:reconcile:fuzzy",
       "descriere": "Worker pentru reconciliere fuzzy cu scoring",
       "tip": "WORKER",
@@ -551,6 +660,7 @@
     {
       "task_number": 331,
       "id": "E4-REC-003",
+      "sprint_id": "E4.S2.PR3.003",
       "titlu": "Fuzzy Matching Algorithm",
       "descriere": "Implementare algoritm fuzzy pentru name și amount matching",
       "tip": "BACKEND",
@@ -566,6 +676,7 @@
     {
       "task_number": 332,
       "id": "E4-REC-004",
+      "sprint_id": "E4.S2.PR4.001",
       "titlu": "Worker B9: payment:reconcile:manual",
       "descriere": "Worker pentru reconciliere manuală după HITL approval",
       "tip": "WORKER",
@@ -576,6 +687,7 @@
     {
       "task_number": 333,
       "id": "E4-REC-005",
+      "sprint_id": "E4.S2.PR4.002",
       "titlu": "Worker B10: payment:balance:update",
       "descriere": "Worker pentru actualizare solduri după reconciliere",
       "tip": "WORKER",
@@ -586,6 +698,7 @@
     {
       "task_number": 334,
       "id": "E4-REC-006",
+      "sprint_id": "E4.S2.PR4.003",
       "titlu": "Worker B11: payment:overdue:detect",
       "descriere": "Cron worker pentru detectare facturi restante",
       "tip": "WORKER",
@@ -596,6 +709,7 @@
     {
       "task_number": 335,
       "id": "E4-REC-007",
+      "sprint_id": "E4.S2.PR4.004",
       "titlu": "Worker B12: payment:overdue:escalate",
       "descriere": "Worker pentru escalare facturi restante",
       "tip": "WORKER",
@@ -606,6 +720,7 @@
     {
       "task_number": 336,
       "id": "E4-REC-008",
+      "sprint_id": "E4.S2.PR4.005",
       "titlu": "Reconciliation Tests",
       "descriere": "Tests pentru toate scenariile de reconciliere",
       "tip": "TESTING",
@@ -621,17 +736,20 @@
 
 ## 6. Faza 4.5: Credit Scoring System {#6-faza-45}
 
-### Task 337-348 (12 taskuri)
+### Task 337-348 (12 taskuri) → Sprint E4.S3
 
 ```json
 {
   "faza": "4.5",
   "nume": "Credit Scoring & Limits",
+  "sprint": "E4.S3",
+  "adr_reference": "ADR-0090",
   "durata_estimata": "5 zile",
   "taskuri": [
     {
       "task_number": 337,
       "id": "E4-CRD-001",
+      "sprint_id": "E4.S3.PR1.001",
       "titlu": "Termene.ro API Client",
       "descriere": "Client complet pentru Termene.ro API cu toate endpoints",
       "tip": "BACKEND",
@@ -647,6 +765,7 @@
     {
       "task_number": 338,
       "id": "E4-CRD-002",
+      "sprint_id": "E4.S3.PR1.002",
       "titlu": "Worker C13: credit:profile:create",
       "descriere": "Worker pentru creare profil credit nou client",
       "tip": "WORKER",
@@ -657,6 +776,7 @@
     {
       "task_number": 339,
       "id": "E4-CRD-003",
+      "sprint_id": "E4.S3.PR1.003",
       "titlu": "Worker C14: credit:data:fetch-anaf",
       "descriere": "Worker pentru fetch date ANAF via Termene.ro",
       "tip": "WORKER",
@@ -667,6 +787,7 @@
     {
       "task_number": 340,
       "id": "E4-CRD-004",
+      "sprint_id": "E4.S3.PR2.001",
       "titlu": "Worker C15: credit:data:fetch-bilant",
       "descriere": "Worker pentru fetch date bilanț",
       "tip": "WORKER",
@@ -677,6 +798,7 @@
     {
       "task_number": 341,
       "id": "E4-CRD-005",
+      "sprint_id": "E4.S3.PR2.002",
       "titlu": "Worker C16: credit:data:fetch-bpi",
       "descriere": "Worker pentru fetch date BPI (insolvență)",
       "tip": "WORKER",
@@ -687,6 +809,7 @@
     {
       "task_number": 342,
       "id": "E4-CRD-006",
+      "sprint_id": "E4.S3.PR2.003",
       "titlu": "Credit Score Formula",
       "descriere": "Implementare algoritm scoring cu toate componentele",
       "tip": "BACKEND",
@@ -702,6 +825,7 @@
     {
       "task_number": 343,
       "id": "E4-CRD-007",
+      "sprint_id": "E4.S3.PR2.004",
       "titlu": "Worker C17: credit:score:calculate",
       "descriere": "Worker pentru calcul credit score după date fetch",
       "tip": "WORKER",
@@ -712,6 +836,7 @@
     {
       "task_number": 344,
       "id": "E4-CRD-008",
+      "sprint_id": "E4.S3.PR3.001",
       "titlu": "Worker C18: credit:limit:calculate",
       "descriere": "Worker pentru calcul limită credit din score",
       "tip": "WORKER",
@@ -722,6 +847,7 @@
     {
       "task_number": 345,
       "id": "E4-CRD-009",
+      "sprint_id": "E4.S3.PR3.002",
       "titlu": "Worker D19: credit:limit:check",
       "descriere": "Worker pentru verificare credit la plasare comandă",
       "tip": "WORKER",
@@ -732,6 +858,7 @@
     {
       "task_number": 346,
       "id": "E4-CRD-010",
+      "sprint_id": "E4.S3.PR3.003",
       "titlu": "Worker D20: credit:limit:reserve",
       "descriere": "Worker pentru rezervare credit",
       "tip": "WORKER",
@@ -742,6 +869,7 @@
     {
       "task_number": 347,
       "id": "E4-CRD-011",
+      "sprint_id": "E4.S3.PR3.004",
       "titlu": "Worker D21: credit:limit:release",
       "descriere": "Worker pentru eliberare credit la plată/anulare",
       "tip": "WORKER",
@@ -752,6 +880,7 @@
     {
       "task_number": 348,
       "id": "E4-CRD-012",
+      "sprint_id": "E4.S3.PR3.005",
       "titlu": "Credit System Tests",
       "descriere": "Tests pentru credit scoring și limite",
       "tip": "TESTING",
@@ -767,17 +896,20 @@
 
 ## 7. Faza 4.6: Sameday Logistics {#7-faza-46}
 
-### Task 349-358 (10 taskuri)
+### Task 349-358 (10 taskuri) → Sprint E4.S3
 
 ```json
 {
   "faza": "4.6",
   "nume": "Sameday Courier Integration",
+  "sprint": "E4.S3",
+  "adr_reference": "ADR-0092, ADR-0097",
   "durata_estimata": "4 zile",
   "taskuri": [
     {
       "task_number": 349,
       "id": "E4-LOG-001",
+      "sprint_id": "E4.S3.PR4.001",
       "titlu": "Sameday API Client",
       "descriere": "Client complet pentru Sameday API",
       "tip": "BACKEND",
@@ -794,6 +926,7 @@
     {
       "task_number": 350,
       "id": "E4-LOG-002",
+      "sprint_id": "E4.S3.PR4.002",
       "titlu": "Worker E22: sameday:awb:create",
       "descriere": "Worker pentru generare AWB",
       "tip": "WORKER",
@@ -804,6 +937,7 @@
     {
       "task_number": 351,
       "id": "E4-LOG-003",
+      "sprint_id": "E4.S3.PR4.003",
       "titlu": "Worker E23: sameday:status:poll",
       "descriere": "Worker repeating pentru polling tracking status",
       "tip": "WORKER",
@@ -814,6 +948,7 @@
     {
       "task_number": 352,
       "id": "E4-LOG-004",
+      "sprint_id": "E4.S3.PR5.001",
       "titlu": "Worker E24: sameday:status:process",
       "descriere": "Worker pentru procesare schimbare status",
       "tip": "WORKER",
@@ -824,6 +959,7 @@
     {
       "task_number": 353,
       "id": "E4-LOG-005",
+      "sprint_id": "E4.S3.PR5.002",
       "titlu": "Worker E25: sameday:cod:process",
       "descriere": "Worker pentru procesare COD collection",
       "tip": "WORKER",
@@ -834,6 +970,7 @@
     {
       "task_number": 354,
       "id": "E4-LOG-006",
+      "sprint_id": "E4.S3.PR5.003",
       "titlu": "Worker E26: sameday:return:initiate",
       "descriere": "Worker pentru inițiere retur la curier",
       "tip": "WORKER",
@@ -844,6 +981,7 @@
     {
       "task_number": 355,
       "id": "E4-LOG-007",
+      "sprint_id": "E4.S3.PR5.004",
       "titlu": "Worker E27: sameday:pickup:schedule",
       "descriere": "Cron worker pentru programare pickup",
       "tip": "WORKER",
@@ -854,6 +992,7 @@
     {
       "task_number": 356,
       "id": "E4-LOG-008",
+      "sprint_id": "E4.S3.PR6.001",
       "titlu": "Sameday Webhook Endpoint",
       "descriere": "Endpoint pentru primire status updates",
       "tip": "BACKEND",
@@ -864,16 +1003,19 @@
     {
       "task_number": 357,
       "id": "E4-LOG-009",
+      "sprint_id": "E4.S3.PR6.002",
       "titlu": "Stock Sync Workers (F28-F31)",
       "descriere": "Workers pentru sync stoc cu Oblio",
       "tip": "WORKER",
       "prioritate": "MEDIUM",
       "estimare_ore": 6,
-      "dependente": [310]
+      "dependente": [310],
+      "adr_reference": "ADR-0097"
     },
     {
       "task_number": 358,
       "id": "E4-LOG-010",
+      "sprint_id": "E4.S3.PR6.003",
       "titlu": "Logistics Tests",
       "descriere": "Tests pentru Sameday integration",
       "tip": "TESTING",
@@ -889,17 +1031,20 @@
 
 ## 8. Faza 4.7: Dynamic Contracts {#8-faza-47}
 
-### Task 359-368 (10 taskuri)
+### Task 359-368 (10 taskuri) → Sprint E4.S4
 
 ```json
 {
   "faza": "4.7",
   "nume": "Dynamic Contract Generation",
+  "sprint": "E4.S4",
+  "adr_reference": "ADR-0091",
   "durata_estimata": "5 zile",
   "taskuri": [
     {
       "task_number": 359,
       "id": "E4-CTR-001",
+      "sprint_id": "E4.S4.PR1.001",
       "titlu": "Contract Template Engine",
       "descriere": "Implementare motor de template-uri cu Jinja2",
       "tip": "BACKEND",
@@ -915,6 +1060,7 @@
     {
       "task_number": 360,
       "id": "E4-CTR-002",
+      "sprint_id": "E4.S4.PR1.002",
       "titlu": "Worker G32: contract:template:select",
       "descriere": "Worker pentru selecție template bazat pe risk tier",
       "tip": "WORKER",
@@ -925,6 +1071,7 @@
     {
       "task_number": 361,
       "id": "E4-CTR-003",
+      "sprint_id": "E4.S4.PR1.003",
       "titlu": "Worker G33: contract:clause:assemble",
       "descriere": "Worker pentru asamblare clauze",
       "tip": "WORKER",
@@ -935,6 +1082,7 @@
     {
       "task_number": 362,
       "id": "E4-CTR-004",
+      "sprint_id": "E4.S4.PR2.001",
       "titlu": "Worker G34: contract:generate:docx",
       "descriere": "Worker pentru generare DOCX și conversie PDF",
       "tip": "WORKER",
@@ -945,6 +1093,7 @@
     {
       "task_number": 363,
       "id": "E4-CTR-005",
+      "sprint_id": "E4.S4.PR2.002",
       "titlu": "DocuSign Integration",
       "descriere": "Integrare completă DocuSign pentru semnături",
       "tip": "BACKEND",
@@ -961,6 +1110,7 @@
     {
       "task_number": 364,
       "id": "E4-CTR-006",
+      "sprint_id": "E4.S4.PR2.003",
       "titlu": "Worker G35: contract:sign:request",
       "descriere": "Worker pentru trimitere contract la semnare",
       "tip": "WORKER",
@@ -971,6 +1121,7 @@
     {
       "task_number": 365,
       "id": "E4-CTR-007",
+      "sprint_id": "E4.S4.PR3.001",
       "titlu": "Worker G36: contract:sign:complete",
       "descriere": "Worker pentru procesare semnătură completă",
       "tip": "WORKER",
@@ -981,6 +1132,7 @@
     {
       "task_number": 366,
       "id": "E4-CTR-008",
+      "sprint_id": "E4.S4.PR3.002",
       "titlu": "DocuSign Webhook Endpoint",
       "descriere": "Endpoint pentru primire DocuSign Connect events",
       "tip": "BACKEND",
@@ -991,6 +1143,7 @@
     {
       "task_number": 367,
       "id": "E4-CTR-009",
+      "sprint_id": "E4.S4.PR3.003",
       "titlu": "Contract Template CRUD API",
       "descriere": "API pentru managementul template-urilor",
       "tip": "BACKEND",
@@ -1001,6 +1154,7 @@
     {
       "task_number": 368,
       "id": "E4-CTR-010",
+      "sprint_id": "E4.S4.PR3.004",
       "titlu": "Contract Tests",
       "descriere": "Tests pentru contract generation flow",
       "tip": "TESTING",
@@ -1016,17 +1170,19 @@
 
 ## 9. Faza 4.8: Returns & Refunds {#9-faza-48}
 
-### Task 369-374 (6 taskuri)
+### Task 369-374 (6 taskuri) → Sprint E4.S4
 
 ```json
 {
   "faza": "4.8",
   "nume": "Returns & Refunds",
+  "sprint": "E4.S4",
   "durata_estimata": "3 zile",
   "taskuri": [
     {
       "task_number": 369,
       "id": "E4-RET-001",
+      "sprint_id": "E4.S4.PR4.001",
       "titlu": "Worker H37: return:request:create",
       "descriere": "Worker pentru procesare cerere retur",
       "tip": "WORKER",
@@ -1037,6 +1193,7 @@
     {
       "task_number": 370,
       "id": "E4-RET-002",
+      "sprint_id": "E4.S4.PR4.002",
       "titlu": "Return Eligibility Logic",
       "descriere": "Implementare reguli de eligibilitate retur",
       "tip": "BACKEND",
@@ -1047,6 +1204,7 @@
     {
       "task_number": 371,
       "id": "E4-RET-003",
+      "sprint_id": "E4.S4.PR4.003",
       "titlu": "Worker H38: return:process:stock",
       "descriere": "Worker pentru restocking după retur",
       "tip": "WORKER",
@@ -1057,6 +1215,7 @@
     {
       "task_number": 372,
       "id": "E4-RET-004",
+      "sprint_id": "E4.S4.PR5.001",
       "titlu": "Refund Approval Flow",
       "descriere": "Implementare flow aprobare refund cu HITL",
       "tip": "BACKEND",
@@ -1067,6 +1226,7 @@
     {
       "task_number": 373,
       "id": "E4-RET-005",
+      "sprint_id": "E4.S4.PR5.002",
       "titlu": "Returns API Endpoints",
       "descriere": "CRUD endpoints pentru returns",
       "tip": "BACKEND",
@@ -1077,6 +1237,7 @@
     {
       "task_number": 374,
       "id": "E4-RET-006",
+      "sprint_id": "E4.S4.PR5.003",
       "titlu": "Returns Tests",
       "descriere": "Tests pentru returns flow",
       "tip": "TESTING",
@@ -1092,17 +1253,20 @@
 
 ## 10. Faza 4.9: HITL System {#10-faza-49}
 
-### Task 375-382 (8 taskuri)
+### Task 375-382 (8 taskuri) → Sprint E4.S5
 
 ```json
 {
   "faza": "4.9",
   "nume": "Human-in-the-Loop System",
+  "sprint": "E4.S5",
+  "adr_reference": "ADR-0094",
   "durata_estimata": "4 zile",
   "taskuri": [
     {
       "task_number": 375,
       "id": "E4-HTL-001",
+      "sprint_id": "E4.S5.PR1.001",
       "titlu": "HITL Task Manager Service",
       "descriere": "Serviciu central pentru gestionare taskuri HITL",
       "tip": "BACKEND",
@@ -1119,6 +1283,7 @@
     {
       "task_number": 376,
       "id": "E4-HTL-002",
+      "sprint_id": "E4.S5.PR1.002",
       "titlu": "Worker K48: hitl:approval:credit-override",
       "descriere": "Worker pentru cereri override credit",
       "tip": "WORKER",
@@ -1129,6 +1294,7 @@
     {
       "task_number": 377,
       "id": "E4-HTL-003",
+      "sprint_id": "E4.S5.PR1.003",
       "titlu": "Worker K49: hitl:approval:credit-limit",
       "descriere": "Worker pentru aprobare limite credit mari",
       "tip": "WORKER",
@@ -1139,6 +1305,7 @@
     {
       "task_number": 378,
       "id": "E4-HTL-004",
+      "sprint_id": "E4.S5.PR2.001",
       "titlu": "Worker K50: hitl:approval:refund-large",
       "descriere": "Worker pentru aprobare refund mare",
       "tip": "WORKER",
@@ -1149,6 +1316,7 @@
     {
       "task_number": 379,
       "id": "E4-HTL-005",
+      "sprint_id": "E4.S5.PR2.002",
       "titlu": "Worker K51: hitl:investigation:payment",
       "descriere": "Worker pentru investigare plăți nereconciliate",
       "tip": "WORKER",
@@ -1159,6 +1327,7 @@
     {
       "task_number": 380,
       "id": "E4-HTL-006",
+      "sprint_id": "E4.S5.PR2.003",
       "titlu": "Worker K52: hitl:task:resolve",
       "descriere": "Worker pentru execuție decizie HITL",
       "tip": "WORKER",
@@ -1169,6 +1338,7 @@
     {
       "task_number": 381,
       "id": "E4-HTL-007",
+      "sprint_id": "E4.S5.PR3.001",
       "titlu": "Worker K53: hitl:escalation:overdue",
       "descriere": "Worker pentru escalare SLA depășit",
       "tip": "WORKER",
@@ -1179,6 +1349,7 @@
     {
       "task_number": 382,
       "id": "E4-HTL-008",
+      "sprint_id": "E4.S5.PR3.002",
       "titlu": "HITL API Endpoints",
       "descriere": "REST API pentru HITL queue",
       "tip": "BACKEND",
@@ -1194,17 +1365,20 @@
 
 ## 11. Faza 4.10: UI Implementation {#11-faza-410}
 
-### Task 383-394 (12 taskuri)
+### Task 383-394 (12 taskuri) → Sprint E4.S6
 
 ```json
 {
   "faza": "4.10",
   "nume": "UI Implementation",
+  "sprint": "E4.S6",
+  "adr_reference": "ADR-0096",
   "durata_estimata": "6 zile",
   "taskuri": [
     {
       "task_number": 383,
       "id": "E4-UI-001",
+      "sprint_id": "E4.S6.PR1.001",
       "titlu": "Monitoring Dashboard Page",
       "descriere": "Dashboard principal cu KPIs și charts",
       "tip": "FRONTEND",
@@ -1221,6 +1395,7 @@
     {
       "task_number": 384,
       "id": "E4-UI-002",
+      "sprint_id": "E4.S6.PR1.002",
       "titlu": "Orders List Page",
       "descriere": "Pagină listă comenzi cu filtre și acțiuni",
       "tip": "FRONTEND",
@@ -1231,6 +1406,7 @@
     {
       "task_number": 385,
       "id": "E4-UI-003",
+      "sprint_id": "E4.S6.PR1.003",
       "titlu": "Order Detail Page",
       "descriere": "Pagină detaliu comandă cu timeline și relații",
       "tip": "FRONTEND",
@@ -1241,6 +1417,7 @@
     {
       "task_number": 386,
       "id": "E4-UI-004",
+      "sprint_id": "E4.S6.PR2.001",
       "titlu": "Payments Page & Reconciliation",
       "descriere": "Pagină plăți cu tab reconciliere manuală",
       "tip": "FRONTEND",
@@ -1251,6 +1428,7 @@
     {
       "task_number": 387,
       "id": "E4-UI-005",
+      "sprint_id": "E4.S6.PR2.002",
       "titlu": "Credit Profiles Page",
       "descriere": "Pagină management profile credit",
       "tip": "FRONTEND",
@@ -1261,6 +1439,7 @@
     {
       "task_number": 388,
       "id": "E4-UI-006",
+      "sprint_id": "E4.S6.PR2.003",
       "titlu": "Shipments & Tracking Page",
       "descriere": "Pagină tracking livrări cu status map",
       "tip": "FRONTEND",
@@ -1271,6 +1450,7 @@
     {
       "task_number": 389,
       "id": "E4-UI-007",
+      "sprint_id": "E4.S6.PR3.001",
       "titlu": "Contracts Page",
       "descriere": "Pagină contracte cu pending signatures",
       "tip": "FRONTEND",
@@ -1281,6 +1461,7 @@
     {
       "task_number": 390,
       "id": "E4-UI-008",
+      "sprint_id": "E4.S6.PR3.002",
       "titlu": "Returns Page",
       "descriere": "Pagină returns cu inspection flow",
       "tip": "FRONTEND",
@@ -1291,6 +1472,7 @@
     {
       "task_number": 391,
       "id": "E4-UI-009",
+      "sprint_id": "E4.S6.PR3.003",
       "titlu": "HITL Queue Page",
       "descriere": "Dashboard HITL cu approval cards",
       "tip": "FRONTEND",
@@ -1301,6 +1483,7 @@
     {
       "task_number": 392,
       "id": "E4-UI-010",
+      "sprint_id": "E4.S6.PR4.001",
       "titlu": "Status Badges & Components",
       "descriere": "Componente reusable pentru toate status-urile",
       "tip": "FRONTEND",
@@ -1311,6 +1494,7 @@
     {
       "task_number": 393,
       "id": "E4-UI-011",
+      "sprint_id": "E4.S6.PR4.002",
       "titlu": "Dialog Components",
       "descriere": "Dialoguri pentru toate acțiunile",
       "tip": "FRONTEND",
@@ -1327,6 +1511,7 @@
     {
       "task_number": 394,
       "id": "E4-UI-012",
+      "sprint_id": "E4.S6.PR4.003",
       "titlu": "Analytics Page",
       "descriere": "Rapoarte și charts pentru analytics",
       "tip": "FRONTEND",
@@ -1342,17 +1527,19 @@
 
 ## 12. Faza 4.11: Testing & QA {#12-faza-411}
 
-### Task 395-398 (4 taskuri)
+### Task 395-398 (4 taskuri) → Sprint E4.S7
 
 ```json
 {
   "faza": "4.11",
   "nume": "Testing & Quality Assurance",
+  "sprint": "E4.S7",
   "durata_estimata": "3 zile",
   "taskuri": [
     {
       "task_number": 395,
       "id": "E4-QA-001",
+      "sprint_id": "E4.S7.PR1.001",
       "titlu": "Integration Tests Complete",
       "descriere": "Completare toate integration tests",
       "tip": "TESTING",
@@ -1363,6 +1550,7 @@
     {
       "task_number": 396,
       "id": "E4-QA-002",
+      "sprint_id": "E4.S7.PR1.002",
       "titlu": "E2E Tests pentru Flows Critice",
       "descriere": "E2E tests pentru order lifecycle complet",
       "tip": "TESTING",
@@ -1373,6 +1561,7 @@
     {
       "task_number": 397,
       "id": "E4-QA-003",
+      "sprint_id": "E4.S7.PR2.001",
       "titlu": "Performance Testing",
       "descriere": "Load tests pentru workers și API",
       "tip": "TESTING",
@@ -1383,6 +1572,7 @@
     {
       "task_number": 398,
       "id": "E4-QA-004",
+      "sprint_id": "E4.S7.PR2.002",
       "titlu": "Security Audit",
       "descriere": "Audit webhook security și API auth",
       "tip": "TESTING",
@@ -1398,17 +1588,19 @@
 
 ## 13. Faza 4.12: Deployment {#13-faza-412}
 
-### Task 399 (1 task)
+### Task 399 (1 task) → Sprint E4.S7
 
 ```json
 {
   "faza": "4.12",
   "nume": "Production Deployment",
+  "sprint": "E4.S7",
   "durata_estimata": "1 zi",
   "taskuri": [
     {
       "task_number": 399,
       "id": "E4-DEP-001",
+      "sprint_id": "E4.S7.PR6.001",
       "titlu": "Production Deployment & Go-Live",
       "descriere": "Deploy complet Etapa 4 în producție",
       "tip": "DEPLOYMENT",
@@ -1476,4 +1668,13 @@
 ---
 
 **Document generat**: 2026-01-19  
+**Ultima actualizare**: 2026-02-02  
+**Versiune**: 1.1  
 **Status**: COMPLET ✅
+
+### Changelog
+
+| Versiune | Data | Modificări |
+|----------|------|------------|
+| 1.0 | 2026-01-19 | Versiunea inițială cu 99 taskuri |
+| 1.1 | 2026-02-02 | Adăugat Sprint Plan Reference, ADR Traceability, Sprint IDs pentru toate task-urile |

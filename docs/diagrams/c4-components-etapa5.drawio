@@ -1,9 +1,199 @@
-<mxfile host="app.diagrams.net" modified="2026-02-01T00:00:00.000Z" agent="GitHub Copilot" version="22.1.0">
+<mxfile host="app.diagrams.net" modified="2026-02-02T00:00:00.000Z" agent="GitHub Copilot" version="22.1.0">
   <diagram id="etapa5-components" name="Etapa 5 Components">
-    <mxGraphModel>
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
+        
+        <!-- Title -->
+        <mxCell id="title" value="CERNIQ.APP — ETAPA 5: C4 COMPONENT DIAGRAM&#xa;Nurturing Agentic — 58 Workers Architecture&#xa;Version 1.0 | 2 Februarie 2026" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="400" y="10" width="400" height="50" as="geometry" />
+        </mxCell>
+        
+        <!-- API Gateway Container -->
+        <mxCell id="api-gateway" value="API Gateway&#xa;[Container: Fastify v5]&#xa;&#xa;REST API pentru Nurturing&#xa;10 endpoint groups" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#438DD5;strokeColor=#3A7ABD;fontColor=#ffffff;verticalAlign=top;align=center;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="180" height="100" as="geometry" />
+        </mxCell>
+        
+        <!-- BullMQ Queues Container -->
+        <mxCell id="bullmq-queues" value="BullMQ Queues&#xa;[Container: Redis 8.4]&#xa;&#xa;12 Queues:&#xa;lifecycle, onboarding, state,&#xa;churn, sentiment, decay,&#xa;geospatial, graph, referral,&#xa;winback, association, feedback,&#xa;content, alerts, compliance" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF8C00;strokeColor=#CC7000;fontColor=#ffffff;verticalAlign=top;align=center;" vertex="1" parent="1">
+          <mxGeometry x="240" y="80" width="200" height="140" as="geometry" />
+        </mxCell>
+        
+        <!-- Python Graph Service -->
+        <mxCell id="python-graph" value="Python Graph Service&#xa;[Container: FastAPI + Python 3.14]&#xa;&#xa;NetworkX, cdlib (Leiden)&#xa;Free-threading enabled&#xa;Centrality calculations&#xa;Community detection" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#306998;strokeColor=#FFD43B;fontColor=#ffffff;verticalAlign=top;align=center;" vertex="1" parent="1">
+          <mxGeometry x="460" y="80" width="180" height="120" as="geometry" />
+        </mxCell>
+        
+        <!-- Python PDF Service -->
+        <mxCell id="python-pdf" value="PDF Extraction Service&#xa;[Container: Python 3.14]&#xa;&#xa;tabula-py, pdfplumber&#xa;MADR/OUAI PDF scraping" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#306998;strokeColor=#FFD43B;fontColor=#ffffff;verticalAlign=top;align=center;" vertex="1" parent="1">
+          <mxGeometry x="660" y="80" width="160" height="100" as="geometry" />
+        </mxCell>
+        
+        <!-- Database Container -->
+        <mxCell id="database" value="PostgreSQL 18.1&#xa;[Container: Database + PostGIS]&#xa;&#xa;21 Gold Tables:&#xa;nurturing_state, churn_signals,&#xa;referrals, clusters, kol_profiles,&#xa;winback_campaigns, nps_surveys...&#xa;&#xa;GiST Spatial Indexes&#xa;GEOGRAPHY columns" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#336791;strokeColor=#2D5A7B;fontColor=#ffffff;verticalAlign=top;align=center;" vertex="1" parent="1">
+          <mxGeometry x="840" y="80" width="180" height="160" as="geometry" />
+        </mxCell>
+        
+        <!-- LLM Provider -->
+        <mxCell id="llm-provider" value="Anthropic Claude&#xa;[External: LLM API]&#xa;&#xa;Sentiment Analysis&#xa;Entity Extraction&#xa;Referral Detection" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#6B4C9A;strokeColor=#563D7C;fontColor=#ffffff;verticalAlign=top;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="80" width="150" height="100" as="geometry" />
+        </mxCell>
+        
+        <!-- WORKERS SECTION -->
+        <mxCell id="workers-section" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="250" width="1150" height="550" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="workers-title" value="58 WORKERS (BullMQ)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="50" y="255" width="200" height="20" as="geometry" />
+        </mxCell>
+        
+        <!-- Category A: State Machine -->
+        <mxCell id="cat-a" value="CATEGORIA A&#xa;State Machine&#xa;[8 Workers]&#xa;&#xa;A1: lifecycle:order:completed&#xa;A2: lifecycle:state:evaluate&#xa;A3: onboarding:sequence:start&#xa;A4: onboarding:step:execute&#xa;A5: onboarding:complete:check&#xa;A6: state:transition:execute&#xa;A7: state:metrics:update&#xa;A8: state:advocate:promote" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;verticalAlign=top;align=left;spacingLeft=5;" vertex="1" parent="1">
+          <mxGeometry x="50" y="280" width="200" height="170" as="geometry" />
+        </mxCell>
+        
+        <!-- Category B: Churn Detection -->
+        <mxCell id="cat-b" value="CATEGORIA B&#xa;Churn Detection&#xa;[6 Workers]&#xa;&#xa;B9: churn:signal:detect&#xa;B10: churn:score:calculate&#xa;B11: churn:risk:escalate&#xa;B12: sentiment:analyze&#xa;B13: sentiment:aggregate&#xa;B14: decay:behavior:detect" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;verticalAlign=top;align=left;spacingLeft=5;" vertex="1" parent="1">
+          <mxGeometry x="260" y="280" width="180" height="150" as="geometry" />
+        </mxCell>
+        
+        <!-- Category C: Geospatial -->
+        <mxCell id="cat-c" value="CATEGORIA C&#xa;Geospatial (PostGIS)&#xa;[5 Workers]&#xa;&#xa;C15: geo:proximity:calculate&#xa;C16: geo:neighbor:identify&#xa;C17: geo:territory:calculate&#xa;C18: geo:coverage:analyze&#xa;C19: geo:catchment:build" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;align=left;spacingLeft=5;" vertex="1" parent="1">
+          <mxGeometry x="450" y="280" width="180" height="140" as="geometry" />
+        </mxCell>
+        
+        <!-- Category D: Graph Analysis -->
+        <mxCell id="cat-d" value="CATEGORIA D&#xa;Graph Analysis (NetworkX)&#xa;[5 Workers]&#xa;&#xa;D20: graph:build:relationships&#xa;D21: community:detect:leiden&#xa;D22: centrality:calculate&#xa;D23: kol:identify&#xa;D24: cluster:implicit:detect" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;verticalAlign=top;align=left;spacingLeft=5;" vertex="1" parent="1">
+          <mxGeometry x="640" y="280" width="190" height="140" as="geometry" />
+        </mxCell>
+        
+        <!-- Category E: Referral System -->
+        <mxCell id="cat-e" value="CATEGORIA E&#xa;Referral System&#xa;[7 Workers]&#xa;&#xa;E25: referral:detect:mention&#xa;E26: referral:request:send&#xa;E27: referral:consent:process&#xa;E28: referral:outreach:execute&#xa;E29: referral:conversion:track&#xa;E30: referral:reward:calculate&#xa;E31: referral:reward:process" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;verticalAlign=top;align=left;spacingLeft=5;" vertex="1" parent="1">
+          <mxGeometry x="840" y="280" width="180" height="160" as="geometry" />
+        </mxCell>
+        
+        <!-- Category F: Win-Back -->
+        <mxCell id="cat-f" value="CATEGORIA F&#xa;Win-Back Campaigns&#xa;[5 Workers]&#xa;&#xa;F32: winback:campaign:create&#xa;F33: winback:step:execute&#xa;F34: winback:response:process&#xa;F35: winback:conversion:track&#xa;F36: reactivation:complete" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;verticalAlign=top;align=left;spacingLeft=5;" vertex="1" parent="1">
+          <mxGeometry x="1030" y="280" width="150" height="140" as="geometry" />
+        </mxCell>
+        
+        <!-- Category G: Association Ingestion -->
+        <mxCell id="cat-g" value="CATEGORIA G&#xa;Association Ingestion&#xa;[6 Workers]&#xa;&#xa;G37: ingest:ouai:scrape&#xa;G38: ingest:ouai:parse&#xa;G39: ingest:cooperative:scrape&#xa;G40: ingest:cooperative:parse&#xa;G41: ingest:madr:sync&#xa;G42: ingest:affiliation:match" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;verticalAlign=top;align=left;spacingLeft=5;" vertex="1" parent="1">
+          <mxGeometry x="50" y="460" width="175" height="150" as="geometry" />
+        </mxCell>
+        
+        <!-- Category H: Feedback -->
+        <mxCell id="cat-h" value="CATEGORIA H&#xa;Feedback &amp; Zero-Party&#xa;[5 Workers]&#xa;&#xa;H43: feedback:nps:send&#xa;H44: feedback:nps:process&#xa;H45: feedback:extract:entities&#xa;H46: feedback:competitor:detect&#xa;H47: feedback:crm:writeback" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#b1ddf0;strokeColor=#10739e;verticalAlign=top;align=left;spacingLeft=5;" vertex="1" parent="1">
+          <mxGeometry x="235" y="460" width="180" height="140" as="geometry" />
+        </mxCell>
+        
+        <!-- Category I: Content -->
+        <mxCell id="cat-i" value="CATEGORIA I&#xa;Content &amp; Educational&#xa;[4 Workers]&#xa;&#xa;I48: content:drip:schedule&#xa;I49: content:drip:execute&#xa;I50: content:generate:personalize&#xa;I51: content:engagement:track" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d0cee2;strokeColor=#56517e;verticalAlign=top;align=left;spacingLeft=5;" vertex="1" parent="1">
+          <mxGeometry x="425" y="460" width="190" height="130" as="geometry" />
+        </mxCell>
+        
+        <!-- Category J: Alerts -->
+        <mxCell id="cat-j" value="CATEGORIA J&#xa;Alert &amp; Trigger&#xa;[4 Workers]&#xa;&#xa;J52: alert:weather:monitor&#xa;J53: alert:weather:campaign&#xa;J54: alert:subsidy:monitor&#xa;J55: trigger:seasonal:execute" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fad7ac;strokeColor=#b46504;verticalAlign=top;align=left;spacingLeft=5;" vertex="1" parent="1">
+          <mxGeometry x="625" y="460" width="175" height="130" as="geometry" />
+        </mxCell>
+        
+        <!-- Category K: Compliance -->
+        <mxCell id="cat-k" value="CATEGORIA K&#xa;Compliance &amp; Governance&#xa;[3 Workers]&#xa;&#xa;K56: compliance:consent:verify&#xa;K57: compliance:competition:check&#xa;K58: audit:trail:record" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#bac8d3;strokeColor=#23445d;verticalAlign=top;align=left;spacingLeft=5;" vertex="1" parent="1">
+          <mxGeometry x="810" y="460" width="190" height="120" as="geometry" />
+        </mxCell>
+        
+        <!-- HITL Integration -->
+        <mxCell id="hitl" value="HITL Unified System&#xa;[Component: Approval Queue]&#xa;&#xa;pipelineStage=E5&#xa;Task types: churn_intervention,&#xa;nps_followup, referral_consent,&#xa;winback_approval" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fa6800;strokeColor=#C73500;fontColor=#ffffff;verticalAlign=top;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1010" y="460" width="170" height="130" as="geometry" />
+        </mxCell>
+        
+        <!-- External Services -->
+        <mxCell id="external-title" value="EXTERNAL SERVICES" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="50" y="620" width="150" height="20" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="ext-anm" value="ANM Weather API&#xa;[External]&#xa;Alerte meteo" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#60a917;strokeColor=#2D7600;fontColor=#ffffff;" vertex="1" parent="1">
+          <mxGeometry x="50" y="645" width="120" height="70" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="ext-madr" value="MADR Registry&#xa;[External]&#xa;OUAI/Cooperative PDFs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#60a917;strokeColor=#2D7600;fontColor=#ffffff;" vertex="1" parent="1">
+          <mxGeometry x="180" y="645" width="130" height="70" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="ext-whatsapp" value="WhatsApp Business&#xa;[External]&#xa;Outreach, Consent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#25D366;strokeColor=#128C7E;fontColor=#ffffff;" vertex="1" parent="1">
+          <mxGeometry x="320" y="645" width="130" height="70" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="ext-email" value="Mailgun/SES&#xa;[External]&#xa;Email campaigns" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#25D366;strokeColor=#128C7E;fontColor=#ffffff;" vertex="1" parent="1">
+          <mxGeometry x="460" y="645" width="110" height="70" as="geometry" />
+        </mxCell>
+        
+        <!-- Legend -->
+        <mxCell id="legend-title" value="LEGEND" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="600" y="620" width="60" height="20" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="legend-1" value="State Machine" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="600" y="645" width="80" height="25" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="legend-2" value="Churn" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="690" y="645" width="60" height="25" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="legend-3" value="Geospatial" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="760" y="645" width="70" height="25" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="legend-4" value="Graph" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="840" y="645" width="55" height="25" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="legend-5" value="Referral" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="905" y="645" width="60" height="25" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="legend-6" value="Win-Back" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="975" y="645" width="65" height="25" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="legend-7" value="HITL" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fa6800;strokeColor=#C73500;fontColor=#ffffff;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="1050" y="645" width="50" height="25" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="legend-8" value="Python Service" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#306998;strokeColor=#FFD43B;fontColor=#ffffff;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="1110" y="645" width="80" height="25" as="geometry" />
+        </mxCell>
+        
+        <!-- Metrics Summary -->
+        <mxCell id="metrics" value="METRICS SUMMARY&#xa;━━━━━━━━━━━━━━━━━━&#xa;Total Workers: 58&#xa;Total Queues: 12&#xa;Total DB Tables: 21&#xa;Total Enums: 12&#xa;Python Services: 2&#xa;External APIs: 4" style="text;html=1;strokeColor=#666666;fillColor=#f5f5f5;align=left;verticalAlign=top;whiteSpace=wrap;rounded=1;spacingLeft=5;spacingTop=5;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="600" y="680" width="150" height="110" as="geometry" />
+        </mxCell>
+        
+        <!-- ADR References -->
+        <mxCell id="adrs" value="ADR REFERENCES&#xa;━━━━━━━━━━━━━━━━━━&#xa;ADR-0098: State Machine&#xa;ADR-0099: Churn Detection&#xa;ADR-0100: PostGIS Proximity&#xa;ADR-0101: Leiden Community&#xa;ADR-0102: GDPR Referral&#xa;ADR-0105: KOL Centrality&#xa;ADR-0106: Win-Back&#xa;ADR-0107: Sentiment" style="text;html=1;strokeColor=#666666;fillColor=#f5f5f5;align=left;verticalAlign=top;whiteSpace=wrap;rounded=1;spacingLeft=5;spacingTop=5;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="770" y="680" width="170" height="130" as="geometry" />
+        </mxCell>
+        
+        <!-- Connections (simplified arrows) -->
+        <mxCell id="conn1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;" edge="1" parent="1" source="api-gateway" target="bullmq-queues">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="conn2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;" edge="1" parent="1" source="bullmq-queues" target="database">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="conn3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#306998;strokeWidth=2;" edge="1" parent="1" source="cat-d" target="python-graph">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="conn4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6B4C9A;strokeWidth=2;" edge="1" parent="1" source="cat-b" target="llm-provider">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
       </root>
     </mxGraphModel>
   </diagram>
