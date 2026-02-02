@@ -1,11 +1,13 @@
 # Etapa 3 - Workers Categoria A: Product Knowledge
 ## Sincronizare, Embeddings și Validare Produse
 
-**Versiune:** 1.0  
-**Data:** Ianuarie 2026  
+**Versiune:** 2.0  
+**Data:** 01 Februarie 2026  
 **Categoria:** A - Product Knowledge  
 **Workers:** 6 (5 core + 1 adițional)  
-**Criticalitate:** 2 workers critici (#4, #5)
+**Criticalitate:** 2 workers critici (#4, #5)  
+**Sprint Plan:** E3.S1.PR3, E3.S1.PR4 (vezi [etapa3-sprint-plan.md](etapa3-sprint-plan.md))  
+**Phase:** F3.2 Product Knowledge
 
 ---
 

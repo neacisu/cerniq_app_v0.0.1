@@ -5,12 +5,15 @@
 | Attribute | Value |
 |-----------|-------|
 | Document ID | CERNIQ-E3-WORKERS-J |
-| Version | 1.0.0 |
-| Status | Draft |
+| Version | 2.0.0 |
+| Status | Final |
 | Created | 2026-01-18 |
+| Last Updated | 2026-02-01 |
 | Author | Claude (AI Assistant) |
 | Reviewers | Alex (Technical Lead) |
 | Classification | Internal Technical Documentation |
+| Sprint Plan | E3.S7.PR29, E3.S7.PR30 (vezi [etapa3-sprint-plan.md](etapa3-sprint-plan.md)) |
+| Phase | F3.11 Handover & Channel |
 
 ---
 

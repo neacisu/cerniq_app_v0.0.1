@@ -1,13 +1,4178 @@
 openapi: 3.1.0
 info:
-  title: Cerniq.app API — Etapa 3 (AI Sales Agent)
-  version: 1.0.0
+  title: Cerniq API - Etapa 3
   description: |
-    Specificație OpenAPI pentru Etapa 3.
-    Pentru schema globală și convenții comune, vezi docs/api/openapi.yaml.
+    # AI Sales Agent Neuro-Simbolic API
+    
+    API REST pentru Etapa 3 Cerniq.app - Agent Comercial AI Autonom.
+    
+    ## Funcționalități principale:
+    - **Negocieri** - CRUD complet pentru negocieri cu FSM (12 stări)
+    - **Produse** - Catalog cu RAG search și pgvector
+    - **AI Agent** - Procesare mesaje cu Grok-4/GPT-4o
+    - **HITL Approvals** - Sistem de aprobare cu SLA
+    - **Documents** - Proforma, Facturi, e-Factura ANAF
+    - **Pricing** - Reguli dinamice și calcul prețuri
+    - **Stock** - Management stoc și rezervări
+    - **Webhooks** - Evenimente în timp real
+    
+    ## Autentificare
+    API-ul folosește autentificare JWT Bearer Token.
+    - Access Token: 15 minute validitate
+    - Refresh Token: 7 zile validitate
+    - API Keys: Pentru integrări M2M
+    
+    ## Rate Limiting
+    - Standard: 100 requests/minute (GET), 30/minute (POST/PUT)
+    - AI Operations: 10 requests/minute
+    - Vezi headerele X-RateLimit-* pentru status
+    
+    ## Versiune Document
+    - Versiune: 3.0.0
+    - Data: 01 Februarie 2026
+    - Status: PRODUCTION READY
+  version: 3.0.0
+  contact:
+    name: Cerniq Development Team
+    email: dev@cerniq.app
+    url: https://docs.cerniq.app
+  license:
+    name: Proprietary
+    url: https://cerniq.app/license
+
 servers:
-  - url: https://api.cerniq.app
-    description: Production
-  - url: http://localhost:64000
-    description: Development
-paths: {}
+  - url: http://localhost:3000/api/v1
+    description: Development Local
+  - url: https://api-staging.cerniq.app/api/v1
+    description: Staging Environment
+  - url: https://api.cerniq.app/api/v1
+    description: Production Environment
+
+tags:
+  - name: Authentication
+    description: Autentificare și management sesiuni
+  - name: Products
+    description: Catalog produse și RAG search
+  - name: Negotiations
+    description: Negocieri cu FSM și conversații
+  - name: Pricing
+    description: Reguli de preț și calcul
+  - name: Stock
+    description: Management stoc și rezervări
+  - name: Documents
+    description: Proforma, Facturi, e-Factura
+  - name: AI Agent
+    description: Procesare AI și guardrails
+  - name: HITL Approvals
+    description: Sistem aprobare Human-in-the-Loop
+  - name: E-Factura & Oblio
+    description: Integrare fiscală ANAF și Oblio
+  - name: Analytics
+    description: Dashboard și rapoarte
+  - name: Webhooks
+    description: Subscripții evenimente
+  - name: Admin
+    description: Configurare sistem
+
+security:
+  - bearerAuth: []
+
+paths:
+  # ==================== AUTHENTICATION ====================
+  /auth/login:
+    post:
+      tags: [Authentication]
+      summary: Login utilizator
+      operationId: authLogin
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login reușit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /auth/refresh:
+    post:
+      tags: [Authentication]
+      summary: Refresh access token
+      operationId: authRefresh
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        '200':
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/logout:
+    post:
+      tags: [Authentication]
+      summary: Logout și invalidare token
+      operationId: authLogout
+      responses:
+        '200':
+          description: Logout reușit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /auth/api-keys:
+    get:
+      tags: [Authentication]
+      summary: Listare API keys
+      operationId: listApiKeys
+      responses:
+        '200':
+          description: Lista API keys
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ApiKey'
+    post:
+      tags: [Authentication]
+      summary: Creare API key
+      operationId: createApiKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateApiKeyRequest'
+      responses:
+        '201':
+          description: API key creat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateApiKeyResponse'
+
+  /auth/api-keys/{keyId}:
+    delete:
+      tags: [Authentication]
+      summary: Revocare API key
+      operationId: revokeApiKey
+      parameters:
+        - name: keyId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: API key revocat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  # ==================== PRODUCTS ====================
+  /products:
+    get:
+      tags: [Products]
+      summary: Listare produse cu filtrare și sortare
+      operationId: listProducts
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, inactive, discontinued]
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: minPrice
+          in: query
+          schema:
+            type: number
+        - name: maxPrice
+          in: query
+          schema:
+            type: number
+        - name: inStock
+          in: query
+          schema:
+            type: boolean
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [name, price, stock, createdAt]
+        - name: sortOrder
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+      responses:
+        '200':
+          description: Lista produse paginată
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductListResponse'
+
+    post:
+      tags: [Products]
+      summary: Creare produs nou
+      operationId: createProduct
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProductRequest'
+      responses:
+        '201':
+          description: Produs creat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductResponse'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /products/{productId}:
+    get:
+      tags: [Products]
+      summary: Detalii produs
+      operationId: getProduct
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Detalii produs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductDetailResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Products]
+      summary: Actualizare produs
+      operationId: updateProduct
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProductRequest'
+      responses:
+        '200':
+          description: Produs actualizat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductResponse'
+
+    delete:
+      tags: [Products]
+      summary: Ștergere produs (soft delete)
+      operationId: deleteProduct
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Produs șters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /products/import:
+    post:
+      tags: [Products]
+      summary: Import bulk produse din CSV/Excel
+      operationId: importProducts
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                updateExisting:
+                  type: boolean
+                  default: false
+                dryRun:
+                  type: boolean
+                  default: false
+      responses:
+        '202':
+          description: Import inițiat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportResponse'
+
+  /products/search:
+    post:
+      tags: [Products]
+      summary: Căutare RAG cu pgvector
+      operationId: searchProducts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SearchProductsRequest'
+      responses:
+        '200':
+          description: Rezultate căutare semantică
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchProductsResponse'
+
+  /products/export:
+    post:
+      tags: [Products]
+      summary: Export produse în format specificat
+      operationId: exportProducts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                format:
+                  type: string
+                  enum: [csv, xlsx, json]
+                filters:
+                  type: object
+                fields:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '202':
+          description: Export inițiat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExportResponse'
+
+  # ==================== NEGOTIATIONS ====================
+  /negotiations:
+    get:
+      tags: [Negotiations]
+      summary: Listare negocieri cu filtrare FSM
+      operationId: listNegotiations
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: state
+          in: query
+          schema:
+            $ref: '#/components/schemas/NegotiationState'
+        - name: contactId
+          in: query
+          schema:
+            type: string
+        - name: assignedTo
+          in: query
+          schema:
+            type: string
+        - name: channel
+          in: query
+          schema:
+            type: string
+            enum: [whatsapp, email, web, phone]
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: minValue
+          in: query
+          schema:
+            type: number
+        - name: maxValue
+          in: query
+          schema:
+            type: number
+      responses:
+        '200':
+          description: Lista negocieri paginată
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NegotiationListResponse'
+
+    post:
+      tags: [Negotiations]
+      summary: Creare negociere nouă
+      operationId: createNegotiation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateNegotiationRequest'
+      responses:
+        '201':
+          description: Negociere creată
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateNegotiationResponse'
+
+  /negotiations/{negotiationId}:
+    get:
+      tags: [Negotiations]
+      summary: Detalii complete negociere
+      operationId: getNegotiation
+      parameters:
+        - name: negotiationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Detalii negociere cu istoric FSM
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NegotiationDetailResponse'
+
+    patch:
+      tags: [Negotiations]
+      summary: Actualizare negociere
+      operationId: updateNegotiation
+      parameters:
+        - name: negotiationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateNegotiationRequest'
+      responses:
+        '200':
+          description: Negociere actualizată
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateNegotiationResponse'
+
+  /negotiations/{negotiationId}/transition:
+    post:
+      tags: [Negotiations]
+      summary: Tranziție stare FSM
+      operationId: transitionNegotiation
+      parameters:
+        - name: negotiationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransitionNegotiationRequest'
+      responses:
+        '200':
+          description: Tranziție reușită cu side effects
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransitionNegotiationResponse'
+        '400':
+          description: Tranziție invalidă din starea curentă
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /negotiations/{negotiationId}/conversation:
+    get:
+      tags: [Negotiations]
+      summary: Istoric conversație negociere
+      operationId: getConversation
+      parameters:
+        - name: negotiationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: cursor
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: includeInternal
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Mesaje conversație
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationResponse'
+
+  /negotiations/{negotiationId}/messages:
+    post:
+      tags: [Negotiations]
+      summary: Trimite mesaj în negociere
+      operationId: sendMessage
+      parameters:
+        - name: negotiationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendMessageRequest'
+      responses:
+        '201':
+          description: Mesaj trimis/programat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SendMessageResponse'
+
+  /negotiations/{negotiationId}/discount:
+    post:
+      tags: [Negotiations]
+      summary: Aplică discount la negociere
+      operationId: applyDiscount
+      parameters:
+        - name: negotiationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApplyDiscountRequest'
+      responses:
+        '200':
+          description: Discount aplicat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplyDiscountResponse'
+
+  /negotiations/{negotiationId}/proforma:
+    post:
+      tags: [Negotiations]
+      summary: Generare proforma
+      operationId: generateProforma
+      parameters:
+        - name: negotiationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateProformaRequest'
+      responses:
+        '201':
+          description: Proforma generată
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerateProformaResponse'
+
+  /negotiations/{negotiationId}/invoice:
+    post:
+      tags: [Negotiations]
+      summary: Conversie în factură
+      operationId: convertToInvoice
+      parameters:
+        - name: negotiationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConvertToInvoiceRequest'
+      responses:
+        '201':
+          description: Factură creată
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConvertToInvoiceResponse'
+
+  # ==================== PRICING ====================
+  /pricing/rules:
+    get:
+      tags: [Pricing]
+      summary: Listare reguli de preț
+      operationId: listPricingRules
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [discount, markup, quantity, customer_tier, seasonal]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, inactive, scheduled]
+      responses:
+        '200':
+          description: Lista reguli de preț
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PricingRulesResponse'
+
+    post:
+      tags: [Pricing]
+      summary: Creare regulă de preț
+      operationId: createPricingRule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePricingRuleRequest'
+      responses:
+        '201':
+          description: Regulă creată
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PricingRuleResponse'
+
+  /pricing/calculate:
+    post:
+      tags: [Pricing]
+      summary: Calcul preț cu toate regulile
+      operationId: calculatePrice
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CalculatePriceRequest'
+      responses:
+        '200':
+          description: Preț calculat cu detalii
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CalculatePriceResponse'
+
+  /pricing/thresholds:
+    get:
+      tags: [Pricing]
+      summary: Praguri aprobare discount
+      operationId: getDiscountThresholds
+      responses:
+        '200':
+          description: Praguri discount
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiscountThresholdsResponse'
+
+  # ==================== STOCK ====================
+  /stock:
+    get:
+      tags: [Stock]
+      summary: Status stoc produse
+      operationId: getStockStatus
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [in_stock, low_stock, out_of_stock, reserved]
+        - name: belowReorderPoint
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Status stoc
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StockStatusResponse'
+
+  /stock/{productId}/movements:
+    get:
+      tags: [Stock]
+      summary: Istoric mișcări stoc
+      operationId: getStockMovements
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [in, out, adjustment, reservation, release]
+      responses:
+        '200':
+          description: Istoric mișcări
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StockMovementsResponse'
+
+  /stock/{productId}/adjust:
+    post:
+      tags: [Stock]
+      summary: Ajustare manuală stoc
+      operationId: adjustStock
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdjustStockRequest'
+      responses:
+        '200':
+          description: Stoc ajustat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdjustStockResponse'
+
+  /stock/reserve:
+    post:
+      tags: [Stock]
+      summary: Rezervare stoc pentru negociere
+      operationId: reserveStock
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReserveStockRequest'
+      responses:
+        '201':
+          description: Stoc rezervat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReserveStockResponse'
+
+  /stock/reservations/{reservationId}:
+    delete:
+      tags: [Stock]
+      summary: Eliberare rezervare stoc
+      operationId: releaseStockReservation
+      parameters:
+        - name: reservationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Rezervare eliberată
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReleaseStockResponse'
+
+  # ==================== DOCUMENTS ====================
+  /documents:
+    get:
+      tags: [Documents]
+      summary: Listare documente
+      operationId: listDocuments
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [proforma, invoice, credit_note, receipt]
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: negotiationId
+          in: query
+          schema:
+            type: string
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Lista documente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentListResponse'
+
+    post:
+      tags: [Documents]
+      summary: Creare document manual
+      operationId: createDocument
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDocumentRequest'
+      responses:
+        '201':
+          description: Document creat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateDocumentResponse'
+
+  /documents/{documentId}:
+    get:
+      tags: [Documents]
+      summary: Detalii document complet
+      operationId: getDocument
+      parameters:
+        - name: documentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Detalii document
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentDetailResponse'
+
+  /documents/{documentId}/pdf:
+    get:
+      tags: [Documents]
+      summary: Download document PDF
+      operationId: downloadDocumentPdf
+      parameters:
+        - name: documentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: PDF document
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+
+  /documents/{documentId}/send:
+    post:
+      tags: [Documents]
+      summary: Trimitere document prin email/WhatsApp
+      operationId: sendDocument
+      parameters:
+        - name: documentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendDocumentRequest'
+      responses:
+        '200':
+          description: Document trimis
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SendDocumentResponse'
+
+  /documents/{documentId}/cancel:
+    post:
+      tags: [Documents]
+      summary: Anulare document
+      operationId: cancelDocument
+      parameters:
+        - name: documentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelDocumentRequest'
+      responses:
+        '200':
+          description: Document anulat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CancelDocumentResponse'
+
+  # ==================== AI AGENT ====================
+  /ai/process:
+    post:
+      tags: [AI Agent]
+      summary: Procesare mesaj cu AI Agent
+      operationId: processAiMessage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProcessAIMessageRequest'
+      responses:
+        '200':
+          description: Răspuns AI procesat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProcessAIMessageResponse'
+
+  /ai/context/{negotiationId}:
+    get:
+      tags: [AI Agent]
+      summary: Context AI pentru negociere
+      operationId: getAiContext
+      parameters:
+        - name: negotiationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Context AI complet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIContextResponse'
+
+  /ai/regenerate/{messageId}:
+    post:
+      tags: [AI Agent]
+      summary: Regenerare răspuns AI
+      operationId: regenerateAiResponse
+      parameters:
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegenerateAIRequest'
+      responses:
+        '200':
+          description: Răspuns regenerat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegenerateAIResponse'
+
+  /ai/feedback:
+    post:
+      tags: [AI Agent]
+      summary: Feedback pentru răspuns AI
+      operationId: submitAiFeedback
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AIFeedbackRequest'
+      responses:
+        '201':
+          description: Feedback înregistrat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIFeedbackResponse'
+
+  /ai/guardrails:
+    get:
+      tags: [AI Agent]
+      summary: Configurare guardrails AI
+      operationId: getGuardrails
+      responses:
+        '200':
+          description: Configurare guardrails
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GuardrailConfigResponse'
+
+    put:
+      tags: [AI Agent]
+      summary: Actualizare guardrails
+      operationId: updateGuardrails
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GuardrailUpdateRequest'
+      responses:
+        '200':
+          description: Guardrails actualizate
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GuardrailUpdateResponse'
+
+  /ai/guardrails/test:
+    post:
+      tags: [AI Agent]
+      summary: Test regulă guardrail
+      operationId: testGuardrail
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GuardrailTestRequest'
+      responses:
+        '200':
+          description: Rezultat test
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GuardrailTestResponse'
+
+  /ai/config:
+    get:
+      tags: [AI Agent]
+      summary: Configurare modele AI
+      operationId: getAiConfig
+      responses:
+        '200':
+          description: Configurare AI
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIConfigResponse'
+
+    put:
+      tags: [AI Agent]
+      summary: Actualizare configurare AI
+      operationId: updateAiConfig
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AIConfigUpdateRequest'
+      responses:
+        '200':
+          description: Configurare actualizată
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /ai/templates:
+    get:
+      tags: [AI Agent]
+      summary: Template-uri conversație
+      operationId: getConversationTemplates
+      responses:
+        '200':
+          description: Lista template-uri
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationTemplatesResponse'
+
+    post:
+      tags: [AI Agent]
+      summary: Creare template conversație
+      operationId: createConversationTemplate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TemplateRequest'
+      responses:
+        '201':
+          description: Template creat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplateResponse'
+
+  # ==================== HITL APPROVALS ====================
+  /hitl/approvals:
+    get:
+      tags: [HITL Approvals]
+      summary: Listare aprobări pending
+      operationId: listApprovals
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, approved, rejected, escalated, expired]
+        - name: type
+          in: query
+          schema:
+            $ref: '#/components/schemas/ApprovalType'
+        - name: priority
+          in: query
+          schema:
+            type: string
+            enum: [low, medium, high, critical]
+        - name: slaStatus
+          in: query
+          schema:
+            type: string
+            enum: [ok, warning, breached]
+      responses:
+        '200':
+          description: Lista aprobări
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApprovalListResponse'
+
+  /hitl/approvals/{approvalId}:
+    get:
+      tags: [HITL Approvals]
+      summary: Detalii aprobare
+      operationId: getApproval
+      parameters:
+        - name: approvalId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Detalii aprobare cu context complet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApprovalDetailResponse'
+
+  /hitl/approvals/{approvalId}/approve:
+    post:
+      tags: [HITL Approvals]
+      summary: Aprobare request
+      operationId: approveRequest
+      parameters:
+        - name: approvalId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApproveRequest'
+      responses:
+        '200':
+          description: Request aprobat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApproveResponse'
+
+  /hitl/approvals/{approvalId}/reject:
+    post:
+      tags: [HITL Approvals]
+      summary: Respingere request
+      operationId: rejectRequest
+      parameters:
+        - name: approvalId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RejectRequest'
+      responses:
+        '200':
+          description: Request respins
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RejectResponse'
+
+  /hitl/approvals/{approvalId}/escalate:
+    post:
+      tags: [HITL Approvals]
+      summary: Escaladare request
+      operationId: escalateRequest
+      parameters:
+        - name: approvalId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EscalateRequest'
+      responses:
+        '200':
+          description: Request escaladat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EscalateResponse'
+
+  /hitl/approvals/{approvalId}/reassign:
+    post:
+      tags: [HITL Approvals]
+      summary: Reasignare request
+      operationId: reassignRequest
+      parameters:
+        - name: approvalId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReassignRequest'
+      responses:
+        '200':
+          description: Request reasignat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReassignResponse'
+
+  /hitl/approvals/{approvalId}/comments:
+    post:
+      tags: [HITL Approvals]
+      summary: Adăugare comentariu
+      operationId: addApprovalComment
+      parameters:
+        - name: approvalId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddCommentRequest'
+      responses:
+        '201':
+          description: Comentariu adăugat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentResponse'
+
+  /hitl/approvals/bulk:
+    post:
+      tags: [HITL Approvals]
+      summary: Aprobare/respingere bulk
+      operationId: bulkApproval
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkApprovalRequest'
+      responses:
+        '200':
+          description: Rezultat bulk operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkApprovalResponse'
+
+  /hitl/approvals/stats:
+    get:
+      tags: [HITL Approvals]
+      summary: Statistici aprobări
+      operationId: getApprovalStats
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [today, week, month, quarter, year]
+        - name: userId
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Statistici aprobări
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApprovalStatsResponse'
+
+  # ==================== E-FACTURA & OBLIO ====================
+  /fiscal/efactura/status:
+    get:
+      tags: [E-Factura & Oblio]
+      summary: Status configurare e-Factura
+      operationId: getEfacturaStatus
+      responses:
+        '200':
+          description: Status e-Factura
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EFacturaStatusResponse'
+
+  /fiscal/efactura/submit:
+    post:
+      tags: [E-Factura & Oblio]
+      summary: Trimitere factură la ANAF
+      operationId: submitEfactura
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EFacturaSubmitRequest'
+      responses:
+        '202':
+          description: Factură trimisă pentru procesare
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EFacturaSubmitResponse'
+
+  /fiscal/efactura/submissions/{submissionId}:
+    get:
+      tags: [E-Factura & Oblio]
+      summary: Status trimitere e-Factura
+      operationId: getEfacturaSubmission
+      parameters:
+        - name: submissionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Detalii trimitere
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EFacturaSubmissionDetail'
+
+  /fiscal/efactura/messages:
+    get:
+      tags: [E-Factura & Oblio]
+      summary: Mesaje SPV ANAF
+      operationId: getEfacturaMessages
+      parameters:
+        - name: days
+          in: query
+          schema:
+            type: integer
+            default: 60
+        - name: filter
+          in: query
+          schema:
+            type: string
+            enum: [E, P, R]
+      responses:
+        '200':
+          description: Mesaje SPV
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EFacturaMessagesResponse'
+
+  /fiscal/oblio/sync:
+    post:
+      tags: [E-Factura & Oblio]
+      summary: Sincronizare cu Oblio
+      operationId: syncOblio
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OblioSyncRequest'
+      responses:
+        '202':
+          description: Sincronizare inițiată
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OblioSyncResponse'
+
+  /fiscal/oblio/invoices:
+    post:
+      tags: [E-Factura & Oblio]
+      summary: Creare factură în Oblio
+      operationId: createOblioInvoice
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OblioInvoiceRequest'
+      responses:
+        '201':
+          description: Factură creată
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OblioInvoiceResponse'
+
+  /fiscal/series:
+    get:
+      tags: [E-Factura & Oblio]
+      summary: Serii documente fiscale
+      operationId: getInvoiceSeries
+      responses:
+        '200':
+          description: Lista serii
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoiceSeriesResponse'
+
+  # ==================== ANALYTICS ====================
+  /analytics/dashboard:
+    get:
+      tags: [Analytics]
+      summary: Dashboard overview
+      operationId: getDashboard
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [today, week, month, quarter, year]
+        - name: compareWith
+          in: query
+          schema:
+            type: string
+            enum: [previous_period, same_period_last_year]
+      responses:
+        '200':
+          description: Date dashboard
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardResponse'
+
+  /analytics/sales:
+    get:
+      tags: [Analytics]
+      summary: Raport performanță vânzări
+      operationId: getSalesReport
+      parameters:
+        - name: startDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: groupBy
+          in: query
+          schema:
+            type: string
+            enum: [day, week, month]
+      responses:
+        '200':
+          description: Raport vânzări
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SalesReportResponse'
+
+  /analytics/ai-performance:
+    get:
+      tags: [Analytics]
+      summary: Raport performanță AI
+      operationId: getAiPerformanceReport
+      parameters:
+        - name: startDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Raport AI
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIPerformanceResponse'
+
+  /analytics/hitl:
+    get:
+      tags: [Analytics]
+      summary: Raport performanță HITL
+      operationId: getHitlReport
+      parameters:
+        - name: startDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Raport HITL
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HITLReportResponse'
+
+  /analytics/reports:
+    post:
+      tags: [Analytics]
+      summary: Generare raport custom
+      operationId: generateCustomReport
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomReportRequest'
+      responses:
+        '202':
+          description: Raport în procesare
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomReportResponse'
+
+  /analytics/export:
+    post:
+      tags: [Analytics]
+      summary: Export date
+      operationId: exportData
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DataExportRequest'
+      responses:
+        '202':
+          description: Export inițiat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataExportResponse'
+
+  # ==================== WEBHOOKS ====================
+  /webhooks:
+    get:
+      tags: [Webhooks]
+      summary: Listare subscripții webhook
+      operationId: listWebhooks
+      responses:
+        '200':
+          description: Lista webhooks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookListResponse'
+
+    post:
+      tags: [Webhooks]
+      summary: Creare subscripție webhook
+      operationId: createWebhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWebhookRequest'
+      responses:
+        '201':
+          description: Webhook creat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateWebhookResponse'
+
+  /webhooks/{webhookId}:
+    put:
+      tags: [Webhooks]
+      summary: Actualizare webhook
+      operationId: updateWebhook
+      parameters:
+        - name: webhookId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateWebhookRequest'
+      responses:
+        '200':
+          description: Webhook actualizat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+    delete:
+      tags: [Webhooks]
+      summary: Ștergere webhook
+      operationId: deleteWebhook
+      parameters:
+        - name: webhookId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Webhook șters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /webhooks/{webhookId}/test:
+    post:
+      tags: [Webhooks]
+      summary: Test webhook
+      operationId: testWebhook
+      parameters:
+        - name: webhookId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TestWebhookRequest'
+      responses:
+        '200':
+          description: Rezultat test
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestWebhookResponse'
+
+  /webhooks/{webhookId}/deliveries:
+    get:
+      tags: [Webhooks]
+      summary: Istoric livrări webhook
+      operationId: getWebhookDeliveries
+      parameters:
+        - name: webhookId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [success, failed]
+      responses:
+        '200':
+          description: Istoric livrări
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeliveryHistoryResponse'
+
+  /webhooks/{webhookId}/deliveries/{deliveryId}/retry:
+    post:
+      tags: [Webhooks]
+      summary: Retry livrare eșuată
+      operationId: retryWebhookDelivery
+      parameters:
+        - name: webhookId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: deliveryId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Retry inițiat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RetryDeliveryResponse'
+
+  # ==================== ADMIN ====================
+  /admin/config:
+    get:
+      tags: [Admin]
+      summary: Configurare tenant
+      operationId: getTenantConfig
+      responses:
+        '200':
+          description: Configurare tenant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantConfigResponse'
+
+    put:
+      tags: [Admin]
+      summary: Actualizare configurare tenant
+      operationId: updateTenantConfig
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TenantConfigUpdateRequest'
+      responses:
+        '200':
+          description: Configurare actualizată
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /admin/users:
+    get:
+      tags: [Admin]
+      summary: Listare utilizatori
+      operationId: listUsers
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: role
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, inactive, invited, suspended]
+      responses:
+        '200':
+          description: Lista utilizatori
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserListResponse'
+
+    post:
+      tags: [Admin]
+      summary: Creare utilizator
+      operationId: createUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: Utilizator creat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateUserResponse'
+
+  /admin/users/{userId}:
+    put:
+      tags: [Admin]
+      summary: Actualizare utilizator
+      operationId: updateUser
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: Utilizator actualizat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+    delete:
+      tags: [Admin]
+      summary: Ștergere utilizator
+      operationId: deleteUser
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: transferNegotiationsTo
+          in: query
+          schema:
+            type: string
+        - name: hardDelete
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Utilizator șters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteUserResponse'
+
+  /admin/audit:
+    get:
+      tags: [Admin]
+      summary: Audit log
+      operationId: getAuditLog
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: userId
+          in: query
+          schema:
+            type: string
+        - name: action
+          in: query
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Audit log
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditLogResponse'
+
+  /admin/health:
+    get:
+      tags: [Admin]
+      summary: Health status sistem
+      operationId: getSystemHealth
+      responses:
+        '200':
+          description: Health status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemHealthResponse'
+
+  /rate-limit/status:
+    get:
+      tags: [Admin]
+      summary: Status rate limiting
+      operationId: getRateLimitStatus
+      responses:
+        '200':
+          description: Rate limit status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateLimitStatusResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT Bearer token pentru autentificare
+    apiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API Key pentru integrări M2M
+
+  parameters:
+    PageParam:
+      name: page
+      in: query
+      description: Număr pagină (1-indexed)
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    LimitParam:
+      name: limit
+      in: query
+      description: Număr elemente per pagină
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+  responses:
+    Unauthorized:
+      description: Token lipsă sau invalid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Permisiuni insuficiente
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Resursă negăsită
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ValidationError:
+      description: Eroare validare date
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    TooManyRequests:
+      description: Rate limit depășit
+      headers:
+        X-RateLimit-Limit:
+          schema:
+            type: integer
+        X-RateLimit-Remaining:
+          schema:
+            type: integer
+        X-RateLimit-Reset:
+          schema:
+            type: integer
+        Retry-After:
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    # ==================== COMMON ====================
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: object
+            field:
+              type: string
+            requestId:
+              type: string
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        totalPages:
+          type: integer
+        hasNext:
+          type: boolean
+        hasPrevious:
+          type: boolean
+
+    # ==================== AUTHENTICATION ====================
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+        mfaCode:
+          type: string
+        rememberMe:
+          type: boolean
+
+    LoginResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            user:
+              $ref: '#/components/schemas/UserProfile'
+            tokens:
+              $ref: '#/components/schemas/TokenResponse'
+            requiresMFA:
+              type: boolean
+
+    TokenResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        expiresIn:
+          type: integer
+        tokenType:
+          type: string
+          example: Bearer
+
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        firstName:
+          type: string
+        lastName:
+          type: string
+        role:
+          type: string
+        permissions:
+          type: array
+          items:
+            type: string
+        tenant:
+          type: object
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+
+    ApiKey:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        keyPrefix:
+          type: string
+        permissions:
+          type: array
+          items:
+            type: string
+        lastUsedAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+
+    CreateApiKeyRequest:
+      type: object
+      required: [name, permissions]
+      properties:
+        name:
+          type: string
+        permissions:
+          type: array
+          items:
+            type: string
+        expiresIn:
+          type: integer
+        allowedIps:
+          type: array
+          items:
+            type: string
+
+    CreateApiKeyResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        key:
+          type: string
+          description: Afișat o singură dată la creare
+        expiresAt:
+          type: string
+          format: date-time
+
+    # ==================== PRODUCTS ====================
+    ProductListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/ProductListItem'
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+
+    ProductListItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        sku:
+          type: string
+        name:
+          type: string
+        category:
+          type: string
+        price:
+          type: number
+        vatRate:
+          type: number
+        stock:
+          type: integer
+        status:
+          type: string
+          enum: [active, inactive, discontinued]
+        createdAt:
+          type: string
+          format: date-time
+
+    ProductDetailResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/ProductDetail'
+
+    ProductDetail:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        sku:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: object
+        pricing:
+          type: object
+        stock:
+          type: object
+        specifications:
+          type: object
+        images:
+          type: array
+          items:
+            type: object
+        status:
+          type: string
+          enum: [active, inactive, discontinued]
+        seo:
+          type: object
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateProductRequest:
+      type: object
+      required: [sku, name, basePrice]
+      properties:
+        sku:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        categoryId:
+          type: string
+        basePrice:
+          type: number
+        vatRate:
+          type: number
+        unit:
+          type: string
+        initialStock:
+          type: integer
+        specifications:
+          type: object
+        status:
+          type: string
+          enum: [active, inactive]
+        generateEmbedding:
+          type: boolean
+
+    UpdateProductRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        basePrice:
+          type: number
+        status:
+          type: string
+          enum: [active, inactive, discontinued]
+        regenerateEmbedding:
+          type: boolean
+
+    ProductResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/ProductDetail'
+
+    ImportResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            importId:
+              type: string
+            status:
+              type: string
+
+    SearchProductsRequest:
+      type: object
+      required: [query]
+      properties:
+        query:
+          type: string
+        limit:
+          type: integer
+          default: 10
+        threshold:
+          type: number
+          default: 0.7
+        filters:
+          type: object
+        ragOptions:
+          type: object
+
+    SearchProductsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            results:
+              type: array
+              items:
+                type: object
+            processingTime:
+              type: integer
+
+    ExportResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            exportId:
+              type: string
+            status:
+              type: string
+            downloadUrl:
+              type: string
+
+    # ==================== NEGOTIATIONS ====================
+    NegotiationState:
+      type: string
+      enum:
+        - draft
+        - qualifying
+        - negotiating
+        - proposal_sent
+        - pending_approval
+        - approved
+        - invoiced
+        - paid
+        - completed
+        - lost
+        - cancelled
+        - on_hold
+
+    NegotiationListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/NegotiationListItem'
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+
+    NegotiationListItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        reference:
+          type: string
+        contact:
+          type: object
+        state:
+          $ref: '#/components/schemas/NegotiationState'
+        totalValue:
+          type: number
+        currency:
+          type: string
+        channel:
+          type: string
+          enum: [whatsapp, email, web, phone]
+        aiHandled:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    NegotiationDetailResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/NegotiationDetail'
+
+    NegotiationDetail:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        reference:
+          type: string
+        contact:
+          type: object
+        state:
+          $ref: '#/components/schemas/NegotiationState'
+        stateHistory:
+          type: array
+          items:
+            type: object
+        allowedTransitions:
+          type: array
+          items:
+            $ref: '#/components/schemas/NegotiationState'
+        items:
+          type: array
+          items:
+            type: object
+        pricing:
+          type: object
+        terms:
+          type: object
+        documents:
+          type: object
+        approvals:
+          type: array
+          items:
+            type: object
+        conversation:
+          type: object
+        ai:
+          type: object
+        createdAt:
+          type: string
+          format: date-time
+
+    CreateNegotiationRequest:
+      type: object
+      required: [contactId, items]
+      properties:
+        contactId:
+          type: string
+        items:
+          type: array
+          items:
+            type: object
+        terms:
+          type: object
+        channel:
+          type: string
+          enum: [whatsapp, email, web, phone]
+        enableAI:
+          type: boolean
+          default: true
+
+    CreateNegotiationResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+            reference:
+              type: string
+            state:
+              $ref: '#/components/schemas/NegotiationState'
+            totalValue:
+              type: number
+
+    UpdateNegotiationRequest:
+      type: object
+      properties:
+        items:
+          type: object
+        terms:
+          type: object
+        assignedTo:
+          type: string
+
+    UpdateNegotiationResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+            state:
+              $ref: '#/components/schemas/NegotiationState'
+            totalValue:
+              type: number
+            changes:
+              type: array
+              items:
+                type: object
+
+    TransitionNegotiationRequest:
+      type: object
+      required: [targetState]
+      properties:
+        targetState:
+          $ref: '#/components/schemas/NegotiationState'
+        reason:
+          type: string
+        data:
+          type: object
+
+    TransitionNegotiationResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+            previousState:
+              $ref: '#/components/schemas/NegotiationState'
+            currentState:
+              $ref: '#/components/schemas/NegotiationState'
+            sideEffects:
+              type: array
+              items:
+                type: object
+
+    ConversationResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                type: object
+            cursor:
+              type: string
+            hasMore:
+              type: boolean
+
+    SendMessageRequest:
+      type: object
+      required: [type]
+      properties:
+        type:
+          type: string
+          enum: [text, template, document]
+        text:
+          type: string
+        channel:
+          type: string
+          enum: [whatsapp, email]
+        useAI:
+          type: boolean
+
+    SendMessageResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+            status:
+              type: string
+
+    ApplyDiscountRequest:
+      type: object
+      required: [type, value, reason]
+      properties:
+        type:
+          type: string
+          enum: [percent, amount]
+        value:
+          type: number
+        scope:
+          type: string
+          enum: [all, items]
+        reason:
+          type: string
+
+    ApplyDiscountResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            discountApplied:
+              type: number
+            newTotal:
+              type: number
+            approvalRequired:
+              type: boolean
+
+    GenerateProformaRequest:
+      type: object
+      properties:
+        billingDetails:
+          type: object
+        notes:
+          type: string
+        sendImmediately:
+          type: boolean
+
+    GenerateProformaResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+            number:
+              type: string
+            pdfUrl:
+              type: string
+
+    ConvertToInvoiceRequest:
+      type: object
+      properties:
+        useOblio:
+          type: boolean
+          default: true
+        submitToSPV:
+          type: boolean
+          default: true
+
+    ConvertToInvoiceResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+            number:
+              type: string
+            oblioId:
+              type: string
+            pdfUrl:
+              type: string
+
+    # ==================== PRICING ====================
+    PricingRulesResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                type: object
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+
+    CreatePricingRuleRequest:
+      type: object
+      required: [name, type, conditions, action, scope]
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+          enum: [discount, markup, quantity, customer_tier, seasonal]
+        conditions:
+          type: array
+          items:
+            type: object
+        action:
+          type: object
+        scope:
+          type: object
+        status:
+          type: string
+
+    PricingRuleResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+
+    CalculatePriceRequest:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+        customerId:
+          type: string
+        customerTier:
+          type: string
+          enum: [bronze, silver, gold]
+
+    CalculatePriceResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                type: object
+            summary:
+              type: object
+            approvalRequired:
+              type: boolean
+
+    DiscountThresholdsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            global:
+              type: object
+            byCategory:
+              type: array
+              items:
+                type: object
+            byCustomerTier:
+              type: array
+              items:
+                type: object
+
+    # ==================== STOCK ====================
+    StockStatusResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                type: object
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+
+    StockMovementsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                type: object
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+
+    AdjustStockRequest:
+      type: object
+      required: [type, quantity, reason]
+      properties:
+        type:
+          type: string
+          enum: [set, add, subtract]
+        quantity:
+          type: integer
+        reason:
+          type: string
+
+    AdjustStockResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            previousStock:
+              type: integer
+            newStock:
+              type: integer
+            movementId:
+              type: string
+
+    ReserveStockRequest:
+      type: object
+      required: [negotiationId, items]
+      properties:
+        negotiationId:
+          type: string
+        items:
+          type: array
+          items:
+            type: object
+        expiresIn:
+          type: integer
+          default: 60
+
+    ReserveStockResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            reservationId:
+              type: string
+            expiresAt:
+              type: string
+              format: date-time
+
+    ReleaseStockResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            reservationId:
+              type: string
+
+    # ==================== DOCUMENTS ====================
+    DocumentListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                type: object
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+
+    DocumentDetailResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+
+    CreateDocumentRequest:
+      type: object
+      required: [type]
+      properties:
+        type:
+          type: string
+          enum: [proforma, invoice, credit_note, receipt]
+        negotiationId:
+          type: string
+        client:
+          type: object
+        items:
+          type: array
+          items:
+            type: object
+        syncToOblio:
+          type: boolean
+        submitToSPV:
+          type: boolean
+
+    CreateDocumentResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+            number:
+              type: string
+            pdfUrl:
+              type: string
+
+    SendDocumentRequest:
+      type: object
+      required: [channel]
+      properties:
+        channel:
+          type: string
+          enum: [email, whatsapp]
+        recipient:
+          type: object
+        scheduleAt:
+          type: string
+          format: date-time
+
+    SendDocumentResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+            status:
+              type: string
+
+    CancelDocumentRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason:
+          type: string
+        createCreditNote:
+          type: boolean
+        cancelInSPV:
+          type: boolean
+
+    CancelDocumentResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+            status:
+              type: string
+
+    # ==================== AI AGENT ====================
+    ProcessAIMessageRequest:
+      type: object
+      required: [negotiationId, message]
+      properties:
+        negotiationId:
+          type: string
+        message:
+          type: object
+        context:
+          type: object
+        options:
+          type: object
+
+    ProcessAIMessageResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            messageId:
+              type: string
+            analysis:
+              type: object
+            response:
+              type: object
+            actions:
+              type: array
+              items:
+                type: object
+            status:
+              type: string
+            metrics:
+              type: object
+
+    AIContextResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+
+    RegenerateAIRequest:
+      type: object
+      properties:
+        instructions:
+          type: string
+        model:
+          type: string
+
+    RegenerateAIResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+
+    AIFeedbackRequest:
+      type: object
+      required: [messageId, rating, feedbackType, feedback]
+      properties:
+        messageId:
+          type: string
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        feedbackType:
+          type: string
+        feedback:
+          type: string
+
+    AIFeedbackResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+            status:
+              type: string
+
+    GuardrailConfigResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+
+    GuardrailUpdateRequest:
+      type: object
+      properties:
+        profile:
+          type: string
+        rules:
+          type: array
+          items:
+            type: object
+        thresholds:
+          type: object
+
+    GuardrailUpdateResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            updated:
+              type: boolean
+
+    GuardrailTestRequest:
+      type: object
+      required: [testInput]
+      properties:
+        ruleId:
+          type: string
+        rule:
+          type: object
+        testInput:
+          type: object
+
+    GuardrailTestResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            triggered:
+              type: boolean
+            matchDetails:
+              type: array
+              items:
+                type: object
+
+    AIConfigResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+
+    AIConfigUpdateRequest:
+      type: object
+      properties:
+        defaultModel:
+          type: string
+        models:
+          type: array
+          items:
+            type: object
+
+    ConversationTemplatesResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            templates:
+              type: array
+              items:
+                type: object
+
+    TemplateRequest:
+      type: object
+      required: [name, category, content]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        content:
+          type: string
+        isActive:
+          type: boolean
+
+    TemplateResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+
+    # ==================== HITL APPROVALS ====================
+    ApprovalType:
+      type: string
+      enum:
+        - discount_approval
+        - ai_response_review
+        - document_approval
+        - pricing_override
+        - stock_exception
+        - efactura_submission
+        - handover_escalation
+        - guardrail_violation
+
+    ApprovalListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                type: object
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+            summary:
+              type: object
+
+    ApprovalDetailResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+
+    ApproveRequest:
+      type: object
+      properties:
+        notes:
+          type: string
+        approvedDiscount:
+          type: number
+        modifiedResponse:
+          type: string
+
+    ApproveResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+            status:
+              type: string
+            actionsTriggered:
+              type: array
+              items:
+                type: object
+
+    RejectRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason:
+          type: string
+        suggestAlternative:
+          type: boolean
+        alternativeValue:
+          type: number
+
+    RejectResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+            status:
+              type: string
+            reason:
+              type: string
+
+    EscalateRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason:
+          type: string
+        targetAssignee:
+          type: string
+        priority:
+          type: string
+          enum: [high, critical]
+
+    EscalateResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+            status:
+              type: string
+            escalationLevel:
+              type: integer
+
+    ReassignRequest:
+      type: object
+      required: [assignToUserId]
+      properties:
+        assignToUserId:
+          type: string
+        reason:
+          type: string
+        resetSla:
+          type: boolean
+
+    ReassignResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+            newAssignee:
+              type: object
+            slaDeadline:
+              type: string
+              format: date-time
+
+    AddCommentRequest:
+      type: object
+      required: [content]
+      properties:
+        content:
+          type: string
+        mentions:
+          type: array
+          items:
+            type: string
+        isInternal:
+          type: boolean
+
+    CommentResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+            content:
+              type: string
+            author:
+              type: object
+
+    BulkApprovalRequest:
+      type: object
+      required: [action, approvalIds]
+      properties:
+        action:
+          type: string
+          enum: [approve, reject]
+        approvalIds:
+          type: array
+          items:
+            type: string
+        notes:
+          type: string
+        reason:
+          type: string
+
+    BulkApprovalResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            processed:
+              type: integer
+            succeeded:
+              type: integer
+            failed:
+              type: integer
+
+    ApprovalStatsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            period:
+              type: object
+            overview:
+              type: object
+            slaMetrics:
+              type: object
+
+    # ==================== E-FACTURA & OBLIO ====================
+    EFacturaStatusResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            configured:
+              type: boolean
+            testMode:
+              type: boolean
+            certificate:
+              type: object
+            spvConnection:
+              type: object
+
+    EFacturaSubmitRequest:
+      type: object
+      required: [documentId]
+      properties:
+        documentId:
+          type: string
+        forceProduction:
+          type: boolean
+        retryOnError:
+          type: boolean
+
+    EFacturaSubmitResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            submissionId:
+              type: string
+            status:
+              type: string
+            spvResponse:
+              type: object
+
+    EFacturaSubmissionDetail:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            submissionId:
+              type: string
+            status:
+              type: string
+            timeline:
+              type: array
+              items:
+                type: object
+
+    EFacturaMessagesResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            messages:
+              type: array
+              items:
+                type: object
+            lastSync:
+              type: string
+              format: date-time
+
+    OblioSyncRequest:
+      type: object
+      required: [syncType, entities]
+      properties:
+        syncType:
+          type: string
+          enum: [full, incremental]
+        entities:
+          type: array
+          items:
+            type: string
+        fromDate:
+          type: string
+          format: date
+        conflictResolution:
+          type: string
+          enum: [local_wins, oblio_wins, manual]
+
+    OblioSyncResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            syncId:
+              type: string
+            status:
+              type: string
+            results:
+              type: array
+              items:
+                type: object
+
+    OblioInvoiceRequest:
+      type: object
+      required: [client, products]
+      properties:
+        sourceDocumentId:
+          type: string
+        client:
+          type: object
+        products:
+          type: array
+          items:
+            type: object
+        submitToEfactura:
+          type: boolean
+
+    OblioInvoiceResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            oblioId:
+              type: string
+            number:
+              type: string
+            link:
+              type: string
+            pdfUrl:
+              type: string
+
+    InvoiceSeriesResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            series:
+              type: array
+              items:
+                type: object
+
+    # ==================== ANALYTICS ====================
+    DashboardResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            period:
+              type: object
+            kpis:
+              type: object
+            charts:
+              type: object
+            recentActivity:
+              type: array
+              items:
+                type: object
+
+    SalesReportResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            summary:
+              type: object
+            byPeriod:
+              type: array
+              items:
+                type: object
+
+    AIPerformanceResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            overview:
+              type: object
+            byModel:
+              type: array
+              items:
+                type: object
+
+    HITLReportResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            overview:
+              type: object
+            byType:
+              type: array
+              items:
+                type: object
+            slaTrend:
+              type: array
+              items:
+                type: object
+
+    CustomReportRequest:
+      type: object
+      required: [name, type, dateRange, metrics, dimensions, format]
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+          enum: [sales, ai, hitl, products, custom]
+        dateRange:
+          type: object
+        metrics:
+          type: array
+          items:
+            type: string
+        dimensions:
+          type: array
+          items:
+            type: string
+        filters:
+          type: array
+          items:
+            type: object
+        format:
+          type: string
+          enum: [json, csv, xlsx, pdf]
+
+    CustomReportResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            reportId:
+              type: string
+            status:
+              type: string
+            downloadUrl:
+              type: string
+
+    DataExportRequest:
+      type: object
+      required: [entity, dateRange, format]
+      properties:
+        entity:
+          type: string
+          enum: [negotiations, documents, conversations, approvals, ai_messages]
+        dateRange:
+          type: object
+        format:
+          type: string
+          enum: [csv, xlsx, json]
+        async:
+          type: boolean
+
+    DataExportResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            exportId:
+              type: string
+            status:
+              type: string
+            downloadUrl:
+              type: string
+
+    # ==================== WEBHOOKS ====================
+    WebhookListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            webhooks:
+              type: array
+              items:
+                type: object
+
+    CreateWebhookRequest:
+      type: object
+      required: [name, url, events]
+      properties:
+        name:
+          type: string
+        url:
+          type: string
+          format: uri
+        events:
+          type: array
+          items:
+            type: string
+        authentication:
+          type: object
+        retryPolicy:
+          type: object
+
+    CreateWebhookResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+            secret:
+              type: string
+            status:
+              type: string
+
+    UpdateWebhookRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        url:
+          type: string
+        events:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum: [active, paused]
+
+    TestWebhookRequest:
+      type: object
+      required: [eventType]
+      properties:
+        eventType:
+          type: string
+        mockPayload:
+          type: object
+
+    TestWebhookResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            delivered:
+              type: boolean
+            request:
+              type: object
+            response:
+              type: object
+
+    DeliveryHistoryResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            deliveries:
+              type: array
+              items:
+                type: object
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+
+    RetryDeliveryResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            retried:
+              type: boolean
+            newDeliveryId:
+              type: string
+            status:
+              type: string
+
+    # ==================== ADMIN ====================
+    TenantConfigResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            tenant:
+              type: object
+            features:
+              type: array
+              items:
+                type: object
+            integrations:
+              type: array
+              items:
+                type: object
+            limits:
+              type: object
+
+    TenantConfigUpdateRequest:
+      type: object
+      properties:
+        branding:
+          type: object
+        regional:
+          type: object
+        defaults:
+          type: object
+        notifications:
+          type: object
+        security:
+          type: object
+
+    UserListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            users:
+              type: array
+              items:
+                type: object
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+
+    CreateUserRequest:
+      type: object
+      required: [email, firstName, lastName, role]
+      properties:
+        email:
+          type: string
+          format: email
+        firstName:
+          type: string
+        lastName:
+          type: string
+        role:
+          type: string
+          enum: [admin, sales_manager, sales_rep, viewer]
+        sendInvite:
+          type: boolean
+
+    CreateUserResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+            email:
+              type: string
+            role:
+              type: string
+            status:
+              type: string
+            inviteLink:
+              type: string
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        role:
+          type: string
+        permissions:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum: [active, suspended]
+
+    DeleteUserResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            deleted:
+              type: boolean
+            transferredItems:
+              type: array
+              items:
+                type: object
+
+    AuditLogResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            entries:
+              type: array
+              items:
+                type: object
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+
+    SystemHealthResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            status:
+              type: string
+              enum: [healthy, degraded, unhealthy]
+            services:
+              type: array
+              items:
+                type: object
+            database:
+              type: object
+            redis:
+              type: object
+            queues:
+              type: array
+              items:
+                type: object
+            storage:
+              type: object
+            uptime:
+              type: integer
+            version:
+              type: string
+
+    RateLimitStatusResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            tenant:
+              type: object
+            current:
+              type: object
+            byEndpoint:
+              type: array
+              items:
+                type: object

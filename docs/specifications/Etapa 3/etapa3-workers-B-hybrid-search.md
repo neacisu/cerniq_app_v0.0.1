@@ -1,11 +1,13 @@
 # Etapa 3 - Workers Categoria B: Hybrid Search
 ## Căutare Semantică + Lexicală cu RRF Fusion
 
-**Versiune:** 1.0  
-**Data:** Ianuarie 2026  
+**Versiune:** 2.0  
+**Data:** 01 Februarie 2026  
 **Categoria:** B - Hybrid Search (RAG)  
 **Workers:** 3  
-**Criticalitate:** Nu (dar critical pentru UX)
+**Criticalitate:** Nu (dar critical pentru UX)  
+**Sprint Plan:** E3.S2.PR5, E3.S2.PR6 (vezi [etapa3-sprint-plan.md](etapa3-sprint-plan.md))  
+**Phase:** F3.3 Hybrid Search RAG
 
 ---
 

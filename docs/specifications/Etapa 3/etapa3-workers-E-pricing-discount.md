@@ -1,9 +1,11 @@
 # Etapa 3 - Workers Categoria E: Pricing & Discount (Guardrails)
 
-**Document Version:** 1.0.0  
-**Last Updated:** 2026-01-18  
+**Document Version:** 2.0.0  
+**Last Updated:** 2026-02-01  
 **Author:** Cerniq Development Team  
-**Status:** Technical Specification
+**Status:** Technical Specification  
+**Sprint Plan:** E3.S5.PR17, E3.S5.PR18, E3.S5.PR19, E3.S5.PR20 (vezi [etapa3-sprint-plan.md](etapa3-sprint-plan.md))  
+**Phase:** F3.6 Pricing & Discount
 
 ---
 

@@ -2,7 +2,7 @@
 
 ## AI Sales Agent Neuro-Simbolic - Documentație Completă
 
-### Versiunea 2.0 | 19 Ianuarie 2026
+### Versiunea 3.0 | 01 Februarie 2026
 
 ---
 
@@ -19,19 +19,25 @@
 ## STATISTICI DOCUMENTAȚIE
 
 ```yaml
-total_documents: 39
-total_lines: ~180,000+
-total_tasks: 99
+total_documents: 40
+total_lines: ~185,000+
+total_tasks: 214
+
+sprint_plan:
+  total_sprints: 12
+  total_prs: 48
+  numbering_format: "E3.S{sprint}.PR{pr}.{task}"
+  plan_document: "etapa3-sprint-plan.md"
 
 documentation_categories:
   architecture_decisions: 2
   database_schemas: 4
   workers: 16
-  api_backend: 2
+  api_backend: 3
   frontend_uiux: 5
   operations: 4
   testing: 1
-  implementation_plan: 1
+  implementation_plan: 2
   standards: 3
 ```
 
@@ -78,13 +84,20 @@ documentation_categories:
 
 ### 4. API & BACKEND
 
-| #   | Document                  | Descriere                 | Linii   | Status  |
-| --- | ------------------------- | ------------------------- | ------- | ------- |
-| 23  | `etapa3-api-endpoints.md` | Documentație API completă | ~2,800  | ✅      |
-| 24  | `etapa3-hitl-system.md`   | Sistem HITL complet       | ~16,000 | ✅      |
-| 25  | `../../api/openapi-etapa3.yaml` | OpenAPI Etapa 3      | ~20    | ✅      |
+| #   | Document                        | Descriere                     | Linii   | Status  |
+| --- | ------------------------------- | ----------------------------- | ------- | ------- |
+| 23  | `etapa3-api-endpoints.md`       | Documentație API completă     | ~5,400  | ✅      |
+| 24  | `etapa3-hitl-system.md`         | Sistem HITL complet           | ~16,000 | ✅      |
+| 25  | `../../api/openapi-etapa3.yaml` | OpenAPI 3.1 Spec (60+ paths)  | ~3,200  | ✅      |
 
-### 5. FRONTEND UI/UX
+### 5. SPRINT PLAN & IMPLEMENTATION
+
+| #   | Document                      | Descriere                         | Linii  | Status  |
+| --- | ----------------------------- | --------------------------------- | ------ | ------- |
+| 39  | `etapa3-sprint-plan.md`       | 12 Sprints, 48 PRs, 214 Tasks     | ~1,200 | ✅      |
+| 40  | `etapa3-plan-implementare.md` | Plan original 99 task-uri (legacy)| ~2,000 | ✅      |
+
+### 6. FRONTEND UI/UX
 
 | #   | Document                         | Descriere                      | Linii   | Status  |
 | --- | -------------------------------- | ------------------------------ | ------- | ------- |
@@ -94,7 +107,7 @@ documentation_categories:
 | 29  | `etapa3-ui-tables.md`            | DataTables și liste            | ~10,000 | ✅      |
 | 30  | `etapa3-ui-charts-navigation.md` | Grafice și navigație           | ~1,500  | ✅      |
 
-### 6. STANDARDS & PROCEDURES
+### 7. STANDARDS & PROCEDURES
 
 | #   | Document                         | Descriere                  | Linii  | Status  |
 | --- | -------------------------------- | -------------------------- | ------ | ------- |
@@ -102,7 +115,7 @@ documentation_categories:
 | 32  | `etapa3-standards-procedures.md` | Proceduri operaționale     | ~1,200 | ✅      |
 | 33  | `etapa3-environment-variables.md`| Environment variables      | ~200   | ✅      |
 
-### 7. OPERATIONS & MONITORING
+### 8. OPERATIONS & MONITORING
 
 | #   | Document                             | Descriere                   | Linii  | Status  |
 | --- | ------------------------------------ | --------------------------- | ------ | ------- |
@@ -110,45 +123,110 @@ documentation_categories:
 | 35  | `etapa3-runbook-operational.md`      | Runbook operațional         | ~2,400 | ✅      |
 | 36  | `etapa3-runbook-monitoring.md`       | Runbook monitoring          | ~1,200 | ✅      |
 
-### 8. TESTING
+### 9. TESTING
 
 | #   | Document                     | Descriere              | Linii  | Status  |
 | --- | ---------------------------- | ---------------------- | ------ | ------- |
 | 37  | `etapa3-testing-strategy.md` | Vitest, Playwright, k6 | ~1,200 | ✅      |
 
-### 9. IMPLEMENTATION PLAN
+### 10. IMPLEMENTATION PLAN & SPRINT PLAN
 
-| #   | Document                      | Descriere                 | Linii  | Status  |
-| --- | ----------------------------- | ------------------------- | ------ | ------- |
-| 38  | `etapa3-plan-implementare.md` | Plan detaliat 99 task-uri | ~2,000 | ✅      |
+| #   | Document                      | Descriere                         | Linii  | Status  |
+| --- | ----------------------------- | --------------------------------- | ------ | ------- |
+| 38  | `etapa3-plan-implementare.md` | Plan original 99 task-uri (legacy)| ~2,000 | ✅      |
+| 39  | `etapa3-sprint-plan.md`       | 12 Sprints, 48 PRs, 214 Tasks     | ~1,200 | ✅      |
 
 ---
 
-## SUMAR TASK-URI (99 TOTAL)
+## SUMAR TASK-URI (214 TOTAL)
 
 ```yaml
-tasks_by_section:
-  F3.1_Database_Schema: 1          # Task #1
-  F3.2_Product_Knowledge: 6        # Tasks #2-7
-  F3.3_Hybrid_Search_RAG: 5        # Tasks #8-12
-  F3.4_AI_Orchestration: 5         # Tasks #13-17
-  F3.5_Negotiation_FSM: 7          # Tasks #18-24
-  F3.6_Pricing_Discount: 5         # Tasks #25-29
-  F3.7_Stock_Inventory: 3          # Tasks #30-32
-  F3.8_Oblio_Integration: 3        # Tasks #33-35
-  F3.9_eFacura_SPV: 3              # Tasks #36-38
-  F3.10_Document_Generation: 4     # Tasks #39-42
-  F3.11_Handover_Channel: 4        # Tasks #43-46
-  F3.12_Intent_Detection: 2        # Tasks #47-48
-  F3.13_MCP_Server: 2              # Tasks #49-50
-  F3.14_Guardrails: 3              # Tasks #51-53
-  F3.15_HITL_System: 3             # Tasks #54-56
-  F3.16_Frontend_UIUX: 20          # Tasks #57-76
-  F3.17_Testing_QA: 6              # Tasks #77-82
-  F3.18_Integration_Deployment: 8  # Tasks #83-90
-  F3.19_Summary_Metrics: 9         # Tasks #91-99
+# Plan detaliat în: etapa3-sprint-plan.md
+# Format numerotare: E3.S{sprint}.PR{pr}.{task}
 
-total_tasks: 99
+tasks_by_phase:
+  Phase_1_Foundation:
+    F3.1_Database_Schema: 6         # E3.S1.PR1-2
+    F3.2_Product_Knowledge: 12      # E3.S1.PR3-4
+    F3.3_Hybrid_Search_RAG: 12      # E3.S2.PR5-6
+    subtotal: 30
+    
+  Phase_2_AI_Core:
+    F3.4_AI_Orchestration: 16       # E3.S3.PR9-12
+    F3.5_Negotiation_FSM: 20        # E3.S4.PR13-16
+    subtotal: 36
+    
+  Phase_3_Business_Logic:
+    F3.6_Pricing_Discount: 16       # E3.S5.PR17-20
+    F3.7_Stock_Inventory: 12        # E3.S5.PR21-22
+    F3.8_Oblio_Integration: 12      # E3.S6.PR23-24
+    F3.9_eFacura_SPV: 8             # E3.S6.PR25-26
+    F3.10_Document_Generation: 12   # E3.S7.PR27-28
+    subtotal: 60
+    
+  Phase_4_Safety_Channels:
+    F3.11_Handover_Channel: 12      # E3.S7.PR29-30
+    F3.12_Intent_Detection: 8       # E3.S8.PR31-32
+    F3.13_MCP_Server: 8             # E3.S8.PR33-34
+    F3.14_Guardrails: 12            # E3.S9.PR35-36
+    F3.15_HITL_System: 12           # E3.S9.PR37-38
+    subtotal: 52
+    
+  Phase_5_Frontend:
+    F3.16_Frontend_UIUX: 20         # E3.S10.PR39-42
+    subtotal: 20
+    
+  Phase_6_Quality:
+    F3.17_Testing_QA: 8             # E3.S11.PR43-44
+    F3.18_Integration_Deployment: 8 # E3.S12.PR45-48
+    subtotal: 16
+
+sprint_summary:
+  E3.S1: 18 tasks (4 PRs)
+  E3.S2: 12 tasks (2 PRs + 2 optional)
+  E3.S3: 16 tasks (4 PRs)
+  E3.S4: 20 tasks (4 PRs)
+  E3.S5: 28 tasks (6 PRs)
+  E3.S6: 20 tasks (4 PRs)
+  E3.S7: 24 tasks (4 PRs)
+  E3.S8: 16 tasks (4 PRs)
+  E3.S9: 24 tasks (4 PRs)
+  E3.S10: 20 tasks (4 PRs)
+  E3.S11: 8 tasks (2 PRs)
+  E3.S12: 8 tasks (4 PRs)
+
+total_tasks: 214
+total_prs: 48
+total_sprints: 12
+```
+
+---
+
+## LEGACY TASK MAPPING (99 → 214)
+
+```yaml
+# Mapare originală pentru referință istorică
+legacy_mapping:
+  F3.1_Database_Schema: "1 → 6 tasks"
+  F3.2_Product_Knowledge: "6 → 12 tasks"
+  F3.3_Hybrid_Search_RAG: "5 → 12 tasks"
+  F3.4_AI_Orchestration: "5 → 16 tasks"
+  F3.5_Negotiation_FSM: "7 → 20 tasks"
+  F3.6_Pricing_Discount: "5 → 16 tasks"
+  F3.7_Stock_Inventory: "3 → 12 tasks"
+  F3.8_Oblio_Integration: "3 → 12 tasks"
+  F3.9_eFacura_SPV: "3 → 8 tasks"
+  F3.10_Document_Generation: "4 → 12 tasks"
+  F3.11_Handover_Channel: "4 → 12 tasks"
+  F3.12_Intent_Detection: "2 → 8 tasks"
+  F3.13_MCP_Server: "2 → 8 tasks"
+  F3.14_Guardrails: "3 → 12 tasks"
+  F3.15_HITL_System: "3 → 12 tasks"
+  F3.16_Frontend_UIUX: "20 → 20 tasks"
+  F3.17_Testing_QA: "6 → 8 tasks"
+  F3.18_Integration_Deployment: "8 → 8 tasks"
+  
+expansion_reason: "Granularitate crescută pentru PR-uri incrementale de ~200-400 LOC"
 ```
 
 ---
@@ -278,17 +356,19 @@ etapa2_integration:
 
 ## CHANGELOG
 
-| Versiune | Data       | Modificări                                      |
-| -------- | ---------- | ----------------------------------------------- |
-| 2.0      | 2026-01-19 | Documentație completă - toate cele 37 documente |
-| 1.0      | 2026-01-18 | Versiune inițială                               |
+| Versiune | Data       | Modificări                                       |
+| -------- | ---------- | ------------------------------------------------ |
+| 3.0      | 2026-02-01 | Sprint plan 214 tasks, OpenAPI complet, aliniere |
+| 2.0      | 2026-01-19 | Documentație completă - toate cele 37 documente  |
+| 1.0      | 2026-01-18 | Versiune inițială                                |
 
 ---
 
-**Document generat**: 2026-01-19  
+**Document generat**: 2026-02-01  
 **Proiect**: Cerniq App - Etapa 3 AI Sales Agent  
 **Status**: COMPLET ✅  
-**Total linii documentație**: ~180,000+  
+**Total linii documentație**: ~185,000+  
+**Total task-uri**: 214 (în 48 PRs, 12 Sprints)
 
 ---
 

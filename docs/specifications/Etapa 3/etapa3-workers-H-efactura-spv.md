@@ -1,11 +1,13 @@
 # Etapa 3 - Workers Category H: e-Factura SPV Integration
 
-> **Document Version**: 1.0.0
-> **Last Updated**: 2026-01-18
+> **Document Version**: 2.0.0
+> **Last Updated**: 2026-02-01
 > **Author**: Cerniq Development Team
 > **Status**: Complete Specification
 > **Category**: H - ANAF e-Factura Integration
 > **Workers Count**: 3
+> **Sprint Plan**: E3.S6.PR25, E3.S6.PR26 (vezi [etapa3-sprint-plan.md](etapa3-sprint-plan.md))
+> **Phase**: F3.9 e-Factura SPV
 
 ---
 

@@ -1,10 +1,12 @@
 # Etapa 3 - Workers Categoria C: AI Agent Core
 ## Cerniq.app - AI Sales Agent Neuro-Simbolic
 
-**Versiune Document:** 1.0  
-**Data:** Ianuarie 2026  
+**Versiune Document:** 2.0  
+**Data:** 01 Februarie 2026  
 **Categorie Workers:** C - AI Agent Core (4 workeri)  
-**Referință:** `cerniq-workers-etapa3-ai-sales-agent.md` secțiunea 6
+**Referință:** `cerniq-workers-etapa3-ai-sales-agent.md` secțiunea 6  
+**Sprint Plan:** E3.S3.PR9, E3.S3.PR10, E3.S3.PR11, E3.S3.PR12 (vezi [etapa3-sprint-plan.md](etapa3-sprint-plan.md))  
+**Phase:** F3.4 AI Orchestration
 
 ---
 

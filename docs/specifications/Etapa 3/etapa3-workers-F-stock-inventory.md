@@ -4,13 +4,15 @@
 | Metadata | Value |
 |----------|-------|
 | Document ID | CERNIQ-E3-WORKERS-F |
-| Version | 1.0.0 |
+| Version | 2.0.0 |
 | Status | NORMATIV |
 | Parent | etapa3-workers-overview.md |
 | Dependencies | etapa3-schema-products.md, etapa3-schema-negotiations.md |
 | Author | System Architect |
 | Created | 2026-01-18 |
-| Last Updated | 2026-01-18 |
+| Last Updated | 2026-02-01 |
+| Sprint Plan | E3.S5.PR21, E3.S5.PR22 (vezi [etapa3-sprint-plan.md](etapa3-sprint-plan.md)) |
+| Phase | F3.7 Stock & Inventory |
 
 ---
 

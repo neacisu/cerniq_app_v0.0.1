@@ -4,7 +4,7 @@
 
 **Locație:** `docs/diagrams/`  
 **Format:** Draw.io (`.drawio`)  
-**Actualizat:** 20 Ianuarie 2026
+**Actualizat:** 01 Februarie 2026
 
 ---
 
@@ -129,13 +129,13 @@ done
 | c4-containers | 2026-01-15 | - | ✅ Current |
 | c4-components-etapa1 | 2026-01-15 | - | ✅ Current |
 | c4-components-etapa2 | 2026-02-01 | - | 🟡 Draft |
-| c4-components-etapa3 | 2026-02-01 | - | 🟡 Draft |
+| c4-components-etapa3 | 2026-02-01 | - | ✅ Aliniat cu etapa3-sprint-plan.md |
 | c4-components-etapa4 | 2026-02-01 | - | 🟡 Draft |
 | c4-components-etapa5 | 2026-02-01 | - | 🟡 Draft |
 | data-flow-medallion | 2026-01-15 | - | ✅ Current |
 | deployment-infrastructure | 2026-01-15 | - | ✅ Current |
 | geospatial-nurturing | 2026-01-15 | - | ✅ Current |
-| runtime-ai-negotiation | 2026-01-15 | - | ✅ Current |
+| runtime-ai-negotiation | 2026-02-01 | - | ✅ Current (Etapa 3 FSM) |
 | runtime-cold-outreach | 2026-01-15 | - | ✅ Current |
 
 ---

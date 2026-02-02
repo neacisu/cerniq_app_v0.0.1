@@ -1,6 +1,8 @@
 # CERNIQ.APP — ETAPA 3: WORKERS TRIGGERS
 ## Inter-Worker Communication & Event-Driven Architecture
-### Versiunea 1.0 | 18 Ianuarie 2026
+### Versiunea 2.0 | 01 Februarie 2026
+
+**Sprint Plan:** Triggers implementate transversal în toate sprint-urile (vezi [etapa3-sprint-plan.md](etapa3-sprint-plan.md))
 
 ---
 

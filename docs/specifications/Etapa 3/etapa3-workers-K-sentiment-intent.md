@@ -5,11 +5,13 @@
 | Field | Value |
 |-------|-------|
 | **Document ID** | CERNIQ-E3-WORKERS-K |
-| **Version** | 1.0.0 |
-| **Status** | Draft |
+| **Version** | 2.0.0 |
+| **Status** | Final |
 | **Created** | 2026-01-18 |
-| **Last Updated** | 2026-01-18 |
+| **Last Updated** | 2026-02-01 |
 | **Author** | Cerniq Development Team |
+| **Sprint Plan** | E3.S8.PR31, E3.S8.PR32 (vezi [etapa3-sprint-plan.md](etapa3-sprint-plan.md)) |
+| **Phase** | F3.12 Intent Detection |
 
 ---
 

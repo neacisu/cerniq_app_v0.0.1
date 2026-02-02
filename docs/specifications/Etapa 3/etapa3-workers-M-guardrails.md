@@ -5,12 +5,14 @@
 | Field | Value |
 |-------|-------|
 | Document Title | Workers M - Guardrails & Safety Systems |
-| Version | 1.0.0 |
+| Version | 2.0.0 |
 | Created | 2026-01-18 |
-| Last Updated | 2026-01-18 |
+| Last Updated | 2026-02-01 |
 | Author | Cerniq Development Team |
 | Status | Final |
 | Classification | Technical Documentation |
+| Sprint Plan | E3.S9.PR35, E3.S9.PR36 (vezi [etapa3-sprint-plan.md](etapa3-sprint-plan.md)) |
+| Phase | F3.14 Guardrails |
 
 ---
 

@@ -4,11 +4,13 @@
 
 # Model Context Protocol Implementation
 
-**Document Version:** 1.0.0
+**Document Version:** 2.0.0
 **Created:** 2026-01-18
-**Last Updated:** 2026-01-18
+**Last Updated:** 2026-02-01
 **Author:** Cerniq Development Team
 **Status:** Complete Technical Specification
+**Sprint Plan:** E3.S8.PR33, E3.S8.PR34 (vezi [etapa3-sprint-plan.md](etapa3-sprint-plan.md))
+**Phase:** F3.13 MCP Server
 
 ---
 

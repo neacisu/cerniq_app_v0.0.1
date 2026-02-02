@@ -5,12 +5,14 @@
 | Field | Value |
 |-------|-------|
 | **Document ID** | CERNIQ-E3-WORKERS-N |
-| **Version** | 1.0.0 |
-| **Status** | Draft |
+| **Version** | 2.0.0 |
+| **Status** | Final |
 | **Created** | 2026-01-18 |
-| **Last Updated** | 2026-01-18 |
+| **Last Updated** | 2026-02-01 |
 | **Author** | Cerniq Development Team |
 | **Reviewers** | Technical Lead, Security Team |
+| **Sprint Plan** | E3.S9.PR37, E3.S9.PR38 (vezi [etapa3-sprint-plan.md](etapa3-sprint-plan.md)) |
+| **Phase** | F3.15 HITL System |
 
 ## Table of Contents
 

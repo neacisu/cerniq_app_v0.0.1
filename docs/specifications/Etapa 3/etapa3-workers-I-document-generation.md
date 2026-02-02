@@ -4,14 +4,16 @@
 | Metadata | Value |
 |----------|-------|
 | Document ID | CERNIQ-E3-WORKERS-I |
-| Version | 1.0.0 |
+| Version | 2.0.0 |
 | Status | NORMATIV |
 | Classification | Internal Use |
 | Created | 2026-01-18 |
-| Last Updated | 2026-01-18 |
+| Last Updated | 2026-02-01 |
 | Author | Cerniq Development Team |
 | Reviewers | Technical Lead, DevOps |
 | Related Documents | Master Spec, Workers Overview, Schema Negotiations |
+| Sprint Plan | E3.S7.PR27, E3.S7.PR28 (vezi [etapa3-sprint-plan.md](etapa3-sprint-plan.md)) |
+| Phase | F3.10 Document Generation |
 
 ---
 
