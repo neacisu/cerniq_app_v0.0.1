@@ -31,7 +31,7 @@
 
 - **ADR Management:**
   - [ADR Index centralizat](../adr/ADR-INDEX.md) — 105+ ADR-uri
-  - [ADR-0106: Provider Abstraction](../adr/ADR%20Etapa%200/ADR-0106-Provider-Abstraction.md)
+  - [ADR-0031: Provider Abstraction](../adr/ADR%20Etapa%200/ADR-0031-Provider-Abstraction-Layer.md)
 
 - **Technical Debt:**
   - [Technical Debt Board](./technical-debt-board.md) — tracking prioritizat
@@ -95,10 +95,10 @@
 
 | Changelog Entry | ADR Reference |
 | --------------- | ------------- |
-| Medallion Architecture | [ADR-0031](../adr/ADR%20Etapa%201/ADR-0031-Bronze-Silver-Gold.md) |
-| BullMQ Workers | [ADR-0003](../adr/ADR%20Etapa%200/ADR-0003-BullMQ-vs-Alternatives.md) |
-| Multi-tenant RLS | [ADR-0016](../adr/ADR%20Etapa%200/ADR-0016-Multi-Tenant-RLS.md) |
-| SigNoz Observability | [ADR-0006](../adr/ADR%20Etapa%200/ADR-0006-SigNoz-vs-Grafana.md) |
+| Medallion Architecture | [ADR-0033](../adr/ADR%20Etapa%201/ADR-0033-Arhitectura-Medallion-Bronze-Silver-Gold.md) |
+| BullMQ Workers | [ADR-0006](../adr/ADR%20Etapa%200/ADR-0006-Redis-8-4-0-cu-BullMQ-v5.md) |
+| Multi-tenant RLS | [ADR-0005](../adr/ADR%20Etapa%200/ADR-0005-Row-Level-Security-pentru-Multi-Tenancy.md) |
+| SigNoz Observability | [ADR-0016](../adr/ADR%20Etapa%200/ADR-0016-SigNoz-pentru-Observability.md) |
 
 ---
 

@@ -17,15 +17,9 @@
 | D. Negotiation FSM | 8 | [e3-workers-D-negotiation-fsm.md](./e3-workers-D-negotiation-fsm.md) |
 | E. Pricing & Discounts | 6 | [e3-workers-E-pricing-discount.md](./e3-workers-E-pricing-discount.md) |
 | F. Stock & Inventory | 6 | [e3-workers-F-stock-inventory.md](./e3-workers-F-stock-inventory.md) |
-| G. Oblio Integration | 7 | [e3-workers-G-oblio.md](./e3-workers-G-oblio.md) |
-| H. e-Factura ANAF | 5 | [e3-workers-H-efactura.md](./e3-workers-H-efactura.md) |
-| I. Document Gen | 5 | [e3-workers-I-document-gen.md](./e3-workers-I-document-gen.md) |
-| J. Human Handover | 5 | [e3-workers-J-handover.md](./e3-workers-J-handover.md) |
-| K. Sentiment | 5 | [e3-workers-K-sentiment.md](./e3-workers-K-sentiment.md) |
-| L. MCP Server | 5 | [e3-workers-L-mcp.md](./e3-workers-L-mcp.md) |
-| M. Guardrails | 5 | [e3-workers-M-guardrails.md](./e3-workers-M-guardrails.md) |
-| N. HITL | 3 | [e3-workers-N-hitl.md](./e3-workers-N-hitl.md) |
-| **TOTAL** | **78** | **14 documente** |
+| G-H. Oblio + e-Factura | 12 | [e3-workers-GH-oblio-efactura.md](./e3-workers-GH-oblio-efactura.md) |
+| I-N. Guardrails & Remaining | 30 | [e3-workers-IN-guardrails-remaining.md](./e3-workers-IN-guardrails-remaining.md) |
+| **TOTAL** | **78** | **8 documente** |
 
 ---
 

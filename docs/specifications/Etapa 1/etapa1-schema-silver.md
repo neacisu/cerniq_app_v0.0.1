@@ -706,4 +706,4 @@ GRANT EXECUTE ON FUNCTION silver_get_stats(UUID) TO cerniq_app;
 
 **Document generat:** 15 Ianuarie 2026
 **Total tabele Silver:** 4
-**Conformitate:** Master Spec v1.2, ADR-0043 (Multi-tenant)
+**Conformitate:** Master Spec v1.2, ADR-0045 (Multi-tenant)

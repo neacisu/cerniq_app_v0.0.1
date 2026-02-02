@@ -286,27 +286,27 @@ borg create \
 
 ### ADR-0001: PNPM ca Package Manager Exclusiv
 
-[View detailed ADR](../../adr/Etapa%200/ADR-0001-PNPM-ca-Package-Manager-Exclusiv.md)
+[View detailed ADR](../../adr/ADR%20Etapa%200/ADR-0001-PNPM-ca-Package-Manager-Exclusiv.md)
 **Status:** Accepted | **Data:** 2026-01-15
 
 ### ADR-0002: Node.js v24 LTS "Krypton"
 
-[View detailed ADR](../../adr/Etapa%200/ADR-0002-Node-js-v24-LTS-Krypton.md)
+[View detailed ADR](../../adr/ADR%20Etapa%200/ADR-0002-Node-js-v24-LTS-Krypton.md)
 **Status:** Accepted | **Data:** 2026-01-15
 
 ### ADR-0003: Python 3.14 Free-Threading pentru Workers
 
-[View detailed ADR](../../adr/Etapa%200/ADR-0003-Python-3-14-Free-Threading-pentru-Workers.md)
+[View detailed ADR](../../adr/ADR%20Etapa%200/ADR-0003-Python-3-14-Free-Threading-pentru-Workers.md)
 **Status:** Accepted | **Data:** 2026-01-15
 
 ### ADR-0004: PostgreSQL 18.1 cu PostGIS
 
-[View detailed ADR](../../adr/Etapa%200/ADR-0004-PostgreSQL-18-1-cu-PostGIS.md)
+[View detailed ADR](../../adr/ADR%20Etapa%200/ADR-0004-PostgreSQL-18-1-cu-PostGIS.md)
 **Status:** Accepted | **Data:** 2026-01-15
 
 ### ADR-0005: Row-Level Security pentru Multi-Tenancy
 
-[View detailed ADR](../../adr/Etapa%200/ADR-0005-Row-Level-Security-pentru-Multi-Tenancy.md)
+[View detailed ADR](../../adr/ADR%20Etapa%200/ADR-0005-Row-Level-Security-pentru-Multi-Tenancy.md)
 **Status:** Accepted | **Data:** 2026-01-15
 
 ### ADR-0006: Redis 8.4.0 cu BullMQ v5.66.5
@@ -316,123 +316,128 @@ borg create \
 
 ### ADR-0007: Drizzle ORM pentru Database Access
 
-[View detailed ADR](../../adr/Etapa%200/ADR-0007-Drizzle-ORM-pentru-Database-Access.md)
+[View detailed ADR](../../adr/ADR%20Etapa%200/ADR-0007-Drizzle-ORM-pentru-Database-Access.md)
 **Status:** Accepted | **Data:** 2026-01-15
 
 ### ADR-0008: Fastify v5.6.2 ca API Framework
 
-[View detailed ADR](../../adr/Etapa%200/ADR-0008-Fastify-v5-6-2-ca-API-Framework.md)
+[View detailed ADR](../../adr/ADR%20Etapa%200/ADR-0008-Fastify-v5-6-2-ca-API-Framework.md)
 **Status:** Accepted | **Data:** 2026-01-15
 
 ### ADR-0009: Zod pentru Validation Strategy
 
-[View detailed ADR](../../adr/Etapa%200/ADR-0009-Zod-pentru-Validation-Strategy.md)
+[View detailed ADR](../../adr/ADR%20Etapa%200/ADR-0009-Zod-pentru-Validation-Strategy.md)
 **Status:** Accepted | **Data:** 2026-01-15
 
 ### ADR-0010: Error Handling Pattern Standardizat
 
-[View detailed ADR](../../adr/Etapa%200/ADR-0010-Error-Handling-Pattern-Standardizat.md)
+[View detailed ADR](../../adr/ADR%20Etapa%200/ADR-0010-Error-Handling-Pattern-Standardizat.md)
 **Status:** Accepted | **Data:** 2026-01-15
 
 ### ADR-0011: API Versioning Strategy
 
-[View detailed ADR](../../adr/Etapa%200/ADR-0011-API-Versioning-Strategy.md)
+[View detailed ADR](../../adr/ADR%20Etapa%200/ADR-0011-API-Versioning-Strategy.md)
 **Status:** Accepted | **Data:** 2026-01-15
 
 ### ADR-0012: React 19 cu Refine v5
 
-[View detailed ADR](../../adr/Etapa%200/ADR-0012-React-19-cu-Refine-v5.md)
+[View detailed ADR](../../adr/ADR%20Etapa%200/ADR-0012-React-19-cu-Refine-v5.md)
 **Status:** Accepted | **Data:** 2026-01-15
 
 ### ADR-0013: Tailwind CSS v4 cu Oxide Engine
 
-[View detailed ADR](../../adr/Etapa%200/ADR-0013-Tailwind-CSS-v4-cu-Oxide-Engine.md)
+[View detailed ADR](../../adr/ADR%20Etapa%200/ADR-0013-Tailwind-CSS-v4-cu-Oxide-Engine.md)
 **Status:** Accepted | **Data:** 2026-01-15
 
 ### ADR-0014: Traefik v3.6.6 ca Reverse Proxy
 
-[View detailed ADR](../../adr/Etapa%200/ADR-0014-Traefik-v3-6-6-ca-Reverse-Proxy.md)
+[View detailed ADR](../../adr/ADR%20Etapa%200/ADR-0014-Traefik-v3-6-6-ca-Reverse-Proxy.md)
 **Status:** Accepted | **Data:** 2026-01-15
 
 ### ADR-0015: Docker Containerization Strategy
 
-[View detailed ADR](../../adr/Etapa%200/ADR-0015-Docker-Containerization-Strategy.md)
+[View detailed ADR](../../adr/ADR%20Etapa%200/ADR-0015-Docker-Containerization-Strategy.md)
 **Status:** Accepted | **Data:** 2026-01-15
 
 ### ADR-0016: SigNoz pentru Observability
 
-[View detailed ADR](../../adr/Etapa%200/ADR-0016-SigNoz-pentru-Observability.md)
+[View detailed ADR](../../adr/ADR%20Etapa%200/ADR-0016-SigNoz-pentru-Observability.md)
 **Status:** Accepted | **Data:** 2026-01-15
 
 ### ADR-0017: Secrets Management Strategy
 
-[View detailed ADR](../../adr/Etapa%200/ADR-0017-Secrets-Management-Strategy.md)
+[View detailed ADR](../../adr/ADR%20Etapa%200/ADR-0017-Secrets-Management-Strategy.md)
 **Status:** Accepted | **Data:** 2026-01-15
 
 ### ADR-0018: Authentication Flow (JWT + Refresh Tokens)
 
-[View detailed ADR](../../adr/Etapa%200/ADR-0018-Authentication-Flow-JWT-Refresh-Tokens.md)
+[View detailed ADR](../../adr/ADR%20Etapa%200/ADR-0018-Authentication-Flow-JWT-Refresh-Tokens.md)
 **Status:** Accepted | **Data:** 2026-01-15
 
 ### ADR-0019: CORS Policy
 
-[View detailed ADR](../../adr/Etapa%200/ADR-0019-CORS-Policy.md)
+[View detailed ADR](../../adr/ADR%20Etapa%200/ADR-0019-CORS-Policy.md)
 **Status:** Accepted | **Data:** 2026-01-15
 
 ### ADR-0020: BorgBackup cu Hetzner Storage Box
 
-[View detailed ADR](../../adr/Etapa%200/ADR-0020-BorgBackup-cu-Hetzner-Storage-Box.md)
+[View detailed ADR](../../adr/ADR%20Etapa%200/ADR-0020-BorgBackup-cu-Hetzner-Storage-Box.md)
 **Status:** Accepted | **Data:** 2026-01-15
 
 ### ADR-0021: Naming Conventions
 
-[View detailed ADR](../../adr/Etapa%200/ADR-0021-Naming-Conventions.md)
+[View detailed ADR](../../adr/ADR%20Etapa%200/ADR-0021-Naming-Conventions.md)
 **Status:** Accepted | **Data:** 2026-01-15
 
 ### ADR-0022: Port Allocation Strategy
 
-[View detailed ADR](../../adr/Etapa%200/ADR-0022-Port-Allocation-Strategy.md)
+[View detailed ADR](../../adr/ADR%20Etapa%200/ADR-0022-Port-Allocation-Strategy.md)
 **Status:** Accepted | **Data:** 2026-01-15
 
 ### ADR-0023: Logging Standards cu Pino
 
-[View detailed ADR](../../adr/Etapa%200/ADR-0023-Logging-Standards-cu-Pino.md)
+[View detailed ADR](../../adr/ADR%20Etapa%200/ADR-0023-Logging-Standards-cu-Pino.md)
 **Status:** Accepted | **Data:** 2026-01-15
 
 ### ADR-0024: Directory Structure Standard
 
-[View detailed ADR](../../adr/Etapa%200/ADR-0024-Directory-Structure-Standard.md)
+[View detailed ADR](../../adr/ADR%20Etapa%200/ADR-0024-Directory-Structure-Standard.md)
 **Status:** Accepted | **Data:** 2026-01-15
 
 ### ADR-0025: Health Check Patterns
 
-[View detailed ADR](../../adr/Etapa%200/ADR-0025-Health-Check-Patterns.md)
+[View detailed ADR](../../adr/ADR%20Etapa%200/ADR-0025-Health-Check-Patterns.md)
 **Status:** Accepted | **Data:** 2026-01-15
 
 ### ADR-0026: Graceful Shutdown Strategy
 
-[View detailed ADR](../../adr/Etapa%200/ADR-0026-Graceful-Shutdown-Strategy.md)
+[View detailed ADR](../../adr/ADR%20Etapa%200/ADR-0026-Graceful-Shutdown-Strategy.md)
 **Status:** Accepted | **Data:** 2026-01-15
 
 ### ADR-0027: Container Resource Limits
 
-[View detailed ADR](../../adr/Etapa%200/ADR-0027-Container-Resource-Limits.md)
+[View detailed ADR](../../adr/ADR%20Etapa%200/ADR-0027-Container-Resource-Limits.md)
 **Status:** Accepted | **Data:** 2026-01-15
 
 ### ADR-0028: Git Branching Strategy
 
-[View detailed ADR](../../adr/Etapa%200/ADR-0028-Git-Branching-Strategy.md)
+[View detailed ADR](../../adr/ADR%20Etapa%200/ADR-0028-Git-Branching-Strategy.md)
 **Status:** Accepted | **Data:** 2026-01-15
 
 ### ADR-0029: Testing Strategy
 
-[View detailed ADR](../../adr/Etapa%200/ADR-0029-Testing-Strategy.md)
+[View detailed ADR](../../adr/ADR%20Etapa%200/ADR-0029-Testing-Strategy.md)
 **Status:** Accepted | **Data:** 2026-01-15
 
 ### ADR-0030: Environment Management
 
-[View detailed ADR](../../adr/Etapa%200/ADR-0030-Environment-Management.md)
+[View detailed ADR](../../adr/ADR%20Etapa%200/ADR-0030-Environment-Management.md)
 **Status:** Accepted | **Data:** 2026-01-15
+
+### ADR-0031: Provider Abstraction Layer
+
+[View detailed ADR](../../adr/ADR%20Etapa%200/ADR-0031-Provider-Abstraction-Layer.md)
+**Status:** Accepted | **Data:** 2026-02-01
 
 ---
 
@@ -464,7 +469,7 @@ borg create \
 {
   "taskID": "F0.1.1.T002",
   "denumire_task": "Configurare daemon.json pentru server 128GB RAM/20 cores",
-  "context_anterior": "Docker Engine 29.1.3 instalat în F0.1.1.T001, configurare default",
+  "context_anterior": "Docker Engine 29.2.0 instalat în F0.1.1.T001, configurare default",
   "descriere_task": "Ești un expert Docker specializat în optimizare pentru servere high-memory. Task-ul tău este să creezi fișierul /etc/docker/daemon.json cu configurația optimizată pentru serverul Cerniq (128GB RAM, 20 cores). Configurația TREBUIE să includă: storage-driver overlay2, log-driver json-file cu max-size 50m și max-file 5, live-restore true pentru zero-downtime upgrades, userland-proxy false pentru performanță network îmbunătățită, default-ulimits nofile 65536, default-address-pools cu baza 172.20.0.0/16 și size 24, metrics-addr 0.0.0.0:64093 pentru Prometheus scraping. După creare, restartează docker daemon și verifică aplicarea configurației.",
   "director_implementare": "/etc/docker",
   "restrictii_antihalucinatie": [
@@ -483,7 +488,7 @@ borg create \
   "taskID": "F0.1.1.T003",
   "denumire_task": "Creare structură directoare CerniqAPP",
   "context_anterior": "Docker configurat în F0.1.1.T002, nu există structură de proiect",
-  "descriere_task": "Ești un expert în structurare monorepo pentru aplicații fullstack. Task-ul tău este să creezi întreaga structură de directoare pentru proiectul Cerniq.app în /var/www/CerniqAPP conform arhitecturii definite. Structura TREBUIE să includă: apps/ cu subdirectoare api/ și web/, packages/ cu db/, shared-types/, config/, workers/ cu enrichment/, outreach/, ai/, infra/ cu docker/, scripts/, config/, docs/ cu adr/, architecture/. Setează permisiunile corecte (root:root, 755 pentru directoare). Creează fișiere placeholder .gitkeep în directoarele goale pentru tracking în git.",
+  "descriere_task": "Ești un expert în structurare monorepo pentru aplicații fullstack. Task-ul tău este să creezi întreaga structură de directoare pentru proiectul Cerniq.app în /var/www/CerniqAPP conform arhitecturii definite. Structura TREBUIE să includă: apps/ cu subdirectoare api/ și web-admin/, packages/ cu db/, shared-types/, config/, workers/ cu enrichment/, outreach/, ai/, infra/ cu docker/, scripts/, config/, docs/ cu adr/, architecture/. Setează permisiunile corecte (root:root, 755 pentru directoare). Creează fișiere placeholder .gitkeep în directoarele goale pentru tracking în git.",
   "director_implementare": "/var/www/CerniqAPP",
   "restrictii_antihalucinatie": [
     "NU modifica structura definită în ADR-0024",
@@ -730,7 +735,7 @@ borg create \
 
 ### FAZA F0.15: CI/CD PIPELINE SETUP
 
-> **ADR Reference:** [ADR-0107 CI/CD Pipeline Strategy](../../adr/ADR%20Etapa%200/ADR-0107-CI-CD-Pipeline-Strategy.md)
+> **ADR Reference:** [ADR-0032 CI/CD Pipeline Strategy](../../adr/ADR%20Etapa%200/ADR-0032-CI-CD-Pipeline-Strategy.md)
 
 ```json
 {
@@ -787,5 +792,24 @@ borg create \
 ```
 
 ---
+
+## ADDENDUM v1.1 (1 Februarie 2026)
+
+### Documente noi (Etapa 0)
+
+- [pgbouncer-connection-pooling.md](../../infrastructure/pgbouncer-connection-pooling.md)
+- [redis-authentication.md](../../infrastructure/redis-authentication.md)
+- [dns-configuration.md](../../infrastructure/dns-configuration.md)
+- [github-repository-setup.md](../../infrastructure/github-repository-setup.md)
+- [secrets-rotation-procedure.md](../../infrastructure/secrets-rotation-procedure.md)
+- [openapi-etapa0.yaml](../../api/openapi-etapa0.yaml)
+
+### Faze suplimentare introduse
+
+- F0.16 DNS & Domain Configuration
+- F0.17 GitHub Repository Setup
+- F0.18 Documentation Generation
+- F0.19 Performance Baseline
+- F0.20 Operational Readiness
 
 Această documentație completă oferă fundamentul pentru implementarea infrastructurii Cerniq.app Etapa 0, fiind aliniată cu Master Spec-ul ca sursă unică de adevăr și utilizând exclusiv versiunile latest released ale tuturor tehnologiilor.

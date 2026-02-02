@@ -70,8 +70,8 @@
 | [Master Specification](../specifications/master-specification.md) | §2.3 Frontend Architecture |
 | [Architecture](../architecture/architecture.md) | Web App Component |
 | [Getting Started](../developer-guide/getting-started.md) | Frontend Development |
-| [ADR-0019](../adr/ADR%20Etapa%200/ADR-0019-React-19-Adoption.md) | React 19 Decision |
-| [ADR-0021](../adr/ADR%20Etapa%200/ADR-0021-Tailwind-4-shadcn.md) | Tailwind + shadcn Decision |
+| [ADR-0012](../adr/ADR%20Etapa%200/ADR-0012-React-19-cu-Refine-v5.md) | React 19 Decision |
+| [ADR-0013](../adr/ADR%20Etapa%200/ADR-0013-Tailwind-CSS-v4-cu-Oxide-Engine.md) | Tailwind Decision |
 
 ### Locația Codului
 

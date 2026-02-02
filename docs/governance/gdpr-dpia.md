@@ -112,10 +112,10 @@
 
 | Categorie | Perioadă Retenție | Justificare | Referință |
 |-----------|-------------------|-------------|-----------|
-| **Date contact active** | Durata relației + 36 luni | Interes legitim comercial | ADR-0049 |
+| **Date contact active** | Durata relației + 36 luni | Interes legitim comercial | ADR-0051 |
 | **Date comunicare** | 5 ani | Obligații legale facturare | Cod Fiscal |
 | **Logs acces** | 1 an | Securitate și audit | Best practice |
-| **Date inactive** | Ștergere după 36 luni inactivitate | GDPR minimization | ADR-0049 |
+| **Date inactive** | Ștergere după 36 luni inactivitate | GDPR minimization | ADR-0051 |
 
 ### 2.4 Proporționalitate
 
@@ -314,7 +314,7 @@ SEVERITATE
 | [gdpr-legitimate-interest-assessment.md](./gdpr-legitimate-interest-assessment.md) | LIA pentru Data Enrichment |
 | [dpa-register.md](./dpa-register.md) | Registru DPA furnizori |
 | [security-policy.md](./security-policy.md) | Politică securitate |
-| [ADR-0049](../adr/ADR%20Etapa%201/ADR-0049-Data-Retention-Policy.md) | Politică retenție date |
+| [ADR-0051](../adr/ADR%20Etapa%201/ADR-0051-Data-Retention-Policy.md) | Politică retenție date |
 | [schema-database.md](../specifications/schema-database.md) | Schema date personale |
 
 ---

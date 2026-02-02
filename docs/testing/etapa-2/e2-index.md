@@ -17,9 +17,8 @@
 | F2.D | Email Resend | 8 | [e2-workers-DE-email.md](./e2-workers-DE-email.md) |
 | F2.E | Email Instantly | 6 | [e2-workers-DE-email.md](./e2-workers-DE-email.md) |
 | F2.F-L | Remaining | 14 | [e2-workers-FL-remaining.md](./e2-workers-FL-remaining.md) |
-| API | Endpoints | — | [e2-api-endpoints.md](./e2-api-endpoints.md) |
-| HITL | Approvals | — | [e2-hitl-system.md](./e2-hitl-system.md) |
-| **TOTAL** | | **52** | **8 documente** |
+| API | Schema | — | [e2-api-schema.md](./e2-api-schema.md) |
+| **TOTAL** | | **52** | **6 documente** |
 
 ---
 

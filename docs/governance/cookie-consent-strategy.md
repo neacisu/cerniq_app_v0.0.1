@@ -340,7 +340,7 @@ Toate acțiunile de consent sunt loggate în `user_consent_logs` pentru audit GD
 |----------|-----------|
 | [gdpr-compliance.md](./gdpr-compliance.md) | Politică GDPR generală |
 | [gdpr-dpia.md](./gdpr-dpia.md) | Data Protection Impact Assessment |
-| [privacy-policy.md](./privacy-policy.md) | Privacy Policy (TBD) |
+| [gdpr-compliance.md](./gdpr-compliance.md) | Privacy Policy (GDPR Compliance) |
 | [schema-database.md](../specifications/schema-database.md) | Schema completă DB |
 
 ---

@@ -87,8 +87,8 @@ curl http://localhost:64000/health/ready
 
 ## Documentație Asociată
 
-- [CI/CD Workflow](../.github/workflows/) - GitHub Actions
-- [Docker Compose](../infra/docker/) - Deployment configuration
+- [CI/CD Workflow](../../.github/workflows/) - GitHub Actions
+- [Docker Compose](../../infra/docker/) - Deployment configuration
 - [Security Policy](./security-policy.md) - Penetration Testing Program
 - [GDPR DPIA](./gdpr-dpia.md) - Data Protection Impact Assessment
 

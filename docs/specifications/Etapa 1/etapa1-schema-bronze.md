@@ -573,4 +573,4 @@ GRANT EXECUTE ON FUNCTION bronze_get_stats(UUID) TO cerniq_app;
 
 **Document generat:** 15 Ianuarie 2026
 **Total tabele Bronze:** 4
-**Conformitate:** Master Spec v1.2, ADR-0042 (Immutability)
+**Conformitate:** Master Spec v1.2, ADR-0044 (Immutability)

@@ -72,8 +72,8 @@ docs/
 ├── adr/                               # Architecture Decision Records
 │   ├── template.md                   # Template ADR standard
 │   ├── ADR Etapa 0/ADR-0006-Redis-8-4-0-cu-BullMQ-v5.md
-│   ├── ADR Etapa 3/ADR-0066-Neuro-Symbolic-AI-Agent-Paradigm.md
-│   ├── ADR Etapa 1/ADR-0031-Arhitectura-Medallion-Bronze-Silver-Gold.md
+│   ├── ADR Etapa 3/ADR-0068-Neuro-Symbolic-AI-Agent-Paradigm.md
+│   ├── ADR Etapa 1/ADR-0033-Arhitectura-Medallion-Bronze-Silver-Gold.md
 │   └── ... (~105 ADR-uri)
 │
 ├── diagrams/                          # Diagrame vizuale

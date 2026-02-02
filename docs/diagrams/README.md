@@ -19,10 +19,10 @@
 | [`c4-components-etapa3.drawio`](./c4-components-etapa3.drawio) | C4 Level 3 | Components Etapa 3 AI Sales Agent | [Etapa 3 Specs](../specifications/Etapa%203/) |
 | [`c4-components-etapa4.drawio`](./c4-components-etapa4.drawio) | C4 Level 3 | Components Etapa 4 Payments & Logistics | [Etapa 4 Specs](../specifications/Etapa%204/) |
 | [`c4-components-etapa5.drawio`](./c4-components-etapa5.drawio) | C4 Level 3 | Components Etapa 5 Analytics & BI | [Etapa 5 Specs](../specifications/Etapa%205/) |
-| [`data-flow-medallion.drawio`](./data-flow-medallion.drawio) | Data Flow | Bronze → Silver → Gold pipeline | [ADR-0031](../adr/ADR%20Etapa%201/ADR-0031-Bronze-Silver-Gold.md) |
+| [`data-flow-medallion.drawio`](./data-flow-medallion.drawio) | Data Flow | Bronze → Silver → Gold pipeline | [ADR-0033](../adr/ADR%20Etapa%201/ADR-0033-Arhitectura-Medallion-Bronze-Silver-Gold.md) |
 | [`deployment-infrastructure.drawio`](./deployment-infrastructure.drawio) | Infrastructure | Hetzner bare-metal deployment | [deployment-guide.md](../infrastructure/deployment-guide.md) |
 | [`geospatial-nurturing.drawio`](./geospatial-nurturing.drawio) | Data Model | PostGIS proximity & graph analysis | [Etapa 5 Specs](../specifications/Etapa%205/) |
-| [`runtime-ai-negotiation-sequence.drawio`](./runtime-ai-negotiation-sequence.drawio) | Sequence | AI Agent negotiation flow (XState) | [ADR-0074](../adr/ADR%20Etapa%203/ADR-0074-XState-Negotiation.md) |
+| [`runtime-ai-negotiation-sequence.drawio`](./runtime-ai-negotiation-sequence.drawio) | Sequence | AI Agent negotiation flow (XState) | [ADR-0072](../adr/ADR%20Etapa%203/ADR-0072-Negotiation-FSM.md) |
 | [`runtime-cold-outreach-sequence.drawio`](./runtime-cold-outreach-sequence.drawio) | Sequence | Cold outreach sequence engine | [Etapa 2 Specs](../specifications/Etapa%202/) |
 
 ---

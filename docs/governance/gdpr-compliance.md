@@ -13,7 +13,7 @@ Conformitatea GDPR este documentată în următoarele locații:
 | Document | Descriere |
 | -------- | --------- |
 | [`master-specification.md`](../specifications/master-specification.md) | Secțiunea "GDPR Compliance" |
-| [ADR-0049: Data Retention Policy](../adr/ADR%20Etapa%201/ADR-0049-Data-Retention-Policy.md) | Politica de retenție date |
+| [ADR-0051: Data Retention Policy](../adr/ADR%20Etapa%201/ADR-0051-Data-Retention-Policy.md) | Politica de retenție date |
 | [`dpa-register.md`](./dpa-register.md) | Evidență DPA pentru third-party processors |
 | [`gdpr-dpia.md`](./gdpr-dpia.md) | Data Protection Impact Assessment (DPIA) |
 | [`cookie-consent-strategy.md`](./cookie-consent-strategy.md) | Strategia Cookie Consent (ePrivacy) |
@@ -24,7 +24,7 @@ Conformitatea GDPR este documentată în următoarele locații:
 1. **Privacy by Design** - Integrată în arhitectură de la început
 2. **Data Minimization** - Colectăm doar date necesare pentru funcționalitate
 3. **Right to Erasure** - Endpoint-uri pentru ștergere date la cerere
-4. **Data Retention** - Retenție automată conform politicii (vezi ADR-0049)
+4. **Data Retention** - Retenție automată conform politicii (vezi ADR-0051)
 5. **Audit Trail** - Logging complet pentru acces și modificări date personale
 
 ## Date Personale Procesate

@@ -1,6 +1,6 @@
 # CI/CD Pipeline
 
-> **Document Version:** 2.0 | **Updated:** 2026-02-01 | **ADR:** [ADR-0107](../adr/ADR%20Etapa%200/ADR-0107-CI-CD-Pipeline-Strategy.md)
+> **Document Version:** 2.0 | **Updated:** 2026-02-01 | **ADR:** [ADR-0032](../adr/ADR%20Etapa%200/ADR-0032-CI-CD-Pipeline-Strategy.md)
 
 **Cerniq.app** folosește [GitHub Actions](https://github.com/features/actions) pentru integrare și livrare continuă.
 
@@ -282,7 +282,7 @@ pnpm test
 
 ## 7. Referințe
 
-- **ADR:** [ADR-0107 CI/CD Pipeline Strategy](../adr/ADR%20Etapa%200/ADR-0107-CI-CD-Pipeline-Strategy.md)
+- **ADR:** [ADR-0032 CI/CD Pipeline Strategy](../adr/ADR%20Etapa%200/ADR-0032-CI-CD-Pipeline-Strategy.md)
 - **Deployment Guide:** [deployment-guide.md](deployment-guide.md)
 - **Security Policy:** [security-policy.md](../governance/security-policy.md)
 - **Technical Debt:** TD-I01 în [technical-debt-board.md](../architecture/technical-debt-board.md)

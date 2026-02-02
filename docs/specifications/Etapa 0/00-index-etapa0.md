@@ -1,6 +1,6 @@
 # CERNIQ.APP — ETAPA 0: INDEX DOCUMENTE COMPLETE
 
-## 15 Ianuarie 2026
+## 1 Februarie 2026
 
 ---
 
@@ -10,8 +10,8 @@
 
 | Fișier | Conținut | Linii |
 | :--- | :--- | :--- |
-| [ADR-uri Etapa 0](../../adr/Etapa%200/) | 30 ADRs în directorul `/docs/adr/Etapa 0/` (ADR-0001 → ADR-0030) | 30 fișiere |
-| [Etapa0 plan implementare complet v2.md](etapa0-plan-implementare-complet-v2.md) | 69 Tasks JSON pentru AI agents (inclusiv Monitorizare) | ~4000 |
+| [ADR-uri Etapa 0](../../adr/ADR%20Etapa%200/) | 32 ADRs în directorul `/docs/adr/ADR Etapa 0/` (ADR-0001 → ADR-0032) | 32 fișiere |
+| [Etapa0 plan implementare complet v2.md](etapa0-plan-implementare-complet-v2.md) | 147 Tasks JSON pentru AI agents (completare 100%) | ~5000 |
 | [STRATEGIE MONITORIZARE UI.md](STRATEGIE_MONITORIZARE_UI.md) | Viziune și Arhitectură Sistem Monitorizare (Etapa 0-5) | ~300 |
 
 ### 2. DOCUMENTE OPERAȚIONALE
@@ -28,6 +28,11 @@
 | `etapa0-testing-strategy.md` | Unit/Integration/E2E tests, coverage requirements |
 | `etapa0-monitoring-api-spec.md` | Technical Specs pentru Monitoring API Sidecar |
 | `etapa0-structured-log-schemas.md` | JSON Schemas (Zod) pentru loguri standardizate |
+| `../infrastructure/pgbouncer-connection-pooling.md` | PgBouncer pooling și limitare conexiuni |
+| `../infrastructure/redis-authentication.md` | Redis AUTH și secrets |
+| `../infrastructure/dns-configuration.md` | DNS records & subdomenii |
+| `../infrastructure/github-repository-setup.md` | Repo setup, CODEOWNERS, templates |
+| `../infrastructure/secrets-rotation-procedure.md` | Rotație secrete trimestrială |
 
 ### 3. FIȘIERE CONFIGURARE (De creat în Etapa Implementare)
 
@@ -46,10 +51,10 @@
 
 ## STATISTICI
 
-- **Total ADRs:** 30
-- **Total Tasks:** 69 (14 faze F0.1 → F0.14)
-- **Total Documente:** 19 fișiere
-- **Dimensiune Totală:** ~250KB
+- **Total ADRs:** 32
+- **Total Tasks:** 147 (20 faze F0.1 → F0.20)
+- **Total Documente:** 24 fișiere
+- **Dimensiune Totală:** ~350KB
 
 ---
 
@@ -77,7 +82,7 @@
 │       └── generate-secrets.sh
 ├── docs/
 │   ├── adr/
-│   │   └── Etapa 0/            ← ADRs numerotate (ADR-0001...)
+│   │   └── ADR Etapa 0/        ← ADRs numerotate (ADR-0001...ADR-0032)
 │   └── specifications/
 │       └── Etapa 0/            ← Specificatiile curente
 │           ├── etapa0-runbook-operational.md
@@ -101,5 +106,5 @@
 
 ---
 
-**Document generat:** 15 Ianuarie 2026  
+**Document generat:** 1 Februarie 2026  
 **Sursă de adevăr:** Master Spec v1.2

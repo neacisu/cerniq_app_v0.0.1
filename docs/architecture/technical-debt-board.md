@@ -26,7 +26,7 @@
 
 | ID | Descriere | Severitate | Status | Owner | Target | Dependencies |
 | -- | --------- | ---------- | ------ | ----- | ------ | ------------ |
-| TD-A01 | Provider lock-in (TimelinesAI, Instantly, Resend) | 🟠 Major | Open | - | Q2 2026 | [ADR-0106](../adr/ADR%20Etapa%200/ADR-0106-Provider-Abstraction.md) |
+| TD-A01 | Provider lock-in (TimelinesAI, Instantly, Resend) | 🟠 Major | Open | - | Q2 2026 | [ADR-0031](../adr/ADR%20Etapa%200/ADR-0031-Provider-Abstraction-Layer.md) |
 | TD-A02 | Circuit breakers lipsă | 🟠 Major | In Progress | - | Sprint 2 | [circuit-breaker-pattern.md](../developer-guide/circuit-breaker-pattern.md) |
 | TD-A03 | Hardcoded configs în workers | 🟡 Medium | Open | - | Q1 2026 | - |
 | TD-A04 | PgBouncer nedocumentat | 🟡 Medium | Open | - | Etapa 0 | docker-compose update |
@@ -35,7 +35,7 @@
 
 | ID | Descriere | Severitate | Status | Owner | Target | Dependencies |
 | -- | --------- | ---------- | ------ | ----- | ------ | ------------ |
-| TD-I01 | CI/CD deployment automated | 🟠 Major | ✅ Resolved | - | ~~Etapa 0~~ | [ADR-0107](../adr/ADR%20Etapa%200/ADR-0107-CI-CD-Pipeline-Strategy.md) |
+| TD-I01 | CI/CD deployment automated | 🟠 Major | ✅ Resolved | - | ~~Etapa 0~~ | [ADR-0032](../adr/ADR%20Etapa%200/ADR-0032-CI-CD-Pipeline-Strategy.md) |
 | TD-I02 | Redis Sentinel/Cluster | 🟡 Medium | Open | - | Q1 2026 | [redis-high-availability.md](../infrastructure/redis-high-availability.md) |
 | TD-I03 | Warm standby DB | 🟡 Medium | Open | - | Q2 2026 | PostgreSQL streaming |
 
@@ -90,7 +90,7 @@
 - `.github/workflows/ci-pr.yml` - CI pipeline (lint, test, security, docker build)
 - `.github/workflows/deploy.yml` - CD pipeline (build, push, deploy staging/production)
 - Documentație actualizată: [ci-cd-pipeline.md](../infrastructure/ci-cd-pipeline.md)
-- ADR: [ADR-0107](../adr/ADR%20Etapa%200/ADR-0107-CI-CD-Pipeline-Strategy.md)
+- ADR: [ADR-0032](../adr/ADR%20Etapa%200/ADR-0032-CI-CD-Pipeline-Strategy.md)
 
 **Remaining Tasks (Phase 2):**
 - [ ] Configure GitHub Secrets

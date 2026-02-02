@@ -147,7 +147,7 @@ Pe baza analizei de mai sus:
 ## 8. DOCUMENTE CONEXE
 
 - [GDPR Compliance Policy](./gdpr-compliance.md)
-- [ADR-0049: Data Retention Policy](../adr/ADR%20Etapa%201/ADR-0049-Data-Retention-Policy.md)
+- [ADR-0051: Data Retention Policy](../adr/ADR%20Etapa%201/ADR-0051-Data-Retention-Policy.md)
 - [Master Specification §GDPR](../specifications/master-specification.md)
 
 ---

@@ -9,12 +9,12 @@
 **DOCUMENT STATUS:** NORMATIV (Single Source of Truth)  
 **SCOPE:** Toate documentele existente în proiect devin ANEXE la acest document  
 **CREATION DATE:** 11 Ianuarie 2026  
-**LAST UPDATED:** 1 Februarie 2026 (v1.3 - Sync cu ADR-0106)  
+**LAST UPDATED:** 1 Februarie 2026 (v1.3 - Sync cu ADR-0031)  
 **NEXT REVIEW:** Aprilie 2026 sau la actualizări majore dependențe
 
 ### Changelog v1.3 (1 Februarie 2026)
 
-- ✅ Adăugare referință la ADR-0106: Provider Abstraction Layer
+- ✅ Adăugare referință la ADR-0031: Provider Abstraction Layer
 - ✅ Sincronizare cu ADR INDEX actualizat
 - ✅ Corectare numerotare secțiuni 2.8-2.10 (Event Contract, Rate Limiting, Test Strategy)
 - ✅ Actualizare referințe în cuprins
@@ -1873,7 +1873,7 @@ $$ LANGUAGE plpgsql;
 
 | ADR | Titlu | Etapa | Status | Data | Referință |
 |-----|-------|-------|--------|------|-----------|
-| ADR-0106 | Provider Abstraction Layer | E0 | ✅ Accepted | 2026-02-01 | [ADR-0106](../adr/ADR%20Etapa%200/ADR-0106-Provider-Abstraction-Layer.md) |
+| ADR-0031 | Provider Abstraction Layer | E0 | ✅ Accepted | 2026-02-01 | [ADR-0031](../adr/ADR%20Etapa%200/ADR-0031-Provider-Abstraction-Layer.md) |
 
 > **NOTĂ:** Pentru lista completă de ADR-uri, consultați [ADR-INDEX.md](../adr/ADR-INDEX.md)
 

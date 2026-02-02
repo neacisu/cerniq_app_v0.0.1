@@ -11,9 +11,9 @@
 
 | Fază | Denumire | Taskuri | Workeri | Document Teste |
 | ---- | -------- | ------- | ------- | -------------- |
-| F1.1 | Database Schema Bronze | 6 | — | [e1-f01-schema-bronze.md](./e1-f01-schema-bronze.md) |
-| F1.2 | Database Schema Silver | 6 | — | [e1-f02-schema-silver.md](./e1-f02-schema-silver.md) |
-| F1.3 | Database Schema Gold | 6 | — | [e1-f03-schema-gold.md](./e1-f03-schema-gold.md) |
+| F1.1 | Database Schema Bronze | 6 | — | [e1-f01-f03-schemas.md](./e1-f01-f03-schemas.md) |
+| F1.2 | Database Schema Silver | 6 | — | [e1-f01-f03-schemas.md](./e1-f01-f03-schemas.md) |
+| F1.3 | Database Schema Gold | 6 | — | [e1-f01-f03-schemas.md](./e1-f01-f03-schemas.md) |
 | F1.4 | Workers Infrastructure | 8 | — | [e1-f04-workers-infrastructure.md](./e1-f04-workers-infrastructure.md) |
 | F1.5 | Workers Cat. A - Ingestie | 6 | 5 | [e1-f05-workers-A-ingestie.md](./e1-f05-workers-A-ingestie.md) |
 | F1.6 | Workers Cat. B-C - Normalizare | 8 | 6 | [e1-f06-workers-BC-normalizare.md](./e1-f06-workers-BC-normalizare.md) |
@@ -23,10 +23,10 @@
 | F1.10 | Workers Cat. M-P - Dedup, Score | 10 | 9 | [e1-f10-workers-MP-dedup-score.md](./e1-f10-workers-MP-dedup-score.md) |
 | F1.11 | HITL Integration | 6 | 2 | [e1-f11-hitl-integration.md](./e1-f11-hitl-integration.md) |
 | F1.12 | Backend API | 10 | — | [e1-f12-backend-api.md](./e1-f12-backend-api.md) |
-| F1.13 | Frontend Pages | 10 | — | [e1-f13-frontend-pages.md](./e1-f13-frontend-pages.md) |
-| F1.14 | Frontend Components | 8 | — | [e1-f14-frontend-components.md](./e1-f14-frontend-components.md) |
+| F1.13 | Frontend Pages | 10 | — | [e1-f13-f14-frontend.md](./e1-f13-f14-frontend.md) |
+| F1.14 | Frontend Components | 8 | — | [e1-f13-f14-frontend.md](./e1-f13-f14-frontend.md) |
 | F1.15 | Testing & Monitoring | 6 | — | [e1-f15-testing-monitoring.md](./e1-f15-testing-monitoring.md) |
-| **TOTAL** | | **126** | **58** | **15 documente** |
+| **TOTAL** | | **126** | **58** | **12 documente** |
 
 ---
 

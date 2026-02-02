@@ -13,15 +13,11 @@
 | --------- | ------- | -------------- |
 | A. Revolut Payments | 5 | [e4-workers-A-revolut.md](./e4-workers-A-revolut.md) |
 | B. Reconciliation | 3 | [e4-workers-B-reconciliation.md](./e4-workers-B-reconciliation.md) |
-| C. Credit Scoring | 3 | [e4-workers-C-credit-scoring.md](./e4-workers-C-credit-scoring.md) |
-| D. Credit Limits | 2 | [e4-workers-D-credit-limits.md](./e4-workers-D-credit-limits.md) |
+| C-D. Credit Scoring & Limits | 5 | [e4-workers-CD-credit.md](./e4-workers-CD-credit.md) |
 | E. Sameday Logistics | 4 | [e4-workers-E-sameday.md](./e4-workers-E-sameday.md) |
-| F-G. Stock & Contracts | 10 | [e4-workers-FG-stock-contracts.md](./e4-workers-FG-stock-contracts.md) |
-| H-J. Returns & Alerts | 8 | [e4-workers-HIJ-returns-alerts.md](./e4-workers-HIJ-returns-alerts.md) |
-| K. HITL | 4 | [e4-workers-K-hitl.md](./e4-workers-K-hitl.md) |
-| Schema | — | [e4-schema-orders.md](./e4-schema-orders.md) |
-| API | — | [e4-api-endpoints.md](./e4-api-endpoints.md) |
-| **TOTAL** | **67** | **10 documente** |
+| F-K. Remaining | 18 | [e4-workers-FK-remaining.md](./e4-workers-FK-remaining.md) |
+| Schema + API | — | [e4-schema-api.md](./e4-schema-api.md) |
+| **TOTAL** | **67** | **6 documente** |
 
 ---
 

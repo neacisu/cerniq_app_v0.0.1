@@ -527,4 +527,4 @@ export class CompletionTracker {
 ---
 
 **Document generat:** 15 Ianuarie 2026
-**Conformitate:** Master Spec v1.2, ADR-0040 (Pipeline Orchestration)
+**Conformitate:** Master Spec v1.2, ADR-0042 (Pipeline Orchestration)

@@ -2,7 +2,7 @@
 
 ## Faze, Subfaze și Taskuri pentru Infrastructură MVP
 
-### Versiunea 1.0 | 15 Ianuarie 2026
+### Versiunea 1.1 | 1 Februarie 2026
 
 ---
 
@@ -16,21 +16,27 @@
 
 | Fază | Denumire | Nr. Taskuri |
 | ---- | -------- | ----------- |
-| F0.1 | Infrastructură Docker de Bază | 5 |
-| F0.2 | PostgreSQL 18.1 Setup | 5 |
-| F0.3 | Redis 8.4.0 și BullMQ Setup | 3 |
-| F0.4 | Traefik v3.6.6 Setup | 4 |
-| F0.5 | Observability Stack (SigNoz) | 3 |
-| F0.6 | PNPM și Monorepo Setup | 8 |
-| F0.7 | Backup Strategy | 4 |
-| F0.8 | Security Hardening | 4 |
-| F0.9 | API Boilerplate (Fastify) | 8 |
-| F0.10 | Database Schema Foundation | 6 |
-| F0.11 | Frontend Boilerplate (React) | 6 |
-| F0.12 | Development Environment | 5 |
-| F0.13 | Testing Foundation | 5 |
-| F0.14 | Monitoring System Foundation | 3 |
-| **TOTAL** | | **69 Taskuri** |
+| F0.1 | Infrastructură Docker de Bază | 8 |
+| F0.2 | PostgreSQL 18.1 Setup | 9 |
+| F0.3 | Redis 8.4.0 și BullMQ Setup | 6 |
+| F0.4 | Traefik v3.6.6 Setup | 8 |
+| F0.5 | Observability Stack (SigNoz) | 7 |
+| F0.6 | PNPM și Monorepo Setup | 12 |
+| F0.7 | Backup Strategy | 9 |
+| F0.8 | Security Hardening | 9 |
+| F0.9 | API Boilerplate (Fastify) | 13 |
+| F0.10 | Database Schema Foundation | 10 |
+| F0.11 | Frontend Boilerplate (React) | 11 |
+| F0.12 | Development Environment | 8 |
+| F0.13 | Testing Foundation | 9 |
+| F0.14 | Monitoring System Foundation | 5 |
+| F0.15 | CI/CD Pipeline (GitHub Actions) | 6 |
+| F0.16 | DNS & Domain Configuration | 3 |
+| F0.17 | GitHub Repository Setup | 4 |
+| F0.18 | Documentation Generation | 3 |
+| F0.19 | Performance Baseline | 3 |
+| F0.20 | Operational Readiness | 4 |
+| **TOTAL** | | **147 Taskuri** |
 
 ---
 
@@ -41,9 +47,9 @@
 ```json
 {
   "taskID": "F0.1.1.T001",
-  "denumire_task": "Instalare și configurare Docker Engine 29.1.3 pe Ubuntu 24.04",
+  "denumire_task": "Instalare și configurare Docker Engine 29.2.0 pe Ubuntu 24.04",
   "context_anterior": "Server Hetzner bare metal fresh cu Ubuntu 24.04 LTS instalat, fără Docker. Serverul are 20 cores Intel, 128GB RAM, NVMe SSD. Directorul root al proiectului va fi /var/www/CerniqAPP.",
-  "descriere_task": "Ești un expert DevOps cu experiență extinsă în containerizare Docker și infrastructură cloud. Task-ul tău este să instalezi Docker Engine 29.1.3 (sau cea mai recentă versiune stabilă) pe Ubuntu 24.04 LTS folosind repository-ul oficial Docker.\n\nPași de urmat:\n1. Elimină orice versiune veche de Docker care ar putea exista pe sistem (docker.io, docker-doc, docker-compose, podman-docker, containerd, runc)\n2. Actualizează package lists: apt update\n3. Instalează prerequisites: apt install ca-certificates curl gnupg\n4. Adaugă GPG key oficial Docker: curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker.gpg\n5. Adaugă repository-ul Docker: echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu noble stable' > /etc/apt/sources.list.d/docker.list\n6. Instalează Docker packages: apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin\n7. Verifică instalarea cu 'docker version' și 'docker compose version'\n8. Activează și pornește serviciul: systemctl enable --now docker\n9. Verifică că Docker funcționează: docker run hello-world",
+  "descriere_task": "Ești un expert DevOps cu experiență extinsă în containerizare Docker și infrastructură cloud. Task-ul tău este să instalezi Docker Engine 29.2.0 (sau cea mai recentă versiune stabilă) pe Ubuntu 24.04 LTS folosind repository-ul oficial Docker.\n\nPași de urmat:\n1. Elimină orice versiune veche de Docker care ar putea exista pe sistem (docker.io, docker-doc, docker-compose, podman-docker, containerd, runc)\n2. Actualizează package lists: apt update\n3. Instalează prerequisites: apt install ca-certificates curl gnupg\n4. Adaugă GPG key oficial Docker: curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker.gpg\n5. Adaugă repository-ul Docker: echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu noble stable' > /etc/apt/sources.list.d/docker.list\n6. Instalează Docker packages: apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin\n7. Verifică instalarea cu 'docker version' și 'docker compose version'\n8. Activează și pornește serviciul: systemctl enable --now docker\n9. Verifică că Docker funcționează: docker run hello-world",
   "director_implementare": "/root",
   "restrictii_antihalucinatie": [
     "NU folosi snap pentru instalare Docker - folosește EXCLUSIV repository-ul oficial Docker",
@@ -54,7 +60,7 @@
     "ASIGURĂ-TE că docker compose (v2) este instalat, NU docker-compose (v1 deprecated)"
   ],
   "validare_task": "1. Comanda 'docker version' afișează Version: 28.x.x sau mai nou pentru Client și Server\n2. Comanda 'docker compose version' afișează v2.40+ sau mai nou\n3. Comanda 'systemctl status docker' arată 'active (running)'\n4. Comanda 'docker run hello-world' rulează cu succes\n5. Nu există erori în 'journalctl -u docker'",
-  "outcome": "Docker Engine 29.1.3 instalat și funcțional cu Docker Compose v2.40+ pe Ubuntu 24.04 LTS"
+  "outcome": "Docker Engine 29.2.0 instalat și funcțional cu Docker Compose v2.40+ pe Ubuntu 24.04 LTS"
 }
 ```
 
@@ -62,7 +68,7 @@
 {
   "taskID": "F0.1.1.T002",
   "denumire_task": "Configurare daemon.json optimizat pentru server 128GB RAM/20 cores",
-  "context_anterior": "Docker Engine 29.1.3 a fost instalat în F0.1.1.T001 cu configurare default. Serverul are 128GB RAM și 20 cores Intel. Acum trebuie optimizat pentru producție.",
+  "context_anterior": "Docker Engine 29.2.0 a fost instalat în F0.1.1.T001 cu configurare default. Serverul are 128GB RAM și 20 cores Intel. Acum trebuie optimizat pentru producție.",
   "descriere_task": "Ești un expert Docker specializat în optimizare pentru servere high-memory și multi-core. Task-ul tău este să creezi fișierul /etc/docker/daemon.json cu configurația optimizată pentru serverul Cerniq.\n\nCreează fișierul /etc/docker/daemon.json cu următorul conținut EXACT:\n```json\n{\n  \"storage-driver\": \"overlay2\",\n  \"log-driver\": \"json-file\",\n  \"log-opts\": {\n    \"max-size\": \"50m\",\n    \"max-file\": \"5\"\n  },\n  \"live-restore\": true,\n  \"userland-proxy\": false,\n  \"default-ulimits\": {\n    \"nofile\": {\n      \"Name\": \"nofile\",\n      \"Soft\": 65536,\n      \"Hard\": 65536\n    }\n  },\n  \"default-address-pools\": [\n    {\n      \"base\": \"172.20.0.0/16\",\n      \"size\": 24\n    }\n  ],\n  \"metrics-addr\": \"0.0.0.0:64093\"\n}\n```\n\nDupă creare:\n1. Validează JSON syntax cu 'jq . /etc/docker/daemon.json'\n2. Restartează Docker daemon: systemctl restart docker\n3. Verifică că daemon-ul a pornit cu noua configurație\n4. Verifică configurația activă cu 'docker info'",
   "director_implementare": "/etc/docker",
   "restrictii_antihalucinatie": [
@@ -83,7 +89,7 @@
   "taskID": "F0.1.1.T003",
   "denumire_task": "Creare structură directoare complete pentru proiectul CerniqAPP",
   "context_anterior": "Docker Engine configurat în F0.1.1.T002. Nu există încă structura de proiect. Vom urma Vertical Slice Architecture și structura monorepo definită în ADR-0024.",
-  "descriere_task": "Ești un expert în structurare monorepo pentru aplicații fullstack enterprise. Task-ul tău este să creezi întreaga structură de directoare pentru proiectul Cerniq.app în /var/www/CerniqAPP conform arhitecturii definite.\n\nCreează următoarea structură EXACTĂ:\n\n```\n/var/www/CerniqAPP/\n├── apps/\n│   ├── api/\n│   │   └── src/\n│   │       ├── features/\n│   │       │   ├── auth/\n│   │       │   ├── companies/\n│   │       │   ├── contacts/\n│   │       │   ├── leads/\n│   │       │   ├── approvals/\n│   │       │   └── invoicing/\n│   │       ├── plugins/\n│   │       ├── middleware/\n│   │       └── shared/\n│   └── web/\n│       └── src/\n│           ├── components/\n│           ├── pages/\n│           ├── providers/\n│           ├── hooks/\n│           └── utils/\n├── packages/\n│   ├── db/\n│   │   ├── drizzle/\n│   │   └── schema/\n│   ├── shared-types/\n│   │   └── src/\n│   └── config/\n│       ├── eslint/\n│       ├── typescript/\n│       └── tailwind/\n├── workers/\n│   ├── enrichment/\n│   ├── outreach/\n│   ├── ai/\n│   └── monitoring/\n├── infra/\n│   ├── docker/\n│   │   └── traefik/\n│   │       └── dynamic/\n│   ├── scripts/\n│   └── config/\n│       ├── postgres/\n│       ├── redis/\n│       └── otel/\n├── docs/\n│   ├── adr/\n│   ├── architecture/\n│   ├── runbooks/\n│   └── api/\n├── tests/\n│   ├── unit/\n│   ├── integration/\n│   └── e2e/\n└── secrets/\n```\n\nDupă creare:\n1. Setează permisiuni: chmod -R 755 /var/www/CerniqAPP\n2. Creează .gitkeep în fiecare director gol pentru git tracking\n3. Verifică structura cu 'tree -L 4 /var/www/CerniqAPP'",
+  "descriere_task": "Ești un expert în structurare monorepo pentru aplicații fullstack enterprise. Task-ul tău este să creezi întreaga structură de directoare pentru proiectul Cerniq.app în /var/www/CerniqAPP conform arhitecturii definite.\n\nCreează următoarea structură EXACTĂ:\n\n```\n/var/www/CerniqAPP/\n├── apps/\n│   ├── api/\n│   │   └── src/\n│   │       ├── features/\n│   │       │   ├── auth/\n│   │       │   ├── companies/\n│   │       │   ├── contacts/\n│   │       │   ├── leads/\n│   │       │   ├── approvals/\n│   │       │   └── invoicing/\n│   │       ├── plugins/\n│   │       ├── middleware/\n│   │       └── shared/\n│   └── web-admin/\n│       └── src/\n│           ├── components/\n│           ├── pages/\n│           ├── providers/\n│           ├── hooks/\n│           └── utils/\n├── packages/\n│   ├── db/\n│   │   ├── drizzle/\n│   │   └── schema/\n│   ├── shared-types/\n│   │   └── src/\n│   └── config/\n│       ├── eslint/\n│       ├── typescript/\n│       └── tailwind/\n├── workers/\n│   ├── enrichment/\n│   ├── outreach/\n│   ├── ai/\n│   └── monitoring/\n├── infra/\n│   ├── docker/\n│   │   └── traefik/\n│   │       └── dynamic/\n│   ├── scripts/\n│   └── config/\n│       ├── postgres/\n│       ├── redis/\n│       └── otel/\n├── docs/\n│   ├── adr/\n│   ├── architecture/\n│   ├── runbooks/\n│   └── api/\n├── tests/\n│   ├── unit/\n│   ├── integration/\n│   └── e2e/\n└── secrets/\n```\n\nDupă creare:\n1. Setează permisiuni: chmod -R 755 /var/www/CerniqAPP\n2. Creează .gitkeep în fiecare director gol pentru git tracking\n3. Verifică structura cu 'tree -L 4 /var/www/CerniqAPP'",
   "director_implementare": "/var/www/CerniqAPP",
   "restrictii_antihalucinatie": [
     "NU modifica structura definită - urmează EXACT specificația din ADR-0024",
@@ -1520,6 +1526,1064 @@
 
 ---
 
+## ADDENDUM v1.1: TASKURI SUPLIMENTARE (COMPLETARE 100%)
+
+### F0.1 — Infrastructură Docker (Taskuri suplimentare)
+
+```json
+{
+  "taskID": "F0.1.3.T001",
+  "denumire_task": "Creare script automat de validare Docker (check-docker.sh)",
+  "context_anterior": "Docker instalat și configurat în F0.1.1.x. Avem nevoie de verificări automate pentru health, version și log rotation.",
+  "descriere_task": "Creează scriptul /var/www/CerniqAPP/infra/scripts/check-docker.sh care validează: versiune Docker, status daemon, log-opts active, metrics endpoint și existența rețelelor cerniq_*.",
+  "director_implementare": "/var/www/CerniqAPP/infra/scripts",
+  "restrictii_antihalucinatie": ["Scriptul trebuie să fie idempotent", "NU modifica configurații în acest script"],
+  "validare_task": "Rularea scriptului returnează exit code 0 și afișează toate verificările OK",
+  "outcome": "Script de validare Docker disponibil pentru audit rapid"
+}
+```
+
+```json
+{
+  "taskID": "F0.1.3.T002",
+  "denumire_task": "Validare și documentare log rotation Docker",
+  "context_anterior": "daemon.json include log-opts dar nu există verificare/documentare.",
+  "descriere_task": "Verifică efectiv log rotation pe un container test și documentează rezultatul în docs/infrastructure/backup-strategy.md (secțiune Logs).",
+  "director_implementare": "/var/www/CerniqAPP/docs/infrastructure",
+  "restrictii_antihalucinatie": ["NU modifica daemon.json", "Documentează doar după verificare"],
+  "validare_task": "Log-urile nu depășesc 50MB și există max 5 fișiere pentru container test",
+  "outcome": "Log rotation validat și documentat"
+}
+```
+
+```json
+{
+  "taskID": "F0.1.3.T003",
+  "denumire_task": "Documentare topology rețele Docker",
+  "context_anterior": "Rețelele cerniq_public, cerniq_backend, cerniq_data sunt create în F0.1.2.T001.",
+  "descriere_task": "Completează docs/architecture/networks.md cu diagramă logică și reguli de acces per rețea.",
+  "director_implementare": "/var/www/CerniqAPP/docs/architecture",
+  "restrictii_antihalucinatie": ["NU expune rețele interne", "Folosește exact numele rețelelor"],
+  "validare_task": "Documentul include diagrama și regulile pentru fiecare rețea",
+  "outcome": "Topologie rețele Docker documentată"
+}
+```
+
+### F0.2 — PostgreSQL (Taskuri suplimentare)
+
+```json
+{
+  "taskID": "F0.2.2.T001",
+  "denumire_task": "Configurare WAL archiving pentru PITR",
+  "context_anterior": "PostgreSQL rulează, dar WAL archiving nu este configurat.",
+  "descriere_task": "Activează arhivarea WAL către storage local securizat și integrează cu BorgBackup conform etapa0-backup-restore-procedures.md.",
+  "director_implementare": "/var/www/CerniqAPP/infra/config/postgres",
+  "restrictii_antihalucinatie": ["NU expune WAL în public", "Folosește retention și cleanup"],
+  "validare_task": "WAL files sunt arhivate periodic și validate în restore test",
+  "outcome": "PITR funcțional pentru PostgreSQL"
+}
+```
+
+```json
+{
+  "taskID": "F0.2.2.T002",
+  "denumire_task": "Activare pg_stat_statements și validare performance",
+  "context_anterior": "Extensiile critice sunt activate, dar pg_stat_statements lipsește.",
+  "descriere_task": "Activează pg_stat_statements în postgresql.conf și init.sql, apoi validează că vizualizarea este disponibilă.",
+  "director_implementare": "/var/www/CerniqAPP/infra/config/postgres",
+  "restrictii_antihalucinatie": ["NU resetați configurile existente", "Asigurați restart controlat"],
+  "validare_task": "SELECT * FROM pg_stat_statements LIMIT 1 rulează fără erori",
+  "outcome": "Monitoring query performance activ"
+}
+```
+
+```json
+{
+  "taskID": "F0.2.2.T003",
+  "denumire_task": "Script validare configurare PostgreSQL",
+  "context_anterior": "Configuri sunt setate, dar lipsește validare automată.",
+  "descriere_task": "Creează script /var/www/CerniqAPP/infra/scripts/check-postgres.sh care validează versiune, extensions și config key settings.",
+  "director_implementare": "/var/www/CerniqAPP/infra/scripts",
+  "restrictii_antihalucinatie": ["Scriptul nu modifică DB", "Include exit code non-zero la fail"],
+  "validare_task": "Scriptul returnează OK pentru toate verificările",
+  "outcome": "Validare automată PostgreSQL disponibilă"
+}
+```
+
+```json
+{
+  "taskID": "F0.2.2.T004",
+  "denumire_task": "Configurare PgBouncer pentru connection pooling",
+  "context_anterior": "max_connections este limitat la 200; pooling necesar.",
+  "descriere_task": "Adaugă PgBouncer container, config și secret, conectat la cerniq_data, cu pool mode session/transaction conform spec.",
+  "director_implementare": "/var/www/CerniqAPP/infra/docker",
+  "restrictii_antihalucinatie": ["NU expune PgBouncer public", "Folosește autentificare scram"],
+  "validare_task": "Aplicația se conectează via PgBouncer și numărul de conexiuni scade",
+  "outcome": "Connection pooling activ pentru PostgreSQL"
+}
+```
+
+### F0.3 — Redis/BullMQ (Taskuri suplimentare)
+
+```json
+{
+  "taskID": "F0.3.2.T001",
+  "denumire_task": "Configurare Redis AUTH cu Docker secret",
+  "context_anterior": "Redis rulează fără autentificare.",
+  "descriere_task": "Adaugă requirepass via secret file și actualizează servicii dependente cu REDIS_PASSWORD_FILE.",
+  "director_implementare": "/var/www/CerniqAPP/infra/docker",
+  "restrictii_antihalucinatie": ["NU hardcoda parola", "NU expune port public"],
+  "validare_task": "redis-cli ping fără auth eșuează, cu auth reușește",
+  "outcome": "Redis securizat cu autentificare"
+}
+```
+
+```json
+{
+  "taskID": "F0.3.2.T002",
+  "denumire_task": "Script validare BullMQ compatibility",
+  "context_anterior": "Redis configurat pentru BullMQ, dar nu verificat automat.",
+  "descriere_task": "Creează script check-redis-bullmq.sh care validează maxmemory-policy, notify-keyspace-events și AOF.",
+  "director_implementare": "/var/www/CerniqAPP/infra/scripts",
+  "restrictii_antihalucinatie": ["Scriptul nu modifică config", "Returnează non-zero la fail"],
+  "validare_task": "Scriptul confirmă setările critice",
+  "outcome": "Validare BullMQ automatizată"
+}
+```
+
+```json
+{
+  "taskID": "F0.3.2.T003",
+  "denumire_task": "Setup RedisInsight pentru dezvoltare",
+  "context_anterior": "Lipsește un UI pentru vizualizare cozi și keyspace.",
+  "descriere_task": "Adaugă RedisInsight container în docker-compose.override.yml (dev only) și documentează accesul.",
+  "director_implementare": "/var/www/CerniqAPP/infra/docker",
+  "restrictii_antihalucinatie": ["Doar dev, nu prod", "Fără expunere publică"],
+  "validare_task": "UI RedisInsight accesibil pe localhost în dev",
+  "outcome": "Tool vizualizare Redis disponibil pentru dev"
+}
+```
+
+### F0.4 — Traefik (Taskuri suplimentare)
+
+```json
+{
+  "taskID": "F0.4.2.T001",
+  "denumire_task": "Generare htpasswd pentru Traefik dashboard",
+  "context_anterior": "Dashboard auth are placeholder.",
+  "descriere_task": "Generează credențiale htpasswd și actualizează middleware auth în config.",
+  "director_implementare": "/var/www/CerniqAPP/infra/docker/traefik",
+  "restrictii_antihalucinatie": ["NU expune credențiale în git", "Folosește bcrypt"],
+  "validare_task": "Dashboard cere autentificare și login reușește",
+  "outcome": "Dashboard Traefik securizat"
+}
+```
+
+```json
+{
+  "taskID": "F0.4.2.T002",
+  "denumire_task": "Configurare access logs JSON pentru Traefik",
+  "context_anterior": "Traefik rulează fără access logs pentru observability.",
+  "descriere_task": "Activează access logs în format JSON și forward către SigNoz.",
+  "director_implementare": "/var/www/CerniqAPP/infra/docker/traefik",
+  "restrictii_antihalucinatie": ["NU loga date sensibile", "Respectă GDPR"],
+  "validare_task": "Access logs JSON apar și sunt colectate",
+  "outcome": "Traefik access logs integrate"
+}
+```
+
+```json
+{
+  "taskID": "F0.4.2.T003",
+  "denumire_task": "Test SSL Labs și documentare rating",
+  "context_anterior": "TLS configurat, dar nevalidat extern.",
+  "descriere_task": "Rulează SSL Labs test și documentează rating-ul în docs/infrastructure/ci-cd-pipeline.md.",
+  "director_implementare": "/var/www/CerniqAPP/docs/infrastructure",
+  "restrictii_antihalucinatie": ["Nu publica date sensibile", "Include data testului"],
+  "validare_task": "Rating A sau A+ documentat",
+  "outcome": "TLS validat extern"
+}
+```
+
+```json
+{
+  "taskID": "F0.4.2.T004",
+  "denumire_task": "Validare rate limiting per endpoint",
+  "context_anterior": "Middlewares de rate limiting există, dar nu sunt testate.",
+  "descriere_task": "Testează rate limiting cu ab/hey și documentează rezultatele.",
+  "director_implementare": "/var/www/CerniqAPP/docs/infrastructure",
+  "restrictii_antihalucinatie": ["NU rula pe production", "Testează în staging"],
+  "validare_task": "Rate limiting activ și documentat",
+  "outcome": "Rate limiting validat"
+}
+```
+
+### F0.5 — Observability (Taskuri suplimentare)
+
+```json
+{
+  "taskID": "F0.5.2.T001",
+  "denumire_task": "Configurare alerte SigNoz pentru servicii critice",
+  "context_anterior": "SigNoz rulează, dar nu există alerting.",
+  "descriere_task": "Definește alerte pentru CPU, memory, latency, error rate și queue depth.",
+  "director_implementare": "/var/www/CerniqAPP/infra/config/otel",
+  "restrictii_antihalucinatie": ["Nu seta praguri nerealiste", "Include severities"],
+  "validare_task": "Alertele apar în UI și pot fi declanșate",
+  "outcome": "Alerting operațional"
+}
+```
+
+```json
+{
+  "taskID": "F0.5.2.T002",
+  "denumire_task": "Creare dashboard-uri custom pentru Cerniq",
+  "context_anterior": "Lipsește vizualizare custom pentru servicii.",
+  "descriere_task": "Creează dashboard-uri per service (API, workers, Redis, PostgreSQL).",
+  "director_implementare": "/var/www/CerniqAPP/infra/config/otel",
+  "restrictii_antihalucinatie": ["Folosește metrici standard OTel", "Documentează dashboard IDs"],
+  "validare_task": "Dashboard-urile apar în SigNoz",
+  "outcome": "Observability custom completă"
+}
+```
+
+```json
+{
+  "taskID": "F0.5.2.T003",
+  "denumire_task": "Setare retention policies în SigNoz",
+  "context_anterior": "Retenția datelor nu este configurată.",
+  "descriere_task": "Configurează retenție pentru logs, metrics și traces conform strategiei de cost.",
+  "director_implementare": "/var/www/CerniqAPP/infra/config/otel",
+  "restrictii_antihalucinatie": ["Respectă GDPR", "Documentează valorile"],
+  "validare_task": "Retention values aplicate și documentate",
+  "outcome": "Retenție SigNoz configurată"
+}
+```
+
+```json
+{
+  "taskID": "F0.5.2.T004",
+  "denumire_task": "Integrare SigNoz cu Slack/Email",
+  "context_anterior": "Alertele nu sunt livrate către echipă.",
+  "descriere_task": "Configurează webhook-uri pentru alerte către Slack/Email.",
+  "director_implementare": "/var/www/CerniqAPP/infra/config/otel",
+  "restrictii_antihalucinatie": ["NU expune webhook în git", "Folosește secrets"],
+  "validare_task": "Alertă de test ajunge pe canal",
+  "outcome": "Alerting cu notificări funcțional"
+}
+```
+
+### F0.6 — Monorepo (Taskuri suplimentare)
+
+```json
+{
+  "taskID": "F0.6.1.T009",
+  "denumire_task": "Configurare Renovate/Dependabot + GitHub Security Alerts",
+  "context_anterior": "Monorepo inițializat, dar lipsesc update-urile automate și alerting de securitate.",
+  "descriere_task": "Adaugă config pentru Renovate/Dependabot și activează GitHub Security Alerts pentru repo.",
+  "director_implementare": "/var/www/CerniqAPP/.github",
+  "restrictii_antihalucinatie": ["NU auto-merge fără review", "Limitează zgomotul de PR-uri"],
+  "validare_task": "PR automat creat pentru update minor",
+  "outcome": "Dependency automation activă"
+}
+```
+
+```json
+{
+  "taskID": "F0.6.1.T010",
+  "denumire_task": "Creare package apps/web (public frontend)",
+  "context_anterior": "Structura prevede apps/web, dar pachetul nu există.",
+  "descriere_task": "Inițializează apps/web cu Vite + React și minimal routing.",
+  "director_implementare": "/var/www/CerniqAPP/apps/web",
+  "restrictii_antihalucinatie": ["NU copia configurația admin", "Minimal boilerplate"],
+  "validare_task": "pnpm dev pornește web app fără erori",
+  "outcome": "Public frontend skeleton creat"
+}
+```
+
+```json
+{
+  "taskID": "F0.6.1.T011",
+  "denumire_task": "Configurare Husky pre-commit hooks",
+  "context_anterior": "Lipsește enforcement local pentru lint/test.",
+  "descriere_task": "Adaugă Husky + lint-staged pentru lint/format la pre-commit.",
+  "director_implementare": "/var/www/CerniqAPP",
+  "restrictii_antihalucinatie": ["NU bloca commit pentru fișiere neatinse"],
+  "validare_task": "Pre-commit rulează lint-staged",
+  "outcome": "Pre-commit quality gate activ"
+}
+```
+
+```json
+{
+  "taskID": "F0.6.1.T012",
+  "denumire_task": "Script dependency audit (OSV + pnpm audit)",
+  "context_anterior": "Nu există audit local pentru vulnerabilități.",
+  "descriere_task": "Creează script audit-deps.sh care rulează pnpm audit și osv-scanner.",
+  "director_implementare": "/var/www/CerniqAPP/infra/scripts",
+  "restrictii_antihalucinatie": ["Scriptul trebuie să fie non-destructiv"],
+  "validare_task": "Scriptul returnează exit code non-zero la vulnerabilități critice",
+  "outcome": "Audit de dependențe disponibil local"
+}
+```
+
+### F0.7 — Backup Strategy (Taskuri suplimentare)
+
+```json
+{
+  "taskID": "F0.7.2.T001",
+  "denumire_task": "Export și backup securizat al Borg repokey",
+  "context_anterior": "Repository Borg creat, dar cheia nu este exportată.",
+  "descriere_task": "Exportă repokey, stochează în 2 locații sigure și documentează procedura.",
+  "director_implementare": "/var/www/CerniqAPP/secrets",
+  "restrictii_antihalucinatie": ["NU stoca cheia pe același server", "NU pune în git"],
+  "validare_task": "borg key export/import funcționează",
+  "outcome": "Repokey securizat pentru restore"
+}
+```
+
+```json
+{
+  "taskID": "F0.7.2.T002",
+  "denumire_task": "Script verificare integritate Borg (borg check)",
+  "context_anterior": "Backups rulează, dar integritatea nu este verificată automat.",
+  "descriere_task": "Creează script scheduled pentru borg check și log rezultat.",
+  "director_implementare": "/var/www/CerniqAPP/infra/scripts",
+  "restrictii_antihalucinatie": ["Nu rula în orele de vârf", "Log obligatoriu"],
+  "validare_task": "borg check rulează automat și loghează",
+  "outcome": "Integritate backup verificată periodic"
+}
+```
+
+```json
+{
+  "taskID": "F0.7.2.T003",
+  "denumire_task": "Alerting pentru eșecuri backup",
+  "context_anterior": "Nu există notificare la eșec backup.",
+  "descriere_task": "Configurează alerting (email/Slack) pentru orice eșec Borg.",
+  "director_implementare": "/var/www/CerniqAPP/infra/scripts",
+  "restrictii_antihalucinatie": ["Nu expune webhook"],
+  "validare_task": "Alertă de test trimisă",
+  "outcome": "Alerting backup activ"
+}
+```
+
+```json
+{
+  "taskID": "F0.7.2.T004",
+  "denumire_task": "Runbook complet Disaster Recovery",
+  "context_anterior": "Procedura DR nu este complet detaliată.",
+  "descriere_task": "Completează runbook cu pașii PITR + Borg restore.",
+  "director_implementare": "/var/www/CerniqAPP/docs/runbooks",
+  "restrictii_antihalucinatie": ["Include precondiții și post-checks"],
+  "validare_task": "Runbook are pași executabili end-to-end",
+  "outcome": "Runbook DR complet"
+}
+```
+
+```json
+{
+  "taskID": "F0.7.2.T005",
+  "denumire_task": "Test restore complet pe mediu de test",
+  "context_anterior": "Backups există, dar restore-ul nu a fost testat.",
+  "descriere_task": "Execută restore pe server de test și validează consistența.",
+  "director_implementare": "/var/www/CerniqAPP/docs/runbooks",
+  "restrictii_antihalucinatie": ["NU rula pe production"],
+  "validare_task": "Restore complet și verificat",
+  "outcome": "DR testat cu succes"
+}
+```
+
+### F0.8 — Security Hardening (Taskuri suplimentare)
+
+```json
+{
+  "taskID": "F0.8.2.T001",
+  "denumire_task": "Script generate-secrets.sh",
+  "context_anterior": "Secretele sunt create manual.",
+  "descriere_task": "Creează script pentru generarea tuturor secretelor necesare cu permisiuni 600.",
+  "director_implementare": "/var/www/CerniqAPP/infra/scripts",
+  "restrictii_antihalucinatie": ["NU loga secretele", "Include chmod 600"],
+  "validare_task": "Scriptul generează toate secretele fără erori",
+  "outcome": "Generare secrete automatizată"
+}
+```
+
+```json
+{
+  "taskID": "F0.8.2.T002",
+  "denumire_task": "Procedură rotație secrete (trimestrial)",
+  "context_anterior": "Nu există rotație formală a secretelor.",
+  "descriere_task": "Documentează și implementează proces de rotație trimestrială.",
+  "director_implementare": "/var/www/CerniqAPP/docs/infrastructure",
+  "restrictii_antihalucinatie": ["Include rollback", "Include audit trail"],
+  "validare_task": "Procedura validată și documentată",
+  "outcome": "Rotație secrete definită"
+}
+```
+
+```json
+{
+  "taskID": "F0.8.2.T003",
+  "denumire_task": "Configurare fail2ban pentru SSH",
+  "context_anterior": "UFW este activ, dar lipsește protecție brute-force.",
+  "descriere_task": "Instalează și configurează fail2ban cu reguli SSH.",
+  "director_implementare": "/etc/fail2ban",
+  "restrictii_antihalucinatie": ["Nu bloca IP admin", "Setează whitelist"],
+  "validare_task": "Fail2ban active și ban-uri aplicate",
+  "outcome": "Protecție SSH brute-force"
+}
+```
+
+```json
+{
+  "taskID": "F0.8.2.T004",
+  "denumire_task": "Scanare Trivy pentru imagini Docker",
+  "context_anterior": "Security scan local lipsește.",
+  "descriere_task": "Rulează Trivy pe imaginile principale și documentează rezultatul.",
+  "director_implementare": "/var/www/CerniqAPP/infra/scripts",
+  "restrictii_antihalucinatie": ["Nu ignora CVE critical"],
+  "validare_task": "Raport Trivy generat și arhivat",
+  "outcome": "Scanare security locală"
+}
+```
+
+```json
+{
+  "taskID": "F0.8.2.T005",
+  "denumire_task": "Checklist securitate pre-release",
+  "context_anterior": "Nu există checklist standard.",
+  "descriere_task": "Creează checklist de securitate pentru release (ports, secrets, backups).",
+  "director_implementare": "/var/www/CerniqAPP/docs/governance",
+  "restrictii_antihalucinatie": ["Include validări obligatorii"],
+  "validare_task": "Checklist completat pentru un release test",
+  "outcome": "Checklist securitate disponibil"
+}
+```
+
+### F0.9 — API Boilerplate (Taskuri suplimentare)
+
+```json
+{
+  "taskID": "F0.9.2.T001",
+  "denumire_task": "Implementare rate limiting middleware complet",
+  "context_anterior": "Rate limiting definit în ADR, dar neimplementat.",
+  "descriere_task": "Adaugă middleware global și per-route cu config central.",
+  "director_implementare": "/var/www/CerniqAPP/apps/api",
+  "restrictii_antihalucinatie": ["Respectă ADR-0011"],
+  "validare_task": "Rate limiting activ pe endpoint-uri",
+  "outcome": "Rate limiting funcțional"
+}
+```
+
+```json
+{
+  "taskID": "F0.9.2.T002",
+  "denumire_task": "Generare chei JWT RS256",
+  "context_anterior": "Nu există chei JWT pentru semnare.",
+  "descriere_task": "Generează key pair RS256 și stochează în secrets.",
+  "director_implementare": "/var/www/CerniqAPP/secrets",
+  "restrictii_antihalucinatie": ["NU expune cheile", "Permisiuni 600"],
+  "validare_task": "Cheile sunt utilizabile la semnare/validare",
+  "outcome": "JWT RS256 configurat"
+}
+```
+
+```json
+{
+  "taskID": "F0.9.2.T003",
+  "denumire_task": "Implementare refresh token rotation",
+  "context_anterior": "Fluxul refresh există, dar fără rotație.",
+  "descriere_task": "Implementează rotația refresh token și revocarea token-urilor vechi.",
+  "director_implementare": "/var/www/CerniqAPP/apps/api",
+  "restrictii_antihalucinatie": ["Compatibil cu ADR-0018"],
+  "validare_task": "Refresh token vechi devine invalid după rotație",
+  "outcome": "Securitate auth îmbunătățită"
+}
+```
+
+```json
+{
+  "taskID": "F0.9.2.T004",
+  "denumire_task": "Dockerfile pentru API service",
+  "context_anterior": "Nu există Dockerfile pentru API.",
+  "descriere_task": "Creează Dockerfile multi-stage pentru apps/api.",
+  "director_implementare": "/var/www/CerniqAPP/apps/api",
+  "restrictii_antihalucinatie": ["Include non-root user", "Minimal image"],
+  "validare_task": "docker build reușește fără erori",
+  "outcome": "API containerizabil"
+}
+```
+
+```json
+{
+  "taskID": "F0.9.2.T005",
+  "denumire_task": "Implementare validare request cu Zod",
+  "context_anterior": "Zod este decis, dar nu integrat complet.",
+  "descriere_task": "Integrează validarea input/output pe rute critice.",
+  "director_implementare": "/var/www/CerniqAPP/apps/api",
+  "restrictii_antihalucinatie": ["Returnează erori standardizate"],
+  "validare_task": "Input invalid returnează 400 cu schema error",
+  "outcome": "Validare API consistentă"
+}
+```
+
+### F0.10 — Database Schema (Taskuri suplimentare)
+
+```json
+{
+  "taskID": "F0.10.2.T001",
+  "denumire_task": "Creare schema audit_logs",
+  "context_anterior": "Lipsește schema pentru audit trail.",
+  "descriere_task": "Creează schema audit_logs și tabel standard pentru logarea acțiunilor.",
+  "director_implementare": "/var/www/CerniqAPP/packages/db",
+  "restrictii_antihalucinatie": ["Include timestamps și user_id"],
+  "validare_task": "Tabelul audit_logs creat și migrat",
+  "outcome": "Audit trail disponibil"
+}
+```
+
+```json
+{
+  "taskID": "F0.10.2.T002",
+  "denumire_task": "Implementare soft delete pattern",
+  "context_anterior": "GDPR impune retenție controlată.",
+  "descriere_task": "Adaugă coloane deleted_at și filtre standard în ORM.",
+  "director_implementare": "/var/www/CerniqAPP/packages/db",
+  "restrictii_antihalucinatie": ["Nu șterge hard fără motiv"],
+  "validare_task": "Soft delete funcționează în query-uri",
+  "outcome": "Soft delete implementat"
+}
+```
+
+```json
+{
+  "taskID": "F0.10.2.T003",
+  "denumire_task": "Schema sessions/refresh_tokens",
+  "context_anterior": "Auth flow necesită persistență sesiuni.",
+  "descriere_task": "Definește tabele sessions și refresh_tokens cu index-uri.",
+  "director_implementare": "/var/www/CerniqAPP/packages/db",
+  "restrictii_antihalucinatie": ["Include TTL/expiration"],
+  "validare_task": "Migrations aplicate corect",
+  "outcome": "Persistență sesiuni" 
+}
+```
+
+```json
+{
+  "taskID": "F0.10.2.T004",
+  "denumire_task": "Setup Drizzle introspection",
+  "context_anterior": "Lipsește workflow pentru introspection.",
+  "descriere_task": "Configurează drizzle-kit introspect și documentează comanda.",
+  "director_implementare": "/var/www/CerniqAPP/packages/db",
+  "restrictii_antihalucinatie": ["Nu suprascrie schema existentă"],
+  "validare_task": "drizzle-kit introspect rulează fără erori",
+  "outcome": "Introspection Drizzle disponibil"
+}
+```
+
+### F0.11 — Frontend Boilerplate (Taskuri suplimentare)
+
+```json
+{
+  "taskID": "F0.11.2.T001",
+  "denumire_task": "Dockerfile pentru frontend",
+  "context_anterior": "Frontend nu este containerizat.",
+  "descriere_task": "Creează Dockerfile multi-stage pentru apps/web-admin.",
+  "director_implementare": "/var/www/CerniqAPP/apps/web-admin",
+  "restrictii_antihalucinatie": ["Minimal image", "Non-root user"],
+  "validare_task": "docker build reușește",
+  "outcome": "Frontend containerizabil"
+}
+```
+
+```json
+{
+  "taskID": "F0.11.2.T002",
+  "denumire_task": "Implementare Error Boundary global",
+  "context_anterior": "Nu există handling global de erori UI.",
+  "descriere_task": "Adaugă ErrorBoundary și fallback UI.",
+  "director_implementare": "/var/www/CerniqAPP/apps/web-admin",
+  "restrictii_antihalucinatie": ["Nu ascunde erorile"],
+  "validare_task": "Crash simulat afișează fallback",
+  "outcome": "Error handling UI"
+}
+```
+
+```json
+{
+  "taskID": "F0.11.2.T003",
+  "denumire_task": "Toast notifications foundation",
+  "context_anterior": "Nu există feedback user-friendly.",
+  "descriere_task": "Integrează library toast și expune hook/util.",
+  "director_implementare": "/var/www/CerniqAPP/apps/web-admin",
+  "restrictii_antihalucinatie": ["Folosește styling consistent"],
+  "validare_task": "Toast apare la eveniment test",
+  "outcome": "Feedback UX standardizat"
+}
+```
+
+```json
+{
+  "taskID": "F0.11.2.T004",
+  "denumire_task": "Setup i18n foundation (RO/EN)",
+  "context_anterior": "UI nu are suport multi-limbă.",
+  "descriere_task": "Adaugă i18n provider și două locale de bază.",
+  "director_implementare": "/var/www/CerniqAPP/apps/web-admin",
+  "restrictii_antihalucinatie": ["Nu traduce tot acum, doar foundation"],
+  "validare_task": "Switch locale funcțional",
+  "outcome": "i18n foundation"
+}
+```
+
+```json
+{
+  "taskID": "F0.11.2.T005",
+  "denumire_task": "LoginPage complet",
+  "context_anterior": "Login UI este minimal.",
+  "descriere_task": "Creează LoginPage cu validare, error states și loading.",
+  "director_implementare": "/var/www/CerniqAPP/apps/web-admin",
+  "restrictii_antihalucinatie": ["Respectă design tokens"],
+  "validare_task": "Login flow UI complet funcțional",
+  "outcome": "Login UI complet"
+}
+```
+
+### F0.12 — Development Environment (Taskuri suplimentare)
+
+```json
+{
+  "taskID": "F0.12.2.T001",
+  "denumire_task": "Creare Makefile pentru comenzi comune",
+  "context_anterior": "Comenzile sunt dispersate.",
+  "descriere_task": "Adaugă Makefile cu dev, build, lint, test, docker-up.",
+  "director_implementare": "/var/www/CerniqAPP",
+  "restrictii_antihalucinatie": ["Nu suprascrie scripturi existente"],
+  "validare_task": "make dev rulează corect",
+  "outcome": "DX îmbunătățit"
+}
+```
+
+```json
+{
+  "taskID": "F0.12.2.T002",
+  "denumire_task": "Setup .editorconfig",
+  "context_anterior": "Nu există standardizare editor.",
+  "descriere_task": "Creează .editorconfig cu reguli pentru tabs/spaces și final newline.",
+  "director_implementare": "/var/www/CerniqAPP",
+  "restrictii_antihalucinatie": ["Nu rupe style existent"],
+  "validare_task": ".editorconfig recunoscut în VSCode",
+  "outcome": "Consistență editor"
+}
+```
+
+```json
+{
+  "taskID": "F0.12.2.T003",
+  "denumire_task": "Creare CONTRIBUTING.md",
+  "context_anterior": "Nu există reguli de contribuție.",
+  "descriere_task": "Documentează flow-ul de contribuție, branch naming și DoD.",
+  "director_implementare": "/var/www/CerniqAPP",
+  "restrictii_antihalucinatie": ["Include review requirements"],
+  "validare_task": "Documentul este complet",
+  "outcome": "Guidelines contribuție"
+}
+```
+
+### F0.13 — Testing Foundation (Taskuri suplimentare)
+
+```json
+{
+  "taskID": "F0.13.2.T001",
+  "denumire_task": "Setup Playwright E2E",
+  "context_anterior": "E2E tests lipsesc.",
+  "descriere_task": "Configurează Playwright și primul test login.",
+  "director_implementare": "/var/www/CerniqAPP/tests/e2e",
+  "restrictii_antihalucinatie": ["Nu folosi date reale"],
+  "validare_task": "Test E2E rulează în CI",
+  "outcome": "E2E foundation"
+}
+```
+
+```json
+{
+  "taskID": "F0.13.2.T002",
+  "denumire_task": "Mock server pentru API externe",
+  "context_anterior": "Testele depind de providerii externi.",
+  "descriere_task": "Implementare mock server pentru ANAF/Termene/Resend.",
+  "director_implementare": "/var/www/CerniqAPP/tests/integration",
+  "restrictii_antihalucinatie": ["Nu contacta API reale"],
+  "validare_task": "Teste rulează fără acces extern",
+  "outcome": "Testare izolată"
+}
+```
+
+```json
+{
+  "taskID": "F0.13.2.T003",
+  "denumire_task": "Coverage reporting în CI",
+  "context_anterior": "Coverage nu este publicat în pipeline.",
+  "descriere_task": "Integrează raport coverage (Codecov/Sonar).",
+  "director_implementare": "/var/www/CerniqAPP/.github/workflows",
+  "restrictii_antihalucinatie": ["Nu publica secrete"],
+  "validare_task": "Coverage raportat în PR",
+  "outcome": "Visibility coverage"
+}
+```
+
+```json
+{
+  "taskID": "F0.13.2.T004",
+  "denumire_task": "Setup load testing cu k6",
+  "context_anterior": "Nu există baseline de performanță.",
+  "descriere_task": "Creează scripturi k6 pentru endpoint-uri critice.",
+  "director_implementare": "/var/www/CerniqAPP/tests/perf",
+  "restrictii_antihalucinatie": ["Nu rula pe production"],
+  "validare_task": "k6 rulează și generează raport",
+  "outcome": "Load testing foundation"
+}
+```
+
+### F0.14 — Monitoring System (Taskuri suplimentare)
+
+```json
+{
+  "taskID": "F0.14.2.T001",
+  "denumire_task": "Custom metrics pentru KPIs",
+  "context_anterior": "Lipsește set de KPI metrics.",
+  "descriere_task": "Definește counters/histograms pentru leads, jobs, errors.",
+  "director_implementare": "/var/www/CerniqAPP/packages/observability",
+  "restrictii_antihalucinatie": ["Nu include PII"],
+  "validare_task": "Metrici apar în SigNoz",
+  "outcome": "KPI metrics disponibili"
+}
+```
+
+```json
+{
+  "taskID": "F0.14.2.T002",
+  "denumire_task": "Health check aggregation dashboard",
+  "context_anterior": "Health checks există, dar nu sunt agregate.",
+  "descriere_task": "Adaugă dashboard status page pentru toate servicii.",
+  "director_implementare": "/var/www/CerniqAPP/apps/monitoring-api",
+  "restrictii_antihalucinatie": ["Include uptime și latency"],
+  "validare_task": "Dashboard agregă corect status",
+  "outcome": "Monitorizare health centralizată"
+}
+```
+
+### F0.15 — CI/CD Pipeline (Nou)
+
+```json
+{
+  "taskID": "F0.15.1.T001",
+  "denumire_task": "Workflow CI pentru PR (lint/test/build)",
+  "context_anterior": "ADR-0032 definește CI/CD; execuția de bază trebuie activată în Etapa 0.",
+  "descriere_task": "Creează .github/workflows/ci-pr.yml cu lint, typecheck, tests și build verify.",
+  "director_implementare": "/var/www/CerniqAPP/.github/workflows",
+  "restrictii_antihalucinatie": ["Nu face deploy în CI"],
+  "validare_task": "CI rulează pe PR fără erori",
+  "outcome": "CI PR activ"
+}
+```
+
+```json
+{
+  "taskID": "F0.15.1.T002",
+  "denumire_task": "Workflow CD pentru deploy tag",
+  "context_anterior": "Trebuie deploy automat pe tag.",
+  "descriere_task": "Creează .github/workflows/deploy.yml cu build/push și deploy staging/prod.",
+  "director_implementare": "/var/www/CerniqAPP/.github/workflows",
+  "restrictii_antihalucinatie": ["Deploy doar pe tags"],
+  "validare_task": "Workflow se declanșează pe tag",
+  "outcome": "CD de bază activ"
+}
+```
+
+```json
+{
+  "taskID": "F0.15.1.T003",
+  "denumire_task": "Configurare GitHub Secrets",
+  "context_anterior": "Workflows necesită secrets.",
+  "descriere_task": "Definește secrets pentru SSH, GHCR, webhook-uri.",
+  "director_implementare": "GitHub Settings",
+  "restrictii_antihalucinatie": ["Nu expune secretele în logs"],
+  "validare_task": "Secrets prezente și utilizate",
+  "outcome": "Secrets configurate"
+}
+```
+
+```json
+{
+  "taskID": "F0.15.1.T004",
+  "denumire_task": "Branch protection rules",
+  "context_anterior": "main/develop neprotejate.",
+  "descriere_task": "Setează required reviews și status checks pentru main/develop.",
+  "director_implementare": "GitHub Settings",
+  "restrictii_antihalucinatie": ["Protejează main obligatoriu"],
+  "validare_task": "PR fără review nu poate fi merge",
+  "outcome": "Branch protection activ"
+}
+```
+
+```json
+{
+  "taskID": "F0.15.1.T005",
+  "denumire_task": "GitHub Environments (staging/prod)",
+  "context_anterior": "Environments lipsesc.",
+  "descriere_task": "Definește environments cu approval gates.",
+  "director_implementare": "GitHub Settings",
+  "restrictii_antihalucinatie": ["Include approvals"],
+  "validare_task": "Deploy către prod necesită approval",
+  "outcome": "Environments configurate"
+}
+```
+
+```json
+{
+  "taskID": "F0.15.1.T006",
+  "denumire_task": "Primul deploy valid prin pipeline",
+  "context_anterior": "CI/CD configurat, dar nevalidat end-to-end.",
+  "descriere_task": "Rulează primul deploy staging cu tag rc și validează smoke tests.",
+  "director_implementare": "GitHub Actions",
+  "restrictii_antihalucinatie": ["NU face deploy direct în prod"],
+  "validare_task": "Deployment staging reușit",
+  "outcome": "Pipeline validat"
+}
+```
+
+### F0.16 — DNS & Domain Configuration (Nou)
+
+```json
+{
+  "taskID": "F0.16.1.T001",
+  "denumire_task": "Configurare DNS records primare",
+  "context_anterior": "Domeniul nu este configurat.",
+  "descriere_task": "Adaugă A/AAAA records pentru cerniq.app și www.",
+  "director_implementare": "DNS Provider",
+  "restrictii_antihalucinatie": ["Verifică TTL"],
+  "validare_task": "dig returnează IP corect",
+  "outcome": "DNS primar configurat"
+}
+```
+
+```json
+{
+  "taskID": "F0.16.1.T002",
+  "denumire_task": "Configurare subdomenii",
+  "context_anterior": "Subdomenii pentru API și admin lipsesc.",
+  "descriere_task": "Configurează api., admin., monitoring., traefik. subdomenii.",
+  "director_implementare": "DNS Provider",
+  "restrictii_antihalucinatie": ["Folosește naming standard"],
+  "validare_task": "Subdomeniile rezolvă corect",
+  "outcome": "Subdomenii funcționale"
+}
+```
+
+```json
+{
+  "taskID": "F0.16.1.T003",
+  "denumire_task": "Verificare DNS propagation",
+  "context_anterior": "DNS setat dar nevalidat global.",
+  "descriere_task": "Folosește tool-uri publice pentru confirmare propagation.",
+  "director_implementare": "DNS Provider",
+  "restrictii_antihalucinatie": ["Documentează rezultatele"],
+  "validare_task": "Propagation confirmat global",
+  "outcome": "DNS validat"
+}
+```
+
+### F0.17 — GitHub Repository Setup (Nou)
+
+```json
+{
+  "taskID": "F0.17.1.T001",
+  "denumire_task": "Creare repo GitHub și setări standard",
+  "context_anterior": "Repo configurat minim.",
+  "descriere_task": "Setează description, topics, default branch și visibility.",
+  "director_implementare": "GitHub",
+  "restrictii_antihalucinatie": ["Activează issues + PRs"],
+  "validare_task": "Repo settings completate",
+  "outcome": "Repo standardizat"
+}
+```
+
+```json
+{
+  "taskID": "F0.17.1.T002",
+  "denumire_task": "Configurare CODEOWNERS",
+  "context_anterior": "Lipsesc owneri pentru review.",
+  "descriere_task": "Adaugă CODEOWNERS pentru /apps, /workers, /docs.",
+  "director_implementare": "/var/www/CerniqAPP/.github",
+  "restrictii_antihalucinatie": ["Include cel puțin 1 owner"],
+  "validare_task": "PRs solicită review automat",
+  "outcome": "Ownership definit"
+}
+```
+
+```json
+{
+  "taskID": "F0.17.1.T003",
+  "denumire_task": "Issue/PR templates",
+  "context_anterior": "Nu există template-uri pentru issues/PRs.",
+  "descriere_task": "Creează template-uri standard pentru bug/feature/PR.",
+  "director_implementare": "/var/www/CerniqAPP/.github",
+  "restrictii_antihalucinatie": ["Include checklist"],
+  "validare_task": "Template-urile apar la creare issue/PR",
+  "outcome": "Template-uri active"
+}
+```
+
+```json
+{
+  "taskID": "F0.17.1.T004",
+  "denumire_task": "Setup GitHub Actions Runner (opțional)",
+  "context_anterior": "Runner self-hosted nu este configurat.",
+  "descriere_task": "Configurează runner self-hosted pentru build rapid.",
+  "director_implementare": "Server",
+  "restrictii_antihalucinatie": ["Runner izolat", "Token securizat"],
+  "validare_task": "Runner apare online",
+  "outcome": "Runner disponibil"
+}
+```
+
+### F0.18 — Documentation Generation (Nou)
+
+```json
+{
+  "taskID": "F0.18.1.T001",
+  "denumire_task": "Setup TypeDoc pentru API",
+  "context_anterior": "Nu există documentație generată din cod.",
+  "descriere_task": "Configurează TypeDoc pentru apps/api.",
+  "director_implementare": "/var/www/CerniqAPP/apps/api",
+  "restrictii_antihalucinatie": ["Nu expune secrete"],
+  "validare_task": "Docs generate în /docs/api/generated",
+  "outcome": "TypeDoc activ"
+}
+```
+
+```json
+{
+  "taskID": "F0.18.1.T002",
+  "denumire_task": "Generare OpenAPI din Zod",
+  "context_anterior": "Spec-urile nu sunt sincronizate automat.",
+  "descriere_task": "Integrează zod-to-openapi și generează spec.",
+  "director_implementare": "/var/www/CerniqAPP/apps/api",
+  "restrictii_antihalucinatie": ["Nu suprascrie manual specs fără review"],
+  "validare_task": "Spec generat fără erori",
+  "outcome": "OpenAPI sync"
+}
+```
+
+```json
+{
+  "taskID": "F0.18.1.T003",
+  "denumire_task": "README principal complet",
+  "context_anterior": "README nu este complet.",
+  "descriere_task": "Completează README cu quickstart, dev, deploy.",
+  "director_implementare": "/var/www/CerniqAPP/README.md",
+  "restrictii_antihalucinatie": ["Include prerequisites"],
+  "validare_task": "README acoperă setup end-to-end",
+  "outcome": "README complet"
+}
+```
+
+### F0.19 — Performance Baseline (Nou)
+
+```json
+{
+  "taskID": "F0.19.1.T001",
+  "denumire_task": "Benchmark API endpoints",
+  "context_anterior": "Nu există baseline de performanță.",
+  "descriere_task": "Rulează benchmark pe endpoint-uri critice și documentează.",
+  "director_implementare": "/var/www/CerniqAPP/tests/perf",
+  "restrictii_antihalucinatie": ["Nu folosi date reale"],
+  "validare_task": "Raport baseline creat",
+  "outcome": "Baseline performanță"
+}
+```
+
+```json
+{
+  "taskID": "F0.19.1.T002",
+  "denumire_task": "Documentare resource usage baseline",
+  "context_anterior": "Nu există baseline CPU/RAM per service.",
+  "descriere_task": "Măsoară consumul per serviciu și documentează.",
+  "director_implementare": "/var/www/CerniqAPP/docs/infrastructure",
+  "restrictii_antihalucinatie": ["Include date și medii"],
+  "validare_task": "Baseline documentat",
+  "outcome": "Resource baseline"
+}
+```
+
+```json
+{
+  "taskID": "F0.19.1.T003",
+  "denumire_task": "Alerting pentru regresii de performanță",
+  "context_anterior": "Nu există alerting pentru degradări.",
+  "descriere_task": "Configurează alerte pe creșteri de latency și error rate.",
+  "director_implementare": "/var/www/CerniqAPP/infra/config/otel",
+  "restrictii_antihalucinatie": ["Praguri realiste"],
+  "validare_task": "Alertă de test confirmată",
+  "outcome": "Alerting regresii activ"
+}
+```
+
+### F0.20 — Operational Readiness (Nou)
+
+```json
+{
+  "taskID": "F0.20.1.T001",
+  "denumire_task": "Test restore DR (recurring monthly)",
+  "context_anterior": "Restore trebuie validat periodic.",
+  "descriere_task": "Execută lunar (prima zi lucrătoare) restore complet PITR + Borg pe server test. Înregistrează rezultatul în log dedicat.",
+  "director_implementare": "/var/www/CerniqAPP/docs/runbooks",
+  "restrictii_antihalucinatie": ["NU rula pe production", "Include log date"],
+  "validare_task": "Restore complet și log actualizat",
+  "outcome": "DR test recurent"
+}
+```
+
+```json
+{
+  "taskID": "F0.20.1.T002",
+  "denumire_task": "Test runbook redis-failover",
+  "context_anterior": "Runbook există, dar nu a fost validat.",
+  "descriere_task": "Rulează un failover test în mediu de staging și documentează.",
+  "director_implementare": "/var/www/CerniqAPP/docs/runbooks",
+  "restrictii_antihalucinatie": ["Nu afecta production"],
+  "validare_task": "Failover test validat",
+  "outcome": "Runbook redis validat"
+}
+```
+
+```json
+{
+  "taskID": "F0.20.1.T003",
+  "denumire_task": "Test runbook incident-response",
+  "context_anterior": "Playbook incident nu este testat.",
+  "descriere_task": "Simulează incident și execută pașii din runbook.",
+  "director_implementare": "/var/www/CerniqAPP/docs/runbooks",
+  "restrictii_antihalucinatie": ["Documentează lecțiile"],
+  "validare_task": "Postmortem complet",
+  "outcome": "Incident response validat"
+}
+```
+
+```json
+{
+  "taskID": "F0.20.1.T004",
+  "denumire_task": "On-call rotation & escalation policy",
+  "context_anterior": "Nu există rotație on-call definită.",
+  "descriere_task": "Definește rotație și escaladare, documentează în runbook.",
+  "director_implementare": "/var/www/CerniqAPP/docs/runbooks",
+  "restrictii_antihalucinatie": ["Include contacte de urgență"],
+  "validare_task": "Policy documentată și aprobată",
+  "outcome": "On-call policy disponibilă"
+}
+```
+
+---
+
 ## NEXT: ETAPA 1 - DATA ENRICHMENT
 
 După completarea Etapa 0, continuă cu:
@@ -1532,15 +2596,15 @@ După completarea Etapa 0, continuă cu:
 
 ---
 
-**Document generat:** 15 Ianuarie 2026  
-**Versiune:** 2.0 (Complete)
+**Document generat:** 1 Februarie 2026  
+**Versiune:** 2.1 (Completat v1.1)
 **Sursă de adevăr:** Master Spec v1.2
 
 ---
 
 ## PLAN OPERAȚIONAL IERARHIZAT PE SPRINTURI
 
-Această secțiune detaliază execuția tactică a Etapei 0, organizată în Sprinturi logice pentru livrare incrementală și validare continuă.
+Această secțiune detaliază execuția tactică a Etapei 0, organizată în sprinturi de 2 săptămâni, cu PR-uri grupate logic (5-8 taskuri/PR) și CI/CD activ încă din Sprint 1.
 
 ### STRATEGIE DE BRANCHING & CI/CD
 
@@ -1553,97 +2617,231 @@ Această secțiune detaliază execuția tactică a Etapei 0, organizată în Spr
 
 #### Pipeline CI/CD (GitHub Actions)
 
-Fiecare Push pe branch-urile de feature va declanșa:
+Fiecare Push pe branch-urile de feature declanșează:
 
 1. **Static Analysis**: ESLint, Prettier, ShellCheck.
 2. **Type Safety**: TypeScript Compiler (`tsc --noEmit`).
 3. **Unit Tests**: Vitest pentru logică izolată.
 
-Fiecare Pull Request către `develop` va declanșa suplimentar:
+Fiecare Pull Request către `develop` declanșează suplimentar:
 
 1. **Integration Tests**: Teste cu containere efemere (Testcontainers).
 2. **Build Verification**: Verificare că aplicația se poate compila complet.
+3. **Security Scan**: Trivy + dependency audit.
+
+#### Convenție PR
+
+- **Format:** `E0-S{sprint}-PR{seq:02d}`
+- **Exemplu:** `E0-S1-PR02`
+- **Regulă:** Un PR poate grupa mai multe taskuri din aceeași categorie și același sprint.
 
 ---
 
-### SPRINT 0.1: FUNDAȚIA INFRASTRUCTURII (Săptămâna 1)
+### SPRINT 1 (Săptămânile 1-2): GitHub + CI/CD + DNS
 
-**Focus:** Securitate, Docker, Baze de Date.
+**Focus:** repo, automație CI/CD de bază (Etapa 0), DNS.
 
-#### 🔹 Faza 1: Core Infrastructure
-
-- **Branch:** `feature/F0.1-F0.4-infra-core`
-- **Componente Incluse:**
-  - `F0.1` Docker Base
-  - `F0.2` PostgreSQL & `F0.3` Redis
-  - `F0.4` Traefik
-  - `F0.8` Security Hardening
-- **Validare Implementare:**
-  - [Local] Script `check-infra.sh` pentru verificare porturi și health status.
-  - [Local] Validare izolare rețea (curls între containere).
-  - [CI] Linter pentru `docker-compose.yml` și config files.
-
-#### 🔹 Faza 2: Disaster Recovery
-
-- **Branch:** `feature/F0.7-backup`
-- **Componente Incluse:**
-  - `F0.7` BorgBackup Setup & Scripts
-- **Validare Implementare:**
-  - [Local] Executare manuală `backup-daily.sh`.
-  - [Local] Testare procedură `restore-postgres.sh` pe o bază de test.
+- **PR-uri (cu taskuri):**
+  - `E0-S1-PR01` — F0.17 GitHub Repo Setup
+    - F0.17.1.T001 — Creare repo GitHub și setări standard
+    - F0.17.1.T002 — Configurare CODEOWNERS
+    - F0.17.1.T003 — Issue/PR templates
+    - F0.17.1.T004 — Setup GitHub Actions Runner (opțional)
+  - `E0-S1-PR02` — F0.15 CI/CD Base (Phase 2 TODO + pregătire pentru E1 enhancements)
+    - F0.15.1.T001 — Workflow CI pentru PR (lint/test/build)
+    - F0.15.1.T002 — Workflow CD pentru deploy tag
+    - F0.15.1.T003 — Configurare GitHub Secrets
+    - F0.15.1.T004 — Branch protection rules
+    - F0.15.1.T005 — GitHub Environments (staging/prod)
+    - F0.15.1.T006 — Primul deploy valid prin pipeline
+  - `E0-S1-PR03` — F0.16 DNS & Domain Configuration
+    - F0.16.1.T001 — Configurare DNS records primare
+    - F0.16.1.T002 — Configurare subdomenii
+    - F0.16.1.T003 — Verificare DNS propagation
 
 ---
 
-### SPRINT 0.2: APPLICATION RUNTIME & DX (Săptămâna 2)
+### SPRINT 2 (Săptămânile 3-4): Docker + PostgreSQL
 
-**Focus:** Monorepo, API Setup, Frontend Setup.
-
-#### 🔹 Faza 3: Monorepo & Tooling
-
-- **Branch:** `feature/F0.6-monorepo`
-- **Componente Incluse:**
-  - `F0.6` PNPM, Turbo, Configs (ESLint/TS)
-  - `F0.12` Development Environment
-- **Validare Implementare:**
-  - [CI] Setup Node.js v24, Cache setup, Install dependencies.
-  - [CI] `turbo build` pe pachete goale.
-
-#### 🔹 Faza 4: Application Boilerplate
-
-- **Branch:** `feature/F0.9-F0.11-app-base`
-- **Componente Incluse:**
-  - `F0.9` API Fastify Structure
-  - `F0.11` Frontend React/Refine Structure
-- **Validare Implementare:**
-  - [Local] `pnpm dev` pornește ambele aplicații.
-  - [Test] Endpoint `/health` răspunde cu 200 OK.
-  - [Test] Pagina de Login se încarcă în browser.
+- **PR-uri (cu taskuri):**
+  - `E0-S2-PR01` — F0.1 Docker Base + validări
+    - F0.1.1.T001 — Instalare și configurare Docker Engine 29.2.0 pe Ubuntu 24.04
+    - F0.1.1.T002 — Configurare daemon.json optimizat pentru server 128GB RAM/20 cores
+    - F0.1.1.T003 — Creare structură directoare complete pentru proiectul CerniqAPP
+    - F0.1.2.T001 — Creare rețele Docker pentru segregarea serviciilor
+    - F0.1.2.T002 — Creare docker-compose.yml base cu definițiile rețelelor
+    - F0.1.3.T001 — Creare script automat de validare Docker (check-docker.sh)
+    - F0.1.3.T002 — Validare și documentare log rotation Docker
+    - F0.1.3.T003 — Documentare topology rețele Docker
+  - `E0-S2-PR02` — F0.2 PostgreSQL Setup + WAL/PgBouncer
+    - F0.2.1.T001 — Adăugare serviciu PostgreSQL 18.1 cu PostGIS în docker-compose.yml
+    - F0.2.1.T002 — Creare postgresql.conf optimizat pentru 128GB RAM
+    - F0.2.1.T003 — Creare script init.sql cu extensii PostgreSQL obligatorii
+    - F0.2.1.T004 — Creare secret pentru parola PostgreSQL
+    - F0.2.1.T005 — Pornire și verificare PostgreSQL container
+    - F0.2.2.T001 — Configurare WAL archiving pentru PITR
+    - F0.2.2.T002 — Activare pg_stat_statements și validare performance
+    - F0.2.2.T003 — Script validare configurare PostgreSQL
+    - F0.2.2.T004 — Configurare PgBouncer pentru connection pooling
 
 ---
 
-### SPRINT 0.3: DATA LAYER & OBSERVABILITY (Săptămâna 3)
+### SPRINT 3 (Săptămânile 5-6): Redis + Traefik
 
-**Focus:** Schema design, Testare avansată, Monitorizare.
+- **PR-uri (cu taskuri):**
+  - `E0-S3-PR01` — F0.3 Redis/BullMQ + auth
+    - F0.3.1.T001 — Adăugare serviciu Redis 8.4.0 optimizat pentru BullMQ în docker-compose.yml
+    - F0.3.1.T002 — Pornire și verificare Redis container
+    - F0.3.1.T003 — Test conectivitate între PostgreSQL și Redis pe rețeaua internă
+    - F0.3.2.T001 — Configurare Redis AUTH cu Docker secret
+    - F0.3.2.T002 — Script validare BullMQ compatibility
+    - F0.3.2.T003 — Setup RedisInsight pentru dezvoltare
+  - `E0-S3-PR02` — F0.4 Traefik + hardening
+    - F0.4.1.T001 — Creare configurație statică Traefik cu Let's Encrypt
+    - F0.4.1.T002 — Creare middleware-uri dinamice pentru securitate
+    - F0.4.1.T003 — Adăugare serviciu Traefik în docker-compose.yml
+    - F0.4.1.T004 — Pornire și verificare Traefik
+    - F0.4.2.T001 — Generare htpasswd pentru Traefik dashboard
+    - F0.4.2.T002 — Configurare access logs JSON pentru Traefik
+    - F0.4.2.T003 — Test SSL Labs și documentare rating
+    - F0.4.2.T004 — Validare rate limiting per endpoint
 
-#### 🔹 Faza 5: Database Schema & Logic
+---
 
-- **Branch:** `feature/F0.10-database`
-- **Componente Incluse:**
-  - `F0.10` Drizzle Schema, Migrations, RLS Policies
-- **Validare Implementare:**
-  - [Local] `pnpm db:migrate` rulează fără erori.
-  - [Test] Verificare pgTAP pentru constrângeri și RLS.
+### SPRINT 4 (Săptămânile 7-8): Backup + Security
 
-#### 🔹 Faza 6: Testing & Monitoring
+- **PR-uri (cu taskuri):**
+  - `E0-S4-PR01` — F0.7 Backup + DR tests (recurrence)
+    - F0.7.1.T001 — Inițializare BorgBackup Repository pe Hetzner Storage Box
+    - F0.7.1.T002 — Creare script backup zilnic cu pg_dump și BorgBackup
+    - F0.7.1.T003 — Configurare systemd timer pentru backup automat
+    - F0.7.1.T004 — Creare script restore și testare disaster recovery
+    - F0.7.2.T001 — Export și backup securizat al Borg repokey
+    - F0.7.2.T002 — Script verificare integritate Borg (borg check)
+    - F0.7.2.T003 — Alerting pentru eșecuri backup
+    - F0.7.2.T004 — Runbook complet Disaster Recovery
+    - F0.7.2.T005 — Test restore complet pe mediu de test
+  - `E0-S4-PR02` — F0.8 Security Hardening + rotation
+    - F0.8.1.T001 — Implementare Docker secrets pentru toate credențialele
+    - F0.8.1.T002 — Configurare UFW firewall cu ufw-docker
+    - F0.8.1.T003 — Hardening containere Docker (no-new-privileges, cap_drop)
+    - F0.8.1.T004 — Configurare TLS/SSL și certificate management
+    - F0.8.2.T001 — Script generate-secrets.sh
+    - F0.8.2.T002 — Procedură rotație secrete (trimestrial)
+    - F0.8.2.T003 — Configurare fail2ban pentru SSH
+    - F0.8.2.T004 — Scanare Trivy pentru imagini Docker
+    - F0.8.2.T005 — Checklist securitate pre-release
 
-- **Branch:** `feature/F0.13-F0.5-quality`
-- **Componente Incluse:**
-  - `F0.13` Testing Infra (Vitest, Factories)
-  - `F0.5` SigNoz Stack
-  - `F0.14` Monitoring UI
-- **Validare Implementare:**
-  - [CI] Rulare teste integrare cu PostgreSQL real.
-  - [Local] Verificare dashboard SigNoz primire date.
+---
+
+### SPRINT 5 (Săptămânile 9-10): Observability + Monorepo
+
+- **PR-uri (cu taskuri):**
+  - `E0-S5-PR01` — F0.5 SigNoz + alerting
+    - F0.5.1.T001 — Adăugare servicii SigNoz v0.106.0 în docker-compose.yml
+    - F0.5.1.T002 — Creare configurație OpenTelemetry Collector
+    - F0.5.1.T003 — Pornire și verificare stack observability
+    - F0.5.2.T001 — Configurare alerte SigNoz pentru servicii critice
+    - F0.5.2.T002 — Creare dashboard-uri custom pentru Cerniq
+    - F0.5.2.T003 — Setare retention policies în SigNoz
+    - F0.5.2.T004 — Integrare SigNoz cu Slack/Email
+  - `E0-S5-PR02` — F0.6 Monorepo + Renovate/Dependabot
+    - F0.6.1.T001 — Instalare Node.js v24 LTS și activare PNPM
+    - F0.6.1.T002 — Inițializare monorepo cu pnpm-workspace.yaml
+    - F0.6.1.T003 — Creare package apps/api cu Fastify v5.6.2
+    - F0.6.1.T004 — Creare package apps/web-admin cu React 19.2.3 și Refine v5
+    - F0.6.1.T005 — Creare package packages/db cu Drizzle ORM
+    - F0.6.1.T006 — Creare package packages/shared-types cu Zod schemas
+    - F0.6.1.T007 — Creare configurații shared (ESLint, TypeScript, Tailwind)
+    - F0.6.1.T008 — Instalare dependențe și verificare monorepo
+    - F0.6.1.T009 — Configurare Renovate/Dependabot + GitHub Security Alerts
+    - F0.6.1.T010 — Creare package apps/web (public frontend)
+    - F0.6.1.T011 — Configurare Husky pre-commit hooks
+    - F0.6.1.T012 — Script dependency audit (OSV + pnpm audit)
+
+---
+
+### SPRINT 6 (Săptămânile 11-12): API + Schema + Frontend
+
+- **PR-uri (cu taskuri):**
+  - `E0-S6-PR01` — F0.9 API Boilerplate
+    - F0.9.1.T001 — Creare entry point Fastify cu plugin system
+    - F0.9.1.T002 — Creare plugin system pentru Fastify
+    - F0.9.1.T003 — Creare error handling middleware standardizat
+    - F0.9.1.T004 — Creare request logging cu Pino și correlation ID
+    - F0.9.1.T005 — Creare health check endpoints
+    - F0.9.1.T006 — Creare graceful shutdown handler complet
+    - F0.9.1.T007 — Creare OpenTelemetry instrumentation
+    - F0.9.1.T008 — Test și verificare API boilerplate complet
+    - F0.9.2.T001 — Implementare rate limiting middleware complet
+    - F0.9.2.T002 — Generare chei JWT RS256
+    - F0.9.2.T003 — Implementare refresh token rotation
+    - F0.9.2.T004 — Dockerfile pentru API service
+    - F0.9.2.T005 — Implementare validare request cu Zod
+  - `E0-S6-PR02` — F0.10 Database Schema Foundation
+    - F0.10.1.T001 — Configurare Drizzle ORM connection și client
+    - F0.10.1.T002 — Creare schema tenants cu RLS foundation
+    - F0.10.1.T003 — Implementare RLS policies în PostgreSQL
+    - F0.10.1.T004 — Setup migration system cu drizzle-kit
+    - F0.10.1.T005 — Creare seed data pentru development
+    - F0.10.1.T006 — Verificare și testare multi-tenant constraints
+    - F0.10.2.T001 — Creare schema audit_logs
+    - F0.10.2.T002 — Implementare soft delete pattern
+    - F0.10.2.T003 — Schema sessions/refresh_tokens
+    - F0.10.2.T004 — Setup Drizzle introspection
+  - `E0-S6-PR03` — F0.11 Frontend Boilerplate
+    - F0.11.1.T001 — Setup React 19.2.3 cu Vite și SWC
+    - F0.11.1.T002 — Configurare Refine v5 headless
+    - F0.11.1.T003 — Setup Tailwind CSS v4 cu Oxide Engine
+    - F0.11.1.T004 — Implementare Auth Provider cu JWT refresh
+    - F0.11.1.T005 — Creare componente Layout și Navigation
+    - F0.11.1.T006 — Implementare protected routes
+    - F0.11.2.T001 — Dockerfile pentru frontend
+    - F0.11.2.T002 — Implementare Error Boundary global
+    - F0.11.2.T003 — Toast notifications foundation
+    - F0.11.2.T004 — Setup i18n foundation (RO/EN)
+    - F0.11.2.T005 — LoginPage complet
+
+---
+
+### SPRINT 7 (Săptămânile 13-14): DevEnv + Testing + Monitoring + Ops
+
+- **PR-uri (cu taskuri):**
+  - `E0-S7-PR01` — F0.12 Development Environment
+    - F0.12.1.T001 — Creare docker-compose.override.yml pentru development
+    - F0.12.1.T002 — Configurare VSCode launch.json pentru debugging
+    - F0.12.1.T003 — Creare .env.example și environment template
+    - F0.12.1.T004 — Creare scripts de development (dev, build, lint)
+    - F0.12.1.T005 — Setup local HTTPS cu mkcert (opțional)
+    - F0.12.2.T001 — Creare Makefile pentru comenzi comune
+    - F0.12.2.T002 — Setup .editorconfig
+    - F0.12.2.T003 — Creare CONTRIBUTING.md
+  - `E0-S7-PR02` — F0.13 Testing Foundation
+    - F0.13.1.T001 — Setup Vitest pentru API testing
+    - F0.13.1.T002 — Creare testing utilities și factories
+    - F0.13.1.T003 — Setup database fixtures pentru integration tests
+    - F0.13.1.T004 — Creare contract tests pentru event schemas
+    - F0.13.1.T005 — Setup pgTAP pentru database constraint tests
+    - F0.13.2.T001 — Setup Playwright E2E
+    - F0.13.2.T002 — Mock server pentru API externe
+    - F0.13.2.T003 — Coverage reporting în CI
+    - F0.13.2.T004 — Setup load testing cu k6
+  - `E0-S7-PR03` — F0.14 Monitoring System
+    - F0.14.1.T001 — Creare package @cerniq/observability pentru OTel auto-instrumentation
+    - F0.14.2.T001 — Setup apps/monitoring-api cu BullMQ API Integration
+    - F0.14.2.T002 — Custom metrics pentru KPIs
+    - F0.14.3.T001 — Implementare Monitoring Dashboard in apps/web-admin
+  - `E0-S7-PR04` — F0.18 Docs + F0.19 Perf + F0.20 Ops Readiness
+    - F0.18.1.T001 — Setup TypeDoc pentru API
+    - F0.18.1.T002 — Generare OpenAPI din Zod
+    - F0.18.1.T003 — README principal complet
+    - F0.19.1.T001 — Benchmark API endpoints
+    - F0.19.1.T002 — Documentare resource usage baseline
+    - F0.19.1.T003 — Alerting pentru regresii de performanță
+    - F0.20.1.T001 — Test restore DR (recurring monthly)
+    - F0.20.1.T002 — Test runbook redis-failover
+    - F0.20.1.T003 — Test runbook incident-response
+    - F0.20.1.T004 — On-call rotation & escalation policy
 
 ---
 

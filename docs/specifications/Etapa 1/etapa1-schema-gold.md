@@ -767,4 +767,4 @@ GRANT EXECUTE ON FUNCTION gold_get_dashboard_stats(UUID) TO cerniq_app;
 
 **Document generat:** 15 Ianuarie 2026
 **Total tabele Gold:** 3
-**Conformitate:** Master Spec v1.2, ADR-0039 (Quality Scoring)
+**Conformitate:** Master Spec v1.2, ADR-0041 (Quality Scoring)

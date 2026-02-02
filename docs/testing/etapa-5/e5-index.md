@@ -11,13 +11,11 @@
 
 | Categorie | Workeri | Document Teste |
 | --------- | ------- | -------------- |
-| A-B. Campaigns | 8 | [e5-workers-AB-campaigns.md](./e5-workers-AB-campaigns.md) |
-| C-D. Segmentation | 6 | [e5-workers-CD-segmentation.md](./e5-workers-CD-segmentation.md) |
+| A-D. Campaigns & Segmentation | 14 | [e5-workers-AD-campaigns-segmentation.md](./e5-workers-AD-campaigns-segmentation.md) |
 | E-K. Graph & Churn | 12 | [e5-workers-EK-graph-churn.md](./e5-workers-EK-graph-churn.md) |
-| Schema | — | [e5-schema-nurturing.md](./e5-schema-nurturing.md) |
-| HITL | 4 | [e5-hitl-system.md](./e5-hitl-system.md) |
+| HITL + Schema + API | 4 | [e5-hitl-schema-api.md](./e5-hitl-schema-api.md) |
 | Proximity | 6 | [e5-proximity-postgis.md](./e5-proximity-postgis.md) |
-| **TOTAL** | **58** | **6 documente** |
+| **TOTAL** | **58** | **4 documente** |
 
 ---
 

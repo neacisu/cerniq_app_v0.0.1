@@ -1,0 +1,117 @@
+openapi: 3.0.3
+info:
+  title: Cerniq.app Etapa 0 Monitoring API
+  version: 0.1.0
+  description: |
+    Monitoring endpoints pentru Etapa 0 (health, readiness, liveness, metrics).
+    Aceste endpoint-uri sunt interne și NU conțin date sensibile.
+servers:
+  - url: https://monitoring.cerniq.app
+paths:
+  /health:
+    get:
+      summary: Health check general
+      description: Verifică starea generală a aplicației și a dependențelor.
+      responses:
+        "200":
+          description: Service healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+        "503":
+          description: Service unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+  /ready:
+    get:
+      summary: Readiness check
+      description: Confirmă că serviciul este pregătit să primească trafic.
+      responses:
+        "200":
+          description: Ready
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadinessResponse"
+        "503":
+          description: Not ready
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadinessResponse"
+  /live:
+    get:
+      summary: Liveness check
+      description: Confirmă că procesul este funcțional (fără verificări externe).
+      responses:
+        "200":
+          description: Alive
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LivenessResponse"
+  /metrics:
+    get:
+      summary: Prometheus/OTel metrics
+      description: Endpoint de metrics pentru colectare observability.
+      responses:
+        "200":
+          description: Metrics stream
+          content:
+            text/plain:
+              schema:
+                type: string
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded, error]
+        timestamp:
+          type: string
+          format: date-time
+        checks:
+          type: array
+          items:
+            $ref: "#/components/schemas/DependencyCheck"
+    ReadinessResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [ready, not_ready]
+        timestamp:
+          type: string
+          format: date-time
+        dependencies:
+          type: array
+          items:
+            $ref: "#/components/schemas/DependencyCheck"
+    LivenessResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [alive]
+        timestamp:
+          type: string
+          format: date-time
+    DependencyCheck:
+      type: object
+      properties:
+        name:
+          type: string
+        status:
+          type: string
+          enum: [ok, degraded, error]
+        latency_ms:
+          type: number
+          format: float
+        error:
+          type: string
+          nullable: true
