@@ -286,6 +286,124 @@ fi
 
 echo ""
 echo "=============================================="
+echo "F0.2.1: PostgreSQL 18.1 + PostGIS + pgvector"
+echo "=============================================="
+
+# Test: PostgreSQL container exists and is running
+log_test "cerniq-postgres container is running"
+PG_RUNNING=$(docker inspect -f '{{.State.Running}}' cerniq-postgres 2>/dev/null || echo "false")
+if [[ "$PG_RUNNING" == "true" ]]; then
+    log_pass "cerniq-postgres is running"
+else
+    log_fail "cerniq-postgres is not running"
+fi
+
+# Test: PostgreSQL is healthy
+log_test "cerniq-postgres is healthy"
+PG_HEALTH=$(docker inspect -f '{{.State.Health.Status}}' cerniq-postgres 2>/dev/null || echo "unhealthy")
+if [[ "$PG_HEALTH" == "healthy" ]]; then
+    log_pass "cerniq-postgres is healthy"
+else
+    log_fail "cerniq-postgres is not healthy: $PG_HEALTH"
+fi
+
+# Test: PostgreSQL version is 18.x
+log_test "PostgreSQL version is 18.x"
+PG_VERSION=$(docker exec cerniq-postgres psql -U c3rn1q -d cerniq -t -c "SHOW server_version;" 2>/dev/null | tr -d ' ' || echo "0")
+if [[ "$PG_VERSION" == 18.* ]]; then
+    log_pass "PostgreSQL version: $PG_VERSION"
+else
+    log_fail "PostgreSQL version: $PG_VERSION (expected 18.x)"
+fi
+
+# Test: pgvector extension is installed
+log_test "pgvector extension (0.8.1) installed"
+PGVECTOR=$(docker exec cerniq-postgres psql -U c3rn1q -d cerniq -t -c "SELECT extversion FROM pg_extension WHERE extname = 'vector';" 2>/dev/null | tr -d ' ' || echo "")
+if [[ "$PGVECTOR" == "0.8.1" ]]; then
+    log_pass "pgvector version: $PGVECTOR"
+else
+    log_fail "pgvector version: $PGVECTOR (expected 0.8.1)"
+fi
+
+# Test: PostGIS extension is installed
+log_test "PostGIS extension (3.6.1) installed"
+POSTGIS=$(docker exec cerniq-postgres psql -U c3rn1q -d cerniq -t -c "SELECT extversion FROM pg_extension WHERE extname = 'postgis';" 2>/dev/null | tr -d ' ' || echo "")
+if [[ "$POSTGIS" == "3.6.1" ]]; then
+    log_pass "PostGIS version: $POSTGIS"
+else
+    log_fail "PostGIS version: $POSTGIS (expected 3.6.1)"
+fi
+
+# Test: pg_stat_statements is enabled
+log_test "pg_stat_statements extension enabled"
+PGSTAT=$(docker exec cerniq-postgres psql -U c3rn1q -d cerniq -t -c "SELECT extname FROM pg_extension WHERE extname = 'pg_stat_statements';" 2>/dev/null | tr -d ' ' || echo "")
+if [[ "$PGSTAT" == "pg_stat_statements" ]]; then
+    log_pass "pg_stat_statements is enabled"
+else
+    log_fail "pg_stat_statements is not enabled"
+fi
+
+# Test: WAL level is replica for PITR
+log_test "WAL level is replica (PITR)"
+WAL_LEVEL=$(docker exec cerniq-postgres psql -U c3rn1q -d cerniq -t -c "SHOW wal_level;" 2>/dev/null | tr -d ' ' || echo "")
+if [[ "$WAL_LEVEL" == "replica" ]]; then
+    log_pass "WAL level: $WAL_LEVEL"
+else
+    log_fail "WAL level: $WAL_LEVEL (expected replica)"
+fi
+
+# Test: Archive mode is on
+log_test "Archive mode is on"
+ARCHIVE_MODE=$(docker exec cerniq-postgres psql -U c3rn1q -d cerniq -t -c "SHOW archive_mode;" 2>/dev/null | tr -d ' ' || echo "")
+if [[ "$ARCHIVE_MODE" == "on" ]]; then
+    log_pass "Archive mode: $ARCHIVE_MODE"
+else
+    log_fail "Archive mode: $ARCHIVE_MODE (expected on)"
+fi
+
+# Test: Medallion schemas exist
+log_test "Medallion schemas exist (bronze, silver, gold)"
+SCHEMAS=$(docker exec cerniq-postgres psql -U c3rn1q -d cerniq -t -c "SELECT COUNT(*) FROM information_schema.schemata WHERE schema_name IN ('bronze', 'silver', 'gold', 'approval', 'audit');" 2>/dev/null | tr -d ' ' || echo "0")
+if [[ "$SCHEMAS" -ge 5 ]]; then
+    log_pass "Medallion schemas: $SCHEMAS found"
+else
+    log_fail "Medallion schemas: only $SCHEMAS found (expected 5)"
+fi
+
+echo ""
+echo "=============================================="
+echo "F0.2.2: PgBouncer Connection Pooling"
+echo "=============================================="
+
+# Test: PgBouncer container exists and is running
+log_test "cerniq-pgbouncer container is running"
+PGB_RUNNING=$(docker inspect -f '{{.State.Running}}' cerniq-pgbouncer 2>/dev/null || echo "false")
+if [[ "$PGB_RUNNING" == "true" ]]; then
+    log_pass "cerniq-pgbouncer is running"
+else
+    log_fail "cerniq-pgbouncer is not running"
+fi
+
+# Test: PgBouncer is healthy
+log_test "cerniq-pgbouncer is healthy"
+PGB_HEALTH=$(docker inspect -f '{{.State.Health.Status}}' cerniq-pgbouncer 2>/dev/null || echo "unhealthy")
+if [[ "$PGB_HEALTH" == "healthy" ]]; then
+    log_pass "cerniq-pgbouncer is healthy"
+else
+    log_fail "cerniq-pgbouncer is not healthy: $PGB_HEALTH"
+fi
+
+# Test: PgBouncer is accepting connections
+log_test "PgBouncer is accepting connections"
+PGB_READY=$(docker exec cerniq-pgbouncer pg_isready -h localhost -p 5432 -U c3rn1q 2>&1 || echo "failed")
+if [[ "$PGB_READY" == *"accepting connections"* ]]; then
+    log_pass "PgBouncer is accepting connections"
+else
+    log_fail "PgBouncer is not accepting connections"
+fi
+
+echo ""
+echo "=============================================="
 echo "VALIDATION SUMMARY"
 echo "=============================================="
 echo -e "Environment: ${YELLOW}$ENVIRONMENT${NC}"
