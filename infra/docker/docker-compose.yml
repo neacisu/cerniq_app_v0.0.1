@@ -43,6 +43,10 @@ volumes:
   postgres_data:
     driver: local
 
+  # PostgreSQL WAL archive for PITR
+  postgres_wal_archive:
+    driver: local
+
   # Redis data persistence (RDB snapshots)
   redis_data:
     driver: local
@@ -78,16 +82,13 @@ x-healthcheck-defaults: &healthcheck-defaults
   retries: 3
   start_period: 40s
 
-# Resource limits from ADR-0027 (128GB RAM, 20 cores server)
-x-resource-api: &resource-api
-  limits:
-    memory: 8G
-    cpus: '4'
-  reservations:
-    memory: 4G
-    cpus: '2'
+# Resource limits - STAGING CONFIGURATION
+# Current: Staging server (125GB RAM, 64 cores AMD EPYC)
+# Target (ADR-0027): Production server (128GB RAM, 20 cores)
+# WARNING: These are TEMPORARY limits. See docs/infrastructure/RESOURCE-UPGRADE-PLAN.md
+# TODO: Reconfigure when production server is upgraded
 
-x-resource-worker: &resource-worker
+x-resource-api: &resource-api
   limits:
     memory: 4G
     cpus: '2'
@@ -95,29 +96,45 @@ x-resource-worker: &resource-worker
     memory: 2G
     cpus: '1'
 
+x-resource-worker: &resource-worker
+  limits:
+    memory: 2G
+    cpus: '1'
+  reservations:
+    memory: 1G
+    cpus: '0.5'
+
 x-resource-postgres: &resource-postgres
   limits:
-    memory: 48G
-    cpus: '8'
-  reservations:
-    memory: 32G
+    memory: 16G
     cpus: '4'
+  reservations:
+    memory: 8G
+    cpus: '2'
+
+x-resource-postgres-production: &resource-postgres-production
+  limits:
+    memory: 4G
+    cpus: '2'
+  reservations:
+    memory: 2G
+    cpus: '1'
 
 x-resource-redis: &resource-redis
   limits:
-    memory: 12G
-    cpus: '2'
-  reservations:
-    memory: 8G
+    memory: 4G
     cpus: '1'
+  reservations:
+    memory: 2G
+    cpus: '0.5'
 
 x-resource-signoz: &resource-signoz
   limits:
-    memory: 16G
-    cpus: '2'
-  reservations:
-    memory: 8G
+    memory: 4G
     cpus: '1'
+  reservations:
+    memory: 2G
+    cpus: '0.5'
 
 x-resource-traefik: &resource-traefik
   limits:
@@ -128,13 +145,126 @@ x-resource-traefik: &resource-traefik
     cpus: '0.25'
 
 # ============================================================================
-# Services
+# Secrets
 # ============================================================================
-# Services will be defined in subsequent PRs:
-# - E0-S2-PR02: PostgreSQL + Redis
-# - E0-S3-PR01: Redis/BullMQ
-# - E0-S3-PR02: Traefik
-# - etc.
+# Docker secrets for sensitive data (passwords, keys)
+# Reference: etapa0-docker-secrets-guide.md
 # ============================================================================
 
-services: {}
+secrets:
+  postgres_password:
+    file: ../../secrets/postgres_password.txt
+
+# ============================================================================
+# Services
+# ============================================================================
+# E0-S2-PR02: PostgreSQL 18.1 + PgBouncer
+# ============================================================================
+
+services:
+  # ==========================================================================
+  # PostgreSQL 18.1 with PostGIS 3.6 + pgvector 0.8
+  # ==========================================================================
+  # Reference: ADR-0004, etapa0-plan-implementare-complet-v2.md
+  # Extensions: pgvector 0.8.1, PostGIS 3.6.1, pg_trgm
+  # Port: 5432 (internal only, accessed via cerniq_data network)
+  # ==========================================================================
+  postgres:
+    build:
+      context: ./postgres
+      dockerfile: Dockerfile
+    image: cerniq/postgres:18-pgvector
+    container_name: cerniq-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: c3rn1q
+      POSTGRES_DB: cerniq
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      PGDATA: /var/lib/postgresql/data/pgdata
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+    secrets:
+      - postgres_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - postgres_wal_archive:/var/lib/postgresql/wal_archive
+      - ../config/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ../config/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    networks:
+      cerniq_data:
+        ipv4_address: 172.29.0.10
+    # NO ports exposed - internal network only (security)
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U c3rn1q -d cerniq -h localhost -p 5432"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        <<: *resource-postgres
+    shm_size: 4g
+    command: 
+      - "postgres"
+      - "-c"
+      - "config_file=/etc/postgresql/postgresql.conf"
+    labels:
+      <<: *common-labels
+      com.cerniq.service: "postgres"
+      com.cerniq.port: "5432"
+    logging:
+      <<: *default-logging
+
+  # ==========================================================================
+  # PgBouncer 1.23 - Connection Pooling
+  # ==========================================================================
+  # Reference: pgbouncer-connection-pooling.md, ADR-0004
+  # Port: 6432 (internal only, accessed via cerniq_data + cerniq_backend)
+  # ==========================================================================
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    container_name: cerniq-pgbouncer
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://c3rn1q:${POSTGRES_PASSWORD}@postgres:5432/cerniq
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: 1000
+      DEFAULT_POOL_SIZE: 50
+      MIN_POOL_SIZE: 10
+      RESERVE_POOL_SIZE: 20
+      RESERVE_POOL_TIMEOUT: 5
+      AUTH_TYPE: scram-sha-256
+      IGNORE_STARTUP_PARAMETERS: extra_float_digits
+      SERVER_RESET_QUERY: DISCARD ALL
+      # Logging
+      LOG_CONNECTIONS: 1
+      LOG_DISCONNECTIONS: 1
+      VERBOSE: 0
+    networks:
+      cerniq_data:
+        ipv4_address: 172.29.0.11
+      cerniq_backend:
+        ipv4_address: 172.28.0.11
+    # NO ports exposed - internal network only (security)
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -p 5432 -U c3rn1q || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    labels:
+      <<: *common-labels
+      com.cerniq.service: "pgbouncer"
+      com.cerniq.port: "6432"
+    logging:
+      <<: *default-logging
