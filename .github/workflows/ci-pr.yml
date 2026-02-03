@@ -161,14 +161,105 @@ jobs:
         continue-on-error: true
 
   # ===========================================================================
-  # JOB 4: Docker Build Verification
+  # JOB 4: Docker Configuration Validation
+  # Validates daemon.json, docker-compose.yml, and infrastructure scripts
+  # ===========================================================================
+  docker-config:
+    name: 🐳 Docker Config Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: lint
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔎 Validate daemon.json syntax
+        run: |
+          if [ -f "./infra/config/docker/daemon.json" ]; then
+            echo "✅ Validating daemon.json syntax..."
+            python3 -m json.tool ./infra/config/docker/daemon.json > /dev/null
+            echo "✅ daemon.json is valid JSON"
+          else
+            echo "⏭️ daemon.json not found (optional)"
+          fi
+
+      - name: 🔎 Validate docker-compose.yml
+        run: |
+          if [ -f "./infra/docker/docker-compose.yml" ]; then
+            echo "✅ Validating docker-compose.yml..."
+            docker compose -f ./infra/docker/docker-compose.yml config --quiet
+            echo "✅ docker-compose.yml is valid"
+          else
+            echo "⏭️ docker-compose.yml not found (optional)"
+          fi
+
+      - name: 🔎 Check shell scripts syntax
+        run: |
+          echo "✅ Validating shell scripts..."
+          for script in ./infra/scripts/*.sh; do
+            if [ -f "$script" ]; then
+              bash -n "$script" && echo "  ✓ $script"
+            fi
+          done
+
+      - name: 🔎 Verify network configuration (ADR-0015)
+        run: |
+          if [ -f "./infra/docker/docker-compose.yml" ]; then
+            echo "✅ Checking network configuration..."
+            
+            # Check for required networks
+            for net in cerniq_public cerniq_backend cerniq_data; do
+              if grep -q "$net:" ./infra/docker/docker-compose.yml; then
+                echo "  ✓ Network $net defined"
+              else
+                echo "  ✗ Network $net missing!"
+                exit 1
+              fi
+            done
+            
+            # Verify internal networks
+            if grep -A5 "cerniq_backend:" ./infra/docker/docker-compose.yml | grep -q "internal: true"; then
+              echo "  ✓ cerniq_backend is internal"
+            else
+              echo "  ✗ cerniq_backend should be internal!"
+              exit 1
+            fi
+            
+            if grep -A5 "cerniq_data:" ./infra/docker/docker-compose.yml | grep -q "internal: true"; then
+              echo "  ✓ cerniq_data is internal"
+            else
+              echo "  ✗ cerniq_data should be internal!"
+              exit 1
+            fi
+          fi
+
+      - name: 🔎 Verify port allocation (ADR-0022)
+        run: |
+          if [ -f "./infra/docker/docker-compose.yml" ]; then
+            echo "✅ Checking port allocation compliance..."
+            
+            # Check that no ports outside 64000-64099 are used (except profiles)
+            INVALID_PORTS=$(grep -E "^\s+-\s+['\"]?[0-9]+:" ./infra/docker/docker-compose.yml | grep -vE "64[0-9]{3}:" | grep -v "#" || true)
+            
+            if [ -n "$INVALID_PORTS" ]; then
+              echo "  ⚠️ Found ports outside 64000-64099 range:"
+              echo "$INVALID_PORTS"
+              echo "  (Review if these are intentional)"
+            else
+              echo "  ✓ All ports within 64000-64099 range"
+            fi
+          fi
+
+  # ===========================================================================
+  # JOB 5: Docker Build Verification
   # Skipped until Dockerfiles exist (F0.9.2.T004, F0.11.2.T001)
   # ===========================================================================
   docker-build:
     name: 🐳 Docker Build
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: [lint, test]
+    needs: [lint, test, docker-config]
 
     steps:
       - name: 📥 Checkout code
@@ -209,7 +300,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   # ==========================================================================
-  # JOB 5: Detect changes for conditional jobs
+  # JOB 6: Detect changes for conditional jobs
   # ==========================================================================
   changes:
     name: 🧭 Detect Changes
@@ -230,7 +321,7 @@ jobs:
               - 'workers/**'
 
   # ==========================================================================
-  # JOB 6: Python Workers Lint (if applicable)
+  # JOB 7: Python Workers Lint (if applicable)
   # ==========================================================================
   python-lint:
     name: 🐍 Python Lint
@@ -265,7 +356,7 @@ jobs:
   ci-status:
     name: ✅ CI Status
     runs-on: ubuntu-latest
-    needs: [lint, test, security, docker-build]
+    needs: [lint, test, security, docker-config, docker-build]
     if: always()
 
     steps:
@@ -274,6 +365,7 @@ jobs:
           if [[ "${{ needs.lint.result }}" == "failure" ]] || \
              [[ "${{ needs.test.result }}" == "failure" ]] || \
              [[ "${{ needs.security.result }}" == "failure" ]] || \
+             [[ "${{ needs.docker-config.result }}" == "failure" ]] || \
              [[ "${{ needs.docker-build.result }}" == "failure" ]]; then
             echo "❌ CI failed"
             exit 1
