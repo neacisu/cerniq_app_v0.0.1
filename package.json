@@ -5,9 +5,21 @@
   "description": "Cerniq.app - B2B Sales Automation Platform",
   "scripts": {
     "lint": "echo 'Lint placeholder - F0.6 pending'",
-    "typecheck": "echo 'Typecheck placeholder - F0.6 pending'",
-    "test": "echo 'Test placeholder - F0.13 pending'",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:infra": "vitest run tests/e2e/infrastructure/",
+    "test:infra:server": "SERVER_TEST=true vitest run tests/e2e/infrastructure/",
+    "test:ci": "vitest run --reporter=json --reporter=verbose --outputFile=test-results/results.json",
     "build": "echo 'Build placeholder - F0.6 pending'"
+  },
+  "devDependencies": {
+    "@types/node": "^25.2.0",
+    "@vitest/coverage-v8": "^2.1.8",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8",
+    "yaml": "^2.6.1"
   },
   "engines": {
     "node": ">=24",
