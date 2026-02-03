@@ -114,3 +114,4 @@ Private — All rights reserved.
 ---
 
 **Cerniq.app** © 2026
+
