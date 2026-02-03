@@ -1,0 +1,62 @@
+# =============================================================================
+# Cerniq.app - Production Docker Compose Override
+# =============================================================================
+# Version: 1.0.0 (Minimal)
+# Purpose: Production-specific configuration overlay
+# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# TODO: Add full production services (Traefik, Redis, workers)
+# =============================================================================
+
+name: cerniq
+
+# Production uses the same base configuration
+# This file will be enhanced with:
+# - Production-specific resource limits
+# - SSL/TLS configuration
+# - Production logging
+# - Replica scaling
+
+# For now, we include minimal production overrides
+# The base docker-compose.yml is sufficient for initial deployment
+
+services:
+  # PostgreSQL production overrides
+  postgres:
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+        reservations:
+          cpus: '1'
+          memory: 2G
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"
+
+  # PgBouncer production overrides
+  pgbouncer:
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+# Networks inherited from base docker-compose.yml
+networks:
+  cerniq_public:
+    external: true
+  cerniq_backend:
+    external: true
+  cerniq_data:
+    external: true
