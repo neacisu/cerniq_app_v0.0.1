@@ -196,14 +196,36 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # ===========================================================================
-  # JOB 5: Python Workers Lint (if applicable)
-  # ===========================================================================
+  # ==========================================================================
+  # JOB 5: Detect changes for conditional jobs
+  # ==========================================================================
+  changes:
+    name: 🧭 Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      workers: ${{ steps.filter.outputs.workers }}
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔎 Paths filter
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            workers:
+              - 'workers/**'
+
+  # ==========================================================================
+  # JOB 6: Python Workers Lint (if applicable)
+  # ==========================================================================
   python-lint:
     name: 🐍 Python Lint
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    if: contains(github.event.head_commit.modified, 'workers/')
+    needs: changes
+    if: needs.changes.outputs.workers == 'true'
 
     steps:
       - name: 📥 Checkout code
