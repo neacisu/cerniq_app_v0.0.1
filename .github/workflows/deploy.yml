@@ -2,17 +2,29 @@
 # CERNIQ.APP — CD Pipeline for Deployments
 # =============================================================================
 # Workflow: deploy.yml
-# Trigger: Git tags (v*.*.*), Manual dispatch
+# Trigger: 
+#   - Push to feature/*, develop → Staging
+#   - Push to main → Production  
+#   - Git tags (v*.*.*) → Production
+#   - Manual dispatch
 # Purpose: Build, Push to Registry, Deploy to Environment
 # 
 # Reference: ADR-0107 CI/CD Pipeline Strategy
 # Created: 2026-02-01
+# Updated: 2026-02-03 - Added branch triggers for auto-deploy
 # =============================================================================
 
 name: CD Pipeline
 
 on:
   push:
+    branches:
+      - main
+      - develop
+      - 'feature/**'
+      - 'feat/**'
+      - 'fix/**'
+      - 'hotfix/**'
     tags:
       - 'v*.*.*'
   workflow_dispatch:
@@ -57,7 +69,7 @@ jobs:
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             echo "environment=${{ inputs.environment }}" >> $GITHUB_OUTPUT
             echo "version=${{ inputs.version }}" >> $GITHUB_OUTPUT
-          else
+          elif [[ "${{ github.ref_type }}" == "tag" ]]; then
             # Tag push - extract version from tag
             TAG="${{ github.ref_name }}"
             echo "version=${TAG}" >> $GITHUB_OUTPUT
@@ -67,6 +79,22 @@ jobs:
               echo "environment=production" >> $GITHUB_OUTPUT
             else
               echo "environment=staging" >> $GITHUB_OUTPUT
+            fi
+          else
+            # Branch push - determine environment by branch name
+            BRANCH="${{ github.ref_name }}"
+            SHORT_SHA="${{ github.sha }}"
+            SHORT_SHA="${SHORT_SHA:0:7}"
+            
+            if [[ "$BRANCH" == "main" ]]; then
+              echo "environment=production" >> $GITHUB_OUTPUT
+              echo "version=main-${SHORT_SHA}" >> $GITHUB_OUTPUT
+            else
+              # All other branches (develop, feature/*, feat/*, fix/*, hotfix/*) → staging
+              echo "environment=staging" >> $GITHUB_OUTPUT
+              # Sanitize branch name for version tag
+              SAFE_BRANCH=$(echo "$BRANCH" | sed 's/[^a-zA-Z0-9]/-/g' | cut -c1-20)
+              echo "version=${SAFE_BRANCH}-${SHORT_SHA}" >> $GITHUB_OUTPUT
             fi
           fi
           echo "sha=${{ github.sha }}" >> $GITHUB_OUTPUT
