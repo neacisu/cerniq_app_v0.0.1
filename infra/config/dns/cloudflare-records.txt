@@ -1,0 +1,55 @@
+# =============================================================================
+# CERNIQ.APP — DNS Configuration Record for Cloudflare
+# =============================================================================
+# Domain: cerniq.app (managed via Cloudflare)
+# Reference: F0.16.1.T001, F0.16.1.T002
+# =============================================================================
+
+# PRODUCTION DNS RECORDS (95.216.225.145)
+# Configure these in Cloudflare DNS panel
+
+# Primary Records (T001)
+# ----------------------
+# Type    Name              Content             Proxy   TTL
+# A       @                 95.216.225.145      Off     300
+# A       www               95.216.225.145      Off     300
+
+# Subdomain Records (T002)
+# ------------------------
+# Type    Name              Content             Proxy   TTL
+# A       api               95.216.225.145      Off     300
+# A       admin             95.216.225.145      Off     300
+# A       monitoring        95.216.225.145      Off     300
+# A       signoz            95.216.225.145      Off     300
+# A       traefik           95.216.225.145      Off     300
+
+# STAGING DNS RECORDS (135.181.183.164)
+# Configure these in Cloudflare DNS panel
+
+# Type    Name              Content             Proxy   TTL
+# A       staging           135.181.183.164     Off     300
+
+# =============================================================================
+# NOTES:
+# - Proxy Status: OFF (DNS only / grey cloud) for initial setup
+#   This allows Let's Encrypt HTTP-01 challenge to work
+# - After SSL is working, you can enable Cloudflare proxy (orange cloud)
+# - TTL: 300s (5 min) for flexibility during setup
+# - After stabilization: increase TTL to 3600s (1 hour)
+# =============================================================================
+
+# VALIDATION COMMANDS (T003):
+# 
+# dig +short cerniq.app
+# Expected: 95.216.225.145
+#
+# dig +short www.cerniq.app
+# Expected: 95.216.225.145
+#
+# dig +short api.cerniq.app
+# Expected: 95.216.225.145
+#
+# dig +short staging.cerniq.app
+# Expected: 135.181.183.164
+#
+# Online verification: https://www.whatsmydns.net/#A/cerniq.app
