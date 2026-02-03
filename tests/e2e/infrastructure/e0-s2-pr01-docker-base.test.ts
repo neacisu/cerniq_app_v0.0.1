@@ -512,11 +512,16 @@ describe("CI/CD: Deploy Workflow", () => {
     expect(branches).toContain("feature/**");
   });
 
-  it("should trigger on version tags", () => {
+  it("should support auto-versioning (tags created by workflow, not triggers)", () => {
+    // Note: Tag triggers removed in favor of auto-versioning
+    // The workflow creates v0.0.x tags automatically on main pushes
     const on = deployWorkflow?.on as Record<string, unknown>;
     const push = on?.push as Record<string, unknown>;
-    const tags = push?.tags as string[];
-    expect(tags).toContain("v*.*.*");
+    const branches = push?.branches as string[];
+    // Main branch triggers production with auto-versioning
+    expect(branches).toContain("main");
+    // workflow_dispatch still available for manual deploys
+    expect(on).toHaveProperty("workflow_dispatch");
   });
 
   it("should have staging deployment job", () => {

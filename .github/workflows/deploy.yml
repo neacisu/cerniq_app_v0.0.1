@@ -25,8 +25,8 @@ on:
       - 'feat/**'
       - 'fix/**'
       - 'hotfix/**'
-    tags:
-      - 'v*.*.*'
+    # Note: Tag triggers removed - tags are auto-created by this workflow
+    # Manual tag push can use workflow_dispatch
   workflow_dispatch:
     inputs:
       environment:
@@ -47,21 +47,31 @@ env:
 
 jobs:
   # ===========================================================================
-  # JOB 1: Determine Environment and Version
+  # JOB 1: Determine Environment and Version (Auto-Increment)
+  # ===========================================================================
+  # Versioning Strategy:
+  #   - 0.0.x = Development builds (auto-increment on main)
+  #   - 0.1.x = Alpha version (manual transition)
+  #   - 0.2.x = Beta version
+  #   - 1.0.0 = First stable release
   # ===========================================================================
   setup:
     name: 🔧 Setup Deployment
     runs-on: self-hosted
+    permissions:
+      contents: write
     outputs:
       environment: ${{ steps.determine.outputs.environment }}
       version: ${{ steps.determine.outputs.version }}
       sha: ${{ steps.determine.outputs.sha }}
+      should_tag: ${{ steps.determine.outputs.should_tag }}
 
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 🔧 Determine deployment parameters
         id: determine
@@ -69,10 +79,12 @@ jobs:
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             echo "environment=${{ inputs.environment }}" >> $GITHUB_OUTPUT
             echo "version=${{ inputs.version }}" >> $GITHUB_OUTPUT
+            echo "should_tag=false" >> $GITHUB_OUTPUT
           elif [[ "${{ github.ref_type }}" == "tag" ]]; then
-            # Tag push - extract version from tag
+            # Tag push - use existing tag
             TAG="${{ github.ref_name }}"
             echo "version=${TAG}" >> $GITHUB_OUTPUT
+            echo "should_tag=false" >> $GITHUB_OUTPUT
             
             # Production for release tags (v1.0.0), staging for pre-release (v1.0.0-rc.1)
             if [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
@@ -83,27 +95,61 @@ jobs:
           else
             # Branch push - determine environment by branch name
             BRANCH="${{ github.ref_name }}"
-            SHORT_SHA="${{ github.sha }}"
-            SHORT_SHA="${SHORT_SHA:0:7}"
             
             if [[ "$BRANCH" == "main" ]]; then
               echo "environment=production" >> $GITHUB_OUTPUT
-              echo "version=main-${SHORT_SHA}" >> $GITHUB_OUTPUT
+              echo "should_tag=true" >> $GITHUB_OUTPUT
+              
+              # Auto-increment version: find latest v0.0.x tag and increment
+              LATEST_TAG=$(git tag -l "v0.0.*" --sort=-v:refname | head -n1)
+              
+              if [[ -z "$LATEST_TAG" ]]; then
+                # No tags yet, start at v0.0.1
+                NEW_VERSION="v0.0.1"
+              else
+                # Extract patch number and increment
+                PATCH=$(echo "$LATEST_TAG" | sed 's/v0\.0\.//')
+                NEW_PATCH=$((PATCH + 1))
+                NEW_VERSION="v0.0.${NEW_PATCH}"
+              fi
+              
+              echo "version=${NEW_VERSION}" >> $GITHUB_OUTPUT
+              echo "📦 Auto-versioning: $LATEST_TAG → $NEW_VERSION"
             else
               # All other branches (develop, feature/*, feat/*, fix/*, hotfix/*) → staging
               echo "environment=staging" >> $GITHUB_OUTPUT
+              echo "should_tag=false" >> $GITHUB_OUTPUT
+              
               # Sanitize branch name for version tag
+              SHORT_SHA="${{ github.sha }}"
+              SHORT_SHA="${SHORT_SHA:0:7}"
               SAFE_BRANCH=$(echo "$BRANCH" | sed 's/[^a-zA-Z0-9]/-/g' | cut -c1-20)
               echo "version=${SAFE_BRANCH}-${SHORT_SHA}" >> $GITHUB_OUTPUT
             fi
           fi
           echo "sha=${{ github.sha }}" >> $GITHUB_OUTPUT
 
+      - name: 🏷️ Create Git Tag (Production Auto-Version)
+        if: steps.determine.outputs.should_tag == 'true'
+        run: |
+          VERSION="${{ steps.determine.outputs.version }}"
+          
+          # Configure git
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Create and push tag
+          git tag -a "$VERSION" -m "Release $VERSION (auto-generated)"
+          git push origin "$VERSION"
+          
+          echo "✅ Created and pushed tag: $VERSION"
+
       - name: 📋 Display deployment info
         run: |
           echo "🎯 Environment: ${{ steps.determine.outputs.environment }}"
           echo "🏷️ Version: ${{ steps.determine.outputs.version }}"
           echo "📝 SHA: ${{ steps.determine.outputs.sha }}"
+          echo "🔖 Should Tag: ${{ steps.determine.outputs.should_tag }}"
 
   # ===========================================================================
   # JOB 2: Build and Push Docker Images
@@ -370,6 +416,8 @@ jobs:
     runs-on: self-hosted
     needs: [setup, deploy-staging, deploy-production]
     if: always() && (needs.deploy-staging.result == 'success' || needs.deploy-production.result == 'success')
+    permissions:
+      contents: write
 
     steps:
       - name: 📥 Checkout code
@@ -431,11 +479,28 @@ jobs:
           ENDSSH
 
       - name: 📋 Create GitHub Release
-        if: needs.setup.outputs.environment == 'production' && startsWith(github.ref, 'refs/tags/')
-        continue-on-error: true
+        if: needs.setup.outputs.environment == 'production'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.setup.outputs.version }}
+          name: "Release ${{ needs.setup.outputs.version }}"
           generate_release_notes: true
           draft: false
-          prerelease: false
+          prerelease: ${{ !startsWith(needs.setup.outputs.version, 'v1.') }}
+          body: |
+            ## 🚀 Automated Release
+            
+            **Version:** ${{ needs.setup.outputs.version }}
+            **Environment:** Production
+            **Commit:** ${{ needs.setup.outputs.sha }}
+            
+            ### 📦 Docker Images
+            - `ghcr.io/${{ github.repository_owner }}/cerniq-api:${{ needs.setup.outputs.version }}`
+            - `ghcr.io/${{ github.repository_owner }}/cerniq-web:${{ needs.setup.outputs.version }}`
+            - `ghcr.io/${{ github.repository_owner }}/cerniq-web-admin:${{ needs.setup.outputs.version }}`
+            - `ghcr.io/${{ github.repository_owner }}/cerniq-worker-ai:${{ needs.setup.outputs.version }}`
+            - `ghcr.io/${{ github.repository_owner }}/cerniq-worker-enrichment:${{ needs.setup.outputs.version }}`
+            - `ghcr.io/${{ github.repository_owner }}/cerniq-worker-outreach:${{ needs.setup.outputs.version }}`
+            
+            ---
+            _This release was automatically created by CI/CD pipeline._
