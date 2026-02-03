@@ -1,0 +1,19 @@
+# Cerniq Staging - Dynamic Traefik Configuration
+# This file is loaded by neanelu_traefik via file provider
+
+http:
+  routers:
+    cerniq-staging:
+      rule: "Host(\`staging.cerniq.app\`)"
+      entryPoints:
+        - websecure
+      service: cerniq-staging-svc
+      tls:
+        certResolver: letsencrypt
+      priority: 500
+
+  services:
+    cerniq-staging-svc:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:64080"
