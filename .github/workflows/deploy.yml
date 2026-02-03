@@ -239,6 +239,28 @@ jobs:
             echo "✅ Staging deployment complete: ${{ needs.setup.outputs.version }}"
           ENDSSH
 
+      - name: 🧪 Run Infrastructure Validation Tests
+        run: |
+          # Copy validation script to server
+          scp -i ~/.ssh/deploy_key infra/scripts/validate-infrastructure.sh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}:/tmp/
+          
+          # Run validation tests on server
+          ssh -i ~/.ssh/deploy_key ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'ENDSSH'
+            chmod +x /tmp/validate-infrastructure.sh
+            /tmp/validate-infrastructure.sh staging
+            
+            # Display results
+            cat /tmp/validation-results.json
+          ENDSSH
+
+      - name: 📤 Upload Validation Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-validation-results
+          path: /tmp/validation-results.json
+          retention-days: 30
+
       - name: 📢 Notify Slack
         if: always()
         uses: slackapi/slack-github-action@v1.26.0
@@ -300,6 +322,28 @@ jobs:
             
             echo "✅ Production deployment complete: ${{ needs.setup.outputs.version }}"
           ENDSSH
+
+      - name: 🧪 Run Infrastructure Validation Tests
+        run: |
+          # Copy validation script to server
+          scp -i ~/.ssh/deploy_key infra/scripts/validate-infrastructure.sh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}:/tmp/
+          
+          # Run validation tests on server
+          ssh -i ~/.ssh/deploy_key ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
+            chmod +x /tmp/validate-infrastructure.sh
+            /tmp/validate-infrastructure.sh production
+            
+            # Display results
+            cat /tmp/validation-results.json
+          ENDSSH
+
+      - name: 📤 Upload Validation Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-validation-results
+          path: /tmp/validation-results.json
+          retention-days: 90
 
       - name: 📢 Notify Slack
         if: always()
