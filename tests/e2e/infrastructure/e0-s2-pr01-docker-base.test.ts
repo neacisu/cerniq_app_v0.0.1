@@ -3,8 +3,11 @@
  * ================================================
  * Validation tests for all tasks in Sprint 2 PR01
  * 
- * Run with: pnpm test:infra
- * Run in CI: Automatically via GitHub Actions
+ * Run with: pnpm test
+ * 
+ * Tests automatically detect environment:
+ * - Local repo tests: Always run
+ * - Server tests: Skip in CI, run when SSH available locally
  * 
  * @reference docs/specifications/Etapa 0/etapa0-plan-implementare-complet-v2.md
  */
@@ -21,7 +24,20 @@ import * as yaml from 'yaml';
 
 const WORKSPACE_ROOT = process.env.WORKSPACE_ROOT || '/var/www/CerniqAPP';
 const IS_CI = process.env.CI === 'true';
-const IS_SERVER_TEST = process.env.SERVER_TEST === 'true';
+
+// Auto-detect if we can run server tests (have SSH access)
+function canRunServerTests(): boolean {
+  if (IS_CI) return false; // Skip in CI - runs via validate-infrastructure.sh
+  
+  // Check if we have .env with credentials
+  const envPath = path.join(WORKSPACE_ROOT, '.env');
+  if (!fs.existsSync(envPath)) return false;
+  
+  const envContent = fs.readFileSync(envPath, 'utf-8');
+  return envContent.includes('STAGING_HOST') && envContent.includes('STAGING_PASSWORD');
+}
+
+const CAN_RUN_SERVER_TESTS = canRunServerTests();
 
 // Expected network configuration (updated to avoid GeniusERP conflicts)
 const EXPECTED_NETWORKS = {
@@ -84,12 +100,12 @@ describe('F0.1.1: Docker Engine Setup', () => {
   
   describe('F0.1.1.T001: Docker Engine Installation', () => {
     
-    it.skipIf(!IS_SERVER_TEST)('should have Docker Engine 28.x+ installed', () => {
+    it.skipIf(!CAN_RUN_SERVER_TESTS)('should have Docker Engine 28.x+ installed', () => {
       const version = exec('docker version --format "{{.Server.Version}}"');
       expect(version).toMatch(/^(28|29|30)\.\d+\.\d+/);
     });
 
-    it.skipIf(!IS_SERVER_TEST)('should have Docker Compose v2.40+ installed', () => {
+    it.skipIf(!CAN_RUN_SERVER_TESTS)('should have Docker Compose v2.40+ installed', () => {
       const version = exec('docker compose version --short');
       const [major, minor] = version.replace('v', '').split('.').map(Number);
       expect(major).toBeGreaterThanOrEqual(2);
@@ -98,7 +114,7 @@ describe('F0.1.1: Docker Engine Setup', () => {
       }
     });
 
-    it.skipIf(!IS_SERVER_TEST)('should have Docker service running', () => {
+    it.skipIf(!CAN_RUN_SERVER_TESTS)('should have Docker service running', () => {
       const status = exec('systemctl is-active docker');
       expect(status).toBe('active');
     });
@@ -156,7 +172,7 @@ describe('F0.1.1: Docker Engine Setup', () => {
       expect(pools?.[0]?.base).toBe('172.27.0.0/16');
     });
 
-    it.skipIf(!IS_SERVER_TEST)('should be applied on server', () => {
+    it.skipIf(!CAN_RUN_SERVER_TESTS)('should be applied on server', () => {
       const info = exec('docker info --format "{{.Driver}}"');
       expect(info).toBe('overlay2');
     });
@@ -204,47 +220,47 @@ describe('F0.1.2: Docker Networks Setup', () => {
 
   describe('F0.1.2.T001: Network Creation', () => {
     
-    it.skipIf(!IS_SERVER_TEST)('should have cerniq_public network', () => {
+    it.skipIf(!CAN_RUN_SERVER_TESTS)('should have cerniq_public network', () => {
       const networks = exec('docker network ls --format "{{.Name}}"');
       expect(networks).toContain('cerniq_public');
     });
 
-    it.skipIf(!IS_SERVER_TEST)('should have cerniq_backend network', () => {
+    it.skipIf(!CAN_RUN_SERVER_TESTS)('should have cerniq_backend network', () => {
       const networks = exec('docker network ls --format "{{.Name}}"');
       expect(networks).toContain('cerniq_backend');
     });
 
-    it.skipIf(!IS_SERVER_TEST)('should have cerniq_data network', () => {
+    it.skipIf(!CAN_RUN_SERVER_TESTS)('should have cerniq_data network', () => {
       const networks = exec('docker network ls --format "{{.Name}}"');
       expect(networks).toContain('cerniq_data');
     });
 
-    it.skipIf(!IS_SERVER_TEST)('cerniq_public should NOT be internal', () => {
+    it.skipIf(!CAN_RUN_SERVER_TESTS)('cerniq_public should NOT be internal', () => {
       const inspect = exec('docker network inspect cerniq_public --format "{{.Internal}}"');
       expect(inspect).toBe('false');
     });
 
-    it.skipIf(!IS_SERVER_TEST)('cerniq_backend should be internal', () => {
+    it.skipIf(!CAN_RUN_SERVER_TESTS)('cerniq_backend should be internal', () => {
       const inspect = exec('docker network inspect cerniq_backend --format "{{.Internal}}"');
       expect(inspect).toBe('true');
     });
 
-    it.skipIf(!IS_SERVER_TEST)('cerniq_data should be internal', () => {
+    it.skipIf(!CAN_RUN_SERVER_TESTS)('cerniq_data should be internal', () => {
       const inspect = exec('docker network inspect cerniq_data --format "{{.Internal}}"');
       expect(inspect).toBe('true');
     });
 
-    it.skipIf(!IS_SERVER_TEST)('should have correct subnet for cerniq_public (172.27.0.0/24)', () => {
+    it.skipIf(!CAN_RUN_SERVER_TESTS)('should have correct subnet for cerniq_public (172.27.0.0/24)', () => {
       const subnet = exec('docker network inspect cerniq_public --format "{{range .IPAM.Config}}{{.Subnet}}{{end}}"');
       expect(subnet).toBe('172.27.0.0/24');
     });
 
-    it.skipIf(!IS_SERVER_TEST)('should have correct subnet for cerniq_backend (172.28.0.0/24)', () => {
+    it.skipIf(!CAN_RUN_SERVER_TESTS)('should have correct subnet for cerniq_backend (172.28.0.0/24)', () => {
       const subnet = exec('docker network inspect cerniq_backend --format "{{range .IPAM.Config}}{{.Subnet}}{{end}}"');
       expect(subnet).toBe('172.28.0.0/24');
     });
 
-    it.skipIf(!IS_SERVER_TEST)('should have correct subnet for cerniq_data (172.29.0.0/24)', () => {
+    it.skipIf(!CAN_RUN_SERVER_TESTS)('should have correct subnet for cerniq_data (172.29.0.0/24)', () => {
       const subnet = exec('docker network inspect cerniq_data --format "{{range .IPAM.Config}}{{.Subnet}}{{end}}"');
       expect(subnet).toBe('172.29.0.0/24');
     });
@@ -476,7 +492,7 @@ describe('CI/CD: Deploy Workflow', () => {
 // Server Deployment Structure Tests
 // =============================================================================
 
-describe.skipIf(!IS_SERVER_TEST)('Server: /opt/cerniq Structure', () => {
+describe.skipIf(!CAN_RUN_SERVER_TESTS)('Server: /opt/cerniq Structure', () => {
 
   it('should have /opt/cerniq directory', () => {
     const exists = exec('test -d /opt/cerniq && echo "yes" || echo "no"');

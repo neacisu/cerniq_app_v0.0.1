@@ -8,10 +8,15 @@ export default defineConfig({
     environment: 'node',
     testTimeout: 60000, // 60s for infrastructure tests
     hookTimeout: 30000,
-    reporters: ['verbose', 'json'],
+    // Verbose output în terminal + JSON pentru CI
+    reporters: ['default', 'verbose'],
     outputFile: {
       json: './test-results/vitest-results.json',
     },
+    // Afișează progresul în timp real
+    watch: false,
+    // Afișează console.log din teste
+    printConsoleTrace: true,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

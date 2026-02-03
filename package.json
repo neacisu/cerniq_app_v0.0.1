@@ -9,10 +9,6 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:infra": "vitest run tests/e2e/infrastructure/",
-    "test:infra:server": "SERVER_TEST=true vitest run tests/e2e/infrastructure/",
-    "test:infra:remote:staging": "source .env && sshpass -p \"$STAGING_PASSWORD\" scp -o StrictHostKeyChecking=no infra/scripts/validate-infrastructure.sh root@$STAGING_HOST:/tmp/ && sshpass -p \"$STAGING_PASSWORD\" ssh -o StrictHostKeyChecking=no root@$STAGING_HOST 'chmod +x /tmp/validate-infrastructure.sh && /tmp/validate-infrastructure.sh staging'",
-    "test:infra:remote:production": "source .env && sshpass -p \"$PRODUCTION_PASSWORD\" scp -o StrictHostKeyChecking=no infra/scripts/validate-infrastructure.sh root@$PRODUCTION_HOST:/tmp/ && sshpass -p \"$PRODUCTION_PASSWORD\" ssh -o StrictHostKeyChecking=no root@$PRODUCTION_HOST 'chmod +x /tmp/validate-infrastructure.sh && /tmp/validate-infrastructure.sh production'",
     "test:ci": "vitest run --reporter=json --reporter=verbose --outputFile=test-results/results.json",
     "build": "echo 'Build placeholder - F0.6 pending'"
   },
