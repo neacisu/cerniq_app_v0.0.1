@@ -1,0 +1,17 @@
+{
+  "name": "cerniq-app",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Cerniq.app - B2B Sales Automation Platform",
+  "scripts": {
+    "lint": "echo 'Lint placeholder - F0.6 pending'",
+    "typecheck": "echo 'Typecheck placeholder - F0.6 pending'",
+    "test": "echo 'Test placeholder - F0.13 pending'",
+    "build": "echo 'Build placeholder - F0.6 pending'"
+  },
+  "engines": {
+    "node": ">=24",
+    "pnpm": ">=9"
+  },
+  "packageManager": "pnpm@9.15.0"
+}
