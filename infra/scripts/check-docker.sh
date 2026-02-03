@@ -193,7 +193,7 @@ check_networks() {
     log_section "Docker Networks Check"
     
     local networks=("cerniq_public" "cerniq_backend" "cerniq_data")
-    local subnets=("172.20.0.0/24" "172.21.0.0/24" "172.22.0.0/24")
+    local subnets=("172.27.0.0/24" "172.28.0.0/24" "172.29.0.0/24")
     local internal=("false" "true" "true")
     
     for i in "${!networks[@]}"; do

@@ -20,7 +20,7 @@ Cerniq.app utilizează trei rețele Docker izolate pentru a asigura separarea tr
                                       │
                                       ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                         cerniq_public (172.20.0.0/24)                       │
+│                         cerniq_public (172.27.0.0/24)                       │
 │  ┌──────────────────────────────────────────────────────────────────────┐  │
 │  │                                                                       │  │
 │  │   ┌─────────────┐    ┌─────────────┐    ┌─────────────┐              │  │
@@ -35,7 +35,7 @@ Cerniq.app utilizează trei rețele Docker izolate pentru a asigura separarea tr
               │                  │                  │
               ▼                  ▼                  ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                      cerniq_backend (172.21.0.0/24)                         │
+│                      cerniq_backend (172.28.0.0/24)                         │
 │                           internal: true                                     │
 │  ┌──────────────────────────────────────────────────────────────────────┐  │
 │  │                                                                       │  │
@@ -51,7 +51,7 @@ Cerniq.app utilizează trei rețele Docker izolate pentru a asigura separarea tr
               │                  │                  │
               ▼                  ▼                  ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                        cerniq_data (172.22.0.0/24)                          │
+│                        cerniq_data (172.29.0.0/24)                          │
 │                           internal: true                                     │
 │  ┌──────────────────────────────────────────────────────────────────────┐  │
 │  │                                                                       │  │
@@ -68,12 +68,12 @@ Cerniq.app utilizează trei rețele Docker izolate pentru a asigura separarea tr
 
 ## Network Details
 
-### cerniq_public (172.20.0.0/24)
+### cerniq_public (172.27.0.0/24)
 
 | Property | Value |
 |----------|-------|
-| **Subnet** | 172.20.0.0/24 |
-| **Gateway** | 172.20.0.1 |
+| **Subnet** | 172.27.0.0/24 |
+| **Gateway** | 172.27.0.1 |
 | **Driver** | bridge |
 | **Internal** | false (external access allowed) |
 | **Purpose** | Servicii accesibile extern prin Traefik |
@@ -84,12 +84,12 @@ Cerniq.app utilizează trei rețele Docker izolate pentru a asigura separarea tr
 - Admin App (React admin)
 - Monitoring UI (când este expus)
 
-### cerniq_backend (172.21.0.0/24)
+### cerniq_backend (172.28.0.0/24)
 
 | Property | Value |
 |----------|-------|
-| **Subnet** | 172.21.0.0/24 |
-| **Gateway** | 172.21.0.1 |
+| **Subnet** | 172.28.0.0/24 |
+| **Gateway** | 172.28.0.1 |
 | **Driver** | bridge |
 | **Internal** | true (NO external access) |
 | **Purpose** | Comunicare internă API și Workers |
@@ -104,12 +104,12 @@ Cerniq.app utilizează trei rețele Docker izolate pentru a asigura separarea tr
 
 **⚠️ IMPORTANT:** Această rețea este `internal: true` - containerele NU pot accesa internetul direct.
 
-### cerniq_data (172.22.0.0/24)
+### cerniq_data (172.29.0.0/24)
 
 | Property | Value |
 |----------|-------|
-| **Subnet** | 172.22.0.0/24 |
-| **Gateway** | 172.22.0.1 |
+| **Subnet** | 172.29.0.0/24 |
+| **Gateway** | 172.29.0.1 |
 | **Driver** | bridge |
 | **Internal** | true (NO external access) |
 | **Purpose** | Database și cache strict intern |
@@ -200,20 +200,20 @@ ufw deny 64000:64099/tcp
 ```bash
 # Create networks manually (if needed)
 docker network create --driver bridge \
-  --subnet 172.20.0.0/24 \
-  --gateway 172.20.0.1 \
+  --subnet 172.27.0.0/24 \
+  --gateway 172.27.0.1 \
   cerniq_public
 
 docker network create --driver bridge \
   --internal \
-  --subnet 172.21.0.0/24 \
-  --gateway 172.21.0.1 \
+  --subnet 172.28.0.0/24 \
+  --gateway 172.28.0.1 \
   cerniq_backend
 
 docker network create --driver bridge \
   --internal \
-  --subnet 172.22.0.0/24 \
-  --gateway 172.22.0.1 \
+  --subnet 172.29.0.0/24 \
+  --gateway 172.29.0.1 \
   cerniq_data
 
 # Inspect network

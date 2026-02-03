@@ -1,65 +1,36 @@
 # ============================================================================
 # Cerniq.app - Docker Compose Base Configuration
 # ============================================================================
-# Version: 1.0.0
+# Version: 1.0.1
 # Last Updated: 2026-02-03
 # References: ADR-0015, ADR-0022, ADR-0027
 # ============================================================================
-# IMPORTANT: This is the base compose file with network definitions only.
-# Service-specific compose files will extend this in subsequent PRs.
+# IMPORTANT: Networks are created externally via `docker network create`
+# to ensure proper isolation and persistence across compose restarts.
+# See: docs/infrastructure/network-topology.md
 # ============================================================================
 
 name: cerniq
 
 # ============================================================================
-# Networks
+# Networks (External)
 # ============================================================================
-# Network Architecture (ADR-0015):
-# - cerniq_public:  Traefik + publicly accessible services (172.20.0.0/24)
-# - cerniq_backend: API + Workers internal communication (172.21.0.0/24)
-# - cerniq_data:    PostgreSQL + Redis strict internal (172.22.0.0/24)
+# Networks are pre-created on servers (staging/production) with:
+#   docker network create --subnet X.X.X.X/24 [--internal] <name>
+#
+# Subnets (avoiding conflicts with GeniusERP/Neanelu on staging):
+# - cerniq_public:  172.27.0.0/24 (external access via Traefik)
+# - cerniq_backend: 172.28.0.0/24 (internal: API + Workers)
+# - cerniq_data:    172.29.0.0/24 (internal: PostgreSQL + Redis)
 # ============================================================================
 
 networks:
-  # Public network - Traefik and services that need external access
   cerniq_public:
-    driver: bridge
-    ipam:
-      driver: default
-      config:
-        - subnet: 172.20.0.0/24
-          gateway: 172.20.0.1
-    labels:
-      - "com.cerniq.network.type=public"
-      - "com.cerniq.network.description=Traefik and publicly accessible services"
-
-  # Backend network - API and Workers internal communication
-  # internal: true means no external connectivity
+    external: true
   cerniq_backend:
-    driver: bridge
-    internal: true
-    ipam:
-      driver: default
-      config:
-        - subnet: 172.21.0.0/24
-          gateway: 172.21.0.1
-    labels:
-      - "com.cerniq.network.type=backend"
-      - "com.cerniq.network.description=API and Workers internal communication"
-
-  # Data network - Database and cache strict internal access
-  # internal: true means no external connectivity
+    external: true
   cerniq_data:
-    driver: bridge
-    internal: true
-    ipam:
-      driver: default
-      config:
-        - subnet: 172.22.0.0/24
-          gateway: 172.22.0.1
-    labels:
-      - "com.cerniq.network.type=data"
-      - "com.cerniq.network.description=PostgreSQL and Redis strict internal"
+    external: true
 
 # ============================================================================
 # Volumes
@@ -71,30 +42,18 @@ volumes:
   # PostgreSQL data persistence
   postgres_data:
     driver: local
-    labels:
-      - "com.cerniq.volume.type=database"
-      - "com.cerniq.volume.backup=true"
 
   # Redis data persistence (RDB snapshots)
   redis_data:
     driver: local
-    labels:
-      - "com.cerniq.volume.type=cache"
-      - "com.cerniq.volume.backup=true"
+
+  # Traefik certificates (Let's Encrypt)
+  traefik_certs:
+    driver: local
 
   # SigNoz/ClickHouse data
   signoz_data:
     driver: local
-    labels:
-      - "com.cerniq.volume.type=observability"
-      - "com.cerniq.volume.backup=false"
-
-  # Application uploads/assets
-  app_uploads:
-    driver: local
-    labels:
-      - "com.cerniq.volume.type=uploads"
-      - "com.cerniq.volume.backup=true"
 
 # ============================================================================
 # X-Common Configurations (YAML Anchors)
@@ -112,7 +71,6 @@ x-logging: &default-logging
   options:
     max-size: "50m"
     max-file: "5"
-    labels: "com.cerniq.app,com.cerniq.service"
 
 x-healthcheck-defaults: &healthcheck-defaults
   interval: 30s
@@ -120,7 +78,7 @@ x-healthcheck-defaults: &healthcheck-defaults
   retries: 3
   start_period: 40s
 
-# Resource limits from ADR-0027 (referenced by services)
+# Resource limits from ADR-0027 (128GB RAM, 20 cores server)
 x-resource-api: &resource-api
   limits:
     memory: 8G
@@ -170,30 +128,13 @@ x-resource-traefik: &resource-traefik
     cpus: '0.25'
 
 # ============================================================================
-# Services (Placeholder)
+# Services
 # ============================================================================
 # Services will be defined in subsequent PRs:
-# - PR02: PostgreSQL + Redis
-# - PR03: Traefik
-# - PR04: API + Workers
+# - E0-S2-PR02: PostgreSQL + Redis
+# - E0-S3-PR01: Redis/BullMQ
+# - E0-S3-PR02: Traefik
 # - etc.
 # ============================================================================
 
-services:
-  # Placeholder service for network validation
-  # This ensures networks are created when running `docker compose up`
-  # Remove this when adding actual services
-  _network-init:
-    image: busybox:1.36
-    command: ["sh", "-c", "echo 'Networks initialized' && sleep 1"]
-    networks:
-      - cerniq_public
-      - cerniq_backend
-      - cerniq_data
-    labels:
-      <<: *common-labels
-      com.cerniq.service: "network-init"
-      com.cerniq.temporary: "true"
-    logging: *default-logging
-    profiles:
-      - init-only
+services: {}
