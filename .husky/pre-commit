@@ -1,0 +1,26 @@
+#!/bin/sh
+# Pre-commit hook: lint + typecheck + test
+
+echo "🔍 Running pre-commit checks..."
+
+# Run lint-staged for changed files
+echo "📋 Linting staged files..."
+pnpm exec lint-staged
+
+# Run typecheck
+echo "📝 Type checking..."
+pnpm typecheck
+if [ $? -ne 0 ]; then
+  echo "❌ Type check failed. Please fix errors before committing."
+  exit 1
+fi
+
+# Run tests
+echo "🧪 Running tests..."
+pnpm test
+if [ $? -ne 0 ]; then
+  echo "❌ Tests failed. Please fix before committing."
+  exit 1
+fi
+
+echo "✅ Pre-commit checks passed!"

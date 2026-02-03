@@ -1,0 +1,40 @@
+#!/bin/sh
+# Pre-push hook: full validation before pushing to main
+
+# Get the current branch
+current_branch=$(git symbolic-ref --short HEAD 2>/dev/null)
+
+# Get the remote branch being pushed to
+while read local_ref local_sha remote_ref remote_sha; do
+  if echo "$remote_ref" | grep -q "refs/heads/main"; then
+    echo "🚀 Pushing to main - running full validation..."
+    
+    # Run lint
+    echo "📋 Running lint..."
+    pnpm lint
+    if [ $? -ne 0 ]; then
+      echo "❌ Lint failed. Fix errors before pushing to main."
+      exit 1
+    fi
+    
+    # Run typecheck
+    echo "📝 Running typecheck..."
+    pnpm typecheck
+    if [ $? -ne 0 ]; then
+      echo "❌ Type check failed. Fix errors before pushing to main."
+      exit 1
+    fi
+    
+    # Run all tests
+    echo "🧪 Running tests..."
+    pnpm test
+    if [ $? -ne 0 ]; then
+      echo "❌ Tests failed. Fix before pushing to main."
+      exit 1
+    fi
+    
+    echo "✅ All checks passed! Pushing to main..."
+  fi
+done
+
+exit 0

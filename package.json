@@ -4,18 +4,36 @@
   "private": true,
   "description": "Cerniq.app - B2B Sales Automation Platform",
   "scripts": {
-    "lint": "echo 'Lint placeholder - F0.6 pending'",
+    "lint": "eslint . --ext .ts,.tsx",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:ci": "vitest run --reporter=json --reporter=verbose --outputFile=test-results/results.json",
-    "build": "echo 'Build placeholder - F0.6 pending'"
+    "validate": "pnpm lint && pnpm typecheck && pnpm test",
+    "build": "echo 'Build placeholder - F0.6 pending'",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ]
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.2",
     "@types/node": "^25.2.0",
+    "@typescript-eslint/eslint-plugin": "^8.54.0",
+    "@typescript-eslint/parser": "^8.54.0",
     "@vitest/coverage-v8": "^2.1.8",
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
+    "prettier": "^3.8.1",
     "typescript": "^5.7.2",
+    "typescript-eslint": "^8.54.0",
     "vitest": "^2.1.8",
     "yaml": "^2.6.1"
   },
