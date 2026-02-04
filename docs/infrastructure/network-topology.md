@@ -233,9 +233,13 @@ docker network inspect cerniq_backend --format '{{range .Containers}}{{.Name}} {
 | API | ✅ | ✅ | ✅ |
 | Workers | ❌ | ✅ | ✅ |
 | PostgreSQL | ❌ | ❌ | ✅ |
-| Redis | ❌ | ❌ | ✅ |
+| Redis | ❌ | ✅ | ✅ |
 | PgBouncer | ❌ | ✅ | ✅ |
 | SigNoz | ❌ | ✅ | ❌ |
+
+> **Note:** Redis is attached to both `cerniq_data` (primary data storage) and 
+> `cerniq_backend` (for BullMQ workers access). This is required because workers
+> run on `cerniq_backend` and need direct access to Redis queues.
 
 ## Troubleshooting
 
