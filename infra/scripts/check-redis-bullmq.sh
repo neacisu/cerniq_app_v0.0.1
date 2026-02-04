@@ -2,7 +2,7 @@
 # =============================================================================
 # CERNIQ.APP — Redis BullMQ Compatibility Checker
 # =============================================================================
-# Reference: ADR-0006, etapa0-plan-implementare-complet-v2.md
+# Reference: ADR-0006, etapa0-plan-implementare-complet-v2.md, etapa0-port-matrix.md
 # Usage: ./check-redis-bullmq.sh [container_name]
 # Exit codes: 0 = OK, 1 = FAIL
 # =============================================================================
@@ -11,6 +11,7 @@ set -e
 
 CONTAINER_NAME="${1:-cerniq-redis}"
 REDIS_PASS_FILE="/var/www/CerniqAPP/secrets/redis_password.txt"
+REDIS_PORT="${REDIS_PORT:-64039}"  # ADR-0022: Port allocation strategy
 
 # Colors
 RED='\033[0;31m'
@@ -22,6 +23,7 @@ echo "=============================================="
 echo "🔍 Redis BullMQ Compatibility Check"
 echo "=============================================="
 echo "Container: $CONTAINER_NAME"
+echo "Port: $REDIS_PORT (per etapa0-port-matrix.md)"
 echo "Date: $(date)"
 echo ""
 
@@ -42,7 +44,7 @@ fi
 
 # Function to get Redis config
 get_config() {
-    docker exec "$CONTAINER_NAME" redis-cli $AUTH_ARG CONFIG GET "$1" 2>/dev/null | tail -1
+    docker exec "$CONTAINER_NAME" redis-cli -p "$REDIS_PORT" $AUTH_ARG CONFIG GET "$1" 2>/dev/null | tail -1
 }
 
 ERRORS=0
@@ -92,7 +94,7 @@ fi
 
 # Check 5: Ping test
 echo -n "5. Redis responds to PING ... "
-PONG=$(docker exec "$CONTAINER_NAME" redis-cli $AUTH_ARG ping 2>/dev/null)
+PONG=$(docker exec "$CONTAINER_NAME" redis-cli -p "$REDIS_PORT" $AUTH_ARG ping 2>/dev/null)
 if [ "$PONG" == "PONG" ]; then
     echo -e "${GREEN}✅ OK${NC}"
 else
@@ -102,7 +104,7 @@ fi
 
 # Check 6: AUTH is enabled
 echo -n "6. AUTH is enabled (security) ... "
-NOAUTH=$(docker exec "$CONTAINER_NAME" redis-cli ping 2>&1)
+NOAUTH=$(docker exec "$CONTAINER_NAME" redis-cli -p "$REDIS_PORT" ping 2>&1)
 if [[ "$NOAUTH" == *"NOAUTH"* ]]; then
     echo -e "${GREEN}✅ OK (AUTH required)${NC}"
 else
@@ -111,7 +113,7 @@ fi
 
 # Check 7: Redis version
 echo -n "7. Redis version check ... "
-VERSION=$(docker exec "$CONTAINER_NAME" redis-cli $AUTH_ARG INFO server 2>/dev/null | grep redis_version | cut -d: -f2 | tr -d '\r')
+VERSION=$(docker exec "$CONTAINER_NAME" redis-cli -p "$REDIS_PORT" $AUTH_ARG INFO server 2>/dev/null | grep redis_version | cut -d: -f2 | tr -d '\r')
 if [[ "$VERSION" == 8.* ]]; then
     echo -e "${GREEN}✅ OK (v$VERSION)${NC}"
 else

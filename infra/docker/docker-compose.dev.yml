@@ -9,7 +9,7 @@
 #   OR
 #   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d redisinsight
 #
-# Reference: F0.3.2.T003, etapa0-plan-implementare-complet-v2.md
+# Reference: F0.3.2.T003, etapa0-plan-implementare-complet-v2.md, etapa0-port-matrix.md
 # =============================================================================
 
 services:
@@ -18,8 +18,8 @@ services:
   # ==========================================================================
   # Access: http://localhost:8001
   # Configure connection in UI:
-  #   - Host: redis (or 172.28.0.20)
-  #   - Port: 6379
+  #   - Host: redis (or 172.28.0.20 via cerniq_backend)
+  #   - Port: 64039 (per ADR-0022 port allocation)
   #   - Password: (from /var/www/CerniqAPP/secrets/redis_password.txt)
   # ==========================================================================
   redisinsight:
