@@ -1,0 +1,129 @@
+# ============================================================================
+# Cerniq.app - Traefik v3.3.5 Static Configuration
+# ============================================================================
+# Version: 1.0.0
+# Last Updated: 2026-02-04
+# References: ADR-0014, ADR-0022, etapa0-plan-implementare-complet-v2.md
+# ============================================================================
+# ARCHITECTURE:
+#   Internet → nginx/neanelu_traefik (443, TLS) → Cerniq Traefik (64080, HTTP) → Apps
+#
+# This Traefik instance receives PLAIN HTTP from external proxy.
+# TLS termination is handled by nginx or neanelu_traefik on port 443.
+# ============================================================================
+
+# Global settings
+global:
+  checkNewVersion: false
+  sendAnonymousUsage: false
+
+# API and Dashboard
+api:
+  dashboard: true
+  insecure: false  # Dashboard only via metrics entryPoint with auth
+
+# Logging
+log:
+  level: INFO
+  format: json
+
+# Access Logging (F0.4.2.T002)
+accessLog:
+  format: json
+  filters:
+    statusCodes:
+      - "200-299"
+      - "400-599"
+    retryAttempts: true
+    minDuration: "10ms"
+  fields:
+    defaultMode: keep
+    names:
+      ClientUsername: drop
+    headers:
+      defaultMode: keep
+      names:
+        User-Agent: keep
+        Authorization: redact
+        Cookie: redact
+        Set-Cookie: redact
+        X-Forwarded-For: keep
+        X-Real-IP: keep
+
+# ============================================================================
+# Entry Points (ADR-0022 Port Matrix)
+# ============================================================================
+entryPoints:
+  # Main HTTP entry point - receives traffic from external proxy
+  # External proxy (nginx/neanelu_traefik) handles TLS on 443
+  web:
+    address: ":64080"
+    # Trust proxy headers from nginx/neanelu_traefik
+    forwardedHeaders:
+      trustedIPs:
+        - "127.0.0.1/32"
+        - "10.0.0.0/8"
+        - "172.16.0.0/12"
+        - "192.168.0.0/16"
+    # Proxy protocol from nginx (optional, enable if nginx uses proxy_protocol)
+    # proxyProtocol:
+    #   trustedIPs:
+    #     - "127.0.0.1/32"
+
+  # Metrics and Dashboard entry point
+  # Accessible only internally or via SSH tunnel
+  metrics:
+    address: ":64081"
+
+# ============================================================================
+# Ping (Health Check)
+# ============================================================================
+ping:
+  entryPoint: metrics
+  terminatingStatusCode: 503
+
+# ============================================================================
+# Metrics (Prometheus format)
+# ============================================================================
+metrics:
+  prometheus:
+    entryPoint: metrics
+    addEntryPointsLabels: true
+    addRoutersLabels: true
+    addServicesLabels: true
+    buckets:
+      - 0.1
+      - 0.3
+      - 1.2
+      - 5.0
+
+# ============================================================================
+# Providers
+# ============================================================================
+providers:
+  # Docker provider for service discovery
+  # NOTE: Docker provider temporarily disabled due to API version mismatch
+  # Docker Engine 29.x requires API 1.44+ but Traefik Go SDK defaults to 1.24
+  # Using file provider for service routing instead (more explicit control)
+  # TODO: Re-enable when Traefik releases fix for Docker API negotiation
+  # docker:
+  #   endpoint: "unix:///var/run/docker.sock"
+  #   exposedByDefault: false  # CRITICAL: Must be false per ADR-0014
+  #   network: cerniq_public
+  #   watch: true
+
+  # File provider for dynamic middleware and services configuration
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+
+# ============================================================================
+# Server Transport (connection to backend services)
+# ============================================================================
+serversTransport:
+  insecureSkipVerify: false
+  maxIdleConnsPerHost: 100
+  forwardingTimeouts:
+    dialTimeout: 30s
+    responseHeaderTimeout: 30s
+    idleConnTimeout: 90s

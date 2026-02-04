@@ -1,8 +1,8 @@
 # ============================================================================
 # Cerniq.app - Docker Compose Base Configuration
 # ============================================================================
-# Version: 1.0.1
-# Last Updated: 2026-02-03
+# Version: 1.0.2
+# Last Updated: 2026-02-04
 # References: ADR-0015, ADR-0022, ADR-0027
 # ============================================================================
 # IMPORTANT: Networks are created externally via `docker network create`
@@ -156,6 +156,8 @@ secrets:
     file: ../../secrets/postgres_password.txt
   redis_password:
     file: ../../secrets/redis_password.txt
+  traefik_dashboard_htpasswd:
+    file: ../../secrets/traefik_dashboard.htpasswd
 
 # ============================================================================
 # Services
@@ -328,5 +330,125 @@ services:
       <<: *common-labels
       com.cerniq.service: "redis"
       com.cerniq.port: "64039"
+    logging:
+      <<: *default-logging
+  # ==========================================================================
+  # Traefik v3.3.5 - Reverse Proxy (E0-S3-PR02)
+  # ==========================================================================
+  # Reference: ADR-0014, ADR-0022, etapa0-plan-implementare-complet-v2.md
+  # 
+  # ARCHITECTURE:
+  #   External proxy (nginx/neanelu_traefik) → Traefik (64080) → Services
+  #   TLS termination is handled externally on port 443
+  #
+  # Ports (ADR-0022):
+  #   - 64080: HTTP entry point (receives traffic from external proxy)
+  #   - 64081: Metrics + Dashboard (internal access only)
+  # ==========================================================================
+  traefik:
+    image: traefik:v3.6
+    container_name: cerniq-traefik
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    # NOTE: read_only removed - Traefik needs write access for internal state
+    # NOTE: user removed - Traefik needs root to access docker.sock
+    # Security is maintained via no-new-privileges and minimal volumes
+    environment:
+      # Docker Engine 29.x requires API 1.44+ (min supported)
+      # Traefik defaults to 1.24, so we force API negotiation
+      DOCKER_API_VERSION: "1.45"
+    ports:
+      # HTTP entry point - traffic from external proxy
+      - "64080:64080"
+      # Metrics and Dashboard - internal access only
+      - "127.0.0.1:64081:64081"
+    volumes:
+      # Docker socket (read-only for security)
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # Static configuration
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      # Dynamic configuration directory
+      - ./traefik/dynamic:/etc/traefik/dynamic:ro
+      # Dashboard htpasswd file
+      - ../../secrets/traefik_dashboard.htpasswd:/etc/traefik/auth/dashboard.htpasswd:ro
+    networks:
+      cerniq_public:
+        ipv4_address: 172.27.0.10
+      cerniq_backend:
+        ipv4_address: 172.28.0.10
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        <<: *resource-traefik
+    labels:
+      <<: *common-labels
+      com.cerniq.service: "traefik"
+      com.cerniq.port: "64080"
+      # Traefik self-routing labels (dashboard via metrics entrypoint)
+      traefik.enable: "false"  # Self-routing disabled, using file provider
+    logging:
+      <<: *default-logging
+
+  # ==========================================================================
+  # Staging Proxy - nginx reverse proxy for neanelu_traefik routing
+  # ==========================================================================
+  # This container is the entry point from neanelu_traefik (port 443)
+  # to the Cerniq internal Traefik (port 64080).
+  # It handles the routing from external traefik to internal traefik.
+  # 
+  # Labels are used by neanelu_traefik to:
+  #   - Route staging.cerniq.app traffic to this container
+  #   - Apply HSTS and security headers
+  #   - Handle TLS with Let's Encrypt
+  # ==========================================================================
+  staging-proxy:
+    image: nginx:alpine
+    container_name: cerniq-staging-proxy
+    restart: unless-stopped
+    volumes:
+      - ./nginx/staging-proxy.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - cerniq_public
+    depends_on:
+      traefik:
+        condition: service_healthy
+    labels:
+      <<: *common-labels
+      com.cerniq.service: "staging-proxy"
+      # =======================================================================
+      # Traefik Labels for neanelu_traefik (external proxy on port 443)
+      # =======================================================================
+      traefik.enable: "true"
+      # Router configuration
+      traefik.http.routers.cerniq-staging.rule: "Host(`staging.cerniq.app`)"
+      traefik.http.routers.cerniq-staging.entrypoints: "websecure"
+      traefik.http.routers.cerniq-staging.tls.certresolver: "letsencrypt"
+      traefik.http.routers.cerniq-staging.middlewares: "cerniq-hsts,cerniq-security-headers"
+      # Service configuration
+      traefik.http.services.cerniq-staging.loadbalancer.server.port: "80"
+      # =======================================================================
+      # HSTS Middleware (F0.4.2.T003 - SSL Labs A+ rating)
+      # =======================================================================
+      traefik.http.middlewares.cerniq-hsts.headers.stsSeconds: "63072000"
+      traefik.http.middlewares.cerniq-hsts.headers.stsIncludeSubdomains: "true"
+      traefik.http.middlewares.cerniq-hsts.headers.stsPreload: "true"
+      # =======================================================================
+      # Security Headers Middleware
+      # =======================================================================
+      traefik.http.middlewares.cerniq-security-headers.headers.frameDeny: "true"
+      traefik.http.middlewares.cerniq-security-headers.headers.browserXssFilter: "true"
+      traefik.http.middlewares.cerniq-security-headers.headers.contentTypeNosniff: "true"
+      traefik.http.middlewares.cerniq-security-headers.headers.referrerPolicy: "strict-origin-when-cross-origin"
     logging:
       <<: *default-logging
