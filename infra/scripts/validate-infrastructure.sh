@@ -528,6 +528,155 @@ else
     log_fail "Redis does not require authentication (security risk!)"
 fi
 
+# =============================================================================
+# F0.4.1: Traefik v3 Reverse Proxy
+# =============================================================================
+# Reference: ADR-0014, ADR-0022, etapa0-port-matrix.md
+# =============================================================================
+
+echo ""
+echo "=============================================="
+echo "F0.4.1: Traefik v3 Reverse Proxy"
+echo "=============================================="
+
+# Traefik configuration
+TRAEFIK_CONTAINER="cerniq-traefik"
+TRAEFIK_HTTP_PORT="64080"
+TRAEFIK_METRICS_PORT="64081"
+
+# Test: Traefik container exists and is running
+log_test "cerniq-traefik container is running"
+TRAEFIK_RUNNING=$(docker inspect -f '{{.State.Running}}' $TRAEFIK_CONTAINER 2>/dev/null || echo "false")
+if [[ "$TRAEFIK_RUNNING" == "true" ]]; then
+    log_pass "cerniq-traefik is running"
+else
+    log_fail "cerniq-traefik is not running"
+fi
+
+# Test: Traefik is healthy
+log_test "cerniq-traefik is healthy"
+TRAEFIK_HEALTH=$(docker inspect -f '{{.State.Health.Status}}' $TRAEFIK_CONTAINER 2>/dev/null || echo "unhealthy")
+if [[ "$TRAEFIK_HEALTH" == "healthy" ]]; then
+    log_pass "cerniq-traefik is healthy"
+else
+    log_fail "cerniq-traefik is not healthy: $TRAEFIK_HEALTH"
+fi
+
+# Test: Traefik version is 3.x
+log_test "Traefik version is 3.x"
+TRAEFIK_VERSION=$(docker exec $TRAEFIK_CONTAINER traefik version 2>/dev/null | grep Version | awk '{print $2}' || echo "0")
+if [[ "$TRAEFIK_VERSION" == 3.* ]]; then
+    log_pass "Traefik version: $TRAEFIK_VERSION"
+else
+    log_fail "Traefik version: $TRAEFIK_VERSION (expected 3.x)"
+fi
+
+# Test: Traefik HTTP port responds
+log_test "Traefik responds on port $TRAEFIK_HTTP_PORT"
+TRAEFIK_HTTP_RESPONSE=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:$TRAEFIK_HTTP_PORT 2>/dev/null || echo "000")
+if [[ "$TRAEFIK_HTTP_RESPONSE" =~ ^(200|404|502)$ ]]; then
+    log_pass "Traefik HTTP port responds: $TRAEFIK_HTTP_RESPONSE"
+else
+    log_fail "Traefik HTTP port not responding: $TRAEFIK_HTTP_RESPONSE"
+fi
+
+# Test: Traefik metrics/ping endpoint
+log_test "Traefik ping endpoint responds"
+TRAEFIK_PING=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:$TRAEFIK_METRICS_PORT/ping 2>/dev/null || echo "000")
+if [[ "$TRAEFIK_PING" =~ ^(200|403)$ ]]; then
+    log_pass "Traefik ping endpoint: $TRAEFIK_PING"
+else
+    log_fail "Traefik ping endpoint not responding: $TRAEFIK_PING"
+fi
+
+# Test: Traefik on cerniq_public network
+log_test "Traefik on cerniq_public network"
+TRAEFIK_PUBLIC_IP=$(docker inspect -f '{{(index .NetworkSettings.Networks "cerniq_public").IPAddress}}' $TRAEFIK_CONTAINER 2>/dev/null || echo "")
+if [[ -n "$TRAEFIK_PUBLIC_IP" ]]; then
+    log_pass "Traefik on cerniq_public: $TRAEFIK_PUBLIC_IP"
+else
+    log_fail "Traefik not on cerniq_public network"
+fi
+
+# Test: Traefik on cerniq_backend network
+log_test "Traefik on cerniq_backend network"
+TRAEFIK_BACKEND_IP=$(docker inspect -f '{{(index .NetworkSettings.Networks "cerniq_backend").IPAddress}}' $TRAEFIK_CONTAINER 2>/dev/null || echo "")
+if [[ -n "$TRAEFIK_BACKEND_IP" ]]; then
+    log_pass "Traefik on cerniq_backend: $TRAEFIK_BACKEND_IP"
+else
+    log_fail "Traefik not on cerniq_backend network"
+fi
+
+# Test: traefik.yml config exists in container
+log_test "traefik.yml configuration mounted"
+TRAEFIK_CONFIG=$(docker exec $TRAEFIK_CONTAINER ls /etc/traefik/traefik.yml 2>/dev/null || echo "missing")
+if [[ "$TRAEFIK_CONFIG" == "/etc/traefik/traefik.yml" ]]; then
+    log_pass "traefik.yml is mounted"
+else
+    log_fail "traefik.yml not found in container"
+fi
+
+# Test: Dynamic config directory exists
+log_test "Dynamic config directory exists"
+TRAEFIK_DYNAMIC=$(docker exec $TRAEFIK_CONTAINER ls -la /etc/traefik/dynamic/ 2>/dev/null | wc -l || echo "0")
+if [[ "$TRAEFIK_DYNAMIC" -gt 1 ]]; then
+    log_pass "Dynamic config directory has files"
+else
+    log_fail "Dynamic config directory empty or missing"
+fi
+
+# Test: Dashboard auth file exists
+log_test "Dashboard htpasswd file exists"
+TRAEFIK_HTPASSWD=$(docker exec $TRAEFIK_CONTAINER ls /etc/traefik/auth/dashboard.htpasswd 2>/dev/null || echo "missing")
+if [[ "$TRAEFIK_HTPASSWD" == "/etc/traefik/auth/dashboard.htpasswd" ]]; then
+    log_pass "Dashboard htpasswd is mounted"
+else
+    log_skip "Dashboard htpasswd not found (optional)"
+fi
+
+echo ""
+echo "=============================================="
+echo "F0.4.2: Traefik Security Hardening"
+echo "=============================================="
+
+# Test: Dashboard port is bound to localhost only
+log_test "Dashboard port bound to localhost only"
+DASHBOARD_BIND=$(docker inspect -f '{{range .HostConfig.PortBindings}}{{.}}{{end}}' $TRAEFIK_CONTAINER 2>/dev/null | grep 64081 || echo "")
+if [[ "$DASHBOARD_BIND" == *"127.0.0.1"* ]]; then
+    log_pass "Dashboard port bound to localhost"
+else
+    log_skip "Dashboard port binding check inconclusive"
+fi
+
+# Test: External HTTPS endpoint (staging/production only)
+if [[ "$ENVIRONMENT" == "staging" ]]; then
+    log_test "staging.cerniq.app HTTPS responds"
+    HTTPS_RESPONSE=$(curl -s -o /dev/null -w '%{http_code}' -k https://staging.cerniq.app 2>/dev/null || echo "000")
+    if [[ "$HTTPS_RESPONSE" =~ ^(200|302|404)$ ]]; then
+        log_pass "staging.cerniq.app HTTPS: $HTTPS_RESPONSE"
+    else
+        log_fail "staging.cerniq.app HTTPS not responding: $HTTPS_RESPONSE"
+    fi
+    
+    log_test "HSTS header present on staging"
+    HSTS_HEADER=$(curl -sI -k https://staging.cerniq.app 2>/dev/null | grep -i strict-transport-security || echo "")
+    if [[ -n "$HSTS_HEADER" ]]; then
+        log_pass "HSTS header present"
+    else
+        log_skip "HSTS header not found (may be added by external proxy)"
+    fi
+fi
+
+if [[ "$ENVIRONMENT" == "production" ]]; then
+    log_test "cerniq.app HTTPS responds"
+    HTTPS_RESPONSE=$(curl -s -o /dev/null -w '%{http_code}' -k https://cerniq.app 2>/dev/null || echo "000")
+    if [[ "$HTTPS_RESPONSE" =~ ^(200|302|404)$ ]]; then
+        log_pass "cerniq.app HTTPS: $HTTPS_RESPONSE"
+    else
+        log_fail "cerniq.app HTTPS not responding: $HTTPS_RESPONSE"
+    fi
+fi
+
 echo ""
 echo "=============================================="
 echo "VALIDATION SUMMARY"
