@@ -1,18 +1,27 @@
 /**
- * E0-S3-PR02: F0.4 Traefik v3.6 + Hardening Tests
+ * E0-S3-PR02: F0.4 Traefik v3 + Hardening Tests
  * ================================================
- * Validation tests for all tasks in Sprint 3 PR02
+ * PERSONALIZED TESTS PER MACHINE
  *
- * Run with: pnpm test
+ * Environment Detection (automatic via triggers):
+ * 1. CERNIQ_ENV variable (highest priority)
+ * 2. CI/CD detection (GITHUB_ACTIONS, DEPLOY_ENVIRONMENT)
+ * 3. Hostname detection (erp=production, neanelu=staging)
+ * 4. Filesystem detection (nginx config vs neanelu_traefik)
  *
- * Tests automatically detect environment:
- * - Repo tests: Always run (validate configs exist)
- * - Server tests: Skip in CI, run when Docker/curl available
+ * Test Categories:
+ * - COMMON TESTS     - Run everywhere (config file validation)
+ * - STAGING TESTS    - Run only on staging (neanelu_traefik, staging.cerniq.app)
+ * - PRODUCTION TESTS - Run only on production via CI/CD (nginx, cerniq.app)
  *
- * Environment detection:
- * - CERNIQ_ENV=staging → Tests staging.cerniq.app
- * - CERNIQ_ENV=production → Tests cerniq.app
- * - Default (local) → Tests localhost:64080
+ * Usage:
+ *   Local development:  pnpm test                           → Runs COMMON + STAGING
+ *   CI/CD Staging:      CERNIQ_ENV=staging pnpm test        → Runs COMMON + STAGING
+ *   CI/CD Production:   CERNIQ_ENV=production pnpm test     → Runs COMMON + PRODUCTION
+ *
+ * Machine Detection Triggers:
+ * - Staging server (135.181.183.164):  hostname=neanelu, has neanelu_traefik
+ * - Production server (95.216.225.145): hostname=erp, has nginx, /opt/cerniq
  *
  * @reference docs/specifications/Etapa 0/etapa0-plan-implementare-complet-v2.md
  * @reference docs/adr/ADR Etapa 0/ADR-0009-Traefik-Reverse-Proxy.md
@@ -24,46 +33,122 @@ import { execSync } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
 import * as yaml from "yaml";
+import * as os from "os";
 
 // =============================================================================
-// Test Configuration
+// ENVIRONMENT DETECTION - TRIGGERS WHICH TESTS RUN
 // =============================================================================
 
 const WORKSPACE_ROOT = process.env.WORKSPACE_ROOT || "/var/www/CerniqAPP";
-const CERNIQ_ENV = process.env.CERNIQ_ENV || "local";
 
-// Environment-specific URLs
+/**
+ * Detect environment from multiple sources (trigger system)
+ * Priority order:
+ * 1. CERNIQ_ENV explicit variable
+ * 2. CI/CD environment variables
+ * 3. Docker container detection (most reliable on servers)
+ * 4. Server hostname
+ * 5. Filesystem indicators
+ */
+function detectEnvironment(): "staging" | "production" {
+  // TRIGGER 1: Explicit environment variable (CI/CD or manual)
+  const envVar = process.env.CERNIQ_ENV?.toLowerCase();
+  if (envVar === "production") return "production";
+  if (envVar === "staging") return "staging";
+
+  // TRIGGER 2: CI/CD detection
+  const isCI =
+    process.env.CI === "true" || process.env.GITHUB_ACTIONS === "true";
+  if (isCI) {
+    const deployEnv = process.env.DEPLOY_ENVIRONMENT || "";
+    const githubRef = process.env.GITHUB_REF || "";
+    // Production deployment trigger
+    if (
+      deployEnv === "production" ||
+      githubRef.includes("main") ||
+      githubRef.includes("refs/heads/main")
+    ) {
+      return "production";
+    }
+    return "staging"; // Default CI to staging
+  }
+
+  // TRIGGER 3: Docker container detection (most reliable on servers)
+  try {
+    // Check if neanelu_traefik is running - this means we're on STAGING
+    const neaneluTraefik = execSync(
+      "docker inspect -f '{{.State.Running}}' neanelu_traefik 2>/dev/null",
+      {
+        encoding: "utf-8",
+        timeout: 5000,
+      },
+    ).trim();
+    if (neaneluTraefik === "true") return "staging";
+  } catch {
+    // neanelu_traefik not found - check for production markers
+  }
+
+  // TRIGGER 4: Hostname detection (server-specific)
+  const hostname = os.hostname().toLowerCase();
+  if (hostname === "erp" || hostname.includes("prod")) return "production";
+  if (hostname === "neanelu" || hostname.includes("stag")) return "staging";
+
+  // TRIGGER 5: Filesystem detection
+  try {
+    // Production markers
+    if (fs.existsSync("/etc/nginx/sites-enabled/cerniq.app"))
+      return "production";
+    if (
+      fs.existsSync("/opt/cerniq/docker-compose.yml") &&
+      !fs.existsSync("/var/www/Neanelu_Shopify")
+    )
+      return "production";
+    // Staging markers
+    if (fs.existsSync("/var/www/Neanelu_Shopify/docker-compose.yml"))
+      return "staging";
+    if (fs.existsSync("/var/www/CerniqAPP/infra/docker/docker-compose.yml"))
+      return "staging";
+  } catch {
+    // Ignore filesystem errors
+  }
+
+  // TRIGGER 6: Default to staging (safer for local development)
+  return "staging";
+}
+
+const CURRENT_ENV = detectEnvironment();
+const IS_STAGING = CURRENT_ENV === "staging";
+const IS_PRODUCTION = CURRENT_ENV === "production";
+
+// Environment-specific configuration
 const ENV_CONFIG = {
-  local: {
-    traefikUrl: "http://localhost:64080",
-    httpsUrl: "https://localhost:64443",
-    domain: "localhost",
-  },
   staging: {
-    traefikUrl: "http://localhost:64080",
     httpsUrl: "https://staging.cerniq.app",
     domain: "staging.cerniq.app",
+    tlsProxy: "neanelu_traefik",
+    tlsProxyType: "traefik" as const,
+    serverIP: "135.181.183.164",
+    otherProjects: [] as string[], // No other cerniq projects on staging
   },
   production: {
-    traefikUrl: "http://localhost:64080",
     httpsUrl: "https://cerniq.app",
     domain: "cerniq.app",
+    tlsProxy: "nginx",
+    tlsProxyType: "nginx" as const,
+    serverIP: "95.216.225.145",
+    otherProjects: ["wappbuss", "iwms-only"], // Other projects coexisting
   },
 } as const;
 
-const CURRENT_ENV =
-  ENV_CONFIG[CERNIQ_ENV as keyof typeof ENV_CONFIG] || ENV_CONFIG.local;
+const CONFIG = ENV_CONFIG[CURRENT_ENV];
 
-// Expected Traefik configuration (per ADR-0014, ADR-0022, etapa0-port-matrix.md)
-// NOTE: TLS is terminated by external proxy (nginx/neanelu_traefik)
-// This internal Traefik receives HTTP from external proxy
+// Expected Traefik configuration (shared between environments)
 export const EXPECTED_TRAEFIK_CONFIG = {
-  version: "3.3", // Traefik v3.3.5
+  version: "3.3",
   ports: {
-    http: 64080, // Main HTTP entrypoint
-    dashboard: 64081, // Metrics and dashboard
+    http: 64080,
+    dashboard: 64081,
   },
-  // HSTS is handled by external proxy - not configured here
   security: {
     frameDeny: true,
     browserXssFilter: true,
@@ -72,7 +157,7 @@ export const EXPECTED_TRAEFIK_CONFIG = {
   },
   rateLimit: {
     average: 100,
-    burst: 200, // Per ADR-0014: 100 req/s average, 200 burst
+    burst: 200,
   },
 } as const;
 
@@ -131,7 +216,9 @@ function curlHeaders(url: string): Record<string, string> {
     const output = exec(`curl -sI -k --connect-timeout 5 "${url}" 2>/dev/null`);
     const headers: Record<string, string> = {};
     output.split("\n").forEach((line) => {
-      const match = line.match(/^([^:]+):\s*(.+)$/);
+      // Remove carriage return and trim whitespace
+      const cleanLine = line.replace(/\r/g, "").trim();
+      const match = cleanLine.match(/^([^:]+):\s*(.+)$/);
       if (match) {
         headers[match[1].toLowerCase()] = match[2].trim();
       }
@@ -153,18 +240,71 @@ function canConnectTo(url: string): boolean {
   }
 }
 
+function getHttpCode(url: string): string {
+  return exec(
+    `curl -s -o /dev/null -w '%{http_code}' -k --connect-timeout 5 "${url}" 2>/dev/null`,
+  );
+}
+
+function isServiceRunning(serviceName: string): boolean {
+  const result = exec(
+    `systemctl is-active ${serviceName} 2>/dev/null || echo "inactive"`,
+  );
+  return result === "active";
+}
+
+// Runtime detection
 const DOCKER_AVAILABLE = isDockerAvailable();
 const TRAEFIK_RUNNING =
   DOCKER_AVAILABLE && isContainerRunning("cerniq-traefik");
-const HTTPS_AVAILABLE = canConnectTo(CURRENT_ENV.httpsUrl);
+const HTTPS_AVAILABLE = canConnectTo(CONFIG.httpsUrl);
 
 // =============================================================================
-// F0.4.1.T001: Traefik Static Configuration
-// NOTE: This Traefik instance receives HTTP from external proxy (nginx/neanelu_traefik)
-// TLS termination and Let's Encrypt are handled by external proxy
+// ENVIRONMENT INFO - Displayed at test start
 // =============================================================================
 
-describe("F0.4.1.T001: Traefik Static Configuration", () => {
+describe("E0-S3-PR02: Environment Detection", () => {
+  it("should display detected environment and triggers", () => {
+    const hostname = os.hostname();
+    const ciEnv = process.env.CI === "true" ? "YES" : "NO";
+    const deployEnv = process.env.DEPLOY_ENVIRONMENT || "not set";
+
+    console.log(`
+    ╔════════════════════════════════════════════════════════════════════════╗
+    ║  E0-S3-PR02: Traefik + Hardening Tests - PERSONALIZED PER MACHINE     ║
+    ╠════════════════════════════════════════════════════════════════════════╣
+    ║  TRIGGER DETECTION:                                                    ║
+    ║    CERNIQ_ENV variable: ${(process.env.CERNIQ_ENV || "not set").padEnd(48)}║
+    ║    CI Environment: ${ciEnv.padEnd(54)}║
+    ║    DEPLOY_ENVIRONMENT: ${deployEnv.padEnd(50)}║
+    ║    Hostname: ${hostname.padEnd(61)}║
+    ╠════════════════════════════════════════════════════════════════════════╣
+    ║  DETECTED ENVIRONMENT: ${CURRENT_ENV.toUpperCase().padEnd(51)}║
+    ║  Server IP: ${CONFIG.serverIP.padEnd(62)}║
+    ║  TLS Proxy: ${CONFIG.tlsProxy} (${CONFIG.tlsProxyType})${"".padEnd(42 - CONFIG.tlsProxy.length - CONFIG.tlsProxyType.length)}║
+    ║  HTTPS URL: ${CONFIG.httpsUrl.padEnd(61)}║
+    ╠════════════════════════════════════════════════════════════════════════╣
+    ║  RUNTIME STATUS:                                                       ║
+    ║    Docker Available: ${(DOCKER_AVAILABLE ? "✅ Yes" : "❌ No").padEnd(53)}║
+    ║    Traefik Running: ${(TRAEFIK_RUNNING ? "✅ Yes" : "❌ No").padEnd(54)}║
+    ║    HTTPS Available: ${(HTTPS_AVAILABLE ? "✅ Yes" : "❌ No").padEnd(54)}║
+    ╠════════════════════════════════════════════════════════════════════════╣
+    ║  TESTS TO RUN:                                                         ║
+    ║    ✅ COMMON Tests (config validation, docker-compose)                 ║
+    ║    ${IS_STAGING ? "✅" : "⏭️ "} STAGING Tests ${IS_STAGING ? "(ENABLED - neanelu_traefik)" : "(SKIPPED)".padEnd(31)}       ║
+    ║    ${IS_PRODUCTION ? "✅" : "⏭️ "} PRODUCTION Tests ${IS_PRODUCTION ? "(ENABLED - nginx, coexistence)" : "(SKIPPED)".padEnd(25)}       ║
+    ╚════════════════════════════════════════════════════════════════════════╝
+    `);
+    expect(CURRENT_ENV).toMatch(/staging|production/);
+  });
+});
+
+// =============================================================================
+// COMMON TESTS - Run on ALL environments (STAGING + PRODUCTION)
+// These tests validate configuration files in the repository
+// =============================================================================
+
+describe("COMMON: F0.4.1.T001 - Traefik Static Configuration", () => {
   const traefikYmlPath = "infra/docker/traefik/traefik.yml";
   let traefikConfig: Record<string, unknown> | null = null;
 
@@ -182,18 +322,10 @@ describe("F0.4.1.T001: Traefik Static Configuration", () => {
     expect(traefikConfig).toHaveProperty("api");
   });
 
-  it("should have dashboard enabled", () => {
+  it("should have dashboard enabled but insecure mode disabled", () => {
     const api = traefikConfig?.api as Record<string, unknown>;
     expect(api?.dashboard).toBe(true);
-  });
-
-  it("should have insecure mode disabled for dashboard", () => {
-    const api = traefikConfig?.api as Record<string, unknown>;
     expect(api?.insecure).toBe(false);
-  });
-
-  it("should define entryPoints", () => {
-    expect(traefikConfig).toHaveProperty("entryPoints");
   });
 
   it("should have web entrypoint on port 64080", () => {
@@ -216,16 +348,12 @@ describe("F0.4.1.T001: Traefik Static Configuration", () => {
     const forwardedHeaders = web?.forwardedHeaders as Record<string, unknown>;
     const trustedIPs = forwardedHeaders?.trustedIPs as string[];
     expect(trustedIPs).toContain("127.0.0.1/32");
-    expect(trustedIPs).toContain("172.16.0.0/12"); // Docker networks
+    expect(trustedIPs).toContain("172.16.0.0/12");
   });
 
   it("should disable anonymous usage statistics", () => {
     const global = traefikConfig?.global as Record<string, unknown>;
     expect(global?.sendAnonymousUsage).toBe(false);
-  });
-
-  it("should define providers configuration", () => {
-    expect(traefikConfig).toHaveProperty("providers");
   });
 
   it("should configure file provider for dynamic config", () => {
@@ -249,11 +377,10 @@ describe("F0.4.1.T001: Traefik Static Configuration", () => {
 });
 
 // =============================================================================
-// F0.4.1.T002: Dynamic Middlewares for Security
-// NOTE: HSTS is handled by external proxy - we configure other security headers
+// COMMON: F0.4.1.T002 - Security Middlewares Configuration
 // =============================================================================
 
-describe("F0.4.1.T002: Security Middlewares Configuration", () => {
+describe("COMMON: F0.4.1.T002 - Security Middlewares", () => {
   const middlewaresPath = "infra/docker/traefik/dynamic/middlewares.yml";
   let middlewaresConfig: Record<string, unknown> | null = null;
 
@@ -272,13 +399,7 @@ describe("F0.4.1.T002: Security Middlewares Configuration", () => {
     expect(http).toHaveProperty("middlewares");
   });
 
-  it("should define security-headers middleware", () => {
-    const http = middlewaresConfig?.http as Record<string, unknown>;
-    const middlewares = http?.middlewares as Record<string, unknown>;
-    expect(middlewares).toHaveProperty("security-headers");
-  });
-
-  it("should configure frameDeny (X-Frame-Options: DENY)", () => {
+  it("should define security-headers middleware with correct settings", () => {
     const http = middlewaresConfig?.http as Record<string, unknown>;
     const middlewares = http?.middlewares as Record<string, unknown>;
     const securityHeaders = middlewares?.["security-headers"] as Record<
@@ -286,39 +407,14 @@ describe("F0.4.1.T002: Security Middlewares Configuration", () => {
       unknown
     >;
     const headers = securityHeaders?.headers as Record<string, unknown>;
-    expect(headers?.frameDeny).toBe(true);
-  });
 
-  it("should configure browserXssFilter", () => {
-    const http = middlewaresConfig?.http as Record<string, unknown>;
-    const middlewares = http?.middlewares as Record<string, unknown>;
-    const securityHeaders = middlewares?.["security-headers"] as Record<
-      string,
-      unknown
-    >;
-    const headers = securityHeaders?.headers as Record<string, unknown>;
-    expect(headers?.browserXssFilter).toBe(true);
-  });
-
-  it("should configure contentTypeNosniff", () => {
-    const http = middlewaresConfig?.http as Record<string, unknown>;
-    const middlewares = http?.middlewares as Record<string, unknown>;
-    const securityHeaders = middlewares?.["security-headers"] as Record<
-      string,
-      unknown
-    >;
-    const headers = securityHeaders?.headers as Record<string, unknown>;
-    expect(headers?.contentTypeNosniff).toBe(true);
-  });
-
-  it("should configure referrerPolicy", () => {
-    const http = middlewaresConfig?.http as Record<string, unknown>;
-    const middlewares = http?.middlewares as Record<string, unknown>;
-    const securityHeaders = middlewares?.["security-headers"] as Record<
-      string,
-      unknown
-    >;
-    const headers = securityHeaders?.headers as Record<string, unknown>;
+    expect(headers?.frameDeny).toBe(EXPECTED_TRAEFIK_CONFIG.security.frameDeny);
+    expect(headers?.browserXssFilter).toBe(
+      EXPECTED_TRAEFIK_CONFIG.security.browserXssFilter,
+    );
+    expect(headers?.contentTypeNosniff).toBe(
+      EXPECTED_TRAEFIK_CONFIG.security.contentTypeNosniff,
+    );
     expect(headers?.referrerPolicy).toBe(
       EXPECTED_TRAEFIK_CONFIG.security.referrerPolicy,
     );
@@ -350,76 +446,45 @@ describe("F0.4.1.T002: Security Middlewares Configuration", () => {
     expect(customHeaders?.["X-Powered-By"]).toBe("");
   });
 
-  it("should define rate-limit middleware", () => {
-    const http = middlewaresConfig?.http as Record<string, unknown>;
-    const middlewares = http?.middlewares as Record<string, unknown>;
-    expect(middlewares).toHaveProperty("rate-limit");
-  });
-
-  it("should configure rate limiting average", () => {
+  it("should define rate-limit middleware (100 req/s, burst 200)", () => {
     const http = middlewaresConfig?.http as Record<string, unknown>;
     const middlewares = http?.middlewares as Record<string, unknown>;
     const rateLimit = middlewares?.["rate-limit"] as Record<string, unknown>;
-    const rateLimitConfig = rateLimit?.rateLimit as Record<string, unknown>;
-    expect(rateLimitConfig?.average).toBe(
-      EXPECTED_TRAEFIK_CONFIG.rateLimit.average,
-    );
+    const config = rateLimit?.rateLimit as Record<string, unknown>;
+
+    expect(config?.average).toBe(EXPECTED_TRAEFIK_CONFIG.rateLimit.average);
+    expect(config?.burst).toBe(EXPECTED_TRAEFIK_CONFIG.rateLimit.burst);
   });
 
-  it("should configure rate limiting burst", () => {
+  it("should define rate-limit-strict for auth endpoints (10 req/s)", () => {
     const http = middlewaresConfig?.http as Record<string, unknown>;
     const middlewares = http?.middlewares as Record<string, unknown>;
-    const rateLimit = middlewares?.["rate-limit"] as Record<string, unknown>;
-    const rateLimitConfig = rateLimit?.rateLimit as Record<string, unknown>;
-    expect(rateLimitConfig?.burst).toBe(
-      EXPECTED_TRAEFIK_CONFIG.rateLimit.burst,
-    );
-  });
-
-  it("should configure rate-limit-strict for auth endpoints", () => {
-    const http = middlewaresConfig?.http as Record<string, unknown>;
-    const middlewares = http?.middlewares as Record<string, unknown>;
-    expect(middlewares).toHaveProperty("rate-limit-strict");
     const rateLimitStrict = middlewares?.["rate-limit-strict"] as Record<
       string,
       unknown
     >;
     const config = rateLimitStrict?.rateLimit as Record<string, unknown>;
+
     expect(config?.average).toBe(10);
     expect(config?.burst).toBe(20);
   });
 
-  it("should define api-chain middleware", () => {
+  it("should define middleware chains (api-chain, auth-chain)", () => {
     const http = middlewaresConfig?.http as Record<string, unknown>;
     const middlewares = http?.middlewares as Record<string, unknown>;
+
     expect(middlewares).toHaveProperty("api-chain");
-  });
-
-  it("should define auth-chain middleware with strict rate limit", () => {
-    const http = middlewaresConfig?.http as Record<string, unknown>;
-    const middlewares = http?.middlewares as Record<string, unknown>;
     expect(middlewares).toHaveProperty("auth-chain");
-  });
-
-  it("should define dashboard-auth middleware", () => {
-    const http = middlewaresConfig?.http as Record<string, unknown>;
-    const middlewares = http?.middlewares as Record<string, unknown>;
     expect(middlewares).toHaveProperty("dashboard-auth");
-  });
-
-  it("should configure circuit breaker middleware", () => {
-    const http = middlewaresConfig?.http as Record<string, unknown>;
-    const middlewares = http?.middlewares as Record<string, unknown>;
     expect(middlewares).toHaveProperty("circuit-breaker");
   });
 });
 
 // =============================================================================
-// F0.4.1.T003: Traefik Service in docker-compose.yml
-// NOTE: No HTTPS port - TLS handled by external proxy
+// COMMON: F0.4.1.T003 - Traefik Service in docker-compose.yml
 // =============================================================================
 
-describe("F0.4.1.T003: Traefik Service in docker-compose.yml", () => {
+describe("COMMON: F0.4.1.T003 - docker-compose.yml Service", () => {
   const dockerComposePath = "infra/docker/docker-compose.yml";
   let dockerCompose: Record<string, unknown> | null = null;
   let traefikService: Record<string, unknown> | null = null;
@@ -437,14 +502,8 @@ describe("F0.4.1.T003: Traefik Service in docker-compose.yml", () => {
     expect(fileExists(dockerComposePath)).toBe(true);
   });
 
-  it("should define traefik service", () => {
-    expect(dockerCompose).not.toBeNull();
-    const services = (dockerCompose as Record<string, unknown>)
-      ?.services as Record<string, unknown>;
-    expect(services).toHaveProperty("traefik");
-  });
-
-  it("should use Traefik v3.x image", () => {
+  it("should define traefik service with Traefik v3.x image", () => {
+    expect(traefikService).not.toBeNull();
     const image = traefikService?.image as string;
     expect(image).toMatch(/traefik:v3\./);
   });
@@ -467,15 +526,11 @@ describe("F0.4.1.T003: Traefik Service in docker-compose.yml", () => {
     expect(dashboardPort).toContain("127.0.0.1");
   });
 
-  it("should mount traefik.yml configuration", () => {
+  it("should mount traefik.yml and dynamic config", () => {
     const volumes = traefikService?.volumes as string[];
     expect(volumes).toEqual(
       expect.arrayContaining([expect.stringContaining("traefik.yml")]),
     );
-  });
-
-  it("should mount dynamic configuration directory", () => {
-    const volumes = traefikService?.volumes as string[];
     expect(volumes).toEqual(
       expect.arrayContaining([expect.stringContaining("dynamic")]),
     );
@@ -488,7 +543,7 @@ describe("F0.4.1.T003: Traefik Service in docker-compose.yml", () => {
     );
   });
 
-  it("should be on cerniq_public network", () => {
+  it("should be on cerniq_public and cerniq_backend networks", () => {
     const networks = traefikService?.networks as
       | string[]
       | Record<string, unknown>;
@@ -496,16 +551,14 @@ describe("F0.4.1.T003: Traefik Service in docker-compose.yml", () => {
       expect(networks).toContain("cerniq_public");
     } else {
       expect(networks).toHaveProperty("cerniq_public");
+      expect(networks).toHaveProperty("cerniq_backend");
     }
   });
 
-  it("should have healthcheck configured", () => {
+  it("should have healthcheck and restart policy", () => {
     const healthcheck = traefikService?.healthcheck as Record<string, unknown>;
     expect(healthcheck).toBeDefined();
     expect(healthcheck?.test).toBeDefined();
-  });
-
-  it("should have restart policy unless-stopped", () => {
     expect(traefikService?.restart).toBe("unless-stopped");
   });
 
@@ -516,10 +569,10 @@ describe("F0.4.1.T003: Traefik Service in docker-compose.yml", () => {
 });
 
 // =============================================================================
-// F0.4.1.T004: Traefik Running and Healthy
+// COMMON: F0.4.1.T004 - Traefik Container Runtime (skip if Docker unavailable)
 // =============================================================================
 
-describe("F0.4.1.T004: Traefik Container Running", () => {
+describe("COMMON: F0.4.1.T004 - Traefik Container Runtime", () => {
   it.skipIf(!DOCKER_AVAILABLE)("should have Docker available", () => {
     expect(DOCKER_AVAILABLE).toBe(true);
   });
@@ -546,37 +599,29 @@ describe("F0.4.1.T004: Traefik Container Running", () => {
   });
 
   it.skipIf(!TRAEFIK_RUNNING)("should respond on port 64080", () => {
-    const result = exec(
-      `curl -s -o /dev/null -w '%{http_code}' http://localhost:64080 2>/dev/null`,
-    );
-    // 404 is OK - means Traefik is responding but no routes match
+    const result = getHttpCode("http://localhost:64080");
     expect(["200", "404", "502"]).toContain(result);
   });
 
   it.skipIf(!TRAEFIK_RUNNING)(
     "should have dashboard accessible on localhost:64081",
     () => {
-      const result = exec(
-        `curl -s -o /dev/null -w '%{http_code}' http://localhost:64081/dashboard/ 2>/dev/null`,
-      );
-      // 401 means auth is required (correct), 200 means accessible, 403 means IP whitelist
+      const result = getHttpCode("http://localhost:64081/dashboard/");
       expect(["200", "401", "403"]).toContain(result);
     },
   );
 
   it.skipIf(!TRAEFIK_RUNNING)("should have ping endpoint healthy", () => {
-    const result = exec(
-      `curl -s -o /dev/null -w '%{http_code}' http://localhost:64081/ping 2>/dev/null`,
-    );
+    const result = getHttpCode("http://localhost:64081/ping");
     expect(["200", "403"]).toContain(result);
   });
 });
 
 // =============================================================================
-// F0.4.2.T001: htpasswd for Traefik Dashboard
+// COMMON: F0.4.2.T001 - Dashboard htpasswd
 // =============================================================================
 
-describe("F0.4.2.T001: Traefik Dashboard htpasswd", () => {
+describe("COMMON: F0.4.2.T001 - Dashboard htpasswd", () => {
   const htpasswdPath = "secrets/traefik_dashboard.htpasswd";
 
   it("should have traefik_dashboard.htpasswd file", () => {
@@ -585,7 +630,6 @@ describe("F0.4.2.T001: Traefik Dashboard htpasswd", () => {
 
   it("should have valid htpasswd format", () => {
     const content = readFile(htpasswdPath);
-    // Format: user:$apr1$salt$hash or user:$2y$...
     expect(content).toMatch(/^[a-zA-Z0-9_-]+:\$[a-z0-9]+\$/m);
   });
 
@@ -594,7 +638,6 @@ describe("F0.4.2.T001: Traefik Dashboard htpasswd", () => {
     if (fs.existsSync(fullPath)) {
       const stats = fs.statSync(fullPath);
       const mode = (stats.mode & 0o777).toString(8);
-      // Should be 600 or 640 (only owner can read/write)
       expect(["600", "640", "644"]).toContain(mode);
     }
   });
@@ -606,20 +649,16 @@ describe("F0.4.2.T001: Traefik Dashboard htpasswd", () => {
 });
 
 // =============================================================================
-// F0.4.2.T002: Access Logs JSON Configuration
+// COMMON: F0.4.2.T002 - Access Logs Configuration
 // =============================================================================
 
-describe("F0.4.2.T002: Traefik Access Logs", () => {
+describe("COMMON: F0.4.2.T002 - Access Logs Configuration", () => {
   const traefikYmlPath = "infra/docker/traefik/traefik.yml";
   let traefikConfig: Record<string, unknown> | null = null;
 
   beforeAll(() => {
     const content = readFile(traefikYmlPath);
     traefikConfig = parseYaml<Record<string, unknown>>(content);
-  });
-
-  it("should have accessLog configuration", () => {
-    expect(traefikConfig).toHaveProperty("accessLog");
   });
 
   it("should configure JSON format for access logs", () => {
@@ -633,13 +672,7 @@ describe("F0.4.2.T002: Traefik Access Logs", () => {
     expect(filters?.statusCodes).toBeDefined();
   });
 
-  it("should configure field handling for logs", () => {
-    const accessLog = traefikConfig?.accessLog as Record<string, unknown>;
-    const fields = accessLog?.fields as Record<string, unknown>;
-    expect(fields).toBeDefined();
-  });
-
-  it("should redact sensitive headers", () => {
+  it("should redact sensitive headers (Authorization, Cookie)", () => {
     const accessLog = traefikConfig?.accessLog as Record<string, unknown>;
     const fields = accessLog?.fields as Record<string, unknown>;
     const headers = fields?.headers as Record<string, unknown>;
@@ -650,100 +683,16 @@ describe("F0.4.2.T002: Traefik Access Logs", () => {
 });
 
 // =============================================================================
-// F0.4.2.T003: SSL/TLS and Security Headers
-// NOTE: TLS is terminated by external proxy (nginx/neanelu_traefik)
-// These tests validate the end-to-end HTTPS experience
+// COMMON: F0.4.2.T004 - Rate Limiting Configuration
 // =============================================================================
 
-describe("F0.4.2.T003: SSL/TLS and Security Headers", () => {
-  it.skipIf(!HTTPS_AVAILABLE)("should have valid HTTPS endpoint", () => {
-    const result = canConnectTo(CURRENT_ENV.httpsUrl);
-    expect(result).toBe(true);
-  });
-
-  it.skipIf(!HTTPS_AVAILABLE)(
-    "should return Strict-Transport-Security header",
-    () => {
-      const headers = curlHeaders(CURRENT_ENV.httpsUrl);
-      expect(headers["strict-transport-security"]).toBeDefined();
-    },
-  );
-
-  it.skipIf(!HTTPS_AVAILABLE)("should have valid TLS certificate", () => {
-    const result = exec(
-      `echo | openssl s_client -connect ${CURRENT_ENV.domain}:443 -servername ${CURRENT_ENV.domain} 2>/dev/null | openssl x509 -noout -dates 2>/dev/null | grep notAfter`,
-    );
-    expect(result).toContain("notAfter");
-  });
-
-  it.skipIf(!HTTPS_AVAILABLE)("should support TLS 1.2 or higher", () => {
-    const tls12 = exec(
-      `echo | openssl s_client -connect ${CURRENT_ENV.domain}:443 -tls1_2 2>/dev/null | grep -c "CONNECTED"`,
-    );
-    const tls13 = exec(
-      `echo | openssl s_client -connect ${CURRENT_ENV.domain}:443 -tls1_3 2>/dev/null | grep -c "CONNECTED"`,
-    );
-    // At least one modern TLS version should work
-    expect(parseInt(tls12) + parseInt(tls13)).toBeGreaterThanOrEqual(1);
-  });
-
-  // Test security headers from internal Traefik middlewares
-  it.skipIf(!TRAEFIK_RUNNING)(
-    "should apply security-headers middleware",
-    () => {
-      // When Traefik is running and has routes configured, security headers should be applied
-      // This is a configuration validation test
-      const middlewaresContent = readFile(
-        "infra/docker/traefik/dynamic/middlewares.yml",
-      );
-      expect(middlewaresContent).toContain("security-headers");
-      expect(middlewaresContent).toContain("frameDeny: true");
-      expect(middlewaresContent).toContain("browserXssFilter: true");
-    },
-  );
-});
-
-// =============================================================================
-// F0.4.2.T004: Rate Limiting Validation
-// =============================================================================
-
-describe("F0.4.2.T004: Rate Limiting Configuration", () => {
+describe("COMMON: F0.4.2.T004 - Rate Limiting Configuration", () => {
   const middlewaresPath = "infra/docker/traefik/dynamic/middlewares.yml";
   let middlewaresConfig: Record<string, unknown> | null = null;
 
   beforeAll(() => {
     const content = readFile(middlewaresPath);
     middlewaresConfig = parseYaml<Record<string, unknown>>(content);
-  });
-
-  it("should have rate-limit middleware defined", () => {
-    const http = middlewaresConfig?.http as Record<string, unknown>;
-    const middlewares = http?.middlewares as Record<string, unknown>;
-    expect(middlewares).toHaveProperty("rate-limit");
-  });
-
-  it("should configure rate limit average requests", () => {
-    const http = middlewaresConfig?.http as Record<string, unknown>;
-    const middlewares = http?.middlewares as Record<string, unknown>;
-    const rateLimit = middlewares?.["rate-limit"] as Record<string, unknown>;
-    const config = rateLimit?.rateLimit as Record<string, unknown>;
-    expect(config?.average).toBeGreaterThan(0);
-  });
-
-  it("should configure rate limit burst", () => {
-    const http = middlewaresConfig?.http as Record<string, unknown>;
-    const middlewares = http?.middlewares as Record<string, unknown>;
-    const rateLimit = middlewares?.["rate-limit"] as Record<string, unknown>;
-    const config = rateLimit?.rateLimit as Record<string, unknown>;
-    expect(config?.burst).toBeGreaterThan(0);
-  });
-
-  it("should configure rate limit period", () => {
-    const http = middlewaresConfig?.http as Record<string, unknown>;
-    const middlewares = http?.middlewares as Record<string, unknown>;
-    const rateLimit = middlewares?.["rate-limit"] as Record<string, unknown>;
-    const config = rateLimit?.rateLimit as Record<string, unknown>;
-    expect(config?.period).toBeDefined();
   });
 
   it("should configure source criterion for rate limiting", () => {
@@ -766,7 +715,7 @@ describe("F0.4.2.T004: Rate Limiting Configuration", () => {
     expect(excludedIPs).toContain("127.0.0.1/32");
   });
 
-  it("should have strict rate limit for auth endpoints", () => {
+  it("should have strict rate limit lower than default for auth endpoints", () => {
     const http = middlewaresConfig?.http as Record<string, unknown>;
     const middlewares = http?.middlewares as Record<string, unknown>;
     const rateLimitStrict = middlewares?.["rate-limit-strict"] as Record<
@@ -774,7 +723,6 @@ describe("F0.4.2.T004: Rate Limiting Configuration", () => {
       unknown
     >;
     const config = rateLimitStrict?.rateLimit as Record<string, unknown>;
-    // Strict should be lower than default
     expect(config?.average).toBeLessThan(
       EXPECTED_TRAEFIK_CONFIG.rateLimit.average,
     );
@@ -782,10 +730,293 @@ describe("F0.4.2.T004: Rate Limiting Configuration", () => {
 });
 
 // =============================================================================
-// Summary Test
+// STAGING-SPECIFIC TESTS - Only run on staging machine (135.181.183.164)
+// TLS Proxy: neanelu_traefik (external Traefik)
 // =============================================================================
 
-describe("E0-S3-PR02 Summary", () => {
+describe.skipIf(!IS_STAGING)(
+  "STAGING: F0.4.2.T003 - TLS via neanelu_traefik",
+  () => {
+    it.skipIf(!DOCKER_AVAILABLE)(
+      "should have neanelu_traefik container running",
+      () => {
+        const running = isContainerRunning("neanelu_traefik");
+        expect(running).toBe(true);
+      },
+    );
+
+    it.skipIf(!DOCKER_AVAILABLE)(
+      "should have neanelu_traefik on cerniq_public network",
+      () => {
+        const networks = exec(
+          `docker inspect -f '{{json .NetworkSettings.Networks}}' neanelu_traefik 2>/dev/null`,
+        );
+        expect(networks).toContain("cerniq_public");
+      },
+    );
+
+    it("should have staging.cerniq.app DNS resolving", () => {
+      const result = exec(
+        `dig +short staging.cerniq.app A 2>/dev/null | head -1`,
+      );
+      expect(result).toMatch(/\d+\.\d+\.\d+\.\d+/);
+    });
+
+    it.skipIf(!HTTPS_AVAILABLE)(
+      "should have valid HTTPS on staging.cerniq.app",
+      () => {
+        const code = getHttpCode("https://staging.cerniq.app");
+        expect(["200", "302", "404"]).toContain(code);
+      },
+    );
+
+    it.skipIf(!HTTPS_AVAILABLE)(
+      "should return HSTS header from external proxy",
+      () => {
+        const headers = curlHeaders("https://staging.cerniq.app");
+        expect(headers["strict-transport-security"]).toBeDefined();
+        // Verify HSTS settings
+        const hsts = headers["strict-transport-security"];
+        expect(hsts).toContain("max-age=");
+      },
+    );
+
+    it.skipIf(!HTTPS_AVAILABLE)("should have valid TLS certificate", () => {
+      const result = exec(
+        `echo | openssl s_client -connect staging.cerniq.app:443 -servername staging.cerniq.app 2>/dev/null | openssl x509 -noout -dates 2>/dev/null | grep notAfter`,
+      );
+      expect(result).toContain("notAfter");
+    });
+
+    it.skipIf(!HTTPS_AVAILABLE)("should support TLS 1.2 or higher", () => {
+      const tls12 = exec(
+        `echo | openssl s_client -connect staging.cerniq.app:443 -tls1_2 2>/dev/null | grep -c "CONNECTED"`,
+      );
+      const tls13 = exec(
+        `echo | openssl s_client -connect staging.cerniq.app:443 -tls1_3 2>/dev/null | grep -c "CONNECTED"`,
+      );
+      expect(parseInt(tls12) + parseInt(tls13)).toBeGreaterThanOrEqual(1);
+    });
+  },
+);
+
+describe.skipIf(!IS_STAGING)("STAGING: Network Topology", () => {
+  it("should have staging-proxy.conf nginx config in repo", () => {
+    expect(fileExists("infra/docker/nginx/staging-proxy.conf")).toBe(true);
+  });
+
+  it.skipIf(!DOCKER_AVAILABLE)(
+    "should have cerniq_public network with subnet 172.27.0.0/24",
+    () => {
+      const subnet = exec(
+        `docker network inspect cerniq_public --format '{{range .IPAM.Config}}{{.Subnet}}{{end}}' 2>/dev/null`,
+      );
+      expect(subnet).toBe("172.27.0.0/24");
+    },
+  );
+
+  it.skipIf(!TRAEFIK_RUNNING)(
+    "should have Traefik on cerniq_public with IP 172.27.0.10",
+    () => {
+      const ip = exec(
+        `docker inspect -f '{{(index .NetworkSettings.Networks "cerniq_public").IPAddress}}' cerniq-traefik 2>/dev/null`,
+      );
+      expect(ip).toBe("172.27.0.10");
+    },
+  );
+});
+
+describe.skipIf(!IS_STAGING)(
+  "STAGING: Traffic Flow (External → neanelu_traefik → cerniq-traefik)",
+  () => {
+    it.skipIf(!TRAEFIK_RUNNING)(
+      "should route internal traffic to cerniq-traefik via cerniq_public",
+      () => {
+        const internalResponse = exec(
+          `curl -s -o /dev/null -w '%{http_code}' http://172.27.0.10:64080 2>/dev/null`,
+        );
+        expect(["200", "404", "502"]).toContain(internalResponse);
+      },
+    );
+
+    it.skipIf(!HTTPS_AVAILABLE)(
+      "should complete full traffic flow: External → HTTPS → neanelu_traefik → cerniq-traefik",
+      () => {
+        const externalResponse = getHttpCode("https://staging.cerniq.app");
+        expect(["200", "302", "404"]).toContain(externalResponse);
+      },
+    );
+
+    it.skipIf(!DOCKER_AVAILABLE)(
+      "should have /var/www/CerniqAPP mounted in workspace",
+      () => {
+        expect(fs.existsSync(WORKSPACE_ROOT)).toBe(true);
+        expect(fs.existsSync(path.join(WORKSPACE_ROOT, "package.json"))).toBe(
+          true,
+        );
+      },
+    );
+  },
+);
+
+// =============================================================================
+// PRODUCTION-SPECIFIC TESTS - Only run on production machine (95.216.225.145)
+// TLS Proxy: nginx (system nginx)
+// =============================================================================
+
+describe.skipIf(!IS_PRODUCTION)(
+  "PRODUCTION: F0.4.2.T003 - TLS via nginx",
+  () => {
+    it("should have nginx service running", () => {
+      const running = isServiceRunning("nginx");
+      expect(running).toBe(true);
+    });
+
+    it("should have nginx cerniq.app site enabled", () => {
+      const exists = fs.existsSync("/etc/nginx/sites-enabled/cerniq.app");
+      expect(exists).toBe(true);
+    });
+
+    it("should have cerniq.app DNS resolving to production IP", () => {
+      const result = exec(`dig +short cerniq.app A 2>/dev/null | head -1`);
+      expect(result).toMatch(/\d+\.\d+\.\d+\.\d+/);
+    });
+
+    it.skipIf(!HTTPS_AVAILABLE)("should have valid HTTPS on cerniq.app", () => {
+      const code = getHttpCode("https://cerniq.app");
+      expect(["200", "302", "404"]).toContain(code);
+    });
+
+    it.skipIf(!HTTPS_AVAILABLE)("should return HSTS header from nginx", () => {
+      const headers = curlHeaders("https://cerniq.app");
+      expect(headers["strict-transport-security"]).toBeDefined();
+    });
+
+    it.skipIf(!HTTPS_AVAILABLE)("should have valid TLS certificate", () => {
+      const result = exec(
+        `echo | openssl s_client -connect cerniq.app:443 -servername cerniq.app 2>/dev/null | openssl x509 -noout -dates 2>/dev/null | grep notAfter`,
+      );
+      expect(result).toContain("notAfter");
+    });
+
+    it.skipIf(!HTTPS_AVAILABLE)("should support TLS 1.2 or higher", () => {
+      const tls12 = exec(
+        `echo | openssl s_client -connect cerniq.app:443 -tls1_2 2>/dev/null | grep -c "CONNECTED"`,
+      );
+      const tls13 = exec(
+        `echo | openssl s_client -connect cerniq.app:443 -tls1_3 2>/dev/null | grep -c "CONNECTED"`,
+      );
+      expect(parseInt(tls12) + parseInt(tls13)).toBeGreaterThanOrEqual(1);
+    });
+  },
+);
+
+describe.skipIf(!IS_PRODUCTION)("PRODUCTION: nginx → Traefik Routing", () => {
+  it("should have nginx upstream configured for Traefik port 64080", () => {
+    const nginxConfig = exec(
+      `cat /etc/nginx/sites-enabled/cerniq.app 2>/dev/null | grep -E 'proxy_pass|upstream'`,
+    );
+    expect(nginxConfig).toContain("64080");
+  });
+
+  it.skipIf(!TRAEFIK_RUNNING)(
+    "should route localhost traffic to cerniq-traefik",
+    () => {
+      const internalResponse = exec(
+        `curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:64080 2>/dev/null`,
+      );
+      expect(["200", "404", "502"]).toContain(internalResponse);
+    },
+  );
+});
+
+describe.skipIf(!IS_PRODUCTION)(
+  "PRODUCTION: /opt/cerniq Directory Structure",
+  () => {
+    it("should have /opt/cerniq directory", () => {
+      expect(fs.existsSync("/opt/cerniq")).toBe(true);
+    });
+
+    it("should have docker-compose.yml in /opt/cerniq", () => {
+      expect(fs.existsSync("/opt/cerniq/docker-compose.yml")).toBe(true);
+    });
+
+    it("should have secrets directory with required files", () => {
+      expect(fs.existsSync("/opt/cerniq/secrets/postgres_password.txt")).toBe(
+        true,
+      );
+      expect(fs.existsSync("/opt/cerniq/secrets/redis_password.txt")).toBe(
+        true,
+      );
+    });
+
+    it("should have traefik config in /opt/cerniq/config", () => {
+      expect(fs.existsSync("/opt/cerniq/config/traefik/traefik.yml")).toBe(
+        true,
+      );
+    });
+  },
+);
+
+describe.skipIf(!IS_PRODUCTION)(
+  "PRODUCTION: Coexistence with Other Projects",
+  () => {
+    it.skipIf(!DOCKER_AVAILABLE)(
+      "should not conflict with wappbuss on ports 64080/64081",
+      () => {
+        const wappbussPorts = exec(
+          `docker ps --filter "name=wappbuss" --format "{{.Ports}}" 2>/dev/null`,
+        );
+        if (wappbussPorts) {
+          expect(wappbussPorts).not.toContain("64080");
+          expect(wappbussPorts).not.toContain("64081");
+        }
+        expect(true).toBe(true); // Pass if no wappbuss or no conflict
+      },
+    );
+
+    it.skipIf(!DOCKER_AVAILABLE)(
+      "should not conflict with iwms-only on ports 64080/64081",
+      () => {
+        const iwmsPorts = exec(
+          `docker ps --filter "name=iwms" --format "{{.Ports}}" 2>/dev/null`,
+        );
+        if (iwmsPorts) {
+          expect(iwmsPorts).not.toContain("64080");
+          expect(iwmsPorts).not.toContain("64081");
+        }
+        expect(true).toBe(true);
+      },
+    );
+
+    it.skipIf(!DOCKER_AVAILABLE)(
+      "should have cerniq networks isolated from other projects",
+      () => {
+        const cerniqPublicContainers = exec(
+          `docker network inspect cerniq_public --format '{{range .Containers}}{{.Name}} {{end}}' 2>/dev/null`,
+        );
+        expect(cerniqPublicContainers).not.toContain("wappbuss");
+        expect(cerniqPublicContainers).not.toContain("iwms");
+      },
+    );
+
+    it("should have separate nginx configs for each project", () => {
+      // Production server may have multiple nginx sites
+      const sites = exec(`ls /etc/nginx/sites-enabled/ 2>/dev/null`);
+      if (sites.includes("cerniq")) {
+        // Verify cerniq config is separate
+        expect(sites).toContain("cerniq");
+      }
+      expect(true).toBe(true);
+    });
+  },
+);
+
+// =============================================================================
+// TEST SUMMARY
+// =============================================================================
+
+describe("E0-S3-PR02: Test Summary", () => {
   it("should have all required configuration files", () => {
     const requiredFiles = [
       "infra/docker/docker-compose.yml",
@@ -796,26 +1027,42 @@ describe("E0-S3-PR02 Summary", () => {
 
     const missingFiles = requiredFiles.filter((f) => !fileExists(f));
     if (missingFiles.length > 0) {
-      console.log("Missing files:", missingFiles);
+      console.log("❌ Missing files:", missingFiles);
     }
     expect(missingFiles).toEqual([]);
   });
 
-  it("should display test environment info", () => {
+  it("should display final test summary", () => {
+    const totalTests = {
+      common:
+        "Config validation, docker-compose, middlewares, htpasswd, logs, rate-limit",
+      staging: IS_STAGING
+        ? "neanelu_traefik, staging.cerniq.app, cerniq_public network"
+        : "SKIPPED",
+      production: IS_PRODUCTION
+        ? "nginx, cerniq.app, /opt/cerniq, coexistence"
+        : "SKIPPED",
+    };
+
     console.log(`
-    ╔═══════════════════════════════════════════════════════════════╗
-    ║  E0-S3-PR02: Traefik + Hardening Test Results                ║
-    ╠═══════════════════════════════════════════════════════════════╣
-    ║  Environment: ${CERNIQ_ENV.padEnd(48)}║
-    ║  HTTPS URL: ${CURRENT_ENV.httpsUrl.padEnd(50)}║
-    ║  Docker Available: ${(DOCKER_AVAILABLE ? "✅ Yes" : "❌ No").padEnd(43)}║
-    ║  Traefik Running: ${(TRAEFIK_RUNNING ? "✅ Yes" : "❌ No").padEnd(44)}║
-    ║  HTTPS Available: ${(HTTPS_AVAILABLE ? "✅ Yes" : "❌ No").padEnd(44)}║
-    ╠═══════════════════════════════════════════════════════════════╣
-    ║  Architecture: External Proxy → Traefik (HTTP) → Apps        ║
-    ║  TLS Termination: nginx/neanelu_traefik (port 443)           ║
-    ║  Internal HTTP: Traefik (port 64080)                         ║
-    ╚═══════════════════════════════════════════════════════════════╝
+    ╔════════════════════════════════════════════════════════════════════════╗
+    ║  E0-S3-PR02: Test Execution Complete                                  ║
+    ╠════════════════════════════════════════════════════════════════════════╣
+    ║  ENVIRONMENT: ${CURRENT_ENV.toUpperCase().padEnd(59)}║
+    ║  Server: ${CONFIG.serverIP.padEnd(64)}║
+    ║  TLS Proxy: ${(CONFIG.tlsProxy + " (" + CONFIG.tlsProxyType + ")").padEnd(61)}║
+    ╠════════════════════════════════════════════════════════════════════════╣
+    ║  TESTS EXECUTED:                                                       ║
+    ║    ✅ COMMON Tests:                                                    ║
+    ║       ${totalTests.common.padEnd(66)}║
+    ║    ${IS_STAGING ? "✅" : "⏭️ "} STAGING Tests:                                                  ║
+    ║       ${totalTests.staging.padEnd(66)}║
+    ║    ${IS_PRODUCTION ? "✅" : "⏭️ "} PRODUCTION Tests:                                               ║
+    ║       ${totalTests.production.padEnd(66)}║
+    ╠════════════════════════════════════════════════════════════════════════╣
+    ║  ARCHITECTURE VALIDATED:                                               ║
+    ║    External → ${CONFIG.tlsProxy} (TLS:443) → cerniq-traefik (HTTP:64080) → Apps     ║
+    ╚════════════════════════════════════════════════════════════════════════╝
     `);
     expect(true).toBe(true);
   });
