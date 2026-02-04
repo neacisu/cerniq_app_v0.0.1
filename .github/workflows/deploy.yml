@@ -464,6 +464,7 @@ jobs:
             # Check PostgreSQL
             if docker ps | grep -q cerniq-postgres; then
               echo "✅ PostgreSQL: Running"
+              docker exec cerniq-postgres pg_isready -U c3rn1q -d cerniq 2>/dev/null && echo "  └─ Accepting connections" || echo "  └─ Not ready"
             else
               echo "⚠️  PostgreSQL: Not running (may be expected)"
             fi
@@ -473,6 +474,23 @@ jobs:
               echo "✅ PgBouncer: Running"
             else
               echo "⚠️  PgBouncer: Not running (may be expected)"
+            fi
+            
+            # Check Redis (E0-S3-PR01)
+            if docker ps | grep -q cerniq-redis; then
+              echo "✅ Redis: Running"
+              # Verify BullMQ-critical settings
+              REDIS_PASS=$(cat /opt/cerniq/secrets/redis_password.txt 2>/dev/null || echo "")
+              if [ -n "$REDIS_PASS" ]; then
+                POLICY=$(docker exec cerniq-redis redis-cli -p 64039 -a "$REDIS_PASS" CONFIG GET maxmemory-policy 2>/dev/null | tail -1)
+                if [ "$POLICY" = "noeviction" ]; then
+                  echo "  └─ BullMQ config: OK (noeviction)"
+                else
+                  echo "  └─ ⚠️ BullMQ config: WARN (policy=$POLICY, expected noeviction)"
+                fi
+              fi
+            else
+              echo "⚠️  Redis: Not running (may be expected for early sprints)"
             fi
             
             echo "✅ Smoke tests complete"

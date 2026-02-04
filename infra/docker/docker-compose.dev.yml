@@ -31,7 +31,8 @@ services:
     volumes:
       - redisinsight_data:/data
     networks:
-      - cerniq_backend
+      - cerniq_data      # Primary: Redis is on cerniq_data (172.29.0.20:64039)
+      - cerniq_backend   # Secondary: For potential API access
     depends_on:
       redis:
         condition: service_healthy
