@@ -154,6 +154,8 @@ x-resource-traefik: &resource-traefik
 secrets:
   postgres_password:
     file: ../../secrets/postgres_password.txt
+  redis_password:
+    file: ../../secrets/redis_password.txt
 
 # ============================================================================
 # Services
@@ -266,5 +268,62 @@ services:
       <<: *common-labels
       com.cerniq.service: "pgbouncer"
       com.cerniq.port: "6432"
+    logging:
+      <<: *default-logging
+
+  # ==========================================================================
+  # Redis 8.4.0 Alpine - BullMQ Job Queues & Cache
+  # ==========================================================================
+  # Reference: ADR-0006, etapa0-plan-implementare-complet-v2.md
+  # CRITICAL: maxmemory-policy MUST be noeviction for BullMQ
+  # Port: 6379 (internal only, accessed via cerniq_data + cerniq_backend)
+  # ==========================================================================
+  redis:
+    image: redis:8.4-alpine
+    container_name: cerniq-redis
+    restart: unless-stopped
+    secrets:
+      - redis_password
+    command:
+      - /bin/sh
+      - -c
+      - |
+        redis-server \
+          --port 6379 \
+          --requirepass "$$(cat /run/secrets/redis_password)" \
+          --maxmemory 4gb \
+          --maxmemory-policy noeviction \
+          --appendonly yes \
+          --appendfsync everysec \
+          --aof-use-rdb-preamble yes \
+          --notify-keyspace-events Ex \
+          --lazyfree-lazy-eviction yes \
+          --lazyfree-lazy-expire yes \
+          --lazyfree-lazy-server-del yes \
+          --activedefrag yes \
+          --tcp-keepalive 300 \
+          --timeout 0 \
+          --databases 16
+    volumes:
+      - redis_data:/data
+    networks:
+      cerniq_data:
+        ipv4_address: 172.29.0.20
+      cerniq_backend:
+        ipv4_address: 172.28.0.20
+    # NO ports exposed - internal network only (security)
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$(cat /run/secrets/redis_password)\" ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        <<: *resource-redis
+    labels:
+      <<: *common-labels
+      com.cerniq.service: "redis"
+      com.cerniq.port: "6379"
     logging:
       <<: *default-logging
