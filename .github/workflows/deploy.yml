@@ -622,10 +622,15 @@ jobs:
             
             echo ""
             echo "🔍 Core Services Health Checks"
+
+            PG_PASS=$(cat /opt/cerniq/secrets/postgres_password.txt 2>/dev/null || echo "")
+
+            PG_PASS=$(cat /opt/cerniq/secrets/postgres_password.txt 2>/dev/null || echo "")
             
             # PostgreSQL health
             echo -n "  PostgreSQL: "
-            if docker exec cerniq-postgres pg_isready -U c3rn1q -d cerniq >/dev/null 2>&1; then
+            if docker exec -e PGPASSWORD="$PG_PASS" cerniq-postgres \
+              pg_isready -h 127.0.0.1 -p 64032 -U c3rn1q -d cerniq >/dev/null 2>&1; then
               echo "✅ HEALTHY"
             else
               echo "❌ FAILED"
@@ -634,7 +639,8 @@ jobs:
             
             # PgBouncer health
             echo -n "  PgBouncer:  "
-            if docker exec cerniq-pgbouncer psql -h 127.0.0.1 -p 6432 -U c3rn1q -d cerniq -c 'SELECT 1' >/dev/null 2>&1; then
+            if docker exec -e PGPASSWORD="$PG_PASS" cerniq-pgbouncer \
+              psql -h 127.0.0.1 -p 64033 -U c3rn1q -d cerniq -c 'SELECT 1' >/dev/null 2>&1; then
               echo "✅ HEALTHY"
             else
               echo "⚠️ NOT READY (may be initializing)"
@@ -1093,7 +1099,8 @@ jobs:
             
             # PostgreSQL health
             echo -n "  PostgreSQL: "
-            if docker exec cerniq-postgres pg_isready -U c3rn1q -d cerniq -p 64032 >/dev/null 2>&1; then
+            if docker exec -e PGPASSWORD="$PG_PASS" cerniq-postgres \
+              pg_isready -h 127.0.0.1 -p 64032 -U c3rn1q -d cerniq >/dev/null 2>&1; then
               echo "✅ HEALTHY"
             else
               echo "❌ FAILED"
@@ -1102,7 +1109,8 @@ jobs:
             
             # PgBouncer health
             echo -n "  PgBouncer:  "
-            if docker exec cerniq-pgbouncer psql -h 127.0.0.1 -p 64033 -U c3rn1q -d cerniq -c 'SELECT 1' >/dev/null 2>&1; then
+            if docker exec -e PGPASSWORD="$PG_PASS" cerniq-pgbouncer \
+              psql -h 127.0.0.1 -p 64033 -U c3rn1q -d cerniq -c 'SELECT 1' >/dev/null 2>&1; then
               echo "✅ HEALTHY"
             else
               echo "⚠️ NOT READY (may be initializing)"
