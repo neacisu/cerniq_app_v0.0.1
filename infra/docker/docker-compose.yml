@@ -191,7 +191,7 @@ services:
   # ==========================================================================
   # Reference: ADR-0004, etapa0-plan-implementare-complet-v2.md
   # Extensions: pgvector 0.8.1, PostGIS 3.6.1, pg_trgm
-  # Port: 5432 (internal only, accessed via cerniq_data network)
+  # Port: 64032 (internal only, accessed via cerniq_data network) - per etapa0-port-matrix.md
   # ==========================================================================
   postgres:
     build:
@@ -229,7 +229,7 @@ services:
         ipv4_address: 172.29.0.10
     # NO ports exposed - internal network only (security)
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U c3rn1q -d cerniq -h localhost -p 5432"]
+      test: ["CMD-SHELL", "pg_isready -U c3rn1q -d cerniq -h localhost -p 64032"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -245,7 +245,7 @@ services:
     labels:
       <<: *common-labels
       com.cerniq.service: "postgres"
-      com.cerniq.port: "5432"
+      com.cerniq.port: "64032"
     logging:
       <<: *default-logging
 
@@ -253,7 +253,7 @@ services:
   # PgBouncer 1.23 - Connection Pooling
   # ==========================================================================
   # Reference: pgbouncer-connection-pooling.md, ADR-0004
-  # Port: 6432 (internal only, accessed via cerniq_data + cerniq_backend)
+  # Port: 64033 (internal only, accessed via cerniq_data + cerniq_backend) - per etapa0-port-matrix.md
   # Security: Password read from Docker secret at runtime (F0.8.1)
   # ==========================================================================
   pgbouncer:
@@ -265,14 +265,22 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
-    read_only: true
-    tmpfs:
-      - /tmp:size=50M
-      - /var/run/pgbouncer:size=10M
-    secrets:
-      - postgres_password
+    # NOTE: read_only disabled - pgbouncer image needs to write config files
+    # and access Docker secrets. Security maintained via network isolation,
+    # no-new-privileges, and cap_drop ALL.
+    # Using volume mount instead of Docker secrets since compose non-swarm
+    # doesn't support secret uid/gid settings
+    volumes:
+      - ../../secrets/postgres_password.txt:/secrets/postgres_password:ro
     environment:
       # NOTE: DATABASE_URL built at runtime from secret (see command below)
+      # Required by edoburu/pgbouncer entrypoint
+      DB_HOST: postgres
+      DB_PORT: 64032
+      DB_NAME: cerniq
+      DB_USER: c3rn1q
+      # DB_PASSWORD read from secret via command
+      LISTEN_PORT: 64033
       POOL_MODE: transaction
       MAX_CLIENT_CONN: 1000
       DEFAULT_POOL_SIZE: 50
@@ -286,13 +294,14 @@ services:
       LOG_CONNECTIONS: 1
       LOG_DISCONNECTIONS: 1
       VERBOSE: 0
-    # Security: Read password from Docker secret at runtime, not in env vars
-    command:
+    # Security: Read password from mounted file at runtime, not in env vars
+    # Override entrypoint to export DB_PASSWORD before running original entrypoint
+    entrypoint:
       - /bin/sh
       - -c
       - |
-        export DATABASE_URL="postgres://c3rn1q:$$(cat /run/secrets/postgres_password)@postgres:5432/cerniq"
-        exec /entrypoint.sh
+        export DB_PASSWORD="$$(cat /secrets/postgres_password)"
+        exec /entrypoint.sh /usr/bin/pgbouncer /etc/pgbouncer/pgbouncer.ini
     networks:
       cerniq_data:
         ipv4_address: 172.29.0.11
@@ -303,7 +312,7 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -h localhost -p 5432 -U c3rn1q || exit 1"]
+      test: ["CMD-SHELL", "pg_isready -h localhost -p 64033 -U c3rn1q || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -319,7 +328,7 @@ services:
     labels:
       <<: *common-labels
       com.cerniq.service: "pgbouncer"
-      com.cerniq.port: "6432"
+      com.cerniq.port: "64033"
     logging:
       <<: *default-logging
 
@@ -342,7 +351,9 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
-    user: "999:999"
+    # NOTE: user "999:999" removed - Docker Compose non-swarm doesn't support
+    # secret uid/gid settings, so Redis runs as container default (redis user)
+    # Security maintained via: no-new-privileges, cap_drop ALL, read_only, network isolation
     read_only: true
     tmpfs:
       - /tmp:size=100M
@@ -516,7 +527,7 @@ services:
   # OpenBao - Centralized Secrets Management
   # ==========================================================================
   # Reference: ADR-0033 OpenBao Secrets Management
-  # Port: 64200 (localhost only - security)
+  # Port: 64090 (localhost only - security) - per etapa0-port-matrix.md reserved range 64090-64099
   # Network: cerniq_backend (172.28.0.50)
   # 
   # OpenBao provides:
@@ -527,7 +538,7 @@ services:
   #   - Complete audit logging
   # ==========================================================================
   openbao:
-    image: quay.io/openbao/openbao:2.2.0
+    image: quay.io/openbao/openbao:2.5.0
     container_name: cerniq-openbao
     restart: unless-stopped
     # Security: IPC_LOCK required for mlock (prevents memory swapping)
@@ -547,26 +558,29 @@ services:
       - ../config/openbao:/openbao/config:ro
     command: server -config=/openbao/config/openbao.hcl
     ports:
-      # API port - localhost only for security
+      # API port - localhost only for security (64090 per port matrix)
       # External access should be via Traefik or SSH tunnel
-      - "127.0.0.1:64200:8200"
+      - "127.0.0.1:64090:8200"
     networks:
+      cerniq_public:
+        ipv4_address: 172.27.0.50
       cerniq_backend:
         ipv4_address: 172.28.0.50
     healthcheck:
-      # Check if OpenBao is responsive (accepts sealed or unsealed)
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8200/v1/sys/health?standbyok=true&sealedok=true&uninitok=true"]
-      interval: 10s
+      # Check if OpenBao port is listening (accepts all states: sealed/uninitialized/active)
+      # Uses /proc/net/tcp to verify port 8200 (0x2008) is bound
+      test: ["CMD-SHELL", "cat /proc/net/tcp | grep -q ':2008 ' || wget -q -O /dev/null http://localhost:8200/ 2>&1"]
+      interval: 15s
       timeout: 5s
-      retries: 3
-      start_period: 10s
+      retries: 5
+      start_period: 30s
     deploy:
       resources:
         <<: *resource-openbao
     labels:
       <<: *common-labels
       com.cerniq.service: "openbao"
-      com.cerniq.port: "64200"
+      com.cerniq.port: "64090"
     logging:
       <<: *default-logging
 
@@ -577,13 +591,16 @@ services:
   # Auto-renews tokens and database credentials
   # ==========================================================================
   openbao-agent-api:
-    image: quay.io/openbao/openbao:2.2.0
+    image: quay.io/openbao/openbao:2.5.0
     container_name: cerniq-openbao-agent-api
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
     cap_drop:
       - ALL
+    cap_add:
+      - SETGID
+      - SETUID
     command: agent -config=/openbao/config/agent-api.hcl
     volumes:
       # Agent configuration
@@ -627,13 +644,16 @@ services:
   # Auto-renews tokens and database credentials
   # ==========================================================================
   openbao-agent-workers:
-    image: quay.io/openbao/openbao:2.2.0
+    image: quay.io/openbao/openbao:2.5.0
     container_name: cerniq-openbao-agent-workers
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
     cap_drop:
       - ALL
+    cap_add:
+      - SETGID
+      - SETUID
     command: agent -config=/openbao/config/agent-workers.hcl
     volumes:
       # Agent configuration

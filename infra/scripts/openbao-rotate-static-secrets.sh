@@ -25,7 +25,7 @@ set -euo pipefail
 # Configuration
 # =============================================================================
 
-BAO_ADDR="${BAO_ADDR:-http://127.0.0.1:64200}"
+BAO_ADDR="${BAO_ADDR:-http://127.0.0.1:64090}"
 BAO_CONTAINER="${BAO_CONTAINER:-cerniq-openbao}"
 REDIS_CONTAINER="${REDIS_CONTAINER:-cerniq-redis}"
 SECRETS_DIR="/var/www/CerniqAPP/secrets"

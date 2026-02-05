@@ -16,9 +16,9 @@ cluster_name = "cerniq-openbao"
 log_level = "info"
 log_format = "standard"
 
-# Disable memory locking only if IPC_LOCK capability is not available
-# In Docker, we add IPC_LOCK capability so this should be false
-disable_mlock = false
+# Note: disable_mlock removed in OpenBao v2.2.0
+# Memory locking is handled by the Docker container with IPC_LOCK capability
+# See: https://openbao.org/docs/install/#post-installation-hardening
 
 # =============================================================================
 # Storage Backend - Raft (HA-ready)

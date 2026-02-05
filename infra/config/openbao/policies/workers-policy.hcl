@@ -15,6 +15,11 @@ path "secret/data/cerniq/workers/*" {
   capabilities = ["read", "list"]
 }
 
+# API config (workers need database/redis credentials)
+path "secret/data/cerniq/api/config" {
+  capabilities = ["read"]
+}
+
 # Shared secrets (external API keys for enrichment, etc.)
 path "secret/data/cerniq/shared/*" {
   capabilities = ["read", "list"]

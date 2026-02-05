@@ -35,7 +35,7 @@ fi
 # Configuration (environment-aware)
 # =============================================================================
 
-BAO_ADDR="${BAO_ADDR:-http://127.0.0.1:64200}"
+BAO_ADDR="${BAO_ADDR:-http://127.0.0.1:64090}"
 BAO_CONTAINER="${BAO_CONTAINER:-cerniq-openbao}"
 SECRETS_DIR="${CERNIQ_SECRETS_DIR:-/var/www/CerniqAPP/secrets}"
 SCRIPTS_DIR="${SCRIPT_DIR}"
@@ -273,7 +273,7 @@ log_warning "  2. Never store root token online after initial setup"
 log_warning "  3. Use AppRole tokens for service authentication"
 log_warning "  4. Test restore procedure before going to production"
 echo ""
-log_info "Access OpenBao UI: http://localhost:64200/ui"
+log_info "Access OpenBao UI: http://localhost:64090/ui"
 log_info "Login with root token from: $SECRETS_DIR/openbao_root_token.txt"
 echo ""
 

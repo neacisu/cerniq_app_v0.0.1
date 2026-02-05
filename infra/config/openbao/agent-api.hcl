@@ -26,24 +26,19 @@ auto_auth {
     }
   }
 
-  # Sink: Write token to file for debugging (optional)
-  sink "file" {
-    config = {
-      path = "/secrets/.token"
-      mode = 0600
-    }
-  }
+  # Note: File sink removed due to volume permission issues
+  # Token is cached in memory for template rendering
 }
 
 # =============================================================================
 # Caching Configuration
 # =============================================================================
-# Enable caching to reduce load on OpenBao server
+# Note: In OpenBao 2.5.0, using cache with auto_auth_token requires api_proxy
+# which needs a listener. For pure template rendering, we disable caching.
 # =============================================================================
 
-cache {
-  use_auto_auth_token = true
-}
+# cache - disabled for template-only agent
+# If you need caching, add a listener block and api_proxy configuration
 
 # =============================================================================
 # OpenBao Server Connection

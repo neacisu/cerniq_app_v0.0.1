@@ -23,7 +23,7 @@
 # =============================================================================
 
 # Prevent multiple sourcing
-if [[ -n "$CERNIQ_ENV_DETECTED" ]]; then
+if [[ -n "${CERNIQ_ENV_DETECTED:-}" ]]; then
     return 0 2>/dev/null || exit 0
 fi
 

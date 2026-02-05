@@ -47,8 +47,8 @@ const CAN_RUN_SERVER_TESTS = canRunServerTests();
 // =============================================================================
 
 const EXPECTED_OPENBAO_CONFIG = {
-  version: "2.2.0",
-  port: 64200,
+  version: "2.5.0",
+  port: 64090, // Per etapa0-port-matrix.md reserved range 64090-64099
   ip: "172.28.0.50",
   network: "cerniq_backend",
 } as const;
@@ -145,18 +145,20 @@ describe("F0.8.1: Container Hardening", () => {
       // pgbouncer section should have secrets reference
       // The section might span multiple lines, so we check that:
       // 1. pgbouncer service exists
-      // 2. The file contains secrets: postgres_password in relation to pgbouncer
+      // 2. The file mounts postgres_password secret file
       expect(content).toContain("pgbouncer:");
 
-      // Check that pgbouncer has secrets section
-      // Look for secrets:...postgres_password pattern after pgbouncer:
+      // Check that pgbouncer has secrets file mount
+      // Note: We use file mount instead of Docker secrets syntax because
+      // compose non-swarm doesn't support secret uid/gid settings
       const pgbouncerIndex = content.indexOf("pgbouncer:");
       const relevantSection = content.substring(
         pgbouncerIndex,
         pgbouncerIndex + 2000,
       );
-      expect(relevantSection).toContain("secrets:");
+      // Check for secrets file mount approach
       expect(relevantSection).toContain("postgres_password");
+      expect(relevantSection).toContain("/secrets/postgres_password");
     });
   });
 
@@ -252,8 +254,8 @@ describe("F0.8.3: OpenBao Secrets Management", () => {
 
     it("should expose port localhost only", () => {
       const content = readFile("infra/docker/docker-compose.yml");
-      // Should have 127.0.0.1:64200:8200 format
-      expect(content).toMatch(/127\.0\.0\.1:64200:8200/);
+      // Should have 127.0.0.1:64090:8200 format (64090 per port matrix)
+      expect(content).toMatch(/127\.0\.0\.1:64090:8200/);
     });
 
     it("should be on correct network", () => {
@@ -292,7 +294,7 @@ describe("F0.8.3: OpenBao Secrets Management", () => {
       // UI should be explicitly off or not mentioned (default is false)
       // OR if enabled, it should be localhost only (port binding ensures this)
       const uiExplicitlyEnabled = content.match(/ui\s*=\s*true/i);
-      // This is OK - we bind 127.0.0.1:64200 so UI is localhost only anyway
+      // This is OK - we bind 127.0.0.1:64090 so UI is localhost only anyway
       expect(uiExplicitlyEnabled === null || content.includes("listener")).toBe(
         true,
       );
