@@ -244,7 +244,7 @@ jobs:
           $SCP_CMD infra/docker/docker-compose.prod.yml ${HOST}:/opt/cerniq/
           
           echo "📄 Syncing PostgreSQL config and Dockerfile..."
-          $SCP_CMD infra/config/postgres/postgresql.production.conf ${HOST}:/opt/cerniq/config/postgres/postgresql.conf
+          $SCP_CMD infra/config/postgres/postgresql.conf ${HOST}:/opt/cerniq/config/postgres/postgresql.conf
           $SCP_CMD infra/config/postgres/postgresql.production.conf ${HOST}:/opt/cerniq/config/postgres/postgresql.production.conf 2>/dev/null || true
           $SCP_CMD infra/config/postgres/init.sql ${HOST}:/opt/cerniq/config/postgres/
           $SCP_CMD infra/docker/postgres/Dockerfile ${HOST}:/opt/cerniq/build/postgres/
@@ -301,9 +301,9 @@ jobs:
             cd /opt/cerniq
             
             # Ensure Docker networks exist
-            docker network create --driver bridge --subnet=172.27.0.0/24 cerniq_public 2>/dev/null || true
-            docker network create --driver bridge --subnet=172.28.0.0/24 --internal cerniq_backend 2>/dev/null || true
-            docker network create --driver bridge --subnet=172.29.0.0/24 --internal cerniq_data 2>/dev/null || true
+            docker network create --driver bridge --subnet=172.29.10.0/24 cerniq_public 2>/dev/null || true
+            docker network create --driver bridge --subnet=172.29.20.0/24 --internal cerniq_backend 2>/dev/null || true
+            docker network create --driver bridge --subnet=172.29.30.0/24 --internal cerniq_data 2>/dev/null || true
             
             # Pull and deploy with production overlay
             echo "🐳 Pulling images..."
