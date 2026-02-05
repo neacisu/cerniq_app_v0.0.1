@@ -272,6 +272,26 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H ${{ secrets.STAGING_HOST }} >> ~/.ssh/known_hosts
 
+      - name: 📦 Sync configuration files
+        run: |
+          # Create required directories on server
+          ssh -i ~/.ssh/deploy_key ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'ENDSSH'
+            mkdir -p /opt/cerniq/infra/docker/openbao/{policies,templates}
+            mkdir -p /opt/cerniq/infra/scripts
+            mkdir -p /opt/cerniq/secrets
+          ENDSSH
+          
+          # Sync docker-compose.yml
+          scp -i ~/.ssh/deploy_key infra/docker/docker-compose.yml ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}:/opt/cerniq/docker-compose.yml
+          
+          # Sync OpenBao configurations
+          scp -i ~/.ssh/deploy_key -r infra/docker/openbao/* ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}:/opt/cerniq/infra/docker/openbao/
+          
+          # Sync deployment scripts
+          scp -i ~/.ssh/deploy_key infra/scripts/*.sh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}:/opt/cerniq/infra/scripts/ || echo "Some scripts not found"
+          
+          echo "✅ Configuration files synced to staging"
+
       - name: 🚀 Deploy via Docker Compose
         run: |
           ssh -i ~/.ssh/deploy_key ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'ENDSSH'
@@ -418,17 +438,42 @@ jobs:
             fi
           ENDSSH
 
+      - name: 📦 Sync configuration files
+        run: |
+          # Create required directories on server
+          ssh -i ~/.ssh/deploy_key ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
+            mkdir -p /opt/cerniq/infra/docker/openbao/{policies,templates}
+            mkdir -p /opt/cerniq/infra/scripts
+            mkdir -p /opt/cerniq/secrets
+          ENDSSH
+          
+          # Sync docker-compose.yml
+          scp -i ~/.ssh/deploy_key infra/docker/docker-compose.yml ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}:/opt/cerniq/docker-compose.yml
+          
+          # Sync production overlay (if exists)
+          if [ -f infra/docker/docker-compose.prod.yml ]; then
+            scp -i ~/.ssh/deploy_key infra/docker/docker-compose.prod.yml ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}:/opt/cerniq/docker-compose.prod.yml
+          fi
+          
+          # Sync OpenBao configurations
+          scp -i ~/.ssh/deploy_key -r infra/docker/openbao/* ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}:/opt/cerniq/infra/docker/openbao/
+          
+          # Sync deployment scripts
+          scp -i ~/.ssh/deploy_key infra/scripts/*.sh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}:/opt/cerniq/infra/scripts/ || echo "Some scripts not found"
+          
+          echo "✅ Configuration files synced to production"
+
       - name: 🚀 Deploy via Docker Compose
         run: |
           ssh -i ~/.ssh/deploy_key ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
             cd /opt/cerniq
             
-            # Use docker-compose.yml (production overlay will be added later)
+            # Use production overlay for correct secrets paths
             # Pull latest images
-            docker compose pull || echo "No images to pull yet"
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml pull || echo "No images to pull yet"
             
-            # Deploy infrastructure services
-            docker compose up -d --remove-orphans
+            # Deploy infrastructure services with production overlay
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-orphans
             
             # Health check for PostgreSQL (main service for now)
             echo "⏳ Waiting for services to be healthy..."

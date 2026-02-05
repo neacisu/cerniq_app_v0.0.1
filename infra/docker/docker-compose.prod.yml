@@ -52,6 +52,20 @@ services:
         max-size: "50m"
         max-file: "3"
 
+# =============================================================================
+# Secrets - Production paths override
+# =============================================================================
+# Production has docker-compose.yml in /opt/cerniq/ directly
+# Secrets are in /opt/cerniq/secrets/ so we use ./secrets/ path
+# =============================================================================
+secrets:
+  postgres_password:
+    file: ./secrets/postgres_password.txt
+  redis_password:
+    file: ./secrets/redis_password.txt
+  traefik_dashboard_htpasswd:
+    file: ./secrets/traefik_dashboard.htpasswd
+
 # Networks inherited from base docker-compose.yml
 networks:
   cerniq_public:
