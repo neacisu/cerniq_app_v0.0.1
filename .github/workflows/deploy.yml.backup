@@ -1,0 +1,676 @@
+# =============================================================================
+# CERNIQ.APP — CD Pipeline for Deployments
+# =============================================================================
+# Workflow: deploy.yml
+# Trigger: 
+#   - Push to feature/*, develop → Staging
+#   - Push to main → Production  
+#   - Git tags (v*.*.*) → Production
+#   - Manual dispatch
+# Purpose: Build, Push to Registry, Deploy to Environment
+# 
+# Reference: ADR-0107 CI/CD Pipeline Strategy
+# Created: 2026-02-01
+# Updated: 2026-02-03 - Added branch triggers for auto-deploy
+# =============================================================================
+
+name: CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 'feature/**'
+      - 'feat/**'
+      - 'fix/**'
+      - 'hotfix/**'
+    # Note: Tag triggers removed - tags are auto-created by this workflow
+    # Manual tag push can use workflow_dispatch
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+      version:
+        description: 'Version to deploy (e.g., v1.0.0)'
+        required: true
+        type: string
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ${{ github.repository_owner }}/cerniq
+
+jobs:
+  # ===========================================================================
+  # JOB 1: Determine Environment and Version (Auto-Increment)
+  # ===========================================================================
+  # Versioning Strategy:
+  #   - 0.0.x = Development builds (auto-increment on main)
+  #   - 0.1.x = Alpha version (manual transition)
+  #   - 0.2.x = Beta version
+  #   - 1.0.0 = First stable release
+  # ===========================================================================
+  setup:
+    name: 🔧 Setup Deployment
+    runs-on: self-hosted
+    permissions:
+      contents: write
+    outputs:
+      environment: ${{ steps.determine.outputs.environment }}
+      version: ${{ steps.determine.outputs.version }}
+      sha: ${{ steps.determine.outputs.sha }}
+      should_tag: ${{ steps.determine.outputs.should_tag }}
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🔧 Determine deployment parameters
+        id: determine
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "environment=${{ inputs.environment }}" >> $GITHUB_OUTPUT
+            echo "version=${{ inputs.version }}" >> $GITHUB_OUTPUT
+            echo "should_tag=false" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref_type }}" == "tag" ]]; then
+            # Tag push - use existing tag
+            TAG="${{ github.ref_name }}"
+            echo "version=${TAG}" >> $GITHUB_OUTPUT
+            echo "should_tag=false" >> $GITHUB_OUTPUT
+            
+            # Production for release tags (v1.0.0), staging for pre-release (v1.0.0-rc.1)
+            if [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "environment=production" >> $GITHUB_OUTPUT
+            else
+              echo "environment=staging" >> $GITHUB_OUTPUT
+            fi
+          else
+            # Branch push - determine environment by branch name
+            BRANCH="${{ github.ref_name }}"
+            
+            if [[ "$BRANCH" == "main" ]]; then
+              echo "environment=production" >> $GITHUB_OUTPUT
+              echo "should_tag=true" >> $GITHUB_OUTPUT
+              
+              # Auto-increment version: find latest v0.0.x tag and increment
+              LATEST_TAG=$(git tag -l "v0.0.*" --sort=-v:refname | head -n1)
+              
+              if [[ -z "$LATEST_TAG" ]]; then
+                # No tags yet, start at v0.0.1
+                NEW_VERSION="v0.0.1"
+              else
+                # Extract patch number and increment
+                PATCH=$(echo "$LATEST_TAG" | sed 's/v0\.0\.//')
+                NEW_PATCH=$((PATCH + 1))
+                NEW_VERSION="v0.0.${NEW_PATCH}"
+              fi
+              
+              echo "version=${NEW_VERSION}" >> $GITHUB_OUTPUT
+              echo "📦 Auto-versioning: $LATEST_TAG → $NEW_VERSION"
+            else
+              # All other branches (develop, feature/*, feat/*, fix/*, hotfix/*) → staging
+              echo "environment=staging" >> $GITHUB_OUTPUT
+              echo "should_tag=false" >> $GITHUB_OUTPUT
+              
+              # Sanitize branch name for version tag
+              SHORT_SHA="${{ github.sha }}"
+              SHORT_SHA="${SHORT_SHA:0:7}"
+              SAFE_BRANCH=$(echo "$BRANCH" | sed 's/[^a-zA-Z0-9]/-/g' | cut -c1-20)
+              echo "version=${SAFE_BRANCH}-${SHORT_SHA}" >> $GITHUB_OUTPUT
+            fi
+          fi
+          echo "sha=${{ github.sha }}" >> $GITHUB_OUTPUT
+
+      - name: 🏷️ Create Git Tag (Production Auto-Version)
+        if: steps.determine.outputs.should_tag == 'true'
+        run: |
+          VERSION="${{ steps.determine.outputs.version }}"
+          
+          # Configure git
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Create and push tag
+          git tag -a "$VERSION" -m "Release $VERSION (auto-generated)"
+          git push origin "$VERSION"
+          
+          echo "✅ Created and pushed tag: $VERSION"
+
+      - name: 📋 Display deployment info
+        run: |
+          echo "🎯 Environment: ${{ steps.determine.outputs.environment }}"
+          echo "🏷️ Version: ${{ steps.determine.outputs.version }}"
+          echo "📝 SHA: ${{ steps.determine.outputs.sha }}"
+          echo "🔖 Should Tag: ${{ steps.determine.outputs.should_tag }}"
+
+  # ===========================================================================
+  # JOB 2: Build and Push Docker Images
+  # ===========================================================================
+  build-push:
+    name: 🐳 Build & Push Images
+    runs-on: self-hosted
+    needs: setup
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      matrix:
+        app:
+          - name: api
+            context: ./apps/api
+          - name: web
+            context: ./apps/web
+          - name: web-admin
+            context: ./apps/web-admin
+          - name: worker-ai
+            context: ./workers/ai
+          - name: worker-enrichment
+            context: ./workers/enrichment
+          - name: worker-outreach
+            context: ./workers/outreach
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐳 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🔐 Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 📋 Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.app.name }}
+          tags: |
+            type=semver,pattern={{version}},value=${{ needs.setup.outputs.version }}
+            type=sha,prefix=sha-
+
+      - name: 🏗️ Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.app.context }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            VERSION=${{ needs.setup.outputs.version }}
+            BUILD_SHA=${{ needs.setup.outputs.sha }}
+
+  # ===========================================================================
+  # JOB 3: Security Scan Published Images
+  # ===========================================================================
+  scan-images:
+    name: 🔒 Scan Images
+    runs-on: self-hosted
+    needs: [setup, build-push]
+    continue-on-error: true
+    permissions:
+      contents: read
+      security-events: write
+
+    strategy:
+      matrix:
+        app: [api, web, web-admin, worker-ai, worker-enrichment, worker-outreach]
+
+    steps:
+      - name: 🔒 Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        continue-on-error: true
+        with:
+          image-ref: '${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.app }}:${{ needs.setup.outputs.version }}'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '0'
+          format: 'sarif'
+          output: 'trivy-${{ matrix.app }}.sarif'
+
+      - name: 📤 Upload scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        continue-on-error: true
+        with:
+          sarif_file: 'trivy-${{ matrix.app }}.sarif'
+          category: 'trivy-${{ matrix.app }}'
+
+  # ===========================================================================
+  # JOB 4: Deploy to Staging
+  # ===========================================================================
+  deploy-staging:
+    name: 🚀 Deploy to Staging
+    runs-on: self-hosted
+    needs: [setup, build-push]
+    if: needs.setup.outputs.environment == 'staging'
+    environment:
+      name: staging
+      url: https://staging.cerniq.app
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.STAGING_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.STAGING_HOST }} >> ~/.ssh/known_hosts
+
+      - name: 📦 Sync configuration files
+        run: |
+          # Create required directories on server
+          ssh -i ~/.ssh/deploy_key ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'ENDSSH'
+            mkdir -p /opt/cerniq/infra/docker/openbao/{policies,templates}
+            mkdir -p /opt/cerniq/infra/scripts
+            mkdir -p /opt/cerniq/secrets
+          ENDSSH
+          
+          # Sync docker-compose.yml
+          scp -i ~/.ssh/deploy_key infra/docker/docker-compose.yml ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}:/opt/cerniq/docker-compose.yml
+          
+          # Sync OpenBao configurations
+          scp -i ~/.ssh/deploy_key -r infra/docker/openbao/* ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}:/opt/cerniq/infra/docker/openbao/
+          
+          # Sync deployment scripts
+          scp -i ~/.ssh/deploy_key infra/scripts/*.sh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}:/opt/cerniq/infra/scripts/ || echo "Some scripts not found"
+          
+          echo "✅ Configuration files synced to staging"
+
+      - name: 🚀 Deploy via Docker Compose
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'ENDSSH'
+            cd /opt/cerniq
+            
+            # Pull latest images
+            docker compose pull || echo "No images to pull yet"
+            
+            # Update with zero-downtime
+            docker compose up -d --remove-orphans
+            
+            # Health check for PostgreSQL
+            echo "⏳ Waiting for services to be healthy..."
+            sleep 30
+            
+            # Check PostgreSQL health
+            if docker ps --format '{{.Names}}' | grep -q "cerniq-postgres"; then
+              docker exec cerniq-postgres pg_isready -U postgres || echo "PostgreSQL starting..."
+            fi
+            
+            echo "✅ Staging deployment complete: ${{ needs.setup.outputs.version }}"
+          ENDSSH
+
+      - name: 🔐 OpenBao Health Check & Unseal
+        continue-on-error: true
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'ENDSSH'
+            cd /opt/cerniq
+            
+            # Check if OpenBao container is running
+            if ! docker ps --format '{{.Names}}' | grep -q "cerniq-openbao"; then
+              echo "⚠️  OpenBao not running, skipping checks"
+              exit 0
+            fi
+            
+            # Get OpenBao status
+            BAO_STATUS=$(docker exec cerniq-openbao bao status -format=json 2>/dev/null || echo '{}')
+            
+            # Check if initialized
+            INITIALIZED=$(echo "$BAO_STATUS" | jq -r '.initialized // false')
+            if [ "$INITIALIZED" != "true" ]; then
+              echo "⚠️  OpenBao not initialized - run openbao-init.sh manually"
+              exit 0
+            fi
+            
+            # Check if sealed  
+            SEALED=$(echo "$BAO_STATUS" | jq -r '.sealed // true')
+            if [ "$SEALED" == "true" ]; then
+              echo "🔒 OpenBao is sealed"
+              
+              # Auto-unseal on staging (CERNIQ_OPENBAO_AUTO_UNSEAL=true)
+              if [ -f "/var/www/CerniqAPP/secrets/openbao_unseal_keys.txt" ]; then
+                echo "🔓 Attempting auto-unseal (staging only)..."
+                for i in 1 2 3; do
+                  KEY=$(sed -n "${i}p" /var/www/CerniqAPP/secrets/openbao_unseal_keys.txt | cut -d: -f2 | tr -d ' ')
+                  if [ -n "$KEY" ]; then
+                    docker exec cerniq-openbao bao operator unseal "$KEY" >/dev/null 2>&1 || true
+                  fi
+                done
+                
+                # Verify unsealed
+                NEW_STATUS=$(docker exec cerniq-openbao bao status -format=json 2>/dev/null || echo '{}')
+                NEW_SEALED=$(echo "$NEW_STATUS" | jq -r '.sealed // true')
+                if [ "$NEW_SEALED" == "false" ]; then
+                  echo "✅ OpenBao unsealed successfully"
+                else
+                  echo "❌ OpenBao still sealed - manual intervention required"
+                fi
+              else
+                echo "⚠️  Unseal keys not found, manual unseal required"
+              fi
+            else
+              echo "✅ OpenBao is already unsealed and healthy"
+            fi
+            
+            # Verify secrets are being rendered by agents
+            if docker exec cerniq-openbao-agent-api test -f /secrets/api.env 2>/dev/null; then
+              echo "✅ API secrets are being rendered"
+            else
+              echo "⚠️  API secrets not yet rendered (agent may still be starting)"
+            fi
+          ENDSSH
+
+      - name: 🧪 Run Infrastructure Validation Tests
+        continue-on-error: true
+        run: |
+          # Copy validation script to server
+          scp -i ~/.ssh/deploy_key infra/scripts/validate-infrastructure.sh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}:/tmp/ || echo "Script copy failed"
+          
+          # Run validation tests on server
+          ssh -i ~/.ssh/deploy_key ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'ENDSSH'
+            if [ -f /tmp/validate-infrastructure.sh ]; then
+              chmod +x /tmp/validate-infrastructure.sh
+              /tmp/validate-infrastructure.sh staging || true
+            else
+              echo "⚠️  Validation script not available"
+            fi
+          ENDSSH
+
+      - name: 📤 Upload Validation Results
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-validation-results
+          path: /tmp/validation-results.json
+          retention-days: 30
+          if-no-files-found: ignore
+
+  # ===========================================================================
+  # JOB 5: Deploy to Production
+  # ===========================================================================
+  deploy-production:
+    name: 🚀 Deploy to Production
+    runs-on: self-hosted
+    needs: [setup, build-push, scan-images]
+    if: needs.setup.outputs.environment == 'production'
+    environment:
+      name: production
+      url: https://app.cerniq.app
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.PRODUCTION_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts
+
+      - name: 🔄 Create database backup
+        continue-on-error: true
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
+            cd /opt/cerniq
+            # Run backup script if it exists
+            if [ -f ./scripts/backup-pre-deploy.sh ]; then
+              chmod +x ./scripts/backup-pre-deploy.sh
+              ./scripts/backup-pre-deploy.sh
+            else
+              echo "⚠️  Backup script not found, skipping (normal for initial deployment)"
+            fi
+          ENDSSH
+
+      - name: 📦 Sync configuration files
+        run: |
+          # Create required directories on server
+          ssh -i ~/.ssh/deploy_key ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
+            mkdir -p /opt/cerniq/infra/docker/openbao/{policies,templates}
+            mkdir -p /opt/cerniq/infra/scripts
+            mkdir -p /opt/cerniq/secrets
+          ENDSSH
+          
+          # Sync docker-compose.yml
+          scp -i ~/.ssh/deploy_key infra/docker/docker-compose.yml ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}:/opt/cerniq/docker-compose.yml
+          
+          # Sync production overlay (if exists)
+          if [ -f infra/docker/docker-compose.prod.yml ]; then
+            scp -i ~/.ssh/deploy_key infra/docker/docker-compose.prod.yml ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}:/opt/cerniq/docker-compose.prod.yml
+          fi
+          
+          # Sync OpenBao configurations
+          scp -i ~/.ssh/deploy_key -r infra/docker/openbao/* ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}:/opt/cerniq/infra/docker/openbao/
+          
+          # Sync deployment scripts
+          scp -i ~/.ssh/deploy_key infra/scripts/*.sh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}:/opt/cerniq/infra/scripts/ || echo "Some scripts not found"
+          
+          echo "✅ Configuration files synced to production"
+
+      - name: 🚀 Deploy via Docker Compose
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
+            cd /opt/cerniq
+            
+            # Use production overlay for correct secrets paths
+            # Pull latest images
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml pull || echo "No images to pull yet"
+            
+            # Deploy infrastructure services with production overlay
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-orphans
+            
+            # Health check for PostgreSQL (main service for now)
+            echo "⏳ Waiting for services to be healthy..."
+            sleep 30
+            
+            # Check PostgreSQL health
+            if docker ps --format '{{.Names}}' | grep -q "cerniq-postgres"; then
+              docker exec cerniq-postgres pg_isready -U postgres || echo "PostgreSQL starting..."
+            fi
+            
+            echo "✅ Production deployment complete: ${{ needs.setup.outputs.version }}"
+          ENDSSH
+
+      - name: 🔐 OpenBao Health Check (Production)
+        continue-on-error: true
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
+            cd /opt/cerniq
+            
+            # Check if OpenBao container is running
+            if ! docker ps --format '{{.Names}}' | grep -q "cerniq-openbao"; then
+              echo "⚠️  OpenBao not running, skipping checks"
+              exit 0
+            fi
+            
+            # Get OpenBao status
+            BAO_STATUS=$(docker exec cerniq-openbao bao status -format=json 2>/dev/null || echo '{}')
+            
+            # Check if initialized
+            INITIALIZED=$(echo "$BAO_STATUS" | jq -r '.initialized // false')
+            if [ "$INITIALIZED" != "true" ]; then
+              echo "⚠️  OpenBao not initialized - run openbao-init.sh manually"
+              exit 0
+            fi
+            
+            # Check if sealed (PRODUCTION: NO auto-unseal for security)
+            SEALED=$(echo "$BAO_STATUS" | jq -r '.sealed // true')
+            if [ "$SEALED" == "true" ]; then
+              echo "🔒 OpenBao is SEALED - manual unseal required!"
+              echo "❌ CRITICAL: Production secrets are unavailable until manually unsealed"
+              echo "🔑 Run: ./infra/scripts/openbao-init.sh (with unseal keys)"
+              # Don't fail deployment, but alert
+            else
+              echo "✅ OpenBao is unsealed and healthy"
+              
+              # Verify agents are rendering secrets
+              if docker exec cerniq-openbao-agent-api test -f /secrets/api.env 2>/dev/null; then
+                echo "✅ API secrets are being rendered"
+              else
+                echo "⚠️  API secrets not yet rendered"
+              fi
+              
+              if docker exec cerniq-openbao-agent-workers test -f /secrets/workers.env 2>/dev/null; then
+                echo "✅ Workers secrets are being rendered"
+              else
+                echo "⚠️  Workers secrets not yet rendered"
+              fi
+            fi
+          ENDSSH
+
+      - name: 🧪 Run Infrastructure Validation Tests
+        continue-on-error: true
+        run: |
+          # Copy validation script to server
+          scp -i ~/.ssh/deploy_key infra/scripts/validate-infrastructure.sh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}:/tmp/ || echo "Script copy failed"
+          
+          # Run validation tests on server
+          ssh -i ~/.ssh/deploy_key ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
+            if [ -f /tmp/validate-infrastructure.sh ]; then
+              chmod +x /tmp/validate-infrastructure.sh
+              /tmp/validate-infrastructure.sh production || true
+            else
+              echo "⚠️  Validation script not available"
+            fi
+          ENDSSH
+
+      - name: 📤 Upload Validation Results
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-validation-results
+          path: /tmp/validation-results.json
+          retention-days: 90
+          if-no-files-found: ignore
+
+  # ===========================================================================
+  # JOB 6: Post-Deployment Verification
+  # ===========================================================================
+  verify:
+    name: ✅ Verify Deployment
+    runs-on: self-hosted
+    needs: [setup, deploy-staging, deploy-production]
+    if: always() && (needs.deploy-staging.result == 'success' || needs.deploy-production.result == 'success')
+    permissions:
+      contents: write
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup SSH for verification
+        run: |
+          mkdir -p ~/.ssh
+          ENV=${{ needs.setup.outputs.environment }}
+          if [[ "$ENV" == "production" ]]; then
+            echo "${{ secrets.PRODUCTION_SSH_KEY }}" > ~/.ssh/deploy_key
+            HOST="${{ secrets.PRODUCTION_HOST }}"
+            USER="${{ secrets.PRODUCTION_USER }}"
+          else
+            echo "${{ secrets.STAGING_SSH_KEY }}" > ~/.ssh/deploy_key
+            HOST="${{ secrets.STAGING_HOST }}"
+            USER="${{ secrets.STAGING_USER }}"
+          fi
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: 🧪 Run smoke tests
+        continue-on-error: true
+        run: |
+          ENV=${{ needs.setup.outputs.environment }}
+          if [[ "$ENV" == "production" ]]; then
+            HOST="${{ secrets.PRODUCTION_HOST }}"
+            USER="${{ secrets.PRODUCTION_USER }}"
+          else
+            HOST="${{ secrets.STAGING_HOST }}"
+            USER="${{ secrets.STAGING_USER }}"
+          fi
+          
+          # SSH-based health checks (since apps not exposed yet)
+          ssh -i ~/.ssh/deploy_key ${USER}@${HOST} << 'ENDSSH'
+            echo "🔍 Running smoke tests..."
+            
+            # Check Docker is running
+            docker info >/dev/null 2>&1 && echo "✅ Docker: OK" || echo "❌ Docker: FAIL"
+            
+            # Check networks
+            docker network ls | grep -q cerniq && echo "✅ Networks: OK" || echo "❌ Networks: FAIL"
+            
+            # Check PostgreSQL
+            if docker ps | grep -q cerniq-postgres; then
+              echo "✅ PostgreSQL: Running"
+              docker exec cerniq-postgres pg_isready -U c3rn1q -d cerniq 2>/dev/null && echo "  └─ Accepting connections" || echo "  └─ Not ready"
+            else
+              echo "⚠️  PostgreSQL: Not running (may be expected)"
+            fi
+            
+            # Check PgBouncer  
+            if docker ps | grep -q cerniq-pgbouncer; then
+              echo "✅ PgBouncer: Running"
+            else
+              echo "⚠️  PgBouncer: Not running (may be expected)"
+            fi
+            
+            # Check Redis (E0-S3-PR01)
+            if docker ps | grep -q cerniq-redis; then
+              echo "✅ Redis: Running"
+              # Verify BullMQ-critical settings
+              REDIS_PASS=$(cat /opt/cerniq/secrets/redis_password.txt 2>/dev/null || echo "")
+              if [ -n "$REDIS_PASS" ]; then
+                POLICY=$(docker exec cerniq-redis redis-cli -p 64039 -a "$REDIS_PASS" CONFIG GET maxmemory-policy 2>/dev/null | tail -1)
+                if [ "$POLICY" = "noeviction" ]; then
+                  echo "  └─ BullMQ config: OK (noeviction)"
+                else
+                  echo "  └─ ⚠️ BullMQ config: WARN (policy=$POLICY, expected noeviction)"
+                fi
+              fi
+            else
+              echo "⚠️  Redis: Not running (may be expected for early sprints)"
+            fi
+            
+            echo "✅ Smoke tests complete"
+          ENDSSH
+
+      - name: 📋 Create GitHub Release
+        if: needs.setup.outputs.environment == 'production'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.setup.outputs.version }}
+          name: "Release ${{ needs.setup.outputs.version }}"
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ !startsWith(needs.setup.outputs.version, 'v1.') }}
+          body: |
+            ## 🚀 Automated Release
+            
+            **Version:** ${{ needs.setup.outputs.version }}
+            **Environment:** Production
+            **Commit:** ${{ needs.setup.outputs.sha }}
+            
+            ### 📦 Docker Images
+            - `ghcr.io/${{ github.repository_owner }}/cerniq-api:${{ needs.setup.outputs.version }}`
+            - `ghcr.io/${{ github.repository_owner }}/cerniq-web:${{ needs.setup.outputs.version }}`
+            - `ghcr.io/${{ github.repository_owner }}/cerniq-web-admin:${{ needs.setup.outputs.version }}`
+            - `ghcr.io/${{ github.repository_owner }}/cerniq-worker-ai:${{ needs.setup.outputs.version }}`
+            - `ghcr.io/${{ github.repository_owner }}/cerniq-worker-enrichment:${{ needs.setup.outputs.version }}`
+            - `ghcr.io/${{ github.repository_owner }}/cerniq-worker-outreach:${{ needs.setup.outputs.version }}`
+            
+            ---
+            _This release was automatically created by CI/CD pipeline._

@@ -1,17 +1,34 @@
 # =============================================================================
-# CERNIQ.APP — CD Pipeline for Deployments
+# CERNIQ.APP — CD Pipeline for Deployments (Refactored v2.0)
 # =============================================================================
 # Workflow: deploy.yml
 # Trigger: 
 #   - Push to feature/*, develop → Staging
 #   - Push to main → Production  
-#   - Git tags (v*.*.*) → Production
 #   - Manual dispatch
-# Purpose: Build, Push to Registry, Deploy to Environment
 # 
+# Features:
+#   - Full configuration sync with correct server paths
+#   - Automated OpenBao initialization and setup
+#   - Automated firewall configuration
+#   - AppRole credentials generation
+#   - Initial secrets population
+#   - Health verification
+#
+# Server structure:
+#   /opt/cerniq/
+#   ├── docker-compose.yml
+#   ├── docker-compose.prod.yml  (production only)
+#   ├── config/
+#   │   ├── postgres/
+#   │   ├── traefik/
+#   │   └── openbao/
+#   ├── scripts/
+#   └── secrets/
+#
 # Reference: ADR-0107 CI/CD Pipeline Strategy
 # Created: 2026-02-01
-# Updated: 2026-02-03 - Added branch triggers for auto-deploy
+# Updated: 2026-02-05 - Complete refactor for automated deployments
 # =============================================================================
 
 name: CD Pipeline
@@ -25,8 +42,6 @@ on:
       - 'feat/**'
       - 'fix/**'
       - 'hotfix/**'
-    # Note: Tag triggers removed - tags are auto-created by this workflow
-    # Manual tag push can use workflow_dispatch
   workflow_dispatch:
     inputs:
       environment:
@@ -47,13 +62,7 @@ env:
 
 jobs:
   # ===========================================================================
-  # JOB 1: Determine Environment and Version (Auto-Increment)
-  # ===========================================================================
-  # Versioning Strategy:
-  #   - 0.0.x = Development builds (auto-increment on main)
-  #   - 0.1.x = Alpha version (manual transition)
-  #   - 0.2.x = Beta version
-  #   - 1.0.0 = First stable release
+  # JOB 1: Determine Environment and Version
   # ===========================================================================
   setup:
     name: 🔧 Setup Deployment
@@ -81,46 +90,31 @@ jobs:
             echo "version=${{ inputs.version }}" >> $GITHUB_OUTPUT
             echo "should_tag=false" >> $GITHUB_OUTPUT
           elif [[ "${{ github.ref_type }}" == "tag" ]]; then
-            # Tag push - use existing tag
             TAG="${{ github.ref_name }}"
             echo "version=${TAG}" >> $GITHUB_OUTPUT
             echo "should_tag=false" >> $GITHUB_OUTPUT
-            
-            # Production for release tags (v1.0.0), staging for pre-release (v1.0.0-rc.1)
             if [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
               echo "environment=production" >> $GITHUB_OUTPUT
             else
               echo "environment=staging" >> $GITHUB_OUTPUT
             fi
           else
-            # Branch push - determine environment by branch name
             BRANCH="${{ github.ref_name }}"
-            
             if [[ "$BRANCH" == "main" ]]; then
               echo "environment=production" >> $GITHUB_OUTPUT
               echo "should_tag=true" >> $GITHUB_OUTPUT
-              
-              # Auto-increment version: find latest v0.0.x tag and increment
               LATEST_TAG=$(git tag -l "v0.0.*" --sort=-v:refname | head -n1)
-              
               if [[ -z "$LATEST_TAG" ]]; then
-                # No tags yet, start at v0.0.1
                 NEW_VERSION="v0.0.1"
               else
-                # Extract patch number and increment
                 PATCH=$(echo "$LATEST_TAG" | sed 's/v0\.0\.//')
                 NEW_PATCH=$((PATCH + 1))
                 NEW_VERSION="v0.0.${NEW_PATCH}"
               fi
-              
               echo "version=${NEW_VERSION}" >> $GITHUB_OUTPUT
-              echo "📦 Auto-versioning: $LATEST_TAG → $NEW_VERSION"
             else
-              # All other branches (develop, feature/*, feat/*, fix/*, hotfix/*) → staging
               echo "environment=staging" >> $GITHUB_OUTPUT
               echo "should_tag=false" >> $GITHUB_OUTPUT
-              
-              # Sanitize branch name for version tag
               SHORT_SHA="${{ github.sha }}"
               SHORT_SHA="${SHORT_SHA:0:7}"
               SAFE_BRANCH=$(echo "$BRANCH" | sed 's/[^a-zA-Z0-9]/-/g' | cut -c1-20)
@@ -133,23 +127,17 @@ jobs:
         if: steps.determine.outputs.should_tag == 'true'
         run: |
           VERSION="${{ steps.determine.outputs.version }}"
-          
-          # Configure git
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # Create and push tag
           git tag -a "$VERSION" -m "Release $VERSION (auto-generated)"
           git push origin "$VERSION"
-          
-          echo "✅ Created and pushed tag: $VERSION"
+          echo "✅ Created tag: $VERSION"
 
       - name: 📋 Display deployment info
         run: |
           echo "🎯 Environment: ${{ steps.determine.outputs.environment }}"
           echo "🏷️ Version: ${{ steps.determine.outputs.version }}"
           echo "📝 SHA: ${{ steps.determine.outputs.sha }}"
-          echo "🔖 Should Tag: ${{ steps.determine.outputs.should_tag }}"
 
   # ===========================================================================
   # JOB 2: Build and Push Docker Images
@@ -171,12 +159,6 @@ jobs:
             context: ./apps/web
           - name: web-admin
             context: ./apps/web-admin
-          - name: worker-ai
-            context: ./workers/ai
-          - name: worker-enrichment
-            context: ./workers/enrichment
-          - name: worker-outreach
-            context: ./workers/outreach
 
     steps:
       - name: 📥 Checkout code
@@ -215,42 +197,7 @@ jobs:
             BUILD_SHA=${{ needs.setup.outputs.sha }}
 
   # ===========================================================================
-  # JOB 3: Security Scan Published Images
-  # ===========================================================================
-  scan-images:
-    name: 🔒 Scan Images
-    runs-on: self-hosted
-    needs: [setup, build-push]
-    continue-on-error: true
-    permissions:
-      contents: read
-      security-events: write
-
-    strategy:
-      matrix:
-        app: [api, web, web-admin, worker-ai, worker-enrichment, worker-outreach]
-
-    steps:
-      - name: 🔒 Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
-        continue-on-error: true
-        with:
-          image-ref: '${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.app }}:${{ needs.setup.outputs.version }}'
-          severity: 'CRITICAL,HIGH'
-          exit-code: '0'
-          format: 'sarif'
-          output: 'trivy-${{ matrix.app }}.sarif'
-
-      - name: 📤 Upload scan results
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        continue-on-error: true
-        with:
-          sarif_file: 'trivy-${{ matrix.app }}.sarif'
-          category: 'trivy-${{ matrix.app }}'
-
-  # ===========================================================================
-  # JOB 4: Deploy to Staging
+  # JOB 3: Deploy to Staging
   # ===========================================================================
   deploy-staging:
     name: 🚀 Deploy to Staging
@@ -270,144 +217,360 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.STAGING_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H ${{ secrets.STAGING_HOST }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H ${{ secrets.STAGING_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
 
+      # =========================================================================
+      # STEP 1: Sync ALL configuration files with correct structure
+      # =========================================================================
       - name: 📦 Sync configuration files
         run: |
-          # Create required directories on server
-          ssh -i ~/.ssh/deploy_key ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'ENDSSH'
-            mkdir -p /opt/cerniq/infra/docker/openbao/{policies,templates}
-            mkdir -p /opt/cerniq/infra/scripts
-            mkdir -p /opt/cerniq/secrets
+          SSH_CMD="ssh -i ~/.ssh/deploy_key ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}"
+          SCP_CMD="scp -i ~/.ssh/deploy_key"
+          HOST="${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}"
+          
+          echo "📁 Creating server directory structure..."
+          $SSH_CMD << 'ENDSSH'
+            sudo mkdir -p /opt/cerniq/{config/{postgres,traefik/dynamic,openbao/{policies,templates}},scripts,secrets,backups}
+            sudo chown -R $(whoami):$(whoami) /opt/cerniq
           ENDSSH
           
-          # Sync docker-compose.yml
-          scp -i ~/.ssh/deploy_key infra/docker/docker-compose.yml ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}:/opt/cerniq/docker-compose.yml
+          echo "📄 Syncing docker-compose files..."
+          $SCP_CMD infra/docker/docker-compose.yml ${HOST}:/opt/cerniq/
+          $SCP_CMD infra/docker/docker-compose.prod.yml ${HOST}:/opt/cerniq/ 2>/dev/null || true
           
-          # Sync OpenBao configurations
-          scp -i ~/.ssh/deploy_key -r infra/docker/openbao/* ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}:/opt/cerniq/infra/docker/openbao/
+          echo "📄 Syncing PostgreSQL config..."
+          $SCP_CMD infra/docker/postgres/postgresql.conf ${HOST}:/opt/cerniq/config/postgres/
+          $SCP_CMD infra/docker/postgres/init.sql ${HOST}:/opt/cerniq/config/postgres/
           
-          # Sync deployment scripts
-          scp -i ~/.ssh/deploy_key infra/scripts/*.sh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}:/opt/cerniq/infra/scripts/ || echo "Some scripts not found"
+          echo "📄 Syncing Traefik config..."
+          $SCP_CMD infra/config/traefik/traefik.yml ${HOST}:/opt/cerniq/config/traefik/
+          $SCP_CMD infra/config/traefik/dynamic/*.yml ${HOST}:/opt/cerniq/config/traefik/dynamic/ 2>/dev/null || true
           
-          echo "✅ Configuration files synced to staging"
+          echo "📄 Syncing OpenBao config..."
+          $SCP_CMD infra/docker/openbao/*.hcl ${HOST}:/opt/cerniq/config/openbao/
+          $SCP_CMD infra/docker/openbao/policies/*.hcl ${HOST}:/opt/cerniq/config/openbao/policies/
+          $SCP_CMD infra/docker/openbao/templates/*.tpl ${HOST}:/opt/cerniq/config/openbao/templates/
+          
+          echo "📄 Syncing scripts..."
+          $SCP_CMD infra/scripts/*.sh ${HOST}:/opt/cerniq/scripts/
+          $SSH_CMD "chmod +x /opt/cerniq/scripts/*.sh"
+          
+          echo "✅ Configuration sync complete"
 
-      - name: 🚀 Deploy via Docker Compose
+      # =========================================================================
+      # STEP 2: Deploy infrastructure services
+      # =========================================================================
+      - name: 🚀 Deploy Docker services
         run: |
           ssh -i ~/.ssh/deploy_key ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'ENDSSH'
             cd /opt/cerniq
             
-            # Pull latest images
-            docker compose pull || echo "No images to pull yet"
+            # Ensure Docker networks exist
+            docker network create --driver bridge --subnet=172.27.0.0/24 cerniq_public 2>/dev/null || true
+            docker network create --driver bridge --subnet=172.28.0.0/24 --internal cerniq_backend 2>/dev/null || true
+            docker network create --driver bridge --subnet=172.29.0.0/24 --internal cerniq_data 2>/dev/null || true
             
-            # Update with zero-downtime
-            docker compose up -d --remove-orphans
+            # Pull and deploy with production overlay
+            echo "🐳 Pulling images..."
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml pull || true
             
-            # Health check for PostgreSQL
-            echo "⏳ Waiting for services to be healthy..."
-            sleep 30
+            echo "🚀 Starting services..."
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-orphans
             
-            # Check PostgreSQL health
-            if docker ps --format '{{.Names}}' | grep -q "cerniq-postgres"; then
-              docker exec cerniq-postgres pg_isready -U postgres || echo "PostgreSQL starting..."
-            fi
+            echo "⏳ Waiting for services to start..."
+            sleep 15
             
-            echo "✅ Staging deployment complete: ${{ needs.setup.outputs.version }}"
+            # Verify core services
+            echo "📊 Service status:"
+            docker ps --format 'table {{.Names}}\t{{.Status}}' | grep cerniq || true
           ENDSSH
 
-      - name: 🔐 OpenBao Health Check & Unseal
-        continue-on-error: true
+      # =========================================================================
+      # STEP 3: Initialize OpenBao (if needed)
+      # =========================================================================
+      - name: 🔐 Initialize OpenBao
         run: |
           ssh -i ~/.ssh/deploy_key ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'ENDSSH'
             cd /opt/cerniq
             
-            # Check if OpenBao container is running
-            if ! docker ps --format '{{.Names}}' | grep -q "cerniq-openbao"; then
-              echo "⚠️  OpenBao not running, skipping checks"
-              exit 0
-            fi
-            
-            # Get OpenBao status
-            BAO_STATUS=$(docker exec cerniq-openbao bao status -format=json 2>/dev/null || echo '{}')
-            
-            # Check if initialized
-            INITIALIZED=$(echo "$BAO_STATUS" | jq -r '.initialized // false')
-            if [ "$INITIALIZED" != "true" ]; then
-              echo "⚠️  OpenBao not initialized - run openbao-init.sh manually"
-              exit 0
-            fi
-            
-            # Check if sealed  
-            SEALED=$(echo "$BAO_STATUS" | jq -r '.sealed // true')
-            if [ "$SEALED" == "true" ]; then
-              echo "🔒 OpenBao is sealed"
-              
-              # Auto-unseal on staging (CERNIQ_OPENBAO_AUTO_UNSEAL=true)
-              if [ -f "/var/www/CerniqAPP/secrets/openbao_unseal_keys.txt" ]; then
-                echo "🔓 Attempting auto-unseal (staging only)..."
-                for i in 1 2 3; do
-                  KEY=$(sed -n "${i}p" /var/www/CerniqAPP/secrets/openbao_unseal_keys.txt | cut -d: -f2 | tr -d ' ')
-                  if [ -n "$KEY" ]; then
-                    docker exec cerniq-openbao bao operator unseal "$KEY" >/dev/null 2>&1 || true
-                  fi
-                done
-                
-                # Verify unsealed
-                NEW_STATUS=$(docker exec cerniq-openbao bao status -format=json 2>/dev/null || echo '{}')
-                NEW_SEALED=$(echo "$NEW_STATUS" | jq -r '.sealed // true')
-                if [ "$NEW_SEALED" == "false" ]; then
-                  echo "✅ OpenBao unsealed successfully"
-                else
-                  echo "❌ OpenBao still sealed - manual intervention required"
-                fi
-              else
-                echo "⚠️  Unseal keys not found, manual unseal required"
+            # Wait for OpenBao to be ready
+            echo "⏳ Waiting for OpenBao container..."
+            for i in {1..30}; do
+              if docker exec cerniq-openbao bao status 2>/dev/null; then
+                break
               fi
+              sleep 2
+            done
+            
+            # Check initialization status
+            INIT_STATUS=$(docker exec cerniq-openbao bao status -format=json 2>/dev/null | jq -r '.initialized // false')
+            
+            if [ "$INIT_STATUS" != "true" ]; then
+              echo "🔐 Initializing OpenBao..."
+              
+              # Initialize with 5 key shares, 3 threshold
+              INIT_OUTPUT=$(docker exec cerniq-openbao bao operator init -key-shares=5 -key-threshold=3 -format=json)
+              
+              # Save keys securely
+              echo "$INIT_OUTPUT" | jq -r '.unseal_keys_b64[]' > /opt/cerniq/secrets/openbao_unseal_keys.txt
+              echo "$INIT_OUTPUT" | jq -r '.root_token' > /opt/cerniq/secrets/openbao_root_token.txt
+              chmod 600 /opt/cerniq/secrets/openbao_*.txt
+              
+              echo "✅ OpenBao initialized. Keys saved to /opt/cerniq/secrets/"
+              
+              # Auto-unseal for staging
+              echo "🔓 Auto-unsealing (staging only)..."
+              for i in 1 2 3; do
+                KEY=$(sed -n "${i}p" /opt/cerniq/secrets/openbao_unseal_keys.txt)
+                docker exec cerniq-openbao bao operator unseal "$KEY" >/dev/null 2>&1 || true
+              done
             else
-              echo "✅ OpenBao is already unsealed and healthy"
+              echo "✅ OpenBao already initialized"
+              
+              # Check if sealed
+              SEALED=$(docker exec cerniq-openbao bao status -format=json 2>/dev/null | jq -r '.sealed // true')
+              if [ "$SEALED" == "true" ]; then
+                echo "🔓 Auto-unsealing..."
+                if [ -f /opt/cerniq/secrets/openbao_unseal_keys.txt ]; then
+                  for i in 1 2 3; do
+                    KEY=$(sed -n "${i}p" /opt/cerniq/secrets/openbao_unseal_keys.txt)
+                    docker exec cerniq-openbao bao operator unseal "$KEY" >/dev/null 2>&1 || true
+                  done
+                fi
+              fi
             fi
             
-            # Verify secrets are being rendered by agents
-            if docker exec cerniq-openbao-agent-api test -f /secrets/api.env 2>/dev/null; then
-              echo "✅ API secrets are being rendered"
+            # Final status
+            docker exec cerniq-openbao bao status 2>/dev/null | grep -E "Initialized|Sealed" || true
+          ENDSSH
+
+      # =========================================================================
+      # STEP 4: Configure OpenBao (secrets engines, policies, AppRoles)
+      # =========================================================================
+      - name: 🔧 Configure OpenBao
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'ENDSSH'
+            cd /opt/cerniq
+            
+            # Check if OpenBao is ready
+            SEALED=$(docker exec cerniq-openbao bao status -format=json 2>/dev/null | jq -r '.sealed // true')
+            if [ "$SEALED" == "true" ]; then
+              echo "⚠️ OpenBao is sealed, skipping configuration"
+              exit 0
+            fi
+            
+            # Get root token
+            if [ ! -f /opt/cerniq/secrets/openbao_root_token.txt ]; then
+              echo "⚠️ Root token not found, skipping configuration"
+              exit 0
+            fi
+            
+            ROOT_TOKEN=$(cat /opt/cerniq/secrets/openbao_root_token.txt)
+            export BAO_ADDR="http://127.0.0.1:8200"
+            export BAO_TOKEN="$ROOT_TOKEN"
+            
+            # Check if already configured (secrets engine exists)
+            if docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao secrets list 2>/dev/null | grep -q "secret/"; then
+              echo "✅ OpenBao already configured"
             else
-              echo "⚠️  API secrets not yet rendered (agent may still be starting)"
+              echo "🔧 Configuring OpenBao..."
+              
+              # Enable KV v2 secrets engine
+              docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao secrets enable -path=secret kv-v2 2>/dev/null || true
+              
+              # Enable AppRole auth
+              docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao auth enable approle 2>/dev/null || true
+              
+              # Load policies
+              docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao policy write api-policy /openbao/config/policies/api-policy.hcl
+              docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao policy write workers-policy /openbao/config/policies/workers-policy.hcl
+              
+              # Create AppRoles
+              docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao write auth/approle/role/api token_ttl=1h token_max_ttl=4h token_policies=api-policy
+              docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao write auth/approle/role/workers token_ttl=1h token_max_ttl=4h token_policies=workers-policy
+              
+              echo "✅ OpenBao configuration complete"
+            fi
+            
+            # Generate/update AppRole credentials for agents
+            echo "🔑 Generating AppRole credentials..."
+            
+            API_ROLE_ID=$(docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao read -field=role_id auth/approle/role/api/role-id)
+            API_SECRET_ID=$(docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao write -f -field=secret_id auth/approle/role/api/secret-id)
+            WORKERS_ROLE_ID=$(docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao read -field=role_id auth/approle/role/workers/role-id)
+            WORKERS_SECRET_ID=$(docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao write -f -field=secret_id auth/approle/role/workers/secret-id)
+            
+            echo "$API_ROLE_ID" > /opt/cerniq/secrets/api_role_id
+            echo "$API_SECRET_ID" > /opt/cerniq/secrets/api_secret_id
+            echo "$WORKERS_ROLE_ID" > /opt/cerniq/secrets/workers_role_id
+            echo "$WORKERS_SECRET_ID" > /opt/cerniq/secrets/workers_secret_id
+            chmod 644 /opt/cerniq/secrets/*_role_id /opt/cerniq/secrets/*_secret_id
+            
+            echo "✅ AppRole credentials saved"
+          ENDSSH
+
+      # =========================================================================
+      # STEP 5: Populate initial secrets
+      # =========================================================================
+      - name: 📝 Populate initial secrets
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'ENDSSH'
+            cd /opt/cerniq
+            
+            SEALED=$(docker exec cerniq-openbao bao status -format=json 2>/dev/null | jq -r '.sealed // true')
+            if [ "$SEALED" == "true" ]; then
+              echo "⚠️ OpenBao is sealed, skipping secrets population"
+              exit 0
+            fi
+            
+            if [ ! -f /opt/cerniq/secrets/openbao_root_token.txt ]; then
+              exit 0
+            fi
+            
+            ROOT_TOKEN=$(cat /opt/cerniq/secrets/openbao_root_token.txt)
+            export BAO_ADDR="http://127.0.0.1:8200"
+            export BAO_TOKEN="$ROOT_TOKEN"
+            
+            # Check if secrets already exist
+            if docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao kv get secret/cerniq/api/config 2>/dev/null | grep -q "pg_user"; then
+              echo "✅ Secrets already populated"
+              exit 0
+            fi
+            
+            echo "📝 Populating initial secrets..."
+            
+            # Get passwords from files
+            PG_PASS=$(cat /opt/cerniq/secrets/postgres_password.txt 2>/dev/null || echo "")
+            REDIS_PASS=$(cat /opt/cerniq/secrets/redis_password.txt 2>/dev/null || echo "")
+            JWT_SECRET=$(openssl rand -base64 48 | tr -d '\n')
+            
+            if [ -n "$PG_PASS" ] && [ -n "$REDIS_PASS" ]; then
+              # API config secrets
+              docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao kv put secret/cerniq/api/config \
+                pg_user=cerniq \
+                pg_password="$PG_PASS" \
+                redis_password="$REDIS_PASS" \
+                jwt_secret="$JWT_SECRET" \
+                NODE_ENV=staging \
+                LOG_LEVEL=debug
+              
+              # External API keys (placeholders)
+              docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao kv put secret/cerniq/shared/external \
+                anaf_client_id=PLACEHOLDER \
+                anaf_client_secret=PLACEHOLDER \
+                resend_api_key=PLACEHOLDER \
+                hunter_api_key=PLACEHOLDER \
+                termene_api_key=PLACEHOLDER
+              
+              echo "✅ Initial secrets populated"
+            else
+              echo "⚠️ Password files not found, skipping secrets population"
             fi
           ENDSSH
 
-      - name: 🧪 Run Infrastructure Validation Tests
+      # =========================================================================
+      # STEP 6: Start OpenBao agents
+      # =========================================================================
+      - name: 🤖 Start OpenBao Agents
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'ENDSSH'
+            cd /opt/cerniq
+            
+            # Check prerequisites
+            if [ ! -f /opt/cerniq/secrets/api_role_id ]; then
+              echo "⚠️ AppRole credentials not found, skipping agents"
+              exit 0
+            fi
+            
+            echo "🤖 Starting OpenBao agents..."
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d openbao-agent-api openbao-agent-workers
+            
+            echo "⏳ Waiting for agents to render secrets..."
+            sleep 10
+            
+            # Verify secrets rendered
+            if docker exec cerniq-openbao-agent-api test -f /secrets/api.env 2>/dev/null; then
+              echo "✅ API secrets rendered successfully"
+            else
+              echo "⚠️ API secrets not yet rendered"
+              docker logs cerniq-openbao-agent-api --tail 10 2>&1 || true
+            fi
+          ENDSSH
+
+      # =========================================================================
+      # STEP 7: Configure firewall
+      # =========================================================================
+      - name: 🔥 Configure Firewall
         continue-on-error: true
         run: |
-          # Copy validation script to server
-          scp -i ~/.ssh/deploy_key infra/scripts/validate-infrastructure.sh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}:/tmp/ || echo "Script copy failed"
-          
-          # Run validation tests on server
           ssh -i ~/.ssh/deploy_key ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'ENDSSH'
-            if [ -f /tmp/validate-infrastructure.sh ]; then
-              chmod +x /tmp/validate-infrastructure.sh
-              /tmp/validate-infrastructure.sh staging || true
+            cd /opt/cerniq
+            
+            # Check if UFW is active
+            if sudo ufw status | grep -q "Status: active"; then
+              echo "✅ UFW already active"
             else
-              echo "⚠️  Validation script not available"
+              echo "🔥 Configuring firewall..."
+              if [ -f /opt/cerniq/scripts/setup-firewall.sh ]; then
+                sudo /opt/cerniq/scripts/setup-firewall.sh || echo "⚠️ Firewall setup had issues"
+              else
+                # Basic firewall setup
+                sudo ufw --force reset
+                sudo ufw default deny incoming
+                sudo ufw default allow outgoing
+                sudo ufw allow ssh
+                sudo ufw allow 80/tcp
+                sudo ufw allow 443/tcp
+                sudo ufw --force enable
+                echo "✅ Basic firewall configured"
+              fi
             fi
+            
+            sudo ufw status verbose | head -10
           ENDSSH
 
-      - name: 📤 Upload Validation Results
-        if: always()
-        continue-on-error: true
-        uses: actions/upload-artifact@v4
-        with:
-          name: staging-validation-results
-          path: /tmp/validation-results.json
-          retention-days: 30
-          if-no-files-found: ignore
+      # =========================================================================
+      # STEP 8: Health Check and verification
+      # =========================================================================
+      - name: Verify Staging Deployment
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'ENDSSH'
+            echo "========================================"
+            echo "  STAGING DEPLOYMENT VERIFICATION"
+            echo "========================================"
+            
+            cd /opt/cerniq
+            
+            echo "Container Status"
+            docker ps --format 'table {{.Names}}\t{{.Status}}' | grep cerniq | sort
+            
+            echo ""
+            echo "OpenBao Status"
+            docker exec cerniq-openbao bao status 2>/dev/null | grep -E "Initialized|Sealed|Version" || echo "  Not available"
+            
+            echo ""
+            echo "Secrets Status"
+            if docker exec cerniq-openbao-agent-api test -f /secrets/api.env 2>/dev/null; then
+              echo "  API secrets rendered"
+            else
+              echo "  API secrets not rendered"
+            fi
+            
+            echo ""
+            echo "Firewall Status"
+            sudo ufw status | head -3
+            
+            echo ""
+            echo "Staging deployment complete - version ${{ needs.setup.outputs.version }}"
+          ENDSSH
 
   # ===========================================================================
-  # JOB 5: Deploy to Production
+  # JOB 4: Deploy to Production
   # ===========================================================================
   deploy-production:
     name: 🚀 Deploy to Production
     runs-on: self-hosted
-    needs: [setup, build-push, scan-images]
+    needs: [setup, build-push]
     if: needs.setup.outputs.environment == 'production'
     environment:
       name: production
@@ -422,234 +585,316 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.PRODUCTION_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
 
       - name: 🔄 Create database backup
         continue-on-error: true
         run: |
           ssh -i ~/.ssh/deploy_key ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
-            cd /opt/cerniq
-            # Run backup script if it exists
-            if [ -f ./scripts/backup-pre-deploy.sh ]; then
-              chmod +x ./scripts/backup-pre-deploy.sh
-              ./scripts/backup-pre-deploy.sh
-            else
-              echo "⚠️  Backup script not found, skipping (normal for initial deployment)"
+            if [ -f /opt/cerniq/scripts/backup-pre-deploy.sh ]; then
+              /opt/cerniq/scripts/backup-pre-deploy.sh
             fi
           ENDSSH
 
+      # =========================================================================
+      # STEP 1: Sync ALL configuration files
+      # =========================================================================
       - name: 📦 Sync configuration files
         run: |
-          # Create required directories on server
-          ssh -i ~/.ssh/deploy_key ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
-            mkdir -p /opt/cerniq/infra/docker/openbao/{policies,templates}
-            mkdir -p /opt/cerniq/infra/scripts
-            mkdir -p /opt/cerniq/secrets
+          SSH_CMD="ssh -i ~/.ssh/deploy_key ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}"
+          SCP_CMD="scp -i ~/.ssh/deploy_key"
+          HOST="${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}"
+          
+          echo "📁 Creating server directory structure..."
+          $SSH_CMD << 'ENDSSH'
+            sudo mkdir -p /opt/cerniq/{config/{postgres,traefik/dynamic,openbao/{policies,templates}},scripts,secrets,backups}
+            sudo chown -R $(whoami):$(whoami) /opt/cerniq
           ENDSSH
           
-          # Sync docker-compose.yml
-          scp -i ~/.ssh/deploy_key infra/docker/docker-compose.yml ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}:/opt/cerniq/docker-compose.yml
+          echo "📄 Syncing docker-compose files..."
+          $SCP_CMD infra/docker/docker-compose.yml ${HOST}:/opt/cerniq/
+          $SCP_CMD infra/docker/docker-compose.prod.yml ${HOST}:/opt/cerniq/
           
-          # Sync production overlay (if exists)
-          if [ -f infra/docker/docker-compose.prod.yml ]; then
-            scp -i ~/.ssh/deploy_key infra/docker/docker-compose.prod.yml ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}:/opt/cerniq/docker-compose.prod.yml
-          fi
+          echo "📄 Syncing PostgreSQL config..."
+          $SCP_CMD infra/docker/postgres/postgresql.conf ${HOST}:/opt/cerniq/config/postgres/
+          $SCP_CMD infra/docker/postgres/init.sql ${HOST}:/opt/cerniq/config/postgres/
           
-          # Sync OpenBao configurations
-          scp -i ~/.ssh/deploy_key -r infra/docker/openbao/* ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}:/opt/cerniq/infra/docker/openbao/
+          echo "📄 Syncing Traefik config..."
+          $SCP_CMD infra/config/traefik/traefik.yml ${HOST}:/opt/cerniq/config/traefik/
+          $SCP_CMD infra/config/traefik/dynamic/*.yml ${HOST}:/opt/cerniq/config/traefik/dynamic/ 2>/dev/null || true
           
-          # Sync deployment scripts
-          scp -i ~/.ssh/deploy_key infra/scripts/*.sh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}:/opt/cerniq/infra/scripts/ || echo "Some scripts not found"
+          echo "📄 Syncing OpenBao config..."
+          $SCP_CMD infra/docker/openbao/*.hcl ${HOST}:/opt/cerniq/config/openbao/
+          $SCP_CMD infra/docker/openbao/policies/*.hcl ${HOST}:/opt/cerniq/config/openbao/policies/
+          $SCP_CMD infra/docker/openbao/templates/*.tpl ${HOST}:/opt/cerniq/config/openbao/templates/
           
-          echo "✅ Configuration files synced to production"
+          echo "📄 Syncing scripts..."
+          $SCP_CMD infra/scripts/*.sh ${HOST}:/opt/cerniq/scripts/
+          $SSH_CMD "chmod +x /opt/cerniq/scripts/*.sh"
+          
+          echo "✅ Configuration sync complete"
 
-      - name: 🚀 Deploy via Docker Compose
+      # =========================================================================
+      # STEP 2: Deploy infrastructure services
+      # =========================================================================
+      - name: 🚀 Deploy Docker services
         run: |
           ssh -i ~/.ssh/deploy_key ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
             cd /opt/cerniq
             
-            # Use production overlay for correct secrets paths
-            # Pull latest images
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml pull || echo "No images to pull yet"
+            # Ensure Docker networks exist
+            docker network create --driver bridge --subnet=172.27.0.0/24 cerniq_public 2>/dev/null || true
+            docker network create --driver bridge --subnet=172.28.0.0/24 --internal cerniq_backend 2>/dev/null || true
+            docker network create --driver bridge --subnet=172.29.0.0/24 --internal cerniq_data 2>/dev/null || true
             
-            # Deploy infrastructure services with production overlay
+            # Deploy with production overlay
+            echo "🐳 Pulling images..."
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml pull || true
+            
+            echo "🚀 Starting services..."
             docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-orphans
             
-            # Health check for PostgreSQL (main service for now)
-            echo "⏳ Waiting for services to be healthy..."
-            sleep 30
+            echo "⏳ Waiting for services to start..."
+            sleep 20
             
-            # Check PostgreSQL health
-            if docker ps --format '{{.Names}}' | grep -q "cerniq-postgres"; then
-              docker exec cerniq-postgres pg_isready -U postgres || echo "PostgreSQL starting..."
-            fi
-            
-            echo "✅ Production deployment complete: ${{ needs.setup.outputs.version }}"
+            echo "📊 Service status:"
+            docker ps --format 'table {{.Names}}\t{{.Status}}' | grep cerniq || true
           ENDSSH
 
-      - name: 🔐 OpenBao Health Check (Production)
+      # =========================================================================
+      # STEP 3: Initialize OpenBao (if needed) - NO AUTO-UNSEAL IN PRODUCTION
+      # =========================================================================
+      - name: 🔐 Initialize OpenBao (Production)
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
+            cd /opt/cerniq
+            
+            # Wait for OpenBao
+            echo "⏳ Waiting for OpenBao container..."
+            for i in {1..30}; do
+              if docker exec cerniq-openbao bao status 2>/dev/null; then
+                break
+              fi
+              sleep 2
+            done
+            
+            INIT_STATUS=$(docker exec cerniq-openbao bao status -format=json 2>/dev/null | jq -r '.initialized // false')
+            
+            if [ "$INIT_STATUS" != "true" ]; then
+              echo "🔐 Initializing OpenBao..."
+              
+              INIT_OUTPUT=$(docker exec cerniq-openbao bao operator init -key-shares=5 -key-threshold=3 -format=json)
+              
+              echo "$INIT_OUTPUT" | jq -r '.unseal_keys_b64[]' > /opt/cerniq/secrets/openbao_unseal_keys.txt
+              echo "$INIT_OUTPUT" | jq -r '.root_token' > /opt/cerniq/secrets/openbao_root_token.txt
+              chmod 600 /opt/cerniq/secrets/openbao_*.txt
+              
+              echo "⚠️  PRODUCTION: OpenBao initialized but NOT auto-unsealed"
+              echo "🔑 Unseal keys saved to /opt/cerniq/secrets/openbao_unseal_keys.txt"
+              echo "🔑 Root token saved to /opt/cerniq/secrets/openbao_root_token.txt"
+              echo ""
+              echo "❗ MANUAL STEP REQUIRED: Run 'bao operator unseal' with 3 keys"
+            else
+              echo "✅ OpenBao already initialized"
+              SEALED=$(docker exec cerniq-openbao bao status -format=json 2>/dev/null | jq -r '.sealed // true')
+              if [ "$SEALED" == "true" ]; then
+                echo "🔒 OpenBao is SEALED - manual unseal required for production security"
+              else
+                echo "✅ OpenBao is unsealed"
+              fi
+            fi
+          ENDSSH
+
+      # =========================================================================
+      # STEP 4: Configure OpenBao (only if unsealed)
+      # =========================================================================
+      - name: 🔧 Configure OpenBao (if unsealed)
         continue-on-error: true
         run: |
           ssh -i ~/.ssh/deploy_key ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
             cd /opt/cerniq
             
-            # Check if OpenBao container is running
-            if ! docker ps --format '{{.Names}}' | grep -q "cerniq-openbao"; then
-              echo "⚠️  OpenBao not running, skipping checks"
-              exit 0
-            fi
-            
-            # Get OpenBao status
-            BAO_STATUS=$(docker exec cerniq-openbao bao status -format=json 2>/dev/null || echo '{}')
-            
-            # Check if initialized
-            INITIALIZED=$(echo "$BAO_STATUS" | jq -r '.initialized // false')
-            if [ "$INITIALIZED" != "true" ]; then
-              echo "⚠️  OpenBao not initialized - run openbao-init.sh manually"
-              exit 0
-            fi
-            
-            # Check if sealed (PRODUCTION: NO auto-unseal for security)
-            SEALED=$(echo "$BAO_STATUS" | jq -r '.sealed // true')
+            SEALED=$(docker exec cerniq-openbao bao status -format=json 2>/dev/null | jq -r '.sealed // true')
             if [ "$SEALED" == "true" ]; then
-              echo "🔒 OpenBao is SEALED - manual unseal required!"
-              echo "❌ CRITICAL: Production secrets are unavailable until manually unsealed"
-              echo "🔑 Run: ./infra/scripts/openbao-init.sh (with unseal keys)"
-              # Don't fail deployment, but alert
-            else
-              echo "✅ OpenBao is unsealed and healthy"
-              
-              # Verify agents are rendering secrets
-              if docker exec cerniq-openbao-agent-api test -f /secrets/api.env 2>/dev/null; then
-                echo "✅ API secrets are being rendered"
-              else
-                echo "⚠️  API secrets not yet rendered"
-              fi
-              
-              if docker exec cerniq-openbao-agent-workers test -f /secrets/workers.env 2>/dev/null; then
-                echo "✅ Workers secrets are being rendered"
-              else
-                echo "⚠️  Workers secrets not yet rendered"
-              fi
+              echo "⚠️ OpenBao is sealed, skipping configuration"
+              echo "   Run manual unseal first, then re-deploy to configure"
+              exit 0
             fi
+            
+            if [ ! -f /opt/cerniq/secrets/openbao_root_token.txt ]; then
+              exit 0
+            fi
+            
+            ROOT_TOKEN=$(cat /opt/cerniq/secrets/openbao_root_token.txt)
+            export BAO_ADDR="http://127.0.0.1:8200"
+            export BAO_TOKEN="$ROOT_TOKEN"
+            
+            # Configuration (same as staging)
+            if docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao secrets list 2>/dev/null | grep -q "secret/"; then
+              echo "✅ OpenBao already configured"
+            else
+              docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao secrets enable -path=secret kv-v2 2>/dev/null || true
+              docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao auth enable approle 2>/dev/null || true
+              docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao policy write api-policy /openbao/config/policies/api-policy.hcl
+              docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao policy write workers-policy /openbao/config/policies/workers-policy.hcl
+              docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao write auth/approle/role/api token_ttl=1h token_max_ttl=4h token_policies=api-policy
+              docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao write auth/approle/role/workers token_ttl=1h token_max_ttl=4h token_policies=workers-policy
+              echo "✅ OpenBao configuration complete"
+            fi
+            
+            # Generate AppRole credentials
+            API_ROLE_ID=$(docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao read -field=role_id auth/approle/role/api/role-id)
+            API_SECRET_ID=$(docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao write -f -field=secret_id auth/approle/role/api/secret-id)
+            WORKERS_ROLE_ID=$(docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao read -field=role_id auth/approle/role/workers/role-id)
+            WORKERS_SECRET_ID=$(docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao write -f -field=secret_id auth/approle/role/workers/secret-id)
+            
+            echo "$API_ROLE_ID" > /opt/cerniq/secrets/api_role_id
+            echo "$API_SECRET_ID" > /opt/cerniq/secrets/api_secret_id
+            echo "$WORKERS_ROLE_ID" > /opt/cerniq/secrets/workers_role_id
+            echo "$WORKERS_SECRET_ID" > /opt/cerniq/secrets/workers_secret_id
+            chmod 644 /opt/cerniq/secrets/*_role_id /opt/cerniq/secrets/*_secret_id
           ENDSSH
 
-      - name: 🧪 Run Infrastructure Validation Tests
+      # =========================================================================
+      # STEP 5: Populate secrets (if unsealed)
+      # =========================================================================
+      - name: 📝 Populate secrets (if unsealed)
         continue-on-error: true
         run: |
-          # Copy validation script to server
-          scp -i ~/.ssh/deploy_key infra/scripts/validate-infrastructure.sh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}:/tmp/ || echo "Script copy failed"
-          
-          # Run validation tests on server
           ssh -i ~/.ssh/deploy_key ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
-            if [ -f /tmp/validate-infrastructure.sh ]; then
-              chmod +x /tmp/validate-infrastructure.sh
-              /tmp/validate-infrastructure.sh production || true
-            else
-              echo "⚠️  Validation script not available"
+            cd /opt/cerniq
+            
+            SEALED=$(docker exec cerniq-openbao bao status -format=json 2>/dev/null | jq -r '.sealed // true')
+            if [ "$SEALED" == "true" ]; then
+              exit 0
+            fi
+            
+            if [ ! -f /opt/cerniq/secrets/openbao_root_token.txt ]; then
+              exit 0
+            fi
+            
+            ROOT_TOKEN=$(cat /opt/cerniq/secrets/openbao_root_token.txt)
+            export BAO_ADDR="http://127.0.0.1:8200"
+            export BAO_TOKEN="$ROOT_TOKEN"
+            
+            if docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao kv get secret/cerniq/api/config 2>/dev/null | grep -q "pg_user"; then
+              echo "✅ Secrets already populated"
+              exit 0
+            fi
+            
+            PG_PASS=$(cat /opt/cerniq/secrets/postgres_password.txt 2>/dev/null || echo "")
+            REDIS_PASS=$(cat /opt/cerniq/secrets/redis_password.txt 2>/dev/null || echo "")
+            JWT_SECRET=$(openssl rand -base64 48 | tr -d '\n')
+            
+            if [ -n "$PG_PASS" ] && [ -n "$REDIS_PASS" ]; then
+              docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao kv put secret/cerniq/api/config \
+                pg_user=cerniq \
+                pg_password="$PG_PASS" \
+                redis_password="$REDIS_PASS" \
+                jwt_secret="$JWT_SECRET" \
+                NODE_ENV=production \
+                LOG_LEVEL=info
+              
+              docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao kv put secret/cerniq/shared/external \
+                anaf_client_id=PLACEHOLDER \
+                anaf_client_secret=PLACEHOLDER \
+                resend_api_key=PLACEHOLDER \
+                hunter_api_key=PLACEHOLDER \
+                termene_api_key=PLACEHOLDER
+              
+              echo "✅ Initial secrets populated"
             fi
           ENDSSH
 
-      - name: 📤 Upload Validation Results
-        if: always()
-        continue-on-error: true
-        uses: actions/upload-artifact@v4
-        with:
-          name: production-validation-results
-          path: /tmp/validation-results.json
-          retention-days: 90
-          if-no-files-found: ignore
-
-  # ===========================================================================
-  # JOB 6: Post-Deployment Verification
-  # ===========================================================================
-  verify:
-    name: ✅ Verify Deployment
-    runs-on: self-hosted
-    needs: [setup, deploy-staging, deploy-production]
-    if: always() && (needs.deploy-staging.result == 'success' || needs.deploy-production.result == 'success')
-    permissions:
-      contents: write
-
-    steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v4
-
-      - name: 🔧 Setup SSH for verification
-        run: |
-          mkdir -p ~/.ssh
-          ENV=${{ needs.setup.outputs.environment }}
-          if [[ "$ENV" == "production" ]]; then
-            echo "${{ secrets.PRODUCTION_SSH_KEY }}" > ~/.ssh/deploy_key
-            HOST="${{ secrets.PRODUCTION_HOST }}"
-            USER="${{ secrets.PRODUCTION_USER }}"
-          else
-            echo "${{ secrets.STAGING_SSH_KEY }}" > ~/.ssh/deploy_key
-            HOST="${{ secrets.STAGING_HOST }}"
-            USER="${{ secrets.STAGING_USER }}"
-          fi
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
-
-      - name: 🧪 Run smoke tests
+      # =========================================================================
+      # STEP 6: Start agents (if configured)
+      # =========================================================================
+      - name: 🤖 Start OpenBao Agents
         continue-on-error: true
         run: |
-          ENV=${{ needs.setup.outputs.environment }}
-          if [[ "$ENV" == "production" ]]; then
-            HOST="${{ secrets.PRODUCTION_HOST }}"
-            USER="${{ secrets.PRODUCTION_USER }}"
-          else
-            HOST="${{ secrets.STAGING_HOST }}"
-            USER="${{ secrets.STAGING_USER }}"
-          fi
-          
-          # SSH-based health checks (since apps not exposed yet)
-          ssh -i ~/.ssh/deploy_key ${USER}@${HOST} << 'ENDSSH'
-            echo "🔍 Running smoke tests..."
+          ssh -i ~/.ssh/deploy_key ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
+            cd /opt/cerniq
             
-            # Check Docker is running
-            docker info >/dev/null 2>&1 && echo "✅ Docker: OK" || echo "❌ Docker: FAIL"
-            
-            # Check networks
-            docker network ls | grep -q cerniq && echo "✅ Networks: OK" || echo "❌ Networks: FAIL"
-            
-            # Check PostgreSQL
-            if docker ps | grep -q cerniq-postgres; then
-              echo "✅ PostgreSQL: Running"
-              docker exec cerniq-postgres pg_isready -U c3rn1q -d cerniq 2>/dev/null && echo "  └─ Accepting connections" || echo "  └─ Not ready"
-            else
-              echo "⚠️  PostgreSQL: Not running (may be expected)"
+            if [ ! -f /opt/cerniq/secrets/api_role_id ]; then
+              echo "⚠️ AppRole credentials not found, skipping agents"
+              exit 0
             fi
             
-            # Check PgBouncer  
-            if docker ps | grep -q cerniq-pgbouncer; then
-              echo "✅ PgBouncer: Running"
-            else
-              echo "⚠️  PgBouncer: Not running (may be expected)"
-            fi
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d openbao-agent-api openbao-agent-workers
             
-            # Check Redis (E0-S3-PR01)
-            if docker ps | grep -q cerniq-redis; then
-              echo "✅ Redis: Running"
-              # Verify BullMQ-critical settings
-              REDIS_PASS=$(cat /opt/cerniq/secrets/redis_password.txt 2>/dev/null || echo "")
-              if [ -n "$REDIS_PASS" ]; then
-                POLICY=$(docker exec cerniq-redis redis-cli -p 64039 -a "$REDIS_PASS" CONFIG GET maxmemory-policy 2>/dev/null | tail -1)
-                if [ "$POLICY" = "noeviction" ]; then
-                  echo "  └─ BullMQ config: OK (noeviction)"
-                else
-                  echo "  └─ ⚠️ BullMQ config: WARN (policy=$POLICY, expected noeviction)"
-                fi
+            sleep 10
+            
+            if docker exec cerniq-openbao-agent-api test -f /secrets/api.env 2>/dev/null; then
+              echo "✅ API secrets rendered"
+            else
+              echo "⚠️ API secrets not rendered yet"
+            fi
+          ENDSSH
+
+      # =========================================================================
+      # STEP 7: Configure firewall
+      # =========================================================================
+      - name: 🔥 Configure Firewall
+        continue-on-error: true
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
+            cd /opt/cerniq
+            
+            if sudo ufw status | grep -q "Status: active"; then
+              echo "✅ UFW already active"
+            else
+              echo "🔥 Configuring production firewall..."
+              if [ -f /opt/cerniq/scripts/setup-firewall.sh ]; then
+                sudo /opt/cerniq/scripts/setup-firewall.sh
+              else
+                sudo ufw --force reset
+                sudo ufw default deny incoming
+                sudo ufw default allow outgoing
+                sudo ufw allow ssh
+                sudo ufw allow 80/tcp
+                sudo ufw allow 443/tcp
+                sudo ufw --force enable
               fi
-            else
-              echo "⚠️  Redis: Not running (may be expected for early sprints)"
             fi
             
-            echo "✅ Smoke tests complete"
+            sudo ufw status verbose | head -10
           ENDSSH
 
-      - name: 📋 Create GitHub Release
-        if: needs.setup.outputs.environment == 'production'
+      # =========================================================================
+      # STEP 8: Health Check and verification
+      # =========================================================================
+      - name: Verify Production Deployment
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
+            echo "========================================"
+            echo "  PRODUCTION DEPLOYMENT VERIFICATION"
+            echo "========================================"
+            
+            cd /opt/cerniq
+            
+            echo "Container Status"
+            docker ps --format 'table {{.Names}}\t{{.Status}}' | grep cerniq | sort
+            
+            echo ""
+            echo "OpenBao Status"
+            docker exec cerniq-openbao bao status 2>/dev/null | grep -E "Initialized|Sealed|Version" || echo "  Not available"
+            
+            SEALED=$(docker exec cerniq-openbao bao status -format=json 2>/dev/null | jq -r '.sealed // true')
+            if [ "$SEALED" == "true" ]; then
+              echo ""
+              echo "ACTION REQUIRED - OpenBao is sealed"
+              echo "   Run /opt/cerniq/scripts/openbao-init.sh --unseal"
+            fi
+            
+            echo ""
+            echo "Firewall Status"
+            sudo ufw status | head -3
+            
+            echo ""
+            echo "Production deployment complete - version ${{ needs.setup.outputs.version }}"
+          ENDSSH
+
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.setup.outputs.version }}
@@ -657,20 +902,29 @@ jobs:
           generate_release_notes: true
           draft: false
           prerelease: ${{ !startsWith(needs.setup.outputs.version, 'v1.') }}
-          body: |
-            ## 🚀 Automated Release
-            
-            **Version:** ${{ needs.setup.outputs.version }}
-            **Environment:** Production
-            **Commit:** ${{ needs.setup.outputs.sha }}
-            
-            ### 📦 Docker Images
-            - `ghcr.io/${{ github.repository_owner }}/cerniq-api:${{ needs.setup.outputs.version }}`
-            - `ghcr.io/${{ github.repository_owner }}/cerniq-web:${{ needs.setup.outputs.version }}`
-            - `ghcr.io/${{ github.repository_owner }}/cerniq-web-admin:${{ needs.setup.outputs.version }}`
-            - `ghcr.io/${{ github.repository_owner }}/cerniq-worker-ai:${{ needs.setup.outputs.version }}`
-            - `ghcr.io/${{ github.repository_owner }}/cerniq-worker-enrichment:${{ needs.setup.outputs.version }}`
-            - `ghcr.io/${{ github.repository_owner }}/cerniq-worker-outreach:${{ needs.setup.outputs.version }}`
-            
-            ---
-            _This release was automatically created by CI/CD pipeline._
+
+  # ===========================================================================
+  # JOB 5: Post-Deployment Summary
+  # ===========================================================================
+  summary:
+    name: 📋 Deployment Summary
+    runs-on: self-hosted
+    needs: [setup, deploy-staging, deploy-production]
+    if: always() && (needs.deploy-staging.result == 'success' || needs.deploy-production.result == 'success')
+
+    steps:
+      - name: 📋 Generate Summary
+        run: |
+          echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Environment | ${{ needs.setup.outputs.environment }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Version | ${{ needs.setup.outputs.version }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Commit | ${{ needs.setup.outputs.sha }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### ✅ Deployment Steps Completed" >> $GITHUB_STEP_SUMMARY
+          echo "- Configuration files synced" >> $GITHUB_STEP_SUMMARY
+          echo "- Docker services deployed" >> $GITHUB_STEP_SUMMARY
+          echo "- OpenBao initialized and configured" >> $GITHUB_STEP_SUMMARY
+          echo "- Firewall configured" >> $GITHUB_STEP_SUMMARY

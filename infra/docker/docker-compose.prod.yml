@@ -1,27 +1,35 @@
 # =============================================================================
 # Cerniq.app - Production Docker Compose Override
 # =============================================================================
-# Version: 1.0.0 (Minimal)
-# Purpose: Production-specific configuration overlay
+# Version: 2.0.0 (Full path corrections for server deployment)
+# Purpose: Override relative paths for /opt/cerniq server structure
 # Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-# TODO: Add full production services (Traefik, Redis, workers)
+# 
+# Server directory structure:
+#   /opt/cerniq/
+#   ├── docker-compose.yml
+#   ├── docker-compose.prod.yml
+#   ├── config/
+#   │   ├── postgres/
+#   │   ├── traefik/
+#   │   └── openbao/
+#   ├── scripts/
+#   └── secrets/
 # =============================================================================
 
 name: cerniq
 
-# Production uses the same base configuration
-# This file will be enhanced with:
-# - Production-specific resource limits
-# - SSL/TLS configuration
-# - Production logging
-# - Replica scaling
-
-# For now, we include minimal production overrides
-# The base docker-compose.yml is sufficient for initial deployment
-
 services:
-  # PostgreSQL production overrides
+  # ==========================================================================
+  # PostgreSQL - Path overrides for production
+  # ==========================================================================
   postgres:
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - postgres_wal_archive:/var/lib/postgresql/wal_archive
+      - ./config/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./config/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      - ./secrets/postgres_password.txt:/secrets/postgres_password:ro
     deploy:
       resources:
         limits:
@@ -36,7 +44,9 @@ services:
         max-size: "100m"
         max-file: "5"
 
-  # PgBouncer production overrides
+  # ==========================================================================
+  # PgBouncer - Path overrides for production
+  # ==========================================================================
   pgbouncer:
     deploy:
       resources:
@@ -52,11 +62,79 @@ services:
         max-size: "50m"
         max-file: "3"
 
+  # ==========================================================================
+  # Traefik - Path overrides for production
+  # ==========================================================================
+  traefik:
+    volumes:
+      - ./config/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./config/traefik/dynamic:/etc/traefik/dynamic:ro
+      - ./secrets/traefik_dashboard.htpasswd:/etc/traefik/auth/dashboard.htpasswd:ro
+      - traefik_certs:/etc/traefik/certs
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # ==========================================================================
+  # Redis - Production logging
+  # ==========================================================================
+  redis:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+  # ==========================================================================
+  # OpenBao Server - Path overrides for production
+  # ==========================================================================
+  openbao:
+    volumes:
+      - openbao_data:/openbao/data
+      - ./config/openbao:/openbao/config:ro
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # ==========================================================================
+  # OpenBao Agent API - Path overrides for production
+  # ==========================================================================
+  openbao-agent-api:
+    volumes:
+      - ./config/openbao/agent-api.hcl:/openbao/config/agent-api.hcl:ro
+      - ./config/openbao/templates:/openbao/templates:ro
+      - api_secrets:/secrets
+      - ./secrets/api_role_id:/openbao/config/role_id:ro
+      - ./secrets/api_secret_id:/openbao/config/secret_id:ro
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+  # ==========================================================================
+  # OpenBao Agent Workers - Path overrides for production
+  # ==========================================================================
+  openbao-agent-workers:
+    volumes:
+      - ./config/openbao/agent-workers.hcl:/openbao/config/agent-workers.hcl:ro
+      - ./config/openbao/templates:/openbao/templates:ro
+      - workers_secrets:/secrets
+      - ./secrets/workers_role_id:/openbao/config/role_id:ro
+      - ./secrets/workers_secret_id:/openbao/config/secret_id:ro
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+
 # =============================================================================
-# Secrets - Production paths override
-# =============================================================================
-# Production has docker-compose.yml in /opt/cerniq/ directly
-# Secrets are in /opt/cerniq/secrets/ so we use ./secrets/ path
+# Secrets - Production paths (./secrets/ from /opt/cerniq/)
 # =============================================================================
 secrets:
   postgres_password:
@@ -66,7 +144,9 @@ secrets:
   traefik_dashboard_htpasswd:
     file: ./secrets/traefik_dashboard.htpasswd
 
-# Networks inherited from base docker-compose.yml
+# =============================================================================
+# Networks - External (pre-created on server)
+# =============================================================================
 networks:
   cerniq_public:
     external: true
