@@ -1,0 +1,118 @@
+# =============================================================================
+# Fail2ban Configuration for Cerniq
+# =============================================================================
+# Reference: security-policy.md
+# Version: 1.0
+# Created: 2026-02-05
+# 
+# Copy to: /etc/fail2ban/jail.local
+#   sudo cp jail.local /etc/fail2ban/jail.local
+#   sudo systemctl restart fail2ban
+# =============================================================================
+
+[DEFAULT]
+# Ban duration: 1 hour
+bantime = 1h
+
+# Time window for counting failures
+findtime = 10m
+
+# Max failures before ban
+maxretry = 5
+
+# Email notifications (optional)
+# destemail = security@cerniq.app
+# sender = fail2ban@cerniq.app
+# mta = sendmail
+# action = %(action_mwl)s
+
+# Backend to use (auto-detect)
+backend = auto
+
+# Whitelisted IPs (never ban these)
+ignoreip = 127.0.0.1/8 ::1 92.180.19.237 95.216.225.145 94.130.68.123 135.181.183.164 95.216.72.100 95.216.72.118
+
+# =============================================================================
+# SSH Protection
+# =============================================================================
+
+[sshd]
+enabled = true
+mode = aggressive
+port = ssh
+filter = sshd
+logpath = /var/log/auth.log
+maxretry = 3
+bantime = 2h
+findtime = 5m
+
+# Note: With UFW restricting SSH to admin IPs only,
+# fail2ban provides additional protection against
+# key theft or admin IP compromise
+
+# =============================================================================
+# Nginx/Traefik HTTP Auth
+# =============================================================================
+
+[nginx-http-auth]
+enabled = false
+port = http,https
+filter = nginx-http-auth
+logpath = /var/log/nginx/error.log
+maxretry = 3
+
+# =============================================================================
+# Docker Container Rate Limiting
+# =============================================================================
+
+# Note: Traefik handles most rate limiting at the reverse proxy level.
+# These rules are for additional protection.
+
+# =============================================================================
+# Custom Filters for Cerniq API
+# =============================================================================
+
+# API authentication failures
+# Requires custom filter at: /etc/fail2ban/filter.d/cerniq-api.conf
+[cerniq-api]
+enabled = false
+port = http,https
+filter = cerniq-api
+logpath = /var/log/cerniq/api.log
+maxretry = 10
+bantime = 30m
+findtime = 5m
+
+# =============================================================================
+# Ban actions
+# =============================================================================
+
+# Use UFW for banning (recommended for this setup)
+[DEFAULT]
+banaction = ufw
+banaction_allports = ufw
+
+# Alternative: use iptables-multiport
+# banaction = iptables-multiport
+# banaction_allports = iptables-allports
+
+# =============================================================================
+# Notifications
+# =============================================================================
+
+# Uncomment to enable email notifications
+# [DEFAULT]
+# action = %(action_mwl)s
+
+# =============================================================================
+# Recidive - ban repeat offenders longer
+# =============================================================================
+
+[recidive]
+enabled = true
+filter = recidive
+logpath = /var/log/fail2ban.log
+# After 3 bans, ban for 1 week
+maxretry = 3
+bantime = 1w
+findtime = 1d

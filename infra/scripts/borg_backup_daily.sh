@@ -20,6 +20,7 @@ BACKUP_SOURCES=(
     "/var/backups/cerniq/postgresql/daily"
     "/var/backups/cerniq/postgresql/critical"
     "/var/backups/cerniq/redis/hourly"
+    "/var/backups/openbao"  # OpenBao Raft snapshots (encrypted)
 )
 
 # Exclude patterns
