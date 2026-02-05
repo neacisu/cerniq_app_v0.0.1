@@ -2,8 +2,8 @@
 
 ## Centralized Architecture Decision Records
 
-**Total ADR-uri:** 107  
-**Actualizat:** 2 Februarie 2026
+**Total ADR-uri:** 108  
+**Actualizat:** 5 Februarie 2026
 
 ---
 
@@ -11,7 +11,7 @@
 
 | Etapă | ADR Count | Focus Principal |
 | ----- | --------- | --------------- |
-| [Etapa 0](#etapa-0) | 32 | Infrastructure, DevOps, Security, CI/CD |
+| [Etapa 0](#etapa-0) | 33 | Infrastructure, DevOps, Security, CI/CD |
 | [Etapa 1](#etapa-1) | 20 | Data Pipeline, Workers, Schema |
 | [Etapa 2](#etapa-2) | 15 | Outreach, WhatsApp, Email |
 | [Etapa 3](#etapa-3) | 20 | AI, RAG, Negotiation |
@@ -24,6 +24,7 @@
 
 | ID | Titlu | Status | Data |
 | -- | ----- | ------ | ---- |
+| [ADR-E0-0033](./ADR%20Etapa%200/ADR-0033-OpenBao-Secrets-Management.md) | **OpenBao Secrets Management** 🆕 | **Accepted** | **2026-02-05** |
 | [ADR-0032](./ADR%20Etapa%200/ADR-0032-CI-CD-Pipeline-Strategy.md) | CI/CD Pipeline Strategy | Accepted | 2026-02-01 |
 | [ADR-0031](./ADR%20Etapa%200/ADR-0031-Provider-Abstraction-Layer.md) | Provider Abstraction Layer | Accepted | 2026-02-01 |
 | [ADR-0001](./ADR%20Etapa%200/ADR-0001-PNPM-ca-Package-Manager-Exclusiv.md) | PNPM ca Package Manager Exclusiv | Accepted | 2026-01-15 |
@@ -42,7 +43,7 @@
 | [ADR-0014](./ADR%20Etapa%200/ADR-0014-Traefik-v3-6-6-ca-Reverse-Proxy.md) | Traefik v3.6.6 ca Reverse Proxy | Accepted | 2026-01-15 |
 | [ADR-0015](./ADR%20Etapa%200/ADR-0015-Docker-Containerization-Strategy.md) | Docker Containerization Strategy | Accepted | 2026-01-15 |
 | [ADR-0016](./ADR%20Etapa%200/ADR-0016-SigNoz-pentru-Observability.md) | SigNoz pentru Observability | Accepted | 2026-01-15 |
-| [ADR-0017](./ADR%20Etapa%200/ADR-0017-Secrets-Management-Strategy.md) | Secrets Management Strategy | Accepted | 2026-01-15 |
+| [ADR-0017](./ADR%20Etapa%200/ADR-0017-Secrets-Management-Strategy.md) | Secrets Management Strategy | ⚠️ **SUPERSEDED** | 2026-01-15 |
 | [ADR-0018](./ADR%20Etapa%200/ADR-0018-Authentication-Flow-JWT-Refresh-Tokens.md) | Authentication Flow (JWT + Refresh Tokens) | Accepted | 2026-01-15 |
 | [ADR-0019](./ADR%20Etapa%200/ADR-0019-CORS-Policy.md) | CORS Policy | Accepted | 2026-01-15 |
 | [ADR-0020](./ADR%20Etapa%200/ADR-0020-BorgBackup-cu-Hetzner-Storage-Box.md) | BorgBackup cu Hetzner Storage Box | Accepted | 2026-01-15 |
@@ -56,6 +57,8 @@
 | [ADR-0028](./ADR%20Etapa%200/ADR-0028-Git-Branching-Strategy.md) | Git Branching Strategy | Accepted | 2026-01-15 |
 | [ADR-0029](./ADR%20Etapa%200/ADR-0029-Testing-Strategy.md) | Testing Strategy | Accepted | 2026-01-15 |
 | [ADR-0030](./ADR%20Etapa%200/ADR-0030-Environment-Management.md) | Environment Management (dev/staging/prod) | Accepted | 2026-01-15 |
+
+> **Note:** ADR-0017 (Docker Secrets) este acum SUPERSEDED de ADR-E0-0033 (OpenBao). Numerotarea "E0-0033" indică că acest ADR este specific pentru Etapa 0, distinct de ADR-0033 din Etapa 1.
 
 ## ETAPA 1: DATA PIPELINE, WORKERS, SCHEMA
 

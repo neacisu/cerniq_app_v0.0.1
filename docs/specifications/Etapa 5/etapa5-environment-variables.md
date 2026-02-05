@@ -2,6 +2,11 @@
 ## Complete Environment Configuration
 ### Versiunea 1.0 | 19 Ianuarie 2026
 
+> **📌 Notă (Februarie 2026):** Sintaxa `${DOCKER_SECRET:name}` din acest document este un placeholder.
+> În producție, secretele sunt gestionate prin **OpenBao** (nu Docker secrets).
+> Consultă [ADR-0033](../../adr/ADR%20Etapa%200/ADR-0033-OpenBao-Secrets-Management.md) și
+> [openbao-setup-guide.md](../../infrastructure/openbao-setup-guide.md) pentru implementarea efectivă.
+
 ---
 
 ## 1. Core Application

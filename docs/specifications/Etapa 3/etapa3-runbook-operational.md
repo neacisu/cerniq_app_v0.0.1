@@ -2164,15 +2164,26 @@ echo "Waiting for recovery to complete..."
 
 ## 9. Gestionarea Secretelor
 
+> ⚠️ **IMPORTANT (Februarie 2026):** Acest runbook fost scris inițial pentru Docker secrets.
+> **Management-ul secretelor a fost migrat la OpenBao** (vezi [ADR-0033](../../adr/ADR%20Etapa%200/ADR-0033-OpenBao-Secrets-Management.md)).
+> 
+> Pentru procedurile actualizate, consultă:
+> - [openbao-setup-guide.md](../../infrastructure/openbao-setup-guide.md)
+> - [secrets-rotation-procedure.md](../../infrastructure/secrets-rotation-procedure.md)
+>
+> Secțiunea de mai jos este păstrată ca **referință istorică**.
+
 ### 9.1 Secret Management Overview
 
 ```yaml
+# DEPRECATED - Utilizați OpenBao pentru toate secretele
+# Referință: docs/infrastructure/openbao-setup-guide.md
 secrets_inventory:
   database:
     - name: db_password
       type: password
       rotation: 90 days
-      storage: docker_secret
+      storage: openbao  # Migrat de la docker_secret
       
   redis:
     - name: redis_password

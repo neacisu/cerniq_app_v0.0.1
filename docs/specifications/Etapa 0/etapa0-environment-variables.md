@@ -51,17 +51,25 @@ SHUTDOWN_TIMEOUT=30000
 
 ## 2. DATABASE VARIABLES
 
+> ⚠️ **Notă OpenBao (5 Februarie 2026):**
+> În producție, toate credențialele database sunt gestionate prin OpenBao:
+> - **Static secrets**: `secret/cerniq/api/config` (pg_password, redis_password)
+> - **Dynamic secrets**: `database/creds/api-role` (credențiale temporare PostgreSQL)
+>
+> Variabilele `_FILE` sunt încă suportate pentru compatibilitate, dar nu sunt recomandate.
+> Vezi: [OpenBao Setup Guide](../../infrastructure/openbao-setup-guide.md)
+
 ## PostgreSQL
 
 | Variable | Required | Default | Description |
 | -------- | -------- | ------- | ----------- |
 | `DATABASE_URL` | Yes* | - | Full PostgreSQL connection string |
-| `DATABASE_URL_FILE` | Yes* | - | Path to file containing DATABASE_URL (Docker secrets) |
+| `DATABASE_URL_FILE` | Yes* | - | Path to file (OpenBao Agent → `/secrets/db.env`) |
 | `POSTGRES_HOST` | No | `postgres` | PostgreSQL hostname |
 | `POSTGRES_PORT` | No | `64032` | PostgreSQL port |
 | `POSTGRES_USER` | No | `cerniq` | PostgreSQL username |
 | `POSTGRES_PASSWORD` | Yes* | - | PostgreSQL password |
-| `POSTGRES_PASSWORD_FILE` | Yes* | - | Path to password file (Docker secrets) |
+| `POSTGRES_PASSWORD_FILE` | Yes* | - | Path to file (OpenBao Agent → `/secrets/db.env`) |
 | `POSTGRES_DB` | No | `cerniq_production` | Database name |
 | `DATABASE_POOL_MIN` | No | `2` | Minimum connection pool size |
 | `DATABASE_POOL_MAX` | No | `20` | Maximum connection pool size |
@@ -71,14 +79,14 @@ SHUTDOWN_TIMEOUT=30000
 **Exemplu .env:**
 
 ```bash
-# Option 1: Connection string
-DATABASE_URL=postgresql://cerniq:password@postgres:64032/cerniq_production
+# Option 1: Connection string (OpenBao injects dynamically)
+DATABASE_URL=postgresql://v-approle-crnq-api-XXX:dynamic_pass@postgres:64032/cerniq_production
 
-# Option 2: Individual components
+# Option 2: Individual components (OpenBao Agent renders to /secrets/db.env)
 POSTGRES_HOST=postgres
 POSTGRES_PORT=64032
-POSTGRES_USER=cerniq
-POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password
+POSTGRES_USER=v-approle-crnq-api-XXX  # Dynamic user from OpenBao
+POSTGRES_PASSWORD=<dynamic_from_openbao>
 POSTGRES_DB=cerniq_production
 
 # Pool settings
@@ -158,10 +166,11 @@ REDIS_DB=0
 **Exemplu .env:**
 
 ```bash
-JWT_SECRET_FILE=/run/secrets/jwt_secret
+# OpenBao Agent renders to /secrets/auth.env:
+JWT_SECRET=<loaded_from_openbao_kv>
 JWT_ACCESS_EXPIRES=15m
 JWT_REFRESH_EXPIRES=7d
-COOKIE_SECRET_FILE=/run/secrets/cookie_secret
+COOKIE_SECRET=<loaded_from_openbao_kv>
 COOKIE_SECURE=true
 COOKIE_SAME_SITE=strict
 ```
@@ -221,23 +230,23 @@ COOKIE_SAME_SITE=strict
 | `ANTHROPIC_API_KEY` | No | - | Anthropic API key (fallback) |
 | `OLLAMA_HOST` | No | `http://localhost:64060` | Ollama local host |
 
-**Exemplu .env:**
+**Exemplu (OpenBao Agent injectează în `/secrets/external.env`):**
 
 ```bash
-# ANAF
+# OpenBao Agent renders from kv/data/api/external:
 ANAF_CLIENT_ID=your-client-id
-ANAF_CLIENT_SECRET_FILE=/run/secrets/anaf_client_secret
+ANAF_CLIENT_SECRET=<from_openbao_kv>
 ANAF_REDIRECT_URI=https://app.cerniq.app/auth/anaf/callback
 
-# External APIs
-TERMENE_API_KEY_FILE=/run/secrets/termene_api_key
-HUNTER_API_KEY_FILE=/run/secrets/hunter_api_key
-TIMELINES_API_KEY_FILE=/run/secrets/timelines_api_key
-INSTANTLY_API_KEY_FILE=/run/secrets/instantly_api_key
+# External APIs (from kv/data/api/external)
+TERMENE_API_KEY=<from_openbao_kv>
+HUNTER_API_KEY=<from_openbao_kv>
+TIMELINES_API_KEY=<from_openbao_kv>
+INSTANTLY_API_KEY=<from_openbao_kv>
 
-# LLM
-XAI_API_KEY_FILE=/run/secrets/xai_api_key
-OPENAI_API_KEY_FILE=/run/secrets/openai_api_key
+# LLM (from kv/data/api/llm)
+XAI_API_KEY=<from_openbao_kv>
+OPENAI_API_KEY=<from_openbao_kv>
 ```
 
 ---
@@ -290,29 +299,35 @@ COOKIE_SECURE=false
 
 ## Staging
 
+> **📌 OpenBao:** Toate secretele sunt injectate automat de OpenBao Agent.
+> Aplicația citește din `/secrets/*.env` renderizate de Agent.
+
 ```bash
-# .env.staging
+# Static config (non-secrets)
 NODE_ENV=staging
 LOG_LEVEL=info
-DATABASE_URL_FILE=/run/secrets/database_url_staging
-REDIS_URL_FILE=/run/secrets/redis_url_staging
-JWT_SECRET_FILE=/run/secrets/jwt_secret_staging
-COOKIE_SECRET_FILE=/run/secrets/cookie_secret_staging
 COOKIE_SECURE=true
+
+# OpenBao Agent renders secrets to:
+# - /secrets/db.env (DATABASE_URL cu credențiale dinamice)
+# - /secrets/redis.env (REDIS_URL)
+# - /secrets/auth.env (JWT_SECRET, COOKIE_SECRET)
 ```
 
 ## Production
 
 ```bash
-# .env.production
+# Static config (non-secrets)
 NODE_ENV=production
 LOG_LEVEL=info
-DATABASE_URL_FILE=/run/secrets/database_url
-REDIS_URL_FILE=/run/secrets/redis_url
-JWT_SECRET_FILE=/run/secrets/jwt_secret
-COOKIE_SECRET_FILE=/run/secrets/cookie_secret
 COOKIE_SECURE=true
 OTEL_TRACES_SAMPLER_ARG=0.1  # Sample 10% in production
+
+# OpenBao Agent renders secrets to:
+# - /secrets/db.env (DATABASE_URL cu TTL=1h, auto-rotate)
+# - /secrets/redis.env (REDIS_URL)
+# - /secrets/auth.env (JWT_SECRET, COOKIE_SECRET)
+# - /secrets/external.env (API keys)
 ```
 
 ---

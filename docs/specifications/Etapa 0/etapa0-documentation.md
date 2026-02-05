@@ -715,9 +715,14 @@ borg create \
 
 ### FAZA F0.8: SECURITY HARDENING
 
+> ⚠️ **SUPERSEDED (Februarie 2026):** Această abordare cu Docker secrets a fost înlocuită de OpenBao.
+> Consultă: [ADR-0033 OpenBao Secrets Management](../../adr/ADR%20Etapa%200/ADR-0033-OpenBao-Secrets-Management.md)
+> și [openbao-setup-guide.md](../../infrastructure/openbao-setup-guide.md)
+
 ```json
 {
   "taskID": "F0.8.1.T001",
+  "status": "SUPERSEDED - vezi ADR-0033 OpenBao",
   "denumire_task": "Configurare Docker secrets pentru credențiale",
   "context_anterior": "Infrastructură completă, secrets în .env (nesigur)",
   "descriere_task": "Ești un expert securitate DevOps. Task-ul tău este să migrezi credențialele sensibile de la environment variables la Docker secrets. Pași: 1) Creează directorul secrets/ (gitignored), 2) Creează fișiere separate pentru: postgres_password, redis_password, jwt_secret, signoz_jwt_secret, anaf_oauth_client_secret, 3) Modifică docker-compose.yml să folosească secrets: directive în loc de environment, 4) Actualizează aplicațiile să citească din /run/secrets/ folosind pattern-ul _FILE suffix, 5) Asigură-te că secrets files au permisiuni 600, 6) Documentează procesul în docs/security/secrets-management.md.",

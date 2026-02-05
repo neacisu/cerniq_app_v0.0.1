@@ -62,33 +62,37 @@ borg init --encryption=repokey-blake2 $BORG_REPO
 
 ---
 
-## ENVIRONMENT VARIABLES
+## SECRETS MANAGEMENT (OpenBao)
 
-Adaugă în `.env.production` sau Docker secrets:
+> **Actualizat:** 5 Februarie 2026 - Utilizare OpenBao pentru toate secretele
+
+### Stocare secrete în OpenBao
 
 ```bash
-# Hetzner Storage Box
+# Borg passphrase
+bao kv put secret/cerniq/backup/borg \
+    passphrase="$(openssl rand -base64 32)" \
+    storage_box_user="u502048" \
+    storage_box_host="u502048.your-storagebox.de"
+```
+
+### Configurare locală (variabile de environment)
+
+Backup scripts folosesc variabile de environment citite din OpenBao via Agent:
+
+```bash
+# /secrets/backup.env (generat de OpenBao Agent)
 HETZNER_STORAGEBOX_USER=u502048
 HETZNER_STORAGEBOX_HOST=u502048.your-storagebox.de
 HETZNER_STORAGEBOX_PORT=23
 HETZNER_STORAGEBOX_PATH=./backups/cerniq
-
-# Borg
-BORG_REPO=ssh://${HETZNER_STORAGEBOX_USER}@${HETZNER_STORAGEBOX_HOST}:${HETZNER_STORAGEBOX_PORT}/${HETZNER_STORAGEBOX_PATH}/borg
-BORG_PASSPHRASE=<from-docker-secret>
-
-# SSH Key Path
-BACKUP_SSH_KEY=/run/secrets/hetzner_backup_key
+BORG_REPO=ssh://u502048@u502048.your-storagebox.de:23/./backups/cerniq/borg
+BORG_PASSPHRASE=<din-openbao>
 ```
 
-### Docker Secrets Setup
+### SSH Key
 
-```bash
-# Creare secrets
-echo "u502048" | docker secret create hetzner_user -
-cat ~/.ssh/hetzner_backup | docker secret create hetzner_backup_key -
-echo "<passphrase>" | docker secret create borg_passphrase -
-```
+SSH key-ul pentru Hetzner Storage Box rămâne în `/root/.ssh/hetzner_storagebox` cu permisiuni 600. Nu se stochează în OpenBao (cheia privată trebuie să fie pe host).
 
 ---
 
@@ -175,8 +179,7 @@ borg init --encryption=repokey-blake2 $BORG_REPO
 - [ ] SSH key generat și adăugat
 - [ ] Subdirectoare create
 - [ ] Borg repository inițializat
-- [ ] Environment variables configurate
-- [ ] Docker secrets create
+- [ ] Secrete stocate în OpenBao (`secret/cerniq/backup/borg`)
 - [ ] Test backup executat cu succes
 - [ ] Test restore executat cu succes
 - [ ] Cron job configurat pentru backup automat
@@ -186,9 +189,10 @@ borg init --encryption=repokey-blake2 $BORG_REPO
 ## DOCUMENTE CONEXE
 
 - [Backup Strategy](./backup-strategy.md)
-- [Environment Variables](../specifications/Etapa%200/etapa0-environment-variables.md)
-- [Docker Secrets Guide](../specifications/Etapa%200/etapa0-docker-secrets-guide.md)
+- [OpenBao Setup Guide](./openbao-setup-guide.md)
+- [Secrets Rotation Procedure](./secrets-rotation-procedure.md)
+- [ADR-0033 OpenBao Secrets Management](../adr/ADR%20Etapa%200/ADR-0033-OpenBao-Secrets-Management.md)
 
 ---
 
-**Actualizat:** 20 Ianuarie 2026
+**Actualizat:** 5 Februarie 2026 (OpenBao)

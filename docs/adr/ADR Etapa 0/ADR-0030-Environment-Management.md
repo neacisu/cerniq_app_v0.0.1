@@ -20,6 +20,9 @@ Necesităm separare clară între environments.
 
 ### Environment Variables
 
+> **📌 Notă (Februarie 2026):** Pentru production, secretele sunt gestionate prin OpenBao.
+> Vezi [ADR-0033](ADR-0033-OpenBao-Secrets-Management.md) pentru detalii.
+
 ```bash
 # .env.development
 NODE_ENV=development
@@ -33,10 +36,10 @@ DATABASE_URL=postgresql://...staging...
 REDIS_URL=redis://...staging...
 LOG_LEVEL=info
 
-# .env.production
+# .env.production (secrets injectate de OpenBao Agent)
 NODE_ENV=production
-DATABASE_URL_FILE=/run/secrets/database_url
-REDIS_URL_FILE=/run/secrets/redis_url
+# DATABASE_URL - renderizat în /secrets/db.env de OpenBao Agent
+# REDIS_URL - renderizat în /secrets/redis.env de OpenBao Agent
 LOG_LEVEL=info
 ```
 

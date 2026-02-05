@@ -1,6 +1,6 @@
 # CERNIQ.APP — ETAPA 0: INDEX DOCUMENTE COMPLETE
 
-## 1 Februarie 2026
+## 5 Februarie 2026
 
 ---
 
@@ -10,7 +10,7 @@
 
 | Fișier | Conținut | Linii |
 | :--- | :--- | :--- |
-| [ADR-uri Etapa 0](../../adr/ADR%20Etapa%200/) | 32 ADRs în directorul `/docs/adr/ADR Etapa 0/` (ADR-0001 → ADR-0032) | 32 fișiere |
+| [ADR-uri Etapa 0](../../adr/ADR%20Etapa%200/) | 33 ADRs în directorul `/docs/adr/ADR Etapa 0/` (incl. ADR-0033 OpenBao) | 33 fișiere |
 | [Etapa0 plan implementare complet v2.md](etapa0-plan-implementare-complet-v2.md) | 147 Tasks JSON pentru AI agents (completare 100%) | ~5000 |
 | [STRATEGIE MONITORIZARE UI.md](STRATEGIE_MONITORIZARE_UI.md) | Viziune și Arhitectură Sistem Monitorizare (Etapa 0-5) | ~300 |
 
@@ -20,7 +20,7 @@
 | :--- | :--- |
 | `etapa0-runbook-operational.md` | Startup, Shutdown, Daily Ops, Troubleshooting, Emergency |
 | `etapa0-backup-restore-procedures.md` | BorgBackup, WAL, PITR, Disaster Recovery |
-| `etapa0-docker-secrets-guide.md` | Secrets management, rotation, backup |
+| ~~`etapa0-docker-secrets-guide.md`~~ | **DEPRECATED** → Vezi [OpenBao Setup Guide](../../infrastructure/openbao-setup-guide.md) |
 | `etapa0-environment-variables.md` | All env vars by category |
 | `etapa0-port-matrix.md` | Port allocation, network topology, firewall |
 | `etapa0-health-check-specs.md` | 3-tier health checks implementation |
@@ -29,10 +29,11 @@
 | `etapa0-monitoring-api-spec.md` | Technical Specs pentru Monitoring API Sidecar |
 | `etapa0-structured-log-schemas.md` | JSON Schemas (Zod) pentru loguri standardizate |
 | `../infrastructure/pgbouncer-connection-pooling.md` | PgBouncer pooling și limitare conexiuni |
-| `../infrastructure/redis-authentication.md` | Redis AUTH și secrets |
+| `../infrastructure/redis-authentication.md` | Redis AUTH și OpenBao secrets |
 | `../infrastructure/dns-configuration.md` | DNS records & subdomenii |
 | `../infrastructure/github-repository-setup.md` | Repo setup, CODEOWNERS, templates |
-| `../infrastructure/secrets-rotation-procedure.md` | Rotație secrete trimestrială |
+| **`../infrastructure/openbao-setup-guide.md`** | **OpenBao centralized secrets management** 🆕 |
+| `../infrastructure/secrets-rotation-procedure.md` | Rotație secrete (automată via OpenBao) |
 
 ### 3. FIȘIERE CONFIGURARE (De creat în Etapa Implementare)
 

@@ -1,8 +1,23 @@
 # CERNIQ.APP — ETAPA 0: DOCKER SECRETS MANAGEMENT
 
-## Ghid Complet pentru Gestionarea Secretelor
+> ⚠️ **DOCUMENT DEPRECATED — 5 Februarie 2026**
+>
+> **Acest document este înlocuit de:**
+> - **[ADR-0033: OpenBao Secrets Management](../../adr/ADR%20Etapa%200/ADR-0033-OpenBao-Secrets-Management.md)**
+> - **[OpenBao Setup Guide](../../infrastructure/openbao-setup-guide.md)**
+> - **[Secrets Rotation Procedure](../../infrastructure/secrets-rotation-procedure.md)**
+>
+> Docker secrets rămâne disponibil doar pentru:
+> - Development local (`.env` files)
+> - Fallback în caz de probleme cu OpenBao
+>
+> **Pentru producție, utilizați exclusiv OpenBao.**
 
-### Versiunea 1.1 | 18 Ianuarie 2026
+---
+
+## Ghid Complet pentru Gestionarea Secretelor (LEGACY)
+
+### Versiunea 1.1 | 18 Ianuarie 2026 | **SUPERSEDED**
 
 > **📋 ADR Asociat:** [ADR-0017: Secrets Management Strategy](../../adr/ADR%20Etapa%200/ADR-0017-Secrets-Management-Strategy.md)
 >

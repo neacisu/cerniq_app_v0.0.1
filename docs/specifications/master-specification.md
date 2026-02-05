@@ -1501,23 +1501,42 @@ CREATE TABLE integration_credentials (
 | **Sameday**      | Sameday     | api   | 30/min     | API Key       | `secret/sameday/api`    |
 | **Nominatim**    | OSM         | api   | 50/sec     | None          | —                       |
 
-### 6.3 Secrets Management Pattern
+### 6.3 Secrets Management Pattern (OpenBao)
+
+> **Actualizat:** Februarie 2026 - Migrare de la Docker secrets la OpenBao  
+> **Referință:** [ADR-0033: OpenBao Secrets Management](../adr/ADR%20Etapa%200/ADR-0033-OpenBao-Secrets-Management.md)
 
 ```typescript
-// HashiCorp Vault namespace per tenant
-interface VaultConfig {
-  namespace: `tenant/${tenantId}`;
+// OpenBao configuration per tenant
+interface OpenBaoConfig {
+  server: 'http://openbao:8200';
+  authMethod: 'approle';
   paths: {
-    anaf: 'secret/data/anaf';
-    termene: 'secret/data/termene';
-    timelines: 'secret/data/timelines';
-    instantly: 'secret/data/instantly';
+    // Static secrets (KV v2)
+    static: {
+      api: 'secret/data/cerniq/api/config';       // Redis, JWT, etc.
+      shared: 'secret/data/cerniq/shared/external'; // ANAF, Termene, etc.
+    };
+    // Dynamic secrets
+    dynamic: {
+      database: 'database/creds/api-role';  // Auto-rotating PostgreSQL
+    };
+    // Multi-tenant (Etapa 2+)
+    tenant: `secret/data/tenants/${tenantId}`;
   };
   rotation: {
-    enabled: true;
-    intervalDays: 90;
-    notifyBeforeDays: 7;
+    staticSecrets: '90d';      // Quarterly rotation
+    dynamicCredentials: '1h';   // Auto-rotation by OpenBao
+    appRoleSecretId: '30d';    // Monthly rotation
   };
+}
+
+// Service authentication via Agent sidecar
+interface AgentConfig {
+  templatePath: '/openbao/templates/api-env.tpl';
+  outputPath: '/secrets/api.env';
+  renewToken: true;
+  refreshInterval: '5m';
 }
 ```
 

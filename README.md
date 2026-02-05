@@ -102,10 +102,13 @@ pnpm test:infra:remote:production
 
 ## 🔒 Security
 
-- All secrets managed via Docker Secrets
+- All secrets managed via **OpenBao** (centralized secrets management)
+- Dynamic database credentials (auto-rotating)
+- AppRole authentication per service
 - Network segmentation (public/backend/data)
 - TLS termination at Traefik
 - See [Security Policy](docs/governance/security-policy.md)
+- See [OpenBao Setup Guide](docs/infrastructure/openbao-setup-guide.md)
 
 ## 📄 License
 

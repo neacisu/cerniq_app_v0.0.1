@@ -170,7 +170,7 @@ E4.S1.PR1.001
 #### Acceptance Criteria
 
 - [ ] Revolut, Termene.ro, Sameday, DocuSign clients funcționali cu sandbox
-- [ ] Environment variables documentate și în Docker secrets
+- [ ] Environment variables documentate și în OpenBao (vezi [ADR-0033](../../adr/ADR%20Etapa%200/ADR-0033-OpenBao-Secrets-Management.md))
 - [ ] Email/WhatsApp/Slack notifications funcționale
 - [ ] S3-compatible storage cu presigned URLs
 - [ ] Python service pentru DOCX/PDF generation

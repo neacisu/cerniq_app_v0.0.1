@@ -1,8 +1,9 @@
 # CERNIQ.APP — TESTE F0.8: SECURITY HARDENING
 
-## Teste pentru Docker secrets și firewall
+## Teste pentru OpenBao și firewall
 
-**Fază:** F0.8 | **Taskuri:** 4
+**Fază:** F0.8 | **Taskuri:** 4  
+**Actualizat:** 5 Februarie 2026 (OpenBao înlocuiește Docker secrets)
 
 ---
 
@@ -16,6 +17,10 @@ describe "Security Hardening" {
   
   it "should only allow ports 80, 443, 22" {
     ufw status | grep -E "80|443|22"
+  }
+  
+  it "should have OpenBao running and unsealed" {
+    curl -s http://localhost:64200/v1/sys/health | jq -e '.sealed == false'
   }
   
   it "should have secrets directory protected" {
