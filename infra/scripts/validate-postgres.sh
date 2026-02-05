@@ -11,6 +11,11 @@ set -euo pipefail
 CONTAINER_NAME="cerniq-postgres"
 DB_USER="c3rn1q"
 DB_NAME="cerniq"
+DB_HOST="localhost"
+DB_PORT="64032"
+
+# Common psql command with correct port (Cerniq uses 64xxx range per ADR-0102)
+PSQL_CMD="psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -42,7 +47,7 @@ echo ""
 
 # 2. PostgreSQL version
 echo "2. PostgreSQL Version:"
-VERSION=$(docker exec $CONTAINER_NAME psql -U $DB_USER -d $DB_NAME -t -c "SELECT version();" 2>/dev/null | head -1 | xargs)
+VERSION=$(docker exec $CONTAINER_NAME $PSQL_CMD -t -c "SELECT version();" 2>/dev/null | head -1 | xargs)
 echo "   $VERSION"
 if [[ "$VERSION" == *"PostgreSQL 1"* ]]; then
     echo -e "   ${GREEN}✅ PASS: PostgreSQL detected${NC}"
@@ -53,7 +58,7 @@ echo ""
 
 # 3. Extensions
 echo "3. Required Extensions:"
-EXTENSIONS=$(docker exec $CONTAINER_NAME psql -U $DB_USER -d $DB_NAME -t -c "SELECT extname FROM pg_extension ORDER BY extname;")
+EXTENSIONS=$(docker exec $CONTAINER_NAME $PSQL_CMD -t -c "SELECT extname FROM pg_extension ORDER BY extname;")
 REQUIRED=("pg_stat_statements" "pg_trgm" "vector" "postgis" "postgis_topology")
 ALL_EXT_OK=true
 for ext in "${REQUIRED[@]}"; do
@@ -68,7 +73,7 @@ echo ""
 
 # 4. Schemas
 echo "4. Medallion Schemas:"
-SCHEMAS=$(docker exec $CONTAINER_NAME psql -U $DB_USER -d $DB_NAME -t -c "SELECT schema_name FROM information_schema.schemata WHERE schema_name IN ('bronze', 'silver', 'gold', 'approval', 'audit');")
+SCHEMAS=$(docker exec $CONTAINER_NAME $PSQL_CMD -t -c "SELECT schema_name FROM information_schema.schemata WHERE schema_name IN ('bronze', 'silver', 'gold', 'approval', 'audit');")
 REQUIRED_SCHEMAS=("bronze" "silver" "gold" "approval" "audit")
 ALL_SCHEMA_OK=true
 for schema in "${REQUIRED_SCHEMAS[@]}"; do
@@ -83,7 +88,7 @@ echo ""
 
 # 5. Memory settings
 echo "5. Memory Configuration:"
-docker exec $CONTAINER_NAME psql -U $DB_USER -d $DB_NAME -t -c "
+docker exec $CONTAINER_NAME $PSQL_CMD -t -c "
 SELECT 
     name, 
     setting,
@@ -96,7 +101,7 @@ echo ""
 
 # 6. WAL configuration
 echo "6. WAL Configuration:"
-docker exec $CONTAINER_NAME psql -U $DB_USER -d $DB_NAME -t -c "
+docker exec $CONTAINER_NAME $PSQL_CMD -t -c "
 SELECT 
     name, 
     setting
@@ -108,7 +113,7 @@ echo ""
 
 # 7. io_method (PostgreSQL 18)
 echo "7. PostgreSQL 18 AIO:"
-IO_METHOD=$(docker exec $CONTAINER_NAME psql -U $DB_USER -d $DB_NAME -t -c "SHOW io_method;" 2>/dev/null | xargs || echo "not_available")
+IO_METHOD=$(docker exec $CONTAINER_NAME $PSQL_CMD -t -c "SHOW io_method;" 2>/dev/null | xargs || echo "not_available")
 echo "   io_method: $IO_METHOD"
 if [ "$IO_METHOD" == "io_uring" ]; then
     echo -e "   ${GREEN}✅ PASS: io_uring enabled${NC}"
@@ -119,7 +124,7 @@ echo ""
 
 # 8. Connection info
 echo "8. Connection Statistics:"
-docker exec $CONTAINER_NAME psql -U $DB_USER -d $DB_NAME -t -c "
+docker exec $CONTAINER_NAME $PSQL_CMD -t -c "
 SELECT 
     datname,
     numbackends as connections,
@@ -132,7 +137,7 @@ echo ""
 
 # 9. pg_stat_statements
 echo "9. pg_stat_statements:"
-STAT_COUNT=$(docker exec $CONTAINER_NAME psql -U $DB_USER -d $DB_NAME -t -c "SELECT count(*) FROM pg_stat_statements;" 2>/dev/null | xargs || echo "0")
+STAT_COUNT=$(docker exec $CONTAINER_NAME $PSQL_CMD -t -c "SELECT count(*) FROM pg_stat_statements;" 2>/dev/null | xargs || echo "0")
 echo "   Tracked queries: $STAT_COUNT"
 if [ "$STAT_COUNT" -gt 0 ] 2>/dev/null; then
     echo -e "   ${GREEN}✅ PASS${NC}"
