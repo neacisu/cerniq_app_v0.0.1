@@ -118,22 +118,68 @@ jobs:
       - name: 🔐 Fetch CI secrets from OpenBao
         env:
           OPENBAO_ADDR: ${{ secrets.OPENBAO_ADDR }}
-          OPENBAO_ROLE_ID: ${{ secrets.OPENBAO_ROLE_ID }}
-          OPENBAO_SECRET_ID: ${{ secrets.OPENBAO_SECRET_ID }}
+          OPENBAO_CICD_ROLE_ID: ${{ secrets.OPENBAO_CICD_ROLE_ID }}
+          OPENBAO_CICD_SECRET_ID: ${{ secrets.OPENBAO_CICD_SECRET_ID }}
         run: |
-          if ! command -v openbao >/dev/null 2>&1; then
-            echo "OpenBao CLI not found on runner. Install openbao and retry." >&2
+          set -euo pipefail
+
+          if ! command -v jq >/dev/null 2>&1; then
+            echo "jq not found on runner. Install jq and retry." >&2
             exit 1
           fi
-          export OPENBAO_ADDR
-          TOKEN=$(openbao write -field=token auth/approle/login role_id="$OPENBAO_ROLE_ID" secret_id="$OPENBAO_SECRET_ID")
-          echo "OPENBAO_TOKEN=$TOKEN" >> $GITHUB_ENV
-          echo "DATABASE_URL=$(openbao kv get -field=pg_url secret/cerniq/ci)" >> $GITHUB_ENV
-          echo "POSTGRES_USER=$(openbao kv get -field=pg_user secret/cerniq/ci)" >> $GITHUB_ENV
-          echo "POSTGRES_PASSWORD=$(openbao kv get -field=pg_password secret/cerniq/ci)" >> $GITHUB_ENV
-          echo "REDIS_URL=$(openbao kv get -field=redis_url secret/cerniq/ci)" >> $GITHUB_ENV
-          echo "REDIS_PASSWORD=$(openbao kv get -field=redis_password secret/cerniq/ci)" >> $GITHUB_ENV
-          echo "JWT_SECRET=$(openbao kv get -field=jwt_secret secret/cerniq/ci)" >> $GITHUB_ENV
+
+          require_value() {
+            local name="$1"
+            local value="$2"
+            if [ -z "$value" ] || [ "$value" = "null" ]; then
+              echo "OpenBao secret missing: $name" >&2
+              exit 1
+            fi
+          }
+
+          require_value "OPENBAO_ADDR" "$OPENBAO_ADDR"
+          require_value "OPENBAO_CICD_ROLE_ID" "$OPENBAO_CICD_ROLE_ID"
+          require_value "OPENBAO_CICD_SECRET_ID" "$OPENBAO_CICD_SECRET_ID"
+
+          TOKEN=$(curl -s -X POST "${OPENBAO_ADDR}/v1/auth/approle/login" \
+            -d "{\"role_id\":\"${OPENBAO_CICD_ROLE_ID}\",\"secret_id\":\"${OPENBAO_CICD_SECRET_ID}\"}" \
+            | jq -r '.auth.client_token')
+
+          require_value "OPENBAO_TOKEN" "$TOKEN"
+
+          SECRETS=$(curl -s -H "X-Vault-Token: $TOKEN" \
+            "${OPENBAO_ADDR}/v1/secret/data/cerniq/ci/test")
+
+          CI_PG_USER=$(echo "$SECRETS" | jq -r '.data.data.pg_user')
+          CI_PG_PASSWORD=$(echo "$SECRETS" | jq -r '.data.data.pg_password')
+          CI_REDIS_PASSWORD=$(echo "$SECRETS" | jq -r '.data.data.redis_password')
+          CI_JWT_SECRET=$(echo "$SECRETS" | jq -r '.data.data.jwt_secret')
+
+          require_value "pg_user" "$CI_PG_USER"
+          require_value "pg_password" "$CI_PG_PASSWORD"
+          if [ "$CI_REDIS_PASSWORD" = "null" ]; then
+            echo "OpenBao secret missing: redis_password" >&2
+            exit 1
+          fi
+          require_value "jwt_secret" "$CI_JWT_SECRET"
+
+          echo "::add-mask::$CI_PG_PASSWORD"
+          if [ -n "$CI_REDIS_PASSWORD" ] && [ "$CI_REDIS_PASSWORD" != "null" ]; then
+            echo "::add-mask::$CI_REDIS_PASSWORD"
+          fi
+          echo "::add-mask::$CI_JWT_SECRET"
+
+          echo "DATABASE_URL=postgresql://${CI_PG_USER}:${CI_PG_PASSWORD}@localhost:64032/cerniq" >> $GITHUB_ENV
+          echo "POSTGRES_USER=${CI_PG_USER}" >> $GITHUB_ENV
+          echo "POSTGRES_PASSWORD=${CI_PG_PASSWORD}" >> $GITHUB_ENV
+          if [ -n "$CI_REDIS_PASSWORD" ] && [ "$CI_REDIS_PASSWORD" != "null" ]; then
+            echo "REDIS_URL=redis://:${CI_REDIS_PASSWORD}@localhost:64039/0" >> $GITHUB_ENV
+            echo "REDIS_PASSWORD=${CI_REDIS_PASSWORD}" >> $GITHUB_ENV
+          else
+            echo "REDIS_URL=redis://localhost:64039/0" >> $GITHUB_ENV
+            echo "REDIS_PASSWORD=" >> $GITHUB_ENV
+          fi
+          echo "JWT_SECRET=${CI_JWT_SECRET}" >> $GITHUB_ENV
 
       - name: 🧪 Run Full Test Suite
         run: |

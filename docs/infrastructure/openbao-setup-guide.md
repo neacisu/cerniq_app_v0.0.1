@@ -322,6 +322,13 @@ bao kv put secret/cerniq/shared/external \
 bao kv put secret/cerniq/ci/deploy \
     ghcr_token="$GHCR_TOKEN" \
     ssh_key="$SSH_KEY"
+
+# CI test secrets (used by CI Pipeline)
+bao kv put secret/cerniq/ci/test \
+  pg_user="c3rn1q" \
+  pg_password="$CI_PG_PASSWORD" \
+  redis_password="$CI_REDIS_PASSWORD" \
+  jwt_secret="$CI_JWT_SECRET"
 ```
 
 ### Database Secrets Engine (Dynamic)

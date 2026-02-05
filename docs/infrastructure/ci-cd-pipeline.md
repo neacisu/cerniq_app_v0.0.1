@@ -205,6 +205,13 @@ sequenceDiagram
 | `OPENBAO_CICD_ROLE_ID` | AppRole role_id | Static |
 | `OPENBAO_CICD_SECRET_ID` | AppRole secret_id | Lunar |
 
+### 4.2.1 CI Test Secrets (OpenBao KV)
+
+CI Pipeline-ul ia secretele de test din OpenBao:
+
+- Path: `secret/data/cerniq/ci/test`
+- Keys: `pg_user`, `pg_password`, `redis_password`, `jwt_secret`
+
 ### 4.3 Workflow Integration
 
 ```yaml

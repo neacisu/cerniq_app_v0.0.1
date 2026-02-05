@@ -147,6 +147,17 @@ bao_exec kv put secret/cerniq/ci/deploy \
 
 log_success "CI/CD secrets created at secret/cerniq/ci/deploy"
 
+# Create CI test secrets (placeholders)
+log_info "🧪 Creating CI test secrets (placeholders)..."
+
+bao_exec kv put secret/cerniq/ci/test \
+    pg_user="c3rn1q" \
+    pg_password="PLACEHOLDER_CI_PG_PASSWORD" \
+    redis_password="PLACEHOLDER_CI_REDIS_PASSWORD" \
+    jwt_secret="PLACEHOLDER_CI_JWT_SECRET"
+
+log_success "CI test secrets created at secret/cerniq/ci/test"
+
 # =============================================================================
 # 2. Database Secrets Engine (Dynamic PostgreSQL)
 # =============================================================================
