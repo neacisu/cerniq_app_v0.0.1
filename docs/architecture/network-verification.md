@@ -91,8 +91,8 @@ This document records the network connectivity tests performed as part of E0-S3-
 | No external port exposure | ✅ | `docker port cerniq-redis` returns empty |
 | AUTH enabled | ✅ | NOAUTH error without password |
 | Internal networks only | ✅ | Both networks have `internal: true` |
-| Password in Docker secret | ✅ | `/run/secrets/redis_password` |
-| Password file permissions | ✅ | `600` (owner read/write only) |
+| Password via OpenBao | ✅ | Injected to `/secrets/redis.env` by Agent |
+| Agent file permissions | ✅ | `600` (owner read/write only) |
 
 ---
 

@@ -295,6 +295,66 @@ jobs:
             echo "✅ Staging deployment complete: ${{ needs.setup.outputs.version }}"
           ENDSSH
 
+      - name: 🔐 OpenBao Health Check & Unseal
+        continue-on-error: true
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'ENDSSH'
+            cd /opt/cerniq
+            
+            # Check if OpenBao container is running
+            if ! docker ps --format '{{.Names}}' | grep -q "cerniq-openbao"; then
+              echo "⚠️  OpenBao not running, skipping checks"
+              exit 0
+            fi
+            
+            # Get OpenBao status
+            BAO_STATUS=$(docker exec cerniq-openbao bao status -format=json 2>/dev/null || echo '{}')
+            
+            # Check if initialized
+            INITIALIZED=$(echo "$BAO_STATUS" | jq -r '.initialized // false')
+            if [ "$INITIALIZED" != "true" ]; then
+              echo "⚠️  OpenBao not initialized - run openbao-init.sh manually"
+              exit 0
+            fi
+            
+            # Check if sealed  
+            SEALED=$(echo "$BAO_STATUS" | jq -r '.sealed // true')
+            if [ "$SEALED" == "true" ]; then
+              echo "🔒 OpenBao is sealed"
+              
+              # Auto-unseal on staging (CERNIQ_OPENBAO_AUTO_UNSEAL=true)
+              if [ -f "/var/www/CerniqAPP/secrets/openbao_unseal_keys.txt" ]; then
+                echo "🔓 Attempting auto-unseal (staging only)..."
+                for i in 1 2 3; do
+                  KEY=$(sed -n "${i}p" /var/www/CerniqAPP/secrets/openbao_unseal_keys.txt | cut -d: -f2 | tr -d ' ')
+                  if [ -n "$KEY" ]; then
+                    docker exec cerniq-openbao bao operator unseal "$KEY" >/dev/null 2>&1 || true
+                  fi
+                done
+                
+                # Verify unsealed
+                NEW_STATUS=$(docker exec cerniq-openbao bao status -format=json 2>/dev/null || echo '{}')
+                NEW_SEALED=$(echo "$NEW_STATUS" | jq -r '.sealed // true')
+                if [ "$NEW_SEALED" == "false" ]; then
+                  echo "✅ OpenBao unsealed successfully"
+                else
+                  echo "❌ OpenBao still sealed - manual intervention required"
+                fi
+              else
+                echo "⚠️  Unseal keys not found, manual unseal required"
+              fi
+            else
+              echo "✅ OpenBao is already unsealed and healthy"
+            fi
+            
+            # Verify secrets are being rendered by agents
+            if docker exec cerniq-openbao-agent-api test -f /secrets/api.env 2>/dev/null; then
+              echo "✅ API secrets are being rendered"
+            else
+              echo "⚠️  API secrets not yet rendered (agent may still be starting)"
+            fi
+          ENDSSH
+
       - name: 🧪 Run Infrastructure Validation Tests
         continue-on-error: true
         run: |
@@ -380,6 +440,53 @@ jobs:
             fi
             
             echo "✅ Production deployment complete: ${{ needs.setup.outputs.version }}"
+          ENDSSH
+
+      - name: 🔐 OpenBao Health Check (Production)
+        continue-on-error: true
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
+            cd /opt/cerniq
+            
+            # Check if OpenBao container is running
+            if ! docker ps --format '{{.Names}}' | grep -q "cerniq-openbao"; then
+              echo "⚠️  OpenBao not running, skipping checks"
+              exit 0
+            fi
+            
+            # Get OpenBao status
+            BAO_STATUS=$(docker exec cerniq-openbao bao status -format=json 2>/dev/null || echo '{}')
+            
+            # Check if initialized
+            INITIALIZED=$(echo "$BAO_STATUS" | jq -r '.initialized // false')
+            if [ "$INITIALIZED" != "true" ]; then
+              echo "⚠️  OpenBao not initialized - run openbao-init.sh manually"
+              exit 0
+            fi
+            
+            # Check if sealed (PRODUCTION: NO auto-unseal for security)
+            SEALED=$(echo "$BAO_STATUS" | jq -r '.sealed // true')
+            if [ "$SEALED" == "true" ]; then
+              echo "🔒 OpenBao is SEALED - manual unseal required!"
+              echo "❌ CRITICAL: Production secrets are unavailable until manually unsealed"
+              echo "🔑 Run: ./infra/scripts/openbao-init.sh (with unseal keys)"
+              # Don't fail deployment, but alert
+            else
+              echo "✅ OpenBao is unsealed and healthy"
+              
+              # Verify agents are rendering secrets
+              if docker exec cerniq-openbao-agent-api test -f /secrets/api.env 2>/dev/null; then
+                echo "✅ API secrets are being rendered"
+              else
+                echo "⚠️  API secrets not yet rendered"
+              fi
+              
+              if docker exec cerniq-openbao-agent-workers test -f /secrets/workers.env 2>/dev/null; then
+                echo "✅ Workers secrets are being rendered"
+              else
+                echo "⚠️  Workers secrets not yet rendered"
+              fi
+            fi
           ENDSSH
 
       - name: 🧪 Run Infrastructure Validation Tests

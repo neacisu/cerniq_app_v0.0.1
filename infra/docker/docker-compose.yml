@@ -59,6 +59,17 @@ volumes:
   signoz_data:
     driver: local
 
+  # OpenBao Raft storage - ADR-0033
+  openbao_data:
+    driver: local
+
+  # OpenBao Agent secrets volumes
+  api_secrets:
+    driver: local
+
+  workers_secrets:
+    driver: local
+
 # ============================================================================
 # X-Common Configurations (YAML Anchors)
 # ============================================================================
@@ -144,6 +155,15 @@ x-resource-traefik: &resource-traefik
     memory: 256M
     cpus: '0.25'
 
+# OpenBao secrets management - ADR-0033
+x-resource-openbao: &resource-openbao
+  limits:
+    memory: 512M
+    cpus: '0.5'
+  reservations:
+    memory: 256M
+    cpus: '0.25'
+
 # ============================================================================
 # Secrets
 # ============================================================================
@@ -171,7 +191,7 @@ services:
   # ==========================================================================
   # Reference: ADR-0004, etapa0-plan-implementare-complet-v2.md
   # Extensions: pgvector 0.8.1, PostGIS 3.6.1, pg_trgm
-  # Port: 5432 (internal only, accessed via cerniq_data network)
+  # Port: 64032 (internal only, accessed via cerniq_data network) - per etapa0-port-matrix.md
   # ==========================================================================
   postgres:
     build:
@@ -180,6 +200,17 @@ services:
     image: cerniq/postgres:18-pgvector
     container_name: cerniq-postgres
     restart: unless-stopped
+    # Security hardening - F0.8.1.T003
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+      - DAC_OVERRIDE
+      - FOWNER
     environment:
       POSTGRES_USER: c3rn1q
       POSTGRES_DB: cerniq
@@ -198,7 +229,7 @@ services:
         ipv4_address: 172.29.0.10
     # NO ports exposed - internal network only (security)
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U c3rn1q -d cerniq -h localhost -p 5432"]
+      test: ["CMD-SHELL", "pg_isready -U c3rn1q -d cerniq -h localhost -p 64032"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -214,7 +245,7 @@ services:
     labels:
       <<: *common-labels
       com.cerniq.service: "postgres"
-      com.cerniq.port: "5432"
+      com.cerniq.port: "64032"
     logging:
       <<: *default-logging
 
@@ -222,14 +253,34 @@ services:
   # PgBouncer 1.23 - Connection Pooling
   # ==========================================================================
   # Reference: pgbouncer-connection-pooling.md, ADR-0004
-  # Port: 6432 (internal only, accessed via cerniq_data + cerniq_backend)
+  # Port: 64033 (internal only, accessed via cerniq_data + cerniq_backend) - per etapa0-port-matrix.md
+  # Security: Password read from Docker secret at runtime (F0.8.1)
   # ==========================================================================
   pgbouncer:
     image: edoburu/pgbouncer:latest
     container_name: cerniq-pgbouncer
     restart: unless-stopped
+    # Security hardening - F0.8.1.T003
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    # NOTE: read_only disabled - pgbouncer image needs to write config files
+    # and access Docker secrets. Security maintained via network isolation,
+    # no-new-privileges, and cap_drop ALL.
+    # Using volume mount instead of Docker secrets since compose non-swarm
+    # doesn't support secret uid/gid settings
+    volumes:
+      - ../../secrets/postgres_password.txt:/secrets/postgres_password:ro
     environment:
-      DATABASE_URL: postgres://c3rn1q:${POSTGRES_PASSWORD}@postgres:5432/cerniq
+      # NOTE: DATABASE_URL built at runtime from secret (see command below)
+      # Required by edoburu/pgbouncer entrypoint
+      DB_HOST: postgres
+      DB_PORT: 64032
+      DB_NAME: cerniq
+      DB_USER: c3rn1q
+      # DB_PASSWORD read from secret via command
+      LISTEN_PORT: 64033
       POOL_MODE: transaction
       MAX_CLIENT_CONN: 1000
       DEFAULT_POOL_SIZE: 50
@@ -243,6 +294,14 @@ services:
       LOG_CONNECTIONS: 1
       LOG_DISCONNECTIONS: 1
       VERBOSE: 0
+    # Security: Read password from mounted file at runtime, not in env vars
+    # Override entrypoint to export DB_PASSWORD before running original entrypoint
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        export DB_PASSWORD="$$(cat /secrets/postgres_password)"
+        exec /entrypoint.sh /usr/bin/pgbouncer /etc/pgbouncer/pgbouncer.ini
     networks:
       cerniq_data:
         ipv4_address: 172.29.0.11
@@ -253,7 +312,7 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -h localhost -p 5432 -U c3rn1q || exit 1"]
+      test: ["CMD-SHELL", "pg_isready -h localhost -p 64033 -U c3rn1q || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -269,7 +328,7 @@ services:
     labels:
       <<: *common-labels
       com.cerniq.service: "pgbouncer"
-      com.cerniq.port: "6432"
+      com.cerniq.port: "64033"
     logging:
       <<: *default-logging
 
@@ -287,6 +346,17 @@ services:
     image: redis:8.4-alpine
     container_name: cerniq-redis
     restart: unless-stopped
+    # Security hardening - F0.8.1.T003
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    # NOTE: user "999:999" removed - Docker Compose non-swarm doesn't support
+    # secret uid/gid settings, so Redis runs as container default (redis user)
+    # Security maintained via: no-new-privileges, cap_drop ALL, read_only, network isolation
+    read_only: true
+    tmpfs:
+      - /tmp:size=100M
     secrets:
       - redis_password
     command:
@@ -450,5 +520,172 @@ services:
       traefik.http.middlewares.cerniq-security-headers.headers.browserXssFilter: "true"
       traefik.http.middlewares.cerniq-security-headers.headers.contentTypeNosniff: "true"
       traefik.http.middlewares.cerniq-security-headers.headers.referrerPolicy: "strict-origin-when-cross-origin"
+    logging:
+      <<: *default-logging
+
+  # ==========================================================================
+  # OpenBao - Centralized Secrets Management
+  # ==========================================================================
+  # Reference: ADR-0033 OpenBao Secrets Management
+  # Port: 64090 (localhost only - security) - per etapa0-port-matrix.md reserved range 64090-64099
+  # Network: cerniq_backend (172.28.0.50)
+  # 
+  # OpenBao provides:
+  #   - Centralized secrets storage (KV engine)
+  #   - Dynamic database credentials (PostgreSQL)
+  #   - PKI for internal TLS certificates
+  #   - Encryption as a service (Transit engine)
+  #   - Complete audit logging
+  # ==========================================================================
+  openbao:
+    image: quay.io/openbao/openbao:2.5.0
+    container_name: cerniq-openbao
+    restart: unless-stopped
+    # Security: IPC_LOCK required for mlock (prevents memory swapping)
+    cap_add:
+      - IPC_LOCK
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      BAO_ADDR: "http://127.0.0.1:8200"
+      BAO_API_ADDR: "http://openbao:8200"
+      BAO_CLUSTER_ADDR: "https://openbao:8201"
+      BAO_LOG_LEVEL: "info"
+    volumes:
+      # Raft storage for secrets and cluster state
+      - openbao_data:/openbao/data
+      # Configuration files (read-only)
+      - ../config/openbao:/openbao/config:ro
+    command: server -config=/openbao/config/openbao.hcl
+    ports:
+      # API port - localhost only for security (64090 per port matrix)
+      # External access should be via Traefik or SSH tunnel
+      - "127.0.0.1:64090:8200"
+    networks:
+      cerniq_public:
+        ipv4_address: 172.27.0.50
+      cerniq_backend:
+        ipv4_address: 172.28.0.50
+    healthcheck:
+      # Check if OpenBao port is listening (accepts all states: sealed/uninitialized/active)
+      # Uses /proc/net/tcp to verify port 8200 (0x2008) is bound
+      test: ["CMD-SHELL", "cat /proc/net/tcp | grep -q ':2008 ' || wget -q -O /dev/null http://localhost:8200/ 2>&1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        <<: *resource-openbao
+    labels:
+      <<: *common-labels
+      com.cerniq.service: "openbao"
+      com.cerniq.port: "64090"
+    logging:
+      <<: *default-logging
+
+  # ==========================================================================
+  # OpenBao Agent - API Service Sidecar
+  # ==========================================================================
+  # Injects secrets into API service via template rendering
+  # Auto-renews tokens and database credentials
+  # ==========================================================================
+  openbao-agent-api:
+    image: quay.io/openbao/openbao:2.5.0
+    container_name: cerniq-openbao-agent-api
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETGID
+      - SETUID
+    command: agent -config=/openbao/config/agent-api.hcl
+    volumes:
+      # Agent configuration
+      - ../config/openbao/agent-api.hcl:/openbao/config/agent-api.hcl:ro
+      - ../config/openbao/templates:/openbao/templates:ro
+      # Secrets output volume (shared with API service)
+      - api_secrets:/secrets
+      # AppRole credentials (populated by setup script)
+      - ../../secrets/api_role_id:/openbao/config/role_id:ro
+      - ../../secrets/api_secret_id:/openbao/config/secret_id:ro
+    networks:
+      - cerniq_backend
+    depends_on:
+      openbao:
+        condition: service_healthy
+    healthcheck:
+      # Check if secrets file exists (template rendered)
+      test: ["CMD", "test", "-f", "/secrets/api.env"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.25'
+        reservations:
+          memory: 64M
+          cpus: '0.1'
+    labels:
+      <<: *common-labels
+      com.cerniq.service: "openbao-agent-api"
+    logging:
+      <<: *default-logging
+
+  # ==========================================================================
+  # OpenBao Agent - Workers Service Sidecar
+  # ==========================================================================
+  # Injects secrets into Workers services via template rendering
+  # Auto-renews tokens and database credentials
+  # ==========================================================================
+  openbao-agent-workers:
+    image: quay.io/openbao/openbao:2.5.0
+    container_name: cerniq-openbao-agent-workers
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETGID
+      - SETUID
+    command: agent -config=/openbao/config/agent-workers.hcl
+    volumes:
+      # Agent configuration
+      - ../config/openbao/agent-workers.hcl:/openbao/config/agent-workers.hcl:ro
+      - ../config/openbao/templates:/openbao/templates:ro
+      # Secrets output volume (shared with Workers services)
+      - workers_secrets:/secrets
+      # AppRole credentials (populated by setup script)
+      - ../../secrets/workers_role_id:/openbao/config/role_id:ro
+      - ../../secrets/workers_secret_id:/openbao/config/secret_id:ro
+    networks:
+      - cerniq_backend
+    depends_on:
+      openbao:
+        condition: service_healthy
+    healthcheck:
+      # Check if secrets file exists (template rendered)
+      test: ["CMD", "test", "-f", "/secrets/workers.env"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.25'
+        reservations:
+          memory: 64M
+          cpus: '0.1'
+    labels:
+      <<: *common-labels
+      com.cerniq.service: "openbao-agent-workers"
     logging:
       <<: *default-logging

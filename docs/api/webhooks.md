@@ -240,7 +240,7 @@ interface ClientNotificationWebhook {
 
 ### 4.1 Signature Verification
 
-> 📖 **Referință:** [`etapa0-docker-secrets-guide.md`](../specifications/Etapa%200/etapa0-docker-secrets-guide.md)
+> 📖 **Referință:** [OpenBao Setup Guide](../infrastructure/openbao-setup-guide.md) | [ADR-0033](../adr/ADR%20Etapa%200/ADR-0033-OpenBao-Secrets-Management.md)
 
 ```typescript
 // Verificare semnătură HMAC-SHA256
@@ -264,11 +264,14 @@ async function verifyWebhookSignature(
 
 ### 4.2 Secrets pentru Webhook Validation
 
-| Provider | Environment Variable | Docker Secret Path |
-| -------- | -------------------- | ------------------ |
-| TimelinesAI | `TIMELINES_WEBHOOK_SECRET` | `/run/secrets/timelines_webhook_secret` |
-| Revolut | `REVOLUT_WEBHOOK_SECRET` | `/run/secrets/revolut_webhook_secret` |
-| Instantly | `INSTANTLY_WEBHOOK_SECRET` | `/run/secrets/instantly_webhook_secret` |
+> **📌 OpenBao:** Secretele sunt gestionate prin OpenBao și injectate automat prin Agent sidecar.
+> Consultă [openbao-setup-guide.md](../infrastructure/openbao-setup-guide.md) pentru detalii.
+
+| Provider | Environment Variable | OpenBao Path |
+| -------- | -------------------- | ------------ |
+| TimelinesAI | `TIMELINES_WEBHOOK_SECRET` | `kv/data/api/webhooks/timelinesai` |
+| Revolut | `REVOLUT_WEBHOOK_SECRET` | `kv/data/api/webhooks/revolut` |
+| Instantly | `INSTANTLY_WEBHOOK_SECRET` | `kv/data/api/webhooks/instantly` |
 
 ### 4.3 IP Whitelisting (Opțional)
 

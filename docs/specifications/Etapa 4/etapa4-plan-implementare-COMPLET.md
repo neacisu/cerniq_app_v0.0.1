@@ -203,12 +203,12 @@ E4.S{sprint}.PR{pr}.{task}
       "dependente": [],
       "deliverables": [
         ".env.example actualizat",
-        "Docker secrets pentru API keys",
+        "OpenBao secrets config pentru API keys (vezi ADR-0033)",
         "Documentație variabile"
       ],
       "acceptare": [
         "Toate variabilele documentate",
-        "Secrets în Docker manager",
+        "Secrets în OpenBao KV engine",
         "Validare la startup"
       ]
     },

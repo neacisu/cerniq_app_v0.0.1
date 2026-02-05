@@ -141,7 +141,7 @@ E5.S1.PR1.001
 - [ ] Rate limiting activ pe webhook endpoints
 - [ ] 8 cron jobs configurate cu monitoring
 - [ ] Dashboard BullMQ accesibil
-- [ ] Environment variables documentate și în Docker secrets
+- [ ] Environment variables documentate și în OpenBao (vezi [ADR-0033](../../adr/ADR%20Etapa%200/ADR-0033-OpenBao-Secrets-Management.md))
 
 #### Definition of Done
 

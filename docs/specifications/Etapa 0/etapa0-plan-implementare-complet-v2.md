@@ -689,6 +689,11 @@
 
 ## FAZA F0.8: SECURITY HARDENING (COMPLET)
 
+> **⚠️ ACTUALIZAT 5 Februarie 2026:**  
+> - **F0.8.1.T001** (Docker secrets) este **SUPERSEDED** de [ADR-0033 OpenBao](../../adr/ADR%20Etapa%200/ADR-0033-OpenBao-Secrets-Management.md)
+> - **F0.8.2.T001-T002** (generate-secrets.sh, rotație secretelor) sunt **SUPERSEDED** de [openbao-setup-guide.md](../../infrastructure/openbao-setup-guide.md)
+> - Restul taskurilor (firewall, hardening, TLS, fail2ban, Trivy) rămân valide.
+
 ## F0.8.1 Security Implementation
 
 ```json
@@ -764,6 +769,144 @@
   ],
   "validare_task": "1. TLS minVersion este VersionTLS12\n2. Cipher suites sunt moderne (ECDHE)\n3. acme.json are permisiuni 600\n4. HSTS configurat cu 1 an minimum\n5. SSL Labs score A sau A+",
   "outcome": "TLS/SSL configurat optim cu A+ rating potențial"
+}
+```
+
+## F0.8.3 OpenBao Secrets Management 🆕
+
+> **Adăugat:** 5 Februarie 2026 - Înlocuiește Docker secrets (F0.8.1.T001) și generate-secrets.sh (F0.8.2.T001-T002)
+> **Referință:** [ADR-0033](../../adr/ADR%20Etapa%200/ADR-0033-OpenBao-Secrets-Management.md) | [openbao-setup-guide.md](../../infrastructure/openbao-setup-guide.md)
+
+```json
+{
+  "taskID": "F0.8.1.T001-OB",
+  "denumire_task": "Deploy OpenBao container cu Raft storage",
+  "context_anterior": "Backup strategy și container hardening completate. Acum implementăm centralized secrets management cu OpenBao.",
+  "descriere_task": "Ești un expert în secrets management și HashiCorp Vault/OpenBao. Deploy-ează OpenBao container.\n\n1. Adaugă serviciul în docker-compose.yml:\n```yaml\nopenbao:\n  image: quay.io/openbao/openbao:2.2.0\n  container_name: cerniq-openbao\n  restart: unless-stopped\n  cap_add:\n    - IPC_LOCK\n  ports:\n    - '127.0.0.1:64200:8200'\n  volumes:\n    - openbao_data:/openbao/data\n    - ./config/openbao:/openbao/config:ro\n  environment:\n    BAO_ADDR: 'http://127.0.0.1:8200'\n    BAO_API_ADDR: 'http://openbao:8200'\n  command: server\n  networks:\n    cerniq_backend:\n      ipv4_address: 172.28.0.50\n  healthcheck:\n    test: ['CMD', 'bao', 'status', '-address=http://127.0.0.1:8200']\n    interval: 30s\n    timeout: 10s\n    retries: 3\n```\n\n2. Creează configurația `/var/www/CerniqAPP/infra/config/openbao/config.hcl`:\n```hcl\nui = true\nlog_level = \"info\"\n\nstorage \"raft\" {\n  path = \"/openbao/data\"\n  node_id = \"cerniq-openbao-1\"\n}\n\nlistener \"tcp\" {\n  address = \"0.0.0.0:8200\"\n  tls_disable = true  # TLS handled by Traefik\n}\n\napi_addr = \"http://openbao:8200\"\ncluster_addr = \"http://openbao:8201\"\n\ndisable_mlock = true\n```\n\n3. Pornește și inițializează:\n```bash\ndocker compose up -d openbao\nbao operator init -key-shares=5 -key-threshold=3\n# Salvează unseal keys și root token în loc sigur!\nbao operator unseal  # Repetă de 3 ori cu keys diferite\n```",
+  "director_implementare": "/var/www/CerniqAPP/infra",
+  "restrictii_antihalucinatie": [
+    "PORT 64200 DOAR pe localhost (127.0.0.1) - nu expune public",
+    "CAP_ADD IPC_LOCK necesar pentru mlock",
+    "SALVEAZĂ unseal keys într-un loc SIGUR (offline, encrypted)",
+    "NU commita root token sau unseal keys în git",
+    "IP fixat 172.28.0.50 în rețeaua cerniq_backend"
+  ],
+  "validare_task": "1. Container openbao rulează (docker ps)\n2. bao status arată 'Sealed: false'\n3. Port 64200 ascultă doar pe localhost\n4. UI accesibil la http://localhost:64200/ui\n5. Unseal keys salvate securizat",
+  "outcome": "OpenBao v2.2.0 deployed și initialized cu Raft storage"
+}
+```
+
+```json
+{
+  "taskID": "F0.8.2.T001-OB",
+  "denumire_task": "Configurare secrets engines (KV, Database, PKI)",
+  "context_anterior": "OpenBao deployed și unsealed. Acum configurăm secrets engines pentru diferite tipuri de secrete.",
+  "descriere_task": "Ești un expert în OpenBao/Vault secrets engines. Configurează engine-urile necesare.\n\n1. Enable KV v2 pentru secrete statice:\n```bash\nbao secrets enable -path=kv -version=2 kv\n\n# Adaugă secrete inițiale\nbao kv put kv/api/auth jwt_secret=$(openssl rand -base64 64) \\\n  cookie_secret=$(openssl rand -base64 32) \\\n  session_secret=$(openssl rand -base64 32)\n\nbao kv put kv/api/external \\\n  anaf_client_secret=<value> \\\n  termene_api_key=<value> \\\n  hunter_api_key=<value>\n```\n\n2. Enable Database secrets engine pentru PostgreSQL:\n```bash\nbao secrets enable database\n\nbao write database/config/cerniq-postgres \\\n  plugin_name=postgresql-database-plugin \\\n  allowed_roles=\"crnq-api,crnq-workers\" \\\n  connection_url=\"postgresql://{{username}}:{{password}}@postgres:64032/cerniq_production\" \\\n  username=\"cerniq_admin\" \\\n  password=\"<initial_password>\"\n\n# Creează rol pentru API\nbao write database/roles/crnq-api \\\n  db_name=cerniq-postgres \\\n  creation_statements=\"CREATE ROLE \\\"{{name}}\\\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}'; GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA bronze, silver, gold, approval TO \\\"{{name}}\\\"; GRANT USAGE ON ALL SEQUENCES IN SCHEMA bronze, silver, gold, approval TO \\\"{{name}}\\\";\" \\\n  default_ttl=\"1h\" \\\n  max_ttl=\"24h\"\n```\n\n3. Enable PKI pentru certificate interne (opțional):\n```bash\nbao secrets enable pki\nbao secrets tune -max-lease-ttl=87600h pki\nbao write pki/root/generate/internal common_name=\"Cerniq Internal CA\" ttl=87600h\n```",
+  "director_implementare": "/var/www/CerniqAPP/infra/scripts",
+  "restrictii_antihalucinatie": [
+    "KV v2 (nu v1) pentru versioning",
+    "Database credentials cu TTL maxim 24h",
+    "Default TTL 1h pentru dynamic credentials",
+    "GRANT-uri minime necesare per rol",
+    "Connection URL folosește hostname 'postgres' (din Docker network)"
+  ],
+  "validare_task": "1. bao secrets list arată kv/, database/, pki/\n2. bao kv get kv/api/auth returnează secretele\n3. bao read database/creds/crnq-api generează username/password\n4. Credentialele expiră după TTL",
+  "outcome": "Secrets engines configurate pentru static (KV) și dynamic (Database) secrets"
+}
+```
+
+```json
+{
+  "taskID": "F0.8.2.T002-OB",
+  "denumire_task": "Configurare AppRole auth per serviciu",
+  "context_anterior": "Secrets engines configurate. Acum configurăm autentificarea pentru servicii.",
+  "descriere_task": "Ești un expert în OpenBao authentication methods. Configurează AppRole per serviciu.\n\n1. Enable AppRole auth:\n```bash\nbao auth enable approle\n```\n\n2. Crează policy pentru API:\n```bash\ncat << 'EOF' > /tmp/policy-api.hcl\n# API Service Policy\npath \"kv/data/api/*\" {\n  capabilities = [\"read\", \"list\"]\n}\npath \"database/creds/crnq-api\" {\n  capabilities = [\"read\"]\n}\npath \"pki/issue/internal\" {\n  capabilities = [\"create\", \"update\"]\n}\npath \"transit/encrypt/api-data\" {\n  capabilities = [\"update\"]\n}\npath \"transit/decrypt/api-data\" {\n  capabilities = [\"update\"]\n}\nEOF\nbao policy write crnq-api /tmp/policy-api.hcl\n```\n\n3. Crează AppRole pentru API:\n```bash\nbao write auth/approle/role/crnq-api \\\n  token_policies=\"crnq-api\" \\\n  token_ttl=1h \\\n  token_max_ttl=4h \\\n  secret_id_ttl=720h \\\n  secret_id_num_uses=0\n\n# Obține role_id (static, poate fi în config)\nROLE_ID=$(bao read -field=role_id auth/approle/role/crnq-api/role-id)\n\n# Obține secret_id (trebuie regenerat periodic)\nSECRET_ID=$(bao write -field=secret_id -f auth/approle/role/crnq-api/secret-id)\n\necho \"OPENBAO_ROLE_ID=$ROLE_ID\" >> /var/www/CerniqAPP/secrets/openbao_api.env\necho \"OPENBAO_SECRET_ID=$SECRET_ID\" >> /var/www/CerniqAPP/secrets/openbao_api.env\n```\n\n4. Repetă pentru workers și cicd roles.",
+  "director_implementare": "/var/www/CerniqAPP/infra/scripts",
+  "restrictii_antihalucinatie": [
+    "Fiecare serviciu are propriul AppRole cu policies specifice",
+    "secret_id_ttl=720h (30 zile) - rotație lunară",
+    "token_ttl=1h - tokens scurte",
+    "MINIMAL privileges în policies",
+    "NU partaja AppRole între servicii"
+  ],
+  "validare_task": "1. bao auth list arată approle/\n2. Policies create pentru api, workers, cicd\n3. AppRoles create cu role_id/secret_id\n4. Login funcționează: bao write auth/approle/login role_id=X secret_id=Y\n5. Token-ul returnat are policies corecte",
+  "outcome": "AppRole authentication configurată per serviciu cu least-privilege policies"
+}
+```
+
+```json
+{
+  "taskID": "F0.8.2.T003-OB",
+  "denumire_task": "Configurare OpenBao Agent sidecars pentru injectare secrete",
+  "context_anterior": "AppRole configurate. Acum configurăm Agent sidecars pentru a injecta secretele în containere.",
+  "descriere_task": "Ești un expert în OpenBao Agent și Docker. Configurează Agent sidecars.\n\n1. Crează configurație Agent pentru API:\n```hcl\n# /var/www/CerniqAPP/infra/config/openbao/agent-api.hcl\npid_file = \"/tmp/openbao-agent.pid\"\n\nvault {\n  address = \"http://openbao:8200\"\n}\n\nauto_auth {\n  method \"approle\" {\n    config = {\n      role_id_file_path = \"/openbao/approle/role_id\"\n      secret_id_file_path = \"/openbao/approle/secret_id\"\n      remove_secret_id_file_after_reading = false\n    }\n  }\n  sink \"file\" {\n    config = {\n      path = \"/openbao/token\"\n    }\n  }\n}\n\ntemplate {\n  source = \"/openbao/templates/db.env.tpl\"\n  destination = \"/secrets/db.env\"\n  perms = 0600\n}\n\ntemplate {\n  source = \"/openbao/templates/auth.env.tpl\"\n  destination = \"/secrets/auth.env\"\n  perms = 0600\n}\n```\n\n2. Crează template pentru DB credentials:\n```\n# db.env.tpl\n{{ with secret \"database/creds/crnq-api\" }}\nDATABASE_URL=postgresql://{{ .Data.username }}:{{ .Data.password }}@postgres:64032/cerniq_production\nPOSTGRES_USER={{ .Data.username }}\nPOSTGRES_PASSWORD={{ .Data.password }}\n{{ end }}\n```\n\n3. Adaugă Agent sidecar în docker-compose.yml:\n```yaml\napi-openbao-agent:\n  image: quay.io/openbao/openbao:2.2.0\n  container_name: cerniq-api-openbao-agent\n  restart: unless-stopped\n  command: agent -config=/openbao/config/agent.hcl\n  volumes:\n    - ./config/openbao/agent-api.hcl:/openbao/config/agent.hcl:ro\n    - ./config/openbao/templates:/openbao/templates:ro\n    - openbao_api_secrets:/secrets\n    - ./secrets/openbao_api_role_id:/openbao/approle/role_id:ro\n    - ./secrets/openbao_api_secret_id:/openbao/approle/secret_id:ro\n  networks:\n    - cerniq_backend\n  depends_on:\n    - openbao\n\napi:\n  # ... existing config\n  volumes:\n    - openbao_api_secrets:/secrets:ro\n  environment:\n    - DATABASE_URL_FILE=/secrets/db.env\n  depends_on:\n    - api-openbao-agent\n```",
+  "director_implementare": "/var/www/CerniqAPP/infra",
+  "restrictii_antihalucinatie": [
+    "Agent rulează ca SIDECAR separat, nu în containerul principal",
+    "Secretele se scriu în volum shared (/secrets)",
+    "Permisiuni 0600 pe fișierele renderizate",
+    "API depend de agent (depends_on)",
+    "Template folosește Consul Template syntax"
+  ],
+  "validare_task": "1. Agent container pornește și se autentifică\n2. Fișierele /secrets/*.env sunt renderizate\n3. Conțin credențiale valide\n4. API poate citi secretele din /secrets/\n5. Credențialele se rotesc automat la expirare",
+  "outcome": "OpenBao Agent sidecars configurate pentru injectare automată secrete"
+}
+```
+
+```json
+{
+  "taskID": "F0.8.2.T004-OB",
+  "denumire_task": "Configurare rotație automată credențiale PostgreSQL",
+  "context_anterior": "Agent sidecars configurate. Verificăm rotația automată a credențialelor database.",
+  "descriere_task": "Ești un expert în database credentials rotation. Verifică și testează rotația automată.\n\n1. Verificare setări TTL:\n```bash\nbao read database/roles/crnq-api\n# Verifică: default_ttl=1h, max_ttl=24h\n```\n\n2. Test rotație:\n```bash\n# Generează credentials\nbao read database/creds/crnq-api\n# Notează username și expiration time\n\n# Verifică în PostgreSQL\ndocker exec cerniq-postgres psql -U cerniq -c \"SELECT rolname, rolvaliduntil FROM pg_roles WHERE rolname LIKE 'v-approle-%';\"\n```\n\n3. Verificare Agent auto-renewal:\n```bash\n# În container API, verifică DB URL\ndocker exec cerniq-api cat /secrets/db.env\n# Notează username\n\n# Așteaptă >1h sau forțează rerender\ndocker restart cerniq-api-openbao-agent\n\n# Verifică username nou\ndocker exec cerniq-api cat /secrets/db.env\n```\n\n4. Configurare renewal în template:\n```\n# În agent config, adaugă\ntemplate {\n  source = \"/openbao/templates/db.env.tpl\"\n  destination = \"/secrets/db.env\"\n  perms = 0600\n  # Trigger rerender când lease e la 80% din TTL\n  command = \"pkill -HUP node || true\"\n}\n```\n\n5. Adaugă monitoring pentru lease expiration alerts.",
+  "director_implementare": "/var/www/CerniqAPP/infra",
+  "restrictii_antihalucinatie": [
+    "Rotația automată = Agent re-renders template când lease expiră",
+    "API trebuie să reîncarce credențialele (HUP signal sau restart)",
+    "Monitorizare pentru failed renewals OBLIGATORIE",
+    "Old database users sunt revocate automat de Vault",
+    "NU hardcoda TTL-uri mai mari de 24h pentru database"
+  ],
+  "validare_task": "1. Database credentials au TTL 1h\n2. Agent re-renders template înainte de expirare\n3. Old users sunt revocate în PostgreSQL\n4. API funcționează continuu fără downtime\n5. Alerts configurate pentru renewal failures",
+  "outcome": "Rotație automată credențiale PostgreSQL funcțională cu zero-downtime"
+}
+```
+
+```json
+{
+  "taskID": "F0.8.2.T005-OB",
+  "denumire_task": "Script openbao-rotate-static-secrets.sh pentru secrete statice",
+  "context_anterior": "Rotație automată pentru database configurată. Acum creăm script pentru rotația secretelor statice.",
+  "descriere_task": "Ești un expert în secrets rotation procedures. Crează script pentru rotația secretelor statice (JWT, API keys).\n\nCrează `/var/www/CerniqAPP/infra/scripts/openbao-rotate-static-secrets.sh`:\n```bash\n#!/bin/bash\nset -euo pipefail\n\n# Colors\nRED='\\033[0;31m'\nGREEN='\\033[0;32m'\nYELLOW='\\033[1;33m'\nNC='\\033[0m'\n\nlog() { echo -e \"${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')]${NC} $1\"; }\nwarn() { echo -e \"${YELLOW}[WARNING]${NC} $1\"; }\nerror() { echo -e \"${RED}[ERROR]${NC} $1\"; }\n\n# Verificare OpenBao accesibil\nif ! bao status >/dev/null 2>&1; then\n  error \"OpenBao nu este accesibil sau sealed\"\n  exit 1\nfi\n\n# Funcție rotație pentru un path\nrotate_secret() {\n  local path=$1\n  local key=$2\n  local length=${3:-32}\n  \n  log \"Rotating $key at $path...\"\n  \n  # Backup valoare veche\n  OLD_VALUE=$(bao kv get -field=$key $path 2>/dev/null || echo \"\")\n  \n  # Generează valoare nouă\n  NEW_VALUE=$(openssl rand -base64 $length | tr -dc 'a-zA-Z0-9' | head -c $length)\n  \n  # Patch în KV (păstrează alte chei)\n  bao kv patch $path $key=\"$NEW_VALUE\"\n  \n  log \"✅ Rotated $key successfully\"\n}\n\n# Rotație JWT secret\nread -p \"Rotești JWT secret? (y/N): \" confirm\nif [[ $confirm == [yY] ]]; then\n  rotate_secret \"kv/api/auth\" \"jwt_secret\" 64\n  warn \"IMPORTANT: Toți utilizatorii vor fi delogați!\"\nfi\n\n# Rotație Cookie secret\nread -p \"Rotești Cookie secret? (y/N): \" confirm\nif [[ $confirm == [yY] ]]; then\n  rotate_secret \"kv/api/auth\" \"cookie_secret\" 32\nfi\n\n# Trigger template re-render\nlog \"Triggering Agent template re-render...\"\ndocker kill --signal=HUP cerniq-api-openbao-agent 2>/dev/null || true\n\nlog \"Done! Verifică că API-ul funcționează corect.\"\n```\n\nFă-l executabil:\n```bash\nchmod +x /var/www/CerniqAPP/infra/scripts/openbao-rotate-static-secrets.sh\n```",
+  "director_implementare": "/var/www/CerniqAPP/infra/scripts",
+  "restrictii_antihalucinatie": [
+    "Script INTERACTIV - cere confirmare înainte de rotație",
+    "JWT rotation = sesiuni invalidate - WARN user",
+    "Folosește 'kv patch' nu 'kv put' pentru a păstra alte chei",
+    "Trigger HUP signal la Agent pentru re-render",
+    "NU automatiza complet - risc de lockout"
+  ],
+  "validare_task": "1. Script executabil și funcțional\n2. Cere confirmare pentru fiecare secret\n3. Folosește kv patch (nu put)\n4. Trigger Agent re-render\n5. Documentează impactul rotației (ex: logout users)",
+  "outcome": "Script pentru rotație semi-automată a secretelor statice"
+}
+```
+
+```json
+{
+  "taskID": "F0.8.2.T006-OB",
+  "denumire_task": "Backup și recovery proceduri pentru OpenBao",
+  "context_anterior": "OpenBao complet configurat. Acum asigurăm backup și recovery.",
+  "descriere_task": "Ești un expert în OpenBao disaster recovery. Configurează backup și documentează recovery.\n\n1. Snapshot backup (Raft):\n```bash\n# Crează snapshot\nbao operator raft snapshot save /tmp/openbao-snapshot-$(date +%Y%m%d).snap\n\n# Copiază în Borg backup\nborg create --stats ::openbao-{now} /tmp/openbao-snapshot-*.snap\n```\n\n2. Adaugă în backup script zilnic:\n```bash\n# În cerniq-backup-daily.sh, adaugă:\nlog \"📦 Backing up OpenBao...\"\nbao operator raft snapshot save /tmp/openbao-snapshot-$(date +%Y%m%d).snap\nborg create --stats \"$BORG_REPO::openbao-{now}\" /tmp/openbao-snapshot-*.snap\nrm -f /tmp/openbao-snapshot-*.snap\n```\n\n3. Documentează recovery:\n```markdown\n## OpenBao Recovery Procedure\n\n### Scenariul 1: Container crash\n1. `docker compose up -d openbao`\n2. `bao operator unseal` (3x cu unseal keys)\n3. Verifică status: `bao status`\n\n### Scenariul 2: Data corruption\n1. Stop container: `docker compose stop openbao`\n2. Remove volume: `docker volume rm cerniq_openbao_data`\n3. Restore snapshot: `bao operator raft snapshot restore /backup/openbao-*.snap`\n4. Re-unseal\n\n### Scenariul 3: Complete server loss\n1. Deploy fresh OpenBao\n2. `bao operator init` cu aceleași threshold settings\n3. `bao operator raft snapshot restore` din Borg backup\n4. Re-unseal cu NOILE unseal keys\n5. Verifică policies și secrets\n```\n\n4. Adaugă în DR runbook.",
+  "director_implementare": "/var/www/CerniqAPP/docs/runbooks",
+  "restrictii_antihalucinatie": [
+    "Snapshot-uri TREBUIE incluse în Borg backup",
+    "Unseal keys salvate SEPARAT de server (offline, encrypted)",
+    "Recovery necesită unseal keys - fără ele, data pierdută",
+    "Test recovery PERIODIC (trimestrial)",
+    "NU stoca unseal keys în OpenBao (circular dependency)"
+  ],
+  "validare_task": "1. Snapshot backup adăugat în cron zilnic\n2. Recovery procedure documentată\n3. Unseal keys backup verificat\n4. Test restore reușit\n5. DR runbook actualizat",
+  "outcome": "OpenBao backup integrat în Borg și recovery procedures documentate"
 }
 ```
 
@@ -2708,29 +2851,35 @@ Fiecare Pull Request către `develop` declanșează suplimentar:
 
 ---
 
-### SPRINT 4 (Săptămânile 7-8): Backup + Security
+### SPRINT 4 (Săptămânile 7-8): Backup + Security + OpenBao
 
 - **PR-uri (cu taskuri):**
-  - `E0-S4-PR01` — F0.7 Backup + DR tests (recurrence)
-    - F0.7.1.T001 — Inițializare BorgBackup Repository pe Hetzner Storage Box
-    - F0.7.1.T002 — Creare script backup zilnic cu pg_dump și BorgBackup
-    - F0.7.1.T003 — Configurare systemd timer pentru backup automat
-    - F0.7.1.T004 — Creare script restore și testare disaster recovery
-    - F0.7.2.T001 — Export și backup securizat al Borg repokey
-    - F0.7.2.T002 — Script verificare integritate Borg (borg check)
-    - F0.7.2.T003 — Alerting pentru eșecuri backup
-    - F0.7.2.T004 — Runbook complet Disaster Recovery
-    - F0.7.2.T005 — Test restore complet pe mediu de test
-  - `E0-S4-PR02` — F0.8 Security Hardening + rotation
-    - F0.8.1.T001 — Implementare Docker secrets pentru toate credențialele
+  - `E0-S4-PR01` — F0.7 Backup + DR tests (recurrence) ✅ COMPLETED
+    - F0.7.1.T001 — Inițializare BorgBackup Repository pe Hetzner Storage Box ✅
+    - F0.7.1.T002 — Creare script backup zilnic cu pg_dump și BorgBackup ✅
+    - F0.7.1.T003 — Configurare systemd timer pentru backup automat ✅
+    - F0.7.1.T004 — Creare script restore și testare disaster recovery ✅
+    - F0.7.2.T001 — Export și backup securizat al Borg repokey ✅
+    - F0.7.2.T002 — Script verificare integritate Borg (borg check) ✅
+    - F0.7.2.T003 — Alerting pentru eșecuri backup ✅
+    - F0.7.2.T004 — Runbook complet Disaster Recovery ✅
+    - F0.7.2.T005 — Test restore complet pe mediu de test ✅
+  - `E0-S4-PR02` — F0.8 Security Hardening + OpenBao
+    > **📌 ACTUALIZAT:** Docker secrets (F0.8.1.T001) și generate-secrets.sh (F0.8.2.T001-T002)
+    > sunt înlocuite cu OpenBao. Vezi [ADR-0033](../../adr/ADR%20Etapa%200/ADR-0033-OpenBao-Secrets-Management.md)
+    - ~~F0.8.1.T001~~ — ~~Implementare Docker secrets~~ → **F0.8.1.T001-OB: Deploy OpenBao container**
     - F0.8.1.T002 — Configurare UFW firewall cu ufw-docker
     - F0.8.1.T003 — Hardening containere Docker (no-new-privileges, cap_drop)
     - F0.8.1.T004 — Configurare TLS/SSL și certificate management
-    - F0.8.2.T001 — Script generate-secrets.sh
-    - F0.8.2.T002 — Procedură rotație secrete (trimestrial)
+    - ~~F0.8.2.T001~~ — ~~Script generate-secrets.sh~~ → **F0.8.2.T001-OB: Configurare secrets engines (KV, Database, PKI)**
+    - ~~F0.8.2.T002~~ — ~~Procedură rotație secrete~~ → **F0.8.2.T002-OB: Configurare AppRole auth per serviciu**
+    - **F0.8.2.T003-OB** — Configurare OpenBao Agent sidecars pentru injectare secrete ⭐ NEW
+    - **F0.8.2.T004-OB** — Configurare rotație automată credențiale PostgreSQL (TTL 1h) ⭐ NEW
+    - **F0.8.2.T005-OB** — Script openbao-rotate-static-secrets.sh pentru secrete statice ⭐ NEW
+    - **F0.8.2.T006-OB** — Backup și recovery proceduri pentru OpenBao ⭐ NEW
     - F0.8.2.T003 — Configurare fail2ban pentru SSH
     - F0.8.2.T004 — Scanare Trivy pentru imagini Docker
-    - F0.8.2.T005 — Checklist securitate pre-release
+    - F0.8.2.T005 — Checklist securitate pre-release (actualizat pentru OpenBao)
 
 ---
 

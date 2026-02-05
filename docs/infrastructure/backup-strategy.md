@@ -2,8 +2,8 @@
 
 ## B2B Sales Automation Platform pentru Piața Agricolă Românească
 
-**Versiune:** 1.0  
-**Data:** 12 Ianuarie 2026  
+**Versiune:** 2.0  
+**Data:** 5 Februarie 2026  
 **Sursă de Adevăr:** `Cerniq_Master_Spec_Normativ_Complet.md` v1.2  
 **Infrastructură:** Hetzner Bare Metal (20 cores Intel, 128GB RAM, NVMe SSD)  
 **Destinație Backup:** Hetzner Storage Box (SSH/rsync/BorgBackup pe port 23)
@@ -18,6 +18,10 @@
 4. [PostgreSQL 18.1 Backup Strategy](#4-postgresql-181-backup-strategy)
 5. [Redis 8.4.0 Persistence & Backup](#5-redis-840-persistence--backup)
 6. [Application & Configuration Backup](#6-application--configuration-backup)
+   - 6.1 Docker Configuration Backup
+   - 6.2 Traefik & SSL Certificates
+   - **6.3 OpenBao Secrets Backup** 🆕
+   - 6.4 Environment Variables & AppRole Credentials
 7. [BorgBackup Integration](#7-borgbackup-integration)
 8. [Hetzner Storage Box Configuration](#8-hetzner-storage-box-configuration)
 9. [Retention Policies](#9-retention-policies)
@@ -831,36 +835,132 @@ chmod 600 "$BACKUP_DIR/acme_${TIMESTAMP}.json"
 echo "Traefik config backed up"
 ```
 
-## 6.3 Environment Variables & Secrets
+## 6.3 OpenBao Secrets Backup 🆕
 
 ```bash
 #!/bin/bash
-# /usr/local/bin/backup_secrets.sh
-# Backup environment files (encrypted)
+# /usr/local/bin/backup_openbao.sh
+# Backup OpenBao Raft snapshots and unseal keys
+
+set -euo pipefail
+
+BACKUP_DIR="/var/backups/cerniq/openbao"
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+STORAGE_BOX="u502048@u502048.your-storagebox.de"
+GPG_RECIPIENT="admin@cerniq.app"
+
+mkdir -p "$BACKUP_DIR"
+
+# Login to OpenBao
+export BAO_ADDR="http://127.0.0.1:64200"
+export BAO_TOKEN=$(cat /root/.openbao_token)
+
+# Create Raft snapshot (includes all secrets)
+SNAPSHOT_FILE="$BACKUP_DIR/raft_snapshot_${TIMESTAMP}.snap"
+bao operator raft snapshot save "$SNAPSHOT_FILE"
+gzip "$SNAPSHOT_FILE"
+
+echo "✅ Raft snapshot created: ${SNAPSHOT_FILE}.gz"
+
+# Backup unseal keys (encrypted) - CRITICAL
+if [[ -f /root/.openbao_unseal_keys ]]; then
+    gpg --encrypt --recipient "$GPG_RECIPIENT" \
+        --output "$BACKUP_DIR/unseal_keys_${TIMESTAMP}.gpg" \
+        /root/.openbao_unseal_keys
+    
+    # Upload to Storage Box immediately
+    scp -P 23 -i /root/.ssh/hetzner_storagebox \
+        "$BACKUP_DIR/unseal_keys_${TIMESTAMP}.gpg" \
+        "$STORAGE_BOX:./backups/cerniq/openbao/keys/"
+fi
+
+# Upload snapshot to Storage Box
+scp -P 23 -i /root/.ssh/hetzner_storagebox \
+    "${SNAPSHOT_FILE}.gz" \
+    "$STORAGE_BOX:./backups/cerniq/openbao/snapshots/"
+
+# Cleanup old local snapshots (keep 7 days)
+find "$BACKUP_DIR" -name "raft_snapshot_*.snap.gz" -mtime +7 -delete
+
+echo "✅ OpenBao backup complete"
+```
+
+### OpenBao Disaster Recovery
+
+```bash
+#!/bin/bash
+# /usr/local/bin/openbao_disaster_recovery.sh
+# Restore OpenBao from Raft snapshot
+
+set -euo pipefail
+
+SNAPSHOT="${1:?Usage: $0 <snapshot_file>}"
+KEYS_FILE="${2:-/root/.openbao_unseal_keys}"
+
+echo "🔴 OPENBAO DISASTER RECOVERY"
+echo "Snapshot: $SNAPSHOT"
+echo "Keys: $KEYS_FILE"
+
+# Stop OpenBao
+docker compose stop openbao openbao-agent-api openbao-agent-workers
+
+# Clear existing data
+docker run --rm -v openbao_data:/data alpine sh -c "rm -rf /data/*"
+
+# Start fresh OpenBao
+docker compose up -d openbao
+sleep 10
+
+# Restore snapshot
+if [[ "$SNAPSHOT" == *.gz ]]; then
+    gunzip -c "$SNAPSHOT" | bao operator raft snapshot restore -force -
+else
+    bao operator raft snapshot restore -force "$SNAPSHOT"
+fi
+
+# Unseal
+for i in 1 2 3; do
+    KEY=$(sed -n "${i}p" "$KEYS_FILE")
+    bao operator unseal "$KEY"
+done
+
+# Restart agents
+docker compose up -d openbao-agent-api openbao-agent-workers
+
+# Verify
+bao status
+bao secrets list
+
+echo "✅ OpenBao restored successfully!"
+```
+
+## 6.4 Environment Variables & AppRole Credentials
+
+```bash
+#!/bin/bash
+# /usr/local/bin/backup_approle_credentials.sh
+# Backup AppRole role_id and secret_id files
 
 set -euo pipefail
 
 BACKUP_DIR="/var/backups/cerniq/secrets"
 TIMESTAMP=$(date +%Y%m%d)
-GPG_RECIPIENT="admin@cerniq.app"  # GPG key for encryption
+GPG_RECIPIENT="admin@cerniq.app"
 
 mkdir -p "$BACKUP_DIR"
 
-# Collect all .env files
-find /opt/cerniq -name ".env*" -type f | while read ENV_FILE; do
-    REL_PATH=${ENV_FILE#/opt/cerniq/}
-    BACKUP_FILE="$BACKUP_DIR/${REL_PATH//\//_}_${TIMESTAMP}.gpg"
-    gpg --encrypt --recipient "$GPG_RECIPIENT" --output "$BACKUP_FILE" "$ENV_FILE"
+# Backup AppRole credentials (used by OpenBao Agents)
+SECRETS_DIR="/var/www/CerniqAPP/secrets"
+
+for ROLE in api workers cicd; do
+    if [[ -f "$SECRETS_DIR/${ROLE}_role_id" ]]; then
+        tar -czf - -C "$SECRETS_DIR" "${ROLE}_role_id" "${ROLE}_secret_id" 2>/dev/null | \
+            gpg --encrypt --recipient "$GPG_RECIPIENT" \
+            --output "$BACKUP_DIR/${ROLE}_approle_${TIMESTAMP}.tar.gz.gpg"
+    fi
 done
 
-# Backup HashiCorp Vault tokens (if using)
-if [[ -f /root/.vault-token ]]; then
-    gpg --encrypt --recipient "$GPG_RECIPIENT" \
-        --output "$BACKUP_DIR/vault_token_${TIMESTAMP}.gpg" \
-        /root/.vault-token
-fi
-
-echo "Secrets backed up (encrypted) to: $BACKUP_DIR"
+echo "AppRole credentials backed up (encrypted) to: $BACKUP_DIR"
 ```
 
 ---

@@ -58,6 +58,28 @@ BEGIN
     END IF;
 END $$;
 
+-- ====================
+-- OPENBAO VAULT ROLE (for dynamic credential generation)
+-- Reference: ADR-0033 OpenBao Secrets Management
+-- ====================
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'cerniq_vault') THEN
+        -- This user is used by OpenBao to create dynamic database credentials
+        -- Password is rotated by OpenBao after initial setup
+        CREATE ROLE cerniq_vault WITH 
+            LOGIN 
+            PASSWORD 'vault_initial_password_change_me'
+            CREATEROLE
+            NOCREATEDB;
+        
+        RAISE NOTICE 'cerniq_vault role created for OpenBao dynamic credentials';
+    END IF;
+END $$;
+
+-- Grant cerniq_vault the ability to manage cerniq_app role
+GRANT cerniq_app TO cerniq_vault WITH ADMIN OPTION;
+
 -- Grant schema usage
 GRANT USAGE ON SCHEMA public, bronze, silver, gold, approval, audit TO cerniq_app;
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public, bronze, silver, gold, approval, audit TO cerniq_app;

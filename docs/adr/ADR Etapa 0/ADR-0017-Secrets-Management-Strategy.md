@@ -1,8 +1,12 @@
 # ADR-0017: Secrets Management Strategy
 
-**Status:** Accepted  
+**Status:** ⚠️ **SUPERSEDED** by [ADR-0033: OpenBao Secrets Management](./ADR-0033-OpenBao-Secrets-Management.md)  
 **Data:** 2026-01-15  
+**Superseded Date:** 2026-02-05  
 **Deciders:** Alex (1-Person-Team)
+
+> **Notă:** Această strategie a fost înlocuită cu OpenBao pentru management centralizat și automatizat al secretelor.
+> Docker secrets rămân disponibile ca fallback pentru development local.
 
 ## Context
 

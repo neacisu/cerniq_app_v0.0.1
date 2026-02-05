@@ -1,5 +1,10 @@
 # Etapa 3 - Workers L: MCP Server Workers
 
+> **📌 Notă (Februarie 2026):** Referințele la Docker secrets din acest document
+> au fost înlocuite cu [OpenBao](../../infrastructure/openbao-setup-guide.md).
+> Secretele sunt acum gestionate prin OpenBao Agent sidecar.
+> Vezi [ADR-0033](../../adr/ADR%20Etapa%200/ADR-0033-OpenBao-Secrets-Management.md).
+
 # Cerniq B2B Agricultural Sales Automation Platform
 
 # Model Context Protocol Implementation

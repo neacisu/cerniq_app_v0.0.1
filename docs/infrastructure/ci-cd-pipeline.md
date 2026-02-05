@@ -1,8 +1,8 @@
 # CI/CD Pipeline
 
-> **Document Version:** 2.0 | **Updated:** 2026-02-01 | **ADR:** [ADR-0032](../adr/ADR%20Etapa%200/ADR-0032-CI-CD-Pipeline-Strategy.md)
+> **Document Version:** 3.0 | **Updated:** 2026-02-05 | **ADR:** [ADR-0032](../adr/ADR%20Etapa%200/ADR-0032-CI-CD-Pipeline-Strategy.md), [ADR-0033](../adr/ADR%20Etapa%200/ADR-0033-OpenBao-Secrets-Management.md)
 
-**Cerniq.app** folosește [GitHub Actions](https://github.com/features/actions) pentru integrare și livrare continuă.
+**Cerniq.app** folosește [GitHub Actions](https://github.com/features/actions) pentru integrare și livrare continuă, cu **OpenBao** pentru gestionarea secretelor.
 
 ---
 
@@ -13,7 +13,7 @@
 | CI Pipeline | ✅ Implementat | ✅ Complet |
 | CD Pipeline | ✅ Implementat (manual trigger) | 🔄 Auto-deploy pe tag |
 | Branch Protection | ⚠️ De configurat | ✅ Enforced |
-| Secrets Management | ⚠️ De configurat | ✅ GitHub Secrets |
+| **Secrets Management** | **✅ OpenBao** 🆕 | **✅ Dynamic secrets** |
 | Notifications | ⚠️ Placeholder | ✅ Slack Integration |
 
 ---
@@ -178,22 +178,130 @@ sequenceDiagram
 
 ---
 
-## 4. Configurare Necesară
+## 4. OpenBao Integration 🆕
 
-### 4.1 GitHub Secrets (De Configurat)
+### 4.1 Overview
 
-| Secret | Scop | Status |
-|--------|------|--------|
-| `CODECOV_TOKEN` | Upload coverage | ⚠️ Optional |
-| `STAGING_SSH_KEY` | Deploy staging | ⚠️ Required |
-| `STAGING_HOST` | Staging server IP | ⚠️ Required |
-| `STAGING_USER` | SSH user staging | ⚠️ Required |
-| `PRODUCTION_SSH_KEY` | Deploy production | ⚠️ Required |
-| `PRODUCTION_HOST` | Production server IP | ⚠️ Required |
-| `PRODUCTION_USER` | SSH user production | ⚠️ Required |
-| `SLACK_WEBHOOK_URL` | Notifications | ⚠️ Optional |
+CI/CD pipeline-ul utilizează **OpenBao AppRole** pentru a obține secretele necesare la deployment:
 
-### 4.2 GitHub Environments
+```mermaid
+sequenceDiagram
+    participant GHA as GitHub Actions
+    participant BAO as OpenBao
+    participant Server as Target Server
+
+    GHA->>BAO: AppRole Login (role_id + secret_id)
+    BAO-->>GHA: Token (30 min TTL)
+    GHA->>BAO: Read secrets/cerniq/ci/deploy
+    BAO-->>GHA: SSH key, GHCR token
+    GHA->>Server: SSH Deploy
+```
+
+### 4.2 GitHub Secrets for OpenBao
+
+| Secret | Scop | Rotație |
+|--------|------|---------|
+| `OPENBAO_ADDR` | URL OpenBao server | Static |
+| `OPENBAO_CICD_ROLE_ID` | AppRole role_id | Static |
+| `OPENBAO_CICD_SECRET_ID` | AppRole secret_id | Lunar |
+
+### 4.3 Workflow Integration
+
+```yaml
+# .github/workflows/deploy.yml (excerpt)
+jobs:
+  deploy:
+    steps:
+      - name: Get secrets from OpenBao
+        id: openbao
+        env:
+          BAO_ADDR: ${{ secrets.OPENBAO_ADDR }}
+        run: |
+          # Login with AppRole
+          TOKEN=$(curl -s -X POST "${BAO_ADDR}/v1/auth/approle/login" \
+            -d '{"role_id":"${{ secrets.OPENBAO_CICD_ROLE_ID }}","secret_id":"${{ secrets.OPENBAO_CICD_SECRET_ID }}"}' \
+            | jq -r '.auth.client_token')
+          
+          # Read deployment secrets
+          SECRETS=$(curl -s -H "X-Vault-Token: $TOKEN" \
+            "${BAO_ADDR}/v1/secret/data/cerniq/ci/deploy")
+          
+          # Export to environment (masked)
+          echo "::add-mask::$(echo $SECRETS | jq -r '.data.data.ssh_key')"
+          echo "SSH_KEY=$(echo $SECRETS | jq -r '.data.data.ssh_key')" >> $GITHUB_OUTPUT
+          
+      - name: Deploy to server
+        env:
+          SSH_KEY: ${{ steps.openbao.outputs.SSH_KEY }}
+        run: |
+          echo "$SSH_KEY" > /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
+          ssh -i /tmp/deploy_key ${{ vars.DEPLOY_USER }}@${{ vars.DEPLOY_HOST }} \
+            'cd /var/www/CerniqAPP && ./deploy.sh'
+```
+
+### 4.4 AppRole Policy for CI/CD
+
+```hcl
+# Path: infra/config/openbao/policies/cicd-policy.hcl
+path "secret/data/cerniq/ci/*" {
+  capabilities = ["read"]
+}
+
+path "auth/approle/role/api/secret-id" {
+  capabilities = ["create", "update"]
+}
+
+path "auth/approle/role/workers/secret-id" {
+  capabilities = ["create", "update"]
+}
+```
+
+### 4.5 secret_id Rotation
+
+Secret_id-ul pentru CI/CD trebuie rotit lunar. Pipeline automat:
+
+```yaml
+# .github/workflows/rotate-approle-secrets.yml
+name: Rotate AppRole Secrets
+on:
+  schedule:
+    - cron: '0 2 1 * *'  # First day of month at 02:00 UTC
+  workflow_dispatch:
+
+jobs:
+  rotate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Rotate CICD secret_id
+        run: |
+          # Login și generare nou secret_id
+          NEW_SECRET=$(curl -s -X POST "${BAO_ADDR}/v1/auth/approle/role/cicd/secret-id" \
+            -H "X-Vault-Token: ${{ secrets.OPENBAO_ADMIN_TOKEN }}" \
+            | jq -r '.data.secret_id')
+          
+          # Update GitHub secret via API
+          gh secret set OPENBAO_CICD_SECRET_ID --body "$NEW_SECRET"
+```
+
+---
+
+## 5. Configurare Necesară
+
+### 5.1 GitHub Secrets
+
+| Secret | Scop | Status | Sursă |
+|--------|------|--------|-------|
+| `OPENBAO_ADDR` | OpenBao server URL | ✅ Required | Manual |
+| `OPENBAO_CICD_ROLE_ID` | AppRole role_id | ✅ Required | OpenBao init |
+| `OPENBAO_CICD_SECRET_ID` | AppRole secret_id | ✅ Required | OpenBao (rotated) |
+| `OPENBAO_ADMIN_TOKEN` | Pentru rotație automată | ⚠️ Optional | OpenBao root |
+| `CODECOV_TOKEN` | Upload coverage | ⚠️ Optional | Codecov |
+| `SLACK_WEBHOOK_URL` | Notifications | ⚠️ Optional | Slack |
+
+> **Note:** SSH keys și deployment secrets sunt acum stocate în OpenBao, nu în GitHub Secrets.
+
+### 5.2 GitHub Environments
 
 Configurați în **Settings → Environments**:
 
@@ -206,7 +314,7 @@ Configurați în **Settings → Environments**:
    - Required reviewers: 1+ (recomandat)
    - Wait timer: 5 minute (recomandat)
 
-### 4.3 Branch Protection Rules
+### 5.3 Branch Protection Rules
 
 Configurați pentru `main`:
 
@@ -220,9 +328,9 @@ Configurați pentru `main`:
 
 ---
 
-## 5. Utilizare
+## 6. Utilizare
 
-### 5.1 CI - Automatic
+### 6.1 CI - Automatic
 
 ```bash
 # CI rulează automat la:
@@ -231,7 +339,7 @@ git push origin main                   # Push pe main
 # + la orice PR deschis
 ```
 
-### 5.2 CD - Tag Release
+### 6.2 CD - Tag Release
 
 ```bash
 # Deploy staging (pre-release)
@@ -243,7 +351,7 @@ git tag v1.0.0
 git push origin v1.0.0
 ```
 
-### 5.3 CD - Manual Dispatch
+### 6.3 CD - Manual Dispatch
 
 1. Go to **Actions** → **CD Pipeline**
 2. Click **Run workflow**
@@ -253,9 +361,9 @@ git push origin v1.0.0
 
 ---
 
-## 6. Troubleshooting
+## 7. Troubleshooting
 
-### 6.1 CI Fails on Lint
+### 7.1 CI Fails on Lint
 
 ```bash
 # Local fix
@@ -263,7 +371,7 @@ pnpm lint --fix
 pnpm typecheck
 ```
 
-### 6.2 CI Fails on Tests
+### 7.2 CI Fails on Tests
 
 ```bash
 # Run tests locally with same services
@@ -271,18 +379,30 @@ docker compose -f docker/docker-compose.test.yml up -d
 pnpm test
 ```
 
-### 6.3 CD Fails on Deploy
+### 7.3 CD Fails on Deploy
 
 1. Check SSH connectivity to server
-2. Verify secrets are correctly set
+2. Verify OpenBao AppRole authentication
 3. Check server disk space
 4. Review deployment logs in Actions
 
+### 7.4 OpenBao Authentication Fails
+
+```bash
+# Verify AppRole on server
+curl -X POST "http://localhost:64200/v1/auth/approle/login" \
+  -d '{"role_id":"<role_id>","secret_id":"<secret_id>"}'
+
+# Check secret_id expiration
+bao read auth/approle/role/cicd | grep secret_id_ttl
+```
+
 ---
 
-## 7. Referințe
+## 8. Referințe
 
 - **ADR:** [ADR-0032 CI/CD Pipeline Strategy](../adr/ADR%20Etapa%200/ADR-0032-CI-CD-Pipeline-Strategy.md)
+- **ADR:** [ADR-0033 OpenBao Secrets Management](../adr/ADR%20Etapa%200/ADR-0033-OpenBao-Secrets-Management.md) 🆕
+- **OpenBao Guide:** [openbao-setup-guide.md](openbao-setup-guide.md) 🆕
 - **Deployment Guide:** [deployment-guide.md](deployment-guide.md)
 - **Security Policy:** [security-policy.md](../governance/security-policy.md)
-- **Technical Debt:** TD-I01 în [technical-debt-board.md](../architecture/technical-debt-board.md)

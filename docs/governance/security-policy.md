@@ -2,7 +2,7 @@
 
 ## Governance Document
 
-### Versiunea 1.0 | 18 Ianuarie 2026
+### Versiunea 2.0 | 5 Februarie 2026
 
 ---
 
@@ -10,17 +10,40 @@
 
 1. **Defense in Depth** - Multiple layers of security
 2. **Least Privilege** - Minimal permissions per service
-3. **Secrets Management** - Docker secrets, never env vars in production
-4. **Audit Trail** - Complete logging for security events
+3. **Centralized Secrets Management** - OpenBao pentru toate secretele
+4. **Dynamic Secrets** - Credențiale temporare pentru database
+5. **Audit Trail** - Complete logging for security events
 
 ## Documentație Detaliată
 
 | Subiect | Document |
 | ------- | -------- |
-| Secrets Management | [`etapa0-docker-secrets-guide.md`](../specifications/Etapa%200/etapa0-docker-secrets-guide.md) |
-| ADR Secrets | [ADR-0017: Secrets Management](../adr/ADR%20Etapa%200/ADR-0017-Secrets-Management-Strategy.md) |
+| Secrets Management | [ADR-0033: OpenBao](../adr/ADR%20Etapa%200/ADR-0033-OpenBao-Secrets-Management.md) |
+| OpenBao Setup | [`openbao-setup-guide.md`](../infrastructure/openbao-setup-guide.md) |
+| Secrets Rotation | [`secrets-rotation-procedure.md`](../infrastructure/secrets-rotation-procedure.md) |
 | Backup & Recovery | [`backup-strategy.md`](../infrastructure/backup-strategy.md) |
 | GDPR | [`gdpr-compliance.md`](./gdpr-compliance.md) |
+| ~~ADR-0017 Docker Secrets~~ | [Deprecated, see ADR-0033](../adr/ADR%20Etapa%200/ADR-0017-Secrets-Management-Strategy.md) |
+
+## Secrets Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    OpenBao Server                           │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
+│  │ KV Engine   │  │ Database    │  │ PKI Engine  │         │
+│  │ (static)    │  │ (dynamic)   │  │ (certs)     │         │
+│  └─────────────┘  └─────────────┘  └─────────────┘         │
+└─────────────────────────┬───────────────────────────────────┘
+                         │
+         ┌───────────────┼───────────────┐
+         │ AppRole Auth  │               │
+         ▼               ▼               ▼
+    ┌─────────┐    ┌──────────┐    ┌──────────┐
+    │   API   │    │ Workers  │    │ CI/CD    │
+    │ Agent   │    │ Agent    │    │ Direct   │
+    └─────────┘    └──────────┘    └──────────┘
+```
 
 ## Access Control
 
@@ -32,14 +55,18 @@
 
 ## Security Checklist
 
-- [ ] Secrets în Docker secrets (nu .env în production)
+- [ ] Secrets în OpenBao (nu .env în production)
+- [ ] Dynamic database credentials (auto-rotating)
+- [ ] AppRole authentication pentru servicii
+- [ ] OpenBao audit logging activ
+- [ ] Unseal keys secured în Hetzner Storage Box
 - [ ] HTTPS enforced
 - [ ] Rate limiting activ
 - [ ] Input validation cu Zod
 - [ ] SQL injection prevention (prepared statements)
 - [ ] XSS prevention (sanitize output)
 - [ ] CORS configurat corect
-- [ ] Audit logging activ
+- [ ] Application audit logging activ
 
 ## Incident Response
 
