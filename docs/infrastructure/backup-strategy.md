@@ -166,7 +166,7 @@ TIER 3 - STANDARD SYSTEMS DOWN
                                    ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                    HETZNER STORAGE BOX (Offsite)                            │
-│                    uXXXXXX.your-storagebox.de                               │
+│                    u502048.your-storagebox.de                               │
 │                                                                             │
 │  /backups/                                                                  │
 │  ├── borg-repo/                 # BorgBackup repository (encrypted)         │
@@ -270,7 +270,7 @@ set -euo pipefail
 WAL_PATH="$1"
 WAL_FILE="$2"
 LOCAL_ARCHIVE="/var/backups/cerniq/postgresql/wal_archive"
-REMOTE_HOST="uXXXXXX@uXXXXXX.your-storagebox.de"
+REMOTE_HOST="u502048@u502048.your-storagebox.de"
 REMOTE_PATH="/backups/postgresql/wal_archive"
 LOG_FILE="/var/log/cerniq/wal_archive.log"
 
@@ -310,7 +310,7 @@ set -euo pipefail
 
 BACKUP_DIR="/var/backups/cerniq/postgresql/basebackups"
 BACKUP_NAME="base_$(date +%Y%m%d_%H%M%S)"
-REMOTE_HOST="uXXXXXX@uXXXXXX.your-storagebox.de"
+REMOTE_HOST="u502048@u502048.your-storagebox.de"
 MANIFEST_DIR="/var/backups/cerniq/postgresql/manifests"
 
 mkdir -p "$BACKUP_DIR" "$MANIFEST_DIR"
@@ -632,7 +632,7 @@ REDIS_CLI="redis-cli"
 BACKUP_DIR="/var/backups/cerniq/redis"
 REDIS_DATA="/var/lib/redis"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-REMOTE_HOST="uXXXXXX@uXXXXXX.your-storagebox.de"
+REMOTE_HOST="u502048@u502048.your-storagebox.de"
 
 mkdir -p "$BACKUP_DIR"
 
@@ -677,7 +677,7 @@ REDIS_DATA="/var/lib/redis"
 AOF_DIR="$REDIS_DATA/appendonlydir"
 BACKUP_DIR="/var/backups/cerniq/redis/aof"
 TIMESTAMP=$(date +%Y%m%d)
-REMOTE_HOST="uXXXXXX@uXXXXXX.your-storagebox.de"
+REMOTE_HOST="u502048@u502048.your-storagebox.de"
 
 mkdir -p "$BACKUP_DIR"
 
@@ -880,7 +880,7 @@ BorgBackup oferă **deduplicare și criptare** pentru backup-uri eficiente și s
 
 set -euo pipefail
 
-BORG_REPO="ssh://uXXXXXX@uXXXXXX.your-storagebox.de:22/./backups/borg-repo"
+BORG_REPO="ssh://u502048@u502048.your-storagebox.de:23/./backups/borg-repo"
 export BORG_PASSPHRASE="$(cat /root/.borg_passphrase)"
 
 # Initialize with repokey encryption (key stored in repo, encrypted with passphrase)
@@ -904,7 +904,7 @@ echo "Without both passphrase AND key, backups cannot be restored!"
 
 set -euo pipefail
 
-BORG_REPO="ssh://uXXXXXX@uXXXXXX.your-storagebox.de:22/./backups/borg-repo"
+BORG_REPO="ssh://u502048@u502048.your-storagebox.de:23/./backups/borg-repo"
 export BORG_PASSPHRASE="$(cat /root/.borg_passphrase)"
 export BORG_RSH="ssh -p 22"
 
@@ -975,7 +975,7 @@ echo "=== BORG BACKUP COMPLETED ==="
 
 set -euo pipefail
 
-BORG_REPO="ssh://uXXXXXX@uXXXXXX.your-storagebox.de:22/./backups/borg-repo"
+BORG_REPO="ssh://u502048@u502048.your-storagebox.de:23/./backups/borg-repo"
 export BORG_PASSPHRASE="$(cat /root/.borg_passphrase)"
 export BORG_RSH="ssh -p 22"
 
@@ -1069,7 +1069,7 @@ esac
 
 set -euo pipefail
 
-STORAGE_BOX_USER="uXXXXXX"
+STORAGE_BOX_USER="u502048"
 STORAGE_BOX_HOST="${STORAGE_BOX_USER}.your-storagebox.de"
 
 # Generate SSH key if not exists
@@ -1107,7 +1107,7 @@ echo "3. Enable SSH access in Hetzner Robot"
 # /usr/local/bin/setup_storagebox_dirs.sh
 # Create backup directory structure on Hetzner Storage Box
 
-STORAGE_BOX="uXXXXXX@uXXXXXX.your-storagebox.de"
+STORAGE_BOX="u502048@u502048.your-storagebox.de"
 
 ssh -p 22 "$STORAGE_BOX" << 'EOF'
 mkdir -p backups/postgresql/wal_archive
@@ -1129,7 +1129,7 @@ EOF
 # /usr/local/bin/check_storagebox_space.sh
 # Monitor Storage Box disk usage
 
-STORAGE_BOX="uXXXXXX@uXXXXXX.your-storagebox.de"
+STORAGE_BOX="u502048@u502048.your-storagebox.de"
 THRESHOLD_PERCENT=80
 
 USAGE=$(ssh -p 22 "$STORAGE_BOX" df -h . | tail -1 | awk '{print $5}' | tr -d '%')
@@ -1207,7 +1207,7 @@ find "$WAL_ARCHIVE" -name "*.zst" -mtime +$RETENTION_DAYS -delete
 # Cleanup Redis backups based on retention
 
 LOCAL_DIR="/var/backups/cerniq/redis"
-REMOTE_HOST="uXXXXXX@uXXXXXX.your-storagebox.de"
+REMOTE_HOST="u502048@u502048.your-storagebox.de"
 
 # Local: keep 2 days
 find "$LOCAL_DIR" -name "redis_*.rdb.zst" -mtime +2 -delete
@@ -1281,8 +1281,8 @@ $$;
 set -euo pipefail
 
 # Configuration
-STORAGE_BOX="uXXXXXX@uXXXXXX.your-storagebox.de"
-BORG_REPO="ssh://${STORAGE_BOX}:22/./backups/borg-repo"
+STORAGE_BOX="u502048@u502048.your-storagebox.de"
+BORG_REPO="ssh://${STORAGE_BOX}:23/./backups/borg-repo"
 export BORG_PASSPHRASE="$(cat /root/.borg_passphrase)"
 export BORG_RSH="ssh -p 22"
 
@@ -1514,7 +1514,7 @@ fi
 
 # Check 4: BorgBackup
 echo -n "BorgBackup: "
-BORG_REPO="ssh://uXXXXXX@uXXXXXX.your-storagebox.de:22/./backups/borg-repo"
+BORG_REPO="ssh://u502048@u502048.your-storagebox.de:23/./backups/borg-repo"
 export BORG_PASSPHRASE="$(cat /root/.borg_passphrase 2>/dev/null || echo '')"
 export BORG_RSH="ssh -p 22"
 
@@ -1528,7 +1528,7 @@ fi
 
 # Check 5: Storage Box connectivity
 echo -n "Hetzner Storage Box: "
-if ssh -p 22 -o ConnectTimeout=5 uXXXXXX@uXXXXXX.your-storagebox.de "echo ok" > /dev/null 2>&1; then
+if ssh -p 22 -o ConnectTimeout=5 u502048@u502048.your-storagebox.de "echo ok" > /dev/null 2>&1; then
     echo "OK"
 else
     echo "ERROR - Cannot connect"
@@ -1773,7 +1773,7 @@ fi
 # Test 3: BorgBackup restore
 echo ""
 echo "=== Test 3: BorgBackup restore ==="
-BORG_REPO="ssh://uXXXXXX@uXXXXXX.your-storagebox.de:22/./backups/borg-repo"
+BORG_REPO="ssh://u502048@u502048.your-storagebox.de:23/./backups/borg-repo"
 export BORG_PASSPHRASE="$(cat /root/.borg_passphrase)"
 export BORG_RSH="ssh -p 22"
 
@@ -2113,8 +2113,8 @@ WantedBy=multi-user.target
 ║  LOCATIONS                                                               ║
 ║  ─────────                                                               ║
 ║  Local staging:  /var/backups/cerniq/                                    ║
-║  Storage Box:    ssh -p22 uXXXXXX@uXXXXXX.your-storagebox.de             ║
-║  Borg repo:      ssh://uXXXXXX@...:22/./backups/borg-repo                ║
+║  Storage Box:    ssh -p22 u502048@u502048.your-storagebox.de             ║
+║  Borg repo:      ssh://u502048@...:23/./backups/borg-repo                ║
 ║                                                                          ║
 ║  QUICK COMMANDS                                                          ║
 ║  ──────────────                                                          ║

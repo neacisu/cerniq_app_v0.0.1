@@ -1,0 +1,27 @@
+# /var/www/CerniqAPP/infra/config/logrotate/cerniq-backup
+# Logrotate configuration for Cerniq backup logs
+# Install: cp /var/www/CerniqAPP/infra/config/logrotate/cerniq-backup /etc/logrotate.d/
+
+/var/log/cerniq/*.log {
+    daily
+    rotate 14
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 640 root root
+    sharedscripts
+    postrotate
+        # No service to reload for backup logs
+    endscript
+}
+
+/var/log/cerniq/cron.log {
+    weekly
+    rotate 8
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 640 root root
+}
