@@ -32,7 +32,7 @@ fi
 # Configuration (environment-aware)
 # =============================================================================
 
-BAO_ADDR="${BAO_ADDR:-http://127.0.0.1:64200}"
+BAO_ADDR="${BAO_ADDR:-http://127.0.0.1:64090}"
 BAO_CONTAINER="${BAO_CONTAINER:-cerniq-openbao}"
 SECRETS_DIR="${CERNIQ_SECRETS_DIR:-/var/www/CerniqAPP/secrets}"
 CONFIG_DIR="${CERNIQ_WORKSPACE:-/var/www/CerniqAPP}/infra/config/openbao"

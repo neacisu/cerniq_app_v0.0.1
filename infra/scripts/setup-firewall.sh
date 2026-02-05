@@ -56,11 +56,26 @@ else
     )
 fi
 
-# Ports to open publicly
-PUBLIC_PORTS=(
-    "80/tcp"   # HTTP (Traefik)
-    "443/tcp"  # HTTPS (Traefik)
-)
+# Ports to open publicly (environment-aware)
+if is_production; then
+    PUBLIC_PORTS=(
+        "80/tcp"    # HTTP (Traefik)
+        "443/tcp"   # HTTPS (Traefik)
+        "3000/tcp"  # IWMS API (temporary allow)
+        "3002/tcp"  # IWMS UI (temporary allow)
+        "5173/tcp"  # WMS v1 UI (temporary allow)
+        "3060/tcp"  # WAppBuss backend (temporary allow)
+        "3061/tcp"  # WAppBuss frontend (temporary allow)
+    )
+else
+    PUBLIC_PORTS=(
+        "80/tcp"    # HTTP (Traefik)
+        "443/tcp"   # HTTPS (Traefik)
+        "5000/tcp"  # Legacy allow (staging)
+        "5001/tcp"  # Legacy allow (staging)
+        "5002/tcp"  # Legacy allow (staging)
+    )
+fi
 
 # Ports for admin IPs only
 ADMIN_PORTS=(
@@ -68,11 +83,29 @@ ADMIN_PORTS=(
 )
 
 # Docker networks (internal, don't block)
-DOCKER_NETWORKS=(
-    "172.27.0.0/24"  # cerniq_public
-    "172.28.0.0/24"  # cerniq_backend
-    "172.29.0.0/24"  # cerniq_data
-)
+if is_production; then
+    DOCKER_NETWORKS=(
+        "172.27.0.0/24"  # cerniq_public
+        "172.28.0.0/24"  # cerniq_backend
+        "172.29.0.0/24"  # cerniq_data
+    )
+else
+    DOCKER_NETWORKS=(
+        "172.29.10.0/24"  # cerniq_public
+        "172.29.20.0/24"  # cerniq_backend
+        "172.29.30.0/24"  # cerniq_data
+    )
+fi
+
+# Explicitly blocked ports (environment-aware)
+if is_production; then
+    BLOCKED_PORTS=(
+        "3062/tcp"  # WAppBuss PostgreSQL (should not be public)
+        "3063/tcp"  # WAppBuss Redis (should not be public)
+    )
+else
+    BLOCKED_PORTS=()
+fi
 
 # =============================================================================
 # Colors for output
@@ -125,12 +158,15 @@ fi
 # =============================================================================
 
 log_warning "⚠️  This will reset ALL firewall rules!"
-echo ""
-read -p "Continue? (yes/no): " CONFIRM
-
-if [[ "$CONFIRM" != "yes" ]]; then
-    log_info "Aborted."
-    exit 0
+if [[ -n "${GITHUB_ACTIONS:-}" || "${CI:-}" == "true" || "${CERNIQ_UFW_AUTO_APPROVE:-}" == "true" ]]; then
+    log_info "Non-interactive mode detected. Proceeding automatically."
+else
+    echo ""
+    read -p "Continue? (yes/no): " CONFIRM
+    if [[ "$CONFIRM" != "yes" ]]; then
+        log_info "Aborted."
+        exit 0
+    fi
 fi
 
 log_info "Resetting UFW to defaults..."
@@ -196,6 +232,19 @@ for port in "${PUBLIC_PORTS[@]}"; do
 done
 
 log_success "Public ports configured"
+
+# =============================================================================
+# Explicitly block sensitive ports (production)
+# =============================================================================
+
+if [[ ${#BLOCKED_PORTS[@]} -gt 0 ]]; then
+    log_info "Blocking sensitive ports..."
+    for port in "${BLOCKED_PORTS[@]}"; do
+        ufw deny "${port}"
+        log_info "  Blocked: $port"
+    done
+    log_success "Sensitive ports blocked"
+fi
 
 # =============================================================================
 # Rate limiting for SSH

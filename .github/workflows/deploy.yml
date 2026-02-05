@@ -2,9 +2,9 @@
 # CERNIQ.APP — CD Pipeline for Deployments (Refactored v2.0)
 # =============================================================================
 # Workflow: deploy.yml
-# Trigger: 
-#   - Push to feature/*, develop → Staging
-#   - Push to main → Production  
+# Trigger:
+#   - Push to any branch except main → Staging
+#   - Push to main → Production
 #   - Manual dispatch
 # 
 # Features:
@@ -36,10 +36,7 @@ name: CD Pipeline
 on:
   push:
     branches:
-      - main
-      - develop
-    # NOTE: Feature/fix branches deploy via PR to develop, not directly
-    # This ensures code review before staging deployment
+      - "**"
   workflow_dispatch:
     inputs:
       environment:
@@ -247,8 +244,8 @@ jobs:
           $SCP_CMD infra/docker/docker-compose.prod.yml ${HOST}:/opt/cerniq/
           
           echo "📄 Syncing PostgreSQL config and Dockerfile..."
-          $SCP_CMD infra/config/postgres/postgresql.conf ${HOST}:/opt/cerniq/config/postgres/
-          $SCP_CMD infra/config/postgres/postgresql.production.conf ${HOST}:/opt/cerniq/config/postgres/ 2>/dev/null || true
+          $SCP_CMD infra/config/postgres/postgresql.production.conf ${HOST}:/opt/cerniq/config/postgres/postgresql.conf
+          $SCP_CMD infra/config/postgres/postgresql.production.conf ${HOST}:/opt/cerniq/config/postgres/postgresql.production.conf 2>/dev/null || true
           $SCP_CMD infra/config/postgres/init.sql ${HOST}:/opt/cerniq/config/postgres/
           $SCP_CMD infra/docker/postgres/Dockerfile ${HOST}:/opt/cerniq/build/postgres/
           
@@ -313,7 +310,7 @@ jobs:
             docker compose -f docker-compose.yml -f docker-compose.prod.yml pull || true
             
             echo "🚀 Starting services..."
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-orphans
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --force-recreate --remove-orphans
             
             echo "⏳ Waiting for services to start..."
             sleep 15
@@ -480,12 +477,19 @@ jobs:
             # Get passwords from files
             PG_PASS=$(cat /opt/cerniq/secrets/postgres_password.txt 2>/dev/null || echo "")
             REDIS_PASS=$(cat /opt/cerniq/secrets/redis_password.txt 2>/dev/null || echo "")
-            JWT_SECRET=$(openssl rand -base64 48 | tr -d '\n')
+            EXISTING_JWT=$(docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao kv get -field=jwt_secret secret/cerniq/api/config 2>/dev/null || true)
+            if [ -n "$EXISTING_JWT" ]; then
+              JWT_SECRET="$EXISTING_JWT"
+              echo "🔁 Reusing existing JWT secret"
+            else
+              JWT_SECRET=$(openssl rand -base64 48 | tr -d '\n')
+              echo "🔑 Generated new JWT secret"
+            fi
             
             if [ -n "$PG_PASS" ] && [ -n "$REDIS_PASS" ]; then
               # API config secrets
               docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao kv put secret/cerniq/api/config \
-                pg_user=cerniq \
+                pg_user=c3rn1q \
                 pg_password="$PG_PASS" \
                 redis_password="$REDIS_PASS" \
                 jwt_secret="$JWT_SECRET" \
@@ -621,7 +625,7 @@ jobs:
             
             # PostgreSQL health
             echo -n "  PostgreSQL: "
-            if docker exec cerniq-postgres pg_isready -U cerniq -d cerniq >/dev/null 2>&1; then
+            if docker exec cerniq-postgres pg_isready -U c3rn1q -d cerniq >/dev/null 2>&1; then
               echo "✅ HEALTHY"
             else
               echo "❌ FAILED"
@@ -630,7 +634,7 @@ jobs:
             
             # PgBouncer health
             echo -n "  PgBouncer:  "
-            if docker exec cerniq-pgbouncer psql -h 127.0.0.1 -p 6432 -U cerniq -d cerniq -c 'SELECT 1' >/dev/null 2>&1; then
+            if docker exec cerniq-pgbouncer psql -h 127.0.0.1 -p 6432 -U c3rn1q -d cerniq -c 'SELECT 1' >/dev/null 2>&1; then
               echo "✅ HEALTHY"
             else
               echo "⚠️ NOT READY (may be initializing)"
@@ -648,7 +652,7 @@ jobs:
             
             # Traefik health
             echo -n "  Traefik:    "
-            if curl -sf http://127.0.0.1:64081/ping >/dev/null 2>&1; then
+            if curl -sf http://127.0.0.1:64093/ping >/dev/null 2>&1; then
               echo "✅ HEALTHY"
             else
               echo "❌ FAILED"
@@ -811,9 +815,9 @@ jobs:
             cd /opt/cerniq
             
             # Ensure Docker networks exist
-            docker network create --driver bridge --subnet=172.27.0.0/24 cerniq_public 2>/dev/null || true
-            docker network create --driver bridge --subnet=172.28.0.0/24 --internal cerniq_backend 2>/dev/null || true
-            docker network create --driver bridge --subnet=172.29.0.0/24 --internal cerniq_data 2>/dev/null || true
+            docker network create --driver bridge --subnet=172.29.10.0/24 cerniq_public 2>/dev/null || true
+            docker network create --driver bridge --subnet=172.29.20.0/24 --internal cerniq_backend 2>/dev/null || true
+            docker network create --driver bridge --subnet=172.29.30.0/24 --internal cerniq_data 2>/dev/null || true
             
             # Deploy with production overlay
             echo "🐳 Pulling images..."
@@ -952,11 +956,18 @@ jobs:
             
             PG_PASS=$(cat /opt/cerniq/secrets/postgres_password.txt 2>/dev/null || echo "")
             REDIS_PASS=$(cat /opt/cerniq/secrets/redis_password.txt 2>/dev/null || echo "")
-            JWT_SECRET=$(openssl rand -base64 48 | tr -d '\n')
+            EXISTING_JWT=$(docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao kv get -field=jwt_secret secret/cerniq/api/config 2>/dev/null || true)
+            if [ -n "$EXISTING_JWT" ]; then
+              JWT_SECRET="$EXISTING_JWT"
+              echo "🔁 Reusing existing JWT secret"
+            else
+              JWT_SECRET=$(openssl rand -base64 48 | tr -d '\n')
+              echo "🔑 Generated new JWT secret"
+            fi
             
             if [ -n "$PG_PASS" ] && [ -n "$REDIS_PASS" ]; then
               docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao kv put secret/cerniq/api/config \
-                pg_user=cerniq \
+                pg_user=c3rn1q \
                 pg_password="$PG_PASS" \
                 redis_password="$REDIS_PASS" \
                 jwt_secret="$JWT_SECRET" \
@@ -1013,7 +1024,7 @@ jobs:
             else
               echo "🔥 Configuring production firewall..."
               if [ -f /opt/cerniq/scripts/setup-firewall.sh ]; then
-                sudo /opt/cerniq/scripts/setup-firewall.sh
+                sudo CERNIQ_UFW_AUTO_APPROVE=true /opt/cerniq/scripts/setup-firewall.sh
               else
                 sudo ufw --force reset
                 sudo ufw default deny incoming
@@ -1082,7 +1093,7 @@ jobs:
             
             # PostgreSQL health
             echo -n "  PostgreSQL: "
-            if docker exec cerniq-postgres pg_isready -U cerniq -d cerniq >/dev/null 2>&1; then
+            if docker exec cerniq-postgres pg_isready -U c3rn1q -d cerniq -p 64032 >/dev/null 2>&1; then
               echo "✅ HEALTHY"
             else
               echo "❌ FAILED"
@@ -1091,7 +1102,7 @@ jobs:
             
             # PgBouncer health
             echo -n "  PgBouncer:  "
-            if docker exec cerniq-pgbouncer psql -h 127.0.0.1 -p 6432 -U cerniq -d cerniq -c 'SELECT 1' >/dev/null 2>&1; then
+            if docker exec cerniq-pgbouncer psql -h 127.0.0.1 -p 64033 -U c3rn1q -d cerniq -c 'SELECT 1' >/dev/null 2>&1; then
               echo "✅ HEALTHY"
             else
               echo "⚠️ NOT READY (may be initializing)"
@@ -1109,7 +1120,7 @@ jobs:
             
             # Traefik health
             echo -n "  Traefik:    "
-            if curl -sf http://127.0.0.1:64081/ping >/dev/null 2>&1; then
+            if curl -sf http://127.0.0.1:64093/ping >/dev/null 2>&1; then
               echo "✅ HEALTHY"
             else
               echo "❌ FAILED"
