@@ -222,40 +222,52 @@ jobs:
       # =========================================================================
       # STEP 1: Sync ALL configuration files with correct structure
       # =========================================================================
-      - name: 📦 Sync configuration files
+      - name: 📦 Sync ALL configuration files
         run: |
           SSH_CMD="ssh -i ~/.ssh/deploy_key ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}"
           SCP_CMD="scp -i ~/.ssh/deploy_key"
           HOST="${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}"
           
-          echo "📁 Creating server directory structure..."
+          echo "📁 Creating COMPLETE server directory structure..."
           $SSH_CMD << 'ENDSSH'
-            sudo mkdir -p /opt/cerniq/{config/{postgres,traefik/dynamic,openbao/{policies,templates}},scripts,secrets,backups}
+            sudo mkdir -p /opt/cerniq/{config/{postgres,traefik/dynamic,openbao/{policies,templates},nginx,fail2ban,cron,logrotate,docker},scripts,secrets,backups,build/postgres}
             sudo chown -R $(whoami):$(whoami) /opt/cerniq
           ENDSSH
           
           echo "📄 Syncing docker-compose files..."
           $SCP_CMD infra/docker/docker-compose.yml ${HOST}:/opt/cerniq/
-          $SCP_CMD infra/docker/docker-compose.prod.yml ${HOST}:/opt/cerniq/ 2>/dev/null || true
+          $SCP_CMD infra/docker/docker-compose.prod.yml ${HOST}:/opt/cerniq/
           
-          echo "📄 Syncing PostgreSQL config..."
-          $SCP_CMD infra/docker/postgres/postgresql.conf ${HOST}:/opt/cerniq/config/postgres/
-          $SCP_CMD infra/docker/postgres/init.sql ${HOST}:/opt/cerniq/config/postgres/
+          echo "📄 Syncing PostgreSQL config and Dockerfile..."
+          $SCP_CMD infra/config/postgres/postgresql.conf ${HOST}:/opt/cerniq/config/postgres/
+          $SCP_CMD infra/config/postgres/postgresql.production.conf ${HOST}:/opt/cerniq/config/postgres/ 2>/dev/null || true
+          $SCP_CMD infra/config/postgres/init.sql ${HOST}:/opt/cerniq/config/postgres/
+          $SCP_CMD infra/docker/postgres/Dockerfile ${HOST}:/opt/cerniq/build/postgres/
           
           echo "📄 Syncing Traefik config..."
-          $SCP_CMD infra/config/traefik/traefik.yml ${HOST}:/opt/cerniq/config/traefik/
-          $SCP_CMD infra/config/traefik/dynamic/*.yml ${HOST}:/opt/cerniq/config/traefik/dynamic/ 2>/dev/null || true
+          $SCP_CMD infra/docker/traefik/traefik.yml ${HOST}:/opt/cerniq/config/traefik/
+          $SCP_CMD infra/docker/traefik/dynamic/*.yml ${HOST}:/opt/cerniq/config/traefik/dynamic/ 2>/dev/null || true
           
-          echo "📄 Syncing OpenBao config..."
-          $SCP_CMD infra/docker/openbao/*.hcl ${HOST}:/opt/cerniq/config/openbao/
-          $SCP_CMD infra/docker/openbao/policies/*.hcl ${HOST}:/opt/cerniq/config/openbao/policies/
-          $SCP_CMD infra/docker/openbao/templates/*.tpl ${HOST}:/opt/cerniq/config/openbao/templates/
+          echo "📄 Syncing OpenBao config (CORRECT PATH)..."
+          $SCP_CMD infra/config/openbao/*.hcl ${HOST}:/opt/cerniq/config/openbao/
+          $SCP_CMD infra/config/openbao/policies/*.hcl ${HOST}:/opt/cerniq/config/openbao/policies/
+          $SCP_CMD infra/config/openbao/templates/*.tpl ${HOST}:/opt/cerniq/config/openbao/templates/
           
-          echo "📄 Syncing scripts..."
+          echo "📄 Syncing nginx configs..."
+          $SCP_CMD infra/config/nginx/*.conf ${HOST}:/opt/cerniq/config/nginx/ 2>/dev/null || true
+          $SCP_CMD infra/docker/nginx/*.conf ${HOST}:/opt/cerniq/config/nginx/ 2>/dev/null || true
+          
+          echo "📄 Syncing security configs (fail2ban, cron, logrotate)..."
+          $SCP_CMD infra/config/fail2ban/jail.local ${HOST}:/opt/cerniq/config/fail2ban/
+          $SCP_CMD infra/config/cron/cerniq-backup ${HOST}:/opt/cerniq/config/cron/
+          $SCP_CMD infra/config/logrotate/cerniq-backup ${HOST}:/opt/cerniq/config/logrotate/
+          $SCP_CMD infra/config/docker/daemon.json ${HOST}:/opt/cerniq/config/docker/ 2>/dev/null || true
+          
+          echo "📄 Syncing ALL scripts..."
           $SCP_CMD infra/scripts/*.sh ${HOST}:/opt/cerniq/scripts/
           $SSH_CMD "chmod +x /opt/cerniq/scripts/*.sh"
           
-          echo "✅ Configuration sync complete"
+          echo "✅ COMPLETE configuration sync done"
 
       # =========================================================================
       # STEP 2: Deploy infrastructure services
@@ -599,15 +611,15 @@ jobs:
       # =========================================================================
       # STEP 1: Sync ALL configuration files
       # =========================================================================
-      - name: 📦 Sync configuration files
+      - name: 📦 Sync ALL configuration files
         run: |
           SSH_CMD="ssh -i ~/.ssh/deploy_key ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}"
           SCP_CMD="scp -i ~/.ssh/deploy_key"
           HOST="${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}"
           
-          echo "📁 Creating server directory structure..."
+          echo "📁 Creating COMPLETE server directory structure..."
           $SSH_CMD << 'ENDSSH'
-            sudo mkdir -p /opt/cerniq/{config/{postgres,traefik/dynamic,openbao/{policies,templates}},scripts,secrets,backups}
+            sudo mkdir -p /opt/cerniq/{config/{postgres,traefik/dynamic,openbao/{policies,templates},nginx,fail2ban,cron,logrotate,docker},scripts,secrets,backups,build/postgres}
             sudo chown -R $(whoami):$(whoami) /opt/cerniq
           ENDSSH
           
@@ -615,24 +627,36 @@ jobs:
           $SCP_CMD infra/docker/docker-compose.yml ${HOST}:/opt/cerniq/
           $SCP_CMD infra/docker/docker-compose.prod.yml ${HOST}:/opt/cerniq/
           
-          echo "📄 Syncing PostgreSQL config..."
-          $SCP_CMD infra/docker/postgres/postgresql.conf ${HOST}:/opt/cerniq/config/postgres/
-          $SCP_CMD infra/docker/postgres/init.sql ${HOST}:/opt/cerniq/config/postgres/
+          echo "📄 Syncing PostgreSQL config and Dockerfile..."
+          $SCP_CMD infra/config/postgres/postgresql.conf ${HOST}:/opt/cerniq/config/postgres/
+          $SCP_CMD infra/config/postgres/postgresql.production.conf ${HOST}:/opt/cerniq/config/postgres/ 2>/dev/null || true
+          $SCP_CMD infra/config/postgres/init.sql ${HOST}:/opt/cerniq/config/postgres/
+          $SCP_CMD infra/docker/postgres/Dockerfile ${HOST}:/opt/cerniq/build/postgres/
           
           echo "📄 Syncing Traefik config..."
-          $SCP_CMD infra/config/traefik/traefik.yml ${HOST}:/opt/cerniq/config/traefik/
-          $SCP_CMD infra/config/traefik/dynamic/*.yml ${HOST}:/opt/cerniq/config/traefik/dynamic/ 2>/dev/null || true
+          $SCP_CMD infra/docker/traefik/traefik.yml ${HOST}:/opt/cerniq/config/traefik/
+          $SCP_CMD infra/docker/traefik/dynamic/*.yml ${HOST}:/opt/cerniq/config/traefik/dynamic/ 2>/dev/null || true
           
-          echo "📄 Syncing OpenBao config..."
-          $SCP_CMD infra/docker/openbao/*.hcl ${HOST}:/opt/cerniq/config/openbao/
-          $SCP_CMD infra/docker/openbao/policies/*.hcl ${HOST}:/opt/cerniq/config/openbao/policies/
-          $SCP_CMD infra/docker/openbao/templates/*.tpl ${HOST}:/opt/cerniq/config/openbao/templates/
+          echo "📄 Syncing OpenBao config (CORRECT PATH)..."
+          $SCP_CMD infra/config/openbao/*.hcl ${HOST}:/opt/cerniq/config/openbao/
+          $SCP_CMD infra/config/openbao/policies/*.hcl ${HOST}:/opt/cerniq/config/openbao/policies/
+          $SCP_CMD infra/config/openbao/templates/*.tpl ${HOST}:/opt/cerniq/config/openbao/templates/
           
-          echo "📄 Syncing scripts..."
+          echo "📄 Syncing nginx configs..."
+          $SCP_CMD infra/config/nginx/*.conf ${HOST}:/opt/cerniq/config/nginx/ 2>/dev/null || true
+          $SCP_CMD infra/docker/nginx/*.conf ${HOST}:/opt/cerniq/config/nginx/ 2>/dev/null || true
+          
+          echo "📄 Syncing security configs (fail2ban, cron, logrotate)..."
+          $SCP_CMD infra/config/fail2ban/jail.local ${HOST}:/opt/cerniq/config/fail2ban/
+          $SCP_CMD infra/config/cron/cerniq-backup ${HOST}:/opt/cerniq/config/cron/
+          $SCP_CMD infra/config/logrotate/cerniq-backup ${HOST}:/opt/cerniq/config/logrotate/
+          $SCP_CMD infra/config/docker/daemon.json ${HOST}:/opt/cerniq/config/docker/ 2>/dev/null || true
+          
+          echo "📄 Syncing ALL scripts..."
           $SCP_CMD infra/scripts/*.sh ${HOST}:/opt/cerniq/scripts/
           $SSH_CMD "chmod +x /opt/cerniq/scripts/*.sh"
           
-          echo "✅ Configuration sync complete"
+          echo "✅ COMPLETE configuration sync done"
 
       # =========================================================================
       # STEP 2: Deploy infrastructure services
