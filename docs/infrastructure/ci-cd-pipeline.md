@@ -390,7 +390,7 @@ pnpm test
 
 ```bash
 # Verify AppRole on server
-curl -X POST "http://localhost:64200/v1/auth/approle/login" \
+curl -X POST "http://localhost:64090/v1/auth/approle/login" \
   -d '{"role_id":"<role_id>","secret_id":"<secret_id>"}'
 
 # Check secret_id expiration

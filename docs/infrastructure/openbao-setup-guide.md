@@ -78,7 +78,7 @@ OpenBao este un fork open-source al HashiCorp Vault, oferind:
 - Docker Engine 28.x+
 - Docker Compose 2.40+
 - `bao` CLI instalat
-- Network access la port 64200 (local only)
+- Network access la port 64090 (local only)
 
 ### 5-Minute Setup
 
@@ -114,7 +114,7 @@ docker exec -it cerniq-openbao bao login $BAO_TOKEN
 # docker-compose.yml
 services:
   openbao:
-    image: quay.io/openbao/openbao:2.2.0
+    image: quay.io/openbao/openbao:2.5.0
     container_name: cerniq-openbao
     cap_add:
       - IPC_LOCK  # Prevent memory swapping
@@ -128,10 +128,10 @@ services:
       - ./infra/config/openbao:/openbao/config:ro
     command: server -config=/openbao/config/openbao.hcl
     ports:
-      - "127.0.0.1:64200:8200"  # API - localhost only for security
+      - "127.0.0.1:64090:8200"  # API - localhost only for security
     networks:
       cerniq_backend:
-        ipv4_address: 172.28.0.50
+        ipv4_address: 172.29.20.50
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:8200/v1/sys/health?standbyok=true"]
       interval: 10s
@@ -206,7 +206,7 @@ bao version
 # OpenBao v2.2.0
 
 # Set environment
-echo 'export BAO_ADDR="http://127.0.0.1:64200"' >> ~/.bashrc
+echo 'export BAO_ADDR="http://127.0.0.1:64090"' >> ~/.bashrc
 source ~/.bashrc
 ```
 
@@ -222,7 +222,7 @@ source ~/.bashrc
 
 set -euo pipefail
 
-BAO_ADDR="${BAO_ADDR:-http://127.0.0.1:64200}"
+BAO_ADDR="${BAO_ADDR:-http://127.0.0.1:64090}"
 SECRETS_DIR="/var/www/CerniqAPP/secrets"
 STORAGE_BOX="u502048@u502048.your-storagebox.de"
 
@@ -301,7 +301,7 @@ bao secrets enable -version=2 -path=secret kv
 # Create initial secrets structure
 cat << 'EOF' | bao kv put secret/cerniq/api/config -
 {
-  "pg_user": "cerniq_app",
+  "pg_user": "c3rn1q",
   "pg_password": "$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | head -c 64)",
   "redis_password": "$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | head -c 64)",
   "jwt_secret": "$(openssl rand -base64 64)"
@@ -345,7 +345,7 @@ bao write database/config/postgres \
 bao write database/roles/api-role \
     db_name=postgres \
     creation_statements="CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}'; \
-                        GRANT cerniq_app TO \"{{name}}\";" \
+                        GRANT c3rn1q TO \"{{name}}\";" \
     revocation_statements="DROP ROLE IF EXISTS \"{{name}}\";" \
     default_ttl="1h" \
     max_ttl="24h"
@@ -354,7 +354,7 @@ bao write database/roles/api-role \
 bao write database/roles/workers-role \
     db_name=postgres \
     creation_statements="CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}'; \
-                        GRANT cerniq_app TO \"{{name}}\";" \
+                        GRANT c3rn1q TO \"{{name}}\";" \
     revocation_statements="DROP ROLE IF EXISTS \"{{name}}\";" \
     default_ttl="1h" \
     max_ttl="24h"
@@ -705,7 +705,7 @@ services:
     # ... rest of config
 
   openbao-agent-api:
-    image: quay.io/openbao/openbao:2.2.0
+    image: quay.io/openbao/openbao:2.5.0
     command: agent -config=/openbao/config/agent-api.hcl
     volumes:
       - ./infra/config/openbao:/openbao/config:ro
@@ -852,14 +852,14 @@ NEW_JWT_SECRET=$(openssl rand -base64 64)
 
 # Update in OpenBao (automatic versioning)
 bao kv put secret/cerniq/api/config \
-    pg_user=cerniq_app \
+    pg_user=c3rn1q \
     pg_password="$NEW_PG_PASS" \
     redis_password="$NEW_REDIS_PASS" \
     jwt_secret="$NEW_JWT_SECRET"
 
 # Update PostgreSQL password
 docker exec cerniq-postgres psql -U postgres -c \
-    "ALTER USER cerniq_app WITH PASSWORD '$NEW_PG_PASS';"
+    "ALTER USER c3rn1q WITH PASSWORD '$NEW_PG_PASS';"
 
 # Update Redis password (requires restart)
 docker exec cerniq-redis redis-cli CONFIG SET requirepass "$NEW_REDIS_PASS"
@@ -1019,7 +1019,7 @@ scrape_configs:
 #!/bin/bash
 # infra/scripts/openbao-health-check.sh
 
-STATUS=$(curl -s http://localhost:64200/v1/sys/health)
+STATUS=$(curl -s http://localhost:64090/v1/sys/health)
 
 SEALED=$(echo "$STATUS" | jq -r '.sealed')
 INITIALIZED=$(echo "$STATUS" | jq -r '.initialized')

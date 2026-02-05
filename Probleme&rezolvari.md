@@ -106,7 +106,7 @@
 
 | Proiect | Containere | Porturi | RAM | Note |
 |---------|-----------|---------|-----|------|
-| **Cerniq** (8 containere) | postgres, redis, traefik, pgbouncer, openbao, openbao-agent-api (unhealthy), openbao-agent-workers (unhealthy), staging-proxy | 64080, 64081 (127.0.0.1), 64090 (127.0.0.1) | ~552 MiB | Rețele: 172.27.0.0/24, 172.28.0.0/24, 172.29.0.0/24 |
+| **Cerniq** (8 containere) | postgres, redis, traefik, pgbouncer, openbao, openbao-agent-api (unhealthy), openbao-agent-workers (unhealthy), staging-proxy | 64080, 64081 (127.0.0.1), 64090 (127.0.0.1) | ~552 MiB | Rețele: 172.29.10.0/24, 172.29.20.0/24, 172.29.30.0/24 |
 | **WAppBuss** (4 containere) | backend, frontend, postgres:15, redis:7 | 3060, 3061, **3062 (PG!)**, **3063 (Redis!)** — toate pe 0.0.0.0 | ~131 MiB | Rețea: 172.18.0.0/16; **DB+Redis expuse pe internet!** |
 | **IWMS** (nativ, PM2) | uvicorn (Python), vite (Node) | **3000**, **3002** — pe 0.0.0.0 | ~577 MiB | DB: `gestiune_marfa` pe host PG :5433 |
 | **WMS v1** (systemd) | vite frontend | **5173** — pe 0.0.0.0 | ~110 MiB | DB: SQLite, systemd service |
@@ -139,9 +139,9 @@
 
 | Rețea | Subnet | Proprietar |
 |-------|--------|-----------|
-| cerniq_public | 172.27.0.0/24 | Cerniq |
-| cerniq_backend | 172.28.0.0/24 | Cerniq |
-| cerniq_data | 172.29.0.0/24 | Cerniq |
+| cerniq_public | 172.29.10.0/24 | Cerniq |
+| cerniq_backend | 172.29.20.0/24 | Cerniq |
+| cerniq_data | 172.29.30.0/24 | Cerniq |
 | wappbuss_default | 172.18.0.0/16 | WAppBuss |
 
 #### Resource overcommit producție (**CRITICĂ**)
@@ -206,7 +206,7 @@ Compose YAML anchors alocă limite care **depășesc RAM-ul total de 10 GiB**:
 6. **UFW:** Pe Proxmox LXC s-ar putea să nu funcționeze — testează `ufw enable` manual înainte de script
 7. **Certbot/acme.sh:** Nu modifica — SSL se reînnoiește automat
 8. **PM2 / systemd WMS:** Nu modifica — IWMS și WMS rulează independent de Docker
-9. **Rețele Docker producție** folosesc subnets DIFERITE de staging: 172.27/28/29.0.0/24 vs 172.29.10/20/30.0/24
+9. **Rețele Docker standardizate**: 172.29.10/20/30.0/24 pe staging și producție
 10. **Implementare producție:** Orice schimbare se face **exclusiv prin CI/CD**, declanșată de push în `main`.
 
 #### Staging — reguli stricte
@@ -724,7 +724,7 @@ CREATE ROLE cerniq_vault WITH LOGIN PASSWORD 'vault_initial_password_change_me';
 - `cerniq_backend` — `172.29.20.0/24`  
 - `cerniq_data` — `172.29.30.0/24`
 
-**Notă (impact mediu):** Menționează explicit că **producția** folosește 172.27/28/29.0.0/24, iar staging 172.29.10/20/30.0/24. Documentația NU trebuie interpretată ca instrucțiune de schimbare a rețelelor live.
+**Notă (impact mediu):** Menționează explicit că **staging și producția** folosesc 172.29.10/20/30.0/24. Documentația NU trebuie interpretată ca instrucțiune de schimbare a rețelelor live.
 
 ---
 

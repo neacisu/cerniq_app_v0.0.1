@@ -9,12 +9,12 @@
 set -euo pipefail
 
 CONTAINER_NAME="cerniq-postgres"
-DB_USER="c3rn1q"
+DB_USER="cerniq"
 DB_NAME="cerniq"
 DB_HOST="localhost"
 DB_PORT="64032"
 
-# Common psql command with correct port (Cerniq uses 64xxx range per ADR-0102)
+# Common psql command with correct port (Cerniq uses 64xxx range per ADR-0022 "Port Allocation Strategy")
 PSQL_CMD="psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME"
 
 RED='\033[0;31m'

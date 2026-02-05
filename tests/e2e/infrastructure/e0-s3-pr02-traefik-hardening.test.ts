@@ -147,7 +147,7 @@ export const EXPECTED_TRAEFIK_CONFIG = {
   version: "3.3",
   ports: {
     http: 64080,
-    dashboard: 64081,
+    dashboard: 64093,
   },
   security: {
     frameDeny: true,
@@ -334,7 +334,7 @@ describe("COMMON: F0.4.1.T001 - Traefik Static Configuration", () => {
     expect(web?.address).toBe(`:${EXPECTED_TRAEFIK_CONFIG.ports.http}`);
   });
 
-  it("should have metrics entrypoint on port 64081", () => {
+  it("should have metrics entrypoint on port 64093", () => {
     const entryPoints = traefikConfig?.entryPoints as Record<string, unknown>;
     const metrics = entryPoints?.metrics as Record<string, unknown>;
     expect(metrics?.address).toBe(
@@ -519,9 +519,9 @@ describe("COMMON: F0.4.1.T003 - docker-compose.yml Service", () => {
     );
   });
 
-  it("should expose port 64081 for dashboard/metrics (localhost only)", () => {
+  it("should expose port 64093 for dashboard/metrics (localhost only)", () => {
     const ports = traefikService?.ports as string[];
-    const dashboardPort = ports?.find((p) => p.includes("64081"));
+    const dashboardPort = ports?.find((p) => p.includes("64093"));
     expect(dashboardPort).toBeDefined();
     expect(dashboardPort).toContain("127.0.0.1");
   });
@@ -604,15 +604,15 @@ describe("COMMON: F0.4.1.T004 - Traefik Container Runtime", () => {
   });
 
   it.skipIf(!TRAEFIK_RUNNING)(
-    "should have dashboard accessible on localhost:64081",
+    "should have dashboard accessible on localhost:64093",
     () => {
-      const result = getHttpCode("http://localhost:64081/dashboard/");
+      const result = getHttpCode("http://localhost:64093/dashboard/");
       expect(["200", "401", "403"]).toContain(result);
     },
   );
 
   it.skipIf(!TRAEFIK_RUNNING)("should have ping endpoint healthy", () => {
-    const result = getHttpCode("http://localhost:64081/ping");
+    const result = getHttpCode("http://localhost:64093/ping");
     expect(["200", "403"]).toContain(result);
   });
 });
@@ -806,22 +806,22 @@ describe.skipIf(!IS_STAGING)("STAGING: Network Topology", () => {
   });
 
   it.skipIf(!DOCKER_AVAILABLE)(
-    "should have cerniq_public network with subnet 172.27.0.0/24",
+    "should have cerniq_public network with subnet 172.29.10.0/24",
     () => {
       const subnet = exec(
         `docker network inspect cerniq_public --format '{{range .IPAM.Config}}{{.Subnet}}{{end}}' 2>/dev/null`,
       );
-      expect(subnet).toBe("172.27.0.0/24");
+      expect(subnet).toBe("172.29.10.0/24");
     },
   );
 
   it.skipIf(!TRAEFIK_RUNNING)(
-    "should have Traefik on cerniq_public with IP 172.27.0.10",
+    "should have Traefik on cerniq_public with IP 172.29.10.10",
     () => {
       const ip = exec(
         `docker inspect -f '{{(index .NetworkSettings.Networks "cerniq_public").IPAddress}}' cerniq-traefik 2>/dev/null`,
       );
-      expect(ip).toBe("172.27.0.10");
+      expect(ip).toBe("172.29.10.10");
     },
   );
 });
@@ -833,7 +833,7 @@ describe.skipIf(!IS_STAGING)(
       "should route internal traffic to cerniq-traefik via cerniq_public",
       () => {
         const internalResponse = exec(
-          `curl -s -o /dev/null -w '%{http_code}' http://172.27.0.10:64080 2>/dev/null`,
+          `curl -s -o /dev/null -w '%{http_code}' http://172.29.10.10:64080 2>/dev/null`,
         );
         expect(["200", "404", "502"]).toContain(internalResponse);
       },
@@ -962,28 +962,28 @@ describe.skipIf(!IS_PRODUCTION)(
   "PRODUCTION: Coexistence with Other Projects",
   () => {
     it.skipIf(!DOCKER_AVAILABLE)(
-      "should not conflict with wappbuss on ports 64080/64081",
+      "should not conflict with wappbuss on ports 64080/64093",
       () => {
         const wappbussPorts = exec(
           `docker ps --filter "name=wappbuss" --format "{{.Ports}}" 2>/dev/null`,
         );
         if (wappbussPorts) {
           expect(wappbussPorts).not.toContain("64080");
-          expect(wappbussPorts).not.toContain("64081");
+          expect(wappbussPorts).not.toContain("64093");
         }
         expect(true).toBe(true); // Pass if no wappbuss or no conflict
       },
     );
 
     it.skipIf(!DOCKER_AVAILABLE)(
-      "should not conflict with iwms-only on ports 64080/64081",
+      "should not conflict with iwms-only on ports 64080/64093",
       () => {
         const iwmsPorts = exec(
           `docker ps --filter "name=iwms" --format "{{.Ports}}" 2>/dev/null`,
         );
         if (iwmsPorts) {
           expect(iwmsPorts).not.toContain("64080");
-          expect(iwmsPorts).not.toContain("64081");
+          expect(iwmsPorts).not.toContain("64093");
         }
         expect(true).toBe(true);
       },

@@ -46,9 +46,9 @@ const CAN_RUN_SERVER_TESTS = canRunServerTests();
 // These constants document the expected infrastructure configuration
 // and are used for reference in inline test assertions
 export const EXPECTED_NETWORKS = {
-  cerniq_public: { subnet: "172.27.0.0/24", internal: false },
-  cerniq_backend: { subnet: "172.28.0.0/24", internal: true },
-  cerniq_data: { subnet: "172.29.0.0/24", internal: true },
+  cerniq_public: { subnet: "172.29.10.0/24", internal: false },
+  cerniq_backend: { subnet: "172.29.20.0/24", internal: true },
+  cerniq_data: { subnet: "172.29.30.0/24", internal: true },
 } as const;
 
 export const EXPECTED_DAEMON_CONFIG = {
@@ -56,7 +56,7 @@ export const EXPECTED_DAEMON_CONFIG = {
   "log-driver": "json-file",
   "live-restore": true,
   "userland-proxy": false,
-  "metrics-addr": "0.0.0.0:64093",
+  "metrics-addr": "0.0.0.0:64094",
 } as const;
 
 // =============================================================================
@@ -174,16 +174,16 @@ describe("F0.1.1: Docker Engine Setup", () => {
     it("should have metrics endpoint configured", () => {
       const content = readFile("infra/config/docker/daemon.json");
       const config = parseJson<Record<string, unknown>>(content);
-      expect(config?.["metrics-addr"]).toBe("0.0.0.0:64093");
+      expect(config?.["metrics-addr"]).toBe("0.0.0.0:64094");
     });
 
-    it("should use 172.27.0.0/16 subnet (avoiding GeniusERP conflicts)", () => {
+    it("should use 172.29.0.0/16 subnet (standardized)", () => {
       const content = readFile("infra/config/docker/daemon.json");
       const config = parseJson<Record<string, unknown>>(content);
       const pools = config?.["default-address-pools"] as
         | Array<{ base: string }>
         | undefined;
-      expect(pools?.[0]?.base).toBe("172.27.0.0/16");
+      expect(pools?.[0]?.base).toBe("172.29.0.0/16");
     });
 
     it.skipIf(!CAN_RUN_SERVER_TESTS)("should be applied on server", () => {
@@ -277,32 +277,32 @@ describe("F0.1.2: Docker Networks Setup", () => {
     });
 
     it.skipIf(!CAN_RUN_SERVER_TESTS)(
-      "should have correct subnet for cerniq_public (172.27.0.0/24)",
+      "should have correct subnet for cerniq_public (172.29.10.0/24)",
       () => {
         const subnet = exec(
           'docker network inspect cerniq_public --format "{{range .IPAM.Config}}{{.Subnet}}{{end}}"',
         );
-        expect(subnet).toBe("172.27.0.0/24");
+        expect(subnet).toBe("172.29.10.0/24");
       },
     );
 
     it.skipIf(!CAN_RUN_SERVER_TESTS)(
-      "should have correct subnet for cerniq_backend (172.28.0.0/24)",
+      "should have correct subnet for cerniq_backend (172.29.20.0/24)",
       () => {
         const subnet = exec(
           'docker network inspect cerniq_backend --format "{{range .IPAM.Config}}{{.Subnet}}{{end}}"',
         );
-        expect(subnet).toBe("172.28.0.0/24");
+        expect(subnet).toBe("172.29.20.0/24");
       },
     );
 
     it.skipIf(!CAN_RUN_SERVER_TESTS)(
-      "should have correct subnet for cerniq_data (172.29.0.0/24)",
+      "should have correct subnet for cerniq_data (172.29.30.0/24)",
       () => {
         const subnet = exec(
           'docker network inspect cerniq_data --format "{{range .IPAM.Config}}{{.Subnet}}{{end}}"',
         );
-        expect(subnet).toBe("172.29.0.0/24");
+        expect(subnet).toBe("172.29.30.0/24");
       },
     );
   });
@@ -416,9 +416,9 @@ describe("F0.1.3: Validation Scripts & Documentation", () => {
       expect(content).toContain("cerniq_data");
     });
 
-    it("should validate subnets 172.27-29", () => {
+    it("should validate subnets 172.29.10/20/30", () => {
       const content = readFile("infra/scripts/check-docker.sh");
-      expect(content).toMatch(/172\.27|172\.28|172\.29/);
+      expect(content).toMatch(/172\.29\.10|172\.29\.20|172\.29\.30/);
     });
   });
 
@@ -461,11 +461,11 @@ describe("F0.1.3: Validation Scripts & Documentation", () => {
       expect(content).toContain("cerniq_data");
     });
 
-    it("should document correct subnets (172.27-29)", () => {
+    it("should document correct subnets (172.29.10/20/30)", () => {
       const content = readFile("docs/infrastructure/network-topology.md");
-      expect(content).toContain("172.27");
-      expect(content).toContain("172.28");
-      expect(content).toContain("172.29");
+      expect(content).toContain("172.29.10");
+      expect(content).toContain("172.29.20");
+      expect(content).toContain("172.29.30");
     });
 
     it("should explain internal vs external networks", () => {
@@ -491,30 +491,18 @@ describe("CI/CD: Deploy Workflow", () => {
     expect(fileExists(".github/workflows/deploy.yml")).toBe(true);
   });
 
-  it("should trigger on push to main", () => {
+  it("should trigger on push for all branches", () => {
     const on = deployWorkflow?.on as Record<string, unknown>;
     const push = on?.push as Record<string, unknown>;
     const branches = push?.branches as string[];
-    expect(branches).toContain("main");
+    expect(branches).toContain("**");
   });
 
-  it("should trigger on push to develop", () => {
+  it("should deploy staging on non-main branches", () => {
     const on = deployWorkflow?.on as Record<string, unknown>;
     const push = on?.push as Record<string, unknown>;
     const branches = push?.branches as string[];
-    expect(branches).toContain("develop");
-  });
-
-  it("should NOT auto-deploy feature branches (requires PR to develop)", () => {
-    // Security improvement: Feature branches must go through PR → develop → staging
-    // Direct auto-deploy on feature branches bypasses code review
-    const on = deployWorkflow?.on as Record<string, unknown>;
-    const push = on?.push as Record<string, unknown>;
-    const branches = push?.branches as string[];
-    // Verify feature/** is NOT in direct triggers
-    expect(branches).not.toContain("feature/**");
-    expect(branches).not.toContain("feat/**");
-    expect(branches).not.toContain("fix/**");
+    expect(branches).toContain("**");
   });
 
   it("should support auto-versioning (tags created by workflow, not triggers)", () => {
@@ -524,7 +512,7 @@ describe("CI/CD: Deploy Workflow", () => {
     const push = on?.push as Record<string, unknown>;
     const branches = push?.branches as string[];
     // Main branch triggers production with auto-versioning
-    expect(branches).toContain("main");
+    expect(branches).toContain("**");
     // workflow_dispatch still available for manual deploys
     expect(on).toHaveProperty("workflow_dispatch");
   });

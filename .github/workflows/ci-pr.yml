@@ -16,6 +16,10 @@ on:
     branches:
       - main
       - develop
+      - 'feature/**'
+      - 'feat/**'
+      - 'fix/**'
+      - 'hotfix/**'
   pull_request:
     branches:
       - main
@@ -62,17 +66,37 @@ jobs:
       - name: 📝 TypeScript Type Check
         run: pnpm typecheck
 
-  # ===========================================================================
-  # JOB 2: Unit & Integration Tests
-  # ===========================================================================
-  # Note: E2E/Infrastructure tests are run locally, not in CI
-  # This job runs unit tests only (no database dependencies)
-  # ===========================================================================
+  # ==========================================================================
+  # JOB 2: Full Test Suite (Unit + Integration + E2E)
+  # ==========================================================================
   test:
     name: 🧪 Tests
     runs-on: self-hosted
     timeout-minutes: 15
     needs: lint
+    services:
+      postgres:
+        image: postgis/postgis:18-3.6
+        env:
+          POSTGRES_USER: c3rn1q
+          POSTGRES_PASSWORD: cerniq_ci
+          POSTGRES_DB: cerniq
+        ports:
+          - 64032:5432
+        options: >-
+          --health-cmd "pg_isready -U c3rn1q"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:8.4.0
+        ports:
+          - 64039:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - name: 📥 Checkout code
@@ -91,14 +115,29 @@ jobs:
       - name: 📥 Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: 🧪 Run Unit Tests
+      - name: 🔐 Fetch CI secrets from OpenBao
+        env:
+          OPENBAO_ADDR: ${{ secrets.OPENBAO_ADDR }}
+          OPENBAO_ROLE_ID: ${{ secrets.OPENBAO_ROLE_ID }}
+          OPENBAO_SECRET_ID: ${{ secrets.OPENBAO_SECRET_ID }}
         run: |
-          # Run unit tests only (exclude e2e and integration tests)
-          # E2E tests require live infrastructure and are run locally
-          pnpm vitest run \
-            --exclude='tests/e2e/**' \
-            --exclude='tests/integration/**' \
-            --passWithNoTests
+          if ! command -v openbao >/dev/null 2>&1; then
+            echo "OpenBao CLI not found on runner. Install openbao and retry." >&2
+            exit 1
+          fi
+          export OPENBAO_ADDR
+          TOKEN=$(openbao write -field=token auth/approle/login role_id="$OPENBAO_ROLE_ID" secret_id="$OPENBAO_SECRET_ID")
+          echo "OPENBAO_TOKEN=$TOKEN" >> $GITHUB_ENV
+          echo "DATABASE_URL=$(openbao kv get -field=pg_url secret/cerniq/ci)" >> $GITHUB_ENV
+          echo "POSTGRES_USER=$(openbao kv get -field=pg_user secret/cerniq/ci)" >> $GITHUB_ENV
+          echo "POSTGRES_PASSWORD=$(openbao kv get -field=pg_password secret/cerniq/ci)" >> $GITHUB_ENV
+          echo "REDIS_URL=$(openbao kv get -field=redis_url secret/cerniq/ci)" >> $GITHUB_ENV
+          echo "REDIS_PASSWORD=$(openbao kv get -field=redis_password secret/cerniq/ci)" >> $GITHUB_ENV
+          echo "JWT_SECRET=$(openbao kv get -field=jwt_secret secret/cerniq/ci)" >> $GITHUB_ENV
+
+      - name: 🧪 Run Full Test Suite
+        run: |
+          pnpm test:coverage
         env:
           WORKSPACE_ROOT: ${{ github.workspace }}
 
@@ -110,14 +149,44 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
 
-  # ===========================================================================
-  # JOB 3: Security Scan
-  # ===========================================================================
+  # ==========================================================================
+  # JOB 3: Build Verification (PRs to develop only)
+  # ==========================================================================
+  build-verify:
+    name: 🧱 Build Verification
+    runs-on: self-hosted
+    timeout-minutes: 15
+    needs: lint
+    if: github.event_name == 'pull_request' && github.base_ref == 'develop'
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: 📥 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🧱 Run Build
+        run: pnpm build
+
+  # ==========================================================================
+  # JOB 4: Security Scan
+  # ==========================================================================
   security:
     name: 🔒 Security Scan
     runs-on: self-hosted
     timeout-minutes: 10
     needs: lint
+    if: github.event_name == 'pull_request' && github.base_ref == 'develop'
     permissions:
       contents: read
       security-events: write
@@ -128,12 +197,11 @@ jobs:
 
       - name: 🔒 Run Trivy vulnerability scanner (filesystem)
         uses: aquasecurity/trivy-action@master
-        continue-on-error: true
         with:
           scan-type: 'fs'
           scan-ref: '.'
           severity: 'CRITICAL,HIGH'
-          exit-code: '0'
+          exit-code: '1'
           ignore-unfixed: true
           format: 'sarif'
           output: 'trivy-results.sarif'
@@ -147,7 +215,6 @@ jobs:
 
       - name: 🔍 Audit npm dependencies
         run: pnpm audit --audit-level=high
-        continue-on-error: true
 
   # ===========================================================================
   # JOB 4: Docker Configuration Validation
@@ -243,6 +310,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 20
     needs: [lint, test, docker-config]
+    if: github.event_name == 'pull_request' && github.base_ref == 'develop'
 
     steps:
       - name: 📥 Checkout code
@@ -339,7 +407,7 @@ jobs:
   ci-status:
     name: ✅ CI Status
     runs-on: self-hosted
-    needs: [lint, test, security, docker-config, docker-build]
+    needs: [lint, test, build-verify, security, docker-config, docker-build]
     if: always()
 
     steps:
@@ -347,6 +415,7 @@ jobs:
         run: |
           if [[ "${{ needs.lint.result }}" == "failure" ]] || \
              [[ "${{ needs.test.result }}" == "failure" ]] || \
+             [[ "${{ needs.build-verify.result }}" == "failure" ]] || \
              [[ "${{ needs.security.result }}" == "failure" ]] || \
              [[ "${{ needs.docker-config.result }}" == "failure" ]] || \
              [[ "${{ needs.docker-build.result }}" == "failure" ]]; then

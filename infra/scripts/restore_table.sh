@@ -8,7 +8,7 @@ set -euo pipefail
 
 LOG_FILE="/var/log/cerniq/restore_table.log"
 CONTAINER="cerniq-postgres"
-DB_USER="c3rn1q"
+DB_USER="cerniq"
 DB_NAME="cerniq"
 BACKUP_DIR="/var/backups/cerniq/postgresql"
 

@@ -115,7 +115,7 @@ Gestionarea secretelor prin Docker secrets și fișiere `.env` prezintă limită
 # docker-compose.yml
 services:
   openbao:
-    image: quay.io/openbao/openbao:2.2.0
+    image: quay.io/openbao/openbao:2.5.0
     container_name: cerniq-openbao
     cap_add:
       - IPC_LOCK
@@ -128,10 +128,10 @@ services:
       - ./infra/config/openbao:/openbao/config:ro
     command: server
     ports:
-      - "127.0.0.1:64200:8200"  # API (localhost only)
+      - "127.0.0.1:64090:8200"  # API (localhost only)
     networks:
       cerniq_backend:
-        ipv4_address: 172.28.0.50
+        ipv4_address: 172.29.20.50
     healthcheck:
       test: ["CMD", "bao", "status", "-format=json"]
       interval: 10s
@@ -314,7 +314,7 @@ NEW_JWT_SECRET=$(openssl rand -base64 64)
 
 # Actualizează în OpenBao (versioning automat)
 bao kv put secret/cerniq/api/config \
-    pg_user=cerniq_app \
+    pg_user=c3rn1q \
     pg_password="$NEW_PG_PASS" \
     redis_password="$NEW_REDIS_PASS" \
     jwt_secret="$NEW_JWT_SECRET"
@@ -339,7 +339,7 @@ bao write database/config/postgres \
 # Roluri cu TTL (auto-expire)
 bao write database/roles/api-role \
     db_name=postgres \
-    creation_statements="CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}' IN ROLE cerniq_app;" \
+    creation_statements="CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}' IN ROLE c3rn1q;" \
     default_ttl="1h" \
     max_ttl="24h"
 ```

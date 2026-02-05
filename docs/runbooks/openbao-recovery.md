@@ -440,7 +440,7 @@ docker logs cerniq-api --tail 50 | grep -i "vault\|secret\|openbao"
 2. **Monitor seal status** - Add to monitoring:
    ```bash
    # In monitoring script
-   curl -s http://localhost:64200/v1/sys/seal-status | jq .sealed
+   curl -s http://localhost:64090/v1/sys/seal-status | jq .sealed
    ```
 
 3. **Key distribution** - Distribute unseal keys among 5 team members (3 required to unseal)

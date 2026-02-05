@@ -236,7 +236,7 @@ docker restart cerniq-workers-scoring
 # /scripts/daily-maintenance.sh
 
 # 1. Vacuum analyze tables
-psql -h localhost -U cerniq -d cerniq_db << 'EOF'
+psql -h localhost -U c3rn1q -d cerniq_db << 'EOF'
 VACUUM ANALYZE bronze_contacts;
 VACUUM ANALYZE silver_companies;
 VACUUM ANALYZE gold_companies;
@@ -244,14 +244,14 @@ VACUUM ANALYZE approval_tasks;
 EOF
 
 # 2. Clean old bronze data (> 30 days, promoted)
-psql -h localhost -U cerniq -d cerniq_db << 'EOF'
+psql -h localhost -U c3rn1q -d cerniq_db << 'EOF'
 DELETE FROM bronze_contacts
 WHERE created_at < NOW() - INTERVAL '30 days'
   AND processing_status = 'promoted';
 EOF
 
 # 3. Archive enrichment logs (> 90 days)
-psql -h localhost -U cerniq -d cerniq_db << 'EOF'
+psql -h localhost -U c3rn1q -d cerniq_db << 'EOF'
 INSERT INTO silver_enrichment_log_archive
 SELECT * FROM silver_enrichment_log
 WHERE created_at < NOW() - INTERVAL '90 days';
@@ -277,24 +277,24 @@ echo "Daily maintenance completed at $(date)"
 # /scripts/weekly-maintenance.sh
 
 # 1. Full vacuum
-psql -h localhost -U cerniq -d cerniq_db << 'EOF'
+psql -h localhost -U c3rn1q -d cerniq_db << 'EOF'
 VACUUM FULL bronze_contacts;
 VACUUM FULL silver_enrichment_log;
 EOF
 
 # 2. Reindex if needed
-psql -h localhost -U cerniq -d cerniq_db << 'EOF'
+psql -h localhost -U c3rn1q -d cerniq_db << 'EOF'
 REINDEX TABLE CONCURRENTLY silver_companies;
 REINDEX TABLE CONCURRENTLY gold_companies;
 EOF
 
 # 3. Update statistics
-psql -h localhost -U cerniq -d cerniq_db << 'EOF'
+psql -h localhost -U c3rn1q -d cerniq_db << 'EOF'
 ANALYZE;
 EOF
 
 # 4. Check for orphaned records
-psql -h localhost -U cerniq -d cerniq_db << 'EOF'
+psql -h localhost -U c3rn1q -d cerniq_db << 'EOF'
 -- Silver without valid Bronze source
 SELECT COUNT(*) as orphan_silver
 FROM silver_companies sc

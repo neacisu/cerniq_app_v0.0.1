@@ -85,9 +85,9 @@ ADMIN_PORTS=(
 # Docker networks (internal, don't block)
 if is_production; then
     DOCKER_NETWORKS=(
-        "172.27.0.0/24"  # cerniq_public
-        "172.28.0.0/24"  # cerniq_backend
-        "172.29.0.0/24"  # cerniq_data
+        "172.29.10.0/24"  # cerniq_public
+        "172.29.20.0/24"  # cerniq_backend
+        "172.29.30.0/24"  # cerniq_data
     )
 else
     DOCKER_NETWORKS=(

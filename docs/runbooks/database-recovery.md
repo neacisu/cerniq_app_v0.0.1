@@ -95,11 +95,11 @@ docker compose logs postgres --tail=100
 docker compose up -d postgres
 
 # 4. Verificare health
-docker compose exec postgres pg_isready -U cerniq
+docker compose exec postgres pg_isready -U c3rn1q
 # Output expected: /var/run/postgresql:5432 - accepting connections
 
 # 5. Verificare conexiuni
-docker compose exec postgres psql -U cerniq -c "SELECT count(*) FROM pg_stat_activity;"
+docker compose exec postgres psql -U c3rn1q -c "SELECT count(*) FROM pg_stat_activity;"
 ```
 
 **Timp estimat:** 2-5 minute
@@ -232,7 +232,7 @@ sleep 10
 
 # Wait for postgres to be ready
 for i in {1..30}; do
-  if docker compose exec postgres pg_isready -U cerniq; then
+  if docker compose exec postgres pg_isready -U c3rn1q; then
     break
   fi
   echo "Waiting for PostgreSQL... ($i/30)"
@@ -251,7 +251,7 @@ docker compose exec -T postgres pg_restore \
 
 # 8. Verify restore
 echo "✅ Verifying restore..."
-docker compose exec postgres psql -U cerniq -c "
+docker compose exec postgres psql -U c3rn1q -c "
 SELECT 
   'gold_companies' as table_name, count(*) as rows FROM gold_companies
 UNION ALL
@@ -353,7 +353,7 @@ docker compose up -d postgres
 # 7. Monitor recovery
 echo "👀 Monitoring recovery progress..."
 for i in {1..60}; do
-  if docker compose exec postgres psql -U cerniq -c "SELECT pg_is_in_recovery();" 2>/dev/null | grep -q 'f'; then
+  if docker compose exec postgres psql -U c3rn1q -c "SELECT pg_is_in_recovery();" 2>/dev/null | grep -q 'f'; then
     echo "✅ Recovery complete!"
     break
   fi
@@ -363,7 +363,7 @@ done
 
 # 8. Verify
 echo "🔍 Verifying data at target time..."
-docker compose exec postgres psql -U cerniq -c "
+docker compose exec postgres psql -U c3rn1q -c "
 SELECT 
   (SELECT count(*) FROM gold_companies) as companies,
   (SELECT count(*) FROM approval_tasks) as tasks,
@@ -389,7 +389,7 @@ echo "============================"
 
 # 1. Conexiune
 echo -n "1. Database connection: "
-if docker compose exec postgres pg_isready -U cerniq > /dev/null 2>&1; then
+if docker compose exec postgres pg_isready -U c3rn1q > /dev/null 2>&1; then
   echo "✅ OK"
 else
   echo "❌ FAILED"
@@ -398,7 +398,7 @@ fi
 
 # 2. Schema integrity
 echo -n "2. Schema integrity: "
-TABLES=$(docker compose exec postgres psql -U cerniq -t -c "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public';")
+TABLES=$(docker compose exec postgres psql -U c3rn1q -t -c "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public';")
 if [ "$TABLES" -gt 50 ]; then
   echo "✅ OK ($TABLES tables)"
 else
@@ -407,7 +407,7 @@ fi
 
 # 3. Critical tables have data
 echo "3. Critical tables data:"
-docker compose exec postgres psql -U cerniq -c "
+docker compose exec postgres psql -U c3rn1q -c "
 SELECT 
   'gold_companies' as table_name, count(*) as rows FROM gold_companies
 UNION ALL SELECT 'gold_contacts', count(*) FROM gold_contacts
@@ -417,7 +417,7 @@ UNION ALL SELECT 'audit_log', count(*) FROM audit_log;
 
 # 4. Extensions
 echo -n "4. Required extensions: "
-EXTENSIONS=$(docker compose exec postgres psql -U cerniq -t -c "SELECT count(*) FROM pg_extension WHERE extname IN ('pgvector', 'postgis', 'pg_trgm');")
+EXTENSIONS=$(docker compose exec postgres psql -U c3rn1q -t -c "SELECT count(*) FROM pg_extension WHERE extname IN ('pgvector', 'postgis', 'pg_trgm');")
 if [ "$EXTENSIONS" -eq 3 ]; then
   echo "✅ OK (pgvector, postgis, pg_trgm)"
 else
@@ -426,17 +426,17 @@ fi
 
 # 5. Foreign keys
 echo -n "5. Foreign key constraints: "
-FK_COUNT=$(docker compose exec postgres psql -U cerniq -t -c "SELECT count(*) FROM information_schema.table_constraints WHERE constraint_type = 'FOREIGN KEY';")
+FK_COUNT=$(docker compose exec postgres psql -U c3rn1q -t -c "SELECT count(*) FROM information_schema.table_constraints WHERE constraint_type = 'FOREIGN KEY';")
 echo "✅ $FK_COUNT constraints"
 
 # 6. Indexes
 echo -n "6. Indexes: "
-IDX_COUNT=$(docker compose exec postgres psql -U cerniq -t -c "SELECT count(*) FROM pg_indexes WHERE schemaname = 'public';")
+IDX_COUNT=$(docker compose exec postgres psql -U c3rn1q -t -c "SELECT count(*) FROM pg_indexes WHERE schemaname = 'public';")
 echo "✅ $IDX_COUNT indexes"
 
 # 7. RLS Policies
 echo -n "7. RLS policies: "
-RLS_COUNT=$(docker compose exec postgres psql -U cerniq -t -c "SELECT count(*) FROM pg_policies;")
+RLS_COUNT=$(docker compose exec postgres psql -U c3rn1q -t -c "SELECT count(*) FROM pg_policies;")
 echo "✅ $RLS_COUNT policies"
 
 echo ""
@@ -491,7 +491,7 @@ docker compose logs postgres --tail=50
 pg_restore --clean --if-exists ...
 
 # Sau drop database first
-docker compose exec postgres psql -U cerniq -c "DROP DATABASE cerniq; CREATE DATABASE cerniq;"
+docker compose exec postgres psql -U c3rn1q -c "DROP DATABASE cerniq; CREATE DATABASE cerniq;"
 ```
 
 #### "invalid page header in block X"
@@ -511,13 +511,13 @@ docker compose stop postgres
 
 ```bash
 # După restore, rulează ANALYZE pentru statistici actualizate
-docker compose exec postgres psql -U cerniq -c "ANALYZE VERBOSE;"
+docker compose exec postgres psql -U c3rn1q -c "ANALYZE VERBOSE;"
 
 # Reindex dacă necesar
-docker compose exec postgres psql -U cerniq -c "REINDEX DATABASE cerniq;"
+docker compose exec postgres psql -U c3rn1q -c "REINDEX DATABASE cerniq;"
 
 # Verificare vacuum
-docker compose exec postgres psql -U cerniq -c "
+docker compose exec postgres psql -U c3rn1q -c "
 SELECT schemaname, relname, last_vacuum, last_autovacuum 
 FROM pg_stat_user_tables 
 ORDER BY last_autovacuum DESC NULLS LAST 

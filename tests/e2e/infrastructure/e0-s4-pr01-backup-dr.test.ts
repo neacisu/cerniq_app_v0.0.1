@@ -17,6 +17,7 @@ import { describe, it, expect } from "vitest";
 import { execSync } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
+import { CERNIQ_PORTS } from "../../helpers/ports";
 
 // =============================================================================
 // Test Configuration
@@ -62,10 +63,7 @@ function canReachStorageBox(): boolean {
 
 const CAN_REACH_STORAGE_BOX = canReachStorageBox();
 
-// Port Matrix (per ADR-0102 - Cerniq uses 64xxx range to avoid conflicts)
-const CERNIQ_PORTS = {
-  postgres: 64032,
-} as const;
+// Port Matrix per ADR-0022 is provided by shared test helpers.
 
 // =============================================================================
 // Utility Functions

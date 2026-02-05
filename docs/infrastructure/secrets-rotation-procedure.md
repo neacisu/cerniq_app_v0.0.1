@@ -69,7 +69,7 @@ cd /var/www/CerniqAPP
 
 ```bash
 # 1. Login în OpenBao
-export BAO_ADDR="http://127.0.0.1:64200"
+export BAO_ADDR="http://127.0.0.1:64090"
 bao login -method=token
 
 # 2. Generează noi secrete

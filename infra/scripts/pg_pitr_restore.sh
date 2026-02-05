@@ -8,7 +8,7 @@ set -euo pipefail
 
 LOG_FILE="/var/log/cerniq/pg_pitr_restore.log"
 CONTAINER="cerniq-postgres"
-DB_USER="c3rn1q"
+DB_USER="cerniq"
 DB_NAME="cerniq"
 
 # Hetzner Storage Box config

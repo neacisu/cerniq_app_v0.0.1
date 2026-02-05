@@ -29,7 +29,7 @@ Utilizăm **Docker Engine 29.1.3** cu **Docker Compose v2.40+** pentru orchestra
   "default-address-pools": [
     {"base": "172.20.0.0/16", "size": 24}
   ],
-  "metrics-addr": "0.0.0.0:64093"
+  "metrics-addr": "0.0.0.0:64094"
 }
 ```
 

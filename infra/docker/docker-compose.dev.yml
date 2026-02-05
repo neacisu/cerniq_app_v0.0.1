@@ -18,7 +18,7 @@ services:
   # ==========================================================================
   # Access: http://localhost:8001
   # Configure connection in UI:
-  #   - Host: redis (or 172.28.0.20 via cerniq_backend)
+  #   - Host: redis (or 172.29.20.20 via cerniq_backend)
   #   - Port: 64039 (per ADR-0022 port allocation)
   #   - Password: (from /var/www/CerniqAPP/secrets/redis_password.txt)
   # ==========================================================================
@@ -31,7 +31,7 @@ services:
     volumes:
       - redisinsight_data:/data
     networks:
-      - cerniq_data      # Primary: Redis is on cerniq_data (172.29.0.20:64039)
+      - cerniq_data      # Primary: Redis is on cerniq_data (172.29.30.20:64039)
       - cerniq_backend   # Secondary: For potential API access
     depends_on:
       redis:

@@ -24,6 +24,11 @@ fi
 STRICT_MODE="${1:-}"
 FAILED=0
 WARNINGS=0
+PG_PASS_FILE="/opt/cerniq/secrets/postgres_password.txt"
+PG_PASS=""
+if [ -f "$PG_PASS_FILE" ]; then
+  PG_PASS=$(cat "$PG_PASS_FILE")
+fi
 
 # Colors
 RED='\033[0;31m'
@@ -66,7 +71,8 @@ check_warn() {
 
 check_postgresql() {
   echo -n "  PostgreSQL:     "
-  if docker exec cerniq-postgres pg_isready -U cerniq -d cerniq >/dev/null 2>&1; then
+  if docker exec -e PGPASSWORD="$PG_PASS" cerniq-postgres \
+    pg_isready -h 127.0.0.1 -p 64032 -U c3rn1q -d cerniq >/dev/null 2>&1; then
     check_pass "HEALTHY"
     return 0
   else
@@ -77,7 +83,8 @@ check_postgresql() {
 
 check_pgbouncer() {
   echo -n "  PgBouncer:      "
-  if docker exec cerniq-pgbouncer psql -h 127.0.0.1 -p 6432 -U cerniq -d cerniq -c 'SELECT 1' >/dev/null 2>&1; then
+  if docker exec -e PGPASSWORD="$PG_PASS" cerniq-pgbouncer \
+    psql -h 127.0.0.1 -p 64033 -U c3rn1q -d cerniq -c 'SELECT 1' >/dev/null 2>&1; then
     check_pass "HEALTHY"
     return 0
   else
@@ -107,7 +114,7 @@ check_redis() {
 
 check_traefik() {
   echo -n "  Traefik:        "
-  if curl -sf http://127.0.0.1:64081/ping >/dev/null 2>&1; then
+  if curl -sf http://127.0.0.1:64093/ping >/dev/null 2>&1; then
     check_pass "HEALTHY"
     return 0
   else
@@ -189,7 +196,7 @@ check_fail2ban() {
 
 check_containers() {
   echo -e "\n${BLUE}📊 Container Status${NC}"
-  docker ps --filter "name=cerniq" --format 'table {{.Names}}\t{{.Status}}\t{{.Health}}' | sort
+  docker ps --filter "name=cerniq" --format 'table {{.Names}}\t{{.Status}}' | sort
   echo ""
 }
 

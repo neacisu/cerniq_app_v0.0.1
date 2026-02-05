@@ -692,14 +692,14 @@ $$ LANGUAGE plpgsql;
 
 ```sql
 -- Permisiuni pentru aplicație
-GRANT SELECT, INSERT, UPDATE, DELETE ON silver_companies TO cerniq_app;
-GRANT SELECT, INSERT, UPDATE, DELETE ON silver_contacts TO cerniq_app;
-GRANT SELECT, INSERT ON silver_enrichment_log TO cerniq_app;
-GRANT SELECT, INSERT, UPDATE ON silver_dedup_candidates TO cerniq_app;
+GRANT SELECT, INSERT, UPDATE, DELETE ON silver_companies TO c3rn1q;
+GRANT SELECT, INSERT, UPDATE, DELETE ON silver_contacts TO c3rn1q;
+GRANT SELECT, INSERT ON silver_enrichment_log TO c3rn1q;
+GRANT SELECT, INSERT, UPDATE ON silver_dedup_candidates TO c3rn1q;
 
 -- Funcții
-GRANT EXECUTE ON FUNCTION silver_compute_completeness(silver_companies) TO cerniq_app;
-GRANT EXECUTE ON FUNCTION silver_get_stats(UUID) TO cerniq_app;
+GRANT EXECUTE ON FUNCTION silver_compute_completeness(silver_companies) TO c3rn1q;
+GRANT EXECUTE ON FUNCTION silver_get_stats(UUID) TO c3rn1q;
 ```
 
 ---

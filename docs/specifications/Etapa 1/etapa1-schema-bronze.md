@@ -554,19 +554,19 @@ $$ LANGUAGE plpgsql;
 -- ═══════════════════════════════════════════════════════════════════════════
 
 -- Grant pentru user aplicație
-GRANT SELECT, INSERT ON bronze_contacts TO cerniq_app;
+GRANT SELECT, INSERT ON bronze_contacts TO c3rn1q;
 GRANT UPDATE (processing_status, processing_error, promoted_to_silver_id, promoted_at, do_not_process, is_duplicate, duplicate_of_id) 
-ON bronze_contacts TO cerniq_app;
+ON bronze_contacts TO c3rn1q;
 -- NU acordăm DELETE - Bronze este immutable
 
-GRANT SELECT, INSERT, UPDATE ON bronze_import_batches TO cerniq_app;
-GRANT SELECT, INSERT, UPDATE ON bronze_webhooks TO cerniq_app;
-GRANT SELECT, INSERT, UPDATE ON bronze_scrape_results TO cerniq_app;
+GRANT SELECT, INSERT, UPDATE ON bronze_import_batches TO c3rn1q;
+GRANT SELECT, INSERT, UPDATE ON bronze_webhooks TO c3rn1q;
+GRANT SELECT, INSERT, UPDATE ON bronze_scrape_results TO c3rn1q;
 
 -- Grant pentru funcții
-GRANT EXECUTE ON FUNCTION bronze_compute_content_hash(JSONB) TO cerniq_app;
-GRANT EXECUTE ON FUNCTION bronze_check_duplicate(UUID, JSONB) TO cerniq_app;
-GRANT EXECUTE ON FUNCTION bronze_get_stats(UUID) TO cerniq_app;
+GRANT EXECUTE ON FUNCTION bronze_compute_content_hash(JSONB) TO c3rn1q;
+GRANT EXECUTE ON FUNCTION bronze_check_duplicate(UUID, JSONB) TO c3rn1q;
+GRANT EXECUTE ON FUNCTION bronze_get_stats(UUID) TO c3rn1q;
 ```
 
 ---

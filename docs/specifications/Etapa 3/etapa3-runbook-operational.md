@@ -196,7 +196,7 @@ echo "=== STEP 1/6: Starting Infrastructure ==="
 docker compose -f "$COMPOSE_FILE" up -d postgres redis
 
 echo "Waiting for PostgreSQL to be ready..."
-until docker compose -f "$COMPOSE_FILE" exec -T postgres pg_isready -U cerniq; do
+until docker compose -f "$COMPOSE_FILE" exec -T postgres pg_isready -U c3rn1q; do
     sleep 2
 done
 echo "✅ PostgreSQL ready"
@@ -625,14 +625,14 @@ fi
 # 3. Database Status
 echo ""
 echo "=== DATABASE STATUS ==="
-DB_CONNECTIONS=$(docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U cerniq -t -c "SELECT count(*) FROM pg_stat_activity;")
+DB_CONNECTIONS=$(docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U c3rn1q -t -c "SELECT count(*) FROM pg_stat_activity;")
 echo "Active connections: $DB_CONNECTIONS"
 
-DB_SIZE=$(docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U cerniq -t -c "SELECT pg_size_pretty(pg_database_size('cerniq'));")
+DB_SIZE=$(docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U c3rn1q -t -c "SELECT pg_size_pretty(pg_database_size('cerniq'));")
 echo "Database size: $DB_SIZE"
 
 # Check for long-running queries
-LONG_QUERIES=$(docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U cerniq -t -c "SELECT count(*) FROM pg_stat_activity WHERE state = 'active' AND query_start < NOW() - INTERVAL '5 minutes';")
+LONG_QUERIES=$(docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U c3rn1q -t -c "SELECT count(*) FROM pg_stat_activity WHERE state = 'active' AND query_start < NOW() - INTERVAL '5 minutes';")
 if [ "$LONG_QUERIES" -gt 0 ]; then
     ISSUES+=("$LONG_QUERIES long-running queries detected")
     echo "⚠️ Long-running queries: $LONG_QUERIES"
@@ -679,7 +679,7 @@ fi
 # 7. HITL Pending Approvals
 echo ""
 echo "=== HITL PENDING APPROVALS ==="
-HITL_CRITICAL=$(docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U cerniq -t -c "
+HITL_CRITICAL=$(docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U c3rn1q -t -c "
     SELECT count(*) FROM hitl_approvals 
     WHERE status = 'pending' 
     AND priority IN ('critical', 'high')
@@ -846,7 +846,7 @@ docker system prune -f --filter "until=24h"
 
 # Vacuum PostgreSQL logs
 COMPOSE_FILE="/opt/cerniq/docker-compose.etapa3.yml"
-docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U cerniq -c "VACUUM ANALYZE;"
+docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U c3rn1q -c "VACUUM ANALYZE;"
 
 echo "=== LOG CLEANUP COMPLETE ==="
 ```
@@ -1245,7 +1245,7 @@ NEGOTIATION_ID=$1
 COMPOSE_FILE="/opt/cerniq/docker-compose.etapa3.yml"
 
 # Get current state
-CURRENT_STATE=$(docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U cerniq -t -c "
+CURRENT_STATE=$(docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U c3rn1q -t -c "
     SELECT current_state FROM negotiations WHERE id = '$NEGOTIATION_ID';
 ")
 
@@ -1265,7 +1265,7 @@ read -p "Select option (1-4): " OPTION
 case $OPTION in
     1)
         read -p "Enter target state: " TARGET_STATE
-        docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U cerniq -c "
+        docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U c3rn1q -c "
             UPDATE negotiations 
             SET current_state = '$TARGET_STATE', updated_at = NOW()
             WHERE id = '$NEGOTIATION_ID';
@@ -1277,7 +1277,7 @@ case $OPTION in
         echo "✅ State updated to $TARGET_STATE"
         ;;
     2)
-        docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U cerniq -c "
+        docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U c3rn1q -c "
             UPDATE negotiations 
             SET current_state = 'initial', updated_at = NOW()
             WHERE id = '$NEGOTIATION_ID';
@@ -1285,7 +1285,7 @@ case $OPTION in
         echo "✅ Reset to initial state"
         ;;
     3)
-        docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U cerniq -c "
+        docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U c3rn1q -c "
             UPDATE negotiations 
             SET current_state = 'cancelled', 
                 cancellation_reason = 'Manual cancellation - stuck state',
@@ -1295,7 +1295,7 @@ case $OPTION in
         echo "✅ Negotiation cancelled"
         ;;
     4)
-        docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U cerniq -c "
+        docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U c3rn1q -c "
             INSERT INTO hitl_approvals (
                 entity_type, entity_id, approval_type, priority, 
                 context, status
@@ -1345,7 +1345,7 @@ docker compose -f "$COMPOSE_FILE" logs --tail=50 efactura-spv | grep -i "error\|
 # 5. Pending invoices
 echo ""
 echo "Pending Invoices:"
-docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U cerniq -c "
+docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U c3rn1q -c "
     SELECT status, count(*) 
     FROM efactura_submissions 
     WHERE created_at > NOW() - INTERVAL '24 hours'
@@ -1374,7 +1374,7 @@ COMPOSE_FILE="/opt/cerniq/docker-compose.etapa3.yml"
 
 # Get failed invoices
 echo "Failed invoices in last 24h:"
-docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U cerniq -c "
+docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U c3rn1q -c "
     SELECT id, invoice_number, error_code, error_message, attempts
     FROM efactura_submissions
     WHERE status = 'failed'
@@ -1387,7 +1387,7 @@ read -p "Retry all listed invoices? (yes/no): " CONFIRM
 [ "$CONFIRM" != "yes" ] && exit 0
 
 # Queue for retry
-docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U cerniq -c "
+docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U c3rn1q -c "
     UPDATE efactura_submissions
     SET status = 'pending_retry', 
         next_retry_at = NOW() + INTERVAL '5 minutes'
@@ -1459,7 +1459,7 @@ GROUP BY approval_type, priority;
 COMPOSE_FILE="/opt/cerniq/docker-compose.etapa3.yml"
 
 # Auto-escalate breached approvals
-docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U cerniq -c "
+docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U c3rn1q -c "
     UPDATE hitl_approvals
     SET 
         escalation_level = escalation_level + 1,
@@ -1502,7 +1502,7 @@ echo "=== DATABASE CONNECTION DIAGNOSTIC ==="
 # Current connections
 echo ""
 echo "Current Connections:"
-docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U cerniq -c "
+docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U c3rn1q -c "
     SELECT 
         datname,
         usename,
@@ -1519,7 +1519,7 @@ docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U cerniq -c "
 # Idle connections
 echo ""
 echo "Idle Connections (>5 minutes):"
-docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U cerniq -c "
+docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U c3rn1q -c "
     SELECT 
         pid,
         usename,
@@ -1536,7 +1536,7 @@ docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U cerniq -c "
 # Connection limits
 echo ""
 echo "Connection Limits:"
-docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U cerniq -c "
+docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U c3rn1q -c "
     SELECT 
         setting as max_connections,
         (SELECT count(*) FROM pg_stat_activity) as current_connections,
@@ -1550,7 +1550,7 @@ docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U cerniq -c "
 
 ```bash
 # Terminate idle connections
-docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U cerniq -c "
+docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U c3rn1q -c "
     SELECT pg_terminate_backend(pid)
     FROM pg_stat_activity
     WHERE state = 'idle'
@@ -1575,7 +1575,7 @@ COMPOSE_FILE="/opt/cerniq/docker-compose.etapa3.yml"
 
 # List long-running queries
 echo "Long Running Queries (>5 minutes):"
-docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U cerniq -c "
+docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U c3rn1q -c "
     SELECT 
         pid,
         usename,
@@ -1592,7 +1592,7 @@ docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U cerniq -c "
 
 read -p "Kill queries older than 5 minutes? (yes/no): " CONFIRM
 if [ "$CONFIRM" == "yes" ]; then
-    docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U cerniq -c "
+    docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U c3rn1q -c "
         SELECT pg_cancel_backend(pid)
         FROM pg_stat_activity
         WHERE state = 'active'
@@ -1953,13 +1953,13 @@ echo "✅ Services stopped"
 # Restore database
 echo ""
 echo "=== STEP 3: Restore Database ==="
-gunzip -c "$LATEST_BACKUP" | docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U cerniq
+gunzip -c "$LATEST_BACKUP" | docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U c3rn1q
 echo "✅ Database restored"
 
 # Verify integrity
 echo ""
 echo "=== STEP 4: Verify Integrity ==="
-docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U cerniq -c "
+docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U c3rn1q -c "
     SELECT 
         schemaname,
         tablename,
@@ -2069,7 +2069,7 @@ echo "========================================"
 echo ""
 echo "=== PostgreSQL Backup ==="
 PG_BACKUP="$BACKUP_DIR/postgresql/cerniq_${BACKUP_DATE}.sql.gz"
-docker compose -f "$COMPOSE_FILE" exec -T postgres pg_dumpall -U cerniq | gzip > "$PG_BACKUP"
+docker compose -f "$COMPOSE_FILE" exec -T postgres pg_dumpall -U c3rn1q | gzip > "$PG_BACKUP"
 echo "✅ PostgreSQL: $PG_BACKUP ($(du -h "$PG_BACKUP" | cut -f1))"
 
 # 2. Redis Backup
@@ -2523,28 +2523,28 @@ echo "========================================"
 # 1. Vacuum and Analyze
 echo ""
 echo "=== VACUUM ANALYZE ==="
-docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U cerniq -c "
+docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U c3rn1q -c "
     VACUUM (VERBOSE, ANALYZE);
 "
 
 # 2. Reindex
 echo ""
 echo "=== REINDEX ==="
-docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U cerniq -c "
+docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U c3rn1q -c "
     REINDEX DATABASE cerniq;
 "
 
 # 3. Update statistics
 echo ""
 echo "=== UPDATE STATISTICS ==="
-docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U cerniq -c "
+docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U c3rn1q -c "
     ANALYZE;
 "
 
 # 4. Check for bloat
 echo ""
 echo "=== BLOAT CHECK ==="
-docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U cerniq -c "
+docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U c3rn1q -c "
     SELECT 
         schemaname,
         tablename,
@@ -2560,7 +2560,7 @@ docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U cerniq -c "
 # 5. Archive old data
 echo ""
 echo "=== ARCHIVE OLD DATA ==="
-docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U cerniq -c "
+docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U c3rn1q -c "
     -- Archive conversations older than 90 days
     INSERT INTO conversations_archive 
     SELECT * FROM conversations 
@@ -2585,7 +2585,7 @@ docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U cerniq -c "
 # 6. Report
 echo ""
 echo "=== MAINTENANCE REPORT ==="
-docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U cerniq -c "
+docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U c3rn1q -c "
     SELECT 
         'Tables' as type, count(*) as count 
     FROM pg_tables WHERE schemaname = 'public'
@@ -2783,7 +2783,7 @@ capture_state() {
     docker compose -f "$COMPOSE_FILE" exec -T redis redis-cli INFO > "$STATE_DIR/redis.txt"
     
     # Database status
-    docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U cerniq -c "
+    docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U c3rn1q -c "
         SELECT * FROM pg_stat_activity;
     " > "$STATE_DIR/db_activity.txt"
     
@@ -3196,7 +3196,7 @@ docker compose -f /opt/cerniq/docker-compose.etapa3.yml logs -f <service>
 docker compose -f /opt/cerniq/docker-compose.etapa3.yml restart <service>
 
 # Conexiune PostgreSQL
-docker compose -f /opt/cerniq/docker-compose.etapa3.yml exec -it postgres psql -U cerniq
+docker compose -f /opt/cerniq/docker-compose.etapa3.yml exec -it postgres psql -U c3rn1q
 
 # Conexiune Redis
 docker compose -f /opt/cerniq/docker-compose.etapa3.yml exec -it redis redis-cli

@@ -152,7 +152,7 @@ networks:
 ```bash
 # Rețele neanelu_traefik
 $ docker inspect neanelu_traefik --format='...'
-cerniq_public: 172.27.0.3        # ← NOU
+cerniq_public: 172.29.10.3       # ← NOU
 neanelu_frontend_network: 172.25.0.2
 neanelu_public_net: 172.24.0.2
 ```

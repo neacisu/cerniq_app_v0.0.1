@@ -49,7 +49,7 @@
   "default-address-pools": [
     {"base": "172.20.0.0/16", "size": 24}
   ],
-  "metrics-addr": "0.0.0.0:64093"
+  "metrics-addr": "0.0.0.0:64094"
 }
 ```
 
@@ -90,7 +90,7 @@ networks:
 | :--- | :--- | :--- | :--- |
 | 64080 | Traefik HTTP | Public (via Nginx) | Mapat din container :80 |
 | 64443 | Traefik HTTPS | Public (via Nginx) | Mapat din container :443 |
-| 64081 | Traefik Dashboard | Admin (via Nginx) | Mapat din container :64081 |
+| 64093 | Traefik Dashboard | Admin (via Nginx) | Mapat din container :64093 |
 | 64000 | API Gateway | Intern/Debug | Fastify (via Traefik în prod) |
 | 64070 | OTel gRPC | Intern | Traces/Metrics |
 | 64071 | OTel HTTP | Intern | Logs |
@@ -528,7 +528,7 @@ borg create \
   "taskID": "F0.2.1.T001",
   "denumire_task": "Creare Docker Compose pentru PostgreSQL 18.1 cu PostGIS",
   "context_anterior": "Rețele Docker create în F0.1.2, PostgreSQL nu e instalat",
-  "descriere_task": "Ești un expert DBA PostgreSQL cu experiență în containerizare. Task-ul tău este să creezi serviciul PostgreSQL în docker-compose.yml. Folosește imaginea postgis/postgis:18-3.6 (include PostGIS). Configurează: volume pentru persistență la /var/lib/postgresql/data, network cerniq_data (intern ONLY - NU expune portul 64032 public), environment variables pentru POSTGRES_USER, POSTGRES_PASSWORD (din secret), POSTGRES_DB=cerniq_production, healthcheck cu pg_isready, shm_size: 4gb pentru shared memory, deploy resources cu memory limit 32G. NU expune portul 64032 la host în production - doar intern.",
+  "descriere_task": "Ești un expert DBA PostgreSQL cu experiență în containerizare. Task-ul tău este să creezi serviciul PostgreSQL în docker-compose.yml. Folosește imaginea postgis/postgis:18-3.6 (include PostGIS). Configurează: volume pentru persistență la /var/lib/postgresql/data, network cerniq_data (intern ONLY - NU expune portul 64032 public), environment variables pentru POSTGRES_USER, POSTGRES_PASSWORD (din secret), POSTGRES_DB=cerniq, healthcheck cu pg_isready, shm_size: 4gb pentru shared memory, deploy resources cu memory limit 32G. NU expune portul 64032 la host în production - doar intern.",
   "director_implementare": "/var/www/CerniqAPP/infra/docker",
   "restrictii_antihalucinatie": [
     "NU expune port 64032 la 0.0.0.0",

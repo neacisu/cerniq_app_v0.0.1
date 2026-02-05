@@ -18,6 +18,7 @@ import { execSync } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
 import * as yaml from "yaml";
+import { CERNIQ_PORTS } from "../../helpers/ports";
 
 // =============================================================================
 // Test Configuration
@@ -59,11 +60,7 @@ export const EXPECTED_PGBOUNCER_CONFIG = {
   authType: "scram-sha-256",
 } as const;
 
-// Port Matrix (per ADR-0102 - Cerniq uses 64xxx range to avoid conflicts)
-export const CERNIQ_PORTS = {
-  postgres: 64032,
-  pgbouncer: 64033,
-} as const;
+// Port Matrix per ADR-0022 is provided by shared test helpers.
 
 // =============================================================================
 // Utility Functions
@@ -189,7 +186,7 @@ describe("F0.2.1.T001: PostgreSQL Service in docker-compose.yml", () => {
     const services = (dockerCompose as Record<string, unknown>)
       ?.services as Record<string, unknown>;
     const postgres = services?.postgres as Record<string, unknown>;
-    expect(postgres?.image).toBe("cerniq/postgres:18-pgvector");
+    expect(postgres?.image).toBe("postgis/postgis:18-3.6");
   });
 
   it("should configure correct environment variables", () => {
@@ -239,7 +236,7 @@ describe("F0.2.1.T001: PostgreSQL Service in docker-compose.yml", () => {
     const postgres = services?.postgres as Record<string, unknown>;
     const networks = postgres?.networks as Record<string, unknown>;
     const dataNetwork = networks?.cerniq_data as Record<string, unknown>;
-    expect(dataNetwork?.ipv4_address).toBe("172.29.0.10");
+    expect(dataNetwork?.ipv4_address).toBe("172.29.30.10");
   });
 
   it("should NOT expose ports (security)", () => {
@@ -260,12 +257,13 @@ describe("F0.2.1.T001: PostgreSQL Service in docker-compose.yml", () => {
     );
   });
 
-  it("should use postgres_password secret", () => {
+  it("should mount postgres_password.txt from secrets directory", () => {
     const services = (dockerCompose as Record<string, unknown>)
       ?.services as Record<string, unknown>;
     const postgres = services?.postgres as Record<string, unknown>;
-    const secrets = postgres?.secrets as string[];
-    expect(secrets).toContain("postgres_password");
+    const volumes = postgres?.volumes as string[];
+    const joined = Array.isArray(volumes) ? volumes.join(" ") : String(volumes);
+    expect(joined).toContain("postgres_password.txt");
   });
 });
 
@@ -417,12 +415,12 @@ describe("F0.2.1.T003: init.sql with Required Extensions", () => {
     expect(initSqlContent).toMatch(/CREATE SCHEMA.*audit/i);
   });
 
-  it("should create cerniq_app role", () => {
-    expect(initSqlContent).toMatch(/CREATE ROLE.*cerniq_app/i);
+  it("should create c3rn1q role", () => {
+    expect(initSqlContent).toMatch(/CREATE ROLE.*c3rn1q/i);
   });
 
-  it("should grant permissions to cerniq_app", () => {
-    expect(initSqlContent).toMatch(/GRANT.*TO\s+cerniq_app/i);
+  it("should grant permissions to c3rn1q", () => {
+    expect(initSqlContent).toMatch(/GRANT.*TO\s+c3rn1q/i);
   });
 
   it("should create updated_at trigger function", () => {
@@ -460,19 +458,9 @@ describe("F0.2.1.T004: PostgreSQL Password Secret", () => {
     expect(password).toMatch(/^[a-zA-Z0-9]+$/);
   });
 
-  it("should define secret in docker-compose.yml", () => {
+  it("should reference postgres_password.txt in docker-compose.yml", () => {
     const composeContent = readFile("infra/docker/docker-compose.yml");
-    const compose = parseYaml<Record<string, unknown>>(composeContent);
-    const secrets = (compose as Record<string, unknown>)?.secrets as Record<
-      string,
-      unknown
-    >;
-    expect(secrets).toHaveProperty("postgres_password");
-    const passwordSecret = secrets?.postgres_password as Record<
-      string,
-      unknown
-    >;
-    expect(passwordSecret?.file).toContain("postgres_password.txt");
+    expect(composeContent).toContain("postgres_password.txt");
   });
 });
 

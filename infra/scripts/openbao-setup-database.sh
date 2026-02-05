@@ -34,12 +34,12 @@ fi
 # Configuration (environment-aware)
 # =============================================================================
 
-BAO_ADDR="${BAO_ADDR:-http://127.0.0.1:64200}"
+BAO_ADDR="${BAO_ADDR:-http://127.0.0.1:64090}"
 BAO_CONTAINER="${BAO_CONTAINER:-cerniq-openbao}"
 SECRETS_DIR="${CERNIQ_SECRETS_DIR:-/var/www/CerniqAPP/secrets}"
 
 # PostgreSQL connection details
-PG_HOST="${PG_HOST:-172.29.0.10}"  # postgres on cerniq_data network
+PG_HOST="${PG_HOST:-172.29.30.10}"  # postgres on cerniq_data network
 PG_PORT="${PG_PORT:-5432}"
 PG_DATABASE="${PG_DATABASE:-cerniq}"
 PG_VAULT_USER="${PG_VAULT_USER:-cerniq_vault}"
@@ -124,7 +124,7 @@ log_info "Creating dynamic credential roles..."
 # API role - full access to all schemas
 bao_exec write database/roles/api-dynamic \
     db_name=cerniq-postgres \
-    creation_statements="CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}' INHERIT IN ROLE cerniq_app; GRANT USAGE ON ALL SCHEMAS IN DATABASE cerniq TO \"{{name}}\";" \
+    creation_statements="CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}' INHERIT IN ROLE c3rn1q; GRANT USAGE ON ALL SCHEMAS IN DATABASE cerniq TO \"{{name}}\";" \
     revocation_statements="DROP ROLE IF EXISTS \"{{name}}\";" \
     default_ttl="1h" \
     max_ttl="4h"
@@ -134,7 +134,7 @@ log_success "api-dynamic role created (1h default TTL)"
 # Workers role - full access to all schemas
 bao_exec write database/roles/workers-dynamic \
     db_name=cerniq-postgres \
-    creation_statements="CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}' INHERIT IN ROLE cerniq_app; GRANT USAGE ON ALL SCHEMAS IN DATABASE cerniq TO \"{{name}}\";" \
+    creation_statements="CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}' INHERIT IN ROLE c3rn1q; GRANT USAGE ON ALL SCHEMAS IN DATABASE cerniq TO \"{{name}}\";" \
     revocation_statements="DROP ROLE IF EXISTS \"{{name}}\";" \
     default_ttl="1h" \
     max_ttl="4h"

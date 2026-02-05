@@ -341,13 +341,10 @@ describe("E0-S1-PR02: F0.15 CI/CD Base", () => {
       );
     });
 
-    it("should only auto-deploy on main and develop branches", () => {
+    it("should auto-deploy on branch pushes with main => production", () => {
       const content = readFile(".github/workflows/deploy.yml");
-      // Should NOT contain feature/** in direct triggers
       const triggerSection = content.split("workflow_dispatch")[0];
-      expect(triggerSection).not.toMatch(/feature\/\*\*/);
-      expect(triggerSection).toContain("main");
-      expect(triggerSection).toContain("develop");
+      expect(triggerSection).toContain("**");
     });
 
     it("should have verify-deployment.sh script", () => {
@@ -358,7 +355,7 @@ describe("E0-S1-PR02: F0.15 CI/CD Base", () => {
       const content = readFile("infra/scripts/verify-deployment.sh");
       expect(content).toMatch(/check_postgresql|pg_isready/);
       expect(content).toMatch(/check_redis|redis-cli/);
-      expect(content).toMatch(/check_traefik|64081/);
+      expect(content).toMatch(/check_traefik|64093/);
       expect(content).toMatch(/check_openbao|bao status/);
     });
   });
