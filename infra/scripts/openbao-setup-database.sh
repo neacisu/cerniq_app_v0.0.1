@@ -19,12 +19,24 @@
 set -euo pipefail
 
 # =============================================================================
-# Configuration
+# Environment Detection
+# =============================================================================
+# Source environment detection to get CERNIQ_ENV and related variables
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -f "${SCRIPT_DIR}/detect-environment.sh" ]]; then
+    source "${SCRIPT_DIR}/detect-environment.sh"
+else
+    echo "ERROR: detect-environment.sh not found at ${SCRIPT_DIR}"
+    exit 1
+fi
+
+# =============================================================================
+# Configuration (environment-aware)
 # =============================================================================
 
 BAO_ADDR="${BAO_ADDR:-http://127.0.0.1:64200}"
 BAO_CONTAINER="${BAO_CONTAINER:-cerniq-openbao}"
-SECRETS_DIR="/var/www/CerniqAPP/secrets"
+SECRETS_DIR="${CERNIQ_SECRETS_DIR:-/var/www/CerniqAPP/secrets}"
 
 # PostgreSQL connection details
 PG_HOST="${PG_HOST:-172.29.0.10}"  # postgres on cerniq_data network

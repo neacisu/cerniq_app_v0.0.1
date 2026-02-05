@@ -25,18 +25,36 @@
 set -euo pipefail
 
 # =============================================================================
-# Configuration
+# Environment Detection
+# =============================================================================
+# Source environment detection to get CERNIQ_ENV and admin IPs per environment
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -f "${SCRIPT_DIR}/detect-environment.sh" ]]; then
+    source "${SCRIPT_DIR}/detect-environment.sh"
+    cerniq_env_info
+else
+    echo "ERROR: detect-environment.sh not found at ${SCRIPT_DIR}"
+    exit 1
+fi
+
+# =============================================================================
+# Configuration (environment-aware)
 # =============================================================================
 
-# Admin IPs (from user input)
-ADMIN_IPS=(
-    "92.180.19.237"
-    "95.216.225.145"
-    "94.130.68.123"
-    "135.181.183.164"
-    "95.216.72.100"
-    "95.216.72.118"
-)
+# Admin IPs - use environment-specific list from detect-environment.sh
+if [[ -n "${CERNIQ_ADMIN_IPS:-}" ]]; then
+    read -ra ADMIN_IPS <<< "$CERNIQ_ADMIN_IPS"
+else
+    # Fallback to hardcoded (staging has more IPs for development)
+    ADMIN_IPS=(
+        "92.180.19.237"
+        "95.216.225.145"
+        "94.130.68.123"
+        "135.181.183.164"
+        "95.216.72.100"
+        "95.216.72.118"
+    )
+fi
 
 # Ports to open publicly
 PUBLIC_PORTS=(

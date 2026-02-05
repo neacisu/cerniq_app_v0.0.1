@@ -254,6 +254,7 @@ services:
   # ==========================================================================
   # Reference: pgbouncer-connection-pooling.md, ADR-0004
   # Port: 6432 (internal only, accessed via cerniq_data + cerniq_backend)
+  # Security: Password read from Docker secret at runtime (F0.8.1)
   # ==========================================================================
   pgbouncer:
     image: edoburu/pgbouncer:latest
@@ -268,8 +269,10 @@ services:
     tmpfs:
       - /tmp:size=50M
       - /var/run/pgbouncer:size=10M
+    secrets:
+      - postgres_password
     environment:
-      DATABASE_URL: postgres://c3rn1q:${POSTGRES_PASSWORD}@postgres:5432/cerniq
+      # NOTE: DATABASE_URL built at runtime from secret (see command below)
       POOL_MODE: transaction
       MAX_CLIENT_CONN: 1000
       DEFAULT_POOL_SIZE: 50
@@ -283,6 +286,13 @@ services:
       LOG_CONNECTIONS: 1
       LOG_DISCONNECTIONS: 1
       VERBOSE: 0
+    # Security: Read password from Docker secret at runtime, not in env vars
+    command:
+      - /bin/sh
+      - -c
+      - |
+        export DATABASE_URL="postgres://c3rn1q:$$(cat /run/secrets/postgres_password)@postgres:5432/cerniq"
+        exec /entrypoint.sh
     networks:
       cerniq_data:
         ipv4_address: 172.29.0.11

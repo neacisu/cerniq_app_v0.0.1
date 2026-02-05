@@ -20,13 +20,25 @@
 set -euo pipefail
 
 # =============================================================================
-# Configuration
+# Environment Detection
+# =============================================================================
+# Source environment detection to get CERNIQ_ENV and related variables
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -f "${SCRIPT_DIR}/detect-environment.sh" ]]; then
+    source "${SCRIPT_DIR}/detect-environment.sh"
+else
+    echo "ERROR: detect-environment.sh not found at ${SCRIPT_DIR}"
+    exit 1
+fi
+
+# =============================================================================
+# Configuration (environment-aware)
 # =============================================================================
 
 BAO_ADDR="${BAO_ADDR:-http://127.0.0.1:64200}"
 BAO_CONTAINER="${BAO_CONTAINER:-cerniq-openbao}"
-SECRETS_DIR="/var/www/CerniqAPP/secrets"
-SCRIPTS_DIR="/var/www/CerniqAPP/infra/scripts"
+SECRETS_DIR="${CERNIQ_SECRETS_DIR:-/var/www/CerniqAPP/secrets}"
+SCRIPTS_DIR="${SCRIPT_DIR}"
 LOG_DIR="/var/log/cerniq"
 STORAGE_BOX="${HETZNER_STORAGEBOX:-u502048@u502048.your-storagebox.de}"
 STORAGE_BOX_PORT="${HETZNER_STORAGEBOX_PORT:-23}"
