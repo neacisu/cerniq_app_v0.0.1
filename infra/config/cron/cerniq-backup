@@ -1,0 +1,73 @@
+# /var/www/CerniqAPP/infra/config/cron/cerniq-backup
+# Cerniq Backup Schedule Configuration
+# Install: cp /var/www/CerniqAPP/infra/config/cron/cerniq-backup /etc/cron.d/
+# Reference: docs/infrastructure/backup-strategy.md
+# Task: F0.7.1.T003
+
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+SCRIPTS=/var/www/CerniqAPP/infra/scripts
+
+# Environment
+BORG_REPO=ssh://u502048@u502048.your-storagebox.de:23/./backups/cerniq/borg
+BORG_RSH="ssh -i /root/.ssh/hetzner_storagebox -o StrictHostKeyChecking=no"
+
+# ============================================================================
+# POSTGRESQL BACKUPS
+# ============================================================================
+
+# Critical tables backup - every hour at :15
+# Backs up approval_tasks, gold_companies, financial_transactions, etc.
+15 * * * * root $SCRIPTS/pg_dump_critical.sh >> /var/log/cerniq/cron.log 2>&1
+
+# Daily full dump - every day at 02:00
+# Full database dump with compression, uploaded to Storage Box
+0 2 * * * root $SCRIPTS/pg_dump_daily.sh >> /var/log/cerniq/cron.log 2>&1
+
+# Weekly base backup - every Sunday at 03:00
+# Physical backup for PITR support
+0 3 * * 0 root $SCRIPTS/pg_basebackup_weekly.sh >> /var/log/cerniq/cron.log 2>&1
+
+# ============================================================================
+# REDIS BACKUPS
+# ============================================================================
+
+# Hourly RDB snapshot - every hour at :30
+30 * * * * root $SCRIPTS/redis_backup_hourly.sh >> /var/log/cerniq/cron.log 2>&1
+
+# Daily AOF backup - every day at 02:30
+# After daily pg_dump to avoid overlapping heavy I/O
+30 2 * * * root $SCRIPTS/redis_backup_aof.sh >> /var/log/cerniq/cron.log 2>&1
+
+# ============================================================================
+# BORG BACKUPS
+# ============================================================================
+
+# Daily Borg incremental backup - every day at 04:00
+# After all other backups complete, includes local backup files
+0 4 * * * root BORG_PASSPHRASE=$(cat /var/www/CerniqAPP/secrets/borg_passphrase.txt) $SCRIPTS/borg_backup_daily.sh >> /var/log/cerniq/cron.log 2>&1
+
+# Weekly Borg integrity check - every Sunday at 05:00
+0 5 * * 0 root BORG_PASSPHRASE=$(cat /var/www/CerniqAPP/secrets/borg_passphrase.txt) $SCRIPTS/borg_check.sh >> /var/log/cerniq/cron.log 2>&1
+
+# ============================================================================
+# MAINTENANCE & MONITORING
+# ============================================================================
+
+# Backup health check - every 6 hours
+0 */6 * * * root BORG_PASSPHRASE=$(cat /var/www/CerniqAPP/secrets/borg_passphrase.txt) $SCRIPTS/backup_health_check.sh >> /var/log/cerniq/cron.log 2>&1
+
+# Storage Box space check - daily at 06:00
+0 6 * * * root $SCRIPTS/check_storagebox_space.sh >> /var/log/cerniq/cron.log 2>&1
+
+# WAL archive cleanup - daily at 01:00
+0 1 * * * root $SCRIPTS/cleanup_wal_archive.sh >> /var/log/cerniq/cron.log 2>&1
+
+# Monthly restore test - 1st of month at 07:00
+# Validates backup integrity by performing test restores
+0 7 1 * * root BORG_PASSPHRASE=$(cat /var/www/CerniqAPP/secrets/borg_passphrase.txt) $SCRIPTS/backup_restore_test.sh >> /var/log/cerniq/cron.log 2>&1
+
+# ============================================================================
+# LOG ROTATION
+# ============================================================================
+# Log rotation is handled by /etc/logrotate.d/cerniq-backup

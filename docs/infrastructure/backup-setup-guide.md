@@ -42,7 +42,7 @@ ssh-keygen -t ed25519 -f ~/.ssh/hetzner_backup -C "cerniq-backup"
 
 ```bash
 # Conectare la Storage Box
-ssh -i ~/.ssh/hetzner_backup uXXXXXX@uXXXXXX.your-storagebox.de -p 22
+ssh -i ~/.ssh/hetzner_storagebox u502048@u502048.your-storagebox.de -p 23
 
 # Creare structură
 mkdir -p ./backups/cerniq/{postgres,redis,files,borg}
@@ -52,9 +52,9 @@ mkdir -p ./backups/cerniq/{postgres,redis,files,borg}
 
 ```bash
 # Pe server-ul Cerniq
-export BORG_REPO="ssh://uXXXXXX@uXXXXXX.your-storagebox.de:22/./backups/cerniq/borg"
-export BORG_RSH="ssh -i ~/.ssh/hetzner_backup"
-export BORG_PASSPHRASE="<your-strong-passphrase>"
+export BORG_REPO="ssh://u502048@u502048.your-storagebox.de:23/./backups/cerniq/borg"
+export BORG_RSH="ssh -i ~/.ssh/hetzner_storagebox"
+export BORG_PASSPHRASE=$(cat /var/www/CerniqAPP/secrets/borg_passphrase.txt)
 
 # Inițializare repo
 borg init --encryption=repokey-blake2 $BORG_REPO
@@ -68,9 +68,9 @@ Adaugă în `.env.production` sau Docker secrets:
 
 ```bash
 # Hetzner Storage Box
-HETZNER_STORAGEBOX_USER=uXXXXXX
-HETZNER_STORAGEBOX_HOST=uXXXXXX.your-storagebox.de
-HETZNER_STORAGEBOX_PORT=22
+HETZNER_STORAGEBOX_USER=u502048
+HETZNER_STORAGEBOX_HOST=u502048.your-storagebox.de
+HETZNER_STORAGEBOX_PORT=23
 HETZNER_STORAGEBOX_PATH=./backups/cerniq
 
 # Borg
@@ -85,7 +85,7 @@ BACKUP_SSH_KEY=/run/secrets/hetzner_backup_key
 
 ```bash
 # Creare secrets
-echo "uXXXXXX" | docker secret create hetzner_user -
+echo "u502048" | docker secret create hetzner_user -
 cat ~/.ssh/hetzner_backup | docker secret create hetzner_backup_key -
 echo "<passphrase>" | docker secret create borg_passphrase -
 ```
@@ -97,9 +97,9 @@ echo "<passphrase>" | docker secret create borg_passphrase -
 ### Test SSH
 
 ```bash
-ssh -i ~/.ssh/hetzner_backup \
-    -p 22 \
-    uXXXXXX@uXXXXXX.your-storagebox.de \
+ssh -i ~/.ssh/hetzner_storagebox \
+    -p 23 \
+    u502048@u502048.your-storagebox.de \
     "ls -la ./backups/cerniq/"
 ```
 
@@ -147,8 +147,8 @@ ls -la
 
 ```bash
 # Verifică că SSH este activat pe Storage Box
-# Verifică port-ul (22)
-ssh -v -p 22 uXXXXXX@uXXXXXX.your-storagebox.de
+# Verifică port-ul (23 pentru borg, 22 pentru SSH în Hetzner Robot)
+ssh -v -p 23 u502048@u502048.your-storagebox.de
 ```
 
 ### Eroare: Permission denied

@@ -8,10 +8,12 @@ Audit complet al configurației CI/CD pentru proiectul Cerniq.app, verificând i
 | Environment | Status | Blocker |
 |-------------|--------|---------|
 | **Staging** | ✅ FUNCȚIONAL | - |
-| **Production** | ⚠️ NEPREGĂTIT | Secrets + Config lipsesc |
+| **Production** | ✅ FUNCȚIONAL | - |
+
+> **UPDATE 2026-02-04 22:30 UTC**: Production deployment complet. Toate containerele rulează healthy. PR #7 merged.
 
 **Proiecte pe Production care NU trebuie afectate:**
-- `wappbuss` (dev.neanelu.ro) - WhatsApp Business
+- `wappbuss` (dev.neanelu.ro) - WhatsApp Business ✅ VERIFIED RUNNING
 - `iwms-only` (IP direct) - IWMS
 
 ---
@@ -200,16 +202,16 @@ notAfter=May  4 12:49:10 2026 GMT  # ✅ Valid 3 luni
 | iwms-only | - | 3000, 3002 | IP direct (default) |
 
 **Status Cerniq pe Producție:**
-| Component | Status | Problemă |
-|-----------|--------|----------|
-| Networks cerniq_* | ✅ Există | - |
-| /opt/cerniq | ✅ Există | docker-compose.yml vechi (v1.0.1, 140 linii) |
+| Component | Status | Note |
+|-----------|--------|------|
+| Networks cerniq_* | ✅ Există | cerniq_public, cerniq_backend, cerniq_data |
+| /opt/cerniq | ✅ Complet | docker-compose.yml 453 linii (sincronizat) |
 | nginx config | ✅ Configurat | Proxy către 127.0.0.1:64080 |
 | SSL Certificate | ✅ Valid | Expiră 2026-05-04 |
-| **Secrets** | ❌ **LIPSESC** | /opt/cerniq/secrets/ este GOL |
-| **Config** | ❌ **LIPSESC** | /opt/cerniq/config/ este GOL |
-| **Traefik** | ⏳ Nepornit | Așteaptă CI/CD deployment |
-| **Containere** | ⏳ Niciunul | Așteaptă CI/CD deployment |
+| **Secrets** | ✅ **COMPLET** | postgres_password.txt, redis_password.txt, traefik_dashboard.htpasswd |
+| **Config** | ✅ **COMPLET** | postgres/, traefik/ |
+| **Traefik** | ✅ **RUNNING** | v3.6, healthy |
+| **Containere** | ✅ **5 RUNNING** | traefik, postgres, pgbouncer, redis, staging-proxy |
 
 ### 5.3 Neanelu (manager.neanelu.ro)
 
@@ -265,37 +267,33 @@ graph LR
 **Simptom:** HTTP 504 Gateway Timeout la staging.cerniq.app
 **Rezolvare:** Adăugat `cerniq_public` în docker-compose.yml Neanelu_Shopify
 
-### 7.2 🔴 CRITICĂ: docker-compose.yml pe producție este VECHI
+### 7.2 ✅ REZOLVAT: docker-compose.yml sincronizat pe producție
 
-**Problemă:** 
-- Producție: v1.0.1, 140 linii (din 2026-02-03)
-- Staging: v1.0.2, 453 linii (din 2026-02-04)
+**Problemă inițială:** 
+- Producție avea v1.0.1, 140 linii (din 2026-02-03)
+- Staging avea v1.0.2, 453 linii (din 2026-02-04)
 
-**Impact:** CI/CD va eșua deoarece fișierul nu conține:
-- Configurația pentru `staging-proxy` cu labels Traefik
-- Secretele pentru PostgreSQL, Redis
-- Serviciul Traefik actualizat la v3.6
+**Rezolvare:** CI/CD workflow actualizat - acum sincronizează docker-compose.yml și configs la fiecare deploy.
 
-**Rezolvare:** CI/CD workflow face `docker compose pull && docker compose up -d` dar NU actualizează docker-compose.yml. 
-Trebuie adăugat step de sincronizare în deploy workflow sau folosit git clone.
+**Status actual:**
+- Producție: 453 linii ✅
+- Staging: 453 linii ✅
 
-### 7.3 🔴 CRITICĂ: Secrets și Config LIPSESC pe producție
+### 7.3 ✅ REZOLVAT: Secrets și Config pe producție
 
-**Problemă:** 
+**Problemă inițială:** 
 ```
-/opt/cerniq/secrets/  → GOL (trebuie: postgres_password.txt, redis_password.txt, traefik_dashboard.htpasswd)
-/opt/cerniq/config/   → GOL (trebuie: postgres/postgresql.conf, postgres/init.sql, traefik/*)
+/opt/cerniq/secrets/  → GOL
+/opt/cerniq/config/   → GOL
 ```
 
-**Impact:** Docker compose va eșua la start:
+**Status actual:**
 ```
-ERROR: Cannot find secret file: /opt/cerniq/secrets/postgres_password.txt
+/opt/cerniq/secrets/  → 3 fișiere (postgres_password.txt, redis_password.txt, traefik_dashboard.htpasswd)
+/opt/cerniq/config/   → postgres/, traefik/
 ```
 
-**Rezolvare Necesară:**
-1. Generare secrete pe producție
-2. Copiere config files
-3. Sau modificare CI/CD să copieze și secretele
+**Rezolvare:** CI/CD workflow generează automat secretele la primul deploy dacă nu există.
 
 ### 7.4 ⚠️ ATENȚIE: Arhitectură diferită staging vs production
 
@@ -321,88 +319,65 @@ $ ss -tlnp | grep 64080
 
 ---
 
-## 8. ACȚIUNI NECESARE ÎNAINTE DE MERGE
+## 8. STATUS FINAL - TOATE ACȚIUNILE COMPLETATE
 
-### 8.1 🔴 PE PRODUCȚIE (SSH manual sau script)
+### 8.1 ✅ PE PRODUCȚIE - COMPLET
 
-```bash
-# 1. Generare secrete
-cd /opt/cerniq/secrets
-openssl rand -base64 32 > postgres_password.txt
-openssl rand -base64 32 > redis_password.txt
-htpasswd -nb admin $(openssl rand -base64 16) > traefik_dashboard.htpasswd
-chmod 600 *.txt *.htpasswd
-
-# 2. Copiere config files (de pe staging sau git)
-scp -r staging:/var/www/CerniqAPP/infra/config/* /opt/cerniq/config/
-
-# 3. Actualizare docker-compose.yml
-# Opțiunea A: Manual copy
-scp staging:/var/www/CerniqAPP/infra/docker/docker-compose.yml /opt/cerniq/
-
-# Opțiunea B: Git clone (recomandat)
-cd /opt && rm -rf cerniq
-git clone --depth 1 https://github.com/[org]/CerniqAPP.git cerniq-repo
-ln -s /opt/cerniq-repo/infra/docker /opt/cerniq
-```
-
-### 8.2 🔴 MODIFICARE CI/CD (deploy.yml)
-
-Workflow-ul actual NU sincronizează fișierele! Trebuie adăugat:
-
-```yaml
-- name: 🔄 Sync docker-compose and configs
-  run: |
-    ssh -i ~/.ssh/deploy_key $USER@$HOST << 'ENDSSH'
-      cd /opt/cerniq
-      
-      # Backup existing
-      cp docker-compose.yml docker-compose.yml.backup.$(date +%Y%m%d) 2>/dev/null || true
-      
-      # Git pull sau SCP
-      git pull origin main 2>/dev/null || echo "Not a git repo"
-    ENDSSH
-```
-
-### 8.3 ✅ PE GITHUB (Settings → Secrets)
-
-| Secret | Value | Note |
-|--------|-------|------|
-| `STAGING_HOST` | `135.181.183.164` | IP staging |
-| `STAGING_USER` | `root` | SSH user |
-| `STAGING_SSH_KEY` | (from .env base64 decode) | Ed25519 key |
-| `PRODUCTION_HOST` | `95.216.225.145` | IP production |
-| `PRODUCTION_USER` | `root` | SSH user |
-| `PRODUCTION_SSH_KEY` | (from .env base64 decode) | Ed25519 key |
-
-### 8.4 ✅ CREARE docker-compose.production.yml
-
-Pentru a gestiona diferențele între staging și production:
-
-```yaml
-# docker-compose.production.yml
-# Production override - no staging-proxy needed (nginx handles TLS)
-
-services:
-  staging-proxy:
-    deploy:
-      replicas: 0  # Disable on production
-      
-  traefik:
-    ports:
-      - "127.0.0.1:64080:64080"  # Only localhost, nginx proxies
-```
-
-### 8.5 ⚠️ VERIFICARE DUPĂ MERGE
+Toate secretele și config-urile au fost generate automat de CI/CD:
 
 ```bash
-# După CI/CD deploy, verifică:
-curl -sI https://cerniq.app
-# Expected: 502/503 (traefik starting) sau 404 (no services yet)
+# Secrets (auto-generated)
+/opt/cerniq/secrets/
+├── postgres_password.txt   # 45 bytes
+├── redis_password.txt      # 45 bytes  
+└── traefik_dashboard.htpasswd  # 44 bytes
 
-# Verifică containere
-ssh root@95.216.225.145 "docker ps | grep cerniq"
+# Config (synced from repo)
+/opt/cerniq/config/
+├── postgres/
+│   ├── postgresql.conf
+│   └── init.sql
+└── traefik/
+    ├── traefik.yml
+    └── dynamic/
 ```
+
+### 8.2 ✅ GITHUB SECRETS - COMPLET
+
+| Secret | Status | Updated |
+|--------|--------|---------|
+| `STAGING_HOST` | ✅ Configurat | about 1 day ago |
+| `STAGING_USER` | ✅ Configurat | about 1 day ago |
+| `STAGING_SSH_KEY` | ✅ Configurat | about 1 day ago |
+| `PRODUCTION_HOST` | ✅ Configurat | about 1 day ago |
+| `PRODUCTION_USER` | ✅ Configurat | about 1 day ago |
+| `PRODUCTION_SSH_KEY` | ✅ Configurat | about 1 day ago |
+
+### 8.3 ✅ CI/CD DEPLOY WORKFLOW - FUNCȚIONAL
+
+Ultimul deployment reușit:
+- **Run ID:** 21690412195
+- **Branch:** main
+- **Status:** ✅ Success (12m23s)
+- **Jobs:** Build, Scan, Deploy Staging (skipped - main branch), Deploy Production ✅
+
+### 8.4 ✅ CONTAINERE PRODUCTION - RUNNING
+
+```
+cerniq-traefik         Up 10 min (healthy)
+cerniq-postgres        Up 10 min (healthy)
+cerniq-pgbouncer       Up 10 min (healthy)
+cerniq-redis           Up 10 min (healthy)
+cerniq-staging-proxy   Up 10 min
+```
+
+### 8.5 ✅ ALTE PROIECTE NEAFECTATE
+
+Verificat pe production (95.216.225.145):
+- `wappbuss-backend-1` ✅ Running
+- `wappbuss-frontend-1` ✅ Running
+- `wappbuss-postgres-1` ✅ Running
+- `wappbuss-redis-1` ✅ Running
 
 ---
 
@@ -418,11 +393,19 @@ ssh root@95.216.225.145 "docker ps | grep cerniq"
 - ✅ Concurrency control în CI
 - ✅ SSL/TLS valid pe producție
 
-### 9.2 De Implementat
+### 9.2 Implementate în acest sprint (E0-S3-PR02)
 
-- ⬜ Git-based deployment (clone/pull în loc de docker-compose.yml static)
-- ⬜ Secrets provisioning automatizat
-- ⬜ docker-compose.production.yml pentru diferențe env
+- ✅ Git-based deployment (SCP sync de docker-compose și configs)
+- ✅ Secrets provisioning automatizat în CI/CD
+- ✅ Personalized tests per machine (staging vs production triggers)
+- ✅ HSTS configurat pe neanelu_traefik (staging)
+- ✅ Production deployment funcțional
+
+### 9.3 De implementat (viitor)
+
+- ⬜ docker-compose.production.yml pentru diferențe env specifice
+- ⬜ Blue-green deployment pentru zero-downtime
+- ⬜ Rollback automatizat la eșec
 
 ---
 
@@ -437,4 +420,5 @@ ssh root@95.216.225.145 "docker ps | grep cerniq"
 
 **Auditor:** GitHub Copilot  
 **Data:** 2026-02-04  
-**Versiune Document:** 1.1 (cu audit producție)
+**Ultima actualizare:** 2026-02-04 22:35 UTC  
+**Versiune Document:** 2.0 (POST-DEPLOYMENT - Production LIVE)
