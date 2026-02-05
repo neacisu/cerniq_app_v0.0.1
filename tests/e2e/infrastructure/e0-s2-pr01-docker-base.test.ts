@@ -505,11 +505,16 @@ describe("CI/CD: Deploy Workflow", () => {
     expect(branches).toContain("develop");
   });
 
-  it("should trigger on push to feature branches", () => {
+  it("should NOT auto-deploy feature branches (requires PR to develop)", () => {
+    // Security improvement: Feature branches must go through PR → develop → staging
+    // Direct auto-deploy on feature branches bypasses code review
     const on = deployWorkflow?.on as Record<string, unknown>;
     const push = on?.push as Record<string, unknown>;
     const branches = push?.branches as string[];
-    expect(branches).toContain("feature/**");
+    // Verify feature/** is NOT in direct triggers
+    expect(branches).not.toContain("feature/**");
+    expect(branches).not.toContain("feat/**");
+    expect(branches).not.toContain("fix/**");
   });
 
   it("should support auto-versioning (tags created by workflow, not triggers)", () => {
