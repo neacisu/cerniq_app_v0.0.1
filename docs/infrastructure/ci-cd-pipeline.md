@@ -212,6 +212,15 @@ CI Pipeline-ul ia secretele de test din OpenBao:
 - Path: `secret/data/cerniq/ci/test`
 - Keys: `pg_user`, `pg_password`, `redis_password`, `jwt_secret`
 
+**CI constraints (must match service containers):**
+- `pg_user` = `c3rn1q`
+- `pg_password` = `cerniq_ci`
+- `redis_password` empty string (Redis in CI has no password)
+
+**CI connectivity:**
+- `OPENBAO_ADDR` must be reachable from the self-hosted runner
+- If OpenBao is bound on `0.0.0.0:64090`, allowlist the runner IP in firewall
+
 ### 4.3 Workflow Integration
 
 ```yaml

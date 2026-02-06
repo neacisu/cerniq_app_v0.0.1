@@ -516,7 +516,7 @@ services:
   # OpenBao - Centralized Secrets Management
   # ==========================================================================
   # Reference: ADR-0033 OpenBao Secrets Management
-  # Port: 64090 (localhost only - security) - per etapa0-port-matrix.md reserved range 64090-64099
+  # Port: 64090 - per etapa0-port-matrix.md reserved range 64090-64099
   # Network: cerniq_backend (172.29.20.0/24)
   # 
   # OpenBao provides:
@@ -547,9 +547,8 @@ services:
       - ../config/openbao:/openbao/config:ro
     command: server -config=/openbao/config/openbao.hcl
     ports:
-      # API port - localhost only for security (64090 per port matrix)
-      # External access should be via Traefik or SSH tunnel
-      - "127.0.0.1:64090:8200"
+      # API port - bind all interfaces; restrict with firewall allowlist
+      - "64090:8200"
     networks:
       cerniq_backend:
         ipv4_address: 172.29.20.50

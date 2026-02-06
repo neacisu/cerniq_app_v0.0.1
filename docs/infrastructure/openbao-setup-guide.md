@@ -329,6 +329,15 @@ bao kv put secret/cerniq/ci/test \
   pg_password="$CI_PG_PASSWORD" \
   redis_password="$CI_REDIS_PASSWORD" \
   jwt_secret="$CI_JWT_SECRET"
+
+**CI NOTE (must match CI service containers):**
+- `pg_user` must be `c3rn1q`
+- `pg_password` must be `cerniq_ci`
+- `redis_password` should be empty (Redis in CI has no requirepass)
+
+**CI connectivity:**
+- `OPENBAO_ADDR` must be reachable from the self-hosted runner
+- If OpenBao is bound to `0.0.0.0:64090`, allowlist the runner IP in firewall
 ```
 
 ### Database Secrets Engine (Dynamic)

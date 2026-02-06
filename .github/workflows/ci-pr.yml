@@ -115,6 +115,13 @@ jobs:
       - name: 📥 Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: 🧰 Ensure jq is available
+        run: |
+          if ! command -v jq >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y jq
+          fi
+
       - name: 🔐 Fetch CI secrets from OpenBao
         env:
           OPENBAO_ADDR: ${{ secrets.OPENBAO_ADDR }}
@@ -141,13 +148,21 @@ jobs:
           require_value "OPENBAO_CICD_ROLE_ID" "$OPENBAO_CICD_ROLE_ID"
           require_value "OPENBAO_CICD_SECRET_ID" "$OPENBAO_CICD_SECRET_ID"
 
-          TOKEN=$(curl -s -X POST "${OPENBAO_ADDR}/v1/auth/approle/login" \
+          if ! curl -sS --fail --retry 5 --retry-connrefused --retry-delay 2 --max-time 10 \
+            "${OPENBAO_ADDR}/v1/sys/health" >/dev/null; then
+            echo "OpenBao not reachable at OPENBAO_ADDR" >&2
+            exit 1
+          fi
+
+          TOKEN=$(curl -sS --fail --retry 5 --retry-connrefused --retry-delay 2 --max-time 10 \
+            -X POST "${OPENBAO_ADDR}/v1/auth/approle/login" \
             -d "{\"role_id\":\"${OPENBAO_CICD_ROLE_ID}\",\"secret_id\":\"${OPENBAO_CICD_SECRET_ID}\"}" \
             | jq -r '.auth.client_token')
 
           require_value "OPENBAO_TOKEN" "$TOKEN"
 
-          SECRETS=$(curl -s -H "X-Vault-Token: $TOKEN" \
+          SECRETS=$(curl -sS --fail --retry 5 --retry-connrefused --retry-delay 2 --max-time 10 \
+            -H "X-Vault-Token: $TOKEN" \
             "${OPENBAO_ADDR}/v1/secret/data/cerniq/ci/test")
 
           CI_PG_USER=$(echo "$SECRETS" | jq -r '.data.data.pg_user')
@@ -157,6 +172,14 @@ jobs:
 
           require_value "pg_user" "$CI_PG_USER"
           require_value "pg_password" "$CI_PG_PASSWORD"
+          if [ "$CI_PG_USER" != "c3rn1q" ]; then
+            echo "OpenBao CI pg_user must be c3rn1q to match service container" >&2
+            exit 1
+          fi
+          if [ "$CI_PG_PASSWORD" != "cerniq_ci" ]; then
+            echo "OpenBao CI pg_password must match service container password" >&2
+            exit 1
+          fi
           if [ "$CI_REDIS_PASSWORD" = "null" ]; then
             echo "OpenBao secret missing: redis_password" >&2
             exit 1
