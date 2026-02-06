@@ -98,6 +98,11 @@ path "transit/decrypt/general" {
 # Token Self-Management
 # =============================================================================
 
+# Allow agent preflight capability checks
+path "sys/capabilities-self" {
+  capabilities = ["update"]
+}
+
 # Renew own token
 path "auth/token/renew-self" {
   capabilities = ["update"]

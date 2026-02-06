@@ -177,31 +177,31 @@ else
     log_fail "cerniq_data network missing"
 fi
 
-# Test: cerniq_public subnet is 172.27.0.0/24
-log_test "cerniq_public subnet is 172.27.0.0/24"
+# Test: cerniq_public subnet is 172.29.10.0/24
+log_test "cerniq_public subnet is 172.29.10.0/24"
 PUBLIC_SUBNET=$(docker network inspect cerniq_public --format '{{range .IPAM.Config}}{{.Subnet}}{{end}}' 2>/dev/null || echo "")
-if [[ "$PUBLIC_SUBNET" == "172.27.0.0/24" ]]; then
+if [[ "$PUBLIC_SUBNET" == "172.29.10.0/24" ]]; then
     log_pass "cerniq_public subnet: $PUBLIC_SUBNET"
 else
-    log_fail "cerniq_public subnet: $PUBLIC_SUBNET (expected 172.27.0.0/24)"
+    log_fail "cerniq_public subnet: $PUBLIC_SUBNET (expected 172.29.10.0/24)"
 fi
 
-# Test: cerniq_backend subnet is 172.28.0.0/24
-log_test "cerniq_backend subnet is 172.28.0.0/24"
+# Test: cerniq_backend subnet is 172.29.20.0/24
+log_test "cerniq_backend subnet is 172.29.20.0/24"
 BACKEND_SUBNET=$(docker network inspect cerniq_backend --format '{{range .IPAM.Config}}{{.Subnet}}{{end}}' 2>/dev/null || echo "")
-if [[ "$BACKEND_SUBNET" == "172.28.0.0/24" ]]; then
+if [[ "$BACKEND_SUBNET" == "172.29.20.0/24" ]]; then
     log_pass "cerniq_backend subnet: $BACKEND_SUBNET"
 else
-    log_fail "cerniq_backend subnet: $BACKEND_SUBNET (expected 172.28.0.0/24)"
+    log_fail "cerniq_backend subnet: $BACKEND_SUBNET (expected 172.29.20.0/24)"
 fi
 
-# Test: cerniq_data subnet is 172.29.0.0/24
-log_test "cerniq_data subnet is 172.29.0.0/24"
+# Test: cerniq_data subnet is 172.29.30.0/24
+log_test "cerniq_data subnet is 172.29.30.0/24"
 DATA_SUBNET=$(docker network inspect cerniq_data --format '{{range .IPAM.Config}}{{.Subnet}}{{end}}' 2>/dev/null || echo "")
-if [[ "$DATA_SUBNET" == "172.29.0.0/24" ]]; then
+if [[ "$DATA_SUBNET" == "172.29.30.0/24" ]]; then
     log_pass "cerniq_data subnet: $DATA_SUBNET"
 else
-    log_fail "cerniq_data subnet: $DATA_SUBNET (expected 172.29.0.0/24)"
+    log_fail "cerniq_data subnet: $DATA_SUBNET (expected 172.29.30.0/24)"
 fi
 
 # Test: cerniq_public is NOT internal
@@ -289,6 +289,23 @@ echo "=============================================="
 echo "F0.2.1: PostgreSQL 18.1 + PostGIS + pgvector"
 echo "=============================================="
 
+PG_HOST="localhost"
+PG_PORT="64032"
+PG_DB="cerniq"
+PG_USER="c3rn1q"
+PG_PASS_FILE="/opt/cerniq/secrets/postgres_password.txt"
+PG_PASS=""
+if [[ -f "$PG_PASS_FILE" ]]; then
+    PG_PASS=$(cat "$PG_PASS_FILE")
+else
+    log_skip "Postgres password file not found at $PG_PASS_FILE"
+fi
+
+pg_exec() {
+    docker exec -e PGPASSWORD="$PG_PASS" cerniq-postgres \
+        psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d "$PG_DB" -t -c "$1" 2>/dev/null
+}
+
 # Test: PostgreSQL container exists and is running
 log_test "cerniq-postgres container is running"
 PG_RUNNING=$(docker inspect -f '{{.State.Running}}' cerniq-postgres 2>/dev/null || echo "false")
@@ -309,7 +326,7 @@ fi
 
 # Test: PostgreSQL version is 18.x
 log_test "PostgreSQL version is 18.x"
-PG_VERSION=$(docker exec cerniq-postgres psql -U c3rn1q -d cerniq -t -c "SHOW server_version;" 2>/dev/null | tr -d ' ' || echo "0")
+PG_VERSION=$(pg_exec "SHOW server_version;" | tr -d ' ' || echo "0")
 if [[ "$PG_VERSION" == 18.* ]]; then
     log_pass "PostgreSQL version: $PG_VERSION"
 else
@@ -318,7 +335,7 @@ fi
 
 # Test: pgvector extension is installed
 log_test "pgvector extension (0.8.1) installed"
-PGVECTOR=$(docker exec cerniq-postgres psql -U c3rn1q -d cerniq -t -c "SELECT extversion FROM pg_extension WHERE extname = 'vector';" 2>/dev/null | tr -d ' ' || echo "")
+PGVECTOR=$(pg_exec "SELECT extversion FROM pg_extension WHERE extname = 'vector';" | tr -d ' ' || echo "")
 if [[ "$PGVECTOR" == "0.8.1" ]]; then
     log_pass "pgvector version: $PGVECTOR"
 else
@@ -327,7 +344,7 @@ fi
 
 # Test: PostGIS extension is installed
 log_test "PostGIS extension (3.6.1) installed"
-POSTGIS=$(docker exec cerniq-postgres psql -U c3rn1q -d cerniq -t -c "SELECT extversion FROM pg_extension WHERE extname = 'postgis';" 2>/dev/null | tr -d ' ' || echo "")
+POSTGIS=$(pg_exec "SELECT extversion FROM pg_extension WHERE extname = 'postgis';" | tr -d ' ' || echo "")
 if [[ "$POSTGIS" == "3.6.1" ]]; then
     log_pass "PostGIS version: $POSTGIS"
 else
@@ -336,7 +353,7 @@ fi
 
 # Test: pg_stat_statements is enabled
 log_test "pg_stat_statements extension enabled"
-PGSTAT=$(docker exec cerniq-postgres psql -U c3rn1q -d cerniq -t -c "SELECT extname FROM pg_extension WHERE extname = 'pg_stat_statements';" 2>/dev/null | tr -d ' ' || echo "")
+PGSTAT=$(pg_exec "SELECT extname FROM pg_extension WHERE extname = 'pg_stat_statements';" | tr -d ' ' || echo "")
 if [[ "$PGSTAT" == "pg_stat_statements" ]]; then
     log_pass "pg_stat_statements is enabled"
 else
@@ -345,7 +362,7 @@ fi
 
 # Test: WAL level is replica for PITR
 log_test "WAL level is replica (PITR)"
-WAL_LEVEL=$(docker exec cerniq-postgres psql -U c3rn1q -d cerniq -t -c "SHOW wal_level;" 2>/dev/null | tr -d ' ' || echo "")
+WAL_LEVEL=$(pg_exec "SHOW wal_level;" | tr -d ' ' || echo "")
 if [[ "$WAL_LEVEL" == "replica" ]]; then
     log_pass "WAL level: $WAL_LEVEL"
 else
@@ -354,7 +371,7 @@ fi
 
 # Test: Archive mode is on
 log_test "Archive mode is on"
-ARCHIVE_MODE=$(docker exec cerniq-postgres psql -U c3rn1q -d cerniq -t -c "SHOW archive_mode;" 2>/dev/null | tr -d ' ' || echo "")
+ARCHIVE_MODE=$(pg_exec "SHOW archive_mode;" | tr -d ' ' || echo "")
 if [[ "$ARCHIVE_MODE" == "on" ]]; then
     log_pass "Archive mode: $ARCHIVE_MODE"
 else
@@ -363,7 +380,7 @@ fi
 
 # Test: Medallion schemas exist
 log_test "Medallion schemas exist (bronze, silver, gold)"
-SCHEMAS=$(docker exec cerniq-postgres psql -U c3rn1q -d cerniq -t -c "SELECT COUNT(*) FROM information_schema.schemata WHERE schema_name IN ('bronze', 'silver', 'gold', 'approval', 'audit');" 2>/dev/null | tr -d ' ' || echo "0")
+SCHEMAS=$(pg_exec "SELECT COUNT(*) FROM information_schema.schemata WHERE schema_name IN ('bronze', 'silver', 'gold', 'approval', 'audit');" | tr -d ' ' || echo "0")
 if [[ "$SCHEMAS" -ge 5 ]]; then
     log_pass "Medallion schemas: $SCHEMAS found"
 else
@@ -395,7 +412,7 @@ fi
 
 # Test: PgBouncer is accepting connections
 log_test "PgBouncer is accepting connections"
-PGB_READY=$(docker exec cerniq-pgbouncer pg_isready -h localhost -p 5432 -U c3rn1q 2>&1 || echo "failed")
+PGB_READY=$(docker exec cerniq-pgbouncer pg_isready -h localhost -p 64033 -U c3rn1q 2>&1 || echo "failed")
 if [[ "$PGB_READY" == *"accepting connections"* ]]; then
     log_pass "PgBouncer is accepting connections"
 else
@@ -502,21 +519,21 @@ else
 fi
 
 # Test: Redis on cerniq_data network
-log_test "Redis on cerniq_data network (172.29.0.20)"
+log_test "Redis on cerniq_data network (172.29.30.20)"
 REDIS_DATA_IP=$(docker inspect -f '{{(index .NetworkSettings.Networks "cerniq_data").IPAddress}}' $REDIS_CONTAINER 2>/dev/null || echo "")
-if [[ "$REDIS_DATA_IP" == "172.29.0.20" ]]; then
+if [[ "$REDIS_DATA_IP" == "172.29.30.20" ]]; then
     log_pass "Redis on cerniq_data: $REDIS_DATA_IP"
 else
-    log_fail "Redis cerniq_data IP: $REDIS_DATA_IP (expected 172.29.0.20)"
+    log_fail "Redis cerniq_data IP: $REDIS_DATA_IP (expected 172.29.30.20)"
 fi
 
 # Test: Redis on cerniq_backend network
-log_test "Redis on cerniq_backend network (172.28.0.20)"
+log_test "Redis on cerniq_backend network (172.29.20.20)"
 REDIS_BACKEND_IP=$(docker inspect -f '{{(index .NetworkSettings.Networks "cerniq_backend").IPAddress}}' $REDIS_CONTAINER 2>/dev/null || echo "")
-if [[ "$REDIS_BACKEND_IP" == "172.28.0.20" ]]; then
+if [[ "$REDIS_BACKEND_IP" == "172.29.20.20" ]]; then
     log_pass "Redis on cerniq_backend: $REDIS_BACKEND_IP"
 else
-    log_fail "Redis cerniq_backend IP: $REDIS_BACKEND_IP (expected 172.28.0.20)"
+    log_fail "Redis cerniq_backend IP: $REDIS_BACKEND_IP (expected 172.29.20.20)"
 fi
 
 # Test: Redis AUTH is required
@@ -542,7 +559,7 @@ echo "=============================================="
 # Traefik configuration
 TRAEFIK_CONTAINER="cerniq-traefik"
 TRAEFIK_HTTP_PORT="64080"
-TRAEFIK_METRICS_PORT="64081"
+TRAEFIK_METRICS_PORT="64093"
 
 # Test: Traefik container exists and is running
 log_test "cerniq-traefik container is running"
@@ -641,7 +658,7 @@ echo "=============================================="
 
 # Test: Dashboard port is bound to localhost only
 log_test "Dashboard port bound to localhost only"
-DASHBOARD_BIND=$(docker inspect -f '{{range .HostConfig.PortBindings}}{{.}}{{end}}' $TRAEFIK_CONTAINER 2>/dev/null | grep 64081 || echo "")
+DASHBOARD_BIND=$(docker inspect -f '{{range .HostConfig.PortBindings}}{{.}}{{end}}' $TRAEFIK_CONTAINER 2>/dev/null | grep 64093 || echo "")
 if [[ "$DASHBOARD_BIND" == *"127.0.0.1"* ]]; then
     log_pass "Dashboard port bound to localhost"
 else

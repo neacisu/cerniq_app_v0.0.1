@@ -36,8 +36,8 @@ export const EXPECTED_REDIS_CONFIG = {
   appendfsync: "everysec",
   notifyKeyspaceEvents: "Ex",
   ipAddresses: {
-    cerniq_data: "172.29.0.20",
-    cerniq_backend: "172.28.0.20",
+    cerniq_data: "172.29.30.20",
+    cerniq_backend: "172.29.20.20",
   },
 } as const;
 
@@ -159,8 +159,8 @@ describe("F0.3.1.T001: Redis Service in docker-compose.yml", () => {
     expect(services).toHaveProperty("redis");
   });
 
-  it("should use Redis 8.4 Alpine image", () => {
-    expect(redisService?.image).toBe("redis:8.4-alpine");
+  it("should use Redis 8.4.0 image", () => {
+    expect(redisService?.image).toBe("redis:8.4.0");
   });
 
   it("should have container name cerniq-redis", () => {
@@ -208,12 +208,13 @@ describe("F0.3.1.T001: Redis Service in docker-compose.yml", () => {
     expect(commandStr).toContain("--notify-keyspace-events Ex");
   });
 
-  it("should use redis_password secret", () => {
-    const secrets = redisService?.secrets as string[];
-    expect(secrets).toContain("redis_password");
+  it("should mount redis_password.txt from secrets directory", () => {
+    const volumes = redisService?.volumes as string[];
+    const joined = Array.isArray(volumes) ? volumes.join(" ") : String(volumes);
+    expect(joined).toContain("redis_password.txt");
   });
 
-  it("should be on cerniq_data network with IP 172.29.0.20", () => {
+  it("should be on cerniq_data network with IP 172.29.30.20", () => {
     const networks = redisService?.networks as Record<string, unknown>;
     const dataNetwork = networks?.cerniq_data as Record<string, unknown>;
     expect(dataNetwork?.ipv4_address).toBe(
@@ -221,7 +222,7 @@ describe("F0.3.1.T001: Redis Service in docker-compose.yml", () => {
     );
   });
 
-  it("should be on cerniq_backend network with IP 172.28.0.20", () => {
+  it("should be on cerniq_backend network with IP 172.29.20.20", () => {
     const networks = redisService?.networks as Record<string, unknown>;
     const backendNetwork = networks?.cerniq_backend as Record<string, unknown>;
     expect(backendNetwork?.ipv4_address).toBe(
@@ -375,7 +376,7 @@ describe("F0.3.1.T003: Network Connectivity", () => {
   );
 
   it.skipIf(!REDIS_RUNNING)(
-    "should have correct IP on cerniq_data (172.29.0.20)",
+    "should have correct IP on cerniq_data (172.29.30.20)",
     () => {
       const ip = exec(
         `docker inspect -f '{{(index .NetworkSettings.Networks "cerniq_data").IPAddress}}' cerniq-redis`,
@@ -385,7 +386,7 @@ describe("F0.3.1.T003: Network Connectivity", () => {
   );
 
   it.skipIf(!REDIS_RUNNING)(
-    "should have correct IP on cerniq_backend (172.28.0.20)",
+    "should have correct IP on cerniq_backend (172.29.20.20)",
     () => {
       const ip = exec(
         `docker inspect -f '{{(index .NetworkSettings.Networks "cerniq_backend").IPAddress}}' cerniq-redis`,
@@ -400,7 +401,7 @@ describe("F0.3.1.T003: Network Connectivity", () => {
       // Test TCP connectivity from postgres to redis using bash built-in
       // (netcat may not be installed in PostgreSQL container)
       const result = exec(
-        `docker exec cerniq-postgres bash -c "timeout 2 bash -c '</dev/tcp/172.29.0.20/64039' 2>&1 && echo 'connected' || echo 'failed'"`,
+        `docker exec cerniq-postgres bash -c "timeout 2 bash -c '</dev/tcp/172.29.30.20/64039' 2>&1 && echo 'connected' || echo 'failed'"`,
       );
       // Should indicate connection worked
       expect(result).toContain("connected");

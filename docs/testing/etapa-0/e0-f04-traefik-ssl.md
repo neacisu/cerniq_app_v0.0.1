@@ -45,21 +45,21 @@ describe "TLS Configuration" {
 ```typescript
 describe('Traefik Configuration', () => {
   
-  it('should expose metrics on :64081', async () => {
-    const response = await fetch('http://localhost:64081/metrics');
+  it('should expose metrics on :64093', async () => {
+    const response = await fetch('http://localhost:64093/metrics');
     expect(response.status).toBe(200);
     expect(await response.text()).toContain('traefik_');
   });
   
   it('should have API router configured', async () => {
-    const response = await fetch('http://localhost:64081/api/http/routers');
+    const response = await fetch('http://localhost:64093/api/http/routers');
     const routers = await response.json();
     
     expect(routers.find(r => r.name.includes('api'))).toBeDefined();
   });
   
   it('should have rate limit middleware', async () => {
-    const response = await fetch('http://localhost:64081/api/http/middlewares');
+    const response = await fetch('http://localhost:64093/api/http/middlewares');
     const middlewares = await response.json();
     
     expect(middlewares.find(m => m.name.includes('ratelimit'))).toBeDefined();
@@ -74,7 +74,7 @@ describe('Traefik Configuration', () => {
 - [ ] TLS 1.2+ enforced
 - [ ] HTTP → HTTPS redirect
 - [ ] Valid SSL certificate
-- [ ] Metrics exposed :64081
+- [ ] Metrics exposed :64093
 - [ ] Rate limit middleware active
 
 ---

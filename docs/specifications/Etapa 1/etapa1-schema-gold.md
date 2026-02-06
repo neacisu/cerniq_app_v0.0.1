@@ -755,12 +755,12 @@ $$ LANGUAGE plpgsql;
 ## 4. GRANT-URI GOLD
 
 ```sql
-GRANT SELECT, INSERT, UPDATE, DELETE ON gold_companies TO cerniq_app;
-GRANT SELECT, INSERT, UPDATE, DELETE ON gold_contacts TO cerniq_app;
-GRANT SELECT, INSERT ON gold_lead_journey TO cerniq_app;
+GRANT SELECT, INSERT, UPDATE, DELETE ON gold_companies TO c3rn1q;
+GRANT SELECT, INSERT, UPDATE, DELETE ON gold_contacts TO c3rn1q;
+GRANT SELECT, INSERT ON gold_lead_journey TO c3rn1q;
 
-GRANT EXECUTE ON FUNCTION gold_compute_fit_score(gold_companies) TO cerniq_app;
-GRANT EXECUTE ON FUNCTION gold_get_dashboard_stats(UUID) TO cerniq_app;
+GRANT EXECUTE ON FUNCTION gold_compute_fit_score(gold_companies) TO c3rn1q;
+GRANT EXECUTE ON FUNCTION gold_get_dashboard_stats(UUID) TO c3rn1q;
 ```
 
 ---

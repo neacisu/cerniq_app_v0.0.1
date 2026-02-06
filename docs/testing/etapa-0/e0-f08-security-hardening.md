@@ -20,7 +20,7 @@ describe "Security Hardening" {
   }
   
   it "should have OpenBao running and unsealed" {
-    curl -s http://localhost:64200/v1/sys/health | jq -e '.sealed == false'
+    curl -s http://localhost:64090/v1/sys/health | jq -e '.sealed == false'
   }
   
   it "should have secrets directory protected" {

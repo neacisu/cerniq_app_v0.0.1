@@ -120,7 +120,7 @@ echo "failed jobs (API + DLQ)"
 
 # 6. Archive verification (scheduled task check)
 echo -e "\n[6/7] Pending Archive Records:"
-psql -U cerniq -c "SELECT COUNT(*) FROM gold_communication_log WHERE created_at < NOW() - INTERVAL '90 days'"
+psql -U c3rn1q -c "SELECT COUNT(*) FROM gold_communication_log WHERE created_at < NOW() - INTERVAL '90 days'"
 
 # 7. Backup verification
 echo -e "\n[7/7] Today's Backup:"
@@ -153,7 +153,7 @@ echo -e "\n=== Evening Check Complete ==="
 curl -s http://localhost:64000/api/v1/outreach/phones/{phoneId} | jq '.status'
 
 # 2. Check phone in database (direct)
-psql -U cerniq -c "SELECT id, phone_label, status, status_changed_at FROM wa_phone_numbers WHERE id = '{phone_id}'"
+psql -U c3rn1q -c "SELECT id, phone_label, status, status_changed_at FROM wa_phone_numbers WHERE id = '{phone_id}'"
 
 # 3. Check TimelinesAI connection
 curl -s "https://api.timelines.ai/v1/accounts/{timelinesai_account_id}/status" \
@@ -198,13 +198,13 @@ redis-cli -n 2 LLEN "bull:q:wa:phone_{XX}:waiting"
 curl -s http://localhost:64000/api/v1/outreach/phones/{phoneId} | jq '.status'
 
 # 2. Mark phone as banned in database (prevents new assignments)
-psql -U cerniq -c "UPDATE wa_phone_numbers SET status = 'BANNED', status_changed_at = NOW() WHERE id = '{phone_id}'"
+psql -U c3rn1q -c "UPDATE wa_phone_numbers SET status = 'BANNED', status_changed_at = NOW() WHERE id = '{phone_id}'"
 
 # 3. Reassign leads from banned phone (API method)
 curl -X POST http://localhost:64000/api/v1/outreach/phones/{phoneId}/reassign-leads
 
 # 4. Or reassign leads via SQL (direct method)
-psql -U cerniq -c "
+psql -U c3rn1q -c "
   UPDATE gold_lead_journey 
   SET assigned_phone_id = NULL, assigned_at = NULL
   WHERE assigned_phone_id = '{phone_id}'
@@ -235,7 +235,7 @@ echo "$(date): Phone {phoneId} banned. Reason: {suspected_reason}" >> /var/log/c
 #    - Get account_id from TimelinesAI dashboard
 
 # 2. Insert into database
-psql -U cerniq -c "
+psql -U c3rn1q -c "
   INSERT INTO wa_phone_numbers (
     tenant_id, phone_number, phone_label, timelinesai_account_id,
     status, daily_quota_limit, is_enabled
@@ -284,13 +284,13 @@ for i in {01..20}; do
 done
 
 # 2. Verify usage (Database method)
-for phone in $(psql -t -U cerniq -c "SELECT id FROM wa_phone_numbers WHERE status = 'ACTIVE'"); do
+for phone in $(psql -t -U c3rn1q -c "SELECT id FROM wa_phone_numbers WHERE status = 'ACTIVE'"); do
   usage=$(redis-cli GET "quota:wa:${phone}:$(date +%Y-%m-%d)")
   echo "Phone $phone: $usage/200"
 done
 
 # 3. Check for incorrect quota consumption (follow-ups incorrectly counted as new)
-psql -U cerniq << EOF
+psql -U c3rn1q << EOF
 SELECT quota_cost, COUNT(*) 
 FROM gold_communication_log 
 WHERE DATE(sent_at) = CURRENT_DATE 
@@ -299,7 +299,7 @@ GROUP BY quota_cost;
 EOF
 
 # 4. Check for quota leak (bug) - compare DB vs Redis
-psql -U cerniq -c "
+psql -U c3rn1q -c "
   SELECT phone_id, COUNT(*) as messages_today
   FROM gold_communication_log 
   WHERE created_at > CURRENT_DATE 
@@ -334,7 +334,7 @@ systemctl status cron
 grep quota /var/log/cron.log
 
 # 2. Verify quota:guardian:reset worker ran
-psql -U cerniq -c "
+psql -U c3rn1q -c "
   SELECT * FROM wa_quota_usage 
   WHERE usage_date = '$(date -d 'yesterday' +%Y-%m-%d)'
 "
@@ -462,7 +462,7 @@ curl -X POST http://localhost:64000/api/admin/queues/{queueName}/clean-failed?ag
 curl -s http://localhost:64000/api/v1/outreach/reviews?slaBreached=true
 
 # 2. Check queue depth by priority
-psql -U cerniq -c "
+psql -U c3rn1q -c "
   SELECT priority, status, COUNT(*)
   FROM human_review_queue
   WHERE created_at > NOW() - INTERVAL '24 hours'
@@ -500,7 +500,7 @@ curl -s http://localhost:64000/api/v1/outreach/analytics/sla-performance
 # - Specific reason type?
 
 # 2. Emergency assignment (if users available)
-psql -U cerniq -c "
+psql -U c3rn1q -c "
   UPDATE human_review_queue
   SET assigned_to = '{available_user_id}', 
       assigned_at = NOW(),
@@ -558,7 +558,7 @@ curl -s "https://api.instantly.ai/api/v2/campaign/{campaign_id}/analytics" \
 curl -s http://localhost:64000/api/v1/outreach/analytics/bounces?limit=100 | jq '.bounces[] | {email, bounceType, timestamp}'
 
 # 4. Identify bounced emails (database)
-psql -U cerniq -c "
+psql -U c3rn1q -c "
   SELECT email, bounce_reason, COUNT(*)
   FROM gold_communication_log 
   WHERE status = 'BOUNCED' 
@@ -611,7 +611,7 @@ echo "Reason: $1"
 pm2 stop workers-outreach
 
 # 2. Pause all sequences
-psql -U cerniq << EOF
+psql -U c3rn1q << EOF
 UPDATE outreach_sequences SET is_active = FALSE WHERE is_active = TRUE;
 EOF
 
@@ -677,14 +677,14 @@ echo "=== System Resumed ==="
 docker compose -f infra/docker/docker-compose.yml stop workers
 
 # 2. Restore from backup
-pg_restore -d cerniq_production /backups/daily/latest/cerniq.dump
+pg_restore -d cerniq /backups/daily/latest/cerniq.dump
 
 # 3. Verify data integrity
-psql -U cerniq -c "SELECT COUNT(*) FROM gold_lead_journey"
-psql -U cerniq -c "SELECT COUNT(*) FROM gold_communication_log"
+psql -U c3rn1q -c "SELECT COUNT(*) FROM gold_lead_journey"
+psql -U c3rn1q -c "SELECT COUNT(*) FROM gold_communication_log"
 
 # 4. Resync Redis quota counters from database
-psql -U cerniq -c "
+psql -U c3rn1q -c "
   SELECT phone_id, COUNT(*) as count
   FROM gold_communication_log 
   WHERE quota_cost = 1 
@@ -710,7 +710,7 @@ redis-cli -n 2 INFO | grep -A5 "# Keyspace"
 docker compose restart redis
 
 # 2. Regenerate quota counters from database
-psql -U cerniq -c "
+psql -U c3rn1q -c "
   SELECT phone_id, COUNT(*) as count
   FROM gold_communication_log 
   WHERE quota_cost = 1 
@@ -722,12 +722,12 @@ psql -U cerniq -c "
 done
 
 # 3. Regenerate phone status keys
-psql -U cerniq -c "SELECT id, status FROM wa_phone_numbers" | while read id status; do
+psql -U c3rn1q -c "SELECT id, status FROM wa_phone_numbers" | while read id status; do
   redis-cli SET "phone:status:${id}" "$status"
 done
 
 # 4. Reschedule pending follow-ups
-psql -U cerniq -c "
+psql -U c3rn1q -c "
   SELECT lead_id, next_action_at
   FROM gold_lead_journey
   WHERE next_action_at IS NOT NULL
@@ -780,7 +780,7 @@ echo "=== CERNIQ Weekly Maintenance ==="
 echo "Date: $(date)"
 
 # 1. Archive old communication logs
-psql -U cerniq << EOF
+psql -U c3rn1q << EOF
 INSERT INTO gold_communication_log_archive
 SELECT * FROM gold_communication_log
 WHERE created_at < NOW() - INTERVAL '90 days';
@@ -790,8 +790,8 @@ WHERE created_at < NOW() - INTERVAL '90 days';
 EOF
 
 # 2. Vacuum analyze
-psql -U cerniq -c "VACUUM ANALYZE gold_communication_log;"
-psql -U cerniq -c "VACUUM ANALYZE gold_lead_journey;"
+psql -U c3rn1q -c "VACUUM ANALYZE gold_communication_log;"
+psql -U c3rn1q -c "VACUUM ANALYZE gold_lead_journey;"
 
 # 3. Clear completed jobs older than 7 days
 curl -X POST http://localhost:64000/api/admin/queues/clean-completed?maxAge=604800

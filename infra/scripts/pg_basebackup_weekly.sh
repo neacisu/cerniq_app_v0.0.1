@@ -10,7 +10,7 @@ BACKUP_DIR="/var/backups/cerniq/postgresql/basebackup"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 LOG_FILE="/var/log/cerniq/basebackup.log"
 CONTAINER="cerniq-postgres"
-DB_USER="c3rn1q"
+DB_USER="cerniq"
 OUTPUT_DIR="$BACKUP_DIR/base_${TIMESTAMP}"
 
 # Hetzner Storage Box config

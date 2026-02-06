@@ -16,9 +16,9 @@
   },
   "default-address-pools": [
     {
-      "base": "172.27.0.0/16",
+      "base": "172.29.0.0/16",
       "size": 24
     }
   ],
-  "metrics-addr": "0.0.0.0:64093"
+  "metrics-addr": "0.0.0.0:64094"
 }

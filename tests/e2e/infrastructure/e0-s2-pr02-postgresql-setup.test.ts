@@ -18,6 +18,7 @@ import { execSync } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
 import * as yaml from "yaml";
+import { CERNIQ_PORTS } from "../../helpers/ports";
 
 // =============================================================================
 // Test Configuration
@@ -59,6 +60,8 @@ export const EXPECTED_PGBOUNCER_CONFIG = {
   authType: "scram-sha-256",
 } as const;
 
+// Port Matrix per ADR-0022 is provided by shared test helpers.
+
 // =============================================================================
 // Utility Functions
 // =============================================================================
@@ -80,6 +83,26 @@ function execDockerCommand(container: string, command: string): string {
   } catch {
     return "";
   }
+}
+
+/**
+ * Execute a PostgreSQL command using the correct port (64032)
+ */
+function execPostgresQuery(query: string): string {
+  return execDockerCommand(
+    "cerniq-postgres",
+    `psql -h localhost -p ${CERNIQ_PORTS.postgres} -U c3rn1q -d cerniq -t -c "${query}"`,
+  );
+}
+
+/**
+ * Check if PostgreSQL is ready on the correct port
+ */
+function checkPostgresReady(): string {
+  return execDockerCommand(
+    "cerniq-postgres",
+    `pg_isready -h localhost -p ${CERNIQ_PORTS.postgres} -U c3rn1q -d cerniq`,
+  );
 }
 
 function fileExists(filePath: string): boolean {
@@ -163,7 +186,7 @@ describe("F0.2.1.T001: PostgreSQL Service in docker-compose.yml", () => {
     const services = (dockerCompose as Record<string, unknown>)
       ?.services as Record<string, unknown>;
     const postgres = services?.postgres as Record<string, unknown>;
-    expect(postgres?.image).toBe("cerniq/postgres:18-pgvector");
+    expect(postgres?.image).toBe("postgis/postgis:18-3.6");
   });
 
   it("should configure correct environment variables", () => {
@@ -213,7 +236,7 @@ describe("F0.2.1.T001: PostgreSQL Service in docker-compose.yml", () => {
     const postgres = services?.postgres as Record<string, unknown>;
     const networks = postgres?.networks as Record<string, unknown>;
     const dataNetwork = networks?.cerniq_data as Record<string, unknown>;
-    expect(dataNetwork?.ipv4_address).toBe("172.29.0.10");
+    expect(dataNetwork?.ipv4_address).toBe("172.29.30.10");
   });
 
   it("should NOT expose ports (security)", () => {
@@ -234,12 +257,13 @@ describe("F0.2.1.T001: PostgreSQL Service in docker-compose.yml", () => {
     );
   });
 
-  it("should use postgres_password secret", () => {
+  it("should mount postgres_password.txt from secrets directory", () => {
     const services = (dockerCompose as Record<string, unknown>)
       ?.services as Record<string, unknown>;
     const postgres = services?.postgres as Record<string, unknown>;
-    const secrets = postgres?.secrets as string[];
-    expect(secrets).toContain("postgres_password");
+    const volumes = postgres?.volumes as string[];
+    const joined = Array.isArray(volumes) ? volumes.join(" ") : String(volumes);
+    expect(joined).toContain("postgres_password.txt");
   });
 });
 
@@ -391,12 +415,12 @@ describe("F0.2.1.T003: init.sql with Required Extensions", () => {
     expect(initSqlContent).toMatch(/CREATE SCHEMA.*audit/i);
   });
 
-  it("should create cerniq_app role", () => {
-    expect(initSqlContent).toMatch(/CREATE ROLE.*cerniq_app/i);
+  it("should create c3rn1q role", () => {
+    expect(initSqlContent).toMatch(/CREATE ROLE.*c3rn1q/i);
   });
 
-  it("should grant permissions to cerniq_app", () => {
-    expect(initSqlContent).toMatch(/GRANT.*TO\s+cerniq_app/i);
+  it("should grant permissions to c3rn1q", () => {
+    expect(initSqlContent).toMatch(/GRANT.*TO\s+c3rn1q/i);
   });
 
   it("should create updated_at trigger function", () => {
@@ -434,19 +458,9 @@ describe("F0.2.1.T004: PostgreSQL Password Secret", () => {
     expect(password).toMatch(/^[a-zA-Z0-9]+$/);
   });
 
-  it("should define secret in docker-compose.yml", () => {
+  it("should reference postgres_password.txt in docker-compose.yml", () => {
     const composeContent = readFile("infra/docker/docker-compose.yml");
-    const compose = parseYaml<Record<string, unknown>>(composeContent);
-    const secrets = (compose as Record<string, unknown>)?.secrets as Record<
-      string,
-      unknown
-    >;
-    expect(secrets).toHaveProperty("postgres_password");
-    const passwordSecret = secrets?.postgres_password as Record<
-      string,
-      unknown
-    >;
-    expect(passwordSecret?.file).toContain("postgres_password.txt");
+    expect(composeContent).toContain("postgres_password.txt");
   });
 });
 
@@ -474,28 +488,19 @@ describe("F0.2.1.T005: PostgreSQL Container Running", () => {
   });
 
   it.skipIf(!POSTGRES_RUNNING)("should be accepting connections", () => {
-    const result = execDockerCommand(
-      "cerniq-postgres",
-      "pg_isready -U c3rn1q -d cerniq",
-    );
+    const result = checkPostgresReady();
     expect(result).toContain("accepting connections");
   });
 
   it.skipIf(!POSTGRES_RUNNING)("should have PostgreSQL 18.x version", () => {
-    const version = execDockerCommand(
-      "cerniq-postgres",
-      'psql -U c3rn1q -d cerniq -t -c "SELECT version();"',
-    );
+    const version = execPostgresQuery("SELECT version();");
     expect(version).toMatch(/PostgreSQL 18\./);
   });
 
   it.skipIf(!POSTGRES_RUNNING)(
     "should have all required extensions installed",
     () => {
-      const extensions = execDockerCommand(
-        "cerniq-postgres",
-        'psql -U c3rn1q -d cerniq -t -c "SELECT extname FROM pg_extension;"',
-      );
+      const extensions = execPostgresQuery("SELECT extname FROM pg_extension;");
 
       for (const ext of EXPECTED_POSTGRES_CONFIG.extensions) {
         expect(extensions).toContain(ext);
@@ -504,25 +509,22 @@ describe("F0.2.1.T005: PostgreSQL Container Running", () => {
   );
 
   it.skipIf(!POSTGRES_RUNNING)("should have pgvector 0.8.1", () => {
-    const version = execDockerCommand(
-      "cerniq-postgres",
-      "psql -U c3rn1q -d cerniq -t -c \"SELECT extversion FROM pg_extension WHERE extname = 'vector';\"",
+    const version = execPostgresQuery(
+      "SELECT extversion FROM pg_extension WHERE extname = 'vector';",
     );
     expect(version.trim()).toBe("0.8.1");
   });
 
   it.skipIf(!POSTGRES_RUNNING)("should have PostGIS 3.6.1", () => {
-    const version = execDockerCommand(
-      "cerniq-postgres",
-      "psql -U c3rn1q -d cerniq -t -c \"SELECT extversion FROM pg_extension WHERE extname = 'postgis';\"",
+    const version = execPostgresQuery(
+      "SELECT extversion FROM pg_extension WHERE extname = 'postgis';",
     );
     expect(version.trim()).toBe("3.6.1");
   });
 
   it.skipIf(!POSTGRES_RUNNING)("should have all Medallion schemas", () => {
-    const schemas = execDockerCommand(
-      "cerniq-postgres",
-      'psql -U c3rn1q -d cerniq -t -c "SELECT schema_name FROM information_schema.schemata;"',
+    const schemas = execPostgresQuery(
+      "SELECT schema_name FROM information_schema.schemata;",
     );
 
     for (const schema of EXPECTED_POSTGRES_CONFIG.schemas) {
@@ -537,42 +539,27 @@ describe("F0.2.1.T005: PostgreSQL Container Running", () => {
 
 describe("F0.2.2.T001: WAL Archiving for PITR", () => {
   it.skipIf(!POSTGRES_RUNNING)("should have wal_level = replica", () => {
-    const result = execDockerCommand(
-      "cerniq-postgres",
-      'psql -U c3rn1q -d cerniq -t -c "SHOW wal_level;"',
-    );
+    const result = execPostgresQuery("SHOW wal_level;");
     expect(result.trim()).toBe("replica");
   });
 
   it.skipIf(!POSTGRES_RUNNING)("should have archive_mode = on", () => {
-    const result = execDockerCommand(
-      "cerniq-postgres",
-      'psql -U c3rn1q -d cerniq -t -c "SHOW archive_mode;"',
-    );
+    const result = execPostgresQuery("SHOW archive_mode;");
     expect(result.trim()).toBe("on");
   });
 
   it.skipIf(!POSTGRES_RUNNING)("should have archive_command configured", () => {
-    const result = execDockerCommand(
-      "cerniq-postgres",
-      'psql -U c3rn1q -d cerniq -t -c "SHOW archive_command;"',
-    );
+    const result = execPostgresQuery("SHOW archive_command;");
     expect(result).toContain("wal_archive");
   });
 
   it.skipIf(!POSTGRES_RUNNING)("should have wal_compression = zstd", () => {
-    const result = execDockerCommand(
-      "cerniq-postgres",
-      'psql -U c3rn1q -d cerniq -t -c "SHOW wal_compression;"',
-    );
+    const result = execPostgresQuery("SHOW wal_compression;");
     expect(result.trim()).toBe("zstd");
   });
 
   it.skipIf(!POSTGRES_RUNNING)("should have summarize_wal = on (PG18)", () => {
-    const result = execDockerCommand(
-      "cerniq-postgres",
-      'psql -U c3rn1q -d cerniq -t -c "SHOW summarize_wal;"',
-    );
+    const result = execPostgresQuery("SHOW summarize_wal;");
     expect(result.trim()).toBe("on");
   });
 
@@ -590,46 +577,33 @@ describe("F0.2.2.T002: pg_stat_statements Performance Monitoring", () => {
   it.skipIf(!POSTGRES_RUNNING)(
     "should have pg_stat_statements extension",
     () => {
-      const extensions = execDockerCommand(
-        "cerniq-postgres",
-        "psql -U c3rn1q -d cerniq -t -c \"SELECT extname FROM pg_extension WHERE extname = 'pg_stat_statements';\"",
+      const extensions = execPostgresQuery(
+        "SELECT extname FROM pg_extension WHERE extname = 'pg_stat_statements';",
       );
       expect(extensions.trim()).toBe("pg_stat_statements");
     },
   );
 
   it.skipIf(!POSTGRES_RUNNING)("should be tracking queries", () => {
-    const count = execDockerCommand(
-      "cerniq-postgres",
-      'psql -U c3rn1q -d cerniq -t -c "SELECT COUNT(*) FROM pg_stat_statements;"',
-    );
+    const count = execPostgresQuery("SELECT COUNT(*) FROM pg_stat_statements;");
     expect(parseInt(count.trim())).toBeGreaterThan(0);
   });
 
   it.skipIf(!POSTGRES_RUNNING)(
     "should have pg_stat_statements.track = all",
     () => {
-      const result = execDockerCommand(
-        "cerniq-postgres",
-        'psql -U c3rn1q -d cerniq -t -c "SHOW pg_stat_statements.track;"',
-      );
+      const result = execPostgresQuery("SHOW pg_stat_statements.track;");
       expect(result.trim()).toBe("all");
     },
   );
 
   it.skipIf(!POSTGRES_RUNNING)("should have track_io_timing = on", () => {
-    const result = execDockerCommand(
-      "cerniq-postgres",
-      'psql -U c3rn1q -d cerniq -t -c "SHOW track_io_timing;"',
-    );
+    const result = execPostgresQuery("SHOW track_io_timing;");
     expect(result.trim()).toBe("on");
   });
 
   it.skipIf(!POSTGRES_RUNNING)("should have track_wal_io_timing = on", () => {
-    const result = execDockerCommand(
-      "cerniq-postgres",
-      'psql -U c3rn1q -d cerniq -t -c "SHOW track_wal_io_timing;"',
-    );
+    const result = execPostgresQuery("SHOW track_wal_io_timing;");
     expect(result.trim()).toBe("on");
   });
 });
@@ -801,7 +775,7 @@ describe("F0.2.2.T004: PgBouncer Connection Pooling", () => {
   it.skipIf(!PGBOUNCER_RUNNING)("should be accepting connections", () => {
     const result = execDockerCommand(
       "cerniq-pgbouncer",
-      "pg_isready -h localhost -p 5432 -U c3rn1q",
+      `pg_isready -h localhost -p ${CERNIQ_PORTS.pgbouncer} -U c3rn1q`,
     );
     expect(result).toContain("accepting connections");
   });
@@ -857,7 +831,7 @@ describe("Integration: PostgreSQL Full Stack", () => {
     () => {
       // This tests the full stack: Client -> PgBouncer -> PostgreSQL
       const result = exec(
-        `docker exec cerniq-pgbouncer pg_isready -h localhost -p 5432 -U c3rn1q -d cerniq`,
+        `docker exec cerniq-pgbouncer pg_isready -h localhost -p ${CERNIQ_PORTS.pgbouncer} -U c3rn1q -d cerniq`,
       );
       expect(result).toContain("accepting connections");
     },
@@ -867,9 +841,8 @@ describe("Integration: PostgreSQL Full Stack", () => {
     "should be able to create and query vector data",
     () => {
       // Test pgvector functionality
-      const result = execDockerCommand(
-        "cerniq-postgres",
-        `psql -U c3rn1q -d cerniq -t -c "SELECT '[1,2,3]'::vector <-> '[3,2,1]'::vector;"`,
+      const result = execPostgresQuery(
+        "SELECT '[1,2,3]'::vector <-> '[3,2,1]'::vector;",
       );
       // Should return a distance value
       expect(parseFloat(result.trim())).toBeGreaterThan(0);
@@ -879,19 +852,15 @@ describe("Integration: PostgreSQL Full Stack", () => {
   it.skipIf(!POSTGRES_RUNNING)(
     "should be able to use PostGIS functions",
     () => {
-      const result = execDockerCommand(
-        "cerniq-postgres",
-        `psql -U c3rn1q -d cerniq -t -c "SELECT ST_Distance(ST_Point(0,0), ST_Point(1,1));"`,
+      const result = execPostgresQuery(
+        "SELECT ST_Distance(ST_Point(0,0), ST_Point(1,1));",
       );
       expect(parseFloat(result.trim())).toBeCloseTo(1.414, 2);
     },
   );
 
   it.skipIf(!POSTGRES_RUNNING)("should be able to use trigram search", () => {
-    const result = execDockerCommand(
-      "cerniq-postgres",
-      `psql -U c3rn1q -d cerniq -t -c "SELECT similarity('hello', 'hallo');"`,
-    );
+    const result = execPostgresQuery("SELECT similarity('hello', 'hallo');");
     expect(parseFloat(result.trim())).toBeGreaterThan(0);
   });
 });

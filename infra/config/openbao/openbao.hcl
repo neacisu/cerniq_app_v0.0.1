@@ -43,7 +43,7 @@ storage "raft" {
 # =============================================================================
 # TCP Listener
 # =============================================================================
-# Port 8200 internal - exposed as 64200 on localhost only via Docker
+# Port 8200 internal - exposed as 64090 on localhost only via Docker
 # TLS disabled internally - traffic secured by Docker network isolation
 # External access through Traefik with TLS termination
 # =============================================================================

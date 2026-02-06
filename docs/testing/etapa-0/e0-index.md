@@ -91,8 +91,8 @@ docker compose version --short | grep -q "^2\." && echo "✅ Compose OK"
 
 # F0.2 - PostgreSQL
 echo "[F0.2] Checking PostgreSQL..."
-docker exec cerniq-postgres psql -U cerniq -c "SELECT version();" | grep -q "PostgreSQL 18" && echo "✅ PostgreSQL OK"
-docker exec cerniq-postgres psql -U cerniq -c "SELECT extname FROM pg_extension;" | grep -q "pgvector" && echo "✅ pgvector OK"
+docker exec cerniq-postgres psql -U c3rn1q -c "SELECT version();" | grep -q "PostgreSQL 18" && echo "✅ PostgreSQL OK"
+docker exec cerniq-postgres psql -U c3rn1q -c "SELECT extname FROM pg_extension;" | grep -q "pgvector" && echo "✅ pgvector OK"
 
 # F0.3 - Redis
 echo "[F0.3] Checking Redis..."
@@ -101,7 +101,7 @@ docker exec cerniq-redis redis-cli CONFIG GET maxmemory-policy | grep -q "noevic
 
 # F0.4 - Traefik
 echo "[F0.4] Checking Traefik..."
-curl -sf http://localhost:64081/metrics > /dev/null && echo "✅ Traefik OK"
+curl -sf http://localhost:64093/metrics > /dev/null && echo "✅ Traefik OK"
 
 # F0.5 - SigNoz
 echo "[F0.5] Checking SigNoz..."

@@ -32,7 +32,7 @@ fi
 # Configuration (environment-aware)
 # =============================================================================
 
-BAO_ADDR="${BAO_ADDR:-http://127.0.0.1:64200}"
+BAO_ADDR="${BAO_ADDR:-http://127.0.0.1:64090}"
 BAO_CONTAINER="${BAO_CONTAINER:-cerniq-openbao}"
 SECRETS_DIR="${CERNIQ_SECRETS_DIR:-/var/www/CerniqAPP/secrets}"
 CONFIG_DIR="${CERNIQ_WORKSPACE:-/var/www/CerniqAPP}/infra/config/openbao"
@@ -146,6 +146,21 @@ bao_exec kv put secret/cerniq/ci/deploy \
     ssh_key="PLACEHOLDER_SSH_KEY"
 
 log_success "CI/CD secrets created at secret/cerniq/ci/deploy"
+
+# Create CI test secrets (placeholders)
+log_info "🧪 Creating CI test secrets (placeholders)..."
+
+CI_PG_PASSWORD="cerniq_ci"
+CI_REDIS_PASSWORD=""
+CI_JWT_SECRET=$(openssl rand -base64 48 | tr -d '\n')
+
+bao_exec kv put secret/cerniq/ci/test \
+    pg_user="c3rn1q" \
+    pg_password="$CI_PG_PASSWORD" \
+    redis_password="$CI_REDIS_PASSWORD" \
+    jwt_secret="$CI_JWT_SECRET"
+
+log_success "CI test secrets created at secret/cerniq/ci/test"
 
 # =============================================================================
 # 2. Database Secrets Engine (Dynamic PostgreSQL)

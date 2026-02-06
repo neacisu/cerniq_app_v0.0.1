@@ -388,7 +388,7 @@ pg_dumpall \
     | zstd -T0 -19 > "$BACKUP_DIR/cluster_${TIMESTAMP}.sql.zst"
 
 # Individual database dumps (for faster selective restore)
-for DB in cerniq_production cerniq_audit; do
+for DB in cerniq cerniq_audit; do
     pg_dump \
         -h /var/run/postgresql \
         -U postgres \
@@ -432,7 +432,7 @@ for TABLE in "${CRITICAL_TABLES[@]}"; do
     pg_dump \
         -h /var/run/postgresql \
         -U postgres \
-        -d cerniq_production \
+        -d cerniq \
         --table="$TABLE" \
         --format=custom \
         --compress=9 \
@@ -852,7 +852,7 @@ GPG_RECIPIENT="admin@cerniq.app"
 mkdir -p "$BACKUP_DIR"
 
 # Login to OpenBao
-export BAO_ADDR="http://127.0.0.1:64200"
+export BAO_ADDR="http://127.0.0.1:64090"
 export BAO_TOKEN=$(cat /root/.openbao_token)
 
 # Create Raft snapshot (includes all secrets)
@@ -1528,7 +1528,7 @@ TEMP_TABLE="${TABLE_NAME}_restored_$(date +%s)"
 pg_restore \
     -h /var/run/postgresql \
     -U postgres \
-    -d cerniq_production \
+    -d cerniq \
     --data-only \
     --table="$TABLE_NAME" \
     --no-owner \

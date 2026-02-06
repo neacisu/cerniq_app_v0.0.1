@@ -73,7 +73,7 @@ entryPoints:
   # Metrics and Dashboard entry point
   # Accessible only internally or via SSH tunnel
   metrics:
-    address: ":64081"
+    address: ":64093"
 
 # ============================================================================
 # Ping (Health Check)

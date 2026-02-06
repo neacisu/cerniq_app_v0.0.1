@@ -19,7 +19,7 @@ BACKUP_DIR="/var/backups/cerniq/postgresql/critical"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 LOG_FILE="/var/log/cerniq/critical_backup.log"
 CONTAINER="cerniq-postgres"
-DB_USER="c3rn1q"
+DB_USER="cerniq"
 DB_NAME="cerniq"
 
 mkdir -p "$BACKUP_DIR"

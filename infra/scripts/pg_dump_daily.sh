@@ -10,7 +10,7 @@ BACKUP_DIR="/var/backups/cerniq/postgresql/daily"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 LOG_FILE="/var/log/cerniq/daily_dump.log"
 CONTAINER="cerniq-postgres"
-DB_USER="c3rn1q"
+DB_USER="cerniq"
 DB_NAME="cerniq"
 OUTPUT_FILE="$BACKUP_DIR/cerniq_full_${TIMESTAMP}.dump"
 

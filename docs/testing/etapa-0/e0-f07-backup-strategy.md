@@ -19,7 +19,7 @@ describe "Backup Strategy" {
   }
   
   it "should run pg_dump" {
-    docker exec cerniq-postgres pg_dump -U cerniq cerniq_production > /tmp/test.sql
+    docker exec cerniq-postgres pg_dump -U c3rn1q cerniq > /tmp/test.sql
     [[ -s /tmp/test.sql ]]
   }
   

@@ -155,7 +155,7 @@ curl -s http://localhost:64000/health/ready | jq .
 # 3. Database connectivity
 echo ""
 echo "Checking PostgreSQL..."
-docker exec cerniq-postgres pg_isready -U cerniq -d cerniq_production
+docker exec cerniq-postgres pg_isready -U c3rn1q -d cerniq
 
 # 4. Redis connectivity
 echo ""
@@ -262,7 +262,7 @@ docker stop cerniq-api
 
 ```bash
 # Checkpoint before shutdown
-docker exec cerniq-postgres psql -U cerniq -c "CHECKPOINT;"
+docker exec cerniq-postgres psql -U c3rn1q -c "CHECKPOINT;"
 # Stop with longer timeout for WAL flush
 docker stop --time 60 cerniq-postgres
 ```
@@ -321,8 +321,8 @@ echo "Disk: ${DISK_USAGE}%"
 # 3. PostgreSQL
 echo ""
 echo "Checking PostgreSQL..."
-PG_CONNECTIONS=$(docker exec cerniq-postgres psql -U cerniq -t -c "SELECT count(*) FROM pg_stat_activity;" 2>/dev/null | tr -d ' ')
-PG_SIZE=$(docker exec cerniq-postgres psql -U cerniq -t -c "SELECT pg_size_pretty(pg_database_size('cerniq_production'));" 2>/dev/null | tr -d ' ')
+PG_CONNECTIONS=$(docker exec cerniq-postgres psql -U c3rn1q -t -c "SELECT count(*) FROM pg_stat_activity;" 2>/dev/null | tr -d ' ')
+PG_SIZE=$(docker exec cerniq-postgres psql -U c3rn1q -t -c "SELECT pg_size_pretty(pg_database_size('cerniq'));" 2>/dev/null | tr -d ' ')
 echo "PostgreSQL connections: $PG_CONNECTIONS"
 echo "PostgreSQL size: $PG_SIZE"
 
@@ -381,13 +381,13 @@ echo "=== HEALTH CHECK COMPLETE ==="
 ```bash
 #!/bin/bash
 # Run weekly via cron: 0 3 * * 0 (Sunday 3 AM)
-docker exec cerniq-postgres psql -U cerniq -d cerniq_production -c "VACUUM ANALYZE;"
+docker exec cerniq-postgres psql -U c3rn1q -d cerniq -c "VACUUM ANALYZE;"
 ```
 
 ### Check for Long-Running Queries
 
 ```bash
-docker exec cerniq-postgres psql -U cerniq -d cerniq_production -c "
+docker exec cerniq-postgres psql -U c3rn1q -d cerniq -c "
 SELECT pid, now() - pg_stat_activity.query_start AS duration, query, state
 FROM pg_stat_activity
 WHERE (now() - pg_stat_activity.query_start) > interval '5 minutes'
@@ -443,8 +443,8 @@ docker compose logs postgres --tail 50
 docker exec cerniq-api ping -c 3 postgres
 
 # 4. Check max_connections
-docker exec cerniq-postgres psql -U cerniq -c "SHOW max_connections;"
-docker exec cerniq-postgres psql -U cerniq -c "SELECT count(*) FROM pg_stat_activity;"
+docker exec cerniq-postgres psql -U c3rn1q -c "SHOW max_connections;"
+docker exec cerniq-postgres psql -U c3rn1q -c "SELECT count(*) FROM pg_stat_activity;"
 
 # 5. Check pg_hba.conf if authentication fails
 docker exec cerniq-postgres cat /var/lib/postgresql/data/pgdata/pg_hba.conf
@@ -454,7 +454,7 @@ docker exec cerniq-postgres cat /var/lib/postgresql/data/pgdata/pg_hba.conf
 
 ```bash
 # 1. Check for locks
-docker exec cerniq-postgres psql -U cerniq -d cerniq_production -c "
+docker exec cerniq-postgres psql -U c3rn1q -d cerniq -c "
 SELECT blocked_locks.pid AS blocked_pid,
        blocking_locks.pid AS blocking_pid,
        blocked_activity.usename AS blocked_user,
@@ -468,7 +468,7 @@ WHERE NOT blocked_locks.granted;
 "
 
 # 2. Check for missing indexes
-docker exec cerniq-postgres psql -U cerniq -d cerniq_production -c "
+docker exec cerniq-postgres psql -U c3rn1q -d cerniq -c "
 SELECT schemaname, relname, seq_scan, idx_scan
 FROM pg_stat_user_tables
 WHERE seq_scan > 1000 AND idx_scan < 100
@@ -476,26 +476,26 @@ ORDER BY seq_scan DESC;
 "
 
 # 3. Run VACUUM if needed
-docker exec cerniq-postgres psql -U cerniq -d cerniq_production -c "VACUUM ANALYZE;"
+docker exec cerniq-postgres psql -U c3rn1q -d cerniq -c "VACUUM ANALYZE;"
 ```
 
 ### Out of Disk Space
 
 ```bash
 # 1. Check database size
-docker exec cerniq-postgres psql -U cerniq -c "
+docker exec cerniq-postgres psql -U c3rn1q -c "
 SELECT pg_database.datname, pg_size_pretty(pg_database_size(pg_database.datname))
 FROM pg_database ORDER BY pg_database_size(pg_database.datname) DESC;
 "
 
 # 2. Check table sizes
-docker exec cerniq-postgres psql -U cerniq -d cerniq_production -c "
+docker exec cerniq-postgres psql -U c3rn1q -d cerniq -c "
 SELECT schemaname, relname, pg_size_pretty(pg_total_relation_size(schemaname||'.'||relname))
 FROM pg_stat_user_tables ORDER BY pg_total_relation_size(schemaname||'.'||relname) DESC LIMIT 10;
 "
 
 # 3. Clean up old WAL files (CAREFUL!)
-docker exec cerniq-postgres psql -U cerniq -c "SELECT pg_switch_wal();"
+docker exec cerniq-postgres psql -U c3rn1q -c "SELECT pg_switch_wal();"
 # Then prune old files from pg_wal
 ```
 
@@ -620,7 +620,7 @@ sleep 30
 docker exec -i cerniq-postgres psql -U postgres < /var/backups/databases/pg_dumpall.sql
 
 # 5. Verify
-docker exec cerniq-postgres psql -U cerniq -d cerniq_production -c "SELECT count(*) FROM gold_companies;"
+docker exec cerniq-postgres psql -U c3rn1q -d cerniq -c "SELECT count(*) FROM gold_companies;"
 
 echo "Recovery complete. Verify data integrity before starting other services."
 ```

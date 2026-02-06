@@ -193,7 +193,7 @@ check_networks() {
     log_section "Docker Networks Check"
     
     local networks=("cerniq_public" "cerniq_backend" "cerniq_data")
-    local subnets=("172.27.0.0/24" "172.28.0.0/24" "172.29.0.0/24")
+    local subnets=("172.29.10.0/24" "172.29.20.0/24" "172.29.30.0/24")
     local internal=("false" "true" "true")
     
     for i in "${!networks[@]}"; do
@@ -230,7 +230,7 @@ check_port_conflicts() {
     log_section "Port Availability Check (ADR-0022)"
     
     # Cerniq ports range
-    local ports=(64000 64010 64011 64032 64039 64042 64070 64071 64080 64081 64082 64083 64093)
+    local ports=(64000 64010 64011 64032 64039 64042 64070 64071 64080 64082 64083 64093)
     
     for port in "${ports[@]}"; do
         if ss -tuln 2>/dev/null | grep -q ":${port} "; then

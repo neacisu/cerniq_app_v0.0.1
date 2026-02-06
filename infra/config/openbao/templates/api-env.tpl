@@ -17,7 +17,7 @@ Version: 1.0
 # =============================================================================
 # Database Configuration
 # =============================================================================
-DATABASE_URL=postgresql://{{ .Data.data.pg_user }}:{{ .Data.data.pg_password }}@pgbouncer:6432/cerniq
+DATABASE_URL=postgresql://{{ .Data.data.pg_user }}:{{ .Data.data.pg_password }}@pgbouncer:64033/cerniq
 POSTGRES_USER={{ .Data.data.pg_user }}
 POSTGRES_PASSWORD={{ .Data.data.pg_password }}
 

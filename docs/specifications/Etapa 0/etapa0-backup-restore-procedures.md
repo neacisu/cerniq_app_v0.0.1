@@ -97,8 +97,8 @@ mkdir -p $BACKUP_DIR
 
 # 1. PostgreSQL dump
 echo "[1/4] Dumping PostgreSQL..."
-docker exec cerniq-postgres pg_dumpall -U cerniq > $BACKUP_DIR/pg_dumpall.sql
-docker exec cerniq-postgres pg_dump -U cerniq -Fc cerniq_production > $BACKUP_DIR/cerniq_production.dump
+docker exec cerniq-postgres pg_dumpall -U c3rn1q > $BACKUP_DIR/pg_dumpall.sql
+docker exec cerniq-postgres pg_dump -U c3rn1q -Fc cerniq > $BACKUP_DIR/cerniq.dump
 echo "PostgreSQL dump complete: $(du -h $BACKUP_DIR/pg_dumpall.sql | cut -f1)"
 
 # 2. Redis RDB snapshot
@@ -129,7 +129,7 @@ borg prune --verbose --stats \
     $BORG_REPO
 
 # Cleanup local dumps
-rm -f $BACKUP_DIR/pg_dumpall.sql $BACKUP_DIR/cerniq_production.dump
+rm -f $BACKUP_DIR/pg_dumpall.sql $BACKUP_DIR/cerniq.dump
 
 echo "=== BACKUP COMPLETE ==="
 borg info $BORG_REPO::$BACKUP_NAME
@@ -253,16 +253,16 @@ docker compose up -d postgres
 sleep 30
 
 # Drop and recreate database
-docker exec cerniq-postgres psql -U postgres -c "DROP DATABASE IF EXISTS cerniq_production;"
-docker exec cerniq-postgres psql -U postgres -c "CREATE DATABASE cerniq_production OWNER cerniq;"
+docker exec cerniq-postgres psql -U postgres -c "DROP DATABASE IF EXISTS cerniq;"
+docker exec cerniq-postgres psql -U postgres -c "CREATE DATABASE cerniq OWNER c3rn1q;"
 
 # Restore from dump
-docker exec -i cerniq-postgres psql -U cerniq -d cerniq_production < \
+docker exec -i cerniq-postgres psql -U c3rn1q -d cerniq < \
     $RESTORE_DIR/var/backups/cerniq/pg_dumpall.sql
 
 # 5. Verify and restart
 echo "[5/5] Verifying restore..."
-docker exec cerniq-postgres psql -U cerniq -d cerniq_production \
+docker exec cerniq-postgres psql -U c3rn1q -d cerniq \
     -c "SELECT count(*) FROM gold_companies;"
 
 # Start services

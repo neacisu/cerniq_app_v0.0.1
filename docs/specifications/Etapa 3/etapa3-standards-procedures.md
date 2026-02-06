@@ -1270,7 +1270,7 @@ git checkout $TARGET_VERSION
 
 # 5. Check if DB rollback needed
 echo "Checking database migrations..."
-CURRENT_MIGRATION=$(docker compose exec -T postgres psql -U cerniq -t -c "SELECT version FROM schema_migrations ORDER BY version DESC LIMIT 1")
+CURRENT_MIGRATION=$(docker compose exec -T postgres psql -U c3rn1q -t -c "SELECT version FROM schema_migrations ORDER BY version DESC LIMIT 1")
 TARGET_MIGRATION=$(cat db/migrations/latest)
 
 if [ "$CURRENT_MIGRATION" != "$TARGET_MIGRATION" ]; then
@@ -1410,7 +1410,7 @@ echo "$PENDING"
 echo ""
 echo "Creating pre-migration backup..."
 BACKUP_FILE="backup_pre_migration_$(date +%Y%m%d_%H%M%S).sql.gz"
-pg_dump -h localhost -U cerniq cerniq | gzip > /backup/$BACKUP_FILE
+pg_dump -h localhost -U c3rn1q cerniq | gzip > /backup/$BACKUP_FILE
 echo "Backup created: $BACKUP_FILE"
 
 # 3. Test on staging first (if production)
@@ -1443,7 +1443,7 @@ if [ $? -ne 0 ]; then
     echo ""
     echo "To rollback:"
     echo "  1. npm run db:migrate:rollback"
-    echo "  2. Or restore backup: gunzip -c /backup/$BACKUP_FILE | psql -U cerniq cerniq"
+    echo "  2. Or restore backup: gunzip -c /backup/$BACKUP_FILE | psql -U c3rn1q cerniq"
     exit 1
 fi
 

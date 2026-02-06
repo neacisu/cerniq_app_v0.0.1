@@ -32,7 +32,7 @@ Cerniq.app folosește **range 64000-64099** pentru toate serviciile interne. Acc
 | 64070 | OTel gRPC | cerniq_backend |
 | 64071 | OTel HTTP | cerniq_backend |
 | 64080 | SigNoz UI | cerniq_backend |
-| 64081 | Traefik Metrics | cerniq_backend |
+| 64093 | Traefik Metrics | cerniq_backend |
 | 64082 | ClickHouse HTTP | cerniq_backend |
 | 64083 | ClickHouse Native | cerniq_backend |
 

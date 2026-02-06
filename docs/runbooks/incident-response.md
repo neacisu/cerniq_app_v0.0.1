@@ -174,10 +174,10 @@ docker compose logs --tail=100 --since=5m redis
 #### Database Issues
 ```bash
 # Oprire conexiuni noi dacă DB overloaded
-docker compose exec postgres psql -U cerniq -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE state = 'idle' AND query_start < now() - interval '5 minutes';"
+docker compose exec postgres psql -U c3rn1q -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE state = 'idle' AND query_start < now() - interval '5 minutes';"
 
 # Verificare locks
-docker compose exec postgres psql -U cerniq -c "SELECT * FROM pg_locks WHERE NOT granted;"
+docker compose exec postgres psql -U c3rn1q -c "SELECT * FROM pg_locks WHERE NOT granted;"
 ```
 
 #### Worker Failures
@@ -407,7 +407,7 @@ Imediat după rezolvare, documentează:
 | Resursă | Link |
 |---------|------|
 | SigNoz Dashboard | http://localhost:64089 |
-| Traefik Dashboard | http://localhost:64081 |
+| Traefik Dashboard | http://localhost:64093 |
 | Database Recovery | [database-recovery.md](./database-recovery.md) |
 | Redis Failover | [redis-failover.md](./redis-failover.md) |
 | Worker Failures | [worker-failure.md](./worker-failure.md) |
