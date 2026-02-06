@@ -550,6 +550,8 @@ services:
       # API port - bind all interfaces; restrict with firewall allowlist
       - "64090:8200"
     networks:
+      cerniq_public:
+        ipv4_address: 172.29.10.50
       cerniq_backend:
         ipv4_address: 172.29.20.50
     healthcheck:
