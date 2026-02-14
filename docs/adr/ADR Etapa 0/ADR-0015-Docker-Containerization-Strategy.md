@@ -27,7 +27,7 @@ Utilizăm **Docker Engine 29.1.3** cu **Docker Compose v2.40+** pentru orchestra
     "nofile": {"Name": "nofile", "Soft": 65536, "Hard": 65536}
   },
   "default-address-pools": [
-    {"base": "172.20.0.0/16", "size": 24}
+    {"base": "172.29.0.0/16", "size": 24}
   ],
   "metrics-addr": "0.0.0.0:64094"
 }
@@ -41,17 +41,17 @@ networks:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.20.0.0/24
+        - subnet: 172.29.10.0/24
   cerniq_backend:    # API + Workers (intern)
     driver: bridge
     internal: true
     ipam:
       config:
-        - subnet: 172.21.0.0/24
+        - subnet: 172.29.20.0/24
   cerniq_data:       # PostgreSQL + Redis (strict intern)
     driver: bridge
     internal: true
     ipam:
       config:
-        - subnet: 172.22.0.0/24
+        - subnet: 172.29.30.0/24
 ```

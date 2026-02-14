@@ -24,20 +24,21 @@ import * as yaml from "yaml";
 
 const WORKSPACE_ROOT = process.env.WORKSPACE_ROOT || "/var/www/CerniqAPP";
 const IS_CI = process.env.CI === "true";
+const RUN_SERVER_TESTS = process.env.CERNIQ_RUN_SERVER_TESTS === "true";
 
-// Auto-detect if we can run server tests (have SSH access)
+// Server tests are intentionally opt-in.
+// These checks must be executed on the target server (CT109/CT110) where Docker
+// and /opt/cerniq exist, not on a developer workstation that merely has `.env`.
 function canRunServerTests(): boolean {
   if (IS_CI) return false; // Skip in CI - runs via validate-infrastructure.sh
+  if (!RUN_SERVER_TESTS) return false;
 
-  // Check if we have .env with credentials
-  const envPath = path.join(WORKSPACE_ROOT, ".env");
-  if (!fs.existsSync(envPath)) return false;
-
-  const envContent = fs.readFileSync(envPath, "utf-8");
-  return (
-    envContent.includes("STAGING_HOST") &&
-    envContent.includes("STAGING_PASSWORD")
-  );
+  try {
+    execSync("docker info >/dev/null 2>&1", { timeout: 5000 });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 const CAN_RUN_SERVER_TESTS = canRunServerTests();
@@ -351,9 +352,9 @@ describe("F0.1.2: Docker Networks Setup", () => {
       expect(networks?.cerniq_data?.external).toBe(true);
     });
 
-    it("should define postgres_data volume", () => {
+    it("should not define deprecated postgres_data volume", () => {
       const volumes = composeConfig?.volumes as Record<string, unknown>;
-      expect(volumes).toHaveProperty("postgres_data");
+      expect(volumes).not.toHaveProperty("postgres_data");
     });
 
     it("should define redis_data volume", () => {
@@ -361,14 +362,14 @@ describe("F0.1.2: Docker Networks Setup", () => {
       expect(volumes).toHaveProperty("redis_data");
     });
 
-    it("should define traefik_certs volume", () => {
+    it("should not define deprecated traefik_certs volume", () => {
       const volumes = composeConfig?.volumes as Record<string, unknown>;
-      expect(volumes).toHaveProperty("traefik_certs");
+      expect(volumes).not.toHaveProperty("traefik_certs");
     });
 
-    it("should define signoz_data volume", () => {
+    it("should not define deprecated signoz_data volume", () => {
       const volumes = composeConfig?.volumes as Record<string, unknown>;
-      expect(volumes).toHaveProperty("signoz_data");
+      expect(volumes).not.toHaveProperty("signoz_data");
     });
 
     it("should validate with docker compose config", () => {

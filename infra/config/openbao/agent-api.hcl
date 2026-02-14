@@ -45,7 +45,7 @@ auto_auth {
 # =============================================================================
 
 vault {
-  address = "http://openbao:8200"
+  address = "https://s3cr3ts.neanelu.ro"
   retry {
     num_retries = 5
   }

@@ -30,9 +30,9 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: '24.12.0'
-  PNPM_VERSION: '9'
-  PYTHON_VERSION: '3.14'
+  NODE_VERSION: '25.6.1'
+  PNPM_VERSION: '10.28.2'
+  PYTHON_VERSION: '3.14.3'
 
 jobs:
   # ===========================================================================
@@ -89,7 +89,7 @@ jobs:
           --health-timeout 5s
           --health-retries 5
       redis:
-        image: redis:8.4.0
+        image: redis:8.6.0
         ports:
           - 64039:6379
         options: >-
@@ -215,7 +215,8 @@ jobs:
         if: always()
         continue-on-error: true
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+          # NOTE: For private repos, configure CODECOV_TOKEN in GitHub Secrets
+          # and (optionally) re-add token here.
           fail_ci_if_error: false
 
   # ==========================================================================
@@ -265,7 +266,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 🔒 Run Trivy vulnerability scanner (filesystem)
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.34.0
         with:
           scan-type: 'fs'
           scan-ref: '.'
@@ -401,7 +402,7 @@ jobs:
 
       - name: 🏗️ Build API image
         if: steps.check-dockerfiles.outputs.dockerfiles_exist == 'true'
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6.19.2
         with:
           context: ./apps/api
           push: false
@@ -411,7 +412,7 @@ jobs:
 
       - name: 🏗️ Build Web image
         if: steps.check-dockerfiles.outputs.dockerfiles_exist == 'true'
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6.19.2
         with:
           context: ./apps/web
           push: false

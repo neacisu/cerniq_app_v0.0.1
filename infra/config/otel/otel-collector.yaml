@@ -1,0 +1,33 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch: {}
+  resource:
+    attributes:
+      - action: upsert
+        key: project
+        value: cerniq
+      - action: upsert
+        key: environment
+        value: ${env:CERNIQ_ENV}
+
+exporters:
+  otlphttp:
+    endpoint: https://otel-cerniq.neanelu.ro
+
+service:
+  pipelines:
+    traces:
+      receivers:
+        - otlp
+      processors:
+        - resource
+        - batch
+      exporters:
+        - otlphttp

@@ -177,10 +177,10 @@ check_daemon_config() {
     if grep -q '"metrics-addr"' "$daemon_file" 2>/dev/null; then
         local metrics_addr
         metrics_addr=$(grep -o '"metrics-addr"[[:space:]]*:[[:space:]]*"[^"]*"' "$daemon_file" | cut -d'"' -f4)
-        if [[ "$metrics_addr" == "0.0.0.0:64093" ]]; then
+        if [[ "$metrics_addr" == "0.0.0.0:64094" ]]; then
             log_success "Metrics endpoint: $metrics_addr"
         else
-            log_warning "Metrics endpoint is '$metrics_addr', expected '0.0.0.0:64093'"
+            log_warning "Metrics endpoint is '$metrics_addr', expected '0.0.0.0:64094'"
         fi
     else
         log_warning "Metrics endpoint not configured"
@@ -230,7 +230,7 @@ check_port_conflicts() {
     log_section "Port Availability Check (ADR-0022)"
     
     # Cerniq ports range
-    local ports=(64000 64010 64011 64032 64039 64042 64070 64071 64080 64082 64083 64093)
+    local ports=(64000 64010 64011 64012 64032 64033 64039 64070 64071 64082 64083 64089 64090 64094)
     
     for port in "${ports[@]}"; do
         if ss -tuln 2>/dev/null | grep -q ":${port} "; then

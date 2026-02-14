@@ -1,5 +1,5 @@
 /**
- * E0-S3-PR01: F0.3 Redis 8.4.0 + BullMQ Setup Tests
+ * E0-S3-PR01: F0.3 Redis 8.6.0 + BullMQ Setup Tests
  * ================================================
  * Validation tests for all tasks in Sprint 3 PR01
  *
@@ -131,7 +131,7 @@ const DOCKER_AVAILABLE = isDockerAvailable();
 const REDIS_RUNNING = DOCKER_AVAILABLE && isContainerRunning("cerniq-redis");
 
 // =============================================================================
-// F0.3.1.T001: Redis 8.4.0 Service in docker-compose.yml
+// F0.3.1.T001: Redis 8.6.0 Service in docker-compose.yml
 // =============================================================================
 
 describe("F0.3.1.T001: Redis Service in docker-compose.yml", () => {
@@ -159,8 +159,8 @@ describe("F0.3.1.T001: Redis Service in docker-compose.yml", () => {
     expect(services).toHaveProperty("redis");
   });
 
-  it("should use Redis 8.4.0 image", () => {
-    expect(redisService?.image).toBe("redis:8.4.0");
+  it("should use Redis 8.6.0 image", () => {
+    expect(redisService?.image).toBe("redis:8.6.0");
   });
 
   it("should have container name cerniq-redis", () => {
@@ -176,12 +176,12 @@ describe("F0.3.1.T001: Redis Service in docker-compose.yml", () => {
     expect(commandStr).toContain("--port 64039");
   });
 
-  it("should configure maxmemory 8gb (per ADR-0006)", () => {
+  it("should configure maxmemory via env var (staging/prod override)", () => {
     const command = redisService?.command as string[];
     const commandStr = Array.isArray(command)
       ? command.join(" ")
       : String(command);
-    expect(commandStr).toContain("--maxmemory 8gb");
+    expect(commandStr).toContain("--maxmemory ${REDIS_MAXMEMORY:-4gb}");
   });
 
   it("should configure maxmemory-policy noeviction (CRITICAL for BullMQ)", () => {
@@ -260,12 +260,13 @@ describe("F0.3.1.T001: Redis Service in docker-compose.yml", () => {
     expect(volumes).toHaveProperty("redis_data");
   });
 
-  it("should define redis_password secret in secrets section", () => {
+  it("should mount redis_password from file-based secret", () => {
     const secrets = (dockerCompose as Record<string, unknown>)
       ?.secrets as Record<string, unknown>;
-    expect(secrets).toHaveProperty("redis_password");
-    const redisSecret = secrets?.redis_password as Record<string, unknown>;
-    expect(redisSecret?.file).toContain("redis_password.txt");
+    expect(secrets).toBeUndefined();
+    const volumes = redisService?.volumes as string[];
+    const joined = Array.isArray(volumes) ? volumes.join(" ") : String(volumes);
+    expect(joined).toContain("redis_password.txt");
   });
 
   it("should have resource limits defined", () => {
@@ -615,7 +616,7 @@ describe("E0-S3-PR01 Sprint Summary", () => {
   it("should have Redis configured per ADR-0006", () => {
     const content = readFile("infra/docker/docker-compose.yml");
     expect(content).toContain("maxmemory-policy noeviction");
-    expect(content).toContain("maxmemory 8gb");
+    expect(content).toContain("maxmemory ${REDIS_MAXMEMORY:-4gb}");
     expect(content).toContain("appendonly yes");
   });
 

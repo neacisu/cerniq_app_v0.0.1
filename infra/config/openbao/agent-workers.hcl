@@ -45,7 +45,7 @@ auto_auth {
 # =============================================================================
 
 vault {
-  address = "http://openbao:8200"
+  address = "https://s3cr3ts.neanelu.ro"
   retry {
     num_retries = 5
   }
@@ -62,7 +62,7 @@ template {
   perms       = 0600
   
   # Send HUP signal to Python workers for graceful reload
-  command     = "pkill -HUP python 2>/dev/null || true"
+  command     = "pkill -HUP python3 2>/dev/null || true"
   
   # Error handling
   error_on_missing_key = true

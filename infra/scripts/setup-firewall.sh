@@ -9,7 +9,7 @@
 # This script configures:
 #   1. Default deny incoming
 #   2. Allow SSH from admin IPs only
-#   3. Allow HTTP/HTTPS from anywhere
+#   3. Allow HTTP/HTTPS from anywhere (ingress handled on orchestrator)
 #   4. Allow Docker internal networks
 #   5. Rate limiting
 # 
@@ -48,19 +48,18 @@ else
     # Fallback to hardcoded (staging has more IPs for development)
     ADMIN_IPS=(
         "92.180.19.237"
-        "95.216.225.145"
-        "94.130.68.123"
-        "135.181.183.164"
-        "95.216.72.100"
-        "95.216.72.118"
+        "10.0.1.107"
+        "10.0.1.108"
+        "10.0.1.109"
+        "10.0.1.110"
     )
 fi
 
 # Ports to open publicly (environment-aware)
 if is_production; then
     PUBLIC_PORTS=(
-        "80/tcp"    # HTTP (Traefik)
-        "443/tcp"   # HTTPS (Traefik)
+        "80/tcp"    # HTTP
+        "443/tcp"   # HTTPS
         "3000/tcp"  # IWMS API (temporary allow)
         "3002/tcp"  # IWMS UI (temporary allow)
         "5173/tcp"  # WMS v1 UI (temporary allow)
@@ -69,11 +68,8 @@ if is_production; then
     )
 else
     PUBLIC_PORTS=(
-        "80/tcp"    # HTTP (Traefik)
-        "443/tcp"   # HTTPS (Traefik)
-        "5000/tcp"  # Legacy allow (staging)
-        "5001/tcp"  # Legacy allow (staging)
-        "5002/tcp"  # Legacy allow (staging)
+        "80/tcp"    # HTTP
+        "443/tcp"   # HTTPS
     )
 fi
 

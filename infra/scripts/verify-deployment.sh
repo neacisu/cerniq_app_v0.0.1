@@ -112,13 +112,20 @@ check_redis() {
   fi
 }
 
-check_traefik() {
-  echo -n "  Traefik:        "
-  if curl -sf http://127.0.0.1:64093/ping >/dev/null 2>&1; then
-    check_pass "HEALTHY"
+check_ingress() {
+  local ingress_url
+  if [ "$CERNIQ_ENV" = "production" ]; then
+    ingress_url="https://cerniq.app"
+  else
+    ingress_url="https://staging.cerniq.app"
+  fi
+
+  echo -n "  Ingress:        "
+  if curl -skf "$ingress_url" >/dev/null 2>&1; then
+    check_pass "HEALTHY ($ingress_url)"
     return 0
   else
-    check_fail "NOT RESPONDING"
+    check_fail "NOT RESPONDING ($ingress_url)"
     return 1
   fi
 }
@@ -213,7 +220,7 @@ main() {
   check_postgresql
   check_pgbouncer
   check_redis
-  check_traefik
+  check_ingress
   check_openbao
   check_openbao_agents
   

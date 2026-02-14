@@ -23,7 +23,7 @@ services:
   #   - Password: (from /var/www/CerniqAPP/secrets/redis_password.txt)
   # ==========================================================================
   redisinsight:
-    image: redis/redisinsight:latest
+    image: redis/redisinsight:3.0.2
     container_name: cerniq-redisinsight
     restart: unless-stopped
     ports:

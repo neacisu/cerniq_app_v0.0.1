@@ -22,7 +22,7 @@ set -euo pipefail
 # Configuration
 # =============================================================================
 
-BAO_ADDR="${BAO_ADDR:-http://127.0.0.1:64090}"
+BAO_ADDR="${BAO_ADDR:-https://s3cr3ts.neanelu.ro}"
 BAO_CONTAINER="${BAO_CONTAINER:-cerniq-openbao}"
 SECRETS_DIR="/var/www/CerniqAPP/secrets"
 BACKUP_DIR="/var/backups/openbao"

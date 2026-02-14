@@ -1,0 +1,25 @@
+[sources.docker_logs]
+type = "docker_logs"
+
+[transforms.cerniq_enrich]
+type = "remap"
+inputs = ["docker_logs"]
+source = '''
+.project = "cerniq"
+.environment = get_env_var!("CERNIQ_ENV")
+.host = get_hostname!()
+'''
+
+[sinks.loki]
+type = "loki"
+inputs = ["cerniq_enrich"]
+endpoint = "https://logs.neanelu.ro"
+path = "/loki/api/v1/push"
+labels = { project = "cerniq", environment = "{{ environment }}", host = "{{ host }}" }
+
+[sinks.loki.healthcheck]
+enabled = false
+
+[sinks.loki.encoding]
+codec = "json"
+

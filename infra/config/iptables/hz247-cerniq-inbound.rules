@@ -1,0 +1,23 @@
+# Cerniq-specific additive FORWARD rules for hz.247
+# Scope:
+# - Orchestrator (10.0.0.2) can reach Cerniq app ports on CT 109/110
+# - Existing rules for other projects are NOT modified
+#
+# Apply using append semantics only, for example:
+#   iptables-restore --noflush < hz247-cerniq-inbound.rules
+# or add each rule with `iptables -A ...`
+
+*filter
+:INPUT ACCEPT [0:0]
+:FORWARD ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+
+# Orchestrator -> CT 109 (production app ports)
+-A FORWARD -s 10.0.0.2/32 -d 10.0.1.109/32 -p tcp -m multiport --dports 64000,64010,64012 -j ACCEPT
+-A FORWARD -d 10.0.0.2/32 -s 10.0.1.109/32 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+
+# Orchestrator -> CT 110 (staging app ports)
+-A FORWARD -s 10.0.0.2/32 -d 10.0.1.110/32 -p tcp -m multiport --dports 64000,64010,64012 -j ACCEPT
+-A FORWARD -d 10.0.0.2/32 -s 10.0.1.110/32 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+
+COMMIT

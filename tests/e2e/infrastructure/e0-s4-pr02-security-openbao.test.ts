@@ -25,19 +25,23 @@ import * as path from "path";
 
 const WORKSPACE_ROOT = process.env.WORKSPACE_ROOT || "/var/www/CerniqAPP";
 const IS_CI = process.env.CI === "true";
+const RUN_SERVER_TESTS = process.env.CERNIQ_RUN_SERVER_TESTS === "true";
 
-// Auto-detect if we can run server tests (have SSH access)
+// Server tests are intentionally opt-in.
+// Rationale: developers often have `.env` with server hosts, but running
+// `pnpm test` locally should not attempt to inspect remote containers/firewall.
 function canRunServerTests(): boolean {
   if (IS_CI) return false;
+  if (!RUN_SERVER_TESTS) return false;
 
-  const envPath = path.join(WORKSPACE_ROOT, ".env");
-  if (!fs.existsSync(envPath)) return false;
-
-  const envContent = fs.readFileSync(envPath, "utf-8");
-  return (
-    envContent.includes("STAGING_HOST") &&
-    envContent.includes("STAGING_PASSWORD")
-  );
+  // We expect these tests to be executed on the server itself (CT109/CT110),
+  // where docker/ufw/fail2ban are available.
+  try {
+    execSync("docker info >/dev/null 2>&1", { timeout: 5000 });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 const CAN_RUN_SERVER_TESTS = canRunServerTests();
@@ -241,21 +245,21 @@ describe("F0.8.2: Host-Level Security", () => {
 
 describe("F0.8.3: OpenBao Secrets Management", () => {
   describe("T001: OpenBao service configuration", () => {
-    it("should have openbao service in docker-compose.yml", () => {
+    it("should NOT have local openbao service in docker-compose.yml", () => {
       const content = readFile("infra/docker/docker-compose.yml");
-      expect(content).toContain("openbao:");
-      expect(content).toContain("quay.io/openbao/openbao");
+      expect(content).not.toMatch(/\n\s{2}openbao:\n/);
     });
 
-    it("should use correct OpenBao version", () => {
+    it("should keep OpenBao agent image pinned", () => {
       const content = readFile("infra/docker/docker-compose.yml");
-      expect(content).toContain(`openbao:${EXPECTED_OPENBAO_CONFIG.version}`);
+      expect(content).toContain(
+        `quay.io/openbao/openbao:${EXPECTED_OPENBAO_CONFIG.version}`,
+      );
     });
 
-    it("should expose OpenBao API port", () => {
+    it("should not expose local OpenBao API port", () => {
       const content = readFile("infra/docker/docker-compose.yml");
-      // Allow localhost-only or all-interfaces binding for CI access
-      expect(content).toMatch(/(127\.0\.0\.1:)?64090:8200/);
+      expect(content).not.toMatch(/64090:8200/);
     });
 
     it("should be on correct network", () => {
@@ -264,9 +268,9 @@ describe("F0.8.3: OpenBao Secrets Management", () => {
       expect(content).toContain("cerniq_backend");
     });
 
-    it("should have IPC_LOCK capability", () => {
+    it("should not require IPC_LOCK for local OpenBao server", () => {
       const content = readFile("infra/docker/docker-compose.yml");
-      expect(content).toContain("IPC_LOCK");
+      expect(content).not.toContain("IPC_LOCK");
     });
   });
 
@@ -500,25 +504,27 @@ describe("F0.8.6: CI/CD Integration", () => {
       expect(fileExists(".github/workflows/deploy.yml")).toBe(true);
     });
 
-    it("deploy workflow should have OpenBao health check for staging", () => {
+    it("deploy workflow should reference external OpenBao (staging)", () => {
       const content = readFile(".github/workflows/deploy.yml");
       expect(content.toLowerCase()).toContain("openbao");
-      expect(content).toContain("Health Check");
+      expect(content).toContain("s3cr3ts.neanelu.ro");
+      // Should verify AppRole credentials exist on host (agents rely on them)
+      expect(content).toContain("AppRole credentials present");
     });
 
-    it("deploy workflow should have OpenBao health check for production", () => {
+    it("deploy workflow should reference external OpenBao (production)", () => {
       const content = readFile(".github/workflows/deploy.yml");
       // Should have production-specific handling
       expect(content).toContain("Production");
-      expect(content.match(/sealed.*manual|manual.*unseal/i)).toBeTruthy();
+      expect(content).toContain("s3cr3ts.neanelu.ro");
     });
 
-    it("staging should have auto-unseal, production should not", () => {
+    it("deploy workflow should NOT attempt OpenBao init/unseal (external)", () => {
       const content = readFile(".github/workflows/deploy.yml");
-      // Staging section should mention auto-unseal
-      expect(content).toContain("auto-unseal");
-      // Production should require manual unseal
-      expect(content).toContain("manual unseal required");
+      // We do not run openbao init/unseal in this repo/CI; OpenBao runs on orchestrator.
+      expect(content.toLowerCase()).toContain(
+        "skipped: openbao server is external",
+      );
     });
   });
 });
@@ -576,18 +582,11 @@ describe("F0.8: Server Integration Tests", () => {
   const itServer = CAN_RUN_SERVER_TESTS ? it : it.skip;
 
   describe("OpenBao Server Tests (Server Required)", () => {
-    itServer("OpenBao container should be running", () => {
+    itServer("External OpenBao should be reachable", () => {
       const result = exec(
-        "docker ps --format '{{.Names}}' | grep cerniq-openbao",
+        "curl -skf https://s3cr3ts.neanelu.ro/v1/sys/health >/dev/null && echo ok",
       );
-      expect(result).toContain("cerniq-openbao");
-    });
-
-    itServer("OpenBao should be initialized", () => {
-      const result = exec(
-        `docker exec cerniq-openbao bao status -format=json 2>/dev/null | jq -r '.initialized'`,
-      );
-      expect(result).toBe("true");
+      expect(result).toBe("ok");
     });
 
     itServer("OpenBao agents should be running", () => {
@@ -611,10 +610,12 @@ describe("F0.8: Server Integration Tests", () => {
 
   describe("Container Hardening Tests (Server Required)", () => {
     itServer("containers should have no-new-privileges", () => {
-      const result = exec(
-        `docker inspect cerniq-postgres --format '{{.HostConfig.SecurityOpt}}' 2>/dev/null`,
-      );
-      expect(result).toContain("no-new-privileges");
+      for (const name of ["cerniq-pgbouncer", "cerniq-redis"]) {
+        const result = exec(
+          `docker inspect ${name} --format '{{.HostConfig.SecurityOpt}}' 2>/dev/null`,
+        );
+        expect(result).toContain("no-new-privileges:true");
+      }
     });
 
     itServer("Redis should use healthcheck with secret", () => {
@@ -693,9 +694,9 @@ describe("E0-S4-PR02 Summary", () => {
     expect(missingFiles.length).toBe(0);
   });
 
-  it("should have OpenBao service in docker-compose.yml", () => {
+  it("should use only OpenBao agents in docker-compose.yml", () => {
     const content = readFile("infra/docker/docker-compose.yml");
-    expect(content).toContain("openbao:");
+    expect(content).not.toMatch(/\n\s{2}openbao:\n/);
     expect(content).toContain("openbao-agent-api:");
     expect(content).toContain("openbao-agent-workers:");
   });

@@ -191,9 +191,9 @@ describe("E0-S1-PR02: F0.15 CI/CD Base", () => {
       expect(content).toContain("pnpm");
     });
 
-    it("should use Node.js 24+", () => {
+    it("should use Node.js 25+", () => {
       const content = readFile(".github/workflows/ci-pr.yml");
-      expect(content).toMatch(/node-version.*24|NODE_VERSION.*24/);
+      expect(content).toMatch(/node-version.*25|NODE_VERSION.*25/);
     });
   });
 
@@ -204,7 +204,7 @@ describe("E0-S1-PR02: F0.15 CI/CD Base", () => {
 
     it("should trigger on all branches", () => {
       const content = readFile(".github/workflows/deploy.yml");
-      expect(content).toMatch(/branches:\s*\n?\s*-\s*\*\*/);
+      expect(content).toMatch(/branches:\s*\n?\s*-\s*["']?\*\*["']?/);
     });
 
     it("should support manual workflow_dispatch", () => {
@@ -354,7 +354,7 @@ describe("E0-S1-PR02: F0.15 CI/CD Base", () => {
       const content = readFile("infra/scripts/verify-deployment.sh");
       expect(content).toMatch(/check_postgresql|pg_isready/);
       expect(content).toMatch(/check_redis|redis-cli/);
-      expect(content).toMatch(/check_traefik|64093/);
+      expect(content).toMatch(/check_ingress|staging\.cerniq\.app|cerniq\.app/);
       expect(content).toMatch(/check_openbao|bao status/);
     });
   });
@@ -381,21 +381,13 @@ describe("E0-S1-PR03: F0.16 DNS & Domain Configuration", () => {
   });
 
   describe("F0.16.1.T002: Subdomain Configuration", () => {
-    it("Traefik config should reference expected domains", () => {
-      const traefikYml =
-        readFile("infra/docker/traefik/traefik.yml") ||
-        readFile("infra/config/traefik/traefik.yml");
-      const dockerCompose = readFile("infra/docker/docker-compose.yml");
-
-      // At minimum, docker-compose or traefik should mention domain routing
-      const content = traefikYml + dockerCompose;
-      // Check for any domain/host routing configuration
-      const hasDomainConfig =
-        content.includes("Host(") ||
-        content.includes("certificatesResolvers") ||
-        content.includes("acme") ||
-        content.includes("cerniq");
-      expect(hasDomainConfig).toBe(true);
+    it("DNS docs and deploy workflow should reference expected domains", () => {
+      const dnsDoc = readFile("docs/infrastructure/dns-configuration.md");
+      const deploy = readFile(".github/workflows/deploy.yml");
+      const content = dnsDoc + deploy;
+      expect(content).toMatch(/cerniq\.app/);
+      expect(content).toMatch(/staging\.cerniq\.app/);
+      expect(content).toMatch(/api\.cerniq\.app/);
     });
   });
 

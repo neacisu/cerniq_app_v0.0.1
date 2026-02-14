@@ -153,7 +153,7 @@ const PGBOUNCER_RUNNING =
 // F0.2.1.T001: PostgreSQL 18.1 în docker-compose.yml
 // =============================================================================
 
-describe("F0.2.1.T001: PostgreSQL Service in docker-compose.yml", () => {
+describe("F0.2.1.T001: External PostgreSQL via CT107", () => {
   const dockerComposePath = "infra/docker/docker-compose.yml";
   let dockerCompose: Record<string, unknown> | null = null;
 
@@ -166,102 +166,27 @@ describe("F0.2.1.T001: PostgreSQL Service in docker-compose.yml", () => {
     expect(fileExists(dockerComposePath)).toBe(true);
   });
 
-  it("should define postgres service", () => {
+  it("should NOT define local postgres service", () => {
     expect(dockerCompose).not.toBeNull();
     const services = (dockerCompose as Record<string, unknown>)
       ?.services as Record<string, unknown>;
-    expect(services).toHaveProperty("postgres");
+    expect(services).not.toHaveProperty("postgres");
   });
 
-  it("should use custom Dockerfile build context", () => {
+  it("should configure pgbouncer to use external PostgreSQL host", () => {
     const services = (dockerCompose as Record<string, unknown>)
       ?.services as Record<string, unknown>;
-    const postgres = services?.postgres as Record<string, unknown>;
-    const build = postgres?.build as Record<string, unknown>;
-    expect(build).toHaveProperty("context", "./postgres");
-    expect(build).toHaveProperty("dockerfile", "Dockerfile");
+    const pgbouncer = services?.pgbouncer as Record<string, unknown>;
+    const environment = pgbouncer?.environment as Record<string, unknown>;
+    expect(environment?.DB_HOST).toBe("10.0.1.107");
+    expect(environment?.DB_PORT).toBe(5432);
   });
 
-  it("should have correct image tag", () => {
+  it("should mount postgres_password.txt for PgBouncer", () => {
     const services = (dockerCompose as Record<string, unknown>)
       ?.services as Record<string, unknown>;
-    const postgres = services?.postgres as Record<string, unknown>;
-    expect(postgres?.image).toBe("postgis/postgis:18-3.6");
-  });
-
-  it("should configure correct environment variables", () => {
-    const services = (dockerCompose as Record<string, unknown>)
-      ?.services as Record<string, unknown>;
-    const postgres = services?.postgres as Record<string, unknown>;
-    const environment = postgres?.environment as Record<string, unknown>;
-    expect(environment?.POSTGRES_USER).toBe(EXPECTED_POSTGRES_CONFIG.user);
-    expect(environment?.POSTGRES_DB).toBe(EXPECTED_POSTGRES_CONFIG.database);
-    expect(environment?.POSTGRES_PASSWORD_FILE).toBe(
-      "/run/secrets/postgres_password",
-    );
-    expect(environment?.POSTGRES_INITDB_ARGS).toContain("--data-checksums");
-  });
-
-  it("should mount postgresql.conf configuration", () => {
-    const services = (dockerCompose as Record<string, unknown>)
-      ?.services as Record<string, unknown>;
-    const postgres = services?.postgres as Record<string, unknown>;
-    const volumes = postgres?.volumes as string[];
-    expect(volumes).toEqual(
-      expect.arrayContaining([
-        expect.stringContaining(
-          "postgresql.conf:/etc/postgresql/postgresql.conf",
-        ),
-      ]),
-    );
-  });
-
-  it("should mount init.sql script", () => {
-    const services = (dockerCompose as Record<string, unknown>)
-      ?.services as Record<string, unknown>;
-    const postgres = services?.postgres as Record<string, unknown>;
-    const volumes = postgres?.volumes as string[];
-    expect(volumes).toEqual(
-      expect.arrayContaining([
-        expect.stringContaining(
-          "init.sql:/docker-entrypoint-initdb.d/01-init.sql",
-        ),
-      ]),
-    );
-  });
-
-  it("should be on cerniq_data network with correct IP", () => {
-    const services = (dockerCompose as Record<string, unknown>)
-      ?.services as Record<string, unknown>;
-    const postgres = services?.postgres as Record<string, unknown>;
-    const networks = postgres?.networks as Record<string, unknown>;
-    const dataNetwork = networks?.cerniq_data as Record<string, unknown>;
-    expect(dataNetwork?.ipv4_address).toBe("172.29.30.10");
-  });
-
-  it("should NOT expose ports (security)", () => {
-    const services = (dockerCompose as Record<string, unknown>)
-      ?.services as Record<string, unknown>;
-    const postgres = services?.postgres as Record<string, unknown>;
-    expect(postgres?.ports).toBeUndefined();
-  });
-
-  it("should have healthcheck configured", () => {
-    const services = (dockerCompose as Record<string, unknown>)
-      ?.services as Record<string, unknown>;
-    const postgres = services?.postgres as Record<string, unknown>;
-    const healthcheck = postgres?.healthcheck as Record<string, unknown>;
-    expect(healthcheck).toBeDefined();
-    expect(healthcheck?.test).toEqual(
-      expect.arrayContaining([expect.stringContaining("pg_isready")]),
-    );
-  });
-
-  it("should mount postgres_password.txt from secrets directory", () => {
-    const services = (dockerCompose as Record<string, unknown>)
-      ?.services as Record<string, unknown>;
-    const postgres = services?.postgres as Record<string, unknown>;
-    const volumes = postgres?.volumes as string[];
+    const pgbouncer = services?.pgbouncer as Record<string, unknown>;
+    const volumes = pgbouncer?.volumes as string[];
     const joined = Array.isArray(volumes) ? volumes.join(" ") : String(volumes);
     expect(joined).toContain("postgres_password.txt");
   });
@@ -563,9 +488,9 @@ describe("F0.2.2.T001: WAL Archiving for PITR", () => {
     expect(result.trim()).toBe("on");
   });
 
-  it("should have WAL archive volume in docker-compose", () => {
+  it("should not have local WAL archive volume in docker-compose", () => {
     const composeContent = readFile("infra/docker/docker-compose.yml");
-    expect(composeContent).toContain("postgres_wal_archive");
+    expect(composeContent).not.toContain("postgres_wal_archive");
   });
 });
 
@@ -734,12 +659,12 @@ describe("F0.2.2.T004: PgBouncer Connection Pooling", () => {
     expect(environment?.AUTH_TYPE).toBe("scram-sha-256");
   });
 
-  it("should depend on postgres service", () => {
+  it("should not depend on local postgres service", () => {
     const services = (dockerCompose as Record<string, unknown>)
       ?.services as Record<string, unknown>;
     const pgbouncer = services?.pgbouncer as Record<string, unknown>;
     const dependsOn = pgbouncer?.depends_on as Record<string, unknown>;
-    expect(dependsOn).toHaveProperty("postgres");
+    expect(dependsOn).toBeUndefined();
   });
 
   it("should be on cerniq_data and cerniq_backend networks", () => {

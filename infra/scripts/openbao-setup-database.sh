@@ -34,12 +34,11 @@ fi
 # Configuration (environment-aware)
 # =============================================================================
 
-BAO_ADDR="${BAO_ADDR:-http://127.0.0.1:64090}"
-BAO_CONTAINER="${BAO_CONTAINER:-cerniq-openbao}"
+BAO_ADDR="${BAO_ADDR:-https://s3cr3ts.neanelu.ro}"
 SECRETS_DIR="${CERNIQ_SECRETS_DIR:-/var/www/CerniqAPP/secrets}"
 
 # PostgreSQL connection details
-PG_HOST="${PG_HOST:-172.29.30.10}"  # postgres on cerniq_data network
+PG_HOST="${PG_HOST:-10.0.1.107}"
 PG_PORT="${PG_PORT:-5432}"
 PG_DATABASE="${PG_DATABASE:-cerniq}"
 PG_VAULT_USER="${PG_VAULT_USER:-cerniq_vault}"
@@ -83,9 +82,9 @@ else
     read -s VAULT_PASS
 fi
 
-# Helper function to run bao commands in container
+# Helper function to run bao commands against orchestrator OpenBao
 bao_exec() {
-    docker exec -e BAO_TOKEN="$BAO_TOKEN" "$BAO_CONTAINER" bao "$@"
+    BAO_ADDR="$BAO_ADDR" BAO_TOKEN="$BAO_TOKEN" bao "$@"
 }
 
 # =============================================================================
@@ -98,7 +97,7 @@ log_info "Configuring PostgreSQL connection..."
 bao_exec write database/config/cerniq-postgres \
     plugin_name=postgresql-database-plugin \
     allowed_roles="api-dynamic,workers-dynamic,readonly-dynamic" \
-    connection_url="postgresql://{{username}}:{{password}}@${PG_HOST}:${PG_PORT}/${PG_DATABASE}?sslmode=disable" \
+    connection_url="postgresql://{{username}}:{{password}}@${PG_HOST}:${PG_PORT}/${PG_DATABASE}?sslmode=require" \
     username="${PG_VAULT_USER}" \
     password="${VAULT_PASS}"
 

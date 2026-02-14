@@ -25,19 +25,19 @@ import { CERNIQ_PORTS } from "../../helpers/ports";
 
 const WORKSPACE_ROOT = process.env.WORKSPACE_ROOT || "/var/www/CerniqAPP";
 const IS_CI = process.env.CI === "true";
+const RUN_SERVER_TESTS = process.env.CERNIQ_RUN_SERVER_TESTS === "true";
 
-// Auto-detect if we can run server tests (have SSH access)
+// Server tests are intentionally opt-in and should be executed on the server.
 function canRunServerTests(): boolean {
   if (IS_CI) return false;
+  if (!RUN_SERVER_TESTS) return false;
 
-  const envPath = path.join(WORKSPACE_ROOT, ".env");
-  if (!fs.existsSync(envPath)) return false;
-
-  const envContent = fs.readFileSync(envPath, "utf-8");
-  return (
-    envContent.includes("STAGING_HOST") &&
-    envContent.includes("STAGING_PASSWORD")
-  );
+  try {
+    execSync("docker info >/dev/null 2>&1", { timeout: 5000 });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 const CAN_RUN_SERVER_TESTS = canRunServerTests();
@@ -195,9 +195,9 @@ describe("F0.7.2: PostgreSQL Point-in-Time Recovery", () => {
   });
 
   describe("T002: WAL archive volume in docker-compose", () => {
-    it("should have postgres_wal_archive volume defined", () => {
+    it("should not require local postgres_wal_archive volume (external CT107)", () => {
       const content = readFile("infra/docker/docker-compose.yml");
-      expect(content).toContain("postgres_wal_archive");
+      expect(content).not.toContain("postgres_wal_archive");
     });
   });
 });

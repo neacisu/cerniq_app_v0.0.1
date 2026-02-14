@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.7
 # =============================================================================
 # Cerniq.app - Enrichment Worker Dockerfile
 # =============================================================================
@@ -6,7 +7,7 @@
 # Reference: ADR-0015 Container Strategy
 # =============================================================================
 
-FROM node:22-alpine AS base
+FROM node:25.6.1-alpine3.23 AS base
 
 RUN apk add --no-cache curl
 
@@ -15,37 +16,7 @@ WORKDIR /app
 RUN addgroup -g 1001 -S cerniq && \
     adduser -S -D -H -u 1001 -G cerniq cerniq
 
-RUN cat > worker.js << 'EOF'
-const http = require('http');
-
-console.log('🔍 Cerniq Enrichment Worker starting (placeholder mode)...');
-
-const status = {
-  service: 'cerniq-worker-enrichment',
-  status: 'idle',
-  placeholder: true,
-  queues: ['company-enrichment', 'contact-verification', 'data-cleansing'],
-  processedJobs: 0
-};
-
-const server = http.createServer((req, res) => {
-  if (req.url === '/health') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ ...status, timestamp: new Date().toISOString() }));
-  } else {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ message: 'Enrichment Worker - Use /health for status' }));
-  }
-});
-
-server.listen(3000, '0.0.0.0', () => {
-  console.log('✅ Enrichment Worker health endpoint on port 3000');
-});
-
-setInterval(() => {
-  console.log(`💓 Enrichment Worker heartbeat - Status: ${status.status} - Jobs: ${status.processedJobs}`);
-}, 30000);
-EOF
+COPY worker.js ./worker.js
 
 RUN chown -R cerniq:cerniq /app
 USER cerniq

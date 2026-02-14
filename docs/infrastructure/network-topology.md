@@ -10,58 +10,58 @@ Cerniq.app utilizează trei rețele Docker izolate pentru a asigura separarea tr
 
 ## Network Architecture Diagram
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                            EXTERNAL ACCESS                                   │
+│                            EXTERNAL ACCESS                                  │
 │                                                                             │
-│    Internet ───► nginx (80/443) ───► proxy_pass ───► Traefik (64xxx)       │
-│                   TLS Termination                                           │
+│    Internet ───► Orchestrator Traefik (80/443) ───► LXC services (64xxx)    │
+│                   TLS Termination (centralized)                             │
 └─────────────────────────────────────────────────────────────────────────────┘
                                       │
                                       ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                         cerniq_public (172.29.10.0/24)                       │
-│  ┌──────────────────────────────────────────────────────────────────────┐  │
-│  │                                                                       │  │
-│  │   ┌─────────────┐    ┌─────────────┐    ┌─────────────┐              │  │
-│  │   │   Traefik   │    │   Web App   │    │  Admin App  │              │  │
-│  │   │   (proxy)   │    │   (React)   │    │   (React)   │              │  │
-│  │   │   64010     │    │   64010     │    │   64012     │              │  │
-│  │   └──────┬──────┘    └──────┬──────┘    └──────┬──────┘              │  │
-│  │          │                  │                  │                      │  │
-│  └──────────┼──────────────────┼──────────────────┼──────────────────────┘  │
+│                         cerniq_public (172.29.10.0/24)                      │
+│  ┌──────────────────────────────────────────────────────────────────────┐   │
+│  │                                                                      │   │
+│  │   ┌─────────────┐    ┌─────────────┐    ┌─────────────┐              │   │
+│  │   │   Web App   │    │  Admin App  │    │  API Edge   │              │   │
+│  │   │   (React)   │    │   (React)   │    │  (Fastify)  │              │   │
+│  │   │   64010     │    │   64012     │    │   64000     │              │   │
+│  │   └──────┬──────┘    └──────┬──────┘    └──────┬──────┘              │   │
+│  │          │                  │                  │                     │   │
+│  └──────────┼──────────────────┼──────────────────┼─────────────────────┘   │
 │             │                  │                  │                         │
 └─────────────┼──────────────────┼──────────────────┼─────────────────────────┘
               │                  │                  │
               ▼                  ▼                  ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                      cerniq_backend (172.29.20.0/24)                         │
-│                           internal: true                                     │
-│  ┌──────────────────────────────────────────────────────────────────────┐  │
-│  │                                                                       │  │
-│  │   ┌─────────────┐    ┌─────────────┐    ┌─────────────┐              │  │
-│  │   │  Fastify    │    │   Workers   │    │   SigNoz    │              │  │
-│  │   │    API      │    │  (AI/Enr)   │    │    OTel     │              │  │
-│  │   │   64000     │    │   64020+    │    │ 64070-64083 │              │  │
-│  │   └──────┬──────┘    └──────┬──────┘    └──────┬──────┘              │  │
-│  │          │                  │                  │                      │  │
-│  └──────────┼──────────────────┼──────────────────┼──────────────────────┘  │
+│                      cerniq_backend (172.29.20.0/24)                        │
+│                           internal: true                                    │
+│  ┌──────────────────────────────────────────────────────────────────────┐   │
+│  │                                                                      │   │
+│  │   ┌─────────────┐    ┌─────────────┐    ┌─────────────┐              │   │
+│  │   │  Fastify    │    │   Workers   │    │ Vector/OTel │              │   │
+│  │   │    API      │    │  (AI/Enr)   │    │    OTel     │              │   │
+│  │   │   64000     │    │   64020+    │    │ 64070-64071 │              │   │
+│  │   └──────┬──────┘    └──────┬──────┘    └──────┬──────┘              │   │
+│  │          │                  │                  │                     │   │
+│  └──────────┼──────────────────┼──────────────────┼─────────────────────┘   │
 │             │                  │                  │                         │
 └─────────────┼──────────────────┼──────────────────┼─────────────────────────┘
               │                  │                  │
               ▼                  ▼                  ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                        cerniq_data (172.29.30.0/24)                          │
-│                           internal: true                                     │
-│  ┌──────────────────────────────────────────────────────────────────────┐  │
-│  │                                                                       │  │
-│  │   ┌─────────────┐    ┌─────────────┐    ┌─────────────┐              │  │
-│  │   │ PostgreSQL  │    │    Redis    │    │  PgBouncer  │              │  │
-│  │   │ + PostGIS   │    │   (cache)   │    │   (pool)    │              │  │
-│  │   │   64032     │    │   64039     │    │   64042     │              │  │
-│  │   └─────────────┘    └─────────────┘    └─────────────┘              │  │
-│  │                                                                       │  │
-│  └──────────────────────────────────────────────────────────────────────┘  │
+│                        cerniq_data (172.29.30.0/24)                         │
+│                           internal: true                                    │
+│  ┌──────────────────────────────────────────────────────────────────────┐   │
+│  │                                                                      │   │
+│  │   ┌─────────────┐    ┌─────────────┐    ┌─────────────┐              │   │
+│  │   │  External   │    │    Redis    │    │  PgBouncer  │              │   │
+│  │   │  CT107 PG   │    │   (cache)   │    │   (pool)    │              │   │
+│  │   │    5432     │    │   64039     │    │   64033     │              │   │
+│  │   └─────────────┘    └─────────────┘    └─────────────┘              │   │
+│  │                                                                      │   │
+│  └──────────────────────────────────────────────────────────────────────┘   │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -71,7 +71,7 @@ Cerniq.app utilizează trei rețele Docker izolate pentru a asigura separarea tr
 ### cerniq_public (172.29.10.0/24)
 
 | Property | Value |
-|----------|-------|
+| -------- | ----- |
 | **Subnet** | 172.29.10.0/24 |
 | **Gateway** | 172.29.10.1 |
 | **Driver** | bridge |
@@ -79,15 +79,16 @@ Cerniq.app utilizează trei rețele Docker izolate pentru a asigura separarea tr
 | **Purpose** | Servicii accesibile extern prin Traefik |
 
 **Servicii conectate:**
-- Traefik (reverse proxy)
+
 - Web App (React frontend)
 - Admin App (React admin)
+- API (Fastify)
 - Monitoring UI (când este expus)
 
 ### cerniq_backend (172.29.20.0/24)
 
 | Property | Value |
-|----------|-------|
+| -------- | ----- |
 | **Subnet** | 172.29.20.0/24 |
 | **Gateway** | 172.29.20.1 |
 | **Driver** | bridge |
@@ -95,19 +96,20 @@ Cerniq.app utilizează trei rețele Docker izolate pentru a asigura separarea tr
 | **Purpose** | Comunicare internă API și Workers |
 
 **Servicii conectate:**
+
 - Fastify API
 - AI Workers
 - Enrichment Workers
 - Outreach Workers
-- SigNoz OTel Collector
-- ClickHouse (metrics storage)
+- Vector (logs shipping)
+- OTel Collector (traces shipping)
 
 **⚠️ IMPORTANT:** Această rețea este `internal: true` - containerele NU pot accesa internetul direct.
 
 ### cerniq_data (172.29.30.0/24)
 
 | Property | Value |
-|----------|-------|
+| -------- | ----- |
 | **Subnet** | 172.29.30.0/24 |
 | **Gateway** | 172.29.30.1 |
 | **Driver** | bridge |
@@ -115,7 +117,8 @@ Cerniq.app utilizează trei rețele Docker izolate pentru a asigura separarea tr
 | **Purpose** | Database și cache strict intern |
 
 **Servicii conectate:**
-- PostgreSQL 18.1 cu PostGIS
+
+- PostgreSQL 18.1 extern pe CT107
 - Redis 8.4.0
 - PgBouncer (connection pooling)
 
@@ -126,7 +129,7 @@ Cerniq.app utilizează trei rețele Docker izolate pentru a asigura separarea tr
 ### External Ports (nginx)
 
 | Port | Protocol | Service |
-|------|----------|---------|
+| ---- | -------- | ------- |
 | 22 | TCP | SSH |
 | 80 | TCP | HTTP → HTTPS redirect |
 | 443 | TCP | HTTPS (TLS termination) |
@@ -134,7 +137,7 @@ Cerniq.app utilizează trei rețele Docker izolate pentru a asigura separarea tr
 ### Application Ports (64000-64019)
 
 | Port | Service | Network | Description |
-|------|---------|---------|-------------|
+| ---- | ------- | ------- | ----------- |
 | 64000 | Fastify API | cerniq_backend | Main API endpoint |
 | 64010 | React Web | cerniq_public | Frontend web app |
 | 64011 | Vite HMR | cerniq_public | Hot reload (dev only) |
@@ -143,26 +146,25 @@ Cerniq.app utilizează trei rețele Docker izolate pentru a asigura separarea tr
 ### Database Ports (64030-64049)
 
 | Port | Service | Network | Description |
-|------|---------|---------|-------------|
-| 64032 | PostgreSQL | cerniq_data | Primary database |
+| ---- | ------- | ------- | ----------- |
+| 5432 | PostgreSQL (CT107) | external | Primary database |
 | 64039 | Redis | cerniq_data | Cache & queues |
-| 64042 | PgBouncer | cerniq_data | Connection pooling |
+| 64033 | PgBouncer | cerniq_backend/cerniq_data | Connection pooling |
 
 ### Observability Ports (64070-64089)
 
 | Port | Service | Network | Description |
-|------|---------|---------|-------------|
+| ---- | ------- | ------- | ----------- |
 | 64070 | OTel gRPC | cerniq_backend | OTLP gRPC receiver |
 | 64071 | OTel HTTP | cerniq_backend | OTLP HTTP receiver |
-| 64080 | SigNoz UI | cerniq_backend | Monitoring dashboard |
-| 64093 | Traefik Metrics | cerniq_backend | Prometheus metrics |
-| 64082 | ClickHouse HTTP | cerniq_backend | ClickHouse interface |
-| 64083 | ClickHouse Native | cerniq_backend | ClickHouse protocol |
+| 64089 | Reserved observability legacy | cerniq_backend | Reserved |
+| 64082 | Reserved | cerniq_backend | Reserved |
+| 64083 | Reserved | cerniq_backend | Reserved |
 
 ### Infrastructure Ports (64090-64099)
 
 | Port | Service | Network | Description |
-|------|---------|---------|-------------|
+| ---- | ------- | ------- | ----------- |
 | 64093 | Docker Metrics | Host | Docker daemon metrics |
 
 ## Security Rules
@@ -191,7 +193,7 @@ ufw allow 80/tcp
 ufw allow 443/tcp
 
 # Block direct access to application ports from external
-# (handled by nginx reverse proxy)
+# (handled by orchestrator Traefik reverse proxy)
 ufw deny 64000:64099/tcp
 ```
 
@@ -226,18 +228,17 @@ docker network inspect cerniq_backend --format '{{range .Containers}}{{.Name}} {
 ## Service Network Attachment Matrix
 
 | Service | cerniq_public | cerniq_backend | cerniq_data |
-|---------|:-------------:|:--------------:|:-----------:|
-| Traefik | ✅ | ✅ | ❌ |
+| ------- | ------------- | -------------- | ----------- |
 | Web App | ✅ | ❌ | ❌ |
 | Admin App | ✅ | ❌ | ❌ |
 | API | ✅ | ✅ | ✅ |
 | Workers | ❌ | ✅ | ✅ |
-| PostgreSQL | ❌ | ❌ | ✅ |
+| PostgreSQL (CT107 external) | ❌ | ❌ | external |
 | Redis | ❌ | ✅ | ✅ |
 | PgBouncer | ❌ | ✅ | ✅ |
-| SigNoz | ❌ | ✅ | ❌ |
+| Vector | ❌ | ✅ | ❌ |
 
-> **Note:** Redis is attached to both `cerniq_data` (primary data storage) and 
+> **Note:** Redis is attached to both `cerniq_data` (primary data storage) and
 > `cerniq_backend` (for BullMQ workers access). This is required because workers
 > run on `cerniq_backend` and need direct access to Redis queues.
 
@@ -253,7 +254,7 @@ docker exec cerniq-api ping -c 3 postgres
 docker exec cerniq-api nslookup postgres
 
 # Test port connectivity
-docker exec cerniq-api nc -zv postgres 64032
+docker exec cerniq-api nc -zv 10.0.1.107 5432
 ```
 
 ### Common Issues

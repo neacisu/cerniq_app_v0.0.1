@@ -286,105 +286,35 @@ fi
 
 echo ""
 echo "=============================================="
-echo "F0.2.1: PostgreSQL 18.1 + PostGIS + pgvector"
+echo "F0.2.1: External PostgreSQL (CT107) Connectivity"
 echo "=============================================="
 
-PG_HOST="localhost"
-PG_PORT="64032"
-PG_DB="cerniq"
-PG_USER="c3rn1q"
+PG_HOST="${PG_HOST:-10.0.1.107}"
+PG_PORT="${PG_PORT:-5432}"
+PG_DB="${PG_DB:-cerniq}"
+PG_USER="${PG_USER:-c3rn1q}"
 PG_PASS_FILE="/opt/cerniq/secrets/postgres_password.txt"
 PG_PASS=""
 if [[ -f "$PG_PASS_FILE" ]]; then
     PG_PASS=$(cat "$PG_PASS_FILE")
 else
-    log_skip "Postgres password file not found at $PG_PASS_FILE"
+    log_fail "Postgres password file not found at $PG_PASS_FILE"
 fi
 
-pg_exec() {
-    docker exec -e PGPASSWORD="$PG_PASS" cerniq-postgres \
-        psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d "$PG_DB" -t -c "$1" 2>/dev/null
-}
-
-# Test: PostgreSQL container exists and is running
-log_test "cerniq-postgres container is running"
-PG_RUNNING=$(docker inspect -f '{{.State.Running}}' cerniq-postgres 2>/dev/null || echo "false")
-if [[ "$PG_RUNNING" == "true" ]]; then
-    log_pass "cerniq-postgres is running"
+# Test: PostgreSQL CT107 is reachable from host
+log_test "PostgreSQL CT107 reachable (${PG_HOST}:${PG_PORT})"
+if timeout 5 bash -lc "cat < /dev/null > /dev/tcp/${PG_HOST}/${PG_PORT}" 2>/dev/null; then
+    log_pass "PostgreSQL reachable at ${PG_HOST}:${PG_PORT}"
 else
-    log_fail "cerniq-postgres is not running"
+    log_fail "Cannot reach PostgreSQL at ${PG_HOST}:${PG_PORT}"
 fi
 
-# Test: PostgreSQL is healthy
-log_test "cerniq-postgres is healthy"
-PG_HEALTH=$(docker inspect -f '{{.State.Health.Status}}' cerniq-postgres 2>/dev/null || echo "unhealthy")
-if [[ "$PG_HEALTH" == "healthy" ]]; then
-    log_pass "cerniq-postgres is healthy"
+# Test: PgBouncer container can reach external PostgreSQL
+log_test "PgBouncer can reach external PostgreSQL"
+if docker exec cerniq-pgbouncer pg_isready -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" >/dev/null 2>&1; then
+    log_pass "PgBouncer reaches external PostgreSQL"
 else
-    log_fail "cerniq-postgres is not healthy: $PG_HEALTH"
-fi
-
-# Test: PostgreSQL version is 18.x
-log_test "PostgreSQL version is 18.x"
-PG_VERSION=$(pg_exec "SHOW server_version;" | tr -d ' ' || echo "0")
-if [[ "$PG_VERSION" == 18.* ]]; then
-    log_pass "PostgreSQL version: $PG_VERSION"
-else
-    log_fail "PostgreSQL version: $PG_VERSION (expected 18.x)"
-fi
-
-# Test: pgvector extension is installed
-log_test "pgvector extension (0.8.1) installed"
-PGVECTOR=$(pg_exec "SELECT extversion FROM pg_extension WHERE extname = 'vector';" | tr -d ' ' || echo "")
-if [[ "$PGVECTOR" == "0.8.1" ]]; then
-    log_pass "pgvector version: $PGVECTOR"
-else
-    log_fail "pgvector version: $PGVECTOR (expected 0.8.1)"
-fi
-
-# Test: PostGIS extension is installed
-log_test "PostGIS extension (3.6.1) installed"
-POSTGIS=$(pg_exec "SELECT extversion FROM pg_extension WHERE extname = 'postgis';" | tr -d ' ' || echo "")
-if [[ "$POSTGIS" == "3.6.1" ]]; then
-    log_pass "PostGIS version: $POSTGIS"
-else
-    log_fail "PostGIS version: $POSTGIS (expected 3.6.1)"
-fi
-
-# Test: pg_stat_statements is enabled
-log_test "pg_stat_statements extension enabled"
-PGSTAT=$(pg_exec "SELECT extname FROM pg_extension WHERE extname = 'pg_stat_statements';" | tr -d ' ' || echo "")
-if [[ "$PGSTAT" == "pg_stat_statements" ]]; then
-    log_pass "pg_stat_statements is enabled"
-else
-    log_fail "pg_stat_statements is not enabled"
-fi
-
-# Test: WAL level is replica for PITR
-log_test "WAL level is replica (PITR)"
-WAL_LEVEL=$(pg_exec "SHOW wal_level;" | tr -d ' ' || echo "")
-if [[ "$WAL_LEVEL" == "replica" ]]; then
-    log_pass "WAL level: $WAL_LEVEL"
-else
-    log_fail "WAL level: $WAL_LEVEL (expected replica)"
-fi
-
-# Test: Archive mode is on
-log_test "Archive mode is on"
-ARCHIVE_MODE=$(pg_exec "SHOW archive_mode;" | tr -d ' ' || echo "")
-if [[ "$ARCHIVE_MODE" == "on" ]]; then
-    log_pass "Archive mode: $ARCHIVE_MODE"
-else
-    log_fail "Archive mode: $ARCHIVE_MODE (expected on)"
-fi
-
-# Test: Medallion schemas exist
-log_test "Medallion schemas exist (bronze, silver, gold)"
-SCHEMAS=$(pg_exec "SELECT COUNT(*) FROM information_schema.schemata WHERE schema_name IN ('bronze', 'silver', 'gold', 'approval', 'audit');" | tr -d ' ' || echo "0")
-if [[ "$SCHEMAS" -ge 5 ]]; then
-    log_pass "Medallion schemas: $SCHEMAS found"
-else
-    log_fail "Medallion schemas: only $SCHEMAS found (expected 5)"
+    log_fail "PgBouncer cannot reach external PostgreSQL"
 fi
 
 echo ""
@@ -546,124 +476,16 @@ else
 fi
 
 # =============================================================================
-# F0.4.1: Traefik v3 Reverse Proxy
+# F0.4.1: External Ingress Validation (Orchestrator Traefik)
 # =============================================================================
-# Reference: ADR-0014, ADR-0022, etapa0-port-matrix.md
+# Internal Traefik was removed from the application stack. Ingress is validated
+# by checking public domains routed by the orchestrator Traefik instance.
 # =============================================================================
 
 echo ""
 echo "=============================================="
-echo "F0.4.1: Traefik v3 Reverse Proxy"
+echo "F0.4.1: External Ingress Validation"
 echo "=============================================="
-
-# Traefik configuration
-TRAEFIK_CONTAINER="cerniq-traefik"
-TRAEFIK_HTTP_PORT="64080"
-TRAEFIK_METRICS_PORT="64093"
-
-# Test: Traefik container exists and is running
-log_test "cerniq-traefik container is running"
-TRAEFIK_RUNNING=$(docker inspect -f '{{.State.Running}}' $TRAEFIK_CONTAINER 2>/dev/null || echo "false")
-if [[ "$TRAEFIK_RUNNING" == "true" ]]; then
-    log_pass "cerniq-traefik is running"
-else
-    log_fail "cerniq-traefik is not running"
-fi
-
-# Test: Traefik is healthy
-log_test "cerniq-traefik is healthy"
-TRAEFIK_HEALTH=$(docker inspect -f '{{.State.Health.Status}}' $TRAEFIK_CONTAINER 2>/dev/null || echo "unhealthy")
-if [[ "$TRAEFIK_HEALTH" == "healthy" ]]; then
-    log_pass "cerniq-traefik is healthy"
-else
-    log_fail "cerniq-traefik is not healthy: $TRAEFIK_HEALTH"
-fi
-
-# Test: Traefik version is 3.x
-log_test "Traefik version is 3.x"
-TRAEFIK_VERSION=$(docker exec $TRAEFIK_CONTAINER traefik version 2>/dev/null | grep Version | awk '{print $2}' || echo "0")
-if [[ "$TRAEFIK_VERSION" == 3.* ]]; then
-    log_pass "Traefik version: $TRAEFIK_VERSION"
-else
-    log_fail "Traefik version: $TRAEFIK_VERSION (expected 3.x)"
-fi
-
-# Test: Traefik HTTP port responds
-log_test "Traefik responds on port $TRAEFIK_HTTP_PORT"
-TRAEFIK_HTTP_RESPONSE=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:$TRAEFIK_HTTP_PORT 2>/dev/null || echo "000")
-if [[ "$TRAEFIK_HTTP_RESPONSE" =~ ^(200|404|502)$ ]]; then
-    log_pass "Traefik HTTP port responds: $TRAEFIK_HTTP_RESPONSE"
-else
-    log_fail "Traefik HTTP port not responding: $TRAEFIK_HTTP_RESPONSE"
-fi
-
-# Test: Traefik metrics/ping endpoint
-log_test "Traefik ping endpoint responds"
-TRAEFIK_PING=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:$TRAEFIK_METRICS_PORT/ping 2>/dev/null || echo "000")
-if [[ "$TRAEFIK_PING" =~ ^(200|403)$ ]]; then
-    log_pass "Traefik ping endpoint: $TRAEFIK_PING"
-else
-    log_fail "Traefik ping endpoint not responding: $TRAEFIK_PING"
-fi
-
-# Test: Traefik on cerniq_public network
-log_test "Traefik on cerniq_public network"
-TRAEFIK_PUBLIC_IP=$(docker inspect -f '{{(index .NetworkSettings.Networks "cerniq_public").IPAddress}}' $TRAEFIK_CONTAINER 2>/dev/null || echo "")
-if [[ -n "$TRAEFIK_PUBLIC_IP" ]]; then
-    log_pass "Traefik on cerniq_public: $TRAEFIK_PUBLIC_IP"
-else
-    log_fail "Traefik not on cerniq_public network"
-fi
-
-# Test: Traefik on cerniq_backend network
-log_test "Traefik on cerniq_backend network"
-TRAEFIK_BACKEND_IP=$(docker inspect -f '{{(index .NetworkSettings.Networks "cerniq_backend").IPAddress}}' $TRAEFIK_CONTAINER 2>/dev/null || echo "")
-if [[ -n "$TRAEFIK_BACKEND_IP" ]]; then
-    log_pass "Traefik on cerniq_backend: $TRAEFIK_BACKEND_IP"
-else
-    log_fail "Traefik not on cerniq_backend network"
-fi
-
-# Test: traefik.yml config exists in container
-log_test "traefik.yml configuration mounted"
-TRAEFIK_CONFIG=$(docker exec $TRAEFIK_CONTAINER ls /etc/traefik/traefik.yml 2>/dev/null || echo "missing")
-if [[ "$TRAEFIK_CONFIG" == "/etc/traefik/traefik.yml" ]]; then
-    log_pass "traefik.yml is mounted"
-else
-    log_fail "traefik.yml not found in container"
-fi
-
-# Test: Dynamic config directory exists
-log_test "Dynamic config directory exists"
-TRAEFIK_DYNAMIC=$(docker exec $TRAEFIK_CONTAINER ls -la /etc/traefik/dynamic/ 2>/dev/null | wc -l || echo "0")
-if [[ "$TRAEFIK_DYNAMIC" -gt 1 ]]; then
-    log_pass "Dynamic config directory has files"
-else
-    log_fail "Dynamic config directory empty or missing"
-fi
-
-# Test: Dashboard auth file exists
-log_test "Dashboard htpasswd file exists"
-TRAEFIK_HTPASSWD=$(docker exec $TRAEFIK_CONTAINER ls /etc/traefik/auth/dashboard.htpasswd 2>/dev/null || echo "missing")
-if [[ "$TRAEFIK_HTPASSWD" == "/etc/traefik/auth/dashboard.htpasswd" ]]; then
-    log_pass "Dashboard htpasswd is mounted"
-else
-    log_skip "Dashboard htpasswd not found (optional)"
-fi
-
-echo ""
-echo "=============================================="
-echo "F0.4.2: Traefik Security Hardening"
-echo "=============================================="
-
-# Test: Dashboard port is bound to localhost only
-log_test "Dashboard port bound to localhost only"
-DASHBOARD_BIND=$(docker inspect -f '{{range .HostConfig.PortBindings}}{{.}}{{end}}' $TRAEFIK_CONTAINER 2>/dev/null | grep 64093 || echo "")
-if [[ "$DASHBOARD_BIND" == *"127.0.0.1"* ]]; then
-    log_pass "Dashboard port bound to localhost"
-else
-    log_skip "Dashboard port binding check inconclusive"
-fi
 
 # Test: External HTTPS endpoint (staging/production only)
 if [[ "$ENVIRONMENT" == "staging" ]]; then

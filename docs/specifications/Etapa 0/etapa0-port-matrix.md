@@ -10,15 +10,15 @@
 
 > [!IMPORTANT]
 > Cerniq.app folosește range **64000-64099** pentru toate serviciile interne.
-> Acces extern doar prin nginx reverse proxy pe 80/443.
+> Acces extern terminat in Traefik orchestrator pe 80/443.
 
-## EXTERNAL PORTS (Expuse Public via nginx)
+## EXTERNAL PORTS (Expuse Public via orchestrator Traefik)
 
 | Port | Protocol | Service | Network | Firewall Rule |
 | ---- | -------- | ------- | ------- | ------------- |
 | 22 | TCP | SSH | Host | ALLOW from admin IPs only |
-| 80 | TCP | nginx HTTP | Host | ALLOW all (redirect to 443) |
-| 443 | TCP | nginx HTTPS | Host | ALLOW all |
+| 80 | TCP | Orchestrator Traefik HTTP | Host | ALLOW all (redirect to 443) |
+| 443 | TCP | Orchestrator Traefik HTTPS | Host | ALLOW all |
 | 443 | UDP | HTTP/3 QUIC | Host | ALLOW all (optional) |
 
 ## INTERNAL PORTS — CERNIQ.APP (64000-64099)
@@ -27,14 +27,13 @@
 
 | Port | Protocol | Service | Network | Access |
 | ---- | -------- | ------- | ------- | ------ |
-| 64080 | TCP | Traefik HTTP Entry | cerniq_public | Via Nginx |
-| 64443 | TCP | Traefik HTTPS Entry | cerniq_public | Via Nginx |
 | 64000 | TCP | Fastify API | cerniq_backend | Internal/Debug |
 | 64010 | TCP | React Web | cerniq_public | Internal/Debug |
 | 64011 | TCP | Vite HMR | cerniq_public | Dev only |
-| 64089 | TCP | SigNoz UI | cerniq_backend | Internal (Debug) |
-| 64082 | TCP | ClickHouse HTTP | cerniq_backend | Internal only |
-| 64083 | TCP | ClickHouse Native | cerniq_backend | Internal only |
+| 64012 | TCP | React Admin | cerniq_public | Internal/Debug |
+| 64089 | TCP | Reserved observability legacy | cerniq_backend | Internal only |
+| 64082 | TCP | Reserved | cerniq_backend | Internal only |
+| 64083 | TCP | Reserved | cerniq_backend | Internal only |
 
 ### Reserved
 
@@ -68,22 +67,16 @@
                         │
                         ▼
     ┌───────────────────────────────────────┐
-    │     NGINX REVERSE PROXY               │
-    │     :80 → redirect :443              │
-    │     :443 → TLS + proxy_pass          │
-    └───────────────────────────────────────┘
-                        │
-                        ▼
-    ┌───────────────────────────────────────┐
-    │          TRAEFIK (INTERNAL)           │
-    │     HTTP :64080  |  HTTPS :64443      │
+    │     ORCHESTRATOR TRAEFIK              │
+    │     :80 → redirect :443               │
+    │     :443 → TLS + proxy to LXC         │
     └───────────────────────────────────────┘
                         │
         ┌───────────────┼───────────────┐
         ▼               ▼               ▼
     ┌────────┐     ┌────────┐     ┌────────┐
-    │  API   │     │ SigNoz │     │  Web   │
-    │ :64000 │     │ :64089 │     │ :64010 │
+    │  API   │     │  OTel  │     │  Web   │
+    │ :64000 │     │ :64070 │     │ :64010 │
     └────────┘     └────────┘     └────────┘
         │               │               │
         └───────────────┼───────────────┘
@@ -146,18 +139,18 @@ sudo ufw status verbose
 networks:
   cerniq_public:
     external: true
-    # Subnet: 172.20.0.0/24
+    # Subnet: 172.29.10.0/24
     # Services: nginx interface, web
     
   cerniq_backend:
     external: true
-    # Subnet: 172.21.0.0/24
+    # Subnet: 172.29.20.0/24
     # Internal: true (no external access)
-    # Services: api, workers, signoz, otel-collector, redis
+    # Services: api, workers, vector, otel-collector, redis
     
   cerniq_data:
     external: true
-    # Subnet: 172.22.0.0/24
+    # Subnet: 172.29.30.0/24
     # Internal: true (strict isolation)
     # Services: postgres, redis
 ```
@@ -170,11 +163,11 @@ networks:
 | ------- | -------------- | ---- | -------- |
 | API | cerniq-api | 64000 | cerniq_backend |
 | Web | cerniq-web | 64010 | cerniq_public |
-| PostgreSQL | cerniq-postgres | 64032 | cerniq_data |
+| PostgreSQL | external (ct107-postgres) | 5432 | external |
 | Redis | cerniq-redis | 64039 | cerniq_data, cerniq_backend |
-| SigNoz | cerniq-signoz | 64080 | cerniq_backend |
-| OTel Collector | cerniq-otel | 64070, 64071 | cerniq_backend |
-| ClickHouse | cerniq-clickhouse | 64082, 64083 | cerniq_backend |
+| Vector | cerniq-vector | push 443 | cerniq_backend |
+| OTel Collector | cerniq-otel-collector | 64070, 64071 | cerniq_backend |
+| cAdvisor | cerniq-cadvisor | 64094 | cerniq_backend |
 
 ---
 
@@ -183,13 +176,8 @@ networks:
 ```nginx
 # /etc/nginx/sites-available/cerniq.app
 
-upstream cerniq_traefik_http {
-    server localhost:64080;
-    keepalive 32;
-}
-
-upstream cerniq_traefik_https {
-    server localhost:64443;
+upstream cerniq_api {
+    server 10.0.1.109:64000;
     keepalive 32;
 }
 
@@ -202,7 +190,7 @@ server {
     include /etc/letsencrypt/options-ssl-nginx.conf;
 
     location / {
-        proxy_pass http://cerniq_traefik_http;
+        proxy_pass http://cerniq_api;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;

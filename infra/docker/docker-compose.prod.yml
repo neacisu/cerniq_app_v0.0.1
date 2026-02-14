@@ -11,7 +11,6 @@
 #   ├── docker-compose.prod.yml
 #   ├── config/
 #   │   ├── postgres/
-#   │   ├── traefik/
 #   │   └── openbao/
 #   ├── scripts/
 #   └── secrets/
@@ -19,38 +18,20 @@
 
 name: cerniq
 
+# Application ingress ports are routed by orchestrator Traefik.
+# Keep these mappings ready for local diagnostics only:
+#   - "64000:3000"  # web
+#   - "64010:3000"  # api
+#   - "64012:3000"  # admin
+
 services:
-  # ==========================================================================
-  # PostgreSQL - Path overrides for production
-  # ==========================================================================
-  postgres:
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - postgres_wal_archive:/var/lib/postgresql/wal_archive
-      - ./config/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
-      - ./config/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
-      - ./secrets/postgres_password.txt:/run/secrets/postgres_password:ro
-    networks:
-      cerniq_data:
-        ipv4_address: 172.29.30.10
-    deploy:
-      resources:
-        limits:
-          cpus: '2'
-          memory: 4G
-        reservations:
-          cpus: '1'
-          memory: 2G
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "100m"
-        max-file: "5"
 
   # ==========================================================================
   # PgBouncer - Path overrides for production
   # ==========================================================================
   pgbouncer:
+    environment:
+      REDIS_MAXMEMORY: ${REDIS_MAXMEMORY:-8gb}
     networks:
       cerniq_data:
         ipv4_address: 172.29.30.11
@@ -59,68 +40,41 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
           cpus: '0.5'
           memory: 256M
-        reservations:
-          cpus: '0.25'
-          memory: 128M
     logging:
       driver: "json-file"
       options:
         max-size: "50m"
         max-file: "3"
-
-  # ==========================================================================
-  # Traefik - Path overrides for production
-  # ==========================================================================
-  traefik:
-    volumes:
-      - ./config/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
-      - ./config/traefik/dynamic:/etc/traefik/dynamic:ro
-      - ./secrets/traefik_dashboard.htpasswd:/etc/traefik/auth/dashboard.htpasswd:ro
-      - traefik_certs:/etc/traefik/certs
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    networks:
-      cerniq_public:
-        ipv4_address: 172.29.10.10
-      cerniq_backend:
-        ipv4_address: 172.29.20.10
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "50m"
-        max-file: "5"
 
   # ==========================================================================
   # Redis - Production logging
   # ==========================================================================
   redis:
+    environment:
+      REDIS_MAXMEMORY: ${REDIS_MAXMEMORY:-8gb}
     networks:
       cerniq_data:
         ipv4_address: 172.29.30.20
       cerniq_backend:
         ipv4_address: 172.29.20.20
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 4G
+        reservations:
+          cpus: '0.5'
+          memory: 2G
     logging:
       driver: "json-file"
       options:
         max-size: "50m"
         max-file: "3"
-
-  # ==========================================================================
-  # OpenBao Server - Path overrides for production
-  # ==========================================================================
-  openbao:
-    volumes:
-      - openbao_data:/openbao/data
-      - ./config/openbao:/openbao/config:ro
-    networks:
-      cerniq_backend:
-        ipv4_address: 172.29.20.50
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "50m"
-        max-file: "5"
 
   # ==========================================================================
   # OpenBao Agent API - Path overrides for production
@@ -154,6 +108,33 @@ services:
         max-size: "20m"
         max-file: "3"
 
+  vector:
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - ./config/vector/vector.toml:/etc/vector/vector.toml:ro
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+  otel-collector:
+    volumes:
+      - ./config/otel/otel-collector.yaml:/etc/otelcol-contrib/config.yaml:ro
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+  cadvisor:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
 # =============================================================================
 # Secrets - Production paths (./secrets/ from /opt/cerniq/)
 # =============================================================================
@@ -162,8 +143,6 @@ secrets:
     file: ./secrets/postgres_password.txt
   redis_password:
     file: ./secrets/redis_password.txt
-  traefik_dashboard_htpasswd:
-    file: ./secrets/traefik_dashboard.htpasswd
 
 # =============================================================================
 # Networks - External (pre-created on server)

@@ -16,7 +16,6 @@
 
 | Serviciu | Imagine | Port Cerniq | Port Container | Rol |
 | -------- | ------- | ----------- | -------------- | --- |
-| traefik | traefik:v3.6.6 | 64080, 64443, 64093 | 80, 443, 8080 | Reverse proxy, SSL |
 | **openbao** | quay.io/openbao/openbao:2.5.0 | 64090 | 8200 | **Secrets Management** 🆕 |
 | api | Custom build | 64000 | 64000 | REST API |
 | workers | Custom build | - | - | BullMQ jobs |
@@ -30,27 +29,11 @@
 
 ## DEFINIȚII SERVICII
 
-### 1. Traefik (Edge Router)
+### 1. Ingress (Traefik on orchestrator)
 
-```yaml
-traefik:
-  image: traefik:v3.6.6
-  ports:
-    - "64080:80"
-    - "64443:443"
-    - "64443:443/udp"  # HTTP/3 QUIC
-    - "64093:64093"  # Dashboard (protected)
-  volumes:
-    - /var/run/docker.sock:/var/run/docker.sock:ro
-    - ./acme.json:/acme.json
-  command:
-    - --api.dashboard=true
-    - --entrypoints.web.address=:80
-    - --entrypoints.websecure.address=:443
-    - --certificatesresolvers.letsencrypt.acme.email=admin@cerniq.app
-```
-
-**Rol:** Reverse proxy, SSL termination via Let's Encrypt, Load balancing
+Traefik intern a fost eliminat din stack-ul aplicatiei. Ingress-ul public
+este furnizat de Traefik-ul centralizat de pe orchestrator, care routeaza spre
+serviciile din LXC (`64000`, `64010`, `64012`).
 
 ---
 
@@ -128,8 +111,6 @@ api:
     interval: 30s
     timeout: 10s
     retries: 3
-  labels:
-    - traefik.http.routers.api.rule=Host(`api.cerniq.app`)
 ```
 
 **Secrets:** Via OpenBao Agent template → `/secrets/api.env`
@@ -298,7 +279,7 @@ networks:
 **Reguli:**
 
 - Toate serviciile pe `cerniq-network`
-- Doar Traefik expune porturi publice (80, 443)
+- Niciun container din acest stack nu expune direct porturi publice 80/443
 - Comunicare internă via service names
 
 ---

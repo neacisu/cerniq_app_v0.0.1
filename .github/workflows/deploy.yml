@@ -21,7 +21,6 @@
 #   ├── docker-compose.prod.yml  (production only)
 #   ├── config/
 #   │   ├── postgres/
-#   │   ├── traefik/
 #   │   └── openbao/
 #   ├── scripts/
 #   └── secrets/
@@ -50,6 +49,10 @@ on:
         description: 'Version to deploy (e.g., v1.0.0)'
         required: true
         type: string
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
 
 env:
   REGISTRY: ghcr.io
@@ -179,7 +182,7 @@ jobs:
             type=sha,prefix=sha-
 
       - name: 🏗️ Build and push
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6.19.2
         with:
           context: ${{ matrix.app.context }}
           push: true
@@ -192,14 +195,13 @@ jobs:
             BUILD_SHA=${{ needs.setup.outputs.sha }}
 
       - name: 🔒 Scan image for vulnerabilities
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.34.0
         with:
           image-ref: '${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.app.name }}:${{ needs.setup.outputs.version }}'
           format: 'table'
-          exit-code: '0'  # Warn but don't fail for now
+          exit-code: '1'
           severity: 'CRITICAL,HIGH'
           ignore-unfixed: true
-        continue-on-error: true
 
   # ===========================================================================
   # JOB 3: Deploy to Staging
@@ -244,13 +246,15 @@ jobs:
           
           echo "📁 Creating COMPLETE server directory structure..."
           $SSH_CMD << 'ENDSSH'
-            sudo mkdir -p /opt/cerniq/{config/{postgres,traefik/dynamic,openbao/{policies,templates},nginx,fail2ban,cron,logrotate,docker},scripts,secrets,backups,build/postgres}
+            sudo mkdir -p /opt/cerniq/{config/{postgres,openbao/{policies,templates},fail2ban,cron,logrotate,docker},scripts,secrets,backups,build/postgres}
             sudo chown -R $(whoami):$(whoami) /opt/cerniq
           ENDSSH
           
           echo "📄 Syncing docker-compose files..."
           $SCP_CMD infra/docker/docker-compose.yml ${HOST}:/opt/cerniq/
           $SCP_CMD infra/docker/docker-compose.prod.yml ${HOST}:/opt/cerniq/
+          $SCP_CMD infra/config/vector/vector.toml ${HOST}:/opt/cerniq/config/vector.toml 2>/dev/null || true
+          $SCP_CMD infra/config/otel/otel-collector.yaml ${HOST}:/opt/cerniq/config/otel-collector.yaml 2>/dev/null || true
           
           echo "📄 Syncing PostgreSQL config and Dockerfile..."
           $SCP_CMD infra/config/postgres/postgresql.conf ${HOST}:/opt/cerniq/config/postgres/postgresql.conf
@@ -258,18 +262,10 @@ jobs:
           $SCP_CMD infra/config/postgres/init.sql ${HOST}:/opt/cerniq/config/postgres/
           $SCP_CMD infra/docker/postgres/Dockerfile ${HOST}:/opt/cerniq/build/postgres/
           
-          echo "📄 Syncing Traefik config..."
-          $SCP_CMD infra/docker/traefik/traefik.yml ${HOST}:/opt/cerniq/config/traefik/
-          $SCP_CMD infra/docker/traefik/dynamic/*.yml ${HOST}:/opt/cerniq/config/traefik/dynamic/ 2>/dev/null || true
-          
           echo "📄 Syncing OpenBao config (CORRECT PATH)..."
           $SCP_CMD infra/config/openbao/*.hcl ${HOST}:/opt/cerniq/config/openbao/
           $SCP_CMD infra/config/openbao/policies/*.hcl ${HOST}:/opt/cerniq/config/openbao/policies/
           $SCP_CMD infra/config/openbao/templates/*.tpl ${HOST}:/opt/cerniq/config/openbao/templates/
-          
-          echo "📄 Syncing nginx configs..."
-          $SCP_CMD infra/config/nginx/*.conf ${HOST}:/opt/cerniq/config/nginx/ 2>/dev/null || true
-          $SCP_CMD infra/docker/nginx/*.conf ${HOST}:/opt/cerniq/config/nginx/ 2>/dev/null || true
           
           echo "📄 Syncing security configs (fail2ban, cron, logrotate)..."
           $SCP_CMD infra/config/fail2ban/jail.local ${HOST}:/opt/cerniq/config/fail2ban/
@@ -282,6 +278,26 @@ jobs:
           $SSH_CMD "chmod +x /opt/cerniq/scripts/*.sh"
           
           echo "✅ COMPLETE configuration sync done"
+
+      - name: 🔁 Sync orchestrator Traefik route
+        continue-on-error: true
+        run: |
+          KEY_PATH="${HOME}/.ssh/id_ed25519_production"
+          if [[ ! -f "${KEY_PATH}" ]]; then
+            echo "Orchestrator SSH key not found at ${KEY_PATH}, skipping orchestrator sync"
+            exit 0
+          fi
+          mkdir -p ~/.ssh
+          ORCH_HOST="77.42.76.185"
+          ORCH_USER="root"
+          ssh-keyscan -H "$ORCH_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+          scp -i "${KEY_PATH}" infra/config/traefik-orchestrator/cerniq.yml "${ORCH_USER}@${ORCH_HOST}:/opt/traefik/dynamic/cerniq.yml"
+          ssh -i "${KEY_PATH}" "${ORCH_USER}@${ORCH_HOST}" << 'ENDSSH'
+            set -euo pipefail
+            test -f /opt/traefik/dynamic_conf.yml
+            python3 -c "from pathlib import Path; import yaml; b=Path('/opt/traefik/dynamic_conf.yml'); a=Path('/opt/traefik/dynamic/cerniq.yml'); base=yaml.safe_load(b.read_text()) or {}; add=yaml.safe_load(a.read_text()) or {}; bh=base.setdefault('http',{}); ah=add.get('http',{}) or {}; [bh.setdefault(s,{}).update((ah.get(s,{}) or {})) for s in ('middlewares','routers','services')]; b.write_text(yaml.safe_dump(base, sort_keys=False))"
+            docker restart traefik >/dev/null
+          ENDSSH
 
       # =========================================================================
       # STEP 2: Save current version for rollback
@@ -336,56 +352,7 @@ jobs:
         run: |
           ssh -i ~/.ssh/deploy_key ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'ENDSSH'
             cd /opt/cerniq
-            
-            # Wait for OpenBao to be ready
-            echo "⏳ Waiting for OpenBao container..."
-            for i in {1..30}; do
-              if docker exec cerniq-openbao bao status 2>/dev/null; then
-                break
-              fi
-              sleep 2
-            done
-            
-            # Check initialization status
-            INIT_STATUS=$(docker exec cerniq-openbao bao status -format=json 2>/dev/null | jq -r '.initialized // false')
-            
-            if [ "$INIT_STATUS" != "true" ]; then
-              echo "🔐 Initializing OpenBao..."
-              
-              # Initialize with 5 key shares, 3 threshold
-              INIT_OUTPUT=$(docker exec cerniq-openbao bao operator init -key-shares=5 -key-threshold=3 -format=json)
-              
-              # Save keys securely
-              echo "$INIT_OUTPUT" | jq -r '.unseal_keys_b64[]' > /opt/cerniq/secrets/openbao_unseal_keys.txt
-              echo "$INIT_OUTPUT" | jq -r '.root_token' > /opt/cerniq/secrets/openbao_root_token.txt
-              chmod 600 /opt/cerniq/secrets/openbao_*.txt
-              
-              echo "✅ OpenBao initialized. Keys saved to /opt/cerniq/secrets/"
-              
-              # Auto-unseal for staging
-              echo "🔓 Auto-unsealing (staging only)..."
-              for i in 1 2 3; do
-                KEY=$(sed -n "${i}p" /opt/cerniq/secrets/openbao_unseal_keys.txt)
-                docker exec cerniq-openbao bao operator unseal "$KEY" >/dev/null 2>&1 || true
-              done
-            else
-              echo "✅ OpenBao already initialized"
-              
-              # Check if sealed
-              SEALED=$(docker exec cerniq-openbao bao status -format=json 2>/dev/null | jq -r '.sealed // true')
-              if [ "$SEALED" == "true" ]; then
-                echo "🔓 Auto-unsealing..."
-                if [ -f /opt/cerniq/secrets/openbao_unseal_keys.txt ]; then
-                  for i in 1 2 3; do
-                    KEY=$(sed -n "${i}p" /opt/cerniq/secrets/openbao_unseal_keys.txt)
-                    docker exec cerniq-openbao bao operator unseal "$KEY" >/dev/null 2>&1 || true
-                  done
-                fi
-              fi
-            fi
-            
-            # Final status
-            docker exec cerniq-openbao bao status 2>/dev/null | grep -E "Initialized|Sealed" || true
+            echo "✅ Skipped: OpenBao server is external on orchestrator (s3cr3ts.neanelu.ro)"
           ENDSSH
 
       # =========================================================================
@@ -395,62 +362,11 @@ jobs:
         run: |
           ssh -i ~/.ssh/deploy_key ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'ENDSSH'
             cd /opt/cerniq
-            
-            # Check if OpenBao is ready
-            SEALED=$(docker exec cerniq-openbao bao status -format=json 2>/dev/null | jq -r '.sealed // true')
-            if [ "$SEALED" == "true" ]; then
-              echo "⚠️ OpenBao is sealed, skipping configuration"
-              exit 0
-            fi
-            
-            # Get root token
-            if [ ! -f /opt/cerniq/secrets/openbao_root_token.txt ]; then
-              echo "⚠️ Root token not found, skipping configuration"
-              exit 0
-            fi
-            
-            ROOT_TOKEN=$(cat /opt/cerniq/secrets/openbao_root_token.txt)
-            export BAO_ADDR="http://127.0.0.1:8200"
-            export BAO_TOKEN="$ROOT_TOKEN"
-            
-            # Check if already configured (secrets engine exists)
-            if docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao secrets list 2>/dev/null | grep -q "secret/"; then
-              echo "✅ OpenBao already configured"
-            else
-              echo "🔧 Configuring OpenBao..."
-              
-              # Enable KV v2 secrets engine
-              docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao secrets enable -path=secret kv-v2 2>/dev/null || true
-              
-              # Enable AppRole auth
-              docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao auth enable approle 2>/dev/null || true
-              
-              # Load policies
-              docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao policy write api-policy /openbao/config/policies/api-policy.hcl
-              docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao policy write workers-policy /openbao/config/policies/workers-policy.hcl
-              
-              # Create AppRoles
-              docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao write auth/approle/role/api token_ttl=1h token_max_ttl=4h token_policies=api-policy
-              docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao write auth/approle/role/workers token_ttl=1h token_max_ttl=4h token_policies=workers-policy
-              
-              echo "✅ OpenBao configuration complete"
-            fi
-            
-            # Generate/update AppRole credentials for agents
-            echo "🔑 Generating AppRole credentials..."
-            
-            API_ROLE_ID=$(docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao read -field=role_id auth/approle/role/api/role-id)
-            API_SECRET_ID=$(docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao write -f -field=secret_id auth/approle/role/api/secret-id)
-            WORKERS_ROLE_ID=$(docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao read -field=role_id auth/approle/role/workers/role-id)
-            WORKERS_SECRET_ID=$(docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao write -f -field=secret_id auth/approle/role/workers/secret-id)
-            
-            echo "$API_ROLE_ID" > /opt/cerniq/secrets/api_role_id
-            echo "$API_SECRET_ID" > /opt/cerniq/secrets/api_secret_id
-            echo "$WORKERS_ROLE_ID" > /opt/cerniq/secrets/workers_role_id
-            echo "$WORKERS_SECRET_ID" > /opt/cerniq/secrets/workers_secret_id
-            chmod 600 /opt/cerniq/secrets/*_role_id /opt/cerniq/secrets/*_secret_id
-            
-            echo "✅ AppRole credentials saved"
+            test -s /opt/cerniq/secrets/api_role_id
+            test -s /opt/cerniq/secrets/api_secret_id
+            test -s /opt/cerniq/secrets/workers_role_id
+            test -s /opt/cerniq/secrets/workers_secret_id
+            echo "✅ AppRole credentials present (external OpenBao)"
           ENDSSH
 
       # =========================================================================
@@ -460,63 +376,7 @@ jobs:
         run: |
           ssh -i ~/.ssh/deploy_key ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'ENDSSH'
             cd /opt/cerniq
-            
-            SEALED=$(docker exec cerniq-openbao bao status -format=json 2>/dev/null | jq -r '.sealed // true')
-            if [ "$SEALED" == "true" ]; then
-              echo "⚠️ OpenBao is sealed, skipping secrets population"
-              exit 0
-            fi
-            
-            if [ ! -f /opt/cerniq/secrets/openbao_root_token.txt ]; then
-              exit 0
-            fi
-            
-            ROOT_TOKEN=$(cat /opt/cerniq/secrets/openbao_root_token.txt)
-            export BAO_ADDR="http://127.0.0.1:8200"
-            export BAO_TOKEN="$ROOT_TOKEN"
-            
-            # Check if secrets already exist
-            if docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao kv get secret/cerniq/api/config 2>/dev/null | grep -q "pg_user"; then
-              echo "✅ Secrets already populated"
-              exit 0
-            fi
-            
-            echo "📝 Populating initial secrets..."
-            
-            # Get passwords from files
-            PG_PASS=$(cat /opt/cerniq/secrets/postgres_password.txt 2>/dev/null || echo "")
-            REDIS_PASS=$(cat /opt/cerniq/secrets/redis_password.txt 2>/dev/null || echo "")
-            EXISTING_JWT=$(docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao kv get -field=jwt_secret secret/cerniq/api/config 2>/dev/null || true)
-            if [ -n "$EXISTING_JWT" ]; then
-              JWT_SECRET="$EXISTING_JWT"
-              echo "🔁 Reusing existing JWT secret"
-            else
-              JWT_SECRET=$(openssl rand -base64 48 | tr -d '\n')
-              echo "🔑 Generated new JWT secret"
-            fi
-            
-            if [ -n "$PG_PASS" ] && [ -n "$REDIS_PASS" ]; then
-              # API config secrets
-              docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao kv put secret/cerniq/api/config \
-                pg_user=c3rn1q \
-                pg_password="$PG_PASS" \
-                redis_password="$REDIS_PASS" \
-                jwt_secret="$JWT_SECRET" \
-                NODE_ENV=staging \
-                LOG_LEVEL=debug
-              
-              # External API keys (placeholders)
-              docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao kv put secret/cerniq/shared/external \
-                anaf_client_id=PLACEHOLDER \
-                anaf_client_secret=PLACEHOLDER \
-                resend_api_key=PLACEHOLDER \
-                hunter_api_key=PLACEHOLDER \
-                termene_api_key=PLACEHOLDER
-              
-              echo "✅ Initial secrets populated"
-            else
-              echo "⚠️ Password files not found, skipping secrets population"
-            fi
+            echo "✅ Skipped: secrets are managed centrally in orchestrator OpenBao"
           ENDSSH
 
       # =========================================================================
@@ -633,13 +493,11 @@ jobs:
             echo "🔍 Core Services Health Checks"
 
             PG_PASS=$(cat /opt/cerniq/secrets/postgres_password.txt 2>/dev/null || echo "")
-
-            PG_PASS=$(cat /opt/cerniq/secrets/postgres_password.txt 2>/dev/null || echo "")
             
-            # PostgreSQL health
+            # External PostgreSQL health (via CT107)
             echo -n "  PostgreSQL: "
-            if docker exec -e PGPASSWORD="$PG_PASS" cerniq-postgres \
-              pg_isready -h 127.0.0.1 -p 64032 -U c3rn1q -d cerniq >/dev/null 2>&1; then
+            if docker exec -e PGPASSWORD="$PG_PASS" cerniq-pgbouncer \
+              pg_isready -h 10.0.1.107 -p 5432 -U c3rn1q -d cerniq_staging >/dev/null 2>&1; then
               echo "✅ HEALTHY"
             else
               echo "❌ FAILED"
@@ -649,7 +507,7 @@ jobs:
             # PgBouncer health
             echo -n "  PgBouncer:  "
             if docker exec -e PGPASSWORD="$PG_PASS" cerniq-pgbouncer \
-              psql -h 127.0.0.1 -p 64033 -U c3rn1q -d cerniq -c 'SELECT 1' >/dev/null 2>&1; then
+              psql -h 127.0.0.1 -p 64033 -U c3rn1q -d cerniq_staging -c 'SELECT 1' >/dev/null 2>&1; then
               echo "✅ HEALTHY"
             else
               echo "⚠️ NOT READY (may be initializing)"
@@ -665,27 +523,31 @@ jobs:
               FAILED=1
             fi
             
-            # Traefik health
-            echo -n "  Traefik:    "
-            if curl -sf http://127.0.0.1:64093/ping >/dev/null 2>&1; then
+            # Ingress health via orchestrator Traefik
+            echo -n "  Ingress:    "
+            if curl -skf https://staging.cerniq.app >/dev/null 2>&1; then
               echo "✅ HEALTHY"
             else
               echo "❌ FAILED"
               FAILED=1
             fi
             
-            # OpenBao health
-            echo -n "  OpenBao:    "
-            BAO_STATUS=$(docker exec cerniq-openbao bao status -format=json 2>/dev/null || echo '{}')
-            if echo "$BAO_STATUS" | jq -e '.initialized == true' >/dev/null 2>&1; then
-              SEALED=$(echo "$BAO_STATUS" | jq -r '.sealed')
-              if [ "$SEALED" == "false" ]; then
-                echo "✅ HEALTHY (unsealed)"
-              else
-                echo "⚠️ SEALED (needs manual unseal)"
-              fi
+            # Vector health
+            echo -n "  Vector:     "
+            if docker inspect -f '{{.State.Running}}' cerniq-vector 2>/dev/null | grep -q true; then
+              echo "✅ HEALTHY"
             else
-              echo "❌ NOT INITIALIZED"
+              echo "❌ FAILED"
+              FAILED=1
+            fi
+
+            # OpenBao agents health (remote OpenBao on orchestrator)
+            echo -n "  OpenBao:    "
+            if docker inspect -f '{{.State.Health.Status}}' cerniq-openbao-agent-api 2>/dev/null | grep -q healthy && \
+               docker inspect -f '{{.State.Health.Status}}' cerniq-openbao-agent-workers 2>/dev/null | grep -q healthy; then
+              echo "✅ HEALTHY (agents)"
+            else
+              echo "❌ FAILED (agents)"
               FAILED=1
             fi
             
@@ -731,7 +593,7 @@ jobs:
     if: needs.setup.outputs.environment == 'production'
     environment:
       name: production
-      url: https://app.cerniq.app
+      url: https://cerniq.app
 
     steps:
       - name: 📥 Checkout code
@@ -773,13 +635,15 @@ jobs:
           
           echo "📁 Creating COMPLETE server directory structure..."
           $SSH_CMD << 'ENDSSH'
-            sudo mkdir -p /opt/cerniq/{config/{postgres,traefik/dynamic,openbao/{policies,templates},nginx,fail2ban,cron,logrotate,docker},scripts,secrets,backups,build/postgres}
+            sudo mkdir -p /opt/cerniq/{config/{postgres,openbao/{policies,templates},fail2ban,cron,logrotate,docker},scripts,secrets,backups,build/postgres}
             sudo chown -R $(whoami):$(whoami) /opt/cerniq
           ENDSSH
           
           echo "📄 Syncing docker-compose files..."
           $SCP_CMD infra/docker/docker-compose.yml ${HOST}:/opt/cerniq/
           $SCP_CMD infra/docker/docker-compose.prod.yml ${HOST}:/opt/cerniq/
+          $SCP_CMD infra/config/vector/vector.toml ${HOST}:/opt/cerniq/config/vector.toml 2>/dev/null || true
+          $SCP_CMD infra/config/otel/otel-collector.yaml ${HOST}:/opt/cerniq/config/otel-collector.yaml 2>/dev/null || true
           
           echo "📄 Syncing PostgreSQL config and Dockerfile..."
           $SCP_CMD infra/config/postgres/postgresql.conf ${HOST}:/opt/cerniq/config/postgres/
@@ -787,18 +651,10 @@ jobs:
           $SCP_CMD infra/config/postgres/init.sql ${HOST}:/opt/cerniq/config/postgres/
           $SCP_CMD infra/docker/postgres/Dockerfile ${HOST}:/opt/cerniq/build/postgres/
           
-          echo "📄 Syncing Traefik config..."
-          $SCP_CMD infra/docker/traefik/traefik.yml ${HOST}:/opt/cerniq/config/traefik/
-          $SCP_CMD infra/docker/traefik/dynamic/*.yml ${HOST}:/opt/cerniq/config/traefik/dynamic/ 2>/dev/null || true
-          
           echo "📄 Syncing OpenBao config (CORRECT PATH)..."
           $SCP_CMD infra/config/openbao/*.hcl ${HOST}:/opt/cerniq/config/openbao/
           $SCP_CMD infra/config/openbao/policies/*.hcl ${HOST}:/opt/cerniq/config/openbao/policies/
           $SCP_CMD infra/config/openbao/templates/*.tpl ${HOST}:/opt/cerniq/config/openbao/templates/
-          
-          echo "📄 Syncing nginx configs..."
-          $SCP_CMD infra/config/nginx/*.conf ${HOST}:/opt/cerniq/config/nginx/ 2>/dev/null || true
-          $SCP_CMD infra/docker/nginx/*.conf ${HOST}:/opt/cerniq/config/nginx/ 2>/dev/null || true
           
           echo "📄 Syncing security configs (fail2ban, cron, logrotate)..."
           $SCP_CMD infra/config/fail2ban/jail.local ${HOST}:/opt/cerniq/config/fail2ban/
@@ -811,6 +667,26 @@ jobs:
           $SSH_CMD "chmod +x /opt/cerniq/scripts/*.sh"
           
           echo "✅ COMPLETE configuration sync done"
+
+      - name: 🔁 Sync orchestrator Traefik route
+        continue-on-error: true
+        run: |
+          KEY_PATH="${HOME}/.ssh/id_ed25519_production"
+          if [[ ! -f "${KEY_PATH}" ]]; then
+            echo "Orchestrator SSH key not found at ${KEY_PATH}, skipping orchestrator sync"
+            exit 0
+          fi
+          mkdir -p ~/.ssh
+          ORCH_HOST="77.42.76.185"
+          ORCH_USER="root"
+          ssh-keyscan -H "$ORCH_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+          scp -i "${KEY_PATH}" infra/config/traefik-orchestrator/cerniq.yml "${ORCH_USER}@${ORCH_HOST}:/opt/traefik/dynamic/cerniq.yml"
+          ssh -i "${KEY_PATH}" "${ORCH_USER}@${ORCH_HOST}" << 'ENDSSH'
+            set -euo pipefail
+            test -f /opt/traefik/dynamic_conf.yml
+            python3 -c "from pathlib import Path; import yaml; b=Path('/opt/traefik/dynamic_conf.yml'); a=Path('/opt/traefik/dynamic/cerniq.yml'); base=yaml.safe_load(b.read_text()) or {}; add=yaml.safe_load(a.read_text()) or {}; bh=base.setdefault('http',{}); ah=add.get('http',{}) or {}; [bh.setdefault(s,{}).update((ah.get(s,{}) or {})) for s in ('middlewares','routers','services')]; b.write_text(yaml.safe_dump(base, sort_keys=False))"
+            docker restart traefik >/dev/null
+          ENDSSH
 
       # =========================================================================
       # STEP 2: Save current version for rollback
@@ -864,41 +740,7 @@ jobs:
         run: |
           ssh -i ~/.ssh/deploy_key ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
             cd /opt/cerniq
-            
-            # Wait for OpenBao
-            echo "⏳ Waiting for OpenBao container..."
-            for i in {1..30}; do
-              if docker exec cerniq-openbao bao status 2>/dev/null; then
-                break
-              fi
-              sleep 2
-            done
-            
-            INIT_STATUS=$(docker exec cerniq-openbao bao status -format=json 2>/dev/null | jq -r '.initialized // false')
-            
-            if [ "$INIT_STATUS" != "true" ]; then
-              echo "🔐 Initializing OpenBao..."
-              
-              INIT_OUTPUT=$(docker exec cerniq-openbao bao operator init -key-shares=5 -key-threshold=3 -format=json)
-              
-              echo "$INIT_OUTPUT" | jq -r '.unseal_keys_b64[]' > /opt/cerniq/secrets/openbao_unseal_keys.txt
-              echo "$INIT_OUTPUT" | jq -r '.root_token' > /opt/cerniq/secrets/openbao_root_token.txt
-              chmod 600 /opt/cerniq/secrets/openbao_*.txt
-              
-              echo "⚠️  PRODUCTION: OpenBao initialized but NOT auto-unsealed"
-              echo "🔑 Unseal keys saved to /opt/cerniq/secrets/openbao_unseal_keys.txt"
-              echo "🔑 Root token saved to /opt/cerniq/secrets/openbao_root_token.txt"
-              echo ""
-              echo "❗ MANUAL STEP REQUIRED: Run 'bao operator unseal' with 3 keys"
-            else
-              echo "✅ OpenBao already initialized"
-              SEALED=$(docker exec cerniq-openbao bao status -format=json 2>/dev/null | jq -r '.sealed // true')
-              if [ "$SEALED" == "true" ]; then
-                echo "🔒 OpenBao is SEALED - manual unseal required for production security"
-              else
-                echo "✅ OpenBao is unsealed"
-              fi
-            fi
+            echo "✅ Skipped: OpenBao server is external on orchestrator (s3cr3ts.neanelu.ro)"
           ENDSSH
 
       # =========================================================================
@@ -909,46 +751,11 @@ jobs:
         run: |
           ssh -i ~/.ssh/deploy_key ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
             cd /opt/cerniq
-            
-            SEALED=$(docker exec cerniq-openbao bao status -format=json 2>/dev/null | jq -r '.sealed // true')
-            if [ "$SEALED" == "true" ]; then
-              echo "⚠️ OpenBao is sealed, skipping configuration"
-              echo "   Run manual unseal first, then re-deploy to configure"
-              exit 0
-            fi
-            
-            if [ ! -f /opt/cerniq/secrets/openbao_root_token.txt ]; then
-              exit 0
-            fi
-            
-            ROOT_TOKEN=$(cat /opt/cerniq/secrets/openbao_root_token.txt)
-            export BAO_ADDR="http://127.0.0.1:8200"
-            export BAO_TOKEN="$ROOT_TOKEN"
-            
-            # Configuration (same as staging)
-            if docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao secrets list 2>/dev/null | grep -q "secret/"; then
-              echo "✅ OpenBao already configured"
-            else
-              docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao secrets enable -path=secret kv-v2 2>/dev/null || true
-              docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao auth enable approle 2>/dev/null || true
-              docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao policy write api-policy /openbao/config/policies/api-policy.hcl
-              docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao policy write workers-policy /openbao/config/policies/workers-policy.hcl
-              docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao write auth/approle/role/api token_ttl=1h token_max_ttl=4h token_policies=api-policy
-              docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao write auth/approle/role/workers token_ttl=1h token_max_ttl=4h token_policies=workers-policy
-              echo "✅ OpenBao configuration complete"
-            fi
-            
-            # Generate AppRole credentials
-            API_ROLE_ID=$(docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao read -field=role_id auth/approle/role/api/role-id)
-            API_SECRET_ID=$(docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao write -f -field=secret_id auth/approle/role/api/secret-id)
-            WORKERS_ROLE_ID=$(docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao read -field=role_id auth/approle/role/workers/role-id)
-            WORKERS_SECRET_ID=$(docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao write -f -field=secret_id auth/approle/role/workers/secret-id)
-            
-            echo "$API_ROLE_ID" > /opt/cerniq/secrets/api_role_id
-            echo "$API_SECRET_ID" > /opt/cerniq/secrets/api_secret_id
-            echo "$WORKERS_ROLE_ID" > /opt/cerniq/secrets/workers_role_id
-            echo "$WORKERS_SECRET_ID" > /opt/cerniq/secrets/workers_secret_id
-            chmod 600 /opt/cerniq/secrets/*_role_id /opt/cerniq/secrets/*_secret_id
+            test -s /opt/cerniq/secrets/api_role_id
+            test -s /opt/cerniq/secrets/api_secret_id
+            test -s /opt/cerniq/secrets/workers_role_id
+            test -s /opt/cerniq/secrets/workers_secret_id
+            echo "✅ AppRole credentials present (external OpenBao)"
           ENDSSH
 
       # =========================================================================
@@ -959,54 +766,7 @@ jobs:
         run: |
           ssh -i ~/.ssh/deploy_key ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
             cd /opt/cerniq
-            
-            SEALED=$(docker exec cerniq-openbao bao status -format=json 2>/dev/null | jq -r '.sealed // true')
-            if [ "$SEALED" == "true" ]; then
-              exit 0
-            fi
-            
-            if [ ! -f /opt/cerniq/secrets/openbao_root_token.txt ]; then
-              exit 0
-            fi
-            
-            ROOT_TOKEN=$(cat /opt/cerniq/secrets/openbao_root_token.txt)
-            export BAO_ADDR="http://127.0.0.1:8200"
-            export BAO_TOKEN="$ROOT_TOKEN"
-            
-            if docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao kv get secret/cerniq/api/config 2>/dev/null | grep -q "pg_user"; then
-              echo "✅ Secrets already populated"
-              exit 0
-            fi
-            
-            PG_PASS=$(cat /opt/cerniq/secrets/postgres_password.txt 2>/dev/null || echo "")
-            REDIS_PASS=$(cat /opt/cerniq/secrets/redis_password.txt 2>/dev/null || echo "")
-            EXISTING_JWT=$(docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao kv get -field=jwt_secret secret/cerniq/api/config 2>/dev/null || true)
-            if [ -n "$EXISTING_JWT" ]; then
-              JWT_SECRET="$EXISTING_JWT"
-              echo "🔁 Reusing existing JWT secret"
-            else
-              JWT_SECRET=$(openssl rand -base64 48 | tr -d '\n')
-              echo "🔑 Generated new JWT secret"
-            fi
-            
-            if [ -n "$PG_PASS" ] && [ -n "$REDIS_PASS" ]; then
-              docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao kv put secret/cerniq/api/config \
-                pg_user=c3rn1q \
-                pg_password="$PG_PASS" \
-                redis_password="$REDIS_PASS" \
-                jwt_secret="$JWT_SECRET" \
-                NODE_ENV=production \
-                LOG_LEVEL=info
-              
-              docker exec -e BAO_ADDR=$BAO_ADDR -e BAO_TOKEN=$BAO_TOKEN cerniq-openbao bao kv put secret/cerniq/shared/external \
-                anaf_client_id=PLACEHOLDER \
-                anaf_client_secret=PLACEHOLDER \
-                resend_api_key=PLACEHOLDER \
-                hunter_api_key=PLACEHOLDER \
-                termene_api_key=PLACEHOLDER
-              
-              echo "✅ Initial secrets populated"
-            fi
+            echo "✅ Skipped: secrets are managed centrally in orchestrator OpenBao"
           ENDSSH
 
       # =========================================================================
@@ -1114,11 +874,13 @@ jobs:
             
             echo ""
             echo "🔍 Core Services Health Checks"
+
+            PG_PASS=$(cat /opt/cerniq/secrets/postgres_password.txt 2>/dev/null || echo "")
             
-            # PostgreSQL health
+            # External PostgreSQL health (via CT107)
             echo -n "  PostgreSQL: "
-            if docker exec -e PGPASSWORD="$PG_PASS" cerniq-postgres \
-              pg_isready -h 127.0.0.1 -p 64032 -U c3rn1q -d cerniq >/dev/null 2>&1; then
+            if docker exec -e PGPASSWORD="$PG_PASS" cerniq-pgbouncer \
+              pg_isready -h 10.0.1.107 -p 5432 -U c3rn1q -d cerniq >/dev/null 2>&1; then
               echo "✅ HEALTHY"
             else
               echo "❌ FAILED"
@@ -1144,29 +906,31 @@ jobs:
               FAILED=1
             fi
             
-            # Traefik health
-            echo -n "  Traefik:    "
-            if curl -sf http://127.0.0.1:64093/ping >/dev/null 2>&1; then
+            # Ingress health via orchestrator Traefik
+            echo -n "  Ingress:    "
+            if curl -skf https://cerniq.app >/dev/null 2>&1; then
               echo "✅ HEALTHY"
             else
               echo "❌ FAILED"
               FAILED=1
             fi
             
-            # OpenBao health
-            echo -n "  OpenBao:    "
-            BAO_STATUS=$(docker exec cerniq-openbao bao status -format=json 2>/dev/null || echo '{}')
-            if echo "$BAO_STATUS" | jq -e '.initialized == true' >/dev/null 2>&1; then
-              SEALED=$(echo "$BAO_STATUS" | jq -r '.sealed')
-              if [ "$SEALED" == "false" ]; then
-                echo "✅ HEALTHY (unsealed)"
-              else
-                echo "⚠️ SEALED - MANUAL UNSEAL REQUIRED"
-                echo ""
-                echo "  ⚡ ACTION REQUIRED: Run /opt/cerniq/scripts/openbao-init.sh --unseal"
-              fi
+            # Vector health
+            echo -n "  Vector:     "
+            if docker inspect -f '{{.State.Running}}' cerniq-vector 2>/dev/null | grep -q true; then
+              echo "✅ HEALTHY"
             else
-              echo "❌ NOT INITIALIZED"
+              echo "❌ FAILED"
+              FAILED=1
+            fi
+
+            # OpenBao agents health (remote OpenBao on orchestrator)
+            echo -n "  OpenBao:    "
+            if docker inspect -f '{{.State.Health.Status}}' cerniq-openbao-agent-api 2>/dev/null | grep -q healthy && \
+               docker inspect -f '{{.State.Health.Status}}' cerniq-openbao-agent-workers 2>/dev/null | grep -q healthy; then
+              echo "✅ HEALTHY (agents)"
+            else
+              echo "❌ FAILED (agents)"
               FAILED=1
             fi
             
@@ -1197,8 +961,7 @@ jobs:
             else
               echo "❌ SOME SMOKE TESTS FAILED"
               echo "Review the failures above and check container logs"
-              # Don't fail production deploy for now, just warn
-              # exit 1
+              exit 1
             fi
             echo "========================================"
           ENDSSH
@@ -1288,13 +1051,16 @@ jobs:
             PREV_VERSION=$(cat /opt/cerniq/.previous_deploy)
             echo "📋 Rolling back to: $PREV_VERSION"
             
-            # Re-tag with previous version
+            # Resolve previous tag and export for compose (if image tags are parameterized)
             echo "🐳 Reverting to previous images..."
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml pull || true
+            if [[ "$PREV_VERSION" == sha-* || "$PREV_VERSION" == v* || "$PREV_VERSION" == *-* ]]; then
+              export CERNIQ_VERSION="$PREV_VERSION"
+            fi
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml pull --ignore-pull-failures || true
             
             # Restart services
             echo "🔄 Restarting services..."
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-orphans
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --force-recreate --remove-orphans
             
             echo ""
             echo "⏳ Waiting for services..."

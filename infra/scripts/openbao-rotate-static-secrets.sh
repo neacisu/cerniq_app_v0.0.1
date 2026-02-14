@@ -25,8 +25,7 @@ set -euo pipefail
 # Configuration
 # =============================================================================
 
-BAO_ADDR="${BAO_ADDR:-http://127.0.0.1:64090}"
-BAO_CONTAINER="${BAO_CONTAINER:-cerniq-openbao}"
+BAO_ADDR="${BAO_ADDR:-https://s3cr3ts.neanelu.ro}"
 REDIS_CONTAINER="${REDIS_CONTAINER:-cerniq-redis}"
 SECRETS_DIR="/var/www/CerniqAPP/secrets"
 LOG_FILE="/var/log/cerniq/secrets-rotation.log"
@@ -64,9 +63,9 @@ else
     exit 1
 fi
 
-# Helper function to run bao commands in container
+# Helper function to run bao commands against orchestrator OpenBao
 bao_exec() {
-    docker exec -e BAO_TOKEN="$BAO_TOKEN" "$BAO_CONTAINER" bao "$@"
+    BAO_ADDR="$BAO_ADDR" BAO_TOKEN="$BAO_TOKEN" bao "$@"
 }
 
 # =============================================================================
