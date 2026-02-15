@@ -69,7 +69,7 @@ cd /var/www/CerniqAPP
 
 ```bash
 # 1. Login în OpenBao
-export BAO_ADDR="http://127.0.0.1:64090"
+export BAO_ADDR="${OPENBAO_ADDR:-https://s3cr3ts.neanelu.ro}"
 bao login -method=token
 
 # 2. Generează noi secrete
@@ -88,8 +88,11 @@ bao kv put secret/cerniq/api/config \
     redis_password="$NEW_REDIS_PASS" \
     jwt_secret="$NEW_JWT_SECRET"
 
-# 5. Actualizează Redis (dacă e cazul)
-docker exec cerniq-redis redis-cli CONFIG SET requirepass "$NEW_REDIS_PASS"
+# 5. Actualizează Redis shared (dacă rotim parola user-ului ACL `cerniq`)
+# Redis ruleaza pe orchestrator ca serviciu shared; parola/ACL nu se schimba din CT-uri.
+# Operare recomandata (orchestrator):
+#   - update in `/opt/redis-shared/redis.conf` linia `user cerniq on >... ~cerniq:* ...`
+#   - restart controlat: `docker restart redis-shared`
 
 # 6. OpenBao Agents vor primi automat noile secrete
 # Serviciile vor fi notificate via template change
@@ -119,13 +122,13 @@ docker exec cerniq-api node -e "
 ```bash
 # Rotește secret_id pentru API
 NEW_API_SECRET=$(bao write -f -field=secret_id auth/approle/role/api/secret-id)
-echo "$NEW_API_SECRET" > /var/www/CerniqAPP/secrets/api_secret_id
-chmod 600 /var/www/CerniqAPP/secrets/api_secret_id
+echo "$NEW_API_SECRET" > /opt/cerniq/secrets/api_secret_id
+chmod 600 /opt/cerniq/secrets/api_secret_id
 
 # Rotește secret_id pentru Workers
 NEW_WORKERS_SECRET=$(bao write -f -field=secret_id auth/approle/role/workers/secret-id)
-echo "$NEW_WORKERS_SECRET" > /var/www/CerniqAPP/secrets/workers_secret_id
-chmod 600 /var/www/CerniqAPP/secrets/workers_secret_id
+echo "$NEW_WORKERS_SECRET" > /opt/cerniq/secrets/workers_secret_id
+chmod 600 /opt/cerniq/secrets/workers_secret_id
 
 # OpenBao Agent va prelua automat noul secret_id la următoarea autentificare
 ```
@@ -155,7 +158,7 @@ bao kv patch secret/cerniq/shared/external \
 echo "🚨 EMERGENCY ROTATION INITIATED"
 
 # 1. Revocă toate lease-urile active
-bao lease revoke -prefix database/creds/
+bao lease revoke -prefix cerniq-db/creds/
 bao lease revoke -prefix pki_int/issue/
 
 # 2. Rotește TOATE secretele statice

@@ -17,9 +17,10 @@ Toate record-urile publice Cerniq trebuie sa pointeze la IP-ul orchestratorului.
 | `staging.cerniq.app` | A | `77.42.76.185` |
 | `api.staging.cerniq.app` | A | `77.42.76.185` |
 | `admin.staging.cerniq.app` | A | `77.42.76.185` |
-| `monitoring.cerniq.app` | A | `77.42.76.185` |
-| `signoz.cerniq.app` | A | `77.42.76.185` |
-| `traefik.cerniq.app` | A | `77.42.76.185` |
+
+Notite:
+
+- Nu expunem UI-uri interne pe domeniul `cerniq.app` (Traefik/OpenBao/observability sunt centralizate pe `*.neanelu.ro` si au allowlist separat).
 
 ## Recommendations
 

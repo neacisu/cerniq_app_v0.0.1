@@ -183,36 +183,24 @@ const LEGACY_ALIASES = {
 │                          CONTEXTUL TEHNIC                                           │
 └─────────────────────────────────────────────────────────────────────────────────────┘
 
-                    INTERNET (Traefik Edge Router + Let's Encrypt)
-                                      │
-                    ┌─────────────────┴─────────────────┐
-                    │         FRONTEND NETWORK          │
-                    │         (bridge, public)          │
-                    └─────────────────┬─────────────────┘
-                                      │
-       ┌──────────────────────────────┼──────────────────────────────┐
-       │                              │                              │
-       ▼                              ▼                              ▼
-┌───────────────┐               ┌─────────────┐               ┌──────────────┐
-│   Web App     │               │  Fastify    │               │   SigNoz     │
-│ React 19.2.3+ │               │  API v5.6.2 │               │ Observability│
-│  Refine v5    │               │  (Node 24)  │               │  v0.107.0    │
-└───────────────┘               └──────┬──────┘               └──────────────┘
-                                     │
-                    ┌────────────────┴────────────────┐
-                    │        BACKEND NETWORK          │
-                    │        (bridge, internal)       │
-                    └────────────────┬────────────────┘
-                                     │
-     ┌───────────────────────────────┼───────────────────────────────┐
-     │                               │                               │
-     ▼                               ▼                               ▼
-┌─────────────┐               ┌─────────────┐               ┌─────────────┐
-│ PostgreSQL  │               │   Redis     │               │   5 Mono    │
-│   18.1      │               │   8.4.0     │               │   Workers   │
-│ + pgvector  │               │  (BullMQ)   │               │  (Python)   │
-│ + PostGIS   │               │             │               │             │
-└─────────────┘               └─────────────┘               └─────────────┘
+                     Internet / Cloudflare DNS
+                               │
+                               ▼
+                    Orchestrator (Traefik ingress)
+                               │
+              ┌────────────────┼────────────────┐
+              ▼                ▼                ▼
+        CT110 (staging)   CT109 (production)   CT107 (postgres)
+        - API/Web/Workers - API/Web/Workers    - PostgreSQL native
+        - PgBouncer        - PgBouncer
+        - OTEL Collector   - OTEL Collector
+        - Vector logs      - Vector logs
+              │                │
+              └───────┬────────┘
+                      ▼
+       Observability/Secrets/Redis (shared on orchestrator)
+       - OpenBao (secrets)         - Redis shared (BullMQ)
+       - Grafana/Prometheus/Loki/Tempo
 ```
 
 ### Mapping Canale de Comunicare
@@ -220,9 +208,10 @@ const LEGACY_ALIASES = {
 | Canal Tehnic | Protocol | Folosit Pentru |
 | --- | --- | --- |
 | **HTTPS (443)** | TLS 1.3 | Web UI, REST API |
-| **PostgreSQL (64032)** | Native | Conexiuni DB (intern) |
-| **Redis (64039)** | Native | BullMQ queues (intern) |
-| **OTLP (64070/64071)** | gRPC/HTTP | OpenTelemetry traces/metrics |
+| **PostgreSQL (5432)** | Native | DB extern (CT107), acces prin PgBouncer |
+| **PgBouncer (64033)** | Native | Pooling DB (CT109/CT110) |
+| **Redis (6379)** | Native | Redis shared (orchestrator) via gateway intern |
+| **OTLP (64070/64071)** | gRPC/HTTP | OTEL Collector local -> Tempo/Prometheus (orchestrator) |
 
 ---
 
@@ -247,7 +236,7 @@ const LEGACY_ALIASES = {
 | **Frontend** | React | 19.2.3 | Server Components, useOptimistic |
 | **Admin Framework** | Refine | v5 | TanStack Query v5, headless |
 | **Styling** | Tailwind CSS | 4.1.x | Oxide engine (Rust), 5x faster |
-| **Observability** | SigNoz | v0.107.0 | OpenTelemetry native, ClickHouse |
+| **Observability** | Grafana/Prometheus/Loki/Tempo | (central, orchestrator) | OpenTelemetry + logs/metrics/traces centralizate |
 | **Edge Router** | Traefik | v3.6.6 | Auto Let's Encrypt, circuit breakers |
 
 ### Decizii Arhitecturale de Top
@@ -744,61 +733,65 @@ CUSTOMER MESSAGE: "Am nevoie de ceva ieftin și bun pentru porumb, sub 5000 lei"
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────────────┐
-│                    DEPLOYMENT: HETZNER HA CLUSTER                                    │
-│                    (Active-Passive Failover)                                         │
+│                    DEPLOYMENT: PROXMOX + ORCHESTRATOR (CURRENT)                      │
 └─────────────────────────────────────────────────────────────────────────────────────┘
 
-      ┌──────────────┐                  ┌──────────────┐
-      │  INTERNET    │                  │  DNS Failover│
-      └──────┬───────┘                  └──────┬───────┘
-             │                                 │
-             ▼                                 ▼
-┌─────────────────────────┐       ┌─────────────────────────┐
-│      NODE A (Active)    │       │     NODE B (Standby)    │
-│       AX102 Bare Metal  │       │      AX52 Bare Metal    │
-│                         │       │                         │
-│  [Traefik] ──────────┐  │       │  [Traefik-Standby]      │
-│  [App + Workers]     │  │       │  [App-Warm]             │
-│          │           │  │       │            │            │
-│          ▼           │  │       │            ▼            │
-│  [PgBouncer] ────────┼──┼───────┼───────> [PgBouncer]     │
-│          │           │  │       │            │            │
-│          ▼           │  │       │            ▼            │
-│  [PG Prime] <────────┼──┼───────┼───────> [PG Replica]    │
-│  [Redis Pri] <───────┼──┼───────┼───────> [Redis Repl]    │
-│  [Sentinel A]        │  │       │         [Sentinel B]    │
-└─────────────────────────┘       └─────────────────────────┘
-             │                                 │
-             └─────────── REPLICATION ─────────┘
-                         (Streaming)
+                     Internet / Cloudflare DNS
+                               │
+                               ▼
+                    Orchestrator (public IP)
+               ┌─────────────────────────────────┐
+               │ Traefik (ingress)               │
+               │ OpenBao (secrets)               │
+               │ Redis shared (BullMQ)           │
+               │ Observability (Grafana/...)     │
+               └───────────────┬─────────────────┘
+                               │ (internal networks)
+                               ▼
+                hz.247 gateway (10.0.1.10, HAProxy L4)
+                 - 10.0.1.10:443  -> orchestrator:443
+                 - 10.0.1.10:6379 -> orchestrator:6379
+                 - (plus pull ports orchestrator->CT)
+                               │
+              ┌────────────────┼────────────────┐
+              ▼                ▼                ▼
+        CT110 (staging)   CT109 (production)   CT107 (postgres)
+        - app stack        - app stack         - PostgreSQL native
+        - PgBouncer        - PgBouncer         - DB: cerniq / cerniq_staging
+        - OpenBao agents   - OpenBao agents    - pg_dump + WAL archive
+        - Vector/OTEL      - Vector/OTEL
+        - cAdvisor         - cAdvisor
 ```
 
 ## 7.2 Container Resource Allocation (Per Node)
 
 | Container | CPU | Memory | Storage | Notes |
 | --- | --- | --- | --- | --- |
-| **PostgreSQL 18.1** | 4 cores | 40GB | 500GB NVMe | Primary/Replica |
-| **PgBouncer** | 1 core | 1GB | - | Connection Pooling |
-| **Redis 8.4.0** | 2 cores | 80GB | 50GB AOF | Sentinel Managed |
-| **Fastify API** | 4 cores | 8GB | - | Node.js 24 cluster |
-| **Python Workers** | 8 cores | 16GB | - | 5 Monolithic Services |
-| **Sentinel** | 0.5 core | 256MB | - | Quorum = 3 |
+| **PostgreSQL 18.1 (CT107)** | 4 cores | ~32GB host | local NVMe | Native install, shared service |
+| **PgBouncer (CT109/110)** | 0.5-1 core | 128-256MB | - | Pooling pentru conexiuni DB |
+| **Redis shared (orchestrator)** | shared | shared | AOF | Izolare chei via prefix + ACL |
+| **Traefik (orchestrator)** | shared | shared | - | Ingress extern unic (public IP) |
+| **OpenBao (orchestrator)** | shared | shared | - | Secrets centralizat; agenti pe CT-uri |
+| **Vector/OTEL/cAdvisor (CT109/110)** | low | low | - | Observability (logs/traces/metrics) |
 
 ### PostgreSQL 18.1 Memory Tuning
 
 ```ini
-# postgresql.conf optimized for 128GB system
-shared_buffers = 32GB           # 25% of RAM
-effective_cache_size = 96GB     # 75% of RAM
-work_mem = 256MB                # Conservative per-operation
-maintenance_work_mem = 4GB      # ~3% for VACUUM/INDEX
+# postgresql.conf (CT107 ~32GB system)
+shared_buffers = 8GB            # ~25% of RAM
+effective_cache_size = 24GB     # ~75% of RAM
+work_mem = 64MB                 # Conservative per-operation
+maintenance_work_mem = 1GB
 wal_buffers = 64MB              # Write-heavy optimization
-max_connections = 200           # PgBouncer handles pooling
+max_connections = 100           # PgBouncer handles pooling
 
-# Parallelization (20-core system)
-max_parallel_workers_per_gather = 8
-max_parallel_workers = 16
-max_worker_processes = 20
+# PostgreSQL 18 AIO
+io_method = worker
+
+# Parallelization (example)
+max_parallel_workers_per_gather = 4
+max_parallel_workers = 8
+max_worker_processes = 8
 
 # SSD Optimization
 random_page_cost = 1.1
@@ -809,7 +802,7 @@ effective_io_concurrency = 200
 
 ```ini
 # redis.conf for BullMQ workloads
-maxmemory 80gb
+maxmemory 0
 maxmemory-policy noeviction     # CRITICAL: jobs are not evictable
 
 # Lazy freeing (prevent blocking on large deletes)
@@ -835,7 +828,7 @@ rename-command CONFIG ""
 ## 7.3 Traefik Edge Router Configuration
 
 ```yaml
-# traefik.yml
+# traefik.yml (orchestrator)
 certificatesResolvers:
   letsencrypt:
     acme:
@@ -862,8 +855,9 @@ middlewares:
       contentTypeNosniff: true
       
 providers:
-  docker:
-    exposedByDefault: false     # Explicit routing only
+  file:
+    directory: /opt/traefik/dynamic
+    watch: true
 ```
 
 ## 7.4 Backup Strategy
@@ -873,15 +867,14 @@ providers:
 │                         BACKUP TO HETZNER STORAGE BOX                                │
 └─────────────────────────────────────────────────────────────────────────────────────┘
 
-┌───────────────────┐          SSH (port 23)           ┌───────────────────┐
-│  Production       │ ─────────────────────────────▶   │  Hetzner          │
-│  Server           │         rsync + encryption       │  Storage Box      │
-│                   │                                   │                   │
-│  pg_dumpall       │         Daily: 7 days            │  /backups/        │
-│  + gzip           │         Weekly: 4 weeks          │    postgresql/    │
-│                   │         Monthly: 3 months        │    redis/         │
-│  Redis BGSAVE     │                                   │    configs/       │
-└───────────────────┘                                   └───────────────────┘
+┌───────────────────┐                                 ┌───────────────────┐
+│ CT107 (PostgreSQL)│                                 │ Hetzner StorageBox│
+│ - pg_dump zilnic  │  (borg/rsync offsite)            │ /backups/cerniq/  │
+│ - WAL archive     │ ─────────────────────────────▶   │  - postgres/      │
+└───────────────────┘                                 │  - configs/       │
+                                                      └───────────────────┘
+
+Nota: Offsite (Borg/StorageBox) necesita credentiale/cheie si este tratat ca task separat in plan.
 ```
 
 ---
@@ -975,25 +968,22 @@ providers:
 └───────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## 8.3 Observability (SigNoz v0.107.0)
+## 8.3 Observability (stack centralizat orchestrator)
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────────────┐
 │                      OBSERVABILITY STACK (OpenTelemetry Native)                      │
 └─────────────────────────────────────────────────────────────────────────────────────┘
 
-┌───────────────────┐     ┌───────────────────┐     ┌───────────────────┐
-│   Application     │     │   OTel Collector  │     │     SigNoz        │
-│   Instrumentation │────▶│                   │────▶│                   │
-│                   │     │   64070 (gRPC)    │     │   Query Service   │
-│   - Node.js       │     │   64071 (HTTP)    │     │   + ClickHouse    │
-│   - Python        │     │                   │     │                   │
-│   - PostgreSQL    │     │   Processors:     │     │   Dashboards:     │
-│   - Redis         │     │   - batch         │     │   - APM           │
-│                   │     │   - memory_limiter│     │   - Logs          │
-└───────────────────┘     └───────────────────┘     │   - Traces        │
-                                                     │   - Alerts        │
-                                                     └───────────────────┘
+┌───────────────────┐     ┌───────────────────┐     ┌──────────────────────────────┐
+│   Application     │     │   OTEL Collector  │     │ Orchestrator (shared stack)   │
+│   Instrumentation │────▶│ (local pe CT)     │────▶│ - Tempo (traces)              │
+│                   │     │ 64070 (gRPC)      │     │ - Loki (logs)                 │
+│   - Node.js       │     │ 64071 (HTTP)      │     │ - Prometheus (metrics)        │
+│   - Python        │     │                   │     │ - Grafana (UI)                │
+│   - PostgreSQL    │     │ processors: batch │     │ Ingest intern prin Traefik +  │
+│   - Redis         │     │ memory_limiter    │     │ gateway `hz.247` unde e cazul │
+└───────────────────┘     └───────────────────┘     └──────────────────────────────┘
 
 TRACE CORRELATION:
 - correlation_id propagat în toate job-urile BullMQ
@@ -1313,7 +1303,7 @@ Halluc.  uptime         LLM      leads/h     e-Fact  tenant
 | **Legacy `shop_id` alias** | Low | Some code still uses `shop_id` instead of `tenant_id` | Gradual replacement during feature work |
 | **`gold_hitl_tasks` migration** | Medium | Old per-etapă tables still exist in some docs | Delete after `approval_tasks` fully operational |
 | **Missing contract tests E4-E5** | Medium | Etapa 4-5 workers lack contract tests | Sprint dedicated to test coverage |
-| **SigNoz dashboard customization** | Low | Default dashboards, not optimized for Cerniq | Create custom dashboards post-launch |
+| **Grafana dashboards (Cerniq)** | Low | Dashboards initiale exista, dar vor necesita paneluri/exporters dedicate | Iterativ: PG/PgBouncer/Redis/BullMQ dashboards |
 | **React Server Components adoption** | Low | Currently mostly client components | Gradual migration for data-heavy views |
 
 ---
@@ -1414,7 +1404,7 @@ Nivel 5 (Anexe Data Model):
 | Refine | 5.x | Oct 2025 | - | TanStack Query v5 |
 | BullMQ | 5.66.5 | Jan 2026 | - | - |
 | Traefik | 3.6.6 | Dec 2025 | - | - |
-| SigNoz | 0.107.0 | Jan 2026 | - | - |
+| Grafana/Prometheus/Loki/Tempo | (central) | 2026 | - | Stack shared pe orchestrator |
 | Docker Engine | 29.2.0 | 2026 | - | - |
 
 ---

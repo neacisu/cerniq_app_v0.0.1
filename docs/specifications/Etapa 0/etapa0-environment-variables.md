@@ -66,7 +66,7 @@ SHUTDOWN_TIMEOUT=30000
 | `DATABASE_URL` | Yes* | - | Full PostgreSQL connection string |
 | `DATABASE_URL_FILE` | Yes* | - | Path to file (OpenBao Agent → `/secrets/db.env`) |
 | `POSTGRES_HOST` | No | `postgres` | PostgreSQL hostname |
-| `POSTGRES_PORT` | No | `64032` | PostgreSQL port |
+| `POSTGRES_PORT` | No | `64033` | PostgreSQL port (prin PgBouncer) |
 | `POSTGRES_USER` | No | `cerniq` | PostgreSQL username |
 | `POSTGRES_PASSWORD` | Yes* | - | PostgreSQL password |
 | `POSTGRES_PASSWORD_FILE` | Yes* | - | Path to file (OpenBao Agent → `/secrets/db.env`) |
@@ -80,11 +80,11 @@ SHUTDOWN_TIMEOUT=30000
 
 ```bash
 # Option 1: Connection string (OpenBao injects dynamically)
-DATABASE_URL=postgresql://v-approle-crnq-api-XXX:dynamic_pass@postgres:64032/cerniq
+DATABASE_URL=postgresql://v-approle-crnq-api-XXX:dynamic_pass@pgbouncer:64033/cerniq
 
 # Option 2: Individual components (OpenBao Agent renders to /secrets/db.env)
-POSTGRES_HOST=postgres
-POSTGRES_PORT=64032
+POSTGRES_HOST=pgbouncer
+POSTGRES_PORT=64033
 POSTGRES_USER=v-approle-crnq-api-XXX  # Dynamic user from OpenBao
 POSTGRES_PASSWORD=<dynamic_from_openbao>
 POSTGRES_DB=cerniq
@@ -109,8 +109,8 @@ DATABASE_POOL_MAX=20
 | -------- | -------- | ------- | ----------- |
 | `REDIS_URL` | Yes* | - | Full Redis connection string |
 | `REDIS_URL_FILE` | Yes* | - | Path to file containing REDIS_URL |
-| `REDIS_HOST` | No | `redis` | Redis hostname |
-| `REDIS_PORT` | No | `64039` | Redis port |
+| `REDIS_HOST` | No | `10.0.1.10` | Redis gateway host (hz.247) |
+| `REDIS_PORT` | No | `6379` | Redis port (shared) |
 | `REDIS_PASSWORD` | No | - | Redis password (if AUTH enabled) |
 | `REDIS_PASSWORD_FILE` | No | - | Path to password file |
 | `REDIS_DB` | No | `0` | Redis database number (vezi matricea per etapă) |
@@ -119,11 +119,11 @@ DATABASE_POOL_MAX=20
 
 ```bash
 # Option 1: Connection string
-REDIS_URL=redis://redis:64039/0
+REDIS_URL=redis://10.0.1.10:6379/0
 
 # Option 2: Individual components
-REDIS_HOST=redis
-REDIS_PORT=64039
+REDIS_HOST=10.0.1.10
+REDIS_PORT=6379
 REDIS_DB=0
 ```
 
@@ -263,13 +263,6 @@ OPENAI_API_KEY=<from_openbao_kv>
 | `OTEL_TRACES_SAMPLER` | No | `parentbased_traceidratio` | Sampling strategy |
 | `OTEL_TRACES_SAMPLER_ARG` | No | `1.0` | Sampling ratio (0.0-1.0) |
 
-## SigNoz
-
-| Variable | Required | Default | Description |
-| -------- | -------- | ------- | ----------- |
-| `SIGNOZ_ACCESS_TOKEN` | No | - | SigNoz access token (if secured) |
-| `SIGNOZ_ACCESS_TOKEN_FILE` | No | - | Path to token file |
-
 **Exemplu .env:**
 
 ```bash
@@ -290,8 +283,8 @@ OTEL_TRACES_SAMPLER_ARG=1.0
 # .env.development
 NODE_ENV=development
 LOG_LEVEL=debug
-DATABASE_URL=postgresql://cerniq:devpassword@localhost:64032/cerniq_dev
-REDIS_URL=redis://localhost:64039/0
+DATABASE_URL=postgresql://cerniq:devpassword@localhost:5432/cerniq_dev
+REDIS_URL=redis://localhost:6379/0
 JWT_SECRET=dev-secret-not-for-production
 COOKIE_SECRET=dev-cookie-secret
 COOKIE_SECURE=false
@@ -350,14 +343,14 @@ LOG_LEVEL=info
 # ===================
 # DATABASE
 # ===================
-DATABASE_URL=postgresql://cerniq:password@localhost:64032/cerniq_dev
+DATABASE_URL=postgresql://cerniq:password@localhost:5432/cerniq_dev
 DATABASE_POOL_MIN=2
 DATABASE_POOL_MAX=20
 
 # ===================
 # REDIS
 # ===================
-REDIS_URL=redis://localhost:64039/0
+REDIS_URL=redis://localhost:6379/0
 BULLMQ_PREFIX={cerniq}
 BULLMQ_CONCURRENCY=5
 

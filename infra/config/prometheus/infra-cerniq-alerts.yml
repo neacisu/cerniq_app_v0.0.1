@@ -1,0 +1,41 @@
+groups:
+  - name: cerniq-infra
+    rules:
+      - alert: CerniqNodeDown
+        expr: up{job=~"cerniq-nodes|cerniq-docker",project="cerniq"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          project: cerniq
+        annotations:
+          summary: "Cerniq target down"
+          description: "Prometheus scrape is down for {{ $labels.job }} / {{ $labels.instance }}"
+
+      - alert: CerniqDiskLow
+        expr: |
+          (
+            node_filesystem_avail_bytes{job="cerniq-nodes",project="cerniq",fstype!~"tmpfs|overlay"}
+            / node_filesystem_size_bytes{job="cerniq-nodes",project="cerniq",fstype!~"tmpfs|overlay"}
+          ) < 0.15
+        for: 10m
+        labels:
+          severity: warning
+          project: cerniq
+        annotations:
+          summary: "Cerniq disk low (<15%)"
+          description: "Disk free is below 15% on {{ $labels.instance }} (mount={{ $labels.mountpoint }})"
+
+      - alert: CerniqMemoryLow
+        expr: |
+          (
+            node_memory_MemAvailable_bytes{job="cerniq-nodes",project="cerniq"}
+            / node_memory_MemTotal_bytes{job="cerniq-nodes",project="cerniq"}
+          ) < 0.10
+        for: 10m
+        labels:
+          severity: warning
+          project: cerniq
+        annotations:
+          summary: "Cerniq memory low (<10% available)"
+          description: "Memory available is below 10% on {{ $labels.instance }}"
+

@@ -31,9 +31,10 @@
 | 64010 | TCP | React Web | cerniq_public | Internal/Debug |
 | 64011 | TCP | Vite HMR | cerniq_public | Dev only |
 | 64012 | TCP | React Admin | cerniq_public | Internal/Debug |
-| 64089 | TCP | Reserved observability legacy | cerniq_backend | Internal only |
-| 64082 | TCP | Reserved | cerniq_backend | Internal only |
-| 64083 | TCP | Reserved | cerniq_backend | Internal only |
+| 64033 | TCP | PgBouncer | cerniq_backend + cerniq_data | Internal only |
+| 64070 | TCP | OTLP gRPC | cerniq_backend | Internal only |
+| 64071 | TCP | OTLP HTTP | cerniq_backend | Internal only |
+| 64094 | TCP | cAdvisor | cerniq_backend | Internal only |
 
 ### Reserved
 
@@ -85,18 +86,13 @@
                         │
         ┌───────────────┴───────────────┐
         ▼                               ▼
-    ┌────────┐                     ┌────────┐
-    │ Redis  │                     │  OTel  │
-    │ :64039 │                     │ :64070 │
-    └────────┘                     └────────┘
-        │
-        ▼
-    cerniq_data (strict internal)
-        │
-    ┌────────┐
-    │Postgres│
-    │ :64032 │
-    └────────┘
+    ┌──────────────┐
+    │ PgBouncer     │
+    │ :64033        │
+    └──────┬────────┘
+           │
+           ├── PostgreSQL (CT107, extern): 10.0.1.107:5432
+           └── Redis shared (orchestrator, via gateway): 10.0.1.10:6379
 ```
 
 ---
@@ -145,14 +141,14 @@ networks:
   cerniq_backend:
     external: true
     # Subnet: 172.29.20.0/24
-    # Internal: true (no external access)
-    # Services: api, workers, vector, otel-collector, redis
+    # NOTE: not created with --internal; egress is controlled by iptables on hz.247
+    # Services: api, workers, vector, otel-collector, pgbouncer
     
   cerniq_data:
     external: true
     # Subnet: 172.29.30.0/24
-    # Internal: true (strict isolation)
-    # Services: postgres, redis
+    # NOTE: not created with --internal; egress is controlled by iptables on hz.247
+    # Services: pgbouncer
 ```
 
 ---
@@ -164,46 +160,11 @@ networks:
 | API | cerniq-api | 64000 | cerniq_backend |
 | Web | cerniq-web | 64010 | cerniq_public |
 | PostgreSQL | external (ct107-postgres) | 5432 | external |
-| Redis | cerniq-redis | 64039 | cerniq_data, cerniq_backend |
+| Redis | redis-shared (orchestrator) | 6379 | external (internal) |
+| PgBouncer | cerniq-pgbouncer | 64033 | cerniq_backend, cerniq_data |
 | Vector | cerniq-vector | push 443 | cerniq_backend |
 | OTel Collector | cerniq-otel-collector | 64070, 64071 | cerniq_backend |
 | cAdvisor | cerniq-cadvisor | 64094 | cerniq_backend |
-
----
-
-## NGINX CONFIGURATION
-
-```nginx
-# /etc/nginx/sites-available/cerniq.app
-
-upstream cerniq_api {
-    server 10.0.1.109:64000;
-    keepalive 32;
-}
-
-server {
-    listen 443 ssl http2;
-    server_name cerniq.app *.cerniq.app;
-
-    ssl_certificate /etc/letsencrypt/live/cerniq.app/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/cerniq.app/privkey.pem;
-    include /etc/letsencrypt/options-ssl-nginx.conf;
-
-    location / {
-        proxy_pass http://cerniq_api;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-
-server {
-    listen 80;
-    server_name cerniq.app *.cerniq.app;
-    return 301 https://$host$request_uri;
-}
-```
 
 ---
 
@@ -213,15 +174,15 @@ server {
 
 | Port | Service | Risk if Exposed |
 | ---- | ------- | --------------- |
-| 64032 | PostgreSQL | Direct database access, data breach |
-| 64039 | Redis | Cache poisoning, job manipulation |
-| 64083 | ClickHouse | Telemetry data access |
+| 5432 | PostgreSQL (CT107) | Direct database access, data breach |
+| 6379 | Redis shared | Cache poisoning, job manipulation |
+| 64033 | PgBouncer | Unauthorized DB access attempts |
 
 ### Verification Commands
 
 ```bash
 # Check no database ports are exposed externally
-ss -tlnp | grep -E ':(64032|64039)' | grep -v '127.0.0.1'
+ss -tlnp | grep -E ':(5432|6379)' | grep -v '127.0.0.1'
 # Should return EMPTY
 
 # Check Cerniq services are listening

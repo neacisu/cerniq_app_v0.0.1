@@ -100,7 +100,7 @@ docs/
 ├── infrastructure/                    # DevOps & Deployment
 │   ├── docker-compose-reference.md   # Configurații Docker
 │   ├── deployment-guide.md           # Deploy pe Hetzner
-│   ├── observability-signoz.md       # Monitoring SigNoz
+│   ├── observability-stack.md        # Observability centralizat (Grafana/Prom/Loki/Tempo/Vector/OTEL)
 │   └── backup-strategy.md            # Backup și restore
 │
 ├── ui-ux/                             # Frontend documentation
@@ -142,7 +142,7 @@ docs/
 | **Refine**       | Admin framework headless                |
 | **Docker**       | Containerization & Orchestration        |
 | **Traefik**      | Edge Router & SSL Termination           |
-| **SigNoz**       | Observability & APM (OpenTelemetry)     |
+| **Grafana/Loki/Tempo** | Observability (OpenTelemetry)     |
 
 ### Arhitectura Medallion (Bronze → Silver → Gold)
 

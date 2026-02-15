@@ -7712,7 +7712,7 @@ export const HITLQueues = {
  */
 const redisConnection = new Redis({
   host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '64039'),
+  port: parseInt(process.env.REDIS_PORT || '6379'),
   maxRetriesPerRequest: null,
   enableReadyCheck: false,
 });
@@ -17459,7 +17459,7 @@ import {
   HttpInstrumentation 
 } from '@opentelemetry/instrumentation-http';
 
-const OTEL_EXPORTER_ENDPOINT = process.env.OTEL_EXPORTER_ENDPOINT || 'http://signoz:64071';
+const OTEL_EXPORTER_ENDPOINT = process.env.OTEL_EXPORTER_ENDPOINT || 'http://otel-collector:64071';
 
 // Create resource with service information
 const resource = new Resource({
@@ -19981,7 +19981,7 @@ describe('Queue Integration', () => {
   beforeAll(async () => {
     redis = new Redis({
       host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '64039'),
+      port: parseInt(process.env.REDIS_PORT || '6379'),
       maxRetriesPerRequest: null,
     });
 

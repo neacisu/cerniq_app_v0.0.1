@@ -152,6 +152,9 @@ services:
     command: agent -config=/openbao/config/agent-api.hcl
     environment:
       CERNIQ_ENV: ${CERNIQ_ENV:-staging}
+    extra_hosts:
+      # Force OpenBao traffic to stay internal via hz.247 L4 gateway (10.0.1.10:443 -> orchestrator Traefik).
+      - "s3cr3ts.neanelu.ro:10.0.1.10"
     volumes:
       # Agent configuration
       - ../config/openbao/agent-api.hcl:/openbao/config/agent-api.hcl:ro
@@ -206,6 +209,9 @@ services:
     command: agent -config=/openbao/config/agent-workers.hcl
     environment:
       CERNIQ_ENV: ${CERNIQ_ENV:-staging}
+    extra_hosts:
+      # Force OpenBao traffic to stay internal via hz.247 L4 gateway (10.0.1.10:443 -> orchestrator Traefik).
+      - "s3cr3ts.neanelu.ro:10.0.1.10"
     volumes:
       # Agent configuration
       - ../config/openbao/agent-workers.hcl:/openbao/config/agent-workers.hcl:ro
@@ -256,6 +262,9 @@ services:
     command: agent -config=/openbao/config/agent-infra.hcl
     environment:
       CERNIQ_ENV: ${CERNIQ_ENV:-staging}
+    extra_hosts:
+      # Force OpenBao traffic to stay internal via hz.247 L4 gateway (10.0.1.10:443 -> orchestrator Traefik).
+      - "s3cr3ts.neanelu.ro:10.0.1.10"
     volumes:
       - ../config/openbao/agent-infra.hcl:/openbao/config/agent-infra.hcl:ro
       - ../config/openbao/templates:/openbao/templates:ro
@@ -292,6 +301,10 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
+    extra_hosts:
+      # Resolve scoped Loki push endpoint to orchestrator private IP to preserve
+      # client IP for Traefik allowlisting (avoids SNAT via public egress).
+      - "logs-cerniq.neanelu.ro:10.0.0.2"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
@@ -315,6 +328,12 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
+    environment:
+      # Required because `infra/config/otel/otel-collector.yaml` references ${env:CERNIQ_ENV}.
+      CERNIQ_ENV: ${CERNIQ_ENV:-staging}
+    extra_hosts:
+      # Same rationale as Vector (keep source IP in allowlist scope).
+      - "otel-cerniq.neanelu.ro:10.0.0.2"
     volumes:
       - ../config/otel/otel-collector.yaml:/etc/otelcol-contrib/config.yaml:ro
     command: ["--config=/etc/otelcol-contrib/config.yaml"]

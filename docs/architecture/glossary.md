@@ -38,7 +38,7 @@
 | **AOV**  | Average Order Value                                | Valoare medie comandă per client                                |
 | **API**  | Application Programming Interface                  | Interfață programatică                                          |
 | **APIA** | Agenția de Plăți și Intervenție pentru Agricultură | Gestionează subvențiile agricole UE                             |
-| **APM**  | Application Performance Monitoring                 | Monitorizare performanță aplicație (SigNoz)                     |
+| **APM**  | Application Performance Monitoring                 | Monitorizare performanta aplicatie (Grafana/Tempo)              |
 
 ### B
 
@@ -742,8 +742,10 @@
 | ----------------- | ---------- | ------------------------------ |
 | **Docker Engine** | 29.2.0     | Container runtime              |
 | **Traefik**       | v3.6.6     | Reverse proxy, SSL termination |
-| **SigNoz**        | v0.107.0   | APM, traces, logs, metrics     |
-| **ClickHouse**    | Via SigNoz | Storage observability          |
+| **Grafana**       | (central)  | UI dashboards + Explore        |
+| **Prometheus**    | (central)  | Metrics (pull)                 |
+| **Loki**          | (central)  | Logs                           |
+| **Tempo**         | (central)  | Traces                         |
 
 ### PostgreSQL Extensions
 
@@ -975,8 +977,10 @@ const LEGACY_ALIASES = {
 | **RTO** | Recovery Time Objective |
 | **BorgBackup** | Sistem backup incremental pentru DR |
 | **Hetzner Storage Box** | Stocare offsite pentru backup-uri |
-| **SigNoz** | Observability platform (traces/metrics/logs) |
-| **ClickHouse** | Storage OLAP (folosit de SigNoz) |
+| **Grafana** | UI pentru observability (dashboards + explore) |
+| **Loki** | Storage/log query pentru logs |
+| **Tempo** | Storage/query pentru traces |
+| **Prometheus** | Storage/query pentru metrics |
 | **OpenTelemetry** | Standard pentru traces/metrics/logs |
 | **Trivy** | Scanner securitate imagini/container/file system |
 | **Traefik** | Reverse proxy & SSL termination |

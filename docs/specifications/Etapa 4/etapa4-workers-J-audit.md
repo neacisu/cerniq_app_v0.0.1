@@ -43,7 +43,7 @@ export async function auditLogWriteProcessor(
     success: true
   }).returning();
   
-  // Send to SigNoz
+  // Emit trace span (OTEL -> Tempo via collector)
   tracer.startSpan(`audit.${eventType}`, {
     attributes: {
       'audit.entity_type': entityType,

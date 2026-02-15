@@ -14,8 +14,8 @@
 | F0.1 | Docker Infrastructure | 5 | [e0-f01-docker-infrastructure.md](./e0-f01-docker-infrastructure.md) |
 | F0.2 | PostgreSQL 18.1 Setup | 5 | [e0-f02-postgresql-setup.md](./e0-f02-postgresql-setup.md) |
 | F0.3 | Redis & BullMQ | 3 | [e0-f03-redis-bullmq.md](./e0-f03-redis-bullmq.md) |
-| F0.4 | Traefik SSL | 4 | [e0-f04-traefik-ssl.md](./e0-f04-traefik-ssl.md) |
-| F0.5 | Observability (SigNoz) | 3 | [e0-f05-observability.md](./e0-f05-observability.md) |
+| F0.4 | Ingress & TLS (Traefik orchestrator) | 4 | [e0-f04-traefik-ssl.md](./e0-f04-traefik-ssl.md) |
+| F0.5 | Observability (stack centralizat) | 3 | [e0-f05-observability.md](./e0-f05-observability.md) |
 | F0.6 | Monorepo PNPM | 8 | [e0-f06-monorepo-pnpm.md](./e0-f06-monorepo-pnpm.md) |
 | F0.7 | Backup Strategy | 4 | [e0-f07-backup-strategy.md](./e0-f07-backup-strategy.md) |
 | F0.8 | Security Hardening | 4 | [e0-f08-security-hardening.md](./e0-f08-security-hardening.md) |
@@ -91,21 +91,21 @@ docker compose version --short | grep -q "^2\." && echo "✅ Compose OK"
 
 # F0.2 - PostgreSQL
 echo "[F0.2] Checking PostgreSQL..."
-docker exec cerniq-postgres psql -U c3rn1q -c "SELECT version();" | grep -q "PostgreSQL 18" && echo "✅ PostgreSQL OK"
-docker exec cerniq-postgres psql -U c3rn1q -c "SELECT extname FROM pg_extension;" | grep -q "pgvector" && echo "✅ pgvector OK"
+# PostgreSQL este extern pe CT107 (nativ), nu in Docker pe stack-ul Cerniq.
+# Validarea se face pe CT107 (sudo -u postgres) sau prin PgBouncer pe CT109/CT110.
 
 # F0.3 - Redis
 echo "[F0.3] Checking Redis..."
-docker exec cerniq-redis redis-cli PING | grep -q "PONG" && echo "✅ Redis OK"
-docker exec cerniq-redis redis-cli CONFIG GET maxmemory-policy | grep -q "noeviction" && echo "✅ BullMQ config OK"
+# Redis este shared pe orchestrator (accesat prin gateway intern), nu redis local in stack.
 
-# F0.4 - Traefik
-echo "[F0.4] Checking Traefik..."
-curl -sf http://localhost:64093/metrics > /dev/null && echo "✅ Traefik OK"
+# F0.4 - Ingress (Traefik orchestrator)
+echo "[F0.4] Checking orchestrator Traefik..."
+# Validarea se face prin routerele din `infra/config/traefik-orchestrator/cerniq.yml`
+# si prin request-uri HTTPS pe domeniile publice (dupa DNS cutover + deploy app).
 
-# F0.5 - SigNoz
-echo "[F0.5] Checking SigNoz..."
-curl -sf http://localhost:64071/v1/traces > /dev/null 2>&1 || echo "✅ OTel Collector OK (accepts POST)"
+# F0.5 - Observability
+echo "[F0.5] Checking observability..."
+# OTEL Collector local accepta POST pe :64071 (in CT109/CT110), iar logs/metrics sunt centralizate pe orchestrator.
 
 echo "=== All checks passed ==="
 ```

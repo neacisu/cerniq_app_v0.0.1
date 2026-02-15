@@ -68,7 +68,7 @@ describe "Docker Engine Installation" {
 
 ### T002: daemon.json Configuration
 
-**Scop:** Verifică optimizările pentru server 128GB RAM.
+**Scop:** Verifică setările de baza (host/LXC) pentru Docker in infrastructura noua.
 
 ```bash
 #!/bin/bash
@@ -86,18 +86,13 @@ describe "Docker Daemon Configuration" {
     assert_success
   }
   
-  it "should have metrics endpoint on port 64093" {
-    curl -sf http://localhost:64093/metrics | head -1
-    assert_success
-  }
-  
   it "should have log rotation configured" {
     cat /etc/docker/daemon.json | jq -e '.["log-opts"]["max-size"] == "50m"'
     assert_success
   }
   
   it "should use correct address pool" {
-    cat /etc/docker/daemon.json | jq -e '.["default-address-pools"][0].base == "172.20.0.0/16"'
+    cat /etc/docker/daemon.json | jq -e '.["default-address-pools"][0].base == "172.29.0.0/16"'
     assert_success
   }
 }
@@ -107,9 +102,8 @@ describe "Docker Daemon Configuration" {
 
 - [ ] overlay2 storage driver
 - [ ] live-restore = true
-- [ ] Metrics endpoint :64093
 - [ ] Log max-size = 50m
-- [ ] Address pool 172.20.0.0/16
+- [ ] Address pool 172.29.0.0/16
 
 ---
 
@@ -193,31 +187,31 @@ describe "Docker Networks Configuration" {
   
   it "should have cerniq_backend as internal network" {
     internal=$(docker network inspect cerniq_backend --format '{{.Internal}}')
-    [[ "$internal" == "true" ]]
+    [[ "$internal" == "false" ]]
     assert_success
   }
   
   it "should have cerniq_data as internal network" {
     internal=$(docker network inspect cerniq_data --format '{{.Internal}}')
-    [[ "$internal" == "true" ]]
+    [[ "$internal" == "false" ]]
     assert_success
   }
   
   it "should have correct subnet for cerniq_public" {
     subnet=$(docker network inspect cerniq_public --format '{{range .IPAM.Config}}{{.Subnet}}{{end}}')
-    [[ "$subnet" == "172.20.0.0/24" ]]
+    [[ "$subnet" == "172.29.10.0/24" ]]
     assert_success
   }
   
   it "should have correct subnet for cerniq_backend" {
     subnet=$(docker network inspect cerniq_backend --format '{{range .IPAM.Config}}{{.Subnet}}{{end}}')
-    [[ "$subnet" == "172.21.0.0/24" ]]
+    [[ "$subnet" == "172.29.20.0/24" ]]
     assert_success
   }
   
   it "should have correct subnet for cerniq_data" {
     subnet=$(docker network inspect cerniq_data --format '{{range .IPAM.Config}}{{.Subnet}}{{end}}')
-    [[ "$subnet" == "172.22.0.0/24" ]]
+    [[ "$subnet" == "172.29.30.0/24" ]]
     assert_success
   }
 }
@@ -226,9 +220,9 @@ describe "Docker Networks Configuration" {
 **Validare:**
 
 - [ ] cerniq_public exists, Internal=false
-- [ ] cerniq_backend exists, Internal=true
-- [ ] cerniq_data exists, Internal=true
-- [ ] Subnets: 172.20.0.0/24, 172.21.0.0/24, 172.22.0.0/24
+- [ ] cerniq_backend exists, Internal=false (egress control este prin iptables pe hz.247)
+- [ ] cerniq_data exists, Internal=false (egress control este prin iptables pe hz.247)
+- [ ] Subnets: 172.29.10.0/24, 172.29.20.0/24, 172.29.30.0/24
 
 ---
 
@@ -259,10 +253,10 @@ describe "Docker Compose Base Configuration" {
     assert_success
   }
   
-  it "should define required volumes" {
-    for vol in postgres_data redis_data traefik_certs signoz_data; do
-      grep -q "${vol}:" "$COMPOSE_FILE"
-    done
+  it "should not define persistent DB volumes in compose" {
+    # In noua arhitectura, PostgreSQL/Redis nu sunt locale in stack-ul Cerniq,
+    # deci nu exista volumes postgres_data/redis_data/traefik_certs.
+    grep -q "^volumes: {}" "$COMPOSE_FILE"
     assert_success
   }
 }
@@ -273,7 +267,7 @@ describe "Docker Compose Base Configuration" {
 - [ ] YAML valid
 - [ ] name: cerniq
 - [ ] Networks external: true
-- [ ] Volumes: postgres_data, redis_data, traefik_certs, signoz_data
+- [ ] Nu exista volumes persistente pentru DB/Traefik local (volumes: {})
 
 ---
 

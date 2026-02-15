@@ -21,7 +21,7 @@ This analysis governs all risk assessments for Cerniq.app under the Master Speci
 - BullMQ v5.66.5
 - React 19.2.3, Tailwind CSS 4.1+, Refine v5
 - Docker Engine 29.2.0 (Standardized)
-- Traefik v3.6, SigNoz v0.107.0
+- Traefik v3.6, observability centralizat (Grafana/Prometheus/Loki/Tempo)
 
 ---
 
@@ -111,8 +111,8 @@ Documented memory leaks with sandboxed workers and event listeners (Issue #1129)
 **R-021: React 19.x useId Breaking Changes**
 React 19.2.3 changed ID prefix from `:r:` to `r`—may break CSS selectors targeting generated IDs. Concurrent mode changes state update timing; code relying on synchronous render timing may break. react-test-renderer deprecated.
 
-**R-022: SigNoz ClickHouse Timezone Crashes**
-Custom timezones (e.g., America/New_York) can crash OpenTelemetry collector (Issue #2025). memory_limiter configuration critical for stability. Self-observability (monitoring the observability stack) not documented.
+**R-022: Observability ingest timezone edge-cases**
+Timezone-uri custom pot provoca probleme la ingest/parsare/afisare in pipeline-ul de observability. Configurarea `memory_limiter` in OTEL Collector ramane critica pentru stabilitate. Self-observability trebuie tratata explicit.
 
 **R-023: Certificate Auto-Renewal Failures**
 Let's Encrypt 90-day certificates via Traefik have documented renewal issues. DNS propagation timeouts with Cloudflare proxy, ACME challenge failures, rate limiting (300 new orders/3 hours). No certificate expiry monitoring at 30/14/7 day thresholds documented.
@@ -186,7 +186,7 @@ Maximum 10 webhooks per account (422 error if exceeded). Webhooks may deliver ou
 | ---- | ------ | ------- |
 | TD-I01 | Manual Deployments | No CI/CD pipeline documented |
 | TD-I02 | Missing Auto-Scaling | Single server with no horizontal scaling capability |
-| TD-I03 | Incomplete Monitoring | SigNoz configured but dashboards not documented |
+| TD-I03 | Incomplete Monitoring | Observability partiala (dashboards/alerte incomplete, lipsa verificari E2E) |
 | TD-I04 | Docker Resource Limits | Containers without explicit CPU/memory limits |
 | TD-I05 | No Infrastructure as Code | Terraform/Ansible not mentioned |
 
@@ -334,7 +334,7 @@ Maximum 10 webhooks per account (422 error if exceeded). Webhooks may deliver ou
 | Redis 8.4.0 | 8.4.x | Latest Stable | LOW |
 | React 19.x | 19.2.3 | Stable | LOW-MEDIUM |
 | Traefik v3.6 | 3.6.6 | Stable (CVE Patched) | LOW |
-| SigNoz | v0.107.0 | Stable | MEDIUM |
+| Grafana/Loki/Tempo | (orchestrator) | Stable | LOW |
 | Docker 29.x | 29.2.0 | Standardized | OK |
 | Docker 28.x | 28.3.3 | Legacy | DEPRECATED |
 

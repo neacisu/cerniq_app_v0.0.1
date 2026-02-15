@@ -57,13 +57,14 @@ describe('Redis Failure', () => {
 });
 ```
 
-### PostgreSQL Failover
+### Database Connectivity Failure (PgBouncer)
 
 ```typescript
-describe('PostgreSQL Failure', () => {
+describe('Database Failure (via PgBouncer)', () => {
   it('should handle connection pool exhaustion', async () => {
-    // Pause PostgreSQL (simulate slow queries)
-    await exec('docker pause cerniq-postgres');
+    // In infra noua nu exista container `cerniq-postgres`.
+    // Simulam indisponibilitatea DB prin oprirea PgBouncer.
+    await exec('docker pause cerniq-pgbouncer');
     
     // API calls should timeout, not crash
     const promises = Array.from({ length: 50 }, () =>
@@ -76,7 +77,7 @@ describe('PostgreSQL Failure', () => {
     expect(results.every(r => r.status === 408 || r.code === 'ETIMEDOUT')).toBe(true);
     
     // Unpause
-    await exec('docker unpause cerniq-postgres');
+    await exec('docker unpause cerniq-pgbouncer');
     await sleep(5000);
     
     // Should recover

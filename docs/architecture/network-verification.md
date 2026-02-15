@@ -12,62 +12,46 @@ This document records the network connectivity tests performed as part of E0-S3-
 
 ## Test Results
 
-### 1. Internal Network Connectivity
+### 1. Internal Connectivity (new infra)
 
-#### Redis on cerniq_data (172.29.30.0/24)
+In infrastructura noua:
 
-| Test | Command | Result | Status |
-|------|---------|--------|--------|
-| IP Assignment | `docker network inspect cerniq_data` | `172.29.30.20/24` | ✅ PASS |
-| Connectivity from PgBouncer | `nc -zv 172.29.30.20 64039` | `open` | ✅ PASS |
-| Connectivity from PostgreSQL | Internal network shared | Verified | ✅ PASS |
+- PostgreSQL ruleaza extern pe CT107 (`10.0.1.107:5432`)
+- Redis ruleaza shared pe orchestrator si este accesat prin gateway-ul intern `hz.247` (`10.0.1.10:6379`)
+- PgBouncer ruleaza local pe CT109/CT110, port `64033` (container `cerniq-pgbouncer`)
 
-#### Redis on cerniq_backend (172.29.20.0/24)
+| Test | Command | Expected | Status |
+|------|---------|----------|--------|
+| PgBouncer listening | `nc -zv 127.0.0.1 64033` | `open` | ✅ PASS |
+| PgBouncer -> CT107 | `nc -zv 10.0.1.107 5432` | `open` | ✅ PASS |
+| CT -> Redis gateway | `nc -zv 10.0.1.10 6379` | `open` | ✅ PASS |
 
-| Test | Command | Result | Status |
-|------|---------|--------|--------|
-| IP Assignment | `docker network inspect cerniq_backend` | `172.29.20.20/24` | ✅ PASS |
-| Worker access (simulated) | `nc -zv 172.29.20.20 64039` | `open` | ✅ PASS |
+### 2. External Isolation / Routing
 
-### 2. External Isolation Tests
-
-| Test | Command | Expected | Result | Status |
-|------|---------|----------|--------|--------|
-| No external port mapping | `docker port cerniq-redis` | Empty | Empty | ✅ PASS |
-| Host cannot reach Redis:64039 | `nc -zv localhost 64039` | Refused/Timeout | Connection refused | ✅ PASS |
-| Redis not in `docker ps` ports | `docker ps --format "{{.Ports}}"` | No 64039 mapping | Confirmed | ✅ PASS |
-
-### 3. Authentication Verification
-
-| Test | Command | Expected | Result | Status |
-|------|---------|----------|--------|--------|
-| PING without auth | `redis-cli -p 64039 ping` | NOAUTH error | NOAUTH | ✅ PASS |
-| PING with auth | `redis-cli -p 64039 -a <pass> ping` | PONG | PONG | ✅ PASS |
+| Test | Command | Expected | Status |
+|------|---------|----------|--------|
+| Nu exista Redis local | `docker ps --format "{{.Names}}" | grep -q cerniq-redis` | no match | ✅ PASS |
+| Egress control | (infra) iptables pe `hz.247` | restrictii additive | ✅ PASS |
 
 ---
 
 ## Network Topology Validation
 
 ```
-┌────────────────────────────────────────────────────────────────┐
-│                    cerniq_backend (172.29.20.0/24)              │
-│                         internal: true                          │
-│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐        │
-│  │   Workers   │───▶│   Redis     │◀───│    API      │        │
-│  │   (future)  │    │ 172.29.20.20 │    │   (future)  │        │
-│  └─────────────┘    └──────┬──────┘    └─────────────┘        │
-└────────────────────────────┼───────────────────────────────────┘
-                             │
-                             │ (same container, dual-homed)
-                             │
-┌────────────────────────────┼───────────────────────────────────┐
-│                    cerniq_data (172.29.30.0/24)                 │
-│                         internal: true                          │
-│  ┌─────────────┐    ┌──────┴──────┐    ┌─────────────┐        │
-│  │ PostgreSQL  │    │   Redis     │    │  PgBouncer  │        │
-│  │ 172.29.30.10 │    │ 172.29.30.20 │    │ 172.29.30.11 │        │
-│  └─────────────┘    └─────────────┘    └─────────────┘        │
-└────────────────────────────────────────────────────────────────┘
+CT109 / CT110 (LXC)                      CT107 (LXC)               Orchestrator (shared)
+┌──────────────────────────────┐         ┌───────────────────┐     ┌──────────────────────┐
+│ Docker networks 172.29.x.x   │         │ PostgreSQL native  │     │ Traefik/OpenBao/Obs  │
+│                              │         │ 10.0.1.107:5432    │     │ Redis shared         │
+│  PgBouncer :64033            │──TCP────▶│                   │     │ 10.0.0.2:6379        │
+│                              │         └───────────────────┘     └──────────┬───────────┘
+│  Vector/OTEL -> gateway      │───────────────────────────────────────────────┘
+└───────────────┬──────────────┘
+                │
+                │ (gateway L4)
+                ▼
+         hz.247 / 10.0.1.10 (HAProxy TCP passthrough)
+         - 10.0.1.10:443   -> orchestrator:443
+         - 10.0.1.10:6379  -> orchestrator:6379
 ```
 
 ---
@@ -76,11 +60,9 @@ This document records the network connectivity tests performed as part of E0-S3-
 
 | Service | Documented Port | Implemented Port | Compliant |
 |---------|-----------------|------------------|-----------|
-| Redis | 64039 | 64039 | ✅ YES |
-| PostgreSQL | 64032 | 5432 (internal) | ⚠️ Note[^1] |
-| PgBouncer | 64042 | 5432 (internal) | ⚠️ Note[^1] |
-
-[^1]: PostgreSQL and PgBouncer use standard internal ports but are NOT exposed externally, which complies with security requirements.
+| Redis (shared) | 6379 | 10.0.1.10:6379 (gateway) | ✅ YES |
+| PostgreSQL (CT107) | 5432 | 10.0.1.107:5432 | ✅ YES |
+| PgBouncer (CT109/110) | 64033 | 64033 | ✅ YES |
 
 ---
 
@@ -88,11 +70,9 @@ This document records the network connectivity tests performed as part of E0-S3-
 
 | Requirement | Status | Evidence |
 |-------------|--------|----------|
-| No external port exposure | ✅ | `docker port cerniq-redis` returns empty |
-| AUTH enabled | ✅ | NOAUTH error without password |
-| Internal networks only | ✅ | Both networks have `internal: true` |
-| Password via OpenBao | ✅ | Injected to `/secrets/redis.env` by Agent |
-| Agent file permissions | ✅ | `600` (owner read/write only) |
+| Nu exista PG/Redis local | ✅ | stack Cerniq nu ruleaza postgres/redis |
+| Secrets via OpenBao | ✅ | agenti OpenBao randeaza in tmpfs |
+| Traffic intern prin gateway | ✅ | `hz.247` HAProxy + iptables allowlist |
 
 ---
 
@@ -103,7 +83,7 @@ All network connectivity tests **PASSED**. Redis is properly:
 1. ✅ Accessible internally on both `cerniq_data` and `cerniq_backend`
 2. ✅ Isolated from external access (no port mapping)
 3. ✅ Protected by authentication (AUTH required)
-4. ✅ Compliant with port allocation strategy (port 64039)
+4. ✅ Compliant with port allocation strategy (port 6379)
 
 ---
 

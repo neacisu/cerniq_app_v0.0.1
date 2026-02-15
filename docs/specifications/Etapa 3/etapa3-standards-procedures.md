@@ -523,11 +523,11 @@ jobs:
         env:
           POSTGRES_PASSWORD: test
         ports:
-          - 64032:64032
+          - 5432:5432
       redis:
-        image: redis:7
+        image: redis:8
         ports:
-          - 64039:64039
+          - 6379:6379
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -1270,7 +1270,9 @@ git checkout $TARGET_VERSION
 
 # 5. Check if DB rollback needed
 echo "Checking database migrations..."
-CURRENT_MIGRATION=$(docker compose exec -T postgres psql -U c3rn1q -t -c "SELECT version FROM schema_migrations ORDER BY version DESC LIMIT 1")
+# In infrastructura noua nu exista container `postgres` in stack-ul Cerniq.
+# Foloseste `DATABASE_URL` (de obicei prin PgBouncer) pentru interogari.
+CURRENT_MIGRATION=$(psql "${DATABASE_URL}" -t -c "SELECT version FROM schema_migrations ORDER BY version DESC LIMIT 1")
 TARGET_MIGRATION=$(cat db/migrations/latest)
 
 if [ "$CURRENT_MIGRATION" != "$TARGET_MIGRATION" ]; then

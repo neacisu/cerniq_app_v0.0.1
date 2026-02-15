@@ -56,7 +56,7 @@
 - **Workers** (BullMQ 313)
 - **PostgreSQL** (18.1)
 - **Redis** (8.4)
-- **SigNoz** (Observability)
+- **Grafana/Prometheus/Loki/Tempo** (Observability centralizat)
 
 #### Level 3: Components (Etapa 1 Example)
 

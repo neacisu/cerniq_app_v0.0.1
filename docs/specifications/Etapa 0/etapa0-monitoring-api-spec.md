@@ -24,7 +24,7 @@ Serviciul `monitoring-api` funcționează ca un **Observability Sidecar** pentru
 * **Framework:** Fastify v5.x
 * **Queue Interface:** BullMQ (Read-Only wrappers)
 * **Real-Time:** `@fastify/websocket`
-* **Metrics Storage:** Redis Timeseries (pentru agregate simple) + Query direct către SigNoz (ClickHouse) via API.
+* **Metrics Storage:** Redis (agregate simple) + query catre Prometheus/Loki/Tempo (stack centralizat) via API.
 * **Log Aggregation:** OpenTelemetry Auto-Instrumentation.
 
 ---
@@ -37,7 +37,7 @@ block-beta
   
   block:Sources
     Redis[("Redis (Queues)")]
-    ClickHouse[("ClickHouse (Logs/Traces)")]
+    Observability[("Prometheus/Loki/Tempo (central)")]
     System[("System Stats (CPU/RAM)")]
   end
   
@@ -53,7 +53,7 @@ block-beta
   end
 
   Redis --> MonAPI
-  ClickHouse --> MonAPI
+  Observability --> MonAPI
   System --> MonAPI
   
   MonAPI --> AdminUI

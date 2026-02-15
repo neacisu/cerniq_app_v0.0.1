@@ -8,13 +8,25 @@
 
 ---
 
+## UPDATE 2026-02 — Migrare Traefik (orchestrator)
+
+Problemele istorice legate de "Traefik intern" (porturi locale 64xxx, dashboard pe localhost, chain Nginx->Traefik etc.) sunt rezolvate prin migrarea pe infrastructura noua:
+
+- Ingress extern: Traefik pe orchestrator (IP public orchestrator)
+- CT109/CT110 nu mai ruleaza Traefik local pentru rutare externa
+- Observability/OpenBao/Redis sunt centralizate pe orchestrator si accesate prin retele interne (cu gateway `hz.247` unde e necesar)
+
+Sectiunile despre 135.181.183.164 si 95.216.225.145 raman ca istoric/audit si sunt marcate explicit ca **LEGACY / MIGRAT PE INFRA NOUA** (CT107/108/109/110 + orchestrator). Ele nu mai reprezinta starea operationala curenta.
+
+---
+
 ## CONTEXT MEDIU — APLICAȚII COEXISTENTE PE SERVERE
 
 > **ATENȚIE:** Fiecare server rulează multiple proiecte. Orice modificare Cerniq **NU trebuie** să afecteze celelalte aplicații.
 
 ---
 
-### SERVER STAGING — 135.181.183.164
+### SERVER STAGING (LEGACY / MIGRAT PE INFRA NOUA) — 135.181.183.164
 
 | Parametru | Valoare |
 |-----------|---------|
@@ -43,7 +55,7 @@
 | Postfix | 25 (localhost) | Mail relay |
 | Redis (host) | 6379 (localhost) | Separat de Docker Redis |
 | PHP-FPM 8.3 | — | Legacy, activ |
-| GitHub Actions Runner | — | `cerniq-runner-1` activ |
+| GitHub Actions Runner | — | `cerniq-runner-1` activ (LEGACY); runner dedicat in infra noua: `CT108` |
 
 #### Rețele Docker staging — NO-GO subnets
 
@@ -89,7 +101,7 @@
 
 ---
 
-### SERVER PRODUCȚIE — 95.216.225.145
+### SERVER PRODUCȚIE (LEGACY / MIGRAT PE INFRA NOUA) — 95.216.225.145
 
 | Parametru | Valoare |
 |-----------|---------|
@@ -238,7 +250,7 @@ Compose YAML anchors alocă limite care **depășesc RAM-ul total de 10 GiB**:
 ### C1. UFW Firewall INACTIV pe producție
 
 **Severitate:** 🔴 CRITICĂ  
-**Server:** 95.216.225.145 (producție)  
+**Server:** 95.216.225.145 — LEGACY / MIGRAT PE INFRA NOUA (producție)  
 **Problema:** Firewall-ul UFW este **dezactivat**. Porturile 3060-3063 (WappBuss PostgreSQL + Redis) sunt expuse direct pe internet. Oricine poate accesa baza de date WappBuss fără autentificare de rețea.
 
 **Descoperire:**
@@ -301,7 +313,7 @@ ufw status verbose
 ### C2. OpenBao Agents crash loop pe producție (403 Forbidden)
 
 **Severitate:** 🔴 CRITICĂ  
-**Server:** 95.216.225.145 (producție)  
+**Server:** 95.216.225.145 — LEGACY / MIGRAT PE INFRA NOUA (producție)  
 **Problema:** Ambii OpenBao Agents (`cerniq-openbao-agent-api` și `cerniq-openbao-agent-workers`) sunt UNHEALTHY cu 15-16 restartări. Eroarea: `403 permission denied` la accesul `database/creds/api-role`.
 
 **Descoperire:**
@@ -370,7 +382,7 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml restart openbao-
 ### C3. postgresql.conf de STAGING folosit pe PRODUCȚIE
 
 **Severitate:** 🔴 CRITICĂ  
-**Server:** 95.216.225.145 (producție, 10GB RAM, 4 cores)  
+**Server:** 95.216.225.145 — LEGACY / MIGRAT PE INFRA NOUA (producție, 10GB RAM, 4 cores)  
 **Problema:** Fișierul `postgresql.conf` deploiat pe producție este cel de staging (configurat pentru 125GB RAM / 64 cores). `shared_buffers = 4GB` și `effective_cache_size = 12GB` pe un server cu doar 10GB RAM total.
 
 **Descoperire:**
@@ -407,7 +419,7 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml restart openbao-
 ### C4. docker-compose.prod.yml NU este aplicat pe producție
 
 **Severitate:** 🔴 CRITICĂ  
-**Server:** 95.216.225.145 (producție)  
+**Server:** 95.216.225.145 — LEGACY / MIGRAT PE INFRA NOUA (producție)  
 **Problema:** Containerele rulează doar cu `docker-compose.yml` (fără override-ul prod). Asta înseamnă:
 - PostgreSQL are limita 16GB memory pe server cu 10GB RAM
 - Redis are maxmemory 8GB — combinat cu PG depășește RAM-ul fizic
@@ -442,7 +454,7 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --force-re
 ### C5. Backup-uri NE-programate pe producție
 
 **Severitate:** 🔴 CRITICĂ  
-**Server:** 95.216.225.145 (producție)  
+**Server:** 95.216.225.145 — LEGACY / MIGRAT PE INFRA NOUA (producție)  
 **Problema:** Scripturile de backup există în `/opt/cerniq/scripts/` dar **nu sunt în crontab**. Zero backup-uri automate active. Log-ul de backup e gol.
 
 **Descoperire:**
@@ -499,7 +511,7 @@ Conținutul cron-ului (din `infra/config/cron/cerniq-backup`):
 ### C6. Port mismatch pe producție (compose zice 64032, containere ascultă pe 5432)
 
 **Severitate:** 🔴 CRITICĂ  
-**Server:** 95.216.225.145 (producție)  
+**Server:** 95.216.225.145 — LEGACY / MIGRAT PE INFRA NOUA (producție)  
 **Problema:** Docker-compose.yml actualizat la port 64032 dar containerele active folosesc portul 5432 (din versiunea anterioară). Un `docker compose up -d` va sparge conectivitatea DB.
 
 **Descoperire:**
@@ -549,7 +561,7 @@ docker exec cerniq-postgres pg_isready -h localhost -p 64032 -U c3rn1q
 ### C7. Containere pornite din directoare diferite (split working directory)
 
 **Severitate:** 🟠 HIGH  
-**Server:** Staging 135.181.183.164  
+**Server:** Staging 135.181.183.164 — LEGACY / MIGRAT PE INFRA NOUA  
 **Problema:** Postgres + PgBouncer rulează din `/opt/cerniq` (prod override), dar celelalte 6 containere rulează din `/var/www/CerniqAPP/infra/docker` (repo direct). Asta înseamnă că 6 containere NU folosesc docker-compose.prod.yml.
 
 **Descoperire:**
@@ -577,7 +589,7 @@ Toate containerele trebuie pornite din `/opt/cerniq` cu ambele compose files.
 ### C8. Traefik config LIPSĂ din /opt/cerniq/config/traefik/
 
 **Severitate:** 🟠 HIGH  
-**Server:** Staging 135.181.183.164  
+**Server:** Staging 135.181.183.164 — LEGACY / MIGRAT PE INFRA NOUA  
 **Problema:** Directorul `/opt/cerniq/config/traefik/` nu conține `traefik.yml` și `dynamic/middlewares.yml`. Traefik funcționează doar pentru că a fost pornit din repo. Dacă se repornește din `/opt/cerniq`, va eșua.
 
 **Rezolvare (adaptat staging cu Neanelu Traefik activ):**
@@ -599,7 +611,7 @@ cp /var/www/CerniqAPP/infra/docker/traefik/dynamic/middlewares.yml /opt/cerniq/c
 ### C9. OpenBao templates pe staging au port PgBouncer GREȘIT
 
 **Severitate:** 🟠 HIGH  
-**Server:** Staging 135.181.183.164  
+**Server:** Staging 135.181.183.164 — LEGACY / MIGRAT PE INFRA NOUA
 **Problema:** Template-urile OpenBao deployed conțin `pgbouncer:6432` dar PgBouncer ascultă pe `64033`. Când API/workers vor porni, vor primi un DATABASE_URL greșit.
 
 **Descoperire:**
@@ -651,7 +663,7 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml restart openbao-
     trivy image ... --exit-code 1 --severity HIGH,CRITICAL
 ```
 
-**Notă (impact mediu):** Rulează doar în CI. Self-hosted runner-ul este pe staging; evită ferestrele de load ridicat pentru a nu afecta celelalte proiecte de pe aceeași mașină.
+**Notă (impact mediu):** Rulează doar în CI. In infrastructura noua, self-hosted runner-ul este pe `CT108` (dedicat), nu pe staging legacy.
 
 **Fișiere de actualizat:**
 - `.github/workflows/deploy.yml` — Trivy exit-code 0 → 1, elimină continue-on-error
@@ -687,7 +699,7 @@ sed -i '/POSTGRES_PASSWORD/d' /var/www/CerniqAPP/infra/docker/.env
 # CU:      DB_USER="c3rn1q"
 ```
 
-**Notă (impact mediu):** Folosește scriptul doar în CI sau staging; nu rula validări agresive pe producție în ore de vârf (server comun).
+**Notă (impact mediu):** Folosește scriptul doar în CI/staging. In infra noua, staging/prod sunt CT-uri dedicate (CT110/CT109), dar evita rularea testelor agresive in ore de varf.
 
 **Fișiere de actualizat:**
 - `infra/scripts/validate-postgres.sh` — linia 12: `DB_USER="c3rn1q"`
@@ -812,7 +824,7 @@ if: github.event_name == 'pull_request'
 if: github.event_name == 'pull_request' && github.base_ref == 'develop'
 ```
 
-**Notă (impact mediu):** Rulările au loc pe runner-ul staging; programează scanările grele (Trivy) în afara orelor de vârf ale celorlalte proiecte.
+**Notă (impact mediu):** In infra noua, rulările au loc pe runner-ul dedicat `CT108`; scanările grele (Trivy) raman recomandate in afara orelor de varf.
 
 ---
 

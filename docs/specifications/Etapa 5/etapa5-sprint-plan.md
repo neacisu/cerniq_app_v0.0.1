@@ -1160,7 +1160,7 @@ E5.S1.PR1.001
 
 #### Acceptance Criteria
 
-- [ ] SigNoz dashboards pentru E5
+- [ ] Grafana dashboards pentru E5
 - [ ] Alert rules configurate
 - [ ] Runbook verificat
 

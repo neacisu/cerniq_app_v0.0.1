@@ -349,10 +349,10 @@ WHERE avg_leaf_density < 0.9;
 
 ## 4. MONITORING CONFIGURATION
 
-### 4.1 SigNoz Dashboard Configuration
+### 4.1 Grafana Dashboard Configuration
 
 ```yaml
-# sigNoz/dashboards/etapa1-overview.json
+# grafana/dashboards/etapa1-overview.json
 {
   "title": "Etapa 1 - Data Pipeline Overview",
   "panels": [

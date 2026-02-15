@@ -35,7 +35,7 @@
 - ✅ Update React 19.2.1 → 19.2.3 (ultima versiune npm)
 - ✅ Adăugare secțiune 2.3: LLM Routing Policy (canonic)
 - ✅ Adăugare secțiune 2.4: Multi-tenant Contract (canonic)
-- ✅ Adăugare secțiune 2.5: Observability Stack (SigNoz canonic)
+- ✅ Adaugare sectiune 2.5: Observability Stack (aliniere observability)
 - ✅ Adăugare secțiune 2.6: Event Contract (idempotency, replay strategy)
 - ✅ HITL: Deprecation notice pentru `gold_hitl_tasks`
 - ✅ HITL: User Identity Contract (assigned_to UUID, nu email)
@@ -365,9 +365,13 @@ interface GuardrailChecks {
 
 | Component             | Versiune   | Rol                              | Status      |
 |-----------------------|------------|----------------------------------|-------------|
-| **SigNoz**            | v0.107.0   | APM + Traces + Logs (all-in-one) | PRIMARY     |
+| **Grafana**           | (shared)   | UI (dashboards)                  | PRIMARY     |
+| **Prometheus**        | (shared)   | Metrics (pull)                   | PRIMARY     |
+| **Loki**              | (shared)   | Logs                             | PRIMARY     |
+| **Tempo**             | (shared)   | Traces                           | PRIMARY     |
 | **OpenTelemetry SDK** | Latest     | Instrumentare aplicații          | OBLIGATORIU |
-| **ClickHouse**        | Via SigNoz | Storage traces/metrics           | INTERN      |
+| **Vector**            | (agent)    | Logs shipper                      | AGENT       |
+| **OTEL Collector**    | (agent)    | Ingest traces/metrics             | AGENT       |
 
 ### 2.5.2 OpenTelemetry Semantic Conventions
 
@@ -404,7 +408,7 @@ const WORKER_SPAN_ATTRIBUTES = {
 ### 2.5.4 Alerting Rules
 
 ```yaml
-# SigNoz Alert Configuration
+# Observability Alert Configuration
 alerts:
   - name: HighJobErrorRate
     condition: rate(job_errors_total[5m]) / rate(jobs_processed_total[5m]) > 0.05
@@ -1509,20 +1513,21 @@ CREATE TABLE integration_credentials (
 ```typescript
 // OpenBao configuration per tenant
 interface OpenBaoConfig {
-  server: 'http://openbao:8200';
+  // Acces prin Traefik (HTTPS :443) catre OpenBao pe orchestrator
+  server: 'https://s3cr3ts.neanelu.ro';
   authMethod: 'approle';
   paths: {
-    // Static secrets (KV v2)
+    // Static secrets (KV v1 pe orchestrator)
     static: {
-      api: 'secret/data/cerniq/api/config';       // Redis, JWT, etc.
-      shared: 'secret/data/cerniq/shared/external'; // ANAF, Termene, etc.
+      api: 'secret/cerniq/api/config';        // Redis, JWT, etc.
+      shared: 'secret/cerniq/shared/external'; // ANAF, Termene, etc.
     };
     // Dynamic secrets
     dynamic: {
-      database: 'database/creds/api-role';  // Auto-rotating PostgreSQL
+      database: 'cerniq-db/creds/api-dynamic'; // Auto-rotating PostgreSQL
     };
     // Multi-tenant (Etapa 2+)
-    tenant: `secret/data/tenants/${tenantId}`;
+    tenant: `secret/tenants/${tenantId}`;
   };
   rotation: {
     staticSecrets: '90d';      // Quarterly rotation
@@ -1984,7 +1989,7 @@ $$ LANGUAGE plpgsql;
 | 5  | Event Contract End-to-End   | ✅ REZOLVAT          | Schema + Replay Strategy          | S2.6     |
 | 6  | Data retention GDPR         | ✅ REZOLVAT          | Retention policies                | S7.6     |
 | 7  | LLM Routing Policy          | ✅ REZOLVAT          | Provideri + Guardrails + Cost caps| S2.3     |
-| 8  | Observability Standard      | ✅ REZOLVAT          | SigNoz + OTel canonic             | S2.5     |
+| 8  | Observability Standard      | ✅ REZOLVAT          | Grafana/Prometheus/Loki/Tempo + OTEL | S2.5  |
 | 9  | HITL User Identity          | ✅ REZOLVAT          | UUID contract                     | S5.1     |
 | 10 | SQL Hashing Functions       | ✅ CLARIFICAT        | sha256() nativ PG11+              | S3.2     |
 | 11 | Test Strategy               | ✅ **REZOLVAT v1.2** | Contract tests + pgTAP + CI gates | **S2.8** |

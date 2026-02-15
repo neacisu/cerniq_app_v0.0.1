@@ -29,10 +29,10 @@ Sistemul de monitorizare nu va fi invaziv în codul de business. Va rula ca un s
 | Componentă | Tehnologie | Rol |
 | ---------- | ---------- | --- |
 | **Backend Agregator** | **Fastify + BullMQ API** | Expune starea cozilor Redis prin WebSocket/SSE către UI. |
-| **Metrics Store** | **Redis Timeseries + SigNoz** | Stocare metrici high-resolution (throughput, latency). |
+| **Metrics Store** | **Prometheus + Grafana** | Stocare/afisare metrici (throughput, latency). |
 | **Frontend UI** | **React 19 + Refine + Recharts** | Dashboard interactiv, parte din `admin-panel`. |
 | **Tracing** | **OpenTelemetry (Auto-instrumentation)** | Urmărire flow end-to-end prin `correlation_id`. |
-| **Alerting** | **SigNoz Alerts** | Notificări inteligente (nu spam) pe Slack/Discord. |
+| **Alerting** | **Prometheus Alertmanager / Grafana** | Notificari inteligente (nu spam) pe Slack/Discord. |
 
 ### Diagrama Flux Monitorizare
 
@@ -45,7 +45,7 @@ graph TD
 
     subgraph Monitoring_System
         R -->|Read Job Status| MA[Monitoring API / Websocket]
-        O -->|Store Traces| SN[SigNoz ClickHouse]
+        O -->|Store Traces| SN[Tempo (orchestrator)]
         
         MA -->|Real-time Updates| UI[Unified Control Plane UI]
         SN -->|Historical Data| UI
@@ -63,7 +63,7 @@ Abordarea este "Monitoring-First Development". Nu implementăm un worker până 
 **Obiectiv:** Setup pipeline de colectare date.
 
 1. **Implementare `libs/observability`:** Pachet partajat care configurează OpenTelemetry auto-instrumentation pentru orice worker nou.
-2. **Deploy SigNoz & Redis Metrics:** Setup containere docker dedicate monitorizării (separat de app logic).
+2. **Deploy observability centralizat + Redis metrics:** Stack-ul de observability este centralizat pe orchestrator (Grafana/Prometheus/Loki/Tempo), fara stack local dedicat.
 3. **Dashboard "System Health":** CPU/RAM server, Redis Memory, PostgreSQL Connections (Vizualizare globală resurse).
 
 ### 🟢 ETAPA 1: "Data Pipeline Dashboard" (Vizualizare Flux)

@@ -38,13 +38,14 @@ Cerniq.app utilizează strategia de log rotation configurată în Docker daemon 
 
 | Service Category | Containers | Max Storage Each | Total Max |
 |------------------|------------|------------------|-----------|
-| API | 1 | 250MB | 250MB |
-| Workers | 4 | 250MB | 1GB |
-| PostgreSQL | 1 | 250MB | 250MB |
-| Redis | 1 | 250MB | 250MB |
-| Traefik | 1 | 250MB | 250MB |
-| SigNoz Stack | 3 | 250MB | 750MB |
-| **Total Maximum** | **11** | - | **2.75GB** |
+| API (cand e deployat) | 1+ | 250MB | 250MB+ |
+| Workers (cand sunt deployati) | 1+ | 250MB | 250MB+ |
+| PgBouncer | 1 | 250MB | 250MB |
+| OpenBao agents | 2 | 250MB | 500MB |
+| Vector | 1 | 250MB | 250MB |
+| OTEL Collector | 1 | 250MB | 250MB |
+| cAdvisor | 1 | 250MB | 250MB |
+| **Total Maximum (infra-only)** | **6** | - | **1.5GB** |
 
 ### Location
 
@@ -192,44 +193,44 @@ sudo truncate -s 0 $(docker inspect --format='{{.LogPath}}' <container_name>)
 
 ```bash
 # 1. Stop non-critical containers
-docker stop cerniq-workers
+docker compose stop worker-enrichment worker-outreach worker-ai || true
 
 # 2. Clear all logs
 sudo find /var/lib/docker/containers -name "*-json.log" -exec truncate -s 0 {} \;
 
 # 3. Restart containers
-docker start cerniq-workers
+docker compose up -d worker-enrichment worker-outreach worker-ai || true
 ```
 
 ## Integration with Centralized Logging
 
-### SigNoz/OpenTelemetry
+### Loki/Tempo/Prometheus (stack centralizat) + OpenTelemetry
 
-Aplicațiile Cerniq trimit loguri structurate direct la SigNoz prin OpenTelemetry, independent de log rotation Docker:
+Aplicatiile Cerniq trimit loguri/traces/metrics catre stack-ul centralizat (orchestrator), independent de log rotation Docker:
 
 ```
-Application → Pino Logger → OTLP HTTP (64071) → SigNoz
+Application → Pino Logger → OTLP HTTP (64071) → OTEL Collector (local) → Tempo/Prometheus (orchestrator)
                     ↓
-              Docker json-file (backup)
+              Docker json-file (fallback local)
 ```
 
 Această arhitectură oferă:
-- **Real-time search** prin SigNoz UI
+- **Real-time search** in Grafana (Explore)
 - **Local backup** prin Docker logs
-- **Redundancy** în caz de SigNoz downtime
+- **Redundancy** in caz de downtime pe pipeline-ul centralizat
 
 ### Log Retention Comparison
 
 | Destination | Retention | Search | Alerting |
 |-------------|-----------|--------|----------|
 | Docker json-file | ~250MB/container | grep only | No |
-| SigNoz | 15 days | Full-text | Yes |
+| Grafana (Loki/Tempo) | (central) | Full-text | Yes |
 
 ## Best Practices
 
 ### DO ✅
 
-1. **Use structured logging (JSON)** - parsare ușoară în SigNoz
+1. **Use structured logging (JSON)** - parsare usoara in Grafana (Loki)
 2. **Set appropriate log levels** - DEBUG doar în development
 3. **Include request IDs** - corelarea logurilor între servicii
 4. **Monitor disk usage** - alertă la 80% capacitate

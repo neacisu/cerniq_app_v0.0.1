@@ -17,11 +17,12 @@ Stack-ul Cerniq nu mai rulează Traefik intern, PostgreSQL local sau OpenBao ser
 ## 2. Pre-deploy checklist
 
 - [ ] DNS pentru `cerniq.app`, `api/admin`, `staging` pointează la `77.42.76.185`
-- [ ] SSH key deploy din CT108 pe CT109/CT110 configurat
-- [ ] GitHub Secrets actualizate: `STAGING_*`, `PRODUCTION_*`, `ORCHESTRATOR_SSH_KEY`, `OPENBAO_ADDR`
+- [ ] SSH key deploy (GitHub Actions) pe userul `deploy` din CT109/CT110 configurat
+- [ ] GitHub Secrets actualizate: `STAGING_*`, `PRODUCTION_*`, `OPENBAO_ADDR`, `OPENBAO_CICD_ROLE_ID`, `OPENBAO_CICD_SECRET_ID`
 - [ ] Conectivitate confirmată:
   - CT109/110 -> CT107:5432
-  - CT109/110 -> OpenBao orchestrator:443
+  - CT109/110 -> OpenBao orchestrator:443 (prin gateway `hz.247` VIP `10.0.1.10:443`)
+  - CT109/110 -> Redis shared:6379 (prin gateway `10.0.1.10:6379`)
   - CT108 -> CT109/110:22
 
 ## 3. Deploy staging
@@ -36,8 +37,8 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-o
 Validări:
 
 - `docker ps | grep cerniq`
-- `docker exec cerniq-pgbouncer psql -h 127.0.0.1 -p 64033 -U c3rn1q -d cerniq_staging -c 'SELECT 1'`
-- `curl -k -I https://staging.cerniq.app`
+- DB prin PgBouncer cu credidentiale dinamice randate de OpenBao agent:
+  - `. /run/cerniq/runtime-secrets/api/api.env && PGCONNECT_TIMEOUT=5 PGPASSWORD="$POSTGRES_PASSWORD" psql -h 172.29.20.11 -p 64033 -U "$POSTGRES_USER" -d cerniq_staging -Atqc 'SELECT 1'`
 - `docker exec cerniq-openbao-agent-api test -f /secrets/api.env`
 
 ## 4. Deploy producție
@@ -52,13 +53,13 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-o
 Validări:
 
 - `docker ps | grep cerniq`
-- `docker exec cerniq-pgbouncer psql -h 127.0.0.1 -p 64033 -U c3rn1q -d cerniq -c 'SELECT 1'`
-- `curl -k -I https://cerniq.app`
+- DB prin PgBouncer cu credidentiale dinamice randate de OpenBao agent:
+  - `. /run/cerniq/runtime-secrets/api/api.env && PGCONNECT_TIMEOUT=5 PGPASSWORD="$POSTGRES_PASSWORD" psql -h 172.29.20.11 -p 64033 -U "$POSTGRES_USER" -d cerniq -Atqc 'SELECT 1'`
 - `docker exec cerniq-openbao-agent-workers test -f /secrets/workers.env`
 
 ## 5. Observability
 
-- Logs: Vector -> Loki (`https://logs.neanelu.ro`)
+- Logs: Vector -> Loki (`https://logs-cerniq.neanelu.ro` pentru Cerniq-only push)
 - Traces: OTEL Collector -> orchestrator OTLP route
 - Metrics:
   - node-exporter: CT107/108/109/110

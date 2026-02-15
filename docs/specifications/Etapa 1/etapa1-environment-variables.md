@@ -16,19 +16,21 @@
 
 | Variable | Required | Default | Description |
 | -------- | -------- | ------- | ----------- |
-| `POSTGRES_HOST` | Yes | `postgres` | PostgreSQL host |
-| `POSTGRES_PORT` | Yes | `64032` | PostgreSQL port |
+| `POSTGRES_HOST` | Yes | `pgbouncer` | Host pentru pooling (PgBouncer) |
+| `POSTGRES_PORT` | Yes | `64033` | Port PgBouncer |
 | `POSTGRES_USER` | Yes | - | DB user |
 | `POSTGRES_PASSWORD` | Yes | - | DB password (secret) |
 | `POSTGRES_DB` | Yes | `cerniq_e1` | Database name |
 | `DATABASE_URL` | Yes | - | Full connection string |
 
+> Nota: PostgreSQL server ruleaza extern pe `CT107 (10.0.1.107:5432)`. In staging/prod, aplicatia se conecteaza prin PgBouncer (pooling) si NU direct la `:5432` decat in operatii de administrare.
+
 ## 3. Redis
 
 | Variable | Required | Default | Description |
 | -------- | -------- | ------- | ----------- |
-| `REDIS_HOST` | Yes | `redis` | Redis host |
-| `REDIS_PORT` | Yes | `64039` | Redis port |
+| `REDIS_HOST` | Yes | `10.0.0.2` | Redis shared pe orchestrator (fara expunere publica) |
+| `REDIS_PORT` | Yes | `6379` | Redis port |
 | `REDIS_PASSWORD` | No | - | Redis password |
 | `REDIS_DB` | No | `1` | Redis DB (Etapa 1) |
 | `REDIS_URL` | No | - | Full connection string |

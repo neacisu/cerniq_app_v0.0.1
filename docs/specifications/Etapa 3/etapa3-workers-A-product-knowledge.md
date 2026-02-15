@@ -2512,7 +2512,7 @@ export const productWorkerErrorsTotal = new Counter({
 }
 ```
 
-### 9.3 Alerte SigNoz
+### 9.3 Alerte (Grafana / Alertmanager)
 
 ```yaml
 # alerts/product-workers.yaml

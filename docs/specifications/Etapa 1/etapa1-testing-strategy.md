@@ -1050,11 +1050,11 @@ jobs:
           POSTGRES_USER: test
           POSTGRES_PASSWORD: test
         ports:
-          - 64032:64032
+          - 5432:5432
       redis:
         image: redis:7
         ports:
-          - 64039:64039
+          - 6379:6379
 
     steps:
       - uses: actions/checkout@v4
@@ -1065,12 +1065,12 @@ jobs:
       - run: npm ci
       - run: npm run db:migrate
         env:
-          DATABASE_URL: postgres://test:test@localhost:64032/cerniq_test
+          DATABASE_URL: postgres://test:test@localhost:5432/cerniq_test
       
       - run: npm run test:integration
         env:
-          DATABASE_URL: postgres://test:test@localhost:64032/cerniq_test
-          REDIS_URL: redis://localhost:64039
+          DATABASE_URL: postgres://test:test@localhost:5432/cerniq_test
+          REDIS_URL: redis://localhost:6379
 
   e2e-tests:
     runs-on: ubuntu-latest

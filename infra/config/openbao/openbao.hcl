@@ -71,7 +71,7 @@ cluster_addr = "https://openbao:8201"
 # =============================================================================
 # Telemetry Configuration
 # =============================================================================
-# Prometheus metrics for SigNoz integration
+  # Prometheus metrics endpoint (scraped by Prometheus)
 # =============================================================================
 
 telemetry {

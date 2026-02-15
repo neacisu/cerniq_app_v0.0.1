@@ -596,7 +596,7 @@ import { QueueOptions, WorkerOptions } from 'bullmq';
 
 export const REDIS_CONFIG = {
   host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '64039'),
+  port: parseInt(process.env.REDIS_PORT || '6379'),
   password: process.env.REDIS_PASSWORD,
   maxRetriesPerRequest: null,
   enableReadyCheck: false,
@@ -1015,7 +1015,7 @@ export const negotiationMetrics = {
 };
 ```
 
-### 7.2 Alerte Critice (SigNoz/AlertManager)
+### 7.2 Alerte Critice (Prometheus Alertmanager / Grafana)
 
 | Alertă | Condiție | Severitate | Canal |
 | ------ | -------- | ---------- | ----- |

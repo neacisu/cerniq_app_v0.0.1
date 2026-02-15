@@ -1,263 +1,82 @@
-# Network Topology - Cerniq.app
+# Network Topology - Cerniq.app (LXC + Orchestrator)
 
-> **Version:** 1.0.0  
-> **Last Updated:** 2026-02-03  
-> **References:** ADR-0015, ADR-0022
+> **Version:** 2.0.0  
+> **Last Updated:** 2026-02-15  
+> **References:** ADR-0015, ADR-0022, ADR-0030
 
 ## Overview
 
-Cerniq.app utilizează trei rețele Docker izolate pentru a asigura separarea traficului și securitatea serviciilor.
+- Ingress public: exclusiv prin Traefik pe orchestrator (`77.42.76.185`).
+- CT-urile Cerniq (prod/staging) NU expun servicii direct pe IP public.
+- PostgreSQL ruleaza nativ pe CT107 (`10.0.1.107:5432`).
+- Redis este shared pe orchestrator (`10.0.0.2:6379`) si este accesat de CT-uri prin gateway-ul intern `hz.247` (`10.0.1.10:6379`) pentru stabilitate.
+- OpenBao/Observability sunt centralizate pe orchestrator si accesate intern prin gateway-ul `hz.247` (`10.0.1.10:443`).
 
-## Network Architecture Diagram
+## Diagram (conceptual)
 
 ```text
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                            EXTERNAL ACCESS                                  │
-│                                                                             │
-│    Internet ───► Orchestrator Traefik (80/443) ───► LXC services (64xxx)    │
-│                   TLS Termination (centralized)                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                      │
-                                      ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         cerniq_public (172.29.10.0/24)                      │
-│  ┌──────────────────────────────────────────────────────────────────────┐   │
-│  │                                                                      │   │
-│  │   ┌─────────────┐    ┌─────────────┐    ┌─────────────┐              │   │
-│  │   │   Web App   │    │  Admin App  │    │  API Edge   │              │   │
-│  │   │   (React)   │    │   (React)   │    │  (Fastify)  │              │   │
-│  │   │   64010     │    │   64012     │    │   64000     │              │   │
-│  │   └──────┬──────┘    └──────┬──────┘    └──────┬──────┘              │   │
-│  │          │                  │                  │                     │   │
-│  └──────────┼──────────────────┼──────────────────┼─────────────────────┘   │
-│             │                  │                  │                         │
-└─────────────┼──────────────────┼──────────────────┼─────────────────────────┘
-              │                  │                  │
-              ▼                  ▼                  ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                      cerniq_backend (172.29.20.0/24)                        │
-│                           internal: true                                    │
-│  ┌──────────────────────────────────────────────────────────────────────┐   │
-│  │                                                                      │   │
-│  │   ┌─────────────┐    ┌─────────────┐    ┌─────────────┐              │   │
-│  │   │  Fastify    │    │   Workers   │    │ Vector/OTel │              │   │
-│  │   │    API      │    │  (AI/Enr)   │    │    OTel     │              │   │
-│  │   │   64000     │    │   64020+    │    │ 64070-64071 │              │   │
-│  │   └──────┬──────┘    └──────┬──────┘    └──────┬──────┘              │   │
-│  │          │                  │                  │                     │   │
-│  └──────────┼──────────────────┼──────────────────┼─────────────────────┘   │
-│             │                  │                  │                         │
-└─────────────┼──────────────────┼──────────────────┼─────────────────────────┘
-              │                  │                  │
-              ▼                  ▼                  ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                        cerniq_data (172.29.30.0/24)                         │
-│                           internal: true                                    │
-│  ┌──────────────────────────────────────────────────────────────────────┐   │
-│  │                                                                      │   │
-│  │   ┌─────────────┐    ┌─────────────┐    ┌─────────────┐              │   │
-│  │   │  External   │    │    Redis    │    │  PgBouncer  │              │   │
-│  │   │  CT107 PG   │    │   (cache)   │    │   (pool)    │              │   │
-│  │   │    5432     │    │   64039     │    │   64033     │              │   │
-│  │   └─────────────┘    └─────────────┘    └─────────────┘              │   │
-│  │                                                                      │   │
-│  └──────────────────────────────────────────────────────────────────────┘   │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
+Internet
+  |
+  v
+orchestrator (Traefik 80/443, IP public 77.42.76.185)
+  |
+  | (pull, intern) 10.0.0.2 -> hz.247 VIP 10.0.1.10:29xxx/19xxx -> CT109/CT110
+  v
+CT109 (prod) / CT110 (staging)
+  |
+  | Docker networks (in-LXC): 172.29.10/20/30 (pre-create, external)
+  |
+  +--> PgBouncer (64033) --> CT107 Postgres (10.0.1.107:5432)
+  +--> Vector/OTEL/OpenBao agents --> hz.247 VIP 10.0.1.10 (443) --> orchestrator (Traefik routes)
+  +--> Redis (shared) --> hz.247 VIP 10.0.1.10 (6379) --> orchestrator redis-shared (10.0.0.2:6379)
 ```
 
-## Network Details
+## Docker networks (CT109/CT110)
 
-### cerniq_public (172.29.10.0/24)
+Subnets standardizate:
 
-| Property | Value |
-| -------- | ----- |
-| **Subnet** | 172.29.10.0/24 |
-| **Gateway** | 172.29.10.1 |
-| **Driver** | bridge |
-| **Internal** | false (external access allowed) |
-| **Purpose** | Servicii accesibile extern prin Traefik |
+- `cerniq_public`: `172.29.10.0/24`
+- `cerniq_backend`: `172.29.20.0/24`
+- `cerniq_data`: `172.29.30.0/24`
 
-**Servicii conectate:**
+Nota:
 
-- Web App (React frontend)
-- Admin App (React admin)
-- API (Fastify)
-- Monitoring UI (când este expus)
+- Retelele NU sunt create cu `--internal` deoarece stack-ul are nevoie de egress controlat (OpenBao/observability prin gateway).
+- Egress-ul este controlat la nivel LXC/host (iptables pe `hz.247`), nu prin Docker `--internal`.
 
-### cerniq_backend (172.29.20.0/24)
-
-| Property | Value |
-| -------- | ----- |
-| **Subnet** | 172.29.20.0/24 |
-| **Gateway** | 172.29.20.1 |
-| **Driver** | bridge |
-| **Internal** | true (NO external access) |
-| **Purpose** | Comunicare internă API și Workers |
-
-**Servicii conectate:**
-
-- Fastify API
-- AI Workers
-- Enrichment Workers
-- Outreach Workers
-- Vector (logs shipping)
-- OTel Collector (traces shipping)
-
-**⚠️ IMPORTANT:** Această rețea este `internal: true` - containerele NU pot accesa internetul direct.
-
-### cerniq_data (172.29.30.0/24)
-
-| Property | Value |
-| -------- | ----- |
-| **Subnet** | 172.29.30.0/24 |
-| **Gateway** | 172.29.30.1 |
-| **Driver** | bridge |
-| **Internal** | true (NO external access) |
-| **Purpose** | Database și cache strict intern |
-
-**Servicii conectate:**
-
-- PostgreSQL 18.1 extern pe CT107
-- Redis 8.4.0
-- PgBouncer (connection pooling)
-
-**⚠️ CRITICAL:** Această rețea este strict internă. Bazele de date NU sunt expuse extern.
-
-## Port Matrix (ADR-0022)
-
-### External Ports (nginx)
-
-| Port | Protocol | Service |
-| ---- | -------- | ------- |
-| 22 | TCP | SSH |
-| 80 | TCP | HTTP → HTTPS redirect |
-| 443 | TCP | HTTPS (TLS termination) |
-
-### Application Ports (64000-64019)
-
-| Port | Service | Network | Description |
-| ---- | ------- | ------- | ----------- |
-| 64000 | Fastify API | cerniq_backend | Main API endpoint |
-| 64010 | React Web | cerniq_public | Frontend web app |
-| 64011 | Vite HMR | cerniq_public | Hot reload (dev only) |
-| 64012 | React Admin | cerniq_public | Admin dashboard |
-
-### Database Ports (64030-64049)
-
-| Port | Service | Network | Description |
-| ---- | ------- | ------- | ----------- |
-| 5432 | PostgreSQL (CT107) | external | Primary database |
-| 64039 | Redis | cerniq_data | Cache & queues |
-| 64033 | PgBouncer | cerniq_backend/cerniq_data | Connection pooling |
-
-### Observability Ports (64070-64089)
-
-| Port | Service | Network | Description |
-| ---- | ------- | ------- | ----------- |
-| 64070 | OTel gRPC | cerniq_backend | OTLP gRPC receiver |
-| 64071 | OTel HTTP | cerniq_backend | OTLP HTTP receiver |
-| 64089 | Reserved observability legacy | cerniq_backend | Reserved |
-| 64082 | Reserved | cerniq_backend | Reserved |
-| 64083 | Reserved | cerniq_backend | Reserved |
-
-### Infrastructure Ports (64090-64099)
-
-| Port | Service | Network | Description |
-| ---- | ------- | ------- | ----------- |
-| 64093 | Docker Metrics | Host | Docker daemon metrics |
-
-## Security Rules
-
-### Network Isolation Rules
-
-1. **cerniq_data → Internet:** ❌ BLOCKED (internal: true)
-2. **cerniq_backend → Internet:** ❌ BLOCKED (internal: true)
-3. **cerniq_public → Internet:** ✅ ALLOWED (for external API calls)
-4. **cerniq_backend → cerniq_data:** ✅ ALLOWED (services attached to both)
-5. **cerniq_public → cerniq_backend:** ✅ ALLOWED (services attached to both)
-6. **cerniq_public → cerniq_data:** ❌ NOT DIRECT (must go through backend)
-
-### Firewall Rules (ufw)
+### Create networks (idempotent)
 
 ```bash
-# Default: deny incoming, allow outgoing
-ufw default deny incoming
-ufw default allow outgoing
-
-# SSH
-ufw allow 22/tcp
-
-# HTTP/HTTPS
-ufw allow 80/tcp
-ufw allow 443/tcp
-
-# Block direct access to application ports from external
-# (handled by orchestrator Traefik reverse proxy)
-ufw deny 64000:64099/tcp
+docker network create --driver bridge --subnet 172.29.10.0/24 cerniq_public 2>/dev/null || true
+docker network create --driver bridge --subnet 172.29.20.0/24 cerniq_backend 2>/dev/null || true
+docker network create --driver bridge --subnet 172.29.30.0/24 cerniq_data 2>/dev/null || true
 ```
 
-### Docker Network Commands
+## Ports (Cerniq)
+
+Porturi relevante in CT109/CT110 (host):
+
+| Port | Scop |
+| --- | --- |
+| `64033` | PgBouncer (in-container) |
+| `64070` | OTLP gRPC (otel-collector local) |
+| `64071` | OTLP HTTP (otel-collector local) |
+| `64094` | cAdvisor (metrics Docker) |
+
+Porturi externe publice:
+
+- doar `80/443` pe orchestrator (Traefik), cu routing spre CT109/CT110 prin gateway `hz.247` (10.0.1.10).
+
+## Troubleshooting (verificari rapide)
 
 ```bash
-# Create networks manually (if needed)
-docker network create --driver bridge \
-  --subnet 172.29.10.0/24 \
-  --gateway 172.29.10.1 \
-  cerniq_public
+# Pe CT109/CT110: confirmare OpenBao intern prin gateway
+getent hosts s3cr3ts.neanelu.ro
 
-docker network create --driver bridge \
-  --internal \
-  --subnet 172.29.20.0/24 \
-  --gateway 172.29.20.1 \
-  cerniq_backend
-
-docker network create --driver bridge \
-  --internal \
-  --subnet 172.29.30.0/24 \
-  --gateway 172.29.30.1 \
-  cerniq_data
-
-# Inspect network
-docker network inspect cerniq_public
-
-# List connected containers
-docker network inspect cerniq_backend --format '{{range .Containers}}{{.Name}} {{end}}'
+# Pe orchestrator: scrape prin pull gateway (exemple)
+curl -fsS http://10.0.1.10:29100/metrics >/dev/null
+curl -fsS http://10.0.1.10:29094/metrics >/dev/null
 ```
-
-## Service Network Attachment Matrix
-
-| Service | cerniq_public | cerniq_backend | cerniq_data |
-| ------- | ------------- | -------------- | ----------- |
-| Web App | ✅ | ❌ | ❌ |
-| Admin App | ✅ | ❌ | ❌ |
-| API | ✅ | ✅ | ✅ |
-| Workers | ❌ | ✅ | ✅ |
-| PostgreSQL (CT107 external) | ❌ | ❌ | external |
-| Redis | ❌ | ✅ | ✅ |
-| PgBouncer | ❌ | ✅ | ✅ |
-| Vector | ❌ | ✅ | ❌ |
-
-> **Note:** Redis is attached to both `cerniq_data` (primary data storage) and
-> `cerniq_backend` (for BullMQ workers access). This is required because workers
-> run on `cerniq_backend` and need direct access to Redis queues.
-
-## Troubleshooting
-
-### Check Network Connectivity
-
-```bash
-# From API container to PostgreSQL
-docker exec cerniq-api ping -c 3 postgres
-
-# Check DNS resolution
-docker exec cerniq-api nslookup postgres
-
-# Test port connectivity
-docker exec cerniq-api nc -zv 10.0.1.107 5432
-```
-
-### Common Issues
 
 1. **Container can't reach database**
    - Verify container is attached to `cerniq_data` network

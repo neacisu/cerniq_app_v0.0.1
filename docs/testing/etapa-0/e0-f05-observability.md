@@ -1,6 +1,6 @@
-# CERNIQ.APP — TESTE F0.5: OBSERVABILITY (SIGNOZ)
+# CERNIQ.APP — TESTE F0.5: OBSERVABILITY (STACK CENTRALIZAT)
 
-## Teste pentru SigNoz și OpenTelemetry
+## Teste pentru OpenTelemetry (OTEL Collector local) + pipeline observability centralizat
 
 **Fază:** F0.5 | **Taskuri:** 3
 
@@ -8,10 +8,10 @@
 
 ## TESTE
 
-### SigNoz Health
+### OTEL Collector (HTTP) accepta traces/metrics
 
 ```typescript
-describe('SigNoz Observability', () => {
+describe('Observability (OTEL Collector)', () => {
   
   it('should accept traces on OTel Collector', async () => {
     const response = await fetch('http://localhost:64071/v1/traces', {
@@ -48,10 +48,8 @@ describe('SigNoz Observability', () => {
     expect([200, 202]).toContain(response.status);
   });
   
-  it('should have SigNoz UI accessible', async () => {
-    const response = await fetch('http://localhost:64089');
-    expect(response.status).toBe(200);
-  });
+  // Nota: UI-ul de observability este centralizat pe orchestrator (Grafana),
+  // nu este expus ca UI local pe host.
 });
 ```
 
@@ -79,7 +77,6 @@ describe('Log-Trace Correlation', () => {
 
 - [ ] OTel Collector accepts traces
 - [ ] OTel Collector accepts metrics
-- [ ] SigNoz UI accessible
 - [ ] Logs contain trace_id
 
 ---

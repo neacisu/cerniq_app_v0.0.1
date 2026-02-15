@@ -13,7 +13,7 @@ source = '''
 [sinks.loki]
 type = "loki"
 inputs = ["cerniq_enrich"]
-endpoint = "https://logs.neanelu.ro"
+endpoint = "https://logs-cerniq.neanelu.ro"
 path = "/loki/api/v1/push"
 labels = { project = "cerniq", environment = "{{ environment }}", host = "{{ host }}" }
 

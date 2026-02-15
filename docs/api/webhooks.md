@@ -377,7 +377,7 @@ const DLQ_CONFIG = {
 ### 7.2 Alerting
 
 ```yaml
-# SigNoz Alert pentru webhook failures
+# Alerting (Grafana/Prometheus/Loki) pentru webhook failures
 alerts:
   - name: HighWebhookFailureRate
     condition: |

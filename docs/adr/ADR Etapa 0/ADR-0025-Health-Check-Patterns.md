@@ -40,7 +40,7 @@ fastify.get('/health/ready', async () => {
 fastify.get('/health/deps', async () => ({
   postgres: await checkPostgres(),
   redis: await checkRedis(),
-  signoz: await checkSignoz(),
+  observability: await checkObservability(), // optional (ex: OTEL exporter endpoint reachability)
 }));
 ```
 

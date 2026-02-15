@@ -19,7 +19,8 @@ describe "Backup Strategy" {
   }
   
   it "should run pg_dump" {
-    docker exec cerniq-postgres pg_dump -U c3rn1q cerniq > /tmp/test.sql
+    # In infra noua, PostgreSQL ruleaza extern pe CT107 (nu exista container local `cerniq-postgres`)
+    pg_dump -h 10.0.1.107 -p 5432 -U c3rn1q cerniq > /tmp/test.sql
     [[ -s /tmp/test.sql ]]
   }
   

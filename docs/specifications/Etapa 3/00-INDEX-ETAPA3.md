@@ -119,7 +119,7 @@ documentation_categories:
 
 | #   | Document                             | Descriere                   | Linii  | Status  |
 | --- | ------------------------------------ | --------------------------- | ------ | ------- |
-| 34  | `etapa3-monitoring-observability.md` | SigNoz, Prometheus, Grafana | ~8,700 | ✅      |
+| 34  | `etapa3-monitoring-observability.md` | Observability (Grafana/Prometheus/Loki/Tempo) | - | ✅      |
 | 35  | `etapa3-runbook-operational.md`      | Runbook operațional         | ~2,400 | ✅      |
 | 36  | `etapa3-runbook-monitoring.md`       | Runbook monitoring          | ~1,200 | ✅      |
 
@@ -296,7 +296,7 @@ database:
   qdrant: "1.12.x"
   
 monitoring:
-  signoz: "latest"
+  observability: "central"
   prometheus: "2.x"
   grafana: "11.x"
   

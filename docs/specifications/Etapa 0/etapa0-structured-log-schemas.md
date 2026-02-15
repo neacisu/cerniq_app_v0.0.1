@@ -10,9 +10,9 @@
 
 Acest document definește **contractul strict** pentru formatul logurilor emise de toate serviciile Cerniq (API, Workeri, CronJobs). Structura standardizată este critică pentru:
 
-1. Ingestia corectă în **SigNoz (ClickHouse)**.
-2. Parsarea automată de către **Monitoring API**.
-3. Corelarea evenimentelor distribuită (Tracing).
+1. Ingestia corectă în **Loki** (prin Vector).
+2. Parsarea automată de către **Monitoring API** (daca/unde e cazul).
+3. Corelarea evenimentelor distribuită (Tracing) prin **OpenTelemetry** (Tempo).
 
 ---
 

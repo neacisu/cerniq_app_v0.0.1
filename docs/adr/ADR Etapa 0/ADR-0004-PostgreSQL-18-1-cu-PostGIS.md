@@ -17,6 +17,17 @@ Cerniq.app necesită:
 
 Utilizăm **PostgreSQL 18.1** cu extensiile **pgvector 0.8.1** și **PostGIS 3.6.1**.
 
+## Implementare curenta (infrastructura noua)
+
+- PostgreSQL ruleaza nativ pe CT107: `10.0.1.107:5432` (nu in Docker pe CT109/CT110).
+- Aplicatia se conecteaza prin PgBouncer local (CT109/CT110) la portul `64033`, cu credențiale dinamice din OpenBao.
+- DB-uri:
+  - productie: `cerniq`
+  - staging: `cerniq_staging`
+- Backup (CT107):
+  - dump zilnic: `/etc/cron.d/ct107-cerniq-pg-dump` -> `/var/backups/cerniq/pg/cerniq_*.dump`
+  - WAL archiving: `archive_mode=on` si `archive_command` catre `/var/lib/postgresql/18/main/wal_archive/`
+
 ## Consecințe
 
 ### Pozitive
@@ -29,7 +40,7 @@ Utilizăm **PostgreSQL 18.1** cu extensiile **pgvector 0.8.1** și **PostGIS 3.6
 
 ### Negative
 
-- Necesită tuning pentru 128GB RAM (nu e plug-and-play)
+- Necesita tuning pentru hostul curent (CT107 ~32GB RAM) (nu e plug-and-play)
 - pgvector HNSW consumă mai multă memorie
 
 ### Configurație Memory (CT107 - 32GB System)
@@ -41,7 +52,7 @@ effective_cache_size = 24GB        # 75% RAM
 work_mem = 64MB
 maintenance_work_mem = 1GB
 wal_buffers = 64MB
-max_connections = 200              # Use PgBouncer
+max_connections = 100              # Use PgBouncer pentru multi-client
 
 # PostgreSQL 18 AIO
 io_method = worker

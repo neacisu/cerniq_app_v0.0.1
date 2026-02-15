@@ -6,19 +6,22 @@
 
 ## Context
 
-Pe server de 128GB RAM și 20 cores, trebuie să alocăm resurse echilibrat între servicii.
+Pe LXC-urile dedicate Cerniq (ex: CT109 ~32GB RAM), trebuie să alocăm resurse echilibrat între servicii containerizate.
+
+Nota: PostgreSQL ruleaza extern pe CT107 (nu este container in stack-ul Cerniq), iar observability este centralizat pe orchestrator.
 
 ## Decizie
 
 | Serviciu | Memory Limit | Memory Reserve | CPU Limit | CPU Reserve |
 | -------- | ------------ | -------------- | --------- | ----------- |
-| PostgreSQL | 48GB | 32GB | 8 cores | 4 cores |
-| Redis | 12GB | 8GB | 2 cores | 1 core |
-| API | 8GB | 4GB | 4 cores | 2 cores |
-| Workers (total) | 16GB | 8GB | 4 cores | 2 cores |
-| SigNoz Stack | 16GB | 8GB | 2 cores | 1 core |
-| Traefik | 512MB | 256MB | 0.5 cores | 0.25 cores |
-| **Reserved for OS** | ~16GB | - | - | - |
+| API | 2GB | 512MB | 2 cores | 0.5 cores |
+| Workers (total) | 8GB | 2GB | 4 cores | 1 core |
+| PgBouncer | 512MB | 256MB | 0.5 cores | 0.25 cores |
+| OpenBao Agents (total) | 384MB | 128MB | 0.5 cores | 0.25 cores |
+| Vector | 512MB | 256MB | 0.5 cores | 0.25 cores |
+| OTEL Collector | 512MB | 256MB | 0.5 cores | 0.25 cores |
+| cAdvisor | 256MB | 128MB | 0.25 cores | 0.1 cores |
+| **Reserved for OS** | ~4GB | - | - | - |
 
 ```yaml
 services:

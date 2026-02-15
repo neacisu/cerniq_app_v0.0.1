@@ -1,0 +1,7 @@
+# CT107: Cerniq daily pg_dump
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+# 02:30 UTC daily
+30 2 * * * postgres /opt/cerniq/scripts/ct107_pg_dump_cerniq.sh >/var/log/cerniq/pg_dump.log 2>&1
+

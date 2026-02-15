@@ -4,7 +4,7 @@
 **Date:** 2026-01-15  
 **Context:** Monitoring și debugging pentru 61 workeri.
 
-**Decision:** SigNoz + custom metrics:
+**Decision:** observability centralizat (Grafana/Prometheus/Loki/Tempo) + custom metrics (OpenTelemetry):
 
 ```typescript
 // Custom metrics pentru Etapa 1

@@ -39,6 +39,12 @@ describe("E0-S3-PR02: Centralized ingress model", () => {
       false,
     );
     expect(fileExists("infra/docker/nginx/staging-proxy.conf")).toBe(false);
+
+    // Legacy file names sometimes used in older iterations
+    expect(fileExists("traefik-staging.yml")).toBe(false);
+    expect(fileExists("nginx-staging.conf")).toBe(false);
+    expect(fileExists("infra/docker/traefik-staging.yml")).toBe(false);
+    expect(fileExists("infra/docker/nginx-staging.conf")).toBe(false);
   });
 
   it("uses ingress checks in deployment workflow", () => {

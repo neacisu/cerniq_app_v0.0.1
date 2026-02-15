@@ -7,6 +7,8 @@ http:
         sourceRange:
           - "10.0.1.109/32"
           - "10.0.1.110/32"
+          # Internal observability gateway on hz.247 (TCP passthrough to Traefik).
+          - "10.0.1.10/32"
     security-headers:
       headers:
         frameDeny: true
@@ -178,7 +180,8 @@ http:
     cerniq-prod-web-svc:
       loadBalancer:
         servers:
-          - url: "http://10.0.1.109:64000"
+          # Route orchestrator -> CT109 via hz.247 L4 gateway (fixes TCP handshake issues).
+          - url: "http://10.0.1.10:29000"
         healthCheck:
           path: "/health"
           interval: "30s"
@@ -187,7 +190,7 @@ http:
     cerniq-prod-api-svc:
       loadBalancer:
         servers:
-          - url: "http://10.0.1.109:64010"
+          - url: "http://10.0.1.10:29010"
         healthCheck:
           path: "/health"
           interval: "30s"
@@ -196,7 +199,7 @@ http:
     cerniq-prod-admin-svc:
       loadBalancer:
         servers:
-          - url: "http://10.0.1.109:64012"
+          - url: "http://10.0.1.10:29012"
         healthCheck:
           path: "/health"
           interval: "30s"
@@ -205,7 +208,8 @@ http:
     cerniq-staging-web-svc:
       loadBalancer:
         servers:
-          - url: "http://10.0.1.110:64000"
+          # Route orchestrator -> CT110 via hz.247 L4 gateway (fixes TCP handshake issues).
+          - url: "http://10.0.1.10:19000"
         healthCheck:
           path: "/health"
           interval: "30s"
@@ -214,7 +218,7 @@ http:
     cerniq-staging-api-svc:
       loadBalancer:
         servers:
-          - url: "http://10.0.1.110:64010"
+          - url: "http://10.0.1.10:19010"
         healthCheck:
           path: "/health"
           interval: "30s"
@@ -223,7 +227,7 @@ http:
     cerniq-staging-admin-svc:
       loadBalancer:
         servers:
-          - url: "http://10.0.1.110:64012"
+          - url: "http://10.0.1.10:19012"
         healthCheck:
           path: "/health"
           interval: "30s"

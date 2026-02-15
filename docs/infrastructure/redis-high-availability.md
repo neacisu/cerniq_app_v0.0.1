@@ -230,7 +230,7 @@ redis-cli -h sentinel-1 -p 26379 PING
 redis-cli -h redis-master INFO replication | grep slave
 ```
 
-### 5.2 SigNoz Metrics
+### 5.2 Prometheus Metrics
 
 ```yaml
 # Metrics to monitor
@@ -240,7 +240,7 @@ redis-cli -h redis-master INFO replication | grep slave
 - sentinel_known_sentinels        # Should be 3
 ```
 
-### 5.3 Alerts
+### 5.3 Alerts (Prometheus/Alertmanager)
 
 ```yaml
 alerts:

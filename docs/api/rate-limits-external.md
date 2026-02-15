@@ -310,7 +310,7 @@ async function tryAcquireToken(
 | `circuit_breaker_state` | Gauge | provider | state = OPEN |
 | `quota_usage_percent` | Gauge | tenant, resource | > 80% |
 
-### 8.2 SigNoz Alerts
+### 8.2 Prometheus Alerts
 
 ```yaml
 alerts:

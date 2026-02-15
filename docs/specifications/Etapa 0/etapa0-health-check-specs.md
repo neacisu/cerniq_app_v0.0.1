@@ -235,26 +235,19 @@ export default depsRoute;
 
 ```yaml
 services:
-  postgres:
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U c3rn1q -d cerniq"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 60s
+  # PostgreSQL nu ruleaza in Docker pe stack-ul Cerniq (este extern pe CT107).
+  # Validare recomandata (din CT109/CT110):
+  # - direct: pg_isready -h 10.0.1.107 -p 5432
+  # - prin PgBouncer: pg_isready -h 127.0.0.1 -p 64033
 ```
 
 ## 3.2 Redis
 
 ```yaml
 services:
-  redis:
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
+  # Redis nu ruleaza local; este shared pe orchestrator si accesat prin gateway intern.
+  # Validare recomandata (din CT109/CT110):
+  # redis-cli -h 10.0.1.10 -p 6379 --user cerniq -a "$REDIS_PASSWORD" PING
 ```
 
 ## 3.3 API
@@ -270,13 +263,14 @@ services:
       start_period: 60s
 ```
 
-## 3.4 Traefik
+## 3.4 PgBouncer
 
 ```yaml
 services:
-  traefik:
+  pgbouncer:
     healthcheck:
-      test: ["CMD", "traefik", "healthcheck"]
+      # In container, PgBouncer asculta tipic pe 6432 (host expose 64033).
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 6432 >/dev/null 2>&1"]
       interval: 30s
       timeout: 10s
       retries: 3

@@ -10,7 +10,7 @@
 2. [Prometheus Metrics](#2-prometheus)
 3. [Grafana Dashboards](#3-grafana)
 4. [Alerting Rules](#4-alerting)
-5. [SigNoz Tracing](#5-tracing)
+5. [OTEL Tracing (Tempo)](#5-tracing)
 
 ---
 
@@ -270,7 +270,7 @@ groups:
 
 ---
 
-## 5. SigNoz Tracing {#5-tracing}
+## 5. OTEL Tracing (Tempo) {#5-tracing}
 
 ### Trace Configuration
 ```typescript

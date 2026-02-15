@@ -6,11 +6,11 @@
 
 ## Context
 
-Toate serviciile Cerniq.app rulează în containere Docker pe Hetzner bare metal (128GB RAM, 20 cores).
+Serviciile Cerniq.app ruleaza in containere Docker in LXCs dedicate (CT109/CT110/CT108), iar resursele shared (Traefik, OpenBao, Redis, Observability) ruleaza pe orchestrator.
 
 ## Decizie
 
-Utilizăm **Docker Engine 29.1.3** cu **Docker Compose v2.40+** pentru orchestrare.
+Utilizam Docker Engine si Docker Compose v2 pentru orchestrare (versiuni curente in momentul instalarii pe hosturile/LXC-urile dedicate).
 
 ## Consecințe
 
@@ -29,7 +29,7 @@ Utilizăm **Docker Engine 29.1.3** cu **Docker Compose v2.40+** pentru orchestra
   "default-address-pools": [
     {"base": "172.29.0.0/16", "size": 24}
   ],
-  "metrics-addr": "0.0.0.0:64094"
+  "metrics-addr": "127.0.0.1:9323"
 }
 ```
 
@@ -37,21 +37,22 @@ Utilizăm **Docker Engine 29.1.3** cu **Docker Compose v2.40+** pentru orchestra
 
 ```yaml
 networks:
-  cerniq_public:     # Traefik + servicii expuse
+  cerniq_public:     # Servicii expuse (prin Traefik orchestrator)
     driver: bridge
     ipam:
       config:
         - subnet: 172.29.10.0/24
-  cerniq_backend:    # API + Workers (intern)
+  cerniq_backend:    # API + Workers (intern logic)
     driver: bridge
-    internal: true
     ipam:
       config:
         - subnet: 172.29.20.0/24
-  cerniq_data:       # PostgreSQL + Redis (strict intern)
+  cerniq_data:       # PgBouncer + agenti + collectors (intern logic)
     driver: bridge
-    internal: true
     ipam:
       config:
         - subnet: 172.29.30.0/24
 ```
+
+Nota: In implementarea curenta pe CT-uri, retelele Docker nu sunt marcate `internal: true`.
+Controlul de egress (trafic extern) este realizat la nivel de infrastructura (iptables pe `hz.247`), pentru a evita edge-case-uri in LXC si pentru a pastra networking-ul simplu si predictibil.

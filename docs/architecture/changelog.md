@@ -38,13 +38,13 @@
 
 ### Changed
 
-- **SigNoz:** Standardizat la v0.107.0 în toate documentele
+- **Observability:** observability legacy a fost eliminata din documentatia operationala; observability este centralizata pe orchestrator (Grafana/Prometheus/Loki/Tempo/Vector/OTEL)
 - **risks-and-technical-debt.md:** Appendix C cu link-uri locale (nu Google Docs)
 - **testing-strategy.md:** Referințe la noua structură `docs/testing/`
 
 ### Fixed
 
-- Inconsistență versiune SigNoz (v0.106.0 → v0.107.0) în architecture.md
+- Inconsistențe legacy de observability in documentatie (stack vechi)
 - Link-uri Google Docs înlocuite cu referințe locale în risks doc
 
 ---
@@ -77,7 +77,7 @@
   - Specificații Etapele 1-5 (Enrichment, Outreach, AI Sales, Post-Sale, Nurturing)
   
 - **Infrastructure:**
-  - Docker Compose cu PostgreSQL 18.1, Redis 8.4.0, SigNoz
+  - Docker Compose cu PostgreSQL 18.1, Redis 8.4.0 (observability ulterior migrat pe stack centralizat)
   - Hetzner bare-metal deployment plan
   
 - **Frontend:**
@@ -98,7 +98,7 @@
 | Medallion Architecture | [ADR-0033](../adr/ADR%20Etapa%201/ADR-0033-Arhitectura-Medallion-Bronze-Silver-Gold.md) |
 | BullMQ Workers | [ADR-0006](../adr/ADR%20Etapa%200/ADR-0006-Redis-8-4-0-cu-BullMQ-v5.md) |
 | Multi-tenant RLS | [ADR-0005](../adr/ADR%20Etapa%200/ADR-0005-Row-Level-Security-pentru-Multi-Tenancy.md) |
-| SigNoz Observability | [ADR-0016](../adr/ADR%20Etapa%200/ADR-0016-SigNoz-pentru-Observability.md) |
+| Observability (centralizat) | [ADR-E0-0034](../adr/ADR%20Etapa%200/ADR-E0-0034-Centralized-Observability-Stack-Orchestrator.md) |
 
 ---
 

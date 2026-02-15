@@ -24,7 +24,7 @@
 | `etapa0-environment-variables.md` | All env vars by category |
 | `etapa0-port-matrix.md` | Port allocation, network topology, firewall |
 | `etapa0-health-check-specs.md` | 3-tier health checks implementation |
-| `etapa0-logging-standards.md` | Pino config, PII redaction, SigNoz integration |
+| `etapa0-logging-standards.md` | Pino config, PII redaction, integrare Loki/Vector/OTEL |
 | `etapa0-testing-strategy.md` | Unit/Integration/E2E tests, coverage requirements |
 | `etapa0-monitoring-api-spec.md` | Technical Specs pentru Monitoring API Sidecar |
 | `etapa0-structured-log-schemas.md` | JSON Schemas (Zod) pentru loguri standardizate |
@@ -46,7 +46,7 @@
 | `infra/docker/traefik/dynamic/middlewares.yml` | Traefik dynamic config |
 | `infra/docker/config/postgres/postgresql.conf` | PostgreSQL optimized 128GB |
 | `infra/docker/config/postgres/init.sql` | Init (extensions, schemas, RLS) |
-| `infra/docker/config/otel/otel-collector-config.yaml` | OTel Collector pentru SigNoz |
+| `infra/docker/config/otel/otel-collector-config.yaml` | OTel Collector pentru stack-ul centralizat (orchestrator) |
 
 ---
 

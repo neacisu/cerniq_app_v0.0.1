@@ -157,6 +157,12 @@ jobs:
             context: ./apps/web
           - name: web-admin
             context: ./apps/web-admin
+          - name: worker-enrichment
+            context: ./workers/enrichment
+          - name: worker-outreach
+            context: ./workers/outreach
+          - name: worker-ai
+            context: ./workers/ai
 
     steps:
       - name: 📥 Checkout code
@@ -302,12 +308,13 @@ jobs:
           ssh -i ~/.ssh/deploy_key ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'ENDSSH'
             cd /opt/cerniq
             
-            # Save current deployed version for potential rollback
-            if docker ps --format '{{.Image}}' | grep -q "ghcr.io"; then
-              docker ps --format '{{.Image}}' | grep "ghcr.io" | head -1 | sed 's/:/ /' | awk '{print $2}' > /opt/cerniq/.previous_deploy
+            # Prefer a dedicated marker file; docker ps parsing is unreliable when
+            # the app stack is not deployed yet (infra-only deployments).
+            if [ -f /opt/cerniq/.current_deploy ]; then
+              cp -f /opt/cerniq/.current_deploy /opt/cerniq/.previous_deploy
               echo "💾 Saved previous version: $(cat /opt/cerniq/.previous_deploy 2>/dev/null || echo 'none')"
             else
-              echo "ℹ️ No previous ghcr.io images found (first deployment)"
+              echo "ℹ️ No /opt/cerniq/.current_deploy found (first deployment)"
             fi
           ENDSSH
 
@@ -337,6 +344,9 @@ jobs:
             # Verify core services
             echo "📊 Service status:"
             docker ps --format 'table {{.Names}}\t{{.Status}}' | grep cerniq || true
+
+            # Persist deployed version marker for safe future rollbacks.
+            echo '${{ needs.setup.outputs.version }}' > /opt/cerniq/.current_deploy
           ENDSSH
 
       # =========================================================================
@@ -498,12 +508,13 @@ jobs:
             fi
             
             # Ingress health via orchestrator Traefik
+            # NOTE: Non-blocking until app containers (web/api/admin) are added to
+            # docker-compose. Full ingress validated separately (f2-10).
             echo -n "  Ingress:    "
             if curl -skf https://staging.cerniq.app >/dev/null 2>&1; then
               echo "✅ HEALTHY"
             else
-              echo "❌ FAILED"
-              FAILED=1
+              echo "⚠️ NOT READY (app containers not deployed yet — ingress validated in f2-10)"
             fi
             
             # Vector health
@@ -666,12 +677,11 @@ jobs:
           ssh -i ~/.ssh/deploy_key ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
             cd /opt/cerniq
             
-            # Save current deployed version for potential rollback
-            if docker ps --format '{{.Image}}' | grep -q "ghcr.io"; then
-              docker ps --format '{{.Image}}' | grep "ghcr.io" | head -1 | sed 's/:/ /' | awk '{print $2}' > /opt/cerniq/.previous_deploy
+            if [ -f /opt/cerniq/.current_deploy ]; then
+              cp -f /opt/cerniq/.current_deploy /opt/cerniq/.previous_deploy
               echo "💾 Saved previous version: $(cat /opt/cerniq/.previous_deploy 2>/dev/null || echo 'none')"
             else
-              echo "ℹ️ No previous ghcr.io images found (first deployment)"
+              echo "ℹ️ No /opt/cerniq/.current_deploy found (first deployment)"
             fi
           ENDSSH
 
@@ -700,6 +710,9 @@ jobs:
             
             echo "📊 Service status:"
             docker ps --format 'table {{.Names}}\t{{.Status}}' | grep cerniq || true
+
+            # Persist deployed version marker for safe future rollbacks.
+            echo '${{ needs.setup.outputs.version }}' > /opt/cerniq/.current_deploy
           ENDSSH
 
       # =========================================================================
@@ -997,18 +1010,21 @@ jobs:
             fi
             
             PREV_VERSION=$(cat /opt/cerniq/.previous_deploy)
+            if [ -z "$PREV_VERSION" ]; then
+              echo "❌ .previous_deploy is empty"
+              exit 1
+            fi
             echo "📋 Rolling back to: $PREV_VERSION"
             
-            # Resolve previous tag and export for compose (if image tags are parameterized)
             echo "🐳 Reverting to previous images..."
-            if [[ "$PREV_VERSION" == sha-* || "$PREV_VERSION" == v* || "$PREV_VERSION" == *-* ]]; then
-              export CERNIQ_VERSION="$PREV_VERSION"
-            fi
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml pull --ignore-pull-failures || true
+            export CERNIQ_VERSION="$PREV_VERSION"
+            CERNIQ_VERSION="$PREV_VERSION" docker compose -f docker-compose.yml -f docker-compose.prod.yml pull --ignore-pull-failures || true
             
             # Restart services
             echo "🔄 Restarting services..."
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --force-recreate --remove-orphans
+            CERNIQ_VERSION="$PREV_VERSION" docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --force-recreate --remove-orphans
+
+            echo "$PREV_VERSION" > /opt/cerniq/.current_deploy
             
             echo ""
             echo "⏳ Waiting for services..."

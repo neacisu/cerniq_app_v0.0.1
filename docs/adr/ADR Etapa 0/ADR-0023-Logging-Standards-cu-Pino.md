@@ -8,7 +8,7 @@
 
 Necesităm structured logging cu:
 
-- JSON format pentru ingestion în SigNoz
+- JSON format pentru ingestie in Loki (prin Vector)
 - Correlation IDs pentru tracing
 - PII redaction automată
 

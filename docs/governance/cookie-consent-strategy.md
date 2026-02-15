@@ -42,7 +42,7 @@ Acest document definește strategia de gestionare a cookie-urilor și mecanismul
 | `cerniq_locale` | Functionality | Cerniq.app | Preferință limbă | 1 an | First |
 | `cerniq_theme` | Functionality | Cerniq.app | Dark/Light mode | 1 an | First |
 | `cerniq_sidebar` | Functionality | Cerniq.app | Sidebar state | 1 an | First |
-| `_signoz_*` | Analytics | SigNoz (self-hosted) | Telemetrie RUM | 1 an | First |
+| _(rezervat)_ | Analytics | Observability (self-hosted) | Telemetrie RUM (daca se activeaza) | - | First |
 
 > **Notă:** În prezent, Cerniq.app NU utilizează cookies de marketing/retargeting. Dacă se vor adăuga în viitor, acest document va fi actualizat.
 

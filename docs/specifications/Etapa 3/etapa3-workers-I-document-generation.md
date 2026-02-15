@@ -2624,7 +2624,7 @@ import Redis from 'ioredis';
 // Redis connection for document generation queues
 const documentRedisConnection = new Redis({
   host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '64039'),
+  port: parseInt(process.env.REDIS_PORT || '6379'),
   db: 3, // Separate DB for document generation
   maxRetriesPerRequest: null,
   enableReadyCheck: false,
@@ -3612,7 +3612,7 @@ import crypto from 'crypto';
 
 const redis = new Redis({
   host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '64039'),
+  port: parseInt(process.env.REDIS_PORT || '6379'),
   db: 3
 });
 

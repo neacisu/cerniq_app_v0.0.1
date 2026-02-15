@@ -29,7 +29,8 @@ POSTGRES_PASSWORD={{ .Data.password }}
 # =============================================================================
 # Redis Configuration
 # =============================================================================
-REDIS_URL=redis://{{ .Data.redis_username }}:{{ .Data.redis_password }}@{{ .Data.redis_host }}:{{ .Data.redis_port }}/0
+# Route Redis via hz.247 internal L4 gateway (fixes VLAN<->vSwitch TCP handshake issues).
+REDIS_URL=redis://{{ .Data.redis_username }}:{{ .Data.redis_password }}@10.0.1.10:6379/0
 REDIS_PASSWORD={{ .Data.redis_password }}
 REDIS_PREFIX={{ .Data.redis_prefix }}
 BULLMQ_PREFIX={{ .Data.bullmq_prefix }}

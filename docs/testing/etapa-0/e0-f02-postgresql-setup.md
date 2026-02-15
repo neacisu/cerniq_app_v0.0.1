@@ -21,61 +21,36 @@
 
 ## TESTE
 
-### T001: PostgreSQL Container Configuration
+### T001: PostgreSQL (extern) + PgBouncer (in stack)
 
-**Scop:** Verifică serviciul PostgreSQL în Docker Compose.
+**Scop:** In infrastructura noua, PostgreSQL ruleaza nativ pe `CT107 (10.0.1.107:5432)` si NU exista container `cerniq-postgres` pe CT109/CT110. Aplicatia se conecteaza la DB prin PgBouncer (port `64033` in reteaua Docker).
 
 ```typescript
-// tests/integration/database/postgresql-container.test.ts
-import { describe, it, expect, beforeAll } from 'vitest';
+// tests/integration/database/postgresql-external-via-pgbouncer.test.ts
+import { describe, it, expect } from 'vitest';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 
 const execAsync = promisify(exec);
 
-describe('PostgreSQL Container', () => {
-  
-  it('should be running', async () => {
-    const { stdout } = await execAsync('docker ps --filter name=cerniq-postgres --format "{{.Status}}"');
-    expect(stdout).toContain('Up');
+describe('PostgreSQL External (CT107) via PgBouncer', () => {
+  it('should NOT have a local postgres container', async () => {
+    const { stdout } = await execAsync('docker ps --filter name=cerniq-postgres --format "{{.Names}}"');
+    expect(stdout.trim()).toBe('');
   });
-  
-  it('should use postgis/postgis:18-3.6 image', async () => {
-    const { stdout } = await execAsync('docker inspect cerniq-postgres --format "{{.Config.Image}}"');
-    expect(stdout.trim()).toBe('postgis/postgis:18-3.6');
-  });
-  
-  it('should be healthy', async () => {
-    const { stdout } = await execAsync('docker inspect cerniq-postgres --format "{{.State.Health.Status}}"');
+
+  it('pgbouncer should be healthy', async () => {
+    const { stdout } = await execAsync('docker inspect cerniq-pgbouncer --format "{{.State.Health.Status}}"');
     expect(stdout.trim()).toBe('healthy');
-  });
-  
-  it('should NOT expose port 64032 publicly', async () => {
-    const { stdout } = await execAsync('docker inspect cerniq-postgres --format "{{.NetworkSettings.Ports}}"');
-    // Nu ar trebui să aibă mapping 0.0.0.0:64032
-    expect(stdout).not.toContain('0.0.0.0:64032');
-  });
-  
-  it('should be connected to cerniq_data network', async () => {
-    const { stdout } = await execAsync('docker inspect cerniq-postgres --format "{{json .NetworkSettings.Networks}}"');
-    const networks = JSON.parse(stdout);
-    expect(networks).toHaveProperty('cerniq_data');
-  });
-  
-  it('should have resource limits configured', async () => {
-    const { stdout } = await execAsync('docker inspect cerniq-postgres --format "{{.HostConfig.Memory}}"');
-    const memoryBytes = parseInt(stdout.trim());
-    const memoryGB = memoryBytes / (1024 * 1024 * 1024);
-    expect(memoryGB).toBeGreaterThanOrEqual(32);
   });
 });
 ```
 
 ---
 
-### T002: postgresql.conf Tuning
+### T002: postgresql.conf Tuning (CT107 ~32GB)
 
-**Scop:** Verifică parametrii pentru 128GB RAM server.
+**Scop:** Verifică parametrii relevanti pentru instanta PostgreSQL de pe CT107 (tuning 32GB).
 
 ```typescript
 // tests/integration/database/postgresql-config.test.ts
@@ -83,21 +58,21 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { sql } from 'drizzle-orm';
 import { db } from '@cerniq/db';
 
-describe('PostgreSQL Configuration (128GB Tuning)', () => {
+describe('PostgreSQL Configuration (CT107 tuning)', () => {
   
-  it('should have shared_buffers = 32GB', async () => {
+  it('should have shared_buffers = 8GB', async () => {
     const result = await db.execute(sql`SHOW shared_buffers`);
-    expect(result[0].shared_buffers).toBe('32GB');
+    expect(result[0].shared_buffers).toBe('8GB');
   });
   
-  it('should have effective_cache_size = 96GB', async () => {
+  it('should have effective_cache_size = 24GB', async () => {
     const result = await db.execute(sql`SHOW effective_cache_size`);
-    expect(result[0].effective_cache_size).toBe('96GB');
+    expect(result[0].effective_cache_size).toBe('24GB');
   });
   
-  it('should have work_mem = 256MB', async () => {
+  it('should have work_mem = 64MB', async () => {
     const result = await db.execute(sql`SHOW work_mem`);
-    expect(result[0].work_mem).toBe('256MB');
+    expect(result[0].work_mem).toBe('64MB');
   });
   
   it('should have max_connections = 200', async () => {
@@ -340,18 +315,16 @@ describe('PostgreSQL Performance', () => {
 
 ## CHECKLIST VALIDARE
 
-### Container
+### PostgreSQL (extern) + PgBouncer
 
-- [ ] Image: postgis/postgis:18-3.6
-- [ ] Health status: healthy
-- [ ] Nu expune port 64032 public
-- [ ] Conectat la cerniq_data network
-- [ ] Memory limit >= 32GB
+- [ ] NU exista container `cerniq-postgres` pe CT109/CT110
+- [ ] `cerniq-pgbouncer` este `healthy`
+- [ ] DB server este accesibil pe CT107:5432 (din reteaua interna)
 
 ### Configuration
 
-- [ ] shared_buffers = 32GB
-- [ ] effective_cache_size = 96GB
+- [ ] shared_buffers = 8GB (CT107)
+- [ ] effective_cache_size = 24GB (CT107)
 - [ ] io_method = io_uring
 - [ ] max_parallel_workers_per_gather = 8
 - [ ] password_encryption = scram-sha-256

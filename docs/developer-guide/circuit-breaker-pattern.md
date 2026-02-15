@@ -108,7 +108,7 @@ export function createCircuitBreaker<T>(
     console.info(`[CircuitBreaker] ${config.name} CLOSED`);
   });
 
-  // Metrics (pentru SigNoz)
+  // Metrics (pentru Prometheus/Grafana)
   breaker.on('success', () => {
     // Emit metric: circuit_breaker_success_total{name}
   });
@@ -258,23 +258,30 @@ const circuitFailuresCounter = new Counter({
 });
 ```
 
-### 5.2 SigNoz Alerts
+### 5.2 Grafana/Prometheus Alerts
 
 ```yaml
-# signoz-alerts.yaml
-alerts:
-  - name: CircuitBreakerOpen
-    condition: circuit_breaker_open{name="anaf-api"} == 1
-    duration: 5m
-    severity: warning
-    annotations:
-      summary: "ANAF API circuit breaker is open"
-      
-  - name: CircuitBreakerFlapping
-    condition: changes(circuit_breaker_open[10m]) > 5
-    severity: critical
-    annotations:
-      summary: "Circuit breaker is flapping - unstable API"
+# Prometheus alert rules (example)
+groups:
+  - name: cerniq-circuit-breakers
+    rules:
+      - alert: CerniqCircuitBreakerOpen
+        expr: circuit_breaker_open{name="anaf-api"} == 1
+        for: 5m
+        labels:
+          severity: warning
+          project: cerniq
+        annotations:
+          summary: "Circuit breaker deschis pentru ANAF API"
+
+      - alert: CerniqCircuitBreakerFlapping
+        expr: changes(circuit_breaker_open[10m]) > 5
+        for: 0m
+        labels:
+          severity: critical
+          project: cerniq
+        annotations:
+          summary: "Circuit breaker instabil (flapping) - API extern instabil"
 ```
 
 ---

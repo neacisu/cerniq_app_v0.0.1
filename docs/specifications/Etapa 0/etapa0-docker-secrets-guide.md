@@ -237,25 +237,16 @@ db_password = get_secret('DATABASE_PASSWORD')
 
 ```bash
 #!/bin/bash
-# Rotate PostgreSQL password with zero downtime
-
-# 1. Generate new password
-NEW_PASS=$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | head -c 32)
-
-# 2. Update in PostgreSQL
-docker exec cerniq-postgres psql -U postgres -c \
-  "ALTER USER cerniq WITH PASSWORD '$NEW_PASS';"
-
-# 3. Update secret file
-echo -n "$NEW_PASS" > /var/www/CerniqAPP/secrets/postgres_password
-chmod 600 /var/www/CerniqAPP/secrets/postgres_password
-
-# 4. Restart API to pick up new secret
-docker compose restart api
-
-# 5. Verify connectivity
-sleep 10
-curl http://localhost:64000/health/ready
+# In infrastructura noua NU rotim parole DB prin fisiere locale sau `docker exec`.
+# Folosim OpenBao database secrets engine (credentiale dinamice) pentru API/Workers.
+#
+# Pentru rotire, se opereaza pe orchestrator (OpenBao) si pe CT107 (PostgreSQL),
+# conform politicilor/procedurilor de securitate:
+# - `docs/infrastructure/secrets-rotation-procedure.md`
+# - `docs/runbooks/database-recovery.md` (doar operatii DB)
+#
+# Exemplu (admin pe orchestrator): revoke toate lease-urile DB pentru re-autentificare
+# bao lease revoke -prefix cerniq-db/creds/
 ```
 
 ## 5.2 Schedule Rotație

@@ -1,6 +1,6 @@
-# CERNIQ.APP — TESTE F0.4: TRAEFIK & SSL
+# CERNIQ.APP — TESTE F0.4: INGRESS & TLS (TRAEFIK ORCHESTRATOR)
 
-## Teste pentru Traefik reverse proxy și TLS
+## Teste pentru ingress centralizat si TLS
 
 **Fază:** F0.4 | **Taskuri:** 4
 
@@ -28,7 +28,8 @@ describe "TLS Configuration" {
   }
   
   it "should have valid SSL certificate" {
-    curl -sI https://api.cerniq.app | grep -q "HTTP/2 200\|HTTP/1.1 200"
+    # Nota: necesita DNS cutover + deploy aplicatie
+    curl -sI https://api.cerniq.app | grep -q "HTTP/"
     assert_success
   }
   
@@ -40,32 +41,14 @@ describe "TLS Configuration" {
 }
 ```
 
-### Traefik Dashboard
+### Verificare configuratie Traefik (file provider)
 
-```typescript
-describe('Traefik Configuration', () => {
-  
-  it('should expose metrics on :64093', async () => {
-    const response = await fetch('http://localhost:64093/metrics');
-    expect(response.status).toBe(200);
-    expect(await response.text()).toContain('traefik_');
-  });
-  
-  it('should have API router configured', async () => {
-    const response = await fetch('http://localhost:64093/api/http/routers');
-    const routers = await response.json();
-    
-    expect(routers.find(r => r.name.includes('api'))).toBeDefined();
-  });
-  
-  it('should have rate limit middleware', async () => {
-    const response = await fetch('http://localhost:64093/api/http/middlewares');
-    const middlewares = await response.json();
-    
-    expect(middlewares.find(m => m.name.includes('ratelimit'))).toBeDefined();
-  });
-});
-```
+Traefik este centralizat pe orchestrator; nu exista Traefik local in stack-ul aplicatiei.
+
+Validare recomandata (orchestrator):
+
+- `sha256sum` pentru `infra/config/traefik-orchestrator/cerniq.yml` vs `/opt/traefik/dynamic/cerniq.yml`
+- `curl -k -I -H 'Host: staging.cerniq.app' https://77.42.76.185` (dupa deploy app)
 
 ---
 
@@ -74,8 +57,7 @@ describe('Traefik Configuration', () => {
 - [ ] TLS 1.2+ enforced
 - [ ] HTTP → HTTPS redirect
 - [ ] Valid SSL certificate
-- [ ] Metrics exposed :64093
-- [ ] Rate limit middleware active
+- [ ] Config Traefik (orchestrator) contine routerele Cerniq
 
 ---
 

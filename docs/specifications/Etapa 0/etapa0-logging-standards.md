@@ -10,7 +10,7 @@
 
 ## 1.1 Reguli Fundamentale
 
-1. **JSON Format** - Toate log-urile în JSON pentru SigNoz
+1. **JSON Format** - Toate log-urile in JSON pentru Loki (vizualizare in Grafana)
 2. **Correlation IDs** - Fiecare request are traceId unic
 3. **PII Redaction** - Email, phone, password, CUI redactate
 4. **Structured Context** - tenantId, userId în fiecare log
@@ -394,9 +394,9 @@ export default async function (opts) {
 | Environment | Level | Retention | Storage |
 | ----------- | ----- | --------- | ------- |
 | Development | debug | Session | Local |
-| Staging | debug | 3 days | SigNoz |
-| Production | info | 7 days | SigNoz |
-| Production errors | error | 30 days | SigNoz |
+| Staging | debug | 3 days | Grafana (Loki) |
+| Production | info | 7 days | Grafana (Loki) |
+| Production errors | error | 30 days | Grafana (Loki) |
 
 ---
 

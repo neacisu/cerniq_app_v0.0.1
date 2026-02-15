@@ -89,7 +89,7 @@ pnpm test:infra:remote:production
 | **Database** | PostgreSQL + PostGIS | 18.x |
 | **Cache/Queue** | Redis + BullMQ | 8.x |
 | **Reverse Proxy** | Traefik | 3.x |
-| **Observability** | SigNoz + OpenTelemetry | 0.106+ |
+| **Observability** | Grafana + Prometheus + Loki + Tempo (OTEL) | centralizat pe orchestrator |
 | **Containerization** | Docker + Compose | 28.x |
 
 ## 📚 Documentation

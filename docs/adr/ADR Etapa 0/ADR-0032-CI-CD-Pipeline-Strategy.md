@@ -56,6 +56,13 @@ Implementăm CI/CD folosind **GitHub Actions** cu două workflow-uri separate:
 4. **Deploy Production** - Pentru release tags
 5. **Verification** - Smoke tests post-deploy
 
+**Infrastructura tinta (Etapa 0 - infra noua):**
+- Runner self-hosted pe `CT108` (GitHub Actions runner dedicat)
+- Deploy prin SSH pe `CT110` (staging) si `CT109` (production)
+- OpenBao server este centralizat pe orchestrator (acces prin Traefik HTTPS :443); pe CT-uri ruleaza doar OpenBao Agents
+- PostgreSQL este extern pe `CT107 (10.0.1.107:5432)`; deploy-ul NU porneste PostgreSQL in Docker
+- Ingress este centralizat pe orchestrator (Traefik file provider), nu Traefik local in stack-ul Cerniq
+
 ### Strategia de Deployment
 
 | Tag Format | Target Environment |
@@ -145,10 +152,10 @@ Implementăm CI/CD folosind **GitHub Actions** cu două workflow-uri separate:
 
 ### Phase 2 (Etapa 0) - TODO
 
-- [ ] Configure GitHub Secrets (SSH keys, etc.)
-- [ ] Configure Branch Protection Rules
-- [ ] Configure GitHub Environments (staging, production)
-- [ ] First successful deployment via pipeline
+- [x] Configure GitHub Secrets (hosts, users, chei SSH, `OPENBAO_ADDR`, AppRole cicd)
+- [ ] Configure Branch Protection Rules (enforced pe `main`)
+- [x] Configure GitHub Environments (staging, production) (vars + approvals unde e necesar)
+- [ ] First successful deployment via pipeline (E2E) cu aplicatia deployata si smoke tests reale
 
 ### Phase 3 (Etapa 1)
 
@@ -173,3 +180,4 @@ Implementăm CI/CD folosind **GitHub Actions** cu două workflow-uri separate:
 | Date | Author | Change |
 |------|--------|--------|
 | 2026-02-01 | Engineering | Initial ADR - workflows implemented |
+| 2026-02-15 | Engineering | Update pentru infra noua: runner CT108, deploy CT109/CT110, OpenBao orchestrator, PG extern CT107 |

@@ -46,7 +46,7 @@
 | MADR | Registre agricole/statistici | Date publice | Controller (public) | N/A | N/A | RO | N/A | Legal | Date deschise: https://www.madr.ro/transparenta-institutionala/date-deschise.html |
 | INSSE | Statistici oficiale | Date agregate/anonimizate | Controller (public) | N/A | N/A | RO | N/A | Legal | TEMPO: http://statistici.insse.ro/shop/ |
 | Hetzner | Hosting (EU) | Date aplicație | Processor | https://www.hetzner.com/AV/DPA_en.pdf | VALIDAT | UE | N/A | Legal | Privacy: https://www.hetzner.com/legal/privacy-policy/ |
-| SigNoz (self-hosted) | Observability | Telemetrie/logs | N/A | N/A | N/A | UE | N/A | Engineering | Self-hosted; DPA extern N/A |
+| Grafana/Loki/Tempo (self-hosted) | Observability | Telemetrie/logs | N/A | N/A | N/A | UE | N/A | Engineering | Self-hosted (open-source) pe orchestrator; DPA extern N/A |
 | rsync.net | Backup off-site | Backup criptat | Processor | https://www.rsync.net/resources/regulatory/dpa.html | VALIDAT | CH | YES | Legal | Privacy: https://www.rsync.net/resources/regulatory/privacy.html |
 | BorgBackup | Backup local | Date criptate local | N/A | N/A | N/A | RO/UE | N/A | Engineering | Self-hosted open-source; DPA N/A |
 

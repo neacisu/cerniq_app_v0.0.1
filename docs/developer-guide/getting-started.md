@@ -34,7 +34,7 @@
 | ---------- | -------------------- | ---------- |
 | **Node.js** | 24.12.0 "Krypton" | `node --version` |
 | **PNPM** | 9.x | `pnpm --version` |
-| **Python** | 3.14.2 Free-Threading | `python --version` |
+| **Python** | 3.14.2 Free-Threading | `python3 --version` |
 | **Docker** | 29.2.0 | `docker --version` |
 | **Docker Compose** | 2.20+ | `docker compose version` |
 
@@ -44,9 +44,9 @@ Serviciile containerizate necesare:
 
 | Serviciu | Port Local | Imagine Docker |
 | -------- | ---------- | -------------- |
-| **PostgreSQL 18.1** | 64032 | `postgis/postgis:18-3.6` |
-| **Redis 8.4.0** | 64039 | `redis:8.4.0-alpine` |
-| **SigNoz** | 64070 | `signoz/signoz:latest` |
+| **PostgreSQL (dev optional)** | 5432 | `postgis/postgis:18-3.6` |
+| **Redis (dev optional)** | 6379 | `redis:8.4.0-alpine` |
+| **OTEL Collector (dev optional)** | 64070/64071 | `otel/opentelemetry-collector` |
 
 ---
 
@@ -87,10 +87,10 @@ NODE_ENV=development
 LOG_LEVEL=debug
 
 # Database
-DATABASE_URL=postgresql://cerniq:devpassword@localhost:64032/cerniq_dev
+DATABASE_URL=postgresql://cerniq:devpassword@localhost:5432/cerniq_dev
 
 # Redis
-REDIS_URL=redis://localhost:64039/0
+REDIS_URL=redis://localhost:6379/0
 
 # API Server
 HOST=0.0.0.0
@@ -100,7 +100,7 @@ PORT=64000
 JWT_SECRET=your-development-jwt-secret-min-32-chars
 
 # Observability
-OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:64070
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:64071
 OTEL_SERVICE_NAME=cerniq-api
 ```
 
@@ -109,10 +109,15 @@ OTEL_SERVICE_NAME=cerniq-api
 ### 2.4 Pornire Servicii Docker
 
 ```bash
-# Start PostgreSQL + Redis + SigNoz
-docker compose -f infra/docker/docker-compose.yml up -d
+# Nota: pentru development poti rula local doar dependintele (PostgreSQL/Redis/OTEL).
+# In staging/prod (infrastructura noua), PostgreSQL si Redis sunt servicii externe/shared
+# (CT107 + orchestrator) si NU ruleaza ca servicii locale in stack-ul Cerniq.
+#
+# Pentru infrastructura noua (staging/prod): vezi `docs/infrastructure/deployment-guide.md`.
 
-# Verificare servicii
+# Exemplu (optional): porniți servicii DEV (ex: redisinsight) din `infra/docker/`:
+cd infra/docker
+docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile dev up -d redisinsight
 docker compose ps
 ```
 
@@ -197,9 +202,9 @@ pnpm test:e2e
 | ----- | -------- | ---- | -------- |
 | 64000-64009 | **API** | 64000 | `http://localhost:64000/api/v1` |
 | 64010-64019 | **Web Admin** | 64010 | `http://localhost:64010` |
-| 64030-64039 | **PostgreSQL** | 64032 | `postgresql://localhost:64032` |
-| 64030-64039 | **Redis** | 64039 | `redis://localhost:64039` |
-| 64070-64079 | **SigNoz** | 64070 | `http://localhost:64070` |
+| 5432 | **PostgreSQL (dev)** | 5432 | `postgresql://localhost:5432` |
+| 6379 | **Redis (dev)** | 6379 | `redis://localhost:6379` |
+| 64070-64071 | **OTEL Collector (dev)** | 64070/64071 | `http://localhost:64071` |
 
 ### 5.2 Migrații Database
 
@@ -281,8 +286,8 @@ curl -s http://localhost:64000/health/ready | jq .
 
 | Problemă | Cauză | Soluție |
 | -------- | ----- | ------- |
-| `ECONNREFUSED :64032` | PostgreSQL nu rulează | `docker compose up -d postgres` |
-| `ECONNREFUSED :64039` | Redis nu rulează | `docker compose up -d redis` |
+| `ECONNREFUSED :5432` | PostgreSQL local nu rulează | Porniți PostgreSQL local sau ajustați `DATABASE_URL` |
+| `ECONNREFUSED :6379` | Redis local nu rulează | Porniți Redis local sau ajustați `REDIS_URL` |
 | `Invalid token` | JWT_SECRET nesetat | Verifică `.env` |
 | Type errors | Versiune Node greșită | `nvm use 24.12.0` |
 
@@ -290,7 +295,7 @@ curl -s http://localhost:64000/health/ready | jq .
 
 ```bash
 # Verificare logs Docker
-docker compose logs -f postgres redis
+docker compose logs -f
 
 # Verificare conexiune DB
 psql $DATABASE_URL -c "SELECT 1"

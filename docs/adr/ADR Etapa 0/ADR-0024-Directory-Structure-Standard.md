@@ -64,14 +64,15 @@ Structura directoarelor trebuie să suporte:
 ├── infra/
 │   ├── docker/
 │   │   ├── docker-compose.yml
-│   │   ├── docker-compose.override.yml
-│   │   └── traefik/
+│   │   ├── docker-compose.prod.yml
+│   │   └── docker-compose.dev.yml
 │   ├── scripts/
 │   │   ├── backup.sh
 │   │   └── bootstrap.sh
 │   └── config/
 │       ├── postgres/
-│       ├── redis/
+│       ├── openbao/
+│       ├── vector/
 │       └── otel/
 ├── docs/
 │   ├── adr/                    # Architecture Decision Records

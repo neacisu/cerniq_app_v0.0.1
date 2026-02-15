@@ -18,22 +18,20 @@ Cerniq.app folosește **range 64000-64099** pentru serviciile interne ale aplica
 | ---- | ------- | ------- |
 | **External (nginx)** | | |
 | 22 | SSH | Host |
-| 80 | nginx HTTP → HTTPS redirect | Host |
-| 443 | nginx HTTPS (TLS termination) | Host |
+| 80 | Orchestrator Traefik HTTP → HTTPS redirect | Host (orchestrator) |
+| 443 | Orchestrator Traefik HTTPS (TLS termination) | Host (orchestrator) |
 | **Application (64000-64019)** | | |
 | 64000 | Fastify API | cerniq_backend |
 | 64010 | React Web | cerniq_public |
 | 64011 | Vite HMR (dev only) | cerniq_public |
 | **Database (64030-64049)** | | |
-| 64032 | PostgreSQL | cerniq_data |
-| 64039 | Redis | cerniq_data |
 | 64033 | PgBouncer | cerniq_backend + cerniq_data |
+| 5432 | PostgreSQL (CT107, nativ) | external |
+| 6379 | Redis shared (orchestrator, via gateway hz.247) | external (internal) |
 | **Observability (64070-64089)** | | |
 | 64070 | OTel gRPC | cerniq_backend |
 | 64071 | OTel HTTP | cerniq_backend |
-| 64089 | Cerniq Observability UI (legacy reserved) | cerniq_backend |
-| 64082 | ClickHouse HTTP | cerniq_backend |
-| 64083 | ClickHouse Native | cerniq_backend |
+| 64094 | cAdvisor | cerniq_backend |
 
 ### Architecture
 

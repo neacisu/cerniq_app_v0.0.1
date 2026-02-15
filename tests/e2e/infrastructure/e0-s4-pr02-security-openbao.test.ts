@@ -51,17 +51,14 @@ const CAN_RUN_SERVER_TESTS = canRunServerTests();
 // =============================================================================
 
 const EXPECTED_OPENBAO_CONFIG = {
+  // OpenBao SERVER ruleaza pe orchestrator; in stack-ul Cerniq avem doar agentii.
+  // Versiunea agentilor trebuie sa fie pinned.
   version: "2.5.0",
-  port: 64090, // Per etapa0-port-matrix.md reserved range 64090-64099
-  ip: "172.29.20.50",
-  network: "cerniq_backend",
 } as const;
 
 const EXPECTED_ADMIN_IPS = [
   "92.180.19.237",
-  "95.216.225.145",
   "94.130.68.123",
-  "135.181.183.164",
   "95.216.72.100",
   "95.216.72.118",
 ] as const;
@@ -292,15 +289,14 @@ describe("F0.8.3: OpenBao Secrets Management", () => {
       expect(hasAudit).toBe(true);
     });
 
-    it("should disable UI or restrict access", () => {
+    it("should configure UI and listener (access controlled externally)", () => {
       const content = readFile("infra/config/openbao/openbao.hcl");
-      // UI should be explicitly off or not mentioned (default is false)
-      // OR if enabled, it should be localhost only (port binding ensures this)
-      const uiExplicitlyEnabled = content.match(/ui\s*=\s*true/i);
-      // This is OK - we bind 127.0.0.1:64090 so UI is localhost only anyway
-      expect(uiExplicitlyEnabled === null || content.includes("listener")).toBe(
-        true,
-      );
+      // In infra noua, OpenBao este accesat prin Traefik (HTTPS :443) pe orchestrator.
+      // Controlul de acces se face prin:
+      // - retea (internal/gateway)
+      // - allowlist/middlewares Traefik
+      // - auth OpenBao (AppRole/token)
+      expect(content).toMatch(/listener\s+"tcp"/i);
     });
   });
 

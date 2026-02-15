@@ -7,10 +7,15 @@ Acest ghid abordează problemele comune întâlnite în timpul dezvoltării și 
 ### 1.1 Port Conflicts (EADDRINUSE)
 
 **Simptom:**
-Containerul `api` sau `postgres` eșuează la start cu erori de port.
+API-ul (local) sau un container de dependinte eșuează la start cu erori de port.
 
 **Soluție:**
-Verificați ce blochează porturile 64000+, 64032, 64039.
+Verificați ce blochează porturile folosite in mediul vostru:
+
+- `64000` (API), `64010` (web-admin)
+- `5432` daca rulați PostgreSQL local
+- `6379` daca rulați Redis local
+- `64033` daca rulați PgBouncer in Docker (staging/prod)
 
 ```bash
 lsof -i :64000
@@ -20,14 +25,18 @@ lsof -i :64000
 ### 1.2 Database Connection Refused
 
 **Simptom:**
-`logs` arată `Connection refused at localhost:64032` deși containerul pare up.
+`logs` arată `Connection refused` către DB, deși serviciile par "up".
 
 **Cauză:**
-PostgreSQL nu este încă "Healthy".
+Una din situațiile de mai jos:
+
+- PostgreSQL local nu ruleaza sau nu asculta pe portul asteptat
+- in staging/prod, PgBouncer nu e healthy sau nu are secrets randate din OpenBao Agent
+- firewall/route intre CT-uri (in infra noua) blocheaza traficul catre CT107:5432
 
 **Soluție:**
-Așteptați până când log-urile DB arată `database system is ready to accept connections`.
-Configurați `depends_on` cu `condition: service_healthy` în docker-compose.
+- Pentru local dev: verificați `DATABASE_URL` si ca PostgreSQL raspunde (`psql ... -c "SELECT 1"`).
+- Pentru staging/prod: validați ca `openbao-agent-*` sunt `healthy` si au randat `/secrets/*.env`, apoi ca `pgbouncer` e `healthy`.
 
 ## 2. Docker & Containers
 
@@ -82,7 +91,7 @@ Redis-ul de development pornește gol. Rulați seed scripts sau ignorați până
 Dacă problema nu este listată aici:
 
 1. Verificați [Master Specification](../specifications/master-specification.md).
-2. Verificați log-urile din SigNoz (<http://localhost:64089>).
+2. Verificați observability pe stack-ul centralizat (Grafana/Loki/Tempo/Prometheus) pe orchestrator.
 3. Deschideți un Issue pe GitHub cu tag-ul `bug`.
 
 ---
@@ -128,10 +137,11 @@ Consultați [Release Process](../governance/release-process.md) pentru pașii of
 
 ## 7. Observability & Logs
 
-### 7.1 SigNoz
+### 7.1 Grafana / Loki / Tempo (infrastructura noua)
 
-- Verificați trace-urile pentru request-uri lente
-- Corelați error rate cu deploy-ul curent
+- Traces: Tempo (vizualizare prin Grafana)
+- Logs: Loki (labels recomandate: `project="cerniq"`, `environment="staging|production"`)
+- Metrics: Prometheus (node-exporter + cAdvisor)
 
 ### 7.2 Logs API/Workers
 

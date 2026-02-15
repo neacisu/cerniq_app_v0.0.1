@@ -1,8 +1,10 @@
 # ADR-0014: Traefik v3.6.6 ca Reverse Proxy
 
-**Status:** Accepted  
+**Status:** Superseded  
 **Data:** 2026-01-15  
 **Deciders:** Alex (1-Person-Team)
+
+**Superseded by:** ADR-0030 (Migration to Proxmox LXC + Orchestrator Ingress)
 
 ## Context
 
@@ -16,6 +18,12 @@ Necesităm reverse proxy pentru:
 ## Decizie
 
 Utilizăm **Traefik v3.6.6** cu Docker provider.
+
+## Nota (stare curenta)
+
+In arhitectura noua, Traefik nu mai ruleaza in stack-ul Cerniq (CT109/CT110).
+Ingress-ul este centralizat pe orchestratorul comun, iar acest ADR ramane doar
+ca document istoric pentru decizia initiala.
 
 ## Consecințe
 

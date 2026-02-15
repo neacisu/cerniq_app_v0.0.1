@@ -100,7 +100,7 @@ services:
 |--------|---------|
 | **Trigger** | Doar când `workers/` este modificat |
 | **Tools** | Ruff, mypy |
-| **Python** | 3.14 |
+| **Python** | 3.14 (rulat ca `python3`) |
 
 ---
 
@@ -150,7 +150,7 @@ on:
 |--------|---------|
 | **Trigger** | Tag `vX.Y.Z` (fără suffix) sau manual |
 | **Environment** | `production` (GitHub Environment) |
-| **URL** | https://app.cerniq.app |
+| **URL** | https://cerniq.app |
 | **Method** | SSH + Docker Compose (Blue-Green) |
 | **Pre-deploy** | Database backup automat |
 
@@ -209,7 +209,7 @@ sequenceDiagram
 
 CI Pipeline-ul ia secretele de test din OpenBao:
 
-- Path: `secret/data/cerniq/ci/test`
+- Path: `secret/cerniq/ci/test` (KV v1 pe orchestrator; nu folosim `secret/data/...`)
 - Keys: `pg_user`, `pg_password`, `redis_password`, `jwt_secret`
 
 **CI constraints (must match service containers):**
@@ -219,7 +219,7 @@ CI Pipeline-ul ia secretele de test din OpenBao:
 
 **CI connectivity:**
 - `OPENBAO_ADDR` must be reachable from the self-hosted runner
-- If OpenBao is bound on `0.0.0.0:64090`, allowlist the runner IP in firewall
+- OpenBao este accesat prin Traefik pe orchestrator (HTTPS :443). Nu folosim OpenBao local expus pe porturi de tip `64090`.
 
 ### 4.3 Workflow Integration
 
@@ -240,7 +240,7 @@ jobs:
           
           # Read deployment secrets
           SECRETS=$(curl -s -H "X-Vault-Token: $TOKEN" \
-            "${BAO_ADDR}/v1/secret/data/cerniq/ci/deploy")
+            "${BAO_ADDR}/v1/secret/cerniq/ci/deploy")
           
           # Export to environment (masked)
           echo "::add-mask::$(echo $SECRETS | jq -r '.data.data.ssh_key')"
@@ -260,7 +260,7 @@ jobs:
 
 ```hcl
 # Path: infra/config/openbao/policies/cicd-policy.hcl
-path "secret/data/cerniq/ci/*" {
+path "secret/cerniq/ci/*" {
   capabilities = ["read"]
 }
 
@@ -326,7 +326,7 @@ Configurați în **Settings → Environments**:
    - No required reviewers
    
 2. **production**
-   - URL: https://app.cerniq.app
+   - URL: https://cerniq.app
    - Required reviewers: 1+ (recomandat)
    - Wait timer: 5 minute (recomandat)
 
@@ -406,11 +406,11 @@ pnpm test
 
 ```bash
 # Verify AppRole on server
-curl -X POST "http://localhost:64090/v1/auth/approle/login" \
+curl -X POST "${OPENBAO_ADDR}/v1/auth/approle/login" \
   -d '{"role_id":"<role_id>","secret_id":"<secret_id>"}'
 
 # Check secret_id expiration
-bao read auth/approle/role/cicd | grep secret_id_ttl
+bao read auth/approle/role/cicd | rg secret_id_ttl
 ```
 
 ---

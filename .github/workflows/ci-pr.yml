@@ -63,6 +63,9 @@ jobs:
       - name: 🔍 Run ESLint
         run: pnpm lint
 
+      - name: 🎨 Prettier format check
+        run: pnpm prettier --check .
+
       - name: 📝 TypeScript Type Check
         run: pnpm typecheck
 
@@ -197,6 +200,19 @@ jobs:
         env:
           WORKSPACE_ROOT: ${{ github.workspace }}
 
+      - name: 🧾 Run tests with JSON report
+        run: |
+          pnpm test:ci
+        env:
+          WORKSPACE_ROOT: ${{ github.workspace }}
+
+      - name: 📦 Upload test results artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: test-results/results.json
+
       - name: 📊 Upload Coverage Report
         uses: codecov/codecov-action@v4
         if: always()
@@ -214,7 +230,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 15
     needs: lint
-    if: github.event_name == 'pull_request' && github.base_ref == 'develop'
+    if: github.event_name == 'pull_request'
 
     steps:
       - name: 📥 Checkout code
@@ -243,7 +259,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 10
     needs: lint
-    if: github.event_name == 'pull_request' && github.base_ref == 'develop'
+    if: github.event_name == 'pull_request'
     permissions:
       contents: read
       security-events: write
@@ -266,7 +282,6 @@ jobs:
       - name: 📤 Upload Trivy scan results
         uses: github/codeql-action/upload-sarif@v3
         if: always()
-        continue-on-error: true
         with:
           sarif_file: 'trivy-results.sarif'
 
@@ -295,6 +310,29 @@ jobs:
             echo "✅ daemon.json is valid JSON"
           else
             echo "⏭️ daemon.json not found (optional)"
+          fi
+
+  # ===========================================================================
+  # JOB: ShellCheck (infra/scripts/*.sh)
+  # ===========================================================================
+  shellcheck:
+    name: 🐚 ShellCheck
+    runs-on: self-hosted
+    timeout-minutes: 5
+    needs: lint
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐚 Run ShellCheck in Docker
+        run: |
+          set -euo pipefail
+          if ls infra/scripts/*.sh >/dev/null 2>&1; then
+            docker run --rm -v "$PWD:/mnt" koalaman/shellcheck:stable -x /mnt/infra/scripts/*.sh
+          else
+            echo "No infra/scripts/*.sh found, skipping"
           fi
 
       - name: 🔎 Validate docker-compose.yml

@@ -5,6 +5,12 @@
 Data: 2026-02-11
 Sursa date: loguri audit locale (hetzner_audit_logs/20260211_135424)
 
+Actualizare (executat manual): 2026-02-15
+
+- Scop: inventar + pre-flight real pentru infrastructura noua Cerniq (orchestrator + Proxmox nodes + CT-uri Cerniq).
+- Nota: sectiunile de audit din 2026-02-11 raman un snapshot istoric. Recomandarea generica "SSH key-only / disable parole" NU se aplica ca masura globala pe bare-metal in acest proiect (constrangere explicita: parolele SSH nu se elimina/dezactiveaza pe serverele fizice).
+- Datele concrete de infra Cerniq (host-uri, CT placement, versiuni, health) sunt documentate in `### Implementare Cerniq.app` -> `#### Inventar + pre-flight (executat 2026-02-15)`.
+
 ## Rezumat executiv
 
 - Toate hosturile auditate permit SSH cu parola si login direct ca root, ceea ce expune infrastructura la brute-force si credential stuffing.
@@ -403,6 +409,7 @@ Aceasta sectiune defineste o vedere de ansamblu pentru toate proiectele curente 
 | Observabilitate (Grafana/Prometheus/Loki/Tempo/Vector/OTel) | Platforma (shared) | orchestrator (Docker) | grafana.neanelu.ro / metrics.neanelu.ro / logs.neanelu.ro / traces.neanelu.ro | Proiectele se integreaza aditiv (targets/allowlist/dashboards/rules dedicate) |
 | Email triggerra (stalwart + roundcube) | Proiect | orchestrator (Docker) | mailadmin.triggerra.app, webmail.triggerra.app + porturi SMTP/IMAP | Documentat in sectiunea urmatoare |
 | Cerniq.app | Proiect | CT107/CT108/CT109/CT110 + orchestrator | cerniq.app + subdomenii; pipeline CI/CD via CT108 | Detaliat mai jos in "Implementare Cerniq.app" |
+| Neanelu Shopify (Manager) | Proiect | CT107/CT111/CT112 (+ CT108 runner) + orchestrator | manager.neanelu.ro + staging.manager.neanelu.ro + otel-neanelu.neanelu.ro + logs-neanelu.neanelu.ro | Detaliat mai jos in "Implementare Neanelu Shopify Manager" (tracking obligatoriu) |
 
 ### Proiecte viitoare (model de onboarding)
 
@@ -418,11 +425,475 @@ Pentru orice proiect nou se recomanda:
   - dashboards si alert rules in fisiere separate, aditive
 - Daca e proiect cu traffic public: LXC dedicat (staging/prod) + reguli NAT/iptables aditive doar pentru acel proiect.
 
+### Implementare Neanelu Shopify Manager
+
+Aceasta subsectiune documenteaza migrarea Neanelu Shopify pe infrastructura noua, folosind aceleasi pattern-uri ca Cerniq:
+
+- Traefik/OpenBao/observability centralizate pe orchestrator (config aditiv per proiect)
+- PostgreSQL centralizat pe CT107 (DB dedicate per env)
+- Redis/BullMQ shared pe orchestrator (prefix/ACL per env)
+- separare staging vs production (2 LXC: CT112/CT111, 2 aplicatii Shopify, secrete separate)
+
+#### Obiectiv
+
+- Migrare Neanelu fara interferenta cu proiecte existente/viitoare (toate schimbari pe shared infra sunt aditive).
+- Observabilitate cu allowlist scoping (ingest-only pe host-uri dedicate; UI ramane restrictionat doar la admin).
+- Trasabilitate 1:1: la fiecare `todo` implementat, actualizam aici status + referinte + verificari.
+
+#### CT-uri dedicate (propunere)
+
+- CT 107: PostgreSQL `postgres-main` (shared platform)
+- CT 111: Neanelu productie (Docker stack)
+- CT 112: Neanelu staging (Docker stack)
+- CT 108: CI runner (deploy automat, optional)
+
+#### Domenii
+
+- `manager.neanelu.ro` (prod)
+- `staging.manager.neanelu.ro` (staging)
+- `otel-neanelu.neanelu.ro` (OTLP ingest-only, allowlist strict pe CT111/CT112)
+- `logs-neanelu.neanelu.ro` (Loki push-only, allowlist strict pe CT111/CT112 + path `/loki/api/v1/push`)
+
+#### Conventii cheie (aliniere platforma)
+
+- Traefik: fisier dinamic dedicat: `/opt/traefik/dynamic/neanelu.yml` (merge aditiv in `/opt/traefik/dynamic_conf.yml`)
+- OpenBao KV v1: `secret/neanelu/{prod,staging,shared,infra}/*`
+- OpenBao DB mounts dedicate: `neanelu-db/` (prod+staging) pentru credidentiale dinamice (PgBouncer auth_query)
+- Observability scoping:
+  - UI (Grafana/Prometheus): allowlist admin-only (nu includem CT-uri aplicatie)
+  - Ingest (Loki push / OTLP): host-uri dedicate `logs-neanelu.*` si `otel-neanelu.*` cu router allowlist strict
+
+#### Raport (as-is) - Implementare curenta (repo Neanelu_Shopify)
+
+Aceasta sectiune este un "baseline report" despre starea curenta a aplicatiei, ca sa evitam drift in timpul migrarii.
+Surse primare:
+
+- Repo: `/var/www/Neanelu_Shopify`
+- Documentatie: `Docs/*` (in special: `Docs/API_Specification.md`, `Docs/PIM_Sprint_9_Endpointuri.md`, `Docs/Metrics_Reference.md`)
+- Runtime local: `docker-compose.yml` + `docker-compose.dev.yml`
+
+##### Scopul aplicatiei
+
+Neanelu Shopify Manager este o aplicatie Shopify **multi-tenant** (SaaS) care ofera:
+
+- conectare OAuth (instalare) pentru magazine Shopify
+- ingestie masiva de catalog (Bulk Operations JSONL, streaming) + sincronizari incrementale (webhooks)
+- procesare asincrona prin cozi (BullMQ/BullMQ Pro) pentru pipeline-uri lungi si cost-sensitive
+- PIM (Product Information Management) pentru enrichment + quality + consensus + similarity matches
+- search (inclusiv semantic/vector) si un control-plane (UI) pentru monitorizare si setari
+
+##### Functionalitati principale (high level)
+
+- **Auth**: OAuth flow Shopify (`/auth/shopify`, `/auth/shopify/callback`) + sesiune pentru embedded app.
+- **Webhooks**: receiver generic `POST /webhooks/:topic` + deduplicare/HMAC.
+- **Bulk operations**: initiere + streaming download/parse + ingest in DB.
+- **PIM**:
+  - KPI/stats (enrichment progress, quality distribution, source performance, cost tracking)
+  - consensus (pending/conflicts/manual review, recompute/export)
+  - similarity matches (confirm/reject/extract)
+  - webhooks calitate + deliveries + retry
+- **Queues/DLQ**: lista cozi, pause/resume, clean failed, replay din DLQ.
+- **Settings**: configurari per shop (Serper, xAI, Scraper) + health endpoints.
+
+Nota: strategia AI va fi schimbata prin planurile Kimi (Kimi master + self-hosted search/embeddings), dar capacitatile
+operationale (kill-switches, pause queues, audit cost tracking) raman cerinte permanente.
+
+##### Structura tehnica (monorepo)
+
+Repo-ul este un **monorepo pnpm** (workspaces) cu:
+
+- `apps/backend-worker`: Node.js (Fastify) + procesare joburi + API HTTP
+- `apps/web-admin`: frontend embedded (React Router v7 / Vite), rute `/app/*`
+- `packages/*`: database (Drizzle), queue-manager, shopify-client, ai-engine, config, types, logger, pim, scraper, validation
+
+Din `package.json` (root):
+
+- Node: `>=24.0.0`
+- pnpm: `>=10.0.0`
+- packageManager: `pnpm@10.28.0`
+
+##### Runtime curent (docker-compose "all-in-one")
+
+In starea curenta, `docker-compose.yml` contine atat aplicatia, cat si infrastructura locala (chiar si pentru "prod-like"):
+
+- **Traefik local**: `traefik:v3.6.6` (entrypoints 80/443), ACME HTTP-01.
+  - Observatie: are `providers.docker.constraints` care mentioneaza si `cerniq`, deci exista risc de cuplaj intre proiecte
+    daca se ruleaza pe acelasi host (motiv major pentru migrare la Traefik orchestrator + fisier dinamic per proiect).
+- **PostgreSQL local**: imagine custom `neanelu-postgres:pg18-pgvector` (build din `./docker/postgres`).
+- **Redis local**: `redis:8.4` (AOF on) folosit pentru cozi/caching.
+- **Observabilitate locala** (dev/prod-like):
+  - Jaeger `jaegertracing/jaeger:2.14.1`
+  - OTel Collector `otel/opentelemetry-collector-contrib:0.142.0`
+  - Prometheus `prom/prometheus:v3.8.1`
+  - Alertmanager `prom/alertmanager:v0.30.0`
+  - Loki `grafana/loki:3.6.3` + Promtail `grafana/promtail:3.6.3`
+  - Grafana `grafana/grafana:12.3.1`
+- **Backend**: `backend-worker` (Fastify) cu health check `/health/ready`.
+- **Frontend**: `web-admin` (SPA) servit sub `/app`, cu redirect `/` -> `/app/`.
+- **Artefacte bulk**: volum persistent `bulk_artifacts` montat la `/var/lib/neanelu/bulk-artifacts`.
+
+Porturi mentionate in documentatie (in special pentru dev):
+
+- API backend: `65000`
+- UI web-admin: `65001`
+- Postgres dev: `65010`
+- Redis dev: `65011`
+- Jaeger UI: `65020`; OTLP gRPC: `65021`; OTel HTTP: `65022`
+- Loki: `65023`; Grafana: `65024`; Prometheus: `65025`
+
+##### Mapare componente: as-is -> target (noua infrastructura)
+
+Aceasta mapare este folosita ca ghid in timpul migrarii ca sa fie clar:
+
+- ce eliminam complet (servicii locale care devin shared)
+- ce mutam (din container local -> CT dedicat / orchestrator)
+- ce pastram local doar pentru dev
+
+| Componenta | As-is (curent) | Target (noua infrastructura) | Note / verificare minima |
+| --- | --- | --- | --- |
+| Ingress (HTTP/TLS) | Traefik local (`traefik:v3.6.6`) in `docker-compose.yml` | Traefik **orchestrator** (shared), fisier dinamic dedicat `neanelu.yml` | `curl -I https://manager.neanelu.ro/health/ready` -> 200 |
+| DNS/TLS | ACME HTTP-01 local, porturi 80/443 pe host | Cloudflare proxied + TLS prin Traefik orchestrator (cert resolver Cloudflare) | `dig A manager.neanelu.ro` -> `77.42.76.185` |
+| Postgres | container local `neanelu_postgres` | CT107 `postgres-main` (`10.0.1.107:5432`) cu DB per env | `pg_isready -h 10.0.1.107 -p 5432` |
+| DB pooling | conexiune directa din app catre DB | PgBouncer pe CT111/CT112 + auth_query + OpenBao agent infra (tmpfs) | `psql "$DATABASE_URL"` (via PgBouncer) |
+| Redis | container local `redis:8.4` | Redis shared orchestrator (`10.0.0.2:6379`) cu ACL + prefix per env | `redis-cli -u "$REDIS_URL" PING` |
+| BullMQ/BullMQ Pro | backend foloseste Redis local | backend foloseste redis-shared + prefix/ACL per env | verificare chei: `neanelu:prod:*` / `neanelu:staging:*` |
+| Secrete | `.env` pe disk (local) | OpenBao centralizat (orchestrator) + AppRoles + agent sidecars (tmpfs) | agent container `healthy` + env files in tmpfs |
+| Logs | Loki/Promtail local | Vector pe CT111/CT112 -> Loki central; host dedicat push-only `logs-neanelu.neanelu.ro` | `curl` push endpoint (allowlist) nu returneaza 403 |
+| Traces | Jaeger local + collector local | OTel local -> collector central prin Traefik; host dedicat ingest-only `otel-neanelu.neanelu.ro` | apare service in Tempo/Grafana Explore |
+| Metrics | Prometheus/Grafana locale | Prometheus/Grafana central (orchestrator); scrape din CT111/CT112 pe porturi 65xxx | targets up in Prometheus central |
+| Dashboards | Grafana local | Folder dedicat "Neanelu" in Grafana central | labels `project=neanelu`, `environment=prod\|staging` |
+| Alerting | Alertmanager local | Alertmanager central + rules aditive per proiect | fara alerte false dupa cutover |
+| Bulk artifacts | volum docker local `bulk_artifacts` | volume/path pe CT111/CT112 (cu rotatie/retentie) | cleanup job + spatiu suficient |
+| CI/CD | (potential) manual pe host | runner CT108 + workflow-uri (FAZA 1) | gating pe checks + deploy lock |
+| Dev local | compose dev cu tool-uri (pgadmin, redis-commander) | ramane local (nu migram dev pe LXC) | `pnpm db:up` continua sa functioneze |
+
+##### Observabilitate si metrici (as-is)
+
+Aplicatia expune metrici si semnale OTel, documentate in `Docs/Metrics_Reference.md`:
+
+- HTTP: `http_request_total`, `http_request_duration_seconds`, `http_5xx_total`
+- Webhooks: accept/reject/dedup + latente
+- Queues: depth/active/latency/duration/retries/failures/DLQ/rate-limit/fairness
+- DB pool: active/idle + latente query
+- Redis: latente comenzi + erori conectare
+- AI/vector: `vector_search_latency_seconds`, cache hit/miss, backlog/batch age, error types
+- Shopify API: cost points total + rate limit hits
+
+##### De ce migram (probleme/riscuri in modelul curent)
+
+- Infrastructura locala in acelasi compose (Traefik/DB/Redis/Obs) creste riscul de:
+  - drift intre medii
+  - secrete in `.env` pe disk (in loc de secret manager central)
+  - interferenta multi-proiect (Traefik local + constrangeri cross-project)
+- Observability allowlist: modelul platformei cere **scoping** (ingest-only pe host-uri dedicate), nu UI allowlisted cu CT-uri.
+- Scalarea reala (888k+ produse) cere:
+  - worker concurrency + queue isolation
+  - pooling DB (PgBouncer) si dimensionare conexiuni
+  - gateway NAT + reguli iptables aditive (platforma) pentru trafic controlat
+
+##### Masuratori baseline (obligatoriu inainte de migrare/cutover)
+
+Inainte de FAZA 0 cutover (dump/restore + DNS switch), colectam un baseline pentru "ce avem azi", ca sa putem demonstra:
+
+- performanta similara sau mai buna dupa migrare
+- lipsa regresiilor (queue backlog, latente, erori)
+- sizing corect pentru CT111/CT112 + CT107/Redis shared
+
+Checklist (de rulat pe hostul curent / mediul curent, respectiv pe CT111/CT112 dupa deploy):
+
+- **Servicii**:
+  - `docker compose ps` (stare + uptime)
+  - `docker compose logs --tail 200 backend-worker` (erori recurente)
+- **Resurse**:
+  - `docker stats --no-stream` (CPU/RAM per container)
+  - `free -h`, `df -h` (mem/disk)
+  - `uptime` (load)
+- **PostgreSQL** (pe DB curenta):
+  - dimensiune DB: `SELECT pg_size_pretty(pg_database_size(current_database()));`
+  - top tables/index sizes: `SELECT relname, pg_size_pretty(pg_total_relation_size(relid)) FROM pg_catalog.pg_statio_user_tables ORDER BY pg_total_relation_size(relid) DESC LIMIT 20;`
+  - conexiuni active/idle: `SELECT state, count(*) FROM pg_stat_activity GROUP BY state;`
+- **Redis**:
+  - `redis-cli INFO memory` (used_memory, fragmentation)
+  - `redis-cli INFO clients` (connected_clients)
+- **Queues**:
+  - snapshot backlog (waiting/active/failed/delayed) din endpoint `GET /api/queues`
+- **Shopify Bulk**:
+  - ultimul bulk run (durata, bytes, produse) din UI/logs
+- **Observability**:
+  - latente: p95/p99 API + webhook + queue duration
+  - error rate (5xx)
+
+Nota: comenzi exacte se vor adapta mediului (local dev vs production), dar rezultatele (numerice) se pastreaza aici ca referinta.
+
+#### Necesare viitoare (target) - resurse si dimensionare (orientativ)
+
+Acest sizing este orientativ; trebuie ajustat dupa masuratori (CPU/RAM/disk/IOPS) pe run-uri reale.
+
+- **CT111 (prod)**: 8 vCPU, ~24GB RAM, 100GB disk (aplicatie + logs locali temporari + artefacte bulk).
+- **CT112 (staging)**: 4 vCPU, ~16GB RAM, 80GB disk.
+- **CT107 (Postgres shared platform)**:
+  - DB-uri separate `neanelu_shopify` si `neanelu_shopify_staging`
+  - disk dimensionat pentru volum mare (catalog + vectori pgvector + indexes + WAL) + backup/PITR (conform runbook DR).
+- **Redis shared (orchestrator)**:
+  - ACL/prefix separate per mediu; sizing pe throughput BullMQ + caching (fara vector store primar daca ramanem pe pgvector).
+- **Observability (orchestrator)**:
+  - ingest endpoints dedicate pentru Neanelu:
+    - `otel-neanelu.neanelu.ro` (OTLP ingest-only)
+    - `logs-neanelu.neanelu.ro` (Loki push-only)
+- **Network**:
+  - egress strict 80/443/53; forward strict spre OpenBao/Redis/Obs + Postgres CT107
+  - porturi host 65xxx (conform `Docs/Port_Conventions.md`) pentru metrics scrapes (node-exporter/cAdvisor) pe CT111/CT112.
+
+Dimensionare operationala (ce controlam activ):
+
+- **DB connections**: aplicatia trebuie sa foloseasca PgBouncer; limitele `max_connections` raman controlate la CT107.
+- **Worker concurrency**: cresterea throughput-ului se face prin scalare orizontala (replici worker) + tuning concurrency per queue,
+  nu prin cresterea necontrolata a conexiunilor DB.
+- **Bulk artifacts**: `bulk_artifacts` trebuie sa aiba spatiu suficient pentru fisiere JSONL multi-GB (si rotatie/cleanup automat).
+
+#### Pasii urmatori (tranzitie spre infrastructura noua)
+
+Aceasta lista este un rezumat executiv; "source of truth" pentru instructiuni detaliate ramane planul:
+
+`/root/.cursor/plans/kimi_k2.5_master_llm_phases/phase_00_migrare_lxc.plan.md`
+
+Directii:
+
+- Mutam runtime-ul aplicatiei pe 2 LXC (prod+staging), dar pastram shared services pe orchestrator/CT107.
+- Toate modificarile pe infrastructura partajata sunt **aditive** (fara schimbari globale care afecteaza alte proiecte).
+- Dupa fiecare Pas 0.xxx implementat, completam tabelul de tracking cu referinte (repo path + host path) si verificari.
+
+Executie curenta (audit trail):
+
+- Branch de lucru FAZA 0 (repo Neanelu_Shopify): `phase0/migrare-lxc`
+- Regula: nu implementam direct in `main`; toate schimbari se propun din branch + verificari.
+
+#### Tracking progres (obligatoriu)
+
+Tabela se mentine ca “source of truth” pentru status + referinte.
+
+| Todo / Pas | Status | Repo path / config | Host path / locatie | Verificare |
+| --- | --- | --- | --- | --- |
+| FAZA 0 - Pas 0.001 (CT111+CT112 create) | completed | `infra/scripts/hz215_create_ct111_ct112.sh` | hz.215 | Verificari succinte in tabel; detalii in “Taskuri implementate (Neanelu) -> phase00-001” |
+| FAZA 0 - Pas 0.002 (NAT/FORWARD) | completed | `infra/config/iptables/*neanelu*` | hz.247 `/etc/iptables.rules` | `iptables -S FORWARD` (reguli CT111/CT112) + egress DNS+443 verificat din CT111/CT112 (python3 getaddrinfo + TCP connect) + VIP allowlist `10.0.1.10:443/6379` verificat |
+| FAZA 0 - Pas 0.003 (Backup + rollback plan) | completed | `infra/scripts/ct107_backup_postgres_neanelu.sh`, `infra/scripts/ct107_restore_postgres_neanelu.sh` | CT107 + (optional) Storage Box | `DRY_RUN=1` precheck ok (psql) + restore guard (CONFIRM_RESTORE) + rulare reala inainte de cutover (Pas 0.017) |
+| FAZA 0 - Pas 0.004 (CT107 DB prod+staging) | completed | `infra/scripts/ct107_init_neanelu_db.sh` | CT107 | DB-uri `neanelu_shopify` + `neanelu_shopify_staging` create, owner `neanelu_app`; extensii `vector`, `pg_stat_statements`, `citext` prezente |
+| FAZA 0 - Pas 0.004B (SECURITY: elimina pg_hba trust orchestrator) | completed | (executie controlata) patch `pg_hba.conf` + reload | CT107 | `pg_hba_file_rules` nu mai contine `trust` (count=0) |
+| FAZA 0 - Pas 0.005 (OpenBao secrets central) | completed | `infra/config/openbao/*`, `infra/scripts/openbao_apply_neanelu.py` | orchestrator OpenBao | policies + AppRoles Neanelu create; KV marker `secret/neanelu/shared/_bootstrap` prezent |
+| FAZA 0 - Pas 0.006 (Redis shared: ACL + prefix per env) | completed | `/opt/redis-shared/redis.conf` (aditiv) + OpenBao KV `secret/neanelu/*/redis` | orchestrator Redis | `PING` ca `neanelu-prod`/`neanelu-staging` + NOPERM la chei in afara prefix-ului |
+| FAZA 0 - Pas 0.007 (Traefik orchestrator: neanelu.yml) | pending | `infra/config/traefik-orchestrator/neanelu.yml` | orchestrator `/opt/traefik/dynamic/neanelu.yml` | `sha256sum` match + `curl -I` hostnames |
+| FAZA 0 - Pas 0.008 (Eliminare Traefik/Nginx local + refactor compose) | pending | compose refactor | CT111/CT112 `/opt/neanelu/*` | `docker compose config` fara `traefik` local |
+| FAZA 0 - Pas 0.009 (docker-compose.prod.yml) | pending | `docker-compose.prod.yml` | CT111/CT112 `/opt/neanelu/*` | `docker compose -f ... config` ok |
+| FAZA 0 - Pas 0.010 (PgBouncer + auth_query) | pending | `infra/config/openbao/templates/*pgbouncer*` | CT111/CT112 tmpfs `/run/neanelu/runtime-secrets/infra/` | `psql` via PgBouncer + `SHOW POOLS;` |
+| FAZA 0 - Pas 0.011 (Observabilitate integrare) | pending | vector/otel configs | CT111/CT112 + orchestrator | logs in Loki, traces in Tempo, targets up |
+| FAZA 0 - Pas 0.011B (allowlist scoping ingest-only) | pending | traefik routers + obs | orchestrator | `curl` din neallowlist -> 403; allowlist -> 2xx |
+| FAZA 0 - Pas 0.011C (gateway intern TLS observability) | pending | haproxy + iptables | hz.247 | bind `10.0.1.10:443` + allow doar CT111/CT112 |
+| FAZA 0 - Pas 0.012 (Grafana dashboards) | pending | dashboards json | grafana central | dashboard folder "Neanelu" populat |
+| FAZA 0 - Pas 0.013 (Cloudflare DNS + SSL) | pending | DNS records | Cloudflare | `dig` + `curl -I` prod+staging+otel+logs |
+| FAZA 0 - Pas 0.014 (Shopify Partner: 2 apps) | pending | N/A (UI Shopify) | Shopify Partners | OAuth callback ok prod+staging |
+| FAZA 0 - Pas 0.015 (handoff FAZA 1 CI/CD) | pending | `phase_01_ci_cd.plan.md` | CT108 runner | PR checks + deploy plan valid |
+| FAZA 0 - Pas 0.016 (Actualizare cod/config) | pending | `.env.example` + `packages/config` | repo | config validation + feature flags |
+| FAZA 0 - Pas 0.017 (Cutover: dump/restore + migratii + DNS) | pending | runbooks + scripts | CT107 + Cloudflare | restore ok + health ok + webhooks ok |
+| FAZA 0 - Pas 0.018 (Validare finala) | pending | checklist | prod+staging | non-interferenta + observability ok |
+| DOCS ALIGNMENT (port matrix) | pending | `Docs/Port_Conventions.md` | repo + orchestrator scrape | scrape ports 65210/65211 confirmate |
+| DOCS ALIGNMENT (deploy checklist) | pending | `Docs/Production_Deployment_Checklist.md` | repo | pasii reflecta CT107/OpenBao/Traefik orch |
+| DOCS ALIGNMENT (runbooks) | pending | `Docs/runbooks/*` | repo | fara referinte la DB/Redis/OpenBao locale |
+| DOCS ALIGNMENT (runbook) - database-migration | pending | `Docs/runbooks/database-migration.md` | repo | fara `localhost:65010`; PgBouncer/CT107 clar |
+| DOCS ALIGNMENT (runbook) - openbao-recovery | pending | `Docs/runbooks/openbao-recovery.md` | repo | OpenBao orchestrator; fara `docker exec openbao` local |
+| DOCS ALIGNMENT (runbook) - DR_Runbook | pending | `Docs/runbooks/DR_Runbook.md` | repo | CT107 + redis-shared + CT111/CT112 (nu db local) |
+| DOCS ALIGNMENT (runbook) - database-failover | pending | `Docs/runbooks/database-failover.md` | repo | clar future vs aplicabil; comenzi corecte |
+| DOCS ALIGNMENT (runbook) - bulk-operation-stuck | pending | `Docs/runbooks/bulk-operation-stuck.md` | repo | redis-shared prefix/ACL + alternative prin API |
+| DOCS ALIGNMENT (runbook) - rate-limit-emergency | pending | `Docs/runbooks/rate-limit-emergency.md` | repo | prefera control-plane; chei prefixate |
+| DOCS ALIGNMENT (runbook) - ai-pipeline-operations | pending | `Docs/runbooks/ai-pipeline-operations.md` | repo | noua topologie + tranzitie Kimi |
+| DOCS ALIGNMENT (runbook) - pim-api-budget-exceeded | pending | `Docs/runbooks/pim-api-budget-exceeded.md` | repo | runbook_url din alerts valid + actiuni ok |
+| DOCS ALIGNMENT (runbook) - logql-queries | pending | `Docs/runbooks/logql-queries.md` | repo | queries functioneaza cu labels `project/environment` |
+| DOCS ALIGNMENT (runbook) - runbooks index | pending | `Docs/runbooks/README.md` | repo | lista completa + status tested/untested |
+| SECURITY FINAL (secret cleanup) | pending | `Docs/*` + repo | repo | `rg` nu gaseste tokenuri/chei/parole |
+| OPS (pre-cutover) code freeze + TTL | pending | release notes | Cloudflare + git | tag ok + TTL 60 inainte de cutover |
+| OPS (host readiness) | pending | checklist | CT111/CT112 | Docker>=27, disk ok, time sync ok |
+| OPS (backup verification) | pending | backup scripts | CT107 + staging | restore staging ok |
+| OPS (migratii DB) | pending | runbook migrations | CT107 | expand/contract verificat |
+| OPS (smoke tests) | pending | smoke scripts | prod+staging | OAuth/webhooks/queues ok |
+| OPS (post-cutover log/cleanup) | pending | deployment log | repo | log complet + prune/retention |
+| GAP FIX (Traefik /auth + /health) | pending | `infra/config/traefik-orchestrator/neanelu.yml` | orchestrator | `curl -I /auth/shopify` -> 302; `curl /health/ready` -> 200 |
+| OBS ALIGNMENT (prom targets + alert rules 1:1) | pending | prom config + rules files | orchestrator | targets up + alerts ok + runbook_url ok |
+| OBS ALIGNMENT (rules) - queue-alerts | pending | `Docs/Observability_Alerting.md` | orchestrator | `QueueStalledJobsHigh` etc active |
+| OBS ALIGNMENT (rules) - shopify-alerts | pending | `Docs/Observability_Alerting.md` | orchestrator | `ShopifyAPICostSpike`, `ShopifyRateLimitHit` active |
+| OBS ALIGNMENT (rules) - infra-alerts | pending | `Docs/Observability_Alerting.md` | orchestrator | Redis/Postgres/Disk/Memory alerts active |
+| OBS ALIGNMENT (rules) - bulk-alerts | pending | `Docs/Observability_Alerting.md` | orchestrator | `BulkOperationStuck` active |
+| OBS ALIGNMENT (rules) - pim-cost-alerts | pending | `Docs/Observability_Alerting.md` | orchestrator | `PimApiBudgetWarning/Exceeded` active |
+| OBS ALIGNMENT (alert routing) | pending | alertmanager config | orchestrator | critical->pagerduty, warning->slack |
+| SECURITY/DB (RLS tests via PgBouncer) | pending | `Docs/Testing_RLS_Isolation.md` | staging DB | TC-RLS-001..003 trec (direct + via PgBouncer) |
+| DOCS ALIGNMENT (Port_Conventions) | pending | `Docs/Port_Conventions.md` | repo | reflecta central obs + 65210/65211 + deprecari prod |
+| SHOPIFY/GDPR (uninstall validation) | pending | `Docs/Webhook_Topics_Reference.md` | staging/prod | uninstall sterge date + curata cozi/redis keys |
+| DB SoT ALIGNMENT (schema parity) | pending | `Docs/Database_Schema_Complete.md` | CT107 + repo | extensii + migrare ordine + sanity checks |
+| DB OPERATIONS (retention/partitioning) | pending | DB ops design | CT107 | ownership clar (FAZA 0 index, FAZA 16 implementare) |
+| DB PERF/OBS (pg_stat_statements preload) | pending | postgresql.conf CT107 | CT107 | `SHOW shared_preload_libraries;` contine pg_stat_statements |
+| DB MAINTENANCE (pgvector vacuum cadence) | pending | `Docs/tech/pgvector-tuning.md` | CT107 | job saptamanal definit/testat (FAZA 16) |
+| DB INDEX POLICY (partial indexes) | pending | `Docs/Database_Partial_Indexes.md` | CT107 | EXPLAIN foloseste indexuri partiale |
+| DOCS ALIGNMENT (devops+onboarding) | pending | `Docs/DevOps_Plan_Implementare_Shopify_Enterprise.md`, `Docs/Developer_Onboarding_Guide.md` | repo | topologie noua reflectata 1:1 |
+
+Regula: cand un pas devine `completed`, completam coloanele (repo+host paths) si adaugam in nota de verificare comenzile folosite si output-ul relevant (succint).
+
+#### Taskuri implementate (plan) si referinte (Neanelu)
+
+Taskurile marcate `completed` in FAZA 0 (Neanelu) sunt implementate si au referinte concrete mai jos, in acelasi stil ca Cerniq:
+
+- `phase00-001` (CT111+CT112 create)
+  - Repo: `infra/scripts/hz215_create_ct111_ct112.sh`
+  - hz.215: create + start LXC:
+    - CT111 (prod): `neanelu-prod`, IP `10.0.1.111/24`, gw `10.0.1.7`, MTU `1400`, bridge `vmbr4000`, `nesting=1,keyctl=1`, `unprivileged=1`
+    - CT112 (staging): `neanelu-staging`, IP `10.0.1.112/24`, gw `10.0.1.7`, MTU `1400`, bridge `vmbr4000`, `nesting=1,keyctl=1`, `unprivileged=1`
+  - Verificare (rulata pe hz.215):
+    - `pct status 111` -> `status: running`
+    - `pct status 112` -> `status: running`
+    - `pct config 111 | egrep 'hostname:|cores:|memory:|swap:|net0:|unprivileged:|features:|onboot:'` -> confirma parametrii (IP/gw/mtu/bridge)
+    - `pct exec 111 -- ip -4 a show dev eth0` -> `inet 10.0.1.111/24`
+    - `pct exec 112 -- ip -4 a show dev eth0` -> `inet 10.0.1.112/24`
+  - Non-interferenta:
+    - nu s-au modificat reguli iptables / Traefik / OpenBao / CT107; s-au creat doar cele 2 CT-uri noi pe hz.215
+    - egress in internet pentru CT111/CT112 depinde de Pas 0.002 (hz.247 iptables ADITIVE)
+
+- `phase00-002` (hz.247 NAT/FORWARD + allowlist VIP gateway intern)
+  - Repo: `infra/config/iptables/hz247-neanelu-egress.rules`, `infra/config/iptables/hz247-neanelu-inbound.rules`
+  - hz.247: `/etc/iptables.rules` (modificari **aditive**, fara a schimba politicile globale)
+  - Obiectiv:
+    - egress controlat pentru CT111/CT112 (DNS + 80/443) prin NAT pe `hz.247` (gateway `10.0.1.7`)
+    - acces intern strict allowlisted la VIP `10.0.1.10` (HAProxy gateway intern) pentru:
+      - TLS passthrough `:443` (Traefik/OpenBao/observability ingest prin hostnames)
+      - Redis gateway `:6379` (BullMQ/Redis shared prin HAProxy, fara expunere larga)
+    - acces orchestrator -> CT111/CT112 (Traefik/Prometheus) pe porturile dedicate Neanelu:
+      - app/UI: `65000/65001`
+      - scrape: `65210/65211`
+  - Implementare (rezumat reguli adaugate):
+    - `FORWARD`: allow egress `10.0.1.111/112 -> enp98s0f0` pe `80,443,53` + `ESTABLISHED`, apoi DROP per sursa
+    - `POSTROUTING (nat)`: MASQUERADE pentru `10.0.1.111/112` pe `80,443,53`
+    - `FORWARD`: allow `10.0.0.2 -> 10.0.1.111/112` pe `65000,65001,65210,65211`
+    - `INPUT`: allowlist VIP `10.0.1.10:443` si `10.0.1.10:6379` pentru CT109/CT110 (Cerniq) + CT111/CT112 (Neanelu), apoi DROP pe destinatie/port (scoping strict)
+  - Verificare (executata):
+    - Pe hz.247:
+      - `sudo iptables -S INPUT | egrep '10\\.0\\.1\\.(109|110|111|112).*10\\.0\\.1\\.10.*(443|6379)|-d 10\\.0\\.1\\.10/32.*--dport (443|6379) -j DROP'` -> regulile VIP allow+drop prezente
+      - `sudo iptables -S FORWARD | grep 10.0.1.111` / `grep 10.0.1.112` -> reguli egress + orchestrator ingress prezente
+      - `sudo iptables -t nat -S POSTROUTING | grep 10.0.1.111` / `grep 10.0.1.112` -> MASQUERADE prezent
+    - Din hz.215 (sanity): `python3 socket.connect(('10.0.1.10',443))` -> timeout (blocked) (nu e in allowlist)
+    - Din CT111/CT112:
+      - `python3` socket.connect la `10.0.1.10:443` si `:6379` -> OK
+      - `python3 socket.getaddrinfo('example.com',443)` -> OK (DNS)
+      - `python3` TCP connect la un IP public `:443` -> OK (egress)
+  - Non-interferenta:
+    - allowlist VIP pastreaza CT109/CT110 (Cerniq) si adauga doar CT111/CT112 (Neanelu)
+    - nu s-au schimbat politici globale; schimbarea este aditiva si limitata la IP-urile Neanelu
+    - verificare explicita: `hz.215` NU poate accesa VIP `10.0.1.10:443` (scoping corect)
+
+- `phase00-003` (Backup + rollback plan - Postgres CT107 + optional Storage Box)
+  - Repo:
+    - `infra/scripts/ct107_backup_postgres_neanelu.sh` (backup local + optional upload Storage Box)
+    - `infra/scripts/ct107_restore_postgres_neanelu.sh` (restore controlat, cu guard)
+  - Target runtime:
+    - CT107: dumps locale in `/var/backups/neanelu/postgres/ct107_neanelu_<timestamp>/`
+    - Storage Box (optional): upload prin `scp` folosind env vars (`STORAGEBOX_HOST/USER/PATH[/SSH_KEY]`)
+  - Obiectiv:
+    - avem o procedura repetabila pentru:
+      - `pg_dump -Fc` pentru `neanelu_shopify` + `neanelu_shopify_staging`
+      - verificare integritate `pg_restore --list`
+      - rollback rapid prin restore pe staging / prod (cu confirmare explicita)
+    - secretele NU apar in repo; creditele Storage Box se furnizeaza la runtime (env vars / chei existente pe CT107)
+  - Verificare (executata fara a modifica date):
+    - Copiere temporara a scripturilor in CT107 prin `pct push` (hz.247) si rulare:
+      - `DRY_RUN=1 /tmp/ct107_backup_postgres_neanelu.sh` -> `psql_ok`
+      - `ct107_restore_postgres_neanelu.sh` fara `CONFIRM_RESTORE=YES` -> refuza (guard functional)
+  - Note / cand se ruleaza backup-ul real:
+    - inainte de cutover (Pas 0.017) si inainte de orice operatiuni destructive (drop/recreate, restore, migratii)
+    - optional: upload in Storage Box pentru off-host retention
+
+- `phase00-004` (CT107 Postgres: DB prod+staging + extensii)
+  - Repo:
+    - `infra/scripts/ct107_init_neanelu_db.sh` (genereaza parole initiale pe CT107, creeaza roluri/DB-uri, instaleaza extensii)
+    - (template) `infra/config/postgres/init-ct107-neanelu.sql` (nu se ruleaza cu parole hardcodate; pastrat ca referinta)
+  - CT107:
+    - DB-uri create: `neanelu_shopify` (prod) si `neanelu_shopify_staging` (staging)
+    - Roluri create: `neanelu_app` (owner app) si `neanelu_vault` (pentru OpenBao DB engine, la phase00-005)
+    - Parole initiale: salvate local in fisier root-only `/root/neanelu_ct107_initial_db_passwords_<timestamp>.txt` (de rotit in OpenBao si sters dupa)
+  - Extensii (ambele DB-uri):
+    - `vector` (pgvector)
+    - `pg_stat_statements` (extensie instalata; preload/config se valideaza separat la task-ul DB perf/obs)
+    - `citext`, `pgcrypto`, `pg_trgm`, `btree_gin`, `btree_gist`, `uuid-ossp`
+  - Verificare (executata):
+    - DB-uri: `select datname from pg_database where datname like $$neanelu_%$$;` -> ambele prezente
+    - Owners: `neanelu_shopify:neanelu_app`, `neanelu_shopify_staging:neanelu_app`
+    - Extensii: in ambele DB-uri exista `citext`, `pg_stat_statements`, `vector`
+  - Non-interferenta:
+    - schimbari strict aditive pe CT107 (roluri/DB-uri cu prefix neanelu)
+    - fara modificari la `pg_hba.conf` (task separat `phase00-004B`)
+
+- `phase00-004B` (SECURITY: elimina `pg_hba` trust pentru orchestrator `10.0.0.2/32`)
+  - Context:
+    - in `/etc/postgresql/18/main/pg_hba.conf` exista o regula periculoasa:
+      - `host all all 10.0.0.2/32 trust`
+    - exista deja reguli `scram-sha-256` deasupra pentru `10.0.0.2/32`, deci eliminarea `trust` are risc minim si elimina un footgun.
+  - CT107:
+    - backup creat: `/etc/postgresql/18/main/pg_hba.conf.bak.neanelu.20260215T152334Z`
+    - modificare: eliminata strict 1 linie care potrivea `host all all 10.0.0.2/32 trust`
+    - reload: `select pg_reload_conf();` -> `t`
+  - Verificare (executata):
+    - `select count(*) from pg_hba_file_rules where auth_method = $$trust$$;` -> `0`
+  - Non-interferenta:
+    - nu s-au modificat alte reguli HBA; doar s-a eliminat fallback-ul `trust`
+
+- `phase00-005` (OpenBao: policies + AppRoles + paths KV v1 pentru Neanelu)
+  - Repo:
+    - `infra/config/openbao/README.md` (conventii paths + roles)
+    - `infra/config/openbao/policies/*` (policies Neanelu)
+    - `infra/scripts/openbao_apply_neanelu.py` (apply prin OpenBao HTTP API)
+  - OpenBao (orchestrator):
+    - Address: `OPENBAO_ADDR=https://s3cr3ts.neanelu.ro`
+    - KV v1 paths (standard): `secret/neanelu/{prod,staging,shared,infra}/*`
+    - Auth method: `approle/` (deja prezent)
+  - Policies create (names):
+    - `neanelu-prod-api`
+    - `neanelu-prod-workers`
+    - `neanelu-staging-api`
+    - `neanelu-staging-workers`
+    - `neanelu-infra`
+  - AppRoles create/update (role names):
+    - `neanelu-prod-api` -> policy `neanelu-prod-api`
+    - `neanelu-prod-workers` -> policy `neanelu-prod-workers`
+    - `neanelu-staging-api` -> policy `neanelu-staging-api`
+    - `neanelu-staging-workers` -> policy `neanelu-staging-workers`
+    - `neanelu-infra` -> policy `neanelu-infra`
+  - KV bootstrap marker (non-secret):
+    - `secret/neanelu/shared/_bootstrap` cu chei `project`, `created_at`
+  - Verificare (executata, fara afisare secrete):
+    - `GET /v1/sys/health` -> unsealed
+    - `GET /v1/sys/policy` contine policy-urile Neanelu
+    - `GET /v1/secret/neanelu/shared/_bootstrap` returneaza doar cheile non-secret
+
+- `phase00-006` (Redis shared orchestrator: ACL + prefix per env, pattern Cerniq)
+  - Context (pattern Cerniq):
+    - `redis-shared` este configurat din `/opt/redis-shared/redis.conf`
+    - `user default off`
+    - user per proiect + key-pattern isolation via `~<prefix>:*`
+    - userul `cerniq` are `-acl` (nu se poate face `ACL SETUSER` din runtime), deci userii se adauga in `redis.conf` si se face restart container
+  - Orchestrator:
+    - Config: `/opt/redis-shared/redis.conf` (mount RO in container: `/usr/local/etc/redis/redis.conf`)
+    - Backup creat: `/opt/redis-shared/redis.conf.bak.neanelu.<timestamp>`
+    - Useri adaugati (aditiv):
+      - `user neanelu-prod on > ~neanelu:prod:* +@all -acl -config -shutdown`
+      - `user neanelu-staging on > ~neanelu:staging:* +@all -acl -config -shutdown`
+    - Restart: `docker restart redis-shared`
+  - OpenBao KV v1 (pentru runtime config, fara a afisa secrete):
+    - `secret/neanelu/prod/redis` (host/port/username/prefix; parola goala in acest moment, ca Cerniq)
+    - `secret/neanelu/staging/redis`
+  - Verificare (executata):
+    - `PING` ca `neanelu-prod` / `neanelu-staging` (parola goala) -> `PONG`
+    - `SET neanelu:prod:*` OK pentru `neanelu-prod`; `SET neanelu:staging:*` -> `NOPERM`
+    - `SET neanelu:staging:*` OK pentru `neanelu-staging`; `SET neanelu:prod:*` -> `NOPERM`
+
 ### Implementare Cerniq.app
 
 Aceasta subsectiune documenteaza implementarea Cerniq.app pe infrastructura noua (Proxmox + LXC dedicate + servicii centralizate pe orchestrator).
 
-#### Obiectiv
+#### Obiective pt. Cerniq.app
 
 - Migrare Cerniq.app fara a afecta alte proiecte: folosim Traefik/OpenBao/observability centralizate si baze de date pe CT 107.
 - CT-urile dedicate Cerniq:
@@ -430,13 +901,300 @@ Aceasta subsectiune documenteaza implementarea Cerniq.app pe infrastructura noua
   - CT 108: GitHub Actions runner self-hosted
   - CT 109: productie Cerniq (Docker stack)
   - CT 110: staging Cerniq (Docker stack)
-- Resurse curente (verificate pe hz.223):
-  - CT 109: 8 cores, 32768 MiB RAM, swap 2048 MiB, rootfs 100G
-  - CT 110: 4 cores, 16384 MiB RAM, swap 512 MiB, rootfs 80G
+- Resurse curente (verificate 2026-02-15):
+  - Placement:
+    - `hz.223` hosteaza CT108/CT109/CT110 (LXC).
+    - `hz.247` hosteaza CT107 (LXC) si gateway-ul intern VIP `10.0.1.10` (HAProxy TCP passthrough + allowlist iptables).
+  - CT 107 (`postgres-main`, pe `hz.247`): 8 cores, 32768 MiB RAM, swap 512 MiB, rootfs 100G
+  - CT 108 (`CI-worker`, pe `hz.223`): 2 cores, 8192 MiB RAM, swap 1024 MiB, rootfs 40G
+  - CT 109 (`prod-cerniq`, pe `hz.223`): 8 cores, 32768 MiB RAM, swap 2048 MiB, rootfs 100G
+  - CT 110 (`staging-cerniq`, pe `hz.223`): 4 cores, 16384 MiB RAM, swap 512 MiB, rootfs 80G
+
+#### Inventar + pre-flight (executat 2026-02-15)
+
+Comenzi folosite (read-only):
+
+- SSH (key auth, non-interactiv): `ssh orchestrator`, `ssh hz.223`, `ssh hz.247`
+- Control-plane LXC: `pct list`, `pct config <id>`, `pct exec <id> -- ...`
+
+Rezultate confirmate:
+
+- Orchestrator (Debian 13, `orchestrator.neanelu.ro`, public `77.42.76.185`, privat `10.0.0.2`):
+  - Kernel (verificat): `6.12.57+deb13-cloud-amd64`
+  - Docker: `29.2.1`, Compose: `v5.0.2`
+  - Stack observability/ingress/secrets este UP: `traefik`, `openbao`, `prometheus`, `grafana`, `loki`, `tempo`, `alertmanager`, `vector`, `otel-collector`, `cadvisor`, `node-exporter`
+  - OpenBao health (fara secrete): `initialized=True`, `sealed=False`, `standby=False`, `version=2.5.0`, `GET /v1/sys/health -> 200`
+  - Traefik config Cerniq este prezent: `/opt/traefik/dynamic/cerniq.yml`
+
+- `hz.247` (Proxmox node + gateway intern):
+  - OS (verificat): Debian 13 (trixie), kernel `6.17.9-1-pve`
+  - VIP intern: `10.0.1.10`
+  - HAProxy listeners (confirmat): `10.0.1.10:443`, `10.0.1.10:6379`, plus porturi observability gateway (`19000/19010/19012` si `29000/29010/29012`)
+  - iptables allowlist pe VIP (confirmat):
+    - accept doar din CT109/CT110 catre `10.0.1.10:443` si `10.0.1.10:6379`, apoi `DROP` pentru restul
+    - accept din orchestrator `10.0.0.2/32` catre porturile observability gateway, apoi `DROP` pentru restul
+  - CT107 exista ca LXC `postgres-main` pe acest node
+
+- CT107 `postgres-main` (Ubuntu 24.04, `10.0.1.107`):
+  - Kernel (verificat): `6.17.9-1-pve`
+  - PostgreSQL: `18.1` (pgdg build)
+  - WAL archiving (confirmat): `archive_mode=on`, `archive_command='cp %p /var/lib/postgresql/18/main/wal_archive/%f'`
+  - Director `wal_archive` exista si contine segmente WAL (ultima actualizare observata: 2026-02-15)
+
+- `hz.223` (Proxmox node):
+  - OS (verificat): Debian 13 (trixie), kernel `6.17.9-1-pve`
+  - CT108/CT109/CT110 sunt `running` pe `vmbr4000`, gateway `10.0.1.7`, MTU `1400`
+
+- CT109 `prod-cerniq` (Ubuntu 24.04, `10.0.1.109`) si CT110 `staging-cerniq` (Ubuntu 24.04, `10.0.1.110`):
+  - Kernel (verificat): `6.17.9-1-pve`
+  - Docker: `28.2.2` (Ubuntu package)
+  - `/opt/cerniq` prezent (deployment path)
+  - Containere Cerniq confirmate UP:
+    - `cerniq-openbao-agent-api`, `cerniq-openbao-agent-workers`, `cerniq-openbao-agent-infra`: `healthy`
+    - `cerniq-pgbouncer`: `healthy`
+    - `cerniq-cadvisor`: `healthy`
+    - `cerniq-vector`, `cerniq-otel-collector`: `running` (fara healthcheck in acest moment)
+
+#### Pre-flight extins (executat 2026-02-15) — CT109/CT110
+
+Executie controlata, fara fisiere persistente:
+
+- Runner (repo): `infra/scripts/preflight_extins_run.py`
+  - creeaza temporar pe nod (`/tmp/cerniq-preflight-extins-...`), face `pct push` in CT ca `/tmp/preflight_extins_ct.sh`, ruleaza local, apoi sterge atat din CT cat si din nod
+- Script rulat in CT (repo): `infra/scripts/preflight_extins_ct.sh`
+
+Rezultate confirmate pe ambele CT-uri (prod `10.0.1.109` si staging `10.0.1.110`):
+
+- `docker compose ps`:
+  - nu exista compose in radacina `/opt/cerniq/`, dar exista in `/opt/cerniq/infra/docker/docker-compose.yml`
+  - servicii vizibile in `compose ps`: `cerniq-pgbouncer`, `cerniq-openbao-agent-*`, `cerniq-vector`, `cerniq-otel-collector`, `cerniq-cadvisor`
+  - porturi observate (din compose ps):
+    - `cerniq-cadvisor`: host `:64094 -> 8080/tcp`
+    - `cerniq-otel-collector`: host `:64070 -> 4317/tcp`, `:64071 -> 4318/tcp`
+
+- Conectivitate TCP (python3 socket connect):
+  - CT109/CT110 -> CT107 PostgreSQL `10.0.1.107:5432`: OK
+  - CT109/CT110 -> VIP gateway `10.0.1.10:443` (TLS passthrough): OK
+  - CT109/CT110 -> VIP gateway `10.0.1.10:6379` (Redis passthrough): OK
+
+- Rezolvare DNS / override:
+  - `s3cr3ts.neanelu.ro` pe host rezolva la `10.0.1.10` (override pentru trafic intern controlat prin gateway)
+  - `logs-cerniq.neanelu.ro` si `otel-cerniq.neanelu.ro` pe host rezolva la IP public `77.42.76.185` (normal DNS)
+  - override-ul catre VIP pentru logs/otel este facut la nivel de container (confirmat prin `docker inspect`):
+    - `cerniq-vector`: `ExtraHosts=["logs-cerniq.neanelu.ro:10.0.1.10"]`
+    - `cerniq-otel-collector`: `ExtraHosts=["otel-cerniq.neanelu.ro:10.0.1.10"]`
+
+- OpenBao reachability (HTTPS):
+  - `GET https://s3cr3ts.neanelu.ro/v1/sys/health` -> `200` din CT109 si CT110
+
+#### Pre-flight extins (executat 2026-02-15) — CT107 (PostgreSQL)
+
+Executie controlata, fara fisiere persistente:
+
+- Runner (repo): `infra/scripts/preflight_extins_run.py`
+  - upload temporar pe `hz.247` + `pct push` in CT107 ca `/tmp/preflight_extins_ct.sh`, rulare locala, apoi cleanup
+- Script rulat in CT107 (repo): `infra/scripts/preflight_extins_ct107_pg.sh`
+
+Rezultate confirmate (CT107 `postgres-main`, `10.0.1.107`):
+
+- PostgreSQL:
+  - service: `postgresql=active`
+  - `psql --version`: `18.1` (pgdg)
+  - `SELECT version()` OK
+  - `pg_isready` OK pe socket si `127.0.0.1:5432`
+- WAL archiving:
+  - `archive_mode=on`
+  - `archive_command=cp %p /var/lib/postgresql/18/main/wal_archive/%f`
+  - `wal_level=replica`
+  - director `wal_archive` prezent si contine segmente WAL
+- Conectivitate (din CT107):
+  - `10.0.0.2:443` (orchestrator internal): OK
+  - `10.0.1.10:443` si `10.0.1.10:6379` (VIP gateway hz.247): timeout
+    - nota: acest comportament este compatibil cu allowlist-ul VIP (Cerniq CT109/CT110 au acces la VIP; CT107 nu este in allowlist)
+
+#### Pre-flight extins (executat 2026-02-15) — hz.247 (VIP/iptables/HAProxy)
+
+Executie controlata, fara fisiere persistente:
+
+- Runner (repo): `infra/scripts/preflight_extins_run_node.py`
+  - upload temporar pe node in `/tmp`, executie cu `sudo`, apoi cleanup
+- Script rulat pe node (repo): `infra/scripts/preflight_extins_hz247_host.sh`
+
+Rezultate confirmate (hz.247):
+
+- HAProxy: `active`
+- Listeners VIP `10.0.1.10`:
+  - `:443` (TLS passthrough), `:6379` (Redis passthrough)
+  - porturi observability gateway: `19000/19010/19012` si `29000/29010/29012`
+- iptables INPUT (VIP allowlist):
+  - permite `10.0.1.109/32` si `10.0.1.110/32` catre `10.0.1.10:443` si `10.0.1.10:6379`, apoi `DROP` pentru restul
+  - permite orchestrator `10.0.0.2/32` catre porturile observability gateway, apoi `DROP` pentru restul
+- iptables FORWARD (egress control pentru CT-uri):
+  - reguli explicite pentru `10.0.1.107/108/109/110` permit doar `80/443/53` + `RELATED,ESTABLISHED`, apoi `DROP` (deny by default)
+- Placement confirmat:
+  - `pct list` pe hz.247 contine doar `107 postgres-main`
+
+#### Pre-flight extins (executat 2026-02-15) — hz.223 (control-plane CT108/109/110)
+
+Executie controlata, fara fisiere persistente:
+
+- Runner (repo): `infra/scripts/preflight_extins_run_node.py`
+- Script rulat pe node (repo): `infra/scripts/preflight_extins_hz223_host.sh`
+
+Rezultate confirmate (hz.223):
+
+- OS/kernel: Debian 13 (trixie), kernel `6.17.9-1-pve`
+- iptables/PVEFW:
+  - chain-urile PVEFW exista si `FORWARD` sare in `PVEFW-FORWARD`
+  - in acest moment nu apar reguli specifice per-CT in `FORWARD` sau `PVEFW-FORWARD` (doar reguli generice, ex: `RELATED,ESTABLISHED`)
+  - nota: egress control pentru CT-uri (deny-by-default) este aplicat pe gateway `hz.247` (confirmat in pre-flight `hz.247`)
+- Placement CT-uri pe acest node (confirmat):
+  - `CT108 CI-worker` (`10.0.1.108/24`, `vmbr4000`, gw `10.0.1.7`, MTU `1400`)
+  - `CT109 prod-cerniq` (`10.0.1.109/24`, `vmbr4000`, gw `10.0.1.7`, MTU `1400`)
+  - `CT110 staging-cerniq` (`10.0.1.110/24`, `vmbr4000`, gw `10.0.1.7`, MTU `1400`)
+
+#### Pre-flight extins (executat 2026-02-15) — orchestrator (Traefik/OpenBao/Observability)
+
+Executie controlata, fara fisiere persistente:
+
+- Runner (repo): `infra/scripts/preflight_extins_run_node.py`
+- Script rulat pe host (repo): `infra/scripts/preflight_extins_orchestrator.sh`
+- Validare drift `cerniq.yml`:
+  - runner-ul paseaza `CERNIQ_YML_EXPECTED_SHA256` calculat local din `infra/config/traefik-orchestrator/cerniq.yml`
+
+Rezultate confirmate (orchestrator):
+
+- Docker / stack core (UP):
+  - containere prezente: `traefik`, `openbao`, `prometheus`, `grafana`, `loki`, `tempo`, `alertmanager`, `vector`, `otel-collector`, `cadvisor`, `node-exporter`
+  - `cadvisor` are healthcheck `healthy`; restul sunt `running` (fara healthcheck expus)
+- OpenBao:
+  - `GET /v1/sys/health` -> `200`
+  - `initialized=True`, `sealed=False`, `standby=False`, `version=2.5.0`
+- Traefik dynamic config (Cerniq):
+  - fisier existent: `/opt/traefik/dynamic/cerniq.yml`
+  - `dynamic_conf.yml` contine identificatori Cerniq (sanity): `cerniq.app`, `api.cerniq.app`, `admin.cerniq.app`, `staging.cerniq.app`, `otel-cerniq.neanelu.ro`
+  - Drift detectat (IMPORTANT):
+    - sha256 actual pe orchestrator (`/opt/traefik/dynamic/cerniq.yml`): `a7c769c5d8c988f1a473b571695bc1670b3823e94b162737e92884213529defa`
+    - sha256 asteptat din repo (`infra/config/traefik-orchestrator/cerniq.yml`): `2ea2c85b811cfa6b71e690a4c2f11d96c51cdd25fca4a59784fed71a166ff71e`
+    - `cerniq_yml_sha256_match=NO`
+  - Actiune recomandata:
+    - investigheaza ce pipeline/sync a scris `/opt/traefik/dynamic/cerniq.yml`
+    - decide SoT (repo vs orchestrator) si sincronizeaza (ideal: repo -> orchestrator) in mod aditiv, fara a afecta alte proiecte
+
+#### Drift remediation (executat 2026-02-15) — Traefik Cerniq (SoT = repo)
+
+Context:
+
+- Traefik container monteaza `dynamic_conf.yml` (SoT runtime): `/etc/traefik/dynamic_conf.yml <- /opt/traefik/dynamic_conf.yml`
+- `cerniq.yml` de proiect exista la `/opt/traefik/dynamic/cerniq.yml` (util pentru merge/operare), dar nu este montat direct in container in acest moment.
+
+Investigatie drift (scriptata, read-only):
+
+- Script (repo): `infra/scripts/traefik_cerniq_yml_drift.sh` (upload temporar + cleanup)
+- Diferente observate initial:
+  - `/opt/traefik/dynamic/cerniq.yml` lipseste `10.0.1.10/32` din `cerniq-otlp-allowlist`
+  - `/opt/traefik/dynamic_conf.yml` (runtime) nu continea deloc `10.0.1.10/32` (nici macar ca string), iar blocul `cerniq-otlp-allowlist` avea doar `10.0.1.109/32` si `10.0.1.110/32`
+
+Fix aplicat (controlat, cu backup):
+
+- Patch runtime SoT (`dynamic_conf.yml`) pentru OTLP allowlist (idempotent):
+  - Script (repo): `infra/scripts/traefik_patch_dynamic_conf_cerniq_otlp_allowlist.py` (upload temporar + cleanup)
+  - Backup creat pe orchestrator: `/opt/traefik/dynamic_conf.yml.bak.20260215T220728Z`
+  - Rezultat: `cerniq-otlp-allowlist` include acum `10.0.1.10/32`
+- Sync fisier proiect (`/opt/traefik/dynamic/cerniq.yml`) cu repo (SoT=repo):
+  - Backup creat pe orchestrator: `/opt/traefik/dynamic/cerniq.yml.bak.20260215T220828Z`
+  - Rezultat: `sha256` match repo (drift rezolvat pentru `cerniq.yml`)
+
+Verificare post-fix (executata):
+
+- `traefik_cerniq_yml_drift.sh` confirma:
+  - `sha_match=YES` intre repo si `/opt/traefik/dynamic/cerniq.yml`
+  - `dynamic_conf_otlp_allowlist_has_10.0.1.10=True`
+
+#### Verificare E2E OTLP prin gateway (executat 2026-02-15)
+
+Scop:
+
+- confirmam end-to-end ca OTLP HTTP (`/v1/traces`) ajunge la OTEL Collector central prin gateway-ul intern (`hz.247` VIP `10.0.1.10`) si ca Traefik nu mai blocheaza prin allowlist.
+
+Executie controlata, fara fisiere persistente:
+
+- Script CT (repo): `infra/scripts/otlp_gateway_e2e_test_ct.sh`
+  - ruleaza `curl` cu `--resolve otel-cerniq.neanelu.ro:443:10.0.1.10` (forteaza ruta prin VIP, SNI pastrat)
+  - request: `POST /v1/traces` cu `Content-Type: application/x-protobuf` si body gol (smoke-test)
+- Runner: `infra/scripts/preflight_extins_run.py` (upload temporar + `pct exec` + cleanup)
+
+Rezultate:
+
+- CT109 (`10.0.1.109`) -> VIP -> `https://otel-cerniq.neanelu.ro/v1/traces`: `200`
+- CT110 (`10.0.1.110`) -> VIP -> `https://otel-cerniq.neanelu.ro/v1/traces`: `200`
+- Test direct (fara `--resolve`, ruta prin public/NAT) ramane `403` (asteptat; Traefik vede IP-ul public NAT si nu e in allowlist)
+- CT107 (`10.0.1.107`) -> VIP: `000` (connect failed) (asteptat; CT107 nu este allowlisted in iptables INPUT pe VIP `10.0.1.10:443`)
+
+Fix-uri necesare ca E2E sa treaca (executate in aceasta ordine):
+
+- Traefik allowlist runtime (fisier montat in container):
+  - `dynamic_conf.yml` este SoT runtime pentru Traefik (`/etc/traefik/dynamic_conf.yml <- /opt/traefik/dynamic_conf.yml`)
+  - a fost necesar:
+    - sa includem `10.0.1.10/32` in `cerniq-otlp-allowlist` (gateway source)
+    - sa normalizam YAML-ul (indentare/quotes) pentru ca Traefik sa interpreteze corect `sourceRange`
+  - backup-uri create pe orchestrator:
+    - `/opt/traefik/dynamic_conf.yml.bak.20260215T220728Z`
+    - `/opt/traefik/dynamic_conf.yml.bak.20260215T221709Z`
+  - Traefik restart (controlat) efectuat pentru a forta reload: script `infra/scripts/traefik_restart_orchestrator.sh`
+- OTEL Collector central:
+  - problema: `otel-collector:4318` refuza conexiuni in reteaua `observability` (Connection refused) -> Traefik returna `502`
+  - config: `/opt/observability/otel/otel-collector.yml` (mount in container)
+  - patch-uri aplicate (backup + restart `otel-collector`):
+    - `grpc/http` normalize (null -> map): `/opt/observability/otel/otel-collector.yml.bak.20260215T222508Z`
+    - endpoints explicite:
+      - `grpc.endpoint: 0.0.0.0:4317`
+      - `http.endpoint: 0.0.0.0:4318`
+      - backup: `/opt/observability/otel/otel-collector.yml.bak.20260215T222944Z`
+  - probe intra-network (executata): din container `grafana` -> `otel-collector:4318`
+    - `GET /` -> `404`
+    - `POST /v1/traces` (empty protobuf) -> `200`
 
 #### Taskuri implementate (plan) si referinte
 
 Taskurile marcate `completed` in planul de migrare sunt implementate si au referinte concrete mai jos:
+
+#### Actualizari documentatie (2026-02-15)
+
+- Purge observability legacy din documentatia operationala (stack curent: Grafana/Prometheus/Loki/Tempo/Vector/OTEL)
+  - Repo: `docs/infrastructure/observability-stack.md` (sursa curenta)
+  - Stub legacy (pastrat doar ca redirect): `docs/infrastructure/observability-signoz.md`
+  - Verificare (repo): `rg '\bSigNoz\b|\bClickHouse\b' docs/` returneaza doar ADR-uri istorice (ex: ADR-0016 / ADR-E0-0034 / ADR-INDEX)
+- CI/CD documentatie aliniata la infra noua (runner CT108, deploy CT109/CT110, OpenBao orchestrator, PG extern CT107)
+  - Repo: `docs/infrastructure/CI-CD-AUDIT-2026-02.md`
+  - Stub deprecated: `docs/infrastructure/CI-CD-AUDIT-2026-02-04.md`
+  - Repo: `docs/infrastructure/ci-cd-pipeline.md`
+  - Repo: `docs/adr/ADR Etapa 0/ADR-0032-CI-CD-Pipeline-Strategy.md`
+- Developer guide aliniat la arhitectura curenta (fara referinte la PostgreSQL/OpenBao local in Docker pentru staging/prod)
+  - Repo: `docs/developer-guide/getting-started.md`
+  - Repo: `docs/developer-guide/troubleshooting.md`
+  - Repo: `docs/developer-guide/circuit-breaker-pattern.md`
+
+#### Actualizari suplimentare (2026-02-15, continuare)
+
+- Runbooks rescrise pentru infra noua (fara postgres/redis/openbao local in Docker)
+  - Repo: `docs/runbooks/incident-response.md`, `docs/runbooks/database-recovery.md`, `docs/runbooks/openbao-recovery.md`, `docs/runbooks/redis-failover.md`, `docs/runbooks/worker-failure.md`
+- ADR index + conflict numerotare observability rezolvat
+  - Repo: `docs/adr/ADR-INDEX.md`
+  - Observability ADR curent: `docs/adr/ADR Etapa 0/ADR-E0-0034-Centralized-Observability-Stack-Orchestrator.md`
+  - ADR istoric SigNoz: `docs/adr/ADR Etapa 0/ADR-0016-SigNoz-pentru-Observability.md` (marcat superseded de ADR-E0-0034)
+- Docs infrastructure restante aliniate (OpenBao setup, secrets rotation, backup strategy, resource upgrade)
+  - Repo: `docs/infrastructure/openbao-setup-guide.md`, `docs/infrastructure/secrets-rotation-procedure.md`, `docs/infrastructure/backup-strategy.md`, `docs/infrastructure/RESOURCE-UPGRADE-PLAN.md`, `docs/infrastructure/docker-log-rotation.md`
+- Specs Etapa 0-5 aliniate (porturi CI standard 5432/6379, DB extern CT107, Redis shared, OpenBao orchestrator)
+  - Repo: `docs/specifications/Etapa 0/`, `docs/specifications/Etapa 1/`, `docs/specifications/Etapa 2/`, `docs/specifications/Etapa 3/`, `docs/specifications/Etapa 4/`, `docs/specifications/Etapa 5/`
+  - Master spec: `docs/specifications/master-specification.md` (OpenBao KV v1 + mount `cerniq-db/`)
+- Testing docs + E2E tests aliniate (fara secrete in repo, fara IP-uri legacy in teste)
+  - Repo: `docs/testing/` si `tests/e2e/infrastructure/`
+- CI hardening (Trivy blocant + CI gaps CI1-CI7)
+  - Repo: `.github/workflows/ci-pr.yml` (prettier check, shellcheck, test artifacts, security pe orice PR)
+  - Repo: `.github/workflows/deploy.yml` (build matrix include worker images)
+- Cleanup artefacte repo
+  - Sterse fisiere untracked: `=2`, `.Destination}}{{end}}'`
 
 - `f1-01-traefik-orchestrator-yml`
   - Repo: `infra/config/traefik-orchestrator/cerniq.yml`
@@ -522,7 +1280,7 @@ Taskurile marcate `completed` in planul de migrare sunt implementate si au refer
 
 - `f1-43-vector-config-create`
   - Repo: `infra/config/vector/vector.toml`
-  - Source: `docker_logs`; transform: adauga labels `project=cerniq`, `environment=${CERNIQ_ENV}`, `host=${HOSTNAME}`; sink: Loki `https://logs.neanelu.ro/loki/api/v1/push`
+  - Source: `docker_logs`; transform: adauga labels `project=cerniq`, `environment=${CERNIQ_ENV}`, `host=${HOSTNAME}`; sink: Loki `https://logs-cerniq.neanelu.ro/loki/api/v1/push`
   - Verificare:
     - `docker compose config` include serviciul `vector` + mount-uri docker socket + containers logs
 
@@ -543,7 +1301,9 @@ Taskurile marcate `completed` in planul de migrare sunt implementate si au refer
     - dynamic file: `/opt/traefik/dynamic/cerniq.yml`
     - merge in config agregat: `/opt/traefik/dynamic_conf.yml` (strict aditiv)
   - DNS/route: `otel-cerniq.neanelu.ro` (TLS cloudflare)
-  - Restrictionare: middleware allowlist doar `10.0.1.109/32` + `10.0.1.110/32` (Cerniq-only)
+  - Restrictionare: middleware allowlist Cerniq-only:
+    - `10.0.1.109/32` + `10.0.1.110/32` (CT-uri dedicate Cerniq)
+    - `10.0.1.10/32` (gateway intern hz.247, vezi `f1-60` "Gateway intern TLS observability")
   - Upstream: OTEL Collector central expus pe loopback pe orchestrator `127.0.0.1:4318`
     - Observability stack (orchestrator): `/opt/observability/docker-compose.yml` publica `127.0.0.1:4318:4318` pentru `otel-collector`
   - Verificare:
@@ -551,15 +1311,54 @@ Taskurile marcate `completed` in planul de migrare sunt implementate si au refer
 
 - `f1-47-orchestrator-loki-allowlist`
   - Orchestrator (observability stack): `/opt/observability/.env`
-  - Variabila `OBS_ALLOWED_CIDRS` contine (aditiv) `10.0.1.109/32,10.0.1.110/32` pentru push din CT109/CT110 catre Loki (`https://logs.neanelu.ro/loki/api/v1/push`)
+  - Variabila `OBS_ALLOWED_CIDRS` este folosita ca allowlist pentru UI-urile observability (Grafana/Prometheus/Loki/Tempo) prin middleware-ul `obs-allowlist@docker`
   - Verificare: `grep '^OBS_ALLOWED_CIDRS=' /opt/observability/.env`
   - Nota: scoping mai fin (doar push endpoints, nu UI) este tratat separat in plan (vezi `f1-60`)
+
+- `f1-60-loki-allowlist-scoped`
+  - Problema: allowlist global pentru `logs.neanelu.ro` permite si acces la UI/query endpoints (nu doar push), daca includem CIDR-uri de la hosturi aplicatie.
+  - Implementare (Cerniq-only):
+    - Am scos CT109/CT110 din `OBS_ALLOWED_CIDRS` global (raman doar IP-uri admin/gateway).
+    - Am adaugat endpoint separat pentru Cerniq log push: `logs-cerniq.neanelu.ro` (DNS A -> `77.42.76.185`).
+    - In observability stack (`/opt/observability/docker-compose.yml`), serviciul `loki` are router Traefik nou:
+      - rule: `Host(\`logs-cerniq.neanelu.ro\`) && PathPrefix(\`/loki/api/v1/push\`)`
+      - middleware allowlist: `10.0.1.10/32` (gateway intern hz.247; sursa stabila pentru CT109/CT110)
+      - `ipallowlist.ipstrategy.depth=0` pentru acest endpoint (clientii Vector nu trimit `X-Forwarded-For`; depth=1 poate duce la "empty IP address" si `403`)
+    - In repo, Vector Cerniq foloseste noul endpoint: `infra/config/vector/vector.toml` -> `https://logs-cerniq.neanelu.ro/loki/api/v1/push`
+    - Gateway intern TLS observability (Cerniq-only, aditiv, fara impact pe alte proiecte):
+      - Host: `hz.247` (gateway/NAT)
+      - Bind: `10.0.1.10:443` (doar intern, nu public)
+      - Implementare: HAProxy in mod TCP passthrough catre Traefik orchestrator `10.0.0.2:443` (TLS se termina in Traefik; certificatul/SNI raman intacte)
+      - Restrictie acces: iptables INPUT pe `hz.247` permite `10.0.1.109/32` si `10.0.1.110/32` catre `10.0.1.10:443`, apoi DROP pentru restul
+      - Motiv: in anumite cazuri, conexiunea directa CT109/CT110 -> `10.0.0.2:443` poate avea probleme de return path/TLS handshake; gateway-ul ofera o ruta interna stabila fara a folosi IP-uri publice/NAT pentru observability
+  - Verificare:
+    - DNS: `dig +noall +answer @1.1.1.1 A logs-cerniq.neanelu.ro` -> `77.42.76.185`
+    - Router allowlist: pe orchestrator (neallowlisted) `curl -sk -H 'Host: logs-cerniq.neanelu.ro' https://127.0.0.1/loki/api/v1/push` -> `403`
+
+- `f2-01-ci-runner-ssh-key`
+  - CT108 (CI runner): exista cheie SSH deploy pentru user `deploy` in `/home/deploy/.ssh/id_ed25519`
+  - CT110 (staging): cheia publica este in `/home/deploy/.ssh/authorized_keys`
+  - Verificare (din CT108): `ssh -i /home/deploy/.ssh/id_ed25519 deploy@10.0.1.110 "echo ssh_ok"` -> `ssh_ok`
+
+- `f2-02-ci-runner-verify`
+  - Runner `CI-worker-108` este online in GitHub Actions (repo runners)
+  - Verificare (API): `gh api repos/neacisu/cerniq_app_v0.0.1/actions/runners` arata `CI-worker-108 status=online busy=false`
+  - Verificare (CT108): `actions.runner.neacisu-cerniq_app_v0.0.1.CI-worker-108.service` este `active (running)`
+
+- `f2-03-github-secrets-staging`
+  - GitHub Actions secrets (repo `neacisu/cerniq_app_v0.0.1`) sunt setate:
+    - `STAGING_HOST=10.0.1.110`
+    - `STAGING_USER=deploy`
+    - `STAGING_SSH_KEY` = cheia privata de deploy de pe CT108 (nu se afiseaza)
+  - Verificare (fara a expune valori): `gh api repos/neacisu/cerniq_app_v0.0.1/actions/secrets --jq '.secrets[].name' | egrep 'STAGING_HOST|STAGING_USER|STAGING_SSH_KEY'`
 
 - `f1-48-orchestrator-prometheus-targets`
   - Orchestrator (observability stack): `/opt/observability/prometheus/prometheus.yml`
   - Scrape jobs aditive pentru Cerniq:
-    - `job_name: cerniq-nodes` (node-exporter): `10.0.1.109:9100`, `10.0.1.110:9100`, `10.0.1.107:9100`, `10.0.1.108:9100`
-    - `job_name: cerniq-docker` (cAdvisor): `10.0.1.109:64094`, `10.0.1.110:64094`
+    - `job_name: cerniq-nodes` (node-exporter):
+      - prin gateway L4 hz.247 (VIP `10.0.1.10`): `10.0.1.10:29100` (CT109), `10.0.1.10:19100` (CT110)
+      - direct: `10.0.1.107:9100`, `10.0.1.108:9100`
+    - `job_name: cerniq-docker` (cAdvisor) prin gateway: `10.0.1.10:29094` (CT109), `10.0.1.10:19094` (CT110)
   - Labels: `project=cerniq`
   - Verificare: `grep -n \"job_name: cerniq-\" -n /opt/observability/prometheus/prometheus.yml`
 
@@ -572,6 +1371,21 @@ Taskurile marcate `completed` in planul de migrare sunt implementate si au refer
   - Repo: `infra/config/dns/cloudflare-records.txt`
   - Update: toate A record-urile Cerniq (`cerniq.app`, `www`, `api`, `admin`, `staging`, `api.staging`, `admin.staging`) pointeaza la Traefik orchestrator `77.42.76.185`
   - Add: `otel-cerniq.neanelu.ro` -> `77.42.76.185` (zona Cloudflare `neanelu.ro`)
+
+- `f1-16-dns-cloudflare-config` (F1.3)
+  - Scop: cutover DNS catre Traefik orchestrator `77.42.76.185`
+  - Implementare:
+    - manual in Cloudflare UI (zona `cerniq.app` + zona `neanelu.ro`), conform `infra/config/dns/cloudflare-records.txt`, sau
+    - automat: `python3 infra/scripts/cloudflare_sync_dns.py --apply` (necesita `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ZONE_ID_CERNIQ_APP`, `CLOUDFLARE_ZONE_ID_NEANELU_RO`)
+  - Verificare (public DNS):
+    - `dig +noall +answer A cerniq.app` trebuie sa arate `77.42.76.185`
+    - `dig +noall +answer CNAME www.cerniq.app` trebuie sa arate `cerniq.app`
+    - `dig +noall +answer A api.cerniq.app admin.cerniq.app staging.cerniq.app api.staging.cerniq.app admin.staging.cerniq.app` trebuie sa arate `77.42.76.185`
+    - `dig +noall +answer A otel-cerniq.neanelu.ro` trebuie sa arate `77.42.76.185`
+  - Status: IMPLEMENTAT (aplicat in Cloudflare)
+  - Verificare rapida (fara cache local/ISP):
+    - `dig +noall +answer @1.1.1.1 A cerniq.app` -> `77.42.76.185` (TTL 60)
+    - `dig +noall +answer @8.8.8.8 A cerniq.app` -> `77.42.76.185` (TTL 60)
 
 - `f1-51-hz247-iptables-prometheus-scrape`
   - Repo template: `infra/config/iptables/hz247-cerniq-inbound.rules`
@@ -726,6 +1540,11 @@ Taskurile marcate `completed` in planul de migrare sunt implementate si au refer
 - Config agenti in repo:
   - `infra/config/openbao/agent-api.hcl`
   - `infra/config/openbao/agent-workers.hcl`
+  - `infra/config/openbao/agent-infra.hcl`
+- Routing intern OpenBao (CT109/CT110 -> orchestrator):
+  - Pentru a forta traficul catre `https://s3cr3ts.neanelu.ro` strict prin gateway-ul intern stabil (similar observability/redis), pe CT109/CT110 exista o intrare in `/etc/hosts`:
+    - `10.0.1.10 s3cr3ts.neanelu.ro` (hz.247 L4 -> orchestrator `10.0.0.2:443`)
+  - Verificare pe CT: `getent hosts s3cr3ts.neanelu.ro` trebuie sa arate `10.0.1.10`.
 
 #### Redis shared (orchestrator)
 
@@ -736,6 +1555,18 @@ Taskurile marcate `completed` in planul de migrare sunt implementate si au refer
   - `REDIS_PREFIX=cerniq:` (prefix general chei aplicatie)
   - `BULLMQ_PREFIX=cerniq` (fara `:`) pentru cheile BullMQ (BullMQ adauga separator `:` intern)
   - Smoke test (repo): `pnpm smoke:bullmq-prefix` (creeaza un job si verifica pattern-ul cheilor sub prefix, apoi curata)
+
+#### Migrare date (prod vechi -> infrastructura noua)
+
+- Prod vechi: `95.216.225.145` (host "erp", Docker: `cerniq-postgres`, `cerniq-redis`).
+- Artefacte migrate (copiate pe CT109 pentru audit/referinta): `/opt/cerniq/migration/`
+  - `cerniq_db.dump` (dump db-only, format custom) — dump-ul folosit pentru restore pe CT107.
+  - `cerniq_full_dump.sql.gz` (pg_dumpall, informational/forensic; NU se aplica pe CT107 pentru ca CT107 e shared).
+  - `cerniq_redis_data.tgz` (Redis AOF preamble: `/data/appendonlydir/*` din vechiul container).
+  - `cerniq_pg_volumes_and_config.tgz` (volum PG vechi + config-uri vechi, doar ca referinta).
+- Restore DB prod pe CT107 (shared):
+  - Comanda folosita (executata): `pg_restore --clean --if-exists --no-owner --no-privileges -d cerniq /opt/cerniq/migration/cerniq_db.dump`
+  - Verificare (executata): extensii prezente (postgis, vector, pg_trgm, pg_stat_statements etc) + tabele restaurate.
 
 #### Docker stack Cerniq (CT 109/110)
 
@@ -763,10 +1594,21 @@ Taskurile marcate `completed` in planul de migrare sunt implementate si au refer
 
 #### Observabilitate Cerniq (integrat in stack-ul centralizat)
 
-- Logs: Vector -> Loki prin `https://logs.neanelu.ro`
+- Logs: Vector -> Loki prin `https://logs-cerniq.neanelu.ro` (Cerniq-only push endpoint)
   - Config in repo: `infra/config/vector/vector.toml`
   - Labels: `project="cerniq"`, `environment` din `CERNIQ_ENV`, `host` hostname
+  - Intern-only (fara NAT/public): pe CT109/CT110 folosim `extra_hosts` in compose pentru a rezolva domeniul catre gateway-ul intern:
+    - `logs-cerniq.neanelu.ro -> 10.0.1.10` (hz.247, HAProxy TCP passthrough)
+    - Astfel, Traefik poate aplica allowlist pe o sursa interna stabila si traficul ramane pe reteaua privata
 - OTEL: `otel-collector` local expune OTLP (4317/4318) pentru aplicatie si poate forwarda catre orchestrator prin HTTPS (route dedicata).
+  - Intern-only (fara NAT/public): pe CT109/CT110 folosim `extra_hosts`:
+    - `otel-cerniq.neanelu.ro -> 10.0.1.10`
+  - Nota: Traefik middleware allowlist include si `10.0.1.10/32` pentru scenariul gateway-ului intern (vezi `f1-46`)
+- Prometheus rules (Cerniq-only, aditiv):
+  - Orchestrator: `/opt/observability/prometheus/rules/infra-cerniq-alerts.yml` (NodeDown/DiskLow/MemoryLow)
+- Grafana dashboards (Cerniq-only, provisioning):
+  - Folder: `Cerniq`
+  - Path pe orchestrator: `/opt/observability/grafana/dashboards/cerniq/`
 
 #### CI/CD (CT 108 runner)
 
@@ -774,6 +1616,62 @@ Taskurile marcate `completed` in planul de migrare sunt implementate si au refer
   - CI: `.github/workflows/ci-pr.yml`
   - CD: `.github/workflows/deploy.yml`
 - CD sincronizeaza pe target (CT109/CT110) configuratii + compose si poate sincroniza (prin SSH) si configuratia Traefik pentru Cerniq.
+- GitHub Secrets (aliniate la noua infrastructura):
+  - `STAGING_HOST=10.0.1.110`, `STAGING_USER=deploy`
+  - `PRODUCTION_HOST=10.0.1.109`, `PRODUCTION_USER=deploy`
+  - `STAGING_SSH_KEY` si `PRODUCTION_SSH_KEY`: cheie dedicata de deploy (instalata in `~deploy/.ssh/authorized_keys` pe CT109/CT110).
+  - CI foloseste exclusiv OpenBao orchestrator prin `OPENBAO_ADDR` + AppRole CI/CD (`OPENBAO_CICD_ROLE_ID`, `OPENBAO_CICD_SECRET_ID`); `secret_id` poate fi rotit fara a schimba codul pipeline-ului.
+
+#### OpenBao DB creds TTL (stabilitate)
+
+- Dinamic DB creds (`cerniq-db/creds/api-dynamic` si `workers-dynamic`) au fost setate cu TTL mai mare (default 12h, max 72h) pentru a evita expirarea frecventa (care produce "no such user" in PgBouncer cand userul expira intre rulari).
+
+#### Backup DB (CT107)
+
+- CT107 ruleaza PostgreSQL nativ; backup-ul logic pentru DB `cerniq` este facut local prin cron:
+  - Script: `/opt/cerniq/scripts/ct107_pg_dump_cerniq.sh` (ruleaza ca `postgres`, fara parole)
+  - Cron: `/etc/cron.d/ct107-cerniq-pg-dump`
+  - Output: `/var/backups/cerniq/pg/cerniq_*.dump` (retentie locala 14 zile; upload offsite se face separat)
+
+#### Validare ingress staging (f2-10, executat 2026-02-15)
+
+Scop: validare end-to-end a tuturor cailor de ingress pentru staging (CT110) pe 3 straturi:
+- Layer 1 (direct): hz.223 node -> CT110 IP
+- Layer 2 (gateway): orchestrator -> VIP 10.0.1.10 (HAProxy hz.247 TCP passthrough) -> CT110
+- Layer 3 (Traefik): orchestrator Traefik HTTPS -> VIP -> CT110
+
+Metoda:
+- Health responder temporar (Python3) deployat pe CT110 pe porturile app (64000/64010/64012).
+- Script de validare (repo): `infra/scripts/staging_validate_ingress.py` + `infra/scripts/staging_health_responder.py`
+- Responder-ul este uploadat temporar (SSH + `pct push`), rulat, testat, apoi curat.
+
+Drift remediat in timpul validarii:
+- `dynamic_conf.yml` (runtime SoT Traefik pe orchestrator) avea URL-uri directe catre CT-uri (`10.0.1.110:64000`) in loc de URL-uri gateway VIP (`10.0.1.10:19000`).
+- Script remediere (repo): `infra/scripts/traefik_fix_cerniq_service_urls.py`
+- Backup creat pe orchestrator: `/opt/traefik/dynamic_conf.yml.bak.20260215T225332Z`
+- Fix aplicat: 6 URL-uri (3 prod + 3 staging) actualizate la VIP gateway.
+- Traefik a reloadat automat (watch: true) si backend-urile au trecut la status UP.
+
+Rezultate validare (12/12 PASS):
+
+| Strat | Serviciu | Target | HTTP |
+| --- | --- | --- | --- |
+| L1-direct | web | `http://10.0.1.110:64000/health` | 200 |
+| L1-direct | api | `http://10.0.1.110:64010/health` | 200 |
+| L1-direct | admin | `http://10.0.1.110:64012/health` | 200 |
+| L2-gateway | web | `http://10.0.1.10:19000/health` | 200 |
+| L2-gateway | api | `http://10.0.1.10:19010/health` | 200 |
+| L2-gateway | admin | `http://10.0.1.10:19012/health` | 200 |
+| L3-traefik | web | `https://staging.cerniq.app/health` (resolve 127.0.0.1) | 200 |
+| L3-traefik | api | `https://api.staging.cerniq.app/health` (resolve 127.0.0.1) | 200 |
+| L3-traefik | admin | `https://admin.staging.cerniq.app/health` (resolve 127.0.0.1) | 200 |
+| L3-public | web | `https://77.42.76.185/health` Host: staging.cerniq.app | 200 |
+| L3-public | api | `https://77.42.76.185/health` Host: api.staging.cerniq.app | 200 |
+| L3-public | admin | `https://77.42.76.185/health` Host: admin.staging.cerniq.app | 200 |
+
+Nota: health responder-ul a fost curat dupa validare; porturile 64000/64010/64012 pe CT110 nu mai au listeners activi. Cand aplicatia reala (web/api/admin) va fi deployata, aceste porturi vor fi ocupate de containerele Docker Cerniq.
+
+---
 
 ## Server de email — Implementare completa
 
@@ -1500,7 +2398,8 @@ Control acces:
 - middleware `obs-allowlist` pe toate cele 4 rute observability
 - Traefik configurat cu `forwardedHeaders.trustedIPs` pentru CIDR-urile Cloudflare
 - `ipallowlist.ipstrategy.depth=1` pentru evaluarea IP-ului real al clientului din `X-Forwarded-For`
-- acces direct pe origin IP blocat (trafic valid doar prin lanțul Cloudflare + allowlist)
+- Exceptie (ingest-only endpoints Cerniq): pentru `logs-cerniq.neanelu.ro/loki/api/v1/push` folosim `ipstrategy.depth=0` deoarece clientii (Vector) nu trimit `X-Forwarded-For` si depth=1 poate cauza `403` ("empty IP address")
+- acces direct pe origin IP blocat (trafic valid doar prin lantul Cloudflare + allowlist)
 
 ### Flux de date detaliat
 
@@ -2462,6 +3361,8 @@ Sfarsit raport.
 
 HETZNER_CLOUD_API_TOKEN=Y6hSeQqo79a9libPUMiF4aCRywoY4jdM6Q0EfPmCgErFJ6vPx1TWLzGpWkmcvzt7
 CLOUDFLARE_ALL_ZONES_TOKEN=pPksXCfTSyAV_AdEAfPBiIFGGAdJBe1xoD83d9Wc
+
+NOTA: temporar pastrate aici pentru taskuri urmatoare; curatarea se face la final (vezi `final-01-secret-cleanup` in plan).
 
 ## WireGuard VPN (orchestrator <-> home/ctera)
 

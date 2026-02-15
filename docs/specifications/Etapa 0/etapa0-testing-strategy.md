@@ -91,8 +91,8 @@ import { beforeAll, afterAll, beforeEach } from 'vitest';
 
 // Mock environment
 process.env.NODE_ENV = 'test';
-process.env.DATABASE_URL = 'postgresql://test:test@localhost:64032/cerniq_test';
-process.env.REDIS_URL = 'redis://localhost:64039/1';
+process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/cerniq_test';
+process.env.REDIS_URL = 'redis://localhost:6379/1';
 
 // Global mocks
 vi.mock('@/lib/logger', () => ({

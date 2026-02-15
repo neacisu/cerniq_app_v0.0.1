@@ -825,11 +825,11 @@ jobs:
           --health-timeout 5s
           --health-retries 5
         ports:
-          - 64032:64032
+          - 5432:5432
       redis:
         image: redis:8.4-alpine
         ports:
-          - 64039:64039
+          - 6379:6379
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -840,8 +840,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm test:integration
         env:
-          DATABASE_URL: postgresql://postgres:test@localhost:64032/test
-          REDIS_URL: redis://localhost:64039
+          DATABASE_URL: postgresql://postgres:test@localhost:5432/test
+          REDIS_URL: redis://localhost:6379
 
   e2e-tests:
     runs-on: ubuntu-latest

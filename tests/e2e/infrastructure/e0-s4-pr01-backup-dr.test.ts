@@ -108,21 +108,10 @@ describe("F0.7.1: Backup Script Configuration", () => {
       // Should backup PostgreSQL
       expect(content.toLowerCase()).toMatch(/postgres/);
 
-      // Should backup Redis
-      expect(content.toLowerCase()).toMatch(/redis/);
+      // Redis este shared pe orchestrator in infra noua; backup-ul lui nu este in scope-ul CT109/CT110.
 
-      // Should backup certificates/letsencrypt OR traefik state
-      // Note: certs may be backed up via traefik volume or separate letsencrypt dir
-      const hasTraefikOrCerts = content.match(
-        /traefik|letsencrypt|certs|ssl|tls/i,
-      );
-      // This is optional - certs might be auto-renewed and not backed up
-      // The critical data is postgres and redis
-      if (!hasTraefikOrCerts) {
-        console.log(
-          "Note: Certificate backup not configured in borg_backup_daily.sh",
-        );
-      }
+      // In infra noua, TLS/certificates sunt gestionate de Traefik pe orchestrator,
+      // deci nu fac parte din backup-ul stack-ului Cerniq de pe CT109/CT110.
     });
 
     it("should include OpenBao backup", () => {
@@ -144,25 +133,22 @@ describe("F0.7.1: Backup Script Configuration", () => {
     });
   });
 
-  describe("T002: Backup secrets are configured", () => {
-    it("should have borg passphrase file for staging", () => {
-      expect(fileExists("secrets/borg_passphrase.txt")).toBe(true);
+  describe("T002: Backup secrets are not tracked in git", () => {
+    it("secrets/ should be gitignored", () => {
+      const ignore = readFile(".gitignore");
+      expect(ignore).toMatch(/^secrets\/$/m);
     });
 
-    it("should have borg passphrase file for production", () => {
-      expect(fileExists("secrets/borg_passphrase_production.txt")).toBe(true);
+    it("secrets/ should not be tracked", () => {
+      const tracked = exec("git ls-files secrets || true");
+      expect(tracked.trim()).toBe("");
     });
 
-    it("should have borg key backup", () => {
-      expect(fileExists("secrets/borg_repokey_backup.txt")).toBe(true);
-    });
-
-    it("passphrase files should not be empty", () => {
-      const stagingPassphrase = readFile("secrets/borg_passphrase.txt");
-      expect(stagingPassphrase.length).toBeGreaterThan(0);
-
-      const prodPassphrase = readFile("secrets/borg_passphrase_production.txt");
-      expect(prodPassphrase.length).toBeGreaterThan(0);
+    it("borg script should not reference repo secrets/ folder", () => {
+      const content = readFile("infra/scripts/borg_backup_daily.sh");
+      expect(content).not.toContain("/var/www/CerniqAPP/secrets");
+      // Allow server-local secrets path (/opt/cerniq/secrets/...), but not repo-relative secrets/
+      expect(content).not.toMatch(/(^|\s)secrets\/borg_/m);
     });
   });
 });
@@ -352,7 +338,6 @@ describe("E0-S4-PR01 Summary", () => {
   it("should have all required backup infrastructure files", () => {
     const requiredFiles = [
       "infra/scripts/borg_backup_daily.sh",
-      "secrets/borg_passphrase.txt",
       "infra/config/postgres/postgresql.conf",
     ];
 

@@ -68,7 +68,7 @@
 | **Docker Engine** | 29.2.0 | [Reference](https://docs.docker.com/reference/) |
 | **Docker Compose** | v2 | [Compose Spec](https://docs.docker.com/compose/compose-file/) |
 | **Traefik** | v3.6.6 | [Documentation](https://doc.traefik.io/traefik/) |
-| **SigNoz** | v0.107.0 | [Docs](https://signoz.io/docs/) |
+| **Grafana** | (central) | [Docs](https://grafana.com/docs/) |
 | **Turborepo** | 2.x | [Docs](https://turbo.build/repo/docs) |
 | **pnpm** | 9.x | [Docs](https://pnpm.io/) |
 | **BorgBackup** | 1.4+ | [Docs](https://borgbackup.readthedocs.io/) |
