@@ -184,7 +184,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.app.name }}
           tags: |
-            type=semver,pattern={{version}},value=${{ needs.setup.outputs.version }}
+            type=raw,value=${{ needs.setup.outputs.version }}
             type=sha,prefix=sha-
 
       - name: 🏗️ Build and push

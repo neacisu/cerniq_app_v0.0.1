@@ -86,7 +86,10 @@ jobs:
           POSTGRES_DB: cerniq
         ports:
           - 64032:5432
+        # --security-opt: AppArmor disabled for LXC runner (CT108) which cannot
+        # load the docker-default profile (no kernel AppArmor in unprivileged LXC).
         options: >-
+          --security-opt apparmor=unconfined
           --health-cmd "pg_isready -U c3rn1q"
           --health-interval 10s
           --health-timeout 5s
@@ -96,6 +99,7 @@ jobs:
         ports:
           - 64039:6379
         options: >-
+          --security-opt apparmor=unconfined
           --health-cmd "redis-cli ping"
           --health-interval 10s
           --health-timeout 5s
