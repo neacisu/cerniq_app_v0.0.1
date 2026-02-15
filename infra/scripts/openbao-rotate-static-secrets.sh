@@ -26,8 +26,7 @@ set -euo pipefail
 # =============================================================================
 
 BAO_ADDR="${BAO_ADDR:-https://s3cr3ts.neanelu.ro}"
-REDIS_CONTAINER="${REDIS_CONTAINER:-cerniq-redis}"
-SECRETS_DIR="/var/www/CerniqAPP/secrets"
+SECRETS_DIR="${SECRETS_DIR:-/opt/cerniq/secrets}"
 LOG_FILE="/var/log/cerniq/secrets-rotation.log"
 
 # =============================================================================
@@ -66,6 +65,22 @@ fi
 # Helper function to run bao commands against orchestrator OpenBao
 bao_exec() {
     BAO_ADDR="$BAO_ADDR" BAO_TOKEN="$BAO_TOKEN" bao "$@"
+}
+
+kv1_merge_write() {
+    # KV v1 doesn't support `kv patch`. We read existing data and write back the
+    # full merged document via the HTTP API.
+    #
+    # Usage: kv1_merge_write "secret/cerniq/api/config" '{"key":"value"}'
+    local secret_path="$1"
+    local updates_json="$2"
+
+    local existing_json merged_json
+    existing_json="$(bao_exec kv get -format=json "$secret_path")"
+    merged_json="$(python3 - <<'PY' <<EOF\n$existing_json\nEOF\n$updates_json\nPY\nimport json,sys\nexisting=json.loads(sys.stdin.readline())\nupdates=json.loads(sys.stdin.read() or '{}')\ndata=existing.get('data') or {}\ndata.update(updates)\nprint(json.dumps(data))\nPY\n)"
+
+    # Write merged KV v1 secret (silent).
+    curl -sS -X POST "${BAO_ADDR}/v1/${secret_path}" \\\n+        -H \"X-Vault-Token: ${BAO_TOKEN}\" \\\n+        -H \"Content-Type: application/json\" \\\n+        --data \"$merged_json\" >/dev/null
 }
 
 # =============================================================================
@@ -172,10 +187,8 @@ fi
 log_info "Reading current secrets from OpenBao..."
 
 CURRENT_CONFIG=$(bao_exec kv get -format=json secret/cerniq/api/config)
-PG_USER=$(echo "$CURRENT_CONFIG" | jq -r '.data.data.pg_user')
-PG_PASSWORD=$(echo "$CURRENT_CONFIG" | jq -r '.data.data.pg_password')
-CURRENT_REDIS=$(echo "$CURRENT_CONFIG" | jq -r '.data.data.redis_password')
-CURRENT_JWT=$(echo "$CURRENT_CONFIG" | jq -r '.data.data.jwt_secret')
+CURRENT_REDIS=$(echo "$CURRENT_CONFIG" | jq -r '.data.redis_password')
+CURRENT_JWT=$(echo "$CURRENT_CONFIG" | jq -r '.data.jwt_secret')
 
 # =============================================================================
 # Rotate Redis Password
@@ -183,33 +196,18 @@ CURRENT_JWT=$(echo "$CURRENT_CONFIG" | jq -r '.data.data.jwt_secret')
 
 if [[ "$ROTATE_REDIS" == "true" ]]; then
     log_info "🔑 Rotating Redis password..."
+    log_warning "NOTE: Redis is shared on the orchestrator. Rotating the password requires updating BOTH:"
+    log_warning "  - OpenBao KV (so apps pick it up via agents)"
+    log_warning "  - Redis ACL/user password on orchestrator (otherwise apps will fail)"
     
     # Generate new password
     NEW_REDIS_PASS=$(openssl rand -base64 64 | tr -dc 'a-zA-Z0-9' | head -c 64)
     
-    # Update in OpenBao (versioning automatic)
-    bao_exec kv patch secret/cerniq/api/config \
-        redis_password="$NEW_REDIS_PASS"
+    # Update in OpenBao KV v1 (merge write)
+    kv1_merge_write "secret/cerniq/api/config" "$(printf '{"redis_password":%s}' "$(python3 -c 'import json,sys; print(json.dumps(sys.argv[1]))' "$NEW_REDIS_PASS")")"
     
     log_success "Redis password updated in OpenBao"
-    
-    # Update Redis CONFIG (if Redis is running)
-    if docker ps --format '{{.Names}}' | grep -q "^${REDIS_CONTAINER}$"; then
-        # Get current Redis password from secrets file
-        OLD_REDIS_PASS=$(cat "$SECRETS_DIR/redis_password.txt" 2>/dev/null || echo "$CURRENT_REDIS")
-        
-        # Update Redis config
-        docker exec "$REDIS_CONTAINER" redis-cli -p 64039 -a "$OLD_REDIS_PASS" CONFIG SET requirepass "$NEW_REDIS_PASS" 2>/dev/null || \
-            log_warning "Could not update Redis CONFIG. Manual restart may be needed."
-        
-        # Update local secrets file
-        echo "$NEW_REDIS_PASS" > "$SECRETS_DIR/redis_password.txt"
-        chmod 600 "$SECRETS_DIR/redis_password.txt"
-        
-        log_success "Redis password rotated. Services will pick up new password via Agent."
-    else
-        log_warning "Redis container not running. Update local secrets file manually."
-    fi
+    log_warning "ACTION REQUIRED: update Redis user/ACL on orchestrator for user 'cerniq' to the new password."
 fi
 
 # =============================================================================
@@ -223,9 +221,8 @@ if [[ "$ROTATE_JWT" == "true" ]]; then
     # Generate new JWT secret
     NEW_JWT_SECRET=$(openssl rand -base64 96)
     
-    # Update in OpenBao
-    bao_exec kv patch secret/cerniq/api/config \
-        jwt_secret="$NEW_JWT_SECRET"
+    # Update in OpenBao KV v1 (merge write)
+    kv1_merge_write "secret/cerniq/api/config" "$(printf '{"jwt_secret":%s}' "$(python3 -c 'import json,sys; print(json.dumps(sys.argv[1]))' "$NEW_JWT_SECRET")")"
     
     log_success "JWT secret updated in OpenBao"
     log_warning "All users will need to re-authenticate"
@@ -239,22 +236,28 @@ if [[ "$ROTATE_APPROLE" == "true" ]]; then
     log_info "🔑 Rotating AppRole secret_ids..."
     
     # Rotate API secret_id
-    NEW_API_SECRET=$(bao_exec write -f -field=secret_id auth/approle/role/api/secret-id)
+    NEW_API_SECRET=$(bao_exec write -f -field=secret_id auth/approle/role/cerniq-api/secret-id)
     echo "$NEW_API_SECRET" > "$SECRETS_DIR/api_secret_id"
     chmod 600 "$SECRETS_DIR/api_secret_id"
     log_success "API secret_id rotated"
     
     # Rotate Workers secret_id
-    NEW_WORKERS_SECRET=$(bao_exec write -f -field=secret_id auth/approle/role/workers/secret-id)
+    NEW_WORKERS_SECRET=$(bao_exec write -f -field=secret_id auth/approle/role/cerniq-workers/secret-id)
     echo "$NEW_WORKERS_SECRET" > "$SECRETS_DIR/workers_secret_id"
     chmod 600 "$SECRETS_DIR/workers_secret_id"
     log_success "Workers secret_id rotated"
     
     # Rotate CI/CD secret_id
-    NEW_CICD_SECRET=$(bao_exec write -f -field=secret_id auth/approle/role/cicd/secret-id)
+    NEW_CICD_SECRET=$(bao_exec write -f -field=secret_id auth/approle/role/cerniq-cicd/secret-id)
     echo "$NEW_CICD_SECRET" > "$SECRETS_DIR/cicd_secret_id"
     chmod 600 "$SECRETS_DIR/cicd_secret_id"
     log_success "CI/CD secret_id rotated"
+
+    # Rotate Infra secret_id (PgBouncer auth_query agent)
+    NEW_INFRA_SECRET=$(bao_exec write -f -field=secret_id auth/approle/role/cerniq-infra/secret-id)
+    echo "$NEW_INFRA_SECRET" > "$SECRETS_DIR/infra_secret_id"
+    chmod 600 "$SECRETS_DIR/infra_secret_id"
+    log_success "Infra secret_id rotated"
     
     log_info "OpenBao agents will re-authenticate automatically"
 fi

@@ -1,8 +1,7 @@
 {{/*
 =============================================================================
-OpenBao Agent Template: Dynamic PostgreSQL Password
+OpenBao Agent Template: Dynamic PostgreSQL Password (Workers)
 =============================================================================
-Reference: ADR-0033 OpenBao Secrets Management
 Destination: /secrets/pg_password (raw password only)
 Version: 1.0
 
@@ -10,6 +9,7 @@ This template outputs ONLY the password with no newline,
 suitable for use as a file-based secret.
 =============================================================================
 */}}
-{{- with secret "cerniq-db/creds/api-dynamic" -}}
+{{- with secret "cerniq-db/creds/workers-dynamic" -}}
 {{ .Data.password }}
 {{- end -}}
+

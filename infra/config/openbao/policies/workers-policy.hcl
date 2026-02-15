@@ -6,92 +6,30 @@
 # Version: 1.0
 # =============================================================================
 
-# =============================================================================
-# KV Secrets Engine - Static Secrets
-# =============================================================================
-
-# Workers-specific configuration secrets
-path "secret/data/cerniq/workers/*" {
-  capabilities = ["read", "list"]
-}
-
-# API config (workers need database/redis credentials)
-path "secret/data/cerniq/api/config" {
+# Static secrets (KV v1 mount `secret/`)
+path "secret/cerniq/workers/config" {
   capabilities = ["read"]
 }
 
-# Shared secrets (external API keys for enrichment, etc.)
-path "secret/data/cerniq/shared/*" {
-  capabilities = ["read", "list"]
+path "secret/cerniq/api/config" {
+  capabilities = ["read"]
 }
 
-# Allow reading secret metadata for versioning info
-path "secret/metadata/cerniq/workers/*" {
-  capabilities = ["read", "list"]
-}
-
-path "secret/metadata/cerniq/shared/*" {
-  capabilities = ["read", "list"]
+path "secret/cerniq/shared/external" {
+  capabilities = ["read"]
 }
 
 # =============================================================================
 # Database Secrets Engine - Dynamic PostgreSQL Credentials
 # =============================================================================
 
-# Generate dynamic database credentials for workers
-path "database/creds/workers-role" {
+# Generate dynamic database credentials for workers (Cerniq isolated DB engine)
+path "cerniq-db/creds/workers-dynamic" {
   capabilities = ["read"]
 }
 
-# Allow listing available database roles
-path "database/roles" {
+path "cerniq-db/roles" {
   capabilities = ["list"]
-}
-
-# =============================================================================
-# PKI Secrets Engine - TLS Certificates
-# =============================================================================
-
-# Issue service certificates from intermediate CA
-path "pki_int/issue/service-cert" {
-  capabilities = ["create", "update"]
-}
-
-# Read CA certificate chain
-path "pki_int/ca/pem" {
-  capabilities = ["read"]
-}
-
-path "pki_int/ca_chain" {
-  capabilities = ["read"]
-}
-
-# =============================================================================
-# Transit Secrets Engine - Encryption as a Service
-# =============================================================================
-
-# Encrypt PII data (for data enrichment workers)
-path "transit/encrypt/pii" {
-  capabilities = ["update"]
-}
-
-# Decrypt PII data (for processing)
-path "transit/decrypt/pii" {
-  capabilities = ["update"]
-}
-
-# Rewrap encrypted data with new key version
-path "transit/rewrap/pii" {
-  capabilities = ["update"]
-}
-
-# General encryption key for non-PII sensitive data
-path "transit/encrypt/general" {
-  capabilities = ["update"]
-}
-
-path "transit/decrypt/general" {
-  capabilities = ["update"]
 }
 
 # =============================================================================

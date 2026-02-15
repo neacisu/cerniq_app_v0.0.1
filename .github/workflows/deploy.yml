@@ -246,7 +246,7 @@ jobs:
           
           echo "📁 Creating COMPLETE server directory structure..."
           $SSH_CMD << 'ENDSSH'
-            sudo mkdir -p /opt/cerniq/{config/{postgres,openbao/{policies,templates},fail2ban,cron,logrotate,docker},scripts,secrets,backups,build/postgres}
+            sudo mkdir -p /opt/cerniq/{config/{openbao/{policies,templates},vector,otel,fail2ban,cron,logrotate,docker},scripts,secrets,backups}
             sudo chown -R $(whoami):$(whoami) /opt/cerniq
           ENDSSH
           
@@ -255,12 +255,6 @@ jobs:
           $SCP_CMD infra/docker/docker-compose.prod.yml ${HOST}:/opt/cerniq/
           $SCP_CMD infra/config/vector/vector.toml ${HOST}:/opt/cerniq/config/vector.toml 2>/dev/null || true
           $SCP_CMD infra/config/otel/otel-collector.yaml ${HOST}:/opt/cerniq/config/otel-collector.yaml 2>/dev/null || true
-          
-          echo "📄 Syncing PostgreSQL config and Dockerfile..."
-          $SCP_CMD infra/config/postgres/postgresql.conf ${HOST}:/opt/cerniq/config/postgres/postgresql.conf
-          $SCP_CMD infra/config/postgres/postgresql.production.conf ${HOST}:/opt/cerniq/config/postgres/postgresql.production.conf 2>/dev/null || true
-          $SCP_CMD infra/config/postgres/init.sql ${HOST}:/opt/cerniq/config/postgres/
-          $SCP_CMD infra/docker/postgres/Dockerfile ${HOST}:/opt/cerniq/build/postgres/
           
           echo "📄 Syncing OpenBao config (CORRECT PATH)..."
           $SCP_CMD infra/config/openbao/*.hcl ${HOST}:/opt/cerniq/config/openbao/
@@ -327,8 +321,8 @@ jobs:
             
             # Ensure Docker networks exist
             docker network create --driver bridge --subnet=172.29.10.0/24 cerniq_public 2>/dev/null || true
-            docker network create --driver bridge --subnet=172.29.20.0/24 --internal cerniq_backend 2>/dev/null || true
-            docker network create --driver bridge --subnet=172.29.30.0/24 --internal cerniq_data 2>/dev/null || true
+            docker network create --driver bridge --subnet=172.29.20.0/24 cerniq_backend 2>/dev/null || true
+            docker network create --driver bridge --subnet=172.29.30.0/24 cerniq_data 2>/dev/null || true
             
             # Pull and deploy with production overlay
             echo "🐳 Pulling images..."
@@ -356,36 +350,17 @@ jobs:
           ENDSSH
 
       # =========================================================================
-      # STEP 4: Configure OpenBao (secrets engines, policies, AppRoles)
-      # =========================================================================
-      - name: 🔧 Configure OpenBao
-        run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'ENDSSH'
-            cd /opt/cerniq
-            test -s /opt/cerniq/secrets/api_role_id
-            test -s /opt/cerniq/secrets/api_secret_id
-            test -s /opt/cerniq/secrets/workers_role_id
-            test -s /opt/cerniq/secrets/workers_secret_id
-            echo "✅ AppRole credentials present (external OpenBao)"
-          ENDSSH
-
-      # =========================================================================
-      # STEP 5: Populate initial secrets
-      # =========================================================================
-      - name: 📝 Populate initial secrets
-        run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'ENDSSH'
-            cd /opt/cerniq
-            echo "✅ Skipped: secrets are managed centrally in orchestrator OpenBao"
-          ENDSSH
-
-      # =========================================================================
       # STEP 6: Start OpenBao agents
       # =========================================================================
       - name: 🤖 Start OpenBao Agents
         run: |
           ssh -i ~/.ssh/deploy_key ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'ENDSSH'
             cd /opt/cerniq
+            
+            # tmpfs runtime secrets (avoid secrets persisted on disk)
+            sudo mkdir -p /run/cerniq/runtime-secrets/{api,workers,infra}
+            sudo chown -R $(whoami):$(whoami) /run/cerniq/runtime-secrets
+            sudo chmod 700 /run/cerniq/runtime-secrets /run/cerniq/runtime-secrets/* || true
             
             # Check prerequisites
             if [ ! -f /opt/cerniq/secrets/api_role_id ]; then
@@ -394,7 +369,7 @@ jobs:
             fi
             
             echo "🤖 Starting OpenBao agents..."
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d openbao-agent-api openbao-agent-workers
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d openbao-agent-api openbao-agent-workers openbao-agent-infra
             
             echo "⏳ Waiting for agents to render secrets..."
             sleep 10
@@ -491,23 +466,21 @@ jobs:
             
             echo ""
             echo "🔍 Core Services Health Checks"
-
-            PG_PASS=$(cat /opt/cerniq/secrets/postgres_password.txt 2>/dev/null || echo "")
             
-            # External PostgreSQL health (via CT107)
+            # External PostgreSQL reachability (CT107)
             echo -n "  PostgreSQL: "
-            if docker exec -e PGPASSWORD="$PG_PASS" cerniq-pgbouncer \
-              pg_isready -h 10.0.1.107 -p 5432 -U c3rn1q -d cerniq_staging >/dev/null 2>&1; then
+            if docker run --rm --network host postgres:18 pg_isready -h 10.0.1.107 -p 5432 >/dev/null 2>&1; then
               echo "✅ HEALTHY"
             else
               echo "❌ FAILED"
               FAILED=1
             fi
             
-            # PgBouncer health
+            # PgBouncer + OpenBao dynamic creds (end-to-end)
             echo -n "  PgBouncer:  "
-            if docker exec -e PGPASSWORD="$PG_PASS" cerniq-pgbouncer \
-              psql -h 127.0.0.1 -p 64033 -U c3rn1q -d cerniq_staging -c 'SELECT 1' >/dev/null 2>&1; then
+            if docker run --rm --network cerniq_backend \
+              --env-file /run/cerniq/runtime-secrets/api/api.env \
+              postgres:18 sh -c 'psql "$DATABASE_URL" -Atqc "SELECT 1"' >/dev/null 2>&1; then
               echo "✅ HEALTHY"
             else
               echo "⚠️ NOT READY (may be initializing)"
@@ -515,8 +488,9 @@ jobs:
             
             # Redis health
             echo -n "  Redis:      "
-            REDIS_PASS=$(cat /opt/cerniq/secrets/redis_password.txt 2>/dev/null || echo "")
-            if [ -n "$REDIS_PASS" ] && docker exec cerniq-redis redis-cli -p 64039 -a "$REDIS_PASS" PING 2>/dev/null | grep -q PONG; then
+            if docker run --rm --network host \
+              --env-file /run/cerniq/runtime-secrets/api/api.env \
+              redis:8-alpine sh -c 'redis-cli -u "$REDIS_URL" PING' 2>/dev/null | grep -q PONG; then
               echo "✅ HEALTHY"
             else
               echo "❌ FAILED"
@@ -544,7 +518,8 @@ jobs:
             # OpenBao agents health (remote OpenBao on orchestrator)
             echo -n "  OpenBao:    "
             if docker inspect -f '{{.State.Health.Status}}' cerniq-openbao-agent-api 2>/dev/null | grep -q healthy && \
-               docker inspect -f '{{.State.Health.Status}}' cerniq-openbao-agent-workers 2>/dev/null | grep -q healthy; then
+               docker inspect -f '{{.State.Health.Status}}' cerniq-openbao-agent-workers 2>/dev/null | grep -q healthy && \
+               docker inspect -f '{{.State.Health.Status}}' cerniq-openbao-agent-infra 2>/dev/null | grep -q healthy; then
               echo "✅ HEALTHY (agents)"
             else
               echo "❌ FAILED (agents)"
@@ -635,7 +610,7 @@ jobs:
           
           echo "📁 Creating COMPLETE server directory structure..."
           $SSH_CMD << 'ENDSSH'
-            sudo mkdir -p /opt/cerniq/{config/{postgres,openbao/{policies,templates},fail2ban,cron,logrotate,docker},scripts,secrets,backups,build/postgres}
+            sudo mkdir -p /opt/cerniq/{config/{openbao/{policies,templates},vector,otel,fail2ban,cron,logrotate,docker},scripts,secrets,backups}
             sudo chown -R $(whoami):$(whoami) /opt/cerniq
           ENDSSH
           
@@ -644,12 +619,6 @@ jobs:
           $SCP_CMD infra/docker/docker-compose.prod.yml ${HOST}:/opt/cerniq/
           $SCP_CMD infra/config/vector/vector.toml ${HOST}:/opt/cerniq/config/vector.toml 2>/dev/null || true
           $SCP_CMD infra/config/otel/otel-collector.yaml ${HOST}:/opt/cerniq/config/otel-collector.yaml 2>/dev/null || true
-          
-          echo "📄 Syncing PostgreSQL config and Dockerfile..."
-          $SCP_CMD infra/config/postgres/postgresql.conf ${HOST}:/opt/cerniq/config/postgres/
-          $SCP_CMD infra/config/postgres/postgresql.production.conf ${HOST}:/opt/cerniq/config/postgres/ 2>/dev/null || true
-          $SCP_CMD infra/config/postgres/init.sql ${HOST}:/opt/cerniq/config/postgres/
-          $SCP_CMD infra/docker/postgres/Dockerfile ${HOST}:/opt/cerniq/build/postgres/
           
           echo "📄 Syncing OpenBao config (CORRECT PATH)..."
           $SCP_CMD infra/config/openbao/*.hcl ${HOST}:/opt/cerniq/config/openbao/
@@ -716,8 +685,8 @@ jobs:
             
             # Ensure Docker networks exist
             docker network create --driver bridge --subnet=172.29.10.0/24 cerniq_public 2>/dev/null || true
-            docker network create --driver bridge --subnet=172.29.20.0/24 --internal cerniq_backend 2>/dev/null || true
-            docker network create --driver bridge --subnet=172.29.30.0/24 --internal cerniq_data 2>/dev/null || true
+            docker network create --driver bridge --subnet=172.29.20.0/24 cerniq_backend 2>/dev/null || true
+            docker network create --driver bridge --subnet=172.29.30.0/24 cerniq_data 2>/dev/null || true
             
             # Deploy with production overlay
             echo "🐳 Pulling images..."
@@ -744,33 +713,7 @@ jobs:
           ENDSSH
 
       # =========================================================================
-      # STEP 4: Configure OpenBao (only if unsealed)
-      # =========================================================================
-      - name: 🔧 Configure OpenBao (if unsealed)
-        continue-on-error: true
-        run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
-            cd /opt/cerniq
-            test -s /opt/cerniq/secrets/api_role_id
-            test -s /opt/cerniq/secrets/api_secret_id
-            test -s /opt/cerniq/secrets/workers_role_id
-            test -s /opt/cerniq/secrets/workers_secret_id
-            echo "✅ AppRole credentials present (external OpenBao)"
-          ENDSSH
-
-      # =========================================================================
-      # STEP 5: Populate secrets (if unsealed)
-      # =========================================================================
-      - name: 📝 Populate secrets (if unsealed)
-        continue-on-error: true
-        run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
-            cd /opt/cerniq
-            echo "✅ Skipped: secrets are managed centrally in orchestrator OpenBao"
-          ENDSSH
-
-      # =========================================================================
-      # STEP 6: Start agents (if configured)
+      # STEP 6: Start agents (external OpenBao, if configured)
       # =========================================================================
       - name: 🤖 Start OpenBao Agents
         continue-on-error: true
@@ -778,12 +721,17 @@ jobs:
           ssh -i ~/.ssh/deploy_key ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
             cd /opt/cerniq
             
+            # tmpfs runtime secrets (avoid secrets persisted on disk)
+            sudo mkdir -p /run/cerniq/runtime-secrets/{api,workers,infra}
+            sudo chown -R $(whoami):$(whoami) /run/cerniq/runtime-secrets
+            sudo chmod 700 /run/cerniq/runtime-secrets /run/cerniq/runtime-secrets/* || true
+            
             if [ ! -f /opt/cerniq/secrets/api_role_id ]; then
               echo "⚠️ AppRole credentials not found, skipping agents"
               exit 0
             fi
             
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d openbao-agent-api openbao-agent-workers
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d openbao-agent-api openbao-agent-workers openbao-agent-infra
             
             sleep 10
             
@@ -874,23 +822,21 @@ jobs:
             
             echo ""
             echo "🔍 Core Services Health Checks"
-
-            PG_PASS=$(cat /opt/cerniq/secrets/postgres_password.txt 2>/dev/null || echo "")
             
-            # External PostgreSQL health (via CT107)
+            # External PostgreSQL reachability (CT107)
             echo -n "  PostgreSQL: "
-            if docker exec -e PGPASSWORD="$PG_PASS" cerniq-pgbouncer \
-              pg_isready -h 10.0.1.107 -p 5432 -U c3rn1q -d cerniq >/dev/null 2>&1; then
+            if docker run --rm --network host postgres:18 pg_isready -h 10.0.1.107 -p 5432 >/dev/null 2>&1; then
               echo "✅ HEALTHY"
             else
               echo "❌ FAILED"
               FAILED=1
             fi
             
-            # PgBouncer health
+            # PgBouncer + OpenBao dynamic creds (end-to-end)
             echo -n "  PgBouncer:  "
-            if docker exec -e PGPASSWORD="$PG_PASS" cerniq-pgbouncer \
-              psql -h 127.0.0.1 -p 64033 -U c3rn1q -d cerniq -c 'SELECT 1' >/dev/null 2>&1; then
+            if docker run --rm --network cerniq_backend \
+              --env-file /run/cerniq/runtime-secrets/api/api.env \
+              postgres:18 sh -c 'psql "$DATABASE_URL" -Atqc "SELECT 1"' >/dev/null 2>&1; then
               echo "✅ HEALTHY"
             else
               echo "⚠️ NOT READY (may be initializing)"
@@ -898,8 +844,9 @@ jobs:
             
             # Redis health
             echo -n "  Redis:      "
-            REDIS_PASS=$(cat /opt/cerniq/secrets/redis_password.txt 2>/dev/null || echo "")
-            if [ -n "$REDIS_PASS" ] && docker exec cerniq-redis redis-cli -p 64039 -a "$REDIS_PASS" PING 2>/dev/null | grep -q PONG; then
+            if docker run --rm --network host \
+              --env-file /run/cerniq/runtime-secrets/api/api.env \
+              redis:8-alpine sh -c 'redis-cli -u "$REDIS_URL" PING' 2>/dev/null | grep -q PONG; then
               echo "✅ HEALTHY"
             else
               echo "❌ FAILED"
@@ -927,7 +874,8 @@ jobs:
             # OpenBao agents health (remote OpenBao on orchestrator)
             echo -n "  OpenBao:    "
             if docker inspect -f '{{.State.Health.Status}}' cerniq-openbao-agent-api 2>/dev/null | grep -q healthy && \
-               docker inspect -f '{{.State.Health.Status}}' cerniq-openbao-agent-workers 2>/dev/null | grep -q healthy; then
+               docker inspect -f '{{.State.Health.Status}}' cerniq-openbao-agent-workers 2>/dev/null | grep -q healthy && \
+               docker inspect -f '{{.State.Health.Status}}' cerniq-openbao-agent-infra 2>/dev/null | grep -q healthy; then
               echo "✅ HEALTHY (agents)"
             else
               echo "❌ FAILED (agents)"

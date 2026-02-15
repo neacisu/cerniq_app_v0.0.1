@@ -14,7 +14,8 @@
     "test:ci": "vitest run --reporter=json --reporter=verbose --outputFile=test-results/results.json",
     "validate": "pnpm lint && pnpm typecheck && pnpm test",
     "build": "echo 'Build placeholder - F0.6 pending'",
-    "prepare": "husky"
+    "prepare": "husky",
+    "smoke:bullmq-prefix": "node ./infra/scripts/bullmq-prefix-smoketest.mjs"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
@@ -42,5 +43,9 @@
     "node": ">=25",
     "pnpm": ">=10"
   },
-  "packageManager": "pnpm@10.28.2"
+  "packageManager": "pnpm@10.28.2",
+  "dependencies": {
+    "bullmq": "^5.69.2",
+    "ioredis": "^5.9.3"
+  }
 }

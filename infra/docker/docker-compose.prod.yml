@@ -52,40 +52,15 @@ services:
         max-file: "3"
 
   # ==========================================================================
-  # Redis - Production logging
-  # ==========================================================================
-  redis:
-    environment:
-      REDIS_MAXMEMORY: ${REDIS_MAXMEMORY:-8gb}
-    networks:
-      cerniq_data:
-        ipv4_address: 172.29.30.20
-      cerniq_backend:
-        ipv4_address: 172.29.20.20
-    deploy:
-      resources:
-        limits:
-          cpus: '1'
-          memory: 4G
-        reservations:
-          cpus: '0.5'
-          memory: 2G
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "50m"
-        max-file: "3"
-
-  # ==========================================================================
   # OpenBao Agent API - Path overrides for production
   # ==========================================================================
   openbao-agent-api:
     volumes:
-      - ./config/openbao/agent-api.hcl:/openbao/config/agent-api.hcl:ro
-      - ./config/openbao/templates:/openbao/templates:ro
-      - api_secrets:/secrets
-      - ./secrets/api_role_id:/openbao/config/role_id:ro
-      - ./secrets/api_secret_id:/openbao/config/secret_id:ro
+      - ../config/openbao/agent-api.hcl:/openbao/config/agent-api.hcl:ro
+      - ../config/openbao/templates:/openbao/templates:ro
+      - ${CERNIQ_RENDERED_SECRETS_DIR:-/opt/cerniq/runtime-secrets}/api:/secrets
+      - ../../secrets/api_role_id:/openbao/config/role_id:ro
+      - ../../secrets/api_secret_id:/openbao/config/secret_id:ro
     logging:
       driver: "json-file"
       options:
@@ -97,11 +72,11 @@ services:
   # ==========================================================================
   openbao-agent-workers:
     volumes:
-      - ./config/openbao/agent-workers.hcl:/openbao/config/agent-workers.hcl:ro
-      - ./config/openbao/templates:/openbao/templates:ro
-      - workers_secrets:/secrets
-      - ./secrets/workers_role_id:/openbao/config/role_id:ro
-      - ./secrets/workers_secret_id:/openbao/config/secret_id:ro
+      - ../config/openbao/agent-workers.hcl:/openbao/config/agent-workers.hcl:ro
+      - ../config/openbao/templates:/openbao/templates:ro
+      - ${CERNIQ_RENDERED_SECRETS_DIR:-/opt/cerniq/runtime-secrets}/workers:/secrets
+      - ../../secrets/workers_role_id:/openbao/config/role_id:ro
+      - ../../secrets/workers_secret_id:/openbao/config/secret_id:ro
     logging:
       driver: "json-file"
       options:
@@ -112,7 +87,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      - ./config/vector/vector.toml:/etc/vector/vector.toml:ro
+      - ../config/vector/vector.toml:/etc/vector/vector.toml:ro
     logging:
       driver: "json-file"
       options:
@@ -121,7 +96,7 @@ services:
 
   otel-collector:
     volumes:
-      - ./config/otel/otel-collector.yaml:/etc/otelcol-contrib/config.yaml:ro
+      - ../config/otel/otel-collector.yaml:/etc/otelcol-contrib/config.yaml:ro
     logging:
       driver: "json-file"
       options:
@@ -134,15 +109,6 @@ services:
       options:
         max-size: "50m"
         max-file: "3"
-
-# =============================================================================
-# Secrets - Production paths (./secrets/ from /opt/cerniq/)
-# =============================================================================
-secrets:
-  postgres_password:
-    file: ./secrets/postgres_password.txt
-  redis_password:
-    file: ./secrets/redis_password.txt
 
 # =============================================================================
 # Networks - External (pre-created on server)

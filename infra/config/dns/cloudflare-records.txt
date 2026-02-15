@@ -3,32 +3,41 @@
 # =============================================================================
 # Domain: cerniq.app (managed via Cloudflare)
 # Reference: F0.16.1.T001, F0.16.1.T002
-# Status: CONFIGURED (2026-02-03)
+# Status: UPDATED for new infra (2026-02-15)
 # =============================================================================
 
-# PRODUCTION DNS RECORDS (95.216.225.145)
-# Configure these in Cloudflare DNS panel
+# =============================================================================
+# CERNIQ.APP -> ORCHESTRATOR TRAEFIK (77.42.76.185)
+# =============================================================================
+# All public ingress is terminated on Traefik (orchestrator) and routed internally
+# to the dedicated Cerniq LXCs (CT109 prod / CT110 staging).
+# Configure these in Cloudflare DNS panel (zone: cerniq.app).
 
 # Primary Records (T001)
 # ----------------------
 # Type    Name              Content             Proxy   TTL
-# A       @                 95.216.225.145      Off     300
-# A       www               95.216.225.145      Off     300
+# A       @                 77.42.76.185        Off     300
+# A       www               77.42.76.185        Off     300
 
 # Subdomain Records (T002)
 # ------------------------
 # Type    Name              Content             Proxy   TTL
-# A       api               95.216.225.145      Off     300
-# A       admin             95.216.225.145      Off     300
-# A       monitoring        95.216.225.145      Off     300
-# A       signoz            95.216.225.145      Off     300
-# A       traefik           95.216.225.145      Off     300
+# A       api               77.42.76.185        Off     300
+# A       admin             77.42.76.185        Off     300
+# A       staging           77.42.76.185        Off     300
+# A       api.staging       77.42.76.185        Off     300
+# A       admin.staging     77.42.76.185        Off     300
+#
+# (optional / infra tools)
+# A       traefik           77.42.76.185        Off     300
 
-# STAGING DNS RECORDS (135.181.183.164)
-# Configure these in Cloudflare DNS panel
-
+# =============================================================================
+# NEANELU.RO (observability intake for Cerniq)
+# =============================================================================
+# NOTE: this record belongs to the neanelu.ro Cloudflare zone, not cerniq.app.
+#
 # Type    Name              Content             Proxy   TTL
-# A       staging           135.181.183.164     Off     300
+# A       otel-cerniq       77.42.76.185        Off     300
 
 # =============================================================================
 # NOTES:
@@ -42,15 +51,24 @@
 # VALIDATION COMMANDS (T003):
 # 
 # dig +short cerniq.app
-# Expected: 95.216.225.145
+# Expected: 77.42.76.185
 #
 # dig +short www.cerniq.app
-# Expected: 95.216.225.145
+# Expected: 77.42.76.185
 #
 # dig +short api.cerniq.app
-# Expected: 95.216.225.145
+# Expected: 77.42.76.185
 #
 # dig +short staging.cerniq.app
-# Expected: 135.181.183.164
+# Expected: 77.42.76.185
+#
+# dig +short api.staging.cerniq.app
+# Expected: 77.42.76.185
+#
+# dig +short admin.staging.cerniq.app
+# Expected: 77.42.76.185
+#
+# dig +short otel-cerniq.neanelu.ro
+# Expected: 77.42.76.185
 #
 # Online verification: https://www.whatsmydns.net/#A/cerniq.app

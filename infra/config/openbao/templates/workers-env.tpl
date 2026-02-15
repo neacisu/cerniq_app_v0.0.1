@@ -13,38 +13,46 @@ Version: 1.0
 # Template: workers-env.tpl
 # =============================================================================
 
-{{- with secret "secret/data/cerniq/workers/config" }}
+{{- with secret "secret/cerniq/workers/config" }}
 # =============================================================================
 # Worker Configuration
 # =============================================================================
-WORKER_CONCURRENCY={{ .Data.data.worker_concurrency }}
-MAX_RETRIES={{ .Data.data.max_retries }}
+WORKER_CONCURRENCY={{ .Data.worker_concurrency }}
+MAX_RETRIES={{ .Data.max_retries }}
 {{- end }}
 
-{{- with secret "secret/data/cerniq/api/config" }}
+{{- $env := env "CERNIQ_ENV" -}}
+{{- with secret "secret/cerniq/api/config" }}
 # =============================================================================
 # Database Configuration
 # =============================================================================
-DATABASE_URL=postgresql://{{ .Data.data.pg_user }}:{{ .Data.data.pg_password }}@pgbouncer:64033/cerniq
-POSTGRES_USER={{ .Data.data.pg_user }}
-POSTGRES_PASSWORD={{ .Data.data.pg_password }}
+{{- $db := "cerniq" -}}
+{{- if eq $env "staging" -}}{{- $db = "cerniq_staging" -}}{{- end -}}
+{{- with secret "cerniq-db/creds/workers-dynamic" }}
+DATABASE_URL=postgresql://{{ .Data.username }}:{{ .Data.password }}@pgbouncer:64033/{{ $db }}
+POSTGRES_USER={{ .Data.username }}
+POSTGRES_PASSWORD={{ .Data.password }}
+{{- end }}
 
 # =============================================================================
 # Redis Configuration
 # =============================================================================
-REDIS_URL=redis://:{{ .Data.data.redis_password }}@redis:64039/0
-REDIS_PASSWORD={{ .Data.data.redis_password }}
+REDIS_URL=redis://{{ .Data.redis_username }}:{{ .Data.redis_password }}@{{ .Data.redis_host }}:{{ .Data.redis_port }}/0
+REDIS_PASSWORD={{ .Data.redis_password }}
+REDIS_PREFIX={{ .Data.redis_prefix }}
+BULLMQ_PREFIX={{ .Data.bullmq_prefix }}
 {{- end }}
 
-{{- with secret "secret/data/cerniq/shared/external" }}
+{{- with secret "secret/cerniq/shared/external" }}
 # =============================================================================
 # External API Keys (for enrichment workers)
 # =============================================================================
-ANAF_CLIENT_ID={{ .Data.data.anaf_client_id }}
-ANAF_CLIENT_SECRET={{ .Data.data.anaf_client_secret }}
-RESEND_API_KEY={{ .Data.data.resend_api_key }}
-HUNTER_API_KEY={{ .Data.data.hunter_api_key }}
-TERMENE_API_KEY={{ .Data.data.termene_api_key }}
+{{- $d := .Data -}}
+ANAF_CLIENT_ID={{- $v := index $d "anaf_client_id" -}}{{ if $v }}{{ $v }}{{ end }}
+ANAF_CLIENT_SECRET={{- $v := index $d "anaf_client_secret" -}}{{ if $v }}{{ $v }}{{ end }}
+RESEND_API_KEY={{- $v := index $d "resend_api_key" -}}{{ if $v }}{{ $v }}{{ end }}
+HUNTER_API_KEY={{- $v := index $d "hunter_api_key" -}}{{ if $v }}{{ $v }}{{ end }}
+TERMENE_API_KEY={{- $v := index $d "termene_api_key" -}}{{ if $v }}{{ $v }}{{ end }}
 {{- end }}
 
 # =============================================================================

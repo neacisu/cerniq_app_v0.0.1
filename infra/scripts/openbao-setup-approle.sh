@@ -32,7 +32,7 @@ fi
 # =============================================================================
 
 BAO_ADDR="${BAO_ADDR:-https://s3cr3ts.neanelu.ro}"
-SECRETS_DIR="${CERNIQ_SECRETS_DIR:-/var/www/CerniqAPP/secrets}"
+SECRETS_DIR="${CERNIQ_SECRETS_DIR:-/opt/cerniq/secrets}"
 
 # =============================================================================
 # Colors for output
@@ -53,8 +53,8 @@ log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 # Pre-flight checks
 # =============================================================================
 
-log_info "🔐 OpenBao AppRole Setup"
-log_info "========================"
+log_info "🔐 OpenBao AppRole Setup (Cerniq)"
+log_info "================================="
 
 # Get root token
 if [[ -f "$SECRETS_DIR/openbao_root_token.txt" ]]; then
@@ -85,9 +85,9 @@ log_success "AppRole auth method enabled"
 # Create API Service Role
 # =============================================================================
 
-log_info "Creating API service role..."
+log_info "Creating API service role (cerniq-api)..."
 
-bao_exec write auth/approle/role/api \
+bao_exec write auth/approle/role/cerniq-api \
     token_policies="api-policy" \
     token_ttl=1h \
     token_max_ttl=4h \
@@ -96,15 +96,15 @@ bao_exec write auth/approle/role/api \
     token_num_uses=0 \
     token_type=service
 
-log_success "API role created with policies: api-policy"
+log_success "API role created: cerniq-api (policies: api-policy)"
 
 # =============================================================================
 # Create Workers Service Role
 # =============================================================================
 
-log_info "Creating Workers service role..."
+log_info "Creating Workers service role (cerniq-workers)..."
 
-bao_exec write auth/approle/role/workers \
+bao_exec write auth/approle/role/cerniq-workers \
     token_policies="workers-policy" \
     token_ttl=1h \
     token_max_ttl=4h \
@@ -113,15 +113,15 @@ bao_exec write auth/approle/role/workers \
     token_num_uses=0 \
     token_type=service
 
-log_success "Workers role created with policies: workers-policy"
+log_success "Workers role created: cerniq-workers (policies: workers-policy)"
 
 # =============================================================================
 # Create CI/CD Role
 # =============================================================================
 
-log_info "Creating CI/CD role..."
+log_info "Creating CI/CD role (cerniq-cicd)..."
 
-bao_exec write auth/approle/role/cicd \
+bao_exec write auth/approle/role/cerniq-cicd \
     token_policies="cicd-policy" \
     token_ttl=30m \
     token_max_ttl=1h \
@@ -130,7 +130,24 @@ bao_exec write auth/approle/role/cicd \
     token_num_uses=0 \
     token_type=service
 
-log_success "CI/CD role created with policies: cicd-policy"
+log_success "CI/CD role created: cerniq-cicd (policies: cicd-policy)"
+
+# =============================================================================
+# Create Infra Role (PgBouncer auth/config sidecar)
+# =============================================================================
+
+log_info "Creating Infra role (cerniq-infra)..."
+
+bao_exec write auth/approle/role/cerniq-infra \
+    token_policies="cerniq-infra" \
+    token_ttl=1h \
+    token_max_ttl=4h \
+    secret_id_ttl=720h \
+    secret_id_num_uses=0 \
+    token_num_uses=0 \
+    token_type=service
+
+log_success "Infra role created: cerniq-infra (policies: cerniq-infra)"
 
 # =============================================================================
 # Get Role IDs
@@ -139,22 +156,28 @@ log_success "CI/CD role created with policies: cicd-policy"
 log_info "Retrieving role IDs..."
 
 # API role ID
-API_ROLE_ID=$(bao_exec read -field=role_id auth/approle/role/api/role-id)
+API_ROLE_ID=$(bao_exec read -field=role_id auth/approle/role/cerniq-api/role-id)
 echo "$API_ROLE_ID" > "$SECRETS_DIR/api_role_id"
 chmod 600 "$SECRETS_DIR/api_role_id"
 log_success "API role_id saved to $SECRETS_DIR/api_role_id"
 
 # Workers role ID
-WORKERS_ROLE_ID=$(bao_exec read -field=role_id auth/approle/role/workers/role-id)
+WORKERS_ROLE_ID=$(bao_exec read -field=role_id auth/approle/role/cerniq-workers/role-id)
 echo "$WORKERS_ROLE_ID" > "$SECRETS_DIR/workers_role_id"
 chmod 600 "$SECRETS_DIR/workers_role_id"
 log_success "Workers role_id saved to $SECRETS_DIR/workers_role_id"
 
 # CI/CD role ID
-CICD_ROLE_ID=$(bao_exec read -field=role_id auth/approle/role/cicd/role-id)
+CICD_ROLE_ID=$(bao_exec read -field=role_id auth/approle/role/cerniq-cicd/role-id)
 echo "$CICD_ROLE_ID" > "$SECRETS_DIR/cicd_role_id"
 chmod 600 "$SECRETS_DIR/cicd_role_id"
 log_success "CI/CD role_id saved to $SECRETS_DIR/cicd_role_id"
+
+# Infra role ID
+INFRA_ROLE_ID=$(bao_exec read -field=role_id auth/approle/role/cerniq-infra/role-id)
+echo "$INFRA_ROLE_ID" > "$SECRETS_DIR/infra_role_id"
+chmod 600 "$SECRETS_DIR/infra_role_id"
+log_success "Infra role_id saved to $SECRETS_DIR/infra_role_id"
 
 # =============================================================================
 # Generate Secret IDs
@@ -163,32 +186,36 @@ log_success "CI/CD role_id saved to $SECRETS_DIR/cicd_role_id"
 log_info "Generating secret IDs..."
 
 # API secret ID
-API_SECRET_ID=$(bao_exec write -f -field=secret_id auth/approle/role/api/secret-id)
+API_SECRET_ID=$(bao_exec write -f -field=secret_id auth/approle/role/cerniq-api/secret-id)
 echo "$API_SECRET_ID" > "$SECRETS_DIR/api_secret_id"
 chmod 600 "$SECRETS_DIR/api_secret_id"
 log_success "API secret_id generated and saved"
 
 # Workers secret ID
-WORKERS_SECRET_ID=$(bao_exec write -f -field=secret_id auth/approle/role/workers/secret-id)
+WORKERS_SECRET_ID=$(bao_exec write -f -field=secret_id auth/approle/role/cerniq-workers/secret-id)
 echo "$WORKERS_SECRET_ID" > "$SECRETS_DIR/workers_secret_id"
 chmod 600 "$SECRETS_DIR/workers_secret_id"
 log_success "Workers secret_id generated and saved"
 
 # CI/CD secret ID
-CICD_SECRET_ID=$(bao_exec write -f -field=secret_id auth/approle/role/cicd/secret-id)
+CICD_SECRET_ID=$(bao_exec write -f -field=secret_id auth/approle/role/cerniq-cicd/secret-id)
 echo "$CICD_SECRET_ID" > "$SECRETS_DIR/cicd_secret_id"
 chmod 600 "$SECRETS_DIR/cicd_secret_id"
 log_success "CI/CD secret_id generated and saved"
+
+# Infra secret ID
+INFRA_SECRET_ID=$(bao_exec write -f -field=secret_id auth/approle/role/cerniq-infra/secret-id)
+echo "$INFRA_SECRET_ID" > "$SECRETS_DIR/infra_secret_id"
+chmod 600 "$SECRETS_DIR/infra_secret_id"
+log_success "Infra secret_id generated and saved"
 
 # =============================================================================
 # Verify AppRole Login
 # =============================================================================
 
-log_info "Verifying AppRole login for API role..."
+log_info "Verifying AppRole login for API role (cerniq-api)..."
 
-TEST_TOKEN=$(bao_exec write -field=token auth/approle/login \
-    role_id="$API_ROLE_ID" \
-    secret_id="$API_SECRET_ID")
+TEST_TOKEN=$(bao_exec write -field=token auth/approle/login role_id="$API_ROLE_ID" secret_id="$API_SECRET_ID")
 
 if [[ -n "$TEST_TOKEN" ]]; then
     log_success "AppRole login verification successful!"
@@ -207,14 +234,16 @@ log_success "AppRole Setup Complete!"
 log_success "=========================================="
 echo ""
 log_info "Roles created:"
-log_info "  - api:     token_ttl=1h, secret_id_ttl=30d"
-log_info "  - workers: token_ttl=1h, secret_id_ttl=30d"
-log_info "  - cicd:    token_ttl=30m, secret_id_ttl=24h"
+log_info "  - cerniq-api     token_ttl=1h, secret_id_ttl=30d"
+log_info "  - cerniq-workers token_ttl=1h, secret_id_ttl=30d"
+log_info "  - cerniq-cicd    token_ttl=30m, secret_id_ttl=24h"
+log_info "  - cerniq-infra   token_ttl=1h, secret_id_ttl=30d"
 echo ""
 log_info "Credentials saved to $SECRETS_DIR/:"
 log_info "  - api_role_id, api_secret_id"
 log_info "  - workers_role_id, workers_secret_id"
 log_info "  - cicd_role_id, cicd_secret_id"
+log_info "  - infra_role_id, infra_secret_id"
 echo ""
 log_warning "⚠️  IMPORTANT:"
 log_warning "  - role_id is static and can be stored in config"

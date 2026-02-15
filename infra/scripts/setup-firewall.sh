@@ -14,12 +14,16 @@
 #   5. Rate limiting
 # 
 # Admin IPs (whitelisted):
-#   - 92.180.19.237  (Office)
-#   - 95.216.225.145 (Admin 1)
-#   - 94.130.68.123  (Admin 2)
+#   - 92.180.19.237   (Office)
+#   - 95.216.225.145  (Admin 1)
+#   - 94.130.68.123   (Admin 2)
 #   - 135.181.183.164 (Admin 3)
-#   - 95.216.72.100  (Backup Server 1)
-#   - 95.216.72.118  (Backup Server 2)
+#   - 95.216.72.100   (Backup Server 1)
+#   - 95.216.72.118   (Backup Server 2)
+#   - 10.0.1.107      (CT107 postgres-main)
+#   - 10.0.1.108      (CT108 CI runner)
+#   - 10.0.1.109      (CT109 production)
+#   - 10.0.1.110      (CT110 staging)
 # =============================================================================
 
 set -euo pipefail
@@ -48,6 +52,11 @@ else
     # Fallback to hardcoded (staging has more IPs for development)
     ADMIN_IPS=(
         "92.180.19.237"
+        "95.216.225.145"
+        "94.130.68.123"
+        "135.181.183.164"
+        "95.216.72.100"
+        "95.216.72.118"
         "10.0.1.107"
         "10.0.1.108"
         "10.0.1.109"

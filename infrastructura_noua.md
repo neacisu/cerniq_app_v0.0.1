@@ -383,6 +383,398 @@ Faza 3 (hardening avansat)
 
 ---
 
+## Proiecte si Aplicatii
+
+Aceasta sectiune defineste o vedere de ansamblu pentru toate proiectele curente si viitoare care ruleaza pe platforma (Hetzner + Proxmox + LXC + orchestrator Docker), cu accent pe separare, rutare (Traefik), secrete (OpenBao) si observabilitate (Grafana/Prometheus/Loki/Tempo).
+
+### Principii (curente si viitoare)
+
+- Separare pe proiect: domenii/subdomenii dedicate, fisiere Traefik dinamice dedicate, paths OpenBao dedicate, label-uri observabilitate dedicate.
+- Interventii pe infrastructura partajata: strict aditive (nu se sterg/regandesc reguli existente, nu se schimba politici globale pentru alte proiecte).
+- Config reproductibil: versiuni pin-uite (imagini Docker, action-uri GH), fara tag-uri `latest` in componente critice.
+- Porturi: se foloseste matricea de porturi pe proiect (ex: range 64000-64099 pentru Cerniq).
+
+### Proiecte curente (snapshot)
+
+| Proiect / Serviciu | Tip | Locatie | Domenii / Acces | Note |
+| --- | --- | --- | --- | --- |
+| Traefik (gateway) | Platforma (shared) | orchestrator (Docker) | :443 public (TLS), file+docker provider | Ingress unic pentru proiecte; configurari aditive per proiect |
+| OpenBao (secrete) | Platforma (shared) | orchestrator (Docker) | expus prin Traefik (HTTPS) | Se foloseste centralizat; proiectele NU ruleaza server OpenBao local |
+| Observabilitate (Grafana/Prometheus/Loki/Tempo/Vector/OTel) | Platforma (shared) | orchestrator (Docker) | grafana.neanelu.ro / metrics.neanelu.ro / logs.neanelu.ro / traces.neanelu.ro | Proiectele se integreaza aditiv (targets/allowlist/dashboards/rules dedicate) |
+| Email triggerra (stalwart + roundcube) | Proiect | orchestrator (Docker) | mailadmin.triggerra.app, webmail.triggerra.app + porturi SMTP/IMAP | Documentat in sectiunea urmatoare |
+| Cerniq.app | Proiect | CT107/CT108/CT109/CT110 + orchestrator | cerniq.app + subdomenii; pipeline CI/CD via CT108 | Detaliat mai jos in "Implementare Cerniq.app" |
+
+### Proiecte viitoare (model de onboarding)
+
+Pentru orice proiect nou se recomanda:
+
+- Un fisier Traefik dinamic dedicat proiectului (ex: `/opt/traefik/dynamic/<proiect>.yml`) si un merge controlat in `dynamic_conf.yml`.
+- Un path OpenBao dedicat proiectului:
+  - KV: `secret/<proiect>/...` (KV v1 pe mount-ul `secret/` in prezent)
+  - database engine: `-path=<proiect>-db` (unde e cazul)
+  - AppRoles: `approle/<proiect>-api`, `approle/<proiect>-workers`, `approle/<proiect>-cicd`
+- Observabilitate:
+  - labels consistente: `{project="<proiect>", environment="<staging|production>"}`
+  - dashboards si alert rules in fisiere separate, aditive
+- Daca e proiect cu traffic public: LXC dedicat (staging/prod) + reguli NAT/iptables aditive doar pentru acel proiect.
+
+### Implementare Cerniq.app
+
+Aceasta subsectiune documenteaza implementarea Cerniq.app pe infrastructura noua (Proxmox + LXC dedicate + servicii centralizate pe orchestrator).
+
+#### Obiectiv
+
+- Migrare Cerniq.app fara a afecta alte proiecte: folosim Traefik/OpenBao/observability centralizate si baze de date pe CT 107.
+- CT-urile dedicate Cerniq:
+  - CT 107: PostgreSQL (extern, partajat la nivel de platforma, configurari aditive pentru Cerniq)
+  - CT 108: GitHub Actions runner self-hosted
+  - CT 109: productie Cerniq (Docker stack)
+  - CT 110: staging Cerniq (Docker stack)
+- Resurse curente (verificate pe hz.223):
+  - CT 109: 8 cores, 32768 MiB RAM, swap 2048 MiB, rootfs 100G
+  - CT 110: 4 cores, 16384 MiB RAM, swap 512 MiB, rootfs 80G
+
+#### Taskuri implementate (plan) si referinte
+
+Taskurile marcate `completed` in planul de migrare sunt implementate si au referinte concrete mai jos:
+
+- `f1-01-traefik-orchestrator-yml`
+  - Repo: `infra/config/traefik-orchestrator/cerniq.yml`
+  - Orchestrator: `/opt/traefik/dynamic/cerniq.yml` + merge in `/opt/traefik/dynamic_conf.yml`
+  - Verificare: `sha256sum` identic intre repo si orchestrator; domeniile Cerniq prezente in `dynamic_conf.yml`
+- `f1-02-hz247-iptables-inbound`
+  - Repo: `infra/config/iptables/hz247-cerniq-inbound.rules`
+  - hz.247: reguli `FORWARD` aditive pentru `10.0.0.2 -> 10.0.1.109/110` pe `64000,64010,64012`
+  - Verificare: `sudo iptables -S FORWARD` contine regulile Cerniq; policy ramane compatibila cu alte proiecte
+- `f1-03-delete-traefik-intern`
+  - Sterse din repo (Traefik intern / Nginx proxy vechi): `traefik-staging.yml`, `nginx-staging.conf`, `infra/docker/traefik/*`, `infra/docker/nginx/staging-proxy.conf`, `infra/config/nginx/*.conf`
+- `f1-04-cleanup-scripts-firewall`
+  - Repo: `infra/scripts/setup-firewall.sh` fara porturi legacy pentru Traefik intern
+- `f1-05-cleanup-scripts-nginx`
+  - Repo: `infra/scripts/setup-nginx.sh` marcat ca deprecated (ingress exclusiv prin Traefik orchestrator)
+- `f1-06-cleanup-scripts-trivy`
+  - Repo: `infra/scripts/trivy-scan.sh` fara `traefik:v3.3.3`
+- `f1-07-cleanup-scripts-validate`
+  - Repo: `infra/scripts/validate-infrastructure.sh` verifica ingress extern prin orchestrator (nu container local)
+- `f1-08-compose-pin-pgbouncer`
+  - Repo: `infra/docker/docker-compose.yml` foloseste `edoburu/pgbouncer:latest` (tag pin-uit la nivel de "latest"; pentru reproducibilitate se poate fixa digest)
+
+- `f1-31-compose-pgbouncer-external-pg`
+  - Repo: `infra/docker/docker-compose.yml`, `infra/config/openbao/agent-infra.hcl`, `infra/config/openbao/templates/pgbouncer-ini.tpl`, `infra/config/openbao/templates/pgbouncer-userlist.tpl`
+  - CT107: rol `cerniq_pgbouncer_auth` + functie SECURITY DEFINER `public.cerniq_pgbouncer_get_auth(username)` (repo: `infra/scripts/ct107_setup_pgbouncer_auth.py`)
+  - CT109/CT110: `openbao-agent-infra` randeaza config/auth in tmpfs `/run/cerniq/runtime-secrets/infra/` si PgBouncer monteaza directorul ca `/etc/pgbouncer` (read-only)
+  - Verificare:
+    - health: `docker inspect -f '{{.State.Health.Status}}' cerniq-openbao-agent-infra cerniq-pgbouncer`
+    - e2e DB via PgBouncer cu credidentiale dinamice: script (repo) `infra/scripts/ct_smoketest_dynamic-db-via-pgbouncer.sh` -> output `cerniq` (prod) / `cerniq_staging` (staging)
+
+- `f1-32-agent-configs-orchestrator`
+  - Repo: `infra/config/openbao/agent-api.hcl`, `infra/config/openbao/agent-workers.hcl`, `infra/config/openbao/agent-infra.hcl`
+  - Config: `vault.address = "https://s3cr3ts.neanelu.ro"` (Traefik orchestrator), fara dependinte pe server OpenBao local
+  - Verificare: containerele `cerniq-openbao-agent-*` sunt `healthy` pe CT109/CT110
+
+- `f1-33-fix-template-role-mismatch`
+  - Repo: `infra/config/openbao/templates/pg-password.tpl` (mount DB dedicat) + templates env pentru API/Workers
+  - Verificare: template-urile citesc `cerniq-db/creds/*-dynamic` (nu `database/creds/*`)
+
+- `f1-34-update-setup-scripts-orchestrator`
+  - Repo: `infra/scripts/openbao-setup-engines.sh`, `infra/scripts/openbao-setup-database.sh`, `infra/scripts/openbao-setup-approle.sh`
+  - Principiu: Cerniq-only, additive; DB engine pe mount dedicat `cerniq-db/` si KV shared `secret/` este lasat neatins
+  - Politici (repo): `infra/config/openbao/policies/*.hcl` aliniate la KV v1 (`secret/cerniq/...`) si DB mount (`cerniq-db/...`); policy nou `infra/config/openbao/policies/cerniq-infra.hcl`
+
+- `f1-35-verify-network-ct107`
+  - Verificare: din Docker pe CT109/CT110 -> CT107 `10.0.1.107:5432` (`pg_isready` din container `postgres:18`)
+
+- `f1-36-verify-network-openbao`
+  - Verificare: din Docker pe CT109/CT110 -> `https://s3cr3ts.neanelu.ro/v1/sys/health` (HTTPS/443)
+
+- `f1-37-deploy-yml-major-refactor` + `f1-38-deploy-yml-smoke-tests-refactor`
+  - Repo: `.github/workflows/deploy.yml`
+  - CD nu mai porneste postgres/openbao local; smoke tests folosesc:
+    - CT107 reachability direct (fara parole)
+    - PgBouncer e2e prin `DATABASE_URL` randat de OpenBao agent
+    - Redis shared (PING via `REDIS_URL`)
+    - health pentru `openbao-agent-api/workers/infra`
+
+- `f1-39-ci-pr-yml-openbao-update`
+  - Repo: `.github/workflows/ci-pr.yml`
+  - CI fetch pentru secrete foloseste `OPENBAO_ADDR` si KV v1 endpoint (`/v1/secret/cerniq/ci/test`)
+  - Nota: CI redis este local (service), fara parola; nu depinde de OpenBao pentru `redis_password`
+
+- `f1-40-detect-environment-rewrite`
+  - Repo: `infra/scripts/detect-environment.sh`
+  - Setari corecte noi:
+    - `STAGING_IP=10.0.1.110`, `PRODUCTION_IP=10.0.1.109`, `PG_HOST=10.0.1.107`, `PG_PORT=5432`
+  - Verificare: scriptul exporta `CERNIQ_ENV`, `PG_HOST`, `PG_PORT` pentru celelalte scripturi care fac `source`
+
+- `f1-41-firewall-fail2ban-update`
+  - Repo: `infra/scripts/setup-firewall.sh`, `infra/config/fail2ban/jail.local`, `infra/scripts/detect-environment.sh`
+  - UFW: SSH permis doar din IP-urile whitelisted (interne 10.0.1.107/108/109/110 + IP-urile externe de admin/backup specificate de tine)
+  - Fail2Ban: `ignoreip` include aceleasi IP-uri whitelisted (nu banam admin)
+  - Verificare:
+    - `sudo ufw status verbose` contine reguli allow din allowlist pe `22/tcp`
+    - `grep -E '^ignoreip' /etc/fail2ban/jail.local` contine allowlist-ul
+
+- `f1-42-hz247-iptables-ct108-orchestrator`
+  - Repo: `infra/config/iptables/hz247-cerniq-inbound.rules`
+  - hz.247: reguli `FORWARD` aditive pentru `CT108 (10.0.1.108) -> orchestrator (10.0.0.2)` pe `22/tcp` + retur `RELATED,ESTABLISHED`
+  - Scop: permite CD sa sincronizeze (SSH/SCP) config Traefik pe orchestrator fara a afecta alte proiecte
+  - Verificare: `sudo iptables -S FORWARD` contine regulile pentru `10.0.1.108/32 -> 10.0.0.2/32 dport 22`
+
+- `f1-43-vector-config-create`
+  - Repo: `infra/config/vector/vector.toml`
+  - Source: `docker_logs`; transform: adauga labels `project=cerniq`, `environment=${CERNIQ_ENV}`, `host=${HOSTNAME}`; sink: Loki `https://logs.neanelu.ro/loki/api/v1/push`
+  - Verificare:
+    - `docker compose config` include serviciul `vector` + mount-uri docker socket + containers logs
+
+- `f1-44-otel-collector-config`
+  - Repo: `infra/config/otel/otel-collector.yaml`
+  - Receivers: OTLP gRPC `4317` + HTTP `4318`; processors: `resource` + `batch`; exporter: `otlphttp` spre `https://otel-cerniq.neanelu.ro`
+  - Verificare: `docker compose config` include serviciul `otel-collector` + porturi host `64070:4317` si `64071:4318`
+
+- `f1-45-compose-add-vector-otel`
+  - Repo: `infra/docker/docker-compose.yml`
+  - Servicii:
+    - `vector` (config `../config/vector/vector.toml`, mounts `/var/run/docker.sock` + `/var/lib/docker/containers`)
+    - `otel-collector` (config `../config/otel/otel-collector.yaml`, ports `64070/64071`)
+
+- `f1-46-orchestrator-traefik-otlp-route`
+  - Repo: `infra/config/traefik-orchestrator/cerniq.yml`
+  - Orchestrator:
+    - dynamic file: `/opt/traefik/dynamic/cerniq.yml`
+    - merge in config agregat: `/opt/traefik/dynamic_conf.yml` (strict aditiv)
+  - DNS/route: `otel-cerniq.neanelu.ro` (TLS cloudflare)
+  - Restrictionare: middleware allowlist doar `10.0.1.109/32` + `10.0.1.110/32` (Cerniq-only)
+  - Upstream: OTEL Collector central expus pe loopback pe orchestrator `127.0.0.1:4318`
+    - Observability stack (orchestrator): `/opt/observability/docker-compose.yml` publica `127.0.0.1:4318:4318` pentru `otel-collector`
+  - Verificare:
+    - pe orchestrator (NU in allowlist): `curl -sk -o /dev/null -w "%{http_code}\n" -H "Host: otel-cerniq.neanelu.ro" https://127.0.0.1/v1/traces` -> `403`
+
+- `f1-47-orchestrator-loki-allowlist`
+  - Orchestrator (observability stack): `/opt/observability/.env`
+  - Variabila `OBS_ALLOWED_CIDRS` contine (aditiv) `10.0.1.109/32,10.0.1.110/32` pentru push din CT109/CT110 catre Loki (`https://logs.neanelu.ro/loki/api/v1/push`)
+  - Verificare: `grep '^OBS_ALLOWED_CIDRS=' /opt/observability/.env`
+  - Nota: scoping mai fin (doar push endpoints, nu UI) este tratat separat in plan (vezi `f1-60`)
+
+- `f1-48-orchestrator-prometheus-targets`
+  - Orchestrator (observability stack): `/opt/observability/prometheus/prometheus.yml`
+  - Scrape jobs aditive pentru Cerniq:
+    - `job_name: cerniq-nodes` (node-exporter): `10.0.1.109:9100`, `10.0.1.110:9100`, `10.0.1.107:9100`, `10.0.1.108:9100`
+    - `job_name: cerniq-docker` (cAdvisor): `10.0.1.109:64094`, `10.0.1.110:64094`
+  - Labels: `project=cerniq`
+  - Verificare: `grep -n \"job_name: cerniq-\" -n /opt/observability/prometheus/prometheus.yml`
+
+- `f1-49-env-file-update`
+  - Repo: `.env`, `.env.local`, `infra/docker/.env`
+  - Obiectiv: elimina complet secretele plaintext din fisiere locale (parole/keys/tokens/unseal keys) si pastreaza doar variabile non-secrete (host-uri, URL-uri)
+  - Nota: `OPENBAO_ADDR` ramane `https://s3cr3ts.neanelu.ro` (OpenBao central pe orchestrator)
+
+- `f1-50-cloudflare-records-update`
+  - Repo: `infra/config/dns/cloudflare-records.txt`
+  - Update: toate A record-urile Cerniq (`cerniq.app`, `www`, `api`, `admin`, `staging`, `api.staging`, `admin.staging`) pointeaza la Traefik orchestrator `77.42.76.185`
+  - Add: `otel-cerniq.neanelu.ro` -> `77.42.76.185` (zona Cloudflare `neanelu.ro`)
+
+- `f1-51-hz247-iptables-prometheus-scrape`
+  - Repo template: `infra/config/iptables/hz247-cerniq-inbound.rules`
+  - Aplicat pe `hz.247` (aditiv): `iptables-restore --noflush < /tmp/hz247-cerniq-inbound.rules`
+  - Scop: permite scrape Prometheus de pe orchestrator (`10.0.0.2`) catre:
+    - node-exporter `9100` pe CT107/108/109/110
+    - cAdvisor `64094` pe CT109/CT110
+  - Verificare: `iptables -S FORWARD | egrep '10\\.0\\.0\\.2/32.*10\\.0\\.1\\.(107|108|109|110)/32.*(9100|64094)'`
+
+- `f1-52-compose-cadvisor-replace-docker-metrics`
+  - Repo: `infra/docker/docker-compose.yml`
+  - Implementare: serviciu `cadvisor` expus pe `64094:8080` (scrape remote de pe Prometheus orchestrator)
+  - Verificare: `docker compose config` include `cadvisor` + port `64094`
+
+- `f1-55-compose-remove-signoz-volume`
+  - Repo: `infra/docker/docker-compose.yml` (nu defineste `signoz_data`)
+  - Test: `tests/e2e/infrastructure/e0-s2-pr01-docker-base.test.ts` verifica explicit ca `signoz_data` NU exista
+
+- `f1-56-delete-deploy-yml-backup`
+  - Repo: `.github/workflows/` (fisierul `deploy.yml.backup` nu exista)
+
+- `f1-53-ct108-node-exporter`
+  - CT108 (CI runner): `prometheus-node-exporter` este instalat si ruleaza ca serviciu systemd
+  - Verificare in CT108: `systemctl is-active prometheus-node-exporter` + `curl -sS http://127.0.0.1:9100/metrics >/dev/null`
+
+- `f1-54-ct108-docker-prune-cron`
+  - CT108: cron job in `/etc/cron.d/cerniq-docker-prune`
+  - Ruleaza zilnic la `03:00` un `docker system prune` (cu `until=72h`) si logheaza in `/var/log/cerniq-docker-prune.log`
+
+- `f1-57-ct109-resize2fs`
+  - CT109 root filesystem este deja extins (~100G) si montat pe `/` (nu a fost necesar `resize2fs`)
+  - Verificare: `df -h /` in CT109
+
+- `f1-58-backup-scripts-refactor`
+  - Repo: `infra/scripts/pg_dump_daily.sh`, `infra/scripts/pg_dump_critical.sh`, `infra/scripts/backup-pre-deploy.sh`, `infra/scripts/validate-postgres.sh`, `infra/scripts/pg_basebackup_weekly.sh`, `infra/scripts/disaster_recovery_full.sh`
+  - Update: elimina complet dependinta de containerul local `cerniq-postgres` (nu mai exista in noua arhitectura)
+  - Nou flux:
+    - dump/validare: foloseste `DATABASE_URL` din env-file renderizat de OpenBao (`/run/cerniq/runtime-secrets/api/api.env`) si ruleaza un container `postgres:18` pe reteaua `cerniq_backend`
+    - basebackup: scriptul este orientat pentru rulare pe CT107 (postgres-main), cu `pg_basebackup` local (fara Docker)
+
+- `f1-59-openbao-scripts-refactor`
+  - Repo: `infra/scripts/openbao-backup.sh`, `infra/scripts/openbao-init.sh`, `infra/scripts/openbao-rotate-static-secrets.sh`
+  - Update:
+    - URL OpenBao ramane central: `https://s3cr3ts.neanelu.ro`
+    - `openbao-init.sh` este marcat ca obsolet (OpenBao este centralizat pe orchestrator; init/unseal nu se face pe CT109/CT110)
+    - `openbao-rotate-static-secrets.sh` este aliniat la KV v1 (fara `kv patch`) si la AppRole names Cerniq (`cerniq-api`, `cerniq-workers`, `cerniq-cicd`, `cerniq-infra`)
+
+#### DNS si routing (Traefik orchestrator)
+
+- Domenii Cerniq (routing pe Traefik orchestrator 77.42.76.185):
+  - productie: `cerniq.app`, `api.cerniq.app`, `admin.cerniq.app` (+ redirect `www.cerniq.app`)
+  - staging: `staging.cerniq.app`, `api.staging.cerniq.app`, `admin.staging.cerniq.app`
+- OTLP intake Cerniq (observability):
+  - host: `otel-cerniq.neanelu.ro` (TLS cloudflare)
+  - upstream: `http://127.0.0.1:4318` (OTEL Collector central pe orchestrator)
+  - acces permis doar din CT109/CT110 via allowlist IP (Cerniq-only)
+- Config Traefik in repo: `infra/config/traefik-orchestrator/cerniq.yml`
+- Deploy pe orchestrator:
+  - fisier proiect: `/opt/traefik/dynamic/cerniq.yml`
+  - config agregat: `/opt/traefik/dynamic_conf.yml` (contine si alte proiecte)
+  - merge: se face controlat (middlewares/routers/services) fara a suprascrie alte proiecte
+
+#### Reguli de retea (hz.247 FORWARD) — aditive
+
+- Template in repo: `infra/config/iptables/hz247-cerniq-inbound.rules`
+- Reguli necesare pentru ingress din orchestrator (10.0.0.2/32) catre CT109/CT110 pe porturi Cerniq:
+  - `64000` (web)
+  - `64010` (api)
+  - `64012` (admin)
+- Reguli pentru observability pull (Prometheus node-exporter 9100) sunt aditive si separate de regulile de ingress.
+- Reguli suplimentare (aditive) pentru Redis shared pe orchestrator:
+  - CT109/CT110 -> orchestrator `10.0.0.2:6379` (TCP)
+
+#### PostgreSQL (CT 107 `postgres-main`)
+
+- Host: `10.0.1.107:5432`
+- DB-uri:
+  - `cerniq` (prod)
+  - `cerniq_staging` (staging)
+- Acces:
+  - aplicatia foloseste PgBouncer din CT109/CT110 (nu exista postgres container local)
+  - OpenBao foloseste un user dedicat pentru credentiale dinamice (ex: `cerniq_vault`) prin reguli `pg_hba.conf` aditive
+- Extensii PostgreSQL 18 (verificat):
+   - PostGIS: `postgresql-18-postgis-3` (3.6.2)
+   - pgvector: `postgresql-18-pgvector` (0.8.1)
+   - Verificare: `dpkg -l | egrep "postgresql-18-postgis-3|postgresql-18-pgvector"` in CT107
+- Init DB `cerniq` (verificat, idempotent, fara parole hardcodate):
+   - Repo: `infra/config/postgres/init-ct107.sql`
+   - Rulat ca `postgres` pe CT107: `psql -d cerniq -f /tmp/init-ct107.sql`
+   - Verificari:
+     - extensii: `SELECT extname FROM pg_extension ...` -> `vector, postgis, postgis_topology, pg_trgm, uuid-ossp, pg_stat_statements`
+     - scheme: `bronze, silver, gold, approval, audit`
+     - tabela: `public.tenants` exista (`to_regclass('public.tenants')`)
+- Init DB `cerniq_staging` (verificat, idempotent, fara parole hardcodate):
+   - Repo: `infra/config/postgres/init-ct107.sql`
+   - Rulat ca `postgres` pe CT107: `psql -d cerniq_staging -f /tmp/init-ct107.sql`
+   - Verificari: aceleasi extensii/scheme + `public.tenants` exista
+- `pg_hba.conf` (verificat, aditiv):
+   - Reguli Cerniq (scram-sha-256) prezente:
+     - `host cerniq cerniq_vault 10.0.0.2/32 scram-sha-256`
+     - `host cerniq_staging cerniq_vault 10.0.0.2/32 scram-sha-256`
+     - `host cerniq c3rn1q 10.0.1.109/32 scram-sha-256`
+     - `host cerniq_staging c3rn1q 10.0.1.110/32 scram-sha-256`
+   - Script idempotent (repo): `infra/scripts/ct107_patch_pg_hba.py`
+   - Reload: `SELECT pg_reload_conf();`
+- `postgresql.conf` / runtime settings (verificat; CT107 este shared, include si DB `zitadel`):
+   - `shared_buffers=8GB`
+   - `effective_cache_size=24GB`
+   - `work_mem=64MB`
+   - `maintenance_work_mem=1GB`
+   - `max_connections=200`
+   - WAL:
+     - `wal_level=replica`
+     - `archive_mode=on`
+     - `archive_command='cp %p /var/lib/postgresql/18/main/wal_archive/%f'`
+     - director `wal_archive` exista si contine fisiere WAL arhivate
+   - `listen_addresses='*'` (nu a fost restrictionat)
+   - Verificare: `SHOW ...` in CT107 + `ls -la /var/lib/postgresql/18/main/wal_archive`
+
+#### OpenBao (centralizat pe orchestrator)
+
+- URL: `https://s3cr3ts.neanelu.ro`
+- In Cerniq nu ruleaza server OpenBao local; doar agenti OpenBao (sidecar) care materializeaza secrete in volume:
+  - `openbao-agent-api` -> `/secrets/api.env`
+  - `openbao-agent-workers` -> `/secrets/workers.env`
+- Database secrets engine (Cerniq, dedicat):
+  - Mount: `cerniq-db/` (separat de alte proiecte)
+  - Config: `cerniq-db/config/cerniq-postgres` -> CT107 `10.0.1.107:5432` (bootstrap parola `cerniq_vault`, apoi `rotate-root`)
+  - Credentiale: user `cerniq_vault` pe CT107; parola este gestionata de OpenBao si nu este stocata in repo
+  - Roluri dinamice (DB creds):
+    - `cerniq-db/roles/api-dynamic` (TTL 1h)
+    - `cerniq-db/roles/workers-dynamic` (TTL 1h)
+    - `cerniq-db/roles/readonly-dynamic` (TTL 30m)
+    - Test (fara a expune user/pass): `bao read -format=json cerniq-db/creds/api-dynamic >/dev/null`
+- KV (secrete statice Cerniq) — verificat existent:
+  - Mount: `secret/` (kv v1)
+  - Path-uri prezente:
+    - `secret/cerniq/api/config`
+    - `secret/cerniq/shared/external`
+  - Verificare (fara output): `bao kv get -mount=secret -format=json cerniq/api/config >/dev/null`
+- AppRole (auto-auth pentru OpenBao Agent) — verificat existent:
+  - Auth method: `approle/`
+  - Roluri:
+    - `auth/approle/role/cerniq-api`
+    - `auth/approle/role/cerniq-workers`
+    - `auth/approle/role/cerniq-cicd`
+  - Credentiale pe CT109/CT110 (host files, montate in containerele agent):
+    - `/opt/cerniq/secrets/api_role_id`, `/opt/cerniq/secrets/api_secret_id`
+    - `/opt/cerniq/secrets/workers_role_id`, `/opt/cerniq/secrets/workers_secret_id`
+  - Nota (LXC unprivileged): aceste fisiere trebuie sa fie readable pentru container (ex: `chmod 644`) ca agentul sa le poata citi.
+  - Repo runtime: aceste fisiere sunt montate ca `/openbao/config/{role_id,secret_id}` in `openbao-agent-*` (vezi `infra/docker/docker-compose.yml`)
+- Config agenti in repo:
+  - `infra/config/openbao/agent-api.hcl`
+  - `infra/config/openbao/agent-workers.hcl`
+
+#### Redis shared (orchestrator)
+
+- Redis ruleaza centralizat pe orchestrator ca container `redis-shared` si este expus doar intern pe `10.0.0.2:6379` (nu pe IP-ul public).
+- Izolare: ACL user dedicat `cerniq` cu key pattern `~cerniq:*` (prefix recomandat: `cerniq:`).
+- Cerniq (CT109/CT110) se conecteaza la Redis prin `REDIS_URL` randat de OpenBao in `/secrets/api.env` si `/secrets/workers.env`.
+- BullMQ: pentru a evita coliziuni intre aplicatii in Redis shared, folosim:
+  - `REDIS_PREFIX=cerniq:` (prefix general chei aplicatie)
+  - `BULLMQ_PREFIX=cerniq` (fara `:`) pentru cheile BullMQ (BullMQ adauga separator `:` intern)
+  - Smoke test (repo): `pnpm smoke:bullmq-prefix` (creeaza un job si verifica pattern-ul cheilor sub prefix, apoi curata)
+
+#### Docker stack Cerniq (CT 109/110)
+
+- Compose (repo):
+  - baza: `infra/docker/docker-compose.yml`
+  - override prod: `infra/docker/docker-compose.prod.yml`
+  - override dev: `infra/docker/docker-compose.dev.yml`
+- Servicii core:
+  - `pgbouncer` conectat la CT107:5432
+    - Sursa de adevar: OpenBao (nu secrete hardcodate in repo)
+    - Config/auth sunt randate de `openbao-agent-infra` in tmpfs:
+      - `/run/cerniq/runtime-secrets/infra/pgbouncer.ini`
+      - `/run/cerniq/runtime-secrets/infra/userlist.txt`
+    - PgBouncer monteaza directorul `.../infra` ca `/etc/pgbouncer` (read-only)
+    - Client auth prin `auth_query` (nu userlist cu verifiere statica):
+      - pe CT107 exista rol `cerniq_pgbouncer_auth` + functia `public.cerniq_pgbouncer_get_auth(username)` (SECURITY DEFINER) care returneaza verifiere SCRAM doar pentru roluri membre in `c3rn1q`
+      - parola `cerniq_pgbouncer_auth` este stocata in OpenBao KV: `secret/cerniq/infra/pgbouncer` si randata doar la runtime in tmpfs
+    - DB per mediu este determinat in template pe baza `CERNIQ_ENV`:
+      - `production` -> `cerniq`
+      - `staging` -> `cerniq_staging`
+  - Redis NU ruleaza local (este shared pe orchestrator)
+  - `openbao-agent-api`, `openbao-agent-workers` (pinned)
+  - `vector` (logs) + `otel-collector` (traces/metrics) + `cadvisor` (docker metrics)
+- Runtime Node in imaginile placeholder: Node 25 (Feb 2026 current)
+
+#### Observabilitate Cerniq (integrat in stack-ul centralizat)
+
+- Logs: Vector -> Loki prin `https://logs.neanelu.ro`
+  - Config in repo: `infra/config/vector/vector.toml`
+  - Labels: `project="cerniq"`, `environment` din `CERNIQ_ENV`, `host` hostname
+- OTEL: `otel-collector` local expune OTLP (4317/4318) pentru aplicatie si poate forwarda catre orchestrator prin HTTPS (route dedicata).
+
+#### CI/CD (CT 108 runner)
+
+- Workflows:
+  - CI: `.github/workflows/ci-pr.yml`
+  - CD: `.github/workflows/deploy.yml`
+- CD sincronizeaza pe target (CT109/CT110) configuratii + compose si poate sincroniza (prin SSH) si configuratia Traefik pentru Cerniq.
+
 ## Server de email — Implementare completa
 
 Data implementare: 2026-02-11
@@ -1244,7 +1636,7 @@ Nod Proxmox: `hz.223`
 Storage: `nvme-fast` (ZFSPool)  
 Scop: runner universal pentru CI/CD (Cerniq + alte proiecte), cu egress controlat.
 
-### Obiectiv
+### Obiectiv sectiune
 
 - Eliminarea consumului de GitHub-hosted minutes (runner-ul ruleaza pe infrastructura noastra).
 - Un runner „universal” reutilizabil prin labels (nu runner separat per proiect).

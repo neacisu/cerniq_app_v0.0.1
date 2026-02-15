@@ -357,9 +357,9 @@ describe("F0.1.2: Docker Networks Setup", () => {
       expect(volumes).not.toHaveProperty("postgres_data");
     });
 
-    it("should define redis_data volume", () => {
+    it("should not define redis_data volume (Redis is external/shared)", () => {
       const volumes = composeConfig?.volumes as Record<string, unknown>;
-      expect(volumes).toHaveProperty("redis_data");
+      expect(volumes).not.toHaveProperty("redis_data");
     });
 
     it("should not define deprecated traefik_certs volume", () => {

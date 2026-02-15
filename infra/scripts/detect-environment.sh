@@ -45,10 +45,12 @@ PRODUCTION_DEPLOY_DIR="/opt/cerniq"
 
 # External PostgreSQL LXC
 PG_HOST="10.0.1.107"
+PG_PORT="5432"
 
 # Admin IPs per environment
-STAGING_ADMIN_IPS="92.180.19.237 10.0.1.107 10.0.1.108 10.0.1.109 10.0.1.110"
-PRODUCTION_ADMIN_IPS="92.180.19.237 10.0.1.107 10.0.1.108 10.0.1.109 10.0.1.110"
+# NOTE: includes user-provided external admin/backup IPs (intentionally whitelisted).
+STAGING_ADMIN_IPS="92.180.19.237 95.216.225.145 94.130.68.123 135.181.183.164 95.216.72.100 95.216.72.118 10.0.1.107 10.0.1.108 10.0.1.109 10.0.1.110"
+PRODUCTION_ADMIN_IPS="92.180.19.237 95.216.225.145 94.130.68.123 135.181.183.164 95.216.72.100 95.216.72.118 10.0.1.107 10.0.1.108 10.0.1.109 10.0.1.110"
 
 # =============================================================================
 # Environment Detection
@@ -127,6 +129,8 @@ _result=$(detect_environment)
 export CERNIQ_ENV="${_result%%:*}"
 export CERNIQ_ENV_DETECTION_METHOD="${_result#*:}"
 export CERNIQ_ENV_DETECTED="true"
+export PG_HOST
+export PG_PORT
 
 # Set environment-specific variables
 if [[ "$CERNIQ_ENV" == "production" ]]; then

@@ -93,11 +93,13 @@ bao_exec() {
 
 log_info "Configuring PostgreSQL connection..."
 
-# Configure connection to PostgreSQL
-bao_exec write database/config/cerniq-postgres \
+# Configure connection to PostgreSQL (Cerniq isolated mount)
+PG_SSLMODE="${PG_SSLMODE:-disable}"
+
+bao_exec write cerniq-db/config/cerniq-postgres \
     plugin_name=postgresql-database-plugin \
     allowed_roles="api-dynamic,workers-dynamic,readonly-dynamic" \
-    connection_url="postgresql://{{username}}:{{password}}@${PG_HOST}:${PG_PORT}/${PG_DATABASE}?sslmode=require" \
+    connection_url="postgresql://{{username}}:{{password}}@${PG_HOST}:${PG_PORT}/${PG_DATABASE}?sslmode=${PG_SSLMODE}" \
     username="${PG_VAULT_USER}" \
     password="${VAULT_PASS}"
 
@@ -109,7 +111,7 @@ log_success "Database connection configured"
 
 log_info "Rotating vault user password (removing initial password)..."
 
-bao_exec write -force database/rotate-root/cerniq-postgres
+bao_exec write -force cerniq-db/rotate-root/cerniq-postgres
 
 log_success "Vault user password rotated (now managed by OpenBao)"
 log_warning "⚠️  The initial vault_initial_password_change_me is no longer valid"
@@ -121,7 +123,7 @@ log_warning "⚠️  The initial vault_initial_password_change_me is no longer v
 log_info "Creating dynamic credential roles..."
 
 # API role - full access to all schemas
-bao_exec write database/roles/api-dynamic \
+bao_exec write cerniq-db/roles/api-dynamic \
     db_name=cerniq-postgres \
     creation_statements="CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}' INHERIT IN ROLE c3rn1q; GRANT USAGE ON ALL SCHEMAS IN DATABASE cerniq TO \"{{name}}\";" \
     revocation_statements="DROP ROLE IF EXISTS \"{{name}}\";" \
@@ -131,7 +133,7 @@ bao_exec write database/roles/api-dynamic \
 log_success "api-dynamic role created (1h default TTL)"
 
 # Workers role - full access to all schemas
-bao_exec write database/roles/workers-dynamic \
+bao_exec write cerniq-db/roles/workers-dynamic \
     db_name=cerniq-postgres \
     creation_statements="CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}' INHERIT IN ROLE c3rn1q; GRANT USAGE ON ALL SCHEMAS IN DATABASE cerniq TO \"{{name}}\";" \
     revocation_statements="DROP ROLE IF EXISTS \"{{name}}\";" \
@@ -141,7 +143,7 @@ bao_exec write database/roles/workers-dynamic \
 log_success "workers-dynamic role created (1h default TTL)"
 
 # Readonly role - for monitoring/reporting
-bao_exec write database/roles/readonly-dynamic \
+bao_exec write cerniq-db/roles/readonly-dynamic \
     db_name=cerniq-postgres \
     creation_statements="CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}' INHERIT; GRANT CONNECT ON DATABASE cerniq TO \"{{name}}\"; GRANT USAGE ON ALL SCHEMAS IN DATABASE cerniq TO \"{{name}}\"; GRANT SELECT ON ALL TABLES IN SCHEMA public, bronze, silver, gold, approval, audit TO \"{{name}}\";" \
     revocation_statements="DROP ROLE IF EXISTS \"{{name}}\";" \
@@ -156,7 +158,7 @@ log_success "readonly-dynamic role created (30m default TTL)"
 
 log_info "Testing dynamic credential generation..."
 
-TEST_CREDS=$(bao_exec read -format=json database/creds/api-dynamic)
+TEST_CREDS=$(bao_exec read -format=json cerniq-db/creds/api-dynamic)
 
 TEST_USER=$(echo "$TEST_CREDS" | jq -r '.data.username')
 TEST_TTL=$(echo "$TEST_CREDS" | jq -r '.lease_duration')
@@ -178,7 +180,7 @@ log_info "  - workers-dynamic (1h TTL, full access)"
 log_info "  - readonly-dynamic (30m TTL, SELECT only)"
 echo ""
 log_info "Usage in templates:"
-log_info "  {{ with secret \"database/creds/api-dynamic\" }}"
+log_info "  {{ with secret \"cerniq-db/creds/api-dynamic\" }}"
 log_info "  DATABASE_URL=postgresql://{{ .Data.username }}:{{ .Data.password }}@..."
 log_info "  {{ end }}"
 echo ""

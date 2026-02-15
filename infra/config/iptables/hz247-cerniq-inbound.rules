@@ -20,4 +20,22 @@
 -A FORWARD -s 10.0.0.2/32 -d 10.0.1.110/32 -p tcp -m multiport --dports 64000,64010,64012 -j ACCEPT
 -A FORWARD -d 10.0.0.2/32 -s 10.0.1.110/32 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 
+# CT 109/110 -> Orchestrator shared Redis (internal only)
+-A FORWARD -s 10.0.1.109/32 -d 10.0.0.2/32 -p tcp --dport 6379 -j ACCEPT
+-A FORWARD -s 10.0.1.110/32 -d 10.0.0.2/32 -p tcp --dport 6379 -j ACCEPT
+-A FORWARD -d 10.0.1.109/32 -s 10.0.0.2/32 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+-A FORWARD -d 10.0.1.110/32 -s 10.0.0.2/32 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+
+# Prometheus scrape (observability): orchestrator -> Cerniq CTs
+# NOTE: return traffic is already allowed by the RELATED,ESTABLISHED rules above
+# (for CT109/CT110) and below (for CT108).
+-A FORWARD -s 10.0.0.2/32 -d 10.0.1.109/32 -p tcp -m multiport --dports 9100,64094 -j ACCEPT
+-A FORWARD -s 10.0.0.2/32 -d 10.0.1.110/32 -p tcp -m multiport --dports 9100,64094 -j ACCEPT
+-A FORWARD -s 10.0.0.2/32 -d 10.0.1.108/32 -p tcp --dport 9100 -j ACCEPT
+-A FORWARD -s 10.0.0.2/32 -d 10.0.1.107/32 -p tcp --dport 9100 -j ACCEPT
+
+# CT 108 (CI runner) -> Orchestrator SSH (for CD sync of traefik config)
+-A FORWARD -s 10.0.1.108/32 -d 10.0.0.2/32 -p tcp --dport 22 -j ACCEPT
+-A FORWARD -d 10.0.1.108/32 -s 10.0.0.2/32 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+
 COMMIT

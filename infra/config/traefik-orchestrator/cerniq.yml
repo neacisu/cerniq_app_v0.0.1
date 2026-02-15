@@ -1,5 +1,12 @@
 http:
   middlewares:
+    # OTLP intake is exposed on the public Traefik entrypoint, but restricted
+    # to Cerniq-only internal sources (CT109/CT110) via IP allowlist.
+    cerniq-otlp-allowlist:
+      ipWhiteList:
+        sourceRange:
+          - "10.0.1.109/32"
+          - "10.0.1.110/32"
     security-headers:
       headers:
         frameDeny: true
@@ -154,6 +161,19 @@ http:
             sans:
               - "*.cerniq.app"
 
+    # Cerniq-only OTLP (HTTP) entrypoint (additive).
+    # Used by CT109/CT110 otel-collector forwarders, which export to:
+    #   https://otel-cerniq.neanelu.ro/v1/{traces,metrics,logs}
+    cerniq-otlp-http:
+      rule: "Host(`otel-cerniq.neanelu.ro`)"
+      service: cerniq-otlp-http-svc
+      entryPoints:
+        - websecure
+      middlewares:
+        - cerniq-otlp-allowlist
+      tls:
+        certResolver: cloudflare
+
   services:
     cerniq-prod-web-svc:
       loadBalancer:
@@ -208,3 +228,10 @@ http:
           path: "/health"
           interval: "30s"
           timeout: "5s"
+
+    # OTLP collector intake (central, on orchestrator loopback).
+    # Traefik on orchestrator uses host networking, so 127.0.0.1 is stable.
+    cerniq-otlp-http-svc:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:4318"

@@ -163,12 +163,11 @@ jobs:
 
           SECRETS=$(curl -sS --fail --retry 5 --retry-connrefused --retry-delay 2 --max-time 10 \
             -H "X-Vault-Token: $TOKEN" \
-            "${OPENBAO_ADDR}/v1/secret/data/cerniq/ci/test")
+            "${OPENBAO_ADDR}/v1/secret/cerniq/ci/test")
 
-          CI_PG_USER=$(echo "$SECRETS" | jq -r '.data.data.pg_user')
-          CI_PG_PASSWORD=$(echo "$SECRETS" | jq -r '.data.data.pg_password')
-          CI_REDIS_PASSWORD=$(echo "$SECRETS" | jq -r '.data.data.redis_password')
-          CI_JWT_SECRET=$(echo "$SECRETS" | jq -r '.data.data.jwt_secret')
+          CI_PG_USER=$(echo "$SECRETS" | jq -r '.data.pg_user')
+          CI_PG_PASSWORD=$(echo "$SECRETS" | jq -r '.data.pg_password')
+          CI_JWT_SECRET=$(echo "$SECRETS" | jq -r '.data.jwt_secret')
 
           require_value "pg_user" "$CI_PG_USER"
           require_value "pg_password" "$CI_PG_PASSWORD"
@@ -180,28 +179,16 @@ jobs:
             echo "OpenBao CI pg_password must match service container password" >&2
             exit 1
           fi
-          if [ "$CI_REDIS_PASSWORD" = "null" ]; then
-            echo "OpenBao secret missing: redis_password" >&2
-            exit 1
-          fi
           require_value "jwt_secret" "$CI_JWT_SECRET"
 
           echo "::add-mask::$CI_PG_PASSWORD"
-          if [ -n "$CI_REDIS_PASSWORD" ] && [ "$CI_REDIS_PASSWORD" != "null" ]; then
-            echo "::add-mask::$CI_REDIS_PASSWORD"
-          fi
           echo "::add-mask::$CI_JWT_SECRET"
 
           echo "DATABASE_URL=postgresql://${CI_PG_USER}:${CI_PG_PASSWORD}@localhost:64032/cerniq" >> $GITHUB_ENV
           echo "POSTGRES_USER=${CI_PG_USER}" >> $GITHUB_ENV
           echo "POSTGRES_PASSWORD=${CI_PG_PASSWORD}" >> $GITHUB_ENV
-          if [ -n "$CI_REDIS_PASSWORD" ] && [ "$CI_REDIS_PASSWORD" != "null" ]; then
-            echo "REDIS_URL=redis://:${CI_REDIS_PASSWORD}@localhost:64039/0" >> $GITHUB_ENV
-            echo "REDIS_PASSWORD=${CI_REDIS_PASSWORD}" >> $GITHUB_ENV
-          else
-            echo "REDIS_URL=redis://localhost:64039/0" >> $GITHUB_ENV
-            echo "REDIS_PASSWORD=" >> $GITHUB_ENV
-          fi
+          echo "REDIS_URL=redis://localhost:64039/0" >> $GITHUB_ENV
+          echo "REDIS_PASSWORD=" >> $GITHUB_ENV
           echo "JWT_SECRET=${CI_JWT_SECRET}" >> $GITHUB_ENV
 
       - name: 🧪 Run Full Test Suite

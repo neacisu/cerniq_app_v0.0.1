@@ -12,44 +12,42 @@ set -e
 BACKUP_DIR="/opt/cerniq/backups"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 BACKUP_FILE="${BACKUP_DIR}/pre_deploy_${TIMESTAMP}.sql"
-PG_HOST="${PG_HOST:-10.0.1.107}"
-PG_PORT="${PG_PORT:-5432}"
-PG_DB="${PG_DB:-cerniq}"
-PG_USER="${PG_USER:-c3rn1q}"
-PG_PASS_FILE="${PG_PASS_FILE:-/opt/cerniq/secrets/postgres_password.txt}"
+ENV_FILE="${ENV_FILE:-/run/cerniq/runtime-secrets/api/api.env}"
+DOCKER_NET="${DOCKER_NET:-cerniq_backend}"
 
-echo "🔄 Starting pre-deployment backup..."
-echo "   Timestamp: ${TIMESTAMP}"
+echo "Starting pre-deployment backup..."
+echo "Timestamp: ${TIMESTAMP}"
 
 # Create backup directory if not exists
 mkdir -p "${BACKUP_DIR}"
 
-if [[ -f "$PG_PASS_FILE" ]]; then
-    export PGPASSWORD
-    PGPASSWORD=$(cat "$PG_PASS_FILE")
-else
-    echo "⚠️  PostgreSQL password file not found: $PG_PASS_FILE"
-    echo "   Skipping backup."
+if [[ ! -f "$ENV_FILE" ]]; then
+    echo "WARNING: OpenBao-rendered env file not found: $ENV_FILE"
+    echo "Skipping backup."
     touch "${BACKUP_FILE}.skipped"
     exit 0
 fi
 
-echo "📦 Creating remote PostgreSQL backup from ${PG_HOST}:${PG_PORT}/${PG_DB}..."
-pg_dump -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d "$PG_DB" > "${BACKUP_FILE}" 2>/dev/null || {
-    echo "⚠️  Database backup skipped (database may not exist yet)"
-    echo "   This is normal for initial deployments"
+echo "Creating DB backup via PgBouncer (DATABASE_URL from OpenBao)..."
+docker run --rm \
+  --network "$DOCKER_NET" \
+  --env-file "$ENV_FILE" \
+  postgres:18 \
+  sh -lc 'exec pg_dump "$DATABASE_URL" --format=plain' \
+  > "${BACKUP_FILE}" 2>/dev/null || {
+    echo "WARNING: Database backup skipped (database may not exist yet)"
     touch "${BACKUP_FILE}.skipped"
 }
 
 if [ -f "${BACKUP_FILE}" ] && [ -s "${BACKUP_FILE}" ]; then
     gzip "${BACKUP_FILE}"
-    echo "✅ Backup created: ${BACKUP_FILE}.gz"
-    echo "   Size: $(du -h ${BACKUP_FILE}.gz | cut -f1)"
+    echo "Backup created: ${BACKUP_FILE}.gz"
+    echo "Size: $(du -h ${BACKUP_FILE}.gz | cut -f1)"
 fi
 
 # Cleanup old backups (keep last 5)
-echo "🧹 Cleaning up old backups (keeping last 5)..."
+echo "Cleaning up old backups (keeping last 5)..."
 ls -t "${BACKUP_DIR}"/pre_deploy_*.sql.gz 2>/dev/null | tail -n +6 | xargs -r rm -f
 
-echo "✅ Pre-deployment backup complete"
+echo "Pre-deployment backup complete"
 exit 0

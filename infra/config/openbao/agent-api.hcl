@@ -6,8 +6,9 @@
 # Version: 1.0
 # =============================================================================
 
-# PID file for process management
-pid_file = "/openbao/agent.pid"
+# PID file for process management (must be writable in LXC)
+pid_file = "/tmp/openbao-agent.pid"
+log_level = "info"
 
 # =============================================================================
 # Auto-Auth Configuration
@@ -76,7 +77,7 @@ template {
 
 # Dynamic PostgreSQL Password (direct from database engine)
 template {
-  source      = "/openbao/templates/pg-password.tpl"
+  source      = "/openbao/templates/pg-password-api.tpl"
   destination = "/secrets/pg_password"
   perms       = 0600
   
