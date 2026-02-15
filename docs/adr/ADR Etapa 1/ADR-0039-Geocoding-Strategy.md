@@ -12,13 +12,13 @@
 
 ```sql
 -- Spatial index pentru proximity queries
-CREATE INDEX idx_gold_companies_geo 
+CREATE INDEX idx_gold_companies_geo
 ON gold_companies USING GIST (location_geography);
 
 -- Query proximitate
-SELECT * FROM gold_companies 
+SELECT * FROM gold_companies
 WHERE ST_DWithin(
-  location_geography, 
+  location_geography,
   ST_GeographyFromText('POINT(26.1025 44.4268)'),
   50000  -- 50km radius
 );

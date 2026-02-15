@@ -15,14 +15,15 @@
 
 ### 1. Dynamic Secrets (Automată - Zero Intervenție)
 
-| Secret | Engine | TTL | Rotație |
-|--------|--------|-----|---------|
-| PostgreSQL credentials (API) | database | 1h | Automată la expirare |
-| PostgreSQL credentials (Workers) | database | 1h | Automată la expirare |
-| PostgreSQL credentials (Readonly) | database | 4h | Automată la expirare |
-| TLS Certificates (internal) | pki_int | 720h | Automată înainte de expirare |
+| Secret                            | Engine   | TTL  | Rotație                      |
+| --------------------------------- | -------- | ---- | ---------------------------- |
+| PostgreSQL credentials (API)      | database | 1h   | Automată la expirare         |
+| PostgreSQL credentials (Workers)  | database | 1h   | Automată la expirare         |
+| PostgreSQL credentials (Readonly) | database | 4h   | Automată la expirare         |
+| TLS Certificates (internal)       | pki_int  | 720h | Automată înainte de expirare |
 
 **Flux:**
+
 1. OpenBao Agent solicită credențiale noi înainte de expirarea TTL
 2. OpenBao generează credențiale temporare în PostgreSQL
 3. Credențialele vechi sunt revocate automat după TTL
@@ -30,24 +31,24 @@
 
 ### 2. Static Secrets (Trimestrială - Semi-Automată)
 
-| Secret | Path în OpenBao | Frecvență |
-|--------|-----------------|-----------|
-| Redis master password | `secret/cerniq/api/config.redis_password` | Trimestrial |
-| JWT signing secret | `secret/cerniq/api/config.jwt_secret` | Trimestrial |
-| ANAF OAuth credentials | `secret/cerniq/shared/external.anaf_*` | La reînnoire |
-| Resend API key | `secret/cerniq/shared/external.resend_api_key` | La reînnoire |
-| Hunter API key | `secret/cerniq/shared/external.hunter_api_key` | La reînnoire |
-| Termene API key | `secret/cerniq/shared/external.termene_api_key` | La reînnoire |
-| GHCR token | `secret/cerniq/ci/deploy.ghcr_token` | Anual |
+| Secret                 | Path în OpenBao                                 | Frecvență    |
+| ---------------------- | ----------------------------------------------- | ------------ |
+| Redis master password  | `secret/cerniq/api/config.redis_password`       | Trimestrial  |
+| JWT signing secret     | `secret/cerniq/api/config.jwt_secret`           | Trimestrial  |
+| ANAF OAuth credentials | `secret/cerniq/shared/external.anaf_*`          | La reînnoire |
+| Resend API key         | `secret/cerniq/shared/external.resend_api_key`  | La reînnoire |
+| Hunter API key         | `secret/cerniq/shared/external.hunter_api_key`  | La reînnoire |
+| Termene API key        | `secret/cerniq/shared/external.termene_api_key` | La reînnoire |
+| GHCR token             | `secret/cerniq/ci/deploy.ghcr_token`            | Anual        |
 
 ### 3. Infrastructure Secrets (Anual sau la Incident)
 
-| Secret | Locație | Frecvență |
-|--------|---------|-----------|
-| OpenBao unseal keys | Hetzner Storage Box (encrypted) | La inițializare + backup |
-| OpenBao root token | Offline secure storage | Doar la DR |
-| SSH keys (deploy) | `secret/cerniq/ci/deploy.ssh_key` | Anual |
-| Traefik dashboard | htpasswd file | Anual |
+| Secret              | Locație                           | Frecvență                |
+| ------------------- | --------------------------------- | ------------------------ |
+| OpenBao unseal keys | Hetzner Storage Box (encrypted)   | La inițializare + backup |
+| OpenBao root token  | Offline secure storage            | Doar la DR               |
+| SSH keys (deploy)   | `secret/cerniq/ci/deploy.ssh_key` | Anual                    |
+| Traefik dashboard   | htpasswd file                     | Anual                    |
 
 ---
 
@@ -183,14 +184,14 @@ curl -X POST "$SLACK_WEBHOOK" -d '{"text":"🚨 Emergency secrets rotation compl
 
 ## Calendar Rotație
 
-| Frecvență | Secrete | Metoda | Automatizare |
-|-----------|---------|--------|--------------|
-| Continuă | Database credentials | Dynamic secrets | ✅ 100% automată |
-| Continuă | TLS certificates | PKI auto-renewal | ✅ 100% automată |
-| Lunar | AppRole secret_ids | Script | 🔄 Semi-automată |
-| Trimestrial | Redis, JWT | Script | 🔄 Semi-automată |
-| Anual | SSH keys, Traefik | Manual | ⚙️ Manuală |
-| La incident | TOATE | Emergency script | 🚨 Urgentă |
+| Frecvență   | Secrete              | Metoda           | Automatizare     |
+| ----------- | -------------------- | ---------------- | ---------------- |
+| Continuă    | Database credentials | Dynamic secrets  | ✅ 100% automată |
+| Continuă    | TLS certificates     | PKI auto-renewal | ✅ 100% automată |
+| Lunar       | AppRole secret_ids   | Script           | 🔄 Semi-automată |
+| Trimestrial | Redis, JWT           | Script           | 🔄 Semi-automată |
+| Anual       | SSH keys, Traefik    | Manual           | ⚙️ Manuală       |
+| La incident | TOATE                | Emergency script | 🚨 Urgentă       |
 
 ---
 
@@ -218,6 +219,7 @@ curl -X POST "$SLACK_WEBHOOK" -d '{"text":"🚨 Emergency secrets rotation compl
 ### Audit Trail
 
 Toate operațiile de rotație sunt logate în:
+
 - `/openbao/data/audit.log` (OpenBao audit)
 - `/var/log/cerniq/secrets-rotation.log` (script logs)
 
@@ -252,5 +254,6 @@ Nu este necesar - credențialele vechi expiră automat, noile sunt generate inst
 ---
 
 **Document History:**
+
 - v2.0 (5 Feb 2026): Rescris complet pentru OpenBao
 - v1.0 (Jan 2026): Versiune inițială cu Docker secrets (deprecată)

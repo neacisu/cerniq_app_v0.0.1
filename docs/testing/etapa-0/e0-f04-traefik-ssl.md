@@ -15,24 +15,24 @@
 # tests/infra/f04-tls.test.sh
 
 describe "TLS Configuration" {
-  
+
   it "should enforce TLS 1.2 minimum" {
     # Test that TLS 1.1 is rejected
     ! openssl s_client -connect api.cerniq.app:443 -tls1_1 2>&1 | grep -q "Protocol  : TLSv1.1"
     assert_success
   }
-  
+
   it "should accept TLS 1.3" {
     openssl s_client -connect api.cerniq.app:443 -tls1_3 2>&1 | grep -q "Protocol  : TLSv1.3"
     assert_success
   }
-  
+
   it "should have valid SSL certificate" {
     # Nota: necesita DNS cutover + deploy aplicatie
     curl -sI https://api.cerniq.app | grep -q "HTTP/"
     assert_success
   }
-  
+
   it "should redirect HTTP to HTTPS" {
     response=$(curl -sI http://api.cerniq.app -o /dev/null -w "%{http_code}")
     [[ "$response" == "301" || "$response" == "308" ]]

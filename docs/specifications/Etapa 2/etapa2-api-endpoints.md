@@ -1,5 +1,7 @@
 # CERNIQ.APP — ETAPA 2: API ENDPOINTS
+
 ## Complete REST API Specification for Cold Outreach
+
 ### Versiunea 1.1 | 2 Februarie 2026
 
 ---
@@ -14,7 +16,7 @@
 // Content-Type: application/json
 // Rate Limits: 100 req/min per tenant
 
-const API_PREFIX = '/api/v1';
+const API_PREFIX = "/api/v1";
 
 // Outreach module routes
 const OUTREACH_ROUTES = {
@@ -257,7 +259,7 @@ interface SequenceStep {
 interface CreateSequenceRequest {
   name: string;
   description?: string;
-  primaryChannel: 'WHATSAPP' | 'EMAIL';
+  primaryChannel: "WHATSAPP" | "EMAIL";
   fallbackChannel?: string;
   respectBusinessHours?: boolean;
   stopOnReply?: boolean;
@@ -304,9 +306,9 @@ interface Template {
   id: string;
   name: string;
   description: string;
-  channel: 'WHATSAPP' | 'EMAIL';
-  subject: string | null;      // For email
-  content: string;             // Supports spintax
+  channel: "WHATSAPP" | "EMAIL";
+  subject: string | null; // For email
+  content: string; // Supports spintax
   variables: Array<{
     name: string;
     required: boolean;
@@ -333,7 +335,7 @@ interface Template {
 interface CreateTemplateRequest {
   name: string;
   description?: string;
-  channel: 'WHATSAPP' | 'EMAIL';
+  channel: "WHATSAPP" | "EMAIL";
   subject?: string;
   content: string;
   variables?: Array<{
@@ -342,7 +344,7 @@ interface CreateTemplateRequest {
     defaultValue?: string;
   }>;
   hasMedia?: boolean;
-  mediaType?: 'image' | 'document' | 'video';
+  mediaType?: "image" | "document" | "video";
   mediaUrl?: string;
 }
 ```
@@ -382,7 +384,7 @@ interface Phone {
   phoneNumber: string;
   label: string;
   timelinesaiAccountId: string;
-  status: 'ACTIVE' | 'PAUSED' | 'OFFLINE' | 'BANNED' | 'QUARANTINE';
+  status: "ACTIVE" | "PAUSED" | "OFFLINE" | "BANNED" | "QUARANTINE";
   statusChangedAt: string;
   statusReason: string | null;
   isOnline: boolean;
@@ -410,8 +412,8 @@ interface Phone {
 interface UpdatePhoneRequest {
   label?: string;
   isEnabled?: boolean;
-  priority?: number;           // For load balancing
-  status?: 'ACTIVE' | 'PAUSED'; // Manual status change
+  priority?: number; // For load balancing
+  status?: "ACTIVE" | "PAUSED"; // Manual status change
 }
 ```
 
@@ -608,26 +610,26 @@ interface ErrorResponse {
 ```typescript
 // apps/api/src/features/outreach/index.ts
 
-import { FastifyInstance } from 'fastify';
-import { leadsRoutes } from './leads.routes';
-import { sequencesRoutes } from './sequences.routes';
-import { templatesRoutes } from './templates.routes';
-import { phonesRoutes } from './phones.routes';
-import { analyticsRoutes } from './analytics.routes';
-import { reviewsRoutes } from './reviews.routes';
+import { FastifyInstance } from "fastify";
+import { leadsRoutes } from "./leads.routes";
+import { sequencesRoutes } from "./sequences.routes";
+import { templatesRoutes } from "./templates.routes";
+import { phonesRoutes } from "./phones.routes";
+import { analyticsRoutes } from "./analytics.routes";
+import { reviewsRoutes } from "./reviews.routes";
 
 export async function outreachModule(fastify: FastifyInstance) {
   // Register all outreach routes
-  await fastify.register(leadsRoutes, { prefix: '/leads' });
-  await fastify.register(sequencesRoutes, { prefix: '/sequences' });
-  await fastify.register(templatesRoutes, { prefix: '/templates' });
-  await fastify.register(phonesRoutes, { prefix: '/phones' });
-  await fastify.register(analyticsRoutes, { prefix: '/analytics' });
-  await fastify.register(reviewsRoutes, { prefix: '/reviews' });
+  await fastify.register(leadsRoutes, { prefix: "/leads" });
+  await fastify.register(sequencesRoutes, { prefix: "/sequences" });
+  await fastify.register(templatesRoutes, { prefix: "/templates" });
+  await fastify.register(phonesRoutes, { prefix: "/phones" });
+  await fastify.register(analyticsRoutes, { prefix: "/analytics" });
+  await fastify.register(reviewsRoutes, { prefix: "/reviews" });
 }
 
 // Register in main app
-fastify.register(outreachModule, { prefix: '/api/v1/outreach' });
+fastify.register(outreachModule, { prefix: "/api/v1/outreach" });
 ```
 
 ---

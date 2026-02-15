@@ -1,5 +1,7 @@
 # CERNIQ.APP — ETAPA 5: RUNBOOK OPERAȚIONAL
+
 ## Operations Guide pentru Nurturing Agentic
+
 ### Versiunea 1.0 | 19 Ianuarie 2026
 
 ---
@@ -8,13 +10,13 @@
 
 ### 1.1 Service Health Endpoints
 
-| Service | Endpoint | Expected Response |
-|---------|----------|-------------------|
-| API Server | `GET /health` | `{"status": "healthy"}` |
-| Redis | `GET /health/redis` | `{"connected": true}` |
-| PostgreSQL | `GET /health/db` | `{"connected": true}` |
-| Python Graph | `GET /graph/health` | `{"status": "ok"}` |
-| LLM Service | `GET /health/llm` | `{"available": true}` |
+| Service      | Endpoint            | Expected Response       |
+| ------------ | ------------------- | ----------------------- |
+| API Server   | `GET /health`       | `{"status": "healthy"}` |
+| Redis        | `GET /health/redis` | `{"connected": true}`   |
+| PostgreSQL   | `GET /health/db`    | `{"connected": true}`   |
+| Python Graph | `GET /graph/health` | `{"status": "ok"}`      |
+| LLM Service  | `GET /health/llm`   | `{"available": true}`   |
 
 ### 1.2 Queue Health
 
@@ -48,16 +50,16 @@ echo "=== Checking Etapa 5 Cron Jobs ==="
 
 # Check last execution times
 psql -c "
-SELECT 
+SELECT
   job_name,
   last_run_at,
   next_run_at,
   status,
-  CASE 
+  CASE
     WHEN last_run_at < NOW() - INTERVAL '2 days' THEN 'STALE'
     ELSE 'OK'
   END as health
-FROM cron_job_status 
+FROM cron_job_status
 WHERE job_name LIKE 'e5_%'
 ORDER BY next_run_at;
 "
@@ -127,6 +129,7 @@ curl -X POST "http://localhost:64050/api/v1/nurturing/winback/campaigns/{campaig
 **Symptoms**: `churn` queue waiting > 100
 
 **Diagnosis**:
+
 ```bash
 # Check worker status
 curl http://localhost:64050/api/admin/workers/churn | jq '.workers'
@@ -136,6 +139,7 @@ psql -c "SELECT * FROM worker_errors WHERE queue = 'churn' ORDER BY created_at D
 ```
 
 **Resolution**:
+
 1. Scale churn workers: `docker-compose scale churn-worker=3`
 2. Check LLM rate limits if sentiment backlog
 3. Review recent deployments
@@ -145,6 +149,7 @@ psql -c "SELECT * FROM worker_errors WHERE queue = 'churn' ORDER BY created_at D
 **Symptoms**: `sentiment` queue failed > 10
 
 **Diagnosis**:
+
 ```bash
 # Check LLM API status
 curl http://localhost:64050/health/llm
@@ -157,6 +162,7 @@ curl http://localhost:64050/api/admin/queues/sentiment/failed | jq '.[0:5]'
 ```
 
 **Resolution**:
+
 1. If rate limited: Wait for reset, reduce concurrency
 2. If API down: Enable fallback (rule-based)
 3. If bad responses: Check prompt template
@@ -166,15 +172,17 @@ curl http://localhost:64050/api/admin/queues/sentiment/failed | jq '.[0:5]'
 **Symptoms**: `geospatial` queue timeouts
 
 **Diagnosis**:
+
 ```bash
 # Check active queries
-psql -c "SELECT pid, now() - pg_stat_activity.query_start AS duration, query 
-         FROM pg_stat_activity 
+psql -c "SELECT pid, now() - pg_stat_activity.query_start AS duration, query
+         FROM pg_stat_activity
          WHERE state = 'active' AND query LIKE '%ST_%'
          ORDER BY duration DESC LIMIT 5"
 ```
 
 **Resolution**:
+
 1. Kill long queries: `SELECT pg_terminate_backend(pid)`
 2. Check GiST index health: `REINDEX INDEX idx_*_geo`
 3. Reduce proximity radius
@@ -186,9 +194,10 @@ psql -c "SELECT pid, now() - pg_stat_activity.query_start AS duration, query
 > **NOTĂ:** HITL folosește tabela unificată `approval_tasks`. Filtrați cu `pipeline_stage='E5'` pentru Etapa 5.
 
 **Diagnosis**:
+
 ```bash
 psql -c "
-SELECT 
+SELECT
   approval_type,
   COUNT(*) as breached,
   AVG(EXTRACT(EPOCH FROM (decided_at - due_at))/3600) as avg_hours_over
@@ -201,6 +210,7 @@ GROUP BY approval_type
 ```
 
 **Resolution**:
+
 1. Review assignment rules in `approval_type_configs`
 2. Add more operators
 3. Adjust SLA times in `approval_type_configs` if consistently breached
@@ -223,19 +233,19 @@ groups:
           severity: warning
         annotations:
           summary: "Churn queue backlog high"
-          
+
       - alert: SentimentWorkerDown
         expr: bullmq_workers_active{queue="sentiment"} == 0
         for: 5m
         labels:
           severity: critical
-          
+
       - alert: HITLSLABreaches
         expr: rate(hitl_sla_breached_total[1h]) > 0.1
         for: 30m
         labels:
           severity: warning
-          
+
       - alert: ChurnRiskCritical
         expr: count(nurturing_client_churn_score > 80) > 10
         for: 1h
@@ -243,7 +253,7 @@ groups:
           severity: warning
         annotations:
           summary: "Multiple clients at critical churn risk"
-          
+
       - alert: GraphBuildFailed
         expr: increase(graph_build_failures_total[24h]) > 0
         labels:
@@ -302,15 +312,15 @@ psql -c "UPDATE gold_referrals SET status = 'EXPIRED' WHERE expires_at < NOW() A
 # NOTĂ: Arhivarea task-urilor HITL se face centralizat pentru toate etapele.
 # Pentru E5-specific, filtrăm cu pipeline_stage='E5'.
 psql -c "
-INSERT INTO approval_tasks_archive 
-SELECT * FROM approval_tasks 
+INSERT INTO approval_tasks_archive
+SELECT * FROM approval_tasks
 WHERE pipeline_stage = 'E5'
   AND status IN ('approved', 'rejected', 'expired')
   AND decided_at < NOW() - INTERVAL '30 days'
 "
 
 psql -c "
-DELETE FROM approval_tasks 
+DELETE FROM approval_tasks
 WHERE pipeline_stage = 'E5'
   AND status IN ('approved', 'rejected', 'expired')
   AND decided_at < NOW() - INTERVAL '30 days'
@@ -337,9 +347,9 @@ psql -c "ANALYZE gold_nurturing_state, gold_churn_signals, gold_referrals"
 # 3. Partition management for actions table
 NEXT_MONTH=$(date -d "+1 month" +%Y_%m)
 psql -c "
-CREATE TABLE IF NOT EXISTS gold_nurturing_actions_${NEXT_MONTH} 
-PARTITION OF gold_nurturing_actions_partitioned 
-FOR VALUES FROM ('$(date -d "+1 month" +%Y-%m-01)') 
+CREATE TABLE IF NOT EXISTS gold_nurturing_actions_${NEXT_MONTH}
+PARTITION OF gold_nurturing_actions_partitioned
+FOR VALUES FROM ('$(date -d "+1 month" +%Y-%m-01)')
 TO ('$(date -d "+2 month" +%Y-%m-01)')
 "
 

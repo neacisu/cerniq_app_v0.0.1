@@ -14,15 +14,15 @@
 
 ## Sumar servicii (infra-only, deja deployat)
 
-| Serviciu | Imagine | Port host | Rol |
-| --- | --- | --- | --- |
-| `pgbouncer` | `edoburu/pgbouncer:latest` | (intern) `64033` | pooler catre CT107, auth_query (Postgres) |
-| `openbao-agent-api` | `quay.io/openbao/openbao:2.5.0` | - | randeaza `/run/cerniq/runtime-secrets/api/api.env` |
-| `openbao-agent-workers` | `quay.io/openbao/openbao:2.5.0` | - | randeaza `/run/cerniq/runtime-secrets/workers/workers.env` |
-| `openbao-agent-infra` | `quay.io/openbao/openbao:2.5.0` | - | randeaza config PgBouncer in tmpfs |
-| `vector` | `timberio/vector:0.53.0-debian` | - | push logs in Loki (orchestrator) |
-| `otel-collector` | `otel/opentelemetry-collector-contrib:0.145.0` | `64070/64071` | OTLP endpoint local pt aplicatie |
-| `cadvisor` | `gcr.io/cadvisor/cadvisor:latest` | `64094` | metrics Docker fara expunere daemon |
+| Serviciu                | Imagine                                        | Port host        | Rol                                                        |
+| ----------------------- | ---------------------------------------------- | ---------------- | ---------------------------------------------------------- |
+| `pgbouncer`             | `edoburu/pgbouncer:latest`                     | (intern) `64033` | pooler catre CT107, auth_query (Postgres)                  |
+| `openbao-agent-api`     | `quay.io/openbao/openbao:2.5.0`                | -                | randeaza `/run/cerniq/runtime-secrets/api/api.env`         |
+| `openbao-agent-workers` | `quay.io/openbao/openbao:2.5.0`                | -                | randeaza `/run/cerniq/runtime-secrets/workers/workers.env` |
+| `openbao-agent-infra`   | `quay.io/openbao/openbao:2.5.0`                | -                | randeaza config PgBouncer in tmpfs                         |
+| `vector`                | `timberio/vector:0.53.0-debian`                | -                | push logs in Loki (orchestrator)                           |
+| `otel-collector`        | `otel/opentelemetry-collector-contrib:0.145.0` | `64070/64071`    | OTLP endpoint local pt aplicatie                           |
+| `cadvisor`              | `gcr.io/cadvisor/cadvisor:latest`              | `64094`          | metrics Docker fara expunere daemon                        |
 
 ## Servicii aplicatie (NU sunt deployate inca)
 

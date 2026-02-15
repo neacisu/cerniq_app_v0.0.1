@@ -14,8 +14,8 @@
  * - This script uses KEYS patterns for validation, which is NOT for production.
  */
 
-import { Queue } from 'bullmq';
-import IORedis from 'ioredis';
+import { Queue } from "bullmq";
+import IORedis from "ioredis";
 
 function requiredEnv(name) {
   const v = process.env[name];
@@ -25,14 +25,14 @@ function requiredEnv(name) {
 
 function normalizeBullmqPrefix(raw) {
   // BullMQ adds its own ":" separators, so we keep prefix without trailing ":".
-  return raw.replace(/:+$/g, '');
+  return raw.replace(/:+$/g, "");
 }
 
-const redisUrl = requiredEnv('REDIS_URL');
+const redisUrl = requiredEnv("REDIS_URL");
 const bullmqPrefix = normalizeBullmqPrefix(
-  process.env.BULLMQ_PREFIX || process.env.REDIS_PREFIX || 'cerniq:',
+  process.env.BULLMQ_PREFIX || process.env.REDIS_PREFIX || "cerniq:",
 );
-const queueName = process.env.BULLMQ_QUEUE_NAME || 'smoke:bullmq-prefix';
+const queueName = process.env.BULLMQ_QUEUE_NAME || "smoke:bullmq-prefix";
 
 const redis = new IORedis(redisUrl, {
   // BullMQ handles retries; keep this simple for a smoke test.
@@ -47,7 +47,7 @@ const queue = new Queue(queueName, {
 });
 
 try {
-  await queue.add('ping', { t: Date.now() });
+  await queue.add("ping", { t: Date.now() });
 
   // Validate that BullMQ created keys under the desired prefix.
   const wantedPattern = `${bullmqPrefix}:${queueName}:*`;
@@ -90,4 +90,3 @@ try {
   await queue.close();
   await redis.quit();
 }
-

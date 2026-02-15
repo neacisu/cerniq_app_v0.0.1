@@ -1,5 +1,7 @@
 # CERNIQ.APP — ETAPA 2: DATABASE MIGRATIONS
+
 ## Cold Outreach Multi-Canal - Migration Scripts
+
 ### Versiunea 1.0 | 01 Februarie 2026
 
 ---
@@ -163,55 +165,55 @@ CREATE TABLE gold_lead_journey (
   -- Primary Key
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-  
+
   -- Link to Gold Company (from Etapa 1)
   gold_company_id UUID NOT NULL REFERENCES gold_companies(id),
-  
+
   -- Current State
   current_state current_state_enum NOT NULL DEFAULT 'COLD',
   previous_state current_state_enum,
   state_changed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   state_change_reason TEXT,
-  
+
   -- Contact Preferences
   preferred_channel channel_enum,
   timezone VARCHAR(50) DEFAULT 'Europe/Bucharest',
   best_contact_hours JSONB DEFAULT '{"start": "09:00", "end": "18:00"}',
-  
+
   -- Outreach Statistics
   total_messages_sent INTEGER DEFAULT 0,
   total_messages_received INTEGER DEFAULT 0,
   whatsapp_messages_sent INTEGER DEFAULT 0,
   email_messages_sent INTEGER DEFAULT 0,
   phone_calls INTEGER DEFAULT 0,
-  
+
   -- Response Metrics
   first_response_at TIMESTAMPTZ,
   last_response_at TIMESTAMPTZ,
   avg_response_time_hours DECIMAL(10,2),
   response_rate DECIMAL(5,2),
-  
+
   -- Engagement Score
   engagement_score INTEGER DEFAULT 0,  -- 0-100
   sentiment_score INTEGER,             -- -100 to +100
-  
+
   -- Sequence Info
   current_sequence_id UUID,
   current_sequence_step INTEGER,
   sequence_started_at TIMESTAMPTZ,
-  
+
   -- Assigned Agent
   assigned_to UUID REFERENCES users(id),
   assigned_at TIMESTAMPTZ,
-  
+
   -- Tags & Notes
   tags JSONB DEFAULT '[]',
   internal_notes TEXT,
-  
+
   -- Timestamps
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  
+
   -- Constraints
   CONSTRAINT unique_tenant_company UNIQUE(tenant_id, gold_company_id)
 );
@@ -239,38 +241,38 @@ CREATE TABLE gold_communication_log (
   -- Primary Key
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-  
+
   -- References
   lead_journey_id UUID NOT NULL REFERENCES gold_lead_journey(id),
   gold_company_id UUID NOT NULL REFERENCES gold_companies(id),
-  
+
   -- Message Identity
   external_message_id VARCHAR(255),       -- ID from provider
   channel channel_enum NOT NULL,
   direction message_direction_enum NOT NULL,
-  
+
   -- Content
   subject VARCHAR(500),                   -- For emails
   message_body TEXT,
   message_preview VARCHAR(255),           -- First 255 chars
   template_id UUID,                       -- If used template
   template_version_id UUID,
-  
+
   -- Sender/Recipient
   from_identifier VARCHAR(100),           -- Phone/Email
   to_identifier VARCHAR(100),             -- Phone/Email
-  
+
   -- WhatsApp Specific
   wa_phone_id UUID,                       -- Reference to wa_phone_numbers
   wa_message_type VARCHAR(50),            -- text, image, document, template
   wa_media_url TEXT,
-  
+
   -- Email Specific
   email_campaign_id VARCHAR(100),         -- Instantly campaign ID
   email_open_count INTEGER DEFAULT 0,
   email_click_count INTEGER DEFAULT 0,
   email_links_clicked JSONB DEFAULT '[]',
-  
+
   -- Status
   status message_status_enum NOT NULL DEFAULT 'QUEUED',
   queued_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -280,7 +282,7 @@ CREATE TABLE gold_communication_log (
   replied_at TIMESTAMPTZ,
   failed_at TIMESTAMPTZ,
   failure_reason TEXT,
-  
+
   -- AI Analysis
   sentiment_score INTEGER,
   sentiment_analysis JSONB,
@@ -288,11 +290,11 @@ CREATE TABLE gold_communication_log (
   keywords_extracted JSONB DEFAULT '[]',
   ai_suggested_response TEXT,
   requires_human_review BOOLEAN DEFAULT FALSE,
-  
+
   -- Sequence Context
   sequence_id UUID,
   sequence_step_id UUID,
-  
+
   -- Timestamps
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -320,41 +322,41 @@ CREATE TABLE wa_phone_numbers (
   -- Primary Key
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-  
+
   -- Phone Identity
   phone_number VARCHAR(20) NOT NULL,          -- Format: +40XXXXXXXXX
   display_name VARCHAR(100),
   account_id VARCHAR(100) NOT NULL,           -- TimelinesAI account ID
-  
+
   -- Capacity
   daily_new_contact_limit INTEGER NOT NULL DEFAULT 200,
   current_new_contacts_today INTEGER DEFAULT 0,
   followup_limit INTEGER DEFAULT 500,         -- Per day
   current_followups_today INTEGER DEFAULT 0,
-  
+
   -- Status
   status phone_status_enum NOT NULL DEFAULT 'ACTIVE',
   last_status_change TIMESTAMPTZ,
   last_error TEXT,
-  
+
   -- Health Metrics
   messages_sent_24h INTEGER DEFAULT 0,
   messages_failed_24h INTEGER DEFAULT 0,
   bounce_rate_24h DECIMAL(5,2) DEFAULT 0,
   avg_response_rate DECIMAL(5,2),
-  
+
   -- Connection Status
   is_connected BOOLEAN DEFAULT TRUE,
   last_heartbeat_at TIMESTAMPTZ,
   qr_code_required BOOLEAN DEFAULT FALSE,
-  
+
   -- Assignment
   priority INTEGER DEFAULT 1,                  -- For load balancing
-  
+
   -- Timestamps
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  
+
   CONSTRAINT unique_phone_number UNIQUE(phone_number)
 );
 
@@ -376,35 +378,35 @@ CREATE TABLE wa_quota_usage (
   -- Primary Key
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-  
+
   -- Reference
   phone_id UUID NOT NULL REFERENCES wa_phone_numbers(id),
   usage_date DATE NOT NULL,
-  
+
   -- Quotas
   new_contacts_used INTEGER DEFAULT 0,
   new_contacts_limit INTEGER NOT NULL DEFAULT 200,
   followups_used INTEGER DEFAULT 0,
   followups_limit INTEGER NOT NULL DEFAULT 500,
-  
+
   -- Messages Breakdown
   messages_sent INTEGER DEFAULT 0,
   messages_delivered INTEGER DEFAULT 0,
   messages_read INTEGER DEFAULT 0,
   messages_replied INTEGER DEFAULT 0,
   messages_failed INTEGER DEFAULT 0,
-  
+
   -- Timing
   first_message_at TIMESTAMPTZ,
   last_message_at TIMESTAMPTZ,
-  
+
   -- Reset Info
   quota_reset_at TIMESTAMPTZ,                 -- Next day 00:00 Bucharest
-  
+
   -- Timestamps
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  
+
   CONSTRAINT unique_phone_date UNIQUE(phone_id, usage_date)
 );
 
@@ -429,37 +431,37 @@ CREATE TABLE outreach_sequences (
   -- Primary Key
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-  
+
   -- Identity
   name VARCHAR(200) NOT NULL,
   description TEXT,
   code VARCHAR(50),
-  
+
   -- Configuration
   channel channel_enum NOT NULL,
   start_stage current_state_enum NOT NULL DEFAULT 'COLD',
   target_stage current_state_enum NOT NULL DEFAULT 'WARM_REPLY',
-  
+
   -- Settings
   max_steps INTEGER DEFAULT 5,
   total_duration_days INTEGER DEFAULT 14,
   respect_business_hours BOOLEAN DEFAULT TRUE,
   weekend_sending BOOLEAN DEFAULT FALSE,
-  
+
   -- A/B Testing
   is_ab_test BOOLEAN DEFAULT FALSE,
   ab_variant VARCHAR(1),                     -- 'A' or 'B'
   ab_parent_id UUID REFERENCES outreach_sequences(id),
-  
+
   -- Status
   status sequence_status_enum NOT NULL DEFAULT 'DRAFT',
-  
+
   -- Stats
   total_enrolled INTEGER DEFAULT 0,
   total_completed INTEGER DEFAULT 0,
   total_converted INTEGER DEFAULT 0,
   conversion_rate DECIMAL(5,2),
-  
+
   -- Timestamps
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -483,42 +485,42 @@ CREATE TABLE outreach_sequence_steps (
   -- Primary Key
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-  
+
   -- Reference
   sequence_id UUID NOT NULL REFERENCES outreach_sequences(id) ON DELETE CASCADE,
-  
+
   -- Step Definition
   step_number INTEGER NOT NULL,
   step_name VARCHAR(100),
-  
+
   -- Timing
   delay_days INTEGER NOT NULL DEFAULT 1,
   delay_hours INTEGER DEFAULT 0,
   preferred_send_time TIME,                  -- NULL = anytime in business hours
-  
+
   -- Content
   template_id UUID REFERENCES outreach_templates(id),
   subject_override VARCHAR(500),
   message_override TEXT,
-  
+
   -- Conditions
   skip_if_replied BOOLEAN DEFAULT TRUE,
   skip_if_opened BOOLEAN DEFAULT FALSE,
   condition_expression JSONB,                 -- Advanced conditions
-  
+
   -- Actions
   on_reply_action VARCHAR(50),               -- 'COMPLETE', 'HUMAN_REVIEW', 'NEXT_STEP'
   on_no_reply_action VARCHAR(50) DEFAULT 'NEXT_STEP',
-  
+
   -- Stats
   total_sent INTEGER DEFAULT 0,
   total_replied INTEGER DEFAULT 0,
   reply_rate DECIMAL(5,2),
-  
+
   -- Timestamps
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  
+
   CONSTRAINT unique_sequence_step UNIQUE(sequence_id, step_number)
 );
 
@@ -539,29 +541,29 @@ CREATE TABLE sequence_enrollments (
   -- Primary Key
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-  
+
   -- References
   sequence_id UUID NOT NULL REFERENCES outreach_sequences(id),
   lead_journey_id UUID NOT NULL REFERENCES gold_lead_journey(id),
-  
+
   -- Progress
   current_step INTEGER DEFAULT 1,
   next_step_scheduled_at TIMESTAMPTZ,
-  
+
   -- Status
   status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',  -- ACTIVE, PAUSED, COMPLETED, STOPPED
   completed_at TIMESTAMPTZ,
   stopped_reason TEXT,
-  
+
   -- Metrics
   messages_sent INTEGER DEFAULT 0,
   messages_replied INTEGER DEFAULT 0,
-  
+
   -- Timestamps
   enrolled_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  
+
   CONSTRAINT unique_lead_sequence UNIQUE(lead_journey_id, sequence_id)
 );
 
@@ -586,41 +588,41 @@ CREATE TABLE outreach_templates (
   -- Primary Key
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-  
+
   -- Identity
   name VARCHAR(200) NOT NULL,
   code VARCHAR(50),
   description TEXT,
-  
+
   -- Type & Channel
   template_type template_type_enum NOT NULL DEFAULT 'INITIAL',
   channel channel_enum NOT NULL,
-  
+
   -- Content
   subject VARCHAR(500),                       -- For emails
   message_body TEXT NOT NULL,
-  
+
   -- Personalization
   variables JSONB DEFAULT '[]',               -- Available merge fields
   -- Example: ["{{company_name}}", "{{contact_name}}", "{{product_interest}}"]
-  
+
   -- Settings
   status template_status_enum NOT NULL DEFAULT 'DRAFT',
   is_default BOOLEAN DEFAULT FALSE,
   language VARCHAR(5) DEFAULT 'ro',
-  
+
   -- A/B Testing
   is_ab_test BOOLEAN DEFAULT FALSE,
   ab_variant VARCHAR(1),
   ab_parent_id UUID REFERENCES outreach_templates(id),
-  
+
   -- Stats
   total_sent INTEGER DEFAULT 0,
   total_replied INTEGER DEFAULT 0,
   total_opened INTEGER DEFAULT 0,
   reply_rate DECIMAL(5,2),
   open_rate DECIMAL(5,2),
-  
+
   -- Timestamps
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -644,30 +646,30 @@ CREATE TABLE template_versions (
   -- Primary Key
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-  
+
   -- Reference
   template_id UUID NOT NULL REFERENCES outreach_templates(id) ON DELETE CASCADE,
-  
+
   -- Version
   version_number INTEGER NOT NULL,
-  
+
   -- Content Snapshot
   subject VARCHAR(500),
   message_body TEXT NOT NULL,
   variables JSONB DEFAULT '[]',
-  
+
   -- Metadata
   change_notes TEXT,
-  
+
   -- Stats (for this version)
   total_sent INTEGER DEFAULT 0,
   total_replied INTEGER DEFAULT 0,
   reply_rate DECIMAL(5,2),
-  
+
   -- Timestamps
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   created_by UUID REFERENCES users(id),
-  
+
   CONSTRAINT unique_template_version UNIQUE(template_id, version_number)
 );
 
@@ -692,43 +694,43 @@ CREATE TABLE human_review_queue (
   -- Primary Key
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-  
+
   -- References
   lead_journey_id UUID NOT NULL REFERENCES gold_lead_journey(id),
   communication_log_id UUID REFERENCES gold_communication_log(id),
-  
+
   -- Review Context
   review_reason review_reason_enum NOT NULL,
   priority review_priority_enum NOT NULL DEFAULT 'MEDIUM',
-  
+
   -- AI Context
   ai_analysis JSONB,
   ai_suggested_action VARCHAR(100),
   ai_suggested_response TEXT,
   ai_confidence DECIMAL(5,2),                 -- 0-100%
-  
+
   -- Content
   message_content TEXT,
   context_messages JSONB DEFAULT '[]',        -- Previous conversation
-  
+
   -- Status
   status VARCHAR(20) NOT NULL DEFAULT 'PENDING',  -- PENDING, IN_PROGRESS, RESOLVED
-  
+
   -- Resolution
   resolved_at TIMESTAMPTZ,
   resolved_by UUID REFERENCES users(id),
   resolution_action VARCHAR(100),             -- APPROVE, REJECT, MODIFY, ESCALATE
   resolution_notes TEXT,
   modified_response TEXT,
-  
+
   -- SLA
   sla_deadline TIMESTAMPTZ,
   sla_breached BOOLEAN DEFAULT FALSE,
-  
+
   -- Assignment
   assigned_to UUID REFERENCES users(id),
   assigned_at TIMESTAMPTZ,
-  
+
   -- Timestamps
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -755,10 +757,10 @@ CREATE TABLE outreach_daily_stats (
   -- Primary Key
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-  
+
   -- Date
   stats_date DATE NOT NULL,
-  
+
   -- WhatsApp Stats
   wa_new_contacts INTEGER DEFAULT 0,
   wa_followups INTEGER DEFAULT 0,
@@ -768,7 +770,7 @@ CREATE TABLE outreach_daily_stats (
   wa_messages_replied INTEGER DEFAULT 0,
   wa_messages_failed INTEGER DEFAULT 0,
   wa_bounce_rate DECIMAL(5,2),
-  
+
   -- Email Cold Stats
   email_cold_sent INTEGER DEFAULT 0,
   email_cold_delivered INTEGER DEFAULT 0,
@@ -777,33 +779,33 @@ CREATE TABLE outreach_daily_stats (
   email_cold_replied INTEGER DEFAULT 0,
   email_cold_bounced INTEGER DEFAULT 0,
   email_cold_open_rate DECIMAL(5,2),
-  
+
   -- Email Warm Stats
   email_warm_sent INTEGER DEFAULT 0,
   email_warm_delivered INTEGER DEFAULT 0,
   email_warm_opened INTEGER DEFAULT 0,
   email_warm_replied INTEGER DEFAULT 0,
-  
+
   -- Lead Progression
   leads_contacted INTEGER DEFAULT 0,
   leads_replied INTEGER DEFAULT 0,
   leads_converted_to_warm INTEGER DEFAULT 0,
   leads_converted_to_negotiation INTEGER DEFAULT 0,
   leads_marked_dead INTEGER DEFAULT 0,
-  
+
   -- HITL Stats
   reviews_created INTEGER DEFAULT 0,
   reviews_resolved INTEGER DEFAULT 0,
   reviews_sla_breached INTEGER DEFAULT 0,
-  
+
   -- Performance
   avg_response_time_minutes DECIMAL(10,2),
   sentiment_avg DECIMAL(5,2),
-  
+
   -- Timestamps
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  
+
   CONSTRAINT unique_tenant_date UNIQUE(tenant_id, stats_date)
 );
 
@@ -901,7 +903,7 @@ DECLARE
   v_followup_used INTEGER;
   v_followup_limit INTEGER;
 BEGIN
-  SELECT 
+  SELECT
     COALESCE(new_contacts_used, 0),
     COALESCE(new_contacts_limit, 200),
     COALESCE(followups_used, 0),
@@ -910,11 +912,11 @@ BEGIN
   FROM wa_quota_usage
   WHERE phone_id = p_phone_id
     AND usage_date = CURRENT_DATE;
-  
+
   IF NOT FOUND THEN
     RETURN TRUE;  -- No usage yet today
   END IF;
-  
+
   IF p_is_new_contact THEN
     RETURN v_new_used < v_new_limit;
   ELSE
@@ -931,14 +933,14 @@ CREATE OR REPLACE FUNCTION increment_wa_quota(
 ) RETURNS BOOLEAN AS $$
 BEGIN
   INSERT INTO wa_quota_usage (phone_id, tenant_id, usage_date, new_contacts_used, followups_used)
-  VALUES (p_phone_id, p_tenant_id, CURRENT_DATE, 
+  VALUES (p_phone_id, p_tenant_id, CURRENT_DATE,
           CASE WHEN p_is_new_contact THEN 1 ELSE 0 END,
           CASE WHEN p_is_new_contact THEN 0 ELSE 1 END)
   ON CONFLICT (phone_id, usage_date)
   DO UPDATE SET
-    new_contacts_used = wa_quota_usage.new_contacts_used + 
+    new_contacts_used = wa_quota_usage.new_contacts_used +
       CASE WHEN p_is_new_contact THEN 1 ELSE 0 END,
-    followups_used = wa_quota_usage.followups_used + 
+    followups_used = wa_quota_usage.followups_used +
       CASE WHEN p_is_new_contact THEN 0 ELSE 1 END,
     updated_at = NOW();
   RETURN TRUE;
@@ -964,25 +966,25 @@ BEGIN
   ELSE
     v_response_rate := 0;
   END IF;
-  
+
   -- Response time (30% weight) - faster = better
   IF p_avg_response_time_hours IS NOT NULL THEN
     v_response_time_score := GREATEST(0, 30 - (p_avg_response_time_hours / 24 * 30));
   ELSE
     v_response_time_score := 0;
   END IF;
-  
+
   -- Sentiment (30% weight)
   IF p_sentiment_score IS NOT NULL THEN
     v_sentiment_normalized := ((p_sentiment_score + 100) / 200.0) * 30;
   ELSE
     v_sentiment_normalized := 15;  -- Neutral default
   END IF;
-  
-  v_score := LEAST(100, GREATEST(0, 
+
+  v_score := LEAST(100, GREATEST(0,
     ROUND(v_response_rate + v_response_time_score + v_sentiment_normalized)
   ));
-  
+
   RETURN v_score;
 END;
 $$ LANGUAGE plpgsql;
@@ -1001,17 +1003,17 @@ BEGIN
   WHERE p.tenant_id = p_tenant_id
     AND p.status = 'ACTIVE'
     AND (
-      CASE WHEN p_is_new_contact 
+      CASE WHEN p_is_new_contact
         THEN COALESCE(q.new_contacts_used, 0) < COALESCE(q.new_contacts_limit, 200)
         ELSE COALESCE(q.followups_used, 0) < COALESCE(q.followups_limit, 500)
       END
     )
-  ORDER BY 
+  ORDER BY
     COALESCE(q.new_contacts_used, 0) ASC,  -- Least used first
     p.priority ASC
   LIMIT 1
   FOR UPDATE SKIP LOCKED;
-  
+
   RETURN v_phone_id;
 END;
 $$ LANGUAGE plpgsql;
@@ -1038,19 +1040,19 @@ CREATE OR REPLACE FUNCTION update_lead_engagement_after_comm()
 RETURNS TRIGGER AS $$
 BEGIN
   UPDATE gold_lead_journey
-  SET 
-    total_messages_sent = total_messages_sent + 
+  SET
+    total_messages_sent = total_messages_sent +
       CASE WHEN NEW.direction = 'OUTBOUND' THEN 1 ELSE 0 END,
-    total_messages_received = total_messages_received + 
+    total_messages_received = total_messages_received +
       CASE WHEN NEW.direction = 'INBOUND' THEN 1 ELSE 0 END,
-    last_response_at = CASE 
-      WHEN NEW.direction = 'INBOUND' THEN NEW.created_at 
-      ELSE last_response_at 
+    last_response_at = CASE
+      WHEN NEW.direction = 'INBOUND' THEN NEW.created_at
+      ELSE last_response_at
     END,
     sentiment_score = COALESCE(NEW.sentiment_score, sentiment_score),
     updated_at = NOW()
   WHERE id = NEW.lead_journey_id;
-  
+
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -1065,12 +1067,12 @@ CREATE OR REPLACE FUNCTION update_phone_stats_from_quota()
 RETURNS TRIGGER AS $$
 BEGIN
   UPDATE wa_phone_numbers
-  SET 
+  SET
     current_new_contacts_today = NEW.new_contacts_used,
     current_followups_today = NEW.followups_used,
     updated_at = NOW()
   WHERE id = NEW.phone_id;
-  
+
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -1084,9 +1086,9 @@ EXECUTE FUNCTION update_phone_stats_from_quota();
 CREATE OR REPLACE FUNCTION auto_create_review_for_negative()
 RETURNS TRIGGER AS $$
 BEGIN
-  IF NEW.direction = 'INBOUND' 
-     AND NEW.sentiment_score IS NOT NULL 
-     AND NEW.sentiment_score < -30 
+  IF NEW.direction = 'INBOUND'
+     AND NEW.sentiment_score IS NOT NULL
+     AND NEW.sentiment_score < -30
   THEN
     INSERT INTO human_review_queue (
       tenant_id,
@@ -1105,7 +1107,7 @@ BEGIN
       NEW.lead_journey_id,
       NEW.id,
       'NEGATIVE_SENTIMENT',
-      CASE 
+      CASE
         WHEN NEW.sentiment_score < -70 THEN 'URGENT'
         WHEN NEW.sentiment_score < -50 THEN 'HIGH'
         ELSE 'MEDIUM'
@@ -1115,18 +1117,18 @@ BEGIN
       80,  -- Default confidence
       NEW.message_body,
       'PENDING',
-      CASE 
+      CASE
         WHEN NEW.sentiment_score < -70 THEN NOW() + INTERVAL '1 hour'
         WHEN NEW.sentiment_score < -50 THEN NOW() + INTERVAL '4 hours'
         ELSE NOW() + INTERVAL '24 hours'
       END
     );
-    
+
     UPDATE gold_communication_log
     SET requires_human_review = TRUE
     WHERE id = NEW.id;
   END IF;
-  
+
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -1179,7 +1181,7 @@ EXECUTE FUNCTION track_state_change();
 
 -- Seed: Default WhatsApp phones (20 phones)
 INSERT INTO wa_phone_numbers (tenant_id, phone_number, display_name, account_id, priority)
-VALUES 
+VALUES
   ('{tenant_id}', '+40700000001', 'Cerniq Sales 1', 'timelines_acc_1', 1),
   ('{tenant_id}', '+40700000002', 'Cerniq Sales 2', 'timelines_acc_2', 2),
   ('{tenant_id}', '+40700000003', 'Cerniq Sales 3', 'timelines_acc_3', 3),
@@ -1203,15 +1205,15 @@ VALUES
 
 -- Seed: Default outreach templates
 INSERT INTO outreach_templates (tenant_id, name, code, template_type, channel, subject, message_body, status, is_default, variables)
-VALUES 
+VALUES
   ('{tenant_id}', 'WhatsApp Initial - Agriculture', 'WA_INIT_AGRI', 'INITIAL', 'WHATSAPP', NULL,
    'Bună ziua! Sunt {{agent_name}} de la Cerniq. Am observat că activați în domeniul agricol în {{county}}. Ați fi interesat să discutăm despre soluțiile noastre pentru ferme? 🌾',
    'ACTIVE', TRUE, '["{{agent_name}}", "{{county}}", "{{company_name}}"]'),
-  
+
   ('{tenant_id}', 'WhatsApp Follow-up 1', 'WA_FU1', 'FOLLOWUP', 'WHATSAPP', NULL,
    'Bună ziua! Revin cu un mesaj scurt. Ați avut ocazia să vă gândiți la propunerea noastră? Sunt disponibil pentru orice întrebări. 🙂',
    'ACTIVE', FALSE, '["{{contact_name}}"]'),
-  
+
   ('{tenant_id}', 'Email Cold Initial', 'EMAIL_COLD_INIT', 'INITIAL', 'EMAIL_COLD',
    'Soluții agricole pentru {{company_name}}',
    'Stimate/ă {{contact_name}},\n\nMă numesc {{agent_name}} și reprezint Cerniq, furnizor de soluții agricole.\n\nAm observat că {{company_name}} activează în {{industry}} și am dori să vă prezentăm oferta noastră.\n\nPutem programa o discuție de 15 minute săptămâna viitoare?\n\nCu stimă,\n{{agent_name}}\nCerniq',
@@ -1219,7 +1221,7 @@ VALUES
 
 -- Seed: Default sequence
 INSERT INTO outreach_sequences (tenant_id, name, code, channel, max_steps, total_duration_days, status)
-VALUES 
+VALUES
   ('{tenant_id}', 'WhatsApp Standard 5-Step', 'WA_STD_5', 'WHATSAPP', 5, 14, 'ACTIVE');
 
 -- Rollback

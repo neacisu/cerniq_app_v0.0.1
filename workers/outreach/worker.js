@@ -16,7 +16,9 @@ const server = http.createServer((req, res) => {
   }
 
   res.writeHead(200, { "Content-Type": "application/json" });
-  res.end(JSON.stringify({ message: "Outreach Worker - Use /health for status" }));
+  res.end(
+    JSON.stringify({ message: "Outreach Worker - Use /health for status" }),
+  );
 });
 
 server.listen(3000, "0.0.0.0", () => {
@@ -29,4 +31,3 @@ setInterval(() => {
     `Outreach Worker heartbeat - Status: ${status.status} - Jobs: ${status.processedJobs}`,
   );
 }, 30000);
-

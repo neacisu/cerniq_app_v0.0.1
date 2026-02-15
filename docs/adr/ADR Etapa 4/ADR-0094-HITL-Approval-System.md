@@ -13,12 +13,12 @@
 
 **Approval Matrix:**
 
-| Task Type | Approver | SLA | Escalate To |
-| --------- | -------- | --- | ----------- |
-| credit:override:small | SALES_MANAGER | 4h | CFO |
-| credit:override:large | CFO | 2h | CEO |
-| refund:large | FINANCE_MANAGER | 4h | CFO |
-| payment:unmatched | ACCOUNTING | 8h | CFO |
+| Task Type             | Approver        | SLA | Escalate To |
+| --------------------- | --------------- | --- | ----------- |
+| credit:override:small | SALES_MANAGER   | 4h  | CFO         |
+| credit:override:large | CFO             | 2h  | CEO         |
+| refund:large          | FINANCE_MANAGER | 4h  | CFO         |
+| payment:unmatched     | ACCOUNTING      | 8h  | CFO         |
 
 **Consequences:**
 

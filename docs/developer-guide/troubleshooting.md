@@ -35,6 +35,7 @@ Una din situațiile de mai jos:
 - firewall/route intre CT-uri (in infra noua) blocheaza traficul catre CT107:5432
 
 **Soluție:**
+
 - Pentru local dev: verificați `DATABASE_URL` si ca PostgreSQL raspunde (`psql ... -c "SELECT 1"`).
 - Pentru staging/prod: validați ca `openbao-agent-*` sunt `healthy` si au randat `/secrets/*.env`, apoi ca `pgbouncer` e `healthy`.
 
@@ -103,6 +104,7 @@ Dacă problema nu este listată aici:
 **Simptom:** PR-ul e blocat de CI roșu.
 
 **Soluție:**
+
 - Rulați local testele relevante înainte de re-push
 - Verificați versiunile Node/Python din pipeline
 - Atașați log-urile CI la issue
@@ -112,6 +114,7 @@ Dacă problema nu este listată aici:
 **Simptom:** Build Docker eșuează sau nu produce artifact.
 
 **Soluție:**
+
 - Verificați spațiul disponibil pe runner
 - Verificați cache-urile și dependențele
 - Reporniți pipeline-ul după cleanup
@@ -126,6 +129,7 @@ Dacă problema nu este listată aici:
 `curl http://localhost:64000/health/ready`
 
 **Soluție:**
+
 - Dacă e non-200, verificați log-urile containerelor
 - Asigurați-vă că migrațiile au rulat complet
 

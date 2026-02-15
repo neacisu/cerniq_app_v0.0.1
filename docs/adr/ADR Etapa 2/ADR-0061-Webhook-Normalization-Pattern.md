@@ -9,8 +9,8 @@
 ```typescript
 interface SystemEvent {
   lead_id: string;
-  type: 'REPLY' | 'BOUNCE' | 'OPEN' | 'CLICK' | 'UNSUBSCRIBE';
-  channel: 'WHATSAPP' | 'EMAIL';
+  type: "REPLY" | "BOUNCE" | "OPEN" | "CLICK" | "UNSUBSCRIBE";
+  channel: "WHATSAPP" | "EMAIL";
   content?: string;
   timestamp: Date;
   raw_payload: object;

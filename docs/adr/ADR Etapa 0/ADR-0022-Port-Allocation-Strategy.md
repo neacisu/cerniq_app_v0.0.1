@@ -14,24 +14,24 @@ Cerniq.app folosește **range 64000-64099** pentru serviciile interne ale aplica
 
 ### Port Allocation
 
-| Port | Service | Network |
-| ---- | ------- | ------- |
-| **External (nginx)** | | |
-| 22 | SSH | Host |
-| 80 | Orchestrator Traefik HTTP → HTTPS redirect | Host (orchestrator) |
-| 443 | Orchestrator Traefik HTTPS (TLS termination) | Host (orchestrator) |
-| **Application (64000-64019)** | | |
-| 64000 | Fastify API | cerniq_backend |
-| 64010 | React Web | cerniq_public |
-| 64011 | Vite HMR (dev only) | cerniq_public |
-| **Database (64030-64049)** | | |
-| 64033 | PgBouncer | cerniq_backend + cerniq_data |
-| 5432 | PostgreSQL (CT107, nativ) | external |
-| 6379 | Redis shared (orchestrator, via gateway hz.247) | external (internal) |
-| **Observability (64070-64089)** | | |
-| 64070 | OTel gRPC | cerniq_backend |
-| 64071 | OTel HTTP | cerniq_backend |
-| 64094 | cAdvisor | cerniq_backend |
+| Port                            | Service                                         | Network                      |
+| ------------------------------- | ----------------------------------------------- | ---------------------------- |
+| **External (nginx)**            |                                                 |                              |
+| 22                              | SSH                                             | Host                         |
+| 80                              | Orchestrator Traefik HTTP → HTTPS redirect      | Host (orchestrator)          |
+| 443                             | Orchestrator Traefik HTTPS (TLS termination)    | Host (orchestrator)          |
+| **Application (64000-64019)**   |                                                 |                              |
+| 64000                           | Fastify API                                     | cerniq_backend               |
+| 64010                           | React Web                                       | cerniq_public                |
+| 64011                           | Vite HMR (dev only)                             | cerniq_public                |
+| **Database (64030-64049)**      |                                                 |                              |
+| 64033                           | PgBouncer                                       | cerniq_backend + cerniq_data |
+| 5432                            | PostgreSQL (CT107, nativ)                       | external                     |
+| 6379                            | Redis shared (orchestrator, via gateway hz.247) | external (internal)          |
+| **Observability (64070-64089)** |                                                 |                              |
+| 64070                           | OTel gRPC                                       | cerniq_backend               |
+| 64071                           | OTel HTTP                                       | cerniq_backend               |
+| 64094                           | cAdvisor                                        | cerniq_backend               |
 
 ### Architecture
 

@@ -10,20 +10,20 @@
 
 ## CATALOG DIAGRAME
 
-| Fișier | Tip | Descriere | Referențe |
-| ------ | --- | --------- | --------- |
-| [`c4-context.drawio`](./c4-context.drawio) | C4 Level 1 | Context diagram - Cerniq în ecosistem | [architecture.md](../architecture/architecture.md) |
-| [`c4-containers.drawio`](./c4-containers.drawio) | C4 Level 2 | Container diagram - Servicii Docker | [docker-compose-reference.md](../infrastructure/docker-compose-reference.md) |
-| [`c4-components-etapa1.drawio`](./c4-components-etapa1.drawio) | C4 Level 3 | Components Etapa 1 Data Enrichment | [Etapa 1 Specs](../specifications/Etapa%201/) |
-| [`c4-components-etapa2.drawio`](./c4-components-etapa2.drawio) | C4 Level 3 | Components Etapa 2 Cold Outreach | [Etapa 2 Specs](../specifications/Etapa%202/) |
-| [`c4-components-etapa3.drawio`](./c4-components-etapa3.drawio) | C4 Level 3 | Components Etapa 3 AI Sales Agent | [Etapa 3 Specs](../specifications/Etapa%203/) |
-| [`c4-components-etapa4.drawio`](./c4-components-etapa4.drawio) | C4 Level 3 | Components Etapa 4 Payments & Logistics | [Etapa 4 Specs](../specifications/Etapa%204/) |
-| [`c4-components-etapa5.drawio`](./c4-components-etapa5.drawio) | C4 Level 3 | Components Etapa 5 Analytics & BI | [Etapa 5 Specs](../specifications/Etapa%205/) |
-| [`data-flow-medallion.drawio`](./data-flow-medallion.drawio) | Data Flow | Bronze → Silver → Gold pipeline | [ADR-0033](../adr/ADR%20Etapa%201/ADR-0033-Arhitectura-Medallion-Bronze-Silver-Gold.md) |
-| [`deployment-infrastructure.drawio`](./deployment-infrastructure.drawio) | Infrastructure | Hetzner bare-metal deployment | [deployment-guide.md](../infrastructure/deployment-guide.md) |
-| [`geospatial-nurturing.drawio`](./geospatial-nurturing.drawio) | Data Model | PostGIS proximity & graph analysis | [Etapa 5 Specs](../specifications/Etapa%205/) |
-| [`runtime-ai-negotiation-sequence.drawio`](./runtime-ai-negotiation-sequence.drawio) | Sequence | AI Agent negotiation flow (XState) | [ADR-0072](../adr/ADR%20Etapa%203/ADR-0072-Negotiation-FSM.md) |
-| [`runtime-cold-outreach-sequence.drawio`](./runtime-cold-outreach-sequence.drawio) | Sequence | Cold outreach sequence engine | [Etapa 2 Specs](../specifications/Etapa%202/) |
+| Fișier                                                                               | Tip            | Descriere                               | Referențe                                                                               |
+| ------------------------------------------------------------------------------------ | -------------- | --------------------------------------- | --------------------------------------------------------------------------------------- |
+| [`c4-context.drawio`](./c4-context.drawio)                                           | C4 Level 1     | Context diagram - Cerniq în ecosistem   | [architecture.md](../architecture/architecture.md)                                      |
+| [`c4-containers.drawio`](./c4-containers.drawio)                                     | C4 Level 2     | Container diagram - Servicii Docker     | [docker-compose-reference.md](../infrastructure/docker-compose-reference.md)            |
+| [`c4-components-etapa1.drawio`](./c4-components-etapa1.drawio)                       | C4 Level 3     | Components Etapa 1 Data Enrichment      | [Etapa 1 Specs](../specifications/Etapa%201/)                                           |
+| [`c4-components-etapa2.drawio`](./c4-components-etapa2.drawio)                       | C4 Level 3     | Components Etapa 2 Cold Outreach        | [Etapa 2 Specs](../specifications/Etapa%202/)                                           |
+| [`c4-components-etapa3.drawio`](./c4-components-etapa3.drawio)                       | C4 Level 3     | Components Etapa 3 AI Sales Agent       | [Etapa 3 Specs](../specifications/Etapa%203/)                                           |
+| [`c4-components-etapa4.drawio`](./c4-components-etapa4.drawio)                       | C4 Level 3     | Components Etapa 4 Payments & Logistics | [Etapa 4 Specs](../specifications/Etapa%204/)                                           |
+| [`c4-components-etapa5.drawio`](./c4-components-etapa5.drawio)                       | C4 Level 3     | Components Etapa 5 Analytics & BI       | [Etapa 5 Specs](../specifications/Etapa%205/)                                           |
+| [`data-flow-medallion.drawio`](./data-flow-medallion.drawio)                         | Data Flow      | Bronze → Silver → Gold pipeline         | [ADR-0033](../adr/ADR%20Etapa%201/ADR-0033-Arhitectura-Medallion-Bronze-Silver-Gold.md) |
+| [`deployment-infrastructure.drawio`](./deployment-infrastructure.drawio)             | Infrastructure | Hetzner bare-metal deployment           | [deployment-guide.md](../infrastructure/deployment-guide.md)                            |
+| [`geospatial-nurturing.drawio`](./geospatial-nurturing.drawio)                       | Data Model     | PostGIS proximity & graph analysis      | [Etapa 5 Specs](../specifications/Etapa%205/)                                           |
+| [`runtime-ai-negotiation-sequence.drawio`](./runtime-ai-negotiation-sequence.drawio) | Sequence       | AI Agent negotiation flow (XState)      | [ADR-0072](../adr/ADR%20Etapa%203/ADR-0072-Negotiation-FSM.md)                          |
+| [`runtime-cold-outreach-sequence.drawio`](./runtime-cold-outreach-sequence.drawio)   | Sequence       | Cold outreach sequence engine           | [Etapa 2 Specs](../specifications/Etapa%202/)                                           |
 
 ---
 
@@ -123,20 +123,20 @@ done
 
 ## STATUS REVIEW
 
-| Diagramă | Ultima Actualizare | Reviewer | Status |
-| -------- | ------------------ | -------- | ------ |
-| c4-context | 2026-01-15 | - | ✅ Current |
-| c4-containers | 2026-01-15 | - | ✅ Current |
-| c4-components-etapa1 | 2026-01-15 | - | ✅ Current |
-| c4-components-etapa2 | 2026-02-01 | - | 🟡 Draft |
-| c4-components-etapa3 | 2026-02-01 | - | ✅ Aliniat cu etapa3-sprint-plan.md |
-| c4-components-etapa4 | 2026-02-01 | - | 🟡 Draft |
-| c4-components-etapa5 | 2026-02-01 | - | 🟡 Draft |
-| data-flow-medallion | 2026-01-15 | - | ✅ Current |
-| deployment-infrastructure | 2026-01-15 | - | ✅ Current |
-| geospatial-nurturing | 2026-01-15 | - | ✅ Current |
-| runtime-ai-negotiation | 2026-02-01 | - | ✅ Current (Etapa 3 FSM) |
-| runtime-cold-outreach | 2026-01-15 | - | ✅ Current |
+| Diagramă                  | Ultima Actualizare | Reviewer | Status                              |
+| ------------------------- | ------------------ | -------- | ----------------------------------- |
+| c4-context                | 2026-01-15         | -        | ✅ Current                          |
+| c4-containers             | 2026-01-15         | -        | ✅ Current                          |
+| c4-components-etapa1      | 2026-01-15         | -        | ✅ Current                          |
+| c4-components-etapa2      | 2026-02-01         | -        | 🟡 Draft                            |
+| c4-components-etapa3      | 2026-02-01         | -        | ✅ Aliniat cu etapa3-sprint-plan.md |
+| c4-components-etapa4      | 2026-02-01         | -        | 🟡 Draft                            |
+| c4-components-etapa5      | 2026-02-01         | -        | 🟡 Draft                            |
+| data-flow-medallion       | 2026-01-15         | -        | ✅ Current                          |
+| deployment-infrastructure | 2026-01-15         | -        | ✅ Current                          |
+| geospatial-nurturing      | 2026-01-15         | -        | ✅ Current                          |
+| runtime-ai-negotiation    | 2026-02-01         | -        | ✅ Current (Etapa 3 FSM)            |
+| runtime-cold-outreach     | 2026-01-15         | -        | ✅ Current                          |
 
 ---
 

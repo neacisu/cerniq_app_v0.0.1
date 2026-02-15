@@ -31,32 +31,32 @@ Gestionarea secretelor prin Docker secrets și fișiere `.env` prezintă limită
 
 ### Etapa 0 (Foundation) — Sprint 4
 
-| Component | Descriere |
-| --- | --- |
-| OpenBao Server | Centralizat pe orchestrator, expus prin Traefik: `https://s3cr3ts.neanelu.ro` |
-| Auto-Unseal | Transit auto-unseal cu recovery keys |
-| KV Secrets Engine | Static secrets (API keys, passwords existente) |
-| AppRole Auth | Autentificare servicii via role_id/secret_id |
-| Policies | Politici granulare per serviciu |
-| Agent Sidecar | Agent pentru injection în containere |
+| Component         | Descriere                                                                     |
+| ----------------- | ----------------------------------------------------------------------------- |
+| OpenBao Server    | Centralizat pe orchestrator, expus prin Traefik: `https://s3cr3ts.neanelu.ro` |
+| Auto-Unseal       | Transit auto-unseal cu recovery keys                                          |
+| KV Secrets Engine | Static secrets (API keys, passwords existente)                                |
+| AppRole Auth      | Autentificare servicii via role_id/secret_id                                  |
+| Policies          | Politici granulare per serviciu                                               |
+| Agent Sidecar     | Agent pentru injection în containere                                          |
 
 ### Etapa 1-2 (Dynamic Secrets)
 
-| Component | Descriere |
-| --- | --- |
+| Component       | Descriere                      |
+| --------------- | ------------------------------ |
 | Database Engine | Dynamic PostgreSQL credentials |
-| PKI Engine | Auto-issue TLS certificates |
-| Transit Engine | Encryption for PII data |
-| LDAP/OIDC | SSO integration (dacă necesar) |
+| PKI Engine      | Auto-issue TLS certificates    |
+| Transit Engine  | Encryption for PII data        |
+| LDAP/OIDC       | SSO integration (dacă necesar) |
 
 ### Etapa 3+ (Advanced)
 
-| Component | Descriere |
-| --- | --- |
-| Namespaces | Multi-tenant secret isolation |
-| Sentinel Policies | Advanced policy-as-code |
-| Replication | HA with Raft storage |
-| HSM Integration | Hardware security modules |
+| Component         | Descriere                     |
+| ----------------- | ----------------------------- |
+| Namespaces        | Multi-tenant secret isolation |
+| Sentinel Policies | Advanced policy-as-code       |
+| Replication       | HA with Raft storage          |
+| HSM Integration   | Hardware security modules     |
 
 ## Arhitectura
 
@@ -262,12 +262,12 @@ scp -P 23 /tmp/openbao-snapshot.snap u502048@storagebox:backups/openbao/
 
 ### Mitigări
 
-| Risc | Mitigare |
-| --- | --- |
-| OpenBao unavailable | Secrets cached în Agent, retry logic |
-| Unseal keys lost | Backup encrypted în Hetzner Storage Box |
-| Performance | Agent caching, optimized policies |
-| Complexity | Automation scripts, runbooks detaliate |
+| Risc                | Mitigare                                |
+| ------------------- | --------------------------------------- |
+| OpenBao unavailable | Secrets cached în Agent, retry logic    |
+| Unseal keys lost    | Backup encrypted în Hetzner Storage Box |
+| Performance         | Agent caching, optimized policies       |
+| Complexity          | Automation scripts, runbooks detaliate  |
 
 ## Referințe
 

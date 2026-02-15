@@ -20,18 +20,18 @@ In infrastructura noua:
 - Redis ruleaza shared pe orchestrator si este accesat prin gateway-ul intern `hz.247` (`10.0.1.10:6379`)
 - PgBouncer ruleaza local pe CT109/CT110, port `64033` (container `cerniq-pgbouncer`)
 
-| Test | Command | Expected | Status |
-|------|---------|----------|--------|
-| PgBouncer listening | `nc -zv 127.0.0.1 64033` | `open` | ✅ PASS |
-| PgBouncer -> CT107 | `nc -zv 10.0.1.107 5432` | `open` | ✅ PASS |
-| CT -> Redis gateway | `nc -zv 10.0.1.10 6379` | `open` | ✅ PASS |
+| Test                | Command                  | Expected | Status  |
+| ------------------- | ------------------------ | -------- | ------- |
+| PgBouncer listening | `nc -zv 127.0.0.1 64033` | `open`   | ✅ PASS |
+| PgBouncer -> CT107  | `nc -zv 10.0.1.107 5432` | `open`   | ✅ PASS |
+| CT -> Redis gateway | `nc -zv 10.0.1.10 6379`  | `open`   | ✅ PASS |
 
 ### 2. External Isolation / Routing
 
-| Test | Command | Expected | Status |
-|------|---------|----------|--------|
+| Test                  | Command                          | Expected              | Status   |
+| --------------------- | -------------------------------- | --------------------- | -------- | ------- |
 | Nu exista Redis local | `docker ps --format "{{.Names}}" | grep -q cerniq-redis` | no match | ✅ PASS |
-| Egress control | (infra) iptables pe `hz.247` | restrictii additive | ✅ PASS |
+| Egress control        | (infra) iptables pe `hz.247`     | restrictii additive   | ✅ PASS  |
 
 ---
 
@@ -58,21 +58,21 @@ CT109 / CT110 (LXC)                      CT107 (LXC)               Orchestrator 
 
 ## Port Compliance (ADR-0022 / etapa0-port-matrix.md)
 
-| Service | Documented Port | Implemented Port | Compliant |
-|---------|-----------------|------------------|-----------|
-| Redis (shared) | 6379 | 10.0.1.10:6379 (gateway) | ✅ YES |
-| PostgreSQL (CT107) | 5432 | 10.0.1.107:5432 | ✅ YES |
-| PgBouncer (CT109/110) | 64033 | 64033 | ✅ YES |
+| Service               | Documented Port | Implemented Port         | Compliant |
+| --------------------- | --------------- | ------------------------ | --------- |
+| Redis (shared)        | 6379            | 10.0.1.10:6379 (gateway) | ✅ YES    |
+| PostgreSQL (CT107)    | 5432            | 10.0.1.107:5432          | ✅ YES    |
+| PgBouncer (CT109/110) | 64033           | 64033                    | ✅ YES    |
 
 ---
 
 ## Security Compliance
 
-| Requirement | Status | Evidence |
-|-------------|--------|----------|
-| Nu exista PG/Redis local | ✅ | stack Cerniq nu ruleaza postgres/redis |
-| Secrets via OpenBao | ✅ | agenti OpenBao randeaza in tmpfs |
-| Traffic intern prin gateway | ✅ | `hz.247` HAProxy + iptables allowlist |
+| Requirement                 | Status | Evidence                               |
+| --------------------------- | ------ | -------------------------------------- |
+| Nu exista PG/Redis local    | ✅     | stack Cerniq nu ruleaza postgres/redis |
+| Secrets via OpenBao         | ✅     | agenti OpenBao randeaza in tmpfs       |
+| Traffic intern prin gateway | ✅     | `hz.247` HAProxy + iptables allowlist  |
 
 ---
 

@@ -26,6 +26,7 @@ server.listen(3000, "0.0.0.0", () => {
 
 setInterval(() => {
   status.processedJobs += 0;
-  console.log(`AI Worker heartbeat - Status: ${status.status} - Jobs: ${status.processedJobs}`);
+  console.log(
+    `AI Worker heartbeat - Status: ${status.status} - Jobs: ${status.processedJobs}`,
+  );
 }, 30000);
-

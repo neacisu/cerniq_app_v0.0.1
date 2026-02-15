@@ -11,9 +11,7 @@
 ```typescript
 // SHA-256 hash pe payload normalizat
 const deduplicationHash = sha256(
-  normalizeString(name) + '|' + 
-  normalizePhone(phone) + '|' + 
-  normalizeCUI(cui)
+  normalizeString(name) + "|" + normalizePhone(phone) + "|" + normalizeCUI(cui),
 );
 ```
 
@@ -21,15 +19,13 @@ const deduplicationHash = sha256(
 
 ```typescript
 // Levenshtein + Jaro-Winkler scoring
-import fuzzball from 'fuzzball';
+import fuzzball from "fuzzball";
 
 const similarity = fuzzball.WRatio(name1, name2);
 const isSameCUI = cui1 === cui2;
 const addressMatch = fuzzball.partial_ratio(addr1, addr2) > 80;
 
-const isDuplicate = 
-  isSameCUI || 
-  (similarity > 85 && addressMatch);
+const isDuplicate = isSameCUI || (similarity > 85 && addressMatch);
 ```
 
 **Consequences:**

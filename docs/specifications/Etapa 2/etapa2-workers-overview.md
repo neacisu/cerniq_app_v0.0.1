@@ -55,21 +55,21 @@
 
 ## 1.2 Worker Inventory Summary
 
-| Category | Workers | Queue Prefix | Key Responsibility |
-| :--- | :--- | :--- | :--- |
-| **A: Quota Guardian** | 4 | `quota:*` | Rate limiting, business hours |
-| **B: Orchestration** | 4 | `outreach:*` | Dispatch, routing, allocation |
-| **C: WhatsApp** | 7 | `q:wa:*` | TimelinesAI messaging |
-| **D: Email Cold** | 5 | `email:cold:*` | Instantly.ai integration |
-| **E: Email Warm** | 3 | `email:warm:*` | Resend integration |
-| **F: Templates** | 3 | `template:*` | Spintax, personalization |
-| **G: Webhooks** | 4 | `webhook:*` | Ingest, normalization |
-| **H: Sequences** | 4 | `sequence:*` | Follow-up automation |
-| **I: State Machine** | 3 | `lead:state:*` | State transitions |
-| **J: AI/Sentiment** | 3 | `ai:*` | Analysis, response gen |
-| **K: Monitoring** | 6 | `monitor:*`, `alert:*` | Health, alerts |
-| **L: Human** | 4 | `human:*` | Review, takeover |
-| **TOTAL** | **52** | - | - |
+| Category              | Workers | Queue Prefix           | Key Responsibility            |
+| :-------------------- | :------ | :--------------------- | :---------------------------- |
+| **A: Quota Guardian** | 4       | `quota:*`              | Rate limiting, business hours |
+| **B: Orchestration**  | 4       | `outreach:*`           | Dispatch, routing, allocation |
+| **C: WhatsApp**       | 7       | `q:wa:*`               | TimelinesAI messaging         |
+| **D: Email Cold**     | 5       | `email:cold:*`         | Instantly.ai integration      |
+| **E: Email Warm**     | 3       | `email:warm:*`         | Resend integration            |
+| **F: Templates**      | 3       | `template:*`           | Spintax, personalization      |
+| **G: Webhooks**       | 4       | `webhook:*`            | Ingest, normalization         |
+| **H: Sequences**      | 4       | `sequence:*`           | Follow-up automation          |
+| **I: State Machine**  | 3       | `lead:state:*`         | State transitions             |
+| **J: AI/Sentiment**   | 3       | `ai:*`                 | Analysis, response gen        |
+| **K: Monitoring**     | 6       | `monitor:*`, `alert:*` | Health, alerts                |
+| **L: Human**          | 4       | `human:*`              | Review, takeover              |
+| **TOTAL**             | **52**  | -                      | -                             |
 
 ---
 
@@ -84,24 +84,24 @@
 
 export const ETAPA2_QUEUE_CONFIG = {
   connection: {
-    host: process.env.REDIS_HOST || 'localhost',
-    port: parseInt(process.env.REDIS_PORT || '6379'),
+    host: process.env.REDIS_HOST || "localhost",
+    port: parseInt(process.env.REDIS_PORT || "6379"),
     password: process.env.REDIS_PASSWORD,
     db: 2, // Separate DB for Etapa 2
   },
-  
+
   defaultJobOptions: {
     attempts: 3,
     backoff: {
-      type: 'exponential',
+      type: "exponential",
       delay: 5000,
     },
     removeOnComplete: {
-      age: 3600,      // 1 hour
+      age: 3600, // 1 hour
       count: 1000,
     },
     removeOnFail: {
-      age: 86400,     // 24 hours
+      age: 86400, // 24 hours
     },
   },
 };
@@ -111,12 +111,12 @@ export const RATE_LIMITS = {
   WA_NEW_CONTACTS_PER_DAY: 200,
   WA_JITTER_MIN_MS: 30_000,
   WA_JITTER_MAX_MS: 150_000,
-  
+
   // Email
   EMAIL_COLD_PER_HOUR: 100,
   EMAIL_WARM_PER_SECOND: 100,
   EMAIL_BOUNCE_THRESHOLD: 0.03,
-  
+
   // AI
   AI_REQUESTS_PER_MINUTE: 60,
 };
@@ -124,7 +124,7 @@ export const RATE_LIMITS = {
 export const BUSINESS_HOURS = {
   START_HOUR: 9,
   END_HOUR: 18,
-  TIMEZONE: 'Europe/Bucharest',
+  TIMEZONE: "Europe/Bucharest",
   WORKING_DAYS: [1, 2, 3, 4, 5], // Mon-Fri
 };
 ```
@@ -134,9 +134,9 @@ export const BUSINESS_HOURS = {
 ```typescript
 // packages/queue/src/factory/worker.factory.ts
 
-import { Worker, Queue, Job } from 'bullmq';
-import { ETAPA2_QUEUE_CONFIG } from '../config/etapa2.config';
-import { logger } from '@cerniq/logger';
+import { Worker, Queue, Job } from "bullmq";
+import { ETAPA2_QUEUE_CONFIG } from "../config/etapa2.config";
+import { logger } from "@cerniq/logger";
 
 interface WorkerConfig<T, R> {
   queueName: string;
@@ -151,37 +151,46 @@ interface WorkerConfig<T, R> {
 }
 
 export function createOutreachWorker<T = any, R = any>(
-  config: WorkerConfig<T, R>
+  config: WorkerConfig<T, R>,
 ): Worker<T, R> {
   const worker = new Worker<T, R>(
     config.queueName,
     async (job) => {
       const startTime = Date.now();
-      
-      logger.info({
-        worker: config.queueName,
-        jobId: job.id,
-        data: job.data,
-      }, 'Job started');
-      
+
+      logger.info(
+        {
+          worker: config.queueName,
+          jobId: job.id,
+          data: job.data,
+        },
+        "Job started",
+      );
+
       try {
         const result = await config.processor(job);
-        
-        logger.info({
-          worker: config.queueName,
-          jobId: job.id,
-          duration: Date.now() - startTime,
-        }, 'Job completed');
-        
+
+        logger.info(
+          {
+            worker: config.queueName,
+            jobId: job.id,
+            duration: Date.now() - startTime,
+          },
+          "Job completed",
+        );
+
         return result;
       } catch (error) {
-        logger.error({
-          worker: config.queueName,
-          jobId: job.id,
-          error,
-          duration: Date.now() - startTime,
-        }, 'Job failed');
-        
+        logger.error(
+          {
+            worker: config.queueName,
+            jobId: job.id,
+            error,
+            duration: Date.now() - startTime,
+          },
+          "Job failed",
+        );
+
         throw error;
       }
     },
@@ -189,15 +198,15 @@ export function createOutreachWorker<T = any, R = any>(
       connection: ETAPA2_QUEUE_CONFIG.connection,
       concurrency: config.concurrency || 10,
       limiter: config.limiter,
-    }
+    },
   );
 
   if (config.onCompleted) {
-    worker.on('completed', config.onCompleted);
+    worker.on("completed", config.onCompleted);
   }
 
   if (config.onFailed) {
-    worker.on('failed', config.onFailed);
+    worker.on("failed", config.onFailed);
   }
 
   return worker;
@@ -229,82 +238,82 @@ Examples:
 ```typescript
 export const ETAPA2_QUEUES = {
   // A: Quota Guardian
-  QUOTA_CHECK: 'quota:guardian:check',
-  QUOTA_INCREMENT: 'quota:guardian:increment',
-  QUOTA_RESET: 'quota:guardian:reset',
-  BUSINESS_HOURS_CHECK: 'quota:business-hours:check',
-  
+  QUOTA_CHECK: "quota:guardian:check",
+  QUOTA_INCREMENT: "quota:guardian:increment",
+  QUOTA_RESET: "quota:guardian:reset",
+  BUSINESS_HOURS_CHECK: "quota:business-hours:check",
+
   // B: Orchestration
-  ORCHESTRATOR_DISPATCH: 'outreach:orchestrator:dispatch',
-  ORCHESTRATOR_ROUTER: 'outreach:orchestrator:router',
-  PHONE_ALLOCATOR: 'outreach:phone:allocator',
-  CHANNEL_SELECTOR: 'outreach:channel:selector',
-  
+  ORCHESTRATOR_DISPATCH: "outreach:orchestrator:dispatch",
+  ORCHESTRATOR_ROUTER: "outreach:orchestrator:router",
+  PHONE_ALLOCATOR: "outreach:phone:allocator",
+  CHANNEL_SELECTOR: "outreach:channel:selector",
+
   // C: WhatsApp (dynamic per phone)
-  WA_PHONE_PREFIX: 'q:wa:phone_',        // + phone_id
-  WA_FOLLOWUP_SUFFIX: ':followup',
-  WA_REPLY: 'q:wa:reply',
-  WA_MESSAGE_RETRY: 'wa:message:retry',
-  WA_CHAT_HISTORY: 'wa:chat:history:fetch',
-  WA_STATUS_SYNC: 'wa:status:sync',
-  WA_MEDIA_SEND: 'wa:media:send',
-  
+  WA_PHONE_PREFIX: "q:wa:phone_", // + phone_id
+  WA_FOLLOWUP_SUFFIX: ":followup",
+  WA_REPLY: "q:wa:reply",
+  WA_MESSAGE_RETRY: "wa:message:retry",
+  WA_CHAT_HISTORY: "wa:chat:history:fetch",
+  WA_STATUS_SYNC: "wa:status:sync",
+  WA_MEDIA_SEND: "wa:media:send",
+
   // D: Email Cold
-  EMAIL_COLD: 'q:email:cold',
-  EMAIL_COLD_CAMPAIGN_CREATE: 'email:cold:campaign:create',
-  EMAIL_COLD_CAMPAIGN_PAUSE: 'email:cold:campaign:pause',
-  EMAIL_COLD_ANALYTICS: 'email:cold:analytics:fetch',
-  EMAIL_COLD_LEAD_STATUS: 'email:cold:lead:status',
-  
+  EMAIL_COLD: "q:email:cold",
+  EMAIL_COLD_CAMPAIGN_CREATE: "email:cold:campaign:create",
+  EMAIL_COLD_CAMPAIGN_PAUSE: "email:cold:campaign:pause",
+  EMAIL_COLD_ANALYTICS: "email:cold:analytics:fetch",
+  EMAIL_COLD_LEAD_STATUS: "email:cold:lead:status",
+
   // E: Email Warm
-  EMAIL_WARM: 'q:email:warm',
-  EMAIL_WARM_PROFORMA: 'email:warm:proforma',
-  EMAIL_WARM_DOCUMENT: 'email:warm:document',
-  
+  EMAIL_WARM: "q:email:warm",
+  EMAIL_WARM_PROFORMA: "email:warm:proforma",
+  EMAIL_WARM_DOCUMENT: "email:warm:document",
+
   // F: Templates
-  TEMPLATE_SPINTAX: 'template:spintax:process',
-  TEMPLATE_PERSONALIZE: 'template:personalize',
-  TEMPLATE_VALIDATE: 'template:validate',
-  
+  TEMPLATE_SPINTAX: "template:spintax:process",
+  TEMPLATE_PERSONALIZE: "template:personalize",
+  TEMPLATE_VALIDATE: "template:validate",
+
   // G: Webhooks
-  WEBHOOK_TIMELINESAI: 'webhook:timelinesai:ingest',
-  WEBHOOK_INSTANTLY: 'webhook:instantly:ingest',
-  WEBHOOK_RESEND: 'webhook:resend:ingest',
-  WEBHOOK_NORMALIZE: 'webhook:normalize',
-  
+  WEBHOOK_TIMELINESAI: "webhook:timelinesai:ingest",
+  WEBHOOK_INSTANTLY: "webhook:instantly:ingest",
+  WEBHOOK_RESEND: "webhook:resend:ingest",
+  WEBHOOK_NORMALIZE: "webhook:normalize",
+
   // H: Sequences
-  SEQUENCE_SCHEDULE_FOLLOWUP: 'sequence:schedule:followup',
-  SEQUENCE_STOP: 'sequence:stop',
-  SEQUENCE_ADVANCE: 'sequence:advance',
-  SEQUENCE_CREATE: 'sequence:create',
-  
+  SEQUENCE_SCHEDULE_FOLLOWUP: "sequence:schedule:followup",
+  SEQUENCE_STOP: "sequence:stop",
+  SEQUENCE_ADVANCE: "sequence:advance",
+  SEQUENCE_CREATE: "sequence:create",
+
   // I: Lead State
-  LEAD_STATE_TRANSITION: 'lead:state:transition',
-  LEAD_STATE_VALIDATE: 'lead:state:validate',
-  LEAD_ASSIGN_USER: 'lead:assign:user',
-  
+  LEAD_STATE_TRANSITION: "lead:state:transition",
+  LEAD_STATE_VALIDATE: "lead:state:validate",
+  LEAD_ASSIGN_USER: "lead:assign:user",
+
   // J: AI/Sentiment
-  AI_SENTIMENT_ANALYZE: 'ai:sentiment:analyze',
-  AI_RESPONSE_GENERATE: 'ai:response:generate',
-  AI_INTENT_CLASSIFY: 'ai:intent:classify',
-  
+  AI_SENTIMENT_ANALYZE: "ai:sentiment:analyze",
+  AI_RESPONSE_GENERATE: "ai:response:generate",
+  AI_INTENT_CLASSIFY: "ai:intent:classify",
+
   // K: Monitoring
-  MONITOR_PHONE_HEALTH: 'monitor:phone:health',
-  MONITOR_EMAIL_DELIVERABILITY: 'monitor:email:deliverability',
-  MONITOR_QUOTA_USAGE: 'monitor:quota:usage',
-  ALERT_PHONE_OFFLINE: 'alert:phone:offline',
-  ALERT_PHONE_BANNED: 'alert:phone:banned',
-  ALERT_BOUNCE_HIGH: 'alert:bounce:high',
-  
+  MONITOR_PHONE_HEALTH: "monitor:phone:health",
+  MONITOR_EMAIL_DELIVERABILITY: "monitor:email:deliverability",
+  MONITOR_QUOTA_USAGE: "monitor:quota:usage",
+  ALERT_PHONE_OFFLINE: "alert:phone:offline",
+  ALERT_PHONE_BANNED: "alert:phone:banned",
+  ALERT_BOUNCE_HIGH: "alert:bounce:high",
+
   // L: Human
-  HUMAN_REVIEW_QUEUE: 'human:review:queue',
-  HUMAN_TAKEOVER_INITIATE: 'human:takeover:initiate',
-  HUMAN_TAKEOVER_COMPLETE: 'human:takeover:complete',
-  HUMAN_APPROVE_MESSAGE: 'human:approve:message',
-  
+  HUMAN_REVIEW_QUEUE: "human:review:queue",
+  HUMAN_TAKEOVER_INITIATE: "human:takeover:initiate",
+  HUMAN_TAKEOVER_COMPLETE: "human:takeover:complete",
+  HUMAN_APPROVE_MESSAGE: "human:approve:message",
+
   // Pipeline
-  PIPELINE_HEALTH: 'pipeline:outreach:health',
-  PIPELINE_METRICS: 'pipeline:outreach:metrics',
+  PIPELINE_HEALTH: "pipeline:outreach:health",
+  PIPELINE_METRICS: "pipeline:outreach:metrics",
 };
 ```
 
@@ -312,22 +321,22 @@ export const ETAPA2_QUEUES = {
 
 ## 4. CONCURRENCY MATRIX
 
-| Queue | Concurrency | Rate Limit | Notes |
-| :--- | :--- | :--- | :--- |
-| `quota:guardian:check` | 100 | - | Fast Redis lookup |
-| `quota:guardian:increment` | 100 | - | Atomic operation |
-| `quota:guardian:reset` | 1 | Cron 00:00 | Daily reset |
-| `outreach:orchestrator:dispatch` | 20 | Cron */5 | Every 5 min |
-| `outreach:orchestrator:router` | 50 | - | Fast routing |
-| `q:wa:phone_{XX}` | **1** | Quota | Strict serialization |
-| `q:wa:phone_{XX}:followup` | **1** | - | No quota cost |
-| `q:email:cold` | 50 | Instantly | Provider managed |
-| `q:email:warm` | 50 | 100/sec | High throughput |
-| `template:spintax:process` | 100 | - | CPU only |
-| `webhook:*:ingest` | 100 | - | Fast ingest |
-| `ai:sentiment:analyze` | 20 | 60/min | LLM cost |
-| `ai:response:generate` | 10 | 60/min | LLM cost |
-| `human:review:queue` | 50 | - | Human paced |
+| Queue                            | Concurrency | Rate Limit | Notes                |
+| :------------------------------- | :---------- | :--------- | :------------------- |
+| `quota:guardian:check`           | 100         | -          | Fast Redis lookup    |
+| `quota:guardian:increment`       | 100         | -          | Atomic operation     |
+| `quota:guardian:reset`           | 1           | Cron 00:00 | Daily reset          |
+| `outreach:orchestrator:dispatch` | 20          | Cron \*/5  | Every 5 min          |
+| `outreach:orchestrator:router`   | 50          | -          | Fast routing         |
+| `q:wa:phone_{XX}`                | **1**       | Quota      | Strict serialization |
+| `q:wa:phone_{XX}:followup`       | **1**       | -          | No quota cost        |
+| `q:email:cold`                   | 50          | Instantly  | Provider managed     |
+| `q:email:warm`                   | 50          | 100/sec    | High throughput      |
+| `template:spintax:process`       | 100         | -          | CPU only             |
+| `webhook:*:ingest`               | 100         | -          | Fast ingest          |
+| `ai:sentiment:analyze`           | 20          | 60/min     | LLM cost             |
+| `ai:response:generate`           | 10          | 60/min     | LLM cost             |
+| `human:review:queue`             | 50          | -          | Human paced          |
 
 ---
 
@@ -399,7 +408,7 @@ export const ETAPA2_QUEUES = {
        ▼
 7a. [AI Path] ai:response:generate
     └── q:wa:phone_{XX}:followup
-        
+
 7b. [Human Path] human:review:queue
     └── Notify operator via UI/Slack
 ```
@@ -412,30 +421,26 @@ export const ETAPA2_QUEUES = {
 
 ## 6.1 Retry Policy
 
-| Error Type | Retries | Backoff | Action |
-| :--- | :--- | :--- | :--- |
-| Network timeout | 3 | Exponential | Retry |
-| Rate limited | 5 | Fixed 60s | Retry |
-| API error 4xx | 0 | - | Log, move to DLQ |
-| API error 5xx | 3 | Exponential | Retry |
-| Quota exceeded | 0 | - | Delay to next day |
-| Phone banned | 0 | - | Alert + reassign |
+| Error Type      | Retries | Backoff     | Action            |
+| :-------------- | :------ | :---------- | :---------------- |
+| Network timeout | 3       | Exponential | Retry             |
+| Rate limited    | 5       | Fixed 60s   | Retry             |
+| API error 4xx   | 0       | -           | Log, move to DLQ  |
+| API error 5xx   | 3       | Exponential | Retry             |
+| Quota exceeded  | 0       | -           | Delay to next day |
+| Phone banned    | 0       | -           | Alert + reassign  |
 
 ## 6.2 Dead Letter Queue
 
 ```typescript
 export const DLQ_CONFIG = {
-  OUTREACH_DLQ: 'dlq:outreach',
-  
+  OUTREACH_DLQ: "dlq:outreach",
+
   retentionDays: 7,
-  
+
   alertThreshold: 100, // Alert if > 100 jobs in DLQ
-  
-  reviewRequired: [
-    'PHONE_BANNED',
-    'ACCOUNT_SUSPENDED',
-    'INVALID_LEAD',
-  ],
+
+  reviewRequired: ["PHONE_BANNED", "ACCOUNT_SUSPENDED", "INVALID_LEAD"],
 };
 ```
 
@@ -449,23 +454,23 @@ export const DLQ_CONFIG = {
 
 ```typescript
 // OTel metrics for Etapa 2
-import { metrics } from '@opentelemetry/api';
-const meter = metrics.getMeter('cerniq-outreach');
+import { metrics } from "@opentelemetry/api";
+const meter = metrics.getMeter("cerniq-outreach");
 
 // Message counters
-const messagesTotal = meter.createCounter('cerniq_outreach_messages_total', {
-  description: 'Total outreach messages sent',
+const messagesTotal = meter.createCounter("cerniq_outreach_messages_total", {
+  description: "Total outreach messages sent",
 });
 
 // Quota usage
-const quotaUsage = meter.createUpDownCounter('cerniq_wa_quota_usage', {
-  description: 'Current WhatsApp quota usage',
-  unit: '1'
+const quotaUsage = meter.createUpDownCounter("cerniq_wa_quota_usage", {
+  description: "Current WhatsApp quota usage",
+  unit: "1",
 });
 
 // Reply rates
-const replyRate = meter.createObservableGauge('cerniq_outreach_reply_rate', {
-  description: 'Reply rate by channel',
+const replyRate = meter.createObservableGauge("cerniq_outreach_reply_rate", {
+  description: "Reply rate by channel",
 });
 
 // Note: Queue depth is handled by Monitoring API Sidecar
@@ -476,7 +481,7 @@ const replyRate = meter.createObservableGauge('cerniq_outreach_reply_rate', {
 ```typescript
 // Structured log format for outreach events
 interface OutreachLogEvent {
-  level: 'debug' | 'info' | 'warn' | 'error';
+  level: "debug" | "info" | "warn" | "error";
   worker: string;
   jobId: string;
   leadId?: string;

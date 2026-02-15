@@ -1,5 +1,7 @@
 # CERNIQ.APP — ETAPA 4: OPERATIONAL PROCEDURES
+
 ## Proceduri Operaționale Standard
+
 ### Versiunea 1.0 | 19 Ianuarie 2026
 
 ---
@@ -18,6 +20,7 @@
 ## 1. Payment Reconciliation Procedures {#1-reconciliation}
 
 ### SOP-401: Auto Reconciliation
+
 ```
 Trigger: Payment received via Revolut webhook
 
@@ -46,6 +49,7 @@ PASUL 3: Manual Investigation (HITL)
 ```
 
 ### SOP-402: Unmatched Payment Investigation
+
 ```
 Trigger: HITL task assigned
 
@@ -85,6 +89,7 @@ PASUL 4: Documentation
 ## 2. Credit Management Procedures {#2-credit}
 
 ### SOP-410: Credit Score Refresh
+
 ```
 Trigger: Daily cron 03:00 OR Manual request
 
@@ -116,6 +121,7 @@ PASUL 4: Update Credit Limit
 ```
 
 ### SOP-411: Credit Override Request
+
 ```
 Trigger: Order blocked for insufficient credit
 
@@ -144,6 +150,7 @@ PASUL 3: Decision
 ```
 
 ### SOP-412: Client Credit Block
+
 ```
 Trigger: Payment overdue > 30 days OR Manual
 
@@ -169,6 +176,7 @@ PASUL 3: Unblock Process
 ## 3. Shipment Procedures {#3-shipment}
 
 ### SOP-420: AWB Generation
+
 ```
 Trigger: Order status = CONTRACT_SIGNED
 
@@ -194,6 +202,7 @@ PASUL 4: Schedule Pickup
 ```
 
 ### SOP-421: Delivery Failure Handling
+
 ```
 Trigger: Status = DELIVERY_FAILED (3x)
 
@@ -222,6 +231,7 @@ PASUL 3: Return Processing
 ## 4. Return & Refund Procedures {#4-returns}
 
 ### SOP-430: Return Request Processing
+
 ```
 Trigger: Client requests return
 
@@ -248,6 +258,7 @@ PASUL 4: Return Shipment
 ```
 
 ### SOP-431: Refund Processing
+
 ```
 Trigger: Return received and inspected
 
@@ -281,6 +292,7 @@ PASUL 3: Process Refund
 ## 5. Escalation Procedures {#5-escalation}
 
 ### SOP-450: HITL Escalation Chain
+
 ```
 Level 1: Initial Assignment
   - Task assigned to role
@@ -302,6 +314,7 @@ Level 4: Critical Escalation (SLA+2h)
 ```
 
 ### SOP-451: Critical Issue Escalation
+
 ```
 Trigger: System detects critical issue
 
@@ -323,6 +336,7 @@ Escalation Path:
 ## 6. Emergency Procedures {#6-emergency}
 
 ### SOP-460: Revolut Integration Failure
+
 ```
 Trigger: Revolut webhook failures > 5/hour
 
@@ -347,6 +361,7 @@ PASUL 4: Recovery
 ```
 
 ### SOP-461: Sameday Integration Failure
+
 ```
 Trigger: Sameday API errors > 10/hour
 

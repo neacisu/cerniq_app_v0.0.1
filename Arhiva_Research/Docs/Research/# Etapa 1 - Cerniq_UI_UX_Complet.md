@@ -2,7 +2,7 @@
 
 **Documentațe Completă Frontend & UI/UX**
 
-*Etapa 1: Pipeline Data Enrichment Bronze →Silver*
+_Etapa 1: Pipeline Data Enrichment Bronze →Silver_
 
 Versiune: 1.0 \| Ianuarie 2026
 
@@ -19,59 +19,61 @@ element de interfață utilizat în sistem.
 
 **1.1 Stack Tehnologic Frontend**
 
-  ----------------- -------------- ---------------------------------------------
-  **Componentă**    **Versiune**   **Scop**
+---
 
-  React             19.2.3         Framework UI principal cu Server Components
+**Componentă** **Versiune** **Scop**
 
-  Tailwind CSS      4.1+           Sistem de styling cu Oxide Engine
+React 19.2.3 Framework UI principal cu Server Components
 
-  Refine            5.x            Framework admin headless pentru CRUD
+Tailwind CSS 4.1+ Sistem de styling cu Oxide Engine
 
-  shadcn/ui         Latest         Bibliotecă componente bazată pe Radix UI
+Refine 5.x Framework admin headless pentru CRUD
 
-  TanStack Table    8.x            Tabele de date avansate
+shadcn/ui Latest Bibliotecă componente bazată pe Radix UI
 
-  TanStack Query    5.x            State management pentru date server
+TanStack Table 8.x Tabele de date avansate
 
-  React Hook Form   7.x            Gestionare formulare
+TanStack Query 5.x State management pentru date server
 
-  Zod               3.x            Validare scheme
+React Hook Form 7.x Gestionare formulare
 
-  Zustand           5.x            State management global client
+Zod 3.x Validare scheme
 
-  Sonner            1.x            Toast notifications
+Zustand 5.x State management global client
 
-  Tremor            3.x            Componente dashboard ș vizualizăi
+Sonner 1.x Toast notifications
 
-  Lucide React      0.x            Iconiț SVG
+Tremor 3.x Componente dashboard ș vizualizăi
 
-  ----------------- -------------- ---------------------------------------------
+Lucide React 0.x Iconiț SVG
+
+---
 
 **1.2 Structura Directoarelor Frontend**
 
 /apps/web/src/
 
-  -------------- -------------------------- ----------------------------------------------
-  **Director**   **Conțnut**                **Descriere**
+---
 
-  components/    Componente reutilizabile   UI primitives, layout, forms
+**Director** **Conțnut** **Descriere**
 
-  features/      Feature modules            Organizare pe funcțonalităț (Vertical Slice)
+components/ Componente reutilizabile UI primitives, layout, forms
 
-  pages/         Route components           Paginile aplicaței
+features/ Feature modules Organizare pe funcțonalităț (Vertical Slice)
 
-  hooks/         Custom hooks               useDebounce, useLocalStorage, etc.
+pages/ Route components Paginile aplicaței
 
-  lib/           Utilities                  Funcți helper, configurăi
+hooks/ Custom hooks useDebounce, useLocalStorage, etc.
 
-  providers/     Context providers          Auth, Theme, Query providers
+lib/ Utilities Funcți helper, configurăi
 
-  styles/        CSS global                 Tailwind config, tokens
+providers/ Context providers Auth, Theme, Query providers
 
-  types/         TypeScript types           Interfeț ș tipuri globale
+styles/ CSS global Tailwind config, tokens
 
-  -------------- -------------------------- ----------------------------------------------
+types/ TypeScript types Interfeț ș tipuri globale
+
+---
 
 **2. LAYOUT PRINCIPAL Ș NAVIGAȚE**
 
@@ -79,37 +81,39 @@ element de interfață utilizat în sistem.
 
 Layout-ul principal al aplicaței care încadrează toate paginile.
 
-  ------------------ ----------------------------------- ----------------------
-  **Element**        **Descriere**                       **Dimensiuni**
+---
 
-  Sidebar            Navigațe principală laterală        Lățme: 256px (16rem)
+**Element** **Descriere** **Dimensiuni**
 
-  Header             Bară superioară cu acțuni globale   Înățme: 64px (4rem)
+Sidebar Navigațe principală laterală Lățme: 256px (16rem)
 
-  Main Content       Zona de conțnut principal           Flex-1, padding 24px
+Header Bară superioară cu acțuni globale Înățme: 64px (4rem)
 
-  Footer (opțonal)   Informați versiune                  Înățme: 48px
+Main Content Zona de conțnut principal Flex-1, padding 24px
 
-  ------------------ ----------------------------------- ----------------------
+Footer (opțonal) Informați versiune Înățme: 48px
+
+---
 
 **2.1.1 Componenta Sidebar**
 
 Sidebar-ul principal conțne navigața aplicaței ș informați utilizator.
 
-  ----------------- -------------------------------- -----------------------------------
-  **Secțune**       **Elemente**                     **Comportament**
+---
 
-  Logo Header       Logo Cerniq + Numele aplicaței   Click navigare la Dashboard
+**Secțune** **Elemente** **Comportament**
 
-  User Section      Avatar, Nume, Email, Rol         Dropdown cu opțuni cont
+Logo Header Logo Cerniq + Numele aplicaței Click navigare la Dashboard
 
-  Navigation Menu   Link-uri paginilor principale    Active state, grupuri colapsabile
+User Section Avatar, Nume, Email, Rol Dropdown cu opțuni cont
 
-  Footer Stats      Workeri activi, Jobs în coadă    Real-time updates
+Navigation Menu Link-uri paginilor principale Active state, grupuri colapsabile
 
-  Collapse Button   Buton minimizare sidebar         Iconuri only mode
+Footer Stats Workeri activi, Jobs în coadă Real-time updates
 
-  ----------------- -------------------------------- -----------------------------------
+Collapse Button Buton minimizare sidebar Iconuri only mode
+
+---
 
 **Stăi Sidebar:**
 
@@ -121,55 +125,57 @@ Sidebar-ul principal conțne navigața aplicaței ș informați utilizator.
 
 **2.1.2 Meniul de Navigațe Principal**
 
-  -------------- --------------- ----------------- ------------ ----------------
-  **Grup**       **Item Menu**   **Iconiță**       **Rută**     **Badge**
+---
 
-  Principal      Dashboard       LayoutDashboard   /dashboard   \-
+**Grup** **Item Menu** **Iconiță** **Rută** **Badge**
 
-  Principal      Contacte        Users             /contacts    Count total
+Principal Dashboard LayoutDashboard /dashboard \-
 
-  Principal      Companii        Building2         /companies   Count total
+Principal Contacte Users /contacts Count total
 
-  Pipeline       Workeri         Cog               /workers     Active count
+Principal Companii Building2 /companies Count total
 
-  Pipeline       Cozi            ListOrdered       /queues      Jobs waiting
+Pipeline Workeri Cog /workers Active count
 
-  Pipeline       Jobs            Play              /jobs        Running count
+Pipeline Cozi ListOrdered /queues Jobs waiting
 
-  Date           Bronze          Database          /bronze      New records
+Pipeline Jobs Play /jobs Running count
 
-  Date           Silver          DatabaseZap       /silver      Enriched count
+Date Bronze Database /bronze New records
 
-  Date           Import          Upload            /import      \-
+Date Silver DatabaseZap /silver Enriched count
 
-  Monitorizare   Logs            FileText          /logs        \-
+Date Import Upload /import \-
 
-  Monitorizare   Alerte          Bell              /alerts      Unread count
+Monitorizare Logs FileText /logs \-
 
-  Setăi          Configurare     Settings          /settings    \-
+Monitorizare Alerte Bell /alerts Unread count
 
-  Setăi          API Keys        Key               /api-keys    \-
+Setăi Configurare Settings /settings \-
 
-  -------------- --------------- ----------------- ------------ ----------------
+Setăi API Keys Key /api-keys \-
+
+---
 
 **2.1.3 Componenta Header**
 
-  -------------------- --------------- -------------------------- --------------------------------
-  **Element**          **Pozițe**      **Descriere**              **Acțune**
+---
 
-  Sidebar Toggle       Stânga          Hamburger icon             Toggle sidebar expand/collapse
+**Element** **Pozițe** **Descriere** **Acțune**
 
-  Breadcrumb           Stânga-Centru   Navigațe contextuală       Click pentru navigare
+Sidebar Toggle Stânga Hamburger icon Toggle sidebar expand/collapse
 
-  Search Global        Centru          Cătare contacte/companii   Cmd+K shortcut
+Breadcrumb Stânga-Centru Navigațe contextuală Click pentru navigare
 
-  Notifications Bell   Dreapta         Badge cu count unread      Dropdown notificăi
+Search Global Centru Cătare contacte/companii Cmd+K shortcut
 
-  Theme Toggle         Dreapta         Sun/Moon icon              Toggle dark/light mode
+Notifications Bell Dreapta Badge cu count unread Dropdown notificăi
 
-  User Avatar          Dreapta         Imagine utilizator         Dropdown cont utilizator
+Theme Toggle Dreapta Sun/Moon icon Toggle dark/light mode
 
-  -------------------- --------------- -------------------------- --------------------------------
+User Avatar Dreapta Imagine utilizator Dropdown cont utilizator
+
+---
 
 **Breadcrumb Path Format:**
 
@@ -191,87 +197,91 @@ funcțonalităț.
 Rând de carduri cu metrici principale afiște în partea superioară a
 dashboard-ului.
 
-  ---------- ------------------- ------------------- ------------- -------------------- -------------
-  **Card**   **Titlu**           **Valoare**         **Iconiță**   **Trend**            **Culoare**
+---
 
-  1          Total Contacte      Numă contacte       Users         \% vs luna trecută   Blue
+**Card** **Titlu** **Valoare** **Iconiță** **Trend** **Culoare**
 
-  2          Contacte Bronze     Count Bronze tier   Database      Noi azi              Orange
+1 Total Contacte Numă contacte Users \% vs luna trecută Blue
 
-  3          Contacte Silver     Count Silver tier   DatabaseZap   Enriched azi         Gray
+2 Contacte Bronze Count Bronze tier Database Noi azi Orange
 
-  4          Jobs în Procesare   Active jobs         Loader        Throughput/min       Yellow
+3 Contacte Silver Count Silver tier DatabaseZap Enriched azi Gray
 
-  5          Jobs Eșate          Failed 24h          XCircle       \% fail rate         Red
+4 Jobs în Procesare Active jobs Loader Throughput/min Yellow
 
-  6          Workeri Activi      Running/Total       Cog           Health status        Green
+5 Jobs Eșate Failed 24h XCircle \% fail rate Red
 
-  ---------- ------------------- ------------------- ------------- -------------------- -------------
+6 Workeri Activi Running/Total Cog Health status Green
+
+---
 
 **Structura Card KPI:**
 
-  --------------------- ----------------------------------- -------------------------
-  **Element**           **Stil**                            **Descriere**
+---
 
-  Container             bg-card rounded-lg p-6 shadow-sm    Card cu border subtle
+**Element** **Stil** **Descriere**
 
-  Header                flex justify-between items-center   Titlu + Iconiță
+Container bg-card rounded-lg p-6 shadow-sm Card cu border subtle
 
-  Titlu                 text-sm text-muted-foreground       Label metric
+Header flex justify-between items-center Titlu + Iconiță
 
-  Iconiță               h-4 w-4 text-muted-foreground       Icon contextual
+Titlu text-sm text-muted-foreground Label metric
 
-  Valoare               text-2xl font-bold                  Număul principal
+Iconiță h-4 w-4 text-muted-foreground Icon contextual
 
-  Trend                 text-xs text-green-500/red-500      +12% vs previous
+Valoare text-2xl font-bold Număul principal
 
-  Sparkline (opțonal)   h-8 w-full                          Mini chart trend 7 zile
+Trend text-xs text-green-500/red-500 +12% vs previous
 
-  --------------------- ----------------------------------- -------------------------
+Sparkline (opțonal) h-8 w-full Mini chart trend 7 zile
+
+---
 
 **3.1.2 Pipeline Overview Card**
 
 Vizualizare progres pipeline Bronze →Silver.
 
-  ------------------ -------------------------- ---------------------------------------------------
-  **Element**        **Descriere**              **Date Afiște**
+---
 
-  Titlu              Pipeline Status            Text static
+**Element** **Descriere** **Date Afiște**
 
-  Progress Steps     Stepper vizual orizontal   Bronze →Normalizare →Validare →Enrichment →Silver
+Titlu Pipeline Status Text static
 
-  Step Bronze        Pas 1 cu count             X contacte în Bronze
+Progress Steps Stepper vizual orizontal Bronze →Normalizare →Validare →Enrichment →Silver
 
-  Step Normalizare   Pas 2 cu progres           X în procesare
+Step Bronze Pas 1 cu count X contacte în Bronze
 
-  Step Validare      Pas 3 cu status            X validate
+Step Normalizare Pas 2 cu progres X în procesare
 
-  Step Enrichment    Pas 4 cu status            X îmbogățte
+Step Validare Pas 3 cu status X validate
 
-  Step Silver        Pas final                  X contacte Silver ready
+Step Enrichment Pas 4 cu status X îmbogățte
 
-  Progress Bar       Bară completare globală    X% din total procesat
+Step Silver Pas final X contacte Silver ready
 
-  ------------------ -------------------------- ---------------------------------------------------
+Progress Bar Bară completare globală X% din total procesat
+
+---
 
 **3.1.3 Recent Activity Feed**
 
 Listă cronologică cu activităț recente în sistem.
 
-  ----------------- ------------------------- ----------------------------------------
-  **Element**       **Descriere**             **Format**
+---
 
-  Activity Item     Un eveniment din sistem   Iconiță + Text + Timestamp
+**Element** **Descriere** **Format**
 
-  Icon              Tip eveniment             CheckCircle/XCircle/Info/AlertTriangle
+Activity Item Un eveniment din sistem Iconiță + Text + Timestamp
 
-  Text              Descriere eveniment       Job X completed în queue Y
+Icon Tip eveniment CheckCircle/XCircle/Info/AlertTriangle
 
-  Timestamp         Când s-a întâmplat        Acum 5 minute / 14:32
+Text Descriere eveniment Job X completed în queue Y
 
-  Actor (opțonal)   Cine a făut acțunea       System / User Name
+Timestamp Când s-a întâmplat Acum 5 minute / 14:32
 
-  ----------------- ------------------------- ----------------------------------------
+Actor (opțonal) Cine a făut acțunea System / User Name
+
+---
 
 **Tipuri de Activităț Afiște:**
 
@@ -291,56 +301,59 @@ Listă cronologică cu activităț recente în sistem.
 
 Grid cu status-ul cozilor principale.
 
-  ------------- ------------------- -----------------------------
-  **Coloană**   **Descriere**       **Format**
+---
 
-  Queue Name    Numele cozii        bronze:ingest:csv-parser
+**Coloană** **Descriere** **Format**
 
-  Status        Stare curentă       Badge: Running/Paused/Error
+Queue Name Numele cozii bronze:ingest:csv-parser
 
-  Waiting       Jobs în așeptare    Numă cu bar chart mini
+Status Stare curentă Badge: Running/Paused/Error
 
-  Active        Jobs în procesare   Numă cu indicator pulsating
+Waiting Jobs în așeptare Numă cu bar chart mini
 
-  Completed     Finalizate 24h      Numă cu trend arrow
+Active Jobs în procesare Numă cu indicator pulsating
 
-  Failed        Eșate 24h           Numă roș dacă \> 0
+Completed Finalizate 24h Numă cu trend arrow
 
-  Actions       Butoane rapide      Pause/Resume/View
+Failed Eșate 24h Numă roș dacă \> 0
 
-  ------------- ------------------- -----------------------------
+Actions Butoane rapide Pause/Resume/View
+
+---
 
 **3.1.5 Charts Section**
 
 Grafice pentru vizualizare date.
 
-  ------------------- ---------------------- ------------------------------- --------------------------
-  **Chart**           **Tip**                **Date**                        **Legendă**
+---
 
-  Processing Volume   Area Chart             Jobs/oră ultimele 24h           Completed vs Failed
+**Chart** **Tip** **Date** **Legendă**
 
-  Enrichment Rate     Line Chart             \% enrichment succes 7 zile     ANAF/Termene/Email/Phone
+Processing Volume Area Chart Jobs/oră ultimele 24h Completed vs Failed
 
-  Contact Tiers       Donut Chart            Distribuțe Bronze/Silver/Gold   Procente
+Enrichment Rate Line Chart \% enrichment succes 7 zile ANAF/Termene/Email/Phone
 
-  Top Errors          Bar Chart Horizontal   Top 5 erori ultimele 24h        Count per error type
+Contact Tiers Donut Chart Distribuțe Bronze/Silver/Gold Procente
 
-  ------------------- ---------------------- ------------------------------- --------------------------
+Top Errors Bar Chart Horizontal Top 5 erori ultimele 24h Count per error type
+
+---
 
 **3.2 Acțuni Dashboard**
 
-  ------------------- ---------------- ------------------------ ---------------
-  **Buton**           **Pozițe**       **Acțune**               **Scurtăură**
+---
 
-  Import Nou          Header dreapta   Deschide dialog import   Ctrl+I
+**Buton** **Pozițe** **Acțune** **Scurtăură**
 
-  Refresh Data        Header dreapta   Reîncarcă toate datele   Ctrl+R
+Import Nou Header dreapta Deschide dialog import Ctrl+I
 
-  View All Queues     Queue card       Navigare /queues         \-
+Refresh Data Header dreapta Reîncarcă toate datele Ctrl+R
 
-  View All Activity   Activity card    Navigare /logs           \-
+View All Queues Queue card Navigare /queues \-
 
-  ------------------- ---------------- ------------------------ ---------------
+View All Activity Activity card Navigare /logs \-
+
+---
 
 **4. PAGINA: CONTACTE**
 
@@ -350,77 +363,81 @@ Descriere: Management complet al contactelor din sistem.
 
 **4.1 Layout Pagină Contacte**
 
-  ---------------- ----------------------------- ------------
-  **Zonă**         **Componente**                **Înățme**
+---
 
-  Page Header      Titlu + Butoane acțune        64px
+**Zonă** **Componente** **Înățme**
 
-  Filter Bar       Filtre ș cătare               56px
+Page Header Titlu + Butoane acțune 64px
 
-  Tab Navigation   Bronze/Silver/Gold/All tabs   48px
+Filter Bar Filtre ș cătare 56px
 
-  Data Table       Tabel principal contacte      Flex-1
+Tab Navigation Bronze/Silver/Gold/All tabs 48px
 
-  Pagination       Navigare pagini               56px
+Data Table Tabel principal contacte Flex-1
 
-  ---------------- ----------------------------- ------------
+Pagination Navigare pagini 56px
+
+---
 
 **4.1.1 Page Header Contacte**
 
-  ------------------ ------------------ ----------------------- ------------------------
-  **Element**        **Tip**            **Text/Iconiță**        **Acțune**
+---
 
-  Titlu Pagină       H1                 Contacte                \-
+**Element** **Tip** **Text/Iconiță** **Acțune**
 
-  Subtitlu           Text muted         X contacte în total     \-
+Titlu Pagină H1 Contacte \-
 
-  Buton Import       Button primary     Plus + Import CSV       Dialog ImportContacte
+Subtitlu Text muted X contacte în total \-
 
-  Buton Export       Button outline     Download + Export       Download CSV
+Buton Import Button primary Plus + Import CSV Dialog ImportContacte
 
-  Buton Enrichment   Button secondary   Sparkles + Enrichment   Dialog BatchEnrichment
+Buton Export Button outline Download + Export Download CSV
 
-  ------------------ ------------------ ----------------------- ------------------------
+Buton Enrichment Button secondary Sparkles + Enrichment Dialog BatchEnrichment
+
+---
 
 **4.1.2 Tab-uri Filtrare după Tier**
 
-  --------- ------------------ --------------- --------------------
-  **Tab**   **Label**          **Badge**       **Filtru Aplicat**
+---
 
-  Toate     Toate Contactele   Count total     tier: all
+**Tab** **Label** **Badge** **Filtru Aplicat**
 
-  Bronze    Bronze             Count bronze    tier: bronze
+Toate Toate Contactele Count total tier: all
 
-  Silver    Silver             Count silver    tier: silver
+Bronze Bronze Count bronze tier: bronze
 
-  Gold      Gold               Count gold      tier: gold
+Silver Silver Count silver tier: silver
 
-  Invalid   Invalide           Count invalid   status: invalid
+Gold Gold Count gold tier: gold
 
-  --------- ------------------ --------------- --------------------
+Invalid Invalide Count invalid status: invalid
+
+---
 
 **4.1.3 Filter Bar Contacte**
 
-  --------------------- --------------- --------------------------------- --------------------------
-  **Filtru**            **Tip Input**   **Placeholder/Opțuni**            **Comportament**
+---
 
-  Cătare                Search Input    Caută după nume, email, CUI\...   Debounce 300ms
+**Filtru** **Tip Input** **Placeholder/Opțuni** **Comportament**
 
-  Județ                 Select Multi    Toate județle + listă             Multi-select
+Cătare Search Input Caută după nume, email, CUI\... Debounce 300ms
 
-  Status Enrichment     Select          All/Pending/Completed/Failed      Single select
+Județ Select Multi Toate județle + listă Multi-select
 
-  Email Valid           Select          All/Valid/Invalid/Unknown         Single select
+Status Enrichment Select All/Pending/Completed/Failed Single select
 
-  Telefon Valid         Select          All/Valid/Invalid/Unknown         Single select
+Email Valid Select All/Valid/Invalid/Unknown Single select
 
-  Dată Creare           Date Range      De la - Până la                   Date picker range
+Telefon Valid Select All/Valid/Invalid/Unknown Single select
 
-  Scor Completitudine   Range Slider    0% - 100%                         Dual slider
+Dată Creare Date Range De la - Până la Date picker range
 
-  Clear Filters         Button ghost    X Resetează                       Clear all active filters
+Scor Completitudine Range Slider 0% - 100% Dual slider
 
-  --------------------- --------------- --------------------------------- --------------------------
+Clear Filters Button ghost X Resetează Clear all active filters
+
+---
 
 **4.2 Tabelul Principal Contacte**
 
@@ -428,136 +445,141 @@ Tabel cu toate contactele ș coloanele disponibile.
 
 **4.2.1 Coloane Tabel Contacte**
 
-  ---------------- --------------- ----------- -------------- -----------------------------------
-  **Coloană**      **Tip**         **Lățme**   **Sortabil**   **Format Afișre**
+---
 
-  Checkbox         Checkbox        40px        Nu             Selectare rând
+**Coloană** **Tip** **Lățme** **Sortabil** **Format Afișre**
 
-  Tier             Badge           80px        Da             Bronze/Silver/Gold badge colorat
+Checkbox Checkbox 40px Nu Selectare rând
 
-  Nume Complet     Text + Avatar   200px       Da             Avatar + Prenume Nume
+Tier Badge 80px Da Bronze/Silver/Gold badge colorat
 
-  Email            Text + Badge    220px       Da             <email@domain.com> + verified badge
+Nume Complet Text + Avatar 200px Da Avatar + Prenume Nume
 
-  Telefon          Text + Badge    150px       Da             +40xxx + HLR status badge
+Email Text + Badge 220px Da <email@domain.com> + verified badge
 
-  Companie         Text link       200px       Da             Click navigare companie
+Telefon Text + Badge 150px Da +40xxx + HLR status badge
 
-  Funcțe           Text            150px       Da             Director, Manager, etc.
+Companie Text link 200px Da Click navigare companie
 
-  Județ            Text            100px       Da             Bucureși, Cluj, etc.
+Funcțe Text 150px Da Director, Manager, etc.
 
-  Completitudine   Progress Bar    120px       Da             Bară % cu numă
+Județ Text 100px Da Bucureși, Cluj, etc.
 
-  Status           Badge           100px       Da             Active/Pending/Invalid
+Completitudine Progress Bar 120px Da Bară % cu numă
 
-  Creat La         Date            120px       Da             DD.MM.YYYY HH:mm
+Status Badge 100px Da Active/Pending/Invalid
 
-  Acțuni           Buttons         120px       Nu             View/Edit/Delete/Enrich
+Creat La Date 120px Da DD.MM.YYYY HH:mm
 
-  ---------------- --------------- ----------- -------------- -----------------------------------
+Acțuni Buttons 120px Nu View/Edit/Delete/Enrich
+
+---
 
 **4.2.2 Comportament Tabel**
 
-  -------------------- -------------------------------------------------------- ---------------------
-  **Funcțonalitate**   **Comportament**                                         **Trigger**
+---
 
-  Sortare              Click header sortează ASC, click 2 DESC, click 3 reset   Click pe header
+**Funcțonalitate** **Comportament** **Trigger**
 
-  Resize Coloane       Drag separator între coloane                             Drag handle
+Sortare Click header sortează ASC, click 2 DESC, click 3 reset Click pe header
 
-  Reorder Coloane      Drag & drop header                                       Drag header
+Resize Coloane Drag separator între coloane Drag handle
 
-  Hide/Show Coloane    Dropdown cu checkboxes                                   Buton Columns
+Reorder Coloane Drag & drop header Drag header
 
-  Row Selection        Checkbox selectează, Shift+Click range                   Click checkbox
+Hide/Show Coloane Dropdown cu checkboxes Buton Columns
 
-  Row Hover            Highlight row + show actions                             Mouse over
+Row Selection Checkbox selectează, Shift+Click range Click checkbox
 
-  Row Click            Navigare la detalii contact                              Click pe row
+Row Hover Highlight row + show actions Mouse over
 
-  Pin Rows             Pin la top tabel                                         Context menu option
+Row Click Navigare la detalii contact Click pe row
 
-  -------------------- -------------------------------------------------------- ---------------------
+Pin Rows Pin la top tabel Context menu option
+
+---
 
 **4.2.3 Acțuni Rând Individual**
 
 Dropdown menu care apare pe hover sau click buton acțuni.
 
-  ---------------------- ------------- -------------- -------------------------------
-  **Acțune**             **Iconiță**   **Keyboard**   **Efect**
+---
 
-  Vizualizare            Eye           Enter          Navigare la /contacts/:id
+**Acțune** **Iconiță** **Keyboard** **Efect**
 
-  Editare                Pencil        E              Deschide dialog edit
+Vizualizare Eye Enter Navigare la /contacts/:id
 
-  Re-Enrichment          RefreshCw     R              Trigger enrichment complet
+Editare Pencil E Deschide dialog edit
 
-  Copiere Email          Copy          C              Copy email în clipboard
+Re-Enrichment RefreshCw R Trigger enrichment complet
 
-  Trimite Email          Mail          M              Deschide client email
+Copiere Email Copy C Copy email în clipboard
 
-  Apelare                Phone         P              Deschide dialer
+Trimite Email Mail M Deschide client email
 
-  Vizualizare Companie   Building      B              Navigare la compania asociată
+Apelare Phone P Deschide dialer
 
-  Vizualizare Istoric    History       H              Deschide drawer istoric
+Vizualizare Companie Building B Navigare la compania asociată
 
-  Separator              \-            \-             \-
+Vizualizare Istoric History H Deschide drawer istoric
 
-  Marcare Invalid        XCircle       \-             Setează status invalid
+Separator \- \- \-
 
-  Șergere                Trash         Delete         Dialog confirmare șergere
+Marcare Invalid XCircle \- Setează status invalid
 
-  ---------------------- ------------- -------------- -------------------------------
+Șergere Trash Delete Dialog confirmare șergere
+
+---
 
 **4.2.4 Bulk Actions Bar**
 
 Bară care apare când sunt selectate rânduri multiple.
 
-  ----------------- ------------------------------- ------------
-  **Element**       **Descriere**                   **Pozițe**
+---
 
-  Selection Count   X contacte selectate            Stânga
+**Element** **Descriere** **Pozițe**
 
-  Select All        Link selectare toate paginile   Stânga
+Selection Count X contacte selectate Stânga
 
-  Bulk Enrich       Buton Enrichment                Centru
+Select All Link selectare toate paginile Stânga
 
-  Bulk Export       Buton Export CSV                Centru
+Bulk Enrich Buton Enrichment Centru
 
-  Bulk Assign       Buton Atribuire user            Centru
+Bulk Export Buton Export CSV Centru
 
-  Bulk Tag          Buton Adaugă tag-uri            Centru
+Bulk Assign Buton Atribuire user Centru
 
-  Bulk Delete       Buton roș Șergere               Dreapta
+Bulk Tag Buton Adaugă tag-uri Centru
 
-  Clear Selection   X Anulează selecța              Dreapta
+Bulk Delete Buton roș Șergere Dreapta
 
-  ----------------- ------------------------------- ------------
+Clear Selection X Anulează selecța Dreapta
+
+---
 
 **4.3 Pagination Contacte**
 
-  -------------------- ---------------------------- ----------------------
-  **Element**          **Descriere**                **Opțuni**
+---
 
-  Page Size Selector   Dropdown rânduri/pagină      10, 25, 50, 100, 200
+**Element** **Descriere** **Opțuni**
 
-  Page Info            Afișre X-Y din Z rezultate   Text static
+Page Size Selector Dropdown rânduri/pagină 10, 25, 50, 100, 200
 
-  First Page           Buton prima pagină           ChevronFirst icon
+Page Info Afișre X-Y din Z rezultate Text static
 
-  Prev Page            Buton pagina anterioară      ChevronLeft icon
+First Page Buton prima pagină ChevronFirst icon
 
-  Page Numbers         Butoane numerotate           1, 2, 3, \..., N
+Prev Page Buton pagina anterioară ChevronLeft icon
 
-  Next Page            Buton pagina urmăoare        ChevronRight icon
+Page Numbers Butoane numerotate 1, 2, 3, \..., N
 
-  Last Page            Buton ultima pagină          ChevronLast icon
+Next Page Buton pagina urmăoare ChevronRight icon
 
-  Go To Page           Input numă pagină            Input + Go button
+Last Page Buton ultima pagină ChevronLast icon
 
-  -------------------- ---------------------------- ----------------------
+Go To Page Input numă pagină Input + Go button
+
+---
 
 **5. PAGINA: DETALII CONTACT**
 
@@ -568,189 +590,197 @@ individual.
 
 **5.1 Layout Pagină Detalii**
 
-  ----------------------- ---------------------------------- ------------------
-  **Zonă**                **Conțnut**                        **Lățme**
+---
 
-  Left Panel              Info contact + acțuni principale   380px fix
+**Zonă** **Conțnut** **Lățme**
 
-  Main Content            Tab-uri cu date detaliate          Flex-1
+Left Panel Info contact + acțuni principale 380px fix
 
-  Right Panel (opțonal)   Timeline activitate                300px colapsabil
+Main Content Tab-uri cu date detaliate Flex-1
 
-  ----------------------- ---------------------------------- ------------------
+Right Panel (opțonal) Timeline activitate 300px colapsabil
+
+---
 
 **5.1.1 Left Panel - Contact Card**
 
-  ----------------- ----------------------------- --------------------------
-  **Element**       **Descriere**                 **Format/Acțune**
+---
 
-  Avatar Mare       Fotografie sau inițale        120x120px rotund
+**Element** **Descriere** **Format/Acțune**
 
-  Tier Badge        Bronze/Silver/Gold            Badge colorat sub avatar
+Avatar Mare Fotografie sau inițale 120x120px rotund
 
-  Nume Complet      Prenume Nume                  Text bold 24px
+Tier Badge Bronze/Silver/Gold Badge colorat sub avatar
 
-  Funcțe            Titlu profesional             Text muted
+Nume Complet Prenume Nume Text bold 24px
 
-  Companie Link     Numele companiei              Link navigare
+Funcțe Titlu profesional Text muted
 
-  Separator         Linie orizontală              \-
+Companie Link Numele companiei Link navigare
 
-  Email Row         Iconiță + email + status      Click to copy
+Separator Linie orizontală \-
 
-  Telefon Row       Iconiță + telefon + carrier   Click to call
+Email Row Iconiță + email + status Click to copy
 
-  WhatsApp Row      Iconiță + disponibilitate     Click to message
+Telefon Row Iconiță + telefon + carrier Click to call
 
-  LinkedIn Row      Iconiță + profil              External link
+WhatsApp Row Iconiță + disponibilitate Click to message
 
-  Locațe Row        Iconiță + Oraș, Județ         \-
+LinkedIn Row Iconiță + profil External link
 
-  Separator         Linie orizontală              \-
+Locațe Row Iconiță + Oraș, Județ \-
 
-  Completitudine    Progress bar cu %             X% completat
+Separator Linie orizontală \-
 
-  Data Creare       Iconiță + dată                Creat: DD.MM.YYYY
+Completitudine Progress bar cu % X% completat
 
-  Data Update       Iconiță + dată                Actualizat: DD.MM.YYYY
+Data Creare Iconiță + dată Creat: DD.MM.YYYY
 
-  Data Enrichment   Iconiță + dată                Enriched: DD.MM.YYYY
+Data Update Iconiță + dată Actualizat: DD.MM.YYYY
 
-  Separator         Linie orizontală              \-
+Data Enrichment Iconiță + dată Enriched: DD.MM.YYYY
 
-  Action Buttons    Grid 2 coloane                Acțuni principale
+Separator Linie orizontală \-
 
-  ----------------- ----------------------------- --------------------------
+Action Buttons Grid 2 coloane Acțuni principale
+
+---
 
 **Action Buttons Grid:**
 
-  ----------- -------------------- --------------- --------------------
-  **Buton**   **Stil**             **Iconiță**     **Acțune**
+---
 
-  Editare     Primary full width   Pencil          Dialog editare
+**Buton** **Stil** **Iconiță** **Acțune**
 
-  Re-Enrich   Secondary            RefreshCw       Trigger enrichment
+Editare Primary full width Pencil Dialog editare
 
-  Email       Outline              Mail            Compune email
+Re-Enrich Secondary RefreshCw Trigger enrichment
 
-  Call        Outline              Phone           Deschide dialer
+Email Outline Mail Compune email
 
-  WhatsApp    Outline green        MessageCircle   Deschide WhatsApp
+Call Outline Phone Deschide dialer
 
-  Delete      Ghost destructive    Trash           Dialog confirmare
+WhatsApp Outline green MessageCircle Deschide WhatsApp
 
-  ----------- -------------------- --------------- --------------------
+Delete Ghost destructive Trash Dialog confirmare
+
+---
 
 **5.1.2 Main Content - Tab Navigation**
 
-  --------------------- ------------------------------ -----------------
-  **Tab**               **Conțnut**                    **Badge**
+---
 
-  Prezentare Generală   Date sumarizate                \-
+**Tab** **Conțnut** **Badge**
 
-  Date Fiscale          Info ANAF/Termene              Verified badge
+Prezentare Generală Date sumarizate \-
 
-  Validare              Status validăi email/telefon   Count validated
+Date Fiscale Info ANAF/Termene Verified badge
 
-  Enrichment            Istoric enrichment             Count sources
+Validare Status validăi email/telefon Count validated
 
-  Companie              Detalii companie asociată      \-
+Enrichment Istoric enrichment Count sources
 
-  Istoric               Timeline modificăi             Count changes
+Companie Detalii companie asociată \-
 
-  Raw Data              JSON original Bronze           \-
+Istoric Timeline modificăi Count changes
 
-  --------------------- ------------------------------ -----------------
+Raw Data JSON original Bronze \-
+
+---
 
 **5.1.3 Tab: Prezentare Generală**
 
-  --------------------- ----------------------------------------------------------------------
-  **Secțune**           **Câmpuri Afiște**
+---
 
-  Informați Personale   Prenume, Nume, Funcțe, Departament, Seniority
+**Secțune** **Câmpuri Afiște**
 
-  Contact               Email principal, Email secundar, Telefon, Telefon secundar, WhatsApp
+Informați Personale Prenume, Nume, Funcțe, Departament, Seniority
 
-  Social                LinkedIn URL, Twitter, Facebook
+Contact Email principal, Email secundar, Telefon, Telefon secundar, WhatsApp
 
-  Preferinț Contact     Canal preferat, Ore preferate, Zile preferate
+Social LinkedIn URL, Twitter, Facebook
 
-  GDPR                  Bază legală, Consimțăinte, Do Not Contact flags
+Preferinț Contact Canal preferat, Ore preferate, Zile preferate
 
-  Tags                  Etichete personalizate
+GDPR Bază legală, Consimțăinte, Do Not Contact flags
 
-  --------------------- ----------------------------------------------------------------------
+Tags Etichete personalizate
+
+---
 
 **5.1.4 Tab: Date Fiscale**
 
-  ----------------- ------------------------------------------- ------------
-  **Secțune**       **Câmpuri Afiște**                          **Sursă**
+---
 
-  Identificare      CUI, Nr. Reg. Com, IBAN                     ANAF
+**Secțune** **Câmpuri Afiște** **Sursă**
 
-  Status Fiscal     Plăitor TVA, TVA la Încasare, Split TVA     ANAF
+Identificare CUI, Nr. Reg. Com, IBAN ANAF
 
-  e-Factura         Înregistrat e-Factura, Data înregistrare    ANAF
+Status Fiscal Plăitor TVA, TVA la Încasare, Split TVA ANAF
 
-  Date Financiare   Cifră Afaceri, Profit, Angajaț, An Bilanț   Termene.ro
+e-Factura Înregistrat e-Factura, Data înregistrare ANAF
 
-  Credit Score      Scor Risc, Categorie, Limite Credit         Termene.ro
+Date Financiare Cifră Afaceri, Profit, Angajaț, An Bilanț Termene.ro
 
-  Datorii           Datorii ANAF, Datorii Totale                Termene.ro
+Credit Score Scor Risc, Categorie, Limite Credit Termene.ro
 
-  Litigii           Nr. Dosare Active, Ca Pârât, Insolvență     Termene.ro
+Datorii Datorii ANAF, Datorii Totale Termene.ro
 
-  ----------------- ------------------------------------------- ------------
+Litigii Nr. Dosare Active, Ca Pârât, Insolvență Termene.ro
+
+---
 
 **5.1.5 Tab: Validare**
 
-  ----------------------- --------------------------- -------------------------------------
-  **Element**             **Descriere**               **Status Posibile**
+---
 
-  Email Validation Card   Status verificare email     Valid/Invalid/Unknown/Catch-All
+**Element** **Descriere** **Status Posibile**
 
-  Email Provider          Detectat provider           Gmail/Yahoo/Corporate/Other
+Email Validation Card Status verificare email Valid/Invalid/Unknown/Catch-All
 
-  Email Last Checked      Data ultimei verificăi      DD.MM.YYYY HH:mm
+Email Provider Detectat provider Gmail/Yahoo/Corporate/Other
 
-  Phone HLR Card          Status verificare HLR       Valid/Invalid/Unknown
+Email Last Checked Data ultimei verificăi DD.MM.YYYY HH:mm
 
-  Phone Carrier           Operator telefonie          Orange/Vodafone/Telekom/Digi
+Phone HLR Card Status verificare HLR Valid/Invalid/Unknown
 
-  Phone Type              Tip telefon                 Mobile/Landline
+Phone Carrier Operator telefonie Orange/Vodafone/Telekom/Digi
 
-  Phone Last Checked      Data ultimei verificăi      DD.MM.YYYY HH:mm
+Phone Type Tip telefon Mobile/Landline
 
-  WhatsApp Status         Disponibilitate WA          Available/Not Available/Unknown
+Phone Last Checked Data ultimei verificăi DD.MM.YYYY HH:mm
 
-  CUI Validation          Validare modulo 11 + ANAF   Valid Active/Valid Inactive/Invalid
+WhatsApp Status Disponibilitate WA Available/Not Available/Unknown
 
-  ----------------------- --------------------------- -------------------------------------
+CUI Validation Validare modulo 11 + ANAF Valid Active/Valid Inactive/Invalid
+
+---
 
 **5.1.6 Tab: Enrichment**
 
 Vizualizare timeline a tuturor proceselor de enrichment.
 
-  ---------------------- ------------------------------------------------
-  **Element Timeline**   **Descriere**
+---
 
-  Sursă                  Iconiță + Nume sursă (ANAF/Termene/Hunter/etc)
+**Element Timeline** **Descriere**
 
-  Timestamp              Data ș ora procesăii
+Sursă Iconiță + Nume sursă (ANAF/Termene/Hunter/etc)
 
-  Status                 Badge Success/Failed/Partial
+Timestamp Data ș ora procesăii
 
-  Câmpuri Actualizate    Lista câmpurilor modificate
+Status Badge Success/Failed/Partial
 
-  Valori Anterioare      Collapsed view valori vechi
+Câmpuri Actualizate Lista câmpurilor modificate
 
-  Valori Noi             Valori noi adăgate
+Valori Anterioare Collapsed view valori vechi
 
-  Confidence Score       Procent încredere sursă
+Valori Noi Valori noi adăgate
 
-  Re-run Button          Buton reluare worker specific
+Confidence Score Procent încredere sursă
 
-  ---------------------- ------------------------------------------------
+Re-run Button Buton reluare worker specific
+
+---
 
 **6. PAGINA: COMPANII**
 
@@ -762,67 +792,69 @@ Descriere: Management ș vizualizare companii (Silver Companies).
 
 **6.1.1 Coloane Tabel Companii**
 
-  --------------- ------------------ ------------------------------------
-  **Coloană**     **Tip**            **Descriere**
+---
 
-  Checkbox        Checkbox           Selectare rând
+**Coloană** **Tip** **Descriere**
 
-  Denumire        Text + Logo        Logo 32x32 + Nume companie
+Checkbox Checkbox Selectare rând
 
-  CUI             Text mono          Cod fiscal
+Denumire Text + Logo Logo 32x32 + Nume companie
 
-  Status          Badge              Active/Inactive/Suspended/Radiated
+CUI Text mono Cod fiscal
 
-  Plăitor TVA     Icon check/x       Status TVA
+Status Badge Active/Inactive/Suspended/Radiated
 
-  e-Factura       Icon check/x       Înregistrat e-Factura
+Plăitor TVA Icon check/x Status TVA
 
-  CAEN            Badge              Cod CAEN principal
+e-Factura Icon check/x Înregistrat e-Factura
 
-  Județ           Text               Locațe sediu social
+CAEN Badge Cod CAEN principal
 
-  Cifră Afaceri   Number formatted   RON cu separator mii
+Județ Text Locațe sediu social
 
-  Angajaț         Number             Numă angajaț
+Cifră Afaceri Number formatted RON cu separator mii
 
-  Scor Risc       Badge color        Low/Medium/High
+Angajaț Number Numă angajaț
 
-  Contacte        Number link        Count contacte asociate
+Scor Risc Badge color Low/Medium/High
 
-  Acțuni          Buttons            View/Edit/Enrich
+Contacte Number link Count contacte asociate
 
-  --------------- ------------------ ------------------------------------
+Acțuni Buttons View/Edit/Enrich
+
+---
 
 **6.1.2 Filtre Specifice Companii**
 
-  --------------------- -------------- ---------------------------------------
-  **Filtru**            **Tip**        **Opțuni**
+---
 
-  Cătare                Search         Denumire, CUI
+**Filtru** **Tip** **Opțuni**
 
-  Status Firmă          Multi-select   Active, Inactive, Suspended, Radiated
+Cătare Search Denumire, CUI
 
-  Plăitor TVA           Select         All, Da, Nu
+Status Firmă Multi-select Active, Inactive, Suspended, Radiated
 
-  e-Factura             Select         All, Înregistrat, Neînregistrat
+Plăitor TVA Select All, Da, Nu
 
-  CAEN                  Autocomplete   Cătare cod sau denumire CAEN
+e-Factura Select All, Înregistrat, Neînregistrat
 
-  Județ                 Multi-select   Lista județ
+CAEN Autocomplete Cătare cod sau denumire CAEN
 
-  Cifră Afaceri Range   Range slider   Min-Max RON
+Județ Multi-select Lista județ
 
-  Angajaț Range         Range slider   Min-Max
+Cifră Afaceri Range Range slider Min-Max RON
 
-  Scor Risc             Multi-select   Low, Medium, High
+Angajaț Range Range slider Min-Max
 
-  Tip Exploatațe        Multi-select   Vegetală, Animală, Mixtă
+Scor Risc Multi-select Low, Medium, High
 
-  Membru OUAI           Select         All, Da, Nu
+Tip Exploatațe Multi-select Vegetală, Animală, Mixtă
 
-  Membru Cooperativă    Select         All, Da, Nu
+Membru OUAI Select All, Da, Nu
 
-  --------------------- -------------- ---------------------------------------
+Membru Cooperativă Select All, Da, Nu
+
+---
 
 **7. PAGINA: WORKERI PIPELINE**
 
@@ -832,122 +864,127 @@ Descriere: Dashboard monitorizare ș control workeri BullMQ.
 
 **7.1 Layout Pagină Workeri**
 
-  --------------- ------------------------------
-  **Zonă**        **Conțnut**
+---
 
-  Summary Cards   4 carduri metrici globale
+**Zonă** **Conțnut**
 
-  Category Tabs   Tab-uri pe categorii workeri
+Summary Cards 4 carduri metrici globale
 
-  Worker Grid     Grid carduri status workeri
+Category Tabs Tab-uri pe categorii workeri
 
-  Alert Panel     Alerte active sistem
+Worker Grid Grid carduri status workeri
 
-  --------------- ------------------------------
+Alert Panel Alerte active sistem
+
+---
 
 **7.1.1 Summary Cards Workeri**
 
-  ---------- --------------- -------------------- ---------------------
-  **Card**   **Titlu**       **Metrică**          **Indicator**
+---
 
-  1          Total Workeri   61/61                Healthy badge verde
+**Card** **Titlu** **Metrică** **Indicator**
 
-  2          Running         X workeri activi     Pulse animation
+1 Total Workeri 61/61 Healthy badge verde
 
-  3          Paused          X workeri în pauză   Badge galben
+2 Running X workeri activi Pulse animation
 
-  4          Error State     X workeri cu erori   Badge roș dacă \> 0
+3 Paused X workeri în pauză Badge galben
 
-  ---------- --------------- -------------------- ---------------------
+4 Error State X workeri cu erori Badge roș dacă \> 0
+
+---
 
 **7.1.2 Tab-uri Categorii Workeri**
 
-  -------------- --------------------------------------------------------- -----------
-  **Tab**        **Categorii Incluse**                                     **Count**
+---
 
-  Toate          Toț cei 61 workeri                                        61
+**Tab** **Categorii Incluse** **Count**
 
-  Ingestie       CSV Parser, JSON Parser, PDF Extractor, Webhook, Manual   5
+Toate Toț cei 61 workeri 61
 
-  Normalizare    Nume, Adrese, Telefoane, Formatare                        4
+Ingestie CSV Parser, JSON Parser, PDF Extractor, Webhook, Manual 5
 
-  Validare       CUI ANAF, Modulo11                                        2
+Normalizare Nume, Adrese, Telefoane, Formatare 4
 
-  ANAF           Fiscal Status, TVA, e-Factura, Asociaț, Sedii             5
+Validare CUI ANAF, Modulo11 2
 
-  Termene.ro     Company Info, Financials, Risk Score, etc.                8
+ANAF Fiscal Status, TVA, e-Factura, Asociaț, Sedii 5
 
-  Email          Domain Discovery, Hunter.io, SMTP Verify, ZeroBounce      4
+Termene.ro Company Info, Financials, Risk Score, etc. 8
 
-  Telefon        Format E164, HLR Lookup, Carrier, WhatsApp                4
+Email Domain Discovery, Hunter.io, SMTP Verify, ZeroBounce 4
 
-  Web/Scraping   Fetch, Extract, Social Links, Logo                        4
+Telefon Format E164, HLR Lookup, Carrier, WhatsApp 4
 
-  AI             Text Structure, Entity Extract, Industry Classify         3
+Web/Scraping Fetch, Extract, Social Links, Logo 4
 
-  Geo            Geocode, Reverse, SIRUTA, Proximity                       4
+AI Text Structure, Entity Extract, Industry Classify 3
 
-  Agricol        APIA, OUAI, Cooperative                                   3
+Geo Geocode, Reverse, SIRUTA, Proximity 4
 
-  Deduplicare    Hash Checker, Fuzzy Matcher                               2
+Agricol APIA, OUAI, Cooperative 3
 
-  Quality        Completeness, Tier Calculator, Silver Promoter            3
+Deduplicare Hash Checker, Fuzzy Matcher 2
 
-  Agregare       Company, Contact Aggregator                               2
+Quality Completeness, Tier Calculator, Silver Promoter 3
 
-  Pipeline       Flow Start, Orchestrator, Health Monitor, Rate Sync       4
+Agregare Company, Contact Aggregator 2
 
-  -------------- --------------------------------------------------------- -----------
+Pipeline Flow Start, Orchestrator, Health Monitor, Rate Sync 4
+
+---
 
 **7.1.3 Worker Card**
 
 Fiecare worker este afișt ca un card în grid.
 
-  ---------------- --------------------------- ----------------------
-  **Element**      **Descriere**               **Format**
+---
 
-  Header           Nume queue + Status badge   Running/Paused/Error
+**Element** **Descriere** **Format**
 
-  Category Badge   Categoria workerului        Color coded badge
+Header Nume queue + Status badge Running/Paused/Error
 
-  Rate Limit       Limită curentă/max          X/Y req/sec
+Category Badge Categoria workerului Color coded badge
 
-  Metrics Grid     4 metrici principale        2x2 grid
+Rate Limit Limită curentă/max X/Y req/sec
 
-  \- Waiting       Jobs în așeptare            Numă + icon
+Metrics Grid 4 metrici principale 2x2 grid
 
-  \- Active        Jobs în procesare           Numă + pulse
+\- Waiting Jobs în așeptare Numă + icon
 
-  \- Completed     Finalizate 24h              Numă verde
+\- Active Jobs în procesare Numă + pulse
 
-  \- Failed        Eșate 24h                   Numă roș
+\- Completed Finalizate 24h Numă verde
 
-  Throughput       Jobs/minut                  Mini sparkline
+\- Failed Eșate 24h Numă roș
 
-  Avg Duration     Timp mediu procesare        X.Xs
+Throughput Jobs/minut Mini sparkline
 
-  Last Error       Ultimul mesaj eroare        Truncated + tooltip
+Avg Duration Timp mediu procesare X.Xs
 
-  Actions          Butoane control             Pause/Resume/View
+Last Error Ultimul mesaj eroare Truncated + tooltip
 
-  ---------------- --------------------------- ----------------------
+Actions Butoane control Pause/Resume/View
+
+---
 
 **7.1.4 Acțuni Worker Card**
 
-  -------------- ------------- ------------- ------------------------------
-  **Buton**      **Iconiță**   **Stare**     **Acțune**
+---
 
-  Pause          Pause         Running       Pauză procesare
+**Buton** **Iconiță** **Stare** **Acțune**
 
-  Resume         Play          Paused        Reluare procesare
+Pause Pause Running Pauză procesare
 
-  View Details   Eye           Orice         Navigare /workers/:queueName
+Resume Play Paused Reluare procesare
 
-  Retry Failed   RefreshCw     Has failed    Retry toate failed jobs
+View Details Eye Orice Navigare /workers/:queueName
 
-  Clear Queue    Trash2        Has waiting   Clear jobs în așeptare
+Retry Failed RefreshCw Has failed Retry toate failed jobs
 
-  -------------- ------------- ------------- ------------------------------
+Clear Queue Trash2 Has waiting Clear jobs în așeptare
+
+---
 
 **8. PAGINA: DETALII WORKER**
 
@@ -958,131 +995,137 @@ specific.
 
 **8.1 Layout Detalii Worker**
 
-  ---------------- ---------------------------------------
-  **Zonă**         **Conțnut**
+---
 
-  Header           Nume worker + Status + Acțuni globale
+**Zonă** **Conțnut**
 
-  Metrics Panel    Carduri metrici detaliate
+Header Nume worker + Status + Acțuni globale
 
-  Charts Section   Grafice throughput ș errors
+Metrics Panel Carduri metrici detaliate
 
-  Jobs Table       Tabel cu jobs (filtrat pe status)
+Charts Section Grafice throughput ș errors
 
-  Logs Panel       Real-time logs stream
+Jobs Table Tabel cu jobs (filtrat pe status)
 
-  ---------------- ---------------------------------------
+Logs Panel Real-time logs stream
+
+---
 
 **8.1.1 Header Worker Detail**
 
-  ----------------------- -----------------------------------
-  **Element**             **Descriere**
+---
 
-  Back Button             Arrow left + Back to Workers
+**Element** **Descriere**
 
-  Worker Name             Queue name formatted
+Back Button Arrow left + Back to Workers
 
-  Category Badge          Categoria colorată
+Worker Name Queue name formatted
 
-  Status Badge Large      Running/Paused/Error cu descriere
+Category Badge Categoria colorată
 
-  Uptime                  Running for X hours
+Status Badge Large Running/Paused/Error cu descriere
 
-  Pause/Resume Button     Primary action
+Uptime Running for X hours
 
-  Trigger Manual Button   Secondary action
+Pause/Resume Button Primary action
 
-  Settings Button         Configurare worker
+Trigger Manual Button Secondary action
 
-  ----------------------- -----------------------------------
+Settings Button Configurare worker
+
+---
 
 **8.1.2 Metrics Cards Detaliate**
 
-  ----------------- ---------------- ---------------------------
-  **Card**          **Metrică**      **Detalii**
+---
 
-  Waiting Jobs      X în așeptare    Oldest waiting: X min ago
+**Card** **Metrică** **Detalii**
 
-  Active Jobs       X în procesare   Avg processing time
+Waiting Jobs X în așeptare Oldest waiting: X min ago
 
-  Completed (24h)   X finalizate     Success rate: X%
+Active Jobs X în procesare Avg processing time
 
-  Failed (24h)      X eșate          Top error: message
+Completed (24h) X finalizate Success rate: X%
 
-  Delayed           X delayed        Next scheduled: time
+Failed (24h) X eșate Top error: message
 
-  Throughput        X jobs/min       Peak: Y jobs/min
+Delayed X delayed Next scheduled: time
 
-  Rate Limit        X/Y used         Resets in: Z sec
+Throughput X jobs/min Peak: Y jobs/min
 
-  Concurrency       X/Y slots        Config concurrency
+Rate Limit X/Y used Resets in: Z sec
 
-  ----------------- ---------------- ---------------------------
+Concurrency X/Y slots Config concurrency
+
+---
 
 **8.1.3 Jobs Table în Worker Detail**
 
-  ----------- -----------------------------------
-  **Tab**     **Descriere**
+---
 
-  Active      Jobs în procesare curent
+**Tab** **Descriere**
 
-  Waiting     Jobs în coadă de așeptare
+Active Jobs în procesare curent
 
-  Completed   Jobs finalizate (paginat)
+Waiting Jobs în coadă de așeptare
 
-  Failed      Jobs eșate cu opțuni retry
+Completed Jobs finalizate (paginat)
 
-  Delayed     Jobs programate pentru mai târziu
+Failed Jobs eșate cu opțuni retry
 
-  ----------- -----------------------------------
+Delayed Jobs programate pentru mai târziu
+
+---
 
 **Coloane Tabel Jobs:**
 
-  -------------- --------------------------------
-  **Coloană**    **Descriere**
+---
 
-  Job ID         UUID job clickable
+**Coloană** **Descriere**
 
-  Name           Nume job
+Job ID UUID job clickable
 
-  Status         Badge status
+Name Nume job
 
-  Progress       Progress bar dacă în procesare
+Status Badge status
 
-  Created At     Timestamp creare
+Progress Progress bar dacă în procesare
 
-  Started At     Timestamp pornire
+Created At Timestamp creare
 
-  Finished At    Timestamp finalizare
+Started At Timestamp pornire
 
-  Duration       Durată procesare
+Finished At Timestamp finalizare
 
-  Attempts       X/Y încercăi
+Duration Durată procesare
 
-  Data Preview   Collapsed JSON preview
+Attempts X/Y încercăi
 
-  Error          Mesaj eroare dacă failed
+Data Preview Collapsed JSON preview
 
-  Actions        Retry/View/Delete
+Error Mesaj eroare dacă failed
 
-  -------------- --------------------------------
+Actions Retry/View/Delete
+
+---
 
 **8.1.4 Manual Trigger Form**
 
 Formular pentru triggerarea manuală a unui job.
 
-  -------------- -------------- -------------- ----------------------
-  **Câmp**       **Tip**        **Validare**   **Descriere**
+---
 
-  Job Data       JSON Editor    Valid JSON     Date pentru job
+**Câmp** **Tip** **Validare** **Descriere**
 
-  Priority       Select         Required       High/Normal/Low
+Job Data JSON Editor Valid JSON Date pentru job
 
-  Delay          Number input   \>= 0          Delay în milisecunde
+Priority Select Required High/Normal/Low
 
-  Max Attempts   Number input   1-10           Override default
+Delay Number input \>= 0 Delay în milisecunde
 
-  -------------- -------------- -------------- ----------------------
+Max Attempts Number input 1-10 Override default
+
+---
 
 **Butoane Form:**
 
@@ -1098,47 +1141,49 @@ Descriere: Vizualizare ș management toate cozile BullMQ.
 
 **9.1 Tabel Cozi**
 
-  --------------- ---------------------------------------------- --------------
-  **Coloană**     **Descriere**                                  **Sortabil**
+---
 
-  Queue Name      Numele cozii cu format layer:category:action   Da
+**Coloană** **Descriere** **Sortabil**
 
-  Category        Badge categorie                                Da
+Queue Name Numele cozii cu format layer:category:action Da
 
-  Status          Running/Paused/Error                           Da
+Category Badge categorie Da
 
-  Waiting         Count jobs waiting                             Da
+Status Running/Paused/Error Da
 
-  Active          Count jobs active                              Da
+Waiting Count jobs waiting Da
 
-  Completed 24h   Count completed                                Da
+Active Count jobs active Da
 
-  Failed 24h      Count failed                                   Da
+Completed 24h Count completed Da
 
-  Delayed         Count delayed                                  Da
+Failed 24h Count failed Da
 
-  Rate Limit      Current/Max                                    Nu
+Delayed Count delayed Da
 
-  Throughput      Jobs/min                                       Da
+Rate Limit Current/Max Nu
 
-  Actions         Pause/Resume/Clear/View                        Nu
+Throughput Jobs/min Da
 
-  --------------- ---------------------------------------------- --------------
+Actions Pause/Resume/Clear/View Nu
+
+---
 
 **9.2 Bulk Actions Cozi**
 
-  ------------------- ------------------------------------------ -------------------
-  **Acțune**          **Descriere**                              **Confirmare**
+---
 
-  Pause All           Pauză toate cozile selectate               Dialog confirmare
+**Acțune** **Descriere** **Confirmare**
 
-  Resume All          Reluare toate cozile selectate             Nu
+Pause All Pauză toate cozile selectate Dialog confirmare
 
-  Retry All Failed    Retry toate joburile failed din selecțe    Dialog confirmare
+Resume All Reluare toate cozile selectate Nu
 
-  Clear All Waiting   Șerge toate joburile waiting din selecțe   Dialog confirmare
+Retry All Failed Retry toate joburile failed din selecțe Dialog confirmare
 
-  ------------------- ------------------------------------------ -------------------
+Clear All Waiting Șerge toate joburile waiting din selecțe Dialog confirmare
+
+---
 
 **10. PAGINA: IMPORT DATE**
 
@@ -1148,88 +1193,92 @@ Descriere: Import contacte ș companii din fișere CSV/Excel.
 
 **10.1 Wizard Import Multi-Step**
 
-  --------- -------------------- --------------------------------------
-  **Pas**   **Titlu**            **Descriere**
+---
 
-  1         Upload Fișer         Drag & drop sau selectare fișer
+**Pas** **Titlu** **Descriere**
 
-  2         Configurare          Setăi encoding, delimiter, header
+1 Upload Fișer Drag & drop sau selectare fișer
 
-  3         Mapare Coloane       Mapare coloane fișer →câmpuri sistem
+2 Configurare Setăi encoding, delimiter, header
 
-  4         Preview & Validare   Preview date ș erori detectate
+3 Mapare Coloane Mapare coloane fișer →câmpuri sistem
 
-  5         Import               Confirmare ș progres import
+4 Preview & Validare Preview date ș erori detectate
 
-  --------- -------------------- --------------------------------------
+5 Import Confirmare ș progres import
+
+---
 
 **10.1.1 Pas 1: Upload Fișer**
 
-  ------------------- -----------------------------------
-  **Element**         **Descriere**
+---
 
-  Dropzone            Zonă drag & drop cu border dashed
+**Element** **Descriere**
 
-  Icon Upload         CloudUpload icon mare centrat
+Dropzone Zonă drag & drop cu border dashed
 
-  Text Principal      Drag ș drop fișerul aici
+Icon Upload CloudUpload icon mare centrat
 
-  Text Secundar       sau click pentru selectare
+Text Principal Drag ș drop fișerul aici
 
-  Formate Suportate   CSV, XLSX, XLS - max 50MB
+Text Secundar sau click pentru selectare
 
-  Browse Button       Buton selectare fișer
+Formate Suportate CSV, XLSX, XLS - max 50MB
 
-  File Preview        Afișre nume fișer după upload
+Browse Button Buton selectare fișer
 
-  Remove Button       X pentru șergere fișer selectat
+File Preview Afișre nume fișer după upload
 
-  ------------------- -----------------------------------
+Remove Button X pentru șergere fișer selectat
+
+---
 
 **10.1.2 Pas 2: Configurare Import**
 
-  ----------------- --------- -----------------------------------------------
-  **Câmp**          **Tip**   **Opțuni/Default**
+---
 
-  Tip Entitate      Radio     Contacte / Companii
+**Câmp** **Tip** **Opțuni/Default**
 
-  Encoding          Select    UTF-8 (auto-detect), Windows-1250, ISO-8859-2
+Tip Entitate Radio Contacte / Companii
 
-  Delimiter (CSV)   Select    Virgulă, Punct ș virgulă, Tab, Auto-detect
+Encoding Select UTF-8 (auto-detect), Windows-1250, ISO-8859-2
 
-  Header Row        Number    1 (default), 0 dacă făă header
+Delimiter (CSV) Select Virgulă, Punct ș virgulă, Tab, Auto-detect
 
-  Skip Rows         Text      Numere rânduri de săit, separate prin virgulă
+Header Row Number 1 (default), 0 dacă făă header
 
-  Source Type       Select    import, apia, madr, manual
+Skip Rows Text Numere rânduri de săit, separate prin virgulă
 
-  ----------------- --------- -----------------------------------------------
+Source Type Select import, apia, madr, manual
+
+---
 
 **10.1.3 Pas 3: Mapare Coloane**
 
 Interfață vizuală pentru maparea coloanelor din fișer la câmpurile
 sistemului.
 
-  ------------------ ----------------------------------------------
-  **Element**        **Descriere**
+---
 
-  Left Column        Lista coloanelor din fișer cu preview valori
+**Element** **Descriere**
 
-  Arrow/Connection   Indicator vizual mapare
+Left Column Lista coloanelor din fișer cu preview valori
 
-  Right Column       Dropdown selectare câmp sistem
+Arrow/Connection Indicator vizual mapare
 
-  Preview Values     Primele 3 valori din coloana respectivă
+Right Column Dropdown selectare câmp sistem
 
-  Auto-Map Button    Încercare mapare automată bazată pe nume
+Preview Values Primele 3 valori din coloana respectivă
 
-  Clear Mapping      Reset toate mapăile
+Auto-Map Button Încercare mapare automată bazată pe nume
 
-  Required Fields    Indicator \* pentru câmpuri obligatorii
+Clear Mapping Reset toate mapăile
 
-  Unmapped Warning   Alert dacă coloane importante răân nemapate
+Required Fields Indicator \* pentru câmpuri obligatorii
 
-  ------------------ ----------------------------------------------
+Unmapped Warning Alert dacă coloane importante răân nemapate
+
+---
 
 **Câmpuri Sistem Disponibile pentru Mapare:**
 
@@ -1239,43 +1288,45 @@ Companii: cui, denumire, adresa, judet, localitate, cod_caen
 
 **10.1.4 Pas 4: Preview ș Validare**
 
-  --------------------- ----------------------------------------------------
-  **Element**           **Descriere**
+---
 
-  Summary Stats         X total rânduri, Y valide, Z cu erori, W duplicate
+**Element** **Descriere**
 
-  Validation Errors     Lista erorilor grupate pe tip
+Summary Stats X total rânduri, Y valide, Z cu erori, W duplicate
 
-  Preview Table         Tabel cu primele 10 rânduri transformate
+Validation Errors Lista erorilor grupate pe tip
 
-  Error Rows Tab        Tab cu rândurile care au erori
+Preview Table Tabel cu primele 10 rânduri transformate
 
-  Skip Invalid Toggle   Switch pentru skip rânduri invalide
+Error Rows Tab Tab cu rândurile care au erori
 
-  Download Errors       Buton export CSV cu rândurile cu erori
+Skip Invalid Toggle Switch pentru skip rânduri invalide
 
-  --------------------- ----------------------------------------------------
+Download Errors Buton export CSV cu rândurile cu erori
+
+---
 
 **10.1.5 Pas 5: Import ș Progres**
 
-  ------------------ -------------------------------------
-  **Element**        **Descriere**
+---
 
-  Progress Bar       Bară progres 0-100% cu animațe
+**Element** **Descriere**
 
-  Status Text        Importing X of Y records\...
+Progress Bar Bară progres 0-100% cu animațe
 
-  Speed Indicator    \~Z records/second
+Status Text Importing X of Y records\...
 
-  ETA                Estimated time remaining
+Speed Indicator \~Z records/second
 
-  Live Counters      Success: X, Failed: Y, Duplicate: Z
+ETA Estimated time remaining
 
-  Cancel Button      Anulare import (cu confirmare)
+Live Counters Success: X, Failed: Y, Duplicate: Z
 
-  Complete Summary   Dialog succes cu statistici finale
+Cancel Button Anulare import (cu confirmare)
 
-  ------------------ -------------------------------------
+Complete Summary Dialog succes cu statistici finale
+
+---
 
 **11. DIALOGURI Ș MODALE**
 
@@ -1283,22 +1334,23 @@ Companii: cui, denumire, adresa, judet, localitate, cod_caen
 
 Modal pentru editarea datelor unui contact.
 
-  --------------------- ----------------------------------------------------------------
-  **Tab**               **Câmpuri**
+---
 
-  Informați Personale   Prenume\*, Nume\*, Funcțe, Departament, Seniority
+**Tab** **Câmpuri**
 
-  Contact               Email\*, Email Secundar, Telefon\*, Telefon Secundar, WhatsApp
+Informați Personale Prenume\*, Nume\*, Funcțe, Departament, Seniority
 
-  Social                LinkedIn URL
+Contact Email\*, Email Secundar, Telefon\*, Telefon Secundar, WhatsApp
 
-  Asociere              Companie (autocomplete CUI/Denumire)
+Social LinkedIn URL
 
-  Preferinț             Canal Preferat, Ore Preferate, Zile Preferate
+Asociere Companie (autocomplete CUI/Denumire)
 
-  GDPR                  Consimțăânt Email, SMS, WhatsApp, Telefon
+Preferinț Canal Preferat, Ore Preferate, Zile Preferate
 
-  --------------------- ----------------------------------------------------------------
+GDPR Consimțăânt Email, SMS, WhatsApp, Telefon
+
+---
 
 **Footer Dialog:**
 
@@ -1308,137 +1360,143 @@ Modal pentru editarea datelor unui contact.
 
 **11.2 Dialog: Editare Companie**
 
-  -------------- ------------------------------------------------------ ----------------
-  **Tab**        **Câmpuri**
+---
 
-  Identificare   CUI\*, Denumire\*, Nr. Reg. Com, IBAN
+**Tab** **Câmpuri**
 
-  Locațe         Adresă, Localitatea, Județl, Cod Poșal
+Identificare CUI\*, Denumire\*, Nr. Reg. Com, IBAN
 
-  Activitate     CAEN Principal, CAEN Secundare                         Forma Juridică
+Locațe Adresă, Localitatea, Județl, Cod Poșal
 
-  Agricol        Suprafață Totală, Tip Exploatațe, Culturi Principale
+Activitate CAEN Principal, CAEN Secundare Forma Juridică
 
-  Credit         Limită Credit Aprobată, Termen Plată, Condiți Plată
+Agricol Suprafață Totală, Tip Exploatațe, Culturi Principale
 
-  -------------- ------------------------------------------------------ ----------------
+Credit Limită Credit Aprobată, Termen Plată, Condiți Plată
+
+---
 
 **11.3 Dialog: Confirmare Șergere**
 
-  ---------------------------- -------------------------------------------------------------------------
-  **Element**                  **Descriere**
+---
 
-  Icon                         AlertTriangle în cerc roș
+**Element** **Descriere**
 
-  Titlu                        Confirmaț șergerea?
+Icon AlertTriangle în cerc roș
 
-  Descriere                    Această acțune nu poate fi anulată. Entitatea X va fi șearsă permanent.
+Titlu Confirmaț șergerea?
 
-  Input Confirmare (opțonal)   Tastaț STERGE pentru confirmare
+Descriere Această acțune nu poate fi anulată. Entitatea X va fi șearsă permanent.
 
-  Cancel Button                Button outline - Anulează
+Input Confirmare (opțonal) Tastaț STERGE pentru confirmare
 
-  Delete Button                Button destructive - Șerge permanent
+Cancel Button Button outline - Anulează
 
-  ---------------------------- -------------------------------------------------------------------------
+Delete Button Button destructive - Șerge permanent
+
+---
 
 **11.4 Dialog: Batch Enrichment**
 
-  ----------------- ------------------------------------------------------------
-  **Element**       **Descriere**
+---
 
-  Titlu             Start Batch Enrichment
+**Element** **Descriere**
 
-  Selected Count    X contacte selectate pentru enrichment
+Titlu Start Batch Enrichment
 
-  Profile Select    Checkbox list: Full Profile / Basic Only
+Selected Count X contacte selectate pentru enrichment
 
-  Sources Select    Checkbox list: ANAF, Termene.ro, Hunter.io, HLR, Geocoding
+Profile Select Checkbox list: Full Profile / Basic Only
 
-  Priority Select   Radio: High / Normal / Low
+Sources Select Checkbox list: ANAF, Termene.ro, Hunter.io, HLR, Geocoding
 
-  Estimated Time    Estimare timp procesare
+Priority Select Radio: High / Normal / Low
 
-  Estimated Cost    Cost estimat credite API
+Estimated Time Estimare timp procesare
 
-  Cancel Button     Anulează
+Estimated Cost Cost estimat credite API
 
-  Start Button      Start Enrichment
+Cancel Button Anulează
 
-  ----------------- ------------------------------------------------------------
+Start Button Start Enrichment
+
+---
 
 **11.5 Dialog: Job Details**
 
 Modal pentru vizualizarea detaliată a unui job.
 
-  --------------- --------------------------------------------
-  **Secțune**     **Conțnut**
+---
 
-  Header          Job ID + Status Badge + Created timestamp
+**Secțune** **Conțnut**
 
-  Metadata        Queue, Name, Priority, Attempts
+Header Job ID + Status Badge + Created timestamp
 
-  Timestamps      Created, Started, Finished, Duration
+Metadata Queue, Name, Priority, Attempts
 
-  Input Data      JSON viewer expandable cu syntax highlight
+Timestamps Created, Started, Finished, Duration
 
-  Result Data     JSON viewer cu rezultatul (dacă completed)
+Input Data JSON viewer expandable cu syntax highlight
 
-  Error Details   Stack trace formatat (dacă failed)
+Result Data JSON viewer cu rezultatul (dacă completed)
 
-  Logs            Lista log entries pentru acest job
+Error Details Stack trace formatat (dacă failed)
 
-  Actions         Retry / Delete / Copy Job ID
+Logs Lista log entries pentru acest job
 
-  --------------- --------------------------------------------
+Actions Retry / Delete / Copy Job ID
+
+---
 
 **11.6 Drawer: Activity Timeline**
 
 Drawer lateral pentru vizualizarea istoricului complet.
 
-  --------------- --------------------------------------------
-  **Element**     **Descriere**
+---
 
-  Header          Istoric Activitate + Close button
+**Element** **Descriere**
 
-  Filter Tabs     Toate / Enrichment / Modificăi / Outreach
+Header Istoric Activitate + Close button
 
-  Timeline List   Listă cronologică descrescăoare
+Filter Tabs Toate / Enrichment / Modificăi / Outreach
 
-  Timeline Item   Icon + Descriere + Timestamp + User/System
+Timeline List Listă cronologică descrescăoare
 
-  Expand Button   Expandare detalii pentru item
+Timeline Item Icon + Descriere + Timestamp + User/System
 
-  Load More       Buton încăcare mai multe entries
+Expand Button Expandare detalii pentru item
 
-  --------------- --------------------------------------------
+Load More Buton încăcare mai multe entries
+
+---
 
 **12. COMPONENTE FORMULARE REUTILIZABILE**
 
 **12.1 Text Input**
 
-  ----------------- ----------- ---------------------------------
-  **Proprietate**   **Tip**     **Descriere**
+---
 
-  label             string      Label deasupra input-ului
+**Proprietate** **Tip** **Descriere**
 
-  placeholder       string      Text placeholder
+label string Label deasupra input-ului
 
-  helperText        string      Text ajutăor sub input
+placeholder string Text placeholder
 
-  error             string      Mesaj eroare validare
+helperText string Text ajutăor sub input
 
-  required          boolean     Indicator câmp obligatoriu
+error string Mesaj eroare validare
 
-  disabled          boolean     Dezactivează input
+required boolean Indicator câmp obligatoriu
 
-  prefix            ReactNode   Element prefix (ex: iconiță)
+disabled boolean Dezactivează input
 
-  suffix            ReactNode   Element sufix (ex: buton clear)
+prefix ReactNode Element prefix (ex: iconiță)
 
-  maxLength         number      Limită caractere cu counter
+suffix ReactNode Element sufix (ex: buton clear)
 
-  ----------------- ----------- ---------------------------------
+maxLength number Limită caractere cu counter
+
+---
 
 **Stăi Vizuale:**
 
@@ -1452,189 +1510,199 @@ Drawer lateral pentru vizualizarea istoricului complet.
 
 **12.2 Select / Dropdown**
 
-  ----------------- ------------------------- ---------------------------
-  **Proprietate**   **Tip**                   **Descriere**
+---
 
-  options           Array\<{value, label}\>   Opțunile disponibile
+**Proprietate** **Tip** **Descriere**
 
-  placeholder       string                    Text când nimic selectat
+options Array\<{value, label}\> Opțunile disponibile
 
-  searchable        boolean                   Permite cătare în opțuni
+placeholder string Text când nimic selectat
 
-  clearable         boolean                   Buton clear selecțe
+searchable boolean Permite cătare în opțuni
 
-  multi             boolean                   Permite selecțe multiplă
+clearable boolean Buton clear selecțe
 
-  loading           boolean                   Afișază spinner încăcare
+multi boolean Permite selecțe multiplă
 
-  creatable         boolean                   Permite creare opțuni noi
+loading boolean Afișază spinner încăcare
 
-  ----------------- ------------------------- ---------------------------
+creatable boolean Permite creare opțuni noi
+
+---
 
 **12.3 Date Picker**
 
-  ----------------- --------------- -----------------------------
-  **Proprietate**   **Tip**         **Descriere**
+---
 
-  mode              single\|range   Selecțe simplă sau interval
+**Proprietate** **Tip** **Descriere**
 
-  minDate           Date            Data minimă selectabilă
+mode single\|range Selecțe simplă sau interval
 
-  maxDate           Date            Data maximă selectabilă
+minDate Date Data minimă selectabilă
 
-  disabledDates     Date\[\]        Date dezactivate
+maxDate Date Data maximă selectabilă
 
-  showTime          boolean         Include selectare oră
+disabledDates Date\[\] Date dezactivate
 
-  format            string          Format afișre (DD.MM.YYYY)
+showTime boolean Include selectare oră
 
-  ----------------- --------------- -----------------------------
+format string Format afișre (DD.MM.YYYY)
+
+---
 
 **12.4 Autocomplete**
 
-  ----------------- ---------- -------------------------------
-  **Proprietate**   **Tip**    **Descriere**
+---
 
-  fetchOptions      function   Funcțe async cătare
+**Proprietate** **Tip** **Descriere**
 
-  debounce          number     Delay cătare (ms)
+fetchOptions function Funcțe async cătare
 
-  minChars          number     Caractere minim pentru cătare
+debounce number Delay cătare (ms)
 
-  renderOption      function   Custom render opțune
+minChars number Caractere minim pentru cătare
 
-  getOptionValue    function   Extrage valoare din opțune
+renderOption function Custom render opțune
 
-  getOptionLabel    function   Extrage label din opțune
+getOptionValue function Extrage valoare din opțune
 
-  ----------------- ---------- -------------------------------
+getOptionLabel function Extrage label din opțune
+
+---
 
 **12.5 Checkbox & Radio**
 
-  ----------------- --------- ----------------------------------
-  **Proprietate**   **Tip**   **Descriere**
+---
 
-  label             string    Text label
+**Proprietate** **Tip** **Descriere**
 
-  description       string    Descriere sub label
+label string Text label
 
-  indeterminate     boolean   Stare parțal selectat (checkbox)
+description string Descriere sub label
 
-  disabled          boolean   Dezactivează
+indeterminate boolean Stare parțal selectat (checkbox)
 
-  ----------------- --------- ----------------------------------
+disabled boolean Dezactivează
+
+---
 
 **12.6 Switch / Toggle**
 
-  ----------------- ------------- -------------------
-  **Proprietate**   **Tip**       **Descriere**
+---
 
-  label             string        Text label
+**Proprietate** **Tip** **Descriere**
 
-  labelPosition     left\|right   Pozițe label
+label string Text label
 
-  size              sm\|md\|lg    Dimensiune switch
+labelPosition left\|right Pozițe label
 
-  disabled          boolean       Dezactivează
+size sm\|md\|lg Dimensiune switch
 
-  ----------------- ------------- -------------------
+disabled boolean Dezactivează
+
+---
 
 **12.7 Textarea**
 
-  ----------------- --------- -----------------------------
-  **Proprietate**   **Tip**   **Descriere**
+---
 
-  rows              number    Numă rânduri vizibile
+**Proprietate** **Tip** **Descriere**
 
-  autoResize        boolean   Resize automat după conțnut
+rows number Numă rânduri vizibile
 
-  maxLength         number    Limită caractere cu counter
+autoResize boolean Resize automat după conțnut
 
-  showCount         boolean   Afișază counter caractere
+maxLength number Limită caractere cu counter
 
-  ----------------- --------- -----------------------------
+showCount boolean Afișază counter caractere
+
+---
 
 **12.8 File Upload**
 
-  ----------------- --------- ---------------------------
-  **Proprietate**   **Tip**   **Descriere**
+---
 
-  accept            string    Tipuri fișere acceptate
+**Proprietate** **Tip** **Descriere**
 
-  maxSize           number    Dimensiune maximă (bytes)
+accept string Tipuri fișere acceptate
 
-  multiple          boolean   Permite fișere multiple
+maxSize number Dimensiune maximă (bytes)
 
-  showPreview       boolean   Afișază preview imagini
+multiple boolean Permite fișere multiple
 
-  dragDrop          boolean   Activează drag & drop
+showPreview boolean Afișază preview imagini
 
-  ----------------- --------- ---------------------------
+dragDrop boolean Activează drag & drop
+
+---
 
 **13. COMPONENTE UI REUTILIZABILE**
 
 **13.1 Badge Component**
 
-  ------------- -------------------------------------------- ----------------
-  **Variant**   **Culori**                                   **Utilizare**
+---
 
-  default       bg-primary text-primary-foreground           Badge standard
+**Variant** **Culori** **Utilizare**
 
-  secondary     bg-secondary text-secondary-foreground       Badge secundar
+default bg-primary text-primary-foreground Badge standard
 
-  destructive   bg-destructive text-destructive-foreground   Erori, invalid
+secondary bg-secondary text-secondary-foreground Badge secundar
 
-  outline       border text-foreground                       Subtle badge
+destructive bg-destructive text-destructive-foreground Erori, invalid
 
-  success       bg-green-100 text-green-800                  Status pozitiv
+outline border text-foreground Subtle badge
 
-  warning       bg-yellow-100 text-yellow-800                Atențe
+success bg-green-100 text-green-800 Status pozitiv
 
-  info          bg-blue-100 text-blue-800                    Informațonal
+warning bg-yellow-100 text-yellow-800 Atențe
 
-  ------------- -------------------------------------------- ----------------
+info bg-blue-100 text-blue-800 Informațonal
+
+---
 
 **Badge-uri Specifice Cerniq:**
 
-  ----------- ------------------------------------------------- ---------------------
-  **Badge**   **Stil**                                          **Utilizare**
+---
 
-  Bronze      bg-orange-100 text-orange-800 border-orange-300   Tier Bronze
+**Badge** **Stil** **Utilizare**
 
-  Silver      bg-gray-100 text-gray-800 border-gray-300         Tier Silver
+Bronze bg-orange-100 text-orange-800 border-orange-300 Tier Bronze
 
-  Gold        bg-yellow-100 text-yellow-800 border-yellow-400   Tier Gold
+Silver bg-gray-100 text-gray-800 border-gray-300 Tier Silver
 
-  Running     bg-green-100 text-green-800                       Worker/Job running
+Gold bg-yellow-100 text-yellow-800 border-yellow-400 Tier Gold
 
-  Paused      bg-yellow-100 text-yellow-800                     Worker paused
+Running bg-green-100 text-green-800 Worker/Job running
 
-  Error       bg-red-100 text-red-800                           Stare eroare
+Paused bg-yellow-100 text-yellow-800 Worker paused
 
-  Verified    bg-emerald-100 text-emerald-800                   Email/Phone valid
+Error bg-red-100 text-red-800 Stare eroare
 
-  Invalid     bg-rose-100 text-rose-800                         Email/Phone invalid
+Verified bg-emerald-100 text-emerald-800 Email/Phone valid
 
-  ----------- ------------------------------------------------- ---------------------
+Invalid bg-rose-100 text-rose-800 Email/Phone invalid
+
+---
 
 **13.2 Button Variants**
 
-  ----------------- -------------------------------------------- -----------------------------
-  **Variant**       **Stil**                                     **Utilizare**
+---
 
-  default/primary   bg-primary text-primary-foreground           Acțune principală
+**Variant** **Stil** **Utilizare**
 
-  secondary         bg-secondary text-secondary-foreground       Acțune secundară
+default/primary bg-primary text-primary-foreground Acțune principală
 
-  destructive       bg-destructive text-destructive-foreground   Șergere, acțuni periculoase
+secondary bg-secondary text-secondary-foreground Acțune secundară
 
-  outline           border bg-background                         Acțune terțară
+destructive bg-destructive text-destructive-foreground Șergere, acțuni periculoase
 
-  ghost             hover:bg-accent                              Acțune subtilă
+outline border bg-background Acțune terțară
 
-  link              text-primary underline-offset-4              Link stil buton
+ghost hover:bg-accent Acțune subtilă
 
-  ----------------- -------------------------------------------- -----------------------------
+link text-primary underline-offset-4 Link stil buton
+
+---
 
 **Dimensiuni Button:**
 
@@ -1648,54 +1716,57 @@ Drawer lateral pentru vizualizarea istoricului complet.
 
 **13.3 Card Component**
 
-  -------------------- --------------------- -------------------------------------
-  **Sub-componentă**   **Descriere**         **Stil**
+---
 
-  Card                 Container principal   rounded-lg border bg-card shadow-sm
+**Sub-componentă** **Descriere** **Stil**
 
-  CardHeader           Header card           flex flex-col space-y-1.5 p-6
+Card Container principal rounded-lg border bg-card shadow-sm
 
-  CardTitle            Titlu card            text-2xl font-semibold
+CardHeader Header card flex flex-col space-y-1.5 p-6
 
-  CardDescription      Subtitlu card         text-sm text-muted-foreground
+CardTitle Titlu card text-2xl font-semibold
 
-  CardContent          Conțnut principal     p-6 pt-0
+CardDescription Subtitlu card text-sm text-muted-foreground
 
-  CardFooter           Footer cu acțuni      flex items-center p-6 pt-0
+CardContent Conțnut principal p-6 pt-0
 
-  -------------------- --------------------- -------------------------------------
+CardFooter Footer cu acțuni flex items-center p-6 pt-0
+
+---
 
 **13.4 Alert Component**
 
-  ------------- --------------- ---------------------------------------------------
-  **Variant**   **Iconiță**     **Culori**
+---
 
-  default       Info            bg-background text-foreground
+**Variant** **Iconiță** **Culori**
 
-  destructive   AlertCircle     border-destructive/50 text-destructive
+default Info bg-background text-foreground
 
-  success       CheckCircle     border-green-500/50 text-green-700 bg-green-50
+destructive AlertCircle border-destructive/50 text-destructive
 
-  warning       AlertTriangle   border-yellow-500/50 text-yellow-700 bg-yellow-50
+success CheckCircle border-green-500/50 text-green-700 bg-green-50
 
-  ------------- --------------- ---------------------------------------------------
+warning AlertTriangle border-yellow-500/50 text-yellow-700 bg-yellow-50
+
+---
 
 **13.5 Toast Notifications**
 
-  --------- ---------------------- ------------ -------------------
-  **Tip**   **Iconiță**            **Durată**   **Utilizare**
+---
 
-  success   CheckCircle verde      3s           Acțune reuștă
+**Tip** **Iconiță** **Durată** **Utilizare**
 
-  error     XCircle roș            5s           Eroare
+success CheckCircle verde 3s Acțune reuștă
 
-  warning   AlertTriangle galben   4s           Avertisment
+error XCircle roș 5s Eroare
 
-  info      Info albastru          3s           Informațe
+warning AlertTriangle galben 4s Avertisment
 
-  loading   Spinner                Persistent   Acțune în progres
+info Info albastru 3s Informațe
 
-  --------- ---------------------- ------------ -------------------
+loading Spinner Persistent Acțune în progres
+
+---
 
 Pozițe: Bottom-right (default), stacked vertical
 
@@ -1703,37 +1774,39 @@ Max vizibile simultan: 3
 
 **13.6 Progress Indicators**
 
-  ------------------- ------------------------ ---------------------------------
-  **Componentă**      **Utilizare**            **Props**
+---
 
-  Progress Bar        Progres linear           value (0-100), color, showLabel
+**Componentă** **Utilizare** **Props**
 
-  Circular Progress   Progres circular         value, size (sm/md/lg)
+Progress Bar Progres linear value (0-100), color, showLabel
 
-  Spinner             Încăcare indeterminată   size
+Circular Progress Progres circular value, size (sm/md/lg)
 
-  Skeleton            Placeholder încăcare     width, height, animated
+Spinner Încăcare indeterminată size
 
-  Steps               Multi-step progress      current, items, orientation
+Skeleton Placeholder încăcare width, height, animated
 
-  ------------------- ------------------------ ---------------------------------
+Steps Multi-step progress current, items, orientation
+
+---
 
 **13.7 Empty State**
 
-  ------------------ -------------------------------------
-  **Element**        **Descriere**
+---
 
-  Icon               Ilustrațe sau iconiță mare centrată
+**Element** **Descriere**
 
-  Title              Titlu explicativ
+Icon Ilustrațe sau iconiță mare centrată
 
-  Description        Text explicațe detaliată
+Title Titlu explicativ
 
-  Action Button      Buton acțune primară
+Description Text explicațe detaliată
 
-  Secondary Action   Link sau buton secundar
+Action Button Buton acțune primară
 
-  ------------------ -------------------------------------
+Secondary Action Link sau buton secundar
+
+---
 
 **Empty States definite:**
 
@@ -1747,81 +1820,85 @@ Max vizibile simultan: 3
 
 **13.8 Tooltip**
 
-  ----------------- -------------------------------- -------------
-  **Proprietate**   **Valori**                       **Default**
+---
 
-  side              top \| right \| bottom \| left   top
+**Proprietate** **Valori** **Default**
 
-  align             start \| center \| end           center
+side top \| right \| bottom \| left top
 
-  delayDuration     number (ms)                      300
+align start \| center \| end center
 
-  sideOffset        number (px)                      4
+delayDuration number (ms) 300
 
-  ----------------- -------------------------------- -------------
+sideOffset number (px) 4
+
+---
 
 **14. PAGINI SETĂI**
 
 **14.1 Pagina Setăi Generale (/settings)**
 
-  --------------------- -----------------------------------------------------------
-  **Tab/Secțune**       **Câmpuri/Opțuni**
+---
 
-  Profil Utilizator     Nume, Email, Avatar, Parolă
+**Tab/Secțune** **Câmpuri/Opțuni**
 
-  Preferinț Interfață   Temă (Light/Dark/System), Limbă, Timezone
+Profil Utilizator Nume, Email, Avatar, Parolă
 
-  Notificăi             Email notifications, Browser notifications, tipuri alerte
+Preferinț Interfață Temă (Light/Dark/System), Limbă, Timezone
 
-  Organizațe            Nume organizațe, Logo, Domeniu
+Notificăi Email notifications, Browser notifications, tipuri alerte
 
-  Facturare             Plan curent, Usage, Istoric plăț
+Organizațe Nume organizațe, Logo, Domeniu
 
-  --------------------- -----------------------------------------------------------
+Facturare Plan curent, Usage, Istoric plăț
+
+---
 
 **14.2 Pagina API Keys (/api-keys)**
 
-  ----------------------- -----------------------------------------------------------------
-  **Element**             **Descriere**
+---
 
-  Lista API Keys          Tabel cu cheile existente
+**Element** **Descriere**
 
-  Coloane                 Nume, Key (masked), Creat, Ultima utilizare, Permisiuni, Acțuni
+Lista API Keys Tabel cu cheile existente
 
-  Create New Key          Dialog creare cheie nouă
+Coloane Nume, Key (masked), Creat, Ultima utilizare, Permisiuni, Acțuni
 
-  Key Name Input          Nume descriptiv pentru cheie
+Create New Key Dialog creare cheie nouă
 
-  Permissions             Checkboxes: Read, Write, Delete, Admin
+Key Name Input Nume descriptiv pentru cheie
 
-  Expiration              Select: Never, 30 days, 90 days, 1 year
+Permissions Checkboxes: Read, Write, Delete, Admin
 
-  Generated Key Display   Afișre one-time a cheii generate + Copy button
+Expiration Select: Never, 30 days, 90 days, 1 year
 
-  Revoke Action           Buton revocare cu confirmare
+Generated Key Display Afișre one-time a cheii generate + Copy button
 
-  ----------------------- -----------------------------------------------------------------
+Revoke Action Buton revocare cu confirmare
+
+---
 
 **14.3 Pagina Integrăi (/settings/integrations)**
 
-  --------------- ----------------------------------------
-  **Integrare**   **Câmpuri Configurare**
+---
 
-  ANAF API        Status conexiune, Test button
+**Integrare** **Câmpuri Configurare**
 
-  Termene.ro      API Key, Credite răase, Usage stats
+ANAF API Status conexiune, Test button
 
-  Hunter.io       API Key, Credite răase
+Termene.ro API Key, Credite răase, Usage stats
 
-  ZeroBounce      API Key, Credits balance
+Hunter.io API Key, Credite răase
 
-  CheckMobi       API Key, Account status
+ZeroBounce API Key, Credits balance
 
-  xAI Grok        API Key, Model selection, Usage limits
+CheckMobi API Key, Account status
 
-  Nominatim       Custom endpoint (optional)
+xAI Grok API Key, Model selection, Usage limits
 
-  --------------- ----------------------------------------
+Nominatim Custom endpoint (optional)
+
+---
 
 **15. PAGINA: LOGS**
 
@@ -1831,58 +1908,61 @@ Descriere: Vizualizare ș cătare logs sistem.
 
 **15.1 Layout Pagină Logs**
 
-  ------------------ ---------------------------------------
-  **Zonă**           **Conțnut**
+---
 
-  Filter Bar         Filtre pentru cătare logs
+**Zonă** **Conțnut**
 
-  Log Stream         Lista logs real-time sau paginată
+Filter Bar Filtre pentru cătare logs
 
-  Log Detail Panel   Panel lateral cu detalii log selectat
+Log Stream Lista logs real-time sau paginată
 
-  ------------------ ---------------------------------------
+Log Detail Panel Panel lateral cu detalii log selectat
+
+---
 
 **15.2 Filtre Logs**
 
-  ------------------ ------------------- ---------------------------------
-  **Filtru**         **Tip**             **Opțuni**
+---
 
-  Search             Text input          Cătare în mesaj log
+**Filtru** **Tip** **Opțuni**
 
-  Level              Multi-select        DEBUG, INFO, WARN, ERROR, FATAL
+Search Text input Cătare în mesaj log
 
-  Worker             Select searchable   Lista workeri
+Level Multi-select DEBUG, INFO, WARN, ERROR, FATAL
 
-  Job ID             Text input          UUID job specific
+Worker Select searchable Lista workeri
 
-  Correlation ID     Text input          UUID correlation
+Job ID Text input UUID job specific
 
-  Date Range         Date range picker   De la - Până la
+Correlation ID Text input UUID correlation
 
-  Live Mode Toggle   Switch              Stream real-time on/off
+Date Range Date range picker De la - Până la
 
-  ------------------ ------------------- ---------------------------------
+Live Mode Toggle Switch Stream real-time on/off
+
+---
 
 **15.3 Log Entry Display**
 
-  --------------- ---------------------- -------------------------------
-  **Element**     **Descriere**          **Format**
+---
 
-  Timestamp       Data ș ora             YYYY-MM-DD HH:mm:ss.SSS
+**Element** **Descriere** **Format**
 
-  Level Badge     Nivel log              Color coded badge
+Timestamp Data ș ora YYYY-MM-DD HH:mm:ss.SSS
 
-  Worker Name     Sursa log-ului         Text monospace
+Level Badge Nivel log Color coded badge
 
-  Message         Mesajul principal      Text, poate fi lung/multiline
+Worker Name Sursa log-ului Text monospace
 
-  Job ID          Link la job            Clickable UUID
+Message Mesajul principal Text, poate fi lung/multiline
 
-  Expand Button   Afișre detalii         Chevron down
+Job ID Link la job Clickable UUID
 
-  Expanded Data   JSON cu toate datele   Syntax highlighted JSON
+Expand Button Afișre detalii Chevron down
 
-  --------------- ---------------------- -------------------------------
+Expanded Data JSON cu toate datele Syntax highlighted JSON
+
+---
 
 **Culori Level:**
 
@@ -1904,332 +1984,347 @@ Descriere: Vizualizare ș gestionare alerte sistem.
 
 **16.1 Tipuri Alerte**
 
-  ---------------- --------------- ------------- ---------------------------------------
-  **Severitate**   **Iconiță**     **Culoare**   **Exemple**
+---
 
-  Critical         AlertOctagon    Red           Worker down, Database connection lost
+**Severitate** **Iconiță** **Culoare** **Exemple**
 
-  Error            XCircle         Orange-Red    High failure rate, API quota exceeded
+Critical AlertOctagon Red Worker down, Database connection lost
 
-  Warning          AlertTriangle   Yellow        Queue backlog high, Slow processing
+Error XCircle Orange-Red High failure rate, API quota exceeded
 
-  Info             Info            Blue          Worker restarted, Config changed
+Warning AlertTriangle Yellow Queue backlog high, Slow processing
 
-  ---------------- --------------- ------------- ---------------------------------------
+Info Info Blue Worker restarted, Config changed
+
+---
 
 **16.2 Alert Card**
 
-  --------------- --------------------------------------
-  **Element**     **Descriere**
+---
 
-  Severity Icon   Iconiță colorată stânga
+**Element** **Descriere**
 
-  Title           Titlu scurt alert
+Severity Icon Iconiță colorată stânga
 
-  Description     Descriere detaliată
+Title Titlu scurt alert
 
-  Timestamp       Când s-a declanșt
+Description Descriere detaliată
 
-  Source          Worker/Component sursă
+Timestamp Când s-a declanșt
 
-  Actions         Acknowledge / Dismiss / View Details
+Source Worker/Component sursă
 
-  Status          New / Acknowledged / Resolved badge
+Actions Acknowledge / Dismiss / View Details
 
-  --------------- --------------------------------------
+Status New / Acknowledged / Resolved badge
+
+---
 
 **17. TEME Ș DESIGN TOKENS**
 
 **17.1 Culori Sistem**
 
-  ----------------------- ------------------- ------------------- -----------------
-  **Token**               **Light Mode**      **Dark Mode**       **Utilizare**
+---
 
-  \--background           0 0% 100%           222.2 84% 4.9%      Fundal pagină
+**Token** **Light Mode** **Dark Mode** **Utilizare**
 
-  \--foreground           222.2 84% 4.9%      210 40% 98%         Text principal
+\--background 0 0% 100% 222.2 84% 4.9% Fundal pagină
 
-  \--card                 0 0% 100%           222.2 84% 4.9%      Fundal carduri
+\--foreground 222.2 84% 4.9% 210 40% 98% Text principal
 
-  \--card-foreground      222.2 84% 4.9%      210 40% 98%         Text carduri
+\--card 0 0% 100% 222.2 84% 4.9% Fundal carduri
 
-  \--primary              221.2 83.2% 53.3%   217.2 91.2% 59.8%   Culoare brand
+\--card-foreground 222.2 84% 4.9% 210 40% 98% Text carduri
 
-  \--primary-foreground   210 40% 98%         222.2 47.4% 11.2%   Text pe primary
+\--primary 221.2 83.2% 53.3% 217.2 91.2% 59.8% Culoare brand
 
-  \--muted                210 40% 96%         217.2 32.6% 17.5%   Fundal subtle
+\--primary-foreground 210 40% 98% 222.2 47.4% 11.2% Text pe primary
 
-  \--muted-foreground     215.4 16.3% 46.9%   215 20.2% 65.1%     Text secundar
+\--muted 210 40% 96% 217.2 32.6% 17.5% Fundal subtle
 
-  \--destructive          0 84.2% 60.2%       0 62.8% 30.6%       Erori, șergeri
+\--muted-foreground 215.4 16.3% 46.9% 215 20.2% 65.1% Text secundar
 
-  \--border               214.3 31.8% 91.4%   217.2 32.6% 17.5%   Borduri
+\--destructive 0 84.2% 60.2% 0 62.8% 30.6% Erori, șergeri
 
-  \--ring                 221.2 83.2% 53.3%   224.3 76.3% 48%     Focus ring
+\--border 214.3 31.8% 91.4% 217.2 32.6% 17.5% Borduri
 
-  ----------------------- ------------------- ------------------- -----------------
+\--ring 221.2 83.2% 53.3% 224.3 76.3% 48% Focus ring
+
+---
 
 **17.2 Spațere**
 
-  ----------- ---------------- -------------------
-  **Token**   **Valoare**      **Utilizare**
+---
 
-  space-0     0px              Făă spațu
+**Token** **Valoare** **Utilizare**
 
-  space-1     4px (0.25rem)    Spațu minimal
+space-0 0px Făă spațu
 
-  space-2     8px (0.5rem)     Spațu mic
+space-1 4px (0.25rem) Spațu minimal
 
-  space-3     12px (0.75rem)   Spațu mediu-mic
+space-2 8px (0.5rem) Spațu mic
 
-  space-4     16px (1rem)      Spațu standard
+space-3 12px (0.75rem) Spațu mediu-mic
 
-  space-6     24px (1.5rem)    Spațu mediu
+space-4 16px (1rem) Spațu standard
 
-  space-8     32px (2rem)      Spațu mare
+space-6 24px (1.5rem) Spațu mediu
 
-  space-12    48px (3rem)      Spațu foarte mare
+space-8 32px (2rem) Spațu mare
 
-  ----------- ---------------- -------------------
+space-12 48px (3rem) Spațu foarte mare
+
+---
 
 **17.3 Tipografie**
 
-  ------------- ----------------- ----------------- -----------------
-  **Element**   **Font Size**     **Line Height**   **Font Weight**
+---
 
-  H1            36px (2.25rem)    40px              700 (Bold)
+**Element** **Font Size** **Line Height** **Font Weight**
 
-  H2            30px (1.875rem)   36px              600 (Semibold)
+H1 36px (2.25rem) 40px 700 (Bold)
 
-  H3            24px (1.5rem)     32px              600 (Semibold)
+H2 30px (1.875rem) 36px 600 (Semibold)
 
-  H4            20px (1.25rem)    28px              600 (Semibold)
+H3 24px (1.5rem) 32px 600 (Semibold)
 
-  Body          16px (1rem)       24px              400 (Regular)
+H4 20px (1.25rem) 28px 600 (Semibold)
 
-  Body Small    14px (0.875rem)   20px              400 (Regular)
+Body 16px (1rem) 24px 400 (Regular)
 
-  Caption       12px (0.75rem)    16px              400 (Regular)
+Body Small 14px (0.875rem) 20px 400 (Regular)
 
-  Mono          14px (0.875rem)   20px              400 (font-mono)
+Caption 12px (0.75rem) 16px 400 (Regular)
 
-  ------------- ----------------- ----------------- -----------------
+Mono 14px (0.875rem) 20px 400 (font-mono)
+
+---
 
 **17.4 Border Radius**
 
-  ------------- ---------------- ----------------------------
-  **Token**     **Valoare**      **Utilizare**
+---
 
-  radius-sm     4px (0.25rem)    Butoane mici, badge-uri
+**Token** **Valoare** **Utilizare**
 
-  radius-md     8px (0.5rem)     Carduri, input-uri
+radius-sm 4px (0.25rem) Butoane mici, badge-uri
 
-  radius-lg     12px (0.75rem)   Modal-uri, containere mari
+radius-md 8px (0.5rem) Carduri, input-uri
 
-  radius-full   9999px           Avatar-uri, pill badges
+radius-lg 12px (0.75rem) Modal-uri, containere mari
 
-  ------------- ---------------- ----------------------------
+radius-full 9999px Avatar-uri, pill badges
+
+---
 
 **17.5 Shadows**
 
-  ----------- --------------------------------------------------------- ------------------
-  **Token**   **Valoare**                                               **Utilizare**
+---
 
-  shadow-sm   0 1px 2px rgba(0,0,0,0.05)                                Carduri subtile
+**Token** **Valoare** **Utilizare**
 
-  shadow      0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06)     Carduri standard
+shadow-sm 0 1px 2px rgba(0,0,0,0.05) Carduri subtile
 
-  shadow-md   0 4px 6px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.06)     Dropdown-uri
+shadow 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06) Carduri standard
 
-  shadow-lg   0 10px 15px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.05)   Modal-uri
+shadow-md 0 4px 6px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.06) Dropdown-uri
 
-  ----------- --------------------------------------------------------- ------------------
+shadow-lg 0 10px 15px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.05) Modal-uri
+
+---
 
 **18. RESPONSIVE DESIGN**
 
 **18.1 Breakpoints**
 
-  ---------------- --------------- ---------------------
-  **Breakpoint**   **Min Width**   **Utilizare**
+---
 
-  sm               640px           Telefoane landscape
+**Breakpoint** **Min Width** **Utilizare**
 
-  md               768px           Tablete
+sm 640px Telefoane landscape
 
-  lg               1024px          Laptop-uri
+md 768px Tablete
 
-  xl               1280px          Desktop
+lg 1024px Laptop-uri
 
-  2xl              1536px          Desktop mare
+xl 1280px Desktop
 
-  ---------------- --------------- ---------------------
+2xl 1536px Desktop mare
+
+---
 
 **18.2 Comportament Responsive**
 
-  ---------------- ---------------------- ------------------------- ------------------------
-  **Componentă**   **Mobile (\<768px)**   **Tablet (768-1024px)**   **Desktop (\>1024px)**
+---
 
-  Sidebar          Overlay drawer         Collapsed (icons)         Expanded (full)
+**Componentă** **Mobile (\<768px)** **Tablet (768-1024px)** **Desktop (\>1024px)**
 
-  Header           Hamburger + Logo       Full header               Full header
+Sidebar Overlay drawer Collapsed (icons) Expanded (full)
 
-  Data Table       Card list view         Horizontal scroll         Full table
+Header Hamburger + Logo Full header Full header
 
-  Filter Bar       Collapsible panel      Wrapped rows              Single row
+Data Table Card list view Horizontal scroll Full table
 
-  KPI Cards        1 column stack         2 columns                 4-6 columns
+Filter Bar Collapsible panel Wrapped rows Single row
 
-  Charts           Full width stack       2 columns                 Grid layout
+KPI Cards 1 column stack 2 columns 4-6 columns
 
-  Detail Page      Stacked panels         Side panel                Split view
+Charts Full width stack 2 columns Grid layout
 
-  ---------------- ---------------------- ------------------------- ------------------------
+Detail Page Stacked panels Side panel Split view
+
+---
 
 **19. KEYBOARD SHORTCUTS**
 
 **19.1 Scurtăuri Globale**
 
-  --------------- -----------------------------
-  **Scurtăură**   **Acțune**
+---
 
-  Cmd/Ctrl + K    Deschide cătare globală
+**Scurtăură** **Acțune**
 
-  Cmd/Ctrl + /    Afișază shortcuts help
+Cmd/Ctrl + K Deschide cătare globală
 
-  Cmd/Ctrl + I    Deschide dialog import
+Cmd/Ctrl + / Afișază shortcuts help
 
-  Cmd/Ctrl + R    Refresh date pagină curentă
+Cmd/Ctrl + I Deschide dialog import
 
-  Cmd/Ctrl + \\   Toggle sidebar
+Cmd/Ctrl + R Refresh date pagină curentă
 
-  Escape          Închide dialog/modal curent
+Cmd/Ctrl + \\ Toggle sidebar
 
-  --------------- -----------------------------
+Escape Închide dialog/modal curent
+
+---
 
 **19.2 Scurtăuri Tabel**
 
-  --------------- --------------------------------
-  **Scurtăură**   **Acțune**
+---
 
-  Arrow Up/Down   Navigare între rânduri
+**Scurtăură** **Acțune**
 
-  Space           Toggle selecțe rând curent
+Arrow Up/Down Navigare între rânduri
 
-  Cmd/Ctrl + A    Selectează toate rândurile
+Space Toggle selecțe rând curent
 
-  Enter           Deschide detalii rând selectat
+Cmd/Ctrl + A Selectează toate rândurile
 
-  E               Editare rând selectat
+Enter Deschide detalii rând selectat
 
-  Delete          Șerge rânduri selectate
+E Editare rând selectat
 
-  --------------- --------------------------------
+Delete Șerge rânduri selectate
+
+---
 
 **19.3 Scurtăuri Formular**
 
-  ------------------ ----------------------
-  **Scurtăură**      **Acțune**
+---
 
-  Tab                Focus next field
+**Scurtăură** **Acțune**
 
-  Shift + Tab        Focus previous field
+Tab Focus next field
 
-  Cmd/Ctrl + Enter   Submit formular
+Shift + Tab Focus previous field
 
-  Escape             Anulează ș închide
+Cmd/Ctrl + Enter Submit formular
 
-  ------------------ ----------------------
+Escape Anulează ș închide
+
+---
 
 **20. ACCESIBILITATE (WCAG 2.2 AA)**
 
 **20.1 Cerinț Implementate**
 
-  ---------------------- --------------------------------------------------
-  **Criteriu**           **Implementare**
+---
 
-  Focus Visible          Ring vizibil 2px pe toate elementele interactive
+**Criteriu** **Implementare**
 
-  Color Contrast         Minim 4.5:1 pentru text, 3:1 pentru elemente UI
+Focus Visible Ring vizibil 2px pe toate elementele interactive
 
-  Target Size            Minim 24x24px pentru toate butoanele
+Color Contrast Minim 4.5:1 pentru text, 3:1 pentru elemente UI
 
-  Keyboard Navigation    Tab order logic, skip links
+Target Size Minim 24x24px pentru toate butoanele
 
-  Screen Reader          ARIA labels, live regions, landmarks
+Keyboard Navigation Tab order logic, skip links
 
-  Motion                 Respect prefers-reduced-motion
+Screen Reader ARIA labels, live regions, landmarks
 
-  Error Identification   Erori anunțte ș asociate cu câmpuri
+Motion Respect prefers-reduced-motion
 
-  ---------------------- --------------------------------------------------
+Error Identification Erori anunțte ș asociate cu câmpuri
+
+---
 
 **20.2 ARIA Landmarks**
 
-  --------------- ------------- ---------------------------
-  **Landmark**    **Element**   **Descriere**
+---
 
-  banner          header        Header principal aplicațe
+**Landmark** **Element** **Descriere**
 
-  navigation      nav           Meniu navigațe sidebar
+banner header Header principal aplicațe
 
-  main            main          Conțnut principal pagină
+navigation nav Meniu navigațe sidebar
 
-  complementary   aside         Panouri laterale
+main main Conțnut principal pagină
 
-  contentinfo     footer        Footer aplicațe
+complementary aside Panouri laterale
 
-  --------------- ------------- ---------------------------
+contentinfo footer Footer aplicațe
+
+---
 
 **21. ANEXE**
 
 **21.1 Lista Completă Rute**
 
-  ------------------------ ------------------- ------------------------
-  **Rută**                 **Componentă**      **Descriere**
+---
 
-  /                        Redirect            Redirect la /dashboard
+**Rută** **Componentă** **Descriere**
 
-  /dashboard               DashboardPage       Pagina principală
+/ Redirect Redirect la /dashboard
 
-  /contacts                ContactsListPage    Lista contacte
+/dashboard DashboardPage Pagina principală
 
-  /contacts/:id            ContactDetailPage   Detalii contact
+/contacts ContactsListPage Lista contacte
 
-  /companies               CompaniesListPage   Lista companii
+/contacts/:id ContactDetailPage Detalii contact
 
-  /companies/:id           CompanyDetailPage   Detalii companie
+/companies CompaniesListPage Lista companii
 
-  /workers                 WorkersPage         Dashboard workeri
+/companies/:id CompanyDetailPage Detalii companie
 
-  /workers/:queueName      WorkerDetailPage    Detalii worker
+/workers WorkersPage Dashboard workeri
 
-  /queues                  QueuesPage          Lista cozi
+/workers/:queueName WorkerDetailPage Detalii worker
 
-  /jobs                    JobsPage            Lista jobs
+/queues QueuesPage Lista cozi
 
-  /jobs/:id                JobDetailPage       Detalii job
+/jobs JobsPage Lista jobs
 
-  /bronze                  BronzeDataPage      Date Bronze
+/jobs/:id JobDetailPage Detalii job
 
-  /silver                  SilverDataPage      Date Silver
+/bronze BronzeDataPage Date Bronze
 
-  /import                  ImportWizardPage    Import date
+/silver SilverDataPage Date Silver
 
-  /logs                    LogsPage            Vizualizare logs
+/import ImportWizardPage Import date
 
-  /alerts                  AlertsPage          Alerte sistem
+/logs LogsPage Vizualizare logs
 
-  /settings                SettingsPage        Setăi generale
+/alerts AlertsPage Alerte sistem
 
-  /settings/integrations   IntegrationsPage    Configurare integrăi
+/settings SettingsPage Setăi generale
 
-  /api-keys                ApiKeysPage         Gestionare API keys
+/settings/integrations IntegrationsPage Configurare integrăi
 
-  /login                   LoginPage           Autentificare
+/api-keys ApiKeysPage Gestionare API keys
 
-  /404                     NotFoundPage        Pagină negăită
+/login LoginPage Autentificare
 
-  ------------------------ ------------------- ------------------------
+/404 NotFoundPage Pagină negăită
+
+---
 
 **21.2 Lista Completă Iconiț Utilizate**
 
@@ -2252,21 +2347,22 @@ Sparkles
 
 **21.3 Convenți Denumire Componente**
 
-  -------------------- ------------------- ---------------------------------
-  **Tip**              **Convențe**        **Exemplu**
+---
 
-  Pagini               PascalCase + Page   DashboardPage, ContactsListPage
+**Tip** **Convențe** **Exemplu**
 
-  Componente UI        PascalCase          Button, Card, DataTable
+Pagini PascalCase + Page DashboardPage, ContactsListPage
 
-  Componente Feature   Feature + Type      ContactCard, WorkerMetrics
+Componente UI PascalCase Button, Card, DataTable
 
-  Hooks                use + Scop          useContacts, useDebounce
+Componente Feature Feature + Type ContactCard, WorkerMetrics
 
-  Contexte             Scop + Context      AuthContext, ThemeContext
+Hooks use + Scop useContacts, useDebounce
 
-  Utilities            camelCase           formatDate, parsePhone
+Contexte Scop + Context AuthContext, ThemeContext
 
-  -------------------- ------------------- ---------------------------------
+Utilities camelCase formatDate, parsePhone
 
-*---SFÂRȘT DOCUMENT ---*
+---
+
+_---SFÂRȘT DOCUMENT ---_

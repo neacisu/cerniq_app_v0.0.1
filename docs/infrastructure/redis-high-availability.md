@@ -51,11 +51,11 @@
 
 ### 2.2 Componente
 
-| Component | Rol | Count |
-| --------- | --- | ----- |
-| Redis Master | Write operations, primary | 1 |
-| Redis Replica | Read operations, failover candidates | 2 |
-| Sentinel | Monitoring, automatic failover | 3 |
+| Component     | Rol                                  | Count |
+| ------------- | ------------------------------------ | ----- |
+| Redis Master  | Write operations, primary            | 1     |
+| Redis Replica | Read operations, failover candidates | 2     |
+| Sentinel      | Monitoring, automatic failover       | 3     |
 
 ---
 
@@ -65,7 +65,7 @@
 
 ```yaml
 # docker-compose.redis-ha.yml
-version: '3.8'
+version: "3.8"
 
 services:
   redis-master:
@@ -154,16 +154,16 @@ sentinel parallel-syncs mymaster 1
 
 ```typescript
 // lib/redis/sentinel-connection.ts
-import { Redis } from 'ioredis';
+import { Redis } from "ioredis";
 
 export function createSentinelConnection(): Redis {
   return new Redis({
     sentinels: [
-      { host: 'sentinel-1', port: 64099 },
-      { host: 'sentinel-2', port: 64099 },
-      { host: 'sentinel-3', port: 64099 },
+      { host: "sentinel-1", port: 64099 },
+      { host: "sentinel-2", port: 64099 },
+      { host: "sentinel-3", port: 64099 },
     ],
-    name: 'mymaster',
+    name: "mymaster",
     // password: process.env.REDIS_PASSWORD,
     maxRetriesPerRequest: null,
     enableReadyCheck: false,
@@ -171,12 +171,12 @@ export function createSentinelConnection(): Redis {
 }
 
 // Usage in BullMQ
-import { Queue, Worker } from 'bullmq';
+import { Queue, Worker } from "bullmq";
 
 const connection = createSentinelConnection();
 
-const queue = new Queue('my-queue', { connection });
-const worker = new Worker('my-queue', processor, { connection });
+const queue = new Queue("my-queue", { connection });
+const worker = new Worker("my-queue", processor, { connection });
 ```
 
 ---
@@ -234,10 +234,10 @@ redis-cli -h redis-master INFO replication | grep slave
 
 ```yaml
 # Metrics to monitor
-- redis_connected_slaves          # Should be 2
-- redis_master_repl_offset        # Replication progress
-- sentinel_known_slaves           # Should be 2
-- sentinel_known_sentinels        # Should be 3
+- redis_connected_slaves # Should be 2
+- redis_master_repl_offset # Replication progress
+- sentinel_known_slaves # Should be 2
+- sentinel_known_sentinels # Should be 3
 ```
 
 ### 5.3 Alerts (Prometheus/Alertmanager)
@@ -248,7 +248,7 @@ alerts:
     condition: redis_up{role="master"} == 0
     duration: 1m
     severity: critical
-    
+
   - name: RedisReplicationLag
     condition: redis_replication_lag_seconds > 10
     duration: 5m

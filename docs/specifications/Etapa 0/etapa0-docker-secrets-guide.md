@@ -3,11 +3,13 @@
 > ⚠️ **DOCUMENT DEPRECATED — 5 Februarie 2026**
 >
 > **Acest document este înlocuit de:**
+>
 > - **[ADR-0033: OpenBao Secrets Management](../../adr/ADR%20Etapa%200/ADR-0033-OpenBao-Secrets-Management.md)**
 > - **[OpenBao Setup Guide](../../infrastructure/openbao-setup-guide.md)**
 > - **[Secrets Rotation Procedure](../../infrastructure/secrets-rotation-procedure.md)**
 >
 > Docker secrets rămâne disponibil doar pentru:
+>
 > - Development local (`.env` files)
 > - Fallback în caz de probleme cu OpenBao
 >
@@ -45,18 +47,18 @@ Frecvența rotației: **90 zile** (sau imediat după incident).
 
 1. **Generare Chei Noi**:
 
-    ```bash
-    # Pe localhost (secure machine)
-    ./infra/scripts/generate-secrets.sh --rotate
-    ```
+   ```bash
+   # Pe localhost (secure machine)
+   ./infra/scripts/generate-secrets.sh --rotate
+   ```
 
 2. **Update Provideri**:
-    - Generați noi API Keys în dashboard-urile furnizorilor (Termene, OpenAI).
+   - Generați noi API Keys în dashboard-urile furnizorilor (Termene, OpenAI).
 3. **Deploy (Zero Downtime)**:
-    - Actualizați fișierele în `/var/www/CerniqAPP/secrets/`.
-    - `docker service update --secret-rm old_key --secret-add new_key cerniq_api`.
+   - Actualizați fișierele în `/var/www/CerniqAPP/secrets/`.
+   - `docker service update --secret-rm old_key --secret-add new_key cerniq_api`.
 4. **Revocare**:
-    - Ștergeți vechile chei din dashboard-urile furnizorilor după 24h.
+   - Ștergeți vechile chei din dashboard-urile furnizorilor după 24h.
 
 ---
 
@@ -172,32 +174,32 @@ services:
 
 ```typescript
 // packages/shared-utils/src/secrets.ts
-import { readFileSync, existsSync } from 'fs';
+import { readFileSync, existsSync } from "fs";
 
 export function getSecret(name: string): string {
   // Try _FILE suffix first (Docker secrets)
   const fileEnvVar = `${name}_FILE`;
   const filePath = process.env[fileEnvVar];
-  
+
   if (filePath && existsSync(filePath)) {
-    return readFileSync(filePath, 'utf8').trim();
+    return readFileSync(filePath, "utf8").trim();
   }
-  
+
   // Fallback to direct env var (development only)
   const directValue = process.env[name];
   if (directValue) {
-    if (process.env.NODE_ENV === 'production') {
+    if (process.env.NODE_ENV === "production") {
       console.warn(`WARNING: Using direct env var for ${name} in production!`);
     }
     return directValue;
   }
-  
+
   throw new Error(`Secret ${name} not found. Set ${fileEnvVar} or ${name}`);
 }
 
 // Usage
-const dbPassword = getSecret('DATABASE_PASSWORD');
-const jwtSecret = getSecret('JWT_SECRET');
+const dbPassword = getSecret("DATABASE_PASSWORD");
+const jwtSecret = getSecret("JWT_SECRET");
 ```
 
 ## 4.2 Python Helper
@@ -212,17 +214,17 @@ def get_secret(name: str) -> str:
     # Try _FILE suffix first
     file_env = f"{name}_FILE"
     file_path = os.environ.get(file_env)
-    
+
     if file_path and Path(file_path).exists():
         return Path(file_path).read_text().strip()
-    
+
     # Fallback to direct env var
     direct_value = os.environ.get(name)
     if direct_value:
         if os.environ.get('NODE_ENV') == 'production':
             print(f"WARNING: Using direct env var for {name} in production!")
         return direct_value
-    
+
     raise ValueError(f"Secret {name} not found. Set {file_env} or {name}")
 
 # Usage
@@ -251,12 +253,12 @@ db_password = get_secret('DATABASE_PASSWORD')
 
 ## 5.2 Schedule Rotație
 
-| Secret | Frecvență | Procedură |
-| ------ | --------- | --------- |
-| postgres_password | Trimestrial | Script + restart |
-| jwt_secret | Trimestrial | Script + restart |
-| API keys externe | La cerere provider | Update file + restart |
-| borg_passphrase | NICIODATĂ (pierdere backup) | - |
+| Secret            | Frecvență                   | Procedură             |
+| ----------------- | --------------------------- | --------------------- |
+| postgres_password | Trimestrial                 | Script + restart      |
+| jwt_secret        | Trimestrial                 | Script + restart      |
+| API keys externe  | La cerere provider          | Update file + restart |
+| borg_passphrase   | NICIODATĂ (pierdere backup) | -                     |
 
 ---
 

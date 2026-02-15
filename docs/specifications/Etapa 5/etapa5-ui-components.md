@@ -1,5 +1,7 @@
 # CERNIQ.APP — ETAPA 5: UI COMPONENTS
+
 ## Reusable Components & Forms
+
 ### Versiunea 1.0 | 19 Ianuarie 2026
 
 ---
@@ -7,28 +9,30 @@
 ## 1. Status Components
 
 ### NurturingStateBadge
+
 ```typescript
 interface NurturingStateBadgeProps {
   state: NurturingState;
-  size?: 'sm' | 'md' | 'lg';
+  size?: "sm" | "md" | "lg";
 }
 
 const STATE_CONFIG = {
-  ONBOARDING: { color: 'blue', icon: UserPlus, label: 'Onboarding' },
-  NURTURING_ACTIVE: { color: 'green', icon: Heart, label: 'Active' },
-  AT_RISK: { color: 'orange', icon: AlertTriangle, label: 'At Risk' },
-  LOYAL_CLIENT: { color: 'purple', icon: Star, label: 'Loyal' },
-  ADVOCATE: { color: 'gold', icon: Crown, label: 'Advocate' },
-  CHURNED: { color: 'red', icon: UserX, label: 'Churned' },
-  REACTIVATED: { color: 'teal', icon: RefreshCw, label: 'Reactivated' }
+  ONBOARDING: { color: "blue", icon: UserPlus, label: "Onboarding" },
+  NURTURING_ACTIVE: { color: "green", icon: Heart, label: "Active" },
+  AT_RISK: { color: "orange", icon: AlertTriangle, label: "At Risk" },
+  LOYAL_CLIENT: { color: "purple", icon: Star, label: "Loyal" },
+  ADVOCATE: { color: "gold", icon: Crown, label: "Advocate" },
+  CHURNED: { color: "red", icon: UserX, label: "Churned" },
+  REACTIVATED: { color: "teal", icon: RefreshCw, label: "Reactivated" },
 };
 ```
 
 ### ChurnRiskIndicator
+
 ```typescript
 interface ChurnRiskIndicatorProps {
   score: number;
-  level: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  level: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
   showLabel?: boolean;
 }
 
@@ -40,24 +44,26 @@ interface ChurnRiskIndicatorProps {
 ```
 
 ### ReferralStatusBadge
+
 ```typescript
 const REFERRAL_STATUS_CONFIG = {
-  PENDING_CONSENT: { color: 'gray', label: 'Pending Consent' },
-  AWAITING_CONSENT: { color: 'yellow', label: 'Awaiting' },
-  ACTIVE: { color: 'blue', label: 'Active' },
-  CONTACTED: { color: 'purple', label: 'Contacted' },
-  CONVERTED: { color: 'green', label: 'Converted' },
-  REJECTED: { color: 'red', label: 'Rejected' },
-  EXPIRED: { color: 'gray', label: 'Expired' }
+  PENDING_CONSENT: { color: "gray", label: "Pending Consent" },
+  AWAITING_CONSENT: { color: "yellow", label: "Awaiting" },
+  ACTIVE: { color: "blue", label: "Active" },
+  CONTACTED: { color: "purple", label: "Contacted" },
+  CONVERTED: { color: "green", label: "Converted" },
+  REJECTED: { color: "red", label: "Rejected" },
+  EXPIRED: { color: "gray", label: "Expired" },
 };
 ```
 
 ### KOLTierBadge
+
 ```typescript
 const KOL_TIER_CONFIG = {
-  ELITE: { color: 'gold', stars: 3, label: 'Elite KOL' },
-  ESTABLISHED: { color: 'silver', stars: 2, label: 'Established' },
-  EMERGING: { color: 'bronze', stars: 1, label: 'Emerging' }
+  ELITE: { color: "gold", stars: 3, label: "Elite KOL" },
+  ESTABLISHED: { color: "silver", stars: 2, label: "Established" },
+  EMERGING: { color: "bronze", stars: 1, label: "Emerging" },
 };
 ```
 
@@ -66,6 +72,7 @@ const KOL_TIER_CONFIG = {
 ## 2. Cards
 
 ### ClientNurturingCard
+
 ```typescript
 interface ClientNurturingCardProps {
   client: {
@@ -96,6 +103,7 @@ interface ClientNurturingCardProps {
 ```
 
 ### ChurnSignalCard
+
 ```typescript
 interface ChurnSignalCardProps {
   signal: {
@@ -110,6 +118,7 @@ interface ChurnSignalCardProps {
 ```
 
 ### ReferralCard
+
 ```typescript
 interface ReferralCardProps {
   referral: {
@@ -122,11 +131,12 @@ interface ReferralCardProps {
     distanceKm?: number;
     convertedValue?: number;
   };
-  onAction: (action: 'contact' | 'approve' | 'reject') => void;
+  onAction: (action: "contact" | "approve" | "reject") => void;
 }
 ```
 
 ### ClusterCard
+
 ```typescript
 interface ClusterCardProps {
   cluster: {
@@ -149,6 +159,7 @@ interface ClusterCardProps {
 ## 3. Charts
 
 ### StateDistributionChart
+
 ```typescript
 interface StateDistributionChartProps {
   data: Array<{
@@ -163,6 +174,7 @@ interface StateDistributionChartProps {
 ```
 
 ### ChurnTrendChart
+
 ```typescript
 interface ChurnTrendChartProps {
   data: Array<{
@@ -171,7 +183,7 @@ interface ChurnTrendChartProps {
     atRiskCount: number;
     churnedCount: number;
   }>;
-  period: '7d' | '30d' | '90d';
+  period: "7d" | "30d" | "90d";
 }
 
 // Line chart: avg score over time
@@ -179,6 +191,7 @@ interface ChurnTrendChartProps {
 ```
 
 ### ReferralFunnelChart
+
 ```typescript
 interface ReferralFunnelChartProps {
   data: {
@@ -192,6 +205,7 @@ interface ReferralFunnelChartProps {
 ```
 
 ### ClusterMapChart
+
 ```typescript
 interface ClusterMapChartProps {
   clusters: Array<{
@@ -213,6 +227,7 @@ interface ClusterMapChartProps {
 ## 4. Forms & Dialogs
 
 ### CreateReferralDialog
+
 ```typescript
 interface CreateReferralDialogProps {
   referrerId: string;
@@ -241,6 +256,7 @@ interface CreateReferralData {
 ```
 
 ### ChurnInterventionDialog
+
 ```typescript
 interface ChurnInterventionDialogProps {
   clientId: string;
@@ -251,7 +267,7 @@ interface ChurnInterventionDialogProps {
 }
 
 interface InterventionData {
-  interventionType: 'CALL' | 'EMAIL' | 'VISIT' | 'OFFER';
+  interventionType: "CALL" | "EMAIL" | "VISIT" | "OFFER";
   notes: string;
   scheduledAt?: Date;
   assignedTo?: string;
@@ -261,12 +277,13 @@ interface InterventionData {
 ```
 
 ### ReferralConsentRequestDialog
+
 ```typescript
 interface ReferralConsentRequestDialogProps {
   referral: Referral;
   isOpen: boolean;
   onClose: () => void;
-  onSendRequest: (channel: 'WHATSAPP' | 'EMAIL') => void;
+  onSendRequest: (channel: "WHATSAPP" | "EMAIL") => void;
 }
 
 // Shows:
@@ -278,6 +295,7 @@ interface ReferralConsentRequestDialogProps {
 ```
 
 ### WinBackCampaignDialog
+
 ```typescript
 interface WinBackCampaignDialogProps {
   clientId: string;
@@ -288,7 +306,7 @@ interface WinBackCampaignDialogProps {
 }
 
 interface WinBackConfig {
-  campaignType: 'DISCOUNT' | 'PERSONAL_CALL' | 'PRODUCT_UPDATE';
+  campaignType: "DISCOUNT" | "PERSONAL_CALL" | "PRODUCT_UPDATE";
   offerType?: string;
   offerValue?: number;
   customMessage?: string;
@@ -296,6 +314,7 @@ interface WinBackConfig {
 ```
 
 ### HITLResolutionDialog
+
 ```typescript
 interface HITLResolutionDialogProps {
   task: HITLTask;
@@ -306,7 +325,7 @@ interface HITLResolutionDialogProps {
 }
 
 interface HITLResolution {
-  decision: 'APPROVED' | 'REJECTED' | 'ESCALATED' | 'DEFERRED';
+  decision: "APPROVED" | "REJECTED" | "ESCALATED" | "DEFERRED";
   notes: string;
   actionTaken?: string;
   scheduledFollowup?: Date;
@@ -318,41 +337,44 @@ interface HITLResolution {
 ## 5. Tables
 
 ### NurturingClientsTable
+
 ```typescript
 const columns = [
-  { key: 'companyName', header: 'Client', sortable: true },
-  { key: 'state', header: 'State', render: NurturingStateBadge },
-  { key: 'churnRiskScore', header: 'Churn Risk', render: ChurnRiskIndicator },
-  { key: 'npsScore', header: 'NPS', sortable: true },
-  { key: 'totalOrders', header: 'Orders', sortable: true },
-  { key: 'lastOrderAt', header: 'Last Order', render: RelativeDate },
-  { key: 'actions', header: '', render: ActionsDropdown }
+  { key: "companyName", header: "Client", sortable: true },
+  { key: "state", header: "State", render: NurturingStateBadge },
+  { key: "churnRiskScore", header: "Churn Risk", render: ChurnRiskIndicator },
+  { key: "npsScore", header: "NPS", sortable: true },
+  { key: "totalOrders", header: "Orders", sortable: true },
+  { key: "lastOrderAt", header: "Last Order", render: RelativeDate },
+  { key: "actions", header: "", render: ActionsDropdown },
 ];
 ```
 
 ### ReferralsTable
+
 ```typescript
 const columns = [
-  { key: 'referrerName', header: 'Referrer' },
-  { key: 'referredName', header: 'Referred' },
-  { key: 'type', header: 'Type', render: ReferralTypeBadge },
-  { key: 'status', header: 'Status', render: ReferralStatusBadge },
-  { key: 'distanceKm', header: 'Distance', render: DistanceFormat },
-  { key: 'convertedValue', header: 'Value', render: CurrencyFormat },
-  { key: 'actions', header: '', render: ActionsDropdown }
+  { key: "referrerName", header: "Referrer" },
+  { key: "referredName", header: "Referred" },
+  { key: "type", header: "Type", render: ReferralTypeBadge },
+  { key: "status", header: "Status", render: ReferralStatusBadge },
+  { key: "distanceKm", header: "Distance", render: DistanceFormat },
+  { key: "convertedValue", header: "Value", render: CurrencyFormat },
+  { key: "actions", header: "", render: ActionsDropdown },
 ];
 ```
 
 ### ClustersTable
+
 ```typescript
 const columns = [
-  { key: 'name', header: 'Cluster Name', sortable: true },
-  { key: 'type', header: 'Type', render: ClusterTypeBadge },
-  { key: 'memberCount', header: 'Members', sortable: true },
-  { key: 'penetrationRate', header: 'Penetration', render: PercentBar },
-  { key: 'kolName', header: 'KOL' },
-  { key: 'totalRevenue', header: 'Revenue', render: CurrencyFormat },
-  { key: 'actions', header: '', render: ActionsDropdown }
+  { key: "name", header: "Cluster Name", sortable: true },
+  { key: "type", header: "Type", render: ClusterTypeBadge },
+  { key: "memberCount", header: "Members", sortable: true },
+  { key: "penetrationRate", header: "Penetration", render: PercentBar },
+  { key: "kolName", header: "KOL" },
+  { key: "totalRevenue", header: "Revenue", render: CurrencyFormat },
+  { key: "actions", header: "", render: ActionsDropdown },
 ];
 ```
 

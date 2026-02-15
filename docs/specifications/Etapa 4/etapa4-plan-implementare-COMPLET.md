@@ -31,24 +31,24 @@
 
 ### Metrici Generale
 
-| Metrică | Valoare |
-|---------|---------|
-| **Total Taskuri** | 99 |
+| Metrică             | Valoare                                  |
+| ------------------- | ---------------------------------------- |
+| **Total Taskuri**   | 99                                       |
 | **Durată Estimată** | 14 săptămâni (7 sprinturi × 2 săptămâni) |
-| **Echipă** | 1 person team (vertical slice) |
-| **Task Range** | 301-399 |
-| **Total PR-uri** | 42 |
-| **Total Sprinturi** | 7 |
-| **Story Points** | 340 |
+| **Echipă**          | 1 person team (vertical slice)           |
+| **Task Range**      | 301-399                                  |
+| **Total PR-uri**    | 42                                       |
+| **Total Sprinturi** | 7                                        |
+| **Story Points**    | 340                                      |
 
 ### Dependențe
 
-| Etapă | Descriere | Status |
-|-------|-----------|--------|
-| Etapa 0 | Infrastructure completă | ✅ Required |
+| Etapă   | Descriere                 | Status      |
+| ------- | ------------------------- | ----------- |
+| Etapa 0 | Infrastructure completă   | ✅ Required |
 | Etapa 1 | Bronze/Silver/Gold schema | ✅ Required |
-| Etapa 2 | Cold Outreach funcțional | ✅ Required |
-| Etapa 3 | AI Agent negociere | ✅ Required |
+| Etapa 2 | Cold Outreach funcțional  | ✅ Required |
+| Etapa 3 | AI Agent negociere        | ✅ Required |
 
 ---
 
@@ -69,49 +69,49 @@ E4.S{sprint}.PR{pr}.{task}
 
 ### Mapare Faze → Sprinturi
 
-| Fază | Sprint | Focus |
-|------|--------|-------|
-| F4.1 + F4.2 | E4.S1 | Infrastructure + Database |
-| F4.3 + F4.4 | E4.S2 | Revolut + Reconciliation |
-| F4.5 + F4.6 | E4.S3 | Credit + Logistics |
-| F4.7 + F4.8 | E4.S4 | Contracts + Returns |
-| F4.9 | E4.S5 | HITL System + Alerts |
-| F4.10 | E4.S6 | UI Implementation |
-| F4.11 + F4.12 | E4.S7 | Testing + Deployment |
+| Fază          | Sprint | Focus                     |
+| ------------- | ------ | ------------------------- |
+| F4.1 + F4.2   | E4.S1  | Infrastructure + Database |
+| F4.3 + F4.4   | E4.S2  | Revolut + Reconciliation  |
+| F4.5 + F4.6   | E4.S3  | Credit + Logistics        |
+| F4.7 + F4.8   | E4.S4  | Contracts + Returns       |
+| F4.9          | E4.S5  | HITL System + Alerts      |
+| F4.10         | E4.S6  | UI Implementation         |
+| F4.11 + F4.12 | E4.S7  | Testing + Deployment      |
 
 ### Mapare Legacy ID → Sprint ID
 
-| Task # | Legacy ID | Sprint ID |
-|--------|-----------|-----------|
-| 301 | E4-INF-001 | E4.S1.PR1.001 |
-| 309 | E4-DB-001 | E4.S1.PR3.001 |
-| 321 | E4-REV-001 | E4.S2.PR1.001 |
-| 329 | E4-REC-001 | E4.S2.PR3.002 |
-| 337 | E4-CRD-001 | E4.S3.PR1.001 |
-| 349 | E4-LOG-001 | E4.S3.PR4.001 |
-| 359 | E4-CTR-001 | E4.S4.PR1.001 |
-| 369 | E4-RET-001 | E4.S4.PR4.001 |
-| 375 | E4-HTL-001 | E4.S5.PR1.001 |
-| 383 | E4-UI-001 | E4.S6.PR1.001 |
-| 395 | E4-QA-001 | E4.S7.PR1.001 |
-| 399 | E4-DEP-001 | E4.S7.PR6.001 |
+| Task # | Legacy ID  | Sprint ID     |
+| ------ | ---------- | ------------- |
+| 301    | E4-INF-001 | E4.S1.PR1.001 |
+| 309    | E4-DB-001  | E4.S1.PR3.001 |
+| 321    | E4-REV-001 | E4.S2.PR1.001 |
+| 329    | E4-REC-001 | E4.S2.PR3.002 |
+| 337    | E4-CRD-001 | E4.S3.PR1.001 |
+| 349    | E4-LOG-001 | E4.S3.PR4.001 |
+| 359    | E4-CTR-001 | E4.S4.PR1.001 |
+| 369    | E4-RET-001 | E4.S4.PR4.001 |
+| 375    | E4-HTL-001 | E4.S5.PR1.001 |
+| 383    | E4-UI-001  | E4.S6.PR1.001 |
+| 395    | E4-QA-001  | E4.S7.PR1.001 |
+| 399    | E4-DEP-001 | E4.S7.PR6.001 |
 
 ---
 
 ## 1b. ADR Traceability Matrix {#1b-adr-traceability}
 
-| ADR | Titlu | Fază | Sprint | Taskuri |
-|-----|-------|------|--------|---------|
-| ADR-0088 | Revolut Business API | F4.3 | E4.S2 | 321-328 |
-| ADR-0089 | Three-Tier Reconciliation | F4.4 | E4.S2 | 329-336 |
-| ADR-0090 | Credit Scoring Termene.ro | F4.5 | E4.S3 | 337-348 |
-| ADR-0091 | Dynamic Contract Generation | F4.7 | E4.S4 | 359-368 |
-| ADR-0092 | Sameday Courier | F4.6 | E4.S3 | 349-358 |
-| ADR-0093 | Order Lifecycle FSM | F4.2 | E4.S1 | 309-320 |
-| ADR-0094 | HITL Approval System | F4.9 | E4.S5 | 375-382 |
-| ADR-0095 | Partitioned Audit Tables | F4.2 | E4.S1 | 317 |
-| ADR-0096 | WebSocket Dashboard | F4.10 | E4.S6 | 383 |
-| ADR-0097 | Oblio Stock Sync | F4.6 | E4.S3 | 357 |
+| ADR      | Titlu                       | Fază  | Sprint | Taskuri |
+| -------- | --------------------------- | ----- | ------ | ------- |
+| ADR-0088 | Revolut Business API        | F4.3  | E4.S2  | 321-328 |
+| ADR-0089 | Three-Tier Reconciliation   | F4.4  | E4.S2  | 329-336 |
+| ADR-0090 | Credit Scoring Termene.ro   | F4.5  | E4.S3  | 337-348 |
+| ADR-0091 | Dynamic Contract Generation | F4.7  | E4.S4  | 359-368 |
+| ADR-0092 | Sameday Courier             | F4.6  | E4.S3  | 349-358 |
+| ADR-0093 | Order Lifecycle FSM         | F4.2  | E4.S1  | 309-320 |
+| ADR-0094 | HITL Approval System        | F4.9  | E4.S5  | 375-382 |
+| ADR-0095 | Partitioned Audit Tables    | F4.2  | E4.S1  | 317     |
+| ADR-0096 | WebSocket Dashboard         | F4.10 | E4.S6  | 383     |
+| ADR-0097 | Oblio Stock Sync            | F4.6  | E4.S3  | 357     |
 
 ---
 
@@ -363,9 +363,7 @@ E4.S{sprint}.PR{pr}.{task}
       "prioritate": "CRITICAL",
       "estimare_ore": 2,
       "dependente": [310],
-      "deliverables": [
-        "migrations/0401b_create_gold_order_items.ts"
-      ]
+      "deliverables": ["migrations/0401b_create_gold_order_items.ts"]
     },
     {
       "task_number": 312,
@@ -377,9 +375,7 @@ E4.S{sprint}.PR{pr}.{task}
       "prioritate": "CRITICAL",
       "estimare_ore": 2,
       "dependente": [310],
-      "deliverables": [
-        "migrations/0401c_create_gold_payments.ts"
-      ]
+      "deliverables": ["migrations/0401c_create_gold_payments.ts"]
     },
     {
       "task_number": 313,
@@ -391,9 +387,7 @@ E4.S{sprint}.PR{pr}.{task}
       "prioritate": "HIGH",
       "estimare_ore": 2,
       "dependente": [312],
-      "deliverables": [
-        "migrations/0401d_create_gold_refunds.ts"
-      ]
+      "deliverables": ["migrations/0401d_create_gold_refunds.ts"]
     },
     {
       "task_number": 314,
@@ -405,9 +399,7 @@ E4.S{sprint}.PR{pr}.{task}
       "prioritate": "CRITICAL",
       "estimare_ore": 4,
       "dependente": [309],
-      "deliverables": [
-        "migrations/0402_create_credit_tables.ts"
-      ]
+      "deliverables": ["migrations/0402_create_credit_tables.ts"]
     },
     {
       "task_number": 315,
@@ -419,9 +411,7 @@ E4.S{sprint}.PR{pr}.{task}
       "prioritate": "CRITICAL",
       "estimare_ore": 4,
       "dependente": [310],
-      "deliverables": [
-        "migrations/0403_create_logistics_tables.ts"
-      ]
+      "deliverables": ["migrations/0403_create_logistics_tables.ts"]
     },
     {
       "task_number": 316,
@@ -433,9 +423,7 @@ E4.S{sprint}.PR{pr}.{task}
       "prioritate": "HIGH",
       "estimare_ore": 3,
       "dependente": [310],
-      "deliverables": [
-        "migrations/0404_create_contract_tables.ts"
-      ]
+      "deliverables": ["migrations/0404_create_contract_tables.ts"]
     },
     {
       "task_number": 317,
@@ -463,9 +451,7 @@ E4.S{sprint}.PR{pr}.{task}
       "prioritate": "HIGH",
       "estimare_ore": 2,
       "dependente": [309],
-      "deliverables": [
-        "migrations/0406_create_hitl_table.ts"
-      ]
+      "deliverables": ["migrations/0406_create_hitl_table.ts"]
     },
     {
       "task_number": 319,
@@ -494,9 +480,7 @@ E4.S{sprint}.PR{pr}.{task}
       "prioritate": "MEDIUM",
       "estimare_ore": 3,
       "dependente": [316],
-      "deliverables": [
-        "migrations/0410_seed_etapa4_data.ts"
-      ]
+      "deliverables": ["migrations/0410_seed_etapa4_data.ts"]
     }
   ]
 }
@@ -547,9 +531,7 @@ E4.S{sprint}.PR{pr}.{task}
       "prioritate": "CRITICAL",
       "estimare_ore": 4,
       "dependente": [321],
-      "deliverables": [
-        "workers/revolut/webhook-ingest.worker.ts"
-      ]
+      "deliverables": ["workers/revolut/webhook-ingest.worker.ts"]
     },
     {
       "task_number": 323,
@@ -1633,21 +1615,21 @@ E4.S{sprint}.PR{pr}.{task}
 
 ### Total pe Faze
 
-| Fază | Nume | Taskuri | Ore | Zile |
-|------|------|---------|-----|------|
-| 4.1 | Infrastructure Setup | 8 | 30 | 3 |
-| 4.2 | Database Schema | 12 | 34 | 4 |
-| 4.3 | Revolut Integration | 8 | 26 | 4 |
-| 4.4 | Payment Reconciliation | 8 | 32 | 4 |
-| 4.5 | Credit Scoring | 12 | 42 | 5 |
-| 4.6 | Sameday Logistics | 10 | 36 | 4 |
-| 4.7 | Dynamic Contracts | 10 | 45 | 5 |
-| 4.8 | Returns & Refunds | 6 | 21 | 3 |
-| 4.9 | HITL System | 8 | 33 | 4 |
-| 4.10 | UI Implementation | 12 | 66 | 6 |
-| 4.11 | Testing & QA | 4 | 22 | 3 |
-| 4.12 | Deployment | 1 | 8 | 1 |
-| **TOTAL** | | **99** | **395** | **~50 zile** |
+| Fază      | Nume                   | Taskuri | Ore     | Zile         |
+| --------- | ---------------------- | ------- | ------- | ------------ |
+| 4.1       | Infrastructure Setup   | 8       | 30      | 3            |
+| 4.2       | Database Schema        | 12      | 34      | 4            |
+| 4.3       | Revolut Integration    | 8       | 26      | 4            |
+| 4.4       | Payment Reconciliation | 8       | 32      | 4            |
+| 4.5       | Credit Scoring         | 12      | 42      | 5            |
+| 4.6       | Sameday Logistics      | 10      | 36      | 4            |
+| 4.7       | Dynamic Contracts      | 10      | 45      | 5            |
+| 4.8       | Returns & Refunds      | 6       | 21      | 3            |
+| 4.9       | HITL System            | 8       | 33      | 4            |
+| 4.10      | UI Implementation      | 12      | 66      | 6            |
+| 4.11      | Testing & QA           | 4       | 22      | 3            |
+| 4.12      | Deployment             | 1       | 8       | 1            |
+| **TOTAL** |                        | **99**  | **395** | **~50 zile** |
 
 ### Timeline Estimată
 
@@ -1674,7 +1656,7 @@ E4.S{sprint}.PR{pr}.{task}
 
 ### Changelog
 
-| Versiune | Data | Modificări |
-|----------|------|------------|
-| 1.0 | 2026-01-19 | Versiunea inițială cu 99 taskuri |
-| 1.1 | 2026-02-02 | Adăugat Sprint Plan Reference, ADR Traceability, Sprint IDs pentru toate task-urile |
+| Versiune | Data       | Modificări                                                                          |
+| -------- | ---------- | ----------------------------------------------------------------------------------- |
+| 1.0      | 2026-01-19 | Versiunea inițială cu 99 taskuri                                                    |
+| 1.1      | 2026-02-02 | Adăugat Sprint Plan Reference, ADR Traceability, Sprint IDs pentru toate task-urile |

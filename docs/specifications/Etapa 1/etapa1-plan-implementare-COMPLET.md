@@ -23,6 +23,7 @@
 Referinta: `docs/specifications/Etapa 1/etapa1-environment-variables.md`
 
 Minim operational:
+
 - `DATABASE_URL` (prin PgBouncer)
 - `REDIS_URL` (catre Redis shared; preferabil cu ACL user `cerniq`)
 - `BULLMQ_PREFIX=cerniq:e1` (exemplu; prefix global Cerniq obligatoriu)
@@ -32,6 +33,6 @@ Minim operational:
 Referinta: `docs/specifications/Etapa 1/etapa1-testing-strategy.md`
 
 Recomandari:
+
 - Integration tests ruleaza cu service containers (Postgres:5432, Redis:6379) in CI pentru izolare
 - E2E (staging/prod) valideaza conectivitate catre CT107 si Redis shared + observability in Grafana
-

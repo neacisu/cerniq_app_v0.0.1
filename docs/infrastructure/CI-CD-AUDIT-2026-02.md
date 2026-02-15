@@ -75,4 +75,3 @@ rg "openbao-agent|vector|otel" .github/workflows/deploy.yml
 ## Concluzie
 
 Pipeline-ul este aliniat conceptual la infrastructura noua (runner dedicat, targets dedicate, OpenBao central, PG extern, observability central). Finalizarea se considera completa doar dupa un deploy E2E reusit (staging + production) cu verificari de ingress si smoke tests reale.
-

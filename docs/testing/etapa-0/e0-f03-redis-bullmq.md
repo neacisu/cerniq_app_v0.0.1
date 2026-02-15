@@ -66,4 +66,3 @@ redis-cli -u "$REDIS_URL" PING
 - [ ] `redis-cli -u "$REDIS_URL" PING` returneaza `PONG`
 - [ ] BullMQ foloseste prefix `cerniq:`
 - [ ] Nu expunem `:6379` public
-

@@ -91,6 +91,7 @@ Punctul de intrare în sistem este critic. Trebuie să fie capabil să suporte s
 
 Având în vedere vulnerabilitatea Node.js v24.13 activă până pe 7 ianuarie, configurarea Fastify trebuie să fie paranoică.
 Schema de Validare (Zod):
+
 > Utilizăm fastify-type-provider-zod pentru a defini contractul API. Pentru stratul Bronze, validarea este intenționat relaxată pe conținut, dar strictă pe metadate.
 
 ```TypeScript
@@ -110,6 +111,7 @@ export type IngestionPayload = z.infer<typeof IngestionPayloadSchema>;
 ```
 
 Implementarea Rutei (Vertical Slice):
+
 > Ruta nu face nicio procesare. Doar persistă și notifică. Acest pattern "Fire-and-Forget" asigură un răspuns sub 10ms către client.
 
 ```TypeScript
@@ -209,22 +211,24 @@ Implementarea worker-ului în Python 3.14.1 "No-GIL" schimbă fundamental arhite
 - **Acum (Python 3.14.1):** Putem lansa 100 de fire de execuție (threads) reale. Acestea rulează pe nuclee CPU diferite simultan. XML-ul de la ANAF poate fi parsat pe Core 1 în timp ce Core 2 face un request HTTP și Core 3 calculează un hash criptografic.1
 
 Configurarea Worker-ului:
+
 > Este necesară instalarea versiunii cp314-cp314t (t vine de la threaded) și compilarea bibliotecilor C-extension cu suport pentru lipsa GIL.
 
 ### 5.2. Sub-Strategia A: Validarea Identității Fiscale (Termene.ro)
 
 Pentru orice entitate B2B din România, "Codul Fiscal" (CUI) este cheia primară.
 
-  1. Algoritmul de Procesare: Extracție și Sanitizare: Se extrage CUI-ul din raw_payload. Se elimină prefixul "RO" (dacă există) și spațiile.
+1. Algoritmul de Procesare: Extracție și Sanitizare: Se extrage CUI-ul din raw_payload. Se elimină prefixul "RO" (dacă există) și spațiile.
 
-  2. Validare Matematică (Offline): Înainte de a consuma credite API, aplicăm algoritmul Modulo 11 (standardul românesc pentru cifre de control). Dacă checksum-ul e invalid, marcăm direct în Silver cu status: INVALID_CUI.
+2. Validare Matematică (Offline): Înainte de a consuma credite API, aplicăm algoritmul Modulo 11 (standardul românesc pentru cifre de control). Dacă checksum-ul e invalid, marcăm direct în Silver cu status: INVALID_CUI.
 
-  3. Interogare API Termene.ro:
-     - Endpoint: <https://api.termene.ro/v2/dateFirmaSumar>
-     - Autentificare: Token Basic Auth.
-     - Parametri: tip=0 (pentru date realtime, esențial pentru verificarea TVA).
+3. Interogare API Termene.ro:
+   - Endpoint: <https://api.termene.ro/v2/dateFirmaSumar>
+   - Autentificare: Token Basic Auth.
+   - Parametri: tip=0 (pentru date realtime, esențial pentru verificarea TVA).
 
 Maparea Răspunsului în Silver:
+
 > API-ul returnează câmpuri text care trebuie normalizate într-un Enum PostgreSQL (fiscal_status_enum).
 
 | Valoare Termene API (statut_fiscal) | Valoare Silver Enum | Acțiune de Business                       |
@@ -267,11 +271,11 @@ async def enrich_company(cui: str):
     # 2. Parsing & Logic (CPU Bound - Rulat în thread real paralel)
     # În Python 3.14, acest cod rulează simultan cu alte request-uri pe alte core-uri
     silver_data = await asyncio.get_running_loop().run_in_executor(
-        cpu_executor, 
-        transform_to_silver_schema, 
+        cpu_executor,
+        transform_to_silver_schema,
         data
     )
-    
+
     return silver_data
 
 def transform_to_silver_schema(api_data):
@@ -347,14 +351,14 @@ CREATE TABLE silver_companies (
 
     status company_status NOT NULL DEFAULT 'ACTIVE',
     address_siruta_code INT, -- Link către tabela SIRUTA (externă)
-    
+
     -- Date fiscale îmbogățite
     is_vat_payer BOOLEAN DEFAULT FALSE,
     is_vat_split BOOLEAN DEFAULT FALSE, -- TVA la încasare
-    
+
     verification_level verification_level DEFAULT 'NONE',
     last_enriched_at TIMESTAMPTZ,
-    
+
     -- Audit trail
     created_at TIMESTAMPTZ DEFAULT NOW()
 );

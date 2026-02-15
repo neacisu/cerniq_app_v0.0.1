@@ -7,24 +7,24 @@
 **Decision:** Redis-based token bucket per provider:
 
 ```typescript
-import { RateLimiterRedis } from 'rate-limiter-flexible';
+import { RateLimiterRedis } from "rate-limiter-flexible";
 
 const rateLimiters = {
   anaf: new RateLimiterRedis({
     storeClient: redis,
-    keyPrefix: 'rl:anaf',
+    keyPrefix: "rl:anaf",
     points: 1,
     duration: 1,
   }),
   termene: new RateLimiterRedis({
     storeClient: redis,
-    keyPrefix: 'rl:termene',
+    keyPrefix: "rl:termene",
     points: 20,
     duration: 1,
   }),
   hunter: new RateLimiterRedis({
     storeClient: redis,
-    keyPrefix: 'rl:hunter',
+    keyPrefix: "rl:hunter",
     points: 15,
     duration: 1,
   }),

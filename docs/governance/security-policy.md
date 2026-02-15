@@ -16,13 +16,13 @@
 
 ## Documentație Detaliată
 
-| Subiect | Document |
-| ------- | -------- |
-| Secrets Management | [ADR-0033: OpenBao](../adr/ADR%20Etapa%200/ADR-0033-OpenBao-Secrets-Management.md) |
-| OpenBao Setup | [`openbao-setup-guide.md`](../infrastructure/openbao-setup-guide.md) |
-| Secrets Rotation | [`secrets-rotation-procedure.md`](../infrastructure/secrets-rotation-procedure.md) |
-| Backup & Recovery | [`backup-strategy.md`](../infrastructure/backup-strategy.md) |
-| GDPR | [`gdpr-compliance.md`](./gdpr-compliance.md) |
+| Subiect                     | Document                                                                                   |
+| --------------------------- | ------------------------------------------------------------------------------------------ |
+| Secrets Management          | [ADR-0033: OpenBao](../adr/ADR%20Etapa%200/ADR-0033-OpenBao-Secrets-Management.md)         |
+| OpenBao Setup               | [`openbao-setup-guide.md`](../infrastructure/openbao-setup-guide.md)                       |
+| Secrets Rotation            | [`secrets-rotation-procedure.md`](../infrastructure/secrets-rotation-procedure.md)         |
+| Backup & Recovery           | [`backup-strategy.md`](../infrastructure/backup-strategy.md)                               |
+| GDPR                        | [`gdpr-compliance.md`](./gdpr-compliance.md)                                               |
 | ~~ADR-0017 Docker Secrets~~ | [Deprecated, see ADR-0033](../adr/ADR%20Etapa%200/ADR-0017-Secrets-Management-Strategy.md) |
 
 ## Secrets Architecture
@@ -47,11 +47,11 @@
 
 ## Access Control
 
-| Rol | Permisiuni |
-| --- | ---------- |
-| Admin | Full access toate resursele |
+| Rol      | Permisiuni                             |
+| -------- | -------------------------------------- |
+| Admin    | Full access toate resursele            |
 | Operator | Read/Write leads, sequences, templates |
-| Viewer | Read-only access |
+| Viewer   | Read-only access                       |
 
 ## Security Checklist
 
@@ -80,52 +80,52 @@
 
 ### Testing Schedule
 
-| Tip Test | Frecvență | Trigger Events |
-|----------|-----------|----------------|
-| **Full External Pentest** | Anual | - |
-| **Targeted Application Pentest** | Trimestrial | Major releases |
-| **Ad-hoc Pentest** | La nevoie | Schimbări arhitecturale semnificative |
-| **Red Team Exercise** | La 18 luni | Milestone-uri de scalare |
+| Tip Test                         | Frecvență   | Trigger Events                        |
+| -------------------------------- | ----------- | ------------------------------------- |
+| **Full External Pentest**        | Anual       | -                                     |
+| **Targeted Application Pentest** | Trimestrial | Major releases                        |
+| **Ad-hoc Pentest**               | La nevoie   | Schimbări arhitecturale semnificative |
+| **Red Team Exercise**            | La 18 luni  | Milestone-uri de scalare              |
 
 ### Primul Pentest Planificat
 
-| Aspect | Detalii |
-|--------|--------|
+| Aspect     | Detalii                      |
+| ---------- | ---------------------------- |
 | **Termen** | Q1 2026 (înainte de go-live) |
-| **Tip** | Full External Pentest |
-| **Scope** | Toate aplicațiile publice |
-| **Vendor** | TBD (CREST/OSCP certified) |
+| **Tip**    | Full External Pentest        |
+| **Scope**  | Toate aplicațiile publice    |
+| **Vendor** | TBD (CREST/OSCP certified)   |
 
 ### Metodologie
 
 **Standard Principal:** OWASP Web Security Testing Guide (WSTG) v4.2
 
-| Fază | Descriere |
-|------|----------|
-| Phase 1 | Information Gathering |
-| Phase 2 | Configuration Management Testing |
-| Phase 3 | Identity Management Testing |
-| Phase 4 | Authentication Testing |
-| Phase 5 | Authorization Testing |
-| Phase 6 | Session Management Testing |
-| Phase 7 | Input Validation Testing |
-| Phase 8 | Error Handling Testing |
-| Phase 9 | Cryptography Testing |
-| Phase 10 | Business Logic Testing |
-| Phase 11 | Client-side Testing |
-| Phase 12 | API Testing |
+| Fază     | Descriere                        |
+| -------- | -------------------------------- |
+| Phase 1  | Information Gathering            |
+| Phase 2  | Configuration Management Testing |
+| Phase 3  | Identity Management Testing      |
+| Phase 4  | Authentication Testing           |
+| Phase 5  | Authorization Testing            |
+| Phase 6  | Session Management Testing       |
+| Phase 7  | Input Validation Testing         |
+| Phase 8  | Error Handling Testing           |
+| Phase 9  | Cryptography Testing             |
+| Phase 10 | Business Logic Testing           |
+| Phase 11 | Client-side Testing              |
+| Phase 12 | API Testing                      |
 
 ### Scope Definition
 
-| În Scope | Out of Scope |
-|----------|-------------|
-| api.cerniq.app | Infrastructură third-party (Hetzner) |
-| app.cerniq.app | Securitate fizică |
-| admin.cerniq.app | Social engineering (fără acord explicit) |
-| Toate endpoint-urile API | Denial of Service testing |
-| Authentication flows | |
-| Multi-tenant isolation | |
-| Worker communication | |
+| În Scope                 | Out of Scope                             |
+| ------------------------ | ---------------------------------------- |
+| api.cerniq.app           | Infrastructură third-party (Hetzner)     |
+| app.cerniq.app           | Securitate fizică                        |
+| admin.cerniq.app         | Social engineering (fără acord explicit) |
+| Toate endpoint-urile API | Denial of Service testing                |
+| Authentication flows     |                                          |
+| Multi-tenant isolation   |                                          |
+| Worker communication     |                                          |
 
 ### Vendor Requirements
 
@@ -138,13 +138,13 @@
 
 ### Remediation SLAs
 
-| Severitate | Timeline Remediere | Retest Window |
-|------------|-------------------|---------------|
-| 🔴 Critical | 24-72 ore | În 7 zile |
-| 🟠 High | 7 zile | În 14 zile |
-| 🟡 Medium | 30 zile | Următorul pentest |
-| 🟢 Low | 90 zile | Următorul pentest |
-| ⚪ Informational | Backlog | După capacitate |
+| Severitate       | Timeline Remediere | Retest Window     |
+| ---------------- | ------------------ | ----------------- |
+| 🔴 Critical      | 24-72 ore          | În 7 zile         |
+| 🟠 High          | 7 zile             | În 14 zile        |
+| 🟡 Medium        | 30 zile            | Următorul pentest |
+| 🟢 Low           | 90 zile            | Următorul pentest |
+| ⚪ Informational | Backlog            | După capacitate   |
 
 ### Documentation Requirements
 

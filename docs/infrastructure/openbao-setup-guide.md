@@ -81,4 +81,3 @@ bao read cerniq-db/creds/api-dynamic >/dev/null
 - Nu folosim OpenBao local expus pe porturi gen `64090`.
 - Nu stocam `root token` / `unseal keys` in repo.
 - Nu hardcodam parole in documentatie; folosim OpenBao + agent templates.
-

@@ -8,15 +8,15 @@ Configurare DNS pentru rutarea publica prin Traefik-ul din orchestrator.
 
 Toate record-urile publice Cerniq trebuie sa pointeze la IP-ul orchestratorului.
 
-| Record | Type | Target |
-| --- | --- | --- |
-| `cerniq.app` | A | `77.42.76.185` |
-| `www.cerniq.app` | CNAME | `cerniq.app` |
-| `api.cerniq.app` | A | `77.42.76.185` |
-| `admin.cerniq.app` | A | `77.42.76.185` |
-| `staging.cerniq.app` | A | `77.42.76.185` |
-| `api.staging.cerniq.app` | A | `77.42.76.185` |
-| `admin.staging.cerniq.app` | A | `77.42.76.185` |
+| Record                     | Type  | Target         |
+| -------------------------- | ----- | -------------- |
+| `cerniq.app`               | A     | `77.42.76.185` |
+| `www.cerniq.app`           | CNAME | `cerniq.app`   |
+| `api.cerniq.app`           | A     | `77.42.76.185` |
+| `admin.cerniq.app`         | A     | `77.42.76.185` |
+| `staging.cerniq.app`       | A     | `77.42.76.185` |
+| `api.staging.cerniq.app`   | A     | `77.42.76.185` |
+| `admin.staging.cerniq.app` | A     | `77.42.76.185` |
 
 Notite:
 

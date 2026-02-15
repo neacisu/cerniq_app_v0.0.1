@@ -8,20 +8,20 @@
 
 ## METADATA DOCUMENT
 
-| Câmp | Valoare |
-| --- | --- |
-| **Etapă** | E5 - Nurturing Agentic (Post-Sale Customer Management) |
-| **Versiune** | 1.0 |
-| **Data creării** | 2 Februarie 2026 |
-| **Autor** | Cerniq Development Team |
-| **Status** | APPROVED - Ready for Execution |
-| **Prerequisite** | Etapa 4 completă (Order Lifecycle FSM funcțional) |
-| **Durată totală** | 14 săptămâni (7 sprinturi × 2 săptămâni) |
-| **Total Sprinturi** | 7 |
-| **Total PR-uri** | 42 |
-| **Total Task-uri** | 99 |
-| **Task Range** | 400-498 |
-| **Conformitate** | Master Spec v1.2 |
+| Câmp                | Valoare                                                |
+| ------------------- | ------------------------------------------------------ |
+| **Etapă**           | E5 - Nurturing Agentic (Post-Sale Customer Management) |
+| **Versiune**        | 1.0                                                    |
+| **Data creării**    | 2 Februarie 2026                                       |
+| **Autor**           | Cerniq Development Team                                |
+| **Status**          | APPROVED - Ready for Execution                         |
+| **Prerequisite**    | Etapa 4 completă (Order Lifecycle FSM funcțional)      |
+| **Durată totală**   | 14 săptămâni (7 sprinturi × 2 săptămâni)               |
+| **Total Sprinturi** | 7                                                      |
+| **Total PR-uri**    | 42                                                     |
+| **Total Task-uri**  | 99                                                     |
+| **Task Range**      | 400-498                                                |
+| **Conformitate**    | Master Spec v1.2                                       |
 
 ---
 
@@ -40,21 +40,21 @@ E5.S1.PR1.001
 
 ### Mapare Legacy ID → Sprint ID
 
-| Legacy ID | Sprint ID | Descriere |
-| --- | --- | --- |
+| Legacy ID    | Sprint ID       | Descriere             |
+| ------------ | --------------- | --------------------- |
 | `E5-INF-001` | `E5.S1.PR1.001` | Infrastructure Task 1 |
-| `E5-DB-001` | `E5.S1.PR3.001` | Database Task 1 |
-| `E5-SM-001` | `E5.S2.PR1.001` | State Machine Task 1 |
-| `E5-CHR-001` | `E5.S2.PR3.001` | Churn Task 1 |
-| `E5-GEO-001` | `E5.S3.PR1.001` | Geospatial Task 1 |
-| `E5-GRA-001` | `E5.S3.PR4.001` | Graph Task 1 |
-| `E5-REF-001` | `E5.S4.PR1.001` | Referral Task 1 |
-| `E5-WB-001` | `E5.S4.PR4.001` | Win-Back Task 1 |
-| `E5-ASS-001` | `E5.S5.PR1.001` | Associations Task 1 |
-| `E5-FBK-001` | `E5.S5.PR4.001` | Feedback Task 1 |
-| `E5-UI-001` | `E5.S6.PR1.001` | UI Task 1 |
-| `E5-TST-001` | `E5.S7.PR1.001` | Testing Task 1 |
-| `E5-DEP-001` | `E5.S7.PR4.001` | Deployment Task 1 |
+| `E5-DB-001`  | `E5.S1.PR3.001` | Database Task 1       |
+| `E5-SM-001`  | `E5.S2.PR1.001` | State Machine Task 1  |
+| `E5-CHR-001` | `E5.S2.PR3.001` | Churn Task 1          |
+| `E5-GEO-001` | `E5.S3.PR1.001` | Geospatial Task 1     |
+| `E5-GRA-001` | `E5.S3.PR4.001` | Graph Task 1          |
+| `E5-REF-001` | `E5.S4.PR1.001` | Referral Task 1       |
+| `E5-WB-001`  | `E5.S4.PR4.001` | Win-Back Task 1       |
+| `E5-ASS-001` | `E5.S5.PR1.001` | Associations Task 1   |
+| `E5-FBK-001` | `E5.S5.PR4.001` | Feedback Task 1       |
+| `E5-UI-001`  | `E5.S6.PR1.001` | UI Task 1             |
+| `E5-TST-001` | `E5.S7.PR1.001` | Testing Task 1        |
+| `E5-DEP-001` | `E5.S7.PR4.001` | Deployment Task 1     |
 
 ---
 
@@ -62,37 +62,37 @@ E5.S1.PR1.001
 
 ### Schema de Conversie Phase (F5.x) → Sprint (E5.Sx)
 
-| Fază | Sprint | Focus | Descriere | Taskuri |
-| --- | --- | --- | --- | --- |
-| F5.1 | **E5.S1** | Infrastructure | Redis queues, Python services, PostGIS, cron setup | 8 |
-| F5.2 | **E5.S1** | Database | Schema creation, enums, migrations, indexes | 12 |
-| F5.3 | **E5.S2** | Workers | State Machine A1-A8 | 8 |
-| F5.4 | **E5.S2** | Workers | Churn Detection B9-B14 | 8 |
-| F5.5 | **E5.S3** | Workers | Geospatial Analysis C15-C19 | 8 |
-| F5.6 | **E5.S3** | Workers | Graph Analysis D20-D24 | 8 |
-| F5.7 | **E5.S4** | Workers | Referral System E25-E31 | 10 |
-| F5.8 | **E5.S4** | Workers | Win-Back Campaigns F32-F36 | 8 |
-| F5.9 | **E5.S5** | Workers | Association Ingestion G37-G42 | 8 |
-| F5.10 | **E5.S5** | Workers | Feedback, Content, Alerts H-K | 10 |
-| F5.11 | **E5.S6** | Frontend | UI Implementation (8 pages) | 8 |
-| F5.12 | **E5.S7** | Testing | E2E, Security Audit, Deploy | 3 |
+| Fază  | Sprint    | Focus          | Descriere                                          | Taskuri |
+| ----- | --------- | -------------- | -------------------------------------------------- | ------- |
+| F5.1  | **E5.S1** | Infrastructure | Redis queues, Python services, PostGIS, cron setup | 8       |
+| F5.2  | **E5.S1** | Database       | Schema creation, enums, migrations, indexes        | 12      |
+| F5.3  | **E5.S2** | Workers        | State Machine A1-A8                                | 8       |
+| F5.4  | **E5.S2** | Workers        | Churn Detection B9-B14                             | 8       |
+| F5.5  | **E5.S3** | Workers        | Geospatial Analysis C15-C19                        | 8       |
+| F5.6  | **E5.S3** | Workers        | Graph Analysis D20-D24                             | 8       |
+| F5.7  | **E5.S4** | Workers        | Referral System E25-E31                            | 10      |
+| F5.8  | **E5.S4** | Workers        | Win-Back Campaigns F32-F36                         | 8       |
+| F5.9  | **E5.S5** | Workers        | Association Ingestion G37-G42                      | 8       |
+| F5.10 | **E5.S5** | Workers        | Feedback, Content, Alerts H-K                      | 10      |
+| F5.11 | **E5.S6** | Frontend       | UI Implementation (8 pages)                        | 8       |
+| F5.12 | **E5.S7** | Testing        | E2E, Security Audit, Deploy                        | 3       |
 
 ---
 
 ## ADR TRACEABILITY MATRIX
 
-| ADR | Titlu | Fază | Sprinturi | Taskuri Afectate |
-| --- | --- | --- | --- | --- |
-| ADR-0098 | Nurturing State Machine | F5.3 | E5.S2 | E5.S2.PR1.*, E5.S2.PR2.* |
-| ADR-0099 | Churn Detection AI | F5.4 | E5.S2 | E5.S2.PR3.*, E5.S2.PR4.* |
-| ADR-0100 | PostGIS Proximity | F5.5 | E5.S3 | E5.S3.PR1.*, E5.S3.PR2.*, E5.S3.PR3.* |
-| ADR-0101 | Leiden Community Detection | F5.6 | E5.S3 | E5.S3.PR4.*, E5.S3.PR5.*, E5.S3.PR6.* |
-| ADR-0102 | GDPR Referral Consent | F5.7 | E5.S4 | E5.S4.PR1.*, E5.S4.PR2.* |
-| ADR-0103 | Competition Law Safe Harbor | F5.10 | E5.S5 | E5.S5.PR5.001 |
-| ADR-0104 | Public Register Scraping | F5.9 | E5.S5 | E5.S5.PR1.*, E5.S5.PR2.* |
-| ADR-0105 | KOL Graph Centrality | F5.6 | E5.S3 | E5.S3.PR5.002, E5.S3.PR5.003 |
-| ADR-0106 | Win-Back Campaigns | F5.8 | E5.S4 | E5.S4.PR4.*, E5.S4.PR5.* |
-| ADR-0107 | Real-Time Sentiment | F5.4 | E5.S2 | E5.S2.PR4.001, E5.S2.PR4.002 |
+| ADR      | Titlu                       | Fază  | Sprinturi | Taskuri Afectate                       |
+| -------- | --------------------------- | ----- | --------- | -------------------------------------- |
+| ADR-0098 | Nurturing State Machine     | F5.3  | E5.S2     | E5.S2.PR1._, E5.S2.PR2._               |
+| ADR-0099 | Churn Detection AI          | F5.4  | E5.S2     | E5.S2.PR3._, E5.S2.PR4._               |
+| ADR-0100 | PostGIS Proximity           | F5.5  | E5.S3     | E5.S3.PR1._, E5.S3.PR2._, E5.S3.PR3.\* |
+| ADR-0101 | Leiden Community Detection  | F5.6  | E5.S3     | E5.S3.PR4._, E5.S3.PR5._, E5.S3.PR6.\* |
+| ADR-0102 | GDPR Referral Consent       | F5.7  | E5.S4     | E5.S4.PR1._, E5.S4.PR2._               |
+| ADR-0103 | Competition Law Safe Harbor | F5.10 | E5.S5     | E5.S5.PR5.001                          |
+| ADR-0104 | Public Register Scraping    | F5.9  | E5.S5     | E5.S5.PR1._, E5.S5.PR2._               |
+| ADR-0105 | KOL Graph Centrality        | F5.6  | E5.S3     | E5.S3.PR5.002, E5.S3.PR5.003           |
+| ADR-0106 | Win-Back Campaigns          | F5.8  | E5.S4     | E5.S4.PR4._, E5.S4.PR5._               |
+| ADR-0107 | Real-Time Sentiment         | F5.4  | E5.S2     | E5.S2.PR4.001, E5.S2.PR4.002           |
 
 ---
 
@@ -111,12 +111,12 @@ E5.S1.PR1.001
 
 ### 📊 Metrici Sprint
 
-| Metrică | Target | Actual |
-| --- | --- | --- |
-| PR-uri planificate | 6 | - |
-| Task-uri planificate | 20 | - |
-| Story Points | 63 | - |
-| Test Coverage | ≥80% | - |
+| Metrică              | Target | Actual |
+| -------------------- | ------ | ------ |
+| PR-uri planificate   | 6      | -      |
+| Task-uri planificate | 20     | -      |
+| Story Points         | 63     | -      |
+| Test Coverage        | ≥80%   | -      |
 
 ---
 
@@ -129,11 +129,11 @@ E5.S1.PR1.001
 
 #### Tasks
 
-| Task ID | Legacy ID | Task # | Denumire | Status | Estimare |
-| --- | --- | --- | --- | --- | --- |
-| E5.S1.PR1.001 | E5-INF-001 | 400 | Setup Redis Queues pentru Etapa 5 | ⬜ TODO | 4h |
-| E5.S1.PR1.002 | E5-INF-005 | 405 | Setup Cron Jobs Etapa 5 | ⬜ TODO | 3h |
-| E5.S1.PR1.003 | E5-INF-007 | 407 | Environment Variables și Secrets Etapa 5 | ⬜ TODO | 2h |
+| Task ID       | Legacy ID  | Task # | Denumire                                 | Status  | Estimare |
+| ------------- | ---------- | ------ | ---------------------------------------- | ------- | -------- |
+| E5.S1.PR1.001 | E5-INF-001 | 400    | Setup Redis Queues pentru Etapa 5        | ⬜ TODO | 4h       |
+| E5.S1.PR1.002 | E5-INF-005 | 405    | Setup Cron Jobs Etapa 5                  | ⬜ TODO | 3h       |
+| E5.S1.PR1.003 | E5-INF-007 | 407    | Environment Variables și Secrets Etapa 5 | ⬜ TODO | 2h       |
 
 #### Acceptance Criteria
 
@@ -161,12 +161,12 @@ E5.S1.PR1.001
 
 #### Tasks
 
-| Task ID | Legacy ID | Task # | Denumire | Status | Estimare |
-| --- | --- | --- | --- | --- | --- |
-| E5.S1.PR2.001 | E5-INF-002 | 401 | Setup Python Graph Service | ⬜ TODO | 6h |
-| E5.S1.PR2.002 | E5-INF-003 | 402 | Configure Anthropic LLM Client pentru Sentiment | ⬜ TODO | 4h |
-| E5.S1.PR2.003 | E5-INF-004 | 404 | Setup PDF Extraction Service | ⬜ TODO | 5h |
-| E5.S1.PR2.004 | E5-INF-006 | 406 | Configure ANM Weather API Integration | ⬜ TODO | 2h |
+| Task ID       | Legacy ID  | Task # | Denumire                                        | Status  | Estimare |
+| ------------- | ---------- | ------ | ----------------------------------------------- | ------- | -------- |
+| E5.S1.PR2.001 | E5-INF-002 | 401    | Setup Python Graph Service                      | ⬜ TODO | 6h       |
+| E5.S1.PR2.002 | E5-INF-003 | 402    | Configure Anthropic LLM Client pentru Sentiment | ⬜ TODO | 4h       |
+| E5.S1.PR2.003 | E5-INF-004 | 404    | Setup PDF Extraction Service                    | ⬜ TODO | 5h       |
+| E5.S1.PR2.004 | E5-INF-006 | 406    | Configure ANM Weather API Integration           | ⬜ TODO | 2h       |
 
 #### Acceptance Criteria
 
@@ -187,10 +187,10 @@ E5.S1.PR1.001
 
 #### Tasks
 
-| Task ID | Legacy ID | Task # | Denumire | Status | Estimare |
-| --- | --- | --- | --- | --- | --- |
-| E5.S1.PR3.001 | E5-INF-004 | 403 | Setup PostGIS Extensions și Indexes | ⬜ TODO | 3h |
-| E5.S1.PR3.002 | E5-DB-001 | 408 | Create Etapa 5 Enums | ⬜ TODO | 2h |
+| Task ID       | Legacy ID  | Task # | Denumire                            | Status  | Estimare |
+| ------------- | ---------- | ------ | ----------------------------------- | ------- | -------- |
+| E5.S1.PR3.001 | E5-INF-004 | 403    | Setup PostGIS Extensions și Indexes | ⬜ TODO | 3h       |
+| E5.S1.PR3.002 | E5-DB-001  | 408    | Create Etapa 5 Enums                | ⬜ TODO | 2h       |
 
 #### Acceptance Criteria
 
@@ -210,11 +210,11 @@ E5.S1.PR1.001
 
 #### Tasks
 
-| Task ID | Legacy ID | Task # | Denumire | Status | Estimare |
-| --- | --- | --- | --- | --- | --- |
-| E5.S1.PR4.001 | E5-DB-002 | 409 | Create gold_nurturing_state Table | ⬜ TODO | 3h |
-| E5.S1.PR4.002 | E5-DB-003 | 410 | Create gold_nurturing_actions Table | ⬜ TODO | 2h |
-| E5.S1.PR4.003 | E5-DB-004 | 411 | Create Churn Tables | ⬜ TODO | 4h |
+| Task ID       | Legacy ID | Task # | Denumire                            | Status  | Estimare |
+| ------------- | --------- | ------ | ----------------------------------- | ------- | -------- |
+| E5.S1.PR4.001 | E5-DB-002 | 409    | Create gold_nurturing_state Table   | ⬜ TODO | 3h       |
+| E5.S1.PR4.002 | E5-DB-003 | 410    | Create gold_nurturing_actions Table | ⬜ TODO | 2h       |
+| E5.S1.PR4.003 | E5-DB-004 | 411    | Create Churn Tables                 | ⬜ TODO | 4h       |
 
 #### Acceptance Criteria
 
@@ -235,11 +235,11 @@ E5.S1.PR1.001
 
 #### Tasks
 
-| Task ID | Legacy ID | Task # | Denumire | Status | Estimare |
-| --- | --- | --- | --- | --- | --- |
-| E5.S1.PR5.001 | E5-DB-005 | 412 | Create Referral Tables | ⬜ TODO | 4h |
-| E5.S1.PR5.002 | E5-DB-006 | 413 | Create Cluster Tables | ⬜ TODO | 3h |
-| E5.S1.PR5.003 | E5-DB-007 | 414 | Create Association Tables | ⬜ TODO | 4h |
+| Task ID       | Legacy ID | Task # | Denumire                  | Status  | Estimare |
+| ------------- | --------- | ------ | ------------------------- | ------- | -------- |
+| E5.S1.PR5.001 | E5-DB-005 | 412    | Create Referral Tables    | ⬜ TODO | 4h       |
+| E5.S1.PR5.002 | E5-DB-006 | 413    | Create Cluster Tables     | ⬜ TODO | 3h       |
+| E5.S1.PR5.003 | E5-DB-007 | 414    | Create Association Tables | ⬜ TODO | 4h       |
 
 #### Acceptance Criteria
 
@@ -259,13 +259,13 @@ E5.S1.PR1.001
 
 #### Tasks
 
-| Task ID | Legacy ID | Task # | Denumire | Status | Estimare |
-| --- | --- | --- | --- | --- | --- |
-| E5.S1.PR6.001 | E5-DB-008 | 415 | Create KOL Tables | ⬜ TODO | 2h |
-| E5.S1.PR6.002 | E5-DB-009 | 416 | Create Win-Back Tables | ⬜ TODO | 2h |
-| E5.S1.PR6.003 | E5-DB-010 | 417 | Create Feedback Tables | ⬜ TODO | 3h |
-| E5.S1.PR6.004 | E5-DB-011 | 418 | Create GiST Spatial Indexes | ⬜ TODO | 2h |
-| E5.S1.PR6.005 | E5-DB-012 | 419 | Seed Initial Data | ⬜ TODO | 3h |
+| Task ID       | Legacy ID | Task # | Denumire                    | Status  | Estimare |
+| ------------- | --------- | ------ | --------------------------- | ------- | -------- |
+| E5.S1.PR6.001 | E5-DB-008 | 415    | Create KOL Tables           | ⬜ TODO | 2h       |
+| E5.S1.PR6.002 | E5-DB-009 | 416    | Create Win-Back Tables      | ⬜ TODO | 2h       |
+| E5.S1.PR6.003 | E5-DB-010 | 417    | Create Feedback Tables      | ⬜ TODO | 3h       |
+| E5.S1.PR6.004 | E5-DB-011 | 418    | Create GiST Spatial Indexes | ⬜ TODO | 2h       |
+| E5.S1.PR6.005 | E5-DB-012 | 419    | Seed Initial Data           | ⬜ TODO | 3h       |
 
 #### Acceptance Criteria
 
@@ -290,12 +290,12 @@ E5.S1.PR1.001
 
 ### 📊 Metrici Sprint
 
-| Metrică | Target | Actual |
-| --- | --- | --- |
-| PR-uri planificate | 6 | - |
-| Task-uri planificate | 16 | - |
-| Story Points | 67 | - |
-| Test Coverage | ≥80% | - |
+| Metrică              | Target | Actual |
+| -------------------- | ------ | ------ |
+| PR-uri planificate   | 6      | -      |
+| Task-uri planificate | 16     | -      |
+| Story Points         | 67     | -      |
+| Test Coverage        | ≥80%   | -      |
 
 ---
 
@@ -308,10 +308,10 @@ E5.S1.PR1.001
 
 #### Tasks
 
-| Task ID | Legacy ID | Task # | Denumire | Status | Estimare |
-| --- | --- | --- | --- | --- | --- |
-| E5.S2.PR1.001 | E5-SM-001 | 420 | Worker A1: lifecycle:order:completed | ⬜ TODO | 4h |
-| E5.S2.PR1.002 | E5-SM-002 | 421 | Worker A2: lifecycle:state:evaluate | ⬜ TODO | 5h |
+| Task ID       | Legacy ID | Task # | Denumire                             | Status  | Estimare |
+| ------------- | --------- | ------ | ------------------------------------ | ------- | -------- |
+| E5.S2.PR1.001 | E5-SM-001 | 420    | Worker A1: lifecycle:order:completed | ⬜ TODO | 4h       |
+| E5.S2.PR1.002 | E5-SM-002 | 421    | Worker A2: lifecycle:state:evaluate  | ⬜ TODO | 5h       |
 
 #### Acceptance Criteria
 
@@ -331,12 +331,12 @@ E5.S1.PR1.001
 
 #### Tasks
 
-| Task ID | Legacy ID | Task # | Denumire | Status | Estimare |
-| --- | --- | --- | --- | --- | --- |
-| E5.S2.PR2.001 | E5-SM-003 | 422 | Workers A3-A5: Onboarding Sequence | ⬜ TODO | 6h |
-| E5.S2.PR2.002 | E5-SM-004 | 423 | Worker A6: state:transition:execute | ⬜ TODO | 4h |
-| E5.S2.PR2.003 | E5-SM-005 | 424 | Worker A7: state:metrics:update | ⬜ TODO | 3h |
-| E5.S2.PR2.004 | E5-SM-006 | 425 | Worker A8: state:advocate:promote | ⬜ TODO | 2h |
+| Task ID       | Legacy ID | Task # | Denumire                            | Status  | Estimare |
+| ------------- | --------- | ------ | ----------------------------------- | ------- | -------- |
+| E5.S2.PR2.001 | E5-SM-003 | 422    | Workers A3-A5: Onboarding Sequence  | ⬜ TODO | 6h       |
+| E5.S2.PR2.002 | E5-SM-004 | 423    | Worker A6: state:transition:execute | ⬜ TODO | 4h       |
+| E5.S2.PR2.003 | E5-SM-005 | 424    | Worker A7: state:metrics:update     | ⬜ TODO | 3h       |
+| E5.S2.PR2.004 | E5-SM-006 | 425    | Worker A8: state:advocate:promote   | ⬜ TODO | 2h       |
 
 #### Acceptance Criteria
 
@@ -356,11 +356,11 @@ E5.S1.PR1.001
 
 #### Tasks
 
-| Task ID | Legacy ID | Task # | Denumire | Status | Estimare |
-| --- | --- | --- | --- | --- | --- |
-| E5.S2.PR3.001 | E5-CHR-001 | 428 | Worker B9: churn:signal:detect | ⬜ TODO | 5h |
-| E5.S2.PR3.002 | E5-CHR-002 | 429 | Worker B10: churn:score:calculate | ⬜ TODO | 5h |
-| E5.S2.PR3.003 | E5-CHR-003 | 430 | Worker B11: churn:risk:escalate | ⬜ TODO | 3h |
+| Task ID       | Legacy ID  | Task # | Denumire                          | Status  | Estimare |
+| ------------- | ---------- | ------ | --------------------------------- | ------- | -------- |
+| E5.S2.PR3.001 | E5-CHR-001 | 428    | Worker B9: churn:signal:detect    | ⬜ TODO | 5h       |
+| E5.S2.PR3.002 | E5-CHR-002 | 429    | Worker B10: churn:score:calculate | ⬜ TODO | 5h       |
+| E5.S2.PR3.003 | E5-CHR-003 | 430    | Worker B11: churn:risk:escalate   | ⬜ TODO | 3h       |
 
 #### Acceptance Criteria
 
@@ -379,11 +379,11 @@ E5.S1.PR1.001
 
 #### Tasks
 
-| Task ID | Legacy ID | Task # | Denumire | Status | Estimare |
-| --- | --- | --- | --- | --- | --- |
-| E5.S2.PR4.001 | E5-CHR-004 | 431 | Worker B12: sentiment:analyze | ⬜ TODO | 6h |
-| E5.S2.PR4.002 | E5-CHR-005 | 432 | Worker B13: sentiment:aggregate | ⬜ TODO | 3h |
-| E5.S2.PR4.003 | E5-CHR-006 | 433 | Worker B14: decay:behavior:detect | ⬜ TODO | 4h |
+| Task ID       | Legacy ID  | Task # | Denumire                          | Status  | Estimare |
+| ------------- | ---------- | ------ | --------------------------------- | ------- | -------- |
+| E5.S2.PR4.001 | E5-CHR-004 | 431    | Worker B12: sentiment:analyze     | ⬜ TODO | 6h       |
+| E5.S2.PR4.002 | E5-CHR-005 | 432    | Worker B13: sentiment:aggregate   | ⬜ TODO | 3h       |
+| E5.S2.PR4.003 | E5-CHR-006 | 433    | Worker B14: decay:behavior:detect | ⬜ TODO | 4h       |
 
 #### Acceptance Criteria
 
@@ -402,10 +402,10 @@ E5.S1.PR1.001
 
 #### Tasks
 
-| Task ID | Legacy ID | Task # | Denumire | Status | Estimare |
-| --- | --- | --- | --- | --- | --- |
-| E5.S2.PR5.001 | E5-SM-007 | 426 | State Machine Unit Tests | ⬜ TODO | 4h |
-| E5.S2.PR5.002 | E5-SM-008 | 427 | State Machine Integration Tests | ⬜ TODO | 4h |
+| Task ID       | Legacy ID | Task # | Denumire                        | Status  | Estimare |
+| ------------- | --------- | ------ | ------------------------------- | ------- | -------- |
+| E5.S2.PR5.001 | E5-SM-007 | 426    | State Machine Unit Tests        | ⬜ TODO | 4h       |
+| E5.S2.PR5.002 | E5-SM-008 | 427    | State Machine Integration Tests | ⬜ TODO | 4h       |
 
 #### Acceptance Criteria
 
@@ -424,10 +424,10 @@ E5.S1.PR1.001
 
 #### Tasks
 
-| Task ID | Legacy ID | Task # | Denumire | Status | Estimare |
-| --- | --- | --- | --- | --- | --- |
-| E5.S2.PR6.001 | E5-CHR-007 | 434 | Churn Detection Tests | ⬜ TODO | 5h |
-| E5.S2.PR6.002 | E5-CHR-008 | 435 | Sentiment Analysis Tests | ⬜ TODO | 4h |
+| Task ID       | Legacy ID  | Task # | Denumire                 | Status  | Estimare |
+| ------------- | ---------- | ------ | ------------------------ | ------- | -------- |
+| E5.S2.PR6.001 | E5-CHR-007 | 434    | Churn Detection Tests    | ⬜ TODO | 5h       |
+| E5.S2.PR6.002 | E5-CHR-008 | 435    | Sentiment Analysis Tests | ⬜ TODO | 4h       |
 
 #### Acceptance Criteria
 
@@ -450,12 +450,12 @@ E5.S1.PR1.001
 
 ### 📊 Metrici Sprint
 
-| Metrică | Target | Actual |
-| --- | --- | --- |
-| PR-uri planificate | 6 | - |
-| Task-uri planificate | 16 | - |
-| Story Points | 61 | - |
-| Test Coverage | ≥80% | - |
+| Metrică              | Target | Actual |
+| -------------------- | ------ | ------ |
+| PR-uri planificate   | 6      | -      |
+| Task-uri planificate | 16     | -      |
+| Story Points         | 61     | -      |
+| Test Coverage        | ≥80%   | -      |
 
 ---
 
@@ -468,10 +468,10 @@ E5.S1.PR1.001
 
 #### Tasks
 
-| Task ID | Legacy ID | Task # | Denumire | Status | Estimare |
-| --- | --- | --- | --- | --- | --- |
-| E5.S3.PR1.001 | E5-GEO-001 | 436 | Worker C15: geo:proximity:calculate | ⬜ TODO | 5h |
-| E5.S3.PR1.002 | E5-GEO-002 | 437 | Worker C16: geo:neighbor:identify | ⬜ TODO | 4h |
+| Task ID       | Legacy ID  | Task # | Denumire                            | Status  | Estimare |
+| ------------- | ---------- | ------ | ----------------------------------- | ------- | -------- |
+| E5.S3.PR1.001 | E5-GEO-001 | 436    | Worker C15: geo:proximity:calculate | ⬜ TODO | 5h       |
+| E5.S3.PR1.002 | E5-GEO-002 | 437    | Worker C16: geo:neighbor:identify   | ⬜ TODO | 4h       |
 
 #### Acceptance Criteria
 
@@ -490,11 +490,11 @@ E5.S1.PR1.001
 
 #### Tasks
 
-| Task ID | Legacy ID | Task # | Denumire | Status | Estimare |
-| --- | --- | --- | --- | --- | --- |
-| E5.S3.PR2.001 | E5-GEO-003 | 438 | Worker C17: geo:territory:calculate | ⬜ TODO | 4h |
-| E5.S3.PR2.002 | E5-GEO-004 | 439 | Worker C18: geo:coverage:analyze | ⬜ TODO | 3h |
-| E5.S3.PR2.003 | E5-GEO-005 | 440 | Worker C19: geo:catchment:build | ⬜ TODO | 3h |
+| Task ID       | Legacy ID  | Task # | Denumire                            | Status  | Estimare |
+| ------------- | ---------- | ------ | ----------------------------------- | ------- | -------- |
+| E5.S3.PR2.001 | E5-GEO-003 | 438    | Worker C17: geo:territory:calculate | ⬜ TODO | 4h       |
+| E5.S3.PR2.002 | E5-GEO-004 | 439    | Worker C18: geo:coverage:analyze    | ⬜ TODO | 3h       |
+| E5.S3.PR2.003 | E5-GEO-005 | 440    | Worker C19: geo:catchment:build     | ⬜ TODO | 3h       |
 
 #### Acceptance Criteria
 
@@ -513,11 +513,11 @@ E5.S1.PR1.001
 
 #### Tasks
 
-| Task ID | Legacy ID | Task # | Denumire | Status | Estimare |
-| --- | --- | --- | --- | --- | --- |
-| E5.S3.PR3.001 | E5-GEO-006 | 441 | PostGIS Query Optimization | ⬜ TODO | 3h |
-| E5.S3.PR3.002 | E5-GEO-007 | 442 | Geospatial Tests | ⬜ TODO | 4h |
-| E5.S3.PR3.003 | E5-GEO-008 | 443 | GeoJSON API Endpoints | ⬜ TODO | 3h |
+| Task ID       | Legacy ID  | Task # | Denumire                   | Status  | Estimare |
+| ------------- | ---------- | ------ | -------------------------- | ------- | -------- |
+| E5.S3.PR3.001 | E5-GEO-006 | 441    | PostGIS Query Optimization | ⬜ TODO | 3h       |
+| E5.S3.PR3.002 | E5-GEO-007 | 442    | Geospatial Tests           | ⬜ TODO | 4h       |
+| E5.S3.PR3.003 | E5-GEO-008 | 443    | GeoJSON API Endpoints      | ⬜ TODO | 3h       |
 
 #### Acceptance Criteria
 
@@ -536,10 +536,10 @@ E5.S1.PR1.001
 
 #### Tasks
 
-| Task ID | Legacy ID | Task # | Denumire | Status | Estimare |
-| --- | --- | --- | --- | --- | --- |
-| E5.S3.PR4.001 | E5-GRA-001 | 444 | Worker D20: graph:build:relationships | ⬜ TODO | 5h |
-| E5.S3.PR4.002 | E5-GRA-002 | 445 | Worker D21: community:detect:leiden | ⬜ TODO | 6h |
+| Task ID       | Legacy ID  | Task # | Denumire                              | Status  | Estimare |
+| ------------- | ---------- | ------ | ------------------------------------- | ------- | -------- |
+| E5.S3.PR4.001 | E5-GRA-001 | 444    | Worker D20: graph:build:relationships | ⬜ TODO | 5h       |
+| E5.S3.PR4.002 | E5-GRA-002 | 445    | Worker D21: community:detect:leiden   | ⬜ TODO | 6h       |
 
 #### Acceptance Criteria
 
@@ -558,11 +558,11 @@ E5.S1.PR1.001
 
 #### Tasks
 
-| Task ID | Legacy ID | Task # | Denumire | Status | Estimare |
-| --- | --- | --- | --- | --- | --- |
-| E5.S3.PR5.001 | E5-GRA-003 | 446 | Worker D22: centrality:calculate | ⬜ TODO | 4h |
-| E5.S3.PR5.002 | E5-GRA-004 | 447 | Worker D23: kol:identify | ⬜ TODO | 4h |
-| E5.S3.PR5.003 | E5-GRA-005 | 448 | Worker D24: cluster:implicit:detect | ⬜ TODO | 4h |
+| Task ID       | Legacy ID  | Task # | Denumire                            | Status  | Estimare |
+| ------------- | ---------- | ------ | ----------------------------------- | ------- | -------- |
+| E5.S3.PR5.001 | E5-GRA-003 | 446    | Worker D22: centrality:calculate    | ⬜ TODO | 4h       |
+| E5.S3.PR5.002 | E5-GRA-004 | 447    | Worker D23: kol:identify            | ⬜ TODO | 4h       |
+| E5.S3.PR5.003 | E5-GRA-005 | 448    | Worker D24: cluster:implicit:detect | ⬜ TODO | 4h       |
 
 #### Acceptance Criteria
 
@@ -581,11 +581,11 @@ E5.S1.PR1.001
 
 #### Tasks
 
-| Task ID | Legacy ID | Task # | Denumire | Status | Estimare |
-| --- | --- | --- | --- | --- | --- |
-| E5.S3.PR6.001 | E5-GRA-006 | 449 | Python Graph Service API | ⬜ TODO | 6h |
-| E5.S3.PR6.002 | E5-GRA-007 | 450 | Graph Analysis Tests | ⬜ TODO | 5h |
-| E5.S3.PR6.003 | E5-GRA-008 | 451 | Graph Visualization API | ⬜ TODO | 3h |
+| Task ID       | Legacy ID  | Task # | Denumire                 | Status  | Estimare |
+| ------------- | ---------- | ------ | ------------------------ | ------- | -------- |
+| E5.S3.PR6.001 | E5-GRA-006 | 449    | Python Graph Service API | ⬜ TODO | 6h       |
+| E5.S3.PR6.002 | E5-GRA-007 | 450    | Graph Analysis Tests     | ⬜ TODO | 5h       |
+| E5.S3.PR6.003 | E5-GRA-008 | 451    | Graph Visualization API  | ⬜ TODO | 3h       |
 
 #### Acceptance Criteria
 
@@ -607,12 +607,12 @@ E5.S1.PR1.001
 
 ### 📊 Metrici Sprint
 
-| Metrică | Target | Actual |
-| --- | --- | --- |
-| PR-uri planificate | 6 | - |
-| Task-uri planificate | 18 | - |
-| Story Points | 68 | - |
-| Test Coverage | ≥80% | - |
+| Metrică              | Target | Actual |
+| -------------------- | ------ | ------ |
+| PR-uri planificate   | 6      | -      |
+| Task-uri planificate | 18     | -      |
+| Story Points         | 68     | -      |
+| Test Coverage        | ≥80%   | -      |
 
 ---
 
@@ -625,11 +625,11 @@ E5.S1.PR1.001
 
 #### Tasks
 
-| Task ID | Legacy ID | Task # | Denumire | Status | Estimare |
-| --- | --- | --- | --- | --- | --- |
-| E5.S4.PR1.001 | E5-REF-001 | 452 | Worker E25: referral:detect:mention | ⬜ TODO | 5h |
-| E5.S4.PR1.002 | E5-REF-002 | 453 | Worker E26: referral:request:send | ⬜ TODO | 4h |
-| E5.S4.PR1.003 | E5-REF-003 | 454 | Worker E27: referral:consent:process | ⬜ TODO | 4h |
+| Task ID       | Legacy ID  | Task # | Denumire                             | Status  | Estimare |
+| ------------- | ---------- | ------ | ------------------------------------ | ------- | -------- |
+| E5.S4.PR1.001 | E5-REF-001 | 452    | Worker E25: referral:detect:mention  | ⬜ TODO | 5h       |
+| E5.S4.PR1.002 | E5-REF-002 | 453    | Worker E26: referral:request:send    | ⬜ TODO | 4h       |
+| E5.S4.PR1.003 | E5-REF-003 | 454    | Worker E27: referral:consent:process | ⬜ TODO | 4h       |
 
 #### Acceptance Criteria
 
@@ -648,11 +648,11 @@ E5.S1.PR1.001
 
 #### Tasks
 
-| Task ID | Legacy ID | Task # | Denumire | Status | Estimare |
-| --- | --- | --- | --- | --- | --- |
-| E5.S4.PR2.001 | E5-REF-004 | 455 | Worker E28: referral:outreach:execute | ⬜ TODO | 4h |
-| E5.S4.PR2.002 | E5-REF-005 | 456 | Worker E29: referral:conversion:track | ⬜ TODO | 3h |
-| E5.S4.PR2.003 | E5-REF-006 | 457 | Workers E30-E31: Reward Calculation & Processing | ⬜ TODO | 5h |
+| Task ID       | Legacy ID  | Task # | Denumire                                         | Status  | Estimare |
+| ------------- | ---------- | ------ | ------------------------------------------------ | ------- | -------- |
+| E5.S4.PR2.001 | E5-REF-004 | 455    | Worker E28: referral:outreach:execute            | ⬜ TODO | 4h       |
+| E5.S4.PR2.002 | E5-REF-005 | 456    | Worker E29: referral:conversion:track            | ⬜ TODO | 3h       |
+| E5.S4.PR2.003 | E5-REF-006 | 457    | Workers E30-E31: Reward Calculation & Processing | ⬜ TODO | 5h       |
 
 #### Acceptance Criteria
 
@@ -671,12 +671,12 @@ E5.S1.PR1.001
 
 #### Tasks
 
-| Task ID | Legacy ID | Task # | Denumire | Status | Estimare |
-| --- | --- | --- | --- | --- | --- |
-| E5.S4.PR3.001 | E5-REF-007 | 458 | Referral API Endpoints | ⬜ TODO | 5h |
-| E5.S4.PR3.002 | E5-REF-008 | 459 | Referral Tests | ⬜ TODO | 5h |
-| E5.S4.PR3.003 | E5-REF-009 | 460 | Proximity-Based Referral Detection | ⬜ TODO | 4h |
-| E5.S4.PR3.004 | E5-REF-010 | 461 | Referral GDPR Compliance Review | ⬜ TODO | 3h |
+| Task ID       | Legacy ID  | Task # | Denumire                           | Status  | Estimare |
+| ------------- | ---------- | ------ | ---------------------------------- | ------- | -------- |
+| E5.S4.PR3.001 | E5-REF-007 | 458    | Referral API Endpoints             | ⬜ TODO | 5h       |
+| E5.S4.PR3.002 | E5-REF-008 | 459    | Referral Tests                     | ⬜ TODO | 5h       |
+| E5.S4.PR3.003 | E5-REF-009 | 460    | Proximity-Based Referral Detection | ⬜ TODO | 4h       |
+| E5.S4.PR3.004 | E5-REF-010 | 461    | Referral GDPR Compliance Review    | ⬜ TODO | 3h       |
 
 #### Acceptance Criteria
 
@@ -696,11 +696,11 @@ E5.S1.PR1.001
 
 #### Tasks
 
-| Task ID | Legacy ID | Task # | Denumire | Status | Estimare |
-| --- | --- | --- | --- | --- | --- |
-| E5.S4.PR4.001 | E5-WB-001 | 462 | Worker F32: winback:campaign:create | ⬜ TODO | 5h |
-| E5.S4.PR4.002 | E5-WB-002 | 463 | Worker F33: winback:step:execute | ⬜ TODO | 5h |
-| E5.S4.PR4.003 | E5-WB-003 | 464 | Worker F34: winback:response:process | ⬜ TODO | 3h |
+| Task ID       | Legacy ID | Task # | Denumire                             | Status  | Estimare |
+| ------------- | --------- | ------ | ------------------------------------ | ------- | -------- |
+| E5.S4.PR4.001 | E5-WB-001 | 462    | Worker F32: winback:campaign:create  | ⬜ TODO | 5h       |
+| E5.S4.PR4.002 | E5-WB-002 | 463    | Worker F33: winback:step:execute     | ⬜ TODO | 5h       |
+| E5.S4.PR4.003 | E5-WB-003 | 464    | Worker F34: winback:response:process | ⬜ TODO | 3h       |
 
 #### Acceptance Criteria
 
@@ -719,11 +719,11 @@ E5.S1.PR1.001
 
 #### Tasks
 
-| Task ID | Legacy ID | Task # | Denumire | Status | Estimare |
-| --- | --- | --- | --- | --- | --- |
-| E5.S4.PR5.001 | E5-WB-004 | 465 | Workers F35-F36: Conversion & Reactivation | ⬜ TODO | 4h |
-| E5.S4.PR5.002 | E5-WB-005 | 466 | Win-Back API Endpoints | ⬜ TODO | 4h |
-| E5.S4.PR5.003 | E5-WB-006 | 467 | Win-Back Templates | ⬜ TODO | 3h |
+| Task ID       | Legacy ID | Task # | Denumire                                   | Status  | Estimare |
+| ------------- | --------- | ------ | ------------------------------------------ | ------- | -------- |
+| E5.S4.PR5.001 | E5-WB-004 | 465    | Workers F35-F36: Conversion & Reactivation | ⬜ TODO | 4h       |
+| E5.S4.PR5.002 | E5-WB-005 | 466    | Win-Back API Endpoints                     | ⬜ TODO | 4h       |
+| E5.S4.PR5.003 | E5-WB-006 | 467    | Win-Back Templates                         | ⬜ TODO | 3h       |
 
 #### Acceptance Criteria
 
@@ -742,10 +742,10 @@ E5.S1.PR1.001
 
 #### Tasks
 
-| Task ID | Legacy ID | Task # | Denumire | Status | Estimare |
-| --- | --- | --- | --- | --- | --- |
-| E5.S4.PR6.001 | E5-WB-007 | 468 | Win-Back Tests | ⬜ TODO | 4h |
-| E5.S4.PR6.002 | E5-WB-008 | 469 | Win-Back Analytics Dashboard | ⬜ TODO | 3h |
+| Task ID       | Legacy ID | Task # | Denumire                     | Status  | Estimare |
+| ------------- | --------- | ------ | ---------------------------- | ------- | -------- |
+| E5.S4.PR6.001 | E5-WB-007 | 468    | Win-Back Tests               | ⬜ TODO | 4h       |
+| E5.S4.PR6.002 | E5-WB-008 | 469    | Win-Back Analytics Dashboard | ⬜ TODO | 3h       |
 
 #### Acceptance Criteria
 
@@ -767,12 +767,12 @@ E5.S1.PR1.001
 
 ### 📊 Metrici Sprint
 
-| Metrică | Target | Actual |
-| --- | --- | --- |
-| PR-uri planificate | 6 | - |
-| Task-uri planificate | 18 | - |
-| Story Points | 68 | - |
-| Test Coverage | ≥80% | - |
+| Metrică              | Target | Actual |
+| -------------------- | ------ | ------ |
+| PR-uri planificate   | 6      | -      |
+| Task-uri planificate | 18     | -      |
+| Story Points         | 68     | -      |
+| Test Coverage        | ≥80%   | -      |
 
 ---
 
@@ -785,11 +785,11 @@ E5.S1.PR1.001
 
 #### Tasks
 
-| Task ID | Legacy ID | Task # | Denumire | Status | Estimare |
-| --- | --- | --- | --- | --- | --- |
-| E5.S5.PR1.001 | E5-ASS-001 | 470 | Worker G37: ingest:ouai:scrape | ⬜ TODO | 5h |
-| E5.S5.PR1.002 | E5-ASS-002 | 471 | Worker G38: ingest:ouai:parse | ⬜ TODO | 4h |
-| E5.S5.PR1.003 | E5-ASS-003 | 472 | Workers G39-G40: Cooperative Scraping & Parsing | ⬜ TODO | 6h |
+| Task ID       | Legacy ID  | Task # | Denumire                                        | Status  | Estimare |
+| ------------- | ---------- | ------ | ----------------------------------------------- | ------- | -------- |
+| E5.S5.PR1.001 | E5-ASS-001 | 470    | Worker G37: ingest:ouai:scrape                  | ⬜ TODO | 5h       |
+| E5.S5.PR1.002 | E5-ASS-002 | 471    | Worker G38: ingest:ouai:parse                   | ⬜ TODO | 4h       |
+| E5.S5.PR1.003 | E5-ASS-003 | 472    | Workers G39-G40: Cooperative Scraping & Parsing | ⬜ TODO | 6h       |
 
 #### Acceptance Criteria
 
@@ -808,12 +808,12 @@ E5.S1.PR1.001
 
 #### Tasks
 
-| Task ID | Legacy ID | Task # | Denumire | Status | Estimare |
-| --- | --- | --- | --- | --- | --- |
-| E5.S5.PR2.001 | E5-ASS-004 | 473 | Worker G41: ingest:madr:sync | ⬜ TODO | 4h |
-| E5.S5.PR2.002 | E5-ASS-005 | 474 | Worker G42: ingest:affiliation:match | ⬜ TODO | 5h |
-| E5.S5.PR2.003 | E5-ASS-006 | 475 | Association API Endpoints | ⬜ TODO | 4h |
-| E5.S5.PR2.004 | E5-ASS-007 | 476 | Association Tests | ⬜ TODO | 4h |
+| Task ID       | Legacy ID  | Task # | Denumire                             | Status  | Estimare |
+| ------------- | ---------- | ------ | ------------------------------------ | ------- | -------- |
+| E5.S5.PR2.001 | E5-ASS-004 | 473    | Worker G41: ingest:madr:sync         | ⬜ TODO | 4h       |
+| E5.S5.PR2.002 | E5-ASS-005 | 474    | Worker G42: ingest:affiliation:match | ⬜ TODO | 5h       |
+| E5.S5.PR2.003 | E5-ASS-006 | 475    | Association API Endpoints            | ⬜ TODO | 4h       |
+| E5.S5.PR2.004 | E5-ASS-007 | 476    | Association Tests                    | ⬜ TODO | 4h       |
 
 #### Acceptance Criteria
 
@@ -832,9 +832,9 @@ E5.S1.PR1.001
 
 #### Tasks
 
-| Task ID | Legacy ID | Task # | Denumire | Status | Estimare |
-| --- | --- | --- | --- | --- | --- |
-| E5.S5.PR3.001 | E5-ASS-008 | 477 | OUAI Data Quality Dashboard | ⬜ TODO | 3h |
+| Task ID       | Legacy ID  | Task # | Denumire                    | Status  | Estimare |
+| ------------- | ---------- | ------ | --------------------------- | ------- | -------- |
+| E5.S5.PR3.001 | E5-ASS-008 | 477    | OUAI Data Quality Dashboard | ⬜ TODO | 3h       |
 
 #### Acceptance Criteria
 
@@ -852,11 +852,11 @@ E5.S1.PR1.001
 
 #### Tasks
 
-| Task ID | Legacy ID | Task # | Denumire | Status | Estimare |
-| --- | --- | --- | --- | --- | --- |
-| E5.S5.PR4.001 | E5-FBK-001 | 478 | Workers H43-H44: NPS Send & Process | ⬜ TODO | 5h |
-| E5.S5.PR4.002 | E5-FBK-002 | 479 | Workers H45-H47: Entity & Competitor Extraction | ⬜ TODO | 5h |
-| E5.S5.PR4.003 | E5-FBK-003 | 483 | Feedback API Endpoints | ⬜ TODO | 3h |
+| Task ID       | Legacy ID  | Task # | Denumire                                        | Status  | Estimare |
+| ------------- | ---------- | ------ | ----------------------------------------------- | ------- | -------- |
+| E5.S5.PR4.001 | E5-FBK-001 | 478    | Workers H43-H44: NPS Send & Process             | ⬜ TODO | 5h       |
+| E5.S5.PR4.002 | E5-FBK-002 | 479    | Workers H45-H47: Entity & Competitor Extraction | ⬜ TODO | 5h       |
+| E5.S5.PR4.003 | E5-FBK-003 | 483    | Feedback API Endpoints                          | ⬜ TODO | 3h       |
 
 #### Acceptance Criteria
 
@@ -875,11 +875,11 @@ E5.S1.PR1.001
 
 #### Tasks
 
-| Task ID | Legacy ID | Task # | Denumire | Status | Estimare |
-| --- | --- | --- | --- | --- | --- |
-| E5.S5.PR5.001 | E5-CNT-001 | 480 | Workers I48-I51: Content Drip System | ⬜ TODO | 6h |
-| E5.S5.PR5.002 | E5-ALR-001 | 481 | Workers J52-J55: Weather & Seasonal Alerts | ⬜ TODO | 5h |
-| E5.S5.PR5.003 | E5-CMP-001 | 482 | Workers K56-K58: Compliance & Audit | ⬜ TODO | 5h |
+| Task ID       | Legacy ID  | Task # | Denumire                                   | Status  | Estimare |
+| ------------- | ---------- | ------ | ------------------------------------------ | ------- | -------- |
+| E5.S5.PR5.001 | E5-CNT-001 | 480    | Workers I48-I51: Content Drip System       | ⬜ TODO | 6h       |
+| E5.S5.PR5.002 | E5-ALR-001 | 481    | Workers J52-J55: Weather & Seasonal Alerts | ⬜ TODO | 5h       |
+| E5.S5.PR5.003 | E5-CMP-001 | 482    | Workers K56-K58: Compliance & Audit        | ⬜ TODO | 5h       |
 
 #### Acceptance Criteria
 
@@ -898,12 +898,12 @@ E5.S1.PR1.001
 
 #### Tasks
 
-| Task ID | Legacy ID | Task # | Denumire | Status | Estimare |
-| --- | --- | --- | --- | --- | --- |
-| E5.S5.PR6.001 | E5-CNT-002 | 484 | Content Templates Library | ⬜ TODO | 4h |
-| E5.S5.PR6.002 | E5-FBK-004 | 485 | Competitor Intel Dashboard (compliant) | ⬜ TODO | 3h |
-| E5.S5.PR6.003 | E5-CMP-002 | 486 | Competition Law Review | ⬜ TODO | 2h |
-| E5.S5.PR6.004 | E5-FBK-005 | 487 | Feedback System Tests | ⬜ TODO | 4h |
+| Task ID       | Legacy ID  | Task # | Denumire                               | Status  | Estimare |
+| ------------- | ---------- | ------ | -------------------------------------- | ------- | -------- |
+| E5.S5.PR6.001 | E5-CNT-002 | 484    | Content Templates Library              | ⬜ TODO | 4h       |
+| E5.S5.PR6.002 | E5-FBK-004 | 485    | Competitor Intel Dashboard (compliant) | ⬜ TODO | 3h       |
+| E5.S5.PR6.003 | E5-CMP-002 | 486    | Competition Law Review                 | ⬜ TODO | 2h       |
+| E5.S5.PR6.004 | E5-FBK-005 | 487    | Feedback System Tests                  | ⬜ TODO | 4h       |
 
 #### Acceptance Criteria
 
@@ -926,12 +926,12 @@ E5.S1.PR1.001
 
 ### 📊 Metrici Sprint
 
-| Metrică | Target | Actual |
-| --- | --- | --- |
-| PR-uri planificate | 6 | - |
-| Task-uri planificate | 8 | - |
-| Story Points | 41 | - |
-| Test Coverage | ≥80% | - |
+| Metrică              | Target | Actual |
+| -------------------- | ------ | ------ |
+| PR-uri planificate   | 6      | -      |
+| Task-uri planificate | 8      | -      |
+| Story Points         | 41     | -      |
+| Test Coverage        | ≥80%   | -      |
 
 ---
 
@@ -944,9 +944,9 @@ E5.S1.PR1.001
 
 #### Tasks
 
-| Task ID | Legacy ID | Task # | Denumire | Status | Estimare |
-| --- | --- | --- | --- | --- | --- |
-| E5.S6.PR1.001 | E5-UI-001 | 488 | Nurturing Dashboard Page | ⬜ TODO | 6h |
+| Task ID       | Legacy ID | Task # | Denumire                 | Status  | Estimare |
+| ------------- | --------- | ------ | ------------------------ | ------- | -------- |
+| E5.S6.PR1.001 | E5-UI-001 | 488    | Nurturing Dashboard Page | ⬜ TODO | 6h       |
 
 #### Acceptance Criteria
 
@@ -965,10 +965,10 @@ E5.S1.PR1.001
 
 #### Tasks
 
-| Task ID | Legacy ID | Task # | Denumire | Status | Estimare |
-| --- | --- | --- | --- | --- | --- |
-| E5.S6.PR2.001 | E5-UI-002 | 489 | Client Nurturing Detail Page | ⬜ TODO | 6h |
-| E5.S6.PR2.002 | E5-UI-003 | 490 | Churn Risk Dashboard | ⬜ TODO | 5h |
+| Task ID       | Legacy ID | Task # | Denumire                     | Status  | Estimare |
+| ------------- | --------- | ------ | ---------------------------- | ------- | -------- |
+| E5.S6.PR2.001 | E5-UI-002 | 489    | Client Nurturing Detail Page | ⬜ TODO | 6h       |
+| E5.S6.PR2.002 | E5-UI-003 | 490    | Churn Risk Dashboard         | ⬜ TODO | 5h       |
 
 #### Acceptance Criteria
 
@@ -987,9 +987,9 @@ E5.S1.PR1.001
 
 #### Tasks
 
-| Task ID | Legacy ID | Task # | Denumire | Status | Estimare |
-| --- | --- | --- | --- | --- | --- |
-| E5.S6.PR3.001 | E5-UI-004 | 491 | Referral Management Page | ⬜ TODO | 5h |
+| Task ID       | Legacy ID | Task # | Denumire                 | Status  | Estimare |
+| ------------- | --------- | ------ | ------------------------ | ------- | -------- |
+| E5.S6.PR3.001 | E5-UI-004 | 491    | Referral Management Page | ⬜ TODO | 5h       |
 
 #### Acceptance Criteria
 
@@ -1008,9 +1008,9 @@ E5.S1.PR1.001
 
 #### Tasks
 
-| Task ID | Legacy ID | Task # | Denumire | Status | Estimare |
-| --- | --- | --- | --- | --- | --- |
-| E5.S6.PR4.001 | E5-UI-005 | 492 | Clusters & Map Page | ⬜ TODO | 6h |
+| Task ID       | Legacy ID | Task # | Denumire            | Status  | Estimare |
+| ------------- | --------- | ------ | ------------------- | ------- | -------- |
+| E5.S6.PR4.001 | E5-UI-005 | 492    | Clusters & Map Page | ⬜ TODO | 6h       |
 
 #### Acceptance Criteria
 
@@ -1029,10 +1029,10 @@ E5.S1.PR1.001
 
 #### Tasks
 
-| Task ID | Legacy ID | Task # | Denumire | Status | Estimare |
-| --- | --- | --- | --- | --- | --- |
-| E5.S6.PR5.001 | E5-UI-006 | 493 | KOL Management Page | ⬜ TODO | 4h |
-| E5.S6.PR5.002 | E5-UI-007 | 494 | Win-Back Campaigns Page | ⬜ TODO | 5h |
+| Task ID       | Legacy ID | Task # | Denumire                | Status  | Estimare |
+| ------------- | --------- | ------ | ----------------------- | ------- | -------- |
+| E5.S6.PR5.001 | E5-UI-006 | 493    | KOL Management Page     | ⬜ TODO | 4h       |
+| E5.S6.PR5.002 | E5-UI-007 | 494    | Win-Back Campaigns Page | ⬜ TODO | 5h       |
 
 #### Acceptance Criteria
 
@@ -1051,9 +1051,9 @@ E5.S1.PR1.001
 
 #### Tasks
 
-| Task ID | Legacy ID | Task # | Denumire | Status | Estimare |
-| --- | --- | --- | --- | --- | --- |
-| E5.S6.PR6.001 | E5-UI-008 | 495 | HITL Queue Integration pentru Etapa 5 | ⬜ TODO | 4h |
+| Task ID       | Legacy ID | Task # | Denumire                              | Status  | Estimare |
+| ------------- | --------- | ------ | ------------------------------------- | ------- | -------- |
+| E5.S6.PR6.001 | E5-UI-008 | 495    | HITL Queue Integration pentru Etapa 5 | ⬜ TODO | 4h       |
 
 #### Acceptance Criteria
 
@@ -1076,12 +1076,12 @@ E5.S1.PR1.001
 
 ### 📊 Metrici Sprint
 
-| Metrică | Target | Actual |
-| --- | --- | --- |
-| PR-uri planificate | 6 | - |
-| Task-uri planificate | 3 | - |
-| Story Points | 22 | - |
-| Test Coverage | ≥85% | - |
+| Metrică              | Target | Actual |
+| -------------------- | ------ | ------ |
+| PR-uri planificate   | 6      | -      |
+| Task-uri planificate | 3      | -      |
+| Story Points         | 22     | -      |
+| Test Coverage        | ≥85%   | -      |
 
 ---
 
@@ -1094,9 +1094,9 @@ E5.S1.PR1.001
 
 #### Tasks
 
-| Task ID | Legacy ID | Task # | Denumire | Status | Estimare |
-| --- | --- | --- | --- | --- | --- |
-| E5.S7.PR1.001 | E5-TST-001 | 496 | E2E Tests Etapa 5 | ⬜ TODO | 8h |
+| Task ID       | Legacy ID  | Task # | Denumire          | Status  | Estimare |
+| ------------- | ---------- | ------ | ----------------- | ------- | -------- |
+| E5.S7.PR1.001 | E5-TST-001 | 496    | E2E Tests Etapa 5 | ⬜ TODO | 8h       |
 
 #### Acceptance Criteria
 
@@ -1116,9 +1116,9 @@ E5.S1.PR1.001
 
 #### Tasks
 
-| Task ID | Legacy ID | Task # | Denumire | Status | Estimare |
-| --- | --- | --- | --- | --- | --- |
-| E5.S7.PR2.001 | E5-TST-002 | 497 | Security Audit Etapa 5 | ⬜ TODO | 6h |
+| Task ID       | Legacy ID  | Task # | Denumire               | Status  | Estimare |
+| ------------- | ---------- | ------ | ---------------------- | ------- | -------- |
+| E5.S7.PR2.001 | E5-TST-002 | 497    | Security Audit Etapa 5 | ⬜ TODO | 6h       |
 
 #### Acceptance Criteria
 
@@ -1138,9 +1138,9 @@ E5.S1.PR1.001
 
 #### Tasks
 
-| Task ID | Legacy ID | Task # | Denumire | Status | Estimare |
-| --- | --- | --- | --- | --- | --- |
-| E5.S7.PR3.001 | E5-DEP-001 | 498 | Deploy Etapa 5 to Production | ⬜ TODO | 8h |
+| Task ID       | Legacy ID  | Task # | Denumire                     | Status  | Estimare |
+| ------------- | ---------- | ------ | ---------------------------- | ------- | -------- |
+| E5.S7.PR3.001 | E5-DEP-001 | 498    | Deploy Etapa 5 to Production | ⬜ TODO | 8h       |
 
 #### Acceptance Criteria
 
@@ -1200,16 +1200,16 @@ E5.S1.PR1.001
 
 ### Distribuție Taskuri pe Sprinturi
 
-| Sprint | Focus | PR-uri | Taskuri | Ore Est. | Zile |
-| --- | --- | --- | --- | --- | --- |
-| S1 | Foundation | 6 | 20 | 63 | 8 |
-| S2 | State/Churn | 6 | 16 | 67 | 9 |
-| S3 | Geo/Graph | 6 | 16 | 61 | 8 |
-| S4 | Referral/WinBack | 6 | 18 | 68 | 9 |
-| S5 | Associations/Feedback | 6 | 18 | 68 | 9 |
-| S6 | UI | 6 | 8 | 41 | 6 |
-| S7 | Testing/Deploy | 6 | 3 | 22 | 4 |
-| **TOTAL** | | **42** | **99** | **390** | **~53 zile** |
+| Sprint    | Focus                 | PR-uri | Taskuri | Ore Est. | Zile         |
+| --------- | --------------------- | ------ | ------- | -------- | ------------ |
+| S1        | Foundation            | 6      | 20      | 63       | 8            |
+| S2        | State/Churn           | 6      | 16      | 67       | 9            |
+| S3        | Geo/Graph             | 6      | 16      | 61       | 8            |
+| S4        | Referral/WinBack      | 6      | 18      | 68       | 9            |
+| S5        | Associations/Feedback | 6      | 18      | 68       | 9            |
+| S6        | UI                    | 6      | 8       | 41       | 6            |
+| S7        | Testing/Deploy        | 6      | 3       | 22       | 4            |
+| **TOTAL** |                       | **42** | **99**  | **390**  | **~53 zile** |
 
 ### Critical Path
 
@@ -1229,26 +1229,25 @@ S5 (Associations, Feedback) ──────────┘
 
 ## RISK REGISTER
 
-| Risk | Impact | Probability | Mitigation |
-| --- | --- | --- | --- |
-| PostGIS query performance | High | Medium | Early optimization în S3 |
-| Graph analysis memory | High | Medium | Batch processing, Python free-threading |
-| GDPR compliance gaps | High | Low | Legal review în S4 |
-| LLM API costs | Medium | Medium | Cost tracking, rate limiting |
-| PDF parsing accuracy | Medium | High | Fallback manual ingestion |
+| Risk                      | Impact | Probability | Mitigation                              |
+| ------------------------- | ------ | ----------- | --------------------------------------- |
+| PostGIS query performance | High   | Medium      | Early optimization în S3                |
+| Graph analysis memory     | High   | Medium      | Batch processing, Python free-threading |
+| GDPR compliance gaps      | High   | Low         | Legal review în S4                      |
+| LLM API costs             | Medium | Medium      | Cost tracking, rate limiting            |
+| PDF parsing accuracy      | Medium | High        | Fallback manual ingestion               |
 
 ---
 
 ## APPROVAL
 
-| Rol | Nume | Data | Signature |
-| --- | --- | --- | --- |
-| Product Owner | - | - | ⬜ |
-| Tech Lead | - | - | ⬜ |
-| DevOps | - | - | ⬜ |
+| Rol           | Nume | Data | Signature |
+| ------------- | ---- | ---- | --------- |
+| Product Owner | -    | -    | ⬜        |
+| Tech Lead     | -    | -    | ⬜        |
+| DevOps        | -    | -    | ⬜        |
 
 ---
 
 **Document generat**: 2 Februarie 2026  
 **Status**: APPROVED ✅
-

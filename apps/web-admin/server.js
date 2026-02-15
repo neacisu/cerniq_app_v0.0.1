@@ -43,4 +43,3 @@ const server = http.createServer((req, res) => {
 server.listen(3000, "0.0.0.0", () => {
   console.log("Cerniq Admin placeholder running on port 3000");
 });
-

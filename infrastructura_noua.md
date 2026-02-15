@@ -103,7 +103,7 @@ Observatii privind scopul:
 
 - Nod de compute Proxmox pentru VM-uri; resurse mari, storage local si arhiva separata.
 - Are configuratii de retea multiple pe acelasi bridge, ceea ce poate crea ambiguitati de routing.
-Observatii cheie:
+  Observatii cheie:
 - Proxmox cluster: quorate, corosync OK (ring pe 10.0.1.11).
 - SSH: PermitRootLogin yes, PasswordAuthentication yes.
 - Servicii expuse: pveproxy 8006, spiceproxy 3128, rpcbind 111, postfix 25.
@@ -361,11 +361,11 @@ Recomandari:
 
 ## Probleme majore identificate
 
-1) SSH root + password auth pe toate hosturile.
-2) Management services expuse public (Proxmox UI, RPC, Spice, SMTP).
-3) Firewall inconsistent si uneori complet deschis.
-4) Patching inconsistent si uneori intarziat.
-5) IP-uri multiple in acelasi /24 pe vmbr4000 (risc de ARP/routing issues).
+1. SSH root + password auth pe toate hosturile.
+2. Management services expuse public (Proxmox UI, RPC, Spice, SMTP).
+3. Firewall inconsistent si uneori complet deschis.
+4. Patching inconsistent si uneori intarziat.
+5. IP-uri multiple in acelasi /24 pe vmbr4000 (risc de ARP/routing issues).
 
 ## Plan de remediere recomandat
 
@@ -402,14 +402,14 @@ Aceasta sectiune defineste o vedere de ansamblu pentru toate proiectele curente 
 
 ### Proiecte curente (snapshot)
 
-| Proiect / Serviciu | Tip | Locatie | Domenii / Acces | Note |
-| --- | --- | --- | --- | --- |
-| Traefik (gateway) | Platforma (shared) | orchestrator (Docker) | :443 public (TLS), file+docker provider | Ingress unic pentru proiecte; configurari aditive per proiect |
-| OpenBao (secrete) | Platforma (shared) | orchestrator (Docker) | expus prin Traefik (HTTPS) | Se foloseste centralizat; proiectele NU ruleaza server OpenBao local |
-| Observabilitate (Grafana/Prometheus/Loki/Tempo/Vector/OTel) | Platforma (shared) | orchestrator (Docker) | grafana.neanelu.ro / metrics.neanelu.ro / logs.neanelu.ro / traces.neanelu.ro | Proiectele se integreaza aditiv (targets/allowlist/dashboards/rules dedicate) |
-| Email triggerra (stalwart + roundcube) | Proiect | orchestrator (Docker) | mailadmin.triggerra.app, webmail.triggerra.app + porturi SMTP/IMAP | Documentat in sectiunea urmatoare |
-| Cerniq.app | Proiect | CT107/CT108/CT109/CT110 + orchestrator | cerniq.app + subdomenii; pipeline CI/CD via CT108 | Detaliat mai jos in "Implementare Cerniq.app" |
-| Neanelu Shopify (Manager) | Proiect | CT107/CT111/CT112 (+ CT108 runner) + orchestrator | manager.neanelu.ro + staging.manager.neanelu.ro + otel-neanelu.neanelu.ro + logs-neanelu.neanelu.ro | Detaliat mai jos in "Implementare Neanelu Shopify Manager" (tracking obligatoriu) |
+| Proiect / Serviciu                                          | Tip                | Locatie                                           | Domenii / Acces                                                                                     | Note                                                                              |
+| ----------------------------------------------------------- | ------------------ | ------------------------------------------------- | --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Traefik (gateway)                                           | Platforma (shared) | orchestrator (Docker)                             | :443 public (TLS), file+docker provider                                                             | Ingress unic pentru proiecte; configurari aditive per proiect                     |
+| OpenBao (secrete)                                           | Platforma (shared) | orchestrator (Docker)                             | expus prin Traefik (HTTPS)                                                                          | Se foloseste centralizat; proiectele NU ruleaza server OpenBao local              |
+| Observabilitate (Grafana/Prometheus/Loki/Tempo/Vector/OTel) | Platforma (shared) | orchestrator (Docker)                             | grafana.neanelu.ro / metrics.neanelu.ro / logs.neanelu.ro / traces.neanelu.ro                       | Proiectele se integreaza aditiv (targets/allowlist/dashboards/rules dedicate)     |
+| Email triggerra (stalwart + roundcube)                      | Proiect            | orchestrator (Docker)                             | mailadmin.triggerra.app, webmail.triggerra.app + porturi SMTP/IMAP                                  | Documentat in sectiunea urmatoare                                                 |
+| Cerniq.app                                                  | Proiect            | CT107/CT108/CT109/CT110 + orchestrator            | cerniq.app + subdomenii; pipeline CI/CD via CT108                                                   | Detaliat mai jos in "Implementare Cerniq.app"                                     |
+| Neanelu Shopify (Manager)                                   | Proiect            | CT107/CT111/CT112 (+ CT108 runner) + orchestrator | manager.neanelu.ro + staging.manager.neanelu.ro + otel-neanelu.neanelu.ro + logs-neanelu.neanelu.ro | Detaliat mai jos in "Implementare Neanelu Shopify Manager" (tracking obligatoriu) |
 
 ### Proiecte viitoare (model de onboarding)
 
@@ -549,23 +549,23 @@ Aceasta mapare este folosita ca ghid in timpul migrarii ca sa fie clar:
 - ce mutam (din container local -> CT dedicat / orchestrator)
 - ce pastram local doar pentru dev
 
-| Componenta | As-is (curent) | Target (noua infrastructura) | Note / verificare minima |
-| --- | --- | --- | --- |
-| Ingress (HTTP/TLS) | Traefik local (`traefik:v3.6.6`) in `docker-compose.yml` | Traefik **orchestrator** (shared), fisier dinamic dedicat `neanelu.yml` | `curl -I https://manager.neanelu.ro/health/ready` -> 200 |
-| DNS/TLS | ACME HTTP-01 local, porturi 80/443 pe host | Cloudflare proxied + TLS prin Traefik orchestrator (cert resolver Cloudflare) | `dig A manager.neanelu.ro` -> `77.42.76.185` |
-| Postgres | container local `neanelu_postgres` | CT107 `postgres-main` (`10.0.1.107:5432`) cu DB per env | `pg_isready -h 10.0.1.107 -p 5432` |
-| DB pooling | conexiune directa din app catre DB | PgBouncer pe CT111/CT112 + auth_query + OpenBao agent infra (tmpfs) | `psql "$DATABASE_URL"` (via PgBouncer) |
-| Redis | container local `redis:8.4` | Redis shared orchestrator (`10.0.0.2:6379`) cu ACL + prefix per env | `redis-cli -u "$REDIS_URL" PING` |
-| BullMQ/BullMQ Pro | backend foloseste Redis local | backend foloseste redis-shared + prefix/ACL per env | verificare chei: `neanelu:prod:*` / `neanelu:staging:*` |
-| Secrete | `.env` pe disk (local) | OpenBao centralizat (orchestrator) + AppRoles + agent sidecars (tmpfs) | agent container `healthy` + env files in tmpfs |
-| Logs | Loki/Promtail local | Vector pe CT111/CT112 -> Loki central; host dedicat push-only `logs-neanelu.neanelu.ro` | `curl` push endpoint (allowlist) nu returneaza 403 |
-| Traces | Jaeger local + collector local | OTel local -> collector central prin Traefik; host dedicat ingest-only `otel-neanelu.neanelu.ro` | apare service in Tempo/Grafana Explore |
-| Metrics | Prometheus/Grafana locale | Prometheus/Grafana central (orchestrator); scrape din CT111/CT112 pe porturi 65xxx | targets up in Prometheus central |
-| Dashboards | Grafana local | Folder dedicat "Neanelu" in Grafana central | labels `project=neanelu`, `environment=prod\|staging` |
-| Alerting | Alertmanager local | Alertmanager central + rules aditive per proiect | fara alerte false dupa cutover |
-| Bulk artifacts | volum docker local `bulk_artifacts` | volume/path pe CT111/CT112 (cu rotatie/retentie) | cleanup job + spatiu suficient |
-| CI/CD | (potential) manual pe host | runner CT108 + workflow-uri (FAZA 1) | gating pe checks + deploy lock |
-| Dev local | compose dev cu tool-uri (pgadmin, redis-commander) | ramane local (nu migram dev pe LXC) | `pnpm db:up` continua sa functioneze |
+| Componenta         | As-is (curent)                                           | Target (noua infrastructura)                                                                     | Note / verificare minima                                 |
+| ------------------ | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | -------------------------------------------------------- |
+| Ingress (HTTP/TLS) | Traefik local (`traefik:v3.6.6`) in `docker-compose.yml` | Traefik **orchestrator** (shared), fisier dinamic dedicat `neanelu.yml`                          | `curl -I https://manager.neanelu.ro/health/ready` -> 200 |
+| DNS/TLS            | ACME HTTP-01 local, porturi 80/443 pe host               | Cloudflare proxied + TLS prin Traefik orchestrator (cert resolver Cloudflare)                    | `dig A manager.neanelu.ro` -> `77.42.76.185`             |
+| Postgres           | container local `neanelu_postgres`                       | CT107 `postgres-main` (`10.0.1.107:5432`) cu DB per env                                          | `pg_isready -h 10.0.1.107 -p 5432`                       |
+| DB pooling         | conexiune directa din app catre DB                       | PgBouncer pe CT111/CT112 + auth_query + OpenBao agent infra (tmpfs)                              | `psql "$DATABASE_URL"` (via PgBouncer)                   |
+| Redis              | container local `redis:8.4`                              | Redis shared orchestrator (`10.0.0.2:6379`) cu ACL + prefix per env                              | `redis-cli -u "$REDIS_URL" PING`                         |
+| BullMQ/BullMQ Pro  | backend foloseste Redis local                            | backend foloseste redis-shared + prefix/ACL per env                                              | verificare chei: `neanelu:prod:*` / `neanelu:staging:*`  |
+| Secrete            | `.env` pe disk (local)                                   | OpenBao centralizat (orchestrator) + AppRoles + agent sidecars (tmpfs)                           | agent container `healthy` + env files in tmpfs           |
+| Logs               | Loki/Promtail local                                      | Vector pe CT111/CT112 -> Loki central; host dedicat push-only `logs-neanelu.neanelu.ro`          | `curl` push endpoint (allowlist) nu returneaza 403       |
+| Traces             | Jaeger local + collector local                           | OTel local -> collector central prin Traefik; host dedicat ingest-only `otel-neanelu.neanelu.ro` | apare service in Tempo/Grafana Explore                   |
+| Metrics            | Prometheus/Grafana locale                                | Prometheus/Grafana central (orchestrator); scrape din CT111/CT112 pe porturi 65xxx               | targets up in Prometheus central                         |
+| Dashboards         | Grafana local                                            | Folder dedicat "Neanelu" in Grafana central                                                      | labels `project=neanelu`, `environment=prod\|staging`    |
+| Alerting           | Alertmanager local                                       | Alertmanager central + rules aditive per proiect                                                 | fara alerte false dupa cutover                           |
+| Bulk artifacts     | volum docker local `bulk_artifacts`                      | volume/path pe CT111/CT112 (cu rotatie/retentie)                                                 | cleanup job + spatiu suficient                           |
+| CI/CD              | (potential) manual pe host                               | runner CT108 + workflow-uri (FAZA 1)                                                             | gating pe checks + deploy lock                           |
+| Dev local          | compose dev cu tool-uri (pgadmin, redis-commander)       | ramane local (nu migram dev pe LXC)                                                              | `pnpm db:up` continua sa functioneze                     |
 
 ##### Observabilitate si metrici (as-is)
 
@@ -672,66 +672,66 @@ Executie curenta (audit trail):
 
 Tabela se mentine ca “source of truth” pentru status + referinte.
 
-| Todo / Pas | Status | Repo path / config | Host path / locatie | Verificare |
-| --- | --- | --- | --- | --- |
-| FAZA 0 - Pas 0.001 (CT111+CT112 create) | completed | `infra/scripts/hz215_create_ct111_ct112.sh` | hz.215 | Verificari succinte in tabel; detalii in “Taskuri implementate (Neanelu) -> phase00-001” |
-| FAZA 0 - Pas 0.002 (NAT/FORWARD) | completed | `infra/config/iptables/*neanelu*` | hz.247 `/etc/iptables.rules` | `iptables -S FORWARD` (reguli CT111/CT112) + egress DNS+443 verificat din CT111/CT112 (python3 getaddrinfo + TCP connect) + VIP allowlist `10.0.1.10:443/6379` verificat |
-| FAZA 0 - Pas 0.003 (Backup + rollback plan) | completed | `infra/scripts/ct107_backup_postgres_neanelu.sh`, `infra/scripts/ct107_restore_postgres_neanelu.sh` | CT107 + (optional) Storage Box | `DRY_RUN=1` precheck ok (psql) + restore guard (CONFIRM_RESTORE) + rulare reala inainte de cutover (Pas 0.017) |
-| FAZA 0 - Pas 0.004 (CT107 DB prod+staging) | completed | `infra/scripts/ct107_init_neanelu_db.sh` | CT107 | DB-uri `neanelu_shopify` + `neanelu_shopify_staging` create, owner `neanelu_app`; extensii `vector`, `pg_stat_statements`, `citext` prezente |
-| FAZA 0 - Pas 0.004B (SECURITY: elimina pg_hba trust orchestrator) | completed | (executie controlata) patch `pg_hba.conf` + reload | CT107 | `pg_hba_file_rules` nu mai contine `trust` (count=0) |
-| FAZA 0 - Pas 0.005 (OpenBao secrets central) | completed | `infra/config/openbao/*`, `infra/scripts/openbao_apply_neanelu.py` | orchestrator OpenBao | policies + AppRoles Neanelu create; KV marker `secret/neanelu/shared/_bootstrap` prezent |
-| FAZA 0 - Pas 0.006 (Redis shared: ACL + prefix per env) | completed | `/opt/redis-shared/redis.conf` (aditiv) + OpenBao KV `secret/neanelu/*/redis` | orchestrator Redis | `PING` ca `neanelu-prod`/`neanelu-staging` + NOPERM la chei in afara prefix-ului |
-| FAZA 0 - Pas 0.007 (Traefik orchestrator: neanelu.yml) | pending | `infra/config/traefik-orchestrator/neanelu.yml` | orchestrator `/opt/traefik/dynamic/neanelu.yml` | `sha256sum` match + `curl -I` hostnames |
-| FAZA 0 - Pas 0.008 (Eliminare Traefik/Nginx local + refactor compose) | pending | compose refactor | CT111/CT112 `/opt/neanelu/*` | `docker compose config` fara `traefik` local |
-| FAZA 0 - Pas 0.009 (docker-compose.prod.yml) | pending | `docker-compose.prod.yml` | CT111/CT112 `/opt/neanelu/*` | `docker compose -f ... config` ok |
-| FAZA 0 - Pas 0.010 (PgBouncer + auth_query) | pending | `infra/config/openbao/templates/*pgbouncer*` | CT111/CT112 tmpfs `/run/neanelu/runtime-secrets/infra/` | `psql` via PgBouncer + `SHOW POOLS;` |
-| FAZA 0 - Pas 0.011 (Observabilitate integrare) | pending | vector/otel configs | CT111/CT112 + orchestrator | logs in Loki, traces in Tempo, targets up |
-| FAZA 0 - Pas 0.011B (allowlist scoping ingest-only) | pending | traefik routers + obs | orchestrator | `curl` din neallowlist -> 403; allowlist -> 2xx |
-| FAZA 0 - Pas 0.011C (gateway intern TLS observability) | pending | haproxy + iptables | hz.247 | bind `10.0.1.10:443` + allow doar CT111/CT112 |
-| FAZA 0 - Pas 0.012 (Grafana dashboards) | pending | dashboards json | grafana central | dashboard folder "Neanelu" populat |
-| FAZA 0 - Pas 0.013 (Cloudflare DNS + SSL) | pending | DNS records | Cloudflare | `dig` + `curl -I` prod+staging+otel+logs |
-| FAZA 0 - Pas 0.014 (Shopify Partner: 2 apps) | pending | N/A (UI Shopify) | Shopify Partners | OAuth callback ok prod+staging |
-| FAZA 0 - Pas 0.015 (handoff FAZA 1 CI/CD) | pending | `phase_01_ci_cd.plan.md` | CT108 runner | PR checks + deploy plan valid |
-| FAZA 0 - Pas 0.016 (Actualizare cod/config) | pending | `.env.example` + `packages/config` | repo | config validation + feature flags |
-| FAZA 0 - Pas 0.017 (Cutover: dump/restore + migratii + DNS) | pending | runbooks + scripts | CT107 + Cloudflare | restore ok + health ok + webhooks ok |
-| FAZA 0 - Pas 0.018 (Validare finala) | pending | checklist | prod+staging | non-interferenta + observability ok |
-| DOCS ALIGNMENT (port matrix) | pending | `Docs/Port_Conventions.md` | repo + orchestrator scrape | scrape ports 65210/65211 confirmate |
-| DOCS ALIGNMENT (deploy checklist) | pending | `Docs/Production_Deployment_Checklist.md` | repo | pasii reflecta CT107/OpenBao/Traefik orch |
-| DOCS ALIGNMENT (runbooks) | pending | `Docs/runbooks/*` | repo | fara referinte la DB/Redis/OpenBao locale |
-| DOCS ALIGNMENT (runbook) - database-migration | pending | `Docs/runbooks/database-migration.md` | repo | fara `localhost:65010`; PgBouncer/CT107 clar |
-| DOCS ALIGNMENT (runbook) - openbao-recovery | pending | `Docs/runbooks/openbao-recovery.md` | repo | OpenBao orchestrator; fara `docker exec openbao` local |
-| DOCS ALIGNMENT (runbook) - DR_Runbook | pending | `Docs/runbooks/DR_Runbook.md` | repo | CT107 + redis-shared + CT111/CT112 (nu db local) |
-| DOCS ALIGNMENT (runbook) - database-failover | pending | `Docs/runbooks/database-failover.md` | repo | clar future vs aplicabil; comenzi corecte |
-| DOCS ALIGNMENT (runbook) - bulk-operation-stuck | pending | `Docs/runbooks/bulk-operation-stuck.md` | repo | redis-shared prefix/ACL + alternative prin API |
-| DOCS ALIGNMENT (runbook) - rate-limit-emergency | pending | `Docs/runbooks/rate-limit-emergency.md` | repo | prefera control-plane; chei prefixate |
-| DOCS ALIGNMENT (runbook) - ai-pipeline-operations | pending | `Docs/runbooks/ai-pipeline-operations.md` | repo | noua topologie + tranzitie Kimi |
-| DOCS ALIGNMENT (runbook) - pim-api-budget-exceeded | pending | `Docs/runbooks/pim-api-budget-exceeded.md` | repo | runbook_url din alerts valid + actiuni ok |
-| DOCS ALIGNMENT (runbook) - logql-queries | pending | `Docs/runbooks/logql-queries.md` | repo | queries functioneaza cu labels `project/environment` |
-| DOCS ALIGNMENT (runbook) - runbooks index | pending | `Docs/runbooks/README.md` | repo | lista completa + status tested/untested |
-| SECURITY FINAL (secret cleanup) | pending | `Docs/*` + repo | repo | `rg` nu gaseste tokenuri/chei/parole |
-| OPS (pre-cutover) code freeze + TTL | pending | release notes | Cloudflare + git | tag ok + TTL 60 inainte de cutover |
-| OPS (host readiness) | pending | checklist | CT111/CT112 | Docker>=27, disk ok, time sync ok |
-| OPS (backup verification) | pending | backup scripts | CT107 + staging | restore staging ok |
-| OPS (migratii DB) | pending | runbook migrations | CT107 | expand/contract verificat |
-| OPS (smoke tests) | pending | smoke scripts | prod+staging | OAuth/webhooks/queues ok |
-| OPS (post-cutover log/cleanup) | pending | deployment log | repo | log complet + prune/retention |
-| GAP FIX (Traefik /auth + /health) | pending | `infra/config/traefik-orchestrator/neanelu.yml` | orchestrator | `curl -I /auth/shopify` -> 302; `curl /health/ready` -> 200 |
-| OBS ALIGNMENT (prom targets + alert rules 1:1) | pending | prom config + rules files | orchestrator | targets up + alerts ok + runbook_url ok |
-| OBS ALIGNMENT (rules) - queue-alerts | pending | `Docs/Observability_Alerting.md` | orchestrator | `QueueStalledJobsHigh` etc active |
-| OBS ALIGNMENT (rules) - shopify-alerts | pending | `Docs/Observability_Alerting.md` | orchestrator | `ShopifyAPICostSpike`, `ShopifyRateLimitHit` active |
-| OBS ALIGNMENT (rules) - infra-alerts | pending | `Docs/Observability_Alerting.md` | orchestrator | Redis/Postgres/Disk/Memory alerts active |
-| OBS ALIGNMENT (rules) - bulk-alerts | pending | `Docs/Observability_Alerting.md` | orchestrator | `BulkOperationStuck` active |
-| OBS ALIGNMENT (rules) - pim-cost-alerts | pending | `Docs/Observability_Alerting.md` | orchestrator | `PimApiBudgetWarning/Exceeded` active |
-| OBS ALIGNMENT (alert routing) | pending | alertmanager config | orchestrator | critical->pagerduty, warning->slack |
-| SECURITY/DB (RLS tests via PgBouncer) | pending | `Docs/Testing_RLS_Isolation.md` | staging DB | TC-RLS-001..003 trec (direct + via PgBouncer) |
-| DOCS ALIGNMENT (Port_Conventions) | pending | `Docs/Port_Conventions.md` | repo | reflecta central obs + 65210/65211 + deprecari prod |
-| SHOPIFY/GDPR (uninstall validation) | pending | `Docs/Webhook_Topics_Reference.md` | staging/prod | uninstall sterge date + curata cozi/redis keys |
-| DB SoT ALIGNMENT (schema parity) | pending | `Docs/Database_Schema_Complete.md` | CT107 + repo | extensii + migrare ordine + sanity checks |
-| DB OPERATIONS (retention/partitioning) | pending | DB ops design | CT107 | ownership clar (FAZA 0 index, FAZA 16 implementare) |
-| DB PERF/OBS (pg_stat_statements preload) | pending | postgresql.conf CT107 | CT107 | `SHOW shared_preload_libraries;` contine pg_stat_statements |
-| DB MAINTENANCE (pgvector vacuum cadence) | pending | `Docs/tech/pgvector-tuning.md` | CT107 | job saptamanal definit/testat (FAZA 16) |
-| DB INDEX POLICY (partial indexes) | pending | `Docs/Database_Partial_Indexes.md` | CT107 | EXPLAIN foloseste indexuri partiale |
-| DOCS ALIGNMENT (devops+onboarding) | pending | `Docs/DevOps_Plan_Implementare_Shopify_Enterprise.md`, `Docs/Developer_Onboarding_Guide.md` | repo | topologie noua reflectata 1:1 |
+| Todo / Pas                                                            | Status    | Repo path / config                                                                                  | Host path / locatie                                     | Verificare                                                                                                                                                               |
+| --------------------------------------------------------------------- | --------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| FAZA 0 - Pas 0.001 (CT111+CT112 create)                               | completed | `infra/scripts/hz215_create_ct111_ct112.sh`                                                         | hz.215                                                  | Verificari succinte in tabel; detalii in “Taskuri implementate (Neanelu) -> phase00-001”                                                                                 |
+| FAZA 0 - Pas 0.002 (NAT/FORWARD)                                      | completed | `infra/config/iptables/*neanelu*`                                                                   | hz.247 `/etc/iptables.rules`                            | `iptables -S FORWARD` (reguli CT111/CT112) + egress DNS+443 verificat din CT111/CT112 (python3 getaddrinfo + TCP connect) + VIP allowlist `10.0.1.10:443/6379` verificat |
+| FAZA 0 - Pas 0.003 (Backup + rollback plan)                           | completed | `infra/scripts/ct107_backup_postgres_neanelu.sh`, `infra/scripts/ct107_restore_postgres_neanelu.sh` | CT107 + (optional) Storage Box                          | `DRY_RUN=1` precheck ok (psql) + restore guard (CONFIRM_RESTORE) + rulare reala inainte de cutover (Pas 0.017)                                                           |
+| FAZA 0 - Pas 0.004 (CT107 DB prod+staging)                            | completed | `infra/scripts/ct107_init_neanelu_db.sh`                                                            | CT107                                                   | DB-uri `neanelu_shopify` + `neanelu_shopify_staging` create, owner `neanelu_app`; extensii `vector`, `pg_stat_statements`, `citext` prezente                             |
+| FAZA 0 - Pas 0.004B (SECURITY: elimina pg_hba trust orchestrator)     | completed | (executie controlata) patch `pg_hba.conf` + reload                                                  | CT107                                                   | `pg_hba_file_rules` nu mai contine `trust` (count=0)                                                                                                                     |
+| FAZA 0 - Pas 0.005 (OpenBao secrets central)                          | completed | `infra/config/openbao/*`, `infra/scripts/openbao_apply_neanelu.py`                                  | orchestrator OpenBao                                    | policies + AppRoles Neanelu create; KV marker `secret/neanelu/shared/_bootstrap` prezent                                                                                 |
+| FAZA 0 - Pas 0.006 (Redis shared: ACL + prefix per env)               | completed | `/opt/redis-shared/redis.conf` (aditiv) + OpenBao KV `secret/neanelu/*/redis`                       | orchestrator Redis                                      | `PING` ca `neanelu-prod`/`neanelu-staging` + NOPERM la chei in afara prefix-ului                                                                                         |
+| FAZA 0 - Pas 0.007 (Traefik orchestrator: neanelu.yml)                | pending   | `infra/config/traefik-orchestrator/neanelu.yml`                                                     | orchestrator `/opt/traefik/dynamic/neanelu.yml`         | `sha256sum` match + `curl -I` hostnames                                                                                                                                  |
+| FAZA 0 - Pas 0.008 (Eliminare Traefik/Nginx local + refactor compose) | pending   | compose refactor                                                                                    | CT111/CT112 `/opt/neanelu/*`                            | `docker compose config` fara `traefik` local                                                                                                                             |
+| FAZA 0 - Pas 0.009 (docker-compose.prod.yml)                          | pending   | `docker-compose.prod.yml`                                                                           | CT111/CT112 `/opt/neanelu/*`                            | `docker compose -f ... config` ok                                                                                                                                        |
+| FAZA 0 - Pas 0.010 (PgBouncer + auth_query)                           | pending   | `infra/config/openbao/templates/*pgbouncer*`                                                        | CT111/CT112 tmpfs `/run/neanelu/runtime-secrets/infra/` | `psql` via PgBouncer + `SHOW POOLS;`                                                                                                                                     |
+| FAZA 0 - Pas 0.011 (Observabilitate integrare)                        | pending   | vector/otel configs                                                                                 | CT111/CT112 + orchestrator                              | logs in Loki, traces in Tempo, targets up                                                                                                                                |
+| FAZA 0 - Pas 0.011B (allowlist scoping ingest-only)                   | pending   | traefik routers + obs                                                                               | orchestrator                                            | `curl` din neallowlist -> 403; allowlist -> 2xx                                                                                                                          |
+| FAZA 0 - Pas 0.011C (gateway intern TLS observability)                | pending   | haproxy + iptables                                                                                  | hz.247                                                  | bind `10.0.1.10:443` + allow doar CT111/CT112                                                                                                                            |
+| FAZA 0 - Pas 0.012 (Grafana dashboards)                               | pending   | dashboards json                                                                                     | grafana central                                         | dashboard folder "Neanelu" populat                                                                                                                                       |
+| FAZA 0 - Pas 0.013 (Cloudflare DNS + SSL)                             | pending   | DNS records                                                                                         | Cloudflare                                              | `dig` + `curl -I` prod+staging+otel+logs                                                                                                                                 |
+| FAZA 0 - Pas 0.014 (Shopify Partner: 2 apps)                          | pending   | N/A (UI Shopify)                                                                                    | Shopify Partners                                        | OAuth callback ok prod+staging                                                                                                                                           |
+| FAZA 0 - Pas 0.015 (handoff FAZA 1 CI/CD)                             | pending   | `phase_01_ci_cd.plan.md`                                                                            | CT108 runner                                            | PR checks + deploy plan valid                                                                                                                                            |
+| FAZA 0 - Pas 0.016 (Actualizare cod/config)                           | pending   | `.env.example` + `packages/config`                                                                  | repo                                                    | config validation + feature flags                                                                                                                                        |
+| FAZA 0 - Pas 0.017 (Cutover: dump/restore + migratii + DNS)           | pending   | runbooks + scripts                                                                                  | CT107 + Cloudflare                                      | restore ok + health ok + webhooks ok                                                                                                                                     |
+| FAZA 0 - Pas 0.018 (Validare finala)                                  | pending   | checklist                                                                                           | prod+staging                                            | non-interferenta + observability ok                                                                                                                                      |
+| DOCS ALIGNMENT (port matrix)                                          | pending   | `Docs/Port_Conventions.md`                                                                          | repo + orchestrator scrape                              | scrape ports 65210/65211 confirmate                                                                                                                                      |
+| DOCS ALIGNMENT (deploy checklist)                                     | pending   | `Docs/Production_Deployment_Checklist.md`                                                           | repo                                                    | pasii reflecta CT107/OpenBao/Traefik orch                                                                                                                                |
+| DOCS ALIGNMENT (runbooks)                                             | pending   | `Docs/runbooks/*`                                                                                   | repo                                                    | fara referinte la DB/Redis/OpenBao locale                                                                                                                                |
+| DOCS ALIGNMENT (runbook) - database-migration                         | pending   | `Docs/runbooks/database-migration.md`                                                               | repo                                                    | fara `localhost:65010`; PgBouncer/CT107 clar                                                                                                                             |
+| DOCS ALIGNMENT (runbook) - openbao-recovery                           | pending   | `Docs/runbooks/openbao-recovery.md`                                                                 | repo                                                    | OpenBao orchestrator; fara `docker exec openbao` local                                                                                                                   |
+| DOCS ALIGNMENT (runbook) - DR_Runbook                                 | pending   | `Docs/runbooks/DR_Runbook.md`                                                                       | repo                                                    | CT107 + redis-shared + CT111/CT112 (nu db local)                                                                                                                         |
+| DOCS ALIGNMENT (runbook) - database-failover                          | pending   | `Docs/runbooks/database-failover.md`                                                                | repo                                                    | clar future vs aplicabil; comenzi corecte                                                                                                                                |
+| DOCS ALIGNMENT (runbook) - bulk-operation-stuck                       | pending   | `Docs/runbooks/bulk-operation-stuck.md`                                                             | repo                                                    | redis-shared prefix/ACL + alternative prin API                                                                                                                           |
+| DOCS ALIGNMENT (runbook) - rate-limit-emergency                       | pending   | `Docs/runbooks/rate-limit-emergency.md`                                                             | repo                                                    | prefera control-plane; chei prefixate                                                                                                                                    |
+| DOCS ALIGNMENT (runbook) - ai-pipeline-operations                     | pending   | `Docs/runbooks/ai-pipeline-operations.md`                                                           | repo                                                    | noua topologie + tranzitie Kimi                                                                                                                                          |
+| DOCS ALIGNMENT (runbook) - pim-api-budget-exceeded                    | pending   | `Docs/runbooks/pim-api-budget-exceeded.md`                                                          | repo                                                    | runbook_url din alerts valid + actiuni ok                                                                                                                                |
+| DOCS ALIGNMENT (runbook) - logql-queries                              | pending   | `Docs/runbooks/logql-queries.md`                                                                    | repo                                                    | queries functioneaza cu labels `project/environment`                                                                                                                     |
+| DOCS ALIGNMENT (runbook) - runbooks index                             | pending   | `Docs/runbooks/README.md`                                                                           | repo                                                    | lista completa + status tested/untested                                                                                                                                  |
+| SECURITY FINAL (secret cleanup)                                       | pending   | `Docs/*` + repo                                                                                     | repo                                                    | `rg` nu gaseste tokenuri/chei/parole                                                                                                                                     |
+| OPS (pre-cutover) code freeze + TTL                                   | pending   | release notes                                                                                       | Cloudflare + git                                        | tag ok + TTL 60 inainte de cutover                                                                                                                                       |
+| OPS (host readiness)                                                  | pending   | checklist                                                                                           | CT111/CT112                                             | Docker>=27, disk ok, time sync ok                                                                                                                                        |
+| OPS (backup verification)                                             | pending   | backup scripts                                                                                      | CT107 + staging                                         | restore staging ok                                                                                                                                                       |
+| OPS (migratii DB)                                                     | pending   | runbook migrations                                                                                  | CT107                                                   | expand/contract verificat                                                                                                                                                |
+| OPS (smoke tests)                                                     | pending   | smoke scripts                                                                                       | prod+staging                                            | OAuth/webhooks/queues ok                                                                                                                                                 |
+| OPS (post-cutover log/cleanup)                                        | pending   | deployment log                                                                                      | repo                                                    | log complet + prune/retention                                                                                                                                            |
+| GAP FIX (Traefik /auth + /health)                                     | pending   | `infra/config/traefik-orchestrator/neanelu.yml`                                                     | orchestrator                                            | `curl -I /auth/shopify` -> 302; `curl /health/ready` -> 200                                                                                                              |
+| OBS ALIGNMENT (prom targets + alert rules 1:1)                        | pending   | prom config + rules files                                                                           | orchestrator                                            | targets up + alerts ok + runbook_url ok                                                                                                                                  |
+| OBS ALIGNMENT (rules) - queue-alerts                                  | pending   | `Docs/Observability_Alerting.md`                                                                    | orchestrator                                            | `QueueStalledJobsHigh` etc active                                                                                                                                        |
+| OBS ALIGNMENT (rules) - shopify-alerts                                | pending   | `Docs/Observability_Alerting.md`                                                                    | orchestrator                                            | `ShopifyAPICostSpike`, `ShopifyRateLimitHit` active                                                                                                                      |
+| OBS ALIGNMENT (rules) - infra-alerts                                  | pending   | `Docs/Observability_Alerting.md`                                                                    | orchestrator                                            | Redis/Postgres/Disk/Memory alerts active                                                                                                                                 |
+| OBS ALIGNMENT (rules) - bulk-alerts                                   | pending   | `Docs/Observability_Alerting.md`                                                                    | orchestrator                                            | `BulkOperationStuck` active                                                                                                                                              |
+| OBS ALIGNMENT (rules) - pim-cost-alerts                               | pending   | `Docs/Observability_Alerting.md`                                                                    | orchestrator                                            | `PimApiBudgetWarning/Exceeded` active                                                                                                                                    |
+| OBS ALIGNMENT (alert routing)                                         | pending   | alertmanager config                                                                                 | orchestrator                                            | critical->pagerduty, warning->slack                                                                                                                                      |
+| SECURITY/DB (RLS tests via PgBouncer)                                 | pending   | `Docs/Testing_RLS_Isolation.md`                                                                     | staging DB                                              | TC-RLS-001..003 trec (direct + via PgBouncer)                                                                                                                            |
+| DOCS ALIGNMENT (Port_Conventions)                                     | pending   | `Docs/Port_Conventions.md`                                                                          | repo                                                    | reflecta central obs + 65210/65211 + deprecari prod                                                                                                                      |
+| SHOPIFY/GDPR (uninstall validation)                                   | pending   | `Docs/Webhook_Topics_Reference.md`                                                                  | staging/prod                                            | uninstall sterge date + curata cozi/redis keys                                                                                                                           |
+| DB SoT ALIGNMENT (schema parity)                                      | pending   | `Docs/Database_Schema_Complete.md`                                                                  | CT107 + repo                                            | extensii + migrare ordine + sanity checks                                                                                                                                |
+| DB OPERATIONS (retention/partitioning)                                | pending   | DB ops design                                                                                       | CT107                                                   | ownership clar (FAZA 0 index, FAZA 16 implementare)                                                                                                                      |
+| DB PERF/OBS (pg_stat_statements preload)                              | pending   | postgresql.conf CT107                                                                               | CT107                                                   | `SHOW shared_preload_libraries;` contine pg_stat_statements                                                                                                              |
+| DB MAINTENANCE (pgvector vacuum cadence)                              | pending   | `Docs/tech/pgvector-tuning.md`                                                                      | CT107                                                   | job saptamanal definit/testat (FAZA 16)                                                                                                                                  |
+| DB INDEX POLICY (partial indexes)                                     | pending   | `Docs/Database_Partial_Indexes.md`                                                                  | CT107                                                   | EXPLAIN foloseste indexuri partiale                                                                                                                                      |
+| DOCS ALIGNMENT (devops+onboarding)                                    | pending   | `Docs/DevOps_Plan_Implementare_Shopify_Enterprise.md`, `Docs/Developer_Onboarding_Guide.md`         | repo                                                    | topologie noua reflectata 1:1                                                                                                                                            |
 
 Regula: cand un pas devine `completed`, completam coloanele (repo+host paths) si adaugam in nota de verificare comenzile folosite si output-ul relevant (succint).
 
@@ -1469,41 +1469,41 @@ Taskurile marcate `completed` in planul de migrare sunt implementate si au refer
   - aplicatia foloseste PgBouncer din CT109/CT110 (nu exista postgres container local)
   - OpenBao foloseste un user dedicat pentru credentiale dinamice (ex: `cerniq_vault`) prin reguli `pg_hba.conf` aditive
 - Extensii PostgreSQL 18 (verificat):
-   - PostGIS: `postgresql-18-postgis-3` (3.6.2)
-   - pgvector: `postgresql-18-pgvector` (0.8.1)
-   - Verificare: `dpkg -l | egrep "postgresql-18-postgis-3|postgresql-18-pgvector"` in CT107
+  - PostGIS: `postgresql-18-postgis-3` (3.6.2)
+  - pgvector: `postgresql-18-pgvector` (0.8.1)
+  - Verificare: `dpkg -l | egrep "postgresql-18-postgis-3|postgresql-18-pgvector"` in CT107
 - Init DB `cerniq` (verificat, idempotent, fara parole hardcodate):
-   - Repo: `infra/config/postgres/init-ct107.sql`
-   - Rulat ca `postgres` pe CT107: `psql -d cerniq -f /tmp/init-ct107.sql`
-   - Verificari:
-     - extensii: `SELECT extname FROM pg_extension ...` -> `vector, postgis, postgis_topology, pg_trgm, uuid-ossp, pg_stat_statements`
-     - scheme: `bronze, silver, gold, approval, audit`
-     - tabela: `public.tenants` exista (`to_regclass('public.tenants')`)
+  - Repo: `infra/config/postgres/init-ct107.sql`
+  - Rulat ca `postgres` pe CT107: `psql -d cerniq -f /tmp/init-ct107.sql`
+  - Verificari:
+    - extensii: `SELECT extname FROM pg_extension ...` -> `vector, postgis, postgis_topology, pg_trgm, uuid-ossp, pg_stat_statements`
+    - scheme: `bronze, silver, gold, approval, audit`
+    - tabela: `public.tenants` exista (`to_regclass('public.tenants')`)
 - Init DB `cerniq_staging` (verificat, idempotent, fara parole hardcodate):
-   - Repo: `infra/config/postgres/init-ct107.sql`
-   - Rulat ca `postgres` pe CT107: `psql -d cerniq_staging -f /tmp/init-ct107.sql`
-   - Verificari: aceleasi extensii/scheme + `public.tenants` exista
+  - Repo: `infra/config/postgres/init-ct107.sql`
+  - Rulat ca `postgres` pe CT107: `psql -d cerniq_staging -f /tmp/init-ct107.sql`
+  - Verificari: aceleasi extensii/scheme + `public.tenants` exista
 - `pg_hba.conf` (verificat, aditiv):
-   - Reguli Cerniq (scram-sha-256) prezente:
-     - `host cerniq cerniq_vault 10.0.0.2/32 scram-sha-256`
-     - `host cerniq_staging cerniq_vault 10.0.0.2/32 scram-sha-256`
-     - `host cerniq c3rn1q 10.0.1.109/32 scram-sha-256`
-     - `host cerniq_staging c3rn1q 10.0.1.110/32 scram-sha-256`
-   - Script idempotent (repo): `infra/scripts/ct107_patch_pg_hba.py`
-   - Reload: `SELECT pg_reload_conf();`
+  - Reguli Cerniq (scram-sha-256) prezente:
+    - `host cerniq cerniq_vault 10.0.0.2/32 scram-sha-256`
+    - `host cerniq_staging cerniq_vault 10.0.0.2/32 scram-sha-256`
+    - `host cerniq c3rn1q 10.0.1.109/32 scram-sha-256`
+    - `host cerniq_staging c3rn1q 10.0.1.110/32 scram-sha-256`
+  - Script idempotent (repo): `infra/scripts/ct107_patch_pg_hba.py`
+  - Reload: `SELECT pg_reload_conf();`
 - `postgresql.conf` / runtime settings (verificat; CT107 este shared, include si DB `zitadel`):
-   - `shared_buffers=8GB`
-   - `effective_cache_size=24GB`
-   - `work_mem=64MB`
-   - `maintenance_work_mem=1GB`
-   - `max_connections=200`
-   - WAL:
-     - `wal_level=replica`
-     - `archive_mode=on`
-     - `archive_command='cp %p /var/lib/postgresql/18/main/wal_archive/%f'`
-     - director `wal_archive` exista si contine fisiere WAL arhivate
-   - `listen_addresses='*'` (nu a fost restrictionat)
-   - Verificare: `SHOW ...` in CT107 + `ls -la /var/lib/postgresql/18/main/wal_archive`
+  - `shared_buffers=8GB`
+  - `effective_cache_size=24GB`
+  - `work_mem=64MB`
+  - `maintenance_work_mem=1GB`
+  - `max_connections=200`
+  - WAL:
+    - `wal_level=replica`
+    - `archive_mode=on`
+    - `archive_command='cp %p /var/lib/postgresql/18/main/wal_archive/%f'`
+    - director `wal_archive` exista si contine fisiere WAL arhivate
+  - `listen_addresses='*'` (nu a fost restrictionat)
+  - Verificare: `SHOW ...` in CT107 + `ls -la /var/lib/postgresql/18/main/wal_archive`
 
 #### OpenBao (centralizat pe orchestrator)
 
@@ -1636,16 +1636,19 @@ Taskurile marcate `completed` in planul de migrare sunt implementate si au refer
 #### Validare ingress staging (f2-10, executat 2026-02-15)
 
 Scop: validare end-to-end a tuturor cailor de ingress pentru staging (CT110) pe 3 straturi:
+
 - Layer 1 (direct): hz.223 node -> CT110 IP
 - Layer 2 (gateway): orchestrator -> VIP 10.0.1.10 (HAProxy hz.247 TCP passthrough) -> CT110
 - Layer 3 (Traefik): orchestrator Traefik HTTPS -> VIP -> CT110
 
 Metoda:
+
 - Health responder temporar (Python3) deployat pe CT110 pe porturile app (64000/64010/64012).
 - Script de validare (repo): `infra/scripts/staging_validate_ingress.py` + `infra/scripts/staging_health_responder.py`
 - Responder-ul este uploadat temporar (SSH + `pct push`), rulat, testat, apoi curat.
 
 Drift remediat in timpul validarii:
+
 - `dynamic_conf.yml` (runtime SoT Traefik pe orchestrator) avea URL-uri directe catre CT-uri (`10.0.1.110:64000`) in loc de URL-uri gateway VIP (`10.0.1.10:19000`).
 - Script remediere (repo): `infra/scripts/traefik_fix_cerniq_service_urls.py`
 - Backup creat pe orchestrator: `/opt/traefik/dynamic_conf.yml.bak.20260215T225332Z`
@@ -1654,20 +1657,20 @@ Drift remediat in timpul validarii:
 
 Rezultate validare (12/12 PASS):
 
-| Strat | Serviciu | Target | HTTP |
-| --- | --- | --- | --- |
-| L1-direct | web | `http://10.0.1.110:64000/health` | 200 |
-| L1-direct | api | `http://10.0.1.110:64010/health` | 200 |
-| L1-direct | admin | `http://10.0.1.110:64012/health` | 200 |
-| L2-gateway | web | `http://10.0.1.10:19000/health` | 200 |
-| L2-gateway | api | `http://10.0.1.10:19010/health` | 200 |
-| L2-gateway | admin | `http://10.0.1.10:19012/health` | 200 |
-| L3-traefik | web | `https://staging.cerniq.app/health` (resolve 127.0.0.1) | 200 |
-| L3-traefik | api | `https://api.staging.cerniq.app/health` (resolve 127.0.0.1) | 200 |
-| L3-traefik | admin | `https://admin.staging.cerniq.app/health` (resolve 127.0.0.1) | 200 |
-| L3-public | web | `https://77.42.76.185/health` Host: staging.cerniq.app | 200 |
-| L3-public | api | `https://77.42.76.185/health` Host: api.staging.cerniq.app | 200 |
-| L3-public | admin | `https://77.42.76.185/health` Host: admin.staging.cerniq.app | 200 |
+| Strat      | Serviciu | Target                                                        | HTTP |
+| ---------- | -------- | ------------------------------------------------------------- | ---- |
+| L1-direct  | web      | `http://10.0.1.110:64000/health`                              | 200  |
+| L1-direct  | api      | `http://10.0.1.110:64010/health`                              | 200  |
+| L1-direct  | admin    | `http://10.0.1.110:64012/health`                              | 200  |
+| L2-gateway | web      | `http://10.0.1.10:19000/health`                               | 200  |
+| L2-gateway | api      | `http://10.0.1.10:19010/health`                               | 200  |
+| L2-gateway | admin    | `http://10.0.1.10:19012/health`                               | 200  |
+| L3-traefik | web      | `https://staging.cerniq.app/health` (resolve 127.0.0.1)       | 200  |
+| L3-traefik | api      | `https://api.staging.cerniq.app/health` (resolve 127.0.0.1)   | 200  |
+| L3-traefik | admin    | `https://admin.staging.cerniq.app/health` (resolve 127.0.0.1) | 200  |
+| L3-public  | web      | `https://77.42.76.185/health` Host: staging.cerniq.app        | 200  |
+| L3-public  | api      | `https://77.42.76.185/health` Host: api.staging.cerniq.app    | 200  |
+| L3-public  | admin    | `https://77.42.76.185/health` Host: admin.staging.cerniq.app  | 200  |
 
 Nota: health responder-ul a fost curat dupa validare; porturile 64000/64010/64012 pe CT110 nu mai au listeners activi. Cand aplicatia reala (web/api/admin) va fi deployata, aceste porturi vor fi ocupate de containerele Docker Cerniq.
 
@@ -1718,16 +1721,16 @@ services:
     container_name: stalwart
     restart: unless-stopped
     ports:
-      - "25:25"       # SMTP inbound
-      - "465:465"     # SMTPS (submission implicit TLS)
-      - "587:587"     # Submission (STARTTLS)
-      - "143:143"     # IMAP
-      - "993:993"     # IMAPS
-      - "4190:4190"   # ManageSieve
+      - "25:25" # SMTP inbound
+      - "465:465" # SMTPS (submission implicit TLS)
+      - "587:587" # Submission (STARTTLS)
+      - "143:143" # IMAP
+      - "993:993" # IMAPS
+      - "4190:4190" # ManageSieve
     volumes:
-      - /opt/stalwart/etc:/opt/stalwart/etc        # configuratie
-      - /opt/stalwart/var:/opt/stalwart/var         # date runtime
-      - /opt/stalwart/storagebox/mailbox:/data      # blob storage (StorageBox)
+      - /opt/stalwart/etc:/opt/stalwart/etc # configuratie
+      - /opt/stalwart/var:/opt/stalwart/var # date runtime
+      - /opt/stalwart/storagebox/mailbox:/data # blob storage (StorageBox)
     networks:
       - traefik_default
     labels:
@@ -1873,10 +1876,10 @@ Intrare fstab:
 
 **Conturi utilizatori**:
 
-| Cont | Rol | Acces |
-|------|-----|-------|
+| Cont  | Rol                    | Acces                                    |
+| ----- | ---------------------- | ---------------------------------------- |
 | admin | Administrator Stalwart | API + Admin UI (mailadmin.triggerra.app) |
-| alex | Utilizator email | <alex@triggerra.app>, IMAP/SMTP/Webmail |
+| alex  | Utilizator email       | <alex@triggerra.app>, IMAP/SMTP/Webmail  |
 
 #### 2. Roundcube Webmail
 
@@ -1960,11 +1963,11 @@ networks:
 
 ### Subdomenii si routing Traefik
 
-| Subdomeniu | Destinatie | Scop |
-|------------|-----------|------|
-| mail.triggerra.app | 77.42.76.185 (direct) | Hostname MX, rDNS, EHLO, certificat TLS |
-| webmail.triggerra.app | Traefik → roundcube:80 | Interfata webmail Roundcube |
-| mailadmin.triggerra.app | Traefik → stalwart:8080 | Admin UI Stalwart |
+| Subdomeniu              | Destinatie              | Scop                                    |
+| ----------------------- | ----------------------- | --------------------------------------- |
+| mail.triggerra.app      | 77.42.76.185 (direct)   | Hostname MX, rDNS, EHLO, certificat TLS |
+| webmail.triggerra.app   | Traefik → roundcube:80  | Interfata webmail Roundcube             |
+| mailadmin.triggerra.app | Traefik → stalwart:8080 | Admin UI Stalwart                       |
 
 ### Securitate email — DNS Records (Cloudflare)
 
@@ -2117,27 +2120,27 @@ Nu este configurat (nu exista `_mta-sts.triggerra.app` / `mta-sts.triggerra.app/
 
 ### Stare verificata la 2026-02-11
 
-| Componenta | Status | Detalii |
-|------------|--------|---------|
-| Stalwart container | ✅ Running | v0.15.4, uptime stabil |
-| Roundcube container | ✅ Running | 1.6.x-apache, uptime stabil |
-| SMTP inbound (25) | ✅ Functional | Accepta email de la servere externe |
-| SMTP outbound (25) | ✅ Functional | Hetzner port 25 deblocat, livrare la Gmail OK |
-| IMAPS (993) | ✅ Functional | Roundcube se conecteaza cu succes |
-| SMTPS (465) | ✅ Functional | Roundcube trimite prin SMTPS |
-| TLS certificate | ✅ Valid | Let's Encrypt, expira 2026-05-12 |
-| SPF | ✅ Pass | `-all` hardfail configurat |
-| DKIM signing | ✅ Activ | Dubla semnatura Ed25519 + RSA pe fiecare email |
-| DMARC | ✅ Configurat | `p=reject`, strict alignment |
-| rDNS | ✅ Corect | 77.42.76.185 → mail.triggerra.app |
-| StorageBox mount | ✅ Montat | CIFS v3.0, automount systemd |
-| Admin UI | ✅ Accesibil | mailadmin.triggerra.app (Traefik) |
-| Webmail | ✅ Accesibil | webmail.triggerra.app (Traefik) |
-| TLS-RPT | ✅ Configurat | Rapoarte la <postmaster@triggerra.app> |
-| ARC seal | ✅ Configurat | Ed25519 |
-| MTA-STS | ⚠️ Neconfigurat | De implementat |
-| IP reputation | ⚠️ Noua | IP nou Hetzner, fara istoric — risc spam la Gmail |
-| Blacklists | ✅ Curat | Spamhaus, SpamCop, Barracuda, SORBS — clean |
+| Componenta          | Status          | Detalii                                           |
+| ------------------- | --------------- | ------------------------------------------------- |
+| Stalwart container  | ✅ Running      | v0.15.4, uptime stabil                            |
+| Roundcube container | ✅ Running      | 1.6.x-apache, uptime stabil                       |
+| SMTP inbound (25)   | ✅ Functional   | Accepta email de la servere externe               |
+| SMTP outbound (25)  | ✅ Functional   | Hetzner port 25 deblocat, livrare la Gmail OK     |
+| IMAPS (993)         | ✅ Functional   | Roundcube se conecteaza cu succes                 |
+| SMTPS (465)         | ✅ Functional   | Roundcube trimite prin SMTPS                      |
+| TLS certificate     | ✅ Valid        | Let's Encrypt, expira 2026-05-12                  |
+| SPF                 | ✅ Pass         | `-all` hardfail configurat                        |
+| DKIM signing        | ✅ Activ        | Dubla semnatura Ed25519 + RSA pe fiecare email    |
+| DMARC               | ✅ Configurat   | `p=reject`, strict alignment                      |
+| rDNS                | ✅ Corect       | 77.42.76.185 → mail.triggerra.app                 |
+| StorageBox mount    | ✅ Montat       | CIFS v3.0, automount systemd                      |
+| Admin UI            | ✅ Accesibil    | mailadmin.triggerra.app (Traefik)                 |
+| Webmail             | ✅ Accesibil    | webmail.triggerra.app (Traefik)                   |
+| TLS-RPT             | ✅ Configurat   | Rapoarte la <postmaster@triggerra.app>            |
+| ARC seal            | ✅ Configurat   | Ed25519                                           |
+| MTA-STS             | ⚠️ Neconfigurat | De implementat                                    |
+| IP reputation       | ⚠️ Noua         | IP nou Hetzner, fara istoric — risc spam la Gmail |
+| Blacklists          | ✅ Curat        | Spamhaus, SpamCop, Barracuda, SORBS — clean       |
 
 ### Probleme cunoscute si recomandari
 
@@ -2173,32 +2176,32 @@ Data configurare: 2026-02-12
 
 ### Dispozitiv
 
-| Parametru | Valoare |
-|-----------|---------|
-| Model | Ctera C800-4 |
-| IP LAN | 192.168.100.140 |
-| IP public acasa | 92.180.19.237 |
-| Capacitate | ~13 TB (4× HDD) |
-| Protocol NFS | NFSv3 only (NFSv4 nu e suportat) |
-| Latenta | ~63 ms (Hetzner ↔ acasa) |
+| Parametru       | Valoare                          |
+| --------------- | -------------------------------- |
+| Model           | Ctera C800-4                     |
+| IP LAN          | 192.168.100.140                  |
+| IP public acasa | 92.180.19.237                    |
+| Capacitate      | ~13 TB (4× HDD)                  |
+| Protocol NFS    | NFSv3 only (NFSv4 nu e suportat) |
+| Latenta         | ~63 ms (Hetzner ↔ acasa)         |
 
 ### NFS Export
 
-| Parametru | Valoare |
-|-----------|---------|
-| Export path | `/var/vol/41/ctera_storage_local` |
-| Allowed IP | 77.42.76.185/255.255.255.255 (doar orchestrator) |
-| Mountpoint pe orchestrator | `/mnt/ctera` |
-| Proxmox storage name | `ctera-home` |
-| Content types Proxmox | backup, iso, vztmpl, snippets |
+| Parametru                  | Valoare                                          |
+| -------------------------- | ------------------------------------------------ |
+| Export path                | `/var/vol/41/ctera_storage_local`                |
+| Allowed IP                 | 77.42.76.185/255.255.255.255 (doar orchestrator) |
+| Mountpoint pe orchestrator | `/mnt/ctera`                                     |
+| Proxmox storage name       | `ctera-home`                                     |
+| Content types Proxmox      | backup, iso, vztmpl, snippets                    |
 
 ### Port forwards pe router (acasa)
 
-| Port extern | Port intern (192.168.100.140) | Serviciu | Protocol |
-|-------------|-------------------------------|----------|----------|
-| 111 | 111 | portmapper (rpcbind) | TCP |
-| 2049 | 2049 | NFS | TCP |
-| 44881 | 44881 | mountd (dinamic!) | TCP |
+| Port extern | Port intern (192.168.100.140) | Serviciu             | Protocol |
+| ----------- | ----------------------------- | -------------------- | -------- |
+| 111         | 111                           | portmapper (rpcbind) | TCP      |
+| 2049        | 2049                          | NFS                  | TCP      |
+| 44881       | 44881                         | mountd (dinamic!)    | TCP      |
 
 > **Atentie**: Portul mountd (44881) este alocat dinamic de Ctera. La restart Ctera, se poate schimba.
 > Daca se schimba, trebuie actualizat port forward-ul pe router SI fstab pe orchestrator.
@@ -2235,11 +2238,11 @@ dir: ctera-home
 
 ### Performanta masurata
 
-| Metric | Valoare |
-|--------|---------|
-| Write (100 MB secvential) | 36.6 MB/s |
-| Read (100 MB, cached) | 4.1 GB/s |
-| Latenta retea | ~63 ms RTT |
+| Metric                    | Valoare    |
+| ------------------------- | ---------- |
+| Write (100 MB secvential) | 36.6 MB/s  |
+| Read (100 MB, cached)     | 4.1 GB/s   |
+| Latenta retea             | ~63 ms RTT |
 
 > **Nota**: Read-ul mare este din cache Linux. Write-ul real de ~37 MB/s este limitat de latenta (~63ms RTT).
 > **Nu se recomanda** pentru disk-uri VM/CT (IOPS slab). Ideal pentru: backup-uri, ISO-uri, template-uri, arhive.
@@ -2248,10 +2251,10 @@ dir: ctera-home
 
 Testat la 2026-02-12:
 
-| Sursa | IP | Port 111 | Port 2049 | Port 44881 | NFS Mount |
-|-------|-----|----------|-----------|------------|-----------|
-| orchestrator (autorizat) | 77.42.76.185 | OK | OK | OK | **FUNCTIONAL** |
-| hz.215 (neautorizat) | 95.216.36.215 | TIMEOUT | TIMEOUT | TIMEOUT | **BLOCAT** |
+| Sursa                    | IP            | Port 111 | Port 2049 | Port 44881 | NFS Mount      |
+| ------------------------ | ------------- | -------- | --------- | ---------- | -------------- |
+| orchestrator (autorizat) | 77.42.76.185  | OK       | OK        | OK         | **FUNCTIONAL** |
+| hz.215 (neautorizat)     | 95.216.36.215 | TIMEOUT  | TIMEOUT   | TIMEOUT    | **BLOCAT**     |
 
 - Port forward-urile pe router sunt configurate sa accepte conexiuni doar de la IP-ul orchestratorului
 - Ctera NFS export are restricție IP: 77.42.76.185/255.255.255.255
@@ -2807,10 +2810,10 @@ Scop: medii dedicate pentru Cerniq (prod + staging), cu egress restrictiv si boo
 
 ### Specificatii LXC (rezumat)
 
-| Mediu | CTID | Nume LXC | CPU | RAM | Disk | Storage | IP privat |
-|------|------|----------|-----|-----|------|---------|-----------|
-| prod | 109 | `prod-cerniq` | 6 cores | 12288 MiB | 50G | `local` (dir) | 10.0.1.109/24 |
-| staging | 110 | `staging-cerniq` | 4 cores | 8192 MiB | 50G | `nvme-fast` (ZFSPool) | 10.0.1.110/24 |
+| Mediu   | CTID | Nume LXC         | CPU     | RAM       | Disk | Storage               | IP privat     |
+| ------- | ---- | ---------------- | ------- | --------- | ---- | --------------------- | ------------- |
+| prod    | 109  | `prod-cerniq`    | 6 cores | 12288 MiB | 50G  | `local` (dir)         | 10.0.1.109/24 |
+| staging | 110  | `staging-cerniq` | 4 cores | 8192 MiB  | 50G  | `nvme-fast` (ZFSPool) | 10.0.1.110/24 |
 
 ### Creare LXC-uri (rezumat procedural)
 
@@ -2978,6 +2981,7 @@ Validari recomandate (cand e nevoie):
 - deploy-ul aplicatiei Cerniq nu este inclus in aceasta etapa.
 
 ---
+
 ---
 
 ## Audit — Orchestrator + LXC Postgres 107 (OpenBao)
@@ -3114,29 +3118,29 @@ Concluzie:
 
 ### Recomandari pentru integrare OpenBao (securizare Postgres)
 
-1) Activeaza database secrets engine in OpenBao:
+1. Activeaza database secrets engine in OpenBao:
 
 - Defineste `postgresql` ca backend, cu un user de administrare minim (doar pentru provisioning de credențiale).
 - Configureaza roluri pentru aplicatii (ex: `app-readwrite`, `app-readonly`).
 
-2) Foloseste credentiale dinamice:
+2. Foloseste credentiale dinamice:
 
 - Aplicatiile nu trebuie sa stocheze user/parola statice.
 - OpenBao emite credențiale cu TTL (ex: 1h) si le roteste automat.
 
-3) Integrare prin OpenBao Agent in LXC 107:
+3. Integrare prin OpenBao Agent in LXC 107:
 
 - Ruleaza `openbao-agent` in container pentru a scrie secretul intr-un fisier (template) sau in env.
 - Restrange accesul fisierului la user-ul aplicatiei.
 
-4) Hardening Postgres:
+4. Hardening Postgres:
 
 - Elimina regula `trust` din `pg_hba.conf`.
 - Restrange `listen_addresses` doar la IP-urile necesare (ex: IP-uri de aplicatii).
 - Configureaza TLS cu certificat valid (nu snakeoil).
 - Activeaza firewall la nivel LXC sau PVEFW pentru a limita sursele care pot accesa 5432.
 
-5) Audit si monitorizare:
+5. Audit si monitorizare:
 
 - Logare autentificari + audit pe `postgresql.log`.
 - Alerta pentru autentificari esuate sau conexiuni din IP-uri nepermise.
@@ -3325,23 +3329,23 @@ UI centralizat:
 
 ### Recomandari pentru a face observability "shared" la nivel de platforma
 
-1) Expunere OTLP controlata:
+1. Expunere OTLP controlata:
 
 - Traefik route pentru `otel-collector` cu allowlist si TLS.
 
-2) Standardizare labels:
+2. Standardizare labels:
 
 - Prefix comun pentru `service`, `env`, `team` in loguri/metrics.
 
-3) Onboarding aplicatii:
+3. Onboarding aplicatii:
 
 - Template standard: `PROMETHEUS_SCRAPE=true`, `OTEL_EXPORTER_OTLP_ENDPOINT`, labels Loki.
 
-4) Alerting matur:
+4. Alerting matur:
 
 - Extindere `alertmanager.yml` (routing pe severitate, email/Slack).
 
-5) Monitorizare agent pe hosturi externe:
+5. Monitorizare agent pe hosturi externe:
 
 - Instaleaza node-exporter + vector/otel-collector pe VM/LXC externe.
 

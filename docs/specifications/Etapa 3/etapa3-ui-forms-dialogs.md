@@ -36,11 +36,11 @@
 const formDependencies = {
   "react-hook-form": "^7.54.2",
   "@hookform/resolvers": "^3.9.1",
-  "zod": "^3.24.1",
+  zod: "^3.24.1",
   "@radix-ui/react-dialog": "^1.1.4",
   "@radix-ui/react-alert-dialog": "^1.1.4",
   "date-fns": "^4.1.0",
-  "sonner": "^1.7.3"  // Pentru toast notifications
+  sonner: "^1.7.3", // Pentru toast notifications
 };
 ```
 
@@ -286,72 +286,74 @@ export {
 
 ```typescript
 // schemas/common.ts
-import { z } from 'zod';
+import { z } from "zod";
 
 // Romanian CUI validation
 export const cuiSchema = z
   .string()
-  .transform(val => val.replace(/\s/g, '').toUpperCase())
-  .refine(val => /^(RO)?[0-9]{2,10}$/.test(val), {
-    message: 'CUI invalid. Format: RO12345678 sau 12345678',
+  .transform((val) => val.replace(/\s/g, "").toUpperCase())
+  .refine((val) => /^(RO)?[0-9]{2,10}$/.test(val), {
+    message: "CUI invalid. Format: RO12345678 sau 12345678",
   });
 
 // Romanian phone validation
 export const phoneSchema = z
   .string()
-  .transform(val => val.replace(/[\s\-\.]/g, ''))
-  .refine(val => /^(\+40|0040|0)?[0-9]{9}$/.test(val), {
-    message: 'Număr de telefon invalid. Format: +40712345678',
+  .transform((val) => val.replace(/[\s\-\.]/g, ""))
+  .refine((val) => /^(\+40|0040|0)?[0-9]{9}$/.test(val), {
+    message: "Număr de telefon invalid. Format: +40712345678",
   });
 
 // Email validation
 export const emailSchema = z
   .string()
-  .min(1, 'Email obligatoriu')
-  .email('Email invalid');
+  .min(1, "Email obligatoriu")
+  .email("Email invalid");
 
 // Price validation (positive number)
 export const priceSchema = z
-  .number({ invalid_type_error: 'Preț invalid' })
-  .positive('Prețul trebuie să fie pozitiv')
-  .multipleOf(0.01, 'Maximum 2 zecimale');
+  .number({ invalid_type_error: "Preț invalid" })
+  .positive("Prețul trebuie să fie pozitiv")
+  .multipleOf(0.01, "Maximum 2 zecimale");
 
 // Percentage validation (0-100)
 export const percentSchema = z
-  .number({ invalid_type_error: 'Procentaj invalid' })
-  .min(0, 'Minimum 0%')
-  .max(100, 'Maximum 100%');
+  .number({ invalid_type_error: "Procentaj invalid" })
+  .min(0, "Minimum 0%")
+  .max(100, "Maximum 100%");
 
 // Quantity validation (positive integer)
 export const quantitySchema = z
-  .number({ invalid_type_error: 'Cantitate invalidă' })
-  .int('Cantitatea trebuie să fie număr întreg')
-  .positive('Cantitatea trebuie să fie pozitivă');
+  .number({ invalid_type_error: "Cantitate invalidă" })
+  .int("Cantitatea trebuie să fie număr întreg")
+  .positive("Cantitatea trebuie să fie pozitivă");
 
 // SKU validation
 export const skuSchema = z
   .string()
-  .min(3, 'SKU prea scurt')
-  .max(50, 'SKU prea lung')
-  .regex(/^[A-Z0-9\-_]+$/i, 'SKU poate conține doar litere, cifre, - și _');
+  .min(3, "SKU prea scurt")
+  .max(50, "SKU prea lung")
+  .regex(/^[A-Z0-9\-_]+$/i, "SKU poate conține doar litere, cifre, - și _");
 
 // Date range validation
-export const dateRangeSchema = z.object({
-  from: z.date({ required_error: 'Data început obligatorie' }),
-  to: z.date({ required_error: 'Data sfârșit obligatorie' }),
-}).refine(data => data.from <= data.to, {
-  message: 'Data început trebuie să fie înainte de data sfârșit',
-  path: ['to'],
-});
+export const dateRangeSchema = z
+  .object({
+    from: z.date({ required_error: "Data început obligatorie" }),
+    to: z.date({ required_error: "Data sfârșit obligatorie" }),
+  })
+  .refine((data) => data.from <= data.to, {
+    message: "Data început trebuie să fie înainte de data sfârșit",
+    path: ["to"],
+  });
 
 // Currency code
-export const currencySchema = z.enum(['RON', 'EUR', 'USD'], {
-  required_error: 'Monedă obligatorie',
+export const currencySchema = z.enum(["RON", "EUR", "USD"], {
+  required_error: "Monedă obligatorie",
 });
 
 // VAT rate
-export const vatRateSchema = z.enum(['0', '5', '9', '19'], {
-  required_error: 'Cotă TVA obligatorie',
+export const vatRateSchema = z.enum(["0", "5", "9", "19"], {
+  required_error: "Cotă TVA obligatorie",
 });
 ```
 
@@ -359,12 +361,18 @@ export const vatRateSchema = z.enum(['0', '5', '9', '19'], {
 
 ```typescript
 // schemas/negotiations.ts
-import { z } from 'zod';
-import { cuiSchema, emailSchema, phoneSchema, priceSchema, quantitySchema } from './common';
+import { z } from "zod";
+import {
+  cuiSchema,
+  emailSchema,
+  phoneSchema,
+  priceSchema,
+  quantitySchema,
+} from "./common";
 
 // Cart item schema
 export const cartItemSchema = z.object({
-  sku: z.string().min(1, 'SKU obligatoriu'),
+  sku: z.string().min(1, "SKU obligatoriu"),
   productId: z.string().uuid(),
   quantity: quantitySchema,
   unitPrice: priceSchema,
@@ -375,16 +383,16 @@ export const cartItemSchema = z.object({
 // Client data schema for negotiation
 export const clientDataSchema = z.object({
   cui: cuiSchema,
-  companyName: z.string().min(2, 'Nume companie obligatoriu'),
+  companyName: z.string().min(2, "Nume companie obligatoriu"),
   email: emailSchema,
   phone: phoneSchema,
-  contactPerson: z.string().min(2, 'Persoană contact obligatorie'),
+  contactPerson: z.string().min(2, "Persoană contact obligatorie"),
   address: z.object({
-    street: z.string().min(3, 'Strada obligatorie'),
-    city: z.string().min(2, 'Oraș obligatoriu'),
-    county: z.string().min(2, 'Județ obligatoriu'),
-    postalCode: z.string().regex(/^[0-9]{6}$/, 'Cod poștal invalid (6 cifre)'),
-    country: z.string().default('România'),
+    street: z.string().min(3, "Strada obligatorie"),
+    city: z.string().min(2, "Oraș obligatoriu"),
+    county: z.string().min(2, "Județ obligatoriu"),
+    postalCode: z.string().regex(/^[0-9]{6}$/, "Cod poștal invalid (6 cifre)"),
+    country: z.string().default("România"),
   }),
   vatPayer: z.boolean().default(false),
   splitVat: z.boolean().default(false),
@@ -392,23 +400,37 @@ export const clientDataSchema = z.object({
 
 // Negotiation create schema
 export const negotiationCreateSchema = z.object({
-  leadId: z.string().uuid('Lead ID invalid'),
-  channel: z.enum(['whatsapp', 'email'], {
-    required_error: 'Canal obligatoriu',
+  leadId: z.string().uuid("Lead ID invalid"),
+  channel: z.enum(["whatsapp", "email"], {
+    required_error: "Canal obligatoriu",
   }),
-  initialMessage: z.string().min(10, 'Mesajul inițial trebuie să aibă minim 10 caractere').optional(),
+  initialMessage: z
+    .string()
+    .min(10, "Mesajul inițial trebuie să aibă minim 10 caractere")
+    .optional(),
   assignToHuman: z.boolean().default(false),
   tags: z.array(z.string()).default([]),
 });
 
 // Negotiation update schema
 export const negotiationUpdateSchema = z.object({
-  state: z.enum([
-    'DISCOVERY', 'PROPOSAL', 'NEGOTIATION', 'CLOSING',
-    'PROFORMA_SENT', 'PROFORMA_ACCEPTED', 'INVOICED',
-    'EINVOICE_PENDING', 'EINVOICE_SENT', 'PAID', 'COMPLETED',
-    'DEAD', 'ON_HOLD'
-  ]).optional(),
+  state: z
+    .enum([
+      "DISCOVERY",
+      "PROPOSAL",
+      "NEGOTIATION",
+      "CLOSING",
+      "PROFORMA_SENT",
+      "PROFORMA_ACCEPTED",
+      "INVOICED",
+      "EINVOICE_PENDING",
+      "EINVOICE_SENT",
+      "PAID",
+      "COMPLETED",
+      "DEAD",
+      "ON_HOLD",
+    ])
+    .optional(),
   assignedToHuman: z.boolean().optional(),
   assignedUserId: z.string().uuid().optional(),
   notes: z.string().max(2000).optional(),
@@ -419,7 +441,7 @@ export const negotiationUpdateSchema = z.object({
 export const stateTransitionSchema = z.object({
   negotiationId: z.string().uuid(),
   newState: z.string(),
-  reason: z.string().min(5, 'Motivul tranziției obligatoriu').max(500),
+  reason: z.string().min(5, "Motivul tranziției obligatoriu").max(500),
   force: z.boolean().default(false),
 });
 ```
@@ -428,45 +450,59 @@ export const stateTransitionSchema = z.object({
 
 ```typescript
 // schemas/products.ts
-import { z } from 'zod';
-import { skuSchema, priceSchema, currencySchema, vatRateSchema, quantitySchema } from './common';
+import { z } from "zod";
+import {
+  skuSchema,
+  priceSchema,
+  currencySchema,
+  vatRateSchema,
+  quantitySchema,
+} from "./common";
 
 // Product create/edit schema
 export const productSchema = z.object({
   sku: skuSchema,
-  title: z.string().min(3, 'Titlu prea scurt').max(200, 'Titlu prea lung'),
-  description: z.string().max(5000, 'Descriere prea lungă').optional(),
+  title: z.string().min(3, "Titlu prea scurt").max(200, "Titlu prea lung"),
+  description: z.string().max(5000, "Descriere prea lungă").optional(),
   shortDescription: z.string().max(500).optional(),
-  
+
   // Pricing
   priceNet: priceSchema,
   currency: currencySchema,
   vatRate: vatRateSchema,
-  
+
   // Stock
   inStock: z.boolean().default(true),
   stockQuantity: quantitySchema.optional(),
-  stockUnit: z.string().default('buc'),
+  stockUnit: z.string().default("buc"),
   minOrderQuantity: z.number().int().min(1).default(1),
-  
+
   // Categories
   categoryId: z.string().uuid().optional(),
   tags: z.array(z.string()).default([]),
-  
+
   // Attributes
-  attributes: z.array(z.object({
-    name: z.string().min(1),
-    value: z.string().min(1),
-    unit: z.string().optional(),
-  })).default([]),
-  
+  attributes: z
+    .array(
+      z.object({
+        name: z.string().min(1),
+        value: z.string().min(1),
+        unit: z.string().optional(),
+      }),
+    )
+    .default([]),
+
   // Media
-  images: z.array(z.object({
-    url: z.string().url(),
-    alt: z.string().optional(),
-    isPrimary: z.boolean().default(false),
-  })).default([]),
-  
+  images: z
+    .array(
+      z.object({
+        url: z.string().url(),
+        alt: z.string().optional(),
+        isPrimary: z.boolean().default(false),
+      }),
+    )
+    .default([]),
+
   // Status
   active: z.boolean().default(true),
   publishedAt: z.date().optional(),
@@ -476,10 +512,17 @@ export type ProductFormData = z.infer<typeof productSchema>;
 
 // Product import schema (CSV/Excel)
 export const productImportSchema = z.object({
-  file: z.instanceof(File).refine(
-    file => ['text/csv', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'].includes(file.type),
-    'Fișier invalid. Acceptăm doar CSV sau Excel.'
-  ),
+  file: z
+    .instanceof(File)
+    .refine(
+      (file) =>
+        [
+          "text/csv",
+          "application/vnd.ms-excel",
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        ].includes(file.type),
+      "Fișier invalid. Acceptăm doar CSV sau Excel.",
+    ),
   updateExisting: z.boolean().default(true),
   createNew: z.boolean().default(true),
   skipErrors: z.boolean().default(false),
@@ -501,45 +544,65 @@ export const productFilterSchema = z.object({
 
 ```typescript
 // schemas/pricing.ts
-import { z } from 'zod';
-import { percentSchema, priceSchema } from './common';
+import { z } from "zod";
+import { percentSchema, priceSchema } from "./common";
 
 // Discount rule schema
 export const discountRuleSchema = z.object({
-  name: z.string().min(2, 'Nume obligatoriu').max(100),
+  name: z.string().min(2, "Nume obligatoriu").max(100),
   description: z.string().max(500).optional(),
-  
+
   // Type
-  type: z.enum(['percentage', 'fixed', 'tiered']),
-  
+  type: z.enum(["percentage", "fixed", "tiered"]),
+
   // Value
-  value: z.number().min(0).when(
-    (_, ctx) => ctx.parent?.type === 'percentage' ? percentSchema : priceSchema
-  ),
-  
+  value: z
+    .number()
+    .min(0)
+    .when((_, ctx) =>
+      ctx.parent?.type === "percentage" ? percentSchema : priceSchema,
+    ),
+
   // Conditions
-  conditions: z.array(z.object({
-    field: z.enum(['quantity', 'total', 'category', 'sku', 'client_type']),
-    operator: z.enum(['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'in', 'not_in']),
-    value: z.union([z.string(), z.number(), z.array(z.string())]),
-  })).default([]),
-  
+  conditions: z
+    .array(
+      z.object({
+        field: z.enum(["quantity", "total", "category", "sku", "client_type"]),
+        operator: z.enum([
+          "eq",
+          "neq",
+          "gt",
+          "gte",
+          "lt",
+          "lte",
+          "in",
+          "not_in",
+        ]),
+        value: z.union([z.string(), z.number(), z.array(z.string())]),
+      }),
+    )
+    .default([]),
+
   // Tiered pricing (for tiered type)
-  tiers: z.array(z.object({
-    minQuantity: z.number().int().min(1),
-    maxQuantity: z.number().int().nullable(),
-    discount: percentSchema,
-  })).optional(),
-  
+  tiers: z
+    .array(
+      z.object({
+        minQuantity: z.number().int().min(1),
+        maxQuantity: z.number().int().nullable(),
+        discount: percentSchema,
+      }),
+    )
+    .optional(),
+
   // Validity
   validFrom: z.date().optional(),
   validTo: z.date().optional(),
   maxUses: z.number().int().min(1).optional(),
-  
+
   // Approval
   requiresApproval: z.boolean().default(false),
   approvalThreshold: percentSchema.optional(),
-  
+
   // Status
   active: z.boolean().default(true),
   priority: z.number().int().min(0).max(100).default(50),
@@ -551,23 +614,25 @@ export type DiscountRuleFormData = z.infer<typeof discountRuleSchema>;
 export const manualDiscountSchema = z.object({
   negotiationId: z.string().uuid(),
   productSku: z.string().optional(),
-  discountType: z.enum(['percentage', 'fixed']),
+  discountType: z.enum(["percentage", "fixed"]),
   discountValue: z.number().min(0),
-  reason: z.string().min(10, 'Motivul discount-ului obligatoriu').max(500),
+  reason: z.string().min(10, "Motivul discount-ului obligatoriu").max(500),
   validUntil: z.date().optional(),
 });
 
 // Price override schema
-export const priceOverrideSchema = z.object({
-  negotiationId: z.string().uuid(),
-  productSku: z.string(),
-  originalPrice: priceSchema,
-  newPrice: priceSchema,
-  reason: z.string().min(10).max(500),
-}).refine(data => data.newPrice < data.originalPrice, {
-  message: 'Prețul nou trebuie să fie mai mic decât cel original',
-  path: ['newPrice'],
-});
+export const priceOverrideSchema = z
+  .object({
+    negotiationId: z.string().uuid(),
+    productSku: z.string(),
+    originalPrice: priceSchema,
+    newPrice: priceSchema,
+    reason: z.string().min(10).max(500),
+  })
+  .refine((data) => data.newPrice < data.originalPrice, {
+    message: "Prețul nou trebuie să fie mai mic decât cel original",
+    path: ["newPrice"],
+  });
 ```
 
 ---
@@ -662,11 +727,11 @@ export function NegotiationCreateDialog({
       }
 
       const result = await response.json();
-      
+
       toast.success('Negociere creată cu succes', {
         description: `ID: ${result.id}`,
       });
-      
+
       setOpen(false);
       form.reset();
       onSuccess?.(result.id);
@@ -900,7 +965,7 @@ export function StateTransitionDialog({
   onSuccess,
 }: StateTransitionDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   const isValidTransition = validTransitions[currentState]?.includes(targetState);
   const currentConfig = stateConfig[currentState];
   const targetConfig = stateConfig[targetState];
@@ -1029,8 +1094,8 @@ export function StateTransitionDialog({
               >
                 Anulează
               </Button>
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 disabled={isSubmitting || (!isValidTransition && !form.watch('force'))}
               >
                 {isSubmitting ? (
@@ -1375,8 +1440,8 @@ export function AssignNegotiationDialog({
               >
                 Anulează
               </Button>
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 disabled={isSubmitting || (assigneeType === 'human' && !form.watch('userId'))}
               >
                 {isSubmitting ? (
@@ -1506,8 +1571,8 @@ export function NegotiationNotesForm({
 
   return (
     <Form {...form}>
-      <form 
-        onSubmit={form.handleSubmit(handleSubmit)} 
+      <form
+        onSubmit={form.handleSubmit(handleSubmit)}
         className={cn("space-y-3", className)}
       >
         {/* Content */}
@@ -1826,7 +1891,7 @@ export function FollowUpScheduleDialog({
                           onSelect={(date) => {
                             if (date) {
                               // Keep existing time or default to 9:00
-                              const newDate = field.value 
+                              const newDate = field.value
                                 ? setHours(setMinutes(date, field.value.getMinutes()), field.value.getHours())
                                 : setHours(setMinutes(date, 0), 9);
                               field.onChange(newDate);
@@ -2028,14 +2093,14 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Loader2, 
-  Plus, 
-  Trash2, 
-  Upload, 
+import {
+  Loader2,
+  Plus,
+  Trash2,
+  Upload,
   Image as ImageIcon,
   GripVertical,
-  X 
+  X
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { DndContext, closestCenter, DragEndEvent } from '@dnd-kit/core';
@@ -2090,12 +2155,12 @@ interface ProductFormProps {
 }
 
 // Sortable Image Component
-function SortableImage({ 
-  id, 
-  url, 
-  alt, 
-  isPrimary, 
-  onRemove, 
+function SortableImage({
+  id,
+  url,
+  alt,
+  isPrimary,
+  onRemove,
   onSetPrimary,
   onUpdateAlt,
 }: {
@@ -2213,10 +2278,10 @@ export function ProductForm({
     },
   });
 
-  const { fields: attributeFields, append: appendAttribute, remove: removeAttribute } = 
+  const { fields: attributeFields, append: appendAttribute, remove: removeAttribute } =
     useFieldArray({ control: form.control, name: 'attributes' });
 
-  const { fields: imageFields, append: appendImage, remove: removeImage, move: moveImage, update: updateImage } = 
+  const { fields: imageFields, append: appendImage, remove: removeImage, move: moveImage, update: updateImage } =
     useFieldArray({ control: form.control, name: 'images' });
 
   const tags = form.watch('tags');
@@ -2238,7 +2303,7 @@ export function ProductForm({
     // In real implementation, upload to storage and get URLs
     for (const file of Array.from(files)) {
       if (imageFields.length >= 10) break;
-      
+
       // Simulate upload
       const url = URL.createObjectURL(file);
       appendImage({
@@ -2267,10 +2332,10 @@ export function ProductForm({
   async function handleSubmit(data: ProductFormData) {
     setIsSubmitting(true);
     try {
-      const endpoint = isEditing 
+      const endpoint = isEditing
         ? `/api/v1/products/${product.id}`
         : '/api/v1/products';
-      
+
       const response = await fetch(endpoint, {
         method: isEditing ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -2845,14 +2910,14 @@ import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { 
-  Loader2, 
-  Upload, 
-  FileSpreadsheet, 
-  Check, 
-  X, 
+import {
+  Loader2,
+  Upload,
+  FileSpreadsheet,
+  Check,
+  X,
   AlertTriangle,
-  Download 
+  Download
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -2912,12 +2977,12 @@ export function ProductImportDialog({
 
   const handleFileSelect = useCallback(async (file: File) => {
     form.setValue('file', file);
-    
+
     // Parse preview
     try {
       const formData = new FormData();
       formData.append('file', file);
-      
+
       const response = await fetch('/api/v1/products/import/preview', {
         method: 'POST',
         body: formData,
@@ -2962,7 +3027,7 @@ export function ProductImportDialog({
       const importResult: ImportResult = await response.json();
       setResult(importResult);
       setStep('result');
-      
+
       if (importResult.status === 'success') {
         toast.success(`Import finalizat: ${importResult.created} create, ${importResult.updated} actualizate`);
       }
@@ -3143,7 +3208,7 @@ export function ProductImportDialog({
                 <Alert>
                   <FileSpreadsheet className="h-4 w-4" />
                   <AlertDescription>
-                    Se vor procesa {previewData.length > 5 ? '5+' : previewData.length} produse. 
+                    Se vor procesa {previewData.length > 5 ? '5+' : previewData.length} produse.
                     Verificați datele de mai jos.
                   </AlertDescription>
                 </Alert>
@@ -3384,20 +3449,20 @@ export function ProductFilterForm({
 }: ProductFilterFormProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [isExpanded, setIsExpanded] = useState(false);
-  
+
   const { data: categories = [] } = useCategories();
   const { data: availableTags = [] } = useTags();
-  
+
   // Initialize from URL params
   const initialValues: ProductFilterValues = {
     search: searchParams.get('search') || defaultValues?.search || '',
     categoryId: searchParams.get('category') || defaultValues?.categoryId || '',
     inStock: searchParams.get('inStock') === 'true' || defaultValues?.inStock,
-    priceMin: searchParams.get('priceMin') 
-      ? Number(searchParams.get('priceMin')) 
+    priceMin: searchParams.get('priceMin')
+      ? Number(searchParams.get('priceMin'))
       : defaultValues?.priceMin,
-    priceMax: searchParams.get('priceMax') 
-      ? Number(searchParams.get('priceMax')) 
+    priceMax: searchParams.get('priceMax')
+      ? Number(searchParams.get('priceMax'))
       : defaultValues?.priceMax,
     vatRate: (searchParams.get('vat') as any) || defaultValues?.vatRate || 'all',
     tags: searchParams.get('tags')?.split(',').filter(Boolean) || defaultValues?.tags || [],
@@ -3437,7 +3502,7 @@ export function ProductFilterForm({
     if (data.active === false) params.set('active', 'false');
     if (data.sortBy) params.set('sortBy', data.sortBy);
     if (data.sortOrder) params.set('sortOrder', data.sortOrder);
-    
+
     setSearchParams(params);
     onFilter(data);
   }
@@ -3489,8 +3554,8 @@ export function ProductFilterForm({
                 <Filter className="h-4 w-4 mr-2" />
                 Filtre
                 {activeFiltersCount > 0 && (
-                  <Badge 
-                    variant="secondary" 
+                  <Badge
+                    variant="secondary"
                     className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center"
                   >
                     {activeFiltersCount}
@@ -4167,13 +4232,13 @@ export function DiscountRuleForm({
     },
   });
 
-  const { fields: conditionFields, append: appendCondition, remove: removeCondition } = 
+  const { fields: conditionFields, append: appendCondition, remove: removeCondition } =
     useFieldArray({
       control: form.control,
       name: 'conditions',
     });
 
-  const { fields: tierFields, append: appendTier, remove: removeTier } = 
+  const { fields: tierFields, append: appendTier, remove: removeTier } =
     useFieldArray({
       control: form.control,
       name: 'tiers',
@@ -4188,8 +4253,8 @@ export function DiscountRuleForm({
     try {
       await onSubmit(data);
       toast.success(
-        mode === 'create' 
-          ? 'Regulă discount creată cu succes' 
+        mode === 'create'
+          ? 'Regulă discount creată cu succes'
           : 'Regulă discount actualizată'
       );
     } catch (error) {
@@ -4229,11 +4294,11 @@ export function DiscountRuleForm({
                 <FormItem>
                   <FormLabel>Descriere</FormLabel>
                   <FormControl>
-                    <Textarea 
+                    <Textarea
                       placeholder="Descriere detaliată a regulii..."
                       className="resize-none"
                       rows={3}
-                      {...field} 
+                      {...field}
                     />
                   </FormControl>
                   <FormMessage />
@@ -4430,7 +4495,7 @@ export function DiscountRuleForm({
                           const next = arr[i + 1];
                           const minQty = form.watch(`tiers.${tierFields.indexOf(tier)}.minQuantity`);
                           const discount = form.watch(`tiers.${tierFields.indexOf(tier)}.discountValue`);
-                          const maxQty = next 
+                          const maxQty = next
                             ? form.watch(`tiers.${tierFields.indexOf(next)}.minQuantity`) - 1
                             : '∞';
                           return (
@@ -4456,10 +4521,10 @@ export function DiscountRuleForm({
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => appendCondition({ 
-                type: 'min_quantity', 
-                operator: 'gte', 
-                value: 0 
+              onClick={() => appendCondition({
+                type: 'min_quantity',
+                operator: 'gte',
+                value: 0
               })}
             >
               <Plus className="h-4 w-4 mr-1" />
@@ -4651,9 +4716,9 @@ export function DiscountRuleForm({
                           mode="single"
                           selected={field.value}
                           onSelect={field.onChange}
-                          disabled={(date) => 
-                            form.watch('validFrom') 
-                              ? date < form.watch('validFrom') 
+                          disabled={(date) =>
+                            form.watch('validFrom')
+                              ? date < form.watch('validFrom')
                               : false
                           }
                           locale={ro}
@@ -5094,9 +5159,9 @@ export function ManualDiscountDialog({
       }
 
       const result = await response.json();
-      
+
       toast.success('Discount aplicat cu succes', {
-        description: result.requiresApproval 
+        description: result.requiresApproval
           ? 'Discount-ul necesită aprobare și a fost trimis pentru verificare'
           : 'Discount-ul a fost aplicat imediat',
       });
@@ -5519,7 +5584,7 @@ export function PriceOverrideDialog({
         const discountPercent = ((originalPrice - newPrice) / originalPrice) * 100;
         const marginPercent = ((newPrice - product.costPrice) / newPrice) * 100;
         const profitLoss = (originalPrice - newPrice) * product.quantity;
-        
+
         const requiredApproval = approvalThresholds.find(
           t => discountPercent <= t.maxDiscountPercent
         ) || approvalThresholds[approvalThresholds.length - 1];
@@ -5556,7 +5621,7 @@ export function PriceOverrideDialog({
       }
 
       const result = await response.json();
-      
+
       if (result.requiresApproval) {
         toast.success('Cerere de modificare preț trimisă', {
           description: `Necesită aprobare ${analysis?.requiredApproval.label}`,
@@ -5622,7 +5687,7 @@ export function PriceOverrideDialog({
                           <div className="flex flex-col">
                             <span>{product.title}</span>
                             <span className="text-xs text-muted-foreground">
-                              SKU: {product.sku} | Preț: {formatCurrency(product.currentPrice)} | 
+                              SKU: {product.sku} | Preț: {formatCurrency(product.currentPrice)} |
                               Qty: {product.quantity}
                             </span>
                           </div>
@@ -5693,17 +5758,17 @@ export function PriceOverrideDialog({
                     <div className="p-4 border rounded-lg space-y-3">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium">Reducere</span>
-                        <Badge 
+                        <Badge
                           variant={analysis.discountPercent > 35 ? 'destructive' : 'secondary'}
                         >
                           -{analysis.discountPercent.toFixed(1)}%
                         </Badge>
                       </div>
-                      <Progress 
-                        value={Math.min(analysis.discountPercent, 50) * 2} 
+                      <Progress
+                        value={Math.min(analysis.discountPercent, 50) * 2}
                         className={cn(
                           analysis.discountPercent > 35 && "bg-red-100 [&>div]:bg-red-500",
-                          analysis.discountPercent > 20 && analysis.discountPercent <= 35 && 
+                          analysis.discountPercent > 20 && analysis.discountPercent <= 35 &&
                             "bg-amber-100 [&>div]:bg-amber-500"
                         )}
                       />
@@ -5783,7 +5848,7 @@ export function PriceOverrideDialog({
                       <FormLabel>Justificare *</FormLabel>
                       <FormControl>
                         <Textarea
-                          placeholder="Explicați în detaliu motivul acestei modificări de preț. 
+                          placeholder="Explicați în detaliu motivul acestei modificări de preț.
 Include contextul negocierii, potențialul clientului și beneficiile strategice..."
                           className="resize-none"
                           rows={4}
@@ -5808,14 +5873,14 @@ Include contextul negocierii, potențialul clientului și beneficiile strategice
               >
                 Anulează
               </Button>
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 disabled={isSubmitting || !analysis}
                 variant={analysis?.belowCost ? 'destructive' : 'default'}
               >
                 {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                {analysis?.requiredApproval.level === 'auto' 
-                  ? 'Aplică Modificarea' 
+                {analysis?.requiredApproval.level === 'auto'
+                  ? 'Aplică Modificarea'
                   : 'Trimite pentru Aprobare'
                 }
               </Button>
@@ -6039,7 +6104,7 @@ export function ProformaCreateForm({
     },
   });
 
-  const { fields: itemFields, append: appendItem, remove: removeItem } = 
+  const { fields: itemFields, append: appendItem, remove: removeItem } =
     useFieldArray({
       control: form.control,
       name: 'items',
@@ -6528,10 +6593,10 @@ export function ProformaCreateForm({
                             render={({ field }) => (
                               <FormItem>
                                 <FormControl>
-                                  <Input 
-                                    type="number" 
-                                    min="1" 
-                                    className="h-8 w-16" 
+                                  <Input
+                                    type="number"
+                                    min="1"
+                                    className="h-8 w-16"
                                     {...field}
                                     onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
                                   />
@@ -6574,11 +6639,11 @@ export function ProformaCreateForm({
                             render={({ field }) => (
                               <FormItem>
                                 <FormControl>
-                                  <Input 
-                                    type="number" 
-                                    step="0.01" 
-                                    min="0" 
-                                    className="h-8 w-24" 
+                                  <Input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    className="h-8 w-24"
                                     {...field}
                                     onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                                   />
@@ -6620,12 +6685,12 @@ export function ProformaCreateForm({
                             render={({ field }) => (
                               <FormItem>
                                 <FormControl>
-                                  <Input 
-                                    type="number" 
-                                    step="0.1" 
-                                    min="0" 
+                                  <Input
+                                    type="number"
+                                    step="0.1"
+                                    min="0"
                                     max="100"
-                                    className="h-8 w-16" 
+                                    className="h-8 w-16"
                                     {...field}
                                     onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                                   />
@@ -6755,7 +6820,7 @@ export function ProformaCreateForm({
               Anulează
             </Button>
           )}
-          
+
           <div className="flex gap-2 ml-auto">
             <Button
               type="submit"
@@ -6942,7 +7007,7 @@ export function InvoiceConvertDialog({
   const sendToEFactura = form.watch('sendToEFactura');
 
   // Calculate partial amounts
-  const partialAmount = partialInvoice 
+  const partialAmount = partialInvoice
     ? {
         net: proforma.totalNet * (invoicePercent / 100),
         vat: proforma.totalVat * (invoicePercent / 100),
@@ -7184,7 +7249,7 @@ export function InvoiceConvertDialog({
                       <PopoverTrigger asChild>
                         <FormControl>
                           <Button variant="outline" className="pl-3 text-left font-normal">
-                            {field.value 
+                            {field.value
                               ? format(field.value, 'dd.MM.yy', { locale: ro })
                               : <span className="text-muted-foreground">Opțional</span>
                             }
@@ -7265,7 +7330,7 @@ export function InvoiceConvertDialog({
                     <div className="space-y-0.5">
                       <FormLabel>Trimite la e-Factura</FormLabel>
                       <FormDescription>
-                        {proforma.eFacturaRequired 
+                        {proforma.eFacturaRequired
                           ? 'Obligatoriu pentru plătitori de TVA'
                           : 'Opțional pentru non-plătitori de TVA'
                         }
@@ -7290,7 +7355,7 @@ export function InvoiceConvertDialog({
                     <div className="space-y-0.5">
                       <FormLabel>Trimite clientului</FormLabel>
                       <FormDescription>
-                        {proforma.clientEmail 
+                        {proforma.clientEmail
                           ? `Se va trimite la ${proforma.clientEmail}`
                           : 'Email client nedisponibil'
                         }
@@ -7522,7 +7587,7 @@ export function EFacturaSendDialog({
 
     try {
       const data = form.getValues();
-      
+
       const response = await fetch('/api/v1/efactura/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -7601,7 +7666,7 @@ export function EFacturaSendDialog({
             )}>
               <Clock className="h-4 w-4" />
               <span className="text-sm">
-                {deadlineInfo.status === 'overdue' 
+                {deadlineInfo.status === 'overdue'
                   ? 'Termen depășit!'
                   : `Termen: ${deadlineInfo.hours}h rămase`
                 }
@@ -7633,7 +7698,7 @@ export function EFacturaSendDialog({
                     <XCircle className="h-4 w-4" />
                     <AlertTitle>Erori de validare</AlertTitle>
                     <AlertDescription>
-                      {validation.errors.filter(e => e.severity === 'error').length} erori găsite. 
+                      {validation.errors.filter(e => e.severity === 'error').length} erori găsite.
                       Corectați erorile înainte de a trimite.
                     </AlertDescription>
                   </Alert>
@@ -7664,7 +7729,7 @@ export function EFacturaSendDialog({
                   <ScrollArea className="h-[200px] border rounded-lg p-4">
                     <div className="space-y-2">
                       {validation.errors.map((error, i) => (
-                        <div 
+                        <div
                           key={i}
                           className={cn(
                             "p-3 rounded-lg",
@@ -7672,7 +7737,7 @@ export function EFacturaSendDialog({
                           )}
                         >
                           <div className="flex items-center gap-2">
-                            {error.severity === 'error' 
+                            {error.severity === 'error'
                               ? <XCircle className="h-4 w-4 text-red-500" />
                               : <AlertTriangle className="h-4 w-4 text-amber-500" />
                             }
@@ -7750,8 +7815,8 @@ export function EFacturaSendDialog({
                   Revalidează
                 </Button>
               ) : (
-                <Button 
-                  onClick={() => setStep('confirm')} 
+                <Button
+                  onClick={() => setStep('confirm')}
                   disabled={hasWarnings && !skipWarnings}
                 >
                   Continuă
@@ -7872,8 +7937,8 @@ export function EFacturaSendDialog({
                   </AlertDescription>
                 </Alert>
 
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="w-full"
                   onClick={() => {
                     setStep('confirm');
@@ -7939,12 +8004,12 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
-import { 
-  Brain, 
-  Shield, 
-  Zap, 
-  DollarSign, 
-  Settings, 
+import {
+  Brain,
+  Shield,
+  Zap,
+  DollarSign,
+  Settings,
   AlertTriangle,
   Save,
   RefreshCw,
@@ -7963,19 +8028,19 @@ const aiSettingsSchema = z.object({
   workingHoursOnly: z.boolean(),
   workingHoursStart: z.string().regex(/^\d{2}:\d{2}$/),
   workingHoursEnd: z.string().regex(/^\d{2}:\d{2}$/),
-  
+
   // Model Configuration
   defaultModel: z.enum(['claude-3-opus', 'claude-3-sonnet', 'claude-3-haiku', 'gpt-4o', 'gpt-4o-mini']),
   fallbackModel: z.enum(['claude-3-sonnet', 'claude-3-haiku', 'gpt-4o-mini']),
   temperature: z.number().min(0).max(1),
   maxTokens: z.number().min(100).max(8000),
-  
+
   // Cost Controls
   dailyCostLimit: z.number().min(0).max(1000),
   monthlyCostLimit: z.number().min(0).max(10000),
   alertThreshold: z.number().min(0).max(100),
   pauseOnLimitReached: z.boolean(),
-  
+
   // Safety & Guardrails
   enableGuardrails: z.boolean(),
   confidenceThreshold: z.number().min(0).max(1),
@@ -7983,14 +8048,14 @@ const aiSettingsSchema = z.object({
   maxRetriesBeforeEscalation: z.number().min(1).max(5),
   humanApprovalRequired: z.enum(['never', 'high_value', 'always']),
   highValueThreshold: z.number().min(0),
-  
+
   // Response Settings
   responseLanguage: z.enum(['ro', 'en', 'auto']),
   formalityLevel: z.enum(['formal', 'neutral', 'informal']),
   includeProductRecommendations: z.boolean(),
   maxRecommendations: z.number().min(1).max(10),
   includeAlternatives: z.boolean(),
-  
+
   // Integration Settings
   syncWithCRM: z.boolean(),
   logAllInteractions: z.boolean(),
@@ -8320,7 +8385,7 @@ export function AISettingsForm({ initialData, onSave, isAdmin }: AISettingsFormP
                         />
                       </FormControl>
                       <FormDescription>
-                        Valori mici = răspunsuri mai precise și consistente. 
+                        Valori mici = răspunsuri mai precise și consistente.
                         Valori mari = răspunsuri mai creative și variate.
                       </FormDescription>
                       <FormMessage />
@@ -8399,7 +8464,7 @@ export function AISettingsForm({ initialData, onSave, isAdmin }: AISettingsFormP
                     <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden">
                       <div
                         className={`h-full transition-all ${
-                          dailyCostPercent > 80 ? 'bg-destructive' : 
+                          dailyCostPercent > 80 ? 'bg-destructive' :
                           dailyCostPercent > 60 ? 'bg-yellow-500' : 'bg-primary'
                         }`}
                         style={{ width: `${Math.min(dailyCostPercent, 100)}%` }}
@@ -8423,7 +8488,7 @@ export function AISettingsForm({ initialData, onSave, isAdmin }: AISettingsFormP
                     <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden">
                       <div
                         className={`h-full transition-all ${
-                          monthlyCostPercent > 80 ? 'bg-destructive' : 
+                          monthlyCostPercent > 80 ? 'bg-destructive' :
                           monthlyCostPercent > 60 ? 'bg-yellow-500' : 'bg-primary'
                         }`}
                         style={{ width: `${Math.min(monthlyCostPercent, 100)}%` }}
@@ -9024,11 +9089,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { 
-  Brain, 
-  Zap, 
-  DollarSign, 
-  Clock, 
+import {
+  Brain,
+  Zap,
+  DollarSign,
+  Clock,
   AlertTriangle,
   Save,
   TestTube,
@@ -9046,7 +9111,7 @@ const modelConfigSchema = z.object({
   provider: z.enum(['anthropic', 'openai', 'local']),
   modelName: z.string().min(1, 'Nume model obligatoriu'),
   apiEndpoint: z.string().url().optional().or(z.literal('')),
-  
+
   // Parameters
   temperature: z.number().min(0).max(2),
   topP: z.number().min(0).max(1),
@@ -9054,32 +9119,32 @@ const modelConfigSchema = z.object({
   frequencyPenalty: z.number().min(-2).max(2),
   presencePenalty: z.number().min(-2).max(2),
   maxTokens: z.number().min(100).max(128000),
-  
+
   // Rate Limiting
   requestsPerMinute: z.number().min(1).max(1000),
   tokensPerMinute: z.number().min(1000).max(1000000),
-  
+
   // Cost
   inputCostPer1k: z.number().min(0),
   outputCostPer1k: z.number().min(0),
-  
+
   // Capabilities
   supportsVision: z.boolean(),
   supportsFunctions: z.boolean(),
   supportsStreaming: z.boolean(),
   contextWindow: z.number().min(1000),
-  
+
   // Usage
   isEnabled: z.boolean(),
   useCases: z.array(z.enum([
-    'chat', 
-    'negotiation', 
-    'analysis', 
-    'summarization', 
+    'chat',
+    'negotiation',
+    'analysis',
+    'summarization',
     'translation',
     'code_generation'
   ])),
-  
+
   // System Prompt Override
   systemPromptOverride: z.string().optional(),
   stopSequences: z.array(z.string()).optional(),
@@ -9212,7 +9277,7 @@ export function ModelConfigForm({ open, onOpenChange, model, onSave }: ModelConf
         form.setValue(key as keyof ModelConfigFormData, value as any);
       });
       form.setValue('modelId', presetKey);
-      form.setValue('displayName', presetKey.split('-').map(s => 
+      form.setValue('displayName', presetKey.split('-').map(s =>
         s.charAt(0).toUpperCase() + s.slice(1)
       ).join(' '));
       toast.success(`Preset ${presetKey} aplicat`);
@@ -9372,12 +9437,12 @@ export function ModelConfigForm({ open, onOpenChange, model, onSave }: ModelConf
                   <FormItem>
                     <FormLabel>Nume Model API *</FormLabel>
                     <FormControl>
-                      <Input 
+                      <Input
                         placeholder={
                           provider === 'anthropic' ? 'claude-3-sonnet-20240229' :
                           provider === 'openai' ? 'gpt-4o' : 'custom-model'
                         }
-                        {...field} 
+                        {...field}
                       />
                     </FormControl>
                     <FormMessage />
@@ -9615,7 +9680,7 @@ export function ModelConfigForm({ open, onOpenChange, model, onSave }: ModelConf
                   <Alert>
                     <DollarSign className="h-4 w-4" />
                     <AlertDescription>
-                      Cost estimat per răspuns tipic (~500 tokens in, ~1000 tokens out): 
+                      Cost estimat per răspuns tipic (~500 tokens in, ~1000 tokens out):
                       <strong className="ml-1">
                         ${((form.watch('inputCostPer1k') * 0.5) + (form.watch('outputCostPer1k') * 1)).toFixed(4)}
                       </strong>
@@ -9874,15 +9939,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { 
-  FileText, 
-  Code, 
-  Variable, 
-  Play, 
-  Save, 
-  Copy, 
-  Plus, 
-  Trash2, 
+import {
+  FileText,
+  Code,
+  Variable,
+  Play,
+  Save,
+  Copy,
+  Plus,
+  Trash2,
   RefreshCw,
   AlertTriangle,
   CheckCircle,
@@ -9917,19 +9982,19 @@ const promptTemplateSchema = z.object({
     'custom'
   ]),
   description: z.string().max(500).optional(),
-  
+
   // Template content
   systemPrompt: z.string().min(10, 'System prompt minim 10 caractere'),
   userPromptTemplate: z.string().min(10, 'User prompt template minim 10 caractere'),
-  
+
   // Variables
   variables: z.array(templateVariableSchema),
-  
+
   // Settings
   defaultModel: z.string().optional(),
   temperature: z.number().min(0).max(2).optional(),
   maxTokens: z.number().min(100).max(8000).optional(),
-  
+
   // Metadata
   isActive: z.boolean(),
   version: z.number().min(1),
@@ -10127,7 +10192,7 @@ export function PromptTemplateForm({ open, onOpenChange, template, onSave }: Pro
   const addMissingVariables = () => {
     const currentVars = form.getValues('variables').map(v => v.name);
     const missing = extractedVariables.filter(v => !currentVars.includes(v));
-    
+
     missing.forEach(name => {
       appendVariable({
         name,
@@ -10884,39 +10949,39 @@ const guardrailRuleSchema = z.object({
     .min(10, 'Descrierea trebuie să aibă minim 10 caractere')
     .max(500, 'Descrierea poate avea maxim 500 caractere'),
   type: z.enum(['content_filter', 'hallucination_check', 'price_validator', 'pii_detector', 'sentiment_check', 'compliance_check', 'rate_limiter', 'output_validator', 'custom']),
-  
+
   // Configurare activare
   enabled: z.boolean().default(true),
   priority: z.number().min(1).max(100).default(50),
-  
+
   // Scop aplicare
   scope: z.object({
     applyTo: z.enum(['all', 'input', 'output', 'both']).default('both'),
     stages: z.array(z.enum(['negotiation', 'pricing', 'document', 'communication'])).min(1),
     models: z.array(z.string()).optional(),
   }),
-  
+
   // Condiții declanșare
   conditions: z.array(conditionSchema).min(1, 'Minim o condiție este necesară'),
   conditionLogic: z.enum(['AND', 'OR']).default('AND'),
-  
+
   // Acțiuni la declanșare
   actions: z.array(actionConfigSchema).min(1, 'Minim o acțiune este necesară'),
-  
+
   // Threshold și sensibilitate
   threshold: z.number().min(0).max(1).default(0.8),
   sensitivity: z.enum(['low', 'medium', 'high']).default('medium'),
-  
+
   // Rate limiting specific
   rateLimit: z.object({
     maxRequests: z.number().min(1).max(10000).optional(),
     windowSeconds: z.number().min(1).max(86400).optional(),
     perUser: z.boolean().default(true),
   }).optional(),
-  
+
   // Configurare custom pentru tipuri specifice
   customConfig: z.record(z.any()).optional(),
-  
+
   // Metadata
   tags: z.array(z.string()).optional(),
   notes: z.string().optional(),
@@ -11005,14 +11070,14 @@ export function GuardrailRuleForm({ rule, onSuccess, onCancel }: GuardrailRuleFo
     }
 
     setTestResult(null);
-    
+
     // Simulare test - în producție ar fi API call
     await new Promise(resolve => setTimeout(resolve, 500));
-    
+
     const conditions = form.getValues('conditions');
     const matches: string[] = [];
     let triggered = false;
-    
+
     conditions.forEach(cond => {
       if (cond.value && testInput.toLowerCase().includes(cond.value.toLowerCase())) {
         matches.push(cond.value);
@@ -11032,10 +11097,10 @@ export function GuardrailRuleForm({ rule, onSuccess, onCancel }: GuardrailRuleFo
     setIsSubmitting(true);
 
     try {
-      const endpoint = isEdit 
+      const endpoint = isEdit
         ? `/api/v1/guardrails/rules/${rule.id}`
         : '/api/v1/guardrails/rules';
-      
+
       const response = await fetch(endpoint, {
         method: isEdit ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -11150,7 +11215,7 @@ export function GuardrailRuleForm({ rule, onSuccess, onCancel }: GuardrailRuleFo
                 <FormItem>
                   <FormLabel>Descriere *</FormLabel>
                   <FormControl>
-                    <Textarea 
+                    <Textarea
                       placeholder="Descrieți scopul și funcționarea acestei reguli..."
                       rows={3}
                       {...field}
@@ -11965,7 +12030,7 @@ export function GuardrailTestDialog({
     try {
       const text = await file.text();
       const lines = text.split('\n').filter(l => l.trim());
-      
+
       const newCases: TestCase[] = lines.map((line, idx) => ({
         id: String(Date.now() + idx),
         input: line.trim(),
@@ -12016,9 +12081,9 @@ export function GuardrailTestDialog({
           });
 
           const data = await response.json();
-          
+
           const triggered = data.triggered;
-          const passed = 
+          const passed =
             (testCase.expectedResult === 'pass' && !triggered) ||
             (testCase.expectedResult === 'fail' && triggered) ||
             (testCase.expectedResult === 'warn' && data.action === 'warn');
@@ -12054,7 +12119,7 @@ export function GuardrailTestDialog({
     }
 
     setIsRunning(false);
-    
+
     const passedCount = allResults.filter(r => r.passed).length;
     if (passedCount === allResults.length) {
       toast.success('Toate testele au trecut!');
@@ -12182,8 +12247,8 @@ export function GuardrailTestDialog({
                         <div className="flex flex-col gap-2">
                           <Select
                             value={tc.expectedResult}
-                            onValueChange={(v) => updateTestCase(tc.id, { 
-                              expectedResult: v as 'pass' | 'fail' | 'warn' 
+                            onValueChange={(v) => updateTestCase(tc.id, {
+                              expectedResult: v as 'pass' | 'fail' | 'warn'
                             })}
                           >
                             <SelectTrigger className="w-[100px]">
@@ -12429,7 +12494,7 @@ import { ro } from 'date-fns/locale';
 import { toast } from 'sonner';
 
 // Tipuri de cereri HITL
-type ApprovalType = 
+type ApprovalType =
   | 'discount_approval'
   | 'price_override'
   | 'document_generation'
@@ -12637,8 +12702,8 @@ export function ApprovalDialog({
             }`}>
               <AlertTriangle className="h-4 w-4" />
               <span className="text-sm font-medium">
-                {isExpired 
-                  ? 'Această cerere a expirat!' 
+                {isExpired
+                  ? 'Această cerere a expirat!'
                   : `Expiră în ${hoursRemaining} ore`
                 }
               </span>
@@ -12890,7 +12955,7 @@ export function ApprovalDialog({
                       <FormControl>
                         <Textarea
                           placeholder={
-                            selectedDecision === 'approve' 
+                            selectedDecision === 'approve'
                               ? 'Motivul aprobării...'
                               : selectedDecision === 'reject'
                               ? 'Motivul respingerii...'
@@ -12980,8 +13045,8 @@ export function ApprovalDialog({
                   <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                     Anulează
                   </Button>
-                  <Button 
-                    type="submit" 
+                  <Button
+                    type="submit"
                     disabled={isSubmitting || isExpired}
                     variant={selectedDecision === 'reject' ? 'destructive' : 'default'}
                   >
@@ -13009,7 +13074,7 @@ export function ApprovalDialog({
           {/* Status pentru cereri deja procesate */}
           {request.status !== 'pending' && (
             <div className="text-center py-4">
-              <Badge 
+              <Badge
                 variant={
                   request.status === 'approved' ? 'default' :
                   request.status === 'rejected' ? 'destructive' :
@@ -13236,7 +13301,7 @@ export function EscalationDialog({
                         />
                         <label
                           htmlFor="L2"
-                          className={`flex flex-col items-center justify-center p-3 border rounded-lg cursor-pointer 
+                          className={`flex flex-col items-center justify-center p-3 border rounded-lg cursor-pointer
                             peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5
                             ${currentLevel !== 'L1' ? 'opacity-50 cursor-not-allowed' : 'hover:bg-muted'}`}
                         >
@@ -13254,7 +13319,7 @@ export function EscalationDialog({
                         />
                         <label
                           htmlFor="L3"
-                          className={`flex flex-col items-center justify-center p-3 border rounded-lg cursor-pointer 
+                          className={`flex flex-col items-center justify-center p-3 border rounded-lg cursor-pointer
                             peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5
                             ${currentLevel === 'L3' ? 'opacity-50 cursor-not-allowed' : 'hover:bg-muted'}`}
                         >
@@ -13271,7 +13336,7 @@ export function EscalationDialog({
                         />
                         <label
                           htmlFor="department"
-                          className="flex flex-col items-center justify-center p-3 border rounded-lg cursor-pointer 
+                          className="flex flex-col items-center justify-center p-3 border rounded-lg cursor-pointer
                             peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5
                             hover:bg-muted"
                         >
@@ -13645,7 +13710,7 @@ export function TakeoverDialog({
                 </div>
                 <div>
                   <span className="text-muted-foreground">Confidență AI:</span>
-                  <Badge 
+                  <Badge
                     variant={negotiation.aiConfidence > 0.7 ? 'default' : 'destructive'}
                     className="ml-2"
                   >
@@ -13737,8 +13802,8 @@ export function TakeoverDialog({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Durată (ore)</FormLabel>
-                      <Select 
-                        onValueChange={(v) => field.onChange(parseInt(v))} 
+                      <Select
+                        onValueChange={(v) => field.onChange(parseInt(v))}
                         value={field.value?.toString()}
                       >
                         <FormControl>
@@ -13973,18 +14038,18 @@ const oblioConnectSchema = z.object({
   apiSecret: z.string().min(32, 'API Secret trebuie să aibă minim 32 caractere'),
   companyName: z.string().min(2, 'Numele companiei este obligatoriu'),
   companyCif: z.string().regex(/^RO?\d{2,10}$/, 'CIF/CUI invalid'),
-  
+
   // Setări sincronizare
   syncInvoices: z.boolean().default(true),
   syncProformas: z.boolean().default(true),
   syncClients: z.boolean().default(true),
   syncProducts: z.boolean().default(false),
-  
+
   // Setări automate
   autoCreateInvoice: z.boolean().default(false),
   autoSendToEFactura: z.boolean().default(false),
   defaultSeries: z.string().optional(),
-  
+
   // Notificări
   notifyOnSync: z.boolean().default(true),
   notifyOnError: z.boolean().default(true),
@@ -14052,7 +14117,7 @@ export function OblioConnectForm({ initialData, onSuccess }: OblioConnectFormPro
 
   const testConnection = async () => {
     setIsTesting(true);
-    
+
     try {
       const values = form.getValues();
       const response = await fetch('/api/v1/integrations/oblio/test', {
@@ -14069,7 +14134,7 @@ export function OblioConnectForm({ initialData, onSuccess }: OblioConnectFormPro
       }
 
       const data = await response.json();
-      
+
       if (data.success) {
         toast.success('Conexiune reușită cu Oblio');
         setAvailableSeries(data.series || []);
@@ -14116,7 +14181,7 @@ export function OblioConnectForm({ initialData, onSuccess }: OblioConnectFormPro
       await fetch('/api/v1/integrations/oblio/disconnect', {
         method: 'POST',
       });
-      
+
       toast.success('Oblio deconectat');
       setConnectionStatus({ connected: false });
       form.reset();
@@ -14140,7 +14205,7 @@ export function OblioConnectForm({ initialData, onSuccess }: OblioConnectFormPro
                 <CardDescription>Facturare & Contabilitate</CardDescription>
               </div>
             </div>
-            <Badge 
+            <Badge
               variant={connectionStatus.connected ? 'default' : 'secondary'}
               className="flex items-center gap-1"
             >
@@ -14200,10 +14265,10 @@ export function OblioConnectForm({ initialData, onSuccess }: OblioConnectFormPro
                     <FormItem>
                       <FormLabel>API Secret</FormLabel>
                       <FormControl>
-                        <Input 
-                          type="password" 
+                        <Input
+                          type="password"
                           placeholder="••••••••••••••••"
-                          {...field} 
+                          {...field}
                         />
                       </FormControl>
                       <FormDescription>
@@ -14505,7 +14570,7 @@ export function OblioConnectForm({ initialData, onSuccess }: OblioConnectFormPro
                 Deconectează
               </Button>
             )}
-            
+
             <div className="flex gap-2 ml-auto">
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? (
@@ -14627,7 +14692,7 @@ export function ANAFVerifyForm({ defaultCui, onVerified }: ANAFVerifyFormProps) 
       }, 200);
 
       const response = await fetch(`/api/v1/anaf/verify/${data.cui}`);
-      
+
       clearInterval(progressInterval);
       setVerificationProgress(100);
 
@@ -14681,9 +14746,9 @@ export function ANAFVerifyForm({ defaultCui, onVerified }: ANAFVerifyFormProps) 
                     <FormItem className="flex-1">
                       <FormLabel>CUI/CIF (fără RO)</FormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder="12345678" 
-                          {...field} 
+                        <Input
+                          placeholder="12345678"
+                          {...field}
                           disabled={isVerifying}
                         />
                       </FormControl>
@@ -14691,8 +14756,8 @@ export function ANAFVerifyForm({ defaultCui, onVerified }: ANAFVerifyFormProps) 
                     </FormItem>
                   )}
                 />
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   disabled={isVerifying}
                   className="mt-8"
                 >
@@ -14966,7 +15031,7 @@ export function WebhookConfigForm({ webhook, onSuccess, onCancel }: WebhookConfi
     const current = form.getValues('events');
     const categoryValues = categoryEvents.map(e => e.value);
     const allSelected = categoryValues.every(v => current.includes(v));
-    
+
     if (allSelected) {
       form.setValue('events', current.filter(e => !categoryValues.includes(e)));
     } else {
@@ -15023,10 +15088,10 @@ export function WebhookConfigForm({ webhook, onSuccess, onCancel }: WebhookConfi
     setIsSubmitting(true);
 
     try {
-      const endpoint = isEdit 
+      const endpoint = isEdit
         ? `/api/v1/webhooks/${webhook.id}`
         : '/api/v1/webhooks';
-      
+
       const response = await fetch(endpoint, {
         method: isEdit ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -15099,9 +15164,9 @@ export function WebhookConfigForm({ webhook, onSuccess, onCancel }: WebhookConfi
                   <FormLabel>URL Endpoint *</FormLabel>
                   <div className="flex gap-2">
                     <FormControl>
-                      <Input 
-                        placeholder="https://your-server.com/webhook" 
-                        {...field} 
+                      <Input
+                        placeholder="https://your-server.com/webhook"
+                        {...field}
                       />
                     </FormControl>
                     <Button
@@ -15143,10 +15208,10 @@ export function WebhookConfigForm({ webhook, onSuccess, onCancel }: WebhookConfi
                   <FormLabel>Secret (pentru semnătură HMAC)</FormLabel>
                   <div className="flex gap-2">
                     <FormControl>
-                      <Input 
+                      <Input
                         type="password"
                         placeholder="Secret pentru validare"
-                        {...field} 
+                        {...field}
                       />
                     </FormControl>
                     <Button
@@ -15427,21 +15492,21 @@ interface WebhookPayload {
 **Validare Semnătură (recipient side):**
 
 ```typescript
-import crypto from 'crypto';
+import crypto from "crypto";
 
 function verifyWebhookSignature(
   payload: string,
   signature: string,
-  secret: string
+  secret: string,
 ): boolean {
   const expectedSignature = crypto
-    .createHmac('sha256', secret)
+    .createHmac("sha256", secret)
     .update(payload)
-    .digest('hex');
-  
+    .digest("hex");
+
   return crypto.timingSafeEqual(
     Buffer.from(signature),
-    Buffer.from(expectedSignature)
+    Buffer.from(expectedSignature),
   );
 }
 ```
@@ -15549,19 +15614,19 @@ const notificationSettingsSchema = z.object({
   emailNotifications: z.boolean(),
   pushNotifications: z.boolean(),
   smsNotifications: z.boolean(),
-  
+
   // Categorii notificări
   negotiationUpdates: z.boolean(),
   approvalRequests: z.boolean(),
   documentGenerated: z.boolean(),
   aiAlerts: z.boolean(),
   systemAlerts: z.boolean(),
-  
+
   // Digest
   dailyDigest: z.boolean(),
   weeklyReport: z.boolean(),
   digestTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/),
-  
+
   // Do Not Disturb
   dndEnabled: z.boolean(),
   dndStart: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/),
@@ -16945,12 +17010,12 @@ interface UpdateProfileRequest {
 
 // PUT /api/v1/users/me/preferences
 interface UpdatePreferencesRequest {
-  language: 'ro' | 'en';
+  language: "ro" | "en";
   timezone: string;
   dateFormat: string;
   timeFormat: string;
   currency: string;
-  theme: 'light' | 'dark' | 'system';
+  theme: "light" | "dark" | "system";
   compactMode: boolean;
   showTips: boolean;
 }
@@ -17084,7 +17149,7 @@ const tenantSettingsSchema = z.object({
   email: z.string().email('Email invalid'),
   website: z.string().url('URL invalid').optional().or(z.literal('')),
   logo: z.string().url().optional().or(z.literal('')),
-  
+
   // Fiscal Settings
   vatPayer: z.boolean(),
   vatRate: z.number().min(0).max(50),
@@ -17099,7 +17164,7 @@ const tenantSettingsSchema = z.object({
     currency: z.enum(['RON', 'EUR', 'USD']),
     isDefault: z.boolean(),
   })),
-  
+
   // AI Settings
   aiEnabled: z.boolean(),
   defaultModel: z.string(),
@@ -17108,7 +17173,7 @@ const tenantSettingsSchema = z.object({
   guardrailsEnabled: z.boolean(),
   autoApprovalThreshold: z.number().min(0).max(100),
   humanReviewRequired: z.array(z.string()),
-  
+
   // HITL Settings
   hitlEnabled: z.boolean(),
   defaultSLA: z.number().min(1).max(168),
@@ -17119,14 +17184,14 @@ const tenantSettingsSchema = z.object({
     slaHours: z.number(),
   })),
   autoEscalate: z.boolean(),
-  
+
   // Document Templates
   documentPrefix: z.string().max(10),
   offerNumberFormat: z.string(),
   invoiceNumberFormat: z.string(),
   defaultSignatory: z.string(),
   defaultFooterText: z.string().max(1000),
-  
+
   // Email Settings
   emailFromName: z.string().min(2).max(100),
   emailFromAddress: z.string().email(),
@@ -17136,7 +17201,7 @@ const tenantSettingsSchema = z.object({
   smtpUsername: z.string().optional(),
   smtpPassword: z.string().optional(),
   smtpSecure: z.boolean().optional(),
-  
+
   // Branding
   primaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Cod culoare invalid'),
   accentColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Cod culoare invalid'),
@@ -17295,7 +17360,7 @@ export function TenantSettingsForm({
     }
   };
 
-  const tokenUsagePercent = subscription 
+  const tokenUsagePercent = subscription
     ? Math.round((subscription.tokensUsed / subscription.tokensLimit) * 100)
     : 0;
 
@@ -18447,15 +18512,17 @@ export function TenantSettingsForm({
 ```typescript
 // src/schemas/tenant-settings.schema.ts
 
-import { z } from 'zod';
+import { z } from "zod";
 
 // Romanian IBAN validation
 const ibanRegex = /^RO[0-9]{2}[A-Z]{4}[A-Z0-9]{16}$/;
 
 export const bankAccountSchema = z.object({
-  bankName: z.string().min(2, 'Numele băncii este obligatoriu'),
-  iban: z.string().regex(ibanRegex, 'IBAN invalid (format: RO49AAAA1B31007593840000)'),
-  currency: z.enum(['RON', 'EUR', 'USD']),
+  bankName: z.string().min(2, "Numele băncii este obligatoriu"),
+  iban: z
+    .string()
+    .regex(ibanRegex, "IBAN invalid (format: RO49AAAA1B31007593840000)"),
+  currency: z.enum(["RON", "EUR", "USD"]),
   isDefault: z.boolean().default(false),
 });
 
@@ -18463,35 +18530,40 @@ export const tenantSettingsSchema = z.object({
   // Company Info
   companyName: z
     .string()
-    .min(2, 'Numele companiei trebuie să aibă minim 2 caractere')
-    .max(200, 'Numele companiei trebuie să aibă maxim 200 caractere'),
+    .min(2, "Numele companiei trebuie să aibă minim 2 caractere")
+    .max(200, "Numele companiei trebuie să aibă maxim 200 caractere"),
   cui: z
     .string()
-    .regex(/^(RO)?[0-9]{2,10}$/, 'CUI invalid (format: RO12345678 sau 12345678)'),
+    .regex(
+      /^(RO)?[0-9]{2,10}$/,
+      "CUI invalid (format: RO12345678 sau 12345678)",
+    ),
   regCom: z
     .string()
     .regex(
       /^J[0-9]{1,2}\/[0-9]{1,6}\/[0-9]{4}$/,
-      'Nr. Reg. Com. invalid (format: J40/123/2020)'
+      "Nr. Reg. Com. invalid (format: J40/123/2020)",
     )
     .optional()
-    .or(z.literal('')),
-  address: z.string().min(10, 'Adresa trebuie să aibă minim 10 caractere'),
-  city: z.string().min(2, 'Orașul este obligatoriu'),
-  county: z.string().min(2, 'Județul este obligatoriu'),
-  postalCode: z.string().regex(/^[0-9]{6}$/, 'Cod poștal invalid (6 cifre)'),
-  country: z.string().default('România'),
-  phone: z.string().regex(/^\+?[0-9]{10,15}$/, 'Telefon invalid'),
-  email: z.string().email('Email invalid'),
-  website: z.string().url('URL invalid').optional().or(z.literal('')),
+    .or(z.literal("")),
+  address: z.string().min(10, "Adresa trebuie să aibă minim 10 caractere"),
+  city: z.string().min(2, "Orașul este obligatoriu"),
+  county: z.string().min(2, "Județul este obligatoriu"),
+  postalCode: z.string().regex(/^[0-9]{6}$/, "Cod poștal invalid (6 cifre)"),
+  country: z.string().default("România"),
+  phone: z.string().regex(/^\+?[0-9]{10,15}$/, "Telefon invalid"),
+  email: z.string().email("Email invalid"),
+  website: z.string().url("URL invalid").optional().or(z.literal("")),
   logo: z.string().url().optional().nullable(),
 
   // Bank Accounts
-  bankAccounts: z.array(bankAccountSchema).min(1, 'Adăugați cel puțin un cont bancar'),
+  bankAccounts: z
+    .array(bankAccountSchema)
+    .min(1, "Adăugați cel puțin un cont bancar"),
 
   // Defaults
   defaults: z.object({
-    currency: z.enum(['RON', 'EUR', 'USD']).default('RON'),
+    currency: z.enum(["RON", "EUR", "USD"]).default("RON"),
     paymentTerms: z.number().int().min(0).max(180).default(30),
     validityDays: z.number().int().min(1).max(90).default(15),
     discountApprovalThreshold: z.number().int().min(0).max(50).default(15),
@@ -18513,13 +18585,15 @@ export const tenantSettingsSchema = z.object({
     maxDailyTokens: z.number().int().min(10000).max(10000000).default(1000000),
     defaultModel: z
       .enum([
-        'claude-3-5-haiku-20241022',
-        'claude-sonnet-4-20250514',
-        'claude-opus-4-20250514',
+        "claude-3-5-haiku-20241022",
+        "claude-sonnet-4-20250514",
+        "claude-opus-4-20250514",
       ])
-      .default('claude-sonnet-4-20250514'),
+      .default("claude-sonnet-4-20250514"),
     defaultTemperature: z.number().min(0).max(1).default(0.3),
-    guardrailsProfile: z.enum(['strict', 'balanced', 'permissive', 'custom']).default('balanced'),
+    guardrailsProfile: z
+      .enum(["strict", "balanced", "permissive", "custom"])
+      .default("balanced"),
   }),
 
   // Compliance
@@ -18528,7 +18602,9 @@ export const tenantSettingsSchema = z.object({
     auditLogEnabled: z.boolean().default(true),
     ipWhitelist: z.array(z.string()).optional(),
     twoFactorRequired: z.boolean().default(false),
-    passwordPolicy: z.enum(['standard', 'strong', 'enterprise']).default('standard'),
+    passwordPolicy: z
+      .enum(["standard", "strong", "enterprise"])
+      .default("standard"),
     sessionTimeoutMinutes: z.number().int().min(15).max(480).default(60),
   }),
 });
@@ -20569,7 +20645,7 @@ const exportSchema = z.object({
   format: z.enum(['xlsx', 'csv', 'json', 'pdf']),
   encoding: z.enum(['utf-8', 'windows-1252', 'iso-8859-1']).default('utf-8'),
   delimiter: z.enum([',', ';', '\t']).default(','),
-  
+
   // Date Range
   dateRange: z.object({
     enabled: z.boolean().default(false),
@@ -20579,7 +20655,7 @@ const exportSchema = z.object({
 
   // Field Selection
   fields: z.array(z.string()).min(1, 'Selectează cel puțin un câmp'),
-  
+
   // Filters
   filters: z.object({
     status: z.array(z.string()).optional(),
@@ -21427,7 +21503,7 @@ interface SelectedProduct {
 const negotiationWizardSchema = z.object({
   // Step 1: Contact
   contactId: z.string().min(1, 'Selectează un contact'),
-  
+
   // Step 2: Products
   products: z.array(
     z.object({
@@ -21516,7 +21592,7 @@ export function NegotiationWizard({
     },
   });
 
-  const { fields: productFields, append: addProduct, remove: removeProduct, update: updateProduct } = 
+  const { fields: productFields, append: addProduct, remove: removeProduct, update: updateProduct } =
     useFieldArray({
       control: form.control,
       name: 'products',
@@ -22119,8 +22195,8 @@ export function NegotiationWizard({
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Moneda</FormLabel>
-                            <Select 
-                              onValueChange={field.onChange} 
+                            <Select
+                              onValueChange={field.onChange}
                               defaultValue={field.value}
                             >
                               <FormControl>
@@ -22161,8 +22237,8 @@ export function NegotiationWizard({
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Termen de plată (zile)</FormLabel>
-                            <Select 
-                              onValueChange={(v) => field.onChange(parseInt(v))} 
+                            <Select
+                              onValueChange={(v) => field.onChange(parseInt(v))}
                               defaultValue={field.value?.toString()}
                             >
                               <FormControl>
@@ -22195,8 +22271,8 @@ export function NegotiationWizard({
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Condiții de livrare</FormLabel>
-                            <Select 
-                              onValueChange={field.onChange} 
+                            <Select
+                              onValueChange={field.onChange}
                               defaultValue={field.value}
                             >
                               <FormControl>
@@ -22320,8 +22396,8 @@ export function NegotiationWizard({
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Prioritate</FormLabel>
-                            <Select 
-                              onValueChange={field.onChange} 
+                            <Select
+                              onValueChange={field.onChange}
                               defaultValue={field.value}
                             >
                               <FormControl>
@@ -22368,8 +22444,8 @@ export function NegotiationWizard({
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Responsabil</FormLabel>
-                            <Popover 
-                              open={userPopoverOpen} 
+                            <Popover
+                              open={userPopoverOpen}
                               onOpenChange={setUserPopoverOpen}
                             >
                               <PopoverTrigger asChild>
@@ -22382,8 +22458,8 @@ export function NegotiationWizard({
                                     {field.value ? (
                                       <div className="flex items-center gap-2">
                                         <Avatar className="h-6 w-6">
-                                          <AvatarImage 
-                                            src={users.find(u => u.id === field.value)?.avatar} 
+                                          <AvatarImage
+                                            src={users.find(u => u.id === field.value)?.avatar}
                                           />
                                           <AvatarFallback className="text-xs">
                                             {users.find(u => u.id === field.value)?.name
@@ -22437,8 +22513,8 @@ export function NegotiationWizard({
                                           <Check
                                             className={cn(
                                               "h-4 w-4",
-                                              field.value === user.id 
-                                                ? "opacity-100" 
+                                              field.value === user.id
+                                                ? "opacity-100"
                                                 : "opacity-0"
                                             )}
                                           />
@@ -22620,8 +22696,8 @@ export function NegotiationWizard({
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Profil de siguranță</FormLabel>
-                              <Select 
-                                onValueChange={field.onChange} 
+                              <Select
+                                onValueChange={field.onChange}
                                 defaultValue={field.value}
                               >
                                 <FormControl>
@@ -22677,8 +22753,8 @@ export function NegotiationWizard({
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Ton comunicare</FormLabel>
-                              <Select 
-                                onValueChange={field.onChange} 
+                              <Select
+                                onValueChange={field.onChange}
                                 defaultValue={field.value}
                               >
                                 <FormControl>
@@ -22899,7 +22975,7 @@ export function NegotiationWizard({
                             const lineTotal = item.quantity * item.unitPrice;
                             const discountAmount = lineTotal * (item.discount / 100);
                             const finalTotal = lineTotal - discountAmount;
-                            
+
                             return (
                               <TableRow key={index}>
                                 <TableCell>
@@ -22963,7 +23039,7 @@ export function NegotiationWizard({
                   </Card>
 
                   {/* Warnings if any */}
-                  {(form.watch('settings.priority') === 'urgent' || 
+                  {(form.watch('settings.priority') === 'urgent' ||
                     totals.avgDiscount > 20) && (
                     <Alert variant="warning">
                       <AlertTriangle className="h-4 w-4" />
@@ -22975,7 +23051,7 @@ export function NegotiationWizard({
                           )}
                           {totals.avgDiscount > 20 && (
                             <li>
-                              Discountul mediu ({totals.avgDiscount.toFixed(1)}%) 
+                              Discountul mediu ({totals.avgDiscount.toFixed(1)}%)
                               este peste pragul standard și poate necesita aprobare
                             </li>
                           )}
@@ -22999,7 +23075,7 @@ export function NegotiationWizard({
                         Confirm că am verificat toate detaliile
                       </label>
                       <p className="text-xs text-muted-foreground">
-                        După creare, negocierea va fi trimisă automat către contact 
+                        După creare, negocierea va fi trimisă automat către contact
                         dacă AI Agent este activ
                       </p>
                     </div>
@@ -23069,14 +23145,14 @@ export function NegotiationWizard({
 // Usage Example
 function NegotiationWizardExample() {
   const [open, setOpen] = useState(false);
-  
+
   return (
     <>
       <Button onClick={() => setOpen(true)}>
         <Plus className="h-4 w-4 mr-2" />
         Negociere nouă
       </Button>
-      
+
       <NegotiationWizard
         open={open}
         onClose={() => setOpen(false)}
@@ -23104,44 +23180,44 @@ function NegotiationWizardExample() {
 // Sample data pentru NegotiationWizard
 const sampleContacts = [
   {
-    id: 'contact-1',
-    name: 'Agro Farm SRL',
-    cui: 'RO12345678',
-    email: 'contact@agrofarm.ro',
-    phone: '+40721123456',
-    address: 'Str. Câmpiei 15, Brăila',
-    tier: 'gold',
+    id: "contact-1",
+    name: "Agro Farm SRL",
+    cui: "RO12345678",
+    email: "contact@agrofarm.ro",
+    phone: "+40721123456",
+    address: "Str. Câmpiei 15, Brăila",
+    tier: "gold",
   },
   {
-    id: 'contact-2',
-    name: 'Bio Seeds SA',
-    cui: 'RO87654321',
-    email: 'office@bioseeds.ro',
-    phone: '+40722987654',
-    address: 'Bd. Agriculturii 42, Constanța',
-    tier: 'silver',
+    id: "contact-2",
+    name: "Bio Seeds SA",
+    cui: "RO87654321",
+    email: "office@bioseeds.ro",
+    phone: "+40722987654",
+    address: "Bd. Agriculturii 42, Constanța",
+    tier: "silver",
   },
 ];
 
 const sampleProducts = [
   {
-    id: 'prod-1',
-    name: 'Semințe Grâu Premium',
-    sku: 'GRU-PREM-001',
-    category: 'Semințe',
+    id: "prod-1",
+    name: "Semințe Grâu Premium",
+    sku: "GRU-PREM-001",
+    category: "Semințe",
     price: 2.5,
-    unit: 'kg',
+    unit: "kg",
     stock: 50000,
     minOrderQty: 100,
     maxDiscount: 25,
   },
   {
-    id: 'prod-2',
-    name: 'Fertilizant NPK 15-15-15',
-    sku: 'FERT-NPK-15',
-    category: 'Fertilizanți',
+    id: "prod-2",
+    name: "Fertilizant NPK 15-15-15",
+    sku: "FERT-NPK-15",
+    category: "Fertilizanți",
     price: 3.2,
-    unit: 'kg',
+    unit: "kg",
     stock: 30000,
     minOrderQty: 500,
     maxDiscount: 20,
@@ -23150,25 +23226,25 @@ const sampleProducts = [
 
 const sampleUsers = [
   {
-    id: 'user-1',
-    name: 'Maria Popescu',
-    email: 'maria@cerniq.app',
-    role: 'Sales Manager',
-    avatar: '/avatars/maria.jpg',
+    id: "user-1",
+    name: "Maria Popescu",
+    email: "maria@cerniq.app",
+    role: "Sales Manager",
+    avatar: "/avatars/maria.jpg",
   },
   {
-    id: 'user-2',
-    name: 'Ion Ionescu',
-    email: 'ion@cerniq.app',
-    role: 'Sales Representative',
+    id: "user-2",
+    name: "Ion Ionescu",
+    email: "ion@cerniq.app",
+    role: "Sales Representative",
   },
 ];
 
 const sampleTags = [
-  { id: 'tag-1', label: 'VIP', color: '#FFD700' },
-  { id: 'tag-2', label: 'Agricol', color: '#228B22' },
-  { id: 'tag-3', label: 'Urgent', color: '#FF4500' },
-  { id: 'tag-4', label: 'Contract mare', color: '#4169E1' },
+  { id: "tag-1", label: "VIP", color: "#FFD700" },
+  { id: "tag-2", label: "Agricol", color: "#228B22" },
+  { id: "tag-3", label: "Urgent", color: "#FF4500" },
+  { id: "tag-4", label: "Contract mare", color: "#4169E1" },
 ];
 ```
 
@@ -23415,7 +23491,7 @@ export function ProductImportWizard({
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
         const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-        
+
         if (jsonData.length > 0) {
           headers = (jsonData[0] as any[]).map(h => String(h).trim());
           rows = jsonData.slice(1).map(row => {
@@ -23459,15 +23535,15 @@ export function ProductImportWizard({
   // Auto-map columns based on similarity
   const autoMapColumns = (headers: string[]): ColumnMapping[] => {
     const mappings: ColumnMapping[] = [];
-    
+
     headers.forEach(header => {
       const normalizedHeader = header.toLowerCase().trim();
-      
+
       // Find matching target field
       const match = TARGET_FIELDS.find(field => {
         const normalizedField = field.label.toLowerCase();
         const normalizedKey = field.key.toLowerCase().replace(/_/g, ' ');
-        
+
         return (
           normalizedHeader === normalizedKey ||
           normalizedHeader.includes(normalizedKey) ||
@@ -23550,9 +23626,9 @@ export function ProductImportWizard({
       // Map data according to mappings
       columnMappings.forEach(mapping => {
         if (!mapping.targetField) return;
-        
+
         let value = row[mapping.sourceColumn];
-        
+
         // Apply transform
         if (value !== undefined && value !== null) {
           switch (mapping.transform) {
@@ -23687,7 +23763,7 @@ export function ProductImportWizard({
     const valid = validationResults.filter(r => r.isValid).length;
     const invalid = validationResults.filter(r => !r.isValid).length;
     const warnings = validationResults.filter(r => r.warnings.length > 0).length;
-    
+
     return { valid, invalid, warnings, total: validationResults.length };
   }, [validationResults]);
 
@@ -23789,7 +23865,7 @@ export function ProductImportWizard({
                     )}
                   >
                     <input {...getInputProps()} />
-                    
+
                     {isProcessing ? (
                       <div className="space-y-4">
                         <Loader2 className="h-12 w-12 mx-auto animate-spin text-primary" />
@@ -23810,7 +23886,7 @@ export function ProductImportWizard({
                         <div>
                           <p className="font-medium">{fileData.name}</p>
                           <p className="text-sm text-muted-foreground">
-                            {formatFileSize(fileData.size)} • {fileData.totalRows} rânduri • 
+                            {formatFileSize(fileData.size)} • {fileData.totalRows} rânduri •
                             {fileData.headers.length} coloane
                           </p>
                         </div>
@@ -23833,8 +23909,8 @@ export function ProductImportWizard({
                         <Upload className="h-12 w-12 mx-auto text-muted-foreground" />
                         <div>
                           <p className="font-medium">
-                            {isDragActive 
-                              ? 'Eliberează pentru a încărca' 
+                            {isDragActive
+                              ? 'Eliberează pentru a încărca'
                               : 'Trage fișierul aici sau click pentru a selecta'
                             }
                           </p>
@@ -23914,7 +23990,7 @@ export function ProductImportWizard({
                     <MapPin className="h-4 w-4" />
                     <AlertTitle>Maparea coloanelor</AlertTitle>
                     <AlertDescription>
-                      Asociază coloanele din fișier cu câmpurile din sistem. 
+                      Asociază coloanele din fișier cu câmpurile din sistem.
                       Câmpurile marcate cu * sunt obligatorii.
                     </AlertDescription>
                   </Alert>
@@ -23924,7 +24000,7 @@ export function ProductImportWizard({
                       const targetField = TARGET_FIELDS.find(
                         f => f.key === mapping.targetField
                       );
-                      
+
                       return (
                         <Card key={mapping.sourceColumn} className="p-3">
                           <div className="flex items-center gap-3">
@@ -23961,8 +24037,8 @@ export function ProductImportWizard({
                                       m => m.targetField === field.key && m.sourceColumn !== mapping.sourceColumn
                                     );
                                     return (
-                                      <SelectItem 
-                                        key={field.key} 
+                                      <SelectItem
+                                        key={field.key}
                                         value={field.key}
                                         disabled={isUsed}
                                       >
@@ -24006,7 +24082,7 @@ export function ProductImportWizard({
                       <div className="flex items-center justify-between text-sm">
                         <div className="flex items-center gap-4">
                           <span>
-                            <strong>{columnMappings.filter(m => m.targetField).length}</strong> 
+                            <strong>{columnMappings.filter(m => m.targetField).length}</strong>
                             {' / '}{columnMappings.length} coloane mapate
                           </span>
                           <Separator orientation="vertical" className="h-4" />
@@ -24014,7 +24090,7 @@ export function ProductImportWizard({
                             Obligatorii: {TARGET_FIELDS.filter(f => f.required).map(f => {
                               const isMapped = columnMappings.some(m => m.targetField === f.key);
                               return (
-                                <Badge 
+                                <Badge
                                   key={f.key}
                                   variant={isMapped ? "default" : "destructive"}
                                   className="text-xs ml-1"
@@ -24146,8 +24222,8 @@ export function ProductImportWizard({
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Cotă TVA implicită</FormLabel>
-                              <Select 
-                                onValueChange={(v) => field.onChange(parseInt(v))} 
+                              <Select
+                                onValueChange={(v) => field.onChange(parseInt(v))}
                                 defaultValue={field.value?.toString()}
                               >
                                 <FormControl>
@@ -24243,7 +24319,7 @@ export function ProductImportWizard({
                           <AlertCircle className="h-4 w-4" />
                           <AlertTitle>Erori de validare</AlertTitle>
                           <AlertDescription>
-                            {stats.invalid} rânduri au erori și nu vor fi importate. 
+                            {stats.invalid} rânduri au erori și nu vor fi importate.
                             Corectează fișierul sau activează "Sari peste rândurile invalide".
                           </AlertDescription>
                         </Alert>
@@ -24348,7 +24424,7 @@ export function ProductImportWizard({
                             Gata pentru import
                           </AlertTitle>
                           <AlertDescription className="text-green-700">
-                            {stats.valid} produse vor fi importate. 
+                            {stats.valid} produse vor fi importate.
                             {stats.invalid > 0 && form.watch('skipInvalid') && (
                               <span> {stats.invalid} rânduri vor fi sărite din cauza erorilor.</span>
                             )}
@@ -24389,8 +24465,8 @@ export function ProductImportWizard({
                           <AlertTriangle className="h-16 w-16 mx-auto text-yellow-500 mb-4" />
                         )}
                         <h3 className="text-xl font-semibold">
-                          {importResult.errors.length === 0 
-                            ? 'Import finalizat cu succes!' 
+                          {importResult.errors.length === 0
+                            ? 'Import finalizat cu succes!'
                             : 'Import finalizat cu avertismente'
                           }
                         </h3>
@@ -24721,7 +24797,7 @@ const companyProfileSchema = z.object({
     .regex(/^J[0-9]{1,2}\/[0-9]{1,6}\/[0-9]{4}$/, 'Nr. înregistrare invalid (ex: J40/1234/2020)')
     .optional()
     .or(z.literal('')),
-  
+
   // Contact Info
   email: z.string().email('Email invalid'),
   phone: z.string()
@@ -24729,7 +24805,7 @@ const companyProfileSchema = z.object({
     .optional()
     .or(z.literal('')),
   website: z.string().url('URL invalid').optional().or(z.literal('')),
-  
+
   // Address
   address: z.object({
     street: z.string().min(1, 'Adresa este obligatorie'),
@@ -24739,7 +24815,7 @@ const companyProfileSchema = z.object({
       .regex(/^[0-9]{6}$/, 'Cod poștal invalid (6 cifre)'),
     country: z.string().default('România'),
   }),
-  
+
   // Business Details
   industry: z.enum([
     'agriculture',
@@ -24751,11 +24827,11 @@ const companyProfileSchema = z.object({
     'other',
   ]),
   companySize: z.enum(['micro', 'small', 'medium', 'large']),
-  
+
   // Branding
   logo: z.string().optional(),
   primaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).default('#2563eb'),
-  
+
   // Bank Account
   bankAccounts: z.array(z.object({
     id: z.string(),
@@ -24789,24 +24865,24 @@ const settingsSchema = z.object({
   dateFormat: z.enum(['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD']).default('DD/MM/YYYY'),
   currency: z.enum(['RON', 'EUR', 'USD']).default('RON'),
   language: z.enum(['ro', 'en']).default('ro'),
-  
+
   // Negotiation Defaults
   defaultPaymentTerms: z.number().min(0).max(180).default(30),
   defaultValidityDays: z.number().min(1).max(90).default(14),
   defaultDiscountApprovalThreshold: z.number().min(0).max(50).default(15),
   autoArchiveCompletedDays: z.number().min(0).max(365).default(30),
-  
+
   // AI Settings
   aiEnabled: z.boolean().default(true),
   aiModel: z.enum(['claude-3-5-haiku', 'claude-sonnet-4', 'claude-opus-4']).default('claude-sonnet-4'),
   aiAutoApproveThreshold: z.number().min(50).max(100).default(85),
   aiGuardrailsProfile: z.enum(['strict', 'balanced', 'permissive']).default('balanced'),
-  
+
   // Notification Defaults
   emailNotifications: z.boolean().default(true),
   pushNotifications: z.boolean().default(true),
   dailyDigest: z.boolean().default(true),
-  
+
   // Security
   requireTwoFactor: z.boolean().default(false),
   sessionTimeoutMinutes: z.number().min(15).max(480).default(60),
@@ -24821,7 +24897,7 @@ const integrationSchema = z.object({
     autoSync: z.boolean().default(true),
     syncFrequency: z.enum(['daily', 'weekly', 'manual']).default('daily'),
   }),
-  
+
   // e-Factura
   efactura: z.object({
     enabled: z.boolean().default(false),
@@ -24829,7 +24905,7 @@ const integrationSchema = z.object({
     certificatePassword: z.string().optional(),
     testMode: z.boolean().default(true),
   }),
-  
+
   // Oblio
   oblio: z.object({
     enabled: z.boolean().default(false),
@@ -24837,7 +24913,7 @@ const integrationSchema = z.object({
     companyName: z.string().optional(),
     autoInvoice: z.boolean().default(false),
   }),
-  
+
   // Email (SMTP)
   email: z.object({
     enabled: z.boolean().default(true),
@@ -24849,7 +24925,7 @@ const integrationSchema = z.object({
     fromAddress: z.string().email().optional(),
     fromName: z.string().optional(),
   }),
-  
+
   // WhatsApp (optional)
   whatsapp: z.object({
     enabled: z.boolean().default(false),
@@ -24857,14 +24933,14 @@ const integrationSchema = z.object({
     accessToken: z.string().optional(),
     businessId: z.string().optional(),
   }),
-  
+
   // Hunter.io
   hunter: z.object({
     enabled: z.boolean().default(false),
     apiKey: z.string().optional(),
     monthlyQuota: z.number().default(100),
   }),
-  
+
   // Termene.ro
   termene: z.object({
     enabled: z.boolean().default(false),
@@ -24948,30 +25024,30 @@ const ROMANIAN_COUNTIES = [
 ];
 
 const USER_ROLES = [
-  { 
-    value: 'admin', 
-    label: 'Administrator', 
+  {
+    value: 'admin',
+    label: 'Administrator',
     description: 'Acces complet la toate funcționalitățile',
     icon: Crown,
     color: 'text-amber-500',
   },
-  { 
-    value: 'sales_manager', 
-    label: 'Manager Vânzări', 
+  {
+    value: 'sales_manager',
+    label: 'Manager Vânzări',
     description: 'Gestionare echipă și rapoarte',
     icon: Users,
     color: 'text-blue-500',
   },
-  { 
-    value: 'sales_rep', 
-    label: 'Agent Vânzări', 
+  {
+    value: 'sales_rep',
+    label: 'Agent Vânzări',
     description: 'Gestionare proprii clienți și negocieri',
     icon: User,
     color: 'text-green-500',
   },
-  { 
-    value: 'viewer', 
-    label: 'Vizualizator', 
+  {
+    value: 'viewer',
+    label: 'Vizualizator',
     description: 'Doar citire, fără modificări',
     icon: Eye,
     color: 'text-gray-500',
@@ -25118,7 +25194,7 @@ export function OnboardingWizard({
   // -------------------------------------------------------------------------
   const handleCuiLookup = async () => {
     if (!cuiLookup) return;
-    
+
     const cui = form.getValues('companyProfile.cui');
     if (!cui) return;
 
@@ -25192,23 +25268,23 @@ export function OnboardingWizard({
           'companyProfile.bankAccounts',
         ]);
         return companyResult;
-        
+
       case 1: // Team
         // Team members are optional
         if (teamMemberFields.length > 0) {
           return await form.trigger('team.members');
         }
         return true;
-        
+
       case 2: // Settings
         return await form.trigger('settings');
-        
+
       case 3: // Integrations
         return await form.trigger('integrations');
-        
+
       case 4: // Finish
         return await form.trigger(['acceptTerms', 'acceptPrivacy']);
-        
+
       default:
         return true;
     }
@@ -25419,10 +25495,10 @@ export function OnboardingWizard({
                 <FormItem>
                   <FormLabel>Email *</FormLabel>
                   <FormControl>
-                    <Input 
-                      type="email" 
-                      placeholder="contact@firma.ro" 
-                      {...field} 
+                    <Input
+                      type="email"
+                      placeholder="contact@firma.ro"
+                      {...field}
                     />
                   </FormControl>
                   <FormMessage />
@@ -25437,10 +25513,10 @@ export function OnboardingWizard({
                 <FormItem>
                   <FormLabel>Telefon</FormLabel>
                   <FormControl>
-                    <Input 
-                      type="tel" 
-                      placeholder="+40721234567" 
-                      {...field} 
+                    <Input
+                      type="tel"
+                      placeholder="+40721234567"
+                      {...field}
                     />
                   </FormControl>
                   <FormMessage />
@@ -25456,10 +25532,10 @@ export function OnboardingWizard({
               <FormItem>
                 <FormLabel>Website</FormLabel>
                 <FormControl>
-                  <Input 
-                    type="url" 
-                    placeholder="https://www.firma.ro" 
-                    {...field} 
+                  <Input
+                    type="url"
+                    placeholder="https://www.firma.ro"
+                    {...field}
                   />
                 </FormControl>
                 <FormMessage />
@@ -25539,10 +25615,10 @@ export function OnboardingWizard({
                 <FormItem>
                   <FormLabel>Cod poștal *</FormLabel>
                   <FormControl>
-                    <Input 
-                      placeholder="012345" 
+                    <Input
+                      placeholder="012345"
                       maxLength={6}
-                      {...field} 
+                      {...field}
                     />
                   </FormControl>
                   <FormMessage />
@@ -25566,8 +25642,8 @@ export function OnboardingWizard({
         </CardHeader>
         <CardContent className="space-y-4">
           {bankAccountFields.map((field, index) => (
-            <div 
-              key={field.id} 
+            <div
+              key={field.id}
               className="p-4 border rounded-lg space-y-4"
             >
               <div className="flex items-center justify-between">
@@ -25625,8 +25701,8 @@ export function OnboardingWizard({
                     <FormItem>
                       <FormLabel>IBAN *</FormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder="RO49AAAA1B31007593840000" 
+                        <Input
+                          placeholder="RO49AAAA1B31007593840000"
                           className="font-mono uppercase"
                           {...inputField}
                           onChange={(e) => inputField.onChange(e.target.value.toUpperCase())}
@@ -25685,7 +25761,7 @@ export function OnboardingWizard({
       <Alert>
         <Info className="h-4 w-4" />
         <AlertDescription>
-          Invită membrii echipei tale. Aceștia vor primi un email de invitație 
+          Invită membrii echipei tale. Aceștia vor primi un email de invitație
           pentru a-și crea contul. Poți sări peste acest pas și invita membri mai târziu.
         </AlertDescription>
       </Alert>
@@ -25737,8 +25813,8 @@ export function OnboardingWizard({
                 Membri echipă
               </CardTitle>
               <CardDescription>
-                {teamMemberFields.length === 0 
-                  ? 'Nu ai adăugat încă membri' 
+                {teamMemberFields.length === 0
+                  ? 'Nu ai adăugat încă membri'
                   : `${teamMemberFields.length} membru${teamMemberFields.length !== 1 ? 'i' : ''} adăugat${teamMemberFields.length !== 1 ? 'i' : ''}`}
               </CardDescription>
             </div>
@@ -25765,7 +25841,7 @@ export function OnboardingWizard({
           ) : (
             <div className="space-y-4">
               {teamMemberFields.map((field, index) => (
-                <div 
+                <div
                   key={field.id}
                   className="p-4 border rounded-lg space-y-4"
                 >
@@ -25827,10 +25903,10 @@ export function OnboardingWizard({
                         <FormItem>
                           <FormLabel>Email *</FormLabel>
                           <FormControl>
-                            <Input 
-                              type="email" 
-                              placeholder="ion.popescu@firma.ro" 
-                              {...inputField} 
+                            <Input
+                              type="email"
+                              placeholder="ion.popescu@firma.ro"
+                              {...inputField}
                             />
                           </FormControl>
                           <FormMessage />
@@ -25844,8 +25920,8 @@ export function OnboardingWizard({
                       render={({ field: selectField }) => (
                         <FormItem>
                           <FormLabel>Rol *</FormLabel>
-                          <Select 
-                            onValueChange={selectField.onChange} 
+                          <Select
+                            onValueChange={selectField.onChange}
                             value={selectField.value}
                           >
                             <FormControl>
@@ -25921,7 +25997,7 @@ export function OnboardingWizard({
             {USER_ROLES.map((role) => {
               const IconComponent = role.icon;
               return (
-                <div 
+                <div
                   key={role.value}
                   className="flex items-start gap-3 p-2 rounded-lg hover:bg-muted/50"
                 >
@@ -26067,8 +26143,8 @@ export function OnboardingWizard({
                 <FormItem>
                   <FormLabel>Termen plată implicit (zile)</FormLabel>
                   <FormControl>
-                    <Input 
-                      type="number" 
+                    <Input
+                      type="number"
                       min={0}
                       max={180}
                       {...field}
@@ -26087,8 +26163,8 @@ export function OnboardingWizard({
                 <FormItem>
                   <FormLabel>Valabilitate ofertă (zile)</FormLabel>
                   <FormControl>
-                    <Input 
-                      type="number" 
+                    <Input
+                      type="number"
                       min={1}
                       max={90}
                       {...field}
@@ -26109,8 +26185,8 @@ export function OnboardingWizard({
                 <FormItem>
                   <FormLabel>Prag aprobare discount (%)</FormLabel>
                   <FormControl>
-                    <Input 
-                      type="number" 
+                    <Input
+                      type="number"
                       min={0}
                       max={50}
                       {...field}
@@ -26131,8 +26207,8 @@ export function OnboardingWizard({
                 <FormItem>
                   <FormLabel>Auto-arhivare după (zile)</FormLabel>
                   <FormControl>
-                    <Input 
-                      type="number" 
+                    <Input
+                      type="number"
                       min={0}
                       max={365}
                       {...field}
@@ -26215,8 +26291,8 @@ export function OnboardingWizard({
                     <FormItem>
                       <FormLabel>Prag auto-aprobare (%)</FormLabel>
                       <FormControl>
-                        <Input 
-                          type="number" 
+                        <Input
+                          type="number"
                           min={50}
                           max={100}
                           {...field}
@@ -26359,8 +26435,8 @@ export function OnboardingWizard({
               <FormItem>
                 <FormLabel>Timeout sesiune (minute)</FormLabel>
                 <FormControl>
-                  <Input 
-                    type="number" 
+                  <Input
+                    type="number"
                     min={15}
                     max={480}
                     {...field}
@@ -26384,8 +26460,8 @@ export function OnboardingWizard({
       <Alert>
         <Info className="h-4 w-4" />
         <AlertDescription>
-          Configurează integrările cu servicii externe. Toate integrările pot fi 
-          modificate ulterior din setări. Integrările marcate ca opționale nu sunt 
+          Configurează integrările cu servicii externe. Toate integrările pot fi
+          modificate ulterior din setări. Integrările marcate ca opționale nu sunt
           necesare pentru funcționarea de bază.
         </AlertDescription>
       </Alert>
@@ -26492,7 +26568,7 @@ export function OnboardingWizard({
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                Configurarea e-Factura necesită un certificat digital valid. 
+                Configurarea e-Factura necesită un certificat digital valid.
                 Poți configura acest serviciu ulterior din setări.
               </AlertDescription>
             </Alert>
@@ -26557,7 +26633,7 @@ export function OnboardingWizard({
                   <FormLabel>API Key</FormLabel>
                   <div className="flex gap-2">
                     <FormControl>
-                      <Input 
+                      <Input
                         type={showPassword['oblio'] ? 'text' : 'password'}
                         placeholder="Oblio API Key"
                         {...field}
@@ -26577,9 +26653,9 @@ export function OnboardingWizard({
                     </Button>
                   </div>
                   <FormDescription>
-                    <a 
-                      href="https://www.oblio.eu/api" 
-                      target="_blank" 
+                    <a
+                      href="https://www.oblio.eu/api"
+                      target="_blank"
                       rel="noopener noreferrer"
                       className="text-primary hover:underline inline-flex items-center gap-1"
                     >
@@ -26698,9 +26774,9 @@ export function OnboardingWizard({
                       <FormItem>
                         <FormLabel>Port</FormLabel>
                         <FormControl>
-                          <Input 
-                            type="number" 
-                            placeholder="443" 
+                          <Input
+                            type="number"
+                            placeholder="443"
                             {...field}
                             onChange={(e) => field.onChange(parseInt(e.target.value))}
                           />
@@ -26732,7 +26808,7 @@ export function OnboardingWizard({
                         <FormLabel>Password</FormLabel>
                         <div className="flex gap-2">
                           <FormControl>
-                            <Input 
+                            <Input
                               type={showPassword['smtp'] ? 'text' : 'password'}
                               {...field}
                             />
@@ -26767,10 +26843,10 @@ export function OnboardingWizard({
                   <FormItem>
                     <FormLabel>Adresă expeditor</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="email" 
-                        placeholder="noreply@firma.ro" 
-                        {...field} 
+                      <Input
+                        type="email"
+                        placeholder="noreply@firma.ro"
+                        {...field}
                       />
                     </FormControl>
                   </FormItem>
@@ -26830,7 +26906,7 @@ export function OnboardingWizard({
                   <FormLabel>API Key</FormLabel>
                   <div className="flex gap-2">
                     <FormControl>
-                      <Input 
+                      <Input
                         type={showPassword['hunter'] ? 'text' : 'password'}
                         placeholder="Hunter.io API Key"
                         {...field}
@@ -26860,8 +26936,8 @@ export function OnboardingWizard({
                 <FormItem>
                   <FormLabel>Cotă lunară</FormLabel>
                   <FormControl>
-                    <Input 
-                      type="number" 
+                    <Input
+                      type="number"
                       min={0}
                       {...field}
                       onChange={(e) => field.onChange(parseInt(e.target.value))}
@@ -26911,7 +26987,7 @@ export function OnboardingWizard({
                   <FormLabel>API Key</FormLabel>
                   <div className="flex gap-2">
                     <FormControl>
-                      <Input 
+                      <Input
                         type={showPassword['termene'] ? 'text' : 'password'}
                         placeholder="Termene.ro API Key"
                         {...field}
@@ -26944,7 +27020,7 @@ export function OnboardingWizard({
   // -------------------------------------------------------------------------
   const renderFinishStep = () => {
     const values = form.getValues();
-    
+
     if (completionResult) {
       // Show completion screen
       return (
@@ -26952,7 +27028,7 @@ export function OnboardingWizard({
           <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
             <CheckCircle2 className="h-8 w-8 text-green-600" />
           </div>
-          
+
           <div className="space-y-2">
             <h3 className="text-xl font-semibold">Contul a fost creat cu succes!</h3>
             <p className="text-muted-foreground">
@@ -27075,7 +27151,7 @@ export function OnboardingWizard({
               <div className="col-span-2">
                 <p className="text-muted-foreground">Adresă</p>
                 <p className="font-medium">
-                  {values.companyProfile.address.street}, {values.companyProfile.address.city}, 
+                  {values.companyProfile.address.street}, {values.companyProfile.address.city},
                   {values.companyProfile.address.county}, {values.companyProfile.address.postalCode}
                 </p>
               </div>
@@ -27115,7 +27191,7 @@ export function OnboardingWizard({
             ) : (
               <div className="space-y-2">
                 {values.team.members.map((member, index) => (
-                  <div 
+                  <div
                     key={index}
                     className="flex items-center justify-between p-2 rounded-lg bg-muted/50"
                   >
@@ -27228,7 +27304,7 @@ export function OnboardingWizard({
               {values.integrations.termene.enabled && (
                 <Badge variant="secondary">Termene.ro</Badge>
               )}
-              {!Object.values(values.integrations).some(i => 
+              {!Object.values(values.integrations).some(i =>
                 typeof i === 'object' && 'enabled' in i && i.enabled
               ) && (
                 <span className="text-sm text-muted-foreground">
@@ -27256,8 +27332,8 @@ export function OnboardingWizard({
                   <div className="space-y-1 leading-none">
                     <FormLabel className="font-normal">
                       Accept{' '}
-                      <a 
-                        href="/terms" 
+                      <a
+                        href="/terms"
                         target="_blank"
                         className="text-primary hover:underline"
                       >
@@ -27285,8 +27361,8 @@ export function OnboardingWizard({
                   <div className="space-y-1 leading-none">
                     <FormLabel className="font-normal">
                       Accept{' '}
-                      <a 
-                        href="/privacy" 
+                      <a
+                        href="/privacy"
                         target="_blank"
                         className="text-primary hover:underline"
                       >
@@ -27315,12 +27391,12 @@ export function OnboardingWizard({
         <DialogHeader className="pb-2">
           <DialogTitle className="text-xl">Configurare cont Cerniq</DialogTitle>
           <DialogDescription>
-            {completionResult 
+            {completionResult
               ? 'Contul a fost configurat cu succes!'
               : `Pas ${currentStep + 1} din ${WIZARD_STEPS.length} - ${WIZARD_STEPS[currentStep].description}`
             }
           </DialogDescription>
-          
+
           {/* Progress Bar */}
           {!completionResult && (
             <Progress value={progress} className="h-2 mt-4" />
@@ -27334,9 +27410,9 @@ export function OnboardingWizard({
               const IconComponent = step.icon;
               const isCompleted = index < currentStep;
               const isCurrent = index === currentStep;
-              
+
               return (
-                <div 
+                <div
                   key={step.id}
                   className={cn(
                     "flex items-center gap-2 text-sm",
@@ -27454,7 +27530,7 @@ function OnboardingWizardExample() {
   const handleCuiLookup = async (cui: string) => {
     // Simulate API call to ANAF/ONRC
     await new Promise(resolve => setTimeout(resolve, 1000));
-    
+
     // Return mock data
     if (cui === 'RO12345678' || cui === '12345678') {
       return {
@@ -27526,7 +27602,7 @@ Această secțiune documentează strategiile și implementările pentru testarea
 
 /**
  * Form Testing Strategy pentru Etapa 3 - AI Sales Agent
- * 
+ *
  * Strategia de testare acoperă:
  * 1. Unit Tests - Validare Zod schemas
  * 2. Component Tests - Rendering și interacțiuni
@@ -27543,9 +27619,9 @@ export const TESTING_STRATEGY = {
       utilities: 90,
       helpers: 90,
     },
-    tools: ['vitest', '@testing-library/react'],
+    tools: ["vitest", "@testing-library/react"],
   },
-  
+
   // Component Testing - Vitest + Testing Library
   component: {
     coverage: {
@@ -27553,9 +27629,9 @@ export const TESTING_STRATEGY = {
       dialogs: 85,
       wizards: 80,
     },
-    tools: ['vitest', '@testing-library/react', '@testing-library/user-event'],
+    tools: ["vitest", "@testing-library/react", "@testing-library/user-event"],
   },
-  
+
   // Integration Testing - Vitest + MSW
   integration: {
     coverage: {
@@ -27563,9 +27639,9 @@ export const TESTING_STRATEGY = {
       apiInteraction: 80,
       stateManagement: 75,
     },
-    tools: ['vitest', 'msw', '@testing-library/react'],
+    tools: ["vitest", "msw", "@testing-library/react"],
   },
-  
+
   // E2E Testing - Playwright
   e2e: {
     coverage: {
@@ -27573,13 +27649,13 @@ export const TESTING_STRATEGY = {
       happyPaths: 85,
       errorPaths: 70,
     },
-    tools: ['playwright'],
+    tools: ["playwright"],
   },
-  
+
   // Accessibility Testing
   accessibility: {
-    tools: ['@testing-library/jest-dom', 'axe-core', '@axe-core/playwright'],
-    standards: ['WCAG 2.1 AA'],
+    tools: ["@testing-library/jest-dom", "axe-core", "@axe-core/playwright"],
+    standards: ["WCAG 2.1 AA"],
   },
 };
 ```
@@ -27588,8 +27664,8 @@ export const TESTING_STRATEGY = {
 
 ```typescript
 // testing/forms/schemas.test.ts
-import { describe, it, expect } from 'vitest';
-import { z } from 'zod';
+import { describe, it, expect } from "vitest";
+import { z } from "zod";
 import {
   negotiationSchema,
   productSchema,
@@ -27601,32 +27677,32 @@ import {
   integrationSchema,
   userSettingsSchema,
   tenantSettingsSchema,
-} from '@/lib/schemas';
+} from "@/lib/schemas";
 
 // =============================================================================
 // NEGOTIATION SCHEMA TESTS
 // =============================================================================
 
-describe('NegotiationSchema', () => {
-  describe('valid inputs', () => {
-    it('should accept valid negotiation data', () => {
+describe("NegotiationSchema", () => {
+  describe("valid inputs", () => {
+    it("should accept valid negotiation data", () => {
       const validData = {
-        contactId: 'uuid-123',
-        title: 'Negociere test',
+        contactId: "uuid-123",
+        title: "Negociere test",
         products: [
           {
-            productId: 'prod-1',
+            productId: "prod-1",
             quantity: 10,
             unitPrice: 100,
             discount: 5,
           },
         ],
         settings: {
-          currency: 'RON',
+          currency: "RON",
           paymentTerms: 30,
           validityDays: 14,
-          deliveryTerms: 'DDP',
-          priority: 'medium',
+          deliveryTerms: "DDP",
+          priority: "medium",
         },
       };
 
@@ -27634,12 +27710,12 @@ describe('NegotiationSchema', () => {
       expect(result.success).toBe(true);
     });
 
-    it('should accept minimal required fields', () => {
+    it("should accept minimal required fields", () => {
       const minimalData = {
-        contactId: 'uuid-123',
+        contactId: "uuid-123",
         products: [
           {
-            productId: 'prod-1',
+            productId: "prod-1",
             quantity: 1,
             unitPrice: 1,
           },
@@ -27650,12 +27726,12 @@ describe('NegotiationSchema', () => {
       expect(result.success).toBe(true);
     });
 
-    it('should accept maximum discount at 100%', () => {
+    it("should accept maximum discount at 100%", () => {
       const data = {
-        contactId: 'uuid-123',
+        contactId: "uuid-123",
         products: [
           {
-            productId: 'prod-1',
+            productId: "prod-1",
             quantity: 1,
             unitPrice: 100,
             discount: 100,
@@ -27668,12 +27744,12 @@ describe('NegotiationSchema', () => {
     });
   });
 
-  describe('invalid inputs', () => {
-    it('should reject missing contactId', () => {
+  describe("invalid inputs", () => {
+    it("should reject missing contactId", () => {
       const invalidData = {
         products: [
           {
-            productId: 'prod-1',
+            productId: "prod-1",
             quantity: 1,
             unitPrice: 100,
           },
@@ -27683,13 +27759,13 @@ describe('NegotiationSchema', () => {
       const result = negotiationSchema.safeParse(invalidData);
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.issues[0].path).toContain('contactId');
+        expect(result.error.issues[0].path).toContain("contactId");
       }
     });
 
-    it('should reject empty products array', () => {
+    it("should reject empty products array", () => {
       const invalidData = {
-        contactId: 'uuid-123',
+        contactId: "uuid-123",
         products: [],
       };
 
@@ -27697,12 +27773,12 @@ describe('NegotiationSchema', () => {
       expect(result.success).toBe(false);
     });
 
-    it('should reject negative quantity', () => {
+    it("should reject negative quantity", () => {
       const invalidData = {
-        contactId: 'uuid-123',
+        contactId: "uuid-123",
         products: [
           {
-            productId: 'prod-1',
+            productId: "prod-1",
             quantity: -1,
             unitPrice: 100,
           },
@@ -27713,12 +27789,12 @@ describe('NegotiationSchema', () => {
       expect(result.success).toBe(false);
     });
 
-    it('should reject discount over 100%', () => {
+    it("should reject discount over 100%", () => {
       const invalidData = {
-        contactId: 'uuid-123',
+        contactId: "uuid-123",
         products: [
           {
-            productId: 'prod-1',
+            productId: "prod-1",
             quantity: 1,
             unitPrice: 100,
             discount: 101,
@@ -27730,12 +27806,12 @@ describe('NegotiationSchema', () => {
       expect(result.success).toBe(false);
     });
 
-    it('should reject invalid currency', () => {
+    it("should reject invalid currency", () => {
       const invalidData = {
-        contactId: 'uuid-123',
-        products: [{ productId: 'prod-1', quantity: 1, unitPrice: 100 }],
+        contactId: "uuid-123",
+        products: [{ productId: "prod-1", quantity: 1, unitPrice: 100 }],
         settings: {
-          currency: 'BTC', // Invalid
+          currency: "BTC", // Invalid
           paymentTerms: 30,
         },
       };
@@ -27750,17 +27826,17 @@ describe('NegotiationSchema', () => {
 // PRODUCT SCHEMA TESTS
 // =============================================================================
 
-describe('ProductSchema', () => {
-  describe('valid inputs', () => {
-    it('should accept complete product data', () => {
+describe("ProductSchema", () => {
+  describe("valid inputs", () => {
+    it("should accept complete product data", () => {
       const validProduct = {
-        sku: 'PROD-001',
-        name: 'Semințe porumb',
-        category: 'Semințe',
-        description: 'Descriere produs',
-        basePrice: 150.50,
-        currency: 'RON',
-        unit: 'kg',
+        sku: "PROD-001",
+        name: "Semințe porumb",
+        category: "Semințe",
+        description: "Descriere produs",
+        basePrice: 150.5,
+        currency: "RON",
+        unit: "kg",
         vatRate: 9,
         minOrderQty: 100,
         stockQuantity: 5000,
@@ -27771,12 +27847,12 @@ describe('ProductSchema', () => {
       expect(result.success).toBe(true);
     });
 
-    it('should accept product with optional fields missing', () => {
+    it("should accept product with optional fields missing", () => {
       const minimalProduct = {
-        sku: 'PROD-001',
-        name: 'Test Product',
+        sku: "PROD-001",
+        name: "Test Product",
         basePrice: 100,
-        unit: 'buc',
+        unit: "buc",
       };
 
       const result = productSchema.safeParse(minimalProduct);
@@ -27784,37 +27860,37 @@ describe('ProductSchema', () => {
     });
   });
 
-  describe('invalid inputs', () => {
-    it('should reject empty SKU', () => {
+  describe("invalid inputs", () => {
+    it("should reject empty SKU", () => {
       const invalidProduct = {
-        sku: '',
-        name: 'Test',
+        sku: "",
+        name: "Test",
         basePrice: 100,
-        unit: 'buc',
+        unit: "buc",
       };
 
       const result = productSchema.safeParse(invalidProduct);
       expect(result.success).toBe(false);
     });
 
-    it('should reject negative price', () => {
+    it("should reject negative price", () => {
       const invalidProduct = {
-        sku: 'PROD-001',
-        name: 'Test',
+        sku: "PROD-001",
+        name: "Test",
         basePrice: -100,
-        unit: 'buc',
+        unit: "buc",
       };
 
       const result = productSchema.safeParse(invalidProduct);
       expect(result.success).toBe(false);
     });
 
-    it('should reject invalid VAT rate', () => {
+    it("should reject invalid VAT rate", () => {
       const invalidProduct = {
-        sku: 'PROD-001',
-        name: 'Test',
+        sku: "PROD-001",
+        name: "Test",
         basePrice: 100,
-        unit: 'buc',
+        unit: "buc",
         vatRate: 25, // Not in [0, 5, 9, 19]
       };
 
@@ -27828,82 +27904,82 @@ describe('ProductSchema', () => {
 // ROMANIAN SPECIFIC VALIDATION TESTS
 // =============================================================================
 
-describe('Romanian Validation', () => {
+describe("Romanian Validation", () => {
   const cuiSchema = z.string().regex(/^(RO)?[0-9]{2,10}$/);
   const ibanSchema = z.string().regex(/^RO[0-9]{2}[A-Z]{4}[A-Z0-9]{16}$/);
   const regComSchema = z.string().regex(/^J[0-9]{1,2}\/[0-9]{1,6}\/[0-9]{4}$/);
   const postalCodeSchema = z.string().regex(/^[0-9]{6}$/);
   const phoneSchema = z.string().regex(/^\+?[0-9]{10,15}$/);
 
-  describe('CUI validation', () => {
+  describe("CUI validation", () => {
     it.each([
-      ['12345678', true],
-      ['RO12345678', true],
-      ['RO1234567890', true],
-      ['12', true], // Minimum 2 digits
-      ['RO', false], // No digits
-      ['1', false], // Too short
-      ['12345678901', false], // Too long
-      ['ROABC123', false], // Letters in number
-      ['RO 12345678', false], // Space
+      ["12345678", true],
+      ["RO12345678", true],
+      ["RO1234567890", true],
+      ["12", true], // Minimum 2 digits
+      ["RO", false], // No digits
+      ["1", false], // Too short
+      ["12345678901", false], // Too long
+      ["ROABC123", false], // Letters in number
+      ["RO 12345678", false], // Space
     ])('CUI "%s" should be valid: %s', (cui, expected) => {
       const result = cuiSchema.safeParse(cui);
       expect(result.success).toBe(expected);
     });
   });
 
-  describe('IBAN validation', () => {
+  describe("IBAN validation", () => {
     it.each([
-      ['RO49AAAA1B31007593840000', true],
-      ['RO00BTRL0000000000000000', true],
-      ['RO12BRDE410SV00000000001', true],
-      ['DE89370400440532013000', false], // German IBAN
-      ['RO49AAAA', false], // Too short
-      ['ro49AAAA1B31007593840000', false], // Lowercase RO
-      ['RO49aaaa1B31007593840000', false], // Lowercase bank code
+      ["RO49AAAA1B31007593840000", true],
+      ["RO00BTRL0000000000000000", true],
+      ["RO12BRDE410SV00000000001", true],
+      ["DE89370400440532013000", false], // German IBAN
+      ["RO49AAAA", false], // Too short
+      ["ro49AAAA1B31007593840000", false], // Lowercase RO
+      ["RO49aaaa1B31007593840000", false], // Lowercase bank code
     ])('IBAN "%s" should be valid: %s', (iban, expected) => {
       const result = ibanSchema.safeParse(iban);
       expect(result.success).toBe(expected);
     });
   });
 
-  describe('Reg Com validation', () => {
+  describe("Reg Com validation", () => {
     it.each([
-      ['J40/1234/2020', true],
-      ['J1/1/2000', true],
-      ['J99/999999/2025', true],
-      ['J40-1234-2020', false], // Wrong separator
-      ['40/1234/2020', false], // Missing J
-      ['J400/1234/2020', false], // County too long
+      ["J40/1234/2020", true],
+      ["J1/1/2000", true],
+      ["J99/999999/2025", true],
+      ["J40-1234-2020", false], // Wrong separator
+      ["40/1234/2020", false], // Missing J
+      ["J400/1234/2020", false], // County too long
     ])('Reg Com "%s" should be valid: %s', (regCom, expected) => {
       const result = regComSchema.safeParse(regCom);
       expect(result.success).toBe(expected);
     });
   });
 
-  describe('Postal Code validation', () => {
+  describe("Postal Code validation", () => {
     it.each([
-      ['012345', true],
-      ['123456', true],
-      ['000000', true],
-      ['12345', false], // 5 digits
-      ['1234567', false], // 7 digits
-      ['12345A', false], // Letter
+      ["012345", true],
+      ["123456", true],
+      ["000000", true],
+      ["12345", false], // 5 digits
+      ["1234567", false], // 7 digits
+      ["12345A", false], // Letter
     ])('Postal code "%s" should be valid: %s', (code, expected) => {
       const result = postalCodeSchema.safeParse(code);
       expect(result.success).toBe(expected);
     });
   });
 
-  describe('Phone validation', () => {
+  describe("Phone validation", () => {
     it.each([
-      ['+40721234567', true],
-      ['0721234567', true],
-      ['+40123456789012345', true], // 15 digits
-      ['40721234567', true],
-      ['+4072123', false], // Too short
-      ['+407212345678901234', false], // Too long
-      ['+40-721-234-567', false], // Dashes
+      ["+40721234567", true],
+      ["0721234567", true],
+      ["+40123456789012345", true], // 15 digits
+      ["40721234567", true],
+      ["+4072123", false], // Too short
+      ["+407212345678901234", false], // Too long
+      ["+40-721-234-567", false], // Dashes
     ])('Phone "%s" should be valid: %s', (phone, expected) => {
       const result = phoneSchema.safeParse(phone);
       expect(result.success).toBe(expected);
@@ -27915,19 +27991,19 @@ describe('Romanian Validation', () => {
 // AI CONFIG SCHEMA TESTS
 // =============================================================================
 
-describe('AIConfigSchema', () => {
-  describe('valid inputs', () => {
-    it('should accept valid AI configuration', () => {
+describe("AIConfigSchema", () => {
+  describe("valid inputs", () => {
+    it("should accept valid AI configuration", () => {
       const validConfig = {
         enabled: true,
-        model: 'claude-sonnet-4',
+        model: "claude-sonnet-4",
         temperature: 0.7,
         maxTokens: 4096,
-        systemPrompt: 'You are a helpful assistant',
-        guardrailsProfile: 'balanced',
+        systemPrompt: "You are a helpful assistant",
+        guardrailsProfile: "balanced",
         autoApproveThreshold: 85,
-        allowedTopics: ['pricing', 'products', 'delivery'],
-        blockedTopics: ['competitors', 'internal'],
+        allowedTopics: ["pricing", "products", "delivery"],
+        blockedTopics: ["competitors", "internal"],
       };
 
       const result = aiConfigSchema.safeParse(validConfig);
@@ -27935,11 +28011,11 @@ describe('AIConfigSchema', () => {
     });
   });
 
-  describe('invalid inputs', () => {
-    it('should reject temperature below 0', () => {
+  describe("invalid inputs", () => {
+    it("should reject temperature below 0", () => {
       const invalidConfig = {
         enabled: true,
-        model: 'claude-sonnet-4',
+        model: "claude-sonnet-4",
         temperature: -0.1,
       };
 
@@ -27947,10 +28023,10 @@ describe('AIConfigSchema', () => {
       expect(result.success).toBe(false);
     });
 
-    it('should reject temperature above 1', () => {
+    it("should reject temperature above 1", () => {
       const invalidConfig = {
         enabled: true,
-        model: 'claude-sonnet-4',
+        model: "claude-sonnet-4",
         temperature: 1.5,
       };
 
@@ -27958,10 +28034,10 @@ describe('AIConfigSchema', () => {
       expect(result.success).toBe(false);
     });
 
-    it('should reject invalid model name', () => {
+    it("should reject invalid model name", () => {
       const invalidConfig = {
         enabled: true,
-        model: 'gpt-4', // Not in allowed list
+        model: "gpt-4", // Not in allowed list
         temperature: 0.7,
       };
 
@@ -27969,10 +28045,10 @@ describe('AIConfigSchema', () => {
       expect(result.success).toBe(false);
     });
 
-    it('should reject autoApproveThreshold below 50', () => {
+    it("should reject autoApproveThreshold below 50", () => {
       const invalidConfig = {
         enabled: true,
-        model: 'claude-sonnet-4',
+        model: "claude-sonnet-4",
         autoApproveThreshold: 30,
       };
 
@@ -27986,19 +28062,19 @@ describe('AIConfigSchema', () => {
 // GUARDRAIL SCHEMA TESTS
 // =============================================================================
 
-describe('GuardrailSchema', () => {
-  describe('valid inputs', () => {
-    it('should accept valid guardrail rule', () => {
+describe("GuardrailSchema", () => {
+  describe("valid inputs", () => {
+    it("should accept valid guardrail rule", () => {
       const validRule = {
-        name: 'Max Discount Rule',
-        type: 'discount_limit',
+        name: "Max Discount Rule",
+        type: "discount_limit",
         condition: {
-          field: 'discount_percentage',
-          operator: 'greater_than',
+          field: "discount_percentage",
+          operator: "greater_than",
           value: 15,
         },
-        action: 'require_approval',
-        severity: 'warning',
+        action: "require_approval",
+        severity: "warning",
         isActive: true,
       };
 
@@ -28006,17 +28082,17 @@ describe('GuardrailSchema', () => {
       expect(result.success).toBe(true);
     });
 
-    it('should accept rule with multiple conditions', () => {
+    it("should accept rule with multiple conditions", () => {
       const validRule = {
-        name: 'High Value Rule',
-        type: 'value_limit',
+        name: "High Value Rule",
+        type: "value_limit",
         conditions: [
-          { field: 'total_value', operator: 'greater_than', value: 50000 },
-          { field: 'discount_percentage', operator: 'greater_than', value: 10 },
+          { field: "total_value", operator: "greater_than", value: 50000 },
+          { field: "discount_percentage", operator: "greater_than", value: 10 },
         ],
-        conditionLogic: 'AND',
-        action: 'block',
-        severity: 'critical',
+        conditionLogic: "AND",
+        action: "block",
+        severity: "critical",
         isActive: true,
       };
 
@@ -28025,29 +28101,29 @@ describe('GuardrailSchema', () => {
     });
   });
 
-  describe('invalid inputs', () => {
-    it('should reject empty rule name', () => {
+  describe("invalid inputs", () => {
+    it("should reject empty rule name", () => {
       const invalidRule = {
-        name: '',
-        type: 'discount_limit',
-        condition: { field: 'discount', operator: 'gt', value: 10 },
-        action: 'warn',
+        name: "",
+        type: "discount_limit",
+        condition: { field: "discount", operator: "gt", value: 10 },
+        action: "warn",
       };
 
       const result = guardrailSchema.safeParse(invalidRule);
       expect(result.success).toBe(false);
     });
 
-    it('should reject invalid operator', () => {
+    it("should reject invalid operator", () => {
       const invalidRule = {
-        name: 'Test Rule',
-        type: 'value_limit',
+        name: "Test Rule",
+        type: "value_limit",
         condition: {
-          field: 'value',
-          operator: 'LIKE', // Invalid
+          field: "value",
+          operator: "LIKE", // Invalid
           value: 100,
         },
-        action: 'warn',
+        action: "warn",
       };
 
       const result = guardrailSchema.safeParse(invalidRule);
@@ -28723,41 +28799,41 @@ describe('OnboardingWizard Integration', () => {
 
 ```typescript
 // testing/e2e/forms.spec.ts
-import { test, expect } from '@playwright/test';
+import { test, expect } from "@playwright/test";
 
 // =============================================================================
 // E2E TEST SUITE
 // =============================================================================
 
-test.describe('Negotiation Forms E2E', () => {
+test.describe("Negotiation Forms E2E", () => {
   test.beforeEach(async ({ page }) => {
     // Login
-    await page.goto('/login');
-    await page.fill('[name="email"]', 'test@cerniq.app');
-    await page.fill('[name="password"]', 'TestPass123!');
+    await page.goto("/login");
+    await page.fill('[name="email"]', "test@cerniq.app");
+    await page.fill('[name="password"]', "TestPass123!");
     await page.click('button[type="submit"]');
-    await page.waitForURL('/dashboard');
+    await page.waitForURL("/dashboard");
   });
 
-  test('should create negotiation via wizard', async ({ page }) => {
-    await page.goto('/negotiations');
+  test("should create negotiation via wizard", async ({ page }) => {
+    await page.goto("/negotiations");
     await page.click('button:has-text("Negociere nouă")');
 
     // Wait for wizard dialog
-    await expect(page.getByRole('dialog')).toBeVisible();
+    await expect(page.getByRole("dialog")).toBeVisible();
 
     // Step 1: Select contact
     await page.click('[role="combobox"]');
-    await page.click('text=Agricom SRL');
+    await page.click("text=Agricom SRL");
     await page.click('button:has-text("Continuă")');
 
     // Step 2: Add products
-    await page.click('text=Semințe porumb');
-    await page.fill('input[name="quantity"]', '100');
+    await page.click("text=Semințe porumb");
+    await page.fill('input[name="quantity"]', "100");
     await page.click('button:has-text("Continuă")');
 
     // Step 3: Settings
-    await page.selectOption('select[name="paymentTerms"]', '30');
+    await page.selectOption('select[name="paymentTerms"]', "30");
     await page.click('button:has-text("Continuă")');
 
     // Step 4: Confirm
@@ -28767,90 +28843,94 @@ test.describe('Negotiation Forms E2E', () => {
     await expect(page).toHaveURL(/\/negotiations\/[a-z0-9-]+/);
 
     // Verify negotiation was created
-    await expect(page.locator('h1')).toContainText('Agricom SRL');
+    await expect(page.locator("h1")).toContainText("Agricom SRL");
   });
 
-  test('should show validation errors for invalid data', async ({ page }) => {
-    await page.goto('/negotiations/new');
+  test("should show validation errors for invalid data", async ({ page }) => {
+    await page.goto("/negotiations/new");
 
     // Try to submit without required fields
     await page.click('button:has-text("Salvează")');
 
     // Should show validation errors
-    await expect(page.locator('.text-red-500')).toContainText('obligatoriu');
+    await expect(page.locator(".text-red-500")).toContainText("obligatoriu");
   });
 
-  test('should handle discount approval workflow', async ({ page }) => {
+  test("should handle discount approval workflow", async ({ page }) => {
     // Navigate to negotiation with pending discount
-    await page.goto('/negotiations/neg-with-discount');
+    await page.goto("/negotiations/neg-with-discount");
 
     // Request discount
     await page.click('button:has-text("Solicită discount")');
-    await page.fill('input[name="discount"]', '25');
-    await page.fill('textarea[name="reason"]', 'Client fidel');
+    await page.fill('input[name="discount"]', "25");
+    await page.fill('textarea[name="reason"]', "Client fidel");
     await page.click('button:has-text("Trimite cererea")');
 
     // Verify approval dialog
-    await expect(page.getByRole('dialog')).toBeVisible();
-    await expect(page.locator('text=Cerere în așteptare')).toBeVisible();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page.locator("text=Cerere în așteptare")).toBeVisible();
   });
 });
 
-test.describe('Product Management E2E', () => {
+test.describe("Product Management E2E", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/login');
-    await page.fill('[name="email"]', 'admin@cerniq.app');
-    await page.fill('[name="password"]', 'AdminPass123!');
+    await page.goto("/login");
+    await page.fill('[name="email"]', "admin@cerniq.app");
+    await page.fill('[name="password"]', "AdminPass123!");
     await page.click('button[type="submit"]');
-    await page.waitForURL('/dashboard');
+    await page.waitForURL("/dashboard");
   });
 
-  test('should import products from CSV', async ({ page }) => {
-    await page.goto('/products');
+  test("should import products from CSV", async ({ page }) => {
+    await page.goto("/products");
     await page.click('button:has-text("Import")');
 
     // Upload file
     const fileInput = page.locator('input[type="file"]');
-    await fileInput.setInputFiles('testing/fixtures/products.csv');
+    await fileInput.setInputFiles("testing/fixtures/products.csv");
 
     // Wait for file processing
-    await expect(page.locator('text=Fișier încărcat')).toBeVisible();
+    await expect(page.locator("text=Fișier încărcat")).toBeVisible();
 
     // Map columns
     await page.click('button:has-text("Continuă")');
-    await expect(page.locator('text=Mapare coloane')).toBeVisible();
+    await expect(page.locator("text=Mapare coloane")).toBeVisible();
 
     // Validate
     await page.click('button:has-text("Validează")');
-    await expect(page.locator('text=produse valide')).toBeVisible();
+    await expect(page.locator("text=produse valide")).toBeVisible();
 
     // Import
     await page.click('button:has-text("Importă")');
 
     // Wait for completion
-    await expect(page.locator('text=Import finalizat')).toBeVisible({ timeout: 30000 });
+    await expect(page.locator("text=Import finalizat")).toBeVisible({
+      timeout: 30000,
+    });
   });
 
-  test('should edit product inline', async ({ page }) => {
-    await page.goto('/products');
+  test("should edit product inline", async ({ page }) => {
+    await page.goto("/products");
 
     // Click on product row
     await page.click('tr:has-text("Semințe porumb")');
 
     // Edit price
     await page.dblclick('td:has-text("100")');
-    await page.fill('input[name="price"]', '150');
-    await page.press('input[name="price"]', 'Enter');
+    await page.fill('input[name="price"]', "150");
+    await page.press('input[name="price"]', "Enter");
 
     // Verify toast
-    await expect(page.locator('.toast')).toContainText('Produs actualizat');
+    await expect(page.locator(".toast")).toContainText("Produs actualizat");
 
     // Verify new value
-    await expect(page.locator('tr:has-text("Semințe porumb")')).toContainText('150');
+    await expect(page.locator('tr:has-text("Semințe porumb")')).toContainText(
+      "150",
+    );
   });
 
-  test('should handle bulk delete', async ({ page }) => {
-    await page.goto('/products');
+  test("should handle bulk delete", async ({ page }) => {
+    await page.goto("/products");
 
     // Select multiple products
     await page.click('tr:has-text("Produs 1") input[type="checkbox"]');
@@ -28858,10 +28938,10 @@ test.describe('Product Management E2E', () => {
 
     // Click bulk action
     await page.click('button:has-text("Acțiuni")');
-    await page.click('text=Șterge selectate');
+    await page.click("text=Șterge selectate");
 
     // Confirm deletion
-    await page.fill('input[placeholder*="confirmă"]', 'STERGE');
+    await page.fill('input[placeholder*="confirmă"]', "STERGE");
     await page.click('button:has-text("Confirmă ștergerea")');
 
     // Verify deletion
@@ -28870,62 +28950,62 @@ test.describe('Product Management E2E', () => {
   });
 });
 
-test.describe('HITL Approval E2E', () => {
+test.describe("HITL Approval E2E", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/login');
-    await page.fill('[name="email"]', 'manager@cerniq.app');
-    await page.fill('[name="password"]', 'ManagerPass123!');
+    await page.goto("/login");
+    await page.fill('[name="email"]', "manager@cerniq.app");
+    await page.fill('[name="password"]', "ManagerPass123!");
     await page.click('button[type="submit"]');
-    await page.waitForURL('/dashboard');
+    await page.waitForURL("/dashboard");
   });
 
-  test('should approve discount request', async ({ page }) => {
-    await page.goto('/hitl/approvals');
+  test("should approve discount request", async ({ page }) => {
+    await page.goto("/hitl/approvals");
 
     // Find pending approval
     await page.click('tr:has-text("Cerere discount 25%")');
 
     // Review and approve
-    await expect(page.getByRole('dialog')).toBeVisible();
-    await page.fill('textarea[name="notes"]', 'Aprobat conform politicii');
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await page.fill('textarea[name="notes"]', "Aprobat conform politicii");
     await page.click('button:has-text("Aprobă")');
 
     // Verify approval
-    await expect(page.locator('.toast')).toContainText('aprobat');
+    await expect(page.locator(".toast")).toContainText("aprobat");
   });
 
-  test('should reject with reason', async ({ page }) => {
-    await page.goto('/hitl/approvals');
+  test("should reject with reason", async ({ page }) => {
+    await page.goto("/hitl/approvals");
 
     await page.click('tr:has-text("Cerere discount 40%")');
 
     // Reject
     await page.click('button:has-text("Respinge")');
-    await page.fill('textarea[name="rejectionReason"]', 'Discount prea mare');
+    await page.fill('textarea[name="rejectionReason"]', "Discount prea mare");
     await page.click('button:has-text("Confirmă respingerea")');
 
     // Verify rejection
-    await expect(page.locator('.toast')).toContainText('respins');
+    await expect(page.locator(".toast")).toContainText("respins");
   });
 
-  test('should handle AI response review', async ({ page }) => {
-    await page.goto('/hitl/ai-responses');
+  test("should handle AI response review", async ({ page }) => {
+    await page.goto("/hitl/ai-responses");
 
     // Find pending response
     await page.click('tr:has-text("Răspuns AI - Întrebare prețuri")');
 
     // Review dialog
-    await expect(page.getByRole('dialog')).toBeVisible();
-    await expect(page.locator('text=Răspuns generat:')).toBeVisible();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page.locator("text=Răspuns generat:")).toBeVisible();
 
     // Edit response
     await page.click('button:has-text("Editează")');
     const textarea = page.locator('textarea[name="editedResponse"]');
-    await textarea.fill('Răspuns editat de manager');
+    await textarea.fill("Răspuns editat de manager");
     await page.click('button:has-text("Salvează și trimite")');
 
     // Verify
-    await expect(page.locator('.toast')).toContainText('trimis');
+    await expect(page.locator(".toast")).toContainText("trimis");
   });
 });
 ```

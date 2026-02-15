@@ -19,12 +19,12 @@ Utilizăm **Pino** cu **pino-pretty** pentru development.
 ## Consecințe
 
 ```typescript
-import pino from 'pino';
+import pino from "pino";
 
 const logger = pino({
-  level: process.env.LOG_LEVEL || 'info',
+  level: process.env.LOG_LEVEL || "info",
   redact: {
-    paths: ['req.headers.authorization', 'email', 'phone', 'cui'],
+    paths: ["req.headers.authorization", "email", "phone", "cui"],
     remove: true,
   },
   formatters: {
@@ -32,7 +32,7 @@ const logger = pino({
   },
   timestamp: pino.stdTimeFunctions.isoTime,
   base: {
-    service: 'cerniq-api',
+    service: "cerniq-api",
     version: process.env.APP_VERSION,
     environment: process.env.NODE_ENV,
   },
@@ -41,7 +41,7 @@ const logger = pino({
 // Mandatory context în toate log entries
 logger.child({
   tenantId: request.user?.tenantId,
-  correlationId: request.headers['x-correlation-id'],
+  correlationId: request.headers["x-correlation-id"],
   traceId: span?.spanContext().traceId,
 });
 ```

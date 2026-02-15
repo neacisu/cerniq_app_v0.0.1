@@ -6,12 +6,12 @@
 
 **Decision:** **OpenAI text-embedding-3-small:**
 
-| Property | Value |
-| -------- | ----- |
-| Dimensions | 1536 |
-| Cost | $0.0001/1K tokens |
-| Rate Limit | 3000 RPM |
-| Quality | Suficient pentru product search |
+| Property   | Value                           |
+| ---------- | ------------------------------- |
+| Dimensions | 1536                            |
+| Cost       | $0.0001/1K tokens               |
+| Rate Limit | 3000 RPM                        |
+| Quality    | Suficient pentru product search |
 
 **API Usage:**
 

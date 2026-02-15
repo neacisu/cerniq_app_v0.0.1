@@ -8,44 +8,44 @@
 
 ### 1. ARHITECTURĂ & DECIZII TEHNICE
 
-| Fișier | Conținut | Linii |
-| :--- | :--- | :--- |
-| [ADR-uri Etapa 0](../../adr/ADR%20Etapa%200/) | 33 ADRs în directorul `/docs/adr/ADR Etapa 0/` (incl. ADR-0033 OpenBao) | 33 fișiere |
-| [Etapa0 plan implementare complet v2.md](etapa0-plan-implementare-complet-v2.md) | 147 Tasks JSON pentru AI agents (completare 100%) | ~5000 |
-| [STRATEGIE MONITORIZARE UI.md](STRATEGIE_MONITORIZARE_UI.md) | Viziune și Arhitectură Sistem Monitorizare (Etapa 0-5) | ~300 |
+| Fișier                                                                           | Conținut                                                                | Linii      |
+| :------------------------------------------------------------------------------- | :---------------------------------------------------------------------- | :--------- |
+| [ADR-uri Etapa 0](../../adr/ADR%20Etapa%200/)                                    | 33 ADRs în directorul `/docs/adr/ADR Etapa 0/` (incl. ADR-0033 OpenBao) | 33 fișiere |
+| [Etapa0 plan implementare complet v2.md](etapa0-plan-implementare-complet-v2.md) | 147 Tasks JSON pentru AI agents (completare 100%)                       | ~5000      |
+| [STRATEGIE MONITORIZARE UI.md](STRATEGIE_MONITORIZARE_UI.md)                     | Viziune și Arhitectură Sistem Monitorizare (Etapa 0-5)                  | ~300       |
 
 ### 2. DOCUMENTE OPERAȚIONALE
 
-| Fișier | Conținut |
-| :--- | :--- |
-| `etapa0-runbook-operational.md` | Startup, Shutdown, Daily Ops, Troubleshooting, Emergency |
-| `etapa0-backup-restore-procedures.md` | BorgBackup, WAL, PITR, Disaster Recovery |
-| ~~`etapa0-docker-secrets-guide.md`~~ | **DEPRECATED** → Vezi [OpenBao Setup Guide](../../infrastructure/openbao-setup-guide.md) |
-| `etapa0-environment-variables.md` | All env vars by category |
-| `etapa0-port-matrix.md` | Port allocation, network topology, firewall |
-| `etapa0-health-check-specs.md` | 3-tier health checks implementation |
-| `etapa0-logging-standards.md` | Pino config, PII redaction, integrare Loki/Vector/OTEL |
-| `etapa0-testing-strategy.md` | Unit/Integration/E2E tests, coverage requirements |
-| `etapa0-monitoring-api-spec.md` | Technical Specs pentru Monitoring API Sidecar |
-| `etapa0-structured-log-schemas.md` | JSON Schemas (Zod) pentru loguri standardizate |
-| `../infrastructure/pgbouncer-connection-pooling.md` | PgBouncer pooling și limitare conexiuni |
-| `../infrastructure/redis-authentication.md` | Redis AUTH și OpenBao secrets |
-| `../infrastructure/dns-configuration.md` | DNS records & subdomenii |
-| `../infrastructure/github-repository-setup.md` | Repo setup, CODEOWNERS, templates |
-| **`../infrastructure/openbao-setup-guide.md`** | **OpenBao centralized secrets management** 🆕 |
-| `../infrastructure/secrets-rotation-procedure.md` | Rotație secrete (automată via OpenBao) |
+| Fișier                                              | Conținut                                                                                 |
+| :-------------------------------------------------- | :--------------------------------------------------------------------------------------- |
+| `etapa0-runbook-operational.md`                     | Startup, Shutdown, Daily Ops, Troubleshooting, Emergency                                 |
+| `etapa0-backup-restore-procedures.md`               | BorgBackup, WAL, PITR, Disaster Recovery                                                 |
+| ~~`etapa0-docker-secrets-guide.md`~~                | **DEPRECATED** → Vezi [OpenBao Setup Guide](../../infrastructure/openbao-setup-guide.md) |
+| `etapa0-environment-variables.md`                   | All env vars by category                                                                 |
+| `etapa0-port-matrix.md`                             | Port allocation, network topology, firewall                                              |
+| `etapa0-health-check-specs.md`                      | 3-tier health checks implementation                                                      |
+| `etapa0-logging-standards.md`                       | Pino config, PII redaction, integrare Loki/Vector/OTEL                                   |
+| `etapa0-testing-strategy.md`                        | Unit/Integration/E2E tests, coverage requirements                                        |
+| `etapa0-monitoring-api-spec.md`                     | Technical Specs pentru Monitoring API Sidecar                                            |
+| `etapa0-structured-log-schemas.md`                  | JSON Schemas (Zod) pentru loguri standardizate                                           |
+| `../infrastructure/pgbouncer-connection-pooling.md` | PgBouncer pooling și limitare conexiuni                                                  |
+| `../infrastructure/redis-authentication.md`         | Redis AUTH și OpenBao secrets                                                            |
+| `../infrastructure/dns-configuration.md`            | DNS records & subdomenii                                                                 |
+| `../infrastructure/github-repository-setup.md`      | Repo setup, CODEOWNERS, templates                                                        |
+| **`../infrastructure/openbao-setup-guide.md`**      | **OpenBao centralized secrets management** 🆕                                            |
+| `../infrastructure/secrets-rotation-procedure.md`   | Rotație secrete (automată via OpenBao)                                                   |
 
 ### 3. FIȘIERE CONFIGURARE (De creat în Etapa Implementare)
 
 > **NOTĂ:** Aceste fișiere vor fi generate în timpul fazei de implementare conform task-urilor din planul de implementare.
 
-| Fișier Target | Utilizare |
-| :--- | :--- |
-| `infra/docker/docker-compose.yml` | Compose file complet |
-| `infra/docker/traefik/traefik.yml` | Traefik static config |
-| `infra/docker/traefik/dynamic/middlewares.yml` | Traefik dynamic config |
-| `infra/docker/config/postgres/postgresql.conf` | PostgreSQL optimized 128GB |
-| `infra/docker/config/postgres/init.sql` | Init (extensions, schemas, RLS) |
+| Fișier Target                                         | Utilizare                                                 |
+| :---------------------------------------------------- | :-------------------------------------------------------- |
+| `infra/docker/docker-compose.yml`                     | Compose file complet                                      |
+| `infra/docker/traefik/traefik.yml`                    | Traefik static config                                     |
+| `infra/docker/traefik/dynamic/middlewares.yml`        | Traefik dynamic config                                    |
+| `infra/docker/config/postgres/postgresql.conf`        | PostgreSQL optimized 128GB                                |
+| `infra/docker/config/postgres/init.sql`               | Init (extensions, schemas, RLS)                           |
 | `infra/docker/config/otel/otel-collector-config.yaml` | OTel Collector pentru stack-ul centralizat (orchestrator) |
 
 ---
@@ -77,9 +77,9 @@
 │   │       └── otel/
 │   │           └── otel-collector-config.yaml ← etapa0-otel-collector-config.yaml
 │   └── scripts/                         ← De creat în implementare (cu referentiere din runbook.md)
-│       ├── startup.sh                  
-│       ├── shutdown.sh                 
-│       ├── backup-daily.sh             
+│       ├── startup.sh
+│       ├── shutdown.sh
+│       ├── backup-daily.sh
 │       └── generate-secrets.sh
 ├── docs/
 │   ├── adr/

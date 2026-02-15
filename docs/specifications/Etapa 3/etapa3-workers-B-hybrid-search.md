@@ -1,4 +1,5 @@
 # Etapa 3 - Workers Categoria B: Hybrid Search
+
 ## Căutare Semantică + Lexicală cu RRF Fusion
 
 **Versiune:** 2.0  
@@ -28,6 +29,7 @@
 ### 1.1 Scopul Categoriei
 
 Categoria B implementează **căutarea hibridă** pentru RAG (Retrieval-Augmented Generation):
+
 - **Vector Search:** Căutare semantică prin embeddings (pgvector)
 - **BM25 Search:** Căutare lexicală prin tsvector PostgreSQL
 - **RRF Fusion:** Combinarea rezultatelor cu Reciprocal Rank Fusion
@@ -107,20 +109,20 @@ Categoria B implementează **căutarea hibridă** pentru RAG (Retrieval-Augmente
 
 ### 1.3 De ce Hybrid Search?
 
-| Metodă | Puncte Forte | Puncte Slabe |
-|--------|--------------|--------------|
-| **Vector Only** | Înțelege sinonime și context | Pierde cuvinte cheie exacte |
-| **BM25 Only** | Precizie pe termeni exacți | Nu înțelege semantica |
-| **Hybrid (RRF)** | Combină ambele avantaje | Complexitate mai mare |
+| Metodă           | Puncte Forte                 | Puncte Slabe                |
+| ---------------- | ---------------------------- | --------------------------- |
+| **Vector Only**  | Înțelege sinonime și context | Pierde cuvinte cheie exacte |
+| **BM25 Only**    | Precizie pe termeni exacți   | Nu înțelege semantica       |
+| **Hybrid (RRF)** | Combină ambele avantaje      | Complexitate mai mare       |
 
 ### 1.4 Metrici Cheie
 
-| Metrică | Target | Alertă |
-|---------|--------|--------|
-| Search Latency (p50) | < 100ms | > 200ms |
-| Search Latency (p99) | < 500ms | > 1s |
-| Recall@10 | > 0.85 | < 0.75 |
-| MRR (Mean Reciprocal Rank) | > 0.70 | < 0.60 |
+| Metrică                    | Target  | Alertă  |
+| -------------------------- | ------- | ------- |
+| Search Latency (p50)       | < 100ms | > 200ms |
+| Search Latency (p99)       | < 500ms | > 1s    |
+| Recall@10                  | > 0.85  | < 0.75  |
+| MRR (Mean Reciprocal Rank) | > 0.70  | < 0.60  |
 
 ---
 
@@ -128,22 +130,23 @@ Categoria B implementează **căutarea hibridă** pentru RAG (Retrieval-Augmente
 
 ### 2.1 Specificații Tehnice
 
-| Atribut | Valoare |
-|---------|---------|
-| **Queue Name** | `search:hybrid:execute` |
-| **Categoria** | B - Hybrid Search |
-| **Index** | #6 |
-| **Rate Limit** | Fără (CPU-bound) |
-| **Concurrency** | 50 |
-| **Timeout** | 10s |
-| **Retries** | 1 |
-| **Backoff** | Immediate |
-| **Critical** | Nu |
-| **Priority** | High (20) |
+| Atribut         | Valoare                 |
+| --------------- | ----------------------- |
+| **Queue Name**  | `search:hybrid:execute` |
+| **Categoria**   | B - Hybrid Search       |
+| **Index**       | #6                      |
+| **Rate Limit**  | Fără (CPU-bound)        |
+| **Concurrency** | 50                      |
+| **Timeout**     | 10s                     |
+| **Retries**     | 1                       |
+| **Backoff**     | Immediate               |
+| **Critical**    | Nu                      |
+| **Priority**    | High (20)               |
 
 ### 2.2 Responsabilitate
 
 Execută căutarea hibridă:
+
 - Generează embedding pentru query (sau primește de la #7)
 - Execută căutare vector în pgvector
 - Execută căutare BM25 în tsvector
@@ -155,29 +158,31 @@ Execută căutarea hibridă:
 ```typescript
 // packages/workers/src/etapa3/types/hybrid-search.types.ts
 
-import { z } from 'zod';
+import { z } from "zod";
 
 export const HybridSearchJobDataSchema = z.object({
   tenantId: z.string().uuid(),
   query: z.string().min(1).max(500),
   queryEmbedding: z.array(z.number()).length(1536).optional(),
   expandedQuery: z.string().optional(),
-  filters: z.object({
-    categoryId: z.string().uuid().optional(),
-    categoryPath: z.string().optional(),
-    brand: z.string().optional(),
-    priceMin: z.number().positive().optional(),
-    priceMax: z.number().positive().optional(),
-    inStock: z.boolean().optional(),
-    organic: z.boolean().optional(),
-    tags: z.array(z.string()).optional()
-  }).optional(),
+  filters: z
+    .object({
+      categoryId: z.string().uuid().optional(),
+      categoryPath: z.string().optional(),
+      brand: z.string().optional(),
+      priceMin: z.number().positive().optional(),
+      priceMax: z.number().positive().optional(),
+      inStock: z.boolean().optional(),
+      organic: z.boolean().optional(),
+      tags: z.array(z.string()).optional(),
+    })
+    .optional(),
   limit: z.number().min(1).max(100).default(20),
   vectorWeight: z.number().min(0).max(1).default(0.6),
   bm25Weight: z.number().min(0).max(1).default(0.4),
   rrfK: z.number().positive().default(60),
   includeChunks: z.boolean().default(false),
-  correlationId: z.string().optional()
+  correlationId: z.string().optional(),
 });
 
 export type HybridSearchJobData = z.infer<typeof HybridSearchJobDataSchema>;
@@ -196,11 +201,15 @@ export const SearchResultItemSchema = z.object({
   rrfScore: z.number(),
   vectorRank: z.number(),
   bm25Rank: z.number(),
-  matchedChunks: z.array(z.object({
-    chunkId: z.string().uuid(),
-    content: z.string(),
-    score: z.number()
-  })).optional()
+  matchedChunks: z
+    .array(
+      z.object({
+        chunkId: z.string().uuid(),
+        content: z.string(),
+        score: z.number(),
+      }),
+    )
+    .optional(),
 });
 
 export type SearchResultItem = z.infer<typeof SearchResultItemSchema>;
@@ -217,7 +226,7 @@ export const HybridSearchResultSchema = z.object({
   vectorLatency_ms: z.number(),
   bm25Latency_ms: z.number(),
   fusionLatency_ms: z.number(),
-  error: z.string().optional()
+  error: z.string().optional(),
 });
 
 export type HybridSearchResult = z.infer<typeof HybridSearchResultSchema>;
@@ -228,71 +237,76 @@ export type HybridSearchResult = z.infer<typeof HybridSearchResultSchema>;
 ```typescript
 // packages/workers/src/etapa3/workers/search-hybrid-execute.worker.ts
 
-import { Worker, Job } from 'bullmq';
-import { eq, and, or, gte, lte, sql, inArray } from 'drizzle-orm';
-import { db } from '@cerniq/database';
-import { 
-  goldProducts, 
+import { Worker, Job } from "bullmq";
+import { eq, and, or, gte, lte, sql, inArray } from "drizzle-orm";
+import { db } from "@cerniq/database";
+import {
+  goldProducts,
   goldProductEmbeddings,
   goldProductChunks,
-  stockInventory
-} from '@cerniq/database/schema/etapa3';
-import { 
-  HybridSearchJobData, 
+  stockInventory,
+} from "@cerniq/database/schema/etapa3";
+import {
+  HybridSearchJobData,
   HybridSearchJobDataSchema,
   HybridSearchResult,
-  SearchResultItem
-} from '../types/hybrid-search.types';
-import { redisConnection, redis } from '@cerniq/shared/redis';
-import { logger } from '@cerniq/shared/logger';
-import { metrics } from '@cerniq/shared/metrics';
-import OpenAI from 'openai';
+  SearchResultItem,
+} from "../types/hybrid-search.types";
+import { redisConnection, redis } from "@cerniq/shared/redis";
+import { logger } from "@cerniq/shared/logger";
+import { metrics } from "@cerniq/shared/metrics";
+import OpenAI from "openai";
 
-const QUEUE_NAME = 'search:hybrid:execute';
-const EMBEDDING_MODEL = 'text-embedding-3-small';
+const QUEUE_NAME = "search:hybrid:execute";
+const EMBEDDING_MODEL = "text-embedding-3-small";
 const CACHE_TTL = 300; // 5 minutes cache for search results
-const CACHE_PREFIX = 'search:hybrid:';
+const CACHE_PREFIX = "search:hybrid:";
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!
+  apiKey: process.env.OPENAI_API_KEY!,
 });
 
-export const searchHybridExecuteWorker = new Worker<HybridSearchJobData, HybridSearchResult>(
+export const searchHybridExecuteWorker = new Worker<
+  HybridSearchJobData,
+  HybridSearchResult
+>(
   QUEUE_NAME,
   async (job: Job<HybridSearchJobData>): Promise<HybridSearchResult> => {
     const startTime = Date.now();
-    const timer = metrics.histogram('worker_duration_ms', { queue: QUEUE_NAME });
-    
+    const timer = metrics.histogram("worker_duration_ms", {
+      queue: QUEUE_NAME,
+    });
+
     try {
       // 1. Validare input
       const data = HybridSearchJobDataSchema.parse(job.data);
-      
-      logger.info('Hybrid search started', {
+
+      logger.info("Hybrid search started", {
         jobId: job.id,
         query: data.query,
-        correlationId: data.correlationId
+        correlationId: data.correlationId,
       });
 
       // 2. Check cache
       const cacheKey = `${CACHE_PREFIX}${data.tenantId}:${hashQuery(data)}`;
       const cached = await redis.get(cacheKey);
-      
+
       if (cached) {
         const cachedResult = JSON.parse(cached) as HybridSearchResult;
         cachedResult.searchLatency_ms = Date.now() - startTime;
-        metrics.counter('search_cache_hits_total').inc();
+        metrics.counter("search_cache_hits_total").inc();
         return cachedResult;
       }
 
       // 3. Generate query embedding (if not provided)
       let queryEmbedding = data.queryEmbedding;
       let embeddingLatency = 0;
-      
+
       if (!queryEmbedding) {
         const embeddingStart = Date.now();
         const embeddingResponse = await openai.embeddings.create({
           model: EMBEDDING_MODEL,
-          input: data.expandedQuery || data.query
+          input: data.expandedQuery || data.query,
         });
         queryEmbedding = embeddingResponse.data[0].embedding;
         embeddingLatency = Date.now() - embeddingStart;
@@ -307,7 +321,7 @@ export const searchHybridExecuteWorker = new Worker<HybridSearchJobData, HybridS
         data.tenantId,
         queryEmbedding,
         filterConditions,
-        data.limit * 2 // Get more for fusion
+        data.limit * 2, // Get more for fusion
       );
       const vectorLatency = Date.now() - vectorStart;
 
@@ -317,7 +331,7 @@ export const searchHybridExecuteWorker = new Worker<HybridSearchJobData, HybridS
         data.tenantId,
         data.expandedQuery || data.query,
         filterConditions,
-        data.limit * 2
+        data.limit * 2,
       );
       const bm25Latency = Date.now() - bm25Start;
 
@@ -328,18 +342,18 @@ export const searchHybridExecuteWorker = new Worker<HybridSearchJobData, HybridS
         bm25Results,
         data.vectorWeight,
         data.bm25Weight,
-        data.rrfK
+        data.rrfK,
       );
       const fusionLatency = Date.now() - fusionStart;
 
       // 8. Get chunk matches if requested
       let resultsWithChunks = fusedResults.slice(0, data.limit);
-      
+
       if (data.includeChunks) {
         resultsWithChunks = await enrichWithChunks(
           data.tenantId,
           resultsWithChunks,
-          queryEmbedding
+          queryEmbedding,
         );
       }
 
@@ -355,35 +369,35 @@ export const searchHybridExecuteWorker = new Worker<HybridSearchJobData, HybridS
         searchLatency_ms: Date.now() - startTime,
         vectorLatency_ms: vectorLatency,
         bm25Latency_ms: bm25Latency,
-        fusionLatency_ms: fusionLatency
+        fusionLatency_ms: fusionLatency,
       };
 
       // 10. Cache result
       await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(result));
 
-      metrics.counter('search_requests_total').inc();
-      metrics.histogram('search_latency_ms').observe(Date.now() - startTime);
-      metrics.histogram('search_results_count').observe(fusedResults.length);
+      metrics.counter("search_requests_total").inc();
+      metrics.histogram("search_latency_ms").observe(Date.now() - startTime);
+      metrics.histogram("search_results_count").observe(fusedResults.length);
       timer.observe(Date.now() - startTime);
 
-      logger.info('Hybrid search completed', {
+      logger.info("Hybrid search completed", {
         jobId: job.id,
         resultsCount: fusedResults.length,
-        latency_ms: Date.now() - startTime
+        latency_ms: Date.now() - startTime,
       });
 
       return result;
-
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      
-      logger.error('Hybrid search failed', {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+
+      logger.error("Hybrid search failed", {
         jobId: job.id,
         query: job.data.query,
-        error: errorMessage
+        error: errorMessage,
       });
 
-      metrics.counter('search_errors_total').inc();
+      metrics.counter("search_errors_total").inc();
 
       return {
         success: false,
@@ -397,14 +411,14 @@ export const searchHybridExecuteWorker = new Worker<HybridSearchJobData, HybridS
         vectorLatency_ms: 0,
         bm25Latency_ms: 0,
         fusionLatency_ms: 0,
-        error: errorMessage
+        error: errorMessage,
       };
     }
   },
   {
     connection: redisConnection,
-    concurrency: 50
-  }
+    concurrency: 50,
+  },
 );
 
 // Helper Functions
@@ -435,36 +449,38 @@ interface BM25SearchResult {
 
 function buildFilterConditions(data: HybridSearchJobData): any[] {
   const conditions: any[] = [eq(goldProducts.tenant_id, data.tenantId)];
-  conditions.push(eq(goldProducts.status, 'ACTIVE'));
-  
+  conditions.push(eq(goldProducts.status, "ACTIVE"));
+
   if (data.filters) {
     const f = data.filters;
-    
+
     if (f.categoryId) {
       conditions.push(eq(goldProducts.category_id, f.categoryId));
     }
-    
+
     if (f.categoryPath) {
-      conditions.push(sql`${goldProducts.category_path} LIKE ${f.categoryPath + '%'}`);
+      conditions.push(
+        sql`${goldProducts.category_path} LIKE ${f.categoryPath + "%"}`,
+      );
     }
-    
+
     if (f.brand) {
       conditions.push(eq(goldProducts.brand, f.brand));
     }
-    
+
     if (f.priceMin !== undefined) {
       conditions.push(gte(goldProducts.current_price, f.priceMin));
     }
-    
+
     if (f.priceMax !== undefined) {
       conditions.push(lte(goldProducts.current_price, f.priceMax));
     }
-    
+
     if (f.tags && f.tags.length > 0) {
       conditions.push(sql`${goldProducts.tags} && ${f.tags}`);
     }
   }
-  
+
   return conditions;
 }
 
@@ -472,10 +488,10 @@ async function executeVectorSearch(
   tenantId: string,
   queryEmbedding: number[],
   filterConditions: any[],
-  limit: number
+  limit: number,
 ): Promise<VectorSearchResult[]> {
-  const embeddingString = `[${queryEmbedding.join(',')}]`;
-  
+  const embeddingString = `[${queryEmbedding.join(",")}]`;
+
   const results = await db
     .select({
       productId: goldProducts.id,
@@ -486,20 +502,22 @@ async function executeVectorSearch(
       brand: goldProducts.brand,
       currentPrice: goldProducts.current_price,
       imageUrl: sql<string>`(${goldProducts.images}->0->>'url')`,
-      distance: sql<number>`${goldProductEmbeddings.embedding} <=> ${embeddingString}::vector`
+      distance: sql<number>`${goldProductEmbeddings.embedding} <=> ${embeddingString}::vector`,
     })
     .from(goldProducts)
     .innerJoin(
       goldProductEmbeddings,
       and(
         eq(goldProductEmbeddings.product_id, goldProducts.id),
-        eq(goldProductEmbeddings.is_current, true)
-      )
+        eq(goldProductEmbeddings.is_current, true),
+      ),
     )
     .where(and(...filterConditions))
-    .orderBy(sql`${goldProductEmbeddings.embedding} <=> ${embeddingString}::vector`)
+    .orderBy(
+      sql`${goldProductEmbeddings.embedding} <=> ${embeddingString}::vector`,
+    )
     .limit(limit);
-  
+
   return results;
 }
 
@@ -507,16 +525,16 @@ async function executeBM25Search(
   tenantId: string,
   query: string,
   filterConditions: any[],
-  limit: number
+  limit: number,
 ): Promise<BM25SearchResult[]> {
   // Normalize query for tsquery
   const tsQuery = query
     .toLowerCase()
-    .replace(/[^\w\s]/g, ' ')
+    .replace(/[^\w\s]/g, " ")
     .split(/\s+/)
-    .filter(w => w.length > 2)
-    .join(' & ');
-  
+    .filter((w) => w.length > 2)
+    .join(" & ");
+
   const results = await db
     .select({
       productId: goldProducts.id,
@@ -527,16 +545,20 @@ async function executeBM25Search(
       brand: goldProducts.brand,
       currentPrice: goldProducts.current_price,
       imageUrl: sql<string>`(${goldProducts.images}->0->>'url')`,
-      rank: sql<number>`ts_rank_cd(${goldProducts.search_vector}, to_tsquery('romanian', ${tsQuery}))`
+      rank: sql<number>`ts_rank_cd(${goldProducts.search_vector}, to_tsquery('romanian', ${tsQuery}))`,
     })
     .from(goldProducts)
-    .where(and(
-      ...filterConditions,
-      sql`${goldProducts.search_vector} @@ to_tsquery('romanian', ${tsQuery})`
-    ))
-    .orderBy(sql`ts_rank_cd(${goldProducts.search_vector}, to_tsquery('romanian', ${tsQuery})) DESC`)
+    .where(
+      and(
+        ...filterConditions,
+        sql`${goldProducts.search_vector} @@ to_tsquery('romanian', ${tsQuery})`,
+      ),
+    )
+    .orderBy(
+      sql`ts_rank_cd(${goldProducts.search_vector}, to_tsquery('romanian', ${tsQuery})) DESC`,
+    )
     .limit(limit);
-  
+
   return results;
 }
 
@@ -545,62 +567,69 @@ function applyRRFFusion(
   bm25Results: BM25SearchResult[],
   vectorWeight: number,
   bm25Weight: number,
-  k: number
+  k: number,
 ): SearchResultItem[] {
   // Build rank maps
   const vectorRanks = new Map<string, number>();
   vectorResults.forEach((r, idx) => {
     vectorRanks.set(r.productId, idx + 1);
   });
-  
+
   const bm25Ranks = new Map<string, number>();
   bm25Results.forEach((r, idx) => {
     bm25Ranks.set(r.productId, idx + 1);
   });
-  
+
   // Get all unique product IDs
   const allProductIds = new Set([
-    ...vectorResults.map(r => r.productId),
-    ...bm25Results.map(r => r.productId)
+    ...vectorResults.map((r) => r.productId),
+    ...bm25Results.map((r) => r.productId),
   ]);
-  
+
   // Calculate RRF scores
-  const rrfScores: Map<string, {
-    rrfScore: number;
-    vectorRank: number;
-    bm25Rank: number;
-    vectorScore: number;
-    bm25Score: number;
-    product: VectorSearchResult | BM25SearchResult;
-  }> = new Map();
-  
+  const rrfScores: Map<
+    string,
+    {
+      rrfScore: number;
+      vectorRank: number;
+      bm25Rank: number;
+      vectorScore: number;
+      bm25Score: number;
+      product: VectorSearchResult | BM25SearchResult;
+    }
+  > = new Map();
+
   for (const productId of allProductIds) {
     const vectorRank = vectorRanks.get(productId) ?? vectorResults.length + 1;
     const bm25Rank = bm25Ranks.get(productId) ?? bm25Results.length + 1;
-    
+
     // RRF formula: score = Σ weight / (k + rank)
     const vectorContribution = vectorWeight / (k + vectorRank);
     const bm25Contribution = bm25Weight / (k + bm25Rank);
     const rrfScore = vectorContribution + bm25Contribution;
-    
+
     // Get product data from whichever result set has it
-    const product = vectorResults.find(r => r.productId === productId) 
-      || bm25Results.find(r => r.productId === productId)!;
-    
+    const product =
+      vectorResults.find((r) => r.productId === productId) ||
+      bm25Results.find((r) => r.productId === productId)!;
+
     rrfScores.set(productId, {
       rrfScore,
       vectorRank,
       bm25Rank,
-      vectorScore: 1 - (vectorResults.find(r => r.productId === productId)?.distance ?? 1),
-      bm25Score: bm25Results.find(r => r.productId === productId)?.rank ?? 0,
-      product
+      vectorScore:
+        1 -
+        (vectorResults.find((r) => r.productId === productId)?.distance ?? 1),
+      bm25Score: bm25Results.find((r) => r.productId === productId)?.rank ?? 0,
+      product,
     });
   }
-  
+
   // Sort by RRF score
-  const sorted = [...rrfScores.entries()]
-    .sort((a, b) => b[1].rrfScore - a[1].rrfScore);
-  
+  const sorted = [...rrfScores.entries()].sort(
+    (a, b) => b[1].rrfScore - a[1].rrfScore,
+  );
+
   // Map to SearchResultItem
   return sorted.map(([productId, data]) => ({
     productId,
@@ -615,63 +644,65 @@ function applyRRFFusion(
     bm25Score: data.bm25Score,
     rrfScore: data.rrfScore,
     vectorRank: data.vectorRank,
-    bm25Rank: data.bm25Rank
+    bm25Rank: data.bm25Rank,
   }));
 }
 
 async function enrichWithChunks(
   tenantId: string,
   results: SearchResultItem[],
-  queryEmbedding: number[]
+  queryEmbedding: number[],
 ): Promise<SearchResultItem[]> {
-  const productIds = results.map(r => r.productId);
-  const embeddingString = `[${queryEmbedding.join(',')}]`;
-  
+  const productIds = results.map((r) => r.productId);
+  const embeddingString = `[${queryEmbedding.join(",")}]`;
+
   const chunks = await db
     .select({
       productId: goldProductChunks.product_id,
       chunkId: goldProductChunks.id,
       content: goldProductChunks.content,
-      score: sql<number>`1 - (${goldProductChunks.embedding} <=> ${embeddingString}::vector)`
+      score: sql<number>`1 - (${goldProductChunks.embedding} <=> ${embeddingString}::vector)`,
     })
     .from(goldProductChunks)
-    .where(and(
-      eq(goldProductChunks.tenant_id, tenantId),
-      inArray(goldProductChunks.product_id, productIds)
-    ))
+    .where(
+      and(
+        eq(goldProductChunks.tenant_id, tenantId),
+        inArray(goldProductChunks.product_id, productIds),
+      ),
+    )
     .orderBy(sql`${goldProductChunks.embedding} <=> ${embeddingString}::vector`)
     .limit(results.length * 3); // Top 3 chunks per product
-  
+
   // Group by product
   const chunksByProduct = new Map<string, typeof chunks>();
-  chunks.forEach(chunk => {
+  chunks.forEach((chunk) => {
     const existing = chunksByProduct.get(chunk.productId) ?? [];
     existing.push(chunk);
     chunksByProduct.set(chunk.productId, existing);
   });
-  
+
   // Enrich results
-  return results.map(result => ({
+  return results.map((result) => ({
     ...result,
     matchedChunks: (chunksByProduct.get(result.productId) ?? [])
       .slice(0, 3)
-      .map(c => ({
+      .map((c) => ({
         chunkId: c.chunkId,
         content: c.content,
-        score: c.score
-      }))
+        score: c.score,
+      })),
   }));
 }
 
 function hashQuery(data: HybridSearchJobData): string {
-  const crypto = require('crypto');
+  const crypto = require("crypto");
   const key = JSON.stringify({
     query: data.query,
     expandedQuery: data.expandedQuery,
     filters: data.filters,
-    limit: data.limit
+    limit: data.limit,
   });
-  return crypto.createHash('md5').update(key).digest('hex');
+  return crypto.createHash("md5").update(key).digest("hex");
 }
 
 export default searchHybridExecuteWorker;
@@ -683,22 +714,23 @@ export default searchHybridExecuteWorker;
 
 ### 3.1 Specificații Tehnice
 
-| Atribut | Valoare |
-|---------|---------|
-| **Queue Name** | `search:query:understand` |
-| **Categoria** | B - Hybrid Search |
-| **Index** | #7 |
-| **Rate Limit** | 60/min (LLM calls) |
-| **Concurrency** | 20 |
-| **Timeout** | 15s |
-| **Retries** | 2 |
-| **Backoff** | Exponential (1s, 2s) |
-| **Critical** | Nu |
-| **Priority** | Normal (50) |
+| Atribut         | Valoare                   |
+| --------------- | ------------------------- |
+| **Queue Name**  | `search:query:understand` |
+| **Categoria**   | B - Hybrid Search         |
+| **Index**       | #7                        |
+| **Rate Limit**  | 60/min (LLM calls)        |
+| **Concurrency** | 20                        |
+| **Timeout**     | 15s                       |
+| **Retries**     | 2                         |
+| **Backoff**     | Exponential (1s, 2s)      |
+| **Critical**    | Nu                        |
+| **Priority**    | Normal (50)               |
 
 ### 3.2 Responsabilitate
 
 Analizează și expandează query-ul utilizatorului:
+
 - Extrage intenția (product_search, price_check, stock_check, etc.)
 - Identifică entități (produse, categorii, branduri)
 - Generează filtre structurate
@@ -709,47 +741,66 @@ Analizează și expandează query-ul utilizatorului:
 ```typescript
 // packages/workers/src/etapa3/types/query-understand.types.ts
 
-import { z } from 'zod';
+import { z } from "zod";
 
 export const QueryUnderstandJobDataSchema = z.object({
   tenantId: z.string().uuid(),
   query: z.string().min(1).max(500),
-  conversationContext: z.array(z.object({
-    role: z.enum(['user', 'assistant']),
-    content: z.string()
-  })).optional(),
-  userPreferences: z.object({
-    preferredCategories: z.array(z.string()).optional(),
-    preferredBrands: z.array(z.string()).optional(),
-    priceRange: z.object({
-      min: z.number().optional(),
-      max: z.number().optional()
-    }).optional()
-  }).optional(),
-  correlationId: z.string().optional()
+  conversationContext: z
+    .array(
+      z.object({
+        role: z.enum(["user", "assistant"]),
+        content: z.string(),
+      }),
+    )
+    .optional(),
+  userPreferences: z
+    .object({
+      preferredCategories: z.array(z.string()).optional(),
+      preferredBrands: z.array(z.string()).optional(),
+      priceRange: z
+        .object({
+          min: z.number().optional(),
+          max: z.number().optional(),
+        })
+        .optional(),
+    })
+    .optional(),
+  correlationId: z.string().optional(),
 });
 
-export type QueryUnderstandJobData = z.infer<typeof QueryUnderstandJobDataSchema>;
+export type QueryUnderstandJobData = z.infer<
+  typeof QueryUnderstandJobDataSchema
+>;
 
 export const QueryUnderstandResultSchema = z.object({
   success: z.boolean(),
   originalQuery: z.string(),
   intent: z.enum([
-    'product_search',
-    'price_check',
-    'stock_check',
-    'comparison',
-    'recommendation',
-    'question',
-    'other'
+    "product_search",
+    "price_check",
+    "stock_check",
+    "comparison",
+    "recommendation",
+    "question",
+    "other",
   ]),
   intentConfidence: z.number().min(0).max(1),
-  entities: z.array(z.object({
-    type: z.enum(['product', 'category', 'brand', 'attribute', 'quantity', 'price']),
-    value: z.string(),
-    normalized: z.string().optional(),
-    confidence: z.number().min(0).max(1)
-  })),
+  entities: z.array(
+    z.object({
+      type: z.enum([
+        "product",
+        "category",
+        "brand",
+        "attribute",
+        "quantity",
+        "price",
+      ]),
+      value: z.string(),
+      normalized: z.string().optional(),
+      confidence: z.number().min(0).max(1),
+    }),
+  ),
   filters: z.object({
     categoryId: z.string().uuid().optional(),
     categoryPath: z.string().optional(),
@@ -757,13 +808,13 @@ export const QueryUnderstandResultSchema = z.object({
     priceMin: z.number().optional(),
     priceMax: z.number().optional(),
     inStock: z.boolean().optional(),
-    attributes: z.record(z.string()).optional()
+    attributes: z.record(z.string()).optional(),
   }),
   expandedQuery: z.string(),
   synonymsUsed: z.array(z.string()),
   suggestedQueries: z.array(z.string()).optional(),
   duration_ms: z.number(),
-  error: z.string().optional()
+  error: z.string().optional(),
 });
 
 export type QueryUnderstandResult = z.infer<typeof QueryUnderstandResultSchema>;
@@ -774,74 +825,91 @@ export type QueryUnderstandResult = z.infer<typeof QueryUnderstandResultSchema>;
 ```typescript
 // packages/workers/src/etapa3/workers/search-query-understand.worker.ts
 
-import { Worker, Job } from 'bullmq';
-import { eq, ilike, sql } from 'drizzle-orm';
-import { db } from '@cerniq/database';
-import { goldProductCategories } from '@cerniq/database/schema/etapa3';
-import { 
-  QueryUnderstandJobData, 
+import { Worker, Job } from "bullmq";
+import { eq, ilike, sql } from "drizzle-orm";
+import { db } from "@cerniq/database";
+import { goldProductCategories } from "@cerniq/database/schema/etapa3";
+import {
+  QueryUnderstandJobData,
   QueryUnderstandJobDataSchema,
-  QueryUnderstandResult 
-} from '../types/query-understand.types';
-import { redisConnection } from '@cerniq/shared/redis';
-import { logger } from '@cerniq/shared/logger';
-import { metrics } from '@cerniq/shared/metrics';
-import OpenAI from 'openai';
+  QueryUnderstandResult,
+} from "../types/query-understand.types";
+import { redisConnection } from "@cerniq/shared/redis";
+import { logger } from "@cerniq/shared/logger";
+import { metrics } from "@cerniq/shared/metrics";
+import OpenAI from "openai";
 
-const QUEUE_NAME = 'search:query:understand';
+const QUEUE_NAME = "search:query:understand";
 
 const openai = new OpenAI({
   apiKey: process.env.XAI_API_KEY!, // Using xAI Grok
-  baseURL: 'https://api.x.ai/v1'
+  baseURL: "https://api.x.ai/v1",
 });
 
 // Romanian agricultural synonyms dictionary
 const AGRICULTURAL_SYNONYMS: Record<string, string[]> = {
-  'îngrășământ': ['fertilizant', 'nutrient', 'îmbogățitor sol', 'compost'],
-  'pesticid': ['fitosanitar', 'insecticid', 'fungicid', 'erbicid'],
-  'semințe': ['sămânță', 'material săditor', 'semințe certificate'],
-  'porumb': ['porumbul', 'cereale', 'corn', 'grâu'],
-  'organic': ['bio', 'ecologic', 'natural', 'fără chimicale'],
-  'irigație': ['udare', 'stropire', 'irigare', 'sistem de apă'],
-  'tractor': ['utilaj agricol', 'mașină agricolă', 'echipament'],
-  'recoltă': ['producție', 'randament', 'yield', 'rod'],
-  'sol': ['pământ', 'teren', 'arabil', 'agricol'],
-  'seceră': ['drought', 'uscăciune', 'deficit apă', 'rezistent secetă']
+  îngrășământ: ["fertilizant", "nutrient", "îmbogățitor sol", "compost"],
+  pesticid: ["fitosanitar", "insecticid", "fungicid", "erbicid"],
+  semințe: ["sămânță", "material săditor", "semințe certificate"],
+  porumb: ["porumbul", "cereale", "corn", "grâu"],
+  organic: ["bio", "ecologic", "natural", "fără chimicale"],
+  irigație: ["udare", "stropire", "irigare", "sistem de apă"],
+  tractor: ["utilaj agricol", "mașină agricolă", "echipament"],
+  recoltă: ["producție", "randament", "yield", "rod"],
+  sol: ["pământ", "teren", "arabil", "agricol"],
+  seceră: ["drought", "uscăciune", "deficit apă", "rezistent secetă"],
 };
 
-export const searchQueryUnderstandWorker = new Worker<QueryUnderstandJobData, QueryUnderstandResult>(
+export const searchQueryUnderstandWorker = new Worker<
+  QueryUnderstandJobData,
+  QueryUnderstandResult
+>(
   QUEUE_NAME,
   async (job: Job<QueryUnderstandJobData>): Promise<QueryUnderstandResult> => {
     const startTime = Date.now();
-    const timer = metrics.histogram('worker_duration_ms', { queue: QUEUE_NAME });
-    
+    const timer = metrics.histogram("worker_duration_ms", {
+      queue: QUEUE_NAME,
+    });
+
     try {
       // 1. Validare input
       const data = QueryUnderstandJobDataSchema.parse(job.data);
-      
-      logger.info('Query understanding started', {
+
+      logger.info("Query understanding started", {
         jobId: job.id,
         query: data.query,
-        correlationId: data.correlationId
+        correlationId: data.correlationId,
       });
 
       // 2. Call LLM for intent and entity extraction
-      const llmResult = await analyzeQueryWithLLM(data.query, data.conversationContext);
+      const llmResult = await analyzeQueryWithLLM(
+        data.query,
+        data.conversationContext,
+      );
 
       // 3. Match entities to database
-      const enrichedEntities = await enrichEntities(data.tenantId, llmResult.entities);
+      const enrichedEntities = await enrichEntities(
+        data.tenantId,
+        llmResult.entities,
+      );
 
       // 4. Build filters from entities
-      const filters = buildFiltersFromEntities(enrichedEntities, data.userPreferences);
+      const filters = buildFiltersFromEntities(
+        enrichedEntities,
+        data.userPreferences,
+      );
 
       // 5. Expand query with synonyms
       const { expandedQuery, synonymsUsed } = expandQueryWithSynonyms(
-        data.query, 
-        enrichedEntities
+        data.query,
+        enrichedEntities,
       );
 
       // 6. Generate suggestions
-      const suggestedQueries = generateSuggestions(data.query, enrichedEntities);
+      const suggestedQueries = generateSuggestions(
+        data.query,
+        enrichedEntities,
+      );
 
       const result: QueryUnderstandResult = {
         success: true,
@@ -853,44 +921,46 @@ export const searchQueryUnderstandWorker = new Worker<QueryUnderstandJobData, Qu
         expandedQuery,
         synonymsUsed,
         suggestedQueries,
-        duration_ms: Date.now() - startTime
+        duration_ms: Date.now() - startTime,
       };
 
-      metrics.counter('queries_understood_total', { intent: llmResult.intent }).inc();
+      metrics
+        .counter("queries_understood_total", { intent: llmResult.intent })
+        .inc();
       timer.observe(Date.now() - startTime);
 
-      logger.info('Query understanding completed', {
+      logger.info("Query understanding completed", {
         jobId: job.id,
         intent: llmResult.intent,
         entitiesCount: enrichedEntities.length,
-        duration_ms: Date.now() - startTime
+        duration_ms: Date.now() - startTime,
       });
 
       return result;
-
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      
-      logger.error('Query understanding failed', {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+
+      logger.error("Query understanding failed", {
         jobId: job.id,
         query: job.data.query,
-        error: errorMessage
+        error: errorMessage,
       });
 
-      metrics.counter('query_understand_errors_total').inc();
+      metrics.counter("query_understand_errors_total").inc();
 
       // Return fallback result
       return {
         success: false,
         originalQuery: job.data.query,
-        intent: 'product_search',
+        intent: "product_search",
         intentConfidence: 0.5,
         entities: [],
         filters: {},
         expandedQuery: job.data.query,
         synonymsUsed: [],
         duration_ms: Date.now() - startTime,
-        error: errorMessage
+        error: errorMessage,
       };
     }
   },
@@ -899,18 +969,25 @@ export const searchQueryUnderstandWorker = new Worker<QueryUnderstandJobData, Qu
     concurrency: 20,
     limiter: {
       max: 1,
-      duration: 1000 // 1 req/sec = 60/min
-    }
-  }
+      duration: 1000, // 1 req/sec = 60/min
+    },
+  },
 );
 
 // LLM Analysis
 
 interface LLMAnalysisResult {
-  intent: 'product_search' | 'price_check' | 'stock_check' | 'comparison' | 'recommendation' | 'question' | 'other';
+  intent:
+    | "product_search"
+    | "price_check"
+    | "stock_check"
+    | "comparison"
+    | "recommendation"
+    | "question"
+    | "other";
   intentConfidence: number;
   entities: Array<{
-    type: 'product' | 'category' | 'brand' | 'attribute' | 'quantity' | 'price';
+    type: "product" | "category" | "brand" | "attribute" | "quantity" | "price";
     value: string;
     confidence: number;
   }>;
@@ -918,7 +995,7 @@ interface LLMAnalysisResult {
 
 async function analyzeQueryWithLLM(
   query: string,
-  context?: Array<{ role: string; content: string }>
+  context?: Array<{ role: string; content: string }>,
 ): Promise<LLMAnalysisResult> {
   const systemPrompt = `Ești un asistent specializat în analiza query-urilor pentru un sistem de căutare produse agricole.
 
@@ -932,38 +1009,36 @@ Categorii disponibile: Semințe, Îngrășăminte, Pesticide, Echipamente, Iriga
 
 Răspunde DOAR cu JSON valid, fără explicații.`;
 
-  const messages: any[] = [
-    { role: 'system', content: systemPrompt }
-  ];
+  const messages: any[] = [{ role: "system", content: systemPrompt }];
 
   if (context && context.length > 0) {
     messages.push(...context.slice(-3)); // Last 3 messages for context
   }
 
-  messages.push({ role: 'user', content: query });
+  messages.push({ role: "user", content: query });
 
   const response = await openai.chat.completions.create({
-    model: 'grok-2-latest',
+    model: "grok-2-latest",
     messages,
     temperature: 0.1,
     max_tokens: 500,
-    response_format: { type: 'json_object' }
+    response_format: { type: "json_object" },
   });
 
-  const content = response.choices[0].message.content || '{}';
+  const content = response.choices[0].message.content || "{}";
   const parsed = JSON.parse(content);
 
   return {
-    intent: parsed.intent || 'product_search',
+    intent: parsed.intent || "product_search",
     intentConfidence: parsed.intentConfidence || 0.7,
-    entities: parsed.entities || []
+    entities: parsed.entities || [],
   };
 }
 
 // Entity Enrichment
 
 interface EnrichedEntity {
-  type: 'product' | 'category' | 'brand' | 'attribute' | 'quantity' | 'price';
+  type: "product" | "category" | "brand" | "attribute" | "quantity" | "price";
   value: string;
   normalized?: string;
   confidence: number;
@@ -971,25 +1046,25 @@ interface EnrichedEntity {
 
 async function enrichEntities(
   tenantId: string,
-  entities: LLMAnalysisResult['entities']
+  entities: LLMAnalysisResult["entities"],
 ): Promise<EnrichedEntity[]> {
   const enriched: EnrichedEntity[] = [];
 
   for (const entity of entities) {
-    if (entity.type === 'category') {
+    if (entity.type === "category") {
       // Try to match category in database
       const category = await db.query.goldProductCategories.findFirst({
-        where: ilike(goldProductCategories.name, `%${entity.value}%`)
+        where: ilike(goldProductCategories.name, `%${entity.value}%`),
       });
 
       enriched.push({
         ...entity,
-        normalized: category?.name || entity.value
+        normalized: category?.name || entity.value,
       });
     } else {
       enriched.push({
         ...entity,
-        normalized: entity.value.toLowerCase()
+        normalized: entity.value.toLowerCase(),
       });
     }
   }
@@ -1001,30 +1076,33 @@ async function enrichEntities(
 
 function buildFiltersFromEntities(
   entities: EnrichedEntity[],
-  preferences?: QueryUnderstandJobData['userPreferences']
-): QueryUnderstandResult['filters'] {
-  const filters: QueryUnderstandResult['filters'] = {};
+  preferences?: QueryUnderstandJobData["userPreferences"],
+): QueryUnderstandResult["filters"] {
+  const filters: QueryUnderstandResult["filters"] = {};
 
   for (const entity of entities) {
     switch (entity.type) {
-      case 'category':
+      case "category":
         filters.categoryPath = entity.normalized;
         break;
-      case 'brand':
+      case "brand":
         filters.brand = entity.value;
         break;
-      case 'price':
+      case "price":
         const priceMatch = entity.value.match(/(\d+)/);
         if (priceMatch) {
           // Simple heuristic: if contains "sub" or "maxim", set as max
-          if (entity.value.includes('sub') || entity.value.includes('maxim')) {
+          if (entity.value.includes("sub") || entity.value.includes("maxim")) {
             filters.priceMax = parseInt(priceMatch[1]);
-          } else if (entity.value.includes('peste') || entity.value.includes('minim')) {
+          } else if (
+            entity.value.includes("peste") ||
+            entity.value.includes("minim")
+          ) {
             filters.priceMin = parseInt(priceMatch[1]);
           }
         }
         break;
-      case 'attribute':
+      case "attribute":
         if (!filters.attributes) filters.attributes = {};
         filters.attributes[entity.type] = entity.value;
         break;
@@ -1048,7 +1126,7 @@ function buildFiltersFromEntities(
 
 function expandQueryWithSynonyms(
   query: string,
-  entities: EnrichedEntity[]
+  entities: EnrichedEntity[],
 ): { expandedQuery: string; synonymsUsed: string[] } {
   const words = query.toLowerCase().split(/\s+/);
   const synonymsUsed: string[] = [];
@@ -1065,17 +1143,17 @@ function expandQueryWithSynonyms(
 
   // Add entity-based expansions
   for (const entity of entities) {
-    if (entity.type === 'category' && entity.normalized) {
+    if (entity.type === "category" && entity.normalized) {
       expandedTerms.push(entity.normalized);
     }
   }
 
   // Deduplicate
   const uniqueTerms = [...new Set(expandedTerms)];
-  
+
   return {
-    expandedQuery: uniqueTerms.join(' '),
-    synonymsUsed
+    expandedQuery: uniqueTerms.join(" "),
+    synonymsUsed,
   };
 }
 
@@ -1083,19 +1161,19 @@ function expandQueryWithSynonyms(
 
 function generateSuggestions(
   query: string,
-  entities: EnrichedEntity[]
+  entities: EnrichedEntity[],
 ): string[] {
   const suggestions: string[] = [];
 
   // Category-specific suggestions
-  const categoryEntity = entities.find(e => e.type === 'category');
+  const categoryEntity = entities.find((e) => e.type === "category");
   if (categoryEntity) {
     suggestions.push(`${categoryEntity.value} cele mai populare`);
     suggestions.push(`${categoryEntity.value} promoții`);
   }
 
   // Brand suggestions if product mentioned
-  const productEntity = entities.find(e => e.type === 'product');
+  const productEntity = entities.find((e) => e.type === "product");
   if (productEntity) {
     suggestions.push(`alternative la ${productEntity.value}`);
     suggestions.push(`${productEntity.value} review`);
@@ -1113,22 +1191,23 @@ export default searchQueryUnderstandWorker;
 
 ### 4.1 Specificații Tehnice
 
-| Atribut | Valoare |
-|---------|---------|
-| **Queue Name** | `search:rerank:cross-encoder` |
-| **Categoria** | B - Hybrid Search |
-| **Index** | #8 |
-| **Rate Limit** | Fără (CPU/GPU-bound) |
-| **Concurrency** | 20 |
-| **Timeout** | 30s |
-| **Retries** | 1 |
-| **Backoff** | Immediate |
-| **Critical** | Nu |
-| **Priority** | Normal (50) |
+| Atribut         | Valoare                       |
+| --------------- | ----------------------------- |
+| **Queue Name**  | `search:rerank:cross-encoder` |
+| **Categoria**   | B - Hybrid Search             |
+| **Index**       | #8                            |
+| **Rate Limit**  | Fără (CPU/GPU-bound)          |
+| **Concurrency** | 20                            |
+| **Timeout**     | 30s                           |
+| **Retries**     | 1                             |
+| **Backoff**     | Immediate                     |
+| **Critical**    | Nu                            |
+| **Priority**    | Normal (50)                   |
 
 ### 4.2 Responsabilitate
 
 Re-ordonează rezultatele cu Cross-Encoder:
+
 - Primește candidații de la hybrid search
 - Calculează scor cross-encoder pentru (query, document)
 - Re-ordonează pentru precizie maximă
@@ -1139,17 +1218,19 @@ Re-ordonează rezultatele cu Cross-Encoder:
 ```typescript
 // packages/workers/src/etapa3/types/rerank.types.ts
 
-import { z } from 'zod';
-import { SearchResultItemSchema } from './hybrid-search.types';
+import { z } from "zod";
+import { SearchResultItemSchema } from "./hybrid-search.types";
 
 export const RerankJobDataSchema = z.object({
   tenantId: z.string().uuid(),
   query: z.string(),
   candidates: z.array(SearchResultItemSchema),
-  model: z.enum(['cross-encoder/ms-marco-MiniLM-L-6-v2', 'BAAI/bge-reranker-base']).default('cross-encoder/ms-marco-MiniLM-L-6-v2'),
+  model: z
+    .enum(["cross-encoder/ms-marco-MiniLM-L-6-v2", "BAAI/bge-reranker-base"])
+    .default("cross-encoder/ms-marco-MiniLM-L-6-v2"),
   topK: z.number().min(1).max(50).default(10),
   scoreThreshold: z.number().min(0).max(1).default(0.3),
-  correlationId: z.string().optional()
+  correlationId: z.string().optional(),
 });
 
 export type RerankJobData = z.infer<typeof RerankJobDataSchema>;
@@ -1157,14 +1238,16 @@ export type RerankJobData = z.infer<typeof RerankJobDataSchema>;
 export const RerankResultSchema = z.object({
   success: z.boolean(),
   query: z.string(),
-  results: z.array(SearchResultItemSchema.extend({
-    crossEncoderScore: z.number()
-  })),
+  results: z.array(
+    SearchResultItemSchema.extend({
+      crossEncoderScore: z.number(),
+    }),
+  ),
   totalCandidates: z.number(),
   filteredCount: z.number(),
   rerankLatency_ms: z.number(),
   modelUsed: z.string(),
-  error: z.string().optional()
+  error: z.string().optional(),
 });
 
 export type RerankResult = z.infer<typeof RerankResultSchema>;
@@ -1175,18 +1258,18 @@ export type RerankResult = z.infer<typeof RerankResultSchema>;
 ```typescript
 // packages/workers/src/etapa3/workers/search-rerank-cross-encoder.worker.ts
 
-import { Worker, Job } from 'bullmq';
-import { 
-  RerankJobData, 
+import { Worker, Job } from "bullmq";
+import {
+  RerankJobData,
   RerankJobDataSchema,
-  RerankResult 
-} from '../types/rerank.types';
-import { redisConnection } from '@cerniq/shared/redis';
-import { logger } from '@cerniq/shared/logger';
-import { metrics } from '@cerniq/shared/metrics';
-import { pipeline, env } from '@xenova/transformers';
+  RerankResult,
+} from "../types/rerank.types";
+import { redisConnection } from "@cerniq/shared/redis";
+import { logger } from "@cerniq/shared/logger";
+import { metrics } from "@cerniq/shared/metrics";
+import { pipeline, env } from "@xenova/transformers";
 
-const QUEUE_NAME = 'search:rerank:cross-encoder';
+const QUEUE_NAME = "search:rerank:cross-encoder";
 
 // Disable local model check (use remote)
 env.allowLocalModels = false;
@@ -1196,29 +1279,34 @@ let rerankPipeline: any = null;
 
 async function getRerankPipeline(model: string) {
   if (!rerankPipeline) {
-    logger.info('Loading cross-encoder model', { model });
-    rerankPipeline = await pipeline('text-classification', model, {
-      quantized: true // Use quantized for speed
+    logger.info("Loading cross-encoder model", { model });
+    rerankPipeline = await pipeline("text-classification", model, {
+      quantized: true, // Use quantized for speed
     });
   }
   return rerankPipeline;
 }
 
-export const searchRerankCrossEncoderWorker = new Worker<RerankJobData, RerankResult>(
+export const searchRerankCrossEncoderWorker = new Worker<
+  RerankJobData,
+  RerankResult
+>(
   QUEUE_NAME,
   async (job: Job<RerankJobData>): Promise<RerankResult> => {
     const startTime = Date.now();
-    const timer = metrics.histogram('worker_duration_ms', { queue: QUEUE_NAME });
-    
+    const timer = metrics.histogram("worker_duration_ms", {
+      queue: QUEUE_NAME,
+    });
+
     try {
       // 1. Validare input
       const data = RerankJobDataSchema.parse(job.data);
-      
-      logger.info('Reranking started', {
+
+      logger.info("Reranking started", {
         jobId: job.id,
         query: data.query,
         candidatesCount: data.candidates.length,
-        correlationId: data.correlationId
+        correlationId: data.correlationId,
       });
 
       if (data.candidates.length === 0) {
@@ -1229,7 +1317,7 @@ export const searchRerankCrossEncoderWorker = new Worker<RerankJobData, RerankRe
           totalCandidates: 0,
           filteredCount: 0,
           rerankLatency_ms: Date.now() - startTime,
-          modelUsed: data.model
+          modelUsed: data.model,
         };
       }
 
@@ -1237,27 +1325,27 @@ export const searchRerankCrossEncoderWorker = new Worker<RerankJobData, RerankRe
       const reranker = await getRerankPipeline(data.model);
 
       // 3. Prepare query-document pairs
-      const pairs = data.candidates.map(candidate => ({
+      const pairs = data.candidates.map((candidate) => ({
         text: data.query,
-        text_pair: `${candidate.name}. ${candidate.description || ''}`
+        text_pair: `${candidate.name}. ${candidate.description || ""}`,
       }));
 
       // 4. Run cross-encoder
       const rerankStart = Date.now();
       const scores = await reranker(pairs, {
-        batch_size: 32
+        batch_size: 32,
       });
       const rerankLatency = Date.now() - rerankStart;
 
       // 5. Combine scores with candidates
       const scoredCandidates = data.candidates.map((candidate, idx) => ({
         ...candidate,
-        crossEncoderScore: scores[idx]?.score ?? 0
+        crossEncoderScore: scores[idx]?.score ?? 0,
       }));
 
       // 6. Filter by threshold and sort
       const filteredResults = scoredCandidates
-        .filter(c => c.crossEncoderScore >= data.scoreThreshold)
+        .filter((c) => c.crossEncoderScore >= data.scoreThreshold)
         .sort((a, b) => b.crossEncoderScore - a.crossEncoderScore)
         .slice(0, data.topK);
 
@@ -1268,54 +1356,54 @@ export const searchRerankCrossEncoderWorker = new Worker<RerankJobData, RerankRe
         totalCandidates: data.candidates.length,
         filteredCount: data.candidates.length - filteredResults.length,
         rerankLatency_ms: rerankLatency,
-        modelUsed: data.model
+        modelUsed: data.model,
       };
 
-      metrics.counter('rerank_requests_total').inc();
-      metrics.histogram('rerank_latency_ms').observe(rerankLatency);
-      metrics.histogram('rerank_results_count').observe(filteredResults.length);
+      metrics.counter("rerank_requests_total").inc();
+      metrics.histogram("rerank_latency_ms").observe(rerankLatency);
+      metrics.histogram("rerank_results_count").observe(filteredResults.length);
       timer.observe(Date.now() - startTime);
 
-      logger.info('Reranking completed', {
+      logger.info("Reranking completed", {
         jobId: job.id,
         resultsCount: filteredResults.length,
         filtered: data.candidates.length - filteredResults.length,
-        latency_ms: rerankLatency
+        latency_ms: rerankLatency,
       });
 
       return result;
-
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      
-      logger.error('Reranking failed', {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+
+      logger.error("Reranking failed", {
         jobId: job.id,
         query: job.data.query,
-        error: errorMessage
+        error: errorMessage,
       });
 
-      metrics.counter('rerank_errors_total').inc();
+      metrics.counter("rerank_errors_total").inc();
 
       // Return candidates without reranking as fallback
       return {
         success: false,
         query: job.data.query,
-        results: job.data.candidates.slice(0, job.data.topK).map(c => ({
+        results: job.data.candidates.slice(0, job.data.topK).map((c) => ({
           ...c,
-          crossEncoderScore: c.rrfScore
+          crossEncoderScore: c.rrfScore,
         })),
         totalCandidates: job.data.candidates.length,
         filteredCount: 0,
         rerankLatency_ms: Date.now() - startTime,
         modelUsed: job.data.model,
-        error: errorMessage
+        error: errorMessage,
       };
     }
   },
   {
     connection: redisConnection,
-    concurrency: 20
-  }
+    concurrency: 20,
+  },
 );
 
 export default searchRerankCrossEncoderWorker;
@@ -1332,6 +1420,7 @@ RRF(d) = Σ (weight_i / (k + rank_i(d)))
 ```
 
 Unde:
+
 - `d` = documentul
 - `k` = constantă de smoothing (default: 60)
 - `rank_i(d)` = poziția documentului în rezultatele retriever-ului i
@@ -1425,7 +1514,7 @@ BEGIN
 
   RETURN QUERY
   WITH vector_results AS (
-    SELECT 
+    SELECT
       p.id,
       1 - (e.embedding <=> p_query_embedding) as score,
       ROW_NUMBER() OVER (ORDER BY e.embedding <=> p_query_embedding) as rank
@@ -1437,7 +1526,7 @@ BEGIN
     LIMIT p_limit * 3
   ),
   bm25_results AS (
-    SELECT 
+    SELECT
       p.id,
       ts_rank_cd(p.search_vector, v_tsquery) as score,
       ROW_NUMBER() OVER (ORDER BY ts_rank_cd(p.search_vector, v_tsquery) DESC) as rank
@@ -1449,7 +1538,7 @@ BEGIN
     LIMIT p_limit * 3
   ),
   combined AS (
-    SELECT 
+    SELECT
       COALESCE(v.id, b.id) as id,
       COALESCE(v.score, 0) as vector_score,
       COALESCE(b.score, 0) as bm25_score,
@@ -1461,7 +1550,7 @@ BEGIN
     FROM vector_results v
     FULL OUTER JOIN bm25_results b ON v.id = b.id
   )
-  SELECT 
+  SELECT
     p.id,
     p.sku,
     p.name,
@@ -1550,47 +1639,47 @@ $$;
 ```typescript
 // packages/workers/src/etapa3/queues/search-queues.ts
 
-import { Queue } from 'bullmq';
-import { redisConnection } from '@cerniq/shared/redis';
+import { Queue } from "bullmq";
+import { redisConnection } from "@cerniq/shared/redis";
 
-export const hybridSearchQueue = new Queue('search:hybrid:execute', {
+export const hybridSearchQueue = new Queue("search:hybrid:execute", {
   connection: redisConnection,
   defaultJobOptions: {
     attempts: 1,
     timeout: 10000,
     removeOnComplete: 500,
-    removeOnFail: 1000
-  }
+    removeOnFail: 1000,
+  },
 });
 
-export const queryUnderstandQueue = new Queue('search:query:understand', {
+export const queryUnderstandQueue = new Queue("search:query:understand", {
   connection: redisConnection,
   defaultJobOptions: {
     attempts: 2,
     backoff: {
-      type: 'exponential',
-      delay: 1000
+      type: "exponential",
+      delay: 1000,
     },
     timeout: 15000,
     removeOnComplete: 500,
-    removeOnFail: 1000
-  }
+    removeOnFail: 1000,
+  },
 });
 
-export const rerankQueue = new Queue('search:rerank:cross-encoder', {
+export const rerankQueue = new Queue("search:rerank:cross-encoder", {
   connection: redisConnection,
   defaultJobOptions: {
     attempts: 1,
     timeout: 30000,
     removeOnComplete: 500,
-    removeOnFail: 1000
-  }
+    removeOnFail: 1000,
+  },
 });
 
 export const searchQueues = {
   hybridSearchQueue,
   queryUnderstandQueue,
-  rerankQueue
+  rerankQueue,
 };
 ```
 
@@ -1603,48 +1692,48 @@ export const searchQueues = {
 ```typescript
 // packages/workers/src/etapa3/metrics/search-metrics.ts
 
-import { Counter, Histogram, Gauge } from 'prom-client';
+import { Counter, Histogram, Gauge } from "prom-client";
 
 // Search Metrics
 export const searchRequestsTotal = new Counter({
-  name: 'search_requests_total',
-  help: 'Total search requests'
+  name: "search_requests_total",
+  help: "Total search requests",
 });
 
 export const searchCacheHitsTotal = new Counter({
-  name: 'search_cache_hits_total',
-  help: 'Total search cache hits'
+  name: "search_cache_hits_total",
+  help: "Total search cache hits",
 });
 
 export const searchLatency = new Histogram({
-  name: 'search_latency_ms',
-  help: 'Search latency in milliseconds',
-  buckets: [10, 25, 50, 100, 200, 500, 1000, 2000]
+  name: "search_latency_ms",
+  help: "Search latency in milliseconds",
+  buckets: [10, 25, 50, 100, 200, 500, 1000, 2000],
 });
 
 export const searchResultsCount = new Histogram({
-  name: 'search_results_count',
-  help: 'Number of search results returned',
-  buckets: [0, 1, 5, 10, 20, 50]
+  name: "search_results_count",
+  help: "Number of search results returned",
+  buckets: [0, 1, 5, 10, 20, 50],
 });
 
 // Query Understanding Metrics
 export const queriesUnderstoodTotal = new Counter({
-  name: 'queries_understood_total',
-  help: 'Total queries analyzed',
-  labelNames: ['intent']
+  name: "queries_understood_total",
+  help: "Total queries analyzed",
+  labelNames: ["intent"],
 });
 
 // Rerank Metrics
 export const rerankRequestsTotal = new Counter({
-  name: 'rerank_requests_total',
-  help: 'Total rerank requests'
+  name: "rerank_requests_total",
+  help: "Total rerank requests",
 });
 
 export const rerankLatency = new Histogram({
-  name: 'rerank_latency_ms',
-  help: 'Rerank latency in milliseconds',
-  buckets: [50, 100, 200, 500, 1000, 2000, 5000]
+  name: "rerank_latency_ms",
+  help: "Rerank latency in milliseconds",
+  buckets: [50, 100, 200, 500, 1000, 2000, 5000],
 });
 ```
 

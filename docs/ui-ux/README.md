@@ -10,11 +10,11 @@
 
 ## DOCUMENTE ÎN ACEST FOLDER
 
-| Document | Conținut | Link |
-| -------- | -------- | ---- |
-| [`frontend-stack.md`](./frontend-stack.md) | Tehnologii și framework-uri frontend | [View](./frontend-stack.md) |
-| [`design-tokens.md`](./design-tokens.md) | Design tokens (culori, spacing, typography) | [View](./design-tokens.md) |
-| [`components-list.md`](./components-list.md) | Lista componentelor UI planificate | [View](./components-list.md) |
+| Document                                     | Conținut                                    | Link                         |
+| -------------------------------------------- | ------------------------------------------- | ---------------------------- |
+| [`frontend-stack.md`](./frontend-stack.md)   | Tehnologii și framework-uri frontend        | [View](./frontend-stack.md)  |
+| [`design-tokens.md`](./design-tokens.md)     | Design tokens (culori, spacing, typography) | [View](./design-tokens.md)   |
+| [`components-list.md`](./components-list.md) | Lista componentelor UI planificate          | [View](./components-list.md) |
 
 ---
 
@@ -22,14 +22,14 @@
 
 ### Framework Stack
 
-| Tehnologie | Versiune | Rol |
-| ---------- | -------- | --- |
-| **React** | 19.2.3 | UI Library |
-| **Refine** | v5 | Admin framework |
-| **TanStack Query** | v5 | Data fetching |
-| **TanStack Router** | v1 | Routing |
-| **Tailwind CSS** | v4.1 | Styling |
-| **shadcn/ui** | Latest | Component library |
+| Tehnologie          | Versiune | Rol               |
+| ------------------- | -------- | ----------------- |
+| **React**           | 19.2.3   | UI Library        |
+| **Refine**          | v5       | Admin framework   |
+| **TanStack Query**  | v5       | Data fetching     |
+| **TanStack Router** | v1       | Routing           |
+| **Tailwind CSS**    | v4.1     | Styling           |
+| **shadcn/ui**       | Latest   | Component library |
 
 ### Design Tokens Preview
 
@@ -52,12 +52,12 @@
 
 ### Key Components
 
-| Categorie | Componente |
-| --------- | ---------- |
-| **Layout** | AppShell, Sidebar, Header |
+| Categorie        | Componente                             |
+| ---------------- | -------------------------------------- |
+| **Layout**       | AppShell, Sidebar, Header              |
 | **Data Display** | DataTable, CompanyCard, LeadScoreBadge |
-| **Forms** | ImportUploader, FilterPanel, SearchBox |
-| **Feedback** | Toast, Modal, LoadingSpinner |
+| **Forms**        | ImportUploader, FilterPanel, SearchBox |
+| **Feedback**     | Toast, Modal, LoadingSpinner           |
 
 ---
 
@@ -65,13 +65,13 @@
 
 ### Referințe din alte documente
 
-| Document | Secțiune |
-| -------- | -------- |
-| [Master Specification](../specifications/master-specification.md) | §2.3 Frontend Architecture |
-| [Architecture](../architecture/architecture.md) | Web App Component |
-| [Getting Started](../developer-guide/getting-started.md) | Frontend Development |
-| [ADR-0012](../adr/ADR%20Etapa%200/ADR-0012-React-19-cu-Refine-v5.md) | React 19 Decision |
-| [ADR-0013](../adr/ADR%20Etapa%200/ADR-0013-Tailwind-CSS-v4-cu-Oxide-Engine.md) | Tailwind Decision |
+| Document                                                                       | Secțiune                   |
+| ------------------------------------------------------------------------------ | -------------------------- |
+| [Master Specification](../specifications/master-specification.md)              | §2.3 Frontend Architecture |
+| [Architecture](../architecture/architecture.md)                                | Web App Component          |
+| [Getting Started](../developer-guide/getting-started.md)                       | Frontend Development       |
+| [ADR-0012](../adr/ADR%20Etapa%200/ADR-0012-React-19-cu-Refine-v5.md)           | React 19 Decision          |
+| [ADR-0013](../adr/ADR%20Etapa%200/ADR-0013-Tailwind-CSS-v4-cu-Oxide-Engine.md) | Tailwind Decision          |
 
 ### Locația Codului
 

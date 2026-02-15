@@ -67,6 +67,7 @@ rg -n "error|exception|fatal|timeout|ECONNREFUSED|403|429" /tmp/cerniq-logs-1h.t
 ```
 
 2. Izolare root cause:
+
 - OpenBao agent/policy/route (erori 403, lipsa secrets)
 - PgBouncer/DB (erori DB, timeouts)
 - Redis shared (timeouts / WRONGPASS / NOPERM)
@@ -84,4 +85,3 @@ rg -n "error|exception|fatal|timeout|ECONNREFUSED|403|429" /tmp/cerniq-logs-1h.t
 
 - RCA scurt (ce s-a intamplat, ce s-a facut, ce prevenim)
 - Actiune preventiva (timeout/backoff/limits/alerts)
-

@@ -1,5 +1,7 @@
 # CERNIQ.APP — ETAPA 5: API ENDPOINTS
+
 ## Complete REST API Specification
+
 ### Versiunea 1.0 | 19 Ianuarie 2026
 
 ---
@@ -11,6 +13,7 @@
 ## 1. Nurturing State API
 
 ### GET /api/v1/nurturing/clients
+
 ```typescript
 // Query params
 interface ClientsQuery {
@@ -21,8 +24,8 @@ interface ClientsQuery {
   minNps?: number;
   maxNps?: number;
   isAdvocate?: boolean;
-  sortBy?: 'churnRiskScore' | 'lastOrderAt' | 'npsScore' | 'totalRevenue';
-  sortOrder?: 'asc' | 'desc';
+  sortBy?: "churnRiskScore" | "lastOrderAt" | "npsScore" | "totalRevenue";
+  sortOrder?: "asc" | "desc";
 }
 
 // Response
@@ -39,6 +42,7 @@ interface ClientsResponse {
 ```
 
 ### GET /api/v1/nurturing/clients/:clientId
+
 ```typescript
 interface ClientDetailResponse {
   nurturingState: NurturingState & {
@@ -54,6 +58,7 @@ interface ClientDetailResponse {
 ```
 
 ### PATCH /api/v1/nurturing/clients/:clientId/state
+
 ```typescript
 interface UpdateStateRequest {
   newState: NurturingState;
@@ -66,6 +71,7 @@ interface UpdateStateRequest {
 ## 2. Churn API
 
 ### GET /api/v1/nurturing/churn/signals
+
 ```typescript
 interface ChurnSignalsQuery {
   clientId?: string;
@@ -76,6 +82,7 @@ interface ChurnSignalsQuery {
 ```
 
 ### GET /api/v1/nurturing/churn/at-risk
+
 ```typescript
 interface AtRiskResponse {
   clients: Array<{
@@ -96,18 +103,20 @@ interface AtRiskResponse {
 ```
 
 ### POST /api/v1/nurturing/churn/signals/:signalId/resolve
+
 ```typescript
 interface ResolveSignalRequest {
-  resolutionType: 'NATURAL' | 'INTERVENTION' | 'FALSE_POSITIVE';
+  resolutionType: "NATURAL" | "INTERVENTION" | "FALSE_POSITIVE";
   notes: string;
 }
 ```
 
 ### POST /api/v1/nurturing/churn/intervention
+
 ```typescript
 interface CreateInterventionRequest {
   clientId: string;
-  interventionType: 'CALL' | 'EMAIL' | 'VISIT' | 'OFFER';
+  interventionType: "CALL" | "EMAIL" | "VISIT" | "OFFER";
   notes: string;
   scheduledAt?: string;
   assignedTo?: string;
@@ -119,6 +128,7 @@ interface CreateInterventionRequest {
 ## 3. Referral API
 
 ### GET /api/v1/nurturing/referrals
+
 ```typescript
 interface ReferralsQuery {
   referrerId?: string;
@@ -129,6 +139,7 @@ interface ReferralsQuery {
 ```
 
 ### POST /api/v1/nurturing/referrals
+
 ```typescript
 interface CreateReferralRequest {
   referrerClientId: string;
@@ -142,17 +153,19 @@ interface CreateReferralRequest {
 ```
 
 ### POST /api/v1/nurturing/referrals/:referralId/consent-request
+
 ```typescript
 interface ConsentRequestRequest {
-  channel: 'WHATSAPP' | 'EMAIL';
+  channel: "WHATSAPP" | "EMAIL";
   customMessage?: string;
 }
 ```
 
 ### POST /api/v1/nurturing/referrals/:referralId/consent-response
+
 ```typescript
 interface ConsentResponseRequest {
-  response: 'APPROVED' | 'REJECTED' | 'LATER';
+  response: "APPROVED" | "REJECTED" | "LATER";
   contactDetails?: {
     phone?: string;
     email?: string;
@@ -162,9 +175,10 @@ interface ConsentResponseRequest {
 ```
 
 ### POST /api/v1/nurturing/referrals/:referralId/outreach
+
 ```typescript
 interface OutreachRequest {
-  channel: 'WHATSAPP' | 'EMAIL' | 'PHONE';
+  channel: "WHATSAPP" | "EMAIL" | "PHONE";
   notes?: string;
 }
 ```
@@ -174,6 +188,7 @@ interface OutreachRequest {
 ## 4. Clusters API
 
 ### GET /api/v1/nurturing/clusters
+
 ```typescript
 interface ClustersQuery {
   type?: ClusterType[];
@@ -184,11 +199,12 @@ interface ClustersQuery {
 
 interface ClustersResponse {
   clusters: Cluster[];
-  geoJson?: GeoJSON.FeatureCollection;  // For map display
+  geoJson?: GeoJSON.FeatureCollection; // For map display
 }
 ```
 
 ### GET /api/v1/nurturing/clusters/:clusterId
+
 ```typescript
 interface ClusterDetailResponse {
   cluster: Cluster & {
@@ -200,10 +216,11 @@ interface ClusterDetailResponse {
 ```
 
 ### POST /api/v1/nurturing/clusters/detect
+
 ```typescript
 // Trigger community detection
 interface DetectClustersRequest {
-  algorithm: 'LEIDEN' | 'LOUVAIN';
+  algorithm: "LEIDEN" | "LOUVAIN";
   minCommunitySize?: number;
   resolution?: number;
 }
@@ -214,15 +231,17 @@ interface DetectClustersRequest {
 ## 5. Associations API
 
 ### GET /api/v1/nurturing/associations
+
 ```typescript
 interface AssociationsQuery {
-  type?: 'OUAI' | 'COOPERATIVE' | 'PRODUCER_GROUP'[];
+  type?: "OUAI" | "COOPERATIVE" | "PRODUCER_GROUP"[];
   county?: string;
   search?: string;
 }
 ```
 
 ### GET /api/v1/nurturing/associations/:associationId
+
 ```typescript
 interface AssociationDetailResponse {
   association: Association & {
@@ -233,10 +252,11 @@ interface AssociationDetailResponse {
 ```
 
 ### POST /api/v1/nurturing/associations/sync
+
 ```typescript
 // Trigger MADR data sync
 interface SyncRequest {
-  source: 'OUAI_REGISTRY' | 'COOPERATIVE_REGISTRY';
+  source: "OUAI_REGISTRY" | "COOPERATIVE_REGISTRY";
   year?: number;
 }
 ```
@@ -246,14 +266,16 @@ interface SyncRequest {
 ## 6. KOL API
 
 ### GET /api/v1/nurturing/kol
+
 ```typescript
 interface KOLQuery {
-  tier?: 'ELITE' | 'ESTABLISHED' | 'EMERGING'[];
+  tier?: "ELITE" | "ESTABLISHED" | "EMERGING"[];
   minScore?: number;
 }
 ```
 
 ### GET /api/v1/nurturing/kol/:clientId
+
 ```typescript
 interface KOLDetailResponse {
   profile: KOLProfile & {
@@ -266,6 +288,7 @@ interface KOLDetailResponse {
 ```
 
 ### POST /api/v1/nurturing/kol/identify
+
 ```typescript
 // Trigger KOL identification
 interface IdentifyKOLRequest {
@@ -278,18 +301,20 @@ interface IdentifyKOLRequest {
 ## 7. Win-Back API
 
 ### GET /api/v1/nurturing/winback/campaigns
+
 ```typescript
 interface WinBackQuery {
-  status?: 'PENDING' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED'[];
+  status?: "PENDING" | "ACTIVE" | "COMPLETED" | "CANCELLED"[];
   clientId?: string;
 }
 ```
 
 ### POST /api/v1/nurturing/winback/campaigns
+
 ```typescript
 interface CreateWinBackRequest {
   clientId: string;
-  campaignType: 'DISCOUNT' | 'PERSONAL_CALL' | 'PRODUCT_UPDATE';
+  campaignType: "DISCOUNT" | "PERSONAL_CALL" | "PRODUCT_UPDATE";
   offerType?: string;
   offerValue?: number;
   customMessage?: string;
@@ -297,6 +322,7 @@ interface CreateWinBackRequest {
 ```
 
 ### POST /api/v1/nurturing/winback/campaigns/:campaignId/execute-step
+
 ```typescript
 interface ExecuteStepRequest {
   stepIndex: number;
@@ -309,6 +335,7 @@ interface ExecuteStepRequest {
 ## 8. Geospatial API
 
 ### GET /api/v1/nurturing/geo/proximity
+
 ```typescript
 interface ProximityQuery {
   anchorClientId: string;
@@ -329,6 +356,7 @@ interface ProximityResponse {
 ```
 
 ### GET /api/v1/nurturing/geo/territories
+
 ```typescript
 interface TerritoriesResponse {
   territories: Array<{
@@ -357,12 +385,12 @@ interface TerritoriesResponse {
 ```typescript
 // Accesare task-uri E5 prin endpoint-ul unificat
 interface HITLQueueQuery {
-  pipelineStage?: ('E1' | 'E2' | 'E3' | 'E4' | 'E5')[];  // Filtru pentru E5
-  approvalType?: string[];     // e.g., ['churn_intervention', 'nps_followup']
-  priority?: ('critical' | 'high' | 'normal' | 'low')[];  // lowercase
-  status?: ('pending' | 'assigned' | 'in_review')[];
-  assignedTo?: string;         // UUID user.id
-  slaStatus?: 'ok' | 'warning' | 'breached';
+  pipelineStage?: ("E1" | "E2" | "E3" | "E4" | "E5")[]; // Filtru pentru E5
+  approvalType?: string[]; // e.g., ['churn_intervention', 'nps_followup']
+  priority?: ("critical" | "high" | "normal" | "low")[]; // lowercase
+  status?: ("pending" | "assigned" | "in_review")[];
+  assignedTo?: string; // UUID user.id
+  slaStatus?: "ok" | "warning" | "breached";
 }
 
 // Exemplu: GET /api/v1/hitl/queue?pipelineStage=E5&priority=critical,high
@@ -372,13 +400,13 @@ interface HITLQueueQuery {
 
 ```typescript
 interface ResolveApprovalTaskRequest {
-  decision: 'approved' | 'rejected';    // lowercase, conform schema canonică
-  decision_reason?: string;              // fostul 'notes'
+  decision: "approved" | "rejected"; // lowercase, conform schema canonică
+  decision_reason?: string; // fostul 'notes'
   // Extensii pentru E5 pot fi incluse în metadata:
   metadata_updates?: {
     action_taken?: string;
     followup_scheduled?: boolean;
-    followup_at?: string;              // ISO timestamp
+    followup_at?: string; // ISO timestamp
   };
 }
 
@@ -386,7 +414,7 @@ interface ResolveApprovalTaskRequest {
 interface ResolveApprovalTaskResponse {
   task: ApprovalTask;
   executedActions: string[];
-  resumedJobId?: string;               // BullMQ job resumed dacă exista
+  resumedJobId?: string; // BullMQ job resumed dacă exista
 }
 ```
 
@@ -394,8 +422,8 @@ interface ResolveApprovalTaskResponse {
 
 ```typescript
 interface ReassignRequest {
-  assignToUserId?: string;    // UUID
-  assignToRole?: string;      // e.g., 'sales_manager'
+  assignToUserId?: string; // UUID
+  assignToRole?: string; // e.g., 'sales_manager'
   reason: string;
 }
 ```
@@ -417,6 +445,7 @@ interface ReassignRequest {
 ## 10. Analytics API
 
 ### GET /api/v1/nurturing/analytics/overview
+
 ```typescript
 interface OverviewResponse {
   stateDistribution: Record<NurturingState, number>;

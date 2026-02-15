@@ -134,91 +134,91 @@ src/
 export const colors = {
   // Primary - Blue
   primary: {
-    50: '#eff6ff',
-    100: '#dbeafe',
-    200: '#bfdbfe',
-    300: '#93c5fd',
-    400: '#60a5fa',
-    500: '#3b82f6',
-    600: '#2563eb',
-    700: '#1d4ed8',
-    800: '#1e40af',
-    900: '#1e3a8a',
+    50: "#eff6ff",
+    100: "#dbeafe",
+    200: "#bfdbfe",
+    300: "#93c5fd",
+    400: "#60a5fa",
+    500: "#3b82f6",
+    600: "#2563eb",
+    700: "#1d4ed8",
+    800: "#1e40af",
+    900: "#1e3a8a",
   },
-  
+
   // Secondary - Slate
   secondary: {
-    50: '#f8fafc',
-    100: '#f1f5f9',
-    200: '#e2e8f0',
-    300: '#cbd5e1',
-    400: '#94a3b8',
-    500: '#64748b',
-    600: '#475569',
-    700: '#334155',
-    800: '#1e293b',
-    900: '#0f172a',
+    50: "#f8fafc",
+    100: "#f1f5f9",
+    200: "#e2e8f0",
+    300: "#cbd5e1",
+    400: "#94a3b8",
+    500: "#64748b",
+    600: "#475569",
+    700: "#334155",
+    800: "#1e293b",
+    900: "#0f172a",
   },
-  
+
   // Semantic Colors
   success: {
-    light: '#dcfce7',
-    main: '#22c55e',
-    dark: '#15803d',
+    light: "#dcfce7",
+    main: "#22c55e",
+    dark: "#15803d",
   },
   warning: {
-    light: '#fef3c7',
-    main: '#f59e0b',
-    dark: '#b45309',
+    light: "#fef3c7",
+    main: "#f59e0b",
+    dark: "#b45309",
   },
   error: {
-    light: '#fee2e2',
-    main: '#ef4444',
-    dark: '#b91c1c',
+    light: "#fee2e2",
+    main: "#ef4444",
+    dark: "#b91c1c",
   },
   info: {
-    light: '#dbeafe',
-    main: '#3b82f6',
-    dark: '#1d4ed8',
+    light: "#dbeafe",
+    main: "#3b82f6",
+    dark: "#1d4ed8",
   },
-  
+
   // Channel Colors
   channels: {
-    whatsapp: '#25D366',
-    email: '#EA4335',
-    phone: '#4285F4',
-    web: '#9333EA',
+    whatsapp: "#25D366",
+    email: "#EA4335",
+    phone: "#4285F4",
+    web: "#9333EA",
   },
-  
+
   // Status Colors
   status: {
-    draft: '#94a3b8',
-    pending: '#f59e0b',
-    active: '#22c55e',
-    completed: '#3b82f6',
-    cancelled: '#ef4444',
-    escalated: '#a855f7',
+    draft: "#94a3b8",
+    pending: "#f59e0b",
+    active: "#22c55e",
+    completed: "#3b82f6",
+    cancelled: "#ef4444",
+    escalated: "#a855f7",
   },
-  
+
   // Negotiation Stage Colors
   negotiationStages: {
-    initial_contact: '#60a5fa',
-    qualification: '#a78bfa',
-    needs_analysis: '#f472b6',
-    proposal: '#facc15',
-    negotiation: '#fb923c',
-    closing: '#4ade80',
-    won: '#22c55e',
-    lost: '#ef4444',
-    stalled: '#94a3b8',
+    initial_contact: "#60a5fa",
+    qualification: "#a78bfa",
+    needs_analysis: "#f472b6",
+    proposal: "#facc15",
+    negotiation: "#fb923c",
+    closing: "#4ade80",
+    won: "#22c55e",
+    lost: "#ef4444",
+    stalled: "#94a3b8",
   },
-  
+
   // Tier Colors
   tiers: {
-    bronze: '#cd7f32',
-    silver: '#c0c0c0',
-    gold: '#ffd700',
-    platinum: '#e5e4e2',
+    bronze: "#cd7f32",
+    silver: "#c0c0c0",
+    gold: "#ffd700",
+    platinum: "#e5e4e2",
   },
 } as const;
 
@@ -232,26 +232,26 @@ export type ColorKey = keyof typeof colors;
 
 export const typography = {
   fontFamily: {
-    sans: ['Inter', 'system-ui', 'sans-serif'],
-    mono: ['JetBrains Mono', 'monospace'],
+    sans: ["Inter", "system-ui", "sans-serif"],
+    mono: ["JetBrains Mono", "monospace"],
   },
-  
+
   fontSize: {
-    xs: ['0.75rem', { lineHeight: '1rem' }],
-    sm: ['0.875rem', { lineHeight: '1.25rem' }],
-    base: ['1rem', { lineHeight: '1.5rem' }],
-    lg: ['1.125rem', { lineHeight: '1.75rem' }],
-    xl: ['1.25rem', { lineHeight: '1.75rem' }],
-    '2xl': ['1.5rem', { lineHeight: '2rem' }],
-    '3xl': ['1.875rem', { lineHeight: '2.25rem' }],
-    '4xl': ['2.25rem', { lineHeight: '2.5rem' }],
+    xs: ["0.75rem", { lineHeight: "1rem" }],
+    sm: ["0.875rem", { lineHeight: "1.25rem" }],
+    base: ["1rem", { lineHeight: "1.5rem" }],
+    lg: ["1.125rem", { lineHeight: "1.75rem" }],
+    xl: ["1.25rem", { lineHeight: "1.75rem" }],
+    "2xl": ["1.5rem", { lineHeight: "2rem" }],
+    "3xl": ["1.875rem", { lineHeight: "2.25rem" }],
+    "4xl": ["2.25rem", { lineHeight: "2.5rem" }],
   },
-  
+
   fontWeight: {
-    normal: '400',
-    medium: '500',
-    semibold: '600',
-    bold: '700',
+    normal: "400",
+    medium: "500",
+    semibold: "600",
+    bold: "700",
   },
 } as const;
 ```
@@ -262,58 +262,58 @@ export const typography = {
 // src/lib/spacing.ts
 
 export const spacing = {
-  0: '0',
-  px: '1px',
-  0.5: '0.125rem',
-  1: '0.25rem',
-  1.5: '0.375rem',
-  2: '0.5rem',
-  2.5: '0.625rem',
-  3: '0.75rem',
-  3.5: '0.875rem',
-  4: '1rem',
-  5: '1.25rem',
-  6: '1.5rem',
-  7: '1.75rem',
-  8: '2rem',
-  9: '2.25rem',
-  10: '2.5rem',
-  11: '2.75rem',
-  12: '3rem',
-  14: '3.5rem',
-  16: '4rem',
-  20: '5rem',
-  24: '6rem',
-  28: '7rem',
-  32: '8rem',
-  36: '9rem',
-  40: '10rem',
-  44: '11rem',
-  48: '12rem',
-  52: '13rem',
-  56: '14rem',
-  60: '15rem',
-  64: '16rem',
-  72: '18rem',
-  80: '20rem',
-  96: '24rem',
+  0: "0",
+  px: "1px",
+  0.5: "0.125rem",
+  1: "0.25rem",
+  1.5: "0.375rem",
+  2: "0.5rem",
+  2.5: "0.625rem",
+  3: "0.75rem",
+  3.5: "0.875rem",
+  4: "1rem",
+  5: "1.25rem",
+  6: "1.5rem",
+  7: "1.75rem",
+  8: "2rem",
+  9: "2.25rem",
+  10: "2.5rem",
+  11: "2.75rem",
+  12: "3rem",
+  14: "3.5rem",
+  16: "4rem",
+  20: "5rem",
+  24: "6rem",
+  28: "7rem",
+  32: "8rem",
+  36: "9rem",
+  40: "10rem",
+  44: "11rem",
+  48: "12rem",
+  52: "13rem",
+  56: "14rem",
+  60: "15rem",
+  64: "16rem",
+  72: "18rem",
+  80: "20rem",
+  96: "24rem",
 } as const;
 
 export const layout = {
   sidebar: {
-    collapsed: '64px',
-    expanded: '256px',
+    collapsed: "64px",
+    expanded: "256px",
   },
   header: {
-    height: '64px',
+    height: "64px",
   },
   content: {
-    maxWidth: '1536px',
-    padding: '24px',
+    maxWidth: "1536px",
+    padding: "24px",
   },
   card: {
-    padding: '24px',
-    borderRadius: '8px',
+    padding: "24px",
+    borderRadius: "8px",
   },
 } as const;
 ```
@@ -324,34 +324,34 @@ export const layout = {
 // src/lib/effects.ts
 
 export const shadows = {
-  sm: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
-  DEFAULT: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
-  md: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
-  lg: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
-  xl: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
-  '2xl': '0 25px 50px -12px rgb(0 0 0 / 0.25)',
-  inner: 'inset 0 2px 4px 0 rgb(0 0 0 / 0.05)',
-  none: 'none',
+  sm: "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+  DEFAULT: "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)",
+  md: "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
+  lg: "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
+  xl: "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)",
+  "2xl": "0 25px 50px -12px rgb(0 0 0 / 0.25)",
+  inner: "inset 0 2px 4px 0 rgb(0 0 0 / 0.05)",
+  none: "none",
 } as const;
 
 export const borders = {
   radius: {
-    none: '0',
-    sm: '0.125rem',
-    DEFAULT: '0.25rem',
-    md: '0.375rem',
-    lg: '0.5rem',
-    xl: '0.75rem',
-    '2xl': '1rem',
-    '3xl': '1.5rem',
-    full: '9999px',
+    none: "0",
+    sm: "0.125rem",
+    DEFAULT: "0.25rem",
+    md: "0.375rem",
+    lg: "0.5rem",
+    xl: "0.75rem",
+    "2xl": "1rem",
+    "3xl": "1.5rem",
+    full: "9999px",
   },
   width: {
-    DEFAULT: '1px',
-    0: '0px',
-    2: '2px',
-    4: '4px',
-    8: '8px',
+    DEFAULT: "1px",
+    0: "0px",
+    2: "2px",
+    4: "4px",
+    8: "8px",
   },
 } as const;
 ```
@@ -363,40 +363,40 @@ export const borders = {
 
 export const animations = {
   durations: {
-    fast: '150ms',
-    normal: '200ms',
-    slow: '300ms',
-    slower: '500ms',
+    fast: "150ms",
+    normal: "200ms",
+    slow: "300ms",
+    slower: "500ms",
   },
-  
+
   easings: {
-    default: 'cubic-bezier(0.4, 0, 0.2, 1)',
-    in: 'cubic-bezier(0.4, 0, 1, 1)',
-    out: 'cubic-bezier(0, 0, 0.2, 1)',
-    inOut: 'cubic-bezier(0.4, 0, 0.2, 1)',
-    bounce: 'cubic-bezier(0.68, -0.55, 0.265, 1.55)',
+    default: "cubic-bezier(0.4, 0, 0.2, 1)",
+    in: "cubic-bezier(0.4, 0, 1, 1)",
+    out: "cubic-bezier(0, 0, 0.2, 1)",
+    inOut: "cubic-bezier(0.4, 0, 0.2, 1)",
+    bounce: "cubic-bezier(0.68, -0.55, 0.265, 1.55)",
   },
-  
+
   keyframes: {
     fadeIn: {
       from: { opacity: 0 },
       to: { opacity: 1 },
     },
     slideIn: {
-      from: { transform: 'translateY(-10px)', opacity: 0 },
-      to: { transform: 'translateY(0)', opacity: 1 },
+      from: { transform: "translateY(-10px)", opacity: 0 },
+      to: { transform: "translateY(0)", opacity: 1 },
     },
     pulse: {
-      '0%, 100%': { opacity: 1 },
-      '50%': { opacity: 0.5 },
+      "0%, 100%": { opacity: 1 },
+      "50%": { opacity: 0.5 },
     },
     spin: {
-      from: { transform: 'rotate(0deg)' },
-      to: { transform: 'rotate(360deg)' },
+      from: { transform: "rotate(0deg)" },
+      to: { transform: "rotate(360deg)" },
     },
     shimmer: {
-      '0%': { backgroundPosition: '-200% 0' },
-      '100%': { backgroundPosition: '200% 0' },
+      "0%": { backgroundPosition: "-200% 0" },
+      "100%": { backgroundPosition: "200% 0" },
     },
   },
 } as const;
@@ -440,15 +440,15 @@ interface SalesLayoutProps {
 
 export function SalesLayout({ children }: SalesLayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  
+
   const toggleSidebar = () => setSidebarCollapsed(prev => !prev);
-  
+
   return (
     <LayoutContext.Provider value={{ sidebarCollapsed, toggleSidebar, setSidebarCollapsed }}>
       <div className="min-h-screen bg-gray-50">
         {/* Sidebar */}
         <Sidebar collapsed={sidebarCollapsed} />
-        
+
         {/* Main Content */}
         <div
           className={cn(
@@ -458,13 +458,13 @@ export function SalesLayout({ children }: SalesLayoutProps) {
         >
           {/* Header */}
           <Header />
-          
+
           {/* Page Content */}
           <main className="p-6">
             {children || <Outlet />}
           </main>
         </div>
-        
+
         {/* Global Toaster */}
         <Toaster />
       </div>
@@ -505,7 +505,7 @@ export function PageHeader({
       {breadcrumbs && breadcrumbs.length > 0 && (
         <Breadcrumbs items={breadcrumbs} className="mb-4" />
       )}
-      
+
       {/* Title Row */}
       <div className="flex items-start justify-between">
         <div>
@@ -514,7 +514,7 @@ export function PageHeader({
             <p className="mt-1 text-sm text-gray-500">{description}</p>
           )}
         </div>
-        
+
         {/* Actions */}
         {actions && (
           <div className="flex items-center gap-3">
@@ -522,7 +522,7 @@ export function PageHeader({
           </div>
         )}
       </div>
-      
+
       {/* Tabs */}
       {tabs && (
         <div className="mt-4 border-b">
@@ -614,14 +614,14 @@ export function SplitPane({
 }: SplitPaneProps) {
   const [leftWidth, setLeftWidth] = useState(defaultLeftWidth);
   const [isDragging, setIsDragging] = useState(false);
-  
+
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     setIsDragging(true);
-    
+
     const startX = e.clientX;
     const startWidth = leftWidth;
-    
+
     const handleMouseMove = (moveEvent: MouseEvent) => {
       const delta = moveEvent.clientX - startX;
       const newWidth = Math.min(
@@ -630,17 +630,17 @@ export function SplitPane({
       );
       setLeftWidth(newWidth);
     };
-    
+
     const handleMouseUp = () => {
       setIsDragging(false);
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-    
+
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
   }, [leftWidth, minLeftWidth, maxLeftWidth]);
-  
+
   return (
     <div className={cn('flex h-full', className)}>
       {/* Left Panel */}
@@ -650,7 +650,7 @@ export function SplitPane({
       >
         {left}
       </div>
-      
+
       {/* Resizer */}
       <div
         className={cn(
@@ -662,7 +662,7 @@ export function SplitPane({
       >
         <GripVertical className="h-4 w-4 text-gray-400" />
       </div>
-      
+
       {/* Right Panel */}
       <div className="flex-1 overflow-auto">
         {right}
@@ -801,7 +801,7 @@ export function GridItem({
   const spanSmClass = spanSm ? `sm:col-span-${spanSm}` : '';
   const spanMdClass = spanMd ? `md:col-span-${spanMd}` : '';
   const spanLgClass = spanLg ? `lg:col-span-${spanLg}` : '';
-  
+
   return (
     <div className={cn(spanClass, spanSmClass, spanMdClass, spanLgClass, className)}>
       {children}
@@ -921,11 +921,11 @@ interface SidebarProps {
 export function Sidebar({ collapsed }: SidebarProps) {
   const location = useLocation();
   const { toggleSidebar } = useLayout();
-  
+
   const isActive = (href: string) => {
     return location.pathname === href || location.pathname.startsWith(href + '/');
   };
-  
+
   return (
     <aside
       className={cn(
@@ -944,7 +944,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
             <span className="font-semibold text-gray-900">Cerniq Sales</span>
           </Link>
         )}
-        
+
         <Button
           variant="ghost"
           size="icon"
@@ -958,7 +958,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
           )}
         </Button>
       </div>
-      
+
       {/* Navigation */}
       <nav className="p-2 space-y-1">
         {navItems.map((item) => (
@@ -982,7 +982,7 @@ interface NavLinkProps {
 
 function NavLink({ item, collapsed, isActive }: NavLinkProps) {
   const Icon = item.icon;
-  
+
   return (
     <Link
       to={item.href}
@@ -995,7 +995,7 @@ function NavLink({ item, collapsed, isActive }: NavLinkProps) {
       )}
     >
       <Icon className="h-5 w-5 flex-shrink-0" />
-      
+
       {!collapsed && (
         <>
           <span className="flex-1">{item.label}</span>
@@ -1039,19 +1039,19 @@ export function Breadcrumbs({
   const allItems = showHome
     ? [{ label: 'Dashboard', href: '/sales/dashboard' }, ...items]
     : items;
-  
+
   return (
     <nav aria-label="Breadcrumb" className={cn('flex items-center', className)}>
       <ol className="flex items-center space-x-2">
         {allItems.map((item, index) => {
           const isLast = index === allItems.length - 1;
-          
+
           return (
             <li key={item.label} className="flex items-center">
               {index > 0 && (
                 <ChevronRight className="h-4 w-4 text-gray-400 mx-2" />
               )}
-              
+
               {item.href && !isLast ? (
                 <Link
                   to={item.href}
@@ -1120,7 +1120,7 @@ export function TabNav({
   onChange,
 }: TabNavProps) {
   const location = useLocation();
-  
+
   const isActive = (tab: TabItem) => {
     if (value !== undefined && tab.value) {
       return value === tab.value;
@@ -1130,13 +1130,13 @@ export function TabNav({
     }
     return false;
   };
-  
+
   const sizeClasses = {
     sm: 'text-xs px-2 py-1',
     md: 'text-sm px-3 py-2',
     lg: 'text-base px-4 py-2.5',
   };
-  
+
   const variantClasses = {
     underline: {
       container: 'border-b border-gray-200',
@@ -1169,15 +1169,15 @@ export function TabNav({
       ),
     },
   };
-  
+
   const styles = variantClasses[variant];
-  
+
   return (
     <nav className={cn('flex', styles.container, className)}>
       {tabs.map((tab) => {
         const active = isActive(tab);
         const Icon = tab.icon;
-        
+
         const content = (
           <>
             {Icon && <Icon className="h-4 w-4 mr-1.5" />}
@@ -1194,7 +1194,7 @@ export function TabNav({
             )}
           </>
         );
-        
+
         if (tab.href) {
           return (
             <Link
@@ -1210,7 +1210,7 @@ export function TabNav({
             </Link>
           );
         }
-        
+
         return (
           <button
             key={tab.value}
@@ -1269,15 +1269,15 @@ export function Pagination({
 }: PaginationProps) {
   const startItem = (page - 1) * pageSize + 1;
   const endItem = Math.min(page * pageSize, totalItems);
-  
+
   const canGoPrev = page > 1;
   const canGoNext = page < totalPages;
-  
+
   // Generate page numbers to show
   const getPageNumbers = () => {
     const pages: (number | 'ellipsis')[] = [];
     const showPages = 5;
-    
+
     if (totalPages <= showPages + 2) {
       // Show all pages
       for (let i = 1; i <= totalPages; i++) {
@@ -1286,32 +1286,32 @@ export function Pagination({
     } else {
       // Always show first page
       pages.push(1);
-      
+
       if (page > 3) {
         pages.push('ellipsis');
       }
-      
+
       // Show pages around current
       const start = Math.max(2, page - 1);
       const end = Math.min(totalPages - 1, page + 1);
-      
+
       for (let i = start; i <= end; i++) {
         pages.push(i);
       }
-      
+
       if (page < totalPages - 2) {
         pages.push('ellipsis');
       }
-      
+
       // Always show last page
       if (totalPages > 1) {
         pages.push(totalPages);
       }
     }
-    
+
     return pages;
   };
-  
+
   return (
     <div className={cn('flex items-center justify-between', className)}>
       {/* Left side - Page size & Total */}
@@ -1337,14 +1337,14 @@ export function Pagination({
             <span className="text-sm text-gray-500">pe pagină</span>
           </div>
         )}
-        
+
         {showTotal && totalItems > 0 && (
           <span className="text-sm text-gray-500">
             {startItem}-{endItem} din {totalItems.toLocaleString('ro-RO')}
           </span>
         )}
       </div>
-      
+
       {/* Right side - Page controls */}
       <div className="flex items-center gap-1">
         {/* First Page */}
@@ -1357,7 +1357,7 @@ export function Pagination({
         >
           <ChevronsLeft className="h-4 w-4" />
         </Button>
-        
+
         {/* Previous Page */}
         <Button
           variant="ghost"
@@ -1368,7 +1368,7 @@ export function Pagination({
         >
           <ChevronLeft className="h-4 w-4" />
         </Button>
-        
+
         {/* Page Numbers */}
         {getPageNumbers().map((pageNum, index) => (
           pageNum === 'ellipsis' ? (
@@ -1387,7 +1387,7 @@ export function Pagination({
             </Button>
           )
         ))}
-        
+
         {/* Next Page */}
         <Button
           variant="ghost"
@@ -1398,7 +1398,7 @@ export function Pagination({
         >
           <ChevronRight className="h-4 w-4" />
         </Button>
-        
+
         {/* Last Page */}
         <Button
           variant="ghost"
@@ -1527,7 +1527,7 @@ export function DataTable<TData, TValue>({
   // Add selection column if selectable
   const tableColumns = useMemo(() => {
     if (!selectable) return columns;
-    
+
     const selectColumn: ColumnDef<TData, TValue> = {
       id: 'select',
       header: ({ table }) => (
@@ -1552,7 +1552,7 @@ export function DataTable<TData, TValue>({
       enableHiding: false,
       size: 40,
     };
-    
+
     return [selectColumn, ...columns];
   }, [columns, selectable]);
 
@@ -1604,7 +1604,7 @@ export function DataTable<TData, TValue>({
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder={searchPlaceholder}
-              value={searchColumn 
+              value={searchColumn
                 ? (table.getColumn(searchColumn)?.getFilterValue() as string) ?? ''
                 : globalFilter
               }
@@ -1657,7 +1657,7 @@ export function DataTable<TData, TValue>({
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <TableHead 
+                  <TableHead
                     key={header.id}
                     className={cn(
                       compact && "py-2",
@@ -1693,8 +1693,8 @@ export function DataTable<TData, TValue>({
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell 
-                  colSpan={tableColumns.length} 
+                <TableCell
+                  colSpan={tableColumns.length}
                   className="h-24 text-center"
                 >
                   <div className="flex items-center justify-center gap-2">
@@ -1716,7 +1716,7 @@ export function DataTable<TData, TValue>({
                   onClick={() => onRowClick?.(row.original)}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell 
+                    <TableCell
                       key={cell.id}
                       className={cn(compact && "py-2")}
                     >
@@ -2056,16 +2056,16 @@ export function Timeline({
     <div className={cn("relative", className)}>
       {/* Vertical line */}
       <div className="absolute left-1.5 top-2 bottom-2 w-px bg-border" />
-      
+
       {/* Items */}
       <div className="space-y-6">
         {displayItems.map((item, index) => {
-          const timestamp = typeof item.timestamp === 'string' 
-            ? new Date(item.timestamp) 
+          const timestamp = typeof item.timestamp === 'string'
+            ? new Date(item.timestamp)
             : item.timestamp;
-          
+
           return (
-            <div 
+            <div
               key={item.id}
               className={cn(
                 "relative flex gap-4 pl-6",
@@ -2085,7 +2085,7 @@ export function Timeline({
                   </div>
                 )}
               </div>
-              
+
               {/* Content */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-2">
@@ -2093,23 +2093,23 @@ export function Timeline({
                     {item.title}
                   </p>
                   <time className="text-xs text-muted-foreground whitespace-nowrap">
-                    {showRelativeTime 
+                    {showRelativeTime
                       ? formatDistanceToNow(timestamp, { addSuffix: true, locale: ro })
                       : timestamp.toLocaleString('ro-RO')
                     }
                   </time>
                 </div>
-                
+
                 {item.description && (
                   <p className="mt-1 text-sm text-muted-foreground">
                     {item.description}
                   </p>
                 )}
-                
+
                 {item.metadata && Object.keys(item.metadata).length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-2">
                     {Object.entries(item.metadata).map(([key, value]) => (
-                      <span 
+                      <span
                         key={key}
                         className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs"
                       >
@@ -2124,7 +2124,7 @@ export function Timeline({
           );
         })}
       </div>
-      
+
       {/* Show more indicator */}
       {maxItems && items.length > maxItems && (
         <div className="mt-4 text-center">
@@ -2240,7 +2240,7 @@ const statusConfigs: Record<string, {
     variant: 'outline',
     className: 'text-gray-500',
   },
-  
+
   // Negotiation statuses
   negotiation_new: {
     label: 'Nou',
@@ -2272,7 +2272,7 @@ const statusConfigs: Record<string, {
     variant: 'outline',
     className: 'bg-red-100 text-red-800 border-red-200',
   },
-  
+
   // e-Factura statuses
   efactura_not_submitted: {
     label: 'De trimis',
@@ -2304,7 +2304,7 @@ const statusConfigs: Record<string, {
     variant: 'destructive',
     className: 'bg-red-100 text-red-800 border-red-200',
   },
-  
+
   // AI/Agent statuses
   ai_active: {
     label: 'AI Activ',
@@ -2342,7 +2342,7 @@ export function StatusBadge({
   className,
 }: StatusBadgeProps) {
   const config = statusConfigs[status] || statusConfigs.unknown;
-  
+
   const sizeClasses = {
     sm: 'text-[10px] px-1.5 py-0',
     default: 'text-xs px-2 py-0.5',
@@ -2417,7 +2417,7 @@ export function ProgressBar({
   className,
 }: ProgressBarProps) {
   const percentage = Math.min(Math.max((value / max) * 100, 0), 100);
-  
+
   // Auto-detect variant based on percentage
   const autoVariant = (() => {
     if (variant !== 'default') return variant;
@@ -2426,8 +2426,8 @@ export function ProgressBar({
     return 'default';
   })();
 
-  const displayValue = valueFormat 
-    ? valueFormat(value, max) 
+  const displayValue = valueFormat
+    ? valueFormat(value, max)
     : `${value}/${max}`;
 
   return (
@@ -2482,12 +2482,12 @@ export function ProgressBar({
 //   );
 //   background-size: 1rem 1rem;
 // }
-// 
+//
 // @keyframes stripes {
 //   from { background-position: 0 0; }
 //   to { background-position: 1rem 0; }
 // }
-// 
+//
 // .animate-stripes {
 //   animation: stripes 1s linear infinite;
 // }
@@ -2613,7 +2613,7 @@ export function Avatar({
           {initials || <User className="h-1/2 w-1/2 text-muted-foreground" />}
         </div>
       )}
-      
+
       {showStatus && status && (
         <span
           className={cn(
@@ -2754,11 +2754,11 @@ export function EmptyState({
           {icon || <Inbox className="h-full w-full" />}
         </div>
       </div>
-      
+
       <h3 className={cn("font-semibold", sizes.title)}>
         {title}
       </h3>
-      
+
       {description && (
         <p className={cn(
           "mt-2 text-muted-foreground max-w-sm",
@@ -2767,7 +2767,7 @@ export function EmptyState({
           {description}
         </p>
       )}
-      
+
       {(action || secondaryAction) && (
         <div className="mt-6 flex gap-3">
           {action && (
@@ -2793,10 +2793,10 @@ export function EmptyState({
 }
 
 // Preset empty states
-export function NoResultsFound({ 
+export function NoResultsFound({
   searchTerm,
   onClear,
-}: { 
+}: {
   searchTerm?: string;
   onClear?: () => void;
 }) {
@@ -2804,7 +2804,7 @@ export function NoResultsFound({
     <EmptyState
       icon={<Search className="h-full w-full" />}
       title="Niciun rezultat găsit"
-      description={searchTerm 
+      description={searchTerm
         ? `Nu am găsit rezultate pentru "${searchTerm}". Încearcă alți termeni de căutare.`
         : 'Nu există rezultate care să corespundă filtrelor aplicate.'
       }
@@ -2813,10 +2813,10 @@ export function NoResultsFound({
   );
 }
 
-export function NoDataYet({ 
+export function NoDataYet({
   resourceName,
   onAdd,
-}: { 
+}: {
   resourceName: string;
   onAdd?: () => void;
 }) {
@@ -2830,9 +2830,9 @@ export function NoDataYet({
   );
 }
 
-export function LoadingError({ 
+export function LoadingError({
   onRetry,
-}: { 
+}: {
   onRetry?: () => void;
 }) {
   return (
@@ -2901,7 +2901,7 @@ export const FormField = forwardRef<HTMLDivElement, FormFieldProps>(
     horizontal = false,
   }, ref) => {
     return (
-      <div 
+      <div
         ref={ref}
         className={cn(
           "space-y-2",
@@ -2914,8 +2914,8 @@ export const FormField = forwardRef<HTMLDivElement, FormFieldProps>(
             "flex items-center gap-1",
             horizontal && "min-w-[200px] pt-2"
           )}>
-            <Label 
-              htmlFor={id} 
+            <Label
+              htmlFor={id}
               className={cn(error && "text-destructive")}
             >
               {label}
@@ -2933,10 +2933,10 @@ export const FormField = forwardRef<HTMLDivElement, FormFieldProps>(
             )}
           </div>
         )}
-        
+
         <div className={cn("flex-1", horizontal && "space-y-1")}>
           {children}
-          
+
           {(error || helperText) && (
             <div className="mt-1.5">
               {error && (
@@ -2999,10 +2999,10 @@ export function SearchInput({
 }: SearchInputProps) {
   const [internalValue, setInternalValue] = useState(controlledValue || '');
   const inputRef = useRef<HTMLInputElement>(null);
-  
+
   // Use controlled or internal value
   const value = controlledValue !== undefined ? controlledValue : internalValue;
-  
+
   // Debounce the search
   const debouncedValue = useDebounce(value, debounceMs);
 
@@ -3125,9 +3125,9 @@ const presetRanges = [
   { label: 'Ultimele 7 zile', getValue: () => ({ from: subDays(new Date(), 6), to: new Date() }) },
   { label: 'Ultimele 30 zile', getValue: () => ({ from: subDays(new Date(), 29), to: new Date() }) },
   { label: 'Luna aceasta', getValue: () => ({ from: startOfMonth(new Date()), to: new Date() }) },
-  { label: 'Luna trecută', getValue: () => ({ 
-    from: startOfMonth(subMonths(new Date(), 1)), 
-    to: endOfMonth(subMonths(new Date(), 1)) 
+  { label: 'Luna trecută', getValue: () => ({
+    from: startOfMonth(subMonths(new Date(), 1)),
+    to: endOfMonth(subMonths(new Date(), 1))
   })},
   { label: 'Ultimele 3 luni', getValue: () => ({ from: subDays(new Date(), 89), to: new Date() }) },
   { label: 'Ultimele 12 luni', getValue: () => ({ from: subDays(new Date(), 364), to: new Date() }) },
@@ -3291,7 +3291,7 @@ export function SelectMultiple({
   const groupedOptions = useMemo(() => {
     const groups: Record<string, SelectOption[]> = {};
     const ungrouped: SelectOption[] = [];
-    
+
     options.forEach((option) => {
       if (option.group) {
         if (!groups[option.group]) {
@@ -3302,7 +3302,7 @@ export function SelectMultiple({
         ungrouped.push(option);
       }
     });
-    
+
     return { groups, ungrouped };
   }, [options]);
 
@@ -3370,7 +3370,7 @@ export function SelectMultiple({
           <CommandInput placeholder={searchPlaceholder} />
           <CommandList>
             <CommandEmpty>{emptyMessage}</CommandEmpty>
-            
+
             {/* Ungrouped options */}
             {groupedOptions.ungrouped.length > 0 && (
               <CommandGroup>
@@ -3392,7 +3392,7 @@ export function SelectMultiple({
                 ))}
               </CommandGroup>
             )}
-            
+
             {/* Grouped options */}
             {Object.entries(groupedOptions.groups).map(([group, opts]) => (
               <CommandGroup key={group} heading={group}>
@@ -3522,7 +3522,7 @@ export function ConditionBuilder({
           Nu există condiții. Adaugă prima condiție.
         </p>
       )}
-      
+
       {fields.map((field, index) => {
         const selectedField = conditionFields.find(
           (f) => f.value === (field as any).field
@@ -3538,7 +3538,7 @@ export function ConditionBuilder({
                 {logicOperator}
               </span>
             )}
-            
+
             <div className={cn(
               "flex-1 grid gap-2",
               index === 0 ? "grid-cols-[1fr,1fr,1fr,auto]" : "grid-cols-[1fr,1fr,1fr,auto]"
@@ -3717,7 +3717,7 @@ export const PriceInput = forwardRef<HTMLInputElement, PriceInputProps>(
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const input = e.target.value;
       setDisplayValue(input);
-      
+
       const parsed = parseNumber(input);
       if (parsed !== undefined) {
         let constrained = parsed;
@@ -3831,7 +3831,7 @@ export const PercentInput = forwardRef<HTMLInputElement, PercentInputProps>(
             %
           </span>
         </div>
-        
+
         {showSlider && (
           <Slider
             value={[value]}
@@ -3916,7 +3916,7 @@ export function FileUpload({
   const validateFiles = (fileList: FileList | File[]): File[] => {
     const validFiles: File[] = [];
     const errors: string[] = [];
-    
+
     const remainingSlots = maxFiles - files.length;
     const filesToProcess = Array.from(fileList).slice(0, remainingSlots);
 
@@ -3925,7 +3925,7 @@ export function FileUpload({
         errors.push(`${file.name}: Fișier prea mare (max ${formatFileSize(maxSize)})`);
         return;
       }
-      
+
       if (accept) {
         const acceptedTypes = accept.split(',').map((t) => t.trim());
         const isAccepted = acceptedTypes.some((type) => {
@@ -3937,13 +3937,13 @@ export function FileUpload({
           }
           return file.type === type;
         });
-        
+
         if (!isAccepted) {
           errors.push(`${file.name}: Tip de fișier neacceptat`);
           return;
         }
       }
-      
+
       validFiles.push(file);
     });
 
@@ -3981,7 +3981,7 @@ export function FileUpload({
 
     const droppedFiles = e.dataTransfer.files;
     const validFiles = validateFiles(droppedFiles);
-    
+
     if (validFiles.length > 0) {
       onUpload?.(validFiles);
     }
@@ -4030,12 +4030,12 @@ export function FileUpload({
           disabled={disabled}
           className="hidden"
         />
-        
+
         <Upload className={cn(
           "h-10 w-10",
           isDragging ? "text-primary" : "text-muted-foreground"
         )} />
-        
+
         <div className="space-y-1">
           <p className="text-sm font-medium">
             {isDragging ? 'Eliberează pentru a încărca' : 'Trage fișiere aici sau click pentru a selecta'}
@@ -4061,7 +4061,7 @@ export function FileUpload({
         <div className="space-y-2">
           {files.map((file) => {
             const FileIcon = getFileIcon(file.type);
-            
+
             return (
               <div
                 key={file.id}
@@ -4071,7 +4071,7 @@ export function FileUpload({
                 )}
               >
                 <FileIcon className="h-8 w-8 text-muted-foreground shrink-0" />
-                
+
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{file.name}</p>
                   <p className="text-xs text-muted-foreground">
@@ -4080,7 +4080,7 @@ export function FileUpload({
                       <span className="text-destructive ml-2">{file.error}</span>
                     )}
                   </p>
-                  
+
                   {file.status === 'uploading' && (
                     <Progress value={file.progress} className="h-1 mt-2" />
                   )}
@@ -4157,12 +4157,12 @@ export function LoadingSpinner({
       fullScreen && "fixed inset-0 bg-background/80 backdrop-blur-sm z-50",
       className
     )}>
-      <Loader2 
+      <Loader2
         className={cn(
           "animate-spin",
           sizeClasses[size],
           variantClasses[variant]
-        )} 
+        )}
       />
       {label && (
         <span className="text-sm text-muted-foreground">
@@ -4301,7 +4301,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const addToast = useCallback((toast: Omit<Toast, 'id'>) => {
     const id = Math.random().toString(36).slice(2);
     const newToast = { ...toast, id };
-    
+
     setToasts((prev) => [...prev, newToast]);
 
     // Auto-remove after duration
@@ -4318,13 +4318,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={{ toasts, addToast, removeToast }}>
       {children}
-      
+
       {/* Toast container */}
       <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 w-96">
         <AnimatePresence>
           {toasts.map((toast) => {
             const Icon = icons[toast.type];
-            
+
             return (
               <motion.div
                 key={toast.id}
@@ -4337,7 +4337,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 )}
               >
                 <Icon className="h-5 w-5 shrink-0 mt-0.5" />
-                
+
                 <div className="flex-1 min-w-0">
                   <p className="font-medium">{toast.title}</p>
                   {toast.description && (
@@ -4352,7 +4352,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                     </button>
                   )}
                 </div>
-                
+
                 <button
                   onClick={() => removeToast(toast.id)}
                   className="shrink-0 opacity-70 hover:opacity-100 transition-opacity"
@@ -4431,7 +4431,7 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  
+
   const config = variantConfig[variant];
 
   const handleConfirm = async () => {
@@ -4565,7 +4565,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     this.setState({ errorInfo });
     this.props.onError?.(error, errorInfo);
-    
+
     // Log to error tracking service
     console.error('ErrorBoundary caught an error:', error, errorInfo);
   }
@@ -4599,7 +4599,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
               <p className="text-muted-foreground">
                 A apărut o eroare neașteptată. Te rugăm să încerci din nou sau să revii la pagina principală.
               </p>
-              
+
               {this.props.showDetails && this.state.error && (
                 <details className="mt-4">
                   <summary className="text-sm font-medium cursor-pointer">
@@ -4723,7 +4723,7 @@ export function AlertBanner({
       <div className="shrink-0 mt-0.5">
         {icon || styles.icon}
       </div>
-      
+
       <div className="flex-1 min-w-0">
         {title && (
           <h4 className="font-medium mb-1">{title}</h4>
@@ -4731,7 +4731,7 @@ export function AlertBanner({
         <div className="text-sm opacity-90">
           {children}
         </div>
-        
+
         {action && (
           <Button
             variant="link"
@@ -5007,7 +5007,7 @@ export function AreaChartCard({
             />
             <Tooltip content={<CustomTooltip valueFormatter={valueFormatter} />} />
             {showLegend && <Legend />}
-            
+
             {/* Gradients */}
             <defs>
               {series.filter(s => s.gradient !== false).map((s) => (
@@ -5017,7 +5017,7 @@ export function AreaChartCard({
                 </linearGradient>
               ))}
             </defs>
-            
+
             {/* Areas */}
             {series.map((s) => (
               <Area
@@ -5154,7 +5154,7 @@ export function PieChartCard({
             {showLegend && <Legend content={<CustomLegend />} />}
           </PieChart>
         </ResponsiveContainer>
-        
+
         {/* Center label for donut */}
         {innerRadius > 0 && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -5270,7 +5270,7 @@ export function BarChartCard({
             {showGrid && (
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
             )}
-            
+
             {isVertical ? (
               <>
                 <XAxis type="number" tickFormatter={valueFormatter} tick={{ fontSize: 12 }} />
@@ -5282,10 +5282,10 @@ export function BarChartCard({
                 <YAxis tickFormatter={valueFormatter} tick={{ fontSize: 12 }} />
               </>
             )}
-            
+
             <Tooltip content={<CustomTooltip valueFormatter={valueFormatter} />} />
             {showLegend && series.length > 1 && <Legend />}
-            
+
             {series.map((s) => (
               <Bar
                 key={s.key}
@@ -5382,7 +5382,7 @@ export function LineChartCard({
               formatter={(value: number) => valueFormatter ? valueFormatter(value) : value}
             />
             {showLegend && <Legend />}
-            
+
             {referenceLine && (
               <ReferenceLine
                 y={referenceLine.value}
@@ -5391,7 +5391,7 @@ export function LineChartCard({
                 strokeDasharray="5 5"
               />
             )}
-            
+
             {series.map((s) => (
               <Line
                 key={s.key}
@@ -5487,7 +5487,7 @@ export function MetricSparkline({
           </AreaChart>
         </ResponsiveContainer>
       </div>
-      
+
       {showTrendIcon && trend !== undefined && (
         <div className={cn(
           "flex items-center gap-0.5 text-xs font-medium",
@@ -5569,7 +5569,7 @@ export function ChatMessage({
 }: ChatMessageProps) {
   const isUser = role === 'user';
   const isSystem = role === 'system';
-  
+
   const formattedTime = useMemo(() => {
     const date = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
     return formatDistanceToNow(date, { addSuffix: true, locale: ro });
@@ -5627,8 +5627,8 @@ export function ChatMessage({
         {/* Bubble */}
         <div className={cn(
           "rounded-2xl px-4 py-2",
-          isUser 
-            ? "bg-primary text-primary-foreground rounded-tr-sm" 
+          isUser
+            ? "bg-primary text-primary-foreground rounded-tr-sm"
             : "bg-muted rounded-tl-sm"
         )}>
           <p className="text-sm whitespace-pre-wrap">{content}</p>
@@ -5667,8 +5667,8 @@ export function ChatMessage({
 
           {/* Sentiment badge */}
           {sentiment && !isUser && (
-            <Badge 
-              variant="outline" 
+            <Badge
+              variant="outline"
               className={cn("text-xs", sentimentColors[sentiment.label])}
             >
               {sentiment.label === 'positive' && '😊'}
@@ -5737,8 +5737,8 @@ export function SentimentIndicator({
 }: SentimentIndicatorProps) {
   // Derive label from score if not provided
   const label = providedLabel || (
-    score > 0.2 ? 'positive' : 
-    score < -0.2 ? 'negative' : 
+    score > 0.2 ? 'positive' :
+    score < -0.2 ? 'negative' :
     'neutral'
   );
 
@@ -5774,11 +5774,11 @@ export function SentimentIndicator({
             )}>
               {emoji}
             </div>
-            
+
             {showLabel && (
               <span className="text-sm font-medium">{labelText}</span>
             )}
-            
+
             {showScore && (
               <span className="text-sm text-muted-foreground">
                 ({(score * 100).toFixed(0)}%)
@@ -5812,7 +5812,7 @@ export function SentimentTrend({
       {scores.map((score, index) => {
         const height = ((score + 1) / 2) * 100; // Convert -1..1 to 0..100%
         const color = score > 0.2 ? 'bg-green-500' : score < -0.2 ? 'bg-red-500' : 'bg-gray-400';
-        
+
         return (
           <div
             key={index}
@@ -5924,19 +5924,19 @@ export function GuardrailsBadge({
                 </span>
               )}
             </div>
-            
+
             {result.category && (
               <p className="text-sm">
                 <span className="text-muted-foreground">Categorie:</span> {result.category}
               </p>
             )}
-            
+
             {result.ruleName && (
               <p className="text-sm">
                 <span className="text-muted-foreground">Regulă:</span> {result.ruleName}
               </p>
             )}
-            
+
             {result.violations && result.violations.length > 0 && (
               <div className="text-sm">
                 <span className="text-muted-foreground">Încălcări:</span>
@@ -5965,7 +5965,7 @@ import { Badge } from '@/components/ui/badge';
 import { Bot, User, Pause, AlertCircle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export type AIStatus = 
+export type AIStatus =
   | 'active'           // AI handles conversation
   | 'paused'           // AI paused temporarily
   | 'human_takeover'   // Human operator took over
@@ -6050,16 +6050,16 @@ export function AIStatusIndicator({
           <span className={cn("relative inline-flex rounded-full", config.dot, sizes.dot)} />
         </span>
       )}
-      
+
       <Icon className={cn(
         sizes.icon,
         status === 'processing' && "animate-spin"
       )} />
-      
+
       {showLabel && (
         <span>
-          {status === 'human_takeover' && operatorName 
-            ? operatorName 
+          {status === 'human_takeover' && operatorName
+            ? operatorName
             : config.label
           }
         </span>
@@ -6154,9 +6154,9 @@ export function ApprovalCard({
   const priority = priorityConfig[request.priority];
   const type = typeConfig[request.type];
   const TypeIcon = type.icon;
-  
-  const deadline = typeof request.slaDeadline === 'string' 
-    ? new Date(request.slaDeadline) 
+
+  const deadline = typeof request.slaDeadline === 'string'
+    ? new Date(request.slaDeadline)
     : request.slaDeadline;
   const hoursUntilDeadline = differenceInHours(deadline, new Date());
   const isUrgent = hoursUntilDeadline < 2;
@@ -6188,11 +6188,11 @@ export function ApprovalCard({
               <p className="text-sm text-muted-foreground">{type.label}</p>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-2">
             <Badge className={priority.color}>{priority.label}</Badge>
             {isPending && (
-              <Badge 
+              <Badge
                 variant="outline"
                 className={cn(
                   isOverdue && "border-red-500 text-red-600",
@@ -6200,7 +6200,7 @@ export function ApprovalCard({
                 )}
               >
                 <Clock className="h-3 w-3 mr-1" />
-                {isOverdue 
+                {isOverdue
                   ? 'Depășit'
                   : formatDistanceToNow(deadline, { locale: ro })
                 }
@@ -6209,12 +6209,12 @@ export function ApprovalCard({
           </div>
         </div>
       </CardHeader>
-      
+
       <CardContent className="pb-3">
         <p className="text-sm text-muted-foreground mb-3">
           {request.description}
         </p>
-        
+
         {/* Metadata */}
         <div className="grid grid-cols-2 gap-2 text-sm">
           {request.metadata.clientName && (
@@ -6233,7 +6233,7 @@ export function ApprovalCard({
             <div>
               <span className="text-muted-foreground">Solicitat:</span>{' '}
               <span className="font-medium text-primary">
-                {request.type === 'discount' 
+                {request.type === 'discount'
                   ? `${request.metadata.requestedValue}%`
                   : `${request.metadata.requestedValue.toLocaleString('ro-RO')} RON`
                 }
@@ -6255,16 +6255,16 @@ export function ApprovalCard({
 
         {/* Requester */}
         <div className="flex items-center gap-2 mt-3 pt-3 border-t">
-          <Avatar 
-            src={request.requestedBy.avatar} 
+          <Avatar
+            src={request.requestedBy.avatar}
             name={request.requestedBy.name}
             size="xs"
           />
           <span className="text-sm text-muted-foreground">
             Solicitat de {request.requestedBy.name}{' '}
             {formatDistanceToNow(
-              typeof request.requestedAt === 'string' 
-                ? new Date(request.requestedAt) 
+              typeof request.requestedAt === 'string'
+                ? new Date(request.requestedAt)
                 : request.requestedAt,
               { addSuffix: true, locale: ro }
             )}
@@ -6376,7 +6376,7 @@ export function EscalationAlert({
     : escalation.triggeredAt;
 
   return (
-    <Alert 
+    <Alert
       variant={config.variant}
       className={cn("relative", className)}
     >
@@ -6396,7 +6396,7 @@ export function EscalationAlert({
       </AlertTitle>
       <AlertDescription>
         <p className="mb-2">{escalation.reason}</p>
-        
+
         {escalation.context && (
           <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
             "{escalation.context}"
@@ -6539,13 +6539,13 @@ export function TakeoverPanel({
           <AIStatusIndicator status={currentStatus} size="sm" />
         </div>
       </CardHeader>
-      
+
       <CardContent className="space-y-4">
         {/* Takeover/Resume buttons */}
         <div className="flex gap-2">
           {!isHumanMode ? (
-            <Button 
-              className="flex-1" 
+            <Button
+              className="flex-1"
               onClick={handleTakeover}
               disabled={loading}
             >
@@ -6553,8 +6553,8 @@ export function TakeoverPanel({
               Preia manual
             </Button>
           ) : (
-            <Button 
-              className="flex-1" 
+            <Button
+              className="flex-1"
               variant="outline"
               onClick={handleResume}
               disabled={loading}
@@ -6588,8 +6588,8 @@ export function TakeoverPanel({
                     <Bot className="h-3 w-3 mr-1" />
                     Sugestie AI
                   </Badge>
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
                     size="sm"
                     onClick={handleUseSuggestion}
                   >
@@ -6611,7 +6611,7 @@ export function TakeoverPanel({
               className="resize-none"
             />
 
-            <Button 
+            <Button
               className="w-full"
               onClick={handleSend}
               disabled={!message.trim() || loading}
@@ -6624,7 +6624,7 @@ export function TakeoverPanel({
 
         {/* Status info */}
         <div className="text-xs text-muted-foreground text-center">
-          {isHumanMode 
+          {isHumanMode
             ? 'Conversația este în modul manual. AI-ul nu va răspunde automat.'
             : 'AI-ul gestionează această conversație. Poți prelua manual oricând.'
           }
@@ -6655,12 +6655,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
-import { 
-  Download, 
-  Printer, 
-  ZoomIn, 
-  ZoomOut, 
-  ChevronLeft, 
+import {
+  Download,
+  Printer,
+  ZoomIn,
+  ZoomOut,
+  ChevronLeft,
   ChevronRight,
   RotateCw,
   Maximize2,
@@ -6800,15 +6800,15 @@ export function PDFViewer({
           <div className="flex items-center justify-between gap-4">
             {/* Navigation */}
             <div className="flex items-center gap-1">
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 size="icon"
                 onClick={previousPage}
                 disabled={currentPage <= 1}
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              
+
               <div className="flex items-center gap-1">
                 <Input
                   type="number"
@@ -6822,9 +6822,9 @@ export function PDFViewer({
                   / {numPages}
                 </span>
               </div>
-              
-              <Button 
-                variant="ghost" 
+
+              <Button
+                variant="ghost"
                 size="icon"
                 onClick={nextPage}
                 disabled={currentPage >= numPages}
@@ -6838,7 +6838,7 @@ export function PDFViewer({
               <Button variant="ghost" size="icon" onClick={zoomOut}>
                 <ZoomOut className="h-4 w-4" />
               </Button>
-              
+
               <div className="w-24">
                 <Slider
                   value={[scale * 100]}
@@ -6848,11 +6848,11 @@ export function PDFViewer({
                   onValueChange={([v]) => setScale(v / 100)}
                 />
               </div>
-              
+
               <Button variant="ghost" size="icon" onClick={zoomIn}>
                 <ZoomIn className="h-4 w-4" />
               </Button>
-              
+
               <span className="text-sm text-muted-foreground w-12 text-center">
                 {Math.round(scale * 100)}%
               </span>
@@ -6931,11 +6931,11 @@ interface PDFThumbnailsProps {
   onPageSelect: (page: number) => void;
 }
 
-export function PDFThumbnails({ 
-  url, 
-  numPages, 
-  currentPage, 
-  onPageSelect 
+export function PDFThumbnails({
+  url,
+  numPages,
+  currentPage,
+  onPageSelect
 }: PDFThumbnailsProps) {
   return (
     <div className="w-32 border-r overflow-auto p-2 space-y-2">
@@ -6946,8 +6946,8 @@ export function PDFThumbnails({
             onClick={() => onPageSelect(pageNum)}
             className={cn(
               "w-full p-1 rounded border transition-colors",
-              currentPage === pageNum 
-                ? "border-primary bg-primary/10" 
+              currentPage === pageNum
+                ? "border-primary bg-primary/10"
                 : "border-transparent hover:border-muted-foreground/30"
             )}
           >
@@ -6980,14 +6980,14 @@ import React from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  FileText, 
-  FilePlus2, 
-  FileCheck2, 
+import {
+  FileText,
+  FilePlus2,
+  FileCheck2,
   FileX2,
-  Download, 
-  Eye, 
-  Trash2, 
+  Download,
+  Eye,
+  Trash2,
   Clock,
   Send,
   CheckCircle,
@@ -7006,22 +7006,22 @@ import { formatDistanceToNow, format } from 'date-fns';
 import { ro } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
-export type DocumentType = 
-  | 'proforma' 
-  | 'factura' 
-  | 'aviz' 
-  | 'contract' 
-  | 'oferta' 
+export type DocumentType =
+  | 'proforma'
+  | 'factura'
+  | 'aviz'
+  | 'contract'
+  | 'oferta'
   | 'comanda'
   | 'chitanta'
   | 'other';
 
-export type DocumentStatus = 
-  | 'draft' 
-  | 'pending' 
-  | 'sent' 
-  | 'viewed' 
-  | 'signed' 
+export type DocumentStatus =
+  | 'draft'
+  | 'pending'
+  | 'sent'
+  | 'viewed'
+  | 'signed'
   | 'cancelled'
   | 'paid'
   | 'overdue';
@@ -7053,45 +7053,45 @@ const documentTypeConfig: Record<DocumentType, {
   icon: React.ElementType;
   color: string;
 }> = {
-  proforma: { 
-    label: 'Proforma', 
-    icon: FilePlus2, 
-    color: 'text-blue-600 bg-blue-50' 
+  proforma: {
+    label: 'Proforma',
+    icon: FilePlus2,
+    color: 'text-blue-600 bg-blue-50'
   },
-  factura: { 
-    label: 'Factură', 
-    icon: FileCheck2, 
-    color: 'text-green-600 bg-green-50' 
+  factura: {
+    label: 'Factură',
+    icon: FileCheck2,
+    color: 'text-green-600 bg-green-50'
   },
-  aviz: { 
-    label: 'Aviz', 
-    icon: FileText, 
-    color: 'text-purple-600 bg-purple-50' 
+  aviz: {
+    label: 'Aviz',
+    icon: FileText,
+    color: 'text-purple-600 bg-purple-50'
   },
-  contract: { 
-    label: 'Contract', 
-    icon: FileCheck2, 
-    color: 'text-indigo-600 bg-indigo-50' 
+  contract: {
+    label: 'Contract',
+    icon: FileCheck2,
+    color: 'text-indigo-600 bg-indigo-50'
   },
-  oferta: { 
-    label: 'Ofertă', 
-    icon: FilePlus2, 
-    color: 'text-orange-600 bg-orange-50' 
+  oferta: {
+    label: 'Ofertă',
+    icon: FilePlus2,
+    color: 'text-orange-600 bg-orange-50'
   },
-  comanda: { 
-    label: 'Comandă', 
-    icon: FileText, 
-    color: 'text-cyan-600 bg-cyan-50' 
+  comanda: {
+    label: 'Comandă',
+    icon: FileText,
+    color: 'text-cyan-600 bg-cyan-50'
   },
-  chitanta: { 
-    label: 'Chitanță', 
-    icon: FileCheck2, 
-    color: 'text-emerald-600 bg-emerald-50' 
+  chitanta: {
+    label: 'Chitanță',
+    icon: FileCheck2,
+    color: 'text-emerald-600 bg-emerald-50'
   },
-  other: { 
-    label: 'Document', 
-    icon: FileText, 
-    color: 'text-gray-600 bg-gray-50' 
+  other: {
+    label: 'Document',
+    icon: FileText,
+    color: 'text-gray-600 bg-gray-50'
   }
 };
 
@@ -7102,51 +7102,51 @@ const statusConfig: Record<DocumentStatus, {
   variant: 'default' | 'secondary' | 'destructive' | 'outline';
   className: string;
 }> = {
-  draft: { 
-    label: 'Draft', 
-    icon: FileText, 
+  draft: {
+    label: 'Draft',
+    icon: FileText,
     variant: 'outline',
     className: 'text-gray-600'
   },
-  pending: { 
-    label: 'În așteptare', 
-    icon: Clock, 
+  pending: {
+    label: 'În așteptare',
+    icon: Clock,
     variant: 'secondary',
     className: 'text-yellow-600'
   },
-  sent: { 
-    label: 'Trimis', 
-    icon: Send, 
+  sent: {
+    label: 'Trimis',
+    icon: Send,
     variant: 'default',
     className: 'text-blue-600'
   },
-  viewed: { 
-    label: 'Vizualizat', 
-    icon: Eye, 
+  viewed: {
+    label: 'Vizualizat',
+    icon: Eye,
     variant: 'default',
     className: 'text-purple-600'
   },
-  signed: { 
-    label: 'Semnat', 
-    icon: CheckCircle, 
+  signed: {
+    label: 'Semnat',
+    icon: CheckCircle,
     variant: 'default',
     className: 'text-green-600'
   },
-  cancelled: { 
-    label: 'Anulat', 
-    icon: FileX2, 
+  cancelled: {
+    label: 'Anulat',
+    icon: FileX2,
     variant: 'destructive',
     className: 'text-red-600'
   },
-  paid: { 
-    label: 'Plătit', 
-    icon: CheckCircle, 
+  paid: {
+    label: 'Plătit',
+    icon: CheckCircle,
     variant: 'default',
     className: 'text-emerald-600'
   },
-  overdue: { 
-    label: 'Depășit', 
-    icon: AlertCircle, 
+  overdue: {
+    label: 'Depășit',
+    icon: AlertCircle,
     variant: 'destructive',
     className: 'text-red-600'
   }
@@ -7295,7 +7295,7 @@ export function DocumentCard({
               )}
               <DropdownMenuSeparator />
               {onDelete && (
-                <DropdownMenuItem 
+                <DropdownMenuItem
                   onClick={onDelete}
                   className="text-destructive"
                 >
@@ -7335,7 +7335,7 @@ export function DocumentListItem({
   const TypeIcon = typeConf.icon;
 
   return (
-    <div 
+    <div
       className={cn(
         "flex items-center gap-4 p-3 rounded-lg border transition-colors cursor-pointer",
         selected ? "border-primary bg-primary/5" : "hover:bg-muted/50"
@@ -7372,17 +7372,17 @@ export function DocumentListItem({
 
       <div className="flex gap-1">
         {onView && (
-          <Button 
-            variant="ghost" 
-            size="icon" 
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={(e) => { e.stopPropagation(); onView(); }}
           >
             <Eye className="h-4 w-4" />
           </Button>
         )}
         {onDownload && (
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             size="icon"
             onClick={(e) => { e.stopPropagation(); onDownload(); }}
           >
@@ -7411,11 +7411,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { 
-  Clock, 
-  CheckCircle, 
-  XCircle, 
-  Upload, 
+import {
+  Clock,
+  CheckCircle,
+  XCircle,
+  Upload,
   FileWarning,
   Loader2,
   RefreshCw,
@@ -7425,11 +7425,11 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ro } from 'date-fns/locale';
 
-export type EFacturaStatus = 
-  | 'not_submitted' 
-  | 'pending' 
-  | 'processing' 
-  | 'accepted' 
+export type EFacturaStatus =
+  | 'not_submitted'
+  | 'pending'
+  | 'processing'
+  | 'accepted'
   | 'accepted_with_warnings'
   | 'rejected'
   | 'error';
@@ -7525,7 +7525,7 @@ export function EFacturaStatusBadge({
   const isAnimated = status === 'processing';
 
   const badge = (
-    <Badge 
+    <Badge
       variant={config.variant}
       className={cn(
         config.color,
@@ -7553,7 +7553,7 @@ export function EFacturaStatusBadge({
         <TooltipContent className="max-w-xs">
           <div className="space-y-2">
             <p className="font-medium">{config.label}</p>
-            
+
             {/* Index încărcare */}
             {indexIncarcare && (
               <div className="text-xs">
@@ -7720,8 +7720,8 @@ export function EFacturaStatusCard({
       {(canRetry || canViewOnSPV) && (
         <div className="mt-4 flex gap-2">
           {canRetry && onRetry && (
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={onRetry}
             >
@@ -7730,8 +7730,8 @@ export function EFacturaStatusCard({
             </Button>
           )}
           {canViewOnSPV && onViewOnSPV && (
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={onViewOnSPV}
             >
@@ -7785,10 +7785,10 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Download, 
-  Printer, 
-  Mail, 
+import {
+  Download,
+  Printer,
+  Mail,
   Copy,
   ExternalLink,
   X,
@@ -7929,8 +7929,8 @@ export function DocumentPreview({
         </DialogHeader>
 
         {/* Content with tabs */}
-        <Tabs 
-          value={activeTab} 
+        <Tabs
+          value={activeTab}
           onValueChange={setActiveTab}
           className="flex-1 flex flex-col overflow-hidden"
         >
@@ -7951,7 +7951,7 @@ export function DocumentPreview({
 
           {/* Preview tab */}
           <TabsContent value="preview" className="flex-1 m-0 overflow-hidden">
-            <PDFViewer 
+            <PDFViewer
               url={doc.pdfUrl}
               filename={`${typeConf.label}_${doc.number}.pdf`}
               showToolbar={true}
@@ -7965,7 +7965,7 @@ export function DocumentPreview({
               {/* Document info */}
               <div className="space-y-4">
                 <h3 className="font-semibold border-b pb-2">Informații document</h3>
-                
+
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-muted-foreground">Tip:</span>
@@ -8003,7 +8003,7 @@ export function DocumentPreview({
               {/* Client info */}
               <div className="space-y-4">
                 <h3 className="font-semibold border-b pb-2">Client</h3>
-                
+
                 <div className="space-y-2 text-sm">
                   <div>
                     <span className="text-muted-foreground">Denumire:</span>
@@ -8028,12 +8028,12 @@ export function DocumentPreview({
               {doc.type === 'factura' && doc.efacturaDetails && (
                 <div className="col-span-2 space-y-4">
                   <h3 className="font-semibold border-b pb-2">e-Factura ANAF</h3>
-                  
+
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <span className="text-muted-foreground">Status:</span>
                       <div className="mt-1">
-                        <EFacturaStatusBadge 
+                        <EFacturaStatusBadge
                           status={doc.efacturaStatus!}
                           {...doc.efacturaDetails}
                         />
@@ -8102,11 +8102,11 @@ import { useDropzone } from 'react-dropzone';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { 
-  Upload, 
-  File, 
-  X, 
-  CheckCircle, 
+import {
+  Upload,
+  File,
+  X,
+  CheckCircle,
   AlertCircle,
   FileText,
   Image as ImageIcon
@@ -8180,7 +8180,7 @@ export function DocumentUpload({
     try {
       // Simulate progress updates
       for (const doc of newDocs) {
-        setDocuments(prev => prev.map(d => 
+        setDocuments(prev => prev.map(d =>
           d.id === doc.id ? { ...d, status: 'uploading' } : d
         ));
 
@@ -8198,7 +8198,7 @@ export function DocumentUpload({
 
       // Mark as completed
       setDocuments(prev => prev.map(d =>
-        newDocs.some(nd => nd.id === d.id) 
+        newDocs.some(nd => nd.id === d.id)
           ? { ...d, status: 'completed', progress: 100 }
           : d
       ));
@@ -8281,7 +8281,7 @@ export function DocumentUpload({
         <div className="space-y-2">
           {documents.map(doc => {
             const FileIcon = getFileIcon(doc.file.type);
-            
+
             return (
               <Card key={doc.id}>
                 <CardContent className="p-3">
@@ -8299,9 +8299,9 @@ export function DocumentUpload({
                       </div>
 
                       {doc.status === 'uploading' && (
-                        <Progress 
-                          value={doc.progress} 
-                          className="h-1 mt-2" 
+                        <Progress
+                          value={doc.progress}
+                          className="h-1 mt-2"
                         />
                       )}
 
@@ -8364,10 +8364,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
+import {
+  CheckCircle,
+  XCircle,
+  Clock,
   AlertTriangle,
   RefreshCw,
   Link,
@@ -8377,11 +8377,11 @@ import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { ro } from 'date-fns/locale';
 
-export type OblioSyncStatus = 
-  | 'synced' 
-  | 'pending' 
-  | 'syncing' 
-  | 'error' 
+export type OblioSyncStatus =
+  | 'synced'
+  | 'pending'
+  | 'syncing'
+  | 'error'
   | 'not_linked';
 
 interface OblioStatusBadgeProps {
@@ -8444,7 +8444,7 @@ export function OblioStatusBadge({
   const isAnimated = status === 'syncing';
 
   const badge = (
-    <Badge 
+    <Badge
       variant={config.variant}
       className={cn(
         config.color,
@@ -8568,7 +8568,7 @@ export function OblioIntegrationCard({
               <div>
                 <span className="text-muted-foreground">Ultima sincronizare</span>
                 <p className="font-medium">
-                  {lastSyncAt 
+                  {lastSyncAt
                     ? formatDistanceToNow(lastSyncAt, { addSuffix: true, locale: ro })
                     : '-'
                   }
@@ -8585,18 +8585,18 @@ export function OblioIntegrationCard({
         <div className="mt-4 flex gap-2">
           {connected ? (
             <>
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={onSync}
                 className="flex-1"
               >
                 <RefreshCw className="h-4 w-4 mr-1" />
                 Sincronizează
               </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={onDisconnect}
                 className="text-destructive"
               >
@@ -8634,10 +8634,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
+import {
+  CheckCircle,
+  XCircle,
+  Clock,
   AlertTriangle,
   Building2,
   FileCheck
@@ -8646,16 +8646,16 @@ import { cn } from '@/lib/utils';
 import { formatDistanceToNow, format } from 'date-fns';
 import { ro } from 'date-fns/locale';
 
-export type ANAFVerificationStatus = 
-  | 'verified' 
-  | 'invalid' 
-  | 'pending' 
+export type ANAFVerificationStatus =
+  | 'verified'
+  | 'invalid'
+  | 'pending'
   | 'expired'
   | 'not_checked';
 
-export type ANAFVATStatus = 
-  | 'payer' 
-  | 'non_payer' 
+export type ANAFVATStatus =
+  | 'payer'
+  | 'non_payer'
   | 'split_vat'
   | 'unknown';
 
@@ -8749,7 +8749,7 @@ export function ANAFStatusBadge({
               <StatusIcon className="h-3 w-3" />
               {config.label}
             </Badge>
-            
+
             {verificationStatus === 'verified' && vatStatus !== 'unknown' && (
               <Badge variant="outline" className={cn("text-xs", vatInfo.color)}>
                 {vatInfo.label}
@@ -8763,14 +8763,14 @@ export function ANAFStatusBadge({
             {companyName && (
               <div className="text-muted-foreground">{companyName}</div>
             )}
-            
+
             {verifiedAt && (
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Verificat:</span>
                 <span>{formatDistanceToNow(verifiedAt, { addSuffix: true, locale: ro })}</span>
               </div>
             )}
-            
+
             {expiresAt && (
               <div className={cn(
                 "flex justify-between",
@@ -8780,7 +8780,7 @@ export function ANAFStatusBadge({
                 <span>{format(expiresAt, 'dd MMM yyyy', { locale: ro })}</span>
               </div>
             )}
-            
+
             {splitVatFrom && vatStatus === 'split_vat' && (
               <div className="flex justify-between text-amber-600">
                 <span>TVA la încasare din:</span>
@@ -8813,10 +8813,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
+import {
+  CheckCircle,
+  XCircle,
+  Clock,
   AlertTriangle,
   Send,
   FileWarning,
@@ -8828,7 +8828,7 @@ import { cn } from '@/lib/utils';
 import { formatDistanceToNow, differenceInHours, differenceInDays } from 'date-fns';
 import { ro } from 'date-fns/locale';
 
-export type EFacturaStatus = 
+export type EFacturaStatus =
   | 'not_required'
   | 'not_submitted'
   | 'pending_upload'
@@ -8943,11 +8943,11 @@ export function EFacturaStatusBadge({
   // Calculate deadline urgency
   let deadlineUrgency: 'ok' | 'warning' | 'critical' | 'overdue' = 'ok';
   let hoursRemaining = 0;
-  
+
   if (deadline && status === 'not_submitted') {
     hoursRemaining = differenceInHours(deadline, new Date());
     const daysRemaining = differenceInDays(deadline, new Date());
-    
+
     if (hoursRemaining <= 0) {
       deadlineUrgency = 'overdue';
     } else if (daysRemaining <= 1) {
@@ -8962,7 +8962,7 @@ export function EFacturaStatusBadge({
       <Tooltip>
         <TooltipTrigger asChild>
           <div className={cn("inline-flex items-center gap-2", className)}>
-            <Badge 
+            <Badge
               variant={config.variant}
               className={cn("gap-1", config.color)}
             >
@@ -8972,9 +8972,9 @@ export function EFacturaStatusBadge({
               )} />
               {config.label}
             </Badge>
-            
+
             {showDeadline && deadline && deadlineUrgency !== 'ok' && (
-              <Badge 
+              <Badge
                 variant={deadlineUrgency === 'overdue' ? 'destructive' : 'outline'}
                 className={cn(
                   "text-xs",
@@ -8982,8 +8982,8 @@ export function EFacturaStatusBadge({
                   deadlineUrgency === 'warning' && "border-amber-500 text-amber-600"
                 )}
               >
-                {deadlineUrgency === 'overdue' 
-                  ? 'DEPĂȘIT' 
+                {deadlineUrgency === 'overdue'
+                  ? 'DEPĂȘIT'
                   : `${hoursRemaining}h rămase`}
               </Badge>
             )}
@@ -8995,35 +8995,35 @@ export function EFacturaStatusBadge({
               <StatusIcon className="h-4 w-4" />
               {config.label}
             </div>
-            
+
             {indexUpload && (
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Index upload:</span>
                 <code className="text-xs bg-muted px-1 rounded">{indexUpload}</code>
               </div>
             )}
-            
+
             {indexDescarcare && (
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Index descărcare:</span>
                 <code className="text-xs bg-muted px-1 rounded">{indexDescarcare}</code>
               </div>
             )}
-            
+
             {uploadedAt && (
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Încărcat:</span>
                 <span>{formatDistanceToNow(uploadedAt, { addSuffix: true, locale: ro })}</span>
               </div>
             )}
-            
+
             {responseAt && (
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Răspuns:</span>
                 <span>{formatDistanceToNow(responseAt, { addSuffix: true, locale: ro })}</span>
               </div>
             )}
-            
+
             {errors && errors.length > 0 && (
               <div className="pt-2 border-t">
                 <div className="font-medium text-red-600 mb-1">Erori:</div>
@@ -9039,7 +9039,7 @@ export function EFacturaStatusBadge({
                 </ul>
               </div>
             )}
-            
+
             {warnings && warnings.length > 0 && (
               <div className="pt-2 border-t">
                 <div className="font-medium text-amber-600 mb-1">Avertismente:</div>
@@ -9050,11 +9050,11 @@ export function EFacturaStatusBadge({
                 </ul>
               </div>
             )}
-            
+
             {(onRetry || onDownloadResponse) && (
               <div className="pt-2 border-t flex gap-2">
                 {onRetry && ['rejected', 'error'].includes(status) && (
-                  <button 
+                  <button
                     onClick={onRetry}
                     className="text-xs text-blue-600 hover:underline flex items-center gap-1"
                   >
@@ -9063,7 +9063,7 @@ export function EFacturaStatusBadge({
                   </button>
                 )}
                 {onDownloadResponse && indexDescarcare && (
-                  <button 
+                  <button
                     onClick={onDownloadResponse}
                     className="text-xs text-blue-600 hover:underline flex items-center gap-1"
                   >
@@ -9092,10 +9092,10 @@ Icon pentru canalul de comunicare (WhatsApp, Email, etc.).
 'use client';
 
 import React from 'react';
-import { 
-  MessageSquare, 
-  Mail, 
-  Phone, 
+import {
+  MessageSquare,
+  Mail,
+  Phone,
   Globe,
   MessageCircle,
   Video,
@@ -9103,7 +9103,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export type ChannelType = 
+export type ChannelType =
   | 'whatsapp'
   | 'email'
   | 'phone'
@@ -9256,7 +9256,7 @@ export function ChannelIcons({
   return (
     <div className={cn("inline-flex items-center -space-x-1", className)}>
       {displayed.map((channel, index) => (
-        <div 
+        <div
           key={channel}
           className="ring-2 ring-white rounded-full"
           style={{ zIndex: displayed.length - index }}
@@ -9292,9 +9292,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { 
-  CheckCircle, 
-  XCircle, 
+import {
+  CheckCircle,
+  XCircle,
   AlertTriangle,
   RefreshCw,
   Settings,
@@ -9405,7 +9405,7 @@ export function IntegrationStatusCard({
               )}
             </div>
           </div>
-          
+
           <Badge variant={config.variant} className="gap-1">
             <StatusIcon className={cn(
               "h-3 w-3",
@@ -9415,7 +9415,7 @@ export function IntegrationStatusCard({
           </Badge>
         </div>
       </CardHeader>
-      
+
       <CardContent className="space-y-4">
         {/* Health Score */}
         {healthScore !== undefined && (
@@ -9430,14 +9430,14 @@ export function IntegrationStatusCard({
             <Progress value={healthScore} className="h-2" />
           </div>
         )}
-        
+
         {/* Error Message */}
         {errorMessage && status === 'error' && (
           <div className="p-3 rounded-md bg-red-100 border border-red-200 text-red-800 text-sm">
             {errorMessage}
           </div>
         )}
-        
+
         {/* Stats */}
         {stats && stats.length > 0 && (
           <div className="grid grid-cols-2 gap-3">
@@ -9449,7 +9449,7 @@ export function IntegrationStatusCard({
             ))}
           </div>
         )}
-        
+
         {/* Sync Info */}
         <div className="flex justify-between text-sm text-muted-foreground">
           {lastSyncAt && (
@@ -9464,16 +9464,16 @@ export function IntegrationStatusCard({
             </span>
           )}
         </div>
-        
+
         {/* Actions */}
         {actions && (
           <div className="flex flex-wrap gap-2 pt-2 border-t">
             {status === 'connected' || status === 'partial' || status === 'error' ? (
               <>
                 {actions.onSync && (
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
+                  <Button
+                    size="sm"
+                    variant="outline"
                     onClick={actions.onSync}
                     disabled={syncInProgress}
                     className="flex-1"
@@ -9486,18 +9486,18 @@ export function IntegrationStatusCard({
                   </Button>
                 )}
                 {actions.onConfigure && (
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
+                  <Button
+                    size="sm"
+                    variant="outline"
                     onClick={actions.onConfigure}
                   >
                     <Settings className="h-4 w-4" />
                   </Button>
                 )}
                 {actions.onDisconnect && (
-                  <Button 
-                    size="sm" 
-                    variant="ghost" 
+                  <Button
+                    size="sm"
+                    variant="ghost"
                     onClick={actions.onDisconnect}
                     className="text-destructive hover:text-destructive"
                   >
@@ -9508,8 +9508,8 @@ export function IntegrationStatusCard({
             ) : (
               <>
                 {actions.onConnect && (
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     onClick={actions.onConnect}
                     className="flex-1"
                   >
@@ -9517,9 +9517,9 @@ export function IntegrationStatusCard({
                   </Button>
                 )}
                 {actions.onViewDocs && (
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
+                  <Button
+                    size="sm"
+                    variant="outline"
                     onClick={actions.onViewDocs}
                   >
                     <ExternalLink className="h-4 w-4 mr-1" />
@@ -9554,10 +9554,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { 
-  Webhook, 
-  CheckCircle, 
-  XCircle, 
+import {
+  Webhook,
+  CheckCircle,
+  XCircle,
   AlertTriangle,
   Clock
 } from 'lucide-react';
@@ -9651,11 +9651,11 @@ export function WebhookStatusIndicator({
                 </Badge>
               )}
             </div>
-            
+
             <div className="font-mono text-xs break-all text-muted-foreground">
               {url}
             </div>
-            
+
             {successRate !== undefined && (
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Rată succes:</span>
@@ -9669,21 +9669,21 @@ export function WebhookStatusIndicator({
                 </span>
               </div>
             )}
-            
+
             {failureCount !== undefined && failureCount > 0 && (
               <div className="flex justify-between text-amber-600">
                 <span>Eșecuri consecutive:</span>
                 <span className="font-medium">{failureCount}</span>
               </div>
             )}
-            
+
             {lastDeliveredAt && (
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Ultima livrare:</span>
                 <span>{formatDistanceToNow(lastDeliveredAt, { addSuffix: true, locale: ro })}</span>
               </div>
             )}
-            
+
             {lastFailedAt && (
               <div className="flex justify-between text-red-600">
                 <span>Ultima eroare:</span>
@@ -9751,7 +9751,7 @@ export function CopyToClipboard({
       await navigator.clipboard.writeText(text);
       setCopied(true);
       onCopy?.(text);
-      
+
       setTimeout(() => {
         setCopied(false);
       }, successDuration);
@@ -9811,8 +9811,8 @@ export function InlineCopy({
 }: InlineCopyProps) {
   const display = displayText || text;
   const shouldTruncate = truncate && display.length > maxLength;
-  const truncatedText = shouldTruncate 
-    ? `${display.slice(0, maxLength)}...` 
+  const truncatedText = shouldTruncate
+    ? `${display.slice(0, maxLength)}...`
     : display;
 
   return (
@@ -9823,9 +9823,9 @@ export function InlineCopy({
       <span title={shouldTruncate ? display : undefined}>
         {truncatedText}
       </span>
-      <CopyToClipboard 
-        text={text} 
-        size="icon" 
+      <CopyToClipboard
+        text={text}
+        size="icon"
         variant="ghost"
         className="h-5 w-5 p-0 hover:bg-transparent"
       />
@@ -9901,7 +9901,7 @@ export function ConfirmAction({
   return (
     <>
       {children(() => !disabled && setOpen(true))}
-      
+
       <AlertDialog open={open} onOpenChange={setOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -10076,7 +10076,7 @@ Hook pentru debounce de valori.
 
 ```typescript
 // hooks/useDebounce.ts
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from "react";
 
 /**
  * Hook pentru debounce de valori
@@ -10102,25 +10102,28 @@ export function useDebounce<T>(value: T, delay: number): T {
  */
 export function useDebouncedCallback<T extends (...args: any[]) => any>(
   callback: T,
-  delay: number
+  delay: number,
 ): T {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const callbackRef = useRef(callback);
-  
+
   // Update callback ref when callback changes
   useEffect(() => {
     callbackRef.current = callback;
   }, [callback]);
 
-  const debouncedCallback = useCallback((...args: Parameters<T>) => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
+  const debouncedCallback = useCallback(
+    (...args: Parameters<T>) => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
 
-    timeoutRef.current = setTimeout(() => {
-      callbackRef.current(...args);
-    }, delay);
-  }, [delay]) as T;
+      timeoutRef.current = setTimeout(() => {
+        callbackRef.current(...args);
+      }, delay);
+    },
+    [delay],
+  ) as T;
 
   // Cleanup on unmount
   useEffect(() => {
@@ -10139,14 +10142,14 @@ export function useDebouncedCallback<T extends (...args: any[]) => any>(
  */
 export function useDebounceWithLoading<T>(
   value: T,
-  delay: number
+  delay: number,
 ): { debouncedValue: T; isDebouncing: boolean } {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
   const [isDebouncing, setIsDebouncing] = useState(false);
 
   useEffect(() => {
     setIsDebouncing(true);
-    
+
     const timer = setTimeout(() => {
       setDebouncedValue(value);
       setIsDebouncing(false);
@@ -10169,17 +10172,17 @@ Hook pentru persistență în localStorage.
 
 ```typescript
 // hooks/useLocalStorage.ts
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from "react";
 
 type SetValue<T> = T | ((prevValue: T) => T);
 
 export function useLocalStorage<T>(
   key: string,
-  initialValue: T
+  initialValue: T,
 ): [T, (value: SetValue<T>) => void, () => void] {
   // Get initial value from localStorage or use provided initial value
   const readValue = useCallback((): T => {
-    if (typeof window === 'undefined') {
+    if (typeof window === "undefined") {
       return initialValue;
     }
 
@@ -10195,32 +10198,36 @@ export function useLocalStorage<T>(
   const [storedValue, setStoredValue] = useState<T>(readValue);
 
   // Return setValue function
-  const setValue = useCallback((value: SetValue<T>) => {
-    if (typeof window === 'undefined') {
-      console.warn(`Tried setting localStorage key "${key}" on server`);
-      return;
-    }
+  const setValue = useCallback(
+    (value: SetValue<T>) => {
+      if (typeof window === "undefined") {
+        console.warn(`Tried setting localStorage key "${key}" on server`);
+        return;
+      }
 
-    try {
-      const valueToStore = value instanceof Function ? value(storedValue) : value;
-      setStoredValue(valueToStore);
-      window.localStorage.setItem(key, JSON.stringify(valueToStore));
-      
-      // Dispatch event for other components
-      window.dispatchEvent(new Event('local-storage'));
-    } catch (error) {
-      console.warn(`Error setting localStorage key "${key}":`, error);
-    }
-  }, [key, storedValue]);
+      try {
+        const valueToStore =
+          value instanceof Function ? value(storedValue) : value;
+        setStoredValue(valueToStore);
+        window.localStorage.setItem(key, JSON.stringify(valueToStore));
+
+        // Dispatch event for other components
+        window.dispatchEvent(new Event("local-storage"));
+      } catch (error) {
+        console.warn(`Error setting localStorage key "${key}":`, error);
+      }
+    },
+    [key, storedValue],
+  );
 
   // Remove value
   const removeValue = useCallback(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
 
     try {
       window.localStorage.removeItem(key);
       setStoredValue(initialValue);
-      window.dispatchEvent(new Event('local-storage'));
+      window.dispatchEvent(new Event("local-storage"));
     } catch (error) {
       console.warn(`Error removing localStorage key "${key}":`, error);
     }
@@ -10234,12 +10241,14 @@ export function useLocalStorage<T>(
       }
     };
 
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('local-storage', () => setStoredValue(readValue()));
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("local-storage", () => setStoredValue(readValue()));
 
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('local-storage', () => setStoredValue(readValue()));
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("local-storage", () =>
+        setStoredValue(readValue()),
+      );
     };
   }, [key, readValue]);
 
@@ -10255,7 +10264,7 @@ Hook pentru operații asincrone cu state management.
 
 ```typescript
 // hooks/useAsync.ts
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect } from "react";
 
 interface AsyncState<T> {
   data: T | null;
@@ -10272,7 +10281,7 @@ interface UseAsyncReturn<T, Args extends any[]> extends AsyncState<T> {
 
 export function useAsync<T, Args extends any[] = []>(
   asyncFunction: (...args: Args) => Promise<T>,
-  immediate: boolean = false
+  immediate: boolean = false,
 ): UseAsyncReturn<T, Args> {
   const [state, setState] = useState<AsyncState<T>>({
     data: null,
@@ -10282,35 +10291,38 @@ export function useAsync<T, Args extends any[] = []>(
     isSuccess: false,
   });
 
-  const execute = useCallback(async (...args: Args): Promise<T | null> => {
-    setState(prev => ({
-      ...prev,
-      isLoading: true,
-      isError: false,
-      error: null,
-    }));
-
-    try {
-      const data = await asyncFunction(...args);
-      setState({
-        data,
-        error: null,
-        isLoading: false,
+  const execute = useCallback(
+    async (...args: Args): Promise<T | null> => {
+      setState((prev) => ({
+        ...prev,
+        isLoading: true,
         isError: false,
-        isSuccess: true,
-      });
-      return data;
-    } catch (error) {
-      setState({
-        data: null,
-        error: error instanceof Error ? error : new Error(String(error)),
-        isLoading: false,
-        isError: true,
-        isSuccess: false,
-      });
-      return null;
-    }
-  }, [asyncFunction]);
+        error: null,
+      }));
+
+      try {
+        const data = await asyncFunction(...args);
+        setState({
+          data,
+          error: null,
+          isLoading: false,
+          isError: false,
+          isSuccess: true,
+        });
+        return data;
+      } catch (error) {
+        setState({
+          data: null,
+          error: error instanceof Error ? error : new Error(String(error)),
+          isLoading: false,
+          isError: true,
+          isSuccess: false,
+        });
+        return null;
+      }
+    },
+    [asyncFunction],
+  );
 
   const reset = useCallback(() => {
     setState({
@@ -10338,15 +10350,15 @@ export function useAsync<T, Args extends any[] = []>(
 export function useFetch<T>(
   url: string,
   options?: RequestInit,
-  immediate: boolean = true
+  immediate: boolean = true,
 ) {
   const fetchData = useCallback(async (): Promise<T> => {
     const response = await fetch(url, options);
-    
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
+
     return response.json();
   }, [url, options]);
 
@@ -10362,12 +10374,12 @@ Hook pentru interval recurent.
 
 ```typescript
 // hooks/useInterval.ts
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef } from "react";
 
 export function useInterval(
   callback: () => void,
   delay: number | null,
-  immediate: boolean = false
+  immediate: boolean = false,
 ) {
   const savedCallback = useRef(callback);
 
@@ -10389,7 +10401,7 @@ export function useInterval(
 
     const tick = () => savedCallback.current();
     const id = setInterval(tick, delay);
-    
+
     return () => clearInterval(id);
   }, [delay]);
 }
@@ -10405,15 +10417,20 @@ export function usePolling<T>(
     immediate?: boolean;
     onSuccess?: (data: T) => void;
     onError?: (error: Error) => void;
-  }
+  },
 ) {
-  const { enabled = true, immediate = true, onSuccess, onError } = options || {};
+  const {
+    enabled = true,
+    immediate = true,
+    onSuccess,
+    onError,
+  } = options || {};
   const isFetching = useRef(false);
 
   useInterval(
     async () => {
       if (isFetching.current) return;
-      
+
       isFetching.current = true;
       try {
         const data = await fetchFn();
@@ -10425,7 +10442,7 @@ export function usePolling<T>(
       }
     },
     enabled ? interval : null,
-    immediate
+    immediate,
   );
 }
 ```
@@ -10438,20 +10455,20 @@ Hook pentru detectare click în afara elementului.
 
 ```typescript
 // hooks/useClickOutside.ts
-import { useEffect, useRef, RefObject } from 'react';
+import { useEffect, useRef, RefObject } from "react";
 
 type Handler = (event: MouseEvent | TouchEvent) => void;
 
 export function useClickOutside<T extends HTMLElement = HTMLElement>(
   handler: Handler,
-  mouseEvent: 'mousedown' | 'mouseup' = 'mousedown'
+  mouseEvent: "mousedown" | "mouseup" = "mousedown",
 ): RefObject<T> {
   const ref = useRef<T>(null);
 
   useEffect(() => {
     const listener = (event: MouseEvent | TouchEvent) => {
       const el = ref.current;
-      
+
       // Do nothing if clicking ref's element or descendent elements
       if (!el || el.contains(event.target as Node)) {
         return;
@@ -10461,11 +10478,11 @@ export function useClickOutside<T extends HTMLElement = HTMLElement>(
     };
 
     document.addEventListener(mouseEvent, listener);
-    document.addEventListener('touchstart', listener);
+    document.addEventListener("touchstart", listener);
 
     return () => {
       document.removeEventListener(mouseEvent, listener);
-      document.removeEventListener('touchstart', listener);
+      document.removeEventListener("touchstart", listener);
     };
   }, [handler, mouseEvent]);
 
@@ -10478,11 +10495,11 @@ export function useClickOutside<T extends HTMLElement = HTMLElement>(
 export function useClickOutsideMultiple(
   refs: RefObject<HTMLElement>[],
   handler: Handler,
-  mouseEvent: 'mousedown' | 'mouseup' = 'mousedown'
+  mouseEvent: "mousedown" | "mouseup" = "mousedown",
 ) {
   useEffect(() => {
     const listener = (event: MouseEvent | TouchEvent) => {
-      const isInside = refs.some(ref => {
+      const isInside = refs.some((ref) => {
         const el = ref.current;
         return el && el.contains(event.target as Node);
       });
@@ -10493,11 +10510,11 @@ export function useClickOutsideMultiple(
     };
 
     document.addEventListener(mouseEvent, listener);
-    document.addEventListener('touchstart', listener);
+    document.addEventListener("touchstart", listener);
 
     return () => {
       document.removeEventListener(mouseEvent, listener);
-      document.removeEventListener('touchstart', listener);
+      document.removeEventListener("touchstart", listener);
     };
   }, [refs, handler, mouseEvent]);
 }
@@ -10511,8 +10528,8 @@ Funcții helper comune pentru componente.
 
 ```typescript
 // lib/utils.ts
-import { type ClassValue, clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
 
 /**
  * Merge class names with tailwind-merge
@@ -10526,11 +10543,11 @@ export function cn(...inputs: ClassValue[]) {
  */
 export function formatCurrency(
   value: number,
-  currency: string = 'RON',
-  locale: string = 'ro-RO'
+  currency: string = "RON",
+  locale: string = "ro-RO",
 ): string {
   return new Intl.NumberFormat(locale, {
-    style: 'currency',
+    style: "currency",
     currency,
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
@@ -10542,8 +10559,8 @@ export function formatCurrency(
  */
 export function formatNumber(
   value: number,
-  locale: string = 'ro-RO',
-  decimals: number = 0
+  locale: string = "ro-RO",
+  decimals: number = 0,
 ): string {
   return new Intl.NumberFormat(locale, {
     minimumFractionDigits: decimals,
@@ -10557,10 +10574,10 @@ export function formatNumber(
 export function formatPercent(
   value: number,
   decimals: number = 1,
-  locale: string = 'ro-RO'
+  locale: string = "ro-RO",
 ): string {
   return new Intl.NumberFormat(locale, {
-    style: 'percent',
+    style: "percent",
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   }).format(value / 100);
@@ -10570,19 +10587,23 @@ export function formatPercent(
  * Format file size
  */
 export function formatFileSize(bytes: number): string {
-  if (bytes === 0) return '0 B';
-  
+  if (bytes === 0) return "0 B";
+
   const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const sizes = ["B", "KB", "MB", "GB", "TB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  
+
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
 }
 
 /**
  * Truncate string with ellipsis
  */
-export function truncate(str: string, maxLength: number, suffix: string = '...'): string {
+export function truncate(
+  str: string,
+  maxLength: number,
+  suffix: string = "...",
+): string {
   if (str.length <= maxLength) return str;
   return str.slice(0, maxLength - suffix.length) + suffix;
 }
@@ -10590,7 +10611,7 @@ export function truncate(str: string, maxLength: number, suffix: string = '...')
 /**
  * Generate random ID
  */
-export function generateId(prefix: string = ''): string {
+export function generateId(prefix: string = ""): string {
   const random = Math.random().toString(36).substring(2, 11);
   return prefix ? `${prefix}_${random}` : random;
 }
@@ -10599,7 +10620,7 @@ export function generateId(prefix: string = ''): string {
  * Sleep utility
  */
 export function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
@@ -10632,11 +10653,11 @@ export function isEmpty(obj: Record<string, any>): boolean {
  */
 export function getInitials(name: string, max: number = 2): string {
   return name
-    .split(' ')
-    .map(word => word[0])
+    .split(" ")
+    .map((word) => word[0])
     .filter(Boolean)
     .slice(0, max)
-    .join('')
+    .join("")
     .toUpperCase();
 }
 
@@ -10653,15 +10674,15 @@ export function isValidEmail(email: string): boolean {
  */
 export function isValidCUI(cui: string): boolean {
   const cuiRegex = /^(RO)?[0-9]{2,10}$/;
-  return cuiRegex.test(cui.replace(/\s/g, ''));
+  return cuiRegex.test(cui.replace(/\s/g, ""));
 }
 
 /**
  * Format CUI
  */
 export function formatCUI(cui: string): string {
-  const clean = cui.replace(/\s/g, '').toUpperCase();
-  if (clean.startsWith('RO')) {
+  const clean = cui.replace(/\s/g, "").toUpperCase();
+  if (clean.startsWith("RO")) {
     return clean;
   }
   return `RO${clean}`;
@@ -10672,26 +10693,32 @@ export function formatCUI(cui: string): string {
  */
 export function isValidRomanianPhone(phone: string): boolean {
   const phoneRegex = /^(\+40|0040|0)?[0-9]{9}$/;
-  return phoneRegex.test(phone.replace(/[\s\-\.]/g, ''));
+  return phoneRegex.test(phone.replace(/[\s\-\.]/g, ""));
 }
 
 /**
  * Format phone number
  */
 export function formatPhone(phone: string): string {
-  const clean = phone.replace(/[\s\-\.]/g, '');
-  if (clean.startsWith('+40')) return clean;
-  if (clean.startsWith('0040')) return '+40' + clean.slice(4);
-  if (clean.startsWith('0')) return '+40' + clean.slice(1);
-  return '+40' + clean;
+  const clean = phone.replace(/[\s\-\.]/g, "");
+  if (clean.startsWith("+40")) return clean;
+  if (clean.startsWith("0040")) return "+40" + clean.slice(4);
+  if (clean.startsWith("0")) return "+40" + clean.slice(1);
+  return "+40" + clean;
 }
 
 /**
  * Pluralize Romanian words
  */
-export function pluralize(count: number, singular: string, plural: string, fewForm?: string): string {
+export function pluralize(
+  count: number,
+  singular: string,
+  plural: string,
+  fewForm?: string,
+): string {
   if (count === 1) return `${count} ${singular}`;
-  if (count === 0 || (count >= 2 && count <= 19)) return `${count} ${fewForm || plural}`;
+  if (count === 0 || (count >= 2 && count <= 19))
+    return `${count} ${fewForm || plural}`;
   return `${count} ${plural}`;
 }
 
@@ -10719,22 +10746,22 @@ Configurare Vitest + Testing Library pentru componente React.
 
 ```typescript
 // vitest.config.ts
-import { defineConfig } from 'vitest/config';
-import react from '@vitejs/plugin-react';
-import path from 'path';
+import { defineConfig } from "vitest/config";
+import react from "@vitejs/plugin-react";
+import path from "path";
 
 export default defineConfig({
   plugins: [react()],
   test: {
-    environment: 'jsdom',
+    environment: "jsdom",
     globals: true,
-    setupFiles: ['./tests/setup.ts'],
-    include: ['**/*.{test,spec}.{js,ts,jsx,tsx}'],
+    setupFiles: ["./tests/setup.ts"],
+    include: ["**/*.{test,spec}.{js,ts,jsx,tsx}"],
     coverage: {
-      provider: 'v8',
-      reporter: ['text', 'json', 'html'],
-      include: ['src/components/**/*.tsx'],
-      exclude: ['**/*.stories.tsx', '**/*.test.tsx'],
+      provider: "v8",
+      reporter: ["text", "json", "html"],
+      include: ["src/components/**/*.tsx"],
+      exclude: ["**/*.stories.tsx", "**/*.test.tsx"],
       thresholds: {
         branches: 80,
         functions: 80,
@@ -10745,7 +10772,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      "@": path.resolve(__dirname, "./src"),
     },
   },
 });
@@ -10753,9 +10780,9 @@ export default defineConfig({
 
 ```typescript
 // tests/setup.ts
-import '@testing-library/jest-dom';
-import { afterEach, vi } from 'vitest';
-import { cleanup } from '@testing-library/react';
+import "@testing-library/jest-dom";
+import { afterEach, vi } from "vitest";
+import { cleanup } from "@testing-library/react";
 
 // Cleanup after each test
 afterEach(() => {
@@ -10777,9 +10804,9 @@ global.IntersectionObserver = vi.fn().mockImplementation(() => ({
 }));
 
 // Mock window.matchMedia
-Object.defineProperty(window, 'matchMedia', {
+Object.defineProperty(window, "matchMedia", {
   writable: true,
-  value: vi.fn().mockImplementation(query => ({
+  value: vi.fn().mockImplementation((query) => ({
     matches: false,
     media: query,
     onchange: null,
@@ -10795,7 +10822,7 @@ Object.defineProperty(window, 'matchMedia', {
 Object.assign(navigator, {
   clipboard: {
     writeText: vi.fn().mockResolvedValue(undefined),
-    readText: vi.fn().mockResolvedValue(''),
+    readText: vi.fn().mockResolvedValue(""),
   },
 });
 ```
@@ -10936,7 +10963,7 @@ describe('StatusBadge', () => {
   it('renders in different sizes', () => {
     const { container: small } = render(<StatusBadge status="active" size="sm" />);
     const { container: large } = render(<StatusBadge status="active" size="lg" />);
-    
+
     expect(small.firstChild).toHaveClass('text-xs');
     expect(large.firstChild).toHaveClass('text-base');
   });
@@ -11019,14 +11046,14 @@ describe('ApprovalCard', () => {
     );
 
     await user.click(screen.getByRole('button', { name: /aprobă/i }));
-    
+
     expect(mockOnApprove).toHaveBeenCalledWith(request.id);
   });
 
   it('shows urgent styling when SLA is < 2 hours', () => {
     const urgentDeadline = new Date(Date.now() + 1 * 60 * 60 * 1000); // 1 hour
     const request = mockApprovalRequest({ slaDeadline: urgentDeadline });
-    
+
     const { container } = render(
       <ApprovalCard
         request={request}
@@ -11042,7 +11069,7 @@ describe('ApprovalCard', () => {
   it('shows overdue styling when SLA is passed', () => {
     const overdueDeadline = new Date(Date.now() - 1 * 60 * 60 * 1000); // 1 hour ago
     const request = mockApprovalRequest({ slaDeadline: overdueDeadline });
-    
+
     const { container } = render(
       <ApprovalCard
         request={request}
@@ -11172,7 +11199,7 @@ const handlers = [
       totalValue: 1000,
     }));
   }),
-  
+
   rest.get('/api/v1/negotiations/:id/messages', (req, res, ctx) => {
     return res(ctx.json({
       messages: [
@@ -11229,10 +11256,10 @@ describe('NegotiationFlow Integration', () => {
 
   it('handles state transitions', async () => {
     const transitionHandler = rest.post('/api/v1/negotiations/:id/state', (req, res, ctx) => {
-      return res(ctx.json({ 
-        previousState: 'NEGOTIATION', 
+      return res(ctx.json({
+        previousState: 'NEGOTIATION',
         newState: 'CLOSING',
-        transitionValid: true 
+        transitionValid: true
       }));
     });
     server.use(transitionHandler);
@@ -11314,10 +11341,10 @@ describe('Accessibility Tests', () => {
       <form>
         <label htmlFor="email">Email</label>
         <input id="email" type="email" />
-        
+
         <label htmlFor="message">Message</label>
         <textarea id="message" />
-        
+
         <button type="submit">Submit</button>
       </form>
     );
@@ -11338,33 +11365,33 @@ Documentare componente cu Storybook pentru development și design review.
 
 ```typescript
 // .storybook/main.ts
-import type { StorybookConfig } from '@storybook/react-vite';
+import type { StorybookConfig } from "@storybook/react-vite";
 
 const config: StorybookConfig = {
-  stories: ['../src/**/*.mdx', '../src/**/*.stories.@(js|jsx|mjs|ts|tsx)'],
+  stories: ["../src/**/*.mdx", "../src/**/*.stories.@(js|jsx|mjs|ts|tsx)"],
   addons: [
-    '@storybook/addon-links',
-    '@storybook/addon-essentials',
-    '@storybook/addon-onboarding',
-    '@storybook/addon-interactions',
-    '@storybook/addon-a11y',
-    '@storybook/addon-themes',
+    "@storybook/addon-links",
+    "@storybook/addon-essentials",
+    "@storybook/addon-onboarding",
+    "@storybook/addon-interactions",
+    "@storybook/addon-a11y",
+    "@storybook/addon-themes",
   ],
   framework: {
-    name: '@storybook/react-vite',
+    name: "@storybook/react-vite",
     options: {},
   },
   docs: {
-    autodocs: 'tag',
+    autodocs: "tag",
   },
-  staticDirs: ['../public'],
+  staticDirs: ["../public"],
   viteFinal: async (config) => {
     return {
       ...config,
       resolve: {
         ...config.resolve,
         alias: {
-          '@': '/src',
+          "@": "/src",
         },
       },
     };
@@ -11475,10 +11502,10 @@ export const AllStatuses: Story = {
   render: () => (
     <div className="flex flex-wrap gap-2 max-w-xl">
       {Object.keys(statusConfigs).map(status => (
-        <StatusBadge 
-          key={status} 
-          status={status as any} 
-          showIcon 
+        <StatusBadge
+          key={status}
+          status={status as any}
+          showIcon
         />
       ))}
     </div>
@@ -11489,10 +11516,10 @@ export const NegotiationStatuses: Story = {
   render: () => (
     <div className="flex flex-wrap gap-2">
       {['new', 'in_progress', 'pending_approval', 'won', 'lost'].map(status => (
-        <StatusBadge 
-          key={status} 
-          status={status as any} 
-          showIcon 
+        <StatusBadge
+          key={status}
+          status={status as any}
+          showIcon
         />
       ))}
     </div>
@@ -11503,10 +11530,10 @@ export const EFacturaStatuses: Story = {
   render: () => (
     <div className="flex flex-wrap gap-2">
       {['not_submitted', 'pending', 'processing', 'accepted', 'rejected'].map(status => (
-        <StatusBadge 
-          key={status} 
-          status={status as any} 
-          showIcon 
+        <StatusBadge
+          key={status}
+          status={status as any}
+          showIcon
         />
       ))}
     </div>
@@ -11988,7 +12015,7 @@ export const AllStatuses: Story = {
 
 Pagini MDX pentru documentare detaliată.
 
-```mdx
+````mdx
 {/* components/Introduction.mdx */}
 import { Meta } from '@storybook/blocks';
 
@@ -12001,43 +12028,51 @@ Bine ați venit în biblioteca de componente UI pentru Etapa 3 - AI Sales Agent.
 ## Categorii de Componente
 
 ### 🎨 Design System Foundation
+
 - Culori, tipografie, spacing
 - Variante și teme
 
 ### 📊 Data Display
+
 - StatusBadge, DataTable, StatCard
 - Timeline, ProgressBar, Avatar
 
 ### 📝 Form Components
+
 - FormField, SearchInput, DateRangePicker
 - SelectMultiple, ConditionBuilder
 
 ### 💬 AI Components
+
 - ChatMessage, SentimentIndicator
 - GuardrailsBadge, AIStatusIndicator
 
 ### ✅ HITL Components
+
 - ApprovalCard, EscalationAlert
 - TakeoverPanel
 
 ### 🔌 Integration Components
+
 - OblioStatusBadge, ANAFStatusBadge
 - EFacturaStatusBadge, ChannelIcon
 
 ### 📈 Chart Components
+
 - AreaChartCard, PieChartCard
 - BarChartCard, LineChartCard
 
 ## Utilizare
 
 ```tsx
-import { StatusBadge } from '@/components/data-display/StatusBadge';
-import { ApprovalCard } from '@/components/hitl/ApprovalCard';
-import { ChatMessage } from '@/components/ai/ChatMessage';
+import { StatusBadge } from "@/components/data-display/StatusBadge";
+import { ApprovalCard } from "@/components/hitl/ApprovalCard";
+import { ChatMessage } from "@/components/ai/ChatMessage";
 
 // Exemplu
-<StatusBadge status="active" showIcon />
+<StatusBadge status="active" showIcon />;
 ```
+````
 
 ## Convenții
 
@@ -12055,7 +12090,7 @@ import { ChatMessage } from '@/components/ai/ChatMessage';
 - **Axe** pentru accessibility tests
 - **Storybook** pentru visual tests
 
-```
+````
 
 ---
 
@@ -12072,7 +12107,7 @@ npm run build-storybook
 
 # Test Storybook
 npm run test-storybook
-```
+````
 
 ```json
 // package.json scripts
@@ -12096,101 +12131,137 @@ Index pentru export centralizat al tuturor componentelor.
 // components/index.ts
 
 // Layout Components
-export { SalesLayout } from './layout/SalesLayout';
-export { PageHeader } from './layout/PageHeader';
-export { Section } from './layout/Section';
-export { SplitView } from './layout/SplitView';
-export { ResponsiveGrid } from './layout/ResponsiveGrid';
+export { SalesLayout } from "./layout/SalesLayout";
+export { PageHeader } from "./layout/PageHeader";
+export { Section } from "./layout/Section";
+export { SplitView } from "./layout/SplitView";
+export { ResponsiveGrid } from "./layout/ResponsiveGrid";
 
 // Navigation Components
-export { Sidebar } from './navigation/Sidebar';
-export { Breadcrumbs } from './navigation/Breadcrumbs';
-export { TabNavigation } from './navigation/TabNavigation';
-export { StepIndicator } from './navigation/StepIndicator';
-export { QuickActions } from './navigation/QuickActions';
-export { CommandPalette } from './navigation/CommandPalette';
+export { Sidebar } from "./navigation/Sidebar";
+export { Breadcrumbs } from "./navigation/Breadcrumbs";
+export { TabNavigation } from "./navigation/TabNavigation";
+export { StepIndicator } from "./navigation/StepIndicator";
+export { QuickActions } from "./navigation/QuickActions";
+export { CommandPalette } from "./navigation/CommandPalette";
 
 // Data Display Components
-export { DataTable } from './data-display/DataTable';
-export { StatCard } from './data-display/StatCard';
-export { Timeline } from './data-display/Timeline';
-export { StatusBadge } from './data-display/StatusBadge';
-export { ProgressBar } from './data-display/ProgressBar';
-export { Avatar, AvatarGroup } from './data-display/Avatar';
-export { EmptyState } from './data-display/EmptyState';
+export { DataTable } from "./data-display/DataTable";
+export { StatCard } from "./data-display/StatCard";
+export { Timeline } from "./data-display/Timeline";
+export { StatusBadge } from "./data-display/StatusBadge";
+export { ProgressBar } from "./data-display/ProgressBar";
+export { Avatar, AvatarGroup } from "./data-display/Avatar";
+export { EmptyState } from "./data-display/EmptyState";
 
 // Form Components
-export { FormField } from './forms/FormField';
-export { SearchInput } from './forms/SearchInput';
-export { DateRangePicker } from './forms/DateRangePicker';
-export { SelectMultiple } from './forms/SelectMultiple';
-export { ConditionBuilder } from './forms/ConditionBuilder';
-export { PriceInput } from './forms/PriceInput';
-export { PercentInput } from './forms/PercentInput';
-export { FileUpload } from './forms/FileUpload';
+export { FormField } from "./forms/FormField";
+export { SearchInput } from "./forms/SearchInput";
+export { DateRangePicker } from "./forms/DateRangePicker";
+export { SelectMultiple } from "./forms/SelectMultiple";
+export { ConditionBuilder } from "./forms/ConditionBuilder";
+export { PriceInput } from "./forms/PriceInput";
+export { PercentInput } from "./forms/PercentInput";
+export { FileUpload } from "./forms/FileUpload";
 
 // Feedback Components
-export { LoadingSpinner, LoadingSkeleton, LoadingCard, LoadingTable } from './feedback/LoadingSpinner';
-export { Toast, ToastProvider, useToast, useSuccessToast, useErrorToast } from './feedback/Toast';
-export { ConfirmDialog, DeleteConfirmDialog, LogoutConfirmDialog } from './feedback/ConfirmDialog';
-export { ErrorBoundary, withErrorBoundary } from './feedback/ErrorBoundary';
-export { AlertBanner, MaintenanceBanner, TrialExpiringBanner } from './feedback/AlertBanner';
-export { TooltipExtended, InfoTooltip, TruncatedWithTooltip } from './feedback/TooltipExtended';
+export {
+  LoadingSpinner,
+  LoadingSkeleton,
+  LoadingCard,
+  LoadingTable,
+} from "./feedback/LoadingSpinner";
+export {
+  Toast,
+  ToastProvider,
+  useToast,
+  useSuccessToast,
+  useErrorToast,
+} from "./feedback/Toast";
+export {
+  ConfirmDialog,
+  DeleteConfirmDialog,
+  LogoutConfirmDialog,
+} from "./feedback/ConfirmDialog";
+export { ErrorBoundary, withErrorBoundary } from "./feedback/ErrorBoundary";
+export {
+  AlertBanner,
+  MaintenanceBanner,
+  TrialExpiringBanner,
+} from "./feedback/AlertBanner";
+export {
+  TooltipExtended,
+  InfoTooltip,
+  TruncatedWithTooltip,
+} from "./feedback/TooltipExtended";
 
 // Chart Components
-export { AreaChartCard } from './charts/AreaChartCard';
-export { PieChartCard } from './charts/PieChartCard';
-export { BarChartCard } from './charts/BarChartCard';
-export { LineChartCard } from './charts/LineChartCard';
-export { MetricSparkline } from './charts/MetricSparkline';
+export { AreaChartCard } from "./charts/AreaChartCard";
+export { PieChartCard } from "./charts/PieChartCard";
+export { BarChartCard } from "./charts/BarChartCard";
+export { LineChartCard } from "./charts/LineChartCard";
+export { MetricSparkline } from "./charts/MetricSparkline";
 
 // AI Components
-export { ChatMessage } from './ai/ChatMessage';
-export { SentimentIndicator, SentimentTrend } from './ai/SentimentIndicator';
-export { GuardrailsBadge } from './ai/GuardrailsBadge';
-export { AIStatusIndicator } from './ai/AIStatusIndicator';
+export { ChatMessage } from "./ai/ChatMessage";
+export { SentimentIndicator, SentimentTrend } from "./ai/SentimentIndicator";
+export { GuardrailsBadge } from "./ai/GuardrailsBadge";
+export { AIStatusIndicator } from "./ai/AIStatusIndicator";
 
 // HITL Components
-export { ApprovalCard } from './hitl/ApprovalCard';
-export { EscalationAlert } from './hitl/EscalationAlert';
-export { TakeoverPanel } from './hitl/TakeoverPanel';
+export { ApprovalCard } from "./hitl/ApprovalCard";
+export { EscalationAlert } from "./hitl/EscalationAlert";
+export { TakeoverPanel } from "./hitl/TakeoverPanel";
 
 // Document Components
-export { PDFViewer } from './documents/PDFViewer';
-export { DocumentCard } from './documents/DocumentCard';
-export { DocumentStatusBadge } from './documents/DocumentStatusBadge';
+export { PDFViewer } from "./documents/PDFViewer";
+export { DocumentCard } from "./documents/DocumentCard";
+export { DocumentStatusBadge } from "./documents/DocumentStatusBadge";
 
 // Integration Components
-export { OblioStatusBadge } from './integrations/OblioStatusBadge';
-export { OblioIntegrationCard } from './integrations/OblioIntegrationCard';
-export { ANAFStatusBadge } from './integrations/ANAFStatusBadge';
-export { EFacturaStatusBadge } from './integrations/EFacturaStatusBadge';
-export { ChannelIcon, ChannelIcons } from './integrations/ChannelIcon';
-export { IntegrationStatusCard } from './integrations/IntegrationStatusCard';
-export { WebhookStatusIndicator } from './integrations/WebhookStatusIndicator';
+export { OblioStatusBadge } from "./integrations/OblioStatusBadge";
+export { OblioIntegrationCard } from "./integrations/OblioIntegrationCard";
+export { ANAFStatusBadge } from "./integrations/ANAFStatusBadge";
+export { EFacturaStatusBadge } from "./integrations/EFacturaStatusBadge";
+export { ChannelIcon, ChannelIcons } from "./integrations/ChannelIcon";
+export { IntegrationStatusCard } from "./integrations/IntegrationStatusCard";
+export { WebhookStatusIndicator } from "./integrations/WebhookStatusIndicator";
 
 // Utility Components
-export { CopyToClipboard, InlineCopy } from './utils/CopyToClipboard';
-export { ConfirmAction } from './utils/ConfirmAction';
-export { KeyboardShortcut, useKeyboardShortcut } from './utils/KeyboardShortcut';
+export { CopyToClipboard, InlineCopy } from "./utils/CopyToClipboard";
+export { ConfirmAction } from "./utils/ConfirmAction";
+export {
+  KeyboardShortcut,
+  useKeyboardShortcut,
+} from "./utils/KeyboardShortcut";
 
 // Hooks
-export { useDebounce, useDebouncedCallback, useDebounceWithLoading } from '@/hooks/useDebounce';
-export { useLocalStorage } from '@/hooks/useLocalStorage';
-export { useAsync, useFetch } from '@/hooks/useAsync';
-export { useInterval, usePolling } from '@/hooks/useInterval';
-export { useClickOutside, useClickOutsideMultiple } from '@/hooks/useClickOutside';
+export {
+  useDebounce,
+  useDebouncedCallback,
+  useDebounceWithLoading,
+} from "@/hooks/useDebounce";
+export { useLocalStorage } from "@/hooks/useLocalStorage";
+export { useAsync, useFetch } from "@/hooks/useAsync";
+export { useInterval, usePolling } from "@/hooks/useInterval";
+export {
+  useClickOutside,
+  useClickOutsideMultiple,
+} from "@/hooks/useClickOutside";
 
 // Types
-export type { OblioSyncStatus } from './integrations/OblioStatusBadge';
-export type { ANAFVerificationStatus, ANAFVATStatus } from './integrations/ANAFStatusBadge';
-export type { EFacturaStatus } from './integrations/EFacturaStatusBadge';
-export type { ChannelType } from './integrations/ChannelIcon';
-export type { IntegrationStatus } from './integrations/IntegrationStatusCard';
-export type { WebhookStatus } from './integrations/WebhookStatusIndicator';
-export type { AIStatus } from './ai/AIStatusIndicator';
-export type { ApprovalRequest } from './hitl/ApprovalCard';
-export type { Escalation } from './hitl/EscalationAlert';
+export type { OblioSyncStatus } from "./integrations/OblioStatusBadge";
+export type {
+  ANAFVerificationStatus,
+  ANAFVATStatus,
+} from "./integrations/ANAFStatusBadge";
+export type { EFacturaStatus } from "./integrations/EFacturaStatusBadge";
+export type { ChannelType } from "./integrations/ChannelIcon";
+export type { IntegrationStatus } from "./integrations/IntegrationStatusCard";
+export type { WebhookStatus } from "./integrations/WebhookStatusIndicator";
+export type { AIStatus } from "./ai/AIStatusIndicator";
+export type { ApprovalRequest } from "./hitl/ApprovalCard";
+export type { Escalation } from "./hitl/EscalationAlert";
 ```
 
 ---

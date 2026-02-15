@@ -113,13 +113,13 @@ When generating code that handles AI outputs:
 
 ## Rate Limits
 
-| Provider    | Limit  |
-| ----------- | ------ |
+| Provider    | Limit                       |
+| ----------- | --------------------------- |
 | ANAF API    | 1/sec (max 100 CUI/request) |
-| Termene.ro  | 20/sec |
-| Hunter.io   | 15/sec |
-| TimelinesAI | 50/min |
-| xAI Grok    | 60/min |
+| Termene.ro  | 20/sec                      |
+| Hunter.io   | 15/sec                      |
+| TimelinesAI | 50/min                      |
+| xAI Grok    | 60/min                      |
 
 ## Event Contract
 

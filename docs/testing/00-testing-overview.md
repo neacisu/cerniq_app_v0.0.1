@@ -28,13 +28,13 @@ Cerniq.app adoptă o abordare **Shift-Left Testing** — testele sunt scrise și
 
 ### 1.2 Principii Cheie
 
-| # | Principiu | Descriere |
-| - | --------- | --------- |
-| 1 | **Determinism** | Testele produc același rezultat la fiecare rulare |
-| 2 | **Izolare** | Fiecare test este independent, fără dependențe de ordine |
-| 3 | **Viteză** | Unit tests < 10ms, Integration < 1s, E2E < 30s |
-| 4 | **Claritate** | Numele testului descrie comportamentul așteptat |
-| 5 | **Mentenabilitate** | DRY în fixtures, explicit în assertions |
+| #   | Principiu           | Descriere                                                |
+| --- | ------------------- | -------------------------------------------------------- |
+| 1   | **Determinism**     | Testele produc același rezultat la fiecare rulare        |
+| 2   | **Izolare**         | Fiecare test este independent, fără dependențe de ordine |
+| 3   | **Viteză**          | Unit tests < 10ms, Integration < 1s, E2E < 30s           |
+| 4   | **Claritate**       | Numele testului descrie comportamentul așteptat          |
+| 5   | **Mentenabilitate** | DRY în fixtures, explicit în assertions                  |
 
 ### 1.3 Anti-Patterns de Evitat
 
@@ -67,19 +67,19 @@ Cerniq.app adoptă o abordare **Shift-Left Testing** — testele sunt scrise și
 
 ### 2.2 Distribuție per Tip
 
-| Tip Test | Procentaj | Număr Estimat | Timp Execuție |
-| -------- | --------- | ------------- | ------------- |
-| **Unit** | 70% | ~2000+ | < 30 secunde |
-| **Integration** | 20% | ~600+ | < 5 minute |
-| **E2E** | 10% | ~300+ | < 15 minute |
+| Tip Test        | Procentaj | Număr Estimat | Timp Execuție |
+| --------------- | --------- | ------------- | ------------- |
+| **Unit**        | 70%       | ~2000+        | < 30 secunde  |
+| **Integration** | 20%       | ~600+         | < 5 minute    |
+| **E2E**         | 10%       | ~300+         | < 15 minute   |
 
 ### 2.3 Ownership per Layer
 
-| Layer | Owner | Când se scriu |
-| ------- | ------- | ------------- |
-| Unit | Developer | Cu fiecare funcție/clasă nouă |
-| Integration | Developer + QA | La fiecare endpoint/worker nou |
-| E2E | QA + Product | La fiecare user story completat |
+| Layer       | Owner          | Când se scriu                   |
+| ----------- | -------------- | ------------------------------- |
+| Unit        | Developer      | Cu fiecare funcție/clasă nouă   |
+| Integration | Developer + QA | La fiecare endpoint/worker nou  |
+| E2E         | QA + Product   | La fiecare user story completat |
 
 ---
 
@@ -151,15 +151,15 @@ graph LR
 
 ### 4.2 GitHub Actions Jobs
 
-| Job | Trigger | Timeout | Fail Condition |
-| ----- | --------- | --------- | ---------------- |
-| `lint` | All PRs | 5 min | Any error |
-| `typecheck` | All PRs | 5 min | TS errors |
-| `test:unit` | All PRs | 10 min | Any failure |
-| `test:integration` | All PRs | 15 min | Any failure |
-| `test:e2e` | Main, Release | 30 min | Any failure |
-| `coverage` | All PRs | 5 min | < 80% |
-| `security` | All PRs | 10 min | HIGH/CRITICAL |
+| Job                | Trigger       | Timeout | Fail Condition |
+| ------------------ | ------------- | ------- | -------------- |
+| `lint`             | All PRs       | 5 min   | Any error      |
+| `typecheck`        | All PRs       | 5 min   | TS errors      |
+| `test:unit`        | All PRs       | 10 min  | Any failure    |
+| `test:integration` | All PRs       | 15 min  | Any failure    |
+| `test:e2e`         | Main, Release | 30 min  | Any failure    |
+| `coverage`         | All PRs       | 5 min   | < 80%          |
+| `security`         | All PRs       | 10 min  | HIGH/CRITICAL  |
 
 ### 4.3 Required Checks
 
@@ -182,24 +182,24 @@ required_status_checks:
 
 ### 5.1 Environment Matrix
 
-| Environment | Baza de Date | Redis | External APIs | Scop |
-| ----------- | ------------ | ----- | ------------- | ---- |
-| **local** | Docker | Docker | Mocked | Development |
-| **test** | Ephemeral | Ephemeral | Mocked | CI Pipeline |
-| **staging** | Persistent | Persistent | Sandbox | Pre-production |
-| **production** | Persistent | Persistent | Live | Production |
+| Environment    | Baza de Date | Redis      | External APIs | Scop           |
+| -------------- | ------------ | ---------- | ------------- | -------------- |
+| **local**      | Docker       | Docker     | Mocked        | Development    |
+| **test**       | Ephemeral    | Ephemeral  | Mocked        | CI Pipeline    |
+| **staging**    | Persistent   | Persistent | Sandbox       | Pre-production |
+| **production** | Persistent   | Persistent | Live          | Production     |
 
 ### 5.2 Test Database Strategy
 
 ```typescript
 // test/setup.ts
-import { drizzle } from 'drizzle-orm/node-postgres';
-import { migrate } from 'drizzle-orm/node-postgres/migrator';
+import { drizzle } from "drizzle-orm/node-postgres";
+import { migrate } from "drizzle-orm/node-postgres/migrator";
 
 beforeAll(async () => {
   // Create ephemeral test database
   testDb = await createTestDatabase();
-  await migrate(testDb, { migrationsFolder: './drizzle' });
+  await migrate(testDb, { migrationsFolder: "./drizzle" });
   await seedTestData(testDb);
 });
 
@@ -219,13 +219,13 @@ afterEach(async () => {
 
 ### 5.3 External API Mocking
 
-| API | Test Strategy | Tool |
-| ----- | ------------- | ---- |
-| ANAF SPV | Mock server | MSW |
-| Termene.ro | Fixtures | Vitest mocks |
-| TimelinesAI | Nock intercepts | Nock |
-| Revolut | Webhook simulator | Custom |
-| OpenAI | Response fixtures | MSW |
+| API         | Test Strategy     | Tool         |
+| ----------- | ----------------- | ------------ |
+| ANAF SPV    | Mock server       | MSW          |
+| Termene.ro  | Fixtures          | Vitest mocks |
+| TimelinesAI | Nock intercepts   | Nock         |
+| Revolut     | Webhook simulator | Custom       |
+| OpenAI      | Response fixtures | MSW          |
 
 ---
 
@@ -267,13 +267,13 @@ Pentru hotfix-uri critice:
 
 ## DOCUMENTE CONEXE
 
-| Document | Scop |
-| -------- | ---- |
+| Document                                                     | Scop                    |
+| ------------------------------------------------------------ | ----------------------- |
 | [01-testing-types-catalog.md](./01-testing-types-catalog.md) | Catalog tipuri de teste |
-| [02-testing-tools-stack.md](./02-testing-tools-stack.md) | Tooling și configurare |
-| [03-testing-conventions.md](./03-testing-conventions.md) | Naming și patterns |
-| [etapa-0/e0-index.md](./etapa-0/e0-index.md) | Teste infrastructură |
-| [etapa-1/e1-index.md](./etapa-1/e1-index.md) | Teste data enrichment |
+| [02-testing-tools-stack.md](./02-testing-tools-stack.md)     | Tooling și configurare  |
+| [03-testing-conventions.md](./03-testing-conventions.md)     | Naming și patterns      |
+| [etapa-0/e0-index.md](./etapa-0/e0-index.md)                 | Teste infrastructură    |
+| [etapa-1/e1-index.md](./etapa-1/e1-index.md)                 | Teste data enrichment   |
 
 ---
 

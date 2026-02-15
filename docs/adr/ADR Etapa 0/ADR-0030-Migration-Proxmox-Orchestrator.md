@@ -1,11 +1,13 @@
 # ADR-0030: Migration to Proxmox LXC + Orchestrator Ingress
 
 ## Status
+
 Accepted
 
 ## Context
 
 Cerniq.app migreaza de pe servere partajate vechi la infrastructura Proxmox cu LXC-uri dedicate pentru aplicatie:
+
 - `CT 109` productie
 - `CT 110` staging
 - `CT 108` CI worker
@@ -35,12 +37,14 @@ OpenBao server local este eliminat; Cerniq foloseste exclusiv OpenBao centraliza
 ## Consequences
 
 ### Pozitive
+
 - Izolare operationala mai buna pentru Cerniq.
 - Simplificare a ingress-ului prin orchestrator unic.
 - Suprafata de administrare redusa in stack-ul aplicatiei.
 - Aliniere cu observability centralizat (Grafana/Prometheus/Loki/Tempo).
 
 ### Trade-offs
+
 - Dependenta de componente partajate (orchestrator, OpenBao centralizat).
 - Necesita control atent al regulilor aditive pentru a nu afecta alte proiecte.
 

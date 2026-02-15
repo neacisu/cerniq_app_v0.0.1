@@ -6,9 +6,10 @@
 ## Scop
 
 Worker-ul K calculeaza:
+
 - intent (lead / customer intent)
 - sentiment (pozitiv/neutral/negativ)
-si scrie rezultatele in DB (prin API/worker), apoi poate genera actiuni (HITL, follow-up).
+  si scrie rezultatele in DB (prin API/worker), apoi poate genera actiuni (HITL, follow-up).
 
 ## Infra
 
@@ -25,4 +26,3 @@ si scrie rezultatele in DB (prin API/worker), apoi poate genera actiuni (HITL, f
 ## Observability
 
 - logs in Loki, metrics in Prometheus, traces via OTEL/Tempo (cand e cazul).
-

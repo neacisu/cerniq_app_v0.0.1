@@ -6,7 +6,7 @@
 
 **Decision:** **Periodic sync** cu reservation system:
 
-- Sync from Oblio: */15min cron
+- Sync from Oblio: \*/15min cron
 - Reserve on order create
 - Deduct on delivery confirmation
 - Release on cancel

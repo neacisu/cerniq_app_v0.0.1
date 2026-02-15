@@ -13,7 +13,10 @@
         "name": "instance",
         "type": "query",
         "datasource": { "type": "prometheus", "uid": "prometheus" },
-        "query": { "query": "label_values(up{job=\"cerniq-nodes\",project=\"cerniq\"}, instance)", "refId": "StdVar" },
+        "query": {
+          "query": "label_values(up{job=\"cerniq-nodes\",project=\"cerniq\"}, instance)",
+          "refId": "StdVar"
+        },
         "refresh": 2,
         "hide": 0,
         "includeAll": true,
@@ -96,4 +99,3 @@
     }
   ]
 }
-

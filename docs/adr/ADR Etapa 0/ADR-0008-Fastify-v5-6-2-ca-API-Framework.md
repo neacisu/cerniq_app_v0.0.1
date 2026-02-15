@@ -35,36 +35,44 @@ Utilizăm **Fastify v5.6.2** cu **@fastify/type-provider-zod**.
 ### Pattern Standard
 
 ```typescript
-import Fastify from 'fastify';
-import { serializerCompiler, validatorCompiler, ZodTypeProvider } from 'fastify-type-provider-zod';
+import Fastify from "fastify";
+import {
+  serializerCompiler,
+  validatorCompiler,
+  ZodTypeProvider,
+} from "fastify-type-provider-zod";
 
 const fastify = Fastify({
   logger: {
     transport: {
-      target: 'pino-pretty',
-      options: { colorize: true }
-    }
-  }
+      target: "pino-pretty",
+      options: { colorize: true },
+    },
+  },
 }).withTypeProvider<ZodTypeProvider>();
 
 fastify.setValidatorCompiler(validatorCompiler);
 fastify.setSerializerCompiler(serializerCompiler);
 
 // Route cu Zod validation
-fastify.get('/companies', {
-  schema: {
-    querystring: z.object({
-      limit: z.number().min(1).max(100).default(10),
-      offset: z.number().min(0).default(0),
-    }),
-    response: {
-      200: z.object({
-        data: z.array(CompanySchema),
-        meta: PaginationSchema,
+fastify.get(
+  "/companies",
+  {
+    schema: {
+      querystring: z.object({
+        limit: z.number().min(1).max(100).default(10),
+        offset: z.number().min(0).default(0),
       }),
+      response: {
+        200: z.object({
+          data: z.array(CompanySchema),
+          meta: PaginationSchema,
+        }),
+      },
     },
   },
-}, async (request, reply) => {
-  // request.query is typed!
-});
+  async (request, reply) => {
+    // request.query is typed!
+  },
+);
 ```

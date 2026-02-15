@@ -59,4 +59,3 @@ La fiecare modificare semnificativa, se actualizeaza:
 
 - `infrastructura_noua.md` -> "Implementare Cerniq.app"
 - ADR-uri relevante (cand apar decizii noi)
-

@@ -36,18 +36,18 @@ Utilizăm **Drizzle ORM** cu **drizzle-zod** integration.
 
 ```typescript
 // Schema definition
-import { pgTable, uuid, varchar, timestamp } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, timestamp } from "drizzle-orm/pg-core";
 
-export const silverCompanies = pgTable('silver_companies', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  tenantId: uuid('tenant_id').notNull(),
-  cui: varchar('cui', { length: 12 }),
-  denumire: varchar('denumire', { length: 255 }),
-  createdAt: timestamp('created_at').defaultNow(),
+export const silverCompanies = pgTable("silver_companies", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull(),
+  cui: varchar("cui", { length: 12 }),
+  denumire: varchar("denumire", { length: 255 }),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 // Zod schema auto-generated
-import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
+import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 
 export const insertCompanySchema = createInsertSchema(silverCompanies);
 export const selectCompanySchema = createSelectSchema(silverCompanies);

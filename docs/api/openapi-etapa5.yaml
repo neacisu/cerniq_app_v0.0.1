@@ -4,7 +4,7 @@ info:
   version: 1.0.0
   description: |
     Specificație OpenAPI pentru Etapa 5: Nurturing Agentic.
-    
+
     ## Overview
     Acest modul gestionează:
     - **Nurturing**: State machine pentru lifecycle clienți post-vânzare
@@ -17,7 +17,7 @@ info:
     - **Associations**: Date asociații OUAI/Cooperative
     - **HITL**: Integrare cu sistem unificat approval
     - **Analytics**: Overview și metrici nurturing
-    
+
     ## ADRs Relevante
     - ADR-0098: Nurturing State Machine Design
     - ADR-0099: Churn Detection via Multi-Signal AI
@@ -29,7 +29,7 @@ info:
     - ADR-0105: KOL Identification via Graph Centrality
     - ADR-0106: Win-Back Campaign Orchestration
     - ADR-0107: Real-Time Sentiment via Streaming
-    
+
     Pentru schema globală și convenții comune, vezi docs/api/openapi.yaml.
   contact:
     name: Cerniq Development Team
@@ -74,14 +74,14 @@ paths:
       summary: List nurturing clients with pagination and filters
       operationId: listNurturingClients
       parameters:
-        - $ref: '#/components/parameters/PageParam'
-        - $ref: '#/components/parameters/PageSizeParam'
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/PageSizeParam"
         - name: state
           in: query
           schema:
             type: array
             items:
-              $ref: '#/components/schemas/NurturingState'
+              $ref: "#/components/schemas/NurturingState"
         - name: churnRiskLevel
           in: query
           schema:
@@ -116,16 +116,16 @@ paths:
             type: string
             enum: [asc, desc]
       responses:
-        '200':
+        "200":
           description: List of nurturing clients
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ClientsListResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+                $ref: "#/components/schemas/ClientsListResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 
   /api/v1/nurturing/clients/{clientId}:
     get:
@@ -133,16 +133,16 @@ paths:
       summary: Get detailed nurturing state for a client
       operationId: getClientNurturingDetail
       parameters:
-        - $ref: '#/components/parameters/ClientIdParam'
+        - $ref: "#/components/parameters/ClientIdParam"
       responses:
-        '200':
+        "200":
           description: Client nurturing detail
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ClientDetailResponse'
-        '404':
-          $ref: '#/components/responses/NotFound'
+                $ref: "#/components/schemas/ClientDetailResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /api/v1/nurturing/clients/{clientId}/state:
     patch:
@@ -150,24 +150,24 @@ paths:
       summary: Manually update client nurturing state
       operationId: updateClientState
       parameters:
-        - $ref: '#/components/parameters/ClientIdParam'
+        - $ref: "#/components/parameters/ClientIdParam"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UpdateStateRequest'
+              $ref: "#/components/schemas/UpdateStateRequest"
       responses:
-        '200':
+        "200":
           description: State updated
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ClientDetailResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '404':
-          $ref: '#/components/responses/NotFound'
+                $ref: "#/components/schemas/ClientDetailResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   # ============================================
   # CHURN API
@@ -188,7 +188,7 @@ paths:
           schema:
             type: array
             items:
-              $ref: '#/components/schemas/ChurnSignalType'
+              $ref: "#/components/schemas/ChurnSignalType"
         - name: isResolved
           in: query
           schema:
@@ -200,12 +200,12 @@ paths:
             minimum: 0
             maximum: 1
       responses:
-        '200':
+        "200":
           description: List of churn signals
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ChurnSignalsResponse'
+                $ref: "#/components/schemas/ChurnSignalsResponse"
 
   /api/v1/nurturing/churn/at-risk:
     get:
@@ -213,12 +213,12 @@ paths:
       summary: Get at-risk clients summary
       operationId: getAtRiskClients
       responses:
-        '200':
+        "200":
           description: At-risk clients summary
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AtRiskResponse'
+                $ref: "#/components/schemas/AtRiskResponse"
 
   /api/v1/nurturing/churn/signals/{signalId}/resolve:
     post:
@@ -237,16 +237,16 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ResolveSignalRequest'
+              $ref: "#/components/schemas/ResolveSignalRequest"
       responses:
-        '200':
+        "200":
           description: Signal resolved
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ChurnSignal'
-        '404':
-          $ref: '#/components/responses/NotFound'
+                $ref: "#/components/schemas/ChurnSignal"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /api/v1/nurturing/churn/intervention:
     post:
@@ -258,16 +258,16 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateInterventionRequest'
+              $ref: "#/components/schemas/CreateInterventionRequest"
       responses:
-        '201':
+        "201":
           description: Intervention created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Intervention'
-        '400':
-          $ref: '#/components/responses/BadRequest'
+                $ref: "#/components/schemas/Intervention"
+        "400":
+          $ref: "#/components/responses/BadRequest"
 
   # ============================================
   # REFERRAL API
@@ -288,24 +288,24 @@ paths:
           schema:
             type: array
             items:
-              $ref: '#/components/schemas/ReferralStatus'
+              $ref: "#/components/schemas/ReferralStatus"
         - name: type
           in: query
           schema:
             type: array
             items:
-              $ref: '#/components/schemas/ReferralType'
+              $ref: "#/components/schemas/ReferralType"
         - name: converted
           in: query
           schema:
             type: boolean
       responses:
-        '200':
+        "200":
           description: List of referrals
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ReferralsListResponse'
+                $ref: "#/components/schemas/ReferralsListResponse"
 
     post:
       tags: [Referrals]
@@ -316,16 +316,16 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateReferralRequest'
+              $ref: "#/components/schemas/CreateReferralRequest"
       responses:
-        '201':
+        "201":
           description: Referral created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Referral'
-        '400':
-          $ref: '#/components/responses/BadRequest'
+                $ref: "#/components/schemas/Referral"
+        "400":
+          $ref: "#/components/responses/BadRequest"
 
   /api/v1/nurturing/referrals/{referralId}/consent-request:
     post:
@@ -333,20 +333,20 @@ paths:
       summary: Send consent request to referrer
       operationId: sendConsentRequest
       parameters:
-        - $ref: '#/components/parameters/ReferralIdParam'
+        - $ref: "#/components/parameters/ReferralIdParam"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ConsentRequestRequest'
+              $ref: "#/components/schemas/ConsentRequestRequest"
       responses:
-        '200':
+        "200":
           description: Consent request sent
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Referral'
+                $ref: "#/components/schemas/Referral"
 
   /api/v1/nurturing/referrals/{referralId}/consent-response:
     post:
@@ -354,20 +354,20 @@ paths:
       summary: Process consent response (webhook callback)
       operationId: processConsentResponse
       parameters:
-        - $ref: '#/components/parameters/ReferralIdParam'
+        - $ref: "#/components/parameters/ReferralIdParam"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ConsentResponseRequest'
+              $ref: "#/components/schemas/ConsentResponseRequest"
       responses:
-        '200':
+        "200":
           description: Consent processed
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Referral'
+                $ref: "#/components/schemas/Referral"
 
   /api/v1/nurturing/referrals/{referralId}/outreach:
     post:
@@ -375,26 +375,26 @@ paths:
       summary: Execute outreach to referred prospect
       operationId: executeOutreach
       parameters:
-        - $ref: '#/components/parameters/ReferralIdParam'
+        - $ref: "#/components/parameters/ReferralIdParam"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/OutreachRequest'
+              $ref: "#/components/schemas/OutreachRequest"
       responses:
-        '200':
+        "200":
           description: Outreach executed
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Referral'
-        '400':
+                $ref: "#/components/schemas/Referral"
+        "400":
           description: Consent not approved
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
 
   # ============================================
   # CLUSTERS API
@@ -410,7 +410,7 @@ paths:
           schema:
             type: array
             items:
-              $ref: '#/components/schemas/ClusterType'
+              $ref: "#/components/schemas/ClusterType"
         - name: county
           in: query
           schema:
@@ -426,12 +426,12 @@ paths:
           schema:
             type: boolean
       responses:
-        '200':
+        "200":
           description: List of clusters with optional GeoJSON
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ClustersResponse'
+                $ref: "#/components/schemas/ClustersResponse"
 
   /api/v1/nurturing/clusters/{clusterId}:
     get:
@@ -446,14 +446,14 @@ paths:
             type: string
             format: uuid
       responses:
-        '200':
+        "200":
           description: Cluster detail
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ClusterDetailResponse'
-        '404':
-          $ref: '#/components/responses/NotFound'
+                $ref: "#/components/schemas/ClusterDetailResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /api/v1/nurturing/clusters/detect:
     post:
@@ -465,14 +465,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/DetectClustersRequest'
+              $ref: "#/components/schemas/DetectClustersRequest"
       responses:
-        '202':
+        "202":
           description: Detection job started
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/JobAcceptedResponse'
+                $ref: "#/components/schemas/JobAcceptedResponse"
 
   # ============================================
   # ASSOCIATIONS API
@@ -499,12 +499,12 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: List of associations
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AssociationsListResponse'
+                $ref: "#/components/schemas/AssociationsListResponse"
 
   /api/v1/nurturing/associations/{associationId}:
     get:
@@ -519,14 +519,14 @@ paths:
             type: string
             format: uuid
       responses:
-        '200':
+        "200":
           description: Association detail
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AssociationDetailResponse'
-        '404':
-          $ref: '#/components/responses/NotFound'
+                $ref: "#/components/schemas/AssociationDetailResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /api/v1/nurturing/associations/sync:
     post:
@@ -538,14 +538,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SyncAssociationsRequest'
+              $ref: "#/components/schemas/SyncAssociationsRequest"
       responses:
-        '202':
+        "202":
           description: Sync job started
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/JobAcceptedResponse'
+                $ref: "#/components/schemas/JobAcceptedResponse"
 
   # ============================================
   # KOL API
@@ -570,12 +570,12 @@ paths:
             minimum: 0
             maximum: 1
       responses:
-        '200':
+        "200":
           description: List of KOL profiles
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/KOLListResponse'
+                $ref: "#/components/schemas/KOLListResponse"
 
   /api/v1/nurturing/kol/{clientId}:
     get:
@@ -583,16 +583,16 @@ paths:
       summary: Get KOL profile detail
       operationId: getKOLDetail
       parameters:
-        - $ref: '#/components/parameters/ClientIdParam'
+        - $ref: "#/components/parameters/ClientIdParam"
       responses:
-        '200':
+        "200":
           description: KOL profile detail
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/KOLDetailResponse'
-        '404':
-          $ref: '#/components/responses/NotFound'
+                $ref: "#/components/schemas/KOLDetailResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /api/v1/nurturing/kol/identify:
     post:
@@ -604,14 +604,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/IdentifyKOLRequest'
+              $ref: "#/components/schemas/IdentifyKOLRequest"
       responses:
-        '202':
+        "202":
           description: Identification job started
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/JobAcceptedResponse'
+                $ref: "#/components/schemas/JobAcceptedResponse"
 
   # ============================================
   # WIN-BACK API
@@ -635,12 +635,12 @@ paths:
             type: string
             format: uuid
       responses:
-        '200':
+        "200":
           description: List of win-back campaigns
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/WinBackCampaignsResponse'
+                $ref: "#/components/schemas/WinBackCampaignsResponse"
 
     post:
       tags: [WinBack]
@@ -651,16 +651,16 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateWinBackRequest'
+              $ref: "#/components/schemas/CreateWinBackRequest"
       responses:
-        '201':
+        "201":
           description: Campaign created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/WinBackCampaign'
-        '400':
-          $ref: '#/components/responses/BadRequest'
+                $ref: "#/components/schemas/WinBackCampaign"
+        "400":
+          $ref: "#/components/responses/BadRequest"
 
   /api/v1/nurturing/winback/campaigns/{campaignId}/execute-step:
     post:
@@ -679,14 +679,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ExecuteStepRequest'
+              $ref: "#/components/schemas/ExecuteStepRequest"
       responses:
-        '200':
+        "200":
           description: Step executed
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/WinBackCampaign'
+                $ref: "#/components/schemas/WinBackCampaign"
 
   # ============================================
   # GEOSPATIAL API
@@ -714,12 +714,12 @@ paths:
             type: integer
             default: 20
       responses:
-        '200':
+        "200":
           description: Proximity results
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ProximityResponse'
+                $ref: "#/components/schemas/ProximityResponse"
 
   /api/v1/nurturing/geo/territories:
     get:
@@ -727,12 +727,12 @@ paths:
       summary: Get territory polygons for entities
       operationId: getTerritories
       responses:
-        '200':
+        "200":
           description: Territory GeoJSON
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TerritoriesResponse'
+                $ref: "#/components/schemas/TerritoriesResponse"
 
   # ============================================
   # HITL API (Unified Reference)
@@ -752,7 +752,13 @@ paths:
             type: array
             items:
               type: string
-              enum: [churn_intervention, nps_followup, referral_consent, winback_approval]
+              enum:
+                [
+                  churn_intervention,
+                  nps_followup,
+                  referral_consent,
+                  winback_approval,
+                ]
         - name: priority
           in: query
           schema:
@@ -768,12 +774,12 @@ paths:
               type: string
               enum: [pending, assigned, in_review]
       responses:
-        '200':
+        "200":
           description: HITL queue for E5
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HITLQueueResponse'
+                $ref: "#/components/schemas/HITLQueueResponse"
 
   # ============================================
   # ANALYTICS API
@@ -784,12 +790,12 @@ paths:
       summary: Get nurturing analytics overview
       operationId: getAnalyticsOverview
       responses:
-        '200':
+        "200":
           description: Analytics overview
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AnalyticsOverviewResponse'
+                $ref: "#/components/schemas/AnalyticsOverviewResponse"
 
 components:
   # ============================================
@@ -890,7 +896,7 @@ components:
       required: [newState, reason]
       properties:
         newState:
-          $ref: '#/components/schemas/NurturingState'
+          $ref: "#/components/schemas/NurturingState"
         reason:
           type: string
           minLength: 10
@@ -1047,9 +1053,9 @@ components:
         clients:
           type: array
           items:
-            $ref: '#/components/schemas/NurturingClientSummary'
+            $ref: "#/components/schemas/NurturingClientSummary"
         meta:
-          $ref: '#/components/schemas/PaginationMeta'
+          $ref: "#/components/schemas/PaginationMeta"
         aggregations:
           type: object
           properties:
@@ -1071,35 +1077,35 @@ components:
       properties:
         nurturingState:
           allOf:
-            - $ref: '#/components/schemas/NurturingStateRecord'
+            - $ref: "#/components/schemas/NurturingStateRecord"
             - type: object
               properties:
                 client:
-                  $ref: '#/components/schemas/ClientBasic'
+                  $ref: "#/components/schemas/ClientBasic"
                 churnSignals:
                   type: array
                   items:
-                    $ref: '#/components/schemas/ChurnSignal'
+                    $ref: "#/components/schemas/ChurnSignal"
                 recentActions:
                   type: array
                   items:
-                    $ref: '#/components/schemas/NurturingAction'
+                    $ref: "#/components/schemas/NurturingAction"
                 npsHistory:
                   type: array
                   items:
-                    $ref: '#/components/schemas/NpsSurvey'
+                    $ref: "#/components/schemas/NpsSurvey"
                 referrals:
                   type: array
                   items:
-                    $ref: '#/components/schemas/Referral'
+                    $ref: "#/components/schemas/Referral"
                 relationships:
                   type: array
                   items:
-                    $ref: '#/components/schemas/EntityRelationship'
+                    $ref: "#/components/schemas/EntityRelationship"
                 clusters:
                   type: array
                   items:
-                    $ref: '#/components/schemas/ClusterBasic'
+                    $ref: "#/components/schemas/ClusterBasic"
 
     ChurnSignalsResponse:
       type: object
@@ -1107,9 +1113,9 @@ components:
         signals:
           type: array
           items:
-            $ref: '#/components/schemas/ChurnSignal'
+            $ref: "#/components/schemas/ChurnSignal"
         meta:
-          $ref: '#/components/schemas/PaginationMeta'
+          $ref: "#/components/schemas/PaginationMeta"
 
     AtRiskResponse:
       type: object
@@ -1131,7 +1137,7 @@ components:
               topSignals:
                 type: array
                 items:
-                  $ref: '#/components/schemas/ChurnSignal'
+                  $ref: "#/components/schemas/ChurnSignal"
               daysSinceLastOrder:
                 type: integer
               recommendedAction:
@@ -1152,9 +1158,9 @@ components:
         referrals:
           type: array
           items:
-            $ref: '#/components/schemas/Referral'
+            $ref: "#/components/schemas/Referral"
         meta:
-          $ref: '#/components/schemas/PaginationMeta'
+          $ref: "#/components/schemas/PaginationMeta"
 
     ClustersResponse:
       type: object
@@ -1162,7 +1168,7 @@ components:
         clusters:
           type: array
           items:
-            $ref: '#/components/schemas/ClusterBasic'
+            $ref: "#/components/schemas/ClusterBasic"
         geoJson:
           type: object
           description: GeoJSON FeatureCollection for map display
@@ -1172,15 +1178,15 @@ components:
       properties:
         cluster:
           allOf:
-            - $ref: '#/components/schemas/ClusterBasic'
+            - $ref: "#/components/schemas/ClusterBasic"
             - type: object
               properties:
                 members:
                   type: array
                   items:
-                    $ref: '#/components/schemas/ClusterMember'
+                    $ref: "#/components/schemas/ClusterMember"
                 kol:
-                  $ref: '#/components/schemas/KOLProfile'
+                  $ref: "#/components/schemas/KOLProfile"
                 territory:
                   type: object
                   description: GeoJSON Polygon
@@ -1191,24 +1197,24 @@ components:
         associations:
           type: array
           items:
-            $ref: '#/components/schemas/AssociationBasic'
+            $ref: "#/components/schemas/AssociationBasic"
         meta:
-          $ref: '#/components/schemas/PaginationMeta'
+          $ref: "#/components/schemas/PaginationMeta"
 
     AssociationDetailResponse:
       type: object
       properties:
         association:
           allOf:
-            - $ref: '#/components/schemas/AssociationBasic'
+            - $ref: "#/components/schemas/AssociationBasic"
             - type: object
               properties:
                 members:
                   type: array
                   items:
-                    $ref: '#/components/schemas/Affiliation'
+                    $ref: "#/components/schemas/Affiliation"
                 linkedCluster:
-                  $ref: '#/components/schemas/ClusterBasic'
+                  $ref: "#/components/schemas/ClusterBasic"
 
     KOLListResponse:
       type: object
@@ -1216,32 +1222,32 @@ components:
         profiles:
           type: array
           items:
-            $ref: '#/components/schemas/KOLProfile'
+            $ref: "#/components/schemas/KOLProfile"
         meta:
-          $ref: '#/components/schemas/PaginationMeta'
+          $ref: "#/components/schemas/PaginationMeta"
 
     KOLDetailResponse:
       type: object
       properties:
         profile:
           allOf:
-            - $ref: '#/components/schemas/KOLProfile'
+            - $ref: "#/components/schemas/KOLProfile"
             - type: object
               properties:
                 client:
-                  $ref: '#/components/schemas/ClientBasic'
+                  $ref: "#/components/schemas/ClientBasic"
                 referrals:
                   type: array
                   items:
-                    $ref: '#/components/schemas/Referral'
+                    $ref: "#/components/schemas/Referral"
                 influencedClients:
                   type: array
                   items:
-                    $ref: '#/components/schemas/ClientBasic'
+                    $ref: "#/components/schemas/ClientBasic"
                 clusters:
                   type: array
                   items:
-                    $ref: '#/components/schemas/ClusterBasic'
+                    $ref: "#/components/schemas/ClusterBasic"
 
     WinBackCampaignsResponse:
       type: object
@@ -1249,9 +1255,9 @@ components:
         campaigns:
           type: array
           items:
-            $ref: '#/components/schemas/WinBackCampaign'
+            $ref: "#/components/schemas/WinBackCampaign"
         meta:
-          $ref: '#/components/schemas/PaginationMeta'
+          $ref: "#/components/schemas/PaginationMeta"
 
     ProximityResponse:
       type: object
@@ -1318,9 +1324,9 @@ components:
         tasks:
           type: array
           items:
-            $ref: '#/components/schemas/HITLTask'
+            $ref: "#/components/schemas/HITLTask"
         meta:
-          $ref: '#/components/schemas/PaginationMeta'
+          $ref: "#/components/schemas/PaginationMeta"
 
     AnalyticsOverviewResponse:
       type: object
@@ -1399,7 +1405,7 @@ components:
         clientName:
           type: string
         currentState:
-          $ref: '#/components/schemas/NurturingState'
+          $ref: "#/components/schemas/NurturingState"
         churnScore:
           type: number
         churnRiskLevel:
@@ -1424,9 +1430,9 @@ components:
           type: string
           format: uuid
         currentState:
-          $ref: '#/components/schemas/NurturingState'
+          $ref: "#/components/schemas/NurturingState"
         previousState:
-          $ref: '#/components/schemas/NurturingState'
+          $ref: "#/components/schemas/NurturingState"
         stateEnteredAt:
           type: string
           format: date-time
@@ -1454,7 +1460,7 @@ components:
           type: string
           format: uuid
         signalType:
-          $ref: '#/components/schemas/ChurnSignalType'
+          $ref: "#/components/schemas/ChurnSignalType"
         strength:
           type: number
         confidence:
@@ -1518,9 +1524,9 @@ components:
         referredContactEmail:
           type: string
         status:
-          $ref: '#/components/schemas/ReferralStatus'
+          $ref: "#/components/schemas/ReferralStatus"
         type:
-          $ref: '#/components/schemas/ReferralType'
+          $ref: "#/components/schemas/ReferralType"
         consentRequestedAt:
           type: string
           format: date-time
@@ -1585,7 +1591,7 @@ components:
         name:
           type: string
         type:
-          $ref: '#/components/schemas/ClusterType'
+          $ref: "#/components/schemas/ClusterType"
         memberCount:
           type: integer
         penetration:
@@ -1766,21 +1772,21 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
 
     Unauthorized:
       description: Unauthorized
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
 
     NotFound:
       description: Resource not found
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
 
   # ============================================
   # SECURITY

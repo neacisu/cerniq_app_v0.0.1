@@ -16,9 +16,9 @@
 
 ### Referințe Tehnologie Existentă
 
-| Componentă | Versiune Actuală | Relevanță |
-| ---------- | ---------------- | --------- |
-| [Ex: Node.js] | [Ex: 24.12.0] | [Cum influențează decizia] |
+| Componentă    | Versiune Actuală | Relevanță                  |
+| ------------- | ---------------- | -------------------------- |
+| [Ex: Node.js] | [Ex: 24.12.0]    | [Cum influențează decizia] |
 
 ---
 
@@ -84,6 +84,6 @@
 
 ## Audit Trail
 
-| Data | Autor | Modificare |
-| ---- | ----- | ---------- |
+| Data       | Autor  | Modificare      |
+| ---------- | ------ | --------------- |
 | YYYY-MM-DD | [Nume] | Creare inițială |

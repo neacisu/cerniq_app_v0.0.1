@@ -3,6 +3,7 @@
 ### Versiunea 2.0 | 2026-02-15
 
 Etapa 5 foloseste aceeasi fundatie operationala ca Etapa 0:
+
 - PostgreSQL extern pe `CT107 (10.0.1.107:5432)`
 - WAL archiving pentru PITR (pe CT107)
 - Dump-uri zilnice (pg_dump custom format) pe CT107
@@ -31,6 +32,6 @@ Acest document nu include script complet (risc operational); procedura este docu
 ## 4) Verificare backup
 
 Minim:
+
 - `pg_restore --list <dump>` se executa fara erori
 - test `psql -c "SELECT 1"` pe DB
-

@@ -6,6 +6,7 @@
 ## 1) Scop
 
 Worker-ul M defineste guardrails (anti-hallucination, policy enforcement, safety checks) pentru agentii Etapa 3:
+
 - validarea intentiei si a constrangerilor
 - limitarea actiunilor cu impact (write/side-effects)
 - audit trail pentru decizii automate / HITL
@@ -36,4 +37,3 @@ Worker-ul M defineste guardrails (anti-hallucination, policy enforcement, safety
 ## 5) Audit
 
 Audit-ul se scrie in DB (prin API/worker) si se coreleaza cu trace-id (OTEL) unde este disponibil.
-

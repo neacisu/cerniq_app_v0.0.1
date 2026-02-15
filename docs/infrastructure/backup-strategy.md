@@ -13,11 +13,11 @@
 
 ## 2) Componente si RPO/RTO (orientativ)
 
-| Componenta | RPO | RTO | Observatii |
-|---|---:|---:|---|
-| PostgreSQL (CT107) | minute (cu WAL) / 24h (cu dump zilnic) | 15-60 min | depinde de incident si procedura |
-| Redis shared (orchestrator) | secunde/minute | 5-30 min | depinde de infra shared |
-| Config-uri deploy (CT109/CT110) | 24h | 30-60 min | repo + config sync CI/CD |
+| Componenta                      |                                    RPO |       RTO | Observatii                       |
+| ------------------------------- | -------------------------------------: | --------: | -------------------------------- |
+| PostgreSQL (CT107)              | minute (cu WAL) / 24h (cu dump zilnic) | 15-60 min | depinde de incident si procedura |
+| Redis shared (orchestrator)     |                         secunde/minute |  5-30 min | depinde de infra shared          |
+| Config-uri deploy (CT109/CT110) |                                    24h | 30-60 min | repo + config sync CI/CD         |
 
 ## 3) PostgreSQL (CT107)
 
@@ -27,12 +27,14 @@
 - Cron (repo): `infra/config/cron/ct107-cerniq-pg-dump`
 
 Recomandare:
+
 - format custom (`-Fc`) pentru restore controlat
 - `--no-owner --no-privileges` pentru siguranta pe host shared
 
 ### 3.2 WAL archiving (PITR)
 
 WAL archiving trebuie sa fie activ pe CT107, cu director dedicat (PG18):
+
 - `/var/lib/postgresql/18/main/wal_archive/`
 
 Verificari:
@@ -67,6 +69,7 @@ psql -d cerniq -c "SELECT count(*) FROM information_schema.tables WHERE table_sc
 ## 6) OpenBao (orchestrator)
 
 OpenBao DR se trateaza pe orchestrator:
+
 - sealed/unseal
 - snapshot/raft restore (daca e configurat)
 
@@ -75,6 +78,7 @@ Vezi runbook: `docs/runbooks/openbao-recovery.md`.
 ## 7) Offsite (Borg/StorageBox) — status in plan
 
 Operatiile de init/verify sunt taskuri manuale (necesita credentiale):
+
 - `f4-01-borg-backup-init`
 - `f4-02-backup-verify`
 
@@ -84,4 +88,3 @@ Operatiile de init/verify sunt taskuri manuale (necesita credentiale):
 - OpenBao: `docs/runbooks/openbao-recovery.md`
 - Redis: `docs/runbooks/redis-failover.md`
 - Incident response: `docs/runbooks/incident-response.md`
-

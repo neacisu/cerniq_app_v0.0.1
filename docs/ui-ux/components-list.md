@@ -6,16 +6,16 @@ Această listă include componentele atomice (Shadcn/UI) și componentele molecu
 
 Acestea se regăsesc în `components/ui/*.tsx`.
 
-| Componentă | Descriere | Shadcn Original |
-| ---------- | --------- | --------------- |
-| `Button` | Buton standard cu variante (default, destructive, outline). | Yes |
-| `Input` | Câmp text simplu. | Yes |
-| `Select` | Dropdown nativ-like. | Yes |
-| `DataTable` | Tabel cu sortare, filtrare (TanStack Table). | Yes |
-| `Dialog` | Modal windows. | Yes |
-| `Toast` | Notificări efemere (Sonner). | Yes |
-| `Badge` | Etichete status (ex: "APPROVED"). | Yes |
-| `Calendar` | Date picker (Day.js integrat). | Yes |
+| Componentă  | Descriere                                                   | Shadcn Original |
+| ----------- | ----------------------------------------------------------- | --------------- |
+| `Button`    | Buton standard cu variante (default, destructive, outline). | Yes             |
+| `Input`     | Câmp text simplu.                                           | Yes             |
+| `Select`    | Dropdown nativ-like.                                        | Yes             |
+| `DataTable` | Tabel cu sortare, filtrare (TanStack Table).                | Yes             |
+| `Dialog`    | Modal windows.                                              | Yes             |
+| `Toast`     | Notificări efemere (Sonner).                                | Yes             |
+| `Badge`     | Etichete status (ex: "APPROVED").                           | Yes             |
+| `Calendar`  | Date picker (Day.js integrat).                              | Yes             |
 
 ## 2. Business Components (Molecular)
 

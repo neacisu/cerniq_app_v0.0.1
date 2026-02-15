@@ -76,4 +76,3 @@ Pentru a evita probleme de handshake intre VLAN/vSwitch si pentru a pastra inges
 
 - Dependenta de orchestrator (single control plane pentru observability).
 - Unele panouri/alerte avansate necesita metrici/exporters dedicate (ex: PgBouncer/Redis queue depths).
-

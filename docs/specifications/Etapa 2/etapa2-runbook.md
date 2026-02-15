@@ -104,7 +104,7 @@ curl -s http://localhost:64000/api/v1/outreach/analytics/daily | jq '
 
 # 3. Quota usage summary
 echo -e "\n[3/7] Quota Usage Summary:"
-curl -s http://localhost:64000/api/v1/outreach/phones | jq '[.phones[].quota.used] | add' 
+curl -s http://localhost:64000/api/v1/outreach/phones | jq '[.phones[].quota.used] | add'
 echo "/ 4000 total capacity used"
 
 # 4. Unresolved reviews (SLA risk)
@@ -205,7 +205,7 @@ curl -X POST http://localhost:64000/api/v1/outreach/phones/{phoneId}/reassign-le
 
 # 4. Or reassign leads via SQL (direct method)
 psql -U c3rn1q -c "
-  UPDATE gold_lead_journey 
+  UPDATE gold_lead_journey
   SET assigned_phone_id = NULL, assigned_at = NULL
   WHERE assigned_phone_id = '{phone_id}'
     AND current_state IN ('COLD', 'CONTACTED_WA')
@@ -291,9 +291,9 @@ done
 
 # 3. Check for incorrect quota consumption (follow-ups incorrectly counted as new)
 psql -U c3rn1q << EOF
-SELECT quota_cost, COUNT(*) 
-FROM gold_communication_log 
-WHERE DATE(sent_at) = CURRENT_DATE 
+SELECT quota_cost, COUNT(*)
+FROM gold_communication_log
+WHERE DATE(sent_at) = CURRENT_DATE
   AND channel = 'WHATSAPP'
 GROUP BY quota_cost;
 EOF
@@ -301,9 +301,9 @@ EOF
 # 4. Check for quota leak (bug) - compare DB vs Redis
 psql -U c3rn1q -c "
   SELECT phone_id, COUNT(*) as messages_today
-  FROM gold_communication_log 
-  WHERE created_at > CURRENT_DATE 
-    AND channel = 'WHATSAPP' 
+  FROM gold_communication_log
+  WHERE created_at > CURRENT_DATE
+    AND channel = 'WHATSAPP'
     AND quota_cost = 1
   GROUP BY phone_id
 "
@@ -335,7 +335,7 @@ grep quota /var/log/cron.log
 
 # 2. Verify quota:guardian:reset worker ran
 psql -U c3rn1q -c "
-  SELECT * FROM wa_quota_usage 
+  SELECT * FROM wa_quota_usage
   WHERE usage_date = '$(date -d 'yesterday' +%Y-%m-%d)'
 "
 
@@ -502,7 +502,7 @@ curl -s http://localhost:64000/api/v1/outreach/analytics/sla-performance
 # 2. Emergency assignment (if users available)
 psql -U c3rn1q -c "
   UPDATE human_review_queue
-  SET assigned_to = '{available_user_id}', 
+  SET assigned_to = '{available_user_id}',
       assigned_at = NOW(),
       status = 'ASSIGNED'
   WHERE status = 'PENDING'
@@ -560,8 +560,8 @@ curl -s http://localhost:64000/api/v1/outreach/analytics/bounces?limit=100 | jq 
 # 4. Identify bounced emails (database)
 psql -U c3rn1q -c "
   SELECT email, bounce_reason, COUNT(*)
-  FROM gold_communication_log 
-  WHERE status = 'BOUNCED' 
+  FROM gold_communication_log
+  WHERE status = 'BOUNCED'
     AND created_at > NOW() - INTERVAL '24 hours'
   GROUP BY email, bounce_reason
   ORDER BY COUNT(*) DESC
@@ -686,8 +686,8 @@ psql -U c3rn1q -c "SELECT COUNT(*) FROM gold_communication_log"
 # 4. Resync Redis quota counters from database
 psql -U c3rn1q -c "
   SELECT phone_id, COUNT(*) as count
-  FROM gold_communication_log 
-  WHERE quota_cost = 1 
+  FROM gold_communication_log
+  WHERE quota_cost = 1
     AND created_at > CURRENT_DATE
     AND channel = 'WHATSAPP'
   GROUP BY phone_id
@@ -712,8 +712,8 @@ docker compose restart redis
 # 2. Regenerate quota counters from database
 psql -U c3rn1q -c "
   SELECT phone_id, COUNT(*) as count
-  FROM gold_communication_log 
-  WHERE quota_cost = 1 
+  FROM gold_communication_log
+  WHERE quota_cost = 1
     AND created_at > CURRENT_DATE
     AND channel = 'WHATSAPP'
   GROUP BY phone_id
@@ -749,16 +749,16 @@ done
 
 ### 9.1 Alert Response Matrix
 
-| Alert | Severity | Response Time | Procedure |
-| ----- | -------- | ------------- | --------- |
-| `phone:offline` | HIGH | 15 min | Section 2.1 |
-| `phone:banned` | CRITICAL | Immediate | Section 2.2 |
-| `bounce:high` | HIGH | 30 min | Section 6.1 |
-| `sla:breach` | MEDIUM | 1 hour | Section 5.1 |
-| `quota:exhausted` | MEDIUM | 1 hour | Section 3.1 |
-| `dlq:overflow` | HIGH | 15 min | Section 4.2 |
-| `timelinesai:down` | CRITICAL | Immediate | Check vendor status |
-| `queue:backlog` | MEDIUM | 30 min | Section 4.1 |
+| Alert              | Severity | Response Time | Procedure           |
+| ------------------ | -------- | ------------- | ------------------- |
+| `phone:offline`    | HIGH     | 15 min        | Section 2.1         |
+| `phone:banned`     | CRITICAL | Immediate     | Section 2.2         |
+| `bounce:high`      | HIGH     | 30 min        | Section 6.1         |
+| `sla:breach`       | MEDIUM   | 1 hour        | Section 5.1         |
+| `quota:exhausted`  | MEDIUM   | 1 hour        | Section 3.1         |
+| `dlq:overflow`     | HIGH     | 15 min        | Section 4.2         |
+| `timelinesai:down` | CRITICAL | Immediate     | Check vendor status |
+| `queue:backlog`    | MEDIUM   | 30 min        | Section 4.1         |
 
 ### 9.2 Escalation Path
 
@@ -815,10 +815,10 @@ echo "=== Weekly Maintenance Complete ==="
 
 ## Document History
 
-| Versiune | Data | Modificări |
-| -------- | ---- | ---------- |
-| 1.0 | 15 Ianuarie 2026 | Versiune inițială (2 documente separate) |
-| 1.1 | 18 Ianuarie 2026 | Consolidare `etapa2-runbook.md` + `etapa2-runbook-operational.md` |
+| Versiune | Data             | Modificări                                                        |
+| -------- | ---------------- | ----------------------------------------------------------------- |
+| 1.0      | 15 Ianuarie 2026 | Versiune inițială (2 documente separate)                          |
+| 1.1      | 18 Ianuarie 2026 | Consolidare `etapa2-runbook.md` + `etapa2-runbook-operational.md` |
 
 ---
 

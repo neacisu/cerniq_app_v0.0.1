@@ -85,6 +85,7 @@ psql -d cerniq -c "SELECT extname FROM pg_extension ORDER BY 1;"
 ## 3) WAL archiving / PITR (Punctual)
 
 WAL archiving ruleaza pe `CT107`. Director tipic:
+
 - `/var/lib/postgresql/18/main/wal_archive/`
 
 Verificare rapida:
@@ -96,6 +97,7 @@ sudo ls -la /var/lib/postgresql/18/main/wal_archive/ | tail -n 10
 ```
 
 PITR este un procedeu avansat; se executa doar cu:
+
 - snapshot/basebackup compatibil + WAL-uri complete
 - fereastra tinta clara (timestamp) + plan de rollback
 
@@ -104,4 +106,3 @@ PITR este un procedeu avansat; se executa doar cu:
 - Nu rulam comenzi destructive “globale” care ar afecta alte baze de date de pe CT107.
 - Nu mutam secrete in repo si nu salvam parole in fisiere din repo.
 - Nu presupunem ca exista containere `postgres` pe CT109/CT110 (nu exista in infra noua).
-

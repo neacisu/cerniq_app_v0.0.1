@@ -13,12 +13,14 @@
 - Cron (repo): `infra/config/cron/ct107-cerniq-pg-dump`
 
 Principiu:
+
 - PostgreSQL ruleaza nativ pe CT107; nu exista container `cerniq-postgres` pe CT109/CT110.
 - Dump-urile se fac pe CT107, pentru DB-urile `cerniq` si `cerniq_staging`.
 
 ### 1.2 WAL archiving (PITR)
 
 Director tipic (PG18):
+
 - `/var/lib/postgresql/18/main/wal_archive/`
 
 Verificare:
@@ -52,6 +54,6 @@ Nu executa `FLUSHDB/FLUSHALL` in proceduri Etapa 0 fara aprobarea operatorului d
 ## 4) Offsite (Borg/StorageBox)
 
 Init/verify Borg repo sunt taskuri manuale in plan (necesita credentiale):
+
 - `f4-01-borg-backup-init`
 - `f4-02-backup-verify`
-

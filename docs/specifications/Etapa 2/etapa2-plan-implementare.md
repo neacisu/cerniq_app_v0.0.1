@@ -1,5 +1,7 @@
 # CERNIQ.APP — ETAPA 2: PLAN IMPLEMENTARE GRANULAR COMPLET
+
 ## Faze, Subfaze și Taskuri pentru Cold Outreach Multi-Canal
+
 ### Versiunea 1.1 | 2 Februarie 2026
 
 ---
@@ -21,12 +23,12 @@ Documentul `etapa2-sprint-plan.md` folosește formatul **Sprint (E2.Sx.PRx.xxx)*
 
 ### Matrice de Conversie
 
-| Faze | Sprint | PR Range | Nr. Tasks | Focus |
-|------|--------|----------|-----------|-------|
-| F2.1 - F2.4 | **E2.S1** | PR1-PR6 | 23 | Foundation & Integrations |
-| F2.5 - F2.8 | **E2.S2** | PR1-PR8 | 26 | Workers Core |
-| F2.9 - F2.14 | **E2.S3** | PR1-PR6 | 31 | Intelligence & HITL |
-| F2.15 - F2.20 | **E2.S4** | PR1-PR8 | 38 | Frontend & Testing |
+| Faze          | Sprint    | PR Range | Nr. Tasks | Focus                     |
+| ------------- | --------- | -------- | --------- | ------------------------- |
+| F2.1 - F2.4   | **E2.S1** | PR1-PR6  | 23        | Foundation & Integrations |
+| F2.5 - F2.8   | **E2.S2** | PR1-PR8  | 26        | Workers Core              |
+| F2.9 - F2.14  | **E2.S3** | PR1-PR6  | 31        | Intelligence & HITL       |
+| F2.15 - F2.20 | **E2.S4** | PR1-PR8  | 38        | Frontend & Testing        |
 
 ### Formula de Conversie
 
@@ -36,7 +38,7 @@ Sprint ID: E2.S{sprint}.PR{pr}.{xxx}
 
 Reguli:
 ├── F2.1 → F2.4   → E2.S1 (Sprint 1: Foundation)
-├── F2.5 → F2.8   → E2.S2 (Sprint 2: Workers)  
+├── F2.5 → F2.8   → E2.S2 (Sprint 2: Workers)
 ├── F2.9 → F2.14  → E2.S3 (Sprint 3: Intelligence)
 └── F2.15 → F2.20 → E2.S4 (Sprint 4: Frontend)
 
@@ -49,40 +51,40 @@ F2.15.1.T001 → E2.S4.PR1.001
 
 ### Cross-Reference
 
-| Document | Format Folosit | Locație |
-|----------|---------------|---------|
-| `etapa2-plan-implementare.md` | F2.x.x.Txxx | Acest document |
-| `etapa2-sprint-plan.md` | E2.Sx.PRx.xxx | `./etapa2-sprint-plan.md` |
-| `etapa2-api-endpoints.md` | Per module | `./etapa2-api-endpoints.md` |
-| `openapi-etapa2.yaml` | REST paths | `../../api/openapi-etapa2.yaml` |
+| Document                      | Format Folosit | Locație                         |
+| ----------------------------- | -------------- | ------------------------------- |
+| `etapa2-plan-implementare.md` | F2.x.x.Txxx    | Acest document                  |
+| `etapa2-sprint-plan.md`       | E2.Sx.PRx.xxx  | `./etapa2-sprint-plan.md`       |
+| `etapa2-api-endpoints.md`     | Per module     | `./etapa2-api-endpoints.md`     |
+| `openapi-etapa2.yaml`         | REST paths     | `../../api/openapi-etapa2.yaml` |
 
 ---
 
 ## CUPRINS FAZE
 
-| Fază | Denumire | Nr. Taskuri |
-|------|----------|-------------|
-| F2.1 | Database Schema Outreach | 8 |
-| F2.2 | TimelinesAI Integration | 6 |
-| F2.3 | Instantly.ai Integration | 5 |
-| F2.4 | Resend Integration | 4 |
-| F2.5 | Quota Guardian System | 6 |
-| F2.6 | Orchestration Workers | 6 |
-| F2.7 | WhatsApp Workers | 8 |
-| F2.8 | Email Workers | 6 |
-| F2.9 | Webhook Handlers | 6 |
-| F2.10 | Sequence Management | 5 |
-| F2.11 | Lead State Machine | 4 |
-| F2.12 | AI Sentiment Analysis | 5 |
-| F2.13 | Human Review System | 6 |
-| F2.14 | Monitoring & Alerts | 5 |
-| F2.15 | Frontend Dashboard | 8 |
-| F2.16 | Frontend Lead Management | 7 |
-| F2.17 | Frontend Review Queue | 5 |
-| F2.18 | API Endpoints | 8 |
-| F2.19 | Testing | 6 |
-| F2.20 | Documentation | 4 |
-| **TOTAL** | | **118 Taskuri** |
+| Fază      | Denumire                 | Nr. Taskuri     |
+| --------- | ------------------------ | --------------- |
+| F2.1      | Database Schema Outreach | 8               |
+| F2.2      | TimelinesAI Integration  | 6               |
+| F2.3      | Instantly.ai Integration | 5               |
+| F2.4      | Resend Integration       | 4               |
+| F2.5      | Quota Guardian System    | 6               |
+| F2.6      | Orchestration Workers    | 6               |
+| F2.7      | WhatsApp Workers         | 8               |
+| F2.8      | Email Workers            | 6               |
+| F2.9      | Webhook Handlers         | 6               |
+| F2.10     | Sequence Management      | 5               |
+| F2.11     | Lead State Machine       | 4               |
+| F2.12     | AI Sentiment Analysis    | 5               |
+| F2.13     | Human Review System      | 6               |
+| F2.14     | Monitoring & Alerts      | 5               |
+| F2.15     | Frontend Dashboard       | 8               |
+| F2.16     | Frontend Lead Management | 7               |
+| F2.17     | Frontend Review Queue    | 5               |
+| F2.18     | API Endpoints            | 8               |
+| F2.19     | Testing                  | 6               |
+| F2.20     | Documentation            | 4               |
+| **TOTAL** |                          | **118 Taskuri** |
 
 ---
 
@@ -90,7 +92,7 @@ F2.15.1.T001 → E2.S4.PR1.001
 
 ## F2.1.1 Gold Layer Extension
 
-```json
+````json
 {
   "taskID": "F2.1.1.T001",
   "denumire_task": "Creare enum types pentru Etapa 2 Outreach",
@@ -106,9 +108,9 @@ F2.15.1.T001 → E2.S4.PR1.001
   "validare_task": "1. Fișierul există și compilează fără erori\n2. Toate 7 enum types sunt definite\n3. pnpm drizzle-kit generate rulează cu succes\n4. Nu există conflicte de nume cu schema existentă",
   "outcome": "Enum types pentru Etapa 2 definite și gata pentru utilizare în tabele"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F2.1.1.T002",
   "denumire_task": "Creare tabel gold_lead_journey pentru state machine",
@@ -124,7 +126,7 @@ F2.15.1.T001 → E2.S4.PR1.001
   "validare_task": "1. Migrația compilează fără erori\n2. pnpm drizzle-kit push creează tabelul\n3. Index-urile sunt create corect\n4. Foreign keys sunt valide",
   "outcome": "Tabel gold_lead_journey creat cu toate coloanele și index-urile necesare"
 }
-```
+````
 
 ```json
 {

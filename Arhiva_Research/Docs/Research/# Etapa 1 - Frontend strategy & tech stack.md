@@ -12,10 +12,10 @@ React 19 introduces transformative features that fundamentally change how admin 
 // Server Component - zero JavaScript shipped to client
 export default async function DashboardPage() {
   const leads = await db.lead.findMany({
-    where: { status: 'qualified' },
-    include: { company: true, contacts: true }
+    where: { status: "qualified" },
+    include: { company: true, contacts: true },
   });
-  
+
   return (
     <Suspense fallback={<DashboardSkeleton />}>
       <LeadMetrics leads={leads} />
@@ -29,7 +29,7 @@ The **useOptimistic** hook provides instant UI feedback while async operations c
 ```tsx
 const [optimisticLeads, addOptimisticLead] = useOptimistic(
   leads,
-  (state, newLead) => [...state, { ...newLead, pending: true }]
+  (state, newLead) => [...state, { ...newLead, pending: true }],
 );
 ```
 
@@ -63,12 +63,12 @@ Released January 22, 2025, Tailwind v4's **Oxide engine** delivers **5x faster f
   --color-success: oklch(0.72 0.22 150);
   --color-warning: oklch(0.83 0.19 85);
   --color-error: oklch(0.64 0.24 25);
-  
+
   /* Dashboard-specific tokens */
   --spacing-sidebar: 16rem;
   --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.05);
   --radius-dashboard: 0.5rem;
-  
+
   /* Typography for enterprise interfaces */
   --font-display: "Inter", system-ui, sans-serif;
 }
@@ -108,7 +108,7 @@ const { data, isLoading } = useList({
   sorters: [{ field: "enrichmentScore", order: "desc" }],
   filters: [
     { field: "tier", operator: "eq", value: "gold" },
-    { field: "region", operator: "contains", value: "Transilvania" }
+    { field: "region", operator: "contains", value: "Transilvania" },
   ],
   liveMode: "auto", // Real-time WebSocket updates
 });
@@ -143,8 +143,8 @@ const { ...form } = useForm({
   resolver: zodResolver(leadSchema),
   refineCoreProps: {
     redirect: "list",
-    autoSave: { enabled: true, debounce: 1000 }
-  }
+    autoSave: { enabled: true, debounce: 1000 },
+  },
 });
 ```
 
@@ -163,9 +163,7 @@ The recommended stack combines **shadcn/ui** (October 2025 added `Field`, `Item`
       <Separator orientation="vertical" className="h-4" />
       <Breadcrumb>...</Breadcrumb>
     </header>
-    <main className="flex flex-1 flex-col gap-4 p-6">
-      {children}
-    </main>
+    <main className="flex flex-1 flex-col gap-4 p-6">{children}</main>
   </SidebarInset>
 </SidebarProvider>
 ```
@@ -179,8 +177,8 @@ The recommended stack combines **shadcn/ui** (October 2025 added `Field`, `Item`
   <AreaChart
     data={revenueData}
     index="month"
-    categories={['Revenue', 'Target']}
-    colors={['emerald', 'gray']}
+    categories={["Revenue", "Target"]}
+    colors={["emerald", "gray"]}
     valueFormatter={(v) => `${v.toLocaleString()} RON`}
   />
 </Card>
@@ -190,13 +188,20 @@ The recommended stack combines **shadcn/ui** (October 2025 added `Field`, `Item`
 
 ```tsx
 <DndContext onDragEnd={handleDragEnd}>
-  {['prospecting', 'qualified', 'proposal', 'negotiation', 'closed'].map(stage => (
-    <DroppableColumn key={stage} id={stage}>
-      <SortableContext items={deals[stage]} strategy={verticalListSortingStrategy}>
-        {deals[stage].map(deal => <DraggableDealCard key={deal.id} deal={deal} />)}
-      </SortableContext>
-    </DroppableColumn>
-  ))}
+  {["prospecting", "qualified", "proposal", "negotiation", "closed"].map(
+    (stage) => (
+      <DroppableColumn key={stage} id={stage}>
+        <SortableContext
+          items={deals[stage]}
+          strategy={verticalListSortingStrategy}
+        >
+          {deals[stage].map((deal) => (
+            <DraggableDealCard key={deal.id} deal={deal} />
+          ))}
+        </SortableContext>
+      </DroppableColumn>
+    ),
+  )}
 </DndContext>
 ```
 
@@ -208,22 +213,22 @@ For Cerniq.app's contact enrichment pipeline (similar to Apollo.io, ZoomInfo), i
 
 ```tsx
 const EnrichmentStages = [
-  { key: 'validate', label: 'Validating Data' },
-  { key: 'dedupe', label: 'Deduplication' },
-  { key: 'enrich', label: 'Enriching Contacts' },
-  { key: 'verify', label: 'Verification' },
-  { key: 'export', label: 'Export Ready' }
+  { key: "validate", label: "Validating Data" },
+  { key: "dedupe", label: "Deduplication" },
+  { key: "enrich", label: "Enriching Contacts" },
+  { key: "verify", label: "Verification" },
+  { key: "export", label: "Export Ready" },
 ];
 
 <Steps current={currentStage}>
-  {EnrichmentStages.map(stage => (
-    <Step 
-      key={stage.key} 
+  {EnrichmentStages.map((stage) => (
+    <Step
+      key={stage.key}
       title={stage.label}
       status={getStageStatus(stage.key)}
     />
   ))}
-</Steps>
+</Steps>;
 ```
 
 ### Queue monitoring with Bull-Board patterns
@@ -236,12 +241,12 @@ Display essential metrics: **waiting**, **active**, **completed**, **failed**, *
 
 ```tsx
 const { lastJsonMessage, readyState } = useWebSocket(
-  'wss://api.cerniq.app/queue-updates',
+  "wss://api.cerniq.app/queue-updates",
   {
     shouldReconnect: () => true,
     reconnectAttempts: 10,
     share: true, // Singleton connection
-  }
+  },
 );
 ```
 
@@ -250,8 +255,8 @@ Integrate with TanStack Query for cache invalidation on real-time events:
 ```tsx
 socket.onmessage = (event) => {
   const { type, payload } = JSON.parse(event.data);
-  if (type === 'CONTACT_ENRICHED') {
-    queryClient.setQueryData(['contacts', payload.id], payload);
+  if (type === "CONTACT_ENRICHED") {
+    queryClient.setQueryData(["contacts", payload.id], payload);
   }
 };
 ```
@@ -262,11 +267,11 @@ socket.onmessage = (event) => {
 
 Implement tiered scoring with visual indicators combining color and iconography (never color alone for accessibility):
 
-| Tier | Threshold | Indicator | Meaning |
-|------|-----------|-----------|---------|
-| Bronze | 0-40 | 🥉 + orange badge | Basic data, needs enrichment |
-| Silver | 41-70 | 🥈 + blue badge | Partial enrichment, moderate confidence |
-| Gold | 71-100 | 🥇 + green badge | Full enrichment, high confidence |
+| Tier   | Threshold | Indicator         | Meaning                                 |
+| ------ | --------- | ----------------- | --------------------------------------- |
+| Bronze | 0-40      | 🥉 + orange badge | Basic data, needs enrichment            |
+| Silver | 41-70     | 🥈 + blue badge   | Partial enrichment, moderate confidence |
+| Gold   | 71-100    | 🥇 + green badge  | Full enrichment, high confidence        |
 
 Display tier prominently in contact card headers with drill-down capability showing scoring breakdown: "Visited pricing page 3x," "Job title matches ICP," "Company in target region."
 
@@ -278,7 +283,9 @@ Display tier prominently in contact card headers with drill-down capability show
     <Avatar src={contact.photo} fallback={contact.initials} />
     <div>
       <h3>{contact.name}</h3>
-      <p>{contact.title} at {contact.company}</p>
+      <p>
+        {contact.title} at {contact.company}
+      </p>
     </div>
     <TierBadge tier={contact.tier} score={contact.enrichmentScore} />
   </CardHeader>
@@ -288,7 +295,10 @@ Display tier prominently in contact card headers with drill-down capability show
       <EmailButton email={contact.email} />
       <AddNoteButton contactId={contact.id} />
     </QuickActions>
-    <EnrichmentStatus status={contact.enrichmentStatus} lastUpdated={contact.lastEnriched} />
+    <EnrichmentStatus
+      status={contact.enrichmentStatus}
+      lastUpdated={contact.lastEnriched}
+    />
   </CardContent>
 </Card>
 ```
@@ -310,12 +320,19 @@ Display tier prominently in contact card headers with drill-down capability show
     <SelectFilter field="region" options={romanianRegions} />
   </FilterGroup>
   <FilterGroup label="Enrichment">
-    <SelectFilter field="tier" options={['bronze', 'silver', 'gold']} />
-    <SelectFilter field="enrichmentStatus" options={['verified', 'pending', 'failed']} />
+    <SelectFilter field="tier" options={["bronze", "silver", "gold"]} />
+    <SelectFilter
+      field="enrichmentStatus"
+      options={["verified", "pending", "failed"]}
+    />
     <RangeFilter field="enrichmentScore" min={0} max={100} />
   </FilterGroup>
   <SavedViewsDropdown views={userSavedViews} onApply={applyView} />
-  <ActiveFilters chips={activeFilters} onClear={clearFilter} onClearAll={clearAll} />
+  <ActiveFilters
+    chips={activeFilters}
+    onClear={clearFilter}
+    onClearAll={clearAll}
+  />
 </FilterBar>
 ```
 
@@ -324,24 +341,36 @@ Display tier prominently in contact card headers with drill-down capability show
 Implement checkbox-based selection with contextual action bar appearing on selection:
 
 ```tsx
-{selectedCount > 0 && (
-  <BulkActionBar>
-    <span>{selectedCount} selected</span>
-    <Button variant="outline" onClick={bulkEnrich}>Enrich</Button>
-    <Button variant="outline" onClick={bulkAssign}>Assign</Button>
-    <Button variant="outline" onClick={bulkExport}>Export</Button>
-    <AlertDialog trigger={<Button variant="destructive">Delete</Button>}>
-      <AlertDialogContent>
-        <AlertDialogTitle>Delete {selectedCount} contacts?</AlertDialogTitle>
-        <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={bulkDelete}>Confirm Delete</AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  </BulkActionBar>
-)}
+{
+  selectedCount > 0 && (
+    <BulkActionBar>
+      <span>{selectedCount} selected</span>
+      <Button variant="outline" onClick={bulkEnrich}>
+        Enrich
+      </Button>
+      <Button variant="outline" onClick={bulkAssign}>
+        Assign
+      </Button>
+      <Button variant="outline" onClick={bulkExport}>
+        Export
+      </Button>
+      <AlertDialog trigger={<Button variant="destructive">Delete</Button>}>
+        <AlertDialogContent>
+          <AlertDialogTitle>Delete {selectedCount} contacts?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This action cannot be undone.
+          </AlertDialogDescription>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={bulkDelete}>
+              Confirm Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </BulkActionBar>
+  );
+}
 ```
 
 ## Accessibility compliance for WCAG 2.2
@@ -365,10 +394,18 @@ function DashboardToolbar({ items }) {
   const handleKeyDown = (e, index) => {
     let newIndex = index;
     switch (e.key) {
-      case 'ArrowRight': newIndex = (index + 1) % items.length; break;
-      case 'ArrowLeft': newIndex = (index - 1 + items.length) % items.length; break;
-      case 'Home': newIndex = 0; break;
-      case 'End': newIndex = items.length - 1; break;
+      case "ArrowRight":
+        newIndex = (index + 1) % items.length;
+        break;
+      case "ArrowLeft":
+        newIndex = (index - 1 + items.length) % items.length;
+        break;
+      case "Home":
+        newIndex = 0;
+        break;
+      case "End":
+        newIndex = items.length - 1;
+        break;
     }
     setActiveIndex(newIndex);
     itemsRef.current[newIndex]?.focus();
@@ -379,7 +416,7 @@ function DashboardToolbar({ items }) {
       {items.map((item, index) => (
         <button
           key={item.id}
-          ref={el => itemsRef.current[index] = el}
+          ref={(el) => (itemsRef.current[index] = el)}
           tabIndex={index === activeIndex ? 0 : -1}
           onKeyDown={(e) => handleKeyDown(e, index)}
         >
@@ -395,7 +432,9 @@ function DashboardToolbar({ items }) {
 
 ```tsx
 <div role="status" aria-live="polite" aria-atomic="false">
-  {notifications.map(n => <p key={n.id}>{n.message}</p>)}
+  {notifications.map((n) => (
+    <p key={n.id}>{n.message}</p>
+  ))}
 </div>
 ```
 
@@ -405,11 +444,11 @@ Use **React Aria** library for complex components (dialogs, menus, tables) with 
 
 ### Core Web Vitals targets (2025)
 
-| Metric | Target | Implementation |
-|--------|--------|----------------|
-| LCP | ≤2.5s | Priority loading for hero content, image optimization |
-| INP | ≤200ms | React Compiler, optimistic updates, code splitting |
-| CLS | ≤0.1 | Skeleton screens, reserved dimensions for async content |
+| Metric | Target | Implementation                                          |
+| ------ | ------ | ------------------------------------------------------- |
+| LCP    | ≤2.5s  | Priority loading for hero content, image optimization   |
+| INP    | ≤200ms | React Compiler, optimistic updates, code splitting      |
+| CLS    | ≤0.1   | Skeleton screens, reserved dimensions for async content |
 
 ### Virtual scrolling for large contact lists
 
@@ -423,32 +462,34 @@ const rowVirtualizer = useVirtualizer({
   overscan: 10,
 });
 
-{rowVirtualizer.getVirtualItems().map((virtualRow) => (
-  <div
-    key={virtualRow.key}
-    style={{
-      position: 'absolute',
-      top: 0,
-      transform: `translateY(${virtualRow.start}px)`,
-      height: `${virtualRow.size}px`,
-    }}
-  >
-    <ContactRow contact={contacts[virtualRow.index]} />
-  </div>
-))}
+{
+  rowVirtualizer.getVirtualItems().map((virtualRow) => (
+    <div
+      key={virtualRow.key}
+      style={{
+        position: "absolute",
+        top: 0,
+        transform: `translateY(${virtualRow.start}px)`,
+        height: `${virtualRow.size}px`,
+      }}
+    >
+      <ContactRow contact={contacts[virtualRow.index]} />
+    </div>
+  ));
+}
 ```
 
 ### Code splitting strategy
 
 ```tsx
 // Route-based splitting
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const Analytics = lazy(() => import('./pages/Analytics'));
-const Pipeline = lazy(() => import('./pages/Pipeline'));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Analytics = lazy(() => import("./pages/Analytics"));
+const Pipeline = lazy(() => import("./pages/Pipeline"));
 
 // Component-based splitting for heavy features
-const ChartLibrary = lazy(() => import('./components/Charts'));
-const RichTextEditor = lazy(() => import('./components/Editor'));
+const ChartLibrary = lazy(() => import("./components/Charts"));
+const RichTextEditor = lazy(() => import("./components/Editor"));
 ```
 
 ### Optimistic updates with TanStack Query
@@ -457,17 +498,17 @@ const RichTextEditor = lazy(() => import('./components/Editor'));
 const updateContact = useMutation({
   mutationFn: updateContactAPI,
   onMutate: async (newData) => {
-    await queryClient.cancelQueries(['contacts']);
-    const previous = queryClient.getQueryData(['contacts']);
-    queryClient.setQueryData(['contacts'], old =>
-      old.map(c => c.id === newData.id ? { ...c, ...newData } : c)
+    await queryClient.cancelQueries(["contacts"]);
+    const previous = queryClient.getQueryData(["contacts"]);
+    queryClient.setQueryData(["contacts"], (old) =>
+      old.map((c) => (c.id === newData.id ? { ...c, ...newData } : c)),
     );
     return { previous };
   },
   onError: (err, variables, context) => {
-    queryClient.setQueryData(['contacts'], context.previous);
+    queryClient.setQueryData(["contacts"], context.previous);
   },
-  onSettled: () => queryClient.invalidateQueries(['contacts']),
+  onSettled: () => queryClient.invalidateQueries(["contacts"]),
 });
 ```
 
@@ -500,24 +541,24 @@ Frontend Architecture:
 @theme {
   /* Scale - consistent spacing */
   --spacing: 0.25rem;
-  
+
   /* Colors - semantic naming */
   --color-background: oklch(0.99 0 0);
   --color-foreground: oklch(0.15 0.02 260);
   --color-primary: oklch(0.55 0.24 263);
   --color-muted: oklch(0.96 0.003 265);
-  --color-border: oklch(0.90 0.01 265);
-  
+  --color-border: oklch(0.9 0.01 265);
+
   /* Status colors */
   --color-success: oklch(0.72 0.22 150);
   --color-warning: oklch(0.83 0.19 85);
   --color-error: oklch(0.64 0.24 25);
-  
+
   /* Tier colors for enrichment */
   --color-tier-bronze: oklch(0.65 0.12 55);
   --color-tier-silver: oklch(0.75 0.03 255);
   --color-tier-gold: oklch(0.78 0.15 85);
-  
+
   /* Layout */
   --sidebar-width: 240px;
   --header-height: 56px;

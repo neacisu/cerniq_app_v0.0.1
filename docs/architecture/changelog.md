@@ -75,11 +75,9 @@
 - **Initial Architecture:**
   - Vertical Slice + Medallion Data Architecture
   - Specificații Etapele 1-5 (Enrichment, Outreach, AI Sales, Post-Sale, Nurturing)
-  
 - **Infrastructure:**
   - Docker Compose cu PostgreSQL 18.1, Redis 8.4.0 (observability ulterior migrat pe stack centralizat)
   - Hetzner bare-metal deployment plan
-  
 - **Frontend:**
   - React 19 + Tailwind CSS v4 + Refine v5
   - TanStack Query + Router
@@ -93,11 +91,11 @@
 
 ## ADR-uri Asociate
 
-| Changelog Entry | ADR Reference |
-| --------------- | ------------- |
-| Medallion Architecture | [ADR-0033](../adr/ADR%20Etapa%201/ADR-0033-Arhitectura-Medallion-Bronze-Silver-Gold.md) |
-| BullMQ Workers | [ADR-0006](../adr/ADR%20Etapa%200/ADR-0006-Redis-8-4-0-cu-BullMQ-v5.md) |
-| Multi-tenant RLS | [ADR-0005](../adr/ADR%20Etapa%200/ADR-0005-Row-Level-Security-pentru-Multi-Tenancy.md) |
+| Changelog Entry             | ADR Reference                                                                                     |
+| --------------------------- | ------------------------------------------------------------------------------------------------- |
+| Medallion Architecture      | [ADR-0033](../adr/ADR%20Etapa%201/ADR-0033-Arhitectura-Medallion-Bronze-Silver-Gold.md)           |
+| BullMQ Workers              | [ADR-0006](../adr/ADR%20Etapa%200/ADR-0006-Redis-8-4-0-cu-BullMQ-v5.md)                           |
+| Multi-tenant RLS            | [ADR-0005](../adr/ADR%20Etapa%200/ADR-0005-Row-Level-Security-pentru-Multi-Tenancy.md)            |
 | Observability (centralizat) | [ADR-E0-0034](../adr/ADR%20Etapa%200/ADR-E0-0034-Centralized-Observability-Stack-Orchestrator.md) |
 
 ---

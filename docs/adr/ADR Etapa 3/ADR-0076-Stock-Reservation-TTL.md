@@ -6,11 +6,11 @@
 
 **Decision:** **Rezervare temporară** cu TTL (Time-To-Live):
 
-| Stage | TTL |
-|-------|-----|
-| PROPOSAL | 30 min |
-| NEGOTIATION | 2 ore |
-| CLOSING | 24 ore |
+| Stage       | TTL    |
+| ----------- | ------ |
+| PROPOSAL    | 30 min |
+| NEGOTIATION | 2 ore  |
+| CLOSING     | 24 ore |
 
 **Implementation:**
 

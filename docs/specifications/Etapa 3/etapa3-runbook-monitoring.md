@@ -73,4 +73,3 @@ docker compose -f /var/www/CerniqAPP/infra/docker/docker-compose.yml ps
 docker compose -f /var/www/CerniqAPP/infra/docker/docker-compose.yml logs --tail=100 vector
 docker compose -f /var/www/CerniqAPP/infra/docker/docker-compose.yml logs --tail=100 otel-collector
 ```
-

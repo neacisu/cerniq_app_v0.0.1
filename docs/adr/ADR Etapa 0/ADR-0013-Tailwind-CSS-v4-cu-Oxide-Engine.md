@@ -33,15 +33,15 @@ Utilizăm **Tailwind CSS v4.1** cu **Oxide engine** (Rust).
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #0066CC;
-  --color-secondary: #6B7280;
-  --color-success: #10B981;
-  --color-warning: #F59E0B;
-  --color-error: #EF4444;
-  --color-surface: #F9FAFB;
+  --color-primary: #0066cc;
+  --color-secondary: #6b7280;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+  --color-surface: #f9fafb;
   --color-surface-dark: #111827;
-  
-  --font-sans: 'Inter', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
 }
 ```

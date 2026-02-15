@@ -8,14 +8,14 @@
 
 ## SCENARII CHAOS
 
-| Scenario | Target | Durata | Impact Așteptat |
-| -------- | ------ | ------ | --------------- |
-| Redis Kill | redis container | 30s | Queue stall, graceful recovery |
-| PostgreSQL Kill | postgres container | 30s | API 503, reconnect |
-| Network Delay | api container | 60s | Latency spike, no errors |
-| Network Loss | workers containers | 60s | Job retries, no data loss |
-| Memory Pressure | api container | 120s | OOM handling |
-| Disk Full | postgres volume | 60s | Write failures, alerts |
+| Scenario        | Target             | Durata | Impact Așteptat                |
+| --------------- | ------------------ | ------ | ------------------------------ |
+| Redis Kill      | redis container    | 30s    | Queue stall, graceful recovery |
+| PostgreSQL Kill | postgres container | 30s    | API 503, reconnect             |
+| Network Delay   | api container      | 60s    | Latency spike, no errors       |
+| Network Loss    | workers containers | 60s    | Job retries, no data loss      |
+| Memory Pressure | api container      | 120s   | OOM handling                   |
+| Disk Full       | postgres volume    | 60s    | Write failures, alerts         |
 
 ---
 
@@ -24,32 +24,32 @@
 ### Redis Failure Recovery
 
 ```typescript
-describe('Redis Failure', () => {
-  it('should recover after Redis restart', async () => {
+describe("Redis Failure", () => {
+  it("should recover after Redis restart", async () => {
     // Add jobs to queue
     for (let i = 0; i < 100; i++) {
-      await queue.add('test', { id: i });
+      await queue.add("test", { id: i });
     }
-    
+
     // Kill Redis
-    await exec('docker kill cerniq-redis');
-    
+    await exec("docker kill cerniq-redis");
+
     // Wait 5 seconds
     await sleep(5000);
-    
+
     // API should return 503 for queue operations
-    const response = await api.post('/api/v1/import/start');
+    const response = await api.post("/api/v1/import/start");
     expect(response.status).toBe(503);
-    
+
     // Restart Redis
-    await exec('docker start cerniq-redis');
+    await exec("docker start cerniq-redis");
     await sleep(10000);
-    
+
     // Should recover
-    const healthResponse = await api.get('/health');
+    const healthResponse = await api.get("/health");
     expect(healthResponse.status).toBe(200);
-    expect(healthResponse.body.components.redis).toBe('healthy');
-    
+    expect(healthResponse.body.components.redis).toBe("healthy");
+
     // Jobs should still be in queue
     const jobCount = await queue.count();
     expect(jobCount).toBe(100);
@@ -60,29 +60,34 @@ describe('Redis Failure', () => {
 ### Database Connectivity Failure (PgBouncer)
 
 ```typescript
-describe('Database Failure (via PgBouncer)', () => {
-  it('should handle connection pool exhaustion', async () => {
+describe("Database Failure (via PgBouncer)", () => {
+  it("should handle connection pool exhaustion", async () => {
     // In infra noua nu exista container `cerniq-postgres`.
     // Simulam indisponibilitatea DB prin oprirea PgBouncer.
-    await exec('docker pause cerniq-pgbouncer');
-    
+    await exec("docker pause cerniq-pgbouncer");
+
     // API calls should timeout, not crash
     const promises = Array.from({ length: 50 }, () =>
-      api.get('/api/v1/companies').timeout(5000).catch(e => e)
+      api
+        .get("/api/v1/companies")
+        .timeout(5000)
+        .catch((e) => e),
     );
-    
+
     const results = await Promise.all(promises);
-    
+
     // Should timeout, not crash
-    expect(results.every(r => r.status === 408 || r.code === 'ETIMEDOUT')).toBe(true);
-    
+    expect(
+      results.every((r) => r.status === 408 || r.code === "ETIMEDOUT"),
+    ).toBe(true);
+
     // Unpause
-    await exec('docker unpause cerniq-pgbouncer');
+    await exec("docker unpause cerniq-pgbouncer");
     await sleep(5000);
-    
+
     // Should recover
-    const response = await api.get('/health');
-    expect(response.body.components.database).toBe('healthy');
+    const response = await api.get("/health");
+    expect(response.body.components.database).toBe("healthy");
   }, 30000);
 });
 ```
@@ -107,22 +112,24 @@ services:
 ```
 
 ```typescript
-describe('Network Delay', () => {
-  it('should handle 500ms latency spike', async () => {
+describe("Network Delay", () => {
+  it("should handle 500ms latency spike", async () => {
     // Start chaos
-    await exec('docker compose -f docker-compose.chaos.yml up -d chaos-network-delay');
-    
+    await exec(
+      "docker compose -f docker-compose.chaos.yml up -d chaos-network-delay",
+    );
+
     const start = Date.now();
-    const response = await api.get('/api/v1/companies');
+    const response = await api.get("/api/v1/companies");
     const duration = Date.now() - start;
-    
+
     // Should complete but be slow
     expect(response.status).toBe(200);
     expect(duration).toBeGreaterThan(500);
     expect(duration).toBeLessThan(10000);
-    
+
     // Stop chaos
-    await exec('docker compose -f docker-compose.chaos.yml down');
+    await exec("docker compose -f docker-compose.chaos.yml down");
   }, 120000);
 });
 ```

@@ -6,6 +6,7 @@
 ## 1) Scop
 
 Worker-ul J defineste mecanismul de handover (agent -> om) pentru cazuri HITL:
+
 - creare task de handover (cine, de ce, context minim)
 - notificare in canal dedicat
 - urmarire status (pending/ack/resolved)
@@ -19,6 +20,7 @@ Worker-ul J defineste mecanismul de handover (agent -> om) pentru cazuri HITL:
 ## 3) Contract (minimal)
 
 Payload recomandat:
+
 - `tenantId`, `conversationId`, `reason`, `severity`
 - `summary` (fara PII sensibila)
 - `links` (ex: UI admin pentru task)
@@ -28,4 +30,3 @@ Payload recomandat:
 - loguri structurate (Loki)
 - metrics (Prometheus): handover created/closed, backlog
 - traces (Tempo) cand e instrumentat
-

@@ -6,10 +6,10 @@
 
 **Decision:** **Semantic Chunking** cu:
 
-| Parameter | Value |
-| --------- | ----- |
-| Chunk size | 500-800 tokens (target 600) |
-| Overlap | 100 tokens |
+| Parameter  | Value                                        |
+| ---------- | -------------------------------------------- |
+| Chunk size | 500-800 tokens (target 600)                  |
+| Overlap    | 100 tokens                                   |
 | Separators | `\\n##`, `\\n###`, `\\n\\n`, `\\n`, `.`, ` ` |
 
 **Text Structure:**

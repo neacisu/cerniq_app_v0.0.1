@@ -130,19 +130,19 @@ docs/
 >
 > Mai jos este un sumar high-level. Pentru development, consultați întotdeauna Master Spec.
 
-| Componentă       | Rol                                     |
-|------------------|-----------------------------------------|
-| **Node.js**      | Runtime API principal (LTS)             |
-| **Python**       | Workers AI/ML (Free-Threading supported)|
-| **PostgreSQL**   | Database principal + pgvector + PostGIS |
-| **Redis**        | Queue management & Caching              |
-| **Fastify**      | Framework API de înaltă performanță     |
-| **React**        | Frontend application (Server Components)|
-| **Tailwind CSS** | Styling utility-first (Oxide engine)    |
-| **Refine**       | Admin framework headless                |
-| **Docker**       | Containerization & Orchestration        |
-| **Traefik**      | Edge Router & SSL Termination           |
-| **Grafana/Loki/Tempo** | Observability (OpenTelemetry)     |
+| Componentă             | Rol                                      |
+| ---------------------- | ---------------------------------------- |
+| **Node.js**            | Runtime API principal (LTS)              |
+| **Python**             | Workers AI/ML (Free-Threading supported) |
+| **PostgreSQL**         | Database principal + pgvector + PostGIS  |
+| **Redis**              | Queue management & Caching               |
+| **Fastify**            | Framework API de înaltă performanță      |
+| **React**              | Frontend application (Server Components) |
+| **Tailwind CSS**       | Styling utility-first (Oxide engine)     |
+| **Refine**             | Admin framework headless                 |
+| **Docker**             | Containerization & Orchestration         |
+| **Traefik**            | Edge Router & SSL Termination            |
+| **Grafana/Loki/Tempo** | Observability (OpenTelemetry)            |
 
 ### Arhitectura Medallion (Bronze → Silver → Gold)
 
@@ -166,13 +166,13 @@ docs/
 
 ### Cele 5 Etape ale Pipeline-ului
 
-| Etapă  | Denumire        | Focus                                | Service      |
-|--------|-----------------|--------------------------------------|--------------|
-| **E1** | Data Enrichment | Bronze→Silver→Gold transformation    | Worker E1    |
-| **E2** | Cold Outreach   | Multi-canal (WhatsApp 20x + Email)   | Worker E2    |
-| **E3** | AI Sales        | Negociere autonomă, MCP, e-Factura   | Worker E3    |
-| **E4** | Post-Sale       | Cash flow, credit scoring, logistică | Worker E4    |
-| **E5** | Nurturing       | PostGIS proximity, graf social, OUAI | Worker E5    |
+| Etapă  | Denumire        | Focus                                | Service   |
+| ------ | --------------- | ------------------------------------ | --------- |
+| **E1** | Data Enrichment | Bronze→Silver→Gold transformation    | Worker E1 |
+| **E2** | Cold Outreach   | Multi-canal (WhatsApp 20x + Email)   | Worker E2 |
+| **E3** | AI Sales        | Negociere autonomă, MCP, e-Factura   | Worker E3 |
+| **E4** | Post-Sale       | Cash flow, credit scoring, logistică | Worker E4 |
+| **E5** | Nurturing       | PostGIS proximity, graf social, OUAI | Worker E5 |
 
 > **Total: 5 Monolithic Python Services** (handling all 300+ queues internally) - Updated 2026-01-20
 
@@ -183,7 +183,7 @@ docs/
 ### Glossar Rapid
 
 | Termen             | Definiție                                                              |
-|--------------------|------------------------------------------------------------------------|
+| ------------------ | ---------------------------------------------------------------------- |
 | **Golden Contact** | Contact complet îmbogățit, validat pe multiple axe, ready-for-outreach |
 | **HITL**           | Human-in-the-Loop — sistem de aprobare manuală transversal             |
 | **Medallion**      | Arhitectură date în 3 straturi: Bronze → Silver → Gold                 |
@@ -238,18 +238,18 @@ COLD → CONTACTED_WA → WARM_REPLY → NEGOTIATION → PROPOSAL → CLOSING �
 
 ### Surse de Date
 
-| Sursă          | Tip          | Date Obținute                    |
-|----------------|--------------|----------------------------------|
-| **ANAF API**   | Gratuit      | CUI, TVA, e-Factura status, CAEN |
-| **Termene.ro** | Plătit       | Bilanțuri, scoring risc, dosare  |
-| **APIA/MADR**  | [REMOVED]    | [REMOVED] per Risk R-017         |
-| **Hunter.io**  | Plătit       | Email discovery                  |
-| **ZeroBounce** | Plătit       | Email verification               |
+| Sursă          | Tip       | Date Obținute                    |
+| -------------- | --------- | -------------------------------- |
+| **ANAF API**   | Gratuit   | CUI, TVA, e-Factura status, CAEN |
+| **Termene.ro** | Plătit    | Bilanțuri, scoring risc, dosare  |
+| **APIA/MADR**  | [REMOVED] | [REMOVED] per Risk R-017         |
+| **Hunter.io**  | Plătit    | Email discovery                  |
+| **ZeroBounce** | Plătit    | Email verification               |
 
 ### Integrări Operaționale
 
 | Serviciu             | Rol                  | Rate Limit                |
-|----------------------|----------------------|---------------------------|
+| -------------------- | -------------------- | ------------------------- |
 | **TimelinesAI**      | WhatsApp (20 numere) | 200 contacte NOI/zi/număr |
 | **Instantly.ai**     | Email cold outreach  | Unlimited (warmup)        |
 | **Resend**           | Email transacțional  | 100/sec                   |
@@ -282,28 +282,28 @@ COLD → CONTACTED_WA → WARM_REPLY → NEGOTIATION → PROPOSAL → CLOSING �
 ### Documente Normative (Internal)
 
 | Document                                                              | Status      | Rol                    |
-|-----------------------------------------------------------------------|-------------|------------------------|
+| --------------------------------------------------------------------- | ----------- | ---------------------- |
 | [`master-specification.md`](./specifications/master-specification.md) | ✅ NORMATIV | Single Source of Truth |
 | [`hitl-unified-system.md`](./specifications/hitl-unified-system.md)   | ✅ NORMATIV | HITL transversal       |
 
 ### Documente Strategie & Workers (per Etapă)
 
-| Etapă       | Index Complet (Inventar)                                                | Overview Specifications                                                                 |
-|-------------|-------------------------------------------------------------------------|-----------------------------------------------------------------------------------------|
-| **Etapa 1** | [`00-INDEX-ETAPA1.md`](./specifications/Etapa%201/00-INDEX-ETAPA1.md)   | [`etapa1-workers-overview.md`](./specifications/Etapa%201/etapa1-workers-overview.md)   |
-| **Etapa 2** | [`00-INDEX-ETAPA2.md`](./specifications/Etapa%202/00-INDEX-ETAPA2.md)   | [`etapa2-workers-overview.md`](./specifications/Etapa%202/etapa2-workers-overview.md)   |
-| **Etapa 3** | [`00-INDEX-ETAPA3.md`](./specifications/Etapa%203/00-INDEX-ETAPA3.md)   | [`etapa3-workers-overview.md`](./specifications/Etapa%203/etapa3-workers-overview.md)   |
-| **Etapa 4** | [`00-INDEX-ETAPA4.md`](./specifications/Etapa%204/00-INDEX-ETAPA4.md)   | [`etapa4-workers-overview.md`](./specifications/Etapa%204/etapa4-workers-overview.md)   |
-| **Etapa 5** | [`00-INDEX-ETAPA5.md`](./specifications/Etapa%205/00-INDEX-ETAPA5.md)   | [`etapa5-workers-overview.md`](./specifications/Etapa%205/etapa5-workers-overview.md)   |
+| Etapă       | Index Complet (Inventar)                                              | Overview Specifications                                                               |
+| ----------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| **Etapa 1** | [`00-INDEX-ETAPA1.md`](./specifications/Etapa%201/00-INDEX-ETAPA1.md) | [`etapa1-workers-overview.md`](./specifications/Etapa%201/etapa1-workers-overview.md) |
+| **Etapa 2** | [`00-INDEX-ETAPA2.md`](./specifications/Etapa%202/00-INDEX-ETAPA2.md) | [`etapa2-workers-overview.md`](./specifications/Etapa%202/etapa2-workers-overview.md) |
+| **Etapa 3** | [`00-INDEX-ETAPA3.md`](./specifications/Etapa%203/00-INDEX-ETAPA3.md) | [`etapa3-workers-overview.md`](./specifications/Etapa%203/etapa3-workers-overview.md) |
+| **Etapa 4** | [`00-INDEX-ETAPA4.md`](./specifications/Etapa%204/00-INDEX-ETAPA4.md) | [`etapa4-workers-overview.md`](./specifications/Etapa%204/etapa4-workers-overview.md) |
+| **Etapa 5** | [`00-INDEX-ETAPA5.md`](./specifications/Etapa%205/00-INDEX-ETAPA5.md) | [`etapa5-workers-overview.md`](./specifications/Etapa%205/etapa5-workers-overview.md) |
 
 ### Documente Tehnice
 
-| Document                                                                                 | Focus                      |
-|------------------------------------------------------------------------------------------|----------------------------|
-| [`architecture.md`](./architecture/architecture.md)                                      | Arhitectură Sistem         |
-| [`port-matrix.md`](./specifications/Etapa%200/etapa0-port-matrix.md)                     | Alocare Porturi            |
-| [`environment-variables.md`](./specifications/Etapa%200/etapa0-environment-variables.md) | Variabile Mediu            |
-| [`coding-standards.md`](./developer-guide/coding-standards.md)                           | Standarde Cod              |
+| Document                                                                                 | Focus              |
+| ---------------------------------------------------------------------------------------- | ------------------ |
+| [`architecture.md`](./architecture/architecture.md)                                      | Arhitectură Sistem |
+| [`port-matrix.md`](./specifications/Etapa%200/etapa0-port-matrix.md)                     | Alocare Porturi    |
+| [`environment-variables.md`](./specifications/Etapa%200/etapa0-environment-variables.md) | Variabile Mediu    |
+| [`coding-standards.md`](./developer-guide/coding-standards.md)                           | Standarde Cod      |
 
 ---
 
@@ -330,7 +330,7 @@ COLD → CONTACTED_WA → WARM_REPLY → NEGOTIATION → PROPOSAL → CLOSING �
 ### Estimări per Etapă
 
 | Etapă                | Sprinturi | PRs       | Tasks Est.  | Durată            |
-|----------------------|-----------|-----------|-------------|-------------------|
+| -------------------- | --------- | --------- | ----------- | ----------------- |
 | E1 - Data Enrichment | 4         | 8-12      | 40-60       | 2 săptămâni       |
 | E2 - Cold Outreach   | 4         | 10-15     | 50-75       | 2 săptămâni       |
 | E3 - Ofertare AI     | 6         | 15-20     | 80-100      | 3 săptămâni       |
@@ -345,12 +345,12 @@ COLD → CONTACTED_WA → WARM_REPLY → NEGOTIATION → PROPOSAL → CLOSING �
 ### Când să Actualizezi Ce
 
 | Schimbare                   | Document de Actualizat                            |
-|-----------------------------|---------------------------------------------------|
+| --------------------------- | ------------------------------------------------- |
 | Decizie arhitecturală nouă  | `adr/ADR-xxx-*.md`                                |
 | Schimbare API contract      | `specifications/master-specification.md`          |
 | Schimbare schema DB         | `specifications/schema-database.md` + Master Spec |
 | Bug fix / improvement minor | Doar cod + PR description                         |
-| Schimbare infrastruc­tură    | `infrastructure/*.md`                             |
+| Schimbare infrastruc­tură   | `infrastructure/*.md`                             |
 | Schimbare UI major          | `ui-ux/components-list.md`                        |
 
 ### Template ADR
@@ -359,15 +359,19 @@ COLD → CONTACTED_WA → WARM_REPLY → NEGOTIATION → PROPOSAL → CLOSING �
 # ADR-XXX: [Titlu Scurt]
 
 ## Status
+
 [proposed | accepted | deprecated | superseded]
 
 ## Context
+
 [Ce problemă rezolvăm?]
 
 ## Decision
+
 [Ce am decis?]
 
 ## Consequences
+
 [Ce implicații are decizia?]
 ```
 
@@ -404,7 +408,7 @@ COLD → CONTACTED_WA → WARM_REPLY → NEGOTIATION → PROPOSAL → CLOSING �
 ## 📅 Changelog Documentație
 
 | Data       | Versiune | Schimbări                           |
-|------------|----------|-------------------------------------|
+| ---------- | -------- | ----------------------------------- |
 | 2026-01-11 | 1.0.0    | Inițializare structură documentație |
 
 ---

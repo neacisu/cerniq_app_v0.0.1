@@ -21,33 +21,38 @@ Acest document definește **contractul strict** pentru formatul logurilor emise 
 Toate logurile trebuie să respecte acest format de bază (implementat via Pino).
 
 ```typescript
-import { z } from 'zod';
+import { z } from "zod";
 
 export const BaseLogSchema = z.object({
   // Standard Pino fields
-  level: z.number().int().describe('30=info, 40=warn, 50=error'),
-  time: z.number().int().describe('Unix timestamp in ms'),
+  level: z.number().int().describe("30=info, 40=warn, 50=error"),
+  time: z.number().int().describe("Unix timestamp in ms"),
   pid: z.number().int(),
   hostname: z.string(),
-  
+
   // Custom Service Context
-  service: z.string().describe('numele serviciului, ex: cerniq-api, enrichment-worker'),
-  env: z.enum(['development', 'staging', 'production']),
-  version: z.string().describe('Service version from package.json'),
-  
+  service: z
+    .string()
+    .describe("numele serviciului, ex: cerniq-api, enrichment-worker"),
+  env: z.enum(["development", "staging", "production"]),
+  version: z.string().describe("Service version from package.json"),
+
   // Distributed Tracing (OpenTelemetry)
   traceId: z.string().optional(),
   spanId: z.string().optional(),
-  
+
   // Multi-tenancy Context
   tenantId: z.string().uuid().optional(),
   userId: z.string().uuid().optional(),
-  
+
   // Message
   msg: z.string(),
-  
+
   // Event Type Discriminator
-  event: z.string().optional().describe('Event code for machine parsing, e.g., JOB_COMPLETED'),
+  event: z
+    .string()
+    .optional()
+    .describe("Event code for machine parsing, e.g., JOB_COMPLETED"),
 });
 ```
 
@@ -61,17 +66,17 @@ Emmis automat de middleware-ul `request-logger`.
 
 ```typescript
 export const HttpLogSchema = BaseLogSchema.extend({
-  event: z.literal('http_request'),
+  event: z.literal("http_request"),
   req: z.object({
     id: z.string(),
-    method: z.enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']),
+    method: z.enum(["GET", "POST", "PUT", "PATCH", "DELETE"]),
     url: z.string(),
     userAgent: z.string().optional(),
     ip: z.string(),
   }),
   res: z.object({
     statusCode: z.number().int(),
-    responseTime: z.number().describe('Duration in ms'),
+    responseTime: z.number().describe("Duration in ms"),
   }),
 });
 ```
@@ -84,12 +89,15 @@ Esențiale pentru monitorizarea stării workerilor și debugging.
 
 ```typescript
 export const JobStartedSchema = BaseLogSchema.extend({
-  event: z.literal('job_started'),
+  event: z.literal("job_started"),
   queue: z.string(),
   jobId: z.string(),
   jobName: z.string(),
   attempt: z.number().int().default(1),
-  inputDataSummary: z.record(z.any()).optional().describe('Non-sensitive input summary'),
+  inputDataSummary: z
+    .record(z.any())
+    .optional()
+    .describe("Non-sensitive input summary"),
 });
 ```
 
@@ -97,12 +105,15 @@ export const JobStartedSchema = BaseLogSchema.extend({
 
 ```typescript
 export const JobCompletedSchema = BaseLogSchema.extend({
-  event: z.literal('job_completed'),
+  event: z.literal("job_completed"),
   queue: z.string(),
   jobId: z.string(),
-  duration: z.number().describe('Processing time in ms'),
+  duration: z.number().describe("Processing time in ms"),
   resultSummary: z.record(z.any()).optional(),
-  throughput: z.number().optional().describe('Items processed (e.g., imported rows)'),
+  throughput: z
+    .number()
+    .optional()
+    .describe("Items processed (e.g., imported rows)"),
 });
 ```
 
@@ -110,7 +121,7 @@ export const JobCompletedSchema = BaseLogSchema.extend({
 
 ```typescript
 export const JobFailedSchema = BaseLogSchema.extend({
-  event: z.literal('job_failed'),
+  event: z.literal("job_failed"),
   queue: z.string(),
   jobId: z.string(),
   attempt: z.number().int(),
@@ -130,9 +141,9 @@ Pentru acțiuni critice care necesită audit trail.
 
 ```typescript
 export const AuditLogSchema = BaseLogSchema.extend({
-  event: z.string().startsWith('audit_'),
+  event: z.string().startsWith("audit_"),
   actor: z.object({
-    type: z.enum(['user', 'system', 'api_key']),
+    type: z.enum(["user", "system", "api_key"]),
     id: z.string(),
   }),
   action: z.string(),
@@ -140,11 +151,13 @@ export const AuditLogSchema = BaseLogSchema.extend({
     type: z.string(), // ex: 'company'
     id: z.string(),
   }),
-  changes: z.object({
-    before: z.record(z.any()).optional(),
-    after: z.record(z.any()).optional(),
-  }).optional(),
-  status: z.enum(['success', 'failure', 'denied']),
+  changes: z
+    .object({
+      before: z.record(z.any()).optional(),
+      after: z.record(z.any()).optional(),
+    })
+    .optional(),
+  status: z.enum(["success", "failure", "denied"]),
 });
 ```
 
@@ -198,11 +211,11 @@ export const AuditLogSchema = BaseLogSchema.extend({
 
 Următoarele câmpuri sunt **automat redactate** sau hash-uite înainte de a fi scrise în loguri:
 
-| Field Pattern | Action |
-| :--- | :--- |
+| Field Pattern                        | Action       |
+| :----------------------------------- | :----------- |
 | `password`, `token`, `secret`, `key` | `[REDACTED]` |
-| `email`, `phone`, `cnp` | `[REDACTED]` |
-| `authorization` header | `[REDACTED]` |
-| `cookie` header | `[REDACTED]` |
+| `email`, `phone`, `cnp`              | `[REDACTED]` |
+| `authorization` header               | `[REDACTED]` |
+| `cookie` header                      | `[REDACTED]` |
 
 ---

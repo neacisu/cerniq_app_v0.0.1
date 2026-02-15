@@ -10,11 +10,11 @@ Necesităm separare clară între environments.
 
 ## Decizie
 
-| Environment | Purpose | Database | Deployment |
-| ----------- | ------- | -------- | ---------- |
-| development | Local dev | Docker PostgreSQL local | Manual |
-| staging | Pre-prod testing | Separate DB pe Hetzner | Auto on PR merge |
-| production | Live | Production DB | Auto on main merge |
+| Environment | Purpose          | Database                | Deployment         |
+| ----------- | ---------------- | ----------------------- | ------------------ |
+| development | Local dev        | Docker PostgreSQL local | Manual             |
+| staging     | Pre-prod testing | Separate DB pe Hetzner  | Auto on PR merge   |
+| production  | Live             | Production DB           | Auto on main merge |
 
 ## Consecințe
 

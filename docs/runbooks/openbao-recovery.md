@@ -52,11 +52,13 @@ docker logs cerniq-openbao-agent-infra --tail 50
 ```
 
 Semne uzuale:
+
 - `403` / policy mismatch
 - `connection refused` / routing (gateway) / DNS
 - secrets nu se mai randeaza (`/secrets/api.env` lipsa)
 
 Actiuni sigure:
+
 - verifica conectivitatea la `OPENBAO_ADDR` (HTTPS) din CT:
 
 ```bash
@@ -75,6 +77,7 @@ Acesta este un scenariu de DR pe orchestrator, executat doar daca exista snapsho
 
 Pasii depind de modul concret in care snapshot-urile sunt generate/stocate pe orchestrator.
 Recomandare (in spiritul “shared infra”):
+
 - snapshot-urile se fac pe orchestrator si se stocheaza offsite (StorageBox) cu criptare.
 - restore se face doar in fereastra de mentenanta, cu impact comunicat.
 
@@ -100,4 +103,3 @@ test -f /run/cerniq/runtime-secrets/api/api.env || true
 test -f /run/cerniq/runtime-secrets/workers/workers.env || true
 test -f /run/cerniq/runtime-secrets/infra/pgbouncer.ini || true
 ```
-

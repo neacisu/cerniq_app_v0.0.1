@@ -58,7 +58,7 @@ entryPoints:
 providers:
   docker:
     endpoint: "unix:///var/run/docker.sock"
-    exposedByDefault: false  # OBLIGATORIU!
+    exposedByDefault: false # OBLIGATORIU!
     network: cerniq_public
 
 certificatesResolvers:

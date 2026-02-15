@@ -22,34 +22,34 @@ Implementăm **graceful shutdown** cu timeout configurable.
 const SHUTDOWN_TIMEOUT = 30000; // 30 seconds
 
 async function gracefulShutdown(signal: string) {
-  logger.info({ signal }, 'Received shutdown signal');
-  
+  logger.info({ signal }, "Received shutdown signal");
+
   // 1. Stop accepting new requests
   await fastify.close();
-  
+
   // 2. Wait for in-flight requests (Fastify handles this)
-  
+
   // 3. Close BullMQ workers
-  await Promise.all(workers.map(w => w.close()));
-  
+  await Promise.all(workers.map((w) => w.close()));
+
   // 4. Close database connections
   await db.$disconnect();
-  
+
   // 5. Close Redis
   await redis.quit();
-  
-  logger.info('Graceful shutdown complete');
+
+  logger.info("Graceful shutdown complete");
   process.exit(0);
 }
 
 // Register signal handlers
-['SIGTERM', 'SIGINT'].forEach(signal => {
+["SIGTERM", "SIGINT"].forEach((signal) => {
   process.on(signal, () => gracefulShutdown(signal));
 });
 
 // Timeout fallback
 setTimeout(() => {
-  logger.error('Shutdown timeout exceeded, forcing exit');
+  logger.error("Shutdown timeout exceeded, forcing exit");
   process.exit(1);
 }, SHUTDOWN_TIMEOUT);
 ```

@@ -6,6 +6,7 @@
 ## 1) Scop
 
 Worker-ul N gestioneaza cazurile HITL:
+
 - creeaza/actualizeaza task-uri de aprobare
 - blocheaza actiuni automate pana la confirmare
 - aplica decizia umana (approve/reject) si reia fluxul
@@ -28,4 +29,3 @@ Worker-ul N gestioneaza cazurile HITL:
 
 - backlog HITL vizibil in UI admin
 - alerte: backlog > prag, task aging > prag
-

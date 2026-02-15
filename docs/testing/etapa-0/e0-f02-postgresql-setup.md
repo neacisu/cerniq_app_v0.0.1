@@ -9,13 +9,13 @@
 
 ## SUMAR TASKURI
 
-| Task ID | Denumire | Tip Test |
-| ------- | -------- | -------- |
-| F0.2.1.T001 | PostgreSQL Container | Integration |
+| Task ID     | Denumire               | Tip Test         |
+| ----------- | ---------------------- | ---------------- |
+| F0.2.1.T001 | PostgreSQL Container   | Integration      |
 | F0.2.1.T002 | postgresql.conf Tuning | Infra Validation |
-| F0.2.1.T003 | init.sql Extensions | Integration |
-| F0.2.1.T004 | PostgreSQL Secret | Security |
-| F0.2.1.T005 | Container Health | Integration |
+| F0.2.1.T003 | init.sql Extensions    | Integration      |
+| F0.2.1.T004 | PostgreSQL Secret      | Security         |
+| F0.2.1.T005 | Container Health       | Integration      |
 
 ---
 
@@ -27,21 +27,25 @@
 
 ```typescript
 // tests/integration/database/postgresql-external-via-pgbouncer.test.ts
-import { describe, it, expect } from 'vitest';
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import { describe, it, expect } from "vitest";
+import { exec } from "child_process";
+import { promisify } from "util";
 
 const execAsync = promisify(exec);
 
-describe('PostgreSQL External (CT107) via PgBouncer', () => {
-  it('should NOT have a local postgres container', async () => {
-    const { stdout } = await execAsync('docker ps --filter name=cerniq-postgres --format "{{.Names}}"');
-    expect(stdout.trim()).toBe('');
+describe("PostgreSQL External (CT107) via PgBouncer", () => {
+  it("should NOT have a local postgres container", async () => {
+    const { stdout } = await execAsync(
+      'docker ps --filter name=cerniq-postgres --format "{{.Names}}"',
+    );
+    expect(stdout.trim()).toBe("");
   });
 
-  it('pgbouncer should be healthy', async () => {
-    const { stdout } = await execAsync('docker inspect cerniq-pgbouncer --format "{{.State.Health.Status}}"');
-    expect(stdout.trim()).toBe('healthy');
+  it("pgbouncer should be healthy", async () => {
+    const { stdout } = await execAsync(
+      'docker inspect cerniq-pgbouncer --format "{{.State.Health.Status}}"',
+    );
+    expect(stdout.trim()).toBe("healthy");
   });
 });
 ```
@@ -54,50 +58,49 @@ describe('PostgreSQL External (CT107) via PgBouncer', () => {
 
 ```typescript
 // tests/integration/database/postgresql-config.test.ts
-import { describe, it, expect, beforeAll } from 'vitest';
-import { sql } from 'drizzle-orm';
-import { db } from '@cerniq/db';
+import { describe, it, expect, beforeAll } from "vitest";
+import { sql } from "drizzle-orm";
+import { db } from "@cerniq/db";
 
-describe('PostgreSQL Configuration (CT107 tuning)', () => {
-  
-  it('should have shared_buffers = 8GB', async () => {
+describe("PostgreSQL Configuration (CT107 tuning)", () => {
+  it("should have shared_buffers = 8GB", async () => {
     const result = await db.execute(sql`SHOW shared_buffers`);
-    expect(result[0].shared_buffers).toBe('8GB');
+    expect(result[0].shared_buffers).toBe("8GB");
   });
-  
-  it('should have effective_cache_size = 24GB', async () => {
+
+  it("should have effective_cache_size = 24GB", async () => {
     const result = await db.execute(sql`SHOW effective_cache_size`);
-    expect(result[0].effective_cache_size).toBe('24GB');
+    expect(result[0].effective_cache_size).toBe("24GB");
   });
-  
-  it('should have work_mem = 64MB', async () => {
+
+  it("should have work_mem = 64MB", async () => {
     const result = await db.execute(sql`SHOW work_mem`);
-    expect(result[0].work_mem).toBe('64MB');
+    expect(result[0].work_mem).toBe("64MB");
   });
-  
-  it('should have max_connections = 200', async () => {
+
+  it("should have max_connections = 200", async () => {
     const result = await db.execute(sql`SHOW max_connections`);
     expect(parseInt(result[0].max_connections)).toBe(200);
   });
-  
-  it('should have io_method = io_uring (PostgreSQL 18 AIO)', async () => {
+
+  it("should have io_method = io_uring (PostgreSQL 18 AIO)", async () => {
     const result = await db.execute(sql`SHOW io_method`);
-    expect(result[0].io_method).toBe('io_uring');
+    expect(result[0].io_method).toBe("io_uring");
   });
-  
-  it('should have max_parallel_workers_per_gather = 8', async () => {
+
+  it("should have max_parallel_workers_per_gather = 8", async () => {
     const result = await db.execute(sql`SHOW max_parallel_workers_per_gather`);
     expect(parseInt(result[0].max_parallel_workers_per_gather)).toBe(8);
   });
-  
-  it('should use scram-sha-256 password encryption', async () => {
+
+  it("should use scram-sha-256 password encryption", async () => {
     const result = await db.execute(sql`SHOW password_encryption`);
-    expect(result[0].password_encryption).toBe('scram-sha-256');
+    expect(result[0].password_encryption).toBe("scram-sha-256");
   });
-  
-  it('should have logging configured', async () => {
+
+  it("should have logging configured", async () => {
     const result = await db.execute(sql`SHOW logging_collector`);
-    expect(result[0].logging_collector).toBe('on');
+    expect(result[0].logging_collector).toBe("on");
   });
 });
 ```
@@ -110,41 +113,43 @@ describe('PostgreSQL Configuration (CT107 tuning)', () => {
 
 ```typescript
 // tests/integration/database/postgresql-extensions.test.ts
-import { describe, it, expect } from 'vitest';
-import { sql } from 'drizzle-orm';
-import { db } from '@cerniq/db';
+import { describe, it, expect } from "vitest";
+import { sql } from "drizzle-orm";
+import { db } from "@cerniq/db";
 
-describe('PostgreSQL Extensions', () => {
-  
+describe("PostgreSQL Extensions", () => {
   const requiredExtensions = [
-    'pgvector',
-    'postgis',
-    'postgis_topology',
-    'pg_trgm',
-    'uuid-ossp',
+    "pgvector",
+    "postgis",
+    "postgis_topology",
+    "pg_trgm",
+    "uuid-ossp",
   ];
-  
-  it.each(requiredExtensions)('should have %s extension installed', async (extName) => {
-    const result = await db.execute(
-      sql`SELECT 1 FROM pg_extension WHERE extname = ${extName}`
-    );
-    expect(result.length).toBe(1);
-  });
-  
-  it('should have pgvector with VECTOR type available', async () => {
+
+  it.each(requiredExtensions)(
+    "should have %s extension installed",
+    async (extName) => {
+      const result = await db.execute(
+        sql`SELECT 1 FROM pg_extension WHERE extname = ${extName}`,
+      );
+      expect(result.length).toBe(1);
+    },
+  );
+
+  it("should have pgvector with VECTOR type available", async () => {
     // Test that VECTOR type works
     await expect(
-      db.execute(sql`SELECT '[1,2,3]'::vector(3)`)
+      db.execute(sql`SELECT '[1,2,3]'::vector(3)`),
     ).resolves.not.toThrow();
   });
-  
-  it('should have PostGIS with GEOGRAPHY type available', async () => {
+
+  it("should have PostGIS with GEOGRAPHY type available", async () => {
     await expect(
-      db.execute(sql`SELECT ST_MakePoint(26.1, 44.4)::geography`)
+      db.execute(sql`SELECT ST_MakePoint(26.1, 44.4)::geography`),
     ).resolves.not.toThrow();
   });
-  
-  it('should have pg_trgm for fuzzy search', async () => {
+
+  it("should have pg_trgm for fuzzy search", async () => {
     const result = await db.execute(sql`SELECT similarity('test', 'tset')`);
     expect(parseFloat(result[0].similarity)).toBeGreaterThan(0.5);
   });
@@ -159,24 +164,23 @@ describe('PostgreSQL Extensions', () => {
 
 ```typescript
 // tests/integration/database/postgresql-schemas.test.ts
-import { describe, it, expect } from 'vitest';
-import { sql } from 'drizzle-orm';
-import { db } from '@cerniq/db';
+import { describe, it, expect } from "vitest";
+import { sql } from "drizzle-orm";
+import { db } from "@cerniq/db";
 
-describe('PostgreSQL Schemas', () => {
-  
-  const requiredSchemas = ['bronze', 'silver', 'gold', 'approval', 'audit'];
-  
-  it.each(requiredSchemas)('should have %s schema', async (schemaName) => {
+describe("PostgreSQL Schemas", () => {
+  const requiredSchemas = ["bronze", "silver", "gold", "approval", "audit"];
+
+  it.each(requiredSchemas)("should have %s schema", async (schemaName) => {
     const result = await db.execute(
-      sql`SELECT 1 FROM information_schema.schemata WHERE schema_name = ${schemaName}`
+      sql`SELECT 1 FROM information_schema.schemata WHERE schema_name = ${schemaName}`,
     );
     expect(result.length).toBe(1);
   });
-  
-  it('should have c3rn1q role with correct grants', async () => {
+
+  it("should have c3rn1q role with correct grants", async () => {
     const result = await db.execute(
-      sql`SELECT 1 FROM pg_roles WHERE rolname = 'c3rn1q'`
+      sql`SELECT 1 FROM pg_roles WHERE rolname = 'c3rn1q'`,
     );
     expect(result.length).toBe(1);
   });
@@ -194,26 +198,26 @@ describe('PostgreSQL Schemas', () => {
 # tests/infra/f02-pg-secrets.test.sh
 
 describe "PostgreSQL Secrets" {
-  
+
   SECRET_FILE="/var/www/CerniqAPP/secrets/postgres_password"
-  
+
   it "should have postgres_password file" {
     [[ -f "$SECRET_FILE" ]]
     assert_success
   }
-  
+
   it "should have strict permissions (600)" {
     perms=$(stat -c %a "$SECRET_FILE")
     [[ "$perms" == "600" ]]
     assert_success
   }
-  
+
   it "should have password of sufficient length (32+ chars)" {
     length=$(wc -c < "$SECRET_FILE")
     [[ $length -ge 32 ]]
     assert_success
   }
-  
+
   it "should NOT be tracked in git" {
     ! git ls-files --error-unmatch "$SECRET_FILE" 2>/dev/null
     assert_success
@@ -229,47 +233,47 @@ describe "PostgreSQL Secrets" {
 
 ```typescript
 // tests/integration/database/postgresql-connectivity.test.ts
-import { describe, it, expect, beforeAll } from 'vitest';
-import { Pool } from 'pg';
+import { describe, it, expect, beforeAll } from "vitest";
+import { Pool } from "pg";
 
-describe('PostgreSQL Connectivity', () => {
+describe("PostgreSQL Connectivity", () => {
   let pool: Pool;
-  
+
   beforeAll(() => {
     pool = new Pool({
-      host: 'localhost', // Via Docker network
-      database: 'cerniq',
-      user: 'cerniq',
+      host: "localhost", // Via Docker network
+      database: "cerniq",
+      user: "cerniq",
       password: process.env.POSTGRES_PASSWORD,
     });
   });
-  
-  it('should accept connections from internal network', async () => {
+
+  it("should accept connections from internal network", async () => {
     const client = await pool.connect();
-    const result = await client.query('SELECT 1 as test');
+    const result = await client.query("SELECT 1 as test");
     expect(result.rows[0].test).toBe(1);
     client.release();
   });
-  
-  it('should reject connections with invalid password', async () => {
+
+  it("should reject connections with invalid password", async () => {
     const badPool = new Pool({
-      host: 'localhost',
-      database: 'cerniq',
-      user: 'cerniq',
-      password: 'wrong_password',
+      host: "localhost",
+      database: "cerniq",
+      user: "cerniq",
+      password: "wrong_password",
     });
-    
+
     await expect(badPool.connect()).rejects.toThrow();
   });
-  
-  it('should handle connection pooling', async () => {
+
+  it("should handle connection pooling", async () => {
     const connections = await Promise.all(
-      Array.from({ length: 10 }, () => pool.connect())
+      Array.from({ length: 10 }, () => pool.connect()),
     );
-    
+
     expect(connections).toHaveLength(10);
-    
-    connections.forEach(c => c.release());
+
+    connections.forEach((c) => c.release());
   });
 });
 ```
@@ -280,31 +284,30 @@ describe('PostgreSQL Connectivity', () => {
 
 ```typescript
 // tests/integration/database/postgresql-performance.test.ts
-import { describe, it, expect } from 'vitest';
-import { sql } from 'drizzle-orm';
-import { db } from '@cerniq/db';
+import { describe, it, expect } from "vitest";
+import { sql } from "drizzle-orm";
+import { db } from "@cerniq/db";
 
-describe('PostgreSQL Performance', () => {
-  
-  it('should execute simple query under 5ms', async () => {
+describe("PostgreSQL Performance", () => {
+  it("should execute simple query under 5ms", async () => {
     const start = performance.now();
     await db.execute(sql`SELECT 1`);
     const duration = performance.now() - start;
-    
+
     expect(duration).toBeLessThan(5);
   });
-  
-  it('should execute EXPLAIN ANALYZE on complex query', async () => {
+
+  it("should execute EXPLAIN ANALYZE on complex query", async () => {
     const result = await db.execute(sql`
       EXPLAIN (ANALYZE, FORMAT JSON) 
       SELECT * FROM pg_catalog.pg_tables LIMIT 10
     `);
-    
-    const plan = result[0]['QUERY PLAN'][0];
-    expect(plan['Execution Time']).toBeLessThan(100); // < 100ms
+
+    const plan = result[0]["QUERY PLAN"][0];
+    expect(plan["Execution Time"]).toBeLessThan(100); // < 100ms
   });
-  
-  it('should support parallel query execution', async () => {
+
+  it("should support parallel query execution", async () => {
     const result = await db.execute(sql`SHOW max_parallel_workers`);
     expect(parseInt(result[0].max_parallel_workers)).toBeGreaterThanOrEqual(8);
   });

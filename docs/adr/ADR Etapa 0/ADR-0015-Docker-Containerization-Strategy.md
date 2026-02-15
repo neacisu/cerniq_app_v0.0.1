@@ -20,15 +20,13 @@ Utilizam Docker Engine si Docker Compose v2 pentru orchestrare (versiuni curente
 {
   "storage-driver": "overlay2",
   "log-driver": "json-file",
-  "log-opts": {"max-size": "50m", "max-file": "5"},
+  "log-opts": { "max-size": "50m", "max-file": "5" },
   "live-restore": true,
   "userland-proxy": false,
   "default-ulimits": {
-    "nofile": {"Name": "nofile", "Soft": 65536, "Hard": 65536}
+    "nofile": { "Name": "nofile", "Soft": 65536, "Hard": 65536 }
   },
-  "default-address-pools": [
-    {"base": "172.29.0.0/16", "size": 24}
-  ],
+  "default-address-pools": [{ "base": "172.29.0.0/16", "size": 24 }],
   "metrics-addr": "127.0.0.1:9323"
 }
 ```
@@ -37,17 +35,17 @@ Utilizam Docker Engine si Docker Compose v2 pentru orchestrare (versiuni curente
 
 ```yaml
 networks:
-  cerniq_public:     # Servicii expuse (prin Traefik orchestrator)
+  cerniq_public: # Servicii expuse (prin Traefik orchestrator)
     driver: bridge
     ipam:
       config:
         - subnet: 172.29.10.0/24
-  cerniq_backend:    # API + Workers (intern logic)
+  cerniq_backend: # API + Workers (intern logic)
     driver: bridge
     ipam:
       config:
         - subnet: 172.29.20.0/24
-  cerniq_data:       # PgBouncer + agenti + collectors (intern logic)
+  cerniq_data: # PgBouncer + agenti + collectors (intern logic)
     driver: bridge
     ipam:
       config:

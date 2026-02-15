@@ -1,5 +1,7 @@
 # CERNIQ.APP — ETAPA 3: UI TABLES SPECIFICATION
+
 ## Complete Table Components for AI Sales Agent Module
+
 ### Versiunea 1.0 | 19 Ianuarie 2026
 
 ---
@@ -60,15 +62,15 @@
 
 ## 1.2 Technology Stack
 
-| Component | Technology | Version |
-|-----------|------------|---------|
-| Table Core | TanStack Table | 8.20.6 |
-| Virtualization | @tanstack/react-virtual | 3.13.6 |
-| Data Fetching | TanStack Query | 5.77.0 |
-| UI Components | Shadcn/ui | Latest |
-| Icons | Lucide React | 0.511.0 |
-| Date Handling | date-fns | 4.1.0 |
-| Number Formatting | Intl.NumberFormat | Native |
+| Component         | Technology              | Version |
+| ----------------- | ----------------------- | ------- |
+| Table Core        | TanStack Table          | 8.20.6  |
+| Virtualization    | @tanstack/react-virtual | 3.13.6  |
+| Data Fetching     | TanStack Query          | 5.77.0  |
+| UI Components     | Shadcn/ui               | Latest  |
+| Icons             | Lucide React            | 0.511.0 |
+| Date Handling     | date-fns                | 4.1.0   |
+| Number Formatting | Intl.NumberFormat       | Native  |
 
 ## 1.3 Base Table Component
 
@@ -114,49 +116,49 @@ export interface DataTableProps<TData, TValue> {
   data: TData[];
   isLoading?: boolean;
   error?: Error | null;
-  
+
   // Pagination
   pageCount?: number;
   pageSize?: number;
   pageIndex?: number;
   onPaginationChange?: (pagination: { pageIndex: number; pageSize: number }) => void;
   manualPagination?: boolean;
-  
+
   // Sorting
   sorting?: SortingState;
   onSortingChange?: (sorting: SortingState) => void;
   manualSorting?: boolean;
-  
+
   // Filtering
   columnFilters?: ColumnFiltersState;
   onColumnFiltersChange?: (filters: ColumnFiltersState) => void;
   globalFilter?: string;
   onGlobalFilterChange?: (filter: string) => void;
   manualFiltering?: boolean;
-  
+
   // Selection
   rowSelection?: RowSelectionState;
   onRowSelectionChange?: (selection: RowSelectionState) => void;
   enableRowSelection?: boolean | ((row: TData) => boolean);
-  
+
   // Column visibility
   columnVisibility?: VisibilityState;
   onColumnVisibilityChange?: (visibility: VisibilityState) => void;
-  
+
   // Row expansion
   enableRowExpansion?: boolean;
   renderExpandedRow?: (row: TData) => React.ReactNode;
-  
+
   // Virtualization
   enableVirtualization?: boolean;
   estimatedRowHeight?: number;
   overscan?: number;
-  
+
   // Actions
   onRowClick?: (row: TData) => void;
   onRowDoubleClick?: (row: TData) => void;
   bulkActions?: BulkAction<TData>[];
-  
+
   // Customization
   emptyMessage?: string;
   className?: string;
@@ -166,11 +168,11 @@ export interface DataTableProps<TData, TValue> {
   striped?: boolean;
   bordered?: boolean;
   compact?: boolean;
-  
+
   // Accessibility
   caption?: string;
   ariaLabel?: string;
-  
+
   // Real-time updates
   highlightNewRows?: boolean;
   newRowIds?: Set<string>;
@@ -196,49 +198,49 @@ export function DataTable<TData, TValue>({
   data,
   isLoading = false,
   error = null,
-  
+
   // Pagination
   pageCount,
   pageSize = 20,
   pageIndex = 0,
   onPaginationChange,
   manualPagination = false,
-  
+
   // Sorting
   sorting: controlledSorting,
   onSortingChange,
   manualSorting = false,
-  
+
   // Filtering
   columnFilters: controlledFilters,
   onColumnFiltersChange,
   globalFilter: controlledGlobalFilter,
   onGlobalFilterChange,
   manualFiltering = false,
-  
+
   // Selection
   rowSelection: controlledSelection,
   onRowSelectionChange,
   enableRowSelection = false,
-  
+
   // Column visibility
   columnVisibility: controlledVisibility,
   onColumnVisibilityChange,
-  
+
   // Row expansion
   enableRowExpansion = false,
   renderExpandedRow,
-  
+
   // Virtualization
   enableVirtualization = false,
   estimatedRowHeight = 52,
   overscan = 5,
-  
+
   // Actions
   onRowClick,
   onRowDoubleClick,
   bulkActions = [],
-  
+
   // Customization
   emptyMessage = 'Nu există date de afișat.',
   className,
@@ -248,11 +250,11 @@ export function DataTable<TData, TValue>({
   striped = false,
   bordered = false,
   compact = false,
-  
+
   // Accessibility
   caption,
   ariaLabel,
-  
+
   // Real-time
   highlightNewRows = false,
   newRowIds = new Set(),
@@ -288,30 +290,30 @@ export function DataTable<TData, TValue>({
       rowSelection,
       columnVisibility,
     },
-    
+
     // Pagination
     pageCount: manualPagination ? pageCount : undefined,
     manualPagination,
-    
+
     // Sorting
     manualSorting,
     onSortingChange: onSortingChange ?? setInternalSorting,
-    
+
     // Filtering
     manualFiltering,
     onColumnFiltersChange: onColumnFiltersChange ?? setInternalFilters,
     onGlobalFilterChange: onGlobalFilterChange ?? setInternalGlobalFilter,
-    
+
     // Selection
     enableRowSelection,
     onRowSelectionChange: onRowSelectionChange ?? setInternalSelection,
-    
+
     // Column visibility
     onColumnVisibilityChange: onColumnVisibilityChange ?? setInternalVisibility,
-    
+
     // Row ID
     getRowId: getRowId ?? ((row, index) => (row as any).id ?? String(index)),
-    
+
     // Row models
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: manualSorting ? undefined : getSortedRowModel(),
@@ -563,7 +565,7 @@ export function DataTable<TData, TValue>({
                           </TableCell>
                         ))}
                       </TableRow>
-                      
+
                       {/* Expanded Row Content */}
                       {enableRowExpansion && isExpanded && renderExpandedRow && (
                         <TableRow>
@@ -675,7 +677,7 @@ export function DataTableToolbar<TData>({
     if (action.confirmMessage) {
       return; // Handled by AlertDialog
     }
-    
+
     setIsProcessing(action.id);
     try {
       await action.onAction(selectedRows);
@@ -1323,12 +1325,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { 
-  MoreHorizontal, 
-  Edit, 
-  Copy, 
-  Trash2, 
-  Eye, 
+import {
+  MoreHorizontal,
+  Edit,
+  Copy,
+  Trash2,
+  Eye,
   Package,
   Archive,
   Download,
@@ -1387,8 +1389,8 @@ function ProductStatusBadge({ status }: { status: ProductStatus }) {
 // STOCK LEVEL INDICATOR
 // =============================================================================
 
-function StockLevelIndicator({ quantity, lowStockThreshold = 50 }: { 
-  quantity: number; 
+function StockLevelIndicator({ quantity, lowStockThreshold = 50 }: {
+  quantity: number;
   lowStockThreshold?: number;
 }) {
   if (quantity === 0) {
@@ -1399,7 +1401,7 @@ function StockLevelIndicator({ quantity, lowStockThreshold = 50 }: {
       </div>
     );
   }
-  
+
   if (quantity <= lowStockThreshold) {
     return (
       <div className="flex items-center gap-2">
@@ -1464,7 +1466,7 @@ export function ProductsTable({ tenantId, onEdit, onView }: ProductsTableProps) 
   // Mutations
   // ---------------------------------------------------------------------------
   const deleteMutation = useMutation({
-    mutationFn: (productIds: string[]) => 
+    mutationFn: (productIds: string[]) =>
       productsApi.deleteProducts(tenantId, productIds),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products', tenantId] });
@@ -1541,15 +1543,15 @@ export function ProductsTable({ tenantId, onEdit, onView }: ProductsTableProps) 
       enableHiding: false,
       size: 40,
     },
-    
+
     // Image column
     {
       accessorKey: 'imageUrl',
       header: '',
       cell: ({ row }) => (
         <Avatar className="h-10 w-10">
-          <AvatarImage 
-            src={row.original.imageUrl} 
+          <AvatarImage
+            src={row.original.imageUrl}
             alt={row.original.name}
           />
           <AvatarFallback>
@@ -1634,7 +1636,7 @@ export function ProductsTable({ tenantId, onEdit, onView }: ProductsTableProps) 
         <DataTableColumnHeader column={column} title="Stoc" />
       ),
       cell: ({ row }) => (
-        <StockLevelIndicator 
+        <StockLevelIndicator
           quantity={row.original.stockQuantity}
           lowStockThreshold={row.original.lowStockThreshold}
         />
@@ -1776,35 +1778,35 @@ export function ProductsTable({ tenantId, onEdit, onView }: ProductsTableProps) 
       data={data?.products ?? []}
       isLoading={isLoading}
       error={error}
-      
+
       // Pagination
       pageCount={data?.totalPages ?? 0}
       pageSize={pagination.pageSize}
       pageIndex={pagination.pageIndex}
       onPaginationChange={setPagination}
       manualPagination
-      
+
       // Sorting
       sorting={sorting}
       onSortingChange={setSorting}
       manualSorting
-      
+
       // Filtering
       columnFilters={columnFilters}
       onColumnFiltersChange={setColumnFilters}
       globalFilter={globalFilter}
       onGlobalFilterChange={setGlobalFilter}
       manualFiltering
-      
+
       // Selection
       rowSelection={rowSelection}
       onRowSelectionChange={setRowSelection}
       enableRowSelection
-      
+
       // Actions
       onRowClick={(product) => navigate(`/products/${product.id}`)}
       bulkActions={bulkActions}
-      
+
       // Customization
       emptyMessage="Nu există produse. Adăugați primul produs pentru a începe."
       striped
@@ -1820,16 +1822,21 @@ export function ProductsTable({ tenantId, onEdit, onView }: ProductsTableProps) 
 
 ```typescript
 // src/types/product.ts
-export type ProductStatus = 'active' | 'inactive' | 'draft' | 'archived' | 'discontinued';
+export type ProductStatus =
+  | "active"
+  | "inactive"
+  | "draft"
+  | "archived"
+  | "discontinued";
 
-export type ProductCategory = 
-  | 'fertilizers' 
-  | 'seeds' 
-  | 'pesticides' 
-  | 'irrigation' 
-  | 'equipment' 
-  | 'accessories'
-  | 'other';
+export type ProductCategory =
+  | "fertilizers"
+  | "seeds"
+  | "pesticides"
+  | "irrigation"
+  | "equipment"
+  | "accessories"
+  | "other";
 
 export interface Product {
   id: string;
@@ -1991,32 +1998,32 @@ function SentimentIndicator({ sentiment, score }: { sentiment: Sentiment; score:
 
 function ConversationStatusBadge({ status }: { status: ConversationStatus }) {
   const statusConfig = {
-    active: { 
-      label: 'Activ', 
+    active: {
+      label: 'Activ',
       icon: <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />,
       variant: 'default' as const,
       className: 'bg-green-500/10 text-green-700 border-green-200'
     },
-    waiting: { 
-      label: 'Așteaptă', 
+    waiting: {
+      label: 'Așteaptă',
       icon: <Clock className="h-3 w-3" />,
       variant: 'outline' as const,
       className: 'text-yellow-700 border-yellow-300'
     },
-    escalated: { 
-      label: 'Escaladat', 
+    escalated: {
+      label: 'Escaladat',
       icon: <AlertTriangle className="h-3 w-3" />,
       variant: 'destructive' as const,
       className: ''
     },
-    resolved: { 
-      label: 'Rezolvat', 
+    resolved: {
+      label: 'Rezolvat',
       icon: <CheckCircle className="h-3 w-3" />,
       variant: 'secondary' as const,
       className: 'bg-gray-100 text-gray-700'
     },
-    paused: { 
-      label: 'Pauză', 
+    paused: {
+      label: 'Pauză',
       icon: <Pause className="h-3 w-3" />,
       variant: 'outline' as const,
       className: 'text-gray-500'
@@ -2173,8 +2180,8 @@ export function ConversationsTable({ tenantId }: ConversationsTableProps) {
         <DataTableColumnHeader column={column} title="Sentiment" />
       ),
       cell: ({ row }) => (
-        <SentimentIndicator 
-          sentiment={row.original.sentiment} 
+        <SentimentIndicator
+          sentiment={row.original.sentiment}
           score={row.original.sentimentScore}
         />
       ),
@@ -2190,8 +2197,8 @@ export function ConversationsTable({ tenantId }: ConversationsTableProps) {
         <DataTableColumnHeader column={column} title="Agent" />
       ),
       cell: ({ row }) => (
-        <AgentIndicator 
-          isAI={row.original.isAIHandled} 
+        <AgentIndicator
+          isAI={row.original.isAIHandled}
           agentName={row.original.assignedAgent?.name}
         />
       ),
@@ -2228,7 +2235,7 @@ export function ConversationsTable({ tenantId }: ConversationsTableProps) {
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Acțiuni</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 onClick={() => navigate(`/conversations/${conversation.id}`)}
               >
                 <MessageSquare className="mr-2 h-4 w-4" />
@@ -2297,25 +2304,25 @@ export function ConversationsTable({ tenantId }: ConversationsTableProps) {
       data={data?.conversations ?? []}
       isLoading={isLoading}
       error={error}
-      
+
       pageCount={data?.totalPages ?? 0}
       pageSize={pagination.pageSize}
       pageIndex={pagination.pageIndex}
       onPaginationChange={setPagination}
       manualPagination
-      
+
       sorting={sorting}
       onSortingChange={setSorting}
       manualSorting
-      
+
       columnFilters={columnFilters}
       onColumnFiltersChange={setColumnFilters}
       globalFilter={globalFilter}
       onGlobalFilterChange={setGlobalFilter}
       manualFiltering
-      
+
       onRowClick={(conversation) => navigate(`/conversations/${conversation.id}`)}
-      
+
       emptyMessage="Nu există conversații active."
       highlightNewRows
       newRowIds={data?.newConversationIds ?? new Set()}
@@ -2329,9 +2336,14 @@ export function ConversationsTable({ tenantId }: ConversationsTableProps) {
 
 ```typescript
 // src/types/conversation.ts
-export type Channel = 'email' | 'whatsapp' | 'phone' | 'webchat';
-export type ConversationStatus = 'active' | 'waiting' | 'escalated' | 'resolved' | 'paused';
-export type Sentiment = 'positive' | 'neutral' | 'negative';
+export type Channel = "email" | "whatsapp" | "phone" | "webchat";
+export type ConversationStatus =
+  | "active"
+  | "waiting"
+  | "escalated"
+  | "resolved"
+  | "paused";
+export type Sentiment = "positive" | "neutral" | "negative";
 
 export interface Contact {
   id: string;
@@ -2464,53 +2476,53 @@ import { cn } from '@/lib/utils';
 // =============================================================================
 
 function NegotiationStateBadge({ state }: { state: NegotiationState }) {
-  const stateConfig: Record<NegotiationState, { 
-    label: string; 
-    icon: React.ReactNode; 
+  const stateConfig: Record<NegotiationState, {
+    label: string;
+    icon: React.ReactNode;
     className: string;
   }> = {
-    initial_contact: { 
-      label: 'Contact Inițial', 
+    initial_contact: {
+      label: 'Contact Inițial',
       icon: <MessageSquare className="h-3 w-3" />,
       className: 'bg-blue-100 text-blue-700 border-blue-200'
     },
-    qualifying: { 
-      label: 'Calificare', 
+    qualifying: {
+      label: 'Calificare',
       icon: <RefreshCw className="h-3 w-3" />,
       className: 'bg-purple-100 text-purple-700 border-purple-200'
     },
-    offer_creation: { 
-      label: 'Creare Ofertă', 
+    offer_creation: {
+      label: 'Creare Ofertă',
       icon: <FileText className="h-3 w-3" />,
       className: 'bg-indigo-100 text-indigo-700 border-indigo-200'
     },
-    negotiating: { 
-      label: 'Negociere', 
+    negotiating: {
+      label: 'Negociere',
       icon: <RefreshCw className="h-3 w-3 animate-spin" />,
       className: 'bg-orange-100 text-orange-700 border-orange-200'
     },
-    awaiting_response: { 
-      label: 'Așteaptă Răspuns', 
+    awaiting_response: {
+      label: 'Așteaptă Răspuns',
       icon: <Clock className="h-3 w-3" />,
       className: 'bg-yellow-100 text-yellow-700 border-yellow-200'
     },
-    accepted: { 
-      label: 'Acceptată', 
+    accepted: {
+      label: 'Acceptată',
       icon: <CheckCircle className="h-3 w-3" />,
       className: 'bg-green-100 text-green-700 border-green-200'
     },
-    rejected: { 
-      label: 'Respinsă', 
+    rejected: {
+      label: 'Respinsă',
       icon: <XCircle className="h-3 w-3" />,
       className: 'bg-red-100 text-red-700 border-red-200'
     },
-    stalled: { 
-      label: 'Blocată', 
+    stalled: {
+      label: 'Blocată',
       icon: <AlertTriangle className="h-3 w-3" />,
       className: 'bg-gray-100 text-gray-700 border-gray-200'
     },
-    completed: { 
-      label: 'Finalizată', 
+    completed: {
+      label: 'Finalizată',
       icon: <CheckCircle className="h-3 w-3" />,
       className: 'bg-emerald-100 text-emerald-700 border-emerald-200'
     },
@@ -2559,10 +2571,10 @@ function WinProbabilityIndicator({ score, trend }: { score: number; trend: 'up' 
     return 'text-red-600';
   };
 
-  const TrendIcon = trend === 'up' 
-    ? TrendingUp 
-    : trend === 'down' 
-      ? TrendingDown 
+  const TrendIcon = trend === 'up'
+    ? TrendingUp
+    : trend === 'down'
+      ? TrendingDown
       : null;
 
   return (
@@ -2713,7 +2725,7 @@ export function NegotiationsTable({ tenantId }: NegotiationsTableProps) {
         <DataTableColumnHeader column={column} title="Scor" />
       ),
       cell: ({ row }) => (
-        <WinProbabilityIndicator 
+        <WinProbabilityIndicator
           score={row.original.winProbability}
           trend={row.original.probabilityTrend}
         />
@@ -2769,7 +2781,7 @@ export function NegotiationsTable({ tenantId }: NegotiationsTableProps) {
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Acțiuni</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 onClick={() => navigate(`/negotiations/${negotiation.id}`)}
               >
                 <Eye className="mr-2 h-4 w-4" />
@@ -2796,7 +2808,7 @@ export function NegotiationsTable({ tenantId }: NegotiationsTableProps) {
   // Summary footer
   const summaryFooter = useMemo(() => {
     if (!data) return null;
-    
+
     return (
       <div className="flex items-center justify-between text-sm text-muted-foreground px-2">
         <span>
@@ -2819,25 +2831,25 @@ export function NegotiationsTable({ tenantId }: NegotiationsTableProps) {
       data={data?.negotiations ?? []}
       isLoading={isLoading}
       error={error}
-      
+
       pageCount={data?.totalPages ?? 0}
       pageSize={pagination.pageSize}
       pageIndex={pagination.pageIndex}
       onPaginationChange={setPagination}
       manualPagination
-      
+
       sorting={sorting}
       onSortingChange={setSorting}
       manualSorting
-      
+
       columnFilters={columnFilters}
       onColumnFiltersChange={setColumnFilters}
       globalFilter={globalFilter}
       onGlobalFilterChange={setGlobalFilter}
       manualFiltering
-      
+
       onRowClick={(negotiation) => navigate(`/negotiations/${negotiation.id}`)}
-      
+
       emptyMessage="Nu există negocieri active."
       footer={summaryFooter}
       getRowId={(row) => row.id}
@@ -2850,18 +2862,18 @@ export function NegotiationsTable({ tenantId }: NegotiationsTableProps) {
 
 ```typescript
 // src/types/negotiation.ts
-export type NegotiationState = 
-  | 'initial_contact'
-  | 'qualifying'
-  | 'offer_creation'
-  | 'negotiating'
-  | 'awaiting_response'
-  | 'accepted'
-  | 'rejected'
-  | 'stalled'
-  | 'completed';
+export type NegotiationState =
+  | "initial_contact"
+  | "qualifying"
+  | "offer_creation"
+  | "negotiating"
+  | "awaiting_response"
+  | "accepted"
+  | "rejected"
+  | "stalled"
+  | "completed";
 
-export type Priority = 'critical' | 'high' | 'medium' | 'low';
+export type Priority = "critical" | "high" | "medium" | "low";
 
 export interface NegotiationProduct {
   id: string;
@@ -2888,7 +2900,7 @@ export interface Negotiation {
   state: NegotiationState;
   priority: Priority;
   winProbability: number;
-  probabilityTrend: 'up' | 'down' | 'stable';
+  probabilityTrend: "up" | "down" | "stable";
   assignedAgentId?: string;
   aiConfidence: number;
   roundCount: number;
@@ -3228,7 +3240,7 @@ export function OffersTable({ tenantId, negotiationId }: OffersTableProps) {
       cell: ({ row }) => {
         const discount = row.original.discountPercent;
         return (
-          <Badge 
+          <Badge
             variant={discount > 0 ? 'default' : 'outline'}
             className={discount > 15 ? 'bg-green-500' : ''}
           >
@@ -3247,7 +3259,7 @@ export function OffersTable({ tenantId, negotiationId }: OffersTableProps) {
         <DataTableColumnHeader column={column} title="Validitate" />
       ),
       cell: ({ row }) => (
-        <ValidityIndicator 
+        <ValidityIndicator
           validUntil={row.original.validUntil}
           status={row.original.status}
         />
@@ -3288,7 +3300,7 @@ export function OffersTable({ tenantId, negotiationId }: OffersTableProps) {
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Acțiuni</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 onClick={() => navigate(`/offers/${offer.id}`)}
               >
                 <Eye className="mr-2 h-4 w-4" />
@@ -3361,7 +3373,7 @@ export function OffersTable({ tenantId, negotiationId }: OffersTableProps) {
   // Summary footer
   const summaryFooter = useMemo(() => {
     if (!data) return null;
-    
+
     return (
       <div className="flex items-center justify-between text-sm text-muted-foreground px-2">
         <span>
@@ -3384,30 +3396,30 @@ export function OffersTable({ tenantId, negotiationId }: OffersTableProps) {
       data={data?.offers ?? []}
       isLoading={isLoading}
       error={error}
-      
+
       pageCount={data?.totalPages ?? 0}
       pageSize={pagination.pageSize}
       pageIndex={pagination.pageIndex}
       onPaginationChange={setPagination}
       manualPagination
-      
+
       sorting={sorting}
       onSortingChange={setSorting}
       manualSorting
-      
+
       columnFilters={columnFilters}
       onColumnFiltersChange={setColumnFilters}
       globalFilter={globalFilter}
       onGlobalFilterChange={setGlobalFilter}
       manualFiltering
-      
+
       rowSelection={rowSelection}
       onRowSelectionChange={setRowSelection}
       enableRowSelection={(row) => ['draft', 'cancelled'].includes(row.status)}
-      
+
       bulkActions={bulkActions}
       onRowClick={(offer) => navigate(`/offers/${offer.id}`)}
-      
+
       emptyMessage="Nu există oferte."
       footer={summaryFooter}
       getRowId={(row) => row.id}
@@ -3420,15 +3432,15 @@ export function OffersTable({ tenantId, negotiationId }: OffersTableProps) {
 
 ```typescript
 // src/types/offer.ts
-export type OfferStatus = 
-  | 'draft'
-  | 'pending_review'
-  | 'sent'
-  | 'pending'
-  | 'accepted'
-  | 'rejected'
-  | 'expired'
-  | 'cancelled';
+export type OfferStatus =
+  | "draft"
+  | "pending_review"
+  | "sent"
+  | "pending"
+  | "accepted"
+  | "rejected"
+  | "expired"
+  | "cancelled";
 
 export interface OfferItem {
   id: string;
@@ -4017,29 +4029,29 @@ Tabelul pentru documente fiscale integrează e-Factura SPV și Oblio.eu, afișâ
 ```typescript
 // types/fiscal-document.ts
 
-export type FiscalDocumentType = 
-  | 'invoice'         // Factură fiscală
-  | 'proforma'        // Factură proformă
-  | 'credit_note'     // Stornare
-  | 'debit_note'      // Notă de debit
-  | 'delivery_note'   // Aviz de însoțire
-  | 'receipt';        // Chitanță
+export type FiscalDocumentType =
+  | "invoice" // Factură fiscală
+  | "proforma" // Factură proformă
+  | "credit_note" // Stornare
+  | "debit_note" // Notă de debit
+  | "delivery_note" // Aviz de însoțire
+  | "receipt"; // Chitanță
 
-export type ANAFStatus = 
-  | 'not_applicable'  // N/A pentru proforme, avize
-  | 'draft'           // Ciornă, nu a fost trimis
-  | 'pending'         // În curs de procesare ANAF
-  | 'sent'            // Trimis și validat
-  | 'error'           // Eroare la trimitere
-  | 'rejected'        // Respins de ANAF
-  | 'cancelled';      // Anulat în SPV
+export type ANAFStatus =
+  | "not_applicable" // N/A pentru proforme, avize
+  | "draft" // Ciornă, nu a fost trimis
+  | "pending" // În curs de procesare ANAF
+  | "sent" // Trimis și validat
+  | "error" // Eroare la trimitere
+  | "rejected" // Respins de ANAF
+  | "cancelled"; // Anulat în SPV
 
-export type PaymentMethod = 
-  | 'bank_transfer'
-  | 'cash'
-  | 'card'
-  | 'check'
-  | 'compensation';
+export type PaymentMethod =
+  | "bank_transfer"
+  | "cash"
+  | "card"
+  | "check"
+  | "compensation";
 
 export interface FiscalDocumentItem {
   id: string;
@@ -4053,7 +4065,7 @@ export interface FiscalDocumentItem {
   vatRate: number;
   vatAmount: number;
   discount?: number;
-  discountType?: 'percentage' | 'fixed';
+  discountType?: "percentage" | "fixed";
   totalWithoutVat: number;
   totalWithVat: number;
 }
@@ -4074,20 +4086,20 @@ export interface ANAFSubmission {
 export interface FiscalDocument {
   id: string;
   tenantId: string;
-  
+
   // Document identification
   type: FiscalDocumentType;
   series: string;
   number: string;
   fullNumber: string; // e.g., "FCT-2024-0001"
-  
+
   // Dates
   issueDate: Date;
   dueDate?: Date;
   deliveryDate?: Date;
   createdAt: Date;
   updatedAt: Date;
-  
+
   // Client/Supplier
   contactId: string;
   contactName: string;
@@ -4096,17 +4108,17 @@ export interface FiscalDocument {
   contactRegCom?: string;
   contactIban?: string;
   contactBank?: string;
-  
+
   // Related documents
   orderId?: string;
   orderNumber?: string;
   relatedDocumentId?: string; // Pentru stornări
   relatedDocumentNumber?: string;
   proformaId?: string; // Dacă a fost generată din proformă
-  
+
   // Items
   items: FiscalDocumentItem[];
-  
+
   // Totals
   currency: string;
   exchangeRate?: number;
@@ -4114,30 +4126,30 @@ export interface FiscalDocument {
   totalVat: number;
   totalDiscount: number;
   total: number;
-  
+
   // Payment
   paymentMethod?: PaymentMethod;
   isPaid: boolean;
   paidAmount: number;
   paidAt?: Date;
-  
+
   // ANAF e-Factura
   anafStatus: ANAFStatus;
   anafSubmissions: ANAFSubmission[];
   lastAnafSubmission?: ANAFSubmission;
-  
+
   // Oblio integration
   oblioId?: string;
   oblioSyncedAt?: Date;
-  
+
   // PDF
   pdfUrl?: string;
   pdfGeneratedAt?: Date;
-  
+
   // Notes
   notes?: string;
   internalNotes?: string;
-  
+
   // Metadata
   createdBy: string;
   createdByName: string;
@@ -4166,10 +4178,10 @@ export interface FiscalDocumentsResponse {
 // components/tables/fiscal-documents/DocumentTypeBadge.tsx
 
 import { Badge } from '@/components/ui/badge';
-import { 
-  FileText, 
-  FileCheck, 
-  FileMinus, 
+import {
+  FileText,
+  FileCheck,
+  FileMinus,
   FilePlus,
   Package,
   Receipt
@@ -4241,15 +4253,15 @@ export function DocumentTypeBadge({ type }: DocumentTypeBadgeProps) {
 // components/tables/fiscal-documents/ANAFStatusBadge.tsx
 
 import { Badge } from '@/components/ui/badge';
-import { 
+import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { 
-  CheckCircle2, 
-  Clock, 
-  XCircle, 
+import {
+  CheckCircle2,
+  Clock,
+  XCircle,
   AlertTriangle,
   Minus,
   FileX,
@@ -4313,10 +4325,10 @@ const statusConfig: Record<ANAFStatus, {
   },
 };
 
-export function ANAFStatusBadge({ 
-  status, 
+export function ANAFStatusBadge({
+  status,
   lastSubmission,
-  showDetails = true 
+  showDetails = true
 }: ANAFStatusBadgeProps) {
   const config = statusConfig[status];
   const Icon = config.icon;
@@ -4378,9 +4390,9 @@ export function ANAFStatusBadge({
 
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { 
-  CheckCircle2, 
-  Clock, 
+import {
+  CheckCircle2,
+  Clock,
   AlertTriangle,
   XCircle
 } from 'lucide-react';
@@ -4404,7 +4416,7 @@ export function PaymentStatusIndicator({
   const percentage = total > 0 ? Math.round((paidAmount / total) * 100) : 0;
   const outstanding = total - paidAmount;
   const isOverdue = dueDate && new Date() > dueDate && outstanding > 0;
-  
+
   let status: 'paid' | 'partial' | 'unpaid' | 'overdue';
   if (percentage >= 100) {
     status = 'paid';
@@ -4454,8 +4466,8 @@ export function PaymentStatusIndicator({
       </div>
       {showProgress && status !== 'paid' && (
         <div className="space-y-1">
-          <Progress 
-            value={percentage} 
+          <Progress
+            value={percentage}
             className="h-1.5 w-24"
             indicatorClassName={config.bgColor}
           />
@@ -4473,7 +4485,6 @@ export function PaymentStatusIndicator({
   );
 }
 ```
-
 
 ### 7.4 FiscalDocumentsTable Implementation
 
@@ -4524,11 +4535,11 @@ import { DocumentTypeBadge } from './DocumentTypeBadge';
 import { ANAFStatusBadge } from './ANAFStatusBadge';
 import { PaymentStatusIndicator } from './PaymentStatusIndicator';
 
-import { 
-  MoreHorizontal, 
-  Eye, 
-  Download, 
-  Send, 
+import {
+  MoreHorizontal,
+  Eye,
+  Download,
+  Send,
   RefreshCw,
   Printer,
   Copy,
@@ -4541,11 +4552,11 @@ import {
   Building2,
 } from 'lucide-react';
 
-import { 
-  FiscalDocument, 
+import {
+  FiscalDocument,
   FiscalDocumentsResponse,
   FiscalDocumentType,
-  ANAFStatus 
+  ANAFStatus
 } from '@/types/fiscal-document';
 import { formatCurrency, formatCUI } from '@/lib/format';
 import { fiscalDocumentsApi } from '@/api/fiscal-documents';
@@ -4583,7 +4594,7 @@ export function FiscalDocumentsTable({
     open: boolean;
     document: FiscalDocument | null;
   }>({ open: false, document: null });
-  
+
   const [cancelDialog, setCancelDialog] = useState<{
     open: boolean;
     document: FiscalDocument | null;
@@ -4846,20 +4857,20 @@ export function FiscalDocumentsTable({
       header: '',
       cell: ({ row }) => {
         const doc = row.original;
-        
-        const canSubmitToAnaf = 
-          doc.type === 'invoice' && 
+
+        const canSubmitToAnaf =
+          doc.type === 'invoice' &&
           ['draft', 'error', 'rejected'].includes(doc.anafStatus);
-        
-        const canRefreshAnaf = 
+
+        const canRefreshAnaf =
           doc.anafStatus === 'pending';
-        
-        const canCreateCreditNote = 
-          doc.type === 'invoice' && 
+
+        const canCreateCreditNote =
+          doc.type === 'invoice' &&
           doc.anafStatus === 'sent' &&
           !doc.relatedDocumentId;
 
-        const canCancelInAnaf = 
+        const canCancelInAnaf =
           doc.anafStatus === 'sent';
 
         return (
@@ -4872,14 +4883,14 @@ export function FiscalDocumentsTable({
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>Acțiuni</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              
+
               {/* View & Download */}
               <DropdownMenuItem onClick={() => navigate(`/fiscal-documents/${doc.id}`)}>
                 <Eye className="mr-2 h-4 w-4" />
                 Vizualizare
               </DropdownMenuItem>
-              
-              <DropdownMenuItem 
+
+              <DropdownMenuItem
                 onClick={() => generatePdfMutation.mutate(doc.id)}
                 disabled={generatePdfMutation.isPending}
               >
@@ -4890,14 +4901,14 @@ export function FiscalDocumentsTable({
                 )}
                 Descarcă PDF
               </DropdownMenuItem>
-              
+
               <DropdownMenuItem onClick={() => window.print()}>
                 <Printer className="mr-2 h-4 w-4" />
                 Printează
               </DropdownMenuItem>
-              
+
               <DropdownMenuSeparator />
-              
+
               {/* ANAF Actions */}
               {canSubmitToAnaf && (
                 <DropdownMenuItem onClick={() => handleSubmitToAnaf(doc)}>
@@ -4905,9 +4916,9 @@ export function FiscalDocumentsTable({
                   Trimite la ANAF
                 </DropdownMenuItem>
               )}
-              
+
               {canRefreshAnaf && (
-                <DropdownMenuItem 
+                <DropdownMenuItem
                   onClick={() => refreshAnafStatusMutation.mutate(doc.id)}
                   disabled={refreshAnafStatusMutation.isPending}
                 >
@@ -4919,10 +4930,10 @@ export function FiscalDocumentsTable({
                   Verifică status ANAF
                 </DropdownMenuItem>
               )}
-              
+
               {doc.lastAnafSubmission?.indexId && (
                 <DropdownMenuItem asChild>
-                  <a 
+                  <a
                     href={`https://efactura.mfinante.gov.ro/documents/${doc.lastAnafSubmission.indexId}`}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -4932,29 +4943,29 @@ export function FiscalDocumentsTable({
                   </a>
                 </DropdownMenuItem>
               )}
-              
+
               <DropdownMenuSeparator />
-              
+
               {/* Document Actions */}
               <DropdownMenuItem onClick={() => duplicateMutation.mutate(doc.id)}>
                 <Copy className="mr-2 h-4 w-4" />
                 Duplică
               </DropdownMenuItem>
-              
+
               {canCreateCreditNote && (
                 <DropdownMenuItem onClick={() => createCreditNoteMutation.mutate(doc.id)}>
                   <FileMinus className="mr-2 h-4 w-4" />
                   Creează stornare
                 </DropdownMenuItem>
               )}
-              
+
               {doc.proformaId && (
                 <DropdownMenuItem onClick={() => navigate(`/fiscal-documents/${doc.proformaId}`)}>
                   <FileText className="mr-2 h-4 w-4" />
                   Vezi proforma
                 </DropdownMenuItem>
               )}
-              
+
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger>
                   <History className="mr-2 h-4 w-4" />
@@ -4969,11 +4980,11 @@ export function FiscalDocumentsTable({
                   </DropdownMenuItem>
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
-              
+
               {canCancelInAnaf && (
                 <>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem 
+                  <DropdownMenuItem
                     onClick={() => setCancelDialog({ open: true, document: doc })}
                     className="text-destructive focus:text-destructive"
                   >
@@ -5089,31 +5100,31 @@ export function FiscalDocumentsTable({
         data={data?.documents ?? []}
         isLoading={isLoading}
         error={error}
-        
+
         pageCount={data?.totalPages ?? 0}
         pageSize={pagination.pageSize}
         pageIndex={pagination.pageIndex}
         onPaginationChange={setPagination}
         manualPagination
-        
+
         sorting={sorting}
         onSortingChange={setSorting}
         manualSorting
-        
+
         columnFilters={columnFilters}
         onColumnFiltersChange={setColumnFilters}
         globalFilter={globalFilter}
         onGlobalFilterChange={setGlobalFilter}
         manualFiltering
         facetedFilters={facetedFilters}
-        
+
         rowSelection={rowSelection}
         onRowSelectionChange={setRowSelection}
         enableRowSelection
         bulkActions={bulkActions}
-        
+
         onRowClick={(doc) => navigate(`/fiscal-documents/${doc.id}`)}
-        
+
         emptyMessage="Nu există documente fiscale."
         searchPlaceholder="Caută după număr, client, CUI..."
         footer={summaryFooter}
@@ -5121,8 +5132,8 @@ export function FiscalDocumentsTable({
       />
 
       {/* Submit to ANAF Dialog */}
-      <AlertDialog 
-        open={submitToAnafDialog.open} 
+      <AlertDialog
+        open={submitToAnafDialog.open}
         onOpenChange={(open) => !open && setSubmitToAnafDialog({ open: false, document: null })}
       >
         <AlertDialogContent>
@@ -5135,7 +5146,7 @@ export function FiscalDocumentsTable({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Anulează</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={confirmSubmitToAnaf}
               disabled={submitToAnafMutation.isPending}
             >
@@ -5149,8 +5160,8 @@ export function FiscalDocumentsTable({
       </AlertDialog>
 
       {/* Cancel in SPV Dialog */}
-      <AlertDialog 
-        open={cancelDialog.open} 
+      <AlertDialog
+        open={cancelDialog.open}
         onOpenChange={(open) => !open && setCancelDialog({ open: false, document: null })}
       >
         <AlertDialogContent>
@@ -5166,7 +5177,7 @@ export function FiscalDocumentsTable({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Renunță</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={() => {
                 if (cancelDialog.document) {
                   cancelAnafMutation.mutate(cancelDialog.document.id);
@@ -5184,7 +5195,6 @@ export function FiscalDocumentsTable({
   );
 }
 ```
-
 
 ---
 
@@ -5225,77 +5235,77 @@ Tabelul pentru HITL Approvals afișează toate cererile de aprobare pending pent
 ```typescript
 // types/hitl-approval.ts
 
-export type ApprovalType = 
-  | 'discount_approval'           // Aprobare discount
-  | 'message_approval'            // Aprobare mesaj outbound
-  | 'offer_approval'              // Aprobare ofertă
-  | 'invoice_approval'            // Aprobare factură
-  | 'price_override'              // Suprascriere preț
-  | 'contact_data_change'         // Modificare date contact
-  | 'negotiation_state_change'    // Schimbare stare negociere
-  | 'order_cancellation'          // Anulare comandă
-  | 'credit_note_approval'        // Aprobare stornare
-  | 'sensitive_topic'             // Subiect sensibil detectat
-  | 'escalation_required'         // Escaladare necesară
-  | 'custom';                     // Cerere custom
+export type ApprovalType =
+  | "discount_approval" // Aprobare discount
+  | "message_approval" // Aprobare mesaj outbound
+  | "offer_approval" // Aprobare ofertă
+  | "invoice_approval" // Aprobare factură
+  | "price_override" // Suprascriere preț
+  | "contact_data_change" // Modificare date contact
+  | "negotiation_state_change" // Schimbare stare negociere
+  | "order_cancellation" // Anulare comandă
+  | "credit_note_approval" // Aprobare stornare
+  | "sensitive_topic" // Subiect sensibil detectat
+  | "escalation_required" // Escaladare necesară
+  | "custom"; // Cerere custom
 
-export type ApprovalUrgency = 
-  | 'critical'    // 15-30 minute SLA
-  | 'high'        // 2 ore SLA
-  | 'medium'      // 4 ore SLA
-  | 'low';        // 24 ore SLA
+export type ApprovalUrgency =
+  | "critical" // 15-30 minute SLA
+  | "high" // 2 ore SLA
+  | "medium" // 4 ore SLA
+  | "low"; // 24 ore SLA
 
-export type ApprovalStatus = 
-  | 'pending'
-  | 'approved'
-  | 'rejected'
-  | 'expired'
-  | 'auto_approved'   // Aprobat automat după SLA
-  | 'auto_rejected'   // Respins automat după SLA
-  | 'delegated';      // Delegat altcuiva
+export type ApprovalStatus =
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "expired"
+  | "auto_approved" // Aprobat automat după SLA
+  | "auto_rejected" // Respins automat după SLA
+  | "delegated"; // Delegat altcuiva
 
-export type ApprovalCategory = 
-  | 'sales'       // Vânzări
-  | 'fiscal'      // Documente fiscale
-  | 'outreach'    // Comunicări
-  | 'data'        // Date
-  | 'system';     // Sistem
+export type ApprovalCategory =
+  | "sales" // Vânzări
+  | "fiscal" // Documente fiscale
+  | "outreach" // Comunicări
+  | "data" // Date
+  | "system"; // Sistem
 
 export interface ApprovalContext {
   // Related entities
   contactId?: string;
   contactName?: string;
   contactCui?: string;
-  
+
   negotiationId?: string;
   negotiationNumber?: string;
-  
+
   conversationId?: string;
   conversationChannel?: string;
-  
+
   orderId?: string;
   orderNumber?: string;
-  
+
   documentId?: string;
   documentNumber?: string;
-  
+
   // Specific context based on type
   discountPercentage?: number;
   discountAmount?: number;
   originalPrice?: number;
   proposedPrice?: number;
-  
+
   messageContent?: string;
-  messageChannel?: 'email' | 'whatsapp' | 'sms';
-  
+  messageChannel?: "email" | "whatsapp" | "sms";
+
   offerTotal?: number;
   offerItems?: number;
-  
+
   // AI reasoning
   aiConfidence?: number;
   aiReasoning?: string;
   riskAssessment?: string;
-  
+
   // Additional data
   metadata?: Record<string, unknown>;
 }
@@ -5303,7 +5313,14 @@ export interface ApprovalContext {
 export interface ApprovalHistoryEntry {
   id: string;
   timestamp: Date;
-  action: 'created' | 'viewed' | 'approved' | 'rejected' | 'delegated' | 'escalated' | 'expired';
+  action:
+    | "created"
+    | "viewed"
+    | "approved"
+    | "rejected"
+    | "delegated"
+    | "escalated"
+    | "expired";
   userId?: string;
   userName?: string;
   comment?: string;
@@ -5313,37 +5330,42 @@ export interface ApprovalHistoryEntry {
 export interface HITLApproval {
   id: string;
   tenantId: string;
-  
+
   // Request details
   type: ApprovalType;
   category: ApprovalCategory;
   urgency: ApprovalUrgency;
   status: ApprovalStatus;
-  
+
   // Description
   title: string;
   description: string;
   context: ApprovalContext;
-  
+
   // Agent info
   requestingAgentId: string;
   requestingAgentName: string;
-  requestingAgentType: 'ai_sales_agent' | 'email_worker' | 'whatsapp_worker' | 'fiscal_worker' | 'system';
-  
+  requestingAgentType:
+    | "ai_sales_agent"
+    | "email_worker"
+    | "whatsapp_worker"
+    | "fiscal_worker"
+    | "system";
+
   // Assignment
   assignedTo?: string;
   assignedToName?: string;
-  
+
   // Timing
   createdAt: Date;
   updatedAt: Date;
   slaDeadline: Date;
   expiresAt?: Date;
   respondedAt?: Date;
-  
+
   // Response
   response?: {
-    decision: 'approved' | 'rejected';
+    decision: "approved" | "rejected";
     comment?: string;
     modifiedContent?: string;
     conditions?: string[];
@@ -5351,10 +5373,10 @@ export interface HITLApproval {
     respondedByName: string;
     respondedAt: Date;
   };
-  
+
   // History
   history: ApprovalHistoryEntry[];
-  
+
   // Metrics
   viewCount: number;
   timeToFirstView?: number;
@@ -5371,9 +5393,9 @@ export interface HITLApprovalsResponse {
     byUrgency: Record<ApprovalUrgency, number>;
     byCategory: Record<ApprovalCategory, number>;
     byStatus: Record<ApprovalStatus, number>;
-    expiringSoon: number;  // < 30 min
+    expiringSoon: number; // < 30 min
     expired: number;
-    avgResponseTime: number;  // în minute
+    avgResponseTime: number; // în minute
   };
 }
 ```
@@ -5384,11 +5406,11 @@ export interface HITLApprovalsResponse {
 // components/tables/hitl-approvals/UrgencyBadge.tsx
 
 import { Badge } from '@/components/ui/badge';
-import { 
-  AlertTriangle, 
-  ArrowUp, 
-  Minus, 
-  ArrowDown 
+import {
+  AlertTriangle,
+  ArrowUp,
+  Minus,
+  ArrowDown
 } from 'lucide-react';
 import { ApprovalUrgency } from '@/types/hitl-approval';
 import { cn } from '@/lib/utils';
@@ -5432,7 +5454,7 @@ export function UrgencyBadge({ urgency, animate = true }: UrgencyBadgeProps) {
   const Icon = config.icon;
 
   return (
-    <Badge 
+    <Badge
       className={cn(
         config.className,
         animate && config.animateClass
@@ -5449,10 +5471,10 @@ export function UrgencyBadge({ urgency, animate = true }: UrgencyBadgeProps) {
 // components/tables/hitl-approvals/ApprovalTypeBadge.tsx
 
 import { Badge } from '@/components/ui/badge';
-import { 
-  Percent, 
-  MessageSquare, 
-  FileText, 
+import {
+  Percent,
+  MessageSquare,
+  FileText,
   Receipt,
   DollarSign,
   Database,
@@ -5572,16 +5594,16 @@ interface SLAIndicatorProps {
   respondedAt?: Date;
 }
 
-export function SLAIndicator({ 
-  deadline, 
-  createdAt, 
+export function SLAIndicator({
+  deadline,
+  createdAt,
   status,
-  respondedAt 
+  respondedAt
 }: SLAIndicatorProps) {
   const now = new Date();
   const deadlineDate = new Date(deadline);
   const createdDate = new Date(createdAt);
-  
+
   const { timeLeft, isExpired, isWarning, percentage } = useMemo(() => {
     if (status === 'responded' && respondedAt) {
       const responseTime = differenceInMinutes(new Date(respondedAt), createdDate);
@@ -5638,12 +5660,12 @@ export function SLAIndicator({
               {timeLeft}
             </span>
             {status === 'pending' && !isExpired && (
-              <Progress 
-                value={percentage} 
+              <Progress
+                value={percentage}
                 className="h-1 w-16"
                 indicatorClassName={cn(
-                  percentage > 75 ? 'bg-orange-500' : 
-                  percentage > 50 ? 'bg-yellow-500' : 
+                  percentage > 75 ? 'bg-orange-500' :
+                  percentage > 50 ? 'bg-yellow-500' :
                   'bg-green-500'
                 )}
               />
@@ -5737,7 +5759,6 @@ export function AgentIndicator({ agentType, agentName }: AgentIndicatorProps) {
 }
 ```
 
-
 ### 8.4 HITLApprovalsTable Implementation
 
 ```typescript
@@ -5791,10 +5812,10 @@ import { ApprovalTypeBadge } from './ApprovalTypeBadge';
 import { SLAIndicator } from './SLAIndicator';
 import { AgentIndicator } from './AgentIndicator';
 
-import { 
-  MoreHorizontal, 
-  Eye, 
-  Check, 
+import {
+  MoreHorizontal,
+  Eye,
+  Check,
   X,
   UserPlus,
   ArrowUpCircle,
@@ -5807,8 +5828,8 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 
-import { 
-  HITLApproval, 
+import {
+  HITLApproval,
   HITLApprovalsResponse,
   ApprovalUrgency,
   ApprovalCategory,
@@ -5856,12 +5877,12 @@ export function HITLApprovalsTable({
     open: boolean;
     approval: HITLApproval | null;
   }>({ open: false, approval: null });
-  
+
   const [rejectDialog, setRejectDialog] = useState<{
     open: boolean;
     approval: HITLApproval | null;
   }>({ open: false, approval: null });
-  
+
   const [previewDialog, setPreviewDialog] = useState<{
     open: boolean;
     approval: HITLApproval | null;
@@ -5921,7 +5942,7 @@ export function HITLApprovalsTable({
 
   // Mutations
   const approveMutation = useMutation({
-    mutationFn: ({ id, comment }: { id: string; comment?: string }) => 
+    mutationFn: ({ id, comment }: { id: string; comment?: string }) =>
       hitlApprovalsApi.approve(id, comment),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['hitl-approvals'] });
@@ -5942,7 +5963,7 @@ export function HITLApprovalsTable({
   });
 
   const rejectMutation = useMutation({
-    mutationFn: ({ id, reason }: { id: string; reason: string }) => 
+    mutationFn: ({ id, reason }: { id: string; reason: string }) =>
       hitlApprovalsApi.reject(id, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['hitl-approvals'] });
@@ -5963,7 +5984,7 @@ export function HITLApprovalsTable({
   });
 
   const delegateMutation = useMutation({
-    mutationFn: ({ id, userId }: { id: string; userId: string }) => 
+    mutationFn: ({ id, userId }: { id: string; userId: string }) =>
       hitlApprovalsApi.delegate(id, userId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['hitl-approvals'] });
@@ -6022,8 +6043,8 @@ export function HITLApprovalsTable({
       accessorKey: 'urgency',
       header: 'Urgență',
       cell: ({ row }) => (
-        <UrgencyBadge 
-          urgency={row.original.urgency} 
+        <UrgencyBadge
+          urgency={row.original.urgency}
           animate={row.original.status === 'pending'}
         />
       ),
@@ -6164,7 +6185,7 @@ export function HITLApprovalsTable({
       id: 'agent',
       header: 'Agent',
       cell: ({ row }) => (
-        <AgentIndicator 
+        <AgentIndicator
           agentType={row.original.requestingAgentType}
           agentName={row.original.requestingAgentName}
         />
@@ -6178,7 +6199,7 @@ export function HITLApprovalsTable({
         <SLAIndicator
           deadline={row.original.slaDeadline}
           createdAt={row.original.createdAt}
-          status={row.original.status === 'pending' ? 'pending' : 
+          status={row.original.status === 'pending' ? 'pending' :
                   row.original.status === 'expired' ? 'expired' : 'responded'}
           respondedAt={row.original.respondedAt}
         />
@@ -6213,7 +6234,7 @@ export function HITLApprovalsTable({
               </TooltipTrigger>
               <TooltipContent>Aprobă</TooltipContent>
             </Tooltip>
-            
+
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -6231,7 +6252,7 @@ export function HITLApprovalsTable({
               </TooltipTrigger>
               <TooltipContent>Respinge</TooltipContent>
             </Tooltip>
-            
+
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -6269,12 +6290,12 @@ export function HITLApprovalsTable({
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Acțiuni</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              
+
               <DropdownMenuItem onClick={() => navigate(`/hitl-approvals/${approval.id}`)}>
                 <Eye className="mr-2 h-4 w-4" />
                 Vizualizare completă
               </DropdownMenuItem>
-              
+
               {approval.status === 'pending' && (
                 <>
                   <DropdownMenuSeparator />
@@ -6297,7 +6318,7 @@ export function HITLApprovalsTable({
                   </DropdownMenuItem>
                 </>
               )}
-              
+
               {/* Navigation to related entities */}
               {approval.context.contactId && (
                 <DropdownMenuItem onClick={() => navigate(`/contacts/${approval.context.contactId}`)}>
@@ -6427,41 +6448,41 @@ export function HITLApprovalsTable({
   return (
     <>
       {summaryHeader}
-      
+
       <DataTable
         columns={columns}
         data={data?.approvals ?? []}
         isLoading={isLoading}
         error={error}
-        
+
         pageCount={data?.totalPages ?? 0}
         pageSize={pagination.pageSize}
         pageIndex={pagination.pageIndex}
         onPaginationChange={setPagination}
         manualPagination
-        
+
         sorting={sorting}
         onSortingChange={setSorting}
         manualSorting
-        
+
         columnFilters={columnFilters}
         onColumnFiltersChange={setColumnFilters}
         globalFilter={globalFilter}
         onGlobalFilterChange={setGlobalFilter}
         manualFiltering
         facetedFilters={facetedFilters}
-        
+
         rowSelection={rowSelection}
         onRowSelectionChange={setRowSelection}
         enableRowSelection={(row) => row.original.status === 'pending'}
         bulkActions={bulkActions}
-        
+
         onRowClick={(approval) => setPreviewDialog({ open: true, approval })}
-        
+
         emptyMessage="Nu există cereri de aprobare în așteptare."
         searchPlaceholder="Caută după titlu, contact, agent..."
         getRowId={(row) => row.id}
-        
+
         rowClassName={(row) => cn(
           row.original.urgency === 'critical' && 'bg-red-50/50',
           row.original.status === 'expired' && 'opacity-60'
@@ -6469,8 +6490,8 @@ export function HITLApprovalsTable({
       />
 
       {/* Approve Dialog */}
-      <Dialog 
-        open={approveDialog.open} 
+      <Dialog
+        open={approveDialog.open}
         onOpenChange={(open) => !open && setApproveDialog({ open: false, approval: null })}
       >
         <DialogContent>
@@ -6480,12 +6501,12 @@ export function HITLApprovalsTable({
               {approveDialog.approval?.title}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <div className="text-sm">
               <strong>Context:</strong> {approveDialog.approval?.context.contactName}
             </div>
-            
+
             <div>
               <label className="text-sm font-medium">Comentariu (opțional)</label>
               <Textarea
@@ -6496,20 +6517,20 @@ export function HITLApprovalsTable({
               />
             </div>
           </div>
-          
+
           <DialogFooter>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => setApproveDialog({ open: false, approval: null })}
             >
               Anulează
             </Button>
-            <Button 
+            <Button
               onClick={() => {
                 if (approveDialog.approval) {
-                  approveMutation.mutate({ 
-                    id: approveDialog.approval.id, 
-                    comment: approvalComment || undefined 
+                  approveMutation.mutate({
+                    id: approveDialog.approval.id,
+                    comment: approvalComment || undefined
                   });
                 }
               }}
@@ -6524,8 +6545,8 @@ export function HITLApprovalsTable({
       </Dialog>
 
       {/* Reject Dialog */}
-      <Dialog 
-        open={rejectDialog.open} 
+      <Dialog
+        open={rejectDialog.open}
         onOpenChange={(open) => !open && setRejectDialog({ open: false, approval: null })}
       >
         <DialogContent>
@@ -6535,7 +6556,7 @@ export function HITLApprovalsTable({
               {rejectDialog.approval?.title}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <div>
               <label className="text-sm font-medium">Motivul respingerii *</label>
@@ -6548,21 +6569,21 @@ export function HITLApprovalsTable({
               />
             </div>
           </div>
-          
+
           <DialogFooter>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => setRejectDialog({ open: false, approval: null })}
             >
               Anulează
             </Button>
-            <Button 
+            <Button
               variant="destructive"
               onClick={() => {
                 if (rejectDialog.approval && rejectionReason.trim()) {
-                  rejectMutation.mutate({ 
-                    id: rejectDialog.approval.id, 
-                    reason: rejectionReason 
+                  rejectMutation.mutate({
+                    id: rejectDialog.approval.id,
+                    reason: rejectionReason
                   });
                 }
               }}
@@ -6576,8 +6597,8 @@ export function HITLApprovalsTable({
       </Dialog>
 
       {/* Preview Dialog */}
-      <Dialog 
-        open={previewDialog.open} 
+      <Dialog
+        open={previewDialog.open}
         onOpenChange={(open) => !open && setPreviewDialog({ open: false, approval: null })}
       >
         <DialogContent className="max-w-2xl">
@@ -6589,7 +6610,7 @@ export function HITLApprovalsTable({
               {previewDialog.approval?.title}
             </DialogTitle>
           </DialogHeader>
-          
+
           {previewDialog.approval && (
             <div className="space-y-4">
               <Card>
@@ -6602,7 +6623,7 @@ export function HITLApprovalsTable({
                   </p>
                 </CardContent>
               </Card>
-              
+
               {previewDialog.approval.context.messageContent && (
                 <Card>
                   <CardHeader className="pb-2">
@@ -6615,7 +6636,7 @@ export function HITLApprovalsTable({
                   </CardContent>
                 </Card>
               )}
-              
+
               {previewDialog.approval.context.aiReasoning && (
                 <Card>
                   <CardHeader className="pb-2">
@@ -6639,17 +6660,17 @@ export function HITLApprovalsTable({
               )}
             </div>
           )}
-          
+
           <DialogFooter>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => setPreviewDialog({ open: false, approval: null })}
             >
               Închide
             </Button>
             {previewDialog.approval?.status === 'pending' && (
               <>
-                <Button 
+                <Button
                   variant="destructive"
                   onClick={() => {
                     setPreviewDialog({ open: false, approval: null });
@@ -6658,7 +6679,7 @@ export function HITLApprovalsTable({
                 >
                   Respinge
                 </Button>
-                <Button 
+                <Button
                   onClick={() => {
                     if (previewDialog.approval) {
                       approveMutation.mutate({ id: previewDialog.approval.id });
@@ -6679,7 +6700,6 @@ export function HITLApprovalsTable({
 }
 ```
 
-
 ### 8.3 HITL Approval Types
 
 ```typescript
@@ -6688,37 +6708,37 @@ export function HITLApprovalsTable({
 /**
  * Status aprobări HITL
  */
-export type ApprovalStatus = 
-  | 'pending'      // Așteaptă revizuire
-  | 'approved'     // Aprobat
-  | 'rejected'     // Respins
-  | 'auto_approved' // Aprobat automat (reguli)
-  | 'escalated'    // Escaladat
-  | 'expired';     // Expirat (timeout SLA)
+export type ApprovalStatus =
+  | "pending" // Așteaptă revizuire
+  | "approved" // Aprobat
+  | "rejected" // Respins
+  | "auto_approved" // Aprobat automat (reguli)
+  | "escalated" // Escaladat
+  | "expired"; // Expirat (timeout SLA)
 
 /**
  * Tipuri de aprobări
  */
 export type ApprovalType =
-  | 'message_send'           // Trimitere mesaj
-  | 'offer_generation'       // Generare ofertă
-  | 'discount_override'      // Override discount
-  | 'price_adjustment'       // Ajustare preț
-  | 'order_modification'     // Modificare comandă
-  | 'escalation_transfer'    // Transfer agent uman
-  | 'data_enrichment'        // Îmbogățire date
-  | 'contact_merge'          // Fuzionare contacte
-  | 'bulk_action'            // Acțiune în masă
-  | 'campaign_launch';       // Lansare campanie
+  | "message_send" // Trimitere mesaj
+  | "offer_generation" // Generare ofertă
+  | "discount_override" // Override discount
+  | "price_adjustment" // Ajustare preț
+  | "order_modification" // Modificare comandă
+  | "escalation_transfer" // Transfer agent uman
+  | "data_enrichment" // Îmbogățire date
+  | "contact_merge" // Fuzionare contacte
+  | "bulk_action" // Acțiune în masă
+  | "campaign_launch"; // Lansare campanie
 
 /**
  * Urgență cerere
  */
-export type ApprovalUrgency = 
-  | 'critical'  // < 30 min SLA
-  | 'high'      // < 2h SLA
-  | 'medium'    // < 8h SLA
-  | 'low';      // < 24h SLA
+export type ApprovalUrgency =
+  | "critical" // < 30 min SLA
+  | "high" // < 2h SLA
+  | "medium" // < 8h SLA
+  | "low"; // < 24h SLA
 
 /**
  * Interfață principală Approval
@@ -6728,33 +6748,39 @@ export interface HitlApproval {
   type: ApprovalType;
   status: ApprovalStatus;
   urgency: ApprovalUrgency;
-  
+
   // Referințe
-  entityType: 'conversation' | 'negotiation' | 'offer' | 'order' | 'contact' | 'campaign';
+  entityType:
+    | "conversation"
+    | "negotiation"
+    | "offer"
+    | "order"
+    | "contact"
+    | "campaign";
   entityId: string;
   tenantId: string;
-  
+
   // Conținut
   title: string;
   description: string;
   context: ApprovalContext;
-  
+
   // Tracking
-  requestedBy: 'ai_agent' | 'system' | 'user';
+  requestedBy: "ai_agent" | "system" | "user";
   requestedAt: string; // ISO timestamp
   assignedTo?: string; // User ID
-  
+
   // Rezoluție
   resolution?: ApprovalResolution;
-  
+
   // SLA
   slaDeadline: string;
   slaBreached: boolean;
-  
+
   // Metadata
   priority: number; // 1-100
   tags: string[];
-  
+
   createdAt: string;
   updatedAt: string;
 }
@@ -6771,8 +6797,8 @@ export interface ApprovalContext {
     email?: string;
     phone?: string;
   };
-  channel?: 'email' | 'whatsapp' | 'sms';
-  
+  channel?: "email" | "whatsapp" | "sms";
+
   // Pentru offer_generation
   products?: Array<{
     id: string;
@@ -6782,30 +6808,30 @@ export interface ApprovalContext {
     discount?: number;
   }>;
   totalValue?: number;
-  
+
   // Pentru discount_override
   originalDiscount?: number;
   requestedDiscount?: number;
   discountReason?: string;
   profitImpact?: number;
-  
+
   // Pentru price_adjustment
   originalPrice?: number;
   newPrice?: number;
   priceChangeReason?: string;
-  
+
   // AI reasoning
   aiReasoning?: string;
   aiConfidence?: number; // 0-100
-  aiRecommendation?: 'approve' | 'reject' | 'review';
-  
+  aiRecommendation?: "approve" | "reject" | "review";
+
   // Documente atașate
   attachments?: Array<{
-    type: 'pdf' | 'image' | 'document';
+    type: "pdf" | "image" | "document";
     url: string;
     name: string;
   }>;
-  
+
   // Istoric relevant
   previousApprovals?: Array<{
     id: string;
@@ -6819,14 +6845,14 @@ export interface ApprovalContext {
  * Rezoluție aprobare
  */
 export interface ApprovalResolution {
-  status: 'approved' | 'rejected';
+  status: "approved" | "rejected";
   resolvedBy: string; // User ID
   resolvedAt: string;
   notes?: string;
-  
+
   // Pentru respingeri
   rejectionReason?: string;
-  
+
   // Modificări aplicate
   modifications?: Record<string, unknown>;
 }
@@ -6869,7 +6895,7 @@ export interface HitlApprovalsResponse {
  * Action pentru aprobare/respingere
  */
 export interface ApprovalAction {
-  action: 'approve' | 'reject';
+  action: "approve" | "reject";
   approvalId: string;
   notes?: string;
   rejectionReason?: string;
@@ -6880,7 +6906,7 @@ export interface ApprovalAction {
  * Bulk action pentru aprobări multiple
  */
 export interface BulkApprovalAction {
-  action: 'approve' | 'reject' | 'reassign';
+  action: "approve" | "reject" | "reassign";
   approvalIds: string[];
   notes?: string;
   assignTo?: string;
@@ -7040,7 +7066,7 @@ const sessionStatusConfig: Record<SessionStatus, {
 
 function SessionStatusBadge({ status }: SessionStatusBadgeProps) {
   const config = sessionStatusConfig[status];
-  
+
   return (
     <Badge variant={config.variant} className={cn('gap-1', config.className)}>
       {config.icon}
@@ -7103,7 +7129,7 @@ const modelConfig: Record<AIModel, {
 
 function ModelIndicator({ model, temperature }: ModelIndicatorProps) {
   const config = modelConfig[model];
-  
+
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -7134,14 +7160,14 @@ interface TokenUsageIndicatorProps {
   maxTokens?: number;
 }
 
-function TokenUsageIndicator({ 
-  inputTokens, 
-  outputTokens, 
-  maxTokens = 100000 
+function TokenUsageIndicator({
+  inputTokens,
+  outputTokens,
+  maxTokens = 100000
 }: TokenUsageIndicatorProps) {
   const total = inputTokens + outputTokens;
   const percentage = Math.min((total / maxTokens) * 100, 100);
-  
+
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -7181,14 +7207,14 @@ function CostIndicator({ cost, currency = 'USD' }: CostIndicatorProps) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 4,
   });
-  
+
   const costLevel = cost < 0.1 ? 'low' : cost < 0.5 ? 'medium' : 'high';
   const colorClass = {
     low: 'text-green-600',
     medium: 'text-yellow-600',
     high: 'text-red-600',
   }[costLevel];
-  
+
   return (
     <span className={cn('font-mono text-sm', colorClass)}>
       {formattedCost}
@@ -7207,7 +7233,7 @@ interface DurationIndicatorProps {
 
 function DurationIndicator({ startedAt, endedAt, status }: DurationIndicatorProps) {
   const [elapsed, setElapsed] = useState<string>('');
-  
+
   // Pentru sesiuni active, actualizăm în timp real
   useEffect(() => {
     if (status === 'active') {
@@ -7219,7 +7245,7 @@ function DurationIndicator({ startedAt, endedAt, status }: DurationIndicatorProp
         const seconds = Math.floor((diffMs % 60000) / 1000);
         setElapsed(`${minutes}:${seconds.toString().padStart(2, '0')}`);
       };
-      
+
       updateElapsed();
       const interval = setInterval(updateElapsed, 1000);
       return () => clearInterval(interval);
@@ -7232,7 +7258,7 @@ function DurationIndicator({ startedAt, endedAt, status }: DurationIndicatorProp
       setElapsed(`${minutes}:${seconds.toString().padStart(2, '0')}`);
     }
   }, [startedAt, endedAt, status]);
-  
+
   return (
     <div className="flex items-center gap-1 text-sm text-muted-foreground">
       <Clock className="h-3 w-3" />
@@ -7255,7 +7281,7 @@ interface AISessionsTableProps {
 
 export function AISessionsTable({ conversationId, className }: AISessionsTableProps) {
   const queryClient = useQueryClient();
-  
+
   // Table state
   const [sorting, setSorting] = useState<SortingState>([
     { id: 'startedAt', desc: true }
@@ -7264,24 +7290,24 @@ export function AISessionsTable({ conversationId, className }: AISessionsTablePr
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState({});
   const [globalFilter, setGlobalFilter] = useState('');
-  
+
   // Build query params
   const queryParams = useMemo(() => {
     const params: Record<string, string> = {};
-    
+
     if (conversationId) {
       params.conversationId = conversationId;
     }
-    
+
     if (sorting.length > 0) {
       params.sortBy = sorting[0].id;
       params.sortOrder = sorting[0].desc ? 'desc' : 'asc';
     }
-    
+
     if (globalFilter) {
       params.search = globalFilter;
     }
-    
+
     columnFilters.forEach((filter) => {
       if (Array.isArray(filter.value)) {
         params[filter.id] = filter.value.join(',');
@@ -7289,10 +7315,10 @@ export function AISessionsTable({ conversationId, className }: AISessionsTablePr
         params[filter.id] = String(filter.value);
       }
     });
-    
+
     return new URLSearchParams(params).toString();
   }, [conversationId, sorting, columnFilters, globalFilter]);
-  
+
   // Fetch sessions
   const { data, isLoading, error, refetch } = useQuery<AISessionsResponse>({
     queryKey: ['ai-sessions', queryParams],
@@ -7304,7 +7330,7 @@ export function AISessionsTable({ conversationId, className }: AISessionsTablePr
     staleTime: 10000, // 10s - sesiunile active se actualizează des
     refetchInterval: 15000, // Auto-refresh la 15s pentru sesiuni active
   });
-  
+
   // Mutations
   const pauseSessionMutation = useMutation({
     mutationFn: async (sessionId: string) => {
@@ -7318,7 +7344,7 @@ export function AISessionsTable({ conversationId, className }: AISessionsTablePr
       queryClient.invalidateQueries({ queryKey: ['ai-sessions'] });
     },
   });
-  
+
   const resumeSessionMutation = useMutation({
     mutationFn: async (sessionId: string) => {
       const response = await fetch(`/api/v1/ai-sessions/${sessionId}/resume`, {
@@ -7331,7 +7357,7 @@ export function AISessionsTable({ conversationId, className }: AISessionsTablePr
       queryClient.invalidateQueries({ queryKey: ['ai-sessions'] });
     },
   });
-  
+
   const terminateSessionMutation = useMutation({
     mutationFn: async (sessionId: string) => {
       const response = await fetch(`/api/v1/ai-sessions/${sessionId}/terminate`, {
@@ -7344,7 +7370,7 @@ export function AISessionsTable({ conversationId, className }: AISessionsTablePr
       queryClient.invalidateQueries({ queryKey: ['ai-sessions'] });
     },
   });
-  
+
   // Column definitions
   const columns: ColumnDef<AISession>[] = useMemo(() => [
     {
@@ -7365,7 +7391,7 @@ export function AISessionsTable({ conversationId, className }: AISessionsTablePr
         const conv = row.original.conversation;
         return (
           <div className="flex flex-col">
-            <a 
+            <a
               href={`/conversations/${conv.id}`}
               className="text-sm font-medium hover:underline"
             >
@@ -7382,8 +7408,8 @@ export function AISessionsTable({ conversationId, className }: AISessionsTablePr
       accessorKey: 'model',
       header: 'Model',
       cell: ({ row }) => (
-        <ModelIndicator 
-          model={row.original.model} 
+        <ModelIndicator
+          model={row.original.model}
           temperature={row.original.temperature}
         />
       ),
@@ -7478,7 +7504,7 @@ export function AISessionsTable({ conversationId, className }: AISessionsTablePr
         const session = row.original;
         const isActive = session.status === 'active';
         const isPaused = session.status === 'paused';
-        
+
         return (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -7496,7 +7522,7 @@ export function AISessionsTable({ conversationId, className }: AISessionsTablePr
                 </a>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              
+
               {isActive && (
                 <DropdownMenuItem
                   onClick={() => pauseSessionMutation.mutate(session.id)}
@@ -7506,7 +7532,7 @@ export function AISessionsTable({ conversationId, className }: AISessionsTablePr
                   Pauză sesiune
                 </DropdownMenuItem>
               )}
-              
+
               {isPaused && (
                 <DropdownMenuItem
                   onClick={() => resumeSessionMutation.mutate(session.id)}
@@ -7516,7 +7542,7 @@ export function AISessionsTable({ conversationId, className }: AISessionsTablePr
                   Reia sesiune
                 </DropdownMenuItem>
               )}
-              
+
               {(isActive || isPaused) && (
                 <>
                   <DropdownMenuSeparator />
@@ -7539,7 +7565,7 @@ export function AISessionsTable({ conversationId, className }: AISessionsTablePr
       },
     },
   ], [pauseSessionMutation, resumeSessionMutation, terminateSessionMutation]);
-  
+
   // Table instance
   const table = useReactTable({
     data: data?.sessions ?? [],
@@ -7561,7 +7587,7 @@ export function AISessionsTable({ conversationId, className }: AISessionsTablePr
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
   });
-  
+
   // Status filter options
   const statusOptions = [
     { label: 'Activ', value: 'active', icon: Activity },
@@ -7570,7 +7596,7 @@ export function AISessionsTable({ conversationId, className }: AISessionsTablePr
     { label: 'Eșuat', value: 'failed', icon: StopCircle },
     { label: 'Timeout', value: 'timeout', icon: Clock },
   ];
-  
+
   // Model filter options
   const modelOptions = [
     { label: 'Claude 4 Sonnet', value: 'claude-4-sonnet' },
@@ -7580,14 +7606,14 @@ export function AISessionsTable({ conversationId, className }: AISessionsTablePr
     { label: 'GPT-4o Mini', value: 'gpt-4o-mini' },
     { label: 'Gemini Pro', value: 'gemini-pro' },
   ];
-  
+
   // Calculate summary stats
   const summary = data?.summary ?? {
     activeSessions: 0,
     totalTokensToday: 0,
     totalCostToday: 0,
   };
-  
+
   if (error) {
     return (
       <div className="border rounded-lg p-8 text-center">
@@ -7599,7 +7625,7 @@ export function AISessionsTable({ conversationId, className }: AISessionsTablePr
       </div>
     );
   }
-  
+
   return (
     <div className={cn('space-y-4', className)}>
       {/* Summary Stats */}
@@ -7635,13 +7661,13 @@ export function AISessionsTable({ conversationId, className }: AISessionsTablePr
             Avg Cost/Sesiune
           </div>
           <p className="text-2xl font-bold">
-            ${summary.activeSessions > 0 
+            ${summary.activeSessions > 0
               ? (summary.totalCostToday / (data?.pagination.total || 1)).toFixed(3)
               : '0.00'}
           </p>
         </div>
       </div>
-      
+
       {/* Toolbar */}
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-2 flex-1">
@@ -7654,25 +7680,25 @@ export function AISessionsTable({ conversationId, className }: AISessionsTablePr
               className="pl-9"
             />
           </div>
-          
+
           <DataTableFacetedFilter
             column={table.getColumn('status')}
             title="Status"
             options={statusOptions}
           />
-          
+
           <DataTableFacetedFilter
             column={table.getColumn('model')}
             title="Model"
             options={modelOptions}
           />
         </div>
-        
+
         <Button variant="outline" size="icon" onClick={() => refetch()}>
           <RefreshCw className={cn('h-4 w-4', isLoading && 'animate-spin')} />
         </Button>
       </div>
-      
+
       {/* Table */}
       <div className="rounded-md border">
         <Table>
@@ -7740,7 +7766,7 @@ export function AISessionsTable({ conversationId, className }: AISessionsTablePr
           </TableBody>
         </Table>
       </div>
-      
+
       {/* Pagination */}
       <DataTablePagination table={table} />
     </div>
@@ -7756,34 +7782,34 @@ export function AISessionsTable({ conversationId, className }: AISessionsTablePr
 /**
  * Status sesiune AI
  */
-export type SessionStatus = 
-  | 'active'     // În desfășurare
-  | 'paused'     // Pauză (manual sau auto-idle)
-  | 'completed'  // Finalizat cu succes
-  | 'failed'     // Eșuat
-  | 'timeout';   // Depășire timp
+export type SessionStatus =
+  | "active" // În desfășurare
+  | "paused" // Pauză (manual sau auto-idle)
+  | "completed" // Finalizat cu succes
+  | "failed" // Eșuat
+  | "timeout"; // Depășire timp
 
 /**
  * Modele AI disponibile
  */
 export type AIModel =
-  | 'claude-4-sonnet'
-  | 'claude-4-haiku'
-  | 'claude-4-opus'
-  | 'gpt-4o'
-  | 'gpt-4o-mini'
-  | 'gemini-pro';
+  | "claude-4-sonnet"
+  | "claude-4-haiku"
+  | "claude-4-opus"
+  | "gpt-4o"
+  | "gpt-4o-mini"
+  | "gemini-pro";
 
 /**
  * Tip sesiune
  */
 export type SessionType =
-  | 'sales_conversation'     // Conversație vânzări
-  | 'offer_generation'       // Generare ofertă
-  | 'negotiation_assist'     // Asistență negociere
-  | 'data_enrichment'        // Îmbogățire date
-  | 'email_compose'          // Compunere email
-  | 'lead_qualification';    // Calificare lead
+  | "sales_conversation" // Conversație vânzări
+  | "offer_generation" // Generare ofertă
+  | "negotiation_assist" // Asistență negociere
+  | "data_enrichment" // Îmbogățire date
+  | "email_compose" // Compunere email
+  | "lead_qualification"; // Calificare lead
 
 /**
  * Interfață sesiune AI principală
@@ -7791,13 +7817,13 @@ export type SessionType =
 export interface AISession {
   id: string;
   tenantId: string;
-  
+
   // Tip și configurare
   type: SessionType;
   model: AIModel;
   temperature: number;
   maxTokens: number;
-  
+
   // Referință conversație
   conversationId: string;
   conversation: {
@@ -7808,28 +7834,28 @@ export interface AISession {
       companyName?: string;
     };
   };
-  
+
   // Status
   status: SessionStatus;
-  
+
   // Statistici utilizare
   messageCount: number;
   inputTokens: number;
   outputTokens: number;
   cost: number;
-  
+
   // Timing
   startedAt: string;
   endedAt?: string;
   lastActivityAt: string;
-  
+
   // Configurare
   systemPrompt?: string;
   tools: string[];
-  
+
   // Metadata
   metadata: Record<string, unknown>;
-  
+
   // Error tracking
   errorCount: number;
   lastError?: {
@@ -7837,7 +7863,7 @@ export interface AISession {
     message: string;
     timestamp: string;
   };
-  
+
   createdAt: string;
   updatedAt: string;
 }
@@ -7848,29 +7874,29 @@ export interface AISession {
 export interface AISessionMessage {
   id: string;
   sessionId: string;
-  
-  role: 'system' | 'user' | 'assistant' | 'tool';
+
+  role: "system" | "user" | "assistant" | "tool";
   content: string;
-  
+
   // Token tracking
   inputTokens?: number;
   outputTokens?: number;
-  
+
   // Tool calls
   toolCalls?: Array<{
     id: string;
     name: string;
     arguments: Record<string, unknown>;
   }>;
-  
+
   toolResults?: Array<{
     callId: string;
     result: unknown;
   }>;
-  
+
   // Timing
   processingTimeMs: number;
-  
+
   createdAt: string;
 }
 
@@ -7912,19 +7938,19 @@ export interface CreateSessionRequest {
  */
 export interface SessionMetrics {
   sessionId: string;
-  
+
   // Performance
   avgResponseTimeMs: number;
   totalProcessingTimeMs: number;
-  
+
   // Quality
   successRate: number;
   errorRate: number;
-  
+
   // Usage
   tokensPerMessage: number;
   costPerMessage: number;
-  
+
   // AI Performance
   confidenceScores: number[];
   hitlTriggerCount: number;
@@ -8116,7 +8142,7 @@ const severityConfig: Record<AuditSeverity, {
 
 function SeverityBadge({ severity }: SeverityBadgeProps) {
   const config = severityConfig[severity];
-  
+
   return (
     <Badge variant={config.variant} className={cn('gap-1', config.className)}>
       {config.icon}
@@ -8152,7 +8178,7 @@ const actionConfig: Record<AuditAction, {
 
 function ActionBadge({ action }: ActionBadgeProps) {
   const config = actionConfig[action];
-  
+
   return (
     <Badge variant="outline" className={cn('font-mono text-xs', config.color)}>
       {config.label}
@@ -8173,13 +8199,13 @@ function ActorIndicator({ actor }: ActorIndicatorProps) {
     system: <Server className="h-4 w-4" />,
     ai_agent: <Bot className="h-4 w-4" />,
   };
-  
+
   const colors = {
     user: 'text-blue-600',
     system: 'text-gray-600',
     ai_agent: 'text-purple-600',
   };
-  
+
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -8234,7 +8260,7 @@ const entityConfig: Record<EntityType, {
 
 function EntityBadge({ entityType, entityId }: EntityBadgeProps) {
   const config = entityConfig[entityType];
-  
+
   return (
     <div className="flex flex-col">
       <Badge variant="outline" className={cn('text-xs w-fit', config.color)}>
@@ -8260,11 +8286,11 @@ interface LogDetailsDialogProps {
 
 function LogDetailsDialog({ log, open, onOpenChange }: LogDetailsDialogProps) {
   if (!log) return null;
-  
+
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
   };
-  
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
@@ -8274,7 +8300,7 @@ function LogDetailsDialog({ log, open, onOpenChange }: LogDetailsDialogProps) {
             <span>Detalii Log Audit</span>
           </DialogTitle>
         </DialogHeader>
-        
+
         <div className="space-y-4">
           {/* Header Info */}
           <div className="grid grid-cols-2 gap-4">
@@ -8288,7 +8314,7 @@ function LogDetailsDialog({ log, open, onOpenChange }: LogDetailsDialogProps) {
                 </p>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm">Actor</CardTitle>
@@ -8300,7 +8326,7 @@ function LogDetailsDialog({ log, open, onOpenChange }: LogDetailsDialogProps) {
               </CardContent>
             </Card>
           </div>
-          
+
           {/* Action & Entity */}
           <div className="grid grid-cols-2 gap-4">
             <Card>
@@ -8311,7 +8337,7 @@ function LogDetailsDialog({ log, open, onOpenChange }: LogDetailsDialogProps) {
                 <ActionBadge action={log.action} />
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm">Entitate</CardTitle>
@@ -8321,7 +8347,7 @@ function LogDetailsDialog({ log, open, onOpenChange }: LogDetailsDialogProps) {
               </CardContent>
             </Card>
           </div>
-          
+
           {/* Description */}
           {log.description && (
             <Card>
@@ -8333,7 +8359,7 @@ function LogDetailsDialog({ log, open, onOpenChange }: LogDetailsDialogProps) {
               </CardContent>
             </Card>
           )}
-          
+
           {/* Changes (Before/After) */}
           {log.changes && (
             <Card>
@@ -8372,7 +8398,7 @@ function LogDetailsDialog({ log, open, onOpenChange }: LogDetailsDialogProps) {
               </CardContent>
             </Card>
           )}
-          
+
           {/* Metadata */}
           {log.metadata && Object.keys(log.metadata).length > 0 && (
             <Card>
@@ -8396,7 +8422,7 @@ function LogDetailsDialog({ log, open, onOpenChange }: LogDetailsDialogProps) {
               </CardContent>
             </Card>
           )}
-          
+
           {/* Request Info */}
           {log.request && (
             <Card>
@@ -8417,7 +8443,7 @@ function LogDetailsDialog({ log, open, onOpenChange }: LogDetailsDialogProps) {
               </CardContent>
             </Card>
           )}
-          
+
           {/* Hash Chain Verification */}
           {log.hashChain && (
             <Card>
@@ -8437,8 +8463,8 @@ function LogDetailsDialog({ log, open, onOpenChange }: LogDetailsDialogProps) {
                   </p>
                   <Badge
                     variant={log.hashChain.verified ? 'default' : 'destructive'}
-                    className={log.hashChain.verified 
-                      ? 'bg-green-100 text-green-700' 
+                    className={log.hashChain.verified
+                      ? 'bg-green-100 text-green-700'
                       : 'bg-red-100 text-red-700'
                     }
                   >
@@ -8474,43 +8500,43 @@ export function AuditLogsTable({ entityType, entityId, className }: AuditLogsTab
   const [globalFilter, setGlobalFilter] = useState('');
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
-  
+
   // Date range filter
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: subDays(new Date(), 7),
     to: new Date(),
   });
-  
+
   // Pagination state
   const [pagination, setPagination] = useState({
     pageIndex: 0,
     pageSize: 50,
   });
-  
+
   // Build query params
   const queryParams = useMemo(() => {
     const params: Record<string, string> = {
       page: String(pagination.pageIndex + 1),
       pageSize: String(pagination.pageSize),
     };
-    
+
     if (entityType) params.entityType = entityType;
     if (entityId) params.entityId = entityId;
-    
+
     if (sorting.length > 0) {
       params.sortBy = sorting[0].id;
       params.sortOrder = sorting[0].desc ? 'desc' : 'asc';
     }
-    
+
     if (globalFilter) params.search = globalFilter;
-    
+
     if (dateRange?.from) {
       params.dateFrom = dateRange.from.toISOString();
     }
     if (dateRange?.to) {
       params.dateTo = dateRange.to.toISOString();
     }
-    
+
     columnFilters.forEach((filter) => {
       if (Array.isArray(filter.value)) {
         params[filter.id] = filter.value.join(',');
@@ -8518,10 +8544,10 @@ export function AuditLogsTable({ entityType, entityId, className }: AuditLogsTab
         params[filter.id] = String(filter.value);
       }
     });
-    
+
     return new URLSearchParams(params).toString();
   }, [entityType, entityId, sorting, columnFilters, globalFilter, dateRange, pagination]);
-  
+
   // Fetch logs
   const { data, isLoading, error, refetch } = useQuery<AuditLogsResponse>({
     queryKey: ['audit-logs', queryParams],
@@ -8532,12 +8558,12 @@ export function AuditLogsTable({ entityType, entityId, className }: AuditLogsTab
     },
     staleTime: 30000, // 30s
   });
-  
+
   // Export mutation
   const handleExport = async (format: 'json' | 'csv') => {
     const response = await fetch(`/api/v1/audit-logs/export?${queryParams}&format=${format}`);
     if (!response.ok) throw new Error('Export failed');
-    
+
     const blob = await response.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -8546,7 +8572,7 @@ export function AuditLogsTable({ entityType, entityId, className }: AuditLogsTab
     a.click();
     URL.revokeObjectURL(url);
   };
-  
+
   // Column definitions
   const columns: ColumnDef<AuditLog>[] = useMemo(() => [
     {
@@ -8599,7 +8625,7 @@ export function AuditLogsTable({ entityType, entityId, className }: AuditLogsTab
       accessorKey: 'entityType',
       header: 'Entitate',
       cell: ({ row }) => (
-        <EntityBadge 
+        <EntityBadge
           entityType={row.original.entityType}
           entityId={row.original.entityId}
         />
@@ -8644,7 +8670,7 @@ export function AuditLogsTable({ entityType, entityId, className }: AuditLogsTab
       ),
     },
   ], []);
-  
+
   // Table instance
   const table = useReactTable({
     data: data?.logs ?? [],
@@ -8669,23 +8695,23 @@ export function AuditLogsTable({ entityType, entityId, className }: AuditLogsTab
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
   });
-  
+
   // Filter options
   const actionOptions = Object.entries(actionConfig).map(([value, { label }]) => ({
     label,
     value,
   }));
-  
+
   const entityOptions = Object.entries(entityConfig).map(([value, { label }]) => ({
     label,
     value,
   }));
-  
+
   const severityOptions = Object.entries(severityConfig).map(([value, { label }]) => ({
     label,
     value,
   }));
-  
+
   if (error) {
     return (
       <div className="border rounded-lg p-8 text-center">
@@ -8697,7 +8723,7 @@ export function AuditLogsTable({ entityType, entityId, className }: AuditLogsTab
       </div>
     );
   }
-  
+
   return (
     <div className={cn('space-y-4', className)}>
       {/* Toolbar */}
@@ -8713,26 +8739,26 @@ export function AuditLogsTable({ entityType, entityId, className }: AuditLogsTab
               className="pl-9"
             />
           </div>
-          
+
           {/* Filters */}
           <DataTableFacetedFilter
             column={table.getColumn('action')}
             title="Acțiune"
             options={actionOptions}
           />
-          
+
           <DataTableFacetedFilter
             column={table.getColumn('entityType')}
             title="Entitate"
             options={entityOptions}
           />
-          
+
           <DataTableFacetedFilter
             column={table.getColumn('severity')}
             title="Severitate"
             options={severityOptions}
           />
-          
+
           {/* Date Range Picker */}
           <Popover>
             <PopoverTrigger asChild>
@@ -8766,7 +8792,7 @@ export function AuditLogsTable({ entityType, entityId, className }: AuditLogsTab
             </PopoverContent>
           </Popover>
         </div>
-        
+
         <div className="flex items-center gap-2">
           {/* Export */}
           <DropdownMenu>
@@ -8788,14 +8814,14 @@ export function AuditLogsTable({ entityType, entityId, className }: AuditLogsTab
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          
+
           {/* Refresh */}
           <Button variant="outline" size="icon" onClick={() => refetch()}>
             <RefreshCw className={cn('h-4 w-4', isLoading && 'animate-spin')} />
           </Button>
         </div>
       </div>
-      
+
       {/* Table */}
       <div className="rounded-md border">
         <Table>
@@ -8863,7 +8889,7 @@ export function AuditLogsTable({ entityType, entityId, className }: AuditLogsTab
           </TableBody>
         </Table>
       </div>
-      
+
       {/* Pagination */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
@@ -8873,7 +8899,7 @@ export function AuditLogsTable({ entityType, entityId, className }: AuditLogsTab
         </p>
         <DataTablePagination table={table} />
       </div>
-      
+
       {/* Details Dialog */}
       <LogDetailsDialog
         log={selectedLog}
@@ -8894,51 +8920,51 @@ export function AuditLogsTable({ entityType, entityId, className }: AuditLogsTab
  * Acțiuni audit
  */
 export type AuditAction =
-  | 'CREATE'    // Creare entitate
-  | 'READ'      // Citire/Vizualizare
-  | 'UPDATE'    // Modificare
-  | 'DELETE'    // Ștergere
-  | 'LOGIN'     // Autentificare reușită
-  | 'LOGOUT'    // Deconectare
-  | 'EXPORT'    // Export date
-  | 'IMPORT'    // Import date
-  | 'APPROVE'   // Aprobare HITL
-  | 'REJECT'    // Respingere HITL
-  | 'SECURITY'  // Eveniment securitate
-  | 'SYSTEM';   // Acțiune sistem
+  | "CREATE" // Creare entitate
+  | "READ" // Citire/Vizualizare
+  | "UPDATE" // Modificare
+  | "DELETE" // Ștergere
+  | "LOGIN" // Autentificare reușită
+  | "LOGOUT" // Deconectare
+  | "EXPORT" // Export date
+  | "IMPORT" // Import date
+  | "APPROVE" // Aprobare HITL
+  | "REJECT" // Respingere HITL
+  | "SECURITY" // Eveniment securitate
+  | "SYSTEM"; // Acțiune sistem
 
 /**
  * Severitate log
  */
 export type AuditSeverity =
-  | 'debug'     // Debug/dezvoltare
-  | 'info'      // Informațional
-  | 'warning'   // Avertizare
-  | 'error'     // Eroare
-  | 'critical'; // Critic (securitate)
+  | "debug" // Debug/dezvoltare
+  | "info" // Informațional
+  | "warning" // Avertizare
+  | "error" // Eroare
+  | "critical"; // Critic (securitate)
 
 /**
  * Tipuri entități
  */
 export type EntityType =
-  | 'Contact'
-  | 'Conversation'
-  | 'Negotiation'
-  | 'Offer'
-  | 'Order'
-  | 'Product'
-  | 'Message'
-  | 'Session'
-  | 'Approval'
-  | 'User'
-  | 'Auth'
-  | 'System';
+  | "Contact"
+  | "Conversation"
+  | "Negotiation"
+  | "Offer"
+  | "Order"
+  | "Product"
+  | "Message"
+  | "Session"
+  | "Approval"
+  | "User"
+  | "Auth"
+  | "System";
 
 /**
  * Actor - cine a efectuat acțiunea
  */
 export interface AuditActor {
-  type: 'user' | 'system' | 'ai_agent';
+  type: "user" | "system" | "ai_agent";
   id: string;
   name?: string;
   email?: string;
@@ -8979,7 +9005,7 @@ export interface AuditHashChain {
   currentHash: string;
   previousHash: string;
   verified: boolean;
-  algorithm: 'sha256';
+  algorithm: "sha256";
 }
 
 /**
@@ -8988,37 +9014,37 @@ export interface AuditHashChain {
 export interface AuditLog {
   id: string;
   tenantId: string;
-  
+
   // Acțiune
   action: AuditAction;
   severity: AuditSeverity;
-  
+
   // Actor
   actor: AuditActor;
-  
+
   // Target
   entityType: EntityType;
   entityId?: string;
-  
+
   // Descriere
   description?: string;
-  
+
   // Modificări
   changes?: AuditChanges;
-  
+
   // Metadata
   metadata?: Record<string, unknown>;
   tags?: string[];
-  
+
   // Request
   request?: AuditRequestInfo;
-  
+
   // Integritate
   hashChain?: AuditHashChain;
-  
+
   // Timing
   timestamp: string;
-  
+
   // Indexare
   searchableText?: string;
 }
@@ -9054,7 +9080,7 @@ export interface AuditLogsFilter {
   entityTypes?: EntityType[];
   entityId?: string;
   actorId?: string;
-  actorType?: 'user' | 'system' | 'ai_agent';
+  actorType?: "user" | "system" | "ai_agent";
   dateFrom?: string;
   dateTo?: string;
   search?: string;
@@ -9243,10 +9269,10 @@ function MetricStatusIndicator({ status, animate = true }: MetricStatusIndicator
       bgClassName: 'bg-gray-100',
     },
   }[status];
-  
+
   return (
-    <Badge 
-      variant="outline" 
+    <Badge
+      variant="outline"
       className={cn(
         'gap-1',
         config.bgClassName,
@@ -9272,19 +9298,19 @@ interface TrendIndicatorProps {
 function TrendIndicator({ trend, percentChange, invertColors = false }: TrendIndicatorProps) {
   const getColor = () => {
     if (trend === 'stable') return 'text-gray-500';
-    
+
     const isPositiveChange = trend === 'up';
     const isGood = invertColors ? !isPositiveChange : isPositiveChange;
-    
+
     return isGood ? 'text-green-600' : 'text-red-600';
   };
-  
+
   const icons = {
     up: <TrendingUp className="h-4 w-4" />,
     down: <TrendingDown className="h-4 w-4" />,
     stable: <Minus className="h-4 w-4" />,
   };
-  
+
   return (
     <div className={cn('flex items-center gap-1 text-sm', getColor())}>
       {icons[trend]}
@@ -9318,15 +9344,15 @@ function MetricValue({ value, unit, decimals = 0 }: MetricValueProps) {
       }
       return `${val.toFixed(0)} ms`;
     }
-    
+
     if (u === '%') {
       return `${val.toFixed(decimals || 1)}%`;
     }
-    
+
     if (u === 'USD' || u === '$') {
       return `$${val.toFixed(2)}`;
     }
-    
+
     if (u === '/min' || u === '/hour' || u === '/sec') {
       if (val >= 1000000) {
         return `${(val / 1000000).toFixed(1)}M${u}`;
@@ -9336,7 +9362,7 @@ function MetricValue({ value, unit, decimals = 0 }: MetricValueProps) {
       }
       return `${val.toFixed(0)}${u}`;
     }
-    
+
     // Default number formatting
     if (val >= 1000000) {
       return `${(val / 1000000).toFixed(1)}M`;
@@ -9346,7 +9372,7 @@ function MetricValue({ value, unit, decimals = 0 }: MetricValueProps) {
     }
     return val.toFixed(decimals);
   };
-  
+
   return (
     <span className="font-mono text-sm font-medium">
       {formatValue(value, unit)}
@@ -9364,14 +9390,14 @@ interface ThresholdProgressProps {
   invertThreshold?: boolean; // True dacă sub threshold = bine
 }
 
-function ThresholdProgress({ 
-  value, 
-  threshold, 
+function ThresholdProgress({
+  value,
+  threshold,
   unit,
-  invertThreshold = false 
+  invertThreshold = false
 }: ThresholdProgressProps) {
   const percentage = Math.min((value / threshold) * 100, 100);
-  
+
   const getColor = () => {
     if (invertThreshold) {
       // Pentru metrici unde mai mic = mai bine (error rate)
@@ -9385,13 +9411,13 @@ function ThresholdProgress({
       return 'bg-green-500';
     }
   };
-  
+
   return (
     <Tooltip>
       <TooltipTrigger asChild>
         <div className="flex items-center gap-2 min-w-[120px]">
-          <Progress 
-            value={percentage} 
+          <Progress
+            value={percentage}
             className="h-2 flex-1"
             indicatorClassName={getColor()}
           />
@@ -9420,29 +9446,29 @@ interface PerformanceMetricsTableProps {
   className?: string;
 }
 
-export function PerformanceMetricsTable({ 
+export function PerformanceMetricsTable({
   componentFilter,
   autoRefresh = true,
   refreshInterval = 30000, // 30s default
-  className 
+  className
 }: PerformanceMetricsTableProps) {
   // Time range state
   const [timeRange, setTimeRange] = useState<'1h' | '6h' | '24h' | '7d'>('1h');
-  
+
   // Table state
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  
+
   // Live indicator
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
-  
+
   // Fetch metrics
   const { data, isLoading, error, refetch } = useQuery<PerformanceMetricsResponse>({
     queryKey: ['performance-metrics', componentFilter, timeRange],
     queryFn: async () => {
       const params = new URLSearchParams({ timeRange });
       if (componentFilter) params.set('component', componentFilter);
-      
+
       const response = await fetch(`/api/v1/metrics/performance?${params}`);
       if (!response.ok) throw new Error('Failed to fetch metrics');
       return response.json();
@@ -9453,7 +9479,7 @@ export function PerformanceMetricsTable({
       setLastUpdated(new Date());
     },
   });
-  
+
   // Column definitions
   const columns: ColumnDef<PerformanceMetric>[] = useMemo(() => [
     {
@@ -9462,7 +9488,7 @@ export function PerformanceMetricsTable({
       cell: ({ row }) => {
         const component = row.original.component;
         const icon = componentIcons[component.type];
-        
+
         return (
           <div className="flex items-center gap-2">
             {icon}
@@ -9493,7 +9519,7 @@ export function PerformanceMetricsTable({
           queue_depth: <Timer className="h-3 w-3" />,
           success_rate: <CheckCircle className="h-3 w-3" />,
         };
-        
+
         return (
           <div className="flex items-center gap-2">
             <span className="text-muted-foreground">
@@ -9508,8 +9534,8 @@ export function PerformanceMetricsTable({
       accessorKey: 'value',
       header: 'Valoare',
       cell: ({ row }) => (
-        <MetricValue 
-          value={row.original.value} 
+        <MetricValue
+          value={row.original.value}
           unit={row.original.unit}
           decimals={row.original.decimals}
         />
@@ -9519,7 +9545,7 @@ export function PerformanceMetricsTable({
       accessorKey: 'trend',
       header: 'Trend',
       cell: ({ row }) => (
-        <TrendIndicator 
+        <TrendIndicator
           trend={row.original.trend}
           percentChange={row.original.percentChange}
           invertColors={row.original.type === 'error_rate'}
@@ -9532,10 +9558,10 @@ export function PerformanceMetricsTable({
       cell: ({ row }) => {
         const metric = row.original;
         if (!metric.percentiles?.p95) return <span className="text-muted-foreground">-</span>;
-        
+
         return (
-          <MetricValue 
-            value={metric.percentiles.p95} 
+          <MetricValue
+            value={metric.percentiles.p95}
             unit={metric.unit}
           />
         );
@@ -9547,7 +9573,7 @@ export function PerformanceMetricsTable({
       cell: ({ row }) => {
         const metric = row.original;
         if (!metric.threshold) return <span className="text-muted-foreground">-</span>;
-        
+
         return (
           <ThresholdProgress
             value={metric.value}
@@ -9569,7 +9595,7 @@ export function PerformanceMetricsTable({
       },
     },
   ], []);
-  
+
   // Table instance
   const table = useReactTable({
     data: data?.metrics ?? [],
@@ -9584,7 +9610,7 @@ export function PerformanceMetricsTable({
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
   });
-  
+
   // Filter options
   const componentOptions = [
     { label: 'AI Sales Agent', value: 'ai_sales_agent' },
@@ -9598,13 +9624,13 @@ export function PerformanceMetricsTable({
     { label: 'Database', value: 'database' },
     { label: 'Queue', value: 'queue' },
   ];
-  
+
   const statusOptions = [
     { label: 'Healthy', value: 'healthy', icon: CheckCircle },
     { label: 'Warning', value: 'warning', icon: AlertTriangle },
     { label: 'Critical', value: 'critical', icon: XCircle },
   ];
-  
+
   // Summary stats
   const summary = data?.summary ?? {
     healthy: 0,
@@ -9612,7 +9638,7 @@ export function PerformanceMetricsTable({
     critical: 0,
     total: 0,
   };
-  
+
   if (error) {
     return (
       <div className="border rounded-lg p-8 text-center">
@@ -9624,7 +9650,7 @@ export function PerformanceMetricsTable({
       </div>
     );
   }
-  
+
   return (
     <div className={cn('space-y-4', className)}>
       {/* Summary Header */}
@@ -9643,7 +9669,7 @@ export function PerformanceMetricsTable({
             Critical: {summary.critical}
           </Badge>
         </div>
-        
+
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           {autoRefresh && (
             <Badge variant="outline" className="gap-1">
@@ -9656,7 +9682,7 @@ export function PerformanceMetricsTable({
           </span>
         </div>
       </div>
-      
+
       {/* Toolbar */}
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-2">
@@ -9665,14 +9691,14 @@ export function PerformanceMetricsTable({
             title="Componentă"
             options={componentOptions}
           />
-          
+
           <DataTableFacetedFilter
             column={table.getColumn('status')}
             title="Status"
             options={statusOptions}
           />
         </div>
-        
+
         <div className="flex items-center gap-2">
           <Select value={timeRange} onValueChange={(v) => setTimeRange(v as any)}>
             <SelectTrigger className="w-[130px]">
@@ -9685,10 +9711,10 @@ export function PerformanceMetricsTable({
               <SelectItem value="7d">Ultimele 7 zile</SelectItem>
             </SelectContent>
           </Select>
-          
-          <Button 
-            variant="outline" 
-            size="icon" 
+
+          <Button
+            variant="outline"
+            size="icon"
             onClick={() => refetch()}
             disabled={isLoading}
           >
@@ -9696,7 +9722,7 @@ export function PerformanceMetricsTable({
           </Button>
         </div>
       </div>
-      
+
       {/* Table */}
       <div className="rounded-md border">
         <Table>
@@ -9778,45 +9804,45 @@ export function PerformanceMetricsTable({
  * Tipuri componente monitorizate
  */
 export type ComponentType =
-  | 'ai_sales_agent'
-  | 'email_worker'
-  | 'whatsapp_worker'
-  | 'phone_worker'
-  | 'hitl_processor'
-  | 'offer_generator'
-  | 'pipeline'
-  | 'api'
-  | 'database'
-  | 'queue';
+  | "ai_sales_agent"
+  | "email_worker"
+  | "whatsapp_worker"
+  | "phone_worker"
+  | "hitl_processor"
+  | "offer_generator"
+  | "pipeline"
+  | "api"
+  | "database"
+  | "queue";
 
 /**
  * Tipuri metrici
  */
 export type MetricType =
-  | 'latency'       // Timp de răspuns
-  | 'throughput'    // Debit/Rată
-  | 'error_rate'    // Rată erori
-  | 'cost'          // Cost
-  | 'usage'         // Utilizare resurse
-  | 'queue_depth'   // Adâncime coadă
-  | 'success_rate'; // Rată succes
+  | "latency" // Timp de răspuns
+  | "throughput" // Debit/Rată
+  | "error_rate" // Rată erori
+  | "cost" // Cost
+  | "usage" // Utilizare resurse
+  | "queue_depth" // Adâncime coadă
+  | "success_rate"; // Rată succes
 
 /**
  * Status metric
  */
-export type MetricStatus = 
-  | 'healthy'   // Verde - în parametri normali
-  | 'warning'   // Galben - aproape de threshold
-  | 'critical'  // Roșu - depășit threshold
-  | 'unknown';  // Gri - date insuficiente
+export type MetricStatus =
+  | "healthy" // Verde - în parametri normali
+  | "warning" // Galben - aproape de threshold
+  | "critical" // Roșu - depășit threshold
+  | "unknown"; // Gri - date insuficiente
 
 /**
  * Trend metric
  */
-export type MetricTrend = 
-  | 'up'      // Creștere
-  | 'down'    // Scădere
-  | 'stable'; // Stabil
+export type MetricTrend =
+  | "up" // Creștere
+  | "down" // Scădere
+  | "stable"; // Stabil
 
 /**
  * Componentă monitorizată
@@ -9834,7 +9860,7 @@ export interface MetricComponent {
 export interface MetricThreshold {
   value: number;
   warningValue?: number;
-  operator: 'gt' | 'lt' | 'gte' | 'lte' | 'eq';
+  operator: "gt" | "lt" | "gte" | "lte" | "eq";
   unit: string;
 }
 
@@ -9856,33 +9882,33 @@ export interface PerformanceMetric {
   id: string;
   name: string;
   displayName: string;
-  
+
   // Componentă
   component: MetricComponent;
-  
+
   // Tip și valoare
   type: MetricType;
   value: number;
   unit: string;
   decimals?: number;
-  
+
   // Trend
   trend: MetricTrend;
   percentChange?: number;
   previousValue?: number;
-  
+
   // Percentile
   percentiles?: MetricPercentiles;
-  
+
   // Threshold
   threshold?: MetricThreshold;
-  
+
   // Status derivat
   status: MetricStatus;
-  
+
   // Timestamp
   timestamp: string;
-  
+
   // Metadata
   tags?: string[];
   metadata?: Record<string, unknown>;
@@ -9898,16 +9924,19 @@ export interface PerformanceMetricsResponse {
     warning: number;
     critical: number;
     total: number;
-    byComponent: Record<ComponentType, {
-      healthy: number;
-      warning: number;
-      critical: number;
-    }>;
+    byComponent: Record<
+      ComponentType,
+      {
+        healthy: number;
+        warning: number;
+        critical: number;
+      }
+    >;
   };
   timeRange: {
     from: string;
     to: string;
-    granularity: 'minute' | 'hour' | 'day';
+    granularity: "minute" | "hour" | "day";
   };
 }
 
@@ -9921,7 +9950,7 @@ export interface MetricHistory {
     value: number;
     percentiles?: MetricPercentiles;
   }>;
-  aggregation: 'avg' | 'sum' | 'min' | 'max' | 'p95';
+  aggregation: "avg" | "sum" | "min" | "max" | "p95";
 }
 
 /**
@@ -9931,13 +9960,13 @@ export interface MetricAlert {
   id: string;
   metricId: string;
   metric: PerformanceMetric;
-  
-  severity: 'warning' | 'critical';
+
+  severity: "warning" | "critical";
   message: string;
-  
+
   triggeredAt: string;
   resolvedAt?: string;
-  
+
   acknowledged: boolean;
   acknowledgedBy?: string;
   acknowledgedAt?: string;
@@ -9947,29 +9976,29 @@ export interface MetricAlert {
  * Dashboard metrici sumar
  */
 export interface MetricsDashboardSummary {
-  overallHealth: 'healthy' | 'degraded' | 'critical';
-  
+  overallHealth: "healthy" | "degraded" | "critical";
+
   aiAgent: {
     status: MetricStatus;
     responseTime: number;
     tokensUsed: number;
     costToday: number;
   };
-  
+
   outreach: {
     status: MetricStatus;
     emailsSent: number;
     whatsappSent: number;
     deliveryRate: number;
   };
-  
+
   hitl: {
     status: MetricStatus;
     pendingApprovals: number;
     avgApprovalTime: number;
     slaBreachRate: number;
   };
-  
+
   pipeline: {
     status: MetricStatus;
     throughput: number;
@@ -10050,10 +10079,10 @@ interface TableSkeletonProps {
   className?: string;
 }
 
-export function TableSkeleton({ 
-  columns, 
+export function TableSkeleton({
+  columns,
   rows = 5,
-  className 
+  className
 }: TableSkeletonProps) {
   return (
     <TableBody className={className}>
@@ -10061,7 +10090,7 @@ export function TableSkeleton({
         <TableRow key={rowIndex}>
           {Array.from({ length: columns }).map((_, cellIndex) => (
             <TableCell key={cellIndex}>
-              <div 
+              <div
                 className={cn(
                   'h-4 bg-muted animate-pulse rounded',
                   cellIndex === 0 && 'w-24',
@@ -10111,9 +10140,9 @@ export function ErrorState({
       <AlertDescription className="flex items-center justify-between">
         <span>{message}</span>
         {onRetry && (
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={onRetry}
             className="ml-4"
           >
@@ -10184,14 +10213,14 @@ export function BulkActionsToolbar<TData>({
     action: BulkAction | null;
   }>({ open: false, action: null });
   const [isExecuting, setIsExecuting] = useState(false);
-  
+
   const selectedRows = table.getFilteredSelectedRowModel().rows;
   const selectedCount = selectedRows.length;
-  
+
   if (selectedCount === 0) return null;
-  
+
   const selectedIds = selectedRows.map((row) => getRowId(row.original));
-  
+
   const handleActionClick = async (action: BulkAction) => {
     if (action.requiresConfirmation) {
       setConfirmDialog({ open: true, action });
@@ -10199,7 +10228,7 @@ export function BulkActionsToolbar<TData>({
       await executeAction(action);
     }
   };
-  
+
   const executeAction = async (action: BulkAction) => {
     setIsExecuting(true);
     try {
@@ -10210,7 +10239,7 @@ export function BulkActionsToolbar<TData>({
       setConfirmDialog({ open: false, action: null });
     }
   };
-  
+
   return (
     <>
       <div className={cn(
@@ -10223,9 +10252,9 @@ export function BulkActionsToolbar<TData>({
             {selectedCount === 1 ? 'element selectat' : 'elemente selectate'}
           </span>
         </div>
-        
+
         <div className="flex-1" />
-        
+
         {/* Quick actions */}
         {actions.slice(0, 2).map((action) => (
           <Button
@@ -10239,7 +10268,7 @@ export function BulkActionsToolbar<TData>({
             <span className="ml-2">{action.label}</span>
           </Button>
         ))}
-        
+
         {/* More actions dropdown */}
         {actions.length > 2 && (
           <DropdownMenu>
@@ -10269,7 +10298,7 @@ export function BulkActionsToolbar<TData>({
             </DropdownMenuContent>
           </DropdownMenu>
         )}
-        
+
         {/* Clear selection */}
         <Button
           variant="ghost"
@@ -10279,7 +10308,7 @@ export function BulkActionsToolbar<TData>({
           <X className="h-4 w-4" />
         </Button>
       </div>
-      
+
       {/* Confirmation Dialog */}
       <AlertDialog
         open={confirmDialog.open}
@@ -10291,7 +10320,7 @@ export function BulkActionsToolbar<TData>({
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmare acțiune</AlertDialogTitle>
             <AlertDialogDescription>
-              {confirmDialog.action?.confirmationMessage || 
+              {confirmDialog.action?.confirmationMessage ||
                 `Sunteți sigur că doriți să aplicați "${confirmDialog.action?.label}" pentru ${selectedCount} elemente?`}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -10303,7 +10332,7 @@ export function BulkActionsToolbar<TData>({
               onClick={() => confirmDialog.action && executeAction(confirmDialog.action)}
               disabled={isExecuting}
               className={cn(
-                confirmDialog.action?.variant === 'destructive' && 
+                confirmDialog.action?.variant === 'destructive' &&
                 'bg-destructive hover:bg-destructive/90'
               )}
             >
@@ -10375,23 +10404,23 @@ export function RowActionsMenu<TData>({
     action: RowAction<TData> | null;
   }>({ open: false, action: null });
   const [isExecuting, setIsExecuting] = useState(false);
-  
+
   const visibleActions = actions.filter((action) => {
     if (typeof action.hidden === 'function') {
       return !action.hidden(row);
     }
     return !action.hidden;
   });
-  
+
   if (visibleActions.length === 0) return null;
-  
+
   const getDisabled = (action: RowAction<TData>) => {
     if (typeof action.disabled === 'function') {
       return action.disabled(row);
     }
     return action.disabled;
   };
-  
+
   const handleActionClick = async (action: RowAction<TData>) => {
     if (action.requiresConfirmation) {
       setConfirmDialog({ open: true, action });
@@ -10399,7 +10428,7 @@ export function RowActionsMenu<TData>({
       await executeAction(action);
     }
   };
-  
+
   const executeAction = async (action: RowAction<TData>) => {
     setIsExecuting(true);
     try {
@@ -10409,18 +10438,18 @@ export function RowActionsMenu<TData>({
       setConfirmDialog({ open: false, action: null });
     }
   };
-  
+
   const getConfirmationMessage = (action: RowAction<TData>) => {
     if (typeof action.confirmationMessage === 'function') {
       return action.confirmationMessage(row);
     }
     return action.confirmationMessage || 'Sunteți sigur că doriți să continuați?';
   };
-  
+
   // Group actions by variant
   const defaultActions = visibleActions.filter((a) => a.variant !== 'destructive');
   const destructiveActions = visibleActions.filter((a) => a.variant === 'destructive');
-  
+
   return (
     <>
       <DropdownMenu>
@@ -10432,7 +10461,7 @@ export function RowActionsMenu<TData>({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>{label}</DropdownMenuLabel>
-          
+
           {defaultActions.map((action) => (
             <DropdownMenuItem
               key={action.id}
@@ -10443,11 +10472,11 @@ export function RowActionsMenu<TData>({
               <span className={action.icon ? 'ml-2' : ''}>{action.label}</span>
             </DropdownMenuItem>
           ))}
-          
+
           {destructiveActions.length > 0 && defaultActions.length > 0 && (
             <DropdownMenuSeparator />
           )}
-          
+
           {destructiveActions.map((action) => (
             <DropdownMenuItem
               key={action.id}
@@ -10461,7 +10490,7 @@ export function RowActionsMenu<TData>({
           ))}
         </DropdownMenuContent>
       </DropdownMenu>
-      
+
       {/* Confirmation Dialog */}
       <AlertDialog
         open={confirmDialog.open}
@@ -10486,7 +10515,7 @@ export function RowActionsMenu<TData>({
               onClick={() => confirmDialog.action && executeAction(confirmDialog.action)}
               disabled={isExecuting}
               className={cn(
-                confirmDialog.action?.variant === 'destructive' && 
+                confirmDialog.action?.variant === 'destructive' &&
                 'bg-destructive hover:bg-destructive/90'
               )}
             >
@@ -10530,9 +10559,9 @@ export function ColumnToggle<TData>({
   const columns = table
     .getAllColumns()
     .filter((column) => column.getCanHide());
-  
+
   if (columns.length === 0) return null;
-  
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -10546,7 +10575,7 @@ export function ColumnToggle<TData>({
         <DropdownMenuSeparator />
         {columns.map((column) => {
           const label = columnLabels[column.id] || column.id;
-          
+
           return (
             <DropdownMenuCheckboxItem
               key={column.id}
@@ -10564,8 +10593,8 @@ export function ColumnToggle<TData>({
             columns.forEach((c) => c.toggleVisibility(value));
           }}
         >
-          {columns.every((c) => c.getIsVisible()) 
-            ? 'Ascunde toate' 
+          {columns.every((c) => c.getIsVisible())
+            ? 'Ascunde toate'
             : 'Arată toate'}
         </DropdownMenuCheckboxItem>
       </DropdownMenuContent>
@@ -10629,7 +10658,7 @@ export function ExportButton({
   className,
 }: ExportButtonProps) {
   const [isExporting, setIsExporting] = useState<ExportFormat | null>(null);
-  
+
   const handleExport = async (format: ExportFormat) => {
     setIsExporting(format);
     try {
@@ -10638,13 +10667,13 @@ export function ExportButton({
       setIsExporting(null);
     }
   };
-  
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button 
-          variant="outline" 
-          size="sm" 
+        <Button
+          variant="outline"
+          size="sm"
           disabled={disabled || isExporting !== null}
           className={className}
         >
@@ -10660,7 +10689,7 @@ export function ExportButton({
         {formats.map((format) => {
           const config = formatConfig[format];
           const isCurrentFormat = isExporting === format;
-          
+
           return (
             <DropdownMenuItem
               key={format}
@@ -10690,17 +10719,17 @@ export function ExportButton({
 
 ```typescript
 // hooks/use-table-state.ts
-'use client';
+"use client";
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo } from "react";
 import {
   SortingState,
   ColumnFiltersState,
   VisibilityState,
   RowSelectionState,
   PaginationState,
-} from '@tanstack/react-table';
-import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+} from "@tanstack/react-table";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 
 interface UseTableStateOptions {
   // Defaults
@@ -10708,10 +10737,10 @@ interface UseTableStateOptions {
   defaultColumnFilters?: ColumnFiltersState;
   defaultColumnVisibility?: VisibilityState;
   defaultPagination?: PaginationState;
-  
+
   // Sync cu URL
   syncWithUrl?: boolean;
-  
+
   // Keys pentru URL params
   urlKeys?: {
     page?: string;
@@ -10733,18 +10762,34 @@ interface TableState {
 }
 
 interface TableStateActions {
-  setSorting: (updater: SortingState | ((old: SortingState) => SortingState)) => void;
-  setColumnFilters: (updater: ColumnFiltersState | ((old: ColumnFiltersState) => ColumnFiltersState)) => void;
-  setColumnVisibility: (updater: VisibilityState | ((old: VisibilityState) => VisibilityState)) => void;
-  setRowSelection: (updater: RowSelectionState | ((old: RowSelectionState) => RowSelectionState)) => void;
-  setPagination: (updater: PaginationState | ((old: PaginationState) => PaginationState)) => void;
+  setSorting: (
+    updater: SortingState | ((old: SortingState) => SortingState),
+  ) => void;
+  setColumnFilters: (
+    updater:
+      | ColumnFiltersState
+      | ((old: ColumnFiltersState) => ColumnFiltersState),
+  ) => void;
+  setColumnVisibility: (
+    updater: VisibilityState | ((old: VisibilityState) => VisibilityState),
+  ) => void;
+  setRowSelection: (
+    updater:
+      | RowSelectionState
+      | ((old: RowSelectionState) => RowSelectionState),
+  ) => void;
+  setPagination: (
+    updater: PaginationState | ((old: PaginationState) => PaginationState),
+  ) => void;
   setGlobalFilter: (value: string) => void;
   resetState: () => void;
   resetFilters: () => void;
   resetSelection: () => void;
 }
 
-export function useTableState(options: UseTableStateOptions = {}): [TableState, TableStateActions] {
+export function useTableState(
+  options: UseTableStateOptions = {},
+): [TableState, TableStateActions] {
   const {
     defaultSorting = [],
     defaultColumnFilters = [],
@@ -10753,11 +10798,11 @@ export function useTableState(options: UseTableStateOptions = {}): [TableState, 
     syncWithUrl = false,
     urlKeys = {},
   } = options;
-  
+
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  
+
   // Initialize state from URL if syncing
   const initialState = useMemo(() => {
     if (!syncWithUrl) {
@@ -10765,95 +10810,134 @@ export function useTableState(options: UseTableStateOptions = {}): [TableState, 
         sorting: defaultSorting,
         columnFilters: defaultColumnFilters,
         pagination: defaultPagination,
-        globalFilter: '',
+        globalFilter: "",
       };
     }
-    
-    const pageKey = urlKeys.page || 'page';
-    const pageSizeKey = urlKeys.pageSize || 'pageSize';
-    const sortByKey = urlKeys.sortBy || 'sortBy';
-    const sortOrderKey = urlKeys.sortOrder || 'sortOrder';
-    const searchKey = urlKeys.search || 'search';
-    
-    const page = parseInt(searchParams.get(pageKey) || '1', 10) - 1;
-    const pageSize = parseInt(searchParams.get(pageSizeKey) || String(defaultPagination.pageSize), 10);
+
+    const pageKey = urlKeys.page || "page";
+    const pageSizeKey = urlKeys.pageSize || "pageSize";
+    const sortByKey = urlKeys.sortBy || "sortBy";
+    const sortOrderKey = urlKeys.sortOrder || "sortOrder";
+    const searchKey = urlKeys.search || "search";
+
+    const page = parseInt(searchParams.get(pageKey) || "1", 10) - 1;
+    const pageSize = parseInt(
+      searchParams.get(pageSizeKey) || String(defaultPagination.pageSize),
+      10,
+    );
     const sortBy = searchParams.get(sortByKey);
-    const sortOrder = searchParams.get(sortOrderKey) || 'desc';
-    const search = searchParams.get(searchKey) || '';
-    
+    const sortOrder = searchParams.get(sortOrderKey) || "desc";
+    const search = searchParams.get(searchKey) || "";
+
     return {
-      sorting: sortBy ? [{ id: sortBy, desc: sortOrder === 'desc' }] : defaultSorting,
+      sorting: sortBy
+        ? [{ id: sortBy, desc: sortOrder === "desc" }]
+        : defaultSorting,
       columnFilters: defaultColumnFilters,
       pagination: { pageIndex: page, pageSize },
       globalFilter: search,
     };
-  }, [syncWithUrl, searchParams, urlKeys, defaultSorting, defaultColumnFilters, defaultPagination]);
-  
+  }, [
+    syncWithUrl,
+    searchParams,
+    urlKeys,
+    defaultSorting,
+    defaultColumnFilters,
+    defaultPagination,
+  ]);
+
   // State
   const [sorting, setSorting] = useState<SortingState>(initialState.sorting);
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(initialState.columnFilters);
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(defaultColumnVisibility);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(
+    initialState.columnFilters,
+  );
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(
+    defaultColumnVisibility,
+  );
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
-  const [pagination, setPagination] = useState<PaginationState>(initialState.pagination);
-  const [globalFilter, setGlobalFilter] = useState<string>(initialState.globalFilter);
-  
+  const [pagination, setPagination] = useState<PaginationState>(
+    initialState.pagination,
+  );
+  const [globalFilter, setGlobalFilter] = useState<string>(
+    initialState.globalFilter,
+  );
+
   // Sync to URL
-  const syncToUrl = useCallback((state: Partial<TableState>) => {
-    if (!syncWithUrl) return;
-    
-    const params = new URLSearchParams(searchParams.toString());
-    
-    const pageKey = urlKeys.page || 'page';
-    const pageSizeKey = urlKeys.pageSize || 'pageSize';
-    const sortByKey = urlKeys.sortBy || 'sortBy';
-    const sortOrderKey = urlKeys.sortOrder || 'sortOrder';
-    const searchKey = urlKeys.search || 'search';
-    
-    if (state.pagination) {
-      params.set(pageKey, String(state.pagination.pageIndex + 1));
-      params.set(pageSizeKey, String(state.pagination.pageSize));
-    }
-    
-    if (state.sorting !== undefined) {
-      if (state.sorting.length > 0) {
-        params.set(sortByKey, state.sorting[0].id);
-        params.set(sortOrderKey, state.sorting[0].desc ? 'desc' : 'asc');
-      } else {
-        params.delete(sortByKey);
-        params.delete(sortOrderKey);
+  const syncToUrl = useCallback(
+    (state: Partial<TableState>) => {
+      if (!syncWithUrl) return;
+
+      const params = new URLSearchParams(searchParams.toString());
+
+      const pageKey = urlKeys.page || "page";
+      const pageSizeKey = urlKeys.pageSize || "pageSize";
+      const sortByKey = urlKeys.sortBy || "sortBy";
+      const sortOrderKey = urlKeys.sortOrder || "sortOrder";
+      const searchKey = urlKeys.search || "search";
+
+      if (state.pagination) {
+        params.set(pageKey, String(state.pagination.pageIndex + 1));
+        params.set(pageSizeKey, String(state.pagination.pageSize));
       }
-    }
-    
-    if (state.globalFilter !== undefined) {
-      if (state.globalFilter) {
-        params.set(searchKey, state.globalFilter);
-      } else {
-        params.delete(searchKey);
+
+      if (state.sorting !== undefined) {
+        if (state.sorting.length > 0) {
+          params.set(sortByKey, state.sorting[0].id);
+          params.set(sortOrderKey, state.sorting[0].desc ? "desc" : "asc");
+        } else {
+          params.delete(sortByKey);
+          params.delete(sortOrderKey);
+        }
       }
-    }
-    
-    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-  }, [syncWithUrl, searchParams, urlKeys, router, pathname]);
-  
+
+      if (state.globalFilter !== undefined) {
+        if (state.globalFilter) {
+          params.set(searchKey, state.globalFilter);
+        } else {
+          params.delete(searchKey);
+        }
+      }
+
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    },
+    [syncWithUrl, searchParams, urlKeys, router, pathname],
+  );
+
   // Wrapped setters that sync to URL
-  const wrappedSetSorting = useCallback((updater: SortingState | ((old: SortingState) => SortingState)) => {
-    const newSorting = typeof updater === 'function' ? updater(sorting) : updater;
-    setSorting(newSorting);
-    syncToUrl({ sorting: newSorting });
-  }, [sorting, syncToUrl]);
-  
-  const wrappedSetPagination = useCallback((updater: PaginationState | ((old: PaginationState) => PaginationState)) => {
-    const newPagination = typeof updater === 'function' ? updater(pagination) : updater;
-    setPagination(newPagination);
-    syncToUrl({ pagination: newPagination });
-  }, [pagination, syncToUrl]);
-  
-  const wrappedSetGlobalFilter = useCallback((value: string) => {
-    setGlobalFilter(value);
-    setPagination((prev) => ({ ...prev, pageIndex: 0 })); // Reset to first page
-    syncToUrl({ globalFilter: value, pagination: { ...pagination, pageIndex: 0 } });
-  }, [pagination, syncToUrl]);
-  
+  const wrappedSetSorting = useCallback(
+    (updater: SortingState | ((old: SortingState) => SortingState)) => {
+      const newSorting =
+        typeof updater === "function" ? updater(sorting) : updater;
+      setSorting(newSorting);
+      syncToUrl({ sorting: newSorting });
+    },
+    [sorting, syncToUrl],
+  );
+
+  const wrappedSetPagination = useCallback(
+    (
+      updater: PaginationState | ((old: PaginationState) => PaginationState),
+    ) => {
+      const newPagination =
+        typeof updater === "function" ? updater(pagination) : updater;
+      setPagination(newPagination);
+      syncToUrl({ pagination: newPagination });
+    },
+    [pagination, syncToUrl],
+  );
+
+  const wrappedSetGlobalFilter = useCallback(
+    (value: string) => {
+      setGlobalFilter(value);
+      setPagination((prev) => ({ ...prev, pageIndex: 0 })); // Reset to first page
+      syncToUrl({
+        globalFilter: value,
+        pagination: { ...pagination, pageIndex: 0 },
+      });
+    },
+    [pagination, syncToUrl],
+  );
+
   // Reset functions
   const resetState = useCallback(() => {
     setSorting(defaultSorting);
@@ -10861,28 +10945,34 @@ export function useTableState(options: UseTableStateOptions = {}): [TableState, 
     setColumnVisibility(defaultColumnVisibility);
     setRowSelection({});
     setPagination(defaultPagination);
-    setGlobalFilter('');
+    setGlobalFilter("");
     syncToUrl({
       sorting: defaultSorting,
       pagination: defaultPagination,
-      globalFilter: '',
+      globalFilter: "",
     });
-  }, [defaultSorting, defaultColumnFilters, defaultColumnVisibility, defaultPagination, syncToUrl]);
-  
+  }, [
+    defaultSorting,
+    defaultColumnFilters,
+    defaultColumnVisibility,
+    defaultPagination,
+    syncToUrl,
+  ]);
+
   const resetFilters = useCallback(() => {
     setColumnFilters([]);
-    setGlobalFilter('');
+    setGlobalFilter("");
     setPagination((prev) => ({ ...prev, pageIndex: 0 }));
     syncToUrl({
-      globalFilter: '',
+      globalFilter: "",
       pagination: { ...pagination, pageIndex: 0 },
     });
   }, [pagination, syncToUrl]);
-  
+
   const resetSelection = useCallback(() => {
     setRowSelection({});
   }, []);
-  
+
   // Return state and actions
   const state: TableState = {
     sorting,
@@ -10892,7 +10982,7 @@ export function useTableState(options: UseTableStateOptions = {}): [TableState, 
     pagination,
     globalFilter,
   };
-  
+
   const actions: TableStateActions = {
     setSorting: wrappedSetSorting,
     setColumnFilters,
@@ -10904,7 +10994,7 @@ export function useTableState(options: UseTableStateOptions = {}): [TableState, 
     resetFilters,
     resetSelection,
   };
-  
+
   return [state, actions];
 }
 ```
@@ -10913,11 +11003,15 @@ export function useTableState(options: UseTableStateOptions = {}): [TableState, 
 
 ```typescript
 // hooks/use-table-query.ts
-'use client';
+"use client";
 
-import { useMemo } from 'react';
-import { useQuery, UseQueryOptions } from '@tanstack/react-query';
-import { SortingState, ColumnFiltersState, PaginationState } from '@tanstack/react-table';
+import { useMemo } from "react";
+import { useQuery, UseQueryOptions } from "@tanstack/react-query";
+import {
+  SortingState,
+  ColumnFiltersState,
+  PaginationState,
+} from "@tanstack/react-table";
 
 interface TableQueryParams {
   sorting: SortingState;
@@ -10931,8 +11025,8 @@ interface UseTableQueryOptions<TData> {
   queryKey: string[];
   endpoint: string;
   params: TableQueryParams;
-  queryOptions?: Omit<UseQueryOptions<TData>, 'queryKey' | 'queryFn'>;
-  
+  queryOptions?: Omit<UseQueryOptions<TData>, "queryKey" | "queryFn">;
+
   // Mapping pentru URL params
   paramMapping?: {
     page?: string;
@@ -10951,41 +11045,41 @@ export function useTableQuery<TData>({
   paramMapping = {},
 }: UseTableQueryOptions<TData>) {
   const {
-    page = 'page',
-    pageSize = 'pageSize',
-    sortBy = 'sortBy',
-    sortOrder = 'sortOrder',
-    search = 'search',
+    page = "page",
+    pageSize = "pageSize",
+    sortBy = "sortBy",
+    sortOrder = "sortOrder",
+    search = "search",
   } = paramMapping;
-  
+
   // Build query string
   const queryString = useMemo(() => {
     const urlParams = new URLSearchParams();
-    
+
     // Pagination
     urlParams.set(page, String(params.pagination.pageIndex + 1));
     urlParams.set(pageSize, String(params.pagination.pageSize));
-    
+
     // Sorting
     if (params.sorting.length > 0) {
       urlParams.set(sortBy, params.sorting[0].id);
-      urlParams.set(sortOrder, params.sorting[0].desc ? 'desc' : 'asc');
+      urlParams.set(sortOrder, params.sorting[0].desc ? "desc" : "asc");
     }
-    
+
     // Global filter
     if (params.globalFilter) {
       urlParams.set(search, params.globalFilter);
     }
-    
+
     // Column filters
     params.columnFilters.forEach((filter) => {
       if (Array.isArray(filter.value)) {
-        urlParams.set(filter.id, filter.value.join(','));
+        urlParams.set(filter.id, filter.value.join(","));
       } else if (filter.value !== undefined && filter.value !== null) {
         urlParams.set(filter.id, String(filter.value));
       }
     });
-    
+
     // Additional params
     if (params.additionalParams) {
       Object.entries(params.additionalParams).forEach(([key, value]) => {
@@ -10994,10 +11088,10 @@ export function useTableQuery<TData>({
         }
       });
     }
-    
+
     return urlParams.toString();
   }, [params, page, pageSize, sortBy, sortOrder, search]);
-  
+
   // Query
   return useQuery<TData>({
     queryKey: [...queryKey, queryString],
@@ -11017,14 +11111,14 @@ export function useTableQuery<TData>({
 
 ```typescript
 // hooks/use-table-persistence.ts
-'use client';
+"use client";
 
-import { useCallback, useEffect } from 'react';
-import { VisibilityState } from '@tanstack/react-table';
+import { useCallback, useEffect } from "react";
+import { VisibilityState } from "@tanstack/react-table";
 
 interface UseTablePersistenceOptions {
   storageKey: string;
-  storage?: 'localStorage' | 'sessionStorage';
+  storage?: "localStorage" | "sessionStorage";
 }
 
 interface PersistedState {
@@ -11034,49 +11128,52 @@ interface PersistedState {
 
 export function useTablePersistence({
   storageKey,
-  storage = 'localStorage',
+  storage = "localStorage",
 }: UseTablePersistenceOptions) {
   const getStorage = useCallback(() => {
-    if (typeof window === 'undefined') return null;
-    return storage === 'localStorage' ? localStorage : sessionStorage;
+    if (typeof window === "undefined") return null;
+    return storage === "localStorage" ? localStorage : sessionStorage;
   }, [storage]);
-  
+
   const loadState = useCallback((): PersistedState | null => {
     try {
       const storageInstance = getStorage();
       if (!storageInstance) return null;
-      
+
       const saved = storageInstance.getItem(storageKey);
       if (!saved) return null;
-      
+
       return JSON.parse(saved);
     } catch {
       return null;
     }
   }, [storageKey, getStorage]);
-  
-  const saveState = useCallback((state: PersistedState) => {
-    try {
-      const storageInstance = getStorage();
-      if (!storageInstance) return;
-      
-      storageInstance.setItem(storageKey, JSON.stringify(state));
-    } catch {
-      // Ignore storage errors
-    }
-  }, [storageKey, getStorage]);
-  
+
+  const saveState = useCallback(
+    (state: PersistedState) => {
+      try {
+        const storageInstance = getStorage();
+        if (!storageInstance) return;
+
+        storageInstance.setItem(storageKey, JSON.stringify(state));
+      } catch {
+        // Ignore storage errors
+      }
+    },
+    [storageKey, getStorage],
+  );
+
   const clearState = useCallback(() => {
     try {
       const storageInstance = getStorage();
       if (!storageInstance) return;
-      
+
       storageInstance.removeItem(storageKey);
     } catch {
       // Ignore storage errors
     }
   }, [storageKey, getStorage]);
-  
+
   return {
     loadState,
     saveState,
@@ -11107,7 +11204,7 @@ import { usePermissions } from '@/hooks/use-permissions';
 export default function ProductsPage() {
   const router = useRouter();
   const { can } = usePermissions();
-  
+
   return (
     <div className="flex flex-col gap-6 p-6">
       <PageHeader
@@ -11135,7 +11232,7 @@ export default function ProductsPage() {
           )}
         </div>
       </PageHeader>
-      
+
       <Suspense fallback={<TableSkeleton rows={10} columns={8} />}>
         <ProductsTable />
       </Suspense>
@@ -11153,17 +11250,17 @@ export default function ProductsPage() {
 import { useCallback, useTransition } from 'react';
 import { ProductsTable } from './products-table';
 import { useToast } from '@/components/ui/use-toast';
-import { 
-  deleteProduct, 
+import {
+  deleteProduct,
   updateProductStatus,
   bulkDeleteProducts,
-  bulkUpdateProductsStatus 
+  bulkUpdateProductsStatus
 } from '@/actions/products';
 
 export function ProductsTableWithActions() {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
-  
+
   const handleDelete = useCallback(async (productId: string) => {
     startTransition(async () => {
       try {
@@ -11181,9 +11278,9 @@ export function ProductsTableWithActions() {
       }
     });
   }, [toast]);
-  
+
   const handleStatusChange = useCallback(async (
-    productId: string, 
+    productId: string,
     status: 'active' | 'inactive' | 'discontinued'
   ) => {
     startTransition(async () => {
@@ -11202,7 +11299,7 @@ export function ProductsTableWithActions() {
       }
     });
   }, [toast]);
-  
+
   const handleBulkDelete = useCallback(async (productIds: string[]) => {
     startTransition(async () => {
       try {
@@ -11220,7 +11317,7 @@ export function ProductsTableWithActions() {
       }
     });
   }, [toast]);
-  
+
   const handleBulkStatusChange = useCallback(async (
     productIds: string[],
     status: 'active' | 'inactive' | 'discontinued'
@@ -11241,7 +11338,7 @@ export function ProductsTableWithActions() {
       }
     });
   }, [toast]);
-  
+
   return (
     <ProductsTable
       isLoading={isPending}
@@ -11258,17 +11355,17 @@ export function ProductsTableWithActions() {
 
 ```typescript
 // hooks/use-optimistic-table-mutation.ts
-'use client';
+"use client";
 
-import { useCallback } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useCallback } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 interface UseOptimisticTableMutationOptions<TData, TVariables> {
   queryKey: unknown[];
   mutationFn: (variables: TVariables) => Promise<TData>;
   optimisticUpdate: (
     oldData: TData[] | undefined,
-    variables: TVariables
+    variables: TVariables,
   ) => TData[] | undefined;
   onSuccess?: (data: TData, variables: TVariables) => void;
   onError?: (error: Error, variables: TVariables) => void;
@@ -11282,21 +11379,21 @@ export function useOptimisticTableMutation<TData, TVariables>({
   onError,
 }: UseOptimisticTableMutationOptions<TData, TVariables>) {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn,
     onMutate: async (variables) => {
       // Cancel outgoing refetches
       await queryClient.cancelQueries({ queryKey });
-      
+
       // Snapshot previous value
       const previousData = queryClient.getQueryData<TData[]>(queryKey);
-      
+
       // Optimistically update
-      queryClient.setQueryData<TData[]>(queryKey, (old) => 
-        optimisticUpdate(old, variables)
+      queryClient.setQueryData<TData[]>(queryKey, (old) =>
+        optimisticUpdate(old, variables),
       );
-      
+
       // Return snapshot for rollback
       return { previousData };
     },
@@ -11320,22 +11417,22 @@ export function useOptimisticTableMutation<TData, TVariables>({
 // Usage example
 function useDeleteProduct() {
   return useOptimisticTableMutation<Product, string>({
-    queryKey: ['products'],
+    queryKey: ["products"],
     mutationFn: async (productId) => {
       const response = await fetch(`/api/products/${productId}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
-      if (!response.ok) throw new Error('Failed to delete');
+      if (!response.ok) throw new Error("Failed to delete");
       return response.json();
     },
     optimisticUpdate: (oldData, productId) => {
-      return oldData?.filter(product => product.id !== productId);
+      return oldData?.filter((product) => product.id !== productId);
     },
     onSuccess: () => {
-      toast({ title: 'Produs șters cu succes' });
+      toast({ title: "Produs șters cu succes" });
     },
     onError: () => {
-      toast({ title: 'Eroare la ștergere', variant: 'destructive' });
+      toast({ title: "Eroare la ștergere", variant: "destructive" });
     },
   });
 }
@@ -11345,10 +11442,10 @@ function useDeleteProduct() {
 
 ```typescript
 // hooks/use-realtime-table.ts
-'use client';
+"use client";
 
-import { useEffect, useCallback, useRef } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useEffect, useCallback, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface UseRealtimeTableOptions<TData> {
   queryKey: unknown[];
@@ -11368,67 +11465,70 @@ export function useRealtimeTable<TData extends { id: string }>({
   const queryClient = useQueryClient();
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
-  const handleMessage = useCallback((event: MessageEvent) => {
-    try {
-      const message = JSON.parse(event.data);
-      
-      switch (message.type) {
-        case 'INSERT':
-          queryClient.setQueryData<TData[]>(queryKey, (old) => {
-            if (!old) return [message.data];
-            return [message.data, ...old];
-          });
-          onInsert?.(message.data);
-          break;
-          
-        case 'UPDATE':
-          queryClient.setQueryData<TData[]>(queryKey, (old) => {
-            if (!old) return old;
-            return old.map(item => 
-              item.id === message.data.id ? message.data : item
-            );
-          });
-          onUpdate?.(message.data);
-          break;
-          
-        case 'DELETE':
-          queryClient.setQueryData<TData[]>(queryKey, (old) => {
-            if (!old) return old;
-            return old.filter(item => item.id !== message.id);
-          });
-          onDelete?.(message.id);
-          break;
+
+  const handleMessage = useCallback(
+    (event: MessageEvent) => {
+      try {
+        const message = JSON.parse(event.data);
+
+        switch (message.type) {
+          case "INSERT":
+            queryClient.setQueryData<TData[]>(queryKey, (old) => {
+              if (!old) return [message.data];
+              return [message.data, ...old];
+            });
+            onInsert?.(message.data);
+            break;
+
+          case "UPDATE":
+            queryClient.setQueryData<TData[]>(queryKey, (old) => {
+              if (!old) return old;
+              return old.map((item) =>
+                item.id === message.data.id ? message.data : item,
+              );
+            });
+            onUpdate?.(message.data);
+            break;
+
+          case "DELETE":
+            queryClient.setQueryData<TData[]>(queryKey, (old) => {
+              if (!old) return old;
+              return old.filter((item) => item.id !== message.id);
+            });
+            onDelete?.(message.id);
+            break;
+        }
+      } catch (error) {
+        console.error("Error parsing WebSocket message:", error);
       }
-    } catch (error) {
-      console.error('Error parsing WebSocket message:', error);
-    }
-  }, [queryClient, queryKey, onInsert, onUpdate, onDelete]);
-  
+    },
+    [queryClient, queryKey, onInsert, onUpdate, onDelete],
+  );
+
   const connect = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
-    
+
     wsRef.current = new WebSocket(wsEndpoint);
-    
+
     wsRef.current.onopen = () => {
-      console.log('WebSocket connected');
+      console.log("WebSocket connected");
     };
-    
+
     wsRef.current.onmessage = handleMessage;
-    
+
     wsRef.current.onclose = () => {
-      console.log('WebSocket disconnected, reconnecting...');
+      console.log("WebSocket disconnected, reconnecting...");
       reconnectTimeoutRef.current = setTimeout(connect, 3000);
     };
-    
+
     wsRef.current.onerror = (error) => {
-      console.error('WebSocket error:', error);
+      console.error("WebSocket error:", error);
     };
   }, [wsEndpoint, handleMessage]);
-  
+
   useEffect(() => {
     connect();
-    
+
     return () => {
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
@@ -11438,7 +11538,7 @@ export function useRealtimeTable<TData extends { id: string }>({
       }
     };
   }, [connect]);
-  
+
   return {
     isConnected: wsRef.current?.readyState === WebSocket.OPEN,
   };
@@ -11452,8 +11552,8 @@ export function useRealtimeTable<TData extends { id: string }>({
 'use client';
 
 import { memo, useCallback, useMemo } from 'react';
-import { 
-  useReactTable, 
+import {
+  useReactTable,
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
@@ -11507,10 +11607,10 @@ export function OptimizedTable<TData>({
   overscan = 5,
 }: OptimizedTableProps<TData>) {
   const tableContainerRef = useRef<HTMLDivElement>(null);
-  
+
   // Memoize columns to prevent unnecessary re-renders
   const memoizedColumns = useMemo(() => columns, [columns]);
-  
+
   const table = useReactTable({
     data,
     columns: memoizedColumns,
@@ -11521,9 +11621,9 @@ export function OptimizedTable<TData>({
     // Enable row virtualization for large datasets
     enableRowVirtualization: true,
   });
-  
+
   const { rows } = table.getRowModel();
-  
+
   // Virtualize rows for performance with large datasets
   const rowVirtualizer = useVirtualizer({
     count: rows.length,
@@ -11531,16 +11631,16 @@ export function OptimizedTable<TData>({
     getScrollElement: () => tableContainerRef.current,
     overscan,
   });
-  
+
   const virtualRows = rowVirtualizer.getVirtualItems();
   const totalSize = rowVirtualizer.getTotalSize();
-  
+
   // Memoize header render for performance
   const headerGroups = useMemo(
     () => table.getHeaderGroups(),
     [table]
   );
-  
+
   return (
     <div
       ref={tableContainerRef}
@@ -11597,8 +11697,8 @@ export function OptimizedTable<TData>({
 'use client';
 
 import { useId, useCallback } from 'react';
-import { 
-  useReactTable, 
+import {
+  useReactTable,
   getCoreRowModel,
   ColumnDef,
   flexRender,
@@ -11621,13 +11721,13 @@ export function AccessibleTable<TData>({
 }: AccessibleTableProps<TData>) {
   const tableId = useId();
   const captionId = `${tableId}-caption`;
-  
+
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
   });
-  
+
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent, row: TData) => {
       if (event.key === 'Enter' || event.key === ' ') {
@@ -11637,10 +11737,10 @@ export function AccessibleTable<TData>({
     },
     [onRowSelect]
   );
-  
+
   return (
-    <div 
-      role="region" 
+    <div
+      role="region"
       aria-label={ariaLabel || caption}
       className="overflow-x-auto"
     >
@@ -11706,7 +11806,7 @@ export function AccessibleTable<TData>({
           ))}
         </tbody>
       </table>
-      
+
       {/* Screen reader announcements */}
       <div
         role="status"
@@ -11788,7 +11888,7 @@ const createWrapper = () => {
       queries: { retry: false },
     },
   });
-  
+
   return ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>
       {children}
@@ -11801,122 +11901,122 @@ describe('ProductsTable', () => {
     render(<ProductsTable />, { wrapper: createWrapper() });
     expect(screen.getByTestId('table-skeleton')).toBeInTheDocument();
   });
-  
+
   it('renders products after loading', async () => {
     render(<ProductsTable />, { wrapper: createWrapper() });
-    
+
     await waitFor(() => {
       expect(screen.getByText('Semințe Porumb Pioneer P9911')).toBeInTheDocument();
       expect(screen.getByText('Îngrășământ NPK 15-15-15')).toBeInTheDocument();
     });
   });
-  
+
   it('allows sorting by column', async () => {
     const user = userEvent.setup();
     render(<ProductsTable />, { wrapper: createWrapper() });
-    
+
     await waitFor(() => {
       expect(screen.getByText('Semințe Porumb Pioneer P9911')).toBeInTheDocument();
     });
-    
+
     // Click on price header to sort
     const priceHeader = screen.getByRole('columnheader', { name: /preț/i });
     await user.click(priceHeader);
-    
+
     // Verify sorting indicator appears
     expect(priceHeader).toHaveAttribute('aria-sort', 'ascending');
   });
-  
+
   it('allows filtering by search', async () => {
     const user = userEvent.setup();
     render(<ProductsTable />, { wrapper: createWrapper() });
-    
+
     await waitFor(() => {
       expect(screen.getByText('Semințe Porumb Pioneer P9911')).toBeInTheDocument();
     });
-    
+
     const searchInput = screen.getByPlaceholderText(/caută/i);
     await user.type(searchInput, 'Porumb');
-    
+
     // Wait for debounce
     await waitFor(() => {
       expect(screen.getByText('Semințe Porumb Pioneer P9911')).toBeInTheDocument();
       expect(screen.queryByText('Îngrășământ NPK 15-15-15')).not.toBeInTheDocument();
     });
   });
-  
+
   it('allows row selection', async () => {
     const user = userEvent.setup();
     render(<ProductsTable />, { wrapper: createWrapper() });
-    
+
     await waitFor(() => {
       expect(screen.getByText('Semințe Porumb Pioneer P9911')).toBeInTheDocument();
     });
-    
+
     // Select first row
     const firstCheckbox = screen.getAllByRole('checkbox')[1]; // Skip header checkbox
     await user.click(firstCheckbox);
-    
+
     expect(firstCheckbox).toBeChecked();
-    
+
     // Verify bulk actions appear
     expect(screen.getByText(/1 selectat/i)).toBeInTheDocument();
   });
-  
+
   it('allows bulk selection', async () => {
     const user = userEvent.setup();
     render(<ProductsTable />, { wrapper: createWrapper() });
-    
+
     await waitFor(() => {
       expect(screen.getByText('Semințe Porumb Pioneer P9911')).toBeInTheDocument();
     });
-    
+
     // Select all via header checkbox
     const headerCheckbox = screen.getAllByRole('checkbox')[0];
     await user.click(headerCheckbox);
-    
+
     // All checkboxes should be checked
     const allCheckboxes = screen.getAllByRole('checkbox');
     allCheckboxes.forEach(checkbox => {
       expect(checkbox).toBeChecked();
     });
   });
-  
+
   it('handles delete action', async () => {
     const user = userEvent.setup();
     render(<ProductsTable />, { wrapper: createWrapper() });
-    
+
     await waitFor(() => {
       expect(screen.getByText('Semințe Porumb Pioneer P9911')).toBeInTheDocument();
     });
-    
+
     // Open row actions menu
     const actionsButton = screen.getAllByRole('button', { name: /acțiuni/i })[0];
     await user.click(actionsButton);
-    
+
     // Click delete
     const deleteButton = screen.getByRole('menuitem', { name: /șterge/i });
     await user.click(deleteButton);
-    
+
     // Confirm in dialog
     const confirmButton = screen.getByRole('button', { name: /confirmă/i });
     await user.click(confirmButton);
-    
+
     // Verify success toast
     await waitFor(() => {
       expect(screen.getByText(/șters cu succes/i)).toBeInTheDocument();
     });
   });
-  
+
   it('handles pagination', async () => {
     const user = userEvent.setup();
-    
+
     // Mock paginated response
     server.use(
       http.get('/api/products', ({ request }) => {
         const url = new URL(request.url);
         const page = parseInt(url.searchParams.get('page') || '1');
-        
+
         return HttpResponse.json({
           data: page === 1 ? mockProducts : [],
           total: 25,
@@ -11925,23 +12025,23 @@ describe('ProductsTable', () => {
         });
       })
     );
-    
+
     render(<ProductsTable />, { wrapper: createWrapper() });
-    
+
     await waitFor(() => {
       expect(screen.getByText('Semințe Porumb Pioneer P9911')).toBeInTheDocument();
     });
-    
+
     // Go to next page
     const nextButton = screen.getByRole('button', { name: /următoarea/i });
     await user.click(nextButton);
-    
+
     // Verify page changed
     await waitFor(() => {
       expect(screen.getByText(/pagina 2/i)).toBeInTheDocument();
     });
   });
-  
+
   it('handles error state', async () => {
     // Mock error response
     server.use(
@@ -11952,15 +12052,15 @@ describe('ProductsTable', () => {
         );
       })
     );
-    
+
     render(<ProductsTable />, { wrapper: createWrapper() });
-    
+
     await waitFor(() => {
       expect(screen.getByText(/eroare/i)).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /reîncearcă/i })).toBeInTheDocument();
     });
   });
-  
+
   it('handles empty state', async () => {
     // Mock empty response
     server.use(
@@ -11973,9 +12073,9 @@ describe('ProductsTable', () => {
         });
       })
     );
-    
+
     render(<ProductsTable />, { wrapper: createWrapper() });
-    
+
     await waitFor(() => {
       expect(screen.getByText(/nu există produse/i)).toBeInTheDocument();
     });
@@ -11987,186 +12087,189 @@ describe('ProductsTable', () => {
 
 ```typescript
 // e2e/products-table.spec.ts
-import { test, expect } from '@playwright/test';
+import { test, expect } from "@playwright/test";
 
-test.describe('Products Table', () => {
+test.describe("Products Table", () => {
   test.beforeEach(async ({ page }) => {
     // Login
-    await page.goto('/login');
-    await page.fill('[name="email"]', 'test@example.com');
-    await page.fill('[name="password"]', 'password123');
+    await page.goto("/login");
+    await page.fill('[name="email"]', "test@example.com");
+    await page.fill('[name="password"]', "password123");
     await page.click('button[type="submit"]');
-    
+
     // Navigate to products
-    await page.waitForURL('/dashboard');
+    await page.waitForURL("/dashboard");
     await page.click('a[href="/products"]');
-    await page.waitForURL('/products');
+    await page.waitForURL("/products");
   });
-  
-  test('displays products table with data', async ({ page }) => {
+
+  test("displays products table with data", async ({ page }) => {
     // Wait for table to load
-    await expect(page.locator('table')).toBeVisible();
-    
+    await expect(page.locator("table")).toBeVisible();
+
     // Verify columns exist
-    await expect(page.locator('th', { hasText: 'Nume' })).toBeVisible();
-    await expect(page.locator('th', { hasText: 'SKU' })).toBeVisible();
-    await expect(page.locator('th', { hasText: 'Preț' })).toBeVisible();
-    await expect(page.locator('th', { hasText: 'Stoc' })).toBeVisible();
-    
+    await expect(page.locator("th", { hasText: "Nume" })).toBeVisible();
+    await expect(page.locator("th", { hasText: "SKU" })).toBeVisible();
+    await expect(page.locator("th", { hasText: "Preț" })).toBeVisible();
+    await expect(page.locator("th", { hasText: "Stoc" })).toBeVisible();
+
     // Verify data rows exist
-    const rows = page.locator('tbody tr');
+    const rows = page.locator("tbody tr");
     await expect(rows).toHaveCount(10); // Default page size
   });
-  
-  test('search filters results', async ({ page }) => {
+
+  test("search filters results", async ({ page }) => {
     const searchInput = page.getByPlaceholder(/caută/i);
-    
+
     // Search for specific product
-    await searchInput.fill('Porumb');
-    
+    await searchInput.fill("Porumb");
+
     // Wait for debounce and API call
-    await page.waitForResponse(resp => 
-      resp.url().includes('/api/products') && 
-      resp.url().includes('search=Porumb')
+    await page.waitForResponse(
+      (resp) =>
+        resp.url().includes("/api/products") &&
+        resp.url().includes("search=Porumb"),
     );
-    
+
     // Verify filtered results
-    await expect(page.locator('tbody tr')).toHaveCount(1);
-    await expect(page.locator('td', { hasText: 'Porumb' })).toBeVisible();
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+    await expect(page.locator("td", { hasText: "Porumb" })).toBeVisible();
   });
-  
-  test('sorting changes order', async ({ page }) => {
+
+  test("sorting changes order", async ({ page }) => {
     // Click price header to sort
     await page.click('th:has-text("Preț")');
-    
+
     // Verify sorting indicator
     await expect(page.locator('th:has-text("Preț")')).toHaveAttribute(
-      'aria-sort',
-      'ascending'
+      "aria-sort",
+      "ascending",
     );
-    
+
     // Click again for descending
     await page.click('th:has-text("Preț")');
     await expect(page.locator('th:has-text("Preț")')).toHaveAttribute(
-      'aria-sort',
-      'descending'
+      "aria-sort",
+      "descending",
     );
   });
-  
-  test('pagination works correctly', async ({ page }) => {
+
+  test("pagination works correctly", async ({ page }) => {
     // Verify initial page
-    await expect(page.locator('text=Pagina 1')).toBeVisible();
-    
+    await expect(page.locator("text=Pagina 1")).toBeVisible();
+
     // Go to next page
     await page.click('button[aria-label="Pagina următoare"]');
-    
+
     // Verify page changed
-    await expect(page.locator('text=Pagina 2')).toBeVisible();
-    
+    await expect(page.locator("text=Pagina 2")).toBeVisible();
+
     // Go back
     await page.click('button[aria-label="Pagina anterioară"]');
-    await expect(page.locator('text=Pagina 1')).toBeVisible();
+    await expect(page.locator("text=Pagina 1")).toBeVisible();
   });
-  
-  test('row selection and bulk actions', async ({ page }) => {
+
+  test("row selection and bulk actions", async ({ page }) => {
     // Select first row
     await page.click('tbody tr:first-child input[type="checkbox"]');
-    
+
     // Verify selection indicator
-    await expect(page.locator('text=1 selectat')).toBeVisible();
-    
+    await expect(page.locator("text=1 selectat")).toBeVisible();
+
     // Select all
     await page.click('thead input[type="checkbox"]');
-    
+
     // Verify all selected
-    await expect(page.locator('text=10 selectate')).toBeVisible();
-    
+    await expect(page.locator("text=10 selectate")).toBeVisible();
+
     // Verify bulk actions visible
-    await expect(page.getByRole('button', { name: /șterge selectate/i })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /șterge selectate/i }),
+    ).toBeVisible();
   });
-  
-  test('delete product with confirmation', async ({ page }) => {
+
+  test("delete product with confirmation", async ({ page }) => {
     // Open actions menu for first row
     await page.click('tbody tr:first-child button[aria-haspopup="menu"]');
-    
+
     // Click delete
-    await page.click('role=menuitem >> text=Șterge');
-    
+    await page.click("role=menuitem >> text=Șterge");
+
     // Verify confirmation dialog
-    await expect(page.locator('role=alertdialog')).toBeVisible();
-    await expect(page.locator('text=Ești sigur')).toBeVisible();
-    
+    await expect(page.locator("role=alertdialog")).toBeVisible();
+    await expect(page.locator("text=Ești sigur")).toBeVisible();
+
     // Cancel
     await page.click('button:has-text("Anulează")');
-    await expect(page.locator('role=alertdialog')).not.toBeVisible();
-    
+    await expect(page.locator("role=alertdialog")).not.toBeVisible();
+
     // Try again and confirm
     await page.click('tbody tr:first-child button[aria-haspopup="menu"]');
-    await page.click('role=menuitem >> text=Șterge');
+    await page.click("role=menuitem >> text=Șterge");
     await page.click('button:has-text("Confirmă")');
-    
+
     // Verify success toast
-    await expect(page.locator('text=șters cu succes')).toBeVisible();
+    await expect(page.locator("text=șters cu succes")).toBeVisible();
   });
-  
-  test('export functionality', async ({ page }) => {
+
+  test("export functionality", async ({ page }) => {
     // Click export button
     await page.click('button:has-text("Export")');
-    
+
     // Verify export options
-    await expect(page.locator('text=CSV')).toBeVisible();
-    await expect(page.locator('text=Excel')).toBeVisible();
-    await expect(page.locator('text=PDF')).toBeVisible();
-    
+    await expect(page.locator("text=CSV")).toBeVisible();
+    await expect(page.locator("text=Excel")).toBeVisible();
+    await expect(page.locator("text=PDF")).toBeVisible();
+
     // Start download
     const [download] = await Promise.all([
-      page.waitForEvent('download'),
-      page.click('text=CSV'),
+      page.waitForEvent("download"),
+      page.click("text=CSV"),
     ]);
-    
+
     // Verify download
-    expect(download.suggestedFilename()).toContain('products');
-    expect(download.suggestedFilename()).toContain('.csv');
+    expect(download.suggestedFilename()).toContain("products");
+    expect(download.suggestedFilename()).toContain(".csv");
   });
-  
-  test('column visibility toggle', async ({ page }) => {
+
+  test("column visibility toggle", async ({ page }) => {
     // Open column toggle
     await page.click('button[aria-label="Coloane vizibile"]');
-    
+
     // Hide SKU column
-    await page.click('text=SKU');
-    
+    await page.click("text=SKU");
+
     // Verify column hidden
     await expect(page.locator('th:has-text("SKU")')).not.toBeVisible();
-    
+
     // Show again
     await page.click('button[aria-label="Coloane vizibile"]');
-    await page.click('text=SKU');
+    await page.click("text=SKU");
     await expect(page.locator('th:has-text("SKU")')).toBeVisible();
   });
-  
-  test('keyboard navigation', async ({ page }) => {
+
+  test("keyboard navigation", async ({ page }) => {
     // Focus table
-    await page.click('table');
-    
+    await page.click("table");
+
     // Navigate with keyboard
-    await page.keyboard.press('Tab'); // To first row
-    await page.keyboard.press('ArrowDown'); // To second row
-    await page.keyboard.press('Enter'); // Select/activate row
-    
+    await page.keyboard.press("Tab"); // To first row
+    await page.keyboard.press("ArrowDown"); // To second row
+    await page.keyboard.press("Enter"); // Select/activate row
+
     // Verify row is focused
-    const secondRow = page.locator('tbody tr:nth-child(2)');
+    const secondRow = page.locator("tbody tr:nth-child(2)");
     await expect(secondRow).toBeFocused();
   });
-  
-  test('responsive behavior', async ({ page }) => {
+
+  test("responsive behavior", async ({ page }) => {
     // Test on mobile viewport
     await page.setViewportSize({ width: 375, height: 667 });
-    
+
     // Verify table scrolls horizontally
-    const tableContainer = page.locator('.overflow-x-auto');
+    const tableContainer = page.locator(".overflow-x-auto");
     await expect(tableContainer).toBeVisible();
-    
+
     // Verify key columns still visible
     await expect(page.locator('th:has-text("Nume")')).toBeVisible();
     await expect(page.locator('th:has-text("Preț")')).toBeVisible();
@@ -12212,13 +12315,13 @@ Documentația acoperă implementarea completă a sistemului de tabele pentru mod
 
 ### 15.5 Metrici de Performanță
 
-| Metric | Target | Measurement |
-|--------|--------|-------------|
-| Initial Load | < 500ms | Time to First Contentful Paint |
-| Table Render | < 100ms | Time to render 100 rows |
-| Sort/Filter | < 50ms | Time to re-render after action |
-| Virtual Scroll | 60fps | Frame rate during scroll |
-| Memory Usage | < 50MB | With 10,000 rows loaded |
+| Metric         | Target  | Measurement                    |
+| -------------- | ------- | ------------------------------ |
+| Initial Load   | < 500ms | Time to First Contentful Paint |
+| Table Render   | < 100ms | Time to render 100 rows        |
+| Sort/Filter    | < 50ms  | Time to re-render after action |
+| Virtual Scroll | 60fps   | Frame rate during scroll       |
+| Memory Usage   | < 50MB  | With 10,000 rows loaded        |
 
 ---
 

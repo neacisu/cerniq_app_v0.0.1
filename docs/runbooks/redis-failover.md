@@ -69,6 +69,7 @@ docker exec redis-shared redis-cli PING
 Evita comenzi de tip `FLUSHDB` / `FLUSHALL` pe Redis shared (ar afecta toate proiectele).
 
 Actiuni recomandate:
+
 - Identificare top keys (prefix `cerniq:`) si reducere retentie in aplicatie/BullMQ.
 - Ajustare `maxmemory` si/sau politica (doar prin schimbarea config + restart controlat).
 - Daca e necesar cleanup, trebuie facut scoped pe prefix `cerniq:` si doar dupa aprobarea operatorului de infra.
@@ -79,4 +80,3 @@ Actiuni recomandate:
 - [ ] `redis-cli -u "$REDIS_URL" PING` returneaza `PONG`
 - [ ] Nu exista spike de `failed` jobs in BullMQ (daca aplicatia e deployata)
 - [ ] Observability: verifica Loki pentru erori (labels `project="cerniq"`)
-

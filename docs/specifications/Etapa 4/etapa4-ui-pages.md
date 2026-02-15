@@ -1,5 +1,7 @@
 # CERNIQ.APP — ETAPA 4: UI/UX PAGES
+
 ## Complete Page Specifications
+
 ### Versiunea 1.0 | 19 Ianuarie 2026
 
 ---
@@ -54,15 +56,25 @@
 
 ```tsx
 // pages/monitoring/dashboard.tsx
-import { useQuery } from '@tanstack/react-query';
-import { KPICard, StatusChart, RecentActivity, AlertsPanel } from '@/components/monitoring';
+import { useQuery } from "@tanstack/react-query";
+import {
+  KPICard,
+  StatusChart,
+  RecentActivity,
+  AlertsPanel,
+} from "@/components/monitoring";
 
 export default function MonitoringDashboard() {
-  const { data: stats } = useQuery({ queryKey: ['monitoring-stats'], queryFn: fetchMonitoringStats });
-  
+  const { data: stats } = useQuery({
+    queryKey: ["monitoring-stats"],
+    queryFn: fetchMonitoringStats,
+  });
+
   return (
-    <PageLayout title="Monitorizare Post-Vânzare" breadcrumbs={['Monitoring', 'Dashboard']}>
-      
+    <PageLayout
+      title="Monitorizare Post-Vânzare"
+      breadcrumbs={["Monitoring", "Dashboard"]}
+    >
       {/* KPI Cards Row */}
       <div className="grid grid-cols-5 gap-4 mb-6">
         <KPICard
@@ -89,18 +101,18 @@ export default function MonitoringDashboard() {
           title="Facturi Restante"
           value={stats?.overdueInvoices || 0}
           icon={<AlertTriangle className="w-5 h-5" />}
-          variant={stats?.overdueInvoices > 0 ? 'danger' : 'default'}
+          variant={stats?.overdueInvoices > 0 ? "danger" : "default"}
           href="/monitoring/payments/overdue"
         />
         <KPICard
           title="HITL Pending"
           value={stats?.hitlPending || 0}
           icon={<Clock className="w-5 h-5" />}
-          variant={stats?.hitlPending > 5 ? 'warning' : 'default'}
+          variant={stats?.hitlPending > 5 ? "warning" : "default"}
           href="/monitoring/hitl/queue"
         />
       </div>
-      
+
       {/* Charts Row */}
       <div className="grid grid-cols-3 gap-6 mb-6">
         <Card className="col-span-2">
@@ -111,7 +123,7 @@ export default function MonitoringDashboard() {
             <CashFlowChart data={stats?.cashFlowData} />
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader>
             <CardTitle>Statusuri Comenzi</CardTitle>
@@ -121,7 +133,7 @@ export default function MonitoringDashboard() {
           </CardContent>
         </Card>
       </div>
-      
+
       {/* Bottom Row */}
       <div className="grid grid-cols-3 gap-6">
         {/* Alerts Panel */}
@@ -136,7 +148,7 @@ export default function MonitoringDashboard() {
             <AlertsList alerts={stats?.activeAlerts} />
           </CardContent>
         </Card>
-        
+
         {/* Recent Activity */}
         <Card className="col-span-2">
           <CardHeader>
@@ -147,33 +159,42 @@ export default function MonitoringDashboard() {
           </CardContent>
         </Card>
       </div>
-      
     </PageLayout>
   );
 }
 ```
 
 ### KPI Card Component
+
 ```tsx
 interface KPICardProps {
   title: string;
   value: string | number;
   change?: number;
   icon?: React.ReactNode;
-  variant?: 'default' | 'success' | 'warning' | 'danger';
+  variant?: "default" | "success" | "warning" | "danger";
   href?: string;
 }
 
-export function KPICard({ title, value, change, icon, variant = 'default', href }: KPICardProps) {
+export function KPICard({
+  title,
+  value,
+  change,
+  icon,
+  variant = "default",
+  href,
+}: KPICardProps) {
   const variants = {
-    default: 'bg-white border-gray-200',
-    success: 'bg-green-50 border-green-200',
-    warning: 'bg-yellow-50 border-yellow-200',
-    danger: 'bg-red-50 border-red-200'
+    default: "bg-white border-gray-200",
+    success: "bg-green-50 border-green-200",
+    warning: "bg-yellow-50 border-yellow-200",
+    danger: "bg-red-50 border-red-200",
   };
-  
+
   const content = (
-    <div className={`p-4 rounded-lg border ${variants[variant]} hover:shadow-md transition-shadow`}>
+    <div
+      className={`p-4 rounded-lg border ${variants[variant]} hover:shadow-md transition-shadow`}
+    >
       <div className="flex items-center justify-between mb-2">
         <span className="text-sm text-gray-500">{title}</span>
         {icon && <div className="text-gray-400">{icon}</div>}
@@ -181,14 +202,17 @@ export function KPICard({ title, value, change, icon, variant = 'default', href 
       <div className="flex items-end gap-2">
         <span className="text-2xl font-semibold">{value}</span>
         {change !== undefined && (
-          <span className={`text-sm ${change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            {change >= 0 ? '+' : ''}{change}%
+          <span
+            className={`text-sm ${change >= 0 ? "text-green-600" : "text-red-600"}`}
+          >
+            {change >= 0 ? "+" : ""}
+            {change}%
           </span>
         )}
       </div>
     </div>
   );
-  
+
   return href ? <Link href={href}>{content}</Link> : content;
 }
 ```
@@ -203,18 +227,17 @@ export function KPICard({ title, value, change, icon, variant = 'default', href 
 export default function OrdersListPage() {
   const [filters, setFilters] = useState<OrderFilters>({
     status: [],
-    dateRange: 'last_30_days',
-    search: ''
+    dateRange: "last_30_days",
+    search: "",
   });
-  
+
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['orders', filters],
-    queryFn: () => fetchOrders(filters)
+    queryKey: ["orders", filters],
+    queryFn: () => fetchOrders(filters),
   });
-  
+
   return (
-    <PageLayout title="Comenzi" breadcrumbs={['Monitoring', 'Comenzi']}>
-      
+    <PageLayout title="Comenzi" breadcrumbs={["Monitoring", "Comenzi"]}>
       {/* Filters Bar */}
       <Card className="mb-6">
         <CardContent className="p-4">
@@ -224,11 +247,13 @@ export default function OrdersListPage() {
               <Input
                 placeholder="Caută comandă, client..."
                 value={filters.search}
-                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                onChange={(e) =>
+                  setFilters({ ...filters, search: e.target.value })
+                }
                 leftIcon={<Search className="w-4 h-4" />}
               />
             </div>
-            
+
             {/* Status Filter */}
             <MultiSelect
               label="Status"
@@ -237,32 +262,40 @@ export default function OrdersListPage() {
               onChange={(status) => setFilters({ ...filters, status })}
               className="w-[200px]"
             />
-            
+
             {/* Date Range */}
             <DateRangePicker
               value={filters.dateRange}
               onChange={(dateRange) => setFilters({ ...filters, dateRange })}
-              presets={['today', 'last_7_days', 'last_30_days', 'this_month']}
+              presets={["today", "last_7_days", "last_30_days", "this_month"]}
             />
-            
+
             {/* Quick Filters */}
             <div className="flex gap-2">
               <Button
-                variant={filters.status.includes('PENDING_PAYMENT') ? 'primary' : 'outline'}
+                variant={
+                  filters.status.includes("PENDING_PAYMENT")
+                    ? "primary"
+                    : "outline"
+                }
                 size="sm"
-                onClick={() => toggleStatusFilter('PENDING_PAYMENT')}
+                onClick={() => toggleStatusFilter("PENDING_PAYMENT")}
               >
                 Așteaptă Plată
               </Button>
               <Button
-                variant={filters.status.includes('CREDIT_BLOCKED') ? 'primary' : 'outline'}
+                variant={
+                  filters.status.includes("CREDIT_BLOCKED")
+                    ? "primary"
+                    : "outline"
+                }
                 size="sm"
-                onClick={() => toggleStatusFilter('CREDIT_BLOCKED')}
+                onClick={() => toggleStatusFilter("CREDIT_BLOCKED")}
               >
                 Credit Blocat
               </Button>
             </div>
-            
+
             {/* Actions */}
             <Button variant="outline" onClick={() => refetch()}>
               <RefreshCw className="w-4 h-4 mr-2" />
@@ -275,7 +308,7 @@ export default function OrdersListPage() {
           </div>
         </CardContent>
       </Card>
-      
+
       {/* Orders Table */}
       <Card>
         <DataTable
@@ -286,16 +319,19 @@ export default function OrdersListPage() {
             page: data?.page || 1,
             pageSize: data?.pageSize || 25,
             total: data?.total || 0,
-            onPageChange: (page) => setFilters({ ...filters, page })
+            onPageChange: (page) => setFilters({ ...filters, page }),
           }}
           sorting={{
             sortBy: filters.sortBy,
             sortOrder: filters.sortOrder,
-            onSort: (sortBy, sortOrder) => setFilters({ ...filters, sortBy, sortOrder })
+            onSort: (sortBy, sortOrder) =>
+              setFilters({ ...filters, sortBy, sortOrder }),
           }}
           rowActions={(order) => (
             <DropdownMenu>
-              <DropdownMenuItem onClick={() => router.push(`/monitoring/orders/${order.id}`)}>
+              <DropdownMenuItem
+                onClick={() => router.push(`/monitoring/orders/${order.id}`)}
+              >
                 <Eye className="w-4 h-4 mr-2" /> Vezi Detalii
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => openInvoiceDialog(order)}>
@@ -304,8 +340,10 @@ export default function OrdersListPage() {
               <DropdownMenuItem onClick={() => openShipmentDialog(order)}>
                 <Truck className="w-4 h-4 mr-2" /> Tracking
               </DropdownMenuItem>
-              {order.status === 'CREDIT_BLOCKED' && (
-                <DropdownMenuItem onClick={() => openCreditOverrideDialog(order)}>
+              {order.status === "CREDIT_BLOCKED" && (
+                <DropdownMenuItem
+                  onClick={() => openCreditOverrideDialog(order)}
+                >
                   <CheckCircle className="w-4 h-4 mr-2" /> Override Credit
                 </DropdownMenuItem>
               )}
@@ -313,7 +351,6 @@ export default function OrdersListPage() {
           )}
         />
       </Card>
-      
     </PageLayout>
   );
 }
@@ -321,60 +358,69 @@ export default function OrdersListPage() {
 // Orders Table Columns
 const ordersColumns: ColumnDef<Order>[] = [
   {
-    accessorKey: 'orderNumber',
-    header: 'Comandă',
+    accessorKey: "orderNumber",
+    header: "Comandă",
     cell: ({ row }) => (
-      <Link href={`/monitoring/orders/${row.original.id}`} className="font-medium text-blue-600 hover:underline">
+      <Link
+        href={`/monitoring/orders/${row.original.id}`}
+        className="font-medium text-blue-600 hover:underline"
+      >
         {row.original.orderNumber}
       </Link>
-    )
+    ),
   },
   {
-    accessorKey: 'client.companyName',
-    header: 'Client',
+    accessorKey: "client.companyName",
+    header: "Client",
     cell: ({ row }) => (
       <div>
         <div className="font-medium">{row.original.client.companyName}</div>
         <div className="text-sm text-gray-500">{row.original.client.cui}</div>
       </div>
-    )
+    ),
   },
   {
-    accessorKey: 'totalAmount',
-    header: 'Valoare',
+    accessorKey: "totalAmount",
+    header: "Valoare",
     cell: ({ row }) => (
       <div className="text-right">
-        <div className="font-medium">{formatCurrency(row.original.totalAmount)}</div>
+        <div className="font-medium">
+          {formatCurrency(row.original.totalAmount)}
+        </div>
         {row.original.amountDue > 0 && (
-          <div className="text-sm text-red-500">Restant: {formatCurrency(row.original.amountDue)}</div>
+          <div className="text-sm text-red-500">
+            Restant: {formatCurrency(row.original.amountDue)}
+          </div>
         )}
       </div>
-    )
+    ),
   },
   {
-    accessorKey: 'status',
-    header: 'Status',
-    cell: ({ row }) => <OrderStatusBadge status={row.original.status} />
+    accessorKey: "status",
+    header: "Status",
+    cell: ({ row }) => <OrderStatusBadge status={row.original.status} />,
   },
   {
-    accessorKey: 'createdAt',
-    header: 'Data',
-    cell: ({ row }) => formatDate(row.original.createdAt)
+    accessorKey: "createdAt",
+    header: "Data",
+    cell: ({ row }) => formatDate(row.original.createdAt),
   },
   {
-    accessorKey: 'dueDate',
-    header: 'Scadență',
+    accessorKey: "dueDate",
+    header: "Scadență",
     cell: ({ row }) => {
-      if (!row.original.dueDate) return '-';
-      const isOverdue = new Date(row.original.dueDate) < new Date() && row.original.amountDue > 0;
+      if (!row.original.dueDate) return "-";
+      const isOverdue =
+        new Date(row.original.dueDate) < new Date() &&
+        row.original.amountDue > 0;
       return (
-        <span className={isOverdue ? 'text-red-600 font-medium' : ''}>
+        <span className={isOverdue ? "text-red-600 font-medium" : ""}>
           {formatDate(row.original.dueDate)}
-          {isOverdue && ' (Restant)'}
+          {isOverdue && " (Restant)"}
         </span>
       );
-    }
-  }
+    },
+  },
 ];
 ```
 
@@ -388,16 +434,16 @@ const ordersColumns: ColumnDef<Order>[] = [
 export default function OrderDetailPage() {
   const { orderId } = useParams();
   const { data: order, isLoading } = useQuery({
-    queryKey: ['order', orderId],
-    queryFn: () => fetchOrder(orderId)
+    queryKey: ["order", orderId],
+    queryFn: () => fetchOrder(orderId),
   });
-  
+
   if (isLoading) return <PageSkeleton />;
-  
+
   return (
     <PageLayout
       title={`Comandă ${order.orderNumber}`}
-      breadcrumbs={['Monitoring', 'Comenzi', order.orderNumber]}
+      breadcrumbs={["Monitoring", "Comenzi", order.orderNumber]}
       actions={
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => openInvoiceDialog()}>
@@ -407,22 +453,22 @@ export default function OrderDetailPage() {
             <FileSignature className="w-4 h-4 mr-2" /> Contract
           </Button>
           {order.shipment && (
-            <Button variant="outline" onClick={() => window.open(order.shipment.trackingUrl, '_blank')}>
+            <Button
+              variant="outline"
+              onClick={() => window.open(order.shipment.trackingUrl, "_blank")}
+            >
               <Truck className="w-4 h-4 mr-2" /> Tracking
             </Button>
           )}
         </div>
       }
     >
-      
       {/* Status Banner */}
       <OrderStatusBanner order={order} className="mb-6" />
-      
+
       <div className="grid grid-cols-3 gap-6">
-        
         {/* Left Column - Order Info */}
         <div className="col-span-2 space-y-6">
-          
           {/* Order Summary Card */}
           <Card>
             <CardHeader>
@@ -431,15 +477,27 @@ export default function OrderDetailPage() {
             <CardContent>
               <div className="grid grid-cols-2 gap-4">
                 <InfoRow label="Număr Comandă" value={order.orderNumber} />
-                <InfoRow label="Data Creare" value={formatDateTime(order.createdAt)} />
-                <InfoRow label="Status" value={<OrderStatusBadge status={order.status} />} />
-                <InfoRow label="Metodă Plată" value={PAYMENT_METHODS[order.paymentMethod]} />
-                <InfoRow label="Termeni Plată" value={`${order.paymentTermsDays} zile`} />
+                <InfoRow
+                  label="Data Creare"
+                  value={formatDateTime(order.createdAt)}
+                />
+                <InfoRow
+                  label="Status"
+                  value={<OrderStatusBadge status={order.status} />}
+                />
+                <InfoRow
+                  label="Metodă Plată"
+                  value={PAYMENT_METHODS[order.paymentMethod]}
+                />
+                <InfoRow
+                  label="Termeni Plată"
+                  value={`${order.paymentTermsDays} zile`}
+                />
                 <InfoRow label="Scadență" value={formatDate(order.dueDate)} />
               </div>
             </CardContent>
           </Card>
-          
+
           {/* Order Items */}
           <Card>
             <CardHeader>
@@ -460,41 +518,63 @@ export default function OrderDetailPage() {
                     <TableRow key={item.id}>
                       <TableCell>
                         <div className="font-medium">{item.productName}</div>
-                        <div className="text-sm text-gray-500">{item.productSku}</div>
+                        <div className="text-sm text-gray-500">
+                          {item.productSku}
+                        </div>
                       </TableCell>
                       <TableCell className="text-right">
                         {item.quantity} {item.unitOfMeasure}
                       </TableCell>
-                      <TableCell className="text-right">{formatCurrency(item.unitPrice)}</TableCell>
-                      <TableCell className="text-right font-medium">{formatCurrency(item.lineTotal)}</TableCell>
+                      <TableCell className="text-right">
+                        {formatCurrency(item.unitPrice)}
+                      </TableCell>
+                      <TableCell className="text-right font-medium">
+                        {formatCurrency(item.lineTotal)}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
                 <TableFooter>
                   <TableRow>
-                    <TableCell colSpan={3} className="text-right">Subtotal</TableCell>
-                    <TableCell className="text-right">{formatCurrency(order.subtotal)}</TableCell>
+                    <TableCell colSpan={3} className="text-right">
+                      Subtotal
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {formatCurrency(order.subtotal)}
+                    </TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell colSpan={3} className="text-right">TVA ({order.vatRate}%)</TableCell>
-                    <TableCell className="text-right">{formatCurrency(order.vatAmount)}</TableCell>
+                    <TableCell colSpan={3} className="text-right">
+                      TVA ({order.vatRate}%)
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {formatCurrency(order.vatAmount)}
+                    </TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell colSpan={3} className="text-right font-bold">Total</TableCell>
-                    <TableCell className="text-right font-bold">{formatCurrency(order.totalAmount)}</TableCell>
+                    <TableCell colSpan={3} className="text-right font-bold">
+                      Total
+                    </TableCell>
+                    <TableCell className="text-right font-bold">
+                      {formatCurrency(order.totalAmount)}
+                    </TableCell>
                   </TableRow>
                 </TableFooter>
               </Table>
             </CardContent>
           </Card>
-          
+
           {/* Payments */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <span>Plăți</span>
-                <Badge variant={order.amountDue > 0 ? 'destructive' : 'success'}>
-                  {order.amountDue > 0 ? `Restant: ${formatCurrency(order.amountDue)}` : 'Achitat'}
+                <Badge
+                  variant={order.amountDue > 0 ? "destructive" : "success"}
+                >
+                  {order.amountDue > 0
+                    ? `Restant: ${formatCurrency(order.amountDue)}`
+                    : "Achitat"}
                 </Badge>
               </CardTitle>
             </CardHeader>
@@ -513,11 +593,19 @@ export default function OrderDetailPage() {
                   <TableBody>
                     {order.payments.map((payment) => (
                       <TableRow key={payment.id}>
-                        <TableCell>{formatDateTime(payment.transactionDate)}</TableCell>
-                        <TableCell>{payment.reference || payment.externalId}</TableCell>
+                        <TableCell>
+                          {formatDateTime(payment.transactionDate)}
+                        </TableCell>
+                        <TableCell>
+                          {payment.reference || payment.externalId}
+                        </TableCell>
                         <TableCell>{payment.externalSource}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(payment.amount)}</TableCell>
-                        <TableCell><PaymentStatusBadge status={payment.status} /></TableCell>
+                        <TableCell className="text-right">
+                          {formatCurrency(payment.amount)}
+                        </TableCell>
+                        <TableCell>
+                          <PaymentStatusBadge status={payment.status} />
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -527,7 +615,7 @@ export default function OrderDetailPage() {
               )}
             </CardContent>
           </Card>
-          
+
           {/* Timeline */}
           <Card>
             <CardHeader>
@@ -538,10 +626,9 @@ export default function OrderDetailPage() {
             </CardContent>
           </Card>
         </div>
-        
+
         {/* Right Column - Client & Shipment */}
         <div className="space-y-6">
-          
           {/* Client Info */}
           <Card>
             <CardHeader>
@@ -551,7 +638,9 @@ export default function OrderDetailPage() {
               <div className="space-y-3">
                 <div>
                   <div className="font-medium">{order.client.companyName}</div>
-                  <div className="text-sm text-gray-500">CUI: {order.client.cui}</div>
+                  <div className="text-sm text-gray-500">
+                    CUI: {order.client.cui}
+                  </div>
                 </div>
                 <Separator />
                 <div className="text-sm">
@@ -562,21 +651,33 @@ export default function OrderDetailPage() {
                 <Separator />
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-gray-500">Credit Score:</span>
-                  <CreditScoreBadge score={order.client.creditProfile?.creditScore} />
+                  <CreditScoreBadge
+                    score={order.client.creditProfile?.creditScore}
+                  />
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-500">Credit Disponibil:</span>
-                  <span className="font-medium">{formatCurrency(order.client.creditProfile?.creditAvailable)}</span>
+                  <span className="text-sm text-gray-500">
+                    Credit Disponibil:
+                  </span>
+                  <span className="font-medium">
+                    {formatCurrency(
+                      order.client.creditProfile?.creditAvailable,
+                    )}
+                  </span>
                 </div>
               </div>
             </CardContent>
             <CardFooter>
-              <Button variant="outline" className="w-full" onClick={() => router.push(`/contacts/${order.clientId}`)}>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => router.push(`/contacts/${order.clientId}`)}
+              >
                 Vezi Profil Client
               </Button>
             </CardFooter>
           </Card>
-          
+
           {/* Shipment Info */}
           {order.shipment && (
             <Card>
@@ -587,7 +688,9 @@ export default function OrderDetailPage() {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-500">AWB</span>
-                    <span className="font-mono">{order.shipment.awbNumber}</span>
+                    <span className="font-mono">
+                      {order.shipment.awbNumber}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-500">Curier</span>
@@ -601,21 +704,34 @@ export default function OrderDetailPage() {
                   <div className="text-sm">
                     <div className="font-medium">Adresa Livrare</div>
                     <div>{order.deliveryAddress?.streetAddress}</div>
-                    <div>{order.deliveryAddress?.city}, {order.deliveryAddress?.county}</div>
+                    <div>
+                      {order.deliveryAddress?.city},{" "}
+                      {order.deliveryAddress?.county}
+                    </div>
                   </div>
                 </div>
               </CardContent>
               <CardFooter className="flex gap-2">
-                <Button variant="outline" className="flex-1" onClick={() => window.open(order.shipment.trackingUrl, '_blank')}>
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() =>
+                    window.open(order.shipment.trackingUrl, "_blank")
+                  }
+                >
                   <ExternalLink className="w-4 h-4 mr-2" /> Track
                 </Button>
-                <Button variant="outline" className="flex-1" onClick={() => downloadLabel(order.shipment.labelPdfUrl)}>
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => downloadLabel(order.shipment.labelPdfUrl)}
+                >
                   <Download className="w-4 h-4 mr-2" /> AWB PDF
                 </Button>
               </CardFooter>
             </Card>
           )}
-          
+
           {/* Contract Info */}
           {order.contract && (
             <Card>
@@ -635,16 +751,18 @@ export default function OrderDetailPage() {
                 </div>
               </CardContent>
               <CardFooter>
-                <Button variant="outline" className="w-full" onClick={() => downloadContract(order.contract.pdfUrl)}>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => downloadContract(order.contract.pdfUrl)}
+                >
                   <Download className="w-4 h-4 mr-2" /> Descarcă Contract
                 </Button>
               </CardFooter>
             </Card>
           )}
-          
         </div>
       </div>
-      
     </PageLayout>
   );
 }
@@ -658,50 +776,53 @@ export default function OrderDetailPage() {
 
 ```tsx
 export default function PaymentsPage() {
-  const [activeTab, setActiveTab] = useState('all');
-  
+  const [activeTab, setActiveTab] = useState("all");
+
   return (
-    <PageLayout title="Plăți" breadcrumbs={['Monitoring', 'Plăți']}>
-      
+    <PageLayout title="Plăți" breadcrumbs={["Monitoring", "Plăți"]}>
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-6">
           <TabsTrigger value="all">Toate Plățile</TabsTrigger>
           <TabsTrigger value="reconciliation">
             Reconciliere
-            <Badge variant="secondary" className="ml-2">{stats?.pendingReconciliation || 0}</Badge>
+            <Badge variant="secondary" className="ml-2">
+              {stats?.pendingReconciliation || 0}
+            </Badge>
           </TabsTrigger>
           <TabsTrigger value="overdue">
             Restanțe
-            <Badge variant="destructive" className="ml-2">{stats?.overdueCount || 0}</Badge>
+            <Badge variant="destructive" className="ml-2">
+              {stats?.overdueCount || 0}
+            </Badge>
           </TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="all">
-          <PaymentsTable filters={{ status: ['CONFIRMED', 'PENDING'] }} />
+          <PaymentsTable filters={{ status: ["CONFIRMED", "PENDING"] }} />
         </TabsContent>
-        
+
         <TabsContent value="reconciliation">
           <ReconciliationQueue />
         </TabsContent>
-        
+
         <TabsContent value="overdue">
           <OverdueInvoicesTable />
         </TabsContent>
       </Tabs>
-      
     </PageLayout>
   );
 }
 ```
 
 ### Reconciliation Queue Component
+
 ```tsx
 function ReconciliationQueue() {
   const { data: payments } = useQuery({
-    queryKey: ['payments-unmatched'],
-    queryFn: () => fetchPayments({ reconciliationStatus: 'UNMATCHED' })
+    queryKey: ["payments-unmatched"],
+    queryFn: () => fetchPayments({ reconciliationStatus: "UNMATCHED" }),
   });
-  
+
   return (
     <div className="space-y-4">
       {payments?.map((payment) => (
@@ -709,27 +830,37 @@ function ReconciliationQueue() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <div className="font-medium">{formatCurrency(payment.amount)}</div>
-                <div className="text-sm text-gray-500">{payment.counterpartyName}</div>
-                <div className="text-sm text-gray-500">{formatDateTime(payment.transactionDate)}</div>
+                <div className="font-medium">
+                  {formatCurrency(payment.amount)}
+                </div>
+                <div className="text-sm text-gray-500">
+                  {payment.counterpartyName}
+                </div>
+                <div className="text-sm text-gray-500">
+                  {formatDateTime(payment.transactionDate)}
+                </div>
               </div>
-              
+
               <div className="flex-1 mx-6">
-                <div className="text-sm text-gray-500 mb-2">Candidați posibili:</div>
+                <div className="text-sm text-gray-500 mb-2">
+                  Candidați posibili:
+                </div>
                 <div className="flex gap-2 flex-wrap">
                   {payment.candidates?.map((candidate) => (
                     <Button
                       key={candidate.invoiceId}
                       variant="outline"
                       size="sm"
-                      onClick={() => manualMatch(payment.id, candidate.invoiceId)}
+                      onClick={() =>
+                        manualMatch(payment.id, candidate.invoiceId)
+                      }
                     >
                       {candidate.invoiceNumber} ({candidate.score}%)
                     </Button>
                   ))}
                 </div>
               </div>
-              
+
               <Button onClick={() => openInvestigationDialog(payment)}>
                 <Search className="w-4 h-4 mr-2" /> Investighează
               </Button>
@@ -747,30 +878,35 @@ function ReconciliationQueue() {
 ## 6-11. Additional Pages (Summary)
 
 ### Credit Management (/monitoring/credit)
+
 - Credit Profiles DataTable cu score, limit, used, available
 - Credit Score History Chart per client
 - Risk Tier Distribution Pie Chart
 - Override History List
 
 ### Shipments (/monitoring/shipments)
+
 - Active Shipments Map View
 - Shipments DataTable cu AWB, status, ETA
 - COD Collections Summary
 - Returns Queue
 
 ### Contracts (/monitoring/contracts)
+
 - Pending Signatures List cu reminder actions
 - Contract Templates Management
 - Signature Timeline per contract
 - DocuSign Status Integration
 
 ### HITL Dashboard (/monitoring/hitl)
+
 - Approval Queue cu SLA timers
 - Resolution History
 - Escalation Chain View
 - Performance Metrics
 
 ### Analytics (/monitoring/analytics)
+
 - Revenue by Period Chart
 - Payment Aging Report
 - Credit Risk Distribution

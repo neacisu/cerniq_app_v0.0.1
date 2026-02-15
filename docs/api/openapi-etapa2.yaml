@@ -4,20 +4,20 @@ info:
   version: 1.0.0
   description: |
     Specificație OpenAPI completă pentru Etapa 2: Cold Outreach Multi-Canal.
-    
+
     ## Canale Suportate
     - **WhatsApp** via TimelinesAI (20 numere, 200 contacte noi/zi/telefon)
     - **Email Cold** via Instantly.ai (warmup + inbox rotation)
     - **Email Warm** via Resend (transactional/warm leads)
-    
+
     ## Rate Limits
     - 100 requests/min per tenant
     - WhatsApp: 200 NEW contacts/day/phone (follow-ups unlimited)
     - Business Hours: 09:00-18:00 (Europe/Bucharest)
-    
+
     ## Autentificare
     Toate endpoint-urile necesită Bearer Token (JWT) în header-ul Authorization.
-    
+
     Pentru schema globală și convenții comune, vezi docs/api/openapi.yaml.
   contact:
     name: Cerniq Development Team
@@ -64,12 +64,12 @@ paths:
         - name: state
           in: query
           schema:
-            $ref: '#/components/schemas/LeadState'
+            $ref: "#/components/schemas/LeadState"
           description: Filtrare după starea curentă FSM
         - name: channel
           in: query
           schema:
-            $ref: '#/components/schemas/Channel'
+            $ref: "#/components/schemas/Channel"
           description: Filtrare după canal de comunicare
         - name: assignedTo
           in: query
@@ -154,16 +154,16 @@ paths:
             default: 20
           description: Numărul de rezultate per pagină
       responses:
-        '200':
+        "200":
           description: Lista lead-urilor cu metadata paginare
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/LeadsListResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '429':
-          $ref: '#/components/responses/RateLimited'
+                $ref: "#/components/schemas/LeadsListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
 
   /api/v1/outreach/leads/{id}:
     get:
@@ -173,16 +173,16 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/LeadId'
+        - $ref: "#/components/parameters/LeadId"
       responses:
-        '200':
+        "200":
           description: Lead detail complet
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/LeadDetailResponse'
-        '404':
-          $ref: '#/components/responses/NotFound'
+                $ref: "#/components/schemas/LeadDetailResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
     patch:
       summary: Update lead journey (state, assignment, tags)
@@ -191,24 +191,24 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/LeadId'
+        - $ref: "#/components/parameters/LeadId"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UpdateLeadRequest'
+              $ref: "#/components/schemas/UpdateLeadRequest"
       responses:
-        '200':
+        "200":
           description: Lead actualizat cu succes
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/LeadUpdateResponse'
-        '400':
-          $ref: '#/components/responses/ValidationError'
-        '404':
-          $ref: '#/components/responses/NotFound'
+                $ref: "#/components/schemas/LeadUpdateResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /api/v1/outreach/leads/{id}/send-message:
     post:
@@ -222,28 +222,28 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/LeadId'
+        - $ref: "#/components/parameters/LeadId"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SendMessageRequest'
+              $ref: "#/components/schemas/SendMessageRequest"
       responses:
-        '200':
+        "200":
           description: Mesaj trimis sau programat cu succes
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SendMessageResponse'
-        '400':
-          $ref: '#/components/responses/ValidationError'
-        '429':
+                $ref: "#/components/schemas/SendMessageResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "429":
           description: Quota WhatsApp depășită pentru astăzi
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/QuotaExceededError'
+                $ref: "#/components/schemas/QuotaExceededError"
 
   /api/v1/outreach/leads/{id}/takeover:
     post:
@@ -257,15 +257,15 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/LeadId'
+        - $ref: "#/components/parameters/LeadId"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TakeoverRequest'
+              $ref: "#/components/schemas/TakeoverRequest"
       responses:
-        '200':
+        "200":
           description: Takeover inițiat cu succes
           content:
             application/json:
@@ -278,12 +278,12 @@ paths:
                   message:
                     type: string
                     example: "Human takeover initiated"
-        '409':
+        "409":
           description: Conversația este deja în control uman
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
 
   # ============================================================================
   # SEQUENCES ENDPOINTS
@@ -304,7 +304,7 @@ paths:
         - name: channel
           in: query
           schema:
-            $ref: '#/components/schemas/Channel'
+            $ref: "#/components/schemas/Channel"
           description: Filtrare după canal primar
         - name: page
           in: query
@@ -320,12 +320,12 @@ paths:
             maximum: 50
             default: 20
       responses:
-        '200':
+        "200":
           description: Lista secvențelor
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SequencesListResponse'
+                $ref: "#/components/schemas/SequencesListResponse"
 
     post:
       summary: Create new outreach sequence
@@ -338,16 +338,16 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateSequenceRequest'
+              $ref: "#/components/schemas/CreateSequenceRequest"
       responses:
-        '201':
+        "201":
           description: Secvența creată cu succes
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Sequence'
-        '400':
-          $ref: '#/components/responses/ValidationError'
+                $ref: "#/components/schemas/Sequence"
+        "400":
+          $ref: "#/components/responses/ValidationError"
 
   /api/v1/outreach/sequences/{id}:
     get:
@@ -357,16 +357,16 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/SequenceId'
+        - $ref: "#/components/parameters/SequenceId"
       responses:
-        '200':
+        "200":
           description: Sequence detail
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Sequence'
-        '404':
-          $ref: '#/components/responses/NotFound'
+                $ref: "#/components/schemas/Sequence"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
     patch:
       summary: Update sequence settings
@@ -375,20 +375,20 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/SequenceId'
+        - $ref: "#/components/parameters/SequenceId"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UpdateSequenceRequest'
+              $ref: "#/components/schemas/UpdateSequenceRequest"
       responses:
-        '200':
+        "200":
           description: Sequence actualizată
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Sequence'
+                $ref: "#/components/schemas/Sequence"
 
     delete:
       summary: Delete sequence (soft delete)
@@ -397,16 +397,16 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/SequenceId'
+        - $ref: "#/components/parameters/SequenceId"
       responses:
-        '204':
+        "204":
           description: Sequence ștearsă
-        '409':
+        "409":
           description: Sequence are leads înrolați activi
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
 
   /api/v1/outreach/sequences/{id}/enroll:
     post:
@@ -419,20 +419,20 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/SequenceId'
+        - $ref: "#/components/parameters/SequenceId"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/EnrollLeadsRequest'
+              $ref: "#/components/schemas/EnrollLeadsRequest"
       responses:
-        '200':
+        "200":
           description: Enrollment result
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EnrollmentResult'
+                $ref: "#/components/schemas/EnrollmentResult"
 
   # ============================================================================
   # TEMPLATES ENDPOINTS
@@ -473,12 +473,12 @@ paths:
             maximum: 50
             default: 20
       responses:
-        '200':
+        "200":
           description: Lista template-urilor
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TemplatesListResponse'
+                $ref: "#/components/schemas/TemplatesListResponse"
 
     post:
       summary: Create new message template
@@ -495,14 +495,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateTemplateRequest'
+              $ref: "#/components/schemas/CreateTemplateRequest"
       responses:
-        '201':
+        "201":
           description: Template creat
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Template'
+                $ref: "#/components/schemas/Template"
 
   /api/v1/outreach/templates/{id}:
     get:
@@ -512,14 +512,14 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/TemplateId'
+        - $ref: "#/components/parameters/TemplateId"
       responses:
-        '200':
+        "200":
           description: Template detail
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Template'
+                $ref: "#/components/schemas/Template"
 
     patch:
       summary: Update template
@@ -528,20 +528,20 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/TemplateId'
+        - $ref: "#/components/parameters/TemplateId"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UpdateTemplateRequest'
+              $ref: "#/components/schemas/UpdateTemplateRequest"
       responses:
-        '200':
+        "200":
           description: Template actualizat
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Template'
+                $ref: "#/components/schemas/Template"
 
   /api/v1/outreach/templates/{id}/preview:
     post:
@@ -554,20 +554,20 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/TemplateId'
+        - $ref: "#/components/parameters/TemplateId"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TemplatePreviewRequest'
+              $ref: "#/components/schemas/TemplatePreviewRequest"
       responses:
-        '200':
+        "200":
           description: Template preview
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TemplatePreviewResponse'
+                $ref: "#/components/schemas/TemplatePreviewResponse"
 
   # ============================================================================
   # PHONES ENDPOINTS
@@ -586,18 +586,18 @@ paths:
         - name: status
           in: query
           schema:
-            $ref: '#/components/schemas/PhoneStatus'
+            $ref: "#/components/schemas/PhoneStatus"
         - name: isEnabled
           in: query
           schema:
             type: boolean
       responses:
-        '200':
+        "200":
           description: Lista telefoanelor
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PhonesListResponse'
+                $ref: "#/components/schemas/PhonesListResponse"
 
   /api/v1/outreach/phones/{id}:
     get:
@@ -607,14 +607,14 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/PhoneId'
+        - $ref: "#/components/parameters/PhoneId"
       responses:
-        '200':
+        "200":
           description: Phone detail
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PhoneDetail'
+                $ref: "#/components/schemas/PhoneDetail"
 
     patch:
       summary: Update phone settings
@@ -623,20 +623,20 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/PhoneId'
+        - $ref: "#/components/parameters/PhoneId"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UpdatePhoneRequest'
+              $ref: "#/components/schemas/UpdatePhoneRequest"
       responses:
-        '200':
+        "200":
           description: Phone actualizat
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Phone'
+                $ref: "#/components/schemas/Phone"
 
   /api/v1/outreach/phones/{id}/health-check:
     post:
@@ -646,14 +646,14 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/PhoneId'
+        - $ref: "#/components/parameters/PhoneId"
       responses:
-        '200':
+        "200":
           description: Health check result
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PhoneHealthCheckResult'
+                $ref: "#/components/schemas/PhoneHealthCheckResult"
 
   # ============================================================================
   # REVIEWS (HITL) ENDPOINTS
@@ -669,11 +669,11 @@ paths:
         - name: priority
           in: query
           schema:
-            $ref: '#/components/schemas/ReviewPriority'
+            $ref: "#/components/schemas/ReviewPriority"
         - name: reason
           in: query
           schema:
-            $ref: '#/components/schemas/ReviewReason'
+            $ref: "#/components/schemas/ReviewReason"
         - name: status
           in: query
           schema:
@@ -698,12 +698,12 @@ paths:
             maximum: 50
             default: 20
       responses:
-        '200':
+        "200":
           description: Review queue items
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ReviewsListResponse'
+                $ref: "#/components/schemas/ReviewsListResponse"
 
   /api/v1/outreach/reviews/{id}:
     get:
@@ -713,14 +713,14 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/ReviewId'
+        - $ref: "#/components/parameters/ReviewId"
       responses:
-        '200':
+        "200":
           description: Review detail cu context complet
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ReviewDetail'
+                $ref: "#/components/schemas/ReviewDetail"
 
   /api/v1/outreach/reviews/{id}/resolve:
     post:
@@ -730,20 +730,20 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/ReviewId'
+        - $ref: "#/components/parameters/ReviewId"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ResolveReviewRequest'
+              $ref: "#/components/schemas/ResolveReviewRequest"
       responses:
-        '200':
+        "200":
           description: Review rezolvat
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ReviewResolveResponse'
+                $ref: "#/components/schemas/ReviewResolveResponse"
 
   /api/v1/outreach/reviews/{id}/escalate:
     post:
@@ -753,15 +753,15 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/ReviewId'
+        - $ref: "#/components/parameters/ReviewId"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/EscalateReviewRequest'
+              $ref: "#/components/schemas/EscalateReviewRequest"
       responses:
-        '200':
+        "200":
           description: Review escalat
           content:
             application/json:
@@ -804,12 +804,12 @@ paths:
             format: date
           description: Required when period=custom
       responses:
-        '200':
+        "200":
           description: Analytics overview
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AnalyticsOverview'
+                $ref: "#/components/schemas/AnalyticsOverview"
 
   /api/v1/outreach/analytics/daily:
     get:
@@ -837,14 +837,15 @@ paths:
             type: array
             items:
               type: string
-              enum: [contacted, replied, converted, reviewsResolved, sentimentAvg]
+              enum:
+                [contacted, replied, converted, reviewsResolved, sentimentAvg]
       responses:
-        '200':
+        "200":
           description: Daily metrics time series
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DailyAnalytics'
+                $ref: "#/components/schemas/DailyAnalytics"
 
   /api/v1/outreach/analytics/phones:
     get:
@@ -861,12 +862,12 @@ paths:
             enum: [7d, 30d, 90d]
             default: 30d
       responses:
-        '200':
+        "200":
           description: Phone performance analytics
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PhoneAnalytics'
+                $ref: "#/components/schemas/PhoneAnalytics"
 
   /api/v1/outreach/analytics/sequences:
     get:
@@ -883,12 +884,12 @@ paths:
             enum: [7d, 30d, 90d]
             default: 30d
       responses:
-        '200':
+        "200":
           description: Sequence performance analytics
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SequenceAnalytics'
+                $ref: "#/components/schemas/SequenceAnalytics"
 
   # ============================================================================
   # WEBHOOKS ENDPOINTS
@@ -899,7 +900,7 @@ paths:
       description: |
         Receives webhooks from TimelinesAI for WhatsApp events.
         Signature verification via X-TimelinesAI-Signature header.
-        
+
         **Events handled:**
         - message.received - Incoming message from lead
         - message.sent - Confirmation of sent message
@@ -922,9 +923,9 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TimelinesAIWebhookPayload'
+              $ref: "#/components/schemas/TimelinesAIWebhookPayload"
       responses:
-        '200':
+        "200":
           description: Webhook received și queued for processing
           content:
             application/json:
@@ -934,7 +935,7 @@ paths:
                   received:
                     type: boolean
                     example: true
-        '401':
+        "401":
           description: Invalid signature
 
   /webhooks/instantly:
@@ -942,7 +943,7 @@ paths:
       summary: Instantly.ai webhook handler
       description: |
         Receives webhooks from Instantly.ai for cold email events.
-        
+
         **Events handled:**
         - email_sent - Email dispatched
         - email_opened - Email opened by recipient
@@ -958,9 +959,9 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/InstantlyWebhookPayload'
+              $ref: "#/components/schemas/InstantlyWebhookPayload"
       responses:
-        '200':
+        "200":
           description: Webhook received
           content:
             application/json:
@@ -975,7 +976,7 @@ paths:
       summary: Resend webhook handler
       description: |
         Receives webhooks from Resend for warm email events.
-        
+
         **Events handled:**
         - email.sent - Email sent
         - email.delivered - Email delivered
@@ -1007,9 +1008,9 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ResendWebhookPayload'
+              $ref: "#/components/schemas/ResendWebhookPayload"
       responses:
-        '200':
+        "200":
           description: Webhook received
           content:
             application/json:
@@ -1088,28 +1089,28 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
 
     NotFound:
       description: Resource not found
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
 
     ValidationError:
       description: Validation error
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
 
     RateLimited:
       description: Rate limit exceeded
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
 
   # ============================================================================
   # SCHEMAS - ENUMS
@@ -1223,11 +1224,11 @@ components:
           format: uuid
           description: Gold company UUID
         currentState:
-          $ref: '#/components/schemas/LeadState'
+          $ref: "#/components/schemas/LeadState"
         company:
-          $ref: '#/components/schemas/CompanySummary'
+          $ref: "#/components/schemas/CompanySummary"
         assignedPhone:
-          $ref: '#/components/schemas/PhoneSummary'
+          $ref: "#/components/schemas/PhoneSummary"
         sentimentScore:
           type: integer
           minimum: -100
@@ -1250,7 +1251,7 @@ components:
         requiresHumanReview:
           type: boolean
         currentSequence:
-          $ref: '#/components/schemas/SequenceSummary'
+          $ref: "#/components/schemas/SequenceSummary"
         createdAt:
           type: string
           format: date-time
@@ -1314,9 +1315,9 @@ components:
         data:
           type: array
           items:
-            $ref: '#/components/schemas/Lead'
+            $ref: "#/components/schemas/Lead"
         meta:
-          $ref: '#/components/schemas/PaginationMeta'
+          $ref: "#/components/schemas/PaginationMeta"
 
     LeadDetailResponse:
       type: object
@@ -1326,19 +1327,19 @@ components:
         - communications
       properties:
         journey:
-          $ref: '#/components/schemas/LeadJourneyDetail'
+          $ref: "#/components/schemas/LeadJourneyDetail"
         company:
-          $ref: '#/components/schemas/GoldCompanyDetail'
+          $ref: "#/components/schemas/GoldCompanyDetail"
         communications:
           type: array
           items:
-            $ref: '#/components/schemas/Communication'
+            $ref: "#/components/schemas/Communication"
         sequence:
-          $ref: '#/components/schemas/Sequence'
+          $ref: "#/components/schemas/Sequence"
         assignedPhone:
-          $ref: '#/components/schemas/Phone'
+          $ref: "#/components/schemas/Phone"
         pendingReview:
-          $ref: '#/components/schemas/ReviewItem'
+          $ref: "#/components/schemas/ReviewItem"
 
     LeadJourneyDetail:
       type: object
@@ -1350,9 +1351,9 @@ components:
           type: string
           format: uuid
         currentState:
-          $ref: '#/components/schemas/LeadState'
+          $ref: "#/components/schemas/LeadState"
         previousState:
-          $ref: '#/components/schemas/LeadState'
+          $ref: "#/components/schemas/LeadState"
         stateChangedAt:
           type: string
           format: date-time
@@ -1373,7 +1374,7 @@ components:
         requiresHumanReview:
           type: boolean
         humanReviewReason:
-          $ref: '#/components/schemas/ReviewReason'
+          $ref: "#/components/schemas/ReviewReason"
         isHumanControlled:
           type: boolean
         assignedToUser:
@@ -1456,11 +1457,11 @@ components:
           type: string
           format: uuid
         channel:
-          $ref: '#/components/schemas/Channel'
+          $ref: "#/components/schemas/Channel"
         direction:
-          $ref: '#/components/schemas/MessageDirection'
+          $ref: "#/components/schemas/MessageDirection"
         status:
-          $ref: '#/components/schemas/MessageStatus'
+          $ref: "#/components/schemas/MessageStatus"
         contentPreview:
           type: string
           maxLength: 500
@@ -1483,13 +1484,13 @@ components:
           type: integer
           nullable: true
         fromPhone:
-          $ref: '#/components/schemas/PhoneSummary'
+          $ref: "#/components/schemas/PhoneSummary"
 
     UpdateLeadRequest:
       type: object
       properties:
         currentState:
-          $ref: '#/components/schemas/LeadState'
+          $ref: "#/components/schemas/LeadState"
         assignedToUser:
           type: string
           format: uuid
@@ -1513,7 +1514,7 @@ components:
         success:
           type: boolean
         lead:
-          $ref: '#/components/schemas/Lead'
+          $ref: "#/components/schemas/Lead"
 
     SendMessageRequest:
       type: object
@@ -1617,9 +1618,9 @@ components:
         isDefault:
           type: boolean
         primaryChannel:
-          $ref: '#/components/schemas/Channel'
+          $ref: "#/components/schemas/Channel"
         fallbackChannel:
-          $ref: '#/components/schemas/Channel'
+          $ref: "#/components/schemas/Channel"
         respectBusinessHours:
           type: boolean
           default: true
@@ -1629,9 +1630,9 @@ components:
         steps:
           type: array
           items:
-            $ref: '#/components/schemas/SequenceStep'
+            $ref: "#/components/schemas/SequenceStep"
         stats:
-          $ref: '#/components/schemas/SequenceStats'
+          $ref: "#/components/schemas/SequenceStats"
         createdAt:
           type: string
           format: date-time
@@ -1663,12 +1664,12 @@ components:
           maximum: 59
           default: 0
         channel:
-          $ref: '#/components/schemas/Channel'
+          $ref: "#/components/schemas/Channel"
         templateId:
           type: string
           format: uuid
         template:
-          $ref: '#/components/schemas/Template'
+          $ref: "#/components/schemas/Template"
         skipIfReplied:
           type: boolean
           default: true
@@ -1695,9 +1696,9 @@ components:
         data:
           type: array
           items:
-            $ref: '#/components/schemas/Sequence'
+            $ref: "#/components/schemas/Sequence"
         meta:
-          $ref: '#/components/schemas/PaginationMeta'
+          $ref: "#/components/schemas/PaginationMeta"
 
     CreateSequenceRequest:
       type: object
@@ -1744,7 +1745,7 @@ components:
                 minimum: 0
                 maximum: 59
               channel:
-                $ref: '#/components/schemas/Channel'
+                $ref: "#/components/schemas/Channel"
               templateId:
                 type: string
                 format: uuid
@@ -1838,7 +1839,7 @@ components:
         variables:
           type: array
           items:
-            $ref: '#/components/schemas/TemplateVariable'
+            $ref: "#/components/schemas/TemplateVariable"
         hasMedia:
           type: boolean
         mediaType:
@@ -1854,11 +1855,11 @@ components:
         isApproved:
           type: boolean
         stats:
-          $ref: '#/components/schemas/TemplateStats'
+          $ref: "#/components/schemas/TemplateStats"
         versions:
           type: array
           items:
-            $ref: '#/components/schemas/TemplateVersion'
+            $ref: "#/components/schemas/TemplateVersion"
 
     TemplateVariable:
       type: object
@@ -1905,9 +1906,9 @@ components:
         data:
           type: array
           items:
-            $ref: '#/components/schemas/Template'
+            $ref: "#/components/schemas/Template"
         meta:
-          $ref: '#/components/schemas/PaginationMeta'
+          $ref: "#/components/schemas/PaginationMeta"
 
     CreateTemplateRequest:
       type: object
@@ -1936,7 +1937,7 @@ components:
         variables:
           type: array
           items:
-            $ref: '#/components/schemas/TemplateVariable'
+            $ref: "#/components/schemas/TemplateVariable"
         hasMedia:
           type: boolean
           default: false
@@ -1963,7 +1964,7 @@ components:
         variables:
           type: array
           items:
-            $ref: '#/components/schemas/TemplateVariable'
+            $ref: "#/components/schemas/TemplateVariable"
 
     TemplatePreviewRequest:
       type: object
@@ -2021,7 +2022,7 @@ components:
         timelinesaiAccountId:
           type: string
         status:
-          $ref: '#/components/schemas/PhoneStatus'
+          $ref: "#/components/schemas/PhoneStatus"
         statusChangedAt:
           type: string
           format: date-time
@@ -2034,9 +2035,9 @@ components:
           type: string
           format: date-time
         quota:
-          $ref: '#/components/schemas/QuotaInfo'
+          $ref: "#/components/schemas/QuotaInfo"
         stats:
-          $ref: '#/components/schemas/PhoneStats'
+          $ref: "#/components/schemas/PhoneStats"
         isEnabled:
           type: boolean
         priority:
@@ -2072,7 +2073,7 @@ components:
 
     PhoneDetail:
       allOf:
-        - $ref: '#/components/schemas/Phone'
+        - $ref: "#/components/schemas/Phone"
         - type: object
           properties:
             recentQuotaHistory:
@@ -2110,7 +2111,7 @@ components:
         data:
           type: array
           items:
-            $ref: '#/components/schemas/Phone'
+            $ref: "#/components/schemas/Phone"
         totalQuotaUsed:
           type: integer
         totalQuotaLimit:
@@ -2172,9 +2173,9 @@ components:
           type: string
           format: uuid
         reason:
-          $ref: '#/components/schemas/ReviewReason'
+          $ref: "#/components/schemas/ReviewReason"
         priority:
-          $ref: '#/components/schemas/ReviewPriority'
+          $ref: "#/components/schemas/ReviewPriority"
         status:
           type: string
           enum: [PENDING, IN_PROGRESS, RESOLVED, ESCALATED]
@@ -2202,15 +2203,15 @@ components:
 
     ReviewDetail:
       allOf:
-        - $ref: '#/components/schemas/ReviewItem'
+        - $ref: "#/components/schemas/ReviewItem"
         - type: object
           properties:
             lead:
-              $ref: '#/components/schemas/Lead'
+              $ref: "#/components/schemas/Lead"
             recentCommunications:
               type: array
               items:
-                $ref: '#/components/schemas/Communication'
+                $ref: "#/components/schemas/Communication"
             suggestedResponses:
               type: array
               items:
@@ -2228,9 +2229,9 @@ components:
         data:
           type: array
           items:
-            $ref: '#/components/schemas/ReviewItem'
+            $ref: "#/components/schemas/ReviewItem"
         meta:
-          $ref: '#/components/schemas/PaginationMeta'
+          $ref: "#/components/schemas/PaginationMeta"
         stats:
           type: object
           properties:
@@ -2266,7 +2267,7 @@ components:
         success:
           type: boolean
         newLeadState:
-          $ref: '#/components/schemas/LeadState'
+          $ref: "#/components/schemas/LeadState"
         messageSent:
           type: boolean
         messageId:
@@ -2323,11 +2324,11 @@ components:
           type: object
           properties:
             whatsapp:
-              $ref: '#/components/schemas/WhatsAppChannelStats'
+              $ref: "#/components/schemas/WhatsAppChannelStats"
             emailCold:
-              $ref: '#/components/schemas/EmailColdChannelStats'
+              $ref: "#/components/schemas/EmailColdChannelStats"
             emailWarm:
-              $ref: '#/components/schemas/EmailWarmChannelStats'
+              $ref: "#/components/schemas/EmailWarmChannelStats"
         funnel:
           type: array
           items:
@@ -2467,7 +2468,7 @@ components:
                 type: number
                 description: Average response time in minutes
               status:
-                $ref: '#/components/schemas/PhoneStatus'
+                $ref: "#/components/schemas/PhoneStatus"
 
     SequenceAnalytics:
       type: object

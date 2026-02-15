@@ -21,14 +21,14 @@
 
 ## 2. LOG LEVELS
 
-| Level | Valoare | Utilizare | Producție |
-| ----- | ------- | --------- | --------- |
-| `fatal` | 60 | Aplicația se oprește | ✓ |
-| `error` | 50 | Erori care necesită atenție | ✓ |
-| `warn` | 40 | Situații neașteptate | ✓ |
-| `info` | 30 | Evenimente business importante | ✓ |
-| `debug` | 20 | Debugging development | ✗ |
-| `trace` | 10 | Detalii granulare | ✗ |
+| Level   | Valoare | Utilizare                      | Producție |
+| ------- | ------- | ------------------------------ | --------- |
+| `fatal` | 60      | Aplicația se oprește           | ✓         |
+| `error` | 50      | Erori care necesită atenție    | ✓         |
+| `warn`  | 40      | Situații neașteptate           | ✓         |
+| `info`  | 30      | Evenimente business importante | ✓         |
+| `debug` | 20      | Debugging development          | ✗         |
+| `trace` | 10      | Detalii granulare              | ✗         |
 
 ---
 
@@ -38,114 +38,127 @@
 
 ```typescript
 // packages/logger/src/index.ts
-import pino from 'pino';
+import pino from "pino";
 
 const redactPaths = [
-  'req.headers.authorization',
-  'req.headers.cookie',
-  'req.body.password',
-  'req.body.email',
-  'req.body.phone',
-  'req.body.cui',
+  "req.headers.authorization",
+  "req.headers.cookie",
+  "req.body.password",
+  "req.body.email",
+  "req.body.phone",
+  "req.body.cui",
   'res.headers["set-cookie"]',
-  '*.password',
-  '*.token',
-  '*.secret',
-  '*.apiKey',
-  '*.creditCard'
+  "*.password",
+  "*.token",
+  "*.secret",
+  "*.apiKey",
+  "*.creditCard",
 ];
 
 export const createLogger = (options: { name: string }) => {
   return pino({
     name: options.name,
-    level: process.env.LOG_LEVEL || (process.env.NODE_ENV === 'production' ? 'info' : 'debug'),
-    
+    level:
+      process.env.LOG_LEVEL ||
+      (process.env.NODE_ENV === "production" ? "info" : "debug"),
+
     // Redact PII
     redact: {
       paths: redactPaths,
-      censor: '[REDACTED]'
+      censor: "[REDACTED]",
     },
-    
+
     // Timestamp format
     timestamp: pino.stdTimeFunctions.isoTime,
-    
+
     // Format pentru development
-    transport: process.env.NODE_ENV !== 'production' 
-      ? { target: 'pino-pretty', options: { colorize: true } }
-      : undefined,
-    
+    transport:
+      process.env.NODE_ENV !== "production"
+        ? { target: "pino-pretty", options: { colorize: true } }
+        : undefined,
+
     // Base context
     base: {
       service: options.name,
-      version: process.env.APP_VERSION || '0.0.0',
-      env: process.env.NODE_ENV
+      version: process.env.APP_VERSION || "0.0.0",
+      env: process.env.NODE_ENV,
     },
-    
+
     // Formatters
     formatters: {
       level: (label) => ({ level: label }),
       bindings: (bindings) => ({
         pid: bindings.pid,
         host: bindings.hostname,
-        service: bindings.name
-      })
-    }
+        service: bindings.name,
+      }),
+    },
   });
 };
 
-export const logger = createLogger({ name: 'cerniq-api' });
+export const logger = createLogger({ name: "cerniq-api" });
 ```
 
 ## 3.2 Request Logger Plugin
 
 ```typescript
 // apps/api/src/plugins/request-logger.ts
-import { FastifyPluginAsync } from 'fastify';
-import { randomUUID } from 'crypto';
+import { FastifyPluginAsync } from "fastify";
+import { randomUUID } from "crypto";
 
 const requestLoggerPlugin: FastifyPluginAsync = async (fastify) => {
   // Generate request ID
-  fastify.addHook('onRequest', async (request) => {
-    request.id = request.headers['x-request-id'] as string || randomUUID();
-    
+  fastify.addHook("onRequest", async (request) => {
+    request.id = (request.headers["x-request-id"] as string) || randomUUID();
+
     // Add context to logger
     request.log = request.log.child({
       requestId: request.id,
-      traceId: request.headers['x-trace-id'] || request.id,
-      tenantId: request.headers['x-tenant-id'],
-      userId: request.user?.id
+      traceId: request.headers["x-trace-id"] || request.id,
+      tenantId: request.headers["x-tenant-id"],
+      userId: request.user?.id,
     });
-    
-    request.log.info({
-      method: request.method,
-      url: request.url,
-      userAgent: request.headers['user-agent'],
-      ip: request.ip
-    }, 'Request received');
+
+    request.log.info(
+      {
+        method: request.method,
+        url: request.url,
+        userAgent: request.headers["user-agent"],
+        ip: request.ip,
+      },
+      "Request received",
+    );
   });
-  
+
   // Log response
-  fastify.addHook('onResponse', async (request, reply) => {
-    request.log.info({
-      method: request.method,
-      url: request.url,
-      statusCode: reply.statusCode,
-      responseTime: reply.elapsedTime
-    }, 'Request completed');
+  fastify.addHook("onResponse", async (request, reply) => {
+    request.log.info(
+      {
+        method: request.method,
+        url: request.url,
+        statusCode: reply.statusCode,
+        responseTime: reply.elapsedTime,
+      },
+      "Request completed",
+    );
   });
-  
+
   // Log errors
-  fastify.addHook('onError', async (request, reply, error) => {
-    request.log.error({
-      method: request.method,
-      url: request.url,
-      error: {
-        name: error.name,
-        message: error.message,
-        code: (error as any).code,
-        stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined
-      }
-    }, 'Request error');
+  fastify.addHook("onError", async (request, reply, error) => {
+    request.log.error(
+      {
+        method: request.method,
+        url: request.url,
+        error: {
+          name: error.name,
+          message: error.message,
+          code: (error as any).code,
+          stack:
+            process.env.NODE_ENV !== "production" ? error.stack : undefined,
+        },
+      },
+      "Request error",
+    );
   });
 };
 
@@ -160,14 +173,17 @@ export default requestLoggerPlugin;
 
 ```typescript
 // Good: Structured business event
-logger.info({
-  event: 'company.enriched',
-  companyId: company.id,
-  tenantId: company.tenant_id,
-  enrichmentSource: 'anaf',
-  fieldsUpdated: ['fiscal_status', 'address', 'employees'],
-  duration: enrichmentDuration
-}, 'Company enrichment completed');
+logger.info(
+  {
+    event: "company.enriched",
+    companyId: company.id,
+    tenantId: company.tenant_id,
+    enrichmentSource: "anaf",
+    fieldsUpdated: ["fiscal_status", "address", "employees"],
+    duration: enrichmentDuration,
+  },
+  "Company enrichment completed",
+);
 
 // Bad: Unstructured message
 logger.info(`Company ${company.id} enriched from ANAF`);
@@ -177,18 +193,21 @@ logger.info(`Company ${company.id} enriched from ANAF`);
 
 ```typescript
 // Good: Structured error with context
-logger.error({
-  event: 'enrichment.failed',
-  companyId: company.id,
-  enrichmentSource: 'termene',
-  error: {
-    name: error.name,
-    message: error.message,
-    code: error.code
+logger.error(
+  {
+    event: "enrichment.failed",
+    companyId: company.id,
+    enrichmentSource: "termene",
+    error: {
+      name: error.name,
+      message: error.message,
+      code: error.code,
+    },
+    retryCount: 2,
+    willRetry: true,
   },
-  retryCount: 2,
-  willRetry: true
-}, 'Enrichment failed, will retry');
+  "Enrichment failed, will retry",
+);
 
 // Bad: Just logging error
 logger.error(error);
@@ -201,22 +220,28 @@ logger.error(error);
 const startTime = Date.now();
 try {
   const result = await anafApi.getCompanyInfo(cui);
-  logger.info({
-    event: 'api.call.success',
-    api: 'anaf',
-    endpoint: '/company',
-    cui: '[REDACTED]', // PII already redacted by Pino
-    duration: Date.now() - startTime,
-    statusCode: 200
-  }, 'ANAF API call successful');
+  logger.info(
+    {
+      event: "api.call.success",
+      api: "anaf",
+      endpoint: "/company",
+      cui: "[REDACTED]", // PII already redacted by Pino
+      duration: Date.now() - startTime,
+      statusCode: 200,
+    },
+    "ANAF API call successful",
+  );
 } catch (error) {
-  logger.error({
-    event: 'api.call.failed',
-    api: 'anaf',
-    endpoint: '/company',
-    duration: Date.now() - startTime,
-    error: { name: error.name, message: error.message }
-  }, 'ANAF API call failed');
+  logger.error(
+    {
+      event: "api.call.failed",
+      api: "anaf",
+      endpoint: "/company",
+      duration: Date.now() - startTime,
+      error: { name: error.name, message: error.message },
+    },
+    "ANAF API call failed",
+  );
 }
 ```
 
@@ -224,31 +249,40 @@ try {
 
 ```typescript
 // Job started
-logger.info({
-  event: 'job.started',
-  queue: 'enrichment',
-  jobId: job.id,
-  jobName: job.name,
-  data: { companyId: job.data.companyId }
-}, 'Job processing started');
+logger.info(
+  {
+    event: "job.started",
+    queue: "enrichment",
+    jobId: job.id,
+    jobName: job.name,
+    data: { companyId: job.data.companyId },
+  },
+  "Job processing started",
+);
 
 // Job completed
-logger.info({
-  event: 'job.completed',
-  queue: 'enrichment',
-  jobId: job.id,
-  duration: job.processedOn - job.timestamp,
-  result: { fieldsUpdated: 5 }
-}, 'Job completed successfully');
+logger.info(
+  {
+    event: "job.completed",
+    queue: "enrichment",
+    jobId: job.id,
+    duration: job.processedOn - job.timestamp,
+    result: { fieldsUpdated: 5 },
+  },
+  "Job completed successfully",
+);
 
 // Job failed
-logger.error({
-  event: 'job.failed',
-  queue: 'enrichment',
-  jobId: job.id,
-  attemptsMade: job.attemptsMade,
-  error: { name: error.name, message: error.message }
-}, 'Job failed');
+logger.error(
+  {
+    event: "job.failed",
+    queue: "enrichment",
+    jobId: job.id,
+    attemptsMade: job.attemptsMade,
+    error: { name: error.name, message: error.message },
+  },
+  "Job failed",
+);
 ```
 
 ---
@@ -299,15 +333,15 @@ logger.error({
 
 ## 6.1 Câmpuri Redactate Automat
 
-| Câmp | Pattern | Exemplu Original | Exemplu Redactat |
-| ---- | ------- | ---------------- | ---------------- |
-| email | `*.email` | <user@example.com> | [REDACTED] |
-| phone | `*.phone` | +40721234567 | [REDACTED] |
-| password | `*.password` | secret123 | [REDACTED] |
-| cui | `*.cui` | 12345678 | [REDACTED] |
-| token | `*.token` | eyJhbGc... | [REDACTED] |
-| apiKey | `*.apiKey` | sk-abc123 | [REDACTED] |
-| authorization | `req.headers.authorization` | Bearer xyz | [REDACTED] |
+| Câmp          | Pattern                     | Exemplu Original   | Exemplu Redactat |
+| ------------- | --------------------------- | ------------------ | ---------------- |
+| email         | `*.email`                   | <user@example.com> | [REDACTED]       |
+| phone         | `*.phone`                   | +40721234567       | [REDACTED]       |
+| password      | `*.password`                | secret123          | [REDACTED]       |
+| cui           | `*.cui`                     | 12345678           | [REDACTED]       |
+| token         | `*.token`                   | eyJhbGc...         | [REDACTED]       |
+| apiKey        | `*.apiKey`                  | sk-abc123          | [REDACTED]       |
+| authorization | `req.headers.authorization` | Bearer xyz         | [REDACTED]       |
 
 ## 6.2 Custom Redaction
 
@@ -316,20 +350,20 @@ logger.error({
 const logger = pino({
   redact: {
     paths: [
-      '*.cnp',           // CNP (cod numeric personal)
-      '*.iban',          // IBAN
-      '*.cardNumber',    // Card bancar
-      '*.cvv',
-      '*.pin'
+      "*.cnp", // CNP (cod numeric personal)
+      "*.iban", // IBAN
+      "*.cardNumber", // Card bancar
+      "*.cvv",
+      "*.pin",
     ],
     censor: (value, path) => {
       // Păstrează ultimele 4 caractere pentru debugging
-      if (typeof value === 'string' && value.length > 4) {
+      if (typeof value === "string" && value.length > 4) {
         return `***${value.slice(-4)}`;
       }
-      return '[REDACTED]';
-    }
-  }
+      return "[REDACTED]";
+    },
+  },
 });
 ```
 
@@ -341,18 +375,23 @@ const logger = pino({
 
 ```typescript
 // packages/telemetry/src/logs.ts
-import { logs } from '@opentelemetry/api-logs';
-import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-grpc';
-import { LoggerProvider, BatchLogRecordProcessor } from '@opentelemetry/sdk-logs';
+import { logs } from "@opentelemetry/api-logs";
+import { OTLPLogExporter } from "@opentelemetry/exporter-logs-otlp-grpc";
+import {
+  LoggerProvider,
+  BatchLogRecordProcessor,
+} from "@opentelemetry/sdk-logs";
 
 const loggerProvider = new LoggerProvider();
 
 loggerProvider.addLogRecordProcessor(
   new BatchLogRecordProcessor(
     new OTLPLogExporter({
-      url: process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://otel-collector:64070'
-    })
-  )
+      url:
+        process.env.OTEL_EXPORTER_OTLP_ENDPOINT ||
+        "http://otel-collector:64070",
+    }),
+  ),
 );
 
 logs.setGlobalLoggerProvider(loggerProvider);
@@ -362,7 +401,7 @@ logs.setGlobalLoggerProvider(loggerProvider);
 
 ```typescript
 // Transport care trimite logs la OTel
-import build from 'pino-abstract-transport';
+import build from "pino-abstract-transport";
 
 export default async function (opts) {
   return build(async function (source) {
@@ -376,10 +415,10 @@ export default async function (opts) {
           ...obj,
           msg: undefined,
           level: undefined,
-          time: undefined
-        }
+          time: undefined,
+        },
       };
-      
+
       // Send to OTel collector
       otelLogger.emit(otelLog);
     }
@@ -391,12 +430,12 @@ export default async function (opts) {
 
 ## 8. LOG RETENTION
 
-| Environment | Level | Retention | Storage |
-| ----------- | ----- | --------- | ------- |
-| Development | debug | Session | Local |
-| Staging | debug | 3 days | Grafana (Loki) |
-| Production | info | 7 days | Grafana (Loki) |
-| Production errors | error | 30 days | Grafana (Loki) |
+| Environment       | Level | Retention | Storage        |
+| ----------------- | ----- | --------- | -------------- |
+| Development       | debug | Session   | Local          |
+| Staging           | debug | 3 days    | Grafana (Loki) |
+| Production        | info  | 7 days    | Grafana (Loki) |
+| Production errors | error | 30 days   | Grafana (Loki) |
 
 ---
 

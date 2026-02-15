@@ -80,4 +80,3 @@ Validarea completa Etapa 3 (traces reale din AI Agent) necesita aplicatia deploy
 ## 5. Deprecari
 
 Nu folosim un stack local all-in-one in implementarea curenta. Orice referinta istorica la un astfel de stack trebuie tratata ca legacy.
-

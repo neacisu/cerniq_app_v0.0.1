@@ -40,12 +40,12 @@
 
 > **REGULĂ FUNDAMENTALĂ:** Master Spec v1.2 este **SINGURA sursă de adevăr** pentru proiectul Cerniq.app.
 
-| Nivel | Document | Autoritate |
-| ------- | ---------- | ------------ |
-| **1** | `Cerniq_Master_Spec_Normativ_Complet.md` v1.2+ | **NORMATIV ABSOLUT** |
-| **2** | `coding-standards.md` (acest document) | Normativ derivat |
-| **3** | `.cursor/rules/*.mdc`, `.github/copilot-instructions.md` | Configurare AI |
-| **4** | Documentație per-etapă (E1-E5) | Procedural |
+| Nivel | Document                                                 | Autoritate           |
+| ----- | -------------------------------------------------------- | -------------------- |
+| **1** | `Cerniq_Master_Spec_Normativ_Complet.md` v1.2+           | **NORMATIV ABSOLUT** |
+| **2** | `coding-standards.md` (acest document)                   | Normativ derivat     |
+| **3** | `.cursor/rules/*.mdc`, `.github/copilot-instructions.md` | Configurare AI       |
+| **4** | Documentație per-etapă (E1-E5)                           | Procedural           |
 
 ## 0.2 Conflict Resolution
 
@@ -76,38 +76,38 @@ Pentru agenți AI (Cursor, Copilot), instrucțiunile se aplică în această ord
 
 ## 1.1 Backend Stack
 
-| Component | Versiune CANONICĂ | Release Date | EOL/Suport |
-| ----------- | ------------------- | -------------- | ------------ |
-| **Node.js** | **24.12.0 "Krypton"** | 10 Dec 2025 | Apr 2028 |
-| **V8 Engine** | 13.6.233.17 | Bundled | — |
-| **NPM** | 11.x | Bundled | — |
-| **Python** | **3.14.2** Free-Threading | 5 Dec 2025 | Phase II |
-| **PostgreSQL** | **18.1** | 13 Nov 2025 | — |
-| **pgvector** | **0.8.1** | Late 2025 | PG 13-18 |
-| **PostGIS** | **3.6.1** | 13 Nov 2025 | PG 12-18 |
-| **Redis** | **8.4.0** | Nov 2025 | Latest Stable |
-| **BullMQ** | **5.66.5** | 14 Jan 2026 | Requires Redis 6.2+ |
-| **Fastify** | **5.6.2** | 9 Nov 2025 | v4 EOL: 30 Jun 2025 |
+| Component      | Versiune CANONICĂ         | Release Date | EOL/Suport          |
+| -------------- | ------------------------- | ------------ | ------------------- |
+| **Node.js**    | **24.12.0 "Krypton"**     | 10 Dec 2025  | Apr 2028            |
+| **V8 Engine**  | 13.6.233.17               | Bundled      | —                   |
+| **NPM**        | 11.x                      | Bundled      | —                   |
+| **Python**     | **3.14.2** Free-Threading | 5 Dec 2025   | Phase II            |
+| **PostgreSQL** | **18.1**                  | 13 Nov 2025  | —                   |
+| **pgvector**   | **0.8.1**                 | Late 2025    | PG 13-18            |
+| **PostGIS**    | **3.6.1**                 | 13 Nov 2025  | PG 12-18            |
+| **Redis**      | **8.4.0**                 | Nov 2025     | Latest Stable       |
+| **BullMQ**     | **5.66.5**                | 14 Jan 2026  | Requires Redis 6.2+ |
+| **Fastify**    | **5.6.2**                 | 9 Nov 2025   | v4 EOL: 30 Jun 2025 |
 
 ## 1.2 Frontend Stack
 
-| Component | Versiune CANONICĂ | Caracteristici Cheie |
-| ----------- | ------------------- | ---------------------- |
-| **React** | **19.2.3** | Server Components, useOptimistic, Activity API |
-| **React Compiler** | **1.0** | 12% faster loads, 2.5x faster interactions |
-| **Tailwind CSS** | **4.1.x** | Oxide engine (Rust), 3.5-5x faster builds |
-| **Refine** | **v5** | TanStack Query v5, headless admin |
-| **shadcn/ui** | Latest | Radix UI primitives |
+| Component          | Versiune CANONICĂ | Caracteristici Cheie                           |
+| ------------------ | ----------------- | ---------------------------------------------- |
+| **React**          | **19.2.3**        | Server Components, useOptimistic, Activity API |
+| **React Compiler** | **1.0**           | 12% faster loads, 2.5x faster interactions     |
+| **Tailwind CSS**   | **4.1.x**         | Oxide engine (Rust), 3.5-5x faster builds      |
+| **Refine**         | **v5**            | TanStack Query v5, headless admin              |
+| **shadcn/ui**      | Latest            | Radix UI primitives                            |
 
 ## 1.3 AI/ML Stack
 
-| Provider | Use Case | Model | Rate Limit |
-| ---------- | ---------- | ------- | ------------ |
-| **xAI Grok-4** | Structured Outputs, Agent Core E3 | grok-4 | 60 RPM |
-| **OpenAI** | Embeddings | text-embedding-3-large | 3000 RPM |
-| **Groq** | Real-time Chat (<500ms) | Llama 3 8B | 100 RPM |
-| **Ollama Local** | Privacy-First (date sensibile) | Qwen 2.5 / Llama | Nelimitat |
-| **Anthropic Claude** | Fallback, Complex Reasoning | claude-3-5-sonnet | 50 RPM |
+| Provider             | Use Case                          | Model                  | Rate Limit |
+| -------------------- | --------------------------------- | ---------------------- | ---------- |
+| **xAI Grok-4**       | Structured Outputs, Agent Core E3 | grok-4                 | 60 RPM     |
+| **OpenAI**           | Embeddings                        | text-embedding-3-large | 3000 RPM   |
+| **Groq**             | Real-time Chat (<500ms)           | Llama 3 8B             | 100 RPM    |
+| **Ollama Local**     | Privacy-First (date sensibile)    | Qwen 2.5 / Llama       | Nelimitat  |
+| **Anthropic Claude** | Fallback, Complex Reasoning       | claude-3-5-sonnet      | 50 RPM     |
 
 ---
 
@@ -153,10 +153,10 @@ BRONZE                    SILVER                      GOLD
 
 **Criterii Avansare:**
 
-| Tranziție | Criterii Obligatorii |
-| ----------- | --------------------- |
-| Bronze → Silver | JSON valid, 1+ identificator |
-| Silver → Gold | CUI modulo-11 OK, Contact verificat, Date financiare < 2 ani, Locație geocodată, Completitudine ≥ 60% |
+| Tranziție       | Criterii Obligatorii                                                                                  |
+| --------------- | ----------------------------------------------------------------------------------------------------- |
+| Bronze → Silver | JSON valid, 1+ identificator                                                                          |
+| Silver → Gold   | CUI modulo-11 OK, Contact verificat, Date financiare < 2 ani, Locație geocodată, Completitudine ≥ 60% |
 
 ## 2.3 Neuro-Symbolic AI Pattern
 
@@ -164,16 +164,16 @@ BRONZE                    SILVER                      GOLD
 // Pattern obligatoriu pentru toate output-urile AI
 const NEURO_SYMBOLIC_FLOW = {
   // 1. Neural: LLM generează
-  neural: 'xai-grok structured output',
-  
+  neural: "xai-grok structured output",
+
   // 2. Symbolic: Guardrails validează
   symbolic: {
-    price_guard: 'offered_price >= min_approved_price',
-    stock_guard: 'stock_quantity > 0',
-    discount_guard: 'discount <= max_discount_approved',
-    product_exists: 'SKU exists in gold_products',
-    client_validated: 'CUI valid + fiscal data OK'
-  }
+    price_guard: "offered_price >= min_approved_price",
+    stock_guard: "stock_quantity > 0",
+    discount_guard: "discount <= max_discount_approved",
+    product_exists: "SKU exists in gold_products",
+    client_validated: "CUI valid + fiscal data OK",
+  },
 };
 ```
 
@@ -183,10 +183,10 @@ const NEURO_SYMBOLIC_FLOW = {
 
 ```typescript
 // ❌ INTERZIS - constraint global
-UNIQUE(cui)
+UNIQUE(cui);
 
 // ✅ CORECT - constraint per-tenant
-UNIQUE(tenant_id, cui)
+UNIQUE(tenant_id, cui);
 ```
 
 ```sql
@@ -203,15 +203,15 @@ CREATE POLICY tenant_isolation ON gold_companies
 ```typescript
 // Schema OBLIGATORIE pentru toate evenimentele
 interface CerniqEvent<T = unknown> {
-  eventId: string;          // UUID v7 (time-sortable)
-  eventType: EventType;     // Enum canonic
-  idempotencyKey: string;   // {entityType}:{entityId}:{action}:{hourTs}
-  timestamp: string;        // ISO 8601 UTC
-  correlationId: string;    // Pentru tracing end-to-end
+  eventId: string; // UUID v7 (time-sortable)
+  eventType: EventType; // Enum canonic
+  idempotencyKey: string; // {entityType}:{entityId}:{action}:{hourTs}
+  timestamp: string; // ISO 8601 UTC
+  correlationId: string; // Pentru tracing end-to-end
   tenantId: string;
   payload: T;
-  version: number;          // Schema version
-  source: string;           // Serviciul emitent
+  version: number; // Schema version
+  source: string; // Serviciul emitent
 }
 ```
 
@@ -225,14 +225,14 @@ interface CerniqEvent<T = unknown> {
 
 ## 3.1 PostgreSQL Tables
 
-| Prefix | Semnificație | Exemple |
-| -------- | ------------- | --------- |
-| `bronze_*` | Date brute ingestie | `bronze_contacts`, `bronze_webhooks` |
-| `silver_*` | Date validate/normalizate | `silver_companies`, `silver_contacts` |
-| `gold_*` | Date operaționale | `gold_companies`, `gold_lead_journey` |
-| `approval_*` | HITL core (transversal) | `approval_tasks`, `approval_audit_log` |
-| `*_events` | Event logs append-only | `communication_events` |
-| `*_configs` | Configurări sistem | `approval_type_configs` |
+| Prefix       | Semnificație              | Exemple                                |
+| ------------ | ------------------------- | -------------------------------------- |
+| `bronze_*`   | Date brute ingestie       | `bronze_contacts`, `bronze_webhooks`   |
+| `silver_*`   | Date validate/normalizate | `silver_companies`, `silver_contacts`  |
+| `gold_*`     | Date operaționale         | `gold_companies`, `gold_lead_journey`  |
+| `approval_*` | HITL core (transversal)   | `approval_tasks`, `approval_audit_log` |
+| `*_events`   | Event logs append-only    | `communication_events`                 |
+| `*_configs`  | Configurări sistem        | `approval_type_configs`                |
 
 ## 3.2 BullMQ Queues
 
@@ -240,52 +240,52 @@ interface CerniqEvent<T = unknown> {
 Pattern: {layer}:{category}:{action}
 ```
 
-| Layer | Descriere | Exemple |
-| ------- | ----------- | --------- |
-| `bronze` | Ingestie date brute | `bronze:ingest:csv-parser` |
-| `silver` | Validare/normalizare | `silver:validate:cui-anaf` |
-| `enrich` | Îmbogățire externă | `enrich:anaf:fiscal-status` |
-| `gold` | Operații Gold layer | `gold:score:lead` |
-| `outreach` | Orchestrare outreach | `outreach:orchestrator:dispatch` |
-| `q:wa` | Cozi WhatsApp per-telefon | `q:wa:phone_01` |
-| `q:email` | Cozi email per-tip | `q:email:cold` |
+| Layer      | Descriere                 | Exemple                          |
+| ---------- | ------------------------- | -------------------------------- |
+| `bronze`   | Ingestie date brute       | `bronze:ingest:csv-parser`       |
+| `silver`   | Validare/normalizare      | `silver:validate:cui-anaf`       |
+| `enrich`   | Îmbogățire externă        | `enrich:anaf:fiscal-status`      |
+| `gold`     | Operații Gold layer       | `gold:score:lead`                |
+| `outreach` | Orchestrare outreach      | `outreach:orchestrator:dispatch` |
+| `q:wa`     | Cozi WhatsApp per-telefon | `q:wa:phone_01`                  |
+| `q:email`  | Cozi email per-tip        | `q:email:cold`                   |
 
 ## 3.3 Job IDs
 
 ```typescript
 // Pattern: {prefix}-{entityType}-{entityId}-{timestamp}
-jobId: `enrich-company-${companyId}-${Date.now()}`
-jobId: `esc-${approvalId}`  // Escalation jobs
-jobId: `warn-${approvalId}` // Warning jobs
+jobId: `enrich-company-${companyId}-${Date.now()}`;
+jobId: `esc-${approvalId}`; // Escalation jobs
+jobId: `warn-${approvalId}`; // Warning jobs
 ```
 
 ## 3.4 Event Types
 
-| Pattern | Utilizare | Exemple |
-| --------- | ----------- | --------- |
-| `ENTITY_ACTIUNE` | Evenimente principale | `LEAD_CREATED`, `APPROVAL_COMPLETED` |
-| `*_STARTED`, `*_COMPLETED`, `*_FAILED` | Lifecycle events | `ENRICHMENT_STARTED` |
-| `*_ESCALATED`, `*_EXPIRED` | HITL events | `APPROVAL_ESCALATED` |
+| Pattern                                | Utilizare             | Exemple                              |
+| -------------------------------------- | --------------------- | ------------------------------------ |
+| `ENTITY_ACTIUNE`                       | Evenimente principale | `LEAD_CREATED`, `APPROVAL_COMPLETED` |
+| `*_STARTED`, `*_COMPLETED`, `*_FAILED` | Lifecycle events      | `ENRICHMENT_STARTED`                 |
+| `*_ESCALATED`, `*_EXPIRED`             | HITL events           | `APPROVAL_ESCALATED`                 |
 
 ## 3.5 TypeScript/JavaScript
 
 ```typescript
 // Variables & Functions
-const leadScore = 85;                    // camelCase
-function calculateLeadScore() {}         // camelCase
+const leadScore = 85; // camelCase
+function calculateLeadScore() {} // camelCase
 
 // Constants
-const MAX_RETRY_ATTEMPTS = 3;            // SCREAMING_SNAKE_CASE
+const MAX_RETRY_ATTEMPTS = 3; // SCREAMING_SNAKE_CASE
 const DEFAULT_SLA_MINUTES = 1440;
 
 // Types & Interfaces
-interface LeadJourney {}                 // PascalCase
-type ApprovalStatus = 'pending' | 'approved';
+interface LeadJourney {} // PascalCase
+type ApprovalStatus = "pending" | "approved";
 
 // Enums
 enum PipelineStage {
-  E1_ENRICHMENT = 'E1',
-  E2_OUTREACH = 'E2',
+  E1_ENRICHMENT = "E1",
+  E2_OUTREACH = "E2",
 }
 
 // Files
@@ -354,21 +354,24 @@ const company = data as Company;
 
 // ✅ CORECT - type guards
 function isCompany(data: unknown): data is Company {
-  return typeof data === 'object' && data !== null && 'cui' in data;
+  return typeof data === "object" && data !== null && "cui" in data;
 }
 ```
 
 ## 4.3 Zod Schema Validation
 
 ```typescript
-import { z } from 'zod';
+import { z } from "zod";
 
 // Schema pentru validare runtime
 const CompanySchema = z.object({
-  cui: z.string().regex(/^\d{1,12}$/).refine(validateCuiChecksum),
+  cui: z
+    .string()
+    .regex(/^\d{1,12}$/)
+    .refine(validateCuiChecksum),
   denumire: z.string().min(1).max(255),
   tenant_id: z.string().uuid(),
-  status_firma: z.enum(['ACTIVE', 'INACTIVE', 'SUSPENDED', 'RADIATED']),
+  status_firma: z.enum(["ACTIVE", "INACTIVE", "SUSPENDED", "RADIATED"]),
 });
 
 // Derivare TypeScript type din Zod
@@ -409,8 +412,8 @@ try {
 ```typescript
 // ❌ INTERZIS - callback-uri sau .then()
 fetchData()
-  .then(data => process(data))
-  .catch(err => handle(err));
+  .then((data) => process(data))
+  .catch((err) => handle(err));
 
 // ✅ CORECT - async/await
 async function fetchAndProcess(): Promise<Result> {
@@ -523,7 +526,7 @@ CREATE TABLE silver_companies (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL,
     cui VARCHAR(12),
-    
+
     CONSTRAINT unique_cui_per_tenant UNIQUE(tenant_id, cui)
 );
 ```
@@ -576,14 +579,14 @@ CREATE INDEX idx_metadata ON approval_tasks USING GIN (metadata);
 BEGIN;
 
 -- Always check if column/table exists
-ALTER TABLE gold_companies 
+ALTER TABLE gold_companies
     ADD COLUMN IF NOT EXISTS lead_score INTEGER DEFAULT 0,
     ADD COLUMN IF NOT EXISTS fit_score INTEGER,
     ADD COLUMN IF NOT EXISTS engagement_score INTEGER;
 
 -- Add constraint with descriptive name
 ALTER TABLE gold_companies
-    ADD CONSTRAINT chk_lead_score_range 
+    ADD CONSTRAINT chk_lead_score_range
     CHECK (lead_score >= 0 AND lead_score <= 100);
 
 COMMIT;
@@ -597,26 +600,30 @@ COMMIT;
 
 ```typescript
 // Fastify v5 Type Provider pattern
-import { FastifyPluginAsync } from 'fastify';
-import { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
+import { FastifyPluginAsync } from "fastify";
+import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 
 const companiesRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.withTypeProvider<TypeBoxTypeProvider>();
-  
-  fastify.get('/companies', {
-    schema: {
-      querystring: GetCompaniesQuerySchema,
-      response: {
-        200: CompaniesResponseSchema,
-        400: ErrorResponseSchema,
+
+  fastify.get(
+    "/companies",
+    {
+      schema: {
+        querystring: GetCompaniesQuerySchema,
+        response: {
+          200: CompaniesResponseSchema,
+          400: ErrorResponseSchema,
+        },
       },
+      preHandler: [fastify.authenticate, fastify.authorize("companies:read")],
     },
-    preHandler: [fastify.authenticate, fastify.authorize('companies:read')],
-  }, async (request, reply) => {
-    const { tenant_id } = request.user;
-    const companies = await companyService.list(tenant_id, request.query);
-    return { data: companies };
-  });
+    async (request, reply) => {
+      const { tenant_id } = request.user;
+      const companies = await companyService.list(tenant_id, request.query);
+      return { data: companies };
+    },
+  );
 };
 ```
 
@@ -626,31 +633,31 @@ const companiesRoutes: FastifyPluginAsync = async (fastify) => {
 // Error response format standard
 interface ErrorResponse {
   error: {
-    code: string;           // e.g., 'VALIDATION_ERROR'
-    message: string;        // Human-readable
-    details?: unknown;      // Optional structured details
+    code: string; // e.g., 'VALIDATION_ERROR'
+    message: string; // Human-readable
+    details?: unknown; // Optional structured details
   };
-  requestId: string;        // For tracing
+  requestId: string; // For tracing
 }
 
 // Custom error classes
 export class ValidationError extends Error {
   statusCode = 400;
-  code = 'VALIDATION_ERROR';
+  code = "VALIDATION_ERROR";
 }
 
 export class NotFoundError extends Error {
   statusCode = 404;
-  code = 'NOT_FOUND';
+  code = "NOT_FOUND";
 }
 
 // Global error handler
 fastify.setErrorHandler((error, request, reply) => {
   const statusCode = error.statusCode ?? 500;
-  
+
   reply.status(statusCode).send({
     error: {
-      code: error.code ?? 'INTERNAL_ERROR',
+      code: error.code ?? "INTERNAL_ERROR",
       message: error.message,
     },
     requestId: request.id,
@@ -666,18 +673,17 @@ fastify.register(fastifyCookie);
 fastify.register(fastifyJwt, {
   secret: process.env.JWT_SECRET,
   cookie: {
-    cookieName: 'token',
+    cookieName: "token",
     signed: false,
   },
 });
 
 // Middleware pentru setare context tenant
-fastify.addHook('preHandler', async (request) => {
+fastify.addHook("preHandler", async (request) => {
   if (request.user) {
-    await fastify.pg.query(
-      "SET LOCAL app.current_tenant_id = $1",
-      [request.user.tenant_id]
-    );
+    await fastify.pg.query("SET LOCAL app.current_tenant_id = $1", [
+      request.user.tenant_id,
+    ]);
   }
 });
 ```
@@ -689,8 +695,8 @@ fastify.addHook('preHandler', async (request) => {
 ## 8.1 Worker Template
 
 ```typescript
-import { Worker, Job } from 'bullmq';
-import { trace } from '@opentelemetry/api';
+import { Worker, Job } from "bullmq";
+import { trace } from "@opentelemetry/api";
 
 interface EnrichmentJobData {
   companyId: string;
@@ -699,14 +705,14 @@ interface EnrichmentJobData {
 }
 
 const enrichmentWorker = new Worker<EnrichmentJobData>(
-  'enrich:anaf:fiscal-status',
+  "enrich:anaf:fiscal-status",
   async (job: Job<EnrichmentJobData>) => {
     const span = trace.getActiveSpan();
-    span?.setAttribute('job.id', job.id);
-    span?.setAttribute('tenant.id', job.data.tenantId);
-    
+    span?.setAttribute("job.id", job.id);
+    span?.setAttribute("tenant.id", job.data.tenantId);
+
     await job.log(`Starting enrichment for company ${job.data.companyId}`);
-    
+
     try {
       const result = await enrichFromAnaf(job.data.companyId);
       await job.updateProgress(100);
@@ -720,15 +726,15 @@ const enrichmentWorker = new Worker<EnrichmentJobData>(
     connection: redisConnection,
     concurrency: 5,
     limiter: {
-      max: 1,           // 1 request per second (ANAF limit)
+      max: 1, // 1 request per second (ANAF limit)
       duration: 1000,
     },
-  }
+  },
 );
 
 // Error handler obligatoriu
-enrichmentWorker.on('error', (error) => {
-  logger.error('Worker error', { error, queue: 'enrich:anaf:fiscal-status' });
+enrichmentWorker.on("error", (error) => {
+  logger.error("Worker error", { error, queue: "enrich:anaf:fiscal-status" });
 });
 ```
 
@@ -740,19 +746,19 @@ const JOB_OPTIONS = {
   // Retry configuration
   attempts: 3,
   backoff: {
-    type: 'exponential',
-    delay: 1000,  // 1s, 2s, 4s
+    type: "exponential",
+    delay: 1000, // 1s, 2s, 4s
   },
-  
+
   // Remove completed jobs after 24h
   removeOnComplete: {
     age: 86400,
     count: 1000,
   },
-  
+
   // Keep failed jobs for debugging
   removeOnFail: {
-    age: 604800,  // 7 days
+    age: 604800, // 7 days
   },
 };
 ```
@@ -762,23 +768,23 @@ const JOB_OPTIONS = {
 ```typescript
 async function processWithIdempotency(job: Job<JobData>) {
   const idempotencyKey = job.data.idempotencyKey;
-  
+
   // Check if already processed
   const existing = await redis.get(`processed:${idempotencyKey}`);
   if (existing) {
     return JSON.parse(existing);
   }
-  
+
   // Process
   const result = await doWork(job.data);
-  
+
   // Mark as processed (with TTL)
   await redis.setex(
     `processed:${idempotencyKey}`,
     86400, // 24h TTL
-    JSON.stringify(result)
+    JSON.stringify(result),
   );
-  
+
   return result;
 }
 ```
@@ -806,7 +812,7 @@ import { useOptimistic, useTransition } from 'react';
 export function CompanySearch() {
   const [isPending, startTransition] = useTransition();
   const [optimisticQuery, setOptimisticQuery] = useOptimistic('');
-  
+
   return (
     <input
       onChange={(e) => {
@@ -890,30 +896,36 @@ function App() {
 
 ## 10.2 Minimum Coverage Requirements
 
-| Component | Min Coverage | Critical Paths |
-| ----------- | ------------- | ---------------- |
-| **API Routes** | 80% | Auth, CRUD, Validation |
-| **Workers** | 75% | Happy path + Error handling |
-| **Event Handlers** | 90% | All event types |
-| **HITL Logic** | 95% | Approval flows, Escalation, SLA |
-| **DB Migrations** | 100% | All constraints tested |
+| Component          | Min Coverage | Critical Paths                  |
+| ------------------ | ------------ | ------------------------------- |
+| **API Routes**     | 80%          | Auth, CRUD, Validation          |
+| **Workers**        | 75%          | Happy path + Error handling     |
+| **Event Handlers** | 90%          | All event types                 |
+| **HITL Logic**     | 95%          | Approval flows, Escalation, SLA |
+| **DB Migrations**  | 100%         | All constraints tested          |
 
 ## 10.3 Contract Tests
 
 ```typescript
 // Event Schema Contract Test
-describe('Event Schema Contract', () => {
-  it('all events have required fields', () => {
+describe("Event Schema Contract", () => {
+  it("all events have required fields", () => {
     const requiredFields = [
-      'eventId', 'eventType', 'idempotencyKey', 
-      'timestamp', 'correlationId', 'tenantId', 
-      'payload', 'version', 'source'
+      "eventId",
+      "eventType",
+      "idempotencyKey",
+      "timestamp",
+      "correlationId",
+      "tenantId",
+      "payload",
+      "version",
+      "source",
     ];
     // Test all event types against schema
   });
-  
-  it('idempotencyKey follows pattern', () => {
-    const key = generateIdempotencyKey('lead', 'uuid', 'STATE_CHANGE');
+
+  it("idempotencyKey follows pattern", () => {
+    const key = generateIdempotencyKey("lead", "uuid", "STATE_CHANGE");
     expect(key).toMatch(/^[a-z]+:[a-f0-9-]+:[A-Z_]+:\d+$/);
   });
 });
@@ -928,7 +940,7 @@ SELECT plan(3);
 
 -- Test 1: CUI uniqueness per tenant
 SELECT throws_ok(
-  $$INSERT INTO silver_companies (tenant_id, cui, denumire) 
+  $$INSERT INTO silver_companies (tenant_id, cui, denumire)
     VALUES ('tenant-1', '12345678', 'Test'),
            ('tenant-1', '12345678', 'Test2')$$,
   23505,  -- unique_violation
@@ -937,7 +949,7 @@ SELECT throws_ok(
 
 -- Test 2: Same CUI allowed in different tenants
 SELECT lives_ok(
-  $$INSERT INTO silver_companies (tenant_id, cui, denumire) 
+  $$INSERT INTO silver_companies (tenant_id, cui, denumire)
     VALUES ('tenant-1', '12345678', 'Test'),
            ('tenant-2', '12345678', 'Test2')$$
 );
@@ -959,15 +971,15 @@ ROLLBACK;
 // JWT in HttpOnly cookies (NOT localStorage)
 const authConfig = {
   cookie: {
-    name: 'auth_token',
+    name: "auth_token",
     httpOnly: true,
-    secure: true,          // HTTPS only
-    sameSite: 'strict',
-    maxAge: 3600,          // 1 hour
+    secure: true, // HTTPS only
+    sameSite: "strict",
+    maxAge: 3600, // 1 hour
   },
   refreshToken: {
-    rotation: true,        // New refresh token on each use
-    maxAge: 604800,        // 7 days
+    rotation: true, // New refresh token on each use
+    maxAge: 604800, // 7 days
   },
 };
 ```
@@ -976,7 +988,13 @@ const authConfig = {
 
 ```typescript
 // Layer 1: RBAC (Role-Based)
-const roles = ['super_admin', 'tenant_admin', 'sales_manager', 'sales_rep', 'viewer'];
+const roles = [
+  "super_admin",
+  "tenant_admin",
+  "sales_manager",
+  "sales_rep",
+  "viewer",
+];
 
 // Layer 2: ReBAC (Relationship-Based)
 function canEdit(user: User, lead: Lead): boolean {
@@ -997,18 +1015,18 @@ function canApprove(user: User, task: ApprovalTask): boolean {
 // Validare CUI
 function validateCui(cui: string): boolean {
   if (!/^\d{2,10}$/.test(cui)) return false;
-  
+
   // Modulo-11 checksum
   const weights = [7, 5, 3, 2, 1, 7, 5, 3, 2];
-  const digits = cui.padStart(10, '0').split('').map(Number);
+  const digits = cui.padStart(10, "0").split("").map(Number);
   const checkDigit = digits.pop()!;
-  
+
   let sum = 0;
   for (let i = 0; i < 9; i++) {
     sum += digits[i] * weights[i];
   }
-  
-  const expected = (sum * 10) % 11 % 10;
+
+  const expected = ((sum * 10) % 11) % 10;
   return checkDigit === expected;
 }
 ```
@@ -1021,12 +1039,12 @@ interface AuditLogEntry {
   approval_task_id: string;
   event_type: string;
   event_timestamp: Date;
-  actor_user_id: string;         // UUID, NU email
+  actor_user_id: string; // UUID, NU email
   source_ip: string;
   user_agent: string;
   previous_state: object;
   new_state: object;
-  event_hash: string;            // Hash chain pentru tamper detection
+  event_hash: string; // Hash chain pentru tamper detection
   previous_hash: string;
 }
 ```
@@ -1042,28 +1060,31 @@ interface AuditLogEntry {
 ```typescript
 // Guardrails OBLIGATORII pentru toate răspunsurile AI în E3 (Sales Agent)
 interface GuardrailChecks {
-  price_guard: boolean;      // preț_oferit >= preț_minim_aprobat
-  stock_guard: boolean;      // stock_quantity > 0
-  discount_guard: boolean;   // discount <= max_discount_aprobat
-  product_exists: boolean;   // SKU există în catalog
+  price_guard: boolean; // preț_oferit >= preț_minim_aprobat
+  stock_guard: boolean; // stock_quantity > 0
+  discount_guard: boolean; // discount <= max_discount_aprobat
+  product_exists: boolean; // SKU există în catalog
   client_validated: boolean; // CUI valid + date fiscale OK
 }
 
-async function validateAIResponse(response: AIResponse): Promise<ValidatedResponse> {
+async function validateAIResponse(
+  response: AIResponse,
+): Promise<ValidatedResponse> {
   const guardrails: GuardrailChecks = {
-    price_guard: response.price >= await getMinPrice(response.productId),
-    stock_guard: await getStockQuantity(response.productId) > 0,
-    discount_guard: response.discount <= await getMaxDiscount(response.productId),
+    price_guard: response.price >= (await getMinPrice(response.productId)),
+    stock_guard: (await getStockQuantity(response.productId)) > 0,
+    discount_guard:
+      response.discount <= (await getMaxDiscount(response.productId)),
     product_exists: await productExists(response.productId),
     client_validated: await validateClient(response.clientCui),
   };
-  
+
   const allPassed = Object.values(guardrails).every(Boolean);
-  
+
   if (!allPassed) {
     throw new GuardrailViolationError(guardrails);
   }
-  
+
   return { ...response, validated: true, guardrails };
 }
 ```
@@ -1071,7 +1092,7 @@ async function validateAIResponse(response: AIResponse): Promise<ValidatedRespon
 ## 12.2 LLM Output Validation
 
 ```typescript
-import { z } from 'zod';
+import { z } from "zod";
 
 // Schema strictă pentru output LLM
 const SalesProposalSchema = z.object({
@@ -1084,28 +1105,35 @@ const SalesProposalSchema = z.object({
   delivery_date: z.string().datetime(),
 });
 
-async function generateProposal(request: ProposalRequest): Promise<SalesProposal> {
+async function generateProposal(
+  request: ProposalRequest,
+): Promise<SalesProposal> {
   const llmResponse = await callGrok(request);
-  
+
   // 1. Parse și validare structură
   const proposal = SalesProposalSchema.parse(llmResponse);
-  
+
   // 2. Validare business rules (vs database)
-  const product = await db.gold_products.findUnique({ where: { id: proposal.product_id } });
-  if (!product) throw new Error('Product not found in catalog');
-  
+  const product = await db.gold_products.findUnique({
+    where: { id: proposal.product_id },
+  });
+  if (!product) throw new Error("Product not found in catalog");
+
   if (proposal.unit_price < product.min_price) {
     throw new Error(`Price below minimum: ${product.min_price}`);
   }
-  
+
   if (proposal.discount_percent > product.max_discount) {
     throw new Error(`Discount exceeds maximum: ${product.max_discount}%`);
   }
-  
+
   // 3. Recalculare preț (nu ne bazăm pe LLM pentru aritmetică)
-  const calculatedTotal = proposal.unit_price * proposal.quantity * (1 - proposal.discount_percent / 100);
+  const calculatedTotal =
+    proposal.unit_price *
+    proposal.quantity *
+    (1 - proposal.discount_percent / 100);
   proposal.total_price = Math.round(calculatedTotal * 100) / 100;
-  
+
   return proposal;
 }
 ```
@@ -1115,36 +1143,44 @@ async function generateProposal(request: ProposalRequest): Promise<SalesProposal
 ```typescript
 // Verificare fapte vs sursă de adevăr (database)
 async function factCheck(aiClaims: AIClaim[]): Promise<FactCheckResult[]> {
-  return Promise.all(aiClaims.map(async (claim) => {
-    switch (claim.type) {
-      case 'PRICE':
-        const product = await db.gold_products.findUnique({ where: { id: claim.productId } });
-        return {
-          claim,
-          verified: product?.current_price === claim.value,
-          source: 'gold_products',
-        };
-      
-      case 'STOCK':
-        const stock = await db.inventory.findUnique({ where: { product_id: claim.productId } });
-        return {
-          claim,
-          verified: stock?.quantity >= claim.value,
-          source: 'inventory',
-        };
-      
-      case 'COMPANY_STATUS':
-        const company = await db.gold_companies.findUnique({ where: { cui: claim.cui } });
-        return {
-          claim,
-          verified: company?.status_firma === claim.value,
-          source: 'gold_companies + ANAF',
-        };
-      
-      default:
-        return { claim, verified: false, reason: 'Unknown claim type' };
-    }
-  }));
+  return Promise.all(
+    aiClaims.map(async (claim) => {
+      switch (claim.type) {
+        case "PRICE":
+          const product = await db.gold_products.findUnique({
+            where: { id: claim.productId },
+          });
+          return {
+            claim,
+            verified: product?.current_price === claim.value,
+            source: "gold_products",
+          };
+
+        case "STOCK":
+          const stock = await db.inventory.findUnique({
+            where: { product_id: claim.productId },
+          });
+          return {
+            claim,
+            verified: stock?.quantity >= claim.value,
+            source: "inventory",
+          };
+
+        case "COMPANY_STATUS":
+          const company = await db.gold_companies.findUnique({
+            where: { cui: claim.cui },
+          });
+          return {
+            claim,
+            verified: company?.status_firma === claim.value,
+            source: "gold_companies + ANAF",
+          };
+
+        default:
+          return { claim, verified: false, reason: "Unknown claim type" };
+      }
+    }),
+  );
 }
 ```
 
@@ -1206,10 +1242,12 @@ alwaysApply: true
 # Cerniq.app Coding Standards
 
 ## Document Authority
+
 - Master Spec v1.2 is the SINGLE SOURCE OF TRUTH
 - When in doubt, search project docs before generating
 
 ## Technology Stack (MANDATORY VERSIONS)
+
 - Node.js: 24.12.0 LTS "Krypton"
 - Python: 3.14.2 Free-Threading
 - PostgreSQL: 18.1
@@ -1220,12 +1258,14 @@ alwaysApply: true
 - Redis: 8.4.0
 
 ## Architecture
+
 - Vertical Slice Architecture (organize by feature, not layer)
 - Medallion Data: Bronze → Silver → Gold
 - Multi-tenant: EVERY query must include tenant_id
 - Event-driven: All actions emit events with correlationId
 
 ## Forbidden Patterns
+
 - NEVER use `any` type
 - NEVER use default parameters
 - NEVER use `shop_id` (use `tenant_id`)
@@ -1234,6 +1274,7 @@ alwaysApply: true
 - NEVER create `UNIQUE(cui)` without tenant_id
 
 ## Anti-Hallucination
+
 - ALWAYS validate AI outputs against database
 - NEVER trust LLM for arithmetic - recalculate
 - ALWAYS check product exists before offering
@@ -1254,21 +1295,25 @@ alwaysApply: false
 # TypeScript Standards
 
 ## Strict Mode
+
 - Enable all strict flags in tsconfig.json
 - No implicit any, strict null checks, no unchecked indexed access
 
 ## Type Safety
+
 - Explicit types for all function parameters and returns
 - Use Zod for runtime validation
 - Type guards instead of type assertions
 - Derive types from Zod schemas: `type X = z.infer<typeof XSchema>`
 
 ## Error Handling
+
 - Specific exception types, no catch-all
 - Always re-throw unknown errors
 - Use Result<T, E> pattern for expected failures
 
 ## Async
+
 - async/await only, no callbacks or .then()
 - Promise.all for parallel operations
 - AbortController for cancellation
@@ -1289,23 +1334,28 @@ alwaysApply: false
 # Database Standards
 
 ## Multi-Tenant Contract
+
 CRITICAL: Every tenant-scoped table MUST:
+
 1. Have `tenant_id UUID NOT NULL` column
 2. Use `UNIQUE(tenant_id, business_key)` NOT `UNIQUE(business_key)`
 3. Have RLS policy: `USING (tenant_id = current_setting('app.current_tenant_id')::uuid)`
 
 ## Table Naming
+
 - `bronze_*`: Raw ingestion data (append-only)
 - `silver_*`: Validated/normalized data
 - `gold_*`: Operational data
 - `approval_*`: HITL tasks (centralized, NOT per-stage)
 
 ## Constraints
+
 - Use descriptive names: `chk_status_valid`, `fk_company_tenant`
 - Always add CHECK constraints for enums
 - Foreign keys with ON DELETE policy
 
 ## Indexes
+
 - Always index foreign keys
 - Include tenant_id in all indexes for tenant queries
 - Use partial indexes for active records
@@ -1326,26 +1376,32 @@ alwaysApply: false
 # BullMQ Worker Standards
 
 ## Queue Naming
+
 Pattern: `{layer}:{category}:{action}`
 Examples:
+
 - `bronze:ingest:csv-parser`
 - `silver:validate:cui-anaf`
 - `enrich:anaf:fiscal-status`
 - `outreach:orchestrator:dispatch`
 
 ## Job Data
+
 ALWAYS include:
+
 - `tenantId`: string (UUID)
 - `correlationId`: string (for tracing)
 - `idempotencyKey`: string
 
 ## Worker Configuration
+
 - Set concurrency based on rate limits
 - Use limiter for external APIs
 - Add error handler: `worker.on('error', ...)`
 - Log job progress with `job.log()`
 
 ## Rate Limits
+
 - ANAF: 1 req/sec (max 100 CUI/request)
 - Termene.ro: 20 req/sec
 - Hunter.io: 15 req/sec
@@ -1361,24 +1417,29 @@ ALWAYS include:
 # Cerniq.app Copilot Instructions
 
 ## Project Context
+
 B2B sales automation platform for Romanian agricultural market.
 Master Spec v1.2 is the authoritative source for all decisions.
 
 ## Technology Stack (use these exact versions)
+
 - Node.js 24.12.0, Python 3.14.2, PostgreSQL 18.1
 - React 19.2.3, Tailwind 4.1.x, Fastify 5.6.2
 
 ## Architecture
+
 - Vertical Slice: organize by feature (enrichment, outreach, sales-agent)
 - Multi-tenant: ALL queries include tenant_id
 - Event-driven: emit events with correlationId
 
 ## Code Style
+
 - TypeScript: strict mode, no `any`, explicit types
 - Python: type hints, Pydantic strict mode
 - SQL: UNIQUE(tenant_id, key) NOT UNIQUE(key)
 
 ## Forbidden
+
 - `shop_id` → use `tenant_id`
 - `gold_hitl_tasks` → use `approval_tasks`
 - email as user ID → use UUID
@@ -1405,6 +1466,7 @@ When writing BullMQ workers:
 6. Set appropriate retry/backoff strategy
 
 Rate limit reference:
+
 - ANAF: 1/sec
 - Termene: 20/sec
 - xAI: 60/min
@@ -1419,33 +1481,39 @@ Rate limit reference:
 
 ```markdown
 ## Multi-Tenant
+
 - [ ] No `UNIQUE(cui)` without tenant_id
 - [ ] tenant_id included in all queries
 - [ ] RLS policies defined for new tables
 
 ## Naming
+
 - [ ] No `shop_id` (use `tenant_id`)
 - [ ] No `gold_hitl_tasks` (use `approval_tasks`)
 - [ ] No email as user identifier (use UUID)
 - [ ] Queue names follow `{layer}:{category}:{action}` pattern
 
 ## Type Safety
+
 - [ ] No `any` types
 - [ ] Explicit parameter types
 - [ ] Zod schemas for external input
 - [ ] Return types specified
 
 ## Events
+
 - [ ] correlationId in all jobs
 - [ ] idempotencyKey for state changes
 - [ ] Events emitted for relevant actions
 
 ## Testing
+
 - [ ] Unit tests for new functions
 - [ ] Contract tests for new events
 - [ ] pgTAP tests for new constraints
 
 ## Security
+
 - [ ] Input validation for user data
 - [ ] CUI checksum verification
 - [ ] Audit logging for HITL actions
@@ -1455,15 +1523,18 @@ Rate limit reference:
 
 ```markdown
 ## Description
+
 [Brief description of changes]
 
 ## Type of Change
+
 - [ ] Bug fix
 - [ ] New feature
 - [ ] Breaking change
 - [ ] Documentation
 
 ## Checklist
+
 - [ ] Tests pass locally
 - [ ] Coverage maintained/improved
 - [ ] No new TypeScript errors
@@ -1472,6 +1543,7 @@ Rate limit reference:
 - [ ] Documentation updated
 
 ## Related Issues
+
 Closes #XXX
 ```
 
@@ -1481,22 +1553,22 @@ Closes #XXX
 
 ## 15.1 Terminology Changes
 
-| ❌ DEPRECATED | ✅ USE INSTEAD | Reason |
-| --------------- | ---------------- | -------- |
-| `shop_id` | `tenant_id` | Inconsistent naming |
-| `gold_hitl_tasks` | `approval_tasks` | Per-stage → transversal |
-| `assigned_to` (email) | `assigned_to` (UUID) | Identity contract |
-| `current_stage` | `current_state` | FSM naming |
-| `UNIQUE(cui)` | `UNIQUE(tenant_id, cui)` | Multi-tenant isolation |
+| ❌ DEPRECATED         | ✅ USE INSTEAD           | Reason                  |
+| --------------------- | ------------------------ | ----------------------- |
+| `shop_id`             | `tenant_id`              | Inconsistent naming     |
+| `gold_hitl_tasks`     | `approval_tasks`         | Per-stage → transversal |
+| `assigned_to` (email) | `assigned_to` (UUID)     | Identity contract       |
+| `current_stage`       | `current_state`          | FSM naming              |
+| `UNIQUE(cui)`         | `UNIQUE(tenant_id, cui)` | Multi-tenant isolation  |
 
 ## 15.2 Alias Mapping (pentru compatibilitate)
 
 ```typescript
 // Pentru cod legacy - acceptă alias, scrie canonic
 const LEGACY_ALIASES = {
-  'shop_id': 'tenant_id',
-  'current_stage': 'current_state',
-  'assigned_phone_id': 'assigned_phone_number',
+  shop_id: "tenant_id",
+  current_stage: "current_state",
+  assigned_phone_id: "assigned_phone_number",
 } as const;
 ```
 
@@ -1510,7 +1582,7 @@ const LEGACY_ALIASES = {
 // 4. Deploy cu feature flag dacă e necesar
 
 // Exemplu migration pentru shop_id → tenant_id
-ALTER TABLE legacy_table 
+ALTER TABLE legacy_table
     RENAME COLUMN shop_id TO tenant_id;
 ```
 
@@ -1518,12 +1590,12 @@ ALTER TABLE legacy_table
 
 ## DOCUMENT CHANGELOG
 
-| Version | Date | Author | Changes |
-| --------- | ------ | -------- | --------- |
-| 1.0 | 12 Jan 2026 | Alex | Initial version based on Master Spec v1.2 |
+| Version | Date        | Author | Changes                                   |
+| ------- | ----------- | ------ | ----------------------------------------- |
+| 1.0     | 12 Jan 2026 | Alex   | Initial version based on Master Spec v1.2 |
 
 ---
 
 ## END OF DOCUMENT
 
-*Acest document este subordonat Master Spec v1.2 și trebuie actualizat la fiecare modificare a specificațiilor canonice.*
+_Acest document este subordonat Master Spec v1.2 și trebuie actualizat la fiecare modificare a specificațiilor canonice._

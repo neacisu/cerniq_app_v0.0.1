@@ -3,9 +3,9 @@ info:
   title: Cerniq API - Etapa 3
   description: |
     # AI Sales Agent Neuro-Simbolic API
-    
+
     API REST pentru Etapa 3 Cerniq.app - Agent Comercial AI Autonom.
-    
+
     ## Funcționalități principale:
     - **Negocieri** - CRUD complet pentru negocieri cu FSM (12 stări)
     - **Produse** - Catalog cu RAG search și pgvector
@@ -15,18 +15,18 @@ info:
     - **Pricing** - Reguli dinamice și calcul prețuri
     - **Stock** - Management stoc și rezervări
     - **Webhooks** - Evenimente în timp real
-    
+
     ## Autentificare
     API-ul folosește autentificare JWT Bearer Token.
     - Access Token: 15 minute validitate
     - Refresh Token: 7 zile validitate
     - API Keys: Pentru integrări M2M
-    
+
     ## Rate Limiting
     - Standard: 100 requests/minute (GET), 30/minute (POST/PUT)
     - AI Operations: 10 requests/minute
     - Vezi headerele X-RateLimit-* pentru status
-    
+
     ## Versiune Document
     - Versiune: 3.0.0
     - Data: 01 Februarie 2026
@@ -90,18 +90,18 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/LoginRequest'
+              $ref: "#/components/schemas/LoginRequest"
       responses:
-        '200':
+        "200":
           description: Login reușit
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/LoginResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
 
   /auth/refresh:
     post:
@@ -120,14 +120,14 @@ paths:
                 refreshToken:
                   type: string
       responses:
-        '200':
+        "200":
           description: Token refreshed
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TokenResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+                $ref: "#/components/schemas/TokenResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 
   /auth/logout:
     post:
@@ -135,12 +135,12 @@ paths:
       summary: Logout și invalidare token
       operationId: authLogout
       responses:
-        '200':
+        "200":
           description: Logout reușit
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessResponse'
+                $ref: "#/components/schemas/SuccessResponse"
 
   /auth/api-keys:
     get:
@@ -148,7 +148,7 @@ paths:
       summary: Listare API keys
       operationId: listApiKeys
       responses:
-        '200':
+        "200":
           description: Lista API keys
           content:
             application/json:
@@ -160,7 +160,7 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: '#/components/schemas/ApiKey'
+                      $ref: "#/components/schemas/ApiKey"
     post:
       tags: [Authentication]
       summary: Creare API key
@@ -170,14 +170,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateApiKeyRequest'
+              $ref: "#/components/schemas/CreateApiKeyRequest"
       responses:
-        '201':
+        "201":
           description: API key creat
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CreateApiKeyResponse'
+                $ref: "#/components/schemas/CreateApiKeyResponse"
 
   /auth/api-keys/{keyId}:
     delete:
@@ -191,12 +191,12 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: API key revocat
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessResponse'
+                $ref: "#/components/schemas/SuccessResponse"
 
   # ==================== PRODUCTS ====================
   /products:
@@ -205,8 +205,8 @@ paths:
       summary: Listare produse cu filtrare și sortare
       operationId: listProducts
       parameters:
-        - $ref: '#/components/parameters/PageParam'
-        - $ref: '#/components/parameters/LimitParam'
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/LimitParam"
         - name: category
           in: query
           schema:
@@ -243,12 +243,12 @@ paths:
             type: string
             enum: [asc, desc]
       responses:
-        '200':
+        "200":
           description: Lista produse paginată
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ProductListResponse'
+                $ref: "#/components/schemas/ProductListResponse"
 
     post:
       tags: [Products]
@@ -259,16 +259,16 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateProductRequest'
+              $ref: "#/components/schemas/CreateProductRequest"
       responses:
-        '201':
+        "201":
           description: Produs creat
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ProductResponse'
-        '422':
-          $ref: '#/components/responses/ValidationError'
+                $ref: "#/components/schemas/ProductResponse"
+        "422":
+          $ref: "#/components/responses/ValidationError"
 
   /products/{productId}:
     get:
@@ -283,14 +283,14 @@ paths:
             type: string
             format: uuid
       responses:
-        '200':
+        "200":
           description: Detalii produs
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ProductDetailResponse'
-        '404':
-          $ref: '#/components/responses/NotFound'
+                $ref: "#/components/schemas/ProductDetailResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
     put:
       tags: [Products]
@@ -308,14 +308,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UpdateProductRequest'
+              $ref: "#/components/schemas/UpdateProductRequest"
       responses:
-        '200':
+        "200":
           description: Produs actualizat
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ProductResponse'
+                $ref: "#/components/schemas/ProductResponse"
 
     delete:
       tags: [Products]
@@ -329,12 +329,12 @@ paths:
             type: string
             format: uuid
       responses:
-        '200':
+        "200":
           description: Produs șters
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessResponse'
+                $ref: "#/components/schemas/SuccessResponse"
 
   /products/import:
     post:
@@ -358,12 +358,12 @@ paths:
                   type: boolean
                   default: false
       responses:
-        '202':
+        "202":
           description: Import inițiat
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ImportResponse'
+                $ref: "#/components/schemas/ImportResponse"
 
   /products/search:
     post:
@@ -375,14 +375,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SearchProductsRequest'
+              $ref: "#/components/schemas/SearchProductsRequest"
       responses:
-        '200':
+        "200":
           description: Rezultate căutare semantică
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SearchProductsResponse'
+                $ref: "#/components/schemas/SearchProductsResponse"
 
   /products/export:
     post:
@@ -406,12 +406,12 @@ paths:
                   items:
                     type: string
       responses:
-        '202':
+        "202":
           description: Export inițiat
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ExportResponse'
+                $ref: "#/components/schemas/ExportResponse"
 
   # ==================== NEGOTIATIONS ====================
   /negotiations:
@@ -420,12 +420,12 @@ paths:
       summary: Listare negocieri cu filtrare FSM
       operationId: listNegotiations
       parameters:
-        - $ref: '#/components/parameters/PageParam'
-        - $ref: '#/components/parameters/LimitParam'
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/LimitParam"
         - name: state
           in: query
           schema:
-            $ref: '#/components/schemas/NegotiationState'
+            $ref: "#/components/schemas/NegotiationState"
         - name: contactId
           in: query
           schema:
@@ -458,12 +458,12 @@ paths:
           schema:
             type: number
       responses:
-        '200':
+        "200":
           description: Lista negocieri paginată
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/NegotiationListResponse'
+                $ref: "#/components/schemas/NegotiationListResponse"
 
     post:
       tags: [Negotiations]
@@ -474,14 +474,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateNegotiationRequest'
+              $ref: "#/components/schemas/CreateNegotiationRequest"
       responses:
-        '201':
+        "201":
           description: Negociere creată
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CreateNegotiationResponse'
+                $ref: "#/components/schemas/CreateNegotiationResponse"
 
   /negotiations/{negotiationId}:
     get:
@@ -496,12 +496,12 @@ paths:
             type: string
             format: uuid
       responses:
-        '200':
+        "200":
           description: Detalii negociere cu istoric FSM
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/NegotiationDetailResponse'
+                $ref: "#/components/schemas/NegotiationDetailResponse"
 
     patch:
       tags: [Negotiations]
@@ -519,14 +519,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UpdateNegotiationRequest'
+              $ref: "#/components/schemas/UpdateNegotiationRequest"
       responses:
-        '200':
+        "200":
           description: Negociere actualizată
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UpdateNegotiationResponse'
+                $ref: "#/components/schemas/UpdateNegotiationResponse"
 
   /negotiations/{negotiationId}/transition:
     post:
@@ -545,20 +545,20 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TransitionNegotiationRequest'
+              $ref: "#/components/schemas/TransitionNegotiationRequest"
       responses:
-        '200':
+        "200":
           description: Tranziție reușită cu side effects
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TransitionNegotiationResponse'
-        '400':
+                $ref: "#/components/schemas/TransitionNegotiationResponse"
+        "400":
           description: Tranziție invalidă din starea curentă
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
 
   /negotiations/{negotiationId}/conversation:
     get:
@@ -587,12 +587,12 @@ paths:
             type: boolean
             default: false
       responses:
-        '200':
+        "200":
           description: Mesaje conversație
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ConversationResponse'
+                $ref: "#/components/schemas/ConversationResponse"
 
   /negotiations/{negotiationId}/messages:
     post:
@@ -611,14 +611,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SendMessageRequest'
+              $ref: "#/components/schemas/SendMessageRequest"
       responses:
-        '201':
+        "201":
           description: Mesaj trimis/programat
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SendMessageResponse'
+                $ref: "#/components/schemas/SendMessageResponse"
 
   /negotiations/{negotiationId}/discount:
     post:
@@ -637,14 +637,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ApplyDiscountRequest'
+              $ref: "#/components/schemas/ApplyDiscountRequest"
       responses:
-        '200':
+        "200":
           description: Discount aplicat
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApplyDiscountResponse'
+                $ref: "#/components/schemas/ApplyDiscountResponse"
 
   /negotiations/{negotiationId}/proforma:
     post:
@@ -662,14 +662,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/GenerateProformaRequest'
+              $ref: "#/components/schemas/GenerateProformaRequest"
       responses:
-        '201':
+        "201":
           description: Proforma generată
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GenerateProformaResponse'
+                $ref: "#/components/schemas/GenerateProformaResponse"
 
   /negotiations/{negotiationId}/invoice:
     post:
@@ -687,14 +687,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ConvertToInvoiceRequest'
+              $ref: "#/components/schemas/ConvertToInvoiceRequest"
       responses:
-        '201':
+        "201":
           description: Factură creată
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ConvertToInvoiceResponse'
+                $ref: "#/components/schemas/ConvertToInvoiceResponse"
 
   # ==================== PRICING ====================
   /pricing/rules:
@@ -703,8 +703,8 @@ paths:
       summary: Listare reguli de preț
       operationId: listPricingRules
       parameters:
-        - $ref: '#/components/parameters/PageParam'
-        - $ref: '#/components/parameters/LimitParam'
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/LimitParam"
         - name: type
           in: query
           schema:
@@ -716,12 +716,12 @@ paths:
             type: string
             enum: [active, inactive, scheduled]
       responses:
-        '200':
+        "200":
           description: Lista reguli de preț
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PricingRulesResponse'
+                $ref: "#/components/schemas/PricingRulesResponse"
 
     post:
       tags: [Pricing]
@@ -732,14 +732,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreatePricingRuleRequest'
+              $ref: "#/components/schemas/CreatePricingRuleRequest"
       responses:
-        '201':
+        "201":
           description: Regulă creată
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PricingRuleResponse'
+                $ref: "#/components/schemas/PricingRuleResponse"
 
   /pricing/calculate:
     post:
@@ -751,14 +751,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CalculatePriceRequest'
+              $ref: "#/components/schemas/CalculatePriceRequest"
       responses:
-        '200':
+        "200":
           description: Preț calculat cu detalii
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CalculatePriceResponse'
+                $ref: "#/components/schemas/CalculatePriceResponse"
 
   /pricing/thresholds:
     get:
@@ -766,12 +766,12 @@ paths:
       summary: Praguri aprobare discount
       operationId: getDiscountThresholds
       responses:
-        '200':
+        "200":
           description: Praguri discount
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DiscountThresholdsResponse'
+                $ref: "#/components/schemas/DiscountThresholdsResponse"
 
   # ==================== STOCK ====================
   /stock:
@@ -780,8 +780,8 @@ paths:
       summary: Status stoc produse
       operationId: getStockStatus
       parameters:
-        - $ref: '#/components/parameters/PageParam'
-        - $ref: '#/components/parameters/LimitParam'
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/LimitParam"
         - name: status
           in: query
           schema:
@@ -792,12 +792,12 @@ paths:
           schema:
             type: boolean
       responses:
-        '200':
+        "200":
           description: Status stoc
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/StockStatusResponse'
+                $ref: "#/components/schemas/StockStatusResponse"
 
   /stock/{productId}/movements:
     get:
@@ -811,20 +811,20 @@ paths:
           schema:
             type: string
             format: uuid
-        - $ref: '#/components/parameters/PageParam'
-        - $ref: '#/components/parameters/LimitParam'
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/LimitParam"
         - name: type
           in: query
           schema:
             type: string
             enum: [in, out, adjustment, reservation, release]
       responses:
-        '200':
+        "200":
           description: Istoric mișcări
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/StockMovementsResponse'
+                $ref: "#/components/schemas/StockMovementsResponse"
 
   /stock/{productId}/adjust:
     post:
@@ -843,14 +843,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AdjustStockRequest'
+              $ref: "#/components/schemas/AdjustStockRequest"
       responses:
-        '200':
+        "200":
           description: Stoc ajustat
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AdjustStockResponse'
+                $ref: "#/components/schemas/AdjustStockResponse"
 
   /stock/reserve:
     post:
@@ -862,14 +862,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ReserveStockRequest'
+              $ref: "#/components/schemas/ReserveStockRequest"
       responses:
-        '201':
+        "201":
           description: Stoc rezervat
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ReserveStockResponse'
+                $ref: "#/components/schemas/ReserveStockResponse"
 
   /stock/reservations/{reservationId}:
     delete:
@@ -884,12 +884,12 @@ paths:
             type: string
             format: uuid
       responses:
-        '200':
+        "200":
           description: Rezervare eliberată
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ReleaseStockResponse'
+                $ref: "#/components/schemas/ReleaseStockResponse"
 
   # ==================== DOCUMENTS ====================
   /documents:
@@ -898,8 +898,8 @@ paths:
       summary: Listare documente
       operationId: listDocuments
       parameters:
-        - $ref: '#/components/parameters/PageParam'
-        - $ref: '#/components/parameters/LimitParam'
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/LimitParam"
         - name: type
           in: query
           schema:
@@ -924,12 +924,12 @@ paths:
             type: string
             format: date
       responses:
-        '200':
+        "200":
           description: Lista documente
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DocumentListResponse'
+                $ref: "#/components/schemas/DocumentListResponse"
 
     post:
       tags: [Documents]
@@ -940,14 +940,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateDocumentRequest'
+              $ref: "#/components/schemas/CreateDocumentRequest"
       responses:
-        '201':
+        "201":
           description: Document creat
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CreateDocumentResponse'
+                $ref: "#/components/schemas/CreateDocumentResponse"
 
   /documents/{documentId}:
     get:
@@ -962,12 +962,12 @@ paths:
             type: string
             format: uuid
       responses:
-        '200':
+        "200":
           description: Detalii document
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DocumentDetailResponse'
+                $ref: "#/components/schemas/DocumentDetailResponse"
 
   /documents/{documentId}/pdf:
     get:
@@ -982,7 +982,7 @@ paths:
             type: string
             format: uuid
       responses:
-        '200':
+        "200":
           description: PDF document
           content:
             application/pdf:
@@ -1007,14 +1007,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SendDocumentRequest'
+              $ref: "#/components/schemas/SendDocumentRequest"
       responses:
-        '200':
+        "200":
           description: Document trimis
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SendDocumentResponse'
+                $ref: "#/components/schemas/SendDocumentResponse"
 
   /documents/{documentId}/cancel:
     post:
@@ -1033,14 +1033,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CancelDocumentRequest'
+              $ref: "#/components/schemas/CancelDocumentRequest"
       responses:
-        '200':
+        "200":
           description: Document anulat
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CancelDocumentResponse'
+                $ref: "#/components/schemas/CancelDocumentResponse"
 
   # ==================== AI AGENT ====================
   /ai/process:
@@ -1053,14 +1053,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ProcessAIMessageRequest'
+              $ref: "#/components/schemas/ProcessAIMessageRequest"
       responses:
-        '200':
+        "200":
           description: Răspuns AI procesat
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ProcessAIMessageResponse'
+                $ref: "#/components/schemas/ProcessAIMessageResponse"
 
   /ai/context/{negotiationId}:
     get:
@@ -1075,12 +1075,12 @@ paths:
             type: string
             format: uuid
       responses:
-        '200':
+        "200":
           description: Context AI complet
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AIContextResponse'
+                $ref: "#/components/schemas/AIContextResponse"
 
   /ai/regenerate/{messageId}:
     post:
@@ -1098,14 +1098,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RegenerateAIRequest'
+              $ref: "#/components/schemas/RegenerateAIRequest"
       responses:
-        '200':
+        "200":
           description: Răspuns regenerat
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RegenerateAIResponse'
+                $ref: "#/components/schemas/RegenerateAIResponse"
 
   /ai/feedback:
     post:
@@ -1117,14 +1117,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AIFeedbackRequest'
+              $ref: "#/components/schemas/AIFeedbackRequest"
       responses:
-        '201':
+        "201":
           description: Feedback înregistrat
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AIFeedbackResponse'
+                $ref: "#/components/schemas/AIFeedbackResponse"
 
   /ai/guardrails:
     get:
@@ -1132,12 +1132,12 @@ paths:
       summary: Configurare guardrails AI
       operationId: getGuardrails
       responses:
-        '200':
+        "200":
           description: Configurare guardrails
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GuardrailConfigResponse'
+                $ref: "#/components/schemas/GuardrailConfigResponse"
 
     put:
       tags: [AI Agent]
@@ -1148,14 +1148,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/GuardrailUpdateRequest'
+              $ref: "#/components/schemas/GuardrailUpdateRequest"
       responses:
-        '200':
+        "200":
           description: Guardrails actualizate
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GuardrailUpdateResponse'
+                $ref: "#/components/schemas/GuardrailUpdateResponse"
 
   /ai/guardrails/test:
     post:
@@ -1167,14 +1167,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/GuardrailTestRequest'
+              $ref: "#/components/schemas/GuardrailTestRequest"
       responses:
-        '200':
+        "200":
           description: Rezultat test
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GuardrailTestResponse'
+                $ref: "#/components/schemas/GuardrailTestResponse"
 
   /ai/config:
     get:
@@ -1182,12 +1182,12 @@ paths:
       summary: Configurare modele AI
       operationId: getAiConfig
       responses:
-        '200':
+        "200":
           description: Configurare AI
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AIConfigResponse'
+                $ref: "#/components/schemas/AIConfigResponse"
 
     put:
       tags: [AI Agent]
@@ -1198,14 +1198,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AIConfigUpdateRequest'
+              $ref: "#/components/schemas/AIConfigUpdateRequest"
       responses:
-        '200':
+        "200":
           description: Configurare actualizată
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessResponse'
+                $ref: "#/components/schemas/SuccessResponse"
 
   /ai/templates:
     get:
@@ -1213,12 +1213,12 @@ paths:
       summary: Template-uri conversație
       operationId: getConversationTemplates
       responses:
-        '200':
+        "200":
           description: Lista template-uri
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ConversationTemplatesResponse'
+                $ref: "#/components/schemas/ConversationTemplatesResponse"
 
     post:
       tags: [AI Agent]
@@ -1229,14 +1229,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TemplateRequest'
+              $ref: "#/components/schemas/TemplateRequest"
       responses:
-        '201':
+        "201":
           description: Template creat
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TemplateResponse'
+                $ref: "#/components/schemas/TemplateResponse"
 
   # ==================== HITL APPROVALS ====================
   /hitl/approvals:
@@ -1245,8 +1245,8 @@ paths:
       summary: Listare aprobări pending
       operationId: listApprovals
       parameters:
-        - $ref: '#/components/parameters/PageParam'
-        - $ref: '#/components/parameters/LimitParam'
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/LimitParam"
         - name: status
           in: query
           schema:
@@ -1255,7 +1255,7 @@ paths:
         - name: type
           in: query
           schema:
-            $ref: '#/components/schemas/ApprovalType'
+            $ref: "#/components/schemas/ApprovalType"
         - name: priority
           in: query
           schema:
@@ -1267,12 +1267,12 @@ paths:
             type: string
             enum: [ok, warning, breached]
       responses:
-        '200':
+        "200":
           description: Lista aprobări
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApprovalListResponse'
+                $ref: "#/components/schemas/ApprovalListResponse"
 
   /hitl/approvals/{approvalId}:
     get:
@@ -1287,12 +1287,12 @@ paths:
             type: string
             format: uuid
       responses:
-        '200':
+        "200":
           description: Detalii aprobare cu context complet
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApprovalDetailResponse'
+                $ref: "#/components/schemas/ApprovalDetailResponse"
 
   /hitl/approvals/{approvalId}/approve:
     post:
@@ -1310,14 +1310,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ApproveRequest'
+              $ref: "#/components/schemas/ApproveRequest"
       responses:
-        '200':
+        "200":
           description: Request aprobat
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApproveResponse'
+                $ref: "#/components/schemas/ApproveResponse"
 
   /hitl/approvals/{approvalId}/reject:
     post:
@@ -1336,14 +1336,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RejectRequest'
+              $ref: "#/components/schemas/RejectRequest"
       responses:
-        '200':
+        "200":
           description: Request respins
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RejectResponse'
+                $ref: "#/components/schemas/RejectResponse"
 
   /hitl/approvals/{approvalId}/escalate:
     post:
@@ -1362,14 +1362,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/EscalateRequest'
+              $ref: "#/components/schemas/EscalateRequest"
       responses:
-        '200':
+        "200":
           description: Request escaladat
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EscalateResponse'
+                $ref: "#/components/schemas/EscalateResponse"
 
   /hitl/approvals/{approvalId}/reassign:
     post:
@@ -1388,14 +1388,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ReassignRequest'
+              $ref: "#/components/schemas/ReassignRequest"
       responses:
-        '200':
+        "200":
           description: Request reasignat
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ReassignResponse'
+                $ref: "#/components/schemas/ReassignResponse"
 
   /hitl/approvals/{approvalId}/comments:
     post:
@@ -1414,14 +1414,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AddCommentRequest'
+              $ref: "#/components/schemas/AddCommentRequest"
       responses:
-        '201':
+        "201":
           description: Comentariu adăugat
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CommentResponse'
+                $ref: "#/components/schemas/CommentResponse"
 
   /hitl/approvals/bulk:
     post:
@@ -1433,14 +1433,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/BulkApprovalRequest'
+              $ref: "#/components/schemas/BulkApprovalRequest"
       responses:
-        '200':
+        "200":
           description: Rezultat bulk operation
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BulkApprovalResponse'
+                $ref: "#/components/schemas/BulkApprovalResponse"
 
   /hitl/approvals/stats:
     get:
@@ -1458,12 +1458,12 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Statistici aprobări
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApprovalStatsResponse'
+                $ref: "#/components/schemas/ApprovalStatsResponse"
 
   # ==================== E-FACTURA & OBLIO ====================
   /fiscal/efactura/status:
@@ -1472,12 +1472,12 @@ paths:
       summary: Status configurare e-Factura
       operationId: getEfacturaStatus
       responses:
-        '200':
+        "200":
           description: Status e-Factura
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EFacturaStatusResponse'
+                $ref: "#/components/schemas/EFacturaStatusResponse"
 
   /fiscal/efactura/submit:
     post:
@@ -1489,14 +1489,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/EFacturaSubmitRequest'
+              $ref: "#/components/schemas/EFacturaSubmitRequest"
       responses:
-        '202':
+        "202":
           description: Factură trimisă pentru procesare
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EFacturaSubmitResponse'
+                $ref: "#/components/schemas/EFacturaSubmitResponse"
 
   /fiscal/efactura/submissions/{submissionId}:
     get:
@@ -1510,12 +1510,12 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Detalii trimitere
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EFacturaSubmissionDetail'
+                $ref: "#/components/schemas/EFacturaSubmissionDetail"
 
   /fiscal/efactura/messages:
     get:
@@ -1534,12 +1534,12 @@ paths:
             type: string
             enum: [E, P, R]
       responses:
-        '200':
+        "200":
           description: Mesaje SPV
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EFacturaMessagesResponse'
+                $ref: "#/components/schemas/EFacturaMessagesResponse"
 
   /fiscal/oblio/sync:
     post:
@@ -1551,14 +1551,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/OblioSyncRequest'
+              $ref: "#/components/schemas/OblioSyncRequest"
       responses:
-        '202':
+        "202":
           description: Sincronizare inițiată
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OblioSyncResponse'
+                $ref: "#/components/schemas/OblioSyncResponse"
 
   /fiscal/oblio/invoices:
     post:
@@ -1570,14 +1570,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/OblioInvoiceRequest'
+              $ref: "#/components/schemas/OblioInvoiceRequest"
       responses:
-        '201':
+        "201":
           description: Factură creată
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OblioInvoiceResponse'
+                $ref: "#/components/schemas/OblioInvoiceResponse"
 
   /fiscal/series:
     get:
@@ -1585,12 +1585,12 @@ paths:
       summary: Serii documente fiscale
       operationId: getInvoiceSeries
       responses:
-        '200':
+        "200":
           description: Lista serii
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/InvoiceSeriesResponse'
+                $ref: "#/components/schemas/InvoiceSeriesResponse"
 
   # ==================== ANALYTICS ====================
   /analytics/dashboard:
@@ -1610,12 +1610,12 @@ paths:
             type: string
             enum: [previous_period, same_period_last_year]
       responses:
-        '200':
+        "200":
           description: Date dashboard
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DashboardResponse'
+                $ref: "#/components/schemas/DashboardResponse"
 
   /analytics/sales:
     get:
@@ -1641,12 +1641,12 @@ paths:
             type: string
             enum: [day, week, month]
       responses:
-        '200':
+        "200":
           description: Raport vânzări
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SalesReportResponse'
+                $ref: "#/components/schemas/SalesReportResponse"
 
   /analytics/ai-performance:
     get:
@@ -1667,12 +1667,12 @@ paths:
             type: string
             format: date
       responses:
-        '200':
+        "200":
           description: Raport AI
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AIPerformanceResponse'
+                $ref: "#/components/schemas/AIPerformanceResponse"
 
   /analytics/hitl:
     get:
@@ -1693,12 +1693,12 @@ paths:
             type: string
             format: date
       responses:
-        '200':
+        "200":
           description: Raport HITL
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HITLReportResponse'
+                $ref: "#/components/schemas/HITLReportResponse"
 
   /analytics/reports:
     post:
@@ -1710,14 +1710,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CustomReportRequest'
+              $ref: "#/components/schemas/CustomReportRequest"
       responses:
-        '202':
+        "202":
           description: Raport în procesare
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CustomReportResponse'
+                $ref: "#/components/schemas/CustomReportResponse"
 
   /analytics/export:
     post:
@@ -1729,14 +1729,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/DataExportRequest'
+              $ref: "#/components/schemas/DataExportRequest"
       responses:
-        '202':
+        "202":
           description: Export inițiat
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DataExportResponse'
+                $ref: "#/components/schemas/DataExportResponse"
 
   # ==================== WEBHOOKS ====================
   /webhooks:
@@ -1745,12 +1745,12 @@ paths:
       summary: Listare subscripții webhook
       operationId: listWebhooks
       responses:
-        '200':
+        "200":
           description: Lista webhooks
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/WebhookListResponse'
+                $ref: "#/components/schemas/WebhookListResponse"
 
     post:
       tags: [Webhooks]
@@ -1761,14 +1761,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateWebhookRequest'
+              $ref: "#/components/schemas/CreateWebhookRequest"
       responses:
-        '201':
+        "201":
           description: Webhook creat
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CreateWebhookResponse'
+                $ref: "#/components/schemas/CreateWebhookResponse"
 
   /webhooks/{webhookId}:
     put:
@@ -1787,14 +1787,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UpdateWebhookRequest'
+              $ref: "#/components/schemas/UpdateWebhookRequest"
       responses:
-        '200':
+        "200":
           description: Webhook actualizat
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessResponse'
+                $ref: "#/components/schemas/SuccessResponse"
 
     delete:
       tags: [Webhooks]
@@ -1808,12 +1808,12 @@ paths:
             type: string
             format: uuid
       responses:
-        '200':
+        "200":
           description: Webhook șters
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessResponse'
+                $ref: "#/components/schemas/SuccessResponse"
 
   /webhooks/{webhookId}/test:
     post:
@@ -1832,14 +1832,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TestWebhookRequest'
+              $ref: "#/components/schemas/TestWebhookRequest"
       responses:
-        '200':
+        "200":
           description: Rezultat test
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TestWebhookResponse'
+                $ref: "#/components/schemas/TestWebhookResponse"
 
   /webhooks/{webhookId}/deliveries:
     get:
@@ -1853,20 +1853,20 @@ paths:
           schema:
             type: string
             format: uuid
-        - $ref: '#/components/parameters/PageParam'
-        - $ref: '#/components/parameters/LimitParam'
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/LimitParam"
         - name: status
           in: query
           schema:
             type: string
             enum: [success, failed]
       responses:
-        '200':
+        "200":
           description: Istoric livrări
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DeliveryHistoryResponse'
+                $ref: "#/components/schemas/DeliveryHistoryResponse"
 
   /webhooks/{webhookId}/deliveries/{deliveryId}/retry:
     post:
@@ -1887,12 +1887,12 @@ paths:
             type: string
             format: uuid
       responses:
-        '200':
+        "200":
           description: Retry inițiat
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RetryDeliveryResponse'
+                $ref: "#/components/schemas/RetryDeliveryResponse"
 
   # ==================== ADMIN ====================
   /admin/config:
@@ -1901,12 +1901,12 @@ paths:
       summary: Configurare tenant
       operationId: getTenantConfig
       responses:
-        '200':
+        "200":
           description: Configurare tenant
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TenantConfigResponse'
+                $ref: "#/components/schemas/TenantConfigResponse"
 
     put:
       tags: [Admin]
@@ -1917,14 +1917,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TenantConfigUpdateRequest'
+              $ref: "#/components/schemas/TenantConfigUpdateRequest"
       responses:
-        '200':
+        "200":
           description: Configurare actualizată
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessResponse'
+                $ref: "#/components/schemas/SuccessResponse"
 
   /admin/users:
     get:
@@ -1932,8 +1932,8 @@ paths:
       summary: Listare utilizatori
       operationId: listUsers
       parameters:
-        - $ref: '#/components/parameters/PageParam'
-        - $ref: '#/components/parameters/LimitParam'
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/LimitParam"
         - name: role
           in: query
           schema:
@@ -1944,12 +1944,12 @@ paths:
             type: string
             enum: [active, inactive, invited, suspended]
       responses:
-        '200':
+        "200":
           description: Lista utilizatori
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserListResponse'
+                $ref: "#/components/schemas/UserListResponse"
 
     post:
       tags: [Admin]
@@ -1960,14 +1960,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateUserRequest'
+              $ref: "#/components/schemas/CreateUserRequest"
       responses:
-        '201':
+        "201":
           description: Utilizator creat
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CreateUserResponse'
+                $ref: "#/components/schemas/CreateUserResponse"
 
   /admin/users/{userId}:
     put:
@@ -1986,14 +1986,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UpdateUserRequest'
+              $ref: "#/components/schemas/UpdateUserRequest"
       responses:
-        '200':
+        "200":
           description: Utilizator actualizat
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessResponse'
+                $ref: "#/components/schemas/SuccessResponse"
 
     delete:
       tags: [Admin]
@@ -2015,12 +2015,12 @@ paths:
           schema:
             type: boolean
       responses:
-        '200':
+        "200":
           description: Utilizator șters
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DeleteUserResponse'
+                $ref: "#/components/schemas/DeleteUserResponse"
 
   /admin/audit:
     get:
@@ -2028,8 +2028,8 @@ paths:
       summary: Audit log
       operationId: getAuditLog
       parameters:
-        - $ref: '#/components/parameters/PageParam'
-        - $ref: '#/components/parameters/LimitParam'
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/LimitParam"
         - name: userId
           in: query
           schema:
@@ -2049,12 +2049,12 @@ paths:
             type: string
             format: date
       responses:
-        '200':
+        "200":
           description: Audit log
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AuditLogResponse'
+                $ref: "#/components/schemas/AuditLogResponse"
 
   /admin/health:
     get:
@@ -2062,12 +2062,12 @@ paths:
       summary: Health status sistem
       operationId: getSystemHealth
       responses:
-        '200':
+        "200":
           description: Health status
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SystemHealthResponse'
+                $ref: "#/components/schemas/SystemHealthResponse"
 
   /rate-limit/status:
     get:
@@ -2075,12 +2075,12 @@ paths:
       summary: Status rate limiting
       operationId: getRateLimitStatus
       responses:
-        '200':
+        "200":
           description: Rate limit status
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RateLimitStatusResponse'
+                $ref: "#/components/schemas/RateLimitStatusResponse"
 
 components:
   securitySchemes:
@@ -2120,25 +2120,25 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
     Forbidden:
       description: Permisiuni insuficiente
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
     NotFound:
       description: Resursă negăsită
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
     ValidationError:
       description: Eroare validare date
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
     TooManyRequests:
       description: Rate limit depășit
       headers:
@@ -2157,7 +2157,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
 
   schemas:
     # ==================== COMMON ====================
@@ -2231,9 +2231,9 @@ components:
           type: object
           properties:
             user:
-              $ref: '#/components/schemas/UserProfile'
+              $ref: "#/components/schemas/UserProfile"
             tokens:
-              $ref: '#/components/schemas/TokenResponse'
+              $ref: "#/components/schemas/TokenResponse"
             requiresMFA:
               type: boolean
 
@@ -2343,9 +2343,9 @@ components:
             items:
               type: array
               items:
-                $ref: '#/components/schemas/ProductListItem'
+                $ref: "#/components/schemas/ProductListItem"
             pagination:
-              $ref: '#/components/schemas/Pagination'
+              $ref: "#/components/schemas/Pagination"
 
     ProductListItem:
       type: object
@@ -2378,7 +2378,7 @@ components:
         success:
           type: boolean
         data:
-          $ref: '#/components/schemas/ProductDetail'
+          $ref: "#/components/schemas/ProductDetail"
 
     ProductDetail:
       type: object
@@ -2465,7 +2465,7 @@ components:
         success:
           type: boolean
         data:
-          $ref: '#/components/schemas/ProductDetail'
+          $ref: "#/components/schemas/ProductDetail"
 
     ImportResponse:
       type: object
@@ -2555,9 +2555,9 @@ components:
             items:
               type: array
               items:
-                $ref: '#/components/schemas/NegotiationListItem'
+                $ref: "#/components/schemas/NegotiationListItem"
             pagination:
-              $ref: '#/components/schemas/Pagination'
+              $ref: "#/components/schemas/Pagination"
 
     NegotiationListItem:
       type: object
@@ -2570,7 +2570,7 @@ components:
         contact:
           type: object
         state:
-          $ref: '#/components/schemas/NegotiationState'
+          $ref: "#/components/schemas/NegotiationState"
         totalValue:
           type: number
         currency:
@@ -2590,7 +2590,7 @@ components:
         success:
           type: boolean
         data:
-          $ref: '#/components/schemas/NegotiationDetail'
+          $ref: "#/components/schemas/NegotiationDetail"
 
     NegotiationDetail:
       type: object
@@ -2603,7 +2603,7 @@ components:
         contact:
           type: object
         state:
-          $ref: '#/components/schemas/NegotiationState'
+          $ref: "#/components/schemas/NegotiationState"
         stateHistory:
           type: array
           items:
@@ -2611,7 +2611,7 @@ components:
         allowedTransitions:
           type: array
           items:
-            $ref: '#/components/schemas/NegotiationState'
+            $ref: "#/components/schemas/NegotiationState"
         items:
           type: array
           items:
@@ -2666,7 +2666,7 @@ components:
             reference:
               type: string
             state:
-              $ref: '#/components/schemas/NegotiationState'
+              $ref: "#/components/schemas/NegotiationState"
             totalValue:
               type: number
 
@@ -2691,7 +2691,7 @@ components:
             id:
               type: string
             state:
-              $ref: '#/components/schemas/NegotiationState'
+              $ref: "#/components/schemas/NegotiationState"
             totalValue:
               type: number
             changes:
@@ -2704,7 +2704,7 @@ components:
       required: [targetState]
       properties:
         targetState:
-          $ref: '#/components/schemas/NegotiationState'
+          $ref: "#/components/schemas/NegotiationState"
         reason:
           type: string
         data:
@@ -2721,9 +2721,9 @@ components:
             id:
               type: string
             previousState:
-              $ref: '#/components/schemas/NegotiationState'
+              $ref: "#/components/schemas/NegotiationState"
             currentState:
-              $ref: '#/components/schemas/NegotiationState'
+              $ref: "#/components/schemas/NegotiationState"
             sideEffects:
               type: array
               items:
@@ -2870,7 +2870,7 @@ components:
               items:
                 type: object
             pagination:
-              $ref: '#/components/schemas/Pagination'
+              $ref: "#/components/schemas/Pagination"
 
     CreatePricingRuleRequest:
       type: object
@@ -2964,7 +2964,7 @@ components:
               items:
                 type: object
             pagination:
-              $ref: '#/components/schemas/Pagination'
+              $ref: "#/components/schemas/Pagination"
 
     StockMovementsResponse:
       type: object
@@ -2979,7 +2979,7 @@ components:
               items:
                 type: object
             pagination:
-              $ref: '#/components/schemas/Pagination'
+              $ref: "#/components/schemas/Pagination"
 
     AdjustStockRequest:
       type: object
@@ -3061,7 +3061,7 @@ components:
               items:
                 type: object
             pagination:
-              $ref: '#/components/schemas/Pagination'
+              $ref: "#/components/schemas/Pagination"
 
     DocumentDetailResponse:
       type: object
@@ -3387,7 +3387,7 @@ components:
               items:
                 type: object
             pagination:
-              $ref: '#/components/schemas/Pagination'
+              $ref: "#/components/schemas/Pagination"
             summary:
               type: object
 
@@ -3979,7 +3979,7 @@ components:
               items:
                 type: object
             pagination:
-              $ref: '#/components/schemas/Pagination'
+              $ref: "#/components/schemas/Pagination"
 
     RetryDeliveryResponse:
       type: object
@@ -4045,7 +4045,7 @@ components:
               items:
                 type: object
             pagination:
-              $ref: '#/components/schemas/Pagination'
+              $ref: "#/components/schemas/Pagination"
 
     CreateUserRequest:
       type: object
@@ -4128,7 +4128,7 @@ components:
               items:
                 type: object
             pagination:
-              $ref: '#/components/schemas/Pagination'
+              $ref: "#/components/schemas/Pagination"
 
     SystemHealthResponse:
       type: object

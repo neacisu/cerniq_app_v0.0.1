@@ -52,17 +52,20 @@ docker compose restart <worker-service>
 ### B) Jobs se acumuleaza (backlog)
 
 Cauze uzuale:
+
 - Redis shared probleme / credentiale gresite
 - rate limit extern (429)
 - DB slow / pool epuizat (PgBouncer)
 
 Actiuni:
+
 - Verifica Loki pentru pattern-uri de erori (ex: `redis`, `pg`, `timeout`, `429`).
 - Daca ai acces la tool-ul de inspectie BullMQ, verifica counts (waiting/active/failed) pentru queue-urile relevante.
 
 ### C) Rate limit extern (429)
 
 Strategie:
+
 - pauzeaza temporar queue-ul afectat
 - scade concurrency / creste backoff
 - reia dupa fereastra de reset
@@ -73,4 +76,3 @@ Strategie:
 - [ ] Nu cresc erorile Redis/DB in logs
 - [ ] Backlog-ul scade in timp
 - [ ] Exista RCA scurt + actiune preventiva (retry/backoff/timeout/limits)
-

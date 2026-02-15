@@ -4,7 +4,7 @@
 # Workflow: ci-pr.yml
 # Trigger: Push to main/develop, Pull Requests to main/develop
 # Purpose: Lint, Test, Security Scan, Docker Build Verification
-# 
+#
 # Reference: ADR-0107 CI/CD Pipeline Strategy
 # Created: 2026-02-01
 # =============================================================================
@@ -16,10 +16,10 @@ on:
     branches:
       - main
       - develop
-      - 'feature/**'
-      - 'feat/**'
-      - 'fix/**'
-      - 'hotfix/**'
+      - "feature/**"
+      - "feat/**"
+      - "fix/**"
+      - "hotfix/**"
   pull_request:
     branches:
       - main
@@ -30,9 +30,9 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: '25.6.1'
-  PNPM_VERSION: '10.28.2'
-  PYTHON_VERSION: '3.14.3'
+  NODE_VERSION: "25.6.1"
+  PNPM_VERSION: "10.28.2"
+  PYTHON_VERSION: "3.14.3"
 
 jobs:
   # ===========================================================================
@@ -55,7 +55,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
+          cache: "pnpm"
 
       - name: 📥 Install dependencies
         run: pnpm install --frozen-lockfile
@@ -113,7 +113,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
+          cache: "pnpm"
 
       - name: 📥 Install dependencies
         run: pnpm install --frozen-lockfile
@@ -243,7 +243,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
+          cache: "pnpm"
 
       - name: 📥 Install dependencies
         run: pnpm install --frozen-lockfile
@@ -271,19 +271,19 @@ jobs:
       - name: 🔒 Run Trivy vulnerability scanner (filesystem)
         uses: aquasecurity/trivy-action@0.34.0
         with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          severity: 'CRITICAL,HIGH'
-          exit-code: '1'
+          scan-type: "fs"
+          scan-ref: "."
+          severity: "CRITICAL,HIGH"
+          exit-code: "1"
           ignore-unfixed: true
-          format: 'sarif'
-          output: 'trivy-results.sarif'
+          format: "sarif"
+          output: "trivy-results.sarif"
 
       - name: 📤 Upload Trivy scan results
         uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
-          sarif_file: 'trivy-results.sarif'
+          sarif_file: "trivy-results.sarif"
 
       - name: 🔍 Audit npm dependencies
         run: pnpm audit --audit-level=high

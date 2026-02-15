@@ -9,12 +9,12 @@
 
 ## SUMAR TASKURI
 
-| Task ID | Denumire | Tip Test |
-| ------- | -------- | -------- |
-| F0.1.1.T001 | Docker Engine Install | Infra Validation |
-| F0.1.1.T002 | daemon.json Config | Infra Validation |
-| F0.1.1.T003 | Directory Structure | Infra Validation |
-| F0.1.2.T001 | Docker Networks | Infra Validation |
+| Task ID     | Denumire                | Tip Test          |
+| ----------- | ----------------------- | ----------------- |
+| F0.1.1.T001 | Docker Engine Install   | Infra Validation  |
+| F0.1.1.T002 | daemon.json Config      | Infra Validation  |
+| F0.1.1.T003 | Directory Structure     | Infra Validation  |
+| F0.1.2.T001 | Docker Networks         | Infra Validation  |
 | F0.1.2.T002 | docker-compose.yml Base | Config Validation |
 
 ---
@@ -30,13 +30,13 @@
 # tests/infra/f01-docker-engine.test.sh
 
 describe "Docker Engine Installation" {
-  
+
   it "should have Docker Engine 29.x installed" {
     version=$(docker version --format '{{.Server.Version}}')
     [[ "$version" =~ ^29\. ]] || [[ "$version" =~ ^28\. ]]
     assert_success
   }
-  
+
   it "should have Docker Compose v2.40+ installed" {
     version=$(docker compose version --short)
     major=$(echo "$version" | cut -d. -f1)
@@ -44,12 +44,12 @@ describe "Docker Engine Installation" {
     [[ $major -ge 2 && $minor -ge 40 ]]
     assert_success
   }
-  
+
   it "should have Docker service running" {
     systemctl is-active docker
     assert_success
   }
-  
+
   it "should be able to run containers" {
     docker run --rm hello-world
     assert_success
@@ -80,17 +80,17 @@ describe "Docker Daemon Configuration" {
     docker info --format '{{.Driver}}' | grep -q "overlay2"
     assert_success
   }
-  
+
   it "should have live-restore enabled" {
     docker info --format '{{.LiveRestoreEnabled}}' | grep -q "true"
     assert_success
   }
-  
+
   it "should have log rotation configured" {
     cat /etc/docker/daemon.json | jq -e '.["log-opts"]["max-size"] == "50m"'
     assert_success
   }
-  
+
   it "should use correct address pool" {
     cat /etc/docker/daemon.json | jq -e '.["default-address-pools"][0].base == "172.29.0.0/16"'
     assert_success
@@ -116,41 +116,41 @@ describe "Docker Daemon Configuration" {
 # tests/infra/f01-directory-structure.test.sh
 
 describe "Project Directory Structure" {
-  
+
   BASE="/var/www/CerniqAPP"
-  
+
   it "should have apps directory with api and web" {
     [[ -d "$BASE/apps/api" && -d "$BASE/apps/web" ]]
     assert_success
   }
-  
+
   it "should have packages directory with db and shared-types" {
     [[ -d "$BASE/packages/db" && -d "$BASE/packages/shared-types" ]]
     assert_success
   }
-  
+
   it "should have workers directory" {
     [[ -d "$BASE/workers" ]]
     assert_success
   }
-  
+
   it "should have infra/docker directory" {
     [[ -d "$BASE/infra/docker" ]]
     assert_success
   }
-  
+
   it "should have docs/adr directory" {
     [[ -d "$BASE/docs/adr" ]]
     assert_success
   }
-  
+
   it "should have secrets directory with proper permissions" {
     [[ -d "$BASE/secrets" ]]
     perms=$(stat -c %a "$BASE/secrets")
     [[ "$perms" == "700" ]]
     assert_success
   }
-  
+
   it "should have tests directory structure" {
     [[ -d "$BASE/tests/unit" && -d "$BASE/tests/integration" && -d "$BASE/tests/e2e" ]]
     assert_success
@@ -184,31 +184,31 @@ describe "Docker Networks Configuration" {
     docker network inspect cerniq_public --format '{{.Name}}'
     assert_success
   }
-  
+
   it "should have cerniq_backend as internal network" {
     internal=$(docker network inspect cerniq_backend --format '{{.Internal}}')
     [[ "$internal" == "false" ]]
     assert_success
   }
-  
+
   it "should have cerniq_data as internal network" {
     internal=$(docker network inspect cerniq_data --format '{{.Internal}}')
     [[ "$internal" == "false" ]]
     assert_success
   }
-  
+
   it "should have correct subnet for cerniq_public" {
     subnet=$(docker network inspect cerniq_public --format '{{range .IPAM.Config}}{{.Subnet}}{{end}}')
     [[ "$subnet" == "172.29.10.0/24" ]]
     assert_success
   }
-  
+
   it "should have correct subnet for cerniq_backend" {
     subnet=$(docker network inspect cerniq_backend --format '{{range .IPAM.Config}}{{.Subnet}}{{end}}')
     [[ "$subnet" == "172.29.20.0/24" ]]
     assert_success
   }
-  
+
   it "should have correct subnet for cerniq_data" {
     subnet=$(docker network inspect cerniq_data --format '{{range .IPAM.Config}}{{.Subnet}}{{end}}')
     [[ "$subnet" == "172.29.30.0/24" ]]
@@ -237,22 +237,22 @@ describe "Docker Networks Configuration" {
 describe "Docker Compose Base Configuration" {
 
   COMPOSE_FILE="/var/www/CerniqAPP/infra/docker/docker-compose.yml"
-  
+
   it "should be valid YAML" {
     docker compose -f "$COMPOSE_FILE" config > /dev/null
     assert_success
   }
-  
+
   it "should define project name 'cerniq'" {
     grep -q "^name: cerniq" "$COMPOSE_FILE"
     assert_success
   }
-  
+
   it "should reference external networks" {
     grep -A1 "cerniq_public:" "$COMPOSE_FILE" | grep -q "external: true"
     assert_success
   }
-  
+
   it "should not define persistent DB volumes in compose" {
     # In noua arhitectura, PostgreSQL/Redis nu sunt locale in stack-ul Cerniq,
     # deci nu exista volumes postgres_data/redis_data/traefik_certs.
@@ -298,8 +298,8 @@ name: Infrastructure Validation
 on:
   push:
     paths:
-      - 'infra/**'
-      - 'docker-compose*.yml'
+      - "infra/**"
+      - "docker-compose*.yml"
 
 jobs:
   validate-f01:

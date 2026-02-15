@@ -70,7 +70,6 @@ x-logging: &default-logging
 # ============================================================================
 
 services:
-
   # ==========================================================================
   # PgBouncer 1.25 - Connection Pooling
   # ==========================================================================
@@ -110,7 +109,13 @@ services:
     # NO ports exposed - internal network only (security)
     healthcheck:
       # pg_isready exit codes: 0=accepting, 3=no attempt (still OK for PgBouncer)
-      test: ["CMD", "sh", "-c", "pg_isready -h localhost -p 64033 >/dev/null 2>&1; rc=$$?; [ \"$$rc\" = \"0\" ] || [ \"$$rc\" = \"3\" ]"]
+      test:
+        [
+          "CMD",
+          "sh",
+          "-c",
+          'pg_isready -h localhost -p 64033 >/dev/null 2>&1; rc=$$?; [ "$$rc" = "0" ] || [ "$$rc" = "3" ]',
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -119,10 +124,10 @@ services:
       resources:
         limits:
           memory: 512M
-          cpus: '0.5'
+          cpus: "0.5"
         reservations:
           memory: 256M
-          cpus: '0.25'
+          cpus: "0.25"
     labels:
       <<: *common-labels
       com.cerniq.service: "pgbouncer"
@@ -177,10 +182,10 @@ services:
       resources:
         limits:
           memory: 128M
-          cpus: '0.25'
+          cpus: "0.25"
         reservations:
           memory: 64M
-          cpus: '0.1'
+          cpus: "0.1"
     labels:
       <<: *common-labels
       com.cerniq.service: "openbao-agent-api"
@@ -234,10 +239,10 @@ services:
       resources:
         limits:
           memory: 128M
-          cpus: '0.25'
+          cpus: "0.25"
         reservations:
           memory: 64M
-          cpus: '0.1'
+          cpus: "0.1"
     labels:
       <<: *common-labels
       com.cerniq.service: "openbao-agent-workers"
@@ -283,10 +288,10 @@ services:
       resources:
         limits:
           memory: 128M
-          cpus: '0.25'
+          cpus: "0.25"
         reservations:
           memory: 64M
-          cpus: '0.1'
+          cpus: "0.1"
     labels:
       <<: *common-labels
       com.cerniq.service: "openbao-agent-infra"

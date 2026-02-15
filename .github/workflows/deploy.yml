@@ -6,7 +6,7 @@
 #   - Push to any branch except main → Staging
 #   - Push to main → Production
 #   - Manual dispatch
-# 
+#
 # Features:
 #   - Full configuration sync with correct server paths
 #   - Automated OpenBao initialization and setup
@@ -39,14 +39,14 @@ on:
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Target environment'
+        description: "Target environment"
         required: true
         type: choice
         options:
           - staging
           - production
       version:
-        description: 'Version to deploy (e.g., v1.0.0)'
+        description: "Version to deploy (e.g., v1.0.0)"
         required: true
         type: string
 
@@ -203,10 +203,10 @@ jobs:
       - name: 🔒 Scan image for vulnerabilities
         uses: aquasecurity/trivy-action@0.34.0
         with:
-          image-ref: '${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.app.name }}:${{ needs.setup.outputs.version }}'
-          format: 'table'
-          exit-code: '1'
-          severity: 'CRITICAL,HIGH'
+          image-ref: "${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.app.name }}:${{ needs.setup.outputs.version }}"
+          format: "table"
+          exit-code: "1"
+          severity: "CRITICAL,HIGH"
           ignore-unfixed: true
 
   # ===========================================================================
@@ -249,34 +249,34 @@ jobs:
           SSH_CMD="ssh -i ~/.ssh/deploy_key ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}"
           SCP_CMD="scp -i ~/.ssh/deploy_key"
           HOST="${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}"
-          
+
           echo "📁 Creating COMPLETE server directory structure..."
           $SSH_CMD << 'ENDSSH'
             sudo mkdir -p /opt/cerniq/{config/{openbao/{policies,templates},vector,otel,fail2ban,cron,logrotate,docker},scripts,secrets,backups}
             sudo chown -R $(whoami):$(whoami) /opt/cerniq
           ENDSSH
-          
+
           echo "📄 Syncing docker-compose files..."
           $SCP_CMD infra/docker/docker-compose.yml ${HOST}:/opt/cerniq/
           $SCP_CMD infra/docker/docker-compose.prod.yml ${HOST}:/opt/cerniq/
           $SCP_CMD infra/config/vector/vector.toml ${HOST}:/opt/cerniq/config/vector.toml 2>/dev/null || true
           $SCP_CMD infra/config/otel/otel-collector.yaml ${HOST}:/opt/cerniq/config/otel-collector.yaml 2>/dev/null || true
-          
+
           echo "📄 Syncing OpenBao config (CORRECT PATH)..."
           $SCP_CMD infra/config/openbao/*.hcl ${HOST}:/opt/cerniq/config/openbao/
           $SCP_CMD infra/config/openbao/policies/*.hcl ${HOST}:/opt/cerniq/config/openbao/policies/
           $SCP_CMD infra/config/openbao/templates/*.tpl ${HOST}:/opt/cerniq/config/openbao/templates/
-          
+
           echo "📄 Syncing security configs (fail2ban, cron, logrotate)..."
           $SCP_CMD infra/config/fail2ban/jail.local ${HOST}:/opt/cerniq/config/fail2ban/
           $SCP_CMD infra/config/cron/cerniq-backup ${HOST}:/opt/cerniq/config/cron/
           $SCP_CMD infra/config/logrotate/cerniq-backup ${HOST}:/opt/cerniq/config/logrotate/
           $SCP_CMD infra/config/docker/daemon.json ${HOST}:/opt/cerniq/config/docker/ 2>/dev/null || true
-          
+
           echo "📄 Syncing ALL scripts..."
           $SCP_CMD infra/scripts/*.sh ${HOST}:/opt/cerniq/scripts/
           $SSH_CMD "chmod +x /opt/cerniq/scripts/*.sh"
-          
+
           echo "✅ COMPLETE configuration sync done"
 
       - name: 🔁 Sync orchestrator Traefik route
@@ -618,34 +618,34 @@ jobs:
           SSH_CMD="ssh -i ~/.ssh/deploy_key ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}"
           SCP_CMD="scp -i ~/.ssh/deploy_key"
           HOST="${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}"
-          
+
           echo "📁 Creating COMPLETE server directory structure..."
           $SSH_CMD << 'ENDSSH'
             sudo mkdir -p /opt/cerniq/{config/{openbao/{policies,templates},vector,otel,fail2ban,cron,logrotate,docker},scripts,secrets,backups}
             sudo chown -R $(whoami):$(whoami) /opt/cerniq
           ENDSSH
-          
+
           echo "📄 Syncing docker-compose files..."
           $SCP_CMD infra/docker/docker-compose.yml ${HOST}:/opt/cerniq/
           $SCP_CMD infra/docker/docker-compose.prod.yml ${HOST}:/opt/cerniq/
           $SCP_CMD infra/config/vector/vector.toml ${HOST}:/opt/cerniq/config/vector.toml 2>/dev/null || true
           $SCP_CMD infra/config/otel/otel-collector.yaml ${HOST}:/opt/cerniq/config/otel-collector.yaml 2>/dev/null || true
-          
+
           echo "📄 Syncing OpenBao config (CORRECT PATH)..."
           $SCP_CMD infra/config/openbao/*.hcl ${HOST}:/opt/cerniq/config/openbao/
           $SCP_CMD infra/config/openbao/policies/*.hcl ${HOST}:/opt/cerniq/config/openbao/policies/
           $SCP_CMD infra/config/openbao/templates/*.tpl ${HOST}:/opt/cerniq/config/openbao/templates/
-          
+
           echo "📄 Syncing security configs (fail2ban, cron, logrotate)..."
           $SCP_CMD infra/config/fail2ban/jail.local ${HOST}:/opt/cerniq/config/fail2ban/
           $SCP_CMD infra/config/cron/cerniq-backup ${HOST}:/opt/cerniq/config/cron/
           $SCP_CMD infra/config/logrotate/cerniq-backup ${HOST}:/opt/cerniq/config/logrotate/
           $SCP_CMD infra/config/docker/daemon.json ${HOST}:/opt/cerniq/config/docker/ 2>/dev/null || true
-          
+
           echo "📄 Syncing ALL scripts..."
           $SCP_CMD infra/scripts/*.sh ${HOST}:/opt/cerniq/scripts/
           $SSH_CMD "chmod +x /opt/cerniq/scripts/*.sh"
-          
+
           echo "✅ COMPLETE configuration sync done"
 
       - name: 🔁 Sync orchestrator Traefik route

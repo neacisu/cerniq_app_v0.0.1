@@ -6,13 +6,13 @@
 
 **Decision:** **5 Guardrails obligatorii** rulează după fiecare generare AI:
 
-| Guardrail | Verificare | Acțiune pe Fail |
-|-----------|-----------|-----------------|
-| PRICE_GUARD | preț_oferit >= min_price din DB | Regenerare cu preț corect |
-| STOCK_GUARD | stoc > 0 pentru produse menționate | Regenerare cu "indisponibil" |
-| DISCOUNT_GUARD | discount <= max_discount_aprobat | Regenerare cu discount maxim |
-| SKU_GUARD | toate SKU-urile există în catalog | Regenerare fără SKU false |
-| FISCAL_GUARD | CUI valid, adresă completă | Block și request date corecte |
+| Guardrail      | Verificare                         | Acțiune pe Fail               |
+| -------------- | ---------------------------------- | ----------------------------- |
+| PRICE_GUARD    | preț_oferit >= min_price din DB    | Regenerare cu preț corect     |
+| STOCK_GUARD    | stoc > 0 pentru produse menționate | Regenerare cu "indisponibil"  |
+| DISCOUNT_GUARD | discount <= max_discount_aprobat   | Regenerare cu discount maxim  |
+| SKU_GUARD      | toate SKU-urile există în catalog  | Regenerare fără SKU false     |
+| FISCAL_GUARD   | CUI valid, adresă completă         | Block și request date corecte |
 
 **Consequences:**
 

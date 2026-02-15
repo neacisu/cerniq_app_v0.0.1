@@ -38,4 +38,3 @@ groups:
         annotations:
           summary: "Cerniq memory low (<10% available)"
           description: "Memory available is below 10% on {{ $labels.instance }}"
-

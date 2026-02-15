@@ -7,4 +7,3 @@ Pentru infrastructura noua (Proxmox/LXC + orchestrator central; OpenBao centrali
 - `docs/infrastructure/CI-CD-AUDIT-2026-02.md`
 
 Istoricul complet al auditului din 2026-02-04 ramane disponibil in git history.
-

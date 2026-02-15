@@ -13,9 +13,19 @@
 
 ```typescript
 const LLM_CONFIG = {
-  primary: { provider: 'xai', model: 'grok-4', maxTokens: 4096, temperature: 0.3 },
-  fallback: { provider: 'openai', model: 'gpt-4o', maxTokens: 4096, temperature: 0.3 },
-  routing: { maxRetries: 2, fallbackOnError: true, fallbackOnRateLimit: true }
+  primary: {
+    provider: "xai",
+    model: "grok-4",
+    maxTokens: 4096,
+    temperature: 0.3,
+  },
+  fallback: {
+    provider: "openai",
+    model: "gpt-4o",
+    maxTokens: 4096,
+    temperature: 0.3,
+  },
+  routing: { maxRetries: 2, fallbackOnError: true, fallbackOnRateLimit: true },
 };
 ```
 

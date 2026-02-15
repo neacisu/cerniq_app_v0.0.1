@@ -24,25 +24,25 @@ Acest document definește strategia de gestionare a cookie-urilor și mecanismul
 
 ### 2.1 Clasificare
 
-| Categorie | Descriere | Consent Necesar | Legal Basis |
-|-----------|-----------|-----------------|-------------|
-| **Strictly Necessary** | Esențiale pentru funcționarea site-ului | ❌ NU | Art. 6(1)(b) Contract |
-| **Functionality** | Preferințe utilizator, setări UI | ✅ DA | Art. 6(1)(a) Consent |
-| **Analytics** | Măsurare performanță, comportament agregat | ✅ DA | Art. 6(1)(a) Consent |
-| **Marketing** | Retargeting, personalizare reclame | ✅ DA | Art. 6(1)(a) Consent |
+| Categorie              | Descriere                                  | Consent Necesar | Legal Basis           |
+| ---------------------- | ------------------------------------------ | --------------- | --------------------- |
+| **Strictly Necessary** | Esențiale pentru funcționarea site-ului    | ❌ NU           | Art. 6(1)(b) Contract |
+| **Functionality**      | Preferințe utilizator, setări UI           | ✅ DA           | Art. 6(1)(a) Consent  |
+| **Analytics**          | Măsurare performanță, comportament agregat | ✅ DA           | Art. 6(1)(a) Consent  |
+| **Marketing**          | Retargeting, personalizare reclame         | ✅ DA           | Art. 6(1)(a) Consent  |
 
 ### 2.2 Inventar Cookies
 
-| Cookie Name | Categorie | Provider | Scop | Durată | First/Third Party |
-|-------------|-----------|----------|------|--------|-------------------|
-| `cerniq_session` | Necessary | Cerniq.app | Session management | Session | First |
-| `cerniq_auth` | Necessary | Cerniq.app | JWT authentication | 7 zile | First |
-| `cerniq_csrf` | Necessary | Cerniq.app | CSRF protection | Session | First |
-| `cerniq_consent` | Necessary | Cerniq.app | Consent preferences storage | 12 luni | First |
-| `cerniq_locale` | Functionality | Cerniq.app | Preferință limbă | 1 an | First |
-| `cerniq_theme` | Functionality | Cerniq.app | Dark/Light mode | 1 an | First |
-| `cerniq_sidebar` | Functionality | Cerniq.app | Sidebar state | 1 an | First |
-| _(rezervat)_ | Analytics | Observability (self-hosted) | Telemetrie RUM (daca se activeaza) | - | First |
+| Cookie Name      | Categorie     | Provider                    | Scop                               | Durată  | First/Third Party |
+| ---------------- | ------------- | --------------------------- | ---------------------------------- | ------- | ----------------- |
+| `cerniq_session` | Necessary     | Cerniq.app                  | Session management                 | Session | First             |
+| `cerniq_auth`    | Necessary     | Cerniq.app                  | JWT authentication                 | 7 zile  | First             |
+| `cerniq_csrf`    | Necessary     | Cerniq.app                  | CSRF protection                    | Session | First             |
+| `cerniq_consent` | Necessary     | Cerniq.app                  | Consent preferences storage        | 12 luni | First             |
+| `cerniq_locale`  | Functionality | Cerniq.app                  | Preferință limbă                   | 1 an    | First             |
+| `cerniq_theme`   | Functionality | Cerniq.app                  | Dark/Light mode                    | 1 an    | First             |
+| `cerniq_sidebar` | Functionality | Cerniq.app                  | Sidebar state                      | 1 an    | First             |
+| _(rezervat)_     | Analytics     | Observability (self-hosted) | Telemetrie RUM (daca se activeaza) | -       | First             |
 
 > **Notă:** În prezent, Cerniq.app NU utilizează cookies de marketing/retargeting. Dacă se vor adăuga în viitor, acest document va fi actualizat.
 
@@ -52,14 +52,14 @@ Acest document definește strategia de gestionare a cookie-urilor și mecanismul
 
 ### 3.1 Principii EDPB
 
-| Principiu | Implementare |
-|-----------|--------------|
-| **Prior Consent** | Cookies non-esențiale blocate până la obținerea consimțământului |
-| **Granular Choice** | Utilizatorul poate accepta/refuza pe categorie |
-| **Equal Options** | Butoanele "Accept" și "Reject" au aceeași vizibilitate |
-| **Informed Consent** | Scop, durată, terți afișați clar |
-| **Easy Withdrawal** | Posibilitate de retragere la fel de ușoară ca acordarea |
-| **No Cookie Walls** | Accesul la serviciu nu este condiționat de acceptarea cookies non-esențiale |
+| Principiu            | Implementare                                                                |
+| -------------------- | --------------------------------------------------------------------------- |
+| **Prior Consent**    | Cookies non-esențiale blocate până la obținerea consimțământului            |
+| **Granular Choice**  | Utilizatorul poate accepta/refuza pe categorie                              |
+| **Equal Options**    | Butoanele "Accept" și "Reject" au aceeași vizibilitate                      |
+| **Informed Consent** | Scop, durată, terți afișați clar                                            |
+| **Easy Withdrawal**  | Posibilitate de retragere la fel de ușoară ca acordarea                     |
+| **No Cookie Walls**  | Accesul la serviciu nu este condiționat de acceptarea cookies non-esențiale |
 
 ### 3.2 Specificații UI Banner
 
@@ -109,13 +109,13 @@ Acest document definește strategia de gestionare a cookie-urilor și mecanismul
 
 ### 4.1 Stack Tehnologic
 
-| Component | Tehnologie | Responsabilitate |
-|-----------|------------|------------------|
-| **Banner UI** | React component custom (`apps/web/`) | Frontend |
-| **State Management** | React Context + localStorage | Frontend |
-| **Server-side Control** | Fastify middleware | Backend |
-| **Consent Storage** | PostgreSQL `user_consent_logs` | Backend |
-| **Cookie Control** | HTTP headers `Set-Cookie` | Backend |
+| Component               | Tehnologie                           | Responsabilitate |
+| ----------------------- | ------------------------------------ | ---------------- |
+| **Banner UI**           | React component custom (`apps/web/`) | Frontend         |
+| **State Management**    | React Context + localStorage         | Frontend         |
+| **Server-side Control** | Fastify middleware                   | Backend          |
+| **Consent Storage**     | PostgreSQL `user_consent_logs`       | Backend          |
+| **Cookie Control**      | HTTP headers `Set-Cookie`            | Backend          |
 
 ### 4.2 Componente React
 
@@ -136,10 +136,10 @@ apps/web/src/
 
 ### 4.3 API Endpoints
 
-| Endpoint | Method | Descriere |
-|----------|--------|-----------|
-| `POST /api/v1/consent` | POST | Salvare preferințe consent |
-| `GET /api/v1/consent` | GET | Retrieve preferințe curente |
+| Endpoint                 | Method | Descriere                    |
+| ------------------------ | ------ | ---------------------------- |
+| `POST /api/v1/consent`   | POST   | Salvare preferințe consent   |
+| `GET /api/v1/consent`    | GET    | Retrieve preferințe curente  |
 | `DELETE /api/v1/consent` | DELETE | Retragere consent (ștergere) |
 
 ### 4.4 Request/Response Schema
@@ -148,12 +148,12 @@ apps/web/src/
 // POST /api/v1/consent
 interface ConsentRequest {
   categories: {
-    necessary: true;      // Always true, cannot be changed
+    necessary: true; // Always true, cannot be changed
     functionality: boolean;
     analytics: boolean;
     marketing: boolean;
   };
-  bannerVersion: string;  // e.g., "1.0.0"
+  bannerVersion: string; // e.g., "1.0.0"
 }
 
 // Response
@@ -163,7 +163,7 @@ interface ConsentResponse {
     consentId: string;
     categories: ConsentCategories;
     consentGivenAt: string; // ISO timestamp
-    expiresAt: string;      // ISO timestamp
+    expiresAt: string; // ISO timestamp
   };
 }
 ```
@@ -178,33 +178,33 @@ interface ConsentResponse {
 CREATE TABLE user_consent_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL REFERENCES tenants(id),
-    
+
     -- Identificare utilizator
     user_id UUID REFERENCES users(id),           -- NULL pentru anonimi
     user_identifier TEXT NOT NULL,               -- Hashed IP pentru anonimi
-    
+
     -- Consent details
     consent_version INTEGER NOT NULL DEFAULT 1,
     consent_categories JSONB NOT NULL,           -- {"necessary": true, "analytics": false, ...}
     banner_version TEXT NOT NULL,                -- "1.0.0"
-    
+
     -- Timestamps
     consent_given_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     consent_expires_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '12 months'),
     consent_withdrawn_at TIMESTAMPTZ,
-    
+
     -- Audit
     consent_ip_hash TEXT NOT NULL,               -- SHA256(IP + salt)
     user_agent TEXT,
     consent_method TEXT NOT NULL DEFAULT 'banner', -- 'banner', 'settings', 'api'
-    
+
     -- Metadata
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    
+
     -- Constraints
     CONSTRAINT valid_categories CHECK (
-        consent_categories ? 'necessary' AND 
+        consent_categories ? 'necessary' AND
         (consent_categories->>'necessary')::boolean = true
     )
 );
@@ -282,18 +282,18 @@ Utilizator accesează site
 
 ### 6.2 Retragere Consent
 
-| Metodă | Implementare |
-|--------|--------------|
+| Metodă          | Implementare                               |
+| --------------- | ------------------------------------------ |
 | **Link footer** | "Setări Cookies" vizibil pe toate paginile |
-| **Setări cont** | Secțiune dedicată în profil utilizator |
-| **Email DPO** | dpo@cerniq.app pentru cereri manuale |
+| **Setări cont** | Secțiune dedicată în profil utilizator     |
+| **Email DPO**   | dpo@cerniq.app pentru cereri manuale       |
 
 ### 6.3 Renewal Policy
 
-| Trigger | Acțiune |
-|---------|---------|
-| **12 luni** de la acordare | Re-prompt pentru reînnoire |
-| **Modificare categorii** | Re-prompt cu noile opțiuni |
+| Trigger                     | Acțiune                            |
+| --------------------------- | ---------------------------------- |
+| **12 luni** de la acordare  | Re-prompt pentru reînnoire         |
+| **Modificare categorii**    | Re-prompt cu noile opțiuni         |
 | **Upgrade banner versiune** | Re-prompt dacă schimbări materiale |
 
 ---
@@ -336,12 +336,12 @@ Toate acțiunile de consent sunt loggate în `user_consent_logs` pentru audit GD
 
 ## 9. Documente Conexe
 
-| Document | Descriere |
-|----------|-----------|
-| [gdpr-compliance.md](./gdpr-compliance.md) | Politică GDPR generală |
-| [gdpr-dpia.md](./gdpr-dpia.md) | Data Protection Impact Assessment |
-| [gdpr-compliance.md](./gdpr-compliance.md) | Privacy Policy (GDPR Compliance) |
-| [schema-database.md](../specifications/schema-database.md) | Schema completă DB |
+| Document                                                   | Descriere                         |
+| ---------------------------------------------------------- | --------------------------------- |
+| [gdpr-compliance.md](./gdpr-compliance.md)                 | Politică GDPR generală            |
+| [gdpr-dpia.md](./gdpr-dpia.md)                             | Data Protection Impact Assessment |
+| [gdpr-compliance.md](./gdpr-compliance.md)                 | Privacy Policy (GDPR Compliance)  |
+| [schema-database.md](../specifications/schema-database.md) | Schema completă DB                |
 
 ---
 

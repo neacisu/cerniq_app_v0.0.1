@@ -36,6 +36,7 @@ sudo -u postgres psql -d cerniq -c "SELECT 1;"
 ```
 
 Backup/restore:
+
 - `docs/runbooks/database-recovery.md`
 - `infra/scripts/ct107_pg_dump_cerniq.sh`
 
@@ -48,4 +49,3 @@ Runbook: `docs/runbooks/redis-failover.md`
 - Grafana: `https://grafana.neanelu.ro`
 - Loki: query pe labels `project="cerniq"` + `environment`
 - Tempo: traces cand aplicatia este instrumentata
-

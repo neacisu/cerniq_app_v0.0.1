@@ -1,5 +1,7 @@
 # CERNIQ.APP — ETAPA 5: WORKERS C-D
+
 ## Geospatial Analysis & Graph Analysis
+
 ### Versiunea 1.0 | 19 Ianuarie 2026
 
 ---
@@ -18,24 +20,31 @@ interface ProximityCalculatePayload {
 }
 
 export const proximityCalculateWorker = new Worker<ProximityCalculatePayload>(
-  'geospatial',
+  "geospatial",
   async (job: Job<ProximityCalculatePayload>) => {
-    const { tenantId, anchorClientId, radiusKm = 10, maxResults = 50 } = job.data;
-    
-    job.log(`Calculating proximity for anchor ${anchorClientId} within ${radiusKm}km`);
-    
+    const {
+      tenantId,
+      anchorClientId,
+      radiusKm = 10,
+      maxResults = 50,
+    } = job.data;
+
+    job.log(
+      `Calculating proximity for anchor ${anchorClientId} within ${radiusKm}km`,
+    );
+
     // 1. Get anchor client with location
     const anchor = await db.query.goldClients.findFirst({
       where: and(
         eq(goldClients.id, anchorClientId),
-        isNotNull(goldClients.locationGeography)
-      )
+        isNotNull(goldClients.locationGeography),
+      ),
     });
-    
+
     if (!anchor || !anchor.locationGeography) {
       throw new Error(`Anchor client ${anchorClientId} has no location`);
     }
-    
+
     // 2. PostGIS KNN query for nearby prospects
     const nearbyProspects = await db.execute(sql`
       SELECT 
@@ -66,29 +75,37 @@ export const proximityCalculateWorker = new Worker<ProximityCalculatePayload>(
       ORDER BY prospect.location_geography <-> ${anchor.locationGeography}::geography
       LIMIT ${maxResults}
     `);
-    
+
     // 3. Get anchor quality metrics
     const anchorState = await db.query.goldNurturingState.findFirst({
-      where: eq(goldNurturingState.clientId, anchorClientId)
+      where: eq(goldNurturingState.clientId, anchorClientId),
     });
-    
+
     // 4. Calculate proximity scores
     const proximityScores: ProximityScore[] = [];
-    
+
     for (const prospect of nearbyProspects) {
       // Score = f(distance, anchor quality, shared attributes)
-      const distanceScore = Math.max(0, 100 - (prospect.distance_km / radiusKm) * 100);
-      const anchorQuality = anchorState?.npsScore ? anchorState.npsScore * 10 : 50;
-      
+      const distanceScore = Math.max(
+        0,
+        100 - (prospect.distance_km / radiusKm) * 100,
+      );
+      const anchorQuality = anchorState?.npsScore
+        ? anchorState.npsScore * 10
+        : 50;
+
       // Check shared attributes
       const sharedAttributes: string[] = [];
-      if (prospect.county === anchor.county) sharedAttributes.push('SAME_COUNTY');
-      if (prospect.main_crop === anchor.mainCrop) sharedAttributes.push('SAME_CROP');
-      
+      if (prospect.county === anchor.county)
+        sharedAttributes.push("SAME_COUNTY");
+      if (prospect.main_crop === anchor.mainCrop)
+        sharedAttributes.push("SAME_CROP");
+
       const sharedBonus = sharedAttributes.length * 10;
-      
-      const proximityScore = (distanceScore * 0.5 + anchorQuality * 0.3 + sharedBonus * 0.2);
-      
+
+      const proximityScore =
+        distanceScore * 0.5 + anchorQuality * 0.3 + sharedBonus * 0.2;
+
       proximityScores.push({
         tenantId,
         anchorClientId,
@@ -99,35 +116,43 @@ export const proximityCalculateWorker = new Worker<ProximityCalculatePayload>(
         proximityScore,
         sharedAttributes,
         anchorNpsScore: anchorState?.npsScore,
-        anchorIsAdvocate: anchorState?.isAdvocate
+        anchorIsAdvocate: anchorState?.isAdvocate,
       });
     }
-    
+
     // 5. Bulk insert proximity scores
     if (proximityScores.length > 0) {
-      await db.insert(goldProximityScores).values(proximityScores)
+      await db
+        .insert(goldProximityScores)
+        .values(proximityScores)
         .onConflictDoUpdate({
-          target: [goldProximityScores.anchorClientId, goldProximityScores.prospectId],
+          target: [
+            goldProximityScores.anchorClientId,
+            goldProximityScores.prospectId,
+          ],
           set: {
             proximityScore: sql`EXCLUDED.proximity_score`,
-            calculatedAt: new Date()
-          }
+            calculatedAt: new Date(),
+          },
         });
     }
-    
+
     job.log(`Found ${proximityScores.length} prospects within ${radiusKm}km`);
-    
-    return { 
-      anchorClientId, 
+
+    return {
+      anchorClientId,
       prospectsFound: proximityScores.length,
-      avgDistance: proximityScores.reduce((s, p) => s + p.distanceMeters, 0) / proximityScores.length / 1000
+      avgDistance:
+        proximityScores.reduce((s, p) => s + p.distanceMeters, 0) /
+        proximityScores.length /
+        1000,
     };
   },
-  { 
-    connection: redisConnection, 
+  {
+    connection: redisConnection,
     concurrency: 5,
-    limiter: { max: 20, duration: 60000 }
-  }
+    limiter: { max: 20, duration: 60000 },
+  },
 );
 ```
 
@@ -143,17 +168,22 @@ interface NeighborIdentifyPayload {
 }
 
 export const neighborIdentifyWorker = new Worker<NeighborIdentifyPayload>(
-  'geospatial',
+  "geospatial",
   async (job: Job<NeighborIdentifyPayload>) => {
-    const { tenantId, clientId, maxNeighbors = 10, maxDistanceKm = 5 } = job.data;
-    
+    const {
+      tenantId,
+      clientId,
+      maxNeighbors = 10,
+      maxDistanceKm = 5,
+    } = job.data;
+
     // 1. Get client location
     const client = await db.query.goldClients.findFirst({
-      where: eq(goldClients.id, clientId)
+      where: eq(goldClients.id, clientId),
     });
-    
+
     if (!client?.locationGeography) return { neighborsFound: 0 };
-    
+
     // 2. Find other clients nearby (not prospects)
     const neighbors = await db.execute(sql`
       SELECT 
@@ -176,34 +206,39 @@ export const neighborIdentifyWorker = new Worker<NeighborIdentifyPayload>(
       ORDER BY neighbor.location_geography <-> ${client.locationGeography}::geography
       LIMIT ${maxNeighbors}
     `);
-    
+
     // 3. Create NEIGHBOR relationships
     for (const neighbor of neighbors) {
-      await db.insert(goldEntityRelationships)
+      await db
+        .insert(goldEntityRelationships)
         .values({
           tenantId,
-          sourceEntityType: 'CLIENT',
+          sourceEntityType: "CLIENT",
           sourceEntityId: clientId,
-          targetEntityType: 'CLIENT',
+          targetEntityType: "CLIENT",
           targetEntityId: neighbor.id,
-          relationType: 'NEIGHBOR',
-          strength: Math.max(10, 100 - (neighbor.distance_meters / (maxDistanceKm * 1000)) * 100),
+          relationType: "NEIGHBOR",
+          strength: Math.max(
+            10,
+            100 - (neighbor.distance_meters / (maxDistanceKm * 1000)) * 100,
+          ),
           confidenceScore: 95,
           bidirectional: true,
-          evidenceSource: 'PROXIMITY',
-          distanceMeters: neighbor.distance_meters
+          evidenceSource: "PROXIMITY",
+          distanceMeters: neighbor.distance_meters,
         })
         .onConflictDoNothing();
     }
-    
+
     // 4. Update neighbor count in nurturing state
-    await db.update(goldNurturingState)
+    await db
+      .update(goldNurturingState)
       .set({ neighborCount: neighbors.length, updatedAt: new Date() })
       .where(eq(goldNurturingState.clientId, clientId));
-    
+
     return { neighborsFound: neighbors.length };
   },
-  { connection: redisConnection, concurrency: 10 }
+  { connection: redisConnection, concurrency: 10 },
 );
 ```
 
@@ -215,17 +250,17 @@ interface TerritoryCalculatePayload {
   tenantId: string;
   clusterId?: string;
   associationId?: string;
-  entityType: 'CLUSTER' | 'OUAI' | 'COOPERATIVE';
+  entityType: "CLUSTER" | "OUAI" | "COOPERATIVE";
 }
 
 export const territoryCalculateWorker = new Worker<TerritoryCalculatePayload>(
-  'geospatial',
+  "geospatial",
   async (job: Job<TerritoryCalculatePayload>) => {
     const { tenantId, clusterId, associationId, entityType } = job.data;
-    
+
     const targetId = clusterId || associationId;
-    if (!targetId) throw new Error('No target ID provided');
-    
+    if (!targetId) throw new Error("No target ID provided");
+
     // 1. Get all members with locations
     const members = await db.execute(sql`
       SELECT 
@@ -239,12 +274,14 @@ export const territoryCalculateWorker = new Worker<TerritoryCalculatePayload>(
         AND ga.is_current = true
         AND gc.location_geography IS NOT NULL
     `);
-    
+
     if (members.length < 3) {
-      job.log(`Not enough members with locations (${members.length}) for territory calculation`);
-      return { calculated: false, reason: 'insufficient_members' };
+      job.log(
+        `Not enough members with locations (${members.length}) for territory calculation`,
+      );
+      return { calculated: false, reason: "insufficient_members" };
     }
-    
+
     // 2. Calculate Convex Hull
     const territory = await db.execute(sql`
       SELECT 
@@ -259,36 +296,38 @@ export const territoryCalculateWorker = new Worker<TerritoryCalculatePayload>(
         AND ga.is_current = true
         AND gc.location_geography IS NOT NULL
     `);
-    
+
     const result = territory[0];
-    
+
     // 3. Update cluster/association with territory
-    if (entityType === 'CLUSTER') {
-      await db.update(goldClusters)
+    if (entityType === "CLUSTER") {
+      await db
+        .update(goldClusters)
         .set({
           territoryPolygon: result.territory_polygon,
           centerPoint: result.center_point,
           radiusKm: Math.sqrt(result.area_km2 / Math.PI),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(goldClusters.id, targetId));
     } else {
-      await db.update(goldAssociations)
+      await db
+        .update(goldAssociations)
         .set({
           coveragePolygon: result.territory_polygon,
           locationPoint: result.center_point,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(goldAssociations.id, targetId));
     }
-    
-    return { 
-      calculated: true, 
+
+    return {
+      calculated: true,
       memberCount: members.length,
-      areaKm2: result.area_km2 
+      areaKm2: result.area_km2,
     };
   },
-  { connection: redisConnection, concurrency: 3 }
+  { connection: redisConnection, concurrency: 3 },
 );
 ```
 
@@ -302,54 +341,54 @@ export const territoryCalculateWorker = new Worker<TerritoryCalculatePayload>(
 // workers/graph/build-relationships.worker.ts
 interface BuildRelationshipsPayload {
   tenantId: string;
-  scope: 'FULL' | 'INCREMENTAL';
+  scope: "FULL" | "INCREMENTAL";
   sinceDate?: string;
 }
 
 export const buildRelationshipsWorker = new Worker<BuildRelationshipsPayload>(
-  'graph',
+  "graph",
   async (job: Job<BuildRelationshipsPayload>) => {
     const { tenantId, scope, sinceDate } = job.data;
-    
+
     job.log(`Building relationship graph (${scope}) for tenant ${tenantId}`);
-    
+
     // 1. Call Python service for graph building
-    const response = await pythonGraphService.post('/graph/build', {
+    const response = await pythonGraphService.post("/graph/build", {
       tenant_id: tenantId,
       scope,
       since_date: sinceDate,
       relationship_types: [
-        'NEIGHBOR',
-        'SAME_ASSOCIATION',
-        'SHARED_SHAREHOLDER',
-        'RECOMMENDED_BY',
-        'BEHAVIORAL_CLUSTER'
+        "NEIGHBOR",
+        "SAME_ASSOCIATION",
+        "SHARED_SHAREHOLDER",
+        "RECOMMENDED_BY",
+        "BEHAVIORAL_CLUSTER",
       ],
-      min_confidence: 0.5
+      min_confidence: 0.5,
     });
-    
+
     // 2. Graph statistics
     const stats = response.data;
-    
+
     job.log(`Graph built: ${stats.nodes} nodes, ${stats.edges} edges`);
-    
+
     // 3. Queue community detection
-    await graphQueue.add('community:detect:leiden', {
+    await graphQueue.add("community:detect:leiden", {
       tenantId,
-      graphId: stats.graph_id
+      graphId: stats.graph_id,
     });
-    
+
     return {
       nodes: stats.nodes,
       edges: stats.edges,
-      graphId: stats.graph_id
+      graphId: stats.graph_id,
     };
   },
-  { 
-    connection: redisConnection, 
+  {
+    connection: redisConnection,
     concurrency: 2,
-    timeout: 600000 // 10 min
-  }
+    timeout: 600000, // 10 min
+  },
 );
 ```
 
@@ -365,74 +404,85 @@ interface CommunityDetectPayload {
 }
 
 export const communityDetectLeidenWorker = new Worker<CommunityDetectPayload>(
-  'graph',
+  "graph",
   async (job: Job<CommunityDetectPayload>) => {
-    const { tenantId, graphId, minCommunitySize = 3, resolution = 1.0 } = job.data;
-    
+    const {
+      tenantId,
+      graphId,
+      minCommunitySize = 3,
+      resolution = 1.0,
+    } = job.data;
+
     // 1. Call Python Leiden algorithm
-    const response = await pythonGraphService.post('/graph/community/leiden', {
+    const response = await pythonGraphService.post("/graph/community/leiden", {
       tenant_id: tenantId,
       graph_id: graphId,
       min_community_size: minCommunitySize,
-      resolution
+      resolution,
     });
-    
+
     const communities = response.data.communities;
-    
+
     job.log(`Detected ${communities.length} communities`);
-    
+
     // 2. Save communities as implicit clusters
     for (const community of communities) {
       // Check if formal association exists
       const isFormal = await checkFormalAssociation(community.member_ids);
-      
+
       if (!isFormal && community.members.length >= minCommunitySize) {
         // Create implicit cluster
-        const cluster = await db.insert(goldClusters).values({
-          tenantId,
-          clusterName: `Cluster ${community.id}`,
-          clusterType: 'IMPLICIT_COOPERATIVE',
-          detectionMethod: 'LEIDEN',
-          detectionConfidence: community.modularity * 100,
-          memberCount: community.members.length,
-          cohesionScore: community.cohesion * 100,
-          modularityScore: community.modularity * 100,
-          kolClientId: community.central_node,
-          lastAnalyzedAt: new Date()
-        }).returning();
-        
+        const cluster = await db
+          .insert(goldClusters)
+          .values({
+            tenantId,
+            clusterName: `Cluster ${community.id}`,
+            clusterType: "IMPLICIT_COOPERATIVE",
+            detectionMethod: "LEIDEN",
+            detectionConfidence: community.modularity * 100,
+            memberCount: community.members.length,
+            cohesionScore: community.cohesion * 100,
+            modularityScore: community.modularity * 100,
+            kolClientId: community.central_node,
+            lastAnalyzedAt: new Date(),
+          })
+          .returning();
+
         // Add members
         for (const memberId of community.member_ids) {
           await db.insert(goldClusterMembers).values({
             tenantId,
             clusterId: cluster.id,
-            entityType: 'CLIENT',
+            entityType: "CLIENT",
             entityId: memberId,
-            membershipType: memberId === community.central_node ? 'CORE' : 'PERIPHERAL',
+            membershipType:
+              memberId === community.central_node ? "CORE" : "PERIPHERAL",
             centralityScore: community.centrality_scores[memberId],
-            isKol: memberId === community.central_node
+            isKol: memberId === community.central_node,
           });
         }
-        
+
         // Queue territory calculation
-        await geospatialQueue.add('geo:territory:calculate', {
+        await geospatialQueue.add("geo:territory:calculate", {
           tenantId,
           clusterId: cluster.id,
-          entityType: 'CLUSTER'
+          entityType: "CLUSTER",
         });
       }
     }
-    
-    return { 
+
+    return {
       communitiesDetected: communities.length,
-      clustersCreated: communities.filter(c => !c.is_formal && c.members.length >= minCommunitySize).length
+      clustersCreated: communities.filter(
+        (c) => !c.is_formal && c.members.length >= minCommunitySize,
+      ).length,
     };
   },
-  { 
-    connection: redisConnection, 
+  {
+    connection: redisConnection,
     concurrency: 2,
-    timeout: 600000
-  }
+    timeout: 600000,
+  },
 );
 ```
 
@@ -442,48 +492,48 @@ export const communityDetectLeidenWorker = new Worker<CommunityDetectPayload>(
 // workers/graph/kol-identify.worker.ts
 interface KolIdentifyPayload {
   tenantId: string;
-  clientId?: string;  // Specific client or all
+  clientId?: string; // Specific client or all
   minConnections?: number;
 }
 
 export const kolIdentifyWorker = new Worker<KolIdentifyPayload>(
-  'graph',
+  "graph",
   async (job: Job<KolIdentifyPayload>) => {
     const { tenantId, clientId, minConnections = 5 } = job.data;
-    
+
     // 1. Calculate centrality metrics via Python
-    const response = await pythonGraphService.post('/graph/centrality', {
+    const response = await pythonGraphService.post("/graph/centrality", {
       tenant_id: tenantId,
       client_id: clientId,
-      metrics: ['degree', 'betweenness', 'eigenvector', 'pagerank']
+      metrics: ["degree", "betweenness", "eigenvector", "pagerank"],
     });
-    
+
     const centralities = response.data.centralities;
-    
+
     // 2. Identify KOLs
     for (const node of centralities) {
       // KOL criteria
-      const isKol = 
+      const isKol =
         node.degree_centrality >= minConnections &&
         node.betweenness_centrality >= 0.1 &&
         node.eigenvector_centrality >= 0.2;
-      
+
       // Calculate overall KOL score
-      const kolScore = (
+      const kolScore =
         node.degree_centrality * 0.3 +
         node.betweenness_centrality * 100 * 0.3 +
         node.eigenvector_centrality * 100 * 0.2 +
-        node.pagerank * 100 * 0.2
-      );
-      
+        node.pagerank * 100 * 0.2;
+
       // Determine tier
       let kolTier: string | null = null;
-      if (kolScore >= 80) kolTier = 'ELITE';
-      else if (kolScore >= 60) kolTier = 'ESTABLISHED';
-      else if (kolScore >= 40) kolTier = 'EMERGING';
-      
+      if (kolScore >= 80) kolTier = "ELITE";
+      else if (kolScore >= 60) kolTier = "ESTABLISHED";
+      else if (kolScore >= 40) kolTier = "EMERGING";
+
       // Upsert KOL profile
-      await db.insert(goldKolProfiles)
+      await db
+        .insert(goldKolProfiles)
         .values({
           tenantId,
           clientId: node.client_id,
@@ -493,7 +543,7 @@ export const kolIdentifyWorker = new Worker<KolIdentifyPayload>(
           overallKolScore: kolScore,
           networkCentrality: node.betweenness_centrality * 100,
           directConnections: node.degree,
-          lastCalculatedAt: new Date()
+          lastCalculatedAt: new Date(),
         })
         .onConflictDoUpdate({
           target: goldKolProfiles.clientId,
@@ -504,26 +554,26 @@ export const kolIdentifyWorker = new Worker<KolIdentifyPayload>(
             networkCentrality: node.betweenness_centrality * 100,
             directConnections: node.degree,
             lastCalculatedAt: new Date(),
-            updatedAt: new Date()
-          }
+            updatedAt: new Date(),
+          },
         });
-      
+
       // If new KOL, queue for promotion
-      if (isKol && kolTier === 'EMERGING') {
-        await stateQueue.add('state:advocate:promote', {
+      if (isKol && kolTier === "EMERGING") {
+        await stateQueue.add("state:advocate:promote", {
           tenantId,
           clientId: node.client_id,
-          kolScore
+          kolScore,
         });
       }
     }
-    
-    return { 
+
+    return {
       analyzed: centralities.length,
-      kolsIdentified: centralities.filter(n => n.is_kol).length 
+      kolsIdentified: centralities.filter((n) => n.is_kol).length,
     };
   },
-  { connection: redisConnection, concurrency: 3 }
+  { connection: redisConnection, concurrency: 3 },
 );
 ```
 

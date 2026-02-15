@@ -36,15 +36,15 @@ Utilizăm **URL Path Versioning** cu format `/api/v{N}/`.
 
 ```typescript
 // API routes structure
-fastify.register(v1Routes, { prefix: '/api/v1' });
+fastify.register(v1Routes, { prefix: "/api/v1" });
 // fastify.register(v2Routes, { prefix: '/api/v2' }); // când e nevoie
 
 // Deprecation header pentru versiuni vechi
-fastify.addHook('onSend', async (request, reply) => {
-  if (request.url.startsWith('/api/v1')) {
-    reply.header('Deprecation', 'true');
-    reply.header('Sunset', '2027-01-01');
-    reply.header('Link', '</api/v2>; rel="successor-version"');
+fastify.addHook("onSend", async (request, reply) => {
+  if (request.url.startsWith("/api/v1")) {
+    reply.header("Deprecation", "true");
+    reply.header("Sunset", "2027-01-01");
+    reply.header("Link", '</api/v2>; rel="successor-version"');
   }
 });
 ```

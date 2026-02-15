@@ -56,12 +56,12 @@ docker network create --driver bridge --subnet 172.29.30.0/24 cerniq_data 2>/dev
 
 Porturi relevante in CT109/CT110 (host):
 
-| Port | Scop |
-| --- | --- |
-| `64033` | PgBouncer (in-container) |
+| Port    | Scop                             |
+| ------- | -------------------------------- |
+| `64033` | PgBouncer (in-container)         |
 | `64070` | OTLP gRPC (otel-collector local) |
 | `64071` | OTLP HTTP (otel-collector local) |
-| `64094` | cAdvisor (metrics Docker) |
+| `64094` | cAdvisor (metrics Docker)        |
 
 Porturi externe publice:
 

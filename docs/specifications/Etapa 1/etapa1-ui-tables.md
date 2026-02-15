@@ -1,5 +1,7 @@
 # CERNIQ.APP — ETAPA 1: UI TABLES & DATA GRIDS
+
 ## Tabele cu Paginare, Sortare, Filtrare
+
 ### Versiunea 1.0 | 15 Ianuarie 2026
 
 ---
@@ -11,7 +13,7 @@
 ```tsx
 // src/components/data-table/data-table.tsx
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo } from "react";
 import {
   flexRender,
   getCoreRowModel,
@@ -24,19 +26,26 @@ import {
   ColumnFiltersState,
   VisibilityState,
   RowSelectionState,
-} from '@tanstack/react-table';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Skeleton, TableRowSkeleton } from '@/components/ui/skeleton';
-import { EmptyState } from '@/components/ui/empty-state';
-import { DataTablePagination } from './data-table-pagination';
-import { DataTableToolbar } from './data-table-toolbar';
-import { cn } from '@/lib/utils';
+} from "@tanstack/react-table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Skeleton, TableRowSkeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
+import { DataTablePagination } from "./data-table-pagination";
+import { DataTableToolbar } from "./data-table-toolbar";
+import { cn } from "@/lib/utils";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   isLoading?: boolean;
-  
+
   // Pagination
   pagination?: {
     current: number;
@@ -46,25 +55,25 @@ interface DataTableProps<TData, TValue> {
     onChange: (page: number) => void;
     onPageSizeChange?: (size: number) => void;
   };
-  
+
   // Sorting (server-side)
   sorting?: {
-    sorters: { field: string; order: 'asc' | 'desc' }[];
-    setSorters: (sorters: { field: string; order: 'asc' | 'desc' }[]) => void;
+    sorters: { field: string; order: "asc" | "desc" }[];
+    setSorters: (sorters: { field: string; order: "asc" | "desc" }[]) => void;
   };
-  
+
   // Row Selection
   rowSelection?: {
     enabled: boolean;
     selected?: Record<string, boolean>;
     onSelectionChange: (selection: Record<string, boolean>) => void;
   };
-  
+
   // Search
   searchable?: boolean;
   searchPlaceholder?: string;
   onSearch?: (value: string) => void;
-  
+
   // Empty state
   emptyState?: {
     title: string;
@@ -72,10 +81,10 @@ interface DataTableProps<TData, TValue> {
     icon?: React.ReactNode;
     action?: React.ReactNode;
   };
-  
+
   // Row click
   onRowClick?: (row: TData) => void;
-  
+
   // Custom toolbar
   toolbarActions?: React.ReactNode;
 }
@@ -96,36 +105,45 @@ export function DataTable<TData, TValue>({
 }: DataTableProps<TData, TValue>) {
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
-  const [internalRowSelection, setInternalRowSelection] = useState<RowSelectionState>({});
-  
+  const [internalRowSelection, setInternalRowSelection] =
+    useState<RowSelectionState>({});
+
   // Controlled sorting
   const [internalSorting, setInternalSorting] = useState<SortingState>([]);
-  
+
   const table = useReactTable({
     data,
     columns,
     state: {
-      sorting: sorting?.sorters.map(s => ({ id: s.field, desc: s.order === 'desc' })) || internalSorting,
+      sorting:
+        sorting?.sorters.map((s) => ({
+          id: s.field,
+          desc: s.order === "desc",
+        })) || internalSorting,
       columnFilters,
       columnVisibility,
       rowSelection: rowSelection?.selected || internalRowSelection,
     },
     enableRowSelection: rowSelection?.enabled,
     onSortingChange: (updater) => {
-      const newSorting = typeof updater === 'function' ? updater(internalSorting) : updater;
+      const newSorting =
+        typeof updater === "function" ? updater(internalSorting) : updater;
       setInternalSorting(newSorting);
-      
+
       if (sorting?.setSorters) {
-        sorting.setSorters(newSorting.map(s => ({
-          field: s.id,
-          order: s.desc ? 'desc' : 'asc',
-        })));
+        sorting.setSorters(
+          newSorting.map((s) => ({
+            field: s.id,
+            order: s.desc ? "desc" : "asc",
+          })),
+        );
       }
     },
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: (updater) => {
-      const newSelection = typeof updater === 'function' ? updater(internalRowSelection) : updater;
+      const newSelection =
+        typeof updater === "function" ? updater(internalRowSelection) : updater;
       setInternalRowSelection(newSelection);
       rowSelection?.onSelectionChange(newSelection);
     },
@@ -135,7 +153,7 @@ export function DataTable<TData, TValue>({
     manualPagination: !!pagination,
     manualSorting: !!sorting,
   });
-  
+
   return (
     <div className="space-y-4">
       {/* Toolbar */}
@@ -149,7 +167,7 @@ export function DataTable<TData, TValue>({
           {toolbarActions}
         </DataTableToolbar>
       )}
-      
+
       {/* Table */}
       <div className="rounded-md border">
         <Table>
@@ -160,17 +178,21 @@ export function DataTable<TData, TValue>({
                   <TableHead
                     key={header.id}
                     className={cn(
-                      header.column.getCanSort() && 'cursor-pointer select-none hover:bg-gray-50'
+                      header.column.getCanSort() &&
+                        "cursor-pointer select-none hover:bg-gray-50",
                     )}
                     onClick={header.column.getToggleSortingHandler()}
                   >
                     <div className="flex items-center gap-2">
                       {header.isPlaceholder
                         ? null
-                        : flexRender(header.column.columnDef.header, header.getContext())}
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext(),
+                          )}
                       {header.column.getIsSorted() && (
                         <span className="text-primary-500">
-                          {header.column.getIsSorted() === 'desc' ? '↓' : '↑'}
+                          {header.column.getIsSorted() === "desc" ? "↓" : "↑"}
                         </span>
                       )}
                     </div>
@@ -189,25 +211,33 @@ export function DataTable<TData, TValue>({
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
-                  data-state={row.getIsSelected() && 'selected'}
+                  data-state={row.getIsSelected() && "selected"}
                   className={cn(
-                    onRowClick && 'cursor-pointer hover:bg-gray-50'
+                    onRowClick && "cursor-pointer hover:bg-gray-50",
                   )}
                   onClick={() => onRowClick?.(row.original)}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext(),
+                      )}
                     </TableCell>
                   ))}
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-48 text-center">
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-48 text-center"
+                >
                   <EmptyState
-                    title={emptyState?.title || 'No results'}
-                    description={emptyState?.description || 'No data to display'}
+                    title={emptyState?.title || "No results"}
+                    description={
+                      emptyState?.description || "No data to display"
+                    }
                     icon={emptyState?.icon}
                     action={emptyState?.action}
                   />
@@ -217,7 +247,7 @@ export function DataTable<TData, TValue>({
           </TableBody>
         </Table>
       </div>
-      
+
       {/* Pagination */}
       {pagination && (
         <DataTablePagination
@@ -240,9 +270,20 @@ export function DataTable<TData, TValue>({
 ```tsx
 // src/components/data-table/data-table-pagination.tsx
 
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ChevronLeftIcon, ChevronRightIcon, ChevronsLeftIcon, ChevronsRightIcon } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ChevronsLeftIcon,
+  ChevronsRightIcon,
+} from "lucide-react";
 
 interface DataTablePaginationProps {
   current: number;
@@ -266,7 +307,7 @@ export function DataTablePagination({
   const totalPages = Math.ceil(total / pageSize);
   const startItem = (current - 1) * pageSize + 1;
   const endItem = Math.min(current * pageSize, total);
-  
+
   return (
     <div className="flex items-center justify-between px-2">
       <div className="flex items-center gap-4 text-sm text-gray-600">
@@ -279,7 +320,7 @@ export function DataTablePagination({
           Showing {startItem} to {endItem} of {total.toLocaleString()} results
         </span>
       </div>
-      
+
       <div className="flex items-center gap-6">
         {/* Page Size Selector */}
         {onPageSizeChange && (
@@ -302,7 +343,7 @@ export function DataTablePagination({
             </Select>
           </div>
         )}
-        
+
         {/* Page Navigation */}
         <div className="flex items-center gap-1">
           <Button
@@ -321,25 +362,27 @@ export function DataTablePagination({
           >
             <ChevronLeftIcon className="h-4 w-4" />
           </Button>
-          
+
           {/* Page Numbers */}
           <div className="flex items-center gap-1 mx-2">
-            {generatePageNumbers(current, totalPages).map((page, i) => (
-              page === '...' ? (
-                <span key={`ellipsis-${i}`} className="px-2 text-gray-400">...</span>
+            {generatePageNumbers(current, totalPages).map((page, i) =>
+              page === "..." ? (
+                <span key={`ellipsis-${i}`} className="px-2 text-gray-400">
+                  ...
+                </span>
               ) : (
                 <Button
                   key={page}
-                  variant={page === current ? 'default' : 'outline'}
+                  variant={page === current ? "default" : "outline"}
                   size="icon-sm"
                   onClick={() => onChange(page as number)}
                 >
                   {page}
                 </Button>
-              )
-            ))}
+              ),
+            )}
           </div>
-          
+
           <Button
             variant="outline"
             size="icon-sm"
@@ -362,20 +405,23 @@ export function DataTablePagination({
   );
 }
 
-function generatePageNumbers(current: number, total: number): (number | '...')[] {
+function generatePageNumbers(
+  current: number,
+  total: number,
+): (number | "...")[] {
   if (total <= 7) {
     return Array.from({ length: total }, (_, i) => i + 1);
   }
-  
+
   if (current <= 3) {
-    return [1, 2, 3, 4, 5, '...', total];
+    return [1, 2, 3, 4, 5, "...", total];
   }
-  
+
   if (current >= total - 2) {
-    return [1, '...', total - 4, total - 3, total - 2, total - 1, total];
+    return [1, "...", total - 4, total - 3, total - 2, total - 1, total];
   }
-  
-  return [1, '...', current - 1, current, current + 1, '...', total];
+
+  return [1, "...", current - 1, current, current + 1, "...", total];
 }
 ```
 
@@ -384,11 +430,16 @@ function generatePageNumbers(current: number, total: number): (number | '...')[]
 ```tsx
 // src/components/data-table/data-table-toolbar.tsx
 
-import { Table } from '@tanstack/react-table';
-import { SearchInput } from '@/components/ui/search-input';
-import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { SlidersHorizontalIcon } from 'lucide-react';
+import { Table } from "@tanstack/react-table";
+import { SearchInput } from "@/components/ui/search-input";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { SlidersHorizontalIcon } from "lucide-react";
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>;
@@ -401,7 +452,7 @@ interface DataTableToolbarProps<TData> {
 export function DataTableToolbar<TData>({
   table,
   searchable,
-  searchPlaceholder = 'Search...',
+  searchPlaceholder = "Search...",
   onSearch,
   children,
 }: DataTableToolbarProps<TData>) {
@@ -416,10 +467,10 @@ export function DataTableToolbar<TData>({
           />
         )}
       </div>
-      
+
       <div className="flex items-center gap-2">
         {children}
-        
+
         {/* Column visibility toggle */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -459,10 +510,10 @@ export function DataTableToolbar<TData>({
 ```tsx
 // src/pages/bronze/contacts/columns.tsx
 
-import { ColumnDef } from '@tanstack/react-table';
-import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
-import { formatDate } from '@/lib/utils';
+import { ColumnDef } from "@tanstack/react-table";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { formatDate } from "@/lib/utils";
 
 export interface BronzeContact {
   id: string;
@@ -477,7 +528,7 @@ export interface BronzeContact {
 
 export const bronzeContactsColumns: ColumnDef<BronzeContact>[] = [
   {
-    id: 'select',
+    id: "select",
     header: ({ table }) => (
       <Checkbox
         checked={table.getIsAllPageRowsSelected()}
@@ -497,8 +548,8 @@ export const bronzeContactsColumns: ColumnDef<BronzeContact>[] = [
     enableHiding: false,
   },
   {
-    accessorKey: 'extractedName',
-    header: 'Name',
+    accessorKey: "extractedName",
+    header: "Name",
     cell: ({ row }) => (
       <div className="font-medium">
         {row.original.extractedName || (
@@ -508,45 +559,50 @@ export const bronzeContactsColumns: ColumnDef<BronzeContact>[] = [
     ),
   },
   {
-    accessorKey: 'extractedCui',
-    header: 'CUI',
+    accessorKey: "extractedCui",
+    header: "CUI",
     cell: ({ row }) => (
       <code className="text-sm bg-gray-100 px-1.5 py-0.5 rounded">
-        {row.original.extractedCui || '—'}
+        {row.original.extractedCui || "—"}
       </code>
     ),
   },
   {
-    accessorKey: 'extractedEmail',
-    header: 'Email',
-    cell: ({ row }) => row.original.extractedEmail || '—',
+    accessorKey: "extractedEmail",
+    header: "Email",
+    cell: ({ row }) => row.original.extractedEmail || "—",
   },
   {
-    accessorKey: 'extractedPhone',
-    header: 'Phone',
-    cell: ({ row }) => row.original.extractedPhone || '—',
+    accessorKey: "extractedPhone",
+    header: "Phone",
+    cell: ({ row }) => row.original.extractedPhone || "—",
   },
   {
-    accessorKey: 'sourceType',
-    header: 'Source',
+    accessorKey: "sourceType",
+    header: "Source",
     cell: ({ row }) => (
       <Badge variant="outline">{row.original.sourceType}</Badge>
     ),
   },
   {
-    accessorKey: 'processingStatus',
-    header: 'Status',
+    accessorKey: "processingStatus",
+    header: "Status",
     cell: ({ row }) => {
       const status = row.original.processingStatus;
-      const variant = status === 'promoted' ? 'success' :
-                      status === 'rejected' ? 'destructive' :
-                      status === 'processing' ? 'processing' : 'pending';
+      const variant =
+        status === "promoted"
+          ? "success"
+          : status === "rejected"
+            ? "destructive"
+            : status === "processing"
+              ? "processing"
+              : "pending";
       return <Badge variant={variant}>{status}</Badge>;
     },
   },
   {
-    accessorKey: 'createdAt',
-    header: 'Imported',
+    accessorKey: "createdAt",
+    header: "Imported",
     cell: ({ row }) => formatDate(row.original.createdAt),
   },
 ];
@@ -557,18 +613,18 @@ export const bronzeContactsColumns: ColumnDef<BronzeContact>[] = [
 ```tsx
 // src/pages/silver/companies/columns.tsx
 
-import { ColumnDef } from '@tanstack/react-table';
-import { Badge } from '@/components/ui/badge';
-import { QualityScoreBadge } from '@/components/data/quality-score-badge';
-import { EnrichmentStatusBadge } from '@/components/data/enrichment-status-badge';
-import { Button } from '@/components/ui/button';
-import { MoreHorizontalIcon } from 'lucide-react';
+import { ColumnDef } from "@tanstack/react-table";
+import { Badge } from "@/components/ui/badge";
+import { QualityScoreBadge } from "@/components/data/quality-score-badge";
+import { EnrichmentStatusBadge } from "@/components/data/enrichment-status-badge";
+import { Button } from "@/components/ui/button";
+import { MoreHorizontalIcon } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from "@/components/ui/dropdown-menu";
 
 export interface SilverCompany {
   id: string;
@@ -586,23 +642,27 @@ export interface SilverCompany {
 
 export const silverCompaniesColumns: ColumnDef<SilverCompany>[] = [
   {
-    accessorKey: 'denumire',
-    header: 'Company',
+    accessorKey: "denumire",
+    header: "Company",
     cell: ({ row }) => (
       <div>
         <div className="font-medium">{row.original.denumire}</div>
         <div className="text-sm text-gray-500 flex items-center gap-2">
-          <code className="bg-gray-100 px-1 rounded text-xs">{row.original.cui}</code>
+          <code className="bg-gray-100 px-1 rounded text-xs">
+            {row.original.cui}
+          </code>
           {row.original.cuiValidated && (
-            <Badge variant="success" className="text-xs">Validated</Badge>
+            <Badge variant="success" className="text-xs">
+              Validated
+            </Badge>
           )}
         </div>
       </div>
     ),
   },
   {
-    accessorKey: 'localitate',
-    header: 'Location',
+    accessorKey: "localitate",
+    header: "Location",
     cell: ({ row }) => (
       <div>
         <div>{row.original.localitate}</div>
@@ -611,44 +671,49 @@ export const silverCompaniesColumns: ColumnDef<SilverCompany>[] = [
     ),
   },
   {
-    accessorKey: 'statusFirma',
-    header: 'Status',
+    accessorKey: "statusFirma",
+    header: "Status",
     cell: ({ row }) => {
       const status = row.original.statusFirma;
       return (
-        <Badge variant={status === 'ACTIVA' ? 'success' : 'destructive'}>
+        <Badge variant={status === "ACTIVA" ? "success" : "destructive"}>
           {status}
         </Badge>
       );
     },
   },
   {
-    accessorKey: 'enrichmentStatus',
-    header: 'Enrichment',
+    accessorKey: "enrichmentStatus",
+    header: "Enrichment",
     cell: ({ row }) => (
       <EnrichmentStatusBadge status={row.original.enrichmentStatus as any} />
     ),
   },
   {
-    accessorKey: 'totalQualityScore',
-    header: 'Quality',
+    accessorKey: "totalQualityScore",
+    header: "Quality",
     cell: ({ row }) => (
       <QualityScoreBadge score={row.original.totalQualityScore} />
     ),
   },
   {
-    accessorKey: 'promotionStatus',
-    header: 'Promotion',
+    accessorKey: "promotionStatus",
+    header: "Promotion",
     cell: ({ row }) => {
       const status = row.original.promotionStatus;
-      const variant = status === 'promoted' ? 'gold' :
-                      status === 'eligible' ? 'success' :
-                      status === 'blocked' ? 'destructive' : 'secondary';
+      const variant =
+        status === "promoted"
+          ? "gold"
+          : status === "eligible"
+            ? "success"
+            : status === "blocked"
+              ? "destructive"
+              : "secondary";
       return <Badge variant={variant}>{status}</Badge>;
     },
   },
   {
-    id: 'actions',
+    id: "actions",
     cell: ({ row }) => (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -673,10 +738,10 @@ export const silverCompaniesColumns: ColumnDef<SilverCompany>[] = [
 ```tsx
 // src/pages/gold/companies/columns.tsx
 
-import { ColumnDef } from '@tanstack/react-table';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Progress } from '@/components/ui/progress';
+import { ColumnDef } from "@tanstack/react-table";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Progress } from "@/components/ui/progress";
 
 export interface GoldCompany {
   id: string;
@@ -695,8 +760,8 @@ export interface GoldCompany {
 
 export const goldCompaniesColumns: ColumnDef<GoldCompany>[] = [
   {
-    accessorKey: 'denumire',
-    header: 'Company',
+    accessorKey: "denumire",
+    header: "Company",
     cell: ({ row }) => (
       <div className="flex items-center gap-3">
         <Avatar className="h-10 w-10 bg-gold-100 text-gold-700">
@@ -714,53 +779,62 @@ export const goldCompaniesColumns: ColumnDef<GoldCompany>[] = [
     ),
   },
   {
-    accessorKey: 'categorieDimensiune',
-    header: 'Size',
+    accessorKey: "categorieDimensiune",
+    header: "Size",
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
         {row.original.isAgricultural && (
-          <Badge variant="outline" className="text-xs">🌾 Agri</Badge>
+          <Badge variant="outline" className="text-xs">
+            🌾 Agri
+          </Badge>
         )}
         <Badge variant="secondary">{row.original.categorieDimensiune}</Badge>
       </div>
     ),
   },
   {
-    accessorKey: 'leadScore',
-    header: 'Lead Score',
+    accessorKey: "leadScore",
+    header: "Lead Score",
     cell: ({ row }) => (
       <div className="w-32">
         <div className="flex items-center justify-between mb-1">
           <span className="text-sm font-medium">{row.original.leadScore}</span>
         </div>
-        <Progress 
-          value={row.original.leadScore} 
+        <Progress
+          value={row.original.leadScore}
           className="h-2"
           indicatorClassName={
-            row.original.leadScore >= 70 ? 'bg-success-500' :
-            row.original.leadScore >= 40 ? 'bg-warning-500' : 'bg-danger-500'
+            row.original.leadScore >= 70
+              ? "bg-success-500"
+              : row.original.leadScore >= 40
+                ? "bg-warning-500"
+                : "bg-danger-500"
           }
         />
       </div>
     ),
   },
   {
-    accessorKey: 'currentState',
-    header: 'Stage',
+    accessorKey: "currentState",
+    header: "Stage",
     cell: ({ row }) => {
       const state = row.original.currentState;
-      const variant = 
-        state === 'CONVERTED' ? 'success' :
-        state === 'CHURNED' || state === 'DEAD' ? 'destructive' :
-        state.includes('CONTACT') ? 'processing' :
-        state === 'NEGOTIATION' || state === 'PROPOSAL' ? 'warning' :
-        'secondary';
-      return <Badge variant={variant}>{state.replace(/_/g, ' ')}</Badge>;
+      const variant =
+        state === "CONVERTED"
+          ? "success"
+          : state === "CHURNED" || state === "DEAD"
+            ? "destructive"
+            : state.includes("CONTACT")
+              ? "processing"
+              : state === "NEGOTIATION" || state === "PROPOSAL"
+                ? "warning"
+                : "secondary";
+      return <Badge variant={variant}>{state.replace(/_/g, " ")}</Badge>;
     },
   },
   {
-    accessorKey: 'assignedTo',
-    header: 'Owner',
+    accessorKey: "assignedTo",
+    header: "Owner",
     cell: ({ row }) => {
       const owner = row.original.assignedTo;
       if (!owner) return <span className="text-gray-400">Unassigned</span>;
@@ -768,7 +842,10 @@ export const goldCompaniesColumns: ColumnDef<GoldCompany>[] = [
         <div className="flex items-center gap-2">
           <Avatar className="h-6 w-6">
             <AvatarFallback className="text-xs">
-              {owner.name.split(' ').map(n => n[0]).join('')}
+              {owner.name
+                .split(" ")
+                .map((n) => n[0])
+                .join("")}
             </AvatarFallback>
           </Avatar>
           <span className="text-sm">{owner.name}</span>
@@ -777,8 +854,8 @@ export const goldCompaniesColumns: ColumnDef<GoldCompany>[] = [
     },
   },
   {
-    accessorKey: 'dataUltimaInteractiune',
-    header: 'Last Activity',
+    accessorKey: "dataUltimaInteractiune",
+    header: "Last Activity",
     cell: ({ row }) => {
       const date = row.original.dataUltimaInteractiune;
       if (!date) return <span className="text-gray-400">Never</span>;
@@ -795,13 +872,13 @@ export const goldCompaniesColumns: ColumnDef<GoldCompany>[] = [
 ```tsx
 // src/components/data-table/bulk-action-bar.tsx
 
-import { Button } from '@/components/ui/button';
-import { XIcon } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { XIcon } from "lucide-react";
 
 interface BulkAction {
   label: string;
   onClick: () => void;
-  variant?: 'default' | 'destructive';
+  variant?: "default" | "destructive";
   icon?: React.ReactNode;
   disabled?: boolean;
 }
@@ -817,17 +894,19 @@ export function BulkActionBar({ count, actions, onClear }: BulkActionBarProps) {
     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
       <div className="flex items-center gap-3 px-4 py-3 bg-gray-900 text-white rounded-lg shadow-xl">
         <span className="text-sm font-medium">
-          {count} item{count !== 1 ? 's' : ''} selected
+          {count} item{count !== 1 ? "s" : ""} selected
         </span>
-        
+
         <div className="w-px h-6 bg-gray-700" />
-        
+
         <div className="flex items-center gap-2">
           {actions.map((action, i) => (
             <Button
               key={i}
               size="sm"
-              variant={action.variant === 'destructive' ? 'destructive' : 'secondary'}
+              variant={
+                action.variant === "destructive" ? "destructive" : "secondary"
+              }
               onClick={action.onClick}
               disabled={action.disabled}
             >
@@ -836,7 +915,7 @@ export function BulkActionBar({ count, actions, onClear }: BulkActionBarProps) {
             </Button>
           ))}
         </div>
-        
+
         <Button
           size="icon-sm"
           variant="ghost"
@@ -860,12 +939,16 @@ export function BulkActionBar({ count, actions, onClear }: BulkActionBarProps) {
 ```tsx
 // src/components/filters/multi-select-filter.tsx
 
-import { useState } from 'react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Checkbox } from '@/components/ui/checkbox';
-import { ChevronDownIcon, XIcon } from 'lucide-react';
+import { useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ChevronDownIcon, XIcon } from "lucide-react";
 
 interface Option {
   value: string;
@@ -880,21 +963,26 @@ interface MultiSelectFilterProps {
   onChange: (values: string[]) => void;
 }
 
-export function MultiSelectFilter({ title, options, selected, onChange }: MultiSelectFilterProps) {
+export function MultiSelectFilter({
+  title,
+  options,
+  selected,
+  onChange,
+}: MultiSelectFilterProps) {
   const [open, setOpen] = useState(false);
-  
+
   const handleToggle = (value: string) => {
     const newSelected = selected.includes(value)
-      ? selected.filter(v => v !== value)
+      ? selected.filter((v) => v !== value)
       : [...selected, value];
     onChange(newSelected);
   };
-  
+
   const handleClear = () => {
     onChange([]);
     setOpen(false);
   };
-  
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -950,13 +1038,17 @@ export function MultiSelectFilter({ title, options, selected, onChange }: MultiS
 ```tsx
 // src/components/filters/date-range-filter.tsx
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon } from 'lucide-react';
-import { format } from 'date-fns';
-import { DateRange } from 'react-day-picker';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { DateRange } from "react-day-picker";
 
 interface DateRangeFilterProps {
   value?: DateRange;
@@ -964,33 +1056,50 @@ interface DateRangeFilterProps {
   presets?: { label: string; range: DateRange }[];
 }
 
-export function DateRangeFilter({ value, onChange, presets }: DateRangeFilterProps) {
+export function DateRangeFilter({
+  value,
+  onChange,
+  presets,
+}: DateRangeFilterProps) {
   const [open, setOpen] = useState(false);
-  
+
   const defaultPresets = [
-    { label: 'Today', range: { from: new Date(), to: new Date() } },
-    { label: 'Last 7 days', range: { from: subDays(new Date(), 7), to: new Date() } },
-    { label: 'Last 30 days', range: { from: subDays(new Date(), 30), to: new Date() } },
-    { label: 'This month', range: { from: startOfMonth(new Date()), to: new Date() } },
+    { label: "Today", range: { from: new Date(), to: new Date() } },
+    {
+      label: "Last 7 days",
+      range: { from: subDays(new Date(), 7), to: new Date() },
+    },
+    {
+      label: "Last 30 days",
+      range: { from: subDays(new Date(), 30), to: new Date() },
+    },
+    {
+      label: "This month",
+      range: { from: startOfMonth(new Date()), to: new Date() },
+    },
   ];
-  
+
   const displayPresets = presets || defaultPresets;
-  
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" className="h-9 min-w-[200px] justify-start">
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-9 min-w-[200px] justify-start"
+        >
           <CalendarIcon className="mr-2 h-4 w-4" />
           {value?.from ? (
             value.to ? (
               <>
-                {format(value.from, 'LLL dd')} - {format(value.to, 'LLL dd')}
+                {format(value.from, "LLL dd")} - {format(value.to, "LLL dd")}
               </>
             ) : (
-              format(value.from, 'LLL dd')
+              format(value.from, "LLL dd")
             )
           ) : (
-            'Date range'
+            "Date range"
           )}
         </Button>
       </PopoverTrigger>

@@ -1,5 +1,7 @@
 # CERNIQ.APP — ETAPA 5: ENVIRONMENT VARIABLES
+
 ## Complete Environment Configuration
+
 ### Versiunea 1.0 | 19 Ianuarie 2026
 
 > **📌 Notă (Februarie 2026):** Sintaxa `${DOCKER_SECRET:name}` din acest document este un placeholder.

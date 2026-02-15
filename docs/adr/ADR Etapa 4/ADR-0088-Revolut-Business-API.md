@@ -7,7 +7,7 @@
 **Decision:** Adoptăm **webhook-first approach** cu Revolut Business API:
 
 - Webhook pentru notificări în timp real
-- Polling periodic (*/30min) ca backup pentru balance sync
+- Polling periodic (\*/30min) ca backup pentru balance sync
 - HMAC signature validation pentru securitate
 
 **Endpoint:** `POST /webhooks/revolut/business`  

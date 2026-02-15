@@ -7,6 +7,7 @@
 ## 1) Scop
 
 Worker-ul L descrie un MCP server (Model Context Protocol) folosit de agentii Etapa 3 pentru a expune:
+
 - tool-uri interne (read-only / safe-by-default)
 - acces controlat la resurse (DB/Redis) prin servicii backend, nu direct din LLM
 
@@ -20,6 +21,7 @@ Worker-ul L descrie un MCP server (Model Context Protocol) folosit de agentii Et
 ## 3) Configurare (env)
 
 Preferam variabile “full URL”:
+
 - `DATABASE_URL` (prin PgBouncer in staging/prod)
 - `REDIS_URL` (catre Redis shared; nu hardcoda parola)
 - `BULLMQ_PREFIX=cerniq:e3` (exemplu; prefix Cerniq obligatoriu)
@@ -34,4 +36,3 @@ Preferam variabile “full URL”:
 
 - Logs structurate JSON (Pino) cu labels `project="cerniq"` si `environment`.
 - Trace context propagat via OTEL (cand aplicatia e instrumentata).
-

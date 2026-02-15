@@ -24,11 +24,11 @@ Cerniq.app utilizează strategia de log rotation configurată în Docker daemon 
 
 ### Explanation
 
-| Option | Value | Description |
-|--------|-------|-------------|
-| `log-driver` | `json-file` | Driver de logging nativ Docker |
-| `max-size` | `50m` | Dimensiune maximă per fișier de log |
-| `max-file` | `5` | Număr maxim de fișiere de log păstrate |
+| Option       | Value       | Description                            |
+| ------------ | ----------- | -------------------------------------- |
+| `log-driver` | `json-file` | Driver de logging nativ Docker         |
+| `max-size`   | `50m`       | Dimensiune maximă per fișier de log    |
+| `max-file`   | `5`         | Număr maxim de fișiere de log păstrate |
 
 **Capacitate maximă per container:** 50MB × 5 = **250MB**
 
@@ -36,20 +36,21 @@ Cerniq.app utilizează strategia de log rotation configurată în Docker daemon 
 
 ### Per-Service Estimates
 
-| Service Category | Containers | Max Storage Each | Total Max |
-|------------------|------------|------------------|-----------|
-| API (cand e deployat) | 1+ | 250MB | 250MB+ |
-| Workers (cand sunt deployati) | 1+ | 250MB | 250MB+ |
-| PgBouncer | 1 | 250MB | 250MB |
-| OpenBao agents | 2 | 250MB | 500MB |
-| Vector | 1 | 250MB | 250MB |
-| OTEL Collector | 1 | 250MB | 250MB |
-| cAdvisor | 1 | 250MB | 250MB |
-| **Total Maximum (infra-only)** | **6** | - | **1.5GB** |
+| Service Category               | Containers | Max Storage Each | Total Max |
+| ------------------------------ | ---------- | ---------------- | --------- |
+| API (cand e deployat)          | 1+         | 250MB            | 250MB+    |
+| Workers (cand sunt deployati)  | 1+         | 250MB            | 250MB+    |
+| PgBouncer                      | 1          | 250MB            | 250MB     |
+| OpenBao agents                 | 2          | 250MB            | 500MB     |
+| Vector                         | 1          | 250MB            | 250MB     |
+| OTEL Collector                 | 1          | 250MB            | 250MB     |
+| cAdvisor                       | 1          | 250MB            | 250MB     |
+| **Total Maximum (infra-only)** | **6**      | -                | **1.5GB** |
 
 ### Location
 
 Logurile Docker sunt stocate în:
+
 ```
 /var/lib/docker/containers/<container-id>/<container-id>-json.log
 ```
@@ -133,7 +134,7 @@ total=0
 for container in $(docker ps -q); do
     name=$(docker inspect --format='{{.Name}}' $container | tr -d '/')
     log_path=$(docker inspect --format='{{.LogPath}}' $container)
-    
+
     if [[ -f "$log_path" ]]; then
         size=$(du -sb "$log_path" 2>/dev/null | cut -f1)
         size_mb=$((size / 1024 / 1024))
@@ -215,16 +216,17 @@ Application → Pino Logger → OTLP HTTP (64071) → OTEL Collector (local) →
 ```
 
 Această arhitectură oferă:
+
 - **Real-time search** in Grafana (Explore)
 - **Local backup** prin Docker logs
 - **Redundancy** in caz de downtime pe pipeline-ul centralizat
 
 ### Log Retention Comparison
 
-| Destination | Retention | Search | Alerting |
-|-------------|-----------|--------|----------|
-| Docker json-file | ~250MB/container | grep only | No |
-| Grafana (Loki/Tempo) | (central) | Full-text | Yes |
+| Destination          | Retention        | Search    | Alerting |
+| -------------------- | ---------------- | --------- | -------- |
+| Docker json-file     | ~250MB/container | grep only | No       |
+| Grafana (Loki/Tempo) | (central)        | Full-text | Yes      |
 
 ## Best Practices
 

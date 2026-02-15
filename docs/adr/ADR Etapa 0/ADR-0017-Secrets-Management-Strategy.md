@@ -45,12 +45,12 @@ secrets:
 function readSecret(name: string): string {
   const filePath = process.env[`${name}_FILE`];
   if (filePath && fs.existsSync(filePath)) {
-    return fs.readFileSync(filePath, 'utf-8').trim();
+    return fs.readFileSync(filePath, "utf-8").trim();
   }
-  return process.env[name] ?? '';
+  return process.env[name] ?? "";
 }
 
-const dbPassword = readSecret('DATABASE_PASSWORD');
+const dbPassword = readSecret("DATABASE_PASSWORD");
 ```
 
 ### Restricții

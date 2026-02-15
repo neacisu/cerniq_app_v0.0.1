@@ -15,7 +15,7 @@ interface Sequence {
 interface SequenceStep {
   step_number: number;
   delay_hours: number;
-  channel: 'WHATSAPP' | 'EMAIL';
+  channel: "WHATSAPP" | "EMAIL";
   template_id: string;
 }
 ```

@@ -1,5 +1,7 @@
 # CERNIQ.APP — ETAPA 3: API ENDPOINTS
+
 ## REST API Documentation - AI Sales Agent
+
 ### Versiunea 1.0 | 18 Ianuarie 2026
 
 ---
@@ -64,19 +66,19 @@ Content-Type: application/pdf
 ```typescript
 // Standard request with pagination
 interface PaginatedRequest {
-  page?: number;        // Default: 1
-  limit?: number;       // Default: 25, Max: 100
-  sort?: string;        // Field name
-  order?: 'asc' | 'desc'; // Default: 'asc'
-  search?: string;      // Full-text search
+  page?: number; // Default: 1
+  limit?: number; // Default: 25, Max: 100
+  sort?: string; // Field name
+  order?: "asc" | "desc"; // Default: 'asc'
+  search?: string; // Full-text search
   filters?: Record<string, unknown>;
 }
 
 // Standard request with cursor pagination
 interface CursorPaginatedRequest {
-  cursor?: string;      // Base64 encoded cursor
-  limit?: number;       // Default: 25, Max: 100
-  direction?: 'forward' | 'backward'; // Default: 'forward'
+  cursor?: string; // Base64 encoded cursor
+  limit?: number; // Default: 25, Max: 100
+  direction?: "forward" | "backward"; // Default: 'forward'
 }
 ```
 
@@ -173,18 +175,18 @@ interface ValidationError {
 
 ```typescript
 // Request header
-Authorization: Bearer <jwt_token>
+Authorization: Bearer<jwt_token>;
 
 // JWT payload structure
 interface JWTPayload {
-  sub: string;        // User ID
-  tenantId: string;   // Tenant ID
-  email: string;      // User email
-  roles: string[];    // User roles
+  sub: string; // User ID
+  tenantId: string; // Tenant ID
+  email: string; // User email
+  roles: string[]; // User roles
   permissions: string[]; // Explicit permissions
-  iat: number;        // Issued at
-  exp: number;        // Expiration
-  jti: string;        // JWT ID (for revocation)
+  iat: number; // Issued at
+  exp: number; // Expiration
+  jti: string; // JWT ID (for revocation)
 }
 ```
 
@@ -212,44 +214,44 @@ interface APIKey {
 ```typescript
 // Product permissions
 const PRODUCT_SCOPES = [
-  'products:read',
-  'products:write',
-  'products:delete',
-  'products:import',
-  'products:export',
+  "products:read",
+  "products:write",
+  "products:delete",
+  "products:import",
+  "products:export",
 ] as const;
 
 // Negotiation permissions
 const NEGOTIATION_SCOPES = [
-  'negotiations:read',
-  'negotiations:write',
-  'negotiations:approve',
-  'negotiations:close',
-  'negotiations:archive',
+  "negotiations:read",
+  "negotiations:write",
+  "negotiations:approve",
+  "negotiations:close",
+  "negotiations:archive",
 ] as const;
 
 // Document permissions
 const DOCUMENT_SCOPES = [
-  'documents:read',
-  'documents:create',
-  'documents:send',
-  'documents:cancel',
+  "documents:read",
+  "documents:create",
+  "documents:send",
+  "documents:cancel",
 ] as const;
 
 // HITL permissions
 const HITL_SCOPES = [
-  'hitl:read',
-  'hitl:approve',
-  'hitl:reject',
-  'hitl:escalate',
+  "hitl:read",
+  "hitl:approve",
+  "hitl:reject",
+  "hitl:escalate",
 ] as const;
 
 // Admin permissions
 const ADMIN_SCOPES = [
-  'admin:users',
-  'admin:settings',
-  'admin:audit',
-  'admin:api-keys',
+  "admin:users",
+  "admin:settings",
+  "admin:audit",
+  "admin:api-keys",
 ] as const;
 ```
 
@@ -259,23 +261,39 @@ const ADMIN_SCOPES = [
 // Role definitions
 const ROLES = {
   admin: {
-    name: 'Administrator',
-    permissions: [...PRODUCT_SCOPES, ...NEGOTIATION_SCOPES, 
-                  ...DOCUMENT_SCOPES, ...HITL_SCOPES, ...ADMIN_SCOPES],
+    name: "Administrator",
+    permissions: [
+      ...PRODUCT_SCOPES,
+      ...NEGOTIATION_SCOPES,
+      ...DOCUMENT_SCOPES,
+      ...HITL_SCOPES,
+      ...ADMIN_SCOPES,
+    ],
   },
   sales_manager: {
-    name: 'Sales Manager',
-    permissions: [...PRODUCT_SCOPES, ...NEGOTIATION_SCOPES.filter(p => p !== 'negotiations:archive'),
-                  ...DOCUMENT_SCOPES, 'hitl:read', 'hitl:approve', 'hitl:reject'],
+    name: "Sales Manager",
+    permissions: [
+      ...PRODUCT_SCOPES,
+      ...NEGOTIATION_SCOPES.filter((p) => p !== "negotiations:archive"),
+      ...DOCUMENT_SCOPES,
+      "hitl:read",
+      "hitl:approve",
+      "hitl:reject",
+    ],
   },
   sales_rep: {
-    name: 'Sales Representative',
-    permissions: ['products:read', 'negotiations:read', 'negotiations:write',
-                  'documents:read', 'documents:create'],
+    name: "Sales Representative",
+    permissions: [
+      "products:read",
+      "negotiations:read",
+      "negotiations:write",
+      "documents:read",
+      "documents:create",
+    ],
   },
   viewer: {
-    name: 'Viewer',
-    permissions: ['products:read', 'negotiations:read', 'documents:read'],
+    name: "Viewer",
+    permissions: ["products:read", "negotiations:read", "documents:read"],
   },
 } as const;
 ```
@@ -287,15 +305,15 @@ const ROLES = {
 interface LoginRequest {
   email: string;
   password: string;
-  mfaCode?: string;    // If MFA enabled
-  deviceId?: string;   // For device tracking
+  mfaCode?: string; // If MFA enabled
+  deviceId?: string; // For device tracking
 }
 
 interface LoginResponse {
   accessToken: string;
   refreshToken: string;
-  expiresIn: number;   // Seconds
-  tokenType: 'Bearer';
+  expiresIn: number; // Seconds
+  tokenType: "Bearer";
   user: {
     id: string;
     email: string;
@@ -327,13 +345,13 @@ interface LogoutRequest {
 interface CreateAPIKeyRequest {
   name: string;
   scopes: string[];
-  expiresAt?: string;  // ISO date
-  rateLimit?: number;  // Requests per minute
+  expiresAt?: string; // ISO date
+  rateLimit?: number; // Requests per minute
 }
 
 interface CreateAPIKeyResponse {
   id: string;
-  key: string;         // Only shown once!
+  key: string; // Only shown once!
   name: string;
   scopes: string[];
   expiresAt: string | null;
@@ -354,15 +372,15 @@ interface CreateAPIKeyResponse {
 interface ListProductsQuery {
   page?: number;
   limit?: number;
-  sort?: 'name' | 'sku' | 'price' | 'stock' | 'createdAt';
-  order?: 'asc' | 'desc';
-  search?: string;           // Full-text search
-  category?: string;         // Filter by category
-  status?: 'active' | 'inactive' | 'discontinued';
+  sort?: "name" | "sku" | "price" | "stock" | "createdAt";
+  order?: "asc" | "desc";
+  search?: string; // Full-text search
+  category?: string; // Filter by category
+  status?: "active" | "inactive" | "discontinued";
   minPrice?: number;
   maxPrice?: number;
-  inStock?: boolean;         // Only products with stock > 0
-  hasEmbedding?: boolean;    // Only RAG-indexed products
+  inStock?: boolean; // Only products with stock > 0
+  hasEmbedding?: boolean; // Only RAG-indexed products
 }
 
 interface ProductListItem {
@@ -371,11 +389,11 @@ interface ProductListItem {
   name: string;
   category: string;
   price: number;
-  currency: 'RON' | 'EUR' | 'USD';
-  vatRate: number;           // 0, 5, 9, 19
-  unit: string;              // 'buc', 'kg', 'l', etc.
+  currency: "RON" | "EUR" | "USD";
+  vatRate: number; // 0, 5, 9, 19
+  unit: string; // 'buc', 'kg', 'l', etc.
   stock: number;
-  status: 'active' | 'inactive' | 'discontinued';
+  status: "active" | "inactive" | "discontinued";
   hasEmbedding: boolean;
   thumbnailUrl: string | null;
   createdAt: string;
@@ -399,22 +417,22 @@ interface ProductDetail {
   shortDescription: string;
   category: string;
   subcategory: string | null;
-  
+
   // Pricing
   price: number;
-  currency: 'RON' | 'EUR' | 'USD';
+  currency: "RON" | "EUR" | "USD";
   vatRate: number;
   priceWithVat: number;
   costPrice: number | null;
   margin: number | null;
-  
+
   // Stock
   stock: number;
   reservedStock: number;
   availableStock: number;
   minStock: number;
   reorderPoint: number;
-  
+
   // Attributes
   unit: string;
   weight: number | null;
@@ -422,9 +440,9 @@ interface ProductDetail {
     length: number;
     width: number;
     height: number;
-    unit: 'cm' | 'm';
+    unit: "cm" | "m";
   } | null;
-  
+
   // Media
   images: {
     id: string;
@@ -436,14 +454,14 @@ interface ProductDetail {
   documents: {
     id: string;
     name: string;
-    type: 'datasheet' | 'manual' | 'certificate' | 'other';
+    type: "datasheet" | "manual" | "certificate" | "other";
     url: string;
     size: number;
   }[];
-  
+
   // Technical specs
   specifications: Record<string, string | number>;
-  
+
   // RAG/Embeddings
   embedding: {
     hasEmbedding: boolean;
@@ -451,28 +469,28 @@ interface ProductDetail {
     chunkCount: number;
     model: string;
   };
-  
+
   // Metadata
-  status: 'active' | 'inactive' | 'discontinued';
+  status: "active" | "inactive" | "discontinued";
   tags: string[];
   createdAt: string;
   updatedAt: string;
   createdBy: string;
-  
+
   // Related products
   relatedProducts: {
     id: string;
     sku: string;
     name: string;
     price: number;
-    relation: 'upsell' | 'crosssell' | 'accessory';
+    relation: "upsell" | "crosssell" | "accessory";
   }[];
-  
+
   // Pricing rules
   pricingRules: {
     id: string;
     name: string;
-    type: 'discount' | 'quantity' | 'customer_tier';
+    type: "discount" | "quantity" | "customer_tier";
     value: number;
     conditions: Record<string, unknown>;
   }[];
@@ -488,46 +506,46 @@ interface ProductDetail {
 // Permissions: products:write
 
 interface CreateProductRequest {
-  sku: string;               // Unique SKU
+  sku: string; // Unique SKU
   name: string;
   description?: string;
   shortDescription?: string;
   category: string;
   subcategory?: string;
-  
+
   price: number;
-  currency?: 'RON' | 'EUR' | 'USD'; // Default: 'RON'
-  vatRate: number;           // 0, 5, 9, 19
+  currency?: "RON" | "EUR" | "USD"; // Default: 'RON'
+  vatRate: number; // 0, 5, 9, 19
   costPrice?: number;
-  
+
   unit: string;
   weight?: number;
   dimensions?: {
     length: number;
     width: number;
     height: number;
-    unit?: 'cm' | 'm';
+    unit?: "cm" | "m";
   };
-  
-  stock?: number;            // Default: 0
-  minStock?: number;         // Default: 0
-  reorderPoint?: number;     // Default: 0
-  
+
+  stock?: number; // Default: 0
+  minStock?: number; // Default: 0
+  reorderPoint?: number; // Default: 0
+
   specifications?: Record<string, string | number>;
   tags?: string[];
-  
-  status?: 'active' | 'inactive'; // Default: 'active'
-  
+
+  status?: "active" | "inactive"; // Default: 'active'
+
   // Auto-index for RAG
-  indexForRAG?: boolean;     // Default: true
+  indexForRAG?: boolean; // Default: true
 }
 
 interface CreateProductResponse {
   id: string;
   sku: string;
   name: string;
-  status: 'active' | 'inactive';
-  ragIndexJobId?: string;    // If indexForRAG is true
+  status: "active" | "inactive";
+  ragIndexJobId?: string; // If indexForRAG is true
   createdAt: string;
 }
 
@@ -547,29 +565,29 @@ interface UpdateProductRequest {
   shortDescription?: string;
   category?: string;
   subcategory?: string | null;
-  
+
   price?: number;
-  currency?: 'RON' | 'EUR' | 'USD';
+  currency?: "RON" | "EUR" | "USD";
   vatRate?: number;
   costPrice?: number | null;
-  
+
   unit?: string;
   weight?: number | null;
   dimensions?: {
     length: number;
     width: number;
     height: number;
-    unit?: 'cm' | 'm';
+    unit?: "cm" | "m";
   } | null;
-  
+
   minStock?: number;
   reorderPoint?: number;
-  
+
   specifications?: Record<string, string | number>;
   tags?: string[];
-  
-  status?: 'active' | 'inactive' | 'discontinued';
-  
+
+  status?: "active" | "inactive" | "discontinued";
+
   // Re-index for RAG
   reindexForRAG?: boolean;
 }
@@ -578,7 +596,7 @@ interface UpdateProductResponse {
   id: string;
   sku: string;
   name: string;
-  status: 'active' | 'inactive' | 'discontinued';
+  status: "active" | "inactive" | "discontinued";
   ragReindexJobId?: string;
   updatedAt: string;
   changedFields: string[];
@@ -595,8 +613,8 @@ interface UpdateProductResponse {
 
 // Query params
 interface DeleteProductQuery {
-  hard?: boolean;            // Default: false (soft delete)
-  cascade?: boolean;         // Delete related data
+  hard?: boolean; // Default: false (soft delete)
+  cascade?: boolean; // Delete related data
 }
 
 // Response: 204 No Content
@@ -614,20 +632,20 @@ interface DeleteProductQuery {
 // Content-Type: multipart/form-data
 
 interface ImportProductsRequest {
-  file: File;                // CSV or Excel file
+  file: File; // CSV or Excel file
   mapping: {
     [csvColumn: string]: string; // Map to product fields
   };
   options: {
     updateExisting: boolean; // Update products with same SKU
-    skipInvalid: boolean;    // Skip invalid rows
-    dryRun?: boolean;        // Validate only, don't import
+    skipInvalid: boolean; // Skip invalid rows
+    dryRun?: boolean; // Validate only, don't import
   };
 }
 
 interface ImportProductsResponse {
   jobId: string;
-  status: 'queued' | 'processing' | 'completed' | 'failed';
+  status: "queued" | "processing" | "completed" | "failed";
   totalRows: number;
   processedRows: number;
   createdCount: number;
@@ -653,28 +671,28 @@ interface ImportProductsResponse {
 // Permissions: products:read
 
 interface SearchProductsRequest {
-  query: string;             // Natural language query
-  searchType?: 'hybrid' | 'semantic' | 'keyword'; // Default: 'hybrid'
-  limit?: number;            // Default: 10, Max: 50
-  threshold?: number;        // Similarity threshold (0-1)
+  query: string; // Natural language query
+  searchType?: "hybrid" | "semantic" | "keyword"; // Default: 'hybrid'
+  limit?: number; // Default: 10, Max: 50
+  threshold?: number; // Similarity threshold (0-1)
   filters?: {
     category?: string;
     minPrice?: number;
     maxPrice?: number;
     inStock?: boolean;
-    status?: 'active' | 'inactive';
+    status?: "active" | "inactive";
   };
-  includeChunks?: boolean;   // Include matched text chunks
+  includeChunks?: boolean; // Include matched text chunks
 }
 
 interface SearchProductResult {
   product: ProductListItem;
-  score: number;             // Relevance score (0-1)
-  matchType: 'semantic' | 'keyword' | 'hybrid';
+  score: number; // Relevance score (0-1)
+  matchType: "semantic" | "keyword" | "hybrid";
   matchedChunks?: {
     text: string;
     score: number;
-    highlight: string;       // With <mark> tags
+    highlight: string; // With <mark> tags
   }[];
 }
 
@@ -682,7 +700,7 @@ interface SearchProductsResponse {
   results: SearchProductResult[];
   totalFound: number;
   queryEmbedding?: number[]; // For debugging
-  searchTime: number;        // ms
+  searchTime: number; // ms
 }
 
 // Response: SuccessResponse<SearchProductsResponse>
@@ -695,21 +713,21 @@ interface SearchProductsResponse {
 // Permissions: products:export
 
 interface ExportProductsRequest {
-  format: 'csv' | 'xlsx' | 'json';
+  format: "csv" | "xlsx" | "json";
   filters?: {
     category?: string;
     status?: string;
-    ids?: string[];          // Specific product IDs
+    ids?: string[]; // Specific product IDs
   };
-  fields?: string[];         // Specific fields to export
-  includeImages?: boolean;   // Include image URLs
+  fields?: string[]; // Specific fields to export
+  includeImages?: boolean; // Include image URLs
 }
 
 interface ExportProductsResponse {
   jobId: string;
-  status: 'queued' | 'processing' | 'completed';
-  downloadUrl?: string;      // When completed
-  expiresAt?: string;        // URL expiration
+  status: "queued" | "processing" | "completed";
+  downloadUrl?: string; // When completed
+  expiresAt?: string; // URL expiration
 }
 
 // Response: SuccessResponse<ExportProductsResponse>
@@ -729,59 +747,59 @@ interface ExportProductsResponse {
 interface ListNegotiationsQuery {
   page?: number;
   limit?: number;
-  sort?: 'createdAt' | 'updatedAt' | 'totalValue' | 'state' | 'contactName';
-  order?: 'asc' | 'desc';
-  search?: string;           // Search contact name, reference
-  
+  sort?: "createdAt" | "updatedAt" | "totalValue" | "state" | "contactName";
+  order?: "asc" | "desc";
+  search?: string; // Search contact name, reference
+
   // Filters
   state?: NegotiationState | NegotiationState[];
   contactId?: string;
-  assignedTo?: string;       // User ID
-  channel?: 'whatsapp' | 'email' | 'web' | 'phone';
+  assignedTo?: string; // User ID
+  channel?: "whatsapp" | "email" | "web" | "phone";
   minValue?: number;
   maxValue?: number;
   hasDiscount?: boolean;
   needsApproval?: boolean;
-  
+
   // Date filters
-  createdAfter?: string;     // ISO date
+  createdAfter?: string; // ISO date
   createdBefore?: string;
   updatedAfter?: string;
   updatedBefore?: string;
 }
 
-type NegotiationState = 
-  | 'draft'
-  | 'qualifying'
-  | 'presenting'
-  | 'negotiating'
-  | 'pending_approval'
-  | 'approved'
-  | 'pending_payment'
-  | 'paid'
-  | 'invoiced'
-  | 'completed'
-  | 'lost'
-  | 'cancelled';
+type NegotiationState =
+  | "draft"
+  | "qualifying"
+  | "presenting"
+  | "negotiating"
+  | "pending_approval"
+  | "approved"
+  | "pending_payment"
+  | "paid"
+  | "invoiced"
+  | "completed"
+  | "lost"
+  | "cancelled";
 
 interface NegotiationListItem {
   id: string;
-  reference: string;         // NEG-2026-00001
-  
+  reference: string; // NEG-2026-00001
+
   // Contact
   contact: {
     id: string;
     name: string;
     company: string | null;
     cui: string | null;
-    tier: 'bronze' | 'silver' | 'gold';
+    tier: "bronze" | "silver" | "gold";
   };
-  
+
   // State
   state: NegotiationState;
-  stateLabel: string;        // Romanian label
-  stateSince: string;        // When entered state
-  
+  stateLabel: string; // Romanian label
+  stateSince: string; // When entered state
+
   // Values
   itemCount: number;
   subtotal: number;
@@ -789,25 +807,25 @@ interface NegotiationListItem {
   discountPercent: number;
   vatAmount: number;
   totalValue: number;
-  currency: 'RON' | 'EUR' | 'USD';
-  
+  currency: "RON" | "EUR" | "USD";
+
   // Flags
   hasDiscount: boolean;
   needsApproval: boolean;
   hasProforma: boolean;
   hasInvoice: boolean;
-  
+
   // Channel & Assignment
-  channel: 'whatsapp' | 'email' | 'web' | 'phone';
+  channel: "whatsapp" | "email" | "web" | "phone";
   assignedTo: {
     id: string;
     name: string;
   } | null;
-  
+
   // AI
   aiHandled: boolean;
   lastAiAction: string | null;
-  
+
   // Timestamps
   createdAt: string;
   updatedAt: string;
@@ -826,7 +844,7 @@ interface NegotiationListItem {
 interface NegotiationDetail {
   id: string;
   reference: string;
-  
+
   // Contact details
   contact: {
     id: string;
@@ -843,13 +861,13 @@ interface NegotiationDetail {
       postalCode: string;
       country: string;
     } | null;
-    tier: 'bronze' | 'silver' | 'gold';
+    tier: "bronze" | "silver" | "gold";
     totalOrders: number;
     totalValue: number;
     avgOrderValue: number;
     lastOrderDate: string | null;
   };
-  
+
   // State machine
   state: NegotiationState;
   stateLabel: string;
@@ -857,16 +875,16 @@ interface NegotiationDetail {
     state: NegotiationState;
     enteredAt: string;
     exitedAt: string | null;
-    duration: number | null;  // ms
+    duration: number | null; // ms
     actor: {
-      type: 'user' | 'ai' | 'system';
+      type: "user" | "ai" | "system";
       id: string;
       name: string;
     };
     reason: string | null;
   }[];
   allowedTransitions: NegotiationState[];
-  
+
   // Items
   items: {
     id: string;
@@ -889,7 +907,7 @@ interface NegotiationDetail {
     reserved: boolean;
     reservedUntil: string | null;
   }[];
-  
+
   // Pricing
   pricing: {
     subtotal: number;
@@ -897,38 +915,38 @@ interface NegotiationDetail {
     totalDiscountPercent: number;
     vatAmount: number;
     totalValue: number;
-    currency: 'RON' | 'EUR' | 'USD';
-    
+    currency: "RON" | "EUR" | "USD";
+
     discountBreakdown: {
-      type: 'manual' | 'rule' | 'volume' | 'customer_tier';
+      type: "manual" | "rule" | "volume" | "customer_tier";
       name: string;
       amount: number;
       percent: number;
     }[];
-    
+
     vatBreakdown: {
       rate: number;
       base: number;
       amount: number;
     }[];
   };
-  
+
   // Terms
   terms: {
-    paymentTerms: number;    // Days
-    paymentMethod: 'transfer' | 'cash' | 'card' | 'credit';
-    deliveryMethod: 'pickup' | 'delivery' | 'courier';
+    paymentTerms: number; // Days
+    paymentMethod: "transfer" | "cash" | "card" | "credit";
+    deliveryMethod: "pickup" | "delivery" | "courier";
     deliveryAddress: string | null;
     validUntil: string;
     notes: string | null;
   };
-  
+
   // Documents
   documents: {
     proforma: {
       id: string;
       number: string;
-      status: 'draft' | 'sent' | 'viewed' | 'accepted' | 'rejected';
+      status: "draft" | "sent" | "viewed" | "accepted" | "rejected";
       createdAt: string;
       sentAt: string | null;
       pdfUrl: string;
@@ -937,23 +955,23 @@ interface NegotiationDetail {
       id: string;
       number: string;
       oblioId: string;
-      status: 'draft' | 'issued' | 'sent' | 'paid' | 'cancelled';
+      status: "draft" | "issued" | "sent" | "paid" | "cancelled";
       createdAt: string;
       pdfUrl: string;
-      spvStatus: 'pending' | 'sent' | 'accepted' | 'rejected';
+      spvStatus: "pending" | "sent" | "accepted" | "rejected";
     } | null;
   };
-  
+
   // Approvals
   approvals: {
     id: string;
-    type: 'discount' | 'credit' | 'terms';
-    status: 'pending' | 'approved' | 'rejected';
+    type: "discount" | "credit" | "terms";
+    status: "pending" | "approved" | "rejected";
     requestedValue: number;
     requestReason: string;
     requestedAt: string;
     requestedBy: {
-      type: 'user' | 'ai';
+      type: "user" | "ai";
       id: string;
       name: string;
     };
@@ -964,24 +982,24 @@ interface NegotiationDetail {
     } | null;
     reviewNotes: string | null;
   }[];
-  
+
   // Communication
-  channel: 'whatsapp' | 'email' | 'web' | 'phone';
+  channel: "whatsapp" | "email" | "web" | "phone";
   conversation: {
     messageCount: number;
     lastMessageAt: string;
     unreadCount: number;
-    sentiment: 'positive' | 'neutral' | 'negative' | null;
-    urgencyLevel: 'low' | 'medium' | 'high' | 'critical' | null;
+    sentiment: "positive" | "neutral" | "negative" | null;
+    urgencyLevel: "low" | "medium" | "high" | "critical" | null;
   };
-  
+
   // Assignment
   assignedTo: {
     id: string;
     name: string;
     email: string;
   } | null;
-  
+
   // AI handling
   ai: {
     handled: boolean;
@@ -995,14 +1013,14 @@ interface NegotiationDetail {
     escalationReason: string | null;
     toolCallCount: number;
   };
-  
+
   // Metadata
   tags: string[];
   customFields: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
   createdBy: {
-    type: 'user' | 'ai' | 'system';
+    type: "user" | "ai" | "system";
     id: string;
     name: string;
   };
@@ -1019,31 +1037,31 @@ interface NegotiationDetail {
 
 interface CreateNegotiationRequest {
   contactId: string;
-  
+
   items: {
     productId: string;
     quantity: number;
     discountPercent?: number; // Manual discount
     notes?: string;
   }[];
-  
+
   terms?: {
-    paymentTerms?: number;   // Default: 30
-    paymentMethod?: 'transfer' | 'cash' | 'card' | 'credit';
-    deliveryMethod?: 'pickup' | 'delivery' | 'courier';
+    paymentTerms?: number; // Default: 30
+    paymentMethod?: "transfer" | "cash" | "card" | "credit";
+    deliveryMethod?: "pickup" | "delivery" | "courier";
     deliveryAddress?: string;
-    validityDays?: number;   // Default: 15
+    validityDays?: number; // Default: 15
     notes?: string;
   };
-  
-  channel?: 'whatsapp' | 'email' | 'web' | 'phone'; // Default: 'web'
-  assignedTo?: string;       // User ID
-  
-  initialState?: 'draft' | 'qualifying'; // Default: 'draft'
-  
+
+  channel?: "whatsapp" | "email" | "web" | "phone"; // Default: 'web'
+  assignedTo?: string; // User ID
+
+  initialState?: "draft" | "qualifying"; // Default: 'draft'
+
   // AI handling
-  enableAI?: boolean;        // Default: true
-  
+  enableAI?: boolean; // Default: true
+
   tags?: string[];
   customFields?: Record<string, unknown>;
 }
@@ -1055,21 +1073,21 @@ interface CreateNegotiationResponse {
   totalValue: number;
   currency: string;
   itemCount: number;
-  
+
   // If discount needs approval
   pendingApproval?: {
     id: string;
-    type: 'discount';
+    type: "discount";
     requestedValue: number;
   };
-  
+
   // If stock was reserved
   stockReservations?: {
     productId: string;
     quantity: number;
     reservedUntil: string;
   }[];
-  
+
   createdAt: string;
 }
 
@@ -1098,18 +1116,18 @@ interface UpdateNegotiationRequest {
       discountPercent?: number;
       notes?: string;
     }[];
-    remove?: string[];       // Item IDs
+    remove?: string[]; // Item IDs
   };
-  
+
   terms?: {
     paymentTerms?: number;
-    paymentMethod?: 'transfer' | 'cash' | 'card' | 'credit';
-    deliveryMethod?: 'pickup' | 'delivery' | 'courier';
+    paymentMethod?: "transfer" | "cash" | "card" | "credit";
+    deliveryMethod?: "pickup" | "delivery" | "courier";
     deliveryAddress?: string;
     validityDays?: number;
     notes?: string;
   };
-  
+
   assignedTo?: string | null;
   tags?: string[];
   customFields?: Record<string, unknown>;
@@ -1121,19 +1139,19 @@ interface UpdateNegotiationResponse {
   state: NegotiationState;
   totalValue: number;
   itemCount: number;
-  
+
   changes: {
     field: string;
     oldValue: unknown;
     newValue: unknown;
   }[];
-  
+
   pendingApproval?: {
     id: string;
-    type: 'discount';
+    type: "discount";
     requestedValue: number;
   };
-  
+
   updatedAt: string;
 }
 
@@ -1149,19 +1167,25 @@ interface UpdateNegotiationResponse {
 interface TransitionNegotiationRequest {
   targetState: NegotiationState;
   reason?: string;
-  
+
   // State-specific data
   data?: {
     // For 'approved' - manual approval
     approvalNotes?: string;
-    
+
     // For 'lost' - loss reason
-    lossReason?: 'price' | 'competitor' | 'budget' | 'timing' | 'no_response' | 'other';
+    lossReason?:
+      | "price"
+      | "competitor"
+      | "budget"
+      | "timing"
+      | "no_response"
+      | "other";
     competitorName?: string;
-    
+
     // For 'cancelled'
     cancellationReason?: string;
-    
+
     // For 'paid'
     paymentReference?: string;
     paymentDate?: string;
@@ -1174,11 +1198,17 @@ interface TransitionNegotiationResponse {
   previousState: NegotiationState;
   currentState: NegotiationState;
   transitionedAt: string;
-  
+
   // Side effects
   sideEffects: {
-    type: 'proforma_generated' | 'invoice_generated' | 'stock_released' | 
-          'email_sent' | 'notification_sent' | 'ai_enabled' | 'ai_disabled';
+    type:
+      | "proforma_generated"
+      | "invoice_generated"
+      | "stock_released"
+      | "email_sent"
+      | "notification_sent"
+      | "ai_enabled"
+      | "ai_disabled";
     details: Record<string, unknown>;
   }[];
 }
@@ -1199,26 +1229,26 @@ interface TransitionNegotiationResponse {
 
 interface GetConversationQuery {
   cursor?: string;
-  limit?: number;            // Default: 50
-  direction?: 'forward' | 'backward';
+  limit?: number; // Default: 50
+  direction?: "forward" | "backward";
   includeInternal?: boolean; // Include internal notes
 }
 
 interface ConversationMessage {
   id: string;
-  type: 'inbound' | 'outbound' | 'internal' | 'system';
-  
+  type: "inbound" | "outbound" | "internal" | "system";
+
   // Sender
   sender: {
-    type: 'contact' | 'user' | 'ai' | 'system';
+    type: "contact" | "user" | "ai" | "system";
     id: string;
     name: string;
     avatar?: string;
   };
-  
+
   // Content
   content: {
-    type: 'text' | 'image' | 'document' | 'template';
+    type: "text" | "image" | "document" | "template";
     text?: string;
     mediaUrl?: string;
     mediaType?: string;
@@ -1226,25 +1256,25 @@ interface ConversationMessage {
     templateName?: string;
     templateParams?: Record<string, string>;
   };
-  
+
   // Channel info
-  channel: 'whatsapp' | 'email' | 'web' | 'phone';
+  channel: "whatsapp" | "email" | "web" | "phone";
   channelMessageId?: string;
-  
+
   // Status (for outbound)
-  status?: 'sending' | 'sent' | 'delivered' | 'read' | 'failed';
+  status?: "sending" | "sent" | "delivered" | "read" | "failed";
   statusUpdatedAt?: string;
   errorMessage?: string;
-  
+
   // AI analysis (if applicable)
   aiAnalysis?: {
     intent: string;
-    sentiment: 'positive' | 'neutral' | 'negative';
+    sentiment: "positive" | "neutral" | "negative";
     entities: Record<string, string>;
     suggestedResponse?: string;
     confidence: number;
   };
-  
+
   // Metadata
   isEdited: boolean;
   isDeleted: boolean;
@@ -1262,35 +1292,35 @@ interface ConversationMessage {
 // Permissions: negotiations:write
 
 interface SendMessageRequest {
-  type: 'text' | 'template' | 'document';
-  
+  type: "text" | "template" | "document";
+
   // For text messages
   text?: string;
-  
+
   // For template messages
   templateName?: string;
   templateParams?: Record<string, string>;
-  
+
   // For document messages
-  documentId?: string;       // Existing document
-  documentFile?: File;       // New upload
-  
+  documentId?: string; // Existing document
+  documentFile?: File; // New upload
+
   // Options
-  channel?: 'whatsapp' | 'email'; // Override default
-  scheduleAt?: string;       // Schedule for later
-  isInternal?: boolean;      // Internal note, not sent
-  
+  channel?: "whatsapp" | "email"; // Override default
+  scheduleAt?: string; // Schedule for later
+  isInternal?: boolean; // Internal note, not sent
+
   // AI options
-  useAI?: boolean;           // Let AI craft response
-  aiInstructions?: string;   // Instructions for AI
+  useAI?: boolean; // Let AI craft response
+  aiInstructions?: string; // Instructions for AI
 }
 
 interface SendMessageResponse {
   id: string;
-  status: 'queued' | 'sending' | 'sent' | 'scheduled';
+  status: "queued" | "sending" | "sent" | "scheduled";
   channel: string;
   scheduledAt?: string;
-  
+
   // If AI generated
   aiGenerated?: {
     originalPrompt: string;
@@ -1298,7 +1328,7 @@ interface SendMessageResponse {
     confidence: number;
     guardrailsApplied: string[];
   };
-  
+
   createdAt: string;
 }
 
@@ -1313,31 +1343,31 @@ interface SendMessageResponse {
 // Permissions: negotiations:write
 
 interface ApplyDiscountRequest {
-  type: 'percent' | 'amount';
+  type: "percent" | "amount";
   value: number;
-  
-  scope: 'all' | 'items';
-  itemIds?: string[];        // If scope is 'items'
-  
+
+  scope: "all" | "items";
+  itemIds?: string[]; // If scope is 'items'
+
   reason: string;
-  
+
   // Override approval threshold
-  forceApproval?: boolean;   // Request approval even if within limits
+  forceApproval?: boolean; // Request approval even if within limits
 }
 
 interface ApplyDiscountResponse {
   id: string;
   discountApplied: number;
   discountPercent: number;
-  
+
   newSubtotal: number;
   newTotal: number;
-  
+
   // If needs approval
   approvalRequired: boolean;
   approvalId?: string;
   approvalReason?: string;
-  
+
   // Affected items
   affectedItems: {
     id: string;
@@ -1367,25 +1397,25 @@ interface GenerateProformaRequest {
     bankAccount?: string;
     bankName?: string;
   };
-  
+
   notes?: string;
   internalNotes?: string;
-  
+
   sendImmediately?: boolean;
-  sendChannel?: 'email' | 'whatsapp';
+  sendChannel?: "email" | "whatsapp";
 }
 
 interface GenerateProformaResponse {
   id: string;
-  number: string;            // PROF-2026-00001
-  status: 'draft' | 'sent';
+  number: string; // PROF-2026-00001
+  status: "draft" | "sent";
   pdfUrl: string;
-  
+
   // If sent
   sentAt?: string;
   sentChannel?: string;
   messageId?: string;
-  
+
   totals: {
     subtotal: number;
     discount: number;
@@ -1393,7 +1423,7 @@ interface GenerateProformaResponse {
     total: number;
     currency: string;
   };
-  
+
   validUntil: string;
   createdAt: string;
 }
@@ -1410,13 +1440,13 @@ interface GenerateProformaResponse {
 
 interface ConvertToInvoiceRequest {
   // Use Oblio for generation
-  useOblio?: boolean;        // Default: true
-  
+  useOblio?: boolean; // Default: true
+
   // Override defaults
-  series?: string;           // Invoice series
-  issueDate?: string;        // Default: today
-  dueDate?: string;          // Default: based on payment terms
-  
+  series?: string; // Invoice series
+  issueDate?: string; // Default: today
+  dueDate?: string; // Default: based on payment terms
+
   // Override contact details
   billingDetails?: {
     name?: string;
@@ -1426,29 +1456,29 @@ interface ConvertToInvoiceRequest {
     bankAccount?: string;
     bankName?: string;
   };
-  
+
   notes?: string;
   internalNotes?: string;
-  
+
   // e-Factura options
-  submitToSPV?: boolean;     // Default: true if B2B
-  spvPriority?: 'normal' | 'high';
+  submitToSPV?: boolean; // Default: true if B2B
+  spvPriority?: "normal" | "high";
 }
 
 interface ConvertToInvoiceResponse {
   id: string;
-  number: string;            // FACT-2026-00001
+  number: string; // FACT-2026-00001
   oblioId?: string;
-  status: 'draft' | 'issued';
+  status: "draft" | "issued";
   pdfUrl: string;
-  
+
   // e-Factura
   spv?: {
     submissionId: string;
-    status: 'pending' | 'queued';
+    status: "pending" | "queued";
     estimatedProcessing: string;
   };
-  
+
   totals: {
     subtotal: number;
     discount: number;
@@ -1456,7 +1486,7 @@ interface ConvertToInvoiceResponse {
     total: number;
     currency: string;
   };
-  
+
   createdAt: string;
 }
 
@@ -1477,8 +1507,8 @@ interface ConvertToInvoiceResponse {
 interface ListPricingRulesQuery {
   page?: number;
   limit?: number;
-  type?: 'discount' | 'markup' | 'quantity' | 'customer_tier' | 'seasonal';
-  status?: 'active' | 'inactive' | 'scheduled';
+  type?: "discount" | "markup" | "quantity" | "customer_tier" | "seasonal";
+  status?: "active" | "inactive" | "scheduled";
   productId?: string;
   categoryId?: string;
 }
@@ -1487,43 +1517,49 @@ interface PricingRule {
   id: string;
   name: string;
   description: string;
-  type: 'discount' | 'markup' | 'quantity' | 'customer_tier' | 'seasonal';
-  
+  type: "discount" | "markup" | "quantity" | "customer_tier" | "seasonal";
+
   // Conditions
   conditions: {
-    field: 'quantity' | 'total' | 'customer_tier' | 'date' | 'product' | 'category';
-    operator: 'eq' | 'gt' | 'gte' | 'lt' | 'lte' | 'in' | 'between';
+    field:
+      | "quantity"
+      | "total"
+      | "customer_tier"
+      | "date"
+      | "product"
+      | "category";
+    operator: "eq" | "gt" | "gte" | "lt" | "lte" | "in" | "between";
     value: unknown;
   }[];
-  
+
   // Action
   action: {
-    type: 'percent' | 'amount' | 'fixed_price';
+    type: "percent" | "amount" | "fixed_price";
     value: number;
-    maxDiscount?: number;    // Cap
+    maxDiscount?: number; // Cap
   };
-  
+
   // Scope
   scope: {
-    type: 'all' | 'products' | 'categories' | 'customers';
+    type: "all" | "products" | "categories" | "customers";
     productIds?: string[];
     categoryIds?: string[];
     customerTiers?: string[];
   };
-  
+
   // Approval
   requiresApproval: boolean;
   approvalThreshold?: number;
-  
+
   // Scheduling
-  status: 'active' | 'inactive' | 'scheduled';
+  status: "active" | "inactive" | "scheduled";
   startsAt: string | null;
   endsAt: string | null;
-  
+
   // Priority
-  priority: number;          // Higher = applied first
-  stackable: boolean;        // Can combine with other rules
-  
+  priority: number; // Higher = applied first
+  stackable: boolean; // Can combine with other rules
+
   // Metadata
   createdAt: string;
   updatedAt: string;
@@ -1542,34 +1578,40 @@ interface PricingRule {
 interface CreatePricingRuleRequest {
   name: string;
   description?: string;
-  type: 'discount' | 'markup' | 'quantity' | 'customer_tier' | 'seasonal';
-  
+  type: "discount" | "markup" | "quantity" | "customer_tier" | "seasonal";
+
   conditions: {
-    field: 'quantity' | 'total' | 'customer_tier' | 'date' | 'product' | 'category';
-    operator: 'eq' | 'gt' | 'gte' | 'lt' | 'lte' | 'in' | 'between';
+    field:
+      | "quantity"
+      | "total"
+      | "customer_tier"
+      | "date"
+      | "product"
+      | "category";
+    operator: "eq" | "gt" | "gte" | "lt" | "lte" | "in" | "between";
     value: unknown;
   }[];
-  
+
   action: {
-    type: 'percent' | 'amount' | 'fixed_price';
+    type: "percent" | "amount" | "fixed_price";
     value: number;
     maxDiscount?: number;
   };
-  
+
   scope: {
-    type: 'all' | 'products' | 'categories' | 'customers';
+    type: "all" | "products" | "categories" | "customers";
     productIds?: string[];
     categoryIds?: string[];
     customerTiers?: string[];
   };
-  
+
   requiresApproval?: boolean;
   approvalThreshold?: number;
-  
-  status?: 'active' | 'inactive' | 'scheduled';
+
+  status?: "active" | "inactive" | "scheduled";
   startsAt?: string;
   endsAt?: string;
-  
+
   priority?: number;
   stackable?: boolean;
 }
@@ -1589,15 +1631,15 @@ interface CalculatePriceRequest {
     productId: string;
     quantity: number;
   }[];
-  
-  customerId?: string;       // For customer-specific rules
-  customerTier?: 'bronze' | 'silver' | 'gold';
-  
-  couponCode?: string;       // If coupon system enabled
-  
+
+  customerId?: string; // For customer-specific rules
+  customerTier?: "bronze" | "silver" | "gold";
+
+  couponCode?: string; // If coupon system enabled
+
   // Simulation
-  simulateDate?: string;     // Test seasonal rules
-  simulateRules?: string[];  // Test specific rules
+  simulateDate?: string; // Test seasonal rules
+  simulateRules?: string[]; // Test specific rules
 }
 
 interface CalculatePriceResponse {
@@ -1606,25 +1648,25 @@ interface CalculatePriceResponse {
     sku: string;
     name: string;
     quantity: number;
-    
+
     originalPrice: number;
     finalPrice: number;
     discount: number;
     discountPercent: number;
-    
+
     appliedRules: {
       id: string;
       name: string;
       type: string;
       discount: number;
     }[];
-    
+
     subtotal: number;
     vatRate: number;
     vatAmount: number;
     total: number;
   }[];
-  
+
   summary: {
     subtotal: number;
     totalDiscount: number;
@@ -1632,19 +1674,19 @@ interface CalculatePriceResponse {
     vatAmount: number;
     grandTotal: number;
     currency: string;
-    
+
     couponApplied?: {
       code: string;
       discount: number;
     };
-    
+
     warnings: {
-      type: 'max_discount_reached' | 'rule_conflict' | 'stock_warning';
+      type: "max_discount_reached" | "rule_conflict" | "stock_warning";
       message: string;
       itemIds?: string[];
     }[];
   };
-  
+
   // If any discount requires approval
   approvalRequired: boolean;
   approvalReason?: string;
@@ -1666,20 +1708,20 @@ interface DiscountThresholds {
     approvalThreshold: number;
     currency: string;
   };
-  
+
   byCategory: {
     categoryId: string;
     categoryName: string;
     maxDiscountPercent: number;
     approvalThreshold: number;
   }[];
-  
+
   byCustomerTier: {
-    tier: 'bronze' | 'silver' | 'gold';
+    tier: "bronze" | "silver" | "gold";
     maxDiscountPercent: number;
     autoApproveThreshold: number;
   }[];
-  
+
   byUserRole: {
     role: string;
     maxDiscountPercent: number;
@@ -1706,9 +1748,9 @@ interface GetStockQuery {
   productId?: string;
   sku?: string;
   category?: string;
-  
+
   // Filters
-  status?: 'in_stock' | 'low_stock' | 'out_of_stock' | 'reserved';
+  status?: "in_stock" | "low_stock" | "out_of_stock" | "reserved";
   belowReorderPoint?: boolean;
   hasReservations?: boolean;
 }
@@ -1717,18 +1759,18 @@ interface StockItem {
   productId: string;
   sku: string;
   name: string;
-  
+
   // Stock levels
   totalStock: number;
   reservedStock: number;
   availableStock: number;
   minStock: number;
   reorderPoint: number;
-  
+
   // Status
-  status: 'in_stock' | 'low_stock' | 'out_of_stock';
+  status: "in_stock" | "low_stock" | "out_of_stock";
   statusLabel: string;
-  
+
   // Reservations
   activeReservations: {
     id: string;
@@ -1737,22 +1779,22 @@ interface StockItem {
     quantity: number;
     expiresAt: string;
   }[];
-  
+
   // Movement summary
   lastMovement: {
-    type: 'in' | 'out' | 'adjustment';
+    type: "in" | "out" | "adjustment";
     quantity: number;
     date: string;
     reason: string;
   } | null;
-  
+
   // Alerts
   alerts: {
-    type: 'low_stock' | 'out_of_stock' | 'below_reorder';
+    type: "low_stock" | "out_of_stock" | "below_reorder";
     message: string;
     createdAt: string;
   }[];
-  
+
   updatedAt: string;
 }
 
@@ -1768,7 +1810,7 @@ interface StockItem {
 interface GetStockMovementsQuery {
   page?: number;
   limit?: number;
-  type?: 'in' | 'out' | 'adjustment' | 'reservation' | 'release';
+  type?: "in" | "out" | "adjustment" | "reservation" | "release";
   dateFrom?: string;
   dateTo?: string;
 }
@@ -1776,24 +1818,24 @@ interface GetStockMovementsQuery {
 interface StockMovement {
   id: string;
   productId: string;
-  
-  type: 'in' | 'out' | 'adjustment' | 'reservation' | 'release';
+
+  type: "in" | "out" | "adjustment" | "reservation" | "release";
   typeLabel: string;
-  
+
   quantity: number;
   previousStock: number;
   newStock: number;
-  
+
   reason: string;
   reference: {
-    type: 'negotiation' | 'invoice' | 'manual' | 'import' | 'system';
+    type: "negotiation" | "invoice" | "manual" | "import" | "system";
     id?: string;
     name?: string;
   };
-  
+
   createdAt: string;
   createdBy: {
-    type: 'user' | 'system';
+    type: "user" | "system";
     id: string;
     name: string;
   };
@@ -1809,12 +1851,17 @@ interface StockMovement {
 // Permissions: products:write
 
 interface AdjustStockRequest {
-  type: 'set' | 'add' | 'subtract';
+  type: "set" | "add" | "subtract";
   quantity: number;
   reason: string;
-  
+
   // Optional reference
-  referenceType?: 'inventory_count' | 'damage' | 'return' | 'transfer' | 'other';
+  referenceType?:
+    | "inventory_count"
+    | "damage"
+    | "return"
+    | "transfer"
+    | "other";
   referenceId?: string;
   notes?: string;
 }
@@ -1822,19 +1869,19 @@ interface AdjustStockRequest {
 interface AdjustStockResponse {
   productId: string;
   sku: string;
-  
+
   previousStock: number;
   adjustment: number;
   newStock: number;
-  
+
   movementId: string;
-  
+
   // Alerts triggered
   alerts: {
     type: string;
     message: string;
   }[];
-  
+
   updatedAt: string;
 }
 
@@ -1849,20 +1896,20 @@ interface AdjustStockResponse {
 
 interface ReserveStockRequest {
   negotiationId: string;
-  
+
   items: {
     productId: string;
     quantity: number;
   }[];
-  
-  expiresIn?: number;        // Minutes, default: 60
+
+  expiresIn?: number; // Minutes, default: 60
   notes?: string;
 }
 
 interface ReserveStockResponse {
   reservationId: string;
   negotiationId: string;
-  
+
   items: {
     productId: string;
     sku: string;
@@ -1870,14 +1917,14 @@ interface ReserveStockResponse {
     reservedQuantity: number;
     shortfall: number;
   }[];
-  
+
   expiresAt: string;
-  
+
   warnings: {
     productId: string;
     message: string;
   }[];
-  
+
   createdAt: string;
 }
 
@@ -1894,13 +1941,13 @@ interface ReserveStockResponse {
 interface ReleaseStockResponse {
   reservationId: string;
   negotiationId: string;
-  
+
   releasedItems: {
     productId: string;
     sku: string;
     quantity: number;
   }[];
-  
+
   releasedAt: string;
 }
 
@@ -1920,57 +1967,57 @@ interface ReleaseStockResponse {
 interface ListDocumentsQuery {
   page?: number;
   limit?: number;
-  type?: 'proforma' | 'invoice' | 'credit_note' | 'receipt';
+  type?: "proforma" | "invoice" | "credit_note" | "receipt";
   status?: string;
   negotiationId?: string;
   contactId?: string;
   dateFrom?: string;
   dateTo?: string;
-  search?: string;           // Search by number, contact name
+  search?: string; // Search by number, contact name
 }
 
 interface DocumentListItem {
   id: string;
-  type: 'proforma' | 'invoice' | 'credit_note' | 'receipt';
+  type: "proforma" | "invoice" | "credit_note" | "receipt";
   typeLabel: string;
-  
+
   number: string;
   series: string;
-  
+
   // Contact
   contact: {
     id: string;
     name: string;
     cui: string | null;
   };
-  
+
   // Negotiation
   negotiationId: string | null;
   negotiationRef: string | null;
-  
+
   // Status
   status: string;
   statusLabel: string;
-  
+
   // Amounts
   subtotal: number;
   discount: number;
   vat: number;
   total: number;
   currency: string;
-  
+
   // e-Factura (for invoices)
-  spvStatus?: 'pending' | 'sent' | 'accepted' | 'rejected' | 'na';
+  spvStatus?: "pending" | "sent" | "accepted" | "rejected" | "na";
   spvId?: string;
-  
+
   // External
   oblioId?: string;
-  
+
   // Dates
   issueDate: string;
   dueDate: string | null;
   paidAt: string | null;
-  
+
   createdAt: string;
 }
 
@@ -1985,11 +2032,11 @@ interface DocumentListItem {
 
 interface DocumentDetail {
   id: string;
-  type: 'proforma' | 'invoice' | 'credit_note' | 'receipt';
-  
+  type: "proforma" | "invoice" | "credit_note" | "receipt";
+
   number: string;
   series: string;
-  
+
   // Issuer
   issuer: {
     name: string;
@@ -2001,7 +2048,7 @@ interface DocumentDetail {
     email: string;
     phone: string;
   };
-  
+
   // Client
   client: {
     contactId: string;
@@ -2012,7 +2059,7 @@ interface DocumentDetail {
     email: string;
     phone: string;
   };
-  
+
   // Items
   items: {
     id: string;
@@ -2029,7 +2076,7 @@ interface DocumentDetail {
     vatAmount: number;
     total: number;
   }[];
-  
+
   // Totals
   totals: {
     subtotal: number;
@@ -2037,14 +2084,14 @@ interface DocumentDetail {
     totalVat: number;
     grandTotal: number;
     currency: string;
-    
+
     vatBreakdown: {
       rate: number;
       base: number;
       amount: number;
     }[];
   };
-  
+
   // Status
   status: string;
   statusHistory: {
@@ -2053,7 +2100,7 @@ interface DocumentDetail {
     actor: string;
     notes: string | null;
   }[];
-  
+
   // Payment (for invoices)
   payment: {
     terms: number;
@@ -2063,10 +2110,10 @@ interface DocumentDetail {
     paidAmount: number | null;
     paidReference: string | null;
   } | null;
-  
+
   // e-Factura
   spv: {
-    status: 'pending' | 'sent' | 'accepted' | 'rejected' | 'na';
+    status: "pending" | "sent" | "accepted" | "rejected" | "na";
     submissionId: string | null;
     downloadId: string | null;
     responseCode: string | null;
@@ -2075,27 +2122,27 @@ interface DocumentDetail {
     processedAt: string | null;
     xmlUrl: string | null;
   } | null;
-  
+
   // Oblio
   oblio: {
     id: string | null;
-    syncStatus: 'synced' | 'pending' | 'error';
+    syncStatus: "synced" | "pending" | "error";
     lastSyncAt: string | null;
     errorMessage: string | null;
   } | null;
-  
+
   // PDF
   pdfUrl: string;
   pdfGeneratedAt: string;
-  
+
   // Notes
   notes: string | null;
   internalNotes: string | null;
-  
+
   // References
   negotiationId: string | null;
-  parentDocumentId: string | null;  // For credit notes
-  
+  parentDocumentId: string | null; // For credit notes
+
   // Dates
   issueDate: string;
   createdAt: string;
@@ -2113,15 +2160,15 @@ interface DocumentDetail {
 // Permissions: documents:create
 
 interface CreateDocumentRequest {
-  type: 'proforma' | 'invoice' | 'credit_note' | 'receipt';
-  
+  type: "proforma" | "invoice" | "credit_note" | "receipt";
+
   // Source
-  negotiationId?: string;    // Create from negotiation
+  negotiationId?: string; // Create from negotiation
   parentDocumentId?: string; // For credit notes
-  
+
   // Manual creation
   client?: {
-    contactId?: string;      // Existing contact
+    contactId?: string; // Existing contact
     name: string;
     cui?: string;
     regCom?: string;
@@ -2129,7 +2176,7 @@ interface CreateDocumentRequest {
     email?: string;
     phone?: string;
   };
-  
+
   items?: {
     productId?: string;
     sku?: string;
@@ -2141,23 +2188,23 @@ interface CreateDocumentRequest {
     discount?: number;
     vatRate: number;
   }[];
-  
+
   // Options
   series?: string;
   issueDate?: string;
   dueDate?: string;
   paymentTerms?: number;
-  
+
   notes?: string;
   internalNotes?: string;
-  
+
   // Integrations
-  syncToOblio?: boolean;     // Default: true
-  submitToSPV?: boolean;     // Default: true for B2B invoices
-  
+  syncToOblio?: boolean; // Default: true
+  submitToSPV?: boolean; // Default: true for B2B invoices
+
   // Send options
   sendImmediately?: boolean;
-  sendChannel?: 'email' | 'whatsapp';
+  sendChannel?: "email" | "whatsapp";
 }
 
 interface CreateDocumentResponse {
@@ -2166,34 +2213,34 @@ interface CreateDocumentResponse {
   number: string;
   series: string;
   status: string;
-  
+
   pdfUrl: string;
-  
+
   totals: {
     subtotal: number;
     vat: number;
     total: number;
     currency: string;
   };
-  
+
   // Integration status
   oblioSync?: {
-    status: 'queued' | 'synced' | 'error';
+    status: "queued" | "synced" | "error";
     oblioId?: string;
   };
-  
+
   spvSubmission?: {
-    status: 'queued' | 'pending';
+    status: "queued" | "pending";
     submissionId?: string;
   };
-  
+
   // If sent
   sent?: {
     channel: string;
     sentAt: string;
     messageId: string;
   };
-  
+
   createdAt: string;
 }
 
@@ -2219,18 +2266,18 @@ interface CreateDocumentResponse {
 // Permissions: documents:send
 
 interface SendDocumentRequest {
-  channel: 'email' | 'whatsapp';
-  
+  channel: "email" | "whatsapp";
+
   // Override recipient
   recipient?: {
     email?: string;
     phone?: string;
   };
-  
+
   // Email options
   subject?: string;
   message?: string;
-  
+
   // Schedule
   scheduleAt?: string;
 }
@@ -2239,10 +2286,10 @@ interface SendDocumentResponse {
   id: string;
   documentId: string;
   channel: string;
-  
-  status: 'queued' | 'sending' | 'sent' | 'scheduled';
+
+  status: "queued" | "sending" | "sent" | "scheduled";
   scheduledAt?: string;
-  
+
   messageId?: string;
   sentAt?: string;
 }
@@ -2258,30 +2305,30 @@ interface SendDocumentResponse {
 
 interface CancelDocumentRequest {
   reason: string;
-  
+
   // For invoices - create credit note
   createCreditNote?: boolean;
-  
+
   // SPV options
-  cancelInSPV?: boolean;     // Send cancellation to ANAF
+  cancelInSPV?: boolean; // Send cancellation to ANAF
 }
 
 interface CancelDocumentResponse {
   id: string;
-  status: 'cancelled';
+  status: "cancelled";
   cancelledAt: string;
   cancellationReason: string;
-  
+
   // If credit note created
   creditNote?: {
     id: string;
     number: string;
     pdfUrl: string;
   };
-  
+
   // SPV cancellation
   spvCancellation?: {
-    status: 'queued' | 'sent';
+    status: "queued" | "sent";
     submissionId?: string;
   };
 }
@@ -2301,36 +2348,36 @@ interface CancelDocumentResponse {
 
 interface ProcessAIMessageRequest {
   negotiationId: string;
-  
+
   // Incoming message
   message: {
-    type: 'text' | 'voice_transcript';
+    type: "text" | "voice_transcript";
     content: string;
-    channel: 'whatsapp' | 'email';
+    channel: "whatsapp" | "email";
     channelMessageId?: string;
   };
-  
+
   // Context (optional, usually auto-fetched)
   context?: {
     includeConversationHistory?: boolean;
     includeProductCatalog?: boolean;
     maxHistoryMessages?: number;
   };
-  
+
   // AI options
   options?: {
-    model?: 'grok-4' | 'gpt-4o';
+    model?: "grok-4" | "gpt-4o";
     temperature?: number;
     maxTokens?: number;
-    forceResponse?: boolean;  // Skip guardrails check
-    dryRun?: boolean;         // Don't save/send
+    forceResponse?: boolean; // Skip guardrails check
+    dryRun?: boolean; // Don't save/send
   };
 }
 
 interface ProcessAIMessageResponse {
   messageId: string;
   negotiationId: string;
-  
+
   // AI analysis
   analysis: {
     intent: {
@@ -2339,7 +2386,7 @@ interface ProcessAIMessageResponse {
       secondary: string[];
     };
     sentiment: {
-      label: 'positive' | 'neutral' | 'negative';
+      label: "positive" | "neutral" | "negative";
       score: number;
     };
     entities: {
@@ -2347,16 +2394,16 @@ interface ProcessAIMessageResponse {
       value: string;
       confidence: number;
     }[];
-    urgency: 'low' | 'medium' | 'high' | 'critical';
+    urgency: "low" | "medium" | "high" | "critical";
     requiresHuman: boolean;
     humanReason?: string;
   };
-  
+
   // Generated response
   response: {
     text: string;
     confidence: number;
-    
+
     // Tool calls made
     toolCalls: {
       tool: string;
@@ -2364,42 +2411,47 @@ interface ProcessAIMessageResponse {
       output: Record<string, unknown>;
       duration: number;
     }[];
-    
+
     // Guardrails applied
     guardrails: {
       rule: string;
       triggered: boolean;
-      action: 'none' | 'modified' | 'blocked';
+      action: "none" | "modified" | "blocked";
       original?: string;
     }[];
   };
-  
+
   // Actions taken
   actions: {
-    type: 'state_transition' | 'discount_applied' | 'document_generated' | 
-          'stock_reserved' | 'approval_requested' | 'human_escalation';
+    type:
+      | "state_transition"
+      | "discount_applied"
+      | "document_generated"
+      | "stock_reserved"
+      | "approval_requested"
+      | "human_escalation";
     details: Record<string, unknown>;
     success: boolean;
     error?: string;
   }[];
-  
+
   // Status
-  status: 'sent' | 'pending_approval' | 'escalated' | 'blocked';
-  
+  status: "sent" | "pending_approval" | "escalated" | "blocked";
+
   // If pending approval
   approvalRequired?: {
     id: string;
     type: string;
     reason: string;
   };
-  
+
   // If escalated
   escalation?: {
     reason: string;
     priority: string;
     assignedTo?: string;
   };
-  
+
   // Metrics
   metrics: {
     processingTime: number;
@@ -2423,14 +2475,14 @@ interface ProcessAIMessageResponse {
 
 interface AIContextResponse {
   negotiationId: string;
-  
+
   // Current state
   state: {
     current: string;
     allowedTransitions: string[];
     stateData: Record<string, unknown>;
   };
-  
+
   // Contact context
   contact: {
     name: string;
@@ -2445,7 +2497,7 @@ interface AIContextResponse {
     preferences: Record<string, unknown>;
     communicationStyle: string;
   };
-  
+
   // Product context
   products: {
     inNegotiation: {
@@ -2461,7 +2513,7 @@ interface AIContextResponse {
       score: number;
     }[];
   };
-  
+
   // Conversation summary
   conversation: {
     messageCount: number;
@@ -2470,7 +2522,7 @@ interface AIContextResponse {
     openQuestions: string[];
     lastAiAction: string;
   };
-  
+
   // AI configuration
   aiConfig: {
     model: string;
@@ -2490,22 +2542,22 @@ interface AIContextResponse {
 // Permissions: negotiations:write
 
 interface RegenerateAIRequest {
-  instructions?: string;     // Additional instructions
-  model?: string;            // Override model
-  temperature?: number;      // Override temperature
+  instructions?: string; // Additional instructions
+  model?: string; // Override model
+  temperature?: number; // Override temperature
 }
 
 interface RegenerateAIResponse {
   originalMessageId: string;
   newMessageId: string;
-  
+
   response: {
     text: string;
     confidence: number;
-    changes: string[];       // What changed from original
+    changes: string[]; // What changed from original
   };
-  
-  status: 'sent' | 'pending_approval' | 'draft';
+
+  status: "sent" | "pending_approval" | "draft";
 }
 
 // Response: SuccessResponse<RegenerateAIResponse>
@@ -2520,21 +2572,26 @@ interface RegenerateAIResponse {
 interface AIFeedbackRequest {
   messageId: string;
   rating: 1 | 2 | 3 | 4 | 5;
-  
-  feedbackType: 'response_quality' | 'accuracy' | 'tone' | 'relevance' | 'guardrail';
-  
+
+  feedbackType:
+    | "response_quality"
+    | "accuracy"
+    | "tone"
+    | "relevance"
+    | "guardrail";
+
   feedback: string;
-  
+
   correctedResponse?: string; // If user corrected the response
-  
-  shouldRetrain?: boolean;   // Flag for model improvement
+
+  shouldRetrain?: boolean; // Flag for model improvement
 }
 
 interface AIFeedbackResponse {
   id: string;
   messageId: string;
-  status: 'received' | 'processed';
-  
+  status: "received" | "processed";
+
   // If correction was provided
   correctionApplied?: boolean;
   newMessageId?: string;
@@ -2555,65 +2612,65 @@ interface AIFeedbackResponse {
 // Permissions: approvals:read
 
 interface ApprovalListParams {
-  page?: number;           // Default: 1
-  limit?: number;          // Default: 20, Max: 100
-  
-  status?: 'pending' | 'approved' | 'rejected' | 'escalated' | 'expired';
+  page?: number; // Default: 1
+  limit?: number; // Default: 20, Max: 100
+
+  status?: "pending" | "approved" | "rejected" | "escalated" | "expired";
   type?: ApprovalType;
-  priority?: 'low' | 'medium' | 'high' | 'critical';
-  
-  assignedTo?: string;     // User ID
+  priority?: "low" | "medium" | "high" | "critical";
+
+  assignedTo?: string; // User ID
   contactId?: string;
   negotiationId?: string;
-  
-  slaStatus?: 'ok' | 'warning' | 'breached';
-  
-  sortBy?: 'createdAt' | 'slaDeadline' | 'priority';
-  sortOrder?: 'asc' | 'desc';
+
+  slaStatus?: "ok" | "warning" | "breached";
+
+  sortBy?: "createdAt" | "slaDeadline" | "priority";
+  sortOrder?: "asc" | "desc";
 }
 
-type ApprovalType = 
-  | 'discount_approval'
-  | 'ai_response_review'
-  | 'document_approval'
-  | 'pricing_override'
-  | 'stock_exception'
-  | 'efactura_submission'
-  | 'handover_escalation'
-  | 'guardrail_violation';
+type ApprovalType =
+  | "discount_approval"
+  | "ai_response_review"
+  | "document_approval"
+  | "pricing_override"
+  | "stock_exception"
+  | "efactura_submission"
+  | "handover_escalation"
+  | "guardrail_violation";
 
 interface ApprovalListItem {
   id: string;
   type: ApprovalType;
   status: string;
   priority: string;
-  
+
   title: string;
   description: string;
-  
+
   // Context
-  entityType: 'negotiation' | 'document' | 'ai_message' | 'contact';
+  entityType: "negotiation" | "document" | "ai_message" | "contact";
   entityId: string;
-  
+
   // Requester
   requestedBy: {
-    type: 'user' | 'ai' | 'system';
+    type: "user" | "ai" | "system";
     id?: string;
     name: string;
   };
-  
+
   // Assignment
   assignedTo?: {
     id: string;
     name: string;
     email: string;
   };
-  
+
   // SLA
-  slaDeadline: string;         // ISO datetime
-  slaStatus: 'ok' | 'warning' | 'breached';
-  timeRemaining: number;       // Seconds
-  
+  slaDeadline: string; // ISO datetime
+  slaStatus: "ok" | "warning" | "breached";
+  timeRemaining: number; // Seconds
+
   // Metadata
   createdAt: string;
   updatedAt: string;
@@ -2646,24 +2703,27 @@ interface ApprovalListResponse {
 interface ApprovalDetail {
   id: string;
   type: ApprovalType;
-  status: 'pending' | 'approved' | 'rejected' | 'escalated' | 'expired';
-  priority: 'low' | 'medium' | 'high' | 'critical';
-  
+  status: "pending" | "approved" | "rejected" | "escalated" | "expired";
+  priority: "low" | "medium" | "high" | "critical";
+
   title: string;
   description: string;
-  
+
   // Full context based on type
-  context: DiscountApprovalContext | AIResponseContext | DocumentApprovalContext;
-  
+  context:
+    | DiscountApprovalContext
+    | AIResponseContext
+    | DocumentApprovalContext;
+
   // Request details
   requestedBy: {
-    type: 'user' | 'ai' | 'system';
+    type: "user" | "ai" | "system";
     id?: string;
     name: string;
   };
   requestedAt: string;
   reason: string;
-  
+
   // Current assignment
   assignment: {
     assignedTo: {
@@ -2674,19 +2734,19 @@ interface ApprovalDetail {
     assignedAt: string;
     assignedBy: string;
   } | null;
-  
+
   // SLA information
   sla: {
     deadline: string;
-    status: 'ok' | 'warning' | 'breached';
+    status: "ok" | "warning" | "breached";
     timeRemaining: number;
     escalationLevel: number;
     escalationHistory: EscalationEvent[];
   };
-  
+
   // History
   history: ApprovalHistoryEvent[];
-  
+
   // Attachments
   attachments: {
     id: string;
@@ -2695,7 +2755,7 @@ interface ApprovalDetail {
     url: string;
     size: number;
   }[];
-  
+
   // Audit
   createdAt: string;
   updatedAt: string;
@@ -2739,7 +2799,7 @@ interface AIResponseContext {
     id: string;
     content: string;
     timestamp: string;
-    sender: 'contact' | 'ai';
+    sender: "contact" | "ai";
   };
   proposedResponse: {
     content: string;
@@ -2749,7 +2809,7 @@ interface AIResponseContext {
   };
   guardrailFlags: {
     type: string;
-    severity: 'warning' | 'block';
+    severity: "warning" | "block";
     message: string;
   }[];
   alternativeResponses?: {
@@ -2761,7 +2821,7 @@ interface AIResponseContext {
 interface DocumentApprovalContext {
   document: {
     id: string;
-    type: 'proforma' | 'invoice' | 'contract' | 'offer';
+    type: "proforma" | "invoice" | "contract" | "offer";
     number: string;
     totalValue: number;
     currency: string;
@@ -2773,7 +2833,7 @@ interface DocumentApprovalContext {
   validationIssues?: {
     field: string;
     issue: string;
-    severity: 'warning' | 'error';
+    severity: "warning" | "error";
   }[];
   previousVersionId?: string;
   changes?: {
@@ -2792,7 +2852,14 @@ interface EscalationEvent {
 }
 
 interface ApprovalHistoryEvent {
-  action: 'created' | 'assigned' | 'reassigned' | 'escalated' | 'approved' | 'rejected' | 'commented';
+  action:
+    | "created"
+    | "assigned"
+    | "reassigned"
+    | "escalated"
+    | "approved"
+    | "rejected"
+    | "commented";
   performedBy: {
     id: string;
     name: string;
@@ -2811,15 +2878,15 @@ interface ApprovalHistoryEvent {
 // Permissions: approvals:approve
 
 interface ApproveRequest {
-  notes?: string;                // Approval notes
-  
+  notes?: string; // Approval notes
+
   // For discount approvals - can modify
-  approvedDiscount?: number;     // If different from requested
-  conditions?: string[];         // Conditions for approval
-  
+  approvedDiscount?: number; // If different from requested
+  conditions?: string[]; // Conditions for approval
+
   // For AI response - can modify
-  modifiedResponse?: string;     // If editing before approval
-  
+  modifiedResponse?: string; // If editing before approval
+
   // For document approvals
   documentCorrections?: {
     field: string;
@@ -2829,22 +2896,22 @@ interface ApproveRequest {
 
 interface ApproveResponse {
   id: string;
-  status: 'approved';
-  
+  status: "approved";
+
   approvedBy: {
     id: string;
     name: string;
   };
   approvedAt: string;
-  
+
   // Next actions taken automatically
   actionsTriggered: {
     action: string;
-    status: 'completed' | 'pending' | 'failed';
+    status: "completed" | "pending" | "failed";
     result?: any;
     error?: string;
   }[];
-  
+
   // Updated entity
   entityStatus: string;
   entityUrl: string;
@@ -2861,36 +2928,36 @@ interface ApproveResponse {
 // Permissions: approvals:approve
 
 interface RejectRequest {
-  reason: string;               // Required - reason for rejection
-  
+  reason: string; // Required - reason for rejection
+
   suggestAlternative?: boolean; // Should suggest alternative
-  alternativeValue?: number;    // For discount - counter-offer
-  
+  alternativeValue?: number; // For discount - counter-offer
+
   // For AI response
-  correctedResponse?: string;   // If providing correct response
-  
+  correctedResponse?: string; // If providing correct response
+
   blockFutureSimilar?: boolean; // Block similar requests
 }
 
 interface RejectResponse {
   id: string;
-  status: 'rejected';
-  
+  status: "rejected";
+
   rejectedBy: {
     id: string;
     name: string;
   };
   rejectedAt: string;
-  
+
   reason: string;
-  
+
   // Notifications sent
   notificationsSent: {
-    type: 'email' | 'push' | 'in_app';
+    type: "email" | "push" | "in_app";
     recipient: string;
-    status: 'sent' | 'failed';
+    status: "sent" | "failed";
   }[];
-  
+
   // If alternative suggested
   alternative?: {
     type: string;
@@ -2911,25 +2978,25 @@ interface RejectResponse {
 
 interface EscalateRequest {
   reason: string;
-  
-  targetAssignee?: string;      // Specific user to escalate to
-  targetRole?: string;          // Or role-based escalation
-  
-  priority?: 'high' | 'critical'; // Increase priority
-  
+
+  targetAssignee?: string; // Specific user to escalate to
+  targetRole?: string; // Or role-based escalation
+
+  priority?: "high" | "critical"; // Increase priority
+
   additionalContext?: string;
 }
 
 interface EscalateResponse {
   id: string;
-  status: 'escalated';
-  
+  status: "escalated";
+
   escalatedBy: {
     id: string;
     name: string;
   };
   escalatedAt: string;
-  
+
   newAssignment: {
     assignedTo: {
       id: string;
@@ -2938,7 +3005,7 @@ interface EscalateResponse {
     };
     assignedAt: string;
   };
-  
+
   escalationLevel: number;
   newSlaDeadline: string;
 }
@@ -2956,30 +3023,30 @@ interface EscalateResponse {
 interface ReassignRequest {
   assignToUserId: string;
   reason?: string;
-  resetSla?: boolean;          // Reset SLA countdown
+  resetSla?: boolean; // Reset SLA countdown
 }
 
 interface ReassignResponse {
   id: string;
-  
+
   previousAssignee: {
     id: string;
     name: string;
   } | null;
-  
+
   newAssignee: {
     id: string;
     name: string;
     email: string;
   };
-  
+
   reassignedBy: {
     id: string;
     name: string;
   };
   reassignedAt: string;
-  
-  slaDeadline: string;         // Updated if reset
+
+  slaDeadline: string; // Updated if reset
 }
 
 // Response: SuccessResponse<ReassignResponse>
@@ -2994,41 +3061,41 @@ interface ReassignResponse {
 
 interface AddCommentRequest {
   content: string;
-  
+
   // Optional mentions
-  mentions?: string[];          // User IDs
-  
+  mentions?: string[]; // User IDs
+
   // Optional attachment
   attachmentIds?: string[];
-  
-  isInternal?: boolean;        // Internal note vs visible comment
+
+  isInternal?: boolean; // Internal note vs visible comment
 }
 
 interface CommentResponse {
   id: string;
   approvalId: string;
-  
+
   content: string;
-  
+
   author: {
     id: string;
     name: string;
     avatarUrl?: string;
   };
-  
+
   mentions: {
     id: string;
     name: string;
   }[];
-  
+
   attachments: {
     id: string;
     name: string;
     url: string;
   }[];
-  
+
   isInternal: boolean;
-  
+
   createdAt: string;
 }
 
@@ -3043,23 +3110,23 @@ interface CommentResponse {
 // Permissions: approvals:approve
 
 interface BulkApprovalRequest {
-  action: 'approve' | 'reject';
-  
+  action: "approve" | "reject";
+
   approvalIds: string[];
-  
+
   // Common parameters
   notes?: string;
-  reason?: string;             // Required for reject
+  reason?: string; // Required for reject
 }
 
 interface BulkApprovalResponse {
   processed: number;
   succeeded: number;
   failed: number;
-  
+
   results: {
     id: string;
-    status: 'success' | 'failed';
+    status: "success" | "failed";
     error?: string;
   }[];
 }
@@ -3075,10 +3142,10 @@ interface BulkApprovalResponse {
 // Permissions: approvals:read
 
 interface ApprovalStatsParams {
-  period?: 'today' | 'week' | 'month' | 'quarter' | 'year';
+  period?: "today" | "week" | "month" | "quarter" | "year";
   startDate?: string;
   endDate?: string;
-  userId?: string;             // Filter by approver
+  userId?: string; // Filter by approver
   type?: ApprovalType;
 }
 
@@ -3087,7 +3154,7 @@ interface ApprovalStatsResponse {
     start: string;
     end: string;
   };
-  
+
   overview: {
     total: number;
     pending: number;
@@ -3096,14 +3163,14 @@ interface ApprovalStatsResponse {
     escalated: number;
     expired: number;
   };
-  
+
   slaMetrics: {
-    averageResponseTime: number;     // Seconds
+    averageResponseTime: number; // Seconds
     medianResponseTime: number;
-    slaComplianceRate: number;       // Percentage
+    slaComplianceRate: number; // Percentage
     breachCount: number;
   };
-  
+
   byType: {
     type: ApprovalType;
     count: number;
@@ -3111,7 +3178,7 @@ interface ApprovalStatsResponse {
     rejectedCount: number;
     avgResponseTime: number;
   }[];
-  
+
   byApprover: {
     userId: string;
     userName: string;
@@ -3120,7 +3187,7 @@ interface ApprovalStatsResponse {
     rejected: number;
     avgResponseTime: number;
   }[];
-  
+
   trends: {
     date: string;
     created: number;
@@ -3145,7 +3212,7 @@ interface ApprovalStatsResponse {
 interface EFacturaStatusResponse {
   configured: boolean;
   testMode: boolean;
-  
+
   certificate: {
     valid: boolean;
     expiresAt: string;
@@ -3153,20 +3220,20 @@ interface EFacturaStatusResponse {
     issuer: string;
     subject: string;
   } | null;
-  
+
   spvConnection: {
-    status: 'connected' | 'disconnected' | 'error';
+    status: "connected" | "disconnected" | "error";
     lastCheck: string;
     error?: string;
   };
-  
+
   statistics: {
     totalSubmitted: number;
     totalAccepted: number;
     totalRejected: number;
     pendingValidation: number;
   };
-  
+
   lastSubmission?: {
     documentId: string;
     documentNumber: string;
@@ -3185,11 +3252,11 @@ interface EFacturaStatusResponse {
 // Permissions: fiscal:write
 
 interface EFacturaSubmitRequest {
-  documentId: string;          // Internal document ID
-  
+  documentId: string; // Internal document ID
+
   // Override test mode if needed
   forceProduction?: boolean;
-  
+
   // Retry options
   retryOnError?: boolean;
   maxRetries?: number;
@@ -3198,23 +3265,23 @@ interface EFacturaSubmitRequest {
 interface EFacturaSubmitResponse {
   submissionId: string;
   documentId: string;
-  
-  status: 'submitted' | 'validating' | 'accepted' | 'rejected';
-  
+
+  status: "submitted" | "validating" | "accepted" | "rejected";
+
   spvResponse: {
     indexIncarcare: string;
     dataReferinta: string;
     detalii?: string;
   };
-  
+
   validationErrors?: {
     code: string;
     message: string;
     field?: string;
   }[];
-  
+
   submittedAt: string;
-  
+
   // Next steps
   nextActions: {
     action: string;
@@ -3236,36 +3303,36 @@ interface EFacturaSubmitResponse {
 interface EFacturaSubmissionDetail {
   submissionId: string;
   documentId: string;
-  
+
   // SPV reference
   indexIncarcare: string;
-  
-  status: 'submitted' | 'validating' | 'accepted' | 'rejected' | 'error';
-  
+
+  status: "submitted" | "validating" | "accepted" | "rejected" | "error";
+
   timeline: {
     event: string;
     timestamp: string;
     details?: string;
   }[];
-  
+
   // If accepted
   acceptance?: {
     acceptedAt: string;
-    responseXml: string;        // Base64 encoded
+    responseXml: string; // Base64 encoded
     downloadId: string;
   };
-  
+
   // If rejected
   rejection?: {
     rejectedAt: string;
     errors: {
       code: string;
       message: string;
-      severity: 'error' | 'warning';
+      severity: "error" | "warning";
     }[];
     responseXml: string;
   };
-  
+
   // Original document
   document: {
     id: string;
@@ -3287,9 +3354,9 @@ interface EFacturaSubmissionDetail {
 // Permissions: fiscal:read
 
 interface EFacturaMessagesParams {
-  days?: number;               // Default: 60
-  cif?: string;               // Filter by CIF
-  filter?: 'E' | 'P' | 'R';   // Emise, Primite, Erori
+  days?: number; // Default: 60
+  cif?: string; // Filter by CIF
+  filter?: "E" | "P" | "R"; // Emise, Primite, Erori
 }
 
 interface EFacturaMessagesResponse {
@@ -3297,16 +3364,16 @@ interface EFacturaMessagesResponse {
     id: string;
     indexIncarcare: string;
     dataCriere: string;
-    tip: 'FACTURA' | 'ERORI';
+    tip: "FACTURA" | "ERORI";
     detalii: string;
     cif: string;
   }[];
-  
+
   pagination: {
     total: number;
     hasMore: boolean;
   };
-  
+
   lastSync: string;
 }
 
@@ -3320,23 +3387,23 @@ interface EFacturaMessagesResponse {
 // Permissions: fiscal:write
 
 interface OblioSyncRequest {
-  syncType: 'full' | 'incremental';
-  
+  syncType: "full" | "incremental";
+
   // What to sync
-  entities: ('products' | 'contacts' | 'invoices' | 'series')[];
-  
+  entities: ("products" | "contacts" | "invoices" | "series")[];
+
   // Date range for incremental
   fromDate?: string;
   toDate?: string;
-  
+
   // Conflict resolution
-  conflictResolution?: 'local_wins' | 'oblio_wins' | 'manual';
+  conflictResolution?: "local_wins" | "oblio_wins" | "manual";
 }
 
 interface OblioSyncResponse {
   syncId: string;
-  status: 'in_progress' | 'completed' | 'completed_with_errors';
-  
+  status: "in_progress" | "completed" | "completed_with_errors";
+
   results: {
     entity: string;
     total: number;
@@ -3345,7 +3412,7 @@ interface OblioSyncResponse {
     updated: number;
     errors: number;
   }[];
-  
+
   conflicts: {
     entity: string;
     localId: string;
@@ -3354,13 +3421,13 @@ interface OblioSyncResponse {
     localValue: any;
     oblioValue: any;
   }[];
-  
+
   errors: {
     entity: string;
     id: string;
     error: string;
   }[];
-  
+
   startedAt: string;
   completedAt?: string;
 }
@@ -3377,8 +3444,8 @@ interface OblioSyncResponse {
 
 interface OblioInvoiceRequest {
   // Source document
-  sourceDocumentId?: string;     // Create from existing document
-  
+  sourceDocumentId?: string; // Create from existing document
+
   // Or manual data
   series?: string;
   client: {
@@ -3388,7 +3455,7 @@ interface OblioInvoiceRequest {
     address: string;
     email?: string;
   };
-  
+
   products: {
     name: string;
     code?: string;
@@ -3397,12 +3464,12 @@ interface OblioInvoiceRequest {
     vatRate: number;
     unit?: string;
   }[];
-  
+
   // Optional fields
   mentionClient?: string;
   issueDate?: string;
   dueDate?: string;
-  
+
   // E-factura options
   submitToEfactura?: boolean;
 }
@@ -3411,16 +3478,16 @@ interface OblioInvoiceResponse {
   oblioId: string;
   seriesName: string;
   number: string;
-  
-  link: string;                  // Oblio view link
+
+  link: string; // Oblio view link
   pdfUrl: string;
-  
+
   // If e-factura submission requested
   efacturaSubmission?: {
     status: string;
     submissionId: string;
   };
-  
+
   createdAt: string;
 }
 
@@ -3438,18 +3505,18 @@ interface InvoiceSeriesResponse {
   series: {
     id: string;
     name: string;
-    type: 'proforma' | 'invoice' | 'receipt' | 'aviz';
-    
+    type: "proforma" | "invoice" | "receipt" | "aviz";
+
     prefix: string;
     currentNumber: number;
-    
+
     defaultVatRate: number;
     defaultCurrency: string;
-    
+
     // Oblio sync
     oblioSeries?: string;
     oblioSynced: boolean;
-    
+
     isDefault: boolean;
     isActive: boolean;
   }[];
@@ -3469,8 +3536,8 @@ interface InvoiceSeriesResponse {
 // Permissions: analytics:read
 
 interface DashboardParams {
-  period?: 'today' | 'week' | 'month' | 'quarter' | 'year';
-  compareWith?: 'previous_period' | 'same_period_last_year';
+  period?: "today" | "week" | "month" | "quarter" | "year";
+  compareWith?: "previous_period" | "same_period_last_year";
 }
 
 interface DashboardResponse {
@@ -3479,16 +3546,16 @@ interface DashboardResponse {
     end: string;
     label: string;
   };
-  
+
   kpis: {
     // Revenue
     revenue: {
       value: number;
       currency: string;
-      change: number;            // Percentage change
-      trend: 'up' | 'down' | 'stable';
+      change: number; // Percentage change
+      trend: "up" | "down" | "stable";
     };
-    
+
     // Negotiations
     negotiations: {
       total: number;
@@ -3498,22 +3565,22 @@ interface DashboardResponse {
       winRate: number;
       change: number;
     };
-    
+
     // AI Performance
     aiPerformance: {
       messagesHandled: number;
-      automationRate: number;    // % handled without human
-      avgResponseTime: number;   // Seconds
+      automationRate: number; // % handled without human
+      avgResponseTime: number; // Seconds
       satisfactionScore: number; // 1-5
     };
-    
+
     // HITL
     hitl: {
       pending: number;
       avgApprovalTime: number;
       slaCompliance: number;
     };
-    
+
     // Products
     products: {
       totalSku: number;
@@ -3521,7 +3588,7 @@ interface DashboardResponse {
       outOfStock: number;
     };
   };
-  
+
   charts: {
     // Revenue trend
     revenueTrend: {
@@ -3531,14 +3598,14 @@ interface DashboardResponse {
         data: number[];
       }[];
     };
-    
+
     // Negotiations funnel
     negotiationFunnel: {
       stage: string;
       count: number;
       value: number;
     }[];
-    
+
     // AI vs Human responses
     responseBreakdown: {
       ai: number;
@@ -3546,7 +3613,7 @@ interface DashboardResponse {
       hybrid: number;
     };
   };
-  
+
   recentActivity: {
     type: string;
     description: string;
@@ -3567,8 +3634,8 @@ interface DashboardResponse {
 interface SalesReportParams {
   startDate: string;
   endDate: string;
-  groupBy?: 'day' | 'week' | 'month';
-  
+  groupBy?: "day" | "week" | "month";
+
   // Filters
   salesRepId?: string;
   contactTier?: string;
@@ -3581,17 +3648,17 @@ interface SalesReportResponse {
     totalRevenue: number;
     totalOrders: number;
     averageOrderValue: number;
-    
+
     newCustomers: number;
     repeatCustomers: number;
-    
+
     topProducts: {
       id: string;
       name: string;
       revenue: number;
       quantity: number;
     }[];
-    
+
     topCustomers: {
       id: string;
       name: string;
@@ -3599,7 +3666,7 @@ interface SalesReportResponse {
       orders: number;
     }[];
   };
-  
+
   byPeriod: {
     period: string;
     revenue: number;
@@ -3607,7 +3674,7 @@ interface SalesReportResponse {
     avgOrderValue: number;
     newCustomers: number;
   }[];
-  
+
   bySalesRep: {
     userId: string;
     userName: string;
@@ -3616,14 +3683,14 @@ interface SalesReportResponse {
     winRate: number;
     avgDealSize: number;
   }[];
-  
+
   byRegion: {
     region: string;
     county: string;
     revenue: number;
     customers: number;
   }[];
-  
+
   conversionFunnel: {
     stage: string;
     count: number;
@@ -3653,14 +3720,14 @@ interface AIPerformanceResponse {
     messagesHandledByAI: number;
     messagesEscalated: number;
     automationRate: number;
-    
+
     avgConfidence: number;
     avgResponseTime: number;
-    
+
     guardrailTriggered: number;
     guardrailRate: number;
   };
-  
+
   byModel: {
     model: string;
     messages: number;
@@ -3669,14 +3736,14 @@ interface AIPerformanceResponse {
     cost: number;
     costPerMessage: number;
   }[];
-  
+
   guardrailAnalysis: {
     type: string;
     count: number;
     percentage: number;
     topReasons: string[];
   }[];
-  
+
   feedbackAnalysis: {
     totalFeedback: number;
     avgRating: number;
@@ -3689,7 +3756,7 @@ interface AIPerformanceResponse {
       count: number;
     }[];
   };
-  
+
   costAnalysis: {
     totalCost: number;
     costTrend: {
@@ -3703,7 +3770,7 @@ interface AIPerformanceResponse {
       percentage: number;
     }[];
   };
-  
+
   qualityMetrics: {
     responseRelevance: number;
     intentAccuracy: number;
@@ -3734,14 +3801,14 @@ interface HITLReportResponse {
     approved: number;
     rejected: number;
     expired: number;
-    
+
     avgResponseTime: number;
     medianResponseTime: number;
-    
+
     slaCompliance: number;
     breachCount: number;
   };
-  
+
   byType: {
     type: string;
     count: number;
@@ -3750,7 +3817,7 @@ interface HITLReportResponse {
     avgTime: number;
     slaCompliance: number;
   }[];
-  
+
   byApprover: {
     userId: string;
     userName: string;
@@ -3760,14 +3827,14 @@ interface HITLReportResponse {
     avgTime: number;
     slaCompliance: number;
   }[];
-  
+
   slaTrend: {
     date: string;
     total: number;
     withinSla: number;
     breached: number;
   }[];
-  
+
   bottlenecks: {
     type: string;
     avgWaitTime: number;
@@ -3787,33 +3854,33 @@ interface HITLReportResponse {
 
 interface CustomReportRequest {
   name: string;
-  type: 'sales' | 'ai' | 'hitl' | 'products' | 'custom';
-  
+  type: "sales" | "ai" | "hitl" | "products" | "custom";
+
   // Date range
   dateRange: {
     start: string;
     end: string;
   };
-  
+
   // Metrics to include
   metrics: string[];
-  
+
   // Dimensions for grouping
   dimensions: string[];
-  
+
   // Filters
   filters: {
     field: string;
-    operator: 'eq' | 'ne' | 'gt' | 'lt' | 'in' | 'contains';
+    operator: "eq" | "ne" | "gt" | "lt" | "in" | "contains";
     value: any;
   }[];
-  
+
   // Output format
-  format: 'json' | 'csv' | 'xlsx' | 'pdf';
-  
+  format: "json" | "csv" | "xlsx" | "pdf";
+
   // Schedule (optional)
   schedule?: {
-    frequency: 'daily' | 'weekly' | 'monthly';
+    frequency: "daily" | "weekly" | "monthly";
     dayOfWeek?: number;
     dayOfMonth?: number;
     time: string;
@@ -3824,16 +3891,16 @@ interface CustomReportRequest {
 interface CustomReportResponse {
   reportId: string;
   name: string;
-  status: 'generating' | 'ready' | 'failed';
-  
+  status: "generating" | "ready" | "failed";
+
   // If ready
   downloadUrl?: string;
   expiresAt?: string;
-  
+
   // If scheduled
   scheduleId?: string;
   nextRun?: string;
-  
+
   generatedAt?: string;
 }
 
@@ -3848,19 +3915,24 @@ interface CustomReportResponse {
 // Permissions: analytics:export
 
 interface DataExportRequest {
-  entity: 'negotiations' | 'documents' | 'conversations' | 'approvals' | 'ai_messages';
-  
+  entity:
+    | "negotiations"
+    | "documents"
+    | "conversations"
+    | "approvals"
+    | "ai_messages";
+
   dateRange: {
     start: string;
     end: string;
   };
-  
+
   filters?: Record<string, any>;
-  
-  fields?: string[];           // Specific fields to include
-  
-  format: 'csv' | 'xlsx' | 'json';
-  
+
+  fields?: string[]; // Specific fields to include
+
+  format: "csv" | "xlsx" | "json";
+
   // For large exports
   async?: boolean;
   notifyEmail?: string;
@@ -3868,15 +3940,15 @@ interface DataExportRequest {
 
 interface DataExportResponse {
   exportId: string;
-  status: 'processing' | 'ready' | 'failed';
-  
+  status: "processing" | "ready" | "failed";
+
   // If ready immediately (small export)
   downloadUrl?: string;
-  
+
   // If async
   estimatedCompletion?: string;
   notificationEmail?: string;
-  
+
   recordCount?: number;
   fileSize?: number;
 }
@@ -3896,37 +3968,37 @@ interface DataExportResponse {
 // Permissions: ai:admin
 
 interface GuardrailConfigResponse {
-  profile: 'strict' | 'balanced' | 'permissive' | 'custom';
-  
+  profile: "strict" | "balanced" | "permissive" | "custom";
+
   rules: {
     id: string;
     name: string;
     description: string;
-    
-    type: 'input' | 'output' | 'action';
-    category: 'safety' | 'compliance' | 'business' | 'quality';
-    
+
+    type: "input" | "output" | "action";
+    category: "safety" | "compliance" | "business" | "quality";
+
     enabled: boolean;
-    severity: 'block' | 'warn' | 'log';
-    
+    severity: "block" | "warn" | "log";
+
     conditions: {
       field: string;
       operator: string;
       value: any;
-      logic?: 'and' | 'or';
+      logic?: "and" | "or";
     }[];
-    
+
     action: {
-      type: 'block' | 'escalate' | 'modify' | 'log';
+      type: "block" | "escalate" | "modify" | "log";
       config: Record<string, any>;
     };
-    
+
     exceptions: {
       type: string;
       value: any;
     }[];
   }[];
-  
+
   thresholds: {
     maxDiscountPercent: number;
     maxOrderValue: number;
@@ -3934,17 +4006,17 @@ interface GuardrailConfigResponse {
     maxDailyAICost: number;
     maxMessagesPerConversation: number;
   };
-  
+
   blockedPatterns: {
     id: string;
     pattern: string;
-    type: 'regex' | 'keyword' | 'semantic';
+    type: "regex" | "keyword" | "semantic";
     reason: string;
   }[];
-  
+
   allowedTopics: string[];
   blockedTopics: string[];
-  
+
   lastUpdated: string;
   updatedBy: string;
 }
@@ -3959,45 +4031,45 @@ interface GuardrailConfigResponse {
 // Permissions: ai:admin
 
 interface GuardrailUpdateRequest {
-  profile?: 'strict' | 'balanced' | 'permissive' | 'custom';
-  
+  profile?: "strict" | "balanced" | "permissive" | "custom";
+
   rules?: {
-    id?: string;               // Update existing or create new
+    id?: string; // Update existing or create new
     name: string;
     enabled: boolean;
-    severity: 'block' | 'warn' | 'log';
+    severity: "block" | "warn" | "log";
     conditions: any[];
     action: any;
   }[];
-  
+
   thresholds?: {
     maxDiscountPercent?: number;
     maxOrderValue?: number;
     minConfidenceForAuto?: number;
     maxDailyAICost?: number;
   };
-  
+
   blockedPatterns?: {
     pattern: string;
-    type: 'regex' | 'keyword' | 'semantic';
+    type: "regex" | "keyword" | "semantic";
     reason: string;
   }[];
-  
+
   allowedTopics?: string[];
   blockedTopics?: string[];
 }
 
 interface GuardrailUpdateResponse {
   updated: boolean;
-  
+
   changes: {
     field: string;
     oldValue: any;
     newValue: any;
   }[];
-  
+
   validationWarnings?: string[];
-  
+
   updatedAt: string;
   updatedBy: string;
 }
@@ -4018,10 +4090,10 @@ interface GuardrailTestRequest {
     conditions: any[];
     action: any;
   };
-  
+
   // Test input
   testInput: {
-    type: 'message' | 'action' | 'context';
+    type: "message" | "action" | "context";
     content: string;
     context?: Record<string, any>;
   };
@@ -4029,17 +4101,17 @@ interface GuardrailTestRequest {
 
 interface GuardrailTestResponse {
   triggered: boolean;
-  
+
   matchDetails: {
     condition: string;
     matched: boolean;
     matchedValue?: any;
   }[];
-  
+
   actionTaken: string;
-  
+
   executionTime: number;
-  
+
   suggestedImprovements?: string[];
 }
 
@@ -4054,33 +4126,33 @@ interface GuardrailTestResponse {
 
 interface AIConfigResponse {
   defaultModel: string;
-  
+
   models: {
     id: string;
     name: string;
-    provider: 'anthropic' | 'openai' | 'local';
-    
+    provider: "anthropic" | "openai" | "local";
+
     enabled: boolean;
     isDefault: boolean;
-    
+
     config: {
       temperature: number;
       maxTokens: number;
       topP: number;
     };
-    
+
     pricing: {
       inputTokenCost: number;
       outputTokenCost: number;
       currency: string;
     };
-    
+
     limits: {
       maxDailyRequests: number;
       maxDailyCost: number;
       rateLimit: number;
     };
-    
+
     usage: {
       today: {
         requests: number;
@@ -4094,7 +4166,7 @@ interface AIConfigResponse {
       };
     };
   }[];
-  
+
   routing: {
     defaultModel: string;
     rules: {
@@ -4102,7 +4174,7 @@ interface AIConfigResponse {
       model: string;
     }[];
   };
-  
+
   systemPrompts: {
     id: string;
     name: string;
@@ -4122,7 +4194,7 @@ interface AIConfigResponse {
 
 interface AIConfigUpdateRequest {
   defaultModel?: string;
-  
+
   models?: {
     id: string;
     enabled?: boolean;
@@ -4136,7 +4208,7 @@ interface AIConfigUpdateRequest {
       maxDailyCost?: number;
     };
   }[];
-  
+
   routing?: {
     defaultModel?: string;
     rules?: {
@@ -4144,7 +4216,7 @@ interface AIConfigUpdateRequest {
       model: string;
     }[];
   };
-  
+
   systemPrompts?: {
     id?: string;
     name: string;
@@ -4167,34 +4239,34 @@ interface ConversationTemplatesResponse {
     id: string;
     name: string;
     description: string;
-    
-    category: 'greeting' | 'followup' | 'closing' | 'objection' | 'escalation';
-    
+
+    category: "greeting" | "followup" | "closing" | "objection" | "escalation";
+
     content: string;
-    
+
     variables: {
       name: string;
-      type: 'string' | 'number' | 'date' | 'contact' | 'product';
+      type: "string" | "number" | "date" | "contact" | "product";
       required: boolean;
       defaultValue?: any;
     }[];
-    
+
     // When to use
     triggers: {
-      type: 'intent' | 'sentiment' | 'context' | 'manual';
+      type: "intent" | "sentiment" | "context" | "manual";
       condition: any;
     }[];
-    
+
     // Performance
     usage: {
       timesUsed: number;
       avgRating: number;
       conversionRate: number;
     };
-    
+
     isSystem: boolean;
     isActive: boolean;
-    
+
     createdAt: string;
     updatedAt: string;
   }[];
@@ -4215,19 +4287,19 @@ interface TemplateRequest {
   description: string;
   category: string;
   content: string;
-  
+
   variables?: {
     name: string;
     type: string;
     required: boolean;
     defaultValue?: any;
   }[];
-  
+
   triggers?: {
     type: string;
     condition: any;
   }[];
-  
+
   isActive?: boolean;
 }
 
@@ -4258,26 +4330,26 @@ interface TenantConfigResponse {
     name: string;
     companyName: string;
     cui: string;
-    
+
     createdAt: string;
-    plan: 'starter' | 'professional' | 'enterprise';
+    plan: "starter" | "professional" | "enterprise";
     planExpiresAt: string;
   };
-  
+
   features: {
     feature: string;
     enabled: boolean;
     limit?: number;
     usage?: number;
   }[];
-  
+
   integrations: {
     name: string;
     enabled: boolean;
-    status: 'active' | 'inactive' | 'error';
+    status: "active" | "inactive" | "error";
     lastSync?: string;
   }[];
-  
+
   limits: {
     maxUsers: number;
     currentUsers: number;
@@ -4288,13 +4360,13 @@ interface TenantConfigResponse {
     maxAIMessagesPerMonth: number;
     currentAIMessages: number;
   };
-  
+
   branding: {
     logo?: string;
     primaryColor: string;
     companyName: string;
   };
-  
+
   regional: {
     timezone: string;
     locale: string;
@@ -4318,27 +4390,27 @@ interface TenantConfigUpdateRequest {
     primaryColor?: string;
     companyName?: string;
   };
-  
+
   regional?: {
     timezone?: string;
     locale?: string;
     currency?: string;
     dateFormat?: string;
   };
-  
+
   defaults?: {
     paymentTerms?: number;
     validityDays?: number;
     defaultVatRate?: number;
   };
-  
+
   notifications?: {
     emailNotifications?: boolean;
     pushNotifications?: boolean;
     dailyDigest?: boolean;
     weeklyReport?: boolean;
   };
-  
+
   security?: {
     requireTwoFactor?: boolean;
     sessionTimeout?: number;
@@ -4365,7 +4437,7 @@ interface UserListParams {
   page?: number;
   limit?: number;
   role?: string;
-  status?: 'active' | 'inactive' | 'invited' | 'suspended';
+  status?: "active" | "inactive" | "invited" | "suspended";
   search?: string;
 }
 
@@ -4375,13 +4447,13 @@ interface UserListResponse {
     email: string;
     firstName: string;
     lastName: string;
-    
-    role: 'admin' | 'sales_manager' | 'sales_rep' | 'viewer';
+
+    role: "admin" | "sales_manager" | "sales_rep" | "viewer";
     status: string;
-    
+
     lastLogin?: string;
     createdAt: string;
-    
+
     // Activity summary
     activity: {
       negotiations: number;
@@ -4389,7 +4461,7 @@ interface UserListResponse {
       lastAction?: string;
     };
   }[];
-  
+
   pagination: {
     page: number;
     limit: number;
@@ -4411,13 +4483,13 @@ interface CreateUserRequest {
   email: string;
   firstName: string;
   lastName: string;
-  role: 'admin' | 'sales_manager' | 'sales_rep' | 'viewer';
-  
+  role: "admin" | "sales_manager" | "sales_rep" | "viewer";
+
   sendInvite?: boolean;
-  tempPassword?: string;       // If not sending invite
-  
-  permissions?: string[];      // Custom permissions
-  
+  tempPassword?: string; // If not sending invite
+
+  permissions?: string[]; // Custom permissions
+
   metadata?: Record<string, any>;
 }
 
@@ -4425,11 +4497,11 @@ interface CreateUserResponse {
   id: string;
   email: string;
   role: string;
-  status: 'invited' | 'active';
-  
+  status: "invited" | "active";
+
   inviteLink?: string;
   inviteExpiresAt?: string;
-  
+
   createdAt: string;
 }
 
@@ -4447,11 +4519,11 @@ interface UpdateUserRequest {
   firstName?: string;
   lastName?: string;
   role?: string;
-  
+
   permissions?: string[];
-  
-  status?: 'active' | 'suspended';
-  
+
+  status?: "active" | "suspended";
+
   metadata?: Record<string, any>;
 }
 
@@ -4465,19 +4537,19 @@ interface UpdateUserRequest {
 // Permissions: admin:delete
 
 interface DeleteUserParams {
-  transferNegotiationsTo?: string;  // User ID
-  hardDelete?: boolean;             // GDPR delete
+  transferNegotiationsTo?: string; // User ID
+  hardDelete?: boolean; // GDPR delete
 }
 
 interface DeleteUserResponse {
   deleted: boolean;
-  
+
   transferredItems: {
     type: string;
     count: number;
     transferredTo: string;
   }[];
-  
+
   // GDPR compliance
   dataDeleted?: {
     tables: string[];
@@ -4498,49 +4570,49 @@ interface DeleteUserResponse {
 interface AuditLogParams {
   page?: number;
   limit?: number;
-  
+
   userId?: string;
   action?: string;
   entityType?: string;
   entityId?: string;
-  
+
   startDate?: string;
   endDate?: string;
-  
+
   ipAddress?: string;
 }
 
 interface AuditLogResponse {
   entries: {
     id: string;
-    
+
     user: {
       id: string;
       email: string;
       name: string;
     };
-    
+
     action: string;
     description: string;
-    
+
     entityType: string;
     entityId: string;
-    
+
     changes?: {
       field: string;
       oldValue: any;
       newValue: any;
     }[];
-    
+
     metadata: {
       ipAddress: string;
       userAgent: string;
       sessionId: string;
     };
-    
+
     timestamp: string;
   }[];
-  
+
   pagination: {
     page: number;
     limit: number;
@@ -4559,16 +4631,16 @@ interface AuditLogResponse {
 // Permissions: admin:read
 
 interface SystemHealthResponse {
-  status: 'healthy' | 'degraded' | 'unhealthy';
-  
+  status: "healthy" | "degraded" | "unhealthy";
+
   services: {
     name: string;
-    status: 'up' | 'down' | 'degraded';
+    status: "up" | "down" | "degraded";
     latency: number;
     lastCheck: string;
     error?: string;
   }[];
-  
+
   database: {
     status: string;
     connections: {
@@ -4578,7 +4650,7 @@ interface SystemHealthResponse {
     };
     replicationLag?: number;
   };
-  
+
   redis: {
     status: string;
     memory: {
@@ -4587,7 +4659,7 @@ interface SystemHealthResponse {
       maxConfigured: number;
     };
   };
-  
+
   queues: {
     name: string;
     waiting: number;
@@ -4596,13 +4668,13 @@ interface SystemHealthResponse {
     failed: number;
     delayed: number;
   }[];
-  
+
   storage: {
     used: number;
     available: number;
     percentage: number;
   };
-  
+
   uptime: number;
   version: string;
 }
@@ -4625,16 +4697,16 @@ interface WebhookListResponse {
     id: string;
     name: string;
     url: string;
-    
+
     events: string[];
-    
-    status: 'active' | 'paused' | 'failed';
-    
+
+    status: "active" | "paused" | "failed";
+
     authentication: {
-      type: 'none' | 'basic' | 'bearer' | 'hmac';
+      type: "none" | "basic" | "bearer" | "hmac";
       configured: boolean;
     };
-    
+
     // Delivery stats
     stats: {
       totalDeliveries: number;
@@ -4642,7 +4714,7 @@ interface WebhookListResponse {
       lastDelivery?: string;
       lastStatus?: number;
     };
-    
+
     createdAt: string;
     updatedAt: string;
   }[];
@@ -4660,76 +4732,76 @@ interface WebhookListResponse {
 interface CreateWebhookRequest {
   name: string;
   url: string;
-  
+
   events: WebhookEvent[];
-  
+
   authentication?: {
-    type: 'basic' | 'bearer' | 'hmac';
+    type: "basic" | "bearer" | "hmac";
     username?: string;
     password?: string;
     token?: string;
     secret?: string;
   };
-  
+
   // Optional filters
   filters?: {
     entityTypes?: string[];
     userIds?: string[];
     conditions?: Record<string, any>;
   };
-  
+
   // Retry config
   retryPolicy?: {
     maxRetries: number;
     retryDelay: number;
     backoffMultiplier: number;
   };
-  
+
   // Headers
   customHeaders?: Record<string, string>;
 }
 
-type WebhookEvent = 
+type WebhookEvent =
   // Negotiations
-  | 'negotiation.created'
-  | 'negotiation.updated'
-  | 'negotiation.stage_changed'
-  | 'negotiation.won'
-  | 'negotiation.lost'
-  
+  | "negotiation.created"
+  | "negotiation.updated"
+  | "negotiation.stage_changed"
+  | "negotiation.won"
+  | "negotiation.lost"
+
   // Documents
-  | 'document.created'
-  | 'document.sent'
-  | 'document.signed'
-  
+  | "document.created"
+  | "document.sent"
+  | "document.signed"
+
   // AI Events
-  | 'ai.message_sent'
-  | 'ai.escalation_requested'
-  | 'ai.guardrail_triggered'
-  
+  | "ai.message_sent"
+  | "ai.escalation_requested"
+  | "ai.guardrail_triggered"
+
   // HITL
-  | 'approval.created'
-  | 'approval.resolved'
-  | 'approval.escalated'
-  
+  | "approval.created"
+  | "approval.resolved"
+  | "approval.escalated"
+
   // E-Factura
-  | 'efactura.submitted'
-  | 'efactura.accepted'
-  | 'efactura.rejected'
-  
+  | "efactura.submitted"
+  | "efactura.accepted"
+  | "efactura.rejected"
+
   // Products
-  | 'product.low_stock'
-  | 'product.out_of_stock'
-  
+  | "product.low_stock"
+  | "product.out_of_stock"
+
   // System
-  | 'system.health_degraded'
-  | 'system.backup_completed';
+  | "system.health_degraded"
+  | "system.backup_completed";
 
 interface CreateWebhookResponse {
   id: string;
   name: string;
-  secret: string;               // For HMAC verification
-  status: 'active';
+  secret: string; // For HMAC verification
+  status: "active";
   createdAt: string;
 }
 
@@ -4747,7 +4819,7 @@ interface UpdateWebhookRequest {
   name?: string;
   url?: string;
   events?: WebhookEvent[];
-  status?: 'active' | 'paused';
+  status?: "active" | "paused";
   authentication?: any;
   filters?: any;
   retryPolicy?: any;
@@ -4779,21 +4851,21 @@ interface TestWebhookRequest {
 
 interface TestWebhookResponse {
   delivered: boolean;
-  
+
   request: {
     url: string;
     method: string;
     headers: Record<string, string>;
     body: any;
   };
-  
+
   response: {
     status: number;
     headers: Record<string, string>;
     body?: any;
     latency: number;
   };
-  
+
   error?: string;
 }
 
@@ -4809,7 +4881,7 @@ interface TestWebhookResponse {
 interface DeliveryHistoryParams {
   page?: number;
   limit?: number;
-  status?: 'success' | 'failed';
+  status?: "success" | "failed";
   startDate?: string;
   endDate?: string;
 }
@@ -4818,29 +4890,29 @@ interface DeliveryHistoryResponse {
   deliveries: {
     id: string;
     eventType: string;
-    
-    status: 'success' | 'failed';
+
+    status: "success" | "failed";
     httpStatus: number;
-    
+
     attempt: number;
     maxAttempts: number;
-    
+
     request: {
       timestamp: string;
       payload: any;
     };
-    
+
     response: {
       timestamp: string;
       status: number;
       body?: any;
       error?: string;
     };
-    
+
     latency: number;
     nextRetry?: string;
   }[];
-  
+
   pagination: {
     page: number;
     limit: number;
@@ -4861,7 +4933,7 @@ interface DeliveryHistoryResponse {
 interface RetryDeliveryResponse {
   retried: boolean;
   newDeliveryId: string;
-  status: 'pending' | 'success' | 'failed';
+  status: "pending" | "success" | "failed";
   result?: any;
 }
 
@@ -4875,20 +4947,20 @@ interface RetryDeliveryResponse {
 
 interface WebhookPayload<T = any> {
   // Event metadata
-  id: string;                    // Unique delivery ID
-  timestamp: string;             // ISO 8601
+  id: string; // Unique delivery ID
+  timestamp: string; // ISO 8601
   event: WebhookEvent;
-  version: '1.0';
-  
+  version: "1.0";
+
   // Tenant context
   tenant: {
     id: string;
     name: string;
   };
-  
+
   // Event data
   data: T;
-  
+
   // Related entities
   related?: {
     type: string;
@@ -4914,9 +4986,9 @@ interface NegotiationWonPayload {
     closedAt: string;
     closedBy: string;
   };
-  
+
   previousStage: string;
-  
+
   timeline: {
     createdAt: string;
     firstContactAt: string;
@@ -4940,127 +5012,127 @@ interface NegotiationWonPayload {
 interface ErrorResponse {
   success: false;
   error: {
-    code: string;              // Machine-readable code
-    message: string;           // Human-readable message
-    details?: any;             // Additional context
-    field?: string;            // For validation errors
-    requestId: string;         // For support reference
+    code: string; // Machine-readable code
+    message: string; // Human-readable message
+    details?: any; // Additional context
+    field?: string; // For validation errors
+    requestId: string; // For support reference
   };
 }
 ```
 
 ## 15.2 HTTP Status Codes
 
-| Status | Meaning | Usage |
-|--------|---------|-------|
-| 200 | OK | Successful GET, PUT, DELETE |
-| 201 | Created | Successful POST creating resource |
-| 202 | Accepted | Async operation started |
-| 204 | No Content | Successful operation with no response body |
-| 400 | Bad Request | Invalid request syntax or parameters |
-| 401 | Unauthorized | Missing or invalid authentication |
-| 403 | Forbidden | Valid auth but insufficient permissions |
-| 404 | Not Found | Resource does not exist |
-| 409 | Conflict | Resource state conflict |
-| 422 | Unprocessable Entity | Validation error |
-| 429 | Too Many Requests | Rate limit exceeded |
-| 500 | Internal Server Error | Unexpected server error |
-| 502 | Bad Gateway | Upstream service error |
-| 503 | Service Unavailable | Service temporarily unavailable |
+| Status | Meaning               | Usage                                      |
+| ------ | --------------------- | ------------------------------------------ |
+| 200    | OK                    | Successful GET, PUT, DELETE                |
+| 201    | Created               | Successful POST creating resource          |
+| 202    | Accepted              | Async operation started                    |
+| 204    | No Content            | Successful operation with no response body |
+| 400    | Bad Request           | Invalid request syntax or parameters       |
+| 401    | Unauthorized          | Missing or invalid authentication          |
+| 403    | Forbidden             | Valid auth but insufficient permissions    |
+| 404    | Not Found             | Resource does not exist                    |
+| 409    | Conflict              | Resource state conflict                    |
+| 422    | Unprocessable Entity  | Validation error                           |
+| 429    | Too Many Requests     | Rate limit exceeded                        |
+| 500    | Internal Server Error | Unexpected server error                    |
+| 502    | Bad Gateway           | Upstream service error                     |
+| 503    | Service Unavailable   | Service temporarily unavailable            |
 
 ## 15.3 Application Error Codes
 
-### Authentication Errors (AUTH_*)
+### Authentication Errors (AUTH\_\*)
 
-| Code | Message | Resolution |
-|------|---------|------------|
-| AUTH_TOKEN_MISSING | Authorization token required | Include Bearer token in header |
-| AUTH_TOKEN_INVALID | Invalid authentication token | Check token format and validity |
-| AUTH_TOKEN_EXPIRED | Authentication token has expired | Refresh token or re-authenticate |
-| AUTH_REFRESH_INVALID | Invalid refresh token | Re-authenticate with credentials |
-| AUTH_MFA_REQUIRED | Multi-factor authentication required | Complete MFA challenge |
-| AUTH_SESSION_EXPIRED | Session has expired | Re-authenticate |
-| AUTH_IP_BLOCKED | IP address not in whitelist | Contact administrator |
+| Code                 | Message                              | Resolution                       |
+| -------------------- | ------------------------------------ | -------------------------------- |
+| AUTH_TOKEN_MISSING   | Authorization token required         | Include Bearer token in header   |
+| AUTH_TOKEN_INVALID   | Invalid authentication token         | Check token format and validity  |
+| AUTH_TOKEN_EXPIRED   | Authentication token has expired     | Refresh token or re-authenticate |
+| AUTH_REFRESH_INVALID | Invalid refresh token                | Re-authenticate with credentials |
+| AUTH_MFA_REQUIRED    | Multi-factor authentication required | Complete MFA challenge           |
+| AUTH_SESSION_EXPIRED | Session has expired                  | Re-authenticate                  |
+| AUTH_IP_BLOCKED      | IP address not in whitelist          | Contact administrator            |
 
-### Authorization Errors (AUTHZ_*)
+### Authorization Errors (AUTHZ\_\*)
 
-| Code | Message | Resolution |
-|------|---------|------------|
+| Code                    | Message                                  | Resolution                       |
+| ----------------------- | ---------------------------------------- | -------------------------------- |
 | AUTHZ_PERMISSION_DENIED | Insufficient permissions for this action | Contact administrator for access |
-| AUTHZ_ROLE_REQUIRED | This action requires a specific role | Verify user role |
-| AUTHZ_TENANT_MISMATCH | Resource belongs to different tenant | Check tenant context |
-| AUTHZ_RESOURCE_LOCKED | Resource is locked by another user | Wait or force unlock (admin) |
+| AUTHZ_ROLE_REQUIRED     | This action requires a specific role     | Verify user role                 |
+| AUTHZ_TENANT_MISMATCH   | Resource belongs to different tenant     | Check tenant context             |
+| AUTHZ_RESOURCE_LOCKED   | Resource is locked by another user       | Wait or force unlock (admin)     |
 
-### Validation Errors (VAL_*)
+### Validation Errors (VAL\_\*)
 
-| Code | Message | Resolution |
-|------|---------|------------|
-| VAL_REQUIRED_FIELD | Required field is missing | Provide required field |
-| VAL_INVALID_FORMAT | Field format is invalid | Check field format requirements |
-| VAL_OUT_OF_RANGE | Value is out of allowed range | Check min/max constraints |
-| VAL_INVALID_ENUM | Value not in allowed list | Check allowed values |
-| VAL_DUPLICATE | Duplicate value not allowed | Use unique value |
-| VAL_REFERENCE_INVALID | Referenced entity does not exist | Check referenced ID |
-| VAL_CUI_INVALID | Invalid CUI format | Use format: RO12345678 |
-| VAL_IBAN_INVALID | Invalid IBAN format | Use format: RO00XXXX... |
-| VAL_EMAIL_INVALID | Invalid email address | Check email format |
-| VAL_PHONE_INVALID | Invalid phone number | Use format: +40... |
+| Code                  | Message                          | Resolution                      |
+| --------------------- | -------------------------------- | ------------------------------- |
+| VAL_REQUIRED_FIELD    | Required field is missing        | Provide required field          |
+| VAL_INVALID_FORMAT    | Field format is invalid          | Check field format requirements |
+| VAL_OUT_OF_RANGE      | Value is out of allowed range    | Check min/max constraints       |
+| VAL_INVALID_ENUM      | Value not in allowed list        | Check allowed values            |
+| VAL_DUPLICATE         | Duplicate value not allowed      | Use unique value                |
+| VAL_REFERENCE_INVALID | Referenced entity does not exist | Check referenced ID             |
+| VAL_CUI_INVALID       | Invalid CUI format               | Use format: RO12345678          |
+| VAL_IBAN_INVALID      | Invalid IBAN format              | Use format: RO00XXXX...         |
+| VAL_EMAIL_INVALID     | Invalid email address            | Check email format              |
+| VAL_PHONE_INVALID     | Invalid phone number             | Use format: +40...              |
 
-### Resource Errors (RES_*)
+### Resource Errors (RES\_\*)
 
-| Code | Message | Resolution |
-|------|---------|------------|
-| RES_NOT_FOUND | Resource not found | Check resource ID |
-| RES_ALREADY_EXISTS | Resource already exists | Use unique identifier |
-| RES_DELETED | Resource has been deleted | Cannot access deleted resources |
-| RES_ARCHIVED | Resource has been archived | Restore before accessing |
-| RES_LOCKED | Resource is locked | Wait for unlock or contact admin |
+| Code               | Message                    | Resolution                       |
+| ------------------ | -------------------------- | -------------------------------- |
+| RES_NOT_FOUND      | Resource not found         | Check resource ID                |
+| RES_ALREADY_EXISTS | Resource already exists    | Use unique identifier            |
+| RES_DELETED        | Resource has been deleted  | Cannot access deleted resources  |
+| RES_ARCHIVED       | Resource has been archived | Restore before accessing         |
+| RES_LOCKED         | Resource is locked         | Wait for unlock or contact admin |
 
-### Business Logic Errors (BIZ_*)
+### Business Logic Errors (BIZ\_\*)
 
-| Code | Message | Resolution |
-|------|---------|------------|
-| BIZ_DISCOUNT_EXCEEDED | Discount exceeds maximum allowed | Request HITL approval |
-| BIZ_STOCK_INSUFFICIENT | Insufficient stock for quantity | Reduce quantity or check stock |
-| BIZ_NEGOTIATION_CLOSED | Negotiation is already closed | Create new negotiation |
-| BIZ_DOCUMENT_FINALIZED | Document is finalized and cannot be edited | Create correction document |
-| BIZ_APPROVAL_EXPIRED | Approval request has expired | Create new request |
-| BIZ_SLA_BREACHED | SLA deadline has been breached | Escalate or handle immediately |
-| BIZ_QUOTA_EXCEEDED | Usage quota exceeded | Upgrade plan or wait for reset |
+| Code                   | Message                                    | Resolution                     |
+| ---------------------- | ------------------------------------------ | ------------------------------ |
+| BIZ_DISCOUNT_EXCEEDED  | Discount exceeds maximum allowed           | Request HITL approval          |
+| BIZ_STOCK_INSUFFICIENT | Insufficient stock for quantity            | Reduce quantity or check stock |
+| BIZ_NEGOTIATION_CLOSED | Negotiation is already closed              | Create new negotiation         |
+| BIZ_DOCUMENT_FINALIZED | Document is finalized and cannot be edited | Create correction document     |
+| BIZ_APPROVAL_EXPIRED   | Approval request has expired               | Create new request             |
+| BIZ_SLA_BREACHED       | SLA deadline has been breached             | Escalate or handle immediately |
+| BIZ_QUOTA_EXCEEDED     | Usage quota exceeded                       | Upgrade plan or wait for reset |
 
-### Integration Errors (INT_*)
+### Integration Errors (INT\_\*)
 
-| Code | Message | Resolution |
-|------|---------|------------|
-| INT_ANAF_UNAVAILABLE | ANAF service unavailable | Retry later |
-| INT_ANAF_CUI_NOT_FOUND | CUI not found in ANAF registry | Verify CUI |
-| INT_EFACTURA_REJECTED | E-Factura submission rejected | Check validation errors |
-| INT_EFACTURA_CERT_INVALID | E-Factura certificate invalid | Update certificate |
-| INT_OBLIO_AUTH_FAILED | Oblio authentication failed | Check API key |
-| INT_OBLIO_SYNC_ERROR | Oblio synchronization failed | Check Oblio status |
-| INT_HUNTER_QUOTA | Hunter.io quota exceeded | Wait for quota reset |
-| INT_EMAIL_DELIVERY_FAILED | Email delivery failed | Check email configuration |
+| Code                      | Message                        | Resolution                |
+| ------------------------- | ------------------------------ | ------------------------- |
+| INT_ANAF_UNAVAILABLE      | ANAF service unavailable       | Retry later               |
+| INT_ANAF_CUI_NOT_FOUND    | CUI not found in ANAF registry | Verify CUI                |
+| INT_EFACTURA_REJECTED     | E-Factura submission rejected  | Check validation errors   |
+| INT_EFACTURA_CERT_INVALID | E-Factura certificate invalid  | Update certificate        |
+| INT_OBLIO_AUTH_FAILED     | Oblio authentication failed    | Check API key             |
+| INT_OBLIO_SYNC_ERROR      | Oblio synchronization failed   | Check Oblio status        |
+| INT_HUNTER_QUOTA          | Hunter.io quota exceeded       | Wait for quota reset      |
+| INT_EMAIL_DELIVERY_FAILED | Email delivery failed          | Check email configuration |
 
-### AI Errors (AI_*)
+### AI Errors (AI\_\*)
 
-| Code | Message | Resolution |
-|------|---------|------------|
-| AI_MODEL_UNAVAILABLE | AI model is unavailable | Try fallback model |
-| AI_QUOTA_EXCEEDED | AI usage quota exceeded | Wait for reset or upgrade |
-| AI_GUARDRAIL_BLOCKED | Response blocked by guardrail | Review and manually respond |
-| AI_CONTEXT_TOO_LONG | Conversation context exceeds limit | Summarize or start new |
-| AI_CONFIDENCE_LOW | AI confidence below threshold | Human review required |
-| AI_TIMEOUT | AI processing timeout | Retry with simpler query |
+| Code                 | Message                            | Resolution                  |
+| -------------------- | ---------------------------------- | --------------------------- |
+| AI_MODEL_UNAVAILABLE | AI model is unavailable            | Try fallback model          |
+| AI_QUOTA_EXCEEDED    | AI usage quota exceeded            | Wait for reset or upgrade   |
+| AI_GUARDRAIL_BLOCKED | Response blocked by guardrail      | Review and manually respond |
+| AI_CONTEXT_TOO_LONG  | Conversation context exceeds limit | Summarize or start new      |
+| AI_CONFIDENCE_LOW    | AI confidence below threshold      | Human review required       |
+| AI_TIMEOUT           | AI processing timeout              | Retry with simpler query    |
 
-### System Errors (SYS_*)
+### System Errors (SYS\_\*)
 
-| Code | Message | Resolution |
-|------|---------|------------|
-| SYS_INTERNAL_ERROR | Internal server error | Contact support with requestId |
-| SYS_DATABASE_ERROR | Database operation failed | Retry later |
-| SYS_QUEUE_ERROR | Message queue error | Retry later |
-| SYS_STORAGE_ERROR | Storage operation failed | Retry later |
-| SYS_MAINTENANCE | System under maintenance | Try again after maintenance |
+| Code               | Message                   | Resolution                     |
+| ------------------ | ------------------------- | ------------------------------ |
+| SYS_INTERNAL_ERROR | Internal server error     | Contact support with requestId |
+| SYS_DATABASE_ERROR | Database operation failed | Retry later                    |
+| SYS_QUEUE_ERROR    | Message queue error       | Retry later                    |
+| SYS_STORAGE_ERROR  | Storage operation failed  | Retry later                    |
+| SYS_MAINTENANCE    | System under maintenance  | Try again after maintenance    |
 
 ## 15.4 Error Response Examples
 
@@ -5166,33 +5238,33 @@ Retry-After: 60                   # Seconds to wait (only when limited)
 
 ### By Plan
 
-| Plan | Requests/Hour | Requests/Day | AI Requests/Day |
-|------|---------------|--------------|-----------------|
-| Starter | 500 | 5,000 | 500 |
-| Professional | 2,000 | 20,000 | 2,000 |
-| Enterprise | 10,000 | 100,000 | 10,000 |
+| Plan         | Requests/Hour | Requests/Day | AI Requests/Day |
+| ------------ | ------------- | ------------ | --------------- |
+| Starter      | 500           | 5,000        | 500             |
+| Professional | 2,000         | 20,000       | 2,000           |
+| Enterprise   | 10,000        | 100,000      | 10,000          |
 
 ### By Endpoint Category
 
-| Category | Limit/Minute | Burst Limit |
-|----------|--------------|-------------|
-| Read (GET) | 100 | 150 |
-| Write (POST/PUT) | 30 | 50 |
-| Delete | 10 | 20 |
-| Search | 20 | 30 |
-| AI Operations | 10 | 15 |
-| Bulk Operations | 5 | 10 |
-| Export | 3 | 5 |
+| Category         | Limit/Minute | Burst Limit |
+| ---------------- | ------------ | ----------- |
+| Read (GET)       | 100          | 150         |
+| Write (POST/PUT) | 30           | 50          |
+| Delete           | 10           | 20          |
+| Search           | 20           | 30          |
+| AI Operations    | 10           | 15          |
+| Bulk Operations  | 5            | 10          |
+| Export           | 3            | 5           |
 
 ### Special Endpoints
 
-| Endpoint | Limit | Notes |
-|----------|-------|-------|
-| /api/v1/auth/login | 5/minute | Per IP |
-| /api/v1/ai/process | 10/minute | Per tenant |
-| /api/v1/fiscal/efactura/submit | 100/day | ANAF limitation |
-| /api/v1/analytics/export | 10/hour | Heavy operation |
-| /api/v1/webhooks/:id/test | 10/hour | Testing limit |
+| Endpoint                       | Limit     | Notes           |
+| ------------------------------ | --------- | --------------- |
+| /api/v1/auth/login             | 5/minute  | Per IP          |
+| /api/v1/ai/process             | 10/minute | Per tenant      |
+| /api/v1/fiscal/efactura/submit | 100/day   | ANAF limitation |
+| /api/v1/analytics/export       | 10/hour   | Heavy operation |
+| /api/v1/webhooks/:id/test      | 10/hour   | Testing limit   |
 
 ## 16.3 Rate Limit Response
 
@@ -5221,6 +5293,7 @@ HTTP Status: 429 Too Many Requests
 ### Sliding Window
 
 Most endpoints use sliding window rate limiting:
+
 - Smoother distribution of requests
 - No burst at window boundaries
 - More accurate rate measurement
@@ -5228,6 +5301,7 @@ Most endpoints use sliding window rate limiting:
 ### Token Bucket (AI Endpoints)
 
 AI endpoints use token bucket algorithm:
+
 - Allows controlled bursts
 - Tokens regenerate over time
 - Better for variable workloads
@@ -5235,6 +5309,7 @@ AI endpoints use token bucket algorithm:
 ### Fixed Window (Auth Endpoints)
 
 Authentication endpoints use fixed windows:
+
 - Simpler for security-sensitive operations
 - Clear reset times
 - Prevents credential stuffing
@@ -5246,22 +5321,26 @@ Authentication endpoints use fixed windows:
 ```typescript
 async function apiRequest(url: string, options: RequestInit) {
   const response = await fetch(url, options);
-  
+
   // Check rate limit headers
-  const remaining = parseInt(response.headers.get('X-RateLimit-Remaining') || '0');
-  const reset = parseInt(response.headers.get('X-RateLimit-Reset') || '0');
-  
+  const remaining = parseInt(
+    response.headers.get("X-RateLimit-Remaining") || "0",
+  );
+  const reset = parseInt(response.headers.get("X-RateLimit-Reset") || "0");
+
   if (response.status === 429) {
-    const retryAfter = parseInt(response.headers.get('Retry-After') || '60');
+    const retryAfter = parseInt(response.headers.get("Retry-After") || "60");
     await sleep(retryAfter * 1000);
     return apiRequest(url, options); // Retry
   }
-  
+
   // Proactive throttling when low
   if (remaining < 10) {
-    console.warn(`Low rate limit: ${remaining} remaining, resets at ${new Date(reset * 1000)}`);
+    console.warn(
+      `Low rate limit: ${remaining} remaining, resets at ${new Date(reset * 1000)}`,
+    );
   }
-  
+
   return response;
 }
 ```
@@ -5291,7 +5370,7 @@ interface RateLimitStatusResponse {
       aiRequestsPerDay: number;
     };
   };
-  
+
   current: {
     hourly: {
       used: number;
@@ -5309,7 +5388,7 @@ interface RateLimitStatusResponse {
       resetsAt: string;
     };
   };
-  
+
   byEndpoint: {
     endpoint: string;
     used: number;
@@ -5327,19 +5406,20 @@ interface RateLimitStatusResponse {
 
 ## 17.1 Common Query Parameters
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| page | number | Page number (1-indexed) |
-| limit | number | Items per page (max 100) |
-| sortBy | string | Field to sort by |
-| sortOrder | 'asc' \| 'desc' | Sort direction |
-| search | string | Full-text search query |
-| fields | string | Comma-separated fields to include |
-| include | string | Comma-separated relations to include |
+| Parameter | Type            | Description                          |
+| --------- | --------------- | ------------------------------------ |
+| page      | number          | Page number (1-indexed)              |
+| limit     | number          | Items per page (max 100)             |
+| sortBy    | string          | Field to sort by                     |
+| sortOrder | 'asc' \| 'desc' | Sort direction                       |
+| search    | string          | Full-text search query               |
+| fields    | string          | Comma-separated fields to include    |
+| include   | string          | Comma-separated relations to include |
 
 ## 17.2 Date/Time Formats
 
 All dates use ISO 8601 format:
+
 - Full datetime: `2026-01-18T14:30:00Z`
 - Date only: `2026-01-18`
 - Time only: `14:30:00`
@@ -5372,12 +5452,14 @@ interface PaginatedResponse<T> {
 ## 17.5 SDK Support
 
 Official SDKs available:
+
 - TypeScript/JavaScript: `@cerniq/sdk`
 - Python: `cerniq-sdk`
 
 ## 17.6 API Changelog
 
 ### v1.0.0 (2026-01-18)
+
 - Initial release
 - Full CRUD for products, negotiations, documents
 - AI agent integration

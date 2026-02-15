@@ -33,9 +33,9 @@ Acest runbook documentează procedurile operaționale pentru Etapa 1 (Data Enric
 
 ```bash
 # 1. Check import status
-SELECT id, status, progress_percent, total_rows, processed_rows, 
+SELECT id, status, progress_percent, total_rows, processed_rows,
        error_message, started_at
-FROM bronze_import_batches 
+FROM bronze_import_batches
 WHERE id = '<import_id>';
 
 # 2. Check worker health
@@ -47,8 +47,8 @@ redis-cli LLEN bull:bronze:ingest:csv:active
 redis-cli LLEN bull:bronze:ingest:csv:failed
 
 # 4. Check for stuck jobs
-SELECT * FROM pg_stat_activity 
-WHERE state = 'active' 
+SELECT * FROM pg_stat_activity
+WHERE state = 'active'
 AND query LIKE '%bronze%';
 ```
 
@@ -69,8 +69,8 @@ redis-cli EVAL "
 " 0
 
 # Option C: Cancel import and allow retry
-UPDATE bronze_import_batches 
-SET status = 'cancelled', 
+UPDATE bronze_import_batches
+SET status = 'cancelled',
     error_message = 'Manually cancelled - stuck processing'
 WHERE id = '<import_id>';
 ```
@@ -127,7 +127,7 @@ docker restart cerniq-workers-enrichment
 
 ```sql
 -- Check breached tasks
-SELECT id, approval_type, priority, due_at, 
+SELECT id, approval_type, priority, due_at,
        assigned_to, escalation_level,
        NOW() - due_at as overdue_by
 FROM approval_tasks
@@ -154,15 +154,15 @@ curl -X POST https://api.cerniq.app/api/v1/approvals/<task_id>/escalate \
   -d '{"escalateTo": "<manager_user_id>", "reason": "SLA breach - manual escalation"}'
 
 # 2. Redistribute workload
-UPDATE approval_tasks 
+UPDATE approval_tasks
 SET assigned_to = NULL, status = 'pending'
-WHERE status = 'assigned' 
+WHERE status = 'assigned'
   AND assigned_to = '<overloaded_user_id>'
   AND due_at < NOW() + INTERVAL '2 hours';
 
 # 3. Auto-approve low-risk items (if policy allows)
 -- Only for specific approval types with high confidence
-UPDATE approval_tasks 
+UPDATE approval_tasks
 SET status = 'approved',
     decision = 'approve',
     decision_reason = 'Auto-approved due to SLA breach',
@@ -300,7 +300,7 @@ SELECT COUNT(*) as orphan_silver
 FROM silver_companies sc
 WHERE sc.source_bronze_id IS NOT NULL
   AND NOT EXISTS (
-    SELECT 1 FROM bronze_contacts bc 
+    SELECT 1 FROM bronze_contacts bc
     WHERE bc.id = sc.source_bronze_id
   );
 EOF
@@ -315,7 +315,7 @@ echo "Weekly maintenance completed at $(date)"
 
 ```sql
 -- Check index health
-SELECT 
+SELECT
   schemaname,
   tablename,
   indexname,
@@ -328,7 +328,7 @@ WHERE schemaname = 'public'
 ORDER BY idx_scan DESC;
 
 -- Identify unused indexes
-SELECT 
+SELECT
   indexrelid::regclass as index,
   relid::regclass as table,
   pg_size_pretty(pg_relation_size(indexrelid)) as size
@@ -337,7 +337,7 @@ WHERE idx_scan = 0
   AND indexrelid NOT IN (SELECT conindid FROM pg_constraint);
 
 -- Identify bloated indexes
-SELECT 
+SELECT
   nspname || '.' || relname as index,
   pg_size_pretty(pg_relation_size(oid)) as size,
   100 - (100 * avg_leaf_density) as bloat_percent
@@ -355,62 +355,64 @@ WHERE avg_leaf_density < 0.9;
 # grafana/dashboards/etapa1-overview.json
 {
   "title": "Etapa 1 - Data Pipeline Overview",
-  "panels": [
-    {
-      "title": "Pipeline Funnel",
-      "type": "stat",
-      "queries": [
-        {
-          "name": "Bronze Total",
-          "query": "SELECT COUNT(*) FROM bronze_contacts WHERE tenant_id = $tenant_id"
-        },
-        {
-          "name": "Silver Total",
-          "query": "SELECT COUNT(*) FROM silver_companies WHERE tenant_id = $tenant_id AND is_master_record = true"
-        },
-        {
-          "name": "Gold Total",
-          "query": "SELECT COUNT(*) FROM gold_companies WHERE tenant_id = $tenant_id"
-        }
-      ]
-    },
-    {
-      "title": "Enrichment Queue Depth",
-      "type": "timeseries",
-      "queries": [
-        {
-          "name": "ANAF Queue",
-          "query": "sum(bullmq_queue_waiting{queue=~\".*anaf.*\"})"
-        },
-        {
-          "name": "Termene Queue",
-          "query": "sum(bullmq_queue_waiting{queue=~\".*termene.*\"})"
-        }
-      ]
-    },
-    {
-      "title": "Quality Score Distribution",
-      "type": "histogram",
-      "queries": [
-        {
-          "query": "SELECT total_quality_score, COUNT(*) FROM silver_companies GROUP BY total_quality_score ORDER BY total_quality_score"
-        }
-      ]
-    },
-    {
-      "title": "HITL Pending Tasks",
-      "type": "gauge",
-      "queries": [
-        {
-          "query": "SELECT COUNT(*) FROM approval_tasks WHERE status = 'pending'"
-        }
-      ],
-      "thresholds": {
-        "warning": 50,
-        "critical": 100
-      }
-    }
-  ]
+  "panels":
+    [
+      {
+        "title": "Pipeline Funnel",
+        "type": "stat",
+        "queries":
+          [
+            {
+              "name": "Bronze Total",
+              "query": "SELECT COUNT(*) FROM bronze_contacts WHERE tenant_id = $tenant_id",
+            },
+            {
+              "name": "Silver Total",
+              "query": "SELECT COUNT(*) FROM silver_companies WHERE tenant_id = $tenant_id AND is_master_record = true",
+            },
+            {
+              "name": "Gold Total",
+              "query": "SELECT COUNT(*) FROM gold_companies WHERE tenant_id = $tenant_id",
+            },
+          ],
+      },
+      {
+        "title": "Enrichment Queue Depth",
+        "type": "timeseries",
+        "queries":
+          [
+            {
+              "name": "ANAF Queue",
+              "query": 'sum(bullmq_queue_waiting{queue=~".*anaf.*"})',
+            },
+            {
+              "name": "Termene Queue",
+              "query": 'sum(bullmq_queue_waiting{queue=~".*termene.*"})',
+            },
+          ],
+      },
+      {
+        "title": "Quality Score Distribution",
+        "type": "histogram",
+        "queries":
+          [
+            {
+              "query": "SELECT total_quality_score, COUNT(*) FROM silver_companies GROUP BY total_quality_score ORDER BY total_quality_score",
+            },
+          ],
+      },
+      {
+        "title": "HITL Pending Tasks",
+        "type": "gauge",
+        "queries":
+          [
+            {
+              "query": "SELECT COUNT(*) FROM approval_tasks WHERE status = 'pending'",
+            },
+          ],
+        "thresholds": { "warning": 50, "critical": 100 },
+      },
+    ],
 }
 ```
 
@@ -420,19 +422,25 @@ Instead of manual `prom-client` instantiation, use the shared OTel Meter provide
 
 ```typescript
 // packages/observability/src/metrics.ts
-import { metrics } from '@opentelemetry/api';
+import { metrics } from "@opentelemetry/api";
 
-const meter = metrics.getMeter('cerniq-worker');
+const meter = metrics.getMeter("cerniq-worker");
 
 // Bronze metrics
-export const bronzeContactsIngested = meter.createCounter('cerniq_bronze_contacts_ingested', {
-  description: 'Total number of bronze contacts ingested',
-});
+export const bronzeContactsIngested = meter.createCounter(
+  "cerniq_bronze_contacts_ingested",
+  {
+    description: "Total number of bronze contacts ingested",
+  },
+);
 
-export const bronzeProcessingDuration = meter.createHistogram('cerniq_bronze_processing_duration', {
-  description: 'Duration of bronze contact processing',
-  unit: 'ms'
-});
+export const bronzeProcessingDuration = meter.createHistogram(
+  "cerniq_bronze_processing_duration",
+  {
+    description: "Duration of bronze contact processing",
+    unit: "ms",
+  },
+);
 ```
 
 **Queue Metrics:**
@@ -650,12 +658,12 @@ groups:
 
 ### 5.1 Severity Levels
 
-| Level | Description | Response Time | Examples |
-| ------- | ------------- | --------------- | ---------- |
-| **SEV1** | Complete outage | 15 min | Database down, all workers crashed |
-| **SEV2** | Major degradation | 1 hour | >50% enrichment failures, HITL completely stalled |
-| **SEV3** | Minor degradation | 4 hours | Single API source down, slow processing |
-| **SEV4** | Cosmetic/minor | 24 hours | Dashboard issues, logging gaps |
+| Level    | Description       | Response Time | Examples                                          |
+| -------- | ----------------- | ------------- | ------------------------------------------------- |
+| **SEV1** | Complete outage   | 15 min        | Database down, all workers crashed                |
+| **SEV2** | Major degradation | 1 hour        | >50% enrichment failures, HITL completely stalled |
+| **SEV3** | Minor degradation | 4 hours       | Single API source down, slow processing           |
+| **SEV4** | Cosmetic/minor    | 24 hours      | Dashboard issues, logging gaps                    |
 
 ### 5.2 Incident Response Template
 
@@ -663,6 +671,7 @@ groups:
 # Incident Report: [INCIDENT_ID]
 
 ## Summary
+
 - **Severity:** SEV[1-4]
 - **Status:** [Active/Mitigated/Resolved]
 - **Start Time:** [timestamp]
@@ -671,42 +680,48 @@ groups:
 - **Affected Services:** [list]
 
 ## Timeline
-| Time | Event | Actor |
-| ------ | ------- | ------- |
-| HH:MM | Alert triggered | System |
-| HH:MM | On-call acknowledged | [name] |
+
+| Time  | Event                 | Actor  |
+| ----- | --------------------- | ------ |
+| HH:MM | Alert triggered       | System |
+| HH:MM | On-call acknowledged  | [name] |
 | HH:MM | Root cause identified | [name] |
-| HH:MM | Fix deployed | [name] |
-| HH:MM | Incident resolved | [name] |
+| HH:MM | Fix deployed          | [name] |
+| HH:MM | Incident resolved     | [name] |
 
 ## Root Cause
+
 [Detailed description]
 
 ## Impact
-- [X] bronze contacts affected
+
+- [x] bronze contacts affected
 - [Y] silver companies delayed
 - [Z] approval tasks breached SLA
 
 ## Resolution
+
 [Steps taken to resolve]
 
 ## Action Items
+
 - [ ] [Action item 1]
 - [ ] [Action item 2]
 
 ## Lessons Learned
+
 [What we learned and how to prevent recurrence]
 ```
 
 ### 5.3 Escalation Matrix
 
-| Time Elapsed | Action |
-| ------------ | -------- |
-| 0 min | Alert fired, on-call paged |
-| 15 min (SEV1) | Escalate to team lead |
-| 30 min (SEV1) | Escalate to engineering manager |
-| 1 hour (SEV1) | Executive notification |
-| 1 hour (SEV2) | Escalate to team lead |
+| Time Elapsed   | Action                          |
+| -------------- | ------------------------------- |
+| 0 min          | Alert fired, on-call paged      |
+| 15 min (SEV1)  | Escalate to team lead           |
+| 30 min (SEV1)  | Escalate to engineering manager |
+| 1 hour (SEV1)  | Executive notification          |
+| 1 hour (SEV2)  | Escalate to team lead           |
 | 4 hours (SEV2) | Escalate to engineering manager |
 
 ---
@@ -717,7 +732,7 @@ groups:
 
 ```sql
 -- Daily ingestion capacity
-SELECT 
+SELECT
   DATE(created_at) as date,
   COUNT(*) as contacts_ingested,
   AVG(EXTRACT(EPOCH FROM (processed_at - created_at))) as avg_processing_seconds
@@ -727,7 +742,7 @@ GROUP BY DATE(created_at)
 ORDER BY date DESC;
 
 -- Enrichment throughput
-SELECT 
+SELECT
   source,
   DATE(created_at) as date,
   COUNT(*) as enrichments,
@@ -738,11 +753,11 @@ GROUP BY source, DATE(created_at)
 ORDER BY date DESC, source;
 
 -- HITL capacity
-SELECT 
+SELECT
   DATE(created_at) as date,
   COUNT(*) as tasks_created,
   COUNT(*) FILTER (WHERE decided_at IS NOT NULL) as tasks_resolved,
-  AVG(EXTRACT(EPOCH FROM (decided_at - created_at))/3600) 
+  AVG(EXTRACT(EPOCH FROM (decided_at - created_at))/3600)
     FILTER (WHERE decided_at IS NOT NULL) as avg_resolution_hours
 FROM approval_tasks
 WHERE created_at > NOW() - INTERVAL '30 days'
@@ -752,13 +767,13 @@ ORDER BY date DESC;
 
 ### 6.2 Scaling Thresholds
 
-| Metric | Warning | Critical | Scale Action |
-| -------- | --------- | ---------- | -------------- |
-| Queue depth (waiting) | > 1000 | > 5000 | Add workers |
-| Processing latency | > 5 min | > 15 min | Add workers |
-| Database connections | > 60% | > 80% | Connection pooling |
-| Memory usage | > 70% | > 85% | Add RAM |
-| Disk usage | > 70% | > 85% | Archive data |
+| Metric                | Warning | Critical | Scale Action       |
+| --------------------- | ------- | -------- | ------------------ |
+| Queue depth (waiting) | > 1000  | > 5000   | Add workers        |
+| Processing latency    | > 5 min | > 15 min | Add workers        |
+| Database connections  | > 60%   | > 80%    | Connection pooling |
+| Memory usage          | > 70%   | > 85%    | Add RAM            |
+| Disk usage            | > 70%   | > 85%    | Archive data       |
 
 ---
 

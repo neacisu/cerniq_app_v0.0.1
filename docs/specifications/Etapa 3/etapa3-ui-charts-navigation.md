@@ -67,14 +67,14 @@
 
 ### 1.2 Technology Stack
 
-| Component | Library | Version | Purpose |
-|-----------|---------|---------|---------|
-| Charts | Recharts | 2.15.x | Primary charting library |
-| KPI Cards | Tremor | 3.18.x | Dashboard metrics |
-| Custom Viz | D3.js | 7.9.x | Complex visualizations |
-| Maps | Leaflet | 1.9.x | Geographic data |
-| Date Ranges | date-fns | 4.1.x | Date utilities |
-| Navigation | Next.js App Router | 15.x | Routing & navigation |
+| Component   | Library            | Version | Purpose                  |
+| ----------- | ------------------ | ------- | ------------------------ |
+| Charts      | Recharts           | 2.15.x  | Primary charting library |
+| KPI Cards   | Tremor             | 3.18.x  | Dashboard metrics        |
+| Custom Viz  | D3.js              | 7.9.x   | Complex visualizations   |
+| Maps        | Leaflet            | 1.9.x   | Geographic data          |
+| Date Ranges | date-fns           | 4.1.x   | Date utilities           |
+| Navigation  | Next.js App Router | 15.x    | Routing & navigation     |
 
 ---
 
@@ -84,9 +84,9 @@
 
 ```typescript
 // lib/charts/config.ts
-'use client';
+"use client";
 
-import { 
+import {
   ResponsiveContainer,
   ComposedChart,
   XAxis,
@@ -94,76 +94,75 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-} from 'recharts';
+} from "recharts";
 
 export const CHART_COLORS = {
-  primary: 'hsl(var(--primary))',
-  secondary: 'hsl(var(--secondary))',
-  success: 'hsl(142.1 76.2% 36.3%)',
-  warning: 'hsl(38 92% 50%)',
-  danger: 'hsl(0 84.2% 60.2%)',
-  info: 'hsl(217.2 91.2% 59.8%)',
-  muted: 'hsl(var(--muted))',
-  
+  primary: "hsl(var(--primary))",
+  secondary: "hsl(var(--secondary))",
+  success: "hsl(142.1 76.2% 36.3%)",
+  warning: "hsl(38 92% 50%)",
+  danger: "hsl(0 84.2% 60.2%)",
+  info: "hsl(217.2 91.2% 59.8%)",
+  muted: "hsl(var(--muted))",
+
   // Series colors
   series: [
-    'hsl(217.2 91.2% 59.8%)',   // Blue
-    'hsl(142.1 76.2% 36.3%)',   // Green
-    'hsl(38 92% 50%)',          // Orange
-    'hsl(262.1 83.3% 57.8%)',   // Purple
-    'hsl(0 84.2% 60.2%)',       // Red
-    'hsl(173 80% 40%)',         // Teal
-    'hsl(45 93% 47%)',          // Yellow
-    'hsl(330 81% 60%)',         // Pink
+    "hsl(217.2 91.2% 59.8%)", // Blue
+    "hsl(142.1 76.2% 36.3%)", // Green
+    "hsl(38 92% 50%)", // Orange
+    "hsl(262.1 83.3% 57.8%)", // Purple
+    "hsl(0 84.2% 60.2%)", // Red
+    "hsl(173 80% 40%)", // Teal
+    "hsl(45 93% 47%)", // Yellow
+    "hsl(330 81% 60%)", // Pink
   ],
 } as const;
 
 export const CHART_CONFIG = {
   margin: { top: 20, right: 30, left: 20, bottom: 20 },
-  gridStroke: 'hsl(var(--border))',
-  axisStroke: 'hsl(var(--muted-foreground))',
+  gridStroke: "hsl(var(--border))",
+  axisStroke: "hsl(var(--muted-foreground))",
   fontSize: 12,
-  fontFamily: 'Inter, system-ui, sans-serif',
+  fontFamily: "Inter, system-ui, sans-serif",
   animationDuration: 300,
 } as const;
 
 export const formatters = {
-  currency: (value: number) => 
-    new Intl.NumberFormat('ro-RO', {
-      style: 'currency',
-      currency: 'RON',
+  currency: (value: number) =>
+    new Intl.NumberFormat("ro-RO", {
+      style: "currency",
+      currency: "RON",
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(value),
-    
-  percentage: (value: number) => 
-    new Intl.NumberFormat('ro-RO', {
-      style: 'percent',
+
+  percentage: (value: number) =>
+    new Intl.NumberFormat("ro-RO", {
+      style: "percent",
       minimumFractionDigits: 1,
       maximumFractionDigits: 1,
     }).format(value / 100),
-    
-  number: (value: number) => 
-    new Intl.NumberFormat('ro-RO').format(value),
-    
+
+  number: (value: number) => new Intl.NumberFormat("ro-RO").format(value),
+
   compact: (value: number) => {
     if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
     if (value >= 1000) return `${(value / 1000).toFixed(1)}K`;
     return value.toString();
   },
-  
-  date: (value: string | Date) => 
-    new Intl.DateTimeFormat('ro-RO', {
-      day: 'numeric',
-      month: 'short',
+
+  date: (value: string | Date) =>
+    new Intl.DateTimeFormat("ro-RO", {
+      day: "numeric",
+      month: "short",
     }).format(new Date(value)),
-    
-  dateTime: (value: string | Date) => 
-    new Intl.DateTimeFormat('ro-RO', {
-      day: 'numeric',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
+
+  dateTime: (value: string | Date) =>
+    new Intl.DateTimeFormat("ro-RO", {
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
     }).format(new Date(value)),
 };
 ```
@@ -189,7 +188,7 @@ const ChartThemeContext = createContext<ChartTheme | null>(null);
 export function ChartThemeProvider({ children }: { children: React.ReactNode }) {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
-  
+
   const value = useMemo(() => ({
     colors: CHART_COLORS,
     config: {
@@ -199,7 +198,7 @@ export function ChartThemeProvider({ children }: { children: React.ReactNode }) 
     },
     isDark,
   }), [isDark]);
-  
+
   return (
     <ChartThemeContext.Provider value={value}>
       {children}
@@ -229,11 +228,11 @@ export function useChartTheme() {
 import { ReactNode, forwardRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { Download, MoreHorizontal, Maximize2, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -275,10 +274,10 @@ export const ChartContainer = forwardRef<HTMLDivElement, ChartContainerProps>(
               <CardDescription>{description}</CardDescription>
             )}
           </div>
-          
+
           <div className="flex items-center gap-2">
             {actions}
-            
+
             {onRefresh && (
               <Button
                 variant="ghost"
@@ -291,7 +290,7 @@ export const ChartContainer = forwardRef<HTMLDivElement, ChartContainerProps>(
                 <span className="sr-only">Reîmprospătează</span>
               </Button>
             )}
-            
+
             {(onExport || onExpand) && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -328,9 +327,9 @@ export const ChartContainer = forwardRef<HTMLDivElement, ChartContainerProps>(
             )}
           </div>
         </CardHeader>
-        
+
         <CardContent>
-          <div 
+          <div
             style={{ height: typeof height === 'number' ? `${height}px` : height }}
             className="relative"
           >
@@ -394,8 +393,8 @@ export function ResponsiveChart({
   maxHeight = 600,
 }: ResponsiveChartProps) {
   return (
-    <ResponsiveContainer 
-      width="100%" 
+    <ResponsiveContainer
+      width="100%"
       height="100%"
       aspect={aspect}
       minHeight={minHeight}
@@ -441,9 +440,9 @@ export function CustomTooltip({
   className,
 }: CustomTooltipProps) {
   if (!active || !payload?.length) return null;
-  
+
   return (
-    <div 
+    <div
       className={cn(
         'bg-popover text-popover-foreground rounded-lg border shadow-lg p-3',
         className
@@ -455,14 +454,14 @@ export function CustomTooltip({
       <div className="space-y-1">
         {payload.map((entry, index) => (
           <div key={index} className="flex items-center gap-2 text-sm">
-            <div 
-              className="w-3 h-3 rounded-full" 
+            <div
+              className="w-3 h-3 rounded-full"
               style={{ backgroundColor: entry.color }}
             />
             <span className="text-muted-foreground">{entry.name}:</span>
             <span className="font-medium">
-              {formatter 
-                ? formatter(entry.value, entry.name) 
+              {formatter
+                ? formatter(entry.value, entry.name)
                 : entry.value.toLocaleString('ro-RO')
               }
             </span>
@@ -502,9 +501,9 @@ export function CustomLegend({
   align = 'center',
 }: CustomLegendProps) {
   if (!payload?.length) return null;
-  
+
   return (
-    <div 
+    <div
       className={cn(
         'flex gap-4 text-sm',
         layout === 'vertical' ? 'flex-col' : 'flex-wrap',
@@ -515,8 +514,8 @@ export function CustomLegend({
     >
       {payload.map((entry, index) => (
         <div key={index} className="flex items-center gap-2">
-          <div 
-            className="w-3 h-3 rounded-full" 
+          <div
+            className="w-3 h-3 rounded-full"
             style={{ backgroundColor: entry.color }}
           />
           <span className="text-muted-foreground">{entry.value}</span>
@@ -538,12 +537,12 @@ export function CustomLegend({
 'use client';
 
 import { useMemo } from 'react';
-import { 
-  FunnelChart, 
-  Funnel, 
-  LabelList, 
-  Tooltip, 
-  ResponsiveContainer 
+import {
+  FunnelChart,
+  Funnel,
+  LabelList,
+  Tooltip,
+  ResponsiveContainer
 } from 'recharts';
 import { ChartContainer } from '../chart-container';
 import { CustomTooltip } from '../custom-tooltip';
@@ -573,17 +572,17 @@ export function SalesFunnelChart({
   onRefresh,
 }: SalesFunnelChartProps) {
   const { colors } = useChartTheme();
-  
+
   const chartData = useMemo(() => {
     return data.map((stage, index) => ({
       ...stage,
       fill: stage.color || colors.series[index % colors.series.length],
-      conversionRate: index > 0 
+      conversionRate: index > 0
         ? ((stage.value / data[index - 1].value) * 100).toFixed(1)
         : '100',
     }));
   }, [data, colors]);
-  
+
   return (
     <ChartContainer
       title={title}
@@ -685,14 +684,14 @@ export function RevenueTrendChart({
   onRefresh,
 }: RevenueTrendChartProps) {
   const { colors, config } = useChartTheme();
-  
+
   const processedData = useMemo(() => {
     return data.map(point => ({
       ...point,
       formattedDate: formatters.date(point.date),
     }));
   }, [data]);
-  
+
   return (
     <ChartContainer
       title={title}
@@ -703,9 +702,9 @@ export function RevenueTrendChart({
     >
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={processedData} margin={config.margin}>
-          <CartesianGrid 
-            strokeDasharray="3 3" 
-            stroke={config.gridStroke} 
+          <CartesianGrid
+            strokeDasharray="3 3"
+            stroke={config.gridStroke}
             vertical={false}
           />
           <XAxis
@@ -732,7 +731,7 @@ export function RevenueTrendChart({
             axisLine={false}
             tickFormatter={(value) => formatters.compact(value)}
           />
-          
+
           <Tooltip
             content={({ active, payload, label }) => (
               <CustomTooltip
@@ -748,9 +747,9 @@ export function RevenueTrendChart({
               />
             )}
           />
-          
+
           <Legend content={<CustomLegend />} />
-          
+
           {/* Revenue Area */}
           <Area
             yAxisId="left"
@@ -762,7 +761,7 @@ export function RevenueTrendChart({
             fillOpacity={0.2}
             strokeWidth={2}
           />
-          
+
           {/* Orders Bars */}
           <Bar
             yAxisId="right"
@@ -772,7 +771,7 @@ export function RevenueTrendChart({
             radius={[4, 4, 0, 0]}
             barSize={20}
           />
-          
+
           {/* Target Line */}
           {showTarget && (
             <Line
@@ -786,7 +785,7 @@ export function RevenueTrendChart({
               dot={false}
             />
           )}
-          
+
           {/* Previous Period Line */}
           {showPreviousPeriod && (
             <Line
@@ -851,12 +850,12 @@ export function SalesByCategoryChart({
   onRefresh,
 }: SalesByCategoryChartProps) {
   const { colors } = useChartTheme();
-  
-  const total = useMemo(() => 
-    data.reduce((sum, item) => sum + item.value, 0), 
+
+  const total = useMemo(() =>
+    data.reduce((sum, item) => sum + item.value, 0),
     [data]
   );
-  
+
   const chartData = useMemo(() => {
     return data.map((item, index) => ({
       ...item,
@@ -864,10 +863,10 @@ export function SalesByCategoryChart({
       fill: colors.series[index % colors.series.length],
     }));
   }, [data, total, colors]);
-  
-  const renderLabel = ({ name, percentage }: any) => 
+
+  const renderLabel = ({ name, percentage }: any) =>
     `${name}: ${percentage}%`;
-  
+
   return (
     <ChartContainer
       title={title}
@@ -893,7 +892,7 @@ export function SalesByCategoryChart({
               <Cell key={`cell-${index}`} fill={entry.fill} />
             ))}
           </Pie>
-          
+
           <Tooltip
             content={({ active, payload }) => (
               <CustomTooltip
@@ -903,10 +902,10 @@ export function SalesByCategoryChart({
               />
             )}
           />
-          
-          <Legend 
-            layout="vertical" 
-            align="right" 
+
+          <Legend
+            layout="vertical"
+            align="right"
             verticalAlign="middle"
             formatter={(value, entry) => {
               const item = chartData.find(d => d.name === value);
@@ -915,7 +914,7 @@ export function SalesByCategoryChart({
           />
         </PieChart>
       </ResponsiveContainer>
-      
+
       {/* Center label for donut */}
       {variant === 'donut' && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -980,7 +979,7 @@ export function WinRateChart({
   onRefresh,
 }: WinRateChartProps) {
   const { colors, config } = useChartTheme();
-  
+
   return (
     <ChartContainer
       title={title}
@@ -991,8 +990,8 @@ export function WinRateChart({
     >
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={config.margin}>
-          <CartesianGrid 
-            strokeDasharray="3 3" 
+          <CartesianGrid
+            strokeDasharray="3 3"
             stroke={config.gridStroke}
             vertical={false}
           />
@@ -1011,7 +1010,7 @@ export function WinRateChart({
             domain={[0, 100]}
             tickFormatter={(value) => `${value}%`}
           />
-          
+
           <Tooltip
             content={({ active, payload, label }) => (
               <CustomTooltip
@@ -1025,27 +1024,27 @@ export function WinRateChart({
               />
             )}
           />
-          
+
           <Legend />
-          
-          <ReferenceLine 
-            y={targetWinRate} 
-            stroke={colors.warning} 
+
+          <ReferenceLine
+            y={targetWinRate}
+            stroke={colors.warning}
             strokeDasharray="5 5"
-            label={{ 
-              value: `Target: ${targetWinRate}%`, 
+            label={{
+              value: `Target: ${targetWinRate}%`,
               fill: colors.warning,
               fontSize: 12,
             }}
           />
-          
-          <Bar 
-            dataKey="winRate" 
-            name="Win Rate" 
+
+          <Bar
+            dataKey="winRate"
+            name="Win Rate"
             radius={[4, 4, 0, 0]}
           >
             {data.map((entry, index) => (
-              <Cell 
+              <Cell
                 key={`cell-${index}`}
                 fill={entry.winRate >= targetWinRate ? colors.success : colors.danger}
               />
@@ -1111,21 +1110,21 @@ export function ConversationVolumeChart({
   onRefresh,
 }: ConversationVolumeChartProps) {
   const { colors, config } = useChartTheme();
-  
+
   const channelColors = useMemo(() => ({
     email: colors.series[0],
     whatsapp: '#25D366',
     phone: colors.series[2],
     chat: colors.series[3],
   }), [colors]);
-  
+
   const processedData = useMemo(() => {
     return data.map(point => ({
       ...point,
       formattedTime: formatters.dateTime(point.timestamp),
     }));
   }, [data]);
-  
+
   return (
     <ChartContainer
       title={title}
@@ -1136,8 +1135,8 @@ export function ConversationVolumeChart({
     >
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={processedData} margin={config.margin}>
-          <CartesianGrid 
-            strokeDasharray="3 3" 
+          <CartesianGrid
+            strokeDasharray="3 3"
             stroke={config.gridStroke}
             vertical={false}
           />
@@ -1154,7 +1153,7 @@ export function ConversationVolumeChart({
             tickLine={false}
             axisLine={false}
           />
-          
+
           <Tooltip
             content={({ active, payload, label }) => (
               <CustomTooltip
@@ -1165,9 +1164,9 @@ export function ConversationVolumeChart({
               />
             )}
           />
-          
+
           <Legend />
-          
+
           <Area
             type="monotone"
             dataKey="email"
@@ -1260,13 +1259,13 @@ export function ResponseTimeChart({
   onRefresh,
 }: ResponseTimeChartProps) {
   const { colors, config } = useChartTheme();
-  
+
   const formatTime = (seconds: number) => {
     if (seconds < 60) return `${seconds}s`;
     if (seconds < 3600) return `${Math.round(seconds / 60)}m`;
     return `${(seconds / 3600).toFixed(1)}h`;
   };
-  
+
   return (
     <ChartContainer
       title={title}
@@ -1277,8 +1276,8 @@ export function ResponseTimeChart({
     >
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={data} margin={config.margin}>
-          <CartesianGrid 
-            strokeDasharray="3 3" 
+          <CartesianGrid
+            strokeDasharray="3 3"
             stroke={config.gridStroke}
             vertical={false}
           />
@@ -1305,7 +1304,7 @@ export function ResponseTimeChart({
             tickLine={false}
             axisLine={false}
           />
-          
+
           <Tooltip
             content={({ active, payload, label }) => (
               <CustomTooltip
@@ -1319,21 +1318,21 @@ export function ResponseTimeChart({
               />
             )}
           />
-          
+
           <Legend />
-          
-          <ReferenceLine 
+
+          <ReferenceLine
             yAxisId="left"
-            y={slaTarget} 
-            stroke={colors.warning} 
+            y={slaTarget}
+            stroke={colors.warning}
             strokeDasharray="5 5"
-            label={{ 
-              value: `SLA: ${formatTime(slaTarget)}`, 
+            label={{
+              value: `SLA: ${formatTime(slaTarget)}`,
               fill: colors.warning,
               fontSize: 12,
             }}
           />
-          
+
           <Bar
             yAxisId="right"
             dataKey="conversationCount"
@@ -1343,7 +1342,7 @@ export function ResponseTimeChart({
             barSize={15}
             opacity={0.5}
           />
-          
+
           <Line
             yAxisId="left"
             type="monotone"
@@ -1353,7 +1352,7 @@ export function ResponseTimeChart({
             strokeWidth={2}
             dot={{ fill: colors.primary, r: 4 }}
           />
-          
+
           <Line
             yAxisId="left"
             type="monotone"
@@ -1412,7 +1411,7 @@ export function SentimentDistributionChart({
   onRefresh,
 }: SentimentDistributionChartProps) {
   const { colors } = useChartTheme();
-  
+
   const chartData = useMemo(() => [
     {
       name: 'Pozitiv',
@@ -1433,7 +1432,7 @@ export function SentimentDistributionChart({
       fill: colors.danger,
     },
   ], [data, colors]);
-  
+
   return (
     <ChartContainer
       title={title}
@@ -1540,7 +1539,7 @@ export function AIAgentActivityChart({
   onRefresh,
 }: AIAgentActivityChartProps) {
   const { colors, config } = useChartTheme();
-  
+
   const processedData = useMemo(() => {
     return data.map(point => ({
       ...point,
@@ -1548,7 +1547,7 @@ export function AIAgentActivityChart({
       tokensK: point.tokensUsed / 1000,
     }));
   }, [data]);
-  
+
   return (
     <ChartContainer
       title={title}
@@ -1559,8 +1558,8 @@ export function AIAgentActivityChart({
     >
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={processedData} margin={config.margin}>
-          <CartesianGrid 
-            strokeDasharray="3 3" 
+          <CartesianGrid
+            strokeDasharray="3 3"
             stroke={config.gridStroke}
             vertical={false}
           />
@@ -1588,7 +1587,7 @@ export function AIAgentActivityChart({
             domain={[0, 100]}
             tickFormatter={(v) => `${v}%`}
           />
-          
+
           <Tooltip
             content={({ active, payload, label }) => (
               <CustomTooltip
@@ -1604,9 +1603,9 @@ export function AIAgentActivityChart({
               />
             )}
           />
-          
+
           <Legend />
-          
+
           <Bar
             yAxisId="left"
             dataKey="messagesGenerated"
@@ -1615,7 +1614,7 @@ export function AIAgentActivityChart({
             radius={[4, 4, 0, 0]}
             barSize={20}
           />
-          
+
           <Bar
             yAxisId="left"
             dataKey="tokensK"
@@ -1624,7 +1623,7 @@ export function AIAgentActivityChart({
             radius={[4, 4, 0, 0]}
             barSize={20}
           />
-          
+
           <Line
             yAxisId="right"
             type="monotone"
@@ -1690,7 +1689,7 @@ export function TokenUsageChart({
   onRefresh,
 }: TokenUsageChartProps) {
   const { colors, config } = useChartTheme();
-  
+
   const processedData = useMemo(() => {
     return data.map(point => ({
       ...point,
@@ -1700,9 +1699,9 @@ export function TokenUsageChart({
       totalK: point.totalTokens / 1000,
     }));
   }, [data]);
-  
+
   const limitK = dailyLimit ? dailyLimit / 1000 : undefined;
-  
+
   return (
     <ChartContainer
       title={title}
@@ -1713,8 +1712,8 @@ export function TokenUsageChart({
     >
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={processedData} margin={config.margin}>
-          <CartesianGrid 
-            strokeDasharray="3 3" 
+          <CartesianGrid
+            strokeDasharray="3 3"
             stroke={config.gridStroke}
             vertical={false}
           />
@@ -1732,7 +1731,7 @@ export function TokenUsageChart({
             axisLine={false}
             tickFormatter={(v) => `${v}K`}
           />
-          
+
           <Tooltip
             content={({ active, payload, label }) => (
               <CustomTooltip
@@ -1746,22 +1745,22 @@ export function TokenUsageChart({
               />
             )}
           />
-          
+
           <Legend />
-          
+
           {limitK && (
-            <ReferenceLine 
-              y={limitK} 
-              stroke={colors.danger} 
+            <ReferenceLine
+              y={limitK}
+              stroke={colors.danger}
               strokeDasharray="5 5"
-              label={{ 
-                value: `Limită: ${limitK}K`, 
+              label={{
+                value: `Limită: ${limitK}K`,
                 fill: colors.danger,
                 fontSize: 12,
               }}
             />
           )}
-          
+
           <Area
             type="monotone"
             dataKey="inputK"
@@ -1771,7 +1770,7 @@ export function TokenUsageChart({
             fill={colors.primary}
             fillOpacity={0.6}
           />
-          
+
           <Area
             type="monotone"
             dataKey="outputK"
@@ -1832,7 +1831,7 @@ export function ModelComparisonChart({
   onRefresh,
 }: ModelComparisonChartProps) {
   const { colors } = useChartTheme();
-  
+
   return (
     <ChartContainer
       title={title}
@@ -1844,16 +1843,16 @@ export function ModelComparisonChart({
       <ResponsiveContainer width="100%" height="100%">
         <RadarChart cx="50%" cy="50%" outerRadius="80%" data={data}>
           <PolarGrid stroke={colors.muted} />
-          <PolarAngleAxis 
-            dataKey="metric" 
+          <PolarAngleAxis
+            dataKey="metric"
             tick={{ fontSize: 12 }}
           />
-          <PolarRadiusAxis 
-            angle={30} 
-            domain={[0, 100]} 
+          <PolarRadiusAxis
+            angle={30}
+            domain={[0, 100]}
             tick={{ fontSize: 10 }}
           />
-          
+
           <Radar
             name="Claude Sonnet"
             dataKey="Claude Sonnet"
@@ -1861,7 +1860,7 @@ export function ModelComparisonChart({
             fill={colors.series[0]}
             fillOpacity={0.3}
           />
-          
+
           <Radar
             name="Claude Haiku"
             dataKey="Claude Haiku"
@@ -1869,7 +1868,7 @@ export function ModelComparisonChart({
             fill={colors.series[1]}
             fillOpacity={0.3}
           />
-          
+
           <Radar
             name="GPT-4o"
             dataKey="GPT-4o"
@@ -1877,7 +1876,7 @@ export function ModelComparisonChart({
             fill={colors.series[2]}
             fillOpacity={0.3}
           />
-          
+
           <Legend />
           <Tooltip />
         </RadarChart>
@@ -1937,7 +1936,7 @@ export function InvoiceStatusChart({
   onRefresh,
 }: InvoiceStatusChartProps) {
   const { config } = useChartTheme();
-  
+
   const statusColors: Record<string, string> = {
     paid: 'hsl(142.1 76.2% 36.3%)',
     pending: 'hsl(38 92% 50%)',
@@ -1945,14 +1944,14 @@ export function InvoiceStatusChart({
     cancelled: 'hsl(215 20.2% 65.1%)',
     draft: 'hsl(217.2 91.2% 59.8%)',
   };
-  
+
   const chartData = useMemo(() => {
     return data.map(item => ({
       ...item,
       fill: statusColors[item.status.toLowerCase()] || item.color,
     }));
   }, [data]);
-  
+
   return (
     <ChartContainer
       title={title}
@@ -1963,8 +1962,8 @@ export function InvoiceStatusChart({
     >
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={chartData} margin={config.margin} layout="vertical">
-          <CartesianGrid 
-            strokeDasharray="3 3" 
+          <CartesianGrid
+            strokeDasharray="3 3"
             stroke={config.gridStroke}
             horizontal={false}
           />
@@ -1985,7 +1984,7 @@ export function InvoiceStatusChart({
             axisLine={false}
             width={100}
           />
-          
+
           <Tooltip
             content={({ active, payload }) => (
               <CustomTooltip
@@ -1998,11 +1997,11 @@ export function InvoiceStatusChart({
               />
             )}
           />
-          
+
           <Legend />
-          
-          <Bar 
-            dataKey="count" 
+
+          <Bar
+            dataKey="count"
             name="Număr Facturi"
             radius={[0, 4, 4, 0]}
           >
@@ -2065,7 +2064,7 @@ export function CashFlowChart({
   onRefresh,
 }: CashFlowChartProps) {
   const { colors, config } = useChartTheme();
-  
+
   return (
     <ChartContainer
       title={title}
@@ -2076,8 +2075,8 @@ export function CashFlowChart({
     >
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={data} margin={config.margin}>
-          <CartesianGrid 
-            strokeDasharray="3 3" 
+          <CartesianGrid
+            strokeDasharray="3 3"
             stroke={config.gridStroke}
             vertical={false}
           />
@@ -2095,7 +2094,7 @@ export function CashFlowChart({
             axisLine={false}
             tickFormatter={(v) => formatters.compact(v)}
           />
-          
+
           <Tooltip
             content={({ active, payload, label }) => (
               <CustomTooltip
@@ -2106,11 +2105,11 @@ export function CashFlowChart({
               />
             )}
           />
-          
+
           <Legend />
-          
+
           <ReferenceLine y={0} stroke={config.axisStroke} />
-          
+
           <Bar
             dataKey="income"
             name="Încasări"
@@ -2118,7 +2117,7 @@ export function CashFlowChart({
             radius={[4, 4, 0, 0]}
             barSize={15}
           />
-          
+
           <Bar
             dataKey="expenses"
             name="Cheltuieli"
@@ -2126,7 +2125,7 @@ export function CashFlowChart({
             radius={[4, 4, 0, 0]}
             barSize={15}
           />
-          
+
           <Line
             type="monotone"
             dataKey="cumulativeCashFlow"
@@ -2175,9 +2174,9 @@ interface RevenueByProductChartProps {
 // Custom treemap content
 const CustomizedContent = (props: any) => {
   const { x, y, width, height, name, revenue, depth, colors } = props;
-  
+
   if (width < 50 || height < 30) return null;
-  
+
   return (
     <g>
       <rect
@@ -2227,14 +2226,14 @@ export function RevenueByProductChart({
   onRefresh,
 }: RevenueByProductChartProps) {
   const { colors } = useChartTheme();
-  
+
   const treemapData = useMemo(() => {
     return data.map(item => ({
       ...item,
       size: item.revenue,
     }));
   }, [data]);
-  
+
   return (
     <ChartContainer
       title={title}

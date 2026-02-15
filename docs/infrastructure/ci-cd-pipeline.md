@@ -8,13 +8,13 @@
 
 ## 📊 Stare Curentă vs Roadmap
 
-| Component | Stare Curentă (Etapa 0) | Target (Etapa 1) |
-|-----------|------------------------|------------------|
-| CI Pipeline | ✅ Implementat | ✅ Complet |
-| CD Pipeline | ✅ Implementat (manual trigger) | 🔄 Auto-deploy pe tag |
-| Branch Protection | ⚠️ De configurat | ✅ Enforced |
-| **Secrets Management** | **✅ OpenBao** 🆕 | **✅ Dynamic secrets** |
-| Notifications | ⚠️ Placeholder | ✅ Slack Integration |
+| Component              | Stare Curentă (Etapa 0)         | Target (Etapa 1)       |
+| ---------------------- | ------------------------------- | ---------------------- |
+| CI Pipeline            | ✅ Implementat                  | ✅ Complet             |
+| CD Pipeline            | ✅ Implementat (manual trigger) | 🔄 Auto-deploy pe tag  |
+| Branch Protection      | ⚠️ De configurat                | ✅ Enforced            |
+| **Secrets Management** | **✅ OpenBao** 🆕               | **✅ Dynamic secrets** |
+| Notifications          | ⚠️ Placeholder                  | ✅ Slack Integration   |
 
 ---
 
@@ -28,14 +28,14 @@ graph LR
         Test --> Security[🔒 Security Scan]
         Security --> Build[🐳 Docker Build]
     end
-    
+
     subgraph CD ["CD Pipeline (deploy.yml)"]
         Tag[Git Tag v*] --> BuildPush[🐳 Build & Push]
         BuildPush --> Scan[🔒 Image Scan]
         Scan --> Staging[🚀 Deploy Staging]
         Staging --> Prod[🚀 Deploy Production]
     end
-    
+
     Build --> Merge[✅ PR Merge]
     Merge --> Tag
 ```
@@ -50,24 +50,25 @@ graph LR
 
 ### 2.1 Job: Lint & Type Check
 
-| Aspect | Detalii |
-|--------|---------|
-| **Tools** | ESLint 9, TypeScript Compiler (tsc) |
-| **Scope** | Toate fișierele din `apps/`, `packages/`, `workers/` |
-| **Timeout** | 10 minute |
-| **Comenzi** | `pnpm lint`, `pnpm typecheck` |
+| Aspect      | Detalii                                              |
+| ----------- | ---------------------------------------------------- |
+| **Tools**   | ESLint 9, TypeScript Compiler (tsc)                  |
+| **Scope**   | Toate fișierele din `apps/`, `packages/`, `workers/` |
+| **Timeout** | 10 minute                                            |
+| **Comenzi** | `pnpm lint`, `pnpm typecheck`                        |
 
 ### 2.2 Job: Tests
 
-| Aspect | Detalii |
-|--------|---------|
-| **Tool** | Vitest |
-| **Scope** | `packages/**`, `apps/**` |
+| Aspect       | Detalii                                |
+| ------------ | -------------------------------------- |
+| **Tool**     | Vitest                                 |
+| **Scope**    | `packages/**`, `apps/**`               |
 | **Services** | PostgreSQL 18.1 + PostGIS, Redis 8.4.0 |
-| **Timeout** | 15 minute |
-| **Coverage** | Upload to Codecov |
+| **Timeout**  | 15 minute                              |
+| **Coverage** | Upload to Codecov                      |
 
 **Service Containers:**
+
 ```yaml
 services:
   postgres:
@@ -78,29 +79,29 @@ services:
 
 ### 2.3 Job: Security Scan
 
-| Aspect | Detalii |
-|--------|---------|
-| **Tool** | Trivy (filesystem scan) |
-| **Scope** | Toate dependențele npm |
+| Aspect     | Detalii                            |
+| ---------- | ---------------------------------- |
+| **Tool**   | Trivy (filesystem scan)            |
+| **Scope**  | Toate dependențele npm             |
 | **Policy** | `CRITICAL` + `HIGH` → blochează PR |
-| **Output** | SARIF → GitHub Security Tab |
+| **Output** | SARIF → GitHub Security Tab        |
 
 ### 2.4 Job: Docker Build Verification
 
-| Aspect | Detalii |
-|--------|---------|
-| **Tool** | Docker Buildx |
-| **Images** | `api`, `web` |
-| **Push** | ❌ Nu (doar verificare build) |
-| **Cache** | GitHub Actions Cache (GHA) |
+| Aspect     | Detalii                       |
+| ---------- | ----------------------------- |
+| **Tool**   | Docker Buildx                 |
+| **Images** | `api`, `web`                  |
+| **Push**   | ❌ Nu (doar verificare build) |
+| **Cache**  | GitHub Actions Cache (GHA)    |
 
 ### 2.5 Job: Python Lint (Condiționat)
 
-| Aspect | Detalii |
-|--------|---------|
+| Aspect      | Detalii                             |
+| ----------- | ----------------------------------- |
 | **Trigger** | Doar când `workers/` este modificat |
-| **Tools** | Ruff, mypy |
-| **Python** | 3.14 (rulat ca `python3`) |
+| **Tools**   | Ruff, mypy                          |
+| **Python**  | 3.14 (rulat ca `python3`)           |
 
 ---
 
@@ -116,18 +117,18 @@ services:
 on:
   push:
     tags:
-      - 'v*.*.*'         # Orice tag semantic versioning
-  workflow_dispatch:      # Manual cu alegere environment
+      - "v*.*.*" # Orice tag semantic versioning
+  workflow_dispatch: # Manual cu alegere environment
 ```
 
 ### 3.2 Job: Build & Push Images
 
-| Aspect | Detalii |
-|--------|---------|
-| **Registry** | GitHub Container Registry (ghcr.io) |
-| **Images** | api, web, web-admin, worker-ai, worker-enrichment, worker-outreach |
-| **Tags** | `v{version}`, `sha-{commit}` |
-| **Build Args** | VERSION, BUILD_SHA |
+| Aspect         | Detalii                                                            |
+| -------------- | ------------------------------------------------------------------ |
+| **Registry**   | GitHub Container Registry (ghcr.io)                                |
+| **Images**     | api, web, web-admin, worker-ai, worker-enrichment, worker-outreach |
+| **Tags**       | `v{version}`, `sha-{commit}`                                       |
+| **Build Args** | VERSION, BUILD_SHA                                                 |
 
 ### 3.3 Job: Security Scan Images
 
@@ -137,22 +138,22 @@ on:
 
 ### 3.4 Job: Deploy to Staging
 
-| Aspect | Detalii |
-|--------|---------|
-| **Trigger** | Tag cu `-rc`, `-beta`, `-alpha` sau manual |
-| **Environment** | `staging` (GitHub Environment) |
-| **URL** | https://staging.cerniq.app |
-| **Method** | SSH + Docker Compose |
+| Aspect          | Detalii                                    |
+| --------------- | ------------------------------------------ |
+| **Trigger**     | Tag cu `-rc`, `-beta`, `-alpha` sau manual |
+| **Environment** | `staging` (GitHub Environment)             |
+| **URL**         | https://staging.cerniq.app                 |
+| **Method**      | SSH + Docker Compose                       |
 
 ### 3.5 Job: Deploy to Production
 
-| Aspect | Detalii |
-|--------|---------|
-| **Trigger** | Tag `vX.Y.Z` (fără suffix) sau manual |
-| **Environment** | `production` (GitHub Environment) |
-| **URL** | https://cerniq.app |
-| **Method** | SSH + Docker Compose (Blue-Green) |
-| **Pre-deploy** | Database backup automat |
+| Aspect          | Detalii                               |
+| --------------- | ------------------------------------- |
+| **Trigger**     | Tag `vX.Y.Z` (fără suffix) sau manual |
+| **Environment** | `production` (GitHub Environment)     |
+| **URL**         | https://cerniq.app                    |
+| **Method**      | SSH + Docker Compose (Blue-Green)     |
+| **Pre-deploy**  | Database backup automat               |
 
 ### 3.6 Deployment Flow
 
@@ -168,7 +169,7 @@ sequenceDiagram
     GH->>GHCR: Build & Push images
     GH->>Staging: SSH Deploy
     Staging-->>GH: Health check OK
-    
+
     Dev->>GH: git tag v1.0.0
     GH->>GHCR: Build & Push images
     GH->>Prod: SSH Deploy (Blue-Green)
@@ -199,11 +200,11 @@ sequenceDiagram
 
 ### 4.2 GitHub Secrets for OpenBao
 
-| Secret | Scop | Rotație |
-|--------|------|---------|
-| `OPENBAO_ADDR` | URL OpenBao server | Static |
-| `OPENBAO_CICD_ROLE_ID` | AppRole role_id | Static |
-| `OPENBAO_CICD_SECRET_ID` | AppRole secret_id | Lunar |
+| Secret                   | Scop               | Rotație |
+| ------------------------ | ------------------ | ------- |
+| `OPENBAO_ADDR`           | URL OpenBao server | Static  |
+| `OPENBAO_CICD_ROLE_ID`   | AppRole role_id    | Static  |
+| `OPENBAO_CICD_SECRET_ID` | AppRole secret_id  | Lunar   |
 
 ### 4.2.1 CI Test Secrets (OpenBao KV)
 
@@ -213,11 +214,13 @@ CI Pipeline-ul ia secretele de test din OpenBao:
 - Keys: `pg_user`, `pg_password`, `redis_password`, `jwt_secret`
 
 **CI constraints (must match service containers):**
+
 - `pg_user` = `c3rn1q`
 - `pg_password` = `cerniq_ci`
 - `redis_password` empty string (Redis in CI has no password)
 
 **CI connectivity:**
+
 - `OPENBAO_ADDR` must be reachable from the self-hosted runner
 - OpenBao este accesat prin Traefik pe orchestrator (HTTPS :443). Nu folosim OpenBao local expus pe porturi de tip `64090`.
 
@@ -237,15 +240,15 @@ jobs:
           TOKEN=$(curl -s -X POST "${BAO_ADDR}/v1/auth/approle/login" \
             -d '{"role_id":"${{ secrets.OPENBAO_CICD_ROLE_ID }}","secret_id":"${{ secrets.OPENBAO_CICD_SECRET_ID }}"}' \
             | jq -r '.auth.client_token')
-          
+
           # Read deployment secrets
           SECRETS=$(curl -s -H "X-Vault-Token: $TOKEN" \
             "${BAO_ADDR}/v1/secret/cerniq/ci/deploy")
-          
+
           # Export to environment (masked)
           echo "::add-mask::$(echo $SECRETS | jq -r '.data.data.ssh_key')"
           echo "SSH_KEY=$(echo $SECRETS | jq -r '.data.data.ssh_key')" >> $GITHUB_OUTPUT
-          
+
       - name: Deploy to server
         env:
           SSH_KEY: ${{ steps.openbao.outputs.SSH_KEY }}
@@ -282,7 +285,7 @@ Secret_id-ul pentru CI/CD trebuie rotit lunar. Pipeline automat:
 name: Rotate AppRole Secrets
 on:
   schedule:
-    - cron: '0 2 1 * *'  # First day of month at 02:00 UTC
+    - cron: "0 2 1 * *" # First day of month at 02:00 UTC
   workflow_dispatch:
 
 jobs:
@@ -295,7 +298,7 @@ jobs:
           NEW_SECRET=$(curl -s -X POST "${BAO_ADDR}/v1/auth/approle/role/cicd/secret-id" \
             -H "X-Vault-Token: ${{ secrets.OPENBAO_ADMIN_TOKEN }}" \
             | jq -r '.data.secret_id')
-          
+
           # Update GitHub secret via API
           gh secret set OPENBAO_CICD_SECRET_ID --body "$NEW_SECRET"
 ```
@@ -306,14 +309,14 @@ jobs:
 
 ### 5.1 GitHub Secrets
 
-| Secret | Scop | Status | Sursă |
-|--------|------|--------|-------|
-| `OPENBAO_ADDR` | OpenBao server URL | ✅ Required | Manual |
-| `OPENBAO_CICD_ROLE_ID` | AppRole role_id | ✅ Required | OpenBao init |
-| `OPENBAO_CICD_SECRET_ID` | AppRole secret_id | ✅ Required | OpenBao (rotated) |
-| `OPENBAO_ADMIN_TOKEN` | Pentru rotație automată | ⚠️ Optional | OpenBao root |
-| `CODECOV_TOKEN` | Upload coverage | ⚠️ Optional | Codecov |
-| `SLACK_WEBHOOK_URL` | Notifications | ⚠️ Optional | Slack |
+| Secret                   | Scop                    | Status      | Sursă             |
+| ------------------------ | ----------------------- | ----------- | ----------------- |
+| `OPENBAO_ADDR`           | OpenBao server URL      | ✅ Required | Manual            |
+| `OPENBAO_CICD_ROLE_ID`   | AppRole role_id         | ✅ Required | OpenBao init      |
+| `OPENBAO_CICD_SECRET_ID` | AppRole secret_id       | ✅ Required | OpenBao (rotated) |
+| `OPENBAO_ADMIN_TOKEN`    | Pentru rotație automată | ⚠️ Optional | OpenBao root      |
+| `CODECOV_TOKEN`          | Upload coverage         | ⚠️ Optional | Codecov           |
+| `SLACK_WEBHOOK_URL`      | Notifications           | ⚠️ Optional | Slack             |
 
 > **Note:** SSH keys și deployment secrets sunt acum stocate în OpenBao, nu în GitHub Secrets.
 
@@ -324,7 +327,6 @@ Configurați în **Settings → Environments**:
 1. **staging**
    - URL: https://staging.cerniq.app
    - No required reviewers
-   
 2. **production**
    - URL: https://cerniq.app
    - Required reviewers: 1+ (recomandat)

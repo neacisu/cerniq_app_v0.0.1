@@ -34,25 +34,25 @@
 
 ## 2. CATALOG COMPLET CATEGORII
 
-| Cat.  | Nume               | Workers | Cozi BullMQ          | Descriere                       |
-| ----- | ------------------ | ------- | -------------------- | ------------------------------- |
-| **A** | Ingestie Bronze    | 5       | `bronze:ingest:*`    | Import CSV, webhooks, scraping  |
-| **B** | Normalizare        | 4       | `bronze:normalize:*` | Standardizare date              |
-| **C** | Validare CUI       | 2       | `silver:validate:*`  | Validare algoritm modulo-11     |
-| **D** | ANAF API           | 5       | `enrich:anaf:*`      | Date fiscale ANAF               |
-| **E** | Termene.ro         | 4       | `enrich:termene:*`   | Date financiare                 |
-| **F** | ONRC               | 3       | `enrich:onrc:*`      | Registrul Comerțului            |
-| **G** | Email Enrichment   | 5       | `enrich:email:*`     | Hunter.io, ZeroBounce           |
-| **H** | Telefon Enrichment | 3       | `enrich:phone:*`     | Validare, HLR lookup            |
-| **I** | Web Scraping       | 4       | `enrich:scrape:*`    | DAJ, ANIF, websites             |
-| **J** | AI Structuring     | 4       | `enrich:ai:*`        | Parsare AI, extraction          |
-| **K** | Geocoding          | 3       | `enrich:geo:*`       | Nominatim, PostGIS              |
-| **L** | Agricol            | 5       | `enrich:agri:*`      | APIA, OUAI, culturi             |
-| **M** | Deduplicare        | 2       | `silver:dedup:*`     | Fuzzy match, merge              |
-| **N** | Quality Scoring    | 3       | `silver:score:*`     | Completeness, accuracy          |
-| **O** | Agregare           | 2       | `silver:aggregate:*` | Statistici, rollup              |
-| **P** | Pipeline Control   | 4       | `pipeline:*`         | Orchestrare, monitoring         |
-|       | **TOTAL**          | **58**  |                      |                                 |
+| Cat.  | Nume               | Workers | Cozi BullMQ          | Descriere                      |
+| ----- | ------------------ | ------- | -------------------- | ------------------------------ |
+| **A** | Ingestie Bronze    | 5       | `bronze:ingest:*`    | Import CSV, webhooks, scraping |
+| **B** | Normalizare        | 4       | `bronze:normalize:*` | Standardizare date             |
+| **C** | Validare CUI       | 2       | `silver:validate:*`  | Validare algoritm modulo-11    |
+| **D** | ANAF API           | 5       | `enrich:anaf:*`      | Date fiscale ANAF              |
+| **E** | Termene.ro         | 4       | `enrich:termene:*`   | Date financiare                |
+| **F** | ONRC               | 3       | `enrich:onrc:*`      | Registrul Comerțului           |
+| **G** | Email Enrichment   | 5       | `enrich:email:*`     | Hunter.io, ZeroBounce          |
+| **H** | Telefon Enrichment | 3       | `enrich:phone:*`     | Validare, HLR lookup           |
+| **I** | Web Scraping       | 4       | `enrich:scrape:*`    | DAJ, ANIF, websites            |
+| **J** | AI Structuring     | 4       | `enrich:ai:*`        | Parsare AI, extraction         |
+| **K** | Geocoding          | 3       | `enrich:geo:*`       | Nominatim, PostGIS             |
+| **L** | Agricol            | 5       | `enrich:agri:*`      | APIA, OUAI, culturi            |
+| **M** | Deduplicare        | 2       | `silver:dedup:*`     | Fuzzy match, merge             |
+| **N** | Quality Scoring    | 3       | `silver:score:*`     | Completeness, accuracy         |
+| **O** | Agregare           | 2       | `silver:aggregate:*` | Statistici, rollup             |
+| **P** | Pipeline Control   | 4       | `pipeline:*`         | Orchestrare, monitoring        |
+|       | **TOTAL**          | **58**  |                      |                                |
 
 ---
 
@@ -86,24 +86,24 @@ const batchJobId = `batch-${batchId}-${Date.now()}`;
 // Configurare standard pentru toți workerii
 interface WorkerBaseConfig {
   queueName: string;
-  concurrency: number;        // Default: 10
+  concurrency: number; // Default: 10
   limiter?: {
     max: number;
-    duration: number;         // ms
+    duration: number; // ms
   };
-  attempts: number;           // Default: 3
+  attempts: number; // Default: 3
   backoff: {
-    type: 'exponential' | 'fixed';
-    delay: number;           // ms
+    type: "exponential" | "fixed";
+    delay: number; // ms
   };
-  timeout: number;           // ms
+  timeout: number; // ms
   removeOnComplete: {
-    age: number;             // 24h default
-    count: number;           // 1000 default
+    age: number; // 24h default
+    count: number; // 1000 default
   };
   observability: {
-    serviceName: string;     // ex: cerniq-worker-enrichment
-    enabled: boolean;        // true
+    serviceName: string; // ex: cerniq-worker-enrichment
+    enabled: boolean; // true
   };
 }
 ```
@@ -120,11 +120,11 @@ interface WorkerError {
 
 // Erori standard
 const ERROR_CODES = {
-  RATE_LIMITED: { retriable: true, backoff: 'exponential' },
-  API_ERROR: { retriable: true, backoff: 'exponential' },
+  RATE_LIMITED: { retriable: true, backoff: "exponential" },
+  API_ERROR: { retriable: true, backoff: "exponential" },
   VALIDATION_ERROR: { retriable: false },
   NOT_FOUND: { retriable: false },
-  TIMEOUT: { retriable: true, backoff: 'fixed' },
+  TIMEOUT: { retriable: true, backoff: "fixed" },
 };
 ```
 
@@ -167,38 +167,48 @@ P.3 (Promotion) ──────────────────▶ [Gold 
 
 ```typescript
 // Grupa 1: Secvențial obligatoriu
-const SEQUENTIAL_GROUP_1 = ['A.*', 'B.*', 'C.*'];
+const SEQUENTIAL_GROUP_1 = ["A.*", "B.*", "C.*"];
 
 // Grupa 2: Paralel (enrichment extern)
-const PARALLEL_GROUP_ENRICH = ['D.*', 'E.*', 'F.*', 'G.*', 'H.*', 'I.*', 'J.*', 'K.*', 'L.*'];
+const PARALLEL_GROUP_ENRICH = [
+  "D.*",
+  "E.*",
+  "F.*",
+  "G.*",
+  "H.*",
+  "I.*",
+  "J.*",
+  "K.*",
+  "L.*",
+];
 
 // Grupa 3: Secvențial post-enrichment
-const SEQUENTIAL_GROUP_2 = ['M.*', 'N.*', 'O.*', 'P.*'];
+const SEQUENTIAL_GROUP_2 = ["M.*", "N.*", "O.*", "P.*"];
 ```
 
 ---
 
 ## 5. RATE LIMITS PER CATEGORIE
 
-| Categorie   | Provider       | Rate Limit | Burst | Strategy    |
-|-------------|----------------|------------|-------|-------------|
-| D (ANAF)    | ANAF API       | 1/sec      | 5     | Exponential |
-| E (Termene) | Termene.ro     | 20/sec     | 50    | Linear      |
-| G (Email)   | Hunter.io      | 15/sec     | 30    | Exponential |
-| G (Email)   | ZeroBounce     | 10/sec     | 20    | Linear      |
-| I (Scrape)  | Various        | 0.5/sec    | 2     | Fixed 2s    |
-| J (AI)      | xAI Grok       | 60/min     | 10    | Exponential |
-| K (Geo)     | Nominatim      | 50/sec     | 100   | Linear      |
+| Categorie   | Provider   | Rate Limit | Burst | Strategy    |
+| ----------- | ---------- | ---------- | ----- | ----------- |
+| D (ANAF)    | ANAF API   | 1/sec      | 5     | Exponential |
+| E (Termene) | Termene.ro | 20/sec     | 50    | Linear      |
+| G (Email)   | Hunter.io  | 15/sec     | 30    | Exponential |
+| G (Email)   | ZeroBounce | 10/sec     | 20    | Linear      |
+| I (Scrape)  | Various    | 0.5/sec    | 2     | Fixed 2s    |
+| J (AI)      | xAI Grok   | 60/min     | 10    | Exponential |
+| K (Geo)     | Nominatim  | 50/sec     | 100   | Linear      |
 
 ---
 
 ## 6. HITL INTEGRATION POINTS
 
-| Worker | HITL Trigger        | Approval Type   | SLA  |
-|--------|---------------------|-----------------|------|
-| M.2    | Fuzzy match 70-85%  | `dedup_review`  | 24h  |
-| N.1    | Quality score 40-60 | `data_quality`  | 24h  |
-| J.3    | Low confidence AI   | `manual_enrich` | 48h  |
+| Worker | HITL Trigger        | Approval Type   | SLA |
+| ------ | ------------------- | --------------- | --- |
+| M.2    | Fuzzy match 70-85%  | `dedup_review`  | 24h |
+| N.1    | Quality score 40-60 | `data_quality`  | 24h |
+| J.3    | Low confidence AI   | `manual_enrich` | 48h |
 
 ---
 
@@ -212,11 +222,11 @@ interface WorkerMetrics {
   // - http_request_duration_seconds
   // - db_pool_connections
   // - process_cpu_seconds_total
-  
+
   // Custom Business Metrics (via OTel Meter)
   jobs_processed_counter: Counter;
   jobs_failed_counter: Counter;
-  queue_depth_gauge: Gauge;         // Exposed via Monitoring API Sidecar
+  queue_depth_gauge: Gauge; // Exposed via Monitoring API Sidecar
 }
 ```
 
@@ -227,15 +237,15 @@ alerts:
   - name: WorkerQueueBacklog
     condition: queue_depth > 10000
     severity: warning
-    
+
   - name: WorkerHighErrorRate
     condition: error_rate > 5%
     severity: critical
-    
+
   - name: WorkerStalled
     condition: jobs_processed_1h == 0 AND queue_depth > 0
     severity: critical
-    
+
   - name: APIRateLimited
     condition: rate_limited_count_1h > 100
     severity: warning

@@ -1,5 +1,7 @@
 # CERNIQ.APP — ETAPA 3: UI PAGES
+
 ## Frontend Pages & Layouts pentru AI Sales Agent
+
 ### Versiunea 1.0 | 18 Ianuarie 2026
 
 ---
@@ -27,18 +29,18 @@
 
 ## 1.1 Technology Stack
 
-| Component | Tehnologie | Versiune |
-|-----------|------------|----------|
-| Framework | React | 19.1.0 |
-| Styling | Tailwind CSS | v4.1 |
-| Component Library | shadcn/ui | latest |
-| State Management | TanStack Query | v5 |
-| Forms | React Hook Form + Zod | v7 + v3 |
-| Tables | TanStack Table | v8 |
-| Charts | Recharts | v2.15 |
-| Router | React Router | v7 |
-| Icons | Lucide React | v0.469 |
-| Date/Time | date-fns | v4 |
+| Component         | Tehnologie            | Versiune |
+| ----------------- | --------------------- | -------- |
+| Framework         | React                 | 19.1.0   |
+| Styling           | Tailwind CSS          | v4.1     |
+| Component Library | shadcn/ui             | latest   |
+| State Management  | TanStack Query        | v5       |
+| Forms             | React Hook Form + Zod | v7 + v3  |
+| Tables            | TanStack Table        | v8       |
+| Charts            | Recharts              | v2.15    |
+| Router            | React Router          | v7       |
+| Icons             | Lucide React          | v0.469   |
+| Date/Time         | date-fns              | v4       |
 
 ## 1.2 Folder Structure
 
@@ -107,53 +109,53 @@ src/
 export const COLORS = {
   // State colors
   negotiation: {
-    INITIAL_CONTACT: 'bg-slate-100 text-slate-800',
-    QUALIFICATION: 'bg-blue-100 text-blue-800',
-    NEEDS_ANALYSIS: 'bg-purple-100 text-purple-800',
-    PRODUCT_PRESENTATION: 'bg-indigo-100 text-indigo-800',
-    OBJECTION_HANDLING: 'bg-amber-100 text-amber-800',
-    QUOTE_SENT: 'bg-cyan-100 text-cyan-800',
-    PROFORMA_SENT: 'bg-teal-100 text-teal-800',
-    INVOICE_SENT: 'bg-emerald-100 text-emerald-800',
-    CONVERTED: 'bg-green-100 text-green-800',
-    CANCELLED: 'bg-red-100 text-red-800',
-    STALLED: 'bg-gray-100 text-gray-800',
+    INITIAL_CONTACT: "bg-slate-100 text-slate-800",
+    QUALIFICATION: "bg-blue-100 text-blue-800",
+    NEEDS_ANALYSIS: "bg-purple-100 text-purple-800",
+    PRODUCT_PRESENTATION: "bg-indigo-100 text-indigo-800",
+    OBJECTION_HANDLING: "bg-amber-100 text-amber-800",
+    QUOTE_SENT: "bg-cyan-100 text-cyan-800",
+    PROFORMA_SENT: "bg-teal-100 text-teal-800",
+    INVOICE_SENT: "bg-emerald-100 text-emerald-800",
+    CONVERTED: "bg-green-100 text-green-800",
+    CANCELLED: "bg-red-100 text-red-800",
+    STALLED: "bg-gray-100 text-gray-800",
   },
-  
+
   // Priority colors
   priority: {
-    CRITICAL: 'bg-red-500 text-white',
-    HIGH: 'bg-orange-500 text-white',
-    MEDIUM: 'bg-yellow-500 text-black',
-    LOW: 'bg-green-500 text-white',
+    CRITICAL: "bg-red-500 text-white",
+    HIGH: "bg-orange-500 text-white",
+    MEDIUM: "bg-yellow-500 text-black",
+    LOW: "bg-green-500 text-white",
   },
-  
+
   // Sentiment colors
   sentiment: {
-    VERY_POSITIVE: 'text-green-600',
-    POSITIVE: 'text-green-500',
-    NEUTRAL: 'text-gray-500',
-    NEGATIVE: 'text-orange-500',
-    VERY_NEGATIVE: 'text-red-600',
+    VERY_POSITIVE: "text-green-600",
+    POSITIVE: "text-green-500",
+    NEUTRAL: "text-gray-500",
+    NEGATIVE: "text-orange-500",
+    VERY_NEGATIVE: "text-red-600",
   },
-  
+
   // Document status
   document: {
-    DRAFT: 'bg-gray-100 text-gray-800',
-    CREATED: 'bg-blue-100 text-blue-800',
-    SENT: 'bg-cyan-100 text-cyan-800',
-    PAID: 'bg-green-100 text-green-800',
-    OVERDUE: 'bg-red-100 text-red-800',
-    CANCELLED: 'bg-gray-200 text-gray-600',
+    DRAFT: "bg-gray-100 text-gray-800",
+    CREATED: "bg-blue-100 text-blue-800",
+    SENT: "bg-cyan-100 text-cyan-800",
+    PAID: "bg-green-100 text-green-800",
+    OVERDUE: "bg-red-100 text-red-800",
+    CANCELLED: "bg-gray-200 text-gray-600",
   },
-  
+
   // e-Factura status
   einvoice: {
-    PENDING: 'bg-yellow-100 text-yellow-800',
-    SUBMITTED: 'bg-blue-100 text-blue-800',
-    PROCESSING: 'bg-cyan-100 text-cyan-800',
-    ACCEPTED: 'bg-green-100 text-green-800',
-    REJECTED: 'bg-red-100 text-red-800',
+    PENDING: "bg-yellow-100 text-yellow-800",
+    SUBMITTED: "bg-blue-100 text-blue-800",
+    PROCESSING: "bg-cyan-100 text-cyan-800",
+    ACCEPTED: "bg-green-100 text-green-800",
+    REJECTED: "bg-red-100 text-red-800",
   },
 };
 
@@ -182,10 +184,10 @@ export const ICONS = {
 
 ```tsx
 // src/app/sales/layout.tsx
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Outlet, NavLink, useLocation } from 'react-router-dom';
+import { useState } from "react";
+import { Outlet, NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   MessageSquare,
@@ -202,32 +204,37 @@ import {
   ChevronRight,
   Bell,
   Search,
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { useHitlPendingCount } from '@/hooks/sales/useHitlPendingCount';
-import { useEinvoiceAlerts } from '@/hooks/sales/useEinvoiceAlerts';
+} from "@/components/ui/dropdown-menu";
+import { useHitlPendingCount } from "@/hooks/sales/useHitlPendingCount";
+import { useEinvoiceAlerts } from "@/hooks/sales/useEinvoiceAlerts";
 
 const navigation = [
-  { name: 'Dashboard', href: '/sales/dashboard', icon: LayoutDashboard },
-  { name: 'Negocieri', href: '/sales/negotiations', icon: MessageSquare },
-  { name: 'Produse', href: '/sales/products', icon: Package },
-  { name: 'Prețuri', href: '/sales/pricing', icon: DollarSign },
-  { name: 'Documente', href: '/sales/documents', icon: FileText },
-  { name: 'Conversații AI', href: '/sales/ai-conversations', icon: Bot },
-  { name: 'Aprobări', href: '/sales/approvals', icon: CheckSquare, badge: true },
-  { name: 'Rapoarte', href: '/sales/reports', icon: BarChart3 },
-  { name: 'Guardrails', href: '/sales/guardrails', icon: Shield },
-  { name: 'e-Factura', href: '/sales/einvoice', icon: Receipt, alert: true },
-  { name: 'Setări', href: '/sales/settings', icon: Settings },
+  { name: "Dashboard", href: "/sales/dashboard", icon: LayoutDashboard },
+  { name: "Negocieri", href: "/sales/negotiations", icon: MessageSquare },
+  { name: "Produse", href: "/sales/products", icon: Package },
+  { name: "Prețuri", href: "/sales/pricing", icon: DollarSign },
+  { name: "Documente", href: "/sales/documents", icon: FileText },
+  { name: "Conversații AI", href: "/sales/ai-conversations", icon: Bot },
+  {
+    name: "Aprobări",
+    href: "/sales/approvals",
+    icon: CheckSquare,
+    badge: true,
+  },
+  { name: "Rapoarte", href: "/sales/reports", icon: BarChart3 },
+  { name: "Guardrails", href: "/sales/guardrails", icon: Shield },
+  { name: "e-Factura", href: "/sales/einvoice", icon: Receipt, alert: true },
+  { name: "Setări", href: "/sales/settings", icon: Settings },
 ];
 
 export default function SalesLayout() {
@@ -235,21 +242,22 @@ export default function SalesLayout() {
   const location = useLocation();
   const { count: hitlPendingCount } = useHitlPendingCount();
   const { alertCount: einvoiceAlertCount } = useEinvoiceAlerts();
-  
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Sidebar */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 flex flex-col bg-white border-r border-gray-200 transition-all duration-300',
-          sidebarCollapsed ? 'w-16' : 'w-64'
+          "fixed inset-y-0 left-0 z-50 flex flex-col bg-white border-r border-gray-200 transition-all duration-300",
+          sidebarCollapsed ? "w-16" : "w-64",
         )}
       >
         {/* Logo */}
         <div className="flex items-center justify-between h-16 px-4 border-b">
           {!sidebarCollapsed && (
             <span className="text-xl font-bold text-primary">
-              Cerniq <span className="text-sm font-normal text-gray-500">Sales</span>
+              Cerniq{" "}
+              <span className="text-sm font-normal text-gray-500">Sales</span>
             </span>
           )}
           <Button
@@ -257,25 +265,29 @@ export default function SalesLayout() {
             size="sm"
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
           >
-            {sidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+            {sidebarCollapsed ? (
+              <ChevronRight className="h-4 w-4" />
+            ) : (
+              <ChevronLeft className="h-4 w-4" />
+            )}
           </Button>
         </div>
-        
+
         {/* Navigation */}
         <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
           {navigation.map((item) => {
             const isActive = location.pathname.startsWith(item.href);
             const Icon = item.icon;
-            
+
             return (
               <NavLink
                 key={item.name}
                 to={item.href}
                 className={cn(
-                  'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                  "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                   isActive
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-gray-700 hover:bg-gray-100'
+                    ? "bg-primary text-primary-foreground"
+                    : "text-gray-700 hover:bg-gray-100",
                 )}
               >
                 <Icon className="h-5 w-5 flex-shrink-0" />
@@ -298,7 +310,7 @@ export default function SalesLayout() {
             );
           })}
         </nav>
-        
+
         {/* AI Status */}
         {!sidebarCollapsed && (
           <div className="p-4 border-t">
@@ -309,12 +321,12 @@ export default function SalesLayout() {
           </div>
         )}
       </aside>
-      
+
       {/* Main content */}
       <main
         className={cn(
-          'transition-all duration-300',
-          sidebarCollapsed ? 'ml-16' : 'ml-64'
+          "transition-all duration-300",
+          sidebarCollapsed ? "ml-16" : "ml-64",
         )}
       >
         {/* Top bar */}
@@ -327,7 +339,7 @@ export default function SalesLayout() {
               className="pl-10"
             />
           </div>
-          
+
           {/* Actions */}
           <div className="flex items-center gap-4">
             {/* Notifications */}
@@ -335,7 +347,7 @@ export default function SalesLayout() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative">
                   <Bell className="h-5 w-5" />
-                  {(hitlPendingCount + einvoiceAlertCount) > 0 && (
+                  {hitlPendingCount + einvoiceAlertCount > 0 && (
                     <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white">
                       {hitlPendingCount + einvoiceAlertCount}
                     </span>
@@ -351,7 +363,7 @@ export default function SalesLayout() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            
+
             {/* User menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -368,7 +380,7 @@ export default function SalesLayout() {
             </DropdownMenu>
           </div>
         </header>
-        
+
         {/* Page content */}
         <div className="p-6">
           <Outlet />
@@ -387,9 +399,9 @@ export default function SalesLayout() {
 
 ```tsx
 // src/app/sales/dashboard/page.tsx
-'use client';
+"use client";
 
-import { useState } from 'react';
+import { useState } from "react";
 import {
   TrendingUp,
   TrendingDown,
@@ -403,31 +415,41 @@ import {
   CheckCircle,
   ArrowUpRight,
   RefreshCw,
-} from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useDashboardStats } from '@/hooks/sales/useDashboardStats';
-import { useActiveNegotiations } from '@/hooks/sales/useActiveNegotiations';
-import { useRecentConversions } from '@/hooks/sales/useRecentConversions';
-import { useGuardrailStatus } from '@/hooks/sales/useGuardrailStatus';
-import { KPICard } from '@/components/sales/dashboard/KPICard';
-import { ConversionFunnel } from '@/components/sales/dashboard/ConversionFunnel';
-import { ActiveNegotiationsTable } from '@/components/sales/dashboard/ActiveNegotiationsTable';
-import { AIActivityFeed } from '@/components/sales/dashboard/AIActivityFeed';
-import { SentimentChart } from '@/components/sales/dashboard/SentimentChart';
-import { RevenueChart } from '@/components/sales/dashboard/RevenueChart';
-import { GuardrailStatusCard } from '@/components/sales/dashboard/GuardrailStatusCard';
-import { PendingApprovalsCard } from '@/components/sales/dashboard/PendingApprovalsCard';
+} from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useDashboardStats } from "@/hooks/sales/useDashboardStats";
+import { useActiveNegotiations } from "@/hooks/sales/useActiveNegotiations";
+import { useRecentConversions } from "@/hooks/sales/useRecentConversions";
+import { useGuardrailStatus } from "@/hooks/sales/useGuardrailStatus";
+import { KPICard } from "@/components/sales/dashboard/KPICard";
+import { ConversionFunnel } from "@/components/sales/dashboard/ConversionFunnel";
+import { ActiveNegotiationsTable } from "@/components/sales/dashboard/ActiveNegotiationsTable";
+import { AIActivityFeed } from "@/components/sales/dashboard/AIActivityFeed";
+import { SentimentChart } from "@/components/sales/dashboard/SentimentChart";
+import { RevenueChart } from "@/components/sales/dashboard/RevenueChart";
+import { GuardrailStatusCard } from "@/components/sales/dashboard/GuardrailStatusCard";
+import { PendingApprovalsCard } from "@/components/sales/dashboard/PendingApprovalsCard";
 
 export default function SalesDashboardPage() {
-  const [period, setPeriod] = useState<'today' | 'week' | 'month'>('today');
-  const { data: stats, isLoading: statsLoading, refetch } = useDashboardStats(period);
+  const [period, setPeriod] = useState<"today" | "week" | "month">("today");
+  const {
+    data: stats,
+    isLoading: statsLoading,
+    refetch,
+  } = useDashboardStats(period);
   const { data: negotiations } = useActiveNegotiations({ limit: 10 });
   const { data: conversions } = useRecentConversions({ limit: 5 });
   const { data: guardrailStatus } = useGuardrailStatus();
-  
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -452,7 +474,7 @@ export default function SalesDashboardPage() {
           </Button>
         </div>
       </div>
-      
+
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard
@@ -485,7 +507,7 @@ export default function SalesDashboardPage() {
           format="percent"
         />
       </div>
-      
+
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column - 2/3 width */}
@@ -502,7 +524,7 @@ export default function SalesDashboardPage() {
               <ConversionFunnel data={stats?.funnel} />
             </CardContent>
           </Card>
-          
+
           {/* Active Negotiations */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
@@ -523,7 +545,7 @@ export default function SalesDashboardPage() {
               <ActiveNegotiationsTable negotiations={negotiations} />
             </CardContent>
           </Card>
-          
+
           {/* Revenue Chart */}
           <Card>
             <CardHeader>
@@ -537,7 +559,7 @@ export default function SalesDashboardPage() {
             </CardContent>
           </Card>
         </div>
-        
+
         {/* Right Column - 1/3 width */}
         <div className="space-y-6">
           {/* AI Status */}
@@ -562,11 +584,17 @@ export default function SalesDashboardPage() {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-500">Răspunsuri azi</span>
-                <span className="text-sm font-medium">{stats?.aiResponsesToday ?? 0}</span>
+                <span className="text-sm font-medium">
+                  {stats?.aiResponsesToday ?? 0}
+                </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-500">Timp mediu răspuns</span>
-                <span className="text-sm font-medium">{stats?.avgResponseTime ?? 0}s</span>
+                <span className="text-sm text-gray-500">
+                  Timp mediu răspuns
+                </span>
+                <span className="text-sm font-medium">
+                  {stats?.avgResponseTime ?? 0}s
+                </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-500">Tokens utilizați</span>
@@ -576,13 +604,13 @@ export default function SalesDashboardPage() {
               </div>
             </CardContent>
           </Card>
-          
+
           {/* Guardrail Status */}
           <GuardrailStatusCard status={guardrailStatus} />
-          
+
           {/* Pending Approvals */}
           <PendingApprovalsCard />
-          
+
           {/* Sentiment Distribution */}
           <Card>
             <CardHeader>
@@ -592,7 +620,7 @@ export default function SalesDashboardPage() {
               <SentimentChart data={stats?.sentimentDistribution} />
             </CardContent>
           </Card>
-          
+
           {/* Recent Activity */}
           <Card>
             <CardHeader>
@@ -678,8 +706,8 @@ import { NegotiationState, NegotiationPriority } from '@/types/etapa3';
 import { cn } from '@/lib/utils';
 
 // State colors and labels
-const STATE_CONFIG: Record<NegotiationState, { 
-  label: string; 
+const STATE_CONFIG: Record<NegotiationState, {
+  label: string;
   color: string;
   icon: typeof Clock;
 }> = {
@@ -695,9 +723,9 @@ const STATE_CONFIG: Record<NegotiationState, {
   HUMAN_TAKEOVER: { label: 'Intervenție Umană', color: 'bg-red-100 text-red-700', icon: UserCog }
 };
 
-const PRIORITY_CONFIG: Record<NegotiationPriority, { 
-  label: string; 
-  color: string 
+const PRIORITY_CONFIG: Record<NegotiationPriority, {
+  label: string;
+  color: string
 }> = {
   LOW: { label: 'Scăzută', color: 'bg-gray-100 text-gray-600' },
   MEDIUM: { label: 'Medie', color: 'bg-blue-100 text-blue-600' },
@@ -730,16 +758,16 @@ export default function NegotiationsListPage() {
     dateFrom: null,
     dateTo: null
   });
-  
+
   const [pagination, setPagination] = useState<PaginationState>({
     page: 1,
     pageSize: 25,
     sortBy: 'updatedAt',
     sortOrder: 'desc'
   });
-  
+
   const [showFilters, setShowFilters] = useState(false);
-  
+
   // Query pentru negocieri
   const { data, isLoading, error } = useQuery({
     queryKey: ['negotiations', filters, pagination],
@@ -752,18 +780,18 @@ export default function NegotiationsListPage() {
     }),
     staleTime: 30_000
   });
-  
+
   // Query pentru statistici rapide
   const { data: stats } = useQuery({
     queryKey: ['negotiations-stats'],
     queryFn: () => salesApi.getNegotiationStats(),
     staleTime: 60_000
   });
-  
+
   const negotiations = data?.items ?? [];
   const totalCount = data?.totalCount ?? 0;
   const totalPages = Math.ceil(totalCount / pagination.pageSize);
-  
+
   const handleSort = (column: string) => {
     setPagination(prev => ({
       ...prev,
@@ -771,14 +799,14 @@ export default function NegotiationsListPage() {
       sortOrder: prev.sortBy === column && prev.sortOrder === 'asc' ? 'desc' : 'asc'
     }));
   };
-  
+
   const SortIcon = ({ column }: { column: string }) => {
     if (pagination.sortBy !== column) return null;
-    return pagination.sortOrder === 'asc' 
+    return pagination.sortOrder === 'asc'
       ? <SortAsc className="h-4 w-4 ml-1" />
       : <SortDesc className="h-4 w-4 ml-1" />;
   };
-  
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -789,7 +817,7 @@ export default function NegotiationsListPage() {
             Gestionează negocierile cu clienții
           </p>
         </div>
-        
+
         {/* Quick Stats */}
         <div className="flex items-center gap-4">
           <div className="text-center px-4">
@@ -812,7 +840,7 @@ export default function NegotiationsListPage() {
           </div>
         </div>
       </div>
-      
+
       {/* Search & Filters Bar */}
       <Card>
         <CardContent className="p-4">
@@ -827,13 +855,13 @@ export default function NegotiationsListPage() {
                 className="pl-10"
               />
             </div>
-            
+
             {/* Quick Filters */}
             <Select
               value={filters.state}
-              onValueChange={(value) => setFilters(prev => ({ 
-                ...prev, 
-                state: value as NegotiationState | 'ALL' 
+              onValueChange={(value) => setFilters(prev => ({
+                ...prev,
+                state: value as NegotiationState | 'ALL'
               }))}
             >
               <SelectTrigger className="w-[180px]">
@@ -848,12 +876,12 @@ export default function NegotiationsListPage() {
                 ))}
               </SelectContent>
             </Select>
-            
+
             <Select
               value={filters.handledBy}
-              onValueChange={(value) => setFilters(prev => ({ 
-                ...prev, 
-                handledBy: value as 'ALL' | 'AI' | 'HUMAN' 
+              onValueChange={(value) => setFilters(prev => ({
+                ...prev,
+                handledBy: value as 'ALL' | 'AI' | 'HUMAN'
               }))}
             >
               <SelectTrigger className="w-[150px]">
@@ -875,9 +903,9 @@ export default function NegotiationsListPage() {
                 </SelectItem>
               </SelectContent>
             </Select>
-            
+
             {/* Advanced Filters Toggle */}
-            <Button 
+            <Button
               variant={showFilters ? 'secondary' : 'outline'}
               onClick={() => setShowFilters(!showFilters)}
             >
@@ -894,7 +922,7 @@ export default function NegotiationsListPage() {
               )}
             </Button>
           </div>
-          
+
           {/* Advanced Filters Panel */}
           {showFilters && (
             <div className="mt-4 pt-4 border-t grid grid-cols-4 gap-4">
@@ -904,9 +932,9 @@ export default function NegotiationsListPage() {
                 </label>
                 <Select
                   value={filters.priority}
-                  onValueChange={(value) => setFilters(prev => ({ 
-                    ...prev, 
-                    priority: value as NegotiationPriority | 'ALL' 
+                  onValueChange={(value) => setFilters(prev => ({
+                    ...prev,
+                    priority: value as NegotiationPriority | 'ALL'
                   }))}
                 >
                   <SelectTrigger>
@@ -922,7 +950,7 @@ export default function NegotiationsListPage() {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">
                   De la data
@@ -930,13 +958,13 @@ export default function NegotiationsListPage() {
                 <Input
                   type="date"
                   value={filters.dateFrom ?? ''}
-                  onChange={(e) => setFilters(prev => ({ 
-                    ...prev, 
-                    dateFrom: e.target.value || null 
+                  onChange={(e) => setFilters(prev => ({
+                    ...prev,
+                    dateFrom: e.target.value || null
                   }))}
                 />
               </div>
-              
+
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">
                   Până la data
@@ -944,16 +972,16 @@ export default function NegotiationsListPage() {
                 <Input
                   type="date"
                   value={filters.dateTo ?? ''}
-                  onChange={(e) => setFilters(prev => ({ 
-                    ...prev, 
-                    dateTo: e.target.value || null 
+                  onChange={(e) => setFilters(prev => ({
+                    ...prev,
+                    dateTo: e.target.value || null
                   }))}
                 />
               </div>
-              
+
               <div className="flex items-end">
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   onClick={() => setFilters({
                     search: '',
                     state: 'ALL',
@@ -970,14 +998,14 @@ export default function NegotiationsListPage() {
           )}
         </CardContent>
       </Card>
-      
+
       {/* Negotiations Table */}
       <Card>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow className="bg-gray-50">
-                <TableHead 
+                <TableHead
                   className="cursor-pointer hover:bg-gray-100"
                   onClick={() => handleSort('createdAt')}
                 >
@@ -986,7 +1014,7 @@ export default function NegotiationsListPage() {
                     <SortIcon column="createdAt" />
                   </div>
                 </TableHead>
-                <TableHead 
+                <TableHead
                   className="cursor-pointer hover:bg-gray-100"
                   onClick={() => handleSort('clientName')}
                 >
@@ -996,7 +1024,7 @@ export default function NegotiationsListPage() {
                   </div>
                 </TableHead>
                 <TableHead>Produse</TableHead>
-                <TableHead 
+                <TableHead
                   className="cursor-pointer hover:bg-gray-100"
                   onClick={() => handleSort('state')}
                 >
@@ -1005,7 +1033,7 @@ export default function NegotiationsListPage() {
                     <SortIcon column="state" />
                   </div>
                 </TableHead>
-                <TableHead 
+                <TableHead
                   className="cursor-pointer hover:bg-gray-100"
                   onClick={() => handleSort('estimatedValue')}
                 >
@@ -1015,7 +1043,7 @@ export default function NegotiationsListPage() {
                   </div>
                 </TableHead>
                 <TableHead>Gestionat de</TableHead>
-                <TableHead 
+                <TableHead
                   className="cursor-pointer hover:bg-gray-100"
                   onClick={() => handleSort('updatedAt')}
                 >
@@ -1046,7 +1074,7 @@ export default function NegotiationsListPage() {
                       <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
                       <p className="font-medium">Nu există negocieri</p>
                       <p className="text-sm">
-                        {filters.search || filters.state !== 'ALL' 
+                        {filters.search || filters.state !== 'ALL'
                           ? 'Încearcă să modifici filtrele'
                           : 'Negocierile vor apărea aici când clienții răspund'}
                       </p>
@@ -1058,9 +1086,9 @@ export default function NegotiationsListPage() {
                   const stateConfig = STATE_CONFIG[negotiation.state];
                   const priorityConfig = PRIORITY_CONFIG[negotiation.priority];
                   const StateIcon = stateConfig.icon;
-                  
+
                   return (
-                    <TableRow 
+                    <TableRow
                       key={negotiation.id}
                       className="hover:bg-gray-50 cursor-pointer"
                     >
@@ -1072,7 +1100,7 @@ export default function NegotiationsListPage() {
                           {format(new Date(negotiation.createdAt), 'HH:mm')}
                         </div>
                       </TableCell>
-                      
+
                       <TableCell>
                         <div className="font-medium">{negotiation.clientName}</div>
                         <div className="text-sm text-gray-500">
@@ -1084,7 +1112,7 @@ export default function NegotiationsListPage() {
                           </Badge>
                         )}
                       </TableCell>
-                      
+
                       <TableCell>
                         <div className="flex flex-wrap gap-1 max-w-[200px]">
                           {negotiation.products.slice(0, 2).map((product, i) => (
@@ -1099,14 +1127,14 @@ export default function NegotiationsListPage() {
                           )}
                         </div>
                       </TableCell>
-                      
+
                       <TableCell>
                         <Badge className={cn('flex items-center gap-1 w-fit', stateConfig.color)}>
                           <StateIcon className="h-3 w-3" />
                           {stateConfig.label}
                         </Badge>
                       </TableCell>
-                      
+
                       <TableCell>
                         <div className="font-medium">
                           {negotiation.estimatedValue.toLocaleString('ro-RO')} RON
@@ -1117,7 +1145,7 @@ export default function NegotiationsListPage() {
                           </div>
                         )}
                       </TableCell>
-                      
+
                       <TableCell>
                         <div className="flex items-center gap-2">
                           {negotiation.handledBy === 'AI' ? (
@@ -1135,16 +1163,16 @@ export default function NegotiationsListPage() {
                           )}
                         </div>
                       </TableCell>
-                      
+
                       <TableCell>
                         <div className="text-sm text-gray-500">
-                          {formatDistanceToNow(new Date(negotiation.updatedAt), { 
+                          {formatDistanceToNow(new Date(negotiation.updatedAt), {
                             addSuffix: true,
-                            locale: ro 
+                            locale: ro
                           })}
                         </div>
                       </TableCell>
-                      
+
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -1174,7 +1202,7 @@ export default function NegotiationsListPage() {
                               </DropdownMenuItem>
                             )}
                             {negotiation.handledBy === 'AI' && (
-                              <DropdownMenuItem 
+                              <DropdownMenuItem
                                 onClick={() => handleTakeover(negotiation.id)}
                                 className="text-orange-600"
                               >
@@ -1192,20 +1220,20 @@ export default function NegotiationsListPage() {
             </TableBody>
           </Table>
         </CardContent>
-        
+
         {/* Pagination */}
         <div className="px-4 py-3 border-t flex items-center justify-between">
           <div className="text-sm text-gray-500">
             Afișez {((pagination.page - 1) * pagination.pageSize) + 1} - {Math.min(pagination.page * pagination.pageSize, totalCount)} din {totalCount} negocieri
           </div>
-          
+
           <div className="flex items-center gap-2">
             <Select
               value={String(pagination.pageSize)}
-              onValueChange={(value) => setPagination(prev => ({ 
-                ...prev, 
+              onValueChange={(value) => setPagination(prev => ({
+                ...prev,
                 pageSize: parseInt(value),
-                page: 1 
+                page: 1
               }))}
             >
               <SelectTrigger className="w-[100px]">
@@ -1218,7 +1246,7 @@ export default function NegotiationsListPage() {
                 <SelectItem value="100">100 / pag</SelectItem>
               </SelectContent>
             </Select>
-            
+
             <div className="flex items-center gap-1">
               <Button
                 variant="outline"
@@ -1228,7 +1256,7 @@ export default function NegotiationsListPage() {
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              
+
               {/* Page Numbers */}
               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                 let pageNum: number;
@@ -1241,7 +1269,7 @@ export default function NegotiationsListPage() {
                 } else {
                   pageNum = pagination.page - 2 + i;
                 }
-                
+
                 return (
                   <Button
                     key={pageNum}
@@ -1253,7 +1281,7 @@ export default function NegotiationsListPage() {
                   </Button>
                 );
               })}
-              
+
               <Button
                 variant="outline"
                 size="sm"
@@ -1341,8 +1369,8 @@ import { format } from 'date-fns';
 import { ro } from 'date-fns/locale';
 import Link from 'next/link';
 import { salesApi } from '@/lib/api/sales';
-import { 
-  NegotiationState, 
+import {
+  NegotiationState,
   NegotiationDetail,
   NegotiationProduct,
   NegotiationEvent,
@@ -1366,31 +1394,31 @@ export default function NegotiationDetailPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const negotiationId = params.id as string;
-  
+
   const [activeTab, setActiveTab] = useState('overview');
   const [takeoverReason, setTakeoverReason] = useState('');
   const [showTakeoverDialog, setShowTakeoverDialog] = useState(false);
-  
+
   // Fetch negotiation details
   const { data: negotiation, isLoading, error } = useQuery({
     queryKey: ['negotiation', negotiationId],
     queryFn: () => salesApi.getNegotiation(negotiationId),
     refetchInterval: 10_000 // Auto-refresh every 10s for active negotiations
   });
-  
+
   // Fetch conversation messages
   const { data: conversation } = useQuery({
     queryKey: ['negotiation-conversation', negotiationId],
     queryFn: () => salesApi.getNegotiationConversation(negotiationId),
     enabled: !!negotiation?.conversationId
   });
-  
+
   // Fetch events history
   const { data: events } = useQuery({
     queryKey: ['negotiation-events', negotiationId],
     queryFn: () => salesApi.getNegotiationEvents(negotiationId)
   });
-  
+
   // Mutation: Human takeover
   const takeoverMutation = useMutation({
     mutationFn: (reason: string) => salesApi.takeoverNegotiation(negotiationId, reason),
@@ -1399,7 +1427,7 @@ export default function NegotiationDetailPage() {
       setShowTakeoverDialog(false);
     }
   });
-  
+
   // Mutation: Return to AI
   const returnToAiMutation = useMutation({
     mutationFn: () => salesApi.returnNegotiationToAi(negotiationId),
@@ -1407,20 +1435,20 @@ export default function NegotiationDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['negotiation', negotiationId] });
     }
   });
-  
+
   // Mutation: Mark as Won/Lost
   const closeNegotiationMutation = useMutation({
-    mutationFn: ({ outcome, reason }: { outcome: 'WON' | 'LOST'; reason?: string }) => 
+    mutationFn: ({ outcome, reason }: { outcome: 'WON' | 'LOST'; reason?: string }) =>
       salesApi.closeNegotiation(negotiationId, outcome, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['negotiation', negotiationId] });
     }
   });
-  
+
   if (isLoading) {
     return <NegotiationDetailSkeleton />;
   }
-  
+
   if (error || !negotiation) {
     return (
       <div className="flex flex-col items-center justify-center h-[400px]">
@@ -1436,10 +1464,10 @@ export default function NegotiationDetailPage() {
       </div>
     );
   }
-  
+
   const isActive = !['WON', 'LOST', 'STALE'].includes(negotiation.state);
   const isAiHandled = negotiation.handledBy === 'AI';
-  
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -1448,7 +1476,7 @@ export default function NegotiationDetailPage() {
           <Button variant="ghost" onClick={() => router.back()}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          
+
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold">
@@ -1466,7 +1494,7 @@ export default function NegotiationDetailPage() {
             </p>
           </div>
         </div>
-        
+
         {/* Actions */}
         <div className="flex items-center gap-2">
           {isActive && (
@@ -1475,7 +1503,7 @@ export default function NegotiationDetailPage() {
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button 
+                      <Button
                         variant="outline"
                         onClick={() => setShowTakeoverDialog(true)}
                       >
@@ -1489,7 +1517,7 @@ export default function NegotiationDetailPage() {
                   </Tooltip>
                 </TooltipProvider>
               ) : (
-                <Button 
+                <Button
                   variant="outline"
                   onClick={() => returnToAiMutation.mutate()}
                   disabled={returnToAiMutation.isPending}
@@ -1498,14 +1526,14 @@ export default function NegotiationDetailPage() {
                   Returnează la AI
                 </Button>
               )}
-              
+
               <Button variant="outline" asChild>
                 <Link href={`/sales/documents/proforma/new?negotiation=${negotiationId}`}>
                   <FileText className="h-4 w-4 mr-2" />
                   Generează Proformă
                 </Link>
               </Button>
-              
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline">
@@ -1513,14 +1541,14 @@ export default function NegotiationDetailPage() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem 
+                  <DropdownMenuItem
                     onClick={() => closeNegotiationMutation.mutate({ outcome: 'WON' })}
                     className="text-green-600"
                   >
                     <CheckCircle className="h-4 w-4 mr-2" />
                     Marchează Câștigată
                   </DropdownMenuItem>
-                  <DropdownMenuItem 
+                  <DropdownMenuItem
                     onClick={() => closeNegotiationMutation.mutate({ outcome: 'LOST' })}
                     className="text-red-600"
                   >
@@ -1533,7 +1561,7 @@ export default function NegotiationDetailPage() {
           )}
         </div>
       </div>
-      
+
       {/* State Machine Visualization */}
       <Card>
         <CardHeader className="pb-2">
@@ -1542,13 +1570,13 @@ export default function NegotiationDetailPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <NegotiationStateMachine 
+          <NegotiationStateMachine
             currentState={negotiation.state}
             stateHistory={negotiation.stateHistory}
           />
         </CardContent>
       </Card>
-      
+
       {/* Main Content Grid */}
       <div className="grid grid-cols-3 gap-6">
         {/* Left Column - 2/3 width */}
@@ -1576,7 +1604,7 @@ export default function NegotiationDetailPage() {
                 Istoric
               </TabsTrigger>
             </TabsList>
-            
+
             {/* Overview Tab */}
             <TabsContent value="overview" className="space-y-6">
               {/* Value Summary */}
@@ -1617,7 +1645,7 @@ export default function NegotiationDetailPage() {
                       </div>
                     </div>
                   </div>
-                  
+
                   {negotiation.discountHistory.length > 0 && (
                     <div className="mt-6">
                       <h4 className="text-sm font-medium mb-2">Evoluție Preț</h4>
@@ -1626,7 +1654,7 @@ export default function NegotiationDetailPage() {
                   )}
                 </CardContent>
               </Card>
-              
+
               {/* AI Performance */}
               {isAiHandled && (
                 <Card>
@@ -1657,7 +1685,7 @@ export default function NegotiationDetailPage() {
                         </div>
                       </div>
                     </div>
-                    
+
                     {/* Guardrail Violations */}
                     {negotiation.guardrailViolations.length > 0 && (
                       <div className="mt-6">
@@ -1667,21 +1695,21 @@ export default function NegotiationDetailPage() {
                   </CardContent>
                 </Card>
               )}
-              
+
               {/* Sentiment Trend */}
               <Card>
                 <CardHeader>
                   <CardTitle>Trend Sentiment Client</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <SentimentTrendChart 
+                  <SentimentTrendChart
                     data={negotiation.sentimentHistory}
                     currentSentiment={negotiation.currentSentiment}
                   />
                 </CardContent>
               </Card>
             </TabsContent>
-            
+
             {/* Conversation Tab */}
             <TabsContent value="conversation">
               <Card>
@@ -1695,7 +1723,7 @@ export default function NegotiationDetailPage() {
                   </Button>
                 </CardHeader>
                 <CardContent>
-                  <ConversationTimeline 
+                  <ConversationTimeline
                     messages={conversation?.messages ?? []}
                     negotiationId={negotiationId}
                     isAiHandled={isAiHandled}
@@ -1704,7 +1732,7 @@ export default function NegotiationDetailPage() {
                 </CardContent>
               </Card>
             </TabsContent>
-            
+
             {/* Products Tab */}
             <TabsContent value="products">
               <Card>
@@ -1712,18 +1740,18 @@ export default function NegotiationDetailPage() {
                   <CardTitle>Produse în Negociere</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ProductsTable 
+                  <ProductsTable
                     products={negotiation.products}
                     negotiationId={negotiationId}
                     editable={isActive && !isAiHandled}
-                    onUpdate={() => queryClient.invalidateQueries({ 
-                      queryKey: ['negotiation', negotiationId] 
+                    onUpdate={() => queryClient.invalidateQueries({
+                      queryKey: ['negotiation', negotiationId]
                     })}
                   />
                 </CardContent>
               </Card>
             </TabsContent>
-            
+
             {/* Documents Tab */}
             <TabsContent value="documents">
               <Card>
@@ -1737,14 +1765,14 @@ export default function NegotiationDetailPage() {
                   </Button>
                 </CardHeader>
                 <CardContent>
-                  <DocumentsList 
+                  <DocumentsList
                     documents={negotiation.documents}
                     negotiationId={negotiationId}
                   />
                 </CardContent>
               </Card>
             </TabsContent>
-            
+
             {/* History Tab */}
             <TabsContent value="history">
               <Card>
@@ -1758,15 +1786,15 @@ export default function NegotiationDetailPage() {
             </TabsContent>
           </Tabs>
         </div>
-        
+
         {/* Right Column - 1/3 width */}
         <div className="space-y-6">
           {/* Client Info */}
-          <ClientInfoCard 
+          <ClientInfoCard
             client={negotiation.client}
             contact={negotiation.contact}
           />
-          
+
           {/* Handler Info */}
           <Card>
             <CardHeader>
@@ -1802,7 +1830,7 @@ export default function NegotiationDetailPage() {
                   </>
                 )}
               </div>
-              
+
               {negotiation.takeoverReason && (
                 <div className="mt-4 p-3 bg-orange-50 rounded-lg">
                   <div className="text-sm font-medium text-orange-700">
@@ -1815,7 +1843,7 @@ export default function NegotiationDetailPage() {
               )}
             </CardContent>
           </Card>
-          
+
           {/* Quick Actions */}
           {isActive && (
             <Card>
@@ -1842,7 +1870,7 @@ export default function NegotiationDetailPage() {
               </CardContent>
             </Card>
           )}
-          
+
           {/* Related Negotiations */}
           {negotiation.relatedNegotiations.length > 0 && (
             <Card>
@@ -1852,7 +1880,7 @@ export default function NegotiationDetailPage() {
               <CardContent>
                 <div className="space-y-2">
                   {negotiation.relatedNegotiations.map((related) => (
-                    <Link 
+                    <Link
                       key={related.id}
                       href={`/sales/negotiations/${related.id}`}
                       className="block p-3 border rounded-lg hover:bg-gray-50"
@@ -1874,18 +1902,18 @@ export default function NegotiationDetailPage() {
           )}
         </div>
       </div>
-      
+
       {/* Takeover Dialog */}
       <AlertDialog open={showTakeoverDialog} onOpenChange={setShowTakeoverDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Preia Negocierea Manual</AlertDialogTitle>
             <AlertDialogDescription>
-              AI Agent-ul va fi oprit pentru această negociere. 
+              AI Agent-ul va fi oprit pentru această negociere.
               Toate mesajele viitoare vor fi gestionate manual.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          
+
           <div className="my-4">
             <label className="text-sm font-medium">
               Motiv preluare (opțional)
@@ -1897,7 +1925,7 @@ export default function NegotiationDetailPage() {
               className="mt-2"
             />
           </div>
-          
+
           <AlertDialogFooter>
             <AlertDialogCancel>Anulează</AlertDialogCancel>
             <AlertDialogAction
@@ -1919,16 +1947,16 @@ export default function NegotiationDetailPage() {
 }
 
 // Supporting Components
-function NegotiationStateBadge({ 
-  state, 
-  size = 'default' 
-}: { 
+function NegotiationStateBadge({
+  state,
+  size = 'default'
+}: {
   state: NegotiationState;
   size?: 'sm' | 'default';
 }) {
   const config = STATE_CONFIG[state];
   const Icon = config.icon;
-  
+
   return (
     <Badge className={cn(
       'flex items-center gap-1',
@@ -1943,11 +1971,11 @@ function NegotiationStateBadge({
 
 function PriorityBadge({ priority }: { priority: NegotiationPriority }) {
   const config = PRIORITY_CONFIG[priority];
-  
+
   if (priority === 'LOW' || priority === 'MEDIUM') {
     return null; // Don't show badge for normal priorities
   }
-  
+
   return (
     <Badge className={config.color}>
       {config.label}
@@ -2033,8 +2061,8 @@ import { salesApi } from '@/lib/api/sales';
 import { Product, ProductCategory, ProductStatus } from '@/types/etapa3';
 import { cn } from '@/lib/utils';
 
-const STATUS_CONFIG: Record<ProductStatus, { 
-  label: string; 
+const STATUS_CONFIG: Record<ProductStatus, {
+  label: string;
   color: string;
   icon: typeof CheckCircle;
 }> = {
@@ -2063,10 +2091,10 @@ export default function ProductsListPage() {
     maxPrice: null,
     inStock: null
   });
-  
+
   const [view, setView] = useState<'table' | 'grid'>('table');
   const [showFilters, setShowFilters] = useState(false);
-  
+
   // Query pentru produse
   const { data, isLoading } = useQuery({
     queryKey: ['products', filters],
@@ -2077,24 +2105,24 @@ export default function ProductsListPage() {
     }),
     staleTime: 60_000
   });
-  
+
   // Query pentru categorii
   const { data: categories } = useQuery({
     queryKey: ['product-categories'],
     queryFn: () => salesApi.getProductCategories(),
     staleTime: 300_000
   });
-  
+
   // Query pentru statistici
   const { data: stats } = useQuery({
     queryKey: ['products-stats'],
     queryFn: () => salesApi.getProductStats(),
     staleTime: 60_000
   });
-  
+
   const products = data?.items ?? [];
   const totalCount = data?.totalCount ?? 0;
-  
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -2105,7 +2133,7 @@ export default function ProductsListPage() {
             Gestionează produsele disponibile pentru AI Agent
           </p>
         </div>
-        
+
         <div className="flex items-center gap-2">
           <Button variant="outline">
             <Upload className="h-4 w-4 mr-2" />
@@ -2123,7 +2151,7 @@ export default function ProductsListPage() {
           </Button>
         </div>
       </div>
-      
+
       {/* Quick Stats */}
       <div className="grid grid-cols-5 gap-4">
         <Card>
@@ -2137,7 +2165,7 @@ export default function ProductsListPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -2151,7 +2179,7 @@ export default function ProductsListPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -2165,7 +2193,7 @@ export default function ProductsListPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -2179,7 +2207,7 @@ export default function ProductsListPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -2194,7 +2222,7 @@ export default function ProductsListPage() {
           </CardContent>
         </Card>
       </div>
-      
+
       {/* Search & Filters */}
       <Card>
         <CardContent className="p-4">
@@ -2208,7 +2236,7 @@ export default function ProductsListPage() {
                 className="pl-10"
               />
             </div>
-            
+
             <Select
               value={filters.category}
               onValueChange={(value) => setFilters(prev => ({ ...prev, category: value }))}
@@ -2225,12 +2253,12 @@ export default function ProductsListPage() {
                 ))}
               </SelectContent>
             </Select>
-            
+
             <Select
               value={filters.status}
-              onValueChange={(value) => setFilters(prev => ({ 
-                ...prev, 
-                status: value as ProductStatus | 'ALL' 
+              onValueChange={(value) => setFilters(prev => ({
+                ...prev,
+                status: value as ProductStatus | 'ALL'
               }))}
             >
               <SelectTrigger className="w-[180px]">
@@ -2245,15 +2273,15 @@ export default function ProductsListPage() {
                 ))}
               </SelectContent>
             </Select>
-            
-            <Button 
+
+            <Button
               variant={showFilters ? 'secondary' : 'outline'}
               onClick={() => setShowFilters(!showFilters)}
             >
               <Filter className="h-4 w-4 mr-2" />
               Filtre
             </Button>
-            
+
             {/* View Toggle */}
             <div className="flex items-center border rounded-lg">
               <Button
@@ -2272,7 +2300,7 @@ export default function ProductsListPage() {
               </Button>
             </div>
           </div>
-          
+
           {/* Advanced Filters */}
           {showFilters && (
             <div className="mt-4 pt-4 border-t grid grid-cols-4 gap-4">
@@ -2283,14 +2311,14 @@ export default function ProductsListPage() {
                 <Input
                   type="number"
                   value={filters.minPrice ?? ''}
-                  onChange={(e) => setFilters(prev => ({ 
-                    ...prev, 
-                    minPrice: e.target.value ? parseFloat(e.target.value) : null 
+                  onChange={(e) => setFilters(prev => ({
+                    ...prev,
+                    minPrice: e.target.value ? parseFloat(e.target.value) : null
                   }))}
                   placeholder="0"
                 />
               </div>
-              
+
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">
                   Preț Maxim (RON)
@@ -2298,23 +2326,23 @@ export default function ProductsListPage() {
                 <Input
                   type="number"
                   value={filters.maxPrice ?? ''}
-                  onChange={(e) => setFilters(prev => ({ 
-                    ...prev, 
-                    maxPrice: e.target.value ? parseFloat(e.target.value) : null 
+                  onChange={(e) => setFilters(prev => ({
+                    ...prev,
+                    maxPrice: e.target.value ? parseFloat(e.target.value) : null
                   }))}
                   placeholder="∞"
                 />
               </div>
-              
+
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">
                   Doar în Stoc
                 </label>
                 <Select
                   value={filters.inStock === null ? 'ALL' : filters.inStock ? 'YES' : 'NO'}
-                  onValueChange={(value) => setFilters(prev => ({ 
-                    ...prev, 
-                    inStock: value === 'ALL' ? null : value === 'YES' 
+                  onValueChange={(value) => setFilters(prev => ({
+                    ...prev,
+                    inStock: value === 'ALL' ? null : value === 'YES'
                   }))}
                 >
                   <SelectTrigger>
@@ -2327,9 +2355,9 @@ export default function ProductsListPage() {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="flex items-end">
-                <Button 
+                <Button
                   variant="ghost"
                   onClick={() => setFilters({
                     search: '',
@@ -2347,7 +2375,7 @@ export default function ProductsListPage() {
           )}
         </CardContent>
       </Card>
-      
+
       {/* Products Display */}
       {view === 'table' ? (
         <ProductsTable products={products} isLoading={isLoading} />
@@ -2359,10 +2387,10 @@ export default function ProductsListPage() {
 }
 
 // Products Table Component
-function ProductsTable({ 
-  products, 
-  isLoading 
-}: { 
+function ProductsTable({
+  products,
+  isLoading
+}: {
   products: Product[];
   isLoading: boolean;
 }) {
@@ -2407,13 +2435,13 @@ function ProductsTable({
               products.map((product) => {
                 const statusConfig = STATUS_CONFIG[product.status];
                 const StatusIcon = statusConfig.icon;
-                
+
                 return (
                   <TableRow key={product.id} className="hover:bg-gray-50">
                     <TableCell>
                       {product.imageUrl ? (
-                        <img 
-                          src={product.imageUrl} 
+                        <img
+                          src={product.imageUrl}
                           alt={product.name}
                           className="h-12 w-12 object-cover rounded"
                         />
@@ -2423,18 +2451,18 @@ function ProductsTable({
                         </div>
                       )}
                     </TableCell>
-                    
+
                     <TableCell>
                       <div className="font-medium">{product.name}</div>
                       <div className="text-sm text-gray-500">
                         SKU: {product.sku}
                       </div>
                     </TableCell>
-                    
+
                     <TableCell>
                       <Badge variant="outline">{product.category.name}</Badge>
                     </TableCell>
-                    
+
                     <TableCell className="text-right">
                       <div className="font-medium">
                         {product.basePrice.toLocaleString('ro-RO')} RON
@@ -2443,7 +2471,7 @@ function ProductsTable({
                         / {product.unit}
                       </div>
                     </TableCell>
-                    
+
                     <TableCell className="text-right">
                       <div className={cn(
                         'font-medium',
@@ -2456,14 +2484,14 @@ function ProductsTable({
                         {product.unit}
                       </div>
                     </TableCell>
-                    
+
                     <TableCell>
                       <Badge className={cn('flex items-center gap-1 w-fit', statusConfig.color)}>
                         <StatusIcon className="h-3 w-3" />
                         {statusConfig.label}
                       </Badge>
                     </TableCell>
-                    
+
                     <TableCell>
                       {product.aiEnabled ? (
                         <Badge className="bg-blue-100 text-blue-700">
@@ -2476,7 +2504,7 @@ function ProductsTable({
                         </Badge>
                       )}
                     </TableCell>
-                    
+
                     <TableCell>
                       <div className="flex items-center gap-1">
                         <Button variant="ghost" size="sm" asChild>
@@ -2503,10 +2531,10 @@ function ProductsTable({
 }
 
 // Products Grid Component
-function ProductsGrid({ 
-  products, 
-  isLoading 
-}: { 
+function ProductsGrid({
+  products,
+  isLoading
+}: {
   products: Product[];
   isLoading: boolean;
 }) {
@@ -2525,21 +2553,21 @@ function ProductsGrid({
       </div>
     );
   }
-  
+
   return (
     <div className="grid grid-cols-4 gap-4">
       {products.map((product) => {
         const statusConfig = STATUS_CONFIG[product.status];
         const StatusIcon = statusConfig.icon;
-        
+
         return (
           <Card key={product.id} className="hover:shadow-md transition-shadow">
             <CardContent className="p-4">
               {/* Image */}
               <div className="relative mb-4">
                 {product.imageUrl ? (
-                  <img 
-                    src={product.imageUrl} 
+                  <img
+                    src={product.imageUrl}
                     alt={product.name}
                     className="w-full h-40 object-cover rounded"
                   />
@@ -2548,7 +2576,7 @@ function ProductsGrid({
                     <Package className="h-12 w-12 text-gray-400" />
                   </div>
                 )}
-                
+
                 {/* Status Badge */}
                 <Badge className={cn(
                   'absolute top-2 right-2',
@@ -2558,14 +2586,14 @@ function ProductsGrid({
                   {statusConfig.label}
                 </Badge>
               </div>
-              
+
               {/* Info */}
               <div className="space-y-2">
                 <div>
                   <h3 className="font-medium line-clamp-2">{product.name}</h3>
                   <p className="text-sm text-gray-500">SKU: {product.sku}</p>
                 </div>
-                
+
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-lg font-bold">
@@ -2575,7 +2603,7 @@ function ProductsGrid({
                       / {product.unit}
                     </div>
                   </div>
-                  
+
                   <div className="text-right">
                     <div className={cn(
                       'font-medium',
@@ -2587,7 +2615,7 @@ function ProductsGrid({
                     <div className="text-xs text-gray-500">în stoc</div>
                   </div>
                 </div>
-                
+
                 {/* Actions */}
                 <div className="flex items-center gap-2 pt-2">
                   <Button variant="outline" size="sm" className="flex-1" asChild>
@@ -2702,7 +2730,7 @@ interface PricingRule {
   type: 'volume' | 'client_tier' | 'promotional' | 'bundle' | 'seasonal' | 'loyalty';
   status: 'active' | 'inactive' | 'scheduled' | 'expired';
   priority: number;
-  
+
   // Conditions
   conditions: {
     minQuantity?: number;
@@ -2714,7 +2742,7 @@ interface PricingRule {
     paymentTerms?: string[];
     orderValue?: { min?: number; max?: number };
   };
-  
+
   // Discount Configuration
   discount: {
     type: 'percentage' | 'fixed' | 'tiered';
@@ -2724,21 +2752,21 @@ interface PricingRule {
     requiresApproval: boolean;
     approvalThreshold?: number;
   };
-  
+
   // Validity
   validFrom: string;
   validTo?: string;
-  
+
   // Usage limits
   usageLimit?: number;
   usageCount: number;
   perClientLimit?: number;
-  
+
   // Stats
   totalDiscountGiven: number;
   ordersAffected: number;
   lastUsedAt?: string;
-  
+
   // Metadata
   createdBy: string;
   createdAt: string;
@@ -2787,7 +2815,7 @@ async function fetchPricingRules(params: {
   if (params.search) searchParams.set('search', params.search);
   searchParams.set('page', String(params.page || 1));
   searchParams.set('limit', String(params.limit || 20));
-  
+
   const response = await fetch(`/api/v1/sales/pricing/rules?${searchParams}`);
   if (!response.ok) throw new Error('Failed to fetch pricing rules');
   return response.json();
@@ -2841,7 +2869,7 @@ export default function PricingRulesPage() {
   const [page, setPage] = useState(1);
   const [selectedRule, setSelectedRule] = useState<PricingRule | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  
+
   // Fetch pricing rules
   const { data: rulesData, isLoading } = useQuery({
     queryKey: ['pricing-rules', activeTab, statusFilter, typeFilter, searchQuery, page],
@@ -2853,13 +2881,13 @@ export default function PricingRulesPage() {
       limit: 20,
     }),
   });
-  
+
   // Fetch stats
   const { data: stats } = useQuery({
     queryKey: ['pricing-stats'],
     queryFn: fetchPricingStats,
   });
-  
+
   // Mutations
   const toggleStatusMutation = useMutation({
     mutationFn: ({ ruleId, active }: { ruleId: string; active: boolean }) =>
@@ -2872,7 +2900,7 @@ export default function PricingRulesPage() {
       toast.error('Eroare la actualizarea statusului');
     },
   });
-  
+
   const deleteMutation = useMutation({
     mutationFn: deleteRule,
     onSuccess: () => {
@@ -2883,7 +2911,7 @@ export default function PricingRulesPage() {
       toast.error('Eroare la ștergerea regulii');
     },
   });
-  
+
   const duplicateMutation = useMutation({
     mutationFn: duplicateRule,
     onSuccess: () => {
@@ -2894,7 +2922,7 @@ export default function PricingRulesPage() {
       toast.error('Eroare la duplicarea regulii');
     },
   });
-  
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -2925,7 +2953,7 @@ export default function PricingRulesPage() {
               <DialogHeader>
                 <DialogTitle>Creează Regulă de Preț</DialogTitle>
               </DialogHeader>
-              <PricingRuleForm 
+              <PricingRuleForm
                 onSuccess={() => {
                   setShowCreateDialog(false);
                   queryClient.invalidateQueries({ queryKey: ['pricing-rules'] });
@@ -2935,7 +2963,7 @@ export default function PricingRulesPage() {
           </Dialog>
         </div>
       </div>
-      
+
       {/* Stats Cards */}
       <div className="grid grid-cols-5 gap-4">
         <Card>
@@ -2951,7 +2979,7 @@ export default function PricingRulesPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -2967,7 +2995,7 @@ export default function PricingRulesPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -2983,7 +3011,7 @@ export default function PricingRulesPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -2999,7 +3027,7 @@ export default function PricingRulesPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -3016,7 +3044,7 @@ export default function PricingRulesPage() {
           </CardContent>
         </Card>
       </div>
-      
+
       {/* Main Content */}
       <Card>
         <CardHeader>
@@ -3033,7 +3061,7 @@ export default function PricingRulesPage() {
                   className="pl-10 w-64"
                 />
               </div>
-              
+
               {/* Type Filter */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -3054,7 +3082,7 @@ export default function PricingRulesPage() {
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
-              
+
               {/* Status Filter */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -3089,7 +3117,7 @@ export default function PricingRulesPage() {
               <TabsTrigger value="bundle">Bundle</TabsTrigger>
               <TabsTrigger value="seasonal">Sezoniere</TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value={activeTab} className="mt-0">
               <Table>
                 <TableHeader>
@@ -3122,7 +3150,7 @@ export default function PricingRulesPage() {
                       const typeConfig = RULE_TYPES[rule.type];
                       const statusConfig = RULE_STATUS[rule.status];
                       const TypeIcon = typeConfig.icon;
-                      
+
                       return (
                         <TableRow key={rule.id}>
                           <TableCell>
@@ -3214,7 +3242,7 @@ export default function PricingRulesPage() {
                                   <Edit className="h-4 w-4 mr-2" />
                                   Editare
                                 </DropdownMenuItem>
-                                <DropdownMenuItem 
+                                <DropdownMenuItem
                                   onClick={() => duplicateMutation.mutate(rule.id)}
                                 >
                                   <Copy className="h-4 w-4 mr-2" />
@@ -3240,7 +3268,7 @@ export default function PricingRulesPage() {
                   )}
                 </TableBody>
               </Table>
-              
+
               {/* Pagination */}
               {rulesData && rulesData.total > rulesData.limit && (
                 <div className="flex items-center justify-between mt-4">
@@ -3343,7 +3371,7 @@ const pricingRuleSchema = z.object({
   description: z.string().optional(),
   type: z.enum(['volume', 'client_tier', 'promotional', 'bundle', 'seasonal', 'loyalty']),
   priority: z.number().min(1).max(100).default(50),
-  
+
   // Conditions
   conditions: z.object({
     minQuantity: z.number().optional(),
@@ -3356,7 +3384,7 @@ const pricingRuleSchema = z.object({
     orderValueMin: z.number().optional(),
     orderValueMax: z.number().optional(),
   }),
-  
+
   // Discount
   discountType: z.enum(['percentage', 'fixed', 'tiered']),
   discountValue: z.number().optional(),
@@ -3364,11 +3392,11 @@ const pricingRuleSchema = z.object({
   maxDiscount: z.number().optional(),
   requiresApproval: z.boolean().default(false),
   approvalThreshold: z.number().optional(),
-  
+
   // Validity
   validFrom: z.date(),
   validTo: z.date().optional(),
-  
+
   // Usage
   usageLimit: z.number().optional(),
   perClientLimit: z.number().optional(),
@@ -3398,16 +3426,16 @@ export function PricingRuleForm({ initialData, onSuccess }: PricingRuleFormProps
       ...initialData,
     },
   });
-  
+
   const { fields: tierFields, append: appendTier, remove: removeTier } = useFieldArray({
     control: form.control,
     name: 'discountTiers',
   });
-  
+
   const discountType = form.watch('discountType');
   const ruleType = form.watch('type');
   const requiresApproval = form.watch('requiresApproval');
-  
+
   const createMutation = useMutation({
     mutationFn: async (data: PricingRuleFormData) => {
       const response = await fetch('/api/v1/sales/pricing/rules', {
@@ -3426,11 +3454,11 @@ export function PricingRuleForm({ initialData, onSuccess }: PricingRuleFormProps
       toast.error('Eroare la crearea regulii');
     },
   });
-  
+
   const onSubmit = (data: PricingRuleFormData) => {
     createMutation.mutate(data);
   };
-  
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -3441,7 +3469,7 @@ export function PricingRuleForm({ initialData, onSuccess }: PricingRuleFormProps
             <TabsTrigger value="discount">Discount</TabsTrigger>
             <TabsTrigger value="validity">Validitate</TabsTrigger>
           </TabsList>
-          
+
           {/* General Tab */}
           <TabsContent value="general" className="space-y-4">
             <FormField
@@ -3457,7 +3485,7 @@ export function PricingRuleForm({ initialData, onSuccess }: PricingRuleFormProps
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="description"
@@ -3475,7 +3503,7 @@ export function PricingRuleForm({ initialData, onSuccess }: PricingRuleFormProps
                 </FormItem>
               )}
             />
-            
+
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -3505,7 +3533,7 @@ export function PricingRuleForm({ initialData, onSuccess }: PricingRuleFormProps
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="priority"
@@ -3530,7 +3558,7 @@ export function PricingRuleForm({ initialData, onSuccess }: PricingRuleFormProps
               />
             </div>
           </TabsContent>
-          
+
           {/* Conditions Tab */}
           <TabsContent value="conditions" className="space-y-4">
             <Card>
@@ -3559,7 +3587,7 @@ export function PricingRuleForm({ initialData, onSuccess }: PricingRuleFormProps
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={form.control}
                       name="conditions.maxQuantity"
@@ -3580,7 +3608,7 @@ export function PricingRuleForm({ initialData, onSuccess }: PricingRuleFormProps
                     />
                   </div>
                 )}
-                
+
                 {/* Client Tier Conditions */}
                 {ruleType === 'client_tier' && (
                   <FormField
@@ -3607,7 +3635,7 @@ export function PricingRuleForm({ initialData, onSuccess }: PricingRuleFormProps
                     )}
                   />
                 )}
-                
+
                 {/* Order Value Conditions */}
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
@@ -3628,7 +3656,7 @@ export function PricingRuleForm({ initialData, onSuccess }: PricingRuleFormProps
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name="conditions.orderValueMax"
@@ -3648,7 +3676,7 @@ export function PricingRuleForm({ initialData, onSuccess }: PricingRuleFormProps
                     )}
                   />
                 </div>
-                
+
                 {/* Product Categories */}
                 <FormField
                   control={form.control}
@@ -3677,7 +3705,7 @@ export function PricingRuleForm({ initialData, onSuccess }: PricingRuleFormProps
                     </FormItem>
                   )}
                 />
-                
+
                 {/* Region Codes */}
                 <FormField
                   control={form.control}
@@ -3707,7 +3735,7 @@ export function PricingRuleForm({ initialData, onSuccess }: PricingRuleFormProps
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           {/* Discount Tab */}
           <TabsContent value="discount" className="space-y-4">
             <Card>
@@ -3737,7 +3765,7 @@ export function PricingRuleForm({ initialData, onSuccess }: PricingRuleFormProps
                     </FormItem>
                   )}
                 />
-                
+
                 {/* Percentage/Fixed Discount */}
                 {(discountType === 'percentage' || discountType === 'fixed') && (
                   <FormField
@@ -3762,7 +3790,7 @@ export function PricingRuleForm({ initialData, onSuccess }: PricingRuleFormProps
                     )}
                   />
                 )}
-                
+
                 {/* Tiered Discount */}
                 {discountType === 'tiered' && (
                   <div className="space-y-4">
@@ -3778,7 +3806,7 @@ export function PricingRuleForm({ initialData, onSuccess }: PricingRuleFormProps
                         Adaugă Treaptă
                       </Button>
                     </div>
-                    
+
                     {tierFields.map((tier, index) => (
                       <div key={tier.id} className="flex items-center gap-4 p-4 border rounded-lg">
                         <div className="flex-1">
@@ -3847,7 +3875,7 @@ export function PricingRuleForm({ initialData, onSuccess }: PricingRuleFormProps
                         </Button>
                       </div>
                     ))}
-                    
+
                     {tierFields.length === 0 && (
                       <div className="text-center py-4 text-gray-500 border rounded-lg">
                         Adaugă cel puțin o treaptă de discount
@@ -3855,9 +3883,9 @@ export function PricingRuleForm({ initialData, onSuccess }: PricingRuleFormProps
                     )}
                   </div>
                 )}
-                
+
                 <Separator />
-                
+
                 {/* Max Discount */}
                 <FormField
                   control={form.control}
@@ -3880,7 +3908,7 @@ export function PricingRuleForm({ initialData, onSuccess }: PricingRuleFormProps
                     </FormItem>
                   )}
                 />
-                
+
                 {/* Approval Settings */}
                 <div className="p-4 bg-yellow-50 rounded-lg space-y-4">
                   <FormField
@@ -3903,7 +3931,7 @@ export function PricingRuleForm({ initialData, onSuccess }: PricingRuleFormProps
                       </FormItem>
                     )}
                   />
-                  
+
                   {requiresApproval && (
                     <FormField
                       control={form.control}
@@ -3932,7 +3960,7 @@ export function PricingRuleForm({ initialData, onSuccess }: PricingRuleFormProps
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           {/* Validity Tab */}
           <TabsContent value="validity" className="space-y-4">
             <Card>
@@ -3979,7 +4007,7 @@ export function PricingRuleForm({ initialData, onSuccess }: PricingRuleFormProps
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name="validTo"
@@ -4022,9 +4050,9 @@ export function PricingRuleForm({ initialData, onSuccess }: PricingRuleFormProps
                     )}
                   />
                 </div>
-                
+
                 <Separator />
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -4047,7 +4075,7 @@ export function PricingRuleForm({ initialData, onSuccess }: PricingRuleFormProps
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name="perClientLimit"
@@ -4074,7 +4102,7 @@ export function PricingRuleForm({ initialData, onSuccess }: PricingRuleFormProps
             </Card>
           </TabsContent>
         </Tabs>
-        
+
         {/* Form Actions */}
         <div className="flex items-center justify-end gap-4 pt-4 border-t">
           <Button type="button" variant="outline">
@@ -4154,7 +4182,7 @@ export function DiscountCalculator({ productSku, clientId }: DiscountCalculatorP
   const [selectedSku, setSelectedSku] = useState(productSku || '');
   const [selectedClientId, setSelectedClientId] = useState(clientId || '');
   const [quantity, setQuantity] = useState(1);
-  
+
   // Fetch products for selection
   const { data: products } = useQuery({
     queryKey: ['products-list'],
@@ -4165,7 +4193,7 @@ export function DiscountCalculator({ productSku, clientId }: DiscountCalculatorP
       return data.products;
     },
   });
-  
+
   // Fetch clients for selection
   const { data: clients } = useQuery({
     queryKey: ['clients-list'],
@@ -4176,13 +4204,13 @@ export function DiscountCalculator({ productSku, clientId }: DiscountCalculatorP
       return data.clients;
     },
   });
-  
+
   // Calculate discount
   const { data: calculation, isLoading } = useQuery({
     queryKey: ['discount-calculation', selectedSku, selectedClientId, quantity],
     queryFn: async () => {
       if (!selectedSku) return null;
-      
+
       const response = await fetch('/api/v1/sales/pricing/calculate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -4197,12 +4225,12 @@ export function DiscountCalculator({ productSku, clientId }: DiscountCalculatorP
     },
     enabled: !!selectedSku && quantity > 0,
   });
-  
+
   const selectedProduct = useMemo(() =>
     products?.find((p: any) => p.sku === selectedSku),
     [products, selectedSku]
   );
-  
+
   return (
     <Card>
       <CardHeader>
@@ -4229,7 +4257,7 @@ export function DiscountCalculator({ productSku, clientId }: DiscountCalculatorP
               </SelectContent>
             </Select>
           </div>
-          
+
           <div className="space-y-2">
             <Label>Client (opțional)</Label>
             <Select value={selectedClientId} onValueChange={setSelectedClientId}>
@@ -4246,7 +4274,7 @@ export function DiscountCalculator({ productSku, clientId }: DiscountCalculatorP
               </SelectContent>
             </Select>
           </div>
-          
+
           <div className="space-y-2">
             <Label>Cantitate</Label>
             <Input
@@ -4257,9 +4285,9 @@ export function DiscountCalculator({ productSku, clientId }: DiscountCalculatorP
             />
           </div>
         </div>
-        
+
         <Separator />
-        
+
         {/* Results Section */}
         {calculation && (
           <div className="space-y-4">
@@ -4278,7 +4306,7 @@ export function DiscountCalculator({ productSku, clientId }: DiscountCalculatorP
                 <span>{calculation.subtotal.toLocaleString('ro-RO')} RON</span>
               </div>
             </div>
-            
+
             {/* Applied Rules */}
             {calculation.applicableRules.length > 0 && (
               <div className="space-y-2">
@@ -4319,7 +4347,7 @@ export function DiscountCalculator({ productSku, clientId }: DiscountCalculatorP
                 </div>
               </div>
             )}
-            
+
             {calculation.applicableRules.length === 0 && (
               <div className="flex items-center gap-2 p-4 bg-yellow-50 rounded-lg text-yellow-800">
                 <Info className="h-4 w-4" />
@@ -4328,7 +4356,7 @@ export function DiscountCalculator({ productSku, clientId }: DiscountCalculatorP
                 </span>
               </div>
             )}
-            
+
             {/* Final Summary */}
             <div className="p-4 bg-green-50 rounded-lg space-y-3">
               <div className="flex justify-between text-sm">
@@ -4346,7 +4374,7 @@ export function DiscountCalculator({ productSku, clientId }: DiscountCalculatorP
                 </span>
               </div>
             </div>
-            
+
             {/* Approval Warning */}
             {calculation.requiresApproval && (
               <div className="flex items-start gap-2 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
@@ -4363,13 +4391,13 @@ export function DiscountCalculator({ productSku, clientId }: DiscountCalculatorP
             )}
           </div>
         )}
-        
+
         {isLoading && (
           <div className="text-center py-8 text-gray-500">
             Se calculează...
           </div>
         )}
-        
+
         {!selectedSku && (
           <div className="text-center py-8 text-gray-500">
             Selectează un produs pentru a calcula discount-ul
@@ -4475,38 +4503,38 @@ interface SalesDocument {
   documentNumber: string;
   series: string;
   negotiationId: string;
-  
+
   // Client
   clientId: string;
   clientName: string;
   clientCui: string;
-  
+
   // Amounts
   subtotal: number;
   vatAmount: number;
   totalAmount: number;
   currency: string;
-  
+
   // Status
   status: DocumentStatus;
-  
+
   // e-Factura
   eFacturaStatus?: EFacturaStatus;
   eFacturaUploadId?: string;
   eFacturaDownloadId?: string;
   eFacturaDeadline?: string;
-  
+
   // Dates
   issueDate: string;
   dueDate?: string;
   sentAt?: string;
   viewedAt?: string;
   paidAt?: string;
-  
+
   // Files
   pdfUrl?: string;
   xmlUrl?: string;
-  
+
   // Metadata
   createdBy: string;
   createdAt: string;
@@ -4552,7 +4580,7 @@ async function fetchDocuments(params: {
       searchParams.set(key, String(value));
     }
   });
-  
+
   const response = await fetch(`/api/v1/sales/documents?${searchParams}`);
   if (!response.ok) throw new Error('Failed to fetch documents');
   return response.json();
@@ -4574,7 +4602,7 @@ async function fetchDocumentStats(): Promise<{
 async function downloadDocument(documentId: string, format: 'pdf' | 'xml'): Promise<void> {
   const response = await fetch(`/api/v1/sales/documents/${documentId}/download?format=${format}`);
   if (!response.ok) throw new Error('Failed to download document');
-  
+
   const blob = await response.blob();
   const url = window.URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -4616,7 +4644,7 @@ export default function DocumentsPage() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [page, setPage] = useState(1);
   const [selectedDocument, setSelectedDocument] = useState<SalesDocument | null>(null);
-  
+
   // Fetch documents
   const { data: documentsData, isLoading } = useQuery({
     queryKey: ['documents', activeTab, statusFilter, eFacturaFilter, searchQuery, dateRange, page],
@@ -4631,13 +4659,13 @@ export default function DocumentsPage() {
       limit: 20,
     }),
   });
-  
+
   // Fetch stats
   const { data: stats } = useQuery({
     queryKey: ['document-stats'],
     queryFn: fetchDocumentStats,
   });
-  
+
   // Mutations
   const downloadMutation = useMutation({
     mutationFn: ({ documentId, format }: { documentId: string; format: 'pdf' | 'xml' }) =>
@@ -4649,7 +4677,7 @@ export default function DocumentsPage() {
       toast.error('Eroare la descărcarea documentului');
     },
   });
-  
+
   const sendMutation = useMutation({
     mutationFn: sendDocument,
     onSuccess: () => {
@@ -4660,7 +4688,7 @@ export default function DocumentsPage() {
       toast.error('Eroare la trimiterea documentului');
     },
   });
-  
+
   const submitEFacturaMutation = useMutation({
     mutationFn: submitToEFactura,
     onSuccess: () => {
@@ -4671,7 +4699,7 @@ export default function DocumentsPage() {
       toast.error('Eroare la trimiterea către e-Factura');
     },
   });
-  
+
   const checkStatusMutation = useMutation({
     mutationFn: checkEFacturaStatus,
     onSuccess: () => {
@@ -4682,7 +4710,7 @@ export default function DocumentsPage() {
       toast.error('Eroare la verificarea statusului');
     },
   });
-  
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -4708,7 +4736,7 @@ export default function DocumentsPage() {
           </Button>
         </div>
       </div>
-      
+
       {/* Stats Cards */}
       <div className="grid grid-cols-6 gap-4">
         <Card>
@@ -4724,7 +4752,7 @@ export default function DocumentsPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -4738,7 +4766,7 @@ export default function DocumentsPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -4754,7 +4782,7 @@ export default function DocumentsPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -4770,7 +4798,7 @@ export default function DocumentsPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -4787,7 +4815,7 @@ export default function DocumentsPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -4805,7 +4833,7 @@ export default function DocumentsPage() {
           </CardContent>
         </Card>
       </div>
-      
+
       {/* Main Content */}
       <Card>
         <CardHeader>
@@ -4822,14 +4850,14 @@ export default function DocumentsPage() {
                   className="pl-10 w-64"
                 />
               </div>
-              
+
               {/* Date Range */}
               <DateRangePicker
                 value={dateRange}
                 onChange={setDateRange}
                 placeholder="Perioada"
               />
-              
+
               {/* Status Filter */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -4850,7 +4878,7 @@ export default function DocumentsPage() {
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
-              
+
               {/* e-Factura Filter */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -4882,7 +4910,7 @@ export default function DocumentsPage() {
               <TabsTrigger value="proforma">Proforme</TabsTrigger>
               <TabsTrigger value="invoice">Facturi</TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value={activeTab} className="mt-0">
               <Table>
                 <TableHeader>
@@ -4916,12 +4944,12 @@ export default function DocumentsPage() {
                       const StatusIcon = statusConfig.icon;
                       const eFacturaConfig = doc.eFacturaStatus ? EFACTURA_STATUS[doc.eFacturaStatus] : null;
                       const EFacturaIcon = eFacturaConfig?.icon;
-                      
+
                       // Calculate if e-Factura deadline is near
                       const daysUntilDeadline = doc.eFacturaDeadline
                         ? differenceInDays(parseISO(doc.eFacturaDeadline), new Date())
                         : null;
-                      
+
                       return (
                         <TableRow key={doc.id}>
                           <TableCell>
@@ -5078,7 +5106,7 @@ export default function DocumentsPage() {
                   )}
                 </TableBody>
               </Table>
-              
+
               {/* Pagination */}
               {documentsData && documentsData.total > documentsData.limit && (
                 <div className="flex items-center justify-between mt-4">
@@ -5241,10 +5269,10 @@ export default function DocumentDetailPage() {
   const params = useParams();
   const documentId = params.id as string;
   const queryClient = useQueryClient();
-  
+
   const [showSendDialog, setShowSendDialog] = useState(false);
   const [showConvertDialog, setShowConvertDialog] = useState(false);
-  
+
   // Fetch document
   const { data: document, isLoading } = useQuery({
     queryKey: ['document', documentId],
@@ -5254,7 +5282,7 @@ export default function DocumentDetailPage() {
       return response.json();
     },
   });
-  
+
   // Fetch timeline
   const { data: timeline } = useQuery({
     queryKey: ['document-timeline', documentId],
@@ -5264,7 +5292,7 @@ export default function DocumentDetailPage() {
       return response.json();
     },
   });
-  
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -5272,7 +5300,7 @@ export default function DocumentDetailPage() {
       </div>
     );
   }
-  
+
   if (!document) {
     return (
       <div className="text-center py-12">
@@ -5288,10 +5316,10 @@ export default function DocumentDetailPage() {
       </div>
     );
   }
-  
+
   const statusConfig = DOCUMENT_STATUS[document.status as keyof typeof DOCUMENT_STATUS];
   const StatusIcon = statusConfig?.icon || FileText;
-  
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -5321,7 +5349,7 @@ export default function DocumentDetailPage() {
             </p>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm">
             <Printer className="h-4 w-4 mr-2" />
@@ -5357,7 +5385,7 @@ export default function DocumentDetailPage() {
           )}
         </div>
       </div>
-      
+
       <div className="grid grid-cols-3 gap-6">
         {/* Left Column - Document Preview */}
         <div className="col-span-2 space-y-6">
@@ -5367,7 +5395,7 @@ export default function DocumentDetailPage() {
               <TabsTrigger value="items">Articole</TabsTrigger>
               <TabsTrigger value="history">Istoric</TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="preview" className="mt-4">
               <Card>
                 <CardContent className="p-0">
@@ -5384,7 +5412,7 @@ export default function DocumentDetailPage() {
                 </CardContent>
               </Card>
             </TabsContent>
-            
+
             <TabsContent value="items" className="mt-4">
               <Card>
                 <CardContent className="p-0">
@@ -5433,7 +5461,7 @@ export default function DocumentDetailPage() {
                       ))}
                     </TableBody>
                   </Table>
-                  
+
                   {/* Totals */}
                   <div className="p-4 bg-gray-50 border-t">
                     <div className="w-64 ml-auto space-y-2">
@@ -5461,7 +5489,7 @@ export default function DocumentDetailPage() {
                 </CardContent>
               </Card>
             </TabsContent>
-            
+
             <TabsContent value="history" className="mt-4">
               <Card>
                 <CardHeader>
@@ -5474,7 +5502,7 @@ export default function DocumentDetailPage() {
             </TabsContent>
           </Tabs>
         </div>
-        
+
         {/* Right Column - Details */}
         <div className="space-y-6">
           {/* Client Info */}
@@ -5519,7 +5547,7 @@ export default function DocumentDetailPage() {
               </Button>
             </CardContent>
           </Card>
-          
+
           {/* Document Details */}
           <Card>
             <CardHeader>
@@ -5553,7 +5581,7 @@ export default function DocumentDetailPage() {
                   <p className="font-medium">{document.currency}</p>
                 </div>
               </div>
-              
+
               {document.negotiationId && (
                 <>
                   <Separator />
@@ -5569,7 +5597,7 @@ export default function DocumentDetailPage() {
               )}
             </CardContent>
           </Card>
-          
+
           {/* e-Factura Status */}
           {document.type === 'invoice' && (
             <Card>
@@ -5588,7 +5616,7 @@ export default function DocumentDetailPage() {
                         {EFACTURA_STATUS[document.eFacturaStatus as keyof typeof EFACTURA_STATUS]?.label}
                       </Badge>
                     </div>
-                    
+
                     {document.eFacturaUploadId && (
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-gray-500">Upload ID</span>
@@ -5597,7 +5625,7 @@ export default function DocumentDetailPage() {
                         </code>
                       </div>
                     )}
-                    
+
                     {document.eFacturaDownloadId && (
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-gray-500">Download ID</span>
@@ -5606,7 +5634,7 @@ export default function DocumentDetailPage() {
                         </code>
                       </div>
                     )}
-                    
+
                     {document.eFacturaDeadline && (
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-gray-500">Deadline</span>
@@ -5620,7 +5648,7 @@ export default function DocumentDetailPage() {
                     )}
                   </>
                 )}
-                
+
                 {!document.eFacturaStatus || document.eFacturaStatus === 'not_submitted' ? (
                   <Button className="w-full">
                     <ArrowUpRight className="h-4 w-4 mr-2" />
@@ -5635,7 +5663,7 @@ export default function DocumentDetailPage() {
               </CardContent>
             </Card>
           )}
-          
+
           {/* Financial Summary */}
           <Card>
             <CardHeader>
@@ -5670,7 +5698,7 @@ export default function DocumentDetailPage() {
           </Card>
         </div>
       </div>
-      
+
       {/* Send Dialog */}
       <Dialog open={showSendDialog} onOpenChange={setShowSendDialog}>
         <DialogContent>
@@ -5701,7 +5729,7 @@ export default function DocumentDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
+
       {/* Convert to Invoice Dialog */}
       <Dialog open={showConvertDialog} onOpenChange={setShowConvertDialog}>
         <DialogContent>
@@ -5815,40 +5843,40 @@ interface AIConversation {
   id: string;
   tenantId: string;
   negotiationId: string;
-  
+
   // Client
   clientId: string;
   clientName: string;
   clientCompany: string;
-  
+
   // Channel
   channel: 'whatsapp' | 'email';
   channelIdentifier: string;
-  
+
   // Status
   status: 'active' | 'paused' | 'completed' | 'escalated' | 'human_takeover';
-  
+
   // AI Metrics
   aiModel: string;
   totalMessages: number;
   aiMessages: number;
   humanMessages: number;
   avgResponseTime: number;
-  
+
   // Sentiment
   overallSentiment: number;
   sentimentTrend: 'improving' | 'stable' | 'declining';
-  
+
   // Guardrails
   guardrailChecks: number;
   guardrailViolations: number;
   regenerations: number;
-  
+
   // Timestamps
   startedAt: string;
   lastMessageAt: string;
   endedAt?: string;
-  
+
   // Last message preview
   lastMessage: {
     role: 'ai' | 'client';
@@ -5892,7 +5920,7 @@ async function fetchConversations(params: {
       searchParams.set(key, String(value));
     }
   });
-  
+
   const response = await fetch(`/api/v1/sales/ai-conversations?${searchParams}`);
   if (!response.ok) throw new Error('Failed to fetch conversations');
   return response.json();
@@ -5919,19 +5947,19 @@ function SentimentIndicator({ value, trend }: { value: number; trend: string }) 
     if (value < -0.3) return 'text-red-600';
     return 'text-gray-600';
   };
-  
+
   const getIcon = () => {
     if (value > 0.3) return <ThumbsUp className="h-4 w-4" />;
     if (value < -0.3) return <ThumbsDown className="h-4 w-4" />;
     return <Minus className="h-4 w-4" />;
   };
-  
+
   const getTrendIcon = () => {
     if (trend === 'improving') return <TrendingUp className="h-3 w-3 text-green-500" />;
     if (trend === 'declining') return <TrendingDown className="h-3 w-3 text-red-500" />;
     return null;
   };
-  
+
   return (
     <div className="flex items-center gap-1">
       <span className={getColor()}>{getIcon()}</span>
@@ -5959,9 +5987,9 @@ function ConversationPreview({ conversation }: { conversation: AIConversation })
           {conversation.lastMessage.content}
         </p>
         <p className="text-xs text-gray-400 mt-1">
-          {formatDistanceToNow(parseISO(conversation.lastMessage.timestamp), { 
+          {formatDistanceToNow(parseISO(conversation.lastMessage.timestamp), {
             addSuffix: true,
-            locale: ro 
+            locale: ro
           })}
         </p>
       </div>
@@ -5977,7 +6005,7 @@ export default function AIConversationsPage() {
   const [statusFilter, setStatusFilter] = useState<string | undefined>();
   const [channelFilter, setChannelFilter] = useState<string | undefined>();
   const [page, setPage] = useState(1);
-  
+
   // Fetch conversations
   const { data: conversationsData, isLoading } = useQuery({
     queryKey: ['ai-conversations', activeTab, statusFilter, channelFilter, searchQuery, page],
@@ -5989,14 +6017,14 @@ export default function AIConversationsPage() {
       limit: 20,
     }),
   });
-  
+
   // Fetch stats
   const { data: stats } = useQuery({
     queryKey: ['ai-conversations-stats'],
     queryFn: fetchConversationStats,
     refetchInterval: 30000, // Refresh every 30s
   });
-  
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -6018,7 +6046,7 @@ export default function AIConversationsPage() {
           </Button>
         </div>
       </div>
-      
+
       {/* Stats Cards */}
       <div className="grid grid-cols-6 gap-4">
         <Card>
@@ -6036,7 +6064,7 @@ export default function AIConversationsPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -6050,7 +6078,7 @@ export default function AIConversationsPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -6058,7 +6086,7 @@ export default function AIConversationsPage() {
                 <p className="text-sm text-gray-500">Sentiment Mediu</p>
                 <p className={cn(
                   'text-2xl font-bold',
-                  (stats?.avgSentiment || 0) > 0 ? 'text-green-600' : 
+                  (stats?.avgSentiment || 0) > 0 ? 'text-green-600' :
                   (stats?.avgSentiment || 0) < 0 ? 'text-red-600' : 'text-gray-600'
                 )}>
                   {((stats?.avgSentiment || 0) * 100).toFixed(0)}%
@@ -6074,7 +6102,7 @@ export default function AIConversationsPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -6090,7 +6118,7 @@ export default function AIConversationsPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -6109,7 +6137,7 @@ export default function AIConversationsPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -6129,7 +6157,7 @@ export default function AIConversationsPage() {
           </CardContent>
         </Card>
       </div>
-      
+
       {/* Main Content */}
       <Card>
         <CardHeader>
@@ -6146,7 +6174,7 @@ export default function AIConversationsPage() {
                   className="pl-10 w-64"
                 />
               </div>
-              
+
               {/* Channel Filter */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -6180,7 +6208,7 @@ export default function AIConversationsPage() {
               <TabsTrigger value="human_takeover">Preluare Umană</TabsTrigger>
               <TabsTrigger value="completed">Finalizate</TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value={activeTab} className="mt-0">
               <Table>
                 <TableHeader>
@@ -6214,7 +6242,7 @@ export default function AIConversationsPage() {
                       const StatusIcon = statusConfig.icon;
                       const channelConfig = CHANNEL_CONFIG[conversation.channel];
                       const ChannelIcon = channelConfig.icon;
-                      
+
                       return (
                         <TableRow key={conversation.id}>
                           <TableCell>
@@ -6421,23 +6449,23 @@ interface ChatMessage {
   role: 'ai' | 'client' | 'system' | 'human_agent';
   content: string;
   timestamp: string;
-  
+
   // AI specific
   aiModel?: string;
   tokensUsed?: number;
   responseTime?: number;
-  
+
   // Guardrails
   guardrailsChecked?: boolean;
   guardrailViolations?: string[];
   wasRegenerated?: boolean;
   regenerationReason?: string;
   originalContent?: string;
-  
+
   // Sentiment
   sentiment?: number;
   detectedIntent?: string;
-  
+
   // Metadata
   metadata?: Record<string, any>;
 }
@@ -6451,26 +6479,26 @@ interface ConversationDetail {
   channel: 'whatsapp' | 'email';
   channelIdentifier: string;
   status: string;
-  
+
   // Messages
   messages: ChatMessage[];
-  
+
   // Metrics
   totalMessages: number;
   aiMessages: number;
   humanMessages: number;
   avgResponseTime: number;
   totalTokensUsed: number;
-  
+
   // Sentiment
   overallSentiment: number;
   sentimentHistory: Array<{ timestamp: string; value: number }>;
-  
+
   // Guardrails
   totalGuardrailChecks: number;
   totalViolations: number;
   totalRegenerations: number;
-  
+
   // Timestamps
   startedAt: string;
   lastMessageAt: string;
@@ -6483,7 +6511,7 @@ function MessageBubble({ message, showDetails }: { message: ChatMessage; showDet
   const isAI = message.role === 'ai';
   const isSystem = message.role === 'system';
   const isHumanAgent = message.role === 'human_agent';
-  
+
   if (isSystem) {
     return (
       <div className="flex justify-center my-4">
@@ -6493,7 +6521,7 @@ function MessageBubble({ message, showDetails }: { message: ChatMessage; showDet
       </div>
     );
   }
-  
+
   return (
     <div className={cn(
       'flex gap-3 mb-4',
@@ -6511,7 +6539,7 @@ function MessageBubble({ message, showDetails }: { message: ChatMessage; showDet
            <User className="h-4 w-4 text-gray-600" />}
         </AvatarFallback>
       </Avatar>
-      
+
       <div className={cn(
         'flex flex-col max-w-[70%]',
         (isAI || isHumanAgent) ? 'items-start' : 'items-end'
@@ -6523,7 +6551,7 @@ function MessageBubble({ message, showDetails }: { message: ChatMessage; showDet
           !isAI && !isHumanAgent && 'bg-gray-100'
         )}>
           <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-          
+
           {/* Guardrail warnings */}
           {message.wasRegenerated && (
             <div className="mt-2 pt-2 border-t border-purple-200">
@@ -6549,7 +6577,7 @@ function MessageBubble({ message, showDetails }: { message: ChatMessage; showDet
               )}
             </div>
           )}
-          
+
           {/* Guardrail violations */}
           {showDetails && message.guardrailViolations && message.guardrailViolations.length > 0 && (
             <div className="mt-2 pt-2 border-t border-red-200">
@@ -6559,14 +6587,14 @@ function MessageBubble({ message, showDetails }: { message: ChatMessage; showDet
             </div>
           )}
         </div>
-        
+
         {/* Message metadata */}
         <div className={cn(
           'flex items-center gap-2 mt-1 text-xs text-gray-400',
           (isAI || isHumanAgent) ? 'flex-row' : 'flex-row-reverse'
         )}>
           <span>{format(parseISO(message.timestamp), 'HH:mm')}</span>
-          
+
           {isAI && showDetails && (
             <>
               <span>•</span>
@@ -6585,7 +6613,7 @@ function MessageBubble({ message, showDetails }: { message: ChatMessage; showDet
               )}
             </>
           )}
-          
+
           {message.sentiment !== undefined && showDetails && (
             <>
               <span>•</span>
@@ -6610,30 +6638,30 @@ function SentimentChart({ history }: { history: Array<{ timestamp: string; value
   const width = 200;
   const height = 60;
   const padding = 10;
-  
+
   if (!history || history.length < 2) {
     return <div className="text-sm text-gray-400">Insuficiente date</div>;
   }
-  
+
   const maxValue = Math.max(...history.map(h => Math.abs(h.value)));
-  const scale = (value: number) => 
+  const scale = (value: number) =>
     height / 2 - (value / maxValue) * (height / 2 - padding);
-  
+
   const points = history.map((h, i) => {
     const x = padding + (i / (history.length - 1)) * (width - 2 * padding);
     const y = scale(h.value);
     return `${x},${y}`;
   }).join(' ');
-  
+
   return (
     <svg width={width} height={height} className="overflow-visible">
       {/* Zero line */}
-      <line 
-        x1={padding} 
-        y1={height / 2} 
-        x2={width - padding} 
-        y2={height / 2} 
-        stroke="#e5e7eb" 
+      <line
+        x1={padding}
+        y1={height / 2}
+        x2={width - padding}
+        y2={height / 2}
+        stroke="#e5e7eb"
         strokeDasharray="4,4"
       />
       {/* Sentiment line */}
@@ -6668,11 +6696,11 @@ export default function ConversationDetailPage() {
   const conversationId = params.id as string;
   const queryClient = useQueryClient();
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  
+
   const [showDetails, setShowDetails] = useState(true);
   const [manualMessage, setManualMessage] = useState('');
   const [showTakeoverDialog, setShowTakeoverDialog] = useState(false);
-  
+
   // Fetch conversation
   const { data: conversation, isLoading } = useQuery({
     queryKey: ['ai-conversation', conversationId],
@@ -6683,12 +6711,12 @@ export default function ConversationDetailPage() {
     },
     refetchInterval: 5000, // Poll for new messages
   });
-  
+
   // Scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [conversation?.messages.length]);
-  
+
   // Send manual message
   const sendMessageMutation = useMutation({
     mutationFn: async (content: string) => {
@@ -6712,7 +6740,7 @@ export default function ConversationDetailPage() {
       toast.error('Eroare la trimiterea mesajului');
     },
   });
-  
+
   // Takeover conversation
   const takeoverMutation = useMutation({
     mutationFn: async () => {
@@ -6732,7 +6760,7 @@ export default function ConversationDetailPage() {
       toast.error('Eroare la preluarea conversației');
     },
   });
-  
+
   // Resume AI
   const resumeAIMutation = useMutation({
     mutationFn: async () => {
@@ -6751,7 +6779,7 @@ export default function ConversationDetailPage() {
       toast.error('Eroare la reactivarea AI');
     },
   });
-  
+
   if (isLoading || !conversation) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -6759,10 +6787,10 @@ export default function ConversationDetailPage() {
       </div>
     );
   }
-  
+
   const isActive = conversation.status === 'active';
   const isHumanTakeover = conversation.status === 'human_takeover';
-  
+
   return (
     <div className="h-[calc(100vh-12rem)] flex flex-col">
       {/* Header */}
@@ -6790,12 +6818,12 @@ export default function ConversationDetailPage() {
               </Badge>
             </div>
             <p className="text-sm text-gray-500">
-              {conversation.totalMessages} mesaje • 
+              {conversation.totalMessages} mesaje •
               Început {formatDistanceToNow(parseISO(conversation.startedAt), { addSuffix: true, locale: ro })}
             </p>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
@@ -6805,7 +6833,7 @@ export default function ConversationDetailPage() {
             {showDetails ? <EyeOff className="h-4 w-4 mr-1" /> : <Eye className="h-4 w-4 mr-1" />}
             {showDetails ? 'Ascunde Detalii' : 'Arată Detalii'}
           </Button>
-          
+
           {isActive && (
             <Button
               variant="outline"
@@ -6815,7 +6843,7 @@ export default function ConversationDetailPage() {
               Preia Manual
             </Button>
           )}
-          
+
           {isHumanTakeover && (
             <Button onClick={() => resumeAIMutation.mutate()}>
               <Bot className="h-4 w-4 mr-2" />
@@ -6824,7 +6852,7 @@ export default function ConversationDetailPage() {
           )}
         </div>
       </div>
-      
+
       <div className="flex-1 grid grid-cols-4 gap-4 min-h-0">
         {/* Chat Area */}
         <div className="col-span-3 flex flex-col">
@@ -6833,15 +6861,15 @@ export default function ConversationDetailPage() {
               {/* Messages */}
               <ScrollArea className="flex-1 p-4">
                 {conversation.messages.map((message) => (
-                  <MessageBubble 
-                    key={message.id} 
+                  <MessageBubble
+                    key={message.id}
                     message={message}
                     showDetails={showDetails}
                   />
                 ))}
                 <div ref={messagesEndRef} />
               </ScrollArea>
-              
+
               {/* Input Area */}
               {(isHumanTakeover || conversation.status === 'paused') && (
                 <div className="p-4 border-t">
@@ -6869,7 +6897,7 @@ export default function ConversationDetailPage() {
                   </div>
                 </div>
               )}
-              
+
               {isActive && (
                 <div className="p-4 border-t bg-purple-50">
                   <div className="flex items-center justify-center gap-2 text-purple-600">
@@ -6882,7 +6910,7 @@ export default function ConversationDetailPage() {
             </CardContent>
           </Card>
         </div>
-        
+
         {/* Right Panel - Metrics */}
         <div className="space-y-4 overflow-auto">
           {/* AI Status */}
@@ -6908,7 +6936,7 @@ export default function ConversationDetailPage() {
               </div>
             </CardContent>
           </Card>
-          
+
           {/* Sentiment */}
           <Card>
             <CardHeader className="py-3">
@@ -6942,7 +6970,7 @@ export default function ConversationDetailPage() {
               </div>
             </CardContent>
           </Card>
-          
+
           {/* Guardrails */}
           <Card>
             <CardHeader className="py-3">
@@ -6974,7 +7002,7 @@ export default function ConversationDetailPage() {
                   {conversation.totalRegenerations}
                 </span>
               </div>
-              
+
               {/* Success rate bar */}
               <div className="pt-2">
                 <div className="flex justify-between text-xs text-gray-500 mb-1">
@@ -6998,7 +7026,7 @@ export default function ConversationDetailPage() {
               </div>
             </CardContent>
           </Card>
-          
+
           {/* Quick Actions */}
           <Card>
             <CardHeader className="py-3">
@@ -7029,7 +7057,7 @@ export default function ConversationDetailPage() {
           </Card>
         </div>
       </div>
-      
+
       {/* Takeover Dialog */}
       <Dialog open={showTakeoverDialog} onOpenChange={setShowTakeoverDialog}>
         <DialogContent>
@@ -7151,7 +7179,7 @@ import { cn } from '@/lib/utils';
 // TYPES
 // ========================================
 
-type ApprovalType = 
+type ApprovalType =
   | 'discount_approval'      // Discount over threshold
   | 'price_override'         // Price below minimum
   | 'ai_response_review'     // AI response flagged
@@ -7170,35 +7198,35 @@ interface ApprovalRequest {
   type: ApprovalType;
   status: ApprovalStatus;
   priority: ApprovalPriority;
-  
+
   // Context
   negotiationId: string;
   clientId: string;
   clientName: string;
   clientCompany: string;
-  
+
   // Request details
   title: string;
   description: string;
   requestedValue: number;
   currentValue: number;
   thresholdValue: number;
-  
+
   // Metadata
   requestedBy: 'ai_agent' | 'human_agent';
   requestedByName: string;
   requestedAt: string;
-  
+
   // SLA
   slaDeadline: string;
   slaMinutesRemaining: number;
-  
+
   // Resolution
   resolvedBy?: string;
   resolvedAt?: string;
   resolution?: string;
   resolutionNotes?: string;
-  
+
   // AI Context (for AI-related approvals)
   aiContext?: {
     originalResponse: string;
@@ -7208,7 +7236,7 @@ interface ApprovalRequest {
     sentiment?: number;
     confidence?: number;
   };
-  
+
   // Financial Context (for discount/price approvals)
   financialContext?: {
     orderValue: number;
@@ -7251,7 +7279,7 @@ async function fetchApprovals(params: {
   Object.entries(params).forEach(([key, value]) => {
     if (value !== undefined) searchParams.set(key, String(value));
   });
-  
+
   const response = await fetch(`/api/v1/sales/approvals?${searchParams}`);
   if (!response.ok) throw new Error('Failed to fetch approvals');
   return response.json();
@@ -7287,9 +7315,9 @@ function ApprovalTypeBadge({ type }: { type: ApprovalType }) {
     credit_extension: { label: 'Credit', icon: Building2, color: 'bg-cyan-100 text-cyan-700' },
     special_terms: { label: 'Termeni', icon: FileText, color: 'bg-gray-100 text-gray-700' }
   };
-  
+
   const { label, icon: Icon, color } = config[type];
-  
+
   return (
     <Badge variant="outline" className={cn('gap-1', color)}>
       <Icon className="h-3 w-3" />
@@ -7305,9 +7333,9 @@ function PriorityBadge({ priority }: { priority: ApprovalPriority }) {
     high: { label: 'High', color: 'bg-orange-100 text-orange-600' },
     critical: { label: 'Critical', color: 'bg-red-100 text-red-600 animate-pulse' }
   };
-  
+
   const { label, color } = config[priority];
-  
+
   return (
     <Badge variant="outline" className={color}>
       {label}
@@ -7323,9 +7351,9 @@ function StatusBadge({ status }: { status: ApprovalStatus }) {
     expired: { label: 'Expirat', icon: Timer, color: 'bg-gray-100 text-gray-700' },
     auto_approved: { label: 'Auto-Aprobat', icon: Zap, color: 'bg-purple-100 text-purple-700' }
   };
-  
+
   const { label, icon: Icon, color } = config[status];
-  
+
   return (
     <Badge variant="outline" className={cn('gap-1', color)}>
       <Icon className="h-3 w-3" />
@@ -7338,7 +7366,7 @@ function SLAIndicator({ deadline, minutesRemaining }: { deadline: string; minute
   const isUrgent = minutesRemaining <= 15;
   const isWarning = minutesRemaining <= 30;
   const isExpired = minutesRemaining <= 0;
-  
+
   return (
     <div className={cn(
       'flex items-center gap-1 text-sm',
@@ -7367,13 +7395,13 @@ export default function ApprovalsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState<ApprovalType | undefined>();
   const [selectedPriority, setSelectedPriority] = useState<ApprovalPriority | undefined>();
-  
+
   // Selected approval for detail view
   const [selectedApproval, setSelectedApproval] = useState<ApprovalRequest | null>(null);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [showResolveDialog, setShowResolveDialog] = useState(false);
   const [resolutionNotes, setResolutionNotes] = useState('');
-  
+
   // Fetch approvals
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['approvals', activeTab, selectedType, selectedPriority, searchTerm],
@@ -7385,7 +7413,7 @@ export default function ApprovalsPage() {
     }),
     refetchInterval: 10000 // 10s polling for real-time updates
   });
-  
+
   // Resolve mutation
   const resolveMutation = useMutation({
     mutationFn: resolveApproval,
@@ -7397,7 +7425,7 @@ export default function ApprovalsPage() {
       setResolutionNotes('');
     }
   });
-  
+
   const handleApprove = (approval: ApprovalRequest) => {
     resolveMutation.mutate({
       approvalId: approval.id,
@@ -7405,7 +7433,7 @@ export default function ApprovalsPage() {
       notes: resolutionNotes || undefined
     });
   };
-  
+
   const handleReject = (approval: ApprovalRequest) => {
     if (!resolutionNotes.trim()) {
       alert('Te rog să adaugi un motiv pentru respingere.');
@@ -7417,10 +7445,10 @@ export default function ApprovalsPage() {
       notes: resolutionNotes
     });
   };
-  
+
   const stats = data?.stats;
   const approvals = data?.approvals || [];
-  
+
   return (
     <div className="space-y-6 p-6">
       {/* Header */}
@@ -7436,7 +7464,7 @@ export default function ApprovalsPage() {
           Actualizează
         </Button>
       </div>
-      
+
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
         <Card>
@@ -7450,7 +7478,7 @@ export default function ApprovalsPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card className={stats?.pendingCritical && stats.pendingCritical > 0 ? 'border-red-300 bg-red-50' : ''}>
           <CardContent className="pt-4">
             <div className="flex items-center justify-between">
@@ -7467,7 +7495,7 @@ export default function ApprovalsPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center justify-between">
@@ -7479,7 +7507,7 @@ export default function ApprovalsPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center justify-between">
@@ -7491,7 +7519,7 @@ export default function ApprovalsPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center justify-between">
@@ -7503,7 +7531,7 @@ export default function ApprovalsPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center justify-between">
@@ -7515,7 +7543,7 @@ export default function ApprovalsPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center justify-between">
@@ -7532,7 +7560,7 @@ export default function ApprovalsPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center justify-between">
@@ -7547,7 +7575,7 @@ export default function ApprovalsPage() {
           </CardContent>
         </Card>
       </div>
-      
+
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-4">
         <div className="relative flex-1 min-w-[200px] max-w-md">
@@ -7559,7 +7587,7 @@ export default function ApprovalsPage() {
             className="pl-10"
           />
         </div>
-        
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline">
@@ -7592,7 +7620,7 @@ export default function ApprovalsPage() {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline">
@@ -7620,7 +7648,7 @@ export default function ApprovalsPage() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      
+
       {/* Tabs & Table */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
@@ -7649,7 +7677,7 @@ export default function ApprovalsPage() {
             Toate
           </TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value={activeTab} className="mt-4">
           <Card>
             <CardContent className="p-0">
@@ -7680,7 +7708,7 @@ export default function ApprovalsPage() {
                   </TableHeader>
                   <TableBody>
                     {approvals.map((approval) => (
-                      <TableRow 
+                      <TableRow
                         key={approval.id}
                         className={cn(
                           approval.priority === 'critical' && 'bg-red-50',
@@ -7732,7 +7760,7 @@ export default function ApprovalsPage() {
                         </TableCell>
                         <TableCell>
                           {approval.status === 'pending' ? (
-                            <SLAIndicator 
+                            <SLAIndicator
                               deadline={approval.slaDeadline}
                               minutesRemaining={approval.slaMinutesRemaining}
                             />
@@ -7821,7 +7849,7 @@ export default function ApprovalsPage() {
           </Card>
         </TabsContent>
       </Tabs>
-      
+
       {/* Detail Dialog */}
       <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
         <DialogContent className="max-w-2xl max-h-[80vh]">
@@ -7831,7 +7859,7 @@ export default function ApprovalsPage() {
               {selectedApproval && <StatusBadge status={selectedApproval.status} />}
             </DialogTitle>
           </DialogHeader>
-          
+
           {selectedApproval && (
             <ScrollArea className="max-h-[60vh]">
               <div className="space-y-6 pr-4">
@@ -7865,7 +7893,7 @@ export default function ApprovalsPage() {
                     </p>
                   </div>
                 </div>
-                
+
                 {/* Description */}
                 <div>
                   <p className="text-sm text-gray-500 mb-1">Cerere</p>
@@ -7874,7 +7902,7 @@ export default function ApprovalsPage() {
                     <p className="text-sm text-gray-600 mt-1">{selectedApproval.description}</p>
                   </Card>
                 </div>
-                
+
                 {/* Financial Context */}
                 {selectedApproval.financialContext && (
                   <div>
@@ -7922,7 +7950,7 @@ export default function ApprovalsPage() {
                     </Card>
                   </div>
                 )}
-                
+
                 {/* AI Context */}
                 {selectedApproval.aiContext && (
                   <div>
@@ -7937,14 +7965,14 @@ export default function ApprovalsPage() {
                           <p className="text-sm mt-1">{selectedApproval.aiContext.violationReason}</p>
                         </div>
                       )}
-                      
+
                       <div>
                         <p className="text-sm text-gray-500 mb-1">Răspuns Original</p>
                         <Card className="p-3 bg-red-50 border-red-200">
                           <p className="text-sm">{selectedApproval.aiContext.originalResponse}</p>
                         </Card>
                       </div>
-                      
+
                       {selectedApproval.aiContext.proposedResponse && (
                         <div>
                           <p className="text-sm text-gray-500 mb-1">Răspuns Propus (după regenerare)</p>
@@ -7953,7 +7981,7 @@ export default function ApprovalsPage() {
                           </Card>
                         </div>
                       )}
-                      
+
                       <div className="flex gap-4 text-sm">
                         {selectedApproval.aiContext.sentiment !== undefined && (
                           <div>
@@ -7980,7 +8008,7 @@ export default function ApprovalsPage() {
                     </Card>
                   </div>
                 )}
-                
+
                 {/* Resolution Info */}
                 {selectedApproval.resolvedBy && (
                   <div>
@@ -8003,7 +8031,7 @@ export default function ApprovalsPage() {
               </div>
             </ScrollArea>
           )}
-          
+
           <DialogFooter>
             {selectedApproval?.status === 'pending' && (
               <>
@@ -8032,7 +8060,7 @@ export default function ApprovalsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
+
       {/* Reject Dialog */}
       <Dialog open={showResolveDialog} onOpenChange={setShowResolveDialog}>
         <DialogContent>
@@ -8042,7 +8070,7 @@ export default function ApprovalsPage() {
               Te rog să specifici motivul respingerii. Acesta va fi vizibil în istoricul aprobărilor.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             {selectedApproval && (
               <Card className="p-4 bg-gray-50">
@@ -8050,7 +8078,7 @@ export default function ApprovalsPage() {
                 <p className="text-sm text-gray-500">{selectedApproval.clientName}</p>
               </Card>
             )}
-            
+
             <div>
               <label className="text-sm font-medium mb-1 block">
                 Motiv Respingere <span className="text-red-500">*</span>
@@ -8063,7 +8091,7 @@ export default function ApprovalsPage() {
               />
             </div>
           </div>
-          
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowResolveDialog(false)}>
               Anulează
@@ -8149,7 +8177,7 @@ interface TakeoverRequest {
   id: string;
   conversationId: string;
   negotiationId: string;
-  
+
   // Client info
   clientId: string;
   clientName: string;
@@ -8157,11 +8185,11 @@ interface TakeoverRequest {
   clientTier: string;
   clientPhone?: string;
   clientEmail?: string;
-  
+
   // Trigger info
   triggerReason: 'sentiment_drop' | 'explicit_request' | 'guardrail_failure' | 'escalation' | 'timeout';
   triggerDetails: string;
-  
+
   // Conversation context
   channel: 'whatsapp' | 'email';
   messageCount: number;
@@ -8173,17 +8201,17 @@ interface TakeoverRequest {
   }[];
   currentSentiment: number;
   sentimentTrend: 'up' | 'down' | 'stable';
-  
+
   // Status
   status: 'waiting' | 'assigned' | 'in_progress' | 'resolved';
   priority: 'low' | 'medium' | 'high' | 'critical';
-  
+
   // Timing
   requestedAt: string;
   waitTime: number; // minutes
   slaDeadline: string;
   slaMinutesRemaining: number;
-  
+
   // Assignment
   assignedTo?: string;
   assignedAt?: string;
@@ -8230,9 +8258,9 @@ function TriggerReasonBadge({ reason }: { reason: TakeoverRequest['triggerReason
     escalation: { label: 'Escalare', icon: ArrowRight, color: 'bg-yellow-100 text-yellow-700' },
     timeout: { label: 'Timeout', icon: Timer, color: 'bg-gray-100 text-gray-700' }
   };
-  
+
   const { label, icon: Icon, color } = config[reason];
-  
+
   return (
     <Badge variant="outline" className={cn('gap-1', color)}>
       <Icon className="h-3 w-3" />
@@ -8244,7 +8272,7 @@ function TriggerReasonBadge({ reason }: { reason: TakeoverRequest['triggerReason
 function SentimentIndicator({ value, trend }: { value: number; trend: 'up' | 'down' | 'stable' }) {
   const isNegative = value < -0.3;
   const isPositive = value > 0.3;
-  
+
   return (
     <div className={cn(
       'flex items-center gap-1 text-sm font-medium',
@@ -8267,13 +8295,13 @@ export default function TakeoverQueuePage() {
   const queryClient = useQueryClient();
   const [selectedRequest, setSelectedRequest] = useState<TakeoverRequest | null>(null);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
-  
+
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['takeoverQueue'],
     queryFn: fetchTakeoverQueue,
     refetchInterval: 5000 // 5s polling
   });
-  
+
   const acceptMutation = useMutation({
     mutationFn: acceptTakeover,
     onSuccess: (data) => {
@@ -8282,15 +8310,15 @@ export default function TakeoverQueuePage() {
       window.location.href = `/sales/ai-conversations/${data.conversationId}`;
     }
   });
-  
+
   const stats = data?.stats;
   const requests = data?.requests || [];
-  
+
   // Group by priority
   const criticalRequests = requests.filter(r => r.priority === 'critical');
   const highRequests = requests.filter(r => r.priority === 'high');
   const otherRequests = requests.filter(r => r.priority === 'medium' || r.priority === 'low');
-  
+
   return (
     <div className="space-y-6 p-6">
       {/* Header */}
@@ -8309,7 +8337,7 @@ export default function TakeoverQueuePage() {
           Actualizează
         </Button>
       </div>
-      
+
       {/* Stats */}
       <div className="grid grid-cols-5 gap-4">
         <Card className={stats?.criticalCount && stats.criticalCount > 0 ? 'border-red-300 bg-red-50' : ''}>
@@ -8328,7 +8356,7 @@ export default function TakeoverQueuePage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card className={stats?.criticalCount && stats.criticalCount > 0 ? 'border-red-500 animate-pulse' : ''}>
           <CardContent className="pt-4">
             <div className="flex items-center justify-between">
@@ -8340,7 +8368,7 @@ export default function TakeoverQueuePage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center justify-between">
@@ -8352,7 +8380,7 @@ export default function TakeoverQueuePage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center justify-between">
@@ -8364,7 +8392,7 @@ export default function TakeoverQueuePage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center justify-between">
@@ -8382,7 +8410,7 @@ export default function TakeoverQueuePage() {
           </CardContent>
         </Card>
       </div>
-      
+
       {/* Queue */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Critical */}
@@ -8422,7 +8450,7 @@ export default function TakeoverQueuePage() {
             </ScrollArea>
           </CardContent>
         </Card>
-        
+
         {/* High Priority */}
         <Card className="border-orange-200">
           <CardHeader className="bg-orange-50 border-b border-orange-200">
@@ -8460,7 +8488,7 @@ export default function TakeoverQueuePage() {
             </ScrollArea>
           </CardContent>
         </Card>
-        
+
         {/* Other */}
         <Card>
           <CardHeader className="border-b">
@@ -8499,14 +8527,14 @@ export default function TakeoverQueuePage() {
           </CardContent>
         </Card>
       </div>
-      
+
       {/* Preview Dialog */}
       <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
         <DialogContent className="max-w-2xl max-h-[80vh]">
           <DialogHeader>
             <DialogTitle>Preview Conversație</DialogTitle>
           </DialogHeader>
-          
+
           {selectedRequest && (
             <div className="space-y-4">
               {/* Client Info */}
@@ -8536,18 +8564,18 @@ export default function TakeoverQueuePage() {
                   </div>
                 </div>
               </Card>
-              
+
               {/* Trigger Info */}
               <div className="flex items-center gap-4">
                 <TriggerReasonBadge reason={selectedRequest.triggerReason} />
                 <span className="text-sm text-gray-500">{selectedRequest.triggerDetails}</span>
               </div>
-              
+
               {/* Sentiment */}
               <div className="flex items-center gap-4">
                 <span className="text-sm text-gray-500">Sentiment:</span>
-                <SentimentIndicator 
-                  value={selectedRequest.currentSentiment} 
+                <SentimentIndicator
+                  value={selectedRequest.currentSentiment}
                   trend={selectedRequest.sentimentTrend}
                 />
                 <span className="text-sm text-gray-500">|</span>
@@ -8559,7 +8587,7 @@ export default function TakeoverQueuePage() {
                   Așteptare: {selectedRequest.waitTime}m
                 </span>
               </div>
-              
+
               {/* Messages Preview */}
               <div>
                 <p className="text-sm font-medium mb-2">Ultimele Mesaje:</p>
@@ -8605,7 +8633,7 @@ export default function TakeoverQueuePage() {
               </div>
             </div>
           )}
-          
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowPreviewDialog(false)}>
               Anulează
@@ -8655,24 +8683,24 @@ function TakeoverCard({
         </div>
         <TriggerReasonBadge reason={request.triggerReason} />
       </div>
-      
+
       <p className="text-sm text-gray-600 line-clamp-2 mb-2">
         {request.lastMessages[request.lastMessages.length - 1]?.content || 'No messages'}
       </p>
-      
+
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3 text-xs text-gray-500">
           <span className="flex items-center gap-1">
             <Clock className="h-3 w-3" />
             {request.waitTime}m
           </span>
-          <SentimentIndicator 
+          <SentimentIndicator
             value={request.currentSentiment}
             trend={request.sentimentTrend}
           />
           <span>{request.messageCount} msg</span>
         </div>
-        
+
         <div className="flex items-center gap-1">
           <Button
             size="sm"
@@ -8693,18 +8721,18 @@ function TakeoverCard({
           </Button>
         </div>
       </div>
-      
+
       {/* SLA Warning */}
       {request.slaMinutesRemaining <= 5 && (
         <div className={cn(
           'mt-2 p-2 rounded text-xs',
-          request.slaMinutesRemaining <= 0 
-            ? 'bg-red-100 text-red-700' 
+          request.slaMinutesRemaining <= 0
+            ? 'bg-red-100 text-red-700'
             : 'bg-orange-100 text-orange-700'
         )}>
           <Timer className="h-3 w-3 inline mr-1" />
-          {request.slaMinutesRemaining <= 0 
-            ? 'SLA Depășit!' 
+          {request.slaMinutesRemaining <= 0
+            ? 'SLA Depășit!'
             : `${request.slaMinutesRemaining}m până la SLA breach`}
         </div>
       )}
@@ -8923,9 +8951,9 @@ function MetricCard({
     : formatValue === 'percent'
     ? `${value.toFixed(1)}%`
     : value.toLocaleString('ro-RO');
-  
+
   const isPositive = trend === 'up';
-  
+
   return (
     <Card>
       <CardContent className="pt-6">
@@ -8962,12 +8990,12 @@ function MetricCard({
 export default function SalesReportsPage() {
   const [period, setPeriod] = useState('30d');
   const [activeTab, setActiveTab] = useState('overview');
-  
+
   const { data, isLoading } = useQuery({
     queryKey: ['salesReport', period],
     queryFn: () => fetchSalesReport({ period })
   });
-  
+
   const handleExport = async (type: 'pdf' | 'excel') => {
     const response = await fetch(`/api/v1/sales/reports/export?period=${period}&type=${type}`);
     const blob = await response.blob();
@@ -8977,7 +9005,7 @@ export default function SalesReportsPage() {
     a.download = `sales-report-${period}.${type === 'pdf' ? 'pdf' : 'xlsx'}`;
     a.click();
   };
-  
+
   return (
     <div className="space-y-6 p-6">
       {/* Header */}
@@ -8988,7 +9016,7 @@ export default function SalesReportsPage() {
             Analiză detaliată a performanței vânzărilor și AI Agent
           </p>
         </div>
-        
+
         <div className="flex items-center gap-3">
           <Select value={period} onValueChange={setPeriod}>
             <SelectTrigger className="w-[180px]">
@@ -9003,7 +9031,7 @@ export default function SalesReportsPage() {
               <SelectItem value="custom">Personalizat</SelectItem>
             </SelectContent>
           </Select>
-          
+
           <Button variant="outline" onClick={() => handleExport('excel')}>
             <Download className="h-4 w-4 mr-2" />
             Export Excel
@@ -9014,7 +9042,7 @@ export default function SalesReportsPage() {
           </Button>
         </div>
       </div>
-      
+
       {/* KPI Cards */}
       {data?.salesMetrics && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -9051,7 +9079,7 @@ export default function SalesReportsPage() {
           />
         </div>
       )}
-      
+
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
@@ -9076,7 +9104,7 @@ export default function SalesReportsPage() {
             Funnel
           </TabsTrigger>
         </TabsList>
-        
+
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -9090,16 +9118,16 @@ export default function SalesReportsPage() {
                 <ResponsiveContainer width="100%" height={300}>
                   <ComposedChart data={data?.timeSeries || []}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis 
-                      dataKey="date" 
+                    <XAxis
+                      dataKey="date"
                       tickFormatter={(value) => format(new Date(value), 'dd MMM', { locale: ro })}
                     />
                     <YAxis yAxisId="left" />
                     <YAxis yAxisId="right" orientation="right" />
-                    <Tooltip 
+                    <Tooltip
                       labelFormatter={(value) => format(new Date(value), 'dd MMMM yyyy', { locale: ro })}
                       formatter={(value: number, name: string) => [
-                        name === 'revenue' 
+                        name === 'revenue'
                           ? `${value.toLocaleString('ro-RO')} RON`
                           : value,
                         name === 'revenue' ? 'Venituri' : 'Comenzi'
@@ -9127,7 +9155,7 @@ export default function SalesReportsPage() {
                 </ResponsiveContainer>
               </CardContent>
             </Card>
-            
+
             {/* Channel Distribution */}
             <Card>
               <CardHeader>
@@ -9150,7 +9178,7 @@ export default function SalesReportsPage() {
                         <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip 
+                    <Tooltip
                       formatter={(value: number) => [`${value.toLocaleString('ro-RO')} RON`, 'Valoare']}
                     />
                     <Legend />
@@ -9159,7 +9187,7 @@ export default function SalesReportsPage() {
               </CardContent>
             </Card>
           </div>
-          
+
           {/* AI vs Human Conversations */}
           <Card>
             <CardHeader>
@@ -9170,12 +9198,12 @@ export default function SalesReportsPage() {
               <ResponsiveContainer width="100%" height={250}>
                 <AreaChart data={data?.timeSeries || []}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis 
-                    dataKey="date" 
+                  <XAxis
+                    dataKey="date"
                     tickFormatter={(value) => format(new Date(value), 'dd MMM', { locale: ro })}
                   />
                   <YAxis />
-                  <Tooltip 
+                  <Tooltip
                     labelFormatter={(value) => format(new Date(value), 'dd MMMM yyyy', { locale: ro })}
                   />
                   <Legend />
@@ -9200,7 +9228,7 @@ export default function SalesReportsPage() {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         {/* AI Performance Tab */}
         <TabsContent value="ai-performance" className="space-y-6">
           {data?.aiMetrics && (
@@ -9218,7 +9246,7 @@ export default function SalesReportsPage() {
                     </p>
                   </CardContent>
                 </Card>
-                
+
                 <Card>
                   <CardContent className="pt-4">
                     <div className="flex items-center gap-2">
@@ -9230,7 +9258,7 @@ export default function SalesReportsPage() {
                     </p>
                   </CardContent>
                 </Card>
-                
+
                 <Card>
                   <CardContent className="pt-4">
                     <div className="flex items-center gap-2">
@@ -9242,7 +9270,7 @@ export default function SalesReportsPage() {
                     </p>
                   </CardContent>
                 </Card>
-                
+
                 <Card>
                   <CardContent className="pt-4">
                     <div className="flex items-center gap-2">
@@ -9255,7 +9283,7 @@ export default function SalesReportsPage() {
                   </CardContent>
                 </Card>
               </div>
-              
+
               {/* AI Metrics Grid */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <Card>
@@ -9269,7 +9297,7 @@ export default function SalesReportsPage() {
                     </p>
                   </CardContent>
                 </Card>
-                
+
                 <Card>
                   <CardContent className="pt-4">
                     <p className="text-sm text-gray-500">Rată Takeover</p>
@@ -9284,7 +9312,7 @@ export default function SalesReportsPage() {
                     </p>
                   </CardContent>
                 </Card>
-                
+
                 <Card>
                   <CardContent className="pt-4">
                     <p className="text-sm text-gray-500">Sentiment Mediu</p>
@@ -9302,7 +9330,7 @@ export default function SalesReportsPage() {
                   </CardContent>
                 </Card>
               </div>
-              
+
               {/* Sentiment Trend */}
               <Card>
                 <CardHeader>
@@ -9313,8 +9341,8 @@ export default function SalesReportsPage() {
                   <ResponsiveContainer width="100%" height={200}>
                     <AreaChart data={data?.timeSeries || []}>
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis 
-                        dataKey="date" 
+                      <XAxis
+                        dataKey="date"
                         tickFormatter={(value) => format(new Date(value), 'dd MMM', { locale: ro })}
                       />
                       <YAxis domain={[-1, 1]} />
@@ -9337,7 +9365,7 @@ export default function SalesReportsPage() {
                   </ResponsiveContainer>
                 </CardContent>
               </Card>
-              
+
               {/* Guardrails Stats */}
               <Card>
                 <CardHeader>
@@ -9408,19 +9436,19 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue 
+  SelectValue
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { 
-  Save, 
-  RotateCcw, 
+import {
+  Save,
+  RotateCcw,
   AlertTriangle,
   Bot,
   Cpu,
@@ -9435,7 +9463,7 @@ import { toast } from 'sonner';
 interface AIConfig {
   id: string;
   tenantId: string;
-  
+
   // Model Configuration
   primaryModel: string;
   fallbackModel: string;
@@ -9443,34 +9471,34 @@ interface AIConfig {
   maxTokensContext: number;
   temperature: number;
   topP: number;
-  
+
   // System Prompts
   systemPromptNegotiation: string;
   systemPromptSupport: string;
   systemPromptEscalation: string;
-  
+
   // Behavior Settings
   autoRespond: boolean;
   responseDelayMs: number;
   maxConsecutiveMessages: number;
   idleTimeoutMinutes: number;
-  
+
   // Safety Settings
   enableGuardrails: boolean;
   maxRegenerationsPerMessage: number;
   escalateOnRepeatedViolations: boolean;
   violationEscalationThreshold: number;
-  
+
   // Cost Controls
   dailyTokenBudget: number;
   monthlyTokenBudget: number;
   alertAtPercentage: number;
   pauseAtBudgetLimit: boolean;
-  
+
   // Channels
   enabledChannels: ('whatsapp' | 'email')[];
   channelSpecificSettings: Record<string, any>;
-  
+
   updatedAt: string;
   updatedBy: string;
 }
@@ -9492,26 +9520,26 @@ const aiConfigSchema = z.object({
   maxTokensContext: z.number().min(1000).max(128000),
   temperature: z.number().min(0).max(2),
   topP: z.number().min(0).max(1),
-  
+
   systemPromptNegotiation: z.string().min(100, 'Prompt-ul trebuie să aibă minim 100 caractere'),
   systemPromptSupport: z.string().min(100),
   systemPromptEscalation: z.string().min(50),
-  
+
   autoRespond: z.boolean(),
   responseDelayMs: z.number().min(0).max(30000),
   maxConsecutiveMessages: z.number().min(1).max(20),
   idleTimeoutMinutes: z.number().min(5).max(1440),
-  
+
   enableGuardrails: z.boolean(),
   maxRegenerationsPerMessage: z.number().min(1).max(5),
   escalateOnRepeatedViolations: z.boolean(),
   violationEscalationThreshold: z.number().min(1).max(10),
-  
+
   dailyTokenBudget: z.number().min(0),
   monthlyTokenBudget: z.number().min(0),
   alertAtPercentage: z.number().min(50).max(100),
   pauseAtBudgetLimit: z.boolean(),
-  
+
   enabledChannels: z.array(z.enum(['whatsapp', 'email'])).min(1)
 });
 
@@ -9555,14 +9583,14 @@ Reguli:
 - Nu depăși niciodată limitele de discount aprobate
 - Dacă nu poți satisface cererea clientului, oferă alternative
 - Pentru discount-uri mari, menționează că necesită aprobare`,
-  
+
   support: `Ești un agent de suport pentru o companie agricolă din România.
 Ajuți clienții cu întrebări despre produse, comenzi, livrări și facturi.
 Reguli:
 - Răspunde clar și concis
 - Dacă nu știi răspunsul, spune acest lucru și oferă să escaladezi
 - Verifică întotdeauna informațiile înainte de a le comunica`,
-  
+
   escalation: `Conversația a fost escaladată către un agent uman.
 Rezumă contextul și motivul escaladării pentru agentul care preia.`
 };
@@ -9570,7 +9598,7 @@ Rezumă contextul și motivul escaladării pentru agentul care preia.`
 export default function AIConfigPage() {
   const queryClient = useQueryClient();
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  
+
   // Fetch current config
   const { data: config, isLoading } = useQuery<AIConfig>({
     queryKey: ['ai-config'],
@@ -9580,7 +9608,7 @@ export default function AIConfigPage() {
       return res.json();
     }
   });
-  
+
   // Form setup
   const form = useForm<AIConfigFormData>({
     resolver: zodResolver(aiConfigSchema),
@@ -9609,7 +9637,7 @@ export default function AIConfigPage() {
       enabledChannels: config.enabledChannels
     } : undefined
   });
-  
+
   // Save mutation
   const saveMutation = useMutation({
     mutationFn: async (data: AIConfigFormData) => {
@@ -9634,27 +9662,27 @@ export default function AIConfigPage() {
       });
     }
   });
-  
+
   const onSubmit = (data: AIConfigFormData) => {
     saveMutation.mutate(data);
   };
-  
+
   const resetToDefaults = () => {
     form.setValue('systemPromptNegotiation', DEFAULT_PROMPTS.negotiation);
     form.setValue('systemPromptSupport', DEFAULT_PROMPTS.support);
     form.setValue('systemPromptEscalation', DEFAULT_PROMPTS.escalation);
     setHasUnsavedChanges(true);
   };
-  
+
   // Watch for changes
   form.watch(() => {
     setHasUnsavedChanges(true);
   });
-  
+
   if (isLoading) {
     return <div className="p-8">Se încarcă configurația...</div>;
   }
-  
+
   return (
     <div className="p-8 space-y-6">
       {/* Header */}
@@ -9668,7 +9696,7 @@ export default function AIConfigPage() {
             Setări pentru modelele AI, system prompts și comportament
           </p>
         </div>
-        
+
         <div className="flex items-center gap-3">
           {hasUnsavedChanges && (
             <Badge variant="outline" className="text-orange-600 border-orange-300">
@@ -9691,7 +9719,7 @@ export default function AIConfigPage() {
           </Button>
         </div>
       </div>
-      
+
       {/* Warning for production changes */}
       <Alert variant="warning">
         <AlertTriangle className="h-4 w-4" />
@@ -9700,7 +9728,7 @@ export default function AIConfigPage() {
           Modificările vor afecta toate conversațiile active. Testează mai întâi în mediul de staging.
         </AlertDescription>
       </Alert>
-      
+
       <form onSubmit={form.handleSubmit(onSubmit)}>
         <Tabs defaultValue="models" className="space-y-6">
           <TabsList className="grid w-full grid-cols-5">
@@ -9725,7 +9753,7 @@ export default function AIConfigPage() {
               Costuri
             </TabsTrigger>
           </TabsList>
-          
+
           {/* Models Tab */}
           <TabsContent value="models" className="space-y-6">
             <Card>
@@ -9768,7 +9796,7 @@ export default function AIConfigPage() {
                         {form.formState.errors.primaryModel.message}
                       </p>
                     )}
-                    
+
                     {/* Model Info */}
                     {form.watch('primaryModel') && (
                       <div className="p-3 bg-gray-50 rounded-lg text-sm">
@@ -9794,7 +9822,7 @@ export default function AIConfigPage() {
                       </div>
                     )}
                   </div>
-                  
+
                   {/* Fallback Model */}
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Model Fallback</label>
@@ -9826,9 +9854,9 @@ export default function AIConfigPage() {
                     </p>
                   </div>
                 </div>
-                
+
                 <Separator />
-                
+
                 {/* Token Limits */}
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
@@ -9854,7 +9882,7 @@ export default function AIConfigPage() {
                       )}
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Max Tokens Context</label>
                     <Controller
@@ -9879,9 +9907,9 @@ export default function AIConfigPage() {
                     />
                   </div>
                 </div>
-                
+
                 <Separator />
-                
+
                 {/* Generation Parameters */}
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
@@ -9910,7 +9938,7 @@ export default function AIConfigPage() {
                       Valoare mică = răspunsuri consistente, valoare mare = răspunsuri variate
                     </p>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Top P</label>
                     <Controller
@@ -9941,7 +9969,7 @@ export default function AIConfigPage() {
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           {/* Prompts Tab */}
           <TabsContent value="prompts" className="space-y-6">
             <Card>
@@ -9979,9 +10007,9 @@ export default function AIConfigPage() {
                     {form.watch('systemPromptNegotiation')?.length || 0} caractere
                   </p>
                 </div>
-                
+
                 <Separator />
-                
+
                 {/* Support Prompt */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium">
@@ -10005,9 +10033,9 @@ export default function AIConfigPage() {
                     </p>
                   )}
                 </div>
-                
+
                 <Separator />
-                
+
                 {/* Escalation Prompt */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium">
@@ -10029,9 +10057,9 @@ export default function AIConfigPage() {
                     Acest prompt este trimis agentului uman când preia conversația
                   </p>
                 </div>
-                
+
                 <Separator />
-                
+
                 {/* Prompt Variables */}
                 <div className="bg-blue-50 p-4 rounded-lg">
                   <h4 className="font-medium text-blue-900 mb-2">Variabile Disponibile</h4>
@@ -10050,7 +10078,7 @@ export default function AIConfigPage() {
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           {/* Behavior Tab */}
           <TabsContent value="behavior" className="space-y-6">
             <Card>
@@ -10080,9 +10108,9 @@ export default function AIConfigPage() {
                     )}
                   />
                 </div>
-                
+
                 <Separator />
-                
+
                 {/* Response Delay */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Întârziere Răspuns (ms)</label>
@@ -10109,9 +10137,9 @@ export default function AIConfigPage() {
                     Întârziere pentru a simula timp de "gândire" natural
                   </p>
                 </div>
-                
+
                 <Separator />
-                
+
                 {/* Max Consecutive Messages */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Max Mesaje Consecutive AI</label>
@@ -10136,9 +10164,9 @@ export default function AIConfigPage() {
                     După acest număr fără răspuns de la client, conversația este pusă pe pauză
                   </p>
                 </div>
-                
+
                 <Separator />
-                
+
                 {/* Idle Timeout */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Timeout Inactivitate</label>
@@ -10163,9 +10191,9 @@ export default function AIConfigPage() {
                     Conversația devine "idle" după acest timp fără mesaje
                   </p>
                 </div>
-                
+
                 <Separator />
-                
+
                 {/* Enabled Channels */}
                 <div className="space-y-4">
                   <label className="text-sm font-medium">Canale Active</label>
@@ -10216,7 +10244,7 @@ export default function AIConfigPage() {
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           {/* Safety Tab */}
           <TabsContent value="safety" className="space-y-6">
             <Card>
@@ -10246,11 +10274,11 @@ export default function AIConfigPage() {
                     )}
                   />
                 </div>
-                
+
                 {form.watch('enableGuardrails') && (
                   <>
                     <Separator />
-                    
+
                     {/* Max Regenerations */}
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Max Regenerări per Mesaj</label>
@@ -10275,9 +10303,9 @@ export default function AIConfigPage() {
                         Număr maxim de încercări de regenerare când guardrails detectează probleme
                       </p>
                     </div>
-                    
+
                     <Separator />
-                    
+
                     {/* Escalate on Violations */}
                     <div className="flex items-center justify-between">
                       <div>
@@ -10297,7 +10325,7 @@ export default function AIConfigPage() {
                         )}
                       />
                     </div>
-                    
+
                     {form.watch('escalateOnRepeatedViolations') && (
                       <div className="space-y-2 ml-4">
                         <label className="text-sm font-medium">Prag Escaladare</label>
@@ -10326,7 +10354,7 @@ export default function AIConfigPage() {
                 )}
               </CardContent>
             </Card>
-            
+
             {/* Guardrails Status Card */}
             <Card>
               <CardHeader>
@@ -10357,7 +10385,7 @@ export default function AIConfigPage() {
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           {/* Costs Tab */}
           <TabsContent value="costs" className="space-y-6">
             <Card>
@@ -10391,9 +10419,9 @@ export default function AIConfigPage() {
                     )}
                   />
                 </div>
-                
+
                 <Separator />
-                
+
                 {/* Monthly Budget */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Buget Lunar Tokens</label>
@@ -10417,9 +10445,9 @@ export default function AIConfigPage() {
                     )}
                   />
                 </div>
-                
+
                 <Separator />
-                
+
                 {/* Alert Threshold */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Alertă la Procent Consumat</label>
@@ -10444,9 +10472,9 @@ export default function AIConfigPage() {
                     Trimite alertă când se consumă acest procent din buget
                   </p>
                 </div>
-                
+
                 <Separator />
-                
+
                 {/* Pause at Limit */}
                 <div className="flex items-center justify-between">
                   <div>
@@ -10466,36 +10494,36 @@ export default function AIConfigPage() {
                     )}
                   />
                 </div>
-                
+
                 {/* Current Usage */}
                 <div className="bg-gray-50 p-4 rounded-lg space-y-4">
                   <h4 className="font-medium">Consum Curent</h4>
-                  
+
                   <div>
                     <div className="flex justify-between text-sm mb-1">
                       <span>Astăzi</span>
                       <span>125,430 / {form.watch('dailyTokenBudget')?.toLocaleString()}</span>
                     </div>
                     <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                      <div 
+                      <div
                         className="h-full bg-blue-500 rounded-full"
-                        style={{ 
-                          width: `${Math.min(100, (125430 / (form.watch('dailyTokenBudget') || 1)) * 100)}%` 
+                        style={{
+                          width: `${Math.min(100, (125430 / (form.watch('dailyTokenBudget') || 1)) * 100)}%`
                         }}
                       />
                     </div>
                   </div>
-                  
+
                   <div>
                     <div className="flex justify-between text-sm mb-1">
                       <span>Această lună</span>
                       <span>2,145,230 / {form.watch('monthlyTokenBudget')?.toLocaleString()}</span>
                     </div>
                     <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                      <div 
+                      <div
                         className="h-full bg-purple-500 rounded-full"
-                        style={{ 
-                          width: `${Math.min(100, (2145230 / (form.watch('monthlyTokenBudget') || 1)) * 100)}%` 
+                        style={{
+                          width: `${Math.min(100, (2145230 / (form.watch('monthlyTokenBudget') || 1)) * 100)}%`
                         }}
                       />
                     </div>
@@ -10534,20 +10562,20 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table';
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue 
+  SelectValue
 } from '@/components/ui/select';
 import {
   Dialog,
@@ -10559,11 +10587,11 @@ import {
   DialogTrigger
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { 
-  Shield, 
-  Plus, 
-  Trash2, 
-  Save, 
+import {
+  Shield,
+  Plus,
+  Trash2,
+  Save,
   AlertTriangle,
   CheckCircle,
   XCircle,
@@ -10678,7 +10706,7 @@ export default function GuardrailsSettingsPage() {
   const queryClient = useQueryClient();
   const [editingRule, setEditingRule] = useState<GuardrailRule | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  
+
   // Fetch rules
   const { data: rules, isLoading } = useQuery<GuardrailRule[]>({
     queryKey: ['guardrail-rules'],
@@ -10688,7 +10716,7 @@ export default function GuardrailsSettingsPage() {
       return res.json();
     }
   });
-  
+
   // Form setup
   const form = useForm<GuardrailRuleFormData>({
     resolver: zodResolver(guardrailRuleSchema),
@@ -10703,21 +10731,21 @@ export default function GuardrailsSettingsPage() {
       actionConfig: {}
     }
   });
-  
-  const { fields: conditionFields, append: appendCondition, remove: removeCondition } = 
+
+  const { fields: conditionFields, append: appendCondition, remove: removeCondition } =
     useFieldArray({
       control: form.control,
       name: 'conditions'
     });
-  
+
   // Save mutation
   const saveMutation = useMutation({
     mutationFn: async (data: GuardrailRuleFormData) => {
-      const url = editingRule 
+      const url = editingRule
         ? `/api/v1/sales/settings/guardrails/${editingRule.id}`
         : '/api/v1/sales/settings/guardrails';
       const method = editingRule ? 'PUT' : 'POST';
-      
+
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
@@ -10737,7 +10765,7 @@ export default function GuardrailsSettingsPage() {
       toast.error('Eroare', { description: error.message });
     }
   });
-  
+
   // Toggle rule mutation
   const toggleMutation = useMutation({
     mutationFn: async ({ id, enabled }: { id: string; enabled: boolean }) => {
@@ -10753,7 +10781,7 @@ export default function GuardrailsSettingsPage() {
       queryClient.invalidateQueries({ queryKey: ['guardrail-rules'] });
     }
   });
-  
+
   // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -10767,7 +10795,7 @@ export default function GuardrailsSettingsPage() {
       toast.success('Regulă ștearsă');
     }
   });
-  
+
   const openEditDialog = (rule: GuardrailRule) => {
     setEditingRule(rule);
     form.reset({
@@ -10782,13 +10810,13 @@ export default function GuardrailsSettingsPage() {
     });
     setIsDialogOpen(true);
   };
-  
+
   const openNewDialog = () => {
     setEditingRule(null);
     form.reset();
     setIsDialogOpen(true);
   };
-  
+
   const duplicateRule = (rule: GuardrailRule) => {
     setEditingRule(null);
     form.reset({
@@ -10803,18 +10831,18 @@ export default function GuardrailsSettingsPage() {
     });
     setIsDialogOpen(true);
   };
-  
+
   if (isLoading) {
     return <div className="p-8">Se încarcă regulile...</div>;
   }
-  
+
   // Group by category
   const rulesByCategory = rules?.reduce((acc, rule) => {
     if (!acc[rule.category]) acc[rule.category] = [];
     acc[rule.category].push(rule);
     return acc;
   }, {} as Record<string, GuardrailRule[]>) || {};
-  
+
   return (
     <div className="p-8 space-y-6">
       {/* Header */}
@@ -10828,7 +10856,7 @@ export default function GuardrailsSettingsPage() {
             Reguli de validare pentru răspunsurile AI
           </p>
         </div>
-        
+
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button onClick={openNewDialog}>
@@ -10836,7 +10864,7 @@ export default function GuardrailsSettingsPage() {
               Regulă Nouă
             </Button>
           </DialogTrigger>
-          
+
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
@@ -10846,7 +10874,7 @@ export default function GuardrailsSettingsPage() {
                 Definește condițiile și acțiunile pentru validarea răspunsurilor AI
               </DialogDescription>
             </DialogHeader>
-            
+
             <form onSubmit={form.handleSubmit((data) => saveMutation.mutate(data))} className="space-y-4">
               {/* Basic Info */}
               <div className="grid grid-cols-2 gap-4">
@@ -10860,7 +10888,7 @@ export default function GuardrailsSettingsPage() {
                     <p className="text-sm text-red-500">{form.formState.errors.name.message}</p>
                   )}
                 </div>
-                
+
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Categorie</label>
                   <Controller
@@ -10884,7 +10912,7 @@ export default function GuardrailsSettingsPage() {
                   />
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <label className="text-sm font-medium">Descriere</label>
                 <Textarea
@@ -10893,7 +10921,7 @@ export default function GuardrailsSettingsPage() {
                   rows={2}
                 />
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Prioritate (1-100)</label>
@@ -10904,7 +10932,7 @@ export default function GuardrailsSettingsPage() {
                     max={100}
                   />
                 </div>
-                
+
                 <div className="flex items-center justify-between pt-6">
                   <label className="text-sm font-medium">Activă</label>
                   <Controller
@@ -10919,9 +10947,9 @@ export default function GuardrailsSettingsPage() {
                   />
                 </div>
               </div>
-              
+
               <Separator />
-              
+
               {/* Conditions */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -10936,7 +10964,7 @@ export default function GuardrailsSettingsPage() {
                     Adaugă
                   </Button>
                 </div>
-                
+
                 {conditionFields.map((field, index) => (
                   <div key={field.id} className="flex items-center gap-2">
                     <Controller
@@ -10957,7 +10985,7 @@ export default function GuardrailsSettingsPage() {
                         </Select>
                       )}
                     />
-                    
+
                     <Controller
                       name={`conditions.${index}.operator`}
                       control={form.control}
@@ -10976,13 +11004,13 @@ export default function GuardrailsSettingsPage() {
                         </Select>
                       )}
                     />
-                    
+
                     <Input
                       {...form.register(`conditions.${index}.value`)}
                       placeholder="Valoare"
                       className="flex-1"
                     />
-                    
+
                     {conditionFields.length > 1 && (
                       <Button
                         type="button"
@@ -10996,13 +11024,13 @@ export default function GuardrailsSettingsPage() {
                   </div>
                 ))}
               </div>
-              
+
               <Separator />
-              
+
               {/* Action */}
               <div className="space-y-4">
                 <label className="text-sm font-medium">Acțiune la Violație</label>
-                
+
                 <Controller
                   name="action"
                   control={form.control}
@@ -11027,7 +11055,7 @@ export default function GuardrailsSettingsPage() {
                     </div>
                   )}
                 />
-                
+
                 {/* Action Config based on action type */}
                 {form.watch('action') === 'regenerate' && (
                   <div className="space-y-2">
@@ -11041,7 +11069,7 @@ export default function GuardrailsSettingsPage() {
                     />
                   </div>
                 )}
-                
+
                 {form.watch('action') === 'escalate' && (
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Escaladează către</label>
@@ -11060,7 +11088,7 @@ export default function GuardrailsSettingsPage() {
                     </Select>
                   </div>
                 )}
-                
+
                 {(form.watch('action') === 'block' || form.watch('action') === 'warn') && (
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Mesaj Custom (opțional)</label>
@@ -11072,7 +11100,7 @@ export default function GuardrailsSettingsPage() {
                   </div>
                 )}
               </div>
-              
+
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                   Anulează
@@ -11086,7 +11114,7 @@ export default function GuardrailsSettingsPage() {
           </DialogContent>
         </Dialog>
       </div>
-      
+
       {/* Stats Overview */}
       <div className="grid grid-cols-4 gap-4">
         <Card>
@@ -11120,7 +11148,7 @@ export default function GuardrailsSettingsPage() {
           </CardContent>
         </Card>
       </div>
-      
+
       {/* Rules by Category */}
       {Object.entries(rulesByCategory).map(([category, categoryRules]) => (
         <Card key={category}>
@@ -11156,7 +11184,7 @@ export default function GuardrailsSettingsPage() {
                       <TableCell>
                         <Switch
                           checked={rule.enabled}
-                          onCheckedChange={(enabled) => 
+                          onCheckedChange={(enabled) =>
                             toggleMutation.mutate({ id: rule.id, enabled })
                           }
                         />
@@ -11187,8 +11215,8 @@ export default function GuardrailsSettingsPage() {
                         {rule.stats.totalChecks > 0 ? (
                           <span className={cn(
                             'font-medium',
-                            (rule.stats.violations / rule.stats.totalChecks) * 100 > 5 
-                              ? 'text-red-600' 
+                            (rule.stats.violations / rule.stats.totalChecks) * 100 > 5
+                              ? 'text-red-600'
                               : 'text-green-600'
                           )}>
                             {((rule.stats.violations / rule.stats.totalChecks) * 100).toFixed(2)}%
@@ -11266,10 +11294,10 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Settings2, 
-  CheckCircle, 
-  XCircle, 
+import {
+  Settings2,
+  CheckCircle,
+  XCircle,
   RefreshCw,
   Eye,
   EyeOff,
@@ -11334,7 +11362,7 @@ export default function IntegrationsSettingsPage() {
   const [showApiKey, setShowApiKey] = useState(false);
   const [newApiKey, setNewApiKey] = useState('');
   const [newSecret, setNewSecret] = useState('');
-  
+
   // Fetch integrations
   const { data: integrations, isLoading } = useQuery<Integration[]>({
     queryKey: ['integrations'],
@@ -11344,7 +11372,7 @@ export default function IntegrationsSettingsPage() {
       return res.json();
     }
   });
-  
+
   // Test connection mutation
   const testConnectionMutation = useMutation({
     mutationFn: async (integrationId: string) => {
@@ -11370,7 +11398,7 @@ export default function IntegrationsSettingsPage() {
       toast.error('Eroare la testare', { description: error.message });
     }
   });
-  
+
   // Toggle integration mutation
   const toggleMutation = useMutation({
     mutationFn: async ({ id, enabled }: { id: string; enabled: boolean }) => {
@@ -11386,7 +11414,7 @@ export default function IntegrationsSettingsPage() {
       queryClient.invalidateQueries({ queryKey: ['integrations'] });
     }
   });
-  
+
   // Update credentials mutation
   const updateCredentialsMutation = useMutation({
     mutationFn: async ({ id, apiKey, secret }: { id: string; apiKey?: string; secret?: string }) => {
@@ -11409,20 +11437,20 @@ export default function IntegrationsSettingsPage() {
       toast.error('Eroare', { description: error.message });
     }
   });
-  
+
   if (isLoading) {
     return <div className="p-8">Se încarcă integrările...</div>;
   }
-  
+
   // Group by category
   const aiIntegrations = integrations?.filter(i => ['xai', 'anthropic'].includes(i.type)) || [];
   const businessIntegrations = integrations?.filter(i => ['oblio', 'anaf_spv'].includes(i.type)) || [];
   const communicationIntegrations = integrations?.filter(i => ['timelinesai', 'resend'].includes(i.type)) || [];
-  
+
   const renderIntegrationCard = (integration: Integration) => {
     const statusConfig = STATUS_CONFIG[integration.status];
     const StatusIcon = statusConfig.icon;
-    
+
     return (
       <Card key={integration.id} className={cn(
         'transition-all',
@@ -11444,22 +11472,22 @@ export default function IntegrationsSettingsPage() {
               </Badge>
               <Switch
                 checked={integration.enabled}
-                onCheckedChange={(enabled) => 
+                onCheckedChange={(enabled) =>
                   toggleMutation.mutate({ id: integration.id, enabled })
                 }
               />
             </div>
           </div>
         </CardHeader>
-        
+
         <CardContent className="space-y-4">
           {/* Health & Usage */}
           <div className="grid grid-cols-4 gap-2 text-sm">
             <div className="p-2 bg-gray-50 rounded">
               <p className="text-gray-500">Latență</p>
               <p className="font-medium">
-                {integration.health.latencyMs 
-                  ? `${integration.health.latencyMs}ms` 
+                {integration.health.latencyMs
+                  ? `${integration.health.latencyMs}ms`
                   : '-'}
               </p>
             </div>
@@ -11467,12 +11495,12 @@ export default function IntegrationsSettingsPage() {
               <p className="text-gray-500">Succes Rate</p>
               <p className={cn(
                 'font-medium',
-                integration.health.successRate && integration.health.successRate < 95 
-                  ? 'text-red-600' 
+                integration.health.successRate && integration.health.successRate < 95
+                  ? 'text-red-600'
                   : 'text-green-600'
               )}>
-                {integration.health.successRate 
-                  ? `${integration.health.successRate.toFixed(1)}%` 
+                {integration.health.successRate
+                  ? `${integration.health.successRate.toFixed(1)}%`
                   : '-'}
               </p>
             </div>
@@ -11492,7 +11520,7 @@ export default function IntegrationsSettingsPage() {
               </p>
             </div>
           </div>
-          
+
           {/* Error Alert */}
           {integration.health.lastError && (
             <Alert variant="destructive">
@@ -11503,27 +11531,27 @@ export default function IntegrationsSettingsPage() {
               </AlertDescription>
             </Alert>
           )}
-          
+
           {/* Credentials Info */}
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center gap-4">
               <span className="flex items-center gap-1">
                 <Key className="h-4 w-4 text-gray-400" />
-                API Key: {integration.credentials.hasApiKey 
+                API Key: {integration.credentials.hasApiKey
                   ? <CheckCircle className="h-4 w-4 text-green-500" />
                   : <XCircle className="h-4 w-4 text-red-500" />}
               </span>
               {integration.credentials.lastRotated && (
                 <span className="text-gray-500">
-                  Rotit {formatDistanceToNow(new Date(integration.credentials.lastRotated), { 
-                    addSuffix: true, 
-                    locale: ro 
+                  Rotit {formatDistanceToNow(new Date(integration.credentials.lastRotated), {
+                    addSuffix: true,
+                    locale: ro
                   })}
                 </span>
               )}
             </div>
           </div>
-          
+
           {/* Actions */}
           <div className="flex items-center gap-2 pt-2">
             <Button
@@ -11568,7 +11596,7 @@ export default function IntegrationsSettingsPage() {
       </Card>
     );
   };
-  
+
   return (
     <div className="p-8 space-y-6">
       {/* Header */}
@@ -11581,7 +11609,7 @@ export default function IntegrationsSettingsPage() {
           Configurare și monitorizare servicii externe
         </p>
       </div>
-      
+
       {/* Integration Categories */}
       <Tabs defaultValue="ai" className="space-y-6">
         <TabsList>
@@ -11595,26 +11623,26 @@ export default function IntegrationsSettingsPage() {
             💬 Comunicare ({communicationIntegrations.length})
           </TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="ai" className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             {aiIntegrations.map(renderIntegrationCard)}
           </div>
         </TabsContent>
-        
+
         <TabsContent value="business" className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             {businessIntegrations.map(renderIntegrationCard)}
           </div>
         </TabsContent>
-        
+
         <TabsContent value="communication" className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             {communicationIntegrations.map(renderIntegrationCard)}
           </div>
         </TabsContent>
       </Tabs>
-      
+
       {/* Configuration Dialog */}
       <Dialog open={!!selectedIntegration} onOpenChange={() => setSelectedIntegration(null)}>
         <DialogContent className="max-w-lg">
@@ -11627,7 +11655,7 @@ export default function IntegrationsSettingsPage() {
               Actualizează credențialele și setările pentru această integrare
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             {/* API Key */}
             <div className="space-y-2">
@@ -11637,8 +11665,8 @@ export default function IntegrationsSettingsPage() {
                   type={showApiKey ? 'text' : 'password'}
                   value={newApiKey}
                   onChange={(e) => setNewApiKey(e.target.value)}
-                  placeholder={selectedIntegration?.credentials.hasApiKey 
-                    ? '••••••••••••••••' 
+                  placeholder={selectedIntegration?.credentials.hasApiKey
+                    ? '••••••••••••••••'
                     : 'Introdu API Key'}
                 />
                 <Button
@@ -11650,7 +11678,7 @@ export default function IntegrationsSettingsPage() {
                 </Button>
               </div>
             </div>
-            
+
             {/* Secret (for some integrations) */}
             {selectedIntegration?.type === 'oblio' && (
               <div className="space-y-2">
@@ -11659,13 +11687,13 @@ export default function IntegrationsSettingsPage() {
                   type="password"
                   value={newSecret}
                   onChange={(e) => setNewSecret(e.target.value)}
-                  placeholder={selectedIntegration?.credentials.hasSecret 
-                    ? '••••••••••••••••' 
+                  placeholder={selectedIntegration?.credentials.hasSecret
+                    ? '••••••••••••••••'
                     : 'Introdu Secret'}
                 />
               </div>
             )}
-            
+
             {/* Integration-specific config */}
             {selectedIntegration?.type === 'anaf_spv' && (
               <>
@@ -11683,7 +11711,7 @@ export default function IntegrationsSettingsPage() {
                 </div>
               </>
             )}
-            
+
             {selectedIntegration?.type === 'timelinesai' && (
               <>
                 <Separator />
@@ -11700,7 +11728,7 @@ export default function IntegrationsSettingsPage() {
               </>
             )}
           </div>
-          
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setSelectedIntegration(null)}>
               Anulează
@@ -11746,25 +11774,25 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue 
+  SelectValue
 } from '@/components/ui/select';
-import { 
-  Shield, 
-  AlertTriangle, 
-  CheckCircle, 
+import {
+  Shield,
+  AlertTriangle,
+  CheckCircle,
   RefreshCw,
   XCircle,
   Activity,
@@ -11868,7 +11896,7 @@ export default function GuardrailsMonitorPage() {
   const [timeRange, setTimeRange] = useState<'1h' | '6h' | '24h' | '7d'>('24h');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [autoRefresh, setAutoRefresh] = useState(true);
-  
+
   // Fetch stats
   const { data: stats, isLoading: statsLoading, refetch: refetchStats } = useQuery<GuardrailStats>({
     queryKey: ['guardrails-stats', timeRange],
@@ -11879,7 +11907,7 @@ export default function GuardrailsMonitorPage() {
     },
     refetchInterval: autoRefresh ? 30000 : false
   });
-  
+
   // Fetch recent checks
   const { data: recentChecks, isLoading: checksLoading, refetch: refetchChecks } = useQuery<GuardrailCheck[]>({
     queryKey: ['guardrails-checks', timeRange, selectedCategory],
@@ -11895,7 +11923,7 @@ export default function GuardrailsMonitorPage() {
     },
     refetchInterval: autoRefresh ? 10000 : false
   });
-  
+
   // Auto-refresh toggle
   useEffect(() => {
     if (autoRefresh) {
@@ -11906,15 +11934,15 @@ export default function GuardrailsMonitorPage() {
       return () => clearInterval(interval);
     }
   }, [autoRefresh, refetchStats, refetchChecks]);
-  
+
   if (statsLoading) {
     return <div className="p-8">Se încarcă monitorizarea...</div>;
   }
-  
+
   // Separate violations and regenerations
   const violations = recentChecks?.filter(c => c.checkResult === 'violation') || [];
   const regenerations = recentChecks?.filter(c => c.checkResult === 'regenerated') || [];
-  
+
   return (
     <div className="p-8 space-y-6">
       {/* Header */}
@@ -11928,7 +11956,7 @@ export default function GuardrailsMonitorPage() {
             Monitorizare în timp real a sistemului de validare AI
           </p>
         </div>
-        
+
         <div className="flex items-center gap-3">
           <Select value={timeRange} onValueChange={(v: any) => setTimeRange(v)}>
             <SelectTrigger className="w-32">
@@ -11941,7 +11969,7 @@ export default function GuardrailsMonitorPage() {
               <SelectItem value="7d">7 zile</SelectItem>
             </SelectContent>
           </Select>
-          
+
           <Button
             variant={autoRefresh ? 'default' : 'outline'}
             size="sm"
@@ -11950,7 +11978,7 @@ export default function GuardrailsMonitorPage() {
             <RefreshCw className={cn('h-4 w-4 mr-1', autoRefresh && 'animate-spin')} />
             {autoRefresh ? 'Auto ON' : 'Auto OFF'}
           </Button>
-          
+
           <Link href="/sales/settings/guardrails">
             <Button variant="outline" size="sm">
               Configurare
@@ -11958,7 +11986,7 @@ export default function GuardrailsMonitorPage() {
           </Link>
         </div>
       </div>
-      
+
       {/* Key Metrics */}
       <div className="grid grid-cols-5 gap-4">
         <Card>
@@ -11971,13 +11999,13 @@ export default function GuardrailsMonitorPage() {
               <Activity className="h-8 w-8 text-blue-500 opacity-50" />
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              în {timeRange === '1h' ? 'ultima oră' : 
+              în {timeRange === '1h' ? 'ultima oră' :
                   timeRange === '6h' ? 'ultimele 6 ore' :
                   timeRange === '24h' ? 'ultimele 24 ore' : 'ultimele 7 zile'}
             </p>
           </CardContent>
         </Card>
-        
+
         <Card className={stats && stats.successRate < 95 ? 'border-red-200 bg-red-50' : ''}>
           <CardContent className="pt-4">
             <div className="flex items-center justify-between">
@@ -11990,14 +12018,14 @@ export default function GuardrailsMonitorPage() {
                   {stats?.successRate.toFixed(2)}%
                 </p>
               </div>
-              {stats && stats.successRate >= 95 
+              {stats && stats.successRate >= 95
                 ? <TrendingUp className="h-8 w-8 text-green-500 opacity-50" />
                 : <TrendingDown className="h-8 w-8 text-red-500 opacity-50" />
               }
             </div>
           </CardContent>
         </Card>
-        
+
         <Card className={violations.length > 0 ? 'border-red-200' : ''}>
           <CardContent className="pt-4">
             <div className="flex items-center justify-between">
@@ -12014,7 +12042,7 @@ export default function GuardrailsMonitorPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center justify-between">
@@ -12028,7 +12056,7 @@ export default function GuardrailsMonitorPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center justify-between">
@@ -12043,7 +12071,7 @@ export default function GuardrailsMonitorPage() {
           </CardContent>
         </Card>
       </div>
-      
+
       {/* Charts Row */}
       <div className="grid grid-cols-2 gap-6">
         {/* Timeline Chart */}
@@ -12056,12 +12084,12 @@ export default function GuardrailsMonitorPage() {
             <ResponsiveContainer width="100%" height={250}>
               <AreaChart data={stats?.timeline || []}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis 
-                  dataKey="timestamp" 
+                <XAxis
+                  dataKey="timestamp"
                   tickFormatter={(value) => format(new Date(value), 'HH:mm')}
                 />
                 <YAxis />
-                <Tooltip 
+                <Tooltip
                   labelFormatter={(value) => format(new Date(value), 'dd MMM HH:mm', { locale: ro })}
                 />
                 <Legend />
@@ -12096,7 +12124,7 @@ export default function GuardrailsMonitorPage() {
             </ResponsiveContainer>
           </CardContent>
         </Card>
-        
+
         {/* Category Distribution */}
         <Card>
           <CardHeader>
@@ -12117,21 +12145,21 @@ export default function GuardrailsMonitorPage() {
                   label={(entry) => entry.category}
                 >
                   {stats?.byCategory.map((entry, index) => (
-                    <Cell 
-                      key={`cell-${index}`} 
-                      fill={CATEGORY_COLORS[entry.category] || CHART_COLORS.info} 
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={CATEGORY_COLORS[entry.category] || CHART_COLORS.info}
                     />
                   ))}
                 </Pie>
                 <Tooltip />
               </PieChart>
             </ResponsiveContainer>
-            
+
             <div className="flex-1 space-y-2">
               {stats?.byCategory.map((cat) => (
                 <div key={cat.category} className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div 
+                    <div
                       className="w-3 h-3 rounded-full"
                       style={{ backgroundColor: CATEGORY_COLORS[cat.category] }}
                     />
@@ -12149,7 +12177,7 @@ export default function GuardrailsMonitorPage() {
           </CardContent>
         </Card>
       </div>
-      
+
       {/* Recent Activity */}
       <Tabs defaultValue="violations" className="space-y-4">
         <div className="flex items-center justify-between">
@@ -12167,7 +12195,7 @@ export default function GuardrailsMonitorPage() {
               Reguli Top
             </TabsTrigger>
           </TabsList>
-          
+
           <Select value={selectedCategory} onValueChange={setSelectedCategory}>
             <SelectTrigger className="w-40">
               <SelectValue placeholder="Toate categoriile" />
@@ -12182,7 +12210,7 @@ export default function GuardrailsMonitorPage() {
             </SelectContent>
           </Select>
         </div>
-        
+
         {/* Violations Tab */}
         <TabsContent value="violations">
           <Card>
@@ -12205,9 +12233,9 @@ export default function GuardrailsMonitorPage() {
                         <TableCell className="whitespace-nowrap">
                           <div className="flex items-center gap-1">
                             <Clock className="h-3 w-3 text-gray-400" />
-                            {formatDistanceToNow(new Date(check.timestamp), { 
+                            {formatDistanceToNow(new Date(check.timestamp), {
                               addSuffix: true,
-                              locale: ro 
+                              locale: ro
                             })}
                           </div>
                         </TableCell>
@@ -12215,9 +12243,9 @@ export default function GuardrailsMonitorPage() {
                           {check.ruleName}
                         </TableCell>
                         <TableCell>
-                          <Badge 
+                          <Badge
                             variant="outline"
-                            style={{ 
+                            style={{
                               borderColor: CATEGORY_COLORS[check.ruleCategory],
                               color: CATEGORY_COLORS[check.ruleCategory]
                             }}
@@ -12243,8 +12271,8 @@ export default function GuardrailsMonitorPage() {
                                 <Eye className="h-4 w-4" />
                               </Button>
                             </Link>
-                            <Button 
-                              variant="ghost" 
+                            <Button
+                              variant="ghost"
                               size="icon"
                               onClick={() => {
                                 // Show original content in modal
@@ -12256,7 +12284,7 @@ export default function GuardrailsMonitorPage() {
                         </TableCell>
                       </TableRow>
                     ))}
-                    
+
                     {violations.length === 0 && (
                       <TableRow>
                         <TableCell colSpan={6} className="text-center py-8 text-gray-500">
@@ -12271,7 +12299,7 @@ export default function GuardrailsMonitorPage() {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         {/* Regenerations Tab */}
         <TabsContent value="regenerations">
           <Card>
@@ -12292,9 +12320,9 @@ export default function GuardrailsMonitorPage() {
                     {regenerations.map((check) => (
                       <TableRow key={check.id}>
                         <TableCell className="whitespace-nowrap">
-                          {formatDistanceToNow(new Date(check.timestamp), { 
+                          {formatDistanceToNow(new Date(check.timestamp), {
                             addSuffix: true,
-                            locale: ro 
+                            locale: ro
                           })}
                         </TableCell>
                         <TableCell className="font-medium">
@@ -12310,8 +12338,8 @@ export default function GuardrailsMonitorPage() {
                         </TableCell>
                         <TableCell>
                           <span className={cn(
-                            check.latencyMs > 2000 ? 'text-red-600' : 
-                            check.latencyMs > 1000 ? 'text-yellow-600' : 
+                            check.latencyMs > 2000 ? 'text-red-600' :
+                            check.latencyMs > 1000 ? 'text-yellow-600' :
                             'text-green-600'
                           )}>
                             {check.latencyMs}ms
@@ -12332,7 +12360,7 @@ export default function GuardrailsMonitorPage() {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         {/* Top Rules Tab */}
         <TabsContent value="rules">
           <Card>
@@ -12359,11 +12387,11 @@ export default function GuardrailsMonitorPage() {
                           </span>
                         </div>
                         <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                          <div 
+                          <div
                             className={cn(
                               'h-full rounded-full',
-                              rule.rate > 10 ? 'bg-red-500' : 
-                              rule.rate > 5 ? 'bg-yellow-500' : 
+                              rule.rate > 10 ? 'bg-red-500' :
+                              rule.rate > 5 ? 'bg-yellow-500' :
                               'bg-green-500'
                             )}
                             style={{ width: `${Math.min(100, rule.rate * 10)}%` }}
@@ -12372,8 +12400,8 @@ export default function GuardrailsMonitorPage() {
                       </div>
                       <span className={cn(
                         'text-sm font-medium w-16 text-right',
-                        rule.rate > 10 ? 'text-red-600' : 
-                        rule.rate > 5 ? 'text-yellow-600' : 
+                        rule.rate > 10 ? 'text-red-600' :
+                        rule.rate > 5 ? 'text-yellow-600' :
                         'text-green-600'
                       )}>
                         {rule.rate.toFixed(2)}%
@@ -12411,13 +12439,13 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table';
 import {
   Dialog,
@@ -12427,10 +12455,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { 
-  FileText, 
-  AlertTriangle, 
-  CheckCircle, 
+import {
+  FileText,
+  AlertTriangle,
+  CheckCircle,
   Clock,
   XCircle,
   Upload,
@@ -12461,24 +12489,24 @@ interface EFacturaDocument {
   totalAmount: number;
   vatAmount: number;
   currency: string;
-  
+
   // e-Factura specific
   spvStatus: 'not_submitted' | 'pending' | 'processing' | 'accepted' | 'rejected' | 'error';
   uploadId: string | null;
   downloadId: string | null;
   submittedAt: string | null;
   processedAt: string | null;
-  
+
   // Deadline tracking
   deadline: string; // 5 days from issue
   hoursUntilDeadline: number;
   isOverdue: boolean;
-  
+
   // Errors
   errorCode: string | null;
   errorMessage: string | null;
   errorDetails: Record<string, any> | null;
-  
+
   // Retry info
   retryCount: number;
   lastRetryAt: string | null;
@@ -12493,11 +12521,11 @@ interface EFacturaStats {
   accepted: number;
   rejected: number;
   errors: number;
-  
+
   deadlineWarnings: number; // < 24h
   deadlineCritical: number; // < 6h
   overdue: number;
-  
+
   submittedToday: number;
   acceptedToday: number;
   rejectedToday: number;
@@ -12505,35 +12533,35 @@ interface EFacturaStats {
 
 // Status Configuration
 const STATUS_CONFIG = {
-  not_submitted: { 
-    color: 'bg-gray-100 text-gray-800', 
+  not_submitted: {
+    color: 'bg-gray-100 text-gray-800',
     icon: Clock,
-    label: 'Netrimis' 
+    label: 'Netrimis'
   },
-  pending: { 
-    color: 'bg-blue-100 text-blue-800', 
+  pending: {
+    color: 'bg-blue-100 text-blue-800',
     icon: Upload,
-    label: 'Trimis' 
+    label: 'Trimis'
   },
-  processing: { 
-    color: 'bg-yellow-100 text-yellow-800', 
+  processing: {
+    color: 'bg-yellow-100 text-yellow-800',
     icon: Loader2,
-    label: 'În procesare' 
+    label: 'În procesare'
   },
-  accepted: { 
-    color: 'bg-green-100 text-green-800', 
+  accepted: {
+    color: 'bg-green-100 text-green-800',
     icon: CheckCircle,
-    label: 'Acceptat' 
+    label: 'Acceptat'
   },
-  rejected: { 
-    color: 'bg-red-100 text-red-800', 
+  rejected: {
+    color: 'bg-red-100 text-red-800',
     icon: XCircle,
-    label: 'Respins' 
+    label: 'Respins'
   },
-  error: { 
-    color: 'bg-orange-100 text-orange-800', 
+  error: {
+    color: 'bg-orange-100 text-orange-800',
     icon: AlertTriangle,
-    label: 'Eroare' 
+    label: 'Eroare'
   }
 };
 
@@ -12543,7 +12571,7 @@ export default function EFacturaStatusPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dateRange, setDateRange] = useState<{ from: Date; to: Date } | null>(null);
   const [selectedDoc, setSelectedDoc] = useState<EFacturaDocument | null>(null);
-  
+
   // Fetch stats
   const { data: stats, isLoading: statsLoading } = useQuery<EFacturaStats>({
     queryKey: ['efactura-stats'],
@@ -12554,7 +12582,7 @@ export default function EFacturaStatusPage() {
     },
     refetchInterval: 60000 // 1 minute
   });
-  
+
   // Fetch documents
   const { data: documents, isLoading: docsLoading, refetch } = useQuery<EFacturaDocument[]>({
     queryKey: ['efactura-documents', statusFilter, dateRange, searchQuery],
@@ -12564,13 +12592,13 @@ export default function EFacturaStatusPage() {
       if (dateRange?.from) params.append('from', dateRange.from.toISOString());
       if (dateRange?.to) params.append('to', dateRange.to.toISOString());
       if (searchQuery) params.append('search', searchQuery);
-      
+
       const res = await fetch(`/api/v1/sales/e-factura/documents?${params}`);
       if (!res.ok) throw new Error('Failed to fetch documents');
       return res.json();
     }
   });
-  
+
   // Submit to SPV mutation
   const submitMutation = useMutation({
     mutationFn: async (documentId: string) => {
@@ -12589,7 +12617,7 @@ export default function EFacturaStatusPage() {
       toast.error('Eroare la trimitere', { description: error.message });
     }
   });
-  
+
   // Check status mutation
   const checkStatusMutation = useMutation({
     mutationFn: async (documentId: string) => {
@@ -12607,7 +12635,7 @@ export default function EFacturaStatusPage() {
       });
     }
   });
-  
+
   // Retry submission mutation
   const retryMutation = useMutation({
     mutationFn: async (documentId: string) => {
@@ -12622,7 +12650,7 @@ export default function EFacturaStatusPage() {
       toast.success('Retrimitere inițiată');
     }
   });
-  
+
   // Bulk submit
   const bulkSubmitMutation = useMutation({
     mutationFn: async (documentIds: string[]) => {
@@ -12642,7 +12670,7 @@ export default function EFacturaStatusPage() {
       });
     }
   });
-  
+
   // Get deadline badge
   const getDeadlineBadge = (doc: EFacturaDocument) => {
     if (doc.isOverdue) {
@@ -12653,7 +12681,7 @@ export default function EFacturaStatusPage() {
         </Badge>
       );
     }
-    
+
     if (doc.hoursUntilDeadline < 6) {
       return (
         <Badge className="bg-red-500 gap-1">
@@ -12662,7 +12690,7 @@ export default function EFacturaStatusPage() {
         </Badge>
       );
     }
-    
+
     if (doc.hoursUntilDeadline < 24) {
       return (
         <Badge className="bg-orange-500 gap-1">
@@ -12671,7 +12699,7 @@ export default function EFacturaStatusPage() {
         </Badge>
       );
     }
-    
+
     if (doc.hoursUntilDeadline < 48) {
       return (
         <Badge className="bg-yellow-500 text-yellow-900 gap-1">
@@ -12680,23 +12708,23 @@ export default function EFacturaStatusPage() {
         </Badge>
       );
     }
-    
+
     return (
       <span className="text-sm text-gray-500">
         {Math.floor(doc.hoursUntilDeadline / 24)} zile
       </span>
     );
   };
-  
+
   // Documents needing attention
-  const urgentDocs = documents?.filter(d => 
+  const urgentDocs = documents?.filter(d =>
     d.spvStatus === 'not_submitted' && d.hoursUntilDeadline < 24
   ) || [];
-  
-  const errorDocs = documents?.filter(d => 
+
+  const errorDocs = documents?.filter(d =>
     d.spvStatus === 'rejected' || d.spvStatus === 'error'
   ) || [];
-  
+
   return (
     <div className="p-8 space-y-6">
       {/* Header */}
@@ -12710,7 +12738,7 @@ export default function EFacturaStatusPage() {
             Monitorizare și gestionare facturi electronice ANAF
           </p>
         </div>
-        
+
         <div className="flex items-center gap-3">
           <Button
             variant="outline"
@@ -12728,16 +12756,16 @@ export default function EFacturaStatusPage() {
           </Button>
         </div>
       </div>
-      
+
       {/* Urgent Alerts */}
       {urgentDocs.length > 0 && (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Atenție! Deadline-uri Urgente</AlertTitle>
           <AlertDescription>
-            {urgentDocs.length} facturi au deadline în mai puțin de 24 de ore. 
-            <Button 
-              variant="link" 
+            {urgentDocs.length} facturi au deadline în mai puțin de 24 de ore.
+            <Button
+              variant="link"
               className="p-0 h-auto ml-2"
               onClick={() => {
                 const ids = urgentDocs.map(d => d.id);
@@ -12749,7 +12777,7 @@ export default function EFacturaStatusPage() {
           </AlertDescription>
         </Alert>
       )}
-      
+
       {/* Stats Cards */}
       <div className="grid grid-cols-6 gap-4">
         <Card className={cn(stats?.notSubmitted && stats.notSubmitted > 0 && 'border-yellow-300')}>
@@ -12760,7 +12788,7 @@ export default function EFacturaStatusPage() {
             </p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="pt-4">
             <p className="text-sm text-gray-500">În procesare</p>
@@ -12769,7 +12797,7 @@ export default function EFacturaStatusPage() {
             </p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="pt-4">
             <p className="text-sm text-gray-500">Acceptate</p>
@@ -12778,7 +12806,7 @@ export default function EFacturaStatusPage() {
             </p>
           </CardContent>
         </Card>
-        
+
         <Card className={cn(stats?.rejected && stats.rejected > 0 && 'border-red-300')}>
           <CardContent className="pt-4">
             <p className="text-sm text-gray-500">Respinse</p>
@@ -12787,7 +12815,7 @@ export default function EFacturaStatusPage() {
             </p>
           </CardContent>
         </Card>
-        
+
         <Card className={cn(stats?.overdue && stats.overdue > 0 && 'border-red-500 bg-red-50')}>
           <CardContent className="pt-4">
             <p className="text-sm text-gray-500">Depășite</p>
@@ -12796,7 +12824,7 @@ export default function EFacturaStatusPage() {
             </p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="pt-4">
             <p className="text-sm text-gray-500">Azi Acceptate</p>
@@ -12804,7 +12832,7 @@ export default function EFacturaStatusPage() {
           </CardContent>
         </Card>
       </div>
-      
+
       {/* Deadline Warnings */}
       {(stats?.deadlineWarnings || 0) > 0 && (
         <div className="flex items-center gap-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
@@ -12817,8 +12845,8 @@ export default function EFacturaStatusPage() {
               {stats?.deadlineWarnings || 0} facturi cu deadline în mai puțin de 24 ore
             </p>
           </div>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             className="border-orange-300 text-orange-700"
             onClick={() => setStatusFilter('not_submitted')}
           >
@@ -12826,7 +12854,7 @@ export default function EFacturaStatusPage() {
           </Button>
         </div>
       )}
-      
+
       {/* Filters */}
       <Card>
         <CardContent className="pt-4">
@@ -12840,7 +12868,7 @@ export default function EFacturaStatusPage() {
                 className="pl-10"
               />
             </div>
-            
+
             <Tabs value={statusFilter} onValueChange={setStatusFilter}>
               <TabsList>
                 <TabsTrigger value="all">Toate</TabsTrigger>
@@ -12850,7 +12878,7 @@ export default function EFacturaStatusPage() {
                 <TabsTrigger value="rejected">Respinse</TabsTrigger>
               </TabsList>
             </Tabs>
-            
+
             <DateRangePicker
               value={dateRange}
               onChange={setDateRange}
@@ -12858,7 +12886,7 @@ export default function EFacturaStatusPage() {
           </div>
         </CardContent>
       </Card>
-      
+
       {/* Documents Table */}
       <Card>
         <CardContent className="p-0">
@@ -12879,14 +12907,14 @@ export default function EFacturaStatusPage() {
                 {documents?.map((doc) => {
                   const statusConfig = STATUS_CONFIG[doc.spvStatus];
                   const StatusIcon = statusConfig.icon;
-                  
+
                   return (
                     <TableRow key={doc.id} className={cn(
                       doc.isOverdue && 'bg-red-50',
                       doc.hoursUntilDeadline < 24 && doc.spvStatus === 'not_submitted' && 'bg-orange-50'
                     )}>
                       <TableCell>
-                        <Link 
+                        <Link
                           href={`/sales/documents/${doc.documentId}`}
                           className="hover:underline"
                         >
@@ -12896,12 +12924,12 @@ export default function EFacturaStatusPage() {
                           </p>
                         </Link>
                       </TableCell>
-                      
+
                       <TableCell>
                         <p className="font-medium">{doc.clientName}</p>
                         <p className="text-sm text-gray-500">{doc.clientCui}</p>
                       </TableCell>
-                      
+
                       <TableCell>
                         <p className="font-medium">
                           {doc.totalAmount.toLocaleString('ro-RO')} {doc.currency}
@@ -12910,7 +12938,7 @@ export default function EFacturaStatusPage() {
                           TVA: {doc.vatAmount.toLocaleString('ro-RO')}
                         </p>
                       </TableCell>
-                      
+
                       <TableCell>
                         <Badge className={cn('gap-1', statusConfig.color)}>
                           <StatusIcon className={cn(
@@ -12925,7 +12953,7 @@ export default function EFacturaStatusPage() {
                           </p>
                         )}
                       </TableCell>
-                      
+
                       <TableCell>
                         {doc.spvStatus === 'not_submitted' || doc.spvStatus === 'rejected' ? (
                           getDeadlineBadge(doc)
@@ -12933,7 +12961,7 @@ export default function EFacturaStatusPage() {
                           <span className="text-sm text-gray-400">-</span>
                         )}
                       </TableCell>
-                      
+
                       <TableCell>
                         {doc.uploadId && (
                           <p className="text-xs font-mono">
@@ -12949,7 +12977,7 @@ export default function EFacturaStatusPage() {
                           <span className="text-gray-400">-</span>
                         )}
                       </TableCell>
-                      
+
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
                           {doc.spvStatus === 'not_submitted' && (
@@ -12962,7 +12990,7 @@ export default function EFacturaStatusPage() {
                               Trimite
                             </Button>
                           )}
-                          
+
                           {(doc.spvStatus === 'pending' || doc.spvStatus === 'processing') && (
                             <Button
                               size="sm"
@@ -12977,7 +13005,7 @@ export default function EFacturaStatusPage() {
                               Verifică
                             </Button>
                           )}
-                          
+
                           {(doc.spvStatus === 'rejected' || doc.spvStatus === 'error') && doc.canRetry && (
                             <Button
                               size="sm"
@@ -12989,14 +13017,14 @@ export default function EFacturaStatusPage() {
                               Retrimite
                             </Button>
                           )}
-                          
+
                           {doc.spvStatus === 'accepted' && doc.downloadId && (
                             <Button
                               size="sm"
                               variant="outline"
                               onClick={() => {
                                 window.open(
-                                  `/api/v1/sales/e-factura/${doc.id}/download`, 
+                                  `/api/v1/sales/e-factura/${doc.id}/download`,
                                   '_blank'
                                 );
                               }}
@@ -13005,7 +13033,7 @@ export default function EFacturaStatusPage() {
                               XML
                             </Button>
                           )}
-                          
+
                           <Button
                             size="sm"
                             variant="ghost"
@@ -13023,7 +13051,7 @@ export default function EFacturaStatusPage() {
           </ScrollArea>
         </CardContent>
       </Card>
-      
+
       {/* Detail Dialog */}
       <Dialog open={!!selectedDoc} onOpenChange={() => setSelectedDoc(null)}>
         <DialogContent className="max-w-lg">
@@ -13033,7 +13061,7 @@ export default function EFacturaStatusPage() {
               {selectedDoc?.documentNumber}
             </DialogDescription>
           </DialogHeader>
-          
+
           {selectedDoc && (
             <div className="space-y-4">
               {/* Document Info */}
@@ -13071,7 +13099,7 @@ export default function EFacturaStatusPage() {
                   </p>
                 </div>
               </div>
-              
+
               {/* SPV Info */}
               <div className="border-t pt-4 space-y-2">
                 <h4 className="font-medium">Status SPV</h4>
@@ -13081,21 +13109,21 @@ export default function EFacturaStatusPage() {
                 )}>
                   {STATUS_CONFIG[selectedDoc.spvStatus].label}
                 </Badge>
-                
+
                 {selectedDoc.uploadId && (
                   <div>
                     <p className="text-sm text-gray-500">Upload ID</p>
                     <p className="font-mono text-sm">{selectedDoc.uploadId}</p>
                   </div>
                 )}
-                
+
                 {selectedDoc.downloadId && (
                   <div>
                     <p className="text-sm text-gray-500">Download ID</p>
                     <p className="font-mono text-sm">{selectedDoc.downloadId}</p>
                   </div>
                 )}
-                
+
                 {selectedDoc.submittedAt && (
                   <div>
                     <p className="text-sm text-gray-500">Trimis la</p>
@@ -13104,7 +13132,7 @@ export default function EFacturaStatusPage() {
                     </p>
                   </div>
                 )}
-                
+
                 {selectedDoc.processedAt && (
                   <div>
                     <p className="text-sm text-gray-500">Procesat la</p>
@@ -13114,7 +13142,7 @@ export default function EFacturaStatusPage() {
                   </div>
                 )}
               </div>
-              
+
               {/* Error Details */}
               {selectedDoc.errorMessage && (
                 <Alert variant="destructive">
@@ -13123,7 +13151,7 @@ export default function EFacturaStatusPage() {
                   <AlertDescription>{selectedDoc.errorMessage}</AlertDescription>
                 </Alert>
               )}
-              
+
               {/* Retry Info */}
               {selectedDoc.retryCount > 0 && (
                 <div className="text-sm text-gray-500">
@@ -13135,7 +13163,7 @@ export default function EFacturaStatusPage() {
               )}
             </div>
           )}
-          
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setSelectedDoc(null)}>
               Închide
@@ -13177,20 +13205,20 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Slider } from '@/components/ui/slider';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table';
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue 
+  SelectValue
 } from '@/components/ui/select';
 import {
   Dialog,
@@ -13218,10 +13246,10 @@ import {
   verticalListSortingStrategy
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { 
-  Route, 
-  Plus, 
-  Trash2, 
+import {
+  Route,
+  Plus,
+  Trash2,
   Save,
   GripVertical,
   MessageSquare,
@@ -13243,28 +13271,28 @@ interface RoutingRule {
   description: string;
   enabled: boolean;
   priority: number;
-  
+
   // Conditions
   conditions: {
     type: 'channel' | 'client_tier' | 'time_of_day' | 'message_type' | 'region' | 'product_category';
     operator: 'eq' | 'neq' | 'in' | 'not_in' | 'between';
     value: string | string[];
   }[];
-  
+
   // Actions
   primaryChannel: 'whatsapp' | 'email' | 'phone';
   fallbackChannel: 'whatsapp' | 'email' | 'phone' | null;
   assignToAgent: string | null; // specific agent or null for auto
   responseTimeTarget: number; // minutes
   escalateAfter: number; // minutes without response
-  
+
   // Scheduling
   activeHours: {
     start: string; // HH:mm
     end: string;
     daysOfWeek: number[]; // 0-6
   } | null;
-  
+
   stats: {
     messagesRouted: number;
     avgResponseTime: number;
@@ -13278,7 +13306,7 @@ interface RoutingConfig {
   defaultResponseTarget: number;
   defaultEscalateAfter: number;
   rules: RoutingRule[];
-  
+
   // Business Hours
   businessHours: {
     start: string;
@@ -13286,7 +13314,7 @@ interface RoutingConfig {
     timezone: string;
     workDays: number[];
   };
-  
+
   // Out of Hours
   outOfHoursAction: 'queue' | 'auto_respond' | 'redirect_email';
   outOfHoursMessage: string;
@@ -13334,8 +13362,8 @@ const CONDITION_LABELS: Record<string, string> = {
 };
 
 // Sortable Row Component
-function SortableRow({ rule, onEdit, onToggle, onDelete }: { 
-  rule: RoutingRule; 
+function SortableRow({ rule, onEdit, onToggle, onDelete }: {
+  rule: RoutingRule;
   onEdit: () => void;
   onToggle: () => void;
   onDelete: () => void;
@@ -13348,13 +13376,13 @@ function SortableRow({ rule, onEdit, onToggle, onDelete }: {
     transition,
     isDragging
   } = useSortable({ id: rule.id });
-  
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1
   };
-  
+
   return (
     <TableRow ref={setNodeRef} style={style} className={cn(!rule.enabled && 'opacity-50')}>
       <TableCell>
@@ -13434,14 +13462,14 @@ export default function RoutingConfigPage() {
   const queryClient = useQueryClient();
   const [editingRule, setEditingRule] = useState<RoutingRule | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  
+
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates
     })
   );
-  
+
   // Fetch config
   const { data: config, isLoading } = useQuery<RoutingConfig>({
     queryKey: ['routing-config'],
@@ -13451,7 +13479,7 @@ export default function RoutingConfigPage() {
       return res.json();
     }
   });
-  
+
   // Form setup
   const form = useForm<RoutingRuleFormData>({
     resolver: zodResolver(routingRuleSchema),
@@ -13468,21 +13496,21 @@ export default function RoutingConfigPage() {
       activeHours: null
     }
   });
-  
-  const { fields: conditionFields, append: appendCondition, remove: removeCondition } = 
+
+  const { fields: conditionFields, append: appendCondition, remove: removeCondition } =
     useFieldArray({
       control: form.control,
       name: 'conditions'
     });
-  
+
   // Save rule mutation
   const saveMutation = useMutation({
     mutationFn: async (data: RoutingRuleFormData) => {
-      const url = editingRule 
+      const url = editingRule
         ? `/api/v1/sales/settings/routing/rules/${editingRule.id}`
         : '/api/v1/sales/settings/routing/rules';
       const method = editingRule ? 'PUT' : 'POST';
-      
+
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
@@ -13499,7 +13527,7 @@ export default function RoutingConfigPage() {
       toast.success(editingRule ? 'Regulă actualizată' : 'Regulă creată');
     }
   });
-  
+
   // Toggle rule mutation
   const toggleMutation = useMutation({
     mutationFn: async ({ id, enabled }: { id: string; enabled: boolean }) => {
@@ -13515,7 +13543,7 @@ export default function RoutingConfigPage() {
       queryClient.invalidateQueries({ queryKey: ['routing-config'] });
     }
   });
-  
+
   // Delete rule mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -13529,7 +13557,7 @@ export default function RoutingConfigPage() {
       toast.success('Regulă ștearsă');
     }
   });
-  
+
   // Reorder mutation
   const reorderMutation = useMutation({
     mutationFn: async (ruleIds: string[]) => {
@@ -13545,7 +13573,7 @@ export default function RoutingConfigPage() {
       queryClient.invalidateQueries({ queryKey: ['routing-config'] });
     }
   });
-  
+
   // Update defaults mutation
   const updateDefaultsMutation = useMutation({
     mutationFn: async (defaults: Partial<RoutingConfig>) => {
@@ -13562,10 +13590,10 @@ export default function RoutingConfigPage() {
       toast.success('Setări implicite actualizate');
     }
   });
-  
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    
+
     if (over && active.id !== over.id && config?.rules) {
       const oldIndex = config.rules.findIndex(r => r.id === active.id);
       const newIndex = config.rules.findIndex(r => r.id === over.id);
@@ -13573,7 +13601,7 @@ export default function RoutingConfigPage() {
       reorderMutation.mutate(newOrder.map(r => r.id));
     }
   };
-  
+
   const openEditDialog = (rule: RoutingRule) => {
     setEditingRule(rule);
     form.reset({
@@ -13590,11 +13618,11 @@ export default function RoutingConfigPage() {
     });
     setIsDialogOpen(true);
   };
-  
+
   if (isLoading) {
     return <div className="p-8">Se încarcă configurația...</div>;
   }
-  
+
   return (
     <div className="p-8 space-y-6">
       {/* Header */}
@@ -13608,7 +13636,7 @@ export default function RoutingConfigPage() {
             Reguli de rutare pentru canale de comunicare
           </p>
         </div>
-        
+
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button onClick={() => { setEditingRule(null); form.reset(); }}>
@@ -13616,7 +13644,7 @@ export default function RoutingConfigPage() {
               Regulă Nouă
             </Button>
           </DialogTrigger>
-          
+
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
@@ -13626,7 +13654,7 @@ export default function RoutingConfigPage() {
                 Definește condițiile și acțiunile pentru rutarea mesajelor
               </DialogDescription>
             </DialogHeader>
-            
+
             <form onSubmit={form.handleSubmit((data) => saveMutation.mutate(data))} className="space-y-4">
               {/* Basic Info */}
               <div className="space-y-2">
@@ -13636,7 +13664,7 @@ export default function RoutingConfigPage() {
                   placeholder="Ex: Clienți Premium pe WhatsApp"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <label className="text-sm font-medium">Descriere</label>
                 <Input
@@ -13644,9 +13672,9 @@ export default function RoutingConfigPage() {
                   placeholder="Descriere opțională..."
                 />
               </div>
-              
+
               <Separator />
-              
+
               {/* Conditions */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -13661,7 +13689,7 @@ export default function RoutingConfigPage() {
                     Adaugă
                   </Button>
                 </div>
-                
+
                 {conditionFields.map((field, index) => (
                   <div key={field.id} className="flex items-center gap-2">
                     <Controller
@@ -13683,7 +13711,7 @@ export default function RoutingConfigPage() {
                         </Select>
                       )}
                     />
-                    
+
                     <Controller
                       name={`conditions.${index}.operator`}
                       control={form.control}
@@ -13701,13 +13729,13 @@ export default function RoutingConfigPage() {
                         </Select>
                       )}
                     />
-                    
+
                     <Input
                       {...form.register(`conditions.${index}.value`)}
                       placeholder="Valoare"
                       className="flex-1"
                     />
-                    
+
                     <Button
                       type="button"
                       variant="ghost"
@@ -13718,16 +13746,16 @@ export default function RoutingConfigPage() {
                     </Button>
                   </div>
                 ))}
-                
+
                 {conditionFields.length === 0 && (
                   <p className="text-sm text-gray-500 italic">
                     Fără condiții - regula se aplică tuturor mesajelor
                   </p>
                 )}
               </div>
-              
+
               <Separator />
-              
+
               {/* Channels */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -13764,15 +13792,15 @@ export default function RoutingConfigPage() {
                     )}
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Canal Fallback</label>
                   <Controller
                     name="fallbackChannel"
                     control={form.control}
                     render={({ field }) => (
-                      <Select 
-                        value={field.value || 'none'} 
+                      <Select
+                        value={field.value || 'none'}
                         onValueChange={(v) => field.onChange(v === 'none' ? null : v)}
                       >
                         <SelectTrigger>
@@ -13789,7 +13817,7 @@ export default function RoutingConfigPage() {
                   />
                 </div>
               </div>
-              
+
               {/* Timing */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -13812,7 +13840,7 @@ export default function RoutingConfigPage() {
                     )}
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Escaladare după (min)</label>
                   <Controller
@@ -13834,9 +13862,9 @@ export default function RoutingConfigPage() {
                   />
                 </div>
               </div>
-              
+
               <Separator />
-              
+
               {/* Enable */}
               <div className="flex items-center justify-between">
                 <label className="font-medium">Regulă activă</label>
@@ -13851,7 +13879,7 @@ export default function RoutingConfigPage() {
                   )}
                 />
               </div>
-              
+
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                   Anulează
@@ -13865,7 +13893,7 @@ export default function RoutingConfigPage() {
           </DialogContent>
         </Dialog>
       </div>
-      
+
       {/* Default Settings */}
       <Card>
         <CardHeader>
@@ -13878,8 +13906,8 @@ export default function RoutingConfigPage() {
           <div className="grid grid-cols-4 gap-6">
             <div className="space-y-2">
               <label className="text-sm font-medium">Canal Implicit</label>
-              <Select 
-                value={config?.defaultChannel} 
+              <Select
+                value={config?.defaultChannel}
                 onValueChange={(v) => updateDefaultsMutation.mutate({ defaultChannel: v as any })}
               >
                 <SelectTrigger>
@@ -13891,11 +13919,11 @@ export default function RoutingConfigPage() {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="space-y-2">
               <label className="text-sm font-medium">Fallback Implicit</label>
-              <Select 
-                value={config?.defaultFallbackChannel} 
+              <Select
+                value={config?.defaultFallbackChannel}
                 onValueChange={(v) => updateDefaultsMutation.mutate({ defaultFallbackChannel: v as any })}
               >
                 <SelectTrigger>
@@ -13907,32 +13935,32 @@ export default function RoutingConfigPage() {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="space-y-2">
               <label className="text-sm font-medium">Timp Răspuns (min)</label>
               <Input
                 type="number"
                 value={config?.defaultResponseTarget}
-                onChange={(e) => updateDefaultsMutation.mutate({ 
-                  defaultResponseTarget: parseInt(e.target.value) 
+                onChange={(e) => updateDefaultsMutation.mutate({
+                  defaultResponseTarget: parseInt(e.target.value)
                 })}
               />
             </div>
-            
+
             <div className="space-y-2">
               <label className="text-sm font-medium">Escaladare (min)</label>
               <Input
                 type="number"
                 value={config?.defaultEscalateAfter}
-                onChange={(e) => updateDefaultsMutation.mutate({ 
-                  defaultEscalateAfter: parseInt(e.target.value) 
+                onChange={(e) => updateDefaultsMutation.mutate({
+                  defaultEscalateAfter: parseInt(e.target.value)
                 })}
               />
             </div>
           </div>
         </CardContent>
       </Card>
-      
+
       {/* Business Hours */}
       <Card>
         <CardHeader>
@@ -13965,7 +13993,7 @@ export default function RoutingConfigPage() {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">În afara programului</label>
-              <Select 
+              <Select
                 value={config?.outOfHoursAction}
                 onValueChange={(v) => updateDefaultsMutation.mutate({ outOfHoursAction: v as any })}
               >
@@ -14006,7 +14034,7 @@ export default function RoutingConfigPage() {
           </div>
         </CardContent>
       </Card>
-      
+
       {/* Rules Table */}
       <Card>
         <CardHeader>
@@ -14057,7 +14085,7 @@ export default function RoutingConfigPage() {
               </TableBody>
             </Table>
           </DndContext>
-          
+
           {(!config?.rules || config.rules.length === 0) && (
             <div className="p-8 text-center text-gray-500">
               <Route className="h-12 w-12 mx-auto mb-4 text-gray-300" />

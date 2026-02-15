@@ -17,24 +17,24 @@ Implementăm **CORS strict** cu origins explicite.
 ```typescript
 fastify.register(cors, {
   origin: [
-    'https://app.cerniq.app',
-    'https://admin.cerniq.app',
-    ...(process.env.NODE_ENV === 'development' 
-      ? ['http://localhost:64010', 'http://localhost:64011'] 
+    "https://app.cerniq.app",
+    "https://admin.cerniq.app",
+    ...(process.env.NODE_ENV === "development"
+      ? ["http://localhost:64010", "http://localhost:64011"]
       : []),
   ],
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: [
-    'Content-Type',
-    'Authorization',
-    'X-Correlation-Id',
-    'X-Tenant-Id',
+    "Content-Type",
+    "Authorization",
+    "X-Correlation-Id",
+    "X-Tenant-Id",
   ],
   exposedHeaders: [
-    'X-Request-Id',
-    'X-RateLimit-Limit',
-    'X-RateLimit-Remaining',
+    "X-Request-Id",
+    "X-RateLimit-Limit",
+    "X-RateLimit-Remaining",
   ],
   maxAge: 86400, // 24 hours preflight cache
 });

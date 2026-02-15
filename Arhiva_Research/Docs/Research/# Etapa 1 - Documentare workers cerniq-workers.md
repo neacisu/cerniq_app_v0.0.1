@@ -1,4 +1,5 @@
 # Documentație Completă Workeri Etapa 1 - Cerniq.app
+
 ## Pipeline Data Enrichment Bronze → Silver
 
 **Versiune:** 1.0  
@@ -121,13 +122,13 @@ requirepass ${REDIS_PASSWORD}
 ```typescript
 // /packages/queue/src/config.ts
 
-import IORedis from 'ioredis';
-import { QueueOptions, WorkerOptions } from 'bullmq';
+import IORedis from "ioredis";
+import { QueueOptions, WorkerOptions } from "bullmq";
 
 // Conexiune pentru producători (fail fast)
 export const producerConnection = new IORedis({
-  host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379'),
+  host: process.env.REDIS_HOST || "localhost",
+  port: parseInt(process.env.REDIS_PORT || "6379"),
   password: process.env.REDIS_PASSWORD,
   maxRetriesPerRequest: 3,
   enableOfflineQueue: false,
@@ -137,8 +138,8 @@ export const producerConnection = new IORedis({
 
 // Conexiune pentru workeri (retry indefinit)
 export const workerConnection = new IORedis({
-  host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379'),
+  host: process.env.REDIS_HOST || "localhost",
+  port: parseInt(process.env.REDIS_PORT || "6379"),
   password: process.env.REDIS_PASSWORD,
   maxRetriesPerRequest: null, // CRITIC pentru BullMQ
   enableOfflineQueue: true,
@@ -174,10 +175,10 @@ export const defaultWorkerOptions: WorkerOptions = {
 ```typescript
 // /packages/queue/src/worker-factory.ts
 
-import { Worker, Job, Queue, FlowProducer } from 'bullmq';
-import { Logger } from 'pino';
-import { trace, SpanStatusCode } from '@opentelemetry/api';
-import { workerConnection, defaultWorkerOptions } from './config';
+import { Worker, Job, Queue, FlowProducer } from "bullmq";
+import { Logger } from "pino";
+import { trace, SpanStatusCode } from "@opentelemetry/api";
+import { workerConnection, defaultWorkerOptions } from "./config";
 
 export interface WorkerConfig<TData, TResult> {
   queueName: string;
@@ -186,13 +187,13 @@ export interface WorkerConfig<TData, TResult> {
   limiter?: { max: number; duration: number };
   attempts?: number;
   backoff?: {
-    type: 'exponential' | 'fixed';
+    type: "exponential" | "fixed";
     delay: number;
   };
   timeout?: number;
   triggers?: {
-    onComplete?: string[];  // Cozi de trigger la succes
-    onFail?: string[];      // Cozi de trigger la eșec
+    onComplete?: string[]; // Cozi de trigger la succes
+    onFail?: string[]; // Cozi de trigger la eșec
   };
 }
 
@@ -220,9 +221,8 @@ export interface WorkerStats {
 export function createEnrichmentWorker<TData, TResult>(
   config: WorkerConfig<TData, TResult>,
   logger: Logger,
-  flowProducer: FlowProducer
+  flowProducer: FlowProducer,
 ): WorkerInstance<TData, TResult> {
-  
   const queue = new Queue<TData, TResult>(config.queueName, {
     connection: workerConnection,
   });
@@ -230,12 +230,12 @@ export function createEnrichmentWorker<TData, TResult>(
   const worker = new Worker<TData, TResult>(
     config.queueName,
     async (job) => {
-      const tracer = trace.getTracer('cerniq-enrichment');
+      const tracer = trace.getTracer("cerniq-enrichment");
       const span = tracer.startSpan(`worker:${config.queueName}`, {
         attributes: {
-          'job.id': job.id,
-          'job.name': job.name,
-          'job.attemptsMade': job.attemptsMade,
+          "job.id": job.id,
+          "job.name": job.name,
+          "job.attemptsMade": job.attemptsMade,
         },
       });
 
@@ -248,16 +248,19 @@ export function createEnrichmentWorker<TData, TResult>(
       });
 
       try {
-        jobLogger.info({ data: sanitizeForLog(job.data) }, 'Job started');
-        
+        jobLogger.info({ data: sanitizeForLog(job.data) }, "Job started");
+
         const startTime = Date.now();
         const result = await config.processor(job, jobLogger);
         const duration = Date.now() - startTime;
 
-        jobLogger.info({ duration, result: sanitizeForLog(result) }, 'Job completed');
-        
+        jobLogger.info(
+          { duration, result: sanitizeForLog(result) },
+          "Job completed",
+        );
+
         span.setStatus({ code: SpanStatusCode.OK });
-        
+
         // Trigger workeri dependenți la succes
         if (config.triggers?.onComplete) {
           await triggerDownstreamWorkers(
@@ -265,15 +268,18 @@ export function createEnrichmentWorker<TData, TResult>(
             config.triggers.onComplete,
             job,
             result,
-            jobLogger
+            jobLogger,
           );
         }
 
         return result;
       } catch (error) {
-        jobLogger.error({ error: error.message, stack: error.stack }, 'Job failed');
+        jobLogger.error(
+          { error: error.message, stack: error.stack },
+          "Job failed",
+        );
         span.setStatus({ code: SpanStatusCode.ERROR, message: error.message });
-        
+
         // Trigger workeri de handling la eșec
         if (config.triggers?.onFail) {
           await triggerFailureHandlers(
@@ -281,10 +287,10 @@ export function createEnrichmentWorker<TData, TResult>(
             config.triggers.onFail,
             job,
             error,
-            jobLogger
+            jobLogger,
           );
         }
-        
+
         throw error;
       } finally {
         span.end();
@@ -294,20 +300,26 @@ export function createEnrichmentWorker<TData, TResult>(
       ...defaultWorkerOptions,
       concurrency: config.concurrency,
       limiter: config.limiter,
-    }
+    },
   );
 
   // Event handlers
-  worker.on('error', (err) => {
-    logger.error({ error: err.message, queue: config.queueName }, 'Worker error');
+  worker.on("error", (err) => {
+    logger.error(
+      { error: err.message, queue: config.queueName },
+      "Worker error",
+    );
   });
 
-  worker.on('stalled', (jobId) => {
-    logger.warn({ jobId, queue: config.queueName }, 'Job stalled');
+  worker.on("stalled", (jobId) => {
+    logger.warn({ jobId, queue: config.queueName }, "Job stalled");
   });
 
-  worker.on('progress', (job, progress) => {
-    logger.debug({ jobId: job.id, progress, queue: config.queueName }, 'Job progress');
+  worker.on("progress", (job, progress) => {
+    logger.debug(
+      { jobId: job.id, progress, queue: config.queueName },
+      "Job progress",
+    );
   });
 
   return {
@@ -315,19 +327,19 @@ export function createEnrichmentWorker<TData, TResult>(
     queue,
     start: async () => {
       await worker.run();
-      logger.info({ queue: config.queueName }, 'Worker started');
+      logger.info({ queue: config.queueName }, "Worker started");
     },
     stop: async () => {
       await worker.close();
-      logger.info({ queue: config.queueName }, 'Worker stopped');
+      logger.info({ queue: config.queueName }, "Worker stopped");
     },
     pause: async () => {
       await worker.pause();
-      logger.info({ queue: config.queueName }, 'Worker paused');
+      logger.info({ queue: config.queueName }, "Worker paused");
     },
     resume: async () => {
       await worker.resume();
-      logger.info({ queue: config.queueName }, 'Worker resumed');
+      logger.info({ queue: config.queueName }, "Worker resumed");
     },
     getStats: async () => {
       const counts = await queue.getJobCounts();
@@ -348,7 +360,7 @@ async function triggerDownstreamWorkers(
   queueNames: string[],
   parentJob: Job,
   result: any,
-  logger: Logger
+  logger: Logger,
 ) {
   for (const queueName of queueNames) {
     await flowProducer.add({
@@ -362,7 +374,7 @@ async function triggerDownstreamWorkers(
         originalData: parentJob.data,
       },
     });
-    logger.debug({ triggerQueue: queueName }, 'Triggered downstream worker');
+    logger.debug({ triggerQueue: queueName }, "Triggered downstream worker");
   }
 }
 
@@ -370,10 +382,17 @@ async function triggerDownstreamWorkers(
 function sanitizeForLog(data: any): any {
   if (!data) return data;
   const sanitized = { ...data };
-  const sensitiveFields = ['cnp', 'password', 'token', 'apiKey', 'email', 'telefon'];
+  const sensitiveFields = [
+    "cnp",
+    "password",
+    "token",
+    "apiKey",
+    "email",
+    "telefon",
+  ];
   for (const field of sensitiveFields) {
     if (sanitized[field]) {
-      sanitized[field] = '[REDACTED]';
+      sanitized[field] = "[REDACTED]";
     }
   }
   return sanitized;
@@ -390,54 +409,54 @@ function sanitizeForLog(data: any): any {
 
 #### Specificații
 
-| Atribut | Valoare |
-|---------|---------|
-| **Queue Name** | `bronze:ingest:csv-parser` |
-| **Concurrency** | 10 |
-| **Rate Limit** | Fără (operație locală) |
-| **Timeout** | 300000ms (5 minute) |
-| **Max Attempts** | 3 |
-| **Backoff** | Exponențial, 5000ms |
+| Atribut          | Valoare                    |
+| ---------------- | -------------------------- |
+| **Queue Name**   | `bronze:ingest:csv-parser` |
+| **Concurrency**  | 10                         |
+| **Rate Limit**   | Fără (operație locală)     |
+| **Timeout**      | 300000ms (5 minute)        |
+| **Max Attempts** | 3                          |
+| **Backoff**      | Exponențial, 5000ms        |
 
 #### Trigger Input
 
 ```typescript
 interface CsvParserJobData {
-  correlationId: string;           // UUID pentru tracing
-  shopId: string;                  // Multi-tenant isolation
-  fileId: string;                  // ID fișier în storage
-  filePath: string;                // Path în Hetzner Storage Box
-  fileName: string;                // Nume original fișier
-  fileType: 'csv' | 'xlsx' | 'xls';
-  encoding?: string;               // Default: 'utf-8'
-  delimiter?: string;              // Default: ',' sau auto-detect
-  headerRow?: number;              // Default: 1
-  skipRows?: number[];             // Rânduri de ignorat
+  correlationId: string; // UUID pentru tracing
+  shopId: string; // Multi-tenant isolation
+  fileId: string; // ID fișier în storage
+  filePath: string; // Path în Hetzner Storage Box
+  fileName: string; // Nume original fișier
+  fileType: "csv" | "xlsx" | "xls";
+  encoding?: string; // Default: 'utf-8'
+  delimiter?: string; // Default: ',' sau auto-detect
+  headerRow?: number; // Default: 1
+  skipRows?: number[]; // Rânduri de ignorat
   columnMapping?: Record<string, string>; // Mapare coloane custom
-  sourceType: 'import' | 'apia' | 'madr' | 'manual';
+  sourceType: "import" | "apia" | "madr" | "manual";
   metadata?: Record<string, any>;
 }
 ```
 
 #### Triggere de Intrare
 
-| Trigger | Descriere |
-|---------|-----------|
-| **Manual API** | `POST /api/v1/workers/bronze/csv-parser/trigger` |
-| **File Upload** | Event `file:uploaded` cu `mimeType` CSV/Excel |
-| **Scheduled** | Cron job pentru import programat |
-| **UI Action** | Buton "Import CSV" din dashboard |
+| Trigger         | Descriere                                        |
+| --------------- | ------------------------------------------------ |
+| **Manual API**  | `POST /api/v1/workers/bronze/csv-parser/trigger` |
+| **File Upload** | Event `file:uploaded` cu `mimeType` CSV/Excel    |
+| **Scheduled**   | Cron job pentru import programat                 |
+| **UI Action**   | Buton "Import CSV" din dashboard                 |
 
 #### Response Schema
 
 ```typescript
 interface CsvParserResult {
   success: boolean;
-  bronzeRecordIds: string[];       // UUID-uri înregistrări create
-  totalRows: number;               // Total rânduri procesate
-  validRows: number;               // Rânduri cu cel puțin un identificator
-  invalidRows: number;             // Rânduri fără identificatori
-  duplicateRows: number;           // Rânduri duplicate (hash match)
+  bronzeRecordIds: string[]; // UUID-uri înregistrări create
+  totalRows: number; // Total rânduri procesate
+  validRows: number; // Rânduri cu cel puțin un identificator
+  invalidRows: number; // Rânduri fără identificatori
+  duplicateRows: number; // Rânduri duplicate (hash match)
   errors: Array<{
     row: number;
     column?: string;
@@ -455,33 +474,33 @@ interface CsvParserResult {
 
 #### Triggere de Ieșire (onComplete)
 
-| Queue Destinație | Condiție |
-|------------------|----------|
+| Queue Destinație            | Condiție                        |
+| --------------------------- | ------------------------------- |
 | `bronze:dedup:hash-checker` | Pentru fiecare `bronzeRecordId` |
-| `pipeline:monitor:health` | Metrici procesare |
+| `pipeline:monitor:health`   | Metrici procesare               |
 
 #### Implementare
 
 ```typescript
 // /workers/bronze/csv-parser.worker.ts
 
-import { Job } from 'bullmq';
-import { parse } from 'csv-parse';
-import * as XLSX from 'xlsx';
-import { createReadStream } from 'fs';
-import { pipeline } from 'stream/promises';
-import { Logger } from 'pino';
-import { db } from '@cerniq/db';
-import { bronzeContacts } from '@cerniq/db/schema';
-import { createHash } from 'crypto';
-import { v4 as uuidv4 } from 'uuid';
+import { Job } from "bullmq";
+import { parse } from "csv-parse";
+import * as XLSX from "xlsx";
+import { createReadStream } from "fs";
+import { pipeline } from "stream/promises";
+import { Logger } from "pino";
+import { db } from "@cerniq/db";
+import { bronzeContacts } from "@cerniq/db/schema";
+import { createHash } from "crypto";
+import { v4 as uuidv4 } from "uuid";
 
 export async function csvParserProcessor(
   job: Job<CsvParserJobData>,
-  logger: Logger
+  logger: Logger,
 ): Promise<CsvParserResult> {
   const { filePath, fileType, shopId, sourceType, correlationId } = job.data;
-  
+
   const result: CsvParserResult = {
     success: false,
     bronzeRecordIds: [],
@@ -492,8 +511,8 @@ export async function csvParserProcessor(
     errors: [],
     processingTimeMs: 0,
     fileMetadata: {
-      detectedEncoding: 'utf-8',
-      detectedDelimiter: ',',
+      detectedEncoding: "utf-8",
+      detectedDelimiter: ",",
       columnCount: 0,
       hasHeader: true,
     },
@@ -504,7 +523,7 @@ export async function csvParserProcessor(
   try {
     let records: Record<string, any>[] = [];
 
-    if (fileType === 'csv') {
+    if (fileType === "csv") {
       records = await parseCsvFile(filePath, job.data, logger);
     } else {
       records = await parseExcelFile(filePath, job.data, logger);
@@ -517,39 +536,41 @@ export async function csvParserProcessor(
     const batchSize = 100;
     for (let i = 0; i < records.length; i += batchSize) {
       const batch = records.slice(i, i + batchSize);
-      
+
       await job.updateProgress(Math.round((i / records.length) * 100));
-      
+
       for (const record of batch) {
         const rowIndex = i + batch.indexOf(record) + 1;
-        
+
         // Verificare prezență identificator
         const hasIdentifier = !!(
-          record.cui || record.CUI ||
-          record.email || record.Email ||
-          record.telefon || record.phone || record.Telefon
+          record.cui ||
+          record.CUI ||
+          record.email ||
+          record.Email ||
+          record.telefon ||
+          record.phone ||
+          record.Telefon
         );
 
         if (!hasIdentifier) {
           result.invalidRows++;
           result.errors.push({
             row: rowIndex,
-            error: 'Missing identifier (CUI, email, or phone)',
+            error: "Missing identifier (CUI, email, or phone)",
           });
           continue;
         }
 
         // Generare hash pentru deduplicare
-        const contentHash = createHash('sha256')
+        const contentHash = createHash("sha256")
           .update(JSON.stringify(record))
-          .digest('hex');
+          .digest("hex");
 
         // Verificare duplicat în Bronze
         const existing = await db.query.bronzeContacts.findFirst({
-          where: (bc, { eq, and }) => and(
-            eq(bc.shopId, shopId),
-            eq(bc.contentHash, contentHash)
-          ),
+          where: (bc, { eq, and }) =>
+            and(eq(bc.shopId, shopId), eq(bc.contentHash, contentHash)),
         });
 
         if (existing) {
@@ -578,15 +599,17 @@ export async function csvParserProcessor(
     result.success = true;
     result.processingTimeMs = Date.now() - startTime;
 
-    logger.info({
-      totalRows: result.totalRows,
-      validRows: result.validRows,
-      invalidRows: result.invalidRows,
-      duplicateRows: result.duplicateRows,
-    }, 'CSV parsing completed');
+    logger.info(
+      {
+        totalRows: result.totalRows,
+        validRows: result.validRows,
+        invalidRows: result.invalidRows,
+        duplicateRows: result.duplicateRows,
+      },
+      "CSV parsing completed",
+    );
 
     return result;
-
   } catch (error) {
     result.processingTimeMs = Date.now() - startTime;
     result.errors.push({ row: 0, error: error.message });
@@ -597,22 +620,22 @@ export async function csvParserProcessor(
 async function parseCsvFile(
   filePath: string,
   config: CsvParserJobData,
-  logger: Logger
+  logger: Logger,
 ): Promise<Record<string, any>[]> {
   const records: Record<string, any>[] = [];
-  
+
   const parser = parse({
     columns: true,
     skip_empty_lines: true,
     trim: true,
-    encoding: config.encoding || 'utf-8',
+    encoding: config.encoding || "utf-8",
     delimiter: config.delimiter, // auto-detect dacă undefined
     from_line: config.headerRow || 1,
     relax_column_count: true,
   });
 
   const stream = createReadStream(filePath);
-  
+
   for await (const record of stream.pipe(parser)) {
     // Apply column mapping dacă există
     if (config.columnMapping) {
@@ -634,12 +657,12 @@ async function parseCsvFile(
 async function parseExcelFile(
   filePath: string,
   config: CsvParserJobData,
-  logger: Logger
+  logger: Logger,
 ): Promise<Record<string, any>[]> {
   const workbook = XLSX.readFile(filePath);
   const sheetName = workbook.SheetNames[0];
   const worksheet = workbook.Sheets[sheetName];
-  
+
   const records = XLSX.utils.sheet_to_json(worksheet, {
     header: config.headerRow === 1 ? undefined : 1,
     range: config.headerRow ? config.headerRow - 1 : 0,
@@ -656,7 +679,15 @@ async function parseExcelFile(
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "CsvParserJobData",
   "type": "object",
-  "required": ["correlationId", "shopId", "fileId", "filePath", "fileName", "fileType", "sourceType"],
+  "required": [
+    "correlationId",
+    "shopId",
+    "fileId",
+    "filePath",
+    "fileName",
+    "fileType",
+    "sourceType"
+  ],
   "properties": {
     "correlationId": { "type": "string", "format": "uuid" },
     "shopId": { "type": "string", "format": "uuid" },
@@ -668,7 +699,10 @@ async function parseExcelFile(
     "delimiter": { "type": "string", "maxLength": 1 },
     "headerRow": { "type": "integer", "minimum": 1, "default": 1 },
     "skipRows": { "type": "array", "items": { "type": "integer" } },
-    "columnMapping": { "type": "object", "additionalProperties": { "type": "string" } },
+    "columnMapping": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
     "sourceType": { "enum": ["import", "apia", "madr", "manual"] },
     "metadata": { "type": "object" }
   }
@@ -709,14 +743,14 @@ async function parseExcelFile(
 
 #### Specificații
 
-| Atribut | Valoare |
-|---------|---------|
-| **Queue Name** | `bronze:ingest:json-parser` |
-| **Concurrency** | 50 |
-| **Rate Limit** | Fără |
-| **Timeout** | 30000ms (30 secunde) |
-| **Max Attempts** | 3 |
-| **Backoff** | Exponențial, 1000ms |
+| Atribut          | Valoare                     |
+| ---------------- | --------------------------- |
+| **Queue Name**   | `bronze:ingest:json-parser` |
+| **Concurrency**  | 50                          |
+| **Rate Limit**   | Fără                        |
+| **Timeout**      | 30000ms (30 secunde)        |
+| **Max Attempts** | 3                           |
+| **Backoff**      | Exponențial, 1000ms         |
 
 #### Trigger Input
 
@@ -724,23 +758,23 @@ async function parseExcelFile(
 interface JsonParserJobData {
   correlationId: string;
   shopId: string;
-  sourceType: 'webhook' | 'api' | 'manual';
-  sourceIdentifier: string;        // URL endpoint sau identificator
-  payload: Record<string, any>;    // JSON brut
-  webhookSignature?: string;       // Pentru verificare webhook
-  webhookSecret?: string;          // Secret pentru verificare
-  schemaId?: string;               // Schema de validare opțională
+  sourceType: "webhook" | "api" | "manual";
+  sourceIdentifier: string; // URL endpoint sau identificator
+  payload: Record<string, any>; // JSON brut
+  webhookSignature?: string; // Pentru verificare webhook
+  webhookSecret?: string; // Secret pentru verificare
+  schemaId?: string; // Schema de validare opțională
   metadata?: Record<string, any>;
 }
 ```
 
 #### Triggere de Intrare
 
-| Trigger | Descriere |
-|---------|-----------|
-| **Webhook** | `POST /api/v1/webhooks/ingest` |
-| **API Call** | `POST /api/v1/bronze/json` |
-| **Manual** | `POST /api/v1/workers/bronze/json-parser/trigger` |
+| Trigger      | Descriere                                         |
+| ------------ | ------------------------------------------------- |
+| **Webhook**  | `POST /api/v1/webhooks/ingest`                    |
+| **API Call** | `POST /api/v1/bronze/json`                        |
+| **Manual**   | `POST /api/v1/workers/bronze/json-parser/trigger` |
 
 #### Response Schema
 
@@ -765,8 +799,8 @@ interface JsonParserResult {
 
 #### Triggere de Ieșire (onComplete)
 
-| Queue Destinație | Condiție |
-|------------------|----------|
+| Queue Destinație            | Condiție    |
+| --------------------------- | ----------- |
 | `bronze:dedup:hash-checker` | Întotdeauna |
 
 #### Implementare
@@ -774,26 +808,27 @@ interface JsonParserResult {
 ```typescript
 // /workers/bronze/json-parser.worker.ts
 
-import { Job } from 'bullmq';
-import { Logger } from 'pino';
-import { db } from '@cerniq/db';
-import { bronzeContacts } from '@cerniq/db/schema';
-import { createHash, createHmac } from 'crypto';
-import { v4 as uuidv4 } from 'uuid';
-import Ajv from 'ajv';
+import { Job } from "bullmq";
+import { Logger } from "pino";
+import { db } from "@cerniq/db";
+import { bronzeContacts } from "@cerniq/db/schema";
+import { createHash, createHmac } from "crypto";
+import { v4 as uuidv4 } from "uuid";
+import Ajv from "ajv";
 
 const ajv = new Ajv({ allErrors: true });
 
 export async function jsonParserProcessor(
   job: Job<JsonParserJobData>,
-  logger: Logger
+  logger: Logger,
 ): Promise<JsonParserResult> {
-  const { shopId, sourceType, sourceIdentifier, payload, correlationId } = job.data;
+  const { shopId, sourceType, sourceIdentifier, payload, correlationId } =
+    job.data;
   const startTime = Date.now();
 
   const result: JsonParserResult = {
     success: false,
-    bronzeRecordId: '',
+    bronzeRecordId: "",
     validation: {
       isValidJson: true,
       hasIdentifier: false,
@@ -805,12 +840,12 @@ export async function jsonParserProcessor(
   try {
     // Verificare webhook signature dacă există
     if (job.data.webhookSignature && job.data.webhookSecret) {
-      const expectedSignature = createHmac('sha256', job.data.webhookSecret)
+      const expectedSignature = createHmac("sha256", job.data.webhookSecret)
         .update(JSON.stringify(payload))
-        .digest('hex');
-      
+        .digest("hex");
+
       if (expectedSignature !== job.data.webhookSignature) {
-        throw new Error('Invalid webhook signature');
+        throw new Error("Invalid webhook signature");
       }
     }
 
@@ -819,10 +854,12 @@ export async function jsonParserProcessor(
       const schema = await loadSchema(job.data.schemaId);
       const validate = ajv.compile(schema);
       const valid = validate(payload);
-      
+
       result.validation.schemaValid = valid;
       if (!valid) {
-        result.validation.errors = validate.errors?.map(e => e.message || 'Validation error');
+        result.validation.errors = validate.errors?.map(
+          (e) => e.message || "Validation error",
+        );
       }
     }
 
@@ -835,13 +872,13 @@ export async function jsonParserProcessor(
     );
 
     if (!result.validation.hasIdentifier) {
-      throw new Error('No valid identifier found in payload');
+      throw new Error("No valid identifier found in payload");
     }
 
     // Generare hash pentru deduplicare
-    const contentHash = createHash('sha256')
+    const contentHash = createHash("sha256")
       .update(JSON.stringify(payload))
-      .digest('hex');
+      .digest("hex");
 
     // Insert în Bronze
     const bronzeId = uuidv4();
@@ -860,13 +897,15 @@ export async function jsonParserProcessor(
     result.success = true;
     result.processingTimeMs = Date.now() - startTime;
 
-    logger.info({
-      bronzeRecordId: bronzeId,
-      identifiers: result.extractedIdentifiers,
-    }, 'JSON parsed and stored');
+    logger.info(
+      {
+        bronzeRecordId: bronzeId,
+        identifiers: result.extractedIdentifiers,
+      },
+      "JSON parsed and stored",
+    );
 
     return result;
-
   } catch (error) {
     result.processingTimeMs = Date.now() - startTime;
     result.validation.errors = result.validation.errors || [];
@@ -883,24 +922,24 @@ function extractIdentifiers(payload: Record<string, any>): {
   const result: { cui?: string; email?: string; phone?: string } = {};
 
   // Căutare recursivă pentru identificatori
-  const cuiKeys = ['cui', 'CUI', 'cod_fiscal', 'codFiscal', 'tax_id', 'taxId'];
-  const emailKeys = ['email', 'Email', 'e-mail', 'emailAddress'];
-  const phoneKeys = ['telefon', 'phone', 'tel', 'mobile', 'phoneNumber'];
+  const cuiKeys = ["cui", "CUI", "cod_fiscal", "codFiscal", "tax_id", "taxId"];
+  const emailKeys = ["email", "Email", "e-mail", "emailAddress"];
+  const phoneKeys = ["telefon", "phone", "tel", "mobile", "phoneNumber"];
 
   function searchObject(obj: any, keys: string[]): string | undefined {
-    if (typeof obj !== 'object' || obj === null) return undefined;
-    
+    if (typeof obj !== "object" || obj === null) return undefined;
+
     for (const key of keys) {
-      if (obj[key] && typeof obj[key] === 'string') {
+      if (obj[key] && typeof obj[key] === "string") {
         return obj[key].trim();
       }
     }
-    
+
     for (const value of Object.values(obj)) {
       const found = searchObject(value, keys);
       if (found) return found;
     }
-    
+
     return undefined;
   }
 
@@ -928,14 +967,14 @@ async function loadSchema(schemaId: string): Promise<object> {
 
 #### Specificații
 
-| Atribut | Valoare |
-|---------|---------|
-| **Queue Name** | `bronze:ingest:pdf-extractor` |
-| **Concurrency** | 5 |
-| **Rate Limit** | Fără |
-| **Timeout** | 600000ms (10 minute) |
-| **Max Attempts** | 2 |
-| **Backoff** | Fixed, 30000ms |
+| Atribut          | Valoare                       |
+| ---------------- | ----------------------------- |
+| **Queue Name**   | `bronze:ingest:pdf-extractor` |
+| **Concurrency**  | 5                             |
+| **Rate Limit**   | Fără                          |
+| **Timeout**      | 600000ms (10 minute)          |
+| **Max Attempts** | 2                             |
+| **Backoff**      | Fixed, 30000ms                |
 
 #### Trigger Input
 
@@ -946,17 +985,17 @@ interface PdfExtractorJobData {
   fileId: string;
   filePath: string;
   fileName: string;
-  sourceType: 'madr' | 'anif' | 'apia' | 'manual';
-  extractionMode: 'table' | 'text' | 'ocr' | 'auto';
+  sourceType: "madr" | "anif" | "apia" | "manual";
+  extractionMode: "table" | "text" | "ocr" | "auto";
   tableConfig?: {
-    pages?: number[];              // Pagini specifice
-    tableIndex?: number;           // Index tabel pe pagină
+    pages?: number[]; // Pagini specifice
+    tableIndex?: number; // Index tabel pe pagină
     hasHeader?: boolean;
     columnNames?: string[];
   };
   ocrConfig?: {
-    language: 'ron' | 'eng';       // Romanian sau English
-    dpi?: number;                  // Default: 300
+    language: "ron" | "eng"; // Romanian sau English
+    dpi?: number; // Default: 300
   };
   metadata?: Record<string, any>;
 }
@@ -968,7 +1007,7 @@ interface PdfExtractorJobData {
 interface PdfExtractorResult {
   success: boolean;
   bronzeRecordIds: string[];
-  extractionMethod: 'table' | 'text' | 'ocr';
+  extractionMethod: "table" | "text" | "ocr";
   totalPages: number;
   processedPages: number;
   tables: Array<{
@@ -977,7 +1016,7 @@ interface PdfExtractorResult {
     columns: number;
   }>;
   textLength: number;
-  ocrConfidence?: number;          // 0-100 pentru OCR
+  ocrConfidence?: number; // 0-100 pentru OCR
   errors: string[];
   processingTimeMs: number;
 }
@@ -985,37 +1024,44 @@ interface PdfExtractorResult {
 
 #### Triggere de Ieșire
 
-| Queue Destinație | Condiție |
-|------------------|----------|
-| `bronze:dedup:hash-checker` | Pentru fiecare record |
-| `enrich:ai:text-structure` | Dacă extractionMode = 'text' |
+| Queue Destinație            | Condiție                     |
+| --------------------------- | ---------------------------- |
+| `bronze:dedup:hash-checker` | Pentru fiecare record        |
+| `enrich:ai:text-structure`  | Dacă extractionMode = 'text' |
 
 #### Implementare
 
 ```typescript
 // /workers/bronze/pdf-extractor.worker.ts
 
-import { Job } from 'bullmq';
-import { Logger } from 'pino';
-import { execSync } from 'child_process';
-import * as fs from 'fs';
-import * as path from 'path';
-import { db } from '@cerniq/db';
-import { bronzeContacts } from '@cerniq/db/schema';
-import { createHash } from 'crypto';
-import { v4 as uuidv4 } from 'uuid';
+import { Job } from "bullmq";
+import { Logger } from "pino";
+import { execSync } from "child_process";
+import * as fs from "fs";
+import * as path from "path";
+import { db } from "@cerniq/db";
+import { bronzeContacts } from "@cerniq/db/schema";
+import { createHash } from "crypto";
+import { v4 as uuidv4 } from "uuid";
 
 export async function pdfExtractorProcessor(
   job: Job<PdfExtractorJobData>,
-  logger: Logger
+  logger: Logger,
 ): Promise<PdfExtractorResult> {
-  const { filePath, fileName, shopId, sourceType, extractionMode, correlationId } = job.data;
+  const {
+    filePath,
+    fileName,
+    shopId,
+    sourceType,
+    extractionMode,
+    correlationId,
+  } = job.data;
   const startTime = Date.now();
 
   const result: PdfExtractorResult = {
     success: false,
     bronzeRecordIds: [],
-    extractionMethod: extractionMode === 'auto' ? 'table' : extractionMode,
+    extractionMethod: extractionMode === "auto" ? "table" : extractionMode,
     totalPages: 0,
     processedPages: 0,
     tables: [],
@@ -1035,42 +1081,60 @@ export async function pdfExtractorProcessor(
 
     let extractedData: Record<string, any>[] = [];
 
-    if (extractionMode === 'table' || extractionMode === 'auto') {
+    if (extractionMode === "table" || extractionMode === "auto") {
       // Încercare extragere tabele cu tabula-py
-      extractedData = await extractTablesFromPdf(filePath, job.data.tableConfig, tempDir, logger);
-      
+      extractedData = await extractTablesFromPdf(
+        filePath,
+        job.data.tableConfig,
+        tempDir,
+        logger,
+      );
+
       if (extractedData.length > 0) {
-        result.extractionMethod = 'table';
+        result.extractionMethod = "table";
         result.tables = extractedData.map((_, idx) => ({
           page: job.data.tableConfig?.pages?.[0] || 1,
-          rows: Array.isArray(extractedData[idx]) ? extractedData[idx].length : 1,
+          rows: Array.isArray(extractedData[idx])
+            ? extractedData[idx].length
+            : 1,
           columns: Object.keys(extractedData[idx] || {}).length,
         }));
       }
     }
 
-    if (extractedData.length === 0 && (extractionMode === 'text' || extractionMode === 'auto')) {
+    if (
+      extractedData.length === 0 &&
+      (extractionMode === "text" || extractionMode === "auto")
+    ) {
       // Fallback la extragere text
       const text = execSync(`pdftotext -layout "${filePath}" -`).toString();
       result.textLength = text.length;
-      result.extractionMethod = 'text';
-      
+      result.extractionMethod = "text";
+
       // Parsare text structurat
       extractedData = parseStructuredText(text, sourceType);
     }
 
-    if (extractedData.length === 0 && (extractionMode === 'ocr' || extractionMode === 'auto')) {
+    if (
+      extractedData.length === 0 &&
+      (extractionMode === "ocr" || extractionMode === "auto")
+    ) {
       // Fallback la OCR
-      extractedData = await performOcr(filePath, job.data.ocrConfig, tempDir, logger);
-      result.extractionMethod = 'ocr';
+      extractedData = await performOcr(
+        filePath,
+        job.data.ocrConfig,
+        tempDir,
+        logger,
+      );
+      result.extractionMethod = "ocr";
       result.ocrConfidence = 85; // Placeholder - calcul real din Tesseract
     }
 
     // Salvare în Bronze
     for (const record of extractedData) {
-      const contentHash = createHash('sha256')
+      const contentHash = createHash("sha256")
         .update(JSON.stringify(record))
-        .digest('hex');
+        .digest("hex");
 
       const bronzeId = uuidv4();
       await db.insert(bronzeContacts).values({
@@ -1091,14 +1155,16 @@ export async function pdfExtractorProcessor(
     result.processedPages = result.totalPages;
     result.processingTimeMs = Date.now() - startTime;
 
-    logger.info({
-      method: result.extractionMethod,
-      records: result.bronzeRecordIds.length,
-      pages: result.totalPages,
-    }, 'PDF extraction completed');
+    logger.info(
+      {
+        method: result.extractionMethod,
+        records: result.bronzeRecordIds.length,
+        pages: result.totalPages,
+      },
+      "PDF extraction completed",
+    );
 
     return result;
-
   } catch (error) {
     result.processingTimeMs = Date.now() - startTime;
     result.errors.push(error.message);
@@ -1111,99 +1177,112 @@ export async function pdfExtractorProcessor(
 
 async function extractTablesFromPdf(
   filePath: string,
-  config: PdfExtractorJobData['tableConfig'],
+  config: PdfExtractorJobData["tableConfig"],
   tempDir: string,
-  logger: Logger
+  logger: Logger,
 ): Promise<Record<string, any>[]> {
-  const outputFile = path.join(tempDir, 'tables.json');
-  
+  const outputFile = path.join(tempDir, "tables.json");
+
   // Folosire tabula-java prin subprocess
-  const pagesArg = config?.pages ? `--pages ${config.pages.join(',')}` : '--pages all';
-  
+  const pagesArg = config?.pages
+    ? `--pages ${config.pages.join(",")}`
+    : "--pages all";
+
   try {
     execSync(
       `java -jar /opt/tabula/tabula.jar ${pagesArg} --format JSON --outfile "${outputFile}" "${filePath}"`,
-      { timeout: 300000 }
+      { timeout: 300000 },
     );
 
-    const tables = JSON.parse(fs.readFileSync(outputFile, 'utf-8'));
-    
+    const tables = JSON.parse(fs.readFileSync(outputFile, "utf-8"));
+
     // Convertire în records
     const records: Record<string, any>[] = [];
     for (const table of tables) {
-      const headers = config?.columnNames || 
-        (config?.hasHeader !== false ? table[0]?.map((c: any) => c.text || `col_${c}`) : null);
-      
+      const headers =
+        config?.columnNames ||
+        (config?.hasHeader !== false
+          ? table[0]?.map((c: any) => c.text || `col_${c}`)
+          : null);
+
       const startRow = headers && config?.hasHeader !== false ? 1 : 0;
-      
+
       for (let i = startRow; i < table.length; i++) {
         const row = table[i];
         const record: Record<string, any> = {};
-        
+
         row.forEach((cell: any, idx: number) => {
           const key = headers ? headers[idx] : `column_${idx}`;
           record[key] = cell.text || cell;
         });
-        
+
         records.push(record);
       }
     }
-    
+
     return records;
   } catch (error) {
-    logger.warn({ error: error.message }, 'Table extraction failed, falling back');
+    logger.warn(
+      { error: error.message },
+      "Table extraction failed, falling back",
+    );
     return [];
   }
 }
 
 async function performOcr(
   filePath: string,
-  config: PdfExtractorJobData['ocrConfig'],
+  config: PdfExtractorJobData["ocrConfig"],
   tempDir: string,
-  logger: Logger
+  logger: Logger,
 ): Promise<Record<string, any>[]> {
   const dpi = config?.dpi || 300;
-  const lang = config?.language || 'ron';
-  
-  // Convert PDF to images
-  execSync(
-    `pdftoppm -jpeg -r ${dpi} "${filePath}" "${tempDir}/page"`,
-    { timeout: 300000 }
-  );
+  const lang = config?.language || "ron";
 
-  const imageFiles = fs.readdirSync(tempDir)
-    .filter(f => f.endsWith('.jpg'))
+  // Convert PDF to images
+  execSync(`pdftoppm -jpeg -r ${dpi} "${filePath}" "${tempDir}/page"`, {
+    timeout: 300000,
+  });
+
+  const imageFiles = fs
+    .readdirSync(tempDir)
+    .filter((f) => f.endsWith(".jpg"))
     .sort();
 
-  let fullText = '';
-  
+  let fullText = "";
+
   for (const imageFile of imageFiles) {
     const imagePath = path.join(tempDir, imageFile);
     const ocrOutput = execSync(
       `tesseract "${imagePath}" stdout -l ${lang} --psm 6`,
-      { timeout: 60000, encoding: 'utf-8' }
+      { timeout: 60000, encoding: "utf-8" },
     );
-    fullText += ocrOutput + '\n';
+    fullText += ocrOutput + "\n";
   }
 
   // Parse OCR text
-  return parseStructuredText(fullText, 'ocr');
+  return parseStructuredText(fullText, "ocr");
 }
 
-function parseStructuredText(text: string, sourceType: string): Record<string, any>[] {
+function parseStructuredText(
+  text: string,
+  sourceType: string,
+): Record<string, any>[] {
   // Implementare specifică pentru fiecare tip de document
   const records: Record<string, any>[] = [];
-  
+
   // Regex patterns pentru extragere date
   const cuiPattern = /(?:CUI|Cod Fiscal|C\.U\.I\.)[\s:]*(\d{2,10})/gi;
-  const numePattern = /(?:Denumire|Nume|Firma)[\s:]*([A-ZĂÂÎȘȚa-zăâîșț\s\-\.]+)/gi;
-  const adresaPattern = /(?:Adresa|Sediu)[\s:]*([A-Za-z0-9ĂÂÎȘȚăâîșțăâîșț\s,\.\-]+)/gi;
-  
+  const numePattern =
+    /(?:Denumire|Nume|Firma)[\s:]*([A-ZĂÂÎȘȚa-zăâîșț\s\-\.]+)/gi;
+  const adresaPattern =
+    /(?:Adresa|Sediu)[\s:]*([A-Za-z0-9ĂÂÎȘȚăâîșțăâîșț\s,\.\-]+)/gi;
+
   // Extragere prin linii
-  const lines = text.split('\n').filter(l => l.trim());
-  
+  const lines = text.split("\n").filter((l) => l.trim());
+
   let currentRecord: Record<string, any> = {};
-  
+
   for (const line of lines) {
     const cuiMatch = cuiPattern.exec(line);
     if (cuiMatch) {
@@ -1213,22 +1292,22 @@ function parseStructuredText(text: string, sourceType: string): Record<string, a
       }
       currentRecord.cui = cuiMatch[1];
     }
-    
+
     const numeMatch = numePattern.exec(line);
     if (numeMatch) {
       currentRecord.denumire = numeMatch[1].trim();
     }
-    
+
     const adresaMatch = adresaPattern.exec(line);
     if (adresaMatch) {
       currentRecord.adresa = adresaMatch[1].trim();
     }
   }
-  
+
   if (Object.keys(currentRecord).length > 0) {
     records.push(currentRecord);
   }
-  
+
   return records;
 }
 ```
@@ -1241,14 +1320,14 @@ function parseStructuredText(text: string, sourceType: string): Record<string, a
 
 #### Specificații
 
-| Atribut | Valoare |
-|---------|---------|
-| **Queue Name** | `bronze:ingest:html-scraper` |
-| **Concurrency** | 10 |
-| **Rate Limit** | `{ max: 10, duration: 1000 }` (10 req/sec global) |
-| **Timeout** | 120000ms (2 minute) |
-| **Max Attempts** | 3 |
-| **Backoff** | Exponențial, 10000ms |
+| Atribut          | Valoare                                           |
+| ---------------- | ------------------------------------------------- |
+| **Queue Name**   | `bronze:ingest:html-scraper`                      |
+| **Concurrency**  | 10                                                |
+| **Rate Limit**   | `{ max: 10, duration: 1000 }` (10 req/sec global) |
+| **Timeout**      | 120000ms (2 minute)                               |
+| **Max Attempts** | 3                                                 |
+| **Backoff**      | Exponențial, 10000ms                              |
 
 #### Trigger Input
 
@@ -1257,16 +1336,16 @@ interface HtmlScraperJobData {
   correlationId: string;
   shopId: string;
   targetUrl: string;
-  sourceType: 'daj' | 'anif' | 'company_website' | 'directory';
+  sourceType: "daj" | "anif" | "company_website" | "directory";
   selectors?: {
-    container?: string;            // CSS selector pentru container
+    container?: string; // CSS selector pentru container
     fields?: Record<string, string>; // Field -> CSS selector mapping
   };
   pagination?: {
     nextSelector?: string;
     maxPages?: number;
   };
-  waitForSelector?: string;        // Pentru SPA
+  waitForSelector?: string; // Pentru SPA
   userAgent?: string;
   proxy?: string;
   metadata?: Record<string, any>;
@@ -1296,24 +1375,25 @@ interface HtmlScraperResult {
 
 ```typescript
 // Folosire Playwright pentru scraping robust
-import { chromium, Browser, Page } from 'playwright';
+import { chromium, Browser, Page } from "playwright";
 
 export async function htmlScraperProcessor(
   job: Job<HtmlScraperJobData>,
-  logger: Logger
+  logger: Logger,
 ): Promise<HtmlScraperResult> {
   const browser = await chromium.launch({
     headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
   });
 
   const context = await browser.newContext({
-    userAgent: job.data.userAgent || 
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+    userAgent:
+      job.data.userAgent ||
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
   });
 
   const page = await context.newPage();
-  
+
   try {
     // Implementare scraping cu anti-bot measures
     // Rate limiting per domain
@@ -1333,13 +1413,13 @@ export async function htmlScraperProcessor(
 
 #### Specificații
 
-| Atribut | Valoare |
-|---------|---------|
-| **Queue Name** | `bronze:dedup:hash-checker` |
-| **Concurrency** | 100 |
-| **Rate Limit** | Fără |
-| **Timeout** | 10000ms |
-| **Max Attempts** | 2 |
+| Atribut          | Valoare                     |
+| ---------------- | --------------------------- |
+| **Queue Name**   | `bronze:dedup:hash-checker` |
+| **Concurrency**  | 100                         |
+| **Rate Limit**   | Fără                        |
+| **Timeout**      | 10000ms                     |
+| **Max Attempts** | 2                           |
 
 #### Trigger Input
 
@@ -1349,7 +1429,7 @@ interface HashCheckerJobData {
   bronzeRecordId: string;
   shopId: string;
   contentHash: string;
-  forceReprocess?: boolean;        // Ignoră duplicat
+  forceReprocess?: boolean; // Ignoră duplicat
 }
 ```
 
@@ -1358,18 +1438,18 @@ interface HashCheckerJobData {
 ```typescript
 interface HashCheckerResult {
   isDuplicate: boolean;
-  originalRecordId?: string;       // ID-ul recordului original dacă e duplicat
-  action: 'process' | 'skip' | 'merge';
+  originalRecordId?: string; // ID-ul recordului original dacă e duplicat
+  action: "process" | "skip" | "merge";
   reason?: string;
 }
 ```
 
 #### Triggere de Ieșire
 
-| Queue Destinație | Condiție |
-|------------------|----------|
+| Queue Destinație           | Condiție                    |
+| -------------------------- | --------------------------- |
 | `silver:norm:company-name` | Dacă `action === 'process'` |
-| `pipeline:monitor:health` | Metrici deduplicare |
+| `pipeline:monitor:health`  | Metrici deduplicare         |
 
 ---
 
@@ -1381,13 +1461,13 @@ interface HashCheckerResult {
 
 #### Specificații
 
-| Atribut | Valoare |
-|---------|---------|
-| **Queue Name** | `silver:norm:company-name` |
-| **Concurrency** | 100 |
-| **Rate Limit** | Fără |
-| **Timeout** | 5000ms |
-| **Max Attempts** | 2 |
+| Atribut          | Valoare                    |
+| ---------------- | -------------------------- |
+| **Queue Name**   | `silver:norm:company-name` |
+| **Concurrency**  | 100                        |
+| **Rate Limit**   | Fără                       |
+| **Timeout**      | 5000ms                     |
+| **Max Attempts** | 2                          |
 
 #### Trigger Input
 
@@ -1407,9 +1487,9 @@ interface CompanyNameNormJobData {
 interface CompanyNameNormResult {
   normalizedName: string;
   originalName: string;
-  transformations: string[];       // Ex: ['UPPERCASE', 'TRIM', 'REMOVE_DUPLICATES']
+  transformations: string[]; // Ex: ['UPPERCASE', 'TRIM', 'REMOVE_DUPLICATES']
   abbreviationsExpanded: Record<string, string>; // Ex: {'SRL': 'Societate cu Răspundere Limitată'}
-  confidence: number;              // 0-100
+  confidence: number; // 0-100
 }
 ```
 
@@ -1417,38 +1497,38 @@ interface CompanyNameNormResult {
 
 ```typescript
 const COMPANY_SUFFIXES = {
-  'SRL': 'SOCIETATE CU RĂSPUNDERE LIMITATĂ',
-  'SA': 'SOCIETATE PE ACȚIUNI',
-  'SNC': 'SOCIETATE ÎN NUME COLECTIV',
-  'SCS': 'SOCIETATE ÎN COMANDITĂ SIMPLĂ',
-  'SCA': 'SOCIETATE ÎN COMANDITĂ PE ACȚIUNI',
-  'PFA': 'PERSOANĂ FIZICĂ AUTORIZATĂ',
-  'II': 'ÎNTREPRINDERE INDIVIDUALĂ',
-  'IF': 'ÎNTREPRINDERE FAMILIALĂ',
+  SRL: "SOCIETATE CU RĂSPUNDERE LIMITATĂ",
+  SA: "SOCIETATE PE ACȚIUNI",
+  SNC: "SOCIETATE ÎN NUME COLECTIV",
+  SCS: "SOCIETATE ÎN COMANDITĂ SIMPLĂ",
+  SCA: "SOCIETATE ÎN COMANDITĂ PE ACȚIUNI",
+  PFA: "PERSOANĂ FIZICĂ AUTORIZATĂ",
+  II: "ÎNTREPRINDERE INDIVIDUALĂ",
+  IF: "ÎNTREPRINDERE FAMILIALĂ",
 };
 
 export async function companyNameNormProcessor(
   job: Job<CompanyNameNormJobData>,
-  logger: Logger
+  logger: Logger,
 ): Promise<CompanyNameNormResult> {
   const { rawName } = job.data;
   const transformations: string[] = [];
   const abbreviationsExpanded: Record<string, string> = {};
-  
+
   let normalized = rawName;
 
   // 1. Trim și collapse whitespace
-  normalized = normalized.trim().replace(/\s+/g, ' ');
-  if (normalized !== rawName) transformations.push('TRIM_WHITESPACE');
+  normalized = normalized.trim().replace(/\s+/g, " ");
+  if (normalized !== rawName) transformations.push("TRIM_WHITESPACE");
 
   // 2. UPPERCASE
   const uppercased = normalized.toUpperCase();
-  if (uppercased !== normalized) transformations.push('UPPERCASE');
+  if (uppercased !== normalized) transformations.push("UPPERCASE");
   normalized = uppercased;
 
   // 3. Eliminare caractere speciale
-  normalized = normalized.replace(/[^\wĂÂÎȘȚăâîșț\s\-\.]/g, '');
-  if (normalized !== uppercased) transformations.push('REMOVE_SPECIAL_CHARS');
+  normalized = normalized.replace(/[^\wĂÂÎȘȚăâîșț\s\-\.]/g, "");
+  if (normalized !== uppercased) transformations.push("REMOVE_SPECIAL_CHARS");
 
   // 4. Standardizare sufixe
   for (const [abbrev, full] of Object.entries(COMPANY_SUFFIXES)) {
@@ -1458,11 +1538,11 @@ export async function companyNameNormProcessor(
   }
 
   // 5. Eliminare duplicări de cuvinte consecutive
-  const words = normalized.split(' ');
+  const words = normalized.split(" ");
   const dedupedWords = words.filter((word, idx) => word !== words[idx - 1]);
   if (dedupedWords.length !== words.length) {
-    transformations.push('REMOVE_DUPLICATE_WORDS');
-    normalized = dedupedWords.join(' ');
+    transformations.push("REMOVE_DUPLICATE_WORDS");
+    normalized = dedupedWords.join(" ");
   }
 
   return {
@@ -1477,8 +1557,8 @@ export async function companyNameNormProcessor(
 
 #### Triggere de Ieșire
 
-| Queue Destinație | Condiție |
-|------------------|----------|
+| Queue Destinație      | Condiție    |
+| --------------------- | ----------- |
 | `silver:norm:address` | Întotdeauna |
 
 ---
@@ -1489,13 +1569,13 @@ export async function companyNameNormProcessor(
 
 #### Specificații
 
-| Atribut | Valoare |
-|---------|---------|
-| **Queue Name** | `silver:norm:address` |
-| **Concurrency** | 50 |
-| **Rate Limit** | Fără |
-| **Timeout** | 10000ms |
-| **Max Attempts** | 2 |
+| Atribut          | Valoare               |
+| ---------------- | --------------------- |
+| **Queue Name**   | `silver:norm:address` |
+| **Concurrency**  | 50                    |
+| **Rate Limit**   | Fără                  |
+| **Timeout**      | 10000ms               |
+| **Max Attempts** | 2                     |
 
 #### Response Schema
 
@@ -1533,25 +1613,25 @@ interface AddressNormResult {
 
 #### Specificații
 
-| Atribut | Valoare |
-|---------|---------|
-| **Queue Name** | `silver:norm:phone-e164` |
-| **Concurrency** | 100 |
-| **Rate Limit** | Fără |
-| **Timeout** | 2000ms |
-| **Max Attempts** | 2 |
+| Atribut          | Valoare                  |
+| ---------------- | ------------------------ |
+| **Queue Name**   | `silver:norm:phone-e164` |
+| **Concurrency**  | 100                      |
+| **Rate Limit**   | Fără                     |
+| **Timeout**      | 2000ms                   |
+| **Max Attempts** | 2                        |
 
 #### Response Schema
 
 ```typescript
 interface PhoneNormResult {
   originalPhone: string;
-  normalizedPhone: string;         // Format E.164: +40712345678
+  normalizedPhone: string; // Format E.164: +40712345678
   isValid: boolean;
-  phoneType: 'mobile' | 'landline' | 'unknown';
-  countryCode: string;             // 'RO'
-  nationalFormat: string;          // '0712 345 678'
-  areaCode?: string;               // Pentru fix: '021', '031', etc.
+  phoneType: "mobile" | "landline" | "unknown";
+  countryCode: string; // 'RO'
+  nationalFormat: string; // '0712 345 678'
+  areaCode?: string; // Pentru fix: '021', '031', etc.
   errors?: string[];
 }
 ```
@@ -1559,50 +1639,53 @@ interface PhoneNormResult {
 #### Implementare
 
 ```typescript
-import { parsePhoneNumber, isValidPhoneNumber } from 'libphonenumber-js';
+import { parsePhoneNumber, isValidPhoneNumber } from "libphonenumber-js";
 
 export async function phoneNormProcessor(
   job: Job<PhoneNormJobData>,
-  logger: Logger
+  logger: Logger,
 ): Promise<PhoneNormResult> {
   const { rawPhone } = job.data;
-  
+
   const result: PhoneNormResult = {
     originalPhone: rawPhone,
-    normalizedPhone: '',
+    normalizedPhone: "",
     isValid: false,
-    phoneType: 'unknown',
-    countryCode: 'RO',
-    nationalFormat: '',
+    phoneType: "unknown",
+    countryCode: "RO",
+    nationalFormat: "",
   };
 
   try {
     // Curățare input
-    let cleaned = rawPhone.replace(/[\s\-\(\)\.]/g, '');
-    
+    let cleaned = rawPhone.replace(/[\s\-\(\)\.]/g, "");
+
     // Adăugare prefix țară dacă lipsește
-    if (cleaned.startsWith('0')) {
-      cleaned = '+40' + cleaned.substring(1);
-    } else if (!cleaned.startsWith('+')) {
-      cleaned = '+40' + cleaned;
+    if (cleaned.startsWith("0")) {
+      cleaned = "+40" + cleaned.substring(1);
+    } else if (!cleaned.startsWith("+")) {
+      cleaned = "+40" + cleaned;
     }
 
     // Parsare cu libphonenumber
-    const parsed = parsePhoneNumber(cleaned, 'RO');
-    
-    if (parsed && isValidPhoneNumber(cleaned, 'RO')) {
-      result.normalizedPhone = parsed.format('E.164');
+    const parsed = parsePhoneNumber(cleaned, "RO");
+
+    if (parsed && isValidPhoneNumber(cleaned, "RO")) {
+      result.normalizedPhone = parsed.format("E.164");
       result.nationalFormat = parsed.formatNational();
       result.isValid = true;
-      result.countryCode = parsed.country || 'RO';
-      
+      result.countryCode = parsed.country || "RO";
+
       // Detectare tip
       const nationalNumber = parsed.nationalNumber;
-      if (nationalNumber.startsWith('7')) {
-        result.phoneType = 'mobile';
-      } else if (nationalNumber.startsWith('2') || nationalNumber.startsWith('3')) {
-        result.phoneType = 'landline';
-        result.areaCode = '0' + nationalNumber.substring(0, 2);
+      if (nationalNumber.startsWith("7")) {
+        result.phoneType = "mobile";
+      } else if (
+        nationalNumber.startsWith("2") ||
+        nationalNumber.startsWith("3")
+      ) {
+        result.phoneType = "landline";
+        result.areaCode = "0" + nationalNumber.substring(0, 2);
       }
     }
   } catch (error) {
@@ -1621,13 +1704,13 @@ export async function phoneNormProcessor(
 
 #### Specificații
 
-| Atribut | Valoare |
-|---------|---------|
-| **Queue Name** | `silver:norm:email` |
-| **Concurrency** | 100 |
-| **Rate Limit** | Fără |
-| **Timeout** | 2000ms |
-| **Max Attempts** | 2 |
+| Atribut          | Valoare             |
+| ---------------- | ------------------- |
+| **Queue Name**   | `silver:norm:email` |
+| **Concurrency**  | 100                 |
+| **Rate Limit**   | Fără                |
+| **Timeout**      | 2000ms              |
+| **Max Attempts** | 2                   |
 
 #### Response Schema
 
@@ -1638,9 +1721,9 @@ interface EmailNormResult {
   isValidFormat: boolean;
   domain: string;
   localPart: string;
-  isGeneric: boolean;              // office@, contact@, etc.
-  isFreeProvider: boolean;         // Gmail, Yahoo, etc.
-  suggestedCorrection?: string;    // Pentru typos comune
+  isGeneric: boolean; // office@, contact@, etc.
+  isFreeProvider: boolean; // Gmail, Yahoo, etc.
+  suggestedCorrection?: string; // Pentru typos comune
   errors?: string[];
 }
 ```
@@ -1655,13 +1738,13 @@ interface EmailNormResult {
 
 #### Specificații
 
-| Atribut | Valoare |
-|---------|---------|
-| **Queue Name** | `silver:validate:cui-checksum` |
-| **Concurrency** | 200 |
-| **Rate Limit** | Fără (operație locală) |
-| **Timeout** | 1000ms |
-| **Max Attempts** | 1 |
+| Atribut          | Valoare                        |
+| ---------------- | ------------------------------ |
+| **Queue Name**   | `silver:validate:cui-checksum` |
+| **Concurrency**  | 200                            |
+| **Rate Limit**   | Fără (operație locală)         |
+| **Timeout**      | 1000ms                         |
+| **Max Attempts** | 1                              |
 
 #### Response Schema
 
@@ -1680,14 +1763,14 @@ interface CuiChecksumResult {
 ```typescript
 export async function cuiChecksumProcessor(
   job: Job<CuiChecksumJobData>,
-  logger: Logger
+  logger: Logger,
 ): Promise<CuiChecksumResult> {
   const { cui } = job.data;
-  
+
   // Algoritm modulo-11 pentru CUI România
   const weights = [7, 5, 3, 2, 1, 7, 5, 3, 2];
-  const digits = cui.replace(/\D/g, '').split('').map(Number);
-  
+  const digits = cui.replace(/\D/g, "").split("").map(Number);
+
   if (digits.length < 2 || digits.length > 10) {
     return {
       cui,
@@ -1699,8 +1782,8 @@ export async function cuiChecksumProcessor(
   }
 
   const checkDigit = digits.pop()!;
-  const cuiWithoutCheck = digits.join('');
-  
+  const cuiWithoutCheck = digits.join("");
+
   // Padding la stânga cu zerouri pentru aliniere cu weights
   const paddedDigits = digits.slice().reverse();
   while (paddedDigits.length < weights.length) {
@@ -1730,9 +1813,9 @@ export async function cuiChecksumProcessor(
 
 #### Triggere de Ieșire
 
-| Queue Destinație | Condiție |
-|------------------|----------|
-| `silver:validate:cui-anaf` | Dacă `isValidChecksum === true` |
+| Queue Destinație              | Condiție                                            |
+| ----------------------------- | --------------------------------------------------- |
+| `silver:validate:cui-anaf`    | Dacă `isValidChecksum === true`                     |
 | `silver:quality:completeness` | Dacă `isValidChecksum === false` (marcare invalidă) |
 
 ---
@@ -1743,14 +1826,14 @@ export async function cuiChecksumProcessor(
 
 #### Specificații
 
-| Atribut | Valoare |
-|---------|---------|
-| **Queue Name** | `silver:validate:cui-anaf` |
-| **Concurrency** | 50 |
-| **Rate Limit** | `{ max: 1, duration: 1000 }` (1 req/sec - limită ANAF) |
-| **Timeout** | 30000ms |
-| **Max Attempts** | 5 |
-| **Backoff** | Exponențial, 5000ms |
+| Atribut          | Valoare                                                |
+| ---------------- | ------------------------------------------------------ |
+| **Queue Name**   | `silver:validate:cui-anaf`                             |
+| **Concurrency**  | 50                                                     |
+| **Rate Limit**   | `{ max: 1, duration: 1000 }` (1 req/sec - limită ANAF) |
+| **Timeout**      | 30000ms                                                |
+| **Max Attempts** | 5                                                      |
+| **Backoff**      | Exponențial, 5000ms                                    |
 
 #### Trigger Input
 
@@ -1760,7 +1843,7 @@ interface CuiAnafJobData {
   bronzeRecordId: string;
   shopId: string;
   cui: string;
-  checkDate?: string;              // YYYY-MM-DD, default: azi
+  checkDate?: string; // YYYY-MM-DD, default: azi
 }
 ```
 
@@ -1775,7 +1858,7 @@ interface CuiAnafResult {
     adresa: string;
     nrRegCom: string;
     codPostal: string;
-    stare: string;                 // 'ACTIV', 'INACTIV', 'RADIAT'
+    stare: string; // 'ACTIV', 'INACTIV', 'RADIAT'
     dataInregistrare: string;
     codCAEN: string;
   };
@@ -1798,17 +1881,18 @@ interface CuiAnafResult {
 #### Implementare
 
 ```typescript
-import axios from 'axios';
+import axios from "axios";
 
-const ANAF_API_URL = 'https://webservicesp.anaf.ro/PlatitorTvaRest/api/v9/ws/tva';
+const ANAF_API_URL =
+  "https://webservicesp.anaf.ro/PlatitorTvaRest/api/v9/ws/tva";
 
 export async function cuiAnafProcessor(
   job: Job<CuiAnafJobData>,
-  logger: Logger
+  logger: Logger,
 ): Promise<CuiAnafResult> {
   const { cui, checkDate } = job.data;
-  const date = checkDate || new Date().toISOString().split('T')[0];
-  
+  const date = checkDate || new Date().toISOString().split("T")[0];
+
   const startTime = Date.now();
 
   try {
@@ -1816,16 +1900,16 @@ export async function cuiAnafProcessor(
       ANAF_API_URL,
       [{ cui: parseInt(cui), data: date }],
       {
-        headers: { 'Content-Type': 'application/json' },
+        headers: { "Content-Type": "application/json" },
         timeout: 25000,
-      }
+      },
     );
 
     const apiResponseTime = Date.now() - startTime;
 
     if (response.data.found && response.data.found.length > 0) {
       const data = response.data.found[0];
-      
+
       return {
         cui,
         found: true,
@@ -1858,28 +1942,27 @@ export async function cuiAnafProcessor(
       found: false,
       apiResponseTime,
     };
-
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.status === 429) {
       // Rate limited - throw pentru retry cu backoff
-      throw new Error('ANAF_RATE_LIMITED');
+      throw new Error("ANAF_RATE_LIMITED");
     }
     throw error;
   }
 }
 
 function mapStare(statusInactivi: boolean, stareInregistrare: string): string {
-  if (statusInactivi) return 'INACTIV';
-  if (stareInregistrare?.toLowerCase().includes('radiat')) return 'RADIAT';
-  return 'ACTIV';
+  if (statusInactivi) return "INACTIV";
+  if (stareInregistrare?.toLowerCase().includes("radiat")) return "RADIAT";
+  return "ACTIV";
 }
 ```
 
 #### Triggere de Ieșire
 
-| Queue Destinație | Condiție |
-|------------------|----------|
-| `enrich:anaf:fiscal-status` | Dacă `found === true` |
+| Queue Destinație              | Condiție              |
+| ----------------------------- | --------------------- |
+| `enrich:anaf:fiscal-status`   | Dacă `found === true` |
 | `enrich:termene:company-base` | Dacă `found === true` |
 
 ---
@@ -1892,13 +1975,13 @@ function mapStare(statusInactivi: boolean, stareInregistrare: string): string {
 
 #### Specificații
 
-| Atribut | Valoare |
-|---------|---------|
-| **Queue Name** | `enrich:anaf:fiscal-status` |
-| **Concurrency** | 30 |
-| **Rate Limit** | `{ max: 1, duration: 1000 }` |
-| **Timeout** | 30000ms |
-| **Max Attempts** | 3 |
+| Atribut          | Valoare                      |
+| ---------------- | ---------------------------- |
+| **Queue Name**   | `enrich:anaf:fiscal-status`  |
+| **Concurrency**  | 30                           |
+| **Rate Limit**   | `{ max: 1, duration: 1000 }` |
+| **Timeout**      | 30000ms                      |
+| **Max Attempts** | 3                            |
 
 #### Response Schema
 
@@ -1906,7 +1989,7 @@ function mapStare(statusInactivi: boolean, stareInregistrare: string): string {
 interface AnafFiscalStatusResult {
   cui: string;
   statusFiscal: {
-    stare: 'ACTIV' | 'INACTIV' | 'SUSPENDAT' | 'RADIAT';
+    stare: "ACTIV" | "INACTIV" | "SUSPENDAT" | "RADIAT";
     dataStare: string;
     motivStare?: string;
   };
@@ -1916,7 +1999,7 @@ interface AnafFiscalStatusResult {
     sumaRestante?: number;
   };
   dataVerificare: string;
-  sursa: 'ANAF_API';
+  sursa: "ANAF_API";
 }
 ```
 
@@ -1928,13 +2011,13 @@ interface AnafFiscalStatusResult {
 
 #### Specificații
 
-| Atribut | Valoare |
-|---------|---------|
-| **Queue Name** | `enrich:anaf:tva-status` |
-| **Concurrency** | 30 |
-| **Rate Limit** | `{ max: 1, duration: 1000 }` |
-| **Timeout** | 30000ms |
-| **Max Attempts** | 3 |
+| Atribut          | Valoare                      |
+| ---------------- | ---------------------------- |
+| **Queue Name**   | `enrich:anaf:tva-status`     |
+| **Concurrency**  | 30                           |
+| **Rate Limit**   | `{ max: 1, duration: 1000 }` |
+| **Timeout**      | 30000ms                      |
+| **Max Attempts** | 3                            |
 
 #### Response Schema
 
@@ -1961,13 +2044,13 @@ interface AnafTvaStatusResult {
 
 #### Specificații
 
-| Atribut | Valoare |
-|---------|---------|
-| **Queue Name** | `enrich:anaf:efactura` |
-| **Concurrency** | 30 |
-| **Rate Limit** | `{ max: 1, duration: 1000 }` |
-| **Timeout** | 30000ms |
-| **Max Attempts** | 3 |
+| Atribut          | Valoare                      |
+| ---------------- | ---------------------------- |
+| **Queue Name**   | `enrich:anaf:efactura`       |
+| **Concurrency**  | 30                           |
+| **Rate Limit**   | `{ max: 1, duration: 1000 }` |
+| **Timeout**      | 30000ms                      |
+| **Max Attempts** | 3                            |
 
 #### Response Schema
 
@@ -1978,7 +2061,7 @@ interface AnafEfacturaResult {
   dataInregistrare?: string;
   obligatoriuDin?: string;
   detalii?: {
-    tip: 'B2B' | 'B2G';
+    tip: "B2B" | "B2G";
     platforma: string;
   };
 }
@@ -1992,11 +2075,11 @@ interface AnafEfacturaResult {
 
 #### Specificații
 
-| Atribut | Valoare |
-|---------|---------|
-| **Queue Name** | `enrich:anaf:address` |
-| **Concurrency** | 30 |
-| **Rate Limit** | `{ max: 1, duration: 1000 }` |
+| Atribut         | Valoare                      |
+| --------------- | ---------------------------- |
+| **Queue Name**  | `enrich:anaf:address`        |
+| **Concurrency** | 30                           |
+| **Rate Limit**  | `{ max: 1, duration: 1000 }` |
 
 #### Response Schema
 
@@ -2025,11 +2108,11 @@ interface AnafAddressResult {
 
 #### Specificații
 
-| Atribut | Valoare |
-|---------|---------|
-| **Queue Name** | `enrich:anaf:caen` |
-| **Concurrency** | 30 |
-| **Rate Limit** | `{ max: 1, duration: 1000 }` |
+| Atribut         | Valoare                      |
+| --------------- | ---------------------------- |
+| **Queue Name**  | `enrich:anaf:caen`           |
+| **Concurrency** | 30                           |
+| **Rate Limit**  | `{ max: 1, duration: 1000 }` |
 
 #### Response Schema
 
@@ -2045,8 +2128,8 @@ interface AnafCaenResult {
     cod: string;
     denumire: string;
   }>;
-  isAgricol: boolean;              // CAEN 01xx
-  isIrigatii: boolean;             // CAEN specific OUAI
+  isAgricol: boolean; // CAEN 01xx
+  isIrigatii: boolean; // CAEN specific OUAI
 }
 ```
 
@@ -2060,13 +2143,13 @@ interface AnafCaenResult {
 
 #### Specificații
 
-| Atribut | Valoare |
-|---------|---------|
-| **Queue Name** | `enrich:termene:company-base` |
-| **Concurrency** | 15 |
-| **Rate Limit** | `{ max: 20, duration: 1000 }` |
-| **Timeout** | 30000ms |
-| **Max Attempts** | 3 |
+| Atribut          | Valoare                       |
+| ---------------- | ----------------------------- |
+| **Queue Name**   | `enrich:termene:company-base` |
+| **Concurrency**  | 15                            |
+| **Rate Limit**   | `{ max: 20, duration: 1000 }` |
+| **Timeout**      | 30000ms                       |
+| **Max Attempts** | 3                             |
 
 **Cost:** 1-5 credite per query (depinde de plan)
 
@@ -2097,12 +2180,12 @@ interface TermeneCompanyBaseResult {
 
 #### Specificații
 
-| Atribut | Valoare |
-|---------|---------|
-| **Queue Name** | `enrich:termene:financials` |
-| **Concurrency** | 15 |
-| **Rate Limit** | `{ max: 20, duration: 1000 }` |
-| **Cost** | 2-5 credite |
+| Atribut         | Valoare                       |
+| --------------- | ----------------------------- |
+| **Queue Name**  | `enrich:termene:financials`   |
+| **Concurrency** | 15                            |
+| **Rate Limit**  | `{ max: 20, duration: 1000 }` |
+| **Cost**        | 2-5 credite                   |
 
 #### Response Schema
 
@@ -2159,8 +2242,8 @@ interface TermeneShareholdersResult {
   cui: string;
   actionari: Array<{
     nume: string;
-    tip: 'PF' | 'PJ';
-    cui?: string;                  // Pentru PJ
+    tip: "PF" | "PJ";
+    cui?: string; // Pentru PJ
     procent: number;
     valoareAport: number;
   }>;
@@ -2185,8 +2268,8 @@ interface TermeneShareholdersResult {
 ```typescript
 interface TermeneRiskScoreResult {
   cui: string;
-  scorRisc: number;                // 0-100
-  categorieRisc: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  scorRisc: number; // 0-100
+  categorieRisc: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
   factoriRisc: Array<{
     factor: string;
     impact: number;
@@ -2232,7 +2315,7 @@ interface TermeneCourtCasesResult {
 interface TermeneInsolvencyResult {
   cui: string;
   inInsolventa: boolean;
-  tipProcedura?: 'INSOLVENTA' | 'FALIMENT' | 'REORGANIZARE';
+  tipProcedura?: "INSOLVENTA" | "FALIMENT" | "REORGANIZARE";
   dataDeschiDere?: string;
   practician?: string;
   stadiu?: string;
@@ -2272,19 +2355,19 @@ interface TermeneAnafDebtsResult {
 
 #### Specificații
 
-| Atribut | Valoare |
-|---------|---------|
-| **Queue Name** | `enrich:onrc:registration` |
-| **Concurrency** | 10 |
-| **Rate Limit** | `{ max: 10, duration: 1000 }` |
-| **Sursă** | ONRC Open Data / Recom Online |
+| Atribut         | Valoare                       |
+| --------------- | ----------------------------- |
+| **Queue Name**  | `enrich:onrc:registration`    |
+| **Concurrency** | 10                            |
+| **Rate Limit**  | `{ max: 10, duration: 1000 }` |
+| **Sursă**       | ONRC Open Data / Recom Online |
 
 #### Response Schema
 
 ```typescript
 interface OnrcRegistrationResult {
   cui: string;
-  nrRegCom: string;                // J40/1234/2020
+  nrRegCom: string; // J40/1234/2020
   judetInregistrare: string;
   anInregistrare: number;
   numarInregistrare: number;
@@ -2322,14 +2405,14 @@ interface OnrcCapitalResult {
 
 #### Specificații
 
-| Atribut | Valoare |
-|---------|---------|
-| **Queue Name** | `enrich:email:discovery` |
-| **Concurrency** | 30 |
-| **Rate Limit** | `{ max: 15, duration: 1000 }` (Hunter.io limit) |
-| **Timeout** | 30000ms |
-| **Max Attempts** | 3 |
-| **Cost** | 1 credit Hunter.io |
+| Atribut          | Valoare                                         |
+| ---------------- | ----------------------------------------------- |
+| **Queue Name**   | `enrich:email:discovery`                        |
+| **Concurrency**  | 30                                              |
+| **Rate Limit**   | `{ max: 15, duration: 1000 }` (Hunter.io limit) |
+| **Timeout**      | 30000ms                                         |
+| **Max Attempts** | 3                                               |
+| **Cost**         | 1 credit Hunter.io                              |
 
 #### Trigger Input
 
@@ -2341,7 +2424,7 @@ interface EmailDiscoveryJobData {
   firstName?: string;
   lastName?: string;
   companyName?: string;
-  fallbackProviders?: ('hunter' | 'snov' | 'apollo')[];
+  fallbackProviders?: ("hunter" | "snov" | "apollo")[];
 }
 ```
 
@@ -2351,10 +2434,10 @@ interface EmailDiscoveryJobData {
 interface EmailDiscoveryResult {
   discovered: boolean;
   email?: string;
-  confidence: number;              // 0-100
-  source: 'hunter' | 'snov' | 'apollo' | 'pattern';
+  confidence: number; // 0-100
+  source: "hunter" | "snov" | "apollo" | "pattern";
   position?: string;
-  verificationStatus: 'pending' | 'verified' | 'failed';
+  verificationStatus: "pending" | "verified" | "failed";
   alternatives?: Array<{
     email: string;
     confidence: number;
@@ -2370,25 +2453,30 @@ interface EmailDiscoveryResult {
 #### Implementare
 
 ```typescript
-import { HunterClient } from '@cerniq/integrations/hunter';
-import { SnovClient } from '@cerniq/integrations/snov';
+import { HunterClient } from "@cerniq/integrations/hunter";
+import { SnovClient } from "@cerniq/integrations/snov";
 
 export async function emailDiscoveryProcessor(
   job: Job<EmailDiscoveryJobData>,
-  logger: Logger
+  logger: Logger,
 ): Promise<EmailDiscoveryResult> {
-  const { domain, firstName, lastName, fallbackProviders = ['hunter', 'snov'] } = job.data;
-  
+  const {
+    domain,
+    firstName,
+    lastName,
+    fallbackProviders = ["hunter", "snov"],
+  } = job.data;
+
   const result: EmailDiscoveryResult = {
     discovered: false,
     confidence: 0,
-    source: 'hunter',
-    verificationStatus: 'pending',
+    source: "hunter",
+    verificationStatus: "pending",
     creditsUsed: {},
   };
 
   // 1. Încercare Hunter.io
-  if (fallbackProviders.includes('hunter')) {
+  if (fallbackProviders.includes("hunter")) {
     try {
       const hunter = new HunterClient(process.env.HUNTER_API_KEY!);
       const hunterResult = await hunter.emailFinder({
@@ -2403,19 +2491,22 @@ export async function emailDiscoveryProcessor(
         result.discovered = true;
         result.email = hunterResult.email;
         result.confidence = hunterResult.score;
-        result.source = 'hunter';
+        result.source = "hunter";
         result.position = hunterResult.position;
-        
-        logger.info({ email: result.email, confidence: result.confidence }, 'Email discovered via Hunter');
+
+        logger.info(
+          { email: result.email, confidence: result.confidence },
+          "Email discovered via Hunter",
+        );
         return result;
       }
     } catch (error) {
-      logger.warn({ error: error.message }, 'Hunter.io failed');
+      logger.warn({ error: error.message }, "Hunter.io failed");
     }
   }
 
   // 2. Fallback la Snov.io
-  if (fallbackProviders.includes('snov') && !result.discovered) {
+  if (fallbackProviders.includes("snov") && !result.discovered) {
     try {
       const snov = new SnovClient(process.env.SNOV_API_KEY!);
       const snovResult = await snov.getEmailsByDomain(domain);
@@ -2425,9 +2516,12 @@ export async function emailDiscoveryProcessor(
       if (snovResult.emails?.length > 0) {
         // Găsire cel mai bun match
         const bestMatch = snovResult.emails
-          .filter((e: any) => 
-            (!firstName || e.firstName?.toLowerCase() === firstName.toLowerCase()) &&
-            (!lastName || e.lastName?.toLowerCase() === lastName.toLowerCase())
+          .filter(
+            (e: any) =>
+              (!firstName ||
+                e.firstName?.toLowerCase() === firstName.toLowerCase()) &&
+              (!lastName ||
+                e.lastName?.toLowerCase() === lastName.toLowerCase()),
           )
           .sort((a: any, b: any) => b.probability - a.probability)[0];
 
@@ -2435,31 +2529,38 @@ export async function emailDiscoveryProcessor(
           result.discovered = true;
           result.email = bestMatch.email;
           result.confidence = Math.round(bestMatch.probability * 100);
-          result.source = 'snov';
-          
-          logger.info({ email: result.email, confidence: result.confidence }, 'Email discovered via Snov');
+          result.source = "snov";
+
+          logger.info(
+            { email: result.email, confidence: result.confidence },
+            "Email discovered via Snov",
+          );
           return result;
         }
       }
     } catch (error) {
-      logger.warn({ error: error.message }, 'Snov.io failed');
+      logger.warn({ error: error.message }, "Snov.io failed");
     }
   }
 
   // 3. Pattern generation ca ultimă soluție
   if (!result.discovered && firstName && lastName) {
     const patterns = generateEmailPatterns(firstName, lastName, domain);
-    result.alternatives = patterns.map(p => ({ email: p, confidence: 30 }));
-    result.source = 'pattern';
+    result.alternatives = patterns.map((p) => ({ email: p, confidence: 30 }));
+    result.source = "pattern";
   }
 
   return result;
 }
 
-function generateEmailPatterns(firstName: string, lastName: string, domain: string): string[] {
+function generateEmailPatterns(
+  firstName: string,
+  lastName: string,
+  domain: string,
+): string[] {
   const f = firstName.toLowerCase();
   const l = lastName.toLowerCase();
-  
+
   return [
     `${f}.${l}@${domain}`,
     `${f}${l}@${domain}`,
@@ -2472,9 +2573,9 @@ function generateEmailPatterns(firstName: string, lastName: string, domain: stri
 
 #### Triggere de Ieșire
 
-| Queue Destinație | Condiție |
-|------------------|----------|
-| `enrich:email:mx-check` | Dacă `discovered === true` |
+| Queue Destinație           | Condiție                                         |
+| -------------------------- | ------------------------------------------------ |
+| `enrich:email:mx-check`    | Dacă `discovered === true`                       |
 | `enrich:email:smtp-verify` | Dacă `discovered === true` și `confidence >= 70` |
 
 ---
@@ -2485,12 +2586,12 @@ function generateEmailPatterns(firstName: string, lastName: string, domain: stri
 
 #### Specificații
 
-| Atribut | Valoare |
-|---------|---------|
-| **Queue Name** | `enrich:email:mx-check` |
-| **Concurrency** | 100 |
-| **Rate Limit** | Fără (DNS local) |
-| **Timeout** | 10000ms |
+| Atribut         | Valoare                 |
+| --------------- | ----------------------- |
+| **Queue Name**  | `enrich:email:mx-check` |
+| **Concurrency** | 100                     |
+| **Rate Limit**  | Fără (DNS local)        |
+| **Timeout**     | 10000ms                 |
 
 #### Response Schema
 
@@ -2502,7 +2603,7 @@ interface MxCheckResult {
     priority: number;
     exchange: string;
   }>;
-  provider?: string;               // 'google', 'microsoft', 'zoho', etc.
+  provider?: string; // 'google', 'microsoft', 'zoho', etc.
   acceptsCatchAll?: boolean;
 }
 ```
@@ -2515,27 +2616,27 @@ interface MxCheckResult {
 
 #### Specificații
 
-| Atribut | Valoare |
-|---------|---------|
-| **Queue Name** | `enrich:email:smtp-verify` |
-| **Concurrency** | 50 |
-| **Rate Limit** | `{ max: 50000, duration: 3600000 }` (ZeroBounce hourly) |
-| **Timeout** | 30000ms |
-| **Cost** | ~$0.008/email (ZeroBounce) |
+| Atribut         | Valoare                                                 |
+| --------------- | ------------------------------------------------------- |
+| **Queue Name**  | `enrich:email:smtp-verify`                              |
+| **Concurrency** | 50                                                      |
+| **Rate Limit**  | `{ max: 50000, duration: 3600000 }` (ZeroBounce hourly) |
+| **Timeout**     | 30000ms                                                 |
+| **Cost**        | ~$0.008/email (ZeroBounce)                              |
 
 #### Response Schema
 
 ```typescript
 interface SmtpVerifyResult {
   email: string;
-  status: 'valid' | 'invalid' | 'catch-all' | 'unknown' | 'spamtrap' | 'abuse';
+  status: "valid" | "invalid" | "catch-all" | "unknown" | "spamtrap" | "abuse";
   isDeliverable: boolean;
   subStatus?: string;
   freeEmail: boolean;
   disposable: boolean;
   mxFound: boolean;
   smtpProvider: string;
-  score?: number;                  // AI deliverability score
+  score?: number; // AI deliverability score
 }
 ```
 
@@ -2551,9 +2652,9 @@ interface SmtpVerifyResult {
 interface EmailProviderResult {
   email: string;
   provider: string;
-  providerType: 'free' | 'corporate' | 'disposable' | 'government';
+  providerType: "free" | "corporate" | "disposable" | "government";
   isCorporate: boolean;
-  domainAge?: number;              // În zile
+  domainAge?: number; // În zile
 }
 ```
 
@@ -2569,8 +2670,15 @@ interface EmailProviderResult {
 interface EmailRoleCheckResult {
   email: string;
   isGeneric: boolean;
-  roleType?: 'office' | 'contact' | 'info' | 'support' | 'sales' | 'admin' | 'personal';
-  businessValue: 'high' | 'medium' | 'low';
+  roleType?:
+    | "office"
+    | "contact"
+    | "info"
+    | "support"
+    | "sales"
+    | "admin"
+    | "personal";
+  businessValue: "high" | "medium" | "low";
   recommendation: string;
 }
 ```
@@ -2585,23 +2693,23 @@ interface EmailRoleCheckResult {
 
 #### Specificații
 
-| Atribut | Valoare |
-|---------|---------|
-| **Queue Name** | `enrich:phone:type-detect` |
-| **Concurrency** | 100 |
-| **Rate Limit** | Fără (operație locală) |
-| **Timeout** | 2000ms |
+| Atribut         | Valoare                    |
+| --------------- | -------------------------- |
+| **Queue Name**  | `enrich:phone:type-detect` |
+| **Concurrency** | 100                        |
+| **Rate Limit**  | Fără (operație locală)     |
+| **Timeout**     | 2000ms                     |
 
 #### Response Schema
 
 ```typescript
 interface PhoneTypeResult {
   phone: string;
-  phoneType: 'mobile' | 'landline' | 'voip' | 'unknown';
+  phoneType: "mobile" | "landline" | "voip" | "unknown";
   prefix: string;
-  expectedCarrier?: string;        // Bazat pe prefix
+  expectedCarrier?: string; // Bazat pe prefix
   isRomanian: boolean;
-  needsHlr: boolean;               // True doar pentru mobil
+  needsHlr: boolean; // True doar pentru mobil
 }
 ```
 
@@ -2613,20 +2721,20 @@ interface PhoneTypeResult {
 
 #### Specificații
 
-| Atribut | Valoare |
-|---------|---------|
-| **Queue Name** | `enrich:phone:hlr-lookup` |
-| **Concurrency** | 50 |
-| **Rate Limit** | `{ max: 100, duration: 1000 }` |
-| **Timeout** | 30000ms |
-| **Cost** | ~$0.005/lookup (CheckMobi) |
+| Atribut         | Valoare                        |
+| --------------- | ------------------------------ |
+| **Queue Name**  | `enrich:phone:hlr-lookup`      |
+| **Concurrency** | 50                             |
+| **Rate Limit**  | `{ max: 100, duration: 1000 }` |
+| **Timeout**     | 30000ms                        |
+| **Cost**        | ~$0.005/lookup (CheckMobi)     |
 
 #### Response Schema
 
 ```typescript
 interface HlrLookupResult {
   phone: string;
-  status: 'DELIVERABLE' | 'UNDELIVERABLE' | 'UNKNOWN';
+  status: "DELIVERABLE" | "UNDELIVERABLE" | "UNKNOWN";
   isValid: boolean;
   isActive: boolean;
   isPorted: boolean;
@@ -2642,19 +2750,19 @@ interface HlrLookupResult {
 #### Implementare
 
 ```typescript
-import axios from 'axios';
+import axios from "axios";
 
-const CHECKMOBI_API = 'https://api.checkmobi.com/v1/validation/lookup';
+const CHECKMOBI_API = "https://api.checkmobi.com/v1/validation/lookup";
 
 export async function hlrLookupProcessor(
   job: Job<HlrLookupJobData>,
-  logger: Logger
+  logger: Logger,
 ): Promise<HlrLookupResult> {
   const { phone } = job.data;
 
   const response = await axios.get(CHECKMOBI_API, {
     params: { number: phone },
-    headers: { 'Authorization': process.env.CHECKMOBI_API_KEY },
+    headers: { Authorization: process.env.CHECKMOBI_API_KEY },
     timeout: 25000,
   });
 
@@ -2662,15 +2770,19 @@ export async function hlrLookupProcessor(
 
   return {
     phone,
-    status: data.status === 'DELIVRD' ? 'DELIVERABLE' : 
-            data.status === 'UNDELIV' ? 'UNDELIVERABLE' : 'UNKNOWN',
+    status:
+      data.status === "DELIVRD"
+        ? "DELIVERABLE"
+        : data.status === "UNDELIV"
+          ? "UNDELIVERABLE"
+          : "UNKNOWN",
     isValid: data.valid === true,
-    isActive: data.status === 'DELIVRD',
+    isActive: data.status === "DELIVRD",
     isPorted: data.ported === true,
     isRoaming: data.roaming === true,
-    originalNetwork: data.original_network || '',
-    currentNetwork: data.current_network || '',
-    mccMnc: data.mcc_mnc || '',
+    originalNetwork: data.original_network || "",
+    currentNetwork: data.current_network || "",
+    mccMnc: data.mcc_mnc || "",
     hlrTimestamp: new Date().toISOString(),
   };
 }
@@ -2687,8 +2799,8 @@ export async function hlrLookupProcessor(
 ```typescript
 interface CarrierDetectResult {
   phone: string;
-  carrier: string;                 // 'Orange', 'Vodafone', 'Telekom', 'Digi'
-  carrierType: 'MNO' | 'MVNO';
+  carrier: string; // 'Orange', 'Vodafone', 'Telekom', 'Digi'
+  carrierType: "MNO" | "MVNO";
   networkCode: string;
   isPorted: boolean;
 }
@@ -2702,12 +2814,12 @@ interface CarrierDetectResult {
 
 #### Specificații
 
-| Atribut | Valoare |
-|---------|---------|
-| **Queue Name** | `enrich:phone:whatsapp-check` |
-| **Concurrency** | 20 |
-| **Rate Limit** | `{ max: 50, duration: 60000 }` |
-| **Timeout** | 30000ms |
+| Atribut         | Valoare                        |
+| --------------- | ------------------------------ |
+| **Queue Name**  | `enrich:phone:whatsapp-check`  |
+| **Concurrency** | 20                             |
+| **Rate Limit**  | `{ max: 50, duration: 60000 }` |
+| **Timeout**     | 30000ms                        |
 
 #### Response Schema
 
@@ -2733,12 +2845,12 @@ interface WhatsappCheckResult {
 
 #### Specificații
 
-| Atribut | Valoare |
-|---------|---------|
-| **Queue Name** | `enrich:web:fetch` |
-| **Concurrency** | 20 |
-| **Rate Limit** | `{ max: 10, duration: 1000 }` per domain |
-| **Timeout** | 60000ms |
+| Atribut         | Valoare                                  |
+| --------------- | ---------------------------------------- |
+| **Queue Name**  | `enrich:web:fetch`                       |
+| **Concurrency** | 20                                       |
+| **Rate Limit**  | `{ max: 10, duration: 1000 }` per domain |
+| **Timeout**     | 60000ms                                  |
 
 #### Response Schema
 
@@ -2867,13 +2979,13 @@ interface WebTechDetectResult {
 
 #### Specificații
 
-| Atribut | Valoare |
-|---------|---------|
-| **Queue Name** | `enrich:ai:text-structure` |
-| **Concurrency** | 20 |
-| **Rate Limit** | `{ max: 60, duration: 60000 }` (API limits) |
-| **Timeout** | 60000ms |
-| **Cost** | ~$0.01-0.05 per request |
+| Atribut         | Valoare                                     |
+| --------------- | ------------------------------------------- |
+| **Queue Name**  | `enrich:ai:text-structure`                  |
+| **Concurrency** | 20                                          |
+| **Rate Limit**  | `{ max: 60, duration: 60000 }` (API limits) |
+| **Timeout**     | 60000ms                                     |
+| **Cost**        | ~$0.01-0.05 per request                     |
 
 #### Trigger Input
 
@@ -2886,12 +2998,12 @@ interface AiTextStructureJobData {
   extractionSchema: {
     fields: Array<{
       name: string;
-      type: 'string' | 'number' | 'boolean' | 'array';
+      type: "string" | "number" | "boolean" | "array";
       description: string;
       required: boolean;
     }>;
   };
-  llmProvider?: 'grok' | 'openai' | 'anthropic';
+  llmProvider?: "grok" | "openai" | "anthropic";
 }
 ```
 
@@ -2915,19 +3027,19 @@ interface AiTextStructureResult {
 #### Implementare
 
 ```typescript
-import OpenAI from 'openai';
+import OpenAI from "openai";
 
 // Grok folosește API compatibil OpenAI
 const grokClient = new OpenAI({
   apiKey: process.env.GROK_API_KEY,
-  baseURL: 'https://api.x.ai/v1',
+  baseURL: "https://api.x.ai/v1",
 });
 
 export async function aiTextStructureProcessor(
   job: Job<AiTextStructureJobData>,
-  logger: Logger
+  logger: Logger,
 ): Promise<AiTextStructureResult> {
-  const { text, extractionSchema, llmProvider = 'grok' } = job.data;
+  const { text, extractionSchema, llmProvider = "grok" } = job.data;
   const startTime = Date.now();
 
   const systemPrompt = `You are a data extraction assistant. Extract structured data from the provided text according to the schema. Return ONLY valid JSON matching the schema, no explanations.`;
@@ -2943,17 +3055,17 @@ ${text}
 Return valid JSON only.`;
 
   const completion = await grokClient.chat.completions.create({
-    model: 'grok-beta',
+    model: "grok-beta",
     messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userPrompt },
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
     ],
-    response_format: { type: 'json_object' },
+    response_format: { type: "json_object" },
     temperature: 0.1,
     max_tokens: 1000,
   });
 
-  const content = completion.choices[0]?.message?.content || '{}';
+  const content = completion.choices[0]?.message?.content || "{}";
   const extractedData = JSON.parse(content);
 
   return {
@@ -2965,7 +3077,7 @@ Return valid JSON only.`;
       output: completion.usage?.completion_tokens || 0,
     },
     llmProvider,
-    modelVersion: 'grok-beta',
+    modelVersion: "grok-beta",
     processingTimeMs: Date.now() - startTime,
   };
 }
@@ -2984,7 +3096,7 @@ interface AiIndustryClassifyResult {
   primaryIndustry: string;
   secondaryIndustries: string[];
   isAgricultural: boolean;
-  agriculturalSubtype?: 'crop' | 'livestock' | 'mixed' | 'services';
+  agriculturalSubtype?: "crop" | "livestock" | "mixed" | "services";
   confidence: number;
   reasoning: string;
 }
@@ -3006,8 +3118,8 @@ interface AiContactParseResult {
     lastName: string;
     position?: string;
     department?: string;
-    seniority?: 'executive' | 'manager' | 'contributor';
-    buyingRole?: 'decision_maker' | 'influencer' | 'user';
+    seniority?: "executive" | "manager" | "contributor";
+    buyingRole?: "decision_maker" | "influencer" | "user";
   }>;
   confidence: number;
 }
@@ -3023,12 +3135,12 @@ interface AiContactParseResult {
 
 #### Specificații
 
-| Atribut | Valoare |
-|---------|---------|
-| **Queue Name** | `enrich:geo:geocode` |
-| **Concurrency** | 30 |
-| **Rate Limit** | `{ max: 50, duration: 1000 }` (Nominatim) |
-| **Timeout** | 30000ms |
+| Atribut         | Valoare                                   |
+| --------------- | ----------------------------------------- |
+| **Queue Name**  | `enrich:geo:geocode`                      |
+| **Concurrency** | 30                                        |
+| **Rate Limit**  | `{ max: 50, duration: 1000 }` (Nominatim) |
+| **Timeout**     | 30000ms                                   |
 
 #### Response Schema
 
@@ -3040,7 +3152,7 @@ interface GeoGeocodeResult {
     latitude: number;
     longitude: number;
   };
-  accuracy: 'rooftop' | 'street' | 'locality' | 'region';
+  accuracy: "rooftop" | "street" | "locality" | "region";
   formattedAddress: string;
   components: {
     street?: string;
@@ -3056,7 +3168,7 @@ interface GeoGeocodeResult {
     east: number;
     west: number;
   };
-  provider: 'nominatim' | 'google' | 'here';
+  provider: "nominatim" | "google" | "here";
 }
 ```
 
@@ -3073,11 +3185,19 @@ interface GeoSirutaResult {
   address: string;
   sirutaCode?: number;
   sirutaName: string;
-  sirutaType: 'municipiu' | 'oras' | 'comuna' | 'sat';
+  sirutaType: "municipiu" | "oras" | "comuna" | "sat";
   judetCode: string;
   judetName: string;
   regiuneStatistica: string;
-  zonaMacro: 'NORD-VEST' | 'CENTRU' | 'NORD-EST' | 'SUD-EST' | 'SUD-MUNTENIA' | 'BUCURESTI-ILFOV' | 'SUD-VEST' | 'VEST';
+  zonaMacro:
+    | "NORD-VEST"
+    | "CENTRU"
+    | "NORD-EST"
+    | "SUD-EST"
+    | "SUD-MUNTENIA"
+    | "BUCURESTI-ILFOV"
+    | "SUD-VEST"
+    | "VEST";
   matchConfidence: number;
 }
 ```
@@ -3092,12 +3212,12 @@ interface GeoSirutaResult {
 
 #### Specificații
 
-| Atribut | Valoare |
-|---------|---------|
-| **Queue Name** | `enrich:apia:farmer-lookup` |
-| **Concurrency** | 10 |
-| **Rate Limit** | `{ max: 5, duration: 1000 }` |
-| **Sursă** | APIA PDF exports / LPIS data |
+| Atribut         | Valoare                      |
+| --------------- | ---------------------------- |
+| **Queue Name**  | `enrich:apia:farmer-lookup`  |
+| **Concurrency** | 10                           |
+| **Rate Limit**  | `{ max: 5, duration: 1000 }` |
+| **Sursă**       | APIA PDF exports / LPIS data |
 
 #### Response Schema
 
@@ -3107,7 +3227,7 @@ interface ApiaFarmerLookupResult {
   foundInApia: boolean;
   apiaTotalHa?: number;
   apiaAnReferinta?: number;
-  tipBeneficiar?: 'PF' | 'PJ' | 'II' | 'IF';
+  tipBeneficiar?: "PF" | "PJ" | "II" | "IF";
   judetApia?: string;
   dataVerificare: string;
 }
@@ -3126,11 +3246,11 @@ interface ApiaSubsidiesResult {
   cui: string;
   subventii: Array<{
     an: number;
-    tip: string;                   // SAPS, ANT, SCZ, etc.
+    tip: string; // SAPS, ANT, SCZ, etc.
     suma: number;
     moneda: string;
     suprafata?: number;
-    status: 'platit' | 'aprobat' | 'respins';
+    status: "platit" | "aprobat" | "respins";
   }>;
   totalUltimiiAni: number;
   anulCelMaiRecent: number;
@@ -3219,12 +3339,12 @@ interface MadrProducerGroupsResult {
 
 #### Specificații
 
-| Atribut | Valoare |
-|---------|---------|
-| **Queue Name** | `silver:dedup:fuzzy-match` |
-| **Concurrency** | 20 |
-| **Rate Limit** | Fără |
-| **Timeout** | 30000ms |
+| Atribut         | Valoare                    |
+| --------------- | -------------------------- |
+| **Queue Name**  | `silver:dedup:fuzzy-match` |
+| **Concurrency** | 20                         |
+| **Rate Limit**  | Fără                       |
+| **Timeout**     | 30000ms                    |
 
 #### Response Schema
 
@@ -3233,7 +3353,7 @@ interface FuzzyMatchResult {
   recordId: string;
   potentialDuplicates: Array<{
     matchedRecordId: string;
-    similarity: number;            // 0-100
+    similarity: number; // 0-100
     matchedFields: {
       name?: number;
       address?: number;
@@ -3241,7 +3361,7 @@ interface FuzzyMatchResult {
       phone?: number;
       email?: number;
     };
-    recommendation: 'merge' | 'review' | 'keep_separate';
+    recommendation: "merge" | "review" | "keep_separate";
   }>;
   isUnique: boolean;
 }
@@ -3260,7 +3380,7 @@ interface EntityResolveResult {
   primaryRecordId: string;
   mergedRecordIds: string[];
   linkedRecordIds: string[];
-  resolution: 'merged' | 'linked' | 'kept_separate';
+  resolution: "merged" | "linked" | "kept_separate";
   conflictResolutions: Array<{
     field: string;
     selectedValue: any;
@@ -3272,7 +3392,7 @@ interface EntityResolveResult {
   }>;
   auditTrail: {
     timestamp: string;
-    method: 'automatic' | 'manual';
+    method: "automatic" | "manual";
     confidence: number;
   };
 }
@@ -3288,24 +3408,27 @@ interface EntityResolveResult {
 
 #### Specificații
 
-| Atribut | Valoare |
-|---------|---------|
-| **Queue Name** | `silver:quality:completeness` |
-| **Concurrency** | 100 |
-| **Rate Limit** | Fără |
-| **Timeout** | 5000ms |
+| Atribut         | Valoare                       |
+| --------------- | ----------------------------- |
+| **Queue Name**  | `silver:quality:completeness` |
+| **Concurrency** | 100                           |
+| **Rate Limit**  | Fără                          |
+| **Timeout**     | 5000ms                        |
 
 #### Response Schema
 
 ```typescript
 interface CompletenessResult {
   recordId: string;
-  overallCompleteness: number;     // 0-100
-  fieldCompleteness: Record<string, {
-    hasValue: boolean;
-    isValid: boolean;
-    quality: 'high' | 'medium' | 'low';
-  }>;
+  overallCompleteness: number; // 0-100
+  fieldCompleteness: Record<
+    string,
+    {
+      hasValue: boolean;
+      isValid: boolean;
+      quality: "high" | "medium" | "low";
+    }
+  >;
   missingRequired: string[];
   missingOptional: string[];
   dataQualityIssues: string[];
@@ -3323,7 +3446,7 @@ interface CompletenessResult {
 ```typescript
 interface TierAssignResult {
   recordId: string;
-  assignedTier: 'bronze' | 'silver' | 'gold';
+  assignedTier: "bronze" | "silver" | "gold";
   previousTier?: string;
   tierCriteria: {
     cuiValidated: boolean;
@@ -3351,11 +3474,11 @@ interface ValidationSumResult {
   validations: Array<{
     field: string;
     validationType: string;
-    result: 'pass' | 'fail' | 'skip';
+    result: "pass" | "fail" | "skip";
     timestamp: string;
     details?: string;
   }>;
-  overallStatus: 'valid' | 'partial' | 'invalid';
+  overallStatus: "valid" | "partial" | "invalid";
   nextValidationsNeeded: string[];
 }
 ```
@@ -3370,12 +3493,12 @@ interface ValidationSumResult {
 
 #### Specificații
 
-| Atribut | Valoare |
-|---------|---------|
-| **Queue Name** | `silver:merge:company` |
-| **Concurrency** | 30 |
-| **Rate Limit** | Fără |
-| **Timeout** | 30000ms |
+| Atribut         | Valoare                |
+| --------------- | ---------------------- |
+| **Queue Name**  | `silver:merge:company` |
+| **Concurrency** | 30                     |
+| **Rate Limit**  | Fără                   |
+| **Timeout**     | 30000ms                |
 
 #### Response Schema
 
@@ -3384,12 +3507,15 @@ interface CompanyMergeResult {
   silverCompanyId: string;
   bronzeSourceIds: string[];
   enrichmentSources: string[];
-  mergedFields: Record<string, {
-    value: any;
-    source: string;
-    confidence: number;
-    timestamp: string;
-  }>;
+  mergedFields: Record<
+    string,
+    {
+      value: any;
+      source: string;
+      confidence: number;
+      timestamp: string;
+    }
+  >;
   conflicts: Array<{
     field: string;
     values: Array<{ value: any; source: string }>;
@@ -3431,12 +3557,12 @@ interface ContactMergeResult {
 
 #### Specificații
 
-| Atribut | Valoare |
-|---------|---------|
-| **Queue Name** | `pipeline:orchestrator:start` |
-| **Concurrency** | 50 |
-| **Rate Limit** | Fără |
-| **Timeout** | 60000ms |
+| Atribut         | Valoare                       |
+| --------------- | ----------------------------- |
+| **Queue Name**  | `pipeline:orchestrator:start` |
+| **Concurrency** | 50                            |
+| **Rate Limit**  | Fără                          |
+| **Timeout**     | 60000ms                       |
 
 #### Trigger Input
 
@@ -3445,10 +3571,10 @@ interface OrchestratorStartJobData {
   correlationId: string;
   shopId: string;
   bronzeRecordId: string;
-  enrichmentProfile: 'full' | 'basic' | 'minimal' | 'custom';
-  customSteps?: string[];          // Queue names pentru custom
-  priority?: 'high' | 'normal' | 'low';
-  deadline?: string;               // ISO timestamp
+  enrichmentProfile: "full" | "basic" | "minimal" | "custom";
+  customSteps?: string[]; // Queue names pentru custom
+  priority?: "high" | "normal" | "low";
+  deadline?: string; // ISO timestamp
 }
 ```
 
@@ -3471,22 +3597,27 @@ interface OrchestratorStartResult {
 #### Implementare (FlowProducer)
 
 ```typescript
-import { FlowProducer } from 'bullmq';
+import { FlowProducer } from "bullmq";
 
 const flowProducer = new FlowProducer({ connection: workerConnection });
 
 export async function orchestratorStartProcessor(
   job: Job<OrchestratorStartJobData>,
-  logger: Logger
+  logger: Logger,
 ): Promise<OrchestratorStartResult> {
   const { bronzeRecordId, shopId, enrichmentProfile, correlationId } = job.data;
 
   // Definire flow pe baza profilului
   const flow = await flowProducer.add({
     name: `enrichment-${bronzeRecordId}`,
-    queueName: 'silver:merge:company',
+    queueName: "silver:merge:company",
     data: { bronzeRecordId, shopId, correlationId },
-    children: buildEnrichmentFlow(enrichmentProfile, bronzeRecordId, shopId, correlationId),
+    children: buildEnrichmentFlow(
+      enrichmentProfile,
+      bronzeRecordId,
+      shopId,
+      correlationId,
+    ),
   });
 
   return {
@@ -3494,7 +3625,7 @@ export async function orchestratorStartProcessor(
     bronzeRecordId,
     plannedSteps: getPlannedSteps(enrichmentProfile),
     totalEstimatedDuration: calculateEstimatedDuration(enrichmentProfile),
-    priority: job.data.priority || 'normal',
+    priority: job.data.priority || "normal",
   };
 }
 
@@ -3502,93 +3633,188 @@ function buildEnrichmentFlow(
   profile: string,
   bronzeRecordId: string,
   shopId: string,
-  correlationId: string
+  correlationId: string,
 ) {
   const baseData = { bronzeRecordId, shopId, correlationId };
 
-  if (profile === 'minimal') {
+  if (profile === "minimal") {
     return [
-      { name: 'norm-name', queueName: 'silver:norm:company-name', data: baseData },
-      { name: 'validate-cui', queueName: 'silver:validate:cui-checksum', data: baseData },
+      {
+        name: "norm-name",
+        queueName: "silver:norm:company-name",
+        data: baseData,
+      },
+      {
+        name: "validate-cui",
+        queueName: "silver:validate:cui-checksum",
+        data: baseData,
+      },
     ];
   }
 
-  if (profile === 'basic') {
+  if (profile === "basic") {
     return [
-      { name: 'norm-name', queueName: 'silver:norm:company-name', data: baseData },
-      { name: 'norm-address', queueName: 'silver:norm:address', data: baseData },
-      { name: 'validate-cui', queueName: 'silver:validate:cui-checksum', data: baseData,
-        children: [
-          { name: 'anaf-check', queueName: 'silver:validate:cui-anaf', data: baseData },
-        ]
+      {
+        name: "norm-name",
+        queueName: "silver:norm:company-name",
+        data: baseData,
       },
-      { name: 'norm-phone', queueName: 'silver:norm:phone-e164', data: baseData },
-      { name: 'norm-email', queueName: 'silver:norm:email', data: baseData },
+      {
+        name: "norm-address",
+        queueName: "silver:norm:address",
+        data: baseData,
+      },
+      {
+        name: "validate-cui",
+        queueName: "silver:validate:cui-checksum",
+        data: baseData,
+        children: [
+          {
+            name: "anaf-check",
+            queueName: "silver:validate:cui-anaf",
+            data: baseData,
+          },
+        ],
+      },
+      {
+        name: "norm-phone",
+        queueName: "silver:norm:phone-e164",
+        data: baseData,
+      },
+      { name: "norm-email", queueName: "silver:norm:email", data: baseData },
     ];
   }
 
   // Full profile - toate sursele
   return [
     // Normalizare
-    { name: 'norm-name', queueName: 'silver:norm:company-name', data: baseData },
-    { name: 'norm-address', queueName: 'silver:norm:address', data: baseData },
-    { name: 'norm-phone', queueName: 'silver:norm:phone-e164', data: baseData },
-    { name: 'norm-email', queueName: 'silver:norm:email', data: baseData },
-    
+    {
+      name: "norm-name",
+      queueName: "silver:norm:company-name",
+      data: baseData,
+    },
+    { name: "norm-address", queueName: "silver:norm:address", data: baseData },
+    { name: "norm-phone", queueName: "silver:norm:phone-e164", data: baseData },
+    { name: "norm-email", queueName: "silver:norm:email", data: baseData },
+
     // Validare CUI cu enrichment ANAF
     {
-      name: 'validate-cui',
-      queueName: 'silver:validate:cui-checksum',
+      name: "validate-cui",
+      queueName: "silver:validate:cui-checksum",
       data: baseData,
       children: [
         {
-          name: 'anaf-check',
-          queueName: 'silver:validate:cui-anaf',
+          name: "anaf-check",
+          queueName: "silver:validate:cui-anaf",
           data: baseData,
           children: [
-            { name: 'anaf-fiscal', queueName: 'enrich:anaf:fiscal-status', data: baseData },
-            { name: 'anaf-tva', queueName: 'enrich:anaf:tva-status', data: baseData },
-            { name: 'anaf-efactura', queueName: 'enrich:anaf:efactura', data: baseData },
-            { name: 'anaf-caen', queueName: 'enrich:anaf:caen', data: baseData },
+            {
+              name: "anaf-fiscal",
+              queueName: "enrich:anaf:fiscal-status",
+              data: baseData,
+            },
+            {
+              name: "anaf-tva",
+              queueName: "enrich:anaf:tva-status",
+              data: baseData,
+            },
+            {
+              name: "anaf-efactura",
+              queueName: "enrich:anaf:efactura",
+              data: baseData,
+            },
+            {
+              name: "anaf-caen",
+              queueName: "enrich:anaf:caen",
+              data: baseData,
+            },
           ],
         },
       ],
     },
-    
+
     // Termene.ro (paralel cu ANAF)
-    { name: 'termene-base', queueName: 'enrich:termene:company-base', data: baseData,
+    {
+      name: "termene-base",
+      queueName: "enrich:termene:company-base",
+      data: baseData,
       children: [
-        { name: 'termene-fin', queueName: 'enrich:termene:financials', data: baseData },
-        { name: 'termene-risk', queueName: 'enrich:termene:risk-score', data: baseData },
-        { name: 'termene-insolv', queueName: 'enrich:termene:insolvency', data: baseData },
+        {
+          name: "termene-fin",
+          queueName: "enrich:termene:financials",
+          data: baseData,
+        },
+        {
+          name: "termene-risk",
+          queueName: "enrich:termene:risk-score",
+          data: baseData,
+        },
+        {
+          name: "termene-insolv",
+          queueName: "enrich:termene:insolvency",
+          data: baseData,
+        },
       ],
     },
-    
+
     // Email enrichment
-    { name: 'email-discover', queueName: 'enrich:email:discovery', data: baseData,
+    {
+      name: "email-discover",
+      queueName: "enrich:email:discovery",
+      data: baseData,
       children: [
-        { name: 'email-verify', queueName: 'enrich:email:smtp-verify', data: baseData },
+        {
+          name: "email-verify",
+          queueName: "enrich:email:smtp-verify",
+          data: baseData,
+        },
       ],
     },
-    
+
     // Phone enrichment
-    { name: 'phone-type', queueName: 'enrich:phone:type-detect', data: baseData,
+    {
+      name: "phone-type",
+      queueName: "enrich:phone:type-detect",
+      data: baseData,
       children: [
-        { name: 'phone-hlr', queueName: 'enrich:phone:hlr-lookup', data: baseData },
-        { name: 'phone-wa', queueName: 'enrich:phone:whatsapp-check', data: baseData },
+        {
+          name: "phone-hlr",
+          queueName: "enrich:phone:hlr-lookup",
+          data: baseData,
+        },
+        {
+          name: "phone-wa",
+          queueName: "enrich:phone:whatsapp-check",
+          data: baseData,
+        },
       ],
     },
-    
+
     // Geocoding
-    { name: 'geocode', queueName: 'enrich:geo:geocode', data: baseData,
+    {
+      name: "geocode",
+      queueName: "enrich:geo:geocode",
+      data: baseData,
       children: [
-        { name: 'siruta', queueName: 'enrich:geo:siruta-lookup', data: baseData },
+        {
+          name: "siruta",
+          queueName: "enrich:geo:siruta-lookup",
+          data: baseData,
+        },
       ],
     },
-    
+
     // Agricultural
-    { name: 'apia-lookup', queueName: 'enrich:apia:farmer-lookup', data: baseData },
-    { name: 'ouai-lookup', queueName: 'enrich:anif:ouai-lookup', data: baseData },
+    {
+      name: "apia-lookup",
+      queueName: "enrich:apia:farmer-lookup",
+      data: baseData,
+    },
+    {
+      name: "ouai-lookup",
+      queueName: "enrich:anif:ouai-lookup",
+      data: baseData,
+    },
   ];
 }
 ```
@@ -3609,7 +3835,7 @@ interface OrchestratorAdvanceResult {
   nextStages: string[];
   completedStages: string[];
   failedStages: string[];
-  overallProgress: number;        // 0-100
+  overallProgress: number; // 0-100
 }
 ```
 
@@ -3621,13 +3847,13 @@ interface OrchestratorAdvanceResult {
 
 #### Specificații
 
-| Atribut | Valoare |
-|---------|---------|
-| **Queue Name** | `pipeline:monitor:health` |
-| **Concurrency** | 5 |
-| **Rate Limit** | Fără |
-| **Timeout** | 60000ms |
-| **Schedule** | Cron: `*/1 * * * *` (fiecare minut) |
+| Atribut         | Valoare                             |
+| --------------- | ----------------------------------- |
+| **Queue Name**  | `pipeline:monitor:health`           |
+| **Concurrency** | 5                                   |
+| **Rate Limit**  | Fără                                |
+| **Timeout**     | 60000ms                             |
+| **Schedule**    | Cron: `*/1 * * * *` (fiecare minut) |
 
 #### Response Schema
 
@@ -3636,7 +3862,7 @@ interface HealthCheckResult {
   timestamp: string;
   workers: Array<{
     queueName: string;
-    status: 'healthy' | 'degraded' | 'unhealthy';
+    status: "healthy" | "degraded" | "unhealthy";
     metrics: {
       waiting: number;
       active: number;
@@ -3653,7 +3879,7 @@ interface HealthCheckResult {
     memoryUsage: number;
     uptime: number;
   };
-  overallHealth: 'healthy' | 'degraded' | 'critical';
+  overallHealth: "healthy" | "degraded" | "critical";
 }
 ```
 
@@ -3692,11 +3918,11 @@ interface RateSyncResult {
 ```typescript
 // /packages/logger/src/index.ts
 
-import pino from 'pino';
-import { trace } from '@opentelemetry/api';
+import pino from "pino";
+import { trace } from "@opentelemetry/api";
 
 export const logger = pino({
-  level: process.env.LOG_LEVEL || 'info',
+  level: process.env.LOG_LEVEL || "info",
   formatters: {
     level: (label) => ({ level: label }),
     log: (obj) => {
@@ -3709,18 +3935,21 @@ export const logger = pino({
     },
   },
   base: {
-    service: 'cerniq-enrichment',
+    service: "cerniq-enrichment",
     version: process.env.APP_VERSION,
     environment: process.env.NODE_ENV,
   },
   redact: {
-    paths: ['password', 'apiKey', 'token', '*.cnp', '*.email', '*.telefon'],
-    censor: '[REDACTED]',
+    paths: ["password", "apiKey", "token", "*.cnp", "*.email", "*.telefon"],
+    censor: "[REDACTED]",
   },
-  transport: process.env.NODE_ENV === 'development' ? {
-    target: 'pino-pretty',
-    options: { colorize: true },
-  } : undefined,
+  transport:
+    process.env.NODE_ENV === "development"
+      ? {
+          target: "pino-pretty",
+          options: { colorize: true },
+        }
+      : undefined,
 });
 
 // Child logger pentru fiecare worker
@@ -3734,29 +3963,34 @@ export function createWorkerLogger(queueName: string) {
 ```typescript
 // /packages/telemetry/src/index.ts
 
-import { NodeSDK } from '@opentelemetry/sdk-node';
-import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
-import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-http';
-import { Resource } from '@opentelemetry/resources';
-import { 
+import { NodeSDK } from "@opentelemetry/sdk-node";
+import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
+import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-http";
+import { Resource } from "@opentelemetry/resources";
+import {
   SEMRESATTRS_SERVICE_NAME,
   SEMRESATTRS_SERVICE_VERSION,
   SEMRESATTRS_DEPLOYMENT_ENVIRONMENT,
-} from '@opentelemetry/semantic-conventions';
+} from "@opentelemetry/semantic-conventions";
 
 export function initTelemetry() {
   const sdk = new NodeSDK({
     resource: new Resource({
-      [SEMRESATTRS_SERVICE_NAME]: 'cerniq-enrichment-workers',
-      [SEMRESATTRS_SERVICE_VERSION]: process.env.APP_VERSION || '1.0.0',
-      [SEMRESATTRS_DEPLOYMENT_ENVIRONMENT]: process.env.NODE_ENV || 'development',
+      [SEMRESATTRS_SERVICE_NAME]: "cerniq-enrichment-workers",
+      [SEMRESATTRS_SERVICE_VERSION]: process.env.APP_VERSION || "1.0.0",
+      [SEMRESATTRS_DEPLOYMENT_ENVIRONMENT]:
+        process.env.NODE_ENV || "development",
     }),
     traceExporter: new OTLPTraceExporter({
-      url: process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://signoz:4318/v1/traces',
+      url:
+        process.env.OTEL_EXPORTER_OTLP_ENDPOINT ||
+        "http://signoz:4318/v1/traces",
     }),
     metricReader: new PeriodicExportingMetricReader({
       exporter: new OTLPMetricExporter({
-        url: process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://signoz:4318/v1/metrics',
+        url:
+          process.env.OTEL_EXPORTER_OTLP_ENDPOINT ||
+          "http://signoz:4318/v1/metrics",
       }),
       exportIntervalMillis: 60000,
     }),
@@ -3815,14 +4049,14 @@ interface WorkerDashboard {
   queues: Array<{
     name: string;
     category: string;
-    status: 'running' | 'paused' | 'error';
+    status: "running" | "paused" | "error";
     metrics: {
       waiting: number;
       active: number;
       completed24h: number;
       failed24h: number;
       avgDuration: number;
-      throughput: number;          // jobs/minute
+      throughput: number; // jobs/minute
     };
     rateLimitStatus: {
       current: number;
@@ -3835,7 +4069,7 @@ interface WorkerDashboard {
     };
   }>;
   alerts: Array<{
-    severity: 'info' | 'warning' | 'error' | 'critical';
+    severity: "info" | "warning" | "error" | "critical";
     message: string;
     worker: string;
     timestamp: string;
@@ -3853,17 +4087,17 @@ interface WorkerDashboard {
 
 // POST /api/v1/workers/{queueName}/trigger
 interface ManualTriggerRequest {
-  data: Record<string, any>;       // Job data
-  priority?: 'high' | 'normal' | 'low';
-  delay?: number;                  // Delay în ms
-  attempts?: number;               // Override default attempts
+  data: Record<string, any>; // Job data
+  priority?: "high" | "normal" | "low";
+  delay?: number; // Delay în ms
+  attempts?: number; // Override default attempts
 }
 
 // Response
 interface ManualTriggerResponse {
   jobId: string;
   queue: string;
-  status: 'queued' | 'delayed';
+  status: "queued" | "delayed";
   estimatedStart: string;
   trackingUrl: string;
 }
@@ -3875,8 +4109,8 @@ interface ManualTriggerResponse {
 // Pentru joburi care necesită aprobare manuală
 
 interface ApprovalWorkflow {
-  approvalQueue: 'pipeline:approval:pending';
-  
+  approvalQueue: "pipeline:approval:pending";
+
   // Job care necesită aprobare
   pendingApproval: {
     jobId: string;
@@ -3884,15 +4118,15 @@ interface ApprovalWorkflow {
     originalData: Record<string, any>;
     reason: string;
     requestedAt: string;
-    requestedBy: 'system' | string;  // user_id
-    autoApproveAfter?: string;       // ISO timestamp
+    requestedBy: "system" | string; // user_id
+    autoApproveAfter?: string; // ISO timestamp
   };
-  
+
   // Acțiuni disponibile
   actions: {
-    approve: 'POST /api/v1/approvals/{jobId}/approve';
-    reject: 'POST /api/v1/approvals/{jobId}/reject';
-    modify: 'POST /api/v1/approvals/{jobId}/modify';
+    approve: "POST /api/v1/approvals/{jobId}/approve";
+    reject: "POST /api/v1/approvals/{jobId}/reject";
+    modify: "POST /api/v1/approvals/{jobId}/modify";
   };
 }
 ```
@@ -3904,7 +4138,7 @@ interface ApprovalWorkflow {
 
 interface ReviewContact {
   id: string;
-  tier: 'bronze' | 'silver' | 'gold';
+  tier: "bronze" | "silver" | "gold";
   completeness: number;
   fields: Array<{
     name: string;
@@ -4035,12 +4269,12 @@ paths:
       summary: List all workers
       tags: [Workers]
       responses:
-        '200':
+        "200":
           description: Worker dashboard
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/WorkerDashboard'
+                $ref: "#/components/schemas/WorkerDashboard"
 
   /workers/{queueName}/trigger:
     post:
@@ -4056,14 +4290,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ManualTriggerRequest'
+              $ref: "#/components/schemas/ManualTriggerRequest"
       responses:
-        '202':
+        "202":
           description: Job queued
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ManualTriggerResponse'
+                $ref: "#/components/schemas/ManualTriggerResponse"
 
 components:
   securitySchemes:
@@ -4081,7 +4315,7 @@ components:
         queues:
           type: array
           items:
-            $ref: '#/components/schemas/QueueStatus'
+            $ref: "#/components/schemas/QueueStatus"
 
     ManualTriggerRequest:
       type: object
@@ -4112,18 +4346,18 @@ components:
 
 ## Anexă: Tabel Centralizator Rate Limits
 
-| # | Queue | Rate Limit | API Source | Cost |
-|---|-------|-----------|------------|------|
-| 11 | `silver:validate:cui-anaf` | 1/sec | ANAF | Gratuit |
-| 12-16 | `enrich:anaf:*` | 1/sec (shared) | ANAF | Gratuit |
-| 17-24 | `enrich:termene:*` | 20/sec | Termene.ro | 1-5 credite |
-| 27 | `enrich:email:discovery` | 15/sec | Hunter.io | 1 credit |
-| 29 | `enrich:email:smtp-verify` | 50k/hour | ZeroBounce | $0.008 |
-| 33 | `enrich:phone:hlr-lookup` | 100/sec | CheckMobi | $0.005 |
-| 35 | `enrich:phone:whatsapp-check` | 50/min | TimelinesAI | Included |
-| 36 | `enrich:web:fetch` | 10/sec/domain | - | Gratuit |
-| 41-43 | `enrich:ai:*` | 60/min | xAI Grok | $0.01-0.05 |
-| 44 | `enrich:geo:geocode` | 50/sec | Nominatim | Gratuit |
+| #     | Queue                         | Rate Limit     | API Source  | Cost        |
+| ----- | ----------------------------- | -------------- | ----------- | ----------- |
+| 11    | `silver:validate:cui-anaf`    | 1/sec          | ANAF        | Gratuit     |
+| 12-16 | `enrich:anaf:*`               | 1/sec (shared) | ANAF        | Gratuit     |
+| 17-24 | `enrich:termene:*`            | 20/sec         | Termene.ro  | 1-5 credite |
+| 27    | `enrich:email:discovery`      | 15/sec         | Hunter.io   | 1 credit    |
+| 29    | `enrich:email:smtp-verify`    | 50k/hour       | ZeroBounce  | $0.008      |
+| 33    | `enrich:phone:hlr-lookup`     | 100/sec        | CheckMobi   | $0.005      |
+| 35    | `enrich:phone:whatsapp-check` | 50/min         | TimelinesAI | Included    |
+| 36    | `enrich:web:fetch`            | 10/sec/domain  | -           | Gratuit     |
+| 41-43 | `enrich:ai:*`                 | 60/min         | xAI Grok    | $0.01-0.05  |
+| 44    | `enrich:geo:geocode`          | 50/sec         | Nominatim   | Gratuit     |
 
 ---
 
