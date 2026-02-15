@@ -9,17 +9,21 @@
 # This script configures:
 #   1. Default deny incoming
 #   2. Allow SSH from admin IPs only
-#   3. Allow HTTP/HTTPS from anywhere
+#   3. Allow HTTP/HTTPS from anywhere (ingress handled on orchestrator)
 #   4. Allow Docker internal networks
 #   5. Rate limiting
 # 
 # Admin IPs (whitelisted):
-#   - 92.180.19.237  (Office)
-#   - 95.216.225.145 (Admin 1)
-#   - 94.130.68.123  (Admin 2)
+#   - 92.180.19.237   (Office)
+#   - 95.216.225.145  (Admin 1)
+#   - 94.130.68.123   (Admin 2)
 #   - 135.181.183.164 (Admin 3)
-#   - 95.216.72.100  (Backup Server 1)
-#   - 95.216.72.118  (Backup Server 2)
+#   - 95.216.72.100   (Backup Server 1)
+#   - 95.216.72.118   (Backup Server 2)
+#   - 10.0.1.107      (CT107 postgres-main)
+#   - 10.0.1.108      (CT108 CI runner)
+#   - 10.0.1.109      (CT109 production)
+#   - 10.0.1.110      (CT110 staging)
 # =============================================================================
 
 set -euo pipefail
@@ -53,14 +57,30 @@ else
         "135.181.183.164"
         "95.216.72.100"
         "95.216.72.118"
+        "10.0.1.107"
+        "10.0.1.108"
+        "10.0.1.109"
+        "10.0.1.110"
     )
 fi
 
-# Ports to open publicly
-PUBLIC_PORTS=(
-    "80/tcp"   # HTTP (Traefik)
-    "443/tcp"  # HTTPS (Traefik)
-)
+# Ports to open publicly (environment-aware)
+if is_production; then
+    PUBLIC_PORTS=(
+        "80/tcp"    # HTTP
+        "443/tcp"   # HTTPS
+        "3000/tcp"  # IWMS API (temporary allow)
+        "3002/tcp"  # IWMS UI (temporary allow)
+        "5173/tcp"  # WMS v1 UI (temporary allow)
+        "3060/tcp"  # WAppBuss backend (temporary allow)
+        "3061/tcp"  # WAppBuss frontend (temporary allow)
+    )
+else
+    PUBLIC_PORTS=(
+        "80/tcp"    # HTTP
+        "443/tcp"   # HTTPS
+    )
+fi
 
 # Ports for admin IPs only
 ADMIN_PORTS=(
@@ -68,11 +88,29 @@ ADMIN_PORTS=(
 )
 
 # Docker networks (internal, don't block)
-DOCKER_NETWORKS=(
-    "172.27.0.0/24"  # cerniq_public
-    "172.28.0.0/24"  # cerniq_backend
-    "172.29.0.0/24"  # cerniq_data
-)
+if is_production; then
+    DOCKER_NETWORKS=(
+        "172.29.10.0/24"  # cerniq_public
+        "172.29.20.0/24"  # cerniq_backend
+        "172.29.30.0/24"  # cerniq_data
+    )
+else
+    DOCKER_NETWORKS=(
+        "172.29.10.0/24"  # cerniq_public
+        "172.29.20.0/24"  # cerniq_backend
+        "172.29.30.0/24"  # cerniq_data
+    )
+fi
+
+# Explicitly blocked ports (environment-aware)
+if is_production; then
+    BLOCKED_PORTS=(
+        "3062/tcp"  # WAppBuss PostgreSQL (should not be public)
+        "3063/tcp"  # WAppBuss Redis (should not be public)
+    )
+else
+    BLOCKED_PORTS=()
+fi
 
 # =============================================================================
 # Colors for output
@@ -125,12 +163,15 @@ fi
 # =============================================================================
 
 log_warning "⚠️  This will reset ALL firewall rules!"
-echo ""
-read -p "Continue? (yes/no): " CONFIRM
-
-if [[ "$CONFIRM" != "yes" ]]; then
-    log_info "Aborted."
-    exit 0
+if [[ -n "${GITHUB_ACTIONS:-}" || "${CI:-}" == "true" || "${CERNIQ_UFW_AUTO_APPROVE:-}" == "true" ]]; then
+    log_info "Non-interactive mode detected. Proceeding automatically."
+else
+    echo ""
+    read -p "Continue? (yes/no): " CONFIRM
+    if [[ "$CONFIRM" != "yes" ]]; then
+        log_info "Aborted."
+        exit 0
+    fi
 fi
 
 log_info "Resetting UFW to defaults..."
@@ -196,6 +237,19 @@ for port in "${PUBLIC_PORTS[@]}"; do
 done
 
 log_success "Public ports configured"
+
+# =============================================================================
+# Explicitly block sensitive ports (production)
+# =============================================================================
+
+if [[ ${#BLOCKED_PORTS[@]} -gt 0 ]]; then
+    log_info "Blocking sensitive ports..."
+    for port in "${BLOCKED_PORTS[@]}"; do
+        ufw deny "${port}"
+        log_info "  Blocked: $port"
+    done
+    log_success "Sensitive ports blocked"
+fi
 
 # =============================================================================
 # Rate limiting for SSH

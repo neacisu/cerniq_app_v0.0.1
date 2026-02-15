@@ -10,7 +10,7 @@ Serviciile Docker necesită porturi standardizate pentru evitarea conflictelor c
 
 ## Decizie
 
-Cerniq.app folosește **range 64000-64099** pentru toate serviciile interne. Acces extern doar prin nginx reverse proxy pe 80/443.
+Cerniq.app folosește **range 64000-64099** pentru serviciile interne ale aplicației. Accesul extern este terminat centralizat în Traefik-ul orchestratorului.
 
 ### Port Allocation
 
@@ -27,19 +27,18 @@ Cerniq.app folosește **range 64000-64099** pentru toate serviciile interne. Acc
 | **Database (64030-64049)** | | |
 | 64032 | PostgreSQL | cerniq_data |
 | 64039 | Redis | cerniq_data |
-| 64042 | PgBouncer | cerniq_data |
+| 64033 | PgBouncer | cerniq_backend + cerniq_data |
 | **Observability (64070-64089)** | | |
 | 64070 | OTel gRPC | cerniq_backend |
 | 64071 | OTel HTTP | cerniq_backend |
-| 64080 | SigNoz UI | cerniq_backend |
-| 64081 | Traefik Metrics | cerniq_backend |
+| 64089 | Cerniq Observability UI (legacy reserved) | cerniq_backend |
 | 64082 | ClickHouse HTTP | cerniq_backend |
 | 64083 | ClickHouse Native | cerniq_backend |
 
 ### Architecture
 
 ```text
-nginx (80/443) → proxy_pass → localhost:64000-64099
+Internet → Traefik orchestrator (80/443) → LXC Cerniq (64000/64010/64012)
 ```
 
 ## Consecințe
@@ -53,7 +52,7 @@ nginx (80/443) → proxy_pass → localhost:64000-64099
 
 ### Negative
 
-- Necesită nginx config pentru reverse proxy
+- Routing-ul public este gestionat de Traefik orchestrator (fără nginx local în stack-ul Cerniq)
 - Dezvoltatorii trebuie să cunoască porturile non-standard
 
 ## Referințe

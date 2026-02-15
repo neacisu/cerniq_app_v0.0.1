@@ -14,16 +14,50 @@
 
 services:
   # ==========================================================================
+  # Redis (DEV ONLY) - local instance for development laptops
+  # ==========================================================================
+  # Production/staging uses shared Redis on orchestrator (10.0.0.2:6379).
+  # This dev service exists only to keep local workflows working.
+  # ==========================================================================
+  redis:
+    image: redis:8.6.0
+    container_name: cerniq-redis-dev
+    restart: unless-stopped
+    # Local-only: bind to docker networks, no host port exposure
+    command:
+      - redis-server
+      - --port
+      - "64039"
+      - --requirepass
+      - "${REDIS_DEV_PASSWORD:-dev-only-change-me}"
+      - --maxmemory
+      - "1gb"
+      - --maxmemory-policy
+      - "noeviction"
+    networks:
+      cerniq_data:
+        ipv4_address: 172.29.30.20
+      cerniq_backend:
+        ipv4_address: 172.29.20.20
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -p 64039 -a \"$${REDIS_DEV_PASSWORD:-dev-only-change-me}\" ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    profiles:
+      - dev
+
+  # ==========================================================================
   # RedisInsight - Redis GUI for Development
   # ==========================================================================
   # Access: http://localhost:8001
   # Configure connection in UI:
-  #   - Host: redis (or 172.28.0.20 via cerniq_backend)
+  #   - Host: redis (or 172.29.20.20 via cerniq_backend)
   #   - Port: 64039 (per ADR-0022 port allocation)
   #   - Password: (from /var/www/CerniqAPP/secrets/redis_password.txt)
   # ==========================================================================
   redisinsight:
-    image: redis/redisinsight:latest
+    image: redis/redisinsight:3.0.2
     container_name: cerniq-redisinsight
     restart: unless-stopped
     ports:
@@ -31,7 +65,7 @@ services:
     volumes:
       - redisinsight_data:/data
     networks:
-      - cerniq_data      # Primary: Redis is on cerniq_data (172.29.0.20:64039)
+      - cerniq_data      # Primary: Redis is on cerniq_data (172.29.30.20:64039)
       - cerniq_backend   # Secondary: For potential API access
     depends_on:
       redis:

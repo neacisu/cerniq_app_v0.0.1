@@ -14,20 +14,20 @@ This document records the network connectivity tests performed as part of E0-S3-
 
 ### 1. Internal Network Connectivity
 
-#### Redis on cerniq_data (172.29.0.0/24)
+#### Redis on cerniq_data (172.29.30.0/24)
 
 | Test | Command | Result | Status |
 |------|---------|--------|--------|
-| IP Assignment | `docker network inspect cerniq_data` | `172.29.0.20/24` | ✅ PASS |
-| Connectivity from PgBouncer | `nc -zv 172.29.0.20 64039` | `open` | ✅ PASS |
+| IP Assignment | `docker network inspect cerniq_data` | `172.29.30.20/24` | ✅ PASS |
+| Connectivity from PgBouncer | `nc -zv 172.29.30.20 64039` | `open` | ✅ PASS |
 | Connectivity from PostgreSQL | Internal network shared | Verified | ✅ PASS |
 
-#### Redis on cerniq_backend (172.28.0.0/24)
+#### Redis on cerniq_backend (172.29.20.0/24)
 
 | Test | Command | Result | Status |
 |------|---------|--------|--------|
-| IP Assignment | `docker network inspect cerniq_backend` | `172.28.0.20/24` | ✅ PASS |
-| Worker access (simulated) | `nc -zv 172.28.0.20 64039` | `open` | ✅ PASS |
+| IP Assignment | `docker network inspect cerniq_backend` | `172.29.20.20/24` | ✅ PASS |
+| Worker access (simulated) | `nc -zv 172.29.20.20 64039` | `open` | ✅ PASS |
 
 ### 2. External Isolation Tests
 
@@ -50,22 +50,22 @@ This document records the network connectivity tests performed as part of E0-S3-
 
 ```
 ┌────────────────────────────────────────────────────────────────┐
-│                    cerniq_backend (172.28.0.0/24)              │
+│                    cerniq_backend (172.29.20.0/24)              │
 │                         internal: true                          │
 │  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐        │
 │  │   Workers   │───▶│   Redis     │◀───│    API      │        │
-│  │   (future)  │    │ 172.28.0.20 │    │   (future)  │        │
+│  │   (future)  │    │ 172.29.20.20 │    │   (future)  │        │
 │  └─────────────┘    └──────┬──────┘    └─────────────┘        │
 └────────────────────────────┼───────────────────────────────────┘
                              │
                              │ (same container, dual-homed)
                              │
 ┌────────────────────────────┼───────────────────────────────────┐
-│                    cerniq_data (172.29.0.0/24)                 │
+│                    cerniq_data (172.29.30.0/24)                 │
 │                         internal: true                          │
 │  ┌─────────────┐    ┌──────┴──────┐    ┌─────────────┐        │
 │  │ PostgreSQL  │    │   Redis     │    │  PgBouncer  │        │
-│  │ 172.29.0.10 │    │ 172.29.0.20 │    │ 172.29.0.11 │        │
+│  │ 172.29.30.10 │    │ 172.29.30.20 │    │ 172.29.30.11 │        │
 │  └─────────────┘    └─────────────┘    └─────────────┘        │
 └────────────────────────────────────────────────────────────────┘
 ```

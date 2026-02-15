@@ -32,10 +32,28 @@ else
 fi
 
 # =============================================================================
+# IMPORTANT: centralized OpenBao (orchestrator)
+# =============================================================================
+#
+# In the new infrastructure OpenBao is centralized on the orchestrator
+# (`https://s3cr3ts.neanelu.ro`). Cerniq hosts (CT109/CT110/CT108) must NOT
+# initialize/unseal a local OpenBao instance.
+#
+# This script is therefore kept only as historical reference and will exit
+# unless explicitly forced (for lab/dev-only scenarios).
+if [[ "${ALLOW_LOCAL_OPENBAO_INIT:-false}" != "true" ]]; then
+    echo "ERROR: openbao-init.sh is obsolete in the new infra."
+    echo "OpenBao is centralized on orchestrator: https://s3cr3ts.neanelu.ro"
+    echo "If you really need to run init in a lab environment, set:"
+    echo "  ALLOW_LOCAL_OPENBAO_INIT=true"
+    exit 1
+fi
+
+# =============================================================================
 # Configuration (environment-aware)
 # =============================================================================
 
-BAO_ADDR="${BAO_ADDR:-http://127.0.0.1:64090}"
+BAO_ADDR="${BAO_ADDR:-https://s3cr3ts.neanelu.ro}"
 BAO_CONTAINER="${BAO_CONTAINER:-cerniq-openbao}"
 SECRETS_DIR="${CERNIQ_SECRETS_DIR:-/var/www/CerniqAPP/secrets}"
 SCRIPTS_DIR="${SCRIPT_DIR}"
@@ -273,7 +291,7 @@ log_warning "  2. Never store root token online after initial setup"
 log_warning "  3. Use AppRole tokens for service authentication"
 log_warning "  4. Test restore procedure before going to production"
 echo ""
-log_info "Access OpenBao UI: http://localhost:64090/ui"
+log_info "Access OpenBao UI: https://s3cr3ts.neanelu.ro/ui"
 log_info "Login with root token from: $SECRETS_DIR/openbao_root_token.txt"
 echo ""
 

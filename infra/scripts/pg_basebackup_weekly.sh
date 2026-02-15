@@ -9,9 +9,15 @@ set -euo pipefail
 BACKUP_DIR="/var/backups/cerniq/postgresql/basebackup"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 LOG_FILE="/var/log/cerniq/basebackup.log"
-CONTAINER="cerniq-postgres"
-DB_USER="c3rn1q"
 OUTPUT_DIR="$BACKUP_DIR/base_${TIMESTAMP}"
+
+# New infra note:
+# - PostgreSQL runs on CT107 (postgres-main), not as a local docker container.
+# - Physical basebackups (PITR) must be executed on CT107 (or a host that has
+#   direct access to the PostgreSQL data directory and replication privileges).
+PG_HOST="${PG_HOST:-127.0.0.1}"
+PG_PORT="${PG_PORT:-5432}"
+PG_USER="${PG_USER:-postgres}"
 
 # Hetzner Storage Box config
 STORAGE_BOX="u502048@u502048.your-storagebox.de"
@@ -27,20 +33,19 @@ log() {
 
 log "Starting weekly base backup"
 
-# Check if PostgreSQL container is running
-if ! docker ps --format '{{.Names}}' | grep -q "^${CONTAINER}$"; then
-    log "ERROR: Container $CONTAINER not running"
+if ! command -v pg_basebackup >/dev/null 2>&1; then
+    log "ERROR: pg_basebackup not found. This script must run on CT107 (postgres-main)."
     exit 1
 fi
 
 # Create base backup directory
 mkdir -p "$OUTPUT_DIR"
 
-# Run pg_basebackup from container
-# Use tar format for portability and compression
-docker exec "$CONTAINER" pg_basebackup \
-    -U "$DB_USER" \
-    -D /tmp/basebackup_temp \
+# Run pg_basebackup locally (expected on CT107). Use tar format for portability.
+# We default to running as the local postgres superuser.
+sudo -u postgres pg_basebackup \
+    -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" \
+    -D "$OUTPUT_DIR" \
     --format=tar \
     --gzip \
     --compress=9 \
@@ -48,12 +53,6 @@ docker exec "$CONTAINER" pg_basebackup \
     --label="weekly_backup_${TIMESTAMP}" \
     --progress \
     --verbose 2>> "$LOG_FILE"
-
-# Copy backup from container to host
-docker cp "${CONTAINER}:/tmp/basebackup_temp/." "$OUTPUT_DIR/" 2>> "$LOG_FILE"
-
-# Cleanup temp dir in container
-docker exec "$CONTAINER" rm -rf /tmp/basebackup_temp 2>/dev/null || true
 
 # Calculate total size
 TOTAL_SIZE=$(du -sh "$OUTPUT_DIR" 2>/dev/null | cut -f1)

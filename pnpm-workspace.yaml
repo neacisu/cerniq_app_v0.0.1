@@ -1,8 +1,10 @@
-# CERNIQ.APP — PNPM Workspace Configuration
-# Placeholder pentru F0.6 Monorepo Setup
-# Ref: etapa0-plan-implementare-complet-v2.md
-
 packages:
-  - 'apps/*'
-  - 'packages/*'
-  - 'workers/*'
+  - apps/*
+  - packages/*
+  - workers/*
+
+onlyBuiltDependencies:
+  - esbuild
+  - msgpackr-extract
+
+storeDir: .pnpm-store

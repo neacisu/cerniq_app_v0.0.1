@@ -199,9 +199,9 @@ describe('PostgreSQL Schemas', () => {
     expect(result.length).toBe(1);
   });
   
-  it('should have cerniq_app role with correct grants', async () => {
+  it('should have c3rn1q role with correct grants', async () => {
     const result = await db.execute(
-      sql`SELECT 1 FROM pg_roles WHERE rolname = 'cerniq_app'`
+      sql`SELECT 1 FROM pg_roles WHERE rolname = 'c3rn1q'`
     );
     expect(result.length).toBe(1);
   });
@@ -263,7 +263,7 @@ describe('PostgreSQL Connectivity', () => {
   beforeAll(() => {
     pool = new Pool({
       host: 'localhost', // Via Docker network
-      database: 'cerniq_production',
+      database: 'cerniq',
       user: 'cerniq',
       password: process.env.POSTGRES_PASSWORD,
     });
@@ -279,7 +279,7 @@ describe('PostgreSQL Connectivity', () => {
   it('should reject connections with invalid password', async () => {
     const badPool = new Pool({
       host: 'localhost',
-      database: 'cerniq_production',
+      database: 'cerniq',
       user: 'cerniq',
       password: 'wrong_password',
     });
@@ -366,7 +366,7 @@ describe('PostgreSQL Performance', () => {
 ### Schemas
 
 - [ ] bronze, silver, gold, approval, audit create
-- [ ] Role cerniq_app cu grants corecte
+- [ ] Role c3rn1q cu grants corecte
 
 ### Security
 

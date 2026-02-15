@@ -237,7 +237,7 @@ export default depsRoute;
 services:
   postgres:
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U cerniq -d cerniq_production"]
+      test: ["CMD-SHELL", "pg_isready -U c3rn1q -d cerniq"]
       interval: 10s
       timeout: 5s
       retries: 5

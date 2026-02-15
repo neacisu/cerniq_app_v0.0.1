@@ -27140,7 +27140,7 @@ jobs:
       postgres:
         image: postgres:18-alpine
         env:
-          POSTGRES_USER: cerniq
+          POSTGRES_USER: c3rn1q
           POSTGRES_PASSWORD: ${{ secrets.TEST_DB_PASSWORD }}
           POSTGRES_DB: cerniq_test
         ports:

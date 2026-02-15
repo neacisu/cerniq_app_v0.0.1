@@ -9,10 +9,12 @@ set -euo pipefail
 BACKUP_DIR="/var/backups/cerniq/postgresql/daily"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 LOG_FILE="/var/log/cerniq/daily_dump.log"
-CONTAINER="cerniq-postgres"
-DB_USER="c3rn1q"
-DB_NAME="cerniq"
 OUTPUT_FILE="$BACKUP_DIR/cerniq_full_${TIMESTAMP}.dump"
+
+# New infra: PostgreSQL is external (CT107). We authenticate via OpenBao dynamic
+# DB creds rendered into an env-file (contains DATABASE_URL pointing to PgBouncer).
+ENV_FILE="${ENV_FILE:-/run/cerniq/runtime-secrets/api/api.env}"
+DOCKER_NET="${DOCKER_NET:-cerniq_backend}"
 
 # Hetzner Storage Box config
 STORAGE_BOX="u502048@u502048.your-storagebox.de"
@@ -28,35 +30,31 @@ log() {
 
 log "Starting daily full backup"
 
-# Check if PostgreSQL container is running
-if ! docker ps --format '{{.Names}}' | grep -q "^${CONTAINER}$"; then
-    log "ERROR: Container $CONTAINER not running"
+if [[ ! -f "$ENV_FILE" ]]; then
+    log "ERROR: env file missing (OpenBao rendered): $ENV_FILE"
     exit 1
 fi
 
-# Create full dump with custom format (best compression)
-docker exec "$CONTAINER" pg_dump \
-    -U "$DB_USER" \
-    -d "$DB_NAME" \
-    --format=custom \
-    --compress=9 \
-    --verbose \
+# Create full dump with custom format (best compression) using DATABASE_URL.
+# We run tooling in a throwaway postgres image on the Cerniq docker network so
+# it can resolve `pgbouncer:64033`.
+docker run --rm \
+    --network "$DOCKER_NET" \
+    --env-file "$ENV_FILE" \
+    postgres:18 \
+    sh -lc 'exec pg_dump "$DATABASE_URL" --format=custom --compress=9 --verbose' \
     > "$OUTPUT_FILE" 2>> "$LOG_FILE"
 
 FILESIZE=$(stat -c%s "$OUTPUT_FILE" 2>/dev/null || echo "0")
 log "Dump created: $OUTPUT_FILE (${FILESIZE} bytes)"
 
 # Verify dump integrity
-if docker exec "$CONTAINER" pg_restore --list "$OUTPUT_FILE" > /dev/null 2>&1; then
-    log "Dump verified OK"
-else
-    # Try verification from host
-    if pg_restore --list "$OUTPUT_FILE" > /dev/null 2>&1; then
-        log "Dump verified OK (host)"
-    else
-        log "WARNING: Dump verification failed"
-    fi
-fi
+docker run --rm \
+    -v "$OUTPUT_FILE:/dump:ro" \
+    postgres:18 \
+    pg_restore --list /dump >/dev/null 2>&1 \
+  && log "Dump verified OK" \
+  || log "WARNING: Dump verification failed"
 
 # Upload to Hetzner Storage Box
 if [[ -f "$SSH_KEY" ]]; then

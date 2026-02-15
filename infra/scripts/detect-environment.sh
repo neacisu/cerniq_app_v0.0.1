@@ -31,21 +31,26 @@ fi
 # Server Configuration
 # =============================================================================
 
-# Staging server (Hetzner neanelu)
-STAGING_HOSTNAME="Ubuntu-2404-noble-amd64-base"
-STAGING_IP="135.181.183.164"
+# Staging LXC (Proxmox)
+STAGING_HOSTNAME="staging-cerniq"
+STAGING_IP="10.0.1.110"
 STAGING_WORKSPACE="/var/www/CerniqAPP"
 STAGING_DEPLOY_DIR="/opt/cerniq"
 
-# Production server (Hetzner erp)
-PRODUCTION_HOSTNAME="erp"
-PRODUCTION_IP="95.216.225.145"
+# Production LXC (Proxmox)
+PRODUCTION_HOSTNAME="prod-cerniq"
+PRODUCTION_IP="10.0.1.109"
 PRODUCTION_WORKSPACE="/var/www/CerniqAPP"
 PRODUCTION_DEPLOY_DIR="/opt/cerniq"
 
+# External PostgreSQL LXC
+PG_HOST="10.0.1.107"
+PG_PORT="5432"
+
 # Admin IPs per environment
-STAGING_ADMIN_IPS="92.180.19.237 95.216.225.145 94.130.68.123 135.181.183.164 95.216.72.100 95.216.72.118"
-PRODUCTION_ADMIN_IPS="92.180.19.237 95.216.225.145"
+# NOTE: includes user-provided external admin/backup IPs (intentionally whitelisted).
+STAGING_ADMIN_IPS="92.180.19.237 95.216.225.145 94.130.68.123 135.181.183.164 95.216.72.100 95.216.72.118 10.0.1.107 10.0.1.108 10.0.1.109 10.0.1.110"
+PRODUCTION_ADMIN_IPS="92.180.19.237 95.216.225.145 94.130.68.123 135.181.183.164 95.216.72.100 95.216.72.118 10.0.1.107 10.0.1.108 10.0.1.109 10.0.1.110"
 
 # =============================================================================
 # Environment Detection
@@ -124,6 +129,8 @@ _result=$(detect_environment)
 export CERNIQ_ENV="${_result%%:*}"
 export CERNIQ_ENV_DETECTION_METHOD="${_result#*:}"
 export CERNIQ_ENV_DETECTED="true"
+export PG_HOST
+export PG_PORT
 
 # Set environment-specific variables
 if [[ "$CERNIQ_ENV" == "production" ]]; then
@@ -140,7 +147,7 @@ else
     export CERNIQ_HOSTNAME="$STAGING_HOSTNAME"
     export CERNIQ_WORKSPACE="$STAGING_WORKSPACE"
     export CERNIQ_DEPLOY_DIR="$STAGING_DEPLOY_DIR"
-    export CERNIQ_SECRETS_DIR="$STAGING_WORKSPACE/secrets"
+    export CERNIQ_SECRETS_DIR="$STAGING_DEPLOY_DIR/secrets"
     export CERNIQ_ADMIN_IPS="$STAGING_ADMIN_IPS"
     export CERNIQ_OPENBAO_AUTO_UNSEAL="true"
     export CERNIQ_LOG_LEVEL="debug"
@@ -160,6 +167,7 @@ cerniq_env_info() {
     printf "║  Server IP:       %-54s ║\n" "$CERNIQ_SERVER_IP"
     printf "║  Workspace:       %-54s ║\n" "$CERNIQ_WORKSPACE"
     printf "║  Secrets Dir:     %-54s ║\n" "$CERNIQ_SECRETS_DIR"
+    printf "║  PostgreSQL Host: %-54s ║\n" "$PG_HOST"
     printf "║  Auto-Unseal:     %-54s ║\n" "$CERNIQ_OPENBAO_AUTO_UNSEAL"
     echo "╚════════════════════════════════════════════════════════════════════════╝"
 }

@@ -1,0 +1,237 @@
+http:
+  middlewares:
+    # OTLP intake is exposed on the public Traefik entrypoint, but restricted
+    # to Cerniq-only internal sources (CT109/CT110) via IP allowlist.
+    cerniq-otlp-allowlist:
+      ipWhiteList:
+        sourceRange:
+          - "10.0.1.109/32"
+          - "10.0.1.110/32"
+    security-headers:
+      headers:
+        frameDeny: true
+        contentTypeNosniff: true
+        browserXssFilter: true
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+        stsPreload: true
+        forceSTSHeader: true
+    rate-limit:
+      rateLimit:
+        average: 100
+        burst: 200
+    rate-limit-strict:
+      rateLimit:
+        average: 10
+        burst: 20
+    compress:
+      compress: {}
+    circuit-breaker:
+      circuitBreaker:
+        expression: "NetworkErrorRatio() > 0.30"
+    retry:
+      retry:
+        attempts: 3
+        initialInterval: "100ms"
+    www-redirect:
+      redirectRegex:
+        regex: "^https://www\\.cerniq\\.app/(.*)"
+        replacement: "https://cerniq.app/${1}"
+        permanent: true
+    chain-api:
+      chain:
+        middlewares:
+          - security-headers
+          - rate-limit
+          - compress
+          - retry
+          - circuit-breaker
+    chain-auth:
+      chain:
+        middlewares:
+          - security-headers
+          - rate-limit-strict
+          - compress
+          - retry
+          - circuit-breaker
+    chain-web:
+      chain:
+        middlewares:
+          - security-headers
+          - rate-limit
+          - compress
+          - retry
+
+  routers:
+    cerniq-prod-web:
+      rule: "Host(`cerniq.app`)"
+      service: cerniq-prod-web-svc
+      entryPoints:
+        - websecure
+      middlewares:
+        - chain-web
+      tls:
+        certResolver: cloudflare
+        domains:
+          - main: "cerniq.app"
+            sans:
+              - "*.cerniq.app"
+
+    cerniq-prod-www:
+      rule: "Host(`www.cerniq.app`)"
+      service: cerniq-prod-web-svc
+      entryPoints:
+        - websecure
+      middlewares:
+        - www-redirect
+      tls:
+        certResolver: cloudflare
+        domains:
+          - main: "cerniq.app"
+            sans:
+              - "*.cerniq.app"
+
+    cerniq-prod-api:
+      rule: "Host(`api.cerniq.app`)"
+      service: cerniq-prod-api-svc
+      entryPoints:
+        - websecure
+      middlewares:
+        - chain-api
+      tls:
+        certResolver: cloudflare
+        domains:
+          - main: "cerniq.app"
+            sans:
+              - "*.cerniq.app"
+
+    cerniq-prod-admin:
+      rule: "Host(`admin.cerniq.app`)"
+      service: cerniq-prod-admin-svc
+      entryPoints:
+        - websecure
+      middlewares:
+        - chain-auth
+      tls:
+        certResolver: cloudflare
+        domains:
+          - main: "cerniq.app"
+            sans:
+              - "*.cerniq.app"
+
+    cerniq-staging-web:
+      rule: "Host(`staging.cerniq.app`)"
+      service: cerniq-staging-web-svc
+      entryPoints:
+        - websecure
+      middlewares:
+        - chain-web
+      tls:
+        certResolver: cloudflare
+        domains:
+          - main: "cerniq.app"
+            sans:
+              - "*.cerniq.app"
+
+    cerniq-staging-api:
+      rule: "Host(`api.staging.cerniq.app`)"
+      service: cerniq-staging-api-svc
+      entryPoints:
+        - websecure
+      middlewares:
+        - chain-api
+      tls:
+        certResolver: cloudflare
+        domains:
+          - main: "cerniq.app"
+            sans:
+              - "*.cerniq.app"
+
+    cerniq-staging-admin:
+      rule: "Host(`admin.staging.cerniq.app`)"
+      service: cerniq-staging-admin-svc
+      entryPoints:
+        - websecure
+      middlewares:
+        - chain-auth
+      tls:
+        certResolver: cloudflare
+        domains:
+          - main: "cerniq.app"
+            sans:
+              - "*.cerniq.app"
+
+    # Cerniq-only OTLP (HTTP) entrypoint (additive).
+    # Used by CT109/CT110 otel-collector forwarders, which export to:
+    #   https://otel-cerniq.neanelu.ro/v1/{traces,metrics,logs}
+    cerniq-otlp-http:
+      rule: "Host(`otel-cerniq.neanelu.ro`)"
+      service: cerniq-otlp-http-svc
+      entryPoints:
+        - websecure
+      middlewares:
+        - cerniq-otlp-allowlist
+      tls:
+        certResolver: cloudflare
+
+  services:
+    cerniq-prod-web-svc:
+      loadBalancer:
+        servers:
+          - url: "http://10.0.1.109:64000"
+        healthCheck:
+          path: "/health"
+          interval: "30s"
+          timeout: "5s"
+
+    cerniq-prod-api-svc:
+      loadBalancer:
+        servers:
+          - url: "http://10.0.1.109:64010"
+        healthCheck:
+          path: "/health"
+          interval: "30s"
+          timeout: "5s"
+
+    cerniq-prod-admin-svc:
+      loadBalancer:
+        servers:
+          - url: "http://10.0.1.109:64012"
+        healthCheck:
+          path: "/health"
+          interval: "30s"
+          timeout: "5s"
+
+    cerniq-staging-web-svc:
+      loadBalancer:
+        servers:
+          - url: "http://10.0.1.110:64000"
+        healthCheck:
+          path: "/health"
+          interval: "30s"
+          timeout: "5s"
+
+    cerniq-staging-api-svc:
+      loadBalancer:
+        servers:
+          - url: "http://10.0.1.110:64010"
+        healthCheck:
+          path: "/health"
+          interval: "30s"
+          timeout: "5s"
+
+    cerniq-staging-admin-svc:
+      loadBalancer:
+        servers:
+          - url: "http://10.0.1.110:64012"
+        healthCheck:
+          path: "/health"
+          interval: "30s"
+          timeout: "5s"
+
+    # OTLP collector intake (central, on orchestrator loopback).
+    # Traefik on orchestrator uses host networking, so 127.0.0.1 is stable.
+    cerniq-otlp-http-svc:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:4318"

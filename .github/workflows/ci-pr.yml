@@ -16,6 +16,10 @@ on:
     branches:
       - main
       - develop
+      - 'feature/**'
+      - 'feat/**'
+      - 'fix/**'
+      - 'hotfix/**'
   pull_request:
     branches:
       - main
@@ -26,9 +30,9 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: '24.12.0'
-  PNPM_VERSION: '9'
-  PYTHON_VERSION: '3.14'
+  NODE_VERSION: '25.6.1'
+  PNPM_VERSION: '10.28.2'
+  PYTHON_VERSION: '3.14.3'
 
 jobs:
   # ===========================================================================
@@ -62,17 +66,37 @@ jobs:
       - name: 📝 TypeScript Type Check
         run: pnpm typecheck
 
-  # ===========================================================================
-  # JOB 2: Unit & Integration Tests
-  # ===========================================================================
-  # Note: E2E/Infrastructure tests are run locally, not in CI
-  # This job runs unit tests only (no database dependencies)
-  # ===========================================================================
+  # ==========================================================================
+  # JOB 2: Full Test Suite (Unit + Integration + E2E)
+  # ==========================================================================
   test:
     name: 🧪 Tests
     runs-on: self-hosted
     timeout-minutes: 15
     needs: lint
+    services:
+      postgres:
+        image: postgis/postgis:18-3.6
+        env:
+          POSTGRES_USER: c3rn1q
+          POSTGRES_PASSWORD: cerniq_ci
+          POSTGRES_DB: cerniq
+        ports:
+          - 64032:5432
+        options: >-
+          --health-cmd "pg_isready -U c3rn1q"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:8.6.0
+        ports:
+          - 64039:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - name: 📥 Checkout code
@@ -91,14 +115,85 @@ jobs:
       - name: 📥 Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: 🧪 Run Unit Tests
+      - name: 🧰 Ensure jq is available
         run: |
-          # Run unit tests only (exclude e2e and integration tests)
-          # E2E tests require live infrastructure and are run locally
-          pnpm vitest run \
-            --exclude='tests/e2e/**' \
-            --exclude='tests/integration/**' \
-            --passWithNoTests
+          if ! command -v jq >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y jq
+          fi
+
+      - name: 🔐 Fetch CI secrets from OpenBao
+        env:
+          OPENBAO_ADDR: ${{ secrets.OPENBAO_ADDR }}
+          OPENBAO_CICD_ROLE_ID: ${{ secrets.OPENBAO_CICD_ROLE_ID }}
+          OPENBAO_CICD_SECRET_ID: ${{ secrets.OPENBAO_CICD_SECRET_ID }}
+        run: |
+          set -euo pipefail
+
+          if ! command -v jq >/dev/null 2>&1; then
+            echo "jq not found on runner. Install jq and retry." >&2
+            exit 1
+          fi
+
+          require_value() {
+            local name="$1"
+            local value="$2"
+            if [ -z "$value" ] || [ "$value" = "null" ]; then
+              echo "OpenBao secret missing: $name" >&2
+              exit 1
+            fi
+          }
+
+          require_value "OPENBAO_ADDR" "$OPENBAO_ADDR"
+          require_value "OPENBAO_CICD_ROLE_ID" "$OPENBAO_CICD_ROLE_ID"
+          require_value "OPENBAO_CICD_SECRET_ID" "$OPENBAO_CICD_SECRET_ID"
+
+          if ! curl -sS --fail --retry 5 --retry-connrefused --retry-delay 2 --max-time 10 \
+            "${OPENBAO_ADDR}/v1/sys/health" >/dev/null; then
+            echo "OpenBao not reachable at OPENBAO_ADDR" >&2
+            exit 1
+          fi
+
+          TOKEN=$(curl -sS --fail --retry 5 --retry-connrefused --retry-delay 2 --max-time 10 \
+            -X POST "${OPENBAO_ADDR}/v1/auth/approle/login" \
+            -d "{\"role_id\":\"${OPENBAO_CICD_ROLE_ID}\",\"secret_id\":\"${OPENBAO_CICD_SECRET_ID}\"}" \
+            | jq -r '.auth.client_token')
+
+          require_value "OPENBAO_TOKEN" "$TOKEN"
+
+          SECRETS=$(curl -sS --fail --retry 5 --retry-connrefused --retry-delay 2 --max-time 10 \
+            -H "X-Vault-Token: $TOKEN" \
+            "${OPENBAO_ADDR}/v1/secret/cerniq/ci/test")
+
+          CI_PG_USER=$(echo "$SECRETS" | jq -r '.data.pg_user')
+          CI_PG_PASSWORD=$(echo "$SECRETS" | jq -r '.data.pg_password')
+          CI_JWT_SECRET=$(echo "$SECRETS" | jq -r '.data.jwt_secret')
+
+          require_value "pg_user" "$CI_PG_USER"
+          require_value "pg_password" "$CI_PG_PASSWORD"
+          if [ "$CI_PG_USER" != "c3rn1q" ]; then
+            echo "OpenBao CI pg_user must be c3rn1q to match service container" >&2
+            exit 1
+          fi
+          if [ "$CI_PG_PASSWORD" != "cerniq_ci" ]; then
+            echo "OpenBao CI pg_password must match service container password" >&2
+            exit 1
+          fi
+          require_value "jwt_secret" "$CI_JWT_SECRET"
+
+          echo "::add-mask::$CI_PG_PASSWORD"
+          echo "::add-mask::$CI_JWT_SECRET"
+
+          echo "DATABASE_URL=postgresql://${CI_PG_USER}:${CI_PG_PASSWORD}@localhost:64032/cerniq" >> $GITHUB_ENV
+          echo "POSTGRES_USER=${CI_PG_USER}" >> $GITHUB_ENV
+          echo "POSTGRES_PASSWORD=${CI_PG_PASSWORD}" >> $GITHUB_ENV
+          echo "REDIS_URL=redis://localhost:64039/0" >> $GITHUB_ENV
+          echo "REDIS_PASSWORD=" >> $GITHUB_ENV
+          echo "JWT_SECRET=${CI_JWT_SECRET}" >> $GITHUB_ENV
+
+      - name: 🧪 Run Full Test Suite
+        run: |
+          pnpm test:coverage
         env:
           WORKSPACE_ROOT: ${{ github.workspace }}
 
@@ -107,17 +202,48 @@ jobs:
         if: always()
         continue-on-error: true
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+          # NOTE: For private repos, configure CODECOV_TOKEN in GitHub Secrets
+          # and (optionally) re-add token here.
           fail_ci_if_error: false
 
-  # ===========================================================================
-  # JOB 3: Security Scan
-  # ===========================================================================
+  # ==========================================================================
+  # JOB 3: Build Verification (PRs to develop only)
+  # ==========================================================================
+  build-verify:
+    name: 🧱 Build Verification
+    runs-on: self-hosted
+    timeout-minutes: 15
+    needs: lint
+    if: github.event_name == 'pull_request' && github.base_ref == 'develop'
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: 📥 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🧱 Run Build
+        run: pnpm build
+
+  # ==========================================================================
+  # JOB 4: Security Scan
+  # ==========================================================================
   security:
     name: 🔒 Security Scan
     runs-on: self-hosted
     timeout-minutes: 10
     needs: lint
+    if: github.event_name == 'pull_request' && github.base_ref == 'develop'
     permissions:
       contents: read
       security-events: write
@@ -127,13 +253,12 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 🔒 Run Trivy vulnerability scanner (filesystem)
-        uses: aquasecurity/trivy-action@master
-        continue-on-error: true
+        uses: aquasecurity/trivy-action@0.34.0
         with:
           scan-type: 'fs'
           scan-ref: '.'
           severity: 'CRITICAL,HIGH'
-          exit-code: '0'
+          exit-code: '1'
           ignore-unfixed: true
           format: 'sarif'
           output: 'trivy-results.sarif'
@@ -147,7 +272,6 @@ jobs:
 
       - name: 🔍 Audit npm dependencies
         run: pnpm audit --audit-level=high
-        continue-on-error: true
 
   # ===========================================================================
   # JOB 4: Docker Configuration Validation
@@ -243,6 +367,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 20
     needs: [lint, test, docker-config]
+    if: github.event_name == 'pull_request' && github.base_ref == 'develop'
 
     steps:
       - name: 📥 Checkout code
@@ -264,7 +389,7 @@ jobs:
 
       - name: 🏗️ Build API image
         if: steps.check-dockerfiles.outputs.dockerfiles_exist == 'true'
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6.19.2
         with:
           context: ./apps/api
           push: false
@@ -274,7 +399,7 @@ jobs:
 
       - name: 🏗️ Build Web image
         if: steps.check-dockerfiles.outputs.dockerfiles_exist == 'true'
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6.19.2
         with:
           context: ./apps/web
           push: false
@@ -339,7 +464,7 @@ jobs:
   ci-status:
     name: ✅ CI Status
     runs-on: self-hosted
-    needs: [lint, test, security, docker-config, docker-build]
+    needs: [lint, test, build-verify, security, docker-config, docker-build]
     if: always()
 
     steps:
@@ -347,6 +472,7 @@ jobs:
         run: |
           if [[ "${{ needs.lint.result }}" == "failure" ]] || \
              [[ "${{ needs.test.result }}" == "failure" ]] || \
+             [[ "${{ needs.build-verify.result }}" == "failure" ]] || \
              [[ "${{ needs.security.result }}" == "failure" ]] || \
              [[ "${{ needs.docker-config.result }}" == "failure" ]] || \
              [[ "${{ needs.docker-build.result }}" == "failure" ]]; then

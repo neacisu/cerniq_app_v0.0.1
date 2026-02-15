@@ -16,8 +16,7 @@
 
 | Serviciu | Imagine | Port Cerniq | Port Container | Rol |
 | -------- | ------- | ----------- | -------------- | --- |
-| traefik | traefik:v3.6.6 | 64080, 64443, 64081 | 80, 443, 8080 | Reverse proxy, SSL |
-| **openbao** | quay.io/openbao/openbao:2.2.0 | 64200 | 8200 | **Secrets Management** 🆕 |
+| **openbao** | quay.io/openbao/openbao:2.5.0 | 64090 | 8200 | **Secrets Management** 🆕 |
 | api | Custom build | 64000 | 64000 | REST API |
 | workers | Custom build | - | - | BullMQ jobs |
 | web-admin | Custom build | 64010 | 64010 | React frontend |
@@ -30,27 +29,11 @@
 
 ## DEFINIȚII SERVICII
 
-### 1. Traefik (Edge Router)
+### 1. Ingress (Traefik on orchestrator)
 
-```yaml
-traefik:
-  image: traefik:v3.6.6
-  ports:
-    - "64080:80"
-    - "64443:443"
-    - "64443:443/udp"  # HTTP/3 QUIC
-    - "64081:64081"  # Dashboard (protected)
-  volumes:
-    - /var/run/docker.sock:/var/run/docker.sock:ro
-    - ./acme.json:/acme.json
-  command:
-    - --api.dashboard=true
-    - --entrypoints.web.address=:80
-    - --entrypoints.websecure.address=:443
-    - --certificatesresolvers.letsencrypt.acme.email=admin@cerniq.app
-```
-
-**Rol:** Reverse proxy, SSL termination via Let's Encrypt, Load balancing
+Traefik intern a fost eliminat din stack-ul aplicatiei. Ingress-ul public
+este furnizat de Traefik-ul centralizat de pe orchestrator, care routeaza spre
+serviciile din LXC (`64000`, `64010`, `64012`).
 
 ---
 
@@ -58,7 +41,7 @@ traefik:
 
 ```yaml
 openbao:
-  image: quay.io/openbao/openbao:2.2.0
+  image: quay.io/openbao/openbao:2.5.0
   container_name: cerniq-openbao
   cap_add:
     - IPC_LOCK  # Prevent memory swapping
@@ -72,10 +55,10 @@ openbao:
     - ./infra/config/openbao:/openbao/config:ro
   command: server -config=/openbao/config/openbao.hcl
   ports:
-    - "127.0.0.1:64200:8200"  # API - localhost only
+    - "127.0.0.1:64090:8200"  # API - localhost only
   networks:
     cerniq_backend:
-      ipv4_address: 172.28.0.50
+      ipv4_address: 172.29.20.50
   healthcheck:
     test: ["CMD", "wget", "-q", "--spider", 
            "http://localhost:8200/v1/sys/health?standbyok=true"]
@@ -128,8 +111,6 @@ api:
     interval: 30s
     timeout: 10s
     retries: 3
-  labels:
-    - traefik.http.routers.api.rule=Host(`api.cerniq.app`)
 ```
 
 **Secrets:** Via OpenBao Agent template → `/secrets/api.env`
@@ -186,7 +167,7 @@ web-admin:
 postgres:
   image: postgis/postgis:18-3.6
   environment:
-    - POSTGRES_USER=cerniq
+    - POSTGRES_USER=c3rn1q
     - POSTGRES_PASSWORD_FILE=/run/secrets/db_password
     - POSTGRES_DB=cerniq
   volumes:
@@ -292,13 +273,13 @@ networks:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.28.0.0/16
+        - subnet: 172.29.0.0/16
 ```
 
 **Reguli:**
 
 - Toate serviciile pe `cerniq-network`
-- Doar Traefik expune porturi publice (80, 443)
+- Niciun container din acest stack nu expune direct porturi publice 80/443
 - Comunicare internă via service names
 
 ---
@@ -330,7 +311,7 @@ volumes:
 ```yaml
 # Agent pentru API
 openbao-agent-api:
-  image: quay.io/openbao/openbao:2.2.0
+  image: quay.io/openbao/openbao:2.5.0
   command: agent -config=/openbao/config/agent-api.hcl
   volumes:
     - ./infra/config/openbao:/openbao/config:ro
@@ -348,7 +329,7 @@ openbao-agent-api:
 
 # Agent pentru Workers
 openbao-agent-workers:
-  image: quay.io/openbao/openbao:2.2.0
+  image: quay.io/openbao/openbao:2.5.0
   command: agent -config=/openbao/config/agent-workers.hcl
   volumes:
     - ./infra/config/openbao:/openbao/config:ro

@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.7
 # =============================================================================
 # Cerniq.app - API Service Dockerfile
 # =============================================================================
@@ -5,7 +6,7 @@
 # Reference: ADR-0015 Container Strategy
 # =============================================================================
 
-FROM node:22-alpine AS base
+FROM node:25.6.1-alpine3.23 AS base
 
 # Install dependencies for health checks
 RUN apk add --no-cache curl
@@ -19,31 +20,8 @@ RUN addgroup -g 1001 -S cerniq && \
 # Placeholder package.json for health check server
 RUN echo '{"name":"cerniq-api","version":"0.0.1","scripts":{"start":"node server.js"}}' > package.json
 
-# Simple health check server
-RUN cat > server.js << 'EOF'
-const http = require('http');
-const server = http.createServer((req, res) => {
-  if (req.url === '/health' || req.url === '/api/health') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ 
-      status: 'healthy', 
-      service: 'cerniq-api',
-      version: process.env.VERSION || '0.0.1',
-      placeholder: true,
-      timestamp: new Date().toISOString()
-    }));
-  } else {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ 
-      message: 'Cerniq API - Placeholder Service',
-      endpoints: ['/health', '/api/health']
-    }));
-  }
-});
-server.listen(3000, '0.0.0.0', () => {
-  console.log('Cerniq API placeholder running on port 3000');
-});
-EOF
+# Keep runtime code in a real file to avoid IDE Dockerfile linter false-positives.
+COPY server.js ./server.js
 
 # Set ownership
 RUN chown -R cerniq:cerniq /app

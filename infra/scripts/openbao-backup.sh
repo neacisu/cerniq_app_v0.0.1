@@ -22,9 +22,11 @@ set -euo pipefail
 # Configuration
 # =============================================================================
 
-BAO_ADDR="${BAO_ADDR:-http://127.0.0.1:64090}"
-BAO_CONTAINER="${BAO_CONTAINER:-cerniq-openbao}"
-SECRETS_DIR="/var/www/CerniqAPP/secrets"
+BAO_ADDR="${BAO_ADDR:-https://s3cr3ts.neanelu.ro}"
+# Central OpenBao runs on the orchestrator; default container name is `openbao`.
+BAO_CONTAINER="${BAO_CONTAINER:-openbao}"
+# Do not keep OpenBao root tokens inside the repo workspace.
+SECRETS_DIR="${SECRETS_DIR:-/opt/openbao/secrets}"
 BACKUP_DIR="/var/backups/openbao"
 LOG_FILE="/var/log/cerniq/openbao-backup.log"
 
@@ -56,14 +58,17 @@ mkdir -p "$BACKUP_DIR" "$(dirname "$LOG_FILE")"
 
 log "INFO" "Starting OpenBao backup..."
 
-# Get root token
-if [[ ! -f "$SECRETS_DIR/openbao_root_token.txt" ]]; then
-    log "ERROR" "Root token not found at $SECRETS_DIR/openbao_root_token.txt"
-    exit 1
+# Get token (prefer explicit env var; fallback to a host-local secrets dir)
+if [[ -z "${BAO_TOKEN:-}" ]]; then
+    if [[ -f "$SECRETS_DIR/openbao_root_token.txt" ]]; then
+        export BAO_TOKEN
+        BAO_TOKEN="$(cat "$SECRETS_DIR/openbao_root_token.txt")"
+    else
+        log "ERROR" "BAO_TOKEN is not set and root token file not found at $SECRETS_DIR/openbao_root_token.txt"
+        log "ERROR" "This backup must be run on the orchestrator with access to OpenBao admin token."
+        exit 1
+    fi
 fi
-
-ROOT_TOKEN=$(cat "$SECRETS_DIR/openbao_root_token.txt")
-export BAO_TOKEN="$ROOT_TOKEN"
 
 # Check if OpenBao is running and unsealed
 SEAL_STATUS=$(docker exec "$BAO_CONTAINER" bao status -format=json 2>/dev/null || echo '{"sealed": true}')
@@ -83,7 +88,7 @@ SNAPSHOT_FILE="/tmp/openbao-snapshot-${TIMESTAMP}.snap"
 
 log "INFO" "Creating Raft snapshot..."
 
-docker exec -e BAO_TOKEN="$BAO_TOKEN" "$BAO_CONTAINER" \
+docker exec -e BAO_TOKEN="$BAO_TOKEN" -e BAO_ADDR="$BAO_ADDR" "$BAO_CONTAINER" \
     bao operator raft snapshot save /tmp/snapshot.snap
 
 docker cp "$BAO_CONTAINER:/tmp/snapshot.snap" "$SNAPSHOT_FILE"

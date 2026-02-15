@@ -205,6 +205,22 @@ sequenceDiagram
 | `OPENBAO_CICD_ROLE_ID` | AppRole role_id | Static |
 | `OPENBAO_CICD_SECRET_ID` | AppRole secret_id | Lunar |
 
+### 4.2.1 CI Test Secrets (OpenBao KV)
+
+CI Pipeline-ul ia secretele de test din OpenBao:
+
+- Path: `secret/data/cerniq/ci/test`
+- Keys: `pg_user`, `pg_password`, `redis_password`, `jwt_secret`
+
+**CI constraints (must match service containers):**
+- `pg_user` = `c3rn1q`
+- `pg_password` = `cerniq_ci`
+- `redis_password` empty string (Redis in CI has no password)
+
+**CI connectivity:**
+- `OPENBAO_ADDR` must be reachable from the self-hosted runner
+- If OpenBao is bound on `0.0.0.0:64090`, allowlist the runner IP in firewall
+
 ### 4.3 Workflow Integration
 
 ```yaml
@@ -390,7 +406,7 @@ pnpm test
 
 ```bash
 # Verify AppRole on server
-curl -X POST "http://localhost:64200/v1/auth/approle/login" \
+curl -X POST "http://localhost:64090/v1/auth/approle/login" \
   -d '{"role_id":"<role_id>","secret_id":"<secret_id>"}'
 
 # Check secret_id expiration

@@ -70,7 +70,7 @@ SHUTDOWN_TIMEOUT=30000
 | `POSTGRES_USER` | No | `cerniq` | PostgreSQL username |
 | `POSTGRES_PASSWORD` | Yes* | - | PostgreSQL password |
 | `POSTGRES_PASSWORD_FILE` | Yes* | - | Path to file (OpenBao Agent → `/secrets/db.env`) |
-| `POSTGRES_DB` | No | `cerniq_production` | Database name |
+| `POSTGRES_DB` | No | `cerniq` | Database name |
 | `DATABASE_POOL_MIN` | No | `2` | Minimum connection pool size |
 | `DATABASE_POOL_MAX` | No | `20` | Maximum connection pool size |
 
@@ -80,14 +80,14 @@ SHUTDOWN_TIMEOUT=30000
 
 ```bash
 # Option 1: Connection string (OpenBao injects dynamically)
-DATABASE_URL=postgresql://v-approle-crnq-api-XXX:dynamic_pass@postgres:64032/cerniq_production
+DATABASE_URL=postgresql://v-approle-crnq-api-XXX:dynamic_pass@postgres:64032/cerniq
 
 # Option 2: Individual components (OpenBao Agent renders to /secrets/db.env)
 POSTGRES_HOST=postgres
 POSTGRES_PORT=64032
 POSTGRES_USER=v-approle-crnq-api-XXX  # Dynamic user from OpenBao
 POSTGRES_PASSWORD=<dynamic_from_openbao>
-POSTGRES_DB=cerniq_production
+POSTGRES_DB=cerniq
 
 # Pool settings
 DATABASE_POOL_MIN=2

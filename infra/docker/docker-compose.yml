@@ -18,10 +18,10 @@ name: cerniq
 # Networks are pre-created on servers (staging/production) with:
 #   docker network create --subnet X.X.X.X/24 [--internal] <name>
 #
-# Subnets (avoiding conflicts with GeniusERP/Neanelu on staging):
-# - cerniq_public:  172.27.0.0/24 (external access via Traefik)
-# - cerniq_backend: 172.28.0.0/24 (internal: API + Workers)
-# - cerniq_data:    172.29.0.0/24 (internal: PostgreSQL + Redis)
+# Subnets (standardized under 172.29.0.0/16):
+# - cerniq_public:  172.29.10.0/24 (external access via orchestrator Traefik)
+# - cerniq_backend: 172.29.20.0/24 (internal: API + Workers)
+# - cerniq_data:    172.29.30.0/24 (internal: PostgreSQL + Redis)
 # ============================================================================
 
 networks:
@@ -38,38 +38,7 @@ networks:
 # Persistent storage for databases and application data
 # ============================================================================
 
-volumes:
-  # PostgreSQL data persistence
-  postgres_data:
-    driver: local
-
-  # PostgreSQL WAL archive for PITR
-  postgres_wal_archive:
-    driver: local
-
-  # Redis data persistence (RDB snapshots)
-  redis_data:
-    driver: local
-
-  # Traefik certificates (Let's Encrypt)
-  traefik_certs:
-    driver: local
-
-  # SigNoz/ClickHouse data
-  signoz_data:
-    driver: local
-
-  # OpenBao Raft storage - ADR-0033
-  openbao_data:
-    driver: local
-
-  # OpenBao Agent secrets volumes
-  api_secrets:
-    driver: local
-
-  workers_secrets:
-    driver: local
-
+volumes: {}
 # ============================================================================
 # X-Common Configurations (YAML Anchors)
 # ============================================================================
@@ -87,97 +56,12 @@ x-logging: &default-logging
     max-size: "50m"
     max-file: "5"
 
-x-healthcheck-defaults: &healthcheck-defaults
-  interval: 30s
-  timeout: 10s
-  retries: 3
-  start_period: 40s
-
-# Resource limits - STAGING CONFIGURATION
-# Current: Staging server (125GB RAM, 64 cores AMD EPYC)
-# Target (ADR-0027): Production server (128GB RAM, 20 cores)
-# WARNING: These are TEMPORARY limits. See docs/infrastructure/RESOURCE-UPGRADE-PLAN.md
-# TODO: Reconfigure when production server is upgraded
-
-x-resource-api: &resource-api
-  limits:
-    memory: 4G
-    cpus: '2'
-  reservations:
-    memory: 2G
-    cpus: '1'
-
-x-resource-worker: &resource-worker
-  limits:
-    memory: 2G
-    cpus: '1'
-  reservations:
-    memory: 1G
-    cpus: '0.5'
-
-x-resource-postgres: &resource-postgres
-  limits:
-    memory: 16G
-    cpus: '4'
-  reservations:
-    memory: 8G
-    cpus: '2'
-
-x-resource-postgres-production: &resource-postgres-production
-  limits:
-    memory: 4G
-    cpus: '2'
-  reservations:
-    memory: 2G
-    cpus: '1'
-
-x-resource-redis: &resource-redis
-  limits:
-    memory: 4G
-    cpus: '1'
-  reservations:
-    memory: 2G
-    cpus: '0.5'
-
-x-resource-signoz: &resource-signoz
-  limits:
-    memory: 4G
-    cpus: '1'
-  reservations:
-    memory: 2G
-    cpus: '0.5'
-
-x-resource-traefik: &resource-traefik
-  limits:
-    memory: 512M
-    cpus: '0.5'
-  reservations:
-    memory: 256M
-    cpus: '0.25'
-
-# OpenBao secrets management - ADR-0033
-x-resource-openbao: &resource-openbao
-  limits:
-    memory: 512M
-    cpus: '0.5'
-  reservations:
-    memory: 256M
-    cpus: '0.25'
-
 # ============================================================================
 # Secrets
 # ============================================================================
-# Docker secrets for sensitive data (passwords, keys)
-# Reference: etapa0-docker-secrets-guide.md
+# Secrets are sourced from OpenBao and materialized to files on the host.
+# Default path is /opt/cerniq/secrets in deployments.
 # ============================================================================
-
-secrets:
-  postgres_password:
-    file: ../../secrets/postgres_password.txt
-  redis_password:
-    file: ../../secrets/redis_password.txt
-  traefik_dashboard_htpasswd:
-    file: ../../secrets/traefik_dashboard.htpasswd
 
 # ============================================================================
 # Services
@@ -186,77 +70,16 @@ secrets:
 # ============================================================================
 
 services:
-  # ==========================================================================
-  # PostgreSQL 18.1 with PostGIS 3.6 + pgvector 0.8
-  # ==========================================================================
-  # Reference: ADR-0004, etapa0-plan-implementare-complet-v2.md
-  # Extensions: pgvector 0.8.1, PostGIS 3.6.1, pg_trgm
-  # Port: 64032 (internal only, accessed via cerniq_data network) - per etapa0-port-matrix.md
-  # ==========================================================================
-  postgres:
-    build:
-      context: ./postgres
-      dockerfile: Dockerfile
-    image: cerniq/postgres:18-pgvector
-    container_name: cerniq-postgres
-    restart: unless-stopped
-    # Security hardening - F0.8.1.T003
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    cap_add:
-      - CHOWN
-      - SETGID
-      - SETUID
-      - DAC_OVERRIDE
-      - FOWNER
-    environment:
-      POSTGRES_USER: c3rn1q
-      POSTGRES_DB: cerniq
-      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
-      PGDATA: /var/lib/postgresql/data/pgdata
-      POSTGRES_INITDB_ARGS: "--data-checksums"
-    secrets:
-      - postgres_password
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - postgres_wal_archive:/var/lib/postgresql/wal_archive
-      - ../config/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
-      - ../config/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
-    networks:
-      cerniq_data:
-        ipv4_address: 172.29.0.10
-    # NO ports exposed - internal network only (security)
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U c3rn1q -d cerniq -h localhost -p 64032"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
-    deploy:
-      resources:
-        <<: *resource-postgres
-    shm_size: 4g
-    command: 
-      - "postgres"
-      - "-c"
-      - "config_file=/etc/postgresql/postgresql.conf"
-    labels:
-      <<: *common-labels
-      com.cerniq.service: "postgres"
-      com.cerniq.port: "64032"
-    logging:
-      <<: *default-logging
 
   # ==========================================================================
-  # PgBouncer 1.23 - Connection Pooling
+  # PgBouncer 1.25 - Connection Pooling
   # ==========================================================================
   # Reference: pgbouncer-connection-pooling.md, ADR-0004
-  # Port: 64033 (internal only, accessed via cerniq_data + cerniq_backend) - per etapa0-port-matrix.md
-  # Security: Password read from Docker secret at runtime (F0.8.1)
+  # Security: Password read from secret file at runtime (F0.8.1)
   # ==========================================================================
   pgbouncer:
+    # NOTE: specific tags are not consistently resolvable from all environments;
+    # use latest and pin to digest if reproducibility is required.
     image: edoburu/pgbouncer:latest
     container_name: cerniq-pgbouncer
     restart: unless-stopped
@@ -268,51 +91,26 @@ services:
     # NOTE: read_only disabled - pgbouncer image needs to write config files
     # and access Docker secrets. Security maintained via network isolation,
     # no-new-privileges, and cap_drop ALL.
-    # Using volume mount instead of Docker secrets since compose non-swarm
-    # doesn't support secret uid/gid settings
+    # Run as deploy user to read tmpfs-rendered secrets (LXC-safe).
+    user: "1000:1000"
     volumes:
-      - ../../secrets/postgres_password.txt:/secrets/postgres_password:ro
+      # Config + auth are rendered by OpenBao Agent into tmpfs (preferred) or host path.
+      - ${CERNIQ_RENDERED_SECRETS_DIR:-/opt/cerniq/runtime-secrets}/infra:/etc/pgbouncer:ro
     environment:
-      # NOTE: DATABASE_URL built at runtime from secret (see command below)
-      # Required by edoburu/pgbouncer entrypoint
-      DB_HOST: postgres
-      DB_PORT: 64032
-      DB_NAME: cerniq
-      DB_USER: c3rn1q
-      # DB_PASSWORD read from secret via command
-      LISTEN_PORT: 64033
-      POOL_MODE: transaction
-      MAX_CLIENT_CONN: 1000
-      DEFAULT_POOL_SIZE: 50
-      MIN_POOL_SIZE: 10
-      RESERVE_POOL_SIZE: 20
-      RESERVE_POOL_TIMEOUT: 5
-      AUTH_TYPE: scram-sha-256
-      IGNORE_STARTUP_PARAMETERS: extra_float_digits
-      SERVER_RESET_QUERY: DISCARD ALL
-      # Logging
-      LOG_CONNECTIONS: 1
-      LOG_DISCONNECTIONS: 1
-      VERBOSE: 0
-    # Security: Read password from mounted file at runtime, not in env vars
-    # Override entrypoint to export DB_PASSWORD before running original entrypoint
-    entrypoint:
-      - /bin/sh
-      - -c
-      - |
-        export DB_PASSWORD="$$(cat /secrets/postgres_password)"
-        exec /entrypoint.sh /usr/bin/pgbouncer /etc/pgbouncer/pgbouncer.ini
+      # Expose env to template (used indirectly via agent to select DB names).
+      CERNIQ_ENV: ${CERNIQ_ENV:-staging}
+    entrypoint: ["/usr/bin/pgbouncer", "/etc/pgbouncer/pgbouncer.ini"]
+    extra_hosts:
+      - "ct107-postgres:10.0.1.107"
     networks:
       cerniq_data:
-        ipv4_address: 172.29.0.11
+        ipv4_address: 172.29.30.11
       cerniq_backend:
-        ipv4_address: 172.28.0.11
+        ipv4_address: 172.29.20.11
     # NO ports exposed - internal network only (security)
-    depends_on:
-      postgres:
-        condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -h localhost -p 64033 -U c3rn1q || exit 1"]
+      # pg_isready exit codes: 0=accepting, 3=no attempt (still OK for PgBouncer)
+      test: ["CMD", "sh", "-c", "pg_isready -h localhost -p 64033 >/dev/null 2>&1; rc=$$?; [ \"$$rc\" = \"0\" ] || [ \"$$rc\" = \"3\" ]"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -333,258 +131,6 @@ services:
       <<: *default-logging
 
   # ==========================================================================
-  # Redis 8.4.0 Alpine - BullMQ Job Queues & Cache
-  # ==========================================================================
-  # Reference: ADR-0006, etapa0-plan-implementare-complet-v2.md, etapa0-port-matrix.md
-  # CRITICAL: maxmemory-policy MUST be noeviction for BullMQ
-  # Port: 64039 (internal only, accessed via cerniq_data + cerniq_backend)
-  # NOTE: Redis attached to BOTH networks - cerniq_data (primary) + cerniq_backend
-  #       (for BullMQ workers access). This deviates from network-topology.md matrix
-  #       which shows Redis only on cerniq_data, but is REQUIRED for worker access.
-  # ==========================================================================
-  redis:
-    image: redis:8.4-alpine
-    container_name: cerniq-redis
-    restart: unless-stopped
-    # Security hardening - F0.8.1.T003
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    # NOTE: user "999:999" removed - Docker Compose non-swarm doesn't support
-    # secret uid/gid settings, so Redis runs as container default (redis user)
-    # Security maintained via: no-new-privileges, cap_drop ALL, read_only, network isolation
-    read_only: true
-    tmpfs:
-      - /tmp:size=100M
-    secrets:
-      - redis_password
-    command:
-      - /bin/sh
-      - -c
-      - |
-        redis-server \
-          --port 64039 \
-          --requirepass "$$(cat /run/secrets/redis_password)" \
-          --maxmemory 8gb \
-          --maxmemory-policy noeviction \
-          --appendonly yes \
-          --appendfsync everysec \
-          --aof-use-rdb-preamble yes \
-          --notify-keyspace-events Ex \
-          --lazyfree-lazy-eviction yes \
-          --lazyfree-lazy-expire yes \
-          --lazyfree-lazy-server-del yes \
-          --activedefrag yes \
-          --tcp-keepalive 300 \
-          --timeout 0 \
-          --databases 16
-    volumes:
-      - redis_data:/data
-    networks:
-      cerniq_data:
-        ipv4_address: 172.29.0.20
-      cerniq_backend:
-        ipv4_address: 172.28.0.20
-    # NO ports exposed - internal network only (security)
-    healthcheck:
-      test: ["CMD-SHELL", "redis-cli -p 64039 -a \"$$(cat /run/secrets/redis_password)\" ping | grep -q PONG"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-    deploy:
-      resources:
-        <<: *resource-redis
-    labels:
-      <<: *common-labels
-      com.cerniq.service: "redis"
-      com.cerniq.port: "64039"
-    logging:
-      <<: *default-logging
-  # ==========================================================================
-  # Traefik v3.3.5 - Reverse Proxy (E0-S3-PR02)
-  # ==========================================================================
-  # Reference: ADR-0014, ADR-0022, etapa0-plan-implementare-complet-v2.md
-  # 
-  # ARCHITECTURE:
-  #   External proxy (nginx/neanelu_traefik) → Traefik (64080) → Services
-  #   TLS termination is handled externally on port 443
-  #
-  # Ports (ADR-0022):
-  #   - 64080: HTTP entry point (receives traffic from external proxy)
-  #   - 64081: Metrics + Dashboard (internal access only)
-  # ==========================================================================
-  traefik:
-    image: traefik:v3.6
-    container_name: cerniq-traefik
-    restart: unless-stopped
-    security_opt:
-      - no-new-privileges:true
-    # NOTE: read_only removed - Traefik needs write access for internal state
-    # NOTE: user removed - Traefik needs root to access docker.sock
-    # Security is maintained via no-new-privileges and minimal volumes
-    environment:
-      # Docker Engine 29.x requires API 1.44+ (min supported)
-      # Traefik defaults to 1.24, so we force API negotiation
-      DOCKER_API_VERSION: "1.45"
-    ports:
-      # HTTP entry point - traffic from external proxy
-      - "64080:64080"
-      # Metrics and Dashboard - internal access only
-      - "127.0.0.1:64081:64081"
-    volumes:
-      # Docker socket (read-only for security)
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      # Static configuration
-      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
-      # Dynamic configuration directory
-      - ./traefik/dynamic:/etc/traefik/dynamic:ro
-      # Dashboard htpasswd file
-      - ../../secrets/traefik_dashboard.htpasswd:/etc/traefik/auth/dashboard.htpasswd:ro
-    networks:
-      cerniq_public:
-        ipv4_address: 172.27.0.10
-      cerniq_backend:
-        ipv4_address: 172.28.0.10
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "traefik", "healthcheck", "--ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    deploy:
-      resources:
-        <<: *resource-traefik
-    labels:
-      <<: *common-labels
-      com.cerniq.service: "traefik"
-      com.cerniq.port: "64080"
-      # Traefik self-routing labels (dashboard via metrics entrypoint)
-      traefik.enable: "false"  # Self-routing disabled, using file provider
-    logging:
-      <<: *default-logging
-
-  # ==========================================================================
-  # Staging Proxy - nginx reverse proxy for neanelu_traefik routing
-  # ==========================================================================
-  # This container is the entry point from neanelu_traefik (port 443)
-  # to the Cerniq internal Traefik (port 64080).
-  # It handles the routing from external traefik to internal traefik.
-  # 
-  # Labels are used by neanelu_traefik to:
-  #   - Route staging.cerniq.app traffic to this container
-  #   - Apply HSTS and security headers
-  #   - Handle TLS with Let's Encrypt
-  # ==========================================================================
-  staging-proxy:
-    image: nginx:alpine
-    container_name: cerniq-staging-proxy
-    restart: unless-stopped
-    volumes:
-      - ./nginx/staging-proxy.conf:/etc/nginx/conf.d/default.conf:ro
-    networks:
-      - cerniq_public
-    depends_on:
-      traefik:
-        condition: service_healthy
-    labels:
-      <<: *common-labels
-      com.cerniq.service: "staging-proxy"
-      # =======================================================================
-      # Traefik Labels for neanelu_traefik (external proxy on port 443)
-      # =======================================================================
-      traefik.enable: "true"
-      # Router configuration
-      traefik.http.routers.cerniq-staging.rule: "Host(`staging.cerniq.app`)"
-      traefik.http.routers.cerniq-staging.entrypoints: "websecure"
-      traefik.http.routers.cerniq-staging.tls.certresolver: "letsencrypt"
-      traefik.http.routers.cerniq-staging.middlewares: "cerniq-hsts,cerniq-security-headers"
-      # Service configuration
-      traefik.http.services.cerniq-staging.loadbalancer.server.port: "80"
-      # =======================================================================
-      # HSTS Middleware (F0.4.2.T003 - SSL Labs A+ rating)
-      # =======================================================================
-      traefik.http.middlewares.cerniq-hsts.headers.stsSeconds: "63072000"
-      traefik.http.middlewares.cerniq-hsts.headers.stsIncludeSubdomains: "true"
-      traefik.http.middlewares.cerniq-hsts.headers.stsPreload: "true"
-      # =======================================================================
-      # Security Headers Middleware
-      # =======================================================================
-      traefik.http.middlewares.cerniq-security-headers.headers.frameDeny: "true"
-      traefik.http.middlewares.cerniq-security-headers.headers.browserXssFilter: "true"
-      traefik.http.middlewares.cerniq-security-headers.headers.contentTypeNosniff: "true"
-      traefik.http.middlewares.cerniq-security-headers.headers.referrerPolicy: "strict-origin-when-cross-origin"
-    logging:
-      <<: *default-logging
-
-  # ==========================================================================
-  # OpenBao - Centralized Secrets Management
-  # ==========================================================================
-  # Reference: ADR-0033 OpenBao Secrets Management
-  # Port: 64090 (localhost only - security) - per etapa0-port-matrix.md reserved range 64090-64099
-  # Network: cerniq_backend (172.28.0.50)
-  # 
-  # OpenBao provides:
-  #   - Centralized secrets storage (KV engine)
-  #   - Dynamic database credentials (PostgreSQL)
-  #   - PKI for internal TLS certificates
-  #   - Encryption as a service (Transit engine)
-  #   - Complete audit logging
-  # ==========================================================================
-  openbao:
-    image: quay.io/openbao/openbao:2.5.0
-    container_name: cerniq-openbao
-    restart: unless-stopped
-    # Security: IPC_LOCK required for mlock (prevents memory swapping)
-    cap_add:
-      - IPC_LOCK
-    security_opt:
-      - no-new-privileges:true
-    environment:
-      BAO_ADDR: "http://127.0.0.1:8200"
-      BAO_API_ADDR: "http://openbao:8200"
-      BAO_CLUSTER_ADDR: "https://openbao:8201"
-      BAO_LOG_LEVEL: "info"
-    volumes:
-      # Raft storage for secrets and cluster state
-      - openbao_data:/openbao/data
-      # Configuration files (read-only)
-      - ../config/openbao:/openbao/config:ro
-    command: server -config=/openbao/config/openbao.hcl
-    ports:
-      # API port - localhost only for security (64090 per port matrix)
-      # External access should be via Traefik or SSH tunnel
-      - "127.0.0.1:64090:8200"
-    networks:
-      cerniq_public:
-        ipv4_address: 172.27.0.50
-      cerniq_backend:
-        ipv4_address: 172.28.0.50
-    healthcheck:
-      # Check if OpenBao port is listening (accepts all states: sealed/uninitialized/active)
-      # Uses /proc/net/tcp to verify port 8200 (0x2008) is bound
-      test: ["CMD-SHELL", "cat /proc/net/tcp | grep -q ':2008 ' || wget -q -O /dev/null http://localhost:8200/ 2>&1"]
-      interval: 15s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-    deploy:
-      resources:
-        <<: *resource-openbao
-    labels:
-      <<: *common-labels
-      com.cerniq.service: "openbao"
-      com.cerniq.port: "64090"
-    logging:
-      <<: *default-logging
-
-  # ==========================================================================
   # OpenBao Agent - API Service Sidecar
   # ==========================================================================
   # Injects secrets into API service via template rendering
@@ -594,6 +140,8 @@ services:
     image: quay.io/openbao/openbao:2.5.0
     container_name: cerniq-openbao-agent-api
     restart: unless-stopped
+    # Run as deploy user (LXC-safe file permissions).
+    user: "1000:1000"
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -602,20 +150,19 @@ services:
       - SETGID
       - SETUID
     command: agent -config=/openbao/config/agent-api.hcl
+    environment:
+      CERNIQ_ENV: ${CERNIQ_ENV:-staging}
     volumes:
       # Agent configuration
       - ../config/openbao/agent-api.hcl:/openbao/config/agent-api.hcl:ro
       - ../config/openbao/templates:/openbao/templates:ro
       # Secrets output volume (shared with API service)
-      - api_secrets:/secrets
+      - ${CERNIQ_RENDERED_SECRETS_DIR:-/opt/cerniq/runtime-secrets}/api:/secrets
       # AppRole credentials (populated by setup script)
       - ../../secrets/api_role_id:/openbao/config/role_id:ro
       - ../../secrets/api_secret_id:/openbao/config/secret_id:ro
     networks:
       - cerniq_backend
-    depends_on:
-      openbao:
-        condition: service_healthy
     healthcheck:
       # Check if secrets file exists (template rendered)
       test: ["CMD", "test", "-f", "/secrets/api.env"]
@@ -647,6 +194,8 @@ services:
     image: quay.io/openbao/openbao:2.5.0
     container_name: cerniq-openbao-agent-workers
     restart: unless-stopped
+    # Run as deploy user (LXC-safe file permissions).
+    user: "1000:1000"
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -655,20 +204,19 @@ services:
       - SETGID
       - SETUID
     command: agent -config=/openbao/config/agent-workers.hcl
+    environment:
+      CERNIQ_ENV: ${CERNIQ_ENV:-staging}
     volumes:
       # Agent configuration
       - ../config/openbao/agent-workers.hcl:/openbao/config/agent-workers.hcl:ro
       - ../config/openbao/templates:/openbao/templates:ro
       # Secrets output volume (shared with Workers services)
-      - workers_secrets:/secrets
+      - ${CERNIQ_RENDERED_SECRETS_DIR:-/opt/cerniq/runtime-secrets}/workers:/secrets
       # AppRole credentials (populated by setup script)
       - ../../secrets/workers_role_id:/openbao/config/role_id:ro
       - ../../secrets/workers_secret_id:/openbao/config/secret_id:ro
     networks:
       - cerniq_backend
-    depends_on:
-      openbao:
-        condition: service_healthy
     healthcheck:
       # Check if secrets file exists (template rendered)
       test: ["CMD", "test", "-f", "/secrets/workers.env"]
@@ -687,5 +235,120 @@ services:
     labels:
       <<: *common-labels
       com.cerniq.service: "openbao-agent-workers"
+    logging:
+      <<: *default-logging
+
+  # ==========================================================================
+  # OpenBao Agent - Infra Sidecar (PgBouncer auth/config)
+  # ==========================================================================
+  openbao-agent-infra:
+    image: quay.io/openbao/openbao:2.5.0
+    container_name: cerniq-openbao-agent-infra
+    restart: unless-stopped
+    user: "1000:1000"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETGID
+      - SETUID
+    command: agent -config=/openbao/config/agent-infra.hcl
+    environment:
+      CERNIQ_ENV: ${CERNIQ_ENV:-staging}
+    volumes:
+      - ../config/openbao/agent-infra.hcl:/openbao/config/agent-infra.hcl:ro
+      - ../config/openbao/templates:/openbao/templates:ro
+      - ${CERNIQ_RENDERED_SECRETS_DIR:-/opt/cerniq/runtime-secrets}/infra:/secrets
+      - ../../secrets/infra_role_id:/openbao/config/role_id:ro
+      - ../../secrets/infra_secret_id:/openbao/config/secret_id:ro
+    networks:
+      - cerniq_backend
+    healthcheck:
+      test: ["CMD", "test", "-f", "/secrets/pgbouncer.ini"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.25'
+        reservations:
+          memory: 64M
+          cpus: '0.1'
+    labels:
+      <<: *common-labels
+      com.cerniq.service: "openbao-agent-infra"
+    logging:
+      <<: *default-logging
+
+  vector:
+    image: timberio/vector:0.53.0-debian
+    container_name: cerniq-vector
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - ../config/vector/vector.toml:/etc/vector/vector.toml:ro
+    command: ["--config", "/etc/vector/vector.toml"]
+    environment:
+      CERNIQ_ENV: ${CERNIQ_ENV:-staging}
+    networks:
+      - cerniq_backend
+    labels:
+      <<: *common-labels
+      com.cerniq.service: "vector"
+    logging:
+      <<: *default-logging
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.145.0
+    container_name: cerniq-otel-collector
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    volumes:
+      - ../config/otel/otel-collector.yaml:/etc/otelcol-contrib/config.yaml:ro
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    ports:
+      - "64070:4317"
+      - "64071:4318"
+    networks:
+      - cerniq_backend
+    labels:
+      <<: *common-labels
+      com.cerniq.service: "otel-collector"
+    logging:
+      <<: *default-logging
+
+  cadvisor:
+    # NOTE: version tags are not consistently published on gcr.io; use latest.
+    # If you need strict pinning, replace with an image digest after pull.
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cerniq-cadvisor
+    restart: unless-stopped
+    privileged: false
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "64094:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+    networks:
+      - cerniq_backend
+    labels:
+      <<: *common-labels
+      com.cerniq.service: "cadvisor"
     logging:
       <<: *default-logging

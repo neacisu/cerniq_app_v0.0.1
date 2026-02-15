@@ -8,9 +8,10 @@
 
 set -euo pipefail
 
-CONTAINER_NAME="cerniq-postgres"
-DB_USER="c3rn1q"
-DB_NAME="cerniq"
+# New infra: PostgreSQL is external on CT107; clients authenticate via PgBouncer
+# using OpenBao dynamic DB creds rendered into an env file (DATABASE_URL).
+ENV_FILE="${ENV_FILE:-/run/cerniq/runtime-secrets/api/api.env}"
+DOCKER_NET="${DOCKER_NET:-cerniq_backend}"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -21,28 +22,32 @@ echo "=== CERNIQ POSTGRESQL VALIDATION ==="
 echo "Date: $(date)"
 echo ""
 
-# 1. Container status
-echo "1. Container Status:"
-STATUS=$(docker inspect --format='{{.State.Status}}' $CONTAINER_NAME 2>/dev/null || echo "not_found")
-HEALTH=$(docker inspect --format='{{.State.Health.Status}}' $CONTAINER_NAME 2>/dev/null || echo "unknown")
-echo "   Status: $STATUS"
-echo "   Health: $HEALTH"
-
-if [ "$STATUS" != "running" ]; then
-    echo -e "   ${RED}❌ FAIL: Container not running${NC}"
+if [[ ! -f "$ENV_FILE" ]]; then
+    echo -e "   ${RED}❌ FAIL: env file missing: $ENV_FILE${NC}"
     exit 1
 fi
 
-if [ "$HEALTH" != "healthy" ]; then
-    echo -e "   ${YELLOW}⚠️ WARNING: Container not healthy yet${NC}"
-else
+run_psql() {
+    docker run --rm \
+        --network "$DOCKER_NET" \
+        --env-file "$ENV_FILE" \
+        postgres:18 \
+        sh -lc 'exec psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -Atqc "$1"' -- "$1"
+}
+
+# 1. Connectivity (via PgBouncer)
+echo "1. Connectivity (PgBouncer + dynamic creds):"
+if docker run --rm --network "$DOCKER_NET" --env-file "$ENV_FILE" postgres:18 sh -lc 'pg_isready -d "$DATABASE_URL" >/dev/null 2>&1'; then
     echo -e "   ${GREEN}✅ PASS${NC}"
+else
+    echo -e "   ${RED}❌ FAIL: pg_isready failed${NC}"
+    exit 1
 fi
 echo ""
 
 # 2. PostgreSQL version
 echo "2. PostgreSQL Version:"
-VERSION=$(docker exec $CONTAINER_NAME psql -U $DB_USER -d $DB_NAME -t -c "SELECT version();" 2>/dev/null | head -1 | xargs)
+VERSION="$(run_psql "SELECT version();")"
 echo "   $VERSION"
 if [[ "$VERSION" == *"PostgreSQL 1"* ]]; then
     echo -e "   ${GREEN}✅ PASS: PostgreSQL detected${NC}"
@@ -53,7 +58,7 @@ echo ""
 
 # 3. Extensions
 echo "3. Required Extensions:"
-EXTENSIONS=$(docker exec $CONTAINER_NAME psql -U $DB_USER -d $DB_NAME -t -c "SELECT extname FROM pg_extension ORDER BY extname;")
+EXTENSIONS="$(run_psql "SELECT extname FROM pg_extension ORDER BY extname;")"
 REQUIRED=("pg_stat_statements" "pg_trgm" "vector" "postgis" "postgis_topology")
 ALL_EXT_OK=true
 for ext in "${REQUIRED[@]}"; do
@@ -68,7 +73,7 @@ echo ""
 
 # 4. Schemas
 echo "4. Medallion Schemas:"
-SCHEMAS=$(docker exec $CONTAINER_NAME psql -U $DB_USER -d $DB_NAME -t -c "SELECT schema_name FROM information_schema.schemata WHERE schema_name IN ('bronze', 'silver', 'gold', 'approval', 'audit');")
+SCHEMAS="$(run_psql "SELECT schema_name FROM information_schema.schemata WHERE schema_name IN ('bronze', 'silver', 'gold', 'approval', 'audit');")"
 REQUIRED_SCHEMAS=("bronze" "silver" "gold" "approval" "audit")
 ALL_SCHEMA_OK=true
 for schema in "${REQUIRED_SCHEMAS[@]}"; do
@@ -83,56 +88,22 @@ echo ""
 
 # 5. Memory settings
 echo "5. Memory Configuration:"
-docker exec $CONTAINER_NAME psql -U $DB_USER -d $DB_NAME -t -c "
-SELECT 
-    name, 
-    setting,
-    unit
-FROM pg_settings 
-WHERE name IN ('shared_buffers', 'effective_cache_size', 'work_mem', 'maintenance_work_mem')
-ORDER BY name;
-" 2>/dev/null | grep -v "^$"
+run_psql "SELECT name, setting, unit FROM pg_settings WHERE name IN ('shared_buffers','effective_cache_size','work_mem','maintenance_work_mem') ORDER BY name;" | grep -v "^$"
 echo ""
 
 # 6. WAL configuration
 echo "6. WAL Configuration:"
-docker exec $CONTAINER_NAME psql -U $DB_USER -d $DB_NAME -t -c "
-SELECT 
-    name, 
-    setting
-FROM pg_settings 
-WHERE name IN ('wal_level', 'archive_mode', 'max_wal_size', 'wal_compression')
-ORDER BY name;
-" 2>/dev/null | grep -v "^$"
+run_psql "SELECT name, setting FROM pg_settings WHERE name IN ('wal_level','archive_mode','max_wal_size','wal_compression') ORDER BY name;" | grep -v "^$"
 echo ""
 
-# 7. io_method (PostgreSQL 18)
-echo "7. PostgreSQL 18 AIO:"
-IO_METHOD=$(docker exec $CONTAINER_NAME psql -U $DB_USER -d $DB_NAME -t -c "SHOW io_method;" 2>/dev/null | xargs || echo "not_available")
-echo "   io_method: $IO_METHOD"
-if [ "$IO_METHOD" == "io_uring" ]; then
-    echo -e "   ${GREEN}✅ PASS: io_uring enabled${NC}"
-else
-    echo -e "   ${YELLOW}⚠️ io_uring not available (fallback ok)${NC}"
-fi
+# 7. Connection info
+echo "7. Connection Statistics:"
+run_psql "SELECT datname, numbackends, xact_commit, xact_rollback FROM pg_stat_database WHERE datname = current_database();" | grep -v "^$"
 echo ""
 
-# 8. Connection info
-echo "8. Connection Statistics:"
-docker exec $CONTAINER_NAME psql -U $DB_USER -d $DB_NAME -t -c "
-SELECT 
-    datname,
-    numbackends as connections,
-    xact_commit as commits,
-    xact_rollback as rollbacks
-FROM pg_stat_database 
-WHERE datname = '$DB_NAME';
-" 2>/dev/null | grep -v "^$"
-echo ""
-
-# 9. pg_stat_statements
-echo "9. pg_stat_statements:"
-STAT_COUNT=$(docker exec $CONTAINER_NAME psql -U $DB_USER -d $DB_NAME -t -c "SELECT count(*) FROM pg_stat_statements;" 2>/dev/null | xargs || echo "0")
+# 8. pg_stat_statements
+echo "8. pg_stat_statements:"
+STAT_COUNT="$(run_psql "SELECT count(*) FROM pg_stat_statements;" | xargs || echo "0")"
 echo "   Tracked queries: $STAT_COUNT"
 if [ "$STAT_COUNT" -gt 0 ] 2>/dev/null; then
     echo -e "   ${GREEN}✅ PASS${NC}"
@@ -141,18 +112,12 @@ else
 fi
 echo ""
 
-# 10. WAL Archive directory
-echo "10. WAL Archive:"
-WAL_COUNT=$(docker exec $CONTAINER_NAME ls -la /var/lib/postgresql/wal_archive/ 2>/dev/null | wc -l || echo "0")
-echo "   Files in archive: $((WAL_COUNT - 3))"
-echo ""
-
 # Summary
 echo "=== VALIDATION SUMMARY ==="
 PASS_COUNT=0
 FAIL_COUNT=0
 
-if [ "$STATUS" == "running" ]; then PASS_COUNT=$((PASS_COUNT+1)); else FAIL_COUNT=$((FAIL_COUNT+1)); fi
+PASS_COUNT=$((PASS_COUNT+1)) # connectivity already enforced above
 if [ "$ALL_EXT_OK" == "true" ]; then PASS_COUNT=$((PASS_COUNT+1)); else FAIL_COUNT=$((FAIL_COUNT+1)); fi
 if [ "$ALL_SCHEMA_OK" == "true" ]; then PASS_COUNT=$((PASS_COUNT+1)); else FAIL_COUNT=$((FAIL_COUNT+1)); fi
 

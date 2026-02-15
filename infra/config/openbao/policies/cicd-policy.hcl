@@ -10,19 +10,13 @@
 # KV Secrets Engine - CI/CD Secrets
 # =============================================================================
 
-# Read deployment secrets (SSH keys, registry tokens)
-path "secret/data/cerniq/ci/*" {
+# Read deployment secrets (GitHub Actions / runners)
+path "secret/cerniq/ci/*" {
   capabilities = ["read", "list"]
 }
 
-# Read container registry credentials
-path "secret/data/cerniq/shared/ghcr" {
+path "secret/cerniq/shared/ghcr" {
   capabilities = ["read"]
-}
-
-# Allow reading secret metadata for versioning info
-path "secret/metadata/cerniq/ci/*" {
-  capabilities = ["read", "list"]
 }
 
 # =============================================================================
@@ -33,21 +27,21 @@ path "secret/metadata/cerniq/ci/*" {
 # =============================================================================
 
 # Generate new secret_id for API service
-path "auth/approle/role/api/secret-id" {
+path "auth/approle/role/cerniq-api/secret-id" {
   capabilities = ["create", "update"]
 }
 
 # Generate new secret_id for Workers service
-path "auth/approle/role/workers/secret-id" {
+path "auth/approle/role/cerniq-workers/secret-id" {
   capabilities = ["create", "update"]
 }
 
 # Read role_id (needed for deployment automation)
-path "auth/approle/role/api/role-id" {
+path "auth/approle/role/cerniq-api/role-id" {
   capabilities = ["read"]
 }
 
-path "auth/approle/role/workers/role-id" {
+path "auth/approle/role/cerniq-workers/role-id" {
   capabilities = ["read"]
 }
 

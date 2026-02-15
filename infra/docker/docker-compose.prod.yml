@@ -1,58 +1,118 @@
 # =============================================================================
 # Cerniq.app - Production Docker Compose Override
 # =============================================================================
-# Version: 1.0.0 (Minimal)
-# Purpose: Production-specific configuration overlay
+# Version: 2.0.0 (Full path corrections for server deployment)
+# Purpose: Override relative paths for /opt/cerniq server structure
 # Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-# TODO: Add full production services (Traefik, Redis, workers)
+# 
+# Server directory structure:
+#   /opt/cerniq/
+#   ├── docker-compose.yml
+#   ├── docker-compose.prod.yml
+#   ├── config/
+#   │   ├── postgres/
+#   │   └── openbao/
+#   ├── scripts/
+#   └── secrets/
 # =============================================================================
 
 name: cerniq
 
-# Production uses the same base configuration
-# This file will be enhanced with:
-# - Production-specific resource limits
-# - SSL/TLS configuration
-# - Production logging
-# - Replica scaling
-
-# For now, we include minimal production overrides
-# The base docker-compose.yml is sufficient for initial deployment
+# Application ingress ports are routed by orchestrator Traefik.
+# Keep these mappings ready for local diagnostics only:
+#   - "64000:3000"  # web
+#   - "64010:3000"  # api
+#   - "64012:3000"  # admin
 
 services:
-  # PostgreSQL production overrides
-  postgres:
-    deploy:
-      resources:
-        limits:
-          cpus: '2'
-          memory: 4G
-        reservations:
-          cpus: '1'
-          memory: 2G
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "100m"
-        max-file: "5"
 
-  # PgBouncer production overrides
+  # ==========================================================================
+  # PgBouncer - Path overrides for production
+  # ==========================================================================
   pgbouncer:
+    environment:
+      REDIS_MAXMEMORY: ${REDIS_MAXMEMORY:-8gb}
+    networks:
+      cerniq_data:
+        ipv4_address: 172.29.30.11
+      cerniq_backend:
+        ipv4_address: 172.29.20.11
     deploy:
       resources:
         limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
           cpus: '0.5'
           memory: 256M
-        reservations:
-          cpus: '0.25'
-          memory: 128M
     logging:
       driver: "json-file"
       options:
         max-size: "50m"
         max-file: "3"
 
-# Networks inherited from base docker-compose.yml
+  # ==========================================================================
+  # OpenBao Agent API - Path overrides for production
+  # ==========================================================================
+  openbao-agent-api:
+    volumes:
+      - ../config/openbao/agent-api.hcl:/openbao/config/agent-api.hcl:ro
+      - ../config/openbao/templates:/openbao/templates:ro
+      - ${CERNIQ_RENDERED_SECRETS_DIR:-/opt/cerniq/runtime-secrets}/api:/secrets
+      - ../../secrets/api_role_id:/openbao/config/role_id:ro
+      - ../../secrets/api_secret_id:/openbao/config/secret_id:ro
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+  # ==========================================================================
+  # OpenBao Agent Workers - Path overrides for production
+  # ==========================================================================
+  openbao-agent-workers:
+    volumes:
+      - ../config/openbao/agent-workers.hcl:/openbao/config/agent-workers.hcl:ro
+      - ../config/openbao/templates:/openbao/templates:ro
+      - ${CERNIQ_RENDERED_SECRETS_DIR:-/opt/cerniq/runtime-secrets}/workers:/secrets
+      - ../../secrets/workers_role_id:/openbao/config/role_id:ro
+      - ../../secrets/workers_secret_id:/openbao/config/secret_id:ro
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+  vector:
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - ../config/vector/vector.toml:/etc/vector/vector.toml:ro
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+  otel-collector:
+    volumes:
+      - ../config/otel/otel-collector.yaml:/etc/otelcol-contrib/config.yaml:ro
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+  cadvisor:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+# =============================================================================
+# Networks - External (pre-created on server)
+# =============================================================================
 networks:
   cerniq_public:
     external: true

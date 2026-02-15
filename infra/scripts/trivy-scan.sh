@@ -39,7 +39,6 @@ IMAGES=(
     "quay.io/openbao/openbao:2.2.0"
     "postgres:18.1-bookworm"
     "redis/redis-stack-server:8.4-alpine"
-    "traefik:v3.3.3"
 )
 
 # Severity levels
