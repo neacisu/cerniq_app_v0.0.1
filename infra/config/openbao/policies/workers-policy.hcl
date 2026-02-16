@@ -6,17 +6,21 @@
 # Version: 1.0
 # =============================================================================
 
-# Static secrets (KV v1 mount `secret/`)
-path "secret/cerniq/workers/config" {
+# Static secrets (KV v2 mount `secret/` — data path includes /data/ prefix)
+path "secret/data/cerniq/workers/config" {
   capabilities = ["read"]
 }
 
-path "secret/cerniq/api/config" {
+path "secret/data/cerniq/api/config" {
   capabilities = ["read"]
 }
 
-path "secret/cerniq/shared/external" {
+path "secret/data/cerniq/shared/external" {
   capabilities = ["read"]
+}
+
+path "secret/metadata/cerniq/workers/*" {
+  capabilities = ["read", "list"]
 }
 
 # =============================================================================

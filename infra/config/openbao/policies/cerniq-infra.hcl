@@ -2,7 +2,8 @@
 # OpenBao Policy: Cerniq Infra Sidecars (PgBouncer auth/config)
 # =============================================================================
 
-path "secret/cerniq/infra/pgbouncer" {
+# KV v2 data path (includes /data/ prefix)
+path "secret/data/cerniq/infra/pgbouncer" {
   capabilities = ["read"]
 }
 

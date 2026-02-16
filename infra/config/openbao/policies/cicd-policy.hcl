@@ -7,15 +7,23 @@
 # =============================================================================
 
 # =============================================================================
-# KV Secrets Engine - CI/CD Secrets
+# KV Secrets Engine v2 - CI/CD Secrets
+# =============================================================================
+# KV v2 API uses secret/data/ for reads and secret/metadata/ for metadata.
+# Policy paths must match the full API path including the /data/ prefix.
 # =============================================================================
 
-# Read deployment secrets (GitHub Actions / runners)
-path "secret/cerniq/ci/*" {
+# Read deployment secrets (GitHub Actions / runners) — KV v2 data path
+path "secret/data/cerniq/ci/*" {
   capabilities = ["read", "list"]
 }
 
-path "secret/cerniq/shared/ghcr" {
+# Metadata access (optional, for listing versions)
+path "secret/metadata/cerniq/ci/*" {
+  capabilities = ["read", "list"]
+}
+
+path "secret/data/cerniq/shared/ghcr" {
   capabilities = ["read"]
 }
 
