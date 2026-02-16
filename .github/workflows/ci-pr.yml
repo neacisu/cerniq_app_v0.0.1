@@ -171,22 +171,41 @@ jobs:
           require_value "OPENBAO_CICD_ROLE_ID" "$OPENBAO_CICD_ROLE_ID"
           require_value "OPENBAO_CICD_SECRET_ID" "$OPENBAO_CICD_SECRET_ID"
 
-          if ! curl -sS --fail --retry 5 --retry-connrefused --retry-delay 2 --max-time 10 \
-            "${OPENBAO_ADDR}/v1/sys/health" >/dev/null; then
-            echo "OpenBao not reachable at OPENBAO_ADDR" >&2
+          echo "--- Step 1: Health check ---"
+          HEALTH_HTTP=$(curl -sS -o /dev/null -w '%{http_code}' --retry 5 --retry-connrefused --retry-delay 2 --max-time 10 \
+            "${OPENBAO_ADDR}/v1/sys/health") || true
+          echo "Health check HTTP status: $HEALTH_HTTP"
+          if [ "$HEALTH_HTTP" != "200" ]; then
+            echo "OpenBao not reachable at OPENBAO_ADDR (HTTP $HEALTH_HTTP)" >&2
             exit 1
           fi
 
-          TOKEN=$(curl -sS --fail --retry 5 --retry-connrefused --retry-delay 2 --max-time 10 \
+          echo "--- Step 2: AppRole login ---"
+          LOGIN_RESPONSE=$(curl -sS -w '\n%{http_code}' --retry 5 --retry-connrefused --retry-delay 2 --max-time 10 \
             -X POST "${OPENBAO_ADDR}/v1/auth/approle/login" \
-            -d "{\"role_id\":\"${OPENBAO_CICD_ROLE_ID}\",\"secret_id\":\"${OPENBAO_CICD_SECRET_ID}\"}" \
-            | jq -r '.auth.client_token')
+            -d "{\"role_id\":\"${OPENBAO_CICD_ROLE_ID}\",\"secret_id\":\"${OPENBAO_CICD_SECRET_ID}\"}")
+          LOGIN_HTTP=$(echo "$LOGIN_RESPONSE" | tail -1)
+          LOGIN_BODY=$(echo "$LOGIN_RESPONSE" | sed '$d')
+          echo "Login HTTP status: $LOGIN_HTTP"
+          if [ "$LOGIN_HTTP" != "200" ]; then
+            echo "AppRole login failed (HTTP $LOGIN_HTTP): $LOGIN_BODY" >&2
+            exit 1
+          fi
+          TOKEN=$(echo "$LOGIN_BODY" | jq -r '.auth.client_token')
 
           require_value "OPENBAO_TOKEN" "$TOKEN"
 
-          SECRETS=$(curl -sS --fail --retry 5 --retry-connrefused --retry-delay 2 --max-time 10 \
+          echo "--- Step 3: Fetch secrets ---"
+          SECRETS_RESPONSE=$(curl -sS -w '\n%{http_code}' --retry 5 --retry-connrefused --retry-delay 2 --max-time 10 \
             -H "X-Vault-Token: $TOKEN" \
             "${OPENBAO_ADDR}/v1/secret/cerniq/ci/test")
+          SECRETS_HTTP=$(echo "$SECRETS_RESPONSE" | tail -1)
+          SECRETS=$(echo "$SECRETS_RESPONSE" | sed '$d')
+          echo "Secrets HTTP status: $SECRETS_HTTP"
+          if [ "$SECRETS_HTTP" != "200" ]; then
+            echo "Secrets fetch failed (HTTP $SECRETS_HTTP): $SECRETS" >&2
+            exit 1
+          fi
 
           CI_PG_USER=$(echo "$SECRETS" | jq -r '.data.pg_user')
           CI_PG_PASSWORD=$(echo "$SECRETS" | jq -r '.data.pg_password')
