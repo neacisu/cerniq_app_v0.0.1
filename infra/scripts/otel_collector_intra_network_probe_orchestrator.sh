@@ -7,7 +7,7 @@ echo "hostname=$(hostname)"
 echo
 
 echo "# docker ps (vector, otel-collector)"
-docker ps --format '{{.Names}} {{.Status}}' | egrep '^(vector|otel-collector) ' || true
+docker ps --format '{{.Names}} {{.Status}}' | grep -E '^(vector|otel-collector) ' || true
 echo
 
 echo "# probe from vector container -> otel-collector:4318"

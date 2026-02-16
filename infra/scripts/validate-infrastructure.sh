@@ -299,6 +299,7 @@ PG_USER="${PG_USER:-c3rn1q}"
 PG_PASS_FILE="/opt/cerniq/secrets/postgres_password.txt"
 PG_PASS=""
 if [[ -f "$PG_PASS_FILE" ]]; then
+    # shellcheck disable=SC2034
     PG_PASS=$(cat "$PG_PASS_FILE")
 else
     log_fail "Postgres password file not found at $PG_PASS_FILE"
@@ -388,6 +389,7 @@ fi
 
 # Test: Redis responds to PING
 log_test "Redis responds to PING on ${REDIS_VIP_HOST}:${REDIS_VIP_PORT}"
+# shellcheck disable=SC2086
 REDIS_PONG=$(redis-cli -h "$REDIS_VIP_HOST" -p "$REDIS_VIP_PORT" $REDIS_AUTH ping 2>/dev/null || echo "")
 if [[ "$REDIS_PONG" == "PONG" ]]; then
     log_pass "Redis responds: PONG"
@@ -397,6 +399,7 @@ fi
 
 # Test: Redis version is 8.x
 log_test "Redis version is 8.x"
+# shellcheck disable=SC2086
 REDIS_VERSION=$(redis-cli -h "$REDIS_VIP_HOST" -p "$REDIS_VIP_PORT" $REDIS_AUTH INFO server 2>/dev/null | grep redis_version | cut -d: -f2 | tr -d '\r' || echo "0")
 if [[ "$REDIS_VERSION" == 8.* ]]; then
     log_pass "Redis version: $REDIS_VERSION"
@@ -406,6 +409,7 @@ fi
 
 # Test: maxmemory-policy is noeviction (CRITICAL for BullMQ)
 log_test "maxmemory-policy is noeviction (BullMQ CRITICAL)"
+# shellcheck disable=SC2086
 REDIS_POLICY=$(redis-cli -h "$REDIS_VIP_HOST" -p "$REDIS_VIP_PORT" $REDIS_AUTH CONFIG GET maxmemory-policy 2>/dev/null | tail -1 || echo "")
 if [[ "$REDIS_POLICY" == "noeviction" ]]; then
     log_pass "maxmemory-policy: noeviction"
@@ -415,6 +419,7 @@ fi
 
 # Test: maxmemory is at least 8GB
 log_test "maxmemory >= 8GB (per ADR-0006)"
+# shellcheck disable=SC2086
 REDIS_MAXMEM=$(redis-cli -h "$REDIS_VIP_HOST" -p "$REDIS_VIP_PORT" $REDIS_AUTH CONFIG GET maxmemory 2>/dev/null | tail -1 || echo "0")
 # 8GB = 8589934592 bytes
 if [[ "$REDIS_MAXMEM" -ge 8000000000 ]]; then
@@ -426,6 +431,7 @@ fi
 
 # Test: appendonly is enabled
 log_test "appendonly is enabled (persistence)"
+# shellcheck disable=SC2086
 REDIS_APPENDONLY=$(redis-cli -h "$REDIS_VIP_HOST" -p "$REDIS_VIP_PORT" $REDIS_AUTH CONFIG GET appendonly 2>/dev/null | tail -1 || echo "")
 if [[ "$REDIS_APPENDONLY" == "yes" ]]; then
     log_pass "appendonly: yes"
@@ -435,6 +441,7 @@ fi
 
 # Test: notify-keyspace-events includes E (for BullMQ delayed jobs)
 log_test "notify-keyspace-events configured for BullMQ"
+# shellcheck disable=SC2086
 REDIS_EVENTS=$(redis-cli -h "$REDIS_VIP_HOST" -p "$REDIS_VIP_PORT" $REDIS_AUTH CONFIG GET notify-keyspace-events 2>/dev/null | tail -1 || echo "")
 if [[ "$REDIS_EVENTS" == *"E"* ]]; then
     log_pass "notify-keyspace-events: $REDIS_EVENTS"

@@ -47,6 +47,7 @@ fi
 
 # Function to get Redis config
 get_config() {
+    # shellcheck disable=SC2086
     redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" $AUTH_ARG CONFIG GET "$1" 2>/dev/null | tail -1
 }
 
@@ -97,6 +98,7 @@ fi
 
 # Check 5: Ping test
 echo -n "5. Redis responds to PING ... "
+# shellcheck disable=SC2086
 PONG=$(redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" $AUTH_ARG ping 2>/dev/null)
 if [ "$PONG" == "PONG" ]; then
     echo -e "${GREEN}✅ OK${NC}"
@@ -116,6 +118,7 @@ fi
 
 # Check 7: Redis version
 echo -n "7. Redis version check ... "
+# shellcheck disable=SC2086
 VERSION=$(redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" $AUTH_ARG INFO server 2>/dev/null | grep redis_version | cut -d: -f2 | tr -d '\r')
 if [[ "$VERSION" == 8.* ]]; then
     echo -e "${GREEN}✅ OK (v$VERSION)${NC}"
@@ -125,6 +128,7 @@ fi
 
 # Check 8: Redis connectivity latency
 echo -n "8. Redis latency check ... "
+# shellcheck disable=SC2086
 LATENCY=$(redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" $AUTH_ARG --latency -i 1 2>/dev/null | head -1 || echo "")
 if [[ -n "$LATENCY" ]]; then
     echo -e "${GREEN}✅ OK ($LATENCY)${NC}"

@@ -8,7 +8,8 @@ set -euo pipefail
 
 # BorgBackup configuration
 export BORG_REPO="ssh://u502048@u502048.your-storagebox.de:23/./backups/cerniq/borg"
-export BORG_PASSPHRASE=$(cat /var/www/CerniqAPP/secrets/borg_passphrase.txt 2>/dev/null || cat /root/.borg_passphrase)
+BORG_PASSPHRASE=$(cat /var/www/CerniqAPP/secrets/borg_passphrase.txt 2>/dev/null || cat /root/.borg_passphrase)
+export BORG_PASSPHRASE
 export BORG_RSH="ssh -i /root/.ssh/hetzner_storagebox -o StrictHostKeyChecking=no"
 
 LOG_FILE="/var/log/cerniq/borg_check.log"
@@ -60,8 +61,7 @@ log "Starting Borg integrity check"
 
 # Get repository info first
 log "Checking repository accessibility..."
-REPO_INFO=$(borg info "$BORG_REPO" 2>&1)
-if [[ $? -ne 0 ]]; then
+if ! REPO_INFO=$(borg info "$BORG_REPO" 2>&1); then
     log "ERROR: Cannot access repository"
     echo "$REPO_INFO" >> "$LOG_FILE"
     
@@ -137,4 +137,4 @@ EOF
 log "Status written to $STATUS_FILE"
 log "Borg integrity check completed (duration: ${DURATION}s)"
 
-exit $CHECK_RC
+exit "$CHECK_RC"

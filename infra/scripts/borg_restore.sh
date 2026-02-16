@@ -8,7 +8,8 @@ set -euo pipefail
 
 # BorgBackup configuration
 export BORG_REPO="ssh://u502048@u502048.your-storagebox.de:23/./backups/cerniq/borg"
-export BORG_PASSPHRASE=$(cat /var/www/CerniqAPP/secrets/borg_passphrase.txt 2>/dev/null || cat /root/.borg_passphrase)
+BORG_PASSPHRASE=$(cat /var/www/CerniqAPP/secrets/borg_passphrase.txt 2>/dev/null || cat /root/.borg_passphrase)
+export BORG_PASSPHRASE
 export BORG_RSH="ssh -i /root/.ssh/hetzner_storagebox -o StrictHostKeyChecking=no"
 
 LOG_FILE="/var/log/cerniq/borg_restore.log"
@@ -136,7 +137,7 @@ case $ACTION in
                     "${BORG_REPO}::${ARCHIVE}" 2>&1 | tee -a "$LOG_FILE"
             fi
             
-            if [[ $? -eq 0 ]]; then
+            if [[ ${PIPESTATUS[0]} -eq 0 ]]; then
                 log "Restore completed successfully to $TARGET_DIR"
                 echo ""
                 echo "Restored files are in: $TARGET_DIR"

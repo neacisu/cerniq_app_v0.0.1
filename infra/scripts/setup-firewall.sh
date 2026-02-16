@@ -34,6 +34,7 @@ set -euo pipefail
 # Source environment detection to get CERNIQ_ENV and admin IPs per environment
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [[ -f "${SCRIPT_DIR}/detect-environment.sh" ]]; then
+    # shellcheck source=./detect-environment.sh disable=SC1091
     source "${SCRIPT_DIR}/detect-environment.sh"
     cerniq_env_info
 else
@@ -167,7 +168,7 @@ if [[ -n "${GITHUB_ACTIONS:-}" || "${CI:-}" == "true" || "${CERNIQ_UFW_AUTO_APPR
     log_info "Non-interactive mode detected. Proceeding automatically."
 else
     echo ""
-    read -p "Continue? (yes/no): " CONFIRM
+    read -rp "Continue? (yes/no): " CONFIRM
     if [[ "$CONFIRM" != "yes" ]]; then
         log_info "Aborted."
         exit 0

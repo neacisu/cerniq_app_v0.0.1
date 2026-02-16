@@ -46,6 +46,7 @@ redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" BGSAVE >> "$LOG_FILE" 2>&1
 WAIT_COUNT=0
 MAX_WAIT=60
 while [[ $WAIT_COUNT -lt $MAX_WAIT ]]; do
+    # shellcheck disable=SC2034
     LASTSAVE=$(redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" LASTSAVE 2>/dev/null | tr -d '\r')
     BG_STATUS=$(redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" INFO persistence 2>/dev/null | grep rdb_bgsave_in_progress | cut -d: -f2 | tr -d '\r')
     
@@ -76,10 +77,8 @@ if [[ -f "$OUTPUT_FILE" ]]; then
     # Upload compressed file to Storage Box
     if [[ -f "$SSH_KEY" ]]; then
         REMOTE_FILE="$REMOTE_DIR/dump_${TIMESTAMP}.rdb.zst"
-        scp -P 23 -i "$SSH_KEY" -o StrictHostKeyChecking=no \
-            "${OUTPUT_FILE}.zst" "${STORAGE_BOX}:${REMOTE_FILE}" 2>> "$LOG_FILE"
-        
-        if [[ $? -eq 0 ]]; then
+        if scp -P 23 -i "$SSH_KEY" -o StrictHostKeyChecking=no \
+            "${OUTPUT_FILE}.zst" "${STORAGE_BOX}:${REMOTE_FILE}" 2>> "$LOG_FILE"; then
             log "Upload successful: $REMOTE_FILE"
         else
             log "ERROR: Upload failed"

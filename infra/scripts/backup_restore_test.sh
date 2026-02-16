@@ -12,7 +12,8 @@ STATUS_FILE="/var/backups/cerniq/status/restore_test.json"
 
 # BorgBackup configuration
 export BORG_REPO="ssh://u502048@u502048.your-storagebox.de:23/./backups/cerniq/borg"
-export BORG_PASSPHRASE=$(cat /var/www/CerniqAPP/secrets/borg_passphrase.txt 2>/dev/null || cat /root/.borg_passphrase 2>/dev/null || echo "")
+BORG_PASSPHRASE=$(cat /var/www/CerniqAPP/secrets/borg_passphrase.txt 2>/dev/null || cat /root/.borg_passphrase 2>/dev/null || echo "")
+export BORG_PASSPHRASE
 export BORG_RSH="ssh -i /root/.ssh/hetzner_storagebox -o StrictHostKeyChecking=no"
 
 # Storage Box
@@ -42,9 +43,10 @@ test_failed() {
     log "FAIL: $1"
 }
 
+# shellcheck disable=SC2317
 cleanup() {
     log "Cleaning up test artifacts..."
-    rm -rf "$TEST_DIR"/* 2>/dev/null || true
+    rm -rf "${TEST_DIR:?}"/* 2>/dev/null || true
 }
 
 trap cleanup EXIT
@@ -99,7 +101,7 @@ fi
 # Test 4: PostgreSQL dump verification
 log ""
 log "Test 4: PostgreSQL dump verification"
-LATEST_DUMP=$(ls -t /var/backups/cerniq/postgresql/daily/*.dump 2>/dev/null | head -1)
+LATEST_DUMP=$(find /var/backups/cerniq/postgresql/daily/ -maxdepth 1 -name "*.dump" -type f -printf '%T@\t%p\n' 2>/dev/null | sort -rn | head -1 | cut -f2-)
 if [[ -n "$LATEST_DUMP" && -f "$LATEST_DUMP" ]]; then
     # Verify dump can be read
     if pg_restore --list "$LATEST_DUMP" > /dev/null 2>&1; then
@@ -115,7 +117,7 @@ fi
 # Test 5: Redis backup verification
 log ""
 log "Test 5: Redis backup verification"
-LATEST_REDIS=$(ls -t /var/backups/cerniq/redis/hourly/*.rdb.zst 2>/dev/null | head -1)
+LATEST_REDIS=$(find /var/backups/cerniq/redis/hourly/ -maxdepth 1 -name "*.rdb.zst" -type f -printf '%T@\t%p\n' 2>/dev/null | sort -rn | head -1 | cut -f2-)
 if [[ -n "$LATEST_REDIS" && -f "$LATEST_REDIS" ]]; then
     # Verify can decompress
     if zstd -t "$LATEST_REDIS" 2>/dev/null; then
@@ -125,7 +127,7 @@ if [[ -n "$LATEST_REDIS" && -f "$LATEST_REDIS" ]]; then
     fi
 else
     # Check for uncompressed
-    LATEST_REDIS=$(ls -t /var/backups/cerniq/redis/hourly/*.rdb 2>/dev/null | head -1)
+    LATEST_REDIS=$(find /var/backups/cerniq/redis/hourly/ -maxdepth 1 -name "*.rdb" -type f -printf '%T@\t%p\n' 2>/dev/null | sort -rn | head -1 | cut -f2-)
     if [[ -n "$LATEST_REDIS" && -f "$LATEST_REDIS" ]]; then
         test_passed "Redis backup found (uncompressed)"
     else

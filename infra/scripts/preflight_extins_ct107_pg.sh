@@ -39,6 +39,7 @@ echo "# WAL archive dir status"
 WAL_DIR="/var/lib/postgresql/18/main/wal_archive"
 if [ -d "$WAL_DIR" ]; then
   echo "wal_archive_dir=present path=$WAL_DIR"
+  # shellcheck disable=SC2012
   ls -la "$WAL_DIR" | tail -n 15 || true
 else
   echo "wal_archive_dir=missing path=$WAL_DIR"

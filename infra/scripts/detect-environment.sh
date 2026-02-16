@@ -24,6 +24,7 @@
 
 # Prevent multiple sourcing
 if [[ -n "${CERNIQ_ENV_DETECTED:-}" ]]; then
+    # shellcheck disable=SC2317
     return 0 2>/dev/null || exit 0
 fi
 
@@ -189,7 +190,7 @@ require_production_confirmation() {
         echo ""
         echo "⚠️  WARNING: You are about to perform '$action' in PRODUCTION!"
         echo ""
-        read -p "Type 'PRODUCTION' to confirm: " confirmation
+        read -rp "Type 'PRODUCTION' to confirm: " confirmation
         if [[ "$confirmation" != "PRODUCTION" ]]; then
             echo "❌ Aborted."
             return 1

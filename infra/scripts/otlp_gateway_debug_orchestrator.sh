@@ -47,7 +47,7 @@ sed -n '1,10p' /tmp/otlp_orch_vip_body.txt 2>/dev/null || true
 echo
 
 echo "# Traefik logs filter (last 5m, rejecting ipwhitelist + traces)"
-docker logs --since 5m traefik 2>/dev/null | egrep 'Rejecting IP|POST /v1/traces|cerniq-otlp-allowlist' | tail -n 80 || true
+docker logs --since 5m traefik 2>/dev/null | grep -E 'Rejecting IP|POST /v1/traces|cerniq-otlp-allowlist' | tail -n 80 || true
 
 rm -f /tmp/otlp_orch_vip_body.txt || true
 

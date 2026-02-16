@@ -5,7 +5,8 @@ echo "== preflight_extins_orchestrator =="
 date -Is || true
 echo "hostname=$(hostname)"
 echo "ip=$(hostname -I | tr -s ' ' | sed 's/ $//')"
-echo "os=$( . /etc/os-release && echo \"${PRETTY_NAME}\" )"
+# shellcheck disable=SC1091
+echo "os=$( . /etc/os-release && echo "\"${PRETTY_NAME}\"" )"
 echo "kernel=$(uname -r)"
 echo
 
@@ -15,16 +16,16 @@ docker compose version 2>/dev/null || echo "docker_compose_missing"
 echo
 
 echo "# docker ps (core control-plane)"
-docker ps --format '{{.Names}} {{.Status}}' | egrep '^(traefik|openbao|prometheus|grafana|loki|tempo|alertmanager|vector|otel-collector|cadvisor|node-exporter) ' | sort || true
+docker ps --format '{{.Names}} {{.Status}}' | grep -E '^(traefik|openbao|prometheus|grafana|loki|tempo|alertmanager|vector|otel-collector|cadvisor|node-exporter) ' | sort || true
 echo
 
 echo "# docker inspect (status + health) core control-plane"
 for c in traefik openbao prometheus grafana loki tempo alertmanager vector otel-collector cadvisor node-exporter; do
   if docker inspect "$c" >/dev/null 2>&1; then
-    echo -n "${c}\t"
+    printf '%s\t' "$c"
     docker inspect -f '{{.State.Status}} {{if .State.Health}}{{.State.Health.Status}}{{end}}' "$c" || true
   else
-    echo -e "${c}\tmissing"
+    printf '%s\tmissing\n' "$c"
   fi
 done
 echo

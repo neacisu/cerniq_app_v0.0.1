@@ -18,6 +18,7 @@ set -euo pipefail
 # Source environment detection
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [ -f "$SCRIPT_DIR/detect-environment.sh" ]; then
+  # shellcheck source=./detect-environment.sh disable=SC1091
   source "$SCRIPT_DIR/detect-environment.sh"
 else
   CERNIQ_ENV="${CERNIQ_ENV:-staging}"

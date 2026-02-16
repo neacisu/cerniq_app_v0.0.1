@@ -7,7 +7,7 @@ echo "hostname=$(hostname)"
 echo
 
 echo "# host listeners (4317/4318)"
-sudo ss -lntp | egrep ':(4317|4318)\\b' || true
+sudo ss -lntp | grep -E ':(4317|4318)\\b' || true
 echo
 
 echo "# container otel-collector inspect (ports + network mode)"
@@ -24,7 +24,7 @@ echo
 
 echo "# curl to OTEL endpoints via host loopback (expected if Traefik points to 127.0.0.1)"
 for u in http://127.0.0.1:4318/ http://127.0.0.1:4318/v1/traces; do
-  code="$(curl -s -o /dev/null -w '%{http_code}' --connect-timeout 2 --max-time 4 \"$u\" || true)"
+  code="$(curl -s -o /dev/null -w '%{http_code}' --connect-timeout 2 --max-time 4 "$u" || true)"
   echo "${u} -> ${code}"
 done
 echo
@@ -33,7 +33,7 @@ echo "# curl to OTEL endpoints via container IP (best-effort)"
 ip="$(docker inspect -f '{{range $k,$v := .NetworkSettings.Networks}}{{if $v.IPAddress}}{{println $v.IPAddress}}{{end}}{{end}}' otel-collector 2>/dev/null | head -n1 || true)"
 if [ -n "${ip}" ]; then
   for u in "http://${ip}:4318/" "http://${ip}:4318/v1/traces"; do
-    code="$(curl -s -o /dev/null -w '%{http_code}' --connect-timeout 2 --max-time 4 \"$u\" || true)"
+    code="$(curl -s -o /dev/null -w '%{http_code}' --connect-timeout 2 --max-time 4 "$u" || true)"
     echo "${u} -> ${code}"
   done
 else

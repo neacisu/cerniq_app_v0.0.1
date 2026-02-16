@@ -62,13 +62,16 @@ if [[ $WAIT_COUNT -ge $MAX_WAIT ]]; then
 fi
 
 # Check if AOF files exist on the orchestrator
+# shellcheck disable=SC2029
 AOF_EXISTS=$(ssh "root@${ORCHESTRATOR_HOST}" "ls ${REDIS_DATA_DIR}/appendonly.aof 2>/dev/null || ls ${REDIS_DATA_DIR}/appendonlydir/*.aof 2>/dev/null | head -1" 2>/dev/null || echo "")
 
 if [[ -n "$AOF_EXISTS" ]]; then
     # Copy AOF file(s) from the orchestrator
     # Redis 7.x+ uses appendonlydir with multiple files
+    # shellcheck disable=SC2029
     if ssh "root@${ORCHESTRATOR_HOST}" "test -d ${REDIS_DATA_DIR}/appendonlydir" 2>/dev/null; then
         # Redis 7.x+ multi-part AOF
+        # shellcheck disable=SC2029
         scp -r "root@${ORCHESTRATOR_HOST}:${REDIS_DATA_DIR}/appendonlydir" \
             "$BACKUP_DIR/appendonlydir_${TIMESTAMP}" 2>> "$LOG_FILE"
         
@@ -95,10 +98,8 @@ if [[ -n "$AOF_EXISTS" ]]; then
     # Upload to Storage Box
     if [[ -f "$SSH_KEY" ]]; then
         REMOTE_FILE="$REMOTE_DIR/$(basename "$OUTPUT_FILE")"
-        scp -P 23 -i "$SSH_KEY" -o StrictHostKeyChecking=no \
-            "$OUTPUT_FILE" "${STORAGE_BOX}:${REMOTE_FILE}" 2>> "$LOG_FILE"
-        
-        if [[ $? -eq 0 ]]; then
+        if scp -P 23 -i "$SSH_KEY" -o StrictHostKeyChecking=no \
+            "$OUTPUT_FILE" "${STORAGE_BOX}:${REMOTE_FILE}" 2>> "$LOG_FILE"; then
             log "Upload successful: $REMOTE_FILE"
         else
             log "ERROR: Upload failed"

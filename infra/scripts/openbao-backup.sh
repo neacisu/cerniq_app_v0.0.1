@@ -143,10 +143,8 @@ else
     # Upload
     REMOTE_FILE="$STORAGE_BOX_PATH/openbao-snapshot-${TIMESTAMP}.snap.gpg"
     
-    scp -P "$STORAGE_BOX_PORT" -i /root/.ssh/hetzner_storagebox \
-        "$ENCRYPTED_FILE" "$STORAGE_BOX:$REMOTE_FILE"
-    
-    if [[ $? -eq 0 ]]; then
+    if scp -P "$STORAGE_BOX_PORT" -i /root/.ssh/hetzner_storagebox \
+        "$ENCRYPTED_FILE" "$STORAGE_BOX:$REMOTE_FILE"; then
         log "INFO" "Uploaded to: $STORAGE_BOX:$REMOTE_FILE"
         
         # Also save locally for redundancy

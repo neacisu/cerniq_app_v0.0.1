@@ -20,7 +20,8 @@ SSH_KEY="/root/.ssh/hetzner_storagebox"
 
 # BorgBackup config
 export BORG_REPO="ssh://u502048@u502048.your-storagebox.de:23/./backups/cerniq/borg"
-export BORG_PASSPHRASE=$(cat /var/www/CerniqAPP/secrets/borg_passphrase.txt 2>/dev/null || cat /root/.borg_passphrase 2>/dev/null || echo "")
+BORG_PASSPHRASE=$(cat /var/www/CerniqAPP/secrets/borg_passphrase.txt 2>/dev/null || cat /root/.borg_passphrase 2>/dev/null || echo "")
+export BORG_PASSPHRASE
 export BORG_RSH="ssh -i /root/.ssh/hetzner_storagebox -o StrictHostKeyChecking=no"
 
 mkdir -p "$(dirname "$LOG_FILE")"
@@ -155,10 +156,12 @@ cmd_status() {
     echo ""
     echo "=== Local Backup Status ==="
     echo "PostgreSQL daily dumps:"
+    # shellcheck disable=SC2012
     ls -lh /var/backups/cerniq/postgresql/daily/*.dump 2>/dev/null | tail -3 || echo "  None found"
     
     echo ""
     echo "Redis hourly backups:"
+    # shellcheck disable=SC2012
     ls -lh /var/backups/cerniq/redis/hourly/*.rdb.zst 2>/dev/null | tail -3 || echo "  None found"
     
     echo ""
@@ -180,6 +183,7 @@ cmd_assess() {
     # Check PostgreSQL
     echo ""
     echo "Checking PostgreSQL..."
+    # shellcheck disable=SC2016
     if [[ -f "$PG_ENV_FILE" ]] && docker_pg sh -lc 'pg_isready -d "$DATABASE_URL" >/dev/null 2>&1'; then
         success "PostgreSQL (via PgBouncer + OpenBao dynamic creds) is responding"
     else
@@ -190,6 +194,7 @@ cmd_assess() {
     # Check Redis
     echo ""
     echo "Checking Redis..."
+    # shellcheck disable=SC2016
     if [[ -f "$PG_ENV_FILE" ]] && docker_redis sh -lc 'redis-cli -u "$REDIS_URL" PING' 2>/dev/null | grep -q PONG; then
         success "Redis is responding"
     else
@@ -239,7 +244,7 @@ cmd_recover_postgres() {
         warn "No target time specified, will use latest backup"
         
         # Find latest daily dump
-        LATEST_DUMP=$(ls -t /var/backups/cerniq/postgresql/daily/*.dump 2>/dev/null | head -1)
+        LATEST_DUMP=$(find /var/backups/cerniq/postgresql/daily/ -maxdepth 1 -name "*.dump" -type f -printf '%T@\t%p\n' 2>/dev/null | sort -rn | head -1 | cut -f2-)
         
         if [[ -z "$LATEST_DUMP" ]]; then
             error "No local dumps found, downloading from Storage Box..."
@@ -344,7 +349,7 @@ cmd_recover_full() {
         echo "  - Overwrite current database data"
         echo "  - Overwrite application files"
         echo ""
-        read -p "Are you sure you want to continue? (yes/no): " CONFIRM
+        read -rp "Are you sure you want to continue? (yes/no): " CONFIRM
         if [[ "$CONFIRM" != "yes" ]]; then
             log "Recovery cancelled by user"
             exit 0
@@ -393,8 +398,10 @@ cmd_verify() {
     # Check PostgreSQL
     echo ""
     echo "Verifying PostgreSQL..."
+    # shellcheck disable=SC2016
     if [[ -f "$PG_ENV_FILE" ]] && docker_pg sh -lc 'psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -Atqc "SELECT 1;" >/dev/null 2>&1'; then
         success "PostgreSQL: Connected and responding (via PgBouncer)"
+        # shellcheck disable=SC2016
         TABLE_COUNT="$(docker_pg sh -lc 'psql "$DATABASE_URL" -Atqc "SELECT count(*) FROM information_schema.tables WHERE table_schema = '\''public'\'';"' | xargs || echo "0")"
         log "PostgreSQL: $TABLE_COUNT tables in public schema"
     else
@@ -405,8 +412,10 @@ cmd_verify() {
     # Check Redis
     echo ""
     echo "Verifying Redis..."
+    # shellcheck disable=SC2016
     if [[ -f "$PG_ENV_FILE" ]] && docker_redis sh -lc 'redis-cli -u "$REDIS_URL" PING' 2>/dev/null | grep -q PONG; then
         success "Redis: Connected and responding"
+        # shellcheck disable=SC2016
         DBSIZE="$(docker_redis sh -lc 'redis-cli -u "$REDIS_URL" DBSIZE' 2>/dev/null | tr -d '\r' | tail -n 1 || echo "0")"
         log "Redis: $DBSIZE keys"
     else

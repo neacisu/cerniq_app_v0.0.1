@@ -49,12 +49,14 @@ FILESIZE=$(stat -c%s "$OUTPUT_FILE" 2>/dev/null || echo "0")
 log "Dump created: $OUTPUT_FILE (${FILESIZE} bytes)"
 
 # Verify dump integrity
-docker run --rm \
+if docker run --rm \
     -v "$OUTPUT_FILE:/dump:ro" \
     postgres:18 \
-    pg_restore --list /dump >/dev/null 2>&1 \
-  && log "Dump verified OK" \
-  || log "WARNING: Dump verification failed"
+    pg_restore --list /dump >/dev/null 2>&1; then
+    log "Dump verified OK"
+else
+    log "WARNING: Dump verification failed"
+fi
 
 # Upload to Hetzner Storage Box
 if [[ -f "$SSH_KEY" ]]; then
@@ -62,10 +64,8 @@ if [[ -f "$SSH_KEY" ]]; then
     
     REMOTE_FILE="$REMOTE_DIR/cerniq_full_${TIMESTAMP}.dump"
     
-    scp -P 23 -i "$SSH_KEY" -o StrictHostKeyChecking=no \
-        "$OUTPUT_FILE" "${STORAGE_BOX}:${REMOTE_FILE}" 2>> "$LOG_FILE"
-    
-    if [[ $? -eq 0 ]]; then
+    if scp -P 23 -i "$SSH_KEY" -o StrictHostKeyChecking=no \
+        "$OUTPUT_FILE" "${STORAGE_BOX}:${REMOTE_FILE}" 2>> "$LOG_FILE"; then
         log "Upload successful: $REMOTE_FILE"
     else
         log "ERROR: Upload failed"

@@ -8,7 +8,8 @@ set -euo pipefail
 
 # BorgBackup configuration
 export BORG_REPO="ssh://u502048@u502048.your-storagebox.de:23/./backups/cerniq/borg"
-export BORG_PASSPHRASE=$(cat /opt/cerniq/secrets/borg_passphrase.txt 2>/dev/null || cat /root/.borg_passphrase)
+BORG_PASSPHRASE=$(cat /opt/cerniq/secrets/borg_passphrase.txt 2>/dev/null || cat /root/.borg_passphrase)
+export BORG_PASSPHRASE
 export BORG_RSH="ssh -i /root/.ssh/hetzner_storagebox -o StrictHostKeyChecking=no"
 
 ARCHIVE_NAME="cerniq-{now:%Y-%m-%d_%H%M%S}"
@@ -66,6 +67,7 @@ fi
 
 # Create backup
 log "Creating archive: $ARCHIVE_NAME"
+# shellcheck disable=SC2086
 eval borg create \
     --verbose \
     --filter AME \
@@ -86,7 +88,7 @@ elif [[ $BACKUP_RC -eq 1 ]]; then
     log "Backup completed with warnings"
 else
     log "ERROR: Backup failed with code $BACKUP_RC"
-    exit $BACKUP_RC
+    exit "$BACKUP_RC"
 fi
 
 # Prune old backups according to retention policy

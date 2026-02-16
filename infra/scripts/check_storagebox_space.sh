@@ -26,9 +26,7 @@ log() {
 log "Checking Storage Box space"
 
 # Get disk usage
-DISK_INFO=$(ssh -p 23 -i "$SSH_KEY" -o ConnectTimeout=10 "$STORAGE_BOX" "df -h ." 2>&1)
-
-if [[ $? -ne 0 ]]; then
+if ! DISK_INFO=$(ssh -p 23 -i "$SSH_KEY" -o ConnectTimeout=10 "$STORAGE_BOX" "df -h ." 2>&1); then
     log "ERROR: Cannot connect to Storage Box"
     cat > "$STATUS_FILE" << EOF
 {
@@ -97,6 +95,7 @@ if [[ $PERCENT -ge $CLEANUP_PERCENT ]]; then
 fi
 
 # Get detailed breakdown
+# shellcheck disable=SC2034
 BREAKDOWN=$(ssh -p 23 -i "$SSH_KEY" "$STORAGE_BOX" "du -sh ./backups/cerniq/*" 2>/dev/null || echo "N/A")
 
 # Write status file

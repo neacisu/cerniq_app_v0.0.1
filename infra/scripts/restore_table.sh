@@ -47,10 +47,12 @@ EOF
 
 list_backups() {
     echo "=== Critical Table Backups (hourly) ==="
+    # shellcheck disable=SC2012
     ls -lh "$BACKUP_DIR/critical/"*.dump 2>/dev/null | tail -10 || echo "No critical backups found"
     
     echo ""
     echo "=== Daily Full Backups ==="
+    # shellcheck disable=SC2012
     ls -lh "$BACKUP_DIR/daily/"*.dump 2>/dev/null | tail -5 || echo "No daily backups found"
 }
 
@@ -122,14 +124,14 @@ log "Starting restore for table: $TABLE_NAME"
 # Find backup file if not specified
 if [[ -z "$BACKUP_FILE" ]]; then
     # First, check critical backups for this specific table
-    CRITICAL_BACKUP=$(ls -t "$BACKUP_DIR/critical/${TABLE_NAME}_"*.dump 2>/dev/null | head -1)
+    CRITICAL_BACKUP=$(find "$BACKUP_DIR/critical/" -maxdepth 1 -name "${TABLE_NAME}_*.dump" -type f -printf '%T@\t%p\n' 2>/dev/null | sort -rn | head -1 | cut -f2-)
     
     if [[ -n "$CRITICAL_BACKUP" && -f "$CRITICAL_BACKUP" ]]; then
         BACKUP_FILE="$CRITICAL_BACKUP"
         log "Using critical table backup: $BACKUP_FILE"
     else
         # Use latest daily full dump
-        BACKUP_FILE=$(ls -t "$BACKUP_DIR/daily/"*.dump 2>/dev/null | head -1)
+        BACKUP_FILE=$(find "$BACKUP_DIR/daily/" -maxdepth 1 -name "*.dump" -type f -printf '%T@\t%p\n' 2>/dev/null | sort -rn | head -1 | cut -f2-)
         log "Using daily full backup: $BACKUP_FILE"
     fi
 fi
@@ -202,5 +204,5 @@ if [[ $RESTORE_RC -eq 0 ]]; then
 else
     log "ERROR: Restore failed with code $RESTORE_RC"
     log "Previous table state saved at: $CURRENT_BACKUP"
-    exit $RESTORE_RC
+    exit "$RESTORE_RC"
 fi

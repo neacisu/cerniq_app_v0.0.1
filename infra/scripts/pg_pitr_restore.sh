@@ -11,9 +11,12 @@ set -euo pipefail
 
 LOG_FILE="/var/log/cerniq/pg_pitr_restore.log"
 PG_HOST="10.0.1.107"
+# shellcheck disable=SC2034
 PG_PORT="5432"
 PG_CT="root@${PG_HOST}"
+# shellcheck disable=SC2034
 DB_USER="cerniq"
+# shellcheck disable=SC2034
 DB_NAME="cerniq"
 
 # Hetzner Storage Box config

@@ -528,7 +528,17 @@ jobs:
   ci-status:
     name: ✅ CI Status
     runs-on: self-hosted
-    needs: [lint, test, build-verify, security, docker-config, docker-build]
+    needs:
+      [
+        lint,
+        test,
+        build-verify,
+        security,
+        docker-config,
+        docker-build,
+        shellcheck,
+        python-lint,
+      ]
     if: always()
 
     steps:
@@ -539,7 +549,9 @@ jobs:
              [[ "${{ needs.build-verify.result }}" == "failure" ]] || \
              [[ "${{ needs.security.result }}" == "failure" ]] || \
              [[ "${{ needs.docker-config.result }}" == "failure" ]] || \
-             [[ "${{ needs.docker-build.result }}" == "failure" ]]; then
+             [[ "${{ needs.docker-build.result }}" == "failure" ]] || \
+             [[ "${{ needs.shellcheck.result }}" == "failure" ]] || \
+             [[ "${{ needs.python-lint.result }}" == "failure" ]]; then
             echo "❌ CI failed"
             exit 1
           fi

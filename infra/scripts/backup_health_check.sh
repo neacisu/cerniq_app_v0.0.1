@@ -8,7 +8,8 @@ set -euo pipefail
 
 # BorgBackup configuration
 export BORG_REPO="ssh://u502048@u502048.your-storagebox.de:23/./backups/cerniq/borg"
-export BORG_PASSPHRASE=$(cat /var/www/CerniqAPP/secrets/borg_passphrase.txt 2>/dev/null || cat /root/.borg_passphrase 2>/dev/null || echo "")
+BORG_PASSPHRASE=$(cat /var/www/CerniqAPP/secrets/borg_passphrase.txt 2>/dev/null || cat /root/.borg_passphrase 2>/dev/null || echo "")
+export BORG_PASSPHRASE
 export BORG_RSH="ssh -i /root/.ssh/hetzner_storagebox -o StrictHostKeyChecking=no"
 
 STATUS_DIR="/var/backups/cerniq/status"
@@ -35,8 +36,8 @@ STATUS="OK"
 file_age_hours() {
     local FILE="$1"
     if [[ -f "$FILE" ]]; then
-        local NOW=$(date +%s)
-        local MTIME=$(stat -c %Y "$FILE")
+        local NOW; NOW=$(date +%s)
+        local MTIME; MTIME=$(stat -c %Y "$FILE")
         echo $(( (NOW - MTIME) / 3600 ))
     else
         echo "999999"
@@ -79,7 +80,7 @@ fi
 
 # 2. Check PostgreSQL daily dumps
 log "Checking PostgreSQL dumps..."
-LATEST_PG_DUMP=$(ls -t /var/backups/cerniq/postgresql/daily/*.dump 2>/dev/null | head -1)
+LATEST_PG_DUMP=$(find /var/backups/cerniq/postgresql/daily/ -maxdepth 1 -name "*.dump" -type f -printf '%T@\t%p\n' 2>/dev/null | sort -rn | head -1 | cut -f2-)
 if [[ -n "$LATEST_PG_DUMP" && -f "$LATEST_PG_DUMP" ]]; then
     AGE=$(file_age_hours "$LATEST_PG_DUMP")
     if [[ $AGE -gt $MAX_PG_DUMP_AGE_HOURS ]]; then
@@ -94,7 +95,7 @@ fi
 
 # 3. Check Redis backups
 log "Checking Redis backups..."
-LATEST_REDIS=$(ls -t /var/backups/cerniq/redis/hourly/*.rdb.zst 2>/dev/null | head -1)
+LATEST_REDIS=$(find /var/backups/cerniq/redis/hourly/ -maxdepth 1 -name "*.rdb.zst" -type f -printf '%T@\t%p\n' 2>/dev/null | sort -rn | head -1 | cut -f2-)
 if [[ -n "$LATEST_REDIS" && -f "$LATEST_REDIS" ]]; then
     AGE=$(file_age_hours "$LATEST_REDIS")
     if [[ $AGE -gt $MAX_REDIS_AGE_HOURS ]]; then

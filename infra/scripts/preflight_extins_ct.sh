@@ -14,6 +14,7 @@ echo
 echo "# /opt/cerniq"
 if [ -d /opt/cerniq ]; then
   echo "opt_cerniq=present"
+  # shellcheck disable=SC2012
   ls -la /opt/cerniq | sed -n '1,80p' || true
 else
   echo "opt_cerniq=missing"

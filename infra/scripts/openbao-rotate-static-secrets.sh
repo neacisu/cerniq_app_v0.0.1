@@ -77,10 +77,20 @@ kv1_merge_write() {
 
     local existing_json merged_json
     existing_json="$(bao_exec kv get -format=json "$secret_path")"
-    merged_json="$(python3 - <<'PY' <<EOF\n$existing_json\nEOF\n$updates_json\nPY\nimport json,sys\nexisting=json.loads(sys.stdin.readline())\nupdates=json.loads(sys.stdin.read() or '{}')\ndata=existing.get('data') or {}\ndata.update(updates)\nprint(json.dumps(data))\nPY\n)"
+    merged_json="$(python3 -c "
+import json, sys
+existing = json.loads(sys.argv[1])
+updates  = json.loads(sys.argv[2])
+data = existing.get('data') or {}
+data.update(updates)
+print(json.dumps(data))
+" "$existing_json" "$updates_json")"
 
     # Write merged KV v1 secret (silent).
-    curl -sS -X POST "${BAO_ADDR}/v1/${secret_path}" \\\n+        -H \"X-Vault-Token: ${BAO_TOKEN}\" \\\n+        -H \"Content-Type: application/json\" \\\n+        --data \"$merged_json\" >/dev/null
+    curl -sS -X POST "${BAO_ADDR}/v1/${secret_path}" \
+        -H "X-Vault-Token: ${BAO_TOKEN}" \
+        -H "Content-Type: application/json" \
+        --data "$merged_json" >/dev/null
 }
 
 # =============================================================================
@@ -151,7 +161,7 @@ if [[ "$INTERACTIVE" == "true" ]]; then
     echo "  4) ALL (emergency rotation)"
     echo "  5) Exit"
     echo ""
-    read -p "Enter choice [1-5]: " CHOICE
+    read -rp "Enter choice [1-5]: " CHOICE
     
     case $CHOICE in
         1) ROTATE_REDIS=true ;;
@@ -172,7 +182,7 @@ if [[ "$EMERGENCY_MODE" == "true" ]]; then
     log_warning "This will invalidate all active sessions and require service restarts."
     
     if [[ "$INTERACTIVE" == "true" ]]; then
-        read -p "Are you sure? (yes/no): " CONFIRM
+        read -rp "Are you sure? (yes/no): " CONFIRM
         if [[ "$CONFIRM" != "yes" ]]; then
             log_info "Aborting."
             exit 0
@@ -187,7 +197,9 @@ fi
 log_info "Reading current secrets from OpenBao..."
 
 CURRENT_CONFIG=$(bao_exec kv get -format=json secret/cerniq/api/config)
+# shellcheck disable=SC2034
 CURRENT_REDIS=$(echo "$CURRENT_CONFIG" | jq -r '.data.redis_password')
+# shellcheck disable=SC2034
 CURRENT_JWT=$(echo "$CURRENT_CONFIG" | jq -r '.data.jwt_secret')
 
 # =============================================================================

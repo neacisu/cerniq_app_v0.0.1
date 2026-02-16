@@ -68,10 +68,8 @@ if [[ -f "$SSH_KEY" ]]; then
     # Create single archive of the base backup
     tar -czf "$ARCHIVE_PATH" -C "$BACKUP_DIR" "base_${TIMESTAMP}" 2>> "$LOG_FILE"
     
-    scp -P 23 -i "$SSH_KEY" -o StrictHostKeyChecking=no \
-        "$ARCHIVE_PATH" "${STORAGE_BOX}:${REMOTE_DIR}/${ARCHIVE_NAME}" 2>> "$LOG_FILE"
-    
-    if [[ $? -eq 0 ]]; then
+    if scp -P 23 -i "$SSH_KEY" -o StrictHostKeyChecking=no \
+        "$ARCHIVE_PATH" "${STORAGE_BOX}:${REMOTE_DIR}/${ARCHIVE_NAME}" 2>> "$LOG_FILE"; then
         log "Upload successful: ${REMOTE_DIR}/${ARCHIVE_NAME}"
         rm -f "$ARCHIVE_PATH"  # Remove local archive after upload
     else

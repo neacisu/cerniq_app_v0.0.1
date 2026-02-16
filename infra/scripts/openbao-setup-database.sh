@@ -29,6 +29,7 @@ set -euo pipefail
 # Source environment detection to get CERNIQ_ENV and related variables
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [[ -f "${SCRIPT_DIR}/detect-environment.sh" ]]; then
+    # shellcheck source=./detect-environment.sh disable=SC1091
     source "${SCRIPT_DIR}/detect-environment.sh"
 else
     echo "ERROR: detect-environment.sh not found at ${SCRIPT_DIR}"
@@ -84,7 +85,7 @@ if [[ -n "${PG_VAULT_PASSWORD:-}" ]]; then
     VAULT_PASS="$PG_VAULT_PASSWORD"
 else
     log_info "Enter password for PostgreSQL vault user (cerniq_vault):"
-    read -s VAULT_PASS
+    read -rs VAULT_PASS
 fi
 
 # Helper function to run bao commands against orchestrator OpenBao

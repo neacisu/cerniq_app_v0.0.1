@@ -42,12 +42,12 @@ docker run --rm \
 if [ -f "${BACKUP_FILE}" ] && [ -s "${BACKUP_FILE}" ]; then
     gzip "${BACKUP_FILE}"
     echo "Backup created: ${BACKUP_FILE}.gz"
-    echo "Size: $(du -h ${BACKUP_FILE}.gz | cut -f1)"
+    echo "Size: $(du -h "${BACKUP_FILE}.gz" | cut -f1)"
 fi
 
 # Cleanup old backups (keep last 5)
 echo "Cleaning up old backups (keeping last 5)..."
-ls -t "${BACKUP_DIR}"/pre_deploy_*.sql.gz 2>/dev/null | tail -n +6 | xargs -r rm -f
+find "${BACKUP_DIR}" -maxdepth 1 -name "pre_deploy_*.sql.gz" -type f -printf '%T@\t%p\n' 2>/dev/null | sort -rn | tail -n +6 | cut -f2- | xargs -r rm -f
 
 echo "Pre-deployment backup complete"
 exit 0

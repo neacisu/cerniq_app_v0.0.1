@@ -140,9 +140,9 @@ fi
 if [[ -z "$BACKUP_FILE" ]]; then
     # Use latest local backup
     if [[ "$BACKUP_TYPE" == "rdb" ]]; then
-        BACKUP_FILE=$(ls -t "$BACKUP_DIR/hourly/"*.rdb.zst 2>/dev/null | head -1)
+        BACKUP_FILE=$(find "$BACKUP_DIR/hourly/" -maxdepth 1 -name "*.rdb.zst" -type f -printf '%T@\t%p\n' 2>/dev/null | sort -rn | head -1 | cut -f2-)
     else
-        BACKUP_FILE=$(ls -t "$BACKUP_DIR/aof/"* 2>/dev/null | head -1)
+        BACKUP_FILE=$(find "$BACKUP_DIR/aof/" -maxdepth 1 -type f -printf '%T@\t%p\n' 2>/dev/null | sort -rn | head -1 | cut -f2-)
     fi
 fi
 
@@ -188,14 +188,18 @@ else
     # Handle AOF files
     if [[ -d "$EXTRACT_DIR" ]]; then
         # Redis 7.x+ multi-part AOF
+        # shellcheck disable=SC2029
         ssh "$ORCHESTRATOR_SSH" "rm -rf ${REDIS_DATA_DIR}/appendonlydir" 2>/dev/null || true
+        # shellcheck disable=SC2029
         scp -r "$EXTRACT_DIR/appendonlydir_"*/ "${ORCHESTRATOR_SSH}:${REDIS_DATA_DIR}/appendonlydir"
     else
+        # shellcheck disable=SC2029
         scp "$RESTORE_FILE" "${ORCHESTRATOR_SSH}:${REDIS_DATA_DIR}/appendonly.aof"
     fi
 fi
 
 # Step 4: Fix permissions on the orchestrator
+# shellcheck disable=SC2029
 ssh "$ORCHESTRATOR_SSH" "chown -R redis:redis ${REDIS_DATA_DIR}/" 2>/dev/null || true
 
 # Step 5: Start Redis on the orchestrator
