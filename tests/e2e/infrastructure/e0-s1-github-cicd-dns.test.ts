@@ -191,9 +191,9 @@ describe("E0-S1-PR02: F0.15 CI/CD Base", () => {
       expect(content).toContain("pnpm");
     });
 
-    it("should use Node.js 25+", () => {
+    it("should use Node.js 24 LTS", () => {
       const content = readFile(".github/workflows/ci-pr.yml");
-      expect(content).toMatch(/node-version.*25|NODE_VERSION.*25/);
+      expect(content).toMatch(/node-version.*24|NODE_VERSION.*24/);
     });
   });
 

@@ -10,22 +10,38 @@ function readFile(filePath: string): string {
   return fs.readFileSync(fullPath, "utf-8");
 }
 
+interface TraefikRouter {
+  rule?: string;
+  [key: string]: unknown;
+}
+
+interface TraefikConfig {
+  http?: {
+    routers?: Record<string, TraefikRouter>;
+    services?: Record<string, unknown>;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
 describe("E0-S5-PR03: Orchestrator YAML and resource limits", () => {
   it("has orchestrator Traefik dynamic config for Cerniq", () => {
     const content = readFile("infra/config/traefik-orchestrator/cerniq.yml");
-    const parsed = YAML.parse(content) as any;
+    const parsed = YAML.parse(content) as TraefikConfig;
 
     expect(parsed).toBeTruthy();
     expect(parsed.http).toBeTruthy();
-    expect(parsed.http.routers).toBeTruthy();
-    expect(parsed.http.services).toBeTruthy();
+    expect(parsed.http?.routers).toBeTruthy();
+    expect(parsed.http?.services).toBeTruthy();
 
     // Minimal structural invariants
-    expect(Object.keys(parsed.http.routers).length).toBeGreaterThan(0);
-    expect(Object.keys(parsed.http.services).length).toBeGreaterThan(0);
+    const routers = parsed.http?.routers ?? {};
+    const services = parsed.http?.services ?? {};
+    expect(Object.keys(routers).length).toBeGreaterThan(0);
+    expect(Object.keys(services).length).toBeGreaterThan(0);
 
     // Ensure Cerniq host rules exist somewhere in routers
-    const routerRules = Object.values(parsed.http.routers).map((r: any) =>
+    const routerRules = Object.values(routers).map((r) =>
       String(r?.rule || ""),
     );
     expect(routerRules.join("\n")).toContain("Host(`cerniq.app`)");
