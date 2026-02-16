@@ -50,6 +50,11 @@ on:
         description: "Version to deploy (e.g., v1.0.0)"
         required: true
         type: string
+      rollback:
+        description: "Rollback to previous version (manual only)"
+        required: false
+        type: boolean
+        default: false
 
 concurrency:
   group: deploy-${{ github.ref }}
@@ -118,6 +123,7 @@ jobs:
     name: 🐳 Build & Push Images
     runs-on: self-hosted
     needs: setup
+    if: inputs.rollback != true
     permissions:
       contents: read
       packages: write
@@ -909,12 +915,12 @@ jobs:
           echo "- Smoke tests passed" >> $GITHUB_STEP_SUMMARY
 
   # ===========================================================================
-  # JOB 6: Rollback (Manual Trigger Only)
+  # JOB 6: Rollback (Manual Trigger Only — requires rollback=true)
   # ===========================================================================
   rollback:
     name: ⏮️ Rollback Deployment
     runs-on: self-hosted
-    if: github.event_name == 'workflow_dispatch' && inputs.environment != ''
+    if: inputs.rollback == true
     environment:
       name: ${{ inputs.environment }}
 
