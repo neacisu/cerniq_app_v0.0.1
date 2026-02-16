@@ -168,14 +168,14 @@ jobs:
 
           require_value "OPENBAO_TOKEN" "$TOKEN"
 
-          # KV v2: read from secret/data/ path; response nests under .data.data
+          # KV v1: read from secret/ path; response nests under .data
           SECRETS=$(curl -sS --fail --retry 5 --retry-connrefused --retry-delay 2 --max-time 10 \
             -H "X-Vault-Token: $TOKEN" \
-            "${OPENBAO_ADDR}/v1/secret/data/cerniq/ci/test")
+            "${OPENBAO_ADDR}/v1/secret/cerniq/ci/test")
 
-          CI_PG_USER=$(echo "$SECRETS" | jq -r '.data.data.pg_user')
-          CI_PG_PASSWORD=$(echo "$SECRETS" | jq -r '.data.data.pg_password')
-          CI_JWT_SECRET=$(echo "$SECRETS" | jq -r '.data.data.jwt_secret')
+          CI_PG_USER=$(echo "$SECRETS" | jq -r '.data.pg_user')
+          CI_PG_PASSWORD=$(echo "$SECRETS" | jq -r '.data.pg_password')
+          CI_JWT_SECRET=$(echo "$SECRETS" | jq -r '.data.jwt_secret')
 
           require_value "pg_user" "$CI_PG_USER"
           require_value "pg_password" "$CI_PG_PASSWORD"
@@ -272,6 +272,18 @@ jobs:
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+
+      - name: 📥 Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: 🔒 Run Trivy vulnerability scanner (filesystem)
         uses: aquasecurity/trivy-action@0.34.0
