@@ -477,6 +477,7 @@ jobs:
   changes:
     name: 🧭 Detect Changes
     runs-on: self-hosted
+    needs: lint
     outputs:
       workers: ${{ steps.filter.outputs.workers }}
 
