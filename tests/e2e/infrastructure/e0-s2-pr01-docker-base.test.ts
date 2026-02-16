@@ -492,28 +492,12 @@ describe("CI/CD: Deploy Workflow", () => {
     expect(fileExists(".github/workflows/deploy.yml")).toBe(true);
   });
 
-  it("should trigger only after CI Pipeline succeeds (workflow_run)", () => {
-    const on = deployWorkflow?.on as Record<string, unknown>;
-    expect(on).toHaveProperty("workflow_run");
-    const workflowRun = on?.workflow_run as Record<string, unknown>;
-    const workflows = workflowRun?.workflows as string[];
-    expect(workflows).toContain("CI Pipeline");
-    const types = workflowRun?.types as string[];
-    expect(types).toContain("completed");
-  });
-
-  it("should gate deployment on CI success", () => {
-    const jobs = deployWorkflow?.jobs as Record<
-      string,
-      Record<string, unknown>
-    >;
-    const setupIf = jobs?.setup?.if as string;
-    expect(setupIf).toContain("workflow_run.conclusion == 'success'");
-  });
-
-  it("should support manual deploys via workflow_dispatch", () => {
+  it("should only trigger via workflow_dispatch (CI triggers it after success)", () => {
     const on = deployWorkflow?.on as Record<string, unknown>;
     expect(on).toHaveProperty("workflow_dispatch");
+    // CD must NOT trigger on push — only CI triggers CD after checks pass
+    expect(on).not.toHaveProperty("push");
+    expect(on).not.toHaveProperty("workflow_run");
   });
 
   it("should have staging deployment job", () => {

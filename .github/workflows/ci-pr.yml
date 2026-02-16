@@ -556,3 +556,44 @@ jobs:
             exit 1
           fi
           echo "✅ All CI checks passed"
+
+  # ===========================================================================
+  # Trigger CD Pipeline (only on push, after all CI checks pass)
+  # ===========================================================================
+  trigger-cd:
+    name: 🚀 Trigger CD
+    runs-on: self-hosted
+    needs: ci-status
+    # Only on push (not PRs) — PRs are for review, pushes trigger deployment
+    if: github.event_name == 'push' && needs.ci-status.result == 'success'
+
+    steps:
+      - name: 🚀 Trigger CD Pipeline
+        run: |
+          BRANCH="${{ github.ref_name }}"
+          SHA="${{ github.sha }}"
+          SHORT_SHA="${SHA:0:7}"
+
+          if [[ "$BRANCH" == "main" ]]; then
+            ENVIRONMENT="production"
+            # Auto-version: find latest v0.0.x tag and increment
+            LATEST_TAG=$(gh api repos/${{ github.repository }}/tags --jq '.[].name' 2>/dev/null | grep '^v0\.0\.' | sort -V | tail -1)
+            if [[ -z "$LATEST_TAG" ]]; then
+              VERSION="v0.0.1"
+            else
+              PATCH=$(echo "$LATEST_TAG" | sed 's/v0\.0\.//')
+              VERSION="v0.0.$((PATCH + 1))"
+            fi
+          else
+            ENVIRONMENT="staging"
+            SAFE_BRANCH=$(echo "$BRANCH" | sed 's/[^a-zA-Z0-9]/-/g' | cut -c1-20)
+            VERSION="${SAFE_BRANCH}-${SHORT_SHA}"
+          fi
+
+          echo "🎯 Triggering CD: environment=$ENVIRONMENT version=$VERSION"
+          gh workflow run deploy.yml \
+            --ref "${{ github.ref }}" \
+            -f environment="$ENVIRONMENT" \
+            -f version="$VERSION"
+        env:
+          GH_TOKEN: ${{ github.token }}

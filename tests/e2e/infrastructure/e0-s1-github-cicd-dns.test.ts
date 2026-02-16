@@ -202,10 +202,12 @@ describe("E0-S1-PR02: F0.15 CI/CD Base", () => {
       expect(fileExists(".github/workflows/deploy.yml")).toBe(true);
     });
 
-    it("should trigger only after CI Pipeline succeeds", () => {
+    it("should trigger only via workflow_dispatch (CI triggers it after success)", () => {
       const content = readFile(".github/workflows/deploy.yml");
-      expect(content).toContain("workflow_run");
-      expect(content).toMatch(/workflows:\s*\[["']CI Pipeline["']\]/);
+      const on = yaml.parse(content)?.on;
+      expect(on).toHaveProperty("workflow_dispatch");
+      // CD must not have push trigger — CI Pipeline triggers CD after checks pass
+      expect(on).not.toHaveProperty("push");
     });
 
     it("should support manual workflow_dispatch", () => {
@@ -341,10 +343,11 @@ describe("E0-S1-PR02: F0.15 CI/CD Base", () => {
       );
     });
 
-    it("should auto-deploy on branch pushes with main => production", () => {
-      const content = readFile(".github/workflows/deploy.yml");
-      const triggerSection = content.split("workflow_dispatch")[0];
-      expect(triggerSection).toContain("**");
+    it("should auto-deploy via CI trigger-cd job (branch => staging, main => production)", () => {
+      const content = readFile(".github/workflows/ci-pr.yml");
+      // CI must have a trigger-cd job that calls deploy.yml after checks pass
+      expect(content).toContain("trigger-cd");
+      expect(content).toContain("gh workflow run deploy.yml");
     });
 
     it("should have verify-deployment.sh script", () => {

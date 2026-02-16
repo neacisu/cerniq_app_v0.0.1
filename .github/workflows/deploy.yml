@@ -33,18 +33,10 @@
 name: CD Pipeline
 
 on:
-  # CD runs ONLY after CI Pipeline completes successfully
-  workflow_run:
-    workflows: ["CI Pipeline"]
-    types:
-      - completed
-    branches:
-      - main
-      - develop
-      - "feature/**"
-      - "feat/**"
-      - "fix/**"
-      - "hotfix/**"
+  # CD is triggered exclusively by:
+  #   1. CI Pipeline (via trigger-cd job after all checks pass)
+  #   2. Manual dispatch (for hotfixes / re-deployments)
+  # CD NEVER triggers on push directly — CI must pass first.
   workflow_dispatch:
     inputs:
       environment:
@@ -74,10 +66,6 @@ jobs:
   setup:
     name: 🔧 Setup Deployment
     runs-on: self-hosted
-    # Gate: only proceed if CI passed or this is a manual dispatch
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     permissions:
       contents: write
     outputs:
@@ -91,46 +79,21 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          # For workflow_run, checkout the commit that triggered CI
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 🔧 Determine deployment parameters
         id: determine
         run: |
-          # Resolve branch/sha correctly for both workflow_run and workflow_dispatch
-          if [[ "${{ github.event_name }}" == "workflow_run" ]]; then
-            BRANCH="${{ github.event.workflow_run.head_branch }}"
-            COMMIT_SHA="${{ github.event.workflow_run.head_sha }}"
-          else
-            BRANCH="${{ github.ref_name }}"
-            COMMIT_SHA="${{ github.sha }}"
-          fi
+          # CD is always triggered via workflow_dispatch (by CI or manually)
+          echo "environment=${{ inputs.environment }}" >> $GITHUB_OUTPUT
+          echo "version=${{ inputs.version }}" >> $GITHUB_OUTPUT
+          echo "sha=${{ github.sha }}" >> $GITHUB_OUTPUT
 
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "environment=${{ inputs.environment }}" >> $GITHUB_OUTPUT
-            echo "version=${{ inputs.version }}" >> $GITHUB_OUTPUT
-            echo "should_tag=false" >> $GITHUB_OUTPUT
-          elif [[ "$BRANCH" == "main" ]]; then
-            echo "environment=production" >> $GITHUB_OUTPUT
+          if [[ "${{ inputs.environment }}" == "production" ]]; then
             echo "should_tag=true" >> $GITHUB_OUTPUT
-            LATEST_TAG=$(git tag -l "v0.0.*" --sort=-v:refname | head -n1)
-            if [[ -z "$LATEST_TAG" ]]; then
-              NEW_VERSION="v0.0.1"
-            else
-              PATCH=$(echo "$LATEST_TAG" | sed 's/v0\.0\.//')
-              NEW_PATCH=$((PATCH + 1))
-              NEW_VERSION="v0.0.${NEW_PATCH}"
-            fi
-            echo "version=${NEW_VERSION}" >> $GITHUB_OUTPUT
           else
-            echo "environment=staging" >> $GITHUB_OUTPUT
             echo "should_tag=false" >> $GITHUB_OUTPUT
-            SHORT_SHA="${COMMIT_SHA:0:7}"
-            SAFE_BRANCH=$(echo "$BRANCH" | sed 's/[^a-zA-Z0-9]/-/g' | cut -c1-20)
-            echo "version=${SAFE_BRANCH}-${SHORT_SHA}" >> $GITHUB_OUTPUT
           fi
-          echo "sha=${COMMIT_SHA}" >> $GITHUB_OUTPUT
 
       - name: 🏷️ Create Git Tag (Production Auto-Version)
         if: steps.determine.outputs.should_tag == 'true'
