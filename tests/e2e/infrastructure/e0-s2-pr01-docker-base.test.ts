@@ -492,29 +492,27 @@ describe("CI/CD: Deploy Workflow", () => {
     expect(fileExists(".github/workflows/deploy.yml")).toBe(true);
   });
 
-  it("should trigger on push for all branches", () => {
+  it("should trigger only after CI Pipeline succeeds (workflow_run)", () => {
     const on = deployWorkflow?.on as Record<string, unknown>;
-    const push = on?.push as Record<string, unknown>;
-    const branches = push?.branches as string[];
-    expect(branches).toContain("**");
+    expect(on).toHaveProperty("workflow_run");
+    const workflowRun = on?.workflow_run as Record<string, unknown>;
+    const workflows = workflowRun?.workflows as string[];
+    expect(workflows).toContain("CI Pipeline");
+    const types = workflowRun?.types as string[];
+    expect(types).toContain("completed");
   });
 
-  it("should deploy staging on non-main branches", () => {
-    const on = deployWorkflow?.on as Record<string, unknown>;
-    const push = on?.push as Record<string, unknown>;
-    const branches = push?.branches as string[];
-    expect(branches).toContain("**");
+  it("should gate deployment on CI success", () => {
+    const jobs = deployWorkflow?.jobs as Record<
+      string,
+      Record<string, unknown>
+    >;
+    const setupIf = jobs?.setup?.if as string;
+    expect(setupIf).toContain("workflow_run.conclusion == 'success'");
   });
 
-  it("should support auto-versioning (tags created by workflow, not triggers)", () => {
-    // Note: Tag triggers removed in favor of auto-versioning
-    // The workflow creates v0.0.x tags automatically on main pushes
+  it("should support manual deploys via workflow_dispatch", () => {
     const on = deployWorkflow?.on as Record<string, unknown>;
-    const push = on?.push as Record<string, unknown>;
-    const branches = push?.branches as string[];
-    // Main branch triggers production with auto-versioning
-    expect(branches).toContain("**");
-    // workflow_dispatch still available for manual deploys
     expect(on).toHaveProperty("workflow_dispatch");
   });
 

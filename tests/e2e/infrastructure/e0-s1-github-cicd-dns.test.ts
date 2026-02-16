@@ -202,9 +202,10 @@ describe("E0-S1-PR02: F0.15 CI/CD Base", () => {
       expect(fileExists(".github/workflows/deploy.yml")).toBe(true);
     });
 
-    it("should trigger on all branches", () => {
+    it("should trigger only after CI Pipeline succeeds", () => {
       const content = readFile(".github/workflows/deploy.yml");
-      expect(content).toMatch(/branches:\s*\n?\s*-\s*["']?\*\*["']?/);
+      expect(content).toContain("workflow_run");
+      expect(content).toMatch(/workflows:\s*\[["']CI Pipeline["']\]/);
     });
 
     it("should support manual workflow_dispatch", () => {
