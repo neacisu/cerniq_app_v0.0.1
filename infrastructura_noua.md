@@ -2,14 +2,19 @@
 
 # Raport audit infrastructura Hetzner + Proxmox
 
-Data: 2026-02-11
+Data audit initial: 2026-02-11
 Sursa date: loguri audit locale (hetzner_audit_logs/20260211_135424)
 
-Actualizare (executat manual): 2026-02-16
+**Ultima actualizare: 2026-02-16** (corectii sistematice — alinierea documentului la realitatea infrastructurii)
 
-- Scop: inventar + pre-flight real pentru infrastructura noua Cerniq (orchestrator + Proxmox nodes + CT-uri Cerniq).
+- Scop: inventar complet + pre-flight real pentru infrastructura noua Cerniq (orchestrator + Proxmox nodes + CT-uri Cerniq).
+- **Cerniq este primul proiect implementat** pe noua infrastructura si serveste ca **exemplu de bune practici** pentru toate implementarile ulterioare.
 - Nota: sectiunile marcate explicit ca "snapshot" (ex: 2026-02-11) sunt pastrate ca istoric/audit trail si NU reprezinta starea curenta.
-- Starea curenta pentru Cerniq (Traefik master, HAProxy gateway, CT109/CT110) este documentata in `### Implementare Cerniq.app` (actualizat 2026-02-16).
+- Starea curenta pentru Cerniq (Traefik master, HAProxy gateway, CT109/CT110, OpenBao, CI/CD) este documentata in `### Implementare Cerniq.app` (actualizat 2026-02-16).
+- **KV Engine**: OpenBao foloseste **KV Secrets Engine v1** (nu v2) — path API: `secret/cerniq/*`, raspuns JSON: `.data.key`.
+- **Node.js**: Versiunea LTS **24.13.1** ("Krypton"), pnpm **10.29.3** (actualizat feb 2026).
+- **CI/CD**: Flow secvential CI → CD prin `workflow_dispatch`, **fail-fast** la lint, CD doar pe `workflow_dispatch`.
+- **Observabilitate**: Centralizata exclusiv pe orchestrator — CT-urile expun doar exportere (cadvisor, node-exporter, pgbouncer-exporter), **fara Vector/OTEL local**.
 
 ## Rezumat executiv
 
@@ -42,7 +47,7 @@ Actualizare (executat manual): 2026-02-16
 
 ### orchestrator
 
-Rol probabil: nod de control si servicii aplicative (traefik, openbao, zitadel etc.).
+**Rol: Nod central de control** — Traefik master (ingress unic), OpenBao (secrets centralizat), Zitadel (identity), stack observability complet, email (Stalwart + Roundcube).
 
 Audit aprofundat (snapshot 2026-02-11 14:08):
 
@@ -51,7 +56,9 @@ Audit aprofundat (snapshot 2026-02-11 14:08):
 - Storage: /dev/sda1 (root), /etc/pve pe /dev/fuse (pmxcfs). Docker overlay pe root.
 - Retea: eth0 public /32, enp7s0 privat 10.0.0.2/32 (DHCP), MTU 1450; ruta privata 10.0.0.0/16 via 10.0.0.1.
 - Proxmox: pve-manager 9.1.5, cluster quorate (4 noduri), corosync activ pe 10.0.0.2.
-- Containere Docker: traefik, openbao, zitadel, oauth2-proxy, cloudbeaver, watchtower, **stalwart** (mail server), **roundcube** (webmail) (bridge traefik_default).
+- Containere Docker (2 stacks):
+  - **traefik_default** (ingress + servicii): `traefik` (master unic, porturi 80/443), `openbao` (2.5.0), `zitadel`, `oauth2-proxy`, `cloudbeaver`, `watchtower`, `stalwart` (mail), `roundcube` (webmail), `redis-shared` (6379)
+  - **observability** (stack complet): `prometheus`, `grafana`, `loki`, `tempo`, `alertmanager`, `vector`, `otel-collector`, `cadvisor`, `node-exporter`, `pve-exporter`
 - Servicii critice expuse: 22, 25, 80, 143, 443, 465, 587, 993, 4180, 4190, 8080, 8006, 8200/8201, 8888, 3128, 111.
 - Storage extern: **Ctera C800-4** (NAS acasa) montat NFS la `/mnt/ctera` (~13 TB), inregistrat ca Proxmox storage `ctera-home`.
 - WireGuard VPN: interfata `wg-home` (10.99.0.1/24) configurata pentru tunel spre acasa, service enabled (tunnel inactiv — lipseste peer la acasa).
@@ -86,29 +93,36 @@ Recomandari:
 
 ---
 
-### hz.215 (Cluster 3)
+### hz.215 (Cluster 3, corosync node 0x00000003)
 
-Audit aprofundat (snapshot 2026-02-11 14:09):
+Audit aprofundat (snapshot 2026-02-11, actualizat 2026-02-16):
 
-- Sistem: Proxmox VE 9.1, kernel 6.17.9-1-pve.
+- Sistem: Proxmox VE 9.1 (pve-manager 9.1.5), kernel 6.17.9-1-pve.
 - Resurse: 48 vCPU, 125 GiB RAM, swap 0.
 - Storage: RAID1 NVMe (root), /hdd-archive 1.7T montat, /etc/pve pe /dev/fuse.
 - Retea: enp98s0f0 public /26, VLAN 4000 pe vmbr4000; IP-uri multiple pe vmbr4000 (10.20.0.11, 10.10.1.1, 10.0.1.9, 10.0.1.11).
-- Proxmox: cluster quorate, corosync activ pe 10.0.1.11, 3 VM oprite (104/105/106).
+- Proxmox: cluster quorate, corosync activ pe 10.0.1.11.
+- **LXC containere**: 5 total:
+  - CT104, CT105, CT106 — oprite (legacy, neutilizate)
+  - **CT111 `neanelu-prod`** — running, 8 cores, 32 GB RAM, IP 10.0.1.111, bridge vmbr4000
+  - **CT112 `neanelu-staging`** — running, 8 cores, 32 GB RAM, IP 10.0.1.112, bridge vmbr4000
 - Servicii expuse: 22, 25, 111, 3128, 8006; rpcbind activ; postfix activ.
 - Firewall: PVEFW activ, policy ACCEPT; allowlist management pentru 22/8006/3128 prin ipset; corosync permis intre noduri.
-- Update-uri restante: 4.
+- Update-uri restante: 3.
 
 Observatii privind scopul:
 
-- Nod de compute Proxmox pentru VM-uri; resurse mari, storage local si arhiva separata.
+- Nod de compute Proxmox; resurse mari, storage local si arhiva separata.
+- **Gazduieste LXC-urile Neanelu** (prod CT111 si staging CT112) — traficul rutează prin HAProxy pe hz.247.
 - Are configuratii de retea multiple pe acelasi bridge, ceea ce poate crea ambiguitati de routing.
-  Observatii cheie:
+
+Observatii cheie:
+
 - Proxmox cluster: quorate, corosync OK (ring pe 10.0.1.11).
-- SSH: PermitRootLogin yes, PasswordAuthentication yes.
+- SSH: PermitRootLogin yes, PasswordAuthentication efectiv yes.
 - Servicii expuse: pveproxy 8006, spiceproxy 3128, rpcbind 111, postfix 25.
 - vmbr4000 cu mai multe IP-uri in acelasi /24 (10.0.1.9 si 10.0.1.11) + alte subnete.
-- Update-uri restante: ~4.
+- Update-uri restante: ~3.
 
 Riscuri:
 
@@ -122,77 +136,106 @@ Recomandari:
 
 ---
 
-### hz.247 (Cluster 1)
+### hz.247 (Cluster 2, corosync node 0x00000002)
 
-Audit aprofundat (snapshot 2026-02-11 14:09):
+Audit aprofundat (snapshot 2026-02-11, actualizat 2026-02-16):
 
-- Sistem: Proxmox VE 9.1, kernel 6.17.9-1-pve.
+- Sistem: Proxmox VE 9.1 (pve-manager 9.1.5), kernel 6.17.9-1-pve.
 - Resurse: 48 vCPU, 188 GiB RAM, swap 0.
-- Storage: RAID1 NVMe (root), /etc/pve pe /dev/fuse.
+- Storage: RAID1 NVMe (root), **ZFS mirror 2×223G SSD** (pool `ssd-main`, gazduieste rootfs CT107), /etc/pve pe /dev/fuse.
 - Retea: VLAN 4000 pe vmbr4000; IP-uri multiple pe vmbr4000 (10.20.0.10, 10.0.1.7, 10.0.1.10).
-- Proxmox: cluster quorate, corosync activ pe 10.0.1.10; 1 LXC pornit (107).
+- Proxmox: cluster quorate, corosync activ pe 10.0.1.10; **1 LXC pornit** (CT107 `postgres-main`).
+- **HAProxy L4 Gateway** (serviciu critic, `haproxy.service` activ):
+  - Bind pe `10.0.1.10` — backbone-ul traficului Cerniq si Neanelu
+  - **Frontends/Backends**:
+    - `:443` TLS passthrough → orchestrator Traefik (`10.0.0.2:443`)
+    - `:6379` Redis → orchestrator Redis (`10.0.0.2:6379`)
+    - `:19094/:29094` cAdvisor staging/prod → CT110/CT109
+    - `:19095/:29095` pgbouncer-exporter staging/prod → CT110/CT109
+    - `:19100/:29100` node-exporter staging/prod → CT110/CT109
+    - App ports Cerniq (`:19080/:29080` etc.) → CT110/CT109
+    - Neanelu ports → CT111/CT112
+  - `iptables` NAT/firewall: allowlist CT109/110/111/112 pentru :443 si :6379, DROP restul
 - Servicii expuse: 22, 25, 111, 3128, 8006; rpcbind activ; postfix activ.
 - Firewall: PVEFW activ, policy ACCEPT; allowlist management pentru 22/8006/3128 prin ipset; corosync permis intre noduri.
-- Update-uri restante: 4.
+- Update-uri restante: 3.
 
 Observatii privind scopul:
 
-- Nod Proxmox de compute cu resurse mari; participa la clusterul principal.
+- **Gateway L4 central** — HAProxy pe `10.0.1.10` ruteaza tot traficul intre orchestrator si LXC-urile aplicative.
+- Nod Proxmox de compute cu resurse mari; gazduieste CT107 (PostgreSQL dedicat Cerniq).
+- Toate CT-urile (108-112) folosesc `10.0.1.7` ca gateway implicit (rutare prin acest host).
 
 Observatii cheie:
 
 - Proxmox cluster quorate; corosync pe 10.0.1.10.
 - SSH: PermitRootLogin yes, PasswordAuthentication yes.
 - Servicii expuse: pveproxy 8006, spiceproxy 3128, rpcbind 111, postfix 25.
-- vmbr4000 cu multiple IP-uri (10.0.1.7 si 10.0.1.10).
-- Update-uri restante: ~4.
+- vmbr4000 cu multiple IP-uri (10.0.1.7 gateway CT-uri, 10.0.1.10 HAProxy VIP).
+- Update-uri restante: ~3.
 
 Riscuri:
 
 - High: management public + SSH root cu parola.
 - Medium: IP-uri multiple in acelasi /24.
+- **Medium: HAProxy este single point of failure** — daca hz.247 pica, tot traficul intre orchestrator si CT-uri se opreste.
 
 Recomandari:
 
 - Restrictii management + hardening SSH.
 - Curatare IP-uri duplicate.
+- Plan de redundanta/failover pentru HAProxy.
 
 ---
 
-### hz.223 (Cluster 2)
+### hz.223 (Cluster 4, corosync node 0x00000004)
 
-Audit aprofundat (snapshot 2026-02-11 14:12):
+Audit aprofundat (snapshot 2026-02-11, actualizat 2026-02-16):
 
-- Sistem: Proxmox VE 9.1, kernel 6.17.9-1-pve.
+- Sistem: Proxmox VE 9.1 (pve-manager 9.1.5), kernel 6.17.9-1-pve.
 - Resurse: 48 vCPU, 125 GiB RAM, swap 0.
-- Storage: RAID1 NVMe (root), /nvme-fast 861G, /etc/pve pe /dev/fuse.
+- Storage: RAID1 NVMe (root), **ZFS single-disk NVMe `/nvme-fast` 855G** (al 3-lea NVMe, nu RAID — SPOF!), /etc/pve pe /dev/fuse.
 - Retea: VLAN 4000 pe vmbr4000; IP-uri multiple pe vmbr4000 (10.20.0.12, 10.0.1.8, 10.0.1.12); public /26 pe enp98s0f0.
 - Proxmox: cluster quorate, corosync activ pe 10.0.1.12.
+- **LXC containere**: 3 running (nucleul infrastructurii Cerniq):
+
+  | CTID | Nume | Status | Cores | RAM | Storage | IP |
+  |------|------|--------|-------|-----|---------|-----|
+  | 108 | `CI-worker` | running | 2 | 8 GB | nvme-fast 40G | 10.0.1.108 |
+  | 109 | `prod-cerniq` | running | 8 | 32 GB | local 100G | 10.0.1.109 |
+  | 110 | `staging-cerniq` | running | 4 | 16 GB | nvme-fast 80G | 10.0.1.110 |
+
+  Toate CT-urile: gateway `10.0.1.7` (hz.247), bridge `vmbr4000`, MTU 1400.
+
 - Servicii expuse: 22, 25, 111, 3128, 8006; rpcbind activ; postfix activ.
 - Firewall: PVEFW activ, policy ACCEPT; allowlist management pentru 22/8006/3128 prin ipset; corosync permis intre noduri.
-- Update-uri restante: 4.
+- Update-uri restante: 3.
 
 Observatii privind scopul:
 
+- **Host principal Cerniq** — gazduieste toate LXC-urile aplicative (CI, staging, productie).
 - Nod Proxmox de compute cu storage NVMe local rapid.
+- `/nvme-fast` este ZFS pe un singur NVMe (nu mirror) — risc de pierdere date daca discul cedeaza.
 
 Observatii cheie:
 
 - Proxmox cluster quorate; corosync pe 10.0.1.12.
-- SSH: PermitRootLogin yes, PasswordAuthentication yes.
+- SSH: PermitRootLogin yes, PasswordAuthentication efectiv yes.
 - Servicii expuse: pveproxy 8006, spiceproxy 3128, rpcbind 111, postfix 25.
 - vmbr4000 cu IP-uri multiple (10.0.1.8 si 10.0.1.12).
-- Update-uri restante: ~4.
+- Update-uri restante: ~3.
 
 Riscuri:
 
 - High: management public + SSH root cu parola.
 - Medium: multiplu IP in acelasi /24.
+- **High: `/nvme-fast` pe un singur disk** — CT108 si CT110 stocate aici fara redundanta.
 
 Recomandari:
 
 - Restrictionare porturi management la IP-uri admin.
 - Unificare IP-urilor pe vmbr4000.
+- **Adaugare mirror ZFS pe `/nvme-fast`** sau backup periodic al CT-urilor.
 
 ---
 
@@ -310,48 +353,67 @@ Recomandari:
 
 ---
 
-### hz.164 (GeniusERP)
+### hz.164 (GeniusERP + Neanelu)
 
-Audit aprofundat (snapshot 2026-02-11 14:12):
+Audit aprofundat (snapshot 2026-02-11, actualizat 2026-02-16):
 
 - Sistem: Ubuntu 24.04, kernel 6.8.0-86-generic.
 - Resurse: 64 vCPU, 125 GiB RAM, swap 4 GiB.
 - Storage: NVMe 875G (root), Docker overlay pe root.
 - Retea: public /32 (135.181.183.164); VLAN 4000 pe enp195s0.4000 cu 10.0.1.6/24.
-- Docker: multe containere (traefik/openbao/postgres/kafka/neo4j/grafana/loki/prometheus etc.), mai multe unhealthy.
+- **Docker stacks** (3 proiecte active):
+  1. **GeniusERP** (~10 containere, mai multe unhealthy): `geniuserp-openbao` (127.0.0.1:8200), `geniuserp-postgres`, `geniuserp-kafka`, `geniuserp-neo4j`, `genius-suite-*` etc.
+  2. **Neanelu Shopify** (~15 containere, toate healthy): `neanelu_traefik` (80/443), `neanelu_postgres`, `neanelu_redis`, `neanelu_backend_worker`, `neanelu_web_admin`, `neanelu_grafana`, `neanelu_prometheus`, `neanelu_loki`, `neanelu_jaeger`, `neanelu_otel_collector`, `neanelu_promtail`, `neanelu_alertmanager`, `neanelu_pgadmin`, `neanelu_redis_commander`, `neanelu_bull_board`
+  3. **Aplicatie separata** (3 containere): `docker-frontend-1`, `docker-backend-1`, `docker-db-1`
+- **Nota**: Legacy `cerniq-openbao` a fost **decommissionat** (feb 2026) — nu mai ruleaza pe acest host.
+- `redis-server.service` activ la nivel systemd (nu Docker) — utilizat de GeniusERP.
 - Servicii expuse: 22, 80, 443, 5000-5002, plus porturi Docker (64080/64090/650xx/8811/8000/8088/8445/9499).
 - Firewall: UFW activ cu allowlist; Fail2Ban activ (sshd/recidive).
-- Update-uri restante: 27.
+- Update-uri restante: 32.
 
 Observatii privind scopul:
 
-- Host aplicativ multi-stack (GeniusERP + observability + OpenBao).
+- **Host aplicativ multi-stack**: GeniusERP + Neanelu Shopify + aplicatie separata.
+- `geniuserp-openbao` este OpenBao-ul GeniusERP (nu Cerniq) — bind pe 127.0.0.1 doar.
+- Neanelu foloseste `neanelu_traefik` local pe 80/443 cu propriile certificate.
 
 Observatii cheie:
 
-- pvecm: n/a (nu in cluster).
+- pvecm: n/a (nu in cluster, bare-metal standalone).
 - SSH: PermitRootLogin yes, PasswordAuthentication yes.
 - UFW activ cu allowlist, dar multe porturi publice: 80/443/5000-5002/64443/9499 etc.
 - Docker expune multiple porturi publice.
-- Update-uri restante: ~27.
+- Update-uri restante: ~32 (in crestere).
 
 Riscuri:
 
 - High: porturi publice multiple fara scope clar.
+- **High: update-uri restante in crestere** (32, era 27 pe 11 feb).
 - Medium: patch lag.
 
 Recomandari:
 
 - Revizuire porturi publice si minimizare expunere.
 - SSH hardening si allowlist management.
+- **Aplicare urgenta update-uri** (trend crescator).
 
 ---
 
-## Evaluare cluster Proxmox
+## Evaluare cluster Proxmox (actualizat 2026-02-16)
 
-- Clusterul cu hz.215/hz.247/hz.223/orchestrator pare functional la momentul auditului (quorum OK pe nodurile dedicate).
+- **Cluster principal**: orchestrator (node 0x00000001) + hz.247 (node 0x00000002) + hz.215 (node 0x00000003) + hz.223 (node 0x00000004) — quorum OK, corosync functional.
+- **Topul Proxmox**: `ring0_addr` pe subnete VLAN 4000 (10.0.1.x si 10.0.0.x).
 - Exista nealiniere potentiala intre rolul de control al orchestratorului si expunerea publica a serviciilor lui.
-- Nodurile standalone (hz.157/hz.118) nu sunt administrate central prin corosync.
+- **Nodurile standalone** (hz.157, hz.118, hz.123, hz.164) **nu sunt in cluster** Proxmox — administrate independent.
+
+Distributie LXC/VM-uri pe noduri:
+
+| Nod Proxmox | CT-uri active | Scop principal |
+|-------------|---------------|----------------|
+| hz.247 | CT107 | PostgreSQL dedicat Cerniq |
+| hz.223 | CT108, CT109, CT110 | CI runner + Cerniq prod/staging |
+| hz.215 | CT111, CT112 | Neanelu prod/staging |
+| orchestrator | — (Docker direct) | Traefik master, OpenBao, observability, email |
 
 ## Retele si conectivitate
 
@@ -1036,11 +1098,12 @@ Rezultate confirmate (hz.247):
 
 - HAProxy: `active`
 - Listeners VIP `10.0.1.10`:
-  - `:443` (TLS passthrough), `:6379` (Redis passthrough)
-  - porturi observability gateway: `19000/19010/19012` si `29000/29010/29012`
+  - `:443` (TLS passthrough → orchestrator Traefik), `:6379` (Redis passthrough → orchestrator)
+  - porturi observability: `19094/29094` (cAdvisor), `19095/29095` (pgbouncer-exporter), `19100/29100` (node-exporter)
+  - porturi aplicatie: `19080/29080` (Cerniq API), `19010/29010`, `19012/29012` etc.
 - iptables INPUT (VIP allowlist):
-  - permite `10.0.1.109/32` si `10.0.1.110/32` catre `10.0.1.10:443` si `10.0.1.10:6379`, apoi `DROP` pentru restul
-  - permite orchestrator `10.0.0.2/32` catre porturile observability gateway, apoi `DROP` pentru restul
+  - permite `10.0.1.109/32` si `10.0.1.110/32` catre `10.0.1.10` pe porturile `443,6379,19094,19095,19100,29094,29095,29100`, apoi `DROP` pentru restul
+  - permite orchestrator `10.0.0.2/32` catre porturile de scrape (observability), apoi `DROP` pentru restul
 - iptables FORWARD (egress control pentru CT-uri):
   - reguli explicite pentru `10.0.1.107/108/109/110` permit doar `80/443/53` + `RELATED,ESTABLISHED`, apoi `DROP` (deny by default)
 - Placement confirmat:
@@ -1907,39 +1970,65 @@ Taskurile marcate `completed` in planul de migrare sunt implementate si au refer
       - `production` -> `cerniq`
       - `staging` -> `cerniq_staging`
   - Redis NU ruleaza local (este shared pe orchestrator)
-  - `openbao-agent-api`, `openbao-agent-workers` (pinned)
-  - `vector` (logs) + `otel-collector` (traces/metrics) + `cadvisor` (docker metrics)
-- Runtime Node in imaginile placeholder: Node 25 (Feb 2026 current)
+  - `openbao-agent-api`, `openbao-agent-workers`, `openbao-agent-infra` (pinned)
+  - `cadvisor` (docker metrics) + `node-exporter` (host metrics) — scrape-uite remote de Prometheus orchestrator
+  - `pgbouncer-exporter` (metrici PgBouncer, port 64095) — scrape-uit prin HAProxy
+  - **Nota**: `vector` si `otel-collector` au fost **eliminate** (feb 2026) — observabilitate centralizata exclusiv pe orchestrator
+- Runtime: placeholders ruleaza Python 3.12 Alpine; aplicatia reala va folosi **Node 24.13.1 (LTS "Krypton")**, pnpm 10.29.3
 
-#### Observabilitate Cerniq (integrat in stack-ul centralizat)
+#### Observabilitate Cerniq (centralizata pe orchestrator)
 
-- Logs: Vector -> Loki prin `https://logs-cerniq.neanelu.ro` (Cerniq-only push endpoint)
-  - Config in repo: `infra/config/vector/vector.toml`
-  - Labels: `project="cerniq"`, `environment` din `CERNIQ_ENV`, `host` hostname
-  - Intern-only (fara NAT/public): pe CT109/CT110 folosim `extra_hosts` in compose pentru a rezolva domeniul catre gateway-ul intern:
-    - `logs-cerniq.neanelu.ro -> 10.0.1.10` (hz.247, HAProxy TCP passthrough)
-    - Astfel, Traefik poate aplica allowlist pe o sursa interna stabila si traficul ramane pe reteaua privata
-- OTEL: `otel-collector` local expune OTLP (4317/4318) pentru aplicatie si poate forwarda catre orchestrator prin HTTPS (route dedicata).
-  - Intern-only (fara NAT/public): pe CT109/CT110 folosim `extra_hosts`:
-    - `otel-cerniq.neanelu.ro -> 10.0.1.10`
-  - Nota: Traefik middleware allowlist include si `10.0.1.10/32` pentru scenariul gateway-ului intern (vezi `f1-46`)
-- Prometheus rules (Cerniq-only, aditiv):
-  - Orchestrator: `/opt/observability/prometheus/rules/infra-cerniq-alerts.yml` (NodeDown/DiskLow/MemoryLow)
-- Grafana dashboards (Cerniq-only, provisioning):
+**Principiu**: NU exista componente locale de observabilitate pe CT-uri (vector/otel-collector au fost eliminate).
+Fiecare CT expune doar exportere care sunt scrape-uite remote de Prometheus de pe orchestrator.
+
+- **Metrici (Prometheus scrape remote)**:
+  - `cadvisor` pe CT109/CT110 (port 64094) → scrape-uit prin HAProxy (:29094 prod, :19094 staging)
+  - `node-exporter` pe CT109/CT110 (port 9100) → scrape-uit prin HAProxy (:29100 prod, :19100 staging)
+  - `node-exporter` pe CT107/CT108 (port 9100) → scrape-uit direct
+  - `pgbouncer-exporter` pe CT109/CT110 (port 64095) → scrape-uit prin HAProxy (:29095 prod, :19095 staging)
+  - `postgres-exporter` pe CT107 (systemd nativ, port 9187) → scrape-uit direct
+  - Toate cu label-uri `project="cerniq"`, `environment="production"/"staging"`
+- **Logs**: Container logs via Docker json-file driver (vizibile cu `docker logs`). Pentru aplicatia reala, se va trimite OTLP direct la `otel-cerniq.neanelu.ro` (orchestrator).
+- **Traces**: Aplicatia va trimite direct la `otel-cerniq.neanelu.ro` (OTLP over HTTPS).
+  - `/etc/hosts` pe CT109/CT110: `10.0.1.10 otel-cerniq.neanelu.ro` (route prin HAProxy intern)
+  - Traefik middleware `cerniq-otlp-allowlist` include `10.0.1.10/32` (sursa HAProxy)
+- **Prometheus alert rules** (Cerniq-only, aditiv):
+  - Orchestrator: `/opt/observability/prometheus/rules/infra-cerniq-alerts.yml`
+  - Reguli: `CerniqNodeDown`, `CerniqDiskLow`, `CerniqMemoryLow`
+- **Grafana dashboards** (Cerniq-only, provisioning cu `foldersFromFilesStructure: true`):
   - Folder: `Cerniq`
   - Path pe orchestrator: `/opt/observability/grafana/dashboards/cerniq/`
+  - Dashboard-uri: `01-cerniq-infra-overview.json`, `02-cerniq-docker.json`, `03-cerniq-pgbouncer.json`, `04-cerniq-postgresql.json`
+  - Toate cu variabila template `$environment` (production/staging)
 
 #### CI/CD (CT 108 runner)
 
-- Workflows:
+- **Runner**: CT108 (`CI-worker`), self-hosted GitHub Actions runner
+  - Software: Docker 28.2.2, Node.js 24.13.1 (via actions/setup-node), pnpm 10.29.3 (via corepack), shellcheck 0.9.0 (nativ), **gh CLI 2.86.0**
+  - User: `runner`, serviciu `actions.runner.*` activ
+- **Workflows**:
   - CI: `.github/workflows/ci-pr.yml`
   - CD: `.github/workflows/deploy.yml`
-- CD sincronizeaza pe target (CT109/CT110) configuratii + compose si poate sincroniza (prin SSH) si configuratia Traefik pentru Cerniq.
-- GitHub Secrets (aliniate la noua infrastructura):
-  - `STAGING_HOST=10.0.1.110`, `STAGING_USER=deploy`
-  - `PRODUCTION_HOST=10.0.1.109`, `PRODUCTION_USER=deploy`
-  - `STAGING_SSH_KEY` si `PRODUCTION_SSH_KEY`: cheie dedicata de deploy (instalata in `~deploy/.ssh/authorized_keys` pe CT109/CT110).
-  - CI foloseste exclusiv OpenBao orchestrator prin `OPENBAO_ADDR` + AppRole CI/CD (`OPENBAO_CICD_ROLE_ID`, `OPENBAO_CICD_SECRET_ID`); `secret_id` poate fi rotit fara a schimba codul pipeline-ului.
+- **Flow CI → CD (secvential, nu paralel)**:
+  1. Push pe branch → CI porneste (lint, test, docker-config, changes, python-lint, shellcheck pe PR)
+  2. **Toate joburile CI depind de `lint`** (fail-fast — daca lint pica, totul se opreste)
+  3. `ci-status` (if: always()) — verifica daca orice job a esuat
+  4. `trigger-cd` (if: always() && push && ci-status=success) → apeleaza `gh workflow run deploy.yml --ref ... -f environment=... -f version=...`
+     - Branch non-main → `environment=staging`, version=`branch-sha`
+     - Branch main → `environment=production`, version=`v0.0.X` (auto-increment)
+  5. CD (`deploy.yml`) accepta **doar `workflow_dispatch`** (nu push trigger!)
+  6. CD: setup → build-push → deploy-staging/production → summary
+  7. **Rollback**: doar cu `inputs.rollback=true` (manual, nu ruleaza la deploy normal)
+- **SSH Deploy**:
+  - User `deploy` pe CT109/CT110 (nu root)
+  - Chei restrictionate: `STAGING_SSH_KEY_RESTRICTED`, `PRODUCTION_SSH_KEY_RESTRICTED`
+  - Cheia veche ramane ca "break-glass" (acces root)
+  - **Fara ProxyJump** — SSH direct de pe CT108 la CT109/CT110
+- **GitHub Secrets** (aliniate la noua infrastructura):
+  - `STAGING_HOST=10.0.1.110`, `PRODUCTION_HOST=10.0.1.109`
+  - `STAGING_SSH_KEY_RESTRICTED` si `PRODUCTION_SSH_KEY_RESTRICTED`: chei ed25519 dedicate user-ului `deploy`
+  - `OPENBAO_ADDR`, `OPENBAO_CICD_ROLE_ID`, `OPENBAO_CICD_SECRET_ID`: acces CI la OpenBao orchestrator (AppRole, KV v1)
+- **OpenBao KV engine**: **v1** (nu v2) — path API: `secret/cerniq/*` (nu `secret/data/cerniq/*`), raspuns JSON: `.data.key` (nu `.data.data.key`)
 
 #### OpenBao DB creds TTL (stabilitate)
 
@@ -2581,9 +2670,11 @@ Testat la 2026-02-12:
 
 **Recomandare**: Adauga reguli explicite de firewall pe router care permit trafic inbound **doar** de la 77.42.76.185 pe porturile 111, 2049, 44881 — si DROP tot restul. Asta e o regula explicita, nu doar lipsa unui port forward.
 
-### WireGuard VPN (pregatit, neactivat)
+### WireGuard VPN (interfata activa, tunel neestablit)
 
-Interfata `wg-home` este configurata pe orchestrator dar **tunelul nu este stabilit** (nu exista un peer WireGuard activ la acasa).
+Interfata `wg-home` este configurata si **activa** pe orchestrator (listening port 51820, keepalive-uri trimise), dar **peer-ul de acasa nu raspunde** (0 B primit, 7+ MiB trimis).
+
+> **Atentie securitate**: Cheia privata WireGuard este stocata in **plaintext** in `/etc/wireguard/wg-home.conf` pe disk (NU in secret manager). Aceasta trebuie migrata in OpenBao sau cel putin protejata cu permisiuni stricte.
 
 **Config orchestrator** (`/etc/wireguard/wg-home.conf`):
 
@@ -2591,7 +2682,7 @@ Interfata `wg-home` este configurata pe orchestrator dar **tunelul nu este stabi
 [Interface]
 Address = 10.99.0.1/24
 ListenPort = 51820
-PrivateKey = (stocat local)
+PrivateKey = (plaintext pe disk — de migrat in secret manager)
 
 [Peer]
 PublicKey = LEH3HPvFnEINQkOBYCN3jiMTxaAmGgQOlbAgL/1cwEg=
@@ -2732,12 +2823,13 @@ Control acces:
 - `pve-exporter` interogheaza API Proxmox cu token dedicat (`prometheus-monitor@pve`)
 - Prometheus scrape pe endpoint `pve-exporter:9221`
 
-3. **Logs containere**
+3. **Logs containere (orchestrator)**
 
-- Vector citeste logs Docker (`/var/lib/docker/containers` + docker socket)
+- Vector citeste logs Docker (`/var/lib/docker/containers` + docker socket) de pe **orchestrator**
 - normalizeaza metadatele (host/service/container)
 - trimite catre Loki
 - Grafana Explore interogheaza Loki
+- **Nota**: pe CT-urile Cerniq (CT109/CT110) **nu exista Vector/OTEL local** — container logs vizibile doar cu `docker logs`
 
 4. **Traces aplicatii**
 
@@ -2790,14 +2882,18 @@ Checklist dupa orice deploy:
 - Cauza: allowlist evaluat pe IP edge Cloudflare
 - Remediere: `forwardedHeaders.trustedIPs` + `ipstrategy.depth=1`
 
-### Validare operationala (stare finala)
+### Validare operationala (actualizat 2026-02-16)
 
 - toate containerele observability: `Up`
-- Prometheus targets: `up=14`, `down=0`
+- **Prometheus targets: `up=24`** (14 infrastructure + 10 Cerniq), `down=1` (CT108 node-exporter)
+  - Cerniq scrape jobs adaugate: `cerniq-nodes` (4 targets), `cerniq-docker` (2), `cerniq-pgbouncer` (2), `cerniq-postgres` (1)
 - ingest functional:
-  - Vector -> Loki
-  - OTel Collector -> Tempo
-- HTTPS functional pe toate cele 4 subdomenii
+  - Vector -> Loki (loguri containere orchestrator)
+  - OTel Collector -> Tempo (traces)
+- HTTPS functional pe toate subdomeniile observability
+- **7 Grafana dashboards** (3 infrastructura + 4 Cerniq):
+  - Infra: `01-baremetal-storage-observability`, `02-observability-docker`, `03-proxmox-vm-lxc`
+  - Cerniq: `01-cerniq-infra-overview`, `02-cerniq-docker`, `03-cerniq-pgbouncer`, `04-cerniq-postgresql`
 
 ### Confirmare resurse orchestrator + protectie storage
 
@@ -2828,13 +2924,19 @@ Mitigare suplimentara aplicata:
 - Alertmanager are config minim (fara rute complexe / escaladari)
 - Grafana ruleaza ca root in container (compromis operational pentru permisiuni)
 - Dependenta de StorageBox CIFS pentru mare parte din persistenta
-- Lipsesc dashboard-uri custom extinse per serviciu/aplicatie
+- `cerniq-postgres` scrape job nu are label `environment` (CT107 e shared) — dashboards cu filtru `$environment` nu afiseaza metrici PostgreSQL
+- `cerniq-nodes` CT107/CT108 nu au label `environment` (sunt scrape-uite direct, nu prin HAProxy)
+- Traefik pe orchestrator foloseste `traefik:latest` (nu pinned) — risc de breaking changes la restart
+- Cheia privata WireGuard e in plaintext pe disk (nu in OpenBao)
+- NFS mount activ are optiuni diferite fata de fstab (`hard` vs `soft`, timeo/retrans) — inconsistenta periculoasa
 
 ### Next steps recomandat
 
 1. Migrare credențiale Traefik Cloudflare la token scoped (`CF_DNS_API_TOKEN`) in loc de API key global.
 2. Extindere alerte (disk pressure, memory pressure, container restart storm, probe SLA).
-3. Dashboard-uri standardizate per layer: host, docker, proxmox, network probes.
+3. Pin versiune Traefik (elimina `:latest` pe componente critice).
+4. Adaugare label `environment` pe scrape job-ul `cerniq-postgres` (sau etichetare "shared").
+5. Remediere NFS mount options (aliniere fstab cu mount activ).
 4. Backup periodic pentru:
 
 - Grafana state (`/opt/observability/local/grafana`)
@@ -2952,13 +3054,15 @@ Aceasta politica:
 
 OS: Ubuntu 24.04 LTS (LXC)
 
-Pachete instalate (minimum util):
+Pachete instalate (minimum util, actualizat 2026-02-16):
 
-- `docker.io`, `docker-compose-v2`
+- `docker.io` (Docker 28.2.2), `docker-compose-v2`
 - `git`, `curl`, `jq`
 - toolchain build: `make`, `build-essential`, `zip`, `unzip`
 - Python runtime: `python3`, `python3-venv`, `python3-pip`
 - operare: `openssh-server`, `fail2ban`, `ca-certificates`
+- **`shellcheck` 0.9.0** (instalat nativ din Debian — necesar pentru CI job ShellCheck)
+- **`gh` (GitHub CLI) 2.86.0** (instalat de pe deb.cli.github.com — necesar pentru CI trigger-cd job)
 
 Servicii active:
 
@@ -3122,12 +3226,12 @@ Scop: medii dedicate pentru Cerniq (prod + staging), cu egress restrictiv si boo
 - Fara expunere publica directa; doar egress controlat (DNS + 80/443).
 - OS standardizat si tooling minim pentru deploy (Docker + utilitare).
 
-### Specificatii LXC (rezumat)
+### Specificatii LXC (rezumat — verificat 2026-02-16)
 
-| Mediu   | CTID | Nume LXC         | CPU     | RAM       | Disk | Storage               | IP privat     |
-| ------- | ---- | ---------------- | ------- | --------- | ---- | --------------------- | ------------- |
-| prod    | 109  | `prod-cerniq`    | 6 cores | 12288 MiB | 50G  | `local` (dir)         | 10.0.1.109/24 |
-| staging | 110  | `staging-cerniq` | 4 cores | 8192 MiB  | 50G  | `nvme-fast` (ZFSPool) | 10.0.1.110/24 |
+| Mediu   | CTID | Nume LXC         | CPU       | RAM        | Swap     | Disk  | Storage               | IP privat     |
+| ------- | ---- | ---------------- | --------- | ---------- | -------- | ----- | --------------------- | ------------- |
+| prod    | 109  | `prod-cerniq`    | **8 cores** | **32768 MiB** | 2048 MiB | **100G** | `local` (dir)         | 10.0.1.109/24 |
+| staging | 110  | `staging-cerniq` | **4 cores** | **16384 MiB** | 512 MiB  | **80G**  | `nvme-fast` (ZFSPool) | 10.0.1.110/24 |
 
 ### Creare LXC-uri (rezumat procedural)
 
@@ -3136,8 +3240,8 @@ Prod (CT 109):
 ```
 pct create 109 local:vztmpl/ubuntu-24.04-standard_24.04-2_amd64.tar.zst \
   --hostname prod-cerniq \
-  --cores 6 --memory 12288 --swap 512 \
-  --rootfs local:50 \
+  --cores 8 --memory 32768 --swap 2048 \
+  --rootfs local:100 \
   --net0 name=eth0,bridge=vmbr4000,ip=10.0.1.109/24,gw=10.0.1.7,mtu=1400 \
   --nameserver 8.8.8.8 \
   --features nesting=1,keyctl=1
@@ -3148,8 +3252,8 @@ Staging (CT 110):
 ```
 pct create 110 nvme-fast:vztmpl/ubuntu-24.04-standard_24.04-2_amd64.tar.zst \
   --hostname staging-cerniq \
-  --cores 4 --memory 8192 --swap 512 \
-  --rootfs nvme-fast:50 \
+  --cores 4 --memory 16384 --swap 512 \
+  --rootfs nvme-fast:80 \
   --net0 name=eth0,bridge=vmbr4000,ip=10.0.1.110/24,gw=10.0.1.7,mtu=1400 \
   --nameserver 8.8.8.8 \
   --features nesting=1,keyctl=1
@@ -3238,8 +3342,12 @@ Servicii active:
 
 - User dedicat: `deploy`
   - membru in grupul `docker`
+  - **sudoers** (NOPASSWD) pentru comenzile necesare la deploy (docker compose, systemctl, etc.)
 - Directoare:
-  - `/opt/cerniq` (root proiect)
+  - `/opt/cerniq` (root proiect — configs, runtime-secrets, scripts)
+  - `/opt/cerniq/runtime-secrets/` (populate de OpenBao agents, owned by `deploy:deploy`)
+  - `/opt/cerniq/config/` (configs copiate de CD pipeline)
+  - `/opt/cerniq/scripts/` (scripts copiate de CD pipeline)
   - `/srv/cerniq-work` (work dir)
 
 Comenzi folosite:
@@ -3248,13 +3356,18 @@ Comenzi folosite:
 id -u deploy >/dev/null 2>&1 || useradd -m -s /bin/bash deploy
 usermod -aG docker deploy
 install -d -o deploy -g deploy /opt/cerniq /srv/cerniq-work
+chown -R deploy:deploy /opt/cerniq/{config,scripts,runtime-secrets}
 ```
 
-### SSH hardening (ambele)
+### SSH (ambele)
 
 - `PasswordAuthentication no`
 - `PubkeyAuthentication yes`
 - `PermitRootLogin prohibit-password`
+- **Doua chei SSH pe CT109/CT110**:
+  1. `deploy` user: cheie ed25519 restrictionata (`from="10.0.1.108"`) — folosita de CD pipeline
+  2. `root` user: cheie ed25519 "break-glass" — doar pentru emergente
+- **Fara ProxyJump** — conexiune SSH directa de pe CT108 la CT109/CT110 prin reteaua privata
 
 Fisier: `/etc/ssh/sshd_config` (in container) + restart `ssh`.
 
@@ -3417,56 +3530,44 @@ Observatii critice:
 - Postgres asculta pe toate interfetele (`*`), iar LXC nu are firewall activ (UFW: inactive).
 - Certificatul TLS este snakeoil (default), deci nu asigura un canal TLS de productie.
 
-### OpenBao si securizarea Postgres
+### OpenBao si securizarea Postgres (IMPLEMENTAT — feb 2026)
 
-Stare curenta (audit):
+Stare curenta (verificat 2026-02-16):
 
-- OpenBao ruleaza pe orchestrator in Docker.
-- In LXC 107 **nu exista** servicii `bao`/`vault` active.
-- Nu au fost gasite fisiere de config OpenBao/Vault in `/etc` sau `/opt`.
-- Nu exista dovada de integrare directa (agent OpenBao, template, sau dinamica de credențiale) intre OpenBao si Postgres.
+- OpenBao ruleaza **centralizat** pe orchestrator (`openbao/openbao:2.5.0`), accesat prin `https://s3cr3ts.neanelu.ro`.
+- **KV Secrets Engine v1** activ (path: `secret/cerniq/*`).
+- **Database secrets engine** (`cerniq-db/`) activ — conexiune directa la CT107 PostgreSQL (`10.0.1.107:5432`).
+- **AppRole authentication** cu 3 roluri: `cerniq-api`, `cerniq-workers`, `cerniq-cicd`
+- **Integrare completa pe CT109/CT110**: 3 OpenBao Agents (containere Docker) per CT
+  - `cerniq-openbao-agent-api`, `cerniq-openbao-agent-workers`, `cerniq-openbao-agent-infra`
+  - Auto-auth via AppRole, secrete randate in `/opt/cerniq/runtime-secrets/`
+  - PgBouncer foloseste credentiale randate dinamic de `openbao-agent-infra`
+- **TTL credentiale DB**: default 12h, max 72h
+- **Legacy decommissionat**: `cerniq-openbao` de pe hz.164 eliminat (feb 2026)
+- **postgres_exporter** instalat nativ pe CT107 (systemd, port 9187)
+- CT107 nu ruleaza OpenBao agent (by-design: agentii ruleaza pe CT109/CT110, nu pe CT107 — aceasta este by-design, deoarece PgBouncer face proxy-ul de credențiale) intre OpenBao si Postgres.
 
 Concluzie:
 
-- Securizarea Postgres cu OpenBao **nu este implementata** la nivelul LXC 107 in acest moment.
+- Securizarea Postgres cu OpenBao **ESTE implementata** — credentiale dinamice, AppRole, si PgBouncer-mediated access.
 
-### Recomandari pentru integrare OpenBao (securizare Postgres)
+### Riscuri ramase (prioritate — actualizat 2026-02-16)
 
-1. Activeaza database secrets engine in OpenBao:
+- **Medium**: `pg_hba.conf` contine regula `trust` pentru `10.0.0.2/32` (orchestrator, partial justificat pentru OpenBao DB engine provisioning — de migrat la scram-sha-256).
+- **Medium**: Postgres asculta pe toate interfetele, fara firewall activ in LXC 107.
+- **Low**: TLS foloseste certificate snakeoil (trafic exclusiv pe subnet privat).
 
-- Defineste `postgresql` ca backend, cu un user de administrare minim (doar pentru provisioning de credențiale).
-- Configureaza roluri pentru aplicatii (ex: `app-readwrite`, `app-readonly`).
+Recomandari neimplementate:
 
-2. Foloseste credentiale dinamice:
-
-- Aplicatiile nu trebuie sa stocheze user/parola statice.
-- OpenBao emite credențiale cu TTL (ex: 1h) si le roteste automat.
-
-3. Integrare prin OpenBao Agent in LXC 107:
-
-- Ruleaza `openbao-agent` in container pentru a scrie secretul intr-un fisier (template) sau in env.
-- Restrange accesul fisierului la user-ul aplicatiei.
-
-4. Hardening Postgres:
-
-- Elimina regula `trust` din `pg_hba.conf`.
-- Restrange `listen_addresses` doar la IP-urile necesare (ex: IP-uri de aplicatii).
-- Configureaza TLS cu certificat valid (nu snakeoil).
-- Activeaza firewall la nivel LXC sau PVEFW pentru a limita sursele care pot accesa 5432.
-
-5. Audit si monitorizare:
-
-- Logare autentificari + audit pe `postgresql.log`.
-- Alerta pentru autentificari esuate sau conexiuni din IP-uri nepermise.
-
-### Rezumat riscuri curente (prioritate)
-
-- **Critical**: `pg_hba.conf` contine `trust` pentru `10.0.0.2/32`.
-- **High**: Postgres asculta pe toate interfetele, fara firewall activ in LXC.
-- **Medium**: TLS foloseste certificate snakeoil.
-- **Medium**: OpenBao nu este integrat in fluxul de credentiale pentru Postgres.
+1. Elimina regula `trust` din `pg_hba.conf`.
+2. Activeaza firewall la nivel LXC 107.
+3. Configureaza TLS cu certificat valid.
+4. Logare autentificari + audit pe `postgresql.log`.
 
 ---
+
+**Nota**: Sectiunile vechi de recomandari (din audit 2026-02-13, care indicau "OpenBao neimplementat") au fost sterse — integrarea ESTE completa (feb 2026).
+
 
 ## Audit aprofundat — Observabilitate (orchestrator)
 
@@ -3488,19 +3589,21 @@ Observatie de performanta:
 
 ### Stack observability — inventar containere
 
-Containere active (servicii observability):
+Containere active (servicii observability, actualizat 2026-02-16):
 
-- `grafana` (`grafana/grafana:latest`)
-- `prometheus` (`prom/prometheus:latest`)
+- `grafana` (`grafana/grafana:latest`) — **7 dashboards** (3 infra + 4 Cerniq), provisioning cu `foldersFromFilesStructure: true`
+- `prometheus` (`prom/prometheus:latest`) — **24 targets** (14 infra + 10 Cerniq)
 - `alertmanager` (`prom/alertmanager:latest`)
 - `loki` (`grafana/loki:latest`)
 - `tempo` (`grafana/tempo:latest`)
 - `otel-collector` (`otel/opentelemetry-collector-contrib:latest`)
-- `vector` (`timberio/vector:0.53.0-debian`)
+- `vector` (`timberio/vector:0.53.0-debian`) — colecteaza **doar** loguri Docker de pe orchestrator
 - `node-exporter` (`prom/node-exporter:latest`)
 - `cadvisor` (`gcr.io/cadvisor/cadvisor:latest`)
 - `blackbox-exporter` (`prom/blackbox-exporter:latest`)
 - `pve-exporter` (`prompve/prometheus-pve-exporter:latest`)
+
+**Nota**: Toate imaginile (cu exceptia Vector) folosesc `:latest` — risc de breaking changes la orice pull/restart.
 
 Retea Docker:
 
@@ -3555,10 +3658,19 @@ Datasources provisionate:
 - Loki (`http://loki:3100`)
 - Tempo (`http://tempo:3200`, cu traces-to-logs catre Loki)
 
-Dashboards:
+Dashboards (actualizat 2026-02-16):
 
-- Folder: `Infrastructure`
+- Provisioning cu `foldersFromFilesStructure: true` — structura directoarelor genereaza foldere automat
 - Source: `/var/lib/grafana/dashboards` (mount read-only)
+- **Folder `Infrastructure`** (3 dashboards):
+  - `01-baremetal-storage-observability.json`
+  - `02-observability-docker.json`
+  - `03-proxmox-vm-lxc.json`
+- **Folder `Cerniq`** (4 dashboards, toate cu `$environment` template variable):
+  - `01-cerniq-infra-overview.json` — host metrics, node-exporter
+  - `02-cerniq-docker.json` — container metrics, cAdvisor
+  - `03-cerniq-pgbouncer.json` — connection pool, active/waiting, errors
+  - `04-cerniq-postgresql.json` — queries, connections, replication, locks
 
 #### Prometheus
 
