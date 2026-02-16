@@ -199,6 +199,9 @@ jobs:
           echo "REDIS_PASSWORD=" >> $GITHUB_ENV
           echo "JWT_SECRET=${CI_JWT_SECRET}" >> $GITHUB_ENV
 
+      - name: 📂 Ensure workspace directories exist
+        run: mkdir -p secrets
+
       - name: 🧪 Run Full Test Suite
         run: |
           pnpm test:coverage
@@ -343,15 +346,19 @@ jobs:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
 
-      - name: 🐚 Run ShellCheck in Docker
+      - name: 🐚 Run ShellCheck
         run: |
           set -euo pipefail
-          if ls infra/scripts/*.sh >/dev/null 2>&1; then
-            # Expand glob on host, then prefix /mnt/ for container paths
-            FILES=$(cd infra/scripts && ls *.sh | sed 's|^|/mnt/infra/scripts/|')
-            docker run --rm -v "$PWD:/mnt" koalaman/shellcheck:stable -x $FILES
-          else
+          if ! ls infra/scripts/*.sh >/dev/null 2>&1; then
             echo "No infra/scripts/*.sh found, skipping"
+            exit 0
+          fi
+          # Prefer native shellcheck; fall back to Docker (with AppArmor unconfined for LXC runners)
+          if command -v shellcheck >/dev/null 2>&1; then
+            shellcheck -x infra/scripts/*.sh
+          else
+            FILES=$(cd infra/scripts && ls *.sh | sed 's|^|/mnt/infra/scripts/|')
+            docker run --rm --security-opt apparmor=unconfined -v "$PWD:/mnt" koalaman/shellcheck:stable -x $FILES
           fi
 
       - name: 🔎 Validate docker-compose.yml
