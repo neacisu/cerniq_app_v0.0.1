@@ -12,7 +12,7 @@ set -e
 BACKUP_DIR="/opt/cerniq/backups"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 BACKUP_FILE="${BACKUP_DIR}/pre_deploy_${TIMESTAMP}.sql"
-ENV_FILE="${ENV_FILE:-/run/cerniq/runtime-secrets/api/api.env}"
+ENV_FILE="${ENV_FILE:-/opt/cerniq/runtime-secrets/api/api.env}"
 DOCKER_NET="${DOCKER_NET:-cerniq_backend}"
 
 echo "Starting pre-deployment backup..."

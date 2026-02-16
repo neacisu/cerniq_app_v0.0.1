@@ -147,9 +147,9 @@ Nota: pentru stabilitate, TTL-urile rolurilor dinamice sunt setate astfel incat 
 
 Agenti randeaza secretele in tmpfs:
 
-- `/run/cerniq/runtime-secrets/api/api.env`
-- `/run/cerniq/runtime-secrets/workers/workers.env`
-- `/run/cerniq/runtime-secrets/infra/pgbouncer.ini`
+- `/opt/cerniq/runtime-secrets/api/api.env`
+- `/opt/cerniq/runtime-secrets/workers/workers.env`
+- `/opt/cerniq/runtime-secrets/infra/pgbouncer.ini`
 
 Template-urile folosesc:
 

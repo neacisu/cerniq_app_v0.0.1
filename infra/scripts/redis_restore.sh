@@ -3,11 +3,18 @@
 # Restore Redis from backup
 # Reference: docs/runbooks/database-recovery.md
 # Task: F0.7.1.T004
+#
+# NOTE: PostgreSQL runs natively on CT107 (10.0.1.107:5432), NOT in a Docker container.
+# Redis runs on the orchestrator (10.0.0.2:6379), accessed via HAProxy VIP 10.0.1.10:6379.
 
 set -euo pipefail
 
 LOG_FILE="/var/log/cerniq/redis_restore.log"
-CONTAINER="cerniq-redis"
+REDIS_HOST="10.0.1.10"
+REDIS_PORT="6379"
+ORCHESTRATOR_HOST="10.0.0.2"
+ORCHESTRATOR_SSH="root@${ORCHESTRATOR_HOST}"
+REDIS_DATA_DIR="/var/lib/redis/data"
 BACKUP_DIR="/var/backups/cerniq/redis"
 
 # Hetzner Storage Box config
@@ -151,9 +158,9 @@ if $DRY_RUN; then
     exit 0
 fi
 
-# Step 1: Stop Redis
-log "Stopping Redis container..."
-docker stop "$CONTAINER"
+# Step 1: Stop Redis on the orchestrator
+log "Stopping Redis on orchestrator (${ORCHESTRATOR_HOST})..."
+ssh "$ORCHESTRATOR_SSH" 'systemctl stop redis || docker stop cerniq-redis' 2>/dev/null || true
 
 # Step 2: Decompress if needed
 RESTORE_FILE="$BACKUP_FILE"
@@ -172,38 +179,38 @@ if [[ "$BACKUP_FILE" == *.tar.gz ]]; then
     RESTORE_FILE=$(find "$EXTRACT_DIR" -name "*.aof" -type f | head -1)
 fi
 
-# Step 3: Copy to Redis data directory
-log "Copying backup to Redis data directory..."
+# Step 3: Copy to Redis data directory on the orchestrator
+log "Copying backup to Redis data directory on orchestrator..."
 
 if [[ "$BACKUP_TYPE" == "rdb" ]]; then
-    docker cp "$RESTORE_FILE" "${CONTAINER}:/data/dump.rdb"
+    scp "$RESTORE_FILE" "${ORCHESTRATOR_SSH}:${REDIS_DATA_DIR}/dump.rdb"
 else
     # Handle AOF files
     if [[ -d "$EXTRACT_DIR" ]]; then
-        # Redis 7.x multi-part AOF
-        docker exec "$CONTAINER" rm -rf /data/appendonlydir 2>/dev/null || true
-        docker cp "$EXTRACT_DIR/appendonlydir_"*/ "${CONTAINER}:/data/appendonlydir"
+        # Redis 7.x+ multi-part AOF
+        ssh "$ORCHESTRATOR_SSH" "rm -rf ${REDIS_DATA_DIR}/appendonlydir" 2>/dev/null || true
+        scp -r "$EXTRACT_DIR/appendonlydir_"*/ "${ORCHESTRATOR_SSH}:${REDIS_DATA_DIR}/appendonlydir"
     else
-        docker cp "$RESTORE_FILE" "${CONTAINER}:/data/appendonly.aof"
+        scp "$RESTORE_FILE" "${ORCHESTRATOR_SSH}:${REDIS_DATA_DIR}/appendonly.aof"
     fi
 fi
 
-# Step 4: Fix permissions
-docker exec "$CONTAINER" chown redis:redis /data/* 2>/dev/null || true
+# Step 4: Fix permissions on the orchestrator
+ssh "$ORCHESTRATOR_SSH" "chown -R redis:redis ${REDIS_DATA_DIR}/" 2>/dev/null || true
 
-# Step 5: Start Redis
-log "Starting Redis container..."
-docker start "$CONTAINER"
+# Step 5: Start Redis on the orchestrator
+log "Starting Redis on orchestrator (${ORCHESTRATOR_HOST})..."
+ssh "$ORCHESTRATOR_SSH" 'systemctl start redis || docker start cerniq-redis' 2>/dev/null || true
 
 # Step 6: Wait for Redis to be ready
 sleep 2
-REDIS_PING=$(docker exec "$CONTAINER" redis-cli PING 2>/dev/null || echo "FAIL")
+REDIS_PING=$(redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" PING 2>/dev/null || echo "FAIL")
 
 if [[ "$REDIS_PING" == "PONG" ]]; then
     log "Redis restore completed successfully"
     
     # Show info
-    DBSIZE=$(docker exec "$CONTAINER" redis-cli DBSIZE | cut -d: -f2)
+    DBSIZE=$(redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" DBSIZE | cut -d: -f2)
     log "Database size: $DBSIZE keys"
 else
     log "ERROR: Redis failed to start after restore"

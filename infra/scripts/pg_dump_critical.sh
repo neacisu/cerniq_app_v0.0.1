@@ -18,7 +18,7 @@ CRITICAL_TABLES=(
 BACKUP_DIR="/var/backups/cerniq/postgresql/critical"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 LOG_FILE="/var/log/cerniq/critical_backup.log"
-ENV_FILE="${ENV_FILE:-/run/cerniq/runtime-secrets/api/api.env}"
+ENV_FILE="${ENV_FILE:-/opt/cerniq/runtime-secrets/api/api.env}"
 DOCKER_NET="${DOCKER_NET:-cerniq_backend}"
 
 mkdir -p "$BACKUP_DIR"

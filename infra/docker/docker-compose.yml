@@ -71,6 +71,115 @@ x-logging: &default-logging
 
 services:
   # ==========================================================================
+  # Placeholder App Stack (web/api/admin)
+  # ==========================================================================
+  # Purpose: allow end-to-end validation of:
+  #   Traefik(master on orchestrator) -> HAProxy gateway (10.0.1.10) -> CT109/CT110
+  # before the real application stack exists.
+  #
+  # Exposes the expected host ports:
+  #   - 64000 (web)
+  #   - 64010 (api)
+  #   - 64012 (admin)
+  #
+  # Endpoints:
+  #   GET /health -> 200 {"status":"ok","service":"..."}
+  #   GET /       -> 200 "<service>\n"
+  # ==========================================================================
+  placeholder-web:
+    image: python:3.12-alpine
+    container_name: cerniq-placeholder-web
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      SERVICE_NAME: cerniq-placeholder-web
+      PORT: "64000"
+    command:
+      [
+        "sh",
+        "-c",
+        "python3 - <<'PY'\nimport json, os\nfrom http.server import BaseHTTPRequestHandler, HTTPServer\n\nSERVICE=os.environ.get('SERVICE_NAME','cerniq-placeholder')\nPORT=int(os.environ.get('PORT','3000'))\n\nclass H(BaseHTTPRequestHandler):\n    def do_GET(self):\n        if self.path == '/health':\n            self.send_response(200)\n            self.send_header('Content-Type','application/json')\n            self.end_headers()\n            self.wfile.write(json.dumps({'status':'ok','service':SERVICE}).encode('utf-8'))\n            return\n        self.send_response(200)\n        self.send_header('Content-Type','text/plain; charset=utf-8')\n        self.end_headers()\n        self.wfile.write((SERVICE+'\\n').encode('utf-8'))\n\n    def log_message(self, fmt, *args):\n        return\n\nHTTPServer(('0.0.0.0', PORT), H).serve_forever()\nPY",
+      ]
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python3 -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:64000/health', timeout=1).read()\"",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    labels:
+      <<: *common-labels
+      com.cerniq.service: "placeholder-web"
+      com.cerniq.port: "64000"
+    logging:
+      <<: *default-logging
+
+  placeholder-api:
+    image: python:3.12-alpine
+    container_name: cerniq-placeholder-api
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      SERVICE_NAME: cerniq-placeholder-api
+      PORT: "64010"
+    command:
+      [
+        "sh",
+        "-c",
+        "python3 - <<'PY'\nimport json, os\nfrom http.server import BaseHTTPRequestHandler, HTTPServer\n\nSERVICE=os.environ.get('SERVICE_NAME','cerniq-placeholder')\nPORT=int(os.environ.get('PORT','3000'))\n\nclass H(BaseHTTPRequestHandler):\n    def do_GET(self):\n        if self.path == '/health':\n            self.send_response(200)\n            self.send_header('Content-Type','application/json')\n            self.end_headers()\n            self.wfile.write(json.dumps({'status':'ok','service':SERVICE}).encode('utf-8'))\n            return\n        self.send_response(200)\n        self.send_header('Content-Type','text/plain; charset=utf-8')\n        self.end_headers()\n        self.wfile.write((SERVICE+'\\n').encode('utf-8'))\n\n    def log_message(self, fmt, *args):\n        return\n\nHTTPServer(('0.0.0.0', PORT), H).serve_forever()\nPY",
+      ]
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python3 -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:64010/health', timeout=1).read()\"",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    labels:
+      <<: *common-labels
+      com.cerniq.service: "placeholder-api"
+      com.cerniq.port: "64010"
+    logging:
+      <<: *default-logging
+
+  placeholder-admin:
+    image: python:3.12-alpine
+    container_name: cerniq-placeholder-admin
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      SERVICE_NAME: cerniq-placeholder-admin
+      PORT: "64012"
+    command:
+      [
+        "sh",
+        "-c",
+        "python3 - <<'PY'\nimport json, os\nfrom http.server import BaseHTTPRequestHandler, HTTPServer\n\nSERVICE=os.environ.get('SERVICE_NAME','cerniq-placeholder')\nPORT=int(os.environ.get('PORT','3000'))\n\nclass H(BaseHTTPRequestHandler):\n    def do_GET(self):\n        if self.path == '/health':\n            self.send_response(200)\n            self.send_header('Content-Type','application/json')\n            self.end_headers()\n            self.wfile.write(json.dumps({'status':'ok','service':SERVICE}).encode('utf-8'))\n            return\n        self.send_response(200)\n        self.send_header('Content-Type','text/plain; charset=utf-8')\n        self.end_headers()\n        self.wfile.write((SERVICE+'\\n').encode('utf-8'))\n\n    def log_message(self, fmt, *args):\n        return\n\nHTTPServer(('0.0.0.0', PORT), H).serve_forever()\nPY",
+      ]
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python3 -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:64012/health', timeout=1).read()\"",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    labels:
+      <<: *common-labels
+      com.cerniq.service: "placeholder-admin"
+      com.cerniq.port: "64012"
+    logging:
+      <<: *default-logging
+
+  # ==========================================================================
   # PgBouncer 1.25 - Connection Pooling
   # ==========================================================================
   # Reference: pgbouncer-connection-pooling.md, ADR-0004
@@ -298,60 +407,67 @@ services:
     logging:
       <<: *default-logging
 
-  vector:
-    image: timberio/vector:0.53.0-debian
-    container_name: cerniq-vector
+  # ==========================================================================
+  # PgBouncer Exporter — Prometheus metrics for PgBouncer
+  # ==========================================================================
+  # Exports SHOW STATS/POOLS/DATABASES from PgBouncer admin console.
+  # Scraped by orchestrator Prometheus via HAProxy (port 64095).
+  # ==========================================================================
+  pgbouncer-exporter:
+    image: prometheuscommunity/pgbouncer-exporter:v0.11.1
+    container_name: cerniq-pgbouncer-exporter
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
     cap_drop:
       - ALL
-    extra_hosts:
-      # Resolve scoped Loki push endpoint to orchestrator private IP to preserve
-      # client IP for Traefik allowlisting (avoids SNAT via public egress).
-      - "logs-cerniq.neanelu.ro:10.0.0.2"
+    user: "1000:1000"
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      - ../config/vector/vector.toml:/etc/vector/vector.toml:ro
-    command: ["--config", "/etc/vector/vector.toml"]
-    environment:
-      CERNIQ_ENV: ${CERNIQ_ENV:-staging}
+      - ${CERNIQ_RENDERED_SECRETS_DIR:-/opt/cerniq/runtime-secrets}/infra/userlist.txt:/secrets/userlist.txt:ro
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        USER=$$(head -1 /secrets/userlist.txt | cut -d'"' -f2)
+        PASS=$$(head -1 /secrets/userlist.txt | cut -d'"' -f4)
+        exec /bin/pgbouncer_exporter \
+          --pgBouncer.connectionString="postgres://$${USER}:$${PASS}@172.29.30.11:64033/pgbouncer?sslmode=disable&connect_timeout=10" \
+          --web.listen-address=":9127"
+    ports:
+      - "64095:9127"
     networks:
-      - cerniq_backend
+      cerniq_data:
+        ipv4_address: 172.29.30.15
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9127/metrics"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: "0.1"
     labels:
       <<: *common-labels
-      com.cerniq.service: "vector"
+      com.cerniq.service: "pgbouncer-exporter"
+      com.cerniq.port: "64095"
     logging:
       <<: *default-logging
 
-  otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.145.0
-    container_name: cerniq-otel-collector
-    restart: unless-stopped
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    environment:
-      # Required because `infra/config/otel/otel-collector.yaml` references ${env:CERNIQ_ENV}.
-      CERNIQ_ENV: ${CERNIQ_ENV:-staging}
-    extra_hosts:
-      # Same rationale as Vector (keep source IP in allowlist scope).
-      - "otel-cerniq.neanelu.ro:10.0.0.2"
-    volumes:
-      - ../config/otel/otel-collector.yaml:/etc/otelcol-contrib/config.yaml:ro
-    command: ["--config=/etc/otelcol-contrib/config.yaml"]
-    ports:
-      - "64070:4317"
-      - "64071:4318"
-    networks:
-      - cerniq_backend
-    labels:
-      <<: *common-labels
-      com.cerniq.service: "otel-collector"
-    logging:
-      <<: *default-logging
+  # ==========================================================================
+  # REMOVED: vector, otel-collector
+  # Observability is centralized on the orchestrator (77.42.76.185):
+  #   - Vector   → collects Docker logs → Loki → StorageBox
+  #   - OTEL Collector → receives OTLP traces → Tempo
+  #   - Prometheus → scrapes cAdvisor + node-exporter from CTs via HAProxy
+  # Applications will send OTLP directly to otel-cerniq.neanelu.ro
+  # Container logs shipped via Docker Loki log driver (configured in daemon.json)
+  # ==========================================================================
 
   cadvisor:
     # NOTE: version tags are not consistently published on gcr.io; use latest.

@@ -3,15 +3,18 @@
 # CERNIQ.APP — Redis BullMQ Compatibility Checker
 # =============================================================================
 # Reference: ADR-0006, etapa0-plan-implementare-complet-v2.md, etapa0-port-matrix.md
-# Usage: ./check-redis-bullmq.sh [container_name]
+# Usage: ./check-redis-bullmq.sh
 # Exit codes: 0 = OK, 1 = FAIL
+#
+# NOTE: PostgreSQL runs natively on CT107 (10.0.1.107:5432), NOT in a Docker container.
+# Redis runs on the orchestrator (10.0.0.2:6379), accessed via HAProxy VIP 10.0.1.10:6379.
 # =============================================================================
 
 set -e
 
-CONTAINER_NAME="${1:-cerniq-redis}"
+REDIS_HOST="${REDIS_HOST:-10.0.1.10}"
+REDIS_PORT="${REDIS_PORT:-6379}"
 REDIS_PASS_FILE="/var/www/CerniqAPP/secrets/redis_password.txt"
-REDIS_PORT="${REDIS_PORT:-64039}"  # ADR-0022: Port allocation strategy
 
 # Colors
 RED='\033[0;31m'
@@ -22,14 +25,14 @@ NC='\033[0m' # No Color
 echo "=============================================="
 echo "🔍 Redis BullMQ Compatibility Check"
 echo "=============================================="
-echo "Container: $CONTAINER_NAME"
-echo "Port: $REDIS_PORT (per etapa0-port-matrix.md)"
+echo "Host: $REDIS_HOST (HAProxy VIP)"
+echo "Port: $REDIS_PORT"
 echo "Date: $(date)"
 echo ""
 
-# Check if container is running
-if ! docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
-    echo -e "${RED}❌ FAIL: Container $CONTAINER_NAME is not running${NC}"
+# Check if Redis is reachable
+if ! redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" PING >/dev/null 2>&1; then
+    echo -e "${RED}❌ FAIL: Redis not reachable at ${REDIS_HOST}:${REDIS_PORT}${NC}"
     exit 1
 fi
 
@@ -44,7 +47,7 @@ fi
 
 # Function to get Redis config
 get_config() {
-    docker exec "$CONTAINER_NAME" redis-cli -p "$REDIS_PORT" $AUTH_ARG CONFIG GET "$1" 2>/dev/null | tail -1
+    redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" $AUTH_ARG CONFIG GET "$1" 2>/dev/null | tail -1
 }
 
 ERRORS=0
@@ -94,7 +97,7 @@ fi
 
 # Check 5: Ping test
 echo -n "5. Redis responds to PING ... "
-PONG=$(docker exec "$CONTAINER_NAME" redis-cli -p "$REDIS_PORT" $AUTH_ARG ping 2>/dev/null)
+PONG=$(redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" $AUTH_ARG ping 2>/dev/null)
 if [ "$PONG" == "PONG" ]; then
     echo -e "${GREEN}✅ OK${NC}"
 else
@@ -104,7 +107,7 @@ fi
 
 # Check 6: AUTH is enabled
 echo -n "6. AUTH is enabled (security) ... "
-NOAUTH=$(docker exec "$CONTAINER_NAME" redis-cli -p "$REDIS_PORT" ping 2>&1)
+NOAUTH=$(redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" ping 2>&1)
 if [[ "$NOAUTH" == *"NOAUTH"* ]]; then
     echo -e "${GREEN}✅ OK (AUTH required)${NC}"
 else
@@ -113,20 +116,20 @@ fi
 
 # Check 7: Redis version
 echo -n "7. Redis version check ... "
-VERSION=$(docker exec "$CONTAINER_NAME" redis-cli -p "$REDIS_PORT" $AUTH_ARG INFO server 2>/dev/null | grep redis_version | cut -d: -f2 | tr -d '\r')
+VERSION=$(redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" $AUTH_ARG INFO server 2>/dev/null | grep redis_version | cut -d: -f2 | tr -d '\r')
 if [[ "$VERSION" == 8.* ]]; then
     echo -e "${GREEN}✅ OK (v$VERSION)${NC}"
 else
     echo -e "${YELLOW}⚠️  WARNING: Expected Redis 8.x, got v$VERSION${NC}"
 fi
 
-# Check 8: Health status
-echo -n "8. Container health status ... "
-HEALTH=$(docker inspect --format='{{.State.Health.Status}}' "$CONTAINER_NAME" 2>/dev/null)
-if [ "$HEALTH" == "healthy" ]; then
-    echo -e "${GREEN}✅ OK ($HEALTH)${NC}"
+# Check 8: Redis connectivity latency
+echo -n "8. Redis latency check ... "
+LATENCY=$(redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" $AUTH_ARG --latency -i 1 2>/dev/null | head -1 || echo "")
+if [[ -n "$LATENCY" ]]; then
+    echo -e "${GREEN}✅ OK ($LATENCY)${NC}"
 else
-    echo -e "${YELLOW}⚠️  WARNING: Health status is $HEALTH${NC}"
+    echo -e "${YELLOW}⚠️  WARNING: Could not measure latency${NC}"
 fi
 
 echo ""

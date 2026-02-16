@@ -610,8 +610,12 @@ describe("F0.8: Server Integration Tests", () => {
   });
 
   describe("Container Hardening Tests (Server Required)", () => {
+    // Architecture note: Redis is no longer a local Docker container.
+    // It runs on the orchestrator (10.0.0.2:6379) and is accessed via
+    // HAProxy VIP at 10.0.1.10:6379. Only local containers (e.g. pgbouncer,
+    // openbao agents) are checked for Docker hardening here.
     itServer("containers should have no-new-privileges", () => {
-      for (const name of ["cerniq-pgbouncer", "cerniq-redis"]) {
+      for (const name of ["cerniq-pgbouncer"]) {
         const result = exec(
           `docker inspect ${name} --format '{{.HostConfig.SecurityOpt}}' 2>/dev/null`,
         );
@@ -619,12 +623,13 @@ describe("F0.8: Server Integration Tests", () => {
       }
     });
 
-    itServer("Redis should use healthcheck with secret", () => {
-      const result = exec(
-        `docker inspect cerniq-redis --format '{{.Config.Healthcheck.Test}}' 2>/dev/null`,
-      );
-      expect(result).toContain("redis-cli");
-    });
+    itServer(
+      "Redis on orchestrator should be reachable via HAProxy VIP",
+      () => {
+        const result = exec(`redis-cli -h 10.0.1.10 -p 6379 ping 2>/dev/null`);
+        expect(result).toBe("PONG");
+      },
+    );
   });
 
   describe("Firewall Tests (Server Required)", () => {

@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Fix Cerniq service URLs in Traefik runtime config (dynamic_conf.yml).
+"""Fix Cerniq service URLs in Traefik runtime config (file provider directory).
 
-Replaces direct CT IP:port URLs with VIP gateway URLs to match the repo
-cerniq.yml (SoT). Traefik auto-reloads when the file changes (watch: true).
+Replaces direct CT IP:port URLs with VIP gateway URLs in the Cerniq dynamic file
+provider config (SoT runtime). Traefik auto-reloads when the file changes
+(watch: true).
 
 Changes:
   Production (CT109):
@@ -23,7 +24,7 @@ import shutil
 import sys
 from pathlib import Path
 
-DYNAMIC_CONF = Path("/opt/traefik/dynamic_conf.yml")
+DYNAMIC_FILE = Path("/opt/traefik/dynamic/cerniq.yml")
 
 # (old_url, new_url) pairs.
 REPLACEMENTS = [
@@ -39,15 +40,15 @@ REPLACEMENTS = [
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Fix Cerniq service URLs in dynamic_conf.yml")
+    ap = argparse.ArgumentParser(description="Fix Cerniq service URLs in /opt/traefik/dynamic/cerniq.yml")
     ap.add_argument("--dry-run", action="store_true", help="Show changes without applying")
     args = ap.parse_args()
 
-    if not DYNAMIC_CONF.exists():
-        print(f"ERROR: {DYNAMIC_CONF} not found", file=sys.stderr)
+    if not DYNAMIC_FILE.exists():
+        print(f"ERROR: {DYNAMIC_FILE} not found", file=sys.stderr)
         return 1
 
-    content = DYNAMIC_CONF.read_text()
+    content = DYNAMIC_FILE.read_text()
     original = content
 
     changes = []
@@ -71,13 +72,13 @@ def main() -> int:
 
     # Backup.
     ts = dt.datetime.now(dt.UTC).strftime("%Y%m%dT%H%M%SZ")
-    backup = DYNAMIC_CONF.with_suffix(f".yml.bak.{ts}")
-    shutil.copy2(DYNAMIC_CONF, backup)
+    backup = DYNAMIC_FILE.with_suffix(f".yml.bak.{ts}")
+    shutil.copy2(DYNAMIC_FILE, backup)
     print(f"\nBackup: {backup}")
 
     # Write.
-    DYNAMIC_CONF.write_text(content)
-    print(f"Updated: {DYNAMIC_CONF}")
+    DYNAMIC_FILE.write_text(content)
+    print(f"Updated: {DYNAMIC_FILE}")
     print("Traefik will auto-reload (watch: true).")
     return 0
 

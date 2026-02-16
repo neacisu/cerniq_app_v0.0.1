@@ -35,7 +35,7 @@ docker inspect -f '{{.Name}} {{.State.Status}} {{.State.Health.Status}}' cerniq-
 ### 2) DB smoke test (prod) prin PgBouncer + credențiale dinamice
 
 ```bash
-. /run/cerniq/runtime-secrets/api/api.env
+. /opt/cerniq/runtime-secrets/api/api.env
 PGCONNECT_TIMEOUT=5 PGPASSWORD="$POSTGRES_PASSWORD" \
   psql -h 172.29.20.11 -p 64033 -U "$POSTGRES_USER" -d cerniq -Atqc 'SELECT 1'
 ```
@@ -43,7 +43,7 @@ PGCONNECT_TIMEOUT=5 PGPASSWORD="$POSTGRES_PASSWORD" \
 ### 3) Redis smoke test (shared, prin gateway)
 
 ```bash
-. /run/cerniq/runtime-secrets/api/api.env
+. /opt/cerniq/runtime-secrets/api/api.env
 redis-cli -u "$REDIS_URL" PING
 ```
 

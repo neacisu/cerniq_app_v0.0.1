@@ -6,13 +6,18 @@
 # Version: 1.0
 # Created: 2026-02-05
 # 
+# NOTE: PostgreSQL runs natively on CT107 (10.0.1.107:5432), NOT in a Docker container.
+# Redis runs on the orchestrator (10.0.0.2:6379), accessed via HAProxy VIP 10.0.1.10:6379.
+# The "cerniq-postgres" name in OpenBao paths (cerniq-db/config/cerniq-postgres)
+# is a logical config name, NOT a Docker container reference.
+#
 # This script configures OpenBao Database secrets engine for dynamic
 # PostgreSQL credentials. Run AFTER PostgreSQL is initialized with the
 # cerniq_vault user from init.sql.
 # 
 # Prerequisites:
 #   1. OpenBao initialized and unsealed
-#   2. PostgreSQL running with cerniq_vault user created
+#   2. PostgreSQL running natively on CT107 with cerniq_vault user created
 #   3. Root token available
 # =============================================================================
 

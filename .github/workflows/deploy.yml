@@ -228,16 +228,22 @@ jobs:
       - name: 🔧 Setup SSH
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.STAGING_SSH_KEY }}" > ~/.ssh/deploy_key
+          # Restricted deploy key (deploy user only; old key remains break-glass)
+          echo "${{ secrets.STAGING_SSH_KEY_RESTRICTED }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H ${{ secrets.STAGING_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
 
       - name: 🧰 Ensure jq on staging host
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'ENDSSH'
+          ssh -i ~/.ssh/deploy_key deploy@${{ secrets.STAGING_HOST }} << 'ENDSSH'
             if ! command -v jq >/dev/null 2>&1; then
-              sudo apt-get update
-              sudo apt-get install -y jq
+              if sudo -n true >/dev/null 2>&1; then
+                sudo apt-get update
+                sudo apt-get install -y jq
+              else
+                echo "❌ jq missing and sudo not available for deploy user"
+                exit 1
+              fi
             fi
           ENDSSH
 
@@ -246,21 +252,19 @@ jobs:
       # =========================================================================
       - name: 📦 Sync ALL configuration files
         run: |
-          SSH_CMD="ssh -i ~/.ssh/deploy_key ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}"
+          SSH_CMD="ssh -i ~/.ssh/deploy_key deploy@${{ secrets.STAGING_HOST }}"
           SCP_CMD="scp -i ~/.ssh/deploy_key"
-          HOST="${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}"
+          HOST="deploy@${{ secrets.STAGING_HOST }}"
 
           echo "📁 Creating COMPLETE server directory structure..."
           $SSH_CMD << 'ENDSSH'
-            sudo mkdir -p /opt/cerniq/{config/{openbao/{policies,templates},vector,otel,fail2ban,cron,logrotate,docker},scripts,secrets,backups}
-            sudo chown -R $(whoami):$(whoami) /opt/cerniq
+            mkdir -p /opt/cerniq/{config/{openbao/{policies,templates},fail2ban,cron,logrotate,docker},scripts,secrets,backups}
           ENDSSH
 
           echo "📄 Syncing docker-compose files..."
           $SCP_CMD infra/docker/docker-compose.yml ${HOST}:/opt/cerniq/
           $SCP_CMD infra/docker/docker-compose.prod.yml ${HOST}:/opt/cerniq/
-          $SCP_CMD infra/config/vector/vector.toml ${HOST}:/opt/cerniq/config/vector.toml 2>/dev/null || true
-          $SCP_CMD infra/config/otel/otel-collector.yaml ${HOST}:/opt/cerniq/config/otel-collector.yaml 2>/dev/null || true
+          # Vector/OTEL configs removed — observability is centralized on orchestrator
 
           echo "📄 Syncing OpenBao config (CORRECT PATH)..."
           $SCP_CMD infra/config/openbao/*.hcl ${HOST}:/opt/cerniq/config/openbao/
@@ -280,7 +284,6 @@ jobs:
           echo "✅ COMPLETE configuration sync done"
 
       - name: 🔁 Sync orchestrator Traefik route
-        continue-on-error: true
         run: |
           KEY_PATH="${HOME}/.ssh/id_ed25519_production"
           if [[ ! -f "${KEY_PATH}" ]]; then
@@ -291,13 +294,9 @@ jobs:
           ORCH_HOST="77.42.76.185"
           ORCH_USER="root"
           ssh-keyscan -H "$ORCH_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
-          scp -i "${KEY_PATH}" infra/config/traefik-orchestrator/cerniq.yml "${ORCH_USER}@${ORCH_HOST}:/opt/traefik/dynamic/cerniq.yml"
-          ssh -i "${KEY_PATH}" "${ORCH_USER}@${ORCH_HOST}" << 'ENDSSH'
-            set -euo pipefail
-            test -f /opt/traefik/dynamic_conf.yml
-            python3 -c "from pathlib import Path; import yaml; b=Path('/opt/traefik/dynamic_conf.yml'); a=Path('/opt/traefik/dynamic/cerniq.yml'); base=yaml.safe_load(b.read_text()) or {}; add=yaml.safe_load(a.read_text()) or {}; bh=base.setdefault('http',{}); ah=add.get('http',{}) or {}; [bh.setdefault(s,{}).update((ah.get(s,{}) or {})) for s in ('middlewares','routers','services')]; b.write_text(yaml.safe_dump(base, sort_keys=False))"
-            docker restart traefik >/dev/null
-          ENDSSH
+          ssh -i "${KEY_PATH}" -o IdentitiesOnly=yes "${ORCH_USER}@${ORCH_HOST}" "mkdir -p /opt/traefik/dynamic"
+          scp -i "${KEY_PATH}" -o IdentitiesOnly=yes infra/config/traefik-orchestrator/cerniq.yml "${ORCH_USER}@${ORCH_HOST}:/opt/traefik/dynamic/cerniq.yml"
+          echo "✅ Traefik file provider will auto-reload (no restart needed)"
 
       # =========================================================================
       # STEP 2: Save current version for rollback
@@ -305,7 +304,7 @@ jobs:
       - name: 💾 Save current version for rollback
         continue-on-error: true
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'ENDSSH'
+          ssh -i ~/.ssh/deploy_key deploy@${{ secrets.STAGING_HOST }} << 'ENDSSH'
             cd /opt/cerniq
             
             # Prefer a dedicated marker file; docker ps parsing is unreliable when
@@ -323,7 +322,7 @@ jobs:
       # =========================================================================
       - name: 🚀 Deploy Docker services
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'ENDSSH'
+          ssh -i ~/.ssh/deploy_key deploy@${{ secrets.STAGING_HOST }} << 'ENDSSH'
             cd /opt/cerniq
             
             # Ensure Docker networks exist
@@ -354,7 +353,7 @@ jobs:
       # =========================================================================
       - name: 🔐 Initialize OpenBao
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'ENDSSH'
+          ssh -i ~/.ssh/deploy_key deploy@${{ secrets.STAGING_HOST }} << 'ENDSSH'
             cd /opt/cerniq
             echo "✅ Skipped: OpenBao server is external on orchestrator (s3cr3ts.neanelu.ro)"
           ENDSSH
@@ -364,13 +363,12 @@ jobs:
       # =========================================================================
       - name: 🤖 Start OpenBao Agents
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'ENDSSH'
+          ssh -i ~/.ssh/deploy_key deploy@${{ secrets.STAGING_HOST }} << 'ENDSSH'
             cd /opt/cerniq
             
-            # tmpfs runtime secrets (avoid secrets persisted on disk)
-            sudo mkdir -p /run/cerniq/runtime-secrets/{api,workers,infra}
-            sudo chown -R $(whoami):$(whoami) /run/cerniq/runtime-secrets
-            sudo chmod 700 /run/cerniq/runtime-secrets /run/cerniq/runtime-secrets/* || true
+            # Runtime secrets directory (render target for templates).
+            mkdir -p /opt/cerniq/runtime-secrets/{api,workers,infra}
+            chmod 700 /opt/cerniq/runtime-secrets /opt/cerniq/runtime-secrets/* || true
             
             # Check prerequisites
             if [ ! -f /opt/cerniq/secrets/api_role_id ]; then
@@ -399,30 +397,22 @@ jobs:
       - name: 🔥 Configure Firewall
         continue-on-error: true
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'ENDSSH'
+          ssh -i ~/.ssh/deploy_key deploy@${{ secrets.STAGING_HOST }} << 'ENDSSH'
             cd /opt/cerniq
             
             # Check if UFW is active
-            if sudo ufw status | grep -q "Status: active"; then
+            if sudo -n ufw status 2>/dev/null | grep -q "Status: active"; then
               echo "✅ UFW already active"
             else
               echo "🔥 Configuring firewall..."
               if [ -f /opt/cerniq/scripts/setup-firewall.sh ]; then
-                sudo /opt/cerniq/scripts/setup-firewall.sh || echo "⚠️ Firewall setup had issues"
+                sudo -n /opt/cerniq/scripts/setup-firewall.sh || echo "⚠️ Firewall setup skipped/failed (no sudo)"
               else
-                # Basic firewall setup
-                sudo ufw --force reset
-                sudo ufw default deny incoming
-                sudo ufw default allow outgoing
-                sudo ufw allow ssh
-                sudo ufw allow 80/tcp
-                sudo ufw allow 443/tcp
-                sudo ufw --force enable
-                echo "✅ Basic firewall configured"
+                echo "⚠️ No setup-firewall.sh; skipping (requires sudo)"
               fi
             fi
             
-            sudo ufw status verbose | head -10
+            sudo -n ufw status verbose 2>/dev/null | head -10 || true
           ENDSSH
 
       # =========================================================================
@@ -431,28 +421,28 @@ jobs:
       - name: 🔧 Install system configurations
         continue-on-error: true
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'ENDSSH'
+          ssh -i ~/.ssh/deploy_key deploy@${{ secrets.STAGING_HOST }} << 'ENDSSH'
             cd /opt/cerniq
             
             echo "📋 Installing fail2ban configuration..."
             if [ -f /opt/cerniq/config/fail2ban/jail.local ]; then
-              sudo cp /opt/cerniq/config/fail2ban/jail.local /etc/fail2ban/jail.local
-              sudo systemctl enable fail2ban 2>/dev/null || true
-              sudo systemctl restart fail2ban 2>/dev/null || true
+              sudo -n cp /opt/cerniq/config/fail2ban/jail.local /etc/fail2ban/jail.local 2>/dev/null || true
+              sudo -n systemctl enable fail2ban 2>/dev/null || true
+              sudo -n systemctl restart fail2ban 2>/dev/null || true
               echo "✅ fail2ban configured"
             fi
             
             echo "📋 Installing backup cron job..."
             if [ -f /opt/cerniq/config/cron/cerniq-backup ]; then
-              sudo cp /opt/cerniq/config/cron/cerniq-backup /etc/cron.d/cerniq-backup
-              sudo chmod 644 /etc/cron.d/cerniq-backup
-              sudo systemctl reload cron 2>/dev/null || true
+              sudo -n cp /opt/cerniq/config/cron/cerniq-backup /etc/cron.d/cerniq-backup 2>/dev/null || true
+              sudo -n chmod 644 /etc/cron.d/cerniq-backup 2>/dev/null || true
+              sudo -n systemctl reload cron 2>/dev/null || true
               echo "✅ Backup cron installed"
             fi
             
             echo "📋 Installing logrotate configuration..."
             if [ -f /opt/cerniq/config/logrotate/cerniq-backup ]; then
-              sudo cp /opt/cerniq/config/logrotate/cerniq-backup /etc/logrotate.d/cerniq-backup
+              sudo -n cp /opt/cerniq/config/logrotate/cerniq-backup /etc/logrotate.d/cerniq-backup 2>/dev/null || true
               echo "✅ Logrotate configured"
             fi
           ENDSSH
@@ -462,7 +452,7 @@ jobs:
       # =========================================================================
       - name: 🧪 Verify Staging Deployment (Smoke Tests)
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'ENDSSH'
+          ssh -i ~/.ssh/deploy_key deploy@${{ secrets.STAGING_HOST }} << 'ENDSSH'
             echo "========================================"
             echo "  STAGING DEPLOYMENT SMOKE TESTS"
             echo "========================================"
@@ -489,7 +479,7 @@ jobs:
             # PgBouncer + OpenBao dynamic creds (end-to-end)
             echo -n "  PgBouncer:  "
             if docker run --rm --network cerniq_backend \
-              --env-file /run/cerniq/runtime-secrets/api/api.env \
+              --env-file /opt/cerniq/runtime-secrets/api/api.env \
               postgres:18 sh -c 'psql "$DATABASE_URL" -Atqc "SELECT 1"' >/dev/null 2>&1; then
               echo "✅ HEALTHY"
             else
@@ -499,7 +489,7 @@ jobs:
             # Redis health
             echo -n "  Redis:      "
             if docker run --rm --network host \
-              --env-file /run/cerniq/runtime-secrets/api/api.env \
+              --env-file /opt/cerniq/runtime-secrets/api/api.env \
               redis:8-alpine sh -c 'redis-cli -u "$REDIS_URL" PING' 2>/dev/null | grep -q PONG; then
               echo "✅ HEALTHY"
             else
@@ -517,15 +507,6 @@ jobs:
               echo "⚠️ NOT READY (app containers not deployed yet — ingress validated in f2-10)"
             fi
             
-            # Vector health
-            echo -n "  Vector:     "
-            if docker inspect -f '{{.State.Running}}' cerniq-vector 2>/dev/null | grep -q true; then
-              echo "✅ HEALTHY"
-            else
-              echo "❌ FAILED"
-              FAILED=1
-            fi
-
             # OpenBao agents health (remote OpenBao on orchestrator)
             echo -n "  OpenBao:    "
             if docker inspect -f '{{.State.Health.Status}}' cerniq-openbao-agent-api 2>/dev/null | grep -q healthy && \
@@ -542,18 +523,18 @@ jobs:
             
             # fail2ban
             echo -n "  fail2ban:   "
-            if sudo systemctl is-active fail2ban >/dev/null 2>&1; then
+            if sudo -n systemctl is-active fail2ban >/dev/null 2>&1; then
               echo "✅ ACTIVE"
             else
-              echo "⚠️ INACTIVE"
+              echo "⚠️ INACTIVE (or no sudo)"
             fi
             
             # UFW
             echo -n "  UFW:        "
-            if sudo ufw status | grep -q "Status: active"; then
+            if sudo -n ufw status 2>/dev/null | grep -q "Status: active"; then
               echo "✅ ACTIVE"
             else
-              echo "⚠️ INACTIVE"
+              echo "⚠️ INACTIVE (or no sudo)"
             fi
             
             echo ""
@@ -588,23 +569,29 @@ jobs:
       - name: 🔧 Setup SSH
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.PRODUCTION_SSH_KEY }}" > ~/.ssh/deploy_key
+          # Restricted deploy key (deploy user only; old key remains break-glass)
+          echo "${{ secrets.PRODUCTION_SSH_KEY_RESTRICTED }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
 
       - name: 🧰 Ensure jq on production host
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
+          ssh -i ~/.ssh/deploy_key deploy@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
             if ! command -v jq >/dev/null 2>&1; then
-              sudo apt-get update
-              sudo apt-get install -y jq
+              if sudo -n true >/dev/null 2>&1; then
+                sudo apt-get update
+                sudo apt-get install -y jq
+              else
+                echo "❌ jq missing and sudo not available for deploy user"
+                exit 1
+              fi
             fi
           ENDSSH
 
       - name: 🔄 Create database backup
         continue-on-error: true
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
+          ssh -i ~/.ssh/deploy_key deploy@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
             if [ -f /opt/cerniq/scripts/backup-pre-deploy.sh ]; then
               /opt/cerniq/scripts/backup-pre-deploy.sh
             fi
@@ -615,21 +602,19 @@ jobs:
       # =========================================================================
       - name: 📦 Sync ALL configuration files
         run: |
-          SSH_CMD="ssh -i ~/.ssh/deploy_key ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}"
+          SSH_CMD="ssh -i ~/.ssh/deploy_key deploy@${{ secrets.PRODUCTION_HOST }}"
           SCP_CMD="scp -i ~/.ssh/deploy_key"
-          HOST="${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}"
+          HOST="deploy@${{ secrets.PRODUCTION_HOST }}"
 
           echo "📁 Creating COMPLETE server directory structure..."
           $SSH_CMD << 'ENDSSH'
-            sudo mkdir -p /opt/cerniq/{config/{openbao/{policies,templates},vector,otel,fail2ban,cron,logrotate,docker},scripts,secrets,backups}
-            sudo chown -R $(whoami):$(whoami) /opt/cerniq
+            mkdir -p /opt/cerniq/{config/{openbao/{policies,templates},fail2ban,cron,logrotate,docker},scripts,secrets,backups}
           ENDSSH
 
           echo "📄 Syncing docker-compose files..."
           $SCP_CMD infra/docker/docker-compose.yml ${HOST}:/opt/cerniq/
           $SCP_CMD infra/docker/docker-compose.prod.yml ${HOST}:/opt/cerniq/
-          $SCP_CMD infra/config/vector/vector.toml ${HOST}:/opt/cerniq/config/vector.toml 2>/dev/null || true
-          $SCP_CMD infra/config/otel/otel-collector.yaml ${HOST}:/opt/cerniq/config/otel-collector.yaml 2>/dev/null || true
+          # Vector/OTEL configs removed — observability is centralized on orchestrator
 
           echo "📄 Syncing OpenBao config (CORRECT PATH)..."
           $SCP_CMD infra/config/openbao/*.hcl ${HOST}:/opt/cerniq/config/openbao/
@@ -649,7 +634,6 @@ jobs:
           echo "✅ COMPLETE configuration sync done"
 
       - name: 🔁 Sync orchestrator Traefik route
-        continue-on-error: true
         run: |
           KEY_PATH="${HOME}/.ssh/id_ed25519_production"
           if [[ ! -f "${KEY_PATH}" ]]; then
@@ -660,13 +644,9 @@ jobs:
           ORCH_HOST="77.42.76.185"
           ORCH_USER="root"
           ssh-keyscan -H "$ORCH_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
-          scp -i "${KEY_PATH}" infra/config/traefik-orchestrator/cerniq.yml "${ORCH_USER}@${ORCH_HOST}:/opt/traefik/dynamic/cerniq.yml"
-          ssh -i "${KEY_PATH}" "${ORCH_USER}@${ORCH_HOST}" << 'ENDSSH'
-            set -euo pipefail
-            test -f /opt/traefik/dynamic_conf.yml
-            python3 -c "from pathlib import Path; import yaml; b=Path('/opt/traefik/dynamic_conf.yml'); a=Path('/opt/traefik/dynamic/cerniq.yml'); base=yaml.safe_load(b.read_text()) or {}; add=yaml.safe_load(a.read_text()) or {}; bh=base.setdefault('http',{}); ah=add.get('http',{}) or {}; [bh.setdefault(s,{}).update((ah.get(s,{}) or {})) for s in ('middlewares','routers','services')]; b.write_text(yaml.safe_dump(base, sort_keys=False))"
-            docker restart traefik >/dev/null
-          ENDSSH
+          ssh -i "${KEY_PATH}" -o IdentitiesOnly=yes "${ORCH_USER}@${ORCH_HOST}" "mkdir -p /opt/traefik/dynamic"
+          scp -i "${KEY_PATH}" -o IdentitiesOnly=yes infra/config/traefik-orchestrator/cerniq.yml "${ORCH_USER}@${ORCH_HOST}:/opt/traefik/dynamic/cerniq.yml"
+          echo "✅ Traefik file provider will auto-reload (no restart needed)"
 
       # =========================================================================
       # STEP 2: Save current version for rollback
@@ -674,7 +654,7 @@ jobs:
       - name: 💾 Save current version for rollback
         continue-on-error: true
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
+          ssh -i ~/.ssh/deploy_key deploy@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
             cd /opt/cerniq
             
             if [ -f /opt/cerniq/.current_deploy ]; then
@@ -690,7 +670,7 @@ jobs:
       # =========================================================================
       - name: 🚀 Deploy Docker services
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
+          ssh -i ~/.ssh/deploy_key deploy@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
             cd /opt/cerniq
             
             # Ensure Docker networks exist
@@ -720,7 +700,7 @@ jobs:
       # =========================================================================
       - name: 🔐 Initialize OpenBao (Production)
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
+          ssh -i ~/.ssh/deploy_key deploy@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
             cd /opt/cerniq
             echo "✅ Skipped: OpenBao server is external on orchestrator (s3cr3ts.neanelu.ro)"
           ENDSSH
@@ -731,13 +711,12 @@ jobs:
       - name: 🤖 Start OpenBao Agents
         continue-on-error: true
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
+          ssh -i ~/.ssh/deploy_key deploy@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
             cd /opt/cerniq
             
-            # tmpfs runtime secrets (avoid secrets persisted on disk)
-            sudo mkdir -p /run/cerniq/runtime-secrets/{api,workers,infra}
-            sudo chown -R $(whoami):$(whoami) /run/cerniq/runtime-secrets
-            sudo chmod 700 /run/cerniq/runtime-secrets /run/cerniq/runtime-secrets/* || true
+            # Runtime secrets directory (render target for templates).
+            mkdir -p /opt/cerniq/runtime-secrets/{api,workers,infra}
+            chmod 700 /opt/cerniq/runtime-secrets /opt/cerniq/runtime-secrets/* || true
             
             if [ ! -f /opt/cerniq/secrets/api_role_id ]; then
               echo "⚠️ AppRole credentials not found, skipping agents"
@@ -761,27 +740,21 @@ jobs:
       - name: 🔥 Configure Firewall
         continue-on-error: true
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
+          ssh -i ~/.ssh/deploy_key deploy@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
             cd /opt/cerniq
             
-            if sudo ufw status | grep -q "Status: active"; then
+            if sudo -n ufw status 2>/dev/null | grep -q "Status: active"; then
               echo "✅ UFW already active"
             else
               echo "🔥 Configuring production firewall..."
               if [ -f /opt/cerniq/scripts/setup-firewall.sh ]; then
-                sudo CERNIQ_UFW_AUTO_APPROVE=true /opt/cerniq/scripts/setup-firewall.sh
+                sudo -n CERNIQ_UFW_AUTO_APPROVE=true /opt/cerniq/scripts/setup-firewall.sh || true
               else
-                sudo ufw --force reset
-                sudo ufw default deny incoming
-                sudo ufw default allow outgoing
-                sudo ufw allow ssh
-                sudo ufw allow 80/tcp
-                sudo ufw allow 443/tcp
-                sudo ufw --force enable
+                echo "⚠️ No setup-firewall.sh; skipping (requires sudo)"
               fi
             fi
             
-            sudo ufw status verbose | head -10
+            sudo -n ufw status verbose 2>/dev/null | head -10 || true
           ENDSSH
 
       # =========================================================================
@@ -790,28 +763,28 @@ jobs:
       - name: 🔧 Install system configurations
         continue-on-error: true
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
+          ssh -i ~/.ssh/deploy_key deploy@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
             cd /opt/cerniq
             
             echo "📋 Installing fail2ban configuration..."
             if [ -f /opt/cerniq/config/fail2ban/jail.local ]; then
-              sudo cp /opt/cerniq/config/fail2ban/jail.local /etc/fail2ban/jail.local
-              sudo systemctl enable fail2ban 2>/dev/null || true
-              sudo systemctl restart fail2ban 2>/dev/null || true
+              sudo -n cp /opt/cerniq/config/fail2ban/jail.local /etc/fail2ban/jail.local 2>/dev/null || true
+              sudo -n systemctl enable fail2ban 2>/dev/null || true
+              sudo -n systemctl restart fail2ban 2>/dev/null || true
               echo "✅ fail2ban configured"
             fi
             
             echo "📋 Installing backup cron job..."
             if [ -f /opt/cerniq/config/cron/cerniq-backup ]; then
-              sudo cp /opt/cerniq/config/cron/cerniq-backup /etc/cron.d/cerniq-backup
-              sudo chmod 644 /etc/cron.d/cerniq-backup
-              sudo systemctl reload cron 2>/dev/null || true
+              sudo -n cp /opt/cerniq/config/cron/cerniq-backup /etc/cron.d/cerniq-backup 2>/dev/null || true
+              sudo -n chmod 644 /etc/cron.d/cerniq-backup 2>/dev/null || true
+              sudo -n systemctl reload cron 2>/dev/null || true
               echo "✅ Backup cron installed"
             fi
             
             echo "📋 Installing logrotate configuration..."
             if [ -f /opt/cerniq/config/logrotate/cerniq-backup ]; then
-              sudo cp /opt/cerniq/config/logrotate/cerniq-backup /etc/logrotate.d/cerniq-backup
+              sudo -n cp /opt/cerniq/config/logrotate/cerniq-backup /etc/logrotate.d/cerniq-backup 2>/dev/null || true
               echo "✅ Logrotate configured"
             fi
           ENDSSH
@@ -821,7 +794,7 @@ jobs:
       # =========================================================================
       - name: 🧪 Verify Production Deployment (Smoke Tests)
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
+          ssh -i ~/.ssh/deploy_key deploy@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
             echo "========================================"
             echo "  PRODUCTION DEPLOYMENT SMOKE TESTS"
             echo "========================================"
@@ -848,7 +821,7 @@ jobs:
             # PgBouncer + OpenBao dynamic creds (end-to-end)
             echo -n "  PgBouncer:  "
             if docker run --rm --network cerniq_backend \
-              --env-file /run/cerniq/runtime-secrets/api/api.env \
+              --env-file /opt/cerniq/runtime-secrets/api/api.env \
               postgres:18 sh -c 'psql "$DATABASE_URL" -Atqc "SELECT 1"' >/dev/null 2>&1; then
               echo "✅ HEALTHY"
             else
@@ -858,7 +831,7 @@ jobs:
             # Redis health
             echo -n "  Redis:      "
             if docker run --rm --network host \
-              --env-file /run/cerniq/runtime-secrets/api/api.env \
+              --env-file /opt/cerniq/runtime-secrets/api/api.env \
               redis:8-alpine sh -c 'redis-cli -u "$REDIS_URL" PING' 2>/dev/null | grep -q PONG; then
               echo "✅ HEALTHY"
             else
@@ -875,15 +848,6 @@ jobs:
               FAILED=1
             fi
             
-            # Vector health
-            echo -n "  Vector:     "
-            if docker inspect -f '{{.State.Running}}' cerniq-vector 2>/dev/null | grep -q true; then
-              echo "✅ HEALTHY"
-            else
-              echo "❌ FAILED"
-              FAILED=1
-            fi
-
             # OpenBao agents health (remote OpenBao on orchestrator)
             echo -n "  OpenBao:    "
             if docker inspect -f '{{.State.Health.Status}}' cerniq-openbao-agent-api 2>/dev/null | grep -q healthy && \
@@ -900,18 +864,18 @@ jobs:
             
             # fail2ban
             echo -n "  fail2ban:   "
-            if sudo systemctl is-active fail2ban >/dev/null 2>&1; then
+            if sudo -n systemctl is-active fail2ban >/dev/null 2>&1; then
               echo "✅ ACTIVE"
             else
-              echo "⚠️ INACTIVE"
+              echo "⚠️ INACTIVE (or no sudo)"
             fi
             
             # UFW
             echo -n "  UFW:        "
-            if sudo ufw status | grep -q "Status: active"; then
+            if sudo -n ufw status 2>/dev/null | grep -q "Status: active"; then
               echo "✅ ACTIVE"
             else
-              echo "⚠️ INACTIVE"
+              echo "⚠️ INACTIVE (or no sudo)"
             fi
             
             echo ""
@@ -982,13 +946,13 @@ jobs:
         run: |
           mkdir -p ~/.ssh
           if [[ "${{ inputs.environment }}" == "production" ]]; then
-            echo "${{ secrets.PRODUCTION_SSH_KEY }}" > ~/.ssh/deploy_key
+            echo "${{ secrets.PRODUCTION_SSH_KEY_RESTRICTED }}" > ~/.ssh/deploy_key
             echo "HOST=${{ secrets.PRODUCTION_HOST }}" >> $GITHUB_ENV
-            echo "USER=${{ secrets.PRODUCTION_USER }}" >> $GITHUB_ENV
+            echo "USER=deploy" >> $GITHUB_ENV
           else
-            echo "${{ secrets.STAGING_SSH_KEY }}" > ~/.ssh/deploy_key
+            echo "${{ secrets.STAGING_SSH_KEY_RESTRICTED }}" > ~/.ssh/deploy_key
             echo "HOST=${{ secrets.STAGING_HOST }}" >> $GITHUB_ENV
-            echo "USER=${{ secrets.STAGING_USER }}" >> $GITHUB_ENV
+            echo "USER=deploy" >> $GITHUB_ENV
           fi
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H $HOST >> ~/.ssh/known_hosts 2>/dev/null

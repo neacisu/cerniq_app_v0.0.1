@@ -66,21 +66,20 @@ else
 fi
 echo
 
-echo "# Traefik merged dynamic_conf.yml (sanity: contains cerniq identifiers)"
-DYN="/opt/traefik/dynamic_conf.yml"
-if [ -f "$DYN" ]; then
-  ls -la "$DYN" || true
+echo "# Traefik file provider (SoT): /opt/traefik/dynamic/*.yml (sanity: contains cerniq identifiers)"
+CERNIQ_YML="/opt/traefik/dynamic/cerniq.yml"
+if [ -f "${CERNIQ_YML}" ]; then
+  ls -la "${CERNIQ_YML}" || true
   python3 - <<'PY' || true
 from pathlib import Path
-p = Path("/opt/traefik/dynamic_conf.yml")
-txt = p.read_text(errors="replace")
+txt = Path("/opt/traefik/dynamic/cerniq.yml").read_text(errors="replace")
 need = ["cerniq.app", "api.cerniq.app", "admin.cerniq.app", "staging.cerniq.app", "otel-cerniq.neanelu.ro"]
-print("dynamic_conf_contains:")
+print("cerniq_yml_contains:")
 for s in need:
     print(f"  {s}={'YES' if s in txt else 'NO'}")
-print("dynamic_conf_cerniq_occurrences=", txt.count("cerniq"))
+print("cerniq_yml_cerniq_occurrences=", txt.count("cerniq"))
 PY
 else
-  echo "dynamic_conf_missing path=${DYN}"
+  echo "cerniq_yml_missing path=${CERNIQ_YML}"
 fi
 

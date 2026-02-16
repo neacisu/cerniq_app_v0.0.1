@@ -10,10 +10,10 @@ HOST="otel-cerniq.neanelu.ro"
 VIP_IP="10.0.1.10"
 URL="https://${HOST}/v1/traces"
 
-echo "# dynamic_conf: host file snippet"
+echo "# cerniq.yml (SoT runtime): host file snippet"
 python3 - <<'PY' || true
 from pathlib import Path
-lines = Path("/opt/traefik/dynamic_conf.yml").read_text(errors="replace").splitlines()
+lines = Path("/opt/traefik/dynamic/cerniq.yml").read_text(errors="replace").splitlines()
 needle = "cerniq-otlp-allowlist:"
 idxs = [i for i,l in enumerate(lines) if l.strip() == needle]
 print("found=", bool(idxs))
@@ -27,9 +27,9 @@ if idxs:
 PY
 echo
 
-echo "# dynamic_conf: container file snippet"
-if docker exec traefik sh -lc "test -f /etc/traefik/dynamic_conf.yml"; then
-  docker exec traefik sh -lc "python3 - <<'PY'\nfrom pathlib import Path\nlines = Path('/etc/traefik/dynamic_conf.yml').read_text(errors='replace').splitlines()\nneedle='cerniq-otlp-allowlist:'\nidxs=[i for i,l in enumerate(lines) if l.strip()==needle]\nprint('found=', bool(idxs))\nif idxs:\n  i=idxs[0]\n  start=max(0,i-2)\n  end=min(len(lines), i+20)\n  print('--- snippet ---')\n  print('\\n'.join(lines[start:end]))\n  print('--- end snippet ---')\nPY" || true
+echo "# cerniq.yml (SoT runtime): container file snippet"
+if docker exec traefik sh -lc "test -f /etc/traefik/dynamic/cerniq.yml"; then
+  docker exec traefik sh -lc "python3 - <<'PY'\nfrom pathlib import Path\nlines = Path('/etc/traefik/dynamic/cerniq.yml').read_text(errors='replace').splitlines()\nneedle='cerniq-otlp-allowlist:'\nidxs=[i for i,l in enumerate(lines) if l.strip()==needle]\nprint('found=', bool(idxs))\nif idxs:\n  i=idxs[0]\n  start=max(0,i-2)\n  end=min(len(lines), i+20)\n  print('--- snippet ---')\n  print('\\n'.join(lines[start:end]))\n  print('--- end snippet ---')\nPY" || true
 else
   echo "traefik_container_missing_or_no_shell"
 fi
@@ -39,7 +39,7 @@ echo "# Request from orchestrator forcing VIP (should NOT be 403 if allowlist ef
 code_vip="$(curl -sk -o /tmp/otlp_orch_vip_body.txt -w '%{http_code}' \
   --connect-timeout 3 --max-time 8 \
   --resolve "${HOST}:443:${VIP_IP}" \
-  -X POST -H 'Content-Type: application/json' --data '{}' \
+  -X POST -H 'Content-Type: application/x-protobuf' --data-binary '' \
   "${URL}" || true)"
 echo "orch_http_code_vip=${code_vip}"
 echo "orch_body_vip_head:"

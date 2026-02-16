@@ -52,7 +52,7 @@ docker inspect -f '{{.State.Health.Status}}' cerniq-openbao-agent-infra cerniq-p
 2. Verifica faptul ca agentul a randat configurile in runtime secrets:
 
 ```bash
-ls -la /run/cerniq/runtime-secrets/infra || true
+ls -la /opt/cerniq/runtime-secrets/infra || true
 ```
 
 3. Test conexiune prin PgBouncer (dintr-un container cu psql, sau din host daca ai `psql`):

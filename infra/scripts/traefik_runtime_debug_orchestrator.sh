@@ -18,7 +18,7 @@ fi
 echo
 
 echo "# Dynamic config files (stat)"
-for p in /opt/traefik/dynamic_conf.yml /opt/traefik/dynamic/cerniq.yml; do
+for p in /opt/traefik/dynamic/platform.yml /opt/traefik/dynamic/cerniq.yml; do
   if [ -f "$p" ]; then
     echo "--- $p ---"
     ls -la "$p" || true

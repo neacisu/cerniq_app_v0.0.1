@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 def main() -> int:
-    t = Path("/run/cerniq/runtime-secrets/infra/userlist.txt").read_text(encoding="utf-8").strip()
+    t = Path("/opt/cerniq/runtime-secrets/infra/userlist.txt").read_text(encoding="utf-8").strip()
     m = re.match(r'^"[^"]+"\s+"(.*)"$', t)
     if not m:
         raise SystemExit("[ERROR] unexpected userlist format")

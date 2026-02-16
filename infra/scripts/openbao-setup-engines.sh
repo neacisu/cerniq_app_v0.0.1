@@ -4,6 +4,11 @@
 # =============================================================================
 # - DO NOT modify shared KV mounts (secret/) or global PKI/Transit paths.
 # - Enable ONLY Cerniq-isolated mounts and apply Cerniq policies from repo.
+#
+# NOTE: PostgreSQL runs natively on CT107 (10.0.1.107:5432), NOT in a Docker container.
+# Redis runs on the orchestrator (10.0.0.2:6379), accessed via HAProxy VIP 10.0.1.10:6379.
+# The "cerniq-postgres" name in OpenBao paths (cerniq-db/config/cerniq-postgres)
+# is a logical config name, NOT a Docker container reference.
 # =============================================================================
 
 set -euo pipefail

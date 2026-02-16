@@ -70,37 +70,34 @@ else
 fi
 echo
 
-echo "# Safety: dynamic_conf sanity (does it mention cerniq?)"
-DYN="/opt/traefik/dynamic_conf.yml"
-if [ -f "${DYN}" ]; then
-  echo "dynamic_conf_present=YES"
-  echo "dynamic_conf_sha256=$(sha256sum "${DYN}" | awk '{print $1}')"
+echo "# Safety: cerniq.yml sanity (SoT runtime file provider)"
+CERNIQ_YML="/opt/traefik/dynamic/cerniq.yml"
+if [ -f "${CERNIQ_YML}" ]; then
+  echo "cerniq_yml_present=YES"
+  echo "cerniq_yml_sha256=$(sha256sum "${CERNIQ_YML}" | awk '{print $1}')"
   python3 - <<'PY' || true
 from pathlib import Path
-p = Path("/opt/traefik/dynamic_conf.yml")
+p = Path("/opt/traefik/dynamic/cerniq.yml")
 txt = p.read_text(errors="replace")
-print("dynamic_conf_cerniq_occurrences=", txt.count("cerniq"))
+print("cerniq_yml_cerniq_occurrences=", txt.count("cerniq"))
 for s in ["cerniq.app", "api.cerniq.app", "admin.cerniq.app", "staging.cerniq.app", "otel-cerniq.neanelu.ro"]:
     print(f"contains[{s}]={'YES' if s in txt else 'NO'}")
 PY
   echo
-  echo "# dynamic_conf: check OTLP allowlist contains 10.0.1.10/32"
+  echo "# cerniq.yml: check OTLP allowlist contains 10.0.1.10/32"
   python3 - <<'PY' || true
 from pathlib import Path
-lines = Path("/opt/traefik/dynamic_conf.yml").read_text(errors="replace").splitlines()
-print("dynamic_conf_has_10.0.1.10_anywhere=", any("10.0.1.10/32" in l for l in lines))
-
+lines = Path("/opt/traefik/dynamic/cerniq.yml").read_text(errors="replace").splitlines()
+print("cerniq_yml_has_10.0.1.10_anywhere=", any("10.0.1.10/32" in l for l in lines))
 needle = "cerniq-otlp-allowlist:"
 idxs = [i for i,l in enumerate(lines) if l.strip() == needle]
 if not idxs:
-    print("dynamic_conf_otlp_allowlist_def=NOT_FOUND")
+    print("cerniq_yml_otlp_allowlist_def=NOT_FOUND")
 else:
-    # The definition block indentation is the indent of the "cerniq-otlp-allowlist:" line.
     idx = idxs[0]
     indent = len(lines[idx]) - len(lines[idx].lstrip(" "))
     start = max(0, idx - 2)
     end = idx + 1
-    # Collect block until indent drops back to <= indent (excluding blank lines).
     for j in range(idx + 1, len(lines)):
         l = lines[j]
         if l.strip() == "":
@@ -111,14 +108,14 @@ else:
             break
         end = j + 1
     snippet = "\n".join(lines[start:end])
-    print("dynamic_conf_otlp_allowlist_def=FOUND")
-    print("dynamic_conf_otlp_allowlist_has_10.0.1.10=", "10.0.1.10/32" in snippet)
+    print("cerniq_yml_otlp_allowlist_def=FOUND")
+    print("cerniq_yml_otlp_allowlist_has_10.0.1.10=", "10.0.1.10/32" in snippet)
     print("--- snippet ---")
     print(snippet)
     print("--- end snippet ---")
 PY
 else
-  echo "dynamic_conf_present=NO"
+  echo "cerniq_yml_present=NO"
 fi
 echo
 

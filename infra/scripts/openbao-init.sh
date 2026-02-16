@@ -54,7 +54,8 @@ fi
 # =============================================================================
 
 BAO_ADDR="${BAO_ADDR:-https://s3cr3ts.neanelu.ro}"
-BAO_CONTAINER="${BAO_CONTAINER:-cerniq-openbao}"
+# Legacy default kept only for historical reference. Current orchestrator container is "openbao".
+BAO_CONTAINER="${BAO_CONTAINER:-openbao}"
 SECRETS_DIR="${CERNIQ_SECRETS_DIR:-/var/www/CerniqAPP/secrets}"
 SCRIPTS_DIR="${SCRIPT_DIR}"
 LOG_DIR="/var/log/cerniq"

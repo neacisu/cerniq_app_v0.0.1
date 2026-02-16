@@ -13,7 +13,7 @@ OUTPUT_FILE="$BACKUP_DIR/cerniq_full_${TIMESTAMP}.dump"
 
 # New infra: PostgreSQL is external (CT107). We authenticate via OpenBao dynamic
 # DB creds rendered into an env-file (contains DATABASE_URL pointing to PgBouncer).
-ENV_FILE="${ENV_FILE:-/run/cerniq/runtime-secrets/api/api.env}"
+ENV_FILE="${ENV_FILE:-/opt/cerniq/runtime-secrets/api/api.env}"
 DOCKER_NET="${DOCKER_NET:-cerniq_backend}"
 
 # Hetzner Storage Box config

@@ -3,7 +3,7 @@
 # =============================================================================
 # Domain: cerniq.app (managed via Cloudflare)
 # Reference: F0.16.1.T001, F0.16.1.T002
-# Status: UPDATED for new infra (2026-02-15)
+# Status: CLEANED UP — legacy records deleted (2026-02-16)
 # =============================================================================
 
 # =============================================================================
@@ -27,9 +27,12 @@
 # A       staging           77.42.76.185        Off     300
 # A       api.staging       77.42.76.185        Off     300
 # A       admin.staging     77.42.76.185        Off     300
+# CNAME   www               cerniq.app          Off     300
 #
-# (optional / infra tools)
-# A       traefik           77.42.76.185        Off     300
+# DELETED 2026-02-16 (legacy records pointing to 95.216.225.145):
+#   monitoring.cerniq.app, signoz.cerniq.app, traefik.cerniq.app
+# DELETED 2026-02-16 (stale ACME TXT records):
+#   _acme-challenge.cerniq.app (x2)
 
 # =============================================================================
 # NEANELU.RO (observability intake for Cerniq)
@@ -37,8 +40,9 @@
 # NOTE: this record belongs to the neanelu.ro Cloudflare zone, not cerniq.app.
 #
 # Type    Name              Content             Proxy   TTL
-# A       otel-cerniq       77.42.76.185        Off     300
-# A       logs-cerniq       77.42.76.185        Off     300
+# A       s3cr3ts           77.42.76.185        Off     300   (OpenBao)
+# A       otel-cerniq       77.42.76.185        Off     300   (OTEL Collector)
+# A       logs-cerniq       77.42.76.185        Off     300   (Loki)
 
 # =============================================================================
 # NOTES:

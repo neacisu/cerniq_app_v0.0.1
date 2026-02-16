@@ -5,7 +5,7 @@ set -euo pipefail
 # - Reads DATABASE_URL from OpenBao-rendered env file (tmpfs).
 # - Runs a trivial query; output is ONLY the current database name.
 
-ENV_FILE="${1:-/run/cerniq/runtime-secrets/api/api.env}"
+ENV_FILE="${1:-/opt/cerniq/runtime-secrets/api/api.env}"
 
 if [[ ! -f "$ENV_FILE" ]]; then
   echo "[ERROR] env file missing: $ENV_FILE" >&2

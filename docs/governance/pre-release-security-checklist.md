@@ -267,8 +267,8 @@ sudo ufw status verbose
 # 5. Check fail2ban status
 sudo fail2ban-client status
 
-# 6. Verify OpenBao status
-docker exec cerniq-openbao bao status
+# 6. Verify OpenBao status (centralized on orchestrator via Traefik)
+curl -sk https://s3cr3ts.neanelu.ro/v1/sys/health | jq '{initialized,sealed,standby,version}'
 
 # 7. Test database backup restore
 ./infra/scripts/test-backup-restore.sh --dry-run

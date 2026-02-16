@@ -17,7 +17,6 @@ import { describe, it, expect } from "vitest";
 import { execSync } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
-import { CERNIQ_PORTS } from "../../helpers/ports";
 
 // =============================================================================
 // Test Configuration
@@ -297,16 +296,19 @@ describe("F0.7: Server Integration Tests", () => {
   });
 
   describe("PostgreSQL WAL Tests (Server Required)", () => {
+    // Architecture note: PostgreSQL runs natively on CT107 (10.0.1.107:5432),
+    // not as a local Docker container. WAL settings are queried via SSH to
+    // CT107, running psql as the postgres system user.
     itServer("should have WAL archiving enabled in running PostgreSQL", () => {
       const result = exec(
-        `docker exec cerniq-postgres psql -h localhost -p ${CERNIQ_PORTS.postgres} -U c3rn1q -d cerniq -tAc "SHOW archive_mode" 2>/dev/null`,
+        `ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 10.0.1.107 'su - postgres -c "psql -tAc \\"SHOW archive_mode\\""' 2>/dev/null`,
       );
       expect(result).toBe("on");
     });
 
     itServer("should have correct wal_level", () => {
       const result = exec(
-        `docker exec cerniq-postgres psql -h localhost -p ${CERNIQ_PORTS.postgres} -U c3rn1q -d cerniq -tAc "SHOW wal_level" 2>/dev/null`,
+        `ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 10.0.1.107 'su - postgres -c "psql -tAc \\"SHOW wal_level\\""' 2>/dev/null`,
       );
       expect(result).toBe("replica");
     });

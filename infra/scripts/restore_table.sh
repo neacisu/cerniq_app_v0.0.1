@@ -3,11 +3,15 @@
 # Restore a single table from backup
 # Reference: docs/runbooks/database-recovery.md §3.3
 # Task: F0.7.1.T004
+#
+# NOTE: PostgreSQL runs natively on CT107 (10.0.1.107:5432), NOT in a Docker container.
+# Redis runs on the orchestrator (10.0.0.2:6379), accessed via HAProxy VIP 10.0.1.10:6379.
 
 set -euo pipefail
 
 LOG_FILE="/var/log/cerniq/restore_table.log"
-CONTAINER="cerniq-postgres"
+PG_HOST="10.0.1.107"
+PG_PORT="5432"
 DB_USER="cerniq"
 DB_NAME="cerniq"
 BACKUP_DIR="/var/backups/cerniq/postgresql"
@@ -163,7 +167,7 @@ TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 CURRENT_BACKUP="$BACKUP_DIR/critical/${TABLE_NAME}_pre_restore_${TIMESTAMP}.dump"
 
 log "Backing up current table state to $CURRENT_BACKUP"
-docker exec "$CONTAINER" pg_dump \
+pg_dump -h "$PG_HOST" -p "$PG_PORT" \
     -U "$DB_USER" \
     -d "$DB_NAME" \
     --table="$TABLE_NAME" \
@@ -171,7 +175,7 @@ docker exec "$CONTAINER" pg_dump \
     > "$CURRENT_BACKUP" 2>> "$LOG_FILE" || true
 
 # Build restore command
-RESTORE_CMD="pg_restore -U $DB_USER -d $DB_NAME --table=$TABLE_NAME"
+RESTORE_CMD="pg_restore -h $PG_HOST -p $PG_PORT -U $DB_USER -d $DB_NAME --table=$TABLE_NAME"
 
 if $DATA_ONLY; then
     RESTORE_CMD="$RESTORE_CMD --data-only"
@@ -186,21 +190,14 @@ RESTORE_CMD="$RESTORE_CMD --single-transaction"
 # Execute restore
 log "Executing restore..."
 
-# Copy backup file to container temp
-docker cp "$BACKUP_FILE" "${CONTAINER}:/tmp/restore_backup.dump"
-
-# Run restore
-docker exec "$CONTAINER" $RESTORE_CMD /tmp/restore_backup.dump 2>&1 | tee -a "$LOG_FILE"
+$RESTORE_CMD "$BACKUP_FILE" 2>&1 | tee -a "$LOG_FILE"
 RESTORE_RC=${PIPESTATUS[0]}
-
-# Cleanup
-docker exec "$CONTAINER" rm -f /tmp/restore_backup.dump
 
 if [[ $RESTORE_RC -eq 0 ]]; then
     log "Table restore completed successfully"
     
     # Show row count
-    ROW_COUNT=$(docker exec "$CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -t -c "SELECT count(*) FROM $TABLE_NAME" 2>/dev/null | xargs)
+    ROW_COUNT=$(psql -h "$PG_HOST" -p "$PG_PORT" -U "$DB_USER" -d "$DB_NAME" -t -c "SELECT count(*) FROM $TABLE_NAME" 2>/dev/null | xargs)
     log "Table $TABLE_NAME now has $ROW_COUNT rows"
 else
     log "ERROR: Restore failed with code $RESTORE_RC"

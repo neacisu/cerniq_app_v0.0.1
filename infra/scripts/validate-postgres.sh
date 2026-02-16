@@ -10,7 +10,7 @@ set -euo pipefail
 
 # New infra: PostgreSQL is external on CT107; clients authenticate via PgBouncer
 # using OpenBao dynamic DB creds rendered into an env file (DATABASE_URL).
-ENV_FILE="${ENV_FILE:-/run/cerniq/runtime-secrets/api/api.env}"
+ENV_FILE="${ENV_FILE:-/opt/cerniq/runtime-secrets/api/api.env}"
 DOCKER_NET="${DOCKER_NET:-cerniq_backend}"
 
 RED='\033[0;31m'

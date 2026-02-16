@@ -17,8 +17,8 @@
 | Serviciu                | Imagine                                        | Port host        | Rol                                                        |
 | ----------------------- | ---------------------------------------------- | ---------------- | ---------------------------------------------------------- |
 | `pgbouncer`             | `edoburu/pgbouncer:latest`                     | (intern) `64033` | pooler catre CT107, auth_query (Postgres)                  |
-| `openbao-agent-api`     | `quay.io/openbao/openbao:2.5.0`                | -                | randeaza `/run/cerniq/runtime-secrets/api/api.env`         |
-| `openbao-agent-workers` | `quay.io/openbao/openbao:2.5.0`                | -                | randeaza `/run/cerniq/runtime-secrets/workers/workers.env` |
+| `openbao-agent-api`     | `quay.io/openbao/openbao:2.5.0`                | -                | randeaza `/opt/cerniq/runtime-secrets/api/api.env`         |
+| `openbao-agent-workers` | `quay.io/openbao/openbao:2.5.0`                | -                | randeaza `/opt/cerniq/runtime-secrets/workers/workers.env` |
 | `openbao-agent-infra`   | `quay.io/openbao/openbao:2.5.0`                | -                | randeaza config PgBouncer in tmpfs                         |
 | `vector`                | `timberio/vector:0.53.0-debian`                | -                | push logs in Loki (orchestrator)                           |
 | `otel-collector`        | `otel/opentelemetry-collector-contrib:0.145.0` | `64070/64071`    | OTLP endpoint local pt aplicatie                           |
@@ -31,7 +31,7 @@
 ## Notes (secrete / config)
 
 - Fara secrete statice in fisiere `.txt` pe CT-uri.
-- `openbao-agent-*` randeaza secretele in tmpfs (`/run/cerniq/runtime-secrets/...`).
+- `openbao-agent-*` randeaza secretele in tmpfs (`/opt/cerniq/runtime-secrets/...`).
 - Redis/BullMQ izolare: prefix `cerniq:` (vezi `REDIS_PREFIX` / `BULLMQ_PREFIX` randate in env).
 
 ## Comenzi utile

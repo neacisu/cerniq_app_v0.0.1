@@ -48,7 +48,7 @@ Fisiere:
 
 - agent configs: `infra/config/openbao/agent-*.hcl`
 - AppRole credentials: `/opt/cerniq/secrets/*_role_id` si `/opt/cerniq/secrets/*_secret_id`
-- output runtime secrets: `/run/cerniq/runtime-secrets/{api,workers,infra}/`
+- output runtime secrets: `/opt/cerniq/runtime-secrets/{api,workers,infra}/`
 
 Verificare:
 
@@ -57,9 +57,9 @@ cd /opt/cerniq
 docker compose ps
 docker inspect -f '{{.State.Health.Status}}' cerniq-openbao-agent-api cerniq-openbao-agent-workers cerniq-openbao-agent-infra
 
-ls -la /run/cerniq/runtime-secrets/api || true
-ls -la /run/cerniq/runtime-secrets/workers || true
-ls -la /run/cerniq/runtime-secrets/infra || true
+ls -la /opt/cerniq/runtime-secrets/api || true
+ls -la /opt/cerniq/runtime-secrets/workers || true
+ls -la /opt/cerniq/runtime-secrets/infra || true
 ```
 
 ## 5) Test rapid (fara expunere de secrete)

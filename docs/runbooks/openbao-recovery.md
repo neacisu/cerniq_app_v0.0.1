@@ -99,7 +99,7 @@ Pe CT109/CT110:
 
 ```bash
 docker inspect -f '{{.State.Health.Status}}' cerniq-openbao-agent-api cerniq-openbao-agent-workers cerniq-openbao-agent-infra
-test -f /run/cerniq/runtime-secrets/api/api.env || true
-test -f /run/cerniq/runtime-secrets/workers/workers.env || true
-test -f /run/cerniq/runtime-secrets/infra/pgbouncer.ini || true
+test -f /opt/cerniq/runtime-secrets/api/api.env || true
+test -f /opt/cerniq/runtime-secrets/workers/workers.env || true
+test -f /opt/cerniq/runtime-secrets/infra/pgbouncer.ini || true
 ```

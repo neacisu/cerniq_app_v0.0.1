@@ -55,11 +55,12 @@ services:
   # ==========================================================================
   openbao-agent-api:
     volumes:
-      - ../config/openbao/agent-api.hcl:/openbao/config/agent-api.hcl:ro
-      - ../config/openbao/templates:/openbao/templates:ro
+      # Server paths are relative to /opt/cerniq (where compose files are deployed).
+      - ./config/openbao/agent-api.hcl:/openbao/config/agent-api.hcl:ro
+      - ./config/openbao/templates:/openbao/templates:ro
       - ${CERNIQ_RENDERED_SECRETS_DIR:-/opt/cerniq/runtime-secrets}/api:/secrets
-      - ../../secrets/api_role_id:/openbao/config/role_id:ro
-      - ../../secrets/api_secret_id:/openbao/config/secret_id:ro
+      - ./secrets/api_role_id:/openbao/config/role_id:ro
+      - ./secrets/api_secret_id:/openbao/config/secret_id:ro
     logging:
       driver: "json-file"
       options:
@@ -71,36 +72,45 @@ services:
   # ==========================================================================
   openbao-agent-workers:
     volumes:
-      - ../config/openbao/agent-workers.hcl:/openbao/config/agent-workers.hcl:ro
-      - ../config/openbao/templates:/openbao/templates:ro
+      - ./config/openbao/agent-workers.hcl:/openbao/config/agent-workers.hcl:ro
+      - ./config/openbao/templates:/openbao/templates:ro
       - ${CERNIQ_RENDERED_SECRETS_DIR:-/opt/cerniq/runtime-secrets}/workers:/secrets
-      - ../../secrets/workers_role_id:/openbao/config/role_id:ro
-      - ../../secrets/workers_secret_id:/openbao/config/secret_id:ro
+      - ./secrets/workers_role_id:/openbao/config/role_id:ro
+      - ./secrets/workers_secret_id:/openbao/config/secret_id:ro
     logging:
       driver: "json-file"
       options:
         max-size: "20m"
         max-file: "3"
 
-  vector:
+  # ==========================================================================
+  # OpenBao Agent Infra - Path overrides for production (PgBouncer auth/config)
+  # ==========================================================================
+  openbao-agent-infra:
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      - ../config/vector/vector.toml:/etc/vector/vector.toml:ro
+      - ./config/openbao/agent-infra.hcl:/openbao/config/agent-infra.hcl:ro
+      - ./config/openbao/templates:/openbao/templates:ro
+      - ${CERNIQ_RENDERED_SECRETS_DIR:-/opt/cerniq/runtime-secrets}/infra:/secrets
+      - ./secrets/infra_role_id:/openbao/config/role_id:ro
+      - ./secrets/infra_secret_id:/openbao/config/secret_id:ro
     logging:
       driver: "json-file"
       options:
-        max-size: "50m"
+        max-size: "20m"
         max-file: "3"
 
-  otel-collector:
-    volumes:
-      - ../config/otel/otel-collector.yaml:/etc/otelcol-contrib/config.yaml:ro
+  # ==========================================================================
+  # PgBouncer Exporter - Production overrides
+  # ==========================================================================
+  pgbouncer-exporter:
     logging:
       driver: "json-file"
       options:
-        max-size: "50m"
+        max-size: "10m"
         max-file: "3"
+
+  # vector and otel-collector REMOVED — centralized on orchestrator
+  # See docker-compose.yml comment for rationale.
 
   cadvisor:
     logging:

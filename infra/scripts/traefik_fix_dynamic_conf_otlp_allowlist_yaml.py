@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 
-TARGET = Path("/opt/traefik/dynamic_conf.yml")
+TARGET = Path("/opt/traefik/dynamic/cerniq.yml")
 
 
 def sha256(p: Path) -> str:

@@ -16,7 +16,7 @@ def parse_env(path: Path) -> dict[str, str]:
 
 
 def main() -> int:
-    p = Path("/run/cerniq/runtime-secrets/api/api.env")
+    p = Path("/opt/cerniq/runtime-secrets/api/api.env")
     vals = parse_env(p)
     u = vals.get("POSTGRES_USER", "")
     print(f"has_database_url={bool(vals.get('DATABASE_URL'))}")

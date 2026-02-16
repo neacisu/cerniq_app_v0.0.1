@@ -3,13 +3,19 @@
 # Hourly Redis RDB snapshot backup
 # Reference: docs/infrastructure/backup-strategy.md §5.2
 # Task: F0.7.1.T002
+#
+# NOTE: PostgreSQL runs natively on CT107 (10.0.1.107:5432), NOT in a Docker container.
+# Redis runs on the orchestrator (10.0.0.2:6379), accessed via HAProxy VIP 10.0.1.10:6379.
 
 set -euo pipefail
 
 BACKUP_DIR="/var/backups/cerniq/redis/hourly"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 LOG_FILE="/var/log/cerniq/redis_backup.log"
-CONTAINER="cerniq-redis"
+REDIS_HOST="10.0.1.10"
+REDIS_PORT="6379"
+ORCHESTRATOR_HOST="10.0.0.2"
+REDIS_DATA_DIR="/var/lib/redis/data"
 OUTPUT_FILE="$BACKUP_DIR/dump_${TIMESTAMP}.rdb"
 
 # Hetzner Storage Box config
@@ -26,22 +32,22 @@ log() {
 
 log "Starting Redis hourly backup"
 
-# Check if Redis container is running
-if ! docker ps --format '{{.Names}}' | grep -q "^${CONTAINER}$"; then
-    log "WARNING: Container $CONTAINER not running, skipping backup"
+# Check if Redis is reachable via HAProxy VIP
+if ! redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" PING >/dev/null 2>&1; then
+    log "WARNING: Redis not reachable at ${REDIS_HOST}:${REDIS_PORT}, skipping backup"
     exit 0
 fi
 
 # Trigger BGSAVE and wait for completion
 log "Triggering BGSAVE..."
-docker exec "$CONTAINER" redis-cli BGSAVE >> "$LOG_FILE" 2>&1
+redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" BGSAVE >> "$LOG_FILE" 2>&1
 
 # Wait for BGSAVE to complete (max 60 seconds)
 WAIT_COUNT=0
 MAX_WAIT=60
 while [[ $WAIT_COUNT -lt $MAX_WAIT ]]; do
-    LASTSAVE=$(docker exec "$CONTAINER" redis-cli LASTSAVE 2>/dev/null | tr -d '\r')
-    BG_STATUS=$(docker exec "$CONTAINER" redis-cli INFO persistence 2>/dev/null | grep rdb_bgsave_in_progress | cut -d: -f2 | tr -d '\r')
+    LASTSAVE=$(redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" LASTSAVE 2>/dev/null | tr -d '\r')
+    BG_STATUS=$(redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" INFO persistence 2>/dev/null | grep rdb_bgsave_in_progress | cut -d: -f2 | tr -d '\r')
     
     if [[ "$BG_STATUS" == "0" ]]; then
         log "BGSAVE completed"
@@ -56,8 +62,8 @@ if [[ $WAIT_COUNT -ge $MAX_WAIT ]]; then
     log "WARNING: BGSAVE timeout, using existing dump"
 fi
 
-# Copy dump.rdb from container
-docker cp "${CONTAINER}:/data/dump.rdb" "$OUTPUT_FILE" 2>> "$LOG_FILE"
+# Copy dump.rdb from the orchestrator via SSH
+scp "root@${ORCHESTRATOR_HOST}:${REDIS_DATA_DIR}/dump.rdb" "$OUTPUT_FILE" 2>> "$LOG_FILE"
 
 if [[ -f "$OUTPUT_FILE" ]]; then
     FILESIZE=$(stat -c%s "$OUTPUT_FILE" 2>/dev/null || echo "0")
@@ -80,7 +86,7 @@ if [[ -f "$OUTPUT_FILE" ]]; then
         fi
     fi
 else
-    log "ERROR: Failed to copy dump.rdb"
+    log "ERROR: Failed to copy dump.rdb from orchestrator"
     exit 1
 fi
 

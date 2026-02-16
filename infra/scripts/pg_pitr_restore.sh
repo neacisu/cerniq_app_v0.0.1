@@ -3,11 +3,16 @@
 # PostgreSQL Point-In-Time Recovery (PITR) script
 # Reference: docs/runbooks/database-recovery.md
 # Task: F0.7.1.T004
+#
+# NOTE: PostgreSQL runs natively on CT107 (10.0.1.107:5432), NOT in a Docker container.
+# Redis runs on the orchestrator (10.0.0.2:6379), accessed via HAProxy VIP 10.0.1.10:6379.
 
 set -euo pipefail
 
 LOG_FILE="/var/log/cerniq/pg_pitr_restore.log"
-CONTAINER="cerniq-postgres"
+PG_HOST="10.0.1.107"
+PG_PORT="5432"
+PG_CT="root@${PG_HOST}"
 DB_USER="cerniq"
 DB_NAME="cerniq"
 
@@ -130,7 +135,7 @@ log "Using basebackup: $BASEBACKUP"
 if $DRY_RUN; then
     log "Would download: $BASEBACKUP"
     log "Would download WAL files from $REMOTE_WAL_DIR"
-    log "Would stop container $CONTAINER"
+    log "Would stop PostgreSQL service on CT107 ($PG_HOST)"
     log "Would restore to $TARGET_TIME"
     exit 0
 fi
@@ -144,9 +149,9 @@ log "Downloading WAL archive..."
 rsync -avz -e "ssh -p 23 -i $SSH_KEY" \
     "${STORAGE_BOX}:${REMOTE_WAL_DIR}/" "$WAL_RESTORE_DIR/"
 
-# Step 4: Stop PostgreSQL container
-log "Stopping PostgreSQL container..."
-docker stop "$CONTAINER" || true
+# Step 4: Stop PostgreSQL service on CT107
+log "Stopping PostgreSQL service on CT107 ($PG_HOST)..."
+ssh "$PG_CT" 'systemctl stop postgresql' || true
 
 # Step 5: Extract basebackup
 log "Extracting basebackup..."
@@ -166,16 +171,17 @@ recovery_target_time = '$TARGET_TIME'
 recovery_target_action = 'promote'
 EOF
 
-# Step 7: Set permissions
-chown -R 999:999 "$PGDATA_RESTORE"
+# Step 7: Set permissions (native postgres user, not Docker uid 999)
+chown -R postgres:postgres "$PGDATA_RESTORE"
 
 log "PITR preparation complete"
 log "Basebackup extracted to: $PGDATA_RESTORE"
 log "Recovery target: $TARGET_TIME"
 log ""
 log "NEXT STEPS (manual):"
-log "1. Backup current PGDATA if needed"
-log "2. Replace PGDATA with $PGDATA_RESTORE"
-log "3. Start PostgreSQL container"
-log "4. Monitor recovery in logs"
+log "1. Backup current PGDATA on CT107 ($PG_HOST) if needed"
+log "2. Copy $PGDATA_RESTORE to CT107 and replace PGDATA:"
+log "   scp -r $PGDATA_RESTORE/ ${PG_CT}:/var/lib/postgresql/16/main/"
+log "3. Start PostgreSQL on CT107: ssh ${PG_CT} 'systemctl start postgresql'"
+log "4. Monitor recovery: ssh ${PG_CT} 'tail -f /var/log/postgresql/postgresql-16-main.log'"
 log "5. Verify data after recovery completes"

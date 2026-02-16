@@ -38,7 +38,7 @@ Validări:
 
 - `docker ps | grep cerniq`
 - DB prin PgBouncer cu credidentiale dinamice randate de OpenBao agent:
-  - `. /run/cerniq/runtime-secrets/api/api.env && PGCONNECT_TIMEOUT=5 PGPASSWORD="$POSTGRES_PASSWORD" psql -h 172.29.20.11 -p 64033 -U "$POSTGRES_USER" -d cerniq_staging -Atqc 'SELECT 1'`
+  - `. /opt/cerniq/runtime-secrets/api/api.env && PGCONNECT_TIMEOUT=5 PGPASSWORD="$POSTGRES_PASSWORD" psql -h 172.29.20.11 -p 64033 -U "$POSTGRES_USER" -d cerniq_staging -Atqc 'SELECT 1'`
 - `docker exec cerniq-openbao-agent-api test -f /secrets/api.env`
 
 ## 4. Deploy producție
@@ -54,7 +54,7 @@ Validări:
 
 - `docker ps | grep cerniq`
 - DB prin PgBouncer cu credidentiale dinamice randate de OpenBao agent:
-  - `. /run/cerniq/runtime-secrets/api/api.env && PGCONNECT_TIMEOUT=5 PGPASSWORD="$POSTGRES_PASSWORD" psql -h 172.29.20.11 -p 64033 -U "$POSTGRES_USER" -d cerniq -Atqc 'SELECT 1'`
+  - `. /opt/cerniq/runtime-secrets/api/api.env && PGCONNECT_TIMEOUT=5 PGPASSWORD="$POSTGRES_PASSWORD" psql -h 172.29.20.11 -p 64033 -U "$POSTGRES_USER" -d cerniq -Atqc 'SELECT 1'`
 - `docker exec cerniq-openbao-agent-workers test -f /secrets/workers.env`
 
 ## 5. Observability

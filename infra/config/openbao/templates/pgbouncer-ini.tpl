@@ -43,6 +43,9 @@ log_connections = 1
 log_disconnections = 1
 verbose = 0
 
-# Admin users (inside PgBouncer)
+# Admin / stats users (inside PgBouncer)
 admin_users = postgres
+{{- with secret "secret/cerniq/infra/pgbouncer" }}
+stats_users = {{ .Data.auth_user }}
+{{- end }}
 

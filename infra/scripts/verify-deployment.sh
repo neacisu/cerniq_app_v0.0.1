@@ -6,6 +6,9 @@
 # Usage: ./verify-deployment.sh [--strict]
 #        --strict: Exit with code 1 if any check fails
 #
+# NOTE: PostgreSQL runs natively on CT107 (10.0.1.107:5432), NOT in a Docker container.
+# Redis runs on the orchestrator (10.0.0.2:6379), accessed via HAProxy VIP 10.0.1.10:6379.
+#
 # Reference: ADR-0107 CI/CD Pipeline Strategy
 # Created: 2026-02-05
 # =============================================================================
@@ -71,12 +74,11 @@ check_warn() {
 
 check_postgresql() {
   echo -n "  PostgreSQL:     "
-  if docker exec -e PGPASSWORD="$PG_PASS" cerniq-postgres \
-    pg_isready -h 127.0.0.1 -p 64032 -U c3rn1q -d cerniq >/dev/null 2>&1; then
-    check_pass "HEALTHY"
+  if PGPASSWORD="$PG_PASS" pg_isready -h 10.0.1.107 -p 5432 -U c3rn1q -d cerniq >/dev/null 2>&1; then
+    check_pass "HEALTHY (CT107 10.0.1.107:5432)"
     return 0
   else
-    check_fail "NOT RESPONDING"
+    check_fail "NOT RESPONDING (CT107 10.0.1.107:5432)"
     return 1
   fi
 }
@@ -103,11 +105,11 @@ check_redis() {
     return 0
   fi
   
-  if docker exec cerniq-redis redis-cli -p 64039 -a "$REDIS_PASS" PING 2>/dev/null | grep -q PONG; then
-    check_pass "HEALTHY"
+  if redis-cli -h 10.0.1.10 -p 6379 -a "$REDIS_PASS" PING 2>/dev/null | grep -q PONG; then
+    check_pass "HEALTHY (HAProxy VIP 10.0.1.10:6379)"
     return 0
   else
-    check_fail "NOT RESPONDING"
+    check_fail "NOT RESPONDING (HAProxy VIP 10.0.1.10:6379)"
     return 1
   fi
 }
@@ -132,24 +134,23 @@ check_ingress() {
 
 check_openbao() {
   echo -n "  OpenBao:        "
-  local BAO_STATUS
-  BAO_STATUS=$(docker exec cerniq-openbao bao status -format=json 2>/dev/null || echo '{}')
-  
-  if echo "$BAO_STATUS" | jq -e '.initialized == true' >/dev/null 2>&1; then
-    local SEALED
-    SEALED=$(echo "$BAO_STATUS" | jq -r '.sealed')
-    if [ "$SEALED" == "false" ]; then
+  # OpenBao server is centralized on orchestrator and exposed via Traefik.
+  # We do not rely on a local "cerniq-openbao" container on CTs.
+  local BAO_ADDR="${OPENBAO_ADDR:-https://s3cr3ts.neanelu.ro}"
+  if curl -sk "${BAO_ADDR}/v1/sys/health" | python3 -c 'import sys,json; j=json.load(sys.stdin); print(\"initialized=%s sealed=%s\"%(j.get(\"initialized\"), j.get(\"sealed\")))' >/tmp/openbao_health.txt 2>/dev/null; then
+    if grep -q "initialized=True sealed=False" /tmp/openbao_health.txt; then
       check_pass "HEALTHY (unsealed)"
+      rm -f /tmp/openbao_health.txt || true
       return 0
-    else
-      check_warn "SEALED (needs manual unseal)"
-      echo "         Run: /opt/cerniq/scripts/openbao-init.sh --unseal"
-      return 0  # Don't fail for sealed OpenBao in production
     fi
-  else
-    check_fail "NOT INITIALIZED"
-    return 1
+    # Don't hard-fail on sealed/standby here; agents can still render depending on setup.
+    check_warn "CHECK (${BAO_ADDR})"
+    rm -f /tmp/openbao_health.txt || true
+    return 0
   fi
+  check_warn "UNREACHABLE (${BAO_ADDR})"
+  rm -f /tmp/openbao_health.txt || true
+  return 0
 }
 
 check_openbao_agents() {

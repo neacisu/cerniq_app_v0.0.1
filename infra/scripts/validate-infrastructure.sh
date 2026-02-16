@@ -6,6 +6,9 @@
 # Run: ./validate-infrastructure.sh [staging|production]
 # CI: Called automatically after deployment
 #
+# NOTE: PostgreSQL runs natively on CT107 (10.0.1.107:5432), NOT in a Docker container.
+# Redis runs on the orchestrator (10.0.0.2:6379), accessed via HAProxy VIP 10.0.1.10:6379.
+#
 # Exit codes:
 #   0 - All validations passed
 #   1 - Validation failed
@@ -352,17 +355,18 @@ fi
 # =============================================================================
 # F0.3.1: Redis 8.4.0 + BullMQ Configuration
 # =============================================================================
+# Redis runs on the orchestrator (10.0.0.2:6379), accessed via HAProxy VIP.
 # Reference: ADR-0006, etapa0-port-matrix.md
 # =============================================================================
 
 echo ""
 echo "=============================================="
-echo "F0.3.1: Redis 8.4.0 + BullMQ Setup"
+echo "F0.3.1: Redis 8.4.0 + BullMQ Setup (HAProxy VIP)"
 echo "=============================================="
 
-# Redis configuration (per ADR-0006, etapa0-port-matrix.md)
-REDIS_PORT="64039"
-REDIS_CONTAINER="cerniq-redis"
+# Redis configuration — accessed via HAProxy VIP (not a local Docker container)
+REDIS_VIP_HOST="10.0.1.10"
+REDIS_VIP_PORT="6379"
 REDIS_PASS_FILE="/opt/cerniq/secrets/redis_password.txt"
 
 # Get Redis password for auth
@@ -374,27 +378,17 @@ else
     log_skip "Redis password file not found at $REDIS_PASS_FILE"
 fi
 
-# Test: Redis container exists and is running
-log_test "cerniq-redis container is running"
-REDIS_RUNNING=$(docker inspect -f '{{.State.Running}}' $REDIS_CONTAINER 2>/dev/null || echo "false")
-if [[ "$REDIS_RUNNING" == "true" ]]; then
-    log_pass "cerniq-redis is running"
+# Test: Redis is reachable via HAProxy VIP
+log_test "Redis reachable via HAProxy VIP (${REDIS_VIP_HOST}:${REDIS_VIP_PORT})"
+if timeout 5 bash -lc "cat < /dev/null > /dev/tcp/${REDIS_VIP_HOST}/${REDIS_VIP_PORT}" 2>/dev/null; then
+    log_pass "Redis reachable at ${REDIS_VIP_HOST}:${REDIS_VIP_PORT}"
 else
-    log_fail "cerniq-redis is not running"
-fi
-
-# Test: Redis is healthy
-log_test "cerniq-redis is healthy"
-REDIS_HEALTH=$(docker inspect -f '{{.State.Health.Status}}' $REDIS_CONTAINER 2>/dev/null || echo "unhealthy")
-if [[ "$REDIS_HEALTH" == "healthy" ]]; then
-    log_pass "cerniq-redis is healthy"
-else
-    log_fail "cerniq-redis is not healthy: $REDIS_HEALTH"
+    log_fail "Cannot reach Redis at ${REDIS_VIP_HOST}:${REDIS_VIP_PORT}"
 fi
 
 # Test: Redis responds to PING
-log_test "Redis responds to PING on port $REDIS_PORT"
-REDIS_PONG=$(docker exec $REDIS_CONTAINER redis-cli -p $REDIS_PORT $REDIS_AUTH ping 2>/dev/null || echo "")
+log_test "Redis responds to PING on ${REDIS_VIP_HOST}:${REDIS_VIP_PORT}"
+REDIS_PONG=$(redis-cli -h "$REDIS_VIP_HOST" -p "$REDIS_VIP_PORT" $REDIS_AUTH ping 2>/dev/null || echo "")
 if [[ "$REDIS_PONG" == "PONG" ]]; then
     log_pass "Redis responds: PONG"
 else
@@ -403,7 +397,7 @@ fi
 
 # Test: Redis version is 8.x
 log_test "Redis version is 8.x"
-REDIS_VERSION=$(docker exec $REDIS_CONTAINER redis-cli -p $REDIS_PORT $REDIS_AUTH INFO server 2>/dev/null | grep redis_version | cut -d: -f2 | tr -d '\r' || echo "0")
+REDIS_VERSION=$(redis-cli -h "$REDIS_VIP_HOST" -p "$REDIS_VIP_PORT" $REDIS_AUTH INFO server 2>/dev/null | grep redis_version | cut -d: -f2 | tr -d '\r' || echo "0")
 if [[ "$REDIS_VERSION" == 8.* ]]; then
     log_pass "Redis version: $REDIS_VERSION"
 else
@@ -412,7 +406,7 @@ fi
 
 # Test: maxmemory-policy is noeviction (CRITICAL for BullMQ)
 log_test "maxmemory-policy is noeviction (BullMQ CRITICAL)"
-REDIS_POLICY=$(docker exec $REDIS_CONTAINER redis-cli -p $REDIS_PORT $REDIS_AUTH CONFIG GET maxmemory-policy 2>/dev/null | tail -1 || echo "")
+REDIS_POLICY=$(redis-cli -h "$REDIS_VIP_HOST" -p "$REDIS_VIP_PORT" $REDIS_AUTH CONFIG GET maxmemory-policy 2>/dev/null | tail -1 || echo "")
 if [[ "$REDIS_POLICY" == "noeviction" ]]; then
     log_pass "maxmemory-policy: noeviction"
 else
@@ -421,7 +415,7 @@ fi
 
 # Test: maxmemory is at least 8GB
 log_test "maxmemory >= 8GB (per ADR-0006)"
-REDIS_MAXMEM=$(docker exec $REDIS_CONTAINER redis-cli -p $REDIS_PORT $REDIS_AUTH CONFIG GET maxmemory 2>/dev/null | tail -1 || echo "0")
+REDIS_MAXMEM=$(redis-cli -h "$REDIS_VIP_HOST" -p "$REDIS_VIP_PORT" $REDIS_AUTH CONFIG GET maxmemory 2>/dev/null | tail -1 || echo "0")
 # 8GB = 8589934592 bytes
 if [[ "$REDIS_MAXMEM" -ge 8000000000 ]]; then
     MAXMEM_GB=$((REDIS_MAXMEM / 1073741824))
@@ -432,7 +426,7 @@ fi
 
 # Test: appendonly is enabled
 log_test "appendonly is enabled (persistence)"
-REDIS_APPENDONLY=$(docker exec $REDIS_CONTAINER redis-cli -p $REDIS_PORT $REDIS_AUTH CONFIG GET appendonly 2>/dev/null | tail -1 || echo "")
+REDIS_APPENDONLY=$(redis-cli -h "$REDIS_VIP_HOST" -p "$REDIS_VIP_PORT" $REDIS_AUTH CONFIG GET appendonly 2>/dev/null | tail -1 || echo "")
 if [[ "$REDIS_APPENDONLY" == "yes" ]]; then
     log_pass "appendonly: yes"
 else
@@ -441,34 +435,16 @@ fi
 
 # Test: notify-keyspace-events includes E (for BullMQ delayed jobs)
 log_test "notify-keyspace-events configured for BullMQ"
-REDIS_EVENTS=$(docker exec $REDIS_CONTAINER redis-cli -p $REDIS_PORT $REDIS_AUTH CONFIG GET notify-keyspace-events 2>/dev/null | tail -1 || echo "")
+REDIS_EVENTS=$(redis-cli -h "$REDIS_VIP_HOST" -p "$REDIS_VIP_PORT" $REDIS_AUTH CONFIG GET notify-keyspace-events 2>/dev/null | tail -1 || echo "")
 if [[ "$REDIS_EVENTS" == *"E"* ]]; then
     log_pass "notify-keyspace-events: $REDIS_EVENTS"
 else
     log_fail "notify-keyspace-events: $REDIS_EVENTS (must include 'E' for BullMQ)"
 fi
 
-# Test: Redis on cerniq_data network
-log_test "Redis on cerniq_data network (172.29.30.20)"
-REDIS_DATA_IP=$(docker inspect -f '{{(index .NetworkSettings.Networks "cerniq_data").IPAddress}}' $REDIS_CONTAINER 2>/dev/null || echo "")
-if [[ "$REDIS_DATA_IP" == "172.29.30.20" ]]; then
-    log_pass "Redis on cerniq_data: $REDIS_DATA_IP"
-else
-    log_fail "Redis cerniq_data IP: $REDIS_DATA_IP (expected 172.29.30.20)"
-fi
-
-# Test: Redis on cerniq_backend network
-log_test "Redis on cerniq_backend network (172.29.20.20)"
-REDIS_BACKEND_IP=$(docker inspect -f '{{(index .NetworkSettings.Networks "cerniq_backend").IPAddress}}' $REDIS_CONTAINER 2>/dev/null || echo "")
-if [[ "$REDIS_BACKEND_IP" == "172.29.20.20" ]]; then
-    log_pass "Redis on cerniq_backend: $REDIS_BACKEND_IP"
-else
-    log_fail "Redis cerniq_backend IP: $REDIS_BACKEND_IP (expected 172.29.20.20)"
-fi
-
 # Test: Redis AUTH is required
 log_test "Redis AUTH is enabled (security)"
-REDIS_NOAUTH=$(docker exec $REDIS_CONTAINER redis-cli -p $REDIS_PORT ping 2>&1 || echo "")
+REDIS_NOAUTH=$(redis-cli -h "$REDIS_VIP_HOST" -p "$REDIS_VIP_PORT" ping 2>&1 || echo "")
 if [[ "$REDIS_NOAUTH" == *"NOAUTH"* ]]; then
     log_pass "Redis requires authentication"
 else

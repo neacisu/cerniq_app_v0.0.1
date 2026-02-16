@@ -11,7 +11,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RESTORE_BASE="/var/backups/cerniq/restore"
 
 # New infra defaults (OpenBao-rendered env contains DATABASE_URL/REDIS_URL)
-PG_ENV_FILE="${PG_ENV_FILE:-/run/cerniq/runtime-secrets/api/api.env}"
+PG_ENV_FILE="${PG_ENV_FILE:-/opt/cerniq/runtime-secrets/api/api.env}"
 DOCKER_NET="${DOCKER_NET:-cerniq_backend}"
 
 # Hetzner Storage Box config
