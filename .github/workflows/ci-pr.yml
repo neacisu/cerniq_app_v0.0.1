@@ -129,6 +129,22 @@ jobs:
             sudo apt-get install -y jq
           fi
 
+      - name: 🔍 Debug OpenBao connectivity
+        env:
+          OPENBAO_ADDR: ${{ secrets.OPENBAO_ADDR }}
+        run: |
+          set -x
+          echo "=== /etc/hosts ==="
+          cat /etc/hosts
+          echo "=== DNS resolution ==="
+          getent hosts s3cr3ts.neanelu.ro || echo "getent failed"
+          echo "=== curl verbose health check ==="
+          curl -svk --max-time 10 "${OPENBAO_ADDR}/v1/sys/health" 2>&1 || true
+          echo "=== curl without -k ==="
+          curl -sv --max-time 10 "${OPENBAO_ADDR}/v1/sys/health" 2>&1 || true
+          echo "=== OPENBAO_ADDR length ==="
+          echo "${#OPENBAO_ADDR}"
+
       - name: 🔐 Fetch CI secrets from OpenBao
         env:
           OPENBAO_ADDR: ${{ secrets.OPENBAO_ADDR }}
@@ -334,7 +350,9 @@ jobs:
         run: |
           set -euo pipefail
           if ls infra/scripts/*.sh >/dev/null 2>&1; then
-            docker run --rm -v "$PWD:/mnt" koalaman/shellcheck:stable -x /mnt/infra/scripts/*.sh
+            # Expand glob on host, then prefix /mnt/ for container paths
+            FILES=$(cd infra/scripts && ls *.sh | sed 's|^|/mnt/infra/scripts/|')
+            docker run --rm -v "$PWD:/mnt" koalaman/shellcheck:stable -x $FILES
           else
             echo "No infra/scripts/*.sh found, skipping"
           fi
