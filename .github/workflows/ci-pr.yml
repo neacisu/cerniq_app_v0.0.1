@@ -565,8 +565,18 @@ jobs:
     name: 🚀 Trigger CD
     runs-on: self-hosted
     needs: ci-status
-    # Only on push (not PRs) — PRs are for review, pushes trigger deployment
-    if: github.event_name == 'push' && needs.ci-status.result == 'success'
+    permissions:
+      actions: write
+      contents: read
+    # always() is REQUIRED here: ci-status uses if:always() and depends on
+    # PR-only jobs (shellcheck, security, build-verify) that are "skipped" on
+    # push events.  Without always(), GitHub's transitive dependency resolution
+    # auto-skips this job even though ci-status itself succeeded.
+    # The explicit result check ensures CD only fires when CI actually passed.
+    if: >-
+      always() &&
+      github.event_name == 'push' &&
+      needs.ci-status.result == 'success'
 
     steps:
       - name: 🚀 Trigger CD Pipeline
