@@ -104,7 +104,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "python3 -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:64000/health', timeout=1).read()\"",
+          'python3 -c "import urllib.request; urllib.request.urlopen(''http://127.0.0.1:64000/health'', timeout=1).read()"',
         ]
       interval: 10s
       timeout: 3s
@@ -135,7 +135,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "python3 -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:64010/health', timeout=1).read()\"",
+          'python3 -c "import urllib.request; urllib.request.urlopen(''http://127.0.0.1:64010/health'', timeout=1).read()"',
         ]
       interval: 10s
       timeout: 3s
@@ -166,7 +166,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "python3 -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:64012/health', timeout=1).read()\"",
+          'python3 -c "import urllib.request; urllib.request.urlopen(''http://127.0.0.1:64012/health'', timeout=1).read()"',
         ]
       interval: 10s
       timeout: 3s

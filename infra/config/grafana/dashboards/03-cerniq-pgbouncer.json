@@ -85,9 +85,7 @@
           "color": { "mode": "thresholds" },
           "thresholds": {
             "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null }
-            ]
+            "steps": [{ "color": "green", "value": null }]
           },
           "mappings": []
         },
@@ -127,9 +125,7 @@
           "color": { "mode": "thresholds" },
           "thresholds": {
             "mode": "absolute",
-            "steps": [
-              { "color": "blue", "value": null }
-            ]
+            "steps": [{ "color": "blue", "value": null }]
           },
           "mappings": []
         },
@@ -331,9 +327,7 @@
           },
           "thresholds": {
             "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null }
-            ]
+            "steps": [{ "color": "green", "value": null }]
           },
           "mappings": []
         },
@@ -341,7 +335,11 @@
       },
       "options": {
         "tooltip": { "mode": "multi", "sort": "desc" },
-        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
       },
       "targets": [
         {
@@ -397,7 +395,11 @@
       },
       "options": {
         "tooltip": { "mode": "multi", "sort": "desc" },
-        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
       },
       "targets": [
         {
@@ -442,9 +444,7 @@
           },
           "thresholds": {
             "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null }
-            ]
+            "steps": [{ "color": "green", "value": null }]
           },
           "mappings": []
         },
@@ -452,7 +452,11 @@
       },
       "options": {
         "tooltip": { "mode": "multi", "sort": "desc" },
-        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
       },
       "targets": [
         {
@@ -497,9 +501,7 @@
           },
           "thresholds": {
             "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null }
-            ]
+            "steps": [{ "color": "green", "value": null }]
           },
           "mappings": []
         },
@@ -507,7 +509,11 @@
       },
       "options": {
         "tooltip": { "mode": "multi", "sort": "desc" },
-        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
       },
       "targets": [
         {
@@ -574,7 +580,11 @@
       },
       "options": {
         "tooltip": { "mode": "multi", "sort": "desc" },
-        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
       },
       "targets": [
         {
@@ -675,9 +685,7 @@
           },
           "thresholds": {
             "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null }
-            ]
+            "steps": [{ "color": "green", "value": null }]
           },
           "mappings": []
         },
@@ -685,7 +693,11 @@
       },
       "options": {
         "tooltip": { "mode": "multi", "sort": "desc" },
-        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
       },
       "targets": [
         {
@@ -731,9 +743,7 @@
           },
           "thresholds": {
             "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null }
-            ]
+            "steps": [{ "color": "green", "value": null }]
           },
           "mappings": []
         },
@@ -741,7 +751,11 @@
       },
       "options": {
         "tooltip": { "mode": "multi", "sort": "desc" },
-        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
       },
       "targets": [
         {
@@ -796,9 +810,7 @@
           },
           "thresholds": {
             "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null }
-            ]
+            "steps": [{ "color": "green", "value": null }]
           },
           "mappings": []
         },
@@ -806,7 +818,11 @@
       },
       "options": {
         "tooltip": { "mode": "multi", "sort": "desc" },
-        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
       },
       "targets": [
         {
@@ -864,7 +880,11 @@
       },
       "options": {
         "tooltip": { "mode": "multi", "sort": "desc" },
-        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
       },
       "targets": [
         {
@@ -918,9 +938,7 @@
           },
           "thresholds": {
             "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null }
-            ]
+            "steps": [{ "color": "green", "value": null }]
           },
           "mappings": []
         },
@@ -928,7 +946,11 @@
       },
       "options": {
         "tooltip": { "mode": "multi", "sort": "desc" },
-        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
       },
       "targets": [
         {
@@ -982,9 +1004,7 @@
           },
           "thresholds": {
             "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null }
-            ]
+            "steps": [{ "color": "green", "value": null }]
           },
           "mappings": []
         },
@@ -992,21 +1012,34 @@
           {
             "matcher": { "id": "byRegexp", "options": "^prod:" },
             "properties": [
-              { "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }
+              {
+                "id": "color",
+                "value": { "fixedColor": "red", "mode": "fixed" }
+              }
             ]
           },
           {
             "matcher": { "id": "byRegexp", "options": "^staging:" },
             "properties": [
-              { "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } },
-              { "id": "custom.lineStyle", "value": { "fill": "dash", "dash": [10, 10] } }
+              {
+                "id": "color",
+                "value": { "fixedColor": "blue", "mode": "fixed" }
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": { "fill": "dash", "dash": [10, 10] }
+              }
             ]
           }
         ]
       },
       "options": {
         "tooltip": { "mode": "multi", "sort": "desc" },
-        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
       },
       "targets": [
         {
@@ -1059,9 +1092,7 @@
           },
           "thresholds": {
             "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null }
-            ]
+            "steps": [{ "color": "green", "value": null }]
           },
           "mappings": []
         },
@@ -1069,21 +1100,34 @@
           {
             "matcher": { "id": "byRegexp", "options": "^prod:" },
             "properties": [
-              { "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }
+              {
+                "id": "color",
+                "value": { "fixedColor": "red", "mode": "fixed" }
+              }
             ]
           },
           {
             "matcher": { "id": "byRegexp", "options": "^staging:" },
             "properties": [
-              { "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } },
-              { "id": "custom.lineStyle", "value": { "fill": "dash", "dash": [10, 10] } }
+              {
+                "id": "color",
+                "value": { "fixedColor": "blue", "mode": "fixed" }
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": { "fill": "dash", "dash": [10, 10] }
+              }
             ]
           }
         ]
       },
       "options": {
         "tooltip": { "mode": "multi", "sort": "desc" },
-        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
       },
       "targets": [
         {

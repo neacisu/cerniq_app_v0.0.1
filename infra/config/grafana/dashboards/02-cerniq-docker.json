@@ -2,11 +2,7 @@
   "uid": "cerniq-docker",
   "title": "Cerniq - Docker Containers (cAdvisor)",
   "timezone": "utc",
-  "tags": [
-    "cerniq",
-    "docker",
-    "cadvisor"
-  ],
+  "tags": ["cerniq", "docker", "cadvisor"],
   "schemaVersion": 39,
   "version": 1,
   "refresh": "30s",
@@ -19,12 +15,8 @@
       {
         "current": {
           "selected": true,
-          "text": [
-            "All"
-          ],
-          "value": [
-            "\\$__all"
-          ]
+          "text": ["All"],
+          "value": ["\\$__all"]
         },
         "name": "environment",
         "options": [

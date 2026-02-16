@@ -1117,8 +1117,8 @@ Acest lucru elimina erorile TLS pentru subdomenii level-2 (`api.staging.cerniq.a
 Motiv: nu exista inca stack-ul real al aplicatiei, dar trebuie validate rutarea si porturile standardizate.
 
 - Repo: `infra/docker/docker-compose.yml` defineste 3 servicii placeholder:
-  - `placeholder-web`  -> `64000`
-  - `placeholder-api`  -> `64010`
+  - `placeholder-web` -> `64000`
+  - `placeholder-api` -> `64010`
   - `placeholder-admin` -> `64012`
   - endpoint comun: `GET /health` -> HTTP 200 JSON
 - Deploy pe CT109 + CT110 (in `/opt/cerniq/`) ca servicii:
@@ -1227,13 +1227,13 @@ Backupuri create INAINTE de stergere:
 
 Containere oprite si sterse:
 
-| Container | Status pre-cleanup | Motiv eliminare |
-|-----------|-------------------|-----------------|
-| `cerniq-pgbouncer` | Up 10 days | PgBouncer pe CT109/CT110 |
-| `cerniq-postgres` | Up 10 days | PostgreSQL pe CT107 |
-| `cerniq-redis` | Up 10 days | Redis shared pe orchestrator |
-| `cerniq-traefik` | ABSENT | Eliminat anterior |
-| `cerniq-openbao*` | ABSENT | Decommissioned anterior |
+| Container          | Status pre-cleanup | Motiv eliminare              |
+| ------------------ | ------------------ | ---------------------------- |
+| `cerniq-pgbouncer` | Up 10 days         | PgBouncer pe CT109/CT110     |
+| `cerniq-postgres`  | Up 10 days         | PostgreSQL pe CT107          |
+| `cerniq-redis`     | Up 10 days         | Redis shared pe orchestrator |
+| `cerniq-traefik`   | ABSENT             | Eliminat anterior            |
+| `cerniq-openbao*`  | ABSENT             | Decommissioned anterior      |
 
 Volumes sterse (orphane):
 
@@ -1256,15 +1256,15 @@ Records sterse (legacy, pointau la server vechi 95.216.225.145):
 
 Records ramase (7 records, toate → 77.42.76.185):
 
-| Type | Name | Content |
-|------|------|---------|
-| A | cerniq.app | 77.42.76.185 |
-| A | api.cerniq.app | 77.42.76.185 |
-| A | admin.cerniq.app | 77.42.76.185 |
-| A | staging.cerniq.app | 77.42.76.185 |
-| A | api.staging.cerniq.app | 77.42.76.185 |
-| A | admin.staging.cerniq.app | 77.42.76.185 |
-| CNAME | www.cerniq.app | cerniq.app |
+| Type  | Name                     | Content      |
+| ----- | ------------------------ | ------------ |
+| A     | cerniq.app               | 77.42.76.185 |
+| A     | api.cerniq.app           | 77.42.76.185 |
+| A     | admin.cerniq.app         | 77.42.76.185 |
+| A     | staging.cerniq.app       | 77.42.76.185 |
+| A     | api.staging.cerniq.app   | 77.42.76.185 |
+| A     | admin.staging.cerniq.app | 77.42.76.185 |
+| CNAME | www.cerniq.app           | cerniq.app   |
 
 #### Audit critic si observability centralizata (executat 2026-02-16)
 
@@ -1277,7 +1277,7 @@ Scop: auditare reala a infrastructurii versus plan, eliminarea observability loc
 3. **TLS** — Certificat valid cu SANs: `*.cerniq.app`, `*.staging.cerniq.app`, `cerniq.app`.
 4. **Rute** — Toate 200: cerniq.app, api.cerniq.app, admin.cerniq.app, staging.cerniq.app, api.staging.cerniq.app, admin.staging.cerniq.app.
 5. **Legacy containers pe hz.164** — 3 inca ruleaza: `cerniq-postgres`, `cerniq-redis`, `cerniq-pgbouncer` (Up 10 days). `cerniq-traefik`, `cerniq-openbao*` — ABSENT (deja eliminate).
-6. **Cloudflare DNS** — 5 records legacy inca prezente: monitoring/signoz/traefik.cerniq.app (-> 95.216.225.145) + 2 _acme-challenge TXT.
+6. **Cloudflare DNS** — 5 records legacy inca prezente: monitoring/signoz/traefik.cerniq.app (-> 95.216.225.145) + 2 \_acme-challenge TXT.
 7. **`ipWhiteList` deprecated** — Traefik v3 foloseste `ipAllowList`. Fix aplicat in cerniq.yml.
 8. **OTLP source IP** — CTs ies prin NAT cu IP `95.216.68.247` (nu `10.0.1.109`), de aceea OTLP allowlist refuza. Ruta prin VIP (HAProxy `10.0.1.10`) functioneaza (`--resolve` flag).
 9. **Vector pe staging** — crasha cu `error=Is a directory (os error 21)` — mount-ul config era catre un director inexistent (created ca directory placeholder de Docker).
@@ -1294,18 +1294,18 @@ Scop: auditare reala a infrastructurii versus plan, eliminarea observability loc
 
 **Arhitectura observability finala:**
 
-| Component | Locatie | Functie |
-|-----------|---------|---------|
-| Vector | orchestrator | Colecteaza Docker logs local → Loki |
-| OTEL Collector | orchestrator | Primeste OTLP traces/metrics de la apps → Tempo |
-| Prometheus | orchestrator | Scrapes node-exporter + cAdvisor + pgbouncer-exporter + postgres-exporter de pe CTs |
-| Grafana | orchestrator | Dashboards (4 Cerniq + 3 Infrastructure) |
-| Loki | orchestrator | Log aggregation → StorageBox |
-| Tempo | orchestrator | Distributed tracing → StorageBox |
-| cAdvisor | CT109/CT110 | Container metrics (local, scraped remote) |
-| node-exporter | CT107/CT109/CT110 | Host metrics (local, scraped remote) |
-| pgbouncer-exporter | CT109/CT110 | PgBouncer pool metrics (port 64095, scraped via HAProxy 29095/19095) |
-| postgres-exporter | CT107 | PostgreSQL metrics (port 9187, scraped direct) |
+| Component          | Locatie           | Functie                                                                             |
+| ------------------ | ----------------- | ----------------------------------------------------------------------------------- |
+| Vector             | orchestrator      | Colecteaza Docker logs local → Loki                                                 |
+| OTEL Collector     | orchestrator      | Primeste OTLP traces/metrics de la apps → Tempo                                     |
+| Prometheus         | orchestrator      | Scrapes node-exporter + cAdvisor + pgbouncer-exporter + postgres-exporter de pe CTs |
+| Grafana            | orchestrator      | Dashboards (4 Cerniq + 3 Infrastructure)                                            |
+| Loki               | orchestrator      | Log aggregation → StorageBox                                                        |
+| Tempo              | orchestrator      | Distributed tracing → StorageBox                                                    |
+| cAdvisor           | CT109/CT110       | Container metrics (local, scraped remote)                                           |
+| node-exporter      | CT107/CT109/CT110 | Host metrics (local, scraped remote)                                                |
+| pgbouncer-exporter | CT109/CT110       | PgBouncer pool metrics (port 64095, scraped via HAProxy 29095/19095)                |
+| postgres-exporter  | CT107             | PostgreSQL metrics (port 9187, scraped direct)                                      |
 
 **Container logs de pe CTs:**
 
@@ -1352,12 +1352,12 @@ Scop: observabilitate totala pe PgBouncer (ambele medii), PostgreSQL (CT107), si
 
 **Grafana dashboards (folder "cerniq"):**
 
-| Dashboard | UID | Panouri | Descriere |
-|-----------|-----|---------|-----------|
-| Cerniq - Environments Overview | `cerniq-infra-overview` | 27 | Health, CPU, RAM, Disk, Containers, DB size — staging vs production side-by-side |
-| Cerniq - Docker Containers | `cerniq-docker` | 2+ | CPU/Memory per container cu filtru `$environment` |
-| Cerniq - PgBouncer Performance | `cerniq-pgbouncer` | 24 | Pools, connections, wait time, traffic bytes, QPS, TPS, comparatie prod/staging |
-| Cerniq - PostgreSQL Database | `cerniq-postgresql` | 28 | DB size, active connections, cache hit ratio, transactions, row ops, locks, bgwriter, WAL, temp files — filtru `$database` |
+| Dashboard                      | UID                     | Panouri | Descriere                                                                                                                  |
+| ------------------------------ | ----------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Cerniq - Environments Overview | `cerniq-infra-overview` | 27      | Health, CPU, RAM, Disk, Containers, DB size — staging vs production side-by-side                                           |
+| Cerniq - Docker Containers     | `cerniq-docker`         | 2+      | CPU/Memory per container cu filtru `$environment`                                                                          |
+| Cerniq - PgBouncer Performance | `cerniq-pgbouncer`      | 24      | Pools, connections, wait time, traffic bytes, QPS, TPS, comparatie prod/staging                                            |
+| Cerniq - PostgreSQL Database   | `cerniq-postgresql`     | 28      | DB size, active connections, cache hit ratio, transactions, row ops, locks, bgwriter, WAL, temp files — filtru `$database` |
 
 Fisierele JSON sunt versionizate in `infra/config/grafana/dashboards/`.
 
@@ -1376,33 +1376,34 @@ Scop: eliminarea tuturor referintelor la containere legacy `cerniq-postgres` si 
 
 **Teste E2E corectate:**
 
-| Fisier | Schimbare |
-|--------|-----------|
-| `e0-s4-pr01-backup-dr.test.ts` | `docker exec cerniq-postgres psql` → `ssh 10.0.1.107 su postgres psql` |
-| `e0-s4-pr02-security-openbao.test.ts` | `docker inspect cerniq-redis` → `redis-cli -h 10.0.1.10 -p 6379 ping` |
-| `e0-s3-pr01-redis-bullmq.test.ts` | Deja aliniat — nicio schimbare necesara |
-| `e0-s2-pr02-postgresql-setup.test.ts` | Deja aliniat — nicio schimbare necesara |
+| Fisier                                | Schimbare                                                              |
+| ------------------------------------- | ---------------------------------------------------------------------- |
+| `e0-s4-pr01-backup-dr.test.ts`        | `docker exec cerniq-postgres psql` → `ssh 10.0.1.107 su postgres psql` |
+| `e0-s4-pr02-security-openbao.test.ts` | `docker inspect cerniq-redis` → `redis-cli -h 10.0.1.10 -p 6379 ping`  |
+| `e0-s3-pr01-redis-bullmq.test.ts`     | Deja aliniat — nicio schimbare necesara                                |
+| `e0-s2-pr02-postgresql-setup.test.ts` | Deja aliniat — nicio schimbare necesara                                |
 
 **Scripturi operationale corectate (10 fisiere):**
 
-| Script | Schimbare |
-|--------|-----------|
-| `verify-deployment.sh` | `docker exec cerniq-postgres pg_isready` → `pg_isready -h 10.0.1.107`; Redis → `redis-cli -h 10.0.1.10` |
-| `openbao-setup-engines.sh` | Header adaugat (folosea deja env vars) |
-| `openbao-setup-database.sh` | Header adaugat (folosea deja `PG_HOST=10.0.1.107`) |
-| `pg_pitr_restore.sh` | `docker stop cerniq-postgres` → `ssh CT107 systemctl stop postgresql` |
-| `restore_table.sh` | `docker exec` → `psql/pg_dump/pg_restore -h 10.0.1.107` |
-| `validate-infrastructure.sh` | Rescris complet sectiunea Redis → HAProxy VIP |
-| `redis_backup_aof.sh` | `docker exec` → `redis-cli -h 10.0.1.10`; `docker cp` → `scp` |
-| `redis_backup_hourly.sh` | Idem |
-| `redis_restore.sh` | Idem + `docker stop/start` → SSH orchestrator |
-| `check-redis-bullmq.sh` | `docker exec` → `redis-cli -h 10.0.1.10` |
+| Script                       | Schimbare                                                                                               |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `verify-deployment.sh`       | `docker exec cerniq-postgres pg_isready` → `pg_isready -h 10.0.1.107`; Redis → `redis-cli -h 10.0.1.10` |
+| `openbao-setup-engines.sh`   | Header adaugat (folosea deja env vars)                                                                  |
+| `openbao-setup-database.sh`  | Header adaugat (folosea deja `PG_HOST=10.0.1.107`)                                                      |
+| `pg_pitr_restore.sh`         | `docker stop cerniq-postgres` → `ssh CT107 systemctl stop postgresql`                                   |
+| `restore_table.sh`           | `docker exec` → `psql/pg_dump/pg_restore -h 10.0.1.107`                                                 |
+| `validate-infrastructure.sh` | Rescris complet sectiunea Redis → HAProxy VIP                                                           |
+| `redis_backup_aof.sh`        | `docker exec` → `redis-cli -h 10.0.1.10`; `docker cp` → `scp`                                           |
+| `redis_backup_hourly.sh`     | Idem                                                                                                    |
+| `redis_restore.sh`           | Idem + `docker stop/start` → SSH orchestrator                                                           |
+| `check-redis-bullmq.sh`      | `docker exec` → `redis-cli -h 10.0.1.10`                                                                |
 
 **Verificare post-corectie:** `grep -r "docker exec cerniq-postgres\|docker exec cerniq-redis" *.{sh,ts}` → **0 rezultate**.
 
 #### Fix sudo non-interactiv in deploy.yml (executat 2026-02-16)
 
 4 locuri in smoke tests (staging + production) unde `sudo` era fara `-n` (putea bloca pipeline-ul):
+
 - `sudo systemctl is-active fail2ban` → `sudo -n systemctl is-active fail2ban`
 - `sudo ufw status` → `sudo -n ufw status 2>/dev/null`
 
@@ -1412,22 +1413,22 @@ Copiat `/etc/haproxy/haproxy.cfg` de pe hz.247 in `infra/config/haproxy/haproxy.
 
 **Port matrix HAProxy (hz.247, VIP 10.0.1.10):**
 
-| Frontend Port | Backend | Scop |
-|---------------|---------|------|
-| 443 | orchestrator 10.0.0.2:443 | TLS passthrough (Traefik) |
-| 6379 | orchestrator 10.0.0.2:6379 | Redis shared |
-| 19000 | CT110:64000 | Staging web |
-| 19010 | CT110:64010 | Staging API |
-| 19012 | CT110:64012 | Staging admin |
-| 19094 | CT110:64094 | Staging cAdvisor |
-| 19095 | CT110:64095 | Staging pgbouncer-exporter |
-| 19100 | CT110:9100 | Staging node-exporter |
-| 29000 | CT109:64000 | Production web |
-| 29010 | CT109:64010 | Production API |
-| 29012 | CT109:64012 | Production admin |
-| 29094 | CT109:64094 | Production cAdvisor |
-| 29095 | CT109:64095 | Production pgbouncer-exporter |
-| 29100 | CT109:9100 | Production node-exporter |
+| Frontend Port | Backend                    | Scop                          |
+| ------------- | -------------------------- | ----------------------------- |
+| 443           | orchestrator 10.0.0.2:443  | TLS passthrough (Traefik)     |
+| 6379          | orchestrator 10.0.0.2:6379 | Redis shared                  |
+| 19000         | CT110:64000                | Staging web                   |
+| 19010         | CT110:64010                | Staging API                   |
+| 19012         | CT110:64012                | Staging admin                 |
+| 19094         | CT110:64094                | Staging cAdvisor              |
+| 19095         | CT110:64095                | Staging pgbouncer-exporter    |
+| 19100         | CT110:9100                 | Staging node-exporter         |
+| 29000         | CT109:64000                | Production web                |
+| 29010         | CT109:64010                | Production API                |
+| 29012         | CT109:64012                | Production admin              |
+| 29094         | CT109:64094                | Production cAdvisor           |
+| 29095         | CT109:64095                | Production pgbouncer-exporter |
+| 29100         | CT109:9100                 | Production node-exporter      |
 
 **iptables pe hz.247:** porturile 19xxx/29xxx permise doar de la `10.0.0.2` (orchestrator). Persistat in `/etc/iptables.rules`.
 

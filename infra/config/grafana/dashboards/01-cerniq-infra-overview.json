@@ -155,7 +155,13 @@
           },
           "color": { "mode": "thresholds" },
           "mappings": [
-            { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }
+            {
+              "type": "value",
+              "options": {
+                "0": { "text": "DOWN", "color": "red" },
+                "1": { "text": "UP", "color": "green" }
+              }
+            }
           ]
         },
         "overrides": []
@@ -200,7 +206,13 @@
           },
           "color": { "mode": "thresholds" },
           "mappings": [
-            { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }
+            {
+              "type": "value",
+              "options": {
+                "0": { "text": "DOWN", "color": "red" },
+                "1": { "text": "UP", "color": "green" }
+              }
+            }
           ]
         },
         "overrides": []
@@ -245,7 +257,13 @@
           },
           "color": { "mode": "thresholds" },
           "mappings": [
-            { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }
+            {
+              "type": "value",
+              "options": {
+                "0": { "text": "DOWN", "color": "red" },
+                "1": { "text": "UP", "color": "green" }
+              }
+            }
           ]
         },
         "overrides": []
@@ -724,9 +742,7 @@
           "color": { "mode": "palette-classic" },
           "thresholds": {
             "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null }
-            ]
+            "steps": [{ "color": "green", "value": null }]
           },
           "mappings": []
         },
@@ -734,7 +750,11 @@
       },
       "options": {
         "tooltip": { "mode": "multi", "sort": "desc" },
-        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] }
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": ["mean", "max"]
+        }
       }
     },
     {
@@ -770,9 +790,7 @@
           "color": { "mode": "palette-classic" },
           "thresholds": {
             "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null }
-            ]
+            "steps": [{ "color": "green", "value": null }]
           },
           "mappings": []
         },
@@ -780,7 +798,11 @@
       },
       "options": {
         "tooltip": { "mode": "multi", "sort": "desc" },
-        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] }
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": ["mean", "max"]
+        }
       }
     },
     {
@@ -816,9 +838,7 @@
           "color": { "mode": "palette-classic" },
           "thresholds": {
             "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null }
-            ]
+            "steps": [{ "color": "green", "value": null }]
           },
           "mappings": []
         },
@@ -826,7 +846,11 @@
       },
       "options": {
         "tooltip": { "mode": "multi", "sort": "desc" },
-        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] }
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": ["mean", "max"]
+        }
       }
     },
     {
@@ -862,9 +886,7 @@
           "color": { "mode": "palette-classic" },
           "thresholds": {
             "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null }
-            ]
+            "steps": [{ "color": "green", "value": null }]
           },
           "mappings": []
         },
@@ -872,7 +894,11 @@
       },
       "options": {
         "tooltip": { "mode": "multi", "sort": "desc" },
-        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] }
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": ["mean", "max"]
+        }
       }
     },
 
