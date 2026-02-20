@@ -190,6 +190,7 @@ jobs:
           exit-code: "1"
           severity: "CRITICAL,HIGH"
           ignore-unfixed: true
+          trivyignores: ".trivyignore"
 
   # ===========================================================================
   # JOB 3: Deploy to Staging
