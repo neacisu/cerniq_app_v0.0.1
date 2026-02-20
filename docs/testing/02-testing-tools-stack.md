@@ -498,7 +498,7 @@ describe("Redis Failure Resilience", () => {
   it("should handle Redis temporary failure", async () => {
     // Simulate temporary Redis unavailability on shared gateway
     await execAsync(
-      'bash -lc \'redis-cli -h 10.0.1.10 -p 6379 --user cerniq -a "$REDIS_PASSWORD" PING\'',
+      "bash -lc 'redis-cli -h 10.0.1.10 -p 6379 --user cerniq -a \"$REDIS_PASSWORD\" PING'",
     );
 
     // Wait 5 seconds
@@ -514,7 +514,7 @@ describe("Redis Failure Resilience", () => {
 
     // Verify Redis connectivity returns after disruption
     await execAsync(
-      'bash -lc \'redis-cli -h 10.0.1.10 -p 6379 --user cerniq -a "$REDIS_PASSWORD" PING\'',
+      "bash -lc 'redis-cli -h 10.0.1.10 -p 6379 --user cerniq -a \"$REDIS_PASSWORD\" PING'",
     );
 
     // Wait for reconnection

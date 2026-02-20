@@ -766,13 +766,13 @@ CUSTOMER MESSAGE: "Am nevoie de ceva ieftin și bun pentru porumb, sub 5000 lei"
 
 ## 7.2 Container Resource Allocation (Per Node)
 
-| Container                            | CPU        | Memory     | Storage    | Notes                                 |
-| ------------------------------------ | ---------- | ---------- | ---------- | ------------------------------------- |
-| **PostgreSQL 18.2 (CT107)**          | 4 cores    | ~32GB host | local NVMe | Native install, shared service        |
-| **PgBouncer (CT109/110)**            | 0.5-1 core | 128-256MB  | -          | Pooling pentru conexiuni DB           |
-| **Redis shared (orchestrator)**      | shared     | shared     | AOF        | Izolare chei via prefix + ACL         |
-| **Traefik (orchestrator)**           | shared     | shared     | -          | Ingress extern unic (public IP)       |
-| **OpenBao (orchestrator)**           | shared     | shared     | -          | Secrets centralizat; agenti pe CT-uri |
+| Container                                                      | CPU        | Memory     | Storage    | Notes                                  |
+| -------------------------------------------------------------- | ---------- | ---------- | ---------- | -------------------------------------- |
+| **PostgreSQL 18.2 (CT107)**                                    | 4 cores    | ~32GB host | local NVMe | Native install, shared service         |
+| **PgBouncer (CT109/110)**                                      | 0.5-1 core | 128-256MB  | -          | Pooling pentru conexiuni DB            |
+| **Redis shared (orchestrator)**                                | shared     | shared     | AOF        | Izolare chei via prefix + ACL          |
+| **Traefik (orchestrator)**                                     | shared     | shared     | -          | Ingress extern unic (public IP)        |
+| **OpenBao (orchestrator)**                                     | shared     | shared     | -          | Secrets centralizat; agenti pe CT-uri  |
 | **OpenBao agents + cAdvisor + pgbouncer-exporter (CT109/110)** | low        | low        | -          | Integrare cu observability centralizat |
 
 ### PostgreSQL 18.2 Memory Tuning
