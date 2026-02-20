@@ -865,7 +865,7 @@ Taskurile marcate `completed` in FAZA 0 (Neanelu) sunt implementate si au referi
 - `A` (CT107 Postgres: extensii + pg_hba + DB dev + GRANT admin option)
   - Target: CT107 `postgres-main` (`10.0.1.107`)
   - PostgreSQL:
-    - versiune confirmata: `PostgreSQL 18.1 (Ubuntu 18.1-1.pgdg24.04+2)`
+    - versiune confirmata: `PostgreSQL 18.2 (Ubuntu 18.2-1.pgdg24.04+1)`
     - extensii disponibile (pg_available_extensions): `vector`, `pgcrypto`, `citext`, `pg_trgm`, `btree_gin`, `btree_gist`, `pg_stat_statements`, `uuid-ossp`
     - `pg_cron` NU este disponibil pe CT107 (nu il instalam in aceasta etapa; folosim OS crontab in locul lui ca sa evitam restart PostgreSQL care ar afecta Cerniq/Zitadel)
   - DB-uri Neanelu:
@@ -1908,7 +1908,7 @@ Fisierele JSON sunt versionizate in `infra/config/grafana/dashboards/`.
 **Status verificat:**
 
 - Toate Prometheus targets: `health=up` (exceptie: CT108 CI-worker — intermitent down, normal)
-- Grafana a incarcat toate 7 dashboards (4 Cerniq + 3 Infrastructure)
+- Grafana a incarcat toate 10 dashboards (4 Cerniq + 3 Neanelu + 3 Infrastructure)
 - pgbouncer-exporter pe ambele CTs: `healthy`, metrici `pgbouncer_*` disponibile
 - postgres-exporter pe CT107: `active (running)`, `pg_exporter_last_scrape_error 0`
 
@@ -3366,15 +3366,17 @@ Checklist dupa orice deploy:
 ### Validare operationala (actualizat 2026-02-16)
 
 - toate containerele observability: `Up`
-- **Prometheus targets: `up=24`** (14 infrastructure + 10 Cerniq), `down=1` (CT108 node-exporter)
-  - Cerniq scrape jobs adaugate: `cerniq-nodes` (4 targets), `cerniq-docker` (2), `cerniq-pgbouncer` (2), `cerniq-postgres` (1)
+- **Prometheus targets: `total=32, up=31, down=1`** (15 infrastructure + 9 Cerniq + 8 Neanelu), `down=1` (CT108 node-exporter)
+  - Cerniq scrape jobs: `cerniq-nodes` (4 targets), `cerniq-docker` (2), `cerniq-pgbouncer` (2), `cerniq-postgres` (1)
+  - Neanelu scrape jobs: `neanelu-nodes` (3 targets), `neanelu-cadvisor` (3), `neanelu-pgbouncer` (2)
 - ingest functional:
   - Vector -> Loki (loguri containere orchestrator)
   - OTel Collector -> Tempo (traces)
 - HTTPS functional pe toate subdomeniile observability
-- **7 Grafana dashboards** (3 infrastructura + 4 Cerniq):
+- **10 Grafana dashboards** (3 infrastructura + 4 Cerniq + 3 Neanelu):
   - Infra: `01-baremetal-storage-observability`, `02-observability-docker`, `03-proxmox-vm-lxc`
   - Cerniq: `01-cerniq-infra-overview`, `02-cerniq-docker`, `03-cerniq-pgbouncer`, `04-cerniq-postgresql`
+  - Neanelu: `01-neanelu-infra-overview`, `02-neanelu-docker`, `03-neanelu-pgbouncer`
 
 ### Confirmare resurse orchestrator + protectie storage
 
@@ -3621,7 +3623,7 @@ Serviciu systemd (pattern):
 Servicii systemd rezultate:
 
 - `actions.runner.neacisu-cerniq_app_v0.0.1.CI-worker-108.service` (Cerniq)
-- `actions.runner.neacisu-neanelu.CI-worker-108.service` (Neanelu)
+- `actions.runner.neacisu-Neanelu_Shopify.CI-worker-108-neanelu.service` (Neanelu)
 
 #### Cum se adauga runner-ul la alte proiecte
 
@@ -3985,8 +3987,8 @@ Implicatii:
 - OS: Ubuntu 24.04 LTS (Noble)
 - Kernel: `6.17.9-1-pve` (host kernel)
 - Uptime: ~2 zile
-- RAM folosita: ~8.6 GiB (workload PostgreSQL activ cu multiple baze de date)
-- RootFS: ZFS `ssd-main/subvol-107-disk-0`, ~100G, ~35% utilizat
+- RAM folosita: ~8.7 GiB (workload PostgreSQL activ cu multiple baze de date)
+- RootFS: ZFS `ssd-main/subvol-107-disk-0`, ~100G, ~40% utilizat
 
 #### PostgreSQL
 
