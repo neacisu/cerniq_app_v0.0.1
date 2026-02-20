@@ -1,4 +1,4 @@
-# ADR-0004: PostgreSQL 18.1 cu PostGIS
+# ADR-0004: PostgreSQL 18.2 cu PostGIS
 
 **Status:** Accepted  
 **Data:** 2026-01-15  
@@ -15,7 +15,7 @@ Cerniq.app necesită:
 
 ## Decizie
 
-Utilizăm **PostgreSQL 18.1** cu extensiile **pgvector 0.8.1** și **PostGIS 3.6.1**.
+Utilizăm **PostgreSQL 18.2** cu extensiile **pgvector 0.8.1** și **PostGIS 3.6.1**.
 
 ## Implementare curenta (infrastructura noua)
 

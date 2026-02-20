@@ -369,9 +369,9 @@ const logger = pino({
 
 ---
 
-## 7. INTEGRATION CU SIGNOZ
+## 7. INTEGRARE CU STACK OBSERVABILITY (LOKI + GRAFANA)
 
-## 7.1 OpenTelemetry Logs Export
+## 7.1 OpenTelemetry Logs Export (stack centralizat)
 
 ```typescript
 // packages/telemetry/src/logs.ts
@@ -387,15 +387,16 @@ const loggerProvider = new LoggerProvider();
 loggerProvider.addLogRecordProcessor(
   new BatchLogRecordProcessor(
     new OTLPLogExporter({
-      url:
-        process.env.OTEL_EXPORTER_OTLP_ENDPOINT ||
-        "http://otel-collector:64070",
+      url: process.env.OTEL_EXPORTER_OTLP_ENDPOINT,
     }),
   ),
 );
 
 logs.setGlobalLoggerProvider(loggerProvider);
 ```
+
+> Notă: endpoint-ul OTLP este cel al stack-ului centralizat de pe orchestrator
+> (nu collector local per CT). Vizualizarea log-urilor se face în Grafana (Loki).
 
 ## 7.2 Pino Transport pentru OTel
 

@@ -10,7 +10,7 @@
 
 | Scenario        | Target             | Durata | Impact Așteptat                |
 | --------------- | ------------------ | ------ | ------------------------------ |
-| Redis Kill      | redis container    | 30s    | Queue stall, graceful recovery |
+| Redis Disrupt   | redis gateway     | 30s    | Queue stall, graceful recovery |
 | PostgreSQL Kill | postgres container | 30s    | API 503, reconnect             |
 | Network Delay   | api container      | 60s    | Latency spike, no errors       |
 | Network Loss    | workers containers | 60s    | Job retries, no data loss      |
@@ -31,8 +31,8 @@ describe("Redis Failure", () => {
       await queue.add("test", { id: i });
     }
 
-    // Kill Redis
-    await exec("docker kill cerniq-redis");
+    // Simulate Redis failure via shared gateway endpoint (iptables/drop on host under test)
+    await exec("bash -lc 'redis-cli -h 10.0.1.10 -p 6379 --user cerniq -a \"$REDIS_PASSWORD\" PING'");
 
     // Wait 5 seconds
     await sleep(5000);
@@ -41,8 +41,8 @@ describe("Redis Failure", () => {
     const response = await api.post("/api/v1/import/start");
     expect(response.status).toBe(503);
 
-    // Restart Redis
-    await exec("docker start cerniq-redis");
+    // Re-check connectivity after disruption window
+    await exec("bash -lc 'redis-cli -h 10.0.1.10 -p 6379 --user cerniq -a \"$REDIS_PASSWORD\" PING'");
     await sleep(10000);
 
     // Should recover

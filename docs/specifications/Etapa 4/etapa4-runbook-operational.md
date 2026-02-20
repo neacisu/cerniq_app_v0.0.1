@@ -25,8 +25,8 @@
 curl http://localhost:64000/health/workers
 
 # 2. Check queue depths
-docker exec cerniq-redis redis-cli -a $REDIS_PASSWORD \
-  KEYS "bull:*:waiting" | xargs -I {} redis-cli -a $REDIS_PASSWORD LLEN {}
+redis-cli -h 10.0.1.10 -p 6379 --user cerniq -a "$REDIS_PASSWORD" \
+  KEYS "bull:*:waiting" | xargs -I {} redis-cli -h 10.0.1.10 -p 6379 --user cerniq -a "$REDIS_PASSWORD" LLEN {}
 
 # 3. Check overnight errors
 docker logs cerniq-workers --since 12h 2>&1 | grep -i error | tail -50
@@ -62,11 +62,11 @@ curl -s http://localhost:64000/api/v1/monitoring/shipments?status=PENDING_PICKUP
 curl http://localhost:64000/health/workers | jq
 
 # Specific queue depth
-docker exec cerniq-redis redis-cli -a $REDIS_PASSWORD \
+redis-cli -h 10.0.1.10 -p 6379 --user cerniq -a "$REDIS_PASSWORD" \
   LLEN bull:revolut:webhook:ingest:waiting
 
 # Failed jobs count
-docker exec cerniq-redis redis-cli -a $REDIS_PASSWORD \
+redis-cli -h 10.0.1.10 -p 6379 --user cerniq -a "$REDIS_PASSWORD" \
   ZCARD bull:revolut:webhook:ingest:failed
 ```
 
@@ -101,7 +101,7 @@ curl -X POST http://localhost:64000/webhooks/revolut/business \
   -d '{"test": true}'
 
 # Check queue
-docker exec cerniq-redis redis-cli -a $REDIS_PASSWORD \
+redis-cli -h 10.0.1.10 -p 6379 --user cerniq -a "$REDIS_PASSWORD" \
   LRANGE bull:revolut:webhook:ingest:waiting 0 -1
 
 # Restart worker
@@ -170,8 +170,8 @@ curl -X POST http://localhost:64000/api/v1/monitoring/hitl/tasks/{taskId}/escala
 curl -X POST http://localhost:64000/admin/queues/pause-all
 
 # Or manually
-docker exec cerniq-redis redis-cli -a $REDIS_PASSWORD \
-  KEYS "bull:*" | xargs -I {} redis-cli -a $REDIS_PASSWORD \
+redis-cli -h 10.0.1.10 -p 6379 --user cerniq -a "$REDIS_PASSWORD" \
+  KEYS "bull:*" | xargs -I {} redis-cli -h 10.0.1.10 -p 6379 --user cerniq -a "$REDIS_PASSWORD" \
   SET {}:paused 1
 ```
 
@@ -179,7 +179,7 @@ docker exec cerniq-redis redis-cli -a $REDIS_PASSWORD \
 
 ```bash
 # Get failed jobs
-docker exec cerniq-redis redis-cli -a $REDIS_PASSWORD \
+redis-cli -h 10.0.1.10 -p 6379 --user cerniq -a "$REDIS_PASSWORD" \
   ZRANGE bull:revolut:webhook:ingest:failed 0 -1
 
 # Retry all failed

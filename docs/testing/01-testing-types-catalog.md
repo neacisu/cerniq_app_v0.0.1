@@ -422,7 +422,7 @@ services:
       --interval 5m
       kill
       --signal SIGKILL
-      re2:cerniq-redis
+      re2:cerniq-(api|workers|pgbouncer)
 
   chaos-network:
     image: gaiaadm/pumba:latest

@@ -6,7 +6,7 @@
 **Data:** Ianuarie 2026  
 **Autor:** Cerniq Development Team  
 **ORM:** Drizzle v0.40.0  
-**Bază de Date:** PostgreSQL 18.1
+**Bază de Date:** PostgreSQL 18.2
 
 ---
 
@@ -2291,7 +2291,7 @@ COMMIT;
 ### Pre-Deployment
 
 - [ ] Backup complet bază de date
-- [ ] Verificare conexiune PostgreSQL 18.1
+- [ ] Verificare conexiune PostgreSQL 18.2
 - [ ] Verificare extensii (vector, pg_trgm, pgcrypto)
 - [ ] Review migrări în staging
 
@@ -2317,4 +2317,4 @@ COMMIT;
 **Document creat:** Ianuarie 2026  
 **Ultima actualizare:** Ianuarie 2026  
 **Versiune:** 1.0  
-**Compatibil cu:** Master Spec v1.2, Drizzle v0.40.0, PostgreSQL 18.1
+**Compatibil cu:** Master Spec v1.2, Drizzle v0.40.0, PostgreSQL 18.2

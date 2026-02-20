@@ -1,4 +1,4 @@
-# CERNIQ.APP — TESTE F0.2: POSTGRESQL 18.1 SETUP
+# CERNIQ.APP — TESTE F0.2: POSTGRESQL 18.2 SETUP
 
 ## Teste pentru PostgreSQL, PostGIS, pgvector și configurare
 

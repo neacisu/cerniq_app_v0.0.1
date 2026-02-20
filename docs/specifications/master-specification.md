@@ -225,11 +225,11 @@ jobId: `warn-${approvalId}`; // Warning jobs
 
 | Component          | Versiune CANONICĂ     | Release Date | Status         | EOL/Suport              |
 | ------------------ | --------------------- | ------------ | -------------- | ----------------------- |
-| **Node.js**        | **24.12.0 "Krypton"** | 10 Dec 2025  | Active LTS     | Apr 2028                |
+| **Node.js**        | **24.13.1 "Krypton"** | 10 Dec 2025  | Active LTS     | Apr 2028                |
 | **V8 Engine**      | 13.6.233.17           | Bundled      | —              | —                       |
 | **NPM**            | 11.x                  | Bundled      | —              | —                       |
 | **Python**         | **3.14.2**            | 5 Dec 2025   | Stable         | Free-threading Phase II |
-| **PostgreSQL**     | **18.1**              | 13 Nov 2025  | Current Stable | —                       |
+| **PostgreSQL**     | **18.2**              | 13 Nov 2025  | Current Stable | —                       |
 | **pgvector**       | **0.8.1**             | Late 2025    | Stable         | PG 13-18                |
 | **PostGIS**        | **3.6.1**             | 13 Nov 2025  | Stable         | PG 12-18                |
 | **Fastify**        | **5.6.2**             | 9 Nov 2025   | Stable         | v4 EOL: 30 Jun 2025     |
@@ -2002,7 +2002,7 @@ $$ LANGUAGE plpgsql;
 
 | #   | Inconsistență                         | Sursă                   | Rezoluție                                 | Status |
 | --- | ------------------------------------- | ----------------------- | ----------------------------------------- | ------ |
-| 1   | Node.js 24.13 vs 24.12                | Etapa 1 vs Etapa 2-5    | **CANONIC: 24.12.0**                      | ✅     |
+| 1   | Node.js 24.13 vs 24.12                | Etapa 1 vs Etapa 2-5    | **CANONIC: 24.13.1**                      | ✅     |
 | 2   | Python 3.14.1 vs 3.14.2               | Docs vechi vs Research  | **CANONIC: 3.14.2**                       | ✅     |
 | 3   | `gold_hitl_tasks` vs `approval_tasks` | Etapa 4 vs Unified HITL | **CANONIC: `approval_tasks`**             | ✅     |
 | 4   | React 19.2.3 vs 19.2.1                | TOC vs npm              | **CANONIC: 19.2.3**                       | ✅     |

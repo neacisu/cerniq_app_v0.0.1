@@ -25,8 +25,8 @@ bao kv put secret/cerniq/api/config \
 ### 2. Template OpenBao Agent
 
 ```gotemplate
-{{- with secret "secret/data/cerniq/api/config" -}}
-REDIS_URL=redis://:{{ .Data.data.redis_password }}@redis:64039/0
+{{- with secret "secret/cerniq/api/config" -}}
+REDIS_URL=redis://:{{ .Data.redis_password }}@10.0.1.10:6379/0
 {{- end -}}
 ```
 

@@ -12,7 +12,7 @@
 | Fază      | Denumire                             | Taskuri | Document Teste                                                       |
 | --------- | ------------------------------------ | ------- | -------------------------------------------------------------------- |
 | F0.1      | Docker Infrastructure                | 5       | [e0-f01-docker-infrastructure.md](./e0-f01-docker-infrastructure.md) |
-| F0.2      | PostgreSQL 18.1 Setup                | 5       | [e0-f02-postgresql-setup.md](./e0-f02-postgresql-setup.md)           |
+| F0.2      | PostgreSQL 18.2 Setup                | 5       | [e0-f02-postgresql-setup.md](./e0-f02-postgresql-setup.md)           |
 | F0.3      | Redis & BullMQ                       | 3       | [e0-f03-redis-bullmq.md](./e0-f03-redis-bullmq.md)                   |
 | F0.4      | Ingress & TLS (Traefik orchestrator) | 4       | [e0-f04-traefik-ssl.md](./e0-f04-traefik-ssl.md)                     |
 | F0.5      | Observability (stack centralizat)    | 3       | [e0-f05-observability.md](./e0-f05-observability.md)                 |

@@ -214,8 +214,8 @@ jobs:
           roleId: ${{ secrets.OPENBAO_ROLE_ID }}
           secretId: ${{ secrets.OPENBAO_SECRET_ID }}
           secrets: |
-            secret/data/cerniq/ci/deploy ghcr_token | GHCR_TOKEN ;
-            secret/data/cerniq/ci/deploy ssh_key | SSH_KEY
+            secret/cerniq/ci/deploy ghcr_token | GHCR_TOKEN ;
+            secret/cerniq/ci/deploy ssh_key | SSH_KEY
 ```
 
 ## Backup & DR

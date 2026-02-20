@@ -92,9 +92,9 @@ Etapa 3 implementează un **agent comercial autonom** care navighează ciclul co
 | --------------- | ---------- | ----------------------- |
 | Queue System    | BullMQ     | v5.66.5                 |
 | Cache/Broker    | Redis      | 8.4.0                   |
-| Runtime Node.js | Node.js    | v24.12.0 LTS            |
+| Runtime Node.js | Node.js    | v24.13.1 LTS            |
 | Runtime Python  | Python     | 3.14.1 (Free-Threading) |
-| Database        | PostgreSQL | 18.1                    |
+| Database        | PostgreSQL | 18.2                    |
 | Vector Search   | pgvector   | 0.8.0                   |
 | Protocol        | MCP        | Latest                  |
 | LLM Provider    | xAI Grok   | Grok-4                  |
