@@ -543,6 +543,8 @@ jobs:
     runs-on: self-hosted
     needs: [setup, build-push]
     if: needs.setup.outputs.environment == 'production'
+    permissions:
+      contents: write
     environment:
       name: production
       url: https://cerniq.app
