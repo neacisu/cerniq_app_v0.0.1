@@ -26,16 +26,16 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^24.10.13",
-    "@typescript-eslint/eslint-plugin": "^8.55.0",
-    "@typescript-eslint/parser": "^8.55.0",
+    "@typescript-eslint/eslint-plugin": "^8.56.0",
+    "@typescript-eslint/parser": "^8.56.0",
     "@vitest/coverage-v8": "^4.0.18",
-    "eslint": "^10.0.0",
+    "eslint": "^10.0.1",
     "eslint-config-prettier": "^10.1.8",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
     "prettier": "^3.8.1",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.55.0",
+    "typescript-eslint": "^8.56.0",
     "vitest": "^4.0.18",
     "yaml": "^2.8.2"
   },
@@ -44,6 +44,11 @@
     "pnpm": ">=10"
   },
   "packageManager": "pnpm@10.29.3",
+  "pnpm": {
+    "overrides": {
+      "minimatch": "^10.2.2"
+    }
+  },
   "dependencies": {
     "bullmq": "^5.69.2",
     "ioredis": "^5.9.3"
