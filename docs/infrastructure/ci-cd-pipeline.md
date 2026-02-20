@@ -63,7 +63,7 @@ graph LR
 | ------------ | -------------------------------------- |
 | **Tool**     | Vitest                                 |
 | **Scope**    | `packages/**`, `apps/**`               |
-| **Services** | PostgreSQL 18.1 + PostGIS, Redis 8.4.0 |
+| **Services** | PostgreSQL 18.2 + PostGIS, Redis 8.4.0 |
 | **Timeout**  | 15 minute                              |
 | **Coverage** | Upload to Codecov                      |
 

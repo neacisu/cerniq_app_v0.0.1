@@ -32,7 +32,7 @@
 
 | Componenta         | Versiune OBLIGATORIE  | Verificare               |
 | ------------------ | --------------------- | ------------------------ |
-| **Node.js**        | 24.12.0 "Krypton"     | `node --version`         |
+| **Node.js**        | 24.13.1 "Krypton"     | `node --version`         |
 | **PNPM**           | 9.x                   | `pnpm --version`         |
 | **Python**         | 3.14.2 Free-Threading | `python3 --version`      |
 | **Docker**         | 29.2.0                | `docker --version`       |
@@ -289,7 +289,7 @@ curl -s http://localhost:64000/health/ready | jq .
 | `ECONNREFUSED :5432` | PostgreSQL local nu rulează | Porniți PostgreSQL local sau ajustați `DATABASE_URL` |
 | `ECONNREFUSED :6379` | Redis local nu rulează      | Porniți Redis local sau ajustați `REDIS_URL`         |
 | `Invalid token`      | JWT_SECRET nesetat          | Verifică `.env`                                      |
-| Type errors          | Versiune Node greșită       | `nvm use 24.12.0`                                    |
+| Type errors          | Versiune Node greșită       | `nvm use 24.13.1`                                    |
 
 ### Comenzi Utile de Debug
 

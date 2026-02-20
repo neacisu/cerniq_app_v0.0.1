@@ -29,4 +29,4 @@ Infrastructura Cerniq este impartita in LXC-uri dedicate, cu servicii centraliza
 ## Observatii
 
 - PostgreSQL nu mai concureaza cu app-ul pe CT109/CT110 (ruleaza pe CT107).
-- Observability este centralizata pe orchestrator; pe CT-uri ruleaza doar agenti/sideload (Vector/OTEL/cAdvisor).
+- Observability este centralizata pe orchestrator; pe CT-uri ruleaza doar componente de integrare minima (`cAdvisor`, `pgbouncer-exporter`) si agentii OpenBao.

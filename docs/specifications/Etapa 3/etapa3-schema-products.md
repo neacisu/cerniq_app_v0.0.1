@@ -8,7 +8,7 @@
 
 **DOCUMENT STATUS:** NORMATIV — Subordonat Master Spec v1.2  
 **SCOPE:** Schema completă pentru produse, catalog, embeddings și hybrid search  
-**DATABASE:** PostgreSQL 18.1 + pgvector + pg_trgm  
+**DATABASE:** PostgreSQL 18.2 + pgvector + pg_trgm  
 **ORM:** Drizzle ORM
 
 ---

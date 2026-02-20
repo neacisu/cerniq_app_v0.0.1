@@ -18,7 +18,7 @@
 
 | Componentă    | Versiune Actuală | Relevanță                  |
 | ------------- | ---------------- | -------------------------- |
-| [Ex: Node.js] | [Ex: 24.12.0]    | [Cum influențează decizia] |
+| [Ex: Node.js] | [Ex: 24.13.1]    | [Cum influențează decizia] |
 
 ---
 

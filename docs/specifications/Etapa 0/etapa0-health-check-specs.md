@@ -337,7 +337,7 @@ services:
       "status": "healthy",
       "latencyMs": 12,
       "details": {
-        "version": "PostgreSQL 18.1",
+        "version": "PostgreSQL 18.2",
         "uptime": "2026-01-14T08:00:00.000Z"
       }
     },

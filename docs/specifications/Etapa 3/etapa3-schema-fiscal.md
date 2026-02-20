@@ -5,7 +5,7 @@
 **Versiune:** 1.0  
 **Data:** Ianuarie 2026  
 **Autor:** Cerniq Development Team  
-**Bază de Date:** PostgreSQL 18.1  
+**Bază de Date:** PostgreSQL 18.2  
 **ORM:** Drizzle v0.40.0
 
 ---

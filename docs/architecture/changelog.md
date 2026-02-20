@@ -76,7 +76,7 @@
   - Vertical Slice + Medallion Data Architecture
   - Specificații Etapele 1-5 (Enrichment, Outreach, AI Sales, Post-Sale, Nurturing)
 - **Infrastructure:**
-  - Docker Compose cu PostgreSQL 18.1, Redis 8.4.0 (observability ulterior migrat pe stack centralizat)
+  - Docker Compose cu PostgreSQL 18.2, Redis 8.4.0 (observability ulterior migrat pe stack centralizat)
   - Hetzner bare-metal deployment plan
 - **Frontend:**
   - React 19 + Tailwind CSS v4 + Refine v5

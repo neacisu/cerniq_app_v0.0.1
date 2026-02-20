@@ -85,7 +85,7 @@ TOTAL: 5 Monolithic Workers (Scaling Vertical/Horizontal per Etapă)
 | -------------------------- | ----------------------------------------------------- | -------------------------------------- |
 | **High Availability**      | Active-Passive Failover (PG Replica + Redis Sentinel) | Min 99.95% Availability                |
 | **No GIL pentru Python**   | Python 3.14.2 Free-Threading                          | Necesită biblioteci compatibile        |
-| **PostgreSQL 18.1**        | Extensii obligatorii: pgvector, PostGIS, pg_trgm      | Lock pe vendor, dar performanță maximă |
+| **PostgreSQL 18.2**        | Extensii obligatorii: pgvector, PostGIS, pg_trgm      | Lock pe vendor, dar performanță maximă |
 | **Multi-tenant Isolation** | Toate datele partiționate per tenant_id               | `UNIQUE(tenant_id, cui)` obligatoriu   |
 
 ## 2.2 Organizational Constraints
@@ -225,7 +225,7 @@ const LEGACY_ALIASES = {
 
 | Strat                 | Tehnologie                    | Versiune                | Justificare                                      |
 | --------------------- | ----------------------------- | ----------------------- | ------------------------------------------------ |
-| **Runtime API**       | Node.js                       | v24.12.0 LTS "Krypton"  | ESM natim, --watch, V8 Maglev JIT                |
+| **Runtime API**       | Node.js                       | v24.13.1 LTS "Krypton"  | ESM natim, --watch, V8 Maglev JIT                |
 | **Framework API**     | Fastify                       | v5.6.2                  | Type Provider Zod, hook-based                    |
 | **AI/Worker Runtime** | Python                        | 3.14.2 Free-Threading   | True parallelism, no GIL                         |
 | **Database**          | PostgreSQL                    | 18.1                    | JSON_TABLE, async I/O, UUIDv7                    |
@@ -759,22 +759,23 @@ CUSTOMER MESSAGE: "Am nevoie de ceva ieftin și bun pentru porumb, sub 5000 lei"
         - app stack        - app stack         - PostgreSQL native
         - PgBouncer        - PgBouncer         - DB: cerniq / cerniq_staging
         - OpenBao agents   - OpenBao agents    - pg_dump + WAL archive
-        - Vector/OTEL      - Vector/OTEL
+        - OpenBao agents   - OpenBao agents
         - cAdvisor         - cAdvisor
+        - pgbouncer-exporter - pgbouncer-exporter
 ```
 
 ## 7.2 Container Resource Allocation (Per Node)
 
 | Container                            | CPU        | Memory     | Storage    | Notes                                 |
 | ------------------------------------ | ---------- | ---------- | ---------- | ------------------------------------- |
-| **PostgreSQL 18.1 (CT107)**          | 4 cores    | ~32GB host | local NVMe | Native install, shared service        |
+| **PostgreSQL 18.2 (CT107)**          | 4 cores    | ~32GB host | local NVMe | Native install, shared service        |
 | **PgBouncer (CT109/110)**            | 0.5-1 core | 128-256MB  | -          | Pooling pentru conexiuni DB           |
 | **Redis shared (orchestrator)**      | shared     | shared     | AOF        | Izolare chei via prefix + ACL         |
 | **Traefik (orchestrator)**           | shared     | shared     | -          | Ingress extern unic (public IP)       |
 | **OpenBao (orchestrator)**           | shared     | shared     | -          | Secrets centralizat; agenti pe CT-uri |
-| **Vector/OTEL/cAdvisor (CT109/110)** | low        | low        | -          | Observability (logs/traces/metrics)   |
+| **OpenBao agents + cAdvisor + pgbouncer-exporter (CT109/110)** | low        | low        | -          | Integrare cu observability centralizat |
 
-### PostgreSQL 18.1 Memory Tuning
+### PostgreSQL 18.2 Memory Tuning
 
 ```ini
 # postgresql.conf (CT107 ~32GB system)
@@ -1143,7 +1144,7 @@ const checkBudget = async (tenantId: string, cost: number) => {
 
 **Status:** Accepted  
 **Context:** Need vector search, geospatial, and relational in one system  
-**Decision:** Use PostgreSQL 18.1 + pgvector + PostGIS instead of separate databases  
+**Decision:** Use PostgreSQL 18.2 + pgvector + PostGIS instead of separate databases  
 **Consequences:**
 
 - ✅ Atomic transactions across all data types
@@ -1394,7 +1395,7 @@ Nivel 5 (Anexe Data Model):
 
 | Technology                    | Version   | Release Date | EOL Date | Notes                        |
 | ----------------------------- | --------- | ------------ | -------- | ---------------------------- |
-| Node.js                       | 24.12.0   | Oct 2025     | Apr 2028 | LTS "Krypton"                |
+| Node.js                       | 24.13.1   | Oct 2025     | Apr 2028 | LTS "Krypton"                |
 | Python                        | 3.14.2    | Dec 2025     | Oct 2029 | Free-Threading stable        |
 | PostgreSQL                    | 18.1      | Nov 2025     | Nov 2030 | Async I/O, UUIDv7            |
 | Redis                         | 8.4.0     | Nov 2025     | -        | Latest Stable                |

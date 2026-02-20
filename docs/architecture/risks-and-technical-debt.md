@@ -2,7 +2,7 @@
 
 **Version:** 1.0 | **Governance:** Cerniq_Master_Spec_Normativ_Complet.md v1.2 | **Date:** January 12, 2026
 
-Romanian B2B sales automation platform targeting **2.86 million agricultural exploitations** faces significant risks across technology, operations, compliance, and third-party dependencies. The bleeding-edge technology stack (Python 3.14 Free-Threading, Node.js 24.12, PostgreSQL 18.1) combined with a **1-Person-Team** paradigm and single-server architecture creates a risk profile requiring immediate attention in five critical areas: infrastructure redundancy, regulatory compliance (e-Factura 5-day deadline), experimental technology dependencies, vendor lock-in mitigation, and knowledge documentation.
+Romanian B2B sales automation platform targeting **2.86 million agricultural exploitations** faces significant risks across technology, operations, compliance, and third-party dependencies. The bleeding-edge technology stack (Python 3.14 Free-Threading, Node.js 24.13.1, PostgreSQL 18.2) combined with a **1-Person-Team** paradigm and single-server architecture creates a risk profile requiring immediate attention in five critical areas: infrastructure redundancy, regulatory compliance (e-Factura 5-day deadline), experimental technology dependencies, vendor lock-in mitigation, and knowledge documentation.
 
 The 313 BullMQ workers operating on a single Hetzner bare metal server (20 cores, 128GB RAM) represent both engineering ambition and operational fragility. This analysis identifies **12 critical risks**, **18 high-severity risks**, and **47 technical debt items** traceable to specific project documentation, with prioritized mitigation strategies appropriate for the solo developer context.
 
@@ -14,9 +14,9 @@ This analysis governs all risk assessments for Cerniq.app under the Master Speci
 
 **Canonical Technology Versions (Master Spec):**
 
-- Node.js 24.12.0 (LTS Krypton)
+- Node.js 24.13.1 (LTS Krypton)
 - Python 3.14.2 (Free-Threading)
-- PostgreSQL 18.1 with pgvector, PostGIS, pg_trgm
+- PostgreSQL 18.2 with pgvector, PostGIS, pg_trgm
 - Redis 8.4.0
 - BullMQ v5.66.5
 - React 19.2.3, Tailwind CSS 4.1+, Refine v5
@@ -328,8 +328,8 @@ Maximum 10 webhooks per account (422 error if exceeded). Webhooks may deliver ou
 | Technology         | Version        | Production Readiness        | Risk Level |
 | ------------------ | -------------- | --------------------------- | ---------- |
 | Python 3.14.2 FT   | 3.14.2         | Experimental Free-Threading | **HIGH**   |
-| Node.js 24.x       | 24.12.0        | LTS Stable                  | LOW        |
-| PostgreSQL 18.1    | 18.1           | GA Stable                   | LOW        |
+| Node.js 24.x       | 24.13.1        | LTS Stable                  | LOW        |
+| PostgreSQL 18.2    | 18.1           | GA Stable                   | LOW        |
 | BullMQ v5.66.5     | 5.66.5         | Stable                      | MEDIUM     |
 | Redis 8.4.0        | 8.4.x          | Latest Stable               | LOW        |
 | React 19.x         | 19.2.3         | Stable                      | LOW-MEDIUM |

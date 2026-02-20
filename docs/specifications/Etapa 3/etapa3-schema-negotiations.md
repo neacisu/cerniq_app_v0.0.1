@@ -8,7 +8,7 @@
 
 **DOCUMENT STATUS:** NORMATIV — Subordonat Master Spec v1.2  
 **SCOPE:** Schema completă pentru negocieri, FSM, conversații AI și stock reservations  
-**DATABASE:** PostgreSQL 18.1  
+**DATABASE:** PostgreSQL 18.2  
 **ORM:** Drizzle ORM
 
 ---

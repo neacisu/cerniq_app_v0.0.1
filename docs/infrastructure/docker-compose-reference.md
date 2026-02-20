@@ -10,7 +10,7 @@
 - OpenBao server: exclusiv pe orchestrator (`https://s3cr3ts.neanelu.ro`); pe CT109/CT110 rulam doar OpenBao agents.
 - PostgreSQL: nativ pe CT107 (`10.0.1.107:5432`), nu in Docker.
 - Redis: shared pe orchestrator, accesat intern prin gateway `hz.247` (`10.0.1.10:6379`).
-- Observability: centralizat pe orchestrator; pe CT109/CT110 rulam doar Vector/OTEL/cAdvisor.
+- Observability: centralizat pe orchestrator; pe CT109/CT110 rulam doar `cAdvisor` + `pgbouncer-exporter` (scrape remote) si agentii OpenBao pentru secrete.
 
 ## Sumar servicii (infra-only, deja deployat)
 

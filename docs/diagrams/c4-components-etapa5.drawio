@@ -31,7 +31,7 @@
         </mxCell>
         
         <!-- Database Container -->
-        <mxCell id="database" value="PostgreSQL 18.1&#xa;[Container: Database + PostGIS]&#xa;&#xa;21 Gold Tables:&#xa;nurturing_state, churn_signals,&#xa;referrals, clusters, kol_profiles,&#xa;winback_campaigns, nps_surveys...&#xa;&#xa;GiST Spatial Indexes&#xa;GEOGRAPHY columns" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#336791;strokeColor=#2D5A7B;fontColor=#ffffff;verticalAlign=top;align=center;" vertex="1" parent="1">
+        <mxCell id="database" value="PostgreSQL 18.2&#xa;[Container: Database + PostGIS]&#xa;&#xa;21 Gold Tables:&#xa;nurturing_state, churn_signals,&#xa;referrals, clusters, kol_profiles,&#xa;winback_campaigns, nps_surveys...&#xa;&#xa;GiST Spatial Indexes&#xa;GEOGRAPHY columns" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#336791;strokeColor=#2D5A7B;fontColor=#ffffff;verticalAlign=top;align=center;" vertex="1" parent="1">
           <mxGeometry x="840" y="80" width="180" height="160" as="geometry" />
         </mxCell>
         

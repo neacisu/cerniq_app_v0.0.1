@@ -281,7 +281,7 @@ expansion_reason: "Granularitate crescută pentru PR-uri incrementale de ~200-40
 
 ```yaml
 runtime:
-  node: "24.12.0 LTS"
+  node: "24.13.1 LTS"
   typescript: "5.7.x"
 
 framework:

@@ -16,7 +16,7 @@ Worker-ul M defineste guardrails (anti-hallucination, policy enforcement, safety
 - PostgreSQL: `CT107 (10.0.1.107:5432)`; acces prin PgBouncer (`64033`).
 - Redis: shared pe orchestrator (`6379`), ACL + prefix `cerniq:`.
 - Secrete: OpenBao orchestrator (agents pe CT-uri).
-- Observability centralizat: Grafana/Prometheus/Loki/Tempo + Vector/OTEL.
+- Observability centralizat: Grafana/Prometheus/Loki/Tempo pe orchestrator; pe CT-uri raman doar endpoint-uri de scrape (cAdvisor + pgbouncer-exporter).
 
 ## 3) Principii guardrails
 

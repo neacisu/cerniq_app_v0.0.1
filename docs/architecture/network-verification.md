@@ -38,13 +38,13 @@ In infrastructura noua:
 ## Network Topology Validation
 
 ```
-CT109 / CT110 (LXC)                      CT107 (LXC)               Orchestrator (shared)
-┌──────────────────────────────┐         ┌───────────────────┐     ┌──────────────────────┐
-│ Docker networks 172.29.x.x   │         │ PostgreSQL native  │     │ Traefik/OpenBao/Obs  │
-│                              │         │ 10.0.1.107:5432    │     │ Redis shared         │
+CT109 / CT110 (LXC)                       CT107 (LXC)               Orchestrator (shared)
+┌──────────────────────────────┐          ┌───────────────────┐     ┌──────────────────────┐
+│ Docker networks 172.29.x.x   │          │ PostgreSQL native │     │ Traefik/OpenBao/Obs  │
+│                              │          │ 10.0.1.107:5432   │     │ Redis shared         │
 │  PgBouncer :64033            │──TCP────▶│                   │     │ 10.0.0.2:6379        │
-│                              │         └───────────────────┘     └──────────┬───────────┘
-│  Vector/OTEL -> gateway      │───────────────────────────────────────────────┘
+│                              │          └───────────────────┘     └──────────┬───────────┘
+│  OpenBao agents + exporters  │───────────────────────────────────────────────┘
 └───────────────┬──────────────┘
                 │
                 │ (gateway L4)

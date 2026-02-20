@@ -30,7 +30,7 @@
 | [ADR-0001](./ADR%20Etapa%200/ADR-0001-PNPM-ca-Package-Manager-Exclusiv.md)                   | PNPM ca Package Manager Exclusiv               | Accepted                     | 2026-01-15                           |
 | [ADR-0002](./ADR%20Etapa%200/ADR-0002-Node-js-v24-LTS-Krypton.md)                            | Node.js v24 LTS "Krypton"                      | Accepted                     | 2026-01-15                           |
 | [ADR-0003](./ADR%20Etapa%200/ADR-0003-Python-3-14-Free-Threading-pentru-Workers.md)          | Python 3.14 Free-Threading pentru Workers      | Accepted                     | 2026-01-15                           |
-| [ADR-0004](./ADR%20Etapa%200/ADR-0004-PostgreSQL-18-1-cu-PostGIS.md)                         | PostgreSQL 18.1 cu PostGIS                     | Accepted                     | 2026-01-15                           |
+| [ADR-0004](./ADR%20Etapa%200/ADR-0004-PostgreSQL-18-1-cu-PostGIS.md)                         | PostgreSQL 18.2 cu PostGIS                     | Accepted                     | 2026-01-15                           |
 | [ADR-0005](./ADR%20Etapa%200/ADR-0005-Row-Level-Security-pentru-Multi-Tenancy.md)            | Row-Level Security pentru Multi-Tenancy        | Accepted                     | 2026-01-15                           |
 | [ADR-0006](./ADR%20Etapa%200/ADR-0006-Redis-8-4-0-cu-BullMQ-v5.md)                           | Redis 8.4.0 cu BullMQ v5.66.5                  | Accepted (Updated)           | 2026-01-15 (Updated: 2026-02-01)     |
 | [ADR-0007](./ADR%20Etapa%200/ADR-0007-Drizzle-ORM-pentru-Database-Access.md)                 | Drizzle ORM pentru Database Access             | Accepted                     | 2026-01-15                           |

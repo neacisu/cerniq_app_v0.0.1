@@ -33,6 +33,6 @@ Documentează configurarea PgBouncer pentru PostgreSQL (Etapa 0), pentru a limit
 
 ## Referințe
 
-- ADR-0004 PostgreSQL 18.1
+- ADR-0004 PostgreSQL 18.2
 - ADR-0015 Docker Containerization
 - Etapa 0 plan: F0.2.2.T004

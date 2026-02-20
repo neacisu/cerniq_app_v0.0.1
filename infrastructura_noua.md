@@ -587,10 +587,10 @@ In starea curenta, `docker-compose.yml` contine atat aplicatia, cat si infrastru
 - **Observabilitate locala** (dev/prod-like):
   - Jaeger `jaegertracing/jaeger:2.14.1`
   - OTel Collector `otel/opentelemetry-collector-contrib:0.142.0`
-  - Prometheus `prom/prometheus:v3.8.1`
+  - Prometheus `prom/prometheus:v3.9.1`
   - Alertmanager `prom/alertmanager:v0.30.0`
   - Loki `grafana/loki:3.6.3` + Promtail `grafana/promtail:3.6.3`
-  - Grafana `grafana/grafana:12.3.1`
+  - Grafana `grafana/grafana:12.3.3`
 - **Backend**: `backend-worker` (Fastify) cu health check `/health/ready`.
 - **Frontend**: `web-admin` (SPA) servit sub `/app`, cu redirect `/` -> `/app/`.
 - **Artefacte bulk**: volum persistent `bulk_artifacts` montat la `/var/lib/neanelu/bulk-artifacts`.

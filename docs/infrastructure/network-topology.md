@@ -27,7 +27,7 @@ CT109 (prod) / CT110 (staging)
   | Docker networks (in-LXC): 172.29.10/20/30 (pre-create, external)
   |
   +--> PgBouncer (64033) --> CT107 Postgres (10.0.1.107:5432)
-  +--> Vector/OTEL/OpenBao agents --> hz.247 VIP 10.0.1.10 (443) --> orchestrator (Traefik routes)
+  +--> OpenBao agents --> hz.247 VIP 10.0.1.10 (443) --> orchestrator (Traefik routes)
   +--> Redis (shared) --> hz.247 VIP 10.0.1.10 (6379) --> orchestrator redis-shared (10.0.0.2:6379)
 ```
 
@@ -59,9 +59,8 @@ Porturi relevante in CT109/CT110 (host):
 | Port    | Scop                             |
 | ------- | -------------------------------- |
 | `64033` | PgBouncer (in-container)         |
-| `64070` | OTLP gRPC (otel-collector local) |
-| `64071` | OTLP HTTP (otel-collector local) |
 | `64094` | cAdvisor (metrics Docker)        |
+| `64095` | PgBouncer exporter metrics       |
 
 Porturi externe publice:
 
