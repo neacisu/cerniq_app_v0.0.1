@@ -26,13 +26,13 @@ Sistemul de monitorizare nu va fi invaziv în codul de business. Va rula ca un s
 
 ### Stack Tehnologic
 
-| Componentă | Tehnologie | Rol |
-| ---------- | ---------- | --- |
-| **Backend Agregator** | **Fastify + BullMQ API** | Expune starea cozilor Redis prin WebSocket/SSE către UI. |
-| **Metrics Store** | **Redis Timeseries + SigNoz** | Stocare metrici high-resolution (throughput, latency). |
-| **Frontend UI** | **React 19 + Refine + Recharts** | Dashboard interactiv, parte din `admin-panel`. |
-| **Tracing** | **OpenTelemetry (Auto-instrumentation)** | Urmărire flow end-to-end prin `correlation_id`. |
-| **Alerting** | **SigNoz Alerts** | Notificări inteligente (nu spam) pe Slack/Discord. |
+| Componentă            | Tehnologie                               | Rol                                                      |
+| --------------------- | ---------------------------------------- | -------------------------------------------------------- |
+| **Backend Agregator** | **Fastify + BullMQ API**                 | Expune starea cozilor Redis prin WebSocket/SSE către UI. |
+| **Metrics Store**     | **Prometheus + Grafana**                 | Stocare/afisare metrici (throughput, latency).           |
+| **Frontend UI**       | **React 19 + Refine + Recharts**         | Dashboard interactiv, parte din `admin-panel`.           |
+| **Tracing**           | **OpenTelemetry (Auto-instrumentation)** | Urmărire flow end-to-end prin `correlation_id`.          |
+| **Alerting**          | **Prometheus Alertmanager / Grafana**    | Notificari inteligente (nu spam) pe Slack/Discord.       |
 
 ### Diagrama Flux Monitorizare
 
@@ -45,8 +45,8 @@ graph TD
 
     subgraph Monitoring_System
         R -->|Read Job Status| MA[Monitoring API / Websocket]
-        O -->|Store Traces| SN[SigNoz ClickHouse]
-        
+        O -->|Store Traces| SN[Tempo (orchestrator)]
+
         MA -->|Real-time Updates| UI[Unified Control Plane UI]
         SN -->|Historical Data| UI
     end
@@ -63,7 +63,7 @@ Abordarea este "Monitoring-First Development". Nu implementăm un worker până 
 **Obiectiv:** Setup pipeline de colectare date.
 
 1. **Implementare `libs/observability`:** Pachet partajat care configurează OpenTelemetry auto-instrumentation pentru orice worker nou.
-2. **Deploy SigNoz & Redis Metrics:** Setup containere docker dedicate monitorizării (separat de app logic).
+2. **Deploy observability centralizat + Redis metrics:** Stack-ul de observability este centralizat pe orchestrator (Grafana/Prometheus/Loki/Tempo), fara stack local dedicat.
 3. **Dashboard "System Health":** CPU/RAM server, Redis Memory, PostgreSQL Connections (Vizualizare globală resurse).
 
 ### 🟢 ETAPA 1: "Data Pipeline Dashboard" (Vizualizare Flux)
@@ -72,9 +72,9 @@ Abordarea este "Monitoring-First Development". Nu implementăm un worker până 
 
 1. **UI Component: Pipeline Flow:** Grafic vizual (Sankey Diagram) care arată câți prospecți intră în Bronze și câți ajung în Silver.
 2. **Worker Detail View:** Pentru fiecare din cei 58 workeri de enrichment, vizualizare:
-    * Joburi procesate/minut.
-    * Rata de succes API (ANAF, Termene).
-    * Cost per request (pentru API-uri plătite).
+   - Joburi procesate/minut.
+   - Rata de succes API (ANAF, Termene).
+   - Cost per request (pentru API-uri plătite).
 3. **Traceability:** Căutare după CUI -> Arată tot istoricul de enrichment.
 
 ### 🔵 ETAPA 2: "Outreach Control Room" (Mission Control)
@@ -111,10 +111,10 @@ Interfața nu trebuie să arate a "tool de admin vechi", ci a "Cockpit de Navă 
 
 1. **Dark Mode Default:** Pentru reducerea oboselii ochilor (Cyberpunk Aesthetics).
 2. **Status Colors:**
-    * 🟢 **Pulsating Green:** Worker activ, procesează normal.
-    * 🟡 **Yellow Static:** Worker în idle / așteptare rate limits.
-    * 🔴 **Flashing Red:** Eroare critică / Worker blocat.
-    * Wait/Blocked: Gri.
+   - 🟢 **Pulsating Green:** Worker activ, procesează normal.
+   - 🟡 **Yellow Static:** Worker în idle / așteptare rate limits.
+   - 🔴 **Flashing Red:** Eroare critică / Worker blocat.
+   - Wait/Blocked: Gri.
 3. **Micro-Animations:** Barele de progres se mișcă real, contoarele se incrementează animat.
 4. **Game-like HUD:** Heads-Up Display pentru metrici critice (Erori, Bani cheltuiți, Lead-uri convertite) mereu vizibil sus.
 

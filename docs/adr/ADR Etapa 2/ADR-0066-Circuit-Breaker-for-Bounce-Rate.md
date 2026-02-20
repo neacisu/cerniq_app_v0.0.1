@@ -9,7 +9,7 @@
 ```typescript
 if (bounceRate > 0.03) {
   await pauseCampaign(campaignId);
-  await alertAdmin('BOUNCE_RATE_HIGH', { bounceRate, campaignId });
+  await alertAdmin("BOUNCE_RATE_HIGH", { bounceRate, campaignId });
 }
 ```
 

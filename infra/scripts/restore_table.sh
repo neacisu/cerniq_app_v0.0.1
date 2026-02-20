@@ -3,12 +3,16 @@
 # Restore a single table from backup
 # Reference: docs/runbooks/database-recovery.md §3.3
 # Task: F0.7.1.T004
+#
+# NOTE: PostgreSQL runs natively on CT107 (10.0.1.107:5432), NOT in a Docker container.
+# Redis runs on the orchestrator (10.0.0.2:6379), accessed via HAProxy VIP 10.0.1.10:6379.
 
 set -euo pipefail
 
 LOG_FILE="/var/log/cerniq/restore_table.log"
-CONTAINER="cerniq-postgres"
-DB_USER="c3rn1q"
+PG_HOST="10.0.1.107"
+PG_PORT="5432"
+DB_USER="cerniq"
 DB_NAME="cerniq"
 BACKUP_DIR="/var/backups/cerniq/postgresql"
 
@@ -43,10 +47,12 @@ EOF
 
 list_backups() {
     echo "=== Critical Table Backups (hourly) ==="
+    # shellcheck disable=SC2012
     ls -lh "$BACKUP_DIR/critical/"*.dump 2>/dev/null | tail -10 || echo "No critical backups found"
     
     echo ""
     echo "=== Daily Full Backups ==="
+    # shellcheck disable=SC2012
     ls -lh "$BACKUP_DIR/daily/"*.dump 2>/dev/null | tail -5 || echo "No daily backups found"
 }
 
@@ -118,14 +124,14 @@ log "Starting restore for table: $TABLE_NAME"
 # Find backup file if not specified
 if [[ -z "$BACKUP_FILE" ]]; then
     # First, check critical backups for this specific table
-    CRITICAL_BACKUP=$(ls -t "$BACKUP_DIR/critical/${TABLE_NAME}_"*.dump 2>/dev/null | head -1)
+    CRITICAL_BACKUP=$(find "$BACKUP_DIR/critical/" -maxdepth 1 -name "${TABLE_NAME}_*.dump" -type f -printf '%T@\t%p\n' 2>/dev/null | sort -rn | head -1 | cut -f2-)
     
     if [[ -n "$CRITICAL_BACKUP" && -f "$CRITICAL_BACKUP" ]]; then
         BACKUP_FILE="$CRITICAL_BACKUP"
         log "Using critical table backup: $BACKUP_FILE"
     else
         # Use latest daily full dump
-        BACKUP_FILE=$(ls -t "$BACKUP_DIR/daily/"*.dump 2>/dev/null | head -1)
+        BACKUP_FILE=$(find "$BACKUP_DIR/daily/" -maxdepth 1 -name "*.dump" -type f -printf '%T@\t%p\n' 2>/dev/null | sort -rn | head -1 | cut -f2-)
         log "Using daily full backup: $BACKUP_FILE"
     fi
 fi
@@ -163,7 +169,7 @@ TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 CURRENT_BACKUP="$BACKUP_DIR/critical/${TABLE_NAME}_pre_restore_${TIMESTAMP}.dump"
 
 log "Backing up current table state to $CURRENT_BACKUP"
-docker exec "$CONTAINER" pg_dump \
+pg_dump -h "$PG_HOST" -p "$PG_PORT" \
     -U "$DB_USER" \
     -d "$DB_NAME" \
     --table="$TABLE_NAME" \
@@ -171,7 +177,7 @@ docker exec "$CONTAINER" pg_dump \
     > "$CURRENT_BACKUP" 2>> "$LOG_FILE" || true
 
 # Build restore command
-RESTORE_CMD="pg_restore -U $DB_USER -d $DB_NAME --table=$TABLE_NAME"
+RESTORE_CMD="pg_restore -h $PG_HOST -p $PG_PORT -U $DB_USER -d $DB_NAME --table=$TABLE_NAME"
 
 if $DATA_ONLY; then
     RESTORE_CMD="$RESTORE_CMD --data-only"
@@ -186,24 +192,17 @@ RESTORE_CMD="$RESTORE_CMD --single-transaction"
 # Execute restore
 log "Executing restore..."
 
-# Copy backup file to container temp
-docker cp "$BACKUP_FILE" "${CONTAINER}:/tmp/restore_backup.dump"
-
-# Run restore
-docker exec "$CONTAINER" $RESTORE_CMD /tmp/restore_backup.dump 2>&1 | tee -a "$LOG_FILE"
+$RESTORE_CMD "$BACKUP_FILE" 2>&1 | tee -a "$LOG_FILE"
 RESTORE_RC=${PIPESTATUS[0]}
-
-# Cleanup
-docker exec "$CONTAINER" rm -f /tmp/restore_backup.dump
 
 if [[ $RESTORE_RC -eq 0 ]]; then
     log "Table restore completed successfully"
     
     # Show row count
-    ROW_COUNT=$(docker exec "$CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -t -c "SELECT count(*) FROM $TABLE_NAME" 2>/dev/null | xargs)
+    ROW_COUNT=$(psql -h "$PG_HOST" -p "$PG_PORT" -U "$DB_USER" -d "$DB_NAME" -t -c "SELECT count(*) FROM $TABLE_NAME" 2>/dev/null | xargs)
     log "Table $TABLE_NAME now has $ROW_COUNT rows"
 else
     log "ERROR: Restore failed with code $RESTORE_RC"
     log "Previous table state saved at: $CURRENT_BACKUP"
-    exit $RESTORE_RC
+    exit "$RESTORE_RC"
 fi

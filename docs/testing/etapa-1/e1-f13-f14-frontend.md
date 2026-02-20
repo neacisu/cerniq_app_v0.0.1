@@ -15,7 +15,7 @@ describe('Dashboard Page', () => {
     expect(screen.getByTestId('total-companies')).toBeInTheDocument();
     expect(screen.getByTestId('active-leads')).toBeInTheDocument();
   });
-  
+
   it('should load data on mount', async () => {
     render(<DashboardPage />);
     await waitFor(() => {
@@ -29,13 +29,13 @@ describe('Companies Page', () => {
     render(<CompaniesPage />);
     expect(screen.getByRole('table')).toBeInTheDocument();
   });
-  
+
   it('should paginate', async () => {
     render(<CompaniesPage />);
     await userEvent.click(screen.getByText('Next'));
     expect(screen.getByText('Page 2')).toBeInTheDocument();
   });
-  
+
   it('should filter by search', async () => {
     render(<CompaniesPage />);
     await userEvent.type(screen.getByPlaceholderText('Search...'), 'AGRO');
@@ -63,7 +63,7 @@ describe('DataTable Component', () => {
     render(<DataTable columns={columns} data={data} />);
     expect(screen.getByText('CUI')).toBeInTheDocument();
   });
-  
+
   it('should sort on column click', async () => {
     render(<DataTable columns={columns} data={data} />);
     await userEvent.click(screen.getByText('Denumire'));
@@ -84,7 +84,7 @@ describe('LeadScoreBadge Component', () => {
     render(<LeadScoreBadge score={85} />);
     expect(screen.getByText('HOT')).toHaveClass('bg-red-500');
   });
-  
+
   it('should show warm for score 50-80', () => {
     render(<LeadScoreBadge score={65} />);
     expect(screen.getByText('WARM')).toHaveClass('bg-orange-500');

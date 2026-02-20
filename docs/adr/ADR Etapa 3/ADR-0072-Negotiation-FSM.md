@@ -6,16 +6,16 @@
 
 **Decision:** **FSM (Finite State Machine)** cu stări și tranziții validate:
 
-| State | Allowed Tools | Next States |
-|-------|---------------|-------------|
-| DISCOVERY | search_products, get_catalog | PROPOSAL, DEAD |
-| PROPOSAL | get_product_details, check_stock | NEGOTIATION, DEAD |
-| NEGOTIATION | calculate_discount, check_stock | CLOSING, DEAD |
-| CLOSING | validate_client, create_proforma | PROFORMA_SENT, NEGOTIATION, DEAD |
-| PROFORMA_SENT | track_proforma, resend | INVOICED, NEGOTIATION, DEAD |
-| INVOICED | convert_to_invoice, send_einvoice | PAID, DEAD |
-| PAID | — (final) | — |
-| DEAD | — (resurrect) | DISCOVERY |
+| State         | Allowed Tools                     | Next States                      |
+| ------------- | --------------------------------- | -------------------------------- |
+| DISCOVERY     | search_products, get_catalog      | PROPOSAL, DEAD                   |
+| PROPOSAL      | get_product_details, check_stock  | NEGOTIATION, DEAD                |
+| NEGOTIATION   | calculate_discount, check_stock   | CLOSING, DEAD                    |
+| CLOSING       | validate_client, create_proforma  | PROFORMA_SENT, NEGOTIATION, DEAD |
+| PROFORMA_SENT | track_proforma, resend            | INVOICED, NEGOTIATION, DEAD      |
+| INVOICED      | convert_to_invoice, send_einvoice | PAID, DEAD                       |
+| PAID          | — (final)                         | —                                |
+| DEAD          | — (resurrect)                     | DISCOVERY                        |
 
 **Enforcement:** `validateToolCall()` verifică că tool-ul e permis în starea curentă.
 

@@ -1,5 +1,7 @@
 # CERNIQ.APP — ETAPA 5: UI FORMS & DIALOGS
+
 ## Complete Form Specifications
+
 ### Versiunea 1.0 | 19 Ianuarie 2026
 
 ---
@@ -7,40 +9,47 @@
 ## 1. Referral Forms
 
 ### CreateReferralForm
+
 ```typescript
 interface CreateReferralFormData {
-  referrerClientId: string;      // Pre-filled from context
-  referredContactName: string;   // Required
-  referredContactPhone: string;  // Optional, Romanian format
-  referredContactEmail: string;  // Optional, email validation
-  referredCompanyName: string;   // Optional
+  referrerClientId: string; // Pre-filled from context
+  referredContactName: string; // Required
+  referredContactPhone: string; // Optional, Romanian format
+  referredContactEmail: string; // Optional, email validation
+  referredCompanyName: string; // Optional
   relationship: ReferralRelationship; // Required dropdown
-  relationshipDetail: string;    // Optional text
-  howTheyKnowUs: string;        // Optional dropdown
-  notes: string;                 // Optional textarea
-  consentConfirmed: boolean;     // Required checkbox
+  relationshipDetail: string; // Optional text
+  howTheyKnowUs: string; // Optional dropdown
+  notes: string; // Optional textarea
+  consentConfirmed: boolean; // Required checkbox
 }
 
 // Form Schema (Zod)
 const createReferralSchema = z.object({
   referrerClientId: z.string().uuid(),
   referredContactName: z.string().min(2).max(200),
-  referredContactPhone: z.string().regex(/^(\+40|0)[0-9]{9}$/).optional(),
+  referredContactPhone: z
+    .string()
+    .regex(/^(\+40|0)[0-9]{9}$/)
+    .optional(),
   referredContactEmail: z.string().email().optional(),
   referredCompanyName: z.string().max(200).optional(),
   relationship: z.enum([
-    'NEIGHBOR', 'FAMILY', 'BUSINESS_PARTNER', 
-    'ASSOCIATION_MEMBER', 'FRIEND', 'OTHER'
+    "NEIGHBOR",
+    "FAMILY",
+    "BUSINESS_PARTNER",
+    "ASSOCIATION_MEMBER",
+    "FRIEND",
+    "OTHER",
   ]),
   relationshipDetail: z.string().max(500).optional(),
-  howTheyKnowUs: z.enum([
-    'RECOMMENDED_BY_US', 'SAW_OUR_WORK', 
-    'HEARD_ABOUT_US', 'OTHER'
-  ]).optional(),
+  howTheyKnowUs: z
+    .enum(["RECOMMENDED_BY_US", "SAW_OUR_WORK", "HEARD_ABOUT_US", "OTHER"])
+    .optional(),
   notes: z.string().max(1000).optional(),
-  consentConfirmed: z.boolean().refine(v => v === true, {
-    message: 'Trebuie să confirmați acordul pentru partajare'
-  })
+  consentConfirmed: z.boolean().refine((v) => v === true, {
+    message: "Trebuie să confirmați acordul pentru partajare",
+  }),
 });
 
 // Layout
@@ -84,9 +93,10 @@ const createReferralSchema = z.object({
 ```
 
 ### ReferralConsentRequestForm
+
 ```typescript
 interface ConsentRequestFormData {
-  channel: 'WHATSAPP' | 'EMAIL';
+  channel: "WHATSAPP" | "EMAIL";
   customMessage: string;
   useTemplate: boolean;
   templateId: string;
@@ -128,11 +138,12 @@ interface ConsentRequestFormData {
 ## 2. Churn Intervention Forms
 
 ### ChurnInterventionForm
+
 ```typescript
 interface ChurnInterventionFormData {
   clientId: string;
   interventionType: InterventionType;
-  priority: 'CRITICAL' | 'HIGH' | 'NORMAL';
+  priority: "CRITICAL" | "HIGH" | "NORMAL";
   scheduledAt: Date | null;
   assignedTo: string | null;
   notes: string;
@@ -142,22 +153,29 @@ interface ChurnInterventionFormData {
 }
 
 // Form Schema
-const churnInterventionSchema = z.object({
-  clientId: z.string().uuid(),
-  interventionType: z.enum(['CALL', 'EMAIL', 'VISIT', 'OFFER', 'ESCALATE']),
-  priority: z.enum(['CRITICAL', 'HIGH', 'NORMAL']),
-  scheduledAt: z.date().optional(),
-  assignedTo: z.string().uuid().optional(),
-  notes: z.string().max(2000),
-  offerType: z.enum(['DISCOUNT', 'CREDIT', 'FREE_SHIPPING', 'GIFT']).optional(),
-  offerValue: z.number().positive().max(50).optional(), // Max 50%
-  offerValidDays: z.number().int().min(7).max(90).default(30)
-}).refine(data => {
-  if (data.interventionType === 'OFFER') {
-    return data.offerType && data.offerValue;
-  }
-  return true;
-}, { message: 'Oferta necesită tip și valoare' });
+const churnInterventionSchema = z
+  .object({
+    clientId: z.string().uuid(),
+    interventionType: z.enum(["CALL", "EMAIL", "VISIT", "OFFER", "ESCALATE"]),
+    priority: z.enum(["CRITICAL", "HIGH", "NORMAL"]),
+    scheduledAt: z.date().optional(),
+    assignedTo: z.string().uuid().optional(),
+    notes: z.string().max(2000),
+    offerType: z
+      .enum(["DISCOUNT", "CREDIT", "FREE_SHIPPING", "GIFT"])
+      .optional(),
+    offerValue: z.number().positive().max(50).optional(), // Max 50%
+    offerValidDays: z.number().int().min(7).max(90).default(30),
+  })
+  .refine(
+    (data) => {
+      if (data.interventionType === "OFFER") {
+        return data.offerType && data.offerValue;
+      }
+      return true;
+    },
+    { message: "Oferta necesită tip și valoare" },
+  );
 
 // Layout
 /*
@@ -215,17 +233,18 @@ const churnInterventionSchema = z.object({
 ## 3. Win-Back Campaign Forms
 
 ### CreateWinBackCampaignForm
+
 ```typescript
 interface CreateWinBackCampaignFormData {
   clientId: string;
   campaignType: WinBackCampaignType;
-  strategy: 'STANDARD' | 'AGGRESSIVE' | 'CUSTOM';
+  strategy: "STANDARD" | "AGGRESSIVE" | "CUSTOM";
   customSteps: WinBackStep[];
   offerType: string | null;
   offerValue: number | null;
   personalizedMessage: string;
   useAiMessage: boolean;
-  messageTone: 'FORMAL' | 'FRIENDLY' | 'URGENT';
+  messageTone: "FORMAL" | "FRIENDLY" | "URGENT";
   startImmediately: boolean;
   scheduledStart: Date | null;
 }
@@ -286,14 +305,15 @@ interface CreateWinBackCampaignFormData {
 ## 4. NPS Survey Forms
 
 ### NPSResponseForm
+
 ```typescript
 interface NPSResponseFormData {
   surveyId: string;
-  npsScore: number;              // 0-10
-  satisfactionScore: number;    // 1-5
+  npsScore: number; // 0-10
+  satisfactionScore: number; // 1-5
   wouldRecommend: boolean;
   feedbackText: string;
-  selectedTopics: string[];     // Predefined topics
+  selectedTopics: string[]; // Predefined topics
 }
 
 // Layout (WhatsApp Interactive / Web)
@@ -334,6 +354,7 @@ interface NPSResponseFormData {
 ## 5. HITL Resolution Forms
 
 ### HITLResolutionForm
+
 ```typescript
 interface HITLResolutionFormData {
   taskId: string;
@@ -347,20 +368,31 @@ interface HITLResolutionFormData {
 }
 
 // Form Schema
-const hitlResolutionSchema = z.object({
-  taskId: z.string().uuid(),
-  decision: z.enum(['APPROVED', 'REJECTED', 'MODIFIED', 'ESCALATED', 'DEFERRED']),
-  notes: z.string().min(10).max(2000),
-  actionTaken: z.string().max(500).optional(),
-  scheduledFollowup: z.date().optional(),
-  assignTo: z.string().uuid().optional(),
-  escalateTo: z.string().uuid().optional()
-}).refine(data => {
-  if (data.decision === 'ESCALATED') {
-    return !!data.escalateTo;
-  }
-  return true;
-}, { message: 'Selectați persoana pentru escalare' });
+const hitlResolutionSchema = z
+  .object({
+    taskId: z.string().uuid(),
+    decision: z.enum([
+      "APPROVED",
+      "REJECTED",
+      "MODIFIED",
+      "ESCALATED",
+      "DEFERRED",
+    ]),
+    notes: z.string().min(10).max(2000),
+    actionTaken: z.string().max(500).optional(),
+    scheduledFollowup: z.date().optional(),
+    assignTo: z.string().uuid().optional(),
+    escalateTo: z.string().uuid().optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.decision === "ESCALATED") {
+        return !!data.escalateTo;
+      }
+      return true;
+    },
+    { message: "Selectați persoana pentru escalare" },
+  );
 
 // Layout
 /*
@@ -410,6 +442,7 @@ const hitlResolutionSchema = z.object({
 ## 6. Cluster Management Forms
 
 ### ManualClusterForm
+
 ```typescript
 interface ManualClusterFormData {
   clusterName: string;

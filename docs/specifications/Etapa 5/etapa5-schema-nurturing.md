@@ -23,7 +23,7 @@
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                    ETAPA 5 - NURTURING SCHEMA                    │
-│                    PostgreSQL 18.1 + PostGIS 3.6.1               │
+│                    PostgreSQL 18.2 + PostGIS 3.6.1               │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
 │  ┌──────────────────────────────────────────────────────────┐   │
@@ -163,63 +163,63 @@ CREATE TYPE hitl_task_type_e5_enum AS ENUM (
 CREATE TABLE gold_nurturing_state (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL REFERENCES tenants(id),
-    
+
     -- Client Reference
     client_id UUID NOT NULL REFERENCES gold_clients(id),
-    
+
     -- Current State
     current_state nurturing_state_enum NOT NULL DEFAULT 'ONBOARDING',
     previous_state nurturing_state_enum,
     state_changed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    
+
     -- Lifecycle Timestamps
     onboarding_started_at TIMESTAMPTZ,
     onboarding_completed_at TIMESTAMPTZ,
     first_order_at TIMESTAMPTZ,
     last_order_at TIMESTAMPTZ,
     last_interaction_at TIMESTAMPTZ,
-    
+
     -- Engagement Metrics
     total_orders INTEGER DEFAULT 0,
     total_revenue DECIMAL(15,2) DEFAULT 0,
     average_order_value DECIMAL(15,2) DEFAULT 0,
     order_frequency_days DECIMAL(5,1),
-    
+
     -- NPS & Satisfaction
     nps_score INTEGER,
     last_nps_survey_at TIMESTAMPTZ,
     nps_category VARCHAR(20),
     satisfaction_trend VARCHAR(20),
-    
+
     -- Churn Risk
     churn_risk_score DECIMAL(5,2),
     churn_risk_level VARCHAR(20),
     days_since_last_order INTEGER,
     is_at_risk BOOLEAN DEFAULT FALSE,
     at_risk_since TIMESTAMPTZ,
-    
+
     -- Referral Potential
     referral_count INTEGER DEFAULT 0,
     successful_referrals INTEGER DEFAULT 0,
     is_advocate BOOLEAN DEFAULT FALSE,
     advocate_since TIMESTAMPTZ,
     kol_score DECIMAL(5,2),
-    
+
     -- Communication
     preferred_channel VARCHAR(20),
     communication_frequency VARCHAR(20),
     last_content_sent_at TIMESTAMPTZ,
     content_engagement_rate DECIMAL(5,2),
-    
+
     -- Geographic Context
     geographic_cluster_id UUID REFERENCES gold_clusters(id),
     neighbor_count INTEGER DEFAULT 0,
-    
+
     -- Metadata
     assigned_account_manager UUID REFERENCES users(id),
     tags JSONB DEFAULT '[]',
     notes TEXT,
-    
+
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -227,9 +227,9 @@ CREATE TABLE gold_nurturing_state (
 -- Indexes
 CREATE UNIQUE INDEX idx_nurturing_state_unique ON gold_nurturing_state(tenant_id, client_id);
 CREATE INDEX idx_nurturing_state_current ON gold_nurturing_state(tenant_id, current_state);
-CREATE INDEX idx_nurturing_state_churn ON gold_nurturing_state(tenant_id, churn_risk_score DESC) 
+CREATE INDEX idx_nurturing_state_churn ON gold_nurturing_state(tenant_id, churn_risk_score DESC)
     WHERE is_at_risk = TRUE;
-CREATE INDEX idx_nurturing_state_advocate ON gold_nurturing_state(tenant_id, kol_score DESC) 
+CREATE INDEX idx_nurturing_state_advocate ON gold_nurturing_state(tenant_id, kol_score DESC)
     WHERE is_advocate = TRUE;
 CREATE INDEX idx_nurturing_state_last_order ON gold_nurturing_state(tenant_id, last_order_at DESC);
 ```
@@ -242,54 +242,54 @@ CREATE INDEX idx_nurturing_state_last_order ON gold_nurturing_state(tenant_id, l
 CREATE TABLE gold_nurturing_actions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL REFERENCES tenants(id),
-    
+
     -- References
     nurturing_state_id UUID NOT NULL REFERENCES gold_nurturing_state(id),
     client_id UUID NOT NULL REFERENCES gold_clients(id),
-    
+
     -- Action Type
     action_type VARCHAR(50) NOT NULL,
     action_category VARCHAR(30) NOT NULL,
-    
+
     -- Trigger
     trigger_type VARCHAR(30) NOT NULL,
     trigger_event VARCHAR(100),
     trigger_data JSONB,
-    
+
     -- Channel
     channel VARCHAR(20) NOT NULL,
-    
+
     -- Content
     content_template_id UUID,
     content_subject VARCHAR(255),
     content_body TEXT,
     content_personalization JSONB,
-    
+
     -- Status
     status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
-    
+
     -- Response
     response_received BOOLEAN DEFAULT FALSE,
     response_at TIMESTAMPTZ,
     response_content TEXT,
     response_sentiment VARCHAR(20),
-    
+
     -- Tracking
     message_id VARCHAR(255),
     delivered_at TIMESTAMPTZ,
     opened_at TIMESTAMPTZ,
     clicked_at TIMESTAMPTZ,
-    
+
     -- Error Handling
     error_code VARCHAR(50),
     error_message TEXT,
     retry_count INTEGER DEFAULT 0,
-    
+
     -- Correlation
     correlation_id UUID,
     batch_id UUID,
     campaign_id UUID,
-    
+
     -- Timestamps
     scheduled_at TIMESTAMPTZ,
     executed_at TIMESTAMPTZ,
@@ -297,12 +297,12 @@ CREATE TABLE gold_nurturing_actions (
 ) PARTITION BY RANGE (created_at);
 
 -- Create partitions
-CREATE TABLE gold_nurturing_actions_2026_01 
-    PARTITION OF gold_nurturing_actions 
+CREATE TABLE gold_nurturing_actions_2026_01
+    PARTITION OF gold_nurturing_actions
     FOR VALUES FROM ('2026-01-01') TO ('2026-02-01');
 
-CREATE TABLE gold_nurturing_actions_2026_02 
-    PARTITION OF gold_nurturing_actions 
+CREATE TABLE gold_nurturing_actions_2026_02
+    PARTITION OF gold_nurturing_actions
     FOR VALUES FROM ('2026-02-01') TO ('2026-03-01');
 
 -- Indexes
@@ -319,41 +319,41 @@ CREATE INDEX idx_nurturing_actions_status ON gold_nurturing_actions(status, sche
 CREATE TABLE gold_nps_surveys (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL REFERENCES tenants(id),
-    
+
     -- Client
     client_id UUID NOT NULL REFERENCES gold_clients(id),
     nurturing_state_id UUID REFERENCES gold_nurturing_state(id),
-    
+
     -- Survey Context
     survey_type VARCHAR(30) NOT NULL,
     trigger_event VARCHAR(50),
     related_order_id UUID REFERENCES gold_orders(id),
-    
+
     -- Delivery
     sent_via VARCHAR(20) NOT NULL,
     sent_at TIMESTAMPTZ NOT NULL,
     message_id VARCHAR(255),
-    
+
     -- Response
     responded BOOLEAN DEFAULT FALSE,
     responded_at TIMESTAMPTZ,
-    
+
     -- NPS Score (0-10)
     nps_rating INTEGER CHECK (nps_rating >= 0 AND nps_rating <= 10),
     nps_category VARCHAR(20),
-    
+
     -- Qualitative Feedback
     open_feedback TEXT,
     feedback_sentiment VARCHAR(20),
     feedback_topics JSONB DEFAULT '[]',
-    
+
     -- Follow-up
     requires_followup BOOLEAN DEFAULT FALSE,
     followup_reason VARCHAR(100),
     followup_hitl_task_id UUID,
     followed_up_at TIMESTAMPTZ,
     followup_outcome TEXT,
-    
+
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -373,46 +373,46 @@ CREATE INDEX idx_nps_category ON gold_nps_surveys(tenant_id, nps_category);
 CREATE TABLE gold_content_drips (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL REFERENCES tenants(id),
-    
+
     -- Content Definition
     content_name VARCHAR(100) NOT NULL,
     content_type content_type_enum NOT NULL,
-    
+
     -- Target Audience
     target_state nurturing_state_enum[],
     target_segments JSONB DEFAULT '[]',
-    
+
     -- Channel Configuration
     primary_channel VARCHAR(20) NOT NULL,
     fallback_channel VARCHAR(20),
-    
+
     -- Timing
     drip_sequence INTEGER NOT NULL,
     days_after_trigger INTEGER NOT NULL,
     preferred_time TIME,
     preferred_days INTEGER[] DEFAULT '{1,2,3,4,5}',
-    
+
     -- Content Templates
     email_template_id UUID,
     whatsapp_template_name VARCHAR(100),
     sms_template TEXT,
-    
+
     -- Personalization
     personalization_fields JSONB DEFAULT '[]',
     dynamic_content_rules JSONB,
-    
+
     -- Conditions
     skip_if_conditions JSONB,
     prerequisite_content_ids UUID[],
-    
+
     -- Tracking
     total_sent INTEGER DEFAULT 0,
     total_opened INTEGER DEFAULT 0,
     total_clicked INTEGER DEFAULT 0,
     total_converted INTEGER DEFAULT 0,
-    
+
     is_active BOOLEAN DEFAULT TRUE,
-    
+
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

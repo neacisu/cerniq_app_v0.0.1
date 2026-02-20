@@ -7,12 +7,12 @@
 **Decision:** Playwright-based scraping cu stealth:
 
 ```typescript
-import { chromium } from 'playwright';
-import StealthPlugin from 'playwright-extra-plugin-stealth';
+import { chromium } from "playwright";
+import StealthPlugin from "playwright-extra-plugin-stealth";
 
 const browser = await chromium.launch({
   headless: true,
-  args: ['--no-sandbox'],
+  args: ["--no-sandbox"],
 });
 
 // Respectăm robots.txt și ToS

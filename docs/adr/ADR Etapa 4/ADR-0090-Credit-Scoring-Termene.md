@@ -13,13 +13,13 @@
 
 **Scoring Formula:**
 
-| Component | Points |
-| ----------- | ------ |
-| ANAF Status | 15 |
-| Financial Health | 30 |
-| Payment History (intern) | 25 |
-| BPI Status | 20 |
-| Litigation Risk | 10 |
+| Component                | Points |
+| ------------------------ | ------ |
+| ANAF Status              | 15     |
+| Financial Health         | 30     |
+| Payment History (intern) | 25     |
+| BPI Status               | 20     |
+| Litigation Risk          | 10     |
 
 **Consequences:**
 

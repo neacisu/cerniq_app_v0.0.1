@@ -14,8 +14,8 @@ CREATE POLICY tenant_isolation_bronze ON bronze_contacts
 FOR ALL USING (tenant_id = current_setting('app.current_tenant_id')::uuid);
 
 -- UNIQUE constraints includ tenant_id
-ALTER TABLE silver_companies 
-ADD CONSTRAINT uq_silver_companies_cui 
+ALTER TABLE silver_companies
+ADD CONSTRAINT uq_silver_companies_cui
 UNIQUE (tenant_id, cui);
 ```
 

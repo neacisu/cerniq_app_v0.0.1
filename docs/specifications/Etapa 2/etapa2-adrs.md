@@ -10,23 +10,23 @@
 
 Acest document oferă o privire de ansamblu asupra tuturor Architecture Decision Records pentru Etapa 2 (Cold Outreach Multi-Canal).
 
-| ADR ID | Titlu | Path |
-| ------ | ----- | ---- |
-| ADR-0053 | Multi-Channel Outreach Strategy | [ADR-0053](../../adr/ADR%20Etapa%202/ADR-0053-Multi-Channel-Outreach-Strategy.md) |
-| ADR-0054 | Quota Guardian Pattern | [ADR-0054](../../adr/ADR%20Etapa%202/ADR-0054-Quota-Guardian-Pattern.md) |
-| ADR-0055 | Sticky Phone Assignment | [ADR-0055](../../adr/ADR%20Etapa%202/ADR-0055-Sticky-Phone-Assignment.md) |
-| ADR-0056 | Business Hours Enforcement | [ADR-0056](../../adr/ADR%20Etapa%202/ADR-0056-Business-Hours-Enforcement.md) |
-| ADR-0057 | Jitter Pattern for Human Behavior | [ADR-0057](../../adr/ADR%20Etapa%202/ADR-0057-Jitter-Pattern-for-Human-Behavior.md) |
-| ADR-0058 | Spintax for Message Uniqueness | [ADR-0058](../../adr/ADR%20Etapa%202/ADR-0058-Spintax-for-Message-Uniqueness.md) |
-| ADR-0059 | Channel Segregation (Cold vs Warm) | [ADR-0059](../../adr/ADR%20Etapa%202/ADR-0059-Channel-Segregation-Cold-vs-Warm.md) |
-| ADR-0060 | Head-of-Line Blocking Prevention | [ADR-0060](../../adr/ADR%20Etapa%202/ADR-0060-Head-of-Line-Blocking-Prevention.md) |
-| ADR-0061 | Webhook Normalization Pattern | [ADR-0061](../../adr/ADR%20Etapa%202/ADR-0061-Webhook-Normalization-Pattern.md) |
-| ADR-0062 | Lead State Machine | [ADR-0062](../../adr/ADR%20Etapa%202/ADR-0062-Lead-State-Machine.md) |
-| ADR-0063 | Sentiment-Based Routing | [ADR-0063](../../adr/ADR%20Etapa%202/ADR-0063-Sentiment-Based-Routing.md) |
-| ADR-0064 | Human Takeover Protocol | [ADR-0064](../../adr/ADR%20Etapa%202/ADR-0064-Human-Takeover-Protocol.md) |
-| ADR-0065 | Sequence-Based Follow-up | [ADR-0065](../../adr/ADR%20Etapa%202/ADR-0065-Sequence-Based-Follow-up.md) |
-| ADR-0066 | Circuit Breaker for Bounce Rate | [ADR-0066](../../adr/ADR%20Etapa%202/ADR-0066-Circuit-Breaker-for-Bounce-Rate.md) |
-| ADR-0067 | Phone Health Monitoring | [ADR-0067](../../adr/ADR%20Etapa%202/ADR-0067-Phone-Health-Monitoring.md) |
+| ADR ID   | Titlu                              | Path                                                                                |
+| -------- | ---------------------------------- | ----------------------------------------------------------------------------------- |
+| ADR-0053 | Multi-Channel Outreach Strategy    | [ADR-0053](../../adr/ADR%20Etapa%202/ADR-0053-Multi-Channel-Outreach-Strategy.md)   |
+| ADR-0054 | Quota Guardian Pattern             | [ADR-0054](../../adr/ADR%20Etapa%202/ADR-0054-Quota-Guardian-Pattern.md)            |
+| ADR-0055 | Sticky Phone Assignment            | [ADR-0055](../../adr/ADR%20Etapa%202/ADR-0055-Sticky-Phone-Assignment.md)           |
+| ADR-0056 | Business Hours Enforcement         | [ADR-0056](../../adr/ADR%20Etapa%202/ADR-0056-Business-Hours-Enforcement.md)        |
+| ADR-0057 | Jitter Pattern for Human Behavior  | [ADR-0057](../../adr/ADR%20Etapa%202/ADR-0057-Jitter-Pattern-for-Human-Behavior.md) |
+| ADR-0058 | Spintax for Message Uniqueness     | [ADR-0058](../../adr/ADR%20Etapa%202/ADR-0058-Spintax-for-Message-Uniqueness.md)    |
+| ADR-0059 | Channel Segregation (Cold vs Warm) | [ADR-0059](../../adr/ADR%20Etapa%202/ADR-0059-Channel-Segregation-Cold-vs-Warm.md)  |
+| ADR-0060 | Head-of-Line Blocking Prevention   | [ADR-0060](../../adr/ADR%20Etapa%202/ADR-0060-Head-of-Line-Blocking-Prevention.md)  |
+| ADR-0061 | Webhook Normalization Pattern      | [ADR-0061](../../adr/ADR%20Etapa%202/ADR-0061-Webhook-Normalization-Pattern.md)     |
+| ADR-0062 | Lead State Machine                 | [ADR-0062](../../adr/ADR%20Etapa%202/ADR-0062-Lead-State-Machine.md)                |
+| ADR-0063 | Sentiment-Based Routing            | [ADR-0063](../../adr/ADR%20Etapa%202/ADR-0063-Sentiment-Based-Routing.md)           |
+| ADR-0064 | Human Takeover Protocol            | [ADR-0064](../../adr/ADR%20Etapa%202/ADR-0064-Human-Takeover-Protocol.md)           |
+| ADR-0065 | Sequence-Based Follow-up           | [ADR-0065](../../adr/ADR%20Etapa%202/ADR-0065-Sequence-Based-Follow-up.md)          |
+| ADR-0066 | Circuit Breaker for Bounce Rate    | [ADR-0066](../../adr/ADR%20Etapa%202/ADR-0066-Circuit-Breaker-for-Bounce-Rate.md)   |
+| ADR-0067 | Phone Health Monitoring            | [ADR-0067](../../adr/ADR%20Etapa%202/ADR-0067-Phone-Health-Monitoring.md)           |
 
 ---
 

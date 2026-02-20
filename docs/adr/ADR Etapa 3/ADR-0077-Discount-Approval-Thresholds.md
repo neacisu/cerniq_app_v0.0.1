@@ -6,12 +6,12 @@
 
 **Decision:** **HITL Workflow** pentru discounturi peste threshold:
 
-| Discount | Approval |
-|----------|----------|
-| ≤15% | Auto-approved |
-| 15-30% | Manager approval (SLA 4h) |
-| 30-50% | Director approval (SLA 24h) |
-| >50% | Rejected (absolute max) |
+| Discount | Approval                    |
+| -------- | --------------------------- |
+| ≤15%     | Auto-approved               |
+| 15-30%   | Manager approval (SLA 4h)   |
+| 30-50%   | Director approval (SLA 24h) |
+| >50%     | Rejected (absolute max)     |
 
 **Implementation:**
 

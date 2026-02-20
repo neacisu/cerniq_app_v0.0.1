@@ -8,14 +8,14 @@
 
 Cerniq.app integrează multiple provideri externi pentru funcționalități critice:
 
-| Funcționalitate | Provider Actual | Alternativă |
-| --------------- | --------------- | ----------- |
-| WhatsApp Messaging | TimelinesAI | Twilio, Meta Cloud API |
-| Email Transactional | Resend | SendGrid, Mailgun |
-| Email Warmup | Instantly.ai | Warmup Inbox |
-| Invoicing | Oblio.eu | SmartBill, FGO |
-| Payments | Revolut Business | Stripe, PayU |
-| Fiscal Data | ANAF + Termene.ro | ListaFirme.ro |
+| Funcționalitate     | Provider Actual   | Alternativă            |
+| ------------------- | ----------------- | ---------------------- |
+| WhatsApp Messaging  | TimelinesAI       | Twilio, Meta Cloud API |
+| Email Transactional | Resend            | SendGrid, Mailgun      |
+| Email Warmup        | Instantly.ai      | Warmup Inbox           |
+| Invoicing           | Oblio.eu          | SmartBill, FGO         |
+| Payments            | Revolut Business  | Stripe, PayU           |
+| Fiscal Data         | ANAF + Termene.ro | ListaFirme.ro          |
 
 ### Problema
 
@@ -71,22 +71,22 @@ Implementăm **Provider Abstraction Layer** folosind Interface Segregation și D
 // lib/providers/interfaces/messaging.interface.ts
 export interface IMessagingProvider {
   readonly name: string;
-  
+
   sendMessage(params: SendMessageParams): Promise<SendMessageResult>;
   getMessageStatus(messageId: string): Promise<MessageStatus>;
   handleWebhook(payload: unknown): Promise<WebhookResult>;
 }
 
 export interface SendMessageParams {
-  to: string;           // Phone number E.164
-  content: string;      // Message text
-  mediaUrl?: string;    // Optional media
+  to: string; // Phone number E.164
+  content: string; // Message text
+  mediaUrl?: string; // Optional media
   metadata?: Record<string, string>;
 }
 
 export interface SendMessageResult {
   messageId: string;
-  status: 'queued' | 'sent' | 'failed';
+  status: "queued" | "sent" | "failed";
   providerMessageId?: string;
   error?: string;
 }
@@ -96,7 +96,7 @@ export interface SendMessageResult {
 // lib/providers/interfaces/email.interface.ts
 export interface IEmailProvider {
   readonly name: string;
-  
+
   sendEmail(params: SendEmailParams): Promise<SendEmailResult>;
   getEmailStatus(emailId: string): Promise<EmailStatus>;
   handleWebhook(payload: unknown): Promise<WebhookResult>;
@@ -117,7 +117,7 @@ export interface SendEmailParams {
 // lib/providers/interfaces/fiscal.interface.ts
 export interface IFiscalDataProvider {
   readonly name: string;
-  
+
   getCompanyInfo(cui: string): Promise<CompanyInfo>;
   getTvaStatus(cui: string): Promise<TvaStatus>;
   getFinancialData(cui: string): Promise<FinancialData>;
@@ -129,24 +129,24 @@ export interface IFiscalDataProvider {
 ```typescript
 // lib/providers/implementations/timelines-ai.provider.ts
 export class TimelinesAIProvider implements IMessagingProvider {
-  readonly name = 'TimelinesAI';
-  
+  readonly name = "TimelinesAI";
+
   constructor(private readonly config: TimelinesAIConfig) {}
-  
+
   async sendMessage(params: SendMessageParams): Promise<SendMessageResult> {
-    const response = await this.client.post('/messages', {
+    const response = await this.client.post("/messages", {
       phone: params.to,
       message: params.content,
       // TimelinesAI-specific fields
     });
-    
+
     return {
       messageId: generateId(),
-      status: 'sent',
+      status: "sent",
       providerMessageId: response.data.id,
     };
   }
-  
+
   // ... other methods
 }
 ```
@@ -155,17 +155,17 @@ export class TimelinesAIProvider implements IMessagingProvider {
 
 ```typescript
 // lib/providers/container.ts
-import { Container } from 'inversify';
+import { Container } from "inversify";
 
 const container = new Container();
 
 // Register based on environment/config
-if (process.env.MESSAGING_PROVIDER === 'timelines') {
-  container.bind<IMessagingProvider>('IMessagingProvider')
+if (process.env.MESSAGING_PROVIDER === "timelines") {
+  container
+    .bind<IMessagingProvider>("IMessagingProvider")
     .to(TimelinesAIProvider);
-} else if (process.env.MESSAGING_PROVIDER === 'twilio') {
-  container.bind<IMessagingProvider>('IMessagingProvider')
-    .to(TwilioProvider);
+} else if (process.env.MESSAGING_PROVIDER === "twilio") {
+  container.bind<IMessagingProvider>("IMessagingProvider").to(TwilioProvider);
 }
 
 export { container };
@@ -175,22 +175,22 @@ export { container };
 
 ```typescript
 // workers/outreach/whatsapp-sender.worker.ts
-import { inject, injectable } from 'inversify';
+import { inject, injectable } from "inversify";
 
 @injectable()
 export class WhatsAppSenderWorker {
   constructor(
-    @inject('IMessagingProvider') 
-    private readonly messaging: IMessagingProvider
+    @inject("IMessagingProvider")
+    private readonly messaging: IMessagingProvider,
   ) {}
-  
+
   async process(job: Job) {
     // Provider-agnostic code
     const result = await this.messaging.sendMessage({
       to: job.data.phone,
       content: job.data.message,
     });
-    
+
     return result;
   }
 }

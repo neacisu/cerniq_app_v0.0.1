@@ -18,9 +18,9 @@ Cerniq.app is a B2B sales automation platform for the Romanian agricultural mark
 
 **Backend:**
 
-- Node.js 24.12.0 LTS "Krypton"
+- Node.js 24.13.1 LTS "Krypton"
 - Python 3.14.2 Free-Threading
-- PostgreSQL 18.1 (pgvector 0.8.1, PostGIS 3.6.1)
+- PostgreSQL 18.2 (pgvector 0.8.1, PostGIS 3.6.1)
 - Redis 8.4.0
 - BullMQ 5.66.5
 - Fastify 5.6.2
@@ -113,13 +113,13 @@ When generating code that handles AI outputs:
 
 ## Rate Limits
 
-| Provider    | Limit  |
-| ----------- | ------ |
+| Provider    | Limit                       |
+| ----------- | --------------------------- |
 | ANAF API    | 1/sec (max 100 CUI/request) |
-| Termene.ro  | 20/sec |
-| Hunter.io   | 15/sec |
-| TimelinesAI | 50/min |
-| xAI Grok    | 60/min |
+| Termene.ro  | 20/sec                      |
+| Hunter.io   | 15/sec                      |
+| TimelinesAI | 50/min                      |
+| xAI Grok    | 60/min                      |
 
 ## Event Contract
 

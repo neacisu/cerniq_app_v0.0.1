@@ -12,52 +12,58 @@
 
 ```typescript
 // metrics/outreach.metrics.ts
-import { metrics } from '@opentelemetry/api';
+import { metrics } from "@opentelemetry/api";
 
-const meter = metrics.getMeter('cerniq-outreach');
+const meter = metrics.getMeter("cerniq-outreach");
 
 // ============================================
 // QUOTA METRICS
 // ============================================
 
-export const quotaUsage = meter.createUpDownCounter('cerniq_outreach_wa_quota_usage', {
-  description: 'Current WhatsApp quota usage per phone',
-  unit: '1'
-});
+export const quotaUsage = meter.createUpDownCounter(
+  "cerniq_outreach_wa_quota_usage",
+  {
+    description: "Current WhatsApp quota usage per phone",
+    unit: "1",
+  },
+);
 
-export const quotaCheckTotal = meter.createCounter('cerniq_outreach_quota_check_total', {
-  description: 'Total quota checks performed',
-});
+export const quotaCheckTotal = meter.createCounter(
+  "cerniq_outreach_quota_check_total",
+  {
+    description: "Total quota checks performed",
+  },
+);
 
 // ============================================
 // MESSAGE METRICS
 // ============================================
 
 export const messagesSent = new Counter({
-  name: 'cerniq_outreach_messages_sent_total',
-  help: 'Total messages sent',
-  labelNames: ['channel', 'type', 'tenant_id'],
+  name: "cerniq_outreach_messages_sent_total",
+  help: "Total messages sent",
+  labelNames: ["channel", "type", "tenant_id"],
   registers: [register],
 });
 
 export const messagesDelivered = new Counter({
-  name: 'cerniq_outreach_messages_delivered_total',
-  help: 'Total messages delivered',
-  labelNames: ['channel', 'tenant_id'],
+  name: "cerniq_outreach_messages_delivered_total",
+  help: "Total messages delivered",
+  labelNames: ["channel", "tenant_id"],
   registers: [register],
 });
 
 export const repliesReceived = new Counter({
-  name: 'cerniq_outreach_replies_received_total',
-  help: 'Total replies received',
-  labelNames: ['channel', 'sentiment', 'tenant_id'],
+  name: "cerniq_outreach_replies_received_total",
+  help: "Total replies received",
+  labelNames: ["channel", "sentiment", "tenant_id"],
   registers: [register],
 });
 
 export const bounces = new Counter({
-  name: 'cerniq_outreach_bounces_total',
-  help: 'Total bounced messages',
-  labelNames: ['channel', 'bounce_type', 'tenant_id'],
+  name: "cerniq_outreach_bounces_total",
+  help: "Total bounced messages",
+  labelNames: ["channel", "bounce_type", "tenant_id"],
   registers: [register],
 });
 
@@ -70,17 +76,17 @@ export const bounces = new Counter({
 // See `etapa0-monitoring-api-spec.md`.
 
 export const jobProcessingDuration = new Histogram({
-  name: 'cerniq_outreach_job_processing_seconds',
-  help: 'Job processing duration in seconds',
-  labelNames: ['queue_name', 'status'],
+  name: "cerniq_outreach_job_processing_seconds",
+  help: "Job processing duration in seconds",
+  labelNames: ["queue_name", "status"],
   buckets: [0.1, 0.5, 1, 2, 5, 10, 30, 60, 120],
   registers: [register],
 });
 
 export const jobRetries = new Counter({
-  name: 'cerniq_outreach_job_retries_total',
-  help: 'Total job retries',
-  labelNames: ['queue_name', 'error_type'],
+  name: "cerniq_outreach_job_retries_total",
+  help: "Total job retries",
+  labelNames: ["queue_name", "error_type"],
   registers: [register],
 });
 
@@ -89,16 +95,16 @@ export const jobRetries = new Counter({
 // ============================================
 
 export const phoneStatus = new Gauge({
-  name: 'cerniq_outreach_phone_status',
-  help: 'Phone status (1=active, 0=inactive)',
-  labelNames: ['phone_id', 'phone_label', 'status'],
+  name: "cerniq_outreach_phone_status",
+  help: "Phone status (1=active, 0=inactive)",
+  labelNames: ["phone_id", "phone_label", "status"],
   registers: [register],
 });
 
 export const phoneResponseTime = new Histogram({
-  name: 'cerniq_outreach_phone_response_seconds',
-  help: 'Phone API response time',
-  labelNames: ['phone_id'],
+  name: "cerniq_outreach_phone_response_seconds",
+  help: "Phone API response time",
+  labelNames: ["phone_id"],
   buckets: [0.1, 0.25, 0.5, 1, 2, 5],
   registers: [register],
 });
@@ -108,24 +114,24 @@ export const phoneResponseTime = new Histogram({
 // ============================================
 
 export const reviewQueueSize = new Gauge({
-  name: 'cerniq_outreach_review_queue_size',
-  help: 'Current review queue size',
-  labelNames: ['priority', 'status'],
+  name: "cerniq_outreach_review_queue_size",
+  help: "Current review queue size",
+  labelNames: ["priority", "status"],
   registers: [register],
 });
 
 export const reviewResolutionTime = new Histogram({
-  name: 'cerniq_outreach_review_resolution_seconds',
-  help: 'Time to resolve reviews',
-  labelNames: ['priority', 'action'],
+  name: "cerniq_outreach_review_resolution_seconds",
+  help: "Time to resolve reviews",
+  labelNames: ["priority", "action"],
   buckets: [60, 300, 900, 3600, 14400, 86400],
   registers: [register],
 });
 
 export const slaBreach = new Counter({
-  name: 'cerniq_outreach_sla_breach_total',
-  help: 'Total SLA breaches',
-  labelNames: ['priority'],
+  name: "cerniq_outreach_sla_breach_total",
+  help: "Total SLA breaches",
+  labelNames: ["priority"],
   registers: [register],
 });
 
@@ -134,16 +140,16 @@ export const slaBreach = new Counter({
 // ============================================
 
 export const stageTransitions = new Counter({
-  name: 'cerniq_outreach_stage_transitions_total',
-  help: 'Lead stage transitions',
-  labelNames: ['from_stage', 'to_stage', 'tenant_id'],
+  name: "cerniq_outreach_stage_transitions_total",
+  help: "Lead stage transitions",
+  labelNames: ["from_stage", "to_stage", "tenant_id"],
   registers: [register],
 });
 
 export const conversions = new Counter({
-  name: 'cerniq_outreach_conversions_total',
-  help: 'Total conversions',
-  labelNames: ['source_channel', 'tenant_id'],
+  name: "cerniq_outreach_conversions_total",
+  help: "Total conversions",
+  labelNames: ["source_channel", "tenant_id"],
   registers: [register],
 });
 
@@ -405,17 +411,17 @@ groups:
 ```typescript
 // logger/outreach.logger.ts
 
-import pino from 'pino';
+import pino from "pino";
 
 export const outreachLogger = pino({
-  name: 'cerniq-outreach',
-  level: process.env.LOG_LEVEL || 'info',
+  name: "cerniq-outreach",
+  level: process.env.LOG_LEVEL || "info",
   formatters: {
     level: (label) => ({ level: label }),
   },
   timestamp: pino.stdTimeFunctions.isoTime,
   base: {
-    service: 'outreach',
+    service: "outreach",
     env: process.env.NODE_ENV,
   },
 });
@@ -431,28 +437,31 @@ interface OutreachLogContext {
 
   // Operation
   action: string;
-  channel?: 'WHATSAPP' | 'EMAIL_COLD' | 'EMAIL_WARM';
-  
+  channel?: "WHATSAPP" | "EMAIL_COLD" | "EMAIL_WARM";
+
   // Timing
   durationMs?: number;
-  
+
   // Error context
   errorCode?: string;
   errorMessage?: string;
-  
+
   // Additional metadata
   metadata?: Record<string, any>;
 }
 
 export function logOutreachEvent(
-  level: 'info' | 'warn' | 'error' | 'debug',
+  level: "info" | "warn" | "error" | "debug",
   context: OutreachLogContext,
-  message: string
+  message: string,
 ) {
-  outreachLogger[level]({
-    ...context,
-    timestamp: new Date().toISOString(),
-  }, message);
+  outreachLogger[level](
+    {
+      ...context,
+      timestamp: new Date().toISOString(),
+    },
+    message,
+  );
 }
 
 // Usage examples:
@@ -508,17 +517,25 @@ export async function outreachHealthCheck(): Promise<HealthStatus> {
   // 1. Redis connection
   try {
     await redis.ping();
-    checks.push({ name: 'redis', status: 'healthy' });
+    checks.push({ name: "redis", status: "healthy" });
   } catch {
-    checks.push({ name: 'redis', status: 'unhealthy', error: 'Connection failed' });
+    checks.push({
+      name: "redis",
+      status: "unhealthy",
+      error: "Connection failed",
+    });
   }
 
   // 2. Database connection
   try {
     await db.execute(sql`SELECT 1`);
-    checks.push({ name: 'database', status: 'healthy' });
+    checks.push({ name: "database", status: "healthy" });
   } catch {
-    checks.push({ name: 'database', status: 'unhealthy', error: 'Query failed' });
+    checks.push({
+      name: "database",
+      status: "unhealthy",
+      error: "Query failed",
+    });
   }
 
   // 3. Queue workers
@@ -526,33 +543,38 @@ export async function outreachHealthCheck(): Promise<HealthStatus> {
   for (const [queue, stats] of Object.entries(queueStats)) {
     checks.push({
       name: `queue:${queue}`,
-      status: stats.active > 0 || stats.waiting === 0 ? 'healthy' : 'degraded',
+      status: stats.active > 0 || stats.waiting === 0 ? "healthy" : "degraded",
       details: stats,
     });
   }
 
   // 4. Phone health
   const phones = await db.select().from(waPhoneNumbers);
-  const activePhones = phones.filter(p => p.status === 'ACTIVE').length;
+  const activePhones = phones.filter((p) => p.status === "ACTIVE").length;
   checks.push({
-    name: 'phones',
-    status: activePhones >= 10 ? 'healthy' : activePhones >= 5 ? 'degraded' : 'unhealthy',
+    name: "phones",
+    status:
+      activePhones >= 10
+        ? "healthy"
+        : activePhones >= 5
+          ? "degraded"
+          : "unhealthy",
     details: { active: activePhones, total: phones.length },
   });
 
   // 5. External services
   try {
     await timelinesaiClient.healthCheck();
-    checks.push({ name: 'timelinesai', status: 'healthy' });
+    checks.push({ name: "timelinesai", status: "healthy" });
   } catch {
-    checks.push({ name: 'timelinesai', status: 'unhealthy' });
+    checks.push({ name: "timelinesai", status: "unhealthy" });
   }
 
-  const overall = checks.every(c => c.status === 'healthy') 
-    ? 'healthy' 
-    : checks.some(c => c.status === 'unhealthy')
-      ? 'unhealthy'
-      : 'degraded';
+  const overall = checks.every((c) => c.status === "healthy")
+    ? "healthy"
+    : checks.some((c) => c.status === "unhealthy")
+      ? "unhealthy"
+      : "degraded";
 
   return { overall, checks, timestamp: new Date().toISOString() };
 }

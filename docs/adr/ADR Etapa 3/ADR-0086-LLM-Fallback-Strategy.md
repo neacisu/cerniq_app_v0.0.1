@@ -6,11 +6,11 @@
 
 **Decision:** **Fallback Chain:**
 
-| Priority | Provider | Model |
-| -------- | -------- | ----- |
-| 1 (Primary) | xAI | grok-4 |
-| 2 (Fallback) | OpenAI | gpt-4o |
-| 3 (Backup) | Anthropic | claude-3-sonnet |
+| Priority     | Provider  | Model           |
+| ------------ | --------- | --------------- |
+| 1 (Primary)  | xAI       | grok-4          |
+| 2 (Fallback) | OpenAI    | gpt-4o          |
+| 3 (Backup)   | Anthropic | claude-3-sonnet |
 
 **Implementation:**
 

@@ -20,12 +20,12 @@ Serviciul `monitoring-api` funcționează ca un **Observability Sidecar** pentru
 
 ## 2. TECHNOLOGY STACK
 
-* **Runtime:** Node.js v24 (LTS)
-* **Framework:** Fastify v5.x
-* **Queue Interface:** BullMQ (Read-Only wrappers)
-* **Real-Time:** `@fastify/websocket`
-* **Metrics Storage:** Redis Timeseries (pentru agregate simple) + Query direct către SigNoz (ClickHouse) via API.
-* **Log Aggregation:** OpenTelemetry Auto-Instrumentation.
+- **Runtime:** Node.js v24 (LTS)
+- **Framework:** Fastify v5.x
+- **Queue Interface:** BullMQ (Read-Only wrappers)
+- **Real-Time:** `@fastify/websocket`
+- **Metrics Storage:** Redis (agregate simple) + query catre Prometheus/Loki/Tempo (stack centralizat) via API.
+- **Log Aggregation:** OpenTelemetry Auto-Instrumentation.
 
 ---
 
@@ -34,28 +34,28 @@ Serviciul `monitoring-api` funcționează ca un **Observability Sidecar** pentru
 ```mermaid
 block-beta
   columns 3
-  
+
   block:Sources
     Redis[("Redis (Queues)")]
-    ClickHouse[("ClickHouse (Logs/Traces)")]
+    Observability[("Prometheus/Loki/Tempo (central)")]
     System[("System Stats (CPU/RAM)")]
   end
-  
+
   block:Middleware
     MonAPI["Monitoring API Service"]
     BullAdapter["BullMQ Adapter"]
     TSAdapter["Timeseries Adapter"]
   end
-  
+
   block:Consumers
     AdminUI["Admin UI (React)"]
     Alerts["Slack Alerts"]
   end
 
   Redis --> MonAPI
-  ClickHouse --> MonAPI
+  Observability --> MonAPI
   System --> MonAPI
-  
+
   MonAPI --> AdminUI
   MonAPI --> Alerts
 ```
@@ -66,13 +66,13 @@ block-beta
 
 ### 4.1 REST Endpoints
 
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `GET` | `/health` | Service health check |
-| `GET` | `/api/queues` | Lista sumară a tuturor cozilor active |
-| `GET` | `/api/queues/:name` | Detalii specifice pentru o coadă (jobs counts) |
-| `GET` | `/api/system/metrics` | Agregate curente (CPU load, Memory usage) |
-| `POST` | `/api/control/pause` | (Protected) Emergency Stop pentru o coadă |
+| Method | Endpoint              | Description                                    |
+| :----- | :-------------------- | :--------------------------------------------- |
+| `GET`  | `/health`             | Service health check                           |
+| `GET`  | `/api/queues`         | Lista sumară a tuturor cozilor active          |
+| `GET`  | `/api/queues/:name`   | Detalii specifice pentru o coadă (jobs counts) |
+| `GET`  | `/api/system/metrics` | Agregate curente (CPU load, Memory usage)      |
+| `POST` | `/api/control/pause`  | (Protected) Emergency Stop pentru o coadă      |
 
 ### 4.2 WebSocket Events (`/ws/live`)
 
@@ -108,7 +108,7 @@ Protocol: JSON-RPC style messages over WS.
 ### QueueMetric Schema (Zod)
 
 ```typescript
-import { z } from 'zod';
+import { z } from "zod";
 
 export const QueueMetricSchema = z.object({
   queueName: z.string(),
@@ -117,10 +117,10 @@ export const QueueMetricSchema = z.object({
     active: z.number().int(),
     completed: z.number().int(),
     failed: z.number().int(),
-    delayed: z.number().int()
+    delayed: z.number().int(),
   }),
-  throughput: z.number().describe('Jobs processed per minute (last 5 min avg)'),
-  latency: z.number().describe('Average job duration in ms')
+  throughput: z.number().describe("Jobs processed per minute (last 5 min avg)"),
+  latency: z.number().describe("Average job duration in ms"),
 });
 ```
 
@@ -134,20 +134,22 @@ Vom refolosi conexiunea Redis definită în variabilele de mediu, dar vom instan
 
 ```typescript
 // src/services/queue-monitor.ts
-import { Queue } from 'bullmq';
-import { connection } from '../infra/redis';
+import { Queue } from "bullmq";
+import { connection } from "../infra/redis";
 
 const monitoredQueues = [
-  new Queue('enrichment', { connection }),
-  new Queue('outreach', { connection }),
+  new Queue("enrichment", { connection }),
+  new Queue("outreach", { connection }),
   // ...
 ];
 
 export async function gatherMetrics() {
-  const metrics = await Promise.all(monitoredQueues.map(async (q) => {
-    const counts = await q.getJobCounts();
-    return { name: q.name, counts };
-  }));
+  const metrics = await Promise.all(
+    monitoredQueues.map(async (q) => {
+      const counts = await q.getJobCounts();
+      return { name: q.name, counts };
+    }),
+  );
   return metrics;
 }
 ```
@@ -160,9 +162,9 @@ Monitoring API va avea un interval (ex: 2 secunde) în care colectează metrici 
 // src/plugins/websocket.ts
 setInterval(async () => {
   const metrics = await metricsService.gatherAll();
-  const message = JSON.stringify({ type: 'METRIC_UPDATE', payload: metrics });
-  
-  fastify.websocketServer.clients.forEach(client => {
+  const message = JSON.stringify({ type: "METRIC_UPDATE", payload: metrics });
+
+  fastify.websocketServer.clients.forEach((client) => {
     if (client.readyState === 1) client.send(message);
   });
 }, 2000);
@@ -172,20 +174,20 @@ setInterval(async () => {
 
 ## 7. SECURITY
 
-* Accesul la `monitoring-api` va fi protejat prin **Internal VPC Restrictions** (accesibil doar din rețeaua internă sau prin VPN/Admin interface).
-* Endpoint-urile de control (ex: Pause/Resume) necesită header `x-admin-key`.
+- Accesul la `monitoring-api` va fi protejat prin **Internal VPC Restrictions** (accesibil doar din rețeaua internă sau prin VPN/Admin interface).
+- Endpoint-urile de control (ex: Pause/Resume) necesită header `x-admin-key`.
 
 ---
 
 ## 8. CONFIGURARE & ENV VARS
 
-| Variabilă | Descriere | Exemplu |
-| :--- | :--- | :--- |
-| `PORT` | Port server | `64000` |
-| `REDIS_HOST` | Redis host | `redis` |
-| `REDIS_PORT` | Redis port | `6379` |
-| `MONITORING_POLL_INTERVAL_MS` | Interval polling (ms) | `2000` |
-| `ADMIN_KEY` | Cheie admin pentru control | `change_me` |
+| Variabilă                     | Descriere                  | Exemplu     |
+| :---------------------------- | :------------------------- | :---------- |
+| `PORT`                        | Port server                | `64000`     |
+| `REDIS_HOST`                  | Redis host                 | `redis`     |
+| `REDIS_PORT`                  | Redis port                 | `6379`      |
+| `MONITORING_POLL_INTERVAL_MS` | Interval polling (ms)      | `2000`      |
+| `ADMIN_KEY`                   | Cheie admin pentru control | `change_me` |
 
 ---
 
@@ -198,11 +200,11 @@ setInterval(async () => {
 
 ### 9.2 Failure Modes
 
-| Simptom | Cauză probabilă | Remediere |
-| --- | --- | --- |
-| `/api/queues` timeout | Redis down | Verificați Redis + restart `monitoring-api` |
-| WS disconnects | Network/VPC issue | Verificați firewall/VPN |
-| Empty metrics | Poll interval prea mare | Reduceți `MONITORING_POLL_INTERVAL_MS` |
+| Simptom               | Cauză probabilă         | Remediere                                   |
+| --------------------- | ----------------------- | ------------------------------------------- |
+| `/api/queues` timeout | Redis down              | Verificați Redis + restart `monitoring-api` |
+| WS disconnects        | Network/VPC issue       | Verificați firewall/VPN                     |
+| Empty metrics         | Poll interval prea mare | Reduceți `MONITORING_POLL_INTERVAL_MS`      |
 
 ---
 

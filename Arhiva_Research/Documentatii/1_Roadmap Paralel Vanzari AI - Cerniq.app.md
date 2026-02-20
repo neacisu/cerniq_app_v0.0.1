@@ -20,7 +20,7 @@ Versiunea **Node.js 22 (nume de cod "Jod")** reprezintă platforma de execuție 
 
 Fastify v5 este framework-ul ales pentru viteza sa extremă și arhitectura bazată pe plugin-uri, care se aliniază natural cu structura Vertical Slice. Migrarea la v5 aduce o schimbare de paradigmă prin impunerea strictă a schemelor JSON complete și eliminarea suportului pentru "shorthand" în definirea rutelor. Deși aparent o creștere a verbozității, această cerință este un avantaj major în era AI. Schemele explicite și detaliate servesc drept documentație perfectă pentru Cursor/Copilot, permițându-le să deducă logica de business și să genereze teste precise.
 
->**Arhitectura Type-Provider și Validarea**
+> **Arhitectura Type-Provider și Validarea**
 
 Punctul forte al Fastify v5 în 2026 este integrarea nativă a conceptului de Type Provider. În loc să definim manual interfețe TypeScript pentru Request și Reply, care riscă să se desincronizeze de logica de validare, Fastify v5 permite utilizarea bibliotecilor precum type-provider-typebox sau fastify-type-provider-zod. Aceasta creează o "sursă unică de adevăr": schema de validare Zod. Din această schemă, Fastify compilează automat validatoare performante (folosind ajv sub capotă) și, simultan, TypeScript inferă tipurile statice pentru intellisense.
 
@@ -91,7 +91,7 @@ Soluția necesită implementarea unui Custom Data Provider în Refine și a unui
 - **Fastify Side**: Configurarea unui parser custom (querystringParser) care utilizează biblioteca qs pentru a suporta adâncimea imbricată generată de Refine. Mai mult, schema Zod din Fastify trebuie să reflecte această structură dinamică, utilizând z.record() sau tipuri recursive pentru a valida structurile de filtrare arbitrare permise de Refine.
 
 | Funcționalitate Refine       | Fastify v5 Requirement                    | Soluție de Implementare                                          |
-|------------------------------|-------------------------------------------|------------------------------------------------------------------|
+| ---------------------------- | ----------------------------------------- | ---------------------------------------------------------------- |
 | Filtrare (filters[...])      | Schema strictă (no additional properties) | Definire schemă Zod z.array(z.object({ field: z.string(),... })) |
 | Sortare (sorters[...])       | Validare tipuri query params              | Parser custom qs în Fastify + Validare Zod                       |
 | Paginare (current, pageSize) | Coerciție tipuri (string -> number)       | Utilizare z.coerce.number() în schema de validare                |
@@ -246,7 +246,7 @@ Abordarea "Vertical Slice" propusă transformă complexitatea inerentă a unui s
 - **AI-Native Development:** Structura codului este optimizată pentru a fi înțeleasă și extinsă de AI (Cursor), nu doar de om.
 - **Simbioza Node-Python:** Folosim Node.js pentru ceea ce face cel mai bine (I/O, API, Web) și Python pentru super-puterea sa (AI, Procesare date), legate eficient prin Docker și Redis.
 - **Refine ca Accelerator:** Nu reinventăm roata pentru interfețele administrative. Refine preia greutatea operațiunilor CRUD, lăsând dezvoltatorul să se concentreze pe inovația din zona de Voice AI și Automatizare.
-Această arhitectură oferă fundația solidă pentru un produs software competitiv în 2026, construit și menținut de o singură persoană.
+  Această arhitectură oferă fundația solidă pentru un produs software competitiv în 2026, construit și menținut de o singură persoană.
 
 > **Tabel Rezumativ: Componente și Decizii Tehnice**
 
@@ -281,7 +281,7 @@ Această arhitectură oferă fundația solidă pentru un produs software competi
 16. Python 3.13: Blazing New Trails in Performance and Scale, accesată pe ianuarie 6, 2026, <https://thenewstack.io/python-3-13-blazing-new-trails-in-performance-and-scale/>
 17. Using docker compose watch with Node.js - DEV Community, accesată pe ianuarie 6, 2026, <https://dev.to/mdazhar1038/using-docker-compose-watch-with-nodejs-2pb0>
 18. React v19, accesată pe ianuarie 6, 2026, <https://react.dev/blog/2024/12/05/react-19>
-React 19: The Game-Changing Features That Will Transform Your Development in 2025 🚀, accesată pe ianuarie 6, 2026, <https://ramkumarkhub.medium.com/react-19-the-game-changing-features-that-will-transform-your-development-in-2025-f0bde7a13378>
+    React 19: The Game-Changing Features That Will Transform Your Development in 2025 🚀, accesată pe ianuarie 6, 2026, <https://ramkumarkhub.medium.com/react-19-the-game-changing-features-that-will-transform-your-development-in-2025-f0bde7a13378>
 19. Tailwind CSS v4.0, accesată pe ianuarie 6, 2026, <https://tailwindcss.com/blog/tailwindcss-v4>
 20. Refine v5 is here!, accesată pe ianuarie 6, 2026, <https://refine.dev/blog/refine-v5-announcement/>
 21. Migrating from 4.x.x to 5.x.x - Refine dev, accesată pe ianuarie 6, 2026, <https://refine.dev/docs/migration-guide/4x-to-5x/>

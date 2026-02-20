@@ -90,15 +90,15 @@ workers/
 ```typescript
 // Queue naming: {stage}:{category}:{action}[:{variant}]
 // Examples:
-'quota:guardian:check'           // Etapa 2, Quota category, Check action
-'outreach:orchestrator:dispatch' // Orchestrator dispatch
-'q:wa:phone_01'                  // WhatsApp queue for phone 01 (special case)
-'q:wa:phone_01:followup'         // Follow-up variant
-'webhook:timelinesai:ingest'     // Webhook category, TimelinesAI source
+"quota:guardian:check"; // Etapa 2, Quota category, Check action
+"outreach:orchestrator:dispatch"; // Orchestrator dispatch
+"q:wa:phone_01"; // WhatsApp queue for phone 01 (special case)
+"q:wa:phone_01:followup"; // Follow-up variant
+"webhook:timelinesai:ingest"; // Webhook category, TimelinesAI source
 
 // AVOID:
-'outreachDispatch'               // ✗ No colons
-'wa-phone-01'                    // ✗ Wrong separator
+"outreachDispatch"; // ✗ No colons
+"wa-phone-01"; // ✗ Wrong separator
 ```
 
 #### 1.2.3 TypeScript Interface Naming
@@ -106,8 +106,8 @@ workers/
 ```typescript
 // Job data interface naming: {WorkerName}JobData
 interface QuotaGuardianCheckJobData {
-  correlationId: string;         // Always include for tracing
-  tenantId: string;              // Always include for multi-tenant
+  correlationId: string; // Always include for tracing
+  tenantId: string; // Always include for multi-tenant
   // ... specific fields
 }
 
@@ -132,10 +132,10 @@ interface QuotaGuardianCheckResult {
 ```typescript
 // workers/outreach/{category}/{action}.worker.ts
 
-import { Job } from 'bullmq';
-import { db } from '@cerniq/db';
-import { logger } from '@cerniq/logger';
-import { metrics } from '@cerniq/metrics';
+import { Job } from "bullmq";
+import { db } from "@cerniq/db";
+import { logger } from "@cerniq/logger";
+import { metrics } from "@cerniq/metrics";
 
 // 1. TYPES - Always define explicit types
 interface MyWorkerJobData {
@@ -155,60 +155,68 @@ const MAX_RETRIES = 3;
 
 // 3. PROCESSOR FUNCTION - Named export, descriptive name
 export async function myActionProcessor(
-  job: Job<MyWorkerJobData>
+  job: Job<MyWorkerJobData>,
 ): Promise<MyWorkerResult> {
   const startTime = Date.now();
   const { correlationId, tenantId } = job.data;
 
   // 4. STRUCTURED LOGGING - Always include context
-  logger.info({
-    jobId: job.id,
-    correlationId,
-    tenantId,
-    action: 'my-action:start',
-  }, 'Processing started');
+  logger.info(
+    {
+      jobId: job.id,
+      correlationId,
+      tenantId,
+      action: "my-action:start",
+    },
+    "Processing started",
+  );
 
   try {
     // 5. PRE-VALIDATION
     validateJobData(job.data);
-    
+
     // 6. BUSINESS LOGIC
     const result = await performAction(job.data);
 
     // 7. METRICS
     metrics.workerDuration.observe(
-      { worker: 'my-action', status: 'success' },
-      (Date.now() - startTime) / 1000
+      { worker: "my-action", status: "success" },
+      (Date.now() - startTime) / 1000,
     );
-    metrics.workerTotal.inc({ worker: 'my-action', status: 'success' });
+    metrics.workerTotal.inc({ worker: "my-action", status: "success" });
 
     // 8. SUCCESS LOGGING
-    logger.info({
-      jobId: job.id,
-      correlationId,
-      durationMs: Date.now() - startTime,
-      action: 'my-action:complete',
-    }, 'Processing completed');
+    logger.info(
+      {
+        jobId: job.id,
+        correlationId,
+        durationMs: Date.now() - startTime,
+        action: "my-action:complete",
+      },
+      "Processing completed",
+    );
 
     return result;
-
   } catch (error) {
     // 9. ERROR HANDLING - Structured with classification
     const errorType = classifyError(error);
-    
-    metrics.workerTotal.inc({ worker: 'my-action', status: 'failed' });
-    
-    logger.error({
-      jobId: job.id,
-      correlationId,
-      errorType,
-      error: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined,
-      action: 'my-action:error',
-    }, 'Processing failed');
+
+    metrics.workerTotal.inc({ worker: "my-action", status: "failed" });
+
+    logger.error(
+      {
+        jobId: job.id,
+        correlationId,
+        errorType,
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        action: "my-action:error",
+      },
+      "Processing failed",
+    );
 
     // 10. RETRYABLE VS NON-RETRYABLE
-    if (errorType === 'RETRYABLE') {
+    if (errorType === "RETRYABLE") {
       throw error; // BullMQ will retry
     } else {
       // Non-retryable: move to DLQ or return failure
@@ -222,22 +230,25 @@ export async function myActionProcessor(
 function classifyError(error: unknown): string {
   // Network errors - retry
   if (error instanceof Error) {
-    if ((error as any).code === 'ECONNREFUSED' || (error as any).code === 'ETIMEDOUT') {
-      return 'RETRYABLE';
+    if (
+      (error as any).code === "ECONNREFUSED" ||
+      (error as any).code === "ETIMEDOUT"
+    ) {
+      return "RETRYABLE";
     }
     // Rate limit - retry with backoff
-    if (error.message.includes('429') || error.message.includes('rate limit')) {
-      return 'RETRYABLE';
+    if (error.message.includes("429") || error.message.includes("rate limit")) {
+      return "RETRYABLE";
     }
   }
-  if (error instanceof NetworkError) return 'RETRYABLE';
-  if (error instanceof ValidationError) return 'VALIDATION_ERROR';
-  if (error instanceof RateLimitError) return 'RATE_LIMITED';
+  if (error instanceof NetworkError) return "RETRYABLE";
+  if (error instanceof ValidationError) return "VALIDATION_ERROR";
+  if (error instanceof RateLimitError) return "RATE_LIMITED";
   // Database constraint - don't retry
-  if ((error as any)?.code === '23505' || (error as any)?.code === '23503') {
-    return 'DB_CONSTRAINT';
+  if ((error as any)?.code === "23505" || (error as any)?.code === "23503") {
+    return "DB_CONSTRAINT";
   }
-  return 'UNKNOWN';
+  return "UNKNOWN";
 }
 ```
 
@@ -246,13 +257,13 @@ function classifyError(error: unknown): string {
 ```typescript
 // workers/outreach/index.ts
 
-import { Worker, Queue, Job } from 'bullmq';
-import { REDIS_CONNECTION } from '@cerniq/config';
-import { logger } from '@cerniq/logger';
+import { Worker, Queue, Job } from "bullmq";
+import { REDIS_CONNECTION } from "@cerniq/config";
+import { logger } from "@cerniq/logger";
 
 // Import all processors
-import { quotaGuardianCheckProcessor } from './quota/guardian-check.worker';
-import { sendInitialProcessor } from './whatsapp/send-initial.worker';
+import { quotaGuardianCheckProcessor } from "./quota/guardian-check.worker";
+import { sendInitialProcessor } from "./whatsapp/send-initial.worker";
 // ... all other processors
 
 interface WorkerConfig {
@@ -265,13 +276,13 @@ interface WorkerConfig {
 const WORKER_CONFIGS: WorkerConfig[] = [
   // Quota Guardian
   {
-    name: 'quota:guardian:check',
+    name: "quota:guardian:check",
     processor: quotaGuardianCheckProcessor,
     concurrency: 100,
   },
   // WhatsApp per-phone queues (CRITICAL: concurrency=1)
   ...Array.from({ length: 20 }, (_, i) => ({
-    name: `q:wa:phone_${String(i + 1).padStart(2, '0')}`,
+    name: `q:wa:phone_${String(i + 1).padStart(2, "0")}`,
     processor: sendInitialProcessor,
     concurrency: 1, // CRITICAL: Must be 1 to prevent race conditions
   })),
@@ -282,31 +293,36 @@ export function startOutreachWorkers(): Worker[] {
   const workers: Worker[] = [];
 
   for (const config of WORKER_CONFIGS) {
-    const worker = new Worker(
-      config.name,
-      config.processor,
-      {
-        connection: REDIS_CONNECTION,
-        concurrency: config.concurrency,
-        limiter: config.limiter,
-      }
-    );
+    const worker = new Worker(config.name, config.processor, {
+      connection: REDIS_CONNECTION,
+      concurrency: config.concurrency,
+      limiter: config.limiter,
+    });
 
     // Event handlers
-    worker.on('completed', (job) => {
-      logger.debug({ queue: config.name, jobId: job.id }, 'Job completed');
+    worker.on("completed", (job) => {
+      logger.debug({ queue: config.name, jobId: job.id }, "Job completed");
     });
 
-    worker.on('failed', (job, error) => {
-      logger.error({ queue: config.name, jobId: job?.id, error: error.message }, 'Job failed');
+    worker.on("failed", (job, error) => {
+      logger.error(
+        { queue: config.name, jobId: job?.id, error: error.message },
+        "Job failed",
+      );
     });
 
-    worker.on('error', (error) => {
-      logger.error({ queue: config.name, error: error.message }, 'Worker error');
+    worker.on("error", (error) => {
+      logger.error(
+        { queue: config.name, error: error.message },
+        "Worker error",
+      );
     });
 
     workers.push(worker);
-    logger.info({ queue: config.name, concurrency: config.concurrency }, 'Worker started');
+    logger.info(
+      { queue: config.name, concurrency: config.concurrency },
+      "Worker started",
+    );
   }
 
   return workers;
@@ -364,7 +380,7 @@ await db.transaction(async (tx) => {
   await tx.update(goldLeadJourney)
     .set({ currentState: 'WARM_REPLY' })
     .where(eq(goldLeadJourney.leadId, leadId));
-    
+
   await tx.insert(goldCommunicationLog).values({ ... });
 });
 
@@ -453,28 +469,36 @@ GET    /api/v1/outreach/sequences/:id/steps
 
 ```typescript
 // ALWAYS validate with Zod
-import { z } from 'zod';
+import { z } from "zod";
 
 const createTemplateSchema = z.object({
   name: z.string().min(1).max(100),
-  channel: z.enum(['WHATSAPP', 'EMAIL']),
+  channel: z.enum(["WHATSAPP", "EMAIL"]),
   content: z.string().min(10).max(5000),
-  variables: z.array(z.object({
-    name: z.string(),
-    required: z.boolean().default(true),
-  })).optional(),
+  variables: z
+    .array(
+      z.object({
+        name: z.string(),
+        required: z.boolean().default(true),
+      }),
+    )
+    .optional(),
 });
 
 // In route handler
-fastify.post('/templates', {
-  schema: {
-    body: createTemplateSchema,
+fastify.post(
+  "/templates",
+  {
+    schema: {
+      body: createTemplateSchema,
+    },
+    preHandler: [fastify.authenticate],
   },
-  preHandler: [fastify.authenticate],
-}, async (request, reply) => {
-  const validated = request.body; // Already validated by Fastify
-  // ...
-});
+  async (request, reply) => {
+    const validated = request.body; // Already validated by Fastify
+    // ...
+  },
+);
 ```
 
 ### 4.3 Response Format
@@ -548,13 +572,13 @@ return reply.code(200).send({
 const validTemplates = [
   // Simple alternatives
   "{Bună ziua|Salut|Hello} {{contactName}}!",
-  
+
   // Nested alternatives
   "{Vă contactez|Scriu} {pentru|referitor la} {{companyName}}.",
-  
+
   // Variables (double braces)
   "{{companyName}} din {{judet}}",
-  
+
   // Mixed
   "{Bună ziua|Salut}, {{contactName}}! {Suntem|Reprezentăm} Cerniq.",
 ];
@@ -562,8 +586,8 @@ const validTemplates = [
 // Invalid patterns (AVOID)
 const invalidTemplates = [
   "{ Bună ziua | Salut }", // Spaces inside braces
-  "{Bună ziua}",           // Single option (useless)
-  "{{contact Name}}",      // Space in variable name
+  "{Bună ziua}", // Single option (useless)
+  "{{contact Name}}", // Space in variable name
 ];
 ```
 
@@ -574,24 +598,24 @@ const invalidTemplates = [
 
 export function processSpintax(
   template: string,
-  variables: Record<string, string>
+  variables: Record<string, string>,
 ): string {
   // 1. Replace variables first
   let result = template;
   for (const [key, value] of Object.entries(variables)) {
-    result = result.replace(new RegExp(`{{${key}}}`, 'g'), value || '');
+    result = result.replace(new RegExp(`{{${key}}}`, "g"), value || "");
   }
-  
+
   // 2. Process spintax (random selection)
   const spintaxRegex = /\{([^{}]+)\}/g;
   result = result.replace(spintaxRegex, (match, options) => {
-    const choices = options.split('|');
+    const choices = options.split("|");
     return choices[Math.floor(Math.random() * choices.length)];
   });
-  
+
   // 3. Clean up extra whitespace
-  result = result.replace(/\s+/g, ' ').trim();
-  
+  result = result.replace(/\s+/g, " ").trim();
+
   return result;
 }
 
@@ -599,7 +623,7 @@ export function processSpintax(
 export function processSpintaxDeterministic(
   template: string,
   variables: Record<string, string>,
-  seed: number
+  seed: number,
 ): string {
   // Use seed for reproducible tests
   const rng = seedrandom(seed.toString());
@@ -621,10 +645,10 @@ export class OutreachError extends Error {
     message: string,
     public code: string,
     public retryable: boolean = false,
-    public details?: Record<string, any>
+    public details?: Record<string, any>,
   ) {
     super(message);
-    this.name = 'OutreachError';
+    this.name = "OutreachError";
   }
 }
 
@@ -633,9 +657,9 @@ export class QuotaExceededError extends OutreachError {
   constructor(phoneId: string, currentUsage: number) {
     super(
       `Quota exceeded for phone ${phoneId}`,
-      'QUOTA_EXCEEDED',
+      "QUOTA_EXCEEDED",
       false, // Not retryable
-      { phoneId, currentUsage, limit: 200 }
+      { phoneId, currentUsage, limit: 200 },
     );
   }
 }
@@ -644,21 +668,19 @@ export class PhoneOfflineError extends OutreachError {
   constructor(phoneId: string) {
     super(
       `Phone ${phoneId} is offline`,
-      'PHONE_OFFLINE',
+      "PHONE_OFFLINE",
       true, // Retryable after phone reconnects
-      { phoneId }
+      { phoneId },
     );
   }
 }
 
 export class RateLimitedError extends OutreachError {
   constructor(service: string, retryAfter: number) {
-    super(
-      `${service} rate limited`,
-      'RATE_LIMITED',
-      true,
-      { service, retryAfter }
-    );
+    super(`${service} rate limited`, "RATE_LIMITED", true, {
+      service,
+      retryAfter,
+    });
   }
 }
 ```
@@ -672,26 +694,26 @@ export async function sendInitialProcessor(job: Job<T>): Promise<R> {
   } catch (error) {
     if (error instanceof QuotaExceededError) {
       // Don't retry, move to delayed queue
-      await triggerQueue('outreach:wa:delay', {
+      await triggerQueue("outreach:wa:delay", {
         leadId: job.data.leadId,
         delayUntil: getNextBusinessDay(),
       });
-      return { success: false, reason: 'QUOTA_EXCEEDED' };
+      return { success: false, reason: "QUOTA_EXCEEDED" };
     }
-    
+
     if (error instanceof PhoneOfflineError) {
       // Trigger alert, let BullMQ retry
-      await triggerAlert('phone:offline', { phoneId: error.details.phoneId });
+      await triggerAlert("phone:offline", { phoneId: error.details.phoneId });
       throw error; // Will retry
     }
-    
+
     if (error instanceof RateLimitedError) {
       // Throw with custom backoff
-      throw new Error('RATE_LIMITED'); // BullMQ will use configured backoff
+      throw new Error("RATE_LIMITED"); // BullMQ will use configured backoff
     }
-    
+
     // Unknown error - log and fail
-    logger.error({ error }, 'Unexpected error');
+    logger.error({ error }, "Unexpected error");
     throw error;
   }
 }
@@ -725,9 +747,9 @@ interface QuotaUsageGridProps {
 ```typescript
 // Use React Query for server state
 const { data: leads, isLoading } = useQuery({
-  queryKey: ['leads', filters],
+  queryKey: ["leads", filters],
   queryFn: () => fetchLeads(filters),
-  staleTime: 30_000,       // 30 seconds
+  staleTime: 30_000, // 30 seconds
   refetchInterval: 60_000, // 1 minute for dashboard
 });
 
@@ -737,7 +759,7 @@ const [selectedLead, setSelectedLead] = useState<string | null>(null);
 
 // Use URL params for shareable state
 const [searchParams, setSearchParams] = useSearchParams();
-const stage = searchParams.get('stage');
+const stage = searchParams.get("stage");
 ```
 
 ### 7.3 Error Handling
@@ -786,21 +808,21 @@ function LeadsPage() {
 ```typescript
 // workers/outreach/whatsapp/__tests__/send-initial.worker.test.ts
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { sendInitialProcessor } from '../send-initial.worker';
-import { createMockJob } from '@cerniq/testing';
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { sendInitialProcessor } from "../send-initial.worker";
+import { createMockJob } from "@cerniq/testing";
 
-describe('sendInitialProcessor', () => {
+describe("sendInitialProcessor", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should send message and update lead state', async () => {
+  it("should send message and update lead state", async () => {
     const job = createMockJob<WaSendInitialJobData>({
-      correlationId: 'test-123',
-      leadId: 'lead-uuid',
-      phoneId: 'phone-uuid',
-      recipientPhone: '+40712345678',
+      correlationId: "test-123",
+      leadId: "lead-uuid",
+      phoneId: "phone-uuid",
+      recipientPhone: "+40712345678",
       isNewContact: true,
     });
 
@@ -811,13 +833,15 @@ describe('sendInitialProcessor', () => {
     expect(result.messageId).toBeDefined();
   });
 
-  it('should throw on quota exceeded', async () => {
+  it("should throw on quota exceeded", async () => {
     // Mock quota check to return exceeded
     vi.mocked(redisClient.evalsha).mockResolvedValueOnce(
-      JSON.stringify({ allowed: false, reason: 'QUOTA_EXCEEDED' })
+      JSON.stringify({ allowed: false, reason: "QUOTA_EXCEEDED" }),
     );
 
-    const job = createMockJob({ /* ... */ });
+    const job = createMockJob({
+      /* ... */
+    });
 
     await expect(sendInitialProcessor(job)).rejects.toThrow(QuotaExceededError);
   });
@@ -829,10 +853,10 @@ describe('sendInitialProcessor', () => {
 ```typescript
 // tests/integration/outreach/phone-flow.test.ts
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { setupTestDatabase, teardownTestDatabase } from '@cerniq/testing';
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { setupTestDatabase, teardownTestDatabase } from "@cerniq/testing";
 
-describe('WhatsApp Phone Flow', () => {
+describe("WhatsApp Phone Flow", () => {
   beforeAll(async () => {
     await setupTestDatabase();
     await seedTestData();
@@ -842,32 +866,32 @@ describe('WhatsApp Phone Flow', () => {
     await teardownTestDatabase();
   });
 
-  it('should process new contact flow end-to-end', async () => {
+  it("should process new contact flow end-to-end", async () => {
     // 1. Create lead
-    const lead = await createTestLead({ stage: 'COLD' });
+    const lead = await createTestLead({ stage: "COLD" });
 
     // 2. Trigger dispatch
-    await triggerQueue('outreach:orchestrator:dispatch', {
+    await triggerQueue("outreach:orchestrator:dispatch", {
       tenantId: testTenantId,
       batchSize: 1,
     });
 
     // 3. Wait for processing
-    await waitForJobCompletion('q:wa:phone_01');
+    await waitForJobCompletion("q:wa:phone_01");
 
     // 4. Verify lead state changed
     const updatedLead = await db.query.goldLeadJourney.findFirst({
       where: eq(goldLeadJourney.leadId, lead.id),
     });
 
-    expect(updatedLead?.currentState).toBe('CONTACTED_WA');
+    expect(updatedLead?.currentState).toBe("CONTACTED_WA");
     expect(updatedLead?.isNewContact).toBe(false);
-    
+
     // 5. Verify communication logged
     const logs = await db.query.goldCommunicationLog.findMany({
       where: eq(goldCommunicationLog.leadJourneyId, lead.id),
     });
-    
+
     expect(logs).toHaveLength(1);
     expect(logs[0].quotaCost).toBe(1);
   });
@@ -882,16 +906,16 @@ describe('WhatsApp Phone Flow', () => {
 
 ```typescript
 // ERROR: System errors, failed operations
-logger.error({ err, jobId }, 'Failed to send WhatsApp message');
+logger.error({ err, jobId }, "Failed to send WhatsApp message");
 
 // WARN: Recoverable issues, degraded state
-logger.warn({ phoneId, quota }, 'Phone quota nearly exhausted');
+logger.warn({ phoneId, quota }, "Phone quota nearly exhausted");
 
 // INFO: Important business events
-logger.info({ leadId, stage }, 'Lead transitioned to WARM_REPLY');
+logger.info({ leadId, stage }, "Lead transitioned to WARM_REPLY");
 
 // DEBUG: Detailed diagnostic info (production: disabled)
-logger.debug({ payload }, 'TimelinesAI webhook received');
+logger.debug({ payload }, "TimelinesAI webhook received");
 ```
 
 ### 9.2 Structured Logging
@@ -900,15 +924,18 @@ logger.debug({ payload }, 'TimelinesAI webhook received');
 // Always use structured logging
 // Include: correlationId, tenantId, action, duration
 
-logger.info({
-  correlationId: job.data.correlationId,
-  tenantId: job.data.tenantId,
-  action: 'WHATSAPP_SEND',
-  leadId: job.data.leadId,
-  phoneId: job.data.phoneId,
-  duration: Date.now() - startTime,
-  quotaCost: 1,
-}, 'WhatsApp message sent successfully');
+logger.info(
+  {
+    correlationId: job.data.correlationId,
+    tenantId: job.data.tenantId,
+    action: "WHATSAPP_SEND",
+    leadId: job.data.leadId,
+    phoneId: job.data.phoneId,
+    duration: Date.now() - startTime,
+    quotaCost: 1,
+  },
+  "WhatsApp message sent successfully",
+);
 ```
 
 ### 9.3 Sensitive Data
@@ -921,12 +948,12 @@ logger.info({
 // - API keys or tokens
 
 function maskPhone(phone: string): string {
-  return phone.slice(0, 4) + '****' + phone.slice(-4);
+  return phone.slice(0, 4) + "****" + phone.slice(-4);
 }
 
 function maskEmail(email: string): string {
-  const [local, domain] = email.split('@');
-  return local[0] + '***@' + domain;
+  const [local, domain] = email.split("@");
+  return local[0] + "***@" + domain;
 }
 ```
 
@@ -953,15 +980,15 @@ function maskEmail(email: string): string {
 ```typescript
 // API rate limits per tenant
 const RATE_LIMITS = {
-  default: { max: 100, window: '1m' },
-  webhooks: { max: 1000, window: '1m' },
-  heavy: { max: 10, window: '1m' },
+  default: { max: 100, window: "1m" },
+  webhooks: { max: 1000, window: "1m" },
+  heavy: { max: 10, window: "1m" },
 };
 
 // Apply at route level
 fastify.register(rateLimit, {
   max: 100,
-  timeWindow: '1 minute',
+  timeWindow: "1 minute",
   keyGenerator: (req) => req.tenantId,
 });
 ```
@@ -985,10 +1012,10 @@ fastify.register(rateLimit, {
 
 ## Document History
 
-| Versiune | Data | Modificări |
-| -------- | ---- | ---------- |
-| 1.0 | 15 Ianuarie 2026 | Versiune inițială (2 documente separate) |
-| 1.1 | 18 Ianuarie 2026 | Consolidare `etapa2-standards.md` + `etapa2-standards-procedures.md` |
+| Versiune | Data             | Modificări                                                           |
+| -------- | ---------------- | -------------------------------------------------------------------- |
+| 1.0      | 15 Ianuarie 2026 | Versiune inițială (2 documente separate)                             |
+| 1.1      | 18 Ianuarie 2026 | Consolidare `etapa2-standards.md` + `etapa2-standards-procedures.md` |
 
 ---
 

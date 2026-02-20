@@ -12,7 +12,7 @@
 
 ```typescript
 // Base URL
-const BASE_URL = '/api/v1';
+const BASE_URL = "/api/v1";
 
 // Standard Response Format
 interface ApiResponse<T> {
@@ -462,7 +462,7 @@ GET /api/v1/silver/companies/uuid
     "id": "uuid",
     "tenantId": "uuid",
     "sourceBronzeId": "uuid",
-    
+
     // Identification
     "cui": "12345678",
     "cuiRo": "RO12345678",
@@ -470,12 +470,12 @@ GET /api/v1/silver/companies/uuid
     "cuiValidationDate": "2026-01-15T09:30:00Z",
     "cuiValidationSource": "anaf_api",
     "nrRegCom": "J09/123/2015",
-    
+
     // Name
     "denumire": "AGRO FARM SRL",
     "denumireNormalizata": "AGRO FARM SRL",
     "formaJuridica": "SRL",
-    
+
     // Address
     "adresaCompleta": "Str. Principala Nr. 10, Braila, Braila",
     "localitate": "Braila",
@@ -485,7 +485,7 @@ GET /api/v1/silver/companies/uuid
     "latitude": 45.2692,
     "longitude": 27.9575,
     "geocodingAccuracy": "street",
-    
+
     // Fiscal (from ANAF)
     "statusFirma": "ACTIVA",
     "dataInregistrare": "2015-03-15",
@@ -494,7 +494,7 @@ GET /api/v1/silver/companies/uuid
     "inregistratEFactura": true,
     "codCaenPrincipal": "0111",
     "denumireCaen": "Cultivarea cerealelor",
-    
+
     // Financial (from Termene.ro)
     "cifraAfaceri": 2500000,
     "profitNet": 350000,
@@ -502,22 +502,22 @@ GET /api/v1/silver/companies/uuid
     "anBilant": 2024,
     "scorRiscTermene": 25,
     "categorieRisc": "LOW",
-    
+
     // Enrichment
     "enrichmentStatus": "complete",
     "enrichmentSourcesCompleted": ["anaf", "termene", "onrc", "geocoding"],
     "lastEnrichmentAt": "2026-01-15T10:00:00Z",
-    
+
     // Quality
     "completenessScore": 90,
     "accuracyScore": 82,
     "freshnessScore": 95,
     "totalQualityScore": 85,
-    
+
     // Promotion
     "promotionStatus": "eligible",
     "promotedToGoldId": null,
-    
+
     "createdAt": "2026-01-15T09:00:00Z",
     "updatedAt": "2026-01-15T10:00:00Z"
   }

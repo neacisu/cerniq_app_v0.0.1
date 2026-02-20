@@ -1,5 +1,7 @@
 # CERNIQ.APP — ETAPA 1: UI CHARTS & NAVIGATION
+
 ## Data Visualization & Navigation Components
+
 ### Versiunea 1.0 | 15 Ianuarie 2026
 
 ---
@@ -11,8 +13,8 @@
 ```tsx
 // packages/ui/src/components/charts/funnel-chart.tsx
 
-import { useMemo } from 'react';
-import { cn } from '@/lib/utils';
+import { useMemo } from "react";
+import { cn } from "@/lib/utils";
 
 interface FunnelStage {
   name: string;
@@ -36,14 +38,15 @@ export function FunnelChart({
   showPercentage = true,
   className,
 }: FunnelChartProps) {
-  const maxValue = Math.max(...stages.map(s => s.value));
-  
+  const maxValue = Math.max(...stages.map((s) => s.value));
+
   const stagesWithMetrics = useMemo(() => {
     return stages.map((stage, index) => {
       const prevValue = index > 0 ? stages[index - 1].value : stage.value;
-      const conversionRate = prevValue > 0 ? (stage.value / prevValue) * 100 : 0;
+      const conversionRate =
+        prevValue > 0 ? (stage.value / prevValue) * 100 : 0;
       const widthPercent = maxValue > 0 ? (stage.value / maxValue) * 100 : 0;
-      
+
       return {
         ...stage,
         conversionRate,
@@ -55,7 +58,7 @@ export function FunnelChart({
   const stageHeight = height / stages.length;
 
   return (
-    <div className={cn('relative', className)} style={{ height }}>
+    <div className={cn("relative", className)} style={{ height }}>
       {stagesWithMetrics.map((stage, index) => (
         <div
           key={stage.name}
@@ -64,13 +67,13 @@ export function FunnelChart({
             top: index * stageHeight,
             height: stageHeight - 4,
             width: `${stage.widthPercent}%`,
-            minWidth: '60px',
+            minWidth: "60px",
           }}
         >
           <div
             className={cn(
-              'h-full rounded-md flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity',
-              stage.href && 'hover:ring-2 ring-primary'
+              "h-full rounded-md flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity",
+              stage.href && "hover:ring-2 ring-primary",
             )}
             style={{
               backgroundColor: stage.color || getDefaultColor(index),
@@ -79,11 +82,15 @@ export function FunnelChart({
           >
             {showLabels && (
               <div className="text-white text-center px-2">
-                <div className="font-semibold text-sm truncate">{stage.name}</div>
+                <div className="font-semibold text-sm truncate">
+                  {stage.name}
+                </div>
                 <div className="text-xs opacity-90">
                   {stage.value.toLocaleString()}
                   {showPercentage && index > 0 && (
-                    <span className="ml-1">({stage.conversionRate.toFixed(1)}%)</span>
+                    <span className="ml-1">
+                      ({stage.conversionRate.toFixed(1)}%)
+                    </span>
                   )}
                 </div>
               </div>
@@ -97,11 +104,11 @@ export function FunnelChart({
 
 function getDefaultColor(index: number): string {
   const colors = [
-    'hsl(var(--chart-1))', // Bronze
-    'hsl(var(--chart-2))', // Silver
-    'hsl(var(--chart-3))', // Gold
-    'hsl(var(--chart-4))',
-    'hsl(var(--chart-5))',
+    "hsl(var(--chart-1))", // Bronze
+    "hsl(var(--chart-2))", // Silver
+    "hsl(var(--chart-3))", // Gold
+    "hsl(var(--chart-4))",
+    "hsl(var(--chart-5))",
   ];
   return colors[index % colors.length];
 }
@@ -112,13 +119,13 @@ function getDefaultColor(index: number): string {
 ```tsx
 // packages/ui/src/components/charts/gauge-chart.tsx
 
-import { cn } from '@/lib/utils';
+import { cn } from "@/lib/utils";
 
 interface GaugeChartProps {
   value: number;
   max?: number;
   label?: string;
-  size?: 'sm' | 'md' | 'lg';
+  size?: "sm" | "md" | "lg";
   showValue?: boolean;
   thresholds?: {
     low: number;
@@ -131,7 +138,7 @@ export function GaugeChart({
   value,
   max = 100,
   label,
-  size = 'md',
+  size = "md",
   showValue = true,
   thresholds = { low: 40, medium: 70 },
   className,
@@ -140,9 +147,9 @@ export function GaugeChart({
   const rotation = (percentage / 100) * 180 - 90; // -90 to 90 degrees
 
   const sizes = {
-    sm: { width: 100, strokeWidth: 8, fontSize: 'text-lg' },
-    md: { width: 150, strokeWidth: 10, fontSize: 'text-2xl' },
-    lg: { width: 200, strokeWidth: 12, fontSize: 'text-3xl' },
+    sm: { width: 100, strokeWidth: 8, fontSize: "text-lg" },
+    md: { width: 150, strokeWidth: 10, fontSize: "text-2xl" },
+    lg: { width: 200, strokeWidth: 12, fontSize: "text-3xl" },
   };
 
   const { width, strokeWidth, fontSize } = sizes[size];
@@ -150,19 +157,19 @@ export function GaugeChart({
   const circumference = radius * Math.PI; // Half circle
 
   const getColor = () => {
-    if (value >= thresholds.medium) return 'text-green-500';
-    if (value >= thresholds.low) return 'text-yellow-500';
-    return 'text-red-500';
+    if (value >= thresholds.medium) return "text-green-500";
+    if (value >= thresholds.low) return "text-yellow-500";
+    return "text-red-500";
   };
 
   const getStrokeColor = () => {
-    if (value >= thresholds.medium) return 'stroke-green-500';
-    if (value >= thresholds.low) return 'stroke-yellow-500';
-    return 'stroke-red-500';
+    if (value >= thresholds.medium) return "stroke-green-500";
+    if (value >= thresholds.low) return "stroke-yellow-500";
+    return "stroke-red-500";
   };
 
   return (
-    <div className={cn('flex flex-col items-center', className)}>
+    <div className={cn("flex flex-col items-center", className)}>
       <div className="relative" style={{ width, height: width / 2 + 20 }}>
         <svg
           width={width}
@@ -178,7 +185,7 @@ export function GaugeChart({
             className="text-muted/20"
             strokeLinecap="round"
           />
-          
+
           {/* Value arc */}
           <path
             d={describeArc(width / 2, width / 2, radius, -90, rotation)}
@@ -187,18 +194,18 @@ export function GaugeChart({
             className={getStrokeColor()}
             strokeLinecap="round"
             style={{
-              transition: 'stroke-dashoffset 0.5s ease-in-out',
+              transition: "stroke-dashoffset 0.5s ease-in-out",
             }}
           />
         </svg>
 
         {/* Center value */}
         {showValue && (
-          <div 
+          <div
             className="absolute inset-0 flex items-end justify-center pb-2"
             style={{ top: width / 4 }}
           >
-            <span className={cn(fontSize, 'font-bold', getColor())}>
+            <span className={cn(fontSize, "font-bold", getColor())}>
               {Math.round(value)}
             </span>
           </div>
@@ -217,23 +224,32 @@ function describeArc(
   y: number,
   radius: number,
   startAngle: number,
-  endAngle: number
+  endAngle: number,
 ): string {
   const start = polarToCartesian(x, y, radius, endAngle);
   const end = polarToCartesian(x, y, radius, startAngle);
-  const largeArcFlag = endAngle - startAngle <= 180 ? '0' : '1';
+  const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
 
   return [
-    'M', start.x, start.y,
-    'A', radius, radius, 0, largeArcFlag, 0, end.x, end.y
-  ].join(' ');
+    "M",
+    start.x,
+    start.y,
+    "A",
+    radius,
+    radius,
+    0,
+    largeArcFlag,
+    0,
+    end.x,
+    end.y,
+  ].join(" ");
 }
 
 function polarToCartesian(
   centerX: number,
   centerY: number,
   radius: number,
-  angleInDegrees: number
+  angleInDegrees: number,
 ) {
   const angleInRadians = ((angleInDegrees - 90) * Math.PI) / 180;
   return {
@@ -248,7 +264,7 @@ function polarToCartesian(
 ```tsx
 // packages/ui/src/components/charts/progress-ring.tsx
 
-import { cn } from '@/lib/utils';
+import { cn } from "@/lib/utils";
 
 interface ProgressRingProps {
   value: number;
@@ -278,13 +294,18 @@ export function ProgressRing({
 
   const getColor = () => {
     if (color) return color;
-    if (percentage >= 70) return 'stroke-green-500';
-    if (percentage >= 40) return 'stroke-yellow-500';
-    return 'stroke-red-500';
+    if (percentage >= 70) return "stroke-green-500";
+    if (percentage >= 40) return "stroke-yellow-500";
+    return "stroke-red-500";
   };
 
   return (
-    <div className={cn('relative inline-flex items-center justify-center', className)}>
+    <div
+      className={cn(
+        "relative inline-flex items-center justify-center",
+        className,
+      )}
+    >
       <svg width={size} height={size} className="-rotate-90">
         {/* Background circle */}
         <circle
@@ -296,7 +317,7 @@ export function ProgressRing({
           strokeWidth={strokeWidth}
           className="text-muted/20"
         />
-        
+
         {/* Progress circle */}
         <circle
           cx={size / 2}
@@ -309,11 +330,11 @@ export function ProgressRing({
           style={{
             strokeDasharray: circumference,
             strokeDashoffset: offset,
-            transition: 'stroke-dashoffset 0.5s ease-in-out',
+            transition: "stroke-dashoffset 0.5s ease-in-out",
           }}
         />
       </svg>
-      
+
       {/* Center content */}
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         {showPercentage && (
@@ -344,8 +365,8 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
-} from 'recharts';
-import { cn } from '@/lib/utils';
+} from "recharts";
+import { cn } from "@/lib/utils";
 
 interface BarChartData {
   name: string;
@@ -370,7 +391,7 @@ interface BarChartProps {
 export function BarChart({
   data,
   dataKeys,
-  xAxisKey = 'name',
+  xAxisKey = "name",
   height = 300,
   showGrid = true,
   showLegend = true,
@@ -378,26 +399,31 @@ export function BarChart({
   className,
 }: BarChartProps) {
   return (
-    <div className={cn('w-full', className)} style={{ height }}>
+    <div className={cn("w-full", className)} style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
-        <RechartsBarChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-          {showGrid && <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />}
+        <RechartsBarChart
+          data={data}
+          margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+        >
+          {showGrid && (
+            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+          )}
           <XAxis
             dataKey={xAxisKey}
-            tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+            tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
             tickLine={false}
             axisLine={false}
           />
           <YAxis
-            tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+            tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
             tickLine={false}
             axisLine={false}
           />
           <Tooltip
             contentStyle={{
-              backgroundColor: 'hsl(var(--background))',
-              border: '1px solid hsl(var(--border))',
-              borderRadius: '8px',
+              backgroundColor: "hsl(var(--background))",
+              border: "1px solid hsl(var(--border))",
+              borderRadius: "8px",
             }}
           />
           {showLegend && <Legend />}
@@ -407,7 +433,7 @@ export function BarChart({
               dataKey={dk.key}
               name={dk.label || dk.key}
               fill={dk.color}
-              stackId={stacked ? 'stack' : undefined}
+              stackId={stacked ? "stack" : undefined}
               radius={[4, 4, 0, 0]}
             />
           ))}
@@ -432,7 +458,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
-} from 'recharts';
+} from "recharts";
 
 interface LineChartData {
   name: string;
@@ -458,7 +484,7 @@ interface LineChartProps {
 export function LineChart({
   data,
   lines,
-  xAxisKey = 'name',
+  xAxisKey = "name",
   height = 300,
   showGrid = true,
   showLegend = true,
@@ -466,26 +492,31 @@ export function LineChart({
   className,
 }: LineChartProps) {
   return (
-    <div className={cn('w-full', className)} style={{ height }}>
+    <div className={cn("w-full", className)} style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
-        <RechartsLineChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-          {showGrid && <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />}
+        <RechartsLineChart
+          data={data}
+          margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+        >
+          {showGrid && (
+            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+          )}
           <XAxis
             dataKey={xAxisKey}
-            tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+            tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
             tickLine={false}
             axisLine={false}
           />
           <YAxis
-            tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+            tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
             tickLine={false}
             axisLine={false}
           />
           <Tooltip
             contentStyle={{
-              backgroundColor: 'hsl(var(--background))',
-              border: '1px solid hsl(var(--border))',
-              borderRadius: '8px',
+              backgroundColor: "hsl(var(--background))",
+              border: "1px solid hsl(var(--border))",
+              borderRadius: "8px",
             }}
           />
           {showLegend && <Legend />}
@@ -497,7 +528,7 @@ export function LineChart({
               name={line.label || line.key}
               stroke={line.color}
               strokeWidth={2}
-              strokeDasharray={line.dashed ? '5 5' : undefined}
+              strokeDasharray={line.dashed ? "5 5" : undefined}
               dot={showDots}
               activeDot={{ r: 6 }}
             />
@@ -521,7 +552,7 @@ import {
   ResponsiveContainer,
   Legend,
   Tooltip,
-} from 'recharts';
+} from "recharts";
 
 interface DonutChartData {
   name: string;
@@ -542,11 +573,11 @@ interface DonutChartProps {
 }
 
 const COLORS = [
-  'hsl(var(--chart-1))',
-  'hsl(var(--chart-2))',
-  'hsl(var(--chart-3))',
-  'hsl(var(--chart-4))',
-  'hsl(var(--chart-5))',
+  "hsl(var(--chart-1))",
+  "hsl(var(--chart-2))",
+  "hsl(var(--chart-3))",
+  "hsl(var(--chart-4))",
+  "hsl(var(--chart-5))",
 ];
 
 export function DonutChart({
@@ -563,7 +594,7 @@ export function DonutChart({
   const total = data.reduce((sum, item) => sum + item.value, 0);
 
   return (
-    <div className={cn('relative w-full', className)} style={{ height }}>
+    <div className={cn("relative w-full", className)} style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie
@@ -574,8 +605,12 @@ export function DonutChart({
             outerRadius={outerRadius}
             paddingAngle={2}
             dataKey="value"
-            label={showLabels ? ({ name, percent }) => 
-              `${name} (${(percent * 100).toFixed(0)}%)` : undefined}
+            label={
+              showLabels
+                ? ({ name, percent }) =>
+                    `${name} (${(percent * 100).toFixed(0)}%)`
+                : undefined
+            }
           >
             {data.map((entry, index) => (
               <Cell
@@ -590,15 +625,11 @@ export function DonutChart({
             ]}
           />
           {showLegend && (
-            <Legend
-              verticalAlign="bottom"
-              iconType="circle"
-              iconSize={8}
-            />
+            <Legend verticalAlign="bottom" iconType="circle" iconSize={8} />
           )}
         </PieChart>
       </ResponsiveContainer>
-      
+
       {/* Center content */}
       {(centerLabel || centerValue) && (
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
@@ -624,16 +655,16 @@ export function DonutChart({
 ```tsx
 // packages/ui/src/components/navigation/sidebar.tsx
 
-import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { cn } from '@/lib/utils';
-import { Button } from '../ui/button';
+import { useState } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { cn } from "@/lib/utils";
+import { Button } from "../ui/button";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from '../ui/tooltip';
+} from "../ui/tooltip";
 import {
   LayoutDashboard,
   Upload,
@@ -644,7 +675,7 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
-} from 'lucide-react';
+} from "lucide-react";
 
 interface NavItem {
   title: string;
@@ -656,45 +687,45 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   {
-    title: 'Dashboard',
-    href: '/dashboard',
+    title: "Dashboard",
+    href: "/dashboard",
     icon: LayoutDashboard,
   },
   {
-    title: 'Import',
-    href: '/imports',
+    title: "Import",
+    href: "/imports",
     icon: Upload,
   },
   {
-    title: 'Bronze',
-    href: '/bronze',
+    title: "Bronze",
+    href: "/bronze",
     icon: Layers,
     children: [
-      { title: 'Contacte', href: '/bronze/contacts', icon: Layers },
-      { title: 'Batches', href: '/bronze/batches', icon: Database },
+      { title: "Contacte", href: "/bronze/contacts", icon: Layers },
+      { title: "Batches", href: "/bronze/batches", icon: Database },
     ],
   },
   {
-    title: 'Silver',
-    href: '/silver',
+    title: "Silver",
+    href: "/silver",
     icon: Database,
     children: [
-      { title: 'Companii', href: '/silver/companies', icon: Database },
-      { title: 'Enrichment', href: '/silver/enrichment', icon: Database },
+      { title: "Companii", href: "/silver/companies", icon: Database },
+      { title: "Enrichment", href: "/silver/enrichment", icon: Database },
     ],
   },
   {
-    title: 'Gold',
-    href: '/gold',
+    title: "Gold",
+    href: "/gold",
     icon: Crown,
     children: [
-      { title: 'Companii', href: '/gold/companies', icon: Crown },
-      { title: 'Leads', href: '/gold/leads', icon: Crown },
+      { title: "Companii", href: "/gold/companies", icon: Crown },
+      { title: "Leads", href: "/gold/leads", icon: Crown },
     ],
   },
   {
-    title: 'Aprobări',
-    href: '/approvals',
+    title: "Aprobări",
+    href: "/approvals",
     icon: CheckSquare,
   },
 ];
@@ -707,8 +738,8 @@ export function Sidebar() {
     <TooltipProvider delayDuration={0}>
       <aside
         className={cn(
-          'flex flex-col border-r bg-background transition-all duration-300',
-          collapsed ? 'w-16' : 'w-64'
+          "flex flex-col border-r bg-background transition-all duration-300",
+          collapsed ? "w-16" : "w-64",
         )}
       >
         {/* Logo */}
@@ -750,8 +781,8 @@ export function Sidebar() {
                 <Button
                   variant="ghost"
                   className={cn(
-                    'w-full justify-start',
-                    collapsed && 'justify-center px-2'
+                    "w-full justify-start",
+                    collapsed && "justify-center px-2",
                   )}
                 >
                   <Settings className="h-4 w-4" />
@@ -761,15 +792,15 @@ export function Sidebar() {
             </TooltipTrigger>
             {collapsed && <TooltipContent side="right">Setări</TooltipContent>}
           </Tooltip>
-          
+
           {/* Collapse toggle */}
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setCollapsed(!collapsed)}
             className={cn(
-              'w-full justify-start mt-2',
-              collapsed && 'justify-center px-2'
+              "w-full justify-start mt-2",
+              collapsed && "justify-center px-2",
             )}
           >
             {collapsed ? (
@@ -801,11 +832,8 @@ function NavItemComponent({
 
   const content = (
     <Button
-      variant={isActive ? 'secondary' : 'ghost'}
-      className={cn(
-        'w-full justify-start',
-        collapsed && 'justify-center px-2'
-      )}
+      variant={isActive ? "secondary" : "ghost"}
+      className={cn("w-full justify-start", collapsed && "justify-center px-2")}
       onClick={() => hasChildren && setExpanded(!expanded)}
       asChild={!hasChildren}
     >
@@ -882,9 +910,9 @@ function NavItemComponent({
 ```tsx
 // packages/ui/src/components/navigation/breadcrumbs.tsx
 
-import { Link } from 'react-router-dom';
-import { ChevronRight, Home } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Link } from "react-router-dom";
+import { ChevronRight, Home } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface BreadcrumbItem {
   label: string;
@@ -905,7 +933,7 @@ export function Breadcrumbs({
   return (
     <nav
       aria-label="Breadcrumb"
-      className={cn('flex items-center text-sm', className)}
+      className={cn("flex items-center text-sm", className)}
     >
       <ol className="flex items-center gap-1">
         {showHome && (
@@ -922,10 +950,10 @@ export function Breadcrumbs({
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
           </>
         )}
-        
+
         {items.map((item, index) => {
           const isLast = index === items.length - 1;
-          
+
           return (
             <li key={item.label} className="flex items-center gap-1">
               {item.href && !isLast ? (
@@ -938,9 +966,11 @@ export function Breadcrumbs({
               ) : (
                 <span
                   className={cn(
-                    isLast ? 'text-foreground font-medium' : 'text-muted-foreground'
+                    isLast
+                      ? "text-foreground font-medium"
+                      : "text-muted-foreground",
                   )}
-                  aria-current={isLast ? 'page' : undefined}
+                  aria-current={isLast ? "page" : undefined}
                 >
                   {item.label}
                 </span>
@@ -962,9 +992,9 @@ export function Breadcrumbs({
 ```tsx
 // packages/ui/src/components/navigation/page-header.tsx
 
-import { ReactNode } from 'react';
-import { Breadcrumbs } from './breadcrumbs';
-import { cn } from '@/lib/utils';
+import { ReactNode } from "react";
+import { Breadcrumbs } from "./breadcrumbs";
+import { cn } from "@/lib/utils";
 
 interface PageHeaderProps {
   title: string;
@@ -982,11 +1012,11 @@ export function PageHeader({
   className,
 }: PageHeaderProps) {
   return (
-    <div className={cn('space-y-4', className)}>
+    <div className={cn("space-y-4", className)}>
       {breadcrumbs && breadcrumbs.length > 0 && (
         <Breadcrumbs items={breadcrumbs} />
       )}
-      
+
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
@@ -994,12 +1024,8 @@ export function PageHeader({
             <p className="text-muted-foreground mt-1">{description}</p>
           )}
         </div>
-        
-        {actions && (
-          <div className="flex items-center gap-2">
-            {actions}
-          </div>
-        )}
+
+        {actions && <div className="flex items-center gap-2">{actions}</div>}
       </div>
     </div>
   );
@@ -1011,8 +1037,8 @@ export function PageHeader({
 ```tsx
 // packages/ui/src/components/navigation/tabs-nav.tsx
 
-import { Link, useLocation } from 'react-router-dom';
-import { cn } from '@/lib/utils';
+import { Link, useLocation } from "react-router-dom";
+import { cn } from "@/lib/utils";
 
 interface TabItem {
   label: string;
@@ -1030,20 +1056,20 @@ export function TabsNav({ tabs, className }: TabsNavProps) {
   const location = useLocation();
 
   return (
-    <nav className={cn('border-b', className)}>
+    <nav className={cn("border-b", className)}>
       <div className="flex gap-4">
         {tabs.map((tab) => {
           const isActive = location.pathname === tab.href;
-          
+
           return (
             <Link
               key={tab.href}
               to={tab.href}
               className={cn(
-                'flex items-center gap-2 px-1 py-3 text-sm font-medium border-b-2 -mb-px transition-colors',
+                "flex items-center gap-2 px-1 py-3 text-sm font-medium border-b-2 -mb-px transition-colors",
                 isActive
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-border",
               )}
             >
               {tab.icon && <tab.icon className="h-4 w-4" />}
@@ -1051,10 +1077,10 @@ export function TabsNav({ tabs, className }: TabsNavProps) {
               {tab.count !== undefined && (
                 <span
                   className={cn(
-                    'ml-1 px-2 py-0.5 text-xs rounded-full',
+                    "ml-1 px-2 py-0.5 text-xs rounded-full",
                     isActive
-                      ? 'bg-primary/10 text-primary'
-                      : 'bg-muted text-muted-foreground'
+                      ? "bg-primary/10 text-primary"
+                      : "bg-muted text-muted-foreground",
                   )}
                 >
                   {tab.count}
@@ -1074,8 +1100,8 @@ export function TabsNav({ tabs, className }: TabsNavProps) {
 ```tsx
 // packages/ui/src/components/navigation/command-palette.tsx
 
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   CommandDialog,
   CommandEmpty,
@@ -1084,7 +1110,7 @@ import {
   CommandItem,
   CommandList,
   CommandSeparator,
-} from '@/components/ui/command';
+} from "@/components/ui/command";
 import {
   LayoutDashboard,
   Upload,
@@ -1093,7 +1119,7 @@ import {
   CheckSquare,
   Search,
   Settings,
-} from 'lucide-react';
+} from "lucide-react";
 
 interface CommandPaletteProps {
   open: boolean;
@@ -1113,47 +1139,59 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
       <CommandInput placeholder="Caută pagini, acțiuni..." />
       <CommandList>
         <CommandEmpty>Nu s-au găsit rezultate.</CommandEmpty>
-        
+
         <CommandGroup heading="Navigare">
-          <CommandItem onSelect={() => runCommand(() => navigate('/dashboard'))}>
+          <CommandItem
+            onSelect={() => runCommand(() => navigate("/dashboard"))}
+          >
             <LayoutDashboard className="mr-2 h-4 w-4" />
             <span>Dashboard</span>
           </CommandItem>
-          <CommandItem onSelect={() => runCommand(() => navigate('/imports'))}>
+          <CommandItem onSelect={() => runCommand(() => navigate("/imports"))}>
             <Upload className="mr-2 h-4 w-4" />
             <span>Import Date</span>
           </CommandItem>
-          <CommandItem onSelect={() => runCommand(() => navigate('/silver/companies'))}>
+          <CommandItem
+            onSelect={() => runCommand(() => navigate("/silver/companies"))}
+          >
             <Database className="mr-2 h-4 w-4" />
             <span>Companii Silver</span>
           </CommandItem>
-          <CommandItem onSelect={() => runCommand(() => navigate('/gold/companies'))}>
+          <CommandItem
+            onSelect={() => runCommand(() => navigate("/gold/companies"))}
+          >
             <Crown className="mr-2 h-4 w-4" />
             <span>Companii Gold</span>
           </CommandItem>
-          <CommandItem onSelect={() => runCommand(() => navigate('/approvals'))}>
+          <CommandItem
+            onSelect={() => runCommand(() => navigate("/approvals"))}
+          >
             <CheckSquare className="mr-2 h-4 w-4" />
             <span>Aprobări</span>
           </CommandItem>
         </CommandGroup>
-        
+
         <CommandSeparator />
-        
+
         <CommandGroup heading="Acțiuni">
-          <CommandItem onSelect={() => runCommand(() => navigate('/imports/new'))}>
+          <CommandItem
+            onSelect={() => runCommand(() => navigate("/imports/new"))}
+          >
             <Upload className="mr-2 h-4 w-4" />
             <span>Import nou</span>
           </CommandItem>
-          <CommandItem onSelect={() => runCommand(() => navigate('/bronze/manual'))}>
+          <CommandItem
+            onSelect={() => runCommand(() => navigate("/bronze/manual"))}
+          >
             <Database className="mr-2 h-4 w-4" />
             <span>Adaugă contact manual</span>
           </CommandItem>
         </CommandGroup>
-        
+
         <CommandSeparator />
-        
+
         <CommandGroup heading="Setări">
-          <CommandItem onSelect={() => runCommand(() => navigate('/settings'))}>
+          <CommandItem onSelect={() => runCommand(() => navigate("/settings"))}>
             <Settings className="mr-2 h-4 w-4" />
             <span>Setări aplicație</span>
           </CommandItem>
@@ -1169,14 +1207,14 @@ export function useCommandPalette() {
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
-      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         setOpen((open) => !open);
       }
     };
 
-    document.addEventListener('keydown', down);
-    return () => document.removeEventListener('keydown', down);
+    document.addEventListener("keydown", down);
+    return () => document.removeEventListener("keydown", down);
   }, []);
 
   return { open, setOpen };
@@ -1192,9 +1230,9 @@ export function useCommandPalette() {
 ```tsx
 // apps/web/src/components/dashboard/stats-grid.tsx
 
-import { Card, CardContent } from '@cerniq/ui/card';
-import { cn } from '@/lib/utils';
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Card, CardContent } from "@cerniq/ui/card";
+import { cn } from "@/lib/utils";
+import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 
 interface StatCard {
   title: string;
@@ -1215,18 +1253,19 @@ export function StatsGrid({ stats, columns = 4, className }: StatsGridProps) {
   return (
     <div
       className={cn(
-        'grid gap-4',
-        columns === 2 && 'grid-cols-2',
-        columns === 3 && 'grid-cols-3',
-        columns === 4 && 'grid-cols-4',
-        className
+        "grid gap-4",
+        columns === 2 && "grid-cols-2",
+        columns === 3 && "grid-cols-3",
+        columns === 4 && "grid-cols-4",
+        className,
       )}
     >
       {stats.map((stat) => (
         <Card
           key={stat.title}
           className={cn(
-            stat.href && 'cursor-pointer hover:border-primary/50 transition-colors'
+            stat.href &&
+              "cursor-pointer hover:border-primary/50 transition-colors",
           )}
           onClick={() => stat.href && (window.location.href = stat.href)}
         >
@@ -1239,21 +1278,21 @@ export function StatsGrid({ stats, columns = 4, className }: StatsGridProps) {
                 <stat.icon className="h-4 w-4 text-muted-foreground" />
               )}
             </div>
-            
+
             <div className="mt-2 flex items-baseline gap-2">
               <span className="text-2xl font-bold">
-                {typeof stat.value === 'number'
+                {typeof stat.value === "number"
                   ? stat.value.toLocaleString()
                   : stat.value}
               </span>
-              
+
               {stat.change !== undefined && (
                 <span
                   className={cn(
-                    'flex items-center text-xs font-medium',
-                    stat.change > 0 && 'text-green-600',
-                    stat.change < 0 && 'text-red-600',
-                    stat.change === 0 && 'text-muted-foreground'
+                    "flex items-center text-xs font-medium",
+                    stat.change > 0 && "text-green-600",
+                    stat.change < 0 && "text-red-600",
+                    stat.change === 0 && "text-muted-foreground",
                   )}
                 >
                   {stat.change > 0 ? (
@@ -1267,7 +1306,7 @@ export function StatsGrid({ stats, columns = 4, className }: StatsGridProps) {
                 </span>
               )}
             </div>
-            
+
             {stat.changeLabel && (
               <p className="text-xs text-muted-foreground mt-1">
                 {stat.changeLabel}
@@ -1286,9 +1325,9 @@ export function StatsGrid({ stats, columns = 4, className }: StatsGridProps) {
 ```tsx
 // apps/web/src/components/dashboard/activity-feed.tsx
 
-import { formatDistanceToNow } from 'date-fns';
-import { ro } from 'date-fns/locale';
-import { Badge } from '@cerniq/ui/badge';
+import { formatDistanceToNow } from "date-fns";
+import { ro } from "date-fns/locale";
+import { Badge } from "@cerniq/ui/badge";
 import {
   Upload,
   CheckCircle,
@@ -1296,7 +1335,7 @@ import {
   AlertTriangle,
   Database,
   Crown,
-} from 'lucide-react';
+} from "lucide-react";
 
 interface ActivityItem {
   id: string;
@@ -1304,7 +1343,7 @@ interface ActivityItem {
   title: string;
   description?: string;
   timestamp: string;
-  status?: 'success' | 'error' | 'warning' | 'info';
+  status?: "success" | "error" | "warning" | "info";
   metadata?: Record<string, any>;
 }
 
@@ -1323,10 +1362,10 @@ const activityIcons: Record<string, React.ElementType> = {
 };
 
 const statusColors: Record<string, string> = {
-  success: 'text-green-500',
-  error: 'text-red-500',
-  warning: 'text-yellow-500',
-  info: 'text-blue-500',
+  success: "text-green-500",
+  error: "text-red-500",
+  warning: "text-yellow-500",
+  info: "text-blue-500",
 };
 
 export function ActivityFeed({ activities, maxItems = 10 }: ActivityFeedProps) {
@@ -1336,14 +1375,14 @@ export function ActivityFeed({ activities, maxItems = 10 }: ActivityFeedProps) {
     <div className="space-y-4">
       {displayActivities.map((activity) => {
         const Icon = activityIcons[activity.type] || Database;
-        const iconColor = statusColors[activity.status || 'info'];
+        const iconColor = statusColors[activity.status || "info"];
 
         return (
           <div key={activity.id} className="flex gap-3">
-            <div className={cn('mt-0.5', iconColor)}>
+            <div className={cn("mt-0.5", iconColor)}>
               <Icon className="h-4 w-4" />
             </div>
-            
+
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">{activity.title}</p>
               {activity.description && (
@@ -1358,13 +1397,17 @@ export function ActivityFeed({ activities, maxItems = 10 }: ActivityFeedProps) {
                 })}
               </p>
             </div>
-            
+
             {activity.status && (
               <Badge
                 variant={
-                  activity.status === 'success' ? 'success' :
-                  activity.status === 'error' ? 'destructive' :
-                  activity.status === 'warning' ? 'warning' : 'secondary'
+                  activity.status === "success"
+                    ? "success"
+                    : activity.status === "error"
+                      ? "destructive"
+                      : activity.status === "warning"
+                        ? "warning"
+                        : "secondary"
                 }
               >
                 {activity.status}

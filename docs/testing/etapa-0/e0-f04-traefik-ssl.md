@@ -1,6 +1,6 @@
-# CERNIQ.APP — TESTE F0.4: TRAEFIK & SSL
+# CERNIQ.APP — TESTE F0.4: INGRESS & TLS (TRAEFIK ORCHESTRATOR)
 
-## Teste pentru Traefik reverse proxy și TLS
+## Teste pentru ingress centralizat si TLS
 
 **Fază:** F0.4 | **Taskuri:** 4
 
@@ -15,23 +15,24 @@
 # tests/infra/f04-tls.test.sh
 
 describe "TLS Configuration" {
-  
+
   it "should enforce TLS 1.2 minimum" {
     # Test that TLS 1.1 is rejected
     ! openssl s_client -connect api.cerniq.app:443 -tls1_1 2>&1 | grep -q "Protocol  : TLSv1.1"
     assert_success
   }
-  
+
   it "should accept TLS 1.3" {
     openssl s_client -connect api.cerniq.app:443 -tls1_3 2>&1 | grep -q "Protocol  : TLSv1.3"
     assert_success
   }
-  
+
   it "should have valid SSL certificate" {
-    curl -sI https://api.cerniq.app | grep -q "HTTP/2 200\|HTTP/1.1 200"
+    # Nota: necesita DNS cutover + deploy aplicatie
+    curl -sI https://api.cerniq.app | grep -q "HTTP/"
     assert_success
   }
-  
+
   it "should redirect HTTP to HTTPS" {
     response=$(curl -sI http://api.cerniq.app -o /dev/null -w "%{http_code}")
     [[ "$response" == "301" || "$response" == "308" ]]
@@ -40,32 +41,14 @@ describe "TLS Configuration" {
 }
 ```
 
-### Traefik Dashboard
+### Verificare configuratie Traefik (file provider)
 
-```typescript
-describe('Traefik Configuration', () => {
-  
-  it('should expose metrics on :64081', async () => {
-    const response = await fetch('http://localhost:64081/metrics');
-    expect(response.status).toBe(200);
-    expect(await response.text()).toContain('traefik_');
-  });
-  
-  it('should have API router configured', async () => {
-    const response = await fetch('http://localhost:64081/api/http/routers');
-    const routers = await response.json();
-    
-    expect(routers.find(r => r.name.includes('api'))).toBeDefined();
-  });
-  
-  it('should have rate limit middleware', async () => {
-    const response = await fetch('http://localhost:64081/api/http/middlewares');
-    const middlewares = await response.json();
-    
-    expect(middlewares.find(m => m.name.includes('ratelimit'))).toBeDefined();
-  });
-});
-```
+Traefik este centralizat pe orchestrator; nu exista Traefik local in stack-ul aplicatiei.
+
+Validare recomandata (orchestrator):
+
+- `sha256sum` pentru `infra/config/traefik-orchestrator/cerniq.yml` vs `/opt/traefik/dynamic/cerniq.yml`
+- `curl -k -I -H 'Host: staging.cerniq.app' https://77.42.76.185` (dupa deploy app)
 
 ---
 
@@ -74,8 +57,7 @@ describe('Traefik Configuration', () => {
 - [ ] TLS 1.2+ enforced
 - [ ] HTTP → HTTPS redirect
 - [ ] Valid SSL certificate
-- [ ] Metrics exposed :64081
-- [ ] Rate limit middleware active
+- [ ] Config Traefik (orchestrator) contine routerele Cerniq
 
 ---
 

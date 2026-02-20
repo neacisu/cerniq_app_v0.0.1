@@ -1,5 +1,7 @@
 # CERNIQ.APP — ETAPA 5: PLAN IMPLEMENTARE COMPLET
+
 ## Nurturing Agentic - 99 Taskuri Granulare
+
 ### Versiunea 1.0 | 19 Ianuarie 2026
 
 ---
@@ -26,6 +28,7 @@
 ## 1. Overview Implementare {#1-overview}
 
 ### Metrici Generale
+
 - **Total Taskuri**: 99
 - **Durată Estimată**: 14-16 săptămâni
 - **Echipă**: 1 person team (vertical slice)
@@ -618,21 +621,21 @@
 
 ### Total pe Faze
 
-| Fază | Nume | Taskuri | Ore | Zile |
-|------|------|---------|-----|------|
-| 5.1 | Infrastructure | 8 | 29 | 3 |
-| 5.2 | Database Schema | 12 | 34 | 4 |
-| 5.3 | State Machine | 8 | 32 | 4 |
-| 5.4 | Churn Detection | 8 | 35 | 5 |
-| 5.5 | Geospatial | 8 | 29 | 4 |
-| 5.6 | Graph Analysis | 8 | 32 | 4 |
-| 5.7 | Referral System | 10 | 40 | 5 |
-| 5.8 | Win-Back | 8 | 28 | 4 |
-| 5.9 | Associations | 8 | 32 | 4 |
-| 5.10 | Feedback/Content | 10 | 36 | 5 |
-| 5.11 | UI Implementation | 8 | 48 | 6 |
-| 5.12 | Testing & Deploy | 3 | 24 | 3 |
-| **TOTAL** | | **99** | **399** | **~51 zile** |
+| Fază      | Nume              | Taskuri | Ore     | Zile         |
+| --------- | ----------------- | ------- | ------- | ------------ |
+| 5.1       | Infrastructure    | 8       | 29      | 3            |
+| 5.2       | Database Schema   | 12      | 34      | 4            |
+| 5.3       | State Machine     | 8       | 32      | 4            |
+| 5.4       | Churn Detection   | 8       | 35      | 5            |
+| 5.5       | Geospatial        | 8       | 29      | 4            |
+| 5.6       | Graph Analysis    | 8       | 32      | 4            |
+| 5.7       | Referral System   | 10      | 40      | 5            |
+| 5.8       | Win-Back          | 8       | 28      | 4            |
+| 5.9       | Associations      | 8       | 32      | 4            |
+| 5.10      | Feedback/Content  | 10      | 36      | 5            |
+| 5.11      | UI Implementation | 8       | 48      | 6            |
+| 5.12      | Testing & Deploy  | 3       | 24      | 3            |
+| **TOTAL** |                   | **99**  | **399** | **~51 zile** |
 
 ### Timeline: 14-16 săptămâni
 

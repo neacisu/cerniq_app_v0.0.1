@@ -9,11 +9,11 @@
 ```typescript
 // Unified ingestion interface
 interface BronzeIngestionSource {
-  sourceType: 'csv' | 'webhook' | 'scrape' | 'manual' | 'api';
-  sourceIdentifier: string;  // filename, URL, endpoint
+  sourceType: "csv" | "webhook" | "scrape" | "manual" | "api";
+  sourceIdentifier: string; // filename, URL, endpoint
   rawPayload: Record<string, unknown>;
   ingestionTimestamp: Date;
-  checksum: string;  // SHA-256 pentru deduplicare
+  checksum: string; // SHA-256 pentru deduplicare
 }
 ```
 

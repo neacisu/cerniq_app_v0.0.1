@@ -8,19 +8,19 @@
 
 ```typescript
 interface QualityScore {
-  completenessScore: number;  // Câmpuri populate
-  accuracyScore: number;      // Validări trecute
-  freshnessScore: number;     // Recența datelor
-  enrichmentScore: number;    // Surse externe validate
-  
-  totalScore: number;         // Weighted average
+  completenessScore: number; // Câmpuri populate
+  accuracyScore: number; // Validări trecute
+  freshnessScore: number; // Recența datelor
+  enrichmentScore: number; // Surse externe validate
+
+  totalScore: number; // Weighted average
 }
 
 const WEIGHTS = {
-  completeness: 0.30,
+  completeness: 0.3,
   accuracy: 0.35,
   freshness: 0.15,
-  enrichment: 0.20,
+  enrichment: 0.2,
 };
 
 // Threshold pentru progresie

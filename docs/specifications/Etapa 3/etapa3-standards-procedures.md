@@ -1,4 +1,5 @@
 # Etapa 3 - Proceduri și Workflow-uri de Dezvoltare
+
 ## AI Sales Agent - Development Procedures, Release Process și Operational Workflows
 
 **Versiune:** 1.0.0
@@ -52,21 +53,21 @@ principii:
       - Code review obligatoriu
       - Teste automate pentru orice cod nou
       - Zero tolerance pentru regression bugs
-      
+
   automation:
     description: "Automatizează tot ce poate fi automatizat"
     implicații:
       - CI/CD pentru toate proiectele
       - Teste automate
       - Deployment automat
-      
+
   transparency:
     description: "Transparență completă în proces"
     implicații:
       - Status updates în Slack
       - Documentație publică
       - Metrics accesibile
-      
+
   continuous_improvement:
     description: "Îmbunătățire continuă"
     implicații:
@@ -91,21 +92,21 @@ echo "=== Cerniq Development Environment Setup ==="
 # 1. Verifică prerequisite
 check_prerequisites() {
     echo "Verificare prerequisite..."
-    
+
     # Node.js v24+
     if ! command -v node &> /dev/null || [[ $(node -v | cut -d'v' -f2 | cut -d'.' -f1) -lt 24 ]]; then
         echo "❌ Node.js v24+ required"
         exit 1
     fi
     echo "✅ Node.js $(node -v)"
-    
+
     # Docker
     if ! command -v docker &> /dev/null; then
         echo "❌ Docker required"
         exit 1
     fi
     echo "✅ Docker $(docker --version)"
-    
+
     # Git
     if ! command -v git &> /dev/null; then
         echo "❌ Git required"
@@ -132,7 +133,7 @@ install_deps() {
 setup_env() {
     echo "Configurare environment local..."
     cp .env.example .env.local
-    
+
     echo "Editează .env.local cu credențialele locale"
 }
 
@@ -140,14 +141,14 @@ setup_env() {
 start_services() {
     echo "Pornire servicii locale..."
     docker compose -f docker-compose.dev.yml up -d
-    
+
     # Wait for services
     echo "Așteptare pornire servicii..."
     sleep 10
-    
+
     # Run migrations
     npm run db:migrate
-    
+
     # Seed development data
     npm run db:seed
 }
@@ -156,7 +157,7 @@ start_services() {
 verify_setup() {
     echo "Verificare setup..."
     npm run test:unit -- --run
-    
+
     if [ $? -eq 0 ]; then
         echo "✅ Setup complet!"
         echo ""
@@ -180,15 +181,17 @@ verify_setup
 
 ### 2.2 Daily Development Workflow
 
-```markdown
+````markdown
 ## Daily Development Workflow
 
 ### Start of Day (08:00 - 08:30)
+
 1. Pull latest changes
    ```bash
    git checkout develop
    git pull origin develop
    ```
+````
 
 2. Check CI status
    - Review overnight build failures
@@ -199,7 +202,9 @@ verify_setup
    - Review any overnight comments on PRs
 
 ### Development (08:30 - 12:00)
+
 1. Create feature branch
+
    ```bash
    git checkout -b feature/CERN-XXX-description
    ```
@@ -219,8 +224,10 @@ verify_setup
 ### Lunch Break (12:00 - 13:00)
 
 ### Afternoon Development (13:00 - 17:00)
+
 1. Continue implementation
 2. Push WIP branch for backup
+
    ```bash
    git push -u origin feature/CERN-XXX-description
    ```
@@ -228,11 +235,13 @@ verify_setup
 3. Create Draft PR if continuing next day
 
 ### End of Day (17:00 - 17:30)
+
 1. Push all changes
 2. Update ticket status
 3. Document any blockers
 4. Handoff notes if needed
-```
+
+````
 
 ### 2.3 Local Development Commands
 
@@ -269,7 +278,7 @@ npm run format:check            # Check formatting
 npm run build                   # Build all packages
 npm run build:api               # Build API
 npm run build:web               # Build frontend
-```
+````
 
 ---
 
@@ -304,7 +313,7 @@ ticket_states:
     actions:
       - Grooming meeting
       - Prioritization
-    
+
   - name: READY_FOR_DEV
     description: "Ticket groom-uit, estimat, prioritizat"
     requirements:
@@ -312,28 +321,28 @@ ticket_states:
       - Technical approach discussed
       - Dependencies identified
       - Estimate provided (story points)
-    
+
   - name: IN_PROGRESS
     description: "Dezvoltare activă"
     actions:
       - Create branch
       - Implement solution
       - Write tests
-    
+
   - name: CODE_REVIEW
     description: "PR creat, în review"
     requirements:
       - All tests passing
       - Code coverage met
       - Self-review completed
-    
+
   - name: QA
     description: "Testing pe staging"
     actions:
       - Manual testing
       - Regression testing
       - Performance testing (if applicable)
-    
+
   - name: DONE
     description: "Deployed to production, verified"
     requirements:
@@ -348,6 +357,7 @@ ticket_states:
 ## Feature Development Checklist
 
 ### Before Starting
+
 - [ ] Ticket is in READY_FOR_DEV status
 - [ ] Acceptance criteria are clear
 - [ ] Technical approach is agreed
@@ -355,6 +365,7 @@ ticket_states:
 - [ ] Branch created from latest develop
 
 ### During Development
+
 - [ ] Follow TDD when possible
 - [ ] Commit frequently with meaningful messages
 - [ ] Update tests for any behavior changes
@@ -362,6 +373,7 @@ ticket_states:
 - [ ] Keep PR scope focused
 
 ### Before Creating PR
+
 - [ ] All tests pass locally
 - [ ] Code is linted and formatted
 - [ ] Self-review completed
@@ -369,6 +381,7 @@ ticket_states:
 - [ ] Changelog updated if user-facing
 
 ### PR Created
+
 - [ ] Title follows convention
 - [ ] Description is complete
 - [ ] Linked to ticket
@@ -376,6 +389,7 @@ ticket_states:
 - [ ] Added relevant labels
 
 ### After Merge
+
 - [ ] Verify staging deployment
 - [ ] Update ticket status
 - [ ] Notify QA if needed
@@ -402,7 +416,7 @@ review_assignment:
         teams: ["backend-team"]
       - path: "packages/shared/**"
         teams: ["backend-team", "frontend-team"]
-        
+
   required_approvals:
     default: 2
     critical_paths:
@@ -424,11 +438,11 @@ review_sla:
   initial_review:
     target: "4 hours"
     max: "1 business day"
-    
+
   follow_up_review:
     target: "2 hours"
     max: "4 hours"
-    
+
   escalation:
     - after: "4 hours"
       action: "Reminder în Slack"
@@ -503,10 +517,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: "24"
       - run: npm ci
       - run: npm run lint
-      
+
   typecheck:
     runs-on: ubuntu-latest
     steps:
@@ -514,7 +528,7 @@ jobs:
       - uses: actions/setup-node@v4
       - run: npm ci
       - run: npm run typecheck
-      
+
   test:
     runs-on: ubuntu-latest
     services:
@@ -523,18 +537,18 @@ jobs:
         env:
           POSTGRES_PASSWORD: test
         ports:
-          - 64032:64032
+          - 5432:5432
       redis:
-        image: redis:7
+        image: redis:8
         ports:
-          - 64039:64039
+          - 6379:6379
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
       - run: npm ci
       - run: npm run test:coverage
       - uses: codecov/codecov-action@v4
-      
+
   security:
     runs-on: ubuntu-latest
     steps:
@@ -562,14 +576,14 @@ testing_requirements:
       scope: "happy path + error cases"
     e2e_tests:
       required: "for user-facing features"
-    
+
   bug_fix:
     unit_tests:
       required: true
       scope: "test that reproduces bug + fix verification"
     regression_tests:
       required: "if affects existing functionality"
-    
+
   refactoring:
     unit_tests:
       required: "all existing tests must pass"
@@ -646,6 +660,7 @@ echo "✅ All tests passed!"
 ## QA Testing Checklist
 
 ### Functional Testing
+
 - [ ] All acceptance criteria met
 - [ ] Happy path works correctly
 - [ ] Edge cases handled
@@ -653,36 +668,42 @@ echo "✅ All tests passed!"
 - [ ] Data validation works
 
 ### Cross-Browser Testing (Frontend)
+
 - [ ] Chrome (latest)
 - [ ] Firefox (latest)
 - [ ] Safari (latest)
 - [ ] Edge (latest)
 
 ### Responsive Testing (Frontend)
+
 - [ ] Desktop (1920x1080)
 - [ ] Laptop (1366x768)
 - [ ] Tablet (768x1024)
 - [ ] Mobile (375x812)
 
 ### Performance Testing
+
 - [ ] Page load < 3 seconds
 - [ ] API response < 500ms
 - [ ] No memory leaks
 - [ ] No excessive network requests
 
 ### Security Testing
+
 - [ ] No sensitive data in logs
 - [ ] Authentication working
 - [ ] Authorization correct
 - [ ] Input validation
 
 ### Accessibility Testing
+
 - [ ] Keyboard navigation
 - [ ] Screen reader compatible
 - [ ] Color contrast adequate
 - [ ] ARIA labels present
 
 ### Regression Testing
+
 - [ ] Related features still work
 - [ ] No new console errors
 - [ ] Existing tests pass
@@ -700,11 +721,11 @@ release_schedule:
     frequency: "bi-weekly"
     day: "Tuesday"
     time: "10:00 UTC"
-    
+
   hotfixes:
     frequency: "as needed"
     max_time_to_production: "4 hours"
-    
+
   feature_flags:
     enabled: true
     gradual_rollout: true
@@ -712,18 +733,21 @@ release_schedule:
 
 ### 6.2 Release Process
 
-```markdown
+````markdown
 ## Release Process
 
 ### T-3 Days: Release Planning
+
 1. Create release branch from develop
    ```bash
    git checkout develop
    git pull origin develop
    git checkout -b release/v1.X.0
    ```
+````
 
 2. Update version numbers
+
    ```bash
    npm version minor  # or patch/major
    ```
@@ -738,6 +762,7 @@ release_schedule:
    - Request reviews from Tech Lead and QA Lead
 
 ### T-2 Days: Release Testing
+
 1. Deploy to staging
 2. Run full regression suite
 3. QA manual testing
@@ -745,12 +770,14 @@ release_schedule:
 5. Performance testing
 
 ### T-1 Day: Release Preparation
+
 1. Final PR approval
 2. Prepare deployment checklist
 3. Notify stakeholders
 4. Schedule deployment window
 
 ### Release Day
+
 1. Final staging verification
 2. Merge to main
 3. Tag release
@@ -762,7 +789,8 @@ release_schedule:
 5. Smoke testing
 6. Merge main back to develop
 7. Announce release
-```
+
+````
 
 ### 6.3 Release Checklist
 
@@ -798,7 +826,7 @@ release_schedule:
 - [ ] Release notes published
 - [ ] Stakeholders notified
 - [ ] Metrics baseline updated
-```
+````
 
 ---
 
@@ -813,14 +841,14 @@ environments:
     access: "All developers"
     data: "Mock/seed data"
     refresh: "On-demand"
-    
+
   staging:
     purpose: "Pre-production testing"
     access: "All team members"
     data: "Anonymized production clone"
     refresh: "Weekly"
     url: "https://staging.cerniq.app"
-    
+
   production:
     purpose: "Live system"
     access: "Restricted (DevOps + Leads)"
@@ -849,7 +877,7 @@ validate_deployment() {
         echo "❌ Invalid environment: $ENVIRONMENT"
         exit 1
     fi
-    
+
     # Production requires explicit confirmation
     if [ "$ENVIRONMENT" = "production" ]; then
         echo ""
@@ -867,7 +895,7 @@ validate_deployment() {
 pre_deployment_checks() {
     echo ""
     echo "📋 Pre-deployment checks..."
-    
+
     # Check CI status
     echo "  Checking CI status..."
     CI_STATUS=$(gh run list --limit 1 --json conclusion -q '.[0].conclusion')
@@ -876,7 +904,7 @@ pre_deployment_checks() {
         exit 1
     fi
     echo "  ✅ CI passing"
-    
+
     # Check disk space
     echo "  Checking disk space..."
     DISK_USAGE=$(ssh $ENVIRONMENT "df -h / | tail -1 | awk '{print \$5}' | tr -d '%'")
@@ -884,7 +912,7 @@ pre_deployment_checks() {
         echo "  ⚠️  Disk usage high: $DISK_USAGE%"
     fi
     echo "  ✅ Disk space OK"
-    
+
     # Check service health
     echo "  Checking service health..."
     HEALTH=$(curl -s https://$ENVIRONMENT.cerniq.app/health | jq -r '.status')
@@ -906,24 +934,24 @@ create_backup() {
 deploy() {
     echo ""
     echo "🚀 Deploying..."
-    
+
     # Pull latest images
     echo "  Pulling images..."
     ssh $ENVIRONMENT "cd /opt/cerniq && docker compose pull"
-    
+
     # Run migrations
     echo "  Running migrations..."
     ssh $ENVIRONMENT "cd /opt/cerniq && docker compose run --rm api npm run db:migrate"
-    
+
     # Rolling update
     echo "  Rolling update..."
     ssh $ENVIRONMENT "cd /opt/cerniq && docker compose up -d --no-deps --scale api=2 api"
     sleep 10
     ssh $ENVIRONMENT "cd /opt/cerniq && docker compose up -d --no-deps --scale api=1 api"
-    
+
     # Update other services
     ssh $ENVIRONMENT "cd /opt/cerniq && docker compose up -d"
-    
+
     echo "  ✅ Deployment complete"
 }
 
@@ -931,7 +959,7 @@ deploy() {
 post_deployment_verification() {
     echo ""
     echo "✔️  Post-deployment verification..."
-    
+
     # Health check
     echo "  Health check..."
     for i in {1..5}; do
@@ -943,11 +971,11 @@ post_deployment_verification() {
         echo "  Waiting... ($i/5)"
         sleep 5
     done
-    
+
     # Smoke tests
     echo "  Running smoke tests..."
     npm run test:smoke -- --env=$ENVIRONMENT
-    
+
     echo "  ✅ Verification complete"
 }
 
@@ -955,7 +983,7 @@ post_deployment_verification() {
 notify_deployment() {
     echo ""
     echo "📢 Notifying..."
-    
+
     # Slack notification
     curl -X POST "$SLACK_WEBHOOK" \
         -H 'Content-Type: application/json' \
@@ -971,7 +999,7 @@ notify_deployment() {
                 ]
             }]
         }"
-    
+
     echo "  ✅ Notifications sent"
 }
 
@@ -1074,21 +1102,21 @@ hotfix_criteria:
       - "Authentication bypass"
       - "Data exposure vulnerability"
       - "SQL injection"
-      
+
   data_loss:
     priority: CRITICAL
     sla: "2 hours to fix, 4 hours to deploy"
     examples:
       - "Data corruption bug"
       - "Accidental deletion"
-      
+
   service_outage:
     priority: HIGH
     sla: "4 hours to fix, 8 hours to deploy"
     examples:
       - "Service not responding"
       - "Database connection failures"
-      
+
   major_functionality:
     priority: HIGH
     sla: "1 business day"
@@ -1099,32 +1127,38 @@ hotfix_criteria:
 
 ### 8.2 Hotfix Process
 
-```markdown
+````markdown
 ## Hotfix Process
 
 ### 1. Identify and Confirm
+
 - Confirm the issue is a hotfix candidate
 - Get approval from Tech Lead
 - Create hotfix ticket
 
 ### 2. Create Hotfix Branch
+
 ```bash
 git checkout main
 git pull origin main
 git checkout -b hotfix/CERN-XXX-description
 ```
+````
 
 ### 3. Implement Fix
+
 - Minimal change to fix issue
 - Add test that reproduces bug
 - Verify fix passes test
 
 ### 4. Expedited Review
+
 - Request immediate review
 - Minimum 1 approval (2 for security)
 - Skip non-critical comments
 
 ### 5. Merge and Deploy
+
 ```bash
 # Merge to main
 git checkout main
@@ -1142,10 +1176,12 @@ git push origin develop
 ```
 
 ### 6. Post-Mortem
+
 - Schedule post-mortem within 24 hours
 - Document root cause
 - Identify preventive measures
-```
+
+````
 
 ### 8.3 Hotfix Checklist
 
@@ -1181,7 +1217,7 @@ git push origin develop
 - [ ] Merged to develop
 - [ ] Ticket closed
 - [ ] Post-mortem scheduled
-```
+````
 
 ---
 
@@ -1198,7 +1234,7 @@ rollback_triggers:
       - "Security breach in new code"
     decision_time: "5 minutes"
     authority: "On-call engineer"
-    
+
   considered_rollback:
     conditions:
       - "Error rate > 5%"
@@ -1206,7 +1242,7 @@ rollback_triggers:
       - "Critical feature broken"
     decision_time: "15 minutes"
     authority: "On-call + Tech Lead"
-    
+
   optional_rollback:
     conditions:
       - "Minor issues reported"
@@ -1270,7 +1306,9 @@ git checkout $TARGET_VERSION
 
 # 5. Check if DB rollback needed
 echo "Checking database migrations..."
-CURRENT_MIGRATION=$(docker compose exec -T postgres psql -U cerniq -t -c "SELECT version FROM schema_migrations ORDER BY version DESC LIMIT 1")
+# In infrastructura noua nu exista container `postgres` in stack-ul Cerniq.
+# Foloseste `DATABASE_URL` (de obicei prin PgBouncer) pentru interogari.
+CURRENT_MIGRATION=$(psql "${DATABASE_URL}" -t -c "SELECT version FROM schema_migrations ORDER BY version DESC LIMIT 1")
 TARGET_MIGRATION=$(cat db/migrations/latest)
 
 if [ "$CURRENT_MIGRATION" != "$TARGET_MIGRATION" ]; then
@@ -1331,8 +1369,8 @@ echo "Incident: $INCIDENT_ID"
 // ✅ DO: Safe migration patterns
 
 // migrations/0300_create_negotiations_table.ts
-import { sql } from 'drizzle-orm';
-import { pgTable, uuid, text, timestamp, index } from 'drizzle-orm/pg-core';
+import { sql } from "drizzle-orm";
+import { pgTable, uuid, text, timestamp, index } from "drizzle-orm/pg-core";
 
 export async function up(db: DB): Promise<void> {
   // Create table
@@ -1346,13 +1384,13 @@ export async function up(db: DB): Promise<void> {
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
-  
+
   // Create indexes (CONCURRENTLY for production safety)
   await db.execute(sql`
     CREATE INDEX CONCURRENTLY idx_negotiations_tenant_id 
     ON negotiations(tenant_id)
   `);
-  
+
   await db.execute(sql`
     CREATE INDEX CONCURRENTLY idx_negotiations_contact_id 
     ON negotiations(contact_id)
@@ -1363,7 +1401,7 @@ export async function down(db: DB): Promise<void> {
   // Drop indexes first
   await db.execute(sql`DROP INDEX IF EXISTS idx_negotiations_contact_id`);
   await db.execute(sql`DROP INDEX IF EXISTS idx_negotiations_tenant_id`);
-  
+
   // Drop table
   await db.execute(sql`DROP TABLE IF EXISTS negotiations`);
 }
@@ -1410,7 +1448,7 @@ echo "$PENDING"
 echo ""
 echo "Creating pre-migration backup..."
 BACKUP_FILE="backup_pre_migration_$(date +%Y%m%d_%H%M%S).sql.gz"
-pg_dump -h localhost -U cerniq cerniq | gzip > /backup/$BACKUP_FILE
+pg_dump -h localhost -U c3rn1q cerniq | gzip > /backup/$BACKUP_FILE
 echo "Backup created: $BACKUP_FILE"
 
 # 3. Test on staging first (if production)
@@ -1418,13 +1456,13 @@ if [ "$ENVIRONMENT" = "production" ]; then
     echo ""
     echo "Testing migration on staging..."
     ssh staging "cd /opt/cerniq && npm run db:migrate"
-    
+
     if [ $? -ne 0 ]; then
         echo "❌ Migration failed on staging. Aborting."
         exit 1
     fi
     echo "✅ Migration successful on staging"
-    
+
     echo ""
     echo "Proceed with production migration? (yes/no)"
     read confirm
@@ -1443,7 +1481,7 @@ if [ $? -ne 0 ]; then
     echo ""
     echo "To rollback:"
     echo "  1. npm run db:migrate:rollback"
-    echo "  2. Or restore backup: gunzip -c /backup/$BACKUP_FILE | psql -U cerniq cerniq"
+    echo "  2. Or restore backup: gunzip -c /backup/$BACKUP_FILE | psql -U c3rn1q cerniq"
     exit 1
 fi
 
@@ -1468,11 +1506,11 @@ export async function up(db: DB): Promise<void> {
     ALTER TABLE negotiations 
     ADD COLUMN new_state TEXT
   `);
-  
+
   // 2. Migrate data in batches
   const BATCH_SIZE = 1000;
   let processed = 0;
-  
+
   while (true) {
     const result = await db.execute(sql`
       UPDATE negotiations
@@ -1489,22 +1527,22 @@ export async function up(db: DB): Promise<void> {
       )
       RETURNING id
     `);
-    
+
     if (result.rowCount === 0) break;
-    
+
     processed += result.rowCount;
     console.log(`Migrated ${processed} rows...`);
-    
+
     // Small delay to reduce load
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
   }
-  
+
   // 3. Add constraints after data migration
   await db.execute(sql`
     ALTER TABLE negotiations 
     ALTER COLUMN new_state SET NOT NULL
   `);
-  
+
   // 4. (Optional) Keep old column for rollback period
   // await db.execute(sql`
   //   ALTER TABLE negotiations DROP COLUMN old_state
@@ -1527,7 +1565,7 @@ severity_levels:
     notification: "PagerDuty + All hands"
     communication: "Every 15 minutes"
     post_mortem: "Required within 24 hours"
-    
+
   P2_HIGH:
     description: "Major functionality degraded"
     response_time: "15 minutes"
@@ -1535,7 +1573,7 @@ severity_levels:
     notification: "PagerDuty + Slack"
     communication: "Every 30 minutes"
     post_mortem: "Required within 48 hours"
-    
+
   P3_MEDIUM:
     description: "Minor functionality affected"
     response_time: "1 hour"
@@ -1543,7 +1581,7 @@ severity_levels:
     notification: "Slack"
     communication: "Every 2 hours"
     post_mortem: "Optional"
-    
+
   P4_LOW:
     description: "Cosmetic issues or minor bugs"
     response_time: "4 hours"
@@ -1559,6 +1597,7 @@ severity_levels:
 ## Incident Response Playbook
 
 ### Phase 1: Detection & Alert (0-5 min)
+
 1. Acknowledge alert in PagerDuty
 2. Join #incidents Slack channel
 3. Assess initial impact
@@ -1566,6 +1605,7 @@ severity_levels:
 5. Page additional help if needed
 
 ### Phase 2: Triage (5-15 min)
+
 1. Identify affected systems
 2. Check recent changes
 3. Review monitoring dashboards
@@ -1573,12 +1613,14 @@ severity_levels:
 5. Form hypothesis
 
 ### Phase 3: Communication (Ongoing)
+
 1. Post initial update to Slack
 2. Create incident document
 3. Update status page if customer-facing
 4. Schedule regular updates
 
 ### Phase 4: Investigation (15+ min)
+
 1. Analyze logs and metrics
 2. Correlate with recent changes
 3. Test hypotheses
@@ -1586,6 +1628,7 @@ severity_levels:
 5. Determine fix or workaround
 
 ### Phase 5: Resolution
+
 1. Implement fix
 2. Verify in staging (if possible)
 3. Deploy to production
@@ -1593,6 +1636,7 @@ severity_levels:
 5. Monitor for recurrence
 
 ### Phase 6: Closure
+
 1. Final status update
 2. Update status page
 3. Document timeline
@@ -1613,16 +1657,16 @@ on_call:
       duration: "1 week"
       start: "Monday 09:00"
       handoff: "Monday 09:00"
-      
+
     secondary:
       duration: "1 week"
       coverage: "Primary unavailable"
-      
+
   expectations:
     response_time: "5 minutes for P1/P2"
     availability: "Reachable 24/7"
     tools: "Laptop + phone + internet"
-    
+
   compensation:
     weekday_shift: "Included in salary"
     weekend_shift: "1 day off"
@@ -1635,18 +1679,21 @@ on_call:
 ## On-Call Engineer Responsibilities
 
 ### Daily
+
 - [ ] Check overnight alerts (by 09:00)
 - [ ] Review system health dashboards
 - [ ] Respond to alerts within SLA
 - [ ] Document any issues
 
 ### Weekly
+
 - [ ] Handoff meeting (Monday 09:00)
 - [ ] Review recurring alerts
 - [ ] Update runbooks if needed
 - [ ] Escalate unresolved issues
 
 ### During Incidents
+
 - [ ] First responder for alerts
 - [ ] Initial triage and severity assessment
 - [ ] Coordinate response if needed
@@ -1654,6 +1701,7 @@ on_call:
 - [ ] Document incident timeline
 
 ### Handoff Checklist
+
 - [ ] Review open incidents
 - [ ] Note any expected alerts
 - [ ] Highlight known issues
@@ -1672,35 +1720,35 @@ channels:
   slack:
     - name: "#dev-general"
       purpose: "General development discussion"
-      
+
     - name: "#dev-help"
       purpose: "Technical questions"
-      
+
     - name: "#incidents"
       purpose: "Active incident coordination"
-      
+
     - name: "#deployments"
       purpose: "Deployment notifications"
-      
+
     - name: "#alerts"
       purpose: "Automated alerts"
-      
+
   email:
     - list: "team@cerniq.app"
       purpose: "Team-wide announcements"
-      
+
     - list: "oncall@cerniq.app"
       purpose: "On-call escalation"
-      
+
   meetings:
     - name: "Daily Standup"
       frequency: "Daily 09:30"
       duration: "15 minutes"
-      
+
     - name: "Sprint Planning"
       frequency: "Bi-weekly Monday"
       duration: "2 hours"
-      
+
     - name: "Retrospective"
       frequency: "Bi-weekly Friday"
       duration: "1 hour"
@@ -1719,6 +1767,7 @@ channels:
 Brief description of the issue.
 
 **Impact:**
+
 - Users affected: X%
 - Features impacted: Feature A, Feature B
 - Start time: YYYY-MM-DD HH:MM UTC
@@ -1738,6 +1787,7 @@ In X minutes/hours.
 **Time:** YYYY-MM-DD HH:MM UTC
 
 **Changes:**
+
 - Feature A (#123)
 - Bug fix B (#456)
 - Improvement C (#789)
@@ -1766,7 +1816,7 @@ documentation_requirements:
     optional:
       - Architecture diagram
       - Sequence diagrams
-      
+
   new_feature:
     required:
       - User documentation (if user-facing)
@@ -1774,7 +1824,7 @@ documentation_requirements:
       - Changelog entry
     optional:
       - Technical design doc
-      
+
   bug_fix:
     required:
       - Changelog entry (if user-visible)
@@ -1788,6 +1838,7 @@ documentation_requirements:
 ## Documentation Update Process
 
 ### When to Update
+
 - New feature implemented
 - API changed
 - Configuration changed
@@ -1795,6 +1846,7 @@ documentation_requirements:
 - New service deployed
 
 ### How to Update
+
 1. Identify affected documentation
 2. Update in same PR as code change
 3. Request review from technical writer
@@ -1802,6 +1854,7 @@ documentation_requirements:
 5. Update table of contents if needed
 
 ### Documentation Locations
+
 - `/docs` - General documentation
 - `/packages/*/README.md` - Package-specific docs
 - `/docs/api` - API documentation
@@ -1817,20 +1870,24 @@ documentation_requirements:
 
 ```markdown
 ## Description
+
 Brief description of changes.
 
 ## Type of Change
+
 - [ ] Bug fix
 - [ ] New feature
 - [ ] Breaking change
 - [ ] Documentation
 
 ## Testing
+
 - [ ] Unit tests
 - [ ] Integration tests
 - [ ] Manual testing
 
 ## Checklist
+
 - [ ] Code follows standards
 - [ ] Tests pass
 - [ ] Documentation updated
@@ -1843,45 +1900,51 @@ Brief description of changes.
 # Incident Report: [Title]
 
 ## Summary
-| Field | Value |
-|-------|-------|
-| Incident ID | INC-XXXXX |
-| Severity | P1/P2/P3/P4 |
-| Start Time | YYYY-MM-DD HH:MM UTC |
-| End Time | YYYY-MM-DD HH:MM UTC |
-| Duration | X hours Y minutes |
-| Impact | Brief description |
+
+| Field       | Value                |
+| ----------- | -------------------- |
+| Incident ID | INC-XXXXX            |
+| Severity    | P1/P2/P3/P4          |
+| Start Time  | YYYY-MM-DD HH:MM UTC |
+| End Time    | YYYY-MM-DD HH:MM UTC |
+| Duration    | X hours Y minutes    |
+| Impact      | Brief description    |
 
 ## Timeline
-| Time | Event |
-|------|-------|
-| HH:MM | Alert triggered |
-| HH:MM | Engineer engaged |
+
+| Time  | Event                 |
+| ----- | --------------------- |
+| HH:MM | Alert triggered       |
+| HH:MM | Engineer engaged      |
 | HH:MM | Root cause identified |
-| HH:MM | Fix deployed |
-| HH:MM | Resolution confirmed |
+| HH:MM | Fix deployed          |
+| HH:MM | Resolution confirmed  |
 
 ## Root Cause
+
 Detailed explanation of what caused the incident.
 
 ## Resolution
+
 What was done to resolve the incident.
 
 ## Lessons Learned
+
 What we learned from this incident.
 
 ## Action Items
-| Item | Owner | Due Date |
-|------|-------|----------|
+
+| Item     | Owner   | Due Date   |
+| -------- | ------- | ---------- |
 | Action 1 | @person | YYYY-MM-DD |
 | Action 2 | @person | YYYY-MM-DD |
 ```
 
 ### 15.3 Changelog
 
-| Versiune | Data | Modificări |
-|----------|------|------------|
-| 1.0.0 | 2026-01-19 | Versiune inițială completă |
+| Versiune | Data       | Modificări                 |
+| -------- | ---------- | -------------------------- |
+| 1.0.0    | 2026-01-19 | Versiune inițială completă |
 
 ---
 

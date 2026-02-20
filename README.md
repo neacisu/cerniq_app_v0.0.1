@@ -40,7 +40,7 @@ pnpm test:infra
 # Test staging server
 pnpm test:infra:remote:staging
 
-# Test production server  
+# Test production server
 pnpm test:infra:remote:production
 ```
 
@@ -80,17 +80,17 @@ pnpm test:infra:remote:production
 
 ## 🛠️ Technology Stack
 
-| Layer | Technology | Version |
-|-------|------------|---------|
-| **Runtime** | Node.js | 24.x LTS |
-| **Package Manager** | PNPM | 9.x |
-| **API Framework** | Fastify | 5.x |
-| **Frontend** | React | 19.x |
-| **Database** | PostgreSQL + PostGIS | 18.x |
-| **Cache/Queue** | Redis + BullMQ | 8.x |
-| **Reverse Proxy** | Traefik | 3.x |
-| **Observability** | SigNoz + OpenTelemetry | 0.106+ |
-| **Containerization** | Docker + Compose | 28.x |
+| Layer                | Technology                                 | Version                     |
+| -------------------- | ------------------------------------------ | --------------------------- |
+| **Runtime**          | Node.js                                    | 24.x LTS                    |
+| **Package Manager**  | PNPM                                       | 9.x                         |
+| **API Framework**    | Fastify                                    | 5.x                         |
+| **Frontend**         | React                                      | 19.x                        |
+| **Database**         | PostgreSQL + PostGIS                       | 18.x                        |
+| **Cache/Queue**      | Redis + BullMQ                             | 8.x                         |
+| **Reverse Proxy**    | Traefik                                    | 3.x                         |
+| **Observability**    | Grafana + Prometheus + Loki + Tempo (OTEL) | centralizat pe orchestrator |
+| **Containerization** | Docker + Compose                           | 28.x                        |
 
 ## 📚 Documentation
 
@@ -117,4 +117,3 @@ Private — All rights reserved.
 ---
 
 **Cerniq.app** © 2026
-

@@ -6,15 +6,15 @@
 
 **Decision:** **Logging complet** pentru fiecare tool call în `ai_tool_calls`:
 
-| Field | Purpose |
-| ----- | ------- |
-| tool_name | Identificare tool |
-| tool_input/output | Payload complet JSONB |
-| started_at/completed_at | Timing |
-| duration_ms | Latency tracking |
-| status | pending/success/error |
-| guardrail_results | Rezultate validare |
-| tokens_used, estimated_cost_usd | Cost tracking |
+| Field                           | Purpose               |
+| ------------------------------- | --------------------- |
+| tool_name                       | Identificare tool     |
+| tool_input/output               | Payload complet JSONB |
+| started_at/completed_at         | Timing                |
+| duration_ms                     | Latency tracking      |
+| status                          | pending/success/error |
+| guardrail_results               | Rezultate validare    |
+| tokens_used, estimated_cost_usd | Cost tracking         |
 
 **Indexes:** conversation_id, negotiation_id, (tool_name, created_at DESC)
 

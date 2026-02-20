@@ -34,7 +34,7 @@ CREATE TABLE bronze_contacts (
     -- ─────────────────────────────────────────────────────────────────────────
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    
+
     -- ─────────────────────────────────────────────────────────────────────────
     -- PAYLOAD BRUT (NEMODIFICAT)
     -- ─────────────────────────────────────────────────────────────────────────
@@ -47,11 +47,11 @@ CREATE TABLE bronze_contacts (
     --   "telefon": "0721123456",
     --   "email": "contact@agrofarm.ro"
     -- }
-    
+
     -- ─────────────────────────────────────────────────────────────────────────
     -- METADATA SURSĂ
     -- ─────────────────────────────────────────────────────────────────────────
-    source_type VARCHAR(30) NOT NULL 
+    source_type VARCHAR(30) NOT NULL
         CHECK (source_type IN ('csv_import', 'webhook', 'scrape', 'manual', 'api', 'excel_import')),
     source_identifier VARCHAR(500) NOT NULL,
     -- CSV: filename + row number
@@ -59,7 +59,7 @@ CREATE TABLE bronze_contacts (
     -- Scrape: source URL + timestamp
     -- Manual: user_id + form_id
     -- API: endpoint + request_id
-    
+
     source_metadata JSONB DEFAULT '{}',
     -- {
     --   "filename": "import_2026_01_15.csv",
@@ -67,24 +67,24 @@ CREATE TABLE bronze_contacts (
     --   "sheet_name": "Contacts",
     --   "import_batch_id": "uuid"
     -- }
-    
+
     -- ─────────────────────────────────────────────────────────────────────────
     -- DEDUPLICARE (EXACT MATCH)
     -- ─────────────────────────────────────────────────────────────────────────
     content_hash VARCHAR(64) NOT NULL,
     -- SHA-256 hash al raw_payload pentru detectare duplicate exacte
     -- Calculat: sha256(jsonb_build_object('n', lower(name), 'c', cui, 'p', phone)::text)
-    
+
     -- ─────────────────────────────────────────────────────────────────────────
     -- IDENTIFICATORI EXTRAȘI (PENTRU INDEXARE RAPIDĂ)
     -- ─────────────────────────────────────────────────────────────────────────
     extracted_cui VARCHAR(12),
     -- Extras din raw_payload pentru indexare, NULL dacă nu există
-    
+
     extracted_email VARCHAR(255),
     extracted_phone VARCHAR(20),
     extracted_name VARCHAR(255),
-    
+
     -- ─────────────────────────────────────────────────────────────────────────
     -- PROCESARE STATUS
     -- ─────────────────────────────────────────────────────────────────────────
@@ -93,24 +93,24 @@ CREATE TABLE bronze_contacts (
     processing_error TEXT,
     promoted_to_silver_id UUID,
     promoted_at TIMESTAMPTZ,
-    
+
     -- ─────────────────────────────────────────────────────────────────────────
     -- FLAGS
     -- ─────────────────────────────────────────────────────────────────────────
     do_not_process BOOLEAN DEFAULT FALSE,
     is_duplicate BOOLEAN DEFAULT FALSE,
     duplicate_of_id UUID REFERENCES bronze_contacts(id),
-    
+
     -- ─────────────────────────────────────────────────────────────────────────
     -- TIMESTAMPS (APPEND-ONLY: DOAR created_at)
     -- ─────────────────────────────────────────────────────────────────────────
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    
+
     -- NOTĂ: NU există updated_at - Bronze este IMUABIL
 );
 
 -- Comentariu tabel
-COMMENT ON TABLE bronze_contacts IS 
+COMMENT ON TABLE bronze_contacts IS
 'Bronze layer - raw contact data ingestion. IMMUTABLE - no updates allowed.';
 ```
 
@@ -122,40 +122,40 @@ COMMENT ON TABLE bronze_contacts IS
 -- ═══════════════════════════════════════════════════════════════════════════
 
 -- Index principal pentru tenant isolation
-CREATE INDEX idx_bronze_contacts_tenant 
+CREATE INDEX idx_bronze_contacts_tenant
 ON bronze_contacts(tenant_id);
 
 -- Index pentru deduplicare
-CREATE UNIQUE INDEX idx_bronze_contacts_hash_unique 
-ON bronze_contacts(tenant_id, content_hash) 
+CREATE UNIQUE INDEX idx_bronze_contacts_hash_unique
+ON bronze_contacts(tenant_id, content_hash)
 WHERE is_duplicate = FALSE;
 
 -- Index pentru procesare queue
-CREATE INDEX idx_bronze_contacts_pending 
-ON bronze_contacts(tenant_id, processing_status, created_at) 
+CREATE INDEX idx_bronze_contacts_pending
+ON bronze_contacts(tenant_id, processing_status, created_at)
 WHERE processing_status = 'pending';
 
 -- Index pentru CUI lookup
-CREATE INDEX idx_bronze_contacts_cui 
-ON bronze_contacts(tenant_id, extracted_cui) 
+CREATE INDEX idx_bronze_contacts_cui
+ON bronze_contacts(tenant_id, extracted_cui)
 WHERE extracted_cui IS NOT NULL;
 
 -- Index pentru email lookup
-CREATE INDEX idx_bronze_contacts_email 
-ON bronze_contacts(tenant_id, extracted_email) 
+CREATE INDEX idx_bronze_contacts_email
+ON bronze_contacts(tenant_id, extracted_email)
 WHERE extracted_email IS NOT NULL;
 
 -- Index pentru source tracking
-CREATE INDEX idx_bronze_contacts_source 
+CREATE INDEX idx_bronze_contacts_source
 ON bronze_contacts(tenant_id, source_type, created_at DESC);
 
 -- Index GIN pentru căutare în raw_payload
-CREATE INDEX idx_bronze_contacts_payload_gin 
+CREATE INDEX idx_bronze_contacts_payload_gin
 ON bronze_contacts USING GIN (raw_payload);
 
 -- Index pentru promoted tracking
-CREATE INDEX idx_bronze_contacts_promoted 
-ON bronze_contacts(promoted_to_silver_id) 
+CREATE INDEX idx_bronze_contacts_promoted
+ON bronze_contacts(promoted_to_silver_id)
 WHERE promoted_to_silver_id IS NOT NULL;
 ```
 
@@ -198,11 +198,11 @@ BEGIN
         -- Permitem update doar pentru processing_status, promoted_to_silver_id, etc.
         RETURN NEW;
     END IF;
-    
+
     IF TG_OP = 'DELETE' THEN
         RAISE EXCEPTION 'Bronze layer does not allow DELETE. Use do_not_process flag.';
     END IF;
-    
+
     RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
@@ -226,7 +226,7 @@ BEGIN
         NEW.raw_payload->>'cod_fiscal',
         regexp_replace(NEW.raw_payload->>'cui_ro', '^RO', '', 'i')
     );
-    
+
     -- Extract Email
     NEW.extracted_email := LOWER(COALESCE(
         NEW.raw_payload->>'email',
@@ -234,7 +234,7 @@ BEGIN
         NEW.raw_payload->>'EMAIL',
         NEW.raw_payload->>'e_mail'
     ));
-    
+
     -- Extract Phone (normalize)
     NEW.extracted_phone := regexp_replace(
         COALESCE(
@@ -245,7 +245,7 @@ BEGIN
         ),
         '[^0-9+]', '', 'g'
     );
-    
+
     -- Extract Name
     NEW.extracted_name := COALESCE(
         NEW.raw_payload->>'denumire',
@@ -253,7 +253,7 @@ BEGIN
         NEW.raw_payload->>'company_name',
         NEW.raw_payload->>'firma'
     );
-    
+
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -277,28 +277,28 @@ EXECUTE FUNCTION bronze_extract_identifiers();
 CREATE TABLE bronze_import_batches (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    
+
     -- Informații import
     source_type VARCHAR(30) NOT NULL,
     filename VARCHAR(500),
     file_size_bytes BIGINT,
     file_checksum VARCHAR(64),
-    
+
     -- Statistici
     total_rows INTEGER NOT NULL DEFAULT 0,
     processed_rows INTEGER NOT NULL DEFAULT 0,
     success_rows INTEGER NOT NULL DEFAULT 0,
     error_rows INTEGER NOT NULL DEFAULT 0,
     duplicate_rows INTEGER NOT NULL DEFAULT 0,
-    
+
     -- Status
     status VARCHAR(30) DEFAULT 'pending'
         CHECK (status IN ('pending', 'processing', 'completed', 'failed', 'cancelled')),
     error_message TEXT,
-    
+
     -- User tracking
     imported_by UUID REFERENCES users(id),
-    
+
     -- Timestamps
     started_at TIMESTAMPTZ,
     completed_at TIMESTAMPTZ,
@@ -328,26 +328,26 @@ FOR ALL USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid)
 CREATE TABLE bronze_webhooks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    
+
     -- Webhook metadata
     webhook_type VARCHAR(100) NOT NULL,
     source_ip INET,
     source_url VARCHAR(500),
-    
+
     -- Headers și payload
     request_headers JSONB NOT NULL DEFAULT '{}',
     request_body JSONB NOT NULL,
     content_type VARCHAR(100),
-    
+
     -- Signature verification
     signature_header VARCHAR(500),
     signature_valid BOOLEAN,
-    
+
     -- Processing
     processing_status VARCHAR(30) DEFAULT 'pending',
     processed_contact_ids UUID[],
     error_message TEXT,
-    
+
     -- Timestamps
     received_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     processed_at TIMESTAMPTZ
@@ -356,7 +356,7 @@ CREATE TABLE bronze_webhooks (
 -- Indecși
 CREATE INDEX idx_bronze_webhooks_tenant ON bronze_webhooks(tenant_id);
 CREATE INDEX idx_bronze_webhooks_type ON bronze_webhooks(tenant_id, webhook_type);
-CREATE INDEX idx_bronze_webhooks_pending ON bronze_webhooks(processing_status) 
+CREATE INDEX idx_bronze_webhooks_pending ON bronze_webhooks(processing_status)
 WHERE processing_status = 'pending';
 
 -- RLS
@@ -378,26 +378,26 @@ FOR ALL USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid)
 CREATE TABLE bronze_scrape_results (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    
+
     -- Source
     source_url VARCHAR(2000) NOT NULL,
     source_domain VARCHAR(255) NOT NULL,
     scrape_type VARCHAR(50) NOT NULL,
     -- Tipuri: 'daj_list', 'anif_ouai', 'company_website', 'contact_page'
-    
+
     -- Content
     raw_html TEXT,
     extracted_data JSONB NOT NULL,
     extraction_method VARCHAR(50), -- 'css_selector', 'xpath', 'ai_extraction'
-    
+
     -- Quality
     confidence_score DECIMAL(5,4),
     validation_errors JSONB DEFAULT '[]',
-    
+
     -- Processing
     processing_status VARCHAR(30) DEFAULT 'pending',
     promoted_contact_ids UUID[],
-    
+
     -- Timestamps
     scraped_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     processed_at TIMESTAMPTZ
@@ -437,9 +437,9 @@ BEGIN
         'p', REGEXP_REPLACE(COALESCE(payload->>'telefon', payload->>'phone', ''), '[^0-9]', '', 'g'),
         'e', LOWER(TRIM(COALESCE(payload->>'email', '')))
     );
-    
+
     hash_input := normalized_payload::text;
-    
+
     -- PostgreSQL 14+ native sha256
     RETURN encode(sha256(hash_input::bytea), 'hex');
 END;
@@ -458,9 +458,9 @@ DECLARE
     v_hash VARCHAR(64);
 BEGIN
     v_hash := bronze_compute_content_hash(p_payload);
-    
+
     RETURN QUERY
-    SELECT 
+    SELECT
         TRUE,
         bc.id
     FROM bronze_contacts bc
@@ -468,7 +468,7 @@ BEGIN
       AND bc.content_hash = v_hash
       AND bc.is_duplicate = FALSE
     LIMIT 1;
-    
+
     -- Dacă nu găsim nimic, returnăm FALSE
     IF NOT FOUND THEN
         is_duplicate := FALSE;
@@ -494,7 +494,7 @@ RETURNS TABLE(
 ) AS $$
 BEGIN
     RETURN QUERY
-    SELECT 
+    SELECT
         COUNT(*)::BIGINT as total_contacts,
         COUNT(*) FILTER (WHERE processing_status = 'pending')::BIGINT,
         COUNT(*) FILTER (WHERE processing_status = 'promoted')::BIGINT,
@@ -525,17 +525,17 @@ DECLARE
 BEGIN
     -- Arhivare înainte de ștergere (opțional)
     -- INSERT INTO bronze_contacts_archive SELECT * FROM bronze_contacts WHERE ...
-    
+
     -- Ștergere contacte procesate mai vechi de 30 zile
     DELETE FROM bronze_contacts
     WHERE created_at < NOW() - INTERVAL '30 days'
       AND processing_status IN ('promoted', 'rejected')
     RETURNING 1 INTO deleted_count;
-    
+
     -- Log cleanup
     INSERT INTO system_logs (event_type, details)
     VALUES ('bronze_cleanup', jsonb_build_object('deleted_count', deleted_count));
-    
+
     RETURN COALESCE(deleted_count, 0);
 END;
 $$ LANGUAGE plpgsql;
@@ -554,19 +554,19 @@ $$ LANGUAGE plpgsql;
 -- ═══════════════════════════════════════════════════════════════════════════
 
 -- Grant pentru user aplicație
-GRANT SELECT, INSERT ON bronze_contacts TO cerniq_app;
-GRANT UPDATE (processing_status, processing_error, promoted_to_silver_id, promoted_at, do_not_process, is_duplicate, duplicate_of_id) 
-ON bronze_contacts TO cerniq_app;
+GRANT SELECT, INSERT ON bronze_contacts TO c3rn1q;
+GRANT UPDATE (processing_status, processing_error, promoted_to_silver_id, promoted_at, do_not_process, is_duplicate, duplicate_of_id)
+ON bronze_contacts TO c3rn1q;
 -- NU acordăm DELETE - Bronze este immutable
 
-GRANT SELECT, INSERT, UPDATE ON bronze_import_batches TO cerniq_app;
-GRANT SELECT, INSERT, UPDATE ON bronze_webhooks TO cerniq_app;
-GRANT SELECT, INSERT, UPDATE ON bronze_scrape_results TO cerniq_app;
+GRANT SELECT, INSERT, UPDATE ON bronze_import_batches TO c3rn1q;
+GRANT SELECT, INSERT, UPDATE ON bronze_webhooks TO c3rn1q;
+GRANT SELECT, INSERT, UPDATE ON bronze_scrape_results TO c3rn1q;
 
 -- Grant pentru funcții
-GRANT EXECUTE ON FUNCTION bronze_compute_content_hash(JSONB) TO cerniq_app;
-GRANT EXECUTE ON FUNCTION bronze_check_duplicate(UUID, JSONB) TO cerniq_app;
-GRANT EXECUTE ON FUNCTION bronze_get_stats(UUID) TO cerniq_app;
+GRANT EXECUTE ON FUNCTION bronze_compute_content_hash(JSONB) TO c3rn1q;
+GRANT EXECUTE ON FUNCTION bronze_check_duplicate(UUID, JSONB) TO c3rn1q;
+GRANT EXECUTE ON FUNCTION bronze_get_stats(UUID) TO c3rn1q;
 ```
 
 ---

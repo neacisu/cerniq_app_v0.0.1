@@ -1,18 +1,19 @@
 # Etapa 3 - Workers F: Stock & Inventory Management
 
 ## Document Control
-| Metadata | Value |
-|----------|-------|
-| Document ID | CERNIQ-E3-WORKERS-F |
-| Version | 2.0.0 |
-| Status | NORMATIV |
-| Parent | etapa3-workers-overview.md |
-| Dependencies | etapa3-schema-products.md, etapa3-schema-negotiations.md |
-| Author | System Architect |
-| Created | 2026-01-18 |
-| Last Updated | 2026-02-01 |
-| Sprint Plan | E3.S5.PR21, E3.S5.PR22 (vezi [etapa3-sprint-plan.md](etapa3-sprint-plan.md)) |
-| Phase | F3.7 Stock & Inventory |
+
+| Metadata     | Value                                                                        |
+| ------------ | ---------------------------------------------------------------------------- |
+| Document ID  | CERNIQ-E3-WORKERS-F                                                          |
+| Version      | 2.0.0                                                                        |
+| Status       | NORMATIV                                                                     |
+| Parent       | etapa3-workers-overview.md                                                   |
+| Dependencies | etapa3-schema-products.md, etapa3-schema-negotiations.md                     |
+| Author       | System Architect                                                             |
+| Created      | 2026-01-18                                                                   |
+| Last Updated | 2026-02-01                                                                   |
+| Sprint Plan  | E3.S5.PR21, E3.S5.PR22 (vezi [etapa3-sprint-plan.md](etapa3-sprint-plan.md)) |
+| Phase        | F3.7 Stock & Inventory                                                       |
 
 ---
 
@@ -29,11 +30,11 @@ Category F handles all stock and inventory operations critical to the sales proc
 
 ### 1.2 Workers in Category F
 
-| # | Worker ID | Queue Name | Concurrency | Critical Path |
-|---|-----------|------------|-------------|---------------|
-| 19 | stock:reserve:create | `stock:reserve:create` | 50 | ✅ YES |
-| 20 | stock:reserve:release | `stock:reserve:release` | 50 | ❌ NO |
-| 21 | stock:sync:erp | `stock:sync:erp` | 5 | ❌ NO |
+| #   | Worker ID             | Queue Name              | Concurrency | Critical Path |
+| --- | --------------------- | ----------------------- | ----------- | ------------- |
+| 19  | stock:reserve:create  | `stock:reserve:create`  | 50          | ✅ YES        |
+| 20  | stock:reserve:release | `stock:reserve:release` | 50          | ❌ NO         |
+| 21  | stock:sync:erp        | `stock:sync:erp`        | 5           | ❌ NO         |
 
 ### 1.3 Data Flow
 
@@ -109,15 +110,15 @@ Category F handles all stock and inventory operations critical to the sales proc
 
 ### 2.1 Specification
 
-| Property | Value |
-|----------|-------|
-| Queue Name | `etapa3:stock:reserve:create` |
-| Concurrency | 50 |
-| Timeout | 10s |
-| Retries | 3 |
-| Backoff | exponential, 1000ms |
-| Critical Path | ✅ YES |
-| Idempotent | ✅ YES (by reservation_key) |
+| Property      | Value                         |
+| ------------- | ----------------------------- |
+| Queue Name    | `etapa3:stock:reserve:create` |
+| Concurrency   | 50                            |
+| Timeout       | 10s                           |
+| Retries       | 3                             |
+| Backoff       | exponential, 1000ms           |
+| Critical Path | ✅ YES                        |
+| Idempotent    | ✅ YES (by reservation_key)   |
 
 ### 2.2 Purpose
 
@@ -128,29 +129,40 @@ Creates stock reservations when items are added to negotiation carts. Ensures at
 ```typescript
 // File: packages/workers/src/stock/reserve-create.schema.ts
 
-import { z } from 'zod';
+import { z } from "zod";
 
 export const StockReserveCreateJobDataSchema = z.object({
   tenantId: z.string().uuid(),
   negotiationId: z.string().uuid(),
-  items: z.array(z.object({
-    sku: z.string().min(1).max(50),
-    productId: z.string().uuid(),
-    quantity: z.number().int().positive().max(10000),
-    unitOfMeasure: z.enum(['BUC', 'KG', 'L', 'M', 'M2', 'M3', 'SET', 'PAL']).default('BUC'),
-  })).min(1).max(100),
-  reservationType: z.enum(['SOFT', 'HARD']).default('SOFT'),
+  items: z
+    .array(
+      z.object({
+        sku: z.string().min(1).max(50),
+        productId: z.string().uuid(),
+        quantity: z.number().int().positive().max(10000),
+        unitOfMeasure: z
+          .enum(["BUC", "KG", "L", "M", "M2", "M3", "SET", "PAL"])
+          .default("BUC"),
+      }),
+    )
+    .min(1)
+    .max(100),
+  reservationType: z.enum(["SOFT", "HARD"]).default("SOFT"),
   expiresInHours: z.number().int().positive().max(168).default(72), // Max 7 days
   reservationKey: z.string().optional(), // For idempotency
-  priority: z.enum(['NORMAL', 'HIGH', 'URGENT']).default('NORMAL'),
-  metadata: z.object({
-    requestedBy: z.string().optional(),
-    channel: z.enum(['AI_AGENT', 'MANUAL', 'API']).default('AI_AGENT'),
-    notes: z.string().max(500).optional(),
-  }).optional(),
+  priority: z.enum(["NORMAL", "HIGH", "URGENT"]).default("NORMAL"),
+  metadata: z
+    .object({
+      requestedBy: z.string().optional(),
+      channel: z.enum(["AI_AGENT", "MANUAL", "API"]).default("AI_AGENT"),
+      notes: z.string().max(500).optional(),
+    })
+    .optional(),
 });
 
-export type StockReserveCreateJobData = z.infer<typeof StockReserveCreateJobDataSchema>;
+export type StockReserveCreateJobData = z.infer<
+  typeof StockReserveCreateJobDataSchema
+>;
 
 // Reservation types:
 // SOFT: Can be overridden by HARD reservations or manual intervention
@@ -166,7 +178,7 @@ export interface StockReserveCreateResult {
   success: boolean;
   reservationId: string | null;
   reservationKey: string;
-  status: 'ACTIVE' | 'PARTIAL' | 'FAILED';
+  status: "ACTIVE" | "PARTIAL" | "FAILED";
   items: ReservationItemResult[];
   totalReserved: number;
   totalRequested: number;
@@ -182,13 +194,17 @@ export interface ReservationItemResult {
   reservedQuantity: number;
   availableBefore: number;
   availableAfter: number;
-  status: 'RESERVED' | 'PARTIAL' | 'UNAVAILABLE';
+  status: "RESERVED" | "PARTIAL" | "UNAVAILABLE";
   backorderDate?: string; // Expected restock date if partial/unavailable
 }
 
 export interface ReservationError {
   sku: string;
-  code: 'INSUFFICIENT_STOCK' | 'PRODUCT_NOT_FOUND' | 'PRODUCT_DISCONTINUED' | 'RESERVATION_EXISTS';
+  code:
+    | "INSUFFICIENT_STOCK"
+    | "PRODUCT_NOT_FOUND"
+    | "PRODUCT_DISCONTINUED"
+    | "RESERVATION_EXISTS";
   message: string;
   availableQuantity?: number;
 }
@@ -199,37 +215,55 @@ export interface ReservationError {
 ```typescript
 // File: packages/workers/src/stock/reserve-create.worker.ts
 
-import { Worker, Job } from 'bullmq';
-import { db } from '@cerniq/database';
-import { 
-  products, 
-  stockReservations, 
+import { Worker, Job } from "bullmq";
+import { db } from "@cerniq/database";
+import {
+  products,
+  stockReservations,
   stockMovements,
-  negotiations 
-} from '@cerniq/database/schema';
-import { eq, and, sql, inArray } from 'drizzle-orm';
-import { redis } from '@cerniq/redis';
-import { logger } from '@cerniq/logger';
-import { metrics } from '@cerniq/metrics';
-import { nanoid } from 'nanoid';
-import { 
-  StockReserveCreateJobData, 
-  StockReserveCreateJobDataSchema 
-} from './reserve-create.schema';
-import { StockReserveCreateResult, ReservationItemResult, ReservationError } from './reserve-create.result';
+  negotiations,
+} from "@cerniq/database/schema";
+import { eq, and, sql, inArray } from "drizzle-orm";
+import { redis } from "@cerniq/redis";
+import { logger } from "@cerniq/logger";
+import { metrics } from "@cerniq/metrics";
+import { nanoid } from "nanoid";
+import {
+  StockReserveCreateJobData,
+  StockReserveCreateJobDataSchema,
+} from "./reserve-create.schema";
+import {
+  StockReserveCreateResult,
+  ReservationItemResult,
+  ReservationError,
+} from "./reserve-create.result";
 
-const QUEUE_NAME = 'stock:reserve:create';
+const QUEUE_NAME = "stock:reserve:create";
 
-export const stockReserveCreateWorker = new Worker<StockReserveCreateJobData, StockReserveCreateResult>(
+export const stockReserveCreateWorker = new Worker<
+  StockReserveCreateJobData,
+  StockReserveCreateResult
+>(
   QUEUE_NAME,
-  async (job: Job<StockReserveCreateJobData>): Promise<StockReserveCreateResult> => {
+  async (
+    job: Job<StockReserveCreateJobData>,
+  ): Promise<StockReserveCreateResult> => {
     const startTime = Date.now();
-    const { tenantId, negotiationId, items, reservationType, expiresInHours, reservationKey, priority } = job.data;
-    
-    const actualReservationKey = reservationKey || `res_${negotiationId}_${nanoid(10)}`;
-    
+    const {
+      tenantId,
+      negotiationId,
+      items,
+      reservationType,
+      expiresInHours,
+      reservationKey,
+      priority,
+    } = job.data;
+
+    const actualReservationKey =
+      reservationKey || `res_${negotiationId}_${nanoid(10)}`;
+
     logger.info({
-      msg: 'Starting stock reservation',
+      msg: "Starting stock reservation",
       jobId: job.id,
       tenantId,
       negotiationId,
@@ -238,10 +272,13 @@ export const stockReserveCreateWorker = new Worker<StockReserveCreateJobData, St
     });
 
     // Check idempotency - return existing reservation if key exists
-    const existingReservation = await checkExistingReservation(tenantId, actualReservationKey);
+    const existingReservation = await checkExistingReservation(
+      tenantId,
+      actualReservationKey,
+    );
     if (existingReservation) {
       logger.info({
-        msg: 'Returning existing reservation (idempotent)',
+        msg: "Returning existing reservation (idempotent)",
         reservationId: existingReservation.id,
         reservationKey: actualReservationKey,
       });
@@ -271,36 +308,40 @@ export const stockReserveCreateWorker = new Worker<StockReserveCreateJobData, St
         throw new Error(`Negotiation ${negotiationId} not found`);
       }
 
-      const validStatesForReservation = ['PROPOSAL', 'NEGOTIATION', 'CLOSING'];
+      const validStatesForReservation = ["PROPOSAL", "NEGOTIATION", "CLOSING"];
       if (!validStatesForReservation.includes(negotiation.currentState)) {
-        throw new Error(`Cannot reserve stock in state: ${negotiation.currentState}`);
+        throw new Error(
+          `Cannot reserve stock in state: ${negotiation.currentState}`,
+        );
       }
 
       // Get all products with FOR UPDATE lock
-      const skus = items.map(i => i.sku);
+      const skus = items.map((i) => i.sku);
       const productRows = await tx
         .select()
         .from(products)
-        .where(and(
-          eq(products.tenantId, tenantId),
-          inArray(products.sku, skus),
-        ))
-        .for('update'); // Row-level lock
+        .where(
+          and(eq(products.tenantId, tenantId), inArray(products.sku, skus)),
+        )
+        .for("update"); // Row-level lock
 
-      const productMap = new Map(productRows.map(p => [p.sku, p]));
+      const productMap = new Map(productRows.map((p) => [p.sku, p]));
 
       // Create reservation record
-      const [reservation] = await tx.insert(stockReservations).values({
-        id: nanoid(),
-        tenantId,
-        negotiationId,
-        reservationKey: actualReservationKey,
-        type: reservationType,
-        status: 'PENDING',
-        priority,
-        expiresAt,
-        createdAt: new Date(),
-      }).returning();
+      const [reservation] = await tx
+        .insert(stockReservations)
+        .values({
+          id: nanoid(),
+          tenantId,
+          negotiationId,
+          reservationKey: actualReservationKey,
+          type: reservationType,
+          status: "PENDING",
+          priority,
+          expiresAt,
+          createdAt: new Date(),
+        })
+        .returning();
 
       // Process each item
       for (const item of items) {
@@ -310,7 +351,7 @@ export const stockReserveCreateWorker = new Worker<StockReserveCreateJobData, St
         if (!product) {
           errors.push({
             sku: item.sku,
-            code: 'PRODUCT_NOT_FOUND',
+            code: "PRODUCT_NOT_FOUND",
             message: `Product with SKU ${item.sku} not found`,
           });
           itemResults.push({
@@ -320,15 +361,15 @@ export const stockReserveCreateWorker = new Worker<StockReserveCreateJobData, St
             reservedQuantity: 0,
             availableBefore: 0,
             availableAfter: 0,
-            status: 'UNAVAILABLE',
+            status: "UNAVAILABLE",
           });
           continue;
         }
 
-        if (product.status === 'DISCONTINUED') {
+        if (product.status === "DISCONTINUED") {
           errors.push({
             sku: item.sku,
-            code: 'PRODUCT_DISCONTINUED',
+            code: "PRODUCT_DISCONTINUED",
             message: `Product ${item.sku} is discontinued`,
           });
           itemResults.push({
@@ -338,29 +379,31 @@ export const stockReserveCreateWorker = new Worker<StockReserveCreateJobData, St
             reservedQuantity: 0,
             availableBefore: product.stockAvailable,
             availableAfter: product.stockAvailable,
-            status: 'UNAVAILABLE',
+            status: "UNAVAILABLE",
           });
           continue;
         }
 
         const availableBefore = product.stockAvailable;
         let reservedQty = 0;
-        let status: 'RESERVED' | 'PARTIAL' | 'UNAVAILABLE' = 'UNAVAILABLE';
+        let status: "RESERVED" | "PARTIAL" | "UNAVAILABLE" = "UNAVAILABLE";
 
         if (availableBefore >= item.quantity) {
           // Full reservation possible
           reservedQty = item.quantity;
-          status = 'RESERVED';
+          status = "RESERVED";
         } else if (availableBefore > 0) {
           // Partial reservation
           reservedQty = availableBefore;
-          status = 'PARTIAL';
-          warnings.push(`Partial reservation for ${item.sku}: requested ${item.quantity}, reserved ${reservedQty}`);
+          status = "PARTIAL";
+          warnings.push(
+            `Partial reservation for ${item.sku}: requested ${item.quantity}, reserved ${reservedQty}`,
+          );
         } else {
           // No stock available
           errors.push({
             sku: item.sku,
-            code: 'INSUFFICIENT_STOCK',
+            code: "INSUFFICIENT_STOCK",
             message: `No stock available for ${item.sku}`,
             availableQuantity: 0,
           });
@@ -383,11 +426,11 @@ export const stockReserveCreateWorker = new Worker<StockReserveCreateJobData, St
             tenantId,
             productId: product.id,
             sku: item.sku,
-            type: 'RESERVATION',
+            type: "RESERVATION",
             quantity: -reservedQty,
             previousAvailable: availableBefore,
             newAvailable: availableBefore - reservedQty,
-            referenceType: 'RESERVATION',
+            referenceType: "RESERVATION",
             referenceId: reservation.id,
             negotiationId,
             notes: `Stock reserved for negotiation ${negotiationId}`,
@@ -405,18 +448,25 @@ export const stockReserveCreateWorker = new Worker<StockReserveCreateJobData, St
           availableBefore,
           availableAfter: availableBefore - reservedQty,
           status,
-          backorderDate: reservedQty < item.quantity ? product.expectedRestockDate?.toISOString() : undefined,
+          backorderDate:
+            reservedQty < item.quantity
+              ? product.expectedRestockDate?.toISOString()
+              : undefined,
         });
       }
 
       // Update reservation status
-      const finalStatus = totalReserved === 0 ? 'FAILED' : 
-                         totalReserved < totalRequested ? 'PARTIAL' : 'ACTIVE';
+      const finalStatus =
+        totalReserved === 0
+          ? "FAILED"
+          : totalReserved < totalRequested
+            ? "PARTIAL"
+            : "ACTIVE";
 
       await tx
         .update(stockReservations)
         .set({
-          status: finalStatus === 'FAILED' ? 'FAILED' : 'ACTIVE',
+          status: finalStatus === "FAILED" ? "FAILED" : "ACTIVE",
           itemsJson: JSON.stringify(itemResults),
           totalReserved,
           totalRequested,
@@ -431,7 +481,7 @@ export const stockReserveCreateWorker = new Worker<StockReserveCreateJobData, St
     });
 
     // Set expiration timer in Redis for automatic release
-    if (result.finalStatus !== 'FAILED') {
+    if (result.finalStatus !== "FAILED") {
       await redis.setex(
         `stock:reservation:${result.reservationId}:expiry`,
         expiresInHours * 60 * 60,
@@ -440,41 +490,45 @@ export const stockReserveCreateWorker = new Worker<StockReserveCreateJobData, St
           tenantId,
           negotiationId,
           expiresAt: expiresAt.toISOString(),
-        })
+        }),
       );
 
       // Schedule expiration job
-      const { stockReserveReleaseQueue } = await import('./reserve-release.queue');
+      const { stockReserveReleaseQueue } =
+        await import("./reserve-release.queue");
       await stockReserveReleaseQueue.add(
-        'auto-expire',
+        "auto-expire",
         {
           tenantId,
           reservationId: result.reservationId,
-          reason: 'EXPIRED',
+          reason: "EXPIRED",
         },
         {
           delay: expiresInHours * 60 * 60 * 1000,
           jobId: `expire_${result.reservationId}`,
-        }
+        },
       );
     }
 
     // Update cache
-    await invalidateStockCache(tenantId, items.map(i => i.sku));
+    await invalidateStockCache(
+      tenantId,
+      items.map((i) => i.sku),
+    );
 
     const duration = Date.now() - startTime;
-    
-    metrics.increment('stock_reservations_created_total', {
+
+    metrics.increment("stock_reservations_created_total", {
       tenant_id: tenantId,
       status: result.finalStatus,
       type: reservationType,
     });
-    metrics.histogram('stock_reservation_duration_ms', duration, {
+    metrics.histogram("stock_reservation_duration_ms", duration, {
       tenant_id: tenantId,
     });
 
     logger.info({
-      msg: 'Stock reservation completed',
+      msg: "Stock reservation completed",
       jobId: job.id,
       reservationId: result.reservationId,
       status: result.finalStatus,
@@ -484,10 +538,10 @@ export const stockReserveCreateWorker = new Worker<StockReserveCreateJobData, St
     });
 
     return {
-      success: result.finalStatus !== 'FAILED',
+      success: result.finalStatus !== "FAILED",
       reservationId: result.reservationId,
       reservationKey: actualReservationKey,
-      status: result.finalStatus as 'ACTIVE' | 'PARTIAL' | 'FAILED',
+      status: result.finalStatus as "ACTIVE" | "PARTIAL" | "FAILED",
       items: itemResults,
       totalReserved,
       totalRequested,
@@ -503,19 +557,19 @@ export const stockReserveCreateWorker = new Worker<StockReserveCreateJobData, St
       max: 100,
       duration: 1000,
     },
-  }
+  },
 );
 
 // Helper functions
 async function checkExistingReservation(
-  tenantId: string, 
-  reservationKey: string
+  tenantId: string,
+  reservationKey: string,
 ): Promise<StockReserveCreateResult | null> {
   const existing = await db.query.stockReservations.findFirst({
     where: and(
       eq(stockReservations.tenantId, tenantId),
       eq(stockReservations.reservationKey, reservationKey),
-      eq(stockReservations.status, 'ACTIVE'),
+      eq(stockReservations.status, "ACTIVE"),
     ),
   });
 
@@ -525,18 +579,21 @@ async function checkExistingReservation(
     success: true,
     reservationId: existing.id,
     reservationKey: existing.reservationKey,
-    status: existing.status as 'ACTIVE' | 'PARTIAL',
-    items: JSON.parse(existing.itemsJson || '[]'),
+    status: existing.status as "ACTIVE" | "PARTIAL",
+    items: JSON.parse(existing.itemsJson || "[]"),
     totalReserved: existing.totalReserved,
     totalRequested: existing.totalRequested,
     expiresAt: existing.expiresAt.toISOString(),
-    warnings: ['Returning existing reservation (idempotent request)'],
+    warnings: ["Returning existing reservation (idempotent request)"],
     errors: [],
   };
 }
 
-async function invalidateStockCache(tenantId: string, skus: string[]): Promise<void> {
-  const keys = skus.map(sku => `stock:${tenantId}:${sku}`);
+async function invalidateStockCache(
+  tenantId: string,
+  skus: string[],
+): Promise<void> {
+  const keys = skus.map((sku) => `stock:${tenantId}:${sku}`);
   if (keys.length > 0) {
     await redis.del(...keys);
   }
@@ -545,24 +602,24 @@ async function invalidateStockCache(tenantId: string, skus: string[]): Promise<v
 }
 
 // Event handlers
-stockReserveCreateWorker.on('completed', (job, result) => {
+stockReserveCreateWorker.on("completed", (job, result) => {
   logger.debug({
-    msg: 'Stock reservation job completed',
+    msg: "Stock reservation job completed",
     jobId: job.id,
     reservationId: result.reservationId,
   });
 });
 
-stockReserveCreateWorker.on('failed', (job, err) => {
+stockReserveCreateWorker.on("failed", (job, err) => {
   logger.error({
-    msg: 'Stock reservation job failed',
+    msg: "Stock reservation job failed",
     jobId: job?.id,
     error: err.message,
     stack: err.stack,
   });
-  
-  metrics.increment('stock_reservations_failed_total', {
-    tenant_id: job?.data?.tenantId || 'unknown',
+
+  metrics.increment("stock_reservations_failed_total", {
+    tenant_id: job?.data?.tenantId || "unknown",
     error_type: err.name,
   });
 });
@@ -576,19 +633,20 @@ export default stockReserveCreateWorker;
 
 ### 3.1 Specification
 
-| Property | Value |
-|----------|-------|
-| Queue Name | `etapa3:stock:reserve:release` |
-| Concurrency | 50 |
-| Timeout | 10s |
-| Retries | 3 |
-| Backoff | exponential, 1000ms |
-| Critical Path | ❌ NO |
-| Idempotent | ✅ YES |
+| Property      | Value                          |
+| ------------- | ------------------------------ |
+| Queue Name    | `etapa3:stock:reserve:release` |
+| Concurrency   | 50                             |
+| Timeout       | 10s                            |
+| Retries       | 3                              |
+| Backoff       | exponential, 1000ms            |
+| Critical Path | ❌ NO                          |
+| Idempotent    | ✅ YES                         |
 
 ### 3.2 Purpose
 
 Releases stock reservations when:
+
 - Negotiation is cancelled/dead
 - Reservation expires (automatic)
 - Manual release by operator
@@ -599,30 +657,36 @@ Releases stock reservations when:
 ```typescript
 // File: packages/workers/src/stock/reserve-release.schema.ts
 
-import { z } from 'zod';
+import { z } from "zod";
 
 export const StockReserveReleaseJobDataSchema = z.object({
   tenantId: z.string().uuid(),
   reservationId: z.string().optional(),
   negotiationId: z.string().uuid().optional(),
   reason: z.enum([
-    'CANCELLED',      // Negotiation cancelled
-    'EXPIRED',        // Time-based expiration
-    'MANUAL',         // Operator release
-    'CONSUMED',       // Converted to sale
-    'DEAD',           // Negotiation marked dead
-    'REPLACED',       // New reservation created
+    "CANCELLED", // Negotiation cancelled
+    "EXPIRED", // Time-based expiration
+    "MANUAL", // Operator release
+    "CONSUMED", // Converted to sale
+    "DEAD", // Negotiation marked dead
+    "REPLACED", // New reservation created
   ]),
   releasePartial: z.boolean().default(false),
-  itemsToRelease: z.array(z.object({
-    sku: z.string(),
-    quantity: z.number().int().positive(),
-  })).optional(), // For partial release
+  itemsToRelease: z
+    .array(
+      z.object({
+        sku: z.string(),
+        quantity: z.number().int().positive(),
+      }),
+    )
+    .optional(), // For partial release
   releasedBy: z.string().optional(), // User ID for manual releases
   notes: z.string().max(500).optional(),
 });
 
-export type StockReserveReleaseJobData = z.infer<typeof StockReserveReleaseJobDataSchema>;
+export type StockReserveReleaseJobData = z.infer<
+  typeof StockReserveReleaseJobDataSchema
+>;
 ```
 
 ### 3.4 Output Schema
@@ -634,7 +698,7 @@ export interface StockReserveReleaseResult {
   success: boolean;
   reservationId: string;
   previousStatus: string;
-  newStatus: 'RELEASED' | 'CONSUMED' | 'PARTIAL';
+  newStatus: "RELEASED" | "CONSUMED" | "PARTIAL";
   itemsReleased: ReleasedItem[];
   totalReleased: number;
   reason: string;
@@ -655,33 +719,50 @@ export interface ReleasedItem {
 ```typescript
 // File: packages/workers/src/stock/reserve-release.worker.ts
 
-import { Worker, Job } from 'bullmq';
-import { db } from '@cerniq/database';
-import { 
-  products, 
-  stockReservations, 
-  stockMovements 
-} from '@cerniq/database/schema';
-import { eq, and, sql } from 'drizzle-orm';
-import { redis } from '@cerniq/redis';
-import { logger } from '@cerniq/logger';
-import { metrics } from '@cerniq/metrics';
-import { 
-  StockReserveReleaseJobData, 
-  StockReserveReleaseJobDataSchema 
-} from './reserve-release.schema';
-import { StockReserveReleaseResult, ReleasedItem } from './reserve-release.result';
+import { Worker, Job } from "bullmq";
+import { db } from "@cerniq/database";
+import {
+  products,
+  stockReservations,
+  stockMovements,
+} from "@cerniq/database/schema";
+import { eq, and, sql } from "drizzle-orm";
+import { redis } from "@cerniq/redis";
+import { logger } from "@cerniq/logger";
+import { metrics } from "@cerniq/metrics";
+import {
+  StockReserveReleaseJobData,
+  StockReserveReleaseJobDataSchema,
+} from "./reserve-release.schema";
+import {
+  StockReserveReleaseResult,
+  ReleasedItem,
+} from "./reserve-release.result";
 
-const QUEUE_NAME = 'stock:reserve:release';
+const QUEUE_NAME = "stock:reserve:release";
 
-export const stockReserveReleaseWorker = new Worker<StockReserveReleaseJobData, StockReserveReleaseResult>(
+export const stockReserveReleaseWorker = new Worker<
+  StockReserveReleaseJobData,
+  StockReserveReleaseResult
+>(
   QUEUE_NAME,
-  async (job: Job<StockReserveReleaseJobData>): Promise<StockReserveReleaseResult> => {
+  async (
+    job: Job<StockReserveReleaseJobData>,
+  ): Promise<StockReserveReleaseResult> => {
     const startTime = Date.now();
-    const { tenantId, reservationId, negotiationId, reason, releasePartial, itemsToRelease, releasedBy, notes } = job.data;
-    
+    const {
+      tenantId,
+      reservationId,
+      negotiationId,
+      reason,
+      releasePartial,
+      itemsToRelease,
+      releasedBy,
+      notes,
+    } = job.data;
+
     logger.info({
-      msg: 'Starting stock release',
+      msg: "Starting stock release",
       jobId: job.id,
       tenantId,
       reservationId,
@@ -690,31 +771,35 @@ export const stockReserveReleaseWorker = new Worker<StockReserveReleaseJobData, 
     });
 
     // Find reservation by ID or negotiation ID
-    const reservation = await findReservation(tenantId, reservationId, negotiationId);
-    
+    const reservation = await findReservation(
+      tenantId,
+      reservationId,
+      negotiationId,
+    );
+
     if (!reservation) {
       logger.warn({
-        msg: 'Reservation not found (may already be released)',
+        msg: "Reservation not found (may already be released)",
         reservationId,
         negotiationId,
       });
       return {
         success: true, // Idempotent - already released is success
-        reservationId: reservationId || 'unknown',
-        previousStatus: 'NOT_FOUND',
-        newStatus: 'RELEASED',
+        reservationId: reservationId || "unknown",
+        previousStatus: "NOT_FOUND",
+        newStatus: "RELEASED",
         itemsReleased: [],
         totalReleased: 0,
         reason,
         releasedAt: new Date().toISOString(),
-        warnings: ['Reservation not found - may have been previously released'],
+        warnings: ["Reservation not found - may have been previously released"],
       };
     }
 
     // Check if already released
-    if (['RELEASED', 'CONSUMED', 'EXPIRED'].includes(reservation.status)) {
+    if (["RELEASED", "CONSUMED", "EXPIRED"].includes(reservation.status)) {
       logger.info({
-        msg: 'Reservation already in terminal state',
+        msg: "Reservation already in terminal state",
         reservationId: reservation.id,
         status: reservation.status,
       });
@@ -722,48 +807,53 @@ export const stockReserveReleaseWorker = new Worker<StockReserveReleaseJobData, 
         success: true,
         reservationId: reservation.id,
         previousStatus: reservation.status,
-        newStatus: reservation.status as 'RELEASED' | 'CONSUMED',
+        newStatus: reservation.status as "RELEASED" | "CONSUMED",
         itemsReleased: [],
         totalReleased: 0,
         reason,
         releasedAt: new Date().toISOString(),
-        warnings: ['Reservation was already in terminal state'],
+        warnings: ["Reservation was already in terminal state"],
       };
     }
 
-    const reservedItems: any[] = JSON.parse(reservation.itemsJson || '[]');
+    const reservedItems: any[] = JSON.parse(reservation.itemsJson || "[]");
     const itemsReleased: ReleasedItem[] = [];
     let totalReleased = 0;
     const warnings: string[] = [];
 
     // Determine what to release
-    const itemsToProcess = releasePartial && itemsToRelease 
-      ? itemsToRelease 
-      : reservedItems.filter(i => i.reservedQuantity > 0).map(i => ({
-          sku: i.sku,
-          quantity: i.reservedQuantity,
-        }));
+    const itemsToProcess =
+      releasePartial && itemsToRelease
+        ? itemsToRelease
+        : reservedItems
+            .filter((i) => i.reservedQuantity > 0)
+            .map((i) => ({
+              sku: i.sku,
+              quantity: i.reservedQuantity,
+            }));
 
     // Process release in transaction
     await db.transaction(async (tx) => {
       for (const item of itemsToProcess) {
-        const reservedItem = reservedItems.find(ri => ri.sku === item.sku);
+        const reservedItem = reservedItems.find((ri) => ri.sku === item.sku);
         if (!reservedItem || reservedItem.reservedQuantity <= 0) {
           warnings.push(`No reservation found for SKU ${item.sku}`);
           continue;
         }
 
-        const releaseQty = Math.min(item.quantity, reservedItem.reservedQuantity);
-        
+        const releaseQty = Math.min(
+          item.quantity,
+          reservedItem.reservedQuantity,
+        );
+
         // Get current product state
         const [product] = await tx
           .select()
           .from(products)
-          .where(and(
-            eq(products.tenantId, tenantId),
-            eq(products.sku, item.sku),
-          ))
-          .for('update');
+          .where(
+            and(eq(products.tenantId, tenantId), eq(products.sku, item.sku)),
+          )
+          .for("update");
 
         if (!product) {
           warnings.push(`Product ${item.sku} not found during release`);
@@ -789,14 +879,16 @@ export const stockReserveReleaseWorker = new Worker<StockReserveReleaseJobData, 
           tenantId,
           productId: product.id,
           sku: item.sku,
-          type: reason === 'CONSUMED' ? 'SALE' : 'RELEASE',
+          type: reason === "CONSUMED" ? "SALE" : "RELEASE",
           quantity: releaseQty,
           previousAvailable: product.stockAvailable,
           newAvailable,
-          referenceType: 'RESERVATION',
+          referenceType: "RESERVATION",
           referenceId: reservation.id,
           negotiationId: reservation.negotiationId,
-          notes: notes || `Stock ${reason === 'CONSUMED' ? 'consumed (sold)' : 'released'}: ${reason}`,
+          notes:
+            notes ||
+            `Stock ${reason === "CONSUMED" ? "consumed (sold)" : "released"}: ${reason}`,
           createdBy: releasedBy,
           createdAt: new Date(),
         });
@@ -815,18 +907,25 @@ export const stockReserveReleaseWorker = new Worker<StockReserveReleaseJobData, 
       }
 
       // Determine new status
-      const remainingReserved = reservedItems.reduce((sum, i) => sum + i.reservedQuantity, 0);
-      const newStatus = reason === 'CONSUMED' ? 'CONSUMED' :
-                       remainingReserved > 0 ? 'PARTIAL' : 'RELEASED';
+      const remainingReserved = reservedItems.reduce(
+        (sum, i) => sum + i.reservedQuantity,
+        0,
+      );
+      const newStatus =
+        reason === "CONSUMED"
+          ? "CONSUMED"
+          : remainingReserved > 0
+            ? "PARTIAL"
+            : "RELEASED";
 
       // Update reservation record
       await tx
         .update(stockReservations)
         .set({
-          status: newStatus === 'PARTIAL' ? 'ACTIVE' : newStatus,
+          status: newStatus === "PARTIAL" ? "ACTIVE" : newStatus,
           itemsJson: JSON.stringify(reservedItems),
           totalReserved: remainingReserved,
-          releasedAt: newStatus !== 'PARTIAL' ? new Date() : undefined,
+          releasedAt: newStatus !== "PARTIAL" ? new Date() : undefined,
           releaseReason: reason,
           releasedBy,
           releaseNotes: notes,
@@ -839,25 +938,26 @@ export const stockReserveReleaseWorker = new Worker<StockReserveReleaseJobData, 
     await redis.del(`stock:reservation:${reservation.id}:expiry`);
 
     // Cancel scheduled expiration job
-    const { stockReserveReleaseQueue } = await import('./reserve-release.queue');
+    const { stockReserveReleaseQueue } =
+      await import("./reserve-release.queue");
     await stockReserveReleaseQueue.remove(`expire_${reservation.id}`);
 
     // Invalidate stock cache
-    const skus = itemsReleased.map(i => i.sku);
+    const skus = itemsReleased.map((i) => i.sku);
     await invalidateStockCache(tenantId, skus);
 
     const duration = Date.now() - startTime;
-    
-    metrics.increment('stock_releases_total', {
+
+    metrics.increment("stock_releases_total", {
       tenant_id: tenantId,
       reason,
     });
-    metrics.histogram('stock_release_duration_ms', duration, {
+    metrics.histogram("stock_release_duration_ms", duration, {
       tenant_id: tenantId,
     });
 
     logger.info({
-      msg: 'Stock release completed',
+      msg: "Stock release completed",
       jobId: job.id,
       reservationId: reservation.id,
       reason,
@@ -869,8 +969,12 @@ export const stockReserveReleaseWorker = new Worker<StockReserveReleaseJobData, 
       success: true,
       reservationId: reservation.id,
       previousStatus: reservation.status,
-      newStatus: reason === 'CONSUMED' ? 'CONSUMED' : 
-                totalReleased < reservation.totalReserved ? 'PARTIAL' : 'RELEASED',
+      newStatus:
+        reason === "CONSUMED"
+          ? "CONSUMED"
+          : totalReleased < reservation.totalReserved
+            ? "PARTIAL"
+            : "RELEASED",
       itemsReleased,
       totalReleased,
       reason,
@@ -881,14 +985,14 @@ export const stockReserveReleaseWorker = new Worker<StockReserveReleaseJobData, 
   {
     connection: redis,
     concurrency: 50,
-  }
+  },
 );
 
 // Helper functions
 async function findReservation(
   tenantId: string,
   reservationId?: string,
-  negotiationId?: string
+  negotiationId?: string,
 ) {
   if (reservationId) {
     return db.query.stockReservations.findFirst({
@@ -898,13 +1002,13 @@ async function findReservation(
       ),
     });
   }
-  
+
   if (negotiationId) {
     return db.query.stockReservations.findFirst({
       where: and(
         eq(stockReservations.negotiationId, negotiationId),
         eq(stockReservations.tenantId, tenantId),
-        eq(stockReservations.status, 'ACTIVE'),
+        eq(stockReservations.status, "ACTIVE"),
       ),
     });
   }
@@ -912,8 +1016,11 @@ async function findReservation(
   return null;
 }
 
-async function invalidateStockCache(tenantId: string, skus: string[]): Promise<void> {
-  const keys = skus.map(sku => `stock:${tenantId}:${sku}`);
+async function invalidateStockCache(
+  tenantId: string,
+  skus: string[],
+): Promise<void> {
+  const keys = skus.map((sku) => `stock:${tenantId}:${sku}`);
   if (keys.length > 0) {
     await redis.del(...keys);
   }
@@ -921,24 +1028,24 @@ async function invalidateStockCache(tenantId: string, skus: string[]): Promise<v
 }
 
 // Event handlers
-stockReserveReleaseWorker.on('completed', (job, result) => {
+stockReserveReleaseWorker.on("completed", (job, result) => {
   logger.debug({
-    msg: 'Stock release job completed',
+    msg: "Stock release job completed",
     jobId: job.id,
     reservationId: result.reservationId,
     totalReleased: result.totalReleased,
   });
 });
 
-stockReserveReleaseWorker.on('failed', (job, err) => {
+stockReserveReleaseWorker.on("failed", (job, err) => {
   logger.error({
-    msg: 'Stock release job failed',
+    msg: "Stock release job failed",
     jobId: job?.id,
     error: err.message,
   });
-  
-  metrics.increment('stock_releases_failed_total', {
-    tenant_id: job?.data?.tenantId || 'unknown',
+
+  metrics.increment("stock_releases_failed_total", {
+    tenant_id: job?.data?.tenantId || "unknown",
   });
 });
 
@@ -951,15 +1058,15 @@ export default stockReserveReleaseWorker;
 
 ### 4.1 Specification
 
-| Property | Value |
-|----------|-------|
-| Queue Name | `etapa3:stock:sync:erp` |
-| Concurrency | 5 |
-| Timeout | 120s |
-| Retries | 5 |
-| Backoff | exponential, 5000ms |
-| Critical Path | ❌ NO |
-| Scheduled | Every 15 minutes |
+| Property      | Value                   |
+| ------------- | ----------------------- |
+| Queue Name    | `etapa3:stock:sync:erp` |
+| Concurrency   | 5                       |
+| Timeout       | 120s                    |
+| Retries       | 5                       |
+| Backoff       | exponential, 5000ms     |
+| Critical Path | ❌ NO                   |
+| Scheduled     | Every 15 minutes        |
 
 ### 4.2 Purpose
 
@@ -970,36 +1077,38 @@ Synchronizes stock levels with external ERP systems. Supports multiple ERP integ
 ```typescript
 // File: packages/workers/src/stock/sync-erp.schema.ts
 
-import { z } from 'zod';
+import { z } from "zod";
 
 export const StockSyncErpJobDataSchema = z.object({
   tenantId: z.string().uuid(),
   syncType: z.enum([
-    'FULL',           // Complete sync of all products
-    'INCREMENTAL',    // Only changed items since last sync
-    'SELECTIVE',      // Specific SKUs
-    'WEBHOOK',        // Triggered by ERP webhook
+    "FULL", // Complete sync of all products
+    "INCREMENTAL", // Only changed items since last sync
+    "SELECTIVE", // Specific SKUs
+    "WEBHOOK", // Triggered by ERP webhook
   ]),
   erpSystem: z.enum([
-    'SAGA',           // Romanian ERP
-    'SENIOR',         // Romanian ERP
-    'WIZCOUNT',       // Romanian ERP
-    'SAP_B1',         // SAP Business One
-    'MICROSOFT_BC',   // Microsoft Business Central
-    'CUSTOM_API',     // Custom REST API
-    'CSV_IMPORT',     // File-based import
+    "SAGA", // Romanian ERP
+    "SENIOR", // Romanian ERP
+    "WIZCOUNT", // Romanian ERP
+    "SAP_B1", // SAP Business One
+    "MICROSOFT_BC", // Microsoft Business Central
+    "CUSTOM_API", // Custom REST API
+    "CSV_IMPORT", // File-based import
   ]),
   skus: z.array(z.string()).optional(), // For SELECTIVE sync
-  webhookPayload: z.any().optional(),   // For WEBHOOK sync
+  webhookPayload: z.any().optional(), // For WEBHOOK sync
   forceUpdate: z.boolean().default(false),
-  dryRun: z.boolean().default(false),   // Preview changes without applying
-  conflictResolution: z.enum([
-    'ERP_WINS',       // ERP value overwrites local
-    'LOCAL_WINS',     // Keep local value
-    'HIGHER_WINS',    // Keep higher stock value
-    'LOWER_WINS',     // Keep lower stock value (conservative)
-    'MANUAL',         // Flag for manual review
-  ]).default('ERP_WINS'),
+  dryRun: z.boolean().default(false), // Preview changes without applying
+  conflictResolution: z
+    .enum([
+      "ERP_WINS", // ERP value overwrites local
+      "LOCAL_WINS", // Keep local value
+      "HIGHER_WINS", // Keep higher stock value
+      "LOWER_WINS", // Keep lower stock value (conservative)
+      "MANUAL", // Flag for manual review
+    ])
+    .default("ERP_WINS"),
 });
 
 export type StockSyncErpJobData = z.infer<typeof StockSyncErpJobDataSchema>;
@@ -1039,11 +1148,11 @@ export interface SyncStatistics {
 export interface StockChange {
   sku: string;
   productId: string;
-  field: 'stock_total' | 'stock_available' | 'price' | 'status';
+  field: "stock_total" | "stock_available" | "price" | "status";
   previousValue: number | string;
   newValue: number | string;
-  source: 'ERP' | 'LOCAL';
-  changeType: 'UPDATE' | 'CREATE' | 'CONFLICT_RESOLVED';
+  source: "ERP" | "LOCAL";
+  changeType: "UPDATE" | "CREATE" | "CONFLICT_RESOLVED";
 }
 
 export interface StockConflict {
@@ -1068,55 +1177,62 @@ export interface SyncError {
 ```typescript
 // File: packages/workers/src/stock/sync-erp.worker.ts
 
-import { Worker, Job } from 'bullmq';
-import { db } from '@cerniq/database';
-import { products, stockSyncLogs, erpIntegrations } from '@cerniq/database/schema';
-import { eq, and, sql, gt, inArray } from 'drizzle-orm';
-import { redis } from '@cerniq/redis';
-import { logger } from '@cerniq/logger';
-import { metrics } from '@cerniq/metrics';
-import { nanoid } from 'nanoid';
-import { 
-  StockSyncErpJobData, 
-  StockSyncErpJobDataSchema 
-} from './sync-erp.schema';
-import { 
-  StockSyncErpResult, 
-  StockChange, 
-  StockConflict, 
+import { Worker, Job } from "bullmq";
+import { db } from "@cerniq/database";
+import {
+  products,
+  stockSyncLogs,
+  erpIntegrations,
+} from "@cerniq/database/schema";
+import { eq, and, sql, gt, inArray } from "drizzle-orm";
+import { redis } from "@cerniq/redis";
+import { logger } from "@cerniq/logger";
+import { metrics } from "@cerniq/metrics";
+import { nanoid } from "nanoid";
+import {
+  StockSyncErpJobData,
+  StockSyncErpJobDataSchema,
+} from "./sync-erp.schema";
+import {
+  StockSyncErpResult,
+  StockChange,
+  StockConflict,
   SyncError,
-  SyncStatistics 
-} from './sync-erp.result';
+  SyncStatistics,
+} from "./sync-erp.result";
 
 // ERP Adapters
-import { SagaErpAdapter } from '../adapters/saga-erp.adapter';
-import { SeniorErpAdapter } from '../adapters/senior-erp.adapter';
-import { SapB1Adapter } from '../adapters/sap-b1.adapter';
-import { CustomApiAdapter } from '../adapters/custom-api.adapter';
-import { CsvImportAdapter } from '../adapters/csv-import.adapter';
+import { SagaErpAdapter } from "../adapters/saga-erp.adapter";
+import { SeniorErpAdapter } from "../adapters/senior-erp.adapter";
+import { SapB1Adapter } from "../adapters/sap-b1.adapter";
+import { CustomApiAdapter } from "../adapters/custom-api.adapter";
+import { CsvImportAdapter } from "../adapters/csv-import.adapter";
 
-const QUEUE_NAME = 'stock:sync:erp';
+const QUEUE_NAME = "stock:sync:erp";
 const BATCH_SIZE = 100;
 
-export const stockSyncErpWorker = new Worker<StockSyncErpJobData, StockSyncErpResult>(
+export const stockSyncErpWorker = new Worker<
+  StockSyncErpJobData,
+  StockSyncErpResult
+>(
   QUEUE_NAME,
   async (job: Job<StockSyncErpJobData>): Promise<StockSyncErpResult> => {
     const startTime = Date.now();
-    const { 
-      tenantId, 
-      syncType, 
-      erpSystem, 
-      skus, 
-      webhookPayload, 
-      forceUpdate, 
-      dryRun, 
-      conflictResolution 
+    const {
+      tenantId,
+      syncType,
+      erpSystem,
+      skus,
+      webhookPayload,
+      forceUpdate,
+      dryRun,
+      conflictResolution,
     } = job.data;
-    
+
     const syncId = `sync_${nanoid(12)}`;
-    
+
     logger.info({
-      msg: 'Starting ERP stock sync',
+      msg: "Starting ERP stock sync",
       jobId: job.id,
       syncId,
       tenantId,
@@ -1127,13 +1243,13 @@ export const stockSyncErpWorker = new Worker<StockSyncErpJobData, StockSyncErpRe
 
     // Get ERP integration config
     const erpConfig = await getErpConfig(tenantId, erpSystem);
-    if (!erpConfig && erpSystem !== 'CSV_IMPORT') {
+    if (!erpConfig && erpSystem !== "CSV_IMPORT") {
       throw new Error(`ERP integration not configured for ${erpSystem}`);
     }
 
     // Initialize ERP adapter
     const adapter = createErpAdapter(erpSystem, erpConfig);
-    
+
     const changes: StockChange[] = [];
     const conflicts: StockConflict[] = [];
     const errors: SyncError[] = [];
@@ -1151,22 +1267,22 @@ export const stockSyncErpWorker = new Worker<StockSyncErpJobData, StockSyncErpRe
     try {
       // Fetch data from ERP
       let erpStockData: ErpStockItem[];
-      
+
       switch (syncType) {
-        case 'FULL':
+        case "FULL":
           erpStockData = await adapter.fetchAllStock();
           break;
-        case 'INCREMENTAL':
+        case "INCREMENTAL":
           const lastSync = await getLastSyncTime(tenantId, erpSystem);
           erpStockData = await adapter.fetchStockChangedSince(lastSync);
           break;
-        case 'SELECTIVE':
+        case "SELECTIVE":
           if (!skus || skus.length === 0) {
-            throw new Error('SKUs required for selective sync');
+            throw new Error("SKUs required for selective sync");
           }
           erpStockData = await adapter.fetchStockBySku(skus);
           break;
-        case 'WEBHOOK':
+        case "WEBHOOK":
           erpStockData = adapter.parseWebhookPayload(webhookPayload);
           break;
         default:
@@ -1174,14 +1290,14 @@ export const stockSyncErpWorker = new Worker<StockSyncErpJobData, StockSyncErpRe
       }
 
       statistics.totalProducts = erpStockData.length;
-      
+
       // Update progress
       await job.updateProgress(10);
 
       // Process in batches
       for (let i = 0; i < erpStockData.length; i += BATCH_SIZE) {
         const batch = erpStockData.slice(i, i + BATCH_SIZE);
-        
+
         await processBatch(
           tenantId,
           batch,
@@ -1191,7 +1307,7 @@ export const stockSyncErpWorker = new Worker<StockSyncErpJobData, StockSyncErpRe
           changes,
           conflicts,
           errors,
-          statistics
+          statistics,
         );
 
         // Update progress
@@ -1206,7 +1322,7 @@ export const stockSyncErpWorker = new Worker<StockSyncErpJobData, StockSyncErpRe
           tenantId,
           erpSystem,
           syncType,
-          status: errors.length === 0 ? 'SUCCESS' : 'PARTIAL',
+          status: errors.length === 0 ? "SUCCESS" : "PARTIAL",
           statisticsJson: JSON.stringify(statistics),
           changesCount: changes.length,
           conflictsCount: conflicts.length,
@@ -1221,23 +1337,22 @@ export const stockSyncErpWorker = new Worker<StockSyncErpJobData, StockSyncErpRe
       }
 
       // Invalidate cache for changed products
-      const changedSkus = changes.map(c => c.sku);
+      const changedSkus = changes.map((c) => c.sku);
       if (changedSkus.length > 0) {
         await invalidateStockCache(tenantId, changedSkus);
       }
 
       await job.updateProgress(100);
-
     } catch (error: any) {
       logger.error({
-        msg: 'ERP sync failed',
+        msg: "ERP sync failed",
         syncId,
         error: error.message,
         stack: error.stack,
       });
 
       errors.push({
-        code: 'SYNC_FAILED',
+        code: "SYNC_FAILED",
         message: error.message,
         retryable: true,
       });
@@ -1250,7 +1365,7 @@ export const stockSyncErpWorker = new Worker<StockSyncErpJobData, StockSyncErpRe
           tenantId,
           erpSystem,
           syncType,
-          status: 'FAILED',
+          status: "FAILED",
           statisticsJson: JSON.stringify(statistics),
           errorMessage: error.message,
           startedAt: new Date(startTime),
@@ -1263,23 +1378,23 @@ export const stockSyncErpWorker = new Worker<StockSyncErpJobData, StockSyncErpRe
     }
 
     const duration = Date.now() - startTime;
-    
-    metrics.increment('stock_sync_completed_total', {
+
+    metrics.increment("stock_sync_completed_total", {
       tenant_id: tenantId,
       erp_system: erpSystem,
       sync_type: syncType,
-      status: errors.length === 0 ? 'success' : 'partial',
+      status: errors.length === 0 ? "success" : "partial",
     });
-    metrics.histogram('stock_sync_duration_ms', duration, {
+    metrics.histogram("stock_sync_duration_ms", duration, {
       tenant_id: tenantId,
       erp_system: erpSystem,
     });
-    metrics.gauge('stock_sync_products_updated', statistics.productsUpdated, {
+    metrics.gauge("stock_sync_products_updated", statistics.productsUpdated, {
       tenant_id: tenantId,
     });
 
     logger.info({
-      msg: 'ERP stock sync completed',
+      msg: "ERP stock sync completed",
       jobId: job.id,
       syncId,
       duration,
@@ -1287,8 +1402,10 @@ export const stockSyncErpWorker = new Worker<StockSyncErpJobData, StockSyncErpRe
     });
 
     // Calculate next recommended sync time
-    const nextSyncMinutes = syncType === 'FULL' ? 60 : 15;
-    const nextSyncRecommended = new Date(Date.now() + nextSyncMinutes * 60 * 1000);
+    const nextSyncMinutes = syncType === "FULL" ? 60 : 15;
+    const nextSyncRecommended = new Date(
+      Date.now() + nextSyncMinutes * 60 * 1000,
+    );
 
     return {
       success: errors.length === 0,
@@ -1308,7 +1425,7 @@ export const stockSyncErpWorker = new Worker<StockSyncErpJobData, StockSyncErpRe
   {
     connection: redis,
     concurrency: 5,
-  }
+  },
 );
 
 // Types for ERP data
@@ -1326,15 +1443,15 @@ interface ErpStockItem {
 // Helper functions
 function createErpAdapter(erpSystem: string, config: any) {
   switch (erpSystem) {
-    case 'SAGA':
+    case "SAGA":
       return new SagaErpAdapter(config);
-    case 'SENIOR':
+    case "SENIOR":
       return new SeniorErpAdapter(config);
-    case 'SAP_B1':
+    case "SAP_B1":
       return new SapB1Adapter(config);
-    case 'CUSTOM_API':
+    case "CUSTOM_API":
       return new CustomApiAdapter(config);
-    case 'CSV_IMPORT':
+    case "CSV_IMPORT":
       return new CsvImportAdapter(config);
     default:
       throw new Error(`Unsupported ERP system: ${erpSystem}`);
@@ -1351,23 +1468,26 @@ async function getErpConfig(tenantId: string, erpSystem: string) {
   });
 }
 
-async function getLastSyncTime(tenantId: string, erpSystem: string): Promise<Date> {
+async function getLastSyncTime(
+  tenantId: string,
+  erpSystem: string,
+): Promise<Date> {
   const lastSync = await db.query.stockSyncLogs.findFirst({
     where: and(
       eq(stockSyncLogs.tenantId, tenantId),
       eq(stockSyncLogs.erpSystem, erpSystem),
-      eq(stockSyncLogs.status, 'SUCCESS'),
+      eq(stockSyncLogs.status, "SUCCESS"),
     ),
     orderBy: (logs, { desc }) => [desc(logs.completedAt)],
   });
-  
+
   return lastSync?.completedAt || new Date(0);
 }
 
 async function updateLastSyncTime(tenantId: string, erpSystem: string) {
   await redis.set(
     `stock:sync:lasttime:${tenantId}:${erpSystem}`,
-    new Date().toISOString()
+    new Date().toISOString(),
   );
 }
 
@@ -1380,27 +1500,24 @@ async function processBatch(
   changes: StockChange[],
   conflicts: StockConflict[],
   errors: SyncError[],
-  statistics: SyncStatistics
+  statistics: SyncStatistics,
 ) {
-  const skus = batch.map(item => item.sku);
-  
+  const skus = batch.map((item) => item.sku);
+
   // Get current local products
   const localProducts = await db
     .select()
     .from(products)
-    .where(and(
-      eq(products.tenantId, tenantId),
-      inArray(products.sku, skus),
-    ));
+    .where(and(eq(products.tenantId, tenantId), inArray(products.sku, skus)));
 
-  const localMap = new Map(localProducts.map(p => [p.sku, p]));
+  const localMap = new Map(localProducts.map((p) => [p.sku, p]));
 
   for (const erpItem of batch) {
     statistics.productsChecked++;
-    
+
     try {
       const localProduct = localMap.get(erpItem.sku);
-      
+
       if (!localProduct) {
         // New product - skip or create based on config
         statistics.productsSkipped++;
@@ -1408,22 +1525,22 @@ async function processBatch(
       }
 
       // Check for conflicts
-      const hasStockConflict = 
-        !forceUpdate && 
+      const hasStockConflict =
+        !forceUpdate &&
         localProduct.stockTotal !== erpItem.stockTotal &&
-        localProduct.erpLastSyncAt && 
+        localProduct.erpLastSyncAt &&
         localProduct.updatedAt > localProduct.erpLastSyncAt;
 
       if (hasStockConflict) {
         const resolution = resolveConflict(
           conflictResolution,
           localProduct.stockTotal,
-          erpItem.stockTotal
+          erpItem.stockTotal,
         );
 
         conflicts.push({
           sku: erpItem.sku,
-          field: 'stock_total',
+          field: "stock_total",
           localValue: localProduct.stockTotal,
           erpValue: erpItem.stockTotal,
           resolution: resolution.action,
@@ -1440,12 +1557,12 @@ async function processBatch(
       }
 
       // Check if update needed
-      const needsUpdate = 
+      const needsUpdate =
         localProduct.stockTotal !== erpItem.stockTotal ||
-        (erpItem.stockAvailable !== undefined && 
-         localProduct.stockAvailable !== erpItem.stockAvailable) ||
-        (erpItem.price !== undefined && 
-         localProduct.priceBase !== erpItem.price);
+        (erpItem.stockAvailable !== undefined &&
+          localProduct.stockAvailable !== erpItem.stockAvailable) ||
+        (erpItem.price !== undefined &&
+          localProduct.priceBase !== erpItem.price);
 
       if (!needsUpdate) {
         statistics.productsSkipped++;
@@ -1457,11 +1574,11 @@ async function processBatch(
         changes.push({
           sku: erpItem.sku,
           productId: localProduct.id,
-          field: 'stock_total',
+          field: "stock_total",
           previousValue: localProduct.stockTotal,
           newValue: erpItem.stockTotal,
-          source: 'ERP',
-          changeType: hasStockConflict ? 'CONFLICT_RESOLVED' : 'UPDATE',
+          source: "ERP",
+          changeType: hasStockConflict ? "CONFLICT_RESOLVED" : "UPDATE",
         });
       }
 
@@ -1471,7 +1588,8 @@ async function processBatch(
           .update(products)
           .set({
             stockTotal: erpItem.stockTotal,
-            stockAvailable: erpItem.stockAvailable ?? 
+            stockAvailable:
+              erpItem.stockAvailable ??
               erpItem.stockTotal - localProduct.stockReserved,
             priceBase: erpItem.price ?? localProduct.priceBase,
             erpLastSyncAt: new Date(),
@@ -1481,11 +1599,10 @@ async function processBatch(
       }
 
       statistics.productsUpdated++;
-
     } catch (error: any) {
       errors.push({
         sku: erpItem.sku,
-        code: 'ITEM_SYNC_FAILED',
+        code: "ITEM_SYNC_FAILED",
         message: error.message,
         retryable: false,
       });
@@ -1497,33 +1614,40 @@ async function processBatch(
 function resolveConflict(
   strategy: string,
   localValue: number,
-  erpValue: number
+  erpValue: number,
 ): { value: number; action: string; requiresManual: boolean } {
   switch (strategy) {
-    case 'ERP_WINS':
-      return { value: erpValue, action: 'ERP_WINS', requiresManual: false };
-    case 'LOCAL_WINS':
-      return { value: localValue, action: 'LOCAL_WINS', requiresManual: false };
-    case 'HIGHER_WINS':
-      return { 
-        value: Math.max(localValue, erpValue), 
-        action: 'HIGHER_WINS', 
-        requiresManual: false 
+    case "ERP_WINS":
+      return { value: erpValue, action: "ERP_WINS", requiresManual: false };
+    case "LOCAL_WINS":
+      return { value: localValue, action: "LOCAL_WINS", requiresManual: false };
+    case "HIGHER_WINS":
+      return {
+        value: Math.max(localValue, erpValue),
+        action: "HIGHER_WINS",
+        requiresManual: false,
       };
-    case 'LOWER_WINS':
-      return { 
-        value: Math.min(localValue, erpValue), 
-        action: 'LOWER_WINS', 
-        requiresManual: false 
+    case "LOWER_WINS":
+      return {
+        value: Math.min(localValue, erpValue),
+        action: "LOWER_WINS",
+        requiresManual: false,
       };
-    case 'MANUAL':
+    case "MANUAL":
     default:
-      return { value: localValue, action: 'MANUAL_REVIEW', requiresManual: true };
+      return {
+        value: localValue,
+        action: "MANUAL_REVIEW",
+        requiresManual: true,
+      };
   }
 }
 
-async function invalidateStockCache(tenantId: string, skus: string[]): Promise<void> {
-  const keys = skus.map(sku => `stock:${tenantId}:${sku}`);
+async function invalidateStockCache(
+  tenantId: string,
+  skus: string[],
+): Promise<void> {
+  const keys = skus.map((sku) => `stock:${tenantId}:${sku}`);
   const chunks = [];
   for (let i = 0; i < keys.length; i += 100) {
     chunks.push(keys.slice(i, i + 100));
@@ -1535,25 +1659,25 @@ async function invalidateStockCache(tenantId: string, skus: string[]): Promise<v
 }
 
 // Event handlers
-stockSyncErpWorker.on('completed', (job, result) => {
+stockSyncErpWorker.on("completed", (job, result) => {
   logger.debug({
-    msg: 'ERP sync job completed',
+    msg: "ERP sync job completed",
     jobId: job.id,
     syncId: result.syncId,
     productsUpdated: result.statistics.productsUpdated,
   });
 });
 
-stockSyncErpWorker.on('failed', (job, err) => {
+stockSyncErpWorker.on("failed", (job, err) => {
   logger.error({
-    msg: 'ERP sync job failed',
+    msg: "ERP sync job failed",
     jobId: job?.id,
     error: err.message,
   });
-  
-  metrics.increment('stock_sync_failed_total', {
-    tenant_id: job?.data?.tenantId || 'unknown',
-    erp_system: job?.data?.erpSystem || 'unknown',
+
+  metrics.increment("stock_sync_failed_total", {
+    tenant_id: job?.data?.tenantId || "unknown",
+    erp_system: job?.data?.erpSystem || "unknown",
   });
 });
 
@@ -1575,7 +1699,7 @@ export interface ErpStockItem {
   stockAvailable?: number;
   price?: number;
   currency?: string;
-  status?: 'ACTIVE' | 'INACTIVE' | 'DISCONTINUED';
+  status?: "ACTIVE" | "INACTIVE" | "DISCONTINUED";
   warehouse?: string;
   location?: string;
   lastModified?: Date;
@@ -1621,8 +1745,8 @@ export interface IErpAdapter {
 ```typescript
 // File: packages/workers/src/adapters/saga-erp.adapter.ts
 
-import { IErpAdapter, ErpStockItem } from './erp-adapter.interface';
-import { logger } from '@cerniq/logger';
+import { IErpAdapter, ErpStockItem } from "./erp-adapter.interface";
+import { logger } from "@cerniq/logger";
 
 interface SagaConfig {
   baseUrl: string;
@@ -1645,11 +1769,11 @@ export class SagaErpAdapter implements IErpAdapter {
   }
 
   async fetchAllStock(): Promise<ErpStockItem[]> {
-    const response = await this.makeRequest('/api/v1/stocuri/toate', {
-      method: 'GET',
+    const response = await this.makeRequest("/api/v1/stocuri/toate", {
+      method: "GET",
       params: {
         firma: this.config.companyCode,
-        gestiune: this.config.warehouseCode || '*',
+        gestiune: this.config.warehouseCode || "*",
       },
     });
 
@@ -1657,12 +1781,12 @@ export class SagaErpAdapter implements IErpAdapter {
   }
 
   async fetchStockChangedSince(since: Date): Promise<ErpStockItem[]> {
-    const response = await this.makeRequest('/api/v1/stocuri/modificate', {
-      method: 'GET',
+    const response = await this.makeRequest("/api/v1/stocuri/modificate", {
+      method: "GET",
       params: {
         firma: this.config.companyCode,
-        dataModificareMin: since.toISOString().split('T')[0], // SAGA uses date format
-        gestiune: this.config.warehouseCode || '*',
+        dataModificareMin: since.toISOString().split("T")[0], // SAGA uses date format
+        gestiune: this.config.warehouseCode || "*",
       },
     });
 
@@ -1672,15 +1796,15 @@ export class SagaErpAdapter implements IErpAdapter {
   async fetchStockBySku(skus: string[]): Promise<ErpStockItem[]> {
     // SAGA API accepts max 50 SKUs per request
     const results: ErpStockItem[] = [];
-    
+
     for (let i = 0; i < skus.length; i += 50) {
       const batch = skus.slice(i, i + 50);
-      const response = await this.makeRequest('/api/v1/stocuri/articole', {
-        method: 'POST',
+      const response = await this.makeRequest("/api/v1/stocuri/articole", {
+        method: "POST",
         body: {
           firma: this.config.companyCode,
           coduri: batch,
-          gestiune: this.config.warehouseCode || '*',
+          gestiune: this.config.warehouseCode || "*",
         },
       });
       results.push(...this.mapSagaToStock(response.stocuri || []));
@@ -1691,7 +1815,7 @@ export class SagaErpAdapter implements IErpAdapter {
 
   parseWebhookPayload(payload: any): ErpStockItem[] {
     // SAGA webhook format
-    if (!payload.eveniment || payload.eveniment !== 'STOC_MODIFICAT') {
+    if (!payload.eveniment || payload.eveniment !== "STOC_MODIFICAT") {
       return [];
     }
 
@@ -1701,7 +1825,7 @@ export class SagaErpAdapter implements IErpAdapter {
   async healthCheck(): Promise<{ healthy: boolean; latency: number }> {
     const start = Date.now();
     try {
-      await this.makeRequest('/api/v1/status', { method: 'GET' });
+      await this.makeRequest("/api/v1/status", { method: "GET" });
       return { healthy: true, latency: Date.now() - start };
     } catch {
       return { healthy: false, latency: Date.now() - start };
@@ -1709,39 +1833,46 @@ export class SagaErpAdapter implements IErpAdapter {
   }
 
   private mapSagaToStock(sagaItems: any[]): ErpStockItem[] {
-    return sagaItems.map(item => ({
+    return sagaItems.map((item) => ({
       sku: item.cod_articol,
       stockTotal: parseFloat(item.cantitate_totala) || 0,
-      stockAvailable: parseFloat(item.cantitate_disponibila) || parseFloat(item.cantitate_totala) || 0,
+      stockAvailable:
+        parseFloat(item.cantitate_disponibila) ||
+        parseFloat(item.cantitate_totala) ||
+        0,
       price: parseFloat(item.pret_vanzare) || undefined,
-      currency: item.moneda || 'RON',
+      currency: item.moneda || "RON",
       status: this.mapSagaStatus(item.stare),
       warehouse: item.cod_gestiune,
       location: item.locatie,
-      lastModified: item.data_modificare ? new Date(item.data_modificare) : undefined,
+      lastModified: item.data_modificare
+        ? new Date(item.data_modificare)
+        : undefined,
       batchNumber: item.lot,
       expiryDate: item.data_expirare ? new Date(item.data_expirare) : undefined,
     }));
   }
 
-  private mapSagaStatus(sagaStatus: string): 'ACTIVE' | 'INACTIVE' | 'DISCONTINUED' {
-    const statusMap: Record<string, 'ACTIVE' | 'INACTIVE' | 'DISCONTINUED'> = {
-      'A': 'ACTIVE',
-      'ACTIV': 'ACTIVE',
-      'I': 'INACTIVE',
-      'INACTIV': 'INACTIVE',
-      'D': 'DISCONTINUED',
-      'DEZACTIVAT': 'DISCONTINUED',
+  private mapSagaStatus(
+    sagaStatus: string,
+  ): "ACTIVE" | "INACTIVE" | "DISCONTINUED" {
+    const statusMap: Record<string, "ACTIVE" | "INACTIVE" | "DISCONTINUED"> = {
+      A: "ACTIVE",
+      ACTIV: "ACTIVE",
+      I: "INACTIVE",
+      INACTIV: "INACTIVE",
+      D: "DISCONTINUED",
+      DEZACTIVAT: "DISCONTINUED",
     };
-    return statusMap[sagaStatus?.toUpperCase()] || 'ACTIVE';
+    return statusMap[sagaStatus?.toUpperCase()] || "ACTIVE";
   }
 
   private async makeRequest(
-    endpoint: string, 
-    options: { method: string; params?: Record<string, string>; body?: any }
+    endpoint: string,
+    options: { method: string; params?: Record<string, string>; body?: any },
   ): Promise<any> {
     const url = new URL(endpoint, this.config.baseUrl);
-    
+
     if (options.params) {
       Object.entries(options.params).forEach(([key, value]) => {
         url.searchParams.append(key, value);
@@ -1755,16 +1886,18 @@ export class SagaErpAdapter implements IErpAdapter {
       const response = await this.httpClient(url.toString(), {
         method: options.method,
         headers: {
-          'Authorization': `Bearer ${this.config.apiKey}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
+          Authorization: `Bearer ${this.config.apiKey}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
         },
         body: options.body ? JSON.stringify(options.body) : undefined,
         signal: controller.signal,
       });
 
       if (!response.ok) {
-        throw new Error(`SAGA API error: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `SAGA API error: ${response.status} ${response.statusText}`,
+        );
       }
 
       return response.json();
@@ -1780,11 +1913,11 @@ export class SagaErpAdapter implements IErpAdapter {
 ```typescript
 // File: packages/workers/src/adapters/custom-api.adapter.ts
 
-import { IErpAdapter, ErpStockItem } from './erp-adapter.interface';
+import { IErpAdapter, ErpStockItem } from "./erp-adapter.interface";
 
 interface CustomApiConfig {
   baseUrl: string;
-  authType: 'bearer' | 'basic' | 'api_key' | 'oauth2';
+  authType: "bearer" | "basic" | "api_key" | "oauth2";
   credentials: {
     token?: string;
     username?: string;
@@ -1826,7 +1959,8 @@ export class CustomApiAdapter implements IErpAdapter {
   }
 
   async fetchStockChangedSince(since: Date): Promise<ErpStockItem[]> {
-    const endpoint = this.config.endpoints.changedStock || this.config.endpoints.allStock;
+    const endpoint =
+      this.config.endpoints.changedStock || this.config.endpoints.allStock;
     const url = `${endpoint}?since=${since.toISOString()}`;
     const response = await this.makeRequest(url);
     return this.mapResponse(response);
@@ -1834,27 +1968,31 @@ export class CustomApiAdapter implements IErpAdapter {
 
   async fetchStockBySku(skus: string[]): Promise<ErpStockItem[]> {
     if (this.config.endpoints.stockBySku) {
-      const response = await this.makeRequest(this.config.endpoints.stockBySku, {
-        method: 'POST',
-        body: { skus },
-      });
+      const response = await this.makeRequest(
+        this.config.endpoints.stockBySku,
+        {
+          method: "POST",
+          body: { skus },
+        },
+      );
       return this.mapResponse(response);
     }
     // Fallback: fetch all and filter
     const all = await this.fetchAllStock();
-    return all.filter(item => skus.includes(item.sku));
+    return all.filter((item) => skus.includes(item.sku));
   }
 
   parseWebhookPayload(payload: any): ErpStockItem[] {
-    const items = Array.isArray(payload) ? payload : 
-                  payload.items || payload.data || [payload];
+    const items = Array.isArray(payload)
+      ? payload
+      : payload.items || payload.data || [payload];
     return this.mapResponse(items);
   }
 
   async healthCheck(): Promise<{ healthy: boolean; latency: number }> {
     const start = Date.now();
     try {
-      await this.makeRequest(this.config.endpoints.allStock + '?limit=1');
+      await this.makeRequest(this.config.endpoints.allStock + "?limit=1");
       return { healthy: true, latency: Date.now() - start };
     } catch {
       return { healthy: false, latency: Date.now() - start };
@@ -1867,43 +2005,53 @@ export class CustomApiAdapter implements IErpAdapter {
 
     return items.map((item: any) => ({
       sku: this.getNestedValue(item, mapping.sku),
-      stockTotal: parseFloat(this.getNestedValue(item, mapping.stockTotal)) || 0,
-      stockAvailable: mapping.stockAvailable 
-        ? parseFloat(this.getNestedValue(item, mapping.stockAvailable)) || undefined
+      stockTotal:
+        parseFloat(this.getNestedValue(item, mapping.stockTotal)) || 0,
+      stockAvailable: mapping.stockAvailable
+        ? parseFloat(this.getNestedValue(item, mapping.stockAvailable)) ||
+          undefined
         : undefined,
-      price: mapping.price 
+      price: mapping.price
         ? parseFloat(this.getNestedValue(item, mapping.price)) || undefined
         : undefined,
-      currency: mapping.currency 
-        ? this.getNestedValue(item, mapping.currency) 
+      currency: mapping.currency
+        ? this.getNestedValue(item, mapping.currency)
         : undefined,
-      status: mapping.status 
+      status: mapping.status
         ? this.normalizeStatus(this.getNestedValue(item, mapping.status))
         : undefined,
-      lastModified: mapping.lastModified 
+      lastModified: mapping.lastModified
         ? new Date(this.getNestedValue(item, mapping.lastModified))
         : undefined,
     }));
   }
 
   private getNestedValue(obj: any, path: string): any {
-    return path.split('.').reduce((current, key) => current?.[key], obj);
+    return path.split(".").reduce((current, key) => current?.[key], obj);
   }
 
-  private normalizeStatus(status: string): 'ACTIVE' | 'INACTIVE' | 'DISCONTINUED' {
-    if (!status) return 'ACTIVE';
+  private normalizeStatus(
+    status: string,
+  ): "ACTIVE" | "INACTIVE" | "DISCONTINUED" {
+    if (!status) return "ACTIVE";
     const lower = status.toLowerCase();
-    if (['inactive', 'disabled', 'off'].includes(lower)) return 'INACTIVE';
-    if (['discontinued', 'obsolete', 'deleted'].includes(lower)) return 'DISCONTINUED';
-    return 'ACTIVE';
+    if (["inactive", "disabled", "off"].includes(lower)) return "INACTIVE";
+    if (["discontinued", "obsolete", "deleted"].includes(lower))
+      return "DISCONTINUED";
+    return "ACTIVE";
   }
 
-  private async makeRequest(url: string, options?: { method?: string; body?: any }): Promise<any> {
-    const fullUrl = url.startsWith('http') ? url : `${this.config.baseUrl}${url}`;
+  private async makeRequest(
+    url: string,
+    options?: { method?: string; body?: any },
+  ): Promise<any> {
+    const fullUrl = url.startsWith("http")
+      ? url
+      : `${this.config.baseUrl}${url}`;
     const headers = this.buildAuthHeaders();
 
     const response = await fetch(fullUrl, {
-      method: options?.method || 'GET',
+      method: options?.method || "GET",
       headers,
       body: options?.body ? JSON.stringify(options.body) : undefined,
     });
@@ -1917,21 +2065,21 @@ export class CustomApiAdapter implements IErpAdapter {
 
   private buildAuthHeaders(): Record<string, string> {
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     };
 
     switch (this.config.authType) {
-      case 'bearer':
-        headers['Authorization'] = `Bearer ${this.config.credentials.token}`;
+      case "bearer":
+        headers["Authorization"] = `Bearer ${this.config.credentials.token}`;
         break;
-      case 'basic':
+      case "basic":
         const encoded = Buffer.from(
-          `${this.config.credentials.username}:${this.config.credentials.password}`
-        ).toString('base64');
-        headers['Authorization'] = `Basic ${encoded}`;
+          `${this.config.credentials.username}:${this.config.credentials.password}`,
+        ).toString("base64");
+        headers["Authorization"] = `Basic ${encoded}`;
         break;
-      case 'api_key':
-        headers['X-API-Key'] = this.config.credentials.apiKey!;
+      case "api_key":
+        headers["X-API-Key"] = this.config.credentials.apiKey!;
         break;
     }
 
@@ -1956,9 +2104,9 @@ CREATE TABLE IF NOT EXISTS stock_reservations (
     negotiation_id UUID NOT NULL REFERENCES negotiations(id),
     reservation_key VARCHAR(100) NOT NULL,
     type VARCHAR(10) NOT NULL DEFAULT 'SOFT' CHECK (type IN ('SOFT', 'HARD')),
-    status VARCHAR(20) NOT NULL DEFAULT 'PENDING' 
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING'
         CHECK (status IN ('PENDING', 'ACTIVE', 'RELEASED', 'CONSUMED', 'EXPIRED', 'FAILED')),
-    priority VARCHAR(10) NOT NULL DEFAULT 'NORMAL' 
+    priority VARCHAR(10) NOT NULL DEFAULT 'NORMAL'
         CHECK (priority IN ('NORMAL', 'HIGH', 'URGENT')),
     items_json JSONB NOT NULL DEFAULT '[]',
     total_requested INTEGER NOT NULL DEFAULT 0,
@@ -1970,7 +2118,7 @@ CREATE TABLE IF NOT EXISTS stock_reservations (
     release_notes TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    
+
     CONSTRAINT uq_reservation_key UNIQUE (tenant_id, reservation_key)
 );
 
@@ -1986,7 +2134,7 @@ CREATE TABLE IF NOT EXISTS stock_movements (
     tenant_id UUID NOT NULL REFERENCES tenants(id),
     product_id UUID NOT NULL REFERENCES products(id),
     sku VARCHAR(50) NOT NULL,
-    type VARCHAR(20) NOT NULL 
+    type VARCHAR(20) NOT NULL
         CHECK (type IN ('RESERVATION', 'RELEASE', 'SALE', 'PURCHASE', 'ADJUSTMENT', 'RETURN', 'SYNC')),
     quantity INTEGER NOT NULL, -- Negative for decreases
     previous_available INTEGER NOT NULL,
@@ -2044,7 +2192,7 @@ CREATE TABLE IF NOT EXISTS erp_integrations (
     last_sync_status VARCHAR(20),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    
+
     CONSTRAINT uq_tenant_erp UNIQUE (tenant_id, erp_system)
 );
 
@@ -2063,14 +2211,14 @@ ALTER TABLE products ADD COLUMN IF NOT EXISTS reorder_point INTEGER DEFAULT 10;
 ALTER TABLE products ADD COLUMN IF NOT EXISTS reorder_quantity INTEGER DEFAULT 100;
 
 -- Add check constraint
-ALTER TABLE products ADD CONSTRAINT chk_stock_positive 
+ALTER TABLE products ADD CONSTRAINT chk_stock_positive
     CHECK (stock_total >= 0 AND stock_available >= 0 AND stock_reserved >= 0);
 
-ALTER TABLE products ADD CONSTRAINT chk_stock_balance 
+ALTER TABLE products ADD CONSTRAINT chk_stock_balance
     CHECK (stock_available + stock_reserved <= stock_total);
 
 -- Create partial index for low stock alerts
-CREATE INDEX idx_products_low_stock ON products(tenant_id, sku) 
+CREATE INDEX idx_products_low_stock ON products(tenant_id, sku)
     WHERE stock_available <= reorder_point AND status = 'ACTIVE';
 ```
 
@@ -2096,7 +2244,7 @@ BEGIN
     LOOP
         -- Release the stock
         UPDATE products p
-        SET 
+        SET
             stock_available = p.stock_available + (item->>'reservedQuantity')::integer,
             stock_reserved = GREATEST(0, p.stock_reserved - (item->>'reservedQuantity')::integer),
             updated_at = NOW()
@@ -2107,7 +2255,7 @@ BEGIN
 
         -- Update reservation status
         UPDATE stock_reservations
-        SET 
+        SET
             status = 'EXPIRED',
             released_at = NOW(),
             release_reason = 'EXPIRED',
@@ -2164,11 +2312,11 @@ CREATE TRIGGER trg_track_stock_changes
 CREATE OR REPLACE FUNCTION fn_check_low_stock()
 RETURNS TRIGGER AS $$
 BEGIN
-    IF NEW.stock_available <= NEW.reorder_point 
+    IF NEW.stock_available <= NEW.reorder_point
        AND (OLD.stock_available > OLD.reorder_point OR OLD IS NULL) THEN
         -- Insert notification for low stock
         INSERT INTO notifications (
-            id, tenant_id, type, severity, title, message, 
+            id, tenant_id, type, severity, title, message,
             entity_type, entity_id, created_at
         ) VALUES (
             gen_random_uuid(),
@@ -2202,16 +2350,16 @@ CREATE TRIGGER trg_check_low_stock
 ```typescript
 // File: packages/workers/src/stock/queues.ts
 
-import { Queue, QueueScheduler } from 'bullmq';
-import { redis } from '@cerniq/redis';
+import { Queue, QueueScheduler } from "bullmq";
+import { redis } from "@cerniq/redis";
 
 // Stock Reserve Create Queue
-export const stockReserveCreateQueue = new Queue('stock:reserve:create', {
+export const stockReserveCreateQueue = new Queue("stock:reserve:create", {
   connection: redis,
   defaultJobOptions: {
     attempts: 3,
     backoff: {
-      type: 'exponential',
+      type: "exponential",
       delay: 1000,
     },
     removeOnComplete: {
@@ -2225,12 +2373,12 @@ export const stockReserveCreateQueue = new Queue('stock:reserve:create', {
 });
 
 // Stock Reserve Release Queue
-export const stockReserveReleaseQueue = new Queue('stock:reserve:release', {
+export const stockReserveReleaseQueue = new Queue("stock:reserve:release", {
   connection: redis,
   defaultJobOptions: {
     attempts: 3,
     backoff: {
-      type: 'exponential',
+      type: "exponential",
       delay: 1000,
     },
     removeOnComplete: {
@@ -2244,12 +2392,12 @@ export const stockReserveReleaseQueue = new Queue('stock:reserve:release', {
 });
 
 // Stock Sync ERP Queue
-export const stockSyncErpQueue = new Queue('stock:sync:erp', {
+export const stockSyncErpQueue = new Queue("stock:sync:erp", {
   connection: redis,
   defaultJobOptions: {
     attempts: 5,
     backoff: {
-      type: 'exponential',
+      type: "exponential",
       delay: 5000,
     },
     removeOnComplete: {
@@ -2266,57 +2414,63 @@ export const stockSyncErpQueue = new Queue('stock:sync:erp', {
 export async function setupStockScheduledJobs() {
   // Check for expired reservations every 5 minutes
   await stockReserveReleaseQueue.add(
-    'check-expired',
-    { action: 'CHECK_EXPIRED' },
+    "check-expired",
+    { action: "CHECK_EXPIRED" },
     {
       repeat: {
-        pattern: '*/5 * * * *',
+        pattern: "*/5 * * * *",
       },
-      jobId: 'check-expired-reservations',
-    }
+      jobId: "check-expired-reservations",
+    },
   );
 
   // ERP sync every 15 minutes (can be overridden per tenant)
   await stockSyncErpQueue.add(
-    'scheduled-incremental',
-    { 
-      syncType: 'INCREMENTAL',
+    "scheduled-incremental",
+    {
+      syncType: "INCREMENTAL",
       allTenants: true,
     },
     {
       repeat: {
-        pattern: '*/15 * * * *',
+        pattern: "*/15 * * * *",
       },
-      jobId: 'scheduled-erp-sync',
-    }
+      jobId: "scheduled-erp-sync",
+    },
   );
 
   // Full ERP sync daily at 2 AM
   await stockSyncErpQueue.add(
-    'scheduled-full',
-    { 
-      syncType: 'FULL',
+    "scheduled-full",
+    {
+      syncType: "FULL",
       allTenants: true,
     },
     {
       repeat: {
-        pattern: '0 2 * * *',
+        pattern: "0 2 * * *",
       },
-      jobId: 'daily-full-sync',
-    }
+      jobId: "daily-full-sync",
+    },
   );
 }
 
 // Queue schedulers for delayed jobs
-export const reserveCreateScheduler = new QueueScheduler('stock:reserve:create', {
-  connection: redis,
-});
+export const reserveCreateScheduler = new QueueScheduler(
+  "stock:reserve:create",
+  {
+    connection: redis,
+  },
+);
 
-export const reserveReleaseScheduler = new QueueScheduler('stock:reserve:release', {
-  connection: redis,
-});
+export const reserveReleaseScheduler = new QueueScheduler(
+  "stock:reserve:release",
+  {
+    connection: redis,
+  },
+);
 
-export const syncErpScheduler = new QueueScheduler('stock:sync:erp', {
+export const syncErpScheduler = new QueueScheduler("stock:sync:erp", {
   connection: redis,
 });
 ```

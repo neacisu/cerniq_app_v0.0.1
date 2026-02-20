@@ -50,17 +50,17 @@ tests/
 
 ```typescript
 // ✅ CORECT - Descrie modulul/clasa
-describe('CompaniesService', () => {
-  describe('findById', () => {
-    it('should return company when exists', () => {});
-    it('should throw NotFoundError when company does not exist', () => {});
+describe("CompaniesService", () => {
+  describe("findById", () => {
+    it("should return company when exists", () => {});
+    it("should throw NotFoundError when company does not exist", () => {});
   });
 });
 
 // ❌ GREȘIT - Prea generic
-describe('Tests', () => {
-  it('test 1', () => {});
-  it('works', () => {});
+describe("Tests", () => {
+  it("test 1", () => {});
+  it("works", () => {});
 });
 ```
 
@@ -70,14 +70,14 @@ describe('Tests', () => {
 
 ```typescript
 // ✅ CORECT
-it('should return 404 when company ID does not exist', () => {});
-it('should create audit log when company is updated', () => {});
-it('should throw ValidationError when CUI format is invalid', () => {});
+it("should return 404 when company ID does not exist", () => {});
+it("should create audit log when company is updated", () => {});
+it("should throw ValidationError when CUI format is invalid", () => {});
 
 // ❌ GREȘIT
-it('company not found', () => {});
-it('test validation', () => {});
-it('returns correct data', () => {});
+it("company not found", () => {});
+it("test validation", () => {});
+it("returns correct data", () => {});
 ```
 
 ### 1.4 Variable Naming in Tests
@@ -85,13 +85,13 @@ it('returns correct data', () => {});
 ```typescript
 // ✅ CORECT - Descriptive
 const validCompanyData = createCompanyFixture();
-const companyWithInvalidCui = createCompanyFixture({ cui: 'invalid' });
+const companyWithInvalidCui = createCompanyFixture({ cui: "invalid" });
 const expiredJwtToken = createExpiredToken();
 
 // ❌ GREȘIT - Ambiguu
 const data = {};
 const obj = {};
-const x = 'test';
+const x = "test";
 ```
 
 ---
@@ -166,7 +166,7 @@ export const factories = {
     cui: faker.string.numeric(8),
     ...overrides,
   }),
-  
+
   user: (overrides = {}) => ({
     id: faker.string.uuid(),
     email: faker.internet.email(),
@@ -184,9 +184,15 @@ export async function createTestApp(config = {}) {
 }
 
 // tests/utils/test-db.ts
-export async function createTestDatabase() { /* ... */ }
-export async function seedData(db, fixtures) { /* ... */ }
-export async function cleanupDatabase(db) { /* ... */ }
+export async function createTestDatabase() {
+  /* ... */
+}
+export async function seedData(db, fixtures) {
+  /* ... */
+}
+export async function cleanupDatabase(db) {
+  /* ... */
+}
 ```
 
 ---
@@ -196,17 +202,17 @@ export async function cleanupDatabase(db) { /* ... */ }
 ### 3.1 AAA Pattern (Arrange-Act-Assert)
 
 ```typescript
-it('should calculate lead score from component scores', () => {
+it("should calculate lead score from component scores", () => {
   // ARRANGE - Setup test data
   const company = factories.company({
     fitScore: 80,
     engagementScore: 60,
     intentScore: 40,
   });
-  
+
   // ACT - Execute the code under test
   const leadScore = calculateLeadScore(company);
-  
+
   // ASSERT - Verify the result
   expect(leadScore).toBe(65); // (80*0.4 + 60*0.35 + 40*0.25) = 65
 });
@@ -215,23 +221,23 @@ it('should calculate lead score from component scores', () => {
 ### 3.2 Given-When-Then (BDD Style)
 
 ```typescript
-describe('ApprovalService', () => {
-  describe('decide', () => {
-    it('should transition task to approved state', async () => {
+describe("ApprovalService", () => {
+  describe("decide", () => {
+    it("should transition task to approved state", async () => {
       // GIVEN a pending approval task
       const task = await createPendingTask();
-      
+
       // WHEN the task is approved
       await approvalService.decide(task.id, {
-        decision: 'approved',
-        reason: 'Data verified',
-        decidedBy: 'user-123',
+        decision: "approved",
+        reason: "Data verified",
+        decidedBy: "user-123",
       });
-      
+
       // THEN the task status should be approved
       const updated = await getTask(task.id);
-      expect(updated.status).toBe('approved');
-      expect(updated.decidedBy).toBe('user-123');
+      expect(updated.status).toBe("approved");
+      expect(updated.decidedBy).toBe("user-123");
     });
   });
 });
@@ -240,32 +246,32 @@ describe('ApprovalService', () => {
 ### 3.3 Setup și Teardown
 
 ```typescript
-describe('CompaniesAPI', () => {
+describe("CompaniesAPI", () => {
   let app: FastifyInstance;
   let db: TestDatabase;
-  
+
   // Suite-level setup
   beforeAll(async () => {
     db = await createTestDatabase();
     app = await createTestApp({ db });
   });
-  
+
   // Suite-level teardown
   afterAll(async () => {
     await app.close();
     await db.cleanup();
   });
-  
+
   // Test-level - transaction isolation
   beforeEach(async () => {
     await db.execute(sql`BEGIN`);
   });
-  
+
   afterEach(async () => {
     await db.execute(sql`ROLLBACK`);
   });
-  
-  it('...', () => {});
+
+  it("...", () => {});
 });
 ```
 
@@ -273,33 +279,34 @@ describe('CompaniesAPI', () => {
 
 ```typescript
 // ✅ Bine structurat - organizat pe metodă/feature
-describe('UserService', () => {
-  describe('create', () => {
-    describe('with valid data', () => {
-      it('should create user', () => {});
-      it('should hash password', () => {});
-      it('should send welcome email', () => {});
+describe("UserService", () => {
+  describe("create", () => {
+    describe("with valid data", () => {
+      it("should create user", () => {});
+      it("should hash password", () => {});
+      it("should send welcome email", () => {});
     });
-    
-    describe('with invalid data', () => {
-      it('should throw on duplicate email', () => {});
-      it('should throw on invalid password', () => {});
+
+    describe("with invalid data", () => {
+      it("should throw on duplicate email", () => {});
+      it("should throw on invalid password", () => {});
     });
   });
-  
-  describe('delete', () => {
-    it('should soft delete user', () => {});
-    it('should anonymize GDPR data', () => {});
+
+  describe("delete", () => {
+    it("should soft delete user", () => {});
+    it("should anonymize GDPR data", () => {});
   });
 });
 
 // ❌ Over-nesting - max 3 levels recomandat
-describe('Service', () => {
-  describe('method', () => {
-    describe('scenario', () => {
-      describe('sub-scenario', () => {
-        describe('edge case', () => { // Prea adânc
-          it('...', () => {});
+describe("Service", () => {
+  describe("method", () => {
+    describe("scenario", () => {
+      describe("sub-scenario", () => {
+        describe("edge case", () => {
+          // Prea adânc
+          it("...", () => {});
         });
       });
     });
@@ -315,9 +322,9 @@ describe('Service', () => {
 
 ```typescript
 // Equality
-expect(result).toBe(expected);           // Strict equality (===)
-expect(result).toEqual(expected);        // Deep equality
-expect(result).toStrictEqual(expected);  // Deep + undefined properties
+expect(result).toBe(expected); // Strict equality (===)
+expect(result).toEqual(expected); // Deep equality
+expect(result).toStrictEqual(expected); // Deep + undefined properties
 
 // Truthiness
 expect(value).toBeTruthy();
@@ -332,7 +339,7 @@ expect(num).toBeLessThanOrEqual(10);
 expect(float).toBeCloseTo(0.3, 5);
 
 // Strings
-expect(str).toContain('substring');
+expect(str).toContain("substring");
 expect(str).toMatch(/regex/);
 expect(str).toHaveLength(10);
 
@@ -342,14 +349,14 @@ expect(arr).toHaveLength(3);
 expect(arr).toContainEqual({ id: 1 });
 
 // Objects
-expect(obj).toHaveProperty('key');
-expect(obj).toHaveProperty('nested.key', value);
-expect(obj).toMatchObject({ partial: 'match' });
+expect(obj).toHaveProperty("key");
+expect(obj).toHaveProperty("nested.key", value);
+expect(obj).toMatchObject({ partial: "match" });
 
 // Functions
 expect(fn).toThrow();
 expect(fn).toThrow(ErrorClass);
-expect(fn).toThrow('error message');
+expect(fn).toThrow("error message");
 expect(fn).toHaveBeenCalled();
 expect(fn).toHaveBeenCalledWith(arg1, arg2);
 expect(fn).toHaveBeenCalledTimes(2);
@@ -377,10 +384,10 @@ expect.extend({
     return {
       pass,
       message: () =>
-        `expected ${received} ${pass ? 'not ' : ''}to be a valid CUI`,
+        `expected ${received} ${pass ? "not " : ""}to be a valid CUI`,
     };
   },
-  
+
   toBeWithinRange(received, floor, ceiling) {
     const pass = received >= floor && received <= ceiling;
     return {
@@ -392,7 +399,7 @@ expect.extend({
 });
 
 // Usage
-expect('12345678').toBeValidCUI();
+expect("12345678").toBeValidCUI();
 expect(score).toBeWithinRange(0, 100);
 ```
 
@@ -403,38 +410,38 @@ expect(score).toBeWithinRange(0, 100);
 ### 5.1 Function Mocks
 
 ```typescript
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { vi, describe, it, expect, beforeEach } from "vitest";
 
 // Mock creation
 const mockFn = vi.fn();
-const mockFnWithReturn = vi.fn().mockReturnValue('result');
-const mockFnAsync = vi.fn().mockResolvedValue('async result');
+const mockFnWithReturn = vi.fn().mockReturnValue("result");
+const mockFnAsync = vi.fn().mockResolvedValue("async result");
 
 // Mock implementation
 mockFn.mockImplementation((arg) => arg * 2);
 
 // Mock once
-mockFn.mockReturnValueOnce('first call');
-mockFn.mockReturnValueOnce('second call');
+mockFn.mockReturnValueOnce("first call");
+mockFn.mockReturnValueOnce("second call");
 
 // Assertions
 expect(mockFn).toHaveBeenCalled();
-expect(mockFn).toHaveBeenCalledWith('arg');
+expect(mockFn).toHaveBeenCalledWith("arg");
 expect(mockFn).toHaveBeenCalledTimes(2);
-expect(mockFn.mock.calls[0][0]).toBe('first arg');
+expect(mockFn.mock.calls[0][0]).toBe("first arg");
 ```
 
 ### 5.2 Module Mocks
 
 ```typescript
 // Mock entire module
-vi.mock('@/services/email', () => ({
+vi.mock("@/services/email", () => ({
   sendEmail: vi.fn().mockResolvedValue({ success: true }),
   verifyEmail: vi.fn().mockResolvedValue(true),
 }));
 
 // Mock with factory
-vi.mock('@/lib/database', () => {
+vi.mock("@/lib/database", () => {
   return {
     db: {
       query: vi.fn(),
@@ -445,7 +452,7 @@ vi.mock('@/lib/database', () => {
 });
 
 // Partial mock
-vi.mock('@/utils', async (importOriginal) => {
+vi.mock("@/utils", async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...actual,
@@ -457,24 +464,24 @@ vi.mock('@/utils', async (importOriginal) => {
 ### 5.3 Spy Pattern
 
 ```typescript
-import * as utils from '@/utils';
+import * as utils from "@/utils";
 
-describe('with spy', () => {
-  it('should call original function but track calls', () => {
-    const spy = vi.spyOn(utils, 'formatDate');
-    
+describe("with spy", () => {
+  it("should call original function but track calls", () => {
+    const spy = vi.spyOn(utils, "formatDate");
+
     const result = formatDate(new Date());
-    
+
     expect(spy).toHaveBeenCalled();
-    expect(result).toBe('2026-01-20'); // Real return value
+    expect(result).toBe("2026-01-20"); // Real return value
   });
-  
-  it('can override return value while spying', () => {
-    vi.spyOn(utils, 'formatDate').mockReturnValue('mocked date');
-    
+
+  it("can override return value while spying", () => {
+    vi.spyOn(utils, "formatDate").mockReturnValue("mocked date");
+
     const result = formatDate(new Date());
-    
-    expect(result).toBe('mocked date');
+
+    expect(result).toBe("mocked date");
   });
 });
 ```
@@ -483,30 +490,35 @@ describe('with spy', () => {
 
 ```typescript
 // tests/mocks/anaf.ts
-import { http, HttpResponse } from 'msw';
+import { http, HttpResponse } from "msw";
 
 export const anafHandlers = [
-  http.post('https://webservicesp.anaf.ro/api/v2/stare_tva', async ({ request }) => {
-    const body = await request.json();
-    const cui = body[0]?.cui;
-    
-    if (cui === '12345678') {
-      return HttpResponse.json({
-        found: [{
-          date_generale: {
-            cui: cui,
-            denumire: 'Test Company SRL',
-            adresa: 'Str. Test 123, București',
-          },
-          inregistrare_scop_tva: {
-            scpTVA: true,
-          },
-        }],
-      });
-    }
-    
-    return HttpResponse.json({ found: [], notfound: [cui] });
-  }),
+  http.post(
+    "https://webservicesp.anaf.ro/api/v2/stare_tva",
+    async ({ request }) => {
+      const body = await request.json();
+      const cui = body[0]?.cui;
+
+      if (cui === "12345678") {
+        return HttpResponse.json({
+          found: [
+            {
+              date_generale: {
+                cui: cui,
+                denumire: "Test Company SRL",
+                adresa: "Str. Test 123, București",
+              },
+              inregistrare_scop_tva: {
+                scpTVA: true,
+              },
+            },
+          ],
+        });
+      }
+
+      return HttpResponse.json({ found: [], notfound: [cui] });
+    },
+  ),
 ];
 ```
 
@@ -518,27 +530,28 @@ export const anafHandlers = [
 
 ```typescript
 // ✅ CORECT - async/await
-it('should fetch company data', async () => {
-  const company = await companyService.findById('123');
+it("should fetch company data", async () => {
+  const company = await companyService.findById("123");
   expect(company).toBeDefined();
 });
 
 // ✅ CORECT - expect.resolves
-it('should resolve with data', async () => {
-  await expect(companyService.findById('123')).resolves.toMatchObject({
-    id: '123',
+it("should resolve with data", async () => {
+  await expect(companyService.findById("123")).resolves.toMatchObject({
+    id: "123",
   });
 });
 
 // ✅ CORECT - expect.rejects
-it('should reject with error', async () => {
-  await expect(companyService.findById('invalid'))
-    .rejects.toThrow(NotFoundError);
+it("should reject with error", async () => {
+  await expect(companyService.findById("invalid")).rejects.toThrow(
+    NotFoundError,
+  );
 });
 
 // ❌ GREȘIT - Missing await
-it('should fetch company data', () => {
-  expect(companyService.findById('123')).resolves.toBeDefined();
+it("should fetch company data", () => {
+  expect(companyService.findById("123")).resolves.toBeDefined();
   // Test passes immediately before promise resolves!
 });
 ```
@@ -546,10 +559,10 @@ it('should fetch company data', () => {
 ### 6.2 Timeouts
 
 ```typescript
-it('should complete long operation', async () => {
+it("should complete long operation", async () => {
   // Override timeout for slow test
   vi.setConfig({ testTimeout: 30000 });
-  
+
   const result = await longRunningOperation();
   expect(result).toBeDefined();
 }, 30000); // Also via third argument
@@ -558,25 +571,25 @@ it('should complete long operation', async () => {
 ### 6.3 Polling și Retries
 
 ```typescript
-import { waitFor } from '@testing-library/dom';
+import { waitFor } from "@testing-library/dom";
 
-it('should eventually update status', async () => {
+it("should eventually update status", async () => {
   await triggerStatusUpdate();
-  
+
   // Poll until condition is met
   await waitFor(
     async () => {
       const status = await getStatus();
-      expect(status).toBe('completed');
+      expect(status).toBe("completed");
     },
-    { timeout: 5000, interval: 100 }
+    { timeout: 5000, interval: 100 },
   );
 });
 
 // Custom retry utility
 async function retry<T>(
   fn: () => Promise<T>,
-  options: { retries: number; delay: number }
+  options: { retries: number; delay: number },
 ): Promise<T> {
   for (let i = 0; i < options.retries; i++) {
     try {
@@ -586,7 +599,7 @@ async function retry<T>(
       await sleep(options.delay);
     }
   }
-  throw new Error('Retry exhausted');
+  throw new Error("Retry exhausted");
 }
 ```
 
@@ -598,7 +611,7 @@ async function retry<T>(
 
 ```typescript
 // tests/fixtures/factories.ts
-import { faker } from '@faker-js/faker';
+import { faker } from "@faker-js/faker";
 
 export function createCompany(overrides: Partial<Company> = {}): Company {
   return {
@@ -607,10 +620,10 @@ export function createCompany(overrides: Partial<Company> = {}): Company {
     cui: faker.string.numeric(8),
     denumire: faker.company.name(),
     platitorTva: faker.datatype.boolean(),
-    codCaenPrincipal: faker.helpers.arrayElement(['0111', '0112', '0113']),
-    judet: faker.helpers.arrayElement(['București', 'Cluj', 'Timiș']),
+    codCaenPrincipal: faker.helpers.arrayElement(["0111", "0112", "0113"]),
+    judet: faker.helpers.arrayElement(["București", "Cluj", "Timiș"]),
     leadScore: faker.number.int({ min: 0, max: 100 }),
-    currentState: faker.helpers.arrayElement(['COLD', 'WARM', 'HOT']),
+    currentState: faker.helpers.arrayElement(["COLD", "WARM", "HOT"]),
     createdAt: faker.date.past(),
     updatedAt: faker.date.recent(),
     ...overrides,
@@ -637,7 +650,7 @@ export async function seedFullDataset(db: Database) {
   const users = await seedUsers(db, tenant.id, 5);
   const companies = await seedCompanies(db, tenant.id, 100);
   const contacts = await seedContacts(db, companies, 3);
-  
+
   return { tenant, users, companies, contacts };
 }
 ```
@@ -645,22 +658,22 @@ export async function seedFullDataset(db: Database) {
 ### 7.3 Isolation
 
 ```typescript
-describe('Database Tests', () => {
+describe("Database Tests", () => {
   // Transaction rollback pattern
   beforeEach(async () => {
     await db.execute(sql`BEGIN`);
   });
-  
+
   afterEach(async () => {
     await db.execute(sql`ROLLBACK`);
   });
-  
-  it('should not persist changes', async () => {
+
+  it("should not persist changes", async () => {
     await db.insert(companies).values(createCompany());
-    
+
     const count = await db.select({ count: sql`count(*)` }).from(companies);
-    expect(count[0].count).toBe('1');
-    
+    expect(count[0].count).toBe("1");
+
     // ROLLBACK în afterEach - datele se resetează
   });
 });
@@ -676,18 +689,18 @@ describe('Database Tests', () => {
 // ❌ GREȘIT - testele depind unul de celălalt
 let createdId: string;
 
-it('should create company', async () => {
+it("should create company", async () => {
   const response = await createCompany(data);
   createdId = response.id; // Stored for next test
 });
 
-it('should get created company', async () => {
+it("should get created company", async () => {
   const company = await getCompany(createdId); // Depends on previous test
   expect(company).toBeDefined();
 });
 
 // ✅ CORECT - fiecare test este independent
-it('should create and get company', async () => {
+it("should create and get company", async () => {
   const created = await createCompany(data);
   const fetched = await getCompany(created.id);
   expect(fetched).toEqual(created);
@@ -698,20 +711,19 @@ it('should create and get company', async () => {
 
 ```typescript
 // ❌ GREȘIT - sleep arbitrar
-it('should update status', async () => {
+it("should update status", async () => {
   await triggerJob();
   await sleep(5000); // Arbitrary wait
   const status = await getStatus();
-  expect(status).toBe('completed');
+  expect(status).toBe("completed");
 });
 
 // ✅ CORECT - polling with timeout
-it('should update status', async () => {
+it("should update status", async () => {
   await triggerJob();
-  await waitFor(
-    () => expect(getStatus()).resolves.toBe('completed'),
-    { timeout: 10000 }
-  );
+  await waitFor(() => expect(getStatus()).resolves.toBe("completed"), {
+    timeout: 10000,
+  });
 });
 ```
 
@@ -719,20 +731,20 @@ it('should update status', async () => {
 
 ```typescript
 // ❌ GREȘIT - testează detalii de implementare
-it('should call repository', async () => {
-  const spy = vi.spyOn(repository, 'findById');
-  
-  await service.getCompany('123');
-  
+it("should call repository", async () => {
+  const spy = vi.spyOn(repository, "findById");
+
+  await service.getCompany("123");
+
   expect(spy).toHaveBeenCalled(); // Coupling to implementation
 });
 
 // ✅ CORECT - testează comportament
-it('should return company data', async () => {
-  const result = await service.getCompany('123');
-  
+it("should return company data", async () => {
+  const result = await service.getCompany("123");
+
   expect(result).toMatchObject({
-    id: '123',
+    id: "123",
     denumire: expect.any(String),
   });
 });
@@ -742,15 +754,15 @@ it('should return company data', async () => {
 
 ```typescript
 // ❌ GREȘIT - assert prea vag
-it('should return data', async () => {
+it("should return data", async () => {
   const result = await service.getCompanies();
   expect(result).toBeTruthy(); // Nu spune nimic util
 });
 
 // ✅ CORECT - assert specific
-it('should return paginated companies', async () => {
+it("should return paginated companies", async () => {
   const result = await service.getCompanies({ page: 1, limit: 10 });
-  
+
   expect(result).toMatchObject({
     data: expect.arrayContaining([
       expect.objectContaining({ id: expect.any(String) }),
@@ -768,23 +780,23 @@ it('should return paginated companies', async () => {
 
 ```typescript
 // ❌ GREȘIT - un singur test face prea mult
-it('should handle everything', async () => {
+it("should handle everything", async () => {
   const created = await createCompany(data);
   expect(created.id).toBeDefined();
-  
+
   const updated = await updateCompany(created.id, newData);
   expect(updated.name).toBe(newData.name);
-  
+
   await deleteCompany(created.id);
   const deleted = await getCompany(created.id);
   expect(deleted).toBeNull();
 });
 
 // ✅ CORECT - teste separate pentru fiecare comportament
-describe('CompanyService', () => {
-  it('should create company', async () => {});
-  it('should update company', async () => {});
-  it('should delete company', async () => {});
+describe("CompanyService", () => {
+  it("should create company", async () => {});
+  it("should update company", async () => {});
+  it("should delete company", async () => {});
 });
 ```
 

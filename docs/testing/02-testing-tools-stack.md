@@ -35,58 +35,53 @@ pnpm add -D vitest @vitest/coverage-v8 @vitest/ui
 
 ```typescript
 // vitest.config.ts
-import { defineConfig } from 'vitest/config';
-import { resolve } from 'path';
+import { defineConfig } from "vitest/config";
+import { resolve } from "path";
 
 export default defineConfig({
   test: {
     globals: true,
-    environment: 'node',
-    include: ['**/*.{test,spec}.{ts,tsx}'],
-    exclude: ['node_modules', 'dist', 'e2e'],
-    
+    environment: "node",
+    include: ["**/*.{test,spec}.{ts,tsx}"],
+    exclude: ["node_modules", "dist", "e2e"],
+
     // Parallel execution
-    pool: 'threads',
+    pool: "threads",
     poolOptions: {
       threads: { singleThread: false },
     },
-    
+
     // Timeouts
     testTimeout: 10000,
     hookTimeout: 30000,
-    
+
     // Coverage
     coverage: {
-      provider: 'v8',
-      reporter: ['text', 'json', 'html', 'lcov'],
-      reportsDirectory: './coverage',
+      provider: "v8",
+      reporter: ["text", "json", "html", "lcov"],
+      reportsDirectory: "./coverage",
       thresholds: {
         lines: 80,
         functions: 80,
         branches: 75,
         statements: 80,
       },
-      include: ['src/**/*.ts'],
-      exclude: [
-        '**/*.d.ts',
-        '**/*.test.ts',
-        '**/fixtures/**',
-        '**/mocks/**',
-      ],
+      include: ["src/**/*.ts"],
+      exclude: ["**/*.d.ts", "**/*.test.ts", "**/fixtures/**", "**/mocks/**"],
     },
-    
+
     // Setup files
-    setupFiles: ['./tests/setup.ts'],
-    
+    setupFiles: ["./tests/setup.ts"],
+
     // Reporters
-    reporters: ['default', 'json'],
-    outputFile: './test-results.json',
+    reporters: ["default", "json"],
+    outputFile: "./test-results.json",
   },
-  
+
   resolve: {
     alias: {
-      '@': resolve(__dirname, './src'),
-      '@test': resolve(__dirname, './tests'),
+      "@": resolve(__dirname, "./src"),
+      "@test": resolve(__dirname, "./tests"),
     },
   },
 });
@@ -112,11 +107,11 @@ export default defineConfig({
 
 ```typescript
 // tests/integration/api.test.ts
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import supertest from 'supertest';
-import { buildApp } from '../../src/app';
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import supertest from "supertest";
+import { buildApp } from "../../src/app";
 
-describe('API Integration', () => {
+describe("API Integration", () => {
   let request: supertest.SuperTest<supertest.Test>;
 
   beforeAll(async () => {
@@ -125,11 +120,11 @@ describe('API Integration', () => {
     request = supertest(app.server);
   });
 
-  it('GET /health returns 200', async () => {
-    const response = await request.get('/health');
+  it("GET /health returns 200", async () => {
+    const response = await request.get("/health");
     expect(response.status).toBe(200);
     expect(response.body).toEqual({
-      status: 'healthy',
+      status: "healthy",
       version: expect.any(String),
     });
   });
@@ -153,54 +148,54 @@ npx playwright install
 
 ```typescript
 // playwright.config.ts
-import { defineConfig, devices } from '@playwright/test';
+import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
-  testDir: './tests/e2e',
+  testDir: "./tests/e2e",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 4 : undefined,
-  
+
   reporter: [
-    ['html', { outputFolder: 'playwright-report' }],
-    ['json', { outputFile: 'test-results/e2e-results.json' }],
-    ['junit', { outputFile: 'test-results/e2e-junit.xml' }],
+    ["html", { outputFolder: "playwright-report" }],
+    ["json", { outputFile: "test-results/e2e-results.json" }],
+    ["junit", { outputFile: "test-results/e2e-junit.xml" }],
   ],
-  
+
   use: {
-    baseURL: process.env.BASE_URL || 'http://localhost:64010',
-    trace: 'on-first-retry',
-    screenshot: 'only-on-failure',
-    video: 'retain-on-failure',
-    
+    baseURL: process.env.BASE_URL || "http://localhost:64010",
+    trace: "on-first-retry",
+    screenshot: "only-on-failure",
+    video: "retain-on-failure",
+
     // Timeouts
     actionTimeout: 10000,
     navigationTimeout: 30000,
   },
-  
+
   projects: [
     {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      name: "chromium",
+      use: { ...devices["Desktop Chrome"] },
     },
     {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
+      name: "firefox",
+      use: { ...devices["Desktop Firefox"] },
     },
     {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
+      name: "webkit",
+      use: { ...devices["Desktop Safari"] },
     },
     {
-      name: 'mobile-chrome',
-      use: { ...devices['Pixel 5'] },
+      name: "mobile-chrome",
+      use: { ...devices["Pixel 5"] },
     },
   ],
-  
+
   webServer: {
-    command: 'pnpm run dev',
-    url: 'http://localhost:64010',
+    command: "pnpm run dev",
+    url: "http://localhost:64010",
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
   },
@@ -211,7 +206,7 @@ export default defineConfig({
 
 ```typescript
 // tests/e2e/pages/LoginPage.ts
-import { Page, Locator } from '@playwright/test';
+import { Page, Locator } from "@playwright/test";
 
 export class LoginPage {
   readonly page: Page;
@@ -222,14 +217,14 @@ export class LoginPage {
 
   constructor(page: Page) {
     this.page = page;
-    this.emailInput = page.getByTestId('email-input');
-    this.passwordInput = page.getByTestId('password-input');
-    this.submitButton = page.getByTestId('submit-button');
-    this.errorMessage = page.getByTestId('error-message');
+    this.emailInput = page.getByTestId("email-input");
+    this.passwordInput = page.getByTestId("password-input");
+    this.submitButton = page.getByTestId("submit-button");
+    this.errorMessage = page.getByTestId("error-message");
   }
 
   async goto() {
-    await this.page.goto('/login');
+    await this.page.goto("/login");
   }
 
   async login(email: string, password: string) {
@@ -262,81 +257,81 @@ sudo apt install k6  # Ubuntu
 
 ```javascript
 // tests/performance/scenarios.js
-import http from 'k6/http';
-import { check, sleep, group } from 'k6';
-import { Rate, Counter, Trend } from 'k6/metrics';
+import http from "k6/http";
+import { check, sleep, group } from "k6";
+import { Rate, Counter, Trend } from "k6/metrics";
 
 // Custom metrics
-const errorRate = new Rate('errors');
-const requestCount = new Counter('requests');
-const latencyTrend = new Trend('latency');
+const errorRate = new Rate("errors");
+const requestCount = new Counter("requests");
+const latencyTrend = new Trend("latency");
 
 export const options = {
   scenarios: {
     // Smoke test - sanity check
     smoke: {
-      executor: 'constant-vus',
+      executor: "constant-vus",
       vus: 5,
-      duration: '1m',
+      duration: "1m",
     },
     // Load test - normal traffic
     load: {
-      executor: 'ramping-vus',
+      executor: "ramping-vus",
       startVUs: 0,
       stages: [
-        { duration: '2m', target: 100 },
-        { duration: '5m', target: 100 },
-        { duration: '2m', target: 0 },
+        { duration: "2m", target: 100 },
+        { duration: "5m", target: 100 },
+        { duration: "2m", target: 0 },
       ],
     },
     // Stress test - breaking point
     stress: {
-      executor: 'ramping-vus',
+      executor: "ramping-vus",
       startVUs: 0,
       stages: [
-        { duration: '2m', target: 100 },
-        { duration: '5m', target: 500 },
-        { duration: '5m', target: 1000 },
-        { duration: '2m', target: 0 },
+        { duration: "2m", target: 100 },
+        { duration: "5m", target: 500 },
+        { duration: "5m", target: 1000 },
+        { duration: "2m", target: 0 },
       ],
     },
     // Spike test - sudden burst
     spike: {
-      executor: 'ramping-vus',
+      executor: "ramping-vus",
       startVUs: 0,
       stages: [
-        { duration: '10s', target: 100 },
-        { duration: '1m', target: 1000 },
-        { duration: '10s', target: 0 },
+        { duration: "10s", target: 100 },
+        { duration: "1m", target: 1000 },
+        { duration: "10s", target: 0 },
       ],
     },
   },
-  
+
   thresholds: {
-    http_req_duration: ['p(95)<200', 'p(99)<500'],
-    http_req_failed: ['rate<0.01'],
-    errors: ['rate<0.05'],
+    http_req_duration: ["p(95)<200", "p(99)<500"],
+    http_req_failed: ["rate<0.01"],
+    errors: ["rate<0.05"],
   },
 };
 
 export default function () {
-  group('API Companies', () => {
+  group("API Companies", () => {
     const res = http.get(`${__ENV.API_URL}/api/v1/companies`, {
       headers: { Authorization: `Bearer ${__ENV.TOKEN}` },
     });
-    
+
     requestCount.add(1);
     latencyTrend.add(res.timings.duration);
-    
+
     const success = check(res, {
-      'status is 200': (r) => r.status === 200,
-      'response time < 200ms': (r) => r.timings.duration < 200,
-      'has data': (r) => r.json().data !== undefined,
+      "status is 200": (r) => r.status === 200,
+      "response time < 200ms": (r) => r.timings.duration < 200,
+      "has data": (r) => r.json().data !== undefined,
     });
-    
+
     errorRate.add(!success);
   });
-  
+
   sleep(0.1 + Math.random() * 0.2);
 }
 ```
@@ -370,42 +365,40 @@ pnpm add -D @pact-foundation/pact
 
 ```typescript
 // tests/contract/consumer/companies.pact.ts
-import { PactV4, MatchersV3 } from '@pact-foundation/pact';
+import { PactV4, MatchersV3 } from "@pact-foundation/pact";
 
 const provider = new PactV4({
-  consumer: 'WebAdminApp',
-  provider: 'CompaniesService',
-  dir: './pacts',
+  consumer: "WebAdminApp",
+  provider: "CompaniesService",
+  dir: "./pacts",
 });
 
-describe('Companies API Contract - Consumer', () => {
-  it('fetches a company by ID', async () => {
+describe("Companies API Contract - Consumer", () => {
+  it("fetches a company by ID", async () => {
     await provider
       .addInteraction()
-      .given('a company with ID abc-123 exists')
-      .uponReceiving('a request for company abc-123')
-      .withRequest('GET', '/api/v1/companies/abc-123', (builder) => {
-        builder.headers({ Authorization: MatchersV3.like('Bearer token') });
+      .given("a company with ID abc-123 exists")
+      .uponReceiving("a request for company abc-123")
+      .withRequest("GET", "/api/v1/companies/abc-123", (builder) => {
+        builder.headers({ Authorization: MatchersV3.like("Bearer token") });
       })
       .willRespondWith(200, (builder) => {
-        builder
-          .headers({ 'Content-Type': 'application/json' })
-          .jsonBody({
-            id: MatchersV3.uuid(),
-            cui: MatchersV3.string('12345678'),
-            denumire: MatchersV3.string('Test SRL'),
-            createdAt: MatchersV3.datetime("yyyy-MM-dd'T'HH:mm:ss.SSSXXX"),
-          });
+        builder.headers({ "Content-Type": "application/json" }).jsonBody({
+          id: MatchersV3.uuid(),
+          cui: MatchersV3.string("12345678"),
+          denumire: MatchersV3.string("Test SRL"),
+          createdAt: MatchersV3.datetime("yyyy-MM-dd'T'HH:mm:ss.SSSXXX"),
+        });
       })
       .executeTest(async (mockServer) => {
         const response = await fetch(
           `${mockServer.url}/api/v1/companies/abc-123`,
-          { headers: { Authorization: 'Bearer test' } }
+          { headers: { Authorization: "Bearer test" } },
         );
         expect(response.status).toBe(200);
         const data = await response.json();
-        expect(data).toHaveProperty('id');
-        expect(data).toHaveProperty('cui');
+        expect(data).toHaveProperty("id");
+        expect(data).toHaveProperty("cui");
       });
   });
 });
@@ -415,16 +408,16 @@ describe('Companies API Contract - Consumer', () => {
 
 ```typescript
 // tests/contract/provider/verify.ts
-import { Verifier } from '@pact-foundation/pact';
+import { Verifier } from "@pact-foundation/pact";
 
-describe('Provider Verification', () => {
-  it('validates contracts with consumers', async () => {
+describe("Provider Verification", () => {
+  it("validates contracts with consumers", async () => {
     await new Verifier({
-      providerBaseUrl: 'http://localhost:64000',
-      pactUrls: ['./pacts/WebAdminApp-CompaniesService.json'],
+      providerBaseUrl: "http://localhost:64000",
+      pactUrls: ["./pacts/WebAdminApp-CompaniesService.json"],
       stateHandlers: {
-        'a company with ID abc-123 exists': async () => {
-          await seedCompany({ id: 'abc-123' });
+        "a company with ID abc-123 exists": async () => {
+          await seedCompany({ id: "abc-123" });
         },
       },
     }).verifyProvider();
@@ -448,7 +441,7 @@ docker pull gaiaadm/pumba:latest
 
 ```yaml
 # docker-compose.chaos.yml
-version: '3.8'
+version: "3.8"
 
 services:
   # Kill random container every 5 min
@@ -495,36 +488,40 @@ services:
 
 ```typescript
 // tests/chaos/redis-failure.test.ts
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { exec } from "child_process";
+import { promisify } from "util";
 
 const execAsync = promisify(exec);
 
-describe('Redis Failure Resilience', () => {
-  it('should handle Redis temporary failure', async () => {
-    // Kill Redis
-    await execAsync('docker kill cerniq-redis');
-    
+describe("Redis Failure Resilience", () => {
+  it("should handle Redis temporary failure", async () => {
+    // Simulate temporary Redis unavailability on shared gateway
+    await execAsync(
+      "bash -lc 'redis-cli -h 10.0.1.10 -p 6379 --user cerniq -a \"$REDIS_PASSWORD\" PING'",
+    );
+
     // Wait 5 seconds
     await sleep(5000);
-    
+
     // API should return 503 but not crash
-    const response = await fetch('http://localhost:64000/health');
+    const response = await fetch("http://localhost:64000/health");
     expect(response.status).toBe(503);
     expect(await response.json()).toMatchObject({
-      status: 'degraded',
-      redis: 'unhealthy',
+      status: "degraded",
+      redis: "unhealthy",
     });
-    
-    // Restart Redis
-    await execAsync('docker start cerniq-redis');
-    
+
+    // Verify Redis connectivity returns after disruption
+    await execAsync(
+      "bash -lc 'redis-cli -h 10.0.1.10 -p 6379 --user cerniq -a \"$REDIS_PASSWORD\" PING'",
+    );
+
     // Wait for reconnection
     await sleep(10000);
-    
+
     // API should recover
-    const recoveredResponse = await fetch('http://localhost:64000/health');
+    const recoveredResponse = await fetch("http://localhost:64000/health");
     expect(recoveredResponse.status).toBe(200);
   }, 60000);
 });
@@ -566,19 +563,19 @@ docker run -v $(pwd):/zap/wrk:rw owasp/zap2docker-stable zap-full-scan.py \
 
 ```javascript
 // eslint.config.js
-import security from 'eslint-plugin-security';
+import security from "eslint-plugin-security";
 
 export default [
   {
     plugins: { security },
     rules: {
-      'security/detect-object-injection': 'warn',
-      'security/detect-non-literal-regexp': 'warn',
-      'security/detect-unsafe-regex': 'error',
-      'security/detect-buffer-noassert': 'error',
-      'security/detect-eval-with-expression': 'error',
-      'security/detect-no-csrf-before-method-override': 'error',
-      'security/detect-possible-timing-attacks': 'warn',
+      "security/detect-object-injection": "warn",
+      "security/detect-non-literal-regexp": "warn",
+      "security/detect-unsafe-regex": "error",
+      "security/detect-buffer-noassert": "error",
+      "security/detect-eval-with-expression": "error",
+      "security/detect-no-csrf-before-method-override": "error",
+      "security/detect-possible-timing-attacks": "warn",
     },
   },
 ];
@@ -602,33 +599,33 @@ SELECT * FROM runtests('tests/db/');
 
 ```typescript
 // packages/test-utils/src/database.ts
-import { drizzle } from 'drizzle-orm/node-postgres';
-import { migrate } from 'drizzle-orm/node-postgres/migrator';
-import { Pool } from 'pg';
-import { v4 as uuid } from 'uuid';
+import { drizzle } from "drizzle-orm/node-postgres";
+import { migrate } from "drizzle-orm/node-postgres/migrator";
+import { Pool } from "pg";
+import { v4 as uuid } from "uuid";
 
 export async function createTestDatabase() {
-  const testDbName = `cerniq_test_${uuid().replace(/-/g, '')}`;
-  
+  const testDbName = `cerniq_test_${uuid().replace(/-/g, "")}`;
+
   // Create database
-  const adminPool = new Pool({ database: 'postgres' });
+  const adminPool = new Pool({ database: "postgres" });
   await adminPool.query(`CREATE DATABASE ${testDbName}`);
   await adminPool.end();
-  
+
   // Connect to test database
   const pool = new Pool({ database: testDbName });
   const db = drizzle(pool);
-  
+
   // Run migrations
-  await migrate(db, { migrationsFolder: './drizzle' });
-  
+  await migrate(db, { migrationsFolder: "./drizzle" });
+
   return {
     db,
     pool,
     name: testDbName,
     cleanup: async () => {
       await pool.end();
-      const admin = new Pool({ database: 'postgres' });
+      const admin = new Pool({ database: "postgres" });
       await admin.query(`DROP DATABASE ${testDbName}`);
       await admin.end();
     },
@@ -644,34 +641,34 @@ export async function createTestDatabase() {
 
 ```typescript
 // tests/mocks/handlers.ts
-import { http, HttpResponse } from 'msw';
+import { http, HttpResponse } from "msw";
 
 export const handlers = [
   // ANAF API mock
-  http.get('https://webservicesp.anaf.ro/api/*', ({ request }) => {
+  http.get("https://webservicesp.anaf.ro/api/*", ({ request }) => {
     const url = new URL(request.url);
-    const cui = url.searchParams.get('cui');
-    
+    const cui = url.searchParams.get("cui");
+
     return HttpResponse.json({
       found: [
         {
           cui: Number(cui),
-          denumire: 'Mock Company SRL',
+          denumire: "Mock Company SRL",
           platitor_tva: true,
         },
       ],
     });
   }),
-  
+
   // OpenAI mock
-  http.post('https://api.openai.com/v1/chat/completions', () => {
+  http.post("https://api.openai.com/v1/chat/completions", () => {
     return HttpResponse.json({
-      id: 'mock-id',
+      id: "mock-id",
       choices: [
         {
           message: {
-            role: 'assistant',
-            content: 'Mock AI response',
+            role: "assistant",
+            content: "Mock AI response",
           },
         },
       ],
@@ -680,8 +677,8 @@ export const handlers = [
 ];
 
 // tests/setup.ts
-import { setupServer } from 'msw/node';
-import { handlers } from './mocks/handlers';
+import { setupServer } from "msw/node";
+import { handlers } from "./mocks/handlers";
 
 export const server = setupServer(...handlers);
 
@@ -694,7 +691,7 @@ afterAll(() => server.close());
 
 ```typescript
 // tests/fixtures/companies.ts
-import { faker } from '@faker-js/faker';
+import { faker } from "@faker-js/faker";
 
 export function createCompanyFixture(overrides = {}) {
   return {
@@ -703,8 +700,8 @@ export function createCompanyFixture(overrides = {}) {
     cui: faker.string.numeric(8),
     denumire: faker.company.name(),
     platitorTva: faker.datatype.boolean(),
-    codCaenPrincipal: faker.helpers.arrayElement(['0111', '0112', '0113']),
-    judet: faker.helpers.arrayElement(['București', 'Cluj', 'Timiș']),
+    codCaenPrincipal: faker.helpers.arrayElement(["0111", "0112", "0113"]),
+    judet: faker.helpers.arrayElement(["București", "Cluj", "Timiș"]),
     createdAt: faker.date.past(),
     updatedAt: faker.date.recent(),
     ...overrides,
@@ -728,7 +725,7 @@ coverage: {
   provider: 'v8',
   reporter: ['text', 'json', 'html', 'lcov', 'cobertura'],
   reportsDirectory: './coverage',
-  
+
   // Thresholds
   thresholds: {
     global: {
@@ -760,7 +757,7 @@ coverage: {
     files: ./coverage/lcov.info
     flags: unittests
     fail_ci_if_error: true
-    
+
 - name: SonarCloud Scan
   uses: SonarSource/sonarcloud-github-action@v2
   env:
@@ -792,7 +789,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: 'pnpm'
+          cache: "pnpm"
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm typecheck
@@ -806,7 +803,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: 'pnpm'
+          cache: "pnpm"
       - run: pnpm install --frozen-lockfile
       - run: pnpm test:coverage
       - uses: codecov/codecov-action@v4
@@ -825,23 +822,23 @@ jobs:
           --health-timeout 5s
           --health-retries 5
         ports:
-          - 64032:64032
+          - 5432:5432
       redis:
         image: redis:8.4-alpine
         ports:
-          - 64039:64039
+          - 6379:6379
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: 'pnpm'
+          cache: "pnpm"
       - run: pnpm install --frozen-lockfile
       - run: pnpm test:integration
         env:
-          DATABASE_URL: postgresql://postgres:test@localhost:64032/test
-          REDIS_URL: redis://localhost:64039
+          DATABASE_URL: postgresql://postgres:test@localhost:5432/test
+          REDIS_URL: redis://localhost:6379
 
   e2e-tests:
     runs-on: ubuntu-latest
@@ -853,7 +850,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: 'pnpm'
+          cache: "pnpm"
       - run: pnpm install --frozen-lockfile
       - run: npx playwright install --with-deps
       - run: pnpm test:e2e
@@ -870,26 +867,26 @@ jobs:
       - name: Run Trivy
         uses: aquasecurity/trivy-action@master
         with:
-          scan-type: 'fs'
-          severity: 'HIGH,CRITICAL'
-          exit-code: '1'
+          scan-type: "fs"
+          severity: "HIGH,CRITICAL"
+          exit-code: "1"
 ```
 
 ---
 
 ## MATRICE VERSIUNI TOOLS
 
-| Tool | Versiune | Scop |
-| ---- | -------- | ---- |
-| Vitest | 3.x | Unit/Integration |
-| Playwright | 1.49.x | E2E |
-| k6 | 0.55.x | Performance |
-| Pact | 14.x | Contract |
-| Pumba | latest | Chaos |
-| Trivy | latest | Security |
-| MSW | 2.x | Mocking |
-| pgTAP | 1.3.x | Database |
-| Faker.js | 9.x | Fixtures |
+| Tool       | Versiune | Scop             |
+| ---------- | -------- | ---------------- |
+| Vitest     | 3.x      | Unit/Integration |
+| Playwright | 1.49.x   | E2E              |
+| k6         | 0.55.x   | Performance      |
+| Pact       | 14.x     | Contract         |
+| Pumba      | latest   | Chaos            |
+| Trivy      | latest   | Security         |
+| MSW        | 2.x      | Mocking          |
+| pgTAP      | 1.3.x    | Database         |
+| Faker.js   | 9.x      | Fixtures         |
 
 ---
 

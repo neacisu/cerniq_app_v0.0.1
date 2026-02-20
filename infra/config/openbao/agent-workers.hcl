@@ -6,8 +6,9 @@
 # Version: 1.0
 # =============================================================================
 
-# PID file for process management
-pid_file = "/openbao/agent.pid"
+# PID file for process management (must be writable in LXC)
+pid_file = "/tmp/openbao-agent.pid"
+log_level = "info"
 
 # =============================================================================
 # Auto-Auth Configuration
@@ -45,7 +46,7 @@ auto_auth {
 # =============================================================================
 
 vault {
-  address = "http://openbao:8200"
+  address = "https://s3cr3ts.neanelu.ro"
   retry {
     num_retries = 5
   }
@@ -62,7 +63,7 @@ template {
   perms       = 0600
   
   # Send HUP signal to Python workers for graceful reload
-  command     = "pkill -HUP python 2>/dev/null || true"
+  command     = "pkill -HUP python3 2>/dev/null || true"
   
   # Error handling
   error_on_missing_key = true
@@ -76,7 +77,7 @@ template {
 
 # Dynamic PostgreSQL Password (direct from database engine)
 template {
-  source      = "/openbao/templates/pg-password.tpl"
+  source      = "/openbao/templates/pg-password-workers.tpl"
   destination = "/secrets/pg_password"
   perms       = 0600
   

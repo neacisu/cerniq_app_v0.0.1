@@ -49,11 +49,11 @@ Implementare **Circuit Breaker Pattern** folosind biblioteca [opossum](https://g
               in half-open
 ```
 
-| State | Behavior |
-| ----- | -------- |
-| **CLOSED** | Normal operation, requests pass through |
-| **OPEN** | All requests fail immediately (fast-fail) |
-| **HALF-OPEN** | Limited requests to test recovery |
+| State         | Behavior                                  |
+| ------------- | ----------------------------------------- |
+| **CLOSED**    | Normal operation, requests pass through   |
+| **OPEN**      | All requests fail immediately (fast-fail) |
+| **HALF-OPEN** | Limited requests to test recovery         |
 
 ---
 
@@ -69,13 +69,13 @@ pnpm add opossum
 
 ```typescript
 // lib/circuit-breaker/factory.ts
-import CircuitBreaker from 'opossum';
+import CircuitBreaker from "opossum";
 
 export interface CircuitBreakerConfig {
   name: string;
-  timeout?: number;        // Time in ms before request is considered failed
+  timeout?: number; // Time in ms before request is considered failed
   errorThresholdPercentage?: number; // % errors to trip circuit
-  resetTimeout?: number;   // Time in ms before trying again (OPEN → HALF-OPEN)
+  resetTimeout?: number; // Time in ms before trying again (OPEN → HALF-OPEN)
   volumeThreshold?: number; // Min requests before calculating error %
 }
 
@@ -88,7 +88,7 @@ const defaultConfig: Partial<CircuitBreakerConfig> = {
 
 export function createCircuitBreaker<T>(
   fn: (...args: any[]) => Promise<T>,
-  config: CircuitBreakerConfig
+  config: CircuitBreakerConfig,
 ): CircuitBreaker<T> {
   const breaker = new CircuitBreaker(fn, {
     ...defaultConfig,
@@ -96,24 +96,24 @@ export function createCircuitBreaker<T>(
   });
 
   // Logging
-  breaker.on('open', () => {
+  breaker.on("open", () => {
     console.warn(`[CircuitBreaker] ${config.name} OPENED`);
   });
-  
-  breaker.on('halfOpen', () => {
+
+  breaker.on("halfOpen", () => {
     console.info(`[CircuitBreaker] ${config.name} HALF-OPEN`);
   });
-  
-  breaker.on('close', () => {
+
+  breaker.on("close", () => {
     console.info(`[CircuitBreaker] ${config.name} CLOSED`);
   });
 
-  // Metrics (pentru SigNoz)
-  breaker.on('success', () => {
+  // Metrics (pentru Prometheus/Grafana)
+  breaker.on("success", () => {
     // Emit metric: circuit_breaker_success_total{name}
   });
-  
-  breaker.on('failure', () => {
+
+  breaker.on("failure", () => {
     // Emit metric: circuit_breaker_failure_total{name}
   });
 
@@ -127,35 +127,35 @@ export function createCircuitBreaker<T>(
 // lib/circuit-breaker/config.ts
 export const circuitBreakerConfigs: Record<string, CircuitBreakerConfig> = {
   // High reliability needed
-  'anaf-api': {
-    name: 'anaf-api',
-    timeout: 30000,            // ANAF poate fi lent
+  "anaf-api": {
+    name: "anaf-api",
+    timeout: 30000, // ANAF poate fi lent
     errorThresholdPercentage: 30,
-    resetTimeout: 60000,       // Wait 1 min before retry
+    resetTimeout: 60000, // Wait 1 min before retry
     volumeThreshold: 5,
   },
-  
+
   // Medium reliability
-  'termene-api': {
-    name: 'termene-api',
+  "termene-api": {
+    name: "termene-api",
     timeout: 15000,
     errorThresholdPercentage: 50,
     resetTimeout: 30000,
     volumeThreshold: 10,
   },
-  
+
   // Critical path
-  'revolut-api': {
-    name: 'revolut-api',
+  "revolut-api": {
+    name: "revolut-api",
     timeout: 10000,
     errorThresholdPercentage: 20, // Trip fast for payments
     resetTimeout: 15000,
     volumeThreshold: 3,
   },
-  
+
   // Non-critical
-  'timelines-api': {
-    name: 'timelines-api',
+  "timelines-api": {
+    name: "timelines-api",
     timeout: 20000,
     errorThresholdPercentage: 60,
     resetTimeout: 45000,
@@ -168,26 +168,26 @@ export const circuitBreakerConfigs: Record<string, CircuitBreakerConfig> = {
 
 ```typescript
 // workers/enrich/anaf-tva.worker.ts
-import { createCircuitBreaker } from '@/lib/circuit-breaker/factory';
-import { circuitBreakerConfigs } from '@/lib/circuit-breaker/config';
-import { anafClient } from '@/lib/clients/anaf';
+import { createCircuitBreaker } from "@/lib/circuit-breaker/factory";
+import { circuitBreakerConfigs } from "@/lib/circuit-breaker/config";
+import { anafClient } from "@/lib/clients/anaf";
 
 const anafBreaker = createCircuitBreaker(
   anafClient.getTvaStatus,
-  circuitBreakerConfigs['anaf-api']
+  circuitBreakerConfigs["anaf-api"],
 );
 
 export async function processAnafTvaJob(job: Job) {
   const { cui } = job.data;
-  
+
   try {
     // Circuit breaker wraps the API call
     const result = await anafBreaker.fire(cui);
     return result;
   } catch (error) {
-    if (error.code === 'EOPENBREAKER') {
+    if (error.code === "EOPENBREAKER") {
       // Circuit is open - fail fast
-      throw new Error('ANAF API temporarily unavailable');
+      throw new Error("ANAF API temporarily unavailable");
     }
     throw error;
   }
@@ -207,7 +207,7 @@ anafBreaker.fallback(async (cui: string) => {
   if (cached) {
     return { ...JSON.parse(cached), fromCache: true };
   }
-  throw new Error('No cached data available');
+  throw new Error("No cached data available");
 });
 ```
 
@@ -218,9 +218,9 @@ termeneBreaker.fallback(async (cui: string) => {
   // Return partial data when full service unavailable
   return {
     cui,
-    status: 'unknown',
+    status: "unknown",
     enrichmentPending: true,
-    message: 'Data will be enriched when service recovers',
+    message: "Data will be enriched when service recovers",
   };
 });
 ```
@@ -230,7 +230,7 @@ termeneBreaker.fallback(async (cui: string) => {
 ```typescript
 oblioBreaker.fallback(async (invoiceData) => {
   // Queue for retry later
-  await retryQueue.add('oblio-retry', invoiceData, {
+  await retryQueue.add("oblio-retry", invoiceData, {
     delay: 300000, // 5 minutes
   });
   return { queued: true, retryAt: Date.now() + 300000 };
@@ -246,35 +246,42 @@ oblioBreaker.fallback(async (invoiceData) => {
 ```typescript
 // Register metrics
 const circuitOpenGauge = new Gauge({
-  name: 'circuit_breaker_open',
-  help: 'Circuit breaker state (1=open, 0=closed)',
-  labelNames: ['name'],
+  name: "circuit_breaker_open",
+  help: "Circuit breaker state (1=open, 0=closed)",
+  labelNames: ["name"],
 });
 
 const circuitFailuresCounter = new Counter({
-  name: 'circuit_breaker_failures_total',
-  help: 'Total circuit breaker failures',
-  labelNames: ['name', 'type'],
+  name: "circuit_breaker_failures_total",
+  help: "Total circuit breaker failures",
+  labelNames: ["name", "type"],
 });
 ```
 
-### 5.2 SigNoz Alerts
+### 5.2 Grafana/Prometheus Alerts
 
 ```yaml
-# signoz-alerts.yaml
-alerts:
-  - name: CircuitBreakerOpen
-    condition: circuit_breaker_open{name="anaf-api"} == 1
-    duration: 5m
-    severity: warning
-    annotations:
-      summary: "ANAF API circuit breaker is open"
-      
-  - name: CircuitBreakerFlapping
-    condition: changes(circuit_breaker_open[10m]) > 5
-    severity: critical
-    annotations:
-      summary: "Circuit breaker is flapping - unstable API"
+# Prometheus alert rules (example)
+groups:
+  - name: cerniq-circuit-breakers
+    rules:
+      - alert: CerniqCircuitBreakerOpen
+        expr: circuit_breaker_open{name="anaf-api"} == 1
+        for: 5m
+        labels:
+          severity: warning
+          project: cerniq
+        annotations:
+          summary: "Circuit breaker deschis pentru ANAF API"
+
+      - alert: CerniqCircuitBreakerFlapping
+        expr: changes(circuit_breaker_open[10m]) > 5
+        for: 0m
+        labels:
+          severity: critical
+          project: cerniq
+        annotations:
+          summary: "Circuit breaker instabil (flapping) - API extern instabil"
 ```
 
 ---
@@ -301,25 +308,27 @@ alerts:
 ## 7. TESTING
 
 ```typescript
-describe('Circuit Breaker', () => {
-  it('should open after threshold failures', async () => {
+describe("Circuit Breaker", () => {
+  it("should open after threshold failures", async () => {
     const breaker = createCircuitBreaker(
-      async () => { throw new Error('API down'); },
-      { ...config, volumeThreshold: 3, errorThresholdPercentage: 50 }
+      async () => {
+        throw new Error("API down");
+      },
+      { ...config, volumeThreshold: 3, errorThresholdPercentage: 50 },
     );
-    
+
     // Fail 3 times
     for (let i = 0; i < 3; i++) {
       await breaker.fire().catch(() => {});
     }
-    
+
     expect(breaker.opened).toBe(true);
   });
-  
-  it('should use fallback when open', async () => {
+
+  it("should use fallback when open", async () => {
     breaker.fallback(() => ({ fallback: true }));
     breaker.open(); // Force open
-    
+
     const result = await breaker.fire();
     expect(result.fallback).toBe(true);
   });

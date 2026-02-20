@@ -31,36 +31,36 @@ Gestionarea secretelor prin Docker secrets și fișiere `.env` prezintă limită
 
 ### Etapa 0 (Foundation) — Sprint 4
 
-| Component | Descriere |
-|-----------|-----------|
-| OpenBao Server | Container standalone în docker-compose |
-| Auto-Unseal | Transit auto-unseal cu recovery keys |
-| KV Secrets Engine | Static secrets (API keys, passwords existente) |
-| AppRole Auth | Autentificare servicii via role_id/secret_id |
-| Policies | Politici granulare per serviciu |
-| Agent Sidecar | Agent pentru injection în containere |
+| Component         | Descriere                                                                     |
+| ----------------- | ----------------------------------------------------------------------------- |
+| OpenBao Server    | Centralizat pe orchestrator, expus prin Traefik: `https://s3cr3ts.neanelu.ro` |
+| Auto-Unseal       | Transit auto-unseal cu recovery keys                                          |
+| KV Secrets Engine | Static secrets (API keys, passwords existente)                                |
+| AppRole Auth      | Autentificare servicii via role_id/secret_id                                  |
+| Policies          | Politici granulare per serviciu                                               |
+| Agent Sidecar     | Agent pentru injection în containere                                          |
 
 ### Etapa 1-2 (Dynamic Secrets)
 
-| Component | Descriere |
-|-----------|-----------|
+| Component       | Descriere                      |
+| --------------- | ------------------------------ |
 | Database Engine | Dynamic PostgreSQL credentials |
-| PKI Engine | Auto-issue TLS certificates |
-| Transit Engine | Encryption for PII data |
-| LDAP/OIDC | SSO integration (dacă necesar) |
+| PKI Engine      | Auto-issue TLS certificates    |
+| Transit Engine  | Encryption for PII data        |
+| LDAP/OIDC       | SSO integration (dacă necesar) |
 
 ### Etapa 3+ (Advanced)
 
-| Component | Descriere |
-|-----------|-----------|
-| Namespaces | Multi-tenant secret isolation |
-| Sentinel Policies | Advanced policy-as-code |
-| Replication | HA with Raft storage |
-| HSM Integration | Hardware security modules |
+| Component         | Descriere                     |
+| ----------------- | ----------------------------- |
+| Namespaces        | Multi-tenant secret isolation |
+| Sentinel Policies | Advanced policy-as-code       |
+| Replication       | HA with Raft storage          |
+| HSM Integration   | Hardware security modules     |
 
 ## Arhitectura
 
-```
+```text
 ┌───────────────────────────────────────────────────────────────────────────┐
 │                         CERNIQ Secrets Architecture                        │
 ├───────────────────────────────────────────────────────────────────────────┤
@@ -107,197 +107,54 @@ Gestionarea secretelor prin Docker secrets și fișiere `.env` prezintă limită
 └───────────────────────────────────────────────────────────────────────────┘
 ```
 
-## Specificații Tehnice
+## Specificatii tehnice (implementare curenta)
 
-### Container OpenBao
+### OpenBao centralizat (orchestrator)
 
-```yaml
-# docker-compose.yml
-services:
-  openbao:
-    image: quay.io/openbao/openbao:2.2.0
-    container_name: cerniq-openbao
-    cap_add:
-      - IPC_LOCK
-    environment:
-      - BAO_ADDR=http://127.0.0.1:8200
-      - BAO_API_ADDR=http://openbao:8200
-      - BAO_CLUSTER_ADDR=https://openbao:8201
-    volumes:
-      - openbao_data:/openbao/data
-      - ./infra/config/openbao:/openbao/config:ro
-    command: server
-    ports:
-      - "127.0.0.1:64200:8200"  # API (localhost only)
-    networks:
-      cerniq_backend:
-        ipv4_address: 172.28.0.50
-    healthcheck:
-      test: ["CMD", "bao", "status", "-format=json"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-    restart: unless-stopped
-```
+- Address: `OPENBAO_ADDR=https://s3cr3ts.neanelu.ro`
+- CT109/CT110 NU ruleaza OpenBao server local; ruleaza doar agenti.
+- Paths KV sunt pe KV v1: `secret/cerniq/...` (fara `secret/data/...`).
+- Dynamic DB creds folosesc mount dedicat pentru Cerniq: `cerniq-db/`.
+- Traficul intern CT109/CT110 catre OpenBao este rutat prin gateway-ul `hz.247` (VIP `10.0.1.10:443`) pentru stabilitate.
 
-### Configurație Server
+### Paths (KV v1) si mount DB (dedicat)
 
-```hcl
-# infra/config/openbao/openbao.hcl
-ui = true
-cluster_name = "cerniq-openbao"
-log_level = "info"
+Exemple KV v1:
 
-storage "raft" {
-  path = "/openbao/data"
-  node_id = "cerniq-openbao-1"
-}
+- `secret/cerniq/api/config`
+- `secret/cerniq/workers/config`
+- `secret/cerniq/shared/external`
+- `secret/cerniq/infra/pgbouncer`
+- `secret/cerniq/ci/test`
 
-listener "tcp" {
-  address = "0.0.0.0:8200"
-  tls_disable = true  # TLS handled by Traefik
-  telemetry {
-    unauthenticated_metrics_access = true
-  }
-}
+Database engine dedicat:
 
-api_addr = "http://openbao:8200"
-cluster_addr = "https://openbao:8201"
+- `cerniq-db/roles/api-dynamic`
+- `cerniq-db/roles/workers-dynamic`
+- `cerniq-db/creds/api-dynamic`
+- `cerniq-db/creds/workers-dynamic`
 
-telemetry {
-  prometheus_retention_time = "30s"
-  disable_hostname = true
-}
-```
+Nota: pentru stabilitate, TTL-urile rolurilor dinamice sunt setate astfel incat sa nu expire prea des (ex: default 12h, max 72h), ca sa evitam erori de tip "no such user" in PgBouncer.
 
-### Policies per Serviciu
+### AppRoles (naming)
 
-```hcl
-# policies/api-policy.hcl
-path "secret/data/cerniq/api/*" {
-  capabilities = ["read"]
-}
+- `auth/approle/role/cerniq-api`
+- `auth/approle/role/cerniq-workers`
+- `auth/approle/role/cerniq-cicd`
+- `auth/approle/role/cerniq-infra`
 
-path "secret/data/cerniq/shared/*" {
-  capabilities = ["read"]
-}
+### Agent template rendering (CT109/CT110)
 
-path "database/creds/api-role" {
-  capabilities = ["read"]
-}
+Agenti randeaza secretele in tmpfs:
 
-path "pki/issue/api" {
-  capabilities = ["create", "update"]
-}
-```
+- `/opt/cerniq/runtime-secrets/api/api.env`
+- `/opt/cerniq/runtime-secrets/workers/workers.env`
+- `/opt/cerniq/runtime-secrets/infra/pgbouncer.ini`
 
-```hcl
-# policies/workers-policy.hcl
-path "secret/data/cerniq/workers/*" {
-  capabilities = ["read"]
-}
+Template-urile folosesc:
 
-path "secret/data/cerniq/shared/*" {
-  capabilities = ["read"]
-}
-
-path "database/creds/workers-role" {
-  capabilities = ["read"]
-}
-
-path "transit/encrypt/pii" {
-  capabilities = ["update"]
-}
-
-path "transit/decrypt/pii" {
-  capabilities = ["update"]
-}
-```
-
-### AppRole Setup
-
-```bash
-#!/bin/bash
-# infra/scripts/openbao-setup-approle.sh
-
-# Enable AppRole auth
-bao auth enable approle
-
-# Create API role
-bao write auth/approle/role/api \
-    token_policies="api-policy" \
-    token_ttl=1h \
-    token_max_ttl=4h \
-    secret_id_ttl=24h \
-    secret_id_num_uses=0
-
-# Create Workers role
-bao write auth/approle/role/workers \
-    token_policies="workers-policy" \
-    token_ttl=1h \
-    token_max_ttl=4h \
-    secret_id_ttl=24h \
-    secret_id_num_uses=0
-
-# Get role_id (store in CI/CD secrets)
-bao read auth/approle/role/api/role-id
-bao read auth/approle/role/workers/role-id
-
-# Generate secret_id (rotate quarterly)
-bao write -f auth/approle/role/api/secret-id
-bao write -f auth/approle/role/workers/secret-id
-```
-
-### Agent Template
-
-```hcl
-# infra/config/openbao/agent-api.hcl
-auto_auth {
-  method "approle" {
-    mount_path = "auth/approle"
-    config = {
-      role_id_file_path = "/openbao/role_id"
-      secret_id_file_path = "/openbao/secret_id"
-      remove_secret_id_file_after_reading = false
-    }
-  }
-
-  sink "file" {
-    config = {
-      path = "/openbao/.token"
-      mode = 0600
-    }
-  }
-}
-
-template {
-  source = "/openbao/templates/env.tpl"
-  destination = "/secrets/.env"
-  perms = 0600
-}
-
-template {
-  source = "/openbao/templates/pg.tpl"
-  destination = "/secrets/pg_password"
-  perms = 0600
-}
-```
-
-### Secret Template
-
-```gotemplate
-{{/* /openbao/templates/env.tpl */}}
-{{- with secret "secret/data/cerniq/api/config" -}}
-DATABASE_URL=postgresql://{{ .Data.data.pg_user }}:{{ .Data.data.pg_password }}@pgbouncer:64033/cerniq
-REDIS_URL=redis://:{{ .Data.data.redis_password }}@redis:64039/0
-JWT_SECRET={{ .Data.data.jwt_secret }}
-{{- end }}
-
-{{- with secret "secret/data/cerniq/shared/external" -}}
-ANAF_CLIENT_SECRET={{ .Data.data.anaf_client_secret }}
-RESEND_API_KEY={{ .Data.data.resend_api_key }}
-{{- end }}
-```
+- KV v1: `secret/cerniq/...`
+- DB creds: `cerniq-db/creds/*-dynamic`
 
 ## Rotație Automată
 
@@ -314,7 +171,7 @@ NEW_JWT_SECRET=$(openssl rand -base64 64)
 
 # Actualizează în OpenBao (versioning automat)
 bao kv put secret/cerniq/api/config \
-    pg_user=cerniq_app \
+    pg_user=c3rn1q \
     pg_password="$NEW_PG_PASS" \
     redis_password="$NEW_REDIS_PASS" \
     jwt_secret="$NEW_JWT_SECRET"
@@ -326,22 +183,18 @@ bao kv put secret/cerniq/api/config \
 ### Dynamic Secrets (Auto-Rotation)
 
 ```bash
-# Configurare Database Engine pentru PostgreSQL
-bao secrets enable database
-
-bao write database/config/postgres \
-    plugin_name=postgresql-database-plugin \
-    connection_url="postgresql://{{username}}:{{password}}@postgres:64032/cerniq?sslmode=disable" \
-    allowed_roles="api-role,workers-role" \
-    username="cerniq_vault" \
-    password="initial_password"
-
-# Roluri cu TTL (auto-expire)
-bao write database/roles/api-role \
-    db_name=postgres \
-    creation_statements="CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}' IN ROLE cerniq_app;" \
-    default_ttl="1h" \
-    max_ttl="24h"
+# Configurare Database Engine pentru PostgreSQL (IMPLEMENTARE CURENTA)
+#
+# - mount dedicat: cerniq-db/
+# - PostgreSQL este extern (CT107), nu postgres in docker-compose
+#
+# Rolurile de credențiale dinamice sunt:
+#   - cerniq-db/roles/api-dynamic
+#   - cerniq-db/roles/workers-dynamic
+#
+# Credențiale sunt citite de agenti din:
+#   - cerniq-db/creds/api-dynamic
+#   - cerniq-db/creds/workers-dynamic
 ```
 
 ## CI/CD Integration
@@ -361,8 +214,8 @@ jobs:
           roleId: ${{ secrets.OPENBAO_ROLE_ID }}
           secretId: ${{ secrets.OPENBAO_SECRET_ID }}
           secrets: |
-            secret/data/cerniq/ci/deploy ghcr_token | GHCR_TOKEN ;
-            secret/data/cerniq/ci/deploy ssh_key | SSH_KEY
+            secret/cerniq/ci/deploy ghcr_token | GHCR_TOKEN ;
+            secret/cerniq/ci/deploy ssh_key | SSH_KEY
 ```
 
 ## Backup & DR
@@ -409,12 +262,12 @@ scp -P 23 /tmp/openbao-snapshot.snap u502048@storagebox:backups/openbao/
 
 ### Mitigări
 
-| Risc | Mitigare |
-|------|----------|
-| OpenBao unavailable | Secrets cached în Agent, retry logic |
-| Unseal keys lost | Backup encrypted în Hetzner Storage Box |
-| Performance | Agent caching, optimized policies |
-| Complexity | Automation scripts, runbooks detaliate |
+| Risc                | Mitigare                                |
+| ------------------- | --------------------------------------- |
+| OpenBao unavailable | Secrets cached în Agent, retry logic    |
+| Unseal keys lost    | Backup encrypted în Hetzner Storage Box |
+| Performance         | Agent caching, optimized policies       |
+| Complexity          | Automation scripts, runbooks detaliate  |
 
 ## Referințe
 

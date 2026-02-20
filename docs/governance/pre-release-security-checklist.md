@@ -7,6 +7,7 @@ This checklist must be completed before any production release of Cerniq. All it
 **Document Version:** 1.0  
 **Last Updated:** 2026-02-05  
 **References:**
+
 - ADR-0033 OpenBao Secrets Management
 - security-policy.md
 - backup-strategy.md
@@ -15,19 +16,20 @@ This checklist must be completed before any production release of Cerniq. All it
 
 ## Release Information
 
-| Field | Value |
-|-------|-------|
-| Release Version | __________________ |
-| Release Date | __________________ |
-| Checklist Completed By | __________________ |
-| Reviewed By | __________________ |
-| Approved By | __________________ |
+| Field                  | Value                        |
+| ---------------------- | ---------------------------- |
+| Release Version        | **\*\*\*\***\_\_**\*\*\*\*** |
+| Release Date           | **\*\*\*\***\_\_**\*\*\*\*** |
+| Checklist Completed By | **\*\*\*\***\_\_**\*\*\*\*** |
+| Reviewed By            | **\*\*\*\***\_\_**\*\*\*\*** |
+| Approved By            | **\*\*\*\***\_\_**\*\*\*\*** |
 
 ---
 
 ## 1. Code Security
 
 ### 1.1 Static Analysis
+
 - [ ] **SAST scan passed** - No HIGH/CRITICAL findings
   - Tool: ESLint security plugin / Semgrep
   - Command: `pnpm lint`
@@ -40,6 +42,7 @@ This checklist must be completed before any production release of Cerniq. All it
   - Command: `pnpm audit --audit-level=high`
 
 ### 1.2 Code Review
+
 - [ ] **PR reviewed by 2+ developers**
 - [ ] **Security-sensitive changes reviewed by security lead**
 - [ ] **No hardcoded credentials or API keys**
@@ -50,6 +53,7 @@ This checklist must be completed before any production release of Cerniq. All it
 ## 2. Container Security
 
 ### 2.1 Image Scanning
+
 - [ ] **All images scanned with Trivy**
   - Command: `./infra/scripts/trivy-scan.sh --ci`
 
@@ -57,6 +61,7 @@ This checklist must be completed before any production release of Cerniq. All it
 - [ ] **HIGH vulnerabilities assessed and accepted/mitigated**
 
 ### 2.2 Container Hardening
+
 - [ ] **All containers run as non-root** (where possible)
 - [ ] **`no-new-privileges` set on all containers**
 - [ ] **Capabilities dropped** (ALL dropped, minimal added)
@@ -64,6 +69,7 @@ This checklist must be completed before any production release of Cerniq. All it
 - [ ] **Resource limits defined** (memory, CPU)
 
 ### 2.3 Image Provenance
+
 - [ ] **Images from trusted registries only**
   - Allowed: ghcr.io/cerniq/, quay.io/, docker.io official
 - [ ] **Image digests pinned** (not just tags)
@@ -74,6 +80,7 @@ This checklist must be completed before any production release of Cerniq. All it
 ## 3. Secrets Management
 
 ### 3.1 OpenBao Configuration
+
 - [ ] **OpenBao initialized and unsealed**
 - [ ] **Unseal keys securely distributed** (5 shares, 3 threshold)
 - [ ] **Root token secured** (not stored in git/env)
@@ -81,12 +88,14 @@ This checklist must be completed before any production release of Cerniq. All it
 - [ ] **Policies follow least privilege**
 
 ### 3.2 Secret Rotation
+
 - [ ] **Database credentials rotated** (if not dynamic)
 - [ ] **JWT signing key rotated** (quarterly)
 - [ ] **External API keys validated**
 - [ ] **AppRole secret_ids rotated** (monthly)
 
 ### 3.3 Encryption
+
 - [ ] **TLS enabled for all external endpoints**
 - [ ] **PII encryption enabled** (Transit engine)
 - [ ] **Database connections encrypted**
@@ -96,16 +105,18 @@ This checklist must be completed before any production release of Cerniq. All it
 ## 4. Network Security
 
 ### 4.1 Firewall Configuration
+
 - [ ] **UFW enabled and configured**
   - Command: `sudo ufw status verbose`
 
 - [ ] **SSH restricted to admin IPs only**
-  - Allowed IPs documented: ________________
+  - Allowed IPs documented: **\*\***\_\_\_\_**\*\***
 
 - [ ] **Only ports 80/443 publicly accessible**
 - [ ] **Docker networks isolated** (backend, data, public)
 
 ### 4.2 Rate Limiting
+
 - [ ] **Traefik rate limiting configured**
 - [ ] **API rate limits per endpoint**
 - [ ] **fail2ban enabled for SSH**
@@ -115,6 +126,7 @@ This checklist must be completed before any production release of Cerniq. All it
 ## 5. Infrastructure Security
 
 ### 5.1 Host Security
+
 - [ ] **OS patched to latest security updates**
   - Command: `apt update && apt upgrade`
 
@@ -123,6 +135,7 @@ This checklist must be completed before any production release of Cerniq. All it
 - [ ] **Automatic security updates enabled** (unattended-upgrades)
 
 ### 5.2 Docker Security
+
 - [ ] **Docker daemon secured**
 - [ ] **Docker socket not exposed**
 - [ ] **User namespaces enabled** (optional)
@@ -132,16 +145,19 @@ This checklist must be completed before any production release of Cerniq. All it
 ## 6. Monitoring & Logging
 
 ### 6.1 Observability
+
 - [ ] **Health checks enabled** for all services
 - [ ] **Metrics endpoint accessible** (internal only)
 - [ ] **Alerts configured** for critical services
 
 ### 6.2 Audit Logging
+
 - [ ] **OpenBao audit logging enabled**
 - [ ] **Application logs capturing auth events**
 - [ ] **Log retention configured** (30 days minimum)
 
 ### 6.3 Security Monitoring
+
 - [ ] **Failed login alerts configured**
 - [ ] **Unusual traffic patterns monitored**
 - [ ] **Container restart alerts**
@@ -151,12 +167,14 @@ This checklist must be completed before any production release of Cerniq. All it
 ## 7. Backup & Recovery
 
 ### 7.1 Backup Configuration
+
 - [ ] **Database backup configured** (daily)
 - [ ] **OpenBao backup configured** (daily)
 - [ ] **Backups encrypted** (GPG)
 - [ ] **Backups offsite** (Hetzner Storage Box)
 
 ### 7.2 Recovery Testing
+
 - [ ] **Database restore tested** (last 30 days)
 - [ ] **OpenBao restore tested** (last 30 days)
 - [ ] **Recovery runbooks updated**
@@ -166,12 +184,14 @@ This checklist must be completed before any production release of Cerniq. All it
 ## 8. Compliance & Documentation
 
 ### 8.1 Documentation
+
 - [ ] **Architecture diagrams current**
 - [ ] **Runbooks updated**
 - [ ] **API documentation current**
 - [ ] **Changelog updated**
 
 ### 8.2 Access Control
+
 - [ ] **User access list reviewed**
 - [ ] **Service account permissions audited**
 - [ ] **Unused accounts disabled**
@@ -181,12 +201,14 @@ This checklist must be completed before any production release of Cerniq. All it
 ## 9. Pre-Deployment Verification
 
 ### 9.1 Staging Validation
+
 - [ ] **Deployed to staging environment**
 - [ ] **E2E tests passed**
 - [ ] **Performance tests passed**
 - [ ] **Security tests passed**
 
 ### 9.2 Rollback Plan
+
 - [ ] **Rollback procedure documented**
 - [ ] **Previous version available**
 - [ ] **Database migration reversible** (if applicable)
@@ -196,19 +218,22 @@ This checklist must be completed before any production release of Cerniq. All it
 ## Sign-Off
 
 ### Developer
-- **Name:** ___________________
-- **Date:** ___________________
-- **Signature:** ___________________
+
+- **Name:** **\*\*\*\***\_\_\_**\*\*\*\***
+- **Date:** **\*\*\*\***\_\_\_**\*\*\*\***
+- **Signature:** **\*\*\*\***\_\_\_**\*\*\*\***
 
 ### Security Review (if applicable)
-- **Name:** ___________________
-- **Date:** ___________________
-- **Signature:** ___________________
+
+- **Name:** **\*\*\*\***\_\_\_**\*\*\*\***
+- **Date:** **\*\*\*\***\_\_\_**\*\*\*\***
+- **Signature:** **\*\*\*\***\_\_\_**\*\*\*\***
 
 ### Release Manager
-- **Name:** ___________________
-- **Date:** ___________________
-- **Signature:** ___________________
+
+- **Name:** **\*\*\*\***\_\_\_**\*\*\*\***
+- **Date:** **\*\*\*\***\_\_\_**\*\*\*\***
+- **Signature:** **\*\*\*\***\_\_\_**\*\*\*\***
 
 ---
 
@@ -242,8 +267,8 @@ sudo ufw status verbose
 # 5. Check fail2ban status
 sudo fail2ban-client status
 
-# 6. Verify OpenBao status
-docker exec cerniq-openbao bao status
+# 6. Verify OpenBao status (centralized on orchestrator via Traefik)
+curl -sk https://s3cr3ts.neanelu.ro/v1/sys/health | jq '{initialized,sealed,standby,version}'
 
 # 7. Test database backup restore
 ./infra/scripts/test-backup-restore.sh --dry-run
@@ -262,6 +287,6 @@ curl -s https://staging.cerniq.app/api/health | jq .
 
 ## Version History
 
-| Version | Date | Author | Changes |
-|---------|------|--------|---------|
-| 1.0 | 2026-02-05 | System | Initial checklist |
+| Version | Date       | Author | Changes           |
+| ------- | ---------- | ------ | ----------------- |
+| 1.0     | 2026-02-05 | System | Initial checklist |

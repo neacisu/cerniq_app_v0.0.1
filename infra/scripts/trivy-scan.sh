@@ -39,7 +39,6 @@ IMAGES=(
     "quay.io/openbao/openbao:2.2.0"
     "postgres:18.1-bookworm"
     "redis/redis-stack-server:8.4-alpine"
-    "traefik:v3.3.3"
 )
 
 # Severity levels
@@ -58,6 +57,7 @@ NC='\033[0m'
 
 log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
 log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
+# shellcheck disable=SC2317
 log_warning() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
@@ -90,6 +90,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         --ci)
             CI_MODE=true
+            # shellcheck disable=SC2034
             OUTPUT_FORMAT="json"
             shift
             ;;
@@ -241,22 +242,22 @@ if [[ "$SCAN_CONFIG" == "true" ]]; then
     REPORT_FILE="$REPORTS_DIR/config-scan-${TIMESTAMP}"
     
     # Scan Dockerfiles
-    for dockerfile in $(find "$PROJECT_DIR" -name "Dockerfile" -type f 2>/dev/null); do
+    while IFS= read -r -d '' dockerfile; do
         log_info "Scanning: $dockerfile"
         trivy config "$dockerfile" 2>/dev/null || true
-    done
-    
+    done < <(find "$PROJECT_DIR" -name "Dockerfile" -type f -print0 2>/dev/null)
+
     # Scan docker-compose files
-    for compose in $(find "$PROJECT_DIR" -name "docker-compose*.yml" -type f 2>/dev/null); do
+    while IFS= read -r -d '' compose; do
         log_info "Scanning: $compose"
         trivy config "$compose" 2>/dev/null || true
-    done
-    
+    done < <(find "$PROJECT_DIR" -name "docker-compose*.yml" -type f -print0 2>/dev/null)
+
     # Scan Kubernetes/Helm if present
-    for k8s in $(find "$PROJECT_DIR" -name "*.yaml" -path "*/k8s/*" -type f 2>/dev/null); do
+    while IFS= read -r -d '' k8s; do
         log_info "Scanning: $k8s"
         trivy config "$k8s" 2>/dev/null || true
-    done
+    done < <(find "$PROJECT_DIR" -name "*.yaml" -path "*/k8s/*" -type f -print0 2>/dev/null)
     
     echo ""
 fi
@@ -274,15 +275,19 @@ log_info "Reports saved to: $REPORTS_DIR"
 echo ""
 
 # List generated reports
-ls -la "$REPORTS_DIR"/*-${TIMESTAMP}* 2>/dev/null || true
+ls -la "$REPORTS_DIR"/*-"${TIMESTAMP}"* 2>/dev/null || true
 
 echo ""
 
 # Count findings
-if [[ -f "$REPORTS_DIR/image-scan-"*"-${TIMESTAMP}.json" ]]; then
-    CRITICAL=$(cat "$REPORTS_DIR"/image-scan-*-${TIMESTAMP}.json 2>/dev/null | jq -r '.Results[]?.Vulnerabilities[]?.Severity' | grep -c "CRITICAL" || echo 0)
-    HIGH=$(cat "$REPORTS_DIR"/image-scan-*-${TIMESTAMP}.json 2>/dev/null | jq -r '.Results[]?.Vulnerabilities[]?.Severity' | grep -c "HIGH" || echo 0)
-    MEDIUM=$(cat "$REPORTS_DIR"/image-scan-*-${TIMESTAMP}.json 2>/dev/null | jq -r '.Results[]?.Vulnerabilities[]?.Severity' | grep -c "MEDIUM" || echo 0)
+SCAN_FILE=""
+for f in "$REPORTS_DIR"/image-scan-*-"${TIMESTAMP}".json; do
+    [ -f "$f" ] && SCAN_FILE="$f" && break
+done
+if [[ -n "$SCAN_FILE" ]]; then
+    CRITICAL=$(cat "$REPORTS_DIR"/image-scan-*-"${TIMESTAMP}".json 2>/dev/null | jq -r '.Results[]?.Vulnerabilities[]?.Severity' | grep -c "CRITICAL" || echo 0)
+    HIGH=$(cat "$REPORTS_DIR"/image-scan-*-"${TIMESTAMP}".json 2>/dev/null | jq -r '.Results[]?.Vulnerabilities[]?.Severity' | grep -c "HIGH" || echo 0)
+    MEDIUM=$(cat "$REPORTS_DIR"/image-scan-*-"${TIMESTAMP}".json 2>/dev/null | jq -r '.Results[]?.Vulnerabilities[]?.Severity' | grep -c "MEDIUM" || echo 0)
     
     log_info "Vulnerability Summary:"
     log_info "  CRITICAL: $CRITICAL"

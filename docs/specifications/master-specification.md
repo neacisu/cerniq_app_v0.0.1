@@ -35,7 +35,7 @@
 - ✅ Update React 19.2.1 → 19.2.3 (ultima versiune npm)
 - ✅ Adăugare secțiune 2.3: LLM Routing Policy (canonic)
 - ✅ Adăugare secțiune 2.4: Multi-tenant Contract (canonic)
-- ✅ Adăugare secțiune 2.5: Observability Stack (SigNoz canonic)
+- ✅ Adaugare sectiune 2.5: Observability Stack (aliniere observability)
 - ✅ Adăugare secțiune 2.6: Event Contract (idempotency, replay strategy)
 - ✅ HITL: Deprecation notice pentru `gold_hitl_tasks`
 - ✅ HITL: User Identity Contract (assigned_to UUID, nu email)
@@ -77,7 +77,7 @@
 ### Ierarhie de Precedență (de la cea mai mare la cea mai mică autoritate)
 
 | Nivel | Document                                         | Rol                                   | În caz de conflict      |
-|-------|--------------------------------------------------|---------------------------------------|-------------------------|
+| ----- | ------------------------------------------------ | ------------------------------------- | ----------------------- |
 | **1** | `Cerniq_Master_Spec_Normativ_Complet.md` (v1.3+) | **NORMATIV** - Single Source of Truth | **CÂȘTIGĂ ÎNTOTDEAUNA** |
 | **2** | Unified HITL Approval System                     | Normativ transversal (HITL)           | Supus master-ului       |
 | **3** | Strategie docs (Etapa 1-5 .rtf)                  | Normativ per domeniu                  | Supus master-ului       |
@@ -99,7 +99,7 @@ END IF
 ### Documente/Concepte DEPRECATED
 
 | Element                 | Status          | Motiv               | Înlocuit cu                    |
-|-------------------------|-----------------|---------------------|--------------------------------|
+| ----------------------- | --------------- | ------------------- | ------------------------------ |
 | `gold_hitl_tasks`       | ❌ DEPRECATED   | Per-stage tables    | `approval_tasks` (transversal) |
 | `shop_id` (în cod/docs) | ⚠️ LEGACY ALIAS | Naming inconsistent | `tenant_id` (canonic)          |
 | `assigned_to` ca email  | ❌ DEPRECATED   | Identity contract   | `assigned_to` UUID             |
@@ -111,9 +111,9 @@ END IF
 ```typescript
 // CANONICAL ALIASES - pentru compatibilitate cu cod existent
 const LEGACY_ALIASES = {
-  'shop_id': 'tenant_id',        // shop_id = tenant_id (deprecated, use tenant_id)
-  'current_stage': 'current_state',
-  'assigned_phone_id': 'assigned_phone_number',
+  shop_id: "tenant_id", // shop_id = tenant_id (deprecated, use tenant_id)
+  current_stage: "current_state",
+  assigned_phone_id: "assigned_phone_number",
 } as const;
 
 // ⚠️ La implementare: acceptă alias, dar scrie canonic
@@ -149,7 +149,7 @@ const LEGACY_ALIASES = {
 ### 1.1 Glossar Termeni Canonici
 
 | Termen        | Definiție                                               | Context                            |
-|---------------|---------------------------------------------------------|------------------------------------|
+| ------------- | ------------------------------------------------------- | ---------------------------------- |
 | **Bronze**    | Strat de date brute, nevalidate, append-only și imuabil | Zona de aterizare pentru ingestie  |
 | **Silver**    | Date curățate, validate și normalizate                  | Entity resolution și deduplicare   |
 | **Gold**      | Contacte complet îmbogățite, ready-for-outreach         | Date operaționale pentru vânzări   |
@@ -166,6 +166,7 @@ const LEGACY_ALIASES = {
 ## 1.2 Reguli de Denumire (Naming Convention)
 
 **Nomenclatură Etape:**
+
 - Română: **Etapa X** (ex: Etapa 1)
 - Engleză: **Stage X** (ex: Stage 1)
 - Abreviere: **E1, E2, E3, E4, E5**
@@ -173,7 +174,7 @@ const LEGACY_ALIASES = {
 ### 1.2.1 Prefixe pentru Tabele PostgreSQL
 
 | Prefix       | Semnificație              | Exemplu                                        | Notă                      |
-|--------------|---------------------------|------------------------------------------------|---------------------------|
+| ------------ | ------------------------- | ---------------------------------------------- | ------------------------- |
 | `bronze_*`   | Date brute ingestie       | `bronze_contacts`, `bronze_webhooks`           | Append-only, imuabil      |
 | `silver_*`   | Date validate/normalizate | `silver_companies`, `silver_contacts`          | Deduplicate               |
 | `gold_*`     | Date operaționale         | `gold_companies`, `gold_lead_journey`          | Ready for outreach        |
@@ -188,7 +189,7 @@ const LEGACY_ALIASES = {
 ```
 
 | Layer      | Descriere                 | Exemple                                                          |
-|------------|---------------------------|------------------------------------------------------------------|
+| ---------- | ------------------------- | ---------------------------------------------------------------- |
 | `bronze`   | Ingestie date brute       | `bronze:ingest:csv-parser`, `bronze:dedup:hash-checker`          |
 | `silver`   | Validare/normalizare      | `silver:validate:cui-anaf`, `silver:norm:address`                |
 | `enrich`   | Îmbogățire externă        | `enrich:anaf:fiscal-status`, `enrich:termene:financials`         |
@@ -203,15 +204,15 @@ const LEGACY_ALIASES = {
 
 ```typescript
 // Pattern: {prefix}-{entityType}-{entityId}-{timestamp}
-jobId: `enrich-company-${companyId}-${Date.now()}`
-jobId: `esc-${approvalId}`  // Escalation jobs
-jobId: `warn-${approvalId}` // Warning jobs
+jobId: `enrich-company-${companyId}-${Date.now()}`;
+jobId: `esc-${approvalId}`; // Escalation jobs
+jobId: `warn-${approvalId}`; // Warning jobs
 ```
 
 ### 1.2.4 Convenții pentru Event Types
 
 | Pattern                                | Utilizare             | Exemple                                      |
-|----------------------------------------|-----------------------|----------------------------------------------|
+| -------------------------------------- | --------------------- | -------------------------------------------- |
 | `ENTITY_ACTIUNE`                       | Evenimente principale | `LEAD_CREATED`, `APPROVAL_COMPLETED`         |
 | `*_STARTED`, `*_COMPLETED`, `*_FAILED` | Lifecycle events      | `ENRICHMENT_STARTED`, `ENRICHMENT_COMPLETED` |
 | `*_ESCALATED`, `*_EXPIRED`             | HITL events           | `APPROVAL_ESCALATED`, `SLA_EXPIRED`          |
@@ -223,12 +224,12 @@ jobId: `warn-${approvalId}` // Warning jobs
 ### 2.1 Matrice Versiuni Canonice
 
 | Component          | Versiune CANONICĂ     | Release Date | Status         | EOL/Suport              |
-|--------------------|-----------------------|--------------|----------------|-------------------------|
-| **Node.js**        | **24.12.0 "Krypton"** | 10 Dec 2025  | Active LTS     | Apr 2028                |
+| ------------------ | --------------------- | ------------ | -------------- | ----------------------- |
+| **Node.js**        | **24.13.1 "Krypton"** | 10 Dec 2025  | Active LTS     | Apr 2028                |
 | **V8 Engine**      | 13.6.233.17           | Bundled      | —              | —                       |
 | **NPM**            | 11.x                  | Bundled      | —              | —                       |
 | **Python**         | **3.14.2**            | 5 Dec 2025   | Stable         | Free-threading Phase II |
-| **PostgreSQL**     | **18.1**              | 13 Nov 2025  | Current Stable | —                       |
+| **PostgreSQL**     | **18.2**              | 13 Nov 2025  | Current Stable | —                       |
 | **pgvector**       | **0.8.1**             | Late 2025    | Stable         | PG 13-18                |
 | **PostGIS**        | **3.6.1**             | 13 Nov 2025  | Stable         | PG 12-18                |
 | **Fastify**        | **5.6.2**             | 9 Nov 2025   | Stable         | v4 EOL: 30 Jun 2025     |
@@ -243,7 +244,7 @@ jobId: `warn-${approvalId}` // Warning jobs
 ## 2.2 Python Free-Threading Status
 
 | PEP     | Status                  | Semnificație                  |
-|---------|-------------------------|-------------------------------|
+| ------- | ----------------------- | ----------------------------- |
 | PEP 703 | **100% Implementat**    | GIL-optional core complet     |
 | PEP 779 | **Final (16 Jun 2025)** | Phase II criteria îndeplinite |
 
@@ -259,7 +260,7 @@ jobId: `warn-${approvalId}` // Warning jobs
 ## 2.4 Frontend Stack
 
 | Component      | Versiune | Caracteristici                                        |
-|----------------|----------|-------------------------------------------------------|
+| -------------- | -------- | ----------------------------------------------------- |
 | React 19       | 19.2.3   | Server Components stable, useOptimistic, Activity API |
 | React Compiler | 1.0      | 12% faster loads, 2.5x faster interactions            |
 | Tailwind CSS 4 | 4.1.x    | Oxide engine (Rust), 3.5-5x faster builds             |
@@ -271,7 +272,7 @@ jobId: `warn-${approvalId}` // Warning jobs
 ### 2.3.1 Provideri LLM Canonici
 
 | Provider             | Use Case                          | Model                  | Rate Limit | Cost               |
-|----------------------|-----------------------------------|------------------------|------------|--------------------|
+| -------------------- | --------------------------------- | ---------------------- | ---------- | ------------------ |
 | **xAI Grok-4**       | Structured Outputs, Agent Core E3 | grok-4                 | 60 RPM     | ~$0.02/1K tokens   |
 | **OpenAI**           | Embeddings                        | text-embedding-3-large | 3000 RPM   | $0.0001/1K tokens  |
 | **Groq**             | Real-time Chat (latență scăzută)  | Llama 3 8B             | 100 RPM    | ~$0.0005/1K tokens |
@@ -284,28 +285,28 @@ jobId: `warn-${approvalId}` // Warning jobs
 // LLM Routing Decision Tree
 const LLM_ROUTING = {
   // Primary use cases
-  'structured_extraction': 'xai-grok',     // JSON Schema enforcement
-  'agent_orchestration': 'xai-grok',       // Tool calling, E3 agent
-  'embeddings': 'openai',                   // Vector generation
-  'real_time_chat': 'groq',                 // Low latency <500ms
-  'sensitive_data': 'ollama',               // On-premise, no data egress
-  
+  structured_extraction: "xai-grok", // JSON Schema enforcement
+  agent_orchestration: "xai-grok", // Tool calling, E3 agent
+  embeddings: "openai", // Vector generation
+  real_time_chat: "groq", // Low latency <500ms
+  sensitive_data: "ollama", // On-premise, no data egress
+
   // Fallback chain (în caz de rate limit sau eroare)
-  'fallback_chain': ['xai-grok', 'anthropic-claude', 'groq'],
-  
+  fallback_chain: ["xai-grok", "anthropic-claude", "groq"],
+
   // Cost caps per tenant/day
-  'cost_caps': {
-    'small_tenant': 10.00,    // $10/zi
-    'medium_tenant': 50.00,   // $50/zi
-    'enterprise': 500.00      // $500/zi
-  }
+  cost_caps: {
+    small_tenant: 10.0, // $10/zi
+    medium_tenant: 50.0, // $50/zi
+    enterprise: 500.0, // $500/zi
+  },
 };
 ```
 
 ### 2.3.3 Guardrails & Logging Policy
 
 | Aspect                      | Policy            | Implementare               |
-|-----------------------------|-------------------|----------------------------|
+| --------------------------- | ----------------- | -------------------------- |
 | **PII Redaction**           | Obligatoriu       | Înainte de orice apel LLM  |
 | **Prompt Logging**          | Toate prompturile | audit_llm_calls table      |
 | **Response Validation**     | JSON Schema       | Pydantic strict mode       |
@@ -318,10 +319,10 @@ const LLM_ROUTING = {
 ```typescript
 // Obligatoriu pentru toate răspunsurile AI în E3 (Sales Agent)
 interface GuardrailChecks {
-  price_guard: boolean;      // preț_oferit >= preț_minim_aprobat
-  stock_guard: boolean;      // stock_quantity > 0
-  discount_guard: boolean;   // discount <= max_discount_aprobat
-  product_exists: boolean;   // SKU există în catalog
+  price_guard: boolean; // preț_oferit >= preț_minim_aprobat
+  stock_guard: boolean; // stock_quantity > 0
+  discount_guard: boolean; // discount <= max_discount_aprobat
+  product_exists: boolean; // SKU există în catalog
   client_validated: boolean; // CUI valid + date fiscale OK
 }
 ```
@@ -330,19 +331,19 @@ interface GuardrailChecks {
 
 ### 2.4.1 Principii Izolare Date
 
-| Principiu                      | Implementare                    | Status      |
-|--------------------------------|---------------------------------|-------------|
-| **Row-Level Security (RLS)**   | Toate tabelele silver/gold      | OBLIGATORIU |
-| **Tenant ID în toate queries** | Via app.current_tenant_id       | OBLIGATORIU |
-| **Unique constraints**         | UNIQUE(tenant_id, business_key) | OBLIGATORIU |
-| **Shared data**                | Tabele *_configs fără tenant_id | DOCUMENTAT  |
-| **Cross-tenant queries**       | INTERZIS (doar super_admin)     | IMPUS       |
+| Principiu                      | Implementare                      | Status      |
+| ------------------------------ | --------------------------------- | ----------- |
+| **Row-Level Security (RLS)**   | Toate tabelele silver/gold        | OBLIGATORIU |
+| **Tenant ID în toate queries** | Via app.current_tenant_id         | OBLIGATORIU |
+| **Unique constraints**         | UNIQUE(tenant_id, business_key)   | OBLIGATORIU |
+| **Shared data**                | Tabele \*\_configs fără tenant_id | DOCUMENTAT  |
+| **Cross-tenant queries**       | INTERZIS (doar super_admin)       | IMPUS       |
 
 ### 2.4.2 Date Shared vs Per-Tenant
 
 | Tip Date          | Scope          | Exemple Tabele                                                       |
-|-------------------|----------------|----------------------------------------------------------------------|
-| **Per-Tenant**    | Izolate RLS    | silver_*, gold_*, approval_tasks, bronze_contacts                    |
+| ----------------- | -------------- | -------------------------------------------------------------------- |
+| **Per-Tenant**    | Izolate RLS    | silver*\*, gold*\*, approval_tasks, bronze_contacts                  |
 | **Shared Global** | Fără tenant_id | integration_configs, approval_type_configs, audit_retention_policies |
 | **System**        | Metadata       | roles (is_system_role=true), permissions                             |
 
@@ -363,37 +364,41 @@ interface GuardrailChecks {
 
 ### 2.5.1 Stack Obligatoriu
 
-| Component             | Versiune   | Rol                              | Status      |
-|-----------------------|------------|----------------------------------|-------------|
-| **SigNoz**            | v0.107.0   | APM + Traces + Logs (all-in-one) | PRIMARY     |
-| **OpenTelemetry SDK** | Latest     | Instrumentare aplicații          | OBLIGATORIU |
-| **ClickHouse**        | Via SigNoz | Storage traces/metrics           | INTERN      |
+| Component             | Versiune | Rol                     | Status      |
+| --------------------- | -------- | ----------------------- | ----------- |
+| **Grafana**           | (shared) | UI (dashboards)         | PRIMARY     |
+| **Prometheus**        | (shared) | Metrics (pull)          | PRIMARY     |
+| **Loki**              | (shared) | Logs                    | PRIMARY     |
+| **Tempo**             | (shared) | Traces                  | PRIMARY     |
+| **OpenTelemetry SDK** | Latest   | Instrumentare aplicații | OBLIGATORIU |
+| **Vector**            | (agent)  | Logs shipper            | AGENT       |
+| **OTEL Collector**    | (agent)  | Ingest traces/metrics   | AGENT       |
 
 ### 2.5.2 OpenTelemetry Semantic Conventions
 
 ```typescript
 // Atribute OBLIGATORII pentru toate span-urile
 const REQUIRED_SPAN_ATTRIBUTES = {
-  'service.name': 'cerniq-{component}',
-  'service.version': process.env.APP_VERSION,
-  'deployment.environment': process.env.NODE_ENV,
-  'tenant.id': 'din context',
-  'correlation.id': 'job.data.correlationId'
+  "service.name": "cerniq-{component}",
+  "service.version": process.env.APP_VERSION,
+  "deployment.environment": process.env.NODE_ENV,
+  "tenant.id": "din context",
+  "correlation.id": "job.data.correlationId",
 };
 
 // Atribute pentru workeri BullMQ
 const WORKER_SPAN_ATTRIBUTES = {
-  'worker.name': 'queue_name',
-  'worker.job_id': 'job.id',
-  'worker.attempt': 'job.attemptsMade',
-  'worker.category': 'etapa{N}'
+  "worker.name": "queue_name",
+  "worker.job_id": "job.id",
+  "worker.attempt": "job.attemptsMade",
+  "worker.category": "etapa{N}",
 };
 ```
 
 ### 2.5.3 Metrici Obligatorii
 
 | Metric                 | Tip       | Labels                  | Alert Threshold |
-|------------------------|-----------|-------------------------|-----------------|
+| ---------------------- | --------- | ----------------------- | --------------- |
 | `jobs_processed_total` | Counter   | worker, status          | -               |
 | `job_duration_seconds` | Histogram | worker                  | P95 > 30s       |
 | `job_errors_total`     | Counter   | worker, error_type      | >5% error rate  |
@@ -404,16 +409,16 @@ const WORKER_SPAN_ATTRIBUTES = {
 ### 2.5.4 Alerting Rules
 
 ```yaml
-# SigNoz Alert Configuration
+# Observability Alert Configuration
 alerts:
   - name: HighJobErrorRate
     condition: rate(job_errors_total[5m]) / rate(jobs_processed_total[5m]) > 0.05
     severity: critical
-    
+
   - name: QueueBacklog
     condition: queue_depth > 1000
     severity: warning
-    
+
   - name: LLMCostOverrun
     condition: sum(llm_cost_usd{tenant=~".+"}) by (tenant) > on(tenant) tenant_cost_cap
     severity: critical
@@ -427,29 +432,29 @@ alerts:
 // Structură OBLIGATORIE pentru toate evenimentele
 interface CerniqEvent<T = unknown> {
   // Identificare
-  eventId: string;          // UUID v7 (time-sortable)
-  eventType: EventType;     // Enum canonic (vezi secțiunea 4)
-  
+  eventId: string; // UUID v7 (time-sortable)
+  eventType: EventType; // Enum canonic (vezi secțiunea 4)
+
   // Idempotency
-  idempotencyKey: string;   // {entityType}:{entityId}:{action}:{timestamp}
-  
+  idempotencyKey: string; // {entityType}:{entityId}:{action}:{timestamp}
+
   // Temporal
-  timestamp: string;        // ISO 8601 UTC
+  timestamp: string; // ISO 8601 UTC
   processedAt?: string;
-  
+
   // Context
-  correlationId: string;    // Pentru tracing end-to-end
-  causationId?: string;     // Event care a cauzat acest event
-  
+  correlationId: string; // Pentru tracing end-to-end
+  causationId?: string; // Event care a cauzat acest event
+
   // Multi-tenant
   tenantId: string;
-  
+
   // Payload tipat
   payload: T;
-  
+
   // Metadata
-  version: number;          // Schema version pentru evoluție
-  source: string;           // Serviciul care a emis
+  version: number; // Schema version pentru evoluție
+  source: string; // Serviciul care a emis
 }
 ```
 
@@ -461,7 +466,7 @@ function generateIdempotencyKey(
   entityType: string,
   entityId: string,
   action: string,
-  timestamp?: Date
+  timestamp?: Date,
 ): string {
   const ts = timestamp || new Date();
   // Truncate la oră pentru a permite retry în window
@@ -474,17 +479,17 @@ function generateIdempotencyKey(
 
 ### 2.8.3 Replay Strategy
 
-| Scenarriu           | Strategie              | Implementare                       |
-|---------------------|------------------------|------------------------------------|
-| **Job failed**      | Retry exponențial      | BullMQ backoff: 2^attempt * 1000ms |
-| **System outage**   | Replay din dead-letter | Queue: `dlq:{original_queue}`      |
-| **Data correction** | Re-process cu flag     | `isReplay: true` în job data       |
-| **Audit replay**    | Read-only rebuild      | Rebuild state din event log        |
+| Scenarriu           | Strategie              | Implementare                        |
+| ------------------- | ---------------------- | ----------------------------------- |
+| **Job failed**      | Retry exponențial      | BullMQ backoff: 2^attempt \* 1000ms |
+| **System outage**   | Replay din dead-letter | Queue: `dlq:{original_queue}`       |
+| **Data correction** | Re-process cu flag     | `isReplay: true` în job data        |
+| **Audit replay**    | Read-only rebuild      | Rebuild state din event log         |
 
 ### 2.8.4 Ordering Guarantees
 
 | Tip                 | Garanție       | Mecanism                             |
-|---------------------|----------------|--------------------------------------|
+| ------------------- | -------------- | ------------------------------------ |
 | **Per-entity**      | Strict ordered | Hash-based routing per entityId      |
 | **Cross-entity**    | Best-effort    | Timestamp-based eventual consistency |
 | **Causation chain** | Preserved      | causationId linking                  |
@@ -493,18 +498,18 @@ function generateIdempotencyKey(
 
 ### 2.9.1 Global Rate Limits per Provider
 
-| Provider         | Endpoint        | Rate Limit   | Burst | Backoff Strategy        |
-|------------------|-----------------|--------------|-------|-------------------------|
-| **ANAF API**     | Toate           | 1 req/sec    | 1     | Exponential 2^n * 1s    |
-| **Termene.ro**   | Toate           | 20 req/sec   | 50    | Linear 100ms            |
-| **Hunter.io**    | Email discovery | 15 req/sec   | 30    | Exponential 2^n * 500ms |
-| **ZeroBounce**   | Email verify    | 10 req/sec   | 20    | Linear 200ms            |
-| **TimelinesAI**  | WA messages     | 50 req/min   | 10    | Fixed 1s (per phone)    |
-| **Instantly.ai** | Email send      | 100 req/10s  | 20    | Exponential 2^n * 2s    |
-| **Resend**       | Transactional   | 100 req/sec  | 200   | Linear 50ms             |
-| **Nominatim**    | Geocoding       | 50 req/sec   | 100   | Linear 100ms            |
-| **xAI Grok**     | LLM             | 60 req/min   | 10    | Exponential 2^n * 1s    |
-| **OpenAI**       | Embeddings      | 3000 req/min | 100   | Exponential 2^n * 500ms |
+| Provider         | Endpoint        | Rate Limit   | Burst | Backoff Strategy         |
+| ---------------- | --------------- | ------------ | ----- | ------------------------ |
+| **ANAF API**     | Toate           | 1 req/sec    | 1     | Exponential 2^n \* 1s    |
+| **Termene.ro**   | Toate           | 20 req/sec   | 50    | Linear 100ms             |
+| **Hunter.io**    | Email discovery | 15 req/sec   | 30    | Exponential 2^n \* 500ms |
+| **ZeroBounce**   | Email verify    | 10 req/sec   | 20    | Linear 200ms             |
+| **TimelinesAI**  | WA messages     | 50 req/min   | 10    | Fixed 1s (per phone)     |
+| **Instantly.ai** | Email send      | 100 req/10s  | 20    | Exponential 2^n \* 2s    |
+| **Resend**       | Transactional   | 100 req/sec  | 200   | Linear 50ms              |
+| **Nominatim**    | Geocoding       | 50 req/sec   | 100   | Linear 100ms             |
+| **xAI Grok**     | LLM             | 60 req/min   | 10    | Exponential 2^n \* 1s    |
+| **OpenAI**       | Embeddings      | 3000 req/min | 100   | Exponential 2^n \* 500ms |
 
 **ANAF WS v9 constraint:** maxim 100 CUI/request + maxim 1 request/sec (conform doc_WS_V9).
 
@@ -514,24 +519,24 @@ function generateIdempotencyKey(
 // Redis key pattern pentru rate limiting per tenant
 const RATE_LIMIT_KEYS = {
   // Global per provider
-  'ratelimit:global:{provider}': 'token_bucket',
-  
-  // Per tenant per provider  
-  'ratelimit:{tenantId}:{provider}': 'token_bucket',
-  
+  "ratelimit:global:{provider}": "token_bucket",
+
+  // Per tenant per provider
+  "ratelimit:{tenantId}:{provider}": "token_bucket",
+
   // Per phone number (WhatsApp)
-  'ratelimit:wa:{phoneNumber}:daily': 'counter', // Max 200 NEW contacts/zi
-  'ratelimit:wa:{phoneNumber}:hourly': 'counter', // Max 50 NEW contacts/oră
-  
+  "ratelimit:wa:{phoneNumber}:daily": "counter", // Max 200 NEW contacts/zi
+  "ratelimit:wa:{phoneNumber}:hourly": "counter", // Max 50 NEW contacts/oră
+
   // Per email account
-  'ratelimit:email:{accountId}:hourly': 'counter', // Warmup-dependent
+  "ratelimit:email:{accountId}:hourly": "counter", // Warmup-dependent
 };
 ```
 
 ### 2.9.3 WhatsApp Specific Constraints (TimelinesAI)
 
 | Constraint               | Limit     | Scope            | Enforcement          |
-|--------------------------|-----------|------------------|----------------------|
+| ------------------------ | --------- | ---------------- | -------------------- |
 | **New contacts/zi/nr**   | 200       | Per phone number | Quota Guardian       |
 | **New contacts/oră/nr**  | 50        | Per phone number | Quota Guardian       |
 | **Follow-up messages**   | Nelimitat | Per phone        | N/A                  |
@@ -552,9 +557,9 @@ const EMAIL_WARMUP_SCHEDULE = {
 
 // Deliverability thresholds
 const DELIVERABILITY_THRESHOLDS = {
-  minDeliveryRate: 0.95,    // 95%
-  maxBounceRate: 0.03,      // 3%
-  maxSpamRate: 0.001,       // 0.1%
+  minDeliveryRate: 0.95, // 95%
+  maxBounceRate: 0.03, // 3%
+  maxSpamRate: 0.001, // 0.1%
   pauseOnBreach: true,
 };
 ```
@@ -564,18 +569,48 @@ const DELIVERABILITY_THRESHOLDS = {
 ```typescript
 interface CircuitBreakerConfig {
   provider: string;
-  failureThreshold: number;    // Ex: 5 failures
-  successThreshold: number;    // Ex: 3 successes to close
-  timeout: number;             // Ex: 30000ms half-open wait
-  monitorWindow: number;       // Ex: 60000ms
+  failureThreshold: number; // Ex: 5 failures
+  successThreshold: number; // Ex: 3 successes to close
+  timeout: number; // Ex: 30000ms half-open wait
+  monitorWindow: number; // Ex: 60000ms
 }
 
 const CIRCUIT_BREAKERS: CircuitBreakerConfig[] = [
-  { provider: 'anaf', failureThreshold: 3, successThreshold: 2, timeout: 60000, monitorWindow: 120000 },
-  { provider: 'termene', failureThreshold: 5, successThreshold: 3, timeout: 30000, monitorWindow: 60000 },
-  { provider: 'timelines', failureThreshold: 5, successThreshold: 3, timeout: 30000, monitorWindow: 60000 },
-  { provider: 'instantly', failureThreshold: 5, successThreshold: 3, timeout: 30000, monitorWindow: 60000 },
-  { provider: 'xai', failureThreshold: 3, successThreshold: 2, timeout: 60000, monitorWindow: 120000 },
+  {
+    provider: "anaf",
+    failureThreshold: 3,
+    successThreshold: 2,
+    timeout: 60000,
+    monitorWindow: 120000,
+  },
+  {
+    provider: "termene",
+    failureThreshold: 5,
+    successThreshold: 3,
+    timeout: 30000,
+    monitorWindow: 60000,
+  },
+  {
+    provider: "timelines",
+    failureThreshold: 5,
+    successThreshold: 3,
+    timeout: 30000,
+    monitorWindow: 60000,
+  },
+  {
+    provider: "instantly",
+    failureThreshold: 5,
+    successThreshold: 3,
+    timeout: 30000,
+    monitorWindow: 60000,
+  },
+  {
+    provider: "xai",
+    failureThreshold: 3,
+    successThreshold: 2,
+    timeout: 60000,
+    monitorWindow: 120000,
+  },
 ];
 ```
 
@@ -603,7 +638,7 @@ const CIRCUIT_BREAKERS: CircuitBreakerConfig[] = [
 ### 2.10.2 Contract Tests (OBLIGATORII)
 
 | Contract Type      | Tool                | Scope                    | Frequency     |
-|--------------------|---------------------|--------------------------|---------------|
+| ------------------ | ------------------- | ------------------------ | ------------- |
 | **Event Schema**   | JSON Schema + Zod   | Toate evenimentele emise | Pre-commit    |
 | **API Contract**   | OpenAPI 3.1 + Prism | Toate endpoint-urile     | Pre-commit    |
 | **DB Constraints** | pgTAP               | UNIQUE, CHECK, FK        | Pre-migration |
@@ -613,22 +648,28 @@ const CIRCUIT_BREAKERS: CircuitBreakerConfig[] = [
 
 ```typescript
 // /tests/contracts/event-schema.test.ts
-import { describe, it, expect } from 'vitest';
-import { CerniqEventSchema } from '@cerniq/events';
+import { describe, it, expect } from "vitest";
+import { CerniqEventSchema } from "@cerniq/events";
 
-describe('Event Schema Contract', () => {
-  it('all events have required fields', () => {
+describe("Event Schema Contract", () => {
+  it("all events have required fields", () => {
     const requiredFields = [
-      'eventId', 'eventType', 'idempotencyKey', 
-      'timestamp', 'correlationId', 'tenantId', 
-      'payload', 'version', 'source'
+      "eventId",
+      "eventType",
+      "idempotencyKey",
+      "timestamp",
+      "correlationId",
+      "tenantId",
+      "payload",
+      "version",
+      "source",
     ];
     // Test all event types against schema
   });
 
-  it('idempotencyKey follows pattern', () => {
+  it("idempotencyKey follows pattern", () => {
     // Pattern: {entityType}:{entityId}:{action}:{hourTimestamp}
-    const key = generateIdempotencyKey('lead', 'uuid', 'STATE_CHANGE');
+    const key = generateIdempotencyKey("lead", "uuid", "STATE_CHANGE");
     expect(key).toMatch(/^[a-z]+:[a-f0-9-]+:[A-Z_]+:\d+$/);
   });
 });
@@ -643,7 +684,7 @@ SELECT plan(5);
 
 -- Test 1: CUI uniqueness per tenant
 SELECT throws_ok(
-  $$INSERT INTO silver_companies (tenant_id, cui, denumire) 
+  $$INSERT INTO silver_companies (tenant_id, cui, denumire)
     VALUES ('tenant-1', '12345678', 'Test'),
            ('tenant-1', '12345678', 'Test2')$$,
   23505,  -- unique_violation
@@ -652,7 +693,7 @@ SELECT throws_ok(
 
 -- Test 2: Same CUI allowed in different tenants
 SELECT lives_ok(
-  $$INSERT INTO silver_companies (tenant_id, cui, denumire) 
+  $$INSERT INTO silver_companies (tenant_id, cui, denumire)
     VALUES ('tenant-1', '12345678', 'Test'),
            ('tenant-2', '12345678', 'Test2')$$
 );
@@ -674,34 +715,34 @@ ROLLBACK;
 
 ```typescript
 // /tests/integration/hitl-gating.test.ts
-describe('HITL Gating', () => {
-  it('blocks job completion until approval', async () => {
+describe("HITL Gating", () => {
+  it("blocks job completion until approval", async () => {
     // 1. Create job that requires approval
-    const job = await queue.add('pricing:generate', {
-      discountPercent: 20,  // > 15% threshold
-      correlationId: 'test-123'
+    const job = await queue.add("pricing:generate", {
+      discountPercent: 20, // > 15% threshold
+      correlationId: "test-123",
     });
-    
+
     // 2. Verify approval_task was created
     const task = await db.approval_tasks.findOne({
-      where: { correlation_id: 'test-123' }
+      where: { correlation_id: "test-123" },
     });
     expect(task).toBeDefined();
-    expect(task.status).toBe('pending');
-    
+    expect(task.status).toBe("pending");
+
     // 3. Job should be in waiting state
-    expect(await job.getState()).toBe('waiting-children');
+    expect(await job.getState()).toBe("waiting-children");
   });
 
-  it('resumes job after approval', async () => {
+  it("resumes job after approval", async () => {
     // 1. Approve the task
     await approvalService.approve(taskId, {
       decidedBy: userUuid,
-      decision: 'approved'
+      decision: "approved",
     });
-    
+
     // 2. Verify job resumed and completed
-    await waitFor(() => expect(job.getState()).resolves.toBe('completed'));
+    await waitFor(() => expect(job.getState()).resolves.toBe("completed"));
   });
 });
 ```
@@ -710,21 +751,21 @@ describe('HITL Gating', () => {
 
 ```typescript
 // /tests/integration/idempotency.test.ts
-describe('Idempotency', () => {
-  it('duplicate events are ignored', async () => {
+describe("Idempotency", () => {
+  it("duplicate events are ignored", async () => {
     const event = {
-      eventId: 'evt-123',
-      idempotencyKey: 'lead:uuid:STATE_CHANGE:12345',
+      eventId: "evt-123",
+      idempotencyKey: "lead:uuid:STATE_CHANGE:12345",
       // ...
     };
-    
+
     // Process same event twice
     await eventProcessor.process(event);
     await eventProcessor.process(event);
-    
+
     // Verify only one side effect
     const stateChanges = await db.gold_lead_journey.count({
-      where: { last_event_id: 'evt-123' }
+      where: { last_event_id: "evt-123" },
     });
     expect(stateChanges).toBe(1);
   });
@@ -735,24 +776,24 @@ describe('Idempotency', () => {
 
 ```typescript
 // /tests/integration/replay.test.ts
-describe('Event Replay', () => {
-  it('can rebuild state from event log', async () => {
+describe("Event Replay", () => {
+  it("can rebuild state from event log", async () => {
     // 1. Get current state
     const currentState = await getLeadJourneyState(leadId);
-    
+
     // 2. Clear state table
     await db.gold_lead_journey.delete({ where: { id: leadId } });
-    
+
     // 3. Replay all events for this lead
     const events = await db.events.findMany({
       where: { entity_id: leadId },
-      orderBy: { timestamp: 'asc' }
+      orderBy: { timestamp: "asc" },
     });
-    
+
     for (const event of events) {
       await eventProcessor.replay(event);
     }
-    
+
     // 4. Verify state matches
     const rebuiltState = await getLeadJourneyState(leadId);
     expect(rebuiltState).toEqual(currentState);
@@ -765,7 +806,7 @@ describe('Event Replay', () => {
 > **Notă:** Aceste ținte sunt canonice. Toate documentele de testare trebuie să facă referință la această secțiune și să evite valori contradictorii.
 
 | Component          | Min Coverage | Critical Paths                  |
-|--------------------|--------------|---------------------------------|
+| ------------------ | ------------ | ------------------------------- |
 | **API Routes**     | 80%          | Auth, CRUD, Validation          |
 | **Workers**        | 75%          | Happy path + Error handling     |
 | **Event Handlers** | 90%          | All event types                 |
@@ -782,19 +823,19 @@ test:
     - name: Unit Tests
       run: pnpm test:unit
       coverage: 70%
-      
+
     - name: Contract Tests
       run: pnpm test:contracts
-      required: true  # Block merge if fails
-      
+      required: true # Block merge if fails
+
     - name: DB Migration Tests
       run: pnpm test:db
       required: true
-      
+
     - name: Integration Tests
       run: pnpm test:integration
       coverage: 50%
-      
+
     - name: E2E Tests (Critical)
       run: pnpm test:e2e --tag=critical
       required: true
@@ -822,7 +863,7 @@ test:
     • Append-only            • Deduplicated             • Verified contacts
     • Source tracking        • CUI validated            • Lead scored
     • Zero transforms        • E.164 phones             • Ready for outreach
-    
+
     [Ingestie]  ───────▶  [Validare]  ───────▶  [Operațional]
        │                      │                       │
        │  Criterii:           │  Criterii:            │  Output:
@@ -838,21 +879,21 @@ test:
 -- TABELĂ CANONICĂ: bronze_contacts
 CREATE TABLE bronze_contacts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    
+
     -- Payload original (imuabil)
     raw_payload JSONB NOT NULL,
-    
+
     -- Sursa și tracking
-    source_type VARCHAR(30) NOT NULL 
+    source_type VARCHAR(30) NOT NULL
         CHECK (source_type IN ('import', 'webhook', 'scrape', 'manual', 'api')),
     source_identifier TEXT NOT NULL,  -- URL/filename/API endpoint
-    
+
     -- Multi-tenant isolation
     tenant_id UUID NOT NULL,
-    
+
     -- Timestamps
     ingestion_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    
+
     -- Hash pentru deduplicare exactă
     -- NOTĂ: sha256() este funcție NATIVĂ PostgreSQL 11+ (nu necesită pgcrypto)
     -- Documentație: https://www.postgresql.org/docs/current/functions-binarystring.html
@@ -867,14 +908,14 @@ CREATE UNIQUE INDEX idx_bronze_dedup ON bronze_contacts(tenant_id, content_hash)
 
 ### Surse Ingestie Bronze
 
-| Sursă               | Tip Date                  | Format      | Frecvență  |
-|---------------------|---------------------------|-------------|------------|
-| APIA Registre       | [REMOVED]                 | [REMOVED]   | [REMOVED]  |
-| MADR Registre       | OUAI, Cooperative         | PDF tabelar | Lunar      |
-| ONRC/Recom          | Date juridice             | JSON/XML    | La cerere  |
-| Import manual       | Liste prospecți           | CSV/Excel   | Ad-hoc     |
-| Webhook-uri externe | Evenimente real-time      | JSON        | Real-time  |
-| Web scraping        | Site-uri DAJ, ANIF        | HTML parsed | Săptămânal |
+| Sursă               | Tip Date             | Format      | Frecvență  |
+| ------------------- | -------------------- | ----------- | ---------- |
+| APIA Registre       | [REMOVED]            | [REMOVED]   | [REMOVED]  |
+| MADR Registre       | OUAI, Cooperative    | PDF tabelar | Lunar      |
+| ONRC/Recom          | Date juridice        | JSON/XML    | La cerere  |
+| Import manual       | Liste prospecți      | CSV/Excel   | Ad-hoc     |
+| Webhook-uri externe | Evenimente real-time | JSON        | Real-time  |
+| Web scraping        | Site-uri DAJ, ANIF   | HTML parsed | Săptămânal |
 
 ### 3.3 Schema Silver (Validated)
 
@@ -883,33 +924,33 @@ CREATE UNIQUE INDEX idx_bronze_dedup ON bronze_contacts(tenant_id, content_hash)
 CREATE TABLE silver_companies (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL,
-    
+
     -- Identificatori validați
     -- ⚠️ MULTI-TENANT: CUI unic PER TENANT (același CUI poate exista în tenants diferiți)
     cui VARCHAR(12),
     cui_validated BOOLEAN DEFAULT FALSE,
     cui_validation_date TIMESTAMPTZ,
     nr_reg_com VARCHAR(20),
-    
+
     -- Constraint compus pentru izolare multi-tenant
     CONSTRAINT unique_cui_per_tenant UNIQUE(tenant_id, cui),
-    
+
     -- Date normalizate
     denumire VARCHAR(255) NOT NULL,
     denumire_normalizata VARCHAR(255) GENERATED ALWAYS AS (
         UPPER(TRIM(REGEXP_REPLACE(denumire, '\s+', ' ', 'g')))
     ) STORED,
-    
+
     -- Adresă normalizată SIRUTA
     adresa_sediu TEXT,
     judet VARCHAR(50),
     localitate VARCHAR(100),
     cod_siruta INTEGER,
     cod_postal VARCHAR(10),
-    
+
     -- Geografie PostGIS
     location_geography GEOGRAPHY(POINT, 4326),
-    
+
     -- Status fiscal (din ANAF)
     status_firma VARCHAR(20) CHECK (status_firma IN (
         'ACTIVE', 'INACTIVE', 'SUSPENDED', 'RADIATED'
@@ -918,14 +959,14 @@ CREATE TABLE silver_companies (
     data_inregistrare DATE,
     platitor_tva BOOLEAN,
     status_e_factura BOOLEAN,
-    
+
     -- Date financiare (din Termene.ro)
     cifra_afaceri DECIMAL(15,2),
     profit_net DECIMAL(15,2),
     numar_angajati INTEGER,
     an_bilant INTEGER,
     scor_risc_termene INTEGER,  -- 0-100
-    
+
     -- Metadate
     source_bronze_id UUID REFERENCES bronze_contacts(id),
     enrichment_status VARCHAR(20) DEFAULT 'PENDING',
@@ -938,35 +979,35 @@ CREATE TABLE silver_contacts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     company_id UUID REFERENCES silver_companies(id),
     tenant_id UUID NOT NULL,
-    
+
     -- Identificare persoană
     prenume VARCHAR(100),
     nume VARCHAR(100),
     nume_complet VARCHAR(200) GENERATED ALWAYS AS (
         COALESCE(prenume, '') || ' ' || COALESCE(nume, '')
     ) STORED,
-    
+
     -- Contact multi-channel (normalizat)
     email VARCHAR(255),
     email_verified BOOLEAN DEFAULT FALSE,
     email_provider VARCHAR(50),
-    
+
     telefon VARCHAR(20),  -- Format E.164
     telefon_verified BOOLEAN DEFAULT FALSE,
     telefon_carrier VARCHAR(50),
-    
+
     whatsapp_number VARCHAR(20),
     whatsapp_available BOOLEAN,
-    
+
     -- Profesional
     functie VARCHAR(100),
     seniority VARCHAR(30),
-    
+
     -- GDPR
     consent_marketing BOOLEAN,
     consent_date TIMESTAMPTZ,
     data_source VARCHAR(50),
-    
+
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -975,7 +1016,7 @@ CREATE TABLE silver_contacts (
 ### Criterii Avansare Silver → Gold
 
 | Criteriu          | Verificare                       | Obligatoriu |
-|-------------------|----------------------------------|-------------|
+| ----------------- | -------------------------------- | ----------- |
 | CUI Validat       | Modulo-11 + status ACTIV ANAF    | ✅ DA       |
 | Contact Verificat | Email SMTP OK SAU Telefon HLR OK | ✅ DA       |
 | Date Financiare   | Bilanț < 2 ani vechime           | ✅ DA       |
@@ -991,7 +1032,7 @@ CREATE TABLE gold_companies (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     silver_id UUID UNIQUE REFERENCES silver_companies(id),
     tenant_id UUID NOT NULL,
-    
+
     -- ══════════════════════════════════════════════════════════════════
     -- SECȚIUNEA 1: IDENTIFICARE
     -- ══════════════════════════════════════════════════════════════════
@@ -1003,10 +1044,10 @@ CREATE TABLE gold_companies (
     denumire VARCHAR(255) NOT NULL,
     forma_juridica VARCHAR(50),
     tip_entitate VARCHAR(30),
-    
+
     -- Constraint multi-tenant (definit la sfârșitul tabelei)
     -- CONSTRAINT unique_gold_cui_per_tenant UNIQUE(tenant_id, cui),
-    
+
     -- ══════════════════════════════════════════════════════════════════
     -- SECȚIUNEA 2: DATE AGRICOLE SPECIFICE
     -- ══════════════════════════════════════════════════════════════════
@@ -1018,7 +1059,7 @@ CREATE TABLE gold_companies (
     echipamente_agricole JSONB DEFAULT '[]',
     subventii_apia_ultimul_an DECIMAL(15,2),
     certificat_eco BOOLEAN DEFAULT FALSE,
-    
+
     -- ══════════════════════════════════════════════════════════════════
     -- SECȚIUNEA 3: CREDIT SCORING
     -- ══════════════════════════════════════════════════════════════════
@@ -1027,7 +1068,7 @@ CREATE TABLE gold_companies (
     limita_credit_calculata DECIMAL(15,2),
     limita_credit_aprobata DECIMAL(15,2),
     conditii_plata VARCHAR(30),
-    
+
     -- ══════════════════════════════════════════════════════════════════
     -- SECȚIUNEA 4: ENGAGEMENT & LEAD SCORING
     -- ══════════════════════════════════════════════════════════════════
@@ -1035,15 +1076,15 @@ CREATE TABLE gold_companies (
     fit_score INTEGER,
     engagement_score INTEGER,
     intent_score INTEGER,
-    
+
     current_state VARCHAR(30) DEFAULT 'COLD',
-    -- Values: COLD, CONTACTED_WA, CONTACTED_EMAIL, WARM_REPLY, 
+    -- Values: COLD, CONTACTED_WA, CONTACTED_EMAIL, WARM_REPLY,
     --         NEGOTIATION, PROPOSAL, CLOSING, CONVERTED, CHURNED, DEAD
-    
+
     canal_preferat VARCHAR(20),
     data_prima_contactare TIMESTAMPTZ,
     data_ultima_interactiune TIMESTAMPTZ,
-    
+
     -- ══════════════════════════════════════════════════════════════════
     -- SECȚIUNEA 5: GDPR & PREFERINȚE
     -- ══════════════════════════════════════════════════════════════════
@@ -1052,18 +1093,18 @@ CREATE TABLE gold_companies (
     consent_email_marketing BOOLEAN,
     consent_whatsapp BOOLEAN,
     do_not_contact BOOLEAN DEFAULT FALSE,
-    
+
     -- ══════════════════════════════════════════════════════════════════
     -- SECȚIUNEA 6: AI/ML FEATURES
     -- ══════════════════════════════════════════════════════════════════
     embedding VECTOR(1536),
     probabilitate_conversie DECIMAL(5,4),
     probabilitate_churn DECIMAL(5,4),
-    
+
     -- Timestamps
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
-    
+
     -- ⚠️ MULTI-TENANT: CUI unic PER TENANT
     CONSTRAINT unique_gold_cui_per_tenant UNIQUE(tenant_id, cui)
 );
@@ -1073,32 +1114,32 @@ CREATE TABLE gold_lead_journey (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     company_id UUID REFERENCES gold_companies(id),
     tenant_id UUID NOT NULL,
-    
+
     -- FSM State
     current_state VARCHAR(30) NOT NULL DEFAULT 'COLD',
     previous_state VARCHAR(30),
     state_changed_at TIMESTAMPTZ DEFAULT NOW(),
-    
+
     -- Channel attribution
     assigned_phone_number VARCHAR(20),  -- Sticky session WA
     assigned_email_account VARCHAR(100),
-    
+
     -- Sequence tracking
     sequence_id UUID,
     sequence_step INTEGER,
     next_followup_at TIMESTAMPTZ,
-    
+
     -- Flags
     do_not_contact BOOLEAN DEFAULT FALSE,
     requires_human_review BOOLEAN DEFAULT FALSE,
-    
+
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Index pentru FSM queries
 CREATE INDEX idx_journey_state ON gold_lead_journey(current_state, tenant_id);
-CREATE INDEX idx_journey_followup ON gold_lead_journey(next_followup_at) 
+CREATE INDEX idx_journey_followup ON gold_lead_journey(next_followup_at)
     WHERE next_followup_at IS NOT NULL;
 ```
 
@@ -1142,49 +1183,49 @@ CREATE INDEX idx_journey_followup ON gold_lead_journey(next_followup_at)
 
 > **Notă:** Aceste 34 cozi sunt cozile core documentate. Workerii (61 total) pot procesa job-uri din aceste cozi, unii workeri partajând aceeași coadă.
 
-| #  | Queue Name                     | Categorie   | Rate Limit | API          | Cost         |
-|----|--------------------------------|-------------|------------|--------------|--------------|
-| 1  | `bronze:ingest:csv-parser`     | Ingestie    | N/A        | —            | —            |
-| 2  | `bronze:ingest:json-parser`    | Ingestie    | N/A        | —            | —            |
-| 3  | `bronze:ingest:pdf-extractor`  | Ingestie    | N/A        | —            | —            |
-| 4  | `bronze:ingest:html-scraper`   | Ingestie    | N/A        | —            | —            |
-| 5  | `bronze:dedup:hash-checker`    | Dedup       | N/A        | —            | —            |
-| 6  | `silver:norm:company-name`     | Normalizare | N/A        | —            | —            |
-| 7  | `silver:norm:address`          | Normalizare | N/A        | —            | —            |
-| 8  | `silver:norm:phone-e164`       | Normalizare | N/A        | —            | —            |
-| 9  | `silver:norm:email`            | Normalizare | N/A        | —            | —            |
-| 10 | `silver:validate:cui-checksum` | Validare    | N/A        | —            | —            |
-| 11 | `silver:validate:cui-anaf`     | Validare    | **1/sec**  | ANAF         | Gratuit      |
-| 12 | `enrich:anaf:fiscal-status`    | ANAF        | 1/sec      | ANAF         | Gratuit      |
-| 13 | `enrich:anaf:tva-status`       | ANAF        | 1/sec      | ANAF         | Gratuit      |
-| 14 | `enrich:anaf:efactura`         | ANAF        | 1/sec      | ANAF         | Gratuit      |
-| 15 | `enrich:anaf:address`          | ANAF        | 1/sec      | ANAF         | Gratuit      |
-| 16 | `enrich:anaf:caen`             | ANAF        | 1/sec      | ANAF         | Gratuit      |
-| 17 | `enrich:termene:company-base`  | Termene.ro  | **20/sec** | Termene.ro   | Plătit       |
-| 18 | `enrich:termene:financials`    | Termene.ro  | 20/sec     | Termene.ro   | Plătit       |
-| 19 | `enrich:onrc:registration`     | ONRC        | 5/sec      | ONRC         | —            |
-| 20 | `enrich:email:discovery`       | Email       | **15/sec** | Hunter.io    | $0.01/email  |
-| 21 | `enrich:email:mx-check`        | Email       | N/A        | —            | —            |
-| 22 | `enrich:email:smtp-verify`     | Email       | 10/sec     | ZeroBounce   | $0.008/email |
-| 23 | `enrich:phone:type-detect`     | Phone       | N/A        | —            | —            |
-| 24 | `enrich:phone:hlr-lookup`      | Phone       | 5/sec      | HLR Provider | $0.01/lookup |
-| 25 | `enrich:phone:whatsapp-check`  | Phone       | 50/min     | TimelinesAI  | —            |
-| 26 | `enrich:web:fetch`             | Scraping    | N/A        | —            | —            |
-| 27 | `enrich:ai:text-structure`     | AI          | 60/min     | Grok         | —            |
-| 28 | `enrich:geo:geocode`           | Geocoding   | **50/sec** | Nominatim    | Gratuit      |
-| 29 | `enrich:apia:farmer-lookup`    | Agricol     | N/A        | Scraping     | —            |
-| 30 | `silver:dedup:fuzzy-match`     | Dedup       | N/A        | —            | —            |
-| 31 | `silver:quality:completeness`  | QA          | N/A        | —            | —            |
-| 32 | `silver:merge:company`         | Merge       | N/A        | —            | —            |
-| 33 | `pipeline:orchestrator:start`  | Control     | N/A        | —            | —            |
-| 34 | `pipeline:monitor:health`      | Monitor     | Cron */5m  | —            | —            |
+| #   | Queue Name                     | Categorie   | Rate Limit | API          | Cost         |
+| --- | ------------------------------ | ----------- | ---------- | ------------ | ------------ |
+| 1   | `bronze:ingest:csv-parser`     | Ingestie    | N/A        | —            | —            |
+| 2   | `bronze:ingest:json-parser`    | Ingestie    | N/A        | —            | —            |
+| 3   | `bronze:ingest:pdf-extractor`  | Ingestie    | N/A        | —            | —            |
+| 4   | `bronze:ingest:html-scraper`   | Ingestie    | N/A        | —            | —            |
+| 5   | `bronze:dedup:hash-checker`    | Dedup       | N/A        | —            | —            |
+| 6   | `silver:norm:company-name`     | Normalizare | N/A        | —            | —            |
+| 7   | `silver:norm:address`          | Normalizare | N/A        | —            | —            |
+| 8   | `silver:norm:phone-e164`       | Normalizare | N/A        | —            | —            |
+| 9   | `silver:norm:email`            | Normalizare | N/A        | —            | —            |
+| 10  | `silver:validate:cui-checksum` | Validare    | N/A        | —            | —            |
+| 11  | `silver:validate:cui-anaf`     | Validare    | **1/sec**  | ANAF         | Gratuit      |
+| 12  | `enrich:anaf:fiscal-status`    | ANAF        | 1/sec      | ANAF         | Gratuit      |
+| 13  | `enrich:anaf:tva-status`       | ANAF        | 1/sec      | ANAF         | Gratuit      |
+| 14  | `enrich:anaf:efactura`         | ANAF        | 1/sec      | ANAF         | Gratuit      |
+| 15  | `enrich:anaf:address`          | ANAF        | 1/sec      | ANAF         | Gratuit      |
+| 16  | `enrich:anaf:caen`             | ANAF        | 1/sec      | ANAF         | Gratuit      |
+| 17  | `enrich:termene:company-base`  | Termene.ro  | **20/sec** | Termene.ro   | Plătit       |
+| 18  | `enrich:termene:financials`    | Termene.ro  | 20/sec     | Termene.ro   | Plătit       |
+| 19  | `enrich:onrc:registration`     | ONRC        | 5/sec      | ONRC         | —            |
+| 20  | `enrich:email:discovery`       | Email       | **15/sec** | Hunter.io    | $0.01/email  |
+| 21  | `enrich:email:mx-check`        | Email       | N/A        | —            | —            |
+| 22  | `enrich:email:smtp-verify`     | Email       | 10/sec     | ZeroBounce   | $0.008/email |
+| 23  | `enrich:phone:type-detect`     | Phone       | N/A        | —            | —            |
+| 24  | `enrich:phone:hlr-lookup`      | Phone       | 5/sec      | HLR Provider | $0.01/lookup |
+| 25  | `enrich:phone:whatsapp-check`  | Phone       | 50/min     | TimelinesAI  | —            |
+| 26  | `enrich:web:fetch`             | Scraping    | N/A        | —            | —            |
+| 27  | `enrich:ai:text-structure`     | AI          | 60/min     | Grok         | —            |
+| 28  | `enrich:geo:geocode`           | Geocoding   | **50/sec** | Nominatim    | Gratuit      |
+| 29  | `enrich:apia:farmer-lookup`    | Agricol     | N/A        | Scraping     | —            |
+| 30  | `silver:dedup:fuzzy-match`     | Dedup       | N/A        | —            | —            |
+| 31  | `silver:quality:completeness`  | QA          | N/A        | —            | —            |
+| 32  | `silver:merge:company`         | Merge       | N/A        | —            | —            |
+| 33  | `pipeline:orchestrator:start`  | Control     | N/A        | —            | —            |
+| 34  | `pipeline:monitor:health`      | Monitor     | Cron \*/5m | —            | —            |
 
 #### Etapa 2: Cold Outreach (52 cozi logice, 60 fizice)
 
 > **Notă:** Liniile 6-25 și 26-45 reprezintă range-uri (20 cozi fiecare). Total fizic: 60 cozi. Total logic/workeri: 52.
 
 | #     | Queue Name                       | Categorie    | Rate Limit         | API          | Cost        |
-|-------|----------------------------------|--------------|--------------------|--------------|-------------|
+| ----- | -------------------------------- | ------------ | ------------------ | ------------ | ----------- |
 | 1     | `quota:guardian:check`           | Quota        | N/A                | —            | —           |
 | 2     | `quota:guardian:increment`       | Quota        | N/A                | —            | —           |
 | 3     | `quota:guardian:reset`           | Quota        | Cron 00:00         | —            | —           |
@@ -1203,15 +1244,15 @@ CREATE INDEX idx_journey_followup ON gold_lead_journey(next_followup_at)
 | 54    | `sequence:schedule:followup`     | Sequences    | N/A                | —            | —           |
 | 55    | `lead:state:transition`          | State        | N/A                | —            | —           |
 | 56    | `ai:sentiment:analyze`           | AI           | N/A                | —            | —           |
-| 57    | `monitor:phone:health`           | Monitor      | Cron */5m          | —            | —           |
-| 58    | `monitor:email:deliverability`   | Monitor      | Cron */1h          | —            | —           |
+| 57    | `monitor:phone:health`           | Monitor      | Cron \*/5m         | —            | —           |
+| 58    | `monitor:email:deliverability`   | Monitor      | Cron \*/1h         | —            | —           |
 | 59    | `human:review:queue`             | HITL         | N/A                | —            | —           |
 | 60    | `escalations`                    | HITL         | N/A                | —            | —           |
 
 #### Etapa 3-5: Additional Queues
 
 | Queue Name             | Etapa | Scop                 |
-|------------------------|-------|----------------------|
+| ---------------------- | ----- | -------------------- |
 | `e3:sales:proposal`    | E3    | Generare oferte AI   |
 | `e3:invoice:oblio`     | E3    | Creare facturi Oblio |
 | `e3:efactura:submit`   | E3    | Submit ANAF          |
@@ -1230,31 +1271,31 @@ CREATE INDEX idx_journey_followup ON gold_lead_journey(next_followup_at)
 // Event type enum canonical
 enum PipelineEvent {
   // Lifecycle
-  JOB_STARTED = 'JOB_STARTED',
-  JOB_COMPLETED = 'JOB_COMPLETED',
-  JOB_FAILED = 'JOB_FAILED',
-  JOB_RETRIED = 'JOB_RETRIED',
-  
+  JOB_STARTED = "JOB_STARTED",
+  JOB_COMPLETED = "JOB_COMPLETED",
+  JOB_FAILED = "JOB_FAILED",
+  JOB_RETRIED = "JOB_RETRIED",
+
   // Enrichment
-  ENRICHMENT_STARTED = 'ENRICHMENT_STARTED',
-  ENRICHMENT_COMPLETED = 'ENRICHMENT_COMPLETED',
-  ENRICHMENT_FAILED = 'ENRICHMENT_FAILED',
-  ENRICHMENT_PARTIAL = 'ENRICHMENT_PARTIAL',
-  
+  ENRICHMENT_STARTED = "ENRICHMENT_STARTED",
+  ENRICHMENT_COMPLETED = "ENRICHMENT_COMPLETED",
+  ENRICHMENT_FAILED = "ENRICHMENT_FAILED",
+  ENRICHMENT_PARTIAL = "ENRICHMENT_PARTIAL",
+
   // Validation
-  VALIDATION_PASSED = 'VALIDATION_PASSED',
-  VALIDATION_FAILED = 'VALIDATION_FAILED',
-  
+  VALIDATION_PASSED = "VALIDATION_PASSED",
+  VALIDATION_FAILED = "VALIDATION_FAILED",
+
   // Entity lifecycle
-  ENTITY_CREATED = 'ENTITY_CREATED',
-  ENTITY_UPDATED = 'ENTITY_UPDATED',
-  ENTITY_MERGED = 'ENTITY_MERGED',
-  ENTITY_DELETED = 'ENTITY_DELETED',
-  
+  ENTITY_CREATED = "ENTITY_CREATED",
+  ENTITY_UPDATED = "ENTITY_UPDATED",
+  ENTITY_MERGED = "ENTITY_MERGED",
+  ENTITY_DELETED = "ENTITY_DELETED",
+
   // Quality
-  QUALITY_SCORE_UPDATED = 'QUALITY_SCORE_UPDATED',
-  TIER_PROMOTED = 'TIER_PROMOTED',  // Bronze→Silver, Silver→Gold
-  TIER_DEMOTED = 'TIER_DEMOTED',
+  QUALITY_SCORE_UPDATED = "QUALITY_SCORE_UPDATED",
+  TIER_PROMOTED = "TIER_PROMOTED", // Bronze→Silver, Silver→Gold
+  TIER_DEMOTED = "TIER_DEMOTED",
 }
 ```
 
@@ -1262,15 +1303,15 @@ enum PipelineEvent {
 
 ```typescript
 enum HITLEvent {
-  APPROVAL_CREATED = 'APPROVAL_CREATED',
-  APPROVAL_ASSIGNED = 'APPROVAL_ASSIGNED',
-  APPROVAL_STARTED = 'APPROVAL_STARTED',
-  APPROVAL_COMPLETED = 'APPROVAL_COMPLETED',
-  APPROVAL_REJECTED = 'APPROVAL_REJECTED',
-  APPROVAL_ESCALATED = 'APPROVAL_ESCALATED',
-  APPROVAL_EXPIRED = 'APPROVAL_EXPIRED',
-  SLA_WARNING_80 = 'SLA_WARNING_80',
-  SLA_BREACHED = 'SLA_BREACHED',
+  APPROVAL_CREATED = "APPROVAL_CREATED",
+  APPROVAL_ASSIGNED = "APPROVAL_ASSIGNED",
+  APPROVAL_STARTED = "APPROVAL_STARTED",
+  APPROVAL_COMPLETED = "APPROVAL_COMPLETED",
+  APPROVAL_REJECTED = "APPROVAL_REJECTED",
+  APPROVAL_ESCALATED = "APPROVAL_ESCALATED",
+  APPROVAL_EXPIRED = "APPROVAL_EXPIRED",
+  SLA_WARNING_80 = "SLA_WARNING_80",
+  SLA_BREACHED = "SLA_BREACHED",
 }
 ```
 
@@ -1279,25 +1320,25 @@ enum HITLEvent {
 ```typescript
 enum OutreachEvent {
   // WhatsApp
-  WA_MESSAGE_QUEUED = 'WA_MESSAGE_QUEUED',
-  WA_MESSAGE_SENT = 'WA_MESSAGE_SENT',
-  WA_MESSAGE_DELIVERED = 'WA_MESSAGE_DELIVERED',
-  WA_MESSAGE_READ = 'WA_MESSAGE_READ',
-  WA_REPLY_RECEIVED = 'WA_REPLY_RECEIVED',
-  
+  WA_MESSAGE_QUEUED = "WA_MESSAGE_QUEUED",
+  WA_MESSAGE_SENT = "WA_MESSAGE_SENT",
+  WA_MESSAGE_DELIVERED = "WA_MESSAGE_DELIVERED",
+  WA_MESSAGE_READ = "WA_MESSAGE_READ",
+  WA_REPLY_RECEIVED = "WA_REPLY_RECEIVED",
+
   // Email
-  EMAIL_QUEUED = 'EMAIL_QUEUED',
-  EMAIL_SENT = 'EMAIL_SENT',
-  EMAIL_DELIVERED = 'EMAIL_DELIVERED',
-  EMAIL_OPENED = 'EMAIL_OPENED',
-  EMAIL_CLICKED = 'EMAIL_CLICKED',
-  EMAIL_BOUNCED = 'EMAIL_BOUNCED',
-  EMAIL_REPLIED = 'EMAIL_REPLIED',
-  
+  EMAIL_QUEUED = "EMAIL_QUEUED",
+  EMAIL_SENT = "EMAIL_SENT",
+  EMAIL_DELIVERED = "EMAIL_DELIVERED",
+  EMAIL_OPENED = "EMAIL_OPENED",
+  EMAIL_CLICKED = "EMAIL_CLICKED",
+  EMAIL_BOUNCED = "EMAIL_BOUNCED",
+  EMAIL_REPLIED = "EMAIL_REPLIED",
+
   // Lead journey
-  LEAD_STATE_CHANGED = 'LEAD_STATE_CHANGED',
-  LEAD_CONVERTED = 'LEAD_CONVERTED',
-  LEAD_CHURNED = 'LEAD_CHURNED',
+  LEAD_STATE_CHANGED = "LEAD_STATE_CHANGED",
+  LEAD_CONVERTED = "LEAD_CONVERTED",
+  LEAD_CHURNED = "LEAD_CHURNED",
 }
 ```
 
@@ -1325,7 +1366,7 @@ enum OutreachEvent {
 #### User Identity Contract
 
 | Câmp            | Tip     | Descriere                              |
-|-----------------|---------|----------------------------------------|
+| --------------- | ------- | -------------------------------------- |
 | `assigned_to`   | UUID    | OBLIGATORIU - referință la `users(id)` |
 | `assigned_role` | VARCHAR | Rol funcțional (pentru routing)        |
 | `decided_by`    | UUID    | OBLIGATORIU la rezoluție - `users(id)` |
@@ -1346,7 +1387,7 @@ Sistemul HITL folosește **asocieri polimorfe** pentru a gestiona aprobări din 
 ### 5.4 SLA Tiers
 
 | Priority     | Calendar Hours | Business Hours        | Use Case                    |
-|--------------|----------------|-----------------------|-----------------------------|
+| ------------ | -------------- | --------------------- | --------------------------- |
 | **Critical** | 4h             | 4h (always on)        | Security, production issues |
 | **High**     | 8h             | 8h                    | Time-sensitive deals        |
 | **Normal**   | 24h            | 16h (2 business days) | Standard approvals          |
@@ -1355,7 +1396,7 @@ Sistemul HITL folosește **asocieri polimorfe** pentru a gestiona aprobări din 
 ### 5.5 Approval Type Matrix per Etapă
 
 | Etapă            | approval_type       | Trigger Condition                 | SLA | Timeout Action |
-|------------------|---------------------|-----------------------------------|-----|----------------|
+| ---------------- | ------------------- | --------------------------------- | --- | -------------- |
 | **E1** Data      | `data_quality`      | Completeness < 70%                | 24h | Escalate       |
 | **E2** Outreach  | `content_review`    | First message to segment          | 8h  | Escalate       |
 | **E3** AI Sales  | `pricing_approval`  | Discount > 15% OR value > €50K    | 4h  | Escalate to VP |
@@ -1367,48 +1408,48 @@ Sistemul HITL folosește **asocieri polimorfe** pentru a gestiona aprobări din 
 ```typescript
 // Stările HITL approval machine
 const approvalStates = {
-    pending: {
-        on: { ASSIGN: 'assigned', AUTO_ASSIGN: 'assigned' }
+  pending: {
+    on: { ASSIGN: "assigned", AUTO_ASSIGN: "assigned" },
+  },
+  assigned: {
+    on: {
+      START_REVIEW: "in_review",
+      REASSIGN: "assigned",
+      TIMEOUT: { target: "escalated", guard: "shouldEscalate" },
     },
-    assigned: {
-        on: { 
-            START_REVIEW: 'in_review',
-            REASSIGN: 'assigned',
-            TIMEOUT: { target: 'escalated', guard: 'shouldEscalate' }
-        }
+  },
+  in_review: {
+    on: {
+      APPROVE: { target: "approved", guard: "canApprove" },
+      REJECT: "rejected",
+      REQUEST_INFO: "pending_info",
+      ESCALATE: "escalated",
     },
-    in_review: {
-        on: {
-            APPROVE: { target: 'approved', guard: 'canApprove' },
-            REJECT: 'rejected',
-            REQUEST_INFO: 'pending_info',
-            ESCALATE: 'escalated'
-        }
+  },
+  pending_info: {
+    entry: "pauseSLA",
+    exit: "resumeSLA",
+    on: { INFO_PROVIDED: "in_review", TIMEOUT: "escalated" },
+  },
+  escalated: {
+    entry: "incrementLevel",
+    on: {
+      ASSIGN: "assigned",
+      APPROVE: "approved",
+      REJECT: "rejected",
+      MAX_ESCALATION: "expired",
     },
-    pending_info: {
-        entry: 'pauseSLA',
-        exit: 'resumeSLA',
-        on: { INFO_PROVIDED: 'in_review', TIMEOUT: 'escalated' }
-    },
-    escalated: {
-        entry: 'incrementLevel',
-        on: {
-            ASSIGN: 'assigned',
-            APPROVE: 'approved',
-            REJECT: 'rejected',
-            MAX_ESCALATION: 'expired'
-        }
-    },
-    approved: { type: 'final', entry: 'notifyApproved' },
-    rejected: { type: 'final', entry: 'notifyRejected' },
-    expired: { type: 'final', entry: 'notifyExpired' }
+  },
+  approved: { type: "final", entry: "notifyApproved" },
+  rejected: { type: "final", entry: "notifyRejected" },
+  expired: { type: "final", entry: "notifyExpired" },
 };
 ```
 
 ## 5.7 KPIs Dashboard
 
 | KPI                        | Calcul                                       | Target |
-|----------------------------|----------------------------------------------|--------|
+| -------------------------- | -------------------------------------------- | ------ |
 | **Time-to-Approve**        | `AVG(decided_at - created_at)`               | < 24h  |
 | **Approval Rate**          | `COUNT(approved) / COUNT(*)`                 | 70-90% |
 | **Escalation Rate**        | `COUNT(escalated) / COUNT(*)`                | < 10%  |
@@ -1426,7 +1467,7 @@ const approvalStates = {
 CREATE TABLE integration_configs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL,
-    
+
     -- Identificare integrare
     integration_name VARCHAR(100) NOT NULL,
     integration_type VARCHAR(50) NOT NULL
@@ -1434,32 +1475,32 @@ CREATE TABLE integration_configs (
             'api', 'webhook', 'oauth', 'smtp', 'messaging'
         )),
     provider VARCHAR(100) NOT NULL,
-    
+
     -- Endpoint configuration
     base_url TEXT NOT NULL,
     api_version VARCHAR(20),
-    
+
     -- Rate limiting
     rate_limit_requests INTEGER,
     rate_limit_window_seconds INTEGER,
     rate_limit_strategy VARCHAR(20) DEFAULT 'token_bucket'
         CHECK (rate_limit_strategy IN ('token_bucket', 'sliding_window', 'fixed_window')),
-    
+
     -- Credentials (reference to Vault)
     vault_path TEXT,
     credential_type VARCHAR(50),
-    
+
     -- Health & status
     is_active BOOLEAN DEFAULT TRUE,
     health_check_url TEXT,
     last_health_check TIMESTAMPTZ,
     health_status VARCHAR(20) DEFAULT 'unknown',
-    
+
     -- Metadata
     config_metadata JSONB DEFAULT '{}',
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
-    
+
     UNIQUE(tenant_id, integration_name)
 );
 
@@ -1467,39 +1508,39 @@ CREATE TABLE integration_configs (
 CREATE TABLE integration_credentials (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     integration_config_id UUID REFERENCES integration_configs(id) ON DELETE CASCADE,
-    
+
     environment VARCHAR(20) NOT NULL
         CHECK (environment IN ('development', 'staging', 'production')),
-    
+
     -- Encrypted credentials (sau referință Vault)
     vault_secret_path TEXT NOT NULL,
     credential_version INTEGER DEFAULT 1,
-    
+
     -- Rotation tracking
     created_at TIMESTAMPTZ DEFAULT NOW(),
     expires_at TIMESTAMPTZ,
     last_rotated_at TIMESTAMPTZ,
     rotation_interval_days INTEGER,
-    
+
     UNIQUE(integration_config_id, environment)
 );
 ```
 
 ### 6.2 Integration Registry Canonical
 
-| Integration      | Provider    | Type  | Rate Limit | Auth          | Vault Path              |
-|------------------|-------------|-------|------------|---------------|-------------------------|
+| Integration      | Provider    | Type  | Rate Limit                      | Auth          | Vault Path              |
+| ---------------- | ----------- | ----- | ------------------------------- | ------------- | ----------------------- |
 | **ANAF API**     | ANAF        | oauth | 1 req/sec (max 100 CUI/request) | OAuth2 + Cert | `secret/anaf/oauth`     |
-| **Termene.ro**   | Termene.ro  | api   | 20/sec     | API Key       | `secret/termene/api`    |
-| **Hunter.io**    | Hunter      | api   | 15/sec     | API Key       | `secret/hunter/api`     |
-| **ZeroBounce**   | ZeroBounce  | api   | 10/sec     | API Key       | `secret/zerobounce/api` |
-| **TimelinesAI**  | TimelinesAI | api   | 50/min     | API Key       | `secret/timelines/api`  |
-| **Instantly.ai** | Instantly   | api   | 100/10s    | Bearer Token  | `secret/instantly/api`  |
-| **Resend**       | Resend      | api   | 100/sec    | API Key       | `secret/resend/api`     |
-| **Oblio.eu**     | Oblio       | api   | 60/min     | API Key       | `secret/oblio/api`      |
-| **Revolut**      | Revolut     | oauth | 100/min    | OAuth2        | `secret/revolut/oauth`  |
-| **Sameday**      | Sameday     | api   | 30/min     | API Key       | `secret/sameday/api`    |
-| **Nominatim**    | OSM         | api   | 50/sec     | None          | —                       |
+| **Termene.ro**   | Termene.ro  | api   | 20/sec                          | API Key       | `secret/termene/api`    |
+| **Hunter.io**    | Hunter      | api   | 15/sec                          | API Key       | `secret/hunter/api`     |
+| **ZeroBounce**   | ZeroBounce  | api   | 10/sec                          | API Key       | `secret/zerobounce/api` |
+| **TimelinesAI**  | TimelinesAI | api   | 50/min                          | API Key       | `secret/timelines/api`  |
+| **Instantly.ai** | Instantly   | api   | 100/10s                         | Bearer Token  | `secret/instantly/api`  |
+| **Resend**       | Resend      | api   | 100/sec                         | API Key       | `secret/resend/api`     |
+| **Oblio.eu**     | Oblio       | api   | 60/min                          | API Key       | `secret/oblio/api`      |
+| **Revolut**      | Revolut     | oauth | 100/min                         | OAuth2        | `secret/revolut/oauth`  |
+| **Sameday**      | Sameday     | api   | 30/min                          | API Key       | `secret/sameday/api`    |
+| **Nominatim**    | OSM         | api   | 50/sec                          | None          | —                       |
 
 ### 6.3 Secrets Management Pattern (OpenBao)
 
@@ -1509,34 +1550,35 @@ CREATE TABLE integration_credentials (
 ```typescript
 // OpenBao configuration per tenant
 interface OpenBaoConfig {
-  server: 'http://openbao:8200';
-  authMethod: 'approle';
+  // Acces prin Traefik (HTTPS :443) catre OpenBao pe orchestrator
+  server: "https://s3cr3ts.neanelu.ro";
+  authMethod: "approle";
   paths: {
-    // Static secrets (KV v2)
+    // Static secrets (KV v1 pe orchestrator)
     static: {
-      api: 'secret/data/cerniq/api/config';       // Redis, JWT, etc.
-      shared: 'secret/data/cerniq/shared/external'; // ANAF, Termene, etc.
+      api: "secret/cerniq/api/config"; // Redis, JWT, etc.
+      shared: "secret/cerniq/shared/external"; // ANAF, Termene, etc.
     };
     // Dynamic secrets
     dynamic: {
-      database: 'database/creds/api-role';  // Auto-rotating PostgreSQL
+      database: "cerniq-db/creds/api-dynamic"; // Auto-rotating PostgreSQL
     };
     // Multi-tenant (Etapa 2+)
-    tenant: `secret/data/tenants/${tenantId}`;
+    tenant: `secret/tenants/${tenantId}`;
   };
   rotation: {
-    staticSecrets: '90d';      // Quarterly rotation
-    dynamicCredentials: '1h';   // Auto-rotation by OpenBao
-    appRoleSecretId: '30d';    // Monthly rotation
+    staticSecrets: "90d"; // Quarterly rotation
+    dynamicCredentials: "1h"; // Auto-rotation by OpenBao
+    appRoleSecretId: "30d"; // Monthly rotation
   };
 }
 
 // Service authentication via Agent sidecar
 interface AgentConfig {
-  templatePath: '/openbao/templates/api-env.tpl';
-  outputPath: '/secrets/api.env';
+  templatePath: "/openbao/templates/api-env.tpl";
+  outputPath: "/secrets/api.env";
   renewToken: true;
-  refreshInterval: '5m';
+  refreshInterval: "5m";
 }
 ```
 
@@ -1547,12 +1589,12 @@ interface AgentConfig {
 interface RateLimitConfig {
   integration: string;
   tenantId: string;
-  
+
   // Bucket config
   maxTokens: number;
-  refillRate: number;  // tokens per second
-  refillInterval: number;  // ms
-  
+  refillRate: number; // tokens per second
+  refillInterval: number; // ms
+
   // Current state (Redis)
   redisKey: `ratelimit:${tenantId}:${integration}`;
 }
@@ -1588,13 +1630,13 @@ const consumeToken = `
 CREATE TABLE integration_health_events (
     id BIGSERIAL PRIMARY KEY,
     integration_config_id UUID REFERENCES integration_configs(id),
-    
+
     check_timestamp TIMESTAMPTZ DEFAULT NOW(),
     response_time_ms INTEGER,
     status_code INTEGER,
     is_healthy BOOLEAN,
     error_message TEXT,
-    
+
     -- Nu păstrăm la infinit
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -1619,13 +1661,13 @@ CREATE INDEX idx_health_cleanup ON integration_health_events(created_at);
     • Permisiuni coarse-grained
     • Roluri: admin, manager, sales_rep, viewer
     • Mapare: Role → Permissions
-    
+
     Layer 2: ReBAC (Relationship-Based)
     ────────────────────────────────────
     • Permisiuni pe bază de relații
     • Ownership, team membership
     • Ex: "user owns lead" → can edit
-    
+
     Layer 3: ABAC (Attribute-Based)
     ────────────────────────────────
     • Constrângeri contextuale
@@ -1640,33 +1682,33 @@ CREATE INDEX idx_health_cleanup ON integration_health_events(created_at);
 CREATE TABLE roles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL,
-    
+
     name VARCHAR(100) NOT NULL,
     description TEXT,
-    
+
     -- Hierarchy
     parent_role_id UUID REFERENCES roles(id),
     hierarchy_level INTEGER DEFAULT 0,
-    
+
     is_system_role BOOLEAN DEFAULT FALSE,
     is_active BOOLEAN DEFAULT TRUE,
-    
+
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
-    
+
     UNIQUE(tenant_id, name)
 );
 
 -- TABELĂ CANONICĂ: permissions
 CREATE TABLE permissions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    
+
     resource VARCHAR(100) NOT NULL,  -- 'leads', 'companies', 'approvals'
     action VARCHAR(50) NOT NULL,      -- 'create', 'read', 'update', 'delete', 'approve'
-    
+
     description TEXT,
     is_active BOOLEAN DEFAULT TRUE,
-    
+
     UNIQUE(resource, action)
 );
 
@@ -1674,13 +1716,13 @@ CREATE TABLE permissions (
 CREATE TABLE role_permissions (
     role_id UUID REFERENCES roles(id) ON DELETE CASCADE,
     permission_id UUID REFERENCES permissions(id) ON DELETE CASCADE,
-    
+
     -- Condiții ABAC (opțional)
     conditions JSONB DEFAULT '{}',
-    
+
     granted_at TIMESTAMPTZ DEFAULT NOW(),
     granted_by UUID REFERENCES users(id),
-    
+
     PRIMARY KEY (role_id, permission_id)
 );
 
@@ -1689,14 +1731,14 @@ CREATE TABLE user_roles (
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     role_id UUID REFERENCES roles(id) ON DELETE CASCADE,
     tenant_id UUID NOT NULL,
-    
+
     -- Temporal validity
     valid_from TIMESTAMPTZ DEFAULT NOW(),
     valid_until TIMESTAMPTZ,
-    
+
     assigned_at TIMESTAMPTZ DEFAULT NOW(),
     assigned_by UUID REFERENCES users(id),
-    
+
     PRIMARY KEY (user_id, role_id, tenant_id)
 );
 ```
@@ -1731,7 +1773,7 @@ CREATE POLICY tenant_isolation_approvals ON approval_tasks
 ### 7.4 Roluri Predefinite
 
 | Role              | Level | Permissions                                | Descriere                    |
-|-------------------|-------|--------------------------------------------|------------------------------|
+| ----------------- | ----- | ------------------------------------------ | ---------------------------- |
 | **super_admin**   | 0     | `*:*`                                      | Acces complet, toate tenants |
 | **tenant_admin**  | 1     | `tenant:*`                                 | Admin pe tenant              |
 | **sales_manager** | 2     | `leads:*, approvals:approve, reports:read` | Manager vânzări              |
@@ -1746,33 +1788,33 @@ CREATE POLICY tenant_isolation_approvals ON approval_tasks
 CREATE TABLE approval_audit_log (
     id BIGSERIAL PRIMARY KEY,
     approval_task_id UUID REFERENCES approval_tasks(id),
-    
+
     -- Event details
     event_type VARCHAR(100) NOT NULL,
     event_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    
+
     -- Actor information
     actor_user_id UUID NOT NULL,
     actor_email TEXT,
     actor_role TEXT,
     actor_on_behalf_of UUID,  -- Delegation tracking
-    
+
     -- Context
     source_ip INET,
     user_agent TEXT,
     session_id TEXT,
-    
+
     -- State changes
     previous_state JSONB,
     new_state JSONB,
-    
+
     -- Decision context
     decision_rationale TEXT,
-    
+
     -- Immutability - hash chain
     event_hash TEXT NOT NULL,
     previous_hash TEXT,
-    
+
     -- GDPR
     contains_pii BOOLEAN DEFAULT FALSE,
     retention_category TEXT DEFAULT 'standard'
@@ -1805,17 +1847,17 @@ BEGIN
     SELECT event_hash INTO v_prev_hash
     FROM approval_audit_log
     ORDER BY id DESC LIMIT 1;
-    
+
     IF v_prev_hash IS NULL THEN
         v_prev_hash := encode(sha256('GENESIS'::bytea), 'hex');
     END IF;
-    
-    v_content := v_prev_hash || NEW.approval_task_id || NEW.event_type 
+
+    v_content := v_prev_hash || NEW.approval_task_id || NEW.event_type
         || NEW.event_timestamp || NEW.actor_user_id;
-    
+
     NEW.previous_hash := v_prev_hash;
     NEW.event_hash := encode(sha256(v_content::bytea), 'hex');
-    
+
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -1853,13 +1895,13 @@ DECLARE
     v_count INTEGER;
 BEGIN
     UPDATE approval_audit_log
-    SET 
+    SET
         actor_email = 'ANONYMIZED',
         source_ip = '0.0.0.0'::INET,
         user_agent = 'ANONYMIZED'
     WHERE actor_user_id = p_user_id
         AND contains_pii = TRUE;
-    
+
     GET DIAGNOSTICS v_count = ROW_COUNT;
     RETURN v_count;
 END;
@@ -1880,54 +1922,54 @@ $$ LANGUAGE plpgsql;
 
 #### 8.1.1 Documente Normative (Tier 2)
 
-| # | Document                                          | Tip            | Status   | Versiune Validată | Override Notes          |
-|---|---------------------------------------------------|----------------|----------|-------------------|-------------------------|
-| 1 | `Unified_HITL_Approval_System.md`                 | Normativ       | ✅ VALID | Jan 2026          | —                       |
-| 2 | `TOC_Plan_Dezvoltare_Cerniq_App.rtf`              | Normativ/Plan  | ✅ VALID | Jan 2026          | —                       |
-| 3 | `__Cerniq_App_-_Introducere.rtf`                  | Normativ       | ✅ VALID | Jan 2026          | —                       |
-| 4 | `Tehnologii_Active_Ianuarie_2026.rtf`             | Normativ       | ✅ VALID | Jan 2026          | React → 19.2.3 (master) |
-| 5 | `__Docker_Infrastructure_Technical_Reference.rtf` | Normativ       | ✅ VALID | Jan 2026          | —                       |
+| #   | Document                                          | Tip           | Status   | Versiune Validată | Override Notes          |
+| --- | ------------------------------------------------- | ------------- | -------- | ----------------- | ----------------------- |
+| 1   | `Unified_HITL_Approval_System.md`                 | Normativ      | ✅ VALID | Jan 2026          | —                       |
+| 2   | `TOC_Plan_Dezvoltare_Cerniq_App.rtf`              | Normativ/Plan | ✅ VALID | Jan 2026          | —                       |
+| 3   | `__Cerniq_App_-_Introducere.rtf`                  | Normativ      | ✅ VALID | Jan 2026          | —                       |
+| 4   | `Tehnologii_Active_Ianuarie_2026.rtf`             | Normativ      | ✅ VALID | Jan 2026          | React → 19.2.3 (master) |
+| 5   | `__Docker_Infrastructure_Technical_Reference.rtf` | Normativ      | ✅ VALID | Jan 2026          | —                       |
 
 #### 8.1.1a Architecture Decision Records (ADR-uri Cheie)
 
-| ADR | Titlu | Etapa | Status | Data | Referință |
-|-----|-------|-------|--------|------|-----------|
-| ADR-0031 | Provider Abstraction Layer | E0 | ✅ Accepted | 2026-02-01 | [ADR-0031](../adr/ADR%20Etapa%200/ADR-0031-Provider-Abstraction-Layer.md) |
+| ADR      | Titlu                      | Etapa | Status      | Data       | Referință                                                                 |
+| -------- | -------------------------- | ----- | ----------- | ---------- | ------------------------------------------------------------------------- |
+| ADR-0031 | Provider Abstraction Layer | E0    | ✅ Accepted | 2026-02-01 | [ADR-0031](../adr/ADR%20Etapa%200/ADR-0031-Provider-Abstraction-Layer.md) |
 
 > **NOTĂ:** Pentru lista completă de ADR-uri, consultați [ADR-INDEX.md](../adr/ADR-INDEX.md)
 
 #### 8.1.2 Documente Strategie per Etapă (Tier 3)
 
-| #  | Document                                           | Etapa | Status   | Override Notes |
-|----|----------------------------------------------------|-------|----------|----------------|
-| 6  | `Etapa_1_-_Strategie_Data_Enrichment.rtf`          | E1    | ✅ VALID | —              |
-| 7  | `__Etapa_1_-_Frontend_strategy___tech_stack.md`    | E1    | ✅ VALID | —              |
-| 8  | `__Etapa_1_-_Cerniq_UI_UX_Complet.rtf`             | E1    | ✅ VALID | —              |
-| 9  | `Etapa_2_-_Optimizare_Strategie_Cold_Outreach.rtf` | E2    | ✅ VALID | —              |
-| 10 | `Etapa_3_-_Strategie_și_Plan.rtf`                  | E3    | ✅ VALID | —              |
-| 11 | `Etapa_3_-_Strategie_Generala_Ofertare.rtf`        | E3    | ✅ VALID | —              |
-| 12 | `Date_pentru_Etapa_3_-_AI_pentru_Vânzări.rtf`      | E3    | ✅ VALID | —              |
-| 13 | `Etapa_4__Monitorizare_Vânzare.rtf`                | E4    | ✅ VALID | —              |
-| 14 | `Etapa_5_-_Strategie_Nurturing_Leads.rtf`          | E5    | ✅ VALID | —              |
-| 15 | `Extindere_Etapa_5__Grupuri_și_Asocieri.rtf`       | E5    | ✅ VALID | —              |
-| 16 | `Roadmap_Paralel_Vanzari_AI_-_Cerniq_app.rtf`      | All   | ✅ VALID | —              |
+| #   | Document                                           | Etapa | Status   | Override Notes |
+| --- | -------------------------------------------------- | ----- | -------- | -------------- |
+| 6   | `Etapa_1_-_Strategie_Data_Enrichment.rtf`          | E1    | ✅ VALID | —              |
+| 7   | `__Etapa_1_-_Frontend_strategy___tech_stack.md`    | E1    | ✅ VALID | —              |
+| 8   | `__Etapa_1_-_Cerniq_UI_UX_Complet.rtf`             | E1    | ✅ VALID | —              |
+| 9   | `Etapa_2_-_Optimizare_Strategie_Cold_Outreach.rtf` | E2    | ✅ VALID | —              |
+| 10  | `Etapa_3_-_Strategie_și_Plan.rtf`                  | E3    | ✅ VALID | —              |
+| 11  | `Etapa_3_-_Strategie_Generala_Ofertare.rtf`        | E3    | ✅ VALID | —              |
+| 12  | `Date_pentru_Etapa_3_-_AI_pentru_Vânzări.rtf`      | E3    | ✅ VALID | —              |
+| 13  | `Etapa_4__Monitorizare_Vânzare.rtf`                | E4    | ✅ VALID | —              |
+| 14  | `Etapa_5_-_Strategie_Nurturing_Leads.rtf`          | E5    | ✅ VALID | —              |
+| 15  | `Extindere_Etapa_5__Grupuri_și_Asocieri.rtf`       | E5    | ✅ VALID | —              |
+| 16  | `Roadmap_Paralel_Vanzari_AI_-_Cerniq_app.rtf`      | All   | ✅ VALID | —              |
 
 #### 8.1.3 Documente Procedurale (Workers) (Tier 4)
 
-| #  | Document                                        | Etapa | Status      | Override Notes                                             |
-|----|-------------------------------------------------|-------|-------------|------------------------------------------------------------|
-| 17 | `__Etapa_1_-_Documentare_workers.md`            | E1    | ✅ VALID    | —                                                          |
-| 18 | `__Etapa_2_-_Complete-workers-cold-outreach.md` | E2    | ✅ VALID    | —                                                          |
-| 19 | `cerniq-workers-etapa3-ai-sales-agent.md`       | E3    | ✅ VALID    | LLM → xAI Grok canonic                                     |
-| 20 | `cerniq-workers-etapa4-monitorizare.md`         | E4    | ⚠️ OVERRIDE | `gold_hitl_tasks` → `approval_tasks`; `assigned_to` → UUID |
-| 21 | `cerniq-workers-etapa5-nurturing.md`            | E5    | ✅ VALID    | LLM → use routing policy                                   |
+| #   | Document                                        | Etapa | Status      | Override Notes                                             |
+| --- | ----------------------------------------------- | ----- | ----------- | ---------------------------------------------------------- |
+| 17  | `__Etapa_1_-_Documentare_workers.md`            | E1    | ✅ VALID    | —                                                          |
+| 18  | `__Etapa_2_-_Complete-workers-cold-outreach.md` | E2    | ✅ VALID    | —                                                          |
+| 19  | `cerniq-workers-etapa3-ai-sales-agent.md`       | E3    | ✅ VALID    | LLM → xAI Grok canonic                                     |
+| 20  | `cerniq-workers-etapa4-monitorizare.md`         | E4    | ⚠️ OVERRIDE | `gold_hitl_tasks` → `approval_tasks`; `assigned_to` → UUID |
+| 21  | `cerniq-workers-etapa5-nurturing.md`            | E5    | ✅ VALID    | LLM → use routing policy                                   |
 
 #### 8.1.4 Anexe Data Model (Tier 5 - ATENȚIE LA OVERRIDE-URI)
 
-| #   | Document                                             | Status            | Override Notes (CRITICO)                   |
-|-----|------------------------------------------------------|-------------------|--------------------------------------------|
-| 22  | `docs/specifications/schema-database.md`             | ✅ **CURENT**     | Versiune corectată aliniată cu Master v1.2 |
-| 22a | `__Schema_contacte_bronze_silver_gold_CORRECTED.md`  | ⚠️ **DEPRECATED** | Use `schema-database.md` instead           |
+| #   | Document                                            | Status            | Override Notes (CRITICO)                   |
+| --- | --------------------------------------------------- | ----------------- | ------------------------------------------ |
+| 22  | `docs/specifications/schema-database.md`            | ✅ **CURENT**     | Versiune corectată aliniată cu Master v1.2 |
+| 22a | `__Schema_contacte_bronze_silver_gold_CORRECTED.md` | ⚠️ **DEPRECATED** | Use `schema-database.md` instead           |
 
 #### 8.1.5 Override-uri Critice pentru Schema Contacte
 
@@ -1936,7 +1978,7 @@ $$ LANGUAGE plpgsql;
 > Versiunea originală din `/mnt/project/` este DEPRECATED și NU trebuie folosită.
 
 | Problemă în Original              | Regula din Master (CORECTĂ)        | Status în CORRECTED |
-|-----------------------------------|------------------------------------|---------------------|
+| --------------------------------- | ---------------------------------- | ------------------- |
 | `"shop_id": "UUID"`               | **USE:** `tenant_id` (canonic)     | ✅ CORECTAT         |
 | `cui VARCHAR(12) UNIQUE`          | **USE:** `UNIQUE(tenant_id, cui)`  | ✅ CORECTAT         |
 | `cui VARCHAR(12) NOT NULL UNIQUE` | **USE:** `UNIQUE(tenant_id, cui)`  | ✅ CORECTAT         |
@@ -1945,7 +1987,7 @@ $$ LANGUAGE plpgsql;
 #### 8.1.6 Fișiere în Proiect vs Outputs
 
 | Locație                                                | Status            | Notă                                   |
-|--------------------------------------------------------|-------------------|----------------------------------------|
+| ------------------------------------------------------ | ----------------- | -------------------------------------- |
 | `/mnt/project/Cerniq_Master_Spec_Normativ_Complet.md`  | ⛔ **OUTDATED**   | Versiunea v1.0 veche - NU FOLOSI       |
 | `/mnt/project/__Schema_contacte_bronze_silver_gold.md` | ⛔ **DEPRECATED** | Are conflicte multi-tenant - NU FOLOSI |
 | `docs/specifications/schema-database.md`               | ✅ **CURRENT**    | Schema canonică                        |
@@ -1958,39 +2000,39 @@ $$ LANGUAGE plpgsql;
 
 ### 8.2 Inconsistențe Rezolvate (Complet)
 
-| #  | Inconsistență                         | Sursă                   | Rezoluție                                 | Status |
-|----|---------------------------------------|-------------------------|-------------------------------------------|--------|
-| 1  | Node.js 24.13 vs 24.12                | Etapa 1 vs Etapa 2-5    | **CANONIC: 24.12.0**                      | ✅     |
-| 2  | Python 3.14.1 vs 3.14.2               | Docs vechi vs Research  | **CANONIC: 3.14.2**                       | ✅     |
-| 3  | `gold_hitl_tasks` vs `approval_tasks` | Etapa 4 vs Unified HITL | **CANONIC: `approval_tasks`**             | ✅     |
-| 4  | React 19.2.3 vs 19.2.1                | TOC vs npm              | **CANONIC: 19.2.3**                       | ✅     |
-| 5  | SPA vs SSR frontend                   | Frontend doc            | **RECOMANDAT: Next.js 15+ RSC**           | ✅     |
-| 6  | `sha256()` vs `digest()`              | Audit report            | **CANONIC: `sha256()`** nativ PG11+       | ✅     |
-| 7  | UNIQUE(cui) global                    | Multi-tenant break      | **FIX: `UNIQUE(tenant_id, cui)`**         | ✅     |
-| 8  | LLM Grok vs Claude                    | E3 vs E5                | **FIX: LLM Routing Policy** (S2.3)        | ✅     |
-| 9  | `assigned_to` email vs UUID           | E4 workers              | **FIX: UUID obligatoriu**                 | ✅     |
-| 10 | `shop_id` vs `tenant_id`              | Schema anexă vs Master  | **CANONIC: `tenant_id`** (alias declared) | ✅     |
-| 11 | `current_stage` vs `current_state`    | Diverse docs            | **CANONIC: `current_state`**              | ✅     |
-| 12 | 2 copii master spec                   | Project vs Outputs      | **FIX: Înlocuire necesară**               | ⚠️     |
+| #   | Inconsistență                         | Sursă                   | Rezoluție                                 | Status |
+| --- | ------------------------------------- | ----------------------- | ----------------------------------------- | ------ |
+| 1   | Node.js 24.13 vs 24.12                | Etapa 1 vs Etapa 2-5    | **CANONIC: 24.13.1**                      | ✅     |
+| 2   | Python 3.14.1 vs 3.14.2               | Docs vechi vs Research  | **CANONIC: 3.14.2**                       | ✅     |
+| 3   | `gold_hitl_tasks` vs `approval_tasks` | Etapa 4 vs Unified HITL | **CANONIC: `approval_tasks`**             | ✅     |
+| 4   | React 19.2.3 vs 19.2.1                | TOC vs npm              | **CANONIC: 19.2.3**                       | ✅     |
+| 5   | SPA vs SSR frontend                   | Frontend doc            | **RECOMANDAT: Next.js 15+ RSC**           | ✅     |
+| 6   | `sha256()` vs `digest()`              | Audit report            | **CANONIC: `sha256()`** nativ PG11+       | ✅     |
+| 7   | UNIQUE(cui) global                    | Multi-tenant break      | **FIX: `UNIQUE(tenant_id, cui)`**         | ✅     |
+| 8   | LLM Grok vs Claude                    | E3 vs E5                | **FIX: LLM Routing Policy** (S2.3)        | ✅     |
+| 9   | `assigned_to` email vs UUID           | E4 workers              | **FIX: UUID obligatoriu**                 | ✅     |
+| 10  | `shop_id` vs `tenant_id`              | Schema anexă vs Master  | **CANONIC: `tenant_id`** (alias declared) | ✅     |
+| 11  | `current_stage` vs `current_state`    | Diverse docs            | **CANONIC: `current_state`**              | ✅     |
+| 12  | 2 copii master spec                   | Project vs Outputs      | **FIX: Înlocuire necesară**               | ⚠️     |
 
 ### 8.3 Gap-uri Documentate și Adresate (Complet)
 
-| #  | Gap                         | Status               | Adresare                          | Secțiune |
-|----|-----------------------------|----------------------|-----------------------------------|----------|
-| 1  | Multi-tenant RBAC           | ✅ REZOLVAT          | Three-layer auth                  | S7       |
-| 2  | Multi-tenant DB Constraints | ✅ REZOLVAT          | UNIQUE(tenant_id, cui)            | S2.4, S3 |
-| 3  | Integration Registry        | ✅ REZOLVAT          | Integration configs               | S6       |
-| 4  | Idempotency global          | ✅ REZOLVAT          | correlation_id + idempotencyKey   | S2.6     |
-| 5  | Event Contract End-to-End   | ✅ REZOLVAT          | Schema + Replay Strategy          | S2.6     |
-| 6  | Data retention GDPR         | ✅ REZOLVAT          | Retention policies                | S7.6     |
-| 7  | LLM Routing Policy          | ✅ REZOLVAT          | Provideri + Guardrails + Cost caps| S2.3     |
-| 8  | Observability Standard      | ✅ REZOLVAT          | SigNoz + OTel canonic             | S2.5     |
-| 9  | HITL User Identity          | ✅ REZOLVAT          | UUID contract                     | S5.1     |
-| 10 | SQL Hashing Functions       | ✅ CLARIFICAT        | sha256() nativ PG11+              | S3.2     |
-| 11 | Test Strategy               | ✅ **REZOLVAT v1.2** | Contract tests + pgTAP + CI gates | **S2.8** |
-| 12 | Rate Limiting Policy        | ✅ **REZOLVAT v1.2** | Per-provider + Circuit breakers   | **S2.7** |
-| 13 | Governance & Precedence     | ✅ **REZOLVAT v1.2** | Document hierarchy + Aliases      | **S0**   |
-| 14 | Contract of Record Anexe    | ✅ **REZOLVAT v1.2** | Status + Overrides                | **S8.1** |
+| #   | Gap                         | Status               | Adresare                             | Secțiune |
+| --- | --------------------------- | -------------------- | ------------------------------------ | -------- |
+| 1   | Multi-tenant RBAC           | ✅ REZOLVAT          | Three-layer auth                     | S7       |
+| 2   | Multi-tenant DB Constraints | ✅ REZOLVAT          | UNIQUE(tenant_id, cui)               | S2.4, S3 |
+| 3   | Integration Registry        | ✅ REZOLVAT          | Integration configs                  | S6       |
+| 4   | Idempotency global          | ✅ REZOLVAT          | correlation_id + idempotencyKey      | S2.6     |
+| 5   | Event Contract End-to-End   | ✅ REZOLVAT          | Schema + Replay Strategy             | S2.6     |
+| 6   | Data retention GDPR         | ✅ REZOLVAT          | Retention policies                   | S7.6     |
+| 7   | LLM Routing Policy          | ✅ REZOLVAT          | Provideri + Guardrails + Cost caps   | S2.3     |
+| 8   | Observability Standard      | ✅ REZOLVAT          | Grafana/Prometheus/Loki/Tempo + OTEL | S2.5     |
+| 9   | HITL User Identity          | ✅ REZOLVAT          | UUID contract                        | S5.1     |
+| 10  | SQL Hashing Functions       | ✅ CLARIFICAT        | sha256() nativ PG11+                 | S3.2     |
+| 11  | Test Strategy               | ✅ **REZOLVAT v1.2** | Contract tests + pgTAP + CI gates    | **S2.8** |
+| 12  | Rate Limiting Policy        | ✅ **REZOLVAT v1.2** | Per-provider + Circuit breakers      | **S2.7** |
+| 13  | Governance & Precedence     | ✅ **REZOLVAT v1.2** | Document hierarchy + Aliases         | **S0**   |
+| 14  | Contract of Record Anexe    | ✅ **REZOLVAT v1.2** | Status + Overrides                   | **S8.1** |
 
 ### 8.4 Checklist "Definition of Done" pentru Master Spec
 
@@ -2053,7 +2095,7 @@ $$ LANGUAGE plpgsql;
 ### 8.5 Următoarele Review-uri
 
 | Data                  | Tip Review | Focus                                 |
-|-----------------------|------------|---------------------------------------|
+| --------------------- | ---------- | ------------------------------------- |
 | **Aprilie 2026**      | Quarterly  | Versiuni tech stack, security patches |
 | **La Node.js 25 LTS** | Major      | Upgrade path, breaking changes        |
 | **La PostgreSQL 19**  | Major      | New features adoption                 |
@@ -2064,9 +2106,9 @@ $$ LANGUAGE plpgsql;
 
 > **END OF MASTER SPECIFICATION**
 
-*Document Version: 1.2 (COMPLETE)*  
-*Creation date: 11 Ianuarie 2026*  
-*Last Updated: 11 Ianuarie 2026 (v1.2 - Complete with Governance)*  
-*Validation source: Project Knowledge + Online Research + Critical Audit Report*  
-*Status: ✅ ALL GAPS ADDRESSED - READY FOR IMPLEMENTATION*  
-*Author: Claude AI Assistant*
+_Document Version: 1.2 (COMPLETE)_  
+_Creation date: 11 Ianuarie 2026_  
+_Last Updated: 11 Ianuarie 2026 (v1.2 - Complete with Governance)_  
+_Validation source: Project Knowledge + Online Research + Critical Audit Report_  
+_Status: ✅ ALL GAPS ADDRESSED - READY FOR IMPLEMENTATION_  
+_Author: Claude AI Assistant_

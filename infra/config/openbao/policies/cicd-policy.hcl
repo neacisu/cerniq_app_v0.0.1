@@ -7,22 +7,24 @@
 # =============================================================================
 
 # =============================================================================
-# KV Secrets Engine - CI/CD Secrets
+# KV Secrets Engine v2 - CI/CD Secrets
+# =============================================================================
+# KV v2 API uses secret/data/ for reads and secret/metadata/ for metadata.
+# Policy paths must match the full API path including the /data/ prefix.
 # =============================================================================
 
-# Read deployment secrets (SSH keys, registry tokens)
+# Read deployment secrets (GitHub Actions / runners) — KV v2 data path
 path "secret/data/cerniq/ci/*" {
   capabilities = ["read", "list"]
 }
 
-# Read container registry credentials
-path "secret/data/cerniq/shared/ghcr" {
-  capabilities = ["read"]
-}
-
-# Allow reading secret metadata for versioning info
+# Metadata access (optional, for listing versions)
 path "secret/metadata/cerniq/ci/*" {
   capabilities = ["read", "list"]
+}
+
+path "secret/data/cerniq/shared/ghcr" {
+  capabilities = ["read"]
 }
 
 # =============================================================================
@@ -33,21 +35,21 @@ path "secret/metadata/cerniq/ci/*" {
 # =============================================================================
 
 # Generate new secret_id for API service
-path "auth/approle/role/api/secret-id" {
+path "auth/approle/role/cerniq-api/secret-id" {
   capabilities = ["create", "update"]
 }
 
 # Generate new secret_id for Workers service
-path "auth/approle/role/workers/secret-id" {
+path "auth/approle/role/cerniq-workers/secret-id" {
   capabilities = ["create", "update"]
 }
 
 # Read role_id (needed for deployment automation)
-path "auth/approle/role/api/role-id" {
+path "auth/approle/role/cerniq-api/role-id" {
   capabilities = ["read"]
 }
 
-path "auth/approle/role/workers/role-id" {
+path "auth/approle/role/cerniq-workers/role-id" {
   capabilities = ["read"]
 }
 

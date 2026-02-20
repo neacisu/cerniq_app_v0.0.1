@@ -1,5 +1,7 @@
 # CERNIQ.APP — ETAPA 4: API ENDPOINTS
+
 ## Complete REST API Specification
+
 ### Versiunea 1.0 | 19 Ianuarie 2026
 
 ---
@@ -28,6 +30,7 @@ Rate Limit: 1000 req/min per tenant
 ```
 
 ### Common Response Format
+
 ```typescript
 interface ApiResponse<T> {
   success: boolean;
@@ -51,18 +54,19 @@ interface ApiResponse<T> {
 ## 2. Orders API {#2-orders}
 
 ### GET /api/v1/monitoring/orders
+
 ```typescript
 // Query Parameters
 interface OrdersQueryParams {
-  page?: number;           // Default: 1
-  pageSize?: number;       // Default: 25, Max: 100
-  status?: string[];       // Filter by status
-  clientId?: string;       // Filter by client
-  dateFrom?: string;       // ISO date
-  dateTo?: string;         // ISO date
-  search?: string;         // Search order number, client name
-  sortBy?: 'createdAt' | 'totalAmount' | 'status';
-  sortOrder?: 'asc' | 'desc';
+  page?: number; // Default: 1
+  pageSize?: number; // Default: 25, Max: 100
+  status?: string[]; // Filter by status
+  clientId?: string; // Filter by client
+  dateFrom?: string; // ISO date
+  dateTo?: string; // ISO date
+  search?: string; // Search order number, client name
+  sortBy?: "createdAt" | "totalAmount" | "status";
+  sortOrder?: "asc" | "desc";
 }
 
 // Response
@@ -73,6 +77,7 @@ interface OrdersResponse {
 ```
 
 ### GET /api/v1/monitoring/orders/:orderId
+
 ```typescript
 // Response
 interface OrderDetailResponse {
@@ -88,6 +93,7 @@ interface OrderDetailResponse {
 ```
 
 ### PATCH /api/v1/monitoring/orders/:orderId/status
+
 ```typescript
 // Request Body
 interface UpdateOrderStatusRequest {
@@ -103,6 +109,7 @@ interface UpdateOrderStatusResponse {
 ```
 
 ### POST /api/v1/monitoring/orders/:orderId/cancel
+
 ```typescript
 // Request Body
 interface CancelOrderRequest {
@@ -123,6 +130,7 @@ interface CancelOrderResponse {
 ## 3. Payments API {#3-payments}
 
 ### GET /api/v1/monitoring/payments
+
 ```typescript
 interface PaymentsQueryParams {
   page?: number;
@@ -147,6 +155,7 @@ interface PaymentsResponse {
 ```
 
 ### POST /api/v1/monitoring/payments/:paymentId/reconcile
+
 ```typescript
 // Request Body
 interface ReconcilePaymentRequest {
@@ -163,6 +172,7 @@ interface ReconcilePaymentResponse {
 ```
 
 ### GET /api/v1/monitoring/payments/overdue
+
 ```typescript
 interface OverduePaymentsResponse {
   invoices: Array<{
@@ -186,10 +196,11 @@ interface OverduePaymentsResponse {
 ```
 
 ### POST /api/v1/monitoring/payments/:invoiceId/send-reminder
+
 ```typescript
 interface SendReminderRequest {
-  channels: ('email' | 'whatsapp' | 'sms')[];
-  escalationLevel?: 'FIRST' | 'SECOND' | 'FINAL';
+  channels: ("email" | "whatsapp" | "sms")[];
+  escalationLevel?: "FIRST" | "SECOND" | "FINAL";
 }
 
 interface SendReminderResponse {
@@ -204,6 +215,7 @@ interface SendReminderResponse {
 ## 4. Credit API {#4-credit}
 
 ### GET /api/v1/monitoring/credit/profiles
+
 ```typescript
 interface CreditProfilesQueryParams {
   riskTier?: RiskTier[];
@@ -226,6 +238,7 @@ interface CreditProfilesResponse {
 ```
 
 ### GET /api/v1/monitoring/credit/profiles/:clientId
+
 ```typescript
 interface CreditProfileDetailResponse {
   profile: CreditProfile;
@@ -242,6 +255,7 @@ interface CreditProfileDetailResponse {
 ```
 
 ### POST /api/v1/monitoring/credit/profiles/:clientId/refresh
+
 ```typescript
 // Trigger credit score recalculation
 interface RefreshCreditResponse {
@@ -251,6 +265,7 @@ interface RefreshCreditResponse {
 ```
 
 ### POST /api/v1/monitoring/credit/check
+
 ```typescript
 // Request - Pre-check credit before order
 interface CreditCheckRequest {
@@ -260,7 +275,7 @@ interface CreditCheckRequest {
 }
 
 interface CreditCheckResponse {
-  result: 'APPROVED' | 'INSUFFICIENT_CREDIT' | 'BLOCKED' | 'NEEDS_REVIEW';
+  result: "APPROVED" | "INSUFFICIENT_CREDIT" | "BLOCKED" | "NEEDS_REVIEW";
   availableCredit: number;
   creditLimit: number;
   overage?: number;
@@ -268,19 +283,20 @@ interface CreditCheckResponse {
 ```
 
 ### POST /api/v1/monitoring/credit/override
+
 ```typescript
 // Request manual credit override
 interface CreditOverrideRequest {
   clientId: string;
   orderId: string;
-  overrideType: 'ONE_TIME' | 'TEMPORARY' | 'PERMANENT';
+  overrideType: "ONE_TIME" | "TEMPORARY" | "PERMANENT";
   amount: number;
   reason: string;
 }
 
 interface CreditOverrideResponse {
   hitlTaskId: string;
-  status: 'PENDING_APPROVAL';
+  status: "PENDING_APPROVAL";
 }
 ```
 
@@ -289,6 +305,7 @@ interface CreditOverrideResponse {
 ## 5. Shipments API {#5-shipments}
 
 ### GET /api/v1/monitoring/shipments
+
 ```typescript
 interface ShipmentsQueryParams {
   status?: ShipmentStatus[];
@@ -311,6 +328,7 @@ interface ShipmentsResponse {
 ```
 
 ### GET /api/v1/monitoring/shipments/:shipmentId/tracking
+
 ```typescript
 interface TrackingResponse {
   shipment: Shipment;
@@ -324,6 +342,7 @@ interface TrackingResponse {
 ```
 
 ### POST /api/v1/monitoring/shipments/:shipmentId/refresh
+
 ```typescript
 // Force refresh tracking from carrier
 interface RefreshTrackingResponse {
@@ -338,6 +357,7 @@ interface RefreshTrackingResponse {
 ## 6. Contracts API {#6-contracts}
 
 ### GET /api/v1/monitoring/contracts
+
 ```typescript
 interface ContractsQueryParams {
   status?: ContractStatus[];
@@ -353,6 +373,7 @@ interface ContractsResponse {
 ```
 
 ### POST /api/v1/monitoring/contracts/:contractId/resend
+
 ```typescript
 // Resend signature request
 interface ResendContractResponse {
@@ -363,6 +384,7 @@ interface ResendContractResponse {
 ```
 
 ### GET /api/v1/monitoring/contracts/templates
+
 ```typescript
 interface TemplatesResponse {
   templates: ContractTemplate[];
@@ -374,6 +396,7 @@ interface TemplatesResponse {
 ## 7. Returns API {#7-returns}
 
 ### GET /api/v1/monitoring/returns
+
 ```typescript
 interface ReturnsQueryParams {
   status?: ReturnStatus[];
@@ -392,6 +415,7 @@ interface ReturnsResponse {
 ```
 
 ### POST /api/v1/monitoring/returns
+
 ```typescript
 // Create return request
 interface CreateReturnRequest {
@@ -412,10 +436,11 @@ interface CreateReturnResponse {
 ```
 
 ### PATCH /api/v1/monitoring/returns/:returnId/inspect
+
 ```typescript
 // Record inspection result
 interface InspectReturnRequest {
-  result: 'APPROVED' | 'PARTIAL' | 'REJECTED';
+  result: "APPROVED" | "PARTIAL" | "REJECTED";
   notes: string;
   photos?: string[];
   approvedItems?: Array<{
@@ -437,12 +462,13 @@ interface InspectReturnResponse {
 ## 8. HITL API {#8-hitl}
 
 ### GET /api/v1/monitoring/hitl/queue
+
 ```typescript
 interface HITLQueueParams {
   taskType?: string[];
-  priority?: ('LOW' | 'NORMAL' | 'HIGH' | 'CRITICAL')[];
+  priority?: ("LOW" | "NORMAL" | "HIGH" | "CRITICAL")[];
   assignedRole?: string;
-  slaStatus?: 'OK' | 'WARNING' | 'BREACHED';
+  slaStatus?: "OK" | "WARNING" | "BREACHED";
 }
 
 interface HITLQueueResponse {
@@ -457,6 +483,7 @@ interface HITLQueueResponse {
 ```
 
 ### GET /api/v1/monitoring/hitl/tasks/:taskId
+
 ```typescript
 interface HITLTaskDetailResponse {
   task: HITLTask;
@@ -472,9 +499,10 @@ interface HITLTaskDetailResponse {
 ```
 
 ### POST /api/v1/monitoring/hitl/tasks/:taskId/resolve
+
 ```typescript
 interface ResolveHITLRequest {
-  decision: 'APPROVED' | 'REJECTED';
+  decision: "APPROVED" | "REJECTED";
   notes?: string;
   selectedOption?: string; // For payment reconciliation - selected invoice
 }
@@ -486,6 +514,7 @@ interface ResolveHITLResponse {
 ```
 
 ### POST /api/v1/monitoring/hitl/tasks/:taskId/reassign
+
 ```typescript
 interface ReassignHITLRequest {
   assignToUserId?: string;
@@ -499,6 +528,7 @@ interface ReassignHITLRequest {
 ## 9. Webhooks API {#9-webhooks}
 
 ### POST /webhooks/revolut/business
+
 ```typescript
 // Revolut Business Webhook
 // Headers: X-Revolut-Signature-V1
@@ -506,6 +536,7 @@ interface ReassignHITLRequest {
 ```
 
 ### POST /webhooks/sameday/status
+
 ```typescript
 // Sameday Status Update Webhook
 interface SamedayWebhook {
@@ -518,6 +549,7 @@ interface SamedayWebhook {
 ```
 
 ### POST /webhooks/docusign/connect
+
 ```typescript
 // DocuSign Connect Webhook
 interface DocuSignWebhook {

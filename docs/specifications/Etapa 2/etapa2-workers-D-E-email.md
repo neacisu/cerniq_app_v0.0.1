@@ -1,5 +1,7 @@
 # CERNIQ.APP — ETAPA 2: WORKERS CATEGORIA D & E
+
 ## Email Workers - Instantly.ai (Cold) & Resend (Warm)
+
 ### Versiunea 1.1 | 2 Februarie 2026
 
 ---
@@ -9,6 +11,7 @@
 ## 1.1 Overview
 
 Instantly.ai este folosit pentru cold email outreach datorită:
+
 - Inbox rotation automat (50-100 inboxuri)
 - Warm-up automat pentru domenii noi
 - Bounce handling integrat
@@ -16,30 +19,30 @@ Instantly.ai este folosit pentru cold email outreach datorită:
 
 ## 1.2 Worker Inventory - Cold Email
 
-| # | Queue Name | Purpose | Concurrency |
-|---|------------|---------|-------------|
-| 16 | `q:email:cold` | Send cold emails | 50 |
-| 17 | `email:cold:campaign:create` | Create campaigns | 5 |
-| 18 | `email:cold:campaign:pause` | Pause campaigns | 10 |
-| 19 | `email:cold:analytics:fetch` | Fetch analytics | 5 |
-| 20 | `email:cold:lead:status` | Update lead status | 20 |
+| #   | Queue Name                   | Purpose            | Concurrency |
+| --- | ---------------------------- | ------------------ | ----------- |
+| 16  | `q:email:cold`               | Send cold emails   | 50          |
+| 17  | `email:cold:campaign:create` | Create campaigns   | 5           |
+| 18  | `email:cold:campaign:pause`  | Pause campaigns    | 10          |
+| 19  | `email:cold:analytics:fetch` | Fetch analytics    | 5           |
+| 20  | `email:cold:lead:status`     | Update lead status | 20          |
 
 ## 1.3 Instantly.ai Configuration
 
 ```typescript
 const INSTANTLY_CONFIG = {
-  baseUrl: 'https://api.instantly.ai/api/v2',
+  baseUrl: "https://api.instantly.ai/api/v2",
   apiKey: process.env.INSTANTLY_API_KEY,
   workspaceId: process.env.INSTANTLY_WORKSPACE_ID,
-  
+
   rateLimits: {
-    addLead: 1000,        // per hour
-    getAnalytics: 100,    // per minute
-    sendEmail: 100,       // per day per inbox
+    addLead: 1000, // per hour
+    getAnalytics: 100, // per minute
+    sendEmail: 100, // per day per inbox
   },
-  
-  bounceThreshold: 0.03,  // 3% = pause campaign
-  
+
+  bounceThreshold: 0.03, // 3% = pause campaign
+
   // Email tracking
   trackOpens: true,
   trackClicks: true,
@@ -52,13 +55,13 @@ const INSTANTLY_CONFIG = {
 
 ### 2.1 Specifications
 
-| Attribute | Value |
-|-----------|-------|
-| **Queue Name** | `q:email:cold` |
-| **Concurrency** | 50 |
-| **Timeout** | 30000ms |
-| **Rate Limit** | Managed by Instantly |
-| **Purpose** | Add lead to Instantly campaign |
+| Attribute       | Value                          |
+| --------------- | ------------------------------ |
+| **Queue Name**  | `q:email:cold`                 |
+| **Concurrency** | 50                             |
+| **Timeout**     | 30000ms                        |
+| **Rate Limit**  | Managed by Instantly           |
+| **Purpose**     | Add lead to Instantly campaign |
 
 ### 2.2 Job Schema
 
@@ -83,7 +86,7 @@ interface EmailColdResult {
   instantlyLeadId: string;
   campaignId: string;
   scheduledAt: string;
-  status: 'ADDED' | 'ALREADY_EXISTS' | 'FAILED';
+  status: "ADDED" | "ALREADY_EXISTS" | "FAILED";
 }
 ```
 
@@ -92,20 +95,26 @@ interface EmailColdResult {
 ```typescript
 // workers/email/cold-send.worker.ts
 
-import { Job } from 'bullmq';
-import axios from 'axios';
-import { db } from '@cerniq/db';
-import { goldLeadJourney, goldCommunicationLog } from '@cerniq/db/schema';
-import { logger } from '@cerniq/logger';
+import { Job } from "bullmq";
+import axios from "axios";
+import { db } from "@cerniq/db";
+import { goldLeadJourney, goldCommunicationLog } from "@cerniq/db/schema";
+import { logger } from "@cerniq/logger";
 
-const INSTANTLY_API = 'https://api.instantly.ai/api/v2';
+const INSTANTLY_API = "https://api.instantly.ai/api/v2";
 
 export async function emailColdProcessor(
-  job: Job<EmailColdJobData>
+  job: Job<EmailColdJobData>,
 ): Promise<EmailColdResult> {
   const {
-    leadId, recipientEmail, campaignId, personalization,
-    correlationId, tenantId, sequenceId, sequenceStep
+    leadId,
+    recipientEmail,
+    campaignId,
+    personalization,
+    correlationId,
+    tenantId,
+    sequenceId,
+    sequenceStep,
   } = job.data;
 
   try {
@@ -115,8 +124,9 @@ export async function emailColdProcessor(
       {
         campaign_id: campaignId,
         email: recipientEmail,
-        first_name: personalization.contactName?.split(' ')[0] || '',
-        last_name: personalization.contactName?.split(' ').slice(1).join(' ') || '',
+        first_name: personalization.contactName?.split(" ")[0] || "",
+        last_name:
+          personalization.contactName?.split(" ").slice(1).join(" ") || "",
         company_name: personalization.companyName,
         custom_variables: {
           lead_id: leadId,
@@ -125,19 +135,20 @@ export async function emailColdProcessor(
       },
       {
         headers: {
-          'Authorization': `Bearer ${process.env.INSTANTLY_API_KEY}`,
-          'Content-Type': 'application/json',
+          Authorization: `Bearer ${process.env.INSTANTLY_API_KEY}`,
+          "Content-Type": "application/json",
         },
-      }
+      },
     );
 
     const instantlyLeadId = response.data.lead_id;
 
     // Update lead state
-    await db.update(goldLeadJourney)
+    await db
+      .update(goldLeadJourney)
       .set({
-        currentState: 'CONTACTED_EMAIL',
-        lastChannelUsed: 'EMAIL_COLD',
+        currentState: "CONTACTED_EMAIL",
+        lastChannelUsed: "EMAIL_COLD",
         firstContactAt: sql`COALESCE(first_contact_at, NOW())`,
         lastContactAt: new Date(),
         sequenceStep,
@@ -151,9 +162,9 @@ export async function emailColdProcessor(
       id: uuidv4(),
       tenantId,
       leadJourneyId: leadId,
-      channel: 'EMAIL_COLD',
-      direction: 'OUTBOUND',
-      status: 'QUEUED',
+      channel: "EMAIL_COLD",
+      direction: "OUTBOUND",
+      status: "QUEUED",
       externalMessageId: instantlyLeadId,
       sequenceId,
       sequenceStep,
@@ -161,38 +172,43 @@ export async function emailColdProcessor(
       rawResponse: response.data,
     });
 
-    logger.info({
-      leadId,
-      instantlyLeadId,
-      campaignId,
-      email: recipientEmail.replace(/(.{3}).*@/, '$1***@'),
-    }, 'Lead added to Instantly campaign');
+    logger.info(
+      {
+        leadId,
+        instantlyLeadId,
+        campaignId,
+        email: recipientEmail.replace(/(.{3}).*@/, "$1***@"),
+      },
+      "Lead added to Instantly campaign",
+    );
 
     return {
       success: true,
       instantlyLeadId,
       campaignId,
       scheduledAt: response.data.scheduled_at,
-      status: 'ADDED',
+      status: "ADDED",
     };
-
   } catch (error) {
     if (axios.isAxiosError(error)) {
       // Lead already in campaign
       if (error.response?.status === 409) {
         return {
           success: true,
-          instantlyLeadId: '',
+          instantlyLeadId: "",
           campaignId,
-          scheduledAt: '',
-          status: 'ALREADY_EXISTS',
+          scheduledAt: "",
+          status: "ALREADY_EXISTS",
         };
       }
 
       // Campaign paused or invalid
       if (error.response?.status === 400) {
-        logger.warn({ campaignId, error: error.response.data }, 'Campaign issue');
-        throw new Error('CAMPAIGN_INVALID');
+        logger.warn(
+          { campaignId, error: error.response.data },
+          "Campaign issue",
+        );
+        throw new Error("CAMPAIGN_INVALID");
       }
     }
     throw error;
@@ -206,12 +222,12 @@ export async function emailColdProcessor(
 
 ### 3.1 Specifications
 
-| Attribute | Value |
-|-----------|-------|
-| **Queue Name** | `email:cold:campaign:create` |
-| **Concurrency** | 5 |
-| **Rate Limit** | 10/min |
-| **Purpose** | Create new Instantly campaigns |
+| Attribute       | Value                          |
+| --------------- | ------------------------------ |
+| **Queue Name**  | `email:cold:campaign:create`   |
+| **Concurrency** | 5                              |
+| **Rate Limit**  | 10/min                         |
+| **Purpose**     | Create new Instantly campaigns |
 
 ### 3.2 Implementation
 
@@ -228,7 +244,7 @@ interface CampaignCreateJobData {
 }
 
 export async function campaignCreateProcessor(
-  job: Job<CampaignCreateJobData>
+  job: Job<CampaignCreateJobData>,
 ): Promise<CampaignCreateResult> {
   const { name, sequences, dailyLimit } = job.data;
 
@@ -252,15 +268,15 @@ export async function campaignCreateProcessor(
     },
     {
       headers: {
-        'Authorization': `Bearer ${process.env.INSTANTLY_API_KEY}`,
+        Authorization: `Bearer ${process.env.INSTANTLY_API_KEY}`,
       },
-    }
+    },
   );
 
   return {
     campaignId: response.data.campaign_id,
     name,
-    status: 'CREATED',
+    status: "CREATED",
   };
 }
 ```
@@ -271,17 +287,17 @@ export async function campaignCreateProcessor(
 
 ### 4.1 Specifications
 
-| Attribute | Value |
-|-----------|-------|
-| **Queue Name** | `email:cold:campaign:pause` |
-| **Concurrency** | 10 |
-| **Purpose** | Pause campaign (usually due to high bounce) |
+| Attribute       | Value                                       |
+| --------------- | ------------------------------------------- |
+| **Queue Name**  | `email:cold:campaign:pause`                 |
+| **Concurrency** | 10                                          |
+| **Purpose**     | Pause campaign (usually due to high bounce) |
 
 ### 4.2 Implementation
 
 ```typescript
 export async function campaignPauseProcessor(
-  job: Job<{ campaignId: string; reason: string }>
+  job: Job<{ campaignId: string; reason: string }>,
 ): Promise<void> {
   const { campaignId, reason } = job.data;
 
@@ -290,19 +306,19 @@ export async function campaignPauseProcessor(
     {},
     {
       headers: {
-        'Authorization': `Bearer ${process.env.INSTANTLY_API_KEY}`,
+        Authorization: `Bearer ${process.env.INSTANTLY_API_KEY}`,
       },
-    }
+    },
   );
 
   // Alert team
-  await triggerAlert('email:campaign:paused', {
+  await triggerAlert("email:campaign:paused", {
     campaignId,
     reason,
-    severity: 'HIGH',
+    severity: "HIGH",
   });
 
-  logger.warn({ campaignId, reason }, 'Campaign paused');
+  logger.warn({ campaignId, reason }, "Campaign paused");
 }
 ```
 
@@ -312,30 +328,27 @@ export async function campaignPauseProcessor(
 
 ### 5.1 Specifications
 
-| Attribute | Value |
-|-----------|-------|
-| **Queue Name** | `email:cold:analytics:fetch` |
-| **Concurrency** | 5 |
-| **Schedule** | Cron: `0 * * * *` (hourly) |
-| **Purpose** | Fetch analytics and check bounce rates |
+| Attribute       | Value                                  |
+| --------------- | -------------------------------------- |
+| **Queue Name**  | `email:cold:analytics:fetch`           |
+| **Concurrency** | 5                                      |
+| **Schedule**    | Cron: `0 * * * *` (hourly)             |
+| **Purpose**     | Fetch analytics and check bounce rates |
 
 ### 5.2 Implementation
 
 ```typescript
 export async function analyticsProcessor(
-  job: Job<{ tenantId: string }>
+  job: Job<{ tenantId: string }>,
 ): Promise<AnalyticsResult> {
   const { tenantId } = job.data;
 
   // Get all active campaigns
-  const response = await axios.get(
-    `${INSTANTLY_API}/campaign/list`,
-    {
-      headers: {
-        'Authorization': `Bearer ${process.env.INSTANTLY_API_KEY}`,
-      },
-    }
-  );
+  const response = await axios.get(`${INSTANTLY_API}/campaign/list`, {
+    headers: {
+      Authorization: `Bearer ${process.env.INSTANTLY_API_KEY}`,
+    },
+  });
 
   const campaigns = response.data.campaigns;
   const results: CampaignAnalytics[] = [];
@@ -345,9 +358,9 @@ export async function analyticsProcessor(
       `${INSTANTLY_API}/campaign/${campaign.id}/analytics`,
       {
         headers: {
-          'Authorization': `Bearer ${process.env.INSTANTLY_API_KEY}`,
+          Authorization: `Bearer ${process.env.INSTANTLY_API_KEY}`,
         },
-      }
+      },
     );
 
     const stats = analytics.data;
@@ -365,12 +378,12 @@ export async function analyticsProcessor(
 
     // Check bounce threshold
     if (bounceRate > INSTANTLY_CONFIG.bounceThreshold) {
-      await triggerQueue('email:cold:campaign:pause', {
+      await triggerQueue("email:cold:campaign:pause", {
         campaignId: campaign.id,
         reason: `Bounce rate ${(bounceRate * 100).toFixed(1)}% exceeds 3% threshold`,
       });
 
-      await triggerAlert('bounce:high', {
+      await triggerAlert("bounce:high", {
         campaignId: campaign.id,
         bounceRate,
       });
@@ -378,21 +391,24 @@ export async function analyticsProcessor(
   }
 
   // Store daily stats
-  await db.insert(outreachDailyStats).values({
-    tenantId,
-    statDate: new Date().toISOString().split('T')[0],
-    emailColdSent: results.reduce((sum, r) => sum + r.sent, 0),
-    emailColdOpens: results.reduce((sum, r) => sum + r.opened, 0),
-    emailColdClicks: results.reduce((sum, r) => sum + r.clicked, 0),
-    emailColdReplies: results.reduce((sum, r) => sum + r.replied, 0),
-    emailColdBounces: results.reduce((sum, r) => sum + r.bounced, 0),
-  }).onConflictDoUpdate({
-    target: [outreachDailyStats.tenantId, outreachDailyStats.statDate],
-    set: {
-      emailColdSent: sql`excluded.email_cold_sent`,
-      // ... other fields
-    },
-  });
+  await db
+    .insert(outreachDailyStats)
+    .values({
+      tenantId,
+      statDate: new Date().toISOString().split("T")[0],
+      emailColdSent: results.reduce((sum, r) => sum + r.sent, 0),
+      emailColdOpens: results.reduce((sum, r) => sum + r.opened, 0),
+      emailColdClicks: results.reduce((sum, r) => sum + r.clicked, 0),
+      emailColdReplies: results.reduce((sum, r) => sum + r.replied, 0),
+      emailColdBounces: results.reduce((sum, r) => sum + r.bounced, 0),
+    })
+    .onConflictDoUpdate({
+      target: [outreachDailyStats.tenantId, outreachDailyStats.statDate],
+      set: {
+        emailColdSent: sql`excluded.email_cold_sent`,
+        // ... other fields
+      },
+    });
 
   return { campaigns: results };
 }
@@ -405,6 +421,7 @@ export async function analyticsProcessor(
 ## 6.1 Overview
 
 Resend este folosit DOAR pentru leads calde deoarece:
+
 - Deliverability excelent (domeniul principal)
 - Inbox placement garantat
 - Transactional-grade reliability
@@ -414,27 +431,27 @@ Resend este folosit DOAR pentru leads calde deoarece:
 
 ## 6.2 Worker Inventory - Warm Email
 
-| # | Queue Name | Purpose | Concurrency |
-|---|------------|---------|-------------|
-| 21 | `q:email:warm` | Send warm emails | 50 |
-| 22 | `email:warm:proforma` | Send proforma invoices | 20 |
-| 23 | `email:warm:document` | Send documents | 20 |
+| #   | Queue Name            | Purpose                | Concurrency |
+| --- | --------------------- | ---------------------- | ----------- |
+| 21  | `q:email:warm`        | Send warm emails       | 50          |
+| 22  | `email:warm:proforma` | Send proforma invoices | 20          |
+| 23  | `email:warm:document` | Send documents         | 20          |
 
 ## 6.3 Resend Configuration
 
 ```typescript
 const RESEND_CONFIG = {
   apiKey: process.env.RESEND_API_KEY,
-  fromEmail: 'sales@cerniq.app',
-  fromName: 'Cerniq Sales',
-  replyTo: 'reply@cerniq.app',
-  
+  fromEmail: "sales@cerniq.app",
+  fromName: "Cerniq Sales",
+  replyTo: "reply@cerniq.app",
+
   rateLimits: {
-    sendEmail: 100,  // per second (very high)
+    sendEmail: 100, // per second (very high)
   },
-  
+
   // Only warm stages allowed
-  allowedStages: ['WARM_REPLY', 'NEGOTIATION'],
+  allowedStages: ["WARM_REPLY", "NEGOTIATION"],
 };
 ```
 
@@ -444,22 +461,22 @@ const RESEND_CONFIG = {
 
 ### 7.1 Specifications
 
-| Attribute | Value |
-|-----------|-------|
-| **Queue Name** | `q:email:warm` |
-| **Concurrency** | 50 |
-| **Rate Limit** | 100/sec |
-| **Purpose** | Send warm follow-up emails |
+| Attribute       | Value                      |
+| --------------- | -------------------------- |
+| **Queue Name**  | `q:email:warm`             |
+| **Concurrency** | 50                         |
+| **Rate Limit**  | 100/sec                    |
+| **Purpose**     | Send warm follow-up emails |
 
 ### 7.2 Implementation
 
 ```typescript
 // workers/email/warm-send.worker.ts
 
-import { Resend } from 'resend';
-import { Job } from 'bullmq';
-import { db } from '@cerniq/db';
-import { goldLeadJourney, goldCommunicationLog } from '@cerniq/db/schema';
+import { Resend } from "resend";
+import { Job } from "bullmq";
+import { db } from "@cerniq/db";
+import { goldLeadJourney, goldCommunicationLog } from "@cerniq/db/schema";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -478,19 +495,28 @@ interface EmailWarmJobData {
 }
 
 export async function emailWarmProcessor(
-  job: Job<EmailWarmJobData>
+  job: Job<EmailWarmJobData>,
 ): Promise<EmailWarmResult> {
-  const { tenantId, leadId, recipientEmail, subject, htmlContent, textContent } = job.data;
+  const {
+    tenantId,
+    leadId,
+    recipientEmail,
+    subject,
+    htmlContent,
+    textContent,
+  } = job.data;
 
   // CRITICAL: Verify lead is warm
   const journey = await db.query.goldLeadJourney.findFirst({
     where: eq(goldLeadJourney.leadId, leadId),
   });
 
-  if (!RESEND_CONFIG.allowedStages.includes(journey?.currentState || '')) {
-    logger.error({ leadId, stage: journey?.currentState }, 
-      'Attempted to send warm email to non-warm lead');
-    throw new Error('LEAD_NOT_WARM');
+  if (!RESEND_CONFIG.allowedStages.includes(journey?.currentState || "")) {
+    logger.error(
+      { leadId, stage: journey?.currentState },
+      "Attempted to send warm email to non-warm lead",
+    );
+    throw new Error("LEAD_NOT_WARM");
   }
 
   try {
@@ -502,8 +528,8 @@ export async function emailWarmProcessor(
       text: textContent,
       reply_to: RESEND_CONFIG.replyTo,
       tags: [
-        { name: 'lead_id', value: leadId },
-        { name: 'tenant_id', value: tenantId },
+        { name: "lead_id", value: leadId },
+        { name: "tenant_id", value: tenantId },
       ],
     });
 
@@ -516,31 +542,31 @@ export async function emailWarmProcessor(
       id: uuidv4(),
       tenantId,
       leadJourneyId: leadId,
-      channel: 'EMAIL_WARM',
-      direction: 'OUTBOUND',
+      channel: "EMAIL_WARM",
+      direction: "OUTBOUND",
       subject,
       content: htmlContent,
       externalMessageId: data.id,
-      status: 'SENT',
+      status: "SENT",
       sentAt: new Date(),
     });
 
     // Update lead
-    await db.update(goldLeadJourney)
+    await db
+      .update(goldLeadJourney)
       .set({
         lastContactAt: new Date(),
-        lastChannelUsed: 'EMAIL_WARM',
+        lastChannelUsed: "EMAIL_WARM",
       })
       .where(eq(goldLeadJourney.leadId, leadId));
 
     return {
       success: true,
       emailId: data.id,
-      status: 'SENT',
+      status: "SENT",
     };
-
   } catch (error) {
-    logger.error({ leadId, error }, 'Failed to send warm email');
+    logger.error({ leadId, error }, "Failed to send warm email");
     throw error;
   }
 }
@@ -552,11 +578,11 @@ export async function emailWarmProcessor(
 
 ### 8.1 Specifications
 
-| Attribute | Value |
-|-----------|-------|
-| **Queue Name** | `email:warm:proforma` |
-| **Concurrency** | 20 |
-| **Purpose** | Send proforma invoices to warm leads |
+| Attribute       | Value                                |
+| --------------- | ------------------------------------ |
+| **Queue Name**  | `email:warm:proforma`                |
+| **Concurrency** | 20                                   |
+| **Purpose**     | Send proforma invoices to warm leads |
 
 ### 8.2 Implementation
 
@@ -573,7 +599,7 @@ interface ProformaJobData {
 }
 
 export async function proformaProcessor(
-  job: Job<ProformaJobData>
+  job: Job<ProformaJobData>,
 ): Promise<void> {
   const { leadId, recipientEmail, proformaData } = job.data;
 
@@ -584,7 +610,7 @@ export async function proformaProcessor(
   await resend.emails.send({
     from: `${RESEND_CONFIG.fromName} <${RESEND_CONFIG.fromEmail}>`,
     to: recipientEmail,
-    subject: 'Ofertă de preț - Cerniq',
+    subject: "Ofertă de preț - Cerniq",
     html: renderProformaEmailTemplate(proformaData),
     attachments: [
       {
@@ -595,9 +621,10 @@ export async function proformaProcessor(
   });
 
   // Update lead to NEGOTIATION
-  await db.update(goldLeadJourney)
+  await db
+    .update(goldLeadJourney)
     .set({
-      currentState: 'NEGOTIATION',
+      currentState: "NEGOTIATION",
       stateChangedAt: new Date(),
     })
     .where(eq(goldLeadJourney.leadId, leadId));
@@ -610,11 +637,11 @@ export async function proformaProcessor(
 
 ### 9.1 Specifications
 
-| Attribute | Value |
-|-----------|-------|
-| **Queue Name** | `email:warm:document` |
-| **Concurrency** | 20 |
-| **Purpose** | Send documents (contracts, catalogs) |
+| Attribute       | Value                                |
+| --------------- | ------------------------------------ |
+| **Queue Name**  | `email:warm:document`                |
+| **Concurrency** | 20                                   |
+| **Purpose**     | Send documents (contracts, catalogs) |
 
 ### 9.2 Implementation
 
@@ -623,16 +650,17 @@ interface DocumentJobData {
   tenantId: string;
   leadId: string;
   recipientEmail: string;
-  documentType: 'CONTRACT' | 'CATALOG' | 'TECHNICAL_SPEC';
+  documentType: "CONTRACT" | "CATALOG" | "TECHNICAL_SPEC";
   documentUrl: string;
   subject: string;
   message: string;
 }
 
 export async function documentProcessor(
-  job: Job<DocumentJobData>
+  job: Job<DocumentJobData>,
 ): Promise<void> {
-  const { recipientEmail, documentType, documentUrl, subject, message } = job.data;
+  const { recipientEmail, documentType, documentUrl, subject, message } =
+    job.data;
 
   // Download document
   const documentBuffer = await downloadDocument(documentUrl);
@@ -660,19 +688,19 @@ export async function documentProcessor(
 ```typescript
 // Middleware to prevent misuse
 export function validateChannelUsage(
-  channel: 'EMAIL_COLD' | 'EMAIL_WARM',
-  leadStage: string
+  channel: "EMAIL_COLD" | "EMAIL_WARM",
+  leadStage: string,
 ): boolean {
-  if (channel === 'EMAIL_WARM') {
+  if (channel === "EMAIL_WARM") {
     // Only warm stages allowed
-    return ['WARM_REPLY', 'NEGOTIATION'].includes(leadStage);
+    return ["WARM_REPLY", "NEGOTIATION"].includes(leadStage);
   }
-  
-  if (channel === 'EMAIL_COLD') {
+
+  if (channel === "EMAIL_COLD") {
     // Only cold stages allowed
-    return ['COLD', 'CONTACTED_WA', 'CONTACTED_EMAIL'].includes(leadStage);
+    return ["COLD", "CONTACTED_WA", "CONTACTED_EMAIL"].includes(leadStage);
   }
-  
+
   return false;
 }
 ```

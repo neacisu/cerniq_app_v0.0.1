@@ -35,12 +35,12 @@
 
 ### Obiective Principale de Business
 
-| Obiectiv | Descriere | Măsură de Succes |
-| --- | --- | --- |
-| **Automatizare Completă** | Pipeline de la primul contact la facturare | Zero intervenție umană pentru 70% din tranzacții |
-| **Zero Hallucinations** | Eliminarea erorilor AI în prețuri, stocuri, date fiscale | 100% acuratețe în documente fiscale |
-| **Conformitate Fiscală** | Integrare completă e-Factura/SPV ANAF | 100% conformitate în termen de 5 zile |
-| **Scalabilitate Agricolă** | Suport specificitățile fermelor românești | OUAI, Cooperative, subvenții [REMOVED] integrate |
+| Obiectiv                   | Descriere                                                | Măsură de Succes                                 |
+| -------------------------- | -------------------------------------------------------- | ------------------------------------------------ |
+| **Automatizare Completă**  | Pipeline de la primul contact la facturare               | Zero intervenție umană pentru 70% din tranzacții |
+| **Zero Hallucinations**    | Eliminarea erorilor AI în prețuri, stocuri, date fiscale | 100% acuratețe în documente fiscale              |
+| **Conformitate Fiscală**   | Integrare completă e-Factura/SPV ANAF                    | 100% conformitate în termen de 5 zile            |
+| **Scalabilitate Agricolă** | Suport specificitățile fermelor românești                | OUAI, Cooperative, subvenții [REMOVED] integrate |
 
 ### Funcționalități Cheie (5 Etape Pipeline)
 
@@ -57,23 +57,23 @@ TOTAL: 5 Monolithic Workers (Scaling Vertical/Horizontal per Etapă)
 
 ## 1.2 Quality Goals
 
-| Rang | Obiectiv de Calitate | Scenariu | Metrică Target |
-| --- | --- | --- | --- |
-| 1 | **Acuratețe (Zero Hallucinations)** | AI-ul nu oferă prețuri, stocuri sau date fiscale eronate | 100% fact-checked vs. database |
-| 2 | **Disponibilitate** | Sistemul procesează outreach și facturi 24/7 | 99.9% uptime |
-| 3 | **Performanță** | Latență acceptabilă pentru chat real-time | <500ms pentru răspunsuri LLM |
-| 4 | **Conformitate** | GDPR Art.6(1)(f), e-Factura, Legea 190/2018 | 100% audit trail |
-| 5 | **Mentenabilitate** | Un singur developer gestionează întregul sistem | Vertical Slice isolation |
+| Rang | Obiectiv de Calitate                | Scenariu                                                 | Metrică Target                 |
+| ---- | ----------------------------------- | -------------------------------------------------------- | ------------------------------ |
+| 1    | **Acuratețe (Zero Hallucinations)** | AI-ul nu oferă prețuri, stocuri sau date fiscale eronate | 100% fact-checked vs. database |
+| 2    | **Disponibilitate**                 | Sistemul procesează outreach și facturi 24/7             | 99.9% uptime                   |
+| 3    | **Performanță**                     | Latență acceptabilă pentru chat real-time                | <500ms pentru răspunsuri LLM   |
+| 4    | **Conformitate**                    | GDPR Art.6(1)(f), e-Factura, Legea 190/2018              | 100% audit trail               |
+| 5    | **Mentenabilitate**                 | Un singur developer gestionează întregul sistem          | Vertical Slice isolation       |
 
 ## 1.3 Stakeholders
 
-| Stakeholder | Rol | Expectații |
-| --- | --- | --- |
-| **Arhitect/Developer** | 1-Person-Team | Mentenabilitate, documentație exhaustivă |
-| **Fermieri (Clienți Finali)** | Utilizatori țintă | Comunicare relevantă, prețuri corecte |
-| **ANAF/SPV** | Autoritate Fiscală | e-Facturi valide, conformitate CIUS-RO |
-| **Furnizori de Date** | Termene.ro, ANAF | Rate limits respectate, cost-eficiență |
-| **Autoritatea pentru Protecția Datelor** | ANSPDCP | GDPR compliance, LIA documentat |
+| Stakeholder                              | Rol                | Expectații                               |
+| ---------------------------------------- | ------------------ | ---------------------------------------- |
+| **Arhitect/Developer**                   | 1-Person-Team      | Mentenabilitate, documentație exhaustivă |
+| **Fermieri (Clienți Finali)**            | Utilizatori țintă  | Comunicare relevantă, prețuri corecte    |
+| **ANAF/SPV**                             | Autoritate Fiscală | e-Facturi valide, conformitate CIUS-RO   |
+| **Furnizori de Date**                    | Termene.ro, ANAF   | Rate limits respectate, cost-eficiență   |
+| **Autoritatea pentru Protecția Datelor** | ANSPDCP            | GDPR compliance, LIA documentat          |
 
 ---
 
@@ -81,30 +81,30 @@ TOTAL: 5 Monolithic Workers (Scaling Vertical/Horizontal per Etapă)
 
 ## 2.1 Technical Constraints
 
-| Constrângere | Descriere | Impact |
-| --- | --- | --- |
-| **High Availability** | Active-Passive Failover (PG Replica + Redis Sentinel) | Min 99.95% Availability |
-| **No GIL pentru Python** | Python 3.14.2 Free-Threading | Necesită biblioteci compatibile |
-| **PostgreSQL 18.1** | Extensii obligatorii: pgvector, PostGIS, pg_trgm | Lock pe vendor, dar performanță maximă |
-| **Multi-tenant Isolation** | Toate datele partiționate per tenant_id | `UNIQUE(tenant_id, cui)` obligatoriu |
+| Constrângere               | Descriere                                             | Impact                                 |
+| -------------------------- | ----------------------------------------------------- | -------------------------------------- |
+| **High Availability**      | Active-Passive Failover (PG Replica + Redis Sentinel) | Min 99.95% Availability                |
+| **No GIL pentru Python**   | Python 3.14.2 Free-Threading                          | Necesită biblioteci compatibile        |
+| **PostgreSQL 18.2**        | Extensii obligatorii: pgvector, PostGIS, pg_trgm      | Lock pe vendor, dar performanță maximă |
+| **Multi-tenant Isolation** | Toate datele partiționate per tenant_id               | `UNIQUE(tenant_id, cui)` obligatoriu   |
 
 ## 2.2 Organizational Constraints
 
-| Constrângere | Descriere | Impact |
-| --- | --- | --- |
-| **1-Person-Team** | Un singur developer/arhitect | Documentație exhaustivă obligatorie |
-| **AI-Augmented Development** | Cursor AI, Claude API | Necesită .cursorrules clare |
-| **Vertical Slice Methodology** | Features complete, nu layers | Autonomie per slice |
+| Constrângere                   | Descriere                    | Impact                              |
+| ------------------------------ | ---------------------------- | ----------------------------------- |
+| **1-Person-Team**              | Un singur developer/arhitect | Documentație exhaustivă obligatorie |
+| **AI-Augmented Development**   | Cursor AI, Claude API        | Necesită .cursorrules clare         |
+| **Vertical Slice Methodology** | Features complete, nu layers | Autonomie per slice                 |
 
 ## 2.3 Regulatory Constraints
 
-| Regulament | Cerințe | Implementare |
-| --- | --- | --- |
-| **GDPR Art. 6(1)(f)** | Legitimate Interest pentru B2B prospecting | LIA documentat, opt-out facil |
-| **Legea 190/2018** | DPO obligatoriu pentru CNP/CI processing | Remediere în 90 zile |
-| **e-Factura (RO)** | Transmitere în 5 zile calendaristice | Safety net cron la 4 zile |
-| **CIUS-RO** | Standard UBL 2.1 pentru facturile electronice | Validare XML înainte de SPV |
-| **Competition Law** | Fără schimb de informații sensibile comercial | Guardrails AI pentru privacy |
+| Regulament            | Cerințe                                       | Implementare                  |
+| --------------------- | --------------------------------------------- | ----------------------------- |
+| **GDPR Art. 6(1)(f)** | Legitimate Interest pentru B2B prospecting    | LIA documentat, opt-out facil |
+| **Legea 190/2018**    | DPO obligatoriu pentru CNP/CI processing      | Remediere în 90 zile          |
+| **e-Factura (RO)**    | Transmitere în 5 zile calendaristice          | Safety net cron la 4 zile     |
+| **CIUS-RO**           | Standard UBL 2.1 pentru facturile electronice | Validare XML înainte de SPV   |
+| **Competition Law**   | Fără schimb de informații sensibile comercial | Guardrails AI pentru privacy  |
 
 ## 2.4 Conventions
 
@@ -112,21 +112,21 @@ TOTAL: 5 Monolithic Workers (Scaling Vertical/Horizontal per Etapă)
 
 > 📖 **Sursă Canonică:** [`master-specification.md`](../specifications/master-specification.md) § "Naming Conventions" și [ADR-0021](../adr/ADR%20Etapa%200/ADR-0021-Naming-Conventions.md)
 
-| Entitate | Convenție | Exemplu |
-| --- | --- | --- |
-| **Tabele Bronze** | `bronze_*` | `bronze_contacts`, `bronze_webhooks` |
-| **Tabele Silver** | `silver_*` | `silver_companies`, `silver_contacts` |
-| **Tabele Gold** | `gold_*` | `gold_lead_journey`, `gold_negotiations` |
-| **Cozi BullMQ** | `{layer}:{category}:{action}` | `enrich:anaf:fiscal-status` |
-| **Events** | `{entity}.{action}.{status}` | `lead.outreach.completed` |
+| Entitate          | Convenție                     | Exemplu                                  |
+| ----------------- | ----------------------------- | ---------------------------------------- |
+| **Tabele Bronze** | `bronze_*`                    | `bronze_contacts`, `bronze_webhooks`     |
+| **Tabele Silver** | `silver_*`                    | `silver_companies`, `silver_contacts`    |
+| **Tabele Gold**   | `gold_*`                      | `gold_lead_journey`, `gold_negotiations` |
+| **Cozi BullMQ**   | `{layer}:{category}:{action}` | `enrich:anaf:fiscal-status`              |
+| **Events**        | `{entity}.{action}.{status}`  | `lead.outreach.completed`                |
 
 ### Deprecated Terms (Alias Mapping)
 
 ```typescript
 const LEGACY_ALIASES = {
-  'shop_id': 'tenant_id',           // CANONIC: tenant_id
-  'current_stage': 'current_state', // CANONIC: current_state
-  'gold_hitl_tasks': 'approval_tasks', // DEPRECATED: use approval_tasks
+  shop_id: "tenant_id", // CANONIC: tenant_id
+  current_stage: "current_state", // CANONIC: current_state
+  gold_hitl_tasks: "approval_tasks", // DEPRECATED: use approval_tasks
 } as const;
 ```
 
@@ -165,16 +165,16 @@ const LEGACY_ALIASES = {
 
 ### Parteneri de Comunicare
 
-| Partner | Direcție | Protocol | Scop |
-| --- | --- | --- | --- |
-| **Fermieri** | Bidirectional | WhatsApp, Email, SMS | Prospectare, Negociere, Suport |
-| **ANAF SPV** | Outbound | REST API + OAuth2 | Transmitere e-Facturi |
-| **Termene.ro** | Inbound | REST API | Date financiare, scoruri de risc |
-| **APIA/MADR** | Inbound | [REMOVED] | [REMOVED] per Risk R-017 |
-| **Oblio.eu** | Bidirectional | REST API | Emitere proforma, facturi |
-| **TimelinesAI** | Bidirectional | Webhooks + API | WhatsApp cluster 20 numere |
-| **Instantly.ai** | Outbound | REST API | Cold email campaigns |
-| **Resend** | Outbound | REST API | Transactional email |
+| Partner          | Direcție      | Protocol             | Scop                             |
+| ---------------- | ------------- | -------------------- | -------------------------------- |
+| **Fermieri**     | Bidirectional | WhatsApp, Email, SMS | Prospectare, Negociere, Suport   |
+| **ANAF SPV**     | Outbound      | REST API + OAuth2    | Transmitere e-Facturi            |
+| **Termene.ro**   | Inbound       | REST API             | Date financiare, scoruri de risc |
+| **APIA/MADR**    | Inbound       | [REMOVED]            | [REMOVED] per Risk R-017         |
+| **Oblio.eu**     | Bidirectional | REST API             | Emitere proforma, facturi        |
+| **TimelinesAI**  | Bidirectional | Webhooks + API       | WhatsApp cluster 20 numere       |
+| **Instantly.ai** | Outbound      | REST API             | Cold email campaigns             |
+| **Resend**       | Outbound      | REST API             | Transactional email              |
 
 ## 3.2 Technical Context
 
@@ -183,46 +183,35 @@ const LEGACY_ALIASES = {
 │                          CONTEXTUL TEHNIC                                           │
 └─────────────────────────────────────────────────────────────────────────────────────┘
 
-                    INTERNET (Traefik Edge Router + Let's Encrypt)
-                                      │
-                    ┌─────────────────┴─────────────────┐
-                    │         FRONTEND NETWORK          │
-                    │         (bridge, public)          │
-                    └─────────────────┬─────────────────┘
-                                      │
-       ┌──────────────────────────────┼──────────────────────────────┐
-       │                              │                              │
-       ▼                              ▼                              ▼
-┌───────────────┐               ┌─────────────┐               ┌──────────────┐
-│   Web App     │               │  Fastify    │               │   SigNoz     │
-│ React 19.2.3+ │               │  API v5.6.2 │               │ Observability│
-│  Refine v5    │               │  (Node 24)  │               │  v0.107.0    │
-└───────────────┘               └──────┬──────┘               └──────────────┘
-                                     │
-                    ┌────────────────┴────────────────┐
-                    │        BACKEND NETWORK          │
-                    │        (bridge, internal)       │
-                    └────────────────┬────────────────┘
-                                     │
-     ┌───────────────────────────────┼───────────────────────────────┐
-     │                               │                               │
-     ▼                               ▼                               ▼
-┌─────────────┐               ┌─────────────┐               ┌─────────────┐
-│ PostgreSQL  │               │   Redis     │               │   5 Mono    │
-│   18.1      │               │   8.4.0     │               │   Workers   │
-│ + pgvector  │               │  (BullMQ)   │               │  (Python)   │
-│ + PostGIS   │               │             │               │             │
-└─────────────┘               └─────────────┘               └─────────────┘
+                     Internet / Cloudflare DNS
+                               │
+                               ▼
+                    Orchestrator (Traefik ingress)
+                               │
+              ┌────────────────┼────────────────┐
+              ▼                ▼                ▼
+        CT110 (staging)   CT109 (production)   CT107 (postgres)
+        - API/Web/Workers - API/Web/Workers    - PostgreSQL native
+        - PgBouncer        - PgBouncer
+        - OTEL Collector   - OTEL Collector
+        - Vector logs      - Vector logs
+              │                │
+              └───────┬────────┘
+                      ▼
+       Observability/Secrets/Redis (shared on orchestrator)
+       - OpenBao (secrets)         - Redis shared (BullMQ)
+       - Grafana/Prometheus/Loki/Tempo
 ```
 
 ### Mapping Canale de Comunicare
 
-| Canal Tehnic | Protocol | Folosit Pentru |
-| --- | --- | --- |
-| **HTTPS (443)** | TLS 1.3 | Web UI, REST API |
-| **PostgreSQL (64032)** | Native | Conexiuni DB (intern) |
-| **Redis (64039)** | Native | BullMQ queues (intern) |
-| **OTLP (64070/64071)** | gRPC/HTTP | OpenTelemetry traces/metrics |
+| Canal Tehnic           | Protocol  | Folosit Pentru                                          |
+| ---------------------- | --------- | ------------------------------------------------------- |
+| **HTTPS (443)**        | TLS 1.3   | Web UI, REST API                                        |
+| **PostgreSQL (5432)**  | Native    | DB extern (CT107), acces prin PgBouncer                 |
+| **PgBouncer (64033)**  | Native    | Pooling DB (CT109/CT110)                                |
+| **Redis (6379)**       | Native    | Redis shared (orchestrator) via gateway intern          |
+| **OTLP (64070/64071)** | gRPC/HTTP | OTEL Collector local -> Tempo/Prometheus (orchestrator) |
 
 ---
 
@@ -234,33 +223,33 @@ const LEGACY_ALIASES = {
 
 > 📖 **Sursă Canonică Versiuni:** [`master-specification.md`](../specifications/master-specification.md) § "Canonical Technology Versions"
 
-| Strat | Tehnologie | Versiune | Justificare |
-| --- | --- | --- | --- |
-| **Runtime API** | Node.js | v24.12.0 LTS "Krypton" | ESM natim, --watch, V8 Maglev JIT |
-| **Framework API** | Fastify | v5.6.2 | Type Provider Zod, hook-based |
-| **AI/Worker Runtime** | Python | 3.14.2 Free-Threading | True parallelism, no GIL |
-| **Database** | PostgreSQL | 18.1 | JSON_TABLE, async I/O, UUIDv7 |
-| **Vector Search** | pgvector | 0.8.1 | HNSW indexes, 1536 dim embeddings |
-| **Geospatial** | PostGIS | 3.6.1 | KNN proximity, SIRUTA polygons |
-| **Queue Manager** | BullMQ | v5.66.5 | Redis-backed, partition per phone |
-| **Cache/Jobs** | Redis | 8.4.0 | AOF+RDB persistence, noeviction |
-| **Frontend** | React | 19.2.3 | Server Components, useOptimistic |
-| **Admin Framework** | Refine | v5 | TanStack Query v5, headless |
-| **Styling** | Tailwind CSS | 4.1.x | Oxide engine (Rust), 5x faster |
-| **Observability** | SigNoz | v0.107.0 | OpenTelemetry native, ClickHouse |
-| **Edge Router** | Traefik | v3.6.6 | Auto Let's Encrypt, circuit breakers |
+| Strat                 | Tehnologie                    | Versiune                | Justificare                                      |
+| --------------------- | ----------------------------- | ----------------------- | ------------------------------------------------ |
+| **Runtime API**       | Node.js                       | v24.13.1 LTS "Krypton"  | ESM natim, --watch, V8 Maglev JIT                |
+| **Framework API**     | Fastify                       | v5.6.2                  | Type Provider Zod, hook-based                    |
+| **AI/Worker Runtime** | Python                        | 3.14.2 Free-Threading   | True parallelism, no GIL                         |
+| **Database**          | PostgreSQL                    | 18.1                    | JSON_TABLE, async I/O, UUIDv7                    |
+| **Vector Search**     | pgvector                      | 0.8.1                   | HNSW indexes, 1536 dim embeddings                |
+| **Geospatial**        | PostGIS                       | 3.6.1                   | KNN proximity, SIRUTA polygons                   |
+| **Queue Manager**     | BullMQ                        | v5.66.5                 | Redis-backed, partition per phone                |
+| **Cache/Jobs**        | Redis                         | 8.4.0                   | AOF+RDB persistence, noeviction                  |
+| **Frontend**          | React                         | 19.2.3                  | Server Components, useOptimistic                 |
+| **Admin Framework**   | Refine                        | v5                      | TanStack Query v5, headless                      |
+| **Styling**           | Tailwind CSS                  | 4.1.x                   | Oxide engine (Rust), 5x faster                   |
+| **Observability**     | Grafana/Prometheus/Loki/Tempo | (central, orchestrator) | OpenTelemetry + logs/metrics/traces centralizate |
+| **Edge Router**       | Traefik                       | v3.6.6                  | Auto Let's Encrypt, circuit breakers             |
 
 ### Decizii Arhitecturale de Top
 
-| Decizie | Motivație | Alternative Respinse |
-| --- | --- | --- |
-| **Vertical Slice Architecture** | 1-Person-Team, autonomie per feature | Layered architecture |
-| **Medallion Data (Bronze→Silver→Gold)** | Data lineage, audit trail | Direct mutation |
-| **Neuro-Symbolic AI** | Zero hallucinations în date critice | Pure LLM approach |
-| **HA Architecture** | Business Continuity | Single Server (SPOF) |
-| **Provider Abstraction (PAL)** | Vendor Agnostic Interfaces (Email, WA, LLM) | Direct Vendor Coupling |
-| **Unified HITL Table** | UI consistent, SLA-driven | Tabele per-etapă |
-| **PostgreSQL Extensions** | Evitare vendor lock-in pe DB separate | Pinecone, MongoDB |
+| Decizie                                 | Motivație                                   | Alternative Respinse   |
+| --------------------------------------- | ------------------------------------------- | ---------------------- |
+| **Vertical Slice Architecture**         | 1-Person-Team, autonomie per feature        | Layered architecture   |
+| **Medallion Data (Bronze→Silver→Gold)** | Data lineage, audit trail                   | Direct mutation        |
+| **Neuro-Symbolic AI**                   | Zero hallucinations în date critice         | Pure LLM approach      |
+| **HA Architecture**                     | Business Continuity                         | Single Server (SPOF)   |
+| **Provider Abstraction (PAL)**          | Vendor Agnostic Interfaces (Email, WA, LLM) | Direct Vendor Coupling |
+| **Unified HITL Table**                  | UI consistent, SLA-driven                   | Tabele per-etapă       |
+| **PostgreSQL Extensions**               | Evitare vendor lock-in pe DB separate       | Pinecone, MongoDB      |
 
 ## 4.2 Decomposition Strategy: Vertical Slice Architecture
 
@@ -317,13 +306,13 @@ Cross-cutting: via shared utilities, not forced inheritance
 
 ## 4.3 Approaches to Achieve Quality Goals
 
-| Quality Goal | Abordare | Implementare |
-| --- | --- | --- |
+| Quality Goal            | Abordare                        | Implementare                     |
+| ----------------------- | ------------------------------- | -------------------------------- |
 | **Zero Hallucinations** | Neuro-Symbolic AI cu Guardrails | MCP Server + Symbolic validation |
-| **Disponibilitate** | Graceful degradation | Circuit breakers în Traefik |
-| **Performanță** | Hybrid Search (Vector + BM25) | pgvector + RRF function |
-| **Conformitate** | Immutable audit logs | Hash chain cu sha256() |
-| **Mentenabilitate** | Exhaustive documentation | Master Spec + arc42 |
+| **Disponibilitate**     | Graceful degradation            | Circuit breakers în Traefik      |
+| **Performanță**         | Hybrid Search (Vector + BM25)   | pgvector + RRF function          |
+| **Conformitate**        | Immutable audit logs            | Hash chain cu sha256()           |
+| **Mentenabilitate**     | Exhaustive documentation        | Master Spec + arc42              |
 
 ---
 
@@ -370,14 +359,14 @@ Cross-cutting: via shared utilities, not forced inheritance
 
 ### Contained Blackboxes
 
-| Blackbox | Responsabilitate | Interfață |
-| --- | --- | --- |
-| **Etapa 1: Data Enrichment** | Ingestie, validare, îmbogățire date Bronze→Silver | API REST + BullMQ events |
-| **Etapa 2: Cold Outreach** | Orchestrare campanii multi-canal | Webhooks + state machine |
-| **Etapa 3: AI Sales Agent** | Negociere autonomă, ofertare, facturare | MCP Protocol + LLM |
-| **Etapa 4: Post-Sale** | Monitorizare plăți, livrări, credit | Webhooks financiar/logistică |
-| **Etapa 5: Nurturing** | Retenție, referrals, ecosistem | PostGIS + NetworkX |
-| **Unified HITL** | Aprobări transversale toate etapele | `approval_tasks` table |
+| Blackbox                     | Responsabilitate                                  | Interfață                    |
+| ---------------------------- | ------------------------------------------------- | ---------------------------- |
+| **Etapa 1: Data Enrichment** | Ingestie, validare, îmbogățire date Bronze→Silver | API REST + BullMQ events     |
+| **Etapa 2: Cold Outreach**   | Orchestrare campanii multi-canal                  | Webhooks + state machine     |
+| **Etapa 3: AI Sales Agent**  | Negociere autonomă, ofertare, facturare           | MCP Protocol + LLM           |
+| **Etapa 4: Post-Sale**       | Monitorizare plăți, livrări, credit               | Webhooks financiar/logistică |
+| **Etapa 5: Nurturing**       | Retenție, referrals, ecosistem                    | PostGIS + NetworkX           |
+| **Unified HITL**             | Aprobări transversale toate etapele               | `approval_tasks` table       |
 
 ## 5.2 Level 2: Etapa 3 - AI Sales Agent (Whitebox)
 
@@ -441,25 +430,25 @@ Cross-cutting: via shared utilities, not forced inheritance
 ```typescript
 const GUARDRAILS = {
   PRICE_GUARD: {
-    rule: 'offered_price >= min_approved_price',
-    action: 'REJECT + regenerate with correct price'
+    rule: "offered_price >= min_approved_price",
+    action: "REJECT + regenerate with correct price",
   },
   STOCK_GUARD: {
-    rule: 'stock_quantity > 0 before any offer',
-    action: 'REJECT + inform customer unavailable'
+    rule: "stock_quantity > 0 before any offer",
+    action: "REJECT + inform customer unavailable",
   },
   DISCOUNT_GUARD: {
-    rule: 'discount <= max_approved_discount',
-    action: 'REJECT + escalate to HITL if customer insists'
+    rule: "discount <= max_approved_discount",
+    action: "REJECT + escalate to HITL if customer insists",
   },
   SKU_GUARD: {
-    rule: 'SKU must exist in products table',
-    action: 'REJECT + log hallucination attempt'
+    rule: "SKU must exist in products table",
+    action: "REJECT + log hallucination attempt",
   },
   FISCAL_GUARD: {
-    rule: 'CUI valid + IBAN valid + address complete',
-    action: 'REQUEST missing data before invoice'
-  }
+    rule: "CUI valid + IBAN valid + address complete",
+    action: "REQUEST missing data before invoice",
+  },
 };
 ```
 
@@ -744,61 +733,66 @@ CUSTOMER MESSAGE: "Am nevoie de ceva ieftin și bun pentru porumb, sub 5000 lei"
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────────────┐
-│                    DEPLOYMENT: HETZNER HA CLUSTER                                    │
-│                    (Active-Passive Failover)                                         │
+│                    DEPLOYMENT: PROXMOX + ORCHESTRATOR (CURRENT)                      │
 └─────────────────────────────────────────────────────────────────────────────────────┘
 
-      ┌──────────────┐                  ┌──────────────┐
-      │  INTERNET    │                  │  DNS Failover│
-      └──────┬───────┘                  └──────┬───────┘
-             │                                 │
-             ▼                                 ▼
-┌─────────────────────────┐       ┌─────────────────────────┐
-│      NODE A (Active)    │       │     NODE B (Standby)    │
-│       AX102 Bare Metal  │       │      AX52 Bare Metal    │
-│                         │       │                         │
-│  [Traefik] ──────────┐  │       │  [Traefik-Standby]      │
-│  [App + Workers]     │  │       │  [App-Warm]             │
-│          │           │  │       │            │            │
-│          ▼           │  │       │            ▼            │
-│  [PgBouncer] ────────┼──┼───────┼───────> [PgBouncer]     │
-│          │           │  │       │            │            │
-│          ▼           │  │       │            ▼            │
-│  [PG Prime] <────────┼──┼───────┼───────> [PG Replica]    │
-│  [Redis Pri] <───────┼──┼───────┼───────> [Redis Repl]    │
-│  [Sentinel A]        │  │       │         [Sentinel B]    │
-└─────────────────────────┘       └─────────────────────────┘
-             │                                 │
-             └─────────── REPLICATION ─────────┘
-                         (Streaming)
+                     Internet / Cloudflare DNS
+                               │
+                               ▼
+                    Orchestrator (public IP)
+               ┌─────────────────────────────────┐
+               │ Traefik (ingress)               │
+               │ OpenBao (secrets)               │
+               │ Redis shared (BullMQ)           │
+               │ Observability (Grafana/...)     │
+               └───────────────┬─────────────────┘
+                               │ (internal networks)
+                               ▼
+                hz.247 gateway (10.0.1.10, HAProxy L4)
+                 - 10.0.1.10:443  -> orchestrator:443
+                 - 10.0.1.10:6379 -> orchestrator:6379
+                 - (plus pull ports orchestrator->CT)
+                               │
+              ┌────────────────┼────────────────┐
+              ▼                ▼                ▼
+        CT110 (staging)   CT109 (production)   CT107 (postgres)
+        - app stack        - app stack         - PostgreSQL native
+        - PgBouncer        - PgBouncer         - DB: cerniq / cerniq_staging
+        - OpenBao agents   - OpenBao agents    - pg_dump + WAL archive
+        - OpenBao agents   - OpenBao agents
+        - cAdvisor         - cAdvisor
+        - pgbouncer-exporter - pgbouncer-exporter
 ```
 
 ## 7.2 Container Resource Allocation (Per Node)
 
-| Container | CPU | Memory | Storage | Notes |
-| --- | --- | --- | --- | --- |
-| **PostgreSQL 18.1** | 4 cores | 40GB | 500GB NVMe | Primary/Replica |
-| **PgBouncer** | 1 core | 1GB | - | Connection Pooling |
-| **Redis 8.4.0** | 2 cores | 80GB | 50GB AOF | Sentinel Managed |
-| **Fastify API** | 4 cores | 8GB | - | Node.js 24 cluster |
-| **Python Workers** | 8 cores | 16GB | - | 5 Monolithic Services |
-| **Sentinel** | 0.5 core | 256MB | - | Quorum = 3 |
+| Container                                                      | CPU        | Memory     | Storage    | Notes                                  |
+| -------------------------------------------------------------- | ---------- | ---------- | ---------- | -------------------------------------- |
+| **PostgreSQL 18.2 (CT107)**                                    | 4 cores    | ~32GB host | local NVMe | Native install, shared service         |
+| **PgBouncer (CT109/110)**                                      | 0.5-1 core | 128-256MB  | -          | Pooling pentru conexiuni DB            |
+| **Redis shared (orchestrator)**                                | shared     | shared     | AOF        | Izolare chei via prefix + ACL          |
+| **Traefik (orchestrator)**                                     | shared     | shared     | -          | Ingress extern unic (public IP)        |
+| **OpenBao (orchestrator)**                                     | shared     | shared     | -          | Secrets centralizat; agenti pe CT-uri  |
+| **OpenBao agents + cAdvisor + pgbouncer-exporter (CT109/110)** | low        | low        | -          | Integrare cu observability centralizat |
 
-### PostgreSQL 18.1 Memory Tuning
+### PostgreSQL 18.2 Memory Tuning
 
 ```ini
-# postgresql.conf optimized for 128GB system
-shared_buffers = 32GB           # 25% of RAM
-effective_cache_size = 96GB     # 75% of RAM
-work_mem = 256MB                # Conservative per-operation
-maintenance_work_mem = 4GB      # ~3% for VACUUM/INDEX
+# postgresql.conf (CT107 ~32GB system)
+shared_buffers = 8GB            # ~25% of RAM
+effective_cache_size = 24GB     # ~75% of RAM
+work_mem = 64MB                 # Conservative per-operation
+maintenance_work_mem = 1GB
 wal_buffers = 64MB              # Write-heavy optimization
-max_connections = 200           # PgBouncer handles pooling
+max_connections = 100           # PgBouncer handles pooling
 
-# Parallelization (20-core system)
-max_parallel_workers_per_gather = 8
-max_parallel_workers = 16
-max_worker_processes = 20
+# PostgreSQL 18 AIO
+io_method = worker
+
+# Parallelization (example)
+max_parallel_workers_per_gather = 4
+max_parallel_workers = 8
+max_worker_processes = 8
 
 # SSD Optimization
 random_page_cost = 1.1
@@ -809,7 +803,7 @@ effective_io_concurrency = 200
 
 ```ini
 # redis.conf for BullMQ workloads
-maxmemory 80gb
+maxmemory 0
 maxmemory-policy noeviction     # CRITICAL: jobs are not evictable
 
 # Lazy freeing (prevent blocking on large deletes)
@@ -835,7 +829,7 @@ rename-command CONFIG ""
 ## 7.3 Traefik Edge Router Configuration
 
 ```yaml
-# traefik.yml
+# traefik.yml (orchestrator)
 certificatesResolvers:
   letsencrypt:
     acme:
@@ -850,20 +844,21 @@ middlewares:
     rateLimit:
       average: 100
       burst: 50
-      
+
   circuit-breaker:
     circuitBreaker:
       expression: "ResponseCodeRatio(500, 600, 0, 600) > 0.25"
-      
+
   security-headers:
     headers:
       stsSeconds: 31536000
       stsIncludeSubdomains: true
       contentTypeNosniff: true
-      
+
 providers:
-  docker:
-    exposedByDefault: false     # Explicit routing only
+  file:
+    directory: /opt/traefik/dynamic
+    watch: true
 ```
 
 ## 7.4 Backup Strategy
@@ -873,15 +868,14 @@ providers:
 │                         BACKUP TO HETZNER STORAGE BOX                                │
 └─────────────────────────────────────────────────────────────────────────────────────┘
 
-┌───────────────────┐          SSH (port 23)           ┌───────────────────┐
-│  Production       │ ─────────────────────────────▶   │  Hetzner          │
-│  Server           │         rsync + encryption       │  Storage Box      │
-│                   │                                   │                   │
-│  pg_dumpall       │         Daily: 7 days            │  /backups/        │
-│  + gzip           │         Weekly: 4 weeks          │    postgresql/    │
-│                   │         Monthly: 3 months        │    redis/         │
-│  Redis BGSAVE     │                                   │    configs/       │
-└───────────────────┘                                   └───────────────────┘
+┌───────────────────┐                                 ┌───────────────────┐
+│ CT107 (PostgreSQL)│                                 │ Hetzner StorageBox│
+│ - pg_dump zilnic  │  (borg/rsync offsite)            │ /backups/cerniq/  │
+│ - WAL archive     │ ─────────────────────────────▶   │  - postgres/      │
+└───────────────────┘                                 │  - configs/       │
+                                                      └───────────────────┘
+
+Nota: Offsite (Borg/StorageBox) necesita credentiale/cheie si este tratat ca task separat in plan.
 ```
 
 ---
@@ -975,25 +969,22 @@ providers:
 └───────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## 8.3 Observability (SigNoz v0.107.0)
+## 8.3 Observability (stack centralizat orchestrator)
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────────────┐
 │                      OBSERVABILITY STACK (OpenTelemetry Native)                      │
 └─────────────────────────────────────────────────────────────────────────────────────┘
 
-┌───────────────────┐     ┌───────────────────┐     ┌───────────────────┐
-│   Application     │     │   OTel Collector  │     │     SigNoz        │
-│   Instrumentation │────▶│                   │────▶│                   │
-│                   │     │   64070 (gRPC)    │     │   Query Service   │
-│   - Node.js       │     │   64071 (HTTP)    │     │   + ClickHouse    │
-│   - Python        │     │                   │     │                   │
-│   - PostgreSQL    │     │   Processors:     │     │   Dashboards:     │
-│   - Redis         │     │   - batch         │     │   - APM           │
-│                   │     │   - memory_limiter│     │   - Logs          │
-└───────────────────┘     └───────────────────┘     │   - Traces        │
-                                                     │   - Alerts        │
-                                                     └───────────────────┘
+┌───────────────────┐     ┌───────────────────┐     ┌──────────────────────────────┐
+│   Application     │     │   OTEL Collector  │     │ Orchestrator (shared stack)   │
+│   Instrumentation │────▶│ (local pe CT)     │────▶│ - Tempo (traces)              │
+│                   │     │ 64070 (gRPC)      │     │ - Loki (logs)                 │
+│   - Node.js       │     │ 64071 (HTTP)      │     │ - Prometheus (metrics)        │
+│   - Python        │     │                   │     │ - Grafana (UI)                │
+│   - PostgreSQL    │     │ processors: batch │     │ Ingest intern prin Traefik +  │
+│   - Redis         │     │ memory_limiter    │     │ gateway `hz.247` unde e cazul │
+└───────────────────┘     └───────────────────┘     └──────────────────────────────┘
 
 TRACE CORRELATION:
 - correlation_id propagat în toate job-urile BullMQ
@@ -1006,11 +997,11 @@ TRACE CORRELATION:
 ```typescript
 // Standardized log format
 interface LogEntry {
-  timestamp: string;          // ISO 8601
-  level: 'DEBUG' | 'INFO' | 'WARN' | 'ERROR';
-  service: string;            // 'api' | 'worker-enrichment' | etc.
-  correlation_id: string;     // UUID propagat
-  tenant_id?: string;         // Pentru multi-tenant
+  timestamp: string; // ISO 8601
+  level: "DEBUG" | "INFO" | "WARN" | "ERROR";
+  service: string; // 'api' | 'worker-enrichment' | etc.
+  correlation_id: string; // UUID propagat
+  tenant_id?: string; // Pentru multi-tenant
   message: string;
   metadata?: Record<string, unknown>;
   error?: {
@@ -1028,27 +1019,27 @@ interface LogEntry {
 ```typescript
 // Canonical event schema
 interface CerniqEvent<T = unknown> {
-  eventId: string;           // UUID v7 (timestamp-ordered)
-  eventType: string;         // {entity}.{action}.{status}
-  eventVersion: '1.0';
-  timestamp: string;          // ISO 8601
-  correlationId: string;     // For tracing
+  eventId: string; // UUID v7 (timestamp-ordered)
+  eventType: string; // {entity}.{action}.{status}
+  eventVersion: "1.0";
+  timestamp: string; // ISO 8601
+  correlationId: string; // For tracing
   tenantId: string;
-  source: string;             // 'worker-enrichment' | 'api' | etc.
+  source: string; // 'worker-enrichment' | 'api' | etc.
   payload: T;
   metadata: {
-    idempotencyKey: string;  // For deduplication
+    idempotencyKey: string; // For deduplication
     retryCount?: number;
     originalEventId?: string; // For replay
   };
 }
 
 // Event examples
-'lead.enrichment.completed'
-'outreach.message.delivered'
-'negotiation.proforma.created'
-'invoice.einvoice.submitted'
-'approval.task.escalated'
+("lead.enrichment.completed");
+("outreach.message.delivered");
+("negotiation.proforma.created");
+("invoice.einvoice.submitted");
+("approval.task.escalated");
 ```
 
 ### Idempotency Contract
@@ -1061,11 +1052,11 @@ async function ensureIdempotent(key: string): Promise<boolean> {
   const result = await redis.set(
     `idempotency:${key}`,
     Date.now(),
-    'NX',           // Only set if not exists
-    'EX',           // With expiry
-    IDEMPOTENCY_TTL
+    "NX", // Only set if not exists
+    "EX", // With expiry
+    IDEMPOTENCY_TTL,
   );
-  return result === 'OK'; // true = first time, proceed
+  return result === "OK"; // true = first time, proceed
 }
 ```
 
@@ -1073,13 +1064,13 @@ async function ensureIdempotent(key: string): Promise<boolean> {
 
 ### Retry Policies
 
-| Categorie Eroare | Retry Strategy | Max Attempts | Backoff |
-| --- | --- | --- | --- |
-| **Network Timeout** | Exponential | 5 | 1s, 2s, 4s, 8s, 16s |
-| **Rate Limit (429)** | Fixed delay | 10 | Respect Retry-After |
-| **Server Error (5xx)** | Exponential | 3 | 5s, 25s, 125s |
-| **Validation Error (4xx)** | No retry | 1 | Move to DLQ |
-| **Database Error** | Immediate | 3 | 100ms |
+| Categorie Eroare           | Retry Strategy | Max Attempts | Backoff             |
+| -------------------------- | -------------- | ------------ | ------------------- |
+| **Network Timeout**        | Exponential    | 5            | 1s, 2s, 4s, 8s, 16s |
+| **Rate Limit (429)**       | Fixed delay    | 10           | Respect Retry-After |
+| **Server Error (5xx)**     | Exponential    | 3            | 5s, 25s, 125s       |
+| **Validation Error (4xx)** | No retry       | 1            | Move to DLQ         |
+| **Database Error**         | Immediate      | 3            | 100ms               |
 
 ### Dead Letter Queue (DLQ) Pattern
 
@@ -1089,12 +1080,12 @@ const queueOptions = {
   defaultJobOptions: {
     attempts: 3,
     backoff: {
-      type: 'exponential',
-      delay: 1000
+      type: "exponential",
+      delay: 1000,
     },
-    removeOnComplete: { age: 86400 },  // 24h
-    removeOnFail: false                 // Keep for inspection
-  }
+    removeOnComplete: { age: 86400 }, // 24h
+    removeOnFail: false, // Keep for inspection
+  },
 };
 
 // Failed jobs go to: {queue-name}:failed
@@ -1105,21 +1096,21 @@ const queueOptions = {
 
 ### Provider Selection
 
-| Use Case | Primary Provider | Fallback Chain | Rate Limit |
-| --- | --- | --- | --- |
-| **Structured Outputs** | xAI Grok-4 | Claude → Groq | 60 RPM |
-| **Agent Orchestration** | xAI Grok-4 | Claude | 60 RPM |
-| **Embeddings** | OpenAI | - | 3000 RPM |
-| **Real-time Chat** | Groq (Llama 3) | - | 100 RPM |
-| **Sensitive Data** | Ollama (local) | - | Unlimited |
+| Use Case                | Primary Provider | Fallback Chain | Rate Limit |
+| ----------------------- | ---------------- | -------------- | ---------- |
+| **Structured Outputs**  | xAI Grok-4       | Claude → Groq  | 60 RPM     |
+| **Agent Orchestration** | xAI Grok-4       | Claude         | 60 RPM     |
+| **Embeddings**          | OpenAI           | -              | 3000 RPM   |
+| **Real-time Chat**      | Groq (Llama 3)   | -              | 100 RPM    |
+| **Sensitive Data**      | Ollama (local)   | -              | Unlimited  |
 
 ### Cost Controls
 
 ```typescript
 const COST_CAPS = {
-  small_tenant: 10.00,    // $10/day
-  medium_tenant: 50.00,   // $50/day
-  enterprise: 500.00      // $500/day
+  small_tenant: 10.0, // $10/day
+  medium_tenant: 50.0, // $50/day
+  enterprise: 500.0, // $500/day
 };
 
 // Redis counter per tenant
@@ -1153,7 +1144,7 @@ const checkBudget = async (tenantId: string, cost: number) => {
 
 **Status:** Accepted  
 **Context:** Need vector search, geospatial, and relational in one system  
-**Decision:** Use PostgreSQL 18.1 + pgvector + PostGIS instead of separate databases  
+**Decision:** Use PostgreSQL 18.2 + pgvector + PostGIS instead of separate databases  
 **Consequences:**
 
 - ✅ Atomic transactions across all data types
@@ -1238,58 +1229,58 @@ Halluc.  uptime         LLM      leads/h     e-Fact  tenant
 
 ### QS-1: Zero Hallucinations (Accuracy)
 
-| Aspect | Detaliu |
-| --- | --- |
-| **Stimulus** | LLM generează un preț pentru un produs |
-| **Source** | xAI Grok-4 în conversație de vânzare |
-| **Environment** | Normal operation |
-| **Artifact** | AI Sales Agent (Etapa 3) |
-| **Response** | Guardrail `calculate_discount()` verifică prețul vs. marjă minimă |
-| **Measure** | 100% din prețurile oferite sunt validate simbolic înainte de afișare |
+| Aspect          | Detaliu                                                              |
+| --------------- | -------------------------------------------------------------------- |
+| **Stimulus**    | LLM generează un preț pentru un produs                               |
+| **Source**      | xAI Grok-4 în conversație de vânzare                                 |
+| **Environment** | Normal operation                                                     |
+| **Artifact**    | AI Sales Agent (Etapa 3)                                             |
+| **Response**    | Guardrail `calculate_discount()` verifică prețul vs. marjă minimă    |
+| **Measure**     | 100% din prețurile oferite sunt validate simbolic înainte de afișare |
 
 ### QS-2: High Availability (Reliability)
 
-| Aspect | Detaliu |
-| --- | --- |
-| **Stimulus** | Server reboot/crash |
-| **Source** | Hardware failure sau update OS |
-| **Environment** | Production |
-| **Artifact** | BullMQ jobs in Redis |
-| **Response** | Redis AOF persistance + live-restore |
-| **Measure** | <30 secunde downtime, 0 jobs pierdute |
+| Aspect          | Detaliu                               |
+| --------------- | ------------------------------------- |
+| **Stimulus**    | Server reboot/crash                   |
+| **Source**      | Hardware failure sau update OS        |
+| **Environment** | Production                            |
+| **Artifact**    | BullMQ jobs in Redis                  |
+| **Response**    | Redis AOF persistance + live-restore  |
+| **Measure**     | <30 secunde downtime, 0 jobs pierdute |
 
 ### QS-3: Real-time Response (Performance)
 
-| Aspect | Detaliu |
-| --- | --- |
-| **Stimulus** | Customer message pe WhatsApp |
-| **Source** | TimelinesAI webhook |
-| **Environment** | Peak load (100 mesaje/minut) |
-| **Artifact** | AI Agent + MCP Server |
-| **Response** | Intent detection + RAG search + Response generation |
-| **Measure** | <500ms time-to-first-token, <3s complete response |
+| Aspect          | Detaliu                                             |
+| --------------- | --------------------------------------------------- |
+| **Stimulus**    | Customer message pe WhatsApp                        |
+| **Source**      | TimelinesAI webhook                                 |
+| **Environment** | Peak load (100 mesaje/minut)                        |
+| **Artifact**    | AI Agent + MCP Server                               |
+| **Response**    | Intent detection + RAG search + Response generation |
+| **Measure**     | <500ms time-to-first-token, <3s complete response   |
 
 ### QS-4: GDPR Compliance (Security)
 
-| Aspect | Detaliu |
-| --- | --- |
-| **Stimulus** | Data subject requests deletion |
-| **Source** | Customer via email/form |
-| **Environment** | Normal operation |
-| **Artifact** | All personal data stores |
-| **Response** | GDPR anonymization function executed |
-| **Measure** | <30 days complete erasure, audit log preserved (anonymized) |
+| Aspect          | Detaliu                                                     |
+| --------------- | ----------------------------------------------------------- |
+| **Stimulus**    | Data subject requests deletion                              |
+| **Source**      | Customer via email/form                                     |
+| **Environment** | Normal operation                                            |
+| **Artifact**    | All personal data stores                                    |
+| **Response**    | GDPR anonymization function executed                        |
+| **Measure**     | <30 days complete erasure, audit log preserved (anonymized) |
 
 ### QS-5: e-Factura Deadline (Compliance)
 
-| Aspect | Detaliu |
-| --- | --- |
-| **Stimulus** | Factură emisă în sistem |
-| **Source** | Oblio API integration |
-| **Environment** | Production |
-| **Artifact** | e-Factura SPV worker |
-| **Response** | Safety net cron la 4 zile verifică și forțează trimiterea |
-| **Measure** | 100% facturi trimise în SPV < 5 zile calendaristice |
+| Aspect          | Detaliu                                                   |
+| --------------- | --------------------------------------------------------- |
+| **Stimulus**    | Factură emisă în sistem                                   |
+| **Source**      | Oblio API integration                                     |
+| **Environment** | Production                                                |
+| **Artifact**    | e-Factura SPV worker                                      |
+| **Response**    | Safety net cron la 4 zile verifică și forțează trimiterea |
+| **Measure**     | 100% facturi trimise în SPV < 5 zile calendaristice       |
 
 ---
 
@@ -1297,24 +1288,24 @@ Halluc.  uptime         LLM      leads/h     e-Fact  tenant
 
 ## 11.1 Identified Risks
 
-| Risk | Probabilitate | Impact | Mitigare |
-| --- | --- | --- | --- |
-| **Single Server Failure** | Medium | High | Daily backups to Hetzner Storage Box, PITR capability |
-| **LLM Provider Outage** | Medium | Medium | Fallback chain (xAI → Claude → Groq) |
-| **Rate Limit Exceeded** | High | Medium | Circuit breakers, exponential backoff, quota guardian |
-| **Python 3.14 Library Incompatibility** | Medium | Medium | Thorough testing, fallback to 3.13 for critical libs |
-| **e-Factura API Changes** | Low | High | CIUS-RO version tracking, XML schema validation |
-| **GDPR Complaint** | Low | Very High | LIA documented, DPO assigned, 90-day remediation budget |
+| Risk                                    | Probabilitate | Impact    | Mitigare                                                |
+| --------------------------------------- | ------------- | --------- | ------------------------------------------------------- |
+| **Single Server Failure**               | Medium        | High      | Daily backups to Hetzner Storage Box, PITR capability   |
+| **LLM Provider Outage**                 | Medium        | Medium    | Fallback chain (xAI → Claude → Groq)                    |
+| **Rate Limit Exceeded**                 | High          | Medium    | Circuit breakers, exponential backoff, quota guardian   |
+| **Python 3.14 Library Incompatibility** | Medium        | Medium    | Thorough testing, fallback to 3.13 for critical libs    |
+| **e-Factura API Changes**               | Low           | High      | CIUS-RO version tracking, XML schema validation         |
+| **GDPR Complaint**                      | Low           | Very High | LIA documented, DPO assigned, 90-day remediation budget |
 
 ## 11.2 Technical Debt Register
 
-| Item | Severity | Description | Remediation Plan |
-| --- | --- | --- | --- |
-| **Legacy `shop_id` alias** | Low | Some code still uses `shop_id` instead of `tenant_id` | Gradual replacement during feature work |
-| **`gold_hitl_tasks` migration** | Medium | Old per-etapă tables still exist in some docs | Delete after `approval_tasks` fully operational |
-| **Missing contract tests E4-E5** | Medium | Etapa 4-5 workers lack contract tests | Sprint dedicated to test coverage |
-| **SigNoz dashboard customization** | Low | Default dashboards, not optimized for Cerniq | Create custom dashboards post-launch |
-| **React Server Components adoption** | Low | Currently mostly client components | Gradual migration for data-heavy views |
+| Item                                 | Severity | Description                                                              | Remediation Plan                                |
+| ------------------------------------ | -------- | ------------------------------------------------------------------------ | ----------------------------------------------- |
+| **Legacy `shop_id` alias**           | Low      | Some code still uses `shop_id` instead of `tenant_id`                    | Gradual replacement during feature work         |
+| **`gold_hitl_tasks` migration**      | Medium   | Old per-etapă tables still exist in some docs                            | Delete after `approval_tasks` fully operational |
+| **Missing contract tests E4-E5**     | Medium   | Etapa 4-5 workers lack contract tests                                    | Sprint dedicated to test coverage               |
+| **Grafana dashboards (Cerniq)**      | Low      | Dashboards initiale exista, dar vor necesita paneluri/exporters dedicate | Iterativ: PG/PgBouncer/Redis/BullMQ dashboards  |
+| **React Server Components adoption** | Low      | Currently mostly client components                                       | Gradual migration for data-heavy views          |
 
 ---
 
@@ -1322,48 +1313,48 @@ Halluc.  uptime         LLM      leads/h     e-Fact  tenant
 
 ## 12.1 Business Terms
 
-| Term | Definition |
-| --- | --- |
-| **Bronze** | Strat de date brute, nevalidate, append-only și imuabil |
-| **Silver** | Date curățate, validate și normalizate |
-| **Gold** | Contacte complet îmbogățite, ready-for-outreach |
-| **CUI** | Cod Unic de Identificare - identificator fiscal unic românesc |
-| **OUAI** | Organizație de Utilizatori de Apă pentru Irigații |
-| **APIA** | Agenția de Plăți și Intervenție pentru Agricultură |
-| **MADR** | Ministerul Agriculturii și Dezvoltării Rurale |
-| **e-Factura** | Sistem electronic facturare obligatoriu ANAF |
-| **CIUS-RO** | Core Invoice Usage Specification România (UBL 2.1) |
-| **SPV** | Spațiul Privat Virtual ANAF |
-| **LIA** | Legitimate Interest Assessment (GDPR) |
+| Term          | Definition                                                    |
+| ------------- | ------------------------------------------------------------- |
+| **Bronze**    | Strat de date brute, nevalidate, append-only și imuabil       |
+| **Silver**    | Date curățate, validate și normalizate                        |
+| **Gold**      | Contacte complet îmbogățite, ready-for-outreach               |
+| **CUI**       | Cod Unic de Identificare - identificator fiscal unic românesc |
+| **OUAI**      | Organizație de Utilizatori de Apă pentru Irigații             |
+| **APIA**      | Agenția de Plăți și Intervenție pentru Agricultură            |
+| **MADR**      | Ministerul Agriculturii și Dezvoltării Rurale                 |
+| **e-Factura** | Sistem electronic facturare obligatoriu ANAF                  |
+| **CIUS-RO**   | Core Invoice Usage Specification România (UBL 2.1)            |
+| **SPV**       | Spațiul Privat Virtual ANAF                                   |
+| **LIA**       | Legitimate Interest Assessment (GDPR)                         |
 
 ## 12.2 Technical Terms
 
-| Term | Definition |
-| --- | --- |
-| **Vertical Slice** | Arhitectură unde fiecare feature conține toate layer-urile (UI, API, DB) |
-| **Medallion Architecture** | Pattern de data lake cu nivele Bronze → Silver → Gold |
-| **MCP** | Model Context Protocol - standard deschis pentru integrarea LLM cu tools |
-| **HITL** | Human-in-the-Loop - sistem de aprobare manuală |
-| **FSM** | Finite State Machine - model de stări pentru lead journey |
-| **RRF** | Reciprocal Rank Fusion - algoritm de combinare a rezultatelor de search |
-| **Neuro-Symbolic AI** | Arhitectură hibridă: rețele neurale + sisteme simbolice |
-| **Guardrails** | Validări deterministe care previn halucinațiile LLM |
-| **BullMQ** | Bibliotecă Node.js pentru job queues bazată pe Redis |
-| **pgvector** | Extensie PostgreSQL pentru căutare vectorială |
-| **PostGIS** | Extensie PostgreSQL pentru date geospațiale |
-| **RLS** | Row-Level Security - izolare date la nivel de rând în PostgreSQL |
+| Term                       | Definition                                                               |
+| -------------------------- | ------------------------------------------------------------------------ |
+| **Vertical Slice**         | Arhitectură unde fiecare feature conține toate layer-urile (UI, API, DB) |
+| **Medallion Architecture** | Pattern de data lake cu nivele Bronze → Silver → Gold                    |
+| **MCP**                    | Model Context Protocol - standard deschis pentru integrarea LLM cu tools |
+| **HITL**                   | Human-in-the-Loop - sistem de aprobare manuală                           |
+| **FSM**                    | Finite State Machine - model de stări pentru lead journey                |
+| **RRF**                    | Reciprocal Rank Fusion - algoritm de combinare a rezultatelor de search  |
+| **Neuro-Symbolic AI**      | Arhitectură hibridă: rețele neurale + sisteme simbolice                  |
+| **Guardrails**             | Validări deterministe care previn halucinațiile LLM                      |
+| **BullMQ**                 | Bibliotecă Node.js pentru job queues bazată pe Redis                     |
+| **pgvector**               | Extensie PostgreSQL pentru căutare vectorială                            |
+| **PostGIS**                | Extensie PostgreSQL pentru date geospațiale                              |
+| **RLS**                    | Row-Level Security - izolare date la nivel de rând în PostgreSQL         |
 
 ## 12.3 Naming Conventions Quick Reference
 
-| Context | Pattern | Example |
-| --- | --- | --- |
-| **Tables Bronze** | `bronze_{entity}` | `bronze_contacts` |
-| **Tables Silver** | `silver_{entity}` | `silver_companies` |
-| **Tables Gold** | `gold_{entity}` | `gold_lead_journey` |
+| Context           | Pattern                       | Example                     |
+| ----------------- | ----------------------------- | --------------------------- |
+| **Tables Bronze** | `bronze_{entity}`             | `bronze_contacts`           |
+| **Tables Silver** | `silver_{entity}`             | `silver_companies`          |
+| **Tables Gold**   | `gold_{entity}`               | `gold_lead_journey`         |
 | **BullMQ Queues** | `{layer}:{category}:{action}` | `enrich:anaf:fiscal-status` |
-| **Events** | `{entity}.{action}.{status}` | `lead.enrichment.completed` |
-| **API Endpoints** | `/api/v1/{resource}` | `/api/v1/leads` |
-| **Feature Dirs** | `/features/{feature-name}/` | `/features/enrichment/` |
+| **Events**        | `{entity}.{action}.{status}`  | `lead.enrichment.completed` |
+| **API Endpoints** | `/api/v1/{resource}`          | `/api/v1/leads`             |
+| **Feature Dirs**  | `/features/{feature-name}/`   | `/features/enrichment/`     |
 
 ---
 
@@ -1402,20 +1393,20 @@ Nivel 5 (Anexe Data Model):
 
 ## Appendix B: Technology Version Matrix
 
-| Technology | Version | Release Date | EOL Date | Notes |
-| --- | --- | --- | --- | --- |
-| Node.js | 24.12.0 | Oct 2025 | Apr 2028 | LTS "Krypton" |
-| Python | 3.14.2 | Dec 2025 | Oct 2029 | Free-Threading stable |
-| PostgreSQL | 18.1 | Nov 2025 | Nov 2030 | Async I/O, UUIDv7 |
-| Redis | 8.4.0 | Nov 2025 | - | Latest Stable |
-| React | 19.2.3 | Dec 2025 | - | Server Components stable |
-| Fastify | 5.6.2 | Nov 2025 | - | v4 EOL Jun 2025 |
-| Tailwind CSS | 4.1.x | Jan 2025 | - | Oxide engine |
-| Refine | 5.x | Oct 2025 | - | TanStack Query v5 |
-| BullMQ | 5.66.5 | Jan 2026 | - | - |
-| Traefik | 3.6.6 | Dec 2025 | - | - |
-| SigNoz | 0.107.0 | Jan 2026 | - | - |
-| Docker Engine | 29.2.0 | 2026 | - | - |
+| Technology                    | Version   | Release Date | EOL Date | Notes                        |
+| ----------------------------- | --------- | ------------ | -------- | ---------------------------- |
+| Node.js                       | 24.13.1   | Oct 2025     | Apr 2028 | LTS "Krypton"                |
+| Python                        | 3.14.2    | Dec 2025     | Oct 2029 | Free-Threading stable        |
+| PostgreSQL                    | 18.1      | Nov 2025     | Nov 2030 | Async I/O, UUIDv7            |
+| Redis                         | 8.4.0     | Nov 2025     | -        | Latest Stable                |
+| React                         | 19.2.3    | Dec 2025     | -        | Server Components stable     |
+| Fastify                       | 5.6.2     | Nov 2025     | -        | v4 EOL Jun 2025              |
+| Tailwind CSS                  | 4.1.x     | Jan 2025     | -        | Oxide engine                 |
+| Refine                        | 5.x       | Oct 2025     | -        | TanStack Query v5            |
+| BullMQ                        | 5.66.5    | Jan 2026     | -        | -                            |
+| Traefik                       | 3.6.6     | Dec 2025     | -        | -                            |
+| Grafana/Prometheus/Loki/Tempo | (central) | 2026         | -        | Stack shared pe orchestrator |
+| Docker Engine                 | 29.2.0    | 2026         | -        | -                            |
 
 ---
 

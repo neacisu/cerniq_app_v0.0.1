@@ -10,6 +10,6 @@ This template outputs ONLY the password with no newline,
 suitable for use as a file-based secret.
 =============================================================================
 */}}
-{{- with secret "database/creds/api-role" -}}
+{{- with secret "cerniq-db/creds/api-dynamic" -}}
 {{ .Data.password }}
 {{- end -}}

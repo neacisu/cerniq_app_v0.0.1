@@ -30,23 +30,23 @@
 
 > 📖 **Sursă:** [`master-specification.md`](../specifications/master-specification.md) § "Canonical Technology Versions"
 
-| Componenta | Versiune OBLIGATORIE | Verificare |
-| ---------- | -------------------- | ---------- |
-| **Node.js** | 24.12.0 "Krypton" | `node --version` |
-| **PNPM** | 9.x | `pnpm --version` |
-| **Python** | 3.14.2 Free-Threading | `python --version` |
-| **Docker** | 29.2.0 | `docker --version` |
-| **Docker Compose** | 2.20+ | `docker compose version` |
+| Componenta         | Versiune OBLIGATORIE  | Verificare               |
+| ------------------ | --------------------- | ------------------------ |
+| **Node.js**        | 24.13.1 "Krypton"     | `node --version`         |
+| **PNPM**           | 9.x                   | `pnpm --version`         |
+| **Python**         | 3.14.2 Free-Threading | `python3 --version`      |
+| **Docker**         | 29.2.0                | `docker --version`       |
+| **Docker Compose** | 2.20+                 | `docker compose version` |
 
 ### 1.2 Dependențe Docker
 
 Serviciile containerizate necesare:
 
-| Serviciu | Port Local | Imagine Docker |
-| -------- | ---------- | -------------- |
-| **PostgreSQL 18.1** | 64032 | `postgis/postgis:18-3.6` |
-| **Redis 8.4.0** | 64039 | `redis:8.4.0-alpine` |
-| **SigNoz** | 64070 | `signoz/signoz:latest` |
+| Serviciu                          | Port Local  | Imagine Docker                 |
+| --------------------------------- | ----------- | ------------------------------ |
+| **PostgreSQL (dev optional)**     | 5432        | `postgis/postgis:18-3.6`       |
+| **Redis (dev optional)**          | 6379        | `redis:8.4.0-alpine`           |
+| **OTEL Collector (dev optional)** | 64070/64071 | `otel/opentelemetry-collector` |
 
 ---
 
@@ -87,10 +87,10 @@ NODE_ENV=development
 LOG_LEVEL=debug
 
 # Database
-DATABASE_URL=postgresql://cerniq:devpassword@localhost:64032/cerniq_dev
+DATABASE_URL=postgresql://cerniq:devpassword@localhost:5432/cerniq_dev
 
 # Redis
-REDIS_URL=redis://localhost:64039/0
+REDIS_URL=redis://localhost:6379/0
 
 # API Server
 HOST=0.0.0.0
@@ -100,7 +100,7 @@ PORT=64000
 JWT_SECRET=your-development-jwt-secret-min-32-chars
 
 # Observability
-OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:64070
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:64071
 OTEL_SERVICE_NAME=cerniq-api
 ```
 
@@ -109,10 +109,15 @@ OTEL_SERVICE_NAME=cerniq-api
 ### 2.4 Pornire Servicii Docker
 
 ```bash
-# Start PostgreSQL + Redis + SigNoz
-docker compose -f infra/docker/docker-compose.yml up -d
+# Nota: pentru development poti rula local doar dependintele (PostgreSQL/Redis/OTEL).
+# In staging/prod (infrastructura noua), PostgreSQL si Redis sunt servicii externe/shared
+# (CT107 + orchestrator) si NU ruleaza ca servicii locale in stack-ul Cerniq.
+#
+# Pentru infrastructura noua (staging/prod): vezi `docs/infrastructure/deployment-guide.md`.
 
-# Verificare servicii
+# Exemplu (optional): porniți servicii DEV (ex: redisinsight) din `infra/docker/`:
+cd infra/docker
+docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile dev up -d redisinsight
 docker compose ps
 ```
 
@@ -193,13 +198,13 @@ pnpm test:e2e
 
 > 📖 **Referință Canonică:** [`ADR-0022-Port-Allocation-Strategy.md`](../adr/ADR%20Etapa%200/ADR-0022-Port-Allocation-Strategy.md)
 
-| Range | Serviciu | Port | Endpoint |
-| ----- | -------- | ---- | -------- |
-| 64000-64009 | **API** | 64000 | `http://localhost:64000/api/v1` |
-| 64010-64019 | **Web Admin** | 64010 | `http://localhost:64010` |
-| 64030-64039 | **PostgreSQL** | 64032 | `postgresql://localhost:64032` |
-| 64030-64039 | **Redis** | 64039 | `redis://localhost:64039` |
-| 64070-64079 | **SigNoz** | 64070 | `http://localhost:64070` |
+| Range       | Serviciu                 | Port        | Endpoint                        |
+| ----------- | ------------------------ | ----------- | ------------------------------- |
+| 64000-64009 | **API**                  | 64000       | `http://localhost:64000/api/v1` |
+| 64010-64019 | **Web Admin**            | 64010       | `http://localhost:64010`        |
+| 5432        | **PostgreSQL (dev)**     | 5432        | `postgresql://localhost:5432`   |
+| 6379        | **Redis (dev)**          | 6379        | `redis://localhost:6379`        |
+| 64070-64071 | **OTEL Collector (dev)** | 64070/64071 | `http://localhost:64071`        |
 
 ### 5.2 Migrații Database
 
@@ -220,11 +225,11 @@ pnpm --filter db reset
 
 ### 6.1 Health Check Endpoints
 
-| Endpoint | Scop | Răspuns Healthy |
-| -------- | ---- | --------------- |
-| `GET /health` | Liveness probe | `200 {"status":"ok"}` |
-| `GET /health/ready` | Readiness (DB+Redis) | `200 {"db":"ok","redis":"ok"}` |
-| `GET /health/startup` | Startup probe | `200` după init |
+| Endpoint              | Scop                 | Răspuns Healthy                |
+| --------------------- | -------------------- | ------------------------------ |
+| `GET /health`         | Liveness probe       | `200 {"status":"ok"}`          |
+| `GET /health/ready`   | Readiness (DB+Redis) | `200 {"db":"ok","redis":"ok"}` |
+| `GET /health/startup` | Startup probe        | `200` după init                |
 
 ### 6.2 Script de Verificare Completă
 
@@ -248,30 +253,30 @@ curl -s http://localhost:64000/health/ready | jq .
 
 ### Documente Obligatorii de Citit
 
-| Document | Scop | Prioritate |
-| -------- | ---- | ---------- |
-| [`master-specification.md`](../specifications/master-specification.md) | Single Source of Truth | P0 |
-| [`coding-standards.md`](./coding-standards.md) | Standarde de cod | P1 |
-| [`architecture.md`](../architecture/architecture.md) | Arhitectura sistemului | P1 |
-| [`glossary.md`](../architecture/glossary.md) | Termeni și convenții | P2 |
+| Document                                                               | Scop                   | Prioritate |
+| ---------------------------------------------------------------------- | ---------------------- | ---------- |
+| [`master-specification.md`](../specifications/master-specification.md) | Single Source of Truth | P0         |
+| [`coding-standards.md`](./coding-standards.md)                         | Standarde de cod       | P1         |
+| [`architecture.md`](../architecture/architecture.md)                   | Arhitectura sistemului | P1         |
+| [`glossary.md`](../architecture/glossary.md)                           | Termeni și convenții   | P2         |
 
 ### Documentație per Etapă (313 Workeri)
 
-| Etapă | Workeri | Focus |
-| ----- | ------- | ----- |
-| [Etapa 1](../specifications/Etapa%201/) | 58 | Data Enrichment (Bronze→Silver→Gold) |
-| [Etapa 2](../specifications/Etapa%202/) | 52 | Cold Outreach (WhatsApp + Email) |
-| [Etapa 3](../specifications/Etapa%203/) | 78 | AI Sales Agent (xAI Grok-4) |
-| [Etapa 4](../specifications/Etapa%204/) | 67 | Post-Sale (Payments, Logistics) |
-| [Etapa 5](../specifications/Etapa%205/) | 58 | Nurturing (PostGIS, Graph) |
+| Etapă                                   | Workeri | Focus                                |
+| --------------------------------------- | ------- | ------------------------------------ |
+| [Etapa 1](../specifications/Etapa%201/) | 58      | Data Enrichment (Bronze→Silver→Gold) |
+| [Etapa 2](../specifications/Etapa%202/) | 52      | Cold Outreach (WhatsApp + Email)     |
+| [Etapa 3](../specifications/Etapa%203/) | 78      | AI Sales Agent (xAI Grok-4)          |
+| [Etapa 4](../specifications/Etapa%204/) | 67      | Post-Sale (Payments, Logistics)      |
+| [Etapa 5](../specifications/Etapa%205/) | 58      | Nurturing (PostGIS, Graph)           |
 
 ### LLM Provider Policy
 
-| Rol | Provider | Model |
-| --- | -------- | ----- |
-| **Primary** | xAI | Grok-4 |
-| **Fallback** | OpenAI | GPT-4o |
-| **Embeddings** | OpenAI | text-embedding-3-large |
+| Rol            | Provider | Model                  |
+| -------------- | -------- | ---------------------- |
+| **Primary**    | xAI      | Grok-4                 |
+| **Fallback**   | OpenAI   | GPT-4o                 |
+| **Embeddings** | OpenAI   | text-embedding-3-large |
 
 ---
 
@@ -279,18 +284,18 @@ curl -s http://localhost:64000/health/ready | jq .
 
 ### Probleme Frecvente
 
-| Problemă | Cauză | Soluție |
-| -------- | ----- | ------- |
-| `ECONNREFUSED :64032` | PostgreSQL nu rulează | `docker compose up -d postgres` |
-| `ECONNREFUSED :64039` | Redis nu rulează | `docker compose up -d redis` |
-| `Invalid token` | JWT_SECRET nesetat | Verifică `.env` |
-| Type errors | Versiune Node greșită | `nvm use 24.12.0` |
+| Problemă             | Cauză                       | Soluție                                              |
+| -------------------- | --------------------------- | ---------------------------------------------------- |
+| `ECONNREFUSED :5432` | PostgreSQL local nu rulează | Porniți PostgreSQL local sau ajustați `DATABASE_URL` |
+| `ECONNREFUSED :6379` | Redis local nu rulează      | Porniți Redis local sau ajustați `REDIS_URL`         |
+| `Invalid token`      | JWT_SECRET nesetat          | Verifică `.env`                                      |
+| Type errors          | Versiune Node greșită       | `nvm use 24.13.1`                                    |
 
 ### Comenzi Utile de Debug
 
 ```bash
 # Verificare logs Docker
-docker compose logs -f postgres redis
+docker compose logs -f
 
 # Verificare conexiune DB
 psql $DATABASE_URL -c "SELECT 1"

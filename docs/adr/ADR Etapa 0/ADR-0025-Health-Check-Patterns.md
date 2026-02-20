@@ -20,27 +20,24 @@ Implementăm **3-tier health checks**: liveness, readiness, dependencies.
 
 ```typescript
 // Health check endpoints
-fastify.get('/health/live', async () => ({ status: 'ok' }));
+fastify.get("/health/live", async () => ({ status: "ok" }));
 
-fastify.get('/health/ready', async () => {
-  const checks = await Promise.all([
-    checkDatabase(),
-    checkRedis(),
-  ]);
-  
-  const allHealthy = checks.every(c => c.healthy);
-  
+fastify.get("/health/ready", async () => {
+  const checks = await Promise.all([checkDatabase(), checkRedis()]);
+
+  const allHealthy = checks.every((c) => c.healthy);
+
   return {
-    status: allHealthy ? 'ok' : 'degraded',
+    status: allHealthy ? "ok" : "degraded",
     checks,
     timestamp: new Date().toISOString(),
   };
 });
 
-fastify.get('/health/deps', async () => ({
+fastify.get("/health/deps", async () => ({
   postgres: await checkPostgres(),
   redis: await checkRedis(),
-  signoz: await checkSignoz(),
+  observability: await checkObservability(), // optional (ex: OTEL exporter endpoint reachability)
 }));
 ```
 

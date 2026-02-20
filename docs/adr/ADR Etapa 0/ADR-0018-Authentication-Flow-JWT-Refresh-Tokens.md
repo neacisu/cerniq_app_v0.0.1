@@ -24,29 +24,29 @@ Utilizăm **JWT în HttpOnly cookies** cu **refresh token rotation**.
 // Auth configuration
 const authConfig = {
   accessToken: {
-    expiresIn: '15m',          // 15 minute
-    algorithm: 'RS256',
+    expiresIn: "15m", // 15 minute
+    algorithm: "RS256",
   },
   refreshToken: {
-    expiresIn: '7d',           // 7 zile
-    rotation: true,            // New refresh token la fiecare use
+    expiresIn: "7d", // 7 zile
+    rotation: true, // New refresh token la fiecare use
   },
   cookie: {
-    name: 'auth_token',
+    name: "auth_token",
     httpOnly: true,
-    secure: true,              // HTTPS only
-    sameSite: 'strict',
-    path: '/',
+    secure: true, // HTTPS only
+    sameSite: "strict",
+    path: "/",
   },
 };
 
 // Fastify JWT plugin
 fastify.register(fastifyJwt, {
   secret: {
-    private: readSecret('JWT_PRIVATE_KEY'),
-    public: readSecret('JWT_PUBLIC_KEY'),
+    private: readSecret("JWT_PRIVATE_KEY"),
+    public: readSecret("JWT_PUBLIC_KEY"),
   },
-  sign: { algorithm: 'RS256' },
+  sign: { algorithm: "RS256" },
   cookie: authConfig.cookie,
 });
 ```
@@ -55,9 +55,9 @@ fastify.register(fastifyJwt, {
 
 ```typescript
 interface JWTPayload {
-  sub: string;           // User ID
-  tenantId: string;      // Tenant ID
-  role: string;          // User role
+  sub: string; // User ID
+  tenantId: string; // Tenant ID
+  role: string; // User role
   permissions: string[]; // RBAC permissions
   iat: number;
   exp: number;

@@ -6,12 +6,12 @@
 
 **Decision:** **Multi-metric centrality scoring**:
 
-| Metric | Weight | Purpose |
-| ------ | ------ | ------- |
-| Degree centrality | 0.3 | Connections count |
-| Betweenness | 0.3 | Bridge between communities |
-| Eigenvector | 0.2 | Connection to important nodes |
-| PageRank | 0.2 | Influence propagation |
+| Metric            | Weight | Purpose                       |
+| ----------------- | ------ | ----------------------------- |
+| Degree centrality | 0.3    | Connections count             |
+| Betweenness       | 0.3    | Bridge between communities    |
+| Eigenvector       | 0.2    | Connection to important nodes |
+| PageRank          | 0.2    | Influence propagation         |
 
 **Formula:** `KOL_Score = 0.3×degree + 0.3×betweenness + 0.2×eigenvector + 0.2×pagerank`
 

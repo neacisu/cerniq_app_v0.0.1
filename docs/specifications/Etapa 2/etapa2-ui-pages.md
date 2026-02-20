@@ -1,5 +1,7 @@
 # CERNIQ.APP — ETAPA 2: UI/UX PAGES
+
 ## Cold Outreach Interface - Complete Page Specifications
+
 ### Versiunea 1.1 | 2 Februarie 2026
 
 ---
@@ -61,7 +63,7 @@ export default function OutreachDashboard() {
           value={stats.pendingReviews}
           change={-3}
           icon={<Clock />}
-          variant={stats.pendingReviews > 10 ? 'warning' : 'default'}
+          variant={stats.pendingReviews > 10 ? "warning" : "default"}
         />
       </div>
 
@@ -69,7 +71,9 @@ export default function OutreachDashboard() {
       <Card className="mb-6">
         <CardHeader>
           <CardTitle>Utilizare Cotă WhatsApp</CardTitle>
-          <CardDescription>20 numere × 200 contacte/zi = 4,000 max</CardDescription>
+          <CardDescription>
+            20 numere × 200 contacte/zi = 4,000 max
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <QuotaUsageGrid phones={phones} />
@@ -93,13 +97,13 @@ export default function OutreachDashboard() {
             <CardTitle>Funnel Leads</CardTitle>
           </CardHeader>
           <CardContent>
-            <LeadFunnelChart 
+            <LeadFunnelChart
               stages={[
-                { name: 'COLD', count: 1250, color: '#94a3b8' },
-                { name: 'CONTACTED', count: 890, color: '#60a5fa' },
-                { name: 'WARM_REPLY', count: 234, color: '#34d399' },
-                { name: 'NEGOTIATION', count: 89, color: '#fbbf24' },
-                { name: 'CONVERTED', count: 23, color: '#22c55e' },
+                { name: "COLD", count: 1250, color: "#94a3b8" },
+                { name: "CONTACTED", count: 890, color: "#60a5fa" },
+                { name: "WARM_REPLY", count: 234, color: "#34d399" },
+                { name: "NEGOTIATION", count: 89, color: "#fbbf24" },
+                { name: "CONVERTED", count: 23, color: "#22c55e" },
               ]}
             />
           </CardContent>
@@ -129,7 +133,7 @@ interface Phone {
   id: string;
   label: string;
   phoneNumber: string;
-  status: 'ACTIVE' | 'OFFLINE' | 'BANNED';
+  status: "ACTIVE" | "OFFLINE" | "BANNED";
   quotaUsed: number;
   quotaLimit: number;
 }
@@ -139,18 +143,19 @@ export function QuotaUsageGrid({ phones }: { phones: Phone[] }) {
     <div className="grid grid-cols-10 gap-2">
       {phones.map((phone) => {
         const percentage = (phone.quotaUsed / phone.quotaLimit) * 100;
-        const color = phone.status !== 'ACTIVE' 
-          ? 'bg-red-500' 
-          : percentage >= 90 
-            ? 'bg-amber-500' 
-            : 'bg-green-500';
-        
+        const color =
+          phone.status !== "ACTIVE"
+            ? "bg-red-500"
+            : percentage >= 90
+              ? "bg-amber-500"
+              : "bg-green-500";
+
         return (
           <Tooltip key={phone.id}>
             <TooltipTrigger>
               <div className="relative">
                 <div className="w-full h-16 bg-muted rounded overflow-hidden">
-                  <div 
+                  <div
                     className={`absolute bottom-0 w-full ${color} transition-all`}
                     style={{ height: `${percentage}%` }}
                   />
@@ -162,7 +167,9 @@ export function QuotaUsageGrid({ phones }: { phones: Phone[] }) {
             </TooltipTrigger>
             <TooltipContent>
               <p>{phone.phoneNumber}</p>
-              <p>{phone.quotaUsed}/{phone.quotaLimit} utilizat</p>
+              <p>
+                {phone.quotaUsed}/{phone.quotaLimit} utilizat
+              </p>
               <p>Status: {phone.status}</p>
             </TooltipContent>
           </Tooltip>
@@ -191,10 +198,10 @@ export default function LeadsPage() {
   });
 
   return (
-    <PageLayout 
-      title="Lead-uri Outreach" 
+    <PageLayout
+      title="Lead-uri Outreach"
       actions={
-        <Button onClick={() => router.push('/outreach/leads/import')}>
+        <Button onClick={() => router.push("/outreach/leads/import")}>
           <Upload className="w-4 h-4 mr-2" />
           Import Leads
         </Button>
@@ -204,9 +211,9 @@ export default function LeadsPage() {
       <Card className="mb-4">
         <CardContent className="pt-4">
           <div className="flex gap-4 flex-wrap">
-            <Select 
-              value={filters.stage} 
-              onValueChange={(v) => setFilters(f => ({ ...f, stage: v }))}
+            <Select
+              value={filters.stage}
+              onValueChange={(v) => setFilters((f) => ({ ...f, stage: v }))}
             >
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Toate stările" />
@@ -222,9 +229,9 @@ export default function LeadsPage() {
               </SelectContent>
             </Select>
 
-            <Select 
+            <Select
               value={filters.channel}
-              onValueChange={(v) => setFilters(f => ({ ...f, channel: v }))}
+              onValueChange={(v) => setFilters((f) => ({ ...f, channel: v }))}
             >
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Toate canalele" />
@@ -237,35 +244,41 @@ export default function LeadsPage() {
             </Select>
 
             <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="hasReply" 
+              <Checkbox
+                id="hasReply"
                 checked={filters.hasReply}
-                onCheckedChange={(v) => setFilters(f => ({ ...f, hasReply: !!v }))}
+                onCheckedChange={(v) =>
+                  setFilters((f) => ({ ...f, hasReply: !!v }))
+                }
               />
               <label htmlFor="hasReply">Cu răspuns</label>
             </div>
 
             <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="needsReview" 
+              <Checkbox
+                id="needsReview"
                 checked={filters.needsReview}
-                onCheckedChange={(v) => setFilters(f => ({ ...f, needsReview: !!v }))}
+                onCheckedChange={(v) =>
+                  setFilters((f) => ({ ...f, needsReview: !!v }))
+                }
               />
               <label htmlFor="needsReview">Necesită review</label>
             </div>
 
-            <Input 
+            <Input
               placeholder="Caută companie, email..."
               className="w-[250px]"
               value={filters.search}
-              onChange={(e) => setFilters(f => ({ ...f, search: e.target.value }))}
+              onChange={(e) =>
+                setFilters((f) => ({ ...f, search: e.target.value }))
+              }
             />
           </div>
         </CardContent>
       </Card>
 
       {/* Leads Table */}
-      <LeadsDataTable 
+      <LeadsDataTable
         filters={filters}
         columns={leadsColumns}
         onRowClick={(lead) => router.push(`/outreach/leads/${lead.id}`)}
@@ -276,49 +289,55 @@ export default function LeadsPage() {
 
 const leadsColumns: ColumnDef<Lead>[] = [
   {
-    accessorKey: 'company.denumire',
-    header: 'Companie',
+    accessorKey: "company.denumire",
+    header: "Companie",
     cell: ({ row }) => (
       <div>
         <p className="font-medium">{row.original.company.denumire}</p>
-        <p className="text-sm text-muted-foreground">{row.original.company.judet}</p>
+        <p className="text-sm text-muted-foreground">
+          {row.original.company.judet}
+        </p>
       </div>
     ),
   },
   {
-    accessorKey: 'currentState',
-    header: 'Stare',
+    accessorKey: "currentState",
+    header: "Stare",
     cell: ({ row }) => <StageBadge stage={row.original.currentState} />,
   },
   {
-    accessorKey: 'lastChannelUsed',
-    header: 'Ultimul Canal',
+    accessorKey: "lastChannelUsed",
+    header: "Ultimul Canal",
     cell: ({ row }) => <ChannelIcon channel={row.original.lastChannelUsed} />,
   },
   {
-    accessorKey: 'sentimentScore',
-    header: 'Sentiment',
-    cell: ({ row }) => <SentimentIndicator score={row.original.sentimentScore} />,
+    accessorKey: "sentimentScore",
+    header: "Sentiment",
+    cell: ({ row }) => (
+      <SentimentIndicator score={row.original.sentimentScore} />
+    ),
   },
   {
-    accessorKey: 'replyCount',
-    header: 'Răspunsuri',
+    accessorKey: "replyCount",
+    header: "Răspunsuri",
     cell: ({ row }) => row.original.replyCount || 0,
   },
   {
-    accessorKey: 'lastContactAt',
-    header: 'Ultimul Contact',
-    cell: ({ row }) => formatDistanceToNow(row.original.lastContactAt, { 
-      addSuffix: true, 
-      locale: ro 
-    }),
+    accessorKey: "lastContactAt",
+    header: "Ultimul Contact",
+    cell: ({ row }) =>
+      formatDistanceToNow(row.original.lastContactAt, {
+        addSuffix: true,
+        locale: ro,
+      }),
   },
   {
-    accessorKey: 'nextActionAt',
-    header: 'Următoarea Acțiune',
-    cell: ({ row }) => row.original.nextActionAt 
-      ? format(row.original.nextActionAt, 'dd MMM HH:mm', { locale: ro })
-      : '-',
+    accessorKey: "nextActionAt",
+    header: "Următoarea Acțiune",
+    cell: ({ row }) =>
+      row.original.nextActionAt
+        ? format(row.original.nextActionAt, "dd MMM HH:mm", { locale: ro })
+        : "-",
   },
 ];
 ```
@@ -328,16 +347,22 @@ const leadsColumns: ColumnDef<Lead>[] = [
 ```tsx
 // pages/outreach/leads/[leadId].tsx
 
-export default function LeadDetailPage({ params }: { params: { leadId: string } }) {
-  const { data: lead } = useQuery(['lead', params.leadId], () => fetchLead(params.leadId));
-  
+export default function LeadDetailPage({
+  params,
+}: {
+  params: { leadId: string };
+}) {
+  const { data: lead } = useQuery(["lead", params.leadId], () =>
+    fetchLead(params.leadId),
+  );
+
   return (
-    <PageLayout 
+    <PageLayout
       title={lead?.company.denumire}
       breadcrumbs={[
-        { label: 'Outreach', href: '/outreach' },
-        { label: 'Leads', href: '/outreach/leads' },
-        { label: lead?.company.denumire || '' },
+        { label: "Outreach", href: "/outreach" },
+        { label: "Leads", href: "/outreach/leads" },
+        { label: lead?.company.denumire || "" },
       ]}
     >
       <div className="grid grid-cols-3 gap-6">
@@ -357,17 +382,19 @@ export default function LeadDetailPage({ params }: { params: { leadId: string } 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Conversație</CardTitle>
-              <Button 
-                variant="outline" 
-                onClick={() => router.push(`/outreach/leads/${lead.id}/conversation`)}
+              <Button
+                variant="outline"
+                onClick={() =>
+                  router.push(`/outreach/leads/${lead.id}/conversation`)
+                }
               >
                 <Expand className="w-4 h-4 mr-2" />
                 Deschide Full
               </Button>
             </CardHeader>
             <CardContent>
-              <ConversationTimeline 
-                messages={lead.communications} 
+              <ConversationTimeline
+                messages={lead.communications}
                 maxMessages={5}
               />
             </CardContent>
@@ -383,30 +410,40 @@ export default function LeadDetailPage({ params }: { params: { leadId: string } 
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <label className="text-sm text-muted-foreground">Stare Curentă</label>
+                <label className="text-sm text-muted-foreground">
+                  Stare Curentă
+                </label>
                 <StageBadge stage={lead.currentState} size="lg" />
               </div>
-              
+
               <div>
-                <label className="text-sm text-muted-foreground">Sentiment</label>
+                <label className="text-sm text-muted-foreground">
+                  Sentiment
+                </label>
                 <SentimentIndicator score={lead.sentimentScore} showLabel />
               </div>
 
               <div>
-                <label className="text-sm text-muted-foreground">Canal Preferat</label>
-                <p>{lead.preferredChannel || 'Nedeterminat'}</p>
+                <label className="text-sm text-muted-foreground">
+                  Canal Preferat
+                </label>
+                <p>{lead.preferredChannel || "Nedeterminat"}</p>
               </div>
 
               <Separator />
 
               <div>
-                <label className="text-sm text-muted-foreground">Telefon WhatsApp Atribuit</label>
-                <p>{lead.assignedPhone?.phoneLabel || 'Neatribuit'}</p>
+                <label className="text-sm text-muted-foreground">
+                  Telefon WhatsApp Atribuit
+                </label>
+                <p>{lead.assignedPhone?.phoneLabel || "Neatribuit"}</p>
               </div>
 
               <div>
-                <label className="text-sm text-muted-foreground">Secvență Activă</label>
-                <p>{lead.currentSequence?.name || 'Nicio secvență'}</p>
+                <label className="text-sm text-muted-foreground">
+                  Secvență Activă
+                </label>
+                <p>{lead.currentSequence?.name || "Nicio secvență"}</p>
                 {lead.currentSequence && (
                   <p className="text-sm text-muted-foreground">
                     Pas {lead.sequenceStep}/{lead.currentSequence.totalSteps}
@@ -426,21 +463,29 @@ export default function LeadDetailPage({ params }: { params: { leadId: string } 
                 <MessageSquare className="w-4 h-4 mr-2" />
                 Trimite Mesaj
               </Button>
-              
-              <Button variant="outline" className="w-full" onClick={handleStartSequence}>
+
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={handleStartSequence}
+              >
                 <Play className="w-4 h-4 mr-2" />
                 Pornește Secvență
               </Button>
 
-              <Button variant="outline" className="w-full" onClick={handleAssignUser}>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={handleAssignUser}
+              >
                 <User className="w-4 h-4 mr-2" />
                 Atribuie Utilizator
               </Button>
 
               <Separator />
 
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 className="w-full text-destructive"
                 onClick={handleMarkDead}
               >
@@ -473,53 +518,55 @@ export default function LeadDetailPage({ params }: { params: { leadId: string } 
 
 interface Message {
   id: string;
-  direction: 'INBOUND' | 'OUTBOUND';
-  channel: 'WHATSAPP' | 'EMAIL_COLD' | 'EMAIL_WARM';
+  direction: "INBOUND" | "OUTBOUND";
+  channel: "WHATSAPP" | "EMAIL_COLD" | "EMAIL_WARM";
   content: string;
   sentAt: Date;
-  status: 'SENT' | 'DELIVERED' | 'READ' | 'FAILED';
+  status: "SENT" | "DELIVERED" | "READ" | "FAILED";
   isAiGenerated?: boolean;
 }
 
-export function ConversationTimeline({ 
-  messages, 
-  maxMessages 
-}: { 
+export function ConversationTimeline({
+  messages,
+  maxMessages,
+}: {
   messages: Message[];
   maxMessages?: number;
 }) {
-  const displayMessages = maxMessages 
-    ? messages.slice(-maxMessages) 
-    : messages;
+  const displayMessages = maxMessages ? messages.slice(-maxMessages) : messages;
 
   return (
     <div className="space-y-4">
       {displayMessages.map((msg) => (
-        <div 
+        <div
           key={msg.id}
           className={cn(
             "flex",
-            msg.direction === 'OUTBOUND' ? "justify-end" : "justify-start"
+            msg.direction === "OUTBOUND" ? "justify-end" : "justify-start",
           )}
         >
-          <div className={cn(
-            "max-w-[70%] rounded-lg px-4 py-2",
-            msg.direction === 'OUTBOUND' 
-              ? "bg-primary text-primary-foreground" 
-              : "bg-muted"
-          )}>
+          <div
+            className={cn(
+              "max-w-[70%] rounded-lg px-4 py-2",
+              msg.direction === "OUTBOUND"
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted",
+            )}
+          >
             <div className="flex items-center gap-2 mb-1">
               <ChannelIcon channel={msg.channel} size="sm" />
               {msg.isAiGenerated && (
-                <Badge variant="outline" className="text-xs">AI</Badge>
+                <Badge variant="outline" className="text-xs">
+                  AI
+                </Badge>
               )}
             </div>
             <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
             <div className="flex items-center justify-end gap-2 mt-1">
               <span className="text-xs opacity-70">
-                {format(msg.sentAt, 'HH:mm')}
+                {format(msg.sentAt, "HH:mm")}
               </span>
-              {msg.direction === 'OUTBOUND' && (
+              {msg.direction === "OUTBOUND" && (
                 <MessageStatusIcon status={msg.status} />
               )}
             </div>
@@ -546,18 +593,10 @@ export default function ReviewQueuePage() {
       {/* Priority Tabs */}
       <Tabs defaultValue="urgent">
         <TabsList>
-          <TabsTrigger value="urgent">
-            Urgent ({counts.urgent})
-          </TabsTrigger>
-          <TabsTrigger value="high">
-            High ({counts.high})
-          </TabsTrigger>
-          <TabsTrigger value="medium">
-            Medium ({counts.medium})
-          </TabsTrigger>
-          <TabsTrigger value="low">
-            Low ({counts.low})
-          </TabsTrigger>
+          <TabsTrigger value="urgent">Urgent ({counts.urgent})</TabsTrigger>
+          <TabsTrigger value="high">High ({counts.high})</TabsTrigger>
+          <TabsTrigger value="medium">Medium ({counts.medium})</TabsTrigger>
+          <TabsTrigger value="low">Low ({counts.low})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="urgent">
@@ -570,7 +609,9 @@ export default function ReviewQueuePage() {
 }
 
 function ReviewItemsList({ priority }: { priority: string }) {
-  const { data: items } = useQuery(['reviews', priority], () => fetchReviews(priority));
+  const { data: items } = useQuery(["reviews", priority], () =>
+    fetchReviews(priority),
+  );
 
   return (
     <div className="space-y-4 mt-4">
@@ -594,9 +635,9 @@ function ReviewCard({ item }: { item: ReviewItem }) {
               <Badge variant="outline">{item.reason}</Badge>
               <SLACountdown dueAt={item.slaDueAt} />
             </div>
-            
+
             <h3 className="font-medium">{item.lead.company.denumire}</h3>
-            
+
             {item.triggerContent && (
               <div className="mt-2 p-3 bg-muted rounded">
                 <p className="text-sm">{item.triggerContent}</p>
@@ -605,7 +646,9 @@ function ReviewCard({ item }: { item: ReviewItem }) {
 
             {item.suggestedResponse && (
               <div className="mt-2 p-3 bg-blue-50 rounded border border-blue-200">
-                <p className="text-xs text-blue-600 mb-1">Răspuns Sugerat AI:</p>
+                <p className="text-xs text-blue-600 mb-1">
+                  Răspuns Sugerat AI:
+                </p>
                 <p className="text-sm">{item.suggestedResponse}</p>
               </div>
             )}
@@ -616,15 +659,27 @@ function ReviewCard({ item }: { item: ReviewItem }) {
               <Check className="w-4 h-4 mr-1" />
               Aprobă
             </Button>
-            <Button size="sm" variant="outline" onClick={() => handleRespond(item.id)}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleRespond(item.id)}
+            >
               <MessageSquare className="w-4 h-4 mr-1" />
               Răspunde
             </Button>
-            <Button size="sm" variant="outline" onClick={() => handleTakeover(item.id)}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleTakeover(item.id)}
+            >
               <User className="w-4 h-4 mr-1" />
               Preia
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => handleIgnore(item.id)}>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => handleIgnore(item.id)}
+            >
               <X className="w-4 h-4 mr-1" />
               Ignoră
             </Button>
@@ -659,11 +714,9 @@ export default function PhonesPage() {
 
 function PhoneCard({ phone }: { phone: Phone }) {
   const quotaPercent = (phone.quotaUsed / phone.quotaLimit) * 100;
-  
+
   return (
-    <Card className={cn(
-      phone.status !== 'ACTIVE' && 'border-red-500'
-    )}>
+    <Card className={cn(phone.status !== "ACTIVE" && "border-red-500")}>
       <CardHeader className="pb-2">
         <div className="flex justify-between items-center">
           <CardTitle className="text-lg">{phone.label}</CardTitle>
@@ -677,12 +730,17 @@ function PhoneCard({ phone }: { phone: Phone }) {
           <div>
             <div className="flex justify-between text-sm mb-1">
               <span>Cotă Utilizată</span>
-              <span>{phone.quotaUsed}/{phone.quotaLimit}</span>
+              <span>
+                {phone.quotaUsed}/{phone.quotaLimit}
+              </span>
             </div>
-            <Progress value={quotaPercent} className={cn(
-              quotaPercent >= 90 && 'bg-amber-100',
-              quotaPercent >= 100 && 'bg-red-100'
-            )} />
+            <Progress
+              value={quotaPercent}
+              className={cn(
+                quotaPercent >= 90 && "bg-amber-100",
+                quotaPercent >= 100 && "bg-red-100",
+              )}
+            />
           </div>
 
           {/* Stats */}
@@ -700,13 +758,21 @@ function PhoneCard({ phone }: { phone: Phone }) {
           {/* Last Activity */}
           <div className="text-sm">
             <span className="text-muted-foreground">Ultima Activitate</span>
-            <p>{formatDistanceToNow(phone.lastMessageSentAt, { addSuffix: true })}</p>
+            <p>
+              {formatDistanceToNow(phone.lastMessageSentAt, {
+                addSuffix: true,
+              })}
+            </p>
           </div>
         </div>
       </CardContent>
       <CardFooter className="flex gap-2">
-        {phone.status === 'ACTIVE' ? (
-          <Button variant="outline" size="sm" onClick={() => pausePhone(phone.id)}>
+        {phone.status === "ACTIVE" ? (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => pausePhone(phone.id)}
+          >
             <Pause className="w-4 h-4 mr-1" />
             Pauză
           </Button>
@@ -716,7 +782,11 @@ function PhoneCard({ phone }: { phone: Phone }) {
             Reactivează
           </Button>
         )}
-        <Button variant="ghost" size="sm" onClick={() => router.push(`/outreach/phones/${phone.id}`)}>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => router.push(`/outreach/phones/${phone.id}`)}
+        >
           Detalii
         </Button>
       </CardFooter>
@@ -736,10 +806,10 @@ function PhoneCard({ phone }: { phone: Phone }) {
 
 export default function SequencesPage() {
   return (
-    <PageLayout 
+    <PageLayout
       title="Secvențe Outreach"
       actions={
-        <Button onClick={() => router.push('/outreach/sequences/create')}>
+        <Button onClick={() => router.push("/outreach/sequences/create")}>
           <Plus className="w-4 h-4 mr-2" />
           Secvență Nouă
         </Button>
@@ -761,19 +831,25 @@ function SequenceCard({ sequence }: { sequence: Sequence }) {
         <div className="flex justify-between items-start">
           <div>
             <h3 className="font-medium text-lg">{sequence.name}</h3>
-            <p className="text-sm text-muted-foreground">{sequence.description}</p>
-            
+            <p className="text-sm text-muted-foreground">
+              {sequence.description}
+            </p>
+
             <div className="flex gap-4 mt-4">
               <div>
                 <span className="text-sm text-muted-foreground">Pași</span>
                 <p className="font-medium">{sequence.steps.length}</p>
               </div>
               <div>
-                <span className="text-sm text-muted-foreground">Leads Înrolați</span>
+                <span className="text-sm text-muted-foreground">
+                  Leads Înrolați
+                </span>
                 <p className="font-medium">{sequence.totalLeadsEnrolled}</p>
               </div>
               <div>
-                <span className="text-sm text-muted-foreground">Rată Răspuns</span>
+                <span className="text-sm text-muted-foreground">
+                  Rată Răspuns
+                </span>
                 <p className="font-medium">{sequence.avgResponseRate}%</p>
               </div>
               <div>
@@ -785,7 +861,7 @@ function SequenceCard({ sequence }: { sequence: Sequence }) {
             {/* Steps Preview */}
             <div className="flex gap-2 mt-4">
               {sequence.steps.map((step, idx) => (
-                <div 
+                <div
                   key={step.id}
                   className="flex items-center gap-1 text-xs bg-muted px-2 py-1 rounded"
                 >
@@ -797,7 +873,7 @@ function SequenceCard({ sequence }: { sequence: Sequence }) {
           </div>
 
           <div className="flex items-center gap-2">
-            <Switch 
+            <Switch
               checked={sequence.isActive}
               onCheckedChange={(v) => toggleSequence(sequence.id, v)}
             />
@@ -820,21 +896,33 @@ function SequenceCard({ sequence }: { sequence: Sequence }) {
 
 ```tsx
 const stageConfig: Record<string, { label: string; color: string }> = {
-  COLD: { label: 'Cold', color: 'bg-slate-500' },
-  CONTACTED_WA: { label: 'Contactat WA', color: 'bg-blue-500' },
-  CONTACTED_EMAIL: { label: 'Contactat Email', color: 'bg-indigo-500' },
-  WARM_REPLY: { label: 'Răspuns Primit', color: 'bg-green-500' },
-  NEGOTIATION: { label: 'În Negociere', color: 'bg-amber-500' },
-  CONVERTED: { label: 'Convertit', color: 'bg-emerald-600' },
-  DEAD: { label: 'Pierdut', color: 'bg-red-500' },
-  PAUSED: { label: 'Pauză', color: 'bg-gray-500' },
+  COLD: { label: "Cold", color: "bg-slate-500" },
+  CONTACTED_WA: { label: "Contactat WA", color: "bg-blue-500" },
+  CONTACTED_EMAIL: { label: "Contactat Email", color: "bg-indigo-500" },
+  WARM_REPLY: { label: "Răspuns Primit", color: "bg-green-500" },
+  NEGOTIATION: { label: "În Negociere", color: "bg-amber-500" },
+  CONVERTED: { label: "Convertit", color: "bg-emerald-600" },
+  DEAD: { label: "Pierdut", color: "bg-red-500" },
+  PAUSED: { label: "Pauză", color: "bg-gray-500" },
 };
 
-export function StageBadge({ stage, size = 'default' }: { stage: string; size?: 'sm' | 'default' | 'lg' }) {
-  const config = stageConfig[stage] || { label: stage, color: 'bg-gray-500' };
-  
+export function StageBadge({
+  stage,
+  size = "default",
+}: {
+  stage: string;
+  size?: "sm" | "default" | "lg";
+}) {
+  const config = stageConfig[stage] || { label: stage, color: "bg-gray-500" };
+
   return (
-    <Badge className={cn(config.color, 'text-white', size === 'lg' && 'text-base px-3 py-1')}>
+    <Badge
+      className={cn(
+        config.color,
+        "text-white",
+        size === "lg" && "text-base px-3 py-1",
+      )}
+    >
       {config.label}
     </Badge>
   );
@@ -844,17 +932,17 @@ export function StageBadge({ stage, size = 'default' }: { stage: string; size?: 
 ## 7.2 Sentiment Indicator
 
 ```tsx
-export function SentimentIndicator({ 
-  score, 
-  showLabel = false 
-}: { 
-  score: number; 
+export function SentimentIndicator({
+  score,
+  showLabel = false,
+}: {
+  score: number;
   showLabel?: boolean;
 }) {
   const getColor = (s: number) => {
-    if (s >= 50) return 'text-green-500';
-    if (s >= 0) return 'text-yellow-500';
-    return 'text-red-500';
+    if (s >= 50) return "text-green-500";
+    if (s >= 0) return "text-yellow-500";
+    return "text-red-500";
   };
 
   const getIcon = (s: number) => {
@@ -864,13 +952,13 @@ export function SentimentIndicator({
   };
 
   const getLabel = (s: number) => {
-    if (s >= 50) return 'Pozitiv';
-    if (s >= 0) return 'Neutru';
-    return 'Negativ';
+    if (s >= 50) return "Pozitiv";
+    if (s >= 0) return "Neutru";
+    return "Negativ";
   };
 
   return (
-    <div className={cn('flex items-center gap-1', getColor(score))}>
+    <div className={cn("flex items-center gap-1", getColor(score))}>
       {getIcon(score)}
       <span className="font-medium">{score}</span>
       {showLabel && <span className="text-sm">({getLabel(score)})</span>}
@@ -882,26 +970,26 @@ export function SentimentIndicator({
 ## 7.3 Channel Icon
 
 ```tsx
-export function ChannelIcon({ 
-  channel, 
-  size = 'default' 
-}: { 
-  channel: string; 
-  size?: 'xs' | 'sm' | 'default';
+export function ChannelIcon({
+  channel,
+  size = "default",
+}: {
+  channel: string;
+  size?: "xs" | "sm" | "default";
 }) {
   const sizeClass = {
-    xs: 'w-3 h-3',
-    sm: 'w-4 h-4',
-    default: 'w-5 h-5',
+    xs: "w-3 h-3",
+    sm: "w-4 h-4",
+    default: "w-5 h-5",
   }[size];
 
   switch (channel) {
-    case 'WHATSAPP':
-      return <MessageCircle className={cn(sizeClass, 'text-green-500')} />;
-    case 'EMAIL_COLD':
-      return <Mail className={cn(sizeClass, 'text-blue-500')} />;
-    case 'EMAIL_WARM':
-      return <Mail className={cn(sizeClass, 'text-amber-500')} />;
+    case "WHATSAPP":
+      return <MessageCircle className={cn(sizeClass, "text-green-500")} />;
+    case "EMAIL_COLD":
+      return <Mail className={cn(sizeClass, "text-blue-500")} />;
+    case "EMAIL_WARM":
+      return <Mail className={cn(sizeClass, "text-amber-500")} />;
     default:
       return <HelpCircle className={sizeClass} />;
   }

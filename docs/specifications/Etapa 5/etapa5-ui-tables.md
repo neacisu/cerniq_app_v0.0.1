@@ -1,5 +1,7 @@
 # CERNIQ.APP — ETAPA 5: UI TABLES
+
 ## Complete Table Specifications
+
 ### Versiunea 1.0 | 19 Ianuarie 2026
 
 ---
@@ -7,6 +9,7 @@
 ## 1. NurturingClientsTable
 
 ### Columns Definition
+
 ```typescript
 interface NurturingClientRow {
   id: string;
@@ -65,10 +68,10 @@ const nurturingClientsColumns: ColumnDef<NurturingClientRow>[] = [
     accessorKey: 'churnRiskScore',
     header: 'Risc Churn',
     cell: ({ row }) => (
-      <ChurnRiskIndicator 
-        score={row.original.churnRiskScore} 
+      <ChurnRiskIndicator
+        score={row.original.churnRiskScore}
         level={row.original.churnRiskLevel}
-        showLabel 
+        showLabel
       />
     ),
     enableSorting: true
@@ -144,56 +147,57 @@ const nurturingClientsColumns: ColumnDef<NurturingClientRow>[] = [
 ```
 
 ### Filters
+
 ```typescript
 const nurturingFilters = [
   {
-    id: 'state',
-    label: 'Status',
-    type: 'multi-select',
+    id: "state",
+    label: "Status",
+    type: "multi-select",
     options: [
-      { value: 'ONBOARDING', label: 'Onboarding' },
-      { value: 'NURTURING_ACTIVE', label: 'Active' },
-      { value: 'AT_RISK', label: 'At Risk' },
-      { value: 'LOYAL_CLIENT', label: 'Loyal' },
-      { value: 'ADVOCATE', label: 'Advocate' },
-      { value: 'CHURNED', label: 'Churned' },
-      { value: 'REACTIVATED', label: 'Reactivated' }
-    ]
+      { value: "ONBOARDING", label: "Onboarding" },
+      { value: "NURTURING_ACTIVE", label: "Active" },
+      { value: "AT_RISK", label: "At Risk" },
+      { value: "LOYAL_CLIENT", label: "Loyal" },
+      { value: "ADVOCATE", label: "Advocate" },
+      { value: "CHURNED", label: "Churned" },
+      { value: "REACTIVATED", label: "Reactivated" },
+    ],
   },
   {
-    id: 'churnRiskLevel',
-    label: 'Risc Churn',
-    type: 'multi-select',
+    id: "churnRiskLevel",
+    label: "Risc Churn",
+    type: "multi-select",
     options: [
-      { value: 'CRITICAL', label: '🔴 Critical' },
-      { value: 'HIGH', label: '🟠 High' },
-      { value: 'MEDIUM', label: '🟡 Medium' },
-      { value: 'LOW', label: '🟢 Low' }
-    ]
+      { value: "CRITICAL", label: "🔴 Critical" },
+      { value: "HIGH", label: "🟠 High" },
+      { value: "MEDIUM", label: "🟡 Medium" },
+      { value: "LOW", label: "🟢 Low" },
+    ],
   },
   {
-    id: 'npsScore',
-    label: 'NPS',
-    type: 'range',
+    id: "npsScore",
+    label: "NPS",
+    type: "range",
     min: 0,
-    max: 10
+    max: 10,
   },
   {
-    id: 'daysSinceLastOrder',
-    label: 'Zile de la ultima comandă',
-    type: 'range',
+    id: "daysSinceLastOrder",
+    label: "Zile de la ultima comandă",
+    type: "range",
     presets: [
-      { label: '< 30 zile', value: [0, 30] },
-      { label: '30-60 zile', value: [30, 60] },
-      { label: '60-90 zile', value: [60, 90] },
-      { label: '> 90 zile', value: [90, 999] }
-    ]
+      { label: "< 30 zile", value: [0, 30] },
+      { label: "30-60 zile", value: [30, 60] },
+      { label: "60-90 zile", value: [60, 90] },
+      { label: "> 90 zile", value: [90, 999] },
+    ],
   },
   {
-    id: 'isKol',
-    label: 'Este KOL',
-    type: 'boolean'
-  }
+    id: "isKol",
+    label: "Este KOL",
+    type: "boolean",
+  },
 ];
 ```
 
@@ -202,6 +206,7 @@ const nurturingFilters = [
 ## 2. ReferralsTable
 
 ### Columns Definition
+
 ```typescript
 interface ReferralRow {
   id: string;
@@ -272,7 +277,7 @@ const referralsColumns: ColumnDef<ReferralRow>[] = [
     accessorKey: 'distanceKm',
     header: 'Distanță',
     cell: ({ row }) => (
-      row.original.distanceKm !== null 
+      row.original.distanceKm !== null
         ? `${row.original.distanceKm.toFixed(1)} km`
         : '-'
     )
@@ -334,6 +339,7 @@ const referralsColumns: ColumnDef<ReferralRow>[] = [
 ## 3. ClustersTable
 
 ### Columns Definition
+
 ```typescript
 interface ClusterRow {
   id: string;
@@ -423,7 +429,7 @@ const clustersColumns: ColumnDef<ClusterRow>[] = [
     accessorKey: 'cohesionScore',
     header: 'Coeziune',
     cell: ({ row }) => (
-      row.original.cohesionScore !== null 
+      row.original.cohesionScore !== null
         ? `${row.original.cohesionScore.toFixed(0)}%`
         : '-'
     )
@@ -460,6 +466,7 @@ const clustersColumns: ColumnDef<ClusterRow>[] = [
 ## 4. HITLQueueTable
 
 ### Columns Definition
+
 ```typescript
 interface HITLTaskRow {
   id: string;
@@ -524,7 +531,7 @@ const hitlQueueColumns: ColumnDef<HITLTaskRow>[] = [
     accessorKey: 'slaDeadline',
     header: 'SLA',
     cell: ({ row }) => (
-      <SLAIndicator 
+      <SLAIndicator
         status={row.original.slaStatus}
         timeRemaining={row.original.timeRemaining}
         deadline={row.original.slaDeadline}
@@ -543,8 +550,8 @@ const hitlQueueColumns: ColumnDef<HITLTaskRow>[] = [
     header: '',
     cell: ({ row }) => (
       <div className="flex gap-2">
-        <Button 
-          size="sm" 
+        <Button
+          size="sm"
           variant="default"
           onClick={() => openResolutionDialog(row.original.id)}
         >
@@ -569,6 +576,7 @@ const hitlQueueColumns: ColumnDef<HITLTaskRow>[] = [
 ## 5. WinBackCampaignsTable
 
 ### Columns Definition
+
 ```typescript
 interface WinBackCampaignRow {
   id: string;
@@ -614,9 +622,9 @@ const winbackCampaignsColumns: ColumnDef<WinBackCampaignRow>[] = [
     header: 'Progres',
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
-        <Progress 
-          value={(row.original.currentStep / row.original.totalSteps) * 100} 
-          className="w-16" 
+        <Progress
+          value={(row.original.currentStep / row.original.totalSteps) * 100}
+          className="w-16"
         />
         <span className="text-sm">
           {row.original.currentStep}/{row.original.totalSteps}

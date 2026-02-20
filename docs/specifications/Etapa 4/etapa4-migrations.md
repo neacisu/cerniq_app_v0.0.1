@@ -1,5 +1,7 @@
 # CERNIQ.APP — ETAPA 4: DATABASE MIGRATIONS
+
 ## Drizzle Migrations pentru Monitorizare Post-Vânzare
+
 ### Versiunea 1.0 | 19 Ianuarie 2026
 
 ---
@@ -23,17 +25,17 @@
 ```typescript
 // migrations/etapa4/index.ts
 export const ETAPA4_MIGRATIONS = [
-  '0400_create_etapa4_enums',
-  '0401_create_orders_tables',
-  '0402_create_credit_tables',
-  '0403_create_logistics_tables',
-  '0404_create_contract_tables',
-  '0405_create_audit_tables',
-  '0406_create_indexes',
-  '0407_create_functions',
-  '0408_create_triggers',
-  '0409_create_partitions',
-  '0410_seed_etapa4_data'
+  "0400_create_etapa4_enums",
+  "0401_create_orders_tables",
+  "0402_create_credit_tables",
+  "0403_create_logistics_tables",
+  "0404_create_contract_tables",
+  "0405_create_audit_tables",
+  "0406_create_indexes",
+  "0407_create_functions",
+  "0408_create_triggers",
+  "0409_create_partitions",
+  "0410_seed_etapa4_data",
 ];
 ```
 
@@ -43,8 +45,8 @@ export const ETAPA4_MIGRATIONS = [
 
 ```typescript
 // migrations/0400_create_etapa4_enums.ts
-import { sql } from 'drizzle-orm';
-import { pgEnum } from 'drizzle-orm/pg-core';
+import { sql } from "drizzle-orm";
+import { pgEnum } from "drizzle-orm/pg-core";
 
 export async function up(db: DrizzleDb) {
   // Order Status Enum
@@ -164,14 +166,24 @@ export async function up(db: DrizzleDb) {
 
 export async function down(db: DrizzleDb) {
   const enums = [
-    'order_status_enum', 'payment_method_enum', 'payment_status_enum',
-    'reconciliation_status_enum', 'risk_tier_enum', 'credit_check_result_enum',
-    'reservation_status_enum', 'shipment_status_enum', 'delivery_type_enum',
-    'return_status_enum', 'contract_status_enum', 'contract_type_enum',
-    'signature_status_enum', 'refund_status_enum', 'refund_reason_enum',
-    'actor_type_enum'
+    "order_status_enum",
+    "payment_method_enum",
+    "payment_status_enum",
+    "reconciliation_status_enum",
+    "risk_tier_enum",
+    "credit_check_result_enum",
+    "reservation_status_enum",
+    "shipment_status_enum",
+    "delivery_type_enum",
+    "return_status_enum",
+    "contract_status_enum",
+    "contract_type_enum",
+    "signature_status_enum",
+    "refund_status_enum",
+    "refund_reason_enum",
+    "actor_type_enum",
   ];
-  
+
   for (const enumName of enums) {
     await db.execute(sql.raw(`DROP TYPE IF EXISTS ${enumName} CASCADE`));
   }
@@ -184,7 +196,7 @@ export async function down(db: DrizzleDb) {
 
 ```typescript
 // migrations/0401_create_orders_tables.ts
-import { sql } from 'drizzle-orm';
+import { sql } from "drizzle-orm";
 
 export async function up(db: DrizzleDb) {
   // gold_orders
@@ -357,14 +369,28 @@ export async function up(db: DrizzleDb) {
   `);
 
   // Indexes
-  await db.execute(sql`CREATE INDEX idx_orders_tenant ON gold_orders(tenant_id)`);
-  await db.execute(sql`CREATE INDEX idx_orders_client ON gold_orders(client_id)`);
+  await db.execute(
+    sql`CREATE INDEX idx_orders_tenant ON gold_orders(tenant_id)`,
+  );
+  await db.execute(
+    sql`CREATE INDEX idx_orders_client ON gold_orders(client_id)`,
+  );
   await db.execute(sql`CREATE INDEX idx_orders_status ON gold_orders(status)`);
-  await db.execute(sql`CREATE INDEX idx_orders_created ON gold_orders(created_at DESC)`);
-  await db.execute(sql`CREATE INDEX idx_order_items_order ON gold_order_items(order_id)`);
-  await db.execute(sql`CREATE INDEX idx_payments_tenant ON gold_payments(tenant_id)`);
-  await db.execute(sql`CREATE INDEX idx_payments_status ON gold_payments(status)`);
-  await db.execute(sql`CREATE INDEX idx_refunds_tenant ON gold_refunds(tenant_id)`);
+  await db.execute(
+    sql`CREATE INDEX idx_orders_created ON gold_orders(created_at DESC)`,
+  );
+  await db.execute(
+    sql`CREATE INDEX idx_order_items_order ON gold_order_items(order_id)`,
+  );
+  await db.execute(
+    sql`CREATE INDEX idx_payments_tenant ON gold_payments(tenant_id)`,
+  );
+  await db.execute(
+    sql`CREATE INDEX idx_payments_status ON gold_payments(status)`,
+  );
+  await db.execute(
+    sql`CREATE INDEX idx_refunds_tenant ON gold_refunds(tenant_id)`,
+  );
 }
 
 export async function down(db: DrizzleDb) {
@@ -381,7 +407,7 @@ export async function down(db: DrizzleDb) {
 
 ```typescript
 // migrations/0402_create_credit_tables.ts
-import { sql } from 'drizzle-orm';
+import { sql } from "drizzle-orm";
 
 export async function up(db: DrizzleDb) {
   // gold_credit_profiles
@@ -483,10 +509,18 @@ export async function up(db: DrizzleDb) {
   `);
 
   // Indexes
-  await db.execute(sql`CREATE INDEX idx_credit_profiles_tenant ON gold_credit_profiles(tenant_id)`);
-  await db.execute(sql`CREATE INDEX idx_credit_profiles_client ON gold_credit_profiles(client_id)`);
-  await db.execute(sql`CREATE INDEX idx_credit_profiles_risk ON gold_credit_profiles(risk_tier)`);
-  await db.execute(sql`CREATE INDEX idx_reservations_profile ON gold_credit_reservations(credit_profile_id)`);
+  await db.execute(
+    sql`CREATE INDEX idx_credit_profiles_tenant ON gold_credit_profiles(tenant_id)`,
+  );
+  await db.execute(
+    sql`CREATE INDEX idx_credit_profiles_client ON gold_credit_profiles(client_id)`,
+  );
+  await db.execute(
+    sql`CREATE INDEX idx_credit_profiles_risk ON gold_credit_profiles(risk_tier)`,
+  );
+  await db.execute(
+    sql`CREATE INDEX idx_reservations_profile ON gold_credit_reservations(credit_profile_id)`,
+  );
   await db.execute(sql`CREATE INDEX idx_termene_cui ON gold_termene_data(cui)`);
 }
 
@@ -503,7 +537,7 @@ export async function down(db: DrizzleDb) {
 
 ```typescript
 // migrations/0403_create_logistics_tables.ts
-import { sql } from 'drizzle-orm';
+import { sql } from "drizzle-orm";
 
 export async function up(db: DrizzleDb) {
   // gold_addresses
@@ -661,14 +695,30 @@ export async function up(db: DrizzleDb) {
   `);
 
   // Indexes
-  await db.execute(sql`CREATE INDEX idx_addresses_tenant ON gold_addresses(tenant_id)`);
-  await db.execute(sql`CREATE INDEX idx_addresses_client ON gold_addresses(client_id)`);
-  await db.execute(sql`CREATE INDEX idx_shipments_tenant ON gold_shipments(tenant_id)`);
-  await db.execute(sql`CREATE INDEX idx_shipments_order ON gold_shipments(order_id)`);
-  await db.execute(sql`CREATE INDEX idx_shipments_awb ON gold_shipments(awb_number)`);
-  await db.execute(sql`CREATE INDEX idx_shipments_status ON gold_shipments(status)`);
-  await db.execute(sql`CREATE INDEX idx_returns_tenant ON gold_returns(tenant_id)`);
-  await db.execute(sql`CREATE INDEX idx_returns_order ON gold_returns(order_id)`);
+  await db.execute(
+    sql`CREATE INDEX idx_addresses_tenant ON gold_addresses(tenant_id)`,
+  );
+  await db.execute(
+    sql`CREATE INDEX idx_addresses_client ON gold_addresses(client_id)`,
+  );
+  await db.execute(
+    sql`CREATE INDEX idx_shipments_tenant ON gold_shipments(tenant_id)`,
+  );
+  await db.execute(
+    sql`CREATE INDEX idx_shipments_order ON gold_shipments(order_id)`,
+  );
+  await db.execute(
+    sql`CREATE INDEX idx_shipments_awb ON gold_shipments(awb_number)`,
+  );
+  await db.execute(
+    sql`CREATE INDEX idx_shipments_status ON gold_shipments(status)`,
+  );
+  await db.execute(
+    sql`CREATE INDEX idx_returns_tenant ON gold_returns(tenant_id)`,
+  );
+  await db.execute(
+    sql`CREATE INDEX idx_returns_order ON gold_returns(order_id)`,
+  );
 }
 
 export async function down(db: DrizzleDb) {
@@ -684,7 +734,7 @@ export async function down(db: DrizzleDb) {
 
 ```typescript
 // migrations/0404_create_contract_tables.ts
-import { sql } from 'drizzle-orm';
+import { sql } from "drizzle-orm";
 
 export async function up(db: DrizzleDb) {
   // gold_contract_templates
@@ -810,16 +860,30 @@ export async function up(db: DrizzleDb) {
   `);
 
   // Indexes
-  await db.execute(sql`CREATE INDEX idx_templates_tenant ON gold_contract_templates(tenant_id)`);
-  await db.execute(sql`CREATE INDEX idx_contracts_tenant ON gold_contracts(tenant_id)`);
-  await db.execute(sql`CREATE INDEX idx_contracts_client ON gold_contracts(client_id)`);
-  await db.execute(sql`CREATE INDEX idx_contracts_order ON gold_contracts(order_id)`);
-  await db.execute(sql`CREATE INDEX idx_contracts_status ON gold_contracts(status)`);
-  await db.execute(sql`CREATE INDEX idx_signatures_contract ON gold_contract_signatures(contract_id)`);
+  await db.execute(
+    sql`CREATE INDEX idx_templates_tenant ON gold_contract_templates(tenant_id)`,
+  );
+  await db.execute(
+    sql`CREATE INDEX idx_contracts_tenant ON gold_contracts(tenant_id)`,
+  );
+  await db.execute(
+    sql`CREATE INDEX idx_contracts_client ON gold_contracts(client_id)`,
+  );
+  await db.execute(
+    sql`CREATE INDEX idx_contracts_order ON gold_contracts(order_id)`,
+  );
+  await db.execute(
+    sql`CREATE INDEX idx_contracts_status ON gold_contracts(status)`,
+  );
+  await db.execute(
+    sql`CREATE INDEX idx_signatures_contract ON gold_contract_signatures(contract_id)`,
+  );
 }
 
 export async function down(db: DrizzleDb) {
-  await db.execute(sql`ALTER TABLE gold_orders DROP CONSTRAINT IF EXISTS fk_orders_contract`);
+  await db.execute(
+    sql`ALTER TABLE gold_orders DROP CONSTRAINT IF EXISTS fk_orders_contract`,
+  );
   await db.execute(sql`DROP TABLE IF EXISTS gold_contract_signatures CASCADE`);
   await db.execute(sql`DROP TABLE IF EXISTS gold_contracts CASCADE`);
   await db.execute(sql`DROP TABLE IF EXISTS gold_contract_templates CASCADE`);
@@ -832,7 +896,7 @@ export async function down(db: DrizzleDb) {
 
 ```typescript
 // migrations/0405_create_audit_tables.ts
-import { sql } from 'drizzle-orm';
+import { sql } from "drizzle-orm";
 
 export async function up(db: DrizzleDb) {
   // gold_audit_logs_etapa4 (partitioned)
@@ -883,10 +947,18 @@ export async function up(db: DrizzleDb) {
   `);
 
   // Indexes
-  await db.execute(sql`CREATE INDEX idx_audit_tenant ON gold_audit_logs_etapa4(tenant_id)`);
-  await db.execute(sql`CREATE INDEX idx_audit_entity ON gold_audit_logs_etapa4(entity_type, entity_id)`);
-  await db.execute(sql`CREATE INDEX idx_audit_correlation ON gold_audit_logs_etapa4(correlation_id)`);
-  await db.execute(sql`CREATE INDEX idx_audit_created ON gold_audit_logs_etapa4(created_at DESC)`);
+  await db.execute(
+    sql`CREATE INDEX idx_audit_tenant ON gold_audit_logs_etapa4(tenant_id)`,
+  );
+  await db.execute(
+    sql`CREATE INDEX idx_audit_entity ON gold_audit_logs_etapa4(entity_type, entity_id)`,
+  );
+  await db.execute(
+    sql`CREATE INDEX idx_audit_correlation ON gold_audit_logs_etapa4(correlation_id)`,
+  );
+  await db.execute(
+    sql`CREATE INDEX idx_audit_created ON gold_audit_logs_etapa4(created_at DESC)`,
+  );
 }
 
 export async function down(db: DrizzleDb) {
@@ -902,30 +974,30 @@ export async function down(db: DrizzleDb) {
 // rollback/etapa4-rollback.ts
 
 export async function rollbackEtapa4(db: DrizzleDb) {
-  console.log('Starting Etapa 4 rollback...');
-  
+  console.log("Starting Etapa 4 rollback...");
+
   // Rollback in reverse order
   const migrations = [
-    '0410_seed_etapa4_data',
-    '0409_create_partitions',
-    '0408_create_triggers',
-    '0407_create_functions',
-    '0406_create_indexes',
-    '0405_create_audit_tables',
-    '0404_create_contract_tables',
-    '0403_create_logistics_tables',
-    '0402_create_credit_tables',
-    '0401_create_orders_tables',
-    '0400_create_etapa4_enums'
+    "0410_seed_etapa4_data",
+    "0409_create_partitions",
+    "0408_create_triggers",
+    "0407_create_functions",
+    "0406_create_indexes",
+    "0405_create_audit_tables",
+    "0404_create_contract_tables",
+    "0403_create_logistics_tables",
+    "0402_create_credit_tables",
+    "0401_create_orders_tables",
+    "0400_create_etapa4_enums",
   ];
-  
+
   for (const migration of migrations) {
     console.log(`Rolling back ${migration}...`);
     const mod = await import(`../migrations/${migration}`);
     await mod.down(db);
   }
-  
-  console.log('Etapa 4 rollback complete');
+
+  console.log("Etapa 4 rollback complete");
 }
 ```
 

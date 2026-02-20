@@ -1,5 +1,7 @@
 # CERNIQ.APP — ETAPA 4: SCHEMA DYNAMIC CONTRACTS
+
 ## Database Schema pentru Contracte Dinamice
+
 ### Versiunea 1.0 | 19 Ianuarie 2026
 
 ---
@@ -19,6 +21,7 @@
 ## 1. Overview Schema Contracts {#1-overview}
 
 Schema pentru contracte dinamice gestionează:
+
 - **Contracts**: Contracte generate pentru comenzi
 - **Templates**: Șabloane de contract per tip risc
 - **Clauses**: Clauze disponibile pentru asamblare
@@ -82,67 +85,67 @@ CREATE TYPE clause_category_enum AS ENUM (
 CREATE TABLE gold_contracts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL REFERENCES tenants(id),
-    
+
     -- Contract Number
     contract_number VARCHAR(50) NOT NULL,
     contract_type contract_type_enum NOT NULL DEFAULT 'STANDARD',
-    
+
     -- References
     order_id UUID REFERENCES gold_orders(id),
     client_id UUID NOT NULL REFERENCES gold_clients(id),
     template_id UUID REFERENCES gold_contract_templates(id),
     parent_contract_id UUID REFERENCES gold_contracts(id), -- For addendums
-    
+
     -- Status
     status contract_status_enum NOT NULL DEFAULT 'DRAFT',
     previous_status contract_status_enum,
     status_changed_at TIMESTAMPTZ DEFAULT NOW(),
-    
+
     -- Contract Details
     title VARCHAR(255) NOT NULL,
     description TEXT,
-    
+
     -- Validity
     effective_date DATE,
     expiry_date DATE,
     valid_for_days INTEGER DEFAULT 30,
-    
+
     -- Generated Files
     docx_url TEXT,
     pdf_url TEXT,
     signed_pdf_url TEXT,
     generated_at TIMESTAMPTZ,
-    
+
     -- Clauses Used
     clauses_used JSONB NOT NULL DEFAULT '[]', -- Array of clause IDs and versions
     custom_clauses TEXT[], -- Any custom clauses added
-    
+
     -- Risk Assessment
     risk_tier risk_tier_enum,
     risk_score INTEGER,
-    
+
     -- Variables Used
     template_variables JSONB DEFAULT '{}',
-    
+
     -- HITL (pentru contracte atipice)
     requires_legal_review BOOLEAN DEFAULT FALSE,
     legal_review_id UUID REFERENCES hitl_approvals(id),
     legal_notes TEXT,
-    
+
     -- DocuSign
     docusign_envelope_id VARCHAR(100),
     docusign_status VARCHAR(50),
-    
+
     -- Metadata
     correlation_id UUID,
     metadata JSONB DEFAULT '{}',
-    
+
     -- Timestamps
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     sent_at TIMESTAMPTZ,
     signed_at TIMESTAMPTZ,
-    
+
     -- Constraints
     CONSTRAINT uq_contract_number_tenant UNIQUE (tenant_id, contract_number)
 );
@@ -165,42 +168,42 @@ CREATE INDEX idx_contracts_expiry ON gold_contracts(expiry_date)
 CREATE TABLE gold_contract_templates (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL REFERENCES tenants(id),
-    
+
     -- Template Info
     name VARCHAR(255) NOT NULL,
     code VARCHAR(50) NOT NULL, -- Unique identifier like 'STD_CREDIT_V2'
     description TEXT,
     version INTEGER NOT NULL DEFAULT 1,
-    
+
     -- Type & Applicability
     contract_type contract_type_enum NOT NULL,
     applicable_risk_tiers risk_tier_enum[] DEFAULT ARRAY['MEDIUM', 'HIGH', 'PREMIUM']::risk_tier_enum[],
-    
+
     -- Template Content
     template_docx_url TEXT NOT NULL,
     template_preview_url TEXT,
-    
+
     -- Variables
     required_variables TEXT[] NOT NULL DEFAULT '{}',
     optional_variables TEXT[] DEFAULT '{}',
     variable_definitions JSONB DEFAULT '{}', -- {var_name: {type, description, default}}
-    
+
     -- Default Clauses
     default_clauses UUID[] DEFAULT '{}', -- Array of clause IDs
-    
+
     -- Status
     is_active BOOLEAN DEFAULT TRUE,
     is_default BOOLEAN DEFAULT FALSE, -- Default for contract type
-    
+
     -- Audit
     created_by UUID REFERENCES users(id),
     approved_by UUID REFERENCES users(id),
     approved_at TIMESTAMPTZ,
-    
+
     -- Timestamps
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    
+
     -- Constraints
     CONSTRAINT uq_template_code_version UNIQUE (tenant_id, code, version)
 );
@@ -220,38 +223,38 @@ CREATE INDEX idx_templates_active ON gold_contract_templates(tenant_id)
 CREATE TABLE gold_contract_clauses (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL REFERENCES tenants(id),
-    
+
     -- Clause Info
     name VARCHAR(255) NOT NULL,
     code VARCHAR(50) NOT NULL,
     version INTEGER NOT NULL DEFAULT 1,
     category clause_category_enum NOT NULL,
-    
+
     -- Content
     title VARCHAR(255) NOT NULL,
     content TEXT NOT NULL, -- Can contain Jinja2 variables
-    
+
     -- Risk Association
     risk_level VARCHAR(20) DEFAULT 'STANDARD', -- STANDARD, ELEVATED, HIGH
     applicable_risk_tiers risk_tier_enum[],
-    
+
     -- Dependencies
     requires_clauses UUID[] DEFAULT '{}', -- Must include these if this one is used
     conflicts_with UUID[] DEFAULT '{}', -- Cannot be used together
-    
+
     -- Status
     is_active BOOLEAN DEFAULT TRUE,
     is_mandatory BOOLEAN DEFAULT FALSE,
-    
+
     -- Legal Review
     legal_approved BOOLEAN DEFAULT FALSE,
     legal_approved_by UUID REFERENCES users(id),
     legal_approved_at TIMESTAMPTZ,
-    
+
     -- Timestamps
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    
+
     -- Constraints
     CONSTRAINT uq_clause_code_version UNIQUE (tenant_id, code, version)
 );
@@ -271,10 +274,10 @@ CREATE INDEX idx_clauses_active ON gold_contract_clauses(tenant_id)
 CREATE TABLE gold_contract_signatures (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL REFERENCES tenants(id),
-    
+
     -- References
     contract_id UUID NOT NULL REFERENCES gold_contracts(id),
-    
+
     -- Signer Info
     signer_role VARCHAR(50) NOT NULL, -- 'CLIENT', 'SELLER', 'WITNESS'
     signer_name VARCHAR(255) NOT NULL,
@@ -282,34 +285,34 @@ CREATE TABLE gold_contract_signatures (
     signer_phone VARCHAR(20),
     signer_company VARCHAR(255),
     signer_title VARCHAR(100),
-    
+
     -- Client Reference (if applicable)
     client_id UUID REFERENCES gold_clients(id),
     user_id UUID REFERENCES users(id),
-    
+
     -- Status
     status signature_status_enum NOT NULL DEFAULT 'PENDING',
-    
+
     -- DocuSign Specific
     docusign_recipient_id VARCHAR(100),
     docusign_recipient_status VARCHAR(50),
-    
+
     -- Signature Details
     signed_at TIMESTAMPTZ,
     ip_address INET,
     user_agent TEXT,
     signature_image_url TEXT,
-    
+
     -- Dates
     sent_at TIMESTAMPTZ,
     viewed_at TIMESTAMPTZ,
     declined_at TIMESTAMPTZ,
     decline_reason TEXT,
-    
+
     -- Reminders
     reminder_count INTEGER DEFAULT 0,
     last_reminder_at TIMESTAMPTZ,
-    
+
     -- Timestamps
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -340,7 +343,7 @@ CREATE OR REPLACE FUNCTION select_clauses_for_risk(
 ) AS $$
 BEGIN
     RETURN QUERY
-    SELECT 
+    SELECT
         c.id,
         c.code,
         c.title,
@@ -371,7 +374,7 @@ BEGIN
         status_changed_at = NOW()
     WHERE status IN ('SENT_FOR_SIGNATURE', 'PARTIALLY_SIGNED')
     AND expiry_date < CURRENT_DATE;
-    
+
     GET DIAGNOSTICS v_expired_count = ROW_COUNT;
     RETURN v_expired_count;
 END;
@@ -379,7 +382,7 @@ $$ LANGUAGE plpgsql;
 
 -- View: Pending Signatures
 CREATE OR REPLACE VIEW vw_pending_contract_signatures AS
-SELECT 
+SELECT
     c.id AS contract_id,
     c.contract_number,
     c.title,
@@ -411,7 +414,7 @@ BEGIN
         INTO v_total_signatures, v_signed_count
         FROM gold_contract_signatures
         WHERE contract_id = NEW.contract_id;
-        
+
         IF v_signed_count = v_total_signatures THEN
             UPDATE gold_contracts
             SET status = 'SIGNED',
@@ -427,7 +430,7 @@ BEGIN
         SET status = 'REJECTED'
         WHERE id = NEW.contract_id;
     END IF;
-    
+
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;

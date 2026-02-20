@@ -9,16 +9,16 @@
 ```typescript
 // Priority factors
 const PRIORITY_WEIGHTS = {
-  sourceQuality: 0.3,    // Import vs scrape
+  sourceQuality: 0.3, // Import vs scrape
   dataCompleteness: 0.2, // Câmpuri populate
-  businessSize: 0.3,     // Cifră afaceri estimată
-  recentActivity: 0.2,   // Last interaction
+  businessSize: 0.3, // Cifră afaceri estimată
+  recentActivity: 0.2, // Last interaction
 };
 
 // BullMQ priority (lower = higher priority)
 const jobPriority = Math.floor((1 - normalizedScore) * 100);
 
-await queue.add('enrich', data, { priority: jobPriority });
+await queue.add("enrich", data, { priority: jobPriority });
 ```
 
 **Consequences:**

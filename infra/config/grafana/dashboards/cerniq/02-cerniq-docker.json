@@ -1,0 +1,59 @@
+{
+  "uid": "cerniq-docker",
+  "title": "Cerniq - Docker (cAdvisor)",
+  "timezone": "utc",
+  "tags": ["cerniq", "docker"],
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "service",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "query": {
+          "query": "label_values(container_cpu_usage_seconds_total{job=\"cerniq-docker\",project=\"cerniq\",container_label_com_docker_compose_project=\"cerniq\"}, container_label_com_docker_compose_service)",
+          "refId": "StdVar"
+        },
+        "refresh": 2,
+        "hide": 0,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "current": { "selected": true, "text": "All", "value": [".*"] }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "CPU (cores) by service",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 10 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum by (instance, container_label_com_docker_compose_service) (rate(container_cpu_usage_seconds_total{job=\"cerniq-docker\",project=\"cerniq\",container_label_com_docker_compose_project=\"cerniq\",container_label_com_docker_compose_service=~\"$service\"}[5m]))",
+          "legendFormat": "{{instance}} {{container_label_com_docker_compose_service}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Memory (bytes) by service",
+      "gridPos": { "x": 0, "y": 10, "w": 12, "h": 10 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum by (instance, container_label_com_docker_compose_service) (container_memory_working_set_bytes{job=\"cerniq-docker\",project=\"cerniq\",container_label_com_docker_compose_project=\"cerniq\",container_label_com_docker_compose_service=~\"$service\"})",
+          "legendFormat": "{{instance}} {{container_label_com_docker_compose_service}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ]
+}

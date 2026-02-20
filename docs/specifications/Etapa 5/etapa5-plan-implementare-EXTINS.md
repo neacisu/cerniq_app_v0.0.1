@@ -1,5 +1,7 @@
 # CERNIQ.APP — ETAPA 5: PLAN IMPLEMENTARE EXTINS
+
 ## Taskuri 444-498: Graph, Referral, WinBack, Associations, UI
+
 ### Versiunea 1.0 | 19 Ianuarie 2026
 
 ---
@@ -59,9 +61,7 @@
       "prioritate": "HIGH",
       "estimare_ore": 4,
       "dependente": [444],
-      "deliverables": [
-        "workers/graph/centrality-calculate.worker.ts"
-      ],
+      "deliverables": ["workers/graph/centrality-calculate.worker.ts"],
       "acceptance_criteria": [
         "Degree, Betweenness, Eigenvector, PageRank",
         "Batch processing pentru graf mare",
@@ -77,9 +77,7 @@
       "prioritate": "HIGH",
       "estimare_ore": 4,
       "dependente": [446],
-      "deliverables": [
-        "workers/graph/kol-identify.worker.ts"
-      ],
+      "deliverables": ["workers/graph/kol-identify.worker.ts"],
       "acceptance_criteria": [
         "KOL scoring formula implementată",
         "Tier classification: ELITE, ESTABLISHED, EMERGING",
@@ -95,9 +93,7 @@
       "prioritate": "MEDIUM",
       "estimare_ore": 4,
       "dependente": [445, 413],
-      "deliverables": [
-        "workers/graph/cluster-implicit-detect.worker.ts"
-      ],
+      "deliverables": ["workers/graph/cluster-implicit-detect.worker.ts"],
       "acceptance_criteria": [
         "Creează gold_clusters pentru comunități non-formale",
         "Setează KOL pentru fiecare cluster",
@@ -162,9 +158,7 @@
       "prioritate": "HIGH",
       "estimare_ore": 5,
       "dependente": [402, 412],
-      "deliverables": [
-        "workers/referral/detect-mention.worker.ts"
-      ],
+      "deliverables": ["workers/referral/detect-mention.worker.ts"],
       "acceptance_criteria": [
         "LLM prompt pentru extracție mențiuni",
         "Detectare tipuri: EXPLICIT, SOFT_MENTION",
@@ -180,9 +174,7 @@
       "prioritate": "HIGH",
       "estimare_ore": 4,
       "dependente": [452],
-      "deliverables": [
-        "workers/referral/request-send.worker.ts"
-      ],
+      "deliverables": ["workers/referral/request-send.worker.ts"],
       "acceptance_criteria": [
         "WhatsApp/Email template pentru consent",
         "Interactive buttons pentru răspuns",
@@ -198,9 +190,7 @@
       "prioritate": "CRITICAL",
       "estimare_ore": 4,
       "dependente": [453],
-      "deliverables": [
-        "workers/referral/consent-process.worker.ts"
-      ],
+      "deliverables": ["workers/referral/consent-process.worker.ts"],
       "acceptance_criteria": [
         "Handle APPROVED/REJECTED/LATER",
         "Extract contact details if provided",
@@ -216,9 +206,7 @@
       "prioritate": "HIGH",
       "estimare_ore": 4,
       "dependente": [454],
-      "deliverables": [
-        "workers/referral/outreach-execute.worker.ts"
-      ],
+      "deliverables": ["workers/referral/outreach-execute.worker.ts"],
       "acceptance_criteria": [
         "Doar cu consent APPROVED",
         "Mention referrer în mesaj",
@@ -234,9 +222,7 @@
       "prioritate": "HIGH",
       "estimare_ore": 3,
       "dependente": [455],
-      "deliverables": [
-        "workers/referral/conversion-track.worker.ts"
-      ]
+      "deliverables": ["workers/referral/conversion-track.worker.ts"]
     },
     {
       "task_number": 457,
@@ -315,9 +301,7 @@
       "prioritate": "HIGH",
       "estimare_ore": 5,
       "dependente": [416],
-      "deliverables": [
-        "workers/winback/campaign-create.worker.ts"
-      ],
+      "deliverables": ["workers/winback/campaign-create.worker.ts"],
       "acceptance_criteria": [
         "Strategy selection based on revenue",
         "Offer generation logic",
@@ -333,9 +317,7 @@
       "prioritate": "HIGH",
       "estimare_ore": 5,
       "dependente": [462],
-      "deliverables": [
-        "workers/winback/step-execute.worker.ts"
-      ],
+      "deliverables": ["workers/winback/step-execute.worker.ts"],
       "acceptance_criteria": [
         "Multi-channel execution (Email, WhatsApp, Phone)",
         "Step-specific templates",
@@ -444,9 +426,7 @@
       "prioritate": "HIGH",
       "estimare_ore": 4,
       "dependente": [470],
-      "deliverables": [
-        "workers/association/ouai-parse.worker.ts"
-      ],
+      "deliverables": ["workers/association/ouai-parse.worker.ts"],
       "acceptance_criteria": [
         "Normalize OUAI names",
         "Extract area, county, hydroamelioration",
@@ -797,21 +777,21 @@
 
 ## Rezumat Final Etapa 5
 
-| Fază | Taskuri | Ore | Dependențe Critice |
-|------|---------|-----|-------------------|
-| 5.1 Infrastructure | 400-407 | 29 | - |
-| 5.2 Database | 408-419 | 34 | 5.1 |
-| 5.3 State Machine | 420-427 | 32 | 5.2 |
-| 5.4 Churn Detection | 428-435 | 35 | 5.2, 5.3 |
-| 5.5 Geospatial | 436-443 | 29 | 5.2 |
-| 5.6 Graph Analysis | 444-451 | 32 | 5.5 |
-| 5.7 Referral | 452-461 | 40 | 5.5 |
-| 5.8 Win-Back | 462-469 | 28 | 5.4 |
-| 5.9 Associations | 470-477 | 32 | 5.2 |
-| 5.10 Feedback | 478-487 | 36 | 5.2 |
-| 5.11 UI | 488-495 | 41 | 5.3-5.10 |
-| 5.12 Deploy | 496-498 | 22 | 5.11 |
-| **TOTAL** | **99** | **390** | - |
+| Fază                | Taskuri | Ore     | Dependențe Critice |
+| ------------------- | ------- | ------- | ------------------ |
+| 5.1 Infrastructure  | 400-407 | 29      | -                  |
+| 5.2 Database        | 408-419 | 34      | 5.1                |
+| 5.3 State Machine   | 420-427 | 32      | 5.2                |
+| 5.4 Churn Detection | 428-435 | 35      | 5.2, 5.3           |
+| 5.5 Geospatial      | 436-443 | 29      | 5.2                |
+| 5.6 Graph Analysis  | 444-451 | 32      | 5.5                |
+| 5.7 Referral        | 452-461 | 40      | 5.5                |
+| 5.8 Win-Back        | 462-469 | 28      | 5.4                |
+| 5.9 Associations    | 470-477 | 32      | 5.2                |
+| 5.10 Feedback       | 478-487 | 36      | 5.2                |
+| 5.11 UI             | 488-495 | 41      | 5.3-5.10           |
+| 5.12 Deploy         | 496-498 | 22      | 5.11               |
+| **TOTAL**           | **99**  | **390** | -                  |
 
 **Timeline: ~14 săptămâni**
 

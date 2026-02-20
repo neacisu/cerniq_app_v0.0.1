@@ -27,13 +27,13 @@ Test pyramid: 70% unit, 25% integration, 5% E2E.
 
 ### Coverage Requirements
 
-| Component | Min Coverage |
-| --------- | ----------- |
-| API Routes | 80% |
-| Workers | 75% |
-| Event Handlers | 90% |
-| HITL Logic | 95% |
-| DB Migrations | 100% |
+| Component      | Min Coverage |
+| -------------- | ------------ |
+| API Routes     | 80%          |
+| Workers        | 75%          |
+| Event Handlers | 90%          |
+| HITL Logic     | 95%          |
+| DB Migrations  | 100%         |
 
 ### Commands
 

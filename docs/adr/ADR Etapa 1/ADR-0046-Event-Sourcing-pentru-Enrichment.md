@@ -13,14 +13,14 @@ CREATE TABLE enrichment_events (
   entity_id UUID NOT NULL,
   event_type VARCHAR(100) NOT NULL,
   source VARCHAR(50) NOT NULL,  -- anaf, termene, hunter, etc.
-  
+
   -- Event data
   payload JSONB NOT NULL,
   result_status VARCHAR(20),  -- success, failed, partial
-  
+
   -- Idempotency
   idempotency_key VARCHAR(255) UNIQUE,
-  
+
   -- Metadata
   correlation_id UUID,
   tenant_id UUID NOT NULL,

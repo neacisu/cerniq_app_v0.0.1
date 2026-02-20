@@ -9,7 +9,7 @@
 ```text
 {Bună ziua|Salut|Hello} {{{firstName}}},
 
-{Vă contactez|Scriu|Mă adresez} {în legătură cu|referitor la|despre} 
+{Vă contactez|Scriu|Mă adresez} {în legătură cu|referitor la|despre}
 {serviciile noastre|oferta noastră|produsele Cerniq}.
 ```
 

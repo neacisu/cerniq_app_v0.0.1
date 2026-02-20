@@ -1,0 +1,93 @@
+{
+  "uid": "neanelu-docker",
+  "title": "Neanelu - Docker Containers (cAdvisor)",
+  "timezone": "utc",
+  "tags": ["neanelu", "docker", "cadvisor"],
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "selected": true,
+          "text": ["All"],
+          "value": ["\\$__all"]
+        },
+        "name": "environment",
+        "options": [
+          {
+            "selected": true,
+            "text": "All",
+            "value": "\\$__all"
+          },
+          {
+            "selected": false,
+            "text": "production",
+            "value": "production"
+          },
+          {
+            "selected": false,
+            "text": "staging",
+            "value": "staging"
+          }
+        ],
+        "query": "production,staging",
+        "type": "custom",
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "CPU (cores) by service",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 10
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "sum by (instance, container_label_com_docker_compose_service) (rate(container_cpu_usage_seconds_total{job=\"neanelu-cadvisor\",project=\"neanelu\",container_label_com_docker_compose_project=\"neanelu\",container_label_com_docker_compose_service=~\"$service\",environment=~\"\\$environment\",environment=~\"\\$environment\"}[5m]))",
+          "legendFormat": "{{instance}} {{container_label_com_docker_compose_service}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Memory (bytes) by service",
+      "gridPos": {
+        "x": 0,
+        "y": 10,
+        "w": 12,
+        "h": 10
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "sum by (instance, container_label_com_docker_compose_service) (container_memory_working_set_bytes{job=\"neanelu-cadvisor\",project=\"neanelu\",container_label_com_docker_compose_project=\"neanelu\",container_label_com_docker_compose_service=~\"$service\",environment=~\"\\$environment\"})",
+          "legendFormat": "{{instance}} {{container_label_com_docker_compose_service}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ]
+}

@@ -1,5 +1,7 @@
 # CERNIQ.APP — ETAPA 3: TESTING STRATEGY
+
 ## Comprehensive Test Plan for AI Sales Agent Module
+
 ### Versiunea 1.0 | 19 Ianuarie 2026
 
 ---
@@ -48,15 +50,15 @@
 
 ## 1.2 Test Stack
 
-| Layer | Tool | Purpose |
-|-------|------|---------|
-| Unit | Vitest | Fast unit tests, mocked LLM |
-| Integration | Vitest + Testcontainers | API/DB/Queue tests |
-| E2E | Playwright | Browser + WebSocket |
-| Performance | k6 | Load testing, latency |
-| AI Behavior | Custom Framework | Guardrails, hallucination |
-| Contract | Pact | API contracts |
-| Security | OWASP ZAP | Vulnerability scanning |
+| Layer       | Tool                    | Purpose                     |
+| ----------- | ----------------------- | --------------------------- |
+| Unit        | Vitest                  | Fast unit tests, mocked LLM |
+| Integration | Vitest + Testcontainers | API/DB/Queue tests          |
+| E2E         | Playwright              | Browser + WebSocket         |
+| Performance | k6                      | Load testing, latency       |
+| AI Behavior | Custom Framework        | Guardrails, hallucination   |
+| Contract    | Pact                    | API contracts               |
+| Security    | OWASP ZAP               | Vulnerability scanning      |
 
 ## 1.3 Test Scope for Etapa 3
 
@@ -106,23 +108,23 @@
 
 ## 2.1 Coverage Matrix by Component
 
-| Component | Unit | Integration | E2E | Target | Critical |
-|-----------|------|-------------|-----|--------|----------|
-| AI Agent Core | 90% | 85% | - | 90% | ✓ |
-| Guardrails Workers | 95% | 90% | - | 95% | ✓ |
-| Negotiation FSM | 95% | 90% | 80% | 95% | ✓ |
-| Pricing Engine | 95% | 90% | - | 95% | ✓ |
-| E-Factura/Oblio | 90% | 85% | 75% | 90% | ✓ |
-| Product Knowledge | 85% | 80% | - | 85% | - |
-| Hybrid Search | 85% | 80% | - | 85% | - |
-| Stock & Inventory | 90% | 85% | 70% | 90% | ✓ |
-| Document Generation | 85% | 80% | 70% | 85% | - |
-| Handover Channel | 85% | 85% | 80% | 85% | - |
-| Sentiment Analysis | 85% | 75% | - | 85% | - |
-| MCP Server | 90% | 85% | - | 90% | - |
-| Human Intervention | 90% | 85% | 80% | 90% | ✓ |
-| API Endpoints | 90% | 90% | 80% | 90% | ✓ |
-| Frontend Components | 85% | - | 80% | 85% | - |
+| Component           | Unit | Integration | E2E | Target | Critical |
+| ------------------- | ---- | ----------- | --- | ------ | -------- |
+| AI Agent Core       | 90%  | 85%         | -   | 90%    | ✓        |
+| Guardrails Workers  | 95%  | 90%         | -   | 95%    | ✓        |
+| Negotiation FSM     | 95%  | 90%         | 80% | 95%    | ✓        |
+| Pricing Engine      | 95%  | 90%         | -   | 95%    | ✓        |
+| E-Factura/Oblio     | 90%  | 85%         | 75% | 90%    | ✓        |
+| Product Knowledge   | 85%  | 80%         | -   | 85%    | -        |
+| Hybrid Search       | 85%  | 80%         | -   | 85%    | -        |
+| Stock & Inventory   | 90%  | 85%         | 70% | 90%    | ✓        |
+| Document Generation | 85%  | 80%         | 70% | 85%    | -        |
+| Handover Channel    | 85%  | 85%         | 80% | 85%    | -        |
+| Sentiment Analysis  | 85%  | 75%         | -   | 85%    | -        |
+| MCP Server          | 90%  | 85%         | -   | 90%    | -        |
+| Human Intervention  | 90%  | 85%         | 80% | 90%    | ✓        |
+| API Endpoints       | 90%  | 90%         | 80% | 90%    | ✓        |
+| Frontend Components | 85%  | -           | 80% | 85%    | -        |
 
 ## 2.2 Critical Path Coverage
 
@@ -134,39 +136,39 @@ export const CRITICAL_PATHS = {
   salesCompletion: {
     minCoverage: 98,
     paths: [
-      'conversation → negotiation → offer → order → invoice',
-      'price_calculation → discount_validation → approval',
-      'stock_check → reservation → confirmation',
+      "conversation → negotiation → offer → order → invoice",
+      "price_calculation → discount_validation → approval",
+      "stock_check → reservation → confirmation",
     ],
   },
-  
+
   // Guardrails - anti-hallucination
   guardrails: {
     minCoverage: 99,
     paths: [
-      'llm_response → fact_extraction → database_validation',
-      'product_claim → product_catalog_check → correction',
-      'price_mention → price_list_validation → override',
+      "llm_response → fact_extraction → database_validation",
+      "product_claim → product_catalog_check → correction",
+      "price_mention → price_list_validation → override",
     ],
   },
-  
+
   // Financial integration
   fiscalIntegration: {
     minCoverage: 98,
     paths: [
-      'order → proforma → anaf_validation → efactura',
-      'invoice → oblio_sync → xml_generation → spv_upload',
-      'payment → reconciliation → status_update',
+      "order → proforma → anaf_validation → efactura",
+      "invoice → oblio_sync → xml_generation → spv_upload",
+      "payment → reconciliation → status_update",
     ],
   },
-  
+
   // HITL approval flows
   hitlApproval: {
     minCoverage: 97,
     paths: [
-      'auto_approval → threshold_check → direct_execution',
-      'manual_approval → assignment → decision → execution',
-      'sla_breach → escalation → notification → resolution',
+      "auto_approval → threshold_check → direct_execution",
+      "manual_approval → assignment → decision → execution",
+      "sla_breach → escalation → notification → resolution",
     ],
   },
 };
@@ -176,30 +178,26 @@ export const CRITICAL_PATHS = {
 
 ```typescript
 // vitest.config.ts
-import { defineConfig } from 'vitest/config';
-import path from 'path';
+import { defineConfig } from "vitest/config";
+import path from "path";
 
 export default defineConfig({
   test: {
     globals: true,
-    environment: 'node',
-    include: ['**/*.{test,spec}.{ts,tsx}'],
-    exclude: [
-      '**/node_modules/**',
-      '**/e2e/**',
-      '**/ai-behavior/**',
-    ],
+    environment: "node",
+    include: ["**/*.{test,spec}.{ts,tsx}"],
+    exclude: ["**/node_modules/**", "**/e2e/**", "**/ai-behavior/**"],
     coverage: {
-      provider: 'v8',
-      reporter: ['text', 'json', 'html', 'lcov'],
+      provider: "v8",
+      reporter: ["text", "json", "html", "lcov"],
       exclude: [
-        'node_modules/',
-        'test/',
-        '**/*.d.ts',
-        '**/*.config.*',
-        '**/types/**',
-        '**/mocks/**',
-        '**/fixtures/**',
+        "node_modules/",
+        "test/",
+        "**/*.d.ts",
+        "**/*.config.*",
+        "**/types/**",
+        "**/mocks/**",
+        "**/fixtures/**",
       ],
       thresholds: {
         statements: 85,
@@ -208,10 +206,10 @@ export default defineConfig({
         lines: 85,
       },
     },
-    setupFiles: ['./test/setup.ts'],
+    setupFiles: ["./test/setup.ts"],
     testTimeout: 30000,
     hookTimeout: 30000,
-    pool: 'threads',
+    pool: "threads",
     poolOptions: {
       threads: {
         singleThread: true,
@@ -220,8 +218,8 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
-      '@test': path.resolve(__dirname, './test'),
+      "@": path.resolve(__dirname, "./src"),
+      "@test": path.resolve(__dirname, "./test"),
     },
   },
 });
@@ -231,31 +229,31 @@ export default defineConfig({
 
 ```typescript
 // test/setup.ts
-import { beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
-import { mockDeep, mockReset } from 'vitest-mock-extended';
-import type { PrismaClient } from '@prisma/client';
-import type { Redis } from 'ioredis';
+import { beforeAll, afterAll, beforeEach, afterEach, vi } from "vitest";
+import { mockDeep, mockReset } from "vitest-mock-extended";
+import type { PrismaClient } from "@prisma/client";
+import type { Redis } from "ioredis";
 
 // Environment
-process.env.NODE_ENV = 'test';
-process.env.DATABASE_URL = 'postgresql://test:test@localhost:64032/cerniq_test';
-process.env.REDIS_URL = 'redis://localhost:64039/15';
-process.env.LLM_PROVIDER = 'mock';
-process.env.ANTHROPIC_API_KEY = 'test-key';
+process.env.NODE_ENV = "test";
+process.env.DATABASE_URL = "postgresql://test:test@localhost:5432/cerniq_test";
+process.env.REDIS_URL = "redis://localhost:6379/15";
+process.env.LLM_PROVIDER = "mock";
+process.env.ANTHROPIC_API_KEY = "test-key";
 
 // Global mocks
 export const mockDb = mockDeep<PrismaClient>();
 export const mockRedis = mockDeep<Redis>();
 
-vi.mock('@/lib/prisma', () => ({
+vi.mock("@/lib/prisma", () => ({
   prisma: mockDb,
 }));
 
-vi.mock('@/lib/redis', () => ({
+vi.mock("@/lib/redis", () => ({
   redis: mockRedis,
 }));
 
-vi.mock('@/lib/logger', () => ({
+vi.mock("@/lib/logger", () => ({
   logger: {
     info: vi.fn(),
     error: vi.fn(),
@@ -271,10 +269,10 @@ vi.mock('@/lib/logger', () => ({
 }));
 
 // LLM Mock
-vi.mock('@/lib/llm', () => ({
+vi.mock("@/lib/llm", () => ({
   llm: {
     complete: vi.fn().mockResolvedValue({
-      content: 'Mock LLM response',
+      content: "Mock LLM response",
       usage: { input_tokens: 100, output_tokens: 50 },
     }),
     stream: vi.fn(),
@@ -300,88 +298,88 @@ afterAll(() => {
 
 ```typescript
 // tests/unit/workers/ai-agent/core.test.ts
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { AIAgentCore } from '@/workers/ai-agent/core';
-import { createMockConversation, createMockMessage } from '@test/factories';
-import { mockDb, mockRedis } from '@test/setup';
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { AIAgentCore } from "@/workers/ai-agent/core";
+import { createMockConversation, createMockMessage } from "@test/factories";
+import { mockDb, mockRedis } from "@test/setup";
 
-describe('AIAgentCore', () => {
+describe("AIAgentCore", () => {
   let agent: AIAgentCore;
-  
+
   beforeEach(() => {
     agent = new AIAgentCore({
-      tenantId: 'tenant-123',
-      conversationId: 'conv-456',
+      tenantId: "tenant-123",
+      conversationId: "conv-456",
     });
   });
 
-  describe('processMessage', () => {
-    it('should classify message intent correctly', async () => {
+  describe("processMessage", () => {
+    it("should classify message intent correctly", async () => {
       const message = createMockMessage({
-        content: 'Vreau să cumpăr 100kg de semințe de porumb',
-        direction: 'inbound',
+        content: "Vreau să cumpăr 100kg de semințe de porumb",
+        direction: "inbound",
       });
 
       const result = await agent.processMessage(message);
 
-      expect(result.intent).toBe('PURCHASE_INQUIRY');
+      expect(result.intent).toBe("PURCHASE_INQUIRY");
       expect(result.entities).toContainEqual({
-        type: 'product',
-        value: 'semințe de porumb',
+        type: "product",
+        value: "semințe de porumb",
         confidence: expect.any(Number),
       });
       expect(result.entities).toContainEqual({
-        type: 'quantity',
+        type: "quantity",
         value: 100,
-        unit: 'kg',
+        unit: "kg",
         confidence: expect.any(Number),
       });
     });
 
-    it('should detect negotiation intent', async () => {
+    it("should detect negotiation intent", async () => {
       const message = createMockMessage({
-        content: 'Puteți face un preț mai bun la 500kg?',
-        direction: 'inbound',
+        content: "Puteți face un preț mai bun la 500kg?",
+        direction: "inbound",
       });
 
       const result = await agent.processMessage(message);
 
-      expect(result.intent).toBe('PRICE_NEGOTIATION');
-      expect(result.negotiationSignals).toContain('discount_request');
+      expect(result.intent).toBe("PRICE_NEGOTIATION");
+      expect(result.negotiationSignals).toContain("discount_request");
     });
 
-    it('should handle greeting messages', async () => {
+    it("should handle greeting messages", async () => {
       const message = createMockMessage({
-        content: 'Bună ziua!',
-        direction: 'inbound',
+        content: "Bună ziua!",
+        direction: "inbound",
       });
 
       const result = await agent.processMessage(message);
 
-      expect(result.intent).toBe('GREETING');
+      expect(result.intent).toBe("GREETING");
       expect(result.requiresProductInfo).toBe(false);
     });
 
-    it('should detect urgency signals', async () => {
+    it("should detect urgency signals", async () => {
       const message = createMockMessage({
-        content: 'Am nevoie urgent de 50 saci de îngrășământ pentru mâine',
-        direction: 'inbound',
+        content: "Am nevoie urgent de 50 saci de îngrășământ pentru mâine",
+        direction: "inbound",
       });
 
       const result = await agent.processMessage(message);
 
-      expect(result.urgency).toBe('HIGH');
+      expect(result.urgency).toBe("HIGH");
       expect(result.deliveryRequirement).toBeDefined();
       expect(result.deliveryRequirement?.deadline).toBeDefined();
     });
   });
 
-  describe('generateResponse', () => {
-    it('should generate response within token limits', async () => {
+  describe("generateResponse", () => {
+    it("should generate response within token limits", async () => {
       const context = {
         conversation: createMockConversation(),
-        message: createMockMessage({ content: 'Ce produse aveți?' }),
-        intent: 'PRODUCT_INQUIRY' as const,
+        message: createMockMessage({ content: "Ce produse aveți?" }),
+        intent: "PRODUCT_INQUIRY" as const,
       };
 
       const response = await agent.generateResponse(context);
@@ -390,38 +388,40 @@ describe('AIAgentCore', () => {
       expect(response.tokensUsed).toBeLessThan(500);
     });
 
-    it('should include product information when requested', async () => {
+    it("should include product information when requested", async () => {
       mockDb.product.findMany.mockResolvedValue([
-        { id: 'prod-1', name: 'Semințe porumb', price: 15.00, stock: 1000 },
-        { id: 'prod-2', name: 'Îngrășământ NPK', price: 45.00, stock: 500 },
+        { id: "prod-1", name: "Semințe porumb", price: 15.0, stock: 1000 },
+        { id: "prod-2", name: "Îngrășământ NPK", price: 45.0, stock: 500 },
       ]);
 
       const context = {
         conversation: createMockConversation(),
-        message: createMockMessage({ content: 'Ce produse aveți în stoc?' }),
-        intent: 'PRODUCT_INQUIRY' as const,
+        message: createMockMessage({ content: "Ce produse aveți în stoc?" }),
+        intent: "PRODUCT_INQUIRY" as const,
         requiresProductInfo: true,
       };
 
       const response = await agent.generateResponse(context);
 
-      expect(response.content).toContain('Semințe porumb');
-      expect(response.content).toContain('Îngrășământ NPK');
+      expect(response.content).toContain("Semințe porumb");
+      expect(response.content).toContain("Îngrășământ NPK");
       expect(response.factChecked).toBe(true);
     });
 
-    it('should respect guardrails for price claims', async () => {
+    it("should respect guardrails for price claims", async () => {
       mockDb.product.findUnique.mockResolvedValue({
-        id: 'prod-1',
-        name: 'Semințe porumb',
-        price: 15.00,
-        currency: 'RON',
+        id: "prod-1",
+        name: "Semințe porumb",
+        price: 15.0,
+        currency: "RON",
       });
 
       const context = {
         conversation: createMockConversation(),
-        message: createMockMessage({ content: 'Cât costă semințele de porumb?' }),
-        intent: 'PRICE_INQUIRY' as const,
+        message: createMockMessage({
+          content: "Cât costă semințele de porumb?",
+        }),
+        intent: "PRICE_INQUIRY" as const,
       };
 
       const response = await agent.generateResponse(context);
@@ -431,30 +431,34 @@ describe('AIAgentCore', () => {
       expect(response.guardrailsPassed).toBe(true);
     });
 
-    it('should trigger HITL for uncertain responses', async () => {
+    it("should trigger HITL for uncertain responses", async () => {
       const context = {
         conversation: createMockConversation(),
         message: createMockMessage({
-          content: 'Puteți livra în Moldova la același preț?',
+          content: "Puteți livra în Moldova la același preț?",
         }),
-        intent: 'DELIVERY_INQUIRY' as const,
+        intent: "DELIVERY_INQUIRY" as const,
         confidence: 0.45, // Low confidence
       };
 
       const response = await agent.generateResponse(context);
 
       expect(response.requiresHITL).toBe(true);
-      expect(response.hitlReason).toBe('LOW_CONFIDENCE');
-      expect(response.suggestedHITLPriority).toBe('MEDIUM');
+      expect(response.hitlReason).toBe("LOW_CONFIDENCE");
+      expect(response.suggestedHITLPriority).toBe("MEDIUM");
     });
   });
 
-  describe('contextManagement', () => {
-    it('should maintain conversation context within token limit', async () => {
+  describe("contextManagement", () => {
+    it("should maintain conversation context within token limit", async () => {
       const longConversation = createMockConversation({
-        messages: Array(50).fill(null).map((_, i) => createMockMessage({
-          content: `Mesaj ${i} cu conținut detaliat despre produse și prețuri`,
-        })),
+        messages: Array(50)
+          .fill(null)
+          .map((_, i) =>
+            createMockMessage({
+              content: `Mesaj ${i} cu conținut detaliat despre produse și prețuri`,
+            }),
+          ),
       });
 
       const context = await agent.buildContext(longConversation);
@@ -464,21 +468,29 @@ describe('AIAgentCore', () => {
       expect(context.hasKeyInfo).toBe(true);
     });
 
-    it('should preserve important messages during context trimming', async () => {
+    it("should preserve important messages during context trimming", async () => {
       const conversation = createMockConversation({
         messages: [
-          createMockMessage({ content: 'Bună ziua', importance: 'low' }),
-          createMockMessage({ content: 'Vreau ofertă pentru 1000kg', importance: 'high' }),
-          ...Array(20).fill(null).map(() => createMockMessage({ content: 'Filler' })),
-          createMockMessage({ content: 'Acceptăm prețul de 14 RON/kg', importance: 'high' }),
+          createMockMessage({ content: "Bună ziua", importance: "low" }),
+          createMockMessage({
+            content: "Vreau ofertă pentru 1000kg",
+            importance: "high",
+          }),
+          ...Array(20)
+            .fill(null)
+            .map(() => createMockMessage({ content: "Filler" })),
+          createMockMessage({
+            content: "Acceptăm prețul de 14 RON/kg",
+            importance: "high",
+          }),
         ],
       });
 
       const context = await agent.buildContext(conversation);
 
-      const contents = context.messages.map(m => m.content);
-      expect(contents).toContain('Vreau ofertă pentru 1000kg');
-      expect(contents).toContain('Acceptăm prețul de 14 RON/kg');
+      const contents = context.messages.map((m) => m.content);
+      expect(contents).toContain("Vreau ofertă pentru 1000kg");
+      expect(contents).toContain("Acceptăm prețul de 14 RON/kg");
     });
   });
 });
@@ -488,172 +500,176 @@ describe('AIAgentCore', () => {
 
 ```typescript
 // tests/unit/workers/negotiation/fsm.test.ts
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { NegotiationFSM, NegotiationState, NegotiationEvent } from '@/workers/negotiation/fsm';
-import { createMockNegotiation } from '@test/factories';
-import { mockDb } from '@test/setup';
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import {
+  NegotiationFSM,
+  NegotiationState,
+  NegotiationEvent,
+} from "@/workers/negotiation/fsm";
+import { createMockNegotiation } from "@test/factories";
+import { mockDb } from "@test/setup";
 
-describe('NegotiationFSM', () => {
+describe("NegotiationFSM", () => {
   let fsm: NegotiationFSM;
-  
+
   beforeEach(() => {
     fsm = new NegotiationFSM();
   });
 
-  describe('State Transitions', () => {
-    it('should transition from INITIATED to ACTIVE on first offer', () => {
+  describe("State Transitions", () => {
+    it("should transition from INITIATED to ACTIVE on first offer", () => {
       const negotiation = createMockNegotiation({
-        state: 'INITIATED',
+        state: "INITIATED",
       });
 
       const result = fsm.transition(negotiation, {
-        type: 'OFFER_CREATED',
-        payload: { offerId: 'offer-123', totalValue: 5000 },
+        type: "OFFER_CREATED",
+        payload: { offerId: "offer-123", totalValue: 5000 },
       });
 
-      expect(result.newState).toBe('ACTIVE');
-      expect(result.sideEffects).toContain('SEND_OFFER_NOTIFICATION');
+      expect(result.newState).toBe("ACTIVE");
+      expect(result.sideEffects).toContain("SEND_OFFER_NOTIFICATION");
     });
 
-    it('should transition from ACTIVE to COUNTER_OFFERED on counter', () => {
+    it("should transition from ACTIVE to COUNTER_OFFERED on counter", () => {
       const negotiation = createMockNegotiation({
-        state: 'ACTIVE',
+        state: "ACTIVE",
         currentOffer: { totalValue: 5000 },
       });
 
       const result = fsm.transition(negotiation, {
-        type: 'COUNTER_OFFER_RECEIVED',
-        payload: { requestedValue: 4500, reason: 'Discount pentru volum' },
+        type: "COUNTER_OFFER_RECEIVED",
+        payload: { requestedValue: 4500, reason: "Discount pentru volum" },
       });
 
-      expect(result.newState).toBe('COUNTER_OFFERED');
+      expect(result.newState).toBe("COUNTER_OFFERED");
       expect(result.metadata.counterValue).toBe(4500);
-      expect(result.sideEffects).toContain('EVALUATE_COUNTER_OFFER');
+      expect(result.sideEffects).toContain("EVALUATE_COUNTER_OFFER");
     });
 
-    it('should transition to WON on acceptance', () => {
+    it("should transition to WON on acceptance", () => {
       const negotiation = createMockNegotiation({
-        state: 'ACTIVE',
+        state: "ACTIVE",
       });
 
       const result = fsm.transition(negotiation, {
-        type: 'OFFER_ACCEPTED',
+        type: "OFFER_ACCEPTED",
         payload: { acceptedAt: new Date() },
       });
 
-      expect(result.newState).toBe('WON');
-      expect(result.sideEffects).toContain('CREATE_ORDER');
-      expect(result.sideEffects).toContain('NOTIFY_SALES_REP');
+      expect(result.newState).toBe("WON");
+      expect(result.sideEffects).toContain("CREATE_ORDER");
+      expect(result.sideEffects).toContain("NOTIFY_SALES_REP");
     });
 
-    it('should transition to LOST on rejection', () => {
+    it("should transition to LOST on rejection", () => {
       const negotiation = createMockNegotiation({
-        state: 'ACTIVE',
+        state: "ACTIVE",
       });
 
       const result = fsm.transition(negotiation, {
-        type: 'OFFER_REJECTED',
-        payload: { reason: 'Preț prea mare', canRetry: true },
+        type: "OFFER_REJECTED",
+        payload: { reason: "Preț prea mare", canRetry: true },
       });
 
-      expect(result.newState).toBe('LOST');
+      expect(result.newState).toBe("LOST");
       expect(result.metadata.canRetry).toBe(true);
-      expect(result.sideEffects).toContain('LOG_REJECTION_REASON');
+      expect(result.sideEffects).toContain("LOG_REJECTION_REASON");
     });
 
-    it('should not allow invalid transitions', () => {
+    it("should not allow invalid transitions", () => {
       const negotiation = createMockNegotiation({
-        state: 'WON', // Terminal state
+        state: "WON", // Terminal state
       });
 
       expect(() => {
         fsm.transition(negotiation, {
-          type: 'COUNTER_OFFER_RECEIVED',
+          type: "COUNTER_OFFER_RECEIVED",
           payload: { requestedValue: 4000 },
         });
-      }).toThrow('Invalid transition from WON via COUNTER_OFFER_RECEIVED');
+      }).toThrow("Invalid transition from WON via COUNTER_OFFER_RECEIVED");
     });
 
-    it('should handle HITL_REQUIRED transition', () => {
+    it("should handle HITL_REQUIRED transition", () => {
       const negotiation = createMockNegotiation({
-        state: 'ACTIVE',
+        state: "ACTIVE",
       });
 
       const result = fsm.transition(negotiation, {
-        type: 'HITL_TRIGGERED',
-        payload: { reason: 'HIGH_VALUE_DISCOUNT', discountPercent: 25 },
+        type: "HITL_TRIGGERED",
+        payload: { reason: "HIGH_VALUE_DISCOUNT", discountPercent: 25 },
       });
 
-      expect(result.newState).toBe('PENDING_APPROVAL');
-      expect(result.sideEffects).toContain('CREATE_HITL_TASK');
+      expect(result.newState).toBe("PENDING_APPROVAL");
+      expect(result.sideEffects).toContain("CREATE_HITL_TASK");
       expect(result.metadata.blockedUntilApproval).toBe(true);
     });
   });
 
-  describe('State Guards', () => {
-    it('should enforce minimum offer value', () => {
+  describe("State Guards", () => {
+    it("should enforce minimum offer value", () => {
       const negotiation = createMockNegotiation({
-        state: 'INITIATED',
+        state: "INITIATED",
         minimumOrderValue: 500,
       });
 
       expect(() => {
         fsm.transition(negotiation, {
-          type: 'OFFER_CREATED',
-          payload: { offerId: 'offer-123', totalValue: 100 }, // Below minimum
+          type: "OFFER_CREATED",
+          payload: { offerId: "offer-123", totalValue: 100 }, // Below minimum
         });
-      }).toThrow('Order value below minimum threshold');
+      }).toThrow("Order value below minimum threshold");
     });
 
-    it('should enforce maximum discount percentage', () => {
+    it("should enforce maximum discount percentage", () => {
       const negotiation = createMockNegotiation({
-        state: 'ACTIVE',
+        state: "ACTIVE",
         maxAutoDiscount: 15,
       });
 
       const result = fsm.transition(negotiation, {
-        type: 'DISCOUNT_REQUESTED',
+        type: "DISCOUNT_REQUESTED",
         payload: { discountPercent: 20 },
       });
 
-      expect(result.newState).toBe('PENDING_APPROVAL');
-      expect(result.sideEffects).toContain('CREATE_HITL_TASK');
+      expect(result.newState).toBe("PENDING_APPROVAL");
+      expect(result.sideEffects).toContain("CREATE_HITL_TASK");
     });
 
-    it('should allow auto-approval within threshold', () => {
+    it("should allow auto-approval within threshold", () => {
       const negotiation = createMockNegotiation({
-        state: 'ACTIVE',
+        state: "ACTIVE",
         maxAutoDiscount: 15,
       });
 
       const result = fsm.transition(negotiation, {
-        type: 'DISCOUNT_REQUESTED',
+        type: "DISCOUNT_REQUESTED",
         payload: { discountPercent: 10 },
       });
 
-      expect(result.newState).toBe('ACTIVE'); // Stays in ACTIVE
-      expect(result.sideEffects).toContain('APPLY_DISCOUNT');
-      expect(result.sideEffects).not.toContain('CREATE_HITL_TASK');
+      expect(result.newState).toBe("ACTIVE"); // Stays in ACTIVE
+      expect(result.sideEffects).toContain("APPLY_DISCOUNT");
+      expect(result.sideEffects).not.toContain("CREATE_HITL_TASK");
     });
   });
 
-  describe('Timeout Handling', () => {
-    it('should transition to STALE after inactivity', () => {
+  describe("Timeout Handling", () => {
+    it("should transition to STALE after inactivity", () => {
       const negotiation = createMockNegotiation({
-        state: 'ACTIVE',
+        state: "ACTIVE",
         lastActivityAt: new Date(Date.now() - 72 * 60 * 60 * 1000), // 72h ago
       });
 
       const result = fsm.checkTimeout(negotiation);
 
       expect(result.shouldTransition).toBe(true);
-      expect(result.newState).toBe('STALE');
-      expect(result.sideEffects).toContain('SEND_REACTIVATION_REMINDER');
+      expect(result.newState).toBe("STALE");
+      expect(result.sideEffects).toContain("SEND_REACTIVATION_REMINDER");
     });
 
-    it('should not timeout within grace period', () => {
+    it("should not timeout within grace period", () => {
       const negotiation = createMockNegotiation({
-        state: 'ACTIVE',
+        state: "ACTIVE",
         lastActivityAt: new Date(Date.now() - 24 * 60 * 60 * 1000), // 24h ago
       });
 
@@ -662,9 +678,9 @@ describe('NegotiationFSM', () => {
       expect(result.shouldTransition).toBe(false);
     });
 
-    it('should expire PENDING_APPROVAL after SLA breach', () => {
+    it("should expire PENDING_APPROVAL after SLA breach", () => {
       const negotiation = createMockNegotiation({
-        state: 'PENDING_APPROVAL',
+        state: "PENDING_APPROVAL",
         approvalRequestedAt: new Date(Date.now() - 8 * 60 * 60 * 1000), // 8h ago
         approvalSLA: 4 * 60 * 60 * 1000, // 4h SLA
       });
@@ -672,42 +688,46 @@ describe('NegotiationFSM', () => {
       const result = fsm.checkTimeout(negotiation);
 
       expect(result.shouldTransition).toBe(true);
-      expect(result.newState).toBe('ESCALATED');
-      expect(result.sideEffects).toContain('ESCALATE_APPROVAL');
+      expect(result.newState).toBe("ESCALATED");
+      expect(result.sideEffects).toContain("ESCALATE_APPROVAL");
     });
   });
 
-  describe('History Tracking', () => {
-    it('should record all state transitions', () => {
+  describe("History Tracking", () => {
+    it("should record all state transitions", () => {
       const negotiation = createMockNegotiation({
-        state: 'INITIATED',
+        state: "INITIATED",
         history: [],
       });
 
       const result = fsm.transition(negotiation, {
-        type: 'OFFER_CREATED',
-        payload: { offerId: 'offer-123', totalValue: 5000 },
+        type: "OFFER_CREATED",
+        payload: { offerId: "offer-123", totalValue: 5000 },
       });
 
       expect(result.historyEntry).toEqual({
-        fromState: 'INITIATED',
-        toState: 'ACTIVE',
-        event: 'OFFER_CREATED',
+        fromState: "INITIATED",
+        toState: "ACTIVE",
+        event: "OFFER_CREATED",
         timestamp: expect.any(Date),
         metadata: expect.any(Object),
       });
     });
 
-    it('should calculate time in each state', () => {
+    it("should calculate time in each state", () => {
       const negotiation = createMockNegotiation({
-        state: 'ACTIVE',
+        state: "ACTIVE",
         history: [
-          { fromState: 'INITIATED', toState: 'ACTIVE', timestamp: new Date('2026-01-15T10:00:00') },
+          {
+            fromState: "INITIATED",
+            toState: "ACTIVE",
+            timestamp: new Date("2026-01-15T10:00:00"),
+          },
         ],
-        currentStateEnteredAt: new Date('2026-01-15T10:00:00'),
+        currentStateEnteredAt: new Date("2026-01-15T10:00:00"),
       });
 
-      vi.setSystemTime(new Date('2026-01-15T14:00:00'));
+      vi.setSystemTime(new Date("2026-01-15T14:00:00"));
 
       const metrics = fsm.calculateStateMetrics(negotiation);
 
@@ -721,26 +741,30 @@ describe('NegotiationFSM', () => {
 
 ```typescript
 // tests/unit/workers/pricing/engine.test.ts
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { PricingEngine } from '@/workers/pricing/engine';
-import { createMockProduct, createMockCustomer, createMockOffer } from '@test/factories';
-import { mockDb } from '@test/setup';
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { PricingEngine } from "@/workers/pricing/engine";
+import {
+  createMockProduct,
+  createMockCustomer,
+  createMockOffer,
+} from "@test/factories";
+import { mockDb } from "@test/setup";
 
-describe('PricingEngine', () => {
+describe("PricingEngine", () => {
   let engine: PricingEngine;
-  
+
   beforeEach(() => {
     engine = new PricingEngine({
-      tenantId: 'tenant-123',
+      tenantId: "tenant-123",
     });
   });
 
-  describe('calculatePrice', () => {
-    it('should return base price for standard order', async () => {
+  describe("calculatePrice", () => {
+    it("should return base price for standard order", async () => {
       const product = createMockProduct({
         basePrice: 100,
-        currency: 'RON',
-        unit: 'kg',
+        currency: "RON",
+        unit: "kg",
       });
 
       const result = await engine.calculatePrice({
@@ -750,10 +774,10 @@ describe('PricingEngine', () => {
 
       expect(result.unitPrice).toBe(100);
       expect(result.totalPrice).toBe(1000);
-      expect(result.currency).toBe('RON');
+      expect(result.currency).toBe("RON");
     });
 
-    it('should apply volume discount', async () => {
+    it("should apply volume discount", async () => {
       const product = createMockProduct({
         basePrice: 100,
         volumeDiscounts: [
@@ -769,49 +793,49 @@ describe('PricingEngine', () => {
       });
 
       expect(result.discounts).toContainEqual({
-        type: 'VOLUME',
+        type: "VOLUME",
         percent: 10,
-        reason: 'Discount volum 500+ unități',
+        reason: "Discount volum 500+ unități",
       });
       expect(result.unitPrice).toBe(90); // 10% off
       expect(result.totalPrice).toBe(54000); // 600 * 90
     });
 
-    it('should apply customer-specific discount', async () => {
+    it("should apply customer-specific discount", async () => {
       const product = createMockProduct({ basePrice: 100 });
       const customer = createMockCustomer({
-        tier: 'GOLD',
+        tier: "GOLD",
         customDiscounts: {
-          'prod-category-seeds': 8, // 8% on seeds
+          "prod-category-seeds": 8, // 8% on seeds
         },
       });
 
       mockDb.customerDiscount.findFirst.mockResolvedValue({
-        productCategory: 'seeds',
+        productCategory: "seeds",
         discountPercent: 8,
       });
 
       const result = await engine.calculatePrice({
-        product: { ...product, category: 'seeds' },
+        product: { ...product, category: "seeds" },
         quantity: 10,
         customer,
       });
 
       expect(result.discounts).toContainEqual({
-        type: 'CUSTOMER_TIER',
+        type: "CUSTOMER_TIER",
         percent: 8,
-        reason: 'Discount client Gold pentru semințe',
+        reason: "Discount client Gold pentru semințe",
       });
       expect(result.unitPrice).toBe(92);
     });
 
-    it('should stack compatible discounts', async () => {
+    it("should stack compatible discounts", async () => {
       const product = createMockProduct({
         basePrice: 100,
         volumeDiscounts: [{ minQuantity: 100, discountPercent: 10 }],
       });
       const customer = createMockCustomer({
-        tier: 'GOLD',
+        tier: "GOLD",
         tierDiscount: 5,
       });
 
@@ -827,14 +851,14 @@ describe('PricingEngine', () => {
       expect(result.unitPrice).toBe(85);
     });
 
-    it('should respect maximum discount cap', async () => {
+    it("should respect maximum discount cap", async () => {
       const product = createMockProduct({
         basePrice: 100,
         maxDiscountPercent: 20,
         volumeDiscounts: [{ minQuantity: 100, discountPercent: 15 }],
       });
       const customer = createMockCustomer({
-        tier: 'GOLD',
+        tier: "GOLD",
         tierDiscount: 10,
       });
 
@@ -851,17 +875,19 @@ describe('PricingEngine', () => {
       expect(result.unitPrice).toBe(80);
     });
 
-    it('should apply seasonal promotion', async () => {
-      vi.setSystemTime(new Date('2026-03-15')); // Spring planting season
+    it("should apply seasonal promotion", async () => {
+      vi.setSystemTime(new Date("2026-03-15")); // Spring planting season
 
       const product = createMockProduct({
         basePrice: 100,
-        seasonalPromotions: [{
-          name: 'Promoție Primăvară',
-          startDate: new Date('2026-03-01'),
-          endDate: new Date('2026-04-30'),
-          discountPercent: 12,
-        }],
+        seasonalPromotions: [
+          {
+            name: "Promoție Primăvară",
+            startDate: new Date("2026-03-01"),
+            endDate: new Date("2026-04-30"),
+            discountPercent: 12,
+          },
+        ],
       });
 
       const result = await engine.calculatePrice({
@@ -870,15 +896,15 @@ describe('PricingEngine', () => {
       });
 
       expect(result.discounts).toContainEqual({
-        type: 'SEASONAL',
+        type: "SEASONAL",
         percent: 12,
-        reason: 'Promoție Primăvară',
+        reason: "Promoție Primăvară",
       });
     });
   });
 
-  describe('validateDiscount', () => {
-    it('should approve discount within auto-approval threshold', async () => {
+  describe("validateDiscount", () => {
+    it("should approve discount within auto-approval threshold", async () => {
       const result = await engine.validateDiscount({
         discountPercent: 10,
         autoApprovalThreshold: 15,
@@ -889,7 +915,7 @@ describe('PricingEngine', () => {
       expect(result.requiresHITL).toBe(false);
     });
 
-    it('should require HITL for discount above threshold', async () => {
+    it("should require HITL for discount above threshold", async () => {
       const result = await engine.validateDiscount({
         discountPercent: 20,
         autoApprovalThreshold: 15,
@@ -898,10 +924,10 @@ describe('PricingEngine', () => {
 
       expect(result.approved).toBe(false);
       expect(result.requiresHITL).toBe(true);
-      expect(result.hitlPriority).toBe('HIGH');
+      expect(result.hitlPriority).toBe("HIGH");
     });
 
-    it('should require HITL for high-value orders', async () => {
+    it("should require HITL for high-value orders", async () => {
       const result = await engine.validateDiscount({
         discountPercent: 10,
         autoApprovalThreshold: 15,
@@ -910,20 +936,20 @@ describe('PricingEngine', () => {
       });
 
       expect(result.requiresHITL).toBe(true);
-      expect(result.hitlReason).toBe('HIGH_ORDER_VALUE');
+      expect(result.hitlReason).toBe("HIGH_ORDER_VALUE");
     });
   });
 
-  describe('generateQuote', () => {
-    it('should generate complete quote with all line items', async () => {
+  describe("generateQuote", () => {
+    it("should generate complete quote with all line items", async () => {
       const items = [
-        { productId: 'prod-1', quantity: 100 },
-        { productId: 'prod-2', quantity: 50 },
+        { productId: "prod-1", quantity: 100 },
+        { productId: "prod-2", quantity: 50 },
       ];
 
       mockDb.product.findMany.mockResolvedValue([
-        createMockProduct({ id: 'prod-1', name: 'Semințe', basePrice: 50 }),
-        createMockProduct({ id: 'prod-2', name: 'Îngrășământ', basePrice: 80 }),
+        createMockProduct({ id: "prod-1", name: "Semințe", basePrice: 50 }),
+        createMockProduct({ id: "prod-2", name: "Îngrășământ", basePrice: 80 }),
       ]);
 
       const quote = await engine.generateQuote({
@@ -937,13 +963,11 @@ describe('PricingEngine', () => {
       expect(quote.quoteNumber).toMatch(/^QT-\d{6}$/);
     });
 
-    it('should apply order-level discount to quote', async () => {
-      const items = [
-        { productId: 'prod-1', quantity: 100 },
-      ];
+    it("should apply order-level discount to quote", async () => {
+      const items = [{ productId: "prod-1", quantity: 100 }];
 
       mockDb.product.findMany.mockResolvedValue([
-        createMockProduct({ id: 'prod-1', basePrice: 100 }),
+        createMockProduct({ id: "prod-1", basePrice: 100 }),
       ]);
 
       const quote = await engine.generateQuote({
@@ -956,11 +980,11 @@ describe('PricingEngine', () => {
       expect(quote.total).toBe(9500);
     });
 
-    it('should calculate VAT correctly', async () => {
-      const items = [{ productId: 'prod-1', quantity: 100 }];
+    it("should calculate VAT correctly", async () => {
+      const items = [{ productId: "prod-1", quantity: 100 }];
 
       mockDb.product.findMany.mockResolvedValue([
-        createMockProduct({ id: 'prod-1', basePrice: 100, vatRate: 19 }),
+        createMockProduct({ id: "prod-1", basePrice: 100, vatRate: 19 }),
       ]);
 
       const quote = await engine.generateQuote({
@@ -980,33 +1004,34 @@ describe('PricingEngine', () => {
 
 ```typescript
 // tests/unit/workers/guardrails/anti-hallucination.test.ts
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { AntiHallucinationGuardrail } from '@/workers/guardrails/anti-hallucination';
-import { mockDb } from '@test/setup';
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { AntiHallucinationGuardrail } from "@/workers/guardrails/anti-hallucination";
+import { mockDb } from "@test/setup";
 
-describe('AntiHallucinationGuardrail', () => {
+describe("AntiHallucinationGuardrail", () => {
   let guardrail: AntiHallucinationGuardrail;
-  
+
   beforeEach(() => {
     guardrail = new AntiHallucinationGuardrail({
-      tenantId: 'tenant-123',
+      tenantId: "tenant-123",
     });
   });
 
-  describe('validateProductClaims', () => {
-    it('should pass for accurate product information', async () => {
+  describe("validateProductClaims", () => {
+    it("should pass for accurate product information", async () => {
       mockDb.product.findUnique.mockResolvedValue({
-        id: 'prod-1',
-        name: 'Semințe porumb Pioneer P9911',
+        id: "prod-1",
+        name: "Semințe porumb Pioneer P9911",
         price: 850,
         stock: 500,
         specifications: {
-          yield: '12-14 tone/ha',
-          maturity: '115-120 zile',
+          yield: "12-14 tone/ha",
+          maturity: "115-120 zile",
         },
       });
 
-      const response = 'Semințele Pioneer P9911 costă 850 RON și au un randament de 12-14 tone/ha.';
+      const response =
+        "Semințele Pioneer P9911 costă 850 RON și au un randament de 12-14 tone/ha.";
 
       const result = await guardrail.validateProductClaims(response);
 
@@ -1014,118 +1039,120 @@ describe('AntiHallucinationGuardrail', () => {
       expect(result.corrections).toHaveLength(0);
     });
 
-    it('should detect incorrect price claim', async () => {
+    it("should detect incorrect price claim", async () => {
       mockDb.product.findUnique.mockResolvedValue({
-        id: 'prod-1',
-        name: 'Semințe porumb Pioneer P9911',
+        id: "prod-1",
+        name: "Semințe porumb Pioneer P9911",
         price: 850,
       });
 
-      const response = 'Semințele Pioneer P9911 costă doar 650 RON.'; // Wrong price
+      const response = "Semințele Pioneer P9911 costă doar 650 RON."; // Wrong price
 
       const result = await guardrail.validateProductClaims(response);
 
       expect(result.valid).toBe(false);
       expect(result.corrections).toContainEqual({
-        type: 'PRICE_MISMATCH',
+        type: "PRICE_MISMATCH",
         claimed: 650,
         actual: 850,
-        product: 'Semințe porumb Pioneer P9911',
-        severity: 'HIGH',
+        product: "Semințe porumb Pioneer P9911",
+        severity: "HIGH",
       });
     });
 
-    it('should detect fabricated product', async () => {
+    it("should detect fabricated product", async () => {
       mockDb.product.findUnique.mockResolvedValue(null);
       mockDb.product.findMany.mockResolvedValue([]); // No similar products
 
-      const response = 'Avem în stoc semințele SuperYield XL500 la 900 RON.';
+      const response = "Avem în stoc semințele SuperYield XL500 la 900 RON.";
 
       const result = await guardrail.validateProductClaims(response);
 
       expect(result.valid).toBe(false);
       expect(result.corrections).toContainEqual({
-        type: 'PRODUCT_NOT_FOUND',
-        claimed: 'SuperYield XL500',
-        severity: 'CRITICAL',
+        type: "PRODUCT_NOT_FOUND",
+        claimed: "SuperYield XL500",
+        severity: "CRITICAL",
       });
     });
 
-    it('should detect incorrect stock claim', async () => {
+    it("should detect incorrect stock claim", async () => {
       mockDb.product.findUnique.mockResolvedValue({
-        id: 'prod-1',
-        name: 'Semințe porumb',
+        id: "prod-1",
+        name: "Semințe porumb",
         stock: 50, // Only 50 in stock
       });
 
-      const response = 'Avem peste 500 unități în stoc, suficient pentru orice comandă.';
+      const response =
+        "Avem peste 500 unități în stoc, suficient pentru orice comandă.";
 
       const result = await guardrail.validateProductClaims(response);
 
       expect(result.valid).toBe(false);
       expect(result.corrections).toContainEqual({
-        type: 'STOCK_MISMATCH',
-        claimed: '>500',
+        type: "STOCK_MISMATCH",
+        claimed: ">500",
         actual: 50,
-        severity: 'MEDIUM',
+        severity: "MEDIUM",
       });
     });
 
-    it('should detect incorrect specification claim', async () => {
+    it("should detect incorrect specification claim", async () => {
       mockDb.product.findUnique.mockResolvedValue({
-        id: 'prod-1',
-        name: 'Semințe porumb Pioneer',
+        id: "prod-1",
+        name: "Semințe porumb Pioneer",
         specifications: {
-          yield: '12-14 tone/ha',
+          yield: "12-14 tone/ha",
         },
       });
 
-      const response = 'Aceste semințe oferă un randament de 18-20 tone/ha.'; // Wrong yield
+      const response = "Aceste semințe oferă un randament de 18-20 tone/ha."; // Wrong yield
 
       const result = await guardrail.validateProductClaims(response);
 
       expect(result.valid).toBe(false);
       expect(result.corrections).toContainEqual({
-        type: 'SPEC_MISMATCH',
-        field: 'yield',
-        claimed: '18-20 tone/ha',
-        actual: '12-14 tone/ha',
-        severity: 'HIGH',
+        type: "SPEC_MISMATCH",
+        field: "yield",
+        claimed: "18-20 tone/ha",
+        actual: "12-14 tone/ha",
+        severity: "HIGH",
       });
     });
   });
 
-  describe('validatePriceClaims', () => {
-    it('should detect discount beyond policy', async () => {
+  describe("validatePriceClaims", () => {
+    it("should detect discount beyond policy", async () => {
       mockDb.pricingPolicy.findFirst.mockResolvedValue({
         maxAutoDiscount: 15,
       });
 
-      const response = 'Vă putem oferi un discount special de 25%.';
+      const response = "Vă putem oferi un discount special de 25%.";
 
       const result = await guardrail.validatePriceClaims(response, {
-        customerId: 'cust-123',
+        customerId: "cust-123",
         orderValue: 5000,
       });
 
       expect(result.valid).toBe(false);
       expect(result.corrections).toContainEqual({
-        type: 'DISCOUNT_POLICY_VIOLATION',
+        type: "DISCOUNT_POLICY_VIOLATION",
         claimed: 25,
         maxAllowed: 15,
-        severity: 'HIGH',
+        severity: "HIGH",
       });
     });
 
-    it('should allow discount within policy', async () => {
+    it("should allow discount within policy", async () => {
       mockDb.pricingPolicy.findFirst.mockResolvedValue({
         maxAutoDiscount: 15,
       });
 
-      const response = 'Putem aplica un discount de 10% pentru această comandă.';
+      const response =
+        "Putem aplica un discount de 10% pentru această comandă.";
 
       const result = await guardrail.validatePriceClaims(response, {
-        customerId: 'cust-123',
+        customerId: "cust-123",
         orderValue: 5000,
       });
 
@@ -1133,93 +1160,107 @@ describe('AntiHallucinationGuardrail', () => {
     });
   });
 
-  describe('validateDeliveryClaims', () => {
-    it('should detect unrealistic delivery promise', async () => {
+  describe("validateDeliveryClaims", () => {
+    it("should detect unrealistic delivery promise", async () => {
       mockDb.deliveryPolicy.findFirst.mockResolvedValue({
         minDeliveryDays: 3,
         expressAvailable: false,
       });
 
-      const response = 'Putem livra mâine dimineață garantat.';
+      const response = "Putem livra mâine dimineață garantat.";
 
       const result = await guardrail.validateDeliveryClaims(response);
 
       expect(result.valid).toBe(false);
       expect(result.corrections).toContainEqual({
-        type: 'DELIVERY_PROMISE_VIOLATION',
-        claimed: '1 day',
-        minPossible: '3 days',
-        severity: 'MEDIUM',
+        type: "DELIVERY_PROMISE_VIOLATION",
+        claimed: "1 day",
+        minPossible: "3 days",
+        severity: "MEDIUM",
       });
     });
 
-    it('should validate against shipping zones', async () => {
+    it("should validate against shipping zones", async () => {
       mockDb.shippingZone.findFirst.mockResolvedValue({
-        zone: 'zone-moldova',
+        zone: "zone-moldova",
         minDeliveryDays: 5,
         maxDeliveryDays: 7,
       });
 
-      const response = 'Pentru Iași, livrarea durează 2-3 zile.';
+      const response = "Pentru Iași, livrarea durează 2-3 zile.";
 
       const result = await guardrail.validateDeliveryClaims(response, {
-        destination: 'Iași',
+        destination: "Iași",
       });
 
       expect(result.valid).toBe(false);
       expect(result.corrections).toContainEqual({
-        type: 'ZONE_DELIVERY_MISMATCH',
-        claimed: '2-3 zile',
-        actual: '5-7 zile',
-        zone: 'Moldova',
-        severity: 'MEDIUM',
+        type: "ZONE_DELIVERY_MISMATCH",
+        claimed: "2-3 zile",
+        actual: "5-7 zile",
+        zone: "Moldova",
+        severity: "MEDIUM",
       });
     });
   });
 
-  describe('correctResponse', () => {
-    it('should generate corrected response for price error', async () => {
-      const originalResponse = 'Semințele costă 650 RON per sac.';
-      const corrections = [{
-        type: 'PRICE_MISMATCH',
-        claimed: 650,
-        actual: 850,
-        product: 'Semințe porumb',
-      }];
+  describe("correctResponse", () => {
+    it("should generate corrected response for price error", async () => {
+      const originalResponse = "Semințele costă 650 RON per sac.";
+      const corrections = [
+        {
+          type: "PRICE_MISMATCH",
+          claimed: 650,
+          actual: 850,
+          product: "Semințe porumb",
+        },
+      ];
 
-      const corrected = await guardrail.correctResponse(originalResponse, corrections);
+      const corrected = await guardrail.correctResponse(
+        originalResponse,
+        corrections,
+      );
 
-      expect(corrected).toContain('850 RON');
-      expect(corrected).not.toContain('650 RON');
+      expect(corrected).toContain("850 RON");
+      expect(corrected).not.toContain("650 RON");
     });
 
-    it('should remove fabricated product claims', async () => {
-      const originalResponse = 'Vă recomand produsul FakeProduct XL care este excelent.';
-      const corrections = [{
-        type: 'PRODUCT_NOT_FOUND',
-        claimed: 'FakeProduct XL',
-        severity: 'CRITICAL',
-      }];
+    it("should remove fabricated product claims", async () => {
+      const originalResponse =
+        "Vă recomand produsul FakeProduct XL care este excelent.";
+      const corrections = [
+        {
+          type: "PRODUCT_NOT_FOUND",
+          claimed: "FakeProduct XL",
+          severity: "CRITICAL",
+        },
+      ];
 
-      const corrected = await guardrail.correctResponse(originalResponse, corrections);
+      const corrected = await guardrail.correctResponse(
+        originalResponse,
+        corrections,
+      );
 
-      expect(corrected).not.toContain('FakeProduct XL');
+      expect(corrected).not.toContain("FakeProduct XL");
       expect(corrected).toMatch(/nu am găsit|verificați|contactați/i);
     });
 
-    it('should flag response for HITL if too many corrections', async () => {
-      const originalResponse = 'Multiple wrong claims here.';
+    it("should flag response for HITL if too many corrections", async () => {
+      const originalResponse = "Multiple wrong claims here.";
       const corrections = [
-        { type: 'PRICE_MISMATCH', severity: 'HIGH' },
-        { type: 'STOCK_MISMATCH', severity: 'MEDIUM' },
-        { type: 'SPEC_MISMATCH', severity: 'HIGH' },
-        { type: 'DELIVERY_PROMISE_VIOLATION', severity: 'MEDIUM' },
+        { type: "PRICE_MISMATCH", severity: "HIGH" },
+        { type: "STOCK_MISMATCH", severity: "MEDIUM" },
+        { type: "SPEC_MISMATCH", severity: "HIGH" },
+        { type: "DELIVERY_PROMISE_VIOLATION", severity: "MEDIUM" },
       ];
 
-      const result = await guardrail.correctResponse(originalResponse, corrections);
+      const result = await guardrail.correctResponse(
+        originalResponse,
+        corrections,
+      );
 
       expect(result.requiresHITL).toBe(true);
-      expect(result.hitlReason).toBe('EXCESSIVE_CORRECTIONS');
+      expect(result.hitlReason).toBe("EXCESSIVE_CORRECTIONS");
     });
   });
 });
@@ -1229,49 +1270,53 @@ describe('AntiHallucinationGuardrail', () => {
 
 ```typescript
 // tests/unit/workers/document-generation/templates.test.ts
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { DocumentGenerator } from '@/workers/document-generation/generator';
-import { createMockOffer, createMockOrder, createMockCustomer } from '@test/factories';
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { DocumentGenerator } from "@/workers/document-generation/generator";
+import {
+  createMockOffer,
+  createMockOrder,
+  createMockCustomer,
+} from "@test/factories";
 
-describe('DocumentGenerator', () => {
+describe("DocumentGenerator", () => {
   let generator: DocumentGenerator;
-  
+
   beforeEach(() => {
     generator = new DocumentGenerator({
-      tenantId: 'tenant-123',
-      templatesPath: './templates',
+      tenantId: "tenant-123",
+      templatesPath: "./templates",
     });
   });
 
-  describe('generateOffer', () => {
-    it('should generate offer PDF with correct data', async () => {
+  describe("generateOffer", () => {
+    it("should generate offer PDF with correct data", async () => {
       const offer = createMockOffer({
-        offerNumber: 'OF-2026-001234',
+        offerNumber: "OF-2026-001234",
         items: [
-          { product: 'Semințe', quantity: 100, unitPrice: 50, total: 5000 },
-          { product: 'Îngrășământ', quantity: 50, unitPrice: 80, total: 4000 },
+          { product: "Semințe", quantity: 100, unitPrice: 50, total: 5000 },
+          { product: "Îngrășământ", quantity: 50, unitPrice: 80, total: 4000 },
         ],
         subtotal: 9000,
         vatAmount: 1710,
         total: 10710,
-        validUntil: new Date('2026-02-01'),
+        validUntil: new Date("2026-02-01"),
       });
 
       const customer = createMockCustomer({
-        name: 'SC Agro SRL',
-        cui: 'RO12345678',
+        name: "SC Agro SRL",
+        cui: "RO12345678",
       });
 
       const result = await generator.generateOffer(offer, customer);
 
-      expect(result.filename).toBe('oferta-OF-2026-001234.pdf');
-      expect(result.contentType).toBe('application/pdf');
+      expect(result.filename).toBe("oferta-OF-2026-001234.pdf");
+      expect(result.contentType).toBe("application/pdf");
       expect(result.size).toBeGreaterThan(0);
-      expect(result.metadata.documentType).toBe('OFFER');
+      expect(result.metadata.documentType).toBe("OFFER");
       expect(result.metadata.totalValue).toBe(10710);
     });
 
-    it('should include all required legal fields', async () => {
+    it("should include all required legal fields", async () => {
       const offer = createMockOffer();
       const customer = createMockCustomer();
 
@@ -1279,64 +1324,66 @@ describe('DocumentGenerator', () => {
 
       // Verify content includes required fields
       const content = await generator.extractText(result.buffer);
-      
-      expect(content).toContain('CUI'); // Tax ID
-      expect(content).toContain('IBAN'); // Bank account
-      expect(content).toContain('valabilitate'); // Validity period
-      expect(content).toContain('TVA'); // VAT
+
+      expect(content).toContain("CUI"); // Tax ID
+      expect(content).toContain("IBAN"); // Bank account
+      expect(content).toContain("valabilitate"); // Validity period
+      expect(content).toContain("TVA"); // VAT
     });
   });
 
-  describe('generateProforma', () => {
-    it('should generate proforma invoice', async () => {
+  describe("generateProforma", () => {
+    it("should generate proforma invoice", async () => {
       const order = createMockOrder({
-        orderNumber: 'CMD-2026-001234',
-        status: 'CONFIRMED',
+        orderNumber: "CMD-2026-001234",
+        status: "CONFIRMED",
       });
 
       const result = await generator.generateProforma(order);
 
       expect(result.filename).toMatch(/proforma.*CMD-2026-001234/);
-      expect(result.metadata.documentType).toBe('PROFORMA');
+      expect(result.metadata.documentType).toBe("PROFORMA");
     });
 
-    it('should include payment instructions', async () => {
+    it("should include payment instructions", async () => {
       const order = createMockOrder({
-        paymentTerms: 'NET_30',
+        paymentTerms: "NET_30",
       });
 
       const result = await generator.generateProforma(order);
       const content = await generator.extractText(result.buffer);
 
-      expect(content).toContain('30 zile');
-      expect(content).toContain('IBAN');
+      expect(content).toContain("30 zile");
+      expect(content).toContain("IBAN");
     });
   });
 
-  describe('generateInvoice', () => {
-    it('should generate e-factura compliant invoice', async () => {
+  describe("generateInvoice", () => {
+    it("should generate e-factura compliant invoice", async () => {
       const order = createMockOrder({
-        invoiceNumber: 'FC-2026-001234',
+        invoiceNumber: "FC-2026-001234",
         items: [
-          { product: 'Semințe', quantity: 100, unitPrice: 50, vatRate: 19 },
+          { product: "Semințe", quantity: 100, unitPrice: 50, vatRate: 19 },
         ],
       });
 
       const result = await generator.generateInvoice(order, {
-        format: 'UBL',
+        format: "UBL",
         includeXML: true,
       });
 
       expect(result.pdf).toBeDefined();
       expect(result.xml).toBeDefined();
-      expect(result.xml).toContain('urn:oasis:names:specification:ubl:schema:xsd:Invoice-2');
+      expect(result.xml).toContain(
+        "urn:oasis:names:specification:ubl:schema:xsd:Invoice-2",
+      );
     });
 
-    it('should validate e-factura XML schema', async () => {
+    it("should validate e-factura XML schema", async () => {
       const order = createMockOrder();
 
       const result = await generator.generateInvoice(order, {
-        format: 'UBL',
+        format: "UBL",
         includeXML: true,
         validate: true,
       });
@@ -1345,26 +1392,26 @@ describe('DocumentGenerator', () => {
       expect(result.validation.errors).toHaveLength(0);
     });
 
-    it('should include mandatory ANAF fields', async () => {
+    it("should include mandatory ANAF fields", async () => {
       const order = createMockOrder({
         customer: {
-          cui: 'RO12345678',
-          regCom: 'J40/1234/2020',
-          address: 'Str. Test 123, București',
+          cui: "RO12345678",
+          regCom: "J40/1234/2020",
+          address: "Str. Test 123, București",
         },
       });
 
-      const result = await generator.generateInvoice(order, { format: 'UBL' });
-      
-      expect(result.xml).toContain('RO12345678'); // CUI
-      expect(result.xml).toContain('J40/1234/2020'); // Reg. Com.
+      const result = await generator.generateInvoice(order, { format: "UBL" });
+
+      expect(result.xml).toContain("RO12345678"); // CUI
+      expect(result.xml).toContain("J40/1234/2020"); // Reg. Com.
     });
   });
 
-  describe('template rendering', () => {
-    it('should render Romanian date format', async () => {
+  describe("template rendering", () => {
+    it("should render Romanian date format", async () => {
       const offer = createMockOffer({
-        createdAt: new Date('2026-01-15'),
+        createdAt: new Date("2026-01-15"),
       });
 
       const result = await generator.generateOffer(offer, createMockCustomer());
@@ -1373,10 +1420,10 @@ describe('DocumentGenerator', () => {
       expect(content).toMatch(/15\s+(ianuarie|ian\.?)\s+2026/i);
     });
 
-    it('should format currency correctly', async () => {
+    it("should format currency correctly", async () => {
       const offer = createMockOffer({
         total: 12345.67,
-        currency: 'RON',
+        currency: "RON",
       });
 
       const result = await generator.generateOffer(offer, createMockCustomer());
@@ -1385,14 +1432,16 @@ describe('DocumentGenerator', () => {
       expect(content).toMatch(/12[.,]345[.,]67\s*RON/);
     });
 
-    it('should handle multi-page documents', async () => {
+    it("should handle multi-page documents", async () => {
       const offer = createMockOffer({
-        items: Array(50).fill(null).map((_, i) => ({
-          product: `Produs ${i + 1}`,
-          quantity: 100,
-          unitPrice: 50,
-          total: 5000,
-        })),
+        items: Array(50)
+          .fill(null)
+          .map((_, i) => ({
+            product: `Produs ${i + 1}`,
+            quantity: 100,
+            unitPrice: 50,
+            total: 5000,
+          })),
       });
 
       const result = await generator.generateOffer(offer, createMockCustomer());
@@ -1404,4 +1453,3 @@ describe('DocumentGenerator', () => {
 ```
 
 ---
-

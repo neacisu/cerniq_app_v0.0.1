@@ -38,7 +38,7 @@
 | **AOV**  | Average Order Value                                | Valoare medie comandă per client                                |
 | **API**  | Application Programming Interface                  | Interfață programatică                                          |
 | **APIA** | Agenția de Plăți și Intervenție pentru Agricultură | Gestionează subvențiile agricole UE                             |
-| **APM**  | Application Performance Monitoring                 | Monitorizare performanță aplicație (SigNoz)                     |
+| **APM**  | Application Performance Monitoring                 | Monitorizare performanta aplicatie (Grafana/Tempo)              |
 
 ### B
 
@@ -725,7 +725,7 @@
 
 | Componentă       | Versiune Canonică       | Rol                          |
 | ---------------- | ----------------------- | ---------------------------- |
-| **Node.js**      | v24.12.0 LTS            | Runtime principal            |
+| **Node.js**      | v24.13.1 LTS            | Runtime principal            |
 | **Python**       | 3.14.2 (Free-Threading) | AI/ML, scraping              |
 | **PostgreSQL**   | 18.1                    | Bază de date principală      |
 | **Redis**        | 8.4.0                   | Cache, queues, rate limiting |
@@ -738,12 +738,14 @@
 
 ### Docker Infrastructure
 
-| Componentă        | Versiune   | Rol                            |
-| ----------------- | ---------- | ------------------------------ |
-| **Docker Engine** | 29.2.0     | Container runtime              |
-| **Traefik**       | v3.6.6     | Reverse proxy, SSL termination |
-| **SigNoz**        | v0.107.0   | APM, traces, logs, metrics     |
-| **ClickHouse**    | Via SigNoz | Storage observability          |
+| Componentă        | Versiune  | Rol                            |
+| ----------------- | --------- | ------------------------------ |
+| **Docker Engine** | 29.2.0    | Container runtime              |
+| **Traefik**       | v3.6.6    | Reverse proxy, SSL termination |
+| **Grafana**       | (central) | UI dashboards + Explore        |
+| **Prometheus**    | (central) | Metrics (pull)                 |
+| **Loki**          | (central) | Logs                           |
+| **Tempo**         | (central) | Traces                         |
 
 ### PostgreSQL Extensions
 
@@ -835,12 +837,12 @@
 
 ### API-uri Românești
 
-| Integrare      | Provider   | Tip          | Rate Limit | Cost    |
-| -------------- | ---------- | ------------ | ---------- | ------- |
+| Integrare      | Provider   | Tip          | Rate Limit                      | Cost    |
+| -------------- | ---------- | ------------ | ------------------------------- | ------- |
 | **ANAF API**   | ANAF       | OAuth + Cert | 1 req/sec (max 100 CUI/request) | Gratuit |
-| **Termene.ro** | Termene.ro | API Key      | 20 req/sec | Plătit  |
-| **ONRC/Recom** | ONRC       | -            | 5 req/sec  | -       |
-| **Oblio.eu**   | Oblio      | API Key      | N/A        | Plătit  |
+| **Termene.ro** | Termene.ro | API Key      | 20 req/sec                      | Plătit  |
+| **ONRC/Recom** | ONRC       | -            | 5 req/sec                       | -       |
+| **Oblio.eu**   | Oblio      | API Key      | N/A                             | Plătit  |
 
 ### API-uri Email
 
@@ -914,19 +916,19 @@
 
 ## 13. Termeni V-Z
 
-| Termen | Definiție |
-| --- | --- |
-| **Vector Store** | Stocare embeddings pentru căutare semantică (ex: pgvector) |
-| **Vector Search** | Căutare prin similaritate de embedding (KNN/HNSW) |
-| **Webhook** | Callback HTTP din sisteme externe către Cerniq.app |
-| **Worker** | Proces asincron BullMQ pentru job-uri din cozi |
-| **Workflow** | Orchestrare multi-step (ex: outreach sequence) |
-| **WAL** | Write-Ahead Log PostgreSQL pentru recovery/PITR |
-| **WAF** | Web Application Firewall (protejează API/edge) |
-| **XState** | Framework de finite state machines pentru fluxuri complexe |
-| **Zero Hallucination** | Principiu: output AI validat strict de reguli/date |
-| **Zero-Trust** | Model de securitate: verificare la fiecare acces |
-| **Zod** | Schema validation pentru TypeScript (API payloads) |
+| Termen                 | Definiție                                                  |
+| ---------------------- | ---------------------------------------------------------- |
+| **Vector Store**       | Stocare embeddings pentru căutare semantică (ex: pgvector) |
+| **Vector Search**      | Căutare prin similaritate de embedding (KNN/HNSW)          |
+| **Webhook**            | Callback HTTP din sisteme externe către Cerniq.app         |
+| **Worker**             | Proces asincron BullMQ pentru job-uri din cozi             |
+| **Workflow**           | Orchestrare multi-step (ex: outreach sequence)             |
+| **WAL**                | Write-Ahead Log PostgreSQL pentru recovery/PITR            |
+| **WAF**                | Web Application Firewall (protejează API/edge)             |
+| **XState**             | Framework de finite state machines pentru fluxuri complexe |
+| **Zero Hallucination** | Principiu: output AI validat strict de reguli/date         |
+| **Zero-Trust**         | Model de securitate: verificare la fiecare acces           |
+| **Zod**                | Schema validation pentru TypeScript (API payloads)         |
 
 ---
 
@@ -966,48 +968,50 @@ const LEGACY_ALIASES = {
 
 ### Observability & DevOps
 
-| Termen | Definiție |
-| --- | --- |
-| **AOF** | Append Only File (persistență Redis) |
-| **RDB** | Redis Database Snapshot |
-| **PITR** | Point-in-Time Recovery (PostgreSQL) |
-| **RPO** | Recovery Point Objective |
-| **RTO** | Recovery Time Objective |
-| **BorgBackup** | Sistem backup incremental pentru DR |
-| **Hetzner Storage Box** | Stocare offsite pentru backup-uri |
-| **SigNoz** | Observability platform (traces/metrics/logs) |
-| **ClickHouse** | Storage OLAP (folosit de SigNoz) |
-| **OpenTelemetry** | Standard pentru traces/metrics/logs |
-| **Trivy** | Scanner securitate imagini/container/file system |
-| **Traefik** | Reverse proxy & SSL termination |
-| **Healthcheck** | Endpoint de sănătate serviciu |
-| **SLI** | Service Level Indicator |
-| **SLO** | Service Level Objective |
+| Termen                  | Definiție                                        |
+| ----------------------- | ------------------------------------------------ |
+| **AOF**                 | Append Only File (persistență Redis)             |
+| **RDB**                 | Redis Database Snapshot                          |
+| **PITR**                | Point-in-Time Recovery (PostgreSQL)              |
+| **RPO**                 | Recovery Point Objective                         |
+| **RTO**                 | Recovery Time Objective                          |
+| **BorgBackup**          | Sistem backup incremental pentru DR              |
+| **Hetzner Storage Box** | Stocare offsite pentru backup-uri                |
+| **Grafana**             | UI pentru observability (dashboards + explore)   |
+| **Loki**                | Storage/log query pentru logs                    |
+| **Tempo**               | Storage/query pentru traces                      |
+| **Prometheus**          | Storage/query pentru metrics                     |
+| **OpenTelemetry**       | Standard pentru traces/metrics/logs              |
+| **Trivy**               | Scanner securitate imagini/container/file system |
+| **Traefik**             | Reverse proxy & SSL termination                  |
+| **Healthcheck**         | Endpoint de sănătate serviciu                    |
+| **SLI**                 | Service Level Indicator                          |
+| **SLO**                 | Service Level Objective                          |
 
 ### Security & Compliance
 
-| Termen | Definiție |
-| --- | --- |
-| **ANSPDCP** | Autoritatea română de protecție a datelor (DPA) |
-| **DPA** | Data Processing Agreement |
-| **DPIA** | Data Protection Impact Assessment |
+| Termen       | Definiție                                                |
+| ------------ | -------------------------------------------------------- |
+| **ANSPDCP**  | Autoritatea română de protecție a datelor (DPA)          |
+| **DPA**      | Data Processing Agreement                                |
+| **DPIA**     | Data Protection Impact Assessment                        |
 | **ePrivacy** | Regulamente UE privind confidențialitatea comunicațiilor |
-| **VPC** | Virtual Private Cloud |
-| **VPN** | Virtual Private Network |
-| **MFA** | Multi-Factor Authentication |
-| **OIDC** | OpenID Connect |
+| **VPC**      | Virtual Private Cloud                                    |
+| **VPN**      | Virtual Private Network                                  |
+| **MFA**      | Multi-Factor Authentication                              |
+| **OIDC**     | OpenID Connect                                           |
 
 ### AI/ML & Data
 
-| Termen | Definiție |
-| --- | --- |
-| **RAG** | Retrieval-Augmented Generation |
-| **Embeddings** | Reprezentări vectoriale pentru text/dokumente |
-| **Guardrails** | Reguli de siguranță pentru output AI |
-| **Prompt** | Instrucțiune pentru LLM |
-| **Tool-use** | Apelare tool-uri de către agent AI |
-| **Temperature** | Parametru de creativitate LLM |
-| **Token** | Unitate de procesare LLM |
+| Termen          | Definiție                                     |
+| --------------- | --------------------------------------------- |
+| **RAG**         | Retrieval-Augmented Generation                |
+| **Embeddings**  | Reprezentări vectoriale pentru text/dokumente |
+| **Guardrails**  | Reguli de siguranță pentru output AI          |
+| **Prompt**      | Instrucțiune pentru LLM                       |
+| **Tool-use**    | Apelare tool-uri de către agent AI            |
+| **Temperature** | Parametru de creativitate LLM                 |
+| **Token**       | Unitate de procesare LLM                      |
 
 ---
 

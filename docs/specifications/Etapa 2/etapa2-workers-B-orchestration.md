@@ -1,5 +1,7 @@
 # CERNIQ.APP — ETAPA 2: WORKERS CATEGORIA B
+
 ## Outreach Orchestration (4 Workers)
+
 ### Versiunea 1.1 | 2 Februarie 2026
 
 ---
@@ -10,12 +12,12 @@ Orchestration workers coordonează fluxul principal de outreach, selectând lead
 
 ## 1.1 Worker Inventory
 
-| # | Queue Name | Purpose | Concurrency |
-|---|------------|---------|-------------|
-| 5 | `outreach:orchestrator:dispatch` | Batch dispatcher | 20 |
-| 6 | `outreach:orchestrator:router` | Job router | 50 |
-| 7 | `outreach:phone:allocator` | Phone assignment | 50 |
-| 8 | `outreach:channel:selector` | Channel selection | 50 |
+| #   | Queue Name                       | Purpose           | Concurrency |
+| --- | -------------------------------- | ----------------- | ----------- |
+| 5   | `outreach:orchestrator:dispatch` | Batch dispatcher  | 20          |
+| 6   | `outreach:orchestrator:router`   | Job router        | 50          |
+| 7   | `outreach:phone:allocator`       | Phone assignment  | 50          |
+| 8   | `outreach:channel:selector`      | Channel selection | 50          |
 
 ---
 
@@ -23,13 +25,13 @@ Orchestration workers coordonează fluxul principal de outreach, selectând lead
 
 ## 2.1 Specifications
 
-| Attribute | Value |
-|-----------|-------|
-| **Queue Name** | `outreach:orchestrator:dispatch` |
-| **Concurrency** | 20 |
-| **Timeout** | 30000ms |
-| **Schedule** | Cron: `*/5 * * * *` (every 5 minutes) |
-| **Purpose** | Fetch eligible leads and dispatch to channels |
+| Attribute       | Value                                         |
+| --------------- | --------------------------------------------- |
+| **Queue Name**  | `outreach:orchestrator:dispatch`              |
+| **Concurrency** | 20                                            |
+| **Timeout**     | 30000ms                                       |
+| **Schedule**    | Cron: `*/5 * * * *` (every 5 minutes)         |
+| **Purpose**     | Fetch eligible leads and dispatch to channels |
 
 ## 2.2 Job Input Schema
 
@@ -37,10 +39,10 @@ Orchestration workers coordonează fluxul principal de outreach, selectând lead
 interface DispatchJobData {
   correlationId: string;
   tenantId: string;
-  batchSize: number;           // Default: 100
-  channelPreference?: 'WHATSAPP' | 'EMAIL' | 'AUTO';
-  priorityFilter?: 'HIGH' | 'NORMAL' | 'LOW';
-  sequenceFilter?: string;     // Specific sequence ID
+  batchSize: number; // Default: 100
+  channelPreference?: "WHATSAPP" | "EMAIL" | "AUTO";
+  priorityFilter?: "HIGH" | "NORMAL" | "LOW";
+  sequenceFilter?: string; // Specific sequence ID
 }
 ```
 
@@ -72,18 +74,22 @@ interface DispatchResult {
 ```typescript
 // workers/outreach/orchestrator-dispatch.worker.ts
 
-import { Job, FlowProducer } from 'bullmq';
-import { db } from '@cerniq/db';
-import { goldLeadJourney, waPhoneNumbers, goldCompanies } from '@cerniq/db/schema';
-import { and, eq, lt, isNull, or, ne } from 'drizzle-orm';
-import { logger } from '@cerniq/logger';
+import { Job, FlowProducer } from "bullmq";
+import { db } from "@cerniq/db";
+import {
+  goldLeadJourney,
+  waPhoneNumbers,
+  goldCompanies,
+} from "@cerniq/db/schema";
+import { and, eq, lt, isNull, or, ne } from "drizzle-orm";
+import { logger } from "@cerniq/logger";
 
 const flowProducer = new FlowProducer({ connection: REDIS_CONNECTION });
 
 export async function orchestratorDispatchProcessor(
-  job: Job<DispatchJobData>
+  job: Job<DispatchJobData>,
 ): Promise<DispatchResult> {
-  const { tenantId, batchSize = 100, channelPreference = 'AUTO' } = job.data;
+  const { tenantId, batchSize = 100, channelPreference = "AUTO" } = job.data;
   const startTime = Date.now();
 
   const result: DispatchResult = {
@@ -96,7 +102,7 @@ export async function orchestratorDispatchProcessor(
     skippedHumanReview: 0,
     jobsCreated: [],
     processingTimeMs: 0,
-    nextDispatchAt: '',
+    nextDispatchAt: "",
   };
 
   // 1. Fetch eligible leads
@@ -107,27 +113,29 @@ export async function orchestratorDispatchProcessor(
     })
     .from(goldLeadJourney)
     .innerJoin(goldCompanies, eq(goldLeadJourney.leadId, goldCompanies.id))
-    .where(and(
-      eq(goldLeadJourney.tenantId, tenantId),
-      or(
-        eq(goldLeadJourney.currentState, 'COLD'),
-        eq(goldLeadJourney.currentState, 'CONTACTED_WA'),
-        eq(goldLeadJourney.currentState, 'CONTACTED_EMAIL')
+    .where(
+      and(
+        eq(goldLeadJourney.tenantId, tenantId),
+        or(
+          eq(goldLeadJourney.currentState, "COLD"),
+          eq(goldLeadJourney.currentState, "CONTACTED_WA"),
+          eq(goldLeadJourney.currentState, "CONTACTED_EMAIL"),
+        ),
+        or(
+          isNull(goldLeadJourney.nextActionAt),
+          lt(goldLeadJourney.nextActionAt, new Date()),
+        ),
+        eq(goldLeadJourney.requiresHumanReview, false),
+        ne(goldLeadJourney.currentState, "PAUSED"),
       ),
-      or(
-        isNull(goldLeadJourney.nextActionAt),
-        lt(goldLeadJourney.nextActionAt, new Date())
-      ),
-      eq(goldLeadJourney.requiresHumanReview, false),
-      ne(goldLeadJourney.currentState, 'PAUSED')
-    ))
+    )
     .limit(batchSize)
     .orderBy(goldLeadJourney.nextActionAt);
 
   result.totalEligibleLeads = eligibleLeads.length;
 
   if (eligibleLeads.length === 0) {
-    logger.info({ tenantId }, 'No eligible leads for dispatch');
+    logger.info({ tenantId }, "No eligible leads for dispatch");
     return result;
   }
 
@@ -135,20 +143,22 @@ export async function orchestratorDispatchProcessor(
   const availablePhones = await db
     .select()
     .from(waPhoneNumbers)
-    .where(and(
-      eq(waPhoneNumbers.tenantId, tenantId),
-      eq(waPhoneNumbers.status, 'ACTIVE'),
-      eq(waPhoneNumbers.isEnabled, true)
-    ))
+    .where(
+      and(
+        eq(waPhoneNumbers.tenantId, tenantId),
+        eq(waPhoneNumbers.status, "ACTIVE"),
+        eq(waPhoneNumbers.isEnabled, true),
+      ),
+    )
     .orderBy(waPhoneNumbers.totalMessagesSent);
 
   let phoneIndex = 0;
 
   // 3. Process each lead
   for (const { journey, company } of eligibleLeads) {
-    const isNewContact = journey.currentState === 'COLD';
+    const isNewContact = journey.currentState === "COLD";
     const hasPhone = company.telefonPrincipal && company.hlrReachable;
-    const hasEmail = company.emailPrincipal && company.emailStatus === 'valid';
+    const hasEmail = company.emailPrincipal && company.emailStatus === "valid";
 
     // Skip if requires human review
     if (journey.requiresHumanReview) {
@@ -157,18 +167,18 @@ export async function orchestratorDispatchProcessor(
     }
 
     // Determine best channel
-    let selectedChannel: 'WHATSAPP' | 'EMAIL_COLD' | 'EMAIL_WARM' | null = null;
+    let selectedChannel: "WHATSAPP" | "EMAIL_COLD" | "EMAIL_WARM" | null = null;
 
-    if (channelPreference === 'AUTO') {
+    if (channelPreference === "AUTO") {
       if (hasPhone && availablePhones.length > 0 && !journey.whatsappOptedOut) {
-        selectedChannel = 'WHATSAPP';
+        selectedChannel = "WHATSAPP";
       } else if (hasEmail && !journey.emailOptedOut) {
-        selectedChannel = isNewContact ? 'EMAIL_COLD' : 'EMAIL_WARM';
+        selectedChannel = isNewContact ? "EMAIL_COLD" : "EMAIL_WARM";
       }
-    } else if (channelPreference === 'WHATSAPP' && hasPhone) {
-      selectedChannel = 'WHATSAPP';
-    } else if (channelPreference === 'EMAIL' && hasEmail) {
-      selectedChannel = isNewContact ? 'EMAIL_COLD' : 'EMAIL_WARM';
+    } else if (channelPreference === "WHATSAPP" && hasPhone) {
+      selectedChannel = "WHATSAPP";
+    } else if (channelPreference === "EMAIL" && hasEmail) {
+      selectedChannel = isNewContact ? "EMAIL_COLD" : "EMAIL_WARM";
     }
 
     if (!selectedChannel) {
@@ -177,9 +187,10 @@ export async function orchestratorDispatchProcessor(
     }
 
     // 4. Create job based on channel
-    if (selectedChannel === 'WHATSAPP') {
+    if (selectedChannel === "WHATSAPP") {
       // Get phone (sticky assignment or round-robin)
-      const phoneId = journey.assignedPhoneId || 
+      const phoneId =
+        journey.assignedPhoneId ||
         availablePhones[phoneIndex % availablePhones.length]?.id;
 
       if (!phoneId) {
@@ -187,13 +198,14 @@ export async function orchestratorDispatchProcessor(
         continue;
       }
 
-      const phoneNumber = availablePhones.find(p => p.id === phoneId)?.phoneNumber || 'XX';
-      const queueSuffix = phoneNumber.slice(-2).padStart(2, '0');
+      const phoneNumber =
+        availablePhones.find((p) => p.id === phoneId)?.phoneNumber || "XX";
+      const queueSuffix = phoneNumber.slice(-2).padStart(2, "0");
       const jobId = `wa-${journey.leadId}-${Date.now()}`;
 
       // Add to per-phone queue
       await flowProducer.add({
-        name: 'send-whatsapp-initial',
+        name: "send-whatsapp-initial",
         queueName: `q:wa:phone_${queueSuffix}`,
         data: {
           correlationId: job.data.correlationId,
@@ -221,14 +233,15 @@ export async function orchestratorDispatchProcessor(
       result.jobsCreated.push({
         jobId,
         leadId: journey.leadId,
-        channel: 'WHATSAPP',
+        channel: "WHATSAPP",
         queue: `q:wa:phone_${queueSuffix}`,
         phoneId,
       });
 
       // Update sticky assignment if new
       if (!journey.assignedPhoneId) {
-        await db.update(goldLeadJourney)
+        await db
+          .update(goldLeadJourney)
           .set({
             assignedPhoneId: phoneId,
             assignedAt: new Date(),
@@ -237,16 +250,17 @@ export async function orchestratorDispatchProcessor(
       }
 
       phoneIndex++;
-
     } else {
       // Email channel
-      const emailQueue = selectedChannel === 'EMAIL_COLD' 
-        ? 'q:email:cold' 
-        : 'q:email:warm';
+      const emailQueue =
+        selectedChannel === "EMAIL_COLD" ? "q:email:cold" : "q:email:warm";
       const jobId = `email-${journey.leadId}-${Date.now()}`;
 
       await flowProducer.add({
-        name: selectedChannel === 'EMAIL_COLD' ? 'send-email-cold' : 'send-email-warm',
+        name:
+          selectedChannel === "EMAIL_COLD"
+            ? "send-email-cold"
+            : "send-email-warm",
         queueName: emailQueue,
         data: {
           correlationId: job.data.correlationId,
@@ -275,21 +289,27 @@ export async function orchestratorDispatchProcessor(
 
     // Update progress
     await job.updateProgress(
-      Math.round((result.dispatchedToWhatsApp + result.dispatchedToEmail) / 
-        eligibleLeads.length * 100)
+      Math.round(
+        ((result.dispatchedToWhatsApp + result.dispatchedToEmail) /
+          eligibleLeads.length) *
+          100,
+      ),
     );
   }
 
   result.processingTimeMs = Date.now() - startTime;
   result.nextDispatchAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
 
-  logger.info({
-    total: result.totalEligibleLeads,
-    whatsapp: result.dispatchedToWhatsApp,
-    email: result.dispatchedToEmail,
-    skipped: result.skippedQuotaExceeded + result.skippedNoChannel,
-    duration: result.processingTimeMs,
-  }, 'Dispatch batch completed');
+  logger.info(
+    {
+      total: result.totalEligibleLeads,
+      whatsapp: result.dispatchedToWhatsApp,
+      email: result.dispatchedToEmail,
+      skipped: result.skippedQuotaExceeded + result.skippedNoChannel,
+      duration: result.processingTimeMs,
+    },
+    "Dispatch batch completed",
+  );
 
   return result;
 }
@@ -297,11 +317,11 @@ export async function orchestratorDispatchProcessor(
 
 ## 2.5 Output Triggers
 
-| Destination Queue | Condition |
-|-------------------|-----------|
-| `q:wa:phone_XX` | For each lead with WhatsApp |
-| `q:email:cold` | For cold email (stage COLD) |
-| `q:email:warm` | For warm email (stage != COLD) |
+| Destination Queue | Condition                      |
+| ----------------- | ------------------------------ |
+| `q:wa:phone_XX`   | For each lead with WhatsApp    |
+| `q:email:cold`    | For cold email (stage COLD)    |
+| `q:email:warm`    | For warm email (stage != COLD) |
 
 ---
 
@@ -309,12 +329,12 @@ export async function orchestratorDispatchProcessor(
 
 ## 3.1 Specifications
 
-| Attribute | Value |
-|-----------|-------|
-| **Queue Name** | `outreach:orchestrator:router` |
-| **Concurrency** | 50 |
-| **Timeout** | 5000ms |
-| **Purpose** | Route individual jobs to per-phone queues |
+| Attribute       | Value                                     |
+| --------------- | ----------------------------------------- |
+| **Queue Name**  | `outreach:orchestrator:router`            |
+| **Concurrency** | 50                                        |
+| **Timeout**     | 5000ms                                    |
+| **Purpose**     | Route individual jobs to per-phone queues |
 
 ## 3.2 Implementation
 
@@ -322,7 +342,7 @@ export async function orchestratorDispatchProcessor(
 interface RouterJobData {
   leadId: string;
   phoneId: string;
-  messageType: 'INITIAL' | 'FOLLOWUP';
+  messageType: "INITIAL" | "FOLLOWUP";
   payload: any;
 }
 
@@ -333,7 +353,7 @@ interface RouterResult {
 }
 
 export async function orchestratorRouterProcessor(
-  job: Job<RouterJobData>
+  job: Job<RouterJobData>,
 ): Promise<RouterResult> {
   const { phoneId, messageType, payload } = job.data;
 
@@ -342,14 +362,15 @@ export async function orchestratorRouterProcessor(
     where: eq(waPhoneNumbers.id, phoneId),
   });
 
-  if (!phone || phone.status !== 'ACTIVE') {
+  if (!phone || phone.status !== "ACTIVE") {
     throw new Error(`Phone ${phoneId} not available`);
   }
 
-  const queueSuffix = phone.phoneNumber.slice(-2).padStart(2, '0');
-  const targetQueue = messageType === 'FOLLOWUP'
-    ? `q:wa:phone_${queueSuffix}:followup`
-    : `q:wa:phone_${queueSuffix}`;
+  const queueSuffix = phone.phoneNumber.slice(-2).padStart(2, "0");
+  const targetQueue =
+    messageType === "FOLLOWUP"
+      ? `q:wa:phone_${queueSuffix}:followup`
+      : `q:wa:phone_${queueSuffix}`;
 
   const jobId = `${messageType.toLowerCase()}-${job.data.leadId}-${Date.now()}`;
 
@@ -374,12 +395,12 @@ export async function orchestratorRouterProcessor(
 
 ## 4.1 Specifications
 
-| Attribute | Value |
-|-----------|-------|
-| **Queue Name** | `outreach:phone:allocator` |
-| **Concurrency** | 50 |
-| **Timeout** | 3000ms |
-| **Purpose** | Allocate WhatsApp phone to lead (round-robin weighted) |
+| Attribute       | Value                                                  |
+| --------------- | ------------------------------------------------------ |
+| **Queue Name**  | `outreach:phone:allocator`                             |
+| **Concurrency** | 50                                                     |
+| **Timeout**     | 3000ms                                                 |
+| **Purpose**     | Allocate WhatsApp phone to lead (round-robin weighted) |
 
 ## 4.2 Job Schema
 
@@ -387,13 +408,13 @@ export async function orchestratorRouterProcessor(
 interface PhoneAllocationJobData {
   tenantId: string;
   leadId: string;
-  preferExisting?: boolean;  // Use sticky assignment if exists
+  preferExisting?: boolean; // Use sticky assignment if exists
 }
 
 interface PhoneAllocationResult {
   leadId: string;
   allocatedPhoneId: string;
-  allocationType: 'NEW' | 'STICKY' | 'FALLBACK';
+  allocationType: "NEW" | "STICKY" | "FALLBACK";
   phoneQuotaStatus: {
     currentUsage: number;
     remaining: number;
@@ -406,7 +427,7 @@ interface PhoneAllocationResult {
 
 ```typescript
 export async function phoneAllocatorProcessor(
-  job: Job<PhoneAllocationJobData>
+  job: Job<PhoneAllocationJobData>,
 ): Promise<PhoneAllocationResult> {
   const { tenantId, leadId, preferExisting = true } = job.data;
 
@@ -421,47 +442,51 @@ export async function phoneAllocatorProcessor(
         where: eq(waPhoneNumbers.id, journey.assignedPhoneId),
       });
 
-      if (phone?.status === 'ACTIVE') {
+      if (phone?.status === "ACTIVE") {
         const quota = await getPhoneQuota(phone.id);
         return {
           leadId,
           allocatedPhoneId: phone.id,
-          allocationType: 'STICKY',
+          allocationType: "STICKY",
           phoneQuotaStatus: quota,
-          reason: 'Existing sticky assignment',
+          reason: "Existing sticky assignment",
         };
       }
     }
   }
 
   // Round-robin allocation weighted by available quota
-  const phones = await db.select()
+  const phones = await db
+    .select()
     .from(waPhoneNumbers)
-    .where(and(
-      eq(waPhoneNumbers.tenantId, tenantId),
-      eq(waPhoneNumbers.status, 'ACTIVE')
-    ));
+    .where(
+      and(
+        eq(waPhoneNumbers.tenantId, tenantId),
+        eq(waPhoneNumbers.status, "ACTIVE"),
+      ),
+    );
 
   // Sort by available quota (descending)
   const phonesWithQuota = await Promise.all(
     phones.map(async (phone) => ({
       phone,
       quota: await getPhoneQuota(phone.id),
-    }))
+    })),
   );
 
   const sortedPhones = phonesWithQuota
-    .filter(p => p.quota.remaining > 0)
+    .filter((p) => p.quota.remaining > 0)
     .sort((a, b) => b.quota.remaining - a.quota.remaining);
 
   if (sortedPhones.length === 0) {
-    throw new Error('No phones with available quota');
+    throw new Error("No phones with available quota");
   }
 
   const selected = sortedPhones[0];
 
   // Update sticky assignment
-  await db.update(goldLeadJourney)
+  await db
+    .update(goldLeadJourney)
     .set({
       assignedPhoneId: selected.phone.id,
       assignedAt: new Date(),
@@ -471,7 +496,7 @@ export async function phoneAllocatorProcessor(
   return {
     leadId,
     allocatedPhoneId: selected.phone.id,
-    allocationType: 'NEW',
+    allocationType: "NEW",
     phoneQuotaStatus: selected.quota,
     reason: `Allocated phone with ${selected.quota.remaining} remaining quota`,
   };
@@ -483,7 +508,7 @@ async function getPhoneQuota(phoneId: string): Promise<{
 }> {
   const dateIso = DateTime.now().toISODate();
   const usage = await redis.get(`quota:wa:${phoneId}:${dateIso}`);
-  const current = parseInt(usage || '0');
+  const current = parseInt(usage || "0");
   return {
     currentUsage: current,
     remaining: 200 - current,
@@ -497,12 +522,12 @@ async function getPhoneQuota(phoneId: string): Promise<{
 
 ## 5.1 Specifications
 
-| Attribute | Value |
-|-----------|-------|
-| **Queue Name** | `outreach:channel:selector` |
-| **Concurrency** | 50 |
-| **Timeout** | 2000ms |
-| **Purpose** | Select optimal channel for lead |
+| Attribute       | Value                           |
+| --------------- | ------------------------------- |
+| **Queue Name**  | `outreach:channel:selector`     |
+| **Concurrency** | 50                              |
+| **Timeout**     | 2000ms                          |
+| **Purpose**     | Select optimal channel for lead |
 
 ## 5.2 Job Schema
 
@@ -510,12 +535,12 @@ async function getPhoneQuota(phoneId: string): Promise<{
 interface ChannelSelectionJobData {
   tenantId: string;
   leadId: string;
-  preferredChannel?: 'WHATSAPP' | 'EMAIL' | 'AUTO';
+  preferredChannel?: "WHATSAPP" | "EMAIL" | "AUTO";
 }
 
 interface ChannelSelectionResult {
   leadId: string;
-  selectedChannel: 'WHATSAPP' | 'EMAIL_COLD' | 'EMAIL_WARM' | null;
+  selectedChannel: "WHATSAPP" | "EMAIL_COLD" | "EMAIL_WARM" | null;
   reasoning: {
     hasVerifiedPhone: boolean;
     hasVerifiedEmail: boolean;
@@ -533,9 +558,9 @@ interface ChannelSelectionResult {
 
 ```typescript
 export async function channelSelectorProcessor(
-  job: Job<ChannelSelectionJobData>
+  job: Job<ChannelSelectionJobData>,
 ): Promise<ChannelSelectionResult> {
-  const { leadId, preferredChannel = 'AUTO' } = job.data;
+  const { leadId, preferredChannel = "AUTO" } = job.data;
 
   // Get lead data
   const journey = await db.query.goldLeadJourney.findFirst({
@@ -551,7 +576,9 @@ export async function channelSelectorProcessor(
 
   const reasoning = {
     hasVerifiedPhone: !!(company.telefonPrincipal && company.hlrReachable),
-    hasVerifiedEmail: !!(company.emailPrincipal && company.emailStatus === 'valid'),
+    hasVerifiedEmail: !!(
+      company.emailPrincipal && company.emailStatus === "valid"
+    ),
     phoneOptedOut: journey.whatsappOptedOut,
     emailOptedOut: journey.emailOptedOut,
     currentState: journey.currentState,
@@ -565,10 +592,10 @@ export async function channelSelectorProcessor(
 
   // Calculate preference scores
   if (reasoning.hasVerifiedPhone && !reasoning.phoneOptedOut) {
-    reasoning.preferenceScore.WHATSAPP = 100;  // WhatsApp preferred
+    reasoning.preferenceScore.WHATSAPP = 100; // WhatsApp preferred
   }
   if (reasoning.hasVerifiedEmail && !reasoning.emailOptedOut) {
-    if (journey.currentState === 'COLD') {
+    if (journey.currentState === "COLD") {
       reasoning.preferenceScore.EMAIL_COLD = 70;
     } else {
       reasoning.preferenceScore.EMAIL_WARM = 80;
@@ -576,33 +603,40 @@ export async function channelSelectorProcessor(
   }
 
   // Boost score for previously used channel
-  if (journey.lastChannelUsed === 'WHATSAPP') {
+  if (journey.lastChannelUsed === "WHATSAPP") {
     reasoning.preferenceScore.WHATSAPP += 20;
   }
 
   // Select channel
-  let selectedChannel: 'WHATSAPP' | 'EMAIL_COLD' | 'EMAIL_WARM' | null = null;
+  let selectedChannel: "WHATSAPP" | "EMAIL_COLD" | "EMAIL_WARM" | null = null;
 
-  if (preferredChannel === 'AUTO') {
+  if (preferredChannel === "AUTO") {
     const scores = reasoning.preferenceScore;
     const maxScore = Math.max(...Object.values(scores));
     if (maxScore > 0) {
       selectedChannel = Object.keys(scores).find(
-        k => scores[k as keyof typeof scores] === maxScore
+        (k) => scores[k as keyof typeof scores] === maxScore,
       ) as any;
     }
-  } else if (preferredChannel === 'WHATSAPP' && reasoning.preferenceScore.WHATSAPP > 0) {
-    selectedChannel = 'WHATSAPP';
-  } else if (preferredChannel === 'EMAIL') {
-    selectedChannel = journey.currentState === 'COLD' ? 'EMAIL_COLD' : 'EMAIL_WARM';
+  } else if (
+    preferredChannel === "WHATSAPP" &&
+    reasoning.preferenceScore.WHATSAPP > 0
+  ) {
+    selectedChannel = "WHATSAPP";
+  } else if (preferredChannel === "EMAIL") {
+    selectedChannel =
+      journey.currentState === "COLD" ? "EMAIL_COLD" : "EMAIL_WARM";
   }
 
   // Determine fallback
   let fallbackChannel: string | undefined;
-  if (selectedChannel === 'WHATSAPP' && reasoning.hasVerifiedEmail) {
-    fallbackChannel = 'EMAIL_COLD';
-  } else if (selectedChannel?.startsWith('EMAIL') && reasoning.hasVerifiedPhone) {
-    fallbackChannel = 'WHATSAPP';
+  if (selectedChannel === "WHATSAPP" && reasoning.hasVerifiedEmail) {
+    fallbackChannel = "EMAIL_COLD";
+  } else if (
+    selectedChannel?.startsWith("EMAIL") &&
+    reasoning.hasVerifiedPhone
+  ) {
+    fallbackChannel = "WHATSAPP";
   }
 
   return {
@@ -620,27 +654,27 @@ export async function channelSelectorProcessor(
 
 ```typescript
 // Register cron job for dispatcher
-import { Queue } from 'bullmq';
+import { Queue } from "bullmq";
 
-const dispatchQueue = new Queue('outreach:orchestrator:dispatch', {
+const dispatchQueue = new Queue("outreach:orchestrator:dispatch", {
   connection: REDIS_CONNECTION,
 });
 
 // Run every 5 minutes
 await dispatchQueue.add(
-  'scheduled-dispatch',
+  "scheduled-dispatch",
   {
     correlationId: `cron-${Date.now()}`,
-    tenantId: 'ALL', // Will be expanded to all active tenants
+    tenantId: "ALL", // Will be expanded to all active tenants
     batchSize: 100,
-    channelPreference: 'AUTO',
+    channelPreference: "AUTO",
   },
   {
     repeat: {
-      pattern: '*/5 * * * *',
+      pattern: "*/5 * * * *",
     },
-    jobId: 'dispatch-cron',
-  }
+    jobId: "dispatch-cron",
+  },
 );
 ```
 

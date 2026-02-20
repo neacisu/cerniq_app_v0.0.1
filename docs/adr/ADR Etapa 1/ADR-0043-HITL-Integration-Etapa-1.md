@@ -6,24 +6,24 @@
 
 **Decision:** 3 approval types pentru Etapa 1:
 
-| Approval Type | Trigger | SLA Normal |
-| --- | --- | --- |
-| `data_quality` | Quality score 40-60 | 24h |
-| `dedup_review` | Fuzzy match 70-85% | 24h |
-| `manual_enrich` | Missing critical fields | 48h |
+| Approval Type   | Trigger                 | SLA Normal |
+| --------------- | ----------------------- | ---------- |
+| `data_quality`  | Quality score 40-60     | 24h        |
+| `dedup_review`  | Fuzzy match 70-85%      | 24h        |
+| `manual_enrich` | Missing critical fields | 48h        |
 
 ```typescript
 // HITL gate în worker
 if (qualityScore >= 40 && qualityScore < 70) {
   await createApprovalTask({
-    entityType: 'contact',
+    entityType: "contact",
     entityId: contact.id,
-    approvalType: 'data_quality',
+    approvalType: "data_quality",
     metadata: { qualityScore, missingFields },
   });
-  
+
   // Job waiting for approval
-  return { status: 'pending_approval' };
+  return { status: "pending_approval" };
 }
 ```
 

@@ -6,19 +6,19 @@
 
 **Decision:**
 
-| Layer | Retention | Action |
-| ------- | ----------- | -------- |
-| Bronze | 30 zile | Auto-delete |
-| Silver | 90 zile | Archive to cold storage |
-| Gold | Indefinit | Review annual |
-| Events | 365 zile | Archive compressed |
+| Layer  | Retention | Action                  |
+| ------ | --------- | ----------------------- |
+| Bronze | 30 zile   | Auto-delete             |
+| Silver | 90 zile   | Archive to cold storage |
+| Gold   | Indefinit | Review annual           |
+| Events | 365 zile  | Archive compressed      |
 
 ```sql
 -- Automated cleanup job
 CREATE OR REPLACE FUNCTION cleanup_old_bronze()
 RETURNS void AS $$
 BEGIN
-  DELETE FROM bronze_contacts 
+  DELETE FROM bronze_contacts
   WHERE created_at < NOW() - INTERVAL '30 days';
 END;
 $$ LANGUAGE plpgsql;

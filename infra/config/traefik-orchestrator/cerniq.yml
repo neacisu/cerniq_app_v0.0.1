@@ -1,0 +1,193 @@
+http:
+  middlewares:
+    # OTLP intake is exposed on the public Traefik entrypoint, but restricted
+    # to Cerniq-only internal sources (CT109/CT110) via IP allowlist.
+    cerniq-otlp-allowlist:
+      ipAllowList:
+        sourceRange:
+          - "10.0.1.109/32"
+          - "10.0.1.110/32"
+          # Internal observability gateway on hz.247 (TCP passthrough to Traefik).
+          - "10.0.1.10/32"
+    # NOTE: Middlewares such as `security-headers`, `chain-web`, `chain-api`,
+    # `chain-auth`, and `www-redirect` are provided by the orchestrator's
+    # shared Traefik config (common/platform dynamic files). We keep this file
+    # Cerniq-scoped to avoid cross-file name conflicts.
+
+  routers:
+    cerniq-prod-web:
+      rule: "Host(`cerniq.app`)"
+      service: cerniq-prod-web-svc
+      entryPoints:
+        - websecure
+      middlewares:
+        - chain-web
+      tls:
+        certResolver: cloudflare
+        domains:
+          - main: "cerniq.app"
+            sans:
+              - "*.cerniq.app"
+
+    cerniq-prod-www:
+      rule: "Host(`www.cerniq.app`)"
+      service: cerniq-prod-web-svc
+      entryPoints:
+        - websecure
+      middlewares:
+        - www-redirect
+      tls:
+        certResolver: cloudflare
+        domains:
+          - main: "cerniq.app"
+            sans:
+              - "*.cerniq.app"
+
+    cerniq-prod-api:
+      rule: "Host(`api.cerniq.app`)"
+      service: cerniq-prod-api-svc
+      entryPoints:
+        - websecure
+      middlewares:
+        - chain-api
+      tls:
+        certResolver: cloudflare
+        domains:
+          - main: "cerniq.app"
+            sans:
+              - "*.cerniq.app"
+
+    cerniq-prod-admin:
+      rule: "Host(`admin.cerniq.app`)"
+      service: cerniq-prod-admin-svc
+      entryPoints:
+        - websecure
+      middlewares:
+        - chain-auth
+      tls:
+        certResolver: cloudflare
+        domains:
+          - main: "cerniq.app"
+            sans:
+              - "*.cerniq.app"
+
+    cerniq-staging-web:
+      rule: "Host(`staging.cerniq.app`)"
+      service: cerniq-staging-web-svc
+      entryPoints:
+        - websecure
+      middlewares:
+        - chain-web
+      tls:
+        certResolver: cloudflare
+        domains:
+          - main: "cerniq.app"
+            sans:
+              - "*.cerniq.app"
+
+    cerniq-staging-api:
+      rule: "Host(`api.staging.cerniq.app`)"
+      service: cerniq-staging-api-svc
+      entryPoints:
+        - websecure
+      middlewares:
+        - chain-api
+      tls:
+        certResolver: cloudflare
+        domains:
+          - main: "cerniq.app"
+            sans:
+              - "*.cerniq.app"
+              - "*.staging.cerniq.app"
+
+    cerniq-staging-admin:
+      rule: "Host(`admin.staging.cerniq.app`)"
+      service: cerniq-staging-admin-svc
+      entryPoints:
+        - websecure
+      middlewares:
+        - chain-auth
+      tls:
+        certResolver: cloudflare
+        domains:
+          - main: "cerniq.app"
+            sans:
+              - "*.cerniq.app"
+              - "*.staging.cerniq.app"
+
+    # Cerniq-only OTLP (HTTP) entrypoint.
+    # Applications on CT109/CT110 send OTLP directly (no local collector relay):
+    #   https://otel-cerniq.neanelu.ro/v1/{traces,metrics,logs}
+    cerniq-otlp-http:
+      rule: "Host(`otel-cerniq.neanelu.ro`)"
+      service: cerniq-otlp-http-svc
+      entryPoints:
+        - websecure
+      middlewares:
+        - cerniq-otlp-allowlist
+      tls:
+        certResolver: cloudflare
+
+  services:
+    cerniq-prod-web-svc:
+      loadBalancer:
+        servers:
+          # Route orchestrator -> CT109 via hz.247 L4 gateway (fixes TCP handshake issues).
+          - url: "http://10.0.1.10:29000"
+        healthCheck:
+          path: "/health"
+          interval: "30s"
+          timeout: "5s"
+
+    cerniq-prod-api-svc:
+      loadBalancer:
+        servers:
+          - url: "http://10.0.1.10:29010"
+        healthCheck:
+          path: "/health"
+          interval: "30s"
+          timeout: "5s"
+
+    cerniq-prod-admin-svc:
+      loadBalancer:
+        servers:
+          - url: "http://10.0.1.10:29012"
+        healthCheck:
+          path: "/health"
+          interval: "30s"
+          timeout: "5s"
+
+    cerniq-staging-web-svc:
+      loadBalancer:
+        servers:
+          # Route orchestrator -> CT110 via hz.247 L4 gateway (fixes TCP handshake issues).
+          - url: "http://10.0.1.10:19000"
+        healthCheck:
+          path: "/health"
+          interval: "30s"
+          timeout: "5s"
+
+    cerniq-staging-api-svc:
+      loadBalancer:
+        servers:
+          - url: "http://10.0.1.10:19010"
+        healthCheck:
+          path: "/health"
+          interval: "30s"
+          timeout: "5s"
+
+    cerniq-staging-admin-svc:
+      loadBalancer:
+        servers:
+          - url: "http://10.0.1.10:19012"
+        healthCheck:
+          path: "/health"
+          interval: "30s"
+          timeout: "5s"
+
+    # OTLP collector intake (central, on orchestrator loopback).
+    # Traefik on orchestrator uses host networking, so 127.0.0.1 is stable.
+    cerniq-otlp-http-svc:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:4318"

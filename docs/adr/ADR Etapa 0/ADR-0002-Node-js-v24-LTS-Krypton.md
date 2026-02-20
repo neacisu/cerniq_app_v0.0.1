@@ -10,7 +10,7 @@ Backend API-ul Cerniq.app necesită un runtime JavaScript stabil cu suport long-
 
 ## Decizie
 
-Utilizăm **Node.js v24.12.0 LTS** cu V8 13.6 pentru toate serviciile backend TypeScript.
+Utilizăm **Node.js v24.13.1 LTS** cu V8 13.6 pentru toate serviciile backend TypeScript.
 
 ## Consecințe
 

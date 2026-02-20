@@ -28,15 +28,15 @@
 
 ## 2. COVERAGE REQUIREMENTS
 
-| Component | Minimum | Target | Critical |
-| --------- | ------- | ------ | -------- |
-| API Routes | 80% | 90% | - |
-| Business Logic | 85% | 95% | - |
-| Workers | 75% | 85% | - |
-| Event Schemas | 90% | 95% | ✓ |
-| HITL Approval | 95% | 98% | ✓ |
-| Migrations | 100% | 100% | ✓ |
-| Auth/Security | 95% | 98% | ✓ |
+| Component      | Minimum | Target | Critical |
+| -------------- | ------- | ------ | -------- |
+| API Routes     | 80%     | 90%    | -        |
+| Business Logic | 85%     | 95%    | -        |
+| Workers        | 75%     | 85%    | -        |
+| Event Schemas  | 90%     | 95%    | ✓        |
+| HITL Approval  | 95%     | 98%    | ✓        |
+| Migrations     | 100%    | 100%   | ✓        |
+| Auth/Security  | 95%     | 98%    | ✓        |
 
 ---
 
@@ -46,40 +46,40 @@
 
 ```typescript
 // vitest.config.ts
-import { defineConfig } from 'vitest/config';
-import path from 'path';
+import { defineConfig } from "vitest/config";
+import path from "path";
 
 export default defineConfig({
   test: {
     globals: true,
-    environment: 'node',
-    include: ['**/*.test.ts', '**/*.spec.ts'],
-    exclude: ['**/node_modules/**', '**/e2e/**'],
+    environment: "node",
+    include: ["**/*.test.ts", "**/*.spec.ts"],
+    exclude: ["**/node_modules/**", "**/e2e/**"],
     coverage: {
-      provider: 'v8',
-      reporter: ['text', 'json', 'html'],
+      provider: "v8",
+      reporter: ["text", "json", "html"],
       exclude: [
-        'node_modules/',
-        '**/*.test.ts',
-        '**/*.spec.ts',
-        '**/types/**',
-        '**/mocks/**'
+        "node_modules/",
+        "**/*.test.ts",
+        "**/*.spec.ts",
+        "**/types/**",
+        "**/mocks/**",
       ],
       thresholds: {
         statements: 80,
         branches: 75,
         functions: 80,
-        lines: 80
-      }
+        lines: 80,
+      },
     },
-    setupFiles: ['./test/setup.ts'],
-    testTimeout: 10000
+    setupFiles: ["./test/setup.ts"],
+    testTimeout: 10000,
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src')
-    }
-  }
+      "@": path.resolve(__dirname, "./src"),
+    },
+  },
 });
 ```
 
@@ -87,21 +87,21 @@ export default defineConfig({
 
 ```typescript
 // test/setup.ts
-import { beforeAll, afterAll, beforeEach } from 'vitest';
+import { beforeAll, afterAll, beforeEach } from "vitest";
 
 // Mock environment
-process.env.NODE_ENV = 'test';
-process.env.DATABASE_URL = 'postgresql://test:test@localhost:64032/cerniq_test';
-process.env.REDIS_URL = 'redis://localhost:64039/1';
+process.env.NODE_ENV = "test";
+process.env.DATABASE_URL = "postgresql://test:test@localhost:5432/cerniq_test";
+process.env.REDIS_URL = "redis://localhost:6379/1";
 
 // Global mocks
-vi.mock('@/lib/logger', () => ({
+vi.mock("@/lib/logger", () => ({
   logger: {
     info: vi.fn(),
     error: vi.fn(),
     warn: vi.fn(),
-    debug: vi.fn()
-  }
+    debug: vi.fn(),
+  },
 }));
 ```
 
@@ -109,39 +109,39 @@ vi.mock('@/lib/logger', () => ({
 
 ```typescript
 // src/lib/validators/cui.test.ts
-import { describe, it, expect } from 'vitest';
-import { validateCUI, formatCUI } from './cui';
+import { describe, it, expect } from "vitest";
+import { validateCUI, formatCUI } from "./cui";
 
-describe('CUI Validator', () => {
-  describe('validateCUI', () => {
-    it('should accept valid CUI with checksum', () => {
-      expect(validateCUI('12345678')).toBe(true);
+describe("CUI Validator", () => {
+  describe("validateCUI", () => {
+    it("should accept valid CUI with checksum", () => {
+      expect(validateCUI("12345678")).toBe(true);
     });
 
-    it('should reject CUI with invalid checksum', () => {
-      expect(validateCUI('12345679')).toBe(false);
+    it("should reject CUI with invalid checksum", () => {
+      expect(validateCUI("12345679")).toBe(false);
     });
 
-    it('should reject CUI with letters', () => {
-      expect(validateCUI('1234567A')).toBe(false);
+    it("should reject CUI with letters", () => {
+      expect(validateCUI("1234567A")).toBe(false);
     });
 
-    it('should reject empty CUI', () => {
-      expect(validateCUI('')).toBe(false);
+    it("should reject empty CUI", () => {
+      expect(validateCUI("")).toBe(false);
     });
 
-    it('should handle RO prefix', () => {
-      expect(validateCUI('RO12345678')).toBe(true);
+    it("should handle RO prefix", () => {
+      expect(validateCUI("RO12345678")).toBe(true);
     });
   });
 
-  describe('formatCUI', () => {
-    it('should remove RO prefix', () => {
-      expect(formatCUI('RO12345678')).toBe('12345678');
+  describe("formatCUI", () => {
+    it("should remove RO prefix", () => {
+      expect(formatCUI("RO12345678")).toBe("12345678");
     });
 
-    it('should trim whitespace', () => {
-      expect(formatCUI('  12345678  ')).toBe('12345678');
+    it("should trim whitespace", () => {
+      expect(formatCUI("  12345678  ")).toBe("12345678");
     });
   });
 });
@@ -149,13 +149,13 @@ describe('CUI Validator', () => {
 
 ```typescript
 // src/services/enrichment.test.ts
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { EnrichmentService } from './enrichment';
-import { anafClient } from '@/lib/clients/anaf';
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { EnrichmentService } from "./enrichment";
+import { anafClient } from "@/lib/clients/anaf";
 
-vi.mock('@/lib/clients/anaf');
+vi.mock("@/lib/clients/anaf");
 
-describe('EnrichmentService', () => {
+describe("EnrichmentService", () => {
   let service: EnrichmentService;
 
   beforeEach(() => {
@@ -163,35 +163,35 @@ describe('EnrichmentService', () => {
     service = new EnrichmentService();
   });
 
-  describe('enrichFromANAF', () => {
-    it('should enrich company with ANAF data', async () => {
+  describe("enrichFromANAF", () => {
+    it("should enrich company with ANAF data", async () => {
       const mockAnafData = {
-        denumire: 'Test SRL',
-        adresa: 'Bucuresti, Sector 1',
-        stare_fiscala: 'ACTIV',
-        numar_angajati: 50
+        denumire: "Test SRL",
+        adresa: "Bucuresti, Sector 1",
+        stare_fiscala: "ACTIV",
+        numar_angajati: 50,
       };
 
       vi.mocked(anafClient.getCompanyInfo).mockResolvedValue(mockAnafData);
 
-      const result = await service.enrichFromANAF('12345678');
+      const result = await service.enrichFromANAF("12345678");
 
       expect(result).toEqual({
-        name: 'Test SRL',
-        address: 'Bucuresti, Sector 1',
-        fiscal_status: 'ACTIV',
-        employees: 50
+        name: "Test SRL",
+        address: "Bucuresti, Sector 1",
+        fiscal_status: "ACTIV",
+        employees: 50,
       });
-      expect(anafClient.getCompanyInfo).toHaveBeenCalledWith('12345678');
+      expect(anafClient.getCompanyInfo).toHaveBeenCalledWith("12345678");
     });
 
-    it('should handle ANAF API errors', async () => {
+    it("should handle ANAF API errors", async () => {
       vi.mocked(anafClient.getCompanyInfo).mockRejectedValue(
-        new Error('API unavailable')
+        new Error("API unavailable"),
       );
 
-      await expect(service.enrichFromANAF('12345678')).rejects.toThrow(
-        'Enrichment failed: API unavailable'
+      await expect(service.enrichFromANAF("12345678")).rejects.toThrow(
+        "Enrichment failed: API unavailable",
       );
     });
   });
@@ -206,11 +206,11 @@ describe('EnrichmentService', () => {
 
 ```typescript
 // test/integration/setup.ts
-import { PostgreSqlContainer } from '@testcontainers/postgresql';
-import { RedisContainer } from '@testcontainers/redis';
-import { drizzle } from 'drizzle-orm/node-postgres';
-import { migrate } from 'drizzle-orm/node-postgres/migrator';
-import { Pool } from 'pg';
+import { PostgreSqlContainer } from "@testcontainers/postgresql";
+import { RedisContainer } from "@testcontainers/redis";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { migrate } from "drizzle-orm/node-postgres/migrator";
+import { Pool } from "pg";
 
 let pgContainer: PostgreSqlContainer;
 let redisContainer: RedisContainer;
@@ -218,29 +218,28 @@ let db: ReturnType<typeof drizzle>;
 
 export async function setupTestDatabase() {
   // Start PostgreSQL container
-  pgContainer = await new PostgreSqlContainer('postgis/postgis:18-3.6')
-    .withDatabase('cerniq_test')
-    .withUsername('test')
-    .withPassword('test')
+  pgContainer = await new PostgreSqlContainer("postgis/postgis:18-3.6")
+    .withDatabase("cerniq_test")
+    .withUsername("test")
+    .withPassword("test")
     .start();
 
   // Start Redis container
-  redisContainer = await new RedisContainer('redis:8.4-alpine')
-    .start();
+  redisContainer = await new RedisContainer("redis:8.4-alpine").start();
 
   // Connect to database
   const pool = new Pool({
-    connectionString: pgContainer.getConnectionUri()
+    connectionString: pgContainer.getConnectionUri(),
   });
   db = drizzle(pool);
 
   // Run migrations
-  await migrate(db, { migrationsFolder: './drizzle' });
+  await migrate(db, { migrationsFolder: "./drizzle" });
 
   return {
     db,
     pgUri: pgContainer.getConnectionUri(),
-    redisUri: `redis://${redisContainer.getHost()}:${redisContainer.getPort()}`
+    redisUri: `redis://${redisContainer.getHost()}:${redisContainer.getPort()}`,
   };
 }
 
@@ -254,12 +253,12 @@ export async function teardownTestDatabase() {
 
 ```typescript
 // test/integration/api/companies.test.ts
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
-import { buildApp } from '@/app';
-import { setupTestDatabase, teardownTestDatabase } from '../setup';
-import type { FastifyInstance } from 'fastify';
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
+import { buildApp } from "@/app";
+import { setupTestDatabase, teardownTestDatabase } from "../setup";
+import type { FastifyInstance } from "fastify";
 
-describe('Companies API', () => {
+describe("Companies API", () => {
   let app: FastifyInstance;
   let testDb: Awaited<ReturnType<typeof setupTestDatabase>>;
 
@@ -267,7 +266,7 @@ describe('Companies API', () => {
     testDb = await setupTestDatabase();
     app = await buildApp({
       databaseUrl: testDb.pgUri,
-      redisUrl: testDb.redisUri
+      redisUrl: testDb.redisUri,
     });
   });
 
@@ -281,64 +280,76 @@ describe('Companies API', () => {
     await testDb.db.delete(companies);
   });
 
-  describe('POST /api/v1/companies', () => {
-    it('should create a new company', async () => {
+  describe("POST /api/v1/companies", () => {
+    it("should create a new company", async () => {
       const response = await app.inject({
-        method: 'POST',
-        url: '/api/v1/companies',
+        method: "POST",
+        url: "/api/v1/companies",
         headers: {
-          'x-tenant-id': 'test-tenant',
-          'authorization': 'Bearer test-token'
+          "x-tenant-id": "test-tenant",
+          authorization: "Bearer test-token",
         },
         payload: {
-          cui: '12345678',
-          name: 'Test Company SRL'
-        }
+          cui: "12345678",
+          name: "Test Company SRL",
+        },
       });
 
       expect(response.statusCode).toBe(201);
       const body = JSON.parse(response.body);
-      expect(body.data.cui).toBe('12345678');
-      expect(body.data.name).toBe('Test Company SRL');
+      expect(body.data.cui).toBe("12345678");
+      expect(body.data.name).toBe("Test Company SRL");
     });
 
-    it('should reject duplicate CUI within tenant', async () => {
+    it("should reject duplicate CUI within tenant", async () => {
       // Create first company
       await app.inject({
-        method: 'POST',
-        url: '/api/v1/companies',
-        headers: { 'x-tenant-id': 'test-tenant', 'authorization': 'Bearer test-token' },
-        payload: { cui: '12345678', name: 'First Company' }
+        method: "POST",
+        url: "/api/v1/companies",
+        headers: {
+          "x-tenant-id": "test-tenant",
+          authorization: "Bearer test-token",
+        },
+        payload: { cui: "12345678", name: "First Company" },
       });
 
       // Try to create duplicate
       const response = await app.inject({
-        method: 'POST',
-        url: '/api/v1/companies',
-        headers: { 'x-tenant-id': 'test-tenant', 'authorization': 'Bearer test-token' },
-        payload: { cui: '12345678', name: 'Duplicate Company' }
+        method: "POST",
+        url: "/api/v1/companies",
+        headers: {
+          "x-tenant-id": "test-tenant",
+          authorization: "Bearer test-token",
+        },
+        payload: { cui: "12345678", name: "Duplicate Company" },
       });
 
       expect(response.statusCode).toBe(409);
     });
   });
 
-  describe('GET /api/v1/companies/:id', () => {
-    it('should return company by ID', async () => {
+  describe("GET /api/v1/companies/:id", () => {
+    it("should return company by ID", async () => {
       // Create company first
       const createResponse = await app.inject({
-        method: 'POST',
-        url: '/api/v1/companies',
-        headers: { 'x-tenant-id': 'test-tenant', 'authorization': 'Bearer test-token' },
-        payload: { cui: '12345678', name: 'Test Company' }
+        method: "POST",
+        url: "/api/v1/companies",
+        headers: {
+          "x-tenant-id": "test-tenant",
+          authorization: "Bearer test-token",
+        },
+        payload: { cui: "12345678", name: "Test Company" },
       });
       const created = JSON.parse(createResponse.body);
 
       // Get company
       const response = await app.inject({
-        method: 'GET',
+        method: "GET",
         url: `/api/v1/companies/${created.data.id}`,
-        headers: { 'x-tenant-id': 'test-tenant', 'authorization': 'Bearer test-token' }
+        headers: {
+          "x-tenant-id": "test-tenant",
+          authorization: "Bearer test-token",
+        },
       });
 
       expect(response.statusCode).toBe(200);
@@ -346,11 +357,14 @@ describe('Companies API', () => {
       expect(body.data.id).toBe(created.data.id);
     });
 
-    it('should return 404 for non-existent company', async () => {
+    it("should return 404 for non-existent company", async () => {
       const response = await app.inject({
-        method: 'GET',
-        url: '/api/v1/companies/non-existent-id',
-        headers: { 'x-tenant-id': 'test-tenant', 'authorization': 'Bearer test-token' }
+        method: "GET",
+        url: "/api/v1/companies/non-existent-id",
+        headers: {
+          "x-tenant-id": "test-tenant",
+          authorization: "Bearer test-token",
+        },
       });
 
       expect(response.statusCode).toBe(404);
@@ -367,34 +381,34 @@ describe('Companies API', () => {
 
 ```typescript
 // playwright.config.ts
-import { defineConfig, devices } from '@playwright/test';
+import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
-  testDir: './e2e',
+  testDir: "./e2e",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: 'html',
-  
+  reporter: "html",
+
   use: {
-    baseURL: process.env.E2E_BASE_URL || 'http://localhost:64010',
-    trace: 'on-first-retry',
-    screenshot: 'only-on-failure'
+    baseURL: process.env.E2E_BASE_URL || "http://localhost:64010",
+    trace: "on-first-retry",
+    screenshot: "only-on-failure",
   },
 
   projects: [
     {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] }
-    }
+      name: "chromium",
+      use: { ...devices["Desktop Chrome"] },
+    },
   ],
 
   webServer: {
-    command: 'pnpm dev',
-    url: 'http://localhost:64010',
-    reuseExistingServer: !process.env.CI
-  }
+    command: "pnpm dev",
+    url: "http://localhost:64010",
+    reuseExistingServer: !process.env.CI,
+  },
 });
 ```
 
@@ -402,29 +416,29 @@ export default defineConfig({
 
 ```typescript
 // e2e/auth.spec.ts
-import { test, expect } from '@playwright/test';
+import { test, expect } from "@playwright/test";
 
-test.describe('Authentication', () => {
-  test('should login successfully', async ({ page }) => {
-    await page.goto('/login');
-    
-    await page.fill('[data-testid="email-input"]', 'test@example.com');
-    await page.fill('[data-testid="password-input"]', 'password123');
+test.describe("Authentication", () => {
+  test("should login successfully", async ({ page }) => {
+    await page.goto("/login");
+
+    await page.fill('[data-testid="email-input"]', "test@example.com");
+    await page.fill('[data-testid="password-input"]', "password123");
     await page.click('[data-testid="login-button"]');
-    
-    await expect(page).toHaveURL('/dashboard');
+
+    await expect(page).toHaveURL("/dashboard");
     await expect(page.locator('[data-testid="user-menu"]')).toBeVisible();
   });
 
-  test('should show error for invalid credentials', async ({ page }) => {
-    await page.goto('/login');
-    
-    await page.fill('[data-testid="email-input"]', 'wrong@example.com');
-    await page.fill('[data-testid="password-input"]', 'wrongpassword');
+  test("should show error for invalid credentials", async ({ page }) => {
+    await page.goto("/login");
+
+    await page.fill('[data-testid="email-input"]', "wrong@example.com");
+    await page.fill('[data-testid="password-input"]', "wrongpassword");
     await page.click('[data-testid="login-button"]');
-    
+
     await expect(page.locator('[data-testid="error-message"]')).toContainText(
-      'Invalid credentials'
+      "Invalid credentials",
     );
   });
 });
@@ -448,7 +462,7 @@ SELECT plan(5);
 SELECT has_column('gold_companies', 'tenant_id', 'gold_companies has tenant_id');
 
 -- Test unique constraint includes tenant
-SELECT col_is_unique('gold_companies', ARRAY['tenant_id', 'cui'], 
+SELECT col_is_unique('gold_companies', ARRAY['tenant_id', 'cui'],
   'CUI is unique per tenant');
 
 -- Test RLS is enabled
@@ -487,8 +501,8 @@ jobs:
       - uses: pnpm/action-setup@v2
       - uses: actions/setup-node@v4
         with:
-          node-version: '24'
-          cache: 'pnpm'
+          node-version: "24"
+          cache: "pnpm"
       - run: pnpm install
       - run: pnpm test:unit
       - uses: codecov/codecov-action@v3

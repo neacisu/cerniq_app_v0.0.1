@@ -1,4 +1,4 @@
-# ADR-0004: PostgreSQL 18.1 cu PostGIS
+# ADR-0004: PostgreSQL 18.2 cu PostGIS
 
 **Status:** Accepted  
 **Data:** 2026-01-15  
@@ -15,7 +15,18 @@ Cerniq.app necesită:
 
 ## Decizie
 
-Utilizăm **PostgreSQL 18.1** cu extensiile **pgvector 0.8.1** și **PostGIS 3.6.1**.
+Utilizăm **PostgreSQL 18.2** cu extensiile **pgvector 0.8.1** și **PostGIS 3.6.1**.
+
+## Implementare curenta (infrastructura noua)
+
+- PostgreSQL ruleaza nativ pe CT107: `10.0.1.107:5432` (nu in Docker pe CT109/CT110).
+- Aplicatia se conecteaza prin PgBouncer local (CT109/CT110) la portul `64033`, cu credențiale dinamice din OpenBao.
+- DB-uri:
+  - productie: `cerniq`
+  - staging: `cerniq_staging`
+- Backup (CT107):
+  - dump zilnic: `/etc/cron.d/ct107-cerniq-pg-dump` -> `/var/backups/cerniq/pg/cerniq_*.dump`
+  - WAL archiving: `archive_mode=on` si `archive_command` catre `/var/lib/postgresql/18/main/wal_archive/`
 
 ## Consecințe
 
@@ -29,27 +40,27 @@ Utilizăm **PostgreSQL 18.1** cu extensiile **pgvector 0.8.1** și **PostGIS 3.6
 
 ### Negative
 
-- Necesită tuning pentru 128GB RAM (nu e plug-and-play)
+- Necesita tuning pentru hostul curent (CT107 ~32GB RAM) (nu e plug-and-play)
 - pgvector HNSW consumă mai multă memorie
 
-### Configurație Memory (128GB System)
+### Configurație Memory (CT107 - 32GB System)
 
 ```ini
 # postgresql.conf
-shared_buffers = 32GB              # 25% RAM
-effective_cache_size = 96GB        # 75% RAM
-work_mem = 256MB
-maintenance_work_mem = 4GB
+shared_buffers = 8GB               # 25% RAM
+effective_cache_size = 24GB        # 75% RAM
+work_mem = 64MB
+maintenance_work_mem = 1GB
 wal_buffers = 64MB
-max_connections = 200              # Use PgBouncer!
+max_connections = 100              # Use PgBouncer pentru multi-client
 
 # PostgreSQL 18 AIO
-io_method = io_uring
+io_method = worker
 
-# Parallelism (20 cores)
-max_parallel_workers_per_gather = 8
-max_parallel_workers = 16
-max_worker_processes = 20
+# Parallelism (8 cores)
+max_parallel_workers_per_gather = 4
+max_parallel_workers = 8
+max_worker_processes = 8
 
 # SSD Optimization
 random_page_cost = 1.1

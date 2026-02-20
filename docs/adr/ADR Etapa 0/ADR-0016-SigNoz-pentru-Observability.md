@@ -1,8 +1,10 @@
 # ADR-0016: SigNoz pentru Observability
 
-**Status:** Accepted  
+**Status:** Superseded  
 **Data:** 2026-01-15  
 **Deciders:** Alex (1-Person-Team)
+
+**Superseded by:** ADR-E0-0034 (Centralized Observability Stack - Orchestrator)
 
 ## Context
 
@@ -16,6 +18,12 @@ Necesităm observability stack unificat pentru:
 ## Decizie
 
 Utilizăm **SigNoz v0.106.0** self-hosted cu ClickHouse.
+
+## Nota (stare curenta)
+
+SigNoz nu este folosit in implementarea curenta. Observability este centralizata
+pe orchestrator folosind Grafana/Prometheus/Loki/Tempo + Vector + OTEL Collector.
+Acest ADR ramane istoric si este inlocuit de ADR-E0-0034.
 
 ## Consecințe
 
@@ -33,7 +41,7 @@ services:
   signoz:
     image: signoz/signoz:v0.106.0
     ports:
-      - "64080:64080"  # Internal 64080 exposed as 64080
+      - "64080:64080" # Internal 64080 exposed as 64080
     depends_on:
       - clickhouse
     networks:
@@ -42,8 +50,8 @@ services:
   otel-collector:
     image: signoz/signoz-otel-collector:v0.129.12
     ports:
-      - "64070:64070"  # gRPC OTLP
-      - "64071:64071"  # HTTP OTLP
+      - "64070:64070" # gRPC OTLP
+      - "64071:64071" # HTTP OTLP
 ```
 
 ### Retention Policy

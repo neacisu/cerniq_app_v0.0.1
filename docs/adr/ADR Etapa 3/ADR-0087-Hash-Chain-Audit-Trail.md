@@ -8,14 +8,14 @@
 
 **Table:** `audit_fiscal_events`
 
-| Field | Purpose |
-|-------|---------|
-| event_type | PROFORMA_CREATED, INVOICE_ISSUED, EINVOICE_SENT |
-| entity_type/id | Document reference |
-| actor_type/id | user, system, ai_agent |
-| event_data | Full payload JSONB |
-| event_hash | SHA256 of this event |
-| previous_hash | Chain link to previous event |
+| Field          | Purpose                                         |
+| -------------- | ----------------------------------------------- |
+| event_type     | PROFORMA_CREATED, INVOICE_ISSUED, EINVOICE_SENT |
+| entity_type/id | Document reference                              |
+| actor_type/id  | user, system, ai_agent                          |
+| event_data     | Full payload JSONB                              |
+| event_hash     | SHA256 of this event                            |
+| previous_hash  | Chain link to previous event                    |
 
 **Hash Formula:**
 

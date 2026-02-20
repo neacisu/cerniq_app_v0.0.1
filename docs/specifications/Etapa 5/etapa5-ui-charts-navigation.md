@@ -1,5 +1,7 @@
 # CERNIQ.APP — ETAPA 5: UI CHARTS & NAVIGATION
+
 ## Charts, Navigation, și Layout Specifications
+
 ### Versiunea 1.0 | 19 Ianuarie 2026
 
 ---
@@ -31,68 +33,68 @@
 // navigation/nurturing-menu.ts
 export const nurturingMenuItems: MenuItem[] = [
   {
-    key: 'nurturing-dashboard',
-    label: 'Dashboard',
+    key: "nurturing-dashboard",
+    label: "Dashboard",
     icon: LayoutDashboard,
-    path: '/nurturing',
-    badge: null
+    path: "/nurturing",
+    badge: null,
   },
   {
-    key: 'nurturing-clients',
-    label: 'Clienți',
+    key: "nurturing-clients",
+    label: "Clienți",
     icon: Users,
-    path: '/nurturing/clients',
-    badge: null
+    path: "/nurturing/clients",
+    badge: null,
   },
   {
-    key: 'nurturing-churn',
-    label: 'Risc Churn',
+    key: "nurturing-churn",
+    label: "Risc Churn",
     icon: AlertTriangle,
-    path: '/nurturing/churn',
-    badge: { type: 'warning', count: 'atRiskCount' }
+    path: "/nurturing/churn",
+    badge: { type: "warning", count: "atRiskCount" },
   },
   {
-    key: 'nurturing-referrals',
-    label: 'Referral',
+    key: "nurturing-referrals",
+    label: "Referral",
     icon: UserPlus,
-    path: '/nurturing/referrals',
-    badge: { type: 'info', count: 'pendingReferrals' }
+    path: "/nurturing/referrals",
+    badge: { type: "info", count: "pendingReferrals" },
   },
   {
-    key: 'nurturing-clusters',
-    label: 'Clustere',
+    key: "nurturing-clusters",
+    label: "Clustere",
     icon: Network,
-    path: '/nurturing/clusters',
-    badge: null
+    path: "/nurturing/clusters",
+    badge: null,
   },
   {
-    key: 'nurturing-kol',
-    label: 'KOL',
+    key: "nurturing-kol",
+    label: "KOL",
     icon: Crown,
-    path: '/nurturing/kol',
-    badge: null
+    path: "/nurturing/kol",
+    badge: null,
   },
   {
-    key: 'nurturing-winback',
-    label: 'Win-Back',
+    key: "nurturing-winback",
+    label: "Win-Back",
     icon: Undo,
-    path: '/nurturing/winback',
-    badge: { type: 'info', count: 'activeCampaigns' }
+    path: "/nurturing/winback",
+    badge: { type: "info", count: "activeCampaigns" },
   },
   {
-    key: 'nurturing-hitl',
-    label: 'HITL Queue',
+    key: "nurturing-hitl",
+    label: "HITL Queue",
     icon: ClipboardList,
-    path: '/nurturing/hitl',
-    badge: { type: 'error', count: 'criticalTasks' }
+    path: "/nurturing/hitl",
+    badge: { type: "error", count: "criticalTasks" },
   },
   {
-    key: 'nurturing-analytics',
-    label: 'Analiză',
+    key: "nurturing-analytics",
+    label: "Analiză",
     icon: BarChart2,
-    path: '/nurturing/analytics',
-    badge: null
-  }
+    path: "/nurturing/analytics",
+    badge: null,
+  },
 ];
 ```
 
@@ -185,16 +187,16 @@ export const ChurnTrendChart: React.FC<ChurnTrendChartProps> = ({
     <ResponsiveContainer width="100%" height={300}>
       <ComposedChart data={data}>
         <CartesianGrid strokeDasharray="3 3" />
-        <XAxis 
-          dataKey="date" 
-          tickFormatter={(date) => formatDate(date, period)} 
+        <XAxis
+          dataKey="date"
+          tickFormatter={(date) => formatDate(date, period)}
         />
         <YAxis yAxisId="left" />
         <YAxis yAxisId="right" orientation="right" />
-        
+
         <Tooltip />
         <Legend />
-        
+
         <Line
           yAxisId="left"
           type="monotone"
@@ -308,7 +310,7 @@ export const ClusterMapChart: React.FC<ClusterMapChartProps> = ({
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         attribution='&copy; OpenStreetMap'
       />
-      
+
       {clusters.map((cluster) => (
         <React.Fragment key={cluster.id}>
           {/* Territory polygon */}
@@ -326,7 +328,7 @@ export const ClusterMapChart: React.FC<ClusterMapChartProps> = ({
               }}
             />
           )}
-          
+
           {/* Center marker */}
           <Marker
             position={cluster.centerPoint}
@@ -344,7 +346,7 @@ export const ClusterMapChart: React.FC<ClusterMapChartProps> = ({
               Penetration: {(cluster.penetrationRate * 100).toFixed(1)}%
             </Popup>
           </Marker>
-          
+
           {/* Member markers (small) */}
           {cluster.memberLocations.map((loc, idx) => (
             <CircleMarker
@@ -386,10 +388,10 @@ export const NPSTrendChart: React.FC<NPSTrendChartProps> = ({ data }) => {
         <XAxis dataKey="date" />
         <YAxis yAxisId="left" domain={[-100, 100]} />
         <YAxis yAxisId="right" orientation="right" />
-        
+
         <Tooltip />
         <Legend />
-        
+
         <Line
           yAxisId="left"
           type="monotone"
@@ -398,7 +400,7 @@ export const NPSTrendChart: React.FC<NPSTrendChartProps> = ({ data }) => {
           strokeWidth={3}
           name="NPS Score"
         />
-        
+
         <Bar yAxisId="right" dataKey="promoters" stackId="a" fill="#10B981" name="Promoters" />
         <Bar yAxisId="right" dataKey="passives" stackId="a" fill="#F59E0B" name="Passives" />
         <Bar yAxisId="right" dataKey="detractors" stackId="a" fill="#EF4444" name="Detractors" />
@@ -481,9 +483,9 @@ export const nurturingClientsColumns: ColumnDef<NurturingClient>[] = [
     accessorKey: 'churnRiskScore',
     header: 'Churn Risk',
     cell: ({ row }) => (
-      <ChurnRiskIndicator 
-        score={row.original.churnRiskScore} 
-        level={row.original.churnRiskLevel} 
+      <ChurnRiskIndicator
+        score={row.original.churnRiskScore}
+        level={row.original.churnRiskLevel}
       />
     )
   },
@@ -491,9 +493,9 @@ export const nurturingClientsColumns: ColumnDef<NurturingClient>[] = [
     accessorKey: 'npsScore',
     header: 'NPS',
     cell: ({ row }) => (
-      <NPSBadge 
-        score={row.original.npsScore} 
-        category={row.original.npsCategory} 
+      <NPSBadge
+        score={row.original.npsScore}
+        category={row.original.npsCategory}
       />
     )
   },
@@ -546,14 +548,14 @@ export const NurturingFilters: React.FC<{
         value={filters.states}
         onChange={(states) => onChange({ ...filters, states })}
       />
-      
+
       <MultiSelect
         label="Risk Level"
         options={RISK_LEVEL_OPTIONS}
         value={filters.riskLevels}
         onChange={(riskLevels) => onChange({ ...filters, riskLevels })}
       />
-      
+
       <RangeSlider
         label="NPS Score"
         min={0}
@@ -561,7 +563,7 @@ export const NurturingFilters: React.FC<{
         value={filters.npsRange}
         onChange={(npsRange) => onChange({ ...filters, npsRange })}
       />
-      
+
       <Select
         label="Days Since Order"
         options={[
@@ -573,7 +575,7 @@ export const NurturingFilters: React.FC<{
         value={filters.daysSinceOrder}
         onChange={(daysSinceOrder) => onChange({ ...filters, daysSinceOrder })}
       />
-      
+
       <Toggle
         label="Only Advocates"
         checked={filters.onlyAdvocates}

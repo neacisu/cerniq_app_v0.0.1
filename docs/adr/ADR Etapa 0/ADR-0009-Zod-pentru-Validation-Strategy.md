@@ -31,12 +31,12 @@ Utilizăm **Zod** ca soluție unică de validare în tot stack-ul.
 
 ```typescript
 // packages/shared-types/schemas/company.ts
-import { z } from 'zod';
+import { z } from "zod";
 
 export const CompanySchema = z.object({
   id: z.string().uuid(),
   tenantId: z.string().uuid(),
-  cui: z.string().regex(/^\d{2,10}$/, 'CUI invalid'),
+  cui: z.string().regex(/^\d{2,10}$/, "CUI invalid"),
   denumire: z.string().min(1).max(255),
   platitorTva: z.boolean().default(false),
   createdAt: z.date(),
@@ -46,6 +46,6 @@ export type Company = z.infer<typeof CompanySchema>;
 
 // Validare CUI cu modulo-11 custom
 export const CuiSchema = z.string().refine(validateCuiChecksum, {
-  message: 'CUI checksum invalid',
+  message: "CUI checksum invalid",
 });
 ```

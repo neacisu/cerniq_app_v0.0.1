@@ -25,14 +25,15 @@ main (protected)
 
 ### 2.1 Release Approval Workflow
 
-| Etapă | Aprobare | Responsabil | Criteriu |
-|------|----------|-------------|----------|
-| PR Review | ✅ Mandatory | Engineering Lead | Code quality + tests |
-| Security Review | ✅ Mandatory (medium/high risk) | Security Owner | Threats/PII/permissions |
-| Product Sign-off | ✅ Mandatory (feature releases) | Product Owner | Scope & acceptance |
-| Release Gate | ✅ Mandatory | Release Manager | Checklist complet |
+| Etapă            | Aprobare                        | Responsabil      | Criteriu                |
+| ---------------- | ------------------------------- | ---------------- | ----------------------- |
+| PR Review        | ✅ Mandatory                    | Engineering Lead | Code quality + tests    |
+| Security Review  | ✅ Mandatory (medium/high risk) | Security Owner   | Threats/PII/permissions |
+| Product Sign-off | ✅ Mandatory (feature releases) | Product Owner    | Scope & acceptance      |
+| Release Gate     | ✅ Mandatory                    | Release Manager  | Checklist complet       |
 
 **Release Checklist (minim):**
+
 - [ ] PRs legate de release sunt merged
 - [ ] CI/CD verde pe main
 - [ ] Migrații DB validate (dry-run)
@@ -41,11 +42,11 @@ main (protected)
 
 ### 3. Release Types
 
-| Type | Branch | Frequency | Notes |
-| ---- | ------ | --------- | ----- |
-| Hotfix | `hotfix/*` | As needed | Direct to production |
-| Feature | `feature/*` | Sprint-based | Via staging |
-| Release | `release/vX.Y.Z` | Bi-weekly | Full testing cycle |
+| Type    | Branch           | Frequency    | Notes                |
+| ------- | ---------------- | ------------ | -------------------- |
+| Hotfix  | `hotfix/*`       | As needed    | Direct to production |
+| Feature | `feature/*`      | Sprint-based | Via staging          |
+| Release | `release/vX.Y.Z` | Bi-weekly    | Full testing cycle   |
 
 ### 4. Deployment Pipeline
 
@@ -75,11 +76,11 @@ curl http://localhost:64000/health/ready
 
 ## Security Milestones
 
-| Milestone | Deadline | Status | Referință |
-|-----------|----------|--------|----------|
-| **Primul Pentest Extern** | Q1 2026 | 🟡 Planificat | [security-policy.md](./security-policy.md#penetration-testing-program) |
-| **DPIA Aprobare DPO** | Înainte go-live | 🟡 Draft | [gdpr-dpia.md](./gdpr-dpia.md) |
-| **DPA Validation Complete** | Q1 2026 | 🟡 În progres | [dpa-register.md](./dpa-register.md) |
+| Milestone                   | Deadline        | Status        | Referință                                                              |
+| --------------------------- | --------------- | ------------- | ---------------------------------------------------------------------- |
+| **Primul Pentest Extern**   | Q1 2026         | 🟡 Planificat | [security-policy.md](./security-policy.md#penetration-testing-program) |
+| **DPIA Aprobare DPO**       | Înainte go-live | 🟡 Draft      | [gdpr-dpia.md](./gdpr-dpia.md)                                         |
+| **DPA Validation Complete** | Q1 2026         | 🟡 În progres | [dpa-register.md](./dpa-register.md)                                   |
 
 > **Notă:** Nicio lansare în producție nu este permisă fără completarea milestone-urilor de securitate.
 

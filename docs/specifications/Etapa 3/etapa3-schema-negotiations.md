@@ -1,12 +1,14 @@
 # CERNIQ.APP — ETAPA 3: DATABASE SCHEMA - NEGOTIATIONS & STATE MACHINE
+
 ## Gold Layer pentru Negotiation FSM și AI Conversations
+
 ### Versiunea 1.0 | 18 Ianuarie 2026
 
 ---
 
 **DOCUMENT STATUS:** NORMATIV — Subordonat Master Spec v1.2  
 **SCOPE:** Schema completă pentru negocieri, FSM, conversații AI și stock reservations  
-**DATABASE:** PostgreSQL 18.1  
+**DATABASE:** PostgreSQL 18.2  
 **ORM:** Drizzle ORM
 
 ---
@@ -129,85 +131,85 @@ CREATE TYPE negotiation_priority_enum AS ENUM (
 CREATE TABLE gold_negotiations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    
+
     -- Link to lead
     lead_id UUID NOT NULL REFERENCES gold_companies(id),
     journey_id UUID REFERENCES gold_lead_journey(id),
-    
+
     -- State Machine
     current_state negotiation_state_enum NOT NULL DEFAULT 'DISCOVERY',
     previous_state negotiation_state_enum,
     state_changed_at TIMESTAMPTZ DEFAULT NOW(),
-    
+
     -- Assignment (sticky session)
     assigned_phone_id UUID REFERENCES wa_phone_numbers(id),
     assigned_user_id UUID REFERENCES users(id),
-    
+
     -- Client info (cached for quick access)
     client_name VARCHAR(255),
     client_cif VARCHAR(20),
     client_email VARCHAR(255),
     client_phone VARCHAR(20),
-    
+
     -- Value tracking
     total_value DECIMAL(14,2) DEFAULT 0,
     currency VARCHAR(3) DEFAULT 'RON',
     estimated_margin_percent DECIMAL(5,2),
-    
+
     -- Discount tracking
     max_discount_offered DECIMAL(5,2) DEFAULT 0,
     discount_approved_by UUID REFERENCES users(id),
     discount_approval_at TIMESTAMPTZ,
-    
+
     -- AI Agent
     ai_enabled BOOLEAN DEFAULT TRUE,
     ai_confidence_score DECIMAL(5,2),
     ai_handoff_reason TEXT,
-    
+
     -- MCP Session
     mcp_session_id VARCHAR(100),
     mcp_session_expires_at TIMESTAMPTZ,
-    
+
     -- Documents
     proforma_ref VARCHAR(50),
     proforma_sent_at TIMESTAMPTZ,
     proforma_expires_at TIMESTAMPTZ,
     invoice_ref VARCHAR(50),
     invoice_issued_at TIMESTAMPTZ,
-    
+
     -- Timing
     first_contact_at TIMESTAMPTZ,
     last_activity_at TIMESTAMPTZ DEFAULT NOW(),
     expected_close_date DATE,
-    
+
     -- Scoring
     engagement_score INTEGER DEFAULT 0,
     sentiment_score INTEGER DEFAULT 0,
     close_probability DECIMAL(5,2),
-    
+
     -- Priority
     priority negotiation_priority_enum DEFAULT 'MEDIUM',
-    
+
     -- Human intervention
     requires_human_review BOOLEAN DEFAULT FALSE,
     human_review_reason TEXT,
     is_human_controlled BOOLEAN DEFAULT FALSE,
-    
+
     -- Metadata
     tags TEXT[] DEFAULT '{}',
     notes TEXT,
     custom_fields JSONB DEFAULT '{}',
-    
+
     -- Audit
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
     created_by UUID REFERENCES users(id),
-    
+
     -- Constraints
     CONSTRAINT unique_active_negotiation UNIQUE(tenant_id, lead_id)
         WHERE current_state NOT IN ('PAID', 'DEAD'),
     CONSTRAINT valid_state_transition CHECK (
-        (current_state != 'PAID' AND current_state != 'DEAD') OR 
+        (current_state != 'PAID' AND current_state != 'DEAD') OR
         previous_state IS NOT NULL
     )
 );
@@ -240,22 +242,22 @@ CREATE INDEX idx_negotiations_activity ON gold_negotiations(last_activity_at DES
 CREATE TABLE negotiation_state_history (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     negotiation_id UUID NOT NULL REFERENCES gold_negotiations(id) ON DELETE CASCADE,
-    
+
     -- Transition
     from_state negotiation_state_enum NOT NULL,
     to_state negotiation_state_enum NOT NULL,
-    
+
     -- Reason
     transition_reason TEXT,
     transition_trigger VARCHAR(50), -- 'ai_decision', 'user_action', 'timeout', 'webhook'
-    
+
     -- Actor
     triggered_by_type VARCHAR(20) NOT NULL, -- 'ai_agent', 'user', 'system'
     triggered_by_id UUID,
-    
+
     -- Context
     context_snapshot JSONB, -- Snapshot of relevant data at transition
-    
+
     -- Audit
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -279,36 +281,36 @@ CREATE TABLE negotiation_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     negotiation_id UUID NOT NULL REFERENCES gold_negotiations(id) ON DELETE CASCADE,
     product_id UUID NOT NULL REFERENCES gold_products(id),
-    
+
     -- Quantity
     quantity DECIMAL(12,2) NOT NULL,
     unit VARCHAR(20) DEFAULT 'buc',
-    
+
     -- Pricing
     list_price DECIMAL(12,2) NOT NULL, -- Prețul din catalog la momentul adăugării
     unit_price DECIMAL(12,2) NOT NULL, -- Prețul oferit (după discount)
     discount_percent DECIMAL(5,2) DEFAULT 0,
-    
+
     -- Totals
     line_total DECIMAL(14,2) GENERATED ALWAYS AS (quantity * unit_price) STORED,
     vat_percent DECIMAL(5,2) DEFAULT 19.00,
     line_vat DECIMAL(14,2) GENERATED ALWAYS AS (quantity * unit_price * vat_percent / 100) STORED,
-    
+
     -- Status
     status VARCHAR(20) DEFAULT 'proposed', -- proposed, confirmed, removed
-    
+
     -- Stock reservation
     reservation_id UUID REFERENCES stock_reservations(id),
-    
+
     -- Notes
     notes TEXT,
-    
+
     -- Audit
     added_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
     added_by_type VARCHAR(20) NOT NULL, -- 'ai_agent', 'user'
     added_by_id UUID,
-    
+
     -- Constraints
     CONSTRAINT positive_quantity CHECK (quantity > 0),
     CONSTRAINT valid_discount CHECK (discount_percent >= 0 AND discount_percent <= 100)
@@ -323,7 +325,7 @@ CREATE OR REPLACE FUNCTION update_negotiation_total()
 RETURNS TRIGGER AS $$
 BEGIN
     UPDATE gold_negotiations
-    SET 
+    SET
         total_value = (
             SELECT COALESCE(SUM(line_total + line_vat), 0)
             FROM negotiation_items
@@ -332,7 +334,7 @@ BEGIN
         ),
         updated_at = NOW()
     WHERE id = COALESCE(NEW.negotiation_id, OLD.negotiation_id);
-    
+
     RETURN COALESCE(NEW, OLD);
 END;
 $$ LANGUAGE plpgsql;
@@ -354,41 +356,41 @@ CREATE TABLE stock_inventory (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
     product_id UUID NOT NULL REFERENCES gold_products(id) ON DELETE CASCADE,
-    
+
     -- Location (pentru multi-warehouse)
     warehouse_id UUID, -- NULL = default warehouse
     warehouse_name VARCHAR(100),
-    
+
     -- Quantities
     total_quantity DECIMAL(12,2) NOT NULL DEFAULT 0,
     reserved_quantity DECIMAL(12,2) NOT NULL DEFAULT 0,
     available_quantity DECIMAL(12,2) GENERATED ALWAYS AS (total_quantity - reserved_quantity) STORED,
-    
+
     -- Thresholds
     low_stock_threshold INTEGER DEFAULT 10,
     reorder_point INTEGER DEFAULT 20,
     reorder_quantity INTEGER DEFAULT 100,
-    
+
     -- Incoming
     incoming_quantity DECIMAL(12,2) DEFAULT 0,
     next_restock_date DATE,
-    
+
     -- Cost
     average_cost DECIMAL(12,2),
     last_purchase_cost DECIMAL(12,2),
-    
+
     -- Tracking
     last_counted_at TIMESTAMPTZ,
     last_movement_at TIMESTAMPTZ,
-    
+
     -- Sync
     source_system VARCHAR(50), -- 'erp', 'shopify', 'manual'
     source_synced_at TIMESTAMPTZ,
-    
+
     -- Audit
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
-    
+
     -- Constraints
     CONSTRAINT unique_product_warehouse UNIQUE(tenant_id, product_id, warehouse_id),
     CONSTRAINT non_negative_stock CHECK (total_quantity >= 0),
@@ -397,7 +399,7 @@ CREATE TABLE stock_inventory (
 
 CREATE INDEX idx_inventory_tenant ON stock_inventory(tenant_id);
 CREATE INDEX idx_inventory_product ON stock_inventory(product_id);
-CREATE INDEX idx_inventory_low_stock ON stock_inventory(tenant_id, available_quantity) 
+CREATE INDEX idx_inventory_low_stock ON stock_inventory(tenant_id, available_quantity)
     WHERE available_quantity <= low_stock_threshold;
 
 COMMENT ON TABLE stock_inventory IS 'Stoc realtime - sursa de adevăr pentru disponibilitate';
@@ -423,29 +425,29 @@ CREATE TYPE reservation_status_enum AS ENUM (
 CREATE TABLE stock_reservations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    
+
     -- Product
     product_id UUID NOT NULL REFERENCES gold_products(id),
     inventory_id UUID NOT NULL REFERENCES stock_inventory(id),
-    
+
     -- Quantity
     quantity DECIMAL(12,2) NOT NULL,
-    
+
     -- Context
     negotiation_id UUID REFERENCES gold_negotiations(id),
     negotiation_state negotiation_state_enum,
-    
+
     -- TTL
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     expires_at TIMESTAMPTZ NOT NULL,
-    
+
     -- Status
     status reservation_status_enum DEFAULT 'ACTIVE',
-    
+
     -- Outcome
     converted_to_order_id UUID,
     cancelled_reason TEXT,
-    
+
     -- Constraints
     CONSTRAINT positive_reservation CHECK (quantity > 0)
 );
@@ -513,47 +515,47 @@ FOR EACH ROW EXECUTE FUNCTION update_inventory_on_reservation();
 CREATE TABLE ai_conversations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    
+
     -- Links
     negotiation_id UUID REFERENCES gold_negotiations(id),
     lead_id UUID NOT NULL REFERENCES gold_companies(id),
-    
+
     -- Channel
     channel VARCHAR(20) NOT NULL, -- 'whatsapp', 'email'
     channel_thread_id VARCHAR(100), -- TimelinesAI conversation_id sau email thread
-    
+
     -- Stats
     message_count INTEGER DEFAULT 0,
     user_message_count INTEGER DEFAULT 0,
     assistant_message_count INTEGER DEFAULT 0,
     tool_call_count INTEGER DEFAULT 0,
-    
+
     -- Tokens
     total_tokens_used INTEGER DEFAULT 0,
     total_prompt_tokens INTEGER DEFAULT 0,
     total_completion_tokens INTEGER DEFAULT 0,
     estimated_cost_usd DECIMAL(10,6) DEFAULT 0,
-    
+
     -- MCP
     mcp_session_id VARCHAR(100),
     mcp_session_created_at TIMESTAMPTZ,
-    
+
     -- Status
     status VARCHAR(20) DEFAULT 'active', -- active, paused, completed, handed_off
-    
+
     -- Timing
     started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     last_message_at TIMESTAMPTZ,
     ended_at TIMESTAMPTZ,
-    
+
     -- Handoff
     handed_off_at TIMESTAMPTZ,
     handed_off_to UUID REFERENCES users(id),
     handoff_reason TEXT,
-    
+
     -- Metadata
     metadata JSONB DEFAULT '{}',
-    
+
     -- Audit
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -578,42 +580,42 @@ CREATE INDEX idx_conversations_last_message ON ai_conversations(last_message_at 
 CREATE TABLE ai_conversation_messages (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     conversation_id UUID NOT NULL REFERENCES ai_conversations(id) ON DELETE CASCADE,
-    
+
     -- Role (OpenAI convention)
     role VARCHAR(20) NOT NULL, -- 'system', 'user', 'assistant', 'tool'
-    
+
     -- Content
     content TEXT NOT NULL,
-    
+
     -- Tool calls (pentru assistant messages)
     tool_calls JSONB, -- [{id, type, function: {name, arguments}}]
-    
+
     -- Tool response (pentru tool messages)
     tool_call_id VARCHAR(100),
     tool_name VARCHAR(100),
-    
+
     -- AI metadata
     model_used VARCHAR(50),
     tokens_used INTEGER,
     prompt_tokens INTEGER,
     completion_tokens INTEGER,
     latency_ms INTEGER,
-    
+
     -- Guardrail results
     guardrail_checks JSONB,
     guardrail_passed BOOLEAN DEFAULT TRUE,
     regeneration_attempt INTEGER DEFAULT 0,
-    
+
     -- External reference
     external_message_id VARCHAR(100), -- TimelinesAI message_id
-    
+
     -- Audit
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_messages_conversation ON ai_conversation_messages(conversation_id, created_at);
 CREATE INDEX idx_messages_role ON ai_conversation_messages(conversation_id, role);
-CREATE INDEX idx_messages_external ON ai_conversation_messages(external_message_id) 
+CREATE INDEX idx_messages_external ON ai_conversation_messages(external_message_id)
     WHERE external_message_id IS NOT NULL;
 
 -- Trigger pentru update conversation stats
@@ -621,7 +623,7 @@ CREATE OR REPLACE FUNCTION update_conversation_stats()
 RETURNS TRIGGER AS $$
 BEGIN
     UPDATE ai_conversations
-    SET 
+    SET
         message_count = message_count + 1,
         user_message_count = user_message_count + CASE WHEN NEW.role = 'user' THEN 1 ELSE 0 END,
         assistant_message_count = assistant_message_count + CASE WHEN NEW.role = 'assistant' THEN 1 ELSE 0 END,
@@ -651,34 +653,34 @@ CREATE TABLE ai_tool_calls (
     conversation_id UUID NOT NULL REFERENCES ai_conversations(id) ON DELETE CASCADE,
     message_id UUID REFERENCES ai_conversation_messages(id),
     negotiation_id UUID REFERENCES gold_negotiations(id),
-    
+
     -- Tool info
     tool_name VARCHAR(100) NOT NULL,
     tool_input JSONB NOT NULL,
     tool_output JSONB,
-    
+
     -- Execution
     started_at TIMESTAMPTZ NOT NULL,
     completed_at TIMESTAMPTZ,
     duration_ms INTEGER,
-    
+
     -- Status
     status VARCHAR(20) DEFAULT 'pending', -- pending, success, error, timeout
     error_message TEXT,
     error_code VARCHAR(50),
-    
+
     -- Guardrail results (pentru tools care au guardrails)
     guardrail_results JSONB,
     guardrail_passed BOOLEAN,
-    
+
     -- Retry info
     retry_count INTEGER DEFAULT 0,
     retry_of_id UUID REFERENCES ai_tool_calls(id),
-    
+
     -- Cost tracking
     tokens_used INTEGER,
     estimated_cost_usd DECIMAL(10,6),
-    
+
     -- Audit
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -728,28 +730,28 @@ CREATE TYPE guardrail_type_enum AS ENUM (
 CREATE TABLE guardrail_violations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    
+
     -- Context
     conversation_id UUID REFERENCES ai_conversations(id),
     negotiation_id UUID REFERENCES gold_negotiations(id),
     message_id UUID REFERENCES ai_conversation_messages(id),
     tool_call_id UUID REFERENCES ai_tool_calls(id),
-    
+
     -- Violation details
     guardrail_type guardrail_type_enum NOT NULL,
     severity VARCHAR(20) NOT NULL DEFAULT 'MEDIUM', -- LOW, MEDIUM, HIGH, CRITICAL
-    
+
     -- Details
     ai_content TEXT, -- What AI tried to say/do
     violation_details JSONB NOT NULL, -- Specific details of violation
     correction_applied TEXT, -- What was the correction
-    
+
     -- Resolution
     was_auto_corrected BOOLEAN DEFAULT FALSE,
     was_regenerated BOOLEAN DEFAULT FALSE,
     regeneration_attempt INTEGER,
     final_resolution VARCHAR(20), -- 'corrected', 'regenerated', 'blocked', 'escalated'
-    
+
     -- Audit
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -807,37 +809,37 @@ DECLARE
 BEGIN
     old_state := OLD.current_state;
     new_state := NEW.current_state;
-    
+
     -- Skip if state unchanged
     IF old_state = new_state THEN
         RETURN NEW;
     END IF;
-    
+
     -- Check if transition is valid
     SELECT EXISTS (
         SELECT 1 FROM fsm_valid_transitions
         WHERE from_state = old_state AND to_state = new_state
     ) INTO is_valid;
-    
+
     IF NOT is_valid THEN
         RAISE EXCEPTION 'Invalid state transition from % to %', old_state, new_state;
     END IF;
-    
+
     -- Update transition metadata
     NEW.previous_state := old_state;
     NEW.state_changed_at := NOW();
     NEW.updated_at := NOW();
-    
+
     -- Log transition
     INSERT INTO negotiation_state_history (
-        negotiation_id, from_state, to_state, 
+        negotiation_id, from_state, to_state,
         transition_trigger, triggered_by_type
     ) VALUES (
         NEW.id, old_state, new_state,
         current_setting('app.transition_trigger', true),
         COALESCE(current_setting('app.actor_type', true), 'system')
     );
-    
+
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -884,7 +886,7 @@ BEGIN
     SELECT gn.current_state INTO current_state
     FROM gold_negotiations gn
     WHERE gn.id = p_negotiation_id;
-    
+
     RETURN EXISTS (
         SELECT 1 FROM fsm_state_allowed_tools
         WHERE state = current_state AND tool_name = p_tool_name
@@ -899,83 +901,132 @@ $$ LANGUAGE plpgsql STABLE;
 
 ```typescript
 // packages/db/src/schema/negotiations.ts
-import { 
-  pgTable, uuid, varchar, text, boolean, integer, 
-  decimal, timestamp, jsonb, uniqueIndex, index,
-  check
-} from 'drizzle-orm/pg-core';
-import { pgEnum } from 'drizzle-orm/pg-core';
-import { sql } from 'drizzle-orm';
-import { tenants, users } from './core';
-import { goldCompanies, goldLeadJourney, waPhoneNumbers } from './outreach';
-import { goldProducts } from './products';
+import {
+  pgTable,
+  uuid,
+  varchar,
+  text,
+  boolean,
+  integer,
+  decimal,
+  timestamp,
+  jsonb,
+  uniqueIndex,
+  index,
+  check,
+} from "drizzle-orm/pg-core";
+import { pgEnum } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { tenants, users } from "./core";
+import { goldCompanies, goldLeadJourney, waPhoneNumbers } from "./outreach";
+import { goldProducts } from "./products";
 
 // Enums
-export const negotiationStateEnum = pgEnum('negotiation_state_enum', [
-  'DISCOVERY', 'PROPOSAL', 'NEGOTIATION', 'CLOSING', 
-  'PROFORMA_SENT', 'INVOICED', 'PAID', 'DEAD'
+export const negotiationStateEnum = pgEnum("negotiation_state_enum", [
+  "DISCOVERY",
+  "PROPOSAL",
+  "NEGOTIATION",
+  "CLOSING",
+  "PROFORMA_SENT",
+  "INVOICED",
+  "PAID",
+  "DEAD",
 ]);
 
-export const negotiationPriorityEnum = pgEnum('negotiation_priority_enum', [
-  'LOW', 'MEDIUM', 'HIGH', 'URGENT'
+export const negotiationPriorityEnum = pgEnum("negotiation_priority_enum", [
+  "LOW",
+  "MEDIUM",
+  "HIGH",
+  "URGENT",
 ]);
 
-export const reservationStatusEnum = pgEnum('reservation_status_enum', [
-  'ACTIVE', 'CONVERTED', 'EXPIRED', 'CANCELLED'
+export const reservationStatusEnum = pgEnum("reservation_status_enum", [
+  "ACTIVE",
+  "CONVERTED",
+  "EXPIRED",
+  "CANCELLED",
 ]);
 
-export const guardrailTypeEnum = pgEnum('guardrail_type_enum', [
-  'PRICE_BELOW_MINIMUM', 'STOCK_UNAVAILABLE', 'DISCOUNT_EXCEEDED',
-  'SKU_NOT_FOUND', 'FISCAL_DATA_INVALID', 'COMPETITOR_MENTIONED',
-  'HALLUCINATION_DETECTED', 'STATE_VIOLATION'
+export const guardrailTypeEnum = pgEnum("guardrail_type_enum", [
+  "PRICE_BELOW_MINIMUM",
+  "STOCK_UNAVAILABLE",
+  "DISCOUNT_EXCEEDED",
+  "SKU_NOT_FOUND",
+  "FISCAL_DATA_INVALID",
+  "COMPETITOR_MENTIONED",
+  "HALLUCINATION_DETECTED",
+  "STATE_VIOLATION",
 ]);
 
 // Negotiations
-export const goldNegotiations = pgTable('gold_negotiations', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
-  leadId: uuid('lead_id').notNull().references(() => goldCompanies.id),
-  journeyId: uuid('journey_id').references(() => goldLeadJourney.id),
-  
-  currentState: negotiationStateEnum('current_state').notNull().default('DISCOVERY'),
-  previousState: negotiationStateEnum('previous_state'),
-  stateChangedAt: timestamp('state_changed_at', { withTimezone: true }).defaultNow(),
-  
-  assignedPhoneId: uuid('assigned_phone_id').references(() => waPhoneNumbers.id),
-  assignedUserId: uuid('assigned_user_id').references(() => users.id),
-  
-  clientName: varchar('client_name', { length: 255 }),
-  clientCif: varchar('client_cif', { length: 20 }),
-  clientEmail: varchar('client_email', { length: 255 }),
-  clientPhone: varchar('client_phone', { length: 20 }),
-  
-  totalValue: decimal('total_value', { precision: 14, scale: 2 }).default('0'),
-  currency: varchar('currency', { length: 3 }).default('RON'),
-  
-  aiEnabled: boolean('ai_enabled').default(true),
-  mcpSessionId: varchar('mcp_session_id', { length: 100 }),
-  
-  proformaRef: varchar('proforma_ref', { length: 50 }),
-  proformaSentAt: timestamp('proforma_sent_at', { withTimezone: true }),
-  invoiceRef: varchar('invoice_ref', { length: 50 }),
-  invoiceIssuedAt: timestamp('invoice_issued_at', { withTimezone: true }),
-  
-  priority: negotiationPriorityEnum('priority').default('MEDIUM'),
-  requiresHumanReview: boolean('requires_human_review').default(false),
-  isHumanControlled: boolean('is_human_controlled').default(false),
-  
-  tags: text('tags').array().default(sql`'{}'::text[]`),
-  notes: text('notes'),
-  customFields: jsonb('custom_fields').default({}),
-  
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
-  createdBy: uuid('created_by').references(() => users.id),
-}, (table) => ({
-  tenantIdx: index('idx_negotiations_tenant').on(table.tenantId),
-  leadIdx: index('idx_negotiations_lead').on(table.leadId),
-  stateIdx: index('idx_negotiations_state').on(table.tenantId, table.currentState),
-}));
+export const goldNegotiations = pgTable(
+  "gold_negotiations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    leadId: uuid("lead_id")
+      .notNull()
+      .references(() => goldCompanies.id),
+    journeyId: uuid("journey_id").references(() => goldLeadJourney.id),
+
+    currentState: negotiationStateEnum("current_state")
+      .notNull()
+      .default("DISCOVERY"),
+    previousState: negotiationStateEnum("previous_state"),
+    stateChangedAt: timestamp("state_changed_at", {
+      withTimezone: true,
+    }).defaultNow(),
+
+    assignedPhoneId: uuid("assigned_phone_id").references(
+      () => waPhoneNumbers.id,
+    ),
+    assignedUserId: uuid("assigned_user_id").references(() => users.id),
+
+    clientName: varchar("client_name", { length: 255 }),
+    clientCif: varchar("client_cif", { length: 20 }),
+    clientEmail: varchar("client_email", { length: 255 }),
+    clientPhone: varchar("client_phone", { length: 20 }),
+
+    totalValue: decimal("total_value", { precision: 14, scale: 2 }).default(
+      "0",
+    ),
+    currency: varchar("currency", { length: 3 }).default("RON"),
+
+    aiEnabled: boolean("ai_enabled").default(true),
+    mcpSessionId: varchar("mcp_session_id", { length: 100 }),
+
+    proformaRef: varchar("proforma_ref", { length: 50 }),
+    proformaSentAt: timestamp("proforma_sent_at", { withTimezone: true }),
+    invoiceRef: varchar("invoice_ref", { length: 50 }),
+    invoiceIssuedAt: timestamp("invoice_issued_at", { withTimezone: true }),
+
+    priority: negotiationPriorityEnum("priority").default("MEDIUM"),
+    requiresHumanReview: boolean("requires_human_review").default(false),
+    isHumanControlled: boolean("is_human_controlled").default(false),
+
+    tags: text("tags")
+      .array()
+      .default(sql`'{}'::text[]`),
+    notes: text("notes"),
+    customFields: jsonb("custom_fields").default({}),
+
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+    createdBy: uuid("created_by").references(() => users.id),
+  },
+  (table) => ({
+    tenantIdx: index("idx_negotiations_tenant").on(table.tenantId),
+    leadIdx: index("idx_negotiations_lead").on(table.leadId),
+    stateIdx: index("idx_negotiations_state").on(
+      table.tenantId,
+      table.currentState,
+    ),
+  }),
+);
 
 // Export types
 export type GoldNegotiation = typeof goldNegotiations.$inferSelect;

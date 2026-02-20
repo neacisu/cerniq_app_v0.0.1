@@ -15,45 +15,51 @@
 
 interface SendMessageFormProps {
   leadId: string;
-  defaultChannel?: 'WHATSAPP' | 'EMAIL_WARM';
+  defaultChannel?: "WHATSAPP" | "EMAIL_WARM";
   onSuccess?: () => void;
 }
 
 const sendMessageSchema = z.object({
-  channel: z.enum(['WHATSAPP', 'EMAIL_WARM']),
+  channel: z.enum(["WHATSAPP", "EMAIL_WARM"]),
   templateId: z.string().uuid().optional(),
   content: z.string().min(1).max(4000),
   subject: z.string().max(200).optional(),
   scheduledAt: z.string().datetime().optional(),
 });
 
-export function SendMessageForm({ leadId, defaultChannel = 'WHATSAPP', onSuccess }: SendMessageFormProps) {
+export function SendMessageForm({
+  leadId,
+  defaultChannel = "WHATSAPP",
+  onSuccess,
+}: SendMessageFormProps) {
   const form = useForm<z.infer<typeof sendMessageSchema>>({
     resolver: zodResolver(sendMessageSchema),
     defaultValues: {
       channel: defaultChannel,
-      content: '',
+      content: "",
     },
   });
 
   const { data: templates } = useQuery({
-    queryKey: ['templates', form.watch('channel')],
-    queryFn: () => fetchTemplates({ channel: form.watch('channel') }),
+    queryKey: ["templates", form.watch("channel")],
+    queryFn: () => fetchTemplates({ channel: form.watch("channel") }),
   });
 
   const sendMutation = useMutation({
     mutationFn: (data: z.infer<typeof sendMessageSchema>) =>
       api.post(`/outreach/leads/${leadId}/send-message`, data),
     onSuccess: () => {
-      toast.success('Mesaj trimis cu succes');
+      toast.success("Mesaj trimis cu succes");
       onSuccess?.();
     },
   });
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(sendMutation.mutate)} className="space-y-4">
-        
+      <form
+        onSubmit={form.handleSubmit(sendMutation.mutate)}
+        className="space-y-4"
+      >
         {/* Channel Selection */}
         <FormField
           control={form.control}
@@ -94,16 +100,18 @@ export function SendMessageForm({ leadId, defaultChannel = 'WHATSAPP', onSuccess
           render={({ field }) => (
             <FormItem>
               <FormLabel>Template (opțional)</FormLabel>
-              <Select onValueChange={(value) => {
-                field.onChange(value);
-                const template = templates?.find(t => t.id === value);
-                if (template) {
-                  form.setValue('content', template.content);
-                  if (template.subject) {
-                    form.setValue('subject', template.subject);
+              <Select
+                onValueChange={(value) => {
+                  field.onChange(value);
+                  const template = templates?.find((t) => t.id === value);
+                  if (template) {
+                    form.setValue("content", template.content);
+                    if (template.subject) {
+                      form.setValue("subject", template.subject);
+                    }
                   }
-                }
-              }}>
+                }}
+              >
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Alege template sau scrie manual" />
@@ -122,7 +130,7 @@ export function SendMessageForm({ leadId, defaultChannel = 'WHATSAPP', onSuccess
         />
 
         {/* Subject (for email) */}
-        {form.watch('channel') === 'EMAIL_WARM' && (
+        {form.watch("channel") === "EMAIL_WARM" && (
           <FormField
             control={form.control}
             name="subject"
@@ -187,7 +195,9 @@ export function SendMessageForm({ leadId, defaultChannel = 'WHATSAPP', onSuccess
                 <Input
                   type="datetime-local"
                   value={field.value?.slice(0, 16)}
-                  onChange={(e) => field.onChange(new Date(e.target.value).toISOString())}
+                  onChange={(e) =>
+                    field.onChange(new Date(e.target.value).toISOString())
+                  }
                   className="w-auto"
                 />
               )}
@@ -222,37 +232,43 @@ export function SendMessageForm({ leadId, defaultChannel = 'WHATSAPP', onSuccess
 const sequenceSchema = z.object({
   name: z.string().min(3).max(100),
   description: z.string().max(500).optional(),
-  primaryChannel: z.enum(['WHATSAPP', 'EMAIL']),
+  primaryChannel: z.enum(["WHATSAPP", "EMAIL"]),
   respectBusinessHours: z.boolean().default(true),
   stopOnReply: z.boolean().default(true),
-  steps: z.array(z.object({
-    delayHours: z.number().min(0).max(720),
-    delayMinutes: z.number().min(0).max(59).default(0),
-    channel: z.enum(['WHATSAPP', 'EMAIL_COLD', 'EMAIL_WARM']),
-    templateId: z.string().uuid(),
-  })).min(1).max(10),
+  steps: z
+    .array(
+      z.object({
+        delayHours: z.number().min(0).max(720),
+        delayMinutes: z.number().min(0).max(59).default(0),
+        channel: z.enum(["WHATSAPP", "EMAIL_COLD", "EMAIL_WARM"]),
+        templateId: z.string().uuid(),
+      }),
+    )
+    .min(1)
+    .max(10),
 });
 
 export function CreateSequenceForm({ onSuccess }: { onSuccess?: () => void }) {
   const form = useForm<z.infer<typeof sequenceSchema>>({
     resolver: zodResolver(sequenceSchema),
     defaultValues: {
-      primaryChannel: 'WHATSAPP',
+      primaryChannel: "WHATSAPP",
       respectBusinessHours: true,
       stopOnReply: true,
-      steps: [{ delayHours: 0, delayMinutes: 0, channel: 'WHATSAPP', templateId: '' }],
+      steps: [
+        { delayHours: 0, delayMinutes: 0, channel: "WHATSAPP", templateId: "" },
+      ],
     },
   });
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
-    name: 'steps',
+    name: "steps",
   });
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        
         {/* Basic Info */}
         <div className="grid grid-cols-2 gap-4">
           <FormField
@@ -268,14 +284,17 @@ export function CreateSequenceForm({ onSuccess }: { onSuccess?: () => void }) {
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={form.control}
             name="primaryChannel"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Canal Principal</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue />
@@ -298,7 +317,11 @@ export function CreateSequenceForm({ onSuccess }: { onSuccess?: () => void }) {
             <FormItem>
               <FormLabel>Descriere (opțional)</FormLabel>
               <FormControl>
-                <Textarea {...field} placeholder="Descriere secvență..." rows={2} />
+                <Textarea
+                  {...field}
+                  placeholder="Descriere secvență..."
+                  rows={2}
+                />
               </FormControl>
             </FormItem>
           )}
@@ -312,20 +335,28 @@ export function CreateSequenceForm({ onSuccess }: { onSuccess?: () => void }) {
             render={({ field }) => (
               <FormItem className="flex items-center gap-2">
                 <FormControl>
-                  <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
                 </FormControl>
-                <FormLabel className="!mt-0">Respectă orele de lucru (09-18)</FormLabel>
+                <FormLabel className="!mt-0">
+                  Respectă orele de lucru (09-18)
+                </FormLabel>
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={form.control}
             name="stopOnReply"
             render={({ field }) => (
               <FormItem className="flex items-center gap-2">
                 <FormControl>
-                  <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
                 </FormControl>
                 <FormLabel className="!mt-0">Oprește la răspuns</FormLabel>
               </FormItem>
@@ -341,7 +372,14 @@ export function CreateSequenceForm({ onSuccess }: { onSuccess?: () => void }) {
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => append({ delayHours: 24, delayMinutes: 0, channel: 'WHATSAPP', templateId: '' })}
+              onClick={() =>
+                append({
+                  delayHours: 24,
+                  delayMinutes: 0,
+                  channel: "WHATSAPP",
+                  templateId: "",
+                })
+              }
               disabled={fields.length >= 10}
             >
               <Plus className="w-4 h-4 mr-1" />
@@ -355,7 +393,7 @@ export function CreateSequenceForm({ onSuccess }: { onSuccess?: () => void }) {
                 <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-medium">
                   {index + 1}
                 </div>
-                
+
                 <div className="flex-1 grid grid-cols-4 gap-4">
                   {/* Delay */}
                   <div className="flex items-center gap-2">
@@ -366,13 +404,27 @@ export function CreateSequenceForm({ onSuccess }: { onSuccess?: () => void }) {
                         <FormItem>
                           <FormLabel className="text-xs">Delay (ore)</FormLabel>
                           <FormControl>
-                            <Input type="number" {...field} onChange={(e) => field.onChange(parseInt(e.target.value))} />
+                            <Input
+                              type="number"
+                              {...field}
+                              onChange={(e) =>
+                                field.onChange(parseInt(e.target.value))
+                              }
+                            />
                           </FormControl>
                         </FormItem>
                       )}
                     />
-                    {index === 0 && <span className="text-sm text-muted-foreground mt-6">după înrolare</span>}
-                    {index > 0 && <span className="text-sm text-muted-foreground mt-6">după pasul anterior</span>}
+                    {index === 0 && (
+                      <span className="text-sm text-muted-foreground mt-6">
+                        după înrolare
+                      </span>
+                    )}
+                    {index > 0 && (
+                      <span className="text-sm text-muted-foreground mt-6">
+                        după pasul anterior
+                      </span>
+                    )}
                   </div>
 
                   {/* Channel */}
@@ -382,7 +434,10 @@ export function CreateSequenceForm({ onSuccess }: { onSuccess?: () => void }) {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-xs">Canal</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue />
@@ -390,8 +445,12 @@ export function CreateSequenceForm({ onSuccess }: { onSuccess?: () => void }) {
                           </FormControl>
                           <SelectContent>
                             <SelectItem value="WHATSAPP">WhatsApp</SelectItem>
-                            <SelectItem value="EMAIL_COLD">Email Cold</SelectItem>
-                            <SelectItem value="EMAIL_WARM">Email Warm</SelectItem>
+                            <SelectItem value="EMAIL_COLD">
+                              Email Cold
+                            </SelectItem>
+                            <SelectItem value="EMAIL_WARM">
+                              Email Warm
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                       </FormItem>
@@ -405,7 +464,7 @@ export function CreateSequenceForm({ onSuccess }: { onSuccess?: () => void }) {
                     render={({ field }) => (
                       <FormItem className="col-span-2">
                         <FormLabel className="text-xs">Template</FormLabel>
-                        <TemplateSelect 
+                        <TemplateSelect
                           channel={form.watch(`steps.${index}.channel`)}
                           value={field.value}
                           onChange={field.onChange}
@@ -448,16 +507,20 @@ export function CreateSequenceForm({ onSuccess }: { onSuccess?: () => void }) {
 const templateSchema = z.object({
   name: z.string().min(3).max(100),
   description: z.string().max(500).optional(),
-  channel: z.enum(['WHATSAPP', 'EMAIL']),
+  channel: z.enum(["WHATSAPP", "EMAIL"]),
   subject: z.string().max(200).optional(),
   content: z.string().min(10).max(4000),
-  variables: z.array(z.object({
-    name: z.string(),
-    required: z.boolean(),
-    defaultValue: z.string().optional(),
-  })).optional(),
+  variables: z
+    .array(
+      z.object({
+        name: z.string(),
+        required: z.boolean(),
+        defaultValue: z.string().optional(),
+      }),
+    )
+    .optional(),
   hasMedia: z.boolean().default(false),
-  mediaType: z.enum(['image', 'document', 'video']).optional(),
+  mediaType: z.enum(["image", "document", "video"]).optional(),
   mediaUrl: z.string().url().optional(),
 });
 
@@ -465,23 +528,22 @@ export function CreateTemplateForm({ onSuccess }: { onSuccess?: () => void }) {
   const form = useForm<z.infer<typeof templateSchema>>({
     resolver: zodResolver(templateSchema),
     defaultValues: {
-      channel: 'WHATSAPP',
+      channel: "WHATSAPP",
       hasMedia: false,
       variables: [],
     },
   });
 
   // Extract variables from content
-  const content = form.watch('content');
+  const content = form.watch("content");
   const detectedVariables = useMemo(() => {
     const matches = content?.match(/\{\{(\w+)\}\}/g) || [];
-    return [...new Set(matches.map(m => m.slice(2, -2)))];
+    return [...new Set(matches.map((m) => m.slice(2, -2)))];
   }, [content]);
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        
         <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
@@ -496,14 +558,17 @@ export function CreateTemplateForm({ onSuccess }: { onSuccess?: () => void }) {
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={form.control}
             name="channel"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Canal</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue />
@@ -519,7 +584,7 @@ export function CreateTemplateForm({ onSuccess }: { onSuccess?: () => void }) {
           />
         </div>
 
-        {form.watch('channel') === 'EMAIL' && (
+        {form.watch("channel") === "EMAIL" && (
           <FormField
             control={form.control}
             name="subject"
@@ -552,7 +617,8 @@ export function CreateTemplateForm({ onSuccess }: { onSuccess?: () => void }) {
                 />
               </FormControl>
               <FormDescription>
-                Folosește {`{{variabilă}}`} pentru personalizare și {`{opțiune1|opțiune2}`} pentru spintax.
+                Folosește {`{{variabilă}}`} pentru personalizare și{" "}
+                {`{opțiune1|opțiune2}`} pentru spintax.
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -574,22 +640,27 @@ export function CreateTemplateForm({ onSuccess }: { onSuccess?: () => void }) {
         )}
 
         {/* Media option for WhatsApp */}
-        {form.watch('channel') === 'WHATSAPP' && (
+        {form.watch("channel") === "WHATSAPP" && (
           <FormField
             control={form.control}
             name="hasMedia"
             render={({ field }) => (
               <FormItem className="flex items-center gap-2">
                 <FormControl>
-                  <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
                 </FormControl>
-                <FormLabel className="!mt-0">Include media (imagine/document)</FormLabel>
+                <FormLabel className="!mt-0">
+                  Include media (imagine/document)
+                </FormLabel>
               </FormItem>
             )}
           />
         )}
 
-        {form.watch('hasMedia') && (
+        {form.watch("hasMedia") && (
           <div className="grid grid-cols-2 gap-4">
             <FormField
               control={form.control}
@@ -612,7 +683,7 @@ export function CreateTemplateForm({ onSuccess }: { onSuccess?: () => void }) {
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="mediaUrl"
@@ -653,13 +724,19 @@ interface TakeoverDialogProps {
   companyName: string;
 }
 
-export function TakeoverDialog({ open, onOpenChange, leadId, companyName }: TakeoverDialogProps) {
-  const [reason, setReason] = useState('');
-  
+export function TakeoverDialog({
+  open,
+  onOpenChange,
+  leadId,
+  companyName,
+}: TakeoverDialogProps) {
+  const [reason, setReason] = useState("");
+
   const takeoverMutation = useMutation({
-    mutationFn: () => api.post(`/outreach/leads/${leadId}/takeover`, { reason }),
+    mutationFn: () =>
+      api.post(`/outreach/leads/${leadId}/takeover`, { reason }),
     onSuccess: () => {
-      toast.success('Conversație preluată cu succes');
+      toast.success("Conversație preluată cu succes");
       onOpenChange(false);
     },
   });
@@ -670,11 +747,11 @@ export function TakeoverDialog({ open, onOpenChange, leadId, companyName }: Take
         <DialogHeader>
           <DialogTitle>Preia Conversația Manual</DialogTitle>
           <DialogDescription>
-            Vei prelua controlul manual al conversației cu {companyName}. 
+            Vei prelua controlul manual al conversației cu {companyName}.
             Automatizările vor fi oprite până când returnezi controlul.
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="space-y-4 py-4">
           <div>
             <Label>Motiv preluare</Label>
@@ -685,21 +762,22 @@ export function TakeoverDialog({ open, onOpenChange, leadId, companyName }: Take
               rows={3}
             />
           </div>
-          
+
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Atenție</AlertTitle>
             <AlertDescription>
-              Secvențele automate vor fi oprite. Va trebui să răspunzi manual la toate mesajele.
+              Secvențele automate vor fi oprite. Va trebui să răspunzi manual la
+              toate mesajele.
             </AlertDescription>
           </Alert>
         </div>
-        
+
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Anulează
           </Button>
-          <Button 
+          <Button
             onClick={() => takeoverMutation.mutate()}
             disabled={takeoverMutation.isPending || !reason}
           >
@@ -723,32 +801,39 @@ interface EnrollSequenceDialogProps {
   leadIds: string[];
 }
 
-export function EnrollSequenceDialog({ open, onOpenChange, leadIds }: EnrollSequenceDialogProps) {
-  const [sequenceId, setSequenceId] = useState('');
+export function EnrollSequenceDialog({
+  open,
+  onOpenChange,
+  leadIds,
+}: EnrollSequenceDialogProps) {
+  const [sequenceId, setSequenceId] = useState("");
   const [startStep, setStartStep] = useState(1);
   const [scheduledStart, setScheduledStart] = useState<Date | undefined>();
 
   const { data: sequences } = useQuery({
-    queryKey: ['sequences', 'active'],
+    queryKey: ["sequences", "active"],
     queryFn: () => fetchSequences({ isActive: true }),
   });
 
   const enrollMutation = useMutation({
-    mutationFn: () => api.post(`/outreach/sequences/${sequenceId}/enroll`, {
-      leadIds,
-      startStep,
-      scheduledStart: scheduledStart?.toISOString(),
-    }),
+    mutationFn: () =>
+      api.post(`/outreach/sequences/${sequenceId}/enroll`, {
+        leadIds,
+        startStep,
+        scheduledStart: scheduledStart?.toISOString(),
+      }),
     onSuccess: (data) => {
       toast.success(`${data.enrolled} leads înrolați în secvență`);
       if (data.skipped > 0) {
-        toast.warning(`${data.skipped} leads au fost săriți (deja înrolați sau ineligibili)`);
+        toast.warning(
+          `${data.skipped} leads au fost săriți (deja înrolați sau ineligibili)`,
+        );
       }
       onOpenChange(false);
     },
   });
 
-  const selectedSequence = sequences?.find(s => s.id === sequenceId);
+  const selectedSequence = sequences?.find((s) => s.id === sequenceId);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -759,7 +844,7 @@ export function EnrollSequenceDialog({ open, onOpenChange, leadIds }: EnrollSequ
             {leadIds.length} lead(s) selectat(e) pentru înrolare
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="space-y-4 py-4">
           <div>
             <Label>Secvență</Label>
@@ -797,7 +882,10 @@ export function EnrollSequenceDialog({ open, onOpenChange, leadIds }: EnrollSequ
 
               <div>
                 <Label>Început de la pasul</Label>
-                <Select value={startStep.toString()} onValueChange={(v) => setStartStep(parseInt(v))}>
+                <Select
+                  value={startStep.toString()}
+                  onValueChange={(v) => setStartStep(parseInt(v))}
+                >
                   <SelectTrigger className="w-32">
                     <SelectValue />
                   </SelectTrigger>
@@ -817,7 +905,9 @@ export function EnrollSequenceDialog({ open, onOpenChange, leadIds }: EnrollSequ
                   <PopoverTrigger asChild>
                     <Button variant="outline" className="w-full justify-start">
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {scheduledStart ? format(scheduledStart, 'PPP HH:mm') : 'Imediat'}
+                      {scheduledStart
+                        ? format(scheduledStart, "PPP HH:mm")
+                        : "Imediat"}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0">
@@ -832,12 +922,12 @@ export function EnrollSequenceDialog({ open, onOpenChange, leadIds }: EnrollSequ
             </>
           )}
         </div>
-        
+
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Anulează
           </Button>
-          <Button 
+          <Button
             onClick={() => enrollMutation.mutate()}
             disabled={enrollMutation.isPending || !sequenceId}
           >
@@ -861,19 +951,28 @@ interface ResolveReviewDialogProps {
   review: ReviewItem;
 }
 
-export function ResolveReviewDialog({ open, onOpenChange, review }: ResolveReviewDialogProps) {
-  const [action, setAction] = useState<'APPROVE' | 'EDIT' | 'REJECT' | 'TAKEOVER'>('APPROVE');
-  const [editedContent, setEditedContent] = useState(review.suggestedResponse || '');
-  const [notes, setNotes] = useState('');
+export function ResolveReviewDialog({
+  open,
+  onOpenChange,
+  review,
+}: ResolveReviewDialogProps) {
+  const [action, setAction] = useState<
+    "APPROVE" | "EDIT" | "REJECT" | "TAKEOVER"
+  >("APPROVE");
+  const [editedContent, setEditedContent] = useState(
+    review.suggestedResponse || "",
+  );
+  const [notes, setNotes] = useState("");
 
   const resolveMutation = useMutation({
-    mutationFn: () => api.post(`/outreach/reviews/${review.id}/resolve`, {
-      action,
-      editedContent: action === 'EDIT' ? editedContent : undefined,
-      notes,
-    }),
+    mutationFn: () =>
+      api.post(`/outreach/reviews/${review.id}/resolve`, {
+        action,
+        editedContent: action === "EDIT" ? editedContent : undefined,
+        notes,
+      }),
     onSuccess: () => {
-      toast.success('Review rezolvat');
+      toast.success("Review rezolvat");
       onOpenChange(false);
     },
   });
@@ -887,12 +986,14 @@ export function ResolveReviewDialog({ open, onOpenChange, review }: ResolveRevie
             {review.leadCompany?.denumire} - {review.reason}
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="space-y-4 py-4">
           {/* Original Message */}
           {review.triggerContent && (
             <div className="bg-muted p-4 rounded-lg">
-              <Label className="text-xs text-muted-foreground">Mesaj Primit</Label>
+              <Label className="text-xs text-muted-foreground">
+                Mesaj Primit
+              </Label>
               <p className="mt-1">{review.triggerContent}</p>
             </div>
           )}
@@ -900,7 +1001,9 @@ export function ResolveReviewDialog({ open, onOpenChange, review }: ResolveRevie
           {/* AI Suggested Response */}
           {review.suggestedResponse && (
             <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-              <Label className="text-xs text-blue-600">Răspuns Sugerat AI</Label>
+              <Label className="text-xs text-blue-600">
+                Răspuns Sugerat AI
+              </Label>
               <p className="mt-1">{review.suggestedResponse}</p>
             </div>
           )}
@@ -908,10 +1011,16 @@ export function ResolveReviewDialog({ open, onOpenChange, review }: ResolveRevie
           {/* Action Selection */}
           <div>
             <Label>Acțiune</Label>
-            <RadioGroup value={action} onValueChange={(v: any) => setAction(v)} className="mt-2">
+            <RadioGroup
+              value={action}
+              onValueChange={(v: any) => setAction(v)}
+              className="mt-2"
+            >
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="APPROVE" id="approve" />
-                <Label htmlFor="approve">Aprobă și trimite răspunsul sugerat</Label>
+                <Label htmlFor="approve">
+                  Aprobă și trimite răspunsul sugerat
+                </Label>
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="EDIT" id="edit" />
@@ -929,7 +1038,7 @@ export function ResolveReviewDialog({ open, onOpenChange, review }: ResolveRevie
           </div>
 
           {/* Edit Content */}
-          {action === 'EDIT' && (
+          {action === "EDIT" && (
             <div>
               <Label>Răspuns Editat</Label>
               <Textarea
@@ -951,20 +1060,20 @@ export function ResolveReviewDialog({ open, onOpenChange, review }: ResolveRevie
             />
           </div>
         </div>
-        
+
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Anulează
           </Button>
-          <Button 
+          <Button
             onClick={() => resolveMutation.mutate()}
             disabled={resolveMutation.isPending}
-            variant={action === 'REJECT' ? 'destructive' : 'default'}
+            variant={action === "REJECT" ? "destructive" : "default"}
           >
-            {action === 'APPROVE' && 'Aprobă și Trimite'}
-            {action === 'EDIT' && 'Trimite Editat'}
-            {action === 'REJECT' && 'Respinge'}
-            {action === 'TAKEOVER' && 'Preia Manual'}
+            {action === "APPROVE" && "Aprobă și Trimite"}
+            {action === "EDIT" && "Trimite Editat"}
+            {action === "REJECT" && "Respinge"}
+            {action === "TAKEOVER" && "Preia Manual"}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -4,26 +4,26 @@ info:
   version: 1.0.0
   description: |
     Specificație OpenAPI pentru Etapa 1 - Data Enrichment Pipeline.
-    
+
     ## Overview
     Etapa 1 implementează pipeline-ul de îmbogățire date pentru prospecți B2B:
     - **Bronze Layer**: Ingestie și validare date brute (CSV, Excel, API, Webhook)
     - **Silver Layer**: Îmbogățire date (ANAF, Termene.ro, ONRC, Geocoding)
     - **Gold Layer**: Lead-uri calificate pentru outreach
     - **HITL**: Human-in-the-Loop pentru aprobare date incerte
-    
+
     ## Autentificare
     Toate endpoint-urile necesită autentificare JWT:
     ```
     Authorization: Bearer <access_token>
     X-Tenant-ID: <tenant_uuid>
     ```
-    
+
     ## Rate Limiting
     - Standard: 100 req/min
     - Import: 10 req/min
     - Enrichment: 60 req/min
-    
+
     Pentru schema globală și convenții comune, vezi docs/api/openapi.yaml.
   contact:
     name: Cerniq Development Team
@@ -73,14 +73,14 @@ paths:
       security:
         - BearerAuth: []
       responses:
-        '200':
+        "200":
           description: Statistici dashboard
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DashboardStatsResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+                $ref: "#/components/schemas/DashboardStatsResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 
   /dashboard/activity:
     get:
@@ -99,12 +99,12 @@ paths:
             maximum: 100
           description: Număr maxim de activități returnate
       responses:
-        '200':
+        "200":
           description: Lista de activități
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ActivityListResponse'
+                $ref: "#/components/schemas/ActivityListResponse"
 
   # ==================== IMPORTS ====================
   /imports:
@@ -118,16 +118,16 @@ paths:
       security:
         - BearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/PageParam'
-        - $ref: '#/components/parameters/PageSizeParam'
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/PageSizeParam"
         - name: status
           in: query
           schema:
-            $ref: '#/components/schemas/ImportStatus'
+            $ref: "#/components/schemas/ImportStatus"
         - name: sourceType
           in: query
           schema:
-            $ref: '#/components/schemas/ImportSourceType'
+            $ref: "#/components/schemas/ImportSourceType"
         - name: startDate
           in: query
           schema:
@@ -151,12 +151,12 @@ paths:
             enum: [asc, desc]
             default: desc
       responses:
-        '200':
+        "200":
           description: Lista de import batches
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ImportListResponse'
+                $ref: "#/components/schemas/ImportListResponse"
 
     post:
       tags: [Imports]
@@ -197,21 +197,21 @@ paths:
                   description: Encoding fișier (utf-8, latin1, etc.)
                 delimiter:
                   type: string
-                  default: ','
+                  default: ","
                   description: Delimiter pentru CSV
                 sheetName:
                   type: string
                   description: Numele sheet-ului pentru Excel
       responses:
-        '201':
+        "201":
           description: Import creat și în procesare
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ImportCreatedResponse'
-        '400':
-          $ref: '#/components/responses/ValidationError'
-        '413':
+                $ref: "#/components/schemas/ImportCreatedResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "413":
           description: Fișier prea mare (max 100MB)
 
   /imports/{importId}:
@@ -225,16 +225,16 @@ paths:
       security:
         - BearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/ImportIdParam'
+        - $ref: "#/components/parameters/ImportIdParam"
       responses:
-        '200':
+        "200":
           description: Detalii import
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ImportDetailResponse'
-        '404':
-          $ref: '#/components/responses/NotFound'
+                $ref: "#/components/schemas/ImportDetailResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /imports/{importId}/cancel:
     post:
@@ -245,18 +245,18 @@ paths:
       security:
         - BearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/ImportIdParam'
+        - $ref: "#/components/parameters/ImportIdParam"
       responses:
-        '200':
+        "200":
           description: Import anulat
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ImportCancelledResponse'
-        '400':
+                $ref: "#/components/schemas/ImportCancelledResponse"
+        "400":
           description: Import nu poate fi anulat (deja completat sau anulat)
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   # ==================== BRONZE ====================
   /bronze/contacts:
@@ -270,16 +270,16 @@ paths:
       security:
         - BearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/PageParam'
-        - $ref: '#/components/parameters/PageSizeParam'
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/PageSizeParam"
         - name: status
           in: query
           schema:
-            $ref: '#/components/schemas/BronzeProcessingStatus'
+            $ref: "#/components/schemas/BronzeProcessingStatus"
         - name: sourceType
           in: query
           schema:
-            $ref: '#/components/schemas/ImportSourceType'
+            $ref: "#/components/schemas/ImportSourceType"
         - name: search
           in: query
           schema:
@@ -314,12 +314,12 @@ paths:
             enum: [asc, desc]
             default: desc
       responses:
-        '200':
+        "200":
           description: Lista contacte Bronze
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BronzeContactListResponse'
+                $ref: "#/components/schemas/BronzeContactListResponse"
 
   /bronze/contacts/{contactId}:
     get:
@@ -330,16 +330,16 @@ paths:
       security:
         - BearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/ContactIdParam'
+        - $ref: "#/components/parameters/ContactIdParam"
       responses:
-        '200':
+        "200":
           description: Detalii contact Bronze
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BronzeContactDetailResponse'
-        '404':
-          $ref: '#/components/responses/NotFound'
+                $ref: "#/components/schemas/BronzeContactDetailResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /bronze/contacts/{contactId}/reprocess:
     post:
@@ -352,16 +352,16 @@ paths:
       security:
         - BearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/ContactIdParam'
+        - $ref: "#/components/parameters/ContactIdParam"
       responses:
-        '200':
+        "200":
           description: Contact programat pentru re-procesare
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ReprocessResponse'
-        '404':
-          $ref: '#/components/responses/NotFound'
+                $ref: "#/components/schemas/ReprocessResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   # ==================== SILVER ====================
   /silver/companies:
@@ -375,8 +375,8 @@ paths:
       security:
         - BearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/PageParam'
-        - $ref: '#/components/parameters/PageSizeParam'
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/PageSizeParam"
         - name: search
           in: query
           schema:
@@ -389,15 +389,15 @@ paths:
         - name: enrichmentStatus
           in: query
           schema:
-            $ref: '#/components/schemas/EnrichmentStatus'
+            $ref: "#/components/schemas/EnrichmentStatus"
         - name: promotionStatus
           in: query
           schema:
-            $ref: '#/components/schemas/PromotionStatus'
+            $ref: "#/components/schemas/PromotionStatus"
         - name: statusFirma
           in: query
           schema:
-            $ref: '#/components/schemas/StatusFirma'
+            $ref: "#/components/schemas/StatusFirma"
         - name: judet
           in: query
           schema:
@@ -427,12 +427,12 @@ paths:
             enum: [asc, desc]
             default: desc
       responses:
-        '200':
+        "200":
           description: Lista companii Silver
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SilverCompanyListResponse'
+                $ref: "#/components/schemas/SilverCompanyListResponse"
 
   /silver/companies/{companyId}:
     get:
@@ -445,16 +445,16 @@ paths:
       security:
         - BearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/CompanyIdParam'
+        - $ref: "#/components/parameters/CompanyIdParam"
       responses:
-        '200':
+        "200":
           description: Detalii companie Silver
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SilverCompanyDetailResponse'
-        '404':
-          $ref: '#/components/responses/NotFound'
+                $ref: "#/components/schemas/SilverCompanyDetailResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /silver/companies/{companyId}/enrich:
     post:
@@ -467,7 +467,7 @@ paths:
       security:
         - BearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/CompanyIdParam'
+        - $ref: "#/components/parameters/CompanyIdParam"
       requestBody:
         content:
           application/json:
@@ -485,14 +485,14 @@ paths:
                   default: false
                   description: Re-îmbogățește chiar dacă deja completat
       responses:
-        '200':
+        "200":
           description: Îmbogățire pornită
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EnrichmentStartedResponse'
-        '404':
-          $ref: '#/components/responses/NotFound'
+                $ref: "#/components/schemas/EnrichmentStartedResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /silver/companies/{companyId}/promote:
     post:
@@ -505,7 +505,7 @@ paths:
       security:
         - BearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/CompanyIdParam'
+        - $ref: "#/components/parameters/CompanyIdParam"
       requestBody:
         content:
           application/json:
@@ -517,16 +517,16 @@ paths:
                   default: false
                   description: Promovează chiar dacă quality < 70
       responses:
-        '200':
+        "200":
           description: Companie promovată
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PromotionResponse'
-        '400':
+                $ref: "#/components/schemas/PromotionResponse"
+        "400":
           description: Nu poate fi promovată (quality prea mic)
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /silver/enrichment-log:
     get:
@@ -543,15 +543,15 @@ paths:
           schema:
             type: string
             format: uuid
-        - $ref: '#/components/parameters/PageParam'
-        - $ref: '#/components/parameters/PageSizeParam'
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/PageSizeParam"
       responses:
-        '200':
+        "200":
           description: Log îmbogățire
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EnrichmentLogResponse'
+                $ref: "#/components/schemas/EnrichmentLogResponse"
 
   # ==================== GOLD ====================
   /gold/companies:
@@ -565,8 +565,8 @@ paths:
       security:
         - BearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/PageParam'
-        - $ref: '#/components/parameters/PageSizeParam'
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/PageSizeParam"
         - name: search
           in: query
           schema:
@@ -576,7 +576,7 @@ paths:
           schema:
             type: array
             items:
-              $ref: '#/components/schemas/LeadState'
+              $ref: "#/components/schemas/LeadState"
         - name: minLeadScore
           in: query
           schema:
@@ -606,7 +606,7 @@ paths:
         - name: categorieRisc
           in: query
           schema:
-            $ref: '#/components/schemas/CategorieRisc'
+            $ref: "#/components/schemas/CategorieRisc"
         - name: assignedTo
           in: query
           schema:
@@ -633,12 +633,12 @@ paths:
             enum: [asc, desc]
             default: desc
       responses:
-        '200':
+        "200":
           description: Lista companii Gold
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GoldCompanyListResponse'
+                $ref: "#/components/schemas/GoldCompanyListResponse"
 
   /gold/companies/{companyId}:
     get:
@@ -651,16 +651,16 @@ paths:
       security:
         - BearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/CompanyIdParam'
+        - $ref: "#/components/parameters/CompanyIdParam"
       responses:
-        '200':
+        "200":
           description: Detalii companie Gold
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GoldCompanyDetailResponse'
-        '404':
-          $ref: '#/components/responses/NotFound'
+                $ref: "#/components/schemas/GoldCompanyDetailResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
     patch:
       tags: [Gold]
@@ -670,22 +670,22 @@ paths:
       security:
         - BearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/CompanyIdParam'
+        - $ref: "#/components/parameters/CompanyIdParam"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/GoldCompanyUpdateRequest'
+              $ref: "#/components/schemas/GoldCompanyUpdateRequest"
       responses:
-        '200':
+        "200":
           description: Companie actualizată
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GoldCompanyUpdateResponse'
-        '404':
-          $ref: '#/components/responses/NotFound'
+                $ref: "#/components/schemas/GoldCompanyUpdateResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /gold/companies/{companyId}/transition:
     post:
@@ -698,7 +698,7 @@ paths:
       security:
         - BearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/CompanyIdParam'
+        - $ref: "#/components/parameters/CompanyIdParam"
       requestBody:
         required: true
         content:
@@ -709,22 +709,22 @@ paths:
                 - toState
               properties:
                 toState:
-                  $ref: '#/components/schemas/LeadState'
+                  $ref: "#/components/schemas/LeadState"
                 metadata:
                   type: object
                   additionalProperties: true
                   description: Metadata asociat tranziției
       responses:
-        '200':
+        "200":
           description: Tranziție executată
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TransitionResponse'
-        '400':
+                $ref: "#/components/schemas/TransitionResponse"
+        "400":
           description: Tranziție invalidă
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   # ==================== APPROVALS ====================
   /approvals:
@@ -738,22 +738,22 @@ paths:
       security:
         - BearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/PageParam'
-        - $ref: '#/components/parameters/PageSizeParam'
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/PageSizeParam"
         - name: status
           in: query
           schema:
             type: array
             items:
-              $ref: '#/components/schemas/ApprovalStatus'
+              $ref: "#/components/schemas/ApprovalStatus"
         - name: approvalType
           in: query
           schema:
-            $ref: '#/components/schemas/ApprovalType'
+            $ref: "#/components/schemas/ApprovalType"
         - name: priority
           in: query
           schema:
-            $ref: '#/components/schemas/ApprovalPriority'
+            $ref: "#/components/schemas/ApprovalPriority"
         - name: assignedTo
           in: query
           schema:
@@ -777,12 +777,12 @@ paths:
             enum: [asc, desc]
             default: asc
       responses:
-        '200':
+        "200":
           description: Lista aprobări
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApprovalListResponse'
+                $ref: "#/components/schemas/ApprovalListResponse"
 
   /approvals/{approvalId}:
     get:
@@ -793,16 +793,16 @@ paths:
       security:
         - BearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/ApprovalIdParam'
+        - $ref: "#/components/parameters/ApprovalIdParam"
       responses:
-        '200':
+        "200":
           description: Detalii aprobare
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApprovalDetailResponse'
-        '404':
-          $ref: '#/components/responses/NotFound'
+                $ref: "#/components/schemas/ApprovalDetailResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /approvals/{approvalId}/assign:
     post:
@@ -813,7 +813,7 @@ paths:
       security:
         - BearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/ApprovalIdParam'
+        - $ref: "#/components/parameters/ApprovalIdParam"
       requestBody:
         required: true
         content:
@@ -827,14 +827,14 @@ paths:
                   nullable: true
                   description: User ID pentru asignare, null pentru de-asignare
       responses:
-        '200':
+        "200":
           description: Task asignat
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApprovalAssignResponse'
-        '404':
-          $ref: '#/components/responses/NotFound'
+                $ref: "#/components/schemas/ApprovalAssignResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /approvals/{approvalId}/decide:
     post:
@@ -847,7 +847,7 @@ paths:
       security:
         - BearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/ApprovalIdParam'
+        - $ref: "#/components/parameters/ApprovalIdParam"
       requestBody:
         required: true
         content:
@@ -865,16 +865,16 @@ paths:
                   maxLength: 1000
                   description: Motivul deciziei
       responses:
-        '200':
+        "200":
           description: Decizie înregistrată
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApprovalDecisionResponse'
-        '400':
+                $ref: "#/components/schemas/ApprovalDecisionResponse"
+        "400":
           description: Task deja decis sau expirat
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   # ==================== ENRICHMENT QUEUES ====================
   /enrichment/queues:
@@ -886,12 +886,12 @@ paths:
       security:
         - BearerAuth: []
       responses:
-        '200':
+        "200":
           description: Lista queue-uri
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EnrichmentQueuesResponse'
+                $ref: "#/components/schemas/EnrichmentQueuesResponse"
 
   /enrichment/queues/{queueName}/pause:
     post:
@@ -909,13 +909,13 @@ paths:
             type: string
           description: Numele queue-ului (e.g., enrich:anaf:fiscal-status)
       responses:
-        '200':
+        "200":
           description: Queue în pauză
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/QueueStatusResponse'
-        '404':
+                $ref: "#/components/schemas/QueueStatusResponse"
+        "404":
           description: Queue inexistent
 
   /enrichment/queues/{queueName}/resume:
@@ -933,13 +933,13 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Queue repornit
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/QueueStatusResponse'
-        '404':
+                $ref: "#/components/schemas/QueueStatusResponse"
+        "404":
           description: Queue inexistent
 
 components:
@@ -959,7 +959,7 @@ components:
         minimum: 1
         default: 1
       description: Numărul paginii (1-indexed)
-    
+
     PageSizeParam:
       name: pageSize
       in: query
@@ -969,7 +969,7 @@ components:
         maximum: 100
         default: 20
       description: Număr de rezultate per pagină
-    
+
     ImportIdParam:
       name: importId
       in: path
@@ -978,7 +978,7 @@ components:
         type: string
         format: uuid
       description: ID-ul batch-ului de import
-    
+
     ContactIdParam:
       name: contactId
       in: path
@@ -987,7 +987,7 @@ components:
         type: string
         format: uuid
       description: ID-ul contactului
-    
+
     CompanyIdParam:
       name: companyId
       in: path
@@ -996,7 +996,7 @@ components:
         type: string
         format: uuid
       description: ID-ul companiei
-    
+
     ApprovalIdParam:
       name: approvalId
       in: path
@@ -1012,21 +1012,21 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
-    
+            $ref: "#/components/schemas/ErrorResponse"
+
     NotFound:
       description: Resursa nu a fost găsită
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
-    
+            $ref: "#/components/schemas/ErrorResponse"
+
     ValidationError:
       description: Eroare de validare
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
 
   schemas:
     # ========== COMMON ==========
@@ -1255,9 +1255,9 @@ components:
         data:
           type: array
           items:
-            $ref: '#/components/schemas/ImportSummary'
+            $ref: "#/components/schemas/ImportSummary"
         meta:
-          $ref: '#/components/schemas/PaginationMeta'
+          $ref: "#/components/schemas/PaginationMeta"
 
     ImportSummary:
       type: object
@@ -1268,7 +1268,7 @@ components:
         filename:
           type: string
         sourceType:
-          $ref: '#/components/schemas/ImportSourceType'
+          $ref: "#/components/schemas/ImportSourceType"
         fileSizeBytes:
           type: integer
         totalRows:
@@ -1282,7 +1282,7 @@ components:
         duplicateRows:
           type: integer
         status:
-          $ref: '#/components/schemas/ImportStatus'
+          $ref: "#/components/schemas/ImportStatus"
         importedBy:
           type: object
           properties:
@@ -1319,7 +1319,7 @@ components:
             filename:
               type: string
             status:
-              $ref: '#/components/schemas/ImportStatus'
+              $ref: "#/components/schemas/ImportStatus"
             estimatedRows:
               type: integer
             createdAt:
@@ -1337,7 +1337,7 @@ components:
           const: true
         data:
           allOf:
-            - $ref: '#/components/schemas/ImportSummary'
+            - $ref: "#/components/schemas/ImportSummary"
             - type: object
               properties:
                 fileChecksum:
@@ -1400,9 +1400,9 @@ components:
         data:
           type: array
           items:
-            $ref: '#/components/schemas/BronzeContactSummary'
+            $ref: "#/components/schemas/BronzeContactSummary"
         meta:
-          $ref: '#/components/schemas/PaginationMeta'
+          $ref: "#/components/schemas/PaginationMeta"
 
     BronzeContactSummary:
       type: object
@@ -1419,11 +1419,11 @@ components:
         extractedPhone:
           type: string
         sourceType:
-          $ref: '#/components/schemas/ImportSourceType'
+          $ref: "#/components/schemas/ImportSourceType"
         sourceIdentifier:
           type: string
         processingStatus:
-          $ref: '#/components/schemas/BronzeProcessingStatus'
+          $ref: "#/components/schemas/BronzeProcessingStatus"
         isDuplicate:
           type: boolean
         createdAt:
@@ -1441,7 +1441,7 @@ components:
           const: true
         data:
           allOf:
-            - $ref: '#/components/schemas/BronzeContactSummary'
+            - $ref: "#/components/schemas/BronzeContactSummary"
             - type: object
               properties:
                 rawPayload:
@@ -1503,9 +1503,9 @@ components:
         data:
           type: array
           items:
-            $ref: '#/components/schemas/SilverCompanySummary'
+            $ref: "#/components/schemas/SilverCompanySummary"
         meta:
-          $ref: '#/components/schemas/PaginationMeta'
+          $ref: "#/components/schemas/PaginationMeta"
 
     SilverCompanySummary:
       type: object
@@ -1522,11 +1522,11 @@ components:
         judet:
           type: string
         statusFirma:
-          $ref: '#/components/schemas/StatusFirma'
+          $ref: "#/components/schemas/StatusFirma"
         cuiValidated:
           type: boolean
         enrichmentStatus:
-          $ref: '#/components/schemas/EnrichmentStatus'
+          $ref: "#/components/schemas/EnrichmentStatus"
         enrichmentSourcesCompleted:
           type: array
           items:
@@ -1538,7 +1538,7 @@ components:
         accuracyScore:
           type: integer
         promotionStatus:
-          $ref: '#/components/schemas/PromotionStatus'
+          $ref: "#/components/schemas/PromotionStatus"
         updatedAt:
           type: string
           format: date-time
@@ -1554,7 +1554,7 @@ components:
           const: true
         data:
           allOf:
-            - $ref: '#/components/schemas/SilverCompanySummary'
+            - $ref: "#/components/schemas/SilverCompanySummary"
             - type: object
               properties:
                 tenantId:
@@ -1613,7 +1613,7 @@ components:
                 scorRiscTermene:
                   type: integer
                 categorieRisc:
-                  $ref: '#/components/schemas/CategorieRisc'
+                  $ref: "#/components/schemas/CategorieRisc"
                 freshnessScore:
                   type: integer
                 lastEnrichmentAt:
@@ -1711,7 +1711,7 @@ components:
                 type: string
                 format: date-time
         meta:
-          $ref: '#/components/schemas/PaginationMeta'
+          $ref: "#/components/schemas/PaginationMeta"
 
     # ========== GOLD ==========
     GoldCompanyListResponse:
@@ -1727,9 +1727,9 @@ components:
         data:
           type: array
           items:
-            $ref: '#/components/schemas/GoldCompanySummary'
+            $ref: "#/components/schemas/GoldCompanySummary"
         meta:
-          $ref: '#/components/schemas/PaginationMeta'
+          $ref: "#/components/schemas/PaginationMeta"
 
     GoldCompanySummary:
       type: object
@@ -1760,9 +1760,9 @@ components:
         intentScore:
           type: integer
         currentState:
-          $ref: '#/components/schemas/LeadState'
+          $ref: "#/components/schemas/LeadState"
         categorieRisc:
-          $ref: '#/components/schemas/CategorieRisc'
+          $ref: "#/components/schemas/CategorieRisc"
         assignedTo:
           type: object
           nullable: true
@@ -1791,7 +1791,7 @@ components:
           const: true
         data:
           allOf:
-            - $ref: '#/components/schemas/GoldCompanySummary'
+            - $ref: "#/components/schemas/GoldCompanySummary"
             - type: object
               properties:
                 tenantId:
@@ -1806,7 +1806,7 @@ components:
                     type: string
                     format: uuid
                 previousState:
-                  $ref: '#/components/schemas/LeadState'
+                  $ref: "#/components/schemas/LeadState"
                 stateChangedAt:
                   type: string
                   format: date-time
@@ -1838,7 +1838,7 @@ components:
       type: object
       properties:
         currentState:
-          $ref: '#/components/schemas/LeadState'
+          $ref: "#/components/schemas/LeadState"
         assignedTo:
           type: string
           format: uuid
@@ -1866,9 +1866,9 @@ components:
               type: string
               format: uuid
             currentState:
-              $ref: '#/components/schemas/LeadState'
+              $ref: "#/components/schemas/LeadState"
             previousState:
-              $ref: '#/components/schemas/LeadState'
+              $ref: "#/components/schemas/LeadState"
             stateChangedAt:
               type: string
               format: date-time
@@ -1896,9 +1896,9 @@ components:
               type: string
               format: uuid
             fromState:
-              $ref: '#/components/schemas/LeadState'
+              $ref: "#/components/schemas/LeadState"
             toState:
-              $ref: '#/components/schemas/LeadState'
+              $ref: "#/components/schemas/LeadState"
             transitionedAt:
               type: string
               format: date-time
@@ -1920,9 +1920,9 @@ components:
         data:
           type: array
           items:
-            $ref: '#/components/schemas/ApprovalSummary'
+            $ref: "#/components/schemas/ApprovalSummary"
         meta:
-          $ref: '#/components/schemas/PaginationMeta'
+          $ref: "#/components/schemas/PaginationMeta"
 
     ApprovalSummary:
       type: object
@@ -1940,11 +1940,11 @@ components:
         pipelineStage:
           type: string
         approvalType:
-          $ref: '#/components/schemas/ApprovalType'
+          $ref: "#/components/schemas/ApprovalType"
         status:
-          $ref: '#/components/schemas/ApprovalStatus'
+          $ref: "#/components/schemas/ApprovalStatus"
         priority:
-          $ref: '#/components/schemas/ApprovalPriority'
+          $ref: "#/components/schemas/ApprovalPriority"
         slaMinutes:
           type: integer
         dueAt:
@@ -1972,7 +1972,7 @@ components:
           const: true
         data:
           allOf:
-            - $ref: '#/components/schemas/ApprovalSummary'
+            - $ref: "#/components/schemas/ApprovalSummary"
             - type: object
               properties:
                 decision:
@@ -2063,7 +2063,7 @@ components:
         data:
           type: array
           items:
-            $ref: '#/components/schemas/QueueStats'
+            $ref: "#/components/schemas/QueueStats"
 
     QueueStats:
       type: object

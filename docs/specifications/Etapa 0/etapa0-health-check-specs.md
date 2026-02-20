@@ -12,11 +12,11 @@
 
 ## 1.1 Niveluri Health Check
 
-| Endpoint | Scop | Verificări | Response Time |
-| -------- | ---- | ---------- | ------------- |
-| `/health/live` | Kubernetes liveness | Process running | < 10ms |
-| `/health/ready` | Kubernetes readiness | DB + Redis connected | < 500ms |
-| `/health/deps` | Debugging | All dependencies + latency | < 2000ms |
+| Endpoint        | Scop                 | Verificări                 | Response Time |
+| --------------- | -------------------- | -------------------------- | ------------- |
+| `/health/live`  | Kubernetes liveness  | Process running            | < 10ms        |
+| `/health/ready` | Kubernetes readiness | DB + Redis connected       | < 500ms       |
+| `/health/deps`  | Debugging            | All dependencies + latency | < 2000ms      |
 
 ---
 
@@ -26,27 +26,31 @@
 
 ```typescript
 // apps/api/src/routes/health/live.ts
-import { FastifyPluginAsync } from 'fastify';
+import { FastifyPluginAsync } from "fastify";
 
 const liveRoute: FastifyPluginAsync = async (fastify) => {
-  fastify.get('/health/live', {
-    schema: {
-      response: {
-        200: {
-          type: 'object',
-          properties: {
-            status: { type: 'string', enum: ['ok'] },
-            timestamp: { type: 'string', format: 'date-time' }
-          }
-        }
-      }
-    }
-  }, async () => {
-    return {
-      status: 'ok',
-      timestamp: new Date().toISOString()
-    };
-  });
+  fastify.get(
+    "/health/live",
+    {
+      schema: {
+        response: {
+          200: {
+            type: "object",
+            properties: {
+              status: { type: "string", enum: ["ok"] },
+              timestamp: { type: "string", format: "date-time" },
+            },
+          },
+        },
+      },
+    },
+    async () => {
+      return {
+        status: "ok",
+        timestamp: new Date().toISOString(),
+      };
+    },
+  );
 };
 
 export default liveRoute;
@@ -56,10 +60,10 @@ export default liveRoute;
 
 ```typescript
 // apps/api/src/routes/health/ready.ts
-import { FastifyPluginAsync } from 'fastify';
+import { FastifyPluginAsync } from "fastify";
 
 interface ReadinessResponse {
-  status: 'ok' | 'degraded' | 'unhealthy';
+  status: "ok" | "degraded" | "unhealthy";
   checks: {
     database: boolean;
     redis: boolean;
@@ -68,41 +72,44 @@ interface ReadinessResponse {
 }
 
 const readyRoute: FastifyPluginAsync = async (fastify) => {
-  fastify.get('/health/ready', async (request, reply): Promise<ReadinessResponse> => {
-    const checks = {
-      database: false,
-      redis: false
-    };
+  fastify.get(
+    "/health/ready",
+    async (request, reply): Promise<ReadinessResponse> => {
+      const checks = {
+        database: false,
+        redis: false,
+      };
 
-    // Check PostgreSQL
-    try {
-      await fastify.db.execute('SELECT 1');
-      checks.database = true;
-    } catch (err) {
-      fastify.log.error({ err }, 'Database health check failed');
-    }
+      // Check PostgreSQL
+      try {
+        await fastify.db.execute("SELECT 1");
+        checks.database = true;
+      } catch (err) {
+        fastify.log.error({ err }, "Database health check failed");
+      }
 
-    // Check Redis
-    try {
-      await fastify.redis.ping();
-      checks.redis = true;
-    } catch (err) {
-      fastify.log.error({ err }, 'Redis health check failed');
-    }
+      // Check Redis
+      try {
+        await fastify.redis.ping();
+        checks.redis = true;
+      } catch (err) {
+        fastify.log.error({ err }, "Redis health check failed");
+      }
 
-    const allHealthy = checks.database && checks.redis;
-    const status = allHealthy ? 'ok' : 'unhealthy';
+      const allHealthy = checks.database && checks.redis;
+      const status = allHealthy ? "ok" : "unhealthy";
 
-    if (!allHealthy) {
-      reply.code(503);
-    }
+      if (!allHealthy) {
+        reply.code(503);
+      }
 
-    return {
-      status,
-      checks,
-      timestamp: new Date().toISOString()
-    };
-  });
+      return {
+        status,
+        checks,
+        timestamp: new Date().toISOString(),
+      };
+    },
+  );
 };
 
 export default readyRoute;
@@ -112,114 +119,118 @@ export default readyRoute;
 
 ```typescript
 // apps/api/src/routes/health/deps.ts
-import { FastifyPluginAsync } from 'fastify';
+import { FastifyPluginAsync } from "fastify";
 
 interface DependencyCheck {
   name: string;
-  status: 'healthy' | 'unhealthy';
+  status: "healthy" | "unhealthy";
   latencyMs: number;
   details?: Record<string, unknown>;
   error?: string;
 }
 
 interface DepsResponse {
-  status: 'ok' | 'degraded' | 'unhealthy';
+  status: "ok" | "degraded" | "unhealthy";
   dependencies: DependencyCheck[];
   timestamp: string;
 }
 
 const depsRoute: FastifyPluginAsync = async (fastify) => {
-  fastify.get('/health/deps', async (request, reply): Promise<DepsResponse> => {
+  fastify.get("/health/deps", async (request, reply): Promise<DepsResponse> => {
     const dependencies: DependencyCheck[] = [];
 
     // PostgreSQL
     const pgStart = Date.now();
     try {
-      const result = await fastify.db.execute('SELECT version(), pg_postmaster_start_time()');
+      const result = await fastify.db.execute(
+        "SELECT version(), pg_postmaster_start_time()",
+      );
       dependencies.push({
-        name: 'postgresql',
-        status: 'healthy',
+        name: "postgresql",
+        status: "healthy",
         latencyMs: Date.now() - pgStart,
         details: {
           version: result[0]?.version,
-          uptime: result[0]?.pg_postmaster_start_time
-        }
+          uptime: result[0]?.pg_postmaster_start_time,
+        },
       });
     } catch (err) {
       dependencies.push({
-        name: 'postgresql',
-        status: 'unhealthy',
+        name: "postgresql",
+        status: "unhealthy",
         latencyMs: Date.now() - pgStart,
-        error: err instanceof Error ? err.message : 'Unknown error'
+        error: err instanceof Error ? err.message : "Unknown error",
       });
     }
 
     // Redis
     const redisStart = Date.now();
     try {
-      const info = await fastify.redis.info('server');
+      const info = await fastify.redis.info("server");
       const versionMatch = info.match(/redis_version:(\S+)/);
       dependencies.push({
-        name: 'redis',
-        status: 'healthy',
+        name: "redis",
+        status: "healthy",
         latencyMs: Date.now() - redisStart,
         details: {
-          version: versionMatch?.[1]
-        }
+          version: versionMatch?.[1],
+        },
       });
     } catch (err) {
       dependencies.push({
-        name: 'redis',
-        status: 'unhealthy',
+        name: "redis",
+        status: "unhealthy",
         latencyMs: Date.now() - redisStart,
-        error: err instanceof Error ? err.message : 'Unknown error'
+        error: err instanceof Error ? err.message : "Unknown error",
       });
     }
 
     // BullMQ Queues
     const bullStart = Date.now();
     try {
-      const queueNames = ['enrichment', 'outreach', 'ai-sales'];
+      const queueNames = ["enrichment", "outreach", "ai-sales"];
       const queueStats = await Promise.all(
         queueNames.map(async (name) => {
           const queue = fastify.queues[name];
           if (!queue) return { name, waiting: 0, active: 0, failed: 0 };
           const counts = await queue.getJobCounts();
           return { name, ...counts };
-        })
+        }),
       );
       dependencies.push({
-        name: 'bullmq',
-        status: 'healthy',
+        name: "bullmq",
+        status: "healthy",
         latencyMs: Date.now() - bullStart,
-        details: { queues: queueStats }
+        details: { queues: queueStats },
       });
     } catch (err) {
       dependencies.push({
-        name: 'bullmq',
-        status: 'unhealthy',
+        name: "bullmq",
+        status: "unhealthy",
         latencyMs: Date.now() - bullStart,
-        error: err instanceof Error ? err.message : 'Unknown error'
+        error: err instanceof Error ? err.message : "Unknown error",
       });
     }
 
-    const unhealthyCount = dependencies.filter(d => d.status === 'unhealthy').length;
-    let status: 'ok' | 'degraded' | 'unhealthy';
-    
+    const unhealthyCount = dependencies.filter(
+      (d) => d.status === "unhealthy",
+    ).length;
+    let status: "ok" | "degraded" | "unhealthy";
+
     if (unhealthyCount === 0) {
-      status = 'ok';
+      status = "ok";
     } else if (unhealthyCount < dependencies.length) {
-      status = 'degraded';
+      status = "degraded";
       reply.code(503);
     } else {
-      status = 'unhealthy';
+      status = "unhealthy";
       reply.code(503);
     }
 
     return {
       status,
       dependencies,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
   });
 };
@@ -235,26 +246,19 @@ export default depsRoute;
 
 ```yaml
 services:
-  postgres:
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U cerniq -d cerniq_production"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 60s
+  # PostgreSQL nu ruleaza in Docker pe stack-ul Cerniq (este extern pe CT107).
+  # Validare recomandata (din CT109/CT110):
+  # - direct: pg_isready -h 10.0.1.107 -p 5432
+  # - prin PgBouncer: pg_isready -h 127.0.0.1 -p 64033
 ```
 
 ## 3.2 Redis
 
 ```yaml
 services:
-  redis:
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
+  # Redis nu ruleaza local; este shared pe orchestrator si accesat prin gateway intern.
+  # Validare recomandata (din CT109/CT110):
+  # redis-cli -h 10.0.1.10 -p 6379 --user cerniq -a "$REDIS_PASSWORD" PING
 ```
 
 ## 3.3 API
@@ -270,13 +274,14 @@ services:
       start_period: 60s
 ```
 
-## 3.4 Traefik
+## 3.4 PgBouncer
 
 ```yaml
 services:
-  traefik:
+  pgbouncer:
     healthcheck:
-      test: ["CMD", "traefik", "healthcheck"]
+      # In container, PgBouncer asculta tipic pe 6432 (host expose 64033).
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 6432 >/dev/null 2>&1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -332,7 +337,7 @@ services:
       "status": "healthy",
       "latencyMs": 12,
       "details": {
-        "version": "PostgreSQL 18.1",
+        "version": "PostgreSQL 18.2",
         "uptime": "2026-01-14T08:00:00.000Z"
       }
     },
@@ -350,8 +355,8 @@ services:
       "latencyMs": 25,
       "details": {
         "queues": [
-          {"name": "enrichment", "waiting": 45, "active": 5, "failed": 0},
-          {"name": "outreach", "waiting": 120, "active": 10, "failed": 2}
+          { "name": "enrichment", "waiting": 45, "active": 5, "failed": 0 },
+          { "name": "outreach", "waiting": 120, "active": 10, "failed": 2 }
         ]
       }
     }
@@ -368,23 +373,23 @@ services:
 
 ```typescript
 // Expose health as Prometheus metrics
-import { Counter, Gauge } from 'prom-client';
+import { Counter, Gauge } from "prom-client";
 
 const healthCheckGauge = new Gauge({
-  name: 'cerniq_health_check_status',
-  help: 'Health check status (1=healthy, 0=unhealthy)',
-  labelNames: ['check']
+  name: "cerniq_health_check_status",
+  help: "Health check status (1=healthy, 0=unhealthy)",
+  labelNames: ["check"],
 });
 
 const healthCheckLatency = new Gauge({
-  name: 'cerniq_health_check_latency_ms',
-  help: 'Health check latency in milliseconds',
-  labelNames: ['check']
+  name: "cerniq_health_check_latency_ms",
+  help: "Health check latency in milliseconds",
+  labelNames: ["check"],
 });
 
 // Update on each health check
-healthCheckGauge.set({ check: 'database' }, checks.database ? 1 : 0);
-healthCheckLatency.set({ check: 'database' }, pgLatency);
+healthCheckGauge.set({ check: "database" }, checks.database ? 1 : 0);
+healthCheckLatency.set({ check: "database" }, pgLatency);
 ```
 
 ## 5.2 Alerting Rules
@@ -401,7 +406,7 @@ groups:
           severity: critical
         annotations:
           summary: "Database health check failing"
-          
+
       - alert: HighHealthCheckLatency
         expr: cerniq_health_check_latency_ms > 1000
         for: 5m

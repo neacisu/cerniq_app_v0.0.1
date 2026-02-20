@@ -10,66 +10,66 @@
 
 ### 🏗️ ARCHITECTURE & DECISIONS
 
-| # | Document | Description | Status |
-| --- | ---------- | ------------- | -------- |
-| 1 | `00-INDEX-ETAPA1.md` | Index documentație | ✅ Complete |
-| 2 | `etapa1-adrs.md` | 20 Architecture Decision Records | ✅ Complete |
-| 3 | `etapa1-plan-implementare-COMPLET.md` | Implementation plan with 126 tasks | ✅ Complete |
-| 4 | `etapa1-sprint-plan.md` | Sprint plan with 4 sprints, 32 PRs, Task IDs | ✅ Complete |
+| #   | Document                              | Description                                  | Status      |
+| --- | ------------------------------------- | -------------------------------------------- | ----------- |
+| 1   | `00-INDEX-ETAPA1.md`                  | Index documentație                           | ✅ Complete |
+| 2   | `etapa1-adrs.md`                      | 20 Architecture Decision Records             | ✅ Complete |
+| 3   | `etapa1-plan-implementare-COMPLET.md` | Implementation plan with 126 tasks           | ✅ Complete |
+| 4   | `etapa1-sprint-plan.md`               | Sprint plan with 4 sprints, 32 PRs, Task IDs | ✅ Complete |
 
 ### 📊 DATABASE SCHEMAS
 
-| # | Document | Description | Status |
-| --- | ---------- | ------------- | -------- |
-| 5 | `etapa1-schema-bronze.md` | Bronze layer tables & indexes | ✅ Complete |
-| 6 | `etapa1-schema-silver.md` | Silver layer tables (120+ columns) | ✅ Complete |
-| 7 | `etapa1-schema-gold.md` | Gold layer + lead management | ✅ Complete |
-| 8 | `etapa1-migrations.md` | Complete Drizzle migrations | ✅ Complete |
+| #   | Document                  | Description                        | Status      |
+| --- | ------------------------- | ---------------------------------- | ----------- |
+| 5   | `etapa1-schema-bronze.md` | Bronze layer tables & indexes      | ✅ Complete |
+| 6   | `etapa1-schema-silver.md` | Silver layer tables (120+ columns) | ✅ Complete |
+| 7   | `etapa1-schema-gold.md`   | Gold layer + lead management       | ✅ Complete |
+| 8   | `etapa1-migrations.md`    | Complete Drizzle migrations        | ✅ Complete |
 
 ### ⚙️ WORKERS
 
-| # | Document | Description | Status |
-| --- | ---------- | ------------- | -------- |
-| 9 | `etapa1-workers-overview.md` | Worker architecture overview | ✅ Complete |
-| 10 | `etapa1-workers-A-ingestie.md` | CSV/Excel/API/Webhook/Manual ingest | ✅ Complete |
-| 11 | `etapa1-workers-B-C-normalizare-validare.md` | Normalization & CUI validation | ✅ Complete |
-| 12 | `etapa1-workers-D-E-anaf-termene.md` | ANAF & Termene.ro enrichment | ✅ Complete |
-| 13 | `etapa1-workers-F-H-onrc-email-phone.md` | ONRC, Email, Phone workers | ✅ Complete |
-| 14 | `etapa1-workers-I-L-scraping-ai-geo-agri.md` | Scraping, AI, Geo, Agricultural | ✅ Complete |
-| 15 | `etapa1-workers-M-P-dedup-score-pipeline.md` | Dedup, Scoring, Pipeline mgmt | ✅ Complete |
-| 16 | `etapa1-workers-triggers.md` | Inter-worker trigger rules | ✅ Complete |
+| #   | Document                                     | Description                         | Status      |
+| --- | -------------------------------------------- | ----------------------------------- | ----------- |
+| 9   | `etapa1-workers-overview.md`                 | Worker architecture overview        | ✅ Complete |
+| 10  | `etapa1-workers-A-ingestie.md`               | CSV/Excel/API/Webhook/Manual ingest | ✅ Complete |
+| 11  | `etapa1-workers-B-C-normalizare-validare.md` | Normalization & CUI validation      | ✅ Complete |
+| 12  | `etapa1-workers-D-E-anaf-termene.md`         | ANAF & Termene.ro enrichment        | ✅ Complete |
+| 13  | `etapa1-workers-F-H-onrc-email-phone.md`     | ONRC, Email, Phone workers          | ✅ Complete |
+| 14  | `etapa1-workers-I-L-scraping-ai-geo-agri.md` | Scraping, AI, Geo, Agricultural     | ✅ Complete |
+| 15  | `etapa1-workers-M-P-dedup-score-pipeline.md` | Dedup, Scoring, Pipeline mgmt       | ✅ Complete |
+| 16  | `etapa1-workers-triggers.md`                 | Inter-worker trigger rules          | ✅ Complete |
 
 ### 🖥️ FRONTEND / UI
 
-| # | Document | Description | Status |
-| --- | ---------- | ------------- | -------- |
-| 17 | `etapa1-ui-components.md` | Base UI components library | ✅ Complete |
-| 18 | `etapa1-ui-tables.md` | Data tables with filters | ✅ Complete |
-| 19 | `etapa1-ui-pages.md` | All page layouts & routing | ✅ Complete |
-| 20 | `etapa1-ui-forms-dialogs.md` | Forms, dialogs, validation | ✅ Complete |
-| 21 | `etapa1-ui-charts-navigation.md` | Charts, sidebar, navigation | ✅ Complete |
+| #   | Document                         | Description                 | Status      |
+| --- | -------------------------------- | --------------------------- | ----------- |
+| 17  | `etapa1-ui-components.md`        | Base UI components library  | ✅ Complete |
+| 18  | `etapa1-ui-tables.md`            | Data tables with filters    | ✅ Complete |
+| 19  | `etapa1-ui-pages.md`             | All page layouts & routing  | ✅ Complete |
+| 20  | `etapa1-ui-forms-dialogs.md`     | Forms, dialogs, validation  | ✅ Complete |
+| 21  | `etapa1-ui-charts-navigation.md` | Charts, sidebar, navigation | ✅ Complete |
 
 ### 🔌 BACKEND / API
 
-| # | Document | Description | Status |
-| --- | ---------- | ------------- | -------- |
-| 22 | `etapa1-api-endpoints.md` | All REST API endpoints | ✅ Complete |
-| 23 | `etapa1-api-schemas-auth.md` | Zod schemas & JWT auth | ✅ Complete |
-| 24 | `../../api/openapi-etapa1.yaml` | OpenAPI Etapa 1 (40+ endpoints) | ✅ Complete |
+| #   | Document                        | Description                     | Status      |
+| --- | ------------------------------- | ------------------------------- | ----------- |
+| 22  | `etapa1-api-endpoints.md`       | All REST API endpoints          | ✅ Complete |
+| 23  | `etapa1-api-schemas-auth.md`    | Zod schemas & JWT auth          | ✅ Complete |
+| 24  | `../../api/openapi-etapa1.yaml` | OpenAPI Etapa 1 (40+ endpoints) | ✅ Complete |
 
 ### ✅ HITL (Human-in-the-Loop)
 
-| # | Document | Description | Status |
-| --- | ---------- | ------------- | -------- |
-| 25 | `etapa1-hitl-system.md` | Complete HITL architecture | ✅ Complete |
+| #   | Document                | Description                | Status      |
+| --- | ----------------------- | -------------------------- | ----------- |
+| 25  | `etapa1-hitl-system.md` | Complete HITL architecture | ✅ Complete |
 
 ### 📋 OPERATIONS
 
-| # | Document | Description | Status |
-| --- | ---------- | ------------- | -------- |
-| 26 | `etapa1-runbook-monitoring.md` | Runbook & monitoring setup | ✅ Complete |
-| 27 | `etapa1-testing-strategy.md` | Test pyramid & automation | ✅ Complete |
-| 28 | `etapa1-environment-variables.md` | Environment variables Etapa 1 | ✅ Complete |
+| #   | Document                          | Description                   | Status      |
+| --- | --------------------------------- | ----------------------------- | ----------- |
+| 26  | `etapa1-runbook-monitoring.md`    | Runbook & monitoring setup    | ✅ Complete |
+| 27  | `etapa1-testing-strategy.md`      | Test pyramid & automation     | ✅ Complete |
+| 28  | `etapa1-environment-variables.md` | Environment variables Etapa 1 | ✅ Complete |
 
 ---
 
@@ -89,24 +89,24 @@
 
 ### Worker Categories (58 total)
 
-| Category | Count | Queue Prefix |
-| --- | --- | --- |
-| A: Ingestie | 5 | `bronze:ingest:*` |
-| B: Normalizare | 4 | `bronze:normalize:*` |
-| C: Validare CUI | 2 | `bronze:validate:*` |
-| D: ANAF | 5 | `silver:enrich:anaf-*` |
-| E: Termene.ro | 4 | `silver:enrich:termene-*` |
-| F: ONRC | 3 | `silver:enrich:onrc-*` |
-| G: Email | 5 | `silver:enrich:*-email-*` |
-| H: Phone | 3 | `silver:enrich:*-phone-*` |
-| I: Scraping | 4 | `silver:enrich:*-scraper` |
-| J: AI | 4 | `silver:enrich:ai-*` |
-| K: Geocoding | 3 | `silver:enrich:*-geo*` |
-| L: Agricultural | 5 | `silver:enrich:*-agri*` |
-| M: Dedup | 2 | `silver:dedup:*` |
-| N: Scoring | 3 | `silver:score:*` |
-| O: Aggregation | 2 | `silver:aggregate:*` |
-| P: Pipeline | 4 | `pipeline:*` |
+| Category        | Count | Queue Prefix              |
+| --------------- | ----- | ------------------------- |
+| A: Ingestie     | 5     | `bronze:ingest:*`         |
+| B: Normalizare  | 4     | `bronze:normalize:*`      |
+| C: Validare CUI | 2     | `bronze:validate:*`       |
+| D: ANAF         | 5     | `silver:enrich:anaf-*`    |
+| E: Termene.ro   | 4     | `silver:enrich:termene-*` |
+| F: ONRC         | 3     | `silver:enrich:onrc-*`    |
+| G: Email        | 5     | `silver:enrich:*-email-*` |
+| H: Phone        | 3     | `silver:enrich:*-phone-*` |
+| I: Scraping     | 4     | `silver:enrich:*-scraper` |
+| J: AI           | 4     | `silver:enrich:ai-*`      |
+| K: Geocoding    | 3     | `silver:enrich:*-geo*`    |
+| L: Agricultural | 5     | `silver:enrich:*-agri*`   |
+| M: Dedup        | 2     | `silver:dedup:*`          |
+| N: Scoring      | 3     | `silver:score:*`          |
+| O: Aggregation  | 2     | `silver:aggregate:*`      |
+| P: Pipeline     | 4     | `pipeline:*`              |
 
 ### Pipeline Flow
 
@@ -163,32 +163,32 @@ totalQualityScore = (completeness × 0.40) + (accuracy × 0.35) + (freshness × 
 ## 🚀 QUICK START
 
 1. **Read First:**
-    - `etapa1-adrs.md` - Understand decisions
-    - `etapa1-workers-overview.md` - Pipeline concept
-    - `etapa1-sprint-plan.md` - Sprint & Task IDs
+   - `etapa1-adrs.md` - Understand decisions
+   - `etapa1-workers-overview.md` - Pipeline concept
+   - `etapa1-sprint-plan.md` - Sprint & Task IDs
 
 2. **Implement Database:**
-    - `etapa1-migrations.md` - Run migrations
-    - `etapa1-schema-*.md` - Reference schemas
+   - `etapa1-migrations.md` - Run migrations
+   - `etapa1-schema-*.md` - Reference schemas
 
 3. **Build Workers:**
-    - Start with `etapa1-workers-A-ingestie.md`
-    - Follow trigger rules in `etapa1-workers-triggers.md`
+   - Start with `etapa1-workers-A-ingestie.md`
+   - Follow trigger rules in `etapa1-workers-triggers.md`
 
 4. **Build API:**
-    - `etapa1-api-endpoints.md` - Endpoints spec
-    - `etapa1-api-schemas-auth.md` - Validation & auth
+   - `etapa1-api-endpoints.md` - Endpoints spec
+   - `etapa1-api-schemas-auth.md` - Validation & auth
 
 5. **Build UI:**
-    - `etapa1-ui-components.md` - Component library
-    - `etapa1-ui-pages.md` - Page layouts
+   - `etapa1-ui-components.md` - Component library
+   - `etapa1-ui-pages.md` - Page layouts
 
 6. **Setup HITL:**
-    - `etapa1-hitl-system.md` - Full HITL setup
+   - `etapa1-hitl-system.md` - Full HITL setup
 
 7. **Operations:**
-    - `etapa1-runbook-monitoring.md` - Troubleshooting
-    - `etapa1-testing-strategy.md` - Test setup
+   - `etapa1-runbook-monitoring.md` - Troubleshooting
+   - `etapa1-testing-strategy.md` - Test setup
 
 ---
 

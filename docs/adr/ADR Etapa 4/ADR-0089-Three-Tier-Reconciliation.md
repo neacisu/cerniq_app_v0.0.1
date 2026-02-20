@@ -6,11 +6,11 @@
 
 **Decision:** Implementăm reconciliere în trei trepte:
 
-| Tier | Metodă | Criterii |
-| ---- | ------ | -------- |
+| Tier   | Metodă      | Criterii                              |
+| ------ | ----------- | ------------------------------------- |
 | Tier 1 | Exact Match | Referință factură exactă + sumă ±0.01 |
-| Tier 2 | Fuzzy Match | Sumă ±5% + fuzzy name matching ≥85% |
-| Tier 3 | HITL | Candidați prezentați operatorului |
+| Tier 2 | Fuzzy Match | Sumă ±5% + fuzzy name matching ≥85%   |
+| Tier 3 | HITL        | Candidați prezentați operatorului     |
 
 **Consequences:**
 

@@ -10,14 +10,14 @@
 
 Conformitatea GDPR este documentată în următoarele locații:
 
-| Document | Descriere |
-| -------- | --------- |
-| [`master-specification.md`](../specifications/master-specification.md) | Secțiunea "GDPR Compliance" |
-| [ADR-0051: Data Retention Policy](../adr/ADR%20Etapa%201/ADR-0051-Data-Retention-Policy.md) | Politica de retenție date |
-| [`dpa-register.md`](./dpa-register.md) | Evidență DPA pentru third-party processors |
-| [`gdpr-dpia.md`](./gdpr-dpia.md) | Data Protection Impact Assessment (DPIA) |
-| [`cookie-consent-strategy.md`](./cookie-consent-strategy.md) | Strategia Cookie Consent (ePrivacy) |
-| [`gdpr-legitimate-interest-assessment.md`](./gdpr-legitimate-interest-assessment.md) | Legitimate Interest Assessment (LIA) |
+| Document                                                                                    | Descriere                                  |
+| ------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| [`master-specification.md`](../specifications/master-specification.md)                      | Secțiunea "GDPR Compliance"                |
+| [ADR-0051: Data Retention Policy](../adr/ADR%20Etapa%201/ADR-0051-Data-Retention-Policy.md) | Politica de retenție date                  |
+| [`dpa-register.md`](./dpa-register.md)                                                      | Evidență DPA pentru third-party processors |
+| [`gdpr-dpia.md`](./gdpr-dpia.md)                                                            | Data Protection Impact Assessment (DPIA)   |
+| [`cookie-consent-strategy.md`](./cookie-consent-strategy.md)                                | Strategia Cookie Consent (ePrivacy)        |
+| [`gdpr-legitimate-interest-assessment.md`](./gdpr-legitimate-interest-assessment.md)        | Legitimate Interest Assessment (LIA)       |
 
 ## Principii GDPR Implementate
 
@@ -29,11 +29,11 @@ Conformitatea GDPR este documentată în următoarele locații:
 
 ## Date Personale Procesate
 
-| Categorie | Retenție | Justificare |
-| --------- | -------- | ----------- |
-| Date contact (email, telefon) | Durata relației + 36 luni | Interes legitim business |
-| Comunicări | 5 ani | Obligații legale facturare |
-| Logs acces | 1 an | Securitate |
+| Categorie                     | Retenție                  | Justificare                |
+| ----------------------------- | ------------------------- | -------------------------- |
+| Date contact (email, telefon) | Durata relației + 36 luni | Interes legitim business   |
+| Comunicări                    | 5 ani                     | Obligații legale facturare |
+| Logs acces                    | 1 an                      | Securitate                 |
 
 ## Responsabilități
 
@@ -48,12 +48,12 @@ Conform **Art 6(1)(f) GDPR**, procesarea datelor B2B (Public Registers) se bazea
 
 ### LIA Record #001 (Data Enrichment) — APROBAT
 
-| Aspect | Rezultat |
-| ------ | -------- |
-| **Necessity Test** | ✅ TRECUT |
+| Aspect             | Rezultat                              |
+| ------------------ | ------------------------------------- |
+| **Necessity Test** | ✅ TRECUT                             |
 | **Balancing Test** | ✅ TRECUT (Impact 28% vs Interes 80%) |
-| **Safeguards** | ✅ SUFICIENTE |
-| **Decizie** | **APROBAT** cu Opt-Out obligatoriu |
+| **Safeguards**     | ✅ SUFICIENTE                         |
+| **Decizie**        | **APROBAT** cu Opt-Out obligatoriu    |
 
 ---
 
@@ -61,11 +61,11 @@ Conform **Art 6(1)(f) GDPR**, procesarea datelor B2B (Public Registers) se bazea
 
 ### Numire și Status
 
-| Aspect | Detalii |
-| ------ | ------- |
-| **Tip DPO** | Extern (Legal Consultant) |
-| **Status** | Desemnat formal înainte de go-live |
-| **Bază legală** | Art. 37-39 GDPR, Legea 190/2018 |
+| Aspect          | Detalii                            |
+| --------------- | ---------------------------------- |
+| **Tip DPO**     | Extern (Legal Consultant)          |
+| **Status**      | Desemnat formal înainte de go-live |
+| **Bază legală** | Art. 37-39 GDPR, Legea 190/2018    |
 
 ### Responsabilități DPO
 
@@ -90,11 +90,11 @@ Conform **Art 6(1)(f) GDPR**, procesarea datelor B2B (Public Registers) se bazea
 
 ### Contact DPO
 
-| Canal | Detalii |
-| ----- | ------- |
-| **Email** | dpo@cerniq.app (TBD - înainte de go-live) |
-| **SLA Răspuns** | 48 ore zile lucrătoare |
-| **Escalare** | <management@cerniq.app> |
+| Canal           | Detalii                                   |
+| --------------- | ----------------------------------------- |
+| **Email**       | dpo@cerniq.app (TBD - înainte de go-live) |
+| **SLA Răspuns** | 48 ore zile lucrătoare                    |
+| **Escalare**    | <management@cerniq.app>                   |
 
 > **Notă:** DPO formal va fi contractat și publicat pe website înainte de lansarea în producție, conform Art. 37(7) GDPR.
 

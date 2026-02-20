@@ -1,5 +1,7 @@
 # CERNIQ.APP — ETAPA 5: UI PAGES
+
 ## Page Specifications pentru Nurturing Dashboard
+
 ### Versiunea 1.0 | 19 Ianuarie 2026
 
 ---
@@ -7,6 +9,7 @@
 ## 1. Nurturing Dashboard (/nurturing)
 
 ### Layout
+
 ```
 ┌────────────────────────────────────────────────────────────────────┐
 │ HEADER: Nurturing & Retention Dashboard                            │
@@ -39,6 +42,7 @@
 ```
 
 ### Components
+
 - **KPICard**: Total clients, Active, At Risk, Advocates
 - **StateDistributionChart**: Donut chart cu stări
 - **ChurnTrendChart**: Line chart trend risc
@@ -49,6 +53,7 @@
 ## 2. Client Nurturing Detail (/nurturing/clients/:id)
 
 ### Layout
+
 ```
 ┌────────────────────────────────────────────────────────────────────┐
 │ ← Back to Dashboard     CLIENT: Agro Farm SRL         [Actions ▼] │
@@ -84,6 +89,7 @@
 ## 3. Churn Risk Dashboard (/nurturing/churn)
 
 ### Layout
+
 ```
 ┌────────────────────────────────────────────────────────────────────┐
 │ Churn Risk Management                           [Export] [Refresh] │
@@ -112,6 +118,7 @@
 ## 4. Referral Management (/nurturing/referrals)
 
 ### Layout
+
 ```
 ┌────────────────────────────────────────────────────────────────────┐
 │ Referral Program                               [+ New Referral]    │
@@ -139,6 +146,7 @@
 ## 5. Clusters & Associations (/nurturing/clusters)
 
 ### Layout
+
 ```
 ┌────────────────────────────────────────────────────────────────────┐
 │ Clusters & Associations                        [Detect New] [Map]  │
@@ -168,6 +176,7 @@
 ## 6. KOL Management (/nurturing/kol)
 
 ### Layout
+
 ```
 ┌────────────────────────────────────────────────────────────────────┐
 │ Key Opinion Leaders (KOL)                     [Identify New KOLs]  │
@@ -193,6 +202,7 @@
 ## 7. Win-Back Campaigns (/nurturing/winback)
 
 ### Layout
+
 ```
 ┌────────────────────────────────────────────────────────────────────┐
 │ Win-Back Campaigns                            [+ New Campaign]     │
@@ -218,6 +228,7 @@
 ## 8. HITL Queue (/nurturing/hitl)
 
 ### Layout
+
 ```
 ┌────────────────────────────────────────────────────────────────────┐
 │ Human-in-the-Loop Tasks                        [My Tasks ▼]        │

@@ -1,0 +1,168 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+rule_files:
+  - /etc/prometheus/rules/infra-*.yml
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets:
+          - prometheus:9090
+  - job_name: node-exporter
+    static_configs:
+      - targets:
+          - node-exporter:9100
+  - job_name: cadvisor
+    static_configs:
+      - targets:
+          - cadvisor:8080
+  - job_name: blackbox-proxmox-tcp
+    metrics_path: /probe
+    params:
+      module:
+        - tcp_connect
+    static_configs:
+      - targets:
+          - 10.0.0.2:8006
+          - 10.0.1.10:8006
+          - 10.0.1.11:8006
+          - 10.0.1.12:8006
+          - 10.0.0.2:22
+          - 10.0.1.10:22
+          - 10.0.1.11:22
+          - 10.0.1.12:22
+          - 142.132.132.20:445
+    relabel_configs:
+      - source_labels:
+          - __address__
+        target_label: __param_target
+      - source_labels:
+          - __param_target
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+  - job_name: pve-exporter
+    metrics_path: /pve
+    params:
+      module:
+        - default
+      cluster:
+        - "1"
+      node:
+        - "1"
+    static_configs:
+      - targets:
+          - 10.0.1.10
+          - 10.0.1.11
+          - 10.0.1.12
+    relabel_configs:
+      - source_labels:
+          - __address__
+        target_label: __param_target
+      - source_labels:
+          - __param_target
+        target_label: instance
+      - target_label: __address__
+        replacement: pve-exporter:9221
+  - job_name: cerniq-nodes
+    static_configs:
+      - targets:
+          - 10.0.1.10:29100
+          - 10.0.1.10:19100
+          - 10.0.1.107:9100
+          - 10.0.1.108:9100
+        labels:
+          project: cerniq
+    relabel_configs:
+      - source_labels:
+          - __address__
+        target_label: instance
+        regex: 10\.0\.1\.10:29100
+        replacement: 10.0.1.109:9100
+      - source_labels:
+          - __address__
+        target_label: instance
+        regex: 10\.0\.1\.10:19100
+        replacement: 10.0.1.110:9100
+      - source_labels:
+          - __address__
+        target_label: environment
+        regex: 10\.0\.1\.10:29100
+        replacement: production
+      - source_labels:
+          - __address__
+        target_label: environment
+        regex: 10\.0\.1\.10:19100
+        replacement: staging
+  - job_name: cerniq-docker
+    static_configs:
+      - targets:
+          - 10.0.1.10:29094
+          - 10.0.1.10:19094
+        labels:
+          project: cerniq
+    relabel_configs:
+      - source_labels:
+          - __address__
+        target_label: instance
+        regex: 10\.0\.1\.10:29094
+        replacement: 10.0.1.109:64094
+      - source_labels:
+          - __address__
+        target_label: instance
+        regex: 10\.0\.1\.10:19094
+        replacement: 10.0.1.110:64094
+      - source_labels:
+          - __address__
+        target_label: environment
+        regex: 10\.0\.1\.10:29094
+        replacement: production
+      - source_labels:
+          - __address__
+        target_label: environment
+        regex: 10\.0\.1\.10:19094
+        replacement: staging
+  - job_name: cerniq-pgbouncer
+    static_configs:
+      - targets:
+          - 10.0.1.10:29095
+          - 10.0.1.10:19095
+        labels:
+          project: cerniq
+    relabel_configs:
+      - source_labels:
+          - __address__
+        target_label: instance
+        regex: 10\.0\.1\.10:29095
+        replacement: ct109-prod:64095
+      - source_labels:
+          - __address__
+        target_label: instance
+        regex: 10\.0\.1\.10:19095
+        replacement: ct110-staging:64095
+      - source_labels:
+          - __address__
+        target_label: environment
+        regex: 10\.0\.1\.10:29095
+        replacement: production
+      - source_labels:
+          - __address__
+        target_label: environment
+        regex: 10\.0\.1\.10:19095
+        replacement: staging
+  - job_name: cerniq-postgres
+    static_configs:
+      - targets:
+          - 10.0.1.107:9187
+        labels:
+          project: cerniq
+    relabel_configs:
+      - source_labels:
+          - __address__
+        target_label: instance
+        replacement: ct107-postgres:9187

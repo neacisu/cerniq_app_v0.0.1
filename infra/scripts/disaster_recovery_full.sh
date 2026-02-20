@@ -10,13 +10,18 @@ LOG_FILE="/var/log/cerniq/disaster_recovery.log"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RESTORE_BASE="/var/backups/cerniq/restore"
 
+# New infra defaults (OpenBao-rendered env contains DATABASE_URL/REDIS_URL)
+PG_ENV_FILE="${PG_ENV_FILE:-/opt/cerniq/runtime-secrets/api/api.env}"
+DOCKER_NET="${DOCKER_NET:-cerniq_backend}"
+
 # Hetzner Storage Box config
 STORAGE_BOX="u502048@u502048.your-storagebox.de"
 SSH_KEY="/root/.ssh/hetzner_storagebox"
 
 # BorgBackup config
 export BORG_REPO="ssh://u502048@u502048.your-storagebox.de:23/./backups/cerniq/borg"
-export BORG_PASSPHRASE=$(cat /var/www/CerniqAPP/secrets/borg_passphrase.txt 2>/dev/null || cat /root/.borg_passphrase 2>/dev/null || echo "")
+BORG_PASSPHRASE=$(cat /var/www/CerniqAPP/secrets/borg_passphrase.txt 2>/dev/null || cat /root/.borg_passphrase 2>/dev/null || echo "")
+export BORG_PASSPHRASE
 export BORG_RSH="ssh -i /root/.ssh/hetzner_storagebox -o StrictHostKeyChecking=no"
 
 mkdir -p "$(dirname "$LOG_FILE")"
@@ -42,6 +47,15 @@ success() {
 
 warn() {
     echo -e "${YELLOW}WARNING: $1${NC}" | tee -a "$LOG_FILE"
+}
+
+docker_pg() {
+    docker run --rm --network "$DOCKER_NET" --env-file "$PG_ENV_FILE" postgres:18 "$@"
+}
+
+docker_redis() {
+    # REDIS_URL is expected in the same env-file (api.env)
+    docker run --rm --env-file "$PG_ENV_FILE" redis:8-alpine "$@"
 }
 
 usage() {
@@ -142,10 +156,12 @@ cmd_status() {
     echo ""
     echo "=== Local Backup Status ==="
     echo "PostgreSQL daily dumps:"
+    # shellcheck disable=SC2012
     ls -lh /var/backups/cerniq/postgresql/daily/*.dump 2>/dev/null | tail -3 || echo "  None found"
     
     echo ""
     echo "Redis hourly backups:"
+    # shellcheck disable=SC2012
     ls -lh /var/backups/cerniq/redis/hourly/*.rdb.zst 2>/dev/null | tail -3 || echo "  None found"
     
     echo ""
@@ -167,20 +183,22 @@ cmd_assess() {
     # Check PostgreSQL
     echo ""
     echo "Checking PostgreSQL..."
-    if docker exec cerniq-postgres pg_isready -U c3rn1q 2>/dev/null; then
-        success "PostgreSQL is running and accepting connections"
+    # shellcheck disable=SC2016
+    if [[ -f "$PG_ENV_FILE" ]] && docker_pg sh -lc 'pg_isready -d "$DATABASE_URL" >/dev/null 2>&1'; then
+        success "PostgreSQL (via PgBouncer + OpenBao dynamic creds) is responding"
     else
-        error "PostgreSQL is not responding"
+        error "PostgreSQL is not responding (or env file missing: $PG_ENV_FILE)"
         POSTGRES_OK=false
     fi
     
     # Check Redis
     echo ""
     echo "Checking Redis..."
-    if docker exec cerniq-redis redis-cli PING 2>/dev/null | grep -q PONG; then
-        success "Redis is running"
+    # shellcheck disable=SC2016
+    if [[ -f "$PG_ENV_FILE" ]] && docker_redis sh -lc 'redis-cli -u "$REDIS_URL" PING' 2>/dev/null | grep -q PONG; then
+        success "Redis is responding"
     else
-        error "Redis is not responding"
+        error "Redis is not responding (or env file missing: $PG_ENV_FILE)"
         REDIS_OK=false
     fi
     
@@ -226,7 +244,7 @@ cmd_recover_postgres() {
         warn "No target time specified, will use latest backup"
         
         # Find latest daily dump
-        LATEST_DUMP=$(ls -t /var/backups/cerniq/postgresql/daily/*.dump 2>/dev/null | head -1)
+        LATEST_DUMP=$(find /var/backups/cerniq/postgresql/daily/ -maxdepth 1 -name "*.dump" -type f -printf '%T@\t%p\n' 2>/dev/null | sort -rn | head -1 | cut -f2-)
         
         if [[ -z "$LATEST_DUMP" ]]; then
             error "No local dumps found, downloading from Storage Box..."
@@ -246,12 +264,20 @@ cmd_recover_postgres() {
         
         # Restore
         log "Restoring database..."
-        docker exec -i cerniq-postgres pg_restore \
-            -U c3rn1q \
-            -d cerniq \
-            --clean \
-            --if-exists \
-            < "$LATEST_DUMP"
+        if [[ ! -f "$PG_ENV_FILE" ]]; then
+            error "Missing env file for DB restore: $PG_ENV_FILE"
+            error "In the new infra, restores should be executed on CT107 (postgres-main) with superuser privileges."
+            return 1
+        fi
+
+        # Attempt logical restore through PgBouncer using the dynamic DATABASE_URL.
+        # NOTE: This may fail if the dynamic role lacks required privileges.
+        docker run --rm \
+            --network "$DOCKER_NET" \
+            --env-file "$PG_ENV_FILE" \
+            -v "$LATEST_DUMP:/dump:ro" \
+            postgres:18 \
+            sh -lc 'exec pg_restore -d "$DATABASE_URL" --clean --if-exists /dump'
         
         # Restart services
         log "Restarting services..."
@@ -323,7 +349,7 @@ cmd_recover_full() {
         echo "  - Overwrite current database data"
         echo "  - Overwrite application files"
         echo ""
-        read -p "Are you sure you want to continue? (yes/no): " CONFIRM
+        read -rp "Are you sure you want to continue? (yes/no): " CONFIRM
         if [[ "$CONFIRM" != "yes" ]]; then
             log "Recovery cancelled by user"
             exit 0
@@ -356,7 +382,8 @@ cmd_recover_full() {
     # Restart services
     log "Starting all services..."
     if [[ "$DRY_RUN" != "true" ]]; then
-        docker start cerniq-postgres cerniq-redis cerniq-pgbouncer cerniq-api cerniq-web 2>/dev/null || true
+        # New infra: postgres/redis are external. Only restart local app services.
+        docker start cerniq-pgbouncer cerniq-api cerniq-web 2>/dev/null || true
     fi
     
     success "Full recovery completed"
@@ -371,27 +398,28 @@ cmd_verify() {
     # Check PostgreSQL
     echo ""
     echo "Verifying PostgreSQL..."
-    if docker exec cerniq-postgres psql -U c3rn1q -d cerniq -c "SELECT 1" &>/dev/null; then
-        success "PostgreSQL: Connected and responding"
-        
-        # Check table count
-        TABLE_COUNT=$(docker exec cerniq-postgres psql -U c3rn1q -d cerniq -t -c "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public'" 2>/dev/null | xargs)
+    # shellcheck disable=SC2016
+    if [[ -f "$PG_ENV_FILE" ]] && docker_pg sh -lc 'psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -Atqc "SELECT 1;" >/dev/null 2>&1'; then
+        success "PostgreSQL: Connected and responding (via PgBouncer)"
+        # shellcheck disable=SC2016
+        TABLE_COUNT="$(docker_pg sh -lc 'psql "$DATABASE_URL" -Atqc "SELECT count(*) FROM information_schema.tables WHERE table_schema = '\''public'\'';"' | xargs || echo "0")"
         log "PostgreSQL: $TABLE_COUNT tables in public schema"
     else
-        error "PostgreSQL: Connection failed"
+        error "PostgreSQL: Connection failed (or env missing: $PG_ENV_FILE)"
         ALL_OK=false
     fi
     
     # Check Redis
     echo ""
     echo "Verifying Redis..."
-    if docker exec cerniq-redis redis-cli PING | grep -q PONG; then
+    # shellcheck disable=SC2016
+    if [[ -f "$PG_ENV_FILE" ]] && docker_redis sh -lc 'redis-cli -u "$REDIS_URL" PING' 2>/dev/null | grep -q PONG; then
         success "Redis: Connected and responding"
-        
-        DBSIZE=$(docker exec cerniq-redis redis-cli DBSIZE | cut -d: -f2)
+        # shellcheck disable=SC2016
+        DBSIZE="$(docker_redis sh -lc 'redis-cli -u "$REDIS_URL" DBSIZE' 2>/dev/null | tr -d '\r' | tail -n 1 || echo "0")"
         log "Redis: $DBSIZE keys"
     else
-        error "Redis: Connection failed"
+        error "Redis: Connection failed (or env missing: $PG_ENV_FILE)"
         ALL_OK=false
     fi
     

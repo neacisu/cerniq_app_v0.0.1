@@ -31,11 +31,12 @@ Pentru a înțelege exact de ce versiunea v24 este "Active LTS" la această dat�
 
 - Versiunile Pare (Even-numbered): Sunt lansate în aprilie și sunt destinate să devină LTS. În octombrie, acestea tranziționează din starea "Current" în starea "Active LTS".
 - Versiunile Impare (Odd-numbered): Sunt lansate în octombrie și au o durată de viață scurtă (aprox. 8-9 luni), fiind destinate testării noilor funcționalități (V8 engine updates, API-uri experimentale).
-La data de 05.01.2026, ne aflăm într-un punct intermediar al ciclului anual, unde versiunea pară lansată în anul anterior (2025) a intrat deja în regimul de suport activ pe termen lung.
+  La data de 05.01.2026, ne aflăm într-un punct intermediar al ciclului anual, unde versiunea pară lansată în anul anterior (2025) a intrat deja în regimul de suport activ pe termen lung.
 
 ### 2.2. Active LTS: Node.js v24.x (Codename "Krypton")
 
 Conform documentației oficiale extrase din registrele GitHub ale proiectului 2, **Node.js v24.x** este versiunea desemnată oficial ca Active LTS la data de 5 ianuarie 2026.
+
 > **Identitate și Calendar**
 
 - Nume de Cod: "Krypton".2 Această denumire respectă convenția tabelului periodic al elementelor utilizată de proiect (urmând după Iron v20 și Jod v22).
@@ -89,7 +90,7 @@ Evoluția limbajului Python a atins, în 2026, un punct de maturitate tehnologic
 La data de 05.01.2026, versiunea stabilă curentă a limbajului este Python 3.14. Aceasta funcționează conform calendarului stabilit în PEP 745.3
 
 > **Determinarea Versiunii Exacte**
-Analizând calendarul de lansare pentru seria 3.14:
+> Analizând calendarul de lansare pentru seria 3.14:
 
 - **3.14.0 Final**: A fost lansat marți, 7 octombrie 2025.
 - **3.14.1 (Bugfix)**: Programat și lansat pe 2 decembrie 2025.
@@ -98,7 +99,7 @@ Analizând calendarul de lansare pentru seria 3.14:
 Prin urmare, la data de 5 ianuarie 2026, cea mai recentă versiune stabilă ("Current Stable") disponibilă pentru descărcare și utilizare în producție este Python 3.14.1. Nu există nicio versiune intermediară programată în ianuarie, luna fiind dedicată dezvoltării patch-ului din februarie.
 
 > **Contextul Tehnologic al Versiunii 3.14**
-Versiunea 3.14 este semnificativă deoarece consolidează modificările radicale introduse experimental în 3.13. Principalele direcții includ:
+> Versiunea 3.14 este semnificativă deoarece consolidează modificările radicale introduse experimental în 3.13. Principalele direcții includ:
 
 - **Optimizarea JIT**: Compilatorul Just-In-Time, introdus în 3.13, a primit îmbunătățiri majore în 3.14, oferind performanțe superioare fără modificări ale codului sursă.
 - **Free-Threading (No-GIL)**: Deși încă opțional în multe distribuții, modul de operare fără GIL a devenit mai robust în 3.14, permițând aplicațiilor CPU-bound să scaleze eficient pe arhitecturi multi-core.
@@ -128,7 +129,7 @@ PostgreSQL continuă să domine piața bazelor de date relaționale open-source,
 La data de 05.01.2026, cea mai recentă versiune majoră stabilă este PostgreSQL 18.5
 
 > **Istoricul Lansării și Versiunea Exactă**
-Comunitatea PostgreSQL Global Development Group a lansat versiunea 18.0 în toamna anului 2025. Conform snippet-ului 5, există o lansare stabilă marcată explicit:
+> Comunitatea PostgreSQL Global Development Group a lansat versiunea 18.0 în toamna anului 2025. Conform snippet-ului 5, există o lansare stabilă marcată explicit:
 
 - **Versiune**: 18.1
 - **Data Lansării**: 13 noiembrie 2025.

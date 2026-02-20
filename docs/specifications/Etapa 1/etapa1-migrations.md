@@ -50,7 +50,7 @@ CREATE TYPE bronze_source_type AS ENUM (
 );
 
 CREATE TYPE bronze_processing_status AS ENUM (
-  'pending', 'processing', 'validated', 'promoted', 
+  'pending', 'processing', 'validated', 'promoted',
   'failed', 'duplicate', 'invalid'
 );
 
@@ -59,13 +59,13 @@ CREATE TABLE bronze_contacts (
   -- Identity
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-  
+
   -- Source tracking
   source_type bronze_source_type NOT NULL,
   batch_id UUID,
   external_id VARCHAR(255),
   content_hash VARCHAR(64),
-  
+
   -- Extracted raw data
   extracted_name VARCHAR(255),
   extracted_cui VARCHAR(20),
@@ -73,33 +73,33 @@ CREATE TABLE bronze_contacts (
   extracted_phone VARCHAR(50),
   extracted_address TEXT,
   extracted_website VARCHAR(255),
-  
+
   -- Raw payload (original data)
   raw_payload JSONB DEFAULT '{}',
-  
+
   -- Normalization results
   normalized_name VARCHAR(255),
   normalized_cui VARCHAR(10),
   normalized_email VARCHAR(255),
   normalized_phone VARCHAR(20),
   normalized_address TEXT,
-  
+
   -- Validation
   cui_valid BOOLEAN,
   cui_checksum_valid BOOLEAN,
   cui_anaf_verified BOOLEAN,
   validation_errors JSONB DEFAULT '[]',
-  
+
   -- Processing
   processing_status bronze_processing_status NOT NULL DEFAULT 'pending',
   processing_started_at TIMESTAMPTZ,
   processing_completed_at TIMESTAMPTZ,
   processing_error TEXT,
-  
+
   -- Promotion
   promoted_to_silver_id UUID,
   promoted_at TIMESTAMPTZ,
-  
+
   -- Audit
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
@@ -124,27 +124,27 @@ CREATE TYPE import_status AS ENUM (
 CREATE TABLE bronze_import_batches (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-  
+
   -- File info
   file_name VARCHAR(255) NOT NULL,
   file_type VARCHAR(10) NOT NULL,
   file_size_bytes BIGINT,
   file_path VARCHAR(500),
-  
+
   -- Configuration
   has_header BOOLEAN DEFAULT true,
   delimiter VARCHAR(5) DEFAULT ',',
   encoding VARCHAR(20) DEFAULT 'utf-8',
   sheet_name VARCHAR(100),
   column_mapping JSONB NOT NULL,
-  
+
   -- Processing options
   skip_duplicates BOOLEAN DEFAULT true,
   validate_cui BOOLEAN DEFAULT true,
-  
+
   -- Status
   status import_status NOT NULL DEFAULT 'pending',
-  
+
   -- Progress
   total_rows INTEGER,
   processed_rows INTEGER DEFAULT 0,
@@ -152,15 +152,15 @@ CREATE TABLE bronze_import_batches (
   error_rows INTEGER DEFAULT 0,
   duplicate_rows INTEGER DEFAULT 0,
   progress_percent NUMERIC(5,2) DEFAULT 0,
-  
+
   -- Timing
   started_at TIMESTAMPTZ,
   completed_at TIMESTAMPTZ,
-  
+
   -- Errors
   error_message TEXT,
   error_details JSONB DEFAULT '[]',
-  
+
   -- Audit
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   created_by UUID NOT NULL REFERENCES users(id)
@@ -204,15 +204,15 @@ CREATE TABLE silver_companies (
   -- Identity
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-  
+
   -- Source
   source_bronze_id UUID REFERENCES bronze_contacts(id),
-  
+
   -- Core identification
   cui VARCHAR(10) NOT NULL,
   denumire VARCHAR(255) NOT NULL,
   nr_reg_com VARCHAR(20),
-  
+
   -- ANAF Data (D.1-D.5)
   status_firma company_status,
   data_inregistrare DATE,
@@ -230,7 +230,7 @@ CREATE TABLE silver_companies (
   denumire_caen VARCHAR(255),
   is_agricultural BOOLEAN DEFAULT false,
   agricultural_category VARCHAR(50),
-  
+
   -- Termene.ro Data (E.1-E.4)
   cifra_afaceri NUMERIC(15,2),
   profit_net NUMERIC(15,2),
@@ -253,7 +253,7 @@ CREATE TABLE silver_companies (
   numar_actionari INTEGER,
   numar_administratori INTEGER,
   are_actionar_majoritar BOOLEAN,
-  
+
   -- ONRC Data (F.1-F.3)
   forma_juridica forma_juridica,
   capital_social NUMERIC(15,2),
@@ -263,7 +263,7 @@ CREATE TABLE silver_companies (
   numar_sedii INTEGER DEFAULT 0,
   numar_puncte_lucru INTEGER DEFAULT 0,
   are_multiple_locatii BOOLEAN DEFAULT false,
-  
+
   -- Location
   adresa_completa TEXT,
   localitate VARCHAR(100),
@@ -273,7 +273,7 @@ CREATE TABLE silver_companies (
   cod_siruta VARCHAR(10),
   cod_postal VARCHAR(6),
   tara VARCHAR(50) DEFAULT 'România',
-  
+
   -- Geocoding (K.1-K.3)
   latitude NUMERIC(10,7),
   longitude NUMERIC(10,7),
@@ -287,7 +287,7 @@ CREATE TABLE silver_companies (
   nearest_ouai_distance_km NUMERIC(10,2),
   nearest_coop_id UUID,
   nearest_coop_distance_km NUMERIC(10,2),
-  
+
   -- Contact (G.1-G.5, H.1-H.3)
   email_principal VARCHAR(255),
   email_confidence NUMERIC(3,2),
@@ -310,7 +310,7 @@ CREATE TABLE silver_companies (
   website_domain VARCHAR(100),
   website_title VARCHAR(255),
   website_verified_at TIMESTAMPTZ,
-  
+
   -- Agricultural (L.1-L.5)
   apia_registration_number VARCHAR(50),
   suprafata_agricola NUMERIC(10,2),
@@ -335,14 +335,14 @@ CREATE TABLE silver_companies (
   tipuri_animale JSONB DEFAULT '[]',
   categorie_zootehnica VARCHAR(50),
   este_ferma_zootehnica BOOLEAN DEFAULT false,
-  
+
   -- AI Processing (J.1-J.4)
   ai_structuring_confidence NUMERIC(3,2),
   ai_structuring_source VARCHAR(50),
   ai_merge_conflicts JSONB DEFAULT '[]',
   ai_data_approved_by UUID REFERENCES users(id),
   ai_data_approved_at TIMESTAMPTZ,
-  
+
   -- Deduplication (M.1-M.2)
   is_master_record BOOLEAN DEFAULT true,
   master_record_id UUID,
@@ -351,7 +351,7 @@ CREATE TABLE silver_companies (
   dedup_checked_at TIMESTAMPTZ,
   merge_history JSONB DEFAULT '[]',
   last_merge_at TIMESTAMPTZ,
-  
+
   -- Quality Scoring (N.1-N.3)
   completeness_score NUMERIC(5,2),
   completeness_missing_fields JSONB DEFAULT '[]',
@@ -360,13 +360,13 @@ CREATE TABLE silver_companies (
   freshness_score NUMERIC(5,2),
   freshness_issues JSONB DEFAULT '[]',
   total_quality_score NUMERIC(5,2),
-  
+
   -- Enrichment Tracking
   enrichment_status enrichment_status DEFAULT 'pending',
   enrichment_sources_completed JSONB DEFAULT '[]',
   enrichment_errors JSONB DEFAULT '{}',
   last_enrichment_at TIMESTAMPTZ,
-  
+
   -- Promotion
   promotion_status promotion_status,
   promotion_blocked_reason TEXT,
@@ -374,19 +374,19 @@ CREATE TABLE silver_companies (
   promotion_override_reason TEXT,
   promoted_to_gold_id UUID,
   promoted_at TIMESTAMPTZ,
-  
+
   -- CUI Validation
   cui_validated_at TIMESTAMPTZ,
   cui_anaf_verified BOOLEAN,
-  
+
   -- Audit
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Add self-reference after table creation
-ALTER TABLE silver_companies 
-  ADD CONSTRAINT fk_master_record 
+ALTER TABLE silver_companies
+  ADD CONSTRAINT fk_master_record
   FOREIGN KEY (master_record_id) REFERENCES silver_companies(id);
 
 -- Comments
@@ -408,28 +408,28 @@ CREATE TABLE silver_contacts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
   company_id UUID NOT NULL REFERENCES silver_companies(id) ON DELETE CASCADE,
-  
+
   -- Identity
   full_name VARCHAR(255) NOT NULL,
   role contact_role NOT NULL,
-  
+
   -- Contact
   email VARCHAR(255),
   phone VARCHAR(50),
   linkedin_url VARCHAR(255),
-  
+
   -- Business data (for shareholders/admins)
   ownership_percent NUMERIC(5,2),
   data_numire DATE,
   puteri TEXT,
   cetatenie VARCHAR(50),
   cnp_masked VARCHAR(20), -- First 2 + last 4 digits only for GDPR
-  
+
   -- Enrichment
   photo_url VARCHAR(500),
   bio TEXT,
   enrichment_source VARCHAR(50),
-  
+
   -- Audit
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -452,29 +452,29 @@ CREATE TABLE silver_company_locations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
   company_id UUID NOT NULL REFERENCES silver_companies(id) ON DELETE CASCADE,
-  
+
   -- Type
   tip_locatie location_type NOT NULL,
   activ BOOLEAN DEFAULT true,
-  
+
   -- Address
   adresa_completa TEXT NOT NULL,
   localitate VARCHAR(100),
   judet VARCHAR(50),
   cod_postal VARCHAR(6),
-  
+
   -- Geocoding
   latitude NUMERIC(10,7),
   longitude NUMERIC(10,7),
   location GEOGRAPHY(POINT, 4326),
-  
+
   -- Agricultural specific
   suprafata_ha NUMERIC(10,2),
   culturi JSONB DEFAULT '[]',
-  
+
   -- Source
   source VARCHAR(50),
-  
+
   -- Audit
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -491,20 +491,20 @@ CREATE TABLE silver_enrichment_log (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
   company_id UUID NOT NULL REFERENCES silver_companies(id) ON DELETE CASCADE,
-  
+
   -- Source
   source VARCHAR(50) NOT NULL,
-  
+
   -- Result
   success BOOLEAN NOT NULL,
   duration_ms INTEGER,
-  
+
   -- Data
   fields_updated JSONB DEFAULT '[]',
   raw_response JSONB DEFAULT '{}',
   error_message TEXT,
   error_code VARCHAR(50),
-  
+
   -- Audit
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -528,31 +528,31 @@ CREATE TYPE dedup_status AS ENUM (
 CREATE TABLE silver_dedup_candidates (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-  
+
   -- Companies
   company_a_id UUID NOT NULL REFERENCES silver_companies(id) ON DELETE CASCADE,
   company_b_id UUID NOT NULL REFERENCES silver_companies(id) ON DELETE CASCADE,
-  
+
   -- Scores
   overall_score NUMERIC(5,4) NOT NULL,
   name_score NUMERIC(5,4),
   address_score NUMERIC(5,4),
   phone_score NUMERIC(5,4),
-  
+
   -- Status
   status dedup_status NOT NULL DEFAULT 'pending',
-  
+
   -- Decision
   decided_at TIMESTAMPTZ,
   decided_by UUID REFERENCES users(id),
   decision_reason TEXT,
-  
+
   -- Tracking
   approval_task_id UUID,
-  
+
   -- Audit
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  
+
   -- Prevent duplicate pairs
   CONSTRAINT unique_dedup_pair UNIQUE (tenant_id, company_a_id, company_b_id)
 );
@@ -576,10 +576,10 @@ CREATE TYPE lead_state AS ENUM (
 CREATE TABLE gold_companies (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-  
+
   -- Source
   source_silver_id UUID NOT NULL REFERENCES silver_companies(id),
-  
+
   -- All Silver fields (inherited)
   cui VARCHAR(10) NOT NULL,
   denumire VARCHAR(255) NOT NULL,
@@ -592,7 +592,7 @@ CREATE TABLE gold_companies (
   denumire_caen VARCHAR(255),
   is_agricultural BOOLEAN,
   agricultural_category VARCHAR(50),
-  
+
   -- Financial
   cifra_afaceri NUMERIC(15,2),
   profit_net NUMERIC(15,2),
@@ -600,7 +600,7 @@ CREATE TABLE gold_companies (
   scor_risc_termene INTEGER,
   categorie_risc risk_category,
   in_insolventa BOOLEAN DEFAULT false,
-  
+
   -- Location
   adresa_completa TEXT,
   localitate VARCHAR(100),
@@ -609,41 +609,41 @@ CREATE TABLE gold_companies (
   longitude NUMERIC(10,7),
   location GEOGRAPHY(POINT, 4326),
   is_rural_area BOOLEAN,
-  
+
   -- Contact
   email_principal VARCHAR(255),
   telefon_principal VARCHAR(20),
   website VARCHAR(255),
-  
+
   -- Agricultural
   suprafata_agricola NUMERIC(10,2),
   culturi_principale JSONB DEFAULT '[]',
   is_ouai_member BOOLEAN,
   is_cooperative_member BOOLEAN,
-  
+
   -- Lead Management
   current_state lead_state NOT NULL DEFAULT 'COLD',
   state_changed_at TIMESTAMPTZ DEFAULT NOW(),
   lead_score NUMERIC(5,2),
   fit_score NUMERIC(5,2),
   engagement_score NUMERIC(5,2),
-  
+
   -- Assignment
   assigned_to UUID REFERENCES users(id),
   assigned_at TIMESTAMPTZ,
-  
+
   -- Activity
   last_contact_at TIMESTAMPTZ,
   next_action_at TIMESTAMPTZ,
   next_action_type VARCHAR(50),
-  
+
   -- Quality (from Silver)
   quality_score NUMERIC(5,2),
-  
+
   -- Audit
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
-  
+
   -- Unique constraint
   CONSTRAINT unique_gold_cui UNIQUE (tenant_id, cui)
 );
@@ -669,7 +669,7 @@ CREATE TYPE approval_priority AS ENUM (
 );
 
 CREATE TYPE approval_type AS ENUM (
-  'dedup_review', 'quality_review', 'ai_structuring_review', 
+  'dedup_review', 'quality_review', 'ai_structuring_review',
   'ai_merge_review', 'low_confidence_review', 'data_anomaly',
   'manual_verification', 'error_review'
 );
@@ -677,45 +677,45 @@ CREATE TYPE approval_type AS ENUM (
 CREATE TABLE approval_tasks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-  
+
   -- Entity
   entity_type VARCHAR(50) NOT NULL,
   entity_id UUID NOT NULL,
-  
+
   -- Configuration
   approval_type approval_type NOT NULL,
   pipeline_stage VARCHAR(10) NOT NULL DEFAULT 'E1',
   priority approval_priority NOT NULL DEFAULT 'normal',
-  
+
   -- Assignment
   assigned_to UUID REFERENCES users(id),
   assigned_at TIMESTAMPTZ,
-  
+
   -- Status
   status approval_status NOT NULL DEFAULT 'pending',
-  
+
   -- SLA
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   due_at TIMESTAMPTZ NOT NULL,
   decided_at TIMESTAMPTZ,
-  
+
   -- Decision
   decision VARCHAR(20),
   decision_reason TEXT,
   decision_metadata JSONB DEFAULT '{}',
-  
+
   -- Context
   metadata JSONB NOT NULL DEFAULT '{}',
-  
+
   -- Escalation
   escalation_level INTEGER DEFAULT 0,
   escalated_at TIMESTAMPTZ,
   escalated_to UUID REFERENCES users(id),
-  
+
   -- Blocked job
   blocked_job_id VARCHAR(100),
   blocked_queue_name VARCHAR(100),
-  
+
   -- Audit
   created_by UUID REFERENCES users(id),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -733,23 +733,23 @@ CREATE TABLE approval_audit_log (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
   approval_task_id UUID NOT NULL REFERENCES approval_tasks(id) ON DELETE CASCADE,
-  
+
   -- Action
   action VARCHAR(50) NOT NULL,
-  
+
   -- Actor
   actor_id UUID REFERENCES users(id),
   actor_type VARCHAR(20) NOT NULL,
-  
+
   -- Change
   previous_status approval_status,
   new_status approval_status,
-  
+
   -- Context
   metadata JSONB DEFAULT '{}',
   ip_address INET,
   user_agent TEXT,
-  
+
   -- Audit
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -769,42 +769,42 @@ COMMENT ON TABLE approval_audit_log IS 'Audit trail for approval actions';
 CREATE TABLE daily_stats (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-  
+
   -- Date
   stat_date DATE NOT NULL,
   pipeline_stage VARCHAR(10) NOT NULL DEFAULT 'E1',
-  
+
   -- Bronze counts
   bronze_total INTEGER DEFAULT 0,
   bronze_pending INTEGER DEFAULT 0,
   bronze_promoted INTEGER DEFAULT 0,
   bronze_failed INTEGER DEFAULT 0,
-  
+
   -- Silver counts
   silver_total INTEGER DEFAULT 0,
   silver_enrichment_pending INTEGER DEFAULT 0,
   silver_enrichment_complete INTEGER DEFAULT 0,
-  
+
   -- Gold counts
   gold_total INTEGER DEFAULT 0,
   gold_by_state JSONB DEFAULT '{}',
-  
+
   -- Quality metrics
   avg_quality_score NUMERIC(5,2),
   avg_lead_score NUMERIC(5,2),
-  
+
   -- HITL metrics
   hitl_pending INTEGER DEFAULT 0,
   hitl_completed INTEGER DEFAULT 0,
   hitl_avg_resolution_hours NUMERIC(10,2),
-  
+
   -- Enrichment metrics
   enrichment_jobs_completed INTEGER DEFAULT 0,
   enrichment_jobs_failed INTEGER DEFAULT 0,
-  
+
   -- Audit
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  
+
   CONSTRAINT unique_daily_stats UNIQUE (tenant_id, stat_date, pipeline_stage)
 );
 
@@ -823,26 +823,26 @@ CREATE TYPE error_severity AS ENUM (
 CREATE TABLE pipeline_errors (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-  
+
   -- Context
   pipeline_stage VARCHAR(10) NOT NULL,
   worker_name VARCHAR(100) NOT NULL,
   job_id VARCHAR(100),
-  
+
   -- Entity
   entity_type VARCHAR(50),
   entity_id UUID,
-  
+
   -- Error
   error_type VARCHAR(50) NOT NULL,
   error_message TEXT NOT NULL,
   error_stack TEXT,
   severity error_severity NOT NULL DEFAULT 'error',
-  
+
   -- Recovery
   recovery_action VARCHAR(50),
   recovered_at TIMESTAMPTZ,
-  
+
   -- Audit
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -858,62 +858,62 @@ COMMENT ON TABLE pipeline_errors IS 'Tracks pipeline errors for debugging';
 -- migrations/0112_add_indexes.sql
 
 -- Bronze indexes
-CREATE INDEX idx_bronze_contacts_tenant_status 
+CREATE INDEX idx_bronze_contacts_tenant_status
   ON bronze_contacts(tenant_id, processing_status);
-CREATE INDEX idx_bronze_contacts_batch 
+CREATE INDEX idx_bronze_contacts_batch
   ON bronze_contacts(batch_id) WHERE batch_id IS NOT NULL;
-CREATE INDEX idx_bronze_contacts_cui 
+CREATE INDEX idx_bronze_contacts_cui
   ON bronze_contacts(tenant_id, normalized_cui) WHERE normalized_cui IS NOT NULL;
-CREATE INDEX idx_bronze_contacts_content_hash 
+CREATE INDEX idx_bronze_contacts_content_hash
   ON bronze_contacts(tenant_id, content_hash) WHERE content_hash IS NOT NULL;
 
 -- Silver indexes
-CREATE INDEX idx_silver_companies_tenant_cui 
+CREATE INDEX idx_silver_companies_tenant_cui
   ON silver_companies(tenant_id, cui);
-CREATE INDEX idx_silver_companies_tenant_enrichment 
+CREATE INDEX idx_silver_companies_tenant_enrichment
   ON silver_companies(tenant_id, enrichment_status);
-CREATE INDEX idx_silver_companies_tenant_promotion 
-  ON silver_companies(tenant_id, promotion_status) 
+CREATE INDEX idx_silver_companies_tenant_promotion
+  ON silver_companies(tenant_id, promotion_status)
   WHERE is_master_record = true;
-CREATE INDEX idx_silver_companies_quality 
-  ON silver_companies(tenant_id, total_quality_score DESC) 
+CREATE INDEX idx_silver_companies_quality
+  ON silver_companies(tenant_id, total_quality_score DESC)
   WHERE is_master_record = true;
-CREATE INDEX idx_silver_companies_agricultural 
-  ON silver_companies(tenant_id, is_agricultural, agricultural_category) 
+CREATE INDEX idx_silver_companies_agricultural
+  ON silver_companies(tenant_id, is_agricultural, agricultural_category)
   WHERE is_agricultural = true;
-CREATE INDEX idx_silver_companies_location 
+CREATE INDEX idx_silver_companies_location
   ON silver_companies USING GIST(location);
-CREATE INDEX idx_silver_companies_judet 
+CREATE INDEX idx_silver_companies_judet
   ON silver_companies(tenant_id, judet);
 
 -- Gold indexes
-CREATE INDEX idx_gold_companies_tenant_state 
+CREATE INDEX idx_gold_companies_tenant_state
   ON gold_companies(tenant_id, current_state);
-CREATE INDEX idx_gold_companies_tenant_assigned 
+CREATE INDEX idx_gold_companies_tenant_assigned
   ON gold_companies(tenant_id, assigned_to) WHERE assigned_to IS NOT NULL;
-CREATE INDEX idx_gold_companies_lead_score 
+CREATE INDEX idx_gold_companies_lead_score
   ON gold_companies(tenant_id, lead_score DESC);
-CREATE INDEX idx_gold_companies_location 
+CREATE INDEX idx_gold_companies_location
   ON gold_companies USING GIST(location);
 
 -- HITL indexes
-CREATE INDEX idx_approval_tasks_tenant_status 
+CREATE INDEX idx_approval_tasks_tenant_status
   ON approval_tasks(tenant_id, status);
-CREATE INDEX idx_approval_tasks_assigned 
+CREATE INDEX idx_approval_tasks_assigned
   ON approval_tasks(assigned_to, status) WHERE status IN ('pending', 'assigned');
-CREATE INDEX idx_approval_tasks_due 
+CREATE INDEX idx_approval_tasks_due
   ON approval_tasks(due_at) WHERE status = 'pending';
-CREATE INDEX idx_approval_tasks_entity 
+CREATE INDEX idx_approval_tasks_entity
   ON approval_tasks(entity_type, entity_id);
 
 -- Enrichment log indexes
-CREATE INDEX idx_enrichment_log_company 
+CREATE INDEX idx_enrichment_log_company
   ON silver_enrichment_log(company_id, created_at DESC);
-CREATE INDEX idx_enrichment_log_source 
+CREATE INDEX idx_enrichment_log_source
   ON silver_enrichment_log(source, created_at DESC);
 
 -- Dedup candidates indexes
-CREATE INDEX idx_dedup_candidates_status 
+CREATE INDEX idx_dedup_candidates_status
   ON silver_dedup_candidates(tenant_id, status);
 ```
 
