@@ -50,7 +50,7 @@
     }
   },
   "dependencies": {
-    "bullmq": "^5.69.2",
+    "bullmq": "^5.69.4",
     "ioredis": "^5.9.3"
   }
 }
