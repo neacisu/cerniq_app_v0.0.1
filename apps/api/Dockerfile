@@ -10,7 +10,7 @@ RUN apk add --no-cache curl
 RUN npm install -g pnpm@10.29.3
 WORKDIR /app
 
-# --- Dependencies stage ---
+# --- Dependencies ---
 FROM base AS deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 COPY apps/api/package.json ./apps/api/
@@ -19,7 +19,7 @@ COPY packages/shared-types/package.json ./packages/shared-types/
 COPY packages/config/package.json ./packages/config/
 RUN pnpm install --frozen-lockfile --filter @cerniq/api...
 
-# --- Build stage ---
+# --- Build ---
 FROM deps AS builder
 COPY packages/ ./packages/
 COPY apps/api/ ./apps/api/
@@ -27,20 +27,16 @@ RUN pnpm --filter @cerniq/shared-types build
 RUN pnpm --filter @cerniq/db build
 RUN pnpm --filter @cerniq/api build
 
-# --- Production dependencies only ---
-FROM deps AS prod-deps
-RUN pnpm install --frozen-lockfile --filter @cerniq/api... --prod
-
-# --- Production stage ---
+# --- Production ---
 FROM base AS runner
 RUN addgroup -g 1001 -S cerniq && \
     adduser -S -D -H -u 1001 -G cerniq cerniq
 
 WORKDIR /app
-COPY --from=prod-deps /app/node_modules ./node_modules
-COPY --from=prod-deps /app/apps/api/node_modules ./apps/api/node_modules
-COPY --from=prod-deps /app/packages/db/node_modules ./packages/db/node_modules
-COPY --from=prod-deps /app/packages/shared-types/node_modules ./packages/shared-types/node_modules
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
+COPY --from=deps /app/packages/db/node_modules ./packages/db/node_modules
+COPY --from=deps /app/packages/shared-types/node_modules ./packages/shared-types/node_modules
 COPY --from=builder /app/packages/shared-types/dist ./packages/shared-types/dist
 COPY --from=builder /app/packages/shared-types/package.json ./packages/shared-types/
 COPY --from=builder /app/packages/db/dist ./packages/db/dist

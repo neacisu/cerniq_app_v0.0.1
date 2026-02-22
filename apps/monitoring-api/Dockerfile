@@ -25,18 +25,14 @@ COPY apps/monitoring-api/ ./apps/monitoring-api/
 RUN pnpm --filter @cerniq/shared-types build
 RUN pnpm --filter @cerniq/monitoring-api build
 
-# --- Production dependencies only ---
-FROM deps AS prod-deps
-RUN pnpm install --frozen-lockfile --filter @cerniq/monitoring-api... --prod
-
-# --- Production stage ---
+# --- Production ---
 FROM base AS runner
 RUN addgroup -g 1001 -S cerniq && adduser -S -D -H -u 1001 -G cerniq cerniq
 WORKDIR /app
 
-COPY --from=prod-deps /app/node_modules ./node_modules
-COPY --from=prod-deps /app/apps/monitoring-api/node_modules ./apps/monitoring-api/node_modules
-COPY --from=prod-deps /app/packages/shared-types/node_modules ./packages/shared-types/node_modules
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/monitoring-api/node_modules ./apps/monitoring-api/node_modules
+COPY --from=deps /app/packages/shared-types/node_modules ./packages/shared-types/node_modules
 COPY --from=builder /app/packages/shared-types/dist ./packages/shared-types/dist
 COPY --from=builder /app/packages/shared-types/package.json ./packages/shared-types/
 COPY --from=builder /app/packages/config/ ./packages/config/

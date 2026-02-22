@@ -89,7 +89,6 @@ jobs:
     name: 🧪 Tests
     runs-on: self-hosted
     timeout-minutes: 15
-    needs: lint
     services:
       postgres:
         image: postgis/postgis:18-3.6
@@ -248,7 +247,6 @@ jobs:
     name: 🧱 Build Verification
     runs-on: self-hosted
     timeout-minutes: 15
-    needs: lint
 
     steps:
       - name: 📥 Checkout code
@@ -282,7 +280,6 @@ jobs:
     name: 🔒 Security Scan
     runs-on: self-hosted
     timeout-minutes: 10
-    needs: lint
 
     steps:
       - name: 📥 Checkout code
@@ -333,7 +330,6 @@ jobs:
     name: 🐳 Docker Config Validation
     runs-on: self-hosted
     timeout-minutes: 5
-    needs: lint
 
     steps:
       - name: 📥 Checkout code
@@ -362,7 +358,6 @@ jobs:
     name: 🐚 ShellCheck
     runs-on: self-hosted
     timeout-minutes: 5
-    needs: lint
 
     steps:
       - name: 📥 Checkout code
@@ -449,7 +444,7 @@ jobs:
     name: 🐳 Docker Build
     runs-on: self-hosted
     timeout-minutes: 20
-    needs: [lint, test, docker-config]
+    needs: [lint, test]
 
     steps:
       - name: 📥 Checkout code
@@ -503,7 +498,6 @@ jobs:
   changes:
     name: 🧭 Detect Changes
     runs-on: self-hosted
-    needs: lint
     outputs:
       workers: ${{ steps.filter.outputs.workers }}
 
