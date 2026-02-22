@@ -13,11 +13,13 @@ This pattern defines API pagination: cursor-based (recommended), offset fallback
 Better for large datasets; avoids offset performance issues.
 
 **Request:**
+
 ```http
 GET /v1/leads?cursor=eyJsYXN0SWQiOjEwMH0&limit=20
 ```
 
 **Response:**
+
 ```json
 {
   "data": [...],
@@ -73,7 +75,9 @@ const rows = await db
 
 const hasMore = rows.length > limit;
 const data = hasMore ? rows.slice(0, limit) : rows;
-const nextCursor = hasMore ? encodeCursor({ lastId: data[data.length - 1].id }) : null;
+const nextCursor = hasMore
+  ? encodeCursor({ lastId: data[data.length - 1].id })
+  : null;
 ```
 
 ---
@@ -105,7 +109,7 @@ Refine's `useTable` supports both modes:
 ```tsx
 const { tableQueryResult } = useTable({
   pagination: {
-    mode: 'server',
+    mode: "server",
     current: 1,
     pageSize: 20,
   },
@@ -131,12 +135,14 @@ Use base64 JSON for opacity and URL safety:
 
 ```typescript
 function encodeCursor(obj: Record<string, unknown>): string {
-  return Buffer.from(JSON.stringify(obj)).toString('base64url');
+  return Buffer.from(JSON.stringify(obj)).toString("base64url");
 }
 function decodeCursor(str: string): Record<string, unknown> | null {
   try {
-    return JSON.parse(Buffer.from(str, 'base64url').toString());
-  } catch { return null; }
+    return JSON.parse(Buffer.from(str, "base64url").toString());
+  } catch {
+    return null;
+  }
 }
 ```
 

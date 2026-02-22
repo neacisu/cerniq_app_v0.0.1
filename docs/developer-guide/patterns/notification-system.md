@@ -10,11 +10,11 @@ This pattern covers multi-channel notifications: email (Resend API), WhatsApp (W
 
 ## 1. Channels
 
-| Channel   | Provider        | Use Case                    |
-|-----------|-----------------|-----------------------------|
-| Email     | Resend API      | Transactional, marketing   |
-| WhatsApp  | WA Business API | Alerts, support             |
-| In-app    | WebSocket       | Real-time UI notifications |
+| Channel  | Provider        | Use Case                   |
+| -------- | --------------- | -------------------------- |
+| Email    | Resend API      | Transactional, marketing   |
+| WhatsApp | WA Business API | Alerts, support            |
+| In-app   | WebSocket       | Real-time UI notifications |
 
 ---
 
@@ -46,10 +46,10 @@ See `email-integration.md` for details.
 
 ```typescript
 // Server emits
-wsServer.to(`notifications:user:${userId}`).emit('notification', {
+wsServer.to(`notifications:user:${userId}`).emit("notification", {
   id: uuid(),
-  type: 'lead_assigned',
-  title: 'New lead assigned',
+  type: "lead_assigned",
+  title: "New lead assigned",
   body: 'Lead "Acme Corp" was assigned to you',
   read: false,
   createdAt: new Date().toISOString(),
@@ -62,11 +62,11 @@ wsServer.to(`notifications:user:${userId}`).emit('notification', {
 
 Store in `user_preferences` or `notification_settings`:
 
-| Preference      | Email | WhatsApp | In-app |
-|-----------------|-------|----------|--------|
-| lead_assigned   | ✓     | ✗        | ✓      |
-| invoice_ready   | ✓     | ✓        | ✓      |
-| marketing      | ✗     | ✗        | ✗      |
+| Preference    | Email | WhatsApp | In-app |
+| ------------- | ----- | -------- | ------ |
+| lead_assigned | ✓     | ✗        | ✓      |
+| invoice_ready | ✓     | ✓        | ✓      |
+| marketing     | ✗     | ✗        | ✗      |
 
 Respect user choices before sending.
 
@@ -96,7 +96,12 @@ Store in `notification_log`: `id`, `user_id`, `channel`, `template`, `status`, `
 
 ```typescript
 interface NotificationService {
-  send(userId: string, channel: 'email' | 'whatsapp' | 'in_app', template: string, data: Record<string, unknown>): Promise<void>;
+  send(
+    userId: string,
+    channel: "email" | "whatsapp" | "in_app",
+    template: string,
+    data: Record<string, unknown>,
+  ): Promise<void>;
 }
 
 // Implementation checks user preferences, renders template, dispatches to channel
@@ -115,7 +120,7 @@ For bulk (e.g. newsletter): use BullMQ queue with rate limiting. Batch by channe
 ```typescript
 interface InAppNotification {
   id: string;
-  type: 'lead_assigned' | 'invoice_ready' | 'task_due';
+  type: "lead_assigned" | "invoice_ready" | "task_due";
   title: string;
   body: string;
   link?: string;

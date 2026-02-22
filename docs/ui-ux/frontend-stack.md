@@ -2,20 +2,20 @@
 
 ## Build & Dev Server
 
-| Pachet | Versiune | Rol |
-|--------|----------|-----|
-| **Vite** | 7.3.1 | Build tool, HMR, dev server |
-| **@vitejs/plugin-react** | 5.1.1 | React Fast Refresh |
-| **@tailwindcss/vite** | — | Tailwind v4 integration (Oxide engine) |
+| Pachet                   | Versiune | Rol                                    |
+| ------------------------ | -------- | -------------------------------------- |
+| **Vite**                 | 7.3.1    | Build tool, HMR, dev server            |
+| **@vitejs/plugin-react** | 5.1.1    | React Fast Refresh                     |
+| **@tailwindcss/vite**    | —        | Tailwind v4 integration (Oxide engine) |
 
 ---
 
 ## React
 
-| Pachet | Versiune | Rol |
-|--------|----------|-----|
-| **React** | 19 | Server Components, useOptimistic, Activity API |
-| **babel-plugin-react-compiler** | — | React Compiler (12% faster loads, 2.5x faster interactions) |
+| Pachet                          | Versiune | Rol                                                         |
+| ------------------------------- | -------- | ----------------------------------------------------------- |
+| **React**                       | 19       | Server Components, useOptimistic, Activity API              |
+| **babel-plugin-react-compiler** | —        | React Compiler (12% faster loads, 2.5x faster interactions) |
 
 ---
 
@@ -29,11 +29,11 @@
 
 ## Refine v5
 
-| Pachet | Rol |
-|--------|-----|
-| **@refinedev/core** | Headless admin framework |
-| **@refinedev/react-router** | Routing integration |
-| **@refinedev/react-table** | TanStack Table integration |
+| Pachet                      | Rol                        |
+| --------------------------- | -------------------------- |
+| **@refinedev/core**         | Headless admin framework   |
+| **@refinedev/react-router** | Routing integration        |
+| **@refinedev/react-table**  | TanStack Table integration |
 
 ---
 
@@ -54,24 +54,27 @@
 
 ## Fonturi (Google Fonts)
 
-| Rol | Font | Utilizare |
-|-----|------|-----------|
-| **Display** | Bricolage Grotesque | Headings, logo, KPI numbers |
-| **Body** | DM Sans | Text, tabele, labels |
-| **Monospace** | Geist Mono | CUI, coduri, date numerice |
+| Rol           | Font                | Utilizare                   |
+| ------------- | ------------------- | --------------------------- |
+| **Display**   | Bricolage Grotesque | Headings, logo, KPI numbers |
+| **Body**      | DM Sans             | Text, tabele, labels        |
+| **Monospace** | Geist Mono          | CUI, coduri, date numerice  |
 
 ```html
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=DM+Sans:ital,opsz,wght@0,9..40,300..700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=DM+Sans:ital,opsz,wght@0,9..40,300..700&family=Geist+Mono:wght@400;500&display=swap"
+  rel="stylesheet"
+/>
 ```
 
 ---
 
 ## Tooling
 
-| Tool | Versiune | Rol |
-|------|----------|-----|
-| **ESLint** | 9.39+ | Linting |
-| **Prettier** | — | Formatare |
+| Tool           | Versiune    | Rol         |
+| -------------- | ----------- | ----------- |
+| **ESLint**     | 9.39+       | Linting     |
+| **Prettier**   | —           | Formatare   |
 | **TypeScript** | strict mode | Type safety |

@@ -20,16 +20,16 @@ This pattern covers email sending via Resend API: template rendering, open/click
 ## 2. Basic Send
 
 ```typescript
-const response = await fetch('https://api.resend.com/emails', {
-  method: 'POST',
+const response = await fetch("https://api.resend.com/emails", {
+  method: "POST",
   headers: {
-    'Authorization': `Bearer ${RESEND_API_KEY}`,
-    'Content-Type': 'application/json',
+    Authorization: `Bearer ${RESEND_API_KEY}`,
+    "Content-Type": "application/json",
   },
   body: JSON.stringify({
-    from: 'noreply@cerniq.app',
+    from: "noreply@cerniq.app",
     to: [recipient],
-    subject: 'Invoice ready',
+    subject: "Invoice ready",
     html: renderedHtml,
   }),
 });
@@ -44,8 +44,10 @@ const response = await fetch('https://api.resend.com/emails', {
 - **Variables:** `{{userName}}`, `{{invoiceUrl}}`, `{{companyName}}`
 
 ```typescript
-import Handlebars from 'handlebars';
-const template = Handlebars.compile(fs.readFileSync('templates/email/invoice-ready.html', 'utf8'));
+import Handlebars from "handlebars";
+const template = Handlebars.compile(
+  fs.readFileSync("templates/email/invoice-ready.html", "utf8"),
+);
 const html = template({ userName: user.name, invoiceUrl: url });
 ```
 
@@ -56,6 +58,7 @@ Store templates in DB for admin-editable content (optional).
 ## 4. Tracking (Open/Click)
 
 Resend supports webhooks for:
+
 - `email.sent`
 - `email.delivered`
 - `email.delivery_delayed`
@@ -71,6 +74,7 @@ Enable in Resend dashboard. Configure webhook URL: `https://api.cerniq.app/v1/we
 ## 5. Bounce Handling
 
 On `email.bounced` webhook:
+
 - Mark recipient as bounced in DB
 - Suppress future emails to that address
 - Optionally notify admin
@@ -115,12 +119,12 @@ Store bounce status in `email_recipients` or `user` table.
 
 Map Resend errors to AppError:
 
-| Resend Error     | Action                    |
-|------------------|---------------------------|
-| 429              | Queue for retry, backoff  |
-| 400 (invalid)    | BadRequestError, log       |
-| 401/403          | Check API key, rotate     |
-| 5xx              | Retry with circuit breaker|
+| Resend Error  | Action                     |
+| ------------- | -------------------------- |
+| 429           | Queue for retry, backoff   |
+| 400 (invalid) | BadRequestError, log       |
+| 401/403       | Check API key, rotate      |
+| 5xx           | Retry with circuit breaker |
 
 ---
 
@@ -129,7 +133,7 @@ Map Resend errors to AppError:
 For non-immediate sends, enqueue to `cerniq:queue:email`:
 
 ```typescript
-await emailQueue.add('send', { to, template, data }, { attempts: 3 });
+await emailQueue.add("send", { to, template, data }, { attempts: 3 });
 ```
 
 Worker calls Resend API. Enables rate limiting and retries.

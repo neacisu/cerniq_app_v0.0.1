@@ -42,9 +42,9 @@ Add to Drizzle migrations. Use for frequently searched columns (company name, CU
 ## 3. Drizzle Where Clauses
 
 ```typescript
-import { sql, ilike, or, eq, and } from 'drizzle-orm';
+import { sql, ilike, or, eq, and } from "drizzle-orm";
 
-const searchTerm = req.query.q ?? '';
+const searchTerm = req.query.q ?? "";
 const filters = req.query; // { status, region, ... }
 
 let whereClause = and();
@@ -55,13 +55,15 @@ if (searchTerm) {
     or(
       ilike(companies.name, `%${searchTerm}%`),
       ilike(companies.cui, `%${searchTerm}%`),
-      sql`similarity(${companies.name}, ${searchTerm}) > 0.3`
-    )
+      sql`similarity(${companies.name}, ${searchTerm}) > 0.3`,
+    ),
   );
 }
 
-if (filters.status) whereClause = and(whereClause, eq(leads.status, filters.status));
-if (filters.region) whereClause = and(whereClause, eq(companies.region, filters.region));
+if (filters.status)
+  whereClause = and(whereClause, eq(leads.status, filters.status));
+if (filters.region)
+  whereClause = and(whereClause, eq(companies.region, filters.region));
 ```
 
 ---
@@ -75,7 +77,8 @@ function buildLeadFilters(query: Record<string, string>) {
   const filters: SQL[] = [];
   if (query.status) filters.push(eq(leads.status, query.status));
   if (query.assignedTo) filters.push(eq(leads.assignedToId, query.assignedTo));
-  if (query.dateFrom) filters.push(gte(leads.createdAt, new Date(query.dateFrom)));
+  if (query.dateFrom)
+    filters.push(gte(leads.createdAt, new Date(query.dateFrom)));
   if (query.dateTo) filters.push(lte(leads.createdAt, new Date(query.dateTo)));
   return and(...filters);
 }
@@ -100,7 +103,7 @@ Frontend: `useSearchParams` or similar to read/write. API: parse `req.query`.
 Avoid API spam on keystroke:
 
 ```tsx
-const [search, setSearch] = useState('');
+const [search, setSearch] = useState("");
 const debouncedSearch = useDebouncedValue(search, 300);
 
 useEffect(() => {
@@ -117,6 +120,7 @@ useEffect(() => {
 ## 7. CUI Search
 
 CUI (Romanian company ID) is 8 digits. Support:
+
 - Exact: `12345678`
 - Partial: `1234` (prefix match)
 - With/without leading zeros

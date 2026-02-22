@@ -35,6 +35,7 @@ Response: PDF binary or base64.
 - **Variables:** Company details, invoice lines, totals, TVA breakdown
 
 Template structure:
+
 - Header: logo, company name, CUI, address
 - Body: invoice lines with description, quantity, unit price, TVA, total
 - Footer: payment terms, bank details, legal mentions
@@ -64,6 +65,7 @@ const vatAmount = grossAmount - netAmount;
 ```
 
 For invoice lines:
+
 - `line_net = line_gross / 1.24`
 - `line_vat = line_gross - line_net`
 - Round to 2 decimals per line; adjust last line for rounding.
@@ -134,6 +136,7 @@ Besides invoices: lead reports, activity reports, analytics. Same python-pdf ser
 ## 10. Romanian Legal Footer
 
 Include in invoice PDF:
+
 - "Factura este emisă în baza Legii 227/2015"
 - Company registration (J40/1234/2020)
 - Bank details (IBAN)

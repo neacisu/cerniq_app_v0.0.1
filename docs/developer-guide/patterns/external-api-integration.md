@@ -13,7 +13,7 @@ This pattern defines how Cerniq integrates with external APIs: ANAF (Romanian fi
 Use [opossum](https://github.com/nodeshift/opossum) to prevent cascading failures when external APIs are degraded.
 
 ```typescript
-import CircuitBreaker from 'opossum';
+import CircuitBreaker from "opossum";
 
 const anafOptions = {
   timeout: 15000,
@@ -23,15 +23,15 @@ const anafOptions = {
 
 const anafBreaker = new CircuitBreaker(fetchAnafData, anafOptions);
 
-anafBreaker.on('open', () => logger.warn('ANAF circuit breaker OPEN'));
-anafBreaker.on('halfOpen', () => logger.info('ANAF circuit breaker HALF_OPEN'));
-anafBreaker.on('close', () => logger.info('ANAF circuit breaker CLOSED'));
+anafBreaker.on("open", () => logger.warn("ANAF circuit breaker OPEN"));
+anafBreaker.on("halfOpen", () => logger.info("ANAF circuit breaker HALF_OPEN"));
+anafBreaker.on("close", () => logger.info("ANAF circuit breaker CLOSED"));
 ```
 
 **Configuration per provider:**
 
-| Provider   | Timeout | Error Threshold | Reset Timeout |
-|-----------|---------|-----------------|---------------|
+| Provider  | Timeout | Error Threshold | Reset Timeout |
+| --------- | ------- | --------------- | ------------- |
 | ANAF      | 15s     | 50%             | 30s           |
 | Termene   | 10s     | 50%             | 20s           |
 | Hunter.io | 8s      | 60%             | 15s           |
@@ -43,7 +43,7 @@ anafBreaker.on('close', () => logger.info('ANAF circuit breaker CLOSED'));
 Implement retries only for transient failures (5xx, network errors). Do NOT retry 4xx (except 429).
 
 ```typescript
-import pRetry from 'p-retry';
+import pRetry from "p-retry";
 
 const fetchWithRetry = async (fn: () => Promise<T>) =>
   pRetry(fn, {
@@ -51,7 +51,7 @@ const fetchWithRetry = async (fn: () => Promise<T>) =>
     factor: 2,
     minTimeout: 1000,
     maxTimeout: 10000,
-    onFailedAttempt: (e) => logger.warn({ attempt: e.attemptNumber }, 'Retry'),
+    onFailedAttempt: (e) => logger.warn({ attempt: e.attemptNumber }, "Retry"),
   });
 ```
 
@@ -64,13 +64,15 @@ const fetchWithRetry = async (fn: () => Promise<T>) =>
 Always set explicit timeouts. Map timeout errors to `AppError` hierarchy:
 
 ```typescript
-import { BadRequestError, TooManyRequestsError } from '../errors/app-error';
+import { BadRequestError, TooManyRequestsError } from "../errors/app-error";
 
 // Map external API errors to AppError
 function mapToAppError(err: unknown): AppError {
-  if (err instanceof TimeoutError) return new BadRequestError('External API timeout');
-  if (err?.statusCode === 429) return new TooManyRequestsError('Rate limit exceeded');
-  return new BadRequestError('External API error');
+  if (err instanceof TimeoutError)
+    return new BadRequestError("External API timeout");
+  if (err?.statusCode === 429)
+    return new TooManyRequestsError("Rate limit exceeded");
+  return new BadRequestError("External API error");
 }
 ```
 
@@ -95,14 +97,14 @@ if (cached) return JSON.parse(cached);
 
 ## 5. Error Mapping to AppError Hierarchy
 
-| External Error        | AppError Class           | HTTP Status |
-|-----------------------|--------------------------|-------------|
-| 400 Bad Request       | BadRequestError          | 400         |
-| 401/403               | UnauthorizedError        | 401         |
-| 404                   | NotFoundError            | 404         |
-| 429 Rate Limit        | TooManyRequestsError     | 429         |
-| Timeout               | BadRequestError          | 400         |
-| Circuit Open          | BadRequestError (retry)  | 503         |
+| External Error  | AppError Class          | HTTP Status |
+| --------------- | ----------------------- | ----------- |
+| 400 Bad Request | BadRequestError         | 400         |
+| 401/403         | UnauthorizedError       | 401         |
+| 404             | NotFoundError           | 404         |
+| 429 Rate Limit  | TooManyRequestsError    | 429         |
+| Timeout         | BadRequestError         | 400         |
+| Circuit Open    | BadRequestError (retry) | 503         |
 
 ---
 

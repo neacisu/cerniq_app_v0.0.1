@@ -14,15 +14,15 @@ Complete inventory of all OpenBao secret paths used by Cerniq. All secrets are s
 
 Application config for the API service.
 
-| Key           | Description                    | Rotation |
-|---------------|--------------------------------|----------|
-| `db_host`     | PostgreSQL host (PgBouncer)    | Rare     |
-| `db_port`     | PgBouncer port (64033)         | Rare     |
-| `db_user`     | API database user              | Via DB engine |
-| `db_password` | API database password         | Via DB engine |
-| `redis_url`   | Redis connection string        | Rare     |
-| `jwt_secret`  | JWT signing secret             | Quarterly |
-| `jwt_refresh_secret` | Refresh token secret       | Quarterly |
+| Key                  | Description                 | Rotation      |
+| -------------------- | --------------------------- | ------------- |
+| `db_host`            | PostgreSQL host (PgBouncer) | Rare          |
+| `db_port`            | PgBouncer port (64033)      | Rare          |
+| `db_user`            | API database user           | Via DB engine |
+| `db_password`        | API database password       | Via DB engine |
+| `redis_url`          | Redis connection string     | Rare          |
+| `jwt_secret`         | JWT signing secret          | Quarterly     |
+| `jwt_refresh_secret` | Refresh token secret        | Quarterly     |
 
 **AppRole:** `api`
 
@@ -32,13 +32,13 @@ Application config for the API service.
 
 External API credentials shared across API and workers.
 
-| Key                | Description           | Provider   |
-|--------------------|-----------------------|------------|
-| `anaf_api_key`     | ANAF API key          | ANAF       |
-| `termene_api_key`  | Termene.ro API key    | Termene    |
-| `hunter_api_key`   | Hunter.io API key     | Hunter     |
-| `resend_api_key`   | Resend email API key  | Resend     |
-| `openai_api_key`   | OpenAI API key        | OpenAI     |
+| Key               | Description          | Provider |
+| ----------------- | -------------------- | -------- |
+| `anaf_api_key`    | ANAF API key         | ANAF     |
+| `termene_api_key` | Termene.ro API key   | Termene  |
+| `hunter_api_key`  | Hunter.io API key    | Hunter   |
+| `resend_api_key`  | Resend email API key | Resend   |
+| `openai_api_key`  | OpenAI API key       | OpenAI   |
 
 **AppRole:** `api`, `workers`
 
@@ -48,11 +48,11 @@ External API credentials shared across API and workers.
 
 Credentials for CI/CD and test environments.
 
-| Key           | Description              |
-|---------------|--------------------------|
-| `db_url`      | Test database URL        |
-| `redis_url`   | Test Redis URL           |
-| `api_base_url`| Staging API URL          |
+| Key            | Description       |
+| -------------- | ----------------- |
+| `db_url`       | Test database URL |
+| `redis_url`    | Test Redis URL    |
+| `api_base_url` | Staging API URL   |
 
 **AppRole:** `cicd`
 
@@ -96,12 +96,12 @@ Dynamic database credentials (short-lived, auto-rotated by OpenBao).
 
 ## 3. Access Policies per AppRole
 
-| AppRole   | Paths                                                      |
-|-----------|------------------------------------------------------------|
+| AppRole   | Paths                                                                                      |
+| --------- | ------------------------------------------------------------------------------------------ |
 | `api`     | `secret/cerniq/api/config`, `secret/cerniq/shared/external`, `cerniq-db/creds/api-dynamic` |
-| `workers` | `secret/cerniq/shared/external`, DB creds (workers template) |
-| `infra`   | `cerniq-db/creds/*`, backup-related paths                  |
-| `cicd`    | `secret/cerniq/ci/test`                                    |
+| `workers` | `secret/cerniq/shared/external`, DB creds (workers template)                               |
+| `infra`   | `cerniq-db/creds/*`, backup-related paths                                                  |
+| `cicd`    | `secret/cerniq/ci/test`                                                                    |
 
 ---
 
@@ -132,7 +132,9 @@ Never read directly from OpenBao in application code. Agents render to files; ap
 const dbPassword = process.env.DB_PASSWORD;
 
 // Or from file
-const secrets = JSON.parse(fs.readFileSync('/opt/cerniq/runtime-secrets/api/config.json'));
+const secrets = JSON.parse(
+  fs.readFileSync("/opt/cerniq/runtime-secrets/api/config.json"),
+);
 ```
 
 ---

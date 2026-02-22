@@ -27,14 +27,14 @@ https://api.cerniq.app/v1/leads/123
 ## 2. Version in Route Registration
 
 ```typescript
-fastify.register(leadsRoutes, { prefix: '/v1/leads' });
-fastify.register(leadsRoutesV2, { prefix: '/v2/leads' });
+fastify.register(leadsRoutes, { prefix: "/v1/leads" });
+fastify.register(leadsRoutesV2, { prefix: "/v2/leads" });
 ```
 
 Or mount all v1 under `/v1`:
 
 ```typescript
-fastify.register(v1Routes, { prefix: '/v1' });
+fastify.register(v1Routes, { prefix: "/v1" });
 ```
 
 ---
@@ -44,14 +44,14 @@ fastify.register(v1Routes, { prefix: '/v1' });
 - **Additive changes:** New fields, new endpoints — no new version
 - **Breaking changes:** Removed fields, changed types, changed behavior — new version
 
-| Change Type        | Version Bump? |
-|--------------------|---------------|
-| Add optional field | No            |
-| Add required field | Yes (v2)      |
-| Remove field      | Yes           |
-| Change field type  | Yes           |
-| Rename endpoint    | Yes           |
-| Change error format| Yes (if client-breaking) |
+| Change Type         | Version Bump?            |
+| ------------------- | ------------------------ |
+| Add optional field  | No                       |
+| Add required field  | Yes (v2)                 |
+| Remove field        | Yes                      |
+| Change field type   | Yes                      |
+| Rename endpoint     | Yes                      |
+| Change error format | Yes (if client-breaking) |
 
 ---
 
@@ -128,11 +128,11 @@ Parse and route to v2. For public REST API, URL prefix is preferred.
 
 ## 11. Lifecycle Timeline
 
-| Phase        | Duration   | Action                          |
-|--------------|------------|----------------------------------|
-| Deprecation  | 6+ months  | Add headers, announce            |
-| Sunset       | 1–3 months | Final reminders, migration support |
-| Removal      | —          | Remove v1, redirect to v2 or 410 |
+| Phase       | Duration   | Action                             |
+| ----------- | ---------- | ---------------------------------- |
+| Deprecation | 6+ months  | Add headers, announce              |
+| Sunset      | 1–3 months | Final reminders, migration support |
+| Removal     | —          | Remove v1, redirect to v2 or 410   |
 
 ---
 

@@ -97,7 +97,7 @@ Criterii "Must Have" pentru a trece la Etapa 1:
 - **F0.8 Security** — DONE: OpenBao pe orchestrator, UFW firewall, container hardening
 - **F0.14 PgBouncer** — DONE: CT109 (staging), CT110 (production), pool_mode=transaction
 - **F0.15 CI/CD** — DONE: GitHub Actions CI+CD, self-hosted runner CT108, deploy staging/production
-- **F0.16 DNS** — DONE: Cloudflare DNS cu subdomenii *.cerniq.app
+- **F0.16 DNS** — DONE: Cloudflare DNS cu subdomenii \*.cerniq.app
 - **F0.17 GitHub Repo** — DONE: Branch protection, PR templates, CODEOWNERS
 
 ### PARTIAL (F0.6, F0.12, F0.13, F0.20)
@@ -151,7 +151,7 @@ Criterii "Must Have" pentru a trece la Etapa 1:
 - **Redis**: EXCLUSIV prefix `cerniq:` pe toate cheile/cozile BullMQ
 - **PostgreSQL CT107**: EXCLUSIV baza de date `cerniq_production`/`cerniq_staging`
 - **Traefik orchestrator**: Modificam EXCLUSIV `cerniq.yml`
-- **OpenBao orchestrator**: EXCLUSIV path-urile `kv/cerniq/`*
+- **OpenBao orchestrator**: EXCLUSIV path-urile `kv/cerniq/`\*
 - **Docker networks**: EXCLUSIV `cerniq_public`/`cerniq_backend`/`cerniq_data`
 - **CI/CD**: Self-hosted runner CT108
 
@@ -196,44 +196,17 @@ Criterii "Must Have" pentru a trece la Etapa 1:
 - `packages/db/src/` — Drizzle client, schema-uri (tenants, users, rbac, approval, audit), migrations, seed
 - `packages/config/` — ESLint + TypeScript shared configs
 
-**Taskuri:**
-7. Zod schemas cu validari specifice (CUI regex, leadScore 0-100), structured log schemas, PII redaction
-8. Drizzle client prin PgBouncer (`pool: { size: 0 }`)
-9. SQL migration: CREATE EXTENSION postgis/vector/pg_trgm, CREATE SCHEMA bronze/silver/gold/approval/audit
-10. Tabela `tenants` (id UUID PK, name, slug, status, settings JSONB, timestamps)
-11. Tabela `users` (id UUID PK, tenant_id FK, email, password_hash, name, role, status, timestamps)
-12. Tabele RBAC: roles, permissions, role_permissions, user_roles
-13. Tabela `approval.approval_tasks` (24 coloane — transversala E1-E5)
-14. Tabela `approval.approval_type_configs` (15 coloane)
-15. Tabela `audit.approval_audit_log` (18 coloane — IMUTABILA)
-16. RLS policies: `tenant_id = current_setting('app.tenant_id')::uuid`
-17. ESLint + TypeScript shared configs
+**Taskuri:** 7. Zod schemas cu validari specifice (CUI regex, leadScore 0-100), structured log schemas, PII redaction 8. Drizzle client prin PgBouncer (`pool: { size: 0 }`) 9. SQL migration: CREATE EXTENSION postgis/vector/pg_trgm, CREATE SCHEMA bronze/silver/gold/approval/audit 10. Tabela `tenants` (id UUID PK, name, slug, status, settings JSONB, timestamps) 11. Tabela `users` (id UUID PK, tenant_id FK, email, password_hash, name, role, status, timestamps) 12. Tabele RBAC: roles, permissions, role_permissions, user_roles 13. Tabela `approval.approval_tasks` (24 coloane — transversala E1-E5) 14. Tabela `approval.approval_type_configs` (15 coloane) 15. Tabela `audit.approval_audit_log` (18 coloane — IMUTABILA) 16. RLS policies: `tenant_id = current_setting('app.tenant_id')::uuid` 17. ESLint + TypeScript shared configs
 
 ### FAZA C: API Boilerplate (F0.9)
 
 **Fisiere noi:** `apps/api/src/` — Fastify factory, plugins (CORS/Helmet/JWT/Cookie/tenant-context/request-logging/rate-limit/database/redis/otel/metrics), error handling (AppError hierarchy), health check routes 3-tier, queue factory, circuit breaker, graceful shutdown
 
-**Taskuri:**
-18. Fastify v5 cu Zod type provider, `trustProxy: true`, port 64010
-19. Environment variable validation la startup (Zod schema, `process.exit(1)` daca lipsesc)
-20. Plugin system: CORS, Helmet, JWT, Cookie, tenant-context, request-logging, rate-limit
-21. Tenant-context: `SET app.tenant_id` pe conexiunea Drizzle pentru RLS
-22. Error handling: AppError hierarchy (400/401/403/404/409/429), fara stack traces in productie
-23. Pino logger cu PII redaction
-24. Health check endpoints 3-tier (`/health/live`, `/health/ready`, `/health/deps`)
-25. Prometheus metrics cu prom-client (`cerniq_health_check_status`, `cerniq_health_check_latency_ms`)
-26. OpenTelemetry auto-instrumentation, export la `http://localhost:64071`
-27. BullMQ Queue factory cu prefix `cerniq:`
-28. Circuit breaker (Opossum), Rate limiting (Redis store), Graceful shutdown
-29. Dockerfile (actualizare BUILD steps — NU modificam FROM base image)
+**Taskuri:** 18. Fastify v5 cu Zod type provider, `trustProxy: true`, port 64010 19. Environment variable validation la startup (Zod schema, `process.exit(1)` daca lipsesc) 20. Plugin system: CORS, Helmet, JWT, Cookie, tenant-context, request-logging, rate-limit 21. Tenant-context: `SET app.tenant_id` pe conexiunea Drizzle pentru RLS 22. Error handling: AppError hierarchy (400/401/403/404/409/429), fara stack traces in productie 23. Pino logger cu PII redaction 24. Health check endpoints 3-tier (`/health/live`, `/health/ready`, `/health/deps`) 25. Prometheus metrics cu prom-client (`cerniq_health_check_status`, `cerniq_health_check_latency_ms`) 26. OpenTelemetry auto-instrumentation, export la `http://localhost:64071` 27. BullMQ Queue factory cu prefix `cerniq:` 28. Circuit breaker (Opossum), Rate limiting (Redis store), Graceful shutdown 29. Dockerfile (actualizare BUILD steps — NU modificam FROM base image)
 
 ### FAZA D: Database Schema Finalization (F0.10)
 
-**Taskuri:**
-30. RLS policies pe TOATE tabelele cu `tenant_id`
-31. Drizzle `generate` + `push` migrations
-32. Seed data: 2 tenants, 3 users/tenant, roles, RBAC, 3 approval_type_configs
-33. Seed data testing: tenant izolat pentru @testcontainers
+**Taskuri:** 30. RLS policies pe TOATE tabelele cu `tenant_id` 31. Drizzle `generate` + `push` migrations 32. Seed data: 2 tenants, 3 users/tenant, roles, RBAC, 3 approval_type_configs 33. Seed data testing: tenant izolat pentru @testcontainers
 
 ### FAZA E: Frontend Complet + Design System (F0.11 — `apps/web`) — 28 PAGINI
 
@@ -380,67 +353,21 @@ home→Home, db→Database, building→Building2, users→Users, user→User, up
 - Judete: Ialomita, Calarasi, Braila, Dolj, Teleorman
 - 36 statusuri exacte in SBadge: COMPLETED, PROCESSING, FAILED, PENDING, ACTIVE, PAUSED, OFFLINE, BANNED, COLD, CONTACTED_WA, CONTACTED_EMAIL, WARM_REPLY, NEGOTIATION, CONVERTED, DEAD, DRAFT, SENT, DELIVERED, PAID, OVERDUE, RISK_LOW, RISK_MED, RISK_HIGH, LOYAL, AT_RISK, CHURNED, NEW, IN_TRANSIT, RETURNED, MATCHED, UNMATCHED, DISCOVERY, PROPOSAL, OBJECTION_HANDLING, CLOSING, WON
 
-**Taskuri:**
-34. React 19 + **Vite 7.3.1** + `@vitejs/plugin-react` 5.1.1, `@tailwindcss/vite`
-35. Refine v5 headless: `@refinedev/core`, `@refinedev/react-router`, `@refinedev/react-table`
-36. shadcn/ui init + customizare cu design tokens Cerniq
-37. Design Tokens: `tokens.css` cu @theme complet — OKLCH P3 (exact din exemplul mock: --b3/b4/b5/b6 brand, --s950/s900/s800/s700/s600 surface, --t1/t2/t3/t4 text, --ok/wa/er/in semantic, --fD/fB/fM fonts)
-38. Global Styles: `globals.css` (CSS reset, scrollbar custom 5px, focus-visible 2px solid --b5) + `animations.css` (8 keyframes: fadeUp, fadeIn, shimmer, spin, slideIn, pageIn, toastIn, glow + prefers-reduced-motion) + `typography.css` (font scale, .fd/.fm utility classes, .sv/.sl/.sc stat typography)
-39. 13 Primitive UI Components (shadcn/ui + customizare): button (6 variante + 3 marimi), input (cu error/icon states), select (Radix), table (wrapper+table cu header/hover/border), tabs (Radix, border-bottom + active state), card (glassmorphism), badge (9 variante culoare, 36 statusuri exacte SBadge, TBadge tier), skeleton, spinner, toast (Sonner), separator, tooltip, barrel index
-40. 5 Data Display Components NOI: KpiCard (icon+value+change+delay animation+onClick), ProgressBar (culori dinamice ok/wa/er), StatusDot (5 stari cu box-shadow glow), StatsBar (horizontal bars cu labels+values), ChatMessage (4 tipuri: out/in/ai/system cu stiluri distincte)
-41. 3 Feedback Components (EmptyState cu icon+title+description, ErrorBoundary, LoadingPage), 2 Brand Components (CerniqLogo SVG hexagon+wordmark cu size/iconOnly props, EtapaBadge/EtapaBanner cu 3 tipuri: brand/info/ok)
-42. 5 Layout Components: AppLayout, Sidebar (collapsible 240→64px, 7 nav sections cu section labels, nav items cu active left-bar 3px, badge counts .nb.dn/.nb.nw cu glow animation, user zone avatar+name+role+logout), Header (glassmorphism blur 20px, breadcrumbs, notification dot .nd 7px rosu pe bell, settings+avatar buttons), Breadcrumb, PageWrapper (max-w-1380, pageIn animation)
-43. ThemeProvider dark default, localStorage persistence
-44. Login Page (glassmorphism card 400px max-width, radial gradient background 15%/85%, fadeUp animation cubic-bezier(.34,1.56,.64,1), email autofocus, password toggle eye/eyeOff, inline validation, loading state cu Spinner, "Demo precompletat" hint, footer GDPR) + ForgotPassword placeholder
-45. Dashboard complet cu KPIs (Bronze 47,382 / Silver 8,941 / Gold 1,247 / Venituri EUR184K cu onClick navigatie), Pipeline Funnel (6 bars cu StatsBar), Activitate Recenta (6 events cu StatusDot+time-ago), 3 mini-widgets Outreach/Infrastructure/KPI Lunar (card cu rows key-value cu color semantic)
-46. 5 pagini Etapa 1: Import (drag-drop zone cu border dashed + color change, click upload, history table cu progress bars), Bronze (tabel cu search input + select filter judet, progress bar calitate, SBadge status), Silver (ANAF checkmark ✓/✗ + Termene checkmark, score progress, TBadge tier, butoane Sync ANAF + Gold), Gold (tabel cu company+contact+judet+revenue+score, buton send per row, Launch Outreach global), Approvals HITL (cards cu border-color per urgency HIGH/MED/LOW, badge urgency+type, confidence AI progress bar, approve btok + reject btd, EmptyState cand inbox gol)
-47. 6 pagini Etapa 2: Outreach (4 KPIs, Lead Funnel cu SBadge labels + StatsBar, WA Quota 10x2 grid de progress bars verticale cu numar), Leads (tab filter ALL/COLD/CONTACTED_WA/.../CONVERTED cu SBadge in tab labels, tabel cu canal badge WA/Email, sentiment progress bar, time-ago), Sequences (cards cu step timeline WA/Email badges + delay hours, stats leads/rate/conversii, Pause/Activate toggle), Templates (split panel: library left cu selected highlight border-left 3px brand, preview right cu monospace code block + variabile bbd badges), Phones (3 KPIs, 5x4 grid cards cu WA-01..WA-20, progress bar per numar, status dot ok/er, click toast), Review (AI message preview .mai bubble, warning reason box bwa background, 3 butoane Aproba&Trimite/Edit/Respinge, EmptyState cand queue gol)
-48. 5 pagini Etapa 3: AI Dashboard (4 KPIs cu onClick, 3 cards: State Machine 5 states cu StatsBar, LLM Routing 3 modele cu cost+progress, Guardrails 5 checks cu StatusDot), Negotiations (dual-view: lista cards cu avatar+company+SBadge+AI badge+value+chevron -> detail cu 2-col: left chat UI cu ChatMessage 4 tipuri + input + AI/send buttons, right detail card key-value + actions card 3 butoane, back button), Offers (3 KPIs, tabel 8 coloane cu actiuni doc+send), Invoices (4 KPIs, tabel cu highlight OVERDUE background rosu, SPV badge ok/pending, TVA 24%), Guardrails (4 guard KPI cards cu StatusDot, audit log tabel 5 coloane cu PASS/BLOCKED coloring)
-49. 4 pagini Etapa 4: Payments (3 KPIs, tabel cu UNMATCHED highlight background galben, +/- amount coloring verde/rosu, currency badge, type badge PAYMENT/REFUND/UNKNOWN), Credit (3 KPIs, tabel cu score progress bar /10, limit/used coloane, risk SBadge), Logistics (3 KPIs, tabel cu AWB clickable toast tracking, colete, judet, ETA, COD badge), Returns (3 KPIs, RMA cards cu id+SBadge+company+reason+date+value, approve+details butoane, setState remove on approve)
-50. 4 pagini Etapa 5: Nurturing (4 KPIs, tabel cu SBadge status, NPS cu color coding, CLTV monospace, churn % progress bar, next contact URGENT highlight rosu), Referrals (3 KPIs, 2-col: KOL list cu influence %, KNN proximity map cu positioned circles sized/colored by type — clienti activi solid vs candidati KNN dashed, legend), Churn (3 KPIs, risk cards cu border-color per severity, risk progress bar cu %, signal badges ber, action text, Win-Back+Profil butoane), GeoMap (EtapaBanner ok, 2-col: harta cu positioned circles sized by density cu box-shadow glow + click toast, top judete StatsBar cu click toast + potential neexplorat dashed box)
-51. 2 pagini Sistem: Workers (4 KPIs, servicii list 12 items cu StatusDot + zebra striping, columns: name/detail/latency/jobs/status badge), Settings (Tabs 4: general cu 2 cards tenant config 4 fields + praguri automate 4 fields numerice, integrations 7 API cards cu StatusDot+key masked+edit button, team placeholder, billing cu plan name+price+features list ok color)
-52. Auth provider JWT, Data provider REST, QueryProvider
-53. Protected routes cu redirect
-54. Navigation config: 7 sectiuni, 28 items, badge counts (Approvals .dn:3, Leads .nw:127, Review .dn:8, Negotiations .nw:5)
-55. Hooks: useBreakpoint, useDebounce
-56. Lib: cn() (clsx + tailwind-merge), axios cu JWT interceptors
-57. index.html: `lang="ro"`, `data-theme="dark"`, font preconnect (Bricolage Grotesque + DM Sans + Geist Mono via Google Fonts)
-58. Responsive: custom breakpoint 1100px (KPI 4→2, grid 4→2, grid 3→1), custom breakpoint 700px (sidebar permanent collapsed 64px, KPI→2 cols), Tailwind defaults pentru restul
-59. Accessibility WCAG 2.2 AA: skip links, aria labels, focus management, keyboard navigation, target size >= 36px, `prefers-reduced-motion`, `aria-hidden` pe iconite decorative
-60. Performance: React 19 Compiler, manualChunks, JS < 200KB gzipped, LCP < 2.5s, INP < 200ms, CLS = 0
-61. Text color utility classes: .t1/.t2/.t3 + semantic .tok/.twa/.ter/.tb (in tokens.css sau Tailwind @apply)
-62. Dockerfile: multi-stage build (node build -> nginx serve pe port 64000)
+**Taskuri:** 34. React 19 + **Vite 7.3.1** + `@vitejs/plugin-react` 5.1.1, `@tailwindcss/vite` 35. Refine v5 headless: `@refinedev/core`, `@refinedev/react-router`, `@refinedev/react-table` 36. shadcn/ui init + customizare cu design tokens Cerniq 37. Design Tokens: `tokens.css` cu @theme complet — OKLCH P3 (exact din exemplul mock: --b3/b4/b5/b6 brand, --s950/s900/s800/s700/s600 surface, --t1/t2/t3/t4 text, --ok/wa/er/in semantic, --fD/fB/fM fonts) 38. Global Styles: `globals.css` (CSS reset, scrollbar custom 5px, focus-visible 2px solid --b5) + `animations.css` (8 keyframes: fadeUp, fadeIn, shimmer, spin, slideIn, pageIn, toastIn, glow + prefers-reduced-motion) + `typography.css` (font scale, .fd/.fm utility classes, .sv/.sl/.sc stat typography) 39. 13 Primitive UI Components (shadcn/ui + customizare): button (6 variante + 3 marimi), input (cu error/icon states), select (Radix), table (wrapper+table cu header/hover/border), tabs (Radix, border-bottom + active state), card (glassmorphism), badge (9 variante culoare, 36 statusuri exacte SBadge, TBadge tier), skeleton, spinner, toast (Sonner), separator, tooltip, barrel index 40. 5 Data Display Components NOI: KpiCard (icon+value+change+delay animation+onClick), ProgressBar (culori dinamice ok/wa/er), StatusDot (5 stari cu box-shadow glow), StatsBar (horizontal bars cu labels+values), ChatMessage (4 tipuri: out/in/ai/system cu stiluri distincte) 41. 3 Feedback Components (EmptyState cu icon+title+description, ErrorBoundary, LoadingPage), 2 Brand Components (CerniqLogo SVG hexagon+wordmark cu size/iconOnly props, EtapaBadge/EtapaBanner cu 3 tipuri: brand/info/ok) 42. 5 Layout Components: AppLayout, Sidebar (collapsible 240→64px, 7 nav sections cu section labels, nav items cu active left-bar 3px, badge counts .nb.dn/.nb.nw cu glow animation, user zone avatar+name+role+logout), Header (glassmorphism blur 20px, breadcrumbs, notification dot .nd 7px rosu pe bell, settings+avatar buttons), Breadcrumb, PageWrapper (max-w-1380, pageIn animation) 43. ThemeProvider dark default, localStorage persistence 44. Login Page (glassmorphism card 400px max-width, radial gradient background 15%/85%, fadeUp animation cubic-bezier(.34,1.56,.64,1), email autofocus, password toggle eye/eyeOff, inline validation, loading state cu Spinner, "Demo precompletat" hint, footer GDPR) + ForgotPassword placeholder 45. Dashboard complet cu KPIs (Bronze 47,382 / Silver 8,941 / Gold 1,247 / Venituri EUR184K cu onClick navigatie), Pipeline Funnel (6 bars cu StatsBar), Activitate Recenta (6 events cu StatusDot+time-ago), 3 mini-widgets Outreach/Infrastructure/KPI Lunar (card cu rows key-value cu color semantic) 46. 5 pagini Etapa 1: Import (drag-drop zone cu border dashed + color change, click upload, history table cu progress bars), Bronze (tabel cu search input + select filter judet, progress bar calitate, SBadge status), Silver (ANAF checkmark ✓/✗ + Termene checkmark, score progress, TBadge tier, butoane Sync ANAF + Gold), Gold (tabel cu company+contact+judet+revenue+score, buton send per row, Launch Outreach global), Approvals HITL (cards cu border-color per urgency HIGH/MED/LOW, badge urgency+type, confidence AI progress bar, approve btok + reject btd, EmptyState cand inbox gol) 47. 6 pagini Etapa 2: Outreach (4 KPIs, Lead Funnel cu SBadge labels + StatsBar, WA Quota 10x2 grid de progress bars verticale cu numar), Leads (tab filter ALL/COLD/CONTACTED_WA/.../CONVERTED cu SBadge in tab labels, tabel cu canal badge WA/Email, sentiment progress bar, time-ago), Sequences (cards cu step timeline WA/Email badges + delay hours, stats leads/rate/conversii, Pause/Activate toggle), Templates (split panel: library left cu selected highlight border-left 3px brand, preview right cu monospace code block + variabile bbd badges), Phones (3 KPIs, 5x4 grid cards cu WA-01..WA-20, progress bar per numar, status dot ok/er, click toast), Review (AI message preview .mai bubble, warning reason box bwa background, 3 butoane Aproba&Trimite/Edit/Respinge, EmptyState cand queue gol) 48. 5 pagini Etapa 3: AI Dashboard (4 KPIs cu onClick, 3 cards: State Machine 5 states cu StatsBar, LLM Routing 3 modele cu cost+progress, Guardrails 5 checks cu StatusDot), Negotiations (dual-view: lista cards cu avatar+company+SBadge+AI badge+value+chevron -> detail cu 2-col: left chat UI cu ChatMessage 4 tipuri + input + AI/send buttons, right detail card key-value + actions card 3 butoane, back button), Offers (3 KPIs, tabel 8 coloane cu actiuni doc+send), Invoices (4 KPIs, tabel cu highlight OVERDUE background rosu, SPV badge ok/pending, TVA 24%), Guardrails (4 guard KPI cards cu StatusDot, audit log tabel 5 coloane cu PASS/BLOCKED coloring) 49. 4 pagini Etapa 4: Payments (3 KPIs, tabel cu UNMATCHED highlight background galben, +/- amount coloring verde/rosu, currency badge, type badge PAYMENT/REFUND/UNKNOWN), Credit (3 KPIs, tabel cu score progress bar /10, limit/used coloane, risk SBadge), Logistics (3 KPIs, tabel cu AWB clickable toast tracking, colete, judet, ETA, COD badge), Returns (3 KPIs, RMA cards cu id+SBadge+company+reason+date+value, approve+details butoane, setState remove on approve) 50. 4 pagini Etapa 5: Nurturing (4 KPIs, tabel cu SBadge status, NPS cu color coding, CLTV monospace, churn % progress bar, next contact URGENT highlight rosu), Referrals (3 KPIs, 2-col: KOL list cu influence %, KNN proximity map cu positioned circles sized/colored by type — clienti activi solid vs candidati KNN dashed, legend), Churn (3 KPIs, risk cards cu border-color per severity, risk progress bar cu %, signal badges ber, action text, Win-Back+Profil butoane), GeoMap (EtapaBanner ok, 2-col: harta cu positioned circles sized by density cu box-shadow glow + click toast, top judete StatsBar cu click toast + potential neexplorat dashed box) 51. 2 pagini Sistem: Workers (4 KPIs, servicii list 12 items cu StatusDot + zebra striping, columns: name/detail/latency/jobs/status badge), Settings (Tabs 4: general cu 2 cards tenant config 4 fields + praguri automate 4 fields numerice, integrations 7 API cards cu StatusDot+key masked+edit button, team placeholder, billing cu plan name+price+features list ok color) 52. Auth provider JWT, Data provider REST, QueryProvider 53. Protected routes cu redirect 54. Navigation config: 7 sectiuni, 28 items, badge counts (Approvals .dn:3, Leads .nw:127, Review .dn:8, Negotiations .nw:5) 55. Hooks: useBreakpoint, useDebounce 56. Lib: cn() (clsx + tailwind-merge), axios cu JWT interceptors 57. index.html: `lang="ro"`, `data-theme="dark"`, font preconnect (Bricolage Grotesque + DM Sans + Geist Mono via Google Fonts) 58. Responsive: custom breakpoint 1100px (KPI 4→2, grid 4→2, grid 3→1), custom breakpoint 700px (sidebar permanent collapsed 64px, KPI→2 cols), Tailwind defaults pentru restul 59. Accessibility WCAG 2.2 AA: skip links, aria labels, focus management, keyboard navigation, target size >= 36px, `prefers-reduced-motion`, `aria-hidden` pe iconite decorative 60. Performance: React 19 Compiler, manualChunks, JS < 200KB gzipped, LCP < 2.5s, INP < 200ms, CLS = 0 61. Text color utility classes: .t1/.t2/.t3 + semantic .tok/.twa/.ter/.tb (in tokens.css sau Tailwind @apply) 62. Dockerfile: multi-stage build (node build -> nginx serve pe port 64000)
 
 ### FAZA F: Admin Dashboard (F0.19 — `apps/web-admin`)
 
 **NOTA**: Reutilizeaza Design System "Dark Terroir" din Faza E. Conform STRATEGIE_MONITORIZARE_UI.md.
 
-**Taskuri:**
-63. React 19 + **Vite 7.3.1**, importa design tokens si componente din design system
-64. Layout admin cu sidebar: Dashboard, Queues, System Health, Logs
-65. WebSocket provider: `ws://monitoring-api:64080/ws/live`, reconnect exponential backoff
-66. Dashboard page: Bento grid, Recharts, status cards per queue
-67. Queue monitor page: tabel BullMQ cu counts, butoane Pause/Resume/Retry/Purge
-68. Dockerfile: multi-stage build, nginx pe port 64012
+**Taskuri:** 63. React 19 + **Vite 7.3.1**, importa design tokens si componente din design system 64. Layout admin cu sidebar: Dashboard, Queues, System Health, Logs 65. WebSocket provider: `ws://monitoring-api:64080/ws/live`, reconnect exponential backoff 66. Dashboard page: Bento grid, Recharts, status cards per queue 67. Queue monitor page: tabel BullMQ cu counts, butoane Pause/Resume/Retry/Purge 68. Dockerfile: multi-stage build, nginx pe port 64012
 
 ### FAZA G: Monitoring API Sidecar (F0.18 — `apps/monitoring-api`)
 
-**Taskuri:**
-69. Fastify v5 cu `@fastify/websocket`, port 64080
-70. Queue monitor: BullMQ read-only instances
-71. System metrics: CPU, RAM, load average
-72. WebSocket broadcast: interval 2s, JSON-RPC METRIC_UPDATE
-73. REST endpoints: `/api/queues`, `/api/queues/:name`, `/api/system/metrics`
-74. Control endpoint: `POST /api/control/pause` cu `x-admin-key`
-75. Dockerfile: multi-stage, port 64080
+**Taskuri:** 69. Fastify v5 cu `@fastify/websocket`, port 64080 70. Queue monitor: BullMQ read-only instances 71. System metrics: CPU, RAM, load average 72. WebSocket broadcast: interval 2s, JSON-RPC METRIC_UPDATE 73. REST endpoints: `/api/queues`, `/api/queues/:name`, `/api/system/metrics` 74. Control endpoint: `POST /api/control/pause` cu `x-admin-key` 75. Dockerfile: multi-stage, port 64080
 
 ### FAZA H: Development Environment (F0.12)
 
-**Taskuri:**
-76. `docker-compose.override.yml`: volumes hot reload, ports debug (9229)
-77. `.env.example`: toate variabilele documentate
-78. VSCode launch.json: 3 configuratii (API debug, Chrome, Compound)
-79. Dockerfile.dev: `tsx watch --inspect=0.0.0.0:9229`
+**Taskuri:** 76. `docker-compose.override.yml`: volumes hot reload, ports debug (9229) 77. `.env.example`: toate variabilele documentate 78. VSCode launch.json: 3 configuratii (API debug, Chrome, Compound) 79. Dockerfile.dev: `tsx watch --inspect=0.0.0.0:9229`
 
 ### FAZA I: Testing Foundation (F0.13 + F0.20)
 
@@ -448,33 +375,15 @@ home→Home, db→Database, building→Building2, users→Users, user→User, up
 
 Coverage Thresholds: API 80%, Business Logic 85%, Event Schemas 90%, Migrations 100%, Auth/Security 95%, Global: statements 80%, branches 75%, functions 80%, lines 80%
 
-**Taskuri:**
-80. vitest configs per-package (jsdom frontend, node API)
-81. Test factories: Company, Contact, Tenant, User (@faker-js/faker)
-82. Database fixtures: @testcontainers/postgresql
-83. MSW mock handlers
-84. API Tests: app init, plugins, health checks 3-tier, error handling, schema validation, OTEL, rate limiting
-85. Database Tests: migrations, tabele/schema-uri, RLS, rollback, seed
-86. Frontend Tests: build/typecheck, design tokens (OKLCH P3 variables), dark mode, 3 fonturi (Bricolage/DM Sans/Geist Mono), contrast WCAG, 13 componente primitive (button 6 variante, input error/icon, select, table header/hover, tabs active state, card glassmorphism, badge 9 variante + 36 statusuri SBadge + 3 tier TBadge), auth pages (login form validation/autofocus/toggle eye/eyeOff/loading spinner/redirect, demo hint), layout (sidebar collapse 240→64 + keyboard, nav badges .dn/.nw glow, header notification dot, breadcrumb, theme toggle), accessibility (axe-core pe Login+Dashboard), performance (JS/CSS size, vendor chunks), E2E Playwright (login flow, sidebar navigation 28 pagini)
-87. Frontend Tests EXTINSE (28 pagini): fiecare pagina randeaza fara erori, mock data vizibil (companii/CUI-uri/judete exacte), navigatie functionala intre pagini, responsive 1100px+700px breakpoints
-88. Monitoring API Tests + Admin Dashboard Tests + Integration Smoke Tests
+**Taskuri:** 80. vitest configs per-package (jsdom frontend, node API) 81. Test factories: Company, Contact, Tenant, User (@faker-js/faker) 82. Database fixtures: @testcontainers/postgresql 83. MSW mock handlers 84. API Tests: app init, plugins, health checks 3-tier, error handling, schema validation, OTEL, rate limiting 85. Database Tests: migrations, tabele/schema-uri, RLS, rollback, seed 86. Frontend Tests: build/typecheck, design tokens (OKLCH P3 variables), dark mode, 3 fonturi (Bricolage/DM Sans/Geist Mono), contrast WCAG, 13 componente primitive (button 6 variante, input error/icon, select, table header/hover, tabs active state, card glassmorphism, badge 9 variante + 36 statusuri SBadge + 3 tier TBadge), auth pages (login form validation/autofocus/toggle eye/eyeOff/loading spinner/redirect, demo hint), layout (sidebar collapse 240→64 + keyboard, nav badges .dn/.nw glow, header notification dot, breadcrumb, theme toggle), accessibility (axe-core pe Login+Dashboard), performance (JS/CSS size, vendor chunks), E2E Playwright (login flow, sidebar navigation 28 pagini) 87. Frontend Tests EXTINSE (28 pagini): fiecare pagina randeaza fara erori, mock data vizibil (companii/CUI-uri/judete exacte), navigatie functionala intre pagini, responsive 1100px+700px breakpoints 88. Monitoring API Tests + Admin Dashboard Tests + Integration Smoke Tests
 
 ### FAZA J: Docker Integration si Smoke Tests (F0.14-F0.17)
 
-**Taskuri:**
-89. Actualizare docker-compose.yml cu serviciile reale
-90. Docker healthchecks pe TOATE serviciile (API :64010, Web :64000, Admin :64012, Monitoring :64080, PgBouncer :6432)
-91. Actualizare Traefik cerniq.yml, port matrix, CI/CD pipeline
-92. Rebuild + deploy staging, smoke tests, deploy productie
+**Taskuri:** 89. Actualizare docker-compose.yml cu serviciile reale 90. Docker healthchecks pe TOATE serviciile (API :64010, Web :64000, Admin :64012, Monitoring :64080, PgBouncer :6432) 91. Actualizare Traefik cerniq.yml, port matrix, CI/CD pipeline 92. Rebuild + deploy staging, smoke tests, deploy productie
 
 ### FAZA K: Rescriere Port Matrix
 
-**Taskuri:**
-93. Corectare porturi Web=64000, API=64010
-94. OTLP 64070/64071 pastrate local intern
-95. Adaugare 64080 monitoring-api, 64095 pgbouncer-exporter
-96. Adaugare porturi Python: 64075-64078
-97. HAProxy Gateway mapping (19xxx staging, 29xxx production)
+**Taskuri:** 93. Corectare porturi Web=64000, API=64010 94. OTLP 64070/64071 pastrate local intern 95. Adaugare 64080 monitoring-api, 64095 pgbouncer-exporter 96. Adaugare porturi Python: 64075-64078 97. HAProxy Gateway mapping (19xxx staging, 29xxx production)
 
 ### FAZA L: 16 Documente Pattern lipsa
 
@@ -558,4 +467,3 @@ Directoare skeleton (NU implementate): python-mcp (64078), python-graph (64077),
 - **CI Pipeline**: [ci-pr.yml](.github/workflows/ci-pr.yml)
 - **CD Pipeline**: [deploy.yml](.github/workflows/deploy.yml)
 - **OpenBao Templates**: [api-env.tpl](infra/config/openbao/templates/api-env.tpl), [workers-env.tpl](infra/config/openbao/templates/workers-env.tpl)
-

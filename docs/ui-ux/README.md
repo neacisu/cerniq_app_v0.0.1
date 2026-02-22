@@ -8,13 +8,13 @@ Documentația UI/UX pentru platforma Cerniq.app, aliniată cu Design System **Da
 
 ## Stack Tehnologic
 
-| Categorie | Tehnologie |
-|-----------|------------|
-| **Framework** | React 19 |
-| **Build** | Vite 7.3.1 |
-| **Styling** | Tailwind CSS v4 (Oxide engine) |
-| **Admin** | Refine v5 (headless) |
-| **Components** | shadcn/ui + Lucide React |
+| Categorie      | Tehnologie                     |
+| -------------- | ------------------------------ |
+| **Framework**  | React 19                       |
+| **Build**      | Vite 7.3.1                     |
+| **Styling**    | Tailwind CSS v4 (Oxide engine) |
+| **Admin**      | Refine v5 (headless)           |
+| **Components** | shadcn/ui + Lucide React       |
 
 ---
 
@@ -28,17 +28,17 @@ Documentația UI/UX pentru platforma Cerniq.app, aliniată cu Design System **Da
 
 ## Referințe
 
-| Document | Descriere |
-|----------|-----------|
+| Document                                                                                                                                   | Descriere                                    |
+| ------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------- |
 | [`docs/specifications/Etapa 0/etapa0-Ui_ux etapa0 plan complet.MD`](../specifications/Etapa%200/etapa0-Ui_ux%20etapa0%20plan%20complet.MD) | Specificație normativă completă (2698 linii) |
-| [`docs/specifications/Etapa 0/UI_UX_Example/`](../specifications/Etapa%200/UI_UX_Example/) | Exemplu vizual și mock-up |
+| [`docs/specifications/Etapa 0/UI_UX_Example/`](../specifications/Etapa%200/UI_UX_Example/)                                                 | Exemplu vizual și mock-up                    |
 
 ---
 
 ## Fișiere din această secțiune
 
-| Fișier | Conținut |
-|--------|----------|
-| [frontend-stack.md](./frontend-stack.md) | Stack detaliat: Vite, React, Tailwind, Refine, shadcn/ui, fonturi |
-| [design-tokens.md](./design-tokens.md) | Tokenuri de design OKLCH P3, spacing, shadows, z-index |
-| [components-list.md](./components-list.md) | Lista completă componente (primitive, layout, pagini, iconuri) |
+| Fișier                                     | Conținut                                                          |
+| ------------------------------------------ | ----------------------------------------------------------------- |
+| [frontend-stack.md](./frontend-stack.md)   | Stack detaliat: Vite, React, Tailwind, Refine, shadcn/ui, fonturi |
+| [design-tokens.md](./design-tokens.md)     | Tokenuri de design OKLCH P3, spacing, shadows, z-index            |
+| [components-list.md](./components-list.md) | Lista completă componente (primitive, layout, pagini, iconuri)    |

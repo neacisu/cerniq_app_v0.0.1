@@ -22,7 +22,7 @@ Cerniq shares a single Redis instance with other projects on the orchestrator. T
 **All Cerniq keys MUST use the `cerniq:` prefix.**
 
 | Use Case      | Key Pattern                    | Example                          |
-|---------------|--------------------------------|----------------------------------|
+| ------------- | ------------------------------ | -------------------------------- |
 | BullMQ queues | `cerniq:{queueName}:*`         | `cerniq:enrich:anaf:tva`         |
 | BullMQ keys   | `cerniq:bull:{queue}:*`        | `cerniq:bull:enrich:anaf:tva:1`  |
 | Cache         | `cerniq:cache:{type}:{id}`     | `cerniq:cache:anaf:tva:12345678` |
@@ -37,9 +37,9 @@ Cerniq shares a single Redis instance with other projects on the orchestrator. T
 Queue names include the prefix when using a custom prefix:
 
 ```typescript
-const queue = new Queue('enrich:anaf:tva', {
+const queue = new Queue("enrich:anaf:tva", {
   connection: redis,
-  prefix: 'cerniq',
+  prefix: "cerniq",
 });
 // Results in keys: cerniq:enrich:anaf:tva:*
 ```
@@ -59,13 +59,13 @@ Or use full name: `cerniq:queue:enrich:anaf:tva`. Be consistent across API and w
 
 ## 5. Cache TTL Policies
 
-| Data Type        | TTL    | Key Pattern              |
-|------------------|--------|--------------------------|
-| ANAF TVA         | 24h    | `cerniq:cache:anaf:tva:*`|
-| Termene company  | 6h     | `cerniq:cache:termene:*` |
-| Hunter email     | 7d     | `cerniq:cache:hunter:*`   |
-| API response     | 5m     | `cerniq:cache:api:*`     |
-| Idempotency      | 24h    | `cerniq:webhook:idempotency:*` |
+| Data Type       | TTL | Key Pattern                    |
+| --------------- | --- | ------------------------------ |
+| ANAF TVA        | 24h | `cerniq:cache:anaf:tva:*`      |
+| Termene company | 6h  | `cerniq:cache:termene:*`       |
+| Hunter email    | 7d  | `cerniq:cache:hunter:*`        |
+| API response    | 5m  | `cerniq:cache:api:*`           |
+| Idempotency     | 24h | `cerniq:webhook:idempotency:*` |
 
 Use `SETEX` or `EXPIRE` for all cache keys. Never store without TTL.
 
@@ -110,7 +110,7 @@ redis-cli LLEN "cerniq:enrich:anaf:tva:wait"
 
 ```typescript
 const redis = new Redis(process.env.REDIS_URL, {
-  keyPrefix: 'cerniq:',  // Optional; or set per Queue
+  keyPrefix: "cerniq:", // Optional; or set per Queue
   maxRetriesPerRequest: 3,
 });
 ```
@@ -122,6 +122,7 @@ Ensure `keyPrefix` aligns with Queue/Worker prefix for consistency.
 ## 10. Eviction and Memory
 
 If Redis runs low on memory:
+
 - Keys with TTL are evicted first (if policy allows)
 - BullMQ job data: typically short-lived (completed jobs cleaned)
 - Monitor `used_memory` and `maxmemory`; alert when > 80%

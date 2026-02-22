@@ -16,11 +16,12 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
 - `docs/infrastructure/network-topology.md`
 - `docs/infrastructure/observability-stack.md`
 
-
->Continutul de mai jos este deprecated in mare parte dar contine logica ce a stat la baza fundatiei actualei implementari<
+> Continutul de mai jos este deprecated in mare parte dar contine logica ce a stat la baza fundatiei actualei implementari<
 
 # CERNIQ.APP â€” ETAPA 0: PLAN IMPLEMENTARE GRANULAR COMPLET
+
 ## Faze, Subfaze È™i Taskuri pentru InfrastructurÄƒ MVP
+
 ### Versiunea 1.0 | 15 Ianuarie 2026
 
 ---
@@ -33,22 +34,22 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
 
 ## CUPRINS FAZE
 
-| FazÄƒ | Denumire | Nr. Taskuri |
-|------|----------|-------------|
-| F0.1 | InfrastructurÄƒ Docker de BazÄƒ | 6 |
-| F0.2 | PostgreSQL 18.1 Setup | 5 |
-| F0.3 | Redis 7.4.7 È™i BullMQ Setup | 4 |
-| F0.4 | Traefik v3.6.6 Setup | 4 |
-| F0.5 | Observability Stack (SigNoz) | 4 |
-| F0.6 | PNPM È™i Monorepo Setup | 8 |
-| F0.7 | Backup Strategy | 4 |
-| F0.8 | Security Hardening | 4 |
-| F0.9 | API Boilerplate (Fastify) | 8 |
-| F0.10 | Database Schema Foundation | 6 |
-| F0.11 | Frontend Boilerplate (React) | 6 |
-| F0.12 | Development Environment | 5 |
-| F0.13 | Testing Foundation | 5 |
-| **TOTAL** | | **69 Taskuri** |
+| FazÄƒ     | Denumire                        | Nr. Taskuri    |
+| --------- | ------------------------------- | -------------- |
+| F0.1      | InfrastructurÄƒ Docker de BazÄƒ | 6              |
+| F0.2      | PostgreSQL 18.1 Setup           | 5              |
+| F0.3      | Redis 7.4.7 È™i BullMQ Setup    | 4              |
+| F0.4      | Traefik v3.6.6 Setup            | 4              |
+| F0.5      | Observability Stack (SigNoz)    | 4              |
+| F0.6      | PNPM È™i Monorepo Setup         | 8              |
+| F0.7      | Backup Strategy                 | 4              |
+| F0.8      | Security Hardening              | 4              |
+| F0.9      | API Boilerplate (Fastify)       | 8              |
+| F0.10     | Database Schema Foundation      | 6              |
+| F0.11     | Frontend Boilerplate (React)    | 6              |
+| F0.12     | Development Environment         | 5              |
+| F0.13     | Testing Foundation              | 5              |
+| **TOTAL** |                                 | **69 Taskuri** |
 
 ---
 
@@ -76,7 +77,7 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
 }
 ```
 
-```json
+````json
 {
   "taskID": "F0.1.1.T002",
   "denumire_task": "Configurare daemon.json optimizat pentru server 128GB RAM/20 cores",
@@ -94,9 +95,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. FiÈ™ierul /etc/docker/daemon.json existÄƒ È™i conÈ›ine configuraÈ›ia exactÄƒ\n2. 'jq . /etc/docker/daemon.json' parseazÄƒ fÄƒrÄƒ erori\n3. 'docker info' afiÈ™eazÄƒ:\n   - Storage Driver: overlay2\n   - Live Restore Enabled: true\n   - Default Address Pools: 172.20.0.0/16\n4. 'systemctl status docker' aratÄƒ active (running) dupÄƒ restart\n5. Metrics endpoint disponibil la http://localhost:9323/metrics",
   "outcome": "daemon.json configurat pentru producÈ›ie cu toate optimizÄƒrile pentru 128GB RAM aplicate"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.1.1.T003",
   "denumire_task": "Creare structurÄƒ directoare complete pentru proiectul CerniqAPP",
@@ -114,11 +115,11 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. 'tree -L 4 /var/www/CerniqAPP' afiÈ™eazÄƒ structura completÄƒ conform specificaÈ›iei\n2. Toate directoarele au permisiuni 755\n3. Fiecare director gol conÈ›ine fiÈ™ierul .gitkeep\n4. Directoarele features/ din apps/api/src/ conÈ›in: auth, companies, contacts, leads, approvals, invoicing\n5. Directorul secrets/ existÄƒ È™i are permisiuni corecte",
   "outcome": "StructurÄƒ completÄƒ de directoare creatÄƒ conform specificaÈ›iei ADR-0024, gata pentru iniÈ›ializarea proiectului"
 }
-```
+````
 
 ## F0.1.2 Docker Networks Setup
 
-```json
+````json
 {
   "taskID": "F0.1.2.T001",
   "denumire_task": "Creare reÈ›ele Docker pentru segregarea serviciilor",
@@ -135,9 +136,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. 'docker network ls' afiÈ™eazÄƒ toate cele 3 reÈ›ele: cerniq_public, cerniq_backend, cerniq_data\n2. 'docker network inspect cerniq_backend' aratÄƒ 'Internal: true'\n3. 'docker network inspect cerniq_data' aratÄƒ 'Internal: true'\n4. 'docker network inspect cerniq_public' aratÄƒ 'Internal: false'\n5. FiÈ™ierul docs/architecture/networks.md existÄƒ È™i conÈ›ine documentaÈ›ia\n6. Subnet-urile sunt corecte conform inspect",
   "outcome": "3 reÈ›ele Docker izolate create conform strategiei de segregare definitÄƒ Ã®n ADR-0015"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.1.2.T002",
   "denumire_task": "Creare docker-compose.yml base cu definiÈ›iile reÈ›elelor",
@@ -154,7 +155,7 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. FiÈ™ierul docker-compose.yml existÄƒ Ã®n /var/www/CerniqAPP/infra/docker/\n2. 'docker compose config' valideazÄƒ fÄƒrÄƒ erori\n3. ReÈ›elele sunt definite ca 'external: true'\n4. Volume-urile postgres_data, redis_data, traefik_certs, signoz_data sunt definite\n5. FiÈ™ierul conÈ›ine header-ul cu versiunea È™i data actualizÄƒrii",
   "outcome": "docker-compose.yml base creat cu definiÈ›iile reÈ›elelor È™i volume-urilor, pregÄƒtit pentru adÄƒugarea serviciilor"
 }
-```
+````
 
 ---
 
@@ -162,7 +163,7 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
 
 ## F0.2.1 PostgreSQL Container Setup
 
-```json
+````json
 {
   "taskID": "F0.2.1.T001",
   "denumire_task": "AdÄƒugare serviciu PostgreSQL 18.1 cu PostGIS Ã®n docker-compose.yml",
@@ -180,9 +181,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. 'docker compose config' valideazÄƒ fÄƒrÄƒ erori\n2. Serviciul postgres foloseÈ™te imaginea postgis/postgis:18-3.5\n3. Nu existÄƒ port mapping pentru 5432 (nu apare '5432:5432' Ã®n config)\n4. Secretul postgres_password este configurat\n5. Healthcheck-ul este definit cu pg_isready\n6. ReÈ›eaua este cerniq_data\n7. Resource limits sunt setate (memory: 48G, cpus: 8)",
   "outcome": "Serviciul PostgreSQL 18.1 cu PostGIS adÄƒugat Ã®n docker-compose.yml, configurat pentru producÈ›ie fÄƒrÄƒ expunere publicÄƒ"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.2.1.T002",
   "denumire_task": "Creare postgresql.conf optimizat pentru 128GB RAM",
@@ -200,9 +201,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. FiÈ™ierul postgresql.conf existÄƒ Ã®n /var/www/CerniqAPP/infra/config/postgres/\n2. shared_buffers = 32GB\n3. effective_cache_size = 96GB\n4. io_method = io_uring (PostgreSQL 18 AIO)\n5. max_parallel_workers_per_gather = 8\n6. max_connections = 200\n7. FiÈ™ierul nu conÈ›ine erori de sintaxÄƒ",
   "outcome": "postgresql.conf configurat optimal pentru 128GB RAM cu AIO activat È™i parametrii pentru pgvector"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.2.1.T003",
   "denumire_task": "Creare script init.sql cu extensii PostgreSQL obligatorii",
@@ -220,9 +221,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. FiÈ™ierul init.sql existÄƒ Ã®n directorul config/postgres/\n2. Scriptul conÈ›ine CREATE EXTENSION pentru: pgvector, postgis, postgis_topology, pg_trgm, uuid-ossp\n3. Schema-urile bronze, silver, gold, approval, audit sunt create\n4. ExistÄƒ verificare cÄƒ extensiile sunt Ã®ncÄƒrcate (bloc DO)\n5. Role-ul cerniq_app este creat cu GRANT-uri corecte",
   "outcome": "Script init.sql creat pentru activarea automatÄƒ a tuturor extensiilor PostgreSQL necesare È™i crearea schema-urilor"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.2.1.T004",
   "denumire_task": "Creare secret pentru parola PostgreSQL",
@@ -239,9 +240,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. FiÈ™ierul postgres_password.txt existÄƒ Ã®n /var/www/CerniqAPP/secrets/\n2. Permisiunile sunt 600: 'stat -c %a secrets/postgres_password.txt' returneazÄƒ 600\n3. Parola are ~32 caractere\n4. .gitignore existÄƒ Ã®n directorul secrets È™i conÈ›ine '*'\n5. 'git status' NU aratÄƒ fiÈ™ierele din secrets/ ca untracked",
   "outcome": "Secret PostgreSQL creat securizat cu permisiuni corecte È™i protecÈ›ie git"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.2.1.T005",
   "denumire_task": "Pornire È™i verificare PostgreSQL container",
@@ -258,13 +259,13 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. 'docker ps' aratÄƒ containerul cerniq-postgres running\n2. 'docker inspect' aratÄƒ Health Status: healthy\n3. '\\dx' afiÈ™eazÄƒ toate 5 extensiile: pgvector, postgis, postgis_topology, pg_trgm, uuid-ossp\n4. '\\dn' afiÈ™eazÄƒ toate 5 schema-urile: bronze, silver, gold, approval, audit\n5. SELECT version() confirmÄƒ PostgreSQL 18.x\n6. Logs nu conÈ›in erori critice",
   "outcome": "PostgreSQL 18.1 cu PostGIS ruleazÄƒ corect Ã®n Docker cu toate extensiile È™i schema-urile create"
 }
-```
+````
 
 ---
 
 # FAZA F0.3: REDIS 7.4.7 È˜I BULLMQ SETUP
 
-```json
+````json
 {
   "taskID": "F0.3.1.T001",
   "denumire_task": "AdÄƒugare serviciu Redis 7.4.7 optimizat pentru BullMQ Ã®n docker-compose.yml",
@@ -282,9 +283,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. 'docker compose config' valideazÄƒ fÄƒrÄƒ erori\n2. Redis foloseÈ™te imaginea redis:7.4-alpine\n3. maxmemory-policy este noeviction (verificÄƒ Ã®n command)\n4. appendonly este yes\n5. notify-keyspace-events este Ex\n6. Redis este pe ambele reÈ›ele: cerniq_data È™i cerniq_backend\n7. Nu existÄƒ port mapping public pentru 6379",
   "outcome": "Redis 7.4.7 configurat optim pentru BullMQ job queues cu persistenÈ›Äƒ AOF È™i maxmemory-policy noeviction"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.3.1.T002",
   "denumire_task": "Pornire È™i verificare Redis container",
@@ -300,9 +301,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. Container cerniq-redis este running\n2. Health status este healthy\n3. CONFIG GET maxmemory-policy returneazÄƒ noeviction\n4. CONFIG GET appendonly returneazÄƒ yes\n5. CONFIG GET notify-keyspace-events returneazÄƒ Ex sau conÈ›ine Ex\n6. Test SET/GET funcÈ›ioneazÄƒ",
   "outcome": "Redis 7.4.7 ruleazÄƒ corect cu configuraÈ›ia optimÄƒ pentru BullMQ"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.3.1.T003",
   "denumire_task": "Test conectivitate Ã®ntre PostgreSQL È™i Redis pe reÈ›eaua internÄƒ",
@@ -318,13 +319,13 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. pg_isready din container pe cerniq_data reuÈ™eÈ™te\n2. redis-cli ping din container pe cerniq_backend returneazÄƒ PONG\n3. Accesul de pe host la postgres:5432 EÈ˜UEAZÄ‚ (timeout/refused)\n4. Accesul de pe host la redis:6379 EÈ˜UEAZÄ‚ (timeout/refused)\n5. Documentul network-verification.md este creat",
   "outcome": "Conectivitate internÄƒ verificatÄƒ È™i izolare de exterior confirmatÄƒ pentru PostgreSQL È™i Redis"
 }
-```
+````
 
 ---
 
 # FAZA F0.4: TRAEFIK v3.6.6 SETUP
 
-```json
+````json
 {
   "taskID": "F0.4.1.T001",
   "denumire_task": "Creare configuraÈ›ie staticÄƒ Traefik cu Let's Encrypt",
@@ -342,9 +343,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. FiÈ™ierul traefik.yml existÄƒ Ã®n directorul corect\n2. exposedByDefault este false\n3. api.insecure este false\n4. certResolver letsencrypt este configurat cu httpChallenge\n5. EntryPoint web redirecÈ›ioneazÄƒ cÄƒtre websecure\n6. HTTP/3 este activat (http3: {})",
   "outcome": "ConfiguraÈ›ie staticÄƒ Traefik v3.6.6 cu Let's Encrypt È™i HTTP/3"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.4.1.T002",
   "denumire_task": "Creare middleware-uri dinamice pentru securitate",
@@ -362,9 +363,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. FiÈ™ierul middlewares.yml existÄƒ Ã®n dynamic/\n2. Middleware secure-headers conÈ›ine HSTS cu stsSeconds: 31536000\n3. Rate-limit este configurat cu average: 100\n4. TLS minVersion este VersionTLS12\n5. Chain-uri api-chain È™i dashboard-chain sunt definite\n6. YAML este valid (fÄƒrÄƒ erori de sintaxÄƒ)",
   "outcome": "Middleware-uri Traefik pentru securitate, rate limiting È™i compresie configurate"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.4.1.T003",
   "denumire_task": "AdÄƒugare serviciu Traefik Ã®n docker-compose.yml",
@@ -382,9 +383,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. 'docker compose config' valideazÄƒ fÄƒrÄƒ erori\n2. Traefik foloseÈ™te imaginea traefik:v3.6.6\n3. Docker socket este montat read-only\n4. security_opt conÈ›ine no-new-privileges:true\n5. Porturile 80, 443, 443/udp sunt expuse\n6. Dashboard are middleware dashboard-chain",
   "outcome": "Serviciu Traefik v3.6.6 adÄƒugat Ã®n docker-compose.yml cu securitate È™i HTTP/3"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.4.1.T004",
   "denumire_task": "Pornire È™i verificare Traefik",
@@ -400,13 +401,13 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. Container cerniq-traefik este running\n2. Health status este healthy\n3. Porturile 80 È™i 443 sunt deschise\n4. HTTP redirect funcÈ›ioneazÄƒ (301 cÄƒtre HTTPS)\n5. Metrics endpoint rÄƒspunde la :8082/metrics\n6. Logs nu conÈ›in erori",
   "outcome": "Traefik v3.6.6 funcÈ›ional cu SSL automat È™i HTTP/3"
 }
-```
+````
 
 ---
 
 # FAZA F0.5: OBSERVABILITY STACK (SigNoz)
 
-```json
+````json
 {
   "taskID": "F0.5.1.T001",
   "denumire_task": "AdÄƒugare servicii SigNoz v0.104.0 Ã®n docker-compose.yml",
@@ -423,9 +424,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. 'docker compose config' valideazÄƒ fÄƒrÄƒ erori\n2. Serviciile clickhouse, signoz, otel-collector sunt definite\n3. ClickHouse nu are port mapping public\n4. OTel Collector expune porturile 4317 È™i 4318\n5. SigNoz are Traefik labels pentru routing",
   "outcome": "Servicii SigNoz v0.104.0 adÄƒugate Ã®n docker-compose pentru observability complet"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.5.1.T002",
   "denumire_task": "Creare configuraÈ›ie OpenTelemetry Collector",
@@ -442,9 +443,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. FiÈ™ierul otel-collector-config.yaml existÄƒ\n2. Receivers OTLP sunt configurate pe 4317 (gRPC) È™i 4318 (HTTP)\n3. Toate exporters pointeazÄƒ cÄƒtre clickhouse\n4. Pipeline-uri pentru traces, metrics È™i logs sunt definite\n5. memory_limiter este configurat",
   "outcome": "ConfiguraÈ›ie OTel Collector completÄƒ pentru SigNoz"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.5.1.T003",
   "denumire_task": "Pornire È™i verificare stack observability",
@@ -459,13 +460,13 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. Toate containerele observability sunt running\n2. ClickHouse rÄƒspunde la queries\n3. OTel Collector acceptÄƒ requests pe 4317/4318\n4. SigNoz este accesibil (direct sau prin Traefik)",
   "outcome": "Stack observability SigNoz funcÈ›ional È™i gata sÄƒ primeascÄƒ telemetrie"
 }
-```
+````
 
 ---
 
 # FAZA F0.6: PNPM È˜I MONOREPO SETUP (COMPLET)
 
-```json
+````json
 {
   "taskID": "F0.6.1.T001",
   "denumire_task": "Instalare Node.js v24 LTS È™i activare PNPM",
@@ -482,9 +483,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. 'node --version' afiÈ™eazÄƒ v24.x.x\n2. 'npm --version' afiÈ™eazÄƒ 11.x.x\n3. 'pnpm --version' afiÈ™eazÄƒ 9.15.x\n4. 'which pnpm' returneazÄƒ path valid",
   "outcome": "Node.js v24 LTS È™i PNPM 9.15 instalate È™i configurate"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.6.1.T002",
   "denumire_task": "IniÈ›ializare monorepo cu pnpm-workspace.yaml",
@@ -501,9 +502,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. package.json existÄƒ cu packageManager: pnpm@9.15.0\n2. pnpm-workspace.yaml existÄƒ cu apps/* È™i packages/*\n3. .npmrc existÄƒ cu shamefully-hoist=false\n4. turbo.json existÄƒ\n5. 'pnpm install' ruleazÄƒ fÄƒrÄƒ erori\n6. node_modules/.pnpm existÄƒ (structurÄƒ pnpm)",
   "outcome": "Monorepo PNPM iniÈ›ializat cu Turborepo pentru orchestrare"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.6.1.T003",
   "denumire_task": "Creare package apps/api cu Fastify v5.6.2",
@@ -520,9 +521,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. package.json existÄƒ Ã®n apps/api/\n2. fastify versiunea este ^5.6.2\n3. DependenÈ›e interne folosesc workspace:*\n4. type este 'module'\n5. tsconfig.json existÄƒ cu module NodeNext",
   "outcome": "Package API cu Fastify v5.6.2 configurat"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.6.1.T004",
   "denumire_task": "Creare package apps/web cu React 19 È™i Refine v5",
@@ -539,9 +540,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. package.json existÄƒ Ã®n apps/web/\n2. react versiunea este ^19.0.0\n3. @refinedev/core versiunea este ^5.0.0\n4. vite versiunea este ^6.0.0\n5. tailwindcss versiunea este ^4.0.0",
   "outcome": "Package Web cu React 19 È™i Refine v5 configurat"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.6.1.T005",
   "denumire_task": "Creare package packages/db cu Drizzle ORM",
@@ -558,9 +559,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. package.json existÄƒ Ã®n packages/db/\n2. drizzle-orm versiunea este ^0.38.0\n3. drizzle-zod este inclus\n4. drizzle.config.ts existÄƒ\n5. Scripturi db:generate, db:migrate, db:push sunt definite",
   "outcome": "Package database cu Drizzle ORM configurat"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.6.1.T006",
   "denumire_task": "Creare package packages/shared-types cu Zod schemas",
@@ -576,9 +577,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. package.json existÄƒ Ã®n packages/shared-types/\n2. zod versiunea este ^3.24.0\n3. src/index.ts exportÄƒ toate modulele\n4. src/schemas/company.ts conÈ›ine Zod schema È™i type inference",
   "outcome": "Package shared-types cu Zod schemas centralizate"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.6.1.T007",
   "denumire_task": "Creare configuraÈ›ii shared (ESLint, TypeScript, Tailwind)",
@@ -594,9 +595,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. packages/config/eslint/package.json existÄƒ\n2. packages/config/typescript/tsconfig.base.json existÄƒ\n3. tsconfig foloseÈ™te target ES2024\n4. ESLint config include TypeScript plugin",
   "outcome": "ConfiguraÈ›ii shared create pentru consistenÈ›Äƒ Ã®n monorepo"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.6.1.T008",
   "denumire_task": "Instalare dependenÈ›e È™i verificare monorepo",
@@ -613,16 +614,15 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. 'pnpm install' completeazÄƒ fÄƒrÄƒ erori\n2. 'pnpm list -r --depth=0' afiÈ™eazÄƒ toate 5 packages\n3. node_modules/@cerniq/ conÈ›ine symlinks\n4. Build pentru shared-types reuÈ™eÈ™te\n5. Git repository iniÈ›ializat cu primul commit",
   "outcome": "Monorepo complet funcÈ›ional cu toate dependenÈ›ele instalate"
 }
-```
+````
 
 ---
-
 
 # FAZA F0.7: BACKUP STRATEGY (COMPLET)
 
 ## F0.7.1 BorgBackup Setup
 
-```json
+````json
 {
   "taskID": "F0.7.1.T001",
   "denumire_task": "IniÈ›ializare BorgBackup Repository pe Hetzner Storage Box",
@@ -639,9 +639,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. SSH key ed25519 creat Ã®n ~/.ssh/storagebox_ed25519\n2. Conexiunea pe port 23 funcÈ›ioneazÄƒ\n3. Passphrase salvat Ã®n /var/www/CerniqAPP/secrets/borg_passphrase cu permisiuni 600\n4. Repository iniÈ›ializat cu encryption=repokey\n5. borg info returneazÄƒ informaÈ›ii despre repository",
   "outcome": "BorgBackup repository iniÈ›ializat pe Hetzner Storage Box cu encryption"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.7.1.T002",
   "denumire_task": "Creare script backup zilnic cu pg_dump È™i BorgBackup",
@@ -658,9 +658,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. Script backup-daily.sh creat cu permisiuni +x\n2. Scriptul include pg_dumpall È™i pg_dump\n3. Exclude paths sunt configurate corect\n4. Prune cu GFS retention policy\n5. Logging Ã®n /var/log/cerniq/",
   "outcome": "Script backup zilnic funcÈ›ional cu GFS retention policy"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.7.1.T003",
   "denumire_task": "Configurare systemd timer pentru backup automat",
@@ -677,9 +677,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. cerniq-backup.service creat\n2. cerniq-backup.timer creat\n3. Timer enabled È™i started\n4. systemctl list-timers aratÄƒ next run\n5. Test manual cu: systemctl start cerniq-backup",
   "outcome": "Backup automat configurat via systemd timer la 03:00 zilnic"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.7.1.T004",
   "denumire_task": "Creare script restore È™i testare disaster recovery",
@@ -696,7 +696,7 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. Script restore-postgres.sh creat cu permisiuni +x\n2. Include confirmare interactivÄƒ\n3. Stops/starts dependent services\n4. Uses pg_restore correctly\n5. Cleanup temporare dupÄƒ restore",
   "outcome": "ProcedurÄƒ restore funcÈ›ionalÄƒ È™i testatÄƒ"
 }
-```
+````
 
 ---
 
@@ -704,7 +704,7 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
 
 ## F0.8.1 Security Implementation
 
-```json
+````json
 {
   "taskID": "F0.8.1.T001",
   "denumire_task": "Implementare Docker secrets pentru toate credenÈ›ialele",
@@ -721,9 +721,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. Directorul secrets/ existÄƒ cu permisiuni 700\n2. Toate fiÈ™ierele secret au permisiuni 600\n3. docker-compose.yml foloseÈ™te secrets section\n4. Services folosesc _FILE suffix pentru environment vars\n5. secrets/ este Ã®n .gitignore",
   "outcome": "Docker secrets implementat pentru toate credenÈ›ialele"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.8.1.T002",
   "denumire_task": "Configurare UFW firewall cu ufw-docker",
@@ -740,9 +740,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. UFW È™i ufw-docker instalate\n2. Default deny incoming\n3. Doar 22, 80, 443 permise\n4. PostgreSQL È™i Redis NU sunt accesibile extern\n5. nmap extern confirmÄƒ porturi Ã®nchise",
   "outcome": "Firewall UFW configurat cu Docker compatibility"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.8.1.T003",
   "denumire_task": "Hardening containere Docker (no-new-privileges, cap_drop)",
@@ -759,9 +759,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. Toate serviciile au no-new-privileges:true\n2. Toate serviciile au cap_drop: ALL\n3. cap_add conÈ›ine doar capabilities necesare\n4. Services cu read_only au tmpfs pentru /tmp\n5. Containerele pornesc corect cu noile setÄƒri",
   "outcome": "Containere Docker hardened cu minimal privileges"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.8.1.T004",
   "denumire_task": "Configurare TLS/SSL È™i certificate management",
@@ -778,11 +778,11 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. TLS minVersion este VersionTLS12\n2. Cipher suites sunt moderne (ECDHE)\n3. acme.json are permisiuni 600\n4. HSTS configurat cu 1 an minimum\n5. SSL Labs score A sau A+",
   "outcome": "TLS/SSL configurat optim cu A+ rating potenÈ›ial"
 }
-```
+````
 
 # FAZA F0.9: API BOILERPLATE (FASTIFY)
 
-```json
+````json
 {
   "taskID": "F0.9.1.T001",
   "denumire_task": "Creare entry point Fastify cu plugin system",
@@ -799,9 +799,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. FiÈ™ierul index.ts existÄƒ È™i compileazÄƒ fÄƒrÄƒ erori TypeScript\n2. Fastify este configurat cu TypeBoxTypeProvider\n3. Graceful shutdown este implementat\n4. Logger este configurat per environment\n5. Port È™i host sunt configurabile via environment",
   "outcome": "Entry point Fastify creat cu plugin system È™i graceful shutdown"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.9.1.T002",
   "denumire_task": "Creare plugin system pentru Fastify",
@@ -818,9 +818,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. plugins/index.ts existÄƒ È™i exportÄƒ registerPlugins\n2. Zod compilers sunt setate\n3. CORS este configurat cu origins specifice\n4. JWT este configurat cu cookie support\n5. Helmet este configurat cu CSP",
   "outcome": "Sistem de plugins Fastify complet cu security È™i validation"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.9.1.T003",
   "denumire_task": "Creare error handling middleware standardizat",
@@ -837,9 +837,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. shared/errors.ts existÄƒ cu toate clasele de erori\n2. AppError este clasa de bazÄƒ\n3. registerErrorHandler seteazÄƒ error handler global\n4. Stack trace e condiÈ›ionat de NODE_ENV\n5. Response include requestId È™i timestamp",
   "outcome": "Sistem de error handling standardizat conform ADR-0010"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.9.1.T004",
   "denumire_task": "Creare request logging cu Pino È™i correlation ID",
@@ -856,9 +856,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. shared/logger.ts existÄƒ cu configurare Pino\n2. Redaction include email, phone, password, cui\n3. plugins/request-logging.ts Ã®nregistreazÄƒ hooks\n4. onRequest È™i onResponse logging funcÈ›ioneazÄƒ\n5. Correlation ID este logat",
   "outcome": "Logging standardizat cu Pino, PII redaction È™i correlation IDs"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.9.1.T005",
   "denumire_task": "Creare health check endpoints",
@@ -875,9 +875,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. routes/health.ts existÄƒ cu toate 3 endpoints\n2. /health/live returneazÄƒ doar { status: 'ok' }\n3. /health/ready verificÄƒ database È™i redis\n4. /health/deps returneazÄƒ detalii pentru fiecare dependency\n5. Latency este mÄƒsurat pentru fiecare check",
   "outcome": "Health check endpoints complete conform ADR-0025"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.9.1.T006",
   "denumire_task": "Creare graceful shutdown handler complet",
@@ -894,9 +894,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. shared/shutdown.ts existÄƒ\n2. registerShutdownResource permite Ã®nregistrarea resurselor\n3. SIGTERM È™i SIGINT sunt handled\n4. Timeout de 30s pentru forced exit\n5. uncaughtException È™i unhandledRejection trigger shutdown",
   "outcome": "Graceful shutdown complet cu resource cleanup È™i timeout"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.9.1.T007",
   "denumire_task": "Creare OpenTelemetry instrumentation",
@@ -913,9 +913,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. shared/telemetry.ts existÄƒ\n2. Resource include service name, version, environment\n3. Health checks sunt ignorate\n4. OTLPTraceExporter È™i OTLPMetricExporter sunt configurate\n5. SDK se opreÈ™te la SIGTERM",
   "outcome": "OpenTelemetry instrumentation completÄƒ pentru Fastify"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.9.1.T008",
   "denumire_task": "Test È™i verificare API boilerplate complet",
@@ -932,10 +932,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. Build completeazÄƒ fÄƒrÄƒ erori\n2. Server porneÈ™te pe port 4000\n3. /health/live returneazÄƒ status ok\n4. /health/ready returneazÄƒ status È™i version\n5. Erori returneazÄƒ format standardizat cu requestId\n6. Logs sunt JSON structurat\n7. Graceful shutdown funcÈ›ioneazÄƒ",
   "outcome": "API boilerplate verificat È™i funcÈ›ional complet"
 }
-```
+````
 
 ---
-
 
 ---
 
@@ -943,7 +942,7 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
 
 ## F0.10.1 Drizzle ORM È™i Schema Setup
 
-```json
+````json
 {
   "taskID": "F0.10.1.T001",
   "denumire_task": "Configurare Drizzle ORM connection È™i client",
@@ -960,9 +959,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. client.ts existÄƒ cu connection pooling\n2. SuportÄƒ DATABASE_URL_FILE pattern\n3. drizzle.config.ts configurat corect\n4. Logger condiÈ›ionat de NODE_ENV\n5. Export checkDatabaseConnection È™i closeDatabase",
   "outcome": "Drizzle ORM client configurat cu pooling È™i secrets support"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.10.1.T002",
   "denumire_task": "Creare schema tenants cu RLS foundation",
@@ -979,9 +978,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. tenants.ts cu schema completÄƒ\n2. users.ts cu UNIQUE(tenant_id, email)\n3. Foreign key cÄƒtre tenants cu onDelete cascade\n4. Zod schemas pentru insert/select\n5. Types exportate corect",
   "outcome": "Schema foundation pentru multi-tenancy cu RLS-ready structure"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.10.1.T003",
   "denumire_task": "Implementare RLS policies Ã®n PostgreSQL",
@@ -998,9 +997,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. RLS enabled pe users table\n2. Policy creatÄƒ cu current_setting\n3. FORCE ROW LEVEL SECURITY aplicat\n4. set_current_tenant function existÄƒ\n5. Fastify plugin seteazÄƒ/curÄƒÈ›Äƒ context per request",
   "outcome": "RLS policies funcÈ›ionale pentru tenant isolation"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.10.1.T004",
   "denumire_task": "Setup migration system cu drizzle-kit",
@@ -1017,9 +1016,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. Scripts Ã®n package.json pentru db:generate/migrate/push/studio\n2. migrate.ts pentru migration programaticÄƒ\n3. Folder drizzle/ cu migrations generate\n4. Migrations ruleazÄƒ fÄƒrÄƒ erori\n5. Schema Ã®n sync cu database",
   "outcome": "Sistem de migrations funcÈ›ional cu drizzle-kit"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.10.1.T005",
   "denumire_task": "Creare seed data pentru development",
@@ -1036,9 +1035,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. seed.ts creat cu demo tenant È™i users\n2. Passwords sunt hashed cu bcryptjs\n3. onConflictDoNothing pentru re-run safety\n4. Script db:seed Ã®n package.json\n5. Seed ruleazÄƒ fÄƒrÄƒ erori",
   "outcome": "Seed data pentru development environment"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.10.1.T006",
   "denumire_task": "Verificare È™i testare multi-tenant constraints",
@@ -1055,8 +1054,7 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. Test file creat cu toate scenariile\n2. Testele trec pentru email duplicat cross-tenant\n3. Testele verificÄƒ RLS isolation\n4. Testele verificÄƒ unique constraint within tenant\n5. Cleanup funcÈ›ioneazÄƒ corect",
   "outcome": "Multi-tenant constraints validate È™i testate"
 }
-```
-
+````
 
 ---
 
@@ -1064,7 +1062,7 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
 
 ## F0.11.1 React 19 È™i Refine Setup
 
-```json
+````json
 {
   "taskID": "F0.11.1.T001",
   "denumire_task": "Setup React 19 cu Vite È™i SWC",
@@ -1081,9 +1079,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. React 19 instalat\n2. Vite 6 cu SWC plugin\n3. Proxy configurat pentru /api\n4. Path alias @ funcÈ›ioneazÄƒ\n5. pnpm dev porneÈ™te pe port 3000",
   "outcome": "React 19 cu Vite È™i SWC configurat"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.11.1.T002",
   "denumire_task": "Configurare Refine v5 headless",
@@ -1100,9 +1098,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. Refine v5 configurat Ã®n App.tsx\n2. Resources definite pentru companies/contacts\n3. Data provider cu toate metodele CRUD\n4. BrowserRouter configurat\n5. syncWithLocation enabled",
   "outcome": "Refine v5 headless configurat cu data provider"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.11.1.T003",
   "denumire_task": "Setup Tailwind CSS v4 cu Oxide Engine",
@@ -1119,9 +1117,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. Tailwind v4 instalat cu @tailwindcss/vite\n2. @theme directive cu custom CSS vars\n3. OKLCH color palette definit\n4. globals.css importat Ã®n main.tsx\n5. Classes aplicate corect Ã®n componente",
   "outcome": "Tailwind CSS v4 cu Oxide engine configurat"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.11.1.T004",
   "denumire_task": "Implementare Auth Provider cu JWT refresh",
@@ -1138,9 +1136,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. AuthProvider implementat complet\n2. login/logout/check/getIdentity/getPermissions funcÈ›ioneazÄƒ\n3. Token refresh implementat\n4. credentials: include Ã®n toate fetch calls\n5. onError handler pentru 401",
   "outcome": "Auth provider complet cu JWT refresh flow"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.11.1.T005",
   "denumire_task": "Creare componente Layout È™i Navigation",
@@ -1157,9 +1155,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. Layout.tsx creat cu sidebar È™i header\n2. Navigation links funcÈ›ioneazÄƒ\n3. Active state pe current route\n4. User identity afiÈ™atÄƒ\n5. Logout funcÈ›ioneazÄƒ",
   "outcome": "Layout principal cu navigation È™i user controls"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.11.1.T006",
   "denumire_task": "Implementare protected routes",
@@ -1176,8 +1174,7 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. ProtectedRoute component creat\n2. Loading state afiÈ™at corect\n3. Redirect to login pentru unauthenticated\n4. Role-based access funcÈ›ioneazÄƒ\n5. App.tsx actualizat cu ProtectedRoute",
   "outcome": "Protected routes cu role-based access control"
 }
-```
-
+````
 
 ---
 
@@ -1185,7 +1182,7 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
 
 ## F0.12.1 Docker Compose Override È™i Dev Tools
 
-```json
+````json
 {
   "taskID": "F0.12.1.T001",
   "denumire_task": "Creare docker-compose.override.yml pentru development",
@@ -1202,9 +1199,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. docker-compose.override.yml creat\n2. PostgreSQL È™i Redis expuse pe localhost\n3. Volume mounts pentru src directories\n4. Dockerfile.dev cu hot reload support\n5. Mailhog È™i pgAdmin disponibile",
   "outcome": "Development environment cu hot reload È™i dev tools"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.12.1.T002",
   "denumire_task": "Configurare VSCode launch.json pentru debugging",
@@ -1221,9 +1218,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. launch.json cu toate configurations\n2. API debug attach funcÈ›ioneazÄƒ\n3. Chrome debugger pentru web\n4. Compound configuration pentru full stack\n5. settings.json cu format on save",
   "outcome": "VSCode debugging configurat pentru API È™i Web"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.12.1.T003",
   "denumire_task": "Creare .env.example È™i environment template",
@@ -1240,9 +1237,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. .env.example creat la root\n2. Toate variabilele documentate cu comentarii\n3. .gitignore actualizat sÄƒ excludÄƒ .env\n4. .env.example este tracked Ã®n git\n5. Secrets directory Ã®n .gitignore",
   "outcome": "Environment templates complete È™i documentate"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.12.1.T004",
   "denumire_task": "Creare scripts de development (dev, build, lint)",
@@ -1258,9 +1255,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. Root package.json cu toate scripts\n2. turbo.json configurat pentru tasks\n3. pnpm dev porneÈ™te ambele apps\n4. pnpm build compileazÄƒ toate packages\n5. docker:up/down funcÈ›ioneazÄƒ",
   "outcome": "Development scripts complete cu Turbo orchestration"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.12.1.T005",
   "denumire_task": "Setup local HTTPS cu mkcert (opÈ›ional)",
@@ -1277,7 +1274,7 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. mkcert instalat È™i CA trusted\n2. Certificate generate pentru localhost\n3. Vite poate porni cu HTTPS (VITE_HTTPS=true)\n4. Certificate Ã®n .gitignore\n5. Browser nu aratÄƒ certificate warnings",
   "outcome": "Local HTTPS configurat pentru development testing"
 }
-```
+````
 
 ---
 
@@ -1285,7 +1282,7 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
 
 ## F0.13.1 Vitest È™i Testing Infrastructure
 
-```json
+````json
 {
   "taskID": "F0.13.1.T001",
   "denumire_task": "Setup Vitest pentru API testing",
@@ -1302,9 +1299,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. vitest.config.ts creat cu coverage settings\n2. test/setup.ts cu mocks È™i globals\n3. pnpm test ruleazÄƒ fÄƒrÄƒ erori\n4. Coverage report genereazÄƒ Ã®n ./coverage\n5. Thresholds enforced",
   "outcome": "Vitest configurat pentru API testing cu coverage"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.13.1.T002",
   "denumire_task": "Creare testing utilities È™i factories",
@@ -1321,9 +1318,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. factories/index.ts cu toate entity factories\n2. helpers/app.ts pentru test app management\n3. helpers/auth.ts pentru JWT testing\n4. Factories genereazÄƒ date realiste\n5. Types sunt corecte pentru insert operations",
   "outcome": "Testing utilities È™i factories complete"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.13.1.T003",
   "denumire_task": "Setup database fixtures pentru integration tests",
@@ -1340,9 +1337,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. fixtures/database.ts cu testcontainers setup\n2. integration/setup.ts cu lifecycle hooks\n3. Container porneÈ™te cu PostGIS\n4. Migrations ruleazÄƒ automat\n5. Cleanup funcÈ›ioneazÄƒ Ã®ntre tests",
   "outcome": "Database fixtures pentru integration tests"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.13.1.T004",
   "denumire_task": "Creare contract tests pentru event schemas",
@@ -1359,9 +1356,9 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. events.ts cu Zod schemas pentru toate events\n2. events.test.ts cu contract tests\n3. Tests verificÄƒ required fields\n4. Tests verificÄƒ format validation\n5. Backward compatibility tests incluse",
   "outcome": "Contract tests pentru event schemas (90%+ coverage requirement)"
 }
-```
+````
 
-```json
+````json
 {
   "taskID": "F0.13.1.T005",
   "denumire_task": "Setup pgTAP pentru database constraint tests",
@@ -1378,62 +1375,67 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
   "validare_task": "1. constraints.sql cu toate testele\n2. pgTAP extension instalat\n3. run-pgtap.sh executabil\n4. Toate testele trec\n5. ROLLBACK la final (no side effects)",
   "outcome": "pgTAP tests pentru database constraints (100% coverage pentru migrations)"
 }
-```
-
+````
 
 ---
 
 ## REZUMAT TASKURI ETAPA 0
 
-| FazÄƒ | Nr. Taskuri | Status |
-|------|-------------|--------|
-| F0.1 InfrastructurÄƒ Docker | 6 | âœ… Definite complet |
-| F0.2 PostgreSQL 18.1 | 5 | âœ… Definite complet |
-| F0.3 Redis 7.4.7 + BullMQ | 4 | âœ… Definite complet |
-| F0.4 Traefik v3.6.6 | 4 | âœ… Definite complet |
-| F0.5 Observability SigNoz | 4 | âœ… Definite complet |
-| F0.6 PNPM + Monorepo | 8 | âœ… Definite complet |
-| F0.7 Backup Strategy | 4 | âœ… Definite complet |
-| F0.8 Security Hardening | 4 | âœ… Definite complet |
-| F0.9 API Boilerplate | 8 | âœ… Definite complet |
-| F0.10 Database Schema | 6 | âœ… Definite complet |
-| F0.11 Frontend Boilerplate | 6 | âœ… Definite complet |
-| F0.12 Dev Environment | 5 | âœ… Definite complet |
-| F0.13 Testing Foundation | 5 | âœ… Definite complet |
-| **TOTAL** | **69** | **100% Complet** |
+| FazÄƒ                       | Nr. Taskuri | Status               |
+| --------------------------- | ----------- | -------------------- |
+| F0.1 InfrastructurÄƒ Docker | 6           | âœ… Definite complet |
+| F0.2 PostgreSQL 18.1        | 5           | âœ… Definite complet |
+| F0.3 Redis 7.4.7 + BullMQ   | 4           | âœ… Definite complet |
+| F0.4 Traefik v3.6.6         | 4           | âœ… Definite complet |
+| F0.5 Observability SigNoz   | 4           | âœ… Definite complet |
+| F0.6 PNPM + Monorepo        | 8           | âœ… Definite complet |
+| F0.7 Backup Strategy        | 4           | âœ… Definite complet |
+| F0.8 Security Hardening     | 4           | âœ… Definite complet |
+| F0.9 API Boilerplate        | 8           | âœ… Definite complet |
+| F0.10 Database Schema       | 6           | âœ… Definite complet |
+| F0.11 Frontend Boilerplate  | 6           | âœ… Definite complet |
+| F0.12 Dev Environment       | 5           | âœ… Definite complet |
+| F0.13 Testing Foundation    | 5           | âœ… Definite complet |
+| **TOTAL**                   | **69**      | **100% Complet**     |
 
 ---
 
 ## ORDINE DE EXECUÈšIE RECOMANDATÄ‚
 
 ### Faza 1: Infrastructure Base (F0.1 - F0.2)
+
 1. Docker Engine installation È™i config
 2. Docker networks setup
 3. PostgreSQL container cu PostGIS
 
 ### Faza 2: Data Layer (F0.3 - F0.5)
+
 4. Redis cu BullMQ
 5. Traefik reverse proxy
 6. SigNoz observability stack
 
 ### Faza 3: Application Foundation (F0.6 - F0.9)
+
 7. PNPM monorepo setup
 8. Backup strategy cu BorgBackup
 9. Security hardening
 10. API boilerplate Fastify
 
 ### Faza 4: Database & Auth (F0.10)
+
 11. Drizzle ORM È™i schema
 12. RLS policies pentru multi-tenancy
 13. Migrations È™i seed data
 
 ### Faza 5: Frontend (F0.11)
+
 14. React 19 cu Vite
 15. Refine v5 headless
 16. Tailwind CSS v4
 17. Auth provider cu JWT
 
 ### Faza 6: Dev & Testing (F0.12 - F0.13)
+
 18. Development environment
 19. Testing infrastructure
 20. Contract tests È™i pgTAP
@@ -1443,6 +1445,7 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
 ## CRITERII DE VALIDARE ETAPA 0
 
 ### Must Have (Blocker pentru Etapa 1)
+
 - [ ] Docker Engine 28.x funcÈ›ional
 - [ ] PostgreSQL 18.1 + PostGIS healthy
 - [ ] Redis 7.4.7 cu maxmemory-policy noeviction
@@ -1452,12 +1455,14 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
 - [ ] Multi-tenant RLS funcÈ›ional
 
 ### Should Have
+
 - [ ] SigNoz UI accesibil
 - [ ] Backup script testat manual
 - [ ] 80% coverage pe API tests
 - [ ] pgTAP tests pass
 
 ### Nice to Have
+
 - [ ] Local HTTPS cu mkcert
 - [ ] VSCode debugging configurat
 - [ ] Drizzle Studio funcÈ›ional
@@ -1467,6 +1472,7 @@ Implementarea curenta a fost migrata pe infrastructura noua (Proxmox LXC + orche
 ## NEXT: ETAPA 1 - DATA ENRICHMENT
 
 DupÄƒ completarea Etapa 0, continuÄƒ cu:
+
 - Bronze layer schema pentru raw data import
 - ANAF API integration worker
 - Termene.ro API integration worker

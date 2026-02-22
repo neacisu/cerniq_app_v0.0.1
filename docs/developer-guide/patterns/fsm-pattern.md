@@ -12,14 +12,14 @@ This pattern defines the lead and negotiation lifecycle as a Finite State Machin
 
 ### Lead Lifecycle States
 
-| State       | Description                    | Next States                    |
-|-------------|--------------------------------|--------------------------------|
-| COLD        | New lead, not contacted       | CONTACTED                      |
-| CONTACTED   | First contact attempted       | WARM, DEAD                     |
-| WARM        | Engaged, showing interest     | NEGOTIATION, DEAD              |
-| NEGOTIATION | In active negotiation         | CONVERTED, DEAD                |
-| CONVERTED   | Won / closed deal             | (terminal)                     |
-| DEAD        | Lost / disqualified           | (terminal)                     |
+| State       | Description               | Next States       |
+| ----------- | ------------------------- | ----------------- |
+| COLD        | New lead, not contacted   | CONTACTED         |
+| CONTACTED   | First contact attempted   | WARM, DEAD        |
+| WARM        | Engaged, showing interest | NEGOTIATION, DEAD |
+| NEGOTIATION | In active negotiation     | CONVERTED, DEAD   |
+| CONVERTED   | Won / closed deal         | (terminal)        |
+| DEAD        | Lost / disqualified       | (terminal)        |
 
 ### Drizzle Schema
 
@@ -42,10 +42,10 @@ Define allowed transitions in code:
 
 ```typescript
 const ALLOWED_TRANSITIONS: Record<LeadState, LeadState[]> = {
-  COLD: ['CONTACTED'],
-  CONTACTED: ['WARM', 'DEAD'],
-  WARM: ['NEGOTIATION', 'DEAD'],
-  NEGOTIATION: ['CONVERTED', 'DEAD'],
+  COLD: ["CONTACTED"],
+  CONTACTED: ["WARM", "DEAD"],
+  WARM: ["NEGOTIATION", "DEAD"],
+  NEGOTIATION: ["CONVERTED", "DEAD"],
   CONVERTED: [],
   DEAD: [],
 };
@@ -65,13 +65,13 @@ Log every state change for compliance and debugging:
 
 ```typescript
 await db.insert(approvalAuditLog).values({
-  entityType: 'lead',
+  entityType: "lead",
   entityId: lead.id,
   fromState: currentState,
   toState: newState,
   userId: req.user.id,
   reason: body.reason ?? null,
-  metadata: { source: 'api', ip: req.ip },
+  metadata: { source: "api", ip: req.ip },
 });
 ```
 
@@ -84,11 +84,11 @@ Table: `approval_audit_log` with columns: `id`, `entity_type`, `entity_id`, `fro
 For automated transitions (e.g. after email opened, meeting scheduled):
 
 ```typescript
-await leadTransitionQueue.add('transition', {
+await leadTransitionQueue.add("transition", {
   leadId: lead.id,
-  fromState: 'CONTACTED',
-  toState: 'WARM',
-  trigger: 'email_opened',
+  fromState: "CONTACTED",
+  toState: "WARM",
+  trigger: "email_opened",
   metadata: { emailId, openedAt },
 });
 ```

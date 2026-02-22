@@ -13,15 +13,15 @@ This pattern covers file uploads for CSV/Excel import: multipart upload to API, 
 Use `@fastify/multipart` for file uploads:
 
 ```typescript
-import multipart from '@fastify/multipart';
+import multipart from "@fastify/multipart";
 
 await fastify.register(multipart, {
   limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
 });
 
-fastify.post('/v1/leads/import', async (req, reply) => {
+fastify.post("/v1/leads/import", async (req, reply) => {
   const data = await req.file();
-  if (!data) throw new BadRequestError('No file uploaded');
+  if (!data) throw new BadRequestError("No file uploaded");
   // Stream to temp or S3, then enqueue job
 });
 ```
@@ -53,13 +53,17 @@ fastify.post('/v1/leads/import', async (req, reply) => {
 Never process synchronously. Enqueue and return job ID:
 
 ```typescript
-const job = await importQueue.add('csv-import', {
-  filePath: storedPath,
-  userId: req.user.id,
-  options: { skipHeader: true },
-}, { jobId: `import-${uuid()}` });
+const job = await importQueue.add(
+  "csv-import",
+  {
+    filePath: storedPath,
+    userId: req.user.id,
+    options: { skipHeader: true },
+  },
+  { jobId: `import-${uuid()}` },
+);
 
-return reply.status(202).send({ jobId: job.id, status: 'queued' });
+return reply.status(202).send({ jobId: job.id, status: "queued" });
 ```
 
 Queue: `cerniq:queue:import:csv` or `cerniq:queue:import:excel`
@@ -92,10 +96,10 @@ WebSocket channel: `import:job:{jobId}`. Emit `progress` and `completed` events.
 
 ## 6. S3 vs Local Storage
 
-| Environment | Storage        | Path Pattern                    |
-|-------------|-----------------|---------------------------------|
-| Development | Local temp      | `/tmp/cerniq-imports/{jobId}`   |
-| Production  | S3 (MinIO)      | `s3://cerniq-imports/{jobId}/file.csv` |
+| Environment | Storage    | Path Pattern                           |
+| ----------- | ---------- | -------------------------------------- |
+| Development | Local temp | `/tmp/cerniq-imports/{jobId}`          |
+| Production  | S3 (MinIO) | `s3://cerniq-imports/{jobId}/file.csv` |
 
 Use env var `IMPORT_STORAGE_TYPE` (`local` | `s3`). Clean up temp files after processing (or S3 lifecycle policy).
 

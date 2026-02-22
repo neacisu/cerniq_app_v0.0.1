@@ -14,29 +14,29 @@ This guide defines BullMQ worker configuration for Cerniq: concurrency, Redis me
 
 Higher concurrency; workers spend most time waiting on network.
 
-| Queue Type        | Concurrency | Example                    |
-|-------------------|-------------|----------------------------|
-| ANAF/Termene      | 2–3         | `enrich:anaf:tva`          |
-| Hunter/Resend     | 5–10        | `discover:email:hunter`    |
-| Webhook ingestion | 10          | `ingest:webhook`           |
-| Normalize/Validate| 20          | `normalize:cui`            |
+| Queue Type         | Concurrency | Example                 |
+| ------------------ | ----------- | ----------------------- |
+| ANAF/Termene       | 2–3         | `enrich:anaf:tva`       |
+| Hunter/Resend      | 5–10        | `discover:email:hunter` |
+| Webhook ingestion  | 10          | `ingest:webhook`        |
+| Normalize/Validate | 20          | `normalize:cui`         |
 
 ### CPU-Bound (Heavy Computation)
 
 Lower concurrency; avoid starving CPU.
 
-| Queue Type   | Concurrency | Example           |
-|--------------|-------------|-------------------|
-| AI scoring   | 2–3         | `ai:score`        |
-| Dedup fuzzy  | 3–5         | `dedup:fuzzy`     |
-| PDF generation | 2        | `doc:pdf`         |
+| Queue Type     | Concurrency | Example       |
+| -------------- | ----------- | ------------- |
+| AI scoring     | 2–3         | `ai:score`    |
+| Dedup fuzzy    | 3–5         | `dedup:fuzzy` |
+| PDF generation | 2           | `doc:pdf`     |
 
 ### Hybrid
 
-| Queue Type   | Concurrency | Notes                    |
-|--------------|-------------|--------------------------|
-| Pipeline orchestration | 3 | Coordinates other jobs   |
-| CSV/Excel parse | 5       | Mix of IO and CPU        |
+| Queue Type             | Concurrency | Notes                  |
+| ---------------------- | ----------- | ---------------------- |
+| Pipeline orchestration | 3           | Coordinates other jobs |
+| CSV/Excel parse        | 5           | Mix of IO and CPU      |
 
 ---
 
@@ -59,7 +59,7 @@ Example: 10 workers × 5 concurrency × 3 KB ≈ 150 KB per queue type. With 50 
 When Redis or downstream is overloaded:
 
 ```typescript
-const worker = new Worker('cerniq:queue:enrich', processor, {
+const worker = new Worker("cerniq:queue:enrich", processor, {
   concurrency: 5,
   limiter: { max: 10, duration: 60000 }, // 10 jobs/min
 });
@@ -79,8 +79,8 @@ Use `limiter` option for rate-limited queues (ANAF, Hunter).
 Workers must drain in-flight jobs before exit:
 
 ```typescript
-process.on('SIGTERM', async () => {
-  logger.info('SIGTERM received, draining worker');
+process.on("SIGTERM", async () => {
+  logger.info("SIGTERM received, draining worker");
   await worker.close();
   process.exit(0);
 });
@@ -93,17 +93,13 @@ BullMQ `worker.close()` waits for current jobs to finish (respect `stallInterval
 ## 5. Rate Limiting per Queue
 
 ```typescript
-const worker = new Worker(
-  'cerniq:enrich:anaf:tva',
-  processor,
-  {
-    concurrency: 3,
-    limiter: {
-      max: 60,      // 60 jobs
-      duration: 60000, // per minute (1 req/sec effective with batching)
-    },
-  }
-);
+const worker = new Worker("cerniq:enrich:anaf:tva", processor, {
+  concurrency: 3,
+  limiter: {
+    max: 60, // 60 jobs
+    duration: 60000, // per minute (1 req/sec effective with batching)
+  },
+});
 ```
 
 Align with external API limits (ANAF: 1 req/sec, Hunter: 50/min).

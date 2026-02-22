@@ -11,23 +11,24 @@ This pattern defines scheduled tasks: use BullMQ repeatable jobs instead of syst
 ## 1. BullMQ Repeatable Jobs (NOT System Cron)
 
 **Do not use** system cron or node-cron for application tasks. Use BullMQ repeatable jobs for:
+
 - Centralized scheduling
 - Visibility in Bull Board
 - Retry and failure handling
 - Same Redis/worker infrastructure
 
 ```typescript
-import { Queue } from 'bullmq';
+import { Queue } from "bullmq";
 
-const queue = new Queue('cerniq:scheduled:daily', { connection: redis });
+const queue = new Queue("cerniq:scheduled:daily", { connection: redis });
 
 await queue.add(
-  'daily-report',
+  "daily-report",
   {},
   {
-    repeat: { cron: '0 8 * * *' }, // 08:00 daily
-    jobId: 'daily-report', // Idempotency: one job per type
-  }
+    repeat: { cron: "0 8 * * *" }, // 08:00 daily
+    jobId: "daily-report", // Idempotency: one job per type
+  },
 );
 ```
 
@@ -35,12 +36,12 @@ await queue.add(
 
 ## 2. Job Scheduling
 
-| Task              | Cron        | Queue                    | Description           |
-|-------------------|-------------|---------------------------|-----------------------|
-| Daily report      | 0 8 * * *   | scheduled:daily           | Aggregate metrics     |
-| ANAF sync         | 0 2 * * *   | scheduled:anaf            | Sync fiscal data      |
-| Cleanup temp      | 0 3 * * *   | scheduled:cleanup         | Delete old temp files |
-| Backup verify     | 0 6 * * 0   | scheduled:backup          | Weekly backup check   |
+| Task          | Cron         | Queue             | Description           |
+| ------------- | ------------ | ----------------- | --------------------- |
+| Daily report  | 0 8 \* \* \* | scheduled:daily   | Aggregate metrics     |
+| ANAF sync     | 0 2 \* \* \* | scheduled:anaf    | Sync fiscal data      |
+| Cleanup temp  | 0 3 \* \* \* | scheduled:cleanup | Delete old temp files |
+| Backup verify | 0 6 \* \* 0  | scheduled:backup  | Weekly backup check   |
 
 Register all repeatable jobs at worker/API startup.
 
@@ -51,8 +52,8 @@ Register all repeatable jobs at worker/API startup.
 Use fixed `jobId` for repeatable jobs to prevent duplicates:
 
 ```typescript
-await queue.add('task-name', data, {
-  repeat: { cron: '0 8 * * *' },
+await queue.add("task-name", data, {
+  repeat: { cron: "0 8 * * *" },
   jobId: `scheduled:task-name:${dateString}`, // e.g. daily
 });
 ```
@@ -68,9 +69,12 @@ Or use `repeat.jobId` (BullMQ) to deduplicate by pattern.
 - **Alerting:** Notify on repeated failures (e.g. same job fails 3 days in a row)
 
 ```typescript
-worker.on('failed', async (job, err) => {
+worker.on("failed", async (job, err) => {
   if (job.attemptsMade >= job.opts.attempts) {
-    await alerting.send('Scheduled job failed', { job: job.name, error: err.message });
+    await alerting.send("Scheduled job failed", {
+      job: job.name,
+      error: err.message,
+    });
   }
 });
 ```
@@ -98,9 +102,9 @@ Register repeatable jobs once at startup (API or dedicated scheduler process):
 ```typescript
 // bootstrap-scheduler.ts
 const queues = [
-  { name: 'scheduled:daily', cron: '0 8 * * *', jobId: 'daily-report' },
-  { name: 'scheduled:anaf', cron: '0 2 * * *', jobId: 'anaf-sync' },
-  { name: 'scheduled:cleanup', cron: '0 3 * * *', jobId: 'cleanup-temp' },
+  { name: "scheduled:daily", cron: "0 8 * * *", jobId: "daily-report" },
+  { name: "scheduled:anaf", cron: "0 2 * * *", jobId: "anaf-sync" },
+  { name: "scheduled:cleanup", cron: "0 3 * * *", jobId: "cleanup-temp" },
 ];
 
 for (const q of queues) {
@@ -129,7 +133,7 @@ If a job runs longer than the repeat interval, BullMQ can start overlapping runs
 
 ```typescript
 const lockKey = `cerniq:lock:scheduled:${job.name}`;
-const acquired = await redis.set(lockKey, '1', 'EX', 3600, 'NX');
+const acquired = await redis.set(lockKey, "1", "EX", 3600, "NX");
 if (!acquired) return; // Skip, previous run still active
 ```
 

@@ -41,8 +41,8 @@ For very large exports (100k+ rows) or complex formats (Excel with formatting):
 5. Client downloads from signed URL
 
 ```typescript
-const job = await exportQueue.add('leads', { userId, filters, format: 'xlsx' });
-return reply.status(202).send({ jobId: job.id, status: 'processing' });
+const job = await exportQueue.add("leads", { userId, filters, format: "xlsx" });
+return reply.status(202).send({ jobId: job.id, status: "processing" });
 ```
 
 ---
@@ -53,8 +53,8 @@ return reply.status(202).send({ jobId: job.id, status: 'processing' });
 - **Local temp:** Delete after 24h; link expires when file deleted
 
 ```typescript
-const signedUrl = await s3.getSignedUrl('getObject', {
-  Bucket: 'cerniq-exports',
+const signedUrl = await s3.getSignedUrl("getObject", {
+  Bucket: "cerniq-exports",
   Key: `exports/${jobId}.xlsx`,
   Expires: 3600,
 });
@@ -64,11 +64,11 @@ const signedUrl = await s3.getSignedUrl('getObject', {
 
 ## 4. Format Selection
 
-| Format | Use Case        | Library / Approach      |
-|--------|------------------|--------------------------|
-| CSV    | Simple, < 50k   | Stream rows, join with comma |
-| Excel  | Formatted, charts| exceljs, xlsx (streaming)     |
-| PDF    | Reports, invoices| python-pdf service (see pdf-generation.md) |
+| Format | Use Case          | Library / Approach                         |
+| ------ | ----------------- | ------------------------------------------ |
+| CSV    | Simple, < 50k     | Stream rows, join with comma               |
+| Excel  | Formatted, charts | exceljs, xlsx (streaming)                  |
+| PDF    | Reports, invoices | python-pdf service (see pdf-generation.md) |
 
 Support `?format=csv|xlsx|pdf` in export endpoint.
 
@@ -100,12 +100,12 @@ async function processExport(job: Job) {
   const stream = db.select().from(leads).where(buildFilters(filters)).stream();
   const writer = fs.createWriteStream(filePath);
   for await (const row of stream) {
-    writer.write(formatRow(row, format) + '\n');
+    writer.write(formatRow(row, format) + "\n");
   }
   writer.end();
   await waitForFinish(writer);
   const url = await uploadToS3(filePath, job.id);
-  await job.updateData({ ...job.data, downloadUrl: url, status: 'ready' });
+  await job.updateData({ ...job.data, downloadUrl: url, status: "ready" });
   fs.unlinkSync(filePath);
 }
 ```
@@ -129,7 +129,7 @@ For large Excel files, use streaming writer:
 
 ```typescript
 const workbook = new ExcelJS.stream.xlsx.WorkbookWriter({ stream: writer });
-const sheet = workbook.addWorksheet('Leads');
+const sheet = workbook.addWorksheet("Leads");
 for await (const row of stream) {
   sheet.addRow(row).commit();
 }
