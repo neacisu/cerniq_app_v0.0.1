@@ -31,7 +31,7 @@ vault {
 template {
   source      = "/openbao/templates/pgbouncer-userlist.tpl"
   destination = "/secrets/userlist.txt"
-  perms       = 0600
+  perms       = 0644
   error_on_missing_key = true
   wait { min = "2s" max = "10s" }
 }

@@ -60,7 +60,7 @@ vault {
 template {
   source      = "/openbao/templates/api-env.tpl"
   destination = "/secrets/api.env"
-  perms       = 0600
+  perms       = 0644
   
   # Send HUP signal to Node.js process for graceful reload
   command     = "pkill -HUP node 2>/dev/null || true"
@@ -79,7 +79,7 @@ template {
 template {
   source      = "/openbao/templates/pg-password-api.tpl"
   destination = "/secrets/pg_password"
-  perms       = 0600
+  perms       = 0644
   
   # Don't fail if database engine not yet configured
   error_on_missing_key = false

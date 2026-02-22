@@ -187,7 +187,7 @@ http:
           # Route orchestrator -> CT109 via hz.247 L4 gateway (fixes TCP handshake issues).
           - url: "http://10.0.1.10:29000"
         healthCheck:
-          path: "/health"
+          path: "/health/live"
           interval: "30s"
           timeout: "5s"
 
@@ -196,7 +196,7 @@ http:
         servers:
           - url: "http://10.0.1.10:29010"
         healthCheck:
-          path: "/health"
+          path: "/health/live"
           interval: "30s"
           timeout: "5s"
 
@@ -205,7 +205,7 @@ http:
         servers:
           - url: "http://10.0.1.10:29012"
         healthCheck:
-          path: "/health"
+          path: "/health/live"
           interval: "30s"
           timeout: "5s"
 
@@ -215,7 +215,7 @@ http:
           # Route orchestrator -> CT110 via hz.247 L4 gateway (fixes TCP handshake issues).
           - url: "http://10.0.1.10:19000"
         healthCheck:
-          path: "/health"
+          path: "/health/live"
           interval: "30s"
           timeout: "5s"
 
@@ -224,7 +224,7 @@ http:
         servers:
           - url: "http://10.0.1.10:19010"
         healthCheck:
-          path: "/health"
+          path: "/health/live"
           interval: "30s"
           timeout: "5s"
 
@@ -233,7 +233,7 @@ http:
         servers:
           - url: "http://10.0.1.10:19012"
         healthCheck:
-          path: "/health"
+          path: "/health/live"
           interval: "30s"
           timeout: "5s"
 

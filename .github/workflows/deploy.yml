@@ -344,6 +344,7 @@ jobs:
       - name: 🚀 Deploy Docker services
         run: |
           ssh -i ~/.ssh/deploy_key deploy@${{ secrets.STAGING_HOST }} << 'ENDSSH'
+            set -euo pipefail
             cd /opt/cerniq
 
             # Remove legacy placeholder containers (one-time cleanup)
@@ -356,13 +357,49 @@ jobs:
             docker network create --driver bridge --subnet=172.29.20.0/24 cerniq_backend 2>/dev/null || true
             docker network create --driver bridge --subnet=172.29.30.0/24 cerniq_data 2>/dev/null || true
 
+            # Prepare runtime-secrets with correct permissions (755 so uid 1001 can read)
+            mkdir -p /opt/cerniq/runtime-secrets/{api,workers,infra}
+            chmod 755 /opt/cerniq/runtime-secrets /opt/cerniq/runtime-secrets/*
+
+            # Purge stale rendered secrets to prevent race condition:
+            # old files would pass agent healthcheck instantly before fresh secrets are rendered
+            rm -f /opt/cerniq/runtime-secrets/api/api.env \
+                  /opt/cerniq/runtime-secrets/api/pg_password \
+                  /opt/cerniq/runtime-secrets/workers/workers.env \
+                  /opt/cerniq/runtime-secrets/infra/pgbouncer.ini \
+                  /opt/cerniq/runtime-secrets/infra/userlist.txt
+
             echo "🐳 Pulling images..."
             docker compose -f docker-compose.yml -f docker-compose.prod.yml pull --quiet
 
-            echo "🚀 Starting services..."
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --force-recreate --remove-orphans
+            # Start infrastructure first: OpenBao agents + PgBouncer
+            echo "🤖 Starting OpenBao agents..."
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d \
+              openbao-agent-api openbao-agent-workers openbao-agent-infra
 
-            echo "⏳ Waiting for services to start..."
+            echo "⏳ Waiting for agents to render secrets..."
+            for i in $(seq 1 30); do
+              if docker exec cerniq-openbao-agent-api test -f /secrets/api.env 2>/dev/null && \
+                 docker exec cerniq-openbao-agent-workers test -f /secrets/workers.env 2>/dev/null && \
+                 docker exec cerniq-openbao-agent-infra test -f /secrets/pgbouncer.ini 2>/dev/null; then
+                echo "✅ All secrets rendered (after ${i}s)"
+                break
+              fi
+              sleep 1
+              [ "$i" -eq 30 ] && echo "⚠️ Timeout waiting for secrets (30s)"
+            done
+
+            # Now start PgBouncer (depends on infra secrets)
+            echo "🔌 Starting PgBouncer..."
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d pgbouncer pgbouncer-exporter
+
+            sleep 5
+
+            # Finally start application services (depend on agents + pgbouncer being healthy)
+            echo "🚀 Starting application services..."
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-orphans
+
+            echo "⏳ Waiting for services to stabilize..."
             sleep 15
 
             echo "📊 Service status:"
@@ -371,49 +408,6 @@ jobs:
 
           ssh -i ~/.ssh/deploy_key deploy@${{ secrets.STAGING_HOST }} \
             "echo '${{ needs.setup.outputs.version }}' > /opt/cerniq/.current_deploy"
-
-      # =========================================================================
-      # STEP 4: Initialize OpenBao (if needed)
-      # =========================================================================
-      - name: 🔐 Initialize OpenBao
-        run: |
-          ssh -i ~/.ssh/deploy_key deploy@${{ secrets.STAGING_HOST }} << 'ENDSSH'
-            cd /opt/cerniq
-            echo "✅ Skipped: OpenBao server is external on orchestrator (s3cr3ts.neanelu.ro)"
-          ENDSSH
-
-      # =========================================================================
-      # STEP 6: Start OpenBao agents
-      # =========================================================================
-      - name: 🤖 Start OpenBao Agents
-        run: |
-          ssh -i ~/.ssh/deploy_key deploy@${{ secrets.STAGING_HOST }} << 'ENDSSH'
-            cd /opt/cerniq
-            
-            # Runtime secrets directory (render target for templates).
-            mkdir -p /opt/cerniq/runtime-secrets/{api,workers,infra}
-            chmod 700 /opt/cerniq/runtime-secrets /opt/cerniq/runtime-secrets/* || true
-            
-            # Check prerequisites
-            if [ ! -f /opt/cerniq/secrets/api_role_id ]; then
-              echo "⚠️ AppRole credentials not found, skipping agents"
-              exit 0
-            fi
-            
-            echo "🤖 Starting OpenBao agents..."
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d openbao-agent-api openbao-agent-workers openbao-agent-infra
-            
-            echo "⏳ Waiting for agents to render secrets..."
-            sleep 10
-            
-            # Verify secrets rendered
-            if docker exec cerniq-openbao-agent-api test -f /secrets/api.env 2>/dev/null; then
-              echo "✅ API secrets rendered successfully"
-            else
-              echo "⚠️ API secrets not yet rendered"
-              docker logs cerniq-openbao-agent-api --tail 10 2>&1 || true
-            fi
-          ENDSSH
 
       # =========================================================================
       # STEP 7: Configure firewall
@@ -707,6 +701,7 @@ jobs:
       - name: 🚀 Deploy Docker services
         run: |
           ssh -i ~/.ssh/deploy_key deploy@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
+            set -euo pipefail
             cd /opt/cerniq
 
             # Remove legacy placeholder containers (one-time cleanup)
@@ -719,13 +714,48 @@ jobs:
             docker network create --driver bridge --subnet=172.29.20.0/24 cerniq_backend 2>/dev/null || true
             docker network create --driver bridge --subnet=172.29.30.0/24 cerniq_data 2>/dev/null || true
 
+            # Prepare runtime-secrets with correct permissions (755 so uid 1001 can read)
+            mkdir -p /opt/cerniq/runtime-secrets/{api,workers,infra}
+            chmod 755 /opt/cerniq/runtime-secrets /opt/cerniq/runtime-secrets/*
+
+            # Purge stale rendered secrets to prevent race condition
+            rm -f /opt/cerniq/runtime-secrets/api/api.env \
+                  /opt/cerniq/runtime-secrets/api/pg_password \
+                  /opt/cerniq/runtime-secrets/workers/workers.env \
+                  /opt/cerniq/runtime-secrets/infra/pgbouncer.ini \
+                  /opt/cerniq/runtime-secrets/infra/userlist.txt
+
             echo "🐳 Pulling images..."
             docker compose -f docker-compose.yml -f docker-compose.prod.yml pull --quiet
 
-            echo "🚀 Starting services..."
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --force-recreate --remove-orphans
+            # Start infrastructure first: OpenBao agents + PgBouncer
+            echo "🤖 Starting OpenBao agents..."
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d \
+              openbao-agent-api openbao-agent-workers openbao-agent-infra
 
-            echo "⏳ Waiting for services to start..."
+            echo "⏳ Waiting for agents to render secrets..."
+            for i in $(seq 1 30); do
+              if docker exec cerniq-openbao-agent-api test -f /secrets/api.env 2>/dev/null && \
+                 docker exec cerniq-openbao-agent-workers test -f /secrets/workers.env 2>/dev/null && \
+                 docker exec cerniq-openbao-agent-infra test -f /secrets/pgbouncer.ini 2>/dev/null; then
+                echo "✅ All secrets rendered (after ${i}s)"
+                break
+              fi
+              sleep 1
+              [ "$i" -eq 30 ] && echo "⚠️ Timeout waiting for secrets (30s)"
+            done
+
+            # Now start PgBouncer (depends on infra secrets)
+            echo "🔌 Starting PgBouncer..."
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d pgbouncer pgbouncer-exporter
+
+            sleep 5
+
+            # Finally start application services
+            echo "🚀 Starting application services..."
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-orphans
+
+            echo "⏳ Waiting for services to stabilize..."
             sleep 20
 
             echo "📊 Service status:"
@@ -734,45 +764,6 @@ jobs:
 
           ssh -i ~/.ssh/deploy_key deploy@${{ secrets.PRODUCTION_HOST }} \
             "echo '${{ needs.setup.outputs.version }}' > /opt/cerniq/.current_deploy"
-
-      # =========================================================================
-      # STEP 4: Initialize OpenBao (if needed) - NO AUTO-UNSEAL IN PRODUCTION
-      # =========================================================================
-      - name: 🔐 Initialize OpenBao (Production)
-        run: |
-          ssh -i ~/.ssh/deploy_key deploy@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
-            cd /opt/cerniq
-            echo "✅ Skipped: OpenBao server is external on orchestrator (s3cr3ts.neanelu.ro)"
-          ENDSSH
-
-      # =========================================================================
-      # STEP 6: Start agents (external OpenBao, if configured)
-      # =========================================================================
-      - name: 🤖 Start OpenBao Agents
-        continue-on-error: true
-        run: |
-          ssh -i ~/.ssh/deploy_key deploy@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
-            cd /opt/cerniq
-            
-            # Runtime secrets directory (render target for templates).
-            mkdir -p /opt/cerniq/runtime-secrets/{api,workers,infra}
-            chmod 700 /opt/cerniq/runtime-secrets /opt/cerniq/runtime-secrets/* || true
-            
-            if [ ! -f /opt/cerniq/secrets/api_role_id ]; then
-              echo "⚠️ AppRole credentials not found, skipping agents"
-              exit 0
-            fi
-            
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d openbao-agent-api openbao-agent-workers openbao-agent-infra
-            
-            sleep 10
-            
-            if docker exec cerniq-openbao-agent-api test -f /secrets/api.env 2>/dev/null; then
-              echo "✅ API secrets rendered"
-            else
-              echo "⚠️ API secrets not rendered yet"
-            fi
-          ENDSSH
 
       # =========================================================================
       # STEP 7: Configure firewall

@@ -8,7 +8,9 @@ function getRedisConnectionOptions() {
   return {
     host: url.hostname,
     port: parseInt(url.port, 10) || 6379,
+    username: url.username || undefined,
     password: url.password || undefined,
+    db: url.pathname ? parseInt(url.pathname.slice(1), 10) || 0 : 0,
     maxRetriesPerRequest: null,
     enableReadyCheck: false,
   };
