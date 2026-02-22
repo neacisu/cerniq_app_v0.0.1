@@ -8,3 +8,12 @@
 # These are excluded via skip-dirs in ci-pr.yml; this file serves as
 # documentation and catch-all for any residual false-positives.
 # =============================================================================
+
+# =============================================================================
+# Base image vulnerabilities (node:25.6.1-alpine3.23)
+# These exist in npm's bundled dependencies inside the Node.js Docker image
+# at usr/local/lib/node_modules/npm/node_modules/ — not in our application.
+# Will be resolved when upstream Node.js Alpine image is updated.
+# =============================================================================
+CVE-2026-26996
+CVE-2026-26960
