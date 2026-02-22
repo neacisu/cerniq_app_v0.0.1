@@ -369,11 +369,20 @@ jobs:
                   /opt/cerniq/runtime-secrets/infra/pgbouncer.ini \
                   /opt/cerniq/runtime-secrets/infra/userlist.txt
 
+            # OpenBao server is external on orchestrator (s3cr3ts.neanelu.ro).
+            # Skipped: OpenBao server is external — only agents run locally.
+            # Agents authenticate via AppRole and render secrets locally.
+            if [ ! -f /opt/cerniq/secrets/api_role_id ]; then
+              echo "❌ AppRole credentials not found at /opt/cerniq/secrets/api_role_id"
+              echo "   Run OpenBao setup first (see docs/infrastructure/openbao-setup-guide.md)"
+              exit 1
+            fi
+
             echo "🐳 Pulling images..."
             docker compose -f docker-compose.yml -f docker-compose.prod.yml pull --quiet
 
             # Start infrastructure first: OpenBao agents + PgBouncer
-            echo "🤖 Starting OpenBao agents..."
+            echo "🤖 Starting OpenBao agents (connecting to s3cr3ts.neanelu.ro)..."
             docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d \
               openbao-agent-api openbao-agent-workers openbao-agent-infra
 
@@ -725,11 +734,20 @@ jobs:
                   /opt/cerniq/runtime-secrets/infra/pgbouncer.ini \
                   /opt/cerniq/runtime-secrets/infra/userlist.txt
 
+            # OpenBao server is external on orchestrator (s3cr3ts.neanelu.ro).
+            # Skipped: OpenBao server is external — only agents run locally.
+            # Agents authenticate via AppRole and render secrets locally.
+            if [ ! -f /opt/cerniq/secrets/api_role_id ]; then
+              echo "❌ AppRole credentials not found at /opt/cerniq/secrets/api_role_id"
+              echo "   Run OpenBao setup first (see docs/infrastructure/openbao-setup-guide.md)"
+              exit 1
+            fi
+
             echo "🐳 Pulling images..."
             docker compose -f docker-compose.yml -f docker-compose.prod.yml pull --quiet
 
             # Start infrastructure first: OpenBao agents + PgBouncer
-            echo "🤖 Starting OpenBao agents..."
+            echo "🤖 Starting OpenBao agents (connecting to s3cr3ts.neanelu.ro)..."
             docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d \
               openbao-agent-api openbao-agent-workers openbao-agent-infra
 
