@@ -2,7 +2,7 @@
   /* Brand — Amber / Gold */
   --color-b3: oklch(0.83 0.13 76);
   --color-b4: oklch(0.76 0.16 74);
-  --color-b5: oklch(0.70 0.18 72);
+  --color-b5: oklch(0.7 0.18 72);
   --color-b6: oklch(0.62 0.17 70);
 
   /* Surface — Deep Navy */
@@ -15,14 +15,14 @@
   /* Text */
   --color-t1: oklch(0.95 0.005 255);
   --color-t2: oklch(0.68 0.012 255);
-  --color-t3: oklch(0.48 0.010 255);
+  --color-t3: oklch(0.48 0.01 255);
   --color-t4: oklch(0.33 0.008 255);
 
   /* Semantic */
-  --color-ok: oklch(0.60 0.22 148);
+  --color-ok: oklch(0.6 0.22 148);
   --color-wa: oklch(0.72 0.19 70);
   --color-er: oklch(0.58 0.24 27);
-  --color-in: oklch(0.57 0.20 245);
+  --color-in: oklch(0.57 0.2 245);
 
   /* Tier */
   --color-tier-bronze: oklch(0.65 0.12 55);
@@ -52,7 +52,7 @@
   --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.15);
   --shadow-md: 0 4px 12px oklch(0 0 0 / 0.25);
   --shadow-lg: 0 8px 24px oklch(0 0 0 / 0.35);
-  --shadow-glow: 0 0 20px oklch(0.70 0.18 72 / 0.3);
+  --shadow-glow: 0 0 20px oklch(0.7 0.18 72 / 0.3);
 
   /* Z-index */
   --z-dropdown: 100;

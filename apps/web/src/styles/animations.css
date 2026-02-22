@@ -69,10 +69,10 @@
 @keyframes glow {
   0%,
   100% {
-    box-shadow: 0 0 0 0 oklch(0.70 0.18 72 / 30%);
+    box-shadow: 0 0 0 0 oklch(0.7 0.18 72 / 30%);
   }
   50% {
-    box-shadow: 0 0 0 6px oklch(0.70 0.18 72 / 0%);
+    box-shadow: 0 0 0 6px oklch(0.7 0.18 72 / 0%);
   }
 }
 
