@@ -1,9 +1,9 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { Dashboard } from "@/pages/dashboard/index.js";
-import { Login } from "@/pages/auth/Login.js";
-import { ForgotPassword } from "@/pages/auth/ForgotPassword.js";
+import { Dashboard } from "@/pages/dashboard/index";
+import { Login } from "@/pages/auth/Login";
+import { ForgotPassword } from "@/pages/auth/ForgotPassword";
 
 vi.mock("sonner", () => ({
   toast: { success: vi.fn(), error: vi.fn() },

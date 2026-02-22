@@ -145,19 +145,16 @@ describe("F0.8.1: Container Hardening", () => {
 
     it("pgbouncer should use secrets for password", () => {
       const content = readFile("infra/docker/docker-compose.yml");
-      // New infra: PgBouncer uses auth_query and gets its auth_user password
-      // from an OpenBao agent rendered file (`userlist.txt`) on tmpfs/bind mount.
       expect(content).toContain("pgbouncer:");
 
-      const pgbouncerIndex = content.indexOf("pgbouncer:");
+      const pgbouncerIndex = content.indexOf("\n  pgbouncer:\n");
+      expect(pgbouncerIndex).toBeGreaterThanOrEqual(0);
       const relevantSection = content.substring(
         pgbouncerIndex,
         pgbouncerIndex + 2000,
       );
       expect(content).toContain("openbao-agent-infra:");
       expect(relevantSection).toContain("/etc/pgbouncer");
-      // Auth/password is delivered via a rendered directory mount; we assert the
-      // config entrypoint is driven by the rendered ini.
       expect(relevantSection).toContain("pgbouncer.ini");
     });
   });

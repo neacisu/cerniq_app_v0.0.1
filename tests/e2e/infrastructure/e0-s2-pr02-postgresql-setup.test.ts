@@ -66,7 +66,7 @@ describe("F0.2: PgBouncer external PG", () => {
 
   it("pgbouncer should mount OpenBao-rendered config directory", () => {
     const content = readFile("infra/docker/docker-compose.yml");
-    const idx = content.indexOf("pgbouncer:");
+    const idx = content.indexOf("\n  pgbouncer:\n");
     expect(idx).toBeGreaterThanOrEqual(0);
     const section = content.substring(idx, idx + 2500);
     expect(section).toContain("/etc/pgbouncer");
@@ -75,7 +75,7 @@ describe("F0.2: PgBouncer external PG", () => {
 
   it("pgbouncer should have extra_hosts for CT107 alias", () => {
     const content = readFile("infra/docker/docker-compose.yml");
-    const idx = content.indexOf("pgbouncer:");
+    const idx = content.indexOf("\n  pgbouncer:\n");
     expect(idx).toBeGreaterThanOrEqual(0);
     const section = content.substring(idx, idx + 2500);
     expect(section).toContain("ct107-postgres:10.0.1.107");

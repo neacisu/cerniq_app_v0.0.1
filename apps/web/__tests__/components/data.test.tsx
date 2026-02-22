@@ -1,10 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { KpiCard } from "@/components/data/KpiCard.js";
-import { ProgressBar } from "@/components/data/ProgressBar.js";
-import { StatusDot } from "@/components/data/StatusDot.js";
-import { StatsBar } from "@/components/data/StatsBar.js";
-import { ChatMessage } from "@/components/data/ChatMessage.js";
+import { KpiCard } from "@/components/data/KpiCard";
+import { ProgressBar } from "@/components/data/ProgressBar";
+import { StatusDot } from "@/components/data/StatusDot";
+import { StatsBar } from "@/components/data/StatsBar";
+import { ChatMessage } from "@/components/data/ChatMessage";
 
 describe("KpiCard", () => {
   it("renders value and label", () => {

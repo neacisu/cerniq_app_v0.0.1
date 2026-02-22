@@ -1,12 +1,12 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { Button } from "@/components/ui/button.js";
-import { Input } from "@/components/ui/input.js";
-import { Badge, SBadge, TBadge } from "@/components/ui/badge.js";
-import { Card, CardHeader, CardTitle, CardBody } from "@/components/ui/card.js";
-import { Spinner } from "@/components/ui/spinner.js";
-import { Separator } from "@/components/ui/separator.js";
-import { Skeleton } from "@/components/ui/skeleton.js";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge, SBadge, TBadge } from "@/components/ui/badge";
+import { Card, CardHeader, CardTitle, CardBody } from "@/components/ui/card";
+import { Spinner } from "@/components/ui/spinner";
+import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 
 describe("Button Component", () => {
   it("renders with text", () => {

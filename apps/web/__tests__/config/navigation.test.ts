@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { navigation } from "@/config/navigation.js";
+import { navigation } from "@/config/navigation";
 
 describe("Navigation Config", () => {
   it("has 7 sections", () => {
