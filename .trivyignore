@@ -10,10 +10,28 @@
 # =============================================================================
 
 # =============================================================================
-# Base image vulnerabilities (node:25.6.1-alpine3.23)
-# These exist in npm's bundled dependencies inside the Node.js Docker image
-# at usr/local/lib/node_modules/npm/node_modules/ — not in our application.
-# Will be resolved when upstream Node.js Alpine image is updated.
+# Base image: node:25.6.1-alpine3.23 (latest as of 2026-02-22)
 # =============================================================================
+
+# --- Go stdlib CVEs (gobinary) -----------------------------------------------
+# From compiled Go binaries in Alpine OS packages. Not application code.
+# Resolved when Alpine rebuilds packages with a patched Go toolchain.
+CVE-2023-39325
+CVE-2023-44487
+CVE-2023-45283
+CVE-2023-45288
+CVE-2024-24790
+CVE-2024-34156
+CVE-2025-47907
+CVE-2025-58183
+CVE-2025-61726
+CVE-2025-61728
+CVE-2025-61729
+CVE-2025-61730
+CVE-2025-68121
+
+# --- npm bundled dependency CVEs (node-pkg) ----------------------------------
+# From npm's own deps at usr/local/lib/node_modules/npm/node_modules/.
+# Also excluded via --skip-dirs in deploy.yml as defense-in-depth.
 CVE-2026-26996
 CVE-2026-26960

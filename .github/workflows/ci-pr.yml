@@ -314,6 +314,7 @@ jobs:
             --exit-code 1 \
             --ignore-unfixed \
             --skip-dirs secrets,.pnpm-store,node_modules \
+            --ignorefile .trivyignore \
             --format table
 
       - name: 🔍 Audit npm dependencies

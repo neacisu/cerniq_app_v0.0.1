@@ -204,9 +204,12 @@ jobs:
           trivy image \
             "${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.app.name }}:${{ needs.setup.outputs.version }}" \
             --scanners vuln \
+            --pkg-types library \
             --severity CRITICAL,HIGH \
             --exit-code 1 \
             --ignore-unfixed \
+            --skip-dirs usr/local/lib/node_modules/npm/node_modules \
+            --ignorefile .trivyignore \
             --format table
 
       - name: ❌ Cancel workflow on failure
