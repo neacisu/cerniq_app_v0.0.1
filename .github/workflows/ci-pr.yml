@@ -238,7 +238,6 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 15
     needs: lint
-    if: github.event_name == 'pull_request'
 
     steps:
       - name: 📥 Checkout code
@@ -267,7 +266,6 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 10
     needs: lint
-    if: github.event_name == 'pull_request'
     permissions:
       contents: read
       security-events: write
@@ -340,7 +338,6 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 5
     needs: lint
-    if: github.event_name == 'pull_request'
 
     steps:
       - name: 📥 Checkout code
@@ -431,7 +428,6 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 20
     needs: [lint, test, docker-config]
-    if: github.event_name == 'pull_request' && github.base_ref == 'develop'
 
     steps:
       - name: 📥 Checkout code
@@ -547,17 +543,46 @@ jobs:
     steps:
       - name: Check CI Status
         run: |
-          if [[ "${{ needs.lint.result }}" == "failure" ]] || \
-             [[ "${{ needs.test.result }}" == "failure" ]] || \
-             [[ "${{ needs.build-verify.result }}" == "failure" ]] || \
-             [[ "${{ needs.security.result }}" == "failure" ]] || \
-             [[ "${{ needs.docker-config.result }}" == "failure" ]] || \
-             [[ "${{ needs.docker-build.result }}" == "failure" ]] || \
-             [[ "${{ needs.shellcheck.result }}" == "failure" ]] || \
-             [[ "${{ needs.python-lint.result }}" == "failure" ]]; then
-            echo "❌ CI failed"
+          echo "📊 Job results:"
+          echo "  lint:         ${{ needs.lint.result }}"
+          echo "  test:         ${{ needs.test.result }}"
+          echo "  build-verify: ${{ needs.build-verify.result }}"
+          echo "  security:     ${{ needs.security.result }}"
+          echo "  docker-config:${{ needs.docker-config.result }}"
+          echo "  docker-build: ${{ needs.docker-build.result }}"
+          echo "  shellcheck:   ${{ needs.shellcheck.result }}"
+          echo "  python-lint:  ${{ needs.python-lint.result }}"
+
+          FAILED=0
+          for job in lint test build-verify security docker-config docker-build shellcheck; do
+            result=""
+            case "$job" in
+              lint)          result="${{ needs.lint.result }}" ;;
+              test)          result="${{ needs.test.result }}" ;;
+              build-verify)  result="${{ needs.build-verify.result }}" ;;
+              security)      result="${{ needs.security.result }}" ;;
+              docker-config) result="${{ needs.docker-config.result }}" ;;
+              docker-build)  result="${{ needs.docker-build.result }}" ;;
+              shellcheck)    result="${{ needs.shellcheck.result }}" ;;
+            esac
+            if [[ "$result" != "success" ]]; then
+              echo "❌ Job '$job' did not succeed (result: $result)"
+              FAILED=1
+            fi
+          done
+
+          # python-lint is conditional (only runs when workers/ changed) — skipped is acceptable
+          if [[ "${{ needs.python-lint.result }}" == "failure" ]] || \
+             [[ "${{ needs.python-lint.result }}" == "cancelled" ]]; then
+            echo "❌ Job 'python-lint' failed (result: ${{ needs.python-lint.result }})"
+            FAILED=1
+          fi
+
+          if [[ "$FAILED" -eq 1 ]]; then
+            echo "❌ CI failed — CD will NOT be triggered"
             exit 1
           fi
+
           echo "✅ All CI checks passed"
 
   # ===========================================================================
@@ -570,13 +595,7 @@ jobs:
     permissions:
       actions: write
       contents: read
-    # always() is REQUIRED here: ci-status uses if:always() and depends on
-    # PR-only jobs (shellcheck, security, build-verify) that are "skipped" on
-    # push events.  Without always(), GitHub's transitive dependency resolution
-    # auto-skips this job even though ci-status itself succeeded.
-    # The explicit result check ensures CD only fires when CI actually passed.
     if: >-
-      always() &&
       github.event_name == 'push' &&
       needs.ci-status.result == 'success'
 

@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.7
 FROM node:25.6.1-alpine3.23 AS base
 RUN apk add --no-cache curl
-RUN corepack enable && corepack prepare pnpm@10.29.3 --activate
+RUN npm install -g pnpm@10.29.3
 WORKDIR /app
 
 FROM base AS deps
