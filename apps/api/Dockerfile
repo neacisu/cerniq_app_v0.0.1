@@ -22,9 +22,13 @@ RUN pnpm install --frozen-lockfile --filter @cerniq/api...
 FROM deps AS builder
 COPY packages/ ./packages/
 COPY apps/api/ ./apps/api/
-RUN pnpm --filter @cerniq/shared-types build || true
-RUN pnpm --filter @cerniq/db build || true
-RUN pnpm --filter @cerniq/api build || true
+RUN pnpm --filter @cerniq/shared-types build
+RUN pnpm --filter @cerniq/db build
+RUN pnpm --filter @cerniq/api build
+
+# --- Production dependencies only ---
+FROM deps AS prod-deps
+RUN pnpm install --frozen-lockfile --filter @cerniq/api... --prod
 
 # --- Production stage ---
 FROM base AS runner
@@ -32,10 +36,17 @@ RUN addgroup -g 1001 -S cerniq && \
     adduser -S -D -H -u 1001 -G cerniq cerniq
 
 WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
-COPY --from=builder /app/packages/ ./packages/
-COPY --from=builder /app/apps/api/ ./apps/api/
+COPY --from=prod-deps /app/node_modules ./node_modules
+COPY --from=prod-deps /app/apps/api/node_modules ./apps/api/node_modules
+COPY --from=prod-deps /app/packages/db/node_modules ./packages/db/node_modules
+COPY --from=prod-deps /app/packages/shared-types/node_modules ./packages/shared-types/node_modules
+COPY --from=builder /app/packages/shared-types/dist ./packages/shared-types/dist
+COPY --from=builder /app/packages/shared-types/package.json ./packages/shared-types/
+COPY --from=builder /app/packages/db/dist ./packages/db/dist
+COPY --from=builder /app/packages/db/package.json ./packages/db/
+COPY --from=builder /app/packages/config/ ./packages/config/
+COPY --from=builder /app/apps/api/dist ./apps/api/dist
+COPY --from=builder /app/apps/api/package.json ./apps/api/
 
 RUN chown -R cerniq:cerniq /app
 USER cerniq
@@ -45,4 +56,4 @@ EXPOSE 64010
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
   CMD curl -f http://localhost:64010/health/live || exit 1
 
-CMD ["node", "--import", "tsx", "apps/api/src/index.ts"]
+CMD ["node", "apps/api/dist/index.js"]

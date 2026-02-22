@@ -22,8 +22,8 @@ COPY packages/shared-types/ ./packages/shared-types/
 COPY apps/web/ ./apps/web/
 RUN pnpm --filter @cerniq/web build
 
-# --- Serve ---
-FROM nginx:alpine AS runner
+# --- Serve (unprivileged nginx — no root capabilities needed) ---
+FROM nginxinc/nginx-unprivileged:alpine AS runner
 COPY --from=builder /app/apps/web/dist /usr/share/nginx/html
 COPY <<'EOF' /etc/nginx/conf.d/default.conf
 server {
@@ -43,4 +43,4 @@ EOF
 EXPOSE 64000
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:64000/health || exit 1
+  CMD wget --spider -q http://localhost:64000/health || exit 1
