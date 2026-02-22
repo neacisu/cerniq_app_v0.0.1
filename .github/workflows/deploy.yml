@@ -60,6 +60,11 @@ concurrency:
   group: deploy-${{ github.ref }}
   cancel-in-progress: false
 
+permissions:
+  contents: write
+  packages: write
+  actions: write
+
 env:
   REGISTRY: ghcr.io
   IMAGE_PREFIX: ${{ github.repository_owner }}/cerniq
@@ -71,8 +76,6 @@ jobs:
   setup:
     name: 🔧 Setup Deployment
     runs-on: self-hosted
-    permissions:
-      contents: write
     outputs:
       environment: ${{ steps.determine.outputs.environment }}
       version: ${{ steps.determine.outputs.version }}
@@ -124,9 +127,6 @@ jobs:
     runs-on: self-hosted
     needs: setup
     if: inputs.rollback != true
-    permissions:
-      contents: read
-      packages: write
 
     strategy:
       fail-fast: true
@@ -195,6 +195,12 @@ jobs:
           severity: "CRITICAL,HIGH"
           ignore-unfixed: true
           trivyignores: ".trivyignore"
+
+      - name: ❌ Cancel workflow on failure
+        if: failure()
+        run: gh run cancel ${{ github.run_id }}
+        env:
+          GH_TOKEN: ${{ github.token }}
 
   # ===========================================================================
   # JOB 3: Deploy to Staging
@@ -547,8 +553,6 @@ jobs:
     runs-on: self-hosted
     needs: [setup, build-push]
     if: needs.setup.outputs.environment == 'production'
-    permissions:
-      contents: write
     environment:
       name: production
       url: https://cerniq.app
