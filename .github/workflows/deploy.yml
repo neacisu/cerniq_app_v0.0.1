@@ -331,33 +331,46 @@ jobs:
       # =========================================================================
       # STEP 3: Deploy Docker services
       # =========================================================================
+      - name: 🔐 Login to GHCR on staging
+        run: |
+          echo '${{ secrets.GITHUB_TOKEN }}' | ssh -i ~/.ssh/deploy_key deploy@${{ secrets.STAGING_HOST }} \
+            'docker login ghcr.io -u ${{ github.actor }} --password-stdin'
+
+      - name: 📝 Set deployment environment
+        run: |
+          ssh -i ~/.ssh/deploy_key deploy@${{ secrets.STAGING_HOST }} \
+            "printf '%s\n' 'REGISTRY=ghcr.io' 'IMAGE_OWNER=${{ github.repository_owner }}' 'CERNIQ_VERSION=${{ needs.setup.outputs.version }}' 'CERNIQ_ENV=staging' > /opt/cerniq/.env"
+
       - name: 🚀 Deploy Docker services
         run: |
           ssh -i ~/.ssh/deploy_key deploy@${{ secrets.STAGING_HOST }} << 'ENDSSH'
             cd /opt/cerniq
-            
+
+            # Remove legacy placeholder containers (one-time cleanup)
+            for c in cerniq-placeholder-web cerniq-placeholder-api cerniq-placeholder-admin; do
+              docker rm -f "$c" 2>/dev/null || true
+            done
+
             # Ensure Docker networks exist
             docker network create --driver bridge --subnet=172.29.10.0/24 cerniq_public 2>/dev/null || true
             docker network create --driver bridge --subnet=172.29.20.0/24 cerniq_backend 2>/dev/null || true
             docker network create --driver bridge --subnet=172.29.30.0/24 cerniq_data 2>/dev/null || true
-            
-            # Pull and deploy with production overlay
+
             echo "🐳 Pulling images..."
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml pull || true
-            
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml pull --quiet
+
             echo "🚀 Starting services..."
             docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --force-recreate --remove-orphans
-            
+
             echo "⏳ Waiting for services to start..."
             sleep 15
-            
-            # Verify core services
-            echo "📊 Service status:"
-            docker ps --format 'table {{.Names}}\t{{.Status}}' | grep cerniq || true
 
-            # Persist deployed version marker for safe future rollbacks.
-            echo '${{ needs.setup.outputs.version }}' > /opt/cerniq/.current_deploy
+            echo "📊 Service status:"
+            docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Image}}' | grep cerniq || true
           ENDSSH
+
+          ssh -i ~/.ssh/deploy_key deploy@${{ secrets.STAGING_HOST }} \
+            "echo '${{ needs.setup.outputs.version }}' > /opt/cerniq/.current_deploy"
 
       # =========================================================================
       # STEP 4: Initialize OpenBao (if needed)
@@ -681,32 +694,46 @@ jobs:
       # =========================================================================
       # STEP 3: Deploy Docker services
       # =========================================================================
+      - name: 🔐 Login to GHCR on production
+        run: |
+          echo '${{ secrets.GITHUB_TOKEN }}' | ssh -i ~/.ssh/deploy_key deploy@${{ secrets.PRODUCTION_HOST }} \
+            'docker login ghcr.io -u ${{ github.actor }} --password-stdin'
+
+      - name: 📝 Set deployment environment
+        run: |
+          ssh -i ~/.ssh/deploy_key deploy@${{ secrets.PRODUCTION_HOST }} \
+            "printf '%s\n' 'REGISTRY=ghcr.io' 'IMAGE_OWNER=${{ github.repository_owner }}' 'CERNIQ_VERSION=${{ needs.setup.outputs.version }}' 'CERNIQ_ENV=production' > /opt/cerniq/.env"
+
       - name: 🚀 Deploy Docker services
         run: |
           ssh -i ~/.ssh/deploy_key deploy@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
             cd /opt/cerniq
-            
+
+            # Remove legacy placeholder containers (one-time cleanup)
+            for c in cerniq-placeholder-web cerniq-placeholder-api cerniq-placeholder-admin; do
+              docker rm -f "$c" 2>/dev/null || true
+            done
+
             # Ensure Docker networks exist
             docker network create --driver bridge --subnet=172.29.10.0/24 cerniq_public 2>/dev/null || true
             docker network create --driver bridge --subnet=172.29.20.0/24 cerniq_backend 2>/dev/null || true
             docker network create --driver bridge --subnet=172.29.30.0/24 cerniq_data 2>/dev/null || true
-            
-            # Deploy with production overlay
+
             echo "🐳 Pulling images..."
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml pull || true
-            
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml pull --quiet
+
             echo "🚀 Starting services..."
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-orphans
-            
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --force-recreate --remove-orphans
+
             echo "⏳ Waiting for services to start..."
             sleep 20
-            
-            echo "📊 Service status:"
-            docker ps --format 'table {{.Names}}\t{{.Status}}' | grep cerniq || true
 
-            # Persist deployed version marker for safe future rollbacks.
-            echo '${{ needs.setup.outputs.version }}' > /opt/cerniq/.current_deploy
+            echo "📊 Service status:"
+            docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Image}}' | grep cerniq || true
           ENDSSH
+
+          ssh -i ~/.ssh/deploy_key deploy@${{ secrets.PRODUCTION_HOST }} \
+            "echo '${{ needs.setup.outputs.version }}' > /opt/cerniq/.current_deploy"
 
       # =========================================================================
       # STEP 4: Initialize OpenBao (if needed) - NO AUTO-UNSEAL IN PRODUCTION
