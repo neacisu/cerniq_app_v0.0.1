@@ -38,6 +38,7 @@ export function CerniqLogo({ size = 32, iconOnly = false }: CerniqLogoProps) {
           style={{
             fontFamily: "var(--font-display)",
             color: "var(--color-t1)",
+            letterSpacing: "-0.03em",
           }}
         >
           cerniq<span style={{ color: "var(--color-b5)" }}>.app</span>

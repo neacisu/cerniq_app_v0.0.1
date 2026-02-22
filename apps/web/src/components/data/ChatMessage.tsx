@@ -10,11 +10,11 @@ interface ChatMessageProps {
 }
 
 const typeStyles: Record<MessageType, string> = {
-  out: "bg-[var(--color-b5)]/20 border-[var(--color-b5)]/30 ml-8",
-  in: "bg-[var(--color-s800)] border-[var(--color-s600)] mr-8",
-  ai: "bg-[var(--color-in)]/10 border-[var(--color-in)]/30 mr-8",
+  out: "bg-[oklch(.70_.18_72/18%)] border border-[oklch(.70_.18_72/25%)] text-[var(--color-t1)] ml-auto rounded-br-[3px]",
+  in: "bg-[oklch(.18_.018_255)] border border-[oklch(.24_.018_255)] text-[var(--color-t1)] rounded-bl-[3px]",
+  ai: "bg-[oklch(.57_.20_245/12%)] border border-[oklch(.57_.20_245/25%)] text-[var(--color-t1)] rounded-bl-[3px]",
   system:
-    "bg-[var(--color-s800)]/50 border-[var(--color-s700)] mx-auto max-w-[80%] text-center text-xs italic",
+    "bg-[oklch(.60_.22_148/10%)] border border-dashed border-[oklch(.60_.22_148/30%)] text-[oklch(.70_.20_148)] text-[11.5px] px-3 py-[7px] rounded-lg mx-auto max-w-[80%] text-center",
 };
 
 export function ChatMessage({
@@ -26,7 +26,7 @@ export function ChatMessage({
   return (
     <div
       className={cn(
-        "p-3 rounded-[var(--radius-md)] border text-sm",
+        "max-w-[70%] px-[13px] py-[9px] rounded-xl text-[13px] leading-[1.45] mb-1.5",
         typeStyles[type],
       )}
     >

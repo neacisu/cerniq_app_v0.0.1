@@ -7,8 +7,8 @@ export function Header() {
   const currentPage = pathSegments[pathSegments.length - 1] ?? "dashboard";
 
   return (
-    <header className="h-14 border-b border-[var(--color-s700)] bg-[var(--color-s900)]/80 backdrop-blur-[20px] px-6 flex items-center justify-between sticky top-0 z-[var(--z-sticky)]">
-      <div className="flex items-center gap-2 text-sm">
+    <header className="h-14 border-b border-[oklch(.20_.018_255/50%)] bg-[oklch(.12_.018_255/90%)] backdrop-blur-[20px] backdrop-saturate-[1.4] px-6 flex items-center justify-between sticky top-0 z-[var(--z-sticky)]">
+      <div className="flex items-center gap-2 text-[12.5px]">
         <span className="text-[var(--color-t3)]">cerniq.app</span>
         <span className="text-[var(--color-t4)]">&gt;</span>
         <span className="text-[var(--color-t1)] capitalize">
@@ -18,14 +18,17 @@ export function Header() {
 
       <div className="flex items-center gap-3">
         <button
-          className="relative p-2 rounded-[var(--radius-md)] hover:bg-[var(--color-s800)] transition-colors"
+          className="relative p-2 rounded-[var(--radius-md)] hover:bg-[oklch(.20_.018_255)] transition-colors"
           aria-label="Notifications"
         >
           <Bell size={18} className="text-[var(--color-t2)]" />
-          <span className="absolute top-1.5 right-1.5 w-[7px] h-[7px] rounded-full bg-[var(--color-er)]" />
+          <span
+            className="absolute top-1.5 right-1.5 w-[7px] h-[7px] rounded-full bg-[var(--color-er)]"
+            style={{ border: "1.5px solid oklch(0.12 0.018 255)" }}
+          />
         </button>
         <button
-          className="p-2 rounded-[var(--radius-md)] hover:bg-[var(--color-s800)] transition-colors"
+          className="p-2 rounded-[var(--radius-md)] hover:bg-[oklch(.20_.018_255)] transition-colors"
           aria-label="Settings"
         >
           <Settings size={18} className="text-[var(--color-t2)]" />

@@ -35,9 +35,9 @@ export function ProgressBar({
 
   return (
     <div className={cn("flex items-center gap-2", className)}>
-      <div className="flex-1 h-1.5 rounded-full bg-[var(--color-s700)] overflow-hidden">
+      <div className="flex-1 h-[6px] bg-[oklch(.20_.018_256)] rounded-full overflow-hidden">
         <div
-          className="h-full rounded-full transition-all duration-500"
+          className="h-full rounded-full transition-[width] duration-1000 ease-[cubic-bezier(.4,0,.2,1)]"
           style={{ width: `${pct}%`, background: barColor }}
         />
       </div>

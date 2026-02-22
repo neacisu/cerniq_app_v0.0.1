@@ -2,11 +2,25 @@ import { cn } from "@/lib/utils.js";
 
 type EtapaType = "brand" | "info" | "ok";
 
-const typeStyles: Record<EtapaType, string> = {
-  brand:
-    "bg-[var(--color-b5)]/15 text-[var(--color-b5)] border-[var(--color-b5)]/30",
-  info: "bg-[var(--color-in)]/15 text-[var(--color-in)] border-[var(--color-in)]/30",
-  ok: "bg-[var(--color-ok)]/15 text-[var(--color-ok)] border-[var(--color-ok)]/30",
+const typeStyles: Record<EtapaType, { badge: string; banner: string }> = {
+  brand: {
+    badge:
+      "bg-[var(--color-b5)]/15 text-[var(--color-b5)] border-[var(--color-b5)]/30",
+    banner:
+      "bg-[oklch(.70_.18_72/6%)] border-[oklch(.70_.18_72/22%)] border-l-[var(--color-b5)]",
+  },
+  info: {
+    badge:
+      "bg-[var(--color-in)]/15 text-[var(--color-in)] border-[var(--color-in)]/30",
+    banner:
+      "bg-[oklch(.57_.20_245/5%)] border-[oklch(.57_.20_245/20%)] border-l-[var(--color-in)]",
+  },
+  ok: {
+    badge:
+      "bg-[var(--color-ok)]/15 text-[var(--color-ok)] border-[var(--color-ok)]/30",
+    banner:
+      "bg-[oklch(.60_.22_148/5%)] border-[oklch(.60_.22_148/20%)] border-l-[var(--color-ok)]",
+  },
 };
 
 export function EtapaBadge({
@@ -22,7 +36,7 @@ export function EtapaBadge({
     <span
       className={cn(
         "inline-flex items-center px-3 py-1 rounded-[var(--radius-sm)] text-xs font-medium border",
-        typeStyles[type],
+        typeStyles[type].badge,
         className,
       )}
     >
@@ -45,8 +59,8 @@ export function EtapaBanner({
   return (
     <div
       className={cn(
-        "p-4 rounded-[var(--radius-md)] border",
-        typeStyles[type],
+        "flex items-center gap-[14px] p-3 px-4 border border-l-[3px] rounded-[10px] mb-[22px]",
+        typeStyles[type].banner,
         className,
       )}
     >

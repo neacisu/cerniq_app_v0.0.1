@@ -34,6 +34,8 @@ RUN addgroup -g 1001 -S cerniq && \
 
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
+COPY --from=deps /app/packages/db/node_modules ./packages/db/node_modules
 COPY --from=builder /app/packages/shared-types/dist ./packages/shared-types/dist
 COPY --from=builder /app/packages/shared-types/package.json ./packages/shared-types/
 COPY --from=builder /app/packages/db/dist ./packages/db/dist

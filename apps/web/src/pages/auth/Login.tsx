@@ -29,17 +29,8 @@ export function Login() {
   };
 
   return (
-    <div
-      className="min-h-screen flex items-center justify-center"
-      style={{
-        background:
-          "radial-gradient(ellipse at 50% 0%, oklch(0.25 0.04 260) 15%, var(--color-s950) 85%)",
-      }}
-    >
-      <div
-        className="w-full max-w-[400px] p-8 rounded-[var(--radius-lg)] border border-[var(--color-s700)] bg-[var(--color-s900)]/80 backdrop-blur-[12px]"
-        style={{ animation: "fadeUp 0.6s cubic-bezier(.34,1.56,.64,1)" }}
-      >
+    <div className="lr">
+      <div className="lc w-full max-w-[400px]">
         <div className="flex justify-center mb-8">
           <CerniqLogo size={40} />
         </div>

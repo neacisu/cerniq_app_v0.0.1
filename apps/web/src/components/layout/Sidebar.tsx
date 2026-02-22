@@ -13,13 +13,13 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "h-screen flex flex-col border-r border-[var(--color-s700)] bg-[var(--color-s900)] transition-all duration-300",
+        "h-screen flex flex-col border-r border-[oklch(.20_.018_255/60%)] bg-[var(--color-s900)] transition-all duration-300",
         collapsed ? "w-16" : "w-60",
       )}
       style={{ transitionTimingFunction: "cubic-bezier(.4,0,.2,1)" }}
     >
       {/* Logo */}
-      <div className="h-14 flex items-center px-4 border-b border-[var(--color-s700)]">
+      <div className="h-14 flex items-center px-4 border-b border-[oklch(.20_.018_255/50%)]">
         <CerniqLogo iconOnly={collapsed} size={28} />
       </div>
 
@@ -31,7 +31,7 @@ export function Sidebar() {
         {navigation.map((section) => (
           <div key={section.title} className="mb-4">
             {!collapsed && (
-              <div className="px-3 py-1 text-[0.6rem] uppercase tracking-widest text-[var(--color-t4)] font-medium">
+              <div className="px-3 py-1 text-[9.5px] uppercase tracking-[.12em] text-[var(--color-t4)] font-extrabold">
                 {section.title}
               </div>
             )}
@@ -50,16 +50,16 @@ export function Sidebar() {
                   key={item.path}
                   to={item.path}
                   className={cn(
-                    "flex items-center gap-3 px-3 py-2 rounded-[var(--radius-md)] text-sm transition-colors duration-150 relative",
+                    "flex items-center gap-[9px] px-[12px] py-[7px] mx-[7px] rounded-[var(--radius-md)] text-[13px] transition-colors duration-150 relative",
                     isActive
-                      ? "bg-[var(--color-b5)]/10 text-[var(--color-b5)]"
-                      : "text-[var(--color-t2)] hover:bg-[var(--color-s800)] hover:text-[var(--color-t1)]",
+                      ? "bg-[oklch(.70_.18_72/11%)] text-[oklch(.83_.13_76)]"
+                      : "text-[var(--color-t2)] hover:bg-[oklch(.18_.018_255)] hover:text-[var(--color-t1)]",
                   )}
                 >
                   {isActive && (
-                    <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-[var(--color-b5)]" />
+                    <span className="absolute left-[-7px] top-1/2 -translate-y-1/2 w-[3px] h-[55%] rounded-full bg-[var(--color-b5)]" />
                   )}
-                  <IconComponent size={18} />
+                  <IconComponent size={16} />
                   {!collapsed && (
                     <>
                       <span className="flex-1 truncate">{item.label}</span>
@@ -69,7 +69,7 @@ export function Sidebar() {
                             "min-w-[20px] h-5 flex items-center justify-center rounded-full text-[0.65rem] font-bold px-1.5",
                             item.badge.type === "danger"
                               ? "bg-[var(--color-er)] text-white"
-                              : "bg-[var(--color-wa)]/20 text-[var(--color-wa)] animate-[glow_2s_infinite]",
+                              : "bg-[var(--color-wa)]/20 text-[var(--color-wa)] animate-[glow_2.5s_ease-in-out_infinite]",
                           )}
                         >
                           {item.badge.count}
@@ -85,10 +85,16 @@ export function Sidebar() {
       </nav>
 
       {/* User zone */}
-      <div className="border-t border-[var(--color-s700)] p-3">
+      <div className="border-t border-[oklch(.20_.018_255/50%)] p-3">
         {!collapsed && (
           <div className="flex items-center gap-3 mb-3 px-2">
-            <div className="w-8 h-8 rounded-full bg-[var(--color-b5)]/20 flex items-center justify-center text-xs font-bold text-[var(--color-b5)]">
+            <div
+              className="w-8 h-8 rounded-full bg-[oklch(.70_.18_72/20%)] flex items-center justify-center text-[11.5px] font-extrabold text-[oklch(.83_.13_76)]"
+              style={{
+                border: "1.5px solid oklch(0.70 0.18 72 / 40%)",
+                fontFamily: "var(--font-display)",
+              }}
+            >
               AD
             </div>
             <div className="flex-1 min-w-0">
@@ -98,7 +104,7 @@ export function Sidebar() {
               <div className="text-[0.65rem] text-[var(--color-t3)]">owner</div>
             </div>
             <button
-              className="p-1 rounded hover:bg-[var(--color-s800)]"
+              className="p-1 rounded hover:bg-[oklch(.18_.018_255)]"
               aria-label="Logout"
             >
               <LogOut size={14} className="text-[var(--color-t3)]" />
@@ -107,7 +113,7 @@ export function Sidebar() {
         )}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="w-full flex items-center justify-center p-2 rounded-[var(--radius-md)] hover:bg-[var(--color-s800)] text-[var(--color-t3)] transition-colors"
+          className="w-full flex items-center justify-center p-2 rounded-[var(--radius-md)] hover:bg-[oklch(.18_.018_255)] text-[var(--color-t3)] transition-colors"
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}

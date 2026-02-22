@@ -17,15 +17,17 @@ export function EmptyState({
     )[icon] ?? Icons.ClipboardList;
 
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-center">
-      <div className="p-4 rounded-full bg-[var(--color-s800)] mb-4">
-        <IconComponent size={32} />
+    <div className="flex flex-col items-center justify-center py-12 px-6 text-center gap-3">
+      <div className="w-12 h-12 rounded-xl bg-[oklch(.18_.018_255)] flex items-center justify-center text-[var(--color-t4)]">
+        <IconComponent size={24} />
       </div>
-      <h3 className="text-lg font-semibold text-[var(--color-t1)] mb-2">
+      <h3 className="text-[15px] font-bold text-[var(--color-t2)] font-[var(--font-display)]">
         {title}
       </h3>
       {description && (
-        <p className="text-sm text-[var(--color-t3)] max-w-md">{description}</p>
+        <p className="text-[13px] text-[var(--color-t3)] max-w-[300px] leading-normal">
+          {description}
+        </p>
       )}
     </div>
   );

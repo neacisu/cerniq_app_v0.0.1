@@ -27,15 +27,15 @@ export function KpiCard({
 
   return (
     <Card
-      className={`p-5 cursor-pointer hover:border-[var(--color-b5)] transition-all duration-300 ${onClick ? "cursor-pointer" : ""}`}
+      className={`p-5 cursor-pointer hover:border-[var(--color-b5)] hover:-translate-y-0.5 hover:shadow-[0_10px_24px_oklch(0_0_0/30%)] transition-all duration-300 border border-[oklch(.22_.018_255/60%)] ${onClick ? "cursor-pointer" : ""}`}
       style={{
         animationDelay: `${delay}ms`,
-        animation: "fadeUp 0.5s cubic-bezier(.34,1.56,.64,1) backwards",
+        animation: "slideIn 0.3s ease backwards",
       }}
       onClick={onClick}
     >
       <div className="flex items-start justify-between mb-3">
-        <div className="p-2 rounded-[var(--radius-md)] bg-[var(--color-s800)]">
+        <div className="w-[30px] h-[30px] flex items-center justify-center rounded-lg bg-[var(--color-s800)]">
           <IconComponent size={20} />
         </div>
         {change && (

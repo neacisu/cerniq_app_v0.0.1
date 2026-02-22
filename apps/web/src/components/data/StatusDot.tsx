@@ -10,12 +10,12 @@ const dotColors: Record<DotStatus, string> = {
   neutral: "bg-[var(--color-s600)]",
 };
 
-const glowColors: Record<DotStatus, string> = {
-  ok: "shadow-[0_0_6px_var(--color-ok)]",
-  warning: "shadow-[0_0_6px_var(--color-wa)]",
-  error: "shadow-[0_0_6px_var(--color-er)]",
-  info: "shadow-[0_0_6px_var(--color-in)]",
-  neutral: "",
+const dotShadows: Record<DotStatus, React.CSSProperties | undefined> = {
+  ok: { boxShadow: "0 0 5px oklch(0.60 0.22 148 / 50%)" },
+  warning: { boxShadow: "0 0 5px oklch(0.72 0.19 70 / 50%)" },
+  error: undefined,
+  info: undefined,
+  neutral: undefined,
 };
 
 export function StatusDot({
@@ -28,11 +28,11 @@ export function StatusDot({
   return (
     <span
       className={cn(
-        "inline-block w-2 h-2 rounded-full",
+        "w-2 h-2 rounded-full shrink-0",
         dotColors[status],
-        glowColors[status],
         className,
       )}
+      style={dotShadows[status]}
     />
   );
 }
