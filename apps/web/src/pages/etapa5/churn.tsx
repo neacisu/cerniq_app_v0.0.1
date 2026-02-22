@@ -60,7 +60,7 @@ export function Churn() {
               <div className="font-semibold text-[var(--color-t1)]">
                 {p.company}
               </div>
-              <ProgressBar value={p.risk} showLabel />
+              <ProgressBar value={p.risk} />
               <div className="flex flex-wrap gap-1">
                 {p.signals.map((s) => (
                   <Badge key={s} variant="error" className="text-[0.65rem]">

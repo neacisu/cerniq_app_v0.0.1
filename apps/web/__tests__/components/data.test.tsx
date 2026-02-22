@@ -23,10 +23,6 @@ describe("ProgressBar", () => {
     const { container } = render(<ProgressBar value={75} />);
     expect(container.firstChild).toBeInTheDocument();
   });
-  it("shows label when enabled", () => {
-    render(<ProgressBar value={50} showLabel />);
-    expect(screen.getByText("50%")).toBeInTheDocument();
-  });
 });
 
 describe("StatusDot", () => {
@@ -41,29 +37,24 @@ describe("StatusDot", () => {
 });
 
 describe("StatsBar", () => {
-  it("renders items", () => {
-    render(
-      <StatsBar
-        items={[
-          { label: "A", value: 10 },
-          { label: "B", value: 20 },
-        ]}
-      />,
-    );
-    expect(screen.getByText("A")).toBeInTheDocument();
-    expect(screen.getByText("B")).toBeInTheDocument();
+  it("renders label and value", () => {
+    render(<StatsBar label="Score" value={85} />);
+    expect(screen.getByText("Score")).toBeInTheDocument();
+    expect(screen.getByText("85")).toBeInTheDocument();
   });
 });
 
 describe("ChatMessage", () => {
   it("renders message content", () => {
-    render(<ChatMessage type="out" content="Hello" />);
+    render(<ChatMessage type="outgoing">Hello</ChatMessage>);
     expect(screen.getByText("Hello")).toBeInTheDocument();
   });
   it("renders all message types", () => {
-    const types = ["out", "in", "ai", "system"] as const;
+    const types = ["outgoing", "incoming", "ai", "system"] as const;
     types.forEach((t) => {
-      const { unmount } = render(<ChatMessage type={t} content={`Msg ${t}`} />);
+      const { unmount } = render(
+        <ChatMessage type={t}>{`Msg ${t}`}</ChatMessage>,
+      );
       expect(screen.getByText(`Msg ${t}`)).toBeInTheDocument();
       unmount();
     });

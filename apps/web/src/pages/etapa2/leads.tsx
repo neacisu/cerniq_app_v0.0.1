@@ -72,7 +72,7 @@ export function Leads() {
                     <Badge variant="neutral">{l.channel}</Badge>
                   </td>
                   <td className="px-5 py-3 w-24">
-                    <ProgressBar value={l.sentiment * 100} showLabel />
+                    <ProgressBar value={l.sentiment * 100} />
                   </td>
                   <td className="px-5 py-3">{l.score}</td>
                   <td className="px-5 py-3 text-[var(--color-t3)]">

@@ -105,7 +105,7 @@ export function Nurturing() {
                     EUR {r.cltv}
                   </td>
                   <td className="px-5 py-3 w-28">
-                    <ProgressBar value={r.churn} showLabel />
+                    <ProgressBar value={r.churn} />
                   </td>
                   <td
                     className={cn(

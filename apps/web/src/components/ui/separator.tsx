@@ -7,16 +7,17 @@ export function Separator({
   className?: string;
   orientation?: "horizontal" | "vertical";
 }) {
-  return (
-    <div
-      className={cn(
-        "border-none m-0",
-        orientation === "horizontal"
-          ? "h-0 w-full border-t border-[oklch(.22_.018_255/60%)]"
-          : "w-0 h-full border-l border-[oklch(.22_.018_255/60%)]",
-        className,
-      )}
-      role="separator"
-    />
-  );
+  if (orientation === "vertical") {
+    return (
+      <div
+        className={cn("h-full", className)}
+        style={{
+          width: 0,
+          borderLeft: "1px solid oklch(0.22 0.018 255 / 60%)",
+        }}
+        role="separator"
+      />
+    );
+  }
+  return <hr className={cn("div", className)} />;
 }

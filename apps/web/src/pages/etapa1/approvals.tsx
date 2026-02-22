@@ -66,7 +66,7 @@ export function Approvals() {
                 <p className="text-sm text-[var(--color-t3)] mb-3">
                   {a.reason}
                 </p>
-                <ProgressBar value={a.confidence} showLabel className="mb-4" />
+                <ProgressBar value={a.confidence} />
                 <div className="flex gap-2">
                   <Button variant="success" size="sm" className="flex-1">
                     Aprobă

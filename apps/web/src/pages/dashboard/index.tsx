@@ -104,7 +104,15 @@ export function Dashboard() {
             <CardTitle>Pipeline Funnel</CardTitle>
           </CardHeader>
           <CardBody>
-            <StatsBar items={pipeline} />
+            {pipeline.map((p) => (
+              <StatsBar
+                key={p.label}
+                label={p.label}
+                value={p.value}
+                max={Math.max(...pipeline.map((x) => x.value))}
+                color={p.color}
+              />
+            ))}
           </CardBody>
         </Card>
 

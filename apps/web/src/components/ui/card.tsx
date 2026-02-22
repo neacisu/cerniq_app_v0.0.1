@@ -7,15 +7,7 @@ interface CardProps extends HTMLAttributes<HTMLDivElement> {
 
 export function Card({ className, children, ...props }: CardProps) {
   return (
-    <div
-      className={cn(
-        "rounded-[12px] border border-[oklch(.22_.018_255/60%)]",
-        "bg-[oklch(.12_.018_255/80%)] backdrop-blur-[12px] overflow-hidden",
-        "hover:border-[oklch(.28_.018_255/70%)] transition-colors duration-200",
-        className,
-      )}
-      {...props}
-    >
+    <div className={cn("card", className)} {...props}>
       {children}
     </div>
   );
@@ -23,13 +15,7 @@ export function Card({ className, children, ...props }: CardProps) {
 
 export function CardHeader({ className, children, ...props }: CardProps) {
   return (
-    <div
-      className={cn(
-        "px-[18px] pt-[14px] pb-[12px] border-b border-[oklch(.20_.018_255/50%)] flex items-center justify-between",
-        className,
-      )}
-      {...props}
-    >
+    <div className={cn("ch", className)} {...props}>
       {children}
     </div>
   );
@@ -37,13 +23,7 @@ export function CardHeader({ className, children, ...props }: CardProps) {
 
 export function CardTitle({ className, children, ...props }: CardProps) {
   return (
-    <h3
-      className={cn(
-        "text-[14px] font-bold font-[var(--font-display)] text-[var(--color-t1)] tracking-[-.01em]",
-        className,
-      )}
-      {...props}
-    >
+    <h3 className={cn("ct", className)} {...props}>
       {children}
     </h3>
   );
@@ -51,7 +31,7 @@ export function CardTitle({ className, children, ...props }: CardProps) {
 
 export function CardBody({ className, children, ...props }: CardProps) {
   return (
-    <div className={cn("px-[18px] py-[16px]", className)} {...props}>
+    <div className={cn("cb", className)} {...props}>
       {children}
     </div>
   );

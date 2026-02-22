@@ -92,12 +92,7 @@ export function Credit() {
                   </td>
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-2 w-32">
-                      <ProgressBar
-                        value={c.score * 10}
-                        max={100}
-                        color="auto"
-                        className="flex-1"
-                      />
+                      <ProgressBar value={c.score * 10} max={100} />
                       <span className="text-xs text-[var(--color-t3)]">
                         {c.score}/10
                       </span>

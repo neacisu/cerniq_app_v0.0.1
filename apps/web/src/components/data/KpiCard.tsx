@@ -1,4 +1,3 @@
-import { Card } from "@/components/ui/card.js";
 import * as Icons from "lucide-react";
 
 interface KpiCardProps {
@@ -22,25 +21,32 @@ export function KpiCard({
 }: KpiCardProps) {
   const IconComponent =
     (
-      Icons as unknown as Record<string, React.ComponentType<{ size?: number }>>
+      Icons as unknown as Record<
+        string,
+        React.ComponentType<{ size?: number; className?: string }>
+      >
     )[icon] ?? Icons.Activity;
 
   return (
-    <Card
-      className={`p-5 cursor-pointer hover:border-[var(--color-b5)] hover:-translate-y-0.5 hover:shadow-[0_10px_24px_oklch(0_0_0/30%)] transition-all duration-300 border border-[oklch(.22_.018_255/60%)] ${onClick ? "cursor-pointer" : ""}`}
+    <div
+      className="kc"
       style={{
         animationDelay: `${delay}ms`,
-        animation: "slideIn 0.3s ease backwards",
+        cursor: onClick ? "pointer" : "default",
       }}
       onClick={onClick}
     >
-      <div className="flex items-start justify-between mb-3">
-        <div className="w-[30px] h-[30px] flex items-center justify-center rounded-lg bg-[var(--color-s800)]">
-          <IconComponent size={20} />
+      <div className="flex ac jb" style={{ marginBottom: 12 }}>
+        <div
+          className="kib"
+          style={{ background: "oklch(0.70 0.18 72 / 20%)" }}
+        >
+          <IconComponent size={16} className={color ? "" : "tb"} />
         </div>
         {change && (
           <span
-            className={`text-xs font-semibold ${change.startsWith("+") ? "tok" : "ter"}`}
+            className={change.startsWith("+") ? "tok" : "ter"}
+            style={{ fontSize: 12, fontWeight: 600 }}
           >
             {change}
           </span>
@@ -49,7 +55,9 @@ export function KpiCard({
       <div className="sv" style={{ color }}>
         {value}
       </div>
-      <div className="sl mt-1">{label}</div>
-    </Card>
+      <div className="sl" style={{ marginTop: 4 }}>
+        {label}
+      </div>
+    </div>
   );
 }

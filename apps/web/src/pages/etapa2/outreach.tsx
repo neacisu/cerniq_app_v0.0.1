@@ -44,7 +44,15 @@ export function Outreach() {
             <CardTitle>Lead Funnel</CardTitle>
           </CardHeader>
           <CardBody>
-            <StatsBar items={funnel} />
+            {funnel.map((f) => (
+              <StatsBar
+                key={f.label}
+                label={f.label}
+                value={f.value}
+                max={Math.max(...funnel.map((x) => x.value))}
+                color={f.color}
+              />
+            ))}
           </CardBody>
         </Card>
 
@@ -57,7 +65,7 @@ export function Outreach() {
               {waQuota.map((w) => (
                 <div key={w.id} className="space-y-1">
                   <span className="text-xs text-[var(--color-t3)]">{w.id}</span>
-                  <ProgressBar value={w.pct} showLabel />
+                  <ProgressBar value={w.pct} />
                 </div>
               ))}
             </div>

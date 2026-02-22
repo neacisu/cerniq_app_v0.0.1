@@ -54,7 +54,7 @@ export function Silver() {
                   <td className="px-5 py-3">{c.anafValid ? "✓" : "✗"}</td>
                   <td className="px-5 py-3">{c.termeneValid ? "✓" : "✗"}</td>
                   <td className="px-5 py-3 w-28">
-                    <ProgressBar value={c.score} showLabel />
+                    <ProgressBar value={c.score} />
                   </td>
                   <td className="px-5 py-3">
                     <TBadge tier={c.tier as "bronze" | "silver" | "gold"} />

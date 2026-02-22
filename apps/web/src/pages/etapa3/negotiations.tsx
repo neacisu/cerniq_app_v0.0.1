@@ -34,12 +34,12 @@ const MOCK_NEGOTIATIONS = [
 
 const MOCK_MESSAGES = [
   {
-    type: "out" as const,
+    type: "outgoing" as const,
     content: "Bună, am trimis oferta.",
     timestamp: "10:32",
   },
   {
-    type: "in" as const,
+    type: "incoming" as const,
     content: "Mulțumesc, o analizez.",
     timestamp: "10:45",
   },
@@ -103,12 +103,9 @@ export function Negotiations() {
                 </Button>
                 <div className="space-y-3 mb-4 max-h-[280px] overflow-y-auto">
                   {MOCK_MESSAGES.map((m, i) => (
-                    <ChatMessage
-                      key={i}
-                      type={m.type}
-                      content={m.content}
-                      timestamp={m.timestamp}
-                    />
+                    <ChatMessage key={i} type={m.type} timestamp={m.timestamp}>
+                      {m.content}
+                    </ChatMessage>
                   ))}
                 </div>
                 <div className="flex gap-2">

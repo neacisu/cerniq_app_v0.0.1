@@ -44,7 +44,7 @@ export function Phones() {
               <p className="text-xs text-[var(--color-t3)] mb-2 truncate">
                 {p.number}
               </p>
-              <ProgressBar value={p.pct} showLabel />
+              <ProgressBar value={p.pct} />
             </CardBody>
           </Card>
         ))}

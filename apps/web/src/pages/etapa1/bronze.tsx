@@ -65,7 +65,7 @@ export function Bronze() {
                     {c.county}
                   </td>
                   <td className="px-5 py-3 w-32">
-                    <ProgressBar value={c.quality} showLabel />
+                    <ProgressBar value={c.quality} />
                   </td>
                   <td className="px-5 py-3">
                     <SBadge status={c.status} />

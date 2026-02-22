@@ -64,7 +64,15 @@ export function AiDashboard() {
             <CardTitle>State Machine</CardTitle>
           </CardHeader>
           <CardBody>
-            <StatsBar items={STATES} />
+            {STATES.map((s) => (
+              <StatsBar
+                key={s.label}
+                label={s.label}
+                value={s.value}
+                max={Math.max(...STATES.map((x) => x.value))}
+                color={s.color}
+              />
+            ))}
           </CardBody>
         </Card>
         <Card>
@@ -77,12 +85,7 @@ export function AiDashboard() {
                 <span className="text-xs text-[var(--color-t3)] w-20">
                   {m.label}
                 </span>
-                <ProgressBar
-                  value={m.value}
-                  max={100}
-                  showLabel
-                  className="flex-1"
-                />
+                <ProgressBar value={m.value} max={100} />
               </div>
             ))}
           </CardBody>

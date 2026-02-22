@@ -83,7 +83,7 @@ export function Import() {
                   </p>
                 </div>
                 <div className="w-32">
-                  <ProgressBar value={imp.progress} showLabel />
+                  <ProgressBar value={imp.progress} />
                 </div>
                 <span className="text-xs text-[var(--color-t2)] w-20">
                   {imp.status}

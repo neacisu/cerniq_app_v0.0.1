@@ -55,7 +55,7 @@ export function Gold() {
                     {c.revenue}
                   </td>
                   <td className="px-5 py-3 w-28">
-                    <ProgressBar value={c.score} showLabel />
+                    <ProgressBar value={c.score} />
                   </td>
                   <td className="px-5 py-3">
                     <Button size="sm">Send</Button>
