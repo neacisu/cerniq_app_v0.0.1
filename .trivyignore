@@ -1,10 +1,10 @@
-# Vulnerabilities in npm bundled with the official Node.js Docker image.
-# These are NOT in our application code — they exist in /usr/local/lib/node_modules/npm/.
-# We accept the risk until the Node.js image maintainers release a patched build.
-# Reviewed: 2026-02-20
-
-# minimatch ReDoS in npm's bundled copy (fixed in minimatch >=10.2.1)
-CVE-2026-26996
-
-# tar path traversal in npm's bundled copy (fixed in tar >=7.5.8)
-CVE-2026-26960
+# =============================================================================
+# Trivy Ignore Rules — Cerniq.app
+# =============================================================================
+# Self-hosted runner artifacts (not in repository, present on disk only):
+#   - secrets/ssh/*  — deploy keys managed outside git (.gitignore)
+#   - .pnpm-store/*  — pnpm content-addressable cache
+#
+# These are excluded via skip-dirs in ci-pr.yml; this file serves as
+# documentation and catch-all for any residual false-positives.
+# =============================================================================
