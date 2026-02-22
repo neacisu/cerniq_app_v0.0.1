@@ -116,10 +116,11 @@ http:
               - "*.staging.cerniq.app"
 
     # ==========================================================================
-    # DEV Environment — dev.cerniq.app (hot-reload, port range 39xxx/65xxx)
+    # DEV Environment — dev.cerniq.app (hot-reload on 10.0.1.6:65xxx)
     # ==========================================================================
-    # HAProxy mapping: 39000->65000 (web), 39010->65010 (api), 39012->65012 (admin)
-    # Dev containers run with volume-mounted source and Vite/tsx watch.
+    # Direct routing from orchestrator Traefik to dev machine (no HAProxy).
+    # Dev containers: volume-mounted source + Vite HMR / tsx watch.
+    # Shared services: OpenBao, Redis, PostgreSQL, Observability from orchestrator.
     # ==========================================================================
     cerniq-dev-web:
       rule: "Host(`dev.cerniq.app`)"
@@ -237,26 +238,25 @@ http:
           timeout: "5s"
 
     # ==========================================================================
-    # DEV Services — Route via HAProxy (39xxx -> dev machine:65xxx)
+    # DEV Services — Direct to dev machine (10.0.1.6:65xxx)
     # ==========================================================================
-    # NOTE: HAProxy on hz.247 needs frontend/backend entries for 39000/39010/39012
-    # mapping to the dev machine's 65000/65010/65012 ports.
-    # Update the dev machine IP in HAProxy config when CT is provisioned.
+    # Dev routes bypass HAProxy (no L4 gateway needed for development).
+    # Orchestrator Traefik reaches dev machine directly via VLAN.
     # ==========================================================================
     cerniq-dev-web-svc:
       loadBalancer:
         servers:
-          - url: "http://10.0.1.10:39000"
+          - url: "http://10.0.1.6:65000"
 
     cerniq-dev-api-svc:
       loadBalancer:
         servers:
-          - url: "http://10.0.1.10:39010"
+          - url: "http://10.0.1.6:65010"
 
     cerniq-dev-admin-svc:
       loadBalancer:
         servers:
-          - url: "http://10.0.1.10:39012"
+          - url: "http://10.0.1.6:65012"
 
     # OTLP collector intake (central, on orchestrator loopback).
     # Traefik on orchestrator uses host networking, so 127.0.0.1 is stable.

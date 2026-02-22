@@ -2,12 +2,10 @@
  * E0-S3-PR01: Redis + BullMQ (shared Redis model)
  * ==============================================
  *
- * New infrastructure model:
- * - Production/staging do NOT run a local Redis container in the Cerniq stack.
- * - Cerniq uses a shared Redis instance on the orchestrator (ACL + key prefix
- *   isolation: `cerniq:`).
- * - For local development only, `docker-compose.dev.yml` provides a redis
- *   service (profile `dev`) to keep workflows working.
+ * All environments (dev, staging, production) use the shared Redis instance
+ * on the orchestrator (ACL + key prefix isolation: `cerniq:`).
+ * No local Redis containers in any compose file.
+ * Credentials are provided by OpenBao agents in all environments.
  */
 
 import { describe, it, expect } from "vitest";
@@ -48,7 +46,7 @@ describe("F0.3: Redis + BullMQ (shared)", () => {
     expect(services || {}).not.toHaveProperty("redis");
   });
 
-  it("dev override should define a local redis service for development only", () => {
+  it("dev compose should NOT define a local redis service (uses shared orchestrator Redis)", () => {
     expect(fileExists("infra/docker/docker-compose.dev.yml")).toBe(true);
     const dev = parseYaml<Record<string, unknown>>(
       readFile("infra/docker/docker-compose.dev.yml"),
@@ -57,14 +55,21 @@ describe("F0.3: Redis + BullMQ (shared)", () => {
     const services = (dev as Record<string, unknown>).services as
       | Record<string, unknown>
       | undefined;
-    expect(services || {}).toHaveProperty("redis");
+    expect(services || {}).not.toHaveProperty("redis");
+  });
 
-    const redis = (services as Record<string, unknown>).redis as Record<
-      string,
-      unknown
-    >;
-    expect(redis.image).toBe("redis:8.6.0");
-    expect(redis.container_name).toBe("cerniq-redis-dev");
+  it("dev compose should include OpenBao agents for shared service credentials", () => {
+    const dev = parseYaml<Record<string, unknown>>(
+      readFile("infra/docker/docker-compose.dev.yml"),
+    );
+    expect(dev).not.toBeNull();
+    const services = (dev as Record<string, unknown>).services as
+      | Record<string, unknown>
+      | undefined;
+    expect(services || {}).toHaveProperty("openbao-agent-api");
+    expect(services || {}).toHaveProperty("openbao-agent-workers");
+    expect(services || {}).toHaveProperty("openbao-agent-infra");
+    expect(services || {}).toHaveProperty("pgbouncer");
   });
 
   it("OpenBao templates should define REDIS_URL with username and isolation prefixes", () => {
