@@ -5,6 +5,7 @@
 # =============================================================================
 
 FROM node:25.6.1-alpine3.23 AS base
+ENV CI=true
 RUN apk add --no-cache curl
 RUN npm install -g pnpm@10.29.3
 WORKDIR /app
