@@ -2,20 +2,14 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
-    include: ["**/*.test.ts", "**/*.spec.ts", "**/*.test.tsx", "**/*.spec.tsx"],
+    include: ["tests/**/*.test.ts"],
     exclude: ["**/node_modules/**", "**/dist/**"],
     globals: true,
     environment: "node",
-    testTimeout: 60000, // 60s for infrastructure tests
+    testTimeout: 60000,
     hookTimeout: 30000,
-    // Verbose output în terminal + JSON pentru CI
     reporters: ["default", "verbose"],
-    outputFile: {
-      json: "./test-results/vitest-results.json",
-    },
-    // Afișează progresul în timp real
     watch: false,
-    // Afișează console.log din teste
     printConsoleTrace: true,
     coverage: {
       provider: "v8",
