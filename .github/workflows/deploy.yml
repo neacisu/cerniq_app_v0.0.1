@@ -186,11 +186,13 @@ jobs:
             VERSION=${{ needs.setup.outputs.version }}
             BUILD_SHA=${{ needs.setup.outputs.sha }}
 
+      - name: 🔒 Setup Trivy
+        uses: aquasecurity/setup-trivy@v0.2.2
+        with:
+          cache: true
+
       - name: 🔒 Scan image for vulnerabilities
         run: |
-          if ! command -v trivy >/dev/null 2>&1; then
-            curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
-          fi
           trivy image \
             "${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.app.name }}:${{ needs.setup.outputs.version }}" \
             --scanners vuln \

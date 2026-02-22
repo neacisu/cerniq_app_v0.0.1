@@ -300,12 +300,10 @@ jobs:
       - name: 📥 Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: 🔒 Install Trivy
-        run: |
-          if ! command -v trivy >/dev/null 2>&1; then
-            curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
-          fi
-          trivy --version
+      - name: 🔒 Setup Trivy
+        uses: aquasecurity/setup-trivy@v0.2.2
+        with:
+          cache: true
 
       - name: 🔒 Run Trivy vulnerability scanner
         run: |
@@ -316,23 +314,6 @@ jobs:
             --ignore-unfixed \
             --skip-dirs secrets,.pnpm-store,node_modules \
             --format table
-
-      - name: 📊 Generate Trivy SARIF report
-        if: always()
-        run: |
-          trivy fs . \
-            --scanners vuln \
-            --severity CRITICAL,HIGH \
-            --ignore-unfixed \
-            --skip-dirs secrets,.pnpm-store,node_modules \
-            --format sarif \
-            --output trivy-results.sarif || true
-
-      - name: 📤 Upload Trivy scan results
-        uses: github/codeql-action/upload-sarif@v3
-        if: always() && hashFiles('trivy-results.sarif') != ''
-        with:
-          sarif_file: "trivy-results.sarif"
 
       - name: 🔍 Audit npm dependencies
         run: pnpm audit --audit-level=high
