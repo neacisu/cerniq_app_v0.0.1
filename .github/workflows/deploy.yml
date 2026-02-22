@@ -129,20 +129,23 @@ jobs:
       packages: write
 
     strategy:
+      fail-fast: true
       matrix:
         app:
           - name: api
-            context: ./apps/api
+            dockerfile: ./apps/api/Dockerfile
           - name: web
-            context: ./apps/web
+            dockerfile: ./apps/web/Dockerfile
           - name: web-admin
-            context: ./apps/web-admin
+            dockerfile: ./apps/web-admin/Dockerfile
+          - name: monitoring-api
+            dockerfile: ./apps/monitoring-api/Dockerfile
           - name: worker-enrichment
-            context: ./workers/enrichment
+            dockerfile: ./workers/enrichment/Dockerfile
           - name: worker-outreach
-            context: ./workers/outreach
+            dockerfile: ./workers/outreach/Dockerfile
           - name: worker-ai
-            context: ./workers/ai
+            dockerfile: ./workers/ai/Dockerfile
 
     steps:
       - name: 📥 Checkout code
@@ -172,7 +175,8 @@ jobs:
       - name: 🏗️ Build and push
         uses: docker/build-push-action@v6.19.2
         with:
-          context: ${{ matrix.app.context }}
+          context: .
+          file: ${{ matrix.app.dockerfile }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

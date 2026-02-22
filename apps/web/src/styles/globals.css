@@ -1,0 +1,56 @@
+@import 'tailwindcss';
+@import './tokens.css';
+@import './animations.css';
+@import './typography.css';
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--color-s950);
+  color: var(--color-t1);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-s900);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-s600);
+  border-radius: var(--radius-full);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-b5);
+  outline-offset: 2px;
+}
+
+a {
+  color: var(--color-b5);
+  text-decoration: none;
+}
+
+/* Utility text classes */
+.t1 { color: var(--color-t1); }
+.t2 { color: var(--color-t2); }
+.t3 { color: var(--color-t3); }
+.tok { color: var(--color-ok); }
+.twa { color: var(--color-wa); }
+.ter { color: var(--color-er); }
+.tb { color: var(--color-b5); }
+
+/* Stat typography */
+.sv { font-size: 2rem; font-weight: 800; font-family: var(--font-display); }
+.sl { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-t3); }
+.sc { font-size: 0.8rem; font-weight: 600; }

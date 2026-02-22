@@ -1,0 +1,19 @@
+{
+  "name": "@cerniq/worker-enrichment",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch worker.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/worker.js",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "echo 'No tests yet — skeleton worker'"
+  },
+  "dependencies": {
+    "@cerniq/db": "workspace:*",
+    "@cerniq/shared-types": "workspace:*",
+    "@cerniq/config": "workspace:*"
+  }
+}

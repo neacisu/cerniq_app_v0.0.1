@@ -261,11 +261,13 @@ jobId: `warn-${approvalId}`; // Warning jobs
 
 | Component      | Versiune | Caracteristici                                        |
 | -------------- | -------- | ----------------------------------------------------- |
+| Vite           | 7.3.1    | Build tool, HMR, @vitejs/plugin-react 5.1.1           |
 | React 19       | 19.2.3   | Server Components stable, useOptimistic, Activity API |
 | React Compiler | 1.0      | 12% faster loads, 2.5x faster interactions            |
-| Tailwind CSS 4 | 4.1.x    | Oxide engine (Rust), 3.5-5x faster builds             |
+| Tailwind CSS 4 | 4.1.x    | Oxide engine (Rust), 3.5-5x faster builds, @theme      |
 | Refine         | v5       | TanStack Query v5, headless admin                     |
-| shadcn/ui      | Latest   | Radix UI primitives                                   |
+| shadcn/ui      | Latest   | Radix UI primitives, Dark Terroir                     |
+| Fonts          | —        | Bricolage Grotesque (display), DM Sans (body), Geist Mono (mono) |
 
 ## 2.5 LLM ROUTING POLICY (Canonic)
 

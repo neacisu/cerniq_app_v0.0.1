@@ -109,8 +109,36 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # vector and otel-collector REMOVED — centralized on orchestrator
-  # See docker-compose.yml comment for rationale.
+  # ==========================================================================
+  # Application Stack - Production overrides
+  # ==========================================================================
+  cerniq-web:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+  cerniq-api:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  cerniq-admin:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+  cerniq-monitoring-api:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
 
   cadvisor:
     logging:

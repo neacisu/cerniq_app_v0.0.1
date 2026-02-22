@@ -71,111 +71,166 @@ x-logging: &default-logging
 
 services:
   # ==========================================================================
-  # Placeholder App Stack (web/api/admin)
+  # Application Stack — Web, API, Admin, Monitoring API
   # ==========================================================================
-  # Purpose: allow end-to-end validation of:
-  #   Traefik(master on orchestrator) -> HAProxy gateway (10.0.1.10) -> CT109/CT110
-  # before the real application stack exists.
-  #
-  # Exposes the expected host ports:
-  #   - 64000 (web)
-  #   - 64010 (api)
-  #   - 64012 (admin)
-  #
-  # Endpoints:
-  #   GET /health -> 200 {"status":"ok","service":"..."}
-  #   GET /       -> 200 "<service>\n"
+  # Routing: Orchestrator Traefik -> HAProxy (10.0.1.10) -> CT109/CT110
+  #   Staging:    19000->64000 (web), 19010->64010 (api), 19012->64012 (admin)
+  #   Production: 29000->64000 (web), 29010->64010 (api), 29012->64012 (admin)
   # ==========================================================================
-  placeholder-web:
-    image: python:3.12-alpine
-    container_name: cerniq-placeholder-web
+
+  cerniq-web:
+    image: ${REGISTRY:-ghcr.io}/${IMAGE_OWNER:-cerniqapp}/cerniq/web:${CERNIQ_VERSION:-latest}
+    container_name: cerniq-web
     restart: unless-stopped
-    network_mode: host
-    environment:
-      SERVICE_NAME: cerniq-placeholder-web
-      PORT: "64000"
-    command:
-      [
-        "sh",
-        "-c",
-        "python3 - <<'PY'\nimport json, os\nfrom http.server import BaseHTTPRequestHandler, HTTPServer\n\nSERVICE=os.environ.get('SERVICE_NAME','cerniq-placeholder')\nPORT=int(os.environ.get('PORT','3000'))\n\nclass H(BaseHTTPRequestHandler):\n    def do_GET(self):\n        if self.path == '/health':\n            self.send_response(200)\n            self.send_header('Content-Type','application/json')\n            self.end_headers()\n            self.wfile.write(json.dumps({'status':'ok','service':SERVICE}).encode('utf-8'))\n            return\n        self.send_response(200)\n        self.send_header('Content-Type','text/plain; charset=utf-8')\n        self.end_headers()\n        self.wfile.write((SERVICE+'\\n').encode('utf-8'))\n\n    def log_message(self, fmt, *args):\n        return\n\nHTTPServer(('0.0.0.0', PORT), H).serve_forever()\nPY",
-      ]
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    ports:
+      - "64000:64000"
+    networks:
+      - cerniq_public
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          'python3 -c "import urllib.request; urllib.request.urlopen(''http://127.0.0.1:64000/health'', timeout=1).read()"',
-        ]
+      test: ["CMD", "curl", "-f", "http://localhost:64000/health"]
       interval: 10s
       timeout: 3s
-      retries: 10
-      start_period: 5s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.25"
+        reservations:
+          memory: 64M
+          cpus: "0.1"
     labels:
       <<: *common-labels
-      com.cerniq.service: "placeholder-web"
+      com.cerniq.service: "web"
       com.cerniq.port: "64000"
     logging:
       <<: *default-logging
 
-  placeholder-api:
-    image: python:3.12-alpine
-    container_name: cerniq-placeholder-api
+  cerniq-api:
+    image: ${REGISTRY:-ghcr.io}/${IMAGE_OWNER:-cerniqapp}/cerniq/api:${CERNIQ_VERSION:-latest}
+    container_name: cerniq-api
     restart: unless-stopped
-    network_mode: host
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    ports:
+      - "64010:64010"
+    volumes:
+      - ${CERNIQ_RENDERED_SECRETS_DIR:-/opt/cerniq/runtime-secrets}/api:/secrets:ro
     environment:
-      SERVICE_NAME: cerniq-placeholder-api
+      NODE_ENV: ${CERNIQ_ENV:-staging}
       PORT: "64010"
-    command:
-      [
-        "sh",
-        "-c",
-        "python3 - <<'PY'\nimport json, os\nfrom http.server import BaseHTTPRequestHandler, HTTPServer\n\nSERVICE=os.environ.get('SERVICE_NAME','cerniq-placeholder')\nPORT=int(os.environ.get('PORT','3000'))\n\nclass H(BaseHTTPRequestHandler):\n    def do_GET(self):\n        if self.path == '/health':\n            self.send_response(200)\n            self.send_header('Content-Type','application/json')\n            self.end_headers()\n            self.wfile.write(json.dumps({'status':'ok','service':SERVICE}).encode('utf-8'))\n            return\n        self.send_response(200)\n        self.send_header('Content-Type','text/plain; charset=utf-8')\n        self.end_headers()\n        self.wfile.write((SERVICE+'\\n').encode('utf-8'))\n\n    def log_message(self, fmt, *args):\n        return\n\nHTTPServer(('0.0.0.0', PORT), H).serve_forever()\nPY",
-      ]
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      SECRETS_PATH: /secrets/api.env
+    extra_hosts:
+      - "ct107-postgres:10.0.1.107"
+    networks:
+      - cerniq_public
+      - cerniq_backend
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+      openbao-agent-api:
+        condition: service_healthy
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          'python3 -c "import urllib.request; urllib.request.urlopen(''http://127.0.0.1:64010/health'', timeout=1).read()"',
-        ]
+      test: ["CMD", "curl", "-f", "http://localhost:64010/health/live"]
       interval: 10s
-      timeout: 3s
-      retries: 10
-      start_period: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
+        reservations:
+          memory: 256M
+          cpus: "0.25"
     labels:
       <<: *common-labels
-      com.cerniq.service: "placeholder-api"
+      com.cerniq.service: "api"
       com.cerniq.port: "64010"
     logging:
       <<: *default-logging
 
-  placeholder-admin:
-    image: python:3.12-alpine
-    container_name: cerniq-placeholder-admin
+  cerniq-admin:
+    image: ${REGISTRY:-ghcr.io}/${IMAGE_OWNER:-cerniqapp}/cerniq/web-admin:${CERNIQ_VERSION:-latest}
+    container_name: cerniq-admin
     restart: unless-stopped
-    network_mode: host
-    environment:
-      SERVICE_NAME: cerniq-placeholder-admin
-      PORT: "64012"
-    command:
-      [
-        "sh",
-        "-c",
-        "python3 - <<'PY'\nimport json, os\nfrom http.server import BaseHTTPRequestHandler, HTTPServer\n\nSERVICE=os.environ.get('SERVICE_NAME','cerniq-placeholder')\nPORT=int(os.environ.get('PORT','3000'))\n\nclass H(BaseHTTPRequestHandler):\n    def do_GET(self):\n        if self.path == '/health':\n            self.send_response(200)\n            self.send_header('Content-Type','application/json')\n            self.end_headers()\n            self.wfile.write(json.dumps({'status':'ok','service':SERVICE}).encode('utf-8'))\n            return\n        self.send_response(200)\n        self.send_header('Content-Type','text/plain; charset=utf-8')\n        self.end_headers()\n        self.wfile.write((SERVICE+'\\n').encode('utf-8'))\n\n    def log_message(self, fmt, *args):\n        return\n\nHTTPServer(('0.0.0.0', PORT), H).serve_forever()\nPY",
-      ]
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    ports:
+      - "64012:64012"
+    networks:
+      - cerniq_public
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          'python3 -c "import urllib.request; urllib.request.urlopen(''http://127.0.0.1:64012/health'', timeout=1).read()"',
-        ]
+      test: ["CMD", "curl", "-f", "http://localhost:64012/health"]
       interval: 10s
       timeout: 3s
-      retries: 10
-      start_period: 5s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.25"
+        reservations:
+          memory: 64M
+          cpus: "0.1"
     labels:
       <<: *common-labels
-      com.cerniq.service: "placeholder-admin"
+      com.cerniq.service: "admin"
       com.cerniq.port: "64012"
+    logging:
+      <<: *default-logging
+
+  cerniq-monitoring-api:
+    image: ${REGISTRY:-ghcr.io}/${IMAGE_OWNER:-cerniqapp}/cerniq/monitoring-api:${CERNIQ_VERSION:-latest}
+    container_name: cerniq-monitoring-api
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    ports:
+      - "64080:64080"
+    volumes:
+      - ${CERNIQ_RENDERED_SECRETS_DIR:-/opt/cerniq/runtime-secrets}/api:/secrets:ro
+    environment:
+      NODE_ENV: ${CERNIQ_ENV:-staging}
+      PORT: "64080"
+      SECRETS_PATH: /secrets/api.env
+    networks:
+      - cerniq_backend
+    depends_on:
+      openbao-agent-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:64080/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+        reservations:
+          memory: 128M
+          cpus: "0.1"
+    labels:
+      <<: *common-labels
+      com.cerniq.service: "monitoring-api"
+      com.cerniq.port: "64080"
     logging:
       <<: *default-logging
 

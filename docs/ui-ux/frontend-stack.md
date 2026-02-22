@@ -1,52 +1,77 @@
-# Frontend Tech Stack
+# CERNIQ.APP — Frontend Stack (Detaliat)
 
-**Status:** CANONIC (Ianuarie 2026)  
-**Sursă Adevăr:** Master Spec v1.2
+## Build & Dev Server
 
-Cerniq.app folosește un stack modern de React 19, optimizat pentru performanță și dezvoltare rapidă a interfețelor B2B complexe.
+| Pachet | Versiune | Rol |
+|--------|----------|-----|
+| **Vite** | 7.3.1 | Build tool, HMR, dev server |
+| **@vitejs/plugin-react** | 5.1.1 | React Fast Refresh |
+| **@tailwindcss/vite** | — | Tailwind v4 integration (Oxide engine) |
 
-## 1. Core Frameworks
+---
 
-### React 19.2.3
+## React
 
-- **Utilizare:** Server Components, Actions, noi hooks (`useActionState`, `useOptimistic`).
-- **Compiler:** React Compiler (auto-memoization).
-- **Strictețe:** Strict Mode activat.
+| Pachet | Versiune | Rol |
+|--------|----------|-----|
+| **React** | 19 | Server Components, useOptimistic, Activity API |
+| **babel-plugin-react-compiler** | — | React Compiler (12% faster loads, 2.5x faster interactions) |
 
-### Refine v5 (Headless)
+---
 
-- **Rol:** Admin Framework pentru operațiuni CRUD rapide.
-- **Provideri:**
-  - `dataProvider`: Custom REST pentru API-ul Fastify.
-  - `authProvider`: JWT Auth.
-  - `notificationProvider`: UI feedback.
+## Tailwind CSS v4
 
-### TypeScript 5.x
+- **Config:** `@theme` directive în CSS — **NU** `tailwind.config.js`
+- **Engine:** Oxide (Rust) — 3.5–5x faster builds
+- **Culori:** OKLCH P3 wide-gamut nativ
 
-- **Config:** `tsconfig.json` strict.
-- **Tipare:** Zod schemas partajate cu backend-ul (`@cerniq/shared`).
+---
 
-## 2. Styling System
+## Refine v5
 
-### Tailwind CSS v4.1+ (Oxide Engine)
+| Pachet | Rol |
+|--------|-----|
+| **@refinedev/core** | Headless admin framework |
+| **@refinedev/react-router** | Routing integration |
+| **@refinedev/react-table** | TanStack Table integration |
 
-- **Performanță:** Compilare Rust instantanee.
-- **Config:** Zero-config detection, definește tema în CSS nativ variables.
-- **Prefix:** `cq-` (opțional, pentru evitare conflicte).
+---
 
-### Shadcn/UI
+## shadcn/ui
 
-- **Componente:** Radix UI primitives pre-styled cu Tailwind.
-- **Locație:** `apps/web-admin/src/components/ui`.
-- **Customizare:** Direct în cod (Copy-paste architecture).
+- Primitives Radix UI customizate pentru **Dark Terroir**
+- Componente copiate în proiect (nu dependency)
+- Stilizare via Tailwind + design tokens
 
-## 3. State Management
+---
 
-- **Server State:** TanStack Query v5 (integrat în Refine).
-- **Client State:** React Context / Zustand (minimal).
-- **Forms:** React Hook Form + Zod Resolver.
+## Lucide React
 
-## 4. Build Tools
+- **51 iconițe** mapate pentru navigare și acțiuni
+- Import: `import { IconName } from 'lucide-react'`
 
-- **Vite 6**: Dev server și bundler.
-- **Birome**: Linting și Formatting (înlocuiește ESLint/Prettier în viitor, momentan ESLint 9).
+---
+
+## Fonturi (Google Fonts)
+
+| Rol | Font | Utilizare |
+|-----|------|-----------|
+| **Display** | Bricolage Grotesque | Headings, logo, KPI numbers |
+| **Body** | DM Sans | Text, tabele, labels |
+| **Monospace** | Geist Mono | CUI, coduri, date numerice |
+
+```html
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=DM+Sans:ital,opsz,wght@0,9..40,300..700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+```
+
+---
+
+## Tooling
+
+| Tool | Versiune | Rol |
+|------|----------|-----|
+| **ESLint** | 9.39+ | Linting |
+| **Prettier** | — | Formatare |
+| **TypeScript** | strict mode | Type safety |

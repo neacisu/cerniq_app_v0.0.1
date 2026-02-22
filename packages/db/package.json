@@ -1,0 +1,28 @@
+{
+  "name": "@cerniq/db",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "eslint src/",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
+    "db:seed": "tsx src/seed.ts"
+  },
+  "dependencies": {
+    "@cerniq/shared-types": "workspace:*",
+    "drizzle-orm": "^0.45.1",
+    "postgres": "^3.4.8"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.31.9",
+    "tsx": "^4.21.0"
+  }
+}
