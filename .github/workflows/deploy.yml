@@ -134,18 +134,25 @@ jobs:
         app:
           - name: api
             dockerfile: ./apps/api/Dockerfile
+            context: .
           - name: web
             dockerfile: ./apps/web/Dockerfile
+            context: .
           - name: web-admin
             dockerfile: ./apps/web-admin/Dockerfile
+            context: .
           - name: monitoring-api
             dockerfile: ./apps/monitoring-api/Dockerfile
+            context: .
           - name: worker-enrichment
             dockerfile: ./workers/enrichment/Dockerfile
+            context: ./workers/enrichment
           - name: worker-outreach
             dockerfile: ./workers/outreach/Dockerfile
+            context: ./workers/outreach
           - name: worker-ai
             dockerfile: ./workers/ai/Dockerfile
+            context: ./workers/ai
 
     steps:
       - name: 📥 Checkout code
@@ -175,7 +182,7 @@ jobs:
       - name: 🏗️ Build and push
         uses: docker/build-push-action@v6.19.2
         with:
-          context: .
+          context: ${{ matrix.app.context }}
           file: ${{ matrix.app.dockerfile }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
