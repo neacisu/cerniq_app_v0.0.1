@@ -303,6 +303,7 @@ jobs:
       - name: 🔒 Setup Trivy
         uses: aquasecurity/setup-trivy@v0.2.2
         with:
+          version: v0.69.1
           cache: true
 
       - name: 🔒 Run Trivy vulnerability scanner
