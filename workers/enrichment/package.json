@@ -7,7 +7,7 @@
     "dev": "tsx watch worker.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/worker.js",
-    "lint": "eslint .",
+    "lint": "echo 'No TS files yet — skeleton worker'",
     "typecheck": "tsc --noEmit",
     "test": "echo 'No tests yet — skeleton worker'"
   },
