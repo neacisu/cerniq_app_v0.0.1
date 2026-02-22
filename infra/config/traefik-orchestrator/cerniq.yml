@@ -115,6 +115,57 @@ http:
               - "*.cerniq.app"
               - "*.staging.cerniq.app"
 
+    # ==========================================================================
+    # DEV Environment — dev.cerniq.app (hot-reload, port range 39xxx/65xxx)
+    # ==========================================================================
+    # HAProxy mapping: 39000->65000 (web), 39010->65010 (api), 39012->65012 (admin)
+    # Dev containers run with volume-mounted source and Vite/tsx watch.
+    # ==========================================================================
+    cerniq-dev-web:
+      rule: "Host(`dev.cerniq.app`)"
+      service: cerniq-dev-web-svc
+      entryPoints:
+        - websecure
+      middlewares:
+        - chain-web
+      tls:
+        certResolver: cloudflare
+        domains:
+          - main: "cerniq.app"
+            sans:
+              - "*.cerniq.app"
+              - "*.dev.cerniq.app"
+
+    cerniq-dev-api:
+      rule: "Host(`api.dev.cerniq.app`)"
+      service: cerniq-dev-api-svc
+      entryPoints:
+        - websecure
+      middlewares:
+        - chain-api
+      tls:
+        certResolver: cloudflare
+        domains:
+          - main: "cerniq.app"
+            sans:
+              - "*.cerniq.app"
+              - "*.dev.cerniq.app"
+
+    cerniq-dev-admin:
+      rule: "Host(`admin.dev.cerniq.app`)"
+      service: cerniq-dev-admin-svc
+      entryPoints:
+        - websecure
+      middlewares:
+        - chain-auth
+      tls:
+        certResolver: cloudflare
+        domains:
+          - main: "cerniq.app"
+            sans:
+              - "*.cerniq.app"
+              - "*.dev.cerniq.app"
+
     # Cerniq-only OTLP (HTTP) entrypoint.
     # Applications on CT109/CT110 send OTLP directly (no local collector relay):
     #   https://otel-cerniq.neanelu.ro/v1/{traces,metrics,logs}
@@ -184,6 +235,28 @@ http:
           path: "/health"
           interval: "30s"
           timeout: "5s"
+
+    # ==========================================================================
+    # DEV Services — Route via HAProxy (39xxx -> dev machine:65xxx)
+    # ==========================================================================
+    # NOTE: HAProxy on hz.247 needs frontend/backend entries for 39000/39010/39012
+    # mapping to the dev machine's 65000/65010/65012 ports.
+    # Update the dev machine IP in HAProxy config when CT is provisioned.
+    # ==========================================================================
+    cerniq-dev-web-svc:
+      loadBalancer:
+        servers:
+          - url: "http://10.0.1.10:39000"
+
+    cerniq-dev-api-svc:
+      loadBalancer:
+        servers:
+          - url: "http://10.0.1.10:39010"
+
+    cerniq-dev-admin-svc:
+      loadBalancer:
+        servers:
+          - url: "http://10.0.1.10:39012"
 
     # OTLP collector intake (central, on orchestrator loopback).
     # Traefik on orchestrator uses host networking, so 127.0.0.1 is stable.

@@ -13,6 +13,7 @@ export default defineConfig({
   server: {
     port: 64000,
     host: true,
+    allowedHosts: ["dev.cerniq.app", "localhost"],
   },
   build: {
     target: "es2022",

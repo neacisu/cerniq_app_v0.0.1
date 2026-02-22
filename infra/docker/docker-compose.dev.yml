@@ -1,91 +1,156 @@
-# =============================================================================
-# CERNIQ.APP — Docker Compose Override (Development Only)
-# =============================================================================
-# This file is automatically loaded by docker compose alongside docker-compose.yml
-# DO NOT USE IN PRODUCTION - contains development-only services
+# ============================================================================
+# Cerniq.app - Docker Compose DEV Configuration (Hot-Reload)
+# ============================================================================
+# Usage: docker compose -f docker-compose.dev.yml up
 #
-# Usage:
-#   docker compose --profile dev up -d redisinsight
-#   OR
-#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d redisinsight
+# All services use volume mounts for source code and run dev servers
+# with hot-reload / watch mode. Changes are reflected instantly without
+# rebuilding Docker images.
 #
-# Reference: F0.3.2.T003, etapa0-plan-implementare-complet-v2.md, etapa0-port-matrix.md
-# =============================================================================
+# Ports: 65xxx range (dev) vs 64xxx (staging/prod)
+# No security hardening (cap_drop, no-new-privileges) for dev ergonomics
+# No OpenBao agents — secrets loaded from local .env.dev file
+# ============================================================================
+
+name: cerniq-dev
+
+networks:
+  cerniq_dev:
+    driver: bridge
 
 services:
   # ==========================================================================
-  # Redis (DEV ONLY) - local instance for development laptops
+  # Web Frontend — Vite Dev Server with HMR
   # ==========================================================================
-  # Production/staging uses shared Redis on orchestrator (10.0.0.2:6379).
-  # This dev service exists only to keep local workflows working.
-  # ==========================================================================
-  redis:
-    image: redis:8.6.0
-    container_name: cerniq-redis-dev
-    restart: unless-stopped
-    # Local-only: bind to docker networks, no host port exposure
-    command:
-      - redis-server
-      - --port
-      - "64039"
-      - --requirepass
-      - "${REDIS_DEV_PASSWORD:-dev-only-change-me}"
-      - --maxmemory
-      - "1gb"
-      - --maxmemory-policy
-      - "noeviction"
-    networks:
-      cerniq_data:
-        ipv4_address: 172.29.30.20
-      cerniq_backend:
-        ipv4_address: 172.29.20.20
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          'redis-cli -p 64039 -a "$${REDIS_DEV_PASSWORD:-dev-only-change-me}" ping | grep -q PONG',
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    profiles:
-      - dev
-
-  # ==========================================================================
-  # RedisInsight - Redis GUI for Development
-  # ==========================================================================
-  # Access: http://localhost:8001
-  # Configure connection in UI:
-  #   - Host: redis (or 172.29.20.20 via cerniq_backend)
-  #   - Port: 64039 (per ADR-0022 port allocation)
-  #   - Password: (from /var/www/CerniqAPP/secrets/redis_password.txt)
-  # ==========================================================================
-  redisinsight:
-    image: redis/redisinsight:3.0.2
-    container_name: cerniq-redisinsight
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:8001:5540" # Bind only to localhost for security
+  cerniq-web:
+    image: node:24
+    container_name: cerniq-dev-web
+    working_dir: /app
     volumes:
-      - redisinsight_data:/data
+      - ../../:/app
+    command: sh -c "corepack enable && pnpm --filter @cerniq/web dev --host 0.0.0.0 --port 65000"
+    ports:
+      - "65000:65000"
+    environment:
+      NODE_ENV: development
     networks:
-      - cerniq_data # Primary: Redis is on cerniq_data (172.29.30.20:64039)
-      - cerniq_backend # Secondary: For potential API access
-    depends_on:
-      redis:
-        condition: service_healthy
-    profiles:
-      - dev
-    labels:
-      com.cerniq.app: "cerniq"
-      com.cerniq.environment: "development"
-      com.cerniq.service: "redisinsight"
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
+      - cerniq_dev
+    restart: unless-stopped
 
-volumes:
-  redisinsight_data:
-    driver: local
+  # ==========================================================================
+  # Web Admin — Vite Dev Server with HMR
+  # ==========================================================================
+  cerniq-admin:
+    image: node:24
+    container_name: cerniq-dev-admin
+    working_dir: /app
+    volumes:
+      - ../../:/app
+    command: sh -c "corepack enable && pnpm --filter @cerniq/web-admin dev --host 0.0.0.0 --port 65012"
+    ports:
+      - "65012:65012"
+    environment:
+      NODE_ENV: development
+    networks:
+      - cerniq_dev
+    restart: unless-stopped
+
+  # ==========================================================================
+  # API — tsx watch (auto-restart on file changes)
+  # ==========================================================================
+  cerniq-api:
+    image: node:24
+    container_name: cerniq-dev-api
+    working_dir: /app
+    volumes:
+      - ../../:/app
+      - ${DEV_SECRETS_DIR:-./.secrets-dev}/api.env:/secrets/api.env:ro
+    command: sh -c "corepack enable && pnpm --filter @cerniq/api dev"
+    ports:
+      - "65010:65010"
+    environment:
+      NODE_ENV: development
+      PORT: "65010"
+      LOG_LEVEL: debug
+      SECRETS_PATH: /secrets/api.env
+    extra_hosts:
+      - "ct107-postgres:10.0.1.107"
+    networks:
+      - cerniq_dev
+    restart: unless-stopped
+
+  # ==========================================================================
+  # Monitoring API — tsx watch (auto-restart on file changes)
+  # ==========================================================================
+  cerniq-monitoring-api:
+    image: node:24
+    container_name: cerniq-dev-monitoring-api
+    working_dir: /app
+    volumes:
+      - ../../:/app
+      - ${DEV_SECRETS_DIR:-./.secrets-dev}/api.env:/secrets/api.env:ro
+    command: sh -c "corepack enable && pnpm --filter @cerniq/monitoring-api dev"
+    ports:
+      - "65080:65080"
+    environment:
+      NODE_ENV: development
+      PORT: "65080"
+      SECRETS_PATH: /secrets/api.env
+    networks:
+      - cerniq_dev
+    restart: unless-stopped
+
+  # ==========================================================================
+  # Worker AI — tsx watch (auto-restart on file changes)
+  # ==========================================================================
+  cerniq-worker-ai:
+    image: node:24
+    container_name: cerniq-dev-worker-ai
+    working_dir: /app
+    volumes:
+      - ../../:/app
+      - ${DEV_SECRETS_DIR:-./.secrets-dev}/workers.env:/secrets/workers.env:ro
+    command: sh -c "corepack enable && pnpm --filter @cerniq/worker-ai dev"
+    environment:
+      NODE_ENV: development
+      SECRETS_PATH: /secrets/workers.env
+    networks:
+      - cerniq_dev
+    restart: unless-stopped
+
+  # ==========================================================================
+  # Worker Enrichment — tsx watch (auto-restart on file changes)
+  # ==========================================================================
+  cerniq-worker-enrichment:
+    image: node:24
+    container_name: cerniq-dev-worker-enrichment
+    working_dir: /app
+    volumes:
+      - ../../:/app
+      - ${DEV_SECRETS_DIR:-./.secrets-dev}/workers.env:/secrets/workers.env:ro
+    command: sh -c "corepack enable && pnpm --filter @cerniq/worker-enrichment dev"
+    environment:
+      NODE_ENV: development
+      SECRETS_PATH: /secrets/workers.env
+    networks:
+      - cerniq_dev
+    restart: unless-stopped
+
+  # ==========================================================================
+  # Worker Outreach — Python dev server with auto-reload
+  # ==========================================================================
+  cerniq-worker-outreach:
+    image: python:3.13-slim
+    container_name: cerniq-dev-worker-outreach
+    working_dir: /app
+    volumes:
+      - ../../workers/outreach:/app
+      - ${DEV_SECRETS_DIR:-./.secrets-dev}/workers.env:/secrets/workers.env:ro
+    command: sh -c "pip install -r requirements.txt 2>/dev/null; python -u worker.py"
+    environment:
+      NODE_ENV: development
+      PYTHONUNBUFFERED: "1"
+      SECRETS_PATH: /secrets/workers.env
+    networks:
+      - cerniq_dev
+    restart: unless-stopped

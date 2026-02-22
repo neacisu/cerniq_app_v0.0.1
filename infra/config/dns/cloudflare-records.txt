@@ -27,6 +27,9 @@
 # A       staging           77.42.76.185        Off     300
 # A       api.staging       77.42.76.185        Off     300
 # A       admin.staging     77.42.76.185        Off     300
+# A       dev               77.42.76.185        Off     60    (added 2026-02-22)
+# A       api.dev           77.42.76.185        Off     60    (added 2026-02-22)
+# A       admin.dev         77.42.76.185        Off     60    (added 2026-02-22)
 # CNAME   www               cerniq.app          Off     300
 #
 # DELETED 2026-02-16 (legacy records pointing to 95.216.225.145):
@@ -71,6 +74,15 @@
 # Expected: 77.42.76.185
 #
 # dig +short admin.staging.cerniq.app
+# Expected: 77.42.76.185
+#
+# dig +short dev.cerniq.app
+# Expected: 77.42.76.185
+#
+# dig +short api.dev.cerniq.app
+# Expected: 77.42.76.185
+#
+# dig +short admin.dev.cerniq.app
 # Expected: 77.42.76.185
 #
 # dig +short otel-cerniq.neanelu.ro
