@@ -75,8 +75,7 @@ export async function triggerQueue<T>(
   options: TriggerOptions = {},
 ): Promise<string> {
   const jobId =
-    options.jobId ||
-    `${queueName}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    options.jobId || `${queueName}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
   await flowProducer.add({
     name: queueName.split(":").pop() || "job",
@@ -112,21 +111,14 @@ export async function triggerMultiple(
   const jobIds: string[] = [];
 
   for (const trigger of triggers) {
-    const jobId = await triggerQueue(
-      trigger.queue,
-      trigger.data,
-      trigger.options,
-    );
+    const jobId = await triggerQueue(trigger.queue, trigger.data, trigger.options);
     jobIds.push(jobId);
   }
 
   return jobIds;
 }
 
-export async function triggerAlert(
-  alertType: string,
-  payload: Record<string, any>,
-): Promise<void> {
+export async function triggerAlert(alertType: string, payload: Record<string, any>): Promise<void> {
   await triggerQueue(
     `alert:${alertType}`,
     {
@@ -157,10 +149,7 @@ interface ConditionalTrigger {
   options?: TriggerOptions;
 }
 
-export function evaluateCondition(
-  data: any,
-  condition: TriggerCondition,
-): boolean {
+export function evaluateCondition(data: any, condition: TriggerCondition): boolean {
   const fieldValue = getNestedValue(data, condition.field);
 
   switch (condition.operator) {
@@ -198,11 +187,7 @@ export async function executeConditionalTriggers(
 
     if (allConditionsMet) {
       const mappedData = trigger.dataMapper(sourceData);
-      const jobId = await triggerQueue(
-        trigger.queue,
-        mappedData,
-        trigger.options,
-      );
+      const jobId = await triggerQueue(trigger.queue, mappedData, trigger.options);
       executedJobIds.push(jobId);
     }
   }

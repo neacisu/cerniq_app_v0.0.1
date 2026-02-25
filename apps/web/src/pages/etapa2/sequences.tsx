@@ -43,9 +43,7 @@ export function Sequences() {
         {MOCK_SEQUENCES.map((seq) => (
           <Card key={seq.id}>
             <CardBody>
-              <h3 className="font-semibold text-[var(--color-t1)] mb-2">
-                {seq.name}
-              </h3>
+              <h3 className="font-semibold text-[var(--color-t1)] mb-2">{seq.name}</h3>
               <div className="flex flex-wrap gap-1 mb-3">
                 {seq.steps.map((s, i) => (
                   <span
@@ -64,9 +62,7 @@ export function Sequences() {
               <Button
                 variant={active[seq.id] ? "danger" : "success"}
                 size="sm"
-                onClick={() =>
-                  setActive((p) => ({ ...p, [seq.id]: !p[seq.id] }))
-                }
+                onClick={() => setActive((p) => ({ ...p, [seq.id]: !p[seq.id] }))}
               >
                 {active[seq.id] ? "Pause" : "Activate"}
               </Button>

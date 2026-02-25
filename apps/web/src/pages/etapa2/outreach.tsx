@@ -1,10 +1,5 @@
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardBody,
-} from "@/components/ui/index.js";
+import { Card, CardHeader, CardTitle, CardBody } from "@/components/ui/index.js";
 import { KpiCard } from "@/components/data/KpiCard.js";
 import { StatsBar } from "@/components/data/StatsBar.js";
 import { ProgressBar } from "@/components/data/ProgressBar.js";

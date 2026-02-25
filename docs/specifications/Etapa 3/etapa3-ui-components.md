@@ -10206,8 +10206,7 @@ export function useLocalStorage<T>(
       }
 
       try {
-        const valueToStore =
-          value instanceof Function ? value(storedValue) : value;
+        const valueToStore = value instanceof Function ? value(storedValue) : value;
         setStoredValue(valueToStore);
         window.localStorage.setItem(key, JSON.stringify(valueToStore));
 
@@ -10246,9 +10245,7 @@ export function useLocalStorage<T>(
 
     return () => {
       window.removeEventListener("storage", handleStorageChange);
-      window.removeEventListener("local-storage", () =>
-        setStoredValue(readValue()),
-      );
+      window.removeEventListener("local-storage", () => setStoredValue(readValue()));
     };
   }, [key, readValue]);
 
@@ -10347,11 +10344,7 @@ export function useAsync<T, Args extends any[] = []>(
 /**
  * Hook specific pentru fetch
  */
-export function useFetch<T>(
-  url: string,
-  options?: RequestInit,
-  immediate: boolean = true,
-) {
+export function useFetch<T>(url: string, options?: RequestInit, immediate: boolean = true) {
   const fetchData = useCallback(async (): Promise<T> => {
     const response = await fetch(url, options);
 
@@ -10419,12 +10412,7 @@ export function usePolling<T>(
     onError?: (error: Error) => void;
   },
 ) {
-  const {
-    enabled = true,
-    immediate = true,
-    onSuccess,
-    onError,
-  } = options || {};
+  const { enabled = true, immediate = true, onSuccess, onError } = options || {};
   const isFetching = useRef(false);
 
   useInterval(
@@ -10599,11 +10587,7 @@ export function formatFileSize(bytes: number): string {
 /**
  * Truncate string with ellipsis
  */
-export function truncate(
-  str: string,
-  maxLength: number,
-  suffix: string = "...",
-): string {
+export function truncate(str: string, maxLength: number, suffix: string = "..."): string {
   if (str.length <= maxLength) return str;
   return str.slice(0, maxLength - suffix.length) + suffix;
 }
@@ -10717,8 +10701,7 @@ export function pluralize(
   fewForm?: string,
 ): string {
   if (count === 1) return `${count} ${singular}`;
-  if (count === 0 || (count >= 2 && count <= 19))
-    return `${count} ${fewForm || plural}`;
+  if (count === 0 || (count >= 2 && count <= 19)) return `${count} ${fewForm || plural}`;
   return `${count} ${plural}`;
 }
 
@@ -12171,29 +12154,11 @@ export {
   LoadingCard,
   LoadingTable,
 } from "./feedback/LoadingSpinner";
-export {
-  Toast,
-  ToastProvider,
-  useToast,
-  useSuccessToast,
-  useErrorToast,
-} from "./feedback/Toast";
-export {
-  ConfirmDialog,
-  DeleteConfirmDialog,
-  LogoutConfirmDialog,
-} from "./feedback/ConfirmDialog";
+export { Toast, ToastProvider, useToast, useSuccessToast, useErrorToast } from "./feedback/Toast";
+export { ConfirmDialog, DeleteConfirmDialog, LogoutConfirmDialog } from "./feedback/ConfirmDialog";
 export { ErrorBoundary, withErrorBoundary } from "./feedback/ErrorBoundary";
-export {
-  AlertBanner,
-  MaintenanceBanner,
-  TrialExpiringBanner,
-} from "./feedback/AlertBanner";
-export {
-  TooltipExtended,
-  InfoTooltip,
-  TruncatedWithTooltip,
-} from "./feedback/TooltipExtended";
+export { AlertBanner, MaintenanceBanner, TrialExpiringBanner } from "./feedback/AlertBanner";
+export { TooltipExtended, InfoTooltip, TruncatedWithTooltip } from "./feedback/TooltipExtended";
 
 // Chart Components
 export { AreaChartCard } from "./charts/AreaChartCard";
@@ -12230,31 +12195,18 @@ export { WebhookStatusIndicator } from "./integrations/WebhookStatusIndicator";
 // Utility Components
 export { CopyToClipboard, InlineCopy } from "./utils/CopyToClipboard";
 export { ConfirmAction } from "./utils/ConfirmAction";
-export {
-  KeyboardShortcut,
-  useKeyboardShortcut,
-} from "./utils/KeyboardShortcut";
+export { KeyboardShortcut, useKeyboardShortcut } from "./utils/KeyboardShortcut";
 
 // Hooks
-export {
-  useDebounce,
-  useDebouncedCallback,
-  useDebounceWithLoading,
-} from "@/hooks/useDebounce";
+export { useDebounce, useDebouncedCallback, useDebounceWithLoading } from "@/hooks/useDebounce";
 export { useLocalStorage } from "@/hooks/useLocalStorage";
 export { useAsync, useFetch } from "@/hooks/useAsync";
 export { useInterval, usePolling } from "@/hooks/useInterval";
-export {
-  useClickOutside,
-  useClickOutsideMultiple,
-} from "@/hooks/useClickOutside";
+export { useClickOutside, useClickOutsideMultiple } from "@/hooks/useClickOutside";
 
 // Types
 export type { OblioSyncStatus } from "./integrations/OblioStatusBadge";
-export type {
-  ANAFVerificationStatus,
-  ANAFVATStatus,
-} from "./integrations/ANAFStatusBadge";
+export type { ANAFVerificationStatus, ANAFVATStatus } from "./integrations/ANAFStatusBadge";
 export type { EFacturaStatus } from "./integrations/EFacturaStatusBadge";
 export type { ChannelType } from "./integrations/ChannelIcon";
 export type { IntegrationStatus } from "./integrations/IntegrationStatusCard";

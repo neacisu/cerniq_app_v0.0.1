@@ -47,19 +47,9 @@ export function Offers() {
   return (
     <PageWrapper title="Offers">
       <div className="grid grid-cols-3 gap-4 mb-6">
-        <KpiCard
-          label="Total Offers"
-          value="45"
-          icon="FileText"
-          color="var(--color-b5)"
-        />
+        <KpiCard label="Total Offers" value="45" icon="FileText" color="var(--color-b5)" />
         <KpiCard label="Sent" value="32" icon="Send" color="var(--color-in)" />
-        <KpiCard
-          label="Paid"
-          value="12"
-          icon="CheckCircle"
-          color="var(--color-ok)"
-        />
+        <KpiCard label="Paid" value="12" icon="CheckCircle" color="var(--color-ok)" />
       </div>
 
       <Card>
@@ -67,24 +57,12 @@ export function Offers() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-[var(--color-s700)]">
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">
-                  ID
-                </th>
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">
-                  Company
-                </th>
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">
-                  Amount
-                </th>
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">
-                  Status
-                </th>
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">
-                  Date
-                </th>
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">
-                  Actions
-                </th>
+                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">ID</th>
+                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">Company</th>
+                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">Amount</th>
+                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">Status</th>
+                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">Date</th>
+                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -94,9 +72,7 @@ export function Offers() {
                   className="border-b border-[var(--color-s800)] hover:bg-[var(--color-s800)]/50"
                 >
                   <td className="py-3 px-4 text-[var(--color-t2)]">{o.id}</td>
-                  <td className="py-3 px-4 text-[var(--color-t1)]">
-                    {o.company}
-                  </td>
+                  <td className="py-3 px-4 text-[var(--color-t1)]">{o.company}</td>
                   <td className="py-3 px-4">{o.amount}</td>
                   <td className="py-3 px-4">
                     <SBadge status={o.status} />

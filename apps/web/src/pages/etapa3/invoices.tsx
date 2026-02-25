@@ -51,24 +51,9 @@ export function Invoices() {
   return (
     <PageWrapper title="e-Factura SPV ANAF">
       <div className="grid grid-cols-4 gap-4 mb-6 max-[900px]:grid-cols-2">
-        <KpiCard
-          label="Total"
-          value="234"
-          icon="FileText"
-          color="var(--color-b5)"
-        />
-        <KpiCard
-          label="Paid"
-          value="189"
-          icon="CheckCircle"
-          color="var(--color-ok)"
-        />
-        <KpiCard
-          label="Overdue"
-          value="12"
-          icon="AlertCircle"
-          color="var(--color-er)"
-        />
+        <KpiCard label="Total" value="234" icon="FileText" color="var(--color-b5)" />
+        <KpiCard label="Paid" value="189" icon="CheckCircle" color="var(--color-ok)" />
+        <KpiCard label="Overdue" value="12" icon="AlertCircle" color="var(--color-er)" />
         <KpiCard
           label="TVA Colectat"
           value="EUR 44K"
@@ -82,27 +67,13 @@ export function Invoices() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-[var(--color-s700)]">
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">
-                  Nr
-                </th>
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">
-                  Company
-                </th>
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">
-                  Amount
-                </th>
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">
-                  TVA 24%
-                </th>
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">
-                  Status
-                </th>
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">
-                  SPV
-                </th>
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">
-                  Date
-                </th>
+                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">Nr</th>
+                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">Company</th>
+                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">Amount</th>
+                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">TVA 24%</th>
+                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">Status</th>
+                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">SPV</th>
+                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">Date</th>
               </tr>
             </thead>
             <tbody>
@@ -115,22 +86,16 @@ export function Invoices() {
                   )}
                 >
                   <td className="py-3 px-4 text-[var(--color-t2)]">{inv.nr}</td>
-                  <td className="py-3 px-4 text-[var(--color-t1)]">
-                    {inv.company}
-                  </td>
+                  <td className="py-3 px-4 text-[var(--color-t1)]">{inv.company}</td>
                   <td className="py-3 px-4">{inv.amount}</td>
                   <td className="py-3 px-4">{inv.vat}</td>
                   <td className="py-3 px-4">
                     <SBadge status={inv.status} />
                   </td>
                   <td className="py-3 px-4">
-                    <Badge variant={inv.spv === "ok" ? "ok" : "warning"}>
-                      {inv.spv}
-                    </Badge>
+                    <Badge variant={inv.spv === "ok" ? "ok" : "warning"}>{inv.spv}</Badge>
                   </td>
-                  <td className="py-3 px-4 text-[var(--color-t3)]">
-                    {inv.date}
-                  </td>
+                  <td className="py-3 px-4 text-[var(--color-t3)]">{inv.date}</td>
                 </tr>
               ))}
             </tbody>

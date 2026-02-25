@@ -21,9 +21,7 @@ describe("Social Graph", () => {
       type: "referral",
     });
     const edges = await graphService.getEdges("customer-1");
-    expect(edges).toContainEqual(
-      expect.objectContaining({ target: "customer-2" }),
-    );
+    expect(edges).toContainEqual(expect.objectContaining({ target: "customer-2" }));
   });
 
   it("should calculate centrality", async () => {

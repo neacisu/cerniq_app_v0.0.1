@@ -58,13 +58,7 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html"],
-      exclude: [
-        "node_modules/",
-        "**/*.test.ts",
-        "**/*.spec.ts",
-        "**/types/**",
-        "**/mocks/**",
-      ],
+      exclude: ["node_modules/", "**/*.test.ts", "**/*.spec.ts", "**/types/**", "**/mocks/**"],
       thresholds: {
         statements: 80,
         branches: 75,
@@ -186,9 +180,7 @@ describe("EnrichmentService", () => {
     });
 
     it("should handle ANAF API errors", async () => {
-      vi.mocked(anafClient.getCompanyInfo).mockRejectedValue(
-        new Error("API unavailable"),
-      );
+      vi.mocked(anafClient.getCompanyInfo).mockRejectedValue(new Error("API unavailable"));
 
       await expect(service.enrichFromANAF("12345678")).rejects.toThrow(
         "Enrichment failed: API unavailable",

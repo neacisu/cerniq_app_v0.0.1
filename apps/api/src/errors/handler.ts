@@ -2,11 +2,7 @@ import type { FastifyError, FastifyReply, FastifyRequest } from "fastify";
 import { AppError } from "./app-error.js";
 import { envConfig } from "../config.js";
 
-export function errorHandler(
-  error: FastifyError,
-  request: FastifyRequest,
-  reply: FastifyReply,
-) {
+export function errorHandler(error: FastifyError, request: FastifyRequest, reply: FastifyReply) {
   request.log.error(error);
 
   if (error instanceof AppError) {
@@ -38,10 +34,7 @@ export function errorHandler(
     error: {
       statusCode,
       error: "INTERNAL_ERROR",
-      message:
-        envConfig.NODE_ENV === "production"
-          ? "Internal Server Error"
-          : error.message,
+      message: envConfig.NODE_ENV === "production" ? "Internal Server Error" : error.message,
     },
   });
 }

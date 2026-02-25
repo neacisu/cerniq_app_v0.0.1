@@ -254,10 +254,7 @@ export function createEnrichmentWorker<TData, TResult>(
         const result = await config.processor(job, jobLogger);
         const duration = Date.now() - startTime;
 
-        jobLogger.info(
-          { duration, result: sanitizeForLog(result) },
-          "Job completed",
-        );
+        jobLogger.info({ duration, result: sanitizeForLog(result) }, "Job completed");
 
         span.setStatus({ code: SpanStatusCode.OK });
 
@@ -274,21 +271,12 @@ export function createEnrichmentWorker<TData, TResult>(
 
         return result;
       } catch (error) {
-        jobLogger.error(
-          { error: error.message, stack: error.stack },
-          "Job failed",
-        );
+        jobLogger.error({ error: error.message, stack: error.stack }, "Job failed");
         span.setStatus({ code: SpanStatusCode.ERROR, message: error.message });
 
         // Trigger workeri de handling la eșec
         if (config.triggers?.onFail) {
-          await triggerFailureHandlers(
-            flowProducer,
-            config.triggers.onFail,
-            job,
-            error,
-            jobLogger,
-          );
+          await triggerFailureHandlers(flowProducer, config.triggers.onFail, job, error, jobLogger);
         }
 
         throw error;
@@ -305,10 +293,7 @@ export function createEnrichmentWorker<TData, TResult>(
 
   // Event handlers
   worker.on("error", (err) => {
-    logger.error(
-      { error: err.message, queue: config.queueName },
-      "Worker error",
-    );
+    logger.error({ error: err.message, queue: config.queueName }, "Worker error");
   });
 
   worker.on("stalled", (jobId) => {
@@ -316,10 +301,7 @@ export function createEnrichmentWorker<TData, TResult>(
   });
 
   worker.on("progress", (job, progress) => {
-    logger.debug(
-      { jobId: job.id, progress, queue: config.queueName },
-      "Job progress",
-    );
+    logger.debug({ jobId: job.id, progress, queue: config.queueName }, "Job progress");
   });
 
   return {
@@ -382,14 +364,7 @@ async function triggerDownstreamWorkers(
 function sanitizeForLog(data: any): any {
   if (!data) return data;
   const sanitized = { ...data };
-  const sensitiveFields = [
-    "cnp",
-    "password",
-    "token",
-    "apiKey",
-    "email",
-    "telefon",
-  ];
+  const sensitiveFields = ["cnp", "password", "token", "apiKey", "email", "telefon"];
   for (const field of sensitiveFields) {
     if (sanitized[field]) {
       sanitized[field] = "[REDACTED]";
@@ -563,14 +538,11 @@ export async function csvParserProcessor(
         }
 
         // Generare hash pentru deduplicare
-        const contentHash = createHash("sha256")
-          .update(JSON.stringify(record))
-          .digest("hex");
+        const contentHash = createHash("sha256").update(JSON.stringify(record)).digest("hex");
 
         // Verificare duplicat în Bronze
         const existing = await db.query.bronzeContacts.findFirst({
-          where: (bc, { eq, and }) =>
-            and(eq(bc.shopId, shopId), eq(bc.contentHash, contentHash)),
+          where: (bc, { eq, and }) => and(eq(bc.shopId, shopId), eq(bc.contentHash, contentHash)),
         });
 
         if (existing) {
@@ -822,8 +794,7 @@ export async function jsonParserProcessor(
   job: Job<JsonParserJobData>,
   logger: Logger,
 ): Promise<JsonParserResult> {
-  const { shopId, sourceType, sourceIdentifier, payload, correlationId } =
-    job.data;
+  const { shopId, sourceType, sourceIdentifier, payload, correlationId } = job.data;
   const startTime = Date.now();
 
   const result: JsonParserResult = {
@@ -857,9 +828,7 @@ export async function jsonParserProcessor(
 
       result.validation.schemaValid = valid;
       if (!valid) {
-        result.validation.errors = validate.errors?.map(
-          (e) => e.message || "Validation error",
-        );
+        result.validation.errors = validate.errors?.map((e) => e.message || "Validation error");
       }
     }
 
@@ -876,9 +845,7 @@ export async function jsonParserProcessor(
     }
 
     // Generare hash pentru deduplicare
-    const contentHash = createHash("sha256")
-      .update(JSON.stringify(payload))
-      .digest("hex");
+    const contentHash = createHash("sha256").update(JSON.stringify(payload)).digest("hex");
 
     // Insert în Bronze
     const bronzeId = uuidv4();
@@ -1048,14 +1015,7 @@ export async function pdfExtractorProcessor(
   job: Job<PdfExtractorJobData>,
   logger: Logger,
 ): Promise<PdfExtractorResult> {
-  const {
-    filePath,
-    fileName,
-    shopId,
-    sourceType,
-    extractionMode,
-    correlationId,
-  } = job.data;
+  const { filePath, fileName, shopId, sourceType, extractionMode, correlationId } = job.data;
   const startTime = Date.now();
 
   const result: PdfExtractorResult = {
@@ -1083,29 +1043,19 @@ export async function pdfExtractorProcessor(
 
     if (extractionMode === "table" || extractionMode === "auto") {
       // Încercare extragere tabele cu tabula-py
-      extractedData = await extractTablesFromPdf(
-        filePath,
-        job.data.tableConfig,
-        tempDir,
-        logger,
-      );
+      extractedData = await extractTablesFromPdf(filePath, job.data.tableConfig, tempDir, logger);
 
       if (extractedData.length > 0) {
         result.extractionMethod = "table";
         result.tables = extractedData.map((_, idx) => ({
           page: job.data.tableConfig?.pages?.[0] || 1,
-          rows: Array.isArray(extractedData[idx])
-            ? extractedData[idx].length
-            : 1,
+          rows: Array.isArray(extractedData[idx]) ? extractedData[idx].length : 1,
           columns: Object.keys(extractedData[idx] || {}).length,
         }));
       }
     }
 
-    if (
-      extractedData.length === 0 &&
-      (extractionMode === "text" || extractionMode === "auto")
-    ) {
+    if (extractedData.length === 0 && (extractionMode === "text" || extractionMode === "auto")) {
       // Fallback la extragere text
       const text = execSync(`pdftotext -layout "${filePath}" -`).toString();
       result.textLength = text.length;
@@ -1115,26 +1065,16 @@ export async function pdfExtractorProcessor(
       extractedData = parseStructuredText(text, sourceType);
     }
 
-    if (
-      extractedData.length === 0 &&
-      (extractionMode === "ocr" || extractionMode === "auto")
-    ) {
+    if (extractedData.length === 0 && (extractionMode === "ocr" || extractionMode === "auto")) {
       // Fallback la OCR
-      extractedData = await performOcr(
-        filePath,
-        job.data.ocrConfig,
-        tempDir,
-        logger,
-      );
+      extractedData = await performOcr(filePath, job.data.ocrConfig, tempDir, logger);
       result.extractionMethod = "ocr";
       result.ocrConfidence = 85; // Placeholder - calcul real din Tesseract
     }
 
     // Salvare în Bronze
     for (const record of extractedData) {
-      const contentHash = createHash("sha256")
-        .update(JSON.stringify(record))
-        .digest("hex");
+      const contentHash = createHash("sha256").update(JSON.stringify(record)).digest("hex");
 
       const bronzeId = uuidv4();
       await db.insert(bronzeContacts).values({
@@ -1184,9 +1124,7 @@ async function extractTablesFromPdf(
   const outputFile = path.join(tempDir, "tables.json");
 
   // Folosire tabula-java prin subprocess
-  const pagesArg = config?.pages
-    ? `--pages ${config.pages.join(",")}`
-    : "--pages all";
+  const pagesArg = config?.pages ? `--pages ${config.pages.join(",")}` : "--pages all";
 
   try {
     execSync(
@@ -1201,9 +1139,7 @@ async function extractTablesFromPdf(
     for (const table of tables) {
       const headers =
         config?.columnNames ||
-        (config?.hasHeader !== false
-          ? table[0]?.map((c: any) => c.text || `col_${c}`)
-          : null);
+        (config?.hasHeader !== false ? table[0]?.map((c: any) => c.text || `col_${c}`) : null);
 
       const startRow = headers && config?.hasHeader !== false ? 1 : 0;
 
@@ -1222,10 +1158,7 @@ async function extractTablesFromPdf(
 
     return records;
   } catch (error) {
-    logger.warn(
-      { error: error.message },
-      "Table extraction failed, falling back",
-    );
+    logger.warn({ error: error.message }, "Table extraction failed, falling back");
     return [];
   }
 }
@@ -1253,10 +1186,10 @@ async function performOcr(
 
   for (const imageFile of imageFiles) {
     const imagePath = path.join(tempDir, imageFile);
-    const ocrOutput = execSync(
-      `tesseract "${imagePath}" stdout -l ${lang} --psm 6`,
-      { timeout: 60000, encoding: "utf-8" },
-    );
+    const ocrOutput = execSync(`tesseract "${imagePath}" stdout -l ${lang} --psm 6`, {
+      timeout: 60000,
+      encoding: "utf-8",
+    });
     fullText += ocrOutput + "\n";
   }
 
@@ -1264,19 +1197,14 @@ async function performOcr(
   return parseStructuredText(fullText, "ocr");
 }
 
-function parseStructuredText(
-  text: string,
-  sourceType: string,
-): Record<string, any>[] {
+function parseStructuredText(text: string, sourceType: string): Record<string, any>[] {
   // Implementare specifică pentru fiecare tip de document
   const records: Record<string, any>[] = [];
 
   // Regex patterns pentru extragere date
   const cuiPattern = /(?:CUI|Cod Fiscal|C\.U\.I\.)[\s:]*(\d{2,10})/gi;
-  const numePattern =
-    /(?:Denumire|Nume|Firma)[\s:]*([A-ZĂÂÎȘȚa-zăâîșț\s\-\.]+)/gi;
-  const adresaPattern =
-    /(?:Adresa|Sediu)[\s:]*([A-Za-z0-9ĂÂÎȘȚăâîșțăâîșț\s,\.\-]+)/gi;
+  const numePattern = /(?:Denumire|Nume|Firma)[\s:]*([A-ZĂÂÎȘȚa-zăâîșț\s\-\.]+)/gi;
+  const adresaPattern = /(?:Adresa|Sediu)[\s:]*([A-Za-z0-9ĂÂÎȘȚăâîșțăâîșț\s,\.\-]+)/gi;
 
   // Extragere prin linii
   const lines = text.split("\n").filter((l) => l.trim());
@@ -1387,9 +1315,7 @@ export async function htmlScraperProcessor(
   });
 
   const context = await browser.newContext({
-    userAgent:
-      job.data.userAgent ||
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    userAgent: job.data.userAgent || "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
   });
 
   const page = await context.newPage();
@@ -1680,10 +1606,7 @@ export async function phoneNormProcessor(
       const nationalNumber = parsed.nationalNumber;
       if (nationalNumber.startsWith("7")) {
         result.phoneType = "mobile";
-      } else if (
-        nationalNumber.startsWith("2") ||
-        nationalNumber.startsWith("3")
-      ) {
+      } else if (nationalNumber.startsWith("2") || nationalNumber.startsWith("3")) {
         result.phoneType = "landline";
         result.areaCode = "0" + nationalNumber.substring(0, 2);
       }
@@ -1883,8 +1806,7 @@ interface CuiAnafResult {
 ```typescript
 import axios from "axios";
 
-const ANAF_API_URL =
-  "https://webservicesp.anaf.ro/PlatitorTvaRest/api/v9/ws/tva";
+const ANAF_API_URL = "https://webservicesp.anaf.ro/PlatitorTvaRest/api/v9/ws/tva";
 
 export async function cuiAnafProcessor(
   job: Job<CuiAnafJobData>,
@@ -1896,14 +1818,10 @@ export async function cuiAnafProcessor(
   const startTime = Date.now();
 
   try {
-    const response = await axios.post(
-      ANAF_API_URL,
-      [{ cui: parseInt(cui), data: date }],
-      {
-        headers: { "Content-Type": "application/json" },
-        timeout: 25000,
-      },
-    );
+    const response = await axios.post(ANAF_API_URL, [{ cui: parseInt(cui), data: date }], {
+      headers: { "Content-Type": "application/json" },
+      timeout: 25000,
+    });
 
     const apiResponseTime = Date.now() - startTime;
 
@@ -2460,12 +2378,7 @@ export async function emailDiscoveryProcessor(
   job: Job<EmailDiscoveryJobData>,
   logger: Logger,
 ): Promise<EmailDiscoveryResult> {
-  const {
-    domain,
-    firstName,
-    lastName,
-    fallbackProviders = ["hunter", "snov"],
-  } = job.data;
+  const { domain, firstName, lastName, fallbackProviders = ["hunter", "snov"] } = job.data;
 
   const result: EmailDiscoveryResult = {
     discovered: false,
@@ -2518,10 +2431,8 @@ export async function emailDiscoveryProcessor(
         const bestMatch = snovResult.emails
           .filter(
             (e: any) =>
-              (!firstName ||
-                e.firstName?.toLowerCase() === firstName.toLowerCase()) &&
-              (!lastName ||
-                e.lastName?.toLowerCase() === lastName.toLowerCase()),
+              (!firstName || e.firstName?.toLowerCase() === firstName.toLowerCase()) &&
+              (!lastName || e.lastName?.toLowerCase() === lastName.toLowerCase()),
           )
           .sort((a: any, b: any) => b.probability - a.probability)[0];
 
@@ -2553,11 +2464,7 @@ export async function emailDiscoveryProcessor(
   return result;
 }
 
-function generateEmailPatterns(
-  firstName: string,
-  lastName: string,
-  domain: string,
-): string[] {
+function generateEmailPatterns(firstName: string, lastName: string, domain: string): string[] {
   const f = firstName.toLowerCase();
   const l = lastName.toLowerCase();
 
@@ -2670,14 +2577,7 @@ interface EmailProviderResult {
 interface EmailRoleCheckResult {
   email: string;
   isGeneric: boolean;
-  roleType?:
-    | "office"
-    | "contact"
-    | "info"
-    | "support"
-    | "sales"
-    | "admin"
-    | "personal";
+  roleType?: "office" | "contact" | "info" | "support" | "sales" | "admin" | "personal";
   businessValue: "high" | "medium" | "low";
   recommendation: string;
 }
@@ -3612,12 +3512,7 @@ export async function orchestratorStartProcessor(
     name: `enrichment-${bronzeRecordId}`,
     queueName: "silver:merge:company",
     data: { bronzeRecordId, shopId, correlationId },
-    children: buildEnrichmentFlow(
-      enrichmentProfile,
-      bronzeRecordId,
-      shopId,
-      correlationId,
-    ),
+    children: buildEnrichmentFlow(enrichmentProfile, bronzeRecordId, shopId, correlationId),
   });
 
   return {
@@ -3978,19 +3873,14 @@ export function initTelemetry() {
     resource: new Resource({
       [SEMRESATTRS_SERVICE_NAME]: "cerniq-enrichment-workers",
       [SEMRESATTRS_SERVICE_VERSION]: process.env.APP_VERSION || "1.0.0",
-      [SEMRESATTRS_DEPLOYMENT_ENVIRONMENT]:
-        process.env.NODE_ENV || "development",
+      [SEMRESATTRS_DEPLOYMENT_ENVIRONMENT]: process.env.NODE_ENV || "development",
     }),
     traceExporter: new OTLPTraceExporter({
-      url:
-        process.env.OTEL_EXPORTER_OTLP_ENDPOINT ||
-        "http://signoz:4318/v1/traces",
+      url: process.env.OTEL_EXPORTER_OTLP_ENDPOINT || "http://signoz:4318/v1/traces",
     }),
     metricReader: new PeriodicExportingMetricReader({
       exporter: new OTLPMetricExporter({
-        url:
-          process.env.OTEL_EXPORTER_OTLP_ENDPOINT ||
-          "http://signoz:4318/v1/metrics",
+        url: process.env.OTEL_EXPORTER_OTLP_ENDPOINT || "http://signoz:4318/v1/metrics",
       }),
       exportIntervalMillis: 60000,
     }),

@@ -1,12 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { tenants } from "../src/schemas/tenants.js";
 import { users } from "../src/schemas/users.js";
-import {
-  roles,
-  permissions,
-  rolePermissions,
-  userRoles,
-} from "../src/schemas/rbac.js";
+import { roles, permissions, rolePermissions, userRoles } from "../src/schemas/rbac.js";
 import { approvalTasks, approvalTypeConfigs } from "../src/schemas/approval.js";
 import { approvalAuditLog } from "../src/schemas/audit.js";
 

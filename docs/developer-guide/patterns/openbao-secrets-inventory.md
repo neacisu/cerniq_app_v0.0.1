@@ -132,9 +132,7 @@ Never read directly from OpenBao in application code. Agents render to files; ap
 const dbPassword = process.env.DB_PASSWORD;
 
 // Or from file
-const secrets = JSON.parse(
-  fs.readFileSync("/opt/cerniq/runtime-secrets/api/config.json"),
-);
+const secrets = JSON.parse(fs.readFileSync("/opt/cerniq/runtime-secrets/api/config.json"));
 ```
 
 ---

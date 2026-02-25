@@ -1,12 +1,5 @@
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardBody,
-  Input,
-  SBadge,
-} from "@/components/ui/index.js";
+import { Card, CardHeader, CardTitle, CardBody, Input, SBadge } from "@/components/ui/index.js";
 import { ProgressBar } from "@/components/data/ProgressBar.js";
 import { MOCK_COMPANIES, COUNTIES } from "@/config/constants.js";
 
@@ -19,9 +12,7 @@ export function Bronze() {
     <PageWrapper title="Bronze Contacte">
       <div className="flex items-center gap-4 mb-6">
         <span className="text-sm text-[var(--color-t3)]">Calitate Medie:</span>
-        <span className="text-xl font-bold text-[var(--color-t1)]">
-          {avgQuality}%
-        </span>
+        <span className="text-xl font-bold text-[var(--color-t1)]">{avgQuality}%</span>
       </div>
 
       <div className="flex gap-4 mb-6">
@@ -57,13 +48,9 @@ export function Bronze() {
                   key={c.id}
                   className="border-b border-[var(--color-s700)] last:border-0 hover:bg-[var(--color-s800)]/50"
                 >
-                  <td className="px-5 py-3 font-medium text-[var(--color-t1)]">
-                    {c.name}
-                  </td>
+                  <td className="px-5 py-3 font-medium text-[var(--color-t1)]">{c.name}</td>
                   <td className="px-5 py-3 text-[var(--color-t2)]">{c.cui}</td>
-                  <td className="px-5 py-3 text-[var(--color-t2)]">
-                    {c.county}
-                  </td>
+                  <td className="px-5 py-3 text-[var(--color-t2)]">{c.county}</td>
                   <td className="px-5 py-3 w-32">
                     <ProgressBar value={c.quality} />
                   </td>

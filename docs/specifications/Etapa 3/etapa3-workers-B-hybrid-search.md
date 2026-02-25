@@ -266,10 +266,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
 });
 
-export const searchHybridExecuteWorker = new Worker<
-  HybridSearchJobData,
-  HybridSearchResult
->(
+export const searchHybridExecuteWorker = new Worker<HybridSearchJobData, HybridSearchResult>(
   QUEUE_NAME,
   async (job: Job<HybridSearchJobData>): Promise<HybridSearchResult> => {
     const startTime = Date.now();
@@ -388,8 +385,7 @@ export const searchHybridExecuteWorker = new Worker<
 
       return result;
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
       logger.error("Hybrid search failed", {
         jobId: job.id,
@@ -459,9 +455,7 @@ function buildFilterConditions(data: HybridSearchJobData): any[] {
     }
 
     if (f.categoryPath) {
-      conditions.push(
-        sql`${goldProducts.category_path} LIKE ${f.categoryPath + "%"}`,
-      );
+      conditions.push(sql`${goldProducts.category_path} LIKE ${f.categoryPath + "%"}`);
     }
 
     if (f.brand) {
@@ -513,9 +507,7 @@ async function executeVectorSearch(
       ),
     )
     .where(and(...filterConditions))
-    .orderBy(
-      sql`${goldProductEmbeddings.embedding} <=> ${embeddingString}::vector`,
-    )
+    .orderBy(sql`${goldProductEmbeddings.embedding} <=> ${embeddingString}::vector`)
     .limit(limit);
 
   return results;
@@ -617,18 +609,14 @@ function applyRRFFusion(
       rrfScore,
       vectorRank,
       bm25Rank,
-      vectorScore:
-        1 -
-        (vectorResults.find((r) => r.productId === productId)?.distance ?? 1),
+      vectorScore: 1 - (vectorResults.find((r) => r.productId === productId)?.distance ?? 1),
       bm25Score: bm25Results.find((r) => r.productId === productId)?.rank ?? 0,
       product,
     });
   }
 
   // Sort by RRF score
-  const sorted = [...rrfScores.entries()].sort(
-    (a, b) => b[1].rrfScore - a[1].rrfScore,
-  );
+  const sorted = [...rrfScores.entries()].sort((a, b) => b[1].rrfScore - a[1].rrfScore);
 
   // Map to SearchResultItem
   return sorted.map(([productId, data]) => ({
@@ -684,13 +672,11 @@ async function enrichWithChunks(
   // Enrich results
   return results.map((result) => ({
     ...result,
-    matchedChunks: (chunksByProduct.get(result.productId) ?? [])
-      .slice(0, 3)
-      .map((c) => ({
-        chunkId: c.chunkId,
-        content: c.content,
-        score: c.score,
-      })),
+    matchedChunks: (chunksByProduct.get(result.productId) ?? []).slice(0, 3).map((c) => ({
+      chunkId: c.chunkId,
+      content: c.content,
+      score: c.score,
+    })),
   }));
 }
 
@@ -769,9 +755,7 @@ export const QueryUnderstandJobDataSchema = z.object({
   correlationId: z.string().optional(),
 });
 
-export type QueryUnderstandJobData = z.infer<
-  typeof QueryUnderstandJobDataSchema
->;
+export type QueryUnderstandJobData = z.infer<typeof QueryUnderstandJobDataSchema>;
 
 export const QueryUnderstandResultSchema = z.object({
   success: z.boolean(),
@@ -788,14 +772,7 @@ export const QueryUnderstandResultSchema = z.object({
   intentConfidence: z.number().min(0).max(1),
   entities: z.array(
     z.object({
-      type: z.enum([
-        "product",
-        "category",
-        "brand",
-        "attribute",
-        "quantity",
-        "price",
-      ]),
+      type: z.enum(["product", "category", "brand", "attribute", "quantity", "price"]),
       value: z.string(),
       normalized: z.string().optional(),
       confidence: z.number().min(0).max(1),
@@ -882,34 +859,19 @@ export const searchQueryUnderstandWorker = new Worker<
       });
 
       // 2. Call LLM for intent and entity extraction
-      const llmResult = await analyzeQueryWithLLM(
-        data.query,
-        data.conversationContext,
-      );
+      const llmResult = await analyzeQueryWithLLM(data.query, data.conversationContext);
 
       // 3. Match entities to database
-      const enrichedEntities = await enrichEntities(
-        data.tenantId,
-        llmResult.entities,
-      );
+      const enrichedEntities = await enrichEntities(data.tenantId, llmResult.entities);
 
       // 4. Build filters from entities
-      const filters = buildFiltersFromEntities(
-        enrichedEntities,
-        data.userPreferences,
-      );
+      const filters = buildFiltersFromEntities(enrichedEntities, data.userPreferences);
 
       // 5. Expand query with synonyms
-      const { expandedQuery, synonymsUsed } = expandQueryWithSynonyms(
-        data.query,
-        enrichedEntities,
-      );
+      const { expandedQuery, synonymsUsed } = expandQueryWithSynonyms(data.query, enrichedEntities);
 
       // 6. Generate suggestions
-      const suggestedQueries = generateSuggestions(
-        data.query,
-        enrichedEntities,
-      );
+      const suggestedQueries = generateSuggestions(data.query, enrichedEntities);
 
       const result: QueryUnderstandResult = {
         success: true,
@@ -924,9 +886,7 @@ export const searchQueryUnderstandWorker = new Worker<
         duration_ms: Date.now() - startTime,
       };
 
-      metrics
-        .counter("queries_understood_total", { intent: llmResult.intent })
-        .inc();
+      metrics.counter("queries_understood_total", { intent: llmResult.intent }).inc();
       timer.observe(Date.now() - startTime);
 
       logger.info("Query understanding completed", {
@@ -938,8 +898,7 @@ export const searchQueryUnderstandWorker = new Worker<
 
       return result;
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
       logger.error("Query understanding failed", {
         jobId: job.id,
@@ -1094,10 +1053,7 @@ function buildFiltersFromEntities(
           // Simple heuristic: if contains "sub" or "maxim", set as max
           if (entity.value.includes("sub") || entity.value.includes("maxim")) {
             filters.priceMax = parseInt(priceMatch[1]);
-          } else if (
-            entity.value.includes("peste") ||
-            entity.value.includes("minim")
-          ) {
+          } else if (entity.value.includes("peste") || entity.value.includes("minim")) {
             filters.priceMin = parseInt(priceMatch[1]);
           }
         }
@@ -1159,10 +1115,7 @@ function expandQueryWithSynonyms(
 
 // Suggestion Generation
 
-function generateSuggestions(
-  query: string,
-  entities: EnrichedEntity[],
-): string[] {
+function generateSuggestions(query: string, entities: EnrichedEntity[]): string[] {
   const suggestions: string[] = [];
 
   // Category-specific suggestions
@@ -1259,11 +1212,7 @@ export type RerankResult = z.infer<typeof RerankResultSchema>;
 // packages/workers/src/etapa3/workers/search-rerank-cross-encoder.worker.ts
 
 import { Worker, Job } from "bullmq";
-import {
-  RerankJobData,
-  RerankJobDataSchema,
-  RerankResult,
-} from "../types/rerank.types";
+import { RerankJobData, RerankJobDataSchema, RerankResult } from "../types/rerank.types";
 import { redisConnection } from "@cerniq/shared/redis";
 import { logger } from "@cerniq/shared/logger";
 import { metrics } from "@cerniq/shared/metrics";
@@ -1287,10 +1236,7 @@ async function getRerankPipeline(model: string) {
   return rerankPipeline;
 }
 
-export const searchRerankCrossEncoderWorker = new Worker<
-  RerankJobData,
-  RerankResult
->(
+export const searchRerankCrossEncoderWorker = new Worker<RerankJobData, RerankResult>(
   QUEUE_NAME,
   async (job: Job<RerankJobData>): Promise<RerankResult> => {
     const startTime = Date.now();
@@ -1373,8 +1319,7 @@ export const searchRerankCrossEncoderWorker = new Worker<
 
       return result;
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
       logger.error("Reranking failed", {
         jobId: job.id,

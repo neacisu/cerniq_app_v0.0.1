@@ -1,13 +1,7 @@
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
 import { KpiCard } from "@/components/data/KpiCard.js";
 import { StatusDot } from "@/components/data/StatusDot.js";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardBody,
-  SBadge,
-} from "@/components/ui/index.js";
+import { Card, CardHeader, CardTitle, CardBody, SBadge } from "@/components/ui/index.js";
 import { cn } from "@/lib/utils.js";
 
 const kpis = [
@@ -146,14 +140,10 @@ export function Workers() {
                   <td className="px-5 py-3">
                     <span className="inline-flex items-center gap-2">
                       <StatusDot status={s.status} />
-                      <span className="font-medium text-[var(--color-t1)]">
-                        {s.name}
-                      </span>
+                      <span className="font-medium text-[var(--color-t1)]">{s.name}</span>
                     </span>
                   </td>
-                  <td className="px-5 py-3 text-[var(--color-t2)]">
-                    {s.detail}
-                  </td>
+                  <td className="px-5 py-3 text-[var(--color-t2)]">{s.detail}</td>
                   <td className="px-5 py-3 text-[var(--color-t2)]">
                     {s.latency}
                     {s.latency > 0 ? "ms" : ""}

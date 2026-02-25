@@ -32,30 +32,15 @@ export function AiDashboard() {
   return (
     <PageWrapper title="AI Sales Agent Dashboard">
       <div className="grid grid-cols-4 gap-4 mb-6 max-[900px]:grid-cols-2">
-        <KpiCard
-          label="Active Agents"
-          value="12"
-          icon="Bot"
-          color="var(--color-b5)"
-        />
-        <KpiCard
-          label="Win Rate"
-          value="34%"
-          icon="Target"
-          color="var(--color-ok)"
-        />
+        <KpiCard label="Active Agents" value="12" icon="Bot" color="var(--color-b5)" />
+        <KpiCard label="Win Rate" value="34%" icon="Target" color="var(--color-ok)" />
         <KpiCard
           label="Avg Deal"
           value="EUR 23K"
           icon="TrendingUp"
           color="var(--color-tier-gold)"
         />
-        <KpiCard
-          label="Revenue"
-          value="EUR 184K"
-          icon="Wallet"
-          color="var(--color-tier-silver)"
-        />
+        <KpiCard label="Revenue" value="EUR 184K" icon="Wallet" color="var(--color-tier-silver)" />
       </div>
 
       <div className="grid grid-cols-3 gap-4 max-[900px]:grid-cols-1">
@@ -82,9 +67,7 @@ export function AiDashboard() {
           <CardBody className="space-y-3">
             {MODELS.map((m) => (
               <div key={m.label} className="flex items-center gap-3">
-                <span className="text-xs text-[var(--color-t3)] w-20">
-                  {m.label}
-                </span>
+                <span className="text-xs text-[var(--color-t3)] w-20">{m.label}</span>
                 <ProgressBar value={m.value} max={100} />
               </div>
             ))}
@@ -97,10 +80,7 @@ export function AiDashboard() {
           <CardBody>
             <div className="space-y-2">
               {GUARDRAILS.map((g) => (
-                <div
-                  key={g.name}
-                  className={cn("flex items-center gap-2 text-sm")}
-                >
+                <div key={g.name} className={cn("flex items-center gap-2 text-sm")}>
                   <StatusDot status={g.status} />
                   <span className="text-[var(--color-t2)]">{g.name}</span>
                 </div>

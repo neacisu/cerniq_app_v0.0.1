@@ -1,11 +1,6 @@
 import { z } from "zod";
 
-export const TenantStatusSchema = z.enum([
-  "active",
-  "suspended",
-  "trial",
-  "cancelled",
-]);
+export const TenantStatusSchema = z.enum(["active", "suspended", "trial", "cancelled"]);
 export type TenantStatus = z.infer<typeof TenantStatusSchema>;
 
 export const TenantSchema = z.object({

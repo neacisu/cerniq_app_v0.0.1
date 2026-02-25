@@ -1,21 +1,12 @@
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
-import {
-  Button,
-  Card,
-  CardHeader,
-  CardTitle,
-  CardBody,
-} from "@/components/ui/index.js";
+import { Button, Card, CardHeader, CardTitle, CardBody } from "@/components/ui/index.js";
 import { ProgressBar } from "@/components/data/ProgressBar.js";
 import { MOCK_COMPANIES } from "@/config/constants.js";
 
-const goldLeads = MOCK_COMPANIES.filter((c) => c.tier === "gold").map(
-  (c, i) => ({
-    ...c,
-    contact:
-      ["Ion Popescu", "Maria Ionescu", "Adrian Niculescu"][i] ?? "Contact",
-  }),
-);
+const goldLeads = MOCK_COMPANIES.filter((c) => c.tier === "gold").map((c, i) => ({
+  ...c,
+  contact: ["Ion Popescu", "Maria Ionescu", "Adrian Niculescu"][i] ?? "Contact",
+}));
 
 export function Gold() {
   return (
@@ -42,18 +33,10 @@ export function Gold() {
                   key={c.id}
                   className="border-b border-[var(--color-s700)] last:border-0 hover:bg-[var(--color-s800)]/50"
                 >
-                  <td className="px-5 py-3 font-medium text-[var(--color-t1)]">
-                    {c.name}
-                  </td>
-                  <td className="px-5 py-3 text-[var(--color-t2)]">
-                    {c.contact}
-                  </td>
-                  <td className="px-5 py-3 text-[var(--color-t2)]">
-                    {c.county}
-                  </td>
-                  <td className="px-5 py-3 text-[var(--color-t2)]">
-                    {c.revenue}
-                  </td>
+                  <td className="px-5 py-3 font-medium text-[var(--color-t1)]">{c.name}</td>
+                  <td className="px-5 py-3 text-[var(--color-t2)]">{c.contact}</td>
+                  <td className="px-5 py-3 text-[var(--color-t2)]">{c.county}</td>
+                  <td className="px-5 py-3 text-[var(--color-t2)]">{c.revenue}</td>
                   <td className="px-5 py-3 w-28">
                     <ProgressBar value={c.score} />
                   </td>

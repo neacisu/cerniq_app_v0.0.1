@@ -170,17 +170,7 @@ P.3 (Promotion) ──────────────────▶ [Gold 
 const SEQUENTIAL_GROUP_1 = ["A.*", "B.*", "C.*"];
 
 // Grupa 2: Paralel (enrichment extern)
-const PARALLEL_GROUP_ENRICH = [
-  "D.*",
-  "E.*",
-  "F.*",
-  "G.*",
-  "H.*",
-  "I.*",
-  "J.*",
-  "K.*",
-  "L.*",
-];
+const PARALLEL_GROUP_ENRICH = ["D.*", "E.*", "F.*", "G.*", "H.*", "I.*", "J.*", "K.*", "L.*"];
 
 // Grupa 3: Secvențial post-enrichment
 const SEQUENTIAL_GROUP_2 = ["M.*", "N.*", "O.*", "P.*"];

@@ -42,30 +42,19 @@ export function Approvals() {
       {hasItems ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {MOCK_APPROVALS.map((a) => (
-            <Card
-              key={a.id}
-              className={cn("border-l-4", urgencyBorder[a.urgency])}
-            >
+            <Card key={a.id} className={cn("border-l-4", urgencyBorder[a.urgency])}>
               <CardBody>
                 <div className="flex justify-between items-start mb-3">
-                  <h3 className="font-semibold text-[var(--color-t1)]">
-                    {a.company}
-                  </h3>
+                  <h3 className="font-semibold text-[var(--color-t1)]">{a.company}</h3>
                   <Badge
                     variant={
-                      a.urgency === "HIGH"
-                        ? "error"
-                        : a.urgency === "MED"
-                          ? "warning"
-                          : "info"
+                      a.urgency === "HIGH" ? "error" : a.urgency === "MED" ? "warning" : "info"
                     }
                   >
                     {a.urgency}
                   </Badge>
                 </div>
-                <p className="text-sm text-[var(--color-t3)] mb-3">
-                  {a.reason}
-                </p>
+                <p className="text-sm text-[var(--color-t3)] mb-3">{a.reason}</p>
                 <ProgressBar value={a.confidence} />
                 <div className="flex gap-2">
                   <Button variant="success" size="sm" className="flex-1">
@@ -80,10 +69,7 @@ export function Approvals() {
           ))}
         </div>
       ) : (
-        <EmptyState
-          title="Inbox gol"
-          description="Nu există aprobări în așteptare."
-        />
+        <EmptyState title="Inbox gol" description="Nu există aprobări în așteptare." />
       )}
     </PageWrapper>
   );

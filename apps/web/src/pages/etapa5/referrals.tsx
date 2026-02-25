@@ -1,12 +1,7 @@
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
 import { EtapaBadge } from "@/components/brand/EtapaBadge.js";
 import { KpiCard } from "@/components/data/KpiCard.js";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardBody,
-} from "@/components/ui/index.js";
+import { Card, CardHeader, CardTitle, CardBody } from "@/components/ui/index.js";
 
 const kpis = [
   { label: "KOLs Active", value: "34", icon: "Users" },
@@ -53,12 +48,8 @@ export function Referrals() {
                   key={k.name}
                   className="flex justify-between items-center py-2 border-b border-[var(--color-s700)] last:border-0"
                 >
-                  <span className="font-medium text-[var(--color-t1)]">
-                    {k.name}
-                  </span>
-                  <span className="text-sm text-[var(--color-b5)]">
-                    {k.influence}% influence
-                  </span>
+                  <span className="font-medium text-[var(--color-t1)]">{k.name}</span>
+                  <span className="text-sm text-[var(--color-b5)]">{k.influence}% influence</span>
                 </div>
               ))}
             </div>
@@ -100,8 +91,7 @@ export function Referrals() {
             </div>
             <div className="flex gap-4 mt-3 text-xs">
               <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-[var(--color-b5)]" />{" "}
-                Active
+                <span className="w-2 h-2 rounded-full bg-[var(--color-b5)]" /> Active
               </span>
               <span className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full border-2 border-dashed border-[var(--color-s500)]" />{" "}

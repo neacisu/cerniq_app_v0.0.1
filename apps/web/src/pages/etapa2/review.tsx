@@ -41,29 +41,19 @@ export function Review() {
           {queue.map((item) => (
             <Card key={item.id}>
               <CardBody>
-                <p className="text-sm text-[var(--color-t2)] mb-2">
-                  → {item.contact}
-                </p>
+                <p className="text-sm text-[var(--color-t2)] mb-2">→ {item.contact}</p>
                 <p className="text-[var(--color-t1)] mb-3">{item.msg}</p>
                 <div className="p-3 rounded-[var(--radius-md)] bg-[var(--color-wa)]/10 border border-[var(--color-wa)]/30 text-sm text-[var(--color-wa)] mb-4">
                   {item.reason}
                 </div>
                 <div className="flex gap-2">
-                  <Button
-                    variant="success"
-                    size="sm"
-                    onClick={() => handleApprove(item.id)}
-                  >
+                  <Button variant="success" size="sm" onClick={() => handleApprove(item.id)}>
                     Aprobă & Trimite
                   </Button>
                   <Button variant="outline" size="sm">
                     Edit
                   </Button>
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    onClick={() => handleReject(item.id)}
-                  >
+                  <Button variant="danger" size="sm" onClick={() => handleReject(item.id)}>
                     Respinge
                   </Button>
                 </div>

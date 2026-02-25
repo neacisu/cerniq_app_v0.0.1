@@ -60,10 +60,8 @@ if (searchTerm) {
   );
 }
 
-if (filters.status)
-  whereClause = and(whereClause, eq(leads.status, filters.status));
-if (filters.region)
-  whereClause = and(whereClause, eq(companies.region, filters.region));
+if (filters.status) whereClause = and(whereClause, eq(leads.status, filters.status));
+if (filters.region) whereClause = and(whereClause, eq(companies.region, filters.region));
 ```
 
 ---
@@ -77,8 +75,7 @@ function buildLeadFilters(query: Record<string, string>) {
   const filters: SQL[] = [];
   if (query.status) filters.push(eq(leads.status, query.status));
   if (query.assignedTo) filters.push(eq(leads.assignedToId, query.assignedTo));
-  if (query.dateFrom)
-    filters.push(gte(leads.createdAt, new Date(query.dateFrom)));
+  if (query.dateFrom) filters.push(gte(leads.createdAt, new Date(query.dateFrom)));
   if (query.dateTo) filters.push(lte(leads.createdAt, new Date(query.dateTo)));
   return and(...filters);
 }

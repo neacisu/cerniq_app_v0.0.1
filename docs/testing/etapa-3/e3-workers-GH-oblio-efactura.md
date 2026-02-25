@@ -38,9 +38,7 @@ describe("e-Factura ANAF", () => {
   it("should generate UBL XML", () => {
     const xml = eFacturaService.generateUBL(invoiceData);
     expect(xml).toContain('<?xml version="1.0"');
-    expect(xml).toContain(
-      "urn:oasis:names:specification:ubl:schema:xsd:Invoice-2",
-    );
+    expect(xml).toContain("urn:oasis:names:specification:ubl:schema:xsd:Invoice-2");
   });
 
   it("should submit to SPV", async () => {
@@ -55,9 +53,7 @@ describe("e-Factura ANAF", () => {
 
   it("should check status", async () => {
     server.use(
-      http.get("https://api.anaf.ro/test/FCTEL/*", () =>
-        HttpResponse.json({ stare: "ok" }),
-      ),
+      http.get("https://api.anaf.ro/test/FCTEL/*", () => HttpResponse.json({ stare: "ok" })),
     );
     const status = await eFacturaService.checkStatus("12345");
     expect(status).toBe("ok");

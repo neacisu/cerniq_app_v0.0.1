@@ -10,21 +10,10 @@ interface KpiCardProps {
   onClick?: () => void;
 }
 
-export function KpiCard({
-  label,
-  value,
-  change,
-  icon,
-  color,
-  delay = 0,
-  onClick,
-}: KpiCardProps) {
+export function KpiCard({ label, value, change, icon, color, delay = 0, onClick }: KpiCardProps) {
   const IconComponent =
     (
-      Icons as unknown as Record<
-        string,
-        React.ComponentType<{ size?: number; className?: string }>
-      >
+      Icons as unknown as Record<string, React.ComponentType<{ size?: number; className?: string }>>
     )[icon] ?? Icons.Activity;
 
   return (
@@ -37,10 +26,7 @@ export function KpiCard({
       onClick={onClick}
     >
       <div className="flex ac jb" style={{ marginBottom: 12 }}>
-        <div
-          className="kib"
-          style={{ background: "oklch(0.70 0.18 72 / 20%)" }}
-        >
+        <div className="kib" style={{ background: "oklch(0.70 0.18 72 / 20%)" }}>
           <IconComponent size={16} className={color ? "" : "tb"} />
         </div>
         {change && (

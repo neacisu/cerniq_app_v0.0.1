@@ -8,20 +8,12 @@ export default [
   prettierConfig,
   {
     rules: {
-      "@typescript-eslint/no-unused-vars": [
-        "warn",
-        { argsIgnorePattern: "^_" },
-      ],
+      "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
       "@typescript-eslint/no-explicit-any": "warn",
       "@typescript-eslint/consistent-type-imports": "error",
     },
   },
   {
-    ignores: [
-      "**/dist/**",
-      "**/node_modules/**",
-      "**/.turbo/**",
-      "**/coverage/**",
-    ],
+    ignores: ["**/dist/**", "**/node_modules/**", "**/.turbo/**", "**/coverage/**"],
   },
 ];

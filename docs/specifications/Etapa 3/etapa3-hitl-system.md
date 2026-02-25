@@ -594,12 +594,7 @@ export interface HandoverEscalationContext {
   contactName: string;
 
   escalationReason: {
-    type:
-      | "complexity"
-      | "sentiment"
-      | "explicit_request"
-      | "guardrail"
-      | "error";
+    type: "complexity" | "sentiment" | "explicit_request" | "guardrail" | "error";
     description: string;
     aiAnalysis: string;
   };
@@ -661,10 +656,7 @@ export class SlaManager {
   /**
    * Get SLA configuration for approval type
    */
-  async getSlaConfig(
-    tenantId: string,
-    approvalType: string,
-  ): Promise<SlaConfiguration> {
+  async getSlaConfig(tenantId: string, approvalType: string): Promise<SlaConfiguration> {
     // Check tenant-specific override
     const tenantConfig = await this.slaConfigRepository.findOne({
       where: { tenantId, approvalType },
@@ -823,11 +815,7 @@ export class SlaManager {
   /**
    * Get SLA metrics for reporting
    */
-  async getSlaMetrics(
-    tenantId: string,
-    startDate: Date,
-    endDate: Date,
-  ): Promise<SlaMetrics> {
+  async getSlaMetrics(tenantId: string, startDate: Date, endDate: Date): Promise<SlaMetrics> {
     const approvals = await this.approvalRepository.find({
       where: {
         tenantId,
@@ -836,9 +824,7 @@ export class SlaManager {
     });
 
     const resolved = approvals.filter((a) => a.resolution);
-    const withinSla = resolved.filter(
-      (a) => a.resolution!.resolvedAt <= a.slaDeadline,
-    );
+    const withinSla = resolved.filter((a) => a.resolution!.resolvedAt <= a.slaDeadline);
 
     const responseTimes = resolved.map(
       (a) => a.resolution!.resolvedAt.getTime() - a.createdAt.getTime(),
@@ -850,8 +836,7 @@ export class SlaManager {
       pending: approvals.length - resolved.length,
       withinSla: withinSla.length,
       breached: resolved.length - withinSla.length,
-      complianceRate:
-        resolved.length > 0 ? (withinSla.length / resolved.length) * 100 : 100,
+      complianceRate: resolved.length > 0 ? (withinSla.length / resolved.length) * 100 : 100,
       averageResponseTime:
         responseTimes.length > 0
           ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length
@@ -871,10 +856,7 @@ export class SlaManager {
     return multipliers[priority] || 1.0;
   }
 
-  private getEffectiveStartTime(
-    createdAt: Date,
-    config: SlaConfiguration,
-  ): Date {
+  private getEffectiveStartTime(createdAt: Date, config: SlaConfiguration): Date {
     if (!config.businessHoursOnly) {
       return createdAt;
     }
@@ -914,11 +896,7 @@ export class SlaManager {
     return createdAt;
   }
 
-  private addBusinessSeconds(
-    start: Date,
-    seconds: number,
-    config: SlaConfiguration,
-  ): Date {
+  private addBusinessSeconds(start: Date, seconds: number, config: SlaConfiguration): Date {
     if (!config.businessHoursOnly) {
       return new Date(start.getTime() + seconds * 1000);
     }
@@ -932,10 +910,7 @@ export class SlaManager {
       const endOfDay = new Date(current);
       endOfDay.setHours(18, 0, 0, 0);
 
-      const secondsUntilEndOfDay = Math.max(
-        0,
-        (endOfDay.getTime() - current.getTime()) / 1000,
-      );
+      const secondsUntilEndOfDay = Math.max(0, (endOfDay.getTime() - current.getTime()) / 1000);
 
       if (remainingSeconds <= secondsUntilEndOfDay) {
         return new Date(current.getTime() + remainingSeconds * 1000);
@@ -961,9 +936,7 @@ export class SlaManager {
     if (values.length === 0) return 0;
     const sorted = [...values].sort((a, b) => a - b);
     const mid = Math.floor(sorted.length / 2);
-    return sorted.length % 2 !== 0
-      ? sorted[mid]
-      : (sorted[mid - 1] + sorted[mid]) / 2;
+    return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
   }
 
   private groupMetricsByType(approvals: HitlApproval[]): Record<string, any> {
@@ -995,8 +968,7 @@ export class SlaManager {
   }
 
   private getDefaultSlaConfig(approvalType: string): SlaConfiguration {
-    const defaults =
-      APPROVAL_TYPES[approvalType as ApprovalTypeCode]?.defaultSLA;
+    const defaults = APPROVAL_TYPES[approvalType as ApprovalTypeCode]?.defaultSLA;
     return {
       tenantId: "DEFAULT",
       approvalType,
@@ -1152,9 +1124,7 @@ export class EscalationManager {
     const currentLevel = approval.escalationLevel;
 
     if (currentLevel >= escalationPath.length - 1) {
-      this.logger.warn(
-        `Cannot escalate approval ${approvalId} further - max level reached`,
-      );
+      this.logger.warn(`Cannot escalate approval ${approvalId} further - max level reached`);
 
       // Handle max escalation - notify admins urgently
       await this.handleMaxEscalation(approval);
@@ -1180,9 +1150,7 @@ export class EscalationManager {
     );
 
     if (!targetUser) {
-      this.logger.warn(
-        `No available user for escalation at level ${nextLevel} (${targetRole})`,
-      );
+      this.logger.warn(`No available user for escalation at level ${nextLevel} (${targetRole})`);
 
       // Try next level if no user found
       if (nextLevel < escalationPath.length - 1) {
@@ -1209,10 +1177,7 @@ export class EscalationManager {
     // Update approval
     await this.approvalRepository.update(approvalId, {
       escalationLevel: nextLevel,
-      escalationHistory: [
-        ...(approval.escalationHistory || []),
-        escalationEvent,
-      ],
+      escalationHistory: [...(approval.escalationHistory || []), escalationEvent],
       status: "escalated",
       assignment: {
         userId: targetUser.id,
@@ -1220,23 +1185,17 @@ export class EscalationManager {
         assignedBy: requestedBy || "system",
       },
       // Extend SLA on escalation
-      slaDeadline: new Date(
-        Date.now() + this.getExtendedSlaTime(approval.type),
-      ),
+      slaDeadline: new Date(Date.now() + this.getExtendedSlaTime(approval.type)),
       slaStatus: "ok",
     });
 
     // Send notifications
-    await this.sendEscalationNotifications(
-      approval,
-      targetUser,
-      escalationEvent,
-    );
+    await this.sendEscalationNotifications(approval, targetUser, escalationEvent);
 
-    this.logger.log(
-      `Escalated approval ${approvalId} to level ${nextLevel} (${targetRole})`,
-      { targetUserId: targetUser.id, reason },
-    );
+    this.logger.log(`Escalated approval ${approvalId} to level ${nextLevel} (${targetRole})`, {
+      targetUserId: targetUser.id,
+      reason,
+    });
 
     return {
       success: true,
@@ -1246,9 +1205,7 @@ export class EscalationManager {
         name: targetUser.name,
         role: targetRole,
       },
-      newDeadline: new Date(
-        Date.now() + this.getExtendedSlaTime(approval.type),
-      ),
+      newDeadline: new Date(Date.now() + this.getExtendedSlaTime(approval.type)),
     };
   }
 
@@ -1417,10 +1374,10 @@ export class ApprovalQueueService {
       await this.assignmentManager.autoAssign(approval);
     }
 
-    this.logger.log(
-      `Created approval ${approval.id} of type ${approval.type}`,
-      { tenantId: data.tenantId, priority: data.priority },
-    );
+    this.logger.log(`Created approval ${approval.id} of type ${approval.type}`, {
+      tenantId: data.tenantId,
+      priority: data.priority,
+    });
 
     return approval;
   }
@@ -1428,10 +1385,7 @@ export class ApprovalQueueService {
   /**
    * Get queue for a user
    */
-  async getUserQueue(
-    userId: string,
-    filters?: QueueFilters,
-  ): Promise<ApprovalQueue> {
+  async getUserQueue(userId: string, filters?: QueueFilters): Promise<ApprovalQueue> {
     const where: any = {
       "assignment.userId": userId,
       status: In(["pending", "assigned", "in_review"]),
@@ -1457,9 +1411,7 @@ export class ApprovalQueueService {
     });
 
     // Group by urgency
-    const urgent = approvals.filter(
-      (a) => a.slaStatus === "warning" || a.slaStatus === "breached",
-    );
+    const urgent = approvals.filter((a) => a.slaStatus === "warning" || a.slaStatus === "breached");
     const normal = approvals.filter((a) => a.slaStatus === "ok");
 
     return {
@@ -1474,10 +1426,7 @@ export class ApprovalQueueService {
   /**
    * Get unassigned queue
    */
-  async getUnassignedQueue(
-    tenantId: string,
-    filters?: QueueFilters,
-  ): Promise<ApprovalQueue> {
+  async getUnassignedQueue(tenantId: string, filters?: QueueFilters): Promise<ApprovalQueue> {
     const where: any = {
       tenantId,
       status: "pending",
@@ -1594,9 +1543,7 @@ export class ApprovalQueueService {
     }
 
     if (!["pending", "assigned", "in_review"].includes(approval.status)) {
-      throw new Error(
-        `Approval ${approvalId} cannot be resolved - status: ${approval.status}`,
-      );
+      throw new Error(`Approval ${approvalId} cannot be resolved - status: ${approval.status}`);
     }
 
     // Update approval
@@ -1628,15 +1575,12 @@ export class ApprovalQueueService {
   /**
    * Execute configured auto-actions after resolution
    */
-  private async executePostResolutionActions(
-    approval: HitlApproval,
-  ): Promise<void> {
+  private async executePostResolutionActions(approval: HitlApproval): Promise<void> {
     const typeConfig = APPROVAL_TYPES[approval.type as ApprovalTypeCode];
     if (!typeConfig?.autoActions) return;
 
     const actionKey = `on${approval.resolution!.action.charAt(0).toUpperCase()}${approval.resolution!.action.slice(1)}`;
-    const action =
-      typeConfig.autoActions[actionKey as keyof typeof typeConfig.autoActions];
+    const action = typeConfig.autoActions[actionKey as keyof typeof typeConfig.autoActions];
 
     if (!action) return;
 
@@ -1751,16 +1695,10 @@ export class AssignmentManager {
     const typeConfig = APPROVAL_TYPES[approval.type as ApprovalTypeCode];
     const requiredRole = typeConfig?.requiredRole || "sales_rep";
 
-    const assignee = await this.findBestAssignee(
-      approval.tenantId,
-      approval.type,
-      requiredRole,
-    );
+    const assignee = await this.findBestAssignee(approval.tenantId, approval.type, requiredRole);
 
     if (!assignee) {
-      this.logger.warn(
-        `No available user for auto-assignment of approval ${approval.id}`,
-      );
+      this.logger.warn(`No available user for auto-assignment of approval ${approval.id}`);
       return null;
     }
 
@@ -1814,11 +1752,7 @@ export class AssignmentManager {
   /**
    * Manually assign approval to user
    */
-  async assignToUser(
-    approvalId: string,
-    userId: string,
-    assignedBy: string,
-  ): Promise<void> {
+  async assignToUser(approvalId: string, userId: string, assignedBy: string): Promise<void> {
     const approval = await this.approvalRepository.findOne({
       where: { id: approvalId },
     });
@@ -1869,10 +1803,7 @@ export class AssignmentManager {
   /**
    * Get eligible users for assignment
    */
-  private async getEligibleUsers(
-    tenantId: string,
-    requiredRole: string,
-  ): Promise<User[]> {
+  private async getEligibleUsers(tenantId: string, requiredRole: string): Promise<User[]> {
     const users = await this.userRepository.find({
       where: {
         tenantId,
@@ -1908,9 +1839,7 @@ export class AssignmentManager {
     }
 
     // Find next user in rotation
-    const lastIndex = users.findIndex(
-      (u) => u.id === lastAssignment.assignment!.userId,
-    );
+    const lastIndex = users.findIndex((u) => u.id === lastAssignment.assignment!.userId);
 
     const nextIndex = (lastIndex + 1) % users.length;
     return users[nextIndex];
@@ -1941,14 +1870,9 @@ export class AssignmentManager {
   /**
    * Expertise-based assignment
    */
-  private async expertiseBasedAssignment(
-    users: User[],
-    approvalType: string,
-  ): Promise<User> {
+  private async expertiseBasedAssignment(users: User[], approvalType: string): Promise<User> {
     // Get users with expertise in this type
-    const expertUsers = users.filter((user) =>
-      user.metadata?.expertise?.includes(approvalType),
-    );
+    const expertUsers = users.filter((user) => user.metadata?.expertise?.includes(approvalType));
 
     if (expertUsers.length > 0) {
       // Among experts, use least busy
@@ -2013,11 +1937,7 @@ export class AssignmentManager {
   }
 }
 
-type AssignmentStrategy =
-  | "round_robin"
-  | "least_busy"
-  | "expertise"
-  | "availability";
+type AssignmentStrategy = "round_robin" | "least_busy" | "expertise" | "availability";
 
 interface AssigneeOptions {
   excludeUserId?: string;
@@ -2499,9 +2419,7 @@ export class AuditTrailService {
   ) {
     this.signingKey = this.configService.get("AUDIT_SIGNING_KEY");
     if (!this.signingKey) {
-      throw new Error(
-        "AUDIT_SIGNING_KEY is required for audit trail integrity",
-      );
+      throw new Error("AUDIT_SIGNING_KEY is required for audit trail integrity");
     }
   }
 
@@ -2551,9 +2469,7 @@ export class AuditTrailService {
       eventType: params.eventType,
     });
 
-    this.logger.debug(
-      `Audit log created: ${params.eventType} for approval ${params.approvalId}`,
-    );
+    this.logger.debug(`Audit log created: ${params.eventType} for approval ${params.approvalId}`);
 
     return saved;
   }
@@ -2695,10 +2611,7 @@ export class AuditTrailService {
       }
 
       // Verifică chain
-      if (
-        expectedPreviousHash !== null &&
-        entry.previousHash !== expectedPreviousHash
-      ) {
+      if (expectedPreviousHash !== null && entry.previousHash !== expectedPreviousHash) {
         if (!brokenChainAt) {
           brokenChainAt = entry.id;
         }
@@ -2845,10 +2758,7 @@ export class AuditTrailService {
    * Generează descriere human-readable pentru eveniment
    */
   private getEventDescription(log: AuditLogEntity): string {
-    const descriptions: Record<
-      AuditEventType,
-      (log: AuditLogEntity) => string
-    > = {
+    const descriptions: Record<AuditEventType, (log: AuditLogEntity) => string> = {
       [AuditEventType.APPROVAL_CREATED]: (l) =>
         `Aprobare creată pentru ${l.eventData.approvalType}`,
       [AuditEventType.APPROVAL_ASSIGNED]: (l) =>
@@ -2860,15 +2770,12 @@ export class AuditTrailService {
         `Aprobare acceptată${l.eventData.notes ? `: ${l.eventData.notes}` : ""}`,
       [AuditEventType.APPROVAL_REJECTED]: (l) =>
         `Aprobare respinsă: ${l.eventData.reason || "fără motiv specificat"}`,
-      [AuditEventType.APPROVAL_EXPIRED]: () =>
-        "Aprobare expirată (SLA depășit)",
+      [AuditEventType.APPROVAL_EXPIRED]: () => "Aprobare expirată (SLA depășit)",
       [AuditEventType.APPROVAL_CANCELLED]: (l) =>
         `Aprobare anulată: ${l.eventData.reason || "fără motiv specificat"}`,
-      [AuditEventType.SLA_WARNING]: (l) =>
-        `Avertizare SLA: ${l.eventData.timeRemaining} rămas`,
+      [AuditEventType.SLA_WARNING]: (l) => `Avertizare SLA: ${l.eventData.timeRemaining} rămas`,
       [AuditEventType.SLA_BREACH]: () => "SLA depășit",
-      [AuditEventType.SLA_EXTENDED]: (l) =>
-        `SLA extins cu ${l.eventData.extensionMinutes} minute`,
+      [AuditEventType.SLA_EXTENDED]: (l) => `SLA extins cu ${l.eventData.extensionMinutes} minute`,
       [AuditEventType.ESCALATION_TRIGGERED]: (l) =>
         `Escaladare automată la nivel ${l.eventData.newLevel}`,
       [AuditEventType.ESCALATION_MANUAL]: (l) =>
@@ -2879,22 +2786,17 @@ export class AuditTrailService {
         `Comentariu adăugat${l.eventData.hasMentions ? " (cu mențiuni)" : ""}`,
       [AuditEventType.COMMENT_EDITED]: () => "Comentariu editat",
       [AuditEventType.COMMENT_DELETED]: () => "Comentariu șters",
-      [AuditEventType.ATTACHMENT_UPLOADED]: (l) =>
-        `Fișier atașat: ${l.eventData.fileName}`,
-      [AuditEventType.ATTACHMENT_DOWNLOADED]: (l) =>
-        `Fișier descărcat: ${l.eventData.fileName}`,
-      [AuditEventType.ATTACHMENT_DELETED]: (l) =>
-        `Fișier șters: ${l.eventData.fileName}`,
-      [AuditEventType.CONTEXT_ACCESSED]: (l) =>
-        `Context accesat: ${l.eventData.contextType}`,
+      [AuditEventType.ATTACHMENT_UPLOADED]: (l) => `Fișier atașat: ${l.eventData.fileName}`,
+      [AuditEventType.ATTACHMENT_DOWNLOADED]: (l) => `Fișier descărcat: ${l.eventData.fileName}`,
+      [AuditEventType.ATTACHMENT_DELETED]: (l) => `Fișier șters: ${l.eventData.fileName}`,
+      [AuditEventType.CONTEXT_ACCESSED]: (l) => `Context accesat: ${l.eventData.contextType}`,
       [AuditEventType.SENSITIVE_DATA_VIEWED]: (l) =>
         `Date sensibile vizualizate: ${l.eventData.dataType}`,
       [AuditEventType.SLA_CONFIG_CHANGED]: (l) =>
         `Configurare SLA modificată pentru ${l.eventData.approvalType}`,
       [AuditEventType.ASSIGNMENT_STRATEGY_CHANGED]: (l) =>
         `Strategie asignare schimbată la ${l.eventData.newStrategy}`,
-      [AuditEventType.NOTIFICATION_CONFIG_CHANGED]: () =>
-        "Configurare notificări modificată",
+      [AuditEventType.NOTIFICATION_CONFIG_CHANGED]: () => "Configurare notificări modificată",
     };
 
     const descFn = descriptions[log.eventType];
@@ -2904,22 +2806,12 @@ export class AuditTrailService {
   /**
    * Sanitizează detaliile pentru afișare (elimină date sensibile)
    */
-  private sanitizeDetails(
-    data: Record<string, unknown>,
-  ): Record<string, unknown> {
-    const sensitiveKeys = [
-      "password",
-      "token",
-      "secret",
-      "apiKey",
-      "creditCard",
-    ];
+  private sanitizeDetails(data: Record<string, unknown>): Record<string, unknown> {
+    const sensitiveKeys = ["password", "token", "secret", "apiKey", "creditCard"];
     const sanitized = { ...data };
 
     for (const key of Object.keys(sanitized)) {
-      if (
-        sensitiveKeys.some((sk) => key.toLowerCase().includes(sk.toLowerCase()))
-      ) {
+      if (sensitiveKeys.some((sk) => key.toLowerCase().includes(sk.toLowerCase()))) {
         sanitized[key] = "[REDACTED]";
       }
     }
@@ -2988,13 +2880,7 @@ export class ComplianceReportService {
     approvalTypes?: ApprovalType[];
     groupBy?: "day" | "week" | "month" | "type" | "assignee";
   }): Promise<SlaComplianceReport> {
-    const {
-      tenantId,
-      startDate,
-      endDate,
-      approvalTypes,
-      groupBy = "day",
-    } = params;
+    const { tenantId, startDate, endDate, approvalTypes, groupBy = "day" } = params;
 
     // Obține toate aprobările din perioada specificată
     const query = this.approvalRepo
@@ -3005,11 +2891,7 @@ export class ComplianceReportService {
         endDate,
       })
       .andWhere("approval.status IN (:...statuses)", {
-        statuses: [
-          ApprovalStatus.APPROVED,
-          ApprovalStatus.REJECTED,
-          ApprovalStatus.EXPIRED,
-        ],
+        statuses: [ApprovalStatus.APPROVED, ApprovalStatus.REJECTED, ApprovalStatus.EXPIRED],
       });
 
     if (approvalTypes?.length) {
@@ -3020,18 +2902,12 @@ export class ComplianceReportService {
 
     // Calculează metrici
     const totalApprovals = approvals.length;
-    const withinSla = approvals.filter(
-      (a) => a.resolvedAt && a.resolvedAt <= a.slaDeadline,
-    ).length;
+    const withinSla = approvals.filter((a) => a.resolvedAt && a.resolvedAt <= a.slaDeadline).length;
     const breached = approvals.filter((a) => a.slaStatus === "breached").length;
-    const expired = approvals.filter(
-      (a) => a.status === ApprovalStatus.EXPIRED,
-    ).length;
+    const expired = approvals.filter((a) => a.status === ApprovalStatus.EXPIRED).length;
 
     const complianceRate =
-      totalApprovals > 0
-        ? Math.round((withinSla / totalApprovals) * 10000) / 100
-        : 100;
+      totalApprovals > 0 ? Math.round((withinSla / totalApprovals) * 10000) / 100 : 100;
 
     // Calculează timp mediu de răspuns
     const responseTimes = approvals
@@ -3040,9 +2916,7 @@ export class ComplianceReportService {
 
     const avgResponseTime =
       responseTimes.length > 0
-        ? Math.round(
-            responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length,
-          )
+        ? Math.round(responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length)
         : 0;
 
     // Grupează după criteriu
@@ -3072,14 +2946,10 @@ export class ComplianceReportService {
       trends: {
         previousPeriod: previousMonth,
         changePercent: previousMonth.complianceRate
-          ? Math.round((complianceRate - previousMonth.complianceRate) * 100) /
-            100
+          ? Math.round((complianceRate - previousMonth.complianceRate) * 100) / 100
           : null,
       },
-      recommendations: this.generateSlaRecommendations(
-        complianceRate,
-        bottlenecks,
-      ),
+      recommendations: this.generateSlaRecommendations(complianceRate, bottlenecks),
     };
   }
 
@@ -3094,14 +2964,7 @@ export class ComplianceReportService {
     userId?: string;
     includeDetails?: boolean;
   }): Promise<ApprovalAuditReport> {
-    const {
-      tenantId,
-      startDate,
-      endDate,
-      approvalId,
-      userId,
-      includeDetails = true,
-    } = params;
+    const { tenantId, startDate, endDate, approvalId, userId, includeDetails = true } = params;
 
     // Obține log-urile de audit
     const auditQuery = this.auditRepo
@@ -3120,14 +2983,11 @@ export class ComplianceReportService {
       auditQuery.andWhere("audit.userId = :userId", { userId });
     }
 
-    const auditLogs = await auditQuery
-      .orderBy("audit.createdAt", "DESC")
-      .getMany();
+    const auditLogs = await auditQuery.orderBy("audit.createdAt", "DESC").getMany();
 
     // Agregă statistici
     const eventCounts: Record<AuditEventType, number> = {} as any;
-    const userActivity: Record<string, { count: number; lastActivity: Date }> =
-      {};
+    const userActivity: Record<string, { count: number; lastActivity: Date }> = {};
     const approvalEvents: Record<string, AuditLogEntity[]> = {};
 
     for (const log of auditLogs) {
@@ -3155,11 +3015,7 @@ export class ComplianceReportService {
     }
 
     // Verifică integritatea chain-ului
-    const chainIntegrity = await this.verifyChainIntegrity(
-      tenantId,
-      startDate,
-      endDate,
-    );
+    const chainIntegrity = await this.verifyChainIntegrity(tenantId, startDate, endDate);
 
     return {
       reportType: ComplianceReportType.APPROVAL_AUDIT,
@@ -3288,17 +3144,13 @@ export class ComplianceReportService {
 
         userStats[userId].avgResponseTimeMs =
           responseTimes.length > 0
-            ? Math.round(
-                responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length,
-              )
+            ? Math.round(responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length)
             : 0;
       }
     }
 
     // Sortează după activitate
-    const sortedUsers = Object.values(userStats).sort(
-      (a, b) => b.totalActions - a.totalActions,
-    );
+    const sortedUsers = Object.values(userStats).sort((a, b) => b.totalActions - a.totalActions);
 
     return {
       reportType: ComplianceReportType.USER_ACTIVITY,
@@ -3316,15 +3168,13 @@ export class ComplianceReportService {
         avgActionsPerUser:
           sortedUsers.length > 0
             ? Math.round(
-                sortedUsers.reduce((sum, u) => sum + u.totalActions, 0) /
-                  sortedUsers.length,
+                sortedUsers.reduce((sum, u) => sum + u.totalActions, 0) / sortedUsers.length,
               )
             : 0,
         avgResponseTime:
           sortedUsers.length > 0
             ? Math.round(
-                sortedUsers.reduce((sum, u) => sum + u.avgResponseTimeMs, 0) /
-                  sortedUsers.length,
+                sortedUsers.reduce((sum, u) => sum + u.avgResponseTimeMs, 0) / sortedUsers.length,
               )
             : 0,
       },
@@ -3345,10 +3195,7 @@ export class ComplianceReportService {
     const sensitiveAccess = await this.auditRepo.find({
       where: {
         tenantId,
-        eventType: In([
-          AuditEventType.SENSITIVE_DATA_VIEWED,
-          AuditEventType.CONTEXT_ACCESSED,
-        ]),
+        eventType: In([AuditEventType.SENSITIVE_DATA_VIEWED, AuditEventType.CONTEXT_ACCESSED]),
         createdAt: Between(startDate, endDate),
       },
     });
@@ -3384,11 +3231,7 @@ export class ComplianceReportService {
     }
 
     // Verifică baza legală (Art. 6 GDPR)
-    const legalBasis = await this.getLegalBasisStats(
-      tenantId,
-      startDate,
-      endDate,
-    );
+    const legalBasis = await this.getLegalBasisStats(tenantId, startDate, endDate);
 
     // Data retention checks
     const retentionIssues = await this.checkDataRetention(tenantId);
@@ -3445,8 +3288,7 @@ export class ComplianceReportService {
         break;
       case ExportFormat.XLSX:
         buffer = await this.exportService.toXlsx(report);
-        contentType =
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+        contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
         break;
       case ExportFormat.CSV:
         buffer = await this.exportService.toCsv(report);
@@ -3487,10 +3329,7 @@ export class ComplianceReportService {
     withinSla: number;
     breached: number;
   }> {
-    const groups: Record<
-      string,
-      { count: number; withinSla: number; breached: number }
-    > = {};
+    const groups: Record<string, { count: number; withinSla: number; breached: number }> = {};
 
     for (const approval of approvals) {
       let groupKey: string;
@@ -3575,12 +3414,9 @@ export class ComplianceReportService {
     // Verifică utilizatori supraîncărcați
     const byAssignee: Record<string, number> = {};
 
-    for (const approval of approvals.filter(
-      (a) => a.slaStatus === "breached",
-    )) {
+    for (const approval of approvals.filter((a) => a.slaStatus === "breached")) {
       if (approval.assignedToId) {
-        byAssignee[approval.assignedToId] =
-          (byAssignee[approval.assignedToId] || 0) + 1;
+        byAssignee[approval.assignedToId] = (byAssignee[approval.assignedToId] || 0) + 1;
       }
     }
 
@@ -3590,8 +3426,7 @@ export class ComplianceReportService {
           type: "overloaded_user",
           description: `Utilizatorul ${assigneeId} are ${breachCount} breach-uri SLA`,
           severity: breachCount > 10 ? "high" : "medium",
-          recommendation:
-            "Redistribuiți sarcinile sau ajustați strategia de asignare",
+          recommendation: "Redistribuiți sarcinile sau ajustați strategia de asignare",
         });
       }
     }
@@ -3612,23 +3447,14 @@ export class ComplianceReportService {
   /**
    * Helper: Generare recomandări SLA
    */
-  private generateSlaRecommendations(
-    complianceRate: number,
-    bottlenecks: any[],
-  ): string[] {
+  private generateSlaRecommendations(complianceRate: number, bottlenecks: any[]): string[] {
     const recommendations: string[] = [];
 
     if (complianceRate < 90) {
-      recommendations.push(
-        "Rata de conformitate SLA este sub 90%. Luați în considerare:",
-      );
-      recommendations.push(
-        "- Revizuirea timpilor SLA pentru tipurile problematice",
-      );
+      recommendations.push("Rata de conformitate SLA este sub 90%. Luați în considerare:");
+      recommendations.push("- Revizuirea timpilor SLA pentru tipurile problematice");
       recommendations.push("- Alocarea mai multor resurse pentru procesare");
-      recommendations.push(
-        "- Implementarea de automatizări pentru aprobări simple",
-      );
+      recommendations.push("- Implementarea de automatizări pentru aprobări simple");
     }
 
     if (bottlenecks.some((b) => b.type === "overloaded_user")) {
@@ -3638,9 +3464,7 @@ export class ComplianceReportService {
     }
 
     if (recommendations.length === 0) {
-      recommendations.push(
-        "Performanța SLA este bună. Continuați monitorizarea regulată.",
-      );
+      recommendations.push("Performanța SLA este bună. Continuați monitorizarea regulată.");
     }
 
     return recommendations;
@@ -3874,9 +3698,7 @@ export class DataRetentionService {
         archivedAt: new Date(),
       }));
 
-      const compressedData = await this.compressionService.compress(
-        JSON.stringify(archiveData),
-      );
+      const compressedData = await this.compressionService.compress(JSON.stringify(archiveData));
 
       // Upload la storage
       const archivePath = `archives/${tenantId}/approvals/${format(cutoffDate, "yyyy/MM")}/${job.id}.json.gz`;
@@ -3901,9 +3723,7 @@ export class DataRetentionService {
         archiveSize: compressedData.length,
       });
 
-      this.logger.log(
-        `Archived ${toArchive.length} approvals for tenant ${tenantId}`,
-      );
+      this.logger.log(`Archived ${toArchive.length} approvals for tenant ${tenantId}`);
 
       // Verifică dacă trebuie șterse înregistrări vechi
       const deletedCount = await this.deleteExpiredApprovals(tenantId);
@@ -3944,9 +3764,7 @@ export class DataRetentionService {
       await this.approvalRepo.delete(batch);
     }
 
-    this.logger.log(
-      `Deleted ${toDelete.length} expired approvals for tenant ${tenantId}`,
-    );
+    this.logger.log(`Deleted ${toDelete.length} expired approvals for tenant ${tenantId}`);
     return toDelete.length;
   }
 
@@ -3987,9 +3805,7 @@ export class DataRetentionService {
         // Păstrăm hash și signature pentru verificare ulterioară
       }));
 
-      const compressedData = await this.compressionService.compress(
-        JSON.stringify(archiveData),
-      );
+      const compressedData = await this.compressionService.compress(JSON.stringify(archiveData));
 
       const archivePath = `archives/${tenantId}/audit/${format(cutoffDate, "yyyy/MM")}/${job.id}.json.gz`;
       await this.storageService.upload({
@@ -4041,9 +3857,7 @@ export class DataRetentionService {
     }
 
     // Download și decompress
-    const compressedData = await this.storageService.download(
-      archiveJob.archivePath,
-    );
+    const compressedData = await this.storageService.download(archiveJob.archivePath);
     const jsonData = await this.compressionService.decompress(compressedData);
     const records = JSON.parse(jsonData);
 
@@ -4070,9 +3884,7 @@ export class DataRetentionService {
         break;
     }
 
-    this.logger.log(
-      `Restored ${restoredCount} records from archive ${archiveJobId}`,
-    );
+    this.logger.log(`Restored ${restoredCount} records from archive ${archiveJobId}`);
 
     return { restoredCount };
   }
@@ -4092,9 +3904,7 @@ export class DataRetentionService {
     });
 
     const approvalCutoff = new Date(now);
-    approvalCutoff.setDate(
-      approvalCutoff.getDate() - RetentionPolicies.approvals.active,
-    );
+    approvalCutoff.setDate(approvalCutoff.getDate() - RetentionPolicies.approvals.active);
     const approvalsPendingArchive = await this.approvalRepo.count({
       where: {
         tenantId,
@@ -4110,9 +3920,7 @@ export class DataRetentionService {
     });
 
     const auditCutoff = new Date(now);
-    auditCutoff.setDate(
-      auditCutoff.getDate() - RetentionPolicies.auditLogs.active,
-    );
+    auditCutoff.setDate(auditCutoff.getDate() - RetentionPolicies.auditLogs.active);
     const auditPendingArchive = await this.auditRepo.count({
       where: {
         tenantId,
@@ -4126,10 +3934,7 @@ export class DataRetentionService {
       where: { tenantId, status: ArchiveStatus.COMPLETED },
     });
 
-    const totalArchiveSize = archiveJobs.reduce(
-      (sum, job) => sum + (job.archiveSizeBytes || 0),
-      0,
-    );
+    const totalArchiveSize = archiveJobs.reduce((sum, job) => sum + (job.archiveSizeBytes || 0), 0);
 
     return {
       approvals: {
@@ -4153,9 +3958,8 @@ export class DataRetentionService {
       },
       lastArchiveRun:
         archiveJobs.length > 0
-          ? archiveJobs.sort(
-              (a, b) => b.completedAt.getTime() - a.completedAt.getTime(),
-            )[0].completedAt
+          ? archiveJobs.sort((a, b) => b.completedAt.getTime() - a.completedAt.getTime())[0]
+              .completedAt
           : null,
     };
   }
@@ -7892,10 +7696,7 @@ const defaultQueueOptions = {
 /**
  * Queue Factory
  */
-export function createHITLQueue(
-  name: string,
-  options?: Partial<typeof defaultQueueOptions>,
-) {
+export function createHITLQueue(name: string, options?: Partial<typeof defaultQueueOptions>) {
   return new Queue(name, {
     ...defaultQueueOptions,
     ...options,
@@ -8092,9 +7893,7 @@ export const slaWarningWorker = new Worker<SlaJob>(
     }
 
     // Check if already resolved
-    if (
-      ["approved", "rejected", "expired", "cancelled"].includes(approval.status)
-    ) {
+    if (["approved", "rejected", "expired", "cancelled"].includes(approval.status)) {
       logger.info(`Approval ${approvalId} already resolved, skipping warning`);
       return { skipped: true, reason: "already_resolved" };
     }
@@ -8165,10 +7964,7 @@ export const slaDeadlineWorker = new Worker<SlaJob>(
     const approvalRepo = new ApprovalRepository();
     const approval = await approvalRepo.findById(approvalId, tenantId);
 
-    if (
-      !approval ||
-      ["approved", "rejected", "expired", "cancelled"].includes(approval.status)
-    ) {
+    if (!approval || ["approved", "rejected", "expired", "cancelled"].includes(approval.status)) {
       return { skipped: true, reason: "already_resolved" };
     }
 
@@ -8205,10 +8001,7 @@ export const slaDeadlineWorker = new Worker<SlaJob>(
     }
 
     // Auto-escalate if configured
-    if (
-      config.autoEscalateOnBreach &&
-      approval.escalationLevel < approval.maxEscalationLevel
-    ) {
+    if (config.autoEscalateOnBreach && approval.escalationLevel < approval.maxEscalationLevel) {
       const escalationJob: EscalationJob = {
         approvalId,
         tenantId,
@@ -8247,10 +8040,7 @@ export const slaCriticalWorker = new Worker<SlaJob>(
     const approvalRepo = new ApprovalRepository();
     const approval = await approvalRepo.findById(approvalId, tenantId);
 
-    if (
-      !approval ||
-      ["approved", "rejected", "expired", "cancelled"].includes(approval.status)
-    ) {
+    if (!approval || ["approved", "rejected", "expired", "cancelled"].includes(approval.status)) {
       return { skipped: true, reason: "already_resolved" };
     }
 
@@ -8365,8 +8155,7 @@ const logger = new Logger("HITL:Escalation:Worker");
 export const escalationProcessWorker = new Worker<EscalationJob>(
   HITLQueues.ESCALATION_PROCESS,
   async (job: Job<EscalationJob>) => {
-    const { approvalId, tenantId, reason, currentLevel, triggeredBy } =
-      job.data;
+    const { approvalId, tenantId, reason, currentLevel, triggeredBy } = job.data;
 
     logger.info(
       `Processing escalation for approval ${approvalId}, level ${currentLevel} -> ${currentLevel + 1}`,
@@ -8383,9 +8172,7 @@ export const escalationProcessWorker = new Worker<EscalationJob>(
     }
 
     // Check if already resolved
-    if (
-      ["approved", "rejected", "expired", "cancelled"].includes(approval.status)
-    ) {
+    if (["approved", "rejected", "expired", "cancelled"].includes(approval.status)) {
       return { skipped: true, reason: "already_resolved" };
     }
 
@@ -8467,10 +8254,7 @@ export const escalationProcessWorker = new Worker<EscalationJob>(
     };
 
     // Update approval
-    const updatedEscalationHistory = [
-      ...approval.escalationHistory,
-      escalationEvent,
-    ];
+    const updatedEscalationHistory = [...approval.escalationHistory, escalationEvent];
 
     await approvalRepo.update(approvalId, tenantId, {
       escalationLevel: newLevel,
@@ -8482,9 +8266,7 @@ export const escalationProcessWorker = new Worker<EscalationJob>(
 
     // Extend SLA deadline by 50%
     const slaExtension = Math.floor(
-      (new Date(approval.deadlineAt).getTime() -
-        new Date(approval.createdAt).getTime()) *
-        0.5,
+      (new Date(approval.deadlineAt).getTime() - new Date(approval.createdAt).getTime()) * 0.5,
     );
     const newDeadline = new Date(Date.now() + slaExtension);
 
@@ -8616,16 +8398,8 @@ const logger = new Logger("HITL:Notification:Worker");
 export const notificationSendWorker = new Worker<NotificationJob>(
   HITLQueues.NOTIFICATION_SEND,
   async (job: Job<NotificationJob>) => {
-    const {
-      tenantId,
-      userId,
-      channel,
-      templateId,
-      data,
-      priority,
-      contextType,
-      contextId,
-    } = job.data;
+    const { tenantId, userId, channel, templateId, data, priority, contextType, contextId } =
+      job.data;
 
     logger.debug(`Sending ${channel} notification to user ${userId}`, {
       templateId,
@@ -8706,9 +8480,7 @@ export const notificationSendWorker = new Worker<NotificationJob>(
         providerResponse: result.response,
       });
 
-      logger.info(
-        `Notification ${notification.id} sent successfully via ${channel}`,
-      );
+      logger.info(`Notification ${notification.id} sent successfully via ${channel}`);
 
       return { success: true, notificationId: notification.id, channel };
     } catch (error) {
@@ -8940,17 +8712,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { Type, Static } from "@sinclair/typebox";
 import { db } from "@/db";
 import { approvals, users } from "@/db/schema";
-import {
-  eq,
-  and,
-  or,
-  gte,
-  lte,
-  ilike,
-  inArray,
-  isNull,
-  sql,
-} from "drizzle-orm";
+import { eq, and, or, gte, lte, ilike, inArray, isNull, sql } from "drizzle-orm";
 
 // Query Parameters Schema
 const ListApprovalsQuerySchema = Type.Object({
@@ -9123,9 +8885,7 @@ export async function listApprovalsHandler(
 
   // Status filter
   if (!query.includeResolved) {
-    conditions.push(
-      inArray(approvals.status, ["pending", "assigned", "escalated"]),
-    );
+    conditions.push(inArray(approvals.status, ["pending", "assigned", "escalated"]));
   }
 
   // Type filter
@@ -9197,9 +8957,7 @@ export async function listApprovalsHandler(
   const sortColumn = query.sortBy || "created_at";
   const sortDirection = query.sortOrder || "desc";
   const orderBy =
-    sortDirection === "asc"
-      ? asc(approvals[sortColumn])
-      : desc(approvals[sortColumn]);
+    sortDirection === "asc" ? asc(approvals[sortColumn]) : desc(approvals[sortColumn]);
 
   // Pagination
   const page = query.page || 1;
@@ -9267,9 +9025,7 @@ export async function listApprovalsHandler(
         totalAssignedToMe: sql<number>`COUNT(*) FILTER (WHERE assigned_to_id = ${userId} AND status IN ('pending', 'assigned', 'escalated'))`,
       })
       .from(approvals)
-      .where(
-        and(eq(approvals.tenantId, tenantId), isNull(approvals.deletedAt)),
-      ),
+      .where(and(eq(approvals.tenantId, tenantId), isNull(approvals.deletedAt))),
   ]);
 
   const total = countResult[0]?.count || 0;
@@ -9372,12 +9128,7 @@ export async function registerListApprovalsRoute(fastify: FastifyInstance) {
 import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { Type, Static } from "@sinclair/typebox";
 import { db } from "@/db";
-import {
-  approvals,
-  users,
-  approvalComments,
-  approvalAuditLog,
-} from "@/db/schema";
+import { approvals, users, approvalComments, approvalAuditLog } from "@/db/schema";
 import { eq, and, desc, isNull } from "drizzle-orm";
 
 // Params Schema
@@ -9391,12 +9142,8 @@ type GetApprovalParams = Static<typeof GetApprovalParamsSchema>;
 const GetApprovalQuerySchema = Type.Object({
   includeComments: Type.Optional(Type.Boolean({ default: true })),
   includeTimeline: Type.Optional(Type.Boolean({ default: true })),
-  commentsLimit: Type.Optional(
-    Type.Number({ minimum: 1, maximum: 100, default: 50 }),
-  ),
-  timelineLimit: Type.Optional(
-    Type.Number({ minimum: 1, maximum: 100, default: 50 }),
-  ),
+  commentsLimit: Type.Optional(Type.Number({ minimum: 1, maximum: 100, default: 50 })),
+  timelineLimit: Type.Optional(Type.Number({ minimum: 1, maximum: 100, default: 50 })),
 });
 
 type GetApprovalQuery = Static<typeof GetApprovalQuerySchema>;
@@ -9567,11 +9314,7 @@ export async function getApprovalHandler(
 
   // Fetch approval with assigned user
   const approval = await db.query.approvals.findFirst({
-    where: and(
-      eq(approvals.id, id),
-      eq(approvals.tenantId, tenantId),
-      isNull(approvals.deletedAt),
-    ),
+    where: and(eq(approvals.id, id), eq(approvals.tenantId, tenantId), isNull(approvals.deletedAt)),
     with: {
       assignedUser: true,
       assignedByUser: true,
@@ -9715,10 +9458,7 @@ export async function getApprovalHandler(
   // Fetch timeline if requested
   if (query.includeTimeline !== false) {
     const timeline = await db.query.approvalAuditLog.findMany({
-      where: and(
-        eq(approvalAuditLog.approvalId, id),
-        eq(approvalAuditLog.tenantId, tenantId),
-      ),
+      where: and(eq(approvalAuditLog.approvalId, id), eq(approvalAuditLog.tenantId, tenantId)),
       with: {
         performedByUser: true,
       },
@@ -9733,8 +9473,7 @@ export async function getApprovalHandler(
       performedBy: {
         type: event.performedByType,
         id: event.performedByUserId,
-        name:
-          event.performedByUser?.name || event.performedByWorker || "System",
+        name: event.performedByUser?.name || event.performedByWorker || "System",
       },
       changes: event.changes,
       context: event.context,
@@ -9746,11 +9485,7 @@ export async function getApprovalHandler(
 }
 
 // Helper functions
-async function logApprovalView(
-  approvalId: string,
-  tenantId: string,
-  userId: string,
-) {
+async function logApprovalView(approvalId: string, tenantId: string, userId: string) {
   // Update first_viewed_at if this is first view by assigned user
   await db
     .update(userAssignments)
@@ -9814,8 +9549,7 @@ export async function registerGetApprovalRoute(fastify: FastifyInstance) {
     schema: {
       tags: ["Approvals"],
       summary: "Get approval detail",
-      description:
-        "Get full details of an approval including comments and timeline",
+      description: "Get full details of an approval including comments and timeline",
       params: GetApprovalParamsSchema,
       querystring: GetApprovalQuerySchema,
       response: {
@@ -9997,12 +9731,7 @@ export async function approveHandler(
         timeToResolutionSeconds: sql`EXTRACT(EPOCH FROM (${now} - assigned_at))::integer`,
         isActive: false,
       })
-      .where(
-        and(
-          eq(userAssignments.approvalId, id),
-          eq(userAssignments.isActive, true),
-        ),
-      );
+      .where(and(eq(userAssignments.approvalId, id), eq(userAssignments.isActive, true)));
 
     // Queue post-approval actions
     let actionsQueued: string[] = [];
@@ -10027,14 +9756,7 @@ export async function approveHandler(
     }
 
     // Queue notifications
-    await queueResolutionNotifications(
-      id,
-      tenantId,
-      "approved",
-      approval,
-      userId,
-      userName,
-    );
+    await queueResolutionNotifications(id, tenantId, "approved", approval, userId, userName);
 
     return {
       approval: {
@@ -10150,12 +9872,7 @@ export async function rejectHandler(
         timeToResolutionSeconds: sql`EXTRACT(EPOCH FROM (${now} - assigned_at))::integer`,
         isActive: false,
       })
-      .where(
-        and(
-          eq(userAssignments.approvalId, id),
-          eq(userAssignments.isActive, true),
-        ),
-      );
+      .where(and(eq(userAssignments.approvalId, id), eq(userAssignments.isActive, true)));
 
     // Queue post-rejection actions
     let actionsQueued: string[] = [];
@@ -10221,10 +9938,7 @@ async function queueResolutionNotifications(
   const notificationsToQueue: any[] = [];
 
   // Notify requester (if user)
-  if (
-    approval.requestedByUserId &&
-    approval.requestedByUserId !== resolvedById
-  ) {
+  if (approval.requestedByUserId && approval.requestedByUserId !== resolvedById) {
     notificationsToQueue.push({
       tenantId,
       userId: approval.requestedByUserId,
@@ -10264,19 +9978,14 @@ async function queueResolutionNotifications(
 
   // Queue all notifications
   for (const notification of notificationsToQueue) {
-    await queues.notificationSend.add(
-      `notification-${generateUUID()}`,
-      notification,
-      { priority: notification.priority === "urgent" ? 1 : 3 },
-    );
+    await queues.notificationSend.add(`notification-${generateUUID()}`, notification, {
+      priority: notification.priority === "urgent" ? 1 : 3,
+    });
   }
 }
 
 // Helper: Check approval permission
-async function checkApprovalPermission(
-  userId: string,
-  permission: string,
-): Promise<boolean> {
+async function checkApprovalPermission(userId: string, permission: string): Promise<boolean> {
   const userPermissions = await db.query.userPermissions.findMany({
     where: eq(userPermissions.userId, userId),
   });
@@ -10494,12 +10203,7 @@ export async function registerEscalateRoute(fastify: FastifyInstance) {
 import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { Type, Static } from "@sinclair/typebox";
 import { db } from "@/db";
-import {
-  approvals,
-  users,
-  userAssignments,
-  approvalAuditLog,
-} from "@/db/schema";
+import { approvals, users, userAssignments, approvalAuditLog } from "@/db/schema";
 import { eq, and, inArray, isNull } from "drizzle-orm";
 
 // Body Schema
@@ -10547,11 +10251,7 @@ export async function assignHandler(
 
   // Validate assignee exists and belongs to tenant
   const assignee = await db.query.users.findFirst({
-    where: and(
-      eq(users.id, assigneeId),
-      eq(users.tenantId, tenantId),
-      eq(users.isActive, true),
-    ),
+    where: and(eq(users.id, assigneeId), eq(users.tenantId, tenantId), eq(users.isActive, true)),
   });
 
   if (!assignee) {
@@ -10606,12 +10306,7 @@ export async function assignHandler(
           resolvedAt: now,
           resolutionType: "reassigned",
         })
-        .where(
-          and(
-            eq(userAssignments.approvalId, id),
-            eq(userAssignments.isActive, true),
-          ),
-        );
+        .where(and(eq(userAssignments.approvalId, id), eq(userAssignments.isActive, true)));
     }
 
     // Update approval
@@ -10808,10 +10503,7 @@ export async function registerAssignRoute(fastify: FastifyInstance) {
       },
       security: [{ bearerAuth: [] }],
     },
-    preHandler: [
-      fastify.authenticate,
-      fastify.requirePermission("approval_assign"),
-    ],
+    preHandler: [fastify.authenticate, fastify.requirePermission("approval_assign")],
     handler: assignHandler,
   });
 }
@@ -10850,9 +10542,7 @@ const CommentsQuerySchema = Type.Object({
       description: "Filter to specific thread",
     }),
   ),
-  sort: Type.Optional(
-    Type.Union([Type.Literal("asc"), Type.Literal("desc")], { default: "asc" }),
-  ),
+  sort: Type.Optional(Type.Union([Type.Literal("asc"), Type.Literal("desc")], { default: "asc" })),
 });
 
 type CommentsParams = Static<typeof CommentsParamsSchema>;
@@ -10906,9 +10596,7 @@ async function listCommentsHandler(
   const { id } = request.params;
   const { include_internal, thread_id, sort } = request.query;
   const tenantId = request.user.tenant_id;
-  const canViewInternal = request.user.permissions.includes(
-    "comment_view_internal",
-  );
+  const canViewInternal = request.user.permissions.includes("comment_view_internal");
 
   // Verifică aprobarea există
   const approval = await db.query.approvals.findFirst({
@@ -10957,9 +10645,7 @@ async function listCommentsHandler(
     .leftJoin(users, eq(approval_comments.author_id, users.id))
     .where(and(...conditions))
     .orderBy(
-      sort === "desc"
-        ? desc(approval_comments.created_at)
-        : asc(approval_comments.created_at),
+      sort === "desc" ? desc(approval_comments.created_at) : asc(approval_comments.created_at),
     );
 
   // Fetch attachments pentru toate comentariile
@@ -10974,12 +10660,7 @@ async function listCommentsHandler(
   // Fetch replies pentru fiecare comment (recursive până la depth 5)
   const commentsWithReplies = await Promise.all(
     comments.map(async ({ comment, author }) => {
-      const replies = await fetchReplies(
-        comment.id,
-        tenantId,
-        canViewInternal,
-        1,
-      );
+      const replies = await fetchReplies(comment.id, tenantId, canViewInternal, 1);
       const commentAttachments = attachments
         .filter((a) => a.comment_id === comment.id)
         .map((a) => ({
@@ -11266,10 +10947,7 @@ async function createCommentHandler(
   let validMentions: string[] = [];
   if (mentioned_user_ids && mentioned_user_ids.length > 0) {
     const mentionedUsers = await db.query.users.findMany({
-      where: and(
-        inArray(users.id, mentioned_user_ids),
-        eq(users.tenant_id, tenantId),
-      ),
+      where: and(inArray(users.id, mentioned_user_ids), eq(users.tenant_id, tenantId)),
     });
     validMentions = mentionedUsers.map((u) => u.id);
   }
@@ -11695,12 +11373,7 @@ async function deleteCommentHandler(
 }
 
 // Recursive delete replies
-async function deleteNestedReplies(
-  tx: any,
-  parentId: string,
-  tenantId: string,
-  deletedAt: Date,
-) {
+async function deleteNestedReplies(tx: any, parentId: string, tenantId: string, deletedAt: Date) {
   const replies = await tx.query.approval_comments.findMany({
     where: and(
       eq(approval_comments.parent_id, parentId),
@@ -11806,11 +11479,7 @@ const DashboardStatsResponseSchema = Type.Object({
   }),
   sla_compliance: Type.Object({
     rate: Type.Number(),
-    trend: Type.Union([
-      Type.Literal("up"),
-      Type.Literal("down"),
-      Type.Literal("stable"),
-    ]),
+    trend: Type.Union([Type.Literal("up"), Type.Literal("down"), Type.Literal("stable")]),
     previous_rate: Type.Number(),
   }),
   by_type: Type.Array(
@@ -11851,9 +11520,7 @@ async function dashboardStatsHandler(
   // My Queue Stats
   const myQueueStats = await db
     .select({
-      pending: count(
-        sql`CASE WHEN status = 'pending' OR status = 'assigned' THEN 1 END`,
-      ),
+      pending: count(sql`CASE WHEN status = 'pending' OR status = 'assigned' THEN 1 END`),
       warning: count(sql`CASE WHEN sla_status = 'warning' THEN 1 END`),
       breached: count(sql`CASE WHEN sla_status = 'breached' THEN 1 END`),
     })
@@ -11869,9 +11536,7 @@ async function dashboardStatsHandler(
   // Average response time for my resolved approvals
   const myAvgResponse = await db
     .select({
-      avg_minutes: avg(
-        sql`EXTRACT(EPOCH FROM (resolved_at - assigned_at)) / 60`,
-      ),
+      avg_minutes: avg(sql`EXTRACT(EPOCH FROM (resolved_at - assigned_at)) / 60`),
     })
     .from(approvals)
     .where(
@@ -11962,14 +11627,11 @@ async function dashboardStatsHandler(
 
   const currentRate =
     currentSla[0].total > 0
-      ? ((currentSla[0].total - currentSla[0].breached) / currentSla[0].total) *
-        100
+      ? ((currentSla[0].total - currentSla[0].breached) / currentSla[0].total) * 100
       : 100;
   const previousRate =
     previousSla[0].total > 0
-      ? ((previousSla[0].total - previousSla[0].breached) /
-          previousSla[0].total) *
-        100
+      ? ((previousSla[0].total - previousSla[0].breached) / previousSla[0].total) * 100
       : 100;
 
   let trend: "up" | "down" | "stable" = "stable";
@@ -11980,9 +11642,7 @@ async function dashboardStatsHandler(
   const byTypeStats = await db
     .select({
       type: approvals.type,
-      pending: count(
-        sql`CASE WHEN status IN ('pending', 'assigned') THEN 1 END`,
-      ),
+      pending: count(sql`CASE WHEN status IN ('pending', 'assigned') THEN 1 END`),
       resolved: count(sql`CASE WHEN status = 'resolved' THEN 1 END`),
       avg_resolution: avg(sql`
         CASE WHEN resolved_at IS NOT NULL 
@@ -12196,16 +11856,10 @@ async function userStatsHandler(
         .select({
           total_assigned: count(),
           resolved: count(sql`CASE WHEN status = 'resolved' THEN 1 END`),
-          approved: count(
-            sql`CASE WHEN resolution_type = 'approved' THEN 1 END`,
-          ),
-          rejected: count(
-            sql`CASE WHEN resolution_type = 'rejected' THEN 1 END`,
-          ),
+          approved: count(sql`CASE WHEN resolution_type = 'approved' THEN 1 END`),
+          rejected: count(sql`CASE WHEN resolution_type = 'rejected' THEN 1 END`),
           escalated: count(sql`CASE WHEN escalation_level > 0 THEN 1 END`),
-          breached: count(
-            sql`CASE WHEN sla_breached_at IS NOT NULL THEN 1 END`,
-          ),
+          breached: count(sql`CASE WHEN sla_breached_at IS NOT NULL THEN 1 END`),
           avg_resolution: avg(sql`
             CASE WHEN resolved_at IS NOT NULL 
             THEN EXTRACT(EPOCH FROM (resolved_at - assigned_at)) / 60 
@@ -12226,9 +11880,7 @@ async function userStatsHandler(
       const previousStats = await db
         .select({
           resolved: count(sql`CASE WHEN status = 'resolved' THEN 1 END`),
-          breached: count(
-            sql`CASE WHEN sla_breached_at IS NOT NULL THEN 1 END`,
-          ),
+          breached: count(sql`CASE WHEN sla_breached_at IS NOT NULL THEN 1 END`),
           total: count(),
         })
         .from(approvals)
@@ -12292,27 +11944,21 @@ async function userStatsHandler(
       const currentResolved = currentStats[0]?.resolved || 0;
       const previousResolved = previousStats[0]?.resolved || 0;
       const resolutionRateChange =
-        previousResolved > 0
-          ? ((currentResolved - previousResolved) / previousResolved) * 100
-          : 0;
+        previousResolved > 0 ? ((currentResolved - previousResolved) / previousResolved) * 100 : 0;
 
       const currentSla =
         currentStats[0]?.resolved > 0
-          ? ((currentStats[0].resolved - currentStats[0].breached) /
-              currentStats[0].resolved) *
-            100
+          ? ((currentStats[0].resolved - currentStats[0].breached) / currentStats[0].resolved) * 100
           : 100;
       const previousSla =
         previousStats[0]?.resolved > 0
-          ? ((previousStats[0].resolved - previousStats[0].breached) /
-              previousStats[0].resolved) *
+          ? ((previousStats[0].resolved - previousStats[0].breached) / previousStats[0].resolved) *
             100
           : 100;
 
       const volumeChange =
         previousStats[0]?.total > 0
-          ? ((currentStats[0]?.total_assigned - previousStats[0].total) /
-              previousStats[0].total) *
+          ? ((currentStats[0]?.total_assigned - previousStats[0].total) / previousStats[0].total) *
             100
           : 0;
 
@@ -12331,9 +11977,7 @@ async function userStatsHandler(
           escalated: currentStats[0]?.escalated || 0,
           breached: currentStats[0]?.breached || 0,
           sla_compliance_rate: Math.round(currentSla * 10) / 10,
-          avg_resolution_minutes: Math.round(
-            currentStats[0]?.avg_resolution || 0,
-          ),
+          avg_resolution_minutes: Math.round(currentStats[0]?.avg_resolution || 0),
           median_resolution_minutes: Math.round(median),
           p95_resolution_minutes: Math.round(p95),
           avg_first_view_minutes: Math.round(avgFirstView[0]?.avg_minutes || 0),
@@ -12349,21 +11993,16 @@ async function userStatsHandler(
   );
 
   // Summary
-  const totalResolved = userStats.reduce(
-    (sum, u) => sum + u.metrics.total_resolved,
-    0,
-  );
+  const totalResolved = userStats.reduce((sum, u) => sum + u.metrics.total_resolved, 0);
   const avgSla =
     userStats.length > 0
-      ? userStats.reduce((sum, u) => sum + u.metrics.sla_compliance_rate, 0) /
-        userStats.length
+      ? userStats.reduce((sum, u) => sum + u.metrics.sla_compliance_rate, 0) / userStats.length
       : 100;
 
   const topPerformer = userStats.reduce(
     (best, current) => {
       if (!best) return current;
-      return current.metrics.sla_compliance_rate >
-        best.metrics.sla_compliance_rate
+      return current.metrics.sla_compliance_rate > best.metrics.sla_compliance_rate
         ? current
         : best;
     },
@@ -12527,9 +12166,7 @@ async function slaStatsHandler(
 
   const complianceRate =
     overallStats[0].total > 0
-      ? ((overallStats[0].total - overallStats[0].breached) /
-          overallStats[0].total) *
-        100
+      ? ((overallStats[0].total - overallStats[0].breached) / overallStats[0].total) * 100
       : 100;
 
   // Stats by type
@@ -12554,8 +12191,7 @@ async function slaStatsHandler(
 
   const byType = byTypeStats.map((s) => {
     const config = slaConfigs.find((c) => c.approval_type === s.type);
-    const compliance =
-      s.total > 0 ? ((s.total - s.breached) / s.total) * 100 : 100;
+    const compliance = s.total > 0 ? ((s.total - s.breached) / s.total) * 100 : 100;
     const escalationRate = s.total > 0 ? (s.escalated / s.total) * 100 : 0;
 
     return {
@@ -12564,9 +12200,7 @@ async function slaStatsHandler(
       total: s.total,
       breached: s.breached,
       warnings: s.warnings,
-      configured_deadline_minutes: config
-        ? Math.round(config.deadline_seconds / 60)
-        : 0,
+      configured_deadline_minutes: config ? Math.round(config.deadline_seconds / 60) : 0,
       avg_resolution_minutes: Math.round(s.avg_resolution || 0),
       escalation_rate: Math.round(escalationRate * 10) / 10,
     };
@@ -12588,10 +12222,7 @@ async function slaStatsHandler(
 
   const byPriority = byPriorityStats.map((s) => ({
     priority: s.priority,
-    compliance_rate:
-      s.total > 0
-        ? Math.round(((s.total - s.breached) / s.total) * 1000) / 10
-        : 100,
+    compliance_rate: s.total > 0 ? Math.round(((s.total - s.breached) / s.total) * 1000) / 10 : 100,
     total: s.total,
     breached: s.breached,
     avg_resolution_minutes: Math.round(s.avg_resolution || 0),
@@ -12624,9 +12255,7 @@ async function slaStatsHandler(
   const dailyTrendFormatted = dailyTrend.map((d) => ({
     date: d.date,
     compliance_rate:
-      d.processed > 0
-        ? Math.round(((d.processed - d.breached) / d.processed) * 1000) / 10
-        : 100,
+      d.processed > 0 ? Math.round(((d.processed - d.breached) / d.processed) * 1000) / 10 : 100,
     processed: d.processed,
     breached: d.breached,
   }));
@@ -12643,9 +12272,7 @@ async function slaStatsHandler(
 
   const resolutionAfterEscalation =
     escalationStats[0].total_escalated > 0
-      ? (escalationStats[0].resolved_after /
-          escalationStats[0].total_escalated) *
-        100
+      ? (escalationStats[0].resolved_after / escalationStats[0].total_escalated) * 100
       : 0;
 
   return reply.send({
@@ -12654,12 +12281,8 @@ async function slaStatsHandler(
       total_processed: overallStats[0].total,
       total_breached: overallStats[0].breached,
       total_warnings: overallStats[0].warnings,
-      avg_time_to_breach_minutes: Math.round(
-        overallStats[0].avg_time_to_breach || 0,
-      ),
-      avg_remaining_at_resolution_minutes: Math.round(
-        overallStats[0].avg_remaining || 0,
-      ),
+      avg_time_to_breach_minutes: Math.round(overallStats[0].avg_time_to_breach || 0),
+      avg_remaining_at_resolution_minutes: Math.round(overallStats[0].avg_remaining || 0),
     },
     by_type: byType,
     by_priority: byPriority,
@@ -12667,10 +12290,8 @@ async function slaStatsHandler(
     daily_trend: dailyTrendFormatted,
     escalation_stats: {
       total_escalated: escalationStats[0].total_escalated,
-      avg_escalation_level:
-        Math.round((escalationStats[0].avg_level || 0) * 10) / 10,
-      resolution_after_escalation_rate:
-        Math.round(resolutionAfterEscalation * 10) / 10,
+      avg_escalation_level: Math.round((escalationStats[0].avg_level || 0) * 10) / 10,
+      resolution_after_escalation_rate: Math.round(resolutionAfterEscalation * 10) / 10,
       time_saved_by_escalation_minutes: 0, // Would require more complex calculation
     },
   });
@@ -12762,10 +12383,7 @@ const ListSlaConfigResponseSchema = Type.Object({
 });
 
 // Handler
-async function listSlaConfigHandler(
-  request: FastifyRequest,
-  reply: FastifyReply,
-) {
+async function listSlaConfigHandler(request: FastifyRequest, reply: FastifyReply) {
   const tenantId = request.user.tenant_id;
 
   const configs = await db.query.sla_configurations.findMany({
@@ -12811,10 +12429,7 @@ export async function registerListSlaConfigRoute(fastify: FastifyInstance) {
       },
       security: [{ bearerAuth: [] }],
     },
-    preHandler: [
-      fastify.authenticate,
-      fastify.requirePermission("sla_config_view"),
-    ],
+    preHandler: [fastify.authenticate, fastify.requirePermission("sla_config_view")],
     handler: listSlaConfigHandler,
   });
 }
@@ -12860,9 +12475,7 @@ const UpdateSlaConfigBodySchema = Type.Object({
   business_hours_only: Type.Optional(Type.Boolean()),
   business_start_hour: Type.Optional(Type.Number({ minimum: 0, maximum: 23 })),
   business_end_hour: Type.Optional(Type.Number({ minimum: 0, maximum: 23 })),
-  business_days: Type.Optional(
-    Type.Array(Type.Number({ minimum: 0, maximum: 6 })),
-  ),
+  business_days: Type.Optional(Type.Array(Type.Number({ minimum: 0, maximum: 6 }))),
   timezone: Type.Optional(Type.String()),
   escalation_enabled: Type.Optional(Type.Boolean()),
   escalation_path: Type.Optional(
@@ -13028,10 +12641,7 @@ async function updateSlaConfigHandler(
       updated_at: now,
     };
 
-    const [created] = await db
-      .insert(sla_configurations)
-      .values(defaultConfig)
-      .returning();
+    const [created] = await db.insert(sla_configurations).values(defaultConfig).returning();
 
     // Log audit
     await logAuditEvent(
@@ -13092,10 +12702,7 @@ export async function registerUpdateSlaConfigRoute(fastify: FastifyInstance) {
       },
       security: [{ bearerAuth: [] }],
     },
-    preHandler: [
-      fastify.authenticate,
-      fastify.requirePermission("sla_config_edit"),
-    ],
+    preHandler: [fastify.authenticate, fastify.requirePermission("sla_config_edit")],
     handler: updateSlaConfigHandler,
   });
 }
@@ -13118,9 +12725,7 @@ import { eq, and, sql, count } from "drizzle-orm";
 // Query Schema
 const AvailabilityQuerySchema = Type.Object({
   role: Type.Optional(Type.String({ description: "Filter by role" })),
-  approval_type: Type.Optional(
-    Type.String({ description: "Filter by expertise" }),
-  ),
+  approval_type: Type.Optional(Type.String({ description: "Filter by expertise" })),
   include_unavailable: Type.Optional(Type.Boolean({ default: false })),
 });
 
@@ -13173,10 +12778,7 @@ async function availabilityHandler(
   const tenantId = request.user.tenant_id;
 
   // Build user conditions
-  let userConditions = [
-    eq(users.tenant_id, tenantId),
-    eq(users.is_active, true),
-  ];
+  let userConditions = [eq(users.tenant_id, tenantId), eq(users.is_active, true)];
 
   if (role) {
     userConditions.push(eq(users.role, role));
@@ -13215,8 +12817,7 @@ async function availabilityHandler(
       // Check vacation status
       const isOnVacation =
         availability?.vacation_start && availability?.vacation_end
-          ? now >= availability.vacation_start &&
-            now <= availability.vacation_end
+          ? now >= availability.vacation_start && now <= availability.vacation_end
           : false;
 
       // Get delegate name if applicable
@@ -13244,10 +12845,7 @@ async function availabilityHandler(
 
       // Get last assignment time
       const lastAssignment = await db.query.approvals.findFirst({
-        where: and(
-          eq(approvals.tenant_id, tenantId),
-          eq(approvals.assigned_to_id, user.id),
-        ),
+        where: and(eq(approvals.tenant_id, tenantId), eq(approvals.assigned_to_id, user.id)),
         orderBy: [sql`assigned_at DESC`],
         columns: { assigned_at: true },
       });
@@ -13273,21 +12871,15 @@ async function availabilityHandler(
 
       // Determine if available
       const status = availability?.status || "available";
-      const isAvailable =
-        status === "available" && !isOnVacation && availableCapacity > 0;
+      const isAvailable = status === "available" && !isOnVacation && availableCapacity > 0;
 
       // Check expertise match
       const expertiseAreas = availability?.expertise_areas || [];
-      const hasExpertise = approval_type
-        ? expertiseAreas.includes(approval_type)
-        : true;
+      const hasExpertise = approval_type ? expertiseAreas.includes(approval_type) : true;
 
       // Recommendation score
       const isRecommended =
-        isAvailable &&
-        hasExpertise &&
-        availableCapacity >= 2 &&
-        breachedCount[0].count === 0;
+        isAvailable && hasExpertise && availableCapacity >= 2 && breachedCount[0].count === 0;
 
       return {
         user,
@@ -13331,14 +12923,8 @@ async function availabilityHandler(
     });
 
   // Calculate summary
-  const totalCapacity = processedUsers.reduce(
-    (sum, u) => sum + u.workload.max_concurrent,
-    0,
-  );
-  const usedCapacity = processedUsers.reduce(
-    (sum, u) => sum + u.workload.current_count,
-    0,
-  );
+  const totalCapacity = processedUsers.reduce((sum, u) => sum + u.workload.max_concurrent, 0);
+  const usedCapacity = processedUsers.reduce((sum, u) => sum + u.workload.current_count, 0);
   const totalAvailable = processedUsers.filter((u) => u._isAvailable).length;
 
   return reply.send({
@@ -13357,18 +12943,14 @@ export async function registerAvailabilityRoute(fastify: FastifyInstance) {
     schema: {
       tags: ["Assignment"],
       summary: "Get user availability",
-      description:
-        "Get availability and workload for users eligible for assignment",
+      description: "Get availability and workload for users eligible for assignment",
       querystring: AvailabilityQuerySchema,
       response: {
         200: AvailabilityResponseSchema,
       },
       security: [{ bearerAuth: [] }],
     },
-    preHandler: [
-      fastify.authenticate,
-      fastify.requirePermission("assignment_view"),
-    ],
+    preHandler: [fastify.authenticate, fastify.requirePermission("assignment_view")],
     handler: availabilityHandler,
   });
 }
@@ -13407,9 +12989,7 @@ const UpdateAvailabilityBodySchema = Type.Object({
   vacation_start: Type.Optional(Type.String({ format: "date-time" })),
   vacation_end: Type.Optional(Type.String({ format: "date-time" })),
   vacation_delegate_id: Type.Optional(Type.String({ format: "uuid" })),
-  max_concurrent_approvals: Type.Optional(
-    Type.Number({ minimum: 1, maximum: 100 }),
-  ),
+  max_concurrent_approvals: Type.Optional(Type.Number({ minimum: 1, maximum: 100 })),
   expertise_areas: Type.Optional(Type.Array(Type.String())),
   auto_away_minutes: Type.Optional(Type.Number({ minimum: 5, maximum: 1440 })),
 });
@@ -13431,9 +13011,7 @@ async function updateAvailabilityHandler(
   const requesterId = request.user.id;
 
   // Check permission - self update sau admin
-  const canUpdateOthers = request.user.permissions.includes(
-    "availability_manage_all",
-  );
+  const canUpdateOthers = request.user.permissions.includes("availability_manage_all");
   if (userId !== requesterId && !canUpdateOthers) {
     return reply.code(403).send({
       error: "Cannot update other user availability",
@@ -13456,10 +13034,7 @@ async function updateAvailabilityHandler(
   // Validate delegate if provided
   if (updates.vacation_delegate_id) {
     const delegate = await db.query.users.findFirst({
-      where: and(
-        eq(users.id, updates.vacation_delegate_id),
-        eq(users.tenant_id, tenantId),
-      ),
+      where: and(eq(users.id, updates.vacation_delegate_id), eq(users.tenant_id, tenantId)),
     });
 
     if (!delegate) {
@@ -13494,26 +13069,15 @@ async function updateAvailabilityHandler(
 
   // Check if availability record exists
   let availability = await db.query.user_availability.findFirst({
-    where: and(
-      eq(user_availability.user_id, userId),
-      eq(user_availability.tenant_id, tenantId),
-    ),
+    where: and(eq(user_availability.user_id, userId), eq(user_availability.tenant_id, tenantId)),
   });
 
   const updateData = {
     ...updates,
-    vacation_start: updates.vacation_start
-      ? new Date(updates.vacation_start)
-      : undefined,
-    vacation_end: updates.vacation_end
-      ? new Date(updates.vacation_end)
-      : undefined,
-    available_from: updates.available_from
-      ? new Date(updates.available_from)
-      : undefined,
-    available_until: updates.available_until
-      ? new Date(updates.available_until)
-      : undefined,
+    vacation_start: updates.vacation_start ? new Date(updates.vacation_start) : undefined,
+    vacation_end: updates.vacation_end ? new Date(updates.vacation_end) : undefined,
+    available_from: updates.available_from ? new Date(updates.available_from) : undefined,
+    available_until: updates.available_until ? new Date(updates.available_until) : undefined,
     last_active_at: now,
     updated_at: now,
   };
@@ -13575,9 +13139,7 @@ async function updateAvailabilityHandler(
 }
 
 // Route Registration
-export async function registerUpdateAvailabilityRoute(
-  fastify: FastifyInstance,
-) {
+export async function registerUpdateAvailabilityRoute(fastify: FastifyInstance) {
   fastify.put("/api/v1/assignments/availability/:userId", {
     schema: {
       tags: ["Assignment"],
@@ -13634,8 +13196,7 @@ async function bulkReassignHandler(
   request: FastifyRequest<{ Body: BulkReassignBody }>,
   reply: FastifyReply,
 ) {
-  const { approval_ids, new_assignee_id, reason, notify_previous } =
-    request.body;
+  const { approval_ids, new_assignee_id, reason, notify_previous } = request.body;
   const tenantId = request.user.tenant_id;
   const userId = request.user.id;
 
@@ -13736,44 +13297,38 @@ async function bulkReassignHandler(
   });
 
   // Notify new assignee
-  await notificationSendQueue.add(
-    `bulk-assign-${new_assignee_id}-${Date.now()}`,
-    {
-      tenantId,
-      userId: new_assignee_id,
-      channel: "in_app",
-      templateId: "bulk_assignment",
-      data: {
-        count: results.success.length,
-        assignedBy: request.user.name,
-        reason,
-      },
-      priority: "high",
-      contextType: "bulk_assignment",
-      contextId: `bulk-${Date.now()}`,
+  await notificationSendQueue.add(`bulk-assign-${new_assignee_id}-${Date.now()}`, {
+    tenantId,
+    userId: new_assignee_id,
+    channel: "in_app",
+    templateId: "bulk_assignment",
+    data: {
+      count: results.success.length,
+      assignedBy: request.user.name,
+      reason,
     },
-  );
+    priority: "high",
+    contextType: "bulk_assignment",
+    contextId: `bulk-${Date.now()}`,
+  });
 
   // Notify previous assignees
   for (const [prevAssigneeId, approvalIds] of previousAssignees) {
-    await notificationSendQueue.add(
-      `bulk-unassign-${prevAssigneeId}-${Date.now()}`,
-      {
-        tenantId,
-        userId: prevAssigneeId,
-        channel: "in_app",
-        templateId: "bulk_unassignment",
-        data: {
-          count: approvalIds.length,
-          reassignedBy: request.user.name,
-          newAssigneeName: newAssignee.name,
-          reason,
-        },
-        priority: "normal",
-        contextType: "bulk_unassignment",
-        contextId: `bulk-${Date.now()}`,
+    await notificationSendQueue.add(`bulk-unassign-${prevAssigneeId}-${Date.now()}`, {
+      tenantId,
+      userId: prevAssigneeId,
+      channel: "in_app",
+      templateId: "bulk_unassignment",
+      data: {
+        count: approvalIds.length,
+        reassignedBy: request.user.name,
+        newAssigneeName: newAssignee.name,
+        reason,
       },
-    );
+      priority: "normal",
+      contextType: "bulk_unassignment",
+      contextId: `bulk-${Date.now()}`,
+    });
   }
 
   // WebSocket broadcast
@@ -13836,10 +13391,7 @@ export async function registerBulkReassignRoute(fastify: FastifyInstance) {
       },
       security: [{ bearerAuth: [] }],
     },
-    preHandler: [
-      fastify.authenticate,
-      fastify.requirePermission("bulk_assign"),
-    ],
+    preHandler: [fastify.authenticate, fastify.requirePermission("bulk_assign")],
     handler: bulkReassignHandler,
   });
 }
@@ -13862,10 +13414,9 @@ import { eq, and, desc, lte, isNull, count, sql } from "drizzle-orm";
 // Query Schema
 const NotificationsQuerySchema = Type.Object({
   status: Type.Optional(
-    Type.Union(
-      [Type.Literal("unread"), Type.Literal("read"), Type.Literal("all")],
-      { default: "all" },
-    ),
+    Type.Union([Type.Literal("unread"), Type.Literal("read"), Type.Literal("all")], {
+      default: "all",
+    }),
   ),
   channel: Type.Optional(Type.String()),
   limit: Type.Optional(Type.Number({ minimum: 1, maximum: 100, default: 20 })),
@@ -13907,10 +13458,7 @@ async function listNotificationsHandler(
   const userId = request.user.id;
 
   // Build conditions
-  let conditions = [
-    eq(notifications.tenant_id, tenantId),
-    eq(notifications.user_id, userId),
-  ];
+  let conditions = [eq(notifications.tenant_id, tenantId), eq(notifications.user_id, userId)];
 
   // Status filter
   if (status === "unread") {
@@ -13947,12 +13495,7 @@ async function listNotificationsHandler(
   const totalResult = await db
     .select({ count: count() })
     .from(notifications)
-    .where(
-      and(
-        eq(notifications.tenant_id, tenantId),
-        eq(notifications.user_id, userId),
-      ),
-    );
+    .where(and(eq(notifications.tenant_id, tenantId), eq(notifications.user_id, userId)));
 
   // Get unread count
   const unreadResult = await db
@@ -14198,11 +13741,7 @@ const UpdatePreferencesBodySchema = Type.Object({
   quiet_end_hour: Type.Optional(Type.Number({ minimum: 0, maximum: 23 })),
   digest_enabled: Type.Optional(Type.Boolean()),
   digest_frequency: Type.Optional(
-    Type.Union([
-      Type.Literal("daily"),
-      Type.Literal("weekly"),
-      Type.Literal("never"),
-    ]),
+    Type.Union([Type.Literal("daily"), Type.Literal("weekly"), Type.Literal("never")]),
   ),
   type_preferences: Type.Optional(
     Type.Record(
@@ -14368,9 +13907,7 @@ const AuditLogParamsSchema = Type.Object({
 
 const AuditLogQuerySchema = Type.Object({
   action: Type.Optional(Type.String({ description: "Filter by action type" })),
-  category: Type.Optional(
-    Type.String({ description: "Filter by action category" }),
-  ),
+  category: Type.Optional(Type.String({ description: "Filter by action category" })),
   limit: Type.Optional(Type.Number({ minimum: 1, maximum: 500, default: 100 })),
   offset: Type.Optional(Type.Number({ minimum: 0, default: 0 })),
   include_hash_verification: Type.Optional(Type.Boolean({ default: false })),
@@ -14422,8 +13959,7 @@ async function auditLogHandler(
   reply: FastifyReply,
 ) {
   const { id } = request.params;
-  const { action, category, limit, offset, include_hash_verification } =
-    request.query;
+  const { action, category, limit, offset, include_hash_verification } = request.query;
   const tenantId = request.user.tenant_id;
 
   // Verify approval exists
@@ -14483,9 +14019,7 @@ async function auditLogHandler(
   // Hash chain verification if requested
   let hashChainValid: boolean | undefined;
   if (include_hash_verification) {
-    const verifyResult = await db.execute(
-      sql`SELECT * FROM verify_audit_hash_chain(${id})`,
-    );
+    const verifyResult = await db.execute(sql`SELECT * FROM verify_audit_hash_chain(${id})`);
     hashChainValid = verifyResult.rows[0]?.is_valid ?? false;
   }
 
@@ -14654,10 +14188,7 @@ async function exportAuditHandler(
     }));
 
     reply.header("Content-Type", "application/json");
-    reply.header(
-      "Content-Disposition",
-      `attachment; filename="audit-${id}-${Date.now()}.json"`,
-    );
+    reply.header("Content-Disposition", `attachment; filename="audit-${id}-${Date.now()}.json"`);
 
     return reply.send(jsonData);
   } else {
@@ -14671,9 +14202,7 @@ async function exportAuditHandler(
       performer_name: user?.name || audit.performed_by_worker || "System",
       performer_email: user?.email || "",
       changes_summary: audit.changes
-        ? audit.changes
-            .map((c) => `${c.field}: ${c.oldValue} → ${c.newValue}`)
-            .join("; ")
+        ? audit.changes.map((c) => `${c.field}: ${c.oldValue} → ${c.newValue}`).join("; ")
         : "",
       request_id: audit.request_id || "",
       ip_address: audit.ip_address || "",
@@ -14698,10 +14227,7 @@ async function exportAuditHandler(
     });
 
     reply.header("Content-Type", "text/csv");
-    reply.header(
-      "Content-Disposition",
-      `attachment; filename="audit-${id}-${Date.now()}.csv"`,
-    );
+    reply.header("Content-Disposition", `attachment; filename="audit-${id}-${Date.now()}.csv"`);
 
     return reply.send(csvString);
   }
@@ -14721,10 +14247,7 @@ export async function registerExportAuditRoute(fastify: FastifyInstance) {
       },
       security: [{ bearerAuth: [] }],
     },
-    preHandler: [
-      fastify.authenticate,
-      fastify.requirePermission("audit_export"),
-    ],
+    preHandler: [fastify.authenticate, fastify.requirePermission("audit_export")],
     handler: exportAuditHandler,
   });
 }
@@ -14878,9 +14401,7 @@ class HITLWebSocketServer {
         break;
 
       case "ping":
-        ws.send(
-          JSON.stringify({ type: "pong", data: { timestamp: Date.now() } }),
-        );
+        ws.send(JSON.stringify({ type: "pong", data: { timestamp: Date.now() } }));
         break;
 
       default:
@@ -14893,10 +14414,7 @@ class HITLWebSocketServer {
     }
   }
 
-  private handleSubscribe(
-    ws: AuthenticatedSocket,
-    data: { channels: string[] },
-  ) {
+  private handleSubscribe(ws: AuthenticatedSocket, data: { channels: string[] }) {
     const { channels } = data;
 
     for (const channel of channels) {
@@ -14930,10 +14448,7 @@ class HITLWebSocketServer {
     );
   }
 
-  private handleUnsubscribe(
-    ws: AuthenticatedSocket,
-    data: { channels: string[] },
-  ) {
+  private handleUnsubscribe(ws: AuthenticatedSocket, data: { channels: string[] }) {
     const { channels } = data;
 
     for (const channel of channels) {
@@ -15375,11 +14890,7 @@ interface WebSocketState {
 }
 
 export function useHITLWebSocket(options: WebSocketOptions = {}) {
-  const {
-    autoConnect = true,
-    reconnectAttempts = 5,
-    reconnectInterval = 3000,
-  } = options;
+  const { autoConnect = true, reconnectAttempts = 5, reconnectInterval = 3000 } = options;
 
   const { token, isAuthenticated } = useAuth();
   const wsRef = useRef<WebSocket | null>(null);
@@ -16046,9 +15557,7 @@ export const leadQualificationTimeHistogram = new Histogram({
   name: "hitl_lead_qualification_time_seconds",
   help: "Time to qualify leads in seconds",
   labelNames: ["tenant_id", "lead_source"],
-  buckets: [
-    3600, 14400, 43200, 86400, 172800, 259200, 604800, 1209600, 2592000,
-  ],
+  buckets: [3600, 14400, 43200, 86400, 172800, 259200, 604800, 1209600, 2592000],
   registers: [hitlMetricsRegistry],
 });
 
@@ -16188,11 +15697,7 @@ import {
   humanEditRatioGauge,
 } from "../metrics/business-metrics";
 
-import {
-  Approval,
-  ApprovalStatus,
-  ApprovalPriority,
-} from "../../entities/approval.entity";
+import { Approval, ApprovalStatus, ApprovalPriority } from "../../entities/approval.entity";
 import { UserAvailability } from "../../entities/user-availability.entity";
 import { SlaConfiguration } from "../../entities/sla-configuration.entity";
 import { AiCostLog } from "../../entities/ai-cost-log.entity";
@@ -16348,22 +15853,10 @@ export class MetricsCollectorService {
     for (const { name, queue } of queues) {
       const counts = await queue.getJobCounts();
 
-      queueDepthGauge.set(
-        { queue_name: name, status: "waiting" },
-        counts.waiting,
-      );
-      queueDepthGauge.set(
-        { queue_name: name, status: "active" },
-        counts.active,
-      );
-      queueDepthGauge.set(
-        { queue_name: name, status: "delayed" },
-        counts.delayed,
-      );
-      queueDepthGauge.set(
-        { queue_name: name, status: "failed" },
-        counts.failed,
-      );
+      queueDepthGauge.set({ queue_name: name, status: "waiting" }, counts.waiting);
+      queueDepthGauge.set({ queue_name: name, status: "active" }, counts.active);
+      queueDepthGauge.set({ queue_name: name, status: "delayed" }, counts.delayed);
+      queueDepthGauge.set({ queue_name: name, status: "failed" }, counts.failed);
     }
   }
 
@@ -16382,10 +15875,7 @@ export class MetricsCollectorService {
         .createQueryBuilder("a")
         .select("a.approval_type", "type")
         .addSelect("COUNT(*)", "total")
-        .addSelect(
-          "SUM(CASE WHEN a.sla_breached_at IS NOT NULL THEN 1 ELSE 0 END)",
-          "breached",
-        )
+        .addSelect("SUM(CASE WHEN a.sla_breached_at IS NOT NULL THEN 1 ELSE 0 END)", "breached")
         .where("a.tenant_id = :tenantId", { tenantId })
         .andWhere("a.resolved_at IS NOT NULL")
         .andWhere("a.resolved_at > :since", { since: thirtyDaysAgo })
@@ -16397,10 +15887,7 @@ export class MetricsCollectorService {
         const breached = parseInt(stat.breached);
         const compliance = total > 0 ? ((total - breached) / total) * 100 : 100;
 
-        slaComplianceGauge.set(
-          { tenant_id: tenantId, approval_type: stat.type },
-          compliance,
-        );
+        slaComplianceGauge.set({ tenant_id: tenantId, approval_type: stat.type }, compliance);
       }
     }
   }
@@ -16427,10 +15914,7 @@ export class MetricsCollectorService {
     aiCostGauge.reset();
 
     for (const cost of costs) {
-      aiCostGauge.set(
-        { tenant_id: cost.tenantId, model: cost.model },
-        parseFloat(cost.totalCost),
-      );
+      aiCostGauge.set({ tenant_id: cost.tenantId, model: cost.model }, parseFloat(cost.totalCost));
     }
   }
 
@@ -16519,13 +16003,9 @@ export class MetricsCollectorService {
           },
         });
 
-        const editRatio =
-          totalApprovals > 0 ? editedApprovals / totalApprovals : 0;
+        const editRatio = totalApprovals > 0 ? editedApprovals / totalApprovals : 0;
 
-        humanEditRatioGauge.set(
-          { tenant_id: tenantId, content_type: contentType },
-          editRatio,
-        );
+        humanEditRatioGauge.set({ tenant_id: tenantId, content_type: contentType }, editRatio);
       }
     }
   }
@@ -16708,27 +16188,19 @@ export class MetricsCollectorService {
           "overrides": [
             {
               "matcher": { "id": "byName", "options": "critical" },
-              "properties": [
-                { "id": "color", "value": { "fixedColor": "red" } }
-              ]
+              "properties": [{ "id": "color", "value": { "fixedColor": "red" } }]
             },
             {
               "matcher": { "id": "byName", "options": "high" },
-              "properties": [
-                { "id": "color", "value": { "fixedColor": "orange" } }
-              ]
+              "properties": [{ "id": "color", "value": { "fixedColor": "orange" } }]
             },
             {
               "matcher": { "id": "byName", "options": "medium" },
-              "properties": [
-                { "id": "color", "value": { "fixedColor": "yellow" } }
-              ]
+              "properties": [{ "id": "color", "value": { "fixedColor": "yellow" } }]
             },
             {
               "matcher": { "id": "byName", "options": "low" },
-              "properties": [
-                { "id": "color", "value": { "fixedColor": "green" } }
-              ]
+              "properties": [{ "id": "color", "value": { "fixedColor": "green" } }]
             }
           ]
         }
@@ -17506,21 +16978,15 @@ export class MetricsCollectorService {
           "overrides": [
             {
               "matcher": { "id": "byName", "options": "approved" },
-              "properties": [
-                { "id": "color", "value": { "fixedColor": "green" } }
-              ]
+              "properties": [{ "id": "color", "value": { "fixedColor": "green" } }]
             },
             {
               "matcher": { "id": "byName", "options": "rejected" },
-              "properties": [
-                { "id": "color", "value": { "fixedColor": "red" } }
-              ]
+              "properties": [{ "id": "color", "value": { "fixedColor": "red" } }]
             },
             {
               "matcher": { "id": "byName", "options": "revised" },
-              "properties": [
-                { "id": "color", "value": { "fixedColor": "yellow" } }
-              ]
+              "properties": [{ "id": "color", "value": { "fixedColor": "yellow" } }]
             }
           ]
         }
@@ -18178,17 +17644,14 @@ import { PgInstrumentation } from "@opentelemetry/instrumentation-pg";
 import { IORedisInstrumentation } from "@opentelemetry/instrumentation-ioredis";
 import { HttpInstrumentation } from "@opentelemetry/instrumentation-http";
 
-const OTEL_EXPORTER_ENDPOINT =
-  process.env.OTEL_EXPORTER_ENDPOINT || "http://otel-collector:64071";
+const OTEL_EXPORTER_ENDPOINT = process.env.OTEL_EXPORTER_ENDPOINT || "http://otel-collector:64071";
 
 // Create resource with service information
 const resource = new Resource({
   [SemanticResourceAttributes.SERVICE_NAME]: "hitl-service",
-  [SemanticResourceAttributes.SERVICE_VERSION]:
-    process.env.APP_VERSION || "1.0.0",
+  [SemanticResourceAttributes.SERVICE_VERSION]: process.env.APP_VERSION || "1.0.0",
   [SemanticResourceAttributes.SERVICE_NAMESPACE]: "cerniq",
-  [SemanticResourceAttributes.DEPLOYMENT_ENVIRONMENT]:
-    process.env.NODE_ENV || "development",
+  [SemanticResourceAttributes.DEPLOYMENT_ENVIRONMENT]: process.env.NODE_ENV || "development",
   "service.instance.id": process.env.HOSTNAME || "local",
 });
 
@@ -18233,10 +17696,7 @@ export const otelSDK = new NodeSDK({
     new FastifyInstrumentation({
       requestHook: (span, info) => {
         span.setAttribute("http.request_id", info.request.id);
-        span.setAttribute(
-          "tenant.id",
-          info.request.headers["x-tenant-id"] || "unknown",
-        );
+        span.setAttribute("tenant.id", info.request.headers["x-tenant-id"] || "unknown");
       },
     }),
     new PgInstrumentation({
@@ -18253,16 +17713,10 @@ export const otelSDK = new NodeSDK({
     new HttpInstrumentation({
       ignoreIncomingPaths: ["/health", "/metrics", "/ready"],
       requestHook: (span, request) => {
-        span.setAttribute(
-          "http.request_body_size",
-          request.headers["content-length"] || 0,
-        );
+        span.setAttribute("http.request_body_size", request.headers["content-length"] || 0);
       },
       responseHook: (span, response) => {
-        span.setAttribute(
-          "http.response_body_size",
-          response.getHeader("content-length") || 0,
-        );
+        span.setAttribute("http.response_body_size", response.getHeader("content-length") || 0);
       },
     }),
   ],
@@ -18273,9 +17727,7 @@ process.on("SIGTERM", () => {
   otelSDK
     .shutdown()
     .then(() => console.log("OpenTelemetry SDK shut down successfully"))
-    .catch((error) =>
-      console.error("Error shutting down OpenTelemetry SDK", error),
-    )
+    .catch((error) => console.error("Error shutting down OpenTelemetry SDK", error))
     .finally(() => process.exit(0));
 });
 ```
@@ -18609,10 +18061,7 @@ describe("ApprovalEngine", () => {
         escalated_at: new Date(),
       });
 
-      const result = await engine.escalateApproval(
-        "approval-001",
-        "SLA breach",
-      );
+      const result = await engine.escalateApproval("approval-001", "SLA breach");
 
       expect(result.escalationLevel).toBe(1);
       expect(result.escalatedTo).toBe("director");
@@ -18640,10 +18089,7 @@ describe("ApprovalEngine", () => {
         escalation_level: 3,
       });
 
-      const result = await engine.escalateApproval(
-        "approval-001",
-        "SLA breach",
-      );
+      const result = await engine.escalateApproval("approval-001", "SLA breach");
 
       expect(result.status).toBe("critical");
       expect(result.escalationLevel).toBe(3);
@@ -18711,11 +18157,7 @@ describe("ApprovalEngine", () => {
 ```typescript
 // tests/unit/sla-calculator.test.ts
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import {
-  SLACalculator,
-  SLAConfiguration,
-  BusinessHours,
-} from "@/services/sla-calculator";
+import { SLACalculator, SLAConfiguration, BusinessHours } from "@/services/sla-calculator";
 
 describe("SLACalculator", () => {
   let calculator: SLACalculator;
@@ -18782,16 +18224,12 @@ describe("SLACalculator", () => {
       const startTime = new Date("2026-01-19T10:00:00+02:00");
       vi.setSystemTime(startTime);
 
-      const criticalDeadline = calculator.calculateDeadline(
-        startTime,
-        "critical",
-      );
+      const criticalDeadline = calculator.calculateDeadline(startTime, "critical");
       const lowDeadline = calculator.calculateDeadline(startTime, "low");
 
       // Critical: 120 * 0.25 = 30 minutes
       // Low: 120 * 1.5 = 180 minutes
-      const criticalMinutes =
-        (criticalDeadline.getTime() - startTime.getTime()) / 60000;
+      const criticalMinutes = (criticalDeadline.getTime() - startTime.getTime()) / 60000;
       const lowMinutes = (lowDeadline.getTime() - startTime.getTime()) / 60000;
 
       expect(criticalMinutes).toBeLessThan(lowMinutes);
@@ -18940,9 +18378,7 @@ describe("SLACalculator", () => {
       expect(resumedState.pausedAt).toBeNull();
       expect(resumedState.totalPausedMinutes).toBe(30);
       // Deadline extended by 30 minutes
-      expect(resumedState.deadline.toISOString()).toBe(
-        "2026-01-19T12:30:00.000Z",
-      );
+      expect(resumedState.deadline.toISOString()).toBe("2026-01-19T12:30:00.000Z");
     });
   });
 });
@@ -19089,10 +18525,7 @@ describe("PolicyEvaluator", () => {
         },
       };
 
-      const evaluatorWithOverride = new PolicyEvaluator([
-        ...policies,
-        highPriorityPolicy,
-      ]);
+      const evaluatorWithOverride = new PolicyEvaluator([...policies, highPriorityPolicy]);
 
       const context = {
         type: "offer",
@@ -19237,14 +18670,10 @@ describe("PolicyEvaluator", () => {
       const evaluatorAnd = new PolicyEvaluator([policy]);
 
       // All conditions met
-      expect(
-        evaluatorAnd.evaluate({ type: "test", a: 1, b: 2, c: 3 }).matched,
-      ).toBe(true);
+      expect(evaluatorAnd.evaluate({ type: "test", a: 1, b: 2, c: 3 }).matched).toBe(true);
 
       // One condition not met
-      expect(
-        evaluatorAnd.evaluate({ type: "test", a: 1, b: 2, c: 4 }).matched,
-      ).toBe(false);
+      expect(evaluatorAnd.evaluate({ type: "test", a: 1, b: 2, c: 4 }).matched).toBe(false);
     });
 
     it("should require any condition with OR logic", () => {
@@ -19264,19 +18693,13 @@ describe("PolicyEvaluator", () => {
       const evaluatorOr = new PolicyEvaluator([policy]);
 
       // First condition met
-      expect(evaluatorOr.evaluate({ type: "test", a: 1, b: 0 }).matched).toBe(
-        true,
-      );
+      expect(evaluatorOr.evaluate({ type: "test", a: 1, b: 0 }).matched).toBe(true);
 
       // Second condition met
-      expect(evaluatorOr.evaluate({ type: "test", a: 0, b: 2 }).matched).toBe(
-        true,
-      );
+      expect(evaluatorOr.evaluate({ type: "test", a: 0, b: 2 }).matched).toBe(true);
 
       // No conditions met
-      expect(evaluatorOr.evaluate({ type: "test", a: 0, b: 0 }).matched).toBe(
-        false,
-      );
+      expect(evaluatorOr.evaluate({ type: "test", a: 0, b: 0 }).matched).toBe(false);
     });
 
     it("should handle nested condition groups", () => {
@@ -19387,11 +18810,7 @@ describe("AssignmentService", () => {
       status: "busy",
       currentWorkload: 10,
       maxWorkload: 10,
-      expertiseAreas: [
-        "offer_approval",
-        "discount_approval",
-        "contract_approval",
-      ],
+      expertiseAreas: ["offer_approval", "discount_approval", "contract_approval"],
       avgResolutionMinutes: 20,
       slaComplianceRate: 0.98,
       lastAssignedAt: new Date("2026-01-19T08:00:00Z"),
@@ -19445,9 +18864,7 @@ describe("AssignmentService", () => {
 
       // Only Carol has contract_approval expertise, but she's busy
       expect(result.userId).toBeNull();
-      expect(result.reason).toContain(
-        "No available users with required expertise",
-      );
+      expect(result.reason).toContain("No available users with required expertise");
     });
 
     it("should exclude users at max capacity", async () => {
@@ -19547,10 +18964,7 @@ describe("AssignmentService", () => {
 
   describe("calculateExpertiseScore", () => {
     it("should return 1.0 for exact expertise match", () => {
-      const score = service.calculateExpertiseScore(
-        mockUsers[0],
-        "offer_approval",
-      );
+      const score = service.calculateExpertiseScore(mockUsers[0], "offer_approval");
       expect(score).toBe(1.0);
     });
 
@@ -19564,10 +18978,7 @@ describe("AssignmentService", () => {
     });
 
     it("should return 0 for no expertise match", () => {
-      const score = service.calculateExpertiseScore(
-        mockUsers[0],
-        "unknown_type",
-      );
+      const score = service.calculateExpertiseScore(mockUsers[0], "unknown_type");
       expect(score).toBe(0);
     });
   });
@@ -19640,11 +19051,7 @@ describe("AssignmentService", () => {
 
       mockDb.select.mockResolvedValueOnce(approvals);
 
-      const result = await service.autoReassign(
-        "user-001",
-        "user-002",
-        "tenant-001",
-      );
+      const result = await service.autoReassign("user-001", "user-002", "tenant-001");
 
       expect(result.reassigned).toBe(1); // Only pending one
       expect(result.skipped).toBe(1);
@@ -19730,12 +19137,7 @@ import {
   NotificationTemplate,
   NotificationPriority,
 } from "@/services/notification-service";
-import {
-  mockDb,
-  mockQueue,
-  mockEmailClient,
-  mockPushClient,
-} from "@test/mocks";
+import { mockDb, mockQueue, mockEmailClient, mockPushClient } from "@test/mocks";
 
 describe("NotificationService", () => {
   let service: NotificationService;
@@ -19810,15 +19212,9 @@ describe("NotificationService", () => {
       await service.send(notification);
 
       // Should NOT queue email
-      expect(mockQueue.add).not.toHaveBeenCalledWith(
-        "notification:email",
-        expect.anything(),
-      );
+      expect(mockQueue.add).not.toHaveBeenCalledWith("notification:email", expect.anything());
       // Should queue push
-      expect(mockQueue.add).toHaveBeenCalledWith(
-        "notification:push",
-        expect.anything(),
-      );
+      expect(mockQueue.add).toHaveBeenCalledWith("notification:push", expect.anything());
     });
 
     it("should respect quiet hours", async () => {
@@ -19906,9 +19302,7 @@ describe("NotificationService", () => {
         { userId: "user-002", type: "reminder", title: "Test" },
       ];
 
-      mockDb.select.mockResolvedValueOnce([
-        { userId: "user-001", emailEnabled: true },
-      ]);
+      mockDb.select.mockResolvedValueOnce([{ userId: "user-001", emailEnabled: true }]);
       mockDb.select.mockResolvedValueOnce([]); // user-002 not found
 
       const result = await service.sendBatch(notifications);
@@ -19924,8 +19318,7 @@ describe("NotificationService", () => {
       const template: NotificationTemplate = {
         id: "approval_assigned",
         titleTemplate: "New {{priority}} Approval Assigned",
-        bodyTemplate:
-          "You have been assigned approval #{{approvalId}} for {{entityType}}",
+        bodyTemplate: "You have been assigned approval #{{approvalId}} for {{entityType}}",
         channels: ["email", "push", "in_app"],
       };
 
@@ -19936,9 +19329,7 @@ describe("NotificationService", () => {
       });
 
       expect(rendered.title).toBe("New High Approval Assigned");
-      expect(rendered.body).toBe(
-        "You have been assigned approval #123 for Offer",
-      );
+      expect(rendered.body).toBe("You have been assigned approval #123 for Offer");
     });
 
     it("should handle missing variables gracefully", () => {
@@ -20300,10 +19691,7 @@ describe("Approval Flow Integration", () => {
       // Verify director was notified
       const notifications = await queueHelper.getJobs("notification:email");
       expect(
-        notifications.some(
-          (n) =>
-            n.data.userId === directorId && n.data.type === "sla_escalation",
-        ),
+        notifications.some((n) => n.data.userId === directorId && n.data.type === "sla_escalation"),
       ).toBe(true);
     });
 
@@ -20340,9 +19728,7 @@ describe("Approval Flow Integration", () => {
       const metricsJob = await queueHelper.getJobs("metrics:record");
       expect(
         metricsJob.some(
-          (j) =>
-            j.data.metric === "sla_breach" &&
-            j.data.approvalId === approval[0].id,
+          (j) => j.data.metric === "sla_breach" && j.data.approvalId === approval[0].id,
         ),
       ).toBe(true);
     });
@@ -20603,9 +19989,7 @@ describe("Database Integration", () => {
       expect(commentsBefore).toHaveLength(2);
 
       // Delete approval
-      await db
-        .delete(hitl_approvals)
-        .where(eq(hitl_approvals.id, approval[0].id));
+      await db.delete(hitl_approvals).where(eq(hitl_approvals.id, approval[0].id));
 
       // Verify comments deleted
       const commentsAfter = await db
@@ -20640,10 +20024,7 @@ describe("Database Integration", () => {
         .select()
         .from(hitl_approvals)
         .where(
-          and(
-            eq(hitl_approvals.tenant_id, "tenant-001"),
-            eq(hitl_approvals.status, "pending"),
-          ),
+          and(eq(hitl_approvals.tenant_id, "tenant-001"), eq(hitl_approvals.status, "pending")),
         )
         .limit(100);
 
@@ -20806,9 +20187,7 @@ describe("Database Integration", () => {
         where: eq(hitl_approvals.id, approval[0].id),
       });
 
-      expect(updated?.updated_at.getTime()).toBeGreaterThan(
-        originalUpdatedAt!.getTime(),
-      );
+      expect(updated?.updated_at.getTime()).toBeGreaterThan(originalUpdatedAt!.getTime());
     });
 
     it("should auto-generate hash for audit entries", async () => {
@@ -20931,9 +20310,7 @@ describe("Database Integration", () => {
       const lengthResults = await db
         .select()
         .from(hitl_approvals)
-        .where(
-          sql`jsonb_array_length(${hitl_approvals.current_approvers}) = 2`,
-        );
+        .where(sql`jsonb_array_length(${hitl_approvals.current_approvers}) = 2`);
 
       expect(lengthResults).toHaveLength(1);
     });
@@ -21035,21 +20412,15 @@ describe("Queue Integration", () => {
       const emailJobs: Job[] = [];
       const pushJobs: Job[] = [];
 
-      const emailWorker = queueService.createWorker(
-        "notification:email",
-        async (job) => {
-          emailJobs.push(job);
-          return { sent: true };
-        },
-      );
+      const emailWorker = queueService.createWorker("notification:email", async (job) => {
+        emailJobs.push(job);
+        return { sent: true };
+      });
 
-      const pushWorker = queueService.createWorker(
-        "notification:push",
-        async (job) => {
-          pushJobs.push(job);
-          return { sent: true };
-        },
-      );
+      const pushWorker = queueService.createWorker("notification:push", async (job) => {
+        pushJobs.push(job);
+        return { sent: true };
+      });
 
       await queueService.addNotificationJob({
         userId: "user-001",
@@ -21076,12 +20447,8 @@ describe("Queue Integration", () => {
         delay: 3600000, // 1 hour delay
       });
 
-      const waiting = await queueService
-        .getQueue("notification:push")
-        .getWaiting();
-      const delayed = await queueService
-        .getQueue("notification:push")
-        .getDelayed();
+      const waiting = await queueService.getQueue("notification:push").getWaiting();
+      const delayed = await queueService.getQueue("notification:push").getDelayed();
 
       expect(waiting.length + delayed.length).toBe(1);
     });
@@ -21160,13 +20527,10 @@ describe("Queue Integration", () => {
 
   describe("Metrics Queue", () => {
     it("should batch metrics for efficient processing", async () => {
-      const worker = queueService.createWorker(
-        "metrics:record",
-        async (job) => {
-          processedJobs.push(job);
-          return { recorded: job.data.metrics.length };
-        },
-      );
+      const worker = queueService.createWorker("metrics:record", async (job) => {
+        processedJobs.push(job);
+        return { recorded: job.data.metrics.length };
+      });
 
       // Add multiple metrics
       for (let i = 0; i < 10; i++) {
@@ -21271,9 +20635,7 @@ describe("Queue Integration", () => {
         },
       );
 
-      await queueService
-        .getQueue("dlq-reprocess")
-        .add("test", { data: "test" });
+      await queueService.getQueue("dlq-reprocess").add("test", { data: "test" });
 
       // Wait for initial failures
       await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -21286,9 +20648,7 @@ describe("Queue Integration", () => {
 
       await new Promise((resolve) => setTimeout(resolve, 500));
 
-      const completed = await queueService
-        .getQueue("dlq-reprocess")
-        .getCompleted();
+      const completed = await queueService.getQueue("dlq-reprocess").getCompleted();
       expect(completed).toHaveLength(1);
 
       await worker.close();
@@ -21889,13 +21249,8 @@ test.describe("Approval Workflow E2E", () => {
     await page.click('[data-testid="submit-offer"]');
 
     // Verify approval request created
-    await expect(
-      page.locator('[data-testid="approval-pending-badge"]'),
-    ).toBeVisible();
-    const offerId = await page.getAttribute(
-      '[data-testid="offer-id"]',
-      "data-value",
-    );
+    await expect(page.locator('[data-testid="approval-pending-badge"]')).toBeVisible();
+    const offerId = await page.getAttribute('[data-testid="offer-id"]', "data-value");
 
     // Verify manager received notification
     await expect
@@ -21920,35 +21275,21 @@ test.describe("Approval Workflow E2E", () => {
     await expect(page).toHaveURL(new RegExp(`/approvals/.*`));
 
     // Review offer details
-    await expect(page.locator('[data-testid="offer-value"]')).toContainText(
-      "€",
-    );
-    await expect(
-      page.locator('[data-testid="discount-percent"]'),
-    ).toContainText("15%");
+    await expect(page.locator('[data-testid="offer-value"]')).toContainText("€");
+    await expect(page.locator('[data-testid="discount-percent"]')).toContainText("15%");
 
     // Add a comment
-    await page.fill(
-      '[data-testid="comment-input"]',
-      "Discount approved within guidelines",
-    );
+    await page.fill('[data-testid="comment-input"]', "Discount approved within guidelines");
     await page.click('[data-testid="add-comment"]');
-    await expect(page.locator('[data-testid="comment-list"]')).toContainText(
-      "Discount approved",
-    );
+    await expect(page.locator('[data-testid="comment-list"]')).toContainText("Discount approved");
 
     // Approve
     await page.click('[data-testid="approve-button"]');
-    await page.fill(
-      '[data-testid="approval-reason"]',
-      "Approved per discount policy",
-    );
+    await page.fill('[data-testid="approval-reason"]', "Approved per discount policy");
     await page.click('[data-testid="confirm-approve"]');
 
     // Verify approval status
-    await expect(page.locator('[data-testid="status-badge"]')).toContainText(
-      "Approved",
-    );
+    await expect(page.locator('[data-testid="status-badge"]')).toContainText("Approved");
 
     // Verify sales rep received notification
     await expect
@@ -21998,12 +21339,8 @@ test.describe("Approval Workflow E2E", () => {
     await page.click('[data-testid="confirm-approve"]');
 
     // Verify still pending (needs 2 approvers)
-    await expect(page.locator('[data-testid="status-badge"]')).toContainText(
-      "Pending",
-    );
-    await expect(page.locator('[data-testid="approvers-count"]')).toContainText(
-      "1/2",
-    );
+    await expect(page.locator('[data-testid="status-badge"]')).toContainText("Pending");
+    await expect(page.locator('[data-testid="approvers-count"]')).toContainText("1/2");
 
     // Login as director for second approval
     await page.click('[data-testid="logout"]');
@@ -22016,19 +21353,12 @@ test.describe("Approval Workflow E2E", () => {
 
     // Second approval
     await page.click('[data-testid="approve-button"]');
-    await page.fill(
-      '[data-testid="approval-reason"]',
-      "Final approval - strategic customer",
-    );
+    await page.fill('[data-testid="approval-reason"]', "Final approval - strategic customer");
     await page.click('[data-testid="confirm-approve"]');
 
     // Verify now approved
-    await expect(page.locator('[data-testid="status-badge"]')).toContainText(
-      "Approved",
-    );
-    await expect(page.locator('[data-testid="approvers-count"]')).toContainText(
-      "2/2",
-    );
+    await expect(page.locator('[data-testid="status-badge"]')).toContainText("Approved");
+    await expect(page.locator('[data-testid="approvers-count"]')).toContainText("2/2");
 
     // Verify audit trail
     await page.click('[data-testid="audit-tab"]');
@@ -22071,9 +21401,7 @@ test.describe("Approval Workflow E2E", () => {
     );
     await page.click('[data-testid="confirm-reject"]');
 
-    await expect(page.locator('[data-testid="status-badge"]')).toContainText(
-      "Rejected",
-    );
+    await expect(page.locator('[data-testid="status-badge"]')).toContainText("Rejected");
 
     // Login as sales rep to resubmit
     await page.click('[data-testid="logout"]');
@@ -22083,12 +21411,8 @@ test.describe("Approval Workflow E2E", () => {
 
     // Navigate to rejected approval
     await page.goto(`/offers/${offerId}`);
-    await expect(page.locator('[data-testid="approval-status"]')).toContainText(
-      "Rejected",
-    );
-    await expect(
-      page.locator('[data-testid="rejection-reason"]'),
-    ).toContainText("exceeds 25%");
+    await expect(page.locator('[data-testid="approval-status"]')).toContainText("Rejected");
+    await expect(page.locator('[data-testid="rejection-reason"]')).toContainText("exceeds 25%");
 
     // Edit and resubmit
     await page.click('[data-testid="edit-offer"]');
@@ -22096,9 +21420,7 @@ test.describe("Approval Workflow E2E", () => {
     await page.click('[data-testid="resubmit-for-approval"]');
 
     // Verify new approval created
-    await expect(page.locator('[data-testid="approval-status"]')).toContainText(
-      "Pending",
-    );
+    await expect(page.locator('[data-testid="approval-status"]')).toContainText("Pending");
   });
 
   test("SLA breach and automatic escalation", async ({ page }) => {
@@ -22148,29 +21470,18 @@ test.describe("Approval Workflow E2E", () => {
     // Verify breach indicator in dashboard
     await page.goto("/approvals");
     const breachedRow = page.locator(`[data-testid="approval-row-${offerId}"]`);
-    await expect(
-      breachedRow.locator('[data-testid="sla-breach-badge"]'),
-    ).toBeVisible();
+    await expect(breachedRow.locator('[data-testid="sla-breach-badge"]')).toBeVisible();
 
     // Handle escalated approval
     await breachedRow.click();
-    await expect(
-      page.locator('[data-testid="escalation-indicator"]'),
-    ).toContainText("Escalated");
-    await expect(page.locator('[data-testid="sla-status"]')).toContainText(
-      "Breached",
-    );
+    await expect(page.locator('[data-testid="escalation-indicator"]')).toContainText("Escalated");
+    await expect(page.locator('[data-testid="sla-status"]')).toContainText("Breached");
 
     await page.click('[data-testid="approve-button"]');
-    await page.fill(
-      '[data-testid="approval-reason"]',
-      "Approved after escalation review",
-    );
+    await page.fill('[data-testid="approval-reason"]', "Approved after escalation review");
     await page.click('[data-testid="confirm-approve"]');
 
-    await expect(page.locator('[data-testid="status-badge"]')).toContainText(
-      "Approved",
-    );
+    await expect(page.locator('[data-testid="status-badge"]')).toContainText("Approved");
   });
 });
 ```
@@ -22189,9 +21500,7 @@ test.describe("Dashboard E2E", () => {
     db = await TestDatabase.create();
     await db.seed({
       tenants: [{ id: "test-tenant" }],
-      users: [
-        { id: "manager", role: "sales_manager", tenantId: "test-tenant" },
-      ],
+      users: [{ id: "manager", role: "sales_manager", tenantId: "test-tenant" }],
       approvals: generateTestApprovals(50),
     });
   });
@@ -22232,15 +21541,11 @@ test.describe("Dashboard E2E", () => {
     await page.click('[data-testid="last-7-days"]');
 
     // Wait for stats to update
-    await expect(
-      page.locator('[data-testid="loading-indicator"]'),
-    ).not.toBeVisible();
+    await expect(page.locator('[data-testid="loading-indicator"]')).not.toBeVisible();
 
     // Filter by type
     await page.selectOption('[data-testid="type-filter"]', "offer");
-    await expect(
-      page.locator('[data-testid="loading-indicator"]'),
-    ).not.toBeVisible();
+    await expect(page.locator('[data-testid="loading-indicator"]')).not.toBeVisible();
 
     // Verify URL reflects filters
     expect(page.url()).toContain("type=offer");
@@ -22254,9 +21559,7 @@ test.describe("Dashboard E2E", () => {
 
     await page.goto("/dashboard");
 
-    const initialPendingCount = await page
-      .locator('[data-testid="pending-count"]')
-      .textContent();
+    const initialPendingCount = await page.locator('[data-testid="pending-count"]').textContent();
 
     // Create new approval via API
     await db.insert("hitl_approvals", {
@@ -22271,9 +21574,7 @@ test.describe("Dashboard E2E", () => {
     await expect
       .poll(
         async () => {
-          return await page
-            .locator('[data-testid="pending-count"]')
-            .textContent();
+          return await page.locator('[data-testid="pending-count"]').textContent();
         },
         { timeout: 5000 },
       )
@@ -22358,9 +21659,9 @@ test.describe("WebSocket Real-Time E2E", () => {
     await page2.click('[data-testid="submit"]');
 
     // User 1 should see the new approval appear
-    await expect(
-      page.locator('[data-testid="approval-row-ws-test-entity"]'),
-    ).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('[data-testid="approval-row-ws-test-entity"]')).toBeVisible({
+      timeout: 5000,
+    });
   });
 
   test("receives notification in real-time", async ({ page, context }) => {
@@ -22380,9 +21681,7 @@ test.describe("WebSocket Real-Time E2E", () => {
     await page.click('[data-testid="login-button"]');
 
     // Check initial notification count
-    const initialCount = await page
-      .locator('[data-testid="notification-count"]')
-      .textContent();
+    const initialCount = await page.locator('[data-testid="notification-count"]').textContent();
 
     // User 2 adds a comment (via API to simulate)
     await page.request.post("/api/v1/approvals/notify-test/comments", {
@@ -22399,9 +21698,7 @@ test.describe("WebSocket Real-Time E2E", () => {
     await expect
       .poll(
         async () => {
-          return await page
-            .locator('[data-testid="notification-count"]')
-            .textContent();
+          return await page.locator('[data-testid="notification-count"]').textContent();
         },
         { timeout: 5000 },
       )
@@ -22409,9 +21706,9 @@ test.describe("WebSocket Real-Time E2E", () => {
 
     // Notification bell should show new notification
     await page.click('[data-testid="notification-bell"]');
-    await expect(
-      page.locator('[data-testid="notification-item"]').first(),
-    ).toContainText("mentioned you");
+    await expect(page.locator('[data-testid="notification-item"]').first()).toContainText(
+      "mentioned you",
+    );
   });
 
   test("handles reconnection gracefully", async ({ page }) => {
@@ -22423,21 +21720,19 @@ test.describe("WebSocket Real-Time E2E", () => {
     await page.goto("/dashboard");
 
     // Wait for WebSocket connection
-    await expect(
-      page.locator('[data-testid="connection-status"]'),
-    ).toContainText("Connected");
+    await expect(page.locator('[data-testid="connection-status"]')).toContainText("Connected");
 
     // Simulate network disconnect
     await page.context().setOffline(true);
-    await expect(
-      page.locator('[data-testid="connection-status"]'),
-    ).toContainText("Disconnected", { timeout: 5000 });
+    await expect(page.locator('[data-testid="connection-status"]')).toContainText("Disconnected", {
+      timeout: 5000,
+    });
 
     // Reconnect
     await page.context().setOffline(false);
-    await expect(
-      page.locator('[data-testid="connection-status"]'),
-    ).toContainText("Connected", { timeout: 10000 });
+    await expect(page.locator('[data-testid="connection-status"]')).toContainText("Connected", {
+      timeout: 10000,
+    });
 
     // Verify real-time still works after reconnect
     await db.insert("hitl_approvals", {
@@ -22447,10 +21742,9 @@ test.describe("WebSocket Real-Time E2E", () => {
       status: "pending",
     });
 
-    await expect(page.locator('[data-testid="pending-count"]')).not.toHaveText(
-      "0",
-      { timeout: 5000 },
-    );
+    await expect(page.locator('[data-testid="pending-count"]')).not.toHaveText("0", {
+      timeout: 5000,
+    });
   });
 });
 ```
@@ -22464,10 +21758,7 @@ test.describe("WebSocket Real-Time E2E", () => {
 import http from "k6/http";
 import { check, sleep, group } from "k6";
 import { Counter, Rate, Trend } from "k6/metrics";
-import {
-  randomString,
-  randomIntBetween,
-} from "https://jslib.k6.io/k6-utils/1.4.0/index.js";
+import { randomString, randomIntBetween } from "https://jslib.k6.io/k6-utils/1.4.0/index.js";
 
 // Custom metrics
 const approvalCreateRate = new Rate("approval_create_success");
@@ -22565,10 +21856,7 @@ export function setup() {
 export default function (data) {
   group("List Approvals", () => {
     const startTime = new Date();
-    const response = http.get(
-      `${BASE_URL}/api/v1/approvals?limit=20&status=pending`,
-      { headers },
-    );
+    const response = http.get(`${BASE_URL}/api/v1/approvals?limit=20&status=pending`, { headers });
 
     approvalListDuration.add(new Date() - startTime);
 
@@ -22619,15 +21907,11 @@ export default function (data) {
 
       // Get approval details
       group("Get Approval Details", () => {
-        const detailResponse = http.get(
-          `${BASE_URL}/api/v1/approvals/${approvalId}`,
-          { headers },
-        );
+        const detailResponse = http.get(`${BASE_URL}/api/v1/approvals/${approvalId}`, { headers });
 
         check(detailResponse, {
           "detail status 200": (r) => r.status === 200,
-          "detail has entity_id": (r) =>
-            JSON.parse(r.body).entity_id === entityId,
+          "detail has entity_id": (r) => JSON.parse(r.body).entity_id === entityId,
         });
       });
 
@@ -22705,9 +21989,7 @@ describe("Database Performance", () => {
         priority: ["low", "medium", "high", "critical"][(i + j) % 4],
         created_at: new Date(Date.now() - (i + j) * 60000),
         assigned_to_id: (i + j) % 5 === 0 ? null : `user-${(i + j) % 50}`,
-        sla_deadline: new Date(
-          Date.now() + (i + (j % 2) === 0 ? 3600000 : -3600000),
-        ),
+        sla_deadline: new Date(Date.now() + (i + (j % 2) === 0 ? 3600000 : -3600000)),
       }));
 
       await db.insert("hitl_approvals").values(batch);
@@ -22717,9 +21999,7 @@ describe("Database Performance", () => {
   }, 300000); // 5 minute timeout
 
   afterAll(async () => {
-    await db.execute(
-      sql`DELETE FROM hitl_approvals WHERE entity_id LIKE 'perf-entity-%'`,
-    );
+    await db.execute(sql`DELETE FROM hitl_approvals WHERE entity_id LIKE 'perf-entity-%'`);
   });
 
   describe("Query Performance", () => {
@@ -22734,12 +22014,7 @@ describe("Database Performance", () => {
         await db
           .select()
           .from("hitl_approvals")
-          .where(
-            and(
-              eq(hitl_approvals.tenant_id, tenantId),
-              eq(hitl_approvals.status, "pending"),
-            ),
-          )
+          .where(and(eq(hitl_approvals.tenant_id, tenantId), eq(hitl_approvals.status, "pending")))
           .limit(100);
 
         times.push(performance.now() - start);
@@ -22748,9 +22023,7 @@ describe("Database Performance", () => {
       const avg = times.reduce((a, b) => a + b, 0) / times.length;
       const p95 = times.sort((a, b) => a - b)[Math.floor(times.length * 0.95)];
 
-      console.log(
-        `Query by tenant+status: avg=${avg.toFixed(2)}ms, p95=${p95.toFixed(2)}ms`,
-      );
+      console.log(`Query by tenant+status: avg=${avg.toFixed(2)}ms, p95=${p95.toFixed(2)}ms`);
 
       expect(avg).toBeLessThan(50);
       expect(p95).toBeLessThan(100);
@@ -22776,9 +22049,7 @@ describe("Database Performance", () => {
       const avg = times.reduce((a, b) => a + b, 0) / times.length;
       const p95 = times.sort((a, b) => a - b)[Math.floor(times.length * 0.95)];
 
-      console.log(
-        `Query by assignee: avg=${avg.toFixed(2)}ms, p95=${p95.toFixed(2)}ms`,
-      );
+      console.log(`Query by assignee: avg=${avg.toFixed(2)}ms, p95=${p95.toFixed(2)}ms`);
 
       expect(avg).toBeLessThan(50);
       expect(p95).toBeLessThan(100);
@@ -22802,9 +22073,7 @@ describe("Database Performance", () => {
 
       const duration = performance.now() - start;
 
-      console.log(
-        `Complex aggregation: ${duration.toFixed(2)}ms, rows=${result.rows.length}`,
-      );
+      console.log(`Complex aggregation: ${duration.toFixed(2)}ms, rows=${result.rows.length}`);
 
       expect(duration).toBeLessThan(2000);
     });
@@ -22836,9 +22105,7 @@ describe("Database Performance", () => {
       const avg = times.reduce((a, b) => a + b, 0) / times.length;
       const p95 = times.sort((a, b) => a - b)[Math.floor(times.length * 0.95)];
 
-      console.log(
-        `SLA range query: avg=${avg.toFixed(2)}ms, p95=${p95.toFixed(2)}ms`,
-      );
+      console.log(`SLA range query: avg=${avg.toFixed(2)}ms, p95=${p95.toFixed(2)}ms`);
 
       expect(avg).toBeLessThan(100);
       expect(p95).toBeLessThan(200);
@@ -22864,9 +22131,7 @@ describe("Database Performance", () => {
 
       const duration = performance.now() - start;
 
-      console.log(
-        `Concurrent inserts (${concurrency}): ${duration.toFixed(2)}ms`,
-      );
+      console.log(`Concurrent inserts (${concurrency}): ${duration.toFixed(2)}ms`);
 
       expect(duration).toBeLessThan(1000);
     });
@@ -23060,14 +22325,10 @@ describe("WebSocket Performance", () => {
     // Wait for all clients to receive
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
-    const receiveCounts = Array.from(receivedMessages.values()).map(
-      (arr) => arr.length,
-    );
+    const receiveCounts = Array.from(receivedMessages.values()).map((arr) => arr.length);
     const allReceived = receiveCounts.every((count) => count >= 1);
 
-    console.log(
-      `Broadcast to ${clientCount} clients: all received = ${allReceived}`,
-    );
+    console.log(`Broadcast to ${clientCount} clients: all received = ${allReceived}`);
 
     // Cleanup
     clients.forEach((ws) => ws.close());

@@ -56,19 +56,20 @@ let workers = [];
 function startWorkers() {
   const conn = getRedisConnection();
   const prefix = process.env.REDIS_PREFIX || "cerniq";
-  workers = queues.map((name) =>
-    new Worker(
-      name,
-      async (job) => {
-        try {
-          return await processJob(job);
-        } catch (err) {
-          stats.failed += 1;
-          throw err;
-        }
-      },
-      { connection: conn, prefix, concurrency: 2 },
-    ),
+  workers = queues.map(
+    (name) =>
+      new Worker(
+        name,
+        async (job) => {
+          try {
+            return await processJob(job);
+          } catch (err) {
+            stats.failed += 1;
+            throw err;
+          }
+        },
+        { connection: conn, prefix, concurrency: 2 },
+      ),
   );
   workers.forEach((w) => {
     w.on("failed", (_, err) => console.error("[Outreach] Job failed:", err.message));

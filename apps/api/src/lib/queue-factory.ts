@@ -16,10 +16,7 @@ function getRedisConnectionOptions() {
   };
 }
 
-export function createQueue<T = unknown>(
-  name: string,
-  opts?: Partial<QueueOptions>,
-) {
+export function createQueue<T = unknown>(name: string, opts?: Partial<QueueOptions>) {
   return new Queue<T>(name, {
     connection: getRedisConnectionOptions(),
     prefix: QUEUE_PREFIX,

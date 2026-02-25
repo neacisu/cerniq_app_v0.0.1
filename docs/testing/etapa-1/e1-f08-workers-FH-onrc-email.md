@@ -11,11 +11,7 @@
 ```typescript
 describe("ONRC Worker", () => {
   it("should scrape company data", async () => {
-    server.use(
-      http.get("https://portal.onrc.ro/*", () =>
-        HttpResponse.html("<html>...</html>"),
-      ),
-    );
+    server.use(http.get("https://portal.onrc.ro/*", () => HttpResponse.html("<html>...</html>")));
     const result = await worker.fetchCompany("12345678");
     expect(result.denumire).toBeDefined();
   });

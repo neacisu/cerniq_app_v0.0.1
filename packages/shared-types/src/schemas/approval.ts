@@ -1,11 +1,6 @@
 import { z } from "zod";
 
-export const ApprovalUrgencySchema = z.enum([
-  "low",
-  "medium",
-  "high",
-  "critical",
-]);
+export const ApprovalUrgencySchema = z.enum(["low", "medium", "high", "critical"]);
 export type ApprovalUrgency = z.infer<typeof ApprovalUrgencySchema>;
 
 export const ApprovalStatusSchema = z.enum([

@@ -8,8 +8,7 @@ const MOCK_TEMPLATES = [
     id: "1",
     name: "Intro Agro",
     vars: ["company", "contact"],
-    preview:
-      "Bună {{contact}}, {{company}} a fost selectată pentru oferta noastră agro.",
+    preview: "Bună {{contact}}, {{company}} a fost selectată pentru oferta noastră agro.",
   },
   {
     id: "2",
@@ -52,9 +51,7 @@ export function Templates() {
         </Card>
         <Card>
           <CardBody>
-            <h3 className="font-semibold text-[var(--color-t1)] mb-2">
-              {t.name}
-            </h3>
+            <h3 className="font-semibold text-[var(--color-t1)] mb-2">{t.name}</h3>
             <div className="flex flex-wrap gap-1 mb-3">
               {t.vars.map((v) => (
                 <Badge key={v} variant="brand">{`{{${v}}}`}</Badge>

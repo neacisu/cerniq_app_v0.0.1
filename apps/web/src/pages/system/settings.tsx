@@ -1,13 +1,6 @@
 import * as Tabs from "@radix-ui/react-tabs";
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardBody,
-  Input,
-  Button,
-} from "@/components/ui/index.js";
+import { Card, CardHeader, CardTitle, CardBody, Input, Button } from "@/components/ui/index.js";
 import { StatusDot } from "@/components/data/StatusDot.js";
 import { cn } from "@/lib/utils.js";
 
@@ -58,9 +51,7 @@ export function Settings() {
               <CardBody className="space-y-3">
                 {["Company Name", "Domain", "Timezone", "Locale"].map((l) => (
                   <div key={l}>
-                    <label className="text-xs text-[var(--color-t3)] block mb-1">
-                      {l}
-                    </label>
+                    <label className="text-xs text-[var(--color-t3)] block mb-1">{l}</label>
                     <Input placeholder={l} />
                   </div>
                 ))}
@@ -71,19 +62,14 @@ export function Settings() {
                 <CardTitle>Automatic Thresholds</CardTitle>
               </CardHeader>
               <CardBody className="space-y-3">
-                {[
-                  "Churn risk %",
-                  "NPS alert",
-                  "CLTV target (EUR)",
-                  "Contact interval (days)",
-                ].map((l) => (
-                  <div key={l}>
-                    <label className="text-xs text-[var(--color-t3)] block mb-1">
-                      {l}
-                    </label>
-                    <Input type="number" placeholder="0" />
-                  </div>
-                ))}
+                {["Churn risk %", "NPS alert", "CLTV target (EUR)", "Contact interval (days)"].map(
+                  (l) => (
+                    <div key={l}>
+                      <label className="text-xs text-[var(--color-t3)] block mb-1">{l}</label>
+                      <Input type="number" placeholder="0" />
+                    </div>
+                  ),
+                )}
               </CardBody>
             </Card>
           </div>
@@ -97,12 +83,8 @@ export function Settings() {
                   <div className="flex items-center gap-3">
                     <StatusDot status={a.status} />
                     <div>
-                      <div className="font-medium text-[var(--color-t1)]">
-                        {a.name}
-                      </div>
-                      <div className="text-xs text-[var(--color-t3)] font-mono">
-                        {a.key}
-                      </div>
+                      <div className="font-medium text-[var(--color-t1)]">{a.name}</div>
+                      <div className="text-xs text-[var(--color-t3)] font-mono">{a.key}</div>
                     </div>
                   </div>
                   <Button size="sm" variant="outline">
@@ -117,9 +99,7 @@ export function Settings() {
         <Tabs.Content value="team">
           <Card>
             <CardBody>
-              <p className="text-[var(--color-t3)] text-sm">
-                Team management placeholder.
-              </p>
+              <p className="text-[var(--color-t3)] text-sm">Team management placeholder.</p>
             </CardBody>
           </Card>
         </Tabs.Content>
@@ -130,15 +110,10 @@ export function Settings() {
               <CardTitle>Pro Plan</CardTitle>
             </CardHeader>
             <CardBody>
-              <div className="text-2xl font-bold text-[var(--color-t1)] mb-4">
-                EUR 99/mo
-              </div>
+              <div className="text-2xl font-bold text-[var(--color-t1)] mb-4">EUR 99/mo</div>
               <ul className="space-y-2">
                 {planFeatures.map((f) => (
-                  <li
-                    key={f}
-                    className="flex items-center gap-2 text-sm text-[var(--color-t2)]"
-                  >
+                  <li key={f} className="flex items-center gap-2 text-sm text-[var(--color-t2)]">
                     <span className="text-[var(--color-ok)]">✓</span> {f}
                   </li>
                 ))}

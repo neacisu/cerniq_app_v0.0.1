@@ -6,15 +6,10 @@ interface EmptyStateProps {
   description?: string;
 }
 
-export function EmptyState({
-  icon = "ClipboardList",
-  title,
-  description,
-}: EmptyStateProps) {
+export function EmptyState({ icon = "ClipboardList", title, description }: EmptyStateProps) {
   const IconComponent =
-    (
-      Icons as unknown as Record<string, React.ComponentType<{ size?: number }>>
-    )[icon] ?? Icons.ClipboardList;
+    (Icons as unknown as Record<string, React.ComponentType<{ size?: number }>>)[icon] ??
+    Icons.ClipboardList;
 
   return (
     <div className="emp">

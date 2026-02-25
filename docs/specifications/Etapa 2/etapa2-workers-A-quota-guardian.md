@@ -286,22 +286,14 @@ function getNextBusinessHour(localTime: DateTime): string {
   return next.toISO()!;
 }
 
-async function findAlternativePhone(
-  tenantId: string,
-  limit: number,
-): Promise<string | null> {
+async function findAlternativePhone(tenantId: string, limit: number): Promise<string | null> {
   const dateIso = DateTime.now().toISODate();
 
   // Find phone with available quota
   const phones = await db
     .select()
     .from(waPhoneNumbers)
-    .where(
-      and(
-        eq(waPhoneNumbers.tenantId, tenantId),
-        eq(waPhoneNumbers.status, "ACTIVE"),
-      ),
-    );
+    .where(and(eq(waPhoneNumbers.tenantId, tenantId), eq(waPhoneNumbers.status, "ACTIVE")));
 
   for (const phone of phones) {
     const usage = await redis.get(`quota:wa:${phone.id}:${dateIso}`);
@@ -512,10 +504,7 @@ export async function businessHoursCheckProcessor(
     }
 
     // Skip weekends and holidays
-    while (
-      nextSlot.weekday > 5 ||
-      ROMANIAN_HOLIDAYS_2026.includes(nextSlot.toISODate())
-    ) {
+    while (nextSlot.weekday > 5 || ROMANIAN_HOLIDAYS_2026.includes(nextSlot.toISODate())) {
       nextSlot = nextSlot.plus({ days: 1 });
     }
   }

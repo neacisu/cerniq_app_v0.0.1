@@ -76,11 +76,7 @@ export function OrderStatusPieChart({ data }: { data: StatusBreakdown[] }) {
 ## 3. Credit Score Distribution
 
 ```tsx
-export function CreditScoreDistribution({
-  data,
-}: {
-  data: ScoreDistribution[];
-}) {
+export function CreditScoreDistribution({ data }: { data: ScoreDistribution[] }) {
   return (
     <ResponsiveContainer width="100%" height={200}>
       <BarChart data={data} layout="vertical">
@@ -128,11 +124,7 @@ export function PaymentAgingChart({ data }: { data: AgingData }) {
 ## 5. Delivery Performance Chart
 
 ```tsx
-export function DeliveryPerformanceChart({
-  data,
-}: {
-  data: DeliveryMetrics[];
-}) {
+export function DeliveryPerformanceChart({ data }: { data: DeliveryMetrics[] }) {
   return (
     <ResponsiveContainer width="100%" height={300}>
       <LineChart data={data}>
@@ -141,20 +133,8 @@ export function DeliveryPerformanceChart({
         <YAxis yAxisId="left" />
         <YAxis yAxisId="right" orientation="right" />
         <Tooltip />
-        <Line
-          yAxisId="left"
-          type="monotone"
-          dataKey="delivered"
-          stroke="#22c55e"
-          name="Livrate"
-        />
-        <Line
-          yAxisId="left"
-          type="monotone"
-          dataKey="failed"
-          stroke="#ef4444"
-          name="Eșuate"
-        />
+        <Line yAxisId="left" type="monotone" dataKey="delivered" stroke="#22c55e" name="Livrate" />
+        <Line yAxisId="left" type="monotone" dataKey="failed" stroke="#ef4444" name="Eșuate" />
         <Line
           yAxisId="right"
           type="monotone"

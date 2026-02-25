@@ -66,10 +66,7 @@ components/
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
-const stageConfig: Record<
-  string,
-  { label: string; color: string; icon?: string }
-> = {
+const stageConfig: Record<string, { label: string; color: string; icon?: string }> = {
   COLD: {
     label: "Cold",
     color: "bg-slate-500 hover:bg-slate-600",
@@ -129,14 +126,7 @@ export function StageBadge({
   };
 
   return (
-    <Badge
-      className={cn(
-        config.color,
-        "text-white font-medium",
-        sizeClasses[size],
-        className,
-      )}
-    >
+    <Badge className={cn(config.color, "text-white font-medium", sizeClasses[size], className)}>
       {config.label}
     </Badge>
   );
@@ -150,11 +140,7 @@ export function StageBadge({
 
 import { MessageCircle, Mail, Phone, Hand } from "lucide-react";
 import { cn } from "@/lib/utils";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const channelConfig: Record<
   string,
@@ -214,9 +200,7 @@ export function ChannelIcon({
     lg: "w-6 h-6",
   };
 
-  const iconElement = (
-    <Icon className={cn(sizeClasses[size], config.color, className)} />
-  );
+  const iconElement = <Icon className={cn(sizeClasses[size], config.color, className)} />;
 
   if (!showTooltip) return iconElement;
 
@@ -298,24 +282,14 @@ export function SentimentIndicator({
           <span className={config.color}>{config.label}</span>
           {showScore && <span className="font-mono">{score}</span>}
         </div>
-        <Progress
-          value={normalizedScore}
-          className="h-2"
-          indicatorClassName={config.bgColor}
-        />
+        <Progress value={normalizedScore} className="h-2" indicatorClassName={config.bgColor} />
       </div>
     );
   }
 
   if (variant === "compact") {
     return (
-      <span
-        className={cn(
-          "inline-flex items-center gap-1",
-          config.color,
-          className,
-        )}
-      >
+      <span className={cn("inline-flex items-center gap-1", config.color, className)}>
         <Icon className="w-3 h-3" />
         {showScore && <span className="text-xs font-mono">{score}</span>}
       </span>
@@ -326,12 +300,8 @@ export function SentimentIndicator({
   return (
     <div className={cn("flex items-center gap-2", className)}>
       <Icon className={cn("w-5 h-5", config.color)} />
-      {showScore && (
-        <span className={cn("font-medium", config.color)}>{score}</span>
-      )}
-      {showLabel && (
-        <span className="text-sm text-muted-foreground">({config.label})</span>
-      )}
+      {showScore && <span className={cn("font-medium", config.color)}>{score}</span>}
+      {showLabel && <span className="text-sm text-muted-foreground">({config.label})</span>}
     </div>
   );
 }
@@ -382,11 +352,7 @@ interface PriorityBadgeProps {
   className?: string;
 }
 
-export function PriorityBadge({
-  priority,
-  showIcon = true,
-  className,
-}: PriorityBadgeProps) {
+export function PriorityBadge({ priority, showIcon = true, className }: PriorityBadgeProps) {
   const config = priorityConfig[priority] || priorityConfig.MEDIUM;
   const Icon = config.icon;
 
@@ -460,9 +426,7 @@ export function KPICard({
   return (
     <Card className={cn(variantStyles[variant], className)}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
-          {title}
-        </CardTitle>
+        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
         {icon && <div className="text-muted-foreground">{icon}</div>}
       </CardHeader>
       <CardContent>
@@ -478,9 +442,7 @@ export function KPICard({
                 </span>
               </>
             )}
-            {subtitle && (
-              <span className="text-xs text-muted-foreground">{subtitle}</span>
-            )}
+            {subtitle && <span className="text-xs text-muted-foreground">{subtitle}</span>}
           </div>
         )}
       </CardContent>
@@ -494,11 +456,7 @@ export function KPICard({
 ```tsx
 // components/outreach/dashboard/QuotaUsageGrid.tsx
 
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 
@@ -570,9 +528,7 @@ export function QuotaUsageGrid({ phones, onPhoneClick }: QuotaUsageGridProps) {
                     </div>
                   )}
                 </div>
-                <span className="text-xs text-center block mt-1 truncate">
-                  {phone.label}
-                </span>
+                <span className="text-xs text-center block mt-1 truncate">{phone.label}</span>
               </button>
             </TooltipTrigger>
             <TooltipContent side="top" className="max-w-xs">
@@ -587,9 +543,7 @@ export function QuotaUsageGrid({ phones, onPhoneClick }: QuotaUsageGridProps) {
                     {phone.quotaUsed}/{phone.quotaLimit}
                   </span>
                 </p>
-                <p className="text-xs text-muted-foreground">
-                  Click pentru detalii
-                </p>
+                <p className="text-xs text-muted-foreground">Click pentru detalii</p>
               </div>
             </TooltipContent>
           </Tooltip>
@@ -624,29 +578,19 @@ export function LeadFunnelChart({
   showPercentage = true,
   height = 300,
 }: LeadFunnelChartProps) {
-  const maxCount = useMemo(
-    () => Math.max(...stages.map((s) => s.count)),
-    [stages],
-  );
-  const totalCount = useMemo(
-    () => stages.reduce((sum, s) => sum + s.count, 0),
-    [stages],
-  );
+  const maxCount = useMemo(() => Math.max(...stages.map((s) => s.count)), [stages]);
+  const totalCount = useMemo(() => stages.reduce((sum, s) => sum + s.count, 0), [stages]);
 
   return (
     <div className="w-full" style={{ height }}>
       <div className="flex flex-col gap-2 h-full justify-center">
         {stages.map((stage, index) => {
-          const widthPercent =
-            maxCount > 0 ? (stage.count / maxCount) * 100 : 0;
-          const ofTotal =
-            totalCount > 0 ? ((stage.count / totalCount) * 100).toFixed(1) : 0;
+          const widthPercent = maxCount > 0 ? (stage.count / maxCount) * 100 : 0;
+          const ofTotal = totalCount > 0 ? ((stage.count / totalCount) * 100).toFixed(1) : 0;
 
           return (
             <div key={stage.name} className="flex items-center gap-4">
-              <div className="w-24 text-sm text-right truncate">
-                {stage.name}
-              </div>
+              <div className="w-24 text-sm text-right truncate">{stage.name}</div>
               <div className="flex-1 h-8 bg-muted rounded-r-full overflow-hidden">
                 <div
                   className="h-full rounded-r-full flex items-center justify-end pr-2 transition-all duration-500"
@@ -662,9 +606,7 @@ export function LeadFunnelChart({
                 </div>
               </div>
               {showPercentage && (
-                <div className="w-16 text-sm text-muted-foreground">
-                  {ofTotal}%
-                </div>
+                <div className="w-16 text-sm text-muted-foreground">{ofTotal}%</div>
               )}
             </div>
           );
@@ -789,9 +731,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
   const isOutbound = message.direction === "OUTBOUND";
 
   return (
-    <div
-      className={cn("flex gap-2", isOutbound ? "justify-end" : "justify-start")}
-    >
+    <div className={cn("flex gap-2", isOutbound ? "justify-end" : "justify-start")}>
       {!isOutbound && (
         <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
           <User className="w-4 h-4" />
@@ -808,11 +748,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
       >
         {/* Header */}
         <div className="flex items-center gap-2 mb-1">
-          <ChannelIcon
-            channel={message.channel}
-            size="xs"
-            showTooltip={false}
-          />
+          <ChannelIcon channel={message.channel} size="xs" showTooltip={false} />
           {message.isAiGenerated && (
             <Badge variant="outline" className="text-xs py-0 h-5">
               <Bot className="w-3 h-3 mr-1" />
@@ -825,15 +761,11 @@ export function MessageBubble({ message }: MessageBubbleProps) {
         </div>
 
         {/* Content */}
-        <p className="text-sm whitespace-pre-wrap break-words">
-          {message.content}
-        </p>
+        <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
 
         {/* Footer */}
         <div className="flex items-center justify-end gap-2 mt-1">
-          <span className="text-xs opacity-70">
-            {format(new Date(message.sentAt), "HH:mm")}
-          </span>
+          <span className="text-xs opacity-70">{format(new Date(message.sentAt), "HH:mm")}</span>
           {isOutbound && <MessageStatusIcon status={message.status} />}
         </div>
       </div>
@@ -859,11 +791,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
 
 import { Check, CheckCheck, Clock, AlertCircle, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const statusConfig: Record<
   string,
@@ -901,9 +829,7 @@ export function MessageStatusIcon({
   const config = statusConfig[status] || statusConfig.SENT;
   const Icon = config.icon;
 
-  const iconElement = (
-    <Icon className={cn("w-4 h-4", config.color, className)} />
-  );
+  const iconElement = <Icon className={cn("w-4 h-4", config.color, className)} />;
 
   if (!showTooltip) return iconElement;
 
@@ -937,11 +863,7 @@ interface SLACountdownProps {
   className?: string;
 }
 
-export function SLACountdown({
-  dueAt,
-  breached,
-  className,
-}: SLACountdownProps) {
+export function SLACountdown({ dueAt, breached, className }: SLACountdownProps) {
   const [timeLeft, setTimeLeft] = useState<string>("");
   const [isUrgent, setIsUrgent] = useState(false);
   const [isOverdue, setIsOverdue] = useState(false);
@@ -956,9 +878,7 @@ export function SLACountdown({
         setIsOverdue(true);
         const overdueDiff = Math.abs(diff);
         const hours = Math.floor(overdueDiff / (1000 * 60 * 60));
-        const minutes = Math.floor(
-          (overdueDiff % (1000 * 60 * 60)) / (1000 * 60),
-        );
+        const minutes = Math.floor((overdueDiff % (1000 * 60 * 60)) / (1000 * 60));
         setTimeLeft(`-${hours}h ${minutes}m`);
         return;
       }

@@ -75,9 +75,7 @@ const rows = await db
 
 const hasMore = rows.length > limit;
 const data = hasMore ? rows.slice(0, limit) : rows;
-const nextCursor = hasMore
-  ? encodeCursor({ lastId: data[data.length - 1].id })
-  : null;
+const nextCursor = hasMore ? encodeCursor({ lastId: data[data.length - 1].id }) : null;
 ```
 
 ---

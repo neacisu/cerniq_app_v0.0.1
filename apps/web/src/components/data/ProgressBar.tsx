@@ -4,11 +4,7 @@ interface ProgressBarProps {
   color?: string;
 }
 
-export function ProgressBar({
-  value,
-  max = 100,
-  color = "var(--color-b5)",
-}: ProgressBarProps) {
+export function ProgressBar({ value, max = 100, color = "var(--color-b5)" }: ProgressBarProps) {
   const pct = Math.min(100, (value / max) * 100);
   return (
     <div className="pt">

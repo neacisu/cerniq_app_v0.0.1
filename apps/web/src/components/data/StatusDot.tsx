@@ -10,12 +10,6 @@ const dotClass: Record<DotStatus, string> = {
   neutral: "dnt",
 };
 
-export function StatusDot({
-  status,
-  className,
-}: {
-  status: DotStatus;
-  className?: string;
-}) {
+export function StatusDot({ status, className }: { status: DotStatus; className?: string }) {
   return <span className={cn("dot", dotClass[status], className)} />;
 }

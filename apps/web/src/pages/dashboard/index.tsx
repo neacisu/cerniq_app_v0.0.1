@@ -89,12 +89,7 @@ export function Dashboard() {
     <PageWrapper title="Dashboard">
       <div className="grid grid-cols-4 gap-4 mb-6 max-[1100px]:grid-cols-2 max-[700px]:grid-cols-2">
         {kpis.map((kpi, i) => (
-          <KpiCard
-            key={kpi.label}
-            {...kpi}
-            delay={i * 100}
-            onClick={() => navigate(kpi.path)}
-          />
+          <KpiCard key={kpi.label} {...kpi} delay={i * 100} onClick={() => navigate(kpi.path)} />
         ))}
       </div>
 
@@ -125,12 +120,8 @@ export function Dashboard() {
               {activity.map((item, i) => (
                 <div key={i} className="flex items-center gap-3 text-sm">
                   <StatusDot status={item.status} />
-                  <span className="flex-1 text-[var(--color-t1)]">
-                    {item.text}
-                  </span>
-                  <span className="text-xs text-[var(--color-t3)]">
-                    {item.time}
-                  </span>
+                  <span className="flex-1 text-[var(--color-t1)]">{item.text}</span>
+                  <span className="text-xs text-[var(--color-t3)]">{item.time}</span>
                 </div>
               ))}
             </div>

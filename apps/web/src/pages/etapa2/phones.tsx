@@ -36,14 +36,10 @@ export function Phones() {
           >
             <CardBody className="p-4">
               <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium text-[var(--color-t1)]">
-                  {p.id}
-                </span>
+                <span className="text-sm font-medium text-[var(--color-t1)]">{p.id}</span>
                 <StatusDot status={p.status} />
               </div>
-              <p className="text-xs text-[var(--color-t3)] mb-2 truncate">
-                {p.number}
-              </p>
+              <p className="text-xs text-[var(--color-t3)] mb-2 truncate">{p.number}</p>
               <ProgressBar value={p.pct} />
             </CardBody>
           </Card>

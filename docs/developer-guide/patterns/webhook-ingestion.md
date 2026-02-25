@@ -21,10 +21,7 @@ function verifyWebhookSignature(
   secret: string,
   algorithm = "sha256",
 ): boolean {
-  const expected = crypto
-    .createHmac(algorithm, secret)
-    .update(payload)
-    .digest("hex");
+  const expected = crypto.createHmac(algorithm, secret).update(payload).digest("hex");
   return crypto.timingSafeEqual(
     Buffer.from(signature.replace("sha256=", ""), "hex"),
     Buffer.from(expected, "hex"),
@@ -48,13 +45,10 @@ if (!verifyWebhookSignature(rawBody, sig, WEBHOOK_SECRET)) {
 Use `X-Idempotency-Key` or provider-specific idempotency headers to prevent duplicate processing.
 
 ```typescript
-const idempotencyKey =
-  req.headers["x-idempotency-key"] ?? req.headers["stripe-idempotency-key"];
+const idempotencyKey = req.headers["x-idempotency-key"] ?? req.headers["stripe-idempotency-key"];
 if (!idempotencyKey) throw new BadRequestError("Idempotency-Key required");
 
-const existing = await redis.get(
-  `cerniq:webhook:idempotency:${idempotencyKey}`,
-);
+const existing = await redis.get(`cerniq:webhook:idempotency:${idempotencyKey}`);
 if (existing) {
   return reply.status(200).send(JSON.parse(existing)); // Return cached response
 }

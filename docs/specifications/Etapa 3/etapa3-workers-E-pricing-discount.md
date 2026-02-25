@@ -144,9 +144,7 @@ export const DiscountCalculateJobDataSchema = z.object({
   source: z.enum(["AI_AGENT", "MANUAL", "CART_UPDATE"]).default("AI_AGENT"),
 });
 
-export type DiscountCalculateJobData = z.infer<
-  typeof DiscountCalculateJobDataSchema
->;
+export type DiscountCalculateJobData = z.infer<typeof DiscountCalculateJobDataSchema>;
 
 /**
  * Result interface
@@ -200,12 +198,7 @@ import { Job, Worker } from "bullmq";
 import { Redis } from "ioredis";
 import { Logger } from "pino";
 import { db } from "@cerniq/db";
-import {
-  gold_products,
-  price_rules,
-  shop_settings,
-  client_tiers,
-} from "@cerniq/db/schema";
+import { gold_products, price_rules, shop_settings, client_tiers } from "@cerniq/db/schema";
 import { eq, and, gte, lte, or } from "drizzle-orm";
 import { createLogger } from "@cerniq/logger";
 import { metricsClient } from "@cerniq/metrics";
@@ -237,16 +230,11 @@ const CLIENT_TIER_DISCOUNTS: Record<string, number> = {
 /**
  * Get volume discount for quantity
  */
-function calculateVolumeDiscount(
-  quantity: number,
-  volumeTiers: VolumeDiscountTier[],
-): number {
+function calculateVolumeDiscount(quantity: number, volumeTiers: VolumeDiscountTier[]): number {
   if (!volumeTiers || volumeTiers.length === 0) return 0;
 
   // Sort tiers by min quantity descending
-  const sortedTiers = [...volumeTiers].sort(
-    (a, b) => b.minQuantity - a.minQuantity,
-  );
+  const sortedTiers = [...volumeTiers].sort((a, b) => b.minQuantity - a.minQuantity);
 
   // Find applicable tier
   for (const tier of sortedTiers) {
@@ -263,11 +251,7 @@ function calculateVolumeDiscount(
 /**
  * Check for active promotions
  */
-async function getActivePromotion(
-  shopId: string,
-  sku: string,
-  productId: string,
-): Promise<number> {
+async function getActivePromotion(shopId: string, sku: string, productId: string): Promise<number> {
   const now = new Date();
 
   const promo = await db.query.price_rules.findFirst({
@@ -295,15 +279,7 @@ export async function discountCalculateProcessor(
 ): Promise<DiscountCalculateResult> {
   const startTime = Date.now();
   const data = DiscountCalculateJobDataSchema.parse(job.data);
-  const {
-    correlationId,
-    shopId,
-    sku,
-    quantity,
-    clientId,
-    clientTier,
-    requestedDiscount,
-  } = data;
+  const { correlationId, shopId, sku, quantity, clientId, clientTier, requestedDiscount } = data;
 
   logger.info(
     {
@@ -382,10 +358,7 @@ export async function discountCalculateProcessor(
   const maxAllowedDiscount = Math.min(combinedDiscount, maxDiscountFromMargin);
 
   // Recommend optimal discount (volume + client, capped)
-  const recommendedDiscount = Math.min(
-    volumeDiscount + clientDiscount,
-    maxAllowedDiscount,
-  );
+  const recommendedDiscount = Math.min(volumeDiscount + clientDiscount, maxAllowedDiscount);
 
   // Calculate final price
   const finalPrice = listPrice * (1 - recommendedDiscount / 100);
@@ -470,9 +443,7 @@ export async function discountCalculateProcessor(
     requestedDiscountValid,
     requestedDiscountReason,
     suggestedDiscount:
-      suggestedDiscount !== undefined
-        ? Math.round(suggestedDiscount * 100) / 100
-        : undefined,
+      suggestedDiscount !== undefined ? Math.round(suggestedDiscount * 100) / 100 : undefined,
     requiresApproval,
     approvalThreshold,
     approvalReason,
@@ -644,10 +615,7 @@ const PRICE_PATTERNS = [
 /**
  * Extract price mentions from AI response
  */
-function extractPriceMentions(
-  response: string,
-  logger: Logger,
-): PriceMention[] {
+function extractPriceMentions(response: string, logger: Logger): PriceMention[] {
   const mentions: PriceMention[] = [];
   const seenPrices = new Set<string>();
 
@@ -713,8 +681,7 @@ async function validatePriceMention(
 
   // Fetch product from catalog
   const product = await db.query.gold_products.findFirst({
-    where: (gp, { and, eq }) =>
-      and(eq(gp.shop_id, shopId), eq(gp.sku, mention.sku)),
+    where: (gp, { and, eq }) => and(eq(gp.shop_id, shopId), eq(gp.sku, mention.sku)),
   });
 
   if (!product) {
@@ -758,8 +725,7 @@ async function validatePriceMention(
     );
   } else if (mention.mentionedPrice < minimumAllowedPrice) {
     // Price implies discount > max allowed
-    const impliedDiscount =
-      ((catalogPrice - mention.mentionedPrice) / catalogPrice) * 100;
+    const impliedDiscount = ((catalogPrice - mention.mentionedPrice) / catalogPrice) * 100;
     errors.push(
       `Prețul de ${mention.mentionedPrice} RON implică un discount de ${impliedDiscount.toFixed(1)}%, ` +
         `care depășește maximul permis de ${maxDiscountPercent}%.`,
@@ -775,11 +741,8 @@ async function validatePriceMention(
     }
 
     // Check if price matches discount
-    const expectedPriceWithDiscount =
-      catalogPrice * (1 - mention.mentionedDiscount / 100);
-    const priceDifference = Math.abs(
-      mention.mentionedPrice - expectedPriceWithDiscount,
-    );
+    const expectedPriceWithDiscount = catalogPrice * (1 - mention.mentionedDiscount / 100);
+    const priceDifference = Math.abs(mention.mentionedPrice - expectedPriceWithDiscount);
 
     if (priceDifference > 0.5) {
       // Allow 0.50 RON tolerance
@@ -833,8 +796,7 @@ export async function priceGuardrailProcessor(
   );
 
   // Extract or use provided price mentions
-  const priceMentions =
-    data.priceMentions || extractPriceMentions(aiResponse, logger);
+  const priceMentions = data.priceMentions || extractPriceMentions(aiResponse, logger);
 
   if (priceMentions.length === 0) {
     // No prices to validate
@@ -857,9 +819,7 @@ export async function priceGuardrailProcessor(
 
   // Validate each mention
   const validations = await Promise.all(
-    priceMentions.map((mention) =>
-      validatePriceMention(shopId, mention, clientTier, logger),
-    ),
+    priceMentions.map((mention) => validatePriceMention(shopId, mention, clientTier, logger)),
   );
 
   const validMentions = validations.filter((v) => v.valid).length;
@@ -871,9 +831,7 @@ export async function priceGuardrailProcessor(
   // Build correction feedback for AI
   let correctionFeedback: string | undefined;
   if (!valid) {
-    const corrections = validations
-      .filter((v) => v.correction)
-      .map((v) => v.correction!.message);
+    const corrections = validations.filter((v) => v.correction).map((v) => v.correction!.message);
 
     correctionFeedback =
       `Răspunsul conține erori de preț care trebuie corectate:\n` +
@@ -1105,16 +1063,13 @@ export async function marginCheckProcessor(
     where: (ss, { eq }) => eq(ss.shop_id, shopId),
   });
 
-  const minimumMarginPercent =
-    data.minimumMarginPercent || settings?.minimum_margin_percent || 10;
-  const warningMarginPercent =
-    data.warningMarginPercent || settings?.warning_margin_percent || 15;
+  const minimumMarginPercent = data.minimumMarginPercent || settings?.minimum_margin_percent || 10;
+  const warningMarginPercent = data.warningMarginPercent || settings?.warning_margin_percent || 15;
 
   // Fetch all products at once
   const skus = items.map((i) => i.sku);
   const products = await db.query.gold_products.findMany({
-    where: (gp, { and, eq, inArray: inArr }) =>
-      and(eq(gp.shop_id, shopId), inArr(gp.sku, skus)),
+    where: (gp, { and, eq, inArray: inArr }) => and(eq(gp.shop_id, shopId), inArr(gp.sku, skus)),
   });
 
   const productMap = new Map(products.map((p) => [p.sku, p]));
@@ -1154,11 +1109,7 @@ export async function marginCheckProcessor(
     const lineMargin = lineRevenue - lineCost;
     const marginPercent = (lineMargin / lineRevenue) * 100;
 
-    const status = getMarginStatus(
-      marginPercent,
-      minimumMarginPercent,
-      warningMarginPercent,
-    );
+    const status = getMarginStatus(marginPercent, minimumMarginPercent, warningMarginPercent);
 
     let message: string | undefined;
     if (status === "NEGATIVE") {
@@ -1188,8 +1139,7 @@ export async function marginCheckProcessor(
 
   // Calculate overall margin
   const totalMargin = totalRevenue - totalCost;
-  const overallMarginPercent =
-    totalRevenue > 0 ? (totalMargin / totalRevenue) * 100 : 0;
+  const overallMarginPercent = totalRevenue > 0 ? (totalMargin / totalRevenue) * 100 : 0;
 
   const overallStatus = getMarginStatus(
     overallMarginPercent,
@@ -1205,9 +1155,7 @@ export async function marginCheckProcessor(
   // Build message
   let message: string;
   if (hasNegativeItems) {
-    const negativeCount = itemResults.filter(
-      (i) => i.status === "NEGATIVE",
-    ).length;
+    const negativeCount = itemResults.filter((i) => i.status === "NEGATIVE").length;
     message = `BLOCAT: ${negativeCount} produs(e) se vând sub cost!`;
   } else if (hasCriticalItems || overallStatus === "CRITICAL") {
     message = `Marja totală de ${overallMarginPercent.toFixed(1)}% este sub minimul de ${minimumMarginPercent}%`;
@@ -1262,16 +1210,12 @@ export async function marginCheckProcessor(
 export function createMarginCheckWorker(redis: Redis): Worker {
   const logger = createLogger("pricing:margin:check");
 
-  return new Worker(
-    "pricing:margin:check",
-    async (job) => marginCheckProcessor(job, logger),
-    {
-      connection: redis,
-      concurrency: 100,
-      removeOnComplete: { count: 1000 },
-      removeOnFail: { count: 5000 },
-    },
-  );
+  return new Worker("pricing:margin:check", async (job) => marginCheckProcessor(job, logger), {
+    connection: redis,
+    concurrency: 100,
+    removeOnComplete: { count: 1000 },
+    removeOnFail: { count: 5000 },
+  });
 }
 ```
 
@@ -1411,10 +1355,7 @@ export async function resolveApplicableRules(
         break;
 
       case PriceRuleType.PROMOTION:
-        if (
-          rule.discount_percent !== null &&
-          rule.discount_percent > promotionalDiscount
-        ) {
+        if (rule.discount_percent !== null && rule.discount_percent > promotionalDiscount) {
           promotionalDiscount = rule.discount_percent;
           appliedRules.push(rule);
         }
@@ -1523,13 +1464,9 @@ export const CLIENT_TIERS = {
 /**
  * Automatically determine client tier based on history
  */
-export async function calculateClientTier(
-  shopId: string,
-  clientId: string,
-): Promise<string> {
+export async function calculateClientTier(shopId: string, clientId: string): Promise<string> {
   const stats = await db.query.client_purchase_stats.findFirst({
-    where: (cps, { and, eq }) =>
-      and(eq(cps.shop_id, shopId), eq(cps.client_id, clientId)),
+    where: (cps, { and, eq }) => and(eq(cps.shop_id, shopId), eq(cps.client_id, clientId)),
   });
 
   if (!stats) return "STANDARD";
@@ -1836,9 +1773,7 @@ describe("Discount Calculate Worker", () => {
       );
 
       expect(result.requestedDiscountValid).toBe(false);
-      expect(result.suggestedDiscount).toBeLessThanOrEqual(
-        result.maxAllowedDiscount,
-      );
+      expect(result.suggestedDiscount).toBeLessThanOrEqual(result.maxAllowedDiscount);
     });
 
     it("calculates correct minimum price from margin", () => {

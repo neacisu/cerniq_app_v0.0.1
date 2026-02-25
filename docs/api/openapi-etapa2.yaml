@@ -837,8 +837,7 @@ paths:
             type: array
             items:
               type: string
-              enum:
-                [contacted, replied, converted, reviewsResolved, sentimentAvg]
+              enum: [contacted, replied, converted, reviewsResolved, sentimentAvg]
       responses:
         "200":
           description: Daily metrics time series

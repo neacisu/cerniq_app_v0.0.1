@@ -594,13 +594,7 @@ paths:
                         properties:
                           result:
                             type: string
-                            enum:
-                              [
-                                APPROVED,
-                                INSUFFICIENT_CREDIT,
-                                BLOCKED,
-                                NEEDS_REVIEW,
-                              ]
+                            enum: [APPROVED, INSUFFICIENT_CREDIT, BLOCKED, NEEDS_REVIEW]
                           availableCredit:
                             type: number
                           creditLimit:

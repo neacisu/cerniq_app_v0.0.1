@@ -41,24 +41,9 @@ export function Logistics() {
   return (
     <PageWrapper title="Logistics AWB (Sameday)">
       <div className="grid grid-cols-3 gap-4 mb-6">
-        <KpiCard
-          label="AWBs Active"
-          value="156"
-          icon="Package"
-          color="var(--color-b5)"
-        />
-        <KpiCard
-          label="In Transit"
-          value="89"
-          icon="Truck"
-          color="var(--color-in)"
-        />
-        <KpiCard
-          label="COD Pending"
-          value="EUR 34K"
-          icon="Wallet"
-          color="var(--color-wa)"
-        />
+        <KpiCard label="AWBs Active" value="156" icon="Package" color="var(--color-b5)" />
+        <KpiCard label="In Transit" value="89" icon="Truck" color="var(--color-in)" />
+        <KpiCard label="COD Pending" value="EUR 34K" icon="Wallet" color="var(--color-wa)" />
       </div>
 
       <Card>
@@ -66,27 +51,13 @@ export function Logistics() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-[var(--color-s700)]">
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">
-                  AWB Nr
-                </th>
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">
-                  Company
-                </th>
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">
-                  Parcels
-                </th>
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">
-                  County
-                </th>
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">
-                  ETA
-                </th>
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">
-                  COD
-                </th>
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">
-                  Status
-                </th>
+                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">AWB Nr</th>
+                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">Company</th>
+                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">Parcels</th>
+                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">County</th>
+                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">ETA</th>
+                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">COD</th>
+                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">Status</th>
               </tr>
             </thead>
             <tbody>
@@ -104,16 +75,12 @@ export function Logistics() {
                       {a.awb}
                     </button>
                   </td>
-                  <td className="py-3 px-4 text-[var(--color-t1)]">
-                    {a.company}
-                  </td>
+                  <td className="py-3 px-4 text-[var(--color-t1)]">{a.company}</td>
                   <td className="py-3 px-4">{a.parcels}</td>
                   <td className="py-3 px-4">{a.county}</td>
                   <td className="py-3 px-4 text-[var(--color-t3)]">{a.eta}</td>
                   <td className="py-3 px-4">
-                    <Badge variant={a.cod === "-" ? "neutral" : "warning"}>
-                      {a.cod}
-                    </Badge>
+                    <Badge variant={a.cod === "-" ? "neutral" : "warning"}>{a.cod}</Badge>
                   </td>
                   <td className="py-3 px-4">
                     <SBadge status={a.status} />

@@ -178,10 +178,7 @@ function Ic({ p, size = 16, s = "currentColor", fill = "none", sw = 1.8 }) {
 }
 const I = {
   home: ["M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z", "M9 22V12h6v10"],
-  db: [
-    { cx: 12, cy: 5, rx: 9, ry: 3 },
-    "M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5",
-  ],
+  db: [{ cx: 12, cy: 5, rx: 9, ry: 3 }, "M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"],
   building: ["M3 21h18", "M9 21V7l6-4v18", "M9 10h6", "M9 14h6"],
   users: [
     { cx: 9, cy: 7, r: 4 },
@@ -190,11 +187,7 @@ const I = {
     "M23 21v-2a4 4 0 00-3-3.87",
   ],
   user: [{ cx: 12, cy: 8, r: 4 }, "M6 20v-2a6 6 0 0112 0v2"],
-  upload: [
-    "M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4",
-    "M17 8l-5-5-5 5",
-    "M12 3v12",
-  ],
+  upload: ["M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4", "M17 8l-5-5-5 5", "M12 3v12"],
   star: "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z",
   send: ["M22 2L11 13", "M22 2L15 22 11 13 2 9l20-7z"],
   clipboard: [
@@ -208,14 +201,8 @@ const I = {
     { cx: 12, cy: 12, r: 3 },
     "M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z",
   ],
-  bell: [
-    "M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9",
-    "M13.73 21a2 2 0 01-3.46 0",
-  ],
-  eye: [
-    { cx: 12, cy: 12, r: 3 },
-    "M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8",
-  ],
+  bell: ["M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9", "M13.73 21a2 2 0 01-3.46 0"],
+  eye: [{ cx: 12, cy: 12, r: 3 }, "M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"],
   eyeOff: [
     "M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94",
     "M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19",
@@ -228,11 +215,7 @@ const I = {
   chevD: ["M6 9l6 6 6-6"],
   check: ["M20 6L9 17l-5-5"],
   moon: "M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z",
-  logout: [
-    "M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4",
-    "M16 17l5-5-5-5",
-    "M21 12H9",
-  ],
+  logout: ["M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4", "M16 17l5-5-5-5", "M21 12H9"],
   plus: ["M12 5v14", "M5 12h14"],
   refresh: [
     "M23 4v6h-6",
@@ -257,10 +240,7 @@ const I = {
     { cx: 5.5, cy: 18.5, r: 2.5 },
     { cx: 18.5, cy: 18.5, r: 2.5 },
   ],
-  credit: [
-    "M3 3h18a2 2 0 012 2v14a2 2 0 01-2 2H3a2 2 0 01-2-2V5a2 2 0 012-2z",
-    "M1 9h22",
-  ],
+  credit: ["M3 3h18a2 2 0 012 2v14a2 2 0 01-2 2H3a2 2 0 01-2-2V5a2 2 0 012-2z", "M1 9h22"],
   doc: [
     "M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z",
     "M14 2v6h6",
@@ -271,29 +251,16 @@ const I = {
   shield: ["M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"],
   heart:
     "M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z",
-  list: [
-    "M8 6h13",
-    "M8 12h13",
-    "M8 18h13",
-    "M3 6h.01",
-    "M3 12h.01",
-    "M3 18h.01",
-  ],
+  list: ["M8 6h13", "M8 12h13", "M8 18h13", "M3 6h.01", "M3 12h.01", "M3 18h.01"],
   filter: "M22 3H2l8 9.46V19l4 2v-8.54L22 3z",
   search: [{ cx: 11, cy: 11, r: 8 }, "M21 21l-4.35-4.35"],
   edit: [
     "M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7",
     "M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z",
   ],
-  trash: [
-    "M3 6h18",
-    "M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2",
-  ],
+  trash: ["M3 6h18", "M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"],
   activity: "M22 12h-4l-3 9L9 3l-3 9H2",
-  flag: [
-    "M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z",
-    "M4 22v-7",
-  ],
+  flag: ["M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z", "M4 22v-7"],
   robot: [
     { x: 9, y: 2, width: 6, height: 4, rx: 2 },
     { x: 2, y: 8, width: 20, height: 12, rx: 2 },
@@ -340,13 +307,7 @@ function Logo({ iconOnly = false, size = "md" }) {
   const s = { sm: [26, 17], md: [30, 20], lg: [36, 24] }[size];
   return (
     <div className="flex ac" style={{ gap: 8 }}>
-      <svg
-        width={s[0]}
-        height={s[0]}
-        viewBox="0 0 32 32"
-        fill="none"
-        aria-hidden
-      >
+      <svg width={s[0]} height={s[0]} viewBox="0 0 32 32" fill="none" aria-hidden>
         <path
           d="M16 2L28 9V23L16 30L4 23V9L16 2Z"
           fill="oklch(0.70 0.18 72/13%)"
@@ -423,9 +384,7 @@ function Toasts({ toasts, rm }) {
             {ic[t.type] || "•"}
           </span>
           <div className="f1 mw0">
-            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--t1)" }}>
-              {t.title}
-            </div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--t1)" }}>{t.title}</div>
             {t.desc && (
               <div
                 style={{
@@ -449,12 +408,7 @@ function Toasts({ toasts, rm }) {
 }
 
 function Skel({ h = 16, w = "100%", r = 6 }) {
-  return (
-    <div
-      className="sk"
-      style={{ height: h, width: w, borderRadius: r, flexShrink: 0 }}
-    />
-  );
+  return <div className="sk" style={{ height: h, width: w, borderRadius: r, flexShrink: 0 }} />;
 }
 function Spin({ size = 16 }) {
   return (
@@ -477,17 +431,7 @@ function Spin({ size = 16 }) {
   );
 }
 
-function Kpi({
-  label,
-  value,
-  icon,
-  color,
-  bg,
-  change,
-  ctype,
-  delay = 0,
-  onClick,
-}) {
+function Kpi({ label, value, icon, color, bg, change, ctype, delay = 0, onClick }) {
   return (
     <div
       className="kc"
@@ -594,20 +538,13 @@ function PH({ title, sub, badge, actions }) {
 
 function EB({ num, name, msg, type = "brand" }) {
   return (
-    <div
-      className={`eb${type === "info" ? " info" : type === "ok" ? " ok" : ""}`}
-    >
+    <div className={`eb${type === "info" ? " info" : type === "ok" ? " ok" : ""}`}>
       <div>
         <div
           style={{
             fontSize: 10,
             fontWeight: 800,
-            color:
-              type === "info"
-                ? "var(--in)"
-                : type === "ok"
-                  ? "var(--ok)"
-                  : "var(--b4)",
+            color: type === "info" ? "var(--in)" : type === "ok" ? "var(--ok)" : "var(--b4)",
             textTransform: "uppercase",
             letterSpacing: ".1em",
             marginBottom: 2,
@@ -635,9 +572,7 @@ function EB({ num, name, msg, type = "brand" }) {
           flexShrink: 0,
         }}
       />
-      <p style={{ fontSize: 13, color: "var(--t2)", flex: 1, lineHeight: 1.5 }}>
-        {msg}
-      </p>
+      <p style={{ fontSize: 13, color: "var(--t2)", flex: 1, lineHeight: 1.5 }}>{msg}</p>
     </div>
   );
 }
@@ -750,8 +685,7 @@ function Login({ onLogin }) {
     if (e && e.preventDefault) e.preventDefault();
     const er = {};
     if (!email.trim()) er.email = "Email obligatoriu";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
-      er.email = "Email invalid";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) er.email = "Email invalid";
     if (!pwd || pwd.length < 4) er.pwd = "Parolă min 4 caractere";
     if (Object.keys(er).length) {
       setErrs(er);
@@ -849,13 +783,10 @@ function Login({ onLogin }) {
             marginTop: 14,
           }}
         >
-          Demo precompletat · Apasă{" "}
-          <strong style={{ color: "var(--t3)" }}>Intră în cont</strong>
+          Demo precompletat · Apasă <strong style={{ color: "var(--t3)" }}>Intră în cont</strong>
         </p>
       </main>
-      <footer
-        style={{ fontSize: 11, color: "var(--t3)", display: "flex", gap: 8 }}
-      >
+      <footer style={{ fontSize: 11, color: "var(--t3)", display: "flex", gap: 8 }}>
         <span>© 2026 Cerniq.app</span>
         <span style={{ opacity: 0.3 }}>·</span>
         <span style={{ color: "var(--t3)" }}>GDPR</span>
@@ -921,9 +852,7 @@ function Shell({ user, onLogout, toast }) {
                 >
                   {user.name}
                 </div>
-                <div style={{ fontSize: 11, color: "var(--t3)" }}>
-                  {user.role}
-                </div>
+                <div style={{ fontSize: 11, color: "var(--t3)" }}>{user.role}</div>
               </div>
               <button
                 className="btn btg bic"
@@ -949,9 +878,7 @@ function Shell({ user, onLogout, toast }) {
           <div className="flex ac g2">
             <button
               className="hb"
-              onClick={() =>
-                toast.add({ type: "info", title: "3 aprobări pending" })
-              }
+              onClick={() => toast.add({ type: "info", title: "3 aprobări pending" })}
               style={{ position: "relative" }}
             >
               <Ic p={I.bell} size={17} />
@@ -1125,10 +1052,7 @@ function Dash({ setPage, toast }) {
                   {l}
                 </span>
                 <div className="sbt">
-                  <div
-                    className="sbf"
-                    style={{ width: `${pct}%`, background: c, opacity: 0.8 }}
-                  />
+                  <div className="sbf" style={{ width: `${pct}%`, background: c, opacity: 0.8 }} />
                 </div>
                 <span className="sbc">{v.toLocaleString()}</span>
               </div>
@@ -1142,32 +1066,12 @@ function Dash({ setPage, toast }) {
           </div>
           <div className="cb">
             {[
-              [
-                "ok",
-                "847 leads contactați WA — Secvența Agricultori Ialomița",
-                "3 min",
-              ],
-              [
-                "in",
-                "AI Agent a generat ofertă proformă — SC Ferma Dunărea SA",
-                "12 min",
-              ],
+              ["ok", "847 leads contactați WA — Secvența Agricultori Ialomița", "3 min"],
+              ["in", "AI Agent a generat ofertă proformă — SC Ferma Dunărea SA", "12 min"],
               ["wa", "8 mesaje necesită review uman HITL", "28 min"],
-              [
-                "ok",
-                "Plată confirmată €12,400 — SC Ferma Dunărea SA",
-                "45 min",
-              ],
-              [
-                "in",
-                "Credit scoring actualizat — 23 companii Termene.ro",
-                "1h",
-              ],
-              [
-                "ok",
-                "AWB generat ENE324892RO · Sameday · Ialomița",
-                "1h 20min",
-              ],
+              ["ok", "Plată confirmată €12,400 — SC Ferma Dunărea SA", "45 min"],
+              ["in", "Credit scoring actualizat — 23 companii Termene.ro", "1h"],
+              ["ok", "AWB generat ENE324892RO · Sameday · Ialomița", "1h 20min"],
             ].map(([d, txt, t], i) => (
               <div
                 key={i}
@@ -1175,15 +1079,11 @@ function Dash({ setPage, toast }) {
                   display: "flex",
                   gap: 10,
                   paddingBottom: 9,
-                  borderBottom:
-                    i < 5 ? "1px solid oklch(.20 .018 255/40%)" : "none",
+                  borderBottom: i < 5 ? "1px solid oklch(.20 .018 255/40%)" : "none",
                   marginBottom: i < 5 ? 9 : 0,
                 }}
               >
-                <span
-                  className={`dot d${d}`}
-                  style={{ marginTop: 4, flexShrink: 0 }}
-                />
+                <span className={`dot d${d}`} style={{ marginTop: 4, flexShrink: 0 }} />
                 <div>
                   <div
                     style={{
@@ -1262,13 +1162,10 @@ function Dash({ setPage, toast }) {
                     display: "flex",
                     justifyContent: "space-between",
                     padding: "7px 0",
-                    borderBottom:
-                      j < 3 ? "1px solid oklch(.20 .018 255/30%)" : "none",
+                    borderBottom: j < 3 ? "1px solid oklch(.20 .018 255/30%)" : "none",
                   }}
                 >
-                  <span style={{ fontSize: 12.5, color: "var(--t2)" }}>
-                    {k}
-                  </span>
+                  <span style={{ fontSize: 12.5, color: "var(--t2)" }}>{k}</span>
                   <span
                     style={{
                       fontSize: 12.5,
@@ -1292,42 +1189,10 @@ function Dash({ setPage, toast }) {
 function Import({ toast }) {
   const [drag, setDrag] = useState(false);
   const rows = [
-    [
-      "21 Feb 2026",
-      "fermieri_ialomita_q1.csv",
-      "CSV",
-      "2.4 MB",
-      12483,
-      98.2,
-      "COMPLETED",
-    ],
-    [
-      "19 Feb 2026",
-      "apia_beneficiari_2025.xlsx",
-      "Excel",
-      "5.7 MB",
-      31204,
-      96.8,
-      "COMPLETED",
-    ],
-    [
-      "18 Feb 2026",
-      "onrc_extractie_feb.csv",
-      "CSV",
-      "1.2 MB",
-      5891,
-      99.1,
-      "COMPLETED",
-    ],
-    [
-      "17 Feb 2026",
-      "madr_cooperative.xlsx",
-      "Excel",
-      "0.8 MB",
-      2341,
-      95.4,
-      "COMPLETED",
-    ],
+    ["21 Feb 2026", "fermieri_ialomita_q1.csv", "CSV", "2.4 MB", 12483, 98.2, "COMPLETED"],
+    ["19 Feb 2026", "apia_beneficiari_2025.xlsx", "Excel", "5.7 MB", 31204, 96.8, "COMPLETED"],
+    ["18 Feb 2026", "onrc_extractie_feb.csv", "CSV", "1.2 MB", 5891, 99.1, "COMPLETED"],
+    ["17 Feb 2026", "madr_cooperative.xlsx", "Excel", "0.8 MB", 2341, 95.4, "COMPLETED"],
     ["15 Feb 2026", "termene_export.csv", "CSV", "3.1 MB", 18920, 0, "FAILED"],
   ];
   return (
@@ -1400,9 +1265,7 @@ function Import({ toast }) {
         >
           Trageți CSV/Excel sau click pentru upload
         </p>
-        <p style={{ fontSize: 12, color: "var(--t4)" }}>
-          CSV · Excel · JSON · Max 100MB · UTF-8
-        </p>
+        <p style={{ fontSize: 12, color: "var(--t4)" }}>CSV · Excel · JSON · Max 100MB · UTF-8</p>
       </div>
       <div className="card">
         <div className="ch">
@@ -1424,17 +1287,13 @@ function Import({ toast }) {
             <tbody>
               {rows.map(([dt, f, t, sz, nr, s, st], i) => (
                 <tr key={i}>
-                  <td style={{ fontFamily: "var(--fM)", fontSize: 12 }}>
-                    {dt}
-                  </td>
+                  <td style={{ fontFamily: "var(--fM)", fontSize: 12 }}>{dt}</td>
                   <td style={{ fontWeight: 600, color: "var(--t1)" }}>{f}</td>
                   <td>
                     <span className="badge bnt">{t}</span>
                   </td>
                   <td style={{ fontFamily: "var(--fM)" }}>{sz}</td>
-                  <td style={{ fontFamily: "var(--fM)" }}>
-                    {nr.toLocaleString()}
-                  </td>
+                  <td style={{ fontFamily: "var(--fM)" }}>{nr.toLocaleString()}</td>
                   <td>
                     <div className="flex ac g2">
                       <div className="pt" style={{ width: 60 }}>
@@ -1442,12 +1301,7 @@ function Import({ toast }) {
                           className="pf"
                           style={{
                             width: `${s}%`,
-                            background:
-                              s > 95
-                                ? "var(--ok)"
-                                : s > 0
-                                  ? "var(--wa)"
-                                  : "var(--er)",
+                            background: s > 95 ? "var(--ok)" : s > 0 ? "var(--wa)" : "var(--er)",
                           }}
                         />
                       </div>
@@ -1518,16 +1372,7 @@ function Bronze({ toast }) {
       88,
       "PROCESSING",
     ],
-    [
-      "Maria Ionescu",
-      "RO87654321",
-      "Dolj",
-      "0721987654",
-      "—",
-      "ONRC",
-      65,
-      "COMPLETED",
-    ],
+    ["Maria Ionescu", "RO87654321", "Dolj", "0721987654", "—", "ONRC", 65, "COMPLETED"],
     [
       "Vasile Constantin",
       "RO33221144",
@@ -1622,13 +1467,9 @@ function Bronze({ toast }) {
               {f.map(([nm, cui, jud, tel, em, src, sc, st], i) => (
                 <tr key={i}>
                   <td style={{ fontWeight: 600, color: "var(--t1)" }}>{nm}</td>
-                  <td style={{ fontFamily: "var(--fM)", fontSize: 12 }}>
-                    {cui}
-                  </td>
+                  <td style={{ fontFamily: "var(--fM)", fontSize: 12 }}>{cui}</td>
                   <td>{jud}</td>
-                  <td style={{ fontFamily: "var(--fM)", fontSize: 12 }}>
-                    {tel}
-                  </td>
+                  <td style={{ fontFamily: "var(--fM)", fontSize: 12 }}>{tel}</td>
                   <td
                     style={{
                       fontSize: 12,
@@ -1647,18 +1488,11 @@ function Bronze({ toast }) {
                           className="pf"
                           style={{
                             width: `${sc}%`,
-                            background:
-                              sc > 80
-                                ? "var(--ok)"
-                                : sc > 60
-                                  ? "var(--wa)"
-                                  : "var(--er)",
+                            background: sc > 80 ? "var(--ok)" : sc > 60 ? "var(--wa)" : "var(--er)",
                           }}
                         />
                       </div>
-                      <span style={{ fontSize: 12, fontFamily: "var(--fM)" }}>
-                        {sc}%
-                      </span>
+                      <span style={{ fontSize: 12, fontFamily: "var(--fM)" }}>{sc}%</span>
                     </div>
                   </td>
                   <td>
@@ -1676,56 +1510,11 @@ function Bronze({ toast }) {
 
 function Silver({ toast }) {
   const rows = [
-    [
-      "SC Ferma Dunărea SA",
-      "RO55443322",
-      "Brăila",
-      true,
-      true,
-      95,
-      "gold",
-      "100+",
-    ],
-    [
-      "SC Agro Sud SRL",
-      "RO44556677",
-      "Călărași",
-      true,
-      true,
-      91,
-      "gold",
-      "50-100",
-    ],
-    [
-      "Cooperativa Agriland",
-      "RO11223344",
-      "Ialomița",
-      true,
-      true,
-      84,
-      "silver",
-      "50-100",
-    ],
-    [
-      "OUAI Ialomița Nord",
-      "RO77889900",
-      "Ialomița",
-      true,
-      false,
-      72,
-      "silver",
-      "10-50",
-    ],
-    [
-      "Ion Popescu PFA",
-      "RO12345678",
-      "Ialomița",
-      true,
-      false,
-      58,
-      "bronze",
-      "1-5",
-    ],
+    ["SC Ferma Dunărea SA", "RO55443322", "Brăila", true, true, 95, "gold", "100+"],
+    ["SC Agro Sud SRL", "RO44556677", "Călărași", true, true, 91, "gold", "50-100"],
+    ["Cooperativa Agriland", "RO11223344", "Ialomița", true, true, 84, "silver", "50-100"],
+    ["OUAI Ialomița Nord", "RO77889900", "Ialomița", true, false, 72, "silver", "10-50"],
+    ["Ion Popescu PFA", "RO12345678", "Ialomița", true, false, 58, "bronze", "1-5"],
   ];
   return (
     <>
@@ -1737,9 +1526,7 @@ function Silver({ toast }) {
           <>
             <button
               className="btn bto bsm"
-              onClick={() =>
-                toast.add({ type: "info", title: "Sync ANAF completat" })
-              }
+              onClick={() => toast.add({ type: "info", title: "Sync ANAF completat" })}
             >
               <Ic p={I.refresh} size={12} />
               Sync ANAF
@@ -1816,19 +1603,13 @@ function Silver({ toast }) {
               {rows.map(([nm, cui, jud, an, tm, sc, tier, emp], i) => (
                 <tr key={i}>
                   <td style={{ fontWeight: 600, color: "var(--t1)" }}>{nm}</td>
-                  <td style={{ fontFamily: "var(--fM)", fontSize: 12 }}>
-                    {cui}
-                  </td>
+                  <td style={{ fontFamily: "var(--fM)", fontSize: 12 }}>{cui}</td>
                   <td>{jud}</td>
                   <td style={{ textAlign: "center", fontSize: 16 }}>
-                    <span style={{ color: an ? "var(--ok)" : "var(--er)" }}>
-                      {an ? "✓" : "✗"}
-                    </span>
+                    <span style={{ color: an ? "var(--ok)" : "var(--er)" }}>{an ? "✓" : "✗"}</span>
                   </td>
                   <td style={{ textAlign: "center", fontSize: 16 }}>
-                    <span style={{ color: tm ? "var(--ok)" : "var(--er)" }}>
-                      {tm ? "✓" : "✗"}
-                    </span>
+                    <span style={{ color: tm ? "var(--ok)" : "var(--er)" }}>{tm ? "✓" : "✗"}</span>
                   </td>
                   <td>{emp}</td>
                   <td>
@@ -1838,18 +1619,11 @@ function Silver({ toast }) {
                           className="pf"
                           style={{
                             width: `${sc}%`,
-                            background:
-                              sc > 80
-                                ? "var(--ok)"
-                                : sc > 60
-                                  ? "var(--wa)"
-                                  : "var(--er)",
+                            background: sc > 80 ? "var(--ok)" : sc > 60 ? "var(--wa)" : "var(--er)",
                           }}
                         />
                       </div>
-                      <span style={{ fontFamily: "var(--fM)", fontSize: 12 }}>
-                        {sc}
-                      </span>
+                      <span style={{ fontFamily: "var(--fM)", fontSize: 12 }}>{sc}</span>
                     </div>
                   </td>
                   <td>
@@ -1877,16 +1651,7 @@ function Gold({ toast }) {
       97,
       "CONTACTED_WA",
     ],
-    [
-      "SC Agro Sud SRL",
-      "RO44556677",
-      "Gheorghe Marin",
-      "Călărași",
-      "€2.1M",
-      "67",
-      94,
-      "COLD",
-    ],
+    ["SC Agro Sud SRL", "RO44556677", "Gheorghe Marin", "Călărași", "€2.1M", "67", 94, "COLD"],
     [
       "Cooperativa Agriland",
       "RO11223344",
@@ -1897,26 +1662,8 @@ function Gold({ toast }) {
       87,
       "WARM_REPLY",
     ],
-    [
-      "OUAI Ialomița Nord",
-      "RO77889900",
-      "Ion Stroe",
-      "Ialomița",
-      "€0.8M",
-      "18",
-      81,
-      "NEGOTIATION",
-    ],
-    [
-      "SC AgroTech Dunărea",
-      "RO99887766",
-      "Vasile Iordache",
-      "Brăila",
-      "€3.2M",
-      "89",
-      92,
-      "COLD",
-    ],
+    ["OUAI Ialomița Nord", "RO77889900", "Ion Stroe", "Ialomița", "€0.8M", "18", 81, "NEGOTIATION"],
+    ["SC AgroTech Dunărea", "RO99887766", "Vasile Iordache", "Brăila", "€3.2M", "89", 92, "COLD"],
   ];
   return (
     <>
@@ -2004,9 +1751,7 @@ function Gold({ toast }) {
               {rows.map(([nm, cui, ct, jud, rev, emp, sc, st], i) => (
                 <tr key={i}>
                   <td>
-                    <div style={{ fontWeight: 600, color: "var(--t1)" }}>
-                      {nm}
-                    </div>
+                    <div style={{ fontWeight: 600, color: "var(--t1)" }}>{nm}</div>
                     <div
                       style={{
                         fontSize: 11,
@@ -2039,9 +1784,7 @@ function Gold({ toast }) {
                           }}
                         />
                       </div>
-                      <span style={{ fontFamily: "var(--fM)", fontSize: 12 }}>
-                        {sc}
-                      </span>
+                      <span style={{ fontFamily: "var(--fM)", fontSize: 12 }}>{sc}</span>
                     </div>
                   </td>
                   <td>
@@ -2050,9 +1793,7 @@ function Gold({ toast }) {
                   <td>
                     <button
                       className="btn btb bsm"
-                      onClick={() =>
-                        toast.add({ type: "success", title: `Outreach: ${nm}` })
-                      }
+                      onClick={() => toast.add({ type: "success", title: `Outreach: ${nm}` })}
                     >
                       <Ic p={I.send} size={11} />
                     </button>
@@ -2169,9 +1910,7 @@ function Approvals({ toast }) {
                       {x.desc}
                     </p>
                     <div className="flex ac g3">
-                      <span style={{ fontSize: 12, color: "var(--t3)" }}>
-                        Confidence AI:
-                      </span>
+                      <span style={{ fontSize: 12, color: "var(--t3)" }}>Confidence AI:</span>
                       <div className="pt" style={{ width: 80 }}>
                         <div
                           className="pf"
@@ -2181,23 +1920,15 @@ function Approvals({ toast }) {
                           }}
                         />
                       </div>
-                      <span style={{ fontSize: 12, fontFamily: "var(--fM)" }}>
-                        {x.conf}%
-                      </span>
+                      <span style={{ fontSize: 12, fontFamily: "var(--fM)" }}>{x.conf}%</span>
                     </div>
                   </div>
                   <div className="flex g2">
-                    <button
-                      className="btn btok bsm"
-                      onClick={() => approve(x.id)}
-                    >
+                    <button className="btn btok bsm" onClick={() => approve(x.id)}>
                       <Ic p={I.check} size={13} />
                       Aprobă
                     </button>
-                    <button
-                      className="btn btd bsm"
-                      onClick={() => reject(x.id)}
-                    >
+                    <button className="btn btd bsm" onClick={() => reject(x.id)}>
                       <Ic p={I.xmark} size={13} />
                       Respinge
                     </button>
@@ -2286,10 +2017,7 @@ function Outreach({ setPage, toast }) {
                   <SBadge status={s} />
                 </span>
                 <div className="sbt">
-                  <div
-                    className="sbf"
-                    style={{ width: `${(n / 1250) * 100}%`, background: c }}
-                  />
+                  <div className="sbf" style={{ width: `${(n / 1250) * 100}%`, background: c }} />
                 </div>
                 <span className="sbc">{n}</span>
               </div>
@@ -2299,9 +2027,7 @@ function Outreach({ setPage, toast }) {
         <div className="card">
           <div className="ch">
             <span className="ct">Cotă WhatsApp — 20 Numere</span>
-            <span style={{ fontSize: 11, color: "var(--t3)" }}>
-              3,241/4,000
-            </span>
+            <span style={{ fontSize: 11, color: "var(--t3)" }}>3,241/4,000</span>
           </div>
           <div className="cb">
             <div
@@ -2314,8 +2040,7 @@ function Outreach({ setPage, toast }) {
             >
               {[...Array(20)].map((_, i) => {
                 const p2 = 20 + Math.floor(Math.sin(i * 2.7) * 30 + 50);
-                const c =
-                  p2 > 90 ? "var(--wa)" : p2 > 50 ? "var(--ok)" : "var(--in)";
+                const c = p2 > 90 ? "var(--wa)" : p2 > 50 ? "var(--ok)" : "var(--in)";
                 return (
                   <div
                     key={i}
@@ -2364,9 +2089,7 @@ function Outreach({ setPage, toast }) {
                 );
               })}
             </div>
-            <p
-              style={{ fontSize: 11, color: "var(--t3)", textAlign: "center" }}
-            >
+            <p style={{ fontSize: 11, color: "var(--t3)", textAlign: "center" }}>
               1 coloană = 1 număr WA · Limită 200 msg/zi
             </p>
           </div>
@@ -2409,16 +2132,7 @@ function Leads({ toast }) {
       "(Email — fără răspuns)",
       "1zi",
     ],
-    [
-      "SC AgroTech Dunărea",
-      "Vasile Iordache",
-      "0241998877",
-      "WA",
-      "COLD",
-      0,
-      "(Necontactat)",
-      "—",
-    ],
+    ["SC AgroTech Dunărea", "Vasile Iordache", "0241998877", "WA", "COLD", 0, "(Necontactat)", "—"],
     [
       "Ion Popescu PFA",
       "Ion Popescu",
@@ -2453,9 +2167,7 @@ function Leads({ toast }) {
             </button>
             <button
               className="btn btp bsm"
-              onClick={() =>
-                toast.add({ type: "success", title: "Leads asignate" })
-              }
+              onClick={() => toast.add({ type: "success", title: "Leads asignate" })}
             >
               <Ic p={I.send} size={12} />
               Asignează
@@ -2522,17 +2234,11 @@ function Leads({ toast }) {
                             style={{
                               width: `${sent}%`,
                               background:
-                                sent > 60
-                                  ? "var(--ok)"
-                                  : sent > 30
-                                    ? "var(--wa)"
-                                    : "var(--er)",
+                                sent > 60 ? "var(--ok)" : sent > 30 ? "var(--wa)" : "var(--er)",
                             }}
                           />
                         </div>
-                        <span style={{ fontSize: 12, fontFamily: "var(--fM)" }}>
-                          {sent}
-                        </span>
+                        <span style={{ fontSize: 12, fontFamily: "var(--fM)" }}>{sent}</span>
                       </div>
                     ) : (
                       <span style={{ color: "var(--t4)" }}>—</span>
@@ -2670,13 +2376,9 @@ function Seqs({ toast }) {
                         }}
                       >
                         {j > 0 && (
-                          <span style={{ color: "var(--t4)", fontSize: 11 }}>
-                            +{step.d}h →
-                          </span>
+                          <span style={{ color: "var(--t4)", fontSize: 11 }}>+{step.d}h →</span>
                         )}
-                        <span
-                          className={`badge ${step.ch === "WA" ? "bok" : "bin"}`}
-                        >
+                        <span className={`badge ${step.ch === "WA" ? "bok" : "bin"}`}>
                           {step.ch === "WA" ? "WhatsApp" : "Email"}
                         </span>
                       </div>
@@ -2788,26 +2490,16 @@ function Templates({ toast }) {
                 style={{
                   padding: "10px 16px",
                   cursor: "pointer",
-                  background:
-                    sel === i ? "oklch(.70 .18 72/8%)" : "transparent",
-                  borderLeft:
-                    sel === i ? "3px solid var(--b5)" : "3px solid transparent",
+                  background: sel === i ? "oklch(.70 .18 72/8%)" : "transparent",
+                  borderLeft: sel === i ? "3px solid var(--b5)" : "3px solid transparent",
                   transition: "all .1s",
                 }}
                 onClick={() => setSel(i)}
               >
-                <p
-                  style={{ fontSize: 13, fontWeight: 600, color: "var(--t1)" }}
-                >
-                  {t.name}
-                </p>
+                <p style={{ fontSize: 13, fontWeight: 600, color: "var(--t1)" }}>{t.name}</p>
                 <div className="flex g2" style={{ marginTop: 4 }}>
-                  <span className={`badge ${t.ch === "WA" ? "bok" : "bin"}`}>
-                    {t.ch}
-                  </span>
-                  <span style={{ fontSize: 12, color: "var(--t4)" }}>
-                    {t.used} utilizări
-                  </span>
+                  <span className={`badge ${t.ch === "WA" ? "bok" : "bin"}`}>{t.ch}</span>
+                  <span style={{ fontSize: 12, color: "var(--t4)" }}>{t.used} utilizări</span>
                 </div>
               </div>
             ))}
@@ -2848,9 +2540,7 @@ function Templates({ toast }) {
                 flexWrap: "wrap",
               }}
             >
-              <span style={{ fontSize: 11.5, color: "var(--t3)" }}>
-                Variabile:
-              </span>
+              <span style={{ fontSize: 11.5, color: "var(--t3)" }}>Variabile:</span>
               {tpls[sel].vars.map((v) => (
                 <span key={v} className="badge bbd">
                   {v}
@@ -2878,9 +2568,7 @@ function Phones({ toast }) {
         actions={
           <button
             className="btn bto bsm"
-            onClick={() =>
-              toast.add({ type: "success", title: "Cote resetate" })
-            }
+            onClick={() => toast.add({ type: "success", title: "Cote resetate" })}
           >
             Reset Cote
           </button>
@@ -2903,9 +2591,7 @@ function Phones({ toast }) {
         />
         <Kpi
           label="Cotă Disponibilă"
-          value={(
-            4000 - phones.reduce((s, p) => s + p.used, 0)
-          ).toLocaleString()}
+          value={(4000 - phones.reduce((s, p) => s + p.used, 0)).toLocaleString()}
           icon="activity"
           color="var(--b3)"
           bg="oklch(.70 .18 72/12%)"
@@ -2924,9 +2610,7 @@ function Phones({ toast }) {
             className="card"
             style={{
               borderColor:
-                p.status !== "ACTIVE"
-                  ? "oklch(.58 .24 27/40%)"
-                  : "oklch(.22 .018 255/60%)",
+                p.status !== "ACTIVE" ? "oklch(.58 .24 27/40%)" : "oklch(.22 .018 255/60%)",
               cursor: "pointer",
             }}
             onClick={() =>
@@ -2948,9 +2632,7 @@ function Phones({ toast }) {
                 >
                   WA-{String(p.id).padStart(2, "0")}
                 </span>
-                <span
-                  className={`dot d${p.status === "ACTIVE" ? "ok" : "er"}`}
-                />
+                <span className={`dot d${p.status === "ACTIVE" ? "ok" : "er"}`} />
               </div>
               <div className="pt" style={{ marginBottom: 6 }}>
                 <div
@@ -3034,9 +2716,7 @@ function Review({ toast }) {
               <div className="ch">
                 <div className="flex ac g3">
                   <span style={{ fontWeight: 700 }}>{x.co}</span>
-                  <span className={`badge ${x.ch === "WA" ? "bok" : "bin"}`}>
-                    {x.ch}
-                  </span>
+                  <span className={`badge ${x.ch === "WA" ? "bok" : "bin"}`}>{x.ch}</span>
                   <span className="badge bwa">Review Required</span>
                 </div>
               </div>
@@ -3061,9 +2741,7 @@ function Review({ toast }) {
                     marginBottom: 12,
                   }}
                 >
-                  <p style={{ fontSize: 12, color: "var(--wa)" }}>
-                    ⚠ {x.reason}
-                  </p>
+                  <p style={{ fontSize: 12, color: "var(--wa)" }}>⚠ {x.reason}</p>
                 </div>
                 <div className="flex g2">
                   <button
@@ -3082,9 +2760,7 @@ function Review({ toast }) {
                   </button>
                   <button
                     className="btn bto bsm"
-                    onClick={() =>
-                      toast.add({ type: "info", title: "Editor deschis" })
-                    }
+                    onClick={() => toast.add({ type: "info", title: "Editor deschis" })}
                   >
                     <Ic p={I.edit} size={13} />
                     Edit
@@ -3235,11 +2911,7 @@ function AiDash({ setPage, toast }) {
                     style={{
                       width: p,
                       background:
-                        cl === "b5"
-                          ? "var(--b5)"
-                          : cl === "in"
-                            ? "var(--in)"
-                            : "var(--t4)",
+                        cl === "b5" ? "var(--b5)" : cl === "in" ? "var(--in)" : "var(--t4)",
                     }}
                   />
                 </div>
@@ -3410,11 +3082,7 @@ function Negs({ toast }) {
                   style={{
                     display: "flex",
                     justifyContent:
-                      m.side === "in"
-                        ? "flex-start"
-                        : m.side === "sys"
-                          ? "center"
-                          : "flex-end",
+                      m.side === "in" ? "flex-start" : m.side === "sys" ? "center" : "flex-end",
                     marginBottom: 8,
                   }}
                 >
@@ -3434,10 +3102,7 @@ function Negs({ toast }) {
               }}
             >
               <div className="flex g2">
-                <input
-                  className="inp f1"
-                  placeholder="Sau lăsați AI-ul să continue..."
-                />
+                <input className="inp f1" placeholder="Sau lăsați AI-ul să continue..." />
                 <button
                   className="btn btp bsm"
                   onClick={() =>
@@ -3481,9 +3146,7 @@ function Negs({ toast }) {
                   ["Mesaje", n.msgs],
                   [
                     "Sentiment",
-                    <span
-                      style={{ color: n.sent > 70 ? "var(--ok)" : "var(--wa)" }}
-                    >
+                    <span style={{ color: n.sent > 70 ? "var(--ok)" : "var(--wa)" }}>
                       {n.sent}/100
                     </span>,
                   ],
@@ -3497,9 +3160,7 @@ function Negs({ toast }) {
                       borderBottom: "1px solid oklch(.18 .018 255/40%)",
                     }}
                   >
-                    <span style={{ fontSize: 12.5, color: "var(--t3)" }}>
-                      {k}
-                    </span>
+                    <span style={{ fontSize: 12.5, color: "var(--t3)" }}>{k}</span>
                     <span style={{ fontSize: 12.5 }}>{v}</span>
                   </div>
                 ))}
@@ -3509,10 +3170,7 @@ function Negs({ toast }) {
               <div className="ch">
                 <span className="ct">Acțiuni</span>
               </div>
-              <div
-                className="cb"
-                style={{ display: "flex", flexDirection: "column", gap: 8 }}
-              >
+              <div className="cb" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 <button
                   className="btn btb wf"
                   onClick={() =>
@@ -3527,18 +3185,14 @@ function Negs({ toast }) {
                 </button>
                 <button
                   className="btn bto wf"
-                  onClick={() =>
-                    toast.add({ type: "info", title: "Discount solicitat" })
-                  }
+                  onClick={() => toast.add({ type: "info", title: "Discount solicitat" })}
                 >
                   <Ic p={I.dollar} size={14} />
                   Solicită Discount
                 </button>
                 <button
                   className="btn btok wf"
-                  onClick={() =>
-                    toast.add({ type: "success", title: "Negociere WON! 🎉" })
-                  }
+                  onClick={() => toast.add({ type: "success", title: "Negociere WON! 🎉" })}
                 >
                   <Ic p={I.check} size={14} />
                   Marchează WON
@@ -3568,18 +3222,10 @@ function Negs({ toast }) {
       />
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {negs.map((n, i) => (
-          <div
-            key={i}
-            className="card"
-            style={{ cursor: "pointer" }}
-            onClick={() => setActive(i)}
-          >
+          <div key={i} className="card" style={{ cursor: "pointer" }} onClick={() => setActive(i)}>
             <div className="cb" style={{ padding: "14px 18px" }}>
               <div className="flex ac g4">
-                <div
-                  className="av"
-                  style={{ width: 38, height: 38, fontSize: 14 }}
-                >
+                <div className="av" style={{ width: 38, height: 38, fontSize: 14 }}>
                   {n.co.charAt(0)}
                 </div>
                 <div className="f1 mw0">
@@ -3627,16 +3273,7 @@ function Negs({ toast }) {
 
 function Offers({ toast }) {
   const rows = [
-    [
-      "P2026-0089",
-      "SC Ferma Dunărea SA",
-      "€10,856",
-      3,
-      "8%",
-      "SENT",
-      "21 Feb 2026",
-      "28 Feb 2026",
-    ],
+    ["P2026-0089", "SC Ferma Dunărea SA", "€10,856", 3, "8%", "SENT", "21 Feb 2026", "28 Feb 2026"],
     [
       "P2026-0088",
       "Cooperativa Agriland",
@@ -3647,26 +3284,8 @@ function Offers({ toast }) {
       "21 Feb 2026",
       "28 Feb 2026",
     ],
-    [
-      "P2026-0087",
-      "SC AgroSud SRL",
-      "€4,200",
-      2,
-      "0%",
-      "DELIVERED",
-      "19 Feb 2026",
-      "26 Feb 2026",
-    ],
-    [
-      "P2026-0085",
-      "OUAI Ialomița Nord",
-      "€5,320",
-      5,
-      "0%",
-      "PAID",
-      "17 Feb 2026",
-      "24 Feb 2026",
-    ],
+    ["P2026-0087", "SC AgroSud SRL", "€4,200", 2, "0%", "DELIVERED", "19 Feb 2026", "26 Feb 2026"],
+    ["P2026-0085", "OUAI Ialomița Nord", "€5,320", 5, "0%", "PAID", "17 Feb 2026", "24 Feb 2026"],
   ];
   return (
     <>
@@ -3695,13 +3314,7 @@ function Offers({ toast }) {
         }
       />
       <div className="kg" style={{ gridTemplateColumns: "repeat(3,1fr)" }}>
-        <Kpi
-          label="Draft"
-          value="4"
-          icon="doc"
-          color="var(--t3)"
-          bg="oklch(.18 .018 255)"
-        />
+        <Kpi label="Draft" value="4" icon="doc" color="var(--t3)" bg="oklch(.18 .018 255)" />
         <Kpi
           label="Trimise/Active"
           value="8"
@@ -3765,27 +3378,19 @@ function Offers({ toast }) {
                   <td>
                     <SBadge status={st} />
                   </td>
-                  <td style={{ fontFamily: "var(--fM)", fontSize: 12 }}>
-                    {dt}
-                  </td>
-                  <td style={{ fontFamily: "var(--fM)", fontSize: 12 }}>
-                    {vd}
-                  </td>
+                  <td style={{ fontFamily: "var(--fM)", fontSize: 12 }}>{dt}</td>
+                  <td style={{ fontFamily: "var(--fM)", fontSize: 12 }}>{vd}</td>
                   <td>
                     <div className="flex g1">
                       <button
                         className="btn btg bsm"
-                        onClick={() =>
-                          toast.add({ type: "info", title: `${id} deschis` })
-                        }
+                        onClick={() => toast.add({ type: "info", title: `${id} deschis` })}
                       >
                         <Ic p={I.doc} size={12} />
                       </button>
                       <button
                         className="btn btg bsm"
-                        onClick={() =>
-                          toast.add({ type: "success", title: `${id} trimis` })
-                        }
+                        onClick={() => toast.add({ type: "success", title: `${id} trimis` })}
                       >
                         <Ic p={I.send} size={12} />
                       </button>
@@ -3823,16 +3428,7 @@ function Invoices({ toast }) {
       "DELIVERED",
       "19 Feb 2026",
     ],
-    [
-      "F2026-0231",
-      "SC AgroSud SRL",
-      "€4,200",
-      "€1,008",
-      "€5,208",
-      "OK",
-      "OVERDUE",
-      "10 Feb 2026",
-    ],
+    ["F2026-0231", "SC AgroSud SRL", "€4,200", "€1,008", "€5,208", "OK", "OVERDUE", "10 Feb 2026"],
     [
       "F2026-0228",
       "Cooperativa Agriland",
@@ -3853,9 +3449,7 @@ function Invoices({ toast }) {
           <>
             <button
               className="btn bto bsm"
-              onClick={() =>
-                toast.add({ type: "success", title: "Sync SPV completat" })
-              }
+              onClick={() => toast.add({ type: "success", title: "Sync SPV completat" })}
             >
               <Ic p={I.refresh} size={12} />
               Sync SPV
@@ -3924,8 +3518,7 @@ function Invoices({ toast }) {
                 <tr
                   key={i}
                   style={{
-                    background:
-                      st === "OVERDUE" ? "oklch(.58 .24 27/5%)" : "transparent",
+                    background: st === "OVERDUE" ? "oklch(.58 .24 27/5%)" : "transparent",
                   }}
                 >
                   <td
@@ -3939,9 +3532,7 @@ function Invoices({ toast }) {
                   </td>
                   <td style={{ fontWeight: 600, color: "var(--t1)" }}>{co}</td>
                   <td style={{ fontFamily: "var(--fM)" }}>{val}</td>
-                  <td style={{ fontFamily: "var(--fM)", color: "var(--t3)" }}>
-                    {vat}
-                  </td>
+                  <td style={{ fontFamily: "var(--fM)", color: "var(--t3)" }}>{vat}</td>
                   <td
                     style={{
                       fontFamily: "var(--fM)",
@@ -3959,9 +3550,7 @@ function Invoices({ toast }) {
                   <td>
                     <SBadge status={st} />
                   </td>
-                  <td style={{ fontFamily: "var(--fM)", fontSize: 12 }}>
-                    {dt}
-                  </td>
+                  <td style={{ fontFamily: "var(--fM)", fontSize: 12 }}>{dt}</td>
                 </tr>
               ))}
             </tbody>
@@ -3974,34 +3563,10 @@ function Invoices({ toast }) {
 
 function Guards() {
   const logs = [
-    [
-      "14:32",
-      "PRICE_GUARD",
-      "AI propunea discount 18%",
-      "BLOCKED — Limită: 10%",
-      "BLOCKED",
-    ],
-    [
-      "12:15",
-      "STOCK_GUARD",
-      "Confirmare stoc 823kg X200",
-      "PASS — Stoc real: 823kg ✓",
-      "PASS",
-    ],
-    [
-      "11:45",
-      "SKU_GUARD",
-      "AI a inventat SKU-8821",
-      "BLOCKED — SKU inexistent în DB",
-      "BLOCKED",
-    ],
-    [
-      "09:22",
-      "FISCAL_GUARD",
-      "CUI RO99887766 pre-factură",
-      "PASS — ANAF confirmă activ ✓",
-      "PASS",
-    ],
+    ["14:32", "PRICE_GUARD", "AI propunea discount 18%", "BLOCKED — Limită: 10%", "BLOCKED"],
+    ["12:15", "STOCK_GUARD", "Confirmare stoc 823kg X200", "PASS — Stoc real: 823kg ✓", "PASS"],
+    ["11:45", "SKU_GUARD", "AI a inventat SKU-8821", "BLOCKED — SKU inexistent în DB", "BLOCKED"],
+    ["09:22", "FISCAL_GUARD", "CUI RO99887766 pre-factură", "PASS — ANAF confirmă activ ✓", "PASS"],
   ];
   return (
     <>
@@ -4076,9 +3641,7 @@ function Guards() {
                     {out}
                   </td>
                   <td>
-                    <span className={`badge ${st === "PASS" ? "bok" : "bwa"}`}>
-                      {st}
-                    </span>
+                    <span className={`badge ${st === "PASS" ? "bok" : "bwa"}`}>{st}</span>
                   </td>
                 </tr>
               ))}
@@ -4112,16 +3675,7 @@ function Payments({ toast }) {
       "PAYMENT",
       "MATCHED",
     ],
-    [
-      "20 Feb 16:30",
-      "REV-D4C5B6A7",
-      "—",
-      "+€1,240",
-      "RON",
-      "—",
-      "UNKNOWN",
-      "UNMATCHED",
-    ],
+    ["20 Feb 16:30", "REV-D4C5B6A7", "—", "+€1,240", "RON", "—", "UNKNOWN", "UNMATCHED"],
     [
       "19 Feb 09:12",
       "REV-A2B3C4D5",
@@ -4141,9 +3695,7 @@ function Payments({ toast }) {
         actions={
           <button
             className="btn bto bsm"
-            onClick={() =>
-              toast.add({ type: "success", title: "Sync Revolut completat" })
-            }
+            onClick={() => toast.add({ type: "success", title: "Sync Revolut completat" })}
           >
             <Ic p={I.refresh} size={12} />
             Sync
@@ -4204,15 +3756,10 @@ function Payments({ toast }) {
                 <tr
                   key={i}
                   style={{
-                    background:
-                      st === "UNMATCHED"
-                        ? "oklch(.72 .19 70/5%)"
-                        : "transparent",
+                    background: st === "UNMATCHED" ? "oklch(.72 .19 70/5%)" : "transparent",
                   }}
                 >
-                  <td style={{ fontFamily: "var(--fM)", fontSize: 12 }}>
-                    {dt}
-                  </td>
+                  <td style={{ fontFamily: "var(--fM)", fontSize: 12 }}>{dt}</td>
                   <td
                     style={{
                       fontFamily: "var(--fM)",
@@ -4235,9 +3782,7 @@ function Payments({ toast }) {
                   <td>
                     <span className="badge bnt">{cur}</span>
                   </td>
-                  <td style={{ fontFamily: "var(--fM)", fontSize: 12 }}>
-                    {inv}
-                  </td>
+                  <td style={{ fontFamily: "var(--fM)", fontSize: 12 }}>{inv}</td>
                   <td>
                     <span
                       className={`badge ${tp === "PAYMENT" ? "bok" : tp === "REFUND" ? "bwa" : "bnt"}`}
@@ -4260,42 +3805,10 @@ function Payments({ toast }) {
 
 function Credit({ toast }) {
   const rows = [
-    [
-      "SC Ferma Dunărea SA",
-      "RO55443322",
-      892,
-      "€50,000",
-      "€13,461",
-      "8 ani",
-      "RISK_LOW",
-    ],
-    [
-      "Cooperativa Agriland",
-      "RO11223344",
-      745,
-      "€25,000",
-      "€8,804",
-      "3 ani",
-      "RISK_LOW",
-    ],
-    [
-      "OUAI Ialomița Nord",
-      "RO77889900",
-      612,
-      "€15,000",
-      "€6,597",
-      "1 an",
-      "RISK_MED",
-    ],
-    [
-      "SC AgroSud SRL",
-      "RO44556677",
-      487,
-      "€10,000",
-      "€5,208",
-      "2 ani",
-      "RISK_HIGH",
-    ],
+    ["SC Ferma Dunărea SA", "RO55443322", 892, "€50,000", "€13,461", "8 ani", "RISK_LOW"],
+    ["Cooperativa Agriland", "RO11223344", 745, "€25,000", "€8,804", "3 ani", "RISK_LOW"],
+    ["OUAI Ialomița Nord", "RO77889900", 612, "€15,000", "€6,597", "1 an", "RISK_MED"],
+    ["SC AgroSud SRL", "RO44556677", 487, "€10,000", "€5,208", "2 ani", "RISK_HIGH"],
   ];
   return (
     <>
@@ -4305,9 +3818,7 @@ function Credit({ toast }) {
         actions={
           <button
             className="btn bto bsm"
-            onClick={() =>
-              toast.add({ type: "success", title: "Scores actualizate" })
-            }
+            onClick={() => toast.add({ type: "success", title: "Scores actualizate" })}
           >
             <Ic p={I.refresh} size={12} />
             Refresh
@@ -4359,9 +3870,7 @@ function Credit({ toast }) {
               {rows.map(([nm, cui, sc, lim, used, hist, st], i) => (
                 <tr key={i}>
                   <td style={{ fontWeight: 600, color: "var(--t1)" }}>{nm}</td>
-                  <td style={{ fontFamily: "var(--fM)", fontSize: 12 }}>
-                    {cui}
-                  </td>
+                  <td style={{ fontFamily: "var(--fM)", fontSize: 12 }}>{cui}</td>
                   <td>
                     <div className="flex ac g2">
                       <div className="pt" style={{ width: 60 }}>
@@ -4370,19 +3879,11 @@ function Credit({ toast }) {
                           style={{
                             width: `${sc / 10}%`,
                             background:
-                              sc > 700
-                                ? "var(--ok)"
-                                : sc > 500
-                                  ? "var(--wa)"
-                                  : "var(--er)",
+                              sc > 700 ? "var(--ok)" : sc > 500 ? "var(--wa)" : "var(--er)",
                           }}
                         />
                       </div>
-                      <span
-                        style={{ fontFamily: "var(--fM)", fontWeight: 700 }}
-                      >
-                        {sc}
-                      </span>
+                      <span style={{ fontFamily: "var(--fM)", fontWeight: 700 }}>{sc}</span>
                     </div>
                   </td>
                   <td
@@ -4450,9 +3951,7 @@ function Logistics({ toast }) {
         actions={
           <button
             className="btn btp bsm"
-            onClick={() =>
-              toast.add({ type: "success", title: "AWB generat ENE332891RO" })
-            }
+            onClick={() => toast.add({ type: "success", title: "AWB generat ENE332891RO" })}
           >
             <Ic p={I.plus} size={12} />
             Generează AWB
@@ -4523,14 +4022,10 @@ function Logistics({ toast }) {
                     {awb}
                   </td>
                   <td style={{ fontWeight: 600 }}>{co}</td>
-                  <td style={{ fontFamily: "var(--fM)", fontSize: 12 }}>
-                    {ord}
-                  </td>
+                  <td style={{ fontFamily: "var(--fM)", fontSize: 12 }}>{ord}</td>
                   <td style={{ fontSize: 12 }}>{items}</td>
                   <td>{jud}</td>
-                  <td style={{ fontSize: 12, fontFamily: "var(--fM)" }}>
-                    {eta}
-                  </td>
+                  <td style={{ fontSize: 12, fontFamily: "var(--fM)" }}>{eta}</td>
                   <td>{cod ? <span className="badge bwa">COD</span> : "—"}</td>
                   <td>
                     <SBadge status={st} />
@@ -4610,10 +4105,7 @@ function Returns({ toast }) {
               key={i}
               style={{
                 padding: "14px 0",
-                borderBottom:
-                  i < items.length - 1
-                    ? "1px solid oklch(.20 .018 255/40%)"
-                    : "none",
+                borderBottom: i < items.length - 1 ? "1px solid oklch(.20 .018 255/40%)" : "none",
               }}
             >
               <div className="flex as jb">
@@ -4639,9 +4131,7 @@ function Returns({ toast }) {
                   >
                     {r.co}
                   </p>
-                  <p style={{ fontSize: 13, color: "var(--t3)", marginTop: 2 }}>
-                    {r.reason}
-                  </p>
+                  <p style={{ fontSize: 13, color: "var(--t3)", marginTop: 2 }}>{r.reason}</p>
                   <p
                     style={{
                       fontSize: 11.5,
@@ -4704,9 +4194,7 @@ function Nurturing({ toast }) {
         actions={
           <button
             className="btn btp bsm"
-            onClick={() =>
-              toast.add({ type: "success", title: "Campanie lansată" })
-            }
+            onClick={() => toast.add({ type: "success", title: "Campanie lansată" })}
           >
             <Ic p={I.send} size={12} />
             Lansează Campanie
@@ -4785,12 +4273,7 @@ function Nurturing({ toast }) {
                       style={{
                         fontFamily: "var(--fM)",
                         fontWeight: 700,
-                        color:
-                          nps >= 8
-                            ? "var(--ok)"
-                            : nps >= 6
-                              ? "var(--wa)"
-                              : "var(--er)",
+                        color: nps >= 8 ? "var(--ok)" : nps >= 6 ? "var(--wa)" : "var(--er)",
                       }}
                     >
                       {nps}/10
@@ -4814,17 +4297,11 @@ function Nurturing({ toast }) {
                           style={{
                             width: `${churn}%`,
                             background:
-                              churn > 50
-                                ? "var(--er)"
-                                : churn > 20
-                                  ? "var(--wa)"
-                                  : "var(--ok)",
+                              churn > 50 ? "var(--er)" : churn > 20 ? "var(--wa)" : "var(--ok)",
                           }}
                         />
                       </div>
-                      <span style={{ fontSize: 12, fontFamily: "var(--fM)" }}>
-                        {churn}%
-                      </span>
+                      <span style={{ fontSize: 12, fontFamily: "var(--fM)" }}>{churn}%</span>
                     </div>
                   </td>
                   <td>
@@ -4858,9 +4335,7 @@ function Referrals({ toast }) {
         actions={
           <button
             className="btn btp bsm"
-            onClick={() =>
-              toast.add({ type: "success", title: "Campanie referral lansată" })
-            }
+            onClick={() => toast.add({ type: "success", title: "Campanie referral lansată" })}
           >
             Lansează
           </button>
@@ -4919,8 +4394,7 @@ function Referrals({ toast }) {
                   justifyContent: "space-between",
                   alignItems: "center",
                   padding: "10px 0",
-                  borderBottom:
-                    i < 2 ? "1px solid oklch(.20 .018 255/40%)" : "none",
+                  borderBottom: i < 2 ? "1px solid oklch(.20 .018 255/40%)" : "none",
                 }}
               >
                 <div>
@@ -4933,9 +4407,7 @@ function Referrals({ toast }) {
                   >
                     {nm}
                   </p>
-                  <p
-                    style={{ fontSize: 11.5, color: "var(--t3)", marginTop: 2 }}
-                  >
+                  <p style={{ fontSize: 11.5, color: "var(--t3)", marginTop: 2 }}>
                     {jud} · {cl}
                   </p>
                 </div>
@@ -4950,9 +4422,7 @@ function Referrals({ toast }) {
                   >
                     Influență {inf}%
                   </div>
-                  <div
-                    style={{ fontSize: 11, color: "var(--t3)", marginTop: 2 }}
-                  >
+                  <div style={{ fontSize: 11, color: "var(--t3)", marginTop: 2 }}>
                     {refs} referrals
                   </div>
                 </div>
@@ -5136,20 +4606,14 @@ function Churn({ toast }) {
                     <SBadge status={r.st} />
                   </div>
                   <div className="flex ac g3" style={{ marginBottom: 10 }}>
-                    <span style={{ fontSize: 12, color: "var(--t3)" }}>
-                      Risc Churn:
-                    </span>
+                    <span style={{ fontSize: 12, color: "var(--t3)" }}>Risc Churn:</span>
                     <div className="pt" style={{ width: 100 }}>
                       <div
                         className="pf"
                         style={{
                           width: `${r.risk}%`,
                           background:
-                            r.risk > 60
-                              ? "var(--er)"
-                              : r.risk > 30
-                                ? "var(--wa)"
-                                : "var(--ok)",
+                            r.risk > 60 ? "var(--er)" : r.risk > 30 ? "var(--wa)" : "var(--ok)",
                         }}
                       />
                     </div>
@@ -5158,42 +4622,27 @@ function Churn({ toast }) {
                         fontSize: 14,
                         fontWeight: 800,
                         fontFamily: "var(--fD)",
-                        color:
-                          r.risk > 60
-                            ? "var(--er)"
-                            : r.risk > 30
-                              ? "var(--wa)"
-                              : "var(--ok)",
+                        color: r.risk > 60 ? "var(--er)" : r.risk > 30 ? "var(--wa)" : "var(--ok)",
                       }}
                     >
                       {r.risk}%
                     </span>
                   </div>
-                  <div
-                    className="flex g2"
-                    style={{ marginBottom: 8, flexWrap: "wrap" }}
-                  >
+                  <div className="flex g2" style={{ marginBottom: 8, flexWrap: "wrap" }}>
                     {r.sig.map((s) => (
-                      <span
-                        key={s}
-                        className="badge ber"
-                        style={{ fontSize: 10 }}
-                      >
+                      <span key={s} className="badge ber" style={{ fontSize: 10 }}>
                         {s}
                       </span>
                     ))}
                   </div>
                   <p style={{ fontSize: 12.5, color: "var(--t3)" }}>
-                    <strong style={{ color: "var(--t2)" }}>Acțiune:</strong>{" "}
-                    {r.act}
+                    <strong style={{ color: "var(--t2)" }}>Acțiune:</strong> {r.act}
                   </p>
                 </div>
                 <div className="flex g2">
                   <button
                     className="btn btb bsm"
-                    onClick={() =>
-                      toast.add({ type: "success", title: `Win-back: ${r.nm}` })
-                    }
+                    onClick={() => toast.add({ type: "success", title: `Win-back: ${r.nm}` })}
                   >
                     <Ic p={I.send} size={13} />
                     Win-Back
@@ -5219,10 +4668,7 @@ function GeoMap({ toast }) {
   ];
   return (
     <>
-      <PH
-        title="Hartă Geografică"
-        sub="PostGIS · Concentrare județe agricole"
-      />
+      <PH title="Hartă Geografică" sub="PostGIS · Concentrare județe agricole" />
       <EB
         num="5"
         name="Geospatial Expansion"
@@ -5362,8 +4808,7 @@ function GeoMap({ toast }) {
                   textAlign: "center",
                 }}
               >
-                🌍 Potențial neexplorat:{" "}
-                <strong>Giurgiu, Buzău, Prahova</strong>
+                🌍 Potențial neexplorat: <strong>Giurgiu, Buzău, Prahova</strong>
               </p>
             </div>
           </div>
@@ -5396,9 +4841,7 @@ function Workers({ toast }) {
         actions={
           <button
             className="btn bto bsm"
-            onClick={() =>
-              toast.add({ type: "success", title: "Status actualizat" })
-            }
+            onClick={() => toast.add({ type: "success", title: "Status actualizat" })}
           >
             <Ic p={I.refresh} size={12} />
             Refresh
@@ -5448,12 +4891,8 @@ function Workers({ toast }) {
                 alignItems: "center",
                 gap: 12,
                 padding: "9px 18px",
-                borderBottom:
-                  i < ws.length - 1
-                    ? "1px solid oklch(.18 .018 255/40%)"
-                    : "none",
-                background:
-                  i % 2 === 0 ? "oklch(.13 .018 255/30%)" : "transparent",
+                borderBottom: i < ws.length - 1 ? "1px solid oklch(.18 .018 255/40%)" : "none",
+                background: i % 2 === 0 ? "oklch(.13 .018 255/30%)" : "transparent",
               }}
             >
               <span className={`dot d${s}`} />
@@ -5521,11 +4960,7 @@ function Settings({ toast }) {
           ["team", "Echipă"],
           ["billing", "Abonament"],
         ].map(([id, lbl]) => (
-          <button
-            key={id}
-            className={`tab${tab === id ? " act" : ""}`}
-            onClick={() => setTab(id)}
-          >
+          <button key={id} className={`tab${tab === id ? " act" : ""}`} onClick={() => setTab(id)}>
             {lbl}
           </button>
         ))}
@@ -5536,10 +4971,7 @@ function Settings({ toast }) {
             <div className="ch">
               <span className="ct">Configurare Tenant</span>
             </div>
-            <div
-              className="cb"
-              style={{ display: "flex", flexDirection: "column", gap: 14 }}
-            >
+            <div className="cb" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               {[
                 ["Nume Companie", "Cerniq.app Demo"],
                 ["CUI", "RO12345678"],
@@ -5553,9 +4985,7 @@ function Settings({ toast }) {
               ))}
               <button
                 className="btn btp"
-                onClick={() =>
-                  toast.add({ type: "success", title: "Setări salvate" })
-                }
+                onClick={() => toast.add({ type: "success", title: "Setări salvate" })}
               >
                 Salvează
               </button>
@@ -5565,10 +4995,7 @@ function Settings({ toast }) {
             <div className="ch">
               <span className="ct">Praguri Automate</span>
             </div>
-            <div
-              className="cb"
-              style={{ display: "flex", flexDirection: "column", gap: 14 }}
-            >
+            <div className="cb" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               {[
                 ["Discount maxim auto (%)", "10"],
                 ["Score Gold threshold", "90"],
@@ -5582,9 +5009,7 @@ function Settings({ toast }) {
               ))}
               <button
                 className="btn btp"
-                onClick={() =>
-                  toast.add({ type: "success", title: "Praguri salvate" })
-                }
+                onClick={() => toast.add({ type: "success", title: "Praguri salvate" })}
               >
                 Salvează
               </button>
@@ -5598,12 +5023,7 @@ function Settings({ toast }) {
             ["ANAF API", "ok", "••••••••A1B2", "Validare CUI"],
             ["Termene.ro", "ok", "••••••••C3D4", "Credit scoring"],
             ["Oblio.eu (e-Factura)", "ok", "••••••••E5F6", "Facturare SPV"],
-            [
-              "TimelinesAI WhatsApp",
-              "wa",
-              "••••••••G7H8",
-              "20 numere · 2 offline",
-            ],
+            ["TimelinesAI WhatsApp", "wa", "••••••••G7H8", "20 numere · 2 offline"],
             ["Instantly.ai Email", "ok", "••••••••I9J0", "Cold email, warmup"],
             ["Sameday Courier", "ok", "••••••••K1L2", "AWB, tracking, COD"],
             ["Revolut Business", "ok", "••••••••M3N4", "Webhooks plăți"],
@@ -5635,9 +5055,7 @@ function Settings({ toast }) {
                   </span>
                   <button
                     className="btn bto bsm"
-                    onClick={() =>
-                      toast.add({ type: "info", title: `${nm} configurat` })
-                    }
+                    onClick={() => toast.add({ type: "info", title: `${nm} configurat` })}
                   >
                     <Ic p={I.edit} size={12} />
                     Edit
@@ -5651,9 +5069,7 @@ function Settings({ toast }) {
       {tab === "team" && (
         <div className="card">
           <div className="cb">
-            <p style={{ color: "var(--t3)", fontSize: 13 }}>
-              Team management — coming soon
-            </p>
+            <p style={{ color: "var(--t3)", fontSize: 13 }}>Team management — coming soon</p>
           </div>
         </div>
       )}
@@ -5692,11 +5108,7 @@ function Settings({ toast }) {
                 }}
               >
                 <span style={{ fontSize: 13, color: "var(--t2)" }}>{k}</span>
-                <span
-                  style={{ fontSize: 13, fontWeight: 600, color: "var(--ok)" }}
-                >
-                  {v}
-                </span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ok)" }}>{v}</span>
               </div>
             ))}
           </div>

@@ -36,9 +36,7 @@ function parseYaml<T>(content: string): T | null {
 describe("F0.3: Redis + BullMQ (shared)", () => {
   it("base compose should NOT define a redis service (externalized to orchestrator)", () => {
     expect(fileExists("infra/docker/docker-compose.yml")).toBe(true);
-    const base = parseYaml<Record<string, unknown>>(
-      readFile("infra/docker/docker-compose.yml"),
-    );
+    const base = parseYaml<Record<string, unknown>>(readFile("infra/docker/docker-compose.yml"));
     expect(base).not.toBeNull();
     const services = (base as Record<string, unknown>).services as
       | Record<string, unknown>
@@ -48,9 +46,7 @@ describe("F0.3: Redis + BullMQ (shared)", () => {
 
   it("dev compose should NOT define a local redis service (uses shared orchestrator Redis)", () => {
     expect(fileExists("infra/docker/docker-compose.dev.yml")).toBe(true);
-    const dev = parseYaml<Record<string, unknown>>(
-      readFile("infra/docker/docker-compose.dev.yml"),
-    );
+    const dev = parseYaml<Record<string, unknown>>(readFile("infra/docker/docker-compose.dev.yml"));
     expect(dev).not.toBeNull();
     const services = (dev as Record<string, unknown>).services as
       | Record<string, unknown>
@@ -59,9 +55,7 @@ describe("F0.3: Redis + BullMQ (shared)", () => {
   });
 
   it("dev compose should include OpenBao agents for shared service credentials", () => {
-    const dev = parseYaml<Record<string, unknown>>(
-      readFile("infra/docker/docker-compose.dev.yml"),
-    );
+    const dev = parseYaml<Record<string, unknown>>(readFile("infra/docker/docker-compose.dev.yml"));
     expect(dev).not.toBeNull();
     const services = (dev as Record<string, unknown>).services as
       | Record<string, unknown>
@@ -74,9 +68,7 @@ describe("F0.3: Redis + BullMQ (shared)", () => {
 
   it("OpenBao templates should define REDIS_URL with username and isolation prefixes", () => {
     const apiTpl = readFile("infra/config/openbao/templates/api-env.tpl");
-    const workersTpl = readFile(
-      "infra/config/openbao/templates/workers-env.tpl",
-    );
+    const workersTpl = readFile("infra/config/openbao/templates/workers-env.tpl");
     expect(apiTpl).toContain("REDIS_URL=redis://");
     expect(workersTpl).toContain("REDIS_URL=redis://");
 

@@ -1822,12 +1822,7 @@ export function ProductsTable({ tenantId, onEdit, onView }: ProductsTableProps) 
 
 ```typescript
 // src/types/product.ts
-export type ProductStatus =
-  | "active"
-  | "inactive"
-  | "draft"
-  | "archived"
-  | "discontinued";
+export type ProductStatus = "active" | "inactive" | "draft" | "archived" | "discontinued";
 
 export type ProductCategory =
   | "fertilizers"
@@ -2337,12 +2332,7 @@ export function ConversationsTable({ tenantId }: ConversationsTableProps) {
 ```typescript
 // src/types/conversation.ts
 export type Channel = "email" | "whatsapp" | "phone" | "webchat";
-export type ConversationStatus =
-  | "active"
-  | "waiting"
-  | "escalated"
-  | "resolved"
-  | "paused";
+export type ConversationStatus = "active" | "waiting" | "escalated" | "resolved" | "paused";
 export type Sentiment = "positive" | "neutral" | "negative";
 
 export interface Contact {
@@ -4046,12 +4036,7 @@ export type ANAFStatus =
   | "rejected" // Respins de ANAF
   | "cancelled"; // Anulat în SPV
 
-export type PaymentMethod =
-  | "bank_transfer"
-  | "cash"
-  | "card"
-  | "check"
-  | "compensation";
+export type PaymentMethod = "bank_transfer" | "cash" | "card" | "check" | "compensation";
 
 export interface FiscalDocumentItem {
   id: string;
@@ -5313,14 +5298,7 @@ export interface ApprovalContext {
 export interface ApprovalHistoryEntry {
   id: string;
   timestamp: Date;
-  action:
-    | "created"
-    | "viewed"
-    | "approved"
-    | "rejected"
-    | "delegated"
-    | "escalated"
-    | "expired";
+  action: "created" | "viewed" | "approved" | "rejected" | "delegated" | "escalated" | "expired";
   userId?: string;
   userName?: string;
   comment?: string;
@@ -6750,13 +6728,7 @@ export interface HitlApproval {
   urgency: ApprovalUrgency;
 
   // Referințe
-  entityType:
-    | "conversation"
-    | "negotiation"
-    | "offer"
-    | "order"
-    | "contact"
-    | "campaign";
+  entityType: "conversation" | "negotiation" | "offer" | "order" | "contact" | "campaign";
   entityId: string;
   tenantId: string;
 
@@ -10762,34 +10734,24 @@ interface TableState {
 }
 
 interface TableStateActions {
-  setSorting: (
-    updater: SortingState | ((old: SortingState) => SortingState),
-  ) => void;
+  setSorting: (updater: SortingState | ((old: SortingState) => SortingState)) => void;
   setColumnFilters: (
-    updater:
-      | ColumnFiltersState
-      | ((old: ColumnFiltersState) => ColumnFiltersState),
+    updater: ColumnFiltersState | ((old: ColumnFiltersState) => ColumnFiltersState),
   ) => void;
   setColumnVisibility: (
     updater: VisibilityState | ((old: VisibilityState) => VisibilityState),
   ) => void;
   setRowSelection: (
-    updater:
-      | RowSelectionState
-      | ((old: RowSelectionState) => RowSelectionState),
+    updater: RowSelectionState | ((old: RowSelectionState) => RowSelectionState),
   ) => void;
-  setPagination: (
-    updater: PaginationState | ((old: PaginationState) => PaginationState),
-  ) => void;
+  setPagination: (updater: PaginationState | ((old: PaginationState) => PaginationState)) => void;
   setGlobalFilter: (value: string) => void;
   resetState: () => void;
   resetFilters: () => void;
   resetSelection: () => void;
 }
 
-export function useTableState(
-  options: UseTableStateOptions = {},
-): [TableState, TableStateActions] {
+export function useTableState(options: UseTableStateOptions = {}): [TableState, TableStateActions] {
   const {
     defaultSorting = [],
     defaultColumnFilters = [],
@@ -10830,37 +10792,23 @@ export function useTableState(
     const search = searchParams.get(searchKey) || "";
 
     return {
-      sorting: sortBy
-        ? [{ id: sortBy, desc: sortOrder === "desc" }]
-        : defaultSorting,
+      sorting: sortBy ? [{ id: sortBy, desc: sortOrder === "desc" }] : defaultSorting,
       columnFilters: defaultColumnFilters,
       pagination: { pageIndex: page, pageSize },
       globalFilter: search,
     };
-  }, [
-    syncWithUrl,
-    searchParams,
-    urlKeys,
-    defaultSorting,
-    defaultColumnFilters,
-    defaultPagination,
-  ]);
+  }, [syncWithUrl, searchParams, urlKeys, defaultSorting, defaultColumnFilters, defaultPagination]);
 
   // State
   const [sorting, setSorting] = useState<SortingState>(initialState.sorting);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(
     initialState.columnFilters,
   );
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(
-    defaultColumnVisibility,
-  );
+  const [columnVisibility, setColumnVisibility] =
+    useState<VisibilityState>(defaultColumnVisibility);
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
-  const [pagination, setPagination] = useState<PaginationState>(
-    initialState.pagination,
-  );
-  const [globalFilter, setGlobalFilter] = useState<string>(
-    initialState.globalFilter,
-  );
+  const [pagination, setPagination] = useState<PaginationState>(initialState.pagination);
+  const [globalFilter, setGlobalFilter] = useState<string>(initialState.globalFilter);
 
   // Sync to URL
   const syncToUrl = useCallback(
@@ -10906,8 +10854,7 @@ export function useTableState(
   // Wrapped setters that sync to URL
   const wrappedSetSorting = useCallback(
     (updater: SortingState | ((old: SortingState) => SortingState)) => {
-      const newSorting =
-        typeof updater === "function" ? updater(sorting) : updater;
+      const newSorting = typeof updater === "function" ? updater(sorting) : updater;
       setSorting(newSorting);
       syncToUrl({ sorting: newSorting });
     },
@@ -10915,11 +10862,8 @@ export function useTableState(
   );
 
   const wrappedSetPagination = useCallback(
-    (
-      updater: PaginationState | ((old: PaginationState) => PaginationState),
-    ) => {
-      const newPagination =
-        typeof updater === "function" ? updater(pagination) : updater;
+    (updater: PaginationState | ((old: PaginationState) => PaginationState)) => {
+      const newPagination = typeof updater === "function" ? updater(pagination) : updater;
       setPagination(newPagination);
       syncToUrl({ pagination: newPagination });
     },
@@ -10951,13 +10895,7 @@ export function useTableState(
       pagination: defaultPagination,
       globalFilter: "",
     });
-  }, [
-    defaultSorting,
-    defaultColumnFilters,
-    defaultColumnVisibility,
-    defaultPagination,
-    syncToUrl,
-  ]);
+  }, [defaultSorting, defaultColumnFilters, defaultColumnVisibility, defaultPagination, syncToUrl]);
 
   const resetFilters = useCallback(() => {
     setColumnFilters([]);
@@ -11007,11 +10945,7 @@ export function useTableState(
 
 import { useMemo } from "react";
 import { useQuery, UseQueryOptions } from "@tanstack/react-query";
-import {
-  SortingState,
-  ColumnFiltersState,
-  PaginationState,
-} from "@tanstack/react-table";
+import { SortingState, ColumnFiltersState, PaginationState } from "@tanstack/react-table";
 
 interface TableQueryParams {
   sorting: SortingState;
@@ -11363,10 +11297,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 interface UseOptimisticTableMutationOptions<TData, TVariables> {
   queryKey: unknown[];
   mutationFn: (variables: TVariables) => Promise<TData>;
-  optimisticUpdate: (
-    oldData: TData[] | undefined,
-    variables: TVariables,
-  ) => TData[] | undefined;
+  optimisticUpdate: (oldData: TData[] | undefined, variables: TVariables) => TData[] | undefined;
   onSuccess?: (data: TData, variables: TVariables) => void;
   onError?: (error: Error, variables: TVariables) => void;
 }
@@ -11390,9 +11321,7 @@ export function useOptimisticTableMutation<TData, TVariables>({
       const previousData = queryClient.getQueryData<TData[]>(queryKey);
 
       // Optimistically update
-      queryClient.setQueryData<TData[]>(queryKey, (old) =>
-        optimisticUpdate(old, variables),
-      );
+      queryClient.setQueryData<TData[]>(queryKey, (old) => optimisticUpdate(old, variables));
 
       // Return snapshot for rollback
       return { previousData };
@@ -11483,9 +11412,7 @@ export function useRealtimeTable<TData extends { id: string }>({
           case "UPDATE":
             queryClient.setQueryData<TData[]>(queryKey, (old) => {
               if (!old) return old;
-              return old.map((item) =>
-                item.id === message.data.id ? message.data : item,
-              );
+              return old.map((item) => (item.id === message.data.id ? message.data : item));
             });
             onUpdate?.(message.data);
             break;
@@ -12126,9 +12053,7 @@ test.describe("Products Table", () => {
 
     // Wait for debounce and API call
     await page.waitForResponse(
-      (resp) =>
-        resp.url().includes("/api/products") &&
-        resp.url().includes("search=Porumb"),
+      (resp) => resp.url().includes("/api/products") && resp.url().includes("search=Porumb"),
     );
 
     // Verify filtered results
@@ -12141,17 +12066,11 @@ test.describe("Products Table", () => {
     await page.click('th:has-text("Preț")');
 
     // Verify sorting indicator
-    await expect(page.locator('th:has-text("Preț")')).toHaveAttribute(
-      "aria-sort",
-      "ascending",
-    );
+    await expect(page.locator('th:has-text("Preț")')).toHaveAttribute("aria-sort", "ascending");
 
     // Click again for descending
     await page.click('th:has-text("Preț")');
-    await expect(page.locator('th:has-text("Preț")')).toHaveAttribute(
-      "aria-sort",
-      "descending",
-    );
+    await expect(page.locator('th:has-text("Preț")')).toHaveAttribute("aria-sort", "descending");
   });
 
   test("pagination works correctly", async ({ page }) => {
@@ -12183,9 +12102,7 @@ test.describe("Products Table", () => {
     await expect(page.locator("text=10 selectate")).toBeVisible();
 
     // Verify bulk actions visible
-    await expect(
-      page.getByRole("button", { name: /șterge selectate/i }),
-    ).toBeVisible();
+    await expect(page.getByRole("button", { name: /șterge selectate/i })).toBeVisible();
   });
 
   test("delete product with confirmation", async ({ page }) => {
@@ -12222,10 +12139,7 @@ test.describe("Products Table", () => {
     await expect(page.locator("text=PDF")).toBeVisible();
 
     // Start download
-    const [download] = await Promise.all([
-      page.waitForEvent("download"),
-      page.click("text=CSV"),
-    ]);
+    const [download] = await Promise.all([page.waitForEvent("download"), page.click("text=CSV")]);
 
     // Verify download
     expect(download.suggestedFilename()).toContain("products");

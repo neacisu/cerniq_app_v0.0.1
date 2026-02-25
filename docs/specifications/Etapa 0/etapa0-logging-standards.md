@@ -58,9 +58,7 @@ const redactPaths = [
 export const createLogger = (options: { name: string }) => {
   return pino({
     name: options.name,
-    level:
-      process.env.LOG_LEVEL ||
-      (process.env.NODE_ENV === "production" ? "info" : "debug"),
+    level: process.env.LOG_LEVEL || (process.env.NODE_ENV === "production" ? "info" : "debug"),
 
     // Redact PII
     redact: {
@@ -153,8 +151,7 @@ const requestLoggerPlugin: FastifyPluginAsync = async (fastify) => {
           name: error.name,
           message: error.message,
           code: (error as any).code,
-          stack:
-            process.env.NODE_ENV !== "production" ? error.stack : undefined,
+          stack: process.env.NODE_ENV !== "production" ? error.stack : undefined,
         },
       },
       "Request error",
@@ -377,10 +374,7 @@ const logger = pino({
 // packages/telemetry/src/logs.ts
 import { logs } from "@opentelemetry/api-logs";
 import { OTLPLogExporter } from "@opentelemetry/exporter-logs-otlp-grpc";
-import {
-  LoggerProvider,
-  BatchLogRecordProcessor,
-} from "@opentelemetry/sdk-logs";
+import { LoggerProvider, BatchLogRecordProcessor } from "@opentelemetry/sdk-logs";
 
 const loggerProvider = new LoggerProvider();
 

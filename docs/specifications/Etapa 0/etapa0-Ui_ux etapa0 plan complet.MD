@@ -250,12 +250,9 @@ Toate tokenurile sunt definite în CSS via `@theme` (Tailwind v4). **Niciodată 
   ═══════════════════════════════════════════════ */
   --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.15);
   --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.2), 0 1px 2px -1px rgb(0 0 0 / 0.2);
-  --shadow-md:
-    0 4px 6px -1px rgb(0 0 0 / 0.25), 0 2px 4px -2px rgb(0 0 0 / 0.2);
-  --shadow-lg:
-    0 10px 15px -3px rgb(0 0 0 / 0.3), 0 4px 6px -4px rgb(0 0 0 / 0.2);
-  --shadow-xl:
-    0 20px 25px -5px rgb(0 0 0 / 0.35), 0 8px 10px -6px rgb(0 0 0 / 0.25);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.25), 0 2px 4px -2px rgb(0 0 0 / 0.2);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.3), 0 4px 6px -4px rgb(0 0 0 / 0.2);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.35), 0 8px 10px -6px rgb(0 0 0 / 0.25);
   --shadow-glow-brand: 0 0 20px oklch(0.7 0.18 72 / 25%);
   --shadow-glow-success: 0 0 16px oklch(0.6 0.22 148 / 20%);
 
@@ -356,8 +353,7 @@ Toast message               Body            text-sm     regular   normal
 
 ```css
 @theme {
-  --font-display:
-    "Bricolage Grotesque", "DM Sans", "Inter", system-ui, sans-serif;
+  --font-display: "Bricolage Grotesque", "DM Sans", "Inter", system-ui, sans-serif;
   --font-body: "DM Sans", "Inter", system-ui, sans-serif;
   --font-mono: "Geist Mono", "JetBrains Mono", ui-monospace, monospace;
 }
@@ -585,15 +581,8 @@ icon-sm: h-8 w-8
   <label htmlFor="email" className="text-sm font-medium text-text-secondary">
     Email de serviciu
   </label>
-  <input
-    id="email"
-    type="email"
-    placeholder="alex@firma.ro"
-    className="input-base"
-  />
-  <p className="text-xs text-text-tertiary">
-    Folosiți adresa de email a companiei
-  </p>
+  <input id="email" type="email" placeholder="alex@firma.ro" className="input-base" />
+  <p className="text-xs text-text-tertiary">Folosiți adresa de email a companiei</p>
 </div>
 ```
 
@@ -1053,10 +1042,7 @@ import { EyeIcon, EyeOffIcon, Loader2Icon } from "lucide-react";
 import { toast } from "sonner";
 
 const loginSchema = z.object({
-  email: z
-    .string()
-    .min(1, "Email-ul este obligatoriu")
-    .email("Adresă de email invalidă"),
+  email: z.string().min(1, "Email-ul este obligatoriu").email("Adresă de email invalidă"),
   password: z
     .string()
     .min(1, "Parola este obligatorie")
@@ -1104,27 +1090,17 @@ export function LoginPage() {
         Sari la conținut
       </a>
 
-      <main
-        id="main-content"
-        className="login-card"
-        aria-label="Formular autentificare"
-      >
+      <main id="main-content" className="login-card" aria-label="Formular autentificare">
         {/* Logo */}
         <div className="login-logo">
           <CerniqLogo />
-          <div className="login-tagline">
-            Automatizare vânzări B2B în agricultura românească
-          </div>
+          <div className="login-tagline">Automatizare vânzări B2B în agricultura românească</div>
         </div>
 
         <hr className="login-divider" />
 
         {/* Form */}
-        <form
-          onSubmit={handleSubmit(onSubmit)}
-          noValidate
-          aria-label="Formular de autentificare"
-        >
+        <form onSubmit={handleSubmit(onSubmit)} noValidate aria-label="Formular de autentificare">
           {/* Email field */}
           <div className="field-group">
             <label htmlFor="email" className="field-label">
@@ -1170,9 +1146,7 @@ export function LoginPage() {
                 placeholder="••••••••"
                 className={`input-base input-with-icon ${errors.password ? "input-error" : ""}`}
                 aria-invalid={!!errors.password}
-                aria-describedby={
-                  errors.password ? "password-error" : undefined
-                }
+                aria-describedby={errors.password ? "password-error" : undefined}
               />
               <button
                 type="button"
@@ -1236,16 +1210,8 @@ export function LoginPage() {
   background-color: var(--color-surface-950);
   background-image:
     url("data:image/svg+xml,[noise-svg]"),
-    radial-gradient(
-      ellipse at 20% 80%,
-      oklch(0.7 0.18 72 / 5%) 0%,
-      transparent 60%
-    ),
-    radial-gradient(
-      ellipse at 80% 20%,
-      oklch(0.57 0.2 245 / 4%) 0%,
-      transparent 60%
-    );
+    radial-gradient(ellipse at 20% 80%, oklch(0.7 0.18 72 / 5%) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 20%, oklch(0.57 0.2 245 / 4%) 0%, transparent 60%);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1470,13 +1436,7 @@ export function CerniqLogo({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
       role="img"
     >
       {/* Icon — wheat/grain simbolic */}
-      <svg
-        width={icon}
-        height={icon}
-        viewBox="0 0 32 32"
-        fill="none"
-        aria-hidden="true"
-      >
+      <svg width={icon} height={icon} viewBox="0 0 32 32" fill="none" aria-hidden="true">
         {/* Hexagon base — structură, date */}
         <path
           d="M16 2L28 9V23L16 30L4 23V9L16 2Z"
@@ -1537,11 +1497,7 @@ export function AppLayout() {
     <div className="app-layout">
       {/* Mobile overlay */}
       {mobileOpen && (
-        <div
-          className="sidebar-overlay"
-          onClick={() => setMobileOpen(false)}
-          aria-hidden="true"
-        />
+        <div className="sidebar-overlay" onClick={() => setMobileOpen(false)} aria-hidden="true" />
       )}
 
       {/* Sidebar */}
@@ -1553,9 +1509,7 @@ export function AppLayout() {
       />
 
       {/* Main area */}
-      <div
-        className={cn("main-area", sidebarCollapsed && "main-area-collapsed")}
-      >
+      <div className={cn("main-area", sidebarCollapsed && "main-area-collapsed")}>
         <Header onMobileMenuToggle={() => setMobileOpen(!mobileOpen)} />
 
         <main id="main-content" className="main-content" tabIndex={-1}>
@@ -1798,12 +1752,7 @@ interface SidebarProps {
   onMobileClose: () => void;
 }
 
-export function Sidebar({
-  collapsed,
-  mobileOpen,
-  onCollapse,
-  onMobileClose,
-}: SidebarProps) {
+export function Sidebar({ collapsed, mobileOpen, onCollapse, onMobileClose }: SidebarProps) {
   const location = useLocation();
   const { user } = useAuth();
 
@@ -1822,11 +1771,7 @@ export function Sidebar({
       {/* Logo Zone */}
       <div className="sidebar-logo-zone">
         <Link to="/dashboard" aria-label="Cerniq — Acasă">
-          {collapsed ? (
-            <CerniqLogo size="sm" iconOnly />
-          ) : (
-            <CerniqLogo size="sm" />
-          )}
+          {collapsed ? <CerniqLogo size="sm" iconOnly /> : <CerniqLogo size="sm" />}
         </Link>
 
         {/* Collapse button — desktop only */}
@@ -1837,10 +1782,7 @@ export function Sidebar({
           title={collapsed ? "Extinde" : "Restrânge"}
         >
           <ChevronLeftIcon
-            className={cn(
-              "w-4 h-4 transition-transform duration-300",
-              collapsed && "rotate-180",
-            )}
+            className={cn("w-4 h-4 transition-transform duration-300", collapsed && "rotate-180")}
           />
         </button>
       </div>
@@ -1874,10 +1816,7 @@ export function Sidebar({
                     <>
                       <span className="nav-label">{item.label}</span>
                       {item.badge !== undefined && item.badge > 0 && (
-                        <span
-                          className="nav-badge"
-                          aria-label={`${item.badge} pending`}
-                        >
+                        <span className="nav-badge" aria-label={`${item.badge} pending`}>
                           {item.badge > 99 ? "99+" : item.badge}
                         </span>
                       )}
@@ -1893,9 +1832,7 @@ export function Sidebar({
       {/* User Zone */}
       <div className="sidebar-user-zone">
         <div className="sidebar-divider" />
-        <div
-          className={cn("user-profile", collapsed && "user-profile-collapsed")}
-        >
+        <div className={cn("user-profile", collapsed && "user-profile-collapsed")}>
           <div className="user-avatar" aria-hidden>
             {user?.name?.charAt(0)?.toUpperCase() || "U"}
           </div>
@@ -1955,22 +1892,10 @@ export function DashboardPage() {
 
       {/* KPI Grid — Skeleton state */}
       <div className="bento-grid-kpi">
-        <KPICardSkeleton
-          label="Bronze Contacts"
-          icon="database"
-          color="bronze"
-        />
-        <KPICardSkeleton
-          label="Silver Companies"
-          icon="building"
-          color="silver"
-        />
+        <KPICardSkeleton label="Bronze Contacts" icon="database" color="bronze" />
+        <KPICardSkeleton label="Silver Companies" icon="building" color="silver" />
         <KPICardSkeleton label="Gold Ready" icon="star" color="gold" />
-        <KPICardSkeleton
-          label="Aprobări Pending"
-          icon="clipboard"
-          color="warning"
-        />
+        <KPICardSkeleton label="Aprobări Pending" icon="clipboard" color="warning" />
       </div>
 
       {/* Infrastructure Status — Etapa 0 specific */}
@@ -2259,11 +2184,7 @@ export function ThemeToggle() {
       onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
       aria-label={`Comută la ${theme === "dark" ? "mod luminos" : "mod întunecat"}`}
     >
-      {theme === "dark" ? (
-        <SunIcon className="w-4 h-4" />
-      ) : (
-        <MoonIcon className="w-4 h-4" />
-      )}
+      {theme === "dark" ? <SunIcon className="w-4 h-4" /> : <MoonIcon className="w-4 h-4" />}
     </button>
   );
 }
@@ -2304,11 +2225,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     document.documentElement.setAttribute("data-theme", theme);
   }, [theme]);
 
-  return (
-    <ThemeContext.Provider value={{ theme, setTheme }}>
-      {children}
-    </ThemeContext.Provider>
-  );
+  return <ThemeContext.Provider value={{ theme, setTheme }}>{children}</ThemeContext.Provider>;
 }
 
 export function useTheme() {
@@ -2439,8 +2356,7 @@ function HeaderActions() {
         break;
       case "ArrowLeft":
       case "ArrowUp":
-        nextIndex =
-          (index - 1 + itemsRef.current.length) % itemsRef.current.length;
+        nextIndex = (index - 1 + itemsRef.current.length) % itemsRef.current.length;
         break;
       case "Home":
         nextIndex = 0;

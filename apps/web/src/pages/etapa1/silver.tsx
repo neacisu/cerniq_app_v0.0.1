@@ -1,18 +1,9 @@
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
-import {
-  Button,
-  Card,
-  CardHeader,
-  CardTitle,
-  CardBody,
-  TBadge,
-} from "@/components/ui/index.js";
+import { Button, Card, CardHeader, CardTitle, CardBody, TBadge } from "@/components/ui/index.js";
 import { ProgressBar } from "@/components/data/ProgressBar.js";
 import { MOCK_COMPANIES } from "@/config/constants.js";
 
-const silverCompanies = MOCK_COMPANIES.filter(
-  (c) => c.tier === "silver" || c.tier === "gold",
-);
+const silverCompanies = MOCK_COMPANIES.filter((c) => c.tier === "silver" || c.tier === "gold");
 
 export function Silver() {
   return (
@@ -47,9 +38,7 @@ export function Silver() {
                   key={c.id}
                   className="border-b border-[var(--color-s700)] last:border-0 hover:bg-[var(--color-s800)]/50"
                 >
-                  <td className="px-5 py-3 font-medium text-[var(--color-t1)]">
-                    {c.name}
-                  </td>
+                  <td className="px-5 py-3 font-medium text-[var(--color-t1)]">{c.name}</td>
                   <td className="px-5 py-3 text-[var(--color-t2)]">{c.cui}</td>
                   <td className="px-5 py-3">{c.anafValid ? "✓" : "✗"}</td>
                   <td className="px-5 py-3">{c.termeneValid ? "✓" : "✗"}</td>

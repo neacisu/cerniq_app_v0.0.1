@@ -56,9 +56,7 @@ export function Guardrails() {
           <Card key={g.name} className="p-4">
             <div className="flex items-center gap-3">
               <StatusDot status={g.status} />
-              <span className="font-medium text-[var(--color-t1)]">
-                {g.name}
-              </span>
+              <span className="font-medium text-[var(--color-t1)]">{g.name}</span>
             </div>
           </Card>
         ))}
@@ -69,21 +67,11 @@ export function Guardrails() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-[var(--color-s700)]">
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">
-                  Time
-                </th>
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">
-                  Guard
-                </th>
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">
-                  Input
-                </th>
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">
-                  Result
-                </th>
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">
-                  Action
-                </th>
+                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">Time</th>
+                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">Guard</th>
+                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">Input</th>
+                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">Result</th>
+                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -93,27 +81,19 @@ export function Guardrails() {
                   className="border-b border-[var(--color-s800)] hover:bg-[var(--color-s800)]/50"
                 >
                   <td className="py-3 px-4 text-[var(--color-t3)]">{r.time}</td>
-                  <td className="py-3 px-4 text-[var(--color-t2)]">
-                    {r.guard}
-                  </td>
-                  <td className="py-3 px-4 text-[var(--color-t1)]">
-                    {r.input}
-                  </td>
+                  <td className="py-3 px-4 text-[var(--color-t2)]">{r.guard}</td>
+                  <td className="py-3 px-4 text-[var(--color-t1)]">{r.input}</td>
                   <td className="py-3 px-4">
                     <span
                       className={cn(
                         "font-semibold",
-                        r.result === "PASS"
-                          ? "text-[var(--color-ok)]"
-                          : "text-[var(--color-er)]",
+                        r.result === "PASS" ? "text-[var(--color-ok)]" : "text-[var(--color-er)]",
                       )}
                     >
                       {r.result}
                     </span>
                   </td>
-                  <td className="py-3 px-4 text-[var(--color-t3)]">
-                    {r.action}
-                  </td>
+                  <td className="py-3 px-4 text-[var(--color-t3)]">{r.action}</td>
                 </tr>
               ))}
             </tbody>

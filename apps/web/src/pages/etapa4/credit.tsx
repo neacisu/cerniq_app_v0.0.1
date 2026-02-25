@@ -39,24 +39,9 @@ export function Credit() {
   return (
     <PageWrapper title="Credit Scoring (Termene.ro)">
       <div className="grid grid-cols-3 gap-4 mb-6">
-        <KpiCard
-          label="Profiles"
-          value="234"
-          icon="Users"
-          color="var(--color-b5)"
-        />
-        <KpiCard
-          label="Avg Score"
-          value="7.2"
-          icon="BarChart3"
-          color="var(--color-ok)"
-        />
-        <KpiCard
-          label="Risk Alerts"
-          value="8"
-          icon="AlertTriangle"
-          color="var(--color-er)"
-        />
+        <KpiCard label="Profiles" value="234" icon="Users" color="var(--color-b5)" />
+        <KpiCard label="Avg Score" value="7.2" icon="BarChart3" color="var(--color-ok)" />
+        <KpiCard label="Risk Alerts" value="8" icon="AlertTriangle" color="var(--color-er)" />
       </div>
 
       <Card>
@@ -64,21 +49,13 @@ export function Credit() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-[var(--color-s700)]">
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">
-                  Company
-                </th>
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">
-                  Score
-                </th>
+                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">Company</th>
+                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">Score</th>
                 <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">
                   Credit Limit
                 </th>
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">
-                  Used
-                </th>
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">
-                  Risk
-                </th>
+                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">Used</th>
+                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">Risk</th>
               </tr>
             </thead>
             <tbody>
@@ -87,15 +64,11 @@ export function Credit() {
                   key={c.company}
                   className="border-b border-[var(--color-s800)] hover:bg-[var(--color-s800)]/50"
                 >
-                  <td className="py-3 px-4 text-[var(--color-t1)]">
-                    {c.company}
-                  </td>
+                  <td className="py-3 px-4 text-[var(--color-t1)]">{c.company}</td>
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-2 w-32">
                       <ProgressBar value={c.score * 10} max={100} />
-                      <span className="text-xs text-[var(--color-t3)]">
-                        {c.score}/10
-                      </span>
+                      <span className="text-xs text-[var(--color-t3)]">{c.score}/10</span>
                     </div>
                   </td>
                   <td className="py-3 px-4">{c.limit}</td>

@@ -1,12 +1,6 @@
 import { cn } from "@/lib/utils.js";
 
-export function Spinner({
-  className,
-  size = 20,
-}: {
-  className?: string;
-  size?: number;
-}) {
+export function Spinner({ className, size = 20 }: { className?: string; size?: number }) {
   return (
     <div
       className={cn(

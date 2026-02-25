@@ -5,12 +5,7 @@ interface StatsBarProps {
   color?: string;
 }
 
-export function StatsBar({
-  label,
-  value,
-  max = 100,
-  color = "var(--color-b5)",
-}: StatsBarProps) {
+export function StatsBar({ label, value, max = 100, color = "var(--color-b5)" }: StatsBarProps) {
   const pct = Math.min(100, (value / max) * 100);
   return (
     <div className="sbr">

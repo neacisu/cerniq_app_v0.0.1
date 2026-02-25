@@ -1,10 +1,4 @@
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  type ReactNode,
-} from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
 type Theme = "dark" | "light";
 interface ThemeContextType {
@@ -28,8 +22,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("cerniq-theme", theme);
   }, [theme]);
 
-  const toggleTheme = () =>
-    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+  const toggleTheme = () => setTheme((prev) => (prev === "dark" ? "light" : "dark"));
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>

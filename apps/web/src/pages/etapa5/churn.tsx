@@ -52,14 +52,9 @@ export function Churn() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {profiles.map((p) => (
-          <Card
-            key={p.company}
-            className={cn("border-l-4", borderMap[p.severity])}
-          >
+          <Card key={p.company} className={cn("border-l-4", borderMap[p.severity])}>
             <CardBody className="space-y-3">
-              <div className="font-semibold text-[var(--color-t1)]">
-                {p.company}
-              </div>
+              <div className="font-semibold text-[var(--color-t1)]">{p.company}</div>
               <ProgressBar value={p.risk} />
               <div className="flex flex-wrap gap-1">
                 {p.signals.map((s) => (

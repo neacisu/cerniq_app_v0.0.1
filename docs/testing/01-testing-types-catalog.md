@@ -227,21 +227,16 @@ test.describe("Lead Import Flow", () => {
     await page.click('[data-testid="start-import"]');
 
     // Wait for processing
-    await expect(page.locator('[data-testid="import-status"]')).toContainText(
-      "Completed",
-      { timeout: 60000 },
-    );
+    await expect(page.locator('[data-testid="import-status"]')).toContainText("Completed", {
+      timeout: 60000,
+    });
 
     // Verify results
-    await expect(page.locator('[data-testid="success-count"]')).toContainText(
-      "100",
-    );
+    await expect(page.locator('[data-testid="success-count"]')).toContainText("100");
 
     // Navigate to contacts and verify
     await page.click('[data-testid="view-contacts"]');
-    await expect(
-      page.locator('[data-testid="contacts-table"] tbody tr'),
-    ).toHaveCount(100);
+    await expect(page.locator('[data-testid="contacts-table"] tbody tr')).toHaveCount(100);
   });
 });
 ```
@@ -310,12 +305,9 @@ describe("Companies API Contract", () => {
     });
 
     it("matches contract", async () => {
-      const response = await fetch(
-        `${provider.mockService.baseUrl}/api/v1/companies/123`,
-        {
-          headers: { Authorization: "Bearer test-token" },
-        },
-      );
+      const response = await fetch(`${provider.mockService.baseUrl}/api/v1/companies/123`, {
+        headers: { Authorization: "Bearer test-token" },
+      });
       expect(response.status).toBe(200);
     });
   });

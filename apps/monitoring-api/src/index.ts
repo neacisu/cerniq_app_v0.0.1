@@ -8,9 +8,7 @@ import { systemMetrics } from "./system-metrics.js";
 function loadSecrets(): void {
   const secretsPath = process.env.SECRETS_PATH ?? "/secrets/api.env";
   if (!existsSync(secretsPath)) {
-    console.warn(
-      `Secrets file not found: ${secretsPath} — using env vars only`,
-    );
+    console.warn(`Secrets file not found: ${secretsPath} — using env vars only`);
     return;
   }
   const content = readFileSync(secretsPath, "utf-8");
@@ -31,19 +29,14 @@ const PORT = Number(process.env.PORT ?? 64080);
 const REDIS_URL: string = process.env.REDIS_URL ?? "";
 
 if (!REDIS_URL) {
-  console.error(
-    "REDIS_URL is required. Ensure OpenBao agent has rendered secrets.",
-  );
+  console.error("REDIS_URL is required. Ensure OpenBao agent has rendered secrets.");
   process.exit(1);
 }
 
 const app = Fastify({
   logger: {
     level: process.env.LOG_LEVEL ?? "info",
-    transport:
-      process.env.NODE_ENV === "development"
-        ? { target: "pino-pretty" }
-        : undefined,
+    transport: process.env.NODE_ENV === "development" ? { target: "pino-pretty" } : undefined,
   },
 });
 

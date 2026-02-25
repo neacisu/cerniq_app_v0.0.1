@@ -74,21 +74,11 @@ export function Badge({
   className?: string;
 }) {
   return (
-    <span
-      className={cn("badge", variantClass[variant ?? "neutral"], className)}
-    >
-      {children}
-    </span>
+    <span className={cn("badge", variantClass[variant ?? "neutral"], className)}>{children}</span>
   );
 }
 
-export function SBadge({
-  status,
-  className,
-}: {
-  status: string;
-  className?: string;
-}) {
+export function SBadge({ status, className }: { status: string; className?: string }) {
   const variant = statusToVariant[status] ?? "neutral";
   return (
     <Badge variant={variant} className={className}>

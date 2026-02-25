@@ -1,13 +1,6 @@
 import { z } from "zod";
 
-export const LogLevelSchema = z.enum([
-  "trace",
-  "debug",
-  "info",
-  "warn",
-  "error",
-  "fatal",
-]);
+export const LogLevelSchema = z.enum(["trace", "debug", "info", "warn", "error", "fatal"]);
 export type LogLevel = z.infer<typeof LogLevelSchema>;
 
 export const StructuredLogSchema = z.object({

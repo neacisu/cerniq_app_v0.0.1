@@ -103,9 +103,7 @@ describe("E0-S1-PR01: F0.17 GitHub Repository Setup", () => {
     });
 
     it("should have feature_request template", () => {
-      expect(fileExists(".github/ISSUE_TEMPLATE/feature_request.md")).toBe(
-        true,
-      );
+      expect(fileExists(".github/ISSUE_TEMPLATE/feature_request.md")).toBe(true);
     });
 
     it("should have PR template", () => {
@@ -114,16 +112,12 @@ describe("E0-S1-PR01: F0.17 GitHub Repository Setup", () => {
 
     it("bug template should have required sections", () => {
       const content = readFile(".github/ISSUE_TEMPLATE/bug_report.md");
-      expect(content.toLowerCase()).toMatch(
-        /describe|bug|steps|reproduce|expected/,
-      );
+      expect(content.toLowerCase()).toMatch(/describe|bug|steps|reproduce|expected/);
     });
 
     it("feature template should have required sections", () => {
       const content = readFile(".github/ISSUE_TEMPLATE/feature_request.md");
-      expect(content.toLowerCase()).toMatch(
-        /describe|feature|solution|alternative/,
-      );
+      expect(content.toLowerCase()).toMatch(/describe|feature|solution|alternative/);
     });
 
     it("PR template should have checklist", () => {
@@ -141,9 +135,7 @@ describe("E0-S1-PR01: F0.17 GitHub Repository Setup", () => {
       const workflowsPath = path.join(WORKSPACE_ROOT, ".github/workflows");
       if (fs.existsSync(workflowsPath)) {
         const files = fs.readdirSync(workflowsPath);
-        const ymlFiles = files.filter(
-          (f) => f.endsWith(".yml") || f.endsWith(".yaml"),
-        );
+        const ymlFiles = files.filter((f) => f.endsWith(".yml") || f.endsWith(".yaml"));
         expect(ymlFiles.length).toBeGreaterThan(0);
       }
     });
@@ -338,9 +330,7 @@ describe("E0-S1-PR02: F0.15 CI/CD Base", () => {
 
     it("should save version for rollback before deploy", () => {
       const content = readFile(".github/workflows/deploy.yml");
-      expect(content).toMatch(
-        /Save current version for rollback|\.previous_deploy/,
-      );
+      expect(content).toMatch(/Save current version for rollback|\.previous_deploy/);
     });
 
     it("should auto-deploy via CI trigger-cd job (branch => staging, main => production)", () => {
@@ -377,9 +367,7 @@ describe("E0-S1-PR03: F0.16 DNS & Domain Configuration", () => {
         fileExists("docs/runbooks/dns-setup.md");
       // DNS docs may be in various locations, or handled externally
       // This test checks if we have network topology which mentions domains
-      const hasNetworkDoc = fileExists(
-        "docs/infrastructure/network-topology.md",
-      );
+      const hasNetworkDoc = fileExists("docs/infrastructure/network-topology.md");
       expect(hasDnsDoc || hasNetworkDoc).toBe(true);
     });
   });

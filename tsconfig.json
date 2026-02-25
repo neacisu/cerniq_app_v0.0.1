@@ -19,7 +19,8 @@
   "include": [
     "tests/**/*.ts",
     "packages/**/*.ts",
-    "apps/**/*.ts","apps/**/*.tsx",
+    "apps/**/*.ts",
+    "apps/**/*.tsx",
     "workers/**/*.ts",
     "e2e/**/*.ts",
     "vitest.config.ts",

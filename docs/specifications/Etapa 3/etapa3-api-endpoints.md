@@ -239,20 +239,10 @@ const DOCUMENT_SCOPES = [
 ] as const;
 
 // HITL permissions
-const HITL_SCOPES = [
-  "hitl:read",
-  "hitl:approve",
-  "hitl:reject",
-  "hitl:escalate",
-] as const;
+const HITL_SCOPES = ["hitl:read", "hitl:approve", "hitl:reject", "hitl:escalate"] as const;
 
 // Admin permissions
-const ADMIN_SCOPES = [
-  "admin:users",
-  "admin:settings",
-  "admin:audit",
-  "admin:api-keys",
-] as const;
+const ADMIN_SCOPES = ["admin:users", "admin:settings", "admin:audit", "admin:api-keys"] as const;
 ```
 
 ## 2.4 Role-Based Access
@@ -1174,13 +1164,7 @@ interface TransitionNegotiationRequest {
     approvalNotes?: string;
 
     // For 'lost' - loss reason
-    lossReason?:
-      | "price"
-      | "competitor"
-      | "budget"
-      | "timing"
-      | "no_response"
-      | "other";
+    lossReason?: "price" | "competitor" | "budget" | "timing" | "no_response" | "other";
     competitorName?: string;
 
     // For 'cancelled'
@@ -1521,13 +1505,7 @@ interface PricingRule {
 
   // Conditions
   conditions: {
-    field:
-      | "quantity"
-      | "total"
-      | "customer_tier"
-      | "date"
-      | "product"
-      | "category";
+    field: "quantity" | "total" | "customer_tier" | "date" | "product" | "category";
     operator: "eq" | "gt" | "gte" | "lt" | "lte" | "in" | "between";
     value: unknown;
   }[];
@@ -1581,13 +1559,7 @@ interface CreatePricingRuleRequest {
   type: "discount" | "markup" | "quantity" | "customer_tier" | "seasonal";
 
   conditions: {
-    field:
-      | "quantity"
-      | "total"
-      | "customer_tier"
-      | "date"
-      | "product"
-      | "category";
+    field: "quantity" | "total" | "customer_tier" | "date" | "product" | "category";
     operator: "eq" | "gt" | "gte" | "lt" | "lte" | "in" | "between";
     value: unknown;
   }[];
@@ -1856,12 +1828,7 @@ interface AdjustStockRequest {
   reason: string;
 
   // Optional reference
-  referenceType?:
-    | "inventory_count"
-    | "damage"
-    | "return"
-    | "transfer"
-    | "other";
+  referenceType?: "inventory_count" | "damage" | "return" | "transfer" | "other";
   referenceId?: string;
   notes?: string;
 }
@@ -2573,12 +2540,7 @@ interface AIFeedbackRequest {
   messageId: string;
   rating: 1 | 2 | 3 | 4 | 5;
 
-  feedbackType:
-    | "response_quality"
-    | "accuracy"
-    | "tone"
-    | "relevance"
-    | "guardrail";
+  feedbackType: "response_quality" | "accuracy" | "tone" | "relevance" | "guardrail";
 
   feedback: string;
 
@@ -2710,10 +2672,7 @@ interface ApprovalDetail {
   description: string;
 
   // Full context based on type
-  context:
-    | DiscountApprovalContext
-    | AIResponseContext
-    | DocumentApprovalContext;
+  context: DiscountApprovalContext | AIResponseContext | DocumentApprovalContext;
 
   // Request details
   requestedBy: {
@@ -3915,12 +3874,7 @@ interface CustomReportResponse {
 // Permissions: analytics:export
 
 interface DataExportRequest {
-  entity:
-    | "negotiations"
-    | "documents"
-    | "conversations"
-    | "approvals"
-    | "ai_messages";
+  entity: "negotiations" | "documents" | "conversations" | "approvals" | "ai_messages";
 
   dateRange: {
     start: string;
@@ -5323,9 +5277,7 @@ async function apiRequest(url: string, options: RequestInit) {
   const response = await fetch(url, options);
 
   // Check rate limit headers
-  const remaining = parseInt(
-    response.headers.get("X-RateLimit-Remaining") || "0",
-  );
+  const remaining = parseInt(response.headers.get("X-RateLimit-Remaining") || "0");
   const reset = parseInt(response.headers.get("X-RateLimit-Reset") || "0");
 
   if (response.status === 429) {
@@ -5336,9 +5288,7 @@ async function apiRequest(url: string, options: RequestInit) {
 
   // Proactive throttling when low
   if (remaining < 10) {
-    console.warn(
-      `Low rate limit: ${remaining} remaining, resets at ${new Date(reset * 1000)}`,
-    );
+    console.warn(`Low rate limit: ${remaining} remaining, resets at ${new Date(reset * 1000)}`);
   }
 
   return response;

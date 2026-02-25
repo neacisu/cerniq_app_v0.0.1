@@ -375,21 +375,10 @@ INSERT INTO approval_type_configs (approval_type, display_name, pipeline_stage, 
 ### L1: hitl:task:create (Pattern Unificat pentru E5)
 
 ```typescript
-import {
-  createApprovalTask,
-  getApprovalTypeConfig,
-} from "@cerniq/hitl-unified";
+import { createApprovalTask, getApprovalTypeConfig } from "@cerniq/hitl-unified";
 
 export const hitlTaskCreateWorker = new Worker("hitl", async (job) => {
-  const {
-    tenantId,
-    approvalType,
-    priority,
-    clientId,
-    entityId,
-    context,
-    sourceWorker,
-  } = job.data;
+  const { tenantId, approvalType, priority, clientId, entityId, context, sourceWorker } = job.data;
 
   // Get SLA from unified config
   const config = await getApprovalTypeConfig(approvalType);

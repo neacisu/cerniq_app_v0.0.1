@@ -12,12 +12,14 @@ Când se raportează un restart recent al containerului Tempo, urmează pașii d
 1. **Conectare pe orchestrator** (ex. hostul unde rulează `traefik`, `grafana`, `loki`, `tempo`).
 
 2. **Status și restarts:**
+
    ```bash
    docker ps -a --filter name=tempo --format '{{.Names}} {{.Status}}'
    docker inspect tempo -f '{{.State.Status}} restarts={{.RestartCount}}'
    ```
 
 3. **Loguri (ultimele linii, apoi eventual ultimele 500):**
+
    ```bash
    docker logs tempo --tail 200 2>&1
    docker logs tempo --since 1h 2>&1 | tail -500

@@ -1,11 +1,6 @@
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
 import { EtapaBanner } from "@/components/brand/EtapaBadge.js";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardBody,
-} from "@/components/ui/index.js";
+import { Card, CardHeader, CardTitle, CardBody } from "@/components/ui/index.js";
 import { cn } from "@/lib/utils.js";
 import { toast } from "sonner";
 
@@ -76,9 +71,7 @@ export function GeoMap() {
                     <button
                       key={c.label}
                       type="button"
-                      onClick={() =>
-                        toast.info(`${c.label}: ${c.value} clients`)
-                      }
+                      onClick={() => toast.info(`${c.label}: ${c.value} clients`)}
                       className="flex items-center gap-3 w-full text-left hover:opacity-80 transition-opacity"
                     >
                       <span className="text-xs text-[var(--color-t3)] w-24 truncate">

@@ -185,11 +185,7 @@ interface DocuSignConnectPayload {
 
 ```typescript
 interface InstantlyWebhookPayload {
-  event_type:
-    | "email_opened"
-    | "email_clicked"
-    | "email_replied"
-    | "email_bounced";
+  event_type: "email_opened" | "email_clicked" | "email_replied" | "email_bounced";
   timestamp: string;
   data: {
     campaign_id: string;
@@ -255,15 +251,9 @@ async function verifyWebhookSignature(
   secret: string,
   provider: "timelinesai" | "revolut" | "instantly",
 ): Promise<boolean> {
-  const expectedSignature = crypto
-    .createHmac("sha256", secret)
-    .update(payload)
-    .digest("hex");
+  const expectedSignature = crypto.createHmac("sha256", secret).update(payload).digest("hex");
 
-  return crypto.timingSafeEqual(
-    Buffer.from(signature),
-    Buffer.from(expectedSignature),
-  );
+  return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature));
 }
 ```
 

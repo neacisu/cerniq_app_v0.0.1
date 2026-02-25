@@ -45,9 +45,7 @@ const response = await fetch("https://api.resend.com/emails", {
 
 ```typescript
 import Handlebars from "handlebars";
-const template = Handlebars.compile(
-  fs.readFileSync("templates/email/invoice-ready.html", "utf8"),
-);
+const template = Handlebars.compile(fs.readFileSync("templates/email/invoice-ready.html", "utf8"));
 const html = template({ userName: user.name, invoiceUrl: url });
 ```
 

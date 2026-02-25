@@ -22,23 +22,13 @@ interface ProximityCalculatePayload {
 export const proximityCalculateWorker = new Worker<ProximityCalculatePayload>(
   "geospatial",
   async (job: Job<ProximityCalculatePayload>) => {
-    const {
-      tenantId,
-      anchorClientId,
-      radiusKm = 10,
-      maxResults = 50,
-    } = job.data;
+    const { tenantId, anchorClientId, radiusKm = 10, maxResults = 50 } = job.data;
 
-    job.log(
-      `Calculating proximity for anchor ${anchorClientId} within ${radiusKm}km`,
-    );
+    job.log(`Calculating proximity for anchor ${anchorClientId} within ${radiusKm}km`);
 
     // 1. Get anchor client with location
     const anchor = await db.query.goldClients.findFirst({
-      where: and(
-        eq(goldClients.id, anchorClientId),
-        isNotNull(goldClients.locationGeography),
-      ),
+      where: and(eq(goldClients.id, anchorClientId), isNotNull(goldClients.locationGeography)),
     });
 
     if (!anchor || !anchor.locationGeography) {
@@ -86,25 +76,17 @@ export const proximityCalculateWorker = new Worker<ProximityCalculatePayload>(
 
     for (const prospect of nearbyProspects) {
       // Score = f(distance, anchor quality, shared attributes)
-      const distanceScore = Math.max(
-        0,
-        100 - (prospect.distance_km / radiusKm) * 100,
-      );
-      const anchorQuality = anchorState?.npsScore
-        ? anchorState.npsScore * 10
-        : 50;
+      const distanceScore = Math.max(0, 100 - (prospect.distance_km / radiusKm) * 100);
+      const anchorQuality = anchorState?.npsScore ? anchorState.npsScore * 10 : 50;
 
       // Check shared attributes
       const sharedAttributes: string[] = [];
-      if (prospect.county === anchor.county)
-        sharedAttributes.push("SAME_COUNTY");
-      if (prospect.main_crop === anchor.mainCrop)
-        sharedAttributes.push("SAME_CROP");
+      if (prospect.county === anchor.county) sharedAttributes.push("SAME_COUNTY");
+      if (prospect.main_crop === anchor.mainCrop) sharedAttributes.push("SAME_CROP");
 
       const sharedBonus = sharedAttributes.length * 10;
 
-      const proximityScore =
-        distanceScore * 0.5 + anchorQuality * 0.3 + sharedBonus * 0.2;
+      const proximityScore = distanceScore * 0.5 + anchorQuality * 0.3 + sharedBonus * 0.2;
 
       proximityScores.push({
         tenantId,
@@ -126,10 +108,7 @@ export const proximityCalculateWorker = new Worker<ProximityCalculatePayload>(
         .insert(goldProximityScores)
         .values(proximityScores)
         .onConflictDoUpdate({
-          target: [
-            goldProximityScores.anchorClientId,
-            goldProximityScores.prospectId,
-          ],
+          target: [goldProximityScores.anchorClientId, goldProximityScores.prospectId],
           set: {
             proximityScore: sql`EXCLUDED.proximity_score`,
             calculatedAt: new Date(),
@@ -143,9 +122,7 @@ export const proximityCalculateWorker = new Worker<ProximityCalculatePayload>(
       anchorClientId,
       prospectsFound: proximityScores.length,
       avgDistance:
-        proximityScores.reduce((s, p) => s + p.distanceMeters, 0) /
-        proximityScores.length /
-        1000,
+        proximityScores.reduce((s, p) => s + p.distanceMeters, 0) / proximityScores.length / 1000,
     };
   },
   {
@@ -170,12 +147,7 @@ interface NeighborIdentifyPayload {
 export const neighborIdentifyWorker = new Worker<NeighborIdentifyPayload>(
   "geospatial",
   async (job: Job<NeighborIdentifyPayload>) => {
-    const {
-      tenantId,
-      clientId,
-      maxNeighbors = 10,
-      maxDistanceKm = 5,
-    } = job.data;
+    const { tenantId, clientId, maxNeighbors = 10, maxDistanceKm = 5 } = job.data;
 
     // 1. Get client location
     const client = await db.query.goldClients.findFirst({
@@ -218,10 +190,7 @@ export const neighborIdentifyWorker = new Worker<NeighborIdentifyPayload>(
           targetEntityType: "CLIENT",
           targetEntityId: neighbor.id,
           relationType: "NEIGHBOR",
-          strength: Math.max(
-            10,
-            100 - (neighbor.distance_meters / (maxDistanceKm * 1000)) * 100,
-          ),
+          strength: Math.max(10, 100 - (neighbor.distance_meters / (maxDistanceKm * 1000)) * 100),
           confidenceScore: 95,
           bidirectional: true,
           evidenceSource: "PROXIMITY",
@@ -276,9 +245,7 @@ export const territoryCalculateWorker = new Worker<TerritoryCalculatePayload>(
     `);
 
     if (members.length < 3) {
-      job.log(
-        `Not enough members with locations (${members.length}) for territory calculation`,
-      );
+      job.log(`Not enough members with locations (${members.length}) for territory calculation`);
       return { calculated: false, reason: "insufficient_members" };
     }
 
@@ -406,12 +373,7 @@ interface CommunityDetectPayload {
 export const communityDetectLeidenWorker = new Worker<CommunityDetectPayload>(
   "graph",
   async (job: Job<CommunityDetectPayload>) => {
-    const {
-      tenantId,
-      graphId,
-      minCommunitySize = 3,
-      resolution = 1.0,
-    } = job.data;
+    const { tenantId, graphId, minCommunitySize = 3, resolution = 1.0 } = job.data;
 
     // 1. Call Python Leiden algorithm
     const response = await pythonGraphService.post("/graph/community/leiden", {
@@ -455,8 +417,7 @@ export const communityDetectLeidenWorker = new Worker<CommunityDetectPayload>(
             clusterId: cluster.id,
             entityType: "CLIENT",
             entityId: memberId,
-            membershipType:
-              memberId === community.central_node ? "CORE" : "PERIPHERAL",
+            membershipType: memberId === community.central_node ? "CORE" : "PERIPHERAL",
             centralityScore: community.centrality_scores[memberId],
             isKol: memberId === community.central_node,
           });

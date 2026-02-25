@@ -1,13 +1,7 @@
 import { forwardRef, type ButtonHTMLAttributes } from "react";
 import { cn } from "@/lib/utils.js";
 
-type ButtonVariant =
-  | "primary"
-  | "outline"
-  | "ghost"
-  | "brand"
-  | "danger"
-  | "success";
+type ButtonVariant = "primary" | "outline" | "ghost" | "brand" | "danger" | "success";
 type ButtonSize = "default" | "sm" | "lg" | "icon";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {

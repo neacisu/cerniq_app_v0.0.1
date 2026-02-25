@@ -52,9 +52,7 @@ describe("ChatMessage", () => {
   it("renders all message types", () => {
     const types = ["outgoing", "incoming", "ai", "system"] as const;
     types.forEach((t) => {
-      const { unmount } = render(
-        <ChatMessage type={t}>{`Msg ${t}`}</ChatMessage>,
-      );
+      const { unmount } = render(<ChatMessage type={t}>{`Msg ${t}`}</ChatMessage>);
       expect(screen.getByText(`Msg ${t}`)).toBeInTheDocument();
       unmount();
     });

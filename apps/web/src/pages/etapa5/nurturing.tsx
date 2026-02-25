@@ -2,13 +2,7 @@ import { PageWrapper } from "@/components/layout/PageWrapper.js";
 import { EtapaBadge } from "@/components/brand/EtapaBadge.js";
 import { KpiCard } from "@/components/data/KpiCard.js";
 import { ProgressBar } from "@/components/data/ProgressBar.js";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardBody,
-  SBadge,
-} from "@/components/ui/index.js";
+import { Card, CardHeader, CardTitle, CardBody, SBadge } from "@/components/ui/index.js";
 import { cn } from "@/lib/utils.js";
 
 const kpis = [
@@ -90,28 +84,19 @@ export function Nurturing() {
                   key={r.company}
                   className="border-b border-[var(--color-s700)] last:border-0 hover:bg-[var(--color-s800)]/50"
                 >
-                  <td className="px-5 py-3 font-medium text-[var(--color-t1)]">
-                    {r.company}
-                  </td>
+                  <td className="px-5 py-3 font-medium text-[var(--color-t1)]">{r.company}</td>
                   <td className="px-5 py-3">
                     <SBadge status={r.status} />
                   </td>
-                  <td
-                    className={cn("px-5 py-3 font-semibold", npsColor(r.nps))}
-                  >
-                    {r.nps}
-                  </td>
-                  <td className="px-5 py-3 font-mono text-[var(--color-t2)]">
-                    EUR {r.cltv}
-                  </td>
+                  <td className={cn("px-5 py-3 font-semibold", npsColor(r.nps))}>{r.nps}</td>
+                  <td className="px-5 py-3 font-mono text-[var(--color-t2)]">EUR {r.cltv}</td>
                   <td className="px-5 py-3 w-28">
                     <ProgressBar value={r.churn} />
                   </td>
                   <td
                     className={cn(
                       "px-5 py-3",
-                      r.nextContact === "URGENT" &&
-                        "text-[var(--color-er)] font-semibold",
+                      r.nextContact === "URGENT" && "text-[var(--color-er)] font-semibold",
                     )}
                   >
                     {r.nextContact}

@@ -36,9 +36,9 @@ describe("Bronze Schema", () => {
     it("should enforce unique content_hash per tenant", async () => {
       await insertBronzeContact({ tenantId: "A", contentHash: "hash1" });
 
-      await expect(
-        insertBronzeContact({ tenantId: "A", contentHash: "hash1" }),
-      ).rejects.toThrow("duplicate");
+      await expect(insertBronzeContact({ tenantId: "A", contentHash: "hash1" })).rejects.toThrow(
+        "duplicate",
+      );
 
       // Different tenant should work
       await expect(

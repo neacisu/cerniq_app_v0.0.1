@@ -3,10 +3,7 @@ const PII_PATTERNS: Array<[RegExp, string]> = [
   [/\b(?:\+?40|0)\s*\d[\d\s.-]{7,}\b/g, "[PHONE_REDACTED]"],
   [/\b\d{13}\b/g, "[CNP_REDACTED]"],
   [/\bRO\d{2,10}\b/gi, "[CUI_REDACTED]"],
-  [
-    /\b[A-Z]{2}\d{2}\s?[A-Z]{4}\s?\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/g,
-    "[IBAN_REDACTED]",
-  ],
+  [/\b[A-Z]{2}\d{2}\s?[A-Z]{4}\s?\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/g, "[IBAN_REDACTED]"],
 ];
 
 export function redactPii(input: string): string {

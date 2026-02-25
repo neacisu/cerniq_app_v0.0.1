@@ -57,14 +57,7 @@ import { metrics } from "@cerniq/metrics";
 const csvParserWorker = new Worker<CsvParserJobData>(
   "bronze:ingest:csv-parser",
   async (job: Job<CsvParserJobData>) => {
-    const {
-      tenantId,
-      batchId,
-      filePath,
-      fileName,
-      columnMapping,
-      correlationId,
-    } = job.data;
+    const { tenantId, batchId, filePath, fileName, columnMapping, correlationId } = job.data;
     const log = logger.child({ jobId: job.id, correlationId, batchId });
 
     log.info({ fileName }, "Starting CSV parsing");
@@ -92,9 +85,7 @@ const csvParserWorker = new Worker<CsvParserJobData>(
 
           try {
             const row = results.data as Record<string, string>;
-            const mappedData = columnMapping
-              ? mapColumns(row, columnMapping)
-              : row;
+            const mappedData = columnMapping ? mapColumns(row, columnMapping) : row;
 
             // Compute content hash pentru deduplicare
             const contentHash = bronzeComputeContentHash(mappedData);
@@ -216,11 +207,7 @@ function mapColumns(
   return mapped;
 }
 
-async function triggerNormalization(
-  tenantId: string,
-  batchId: string,
-  correlationId: string,
-) {
+async function triggerNormalization(tenantId: string, batchId: string, correlationId: string) {
   const normQueue = new Queue("bronze:normalize:batch", {
     connection: workerConnection,
   });
@@ -288,15 +275,8 @@ import { logger } from "@cerniq/logger";
 const excelParserWorker = new Worker<ExcelParserJobData>(
   "bronze:ingest:excel-parser",
   async (job: Job<ExcelParserJobData>) => {
-    const {
-      tenantId,
-      batchId,
-      filePath,
-      sheetName,
-      sheetIndex,
-      headerRow,
-      columnMapping,
-    } = job.data;
+    const { tenantId, batchId, filePath, sheetName, sheetIndex, headerRow, columnMapping } =
+      job.data;
     const log = logger.child({ jobId: job.id, batchId });
 
     log.info("Starting Excel parsing");
@@ -335,9 +315,7 @@ const excelParserWorker = new Worker<ExcelParserJobData>(
       const row = jsonData[i];
 
       try {
-        const mappedData = columnMapping
-          ? mapExcelColumns(row, columnMapping)
-          : row;
+        const mappedData = columnMapping ? mapExcelColumns(row, columnMapping) : row;
 
         const contentHash = bronzeComputeContentHash(mappedData);
 
@@ -430,8 +408,7 @@ import { verifyWebhookSignature } from "@cerniq/security";
 const webhookHandlerWorker = new Worker<WebhookJobData>(
   "bronze:ingest:webhook",
   async (job: Job<WebhookJobData>) => {
-    const { tenantId, webhookId, webhookType, payload, headers, sourceIp } =
-      job.data;
+    const { tenantId, webhookId, webhookType, payload, headers, sourceIp } = job.data;
     const log = logger.child({ jobId: job.id, webhookId, webhookType });
 
     log.info("Processing webhook");
@@ -439,11 +416,7 @@ const webhookHandlerWorker = new Worker<WebhookJobData>(
     // Verify signature if applicable
     let signatureValid = true;
     if (headers["x-webhook-signature"]) {
-      signatureValid = verifyWebhookSignature(
-        payload,
-        headers["x-webhook-signature"],
-        webhookType,
-      );
+      signatureValid = verifyWebhookSignature(payload, headers["x-webhook-signature"], webhookType);
 
       if (!signatureValid) {
         log.warn("Invalid webhook signature");
@@ -458,10 +431,7 @@ const webhookHandlerWorker = new Worker<WebhookJobData>(
     // Extract contacts from payload based on webhook type
     const contacts = extractContactsFromWebhook(webhookType, payload);
 
-    log.info(
-      { contactCount: contacts.length },
-      "Contacts extracted from webhook",
-    );
+    log.info({ contactCount: contacts.length }, "Contacts extracted from webhook");
 
     const insertedIds: string[] = [];
 
@@ -501,11 +471,7 @@ const webhookHandlerWorker = new Worker<WebhookJobData>(
 
     // Trigger normalization for each contact
     for (const contactId of insertedIds) {
-      await triggerSingleNormalization(
-        tenantId,
-        contactId,
-        job.data.correlationId,
-      );
+      await triggerSingleNormalization(tenantId, contactId, job.data.correlationId);
     }
 
     return { processed: insertedIds.length, contactIds: insertedIds };
@@ -576,8 +542,7 @@ const manualEntryWorker = new Worker<ManualEntryJobData>(
 
     // Check duplicate
     const existing = await db.query.bronzeContacts.findFirst({
-      where: (bc, { eq, and }) =>
-        and(eq(bc.tenantId, tenantId), eq(bc.contentHash, contentHash)),
+      where: (bc, { eq, and }) => and(eq(bc.tenantId, tenantId), eq(bc.contentHash, contentHash)),
     });
 
     if (existing) {
@@ -606,11 +571,7 @@ const manualEntryWorker = new Worker<ManualEntryJobData>(
       .returning();
 
     // Trigger immediate normalization
-    await triggerSingleNormalization(
-      tenantId,
-      contact.id,
-      job.data.correlationId,
-    );
+    await triggerSingleNormalization(tenantId, contact.id, job.data.correlationId);
 
     return { status: "created", contactId: contact.id };
   },
@@ -664,14 +625,10 @@ interface ApiIngestJobData {
 const apiIngestWorker = new Worker<ApiIngestJobData>(
   "bronze:ingest:api",
   async (job: Job<ApiIngestJobData>) => {
-    const { tenantId, apiSource, endpoint, method, params, body, pagination } =
-      job.data;
+    const { tenantId, apiSource, endpoint, method, params, body, pagination } = job.data;
     const log = logger.child({ jobId: job.id, apiSource });
 
-    log.info(
-      { endpoint, page: pagination?.page },
-      "Fetching from external API",
-    );
+    log.info({ endpoint, page: pagination?.page }, "Fetching from external API");
 
     // Make API request
     const response = await fetch(endpoint, {

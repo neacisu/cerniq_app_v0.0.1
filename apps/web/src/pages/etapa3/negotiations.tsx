@@ -57,39 +57,25 @@ export function Negotiations() {
   return (
     <PageWrapper title="Negotiations">
       <div className="flex gap-4 min-h-[400px]">
-        <div
-          className={cn(
-            "w-80 shrink-0 space-y-2",
-            selected && "max-[768px]:hidden",
-          )}
-        >
+        <div className={cn("w-80 shrink-0 space-y-2", selected && "max-[768px]:hidden")}>
           {MOCK_NEGOTIATIONS.map((n) => (
             <Card
               key={n.id}
-              className={cn(
-                "cursor-pointer",
-                selected === n.id && "border-[var(--color-b5)]",
-              )}
+              className={cn("cursor-pointer", selected === n.id && "border-[var(--color-b5)]")}
               onClick={() => setSelected(n.id)}
             >
               <CardBody className="py-3">
-                <div className="font-medium text-[var(--color-t1)]">
-                  {n.company}
-                </div>
+                <div className="font-medium text-[var(--color-t1)]">{n.company}</div>
                 <div className="flex justify-between items-center mt-1">
                   <SBadge status={n.status} />
-                  <span className="text-xs text-[var(--color-t3)]">
-                    {n.value}
-                  </span>
+                  <span className="text-xs text-[var(--color-t3)]">{n.value}</span>
                 </div>
               </CardBody>
             </Card>
           ))}
         </div>
 
-        <div
-          className={cn("flex-1 min-w-0", !selected && "max-[768px]:hidden")}
-        >
+        <div className={cn("flex-1 min-w-0", !selected && "max-[768px]:hidden")}>
           {selected ? (
             <Card>
               <CardBody>

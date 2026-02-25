@@ -204,10 +204,7 @@ describe("Error Handler", () => {
 ```typescript
 // apps/api/tests/unit/validation/company.test.ts
 import { describe, it, expect } from "vitest";
-import {
-  createCompanySchema,
-  updateCompanySchema,
-} from "../../../src/schemas/company";
+import { createCompanySchema, updateCompanySchema } from "../../../src/schemas/company";
 
 describe("Company Validation Schemas", () => {
   describe("createCompanySchema", () => {
@@ -430,9 +427,7 @@ describe("OpenTelemetry Integration", () => {
       setStatus: vi.fn(),
     };
 
-    vi.spyOn(trace.getTracer("test"), "startSpan").mockReturnValue(
-      mockSpan as any,
-    );
+    vi.spyOn(trace.getTracer("test"), "startSpan").mockReturnValue(mockSpan as any);
 
     const app = await buildApp({ logger: false });
     await app.ready();
@@ -499,9 +494,7 @@ describe("Rate Limiting", () => {
     await app.ready();
 
     const responses = await Promise.all(
-      Array.from({ length: 10 }, () =>
-        app.inject({ method: "GET", url: "/health" }),
-      ),
+      Array.from({ length: 10 }, () => app.inject({ method: "GET", url: "/health" })),
     );
 
     expect(responses.every((r) => r.statusCode === 200)).toBe(true);
@@ -518,9 +511,7 @@ describe("Rate Limiting", () => {
 
     // Make 10 requests, should hit limit
     const responses = await Promise.all(
-      Array.from({ length: 10 }, () =>
-        app.inject({ method: "GET", url: "/health" }),
-      ),
+      Array.from({ length: 10 }, () => app.inject({ method: "GET", url: "/health" })),
     );
 
     const rateLimited = responses.filter((r) => r.statusCode === 429);

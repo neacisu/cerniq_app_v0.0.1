@@ -16,9 +16,7 @@ export function EtapaBadge({
     info: "bin",
     ok: "bok",
   };
-  return (
-    <span className={cn("badge", badgeVariant[type], className)}>{label}</span>
-  );
+  return <span className={cn("badge", badgeVariant[type], className)}>{label}</span>;
 }
 
 export function EtapaBanner({

@@ -268,16 +268,8 @@ a {
   padding: 24px;
   background: var(--color-s950);
   background-image:
-    radial-gradient(
-      ellipse at 15% 85%,
-      oklch(0.7 0.18 72 / 7%) 0%,
-      transparent 55%
-    ),
-    radial-gradient(
-      ellipse at 85% 15%,
-      oklch(0.57 0.2 245 / 5%) 0%,
-      transparent 55%
-    );
+    radial-gradient(ellipse at 15% 85%, oklch(0.7 0.18 72 / 7%) 0%, transparent 55%),
+    radial-gradient(ellipse at 85% 15%, oklch(0.57 0.2 245 / 5%) 0%, transparent 55%);
 }
 .lc {
   width: 100%;

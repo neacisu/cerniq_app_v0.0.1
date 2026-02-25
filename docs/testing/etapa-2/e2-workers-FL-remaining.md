@@ -11,11 +11,7 @@
 ```typescript
 describe("SMS Worker", () => {
   it("should send SMS", async () => {
-    server.use(
-      http.post("https://api.twilio.com/*", () =>
-        HttpResponse.json({ sid: "sms-123" }),
-      ),
-    );
+    server.use(http.post("https://api.twilio.com/*", () => HttpResponse.json({ sid: "sms-123" })));
     const result = await smsService.send("+40721123456", "Test message");
     expect(result.sid).toBe("sms-123");
   });
@@ -27,8 +23,7 @@ describe("SMS Worker", () => {
 ```typescript
 describe("Template Engine", () => {
   it("should render variables", () => {
-    const template =
-      "Hello {{firstName}}, your company {{companyName}} is great!";
+    const template = "Hello {{firstName}}, your company {{companyName}} is great!";
     const result = renderTemplate(template, {
       firstName: "Ion",
       companyName: "AGRO SRL",

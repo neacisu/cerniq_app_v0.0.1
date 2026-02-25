@@ -971,17 +971,13 @@ export const goldNegotiations = pgTable(
       .references(() => goldCompanies.id),
     journeyId: uuid("journey_id").references(() => goldLeadJourney.id),
 
-    currentState: negotiationStateEnum("current_state")
-      .notNull()
-      .default("DISCOVERY"),
+    currentState: negotiationStateEnum("current_state").notNull().default("DISCOVERY"),
     previousState: negotiationStateEnum("previous_state"),
     stateChangedAt: timestamp("state_changed_at", {
       withTimezone: true,
     }).defaultNow(),
 
-    assignedPhoneId: uuid("assigned_phone_id").references(
-      () => waPhoneNumbers.id,
-    ),
+    assignedPhoneId: uuid("assigned_phone_id").references(() => waPhoneNumbers.id),
     assignedUserId: uuid("assigned_user_id").references(() => users.id),
 
     clientName: varchar("client_name", { length: 255 }),
@@ -989,9 +985,7 @@ export const goldNegotiations = pgTable(
     clientEmail: varchar("client_email", { length: 255 }),
     clientPhone: varchar("client_phone", { length: 20 }),
 
-    totalValue: decimal("total_value", { precision: 14, scale: 2 }).default(
-      "0",
-    ),
+    totalValue: decimal("total_value", { precision: 14, scale: 2 }).default("0"),
     currency: varchar("currency", { length: 3 }).default("RON"),
 
     aiEnabled: boolean("ai_enabled").default(true),
@@ -1012,19 +1006,14 @@ export const goldNegotiations = pgTable(
     notes: text("notes"),
     customFields: jsonb("custom_fields").default({}),
 
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
     createdBy: uuid("created_by").references(() => users.id),
   },
   (table) => ({
     tenantIdx: index("idx_negotiations_tenant").on(table.tenantId),
     leadIdx: index("idx_negotiations_lead").on(table.leadId),
-    stateIdx: index("idx_negotiations_state").on(
-      table.tenantId,
-      table.currentState,
-    ),
+    stateIdx: index("idx_negotiations_state").on(table.tenantId, table.currentState),
   }),
 );
 

@@ -258,9 +258,7 @@ interface Negotiation extends BaseEntity {
 }
 
 // Use type for unions, intersections, and complex types
-type Result<T, E = Error> =
-  | { success: true; data: T }
-  | { success: false; error: E };
+type Result<T, E = Error> = { success: true; data: T } | { success: false; error: E };
 
 type NegotiationEvent =
   | { type: "MESSAGE_RECEIVED"; payload: Message }
@@ -380,13 +378,9 @@ async function processNegotiationMessage(
     // Wrap unknown errors
     return {
       success: false,
-      error: new AppError(
-        "Unexpected error processing message",
-        "INTERNAL_ERROR",
-        500,
-        false,
-        { originalError: error },
-      ),
+      error: new AppError("Unexpected error processing message", "INTERNAL_ERROR", 500, false, {
+        originalError: error,
+      }),
     };
   }
 }
@@ -443,9 +437,7 @@ async function enrichContact(contactId: string): Promise<EnrichedContact> {
 }
 
 // Use Promise.allSettled for graceful degradation
-async function enrichContactGraceful(
-  contactId: string,
-): Promise<EnrichedContact> {
+async function enrichContactGraceful(contactId: string): Promise<EnrichedContact> {
   const contact = await fetchContact(contactId);
 
   const results = await Promise.allSettled([
@@ -784,8 +776,7 @@ export function useNegotiation(negotiationId: string) {
   });
 
   const transitionMutation = useMutation({
-    mutationFn: (event: NegotiationEvent) =>
-      transitionNegotiation(negotiationId, event),
+    mutationFn: (event: NegotiationEvent) => transitionNegotiation(negotiationId, event),
     onSuccess: (data) => {
       queryClient.setQueryData(["negotiation", negotiationId], data);
       queryClient.invalidateQueries({ queryKey: ["negotiations"] });
@@ -816,8 +807,7 @@ export function useHITLApproval(approvalId: string) {
   const queryClient = useQueryClient();
 
   const approveMutation = useMutation({
-    mutationFn: (data: ApprovalDecision) =>
-      submitApprovalDecision(approvalId, data),
+    mutationFn: (data: ApprovalDecision) => submitApprovalDecision(approvalId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["hitl-approvals"] });
       queryClient.invalidateQueries({
@@ -1097,10 +1087,7 @@ const negotiationsRoutes: FastifyPluginAsync = async (fastify) => {
     "/",
     {
       schema: getNegotiationsSchema,
-      preHandler: [
-        fastify.authenticate,
-        fastify.requirePermission("negotiations:read"),
-      ],
+      preHandler: [fastify.authenticate, fastify.requirePermission("negotiations:read")],
     },
     async (request, reply) => {
       const {
@@ -1137,18 +1124,12 @@ const negotiationsRoutes: FastifyPluginAsync = async (fastify) => {
     "/:id",
     {
       schema: getNegotiationSchema,
-      preHandler: [
-        fastify.authenticate,
-        fastify.requirePermission("negotiations:read"),
-      ],
+      preHandler: [fastify.authenticate, fastify.requirePermission("negotiations:read")],
     },
     async (request, reply) => {
       const { id } = request.params as { id: string };
 
-      const negotiation = await fastify.negotiationService.getById(
-        request.user.tenantId,
-        id,
-      );
+      const negotiation = await fastify.negotiationService.getById(request.user.tenantId, id);
 
       if (!negotiation) {
         return reply.code(404).send({
@@ -1166,10 +1147,7 @@ const negotiationsRoutes: FastifyPluginAsync = async (fastify) => {
     "/",
     {
       schema: createNegotiationSchema,
-      preHandler: [
-        fastify.authenticate,
-        fastify.requirePermission("negotiations:create"),
-      ],
+      preHandler: [fastify.authenticate, fastify.requirePermission("negotiations:create")],
     },
     async (request, reply) => {
       const data = request.body as CreateNegotiationInput;
@@ -1189,20 +1167,13 @@ const negotiationsRoutes: FastifyPluginAsync = async (fastify) => {
     "/:id",
     {
       schema: updateNegotiationSchema,
-      preHandler: [
-        fastify.authenticate,
-        fastify.requirePermission("negotiations:update"),
-      ],
+      preHandler: [fastify.authenticate, fastify.requirePermission("negotiations:update")],
     },
     async (request, reply) => {
       const { id } = request.params as { id: string };
       const data = request.body as UpdateNegotiationInput;
 
-      const negotiation = await fastify.negotiationService.update(
-        request.user.tenantId,
-        id,
-        data,
-      );
+      const negotiation = await fastify.negotiationService.update(request.user.tenantId, id, data);
 
       return reply.code(200).send({ data: negotiation });
     },
@@ -1213,20 +1184,13 @@ const negotiationsRoutes: FastifyPluginAsync = async (fastify) => {
     "/:id/transition",
     {
       schema: transitionNegotiationSchema,
-      preHandler: [
-        fastify.authenticate,
-        fastify.requirePermission("negotiations:update"),
-      ],
+      preHandler: [fastify.authenticate, fastify.requirePermission("negotiations:update")],
     },
     async (request, reply) => {
       const { id } = request.params as { id: string };
       const event = request.body as NegotiationEvent;
 
-      const result = await fastify.negotiationService.transition(
-        request.user.tenantId,
-        id,
-        event,
-      );
+      const result = await fastify.negotiationService.transition(request.user.tenantId, id, event);
 
       return reply.code(200).send({ data: result });
     },
@@ -1236,10 +1200,7 @@ const negotiationsRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.delete(
     "/:id",
     {
-      preHandler: [
-        fastify.authenticate,
-        fastify.requirePermission("negotiations:delete"),
-      ],
+      preHandler: [fastify.authenticate, fastify.requirePermission("negotiations:delete")],
     },
     async (request, reply) => {
       const { id } = request.params as { id: string };
@@ -1264,13 +1225,9 @@ import { Type, Static } from "@sinclair/typebox";
 // Shared schemas
 const PaginationQuerySchema = Type.Object({
   page: Type.Optional(Type.Number({ minimum: 1, default: 1 })),
-  pageSize: Type.Optional(
-    Type.Number({ minimum: 1, maximum: 100, default: 20 }),
-  ),
+  pageSize: Type.Optional(Type.Number({ minimum: 1, maximum: 100, default: 20 })),
   sortBy: Type.Optional(Type.String()),
-  sortOrder: Type.Optional(
-    Type.Union([Type.Literal("asc"), Type.Literal("desc")]),
-  ),
+  sortOrder: Type.Optional(Type.Union([Type.Literal("asc"), Type.Literal("desc")])),
 });
 
 const PaginationResponseSchema = Type.Object({
@@ -1385,11 +1342,7 @@ type NegotiationResponse = Static<typeof NegotiationSchema>;
 
 // services/negotiation.service.ts
 import { eq, and, desc, sql } from "drizzle-orm";
-import {
-  negotiations,
-  negotiationProducts,
-  negotiationTransitions,
-} from "@/db/schema";
+import { negotiations, negotiationProducts, negotiationTransitions } from "@/db/schema";
 import { db } from "@/db";
 import { NegotiationFSM } from "@/lib/negotiation-fsm";
 import { logger } from "@/lib/logger";
@@ -1401,9 +1354,7 @@ export class NegotiationService {
     private readonly aiService: AIConversationService,
   ) {}
 
-  async list(
-    params: ListNegotiationsParams,
-  ): Promise<PaginatedResult<Negotiation>> {
+  async list(params: ListNegotiationsParams): Promise<PaginatedResult<Negotiation>> {
     const { tenantId, page, pageSize, filters, sort } = params;
 
     const conditions = [eq(negotiations.tenantId, tenantId)];
@@ -1508,11 +1459,7 @@ export class NegotiationService {
     const negotiation = await this.getById(tenantId, negotiationId);
 
     if (!negotiation) {
-      throw new NegotiationError(
-        "Negotiation not found",
-        "NOT_FOUND",
-        negotiationId,
-      );
+      throw new NegotiationError("Negotiation not found", "NOT_FOUND", negotiationId);
     }
 
     // Use FSM to determine valid transition
@@ -1670,10 +1617,7 @@ export function errorHandler(
 // NOT FOUND HANDLER
 // ============================================================
 
-export function notFoundHandler(
-  request: FastifyRequest,
-  reply: FastifyReply,
-): void {
+export function notFoundHandler(request: FastifyRequest, reply: FastifyReply): void {
   logger.info("Route not found", {
     requestId: request.id,
     method: request.method,
@@ -1696,9 +1640,7 @@ export function notFoundHandler(
 /**
  * Wrapper pentru handle async errors în route handlers
  */
-export function asyncHandler<T>(
-  fn: (request: FastifyRequest, reply: FastifyReply) => Promise<T>,
-) {
+export function asyncHandler<T>(fn: (request: FastifyRequest, reply: FastifyReply) => Promise<T>) {
   return async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       return await fn(request, reply);
@@ -1712,10 +1654,7 @@ export function asyncHandler<T>(
 /**
  * Error response builder
  */
-export function buildErrorResponse(
-  error: AppError | Error,
-  includeDebug = false,
-): ErrorResponse {
+export function buildErrorResponse(error: AppError | Error, includeDebug = false): ErrorResponse {
   if (error instanceof AppError) {
     return {
       success: false,
@@ -1876,9 +1815,7 @@ export class CircuitBreaker {
 
     if (this.failures >= this.options.failureThreshold) {
       this.state = "open";
-      logger.warn(
-        `Circuit ${this.name} opened after ${this.failures} failures`,
-      );
+      logger.warn(`Circuit ${this.name} opened after ${this.failures} failures`);
     }
   }
 
@@ -1922,9 +1859,7 @@ export async function withTransaction<T>(
     const result = await db.transaction(async (tx) => {
       // Set transaction-level settings if provided
       if (options?.isolationLevel) {
-        await tx.execute(
-          sql`SET TRANSACTION ISOLATION LEVEL ${sql.raw(options.isolationLevel)}`,
-        );
+        await tx.execute(sql`SET TRANSACTION ISOLATION LEVEL ${sql.raw(options.isolationLevel)}`);
       }
 
       if (options?.timeout) {
@@ -2048,10 +1983,7 @@ export const createOrderSaga = new Saga<OrderSagaContext>()
   .addStep({
     name: "reserve_stock",
     execute: async (ctx) => {
-      const reservation = await stockService.reserveStock(
-        ctx.tenantId,
-        ctx.products,
-      );
+      const reservation = await stockService.reserveStock(ctx.tenantId, ctx.products);
       ctx.stockReservationId = reservation.id;
     },
     compensate: async (ctx) => {
@@ -2121,12 +2053,10 @@ export async function updateWithOptimisticLock<T extends { version: number }>(
     .returning();
 
   if (result.length === 0) {
-    throw new AppError(
-      "Concurrent modification detected",
-      "OPTIMISTIC_LOCK_ERROR",
-      409,
-      { id, expectedVersion: currentVersion },
-    );
+    throw new AppError("Concurrent modification detected", "OPTIMISTIC_LOCK_ERROR", 409, {
+      id,
+      expectedVersion: currentVersion,
+    });
   }
 
   return result[0] as T;
@@ -2146,9 +2076,7 @@ export async function withRowLock<T>(
 ): Promise<T> {
   return db.transaction(async (tx) => {
     // Lock row
-    const rows = await tx.execute(
-      sql`SELECT * FROM ${table} WHERE id = ${id} FOR UPDATE`,
-    );
+    const rows = await tx.execute(sql`SELECT * FROM ${table} WHERE id = ${id} FOR UPDATE`);
 
     if (rows.length === 0) {
       throw new AppError("Row not found", "NOT_FOUND", 404);
@@ -2176,9 +2104,7 @@ export async function withAdvisoryLock<T>(
 
   return db.transaction(async (tx) => {
     // Try to acquire lock with timeout
-    const acquired = await tx.execute(
-      sql`SELECT pg_try_advisory_xact_lock(${lockId})`,
-    );
+    const acquired = await tx.execute(sql`SELECT pg_try_advisory_xact_lock(${lockId})`);
 
     if (!acquired[0].pg_try_advisory_xact_lock) {
       throw new AppError("Could not acquire lock", "LOCK_TIMEOUT", 423, {
@@ -2612,12 +2538,8 @@ import { sql, relations } from "drizzle-orm";
 const baseColumns = {
   id: uuid("id").primaryKey().defaultRandom(),
   tenantId: uuid("tenant_id").notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .defaultNow()
-    .notNull(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .defaultNow()
-    .notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   createdBy: uuid("created_by"),
   updatedBy: uuid("updated_by"),
 };
@@ -2645,9 +2567,7 @@ export const negotiations = pgTable(
 
     contactId: uuid("contact_id").notNull(),
 
-    currentState: varchar("current_state", { length: 50 })
-      .notNull()
-      .default("initial"),
+    currentState: varchar("current_state", { length: 50 }).notNull().default("initial"),
 
     initialOffer: decimal("initial_offer", { precision: 15, scale: 2 }),
     currentOffer: decimal("current_offer", { precision: 15, scale: 2 }),
@@ -2675,10 +2595,7 @@ export const negotiations = pgTable(
     createdAtIdx: index("idx_negotiations_created_at").on(table.createdAt),
 
     // Composite indexes
-    tenantContactIdx: index("idx_negotiations_tenant_contact").on(
-      table.tenantId,
-      table.contactId,
-    ),
+    tenantContactIdx: index("idx_negotiations_tenant_contact").on(table.tenantId, table.contactId),
 
     // Partial indexes
     activeIdx: index("idx_negotiations_active")
@@ -2733,14 +2650,10 @@ export const negotiationTransitions = pgTable(
 
     metadata: jsonb("metadata").$type<Record<string, unknown>>(),
 
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .defaultNow()
-      .notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => ({
-    negotiationIdx: index("idx_transitions_negotiation").on(
-      table.negotiationId,
-    ),
+    negotiationIdx: index("idx_transitions_negotiation").on(table.negotiationId),
     createdAtIdx: index("idx_transitions_created_at").on(table.createdAt),
   }),
 );
@@ -2749,38 +2662,32 @@ export const negotiationTransitions = pgTable(
 // RELATIONS
 // ============================================================
 
-export const negotiationsRelations = relations(
-  negotiations,
-  ({ one, many }) => ({
-    tenant: one(tenants, {
-      fields: [negotiations.tenantId],
-      references: [tenants.id],
-    }),
-
-    contact: one(contacts, {
-      fields: [negotiations.contactId],
-      references: [contacts.id],
-    }),
-
-    transitions: many(negotiationTransitions),
-
-    products: many(negotiationProducts),
-
-    conversations: many(aiConversations),
-
-    invoices: many(invoices),
+export const negotiationsRelations = relations(negotiations, ({ one, many }) => ({
+  tenant: one(tenants, {
+    fields: [negotiations.tenantId],
+    references: [tenants.id],
   }),
-);
 
-export const negotiationTransitionsRelations = relations(
-  negotiationTransitions,
-  ({ one }) => ({
-    negotiation: one(negotiations, {
-      fields: [negotiationTransitions.negotiationId],
-      references: [negotiations.id],
-    }),
+  contact: one(contacts, {
+    fields: [negotiations.contactId],
+    references: [contacts.id],
   }),
-);
+
+  transitions: many(negotiationTransitions),
+
+  products: many(negotiationProducts),
+
+  conversations: many(aiConversations),
+
+  invoices: many(invoices),
+}));
+
+export const negotiationTransitionsRelations = relations(negotiationTransitions, ({ one }) => ({
+  negotiation: one(negotiations, {
+    fields: [negotiationTransitions.negotiationId],
+    references: [negotiations.id],
+  }),
+}));
 
 // ============================================================
 // TYPE INFERENCE
@@ -2791,31 +2698,15 @@ import { InferSelectModel, InferInsertModel } from "drizzle-orm";
 export type Negotiation = InferSelectModel<typeof negotiations>;
 export type NewNegotiation = InferInsertModel<typeof negotiations>;
 
-export type NegotiationTransition = InferSelectModel<
-  typeof negotiationTransitions
->;
-export type NewNegotiationTransition = InferInsertModel<
-  typeof negotiationTransitions
->;
+export type NegotiationTransition = InferSelectModel<typeof negotiationTransitions>;
+export type NewNegotiationTransition = InferInsertModel<typeof negotiationTransitions>;
 
 // ============================================================
 // QUERY HELPERS
 // ============================================================
 
 import { db } from "@/db";
-import {
-  eq,
-  and,
-  or,
-  desc,
-  asc,
-  sql,
-  isNull,
-  gte,
-  lte,
-  like,
-  ilike,
-} from "drizzle-orm";
+import { eq, and, or, desc, asc, sql, isNull, gte, lte, like, ilike } from "drizzle-orm";
 
 /**
  * Common query patterns
@@ -2849,15 +2740,8 @@ export const negotiationQueries = {
   /**
    * List with pagination and filters
    */
-  list: async (
-    tenantId: string,
-    filters: NegotiationFilters,
-    pagination: PaginationParams,
-  ) => {
-    const conditions = [
-      eq(negotiations.tenantId, tenantId),
-      isNull(negotiations.deletedAt),
-    ];
+  list: async (tenantId: string, filters: NegotiationFilters, pagination: PaginationParams) => {
+    const conditions = [eq(negotiations.tenantId, tenantId), isNull(negotiations.deletedAt)];
 
     if (filters.state) {
       conditions.push(eq(negotiations.currentState, filters.state));
@@ -3012,10 +2896,7 @@ export function createAIConversationWorker(
     });
 
     metrics.increment("worker.ai_conversation.completed");
-    metrics.histogram(
-      "worker.ai_conversation.processing_time",
-      result.processingTimeMs ?? 0,
-    );
+    metrics.histogram("worker.ai_conversation.processing_time", result.processingTimeMs ?? 0);
   });
 
   worker.on("failed", (job, error) => {
@@ -3139,10 +3020,7 @@ async function processAIConversationJob(
 import { Queue, QueueEvents, QueueScheduler } from "bullmq";
 
 // Queue configuration factory
-function createQueue<T>(
-  name: string,
-  options: Partial<QueueOptions> = {},
-): Queue<T> {
+function createQueue<T>(name: string, options: Partial<QueueOptions> = {}): Queue<T> {
   const defaultOptions: QueueOptions = {
     connection: redisConnection,
     defaultJobOptions: {
@@ -3174,50 +3052,38 @@ export const queues = {
     },
   }),
 
-  negotiationTransition: createQueue<NegotiationTransitionJobData>(
-    "negotiation-transition",
-    {
-      defaultJobOptions: {
-        attempts: 5,
-        backoff: { type: "exponential", delay: 1000 },
-      },
+  negotiationTransition: createQueue<NegotiationTransitionJobData>("negotiation-transition", {
+    defaultJobOptions: {
+      attempts: 5,
+      backoff: { type: "exponential", delay: 1000 },
     },
-  ),
+  }),
 
-  efacturaSubmission: createQueue<EFacturaSubmissionJobData>(
-    "efactura-submission",
-    {
-      defaultJobOptions: {
-        attempts: 3,
-        backoff: { type: "fixed", delay: 30_000 }, // 30s between retries
-        timeout: 120_000, // 2 minutes timeout
-      },
-      limiter: {
-        max: 10,
-        duration: 60_000, // 10 per minute (ANAF rate limits)
-      },
+  efacturaSubmission: createQueue<EFacturaSubmissionJobData>("efactura-submission", {
+    defaultJobOptions: {
+      attempts: 3,
+      backoff: { type: "fixed", delay: 30_000 }, // 30s between retries
+      timeout: 120_000, // 2 minutes timeout
     },
-  ),
+    limiter: {
+      max: 10,
+      duration: 60_000, // 10 per minute (ANAF rate limits)
+    },
+  }),
 
-  documentGeneration: createQueue<DocumentGenerationJobData>(
-    "document-generation",
-    {
-      defaultJobOptions: {
-        attempts: 2,
-        timeout: 180_000, // 3 minutes for large documents
-      },
+  documentGeneration: createQueue<DocumentGenerationJobData>("document-generation", {
+    defaultJobOptions: {
+      attempts: 2,
+      timeout: 180_000, // 3 minutes for large documents
     },
-  ),
+  }),
 
-  sentimentAnalysis: createQueue<SentimentAnalysisJobData>(
-    "sentiment-analysis",
-    {
-      defaultJobOptions: {
-        attempts: 3,
-        priority: 5, // Lower priority than conversations
-      },
+  sentimentAnalysis: createQueue<SentimentAnalysisJobData>("sentiment-analysis", {
+    defaultJobOptions: {
+      attempts: 3,
+      priority: 5, // Lower priority than conversations
     },
-  ),
+  }),
 
   hitlEscalation: createQueue<HITLEscalationJobData>("hitl-escalation", {
     defaultJobOptions: {
@@ -3301,8 +3167,7 @@ export async function addPrioritizedJob<T extends object>(
   data: T,
   overridePriority?: JobPriority,
 ): Promise<Job<T>> {
-  const priority =
-    overridePriority ?? JOB_PRIORITIES[jobType] ?? JobPriority.NORMAL;
+  const priority = overridePriority ?? JOB_PRIORITIES[jobType] ?? JobPriority.NORMAL;
 
   return queue.add(jobType, data, { priority });
 }
@@ -3322,8 +3187,7 @@ export function calculateDynamicPriority(
   if (metadata.slaDeadline) {
     const timeToDeadline = metadata.slaDeadline.getTime() - Date.now();
     const slaPercentRemaining =
-      timeToDeadline /
-      (metadata.slaDeadline.getTime() - metadata.createdAt.getTime());
+      timeToDeadline / (metadata.slaDeadline.getTime() - metadata.createdAt.getTime());
 
     if (slaPercentRemaining < 0.25) {
       priority = Math.max(1, priority - 2); // Bump up 2 levels
@@ -3365,8 +3229,7 @@ export async function processDLQ(): Promise<void> {
 
         if (analysis.canRecover) {
           // Move back to main queue with modifications
-          const mainQueue =
-            queues[analysis.originalQueue as keyof typeof queues];
+          const mainQueue = queues[analysis.originalQueue as keyof typeof queues];
           await mainQueue.add(
             job.name,
             {
@@ -3575,11 +3438,7 @@ export class LLMClient {
 
     // Check cost cap
     if (this.costTracker.isOverBudget(config.provider)) {
-      throw new LLMError(
-        "Daily cost cap exceeded",
-        config.provider,
-        config.model,
-      );
+      throw new LLMError("Daily cost cap exceeded", config.provider, config.model);
     }
 
     try {
@@ -3693,11 +3552,7 @@ export class LLMClient {
     params: { messages: Message[]; systemPrompt?: string; tools?: Tool[] },
     failedConfig: LLMConfig,
   ): Promise<LLMResponse> {
-    const fallbackOrder: Array<LLMConfig["provider"]> = [
-      "anthropic",
-      "openai",
-      "google",
-    ];
+    const fallbackOrder: Array<LLMConfig["provider"]> = ["anthropic", "openai", "google"];
     const remaining = fallbackOrder.filter((p) => p !== failedConfig.provider);
 
     for (const provider of remaining) {
@@ -3721,11 +3576,7 @@ export class LLMClient {
       }
     }
 
-    throw new LLMError(
-      "All LLM providers failed",
-      failedConfig.provider,
-      failedConfig.model,
-    );
+    throw new LLMError("All LLM providers failed", failedConfig.provider, failedConfig.model);
   }
 }
 ```
@@ -3782,10 +3633,7 @@ export async function checkGuardrails(
   }
 
   // 3. Check for commitment hallucination
-  const commitmentCheck = checkUnauthorizedCommitments(
-    output,
-    context.permissions,
-  );
+  const commitmentCheck = checkUnauthorizedCommitments(output, context.permissions);
   if (!commitmentCheck.passed) {
     violations.push({
       type: "unauthorized_commitment",
@@ -3833,10 +3681,7 @@ export async function checkGuardrails(
 
   return {
     passed: violations.filter((v) => v.severity === "critical").length === 0,
-    reason:
-      violations.length > 0
-        ? violations.map((v) => v.details).join("; ")
-        : undefined,
+    reason: violations.length > 0 ? violations.map((v) => v.details).join("; ") : undefined,
     confidence,
     violations,
   };
@@ -4000,10 +3845,7 @@ export function buildNegotiationPrompt(context: NegotiationContext): {
     "{{maxDiscount}}",
     String(context.maxDiscount ?? 10),
   )
-    .replace(
-      "{{context.previousMessages}}",
-      formatMessages(context.previousMessages),
-    )
+    .replace("{{context.previousMessages}}", formatMessages(context.previousMessages))
     .replace("{{context.products}}", formatProducts(context.products));
 
   // Build messages
@@ -4061,12 +3903,7 @@ export const RESPONSE_SCHEMAS = {
         type: "string",
       },
     },
-    required: [
-      "message",
-      "intentDetected",
-      "sentimentScore",
-      "requiresHumanReview",
-    ],
+    required: ["message", "intentDetected", "sentimentScore", "requiresHumanReview"],
   },
 };
 ```
@@ -4228,12 +4065,7 @@ export const requestLoggerPlugin: FastifyPluginAsync = async (fastify) => {
   fastify.addHook("onResponse", async (request, reply) => {
     const duration = Date.now() - (request.startTime ?? Date.now());
 
-    const logLevel =
-      reply.statusCode >= 500
-        ? "error"
-        : reply.statusCode >= 400
-          ? "warn"
-          : "info";
+    const logLevel = reply.statusCode >= 500 ? "error" : reply.statusCode >= 400 ? "warn" : "info";
 
     request.log[logLevel]({
       message: "Request completed",
@@ -4423,17 +4255,12 @@ import { trace, SpanStatusCode, context, Span } from "@opentelemetry/api";
 // Initialize SDK
 const sdk = new NodeSDK({
   resource: new Resource({
-    [SemanticResourceAttributes.SERVICE_NAME]:
-      process.env.SERVICE_NAME ?? "cerniq-api",
-    [SemanticResourceAttributes.SERVICE_VERSION]:
-      process.env.APP_VERSION ?? "0.0.0",
-    [SemanticResourceAttributes.DEPLOYMENT_ENVIRONMENT]:
-      process.env.NODE_ENV ?? "development",
+    [SemanticResourceAttributes.SERVICE_NAME]: process.env.SERVICE_NAME ?? "cerniq-api",
+    [SemanticResourceAttributes.SERVICE_VERSION]: process.env.APP_VERSION ?? "0.0.0",
+    [SemanticResourceAttributes.DEPLOYMENT_ENVIRONMENT]: process.env.NODE_ENV ?? "development",
   }),
   traceExporter: new OTLPTraceExporter({
-    url:
-      process.env.OTEL_EXPORTER_OTLP_ENDPOINT ??
-      "http://otel-collector:64071/v1/traces",
+    url: process.env.OTEL_EXPORTER_OTLP_ENDPOINT ?? "http://otel-collector:64071/v1/traces",
   }),
   instrumentations: [
     getNodeAutoInstrumentations({
@@ -4546,48 +4373,45 @@ declare module "fastify" {
 
 export const authPlugin: FastifyPluginAsync = async (fastify) => {
   // Authentication decorator
-  fastify.decorate(
-    "authenticate",
-    async (request: FastifyRequest, reply: FastifyReply) => {
-      try {
-        const authHeader = request.headers.authorization;
+  fastify.decorate("authenticate", async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const authHeader = request.headers.authorization;
 
-        if (!authHeader?.startsWith("Bearer ")) {
-          return reply.code(401).send({
-            error: "UNAUTHORIZED",
-            message: "Missing or invalid authorization header",
-          });
-        }
-
-        const token = authHeader.slice(7);
-        const payload = await verifyToken(token);
-
-        if (!payload) {
-          return reply.code(401).send({
-            error: "UNAUTHORIZED",
-            message: "Invalid token",
-          });
-        }
-
-        // Get full user with permissions
-        const permissions = await getUserPermissions(payload.userId);
-
-        request.user = {
-          id: payload.userId,
-          tenantId: payload.tenantId,
-          email: payload.email,
-          role: payload.role,
-          permissions,
-        };
-      } catch (error) {
-        request.log.error({ error }, "Authentication failed");
+      if (!authHeader?.startsWith("Bearer ")) {
         return reply.code(401).send({
           error: "UNAUTHORIZED",
-          message: "Authentication failed",
+          message: "Missing or invalid authorization header",
         });
       }
-    },
-  );
+
+      const token = authHeader.slice(7);
+      const payload = await verifyToken(token);
+
+      if (!payload) {
+        return reply.code(401).send({
+          error: "UNAUTHORIZED",
+          message: "Invalid token",
+        });
+      }
+
+      // Get full user with permissions
+      const permissions = await getUserPermissions(payload.userId);
+
+      request.user = {
+        id: payload.userId,
+        tenantId: payload.tenantId,
+        email: payload.email,
+        role: payload.role,
+        permissions,
+      };
+    } catch (error) {
+      request.log.error({ error }, "Authentication failed");
+      return reply.code(401).send({
+        error: "UNAUTHORIZED",
+        message: "Authentication failed",
+      });
+    }
+  });
 
   // Permission check decorator
   fastify.decorate("requirePermission", (permission: string) => {
@@ -4624,29 +4448,25 @@ export const authPlugin: FastifyPluginAsync = async (fastify) => {
   });
 
   // Tenant isolation decorator
-  fastify.decorate(
-    "requireTenant",
-    async (request: FastifyRequest, reply: FastifyReply) => {
-      const resourceTenantId =
-        request.params.tenantId ?? request.body?.tenantId;
+  fastify.decorate("requireTenant", async (request: FastifyRequest, reply: FastifyReply) => {
+    const resourceTenantId = request.params.tenantId ?? request.body?.tenantId;
 
-      if (resourceTenantId && resourceTenantId !== request.user.tenantId) {
-        request.log.warn(
-          {
-            userId: request.user.id,
-            userTenantId: request.user.tenantId,
-            resourceTenantId,
-          },
-          "Cross-tenant access attempt",
-        );
+    if (resourceTenantId && resourceTenantId !== request.user.tenantId) {
+      request.log.warn(
+        {
+          userId: request.user.id,
+          userTenantId: request.user.tenantId,
+          resourceTenantId,
+        },
+        "Cross-tenant access attempt",
+      );
 
-        return reply.code(403).send({
-          error: "FORBIDDEN",
-          message: "Cannot access resources from another tenant",
-        });
-      }
-    },
-  );
+      return reply.code(403).send({
+        error: "FORBIDDEN",
+        message: "Cannot access resources from another tenant",
+      });
+    }
+  });
 };
 
 // Permission definitions
@@ -4715,9 +4535,7 @@ export const validators = {
     .transform((val) => val.toLowerCase().trim()),
 
   // Safe string (no HTML/XSS)
-  safeString: z
-    .string()
-    .transform((val) => DOMPurify.sanitize(val, { ALLOWED_TAGS: [] })),
+  safeString: z.string().transform((val) => DOMPurify.sanitize(val, { ALLOWED_TAGS: [] })),
 
   // Price validation
   price: z
@@ -4746,9 +4564,7 @@ export const validators = {
 };
 
 // Request body sanitizer
-export function sanitizeRequestBody<T extends Record<string, unknown>>(
-  body: T,
-): T {
+export function sanitizeRequestBody<T extends Record<string, unknown>>(body: T): T {
   const sanitized = { ...body };
 
   for (const [key, value] of Object.entries(sanitized)) {
@@ -4758,9 +4574,7 @@ export function sanitizeRequestBody<T extends Record<string, unknown>>(
         ALLOWED_TAGS: [],
       }) as T[keyof T];
     } else if (typeof value === "object" && value !== null) {
-      sanitized[key] = sanitizeRequestBody(
-        value as Record<string, unknown>,
-      ) as T[keyof T];
+      sanitized[key] = sanitizeRequestBody(value as Record<string, unknown>) as T[keyof T];
     }
   }
 
@@ -4780,9 +4594,7 @@ export function escapeIdentifier(identifier: string): string {
 export function validateBody<T extends z.ZodSchema>(schema: T) {
   return async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const sanitized = sanitizeRequestBody(
-        request.body as Record<string, unknown>,
-      );
+      const sanitized = sanitizeRequestBody(request.body as Record<string, unknown>);
       request.body = schema.parse(sanitized);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -4825,19 +4637,13 @@ async function deriveKey(password: string, salt: Buffer): Promise<Buffer> {
 }
 
 // Encrypt sensitive data
-export async function encrypt(
-  plaintext: string,
-  encryptionKey: string,
-): Promise<string> {
+export async function encrypt(plaintext: string, encryptionKey: string): Promise<string> {
   const salt = randomBytes(SALT_LENGTH);
   const iv = randomBytes(IV_LENGTH);
   const key = await deriveKey(encryptionKey, salt);
 
   const cipher = createCipheriv(ALGORITHM, key, iv);
-  const encrypted = Buffer.concat([
-    cipher.update(plaintext, "utf8"),
-    cipher.final(),
-  ]);
+  const encrypted = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
   const authTag = cipher.getAuthTag();
 
   // Combine: salt + iv + authTag + encrypted
@@ -4847,10 +4653,7 @@ export async function encrypt(
 }
 
 // Decrypt sensitive data
-export async function decrypt(
-  encryptedData: string,
-  encryptionKey: string,
-): Promise<string> {
+export async function decrypt(encryptedData: string, encryptionKey: string): Promise<string> {
   const combined = Buffer.from(encryptedData, "base64");
 
   // Extract components
@@ -4860,19 +4663,14 @@ export async function decrypt(
     SALT_LENGTH + IV_LENGTH,
     SALT_LENGTH + IV_LENGTH + AUTH_TAG_LENGTH,
   );
-  const encrypted = combined.subarray(
-    SALT_LENGTH + IV_LENGTH + AUTH_TAG_LENGTH,
-  );
+  const encrypted = combined.subarray(SALT_LENGTH + IV_LENGTH + AUTH_TAG_LENGTH);
 
   const key = await deriveKey(encryptionKey, salt);
 
   const decipher = createDecipheriv(ALGORITHM, key, iv);
   decipher.setAuthTag(authTag);
 
-  const decrypted = Buffer.concat([
-    decipher.update(encrypted),
-    decipher.final(),
-  ]);
+  const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
 
   return decrypted.toString("utf8");
 }
@@ -4886,10 +4684,7 @@ export async function hashSensitive(data: string): Promise<string> {
 }
 
 // Verify hashed data
-export async function verifyHash(
-  data: string,
-  storedHash: string,
-): Promise<boolean> {
+export async function verifyHash(data: string, storedHash: string): Promise<boolean> {
   const [saltHex, hashHex] = storedHash.split(":");
   const salt = Buffer.from(saltHex, "hex");
   const originalHash = Buffer.from(hashHex, "hex");
@@ -4933,10 +4728,7 @@ const RETENTION_PERIODS = {
 };
 
 // Export user data (GDPR Article 15)
-export async function exportUserData(
-  tenantId: string,
-  email: string,
-): Promise<UserDataExport> {
+export async function exportUserData(tenantId: string, email: string): Promise<UserDataExport> {
   const contact = await db.query.contacts.findFirst({
     where: and(eq(contacts.tenantId, tenantId), eq(contacts.email, email)),
     with: {
@@ -5077,9 +4869,7 @@ export async function runRetentionCleanup(): Promise<CleanupResult> {
   };
 
   // Cleanup old temporary data
-  const tempCutoff = new Date(
-    now.getTime() - RETENTION_PERIODS.tempData * 24 * 60 * 60 * 1000,
-  );
+  const tempCutoff = new Date(now.getTime() - RETENTION_PERIODS.tempData * 24 * 60 * 60 * 1000);
   // ... implementation
 
   logger.info("Retention cleanup completed", results);
@@ -5204,9 +4994,7 @@ describe("NegotiationService", () => {
       const invalidInput = { ...validInput, contactId: undefined };
 
       // Act & Assert
-      await expect(service.create(invalidInput as any)).rejects.toThrow(
-        "contactId is required",
-      );
+      await expect(service.create(invalidInput as any)).rejects.toThrow("contactId is required");
     });
 
     it("should rollback transaction on failure", async () => {
@@ -5215,9 +5003,7 @@ describe("NegotiationService", () => {
       mockDb.transaction.mockRejectedValue(error);
 
       // Act & Assert
-      await expect(service.create(validInput)).rejects.toThrow(
-        "DB connection failed",
-      );
+      await expect(service.create(validInput)).rejects.toThrow("DB connection failed");
 
       expect(mockEventBus.emit).not.toHaveBeenCalled();
     });
@@ -5388,10 +5174,7 @@ describe("Negotiations Routes (Integration)", () => {
       expect(body.data.id).toBeDefined();
 
       // Verify in database
-      const dbNegotiation = await app.negotiationService.getById(
-        testTenantId,
-        body.data.id,
-      );
+      const dbNegotiation = await app.negotiationService.getById(testTenantId, body.data.id);
       expect(dbNegotiation).toBeDefined();
       expect(dbNegotiation?.currentState).toBe("initial");
     });
@@ -5484,9 +5267,7 @@ test.describe("Negotiation Flow", () => {
     await page.click('[data-testid="create-negotiation"]');
 
     await expect(page).toHaveURL(/\/negotiations\/[a-z0-9-]+/);
-    await expect(page.locator('[data-testid="negotiation-state"]')).toHaveText(
-      "Initial",
-    );
+    await expect(page.locator('[data-testid="negotiation-state"]')).toHaveText("Initial");
 
     // Step 2: Start conversation
     await page.fill(
@@ -5501,9 +5282,7 @@ test.describe("Negotiation Flow", () => {
     });
 
     // Step 3: Check state transition
-    await expect(page.locator('[data-testid="negotiation-state"]')).toHaveText(
-      "Needs Analysis",
-    );
+    await expect(page.locator('[data-testid="negotiation-state"]')).toHaveText("Needs Analysis");
 
     // Step 4: Add products
     await page.click('[data-testid="add-product-button"]');
@@ -5520,18 +5299,14 @@ test.describe("Negotiation Flow", () => {
 
     // Step 6: Send proposal
     await page.click('[data-testid="send-proposal"]');
-    await expect(page.locator('[data-testid="negotiation-state"]')).toHaveText(
-      "Proposal Sent",
-    );
+    await expect(page.locator('[data-testid="negotiation-state"]')).toHaveText("Proposal Sent");
 
     // Step 7: Mark as won
     await page.click('[data-testid="mark-won"]');
     await page.fill('[data-testid="final-price"]', "50000");
     await page.click('[data-testid="confirm-won"]');
 
-    await expect(page.locator('[data-testid="negotiation-state"]')).toHaveText(
-      "Closed Won",
-    );
+    await expect(page.locator('[data-testid="negotiation-state"]')).toHaveText("Closed Won");
   });
 
   test("should handle HITL approval flow", async ({ page }) => {
@@ -5540,30 +5315,21 @@ test.describe("Negotiation Flow", () => {
     await expect(page).toHaveURL("/hitl");
 
     // Check pending approvals
-    const pendingCount = await page
-      .locator('[data-testid="pending-count"]')
-      .textContent();
+    const pendingCount = await page.locator('[data-testid="pending-count"]').textContent();
 
     if (parseInt(pendingCount ?? "0") > 0) {
       // Open first approval
       await page.click('[data-testid="approval-item-0"]');
 
       // Review content
-      await expect(
-        page.locator('[data-testid="approval-content"]'),
-      ).toBeVisible();
+      await expect(page.locator('[data-testid="approval-content"]')).toBeVisible();
 
       // Approve with comment
-      await page.fill(
-        '[data-testid="approval-comment"]',
-        "Aprobat conform politicii",
-      );
+      await page.fill('[data-testid="approval-comment"]', "Aprobat conform politicii");
       await page.click('[data-testid="approve-button"]');
 
       // Verify approval processed
-      await expect(
-        page.locator('[data-testid="approval-success"]'),
-      ).toBeVisible();
+      await expect(page.locator('[data-testid="approval-success"]')).toBeVisible();
     }
   });
 });

@@ -391,10 +391,9 @@ describe("Companies API Contract - Consumer", () => {
         });
       })
       .executeTest(async (mockServer) => {
-        const response = await fetch(
-          `${mockServer.url}/api/v1/companies/abc-123`,
-          { headers: { Authorization: "Bearer test" } },
-        );
+        const response = await fetch(`${mockServer.url}/api/v1/companies/abc-123`, {
+          headers: { Authorization: "Bearer test" },
+        });
         expect(response.status).toBe(200);
         const data = await response.json();
         expect(data).toHaveProperty("id");

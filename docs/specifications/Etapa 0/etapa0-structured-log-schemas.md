@@ -31,9 +31,7 @@ export const BaseLogSchema = z.object({
   hostname: z.string(),
 
   // Custom Service Context
-  service: z
-    .string()
-    .describe("numele serviciului, ex: cerniq-api, enrichment-worker"),
+  service: z.string().describe("numele serviciului, ex: cerniq-api, enrichment-worker"),
   env: z.enum(["development", "staging", "production"]),
   version: z.string().describe("Service version from package.json"),
 
@@ -49,10 +47,7 @@ export const BaseLogSchema = z.object({
   msg: z.string(),
 
   // Event Type Discriminator
-  event: z
-    .string()
-    .optional()
-    .describe("Event code for machine parsing, e.g., JOB_COMPLETED"),
+  event: z.string().optional().describe("Event code for machine parsing, e.g., JOB_COMPLETED"),
 });
 ```
 
@@ -94,10 +89,7 @@ export const JobStartedSchema = BaseLogSchema.extend({
   jobId: z.string(),
   jobName: z.string(),
   attempt: z.number().int().default(1),
-  inputDataSummary: z
-    .record(z.any())
-    .optional()
-    .describe("Non-sensitive input summary"),
+  inputDataSummary: z.record(z.any()).optional().describe("Non-sensitive input summary"),
 });
 ```
 
@@ -110,10 +102,7 @@ export const JobCompletedSchema = BaseLogSchema.extend({
   jobId: z.string(),
   duration: z.number().describe("Processing time in ms"),
   resultSummary: z.record(z.any()).optional(),
-  throughput: z
-    .number()
-    .optional()
-    .describe("Items processed (e.g., imported rows)"),
+  throughput: z.number().optional().describe("Items processed (e.g., imported rows)"),
 });
 ```
 

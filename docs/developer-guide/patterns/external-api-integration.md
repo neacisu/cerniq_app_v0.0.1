@@ -68,10 +68,8 @@ import { BadRequestError, TooManyRequestsError } from "../errors/app-error";
 
 // Map external API errors to AppError
 function mapToAppError(err: unknown): AppError {
-  if (err instanceof TimeoutError)
-    return new BadRequestError("External API timeout");
-  if (err?.statusCode === 429)
-    return new TooManyRequestsError("Rate limit exceeded");
+  if (err instanceof TimeoutError) return new BadRequestError("External API timeout");
+  if (err?.statusCode === 429) return new TooManyRequestsError("Rate limit exceeded");
   return new BadRequestError("External API error");
 }
 ```

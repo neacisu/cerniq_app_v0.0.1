@@ -7,11 +7,7 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ className, error, ...props }, ref) => (
-    <input
-      ref={ref}
-      className={cn("inp", error && "err", className)}
-      {...props}
-    />
+    <input ref={ref} className={cn("inp", error && "err", className)} {...props} />
   ),
 );
 Input.displayName = "Input";

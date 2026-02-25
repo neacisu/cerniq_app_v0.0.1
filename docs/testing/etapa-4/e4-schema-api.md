@@ -16,9 +16,7 @@ describe("Orders Schema", () => {
   });
 
   it("should enforce FK constraints", async () => {
-    await expect(
-      insertOrderItem({ orderId: "nonexistent", sku: "SKU-001" }),
-    ).rejects.toThrow();
+    await expect(insertOrderItem({ orderId: "nonexistent", sku: "SKU-001" })).rejects.toThrow();
   });
 });
 ```
@@ -42,9 +40,7 @@ describe("Orders API", () => {
 
   it("should update order status", async () => {
     const order = await createOrder();
-    const response = await api
-      .patch(`/api/v1/orders/${order.id}`)
-      .send({ status: "shipped" });
+    const response = await api.patch(`/api/v1/orders/${order.id}`).send({ status: "shipped" });
     expect(response.body.status).toBe("shipped");
   });
 });
