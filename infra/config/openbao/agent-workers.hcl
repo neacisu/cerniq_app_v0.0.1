@@ -14,7 +14,7 @@ log_level = "info"
 # Auto-Auth Configuration
 # =============================================================================
 # AppRole authentication method
-# role_id is static, secret_id rotates monthly
+# role_id is static, secret_id is rotated automatically by CD pipeline on each deploy
 # =============================================================================
 
 auto_auth {

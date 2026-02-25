@@ -311,7 +311,48 @@ jobs:
           echo "✅ Traefik file provider will auto-reload (no restart needed)"
 
       # =========================================================================
-      # STEP 2: Save current version for rollback
+      # STEP 2: Rotate AppRole secret_ids (dynamic credentials)
+      # =========================================================================
+      - name: 🔄 Rotate OpenBao AppRole credentials
+        env:
+          OPENBAO_ADDR: ${{ secrets.OPENBAO_ADDR }}
+          OPENBAO_CICD_ROLE_ID: ${{ secrets.OPENBAO_CICD_ROLE_ID }}
+          OPENBAO_CICD_SECRET_ID: ${{ secrets.OPENBAO_CICD_SECRET_ID }}
+        run: |
+          set -euo pipefail
+          SSH_CMD="ssh -i ~/.ssh/deploy_key deploy@${{ secrets.STAGING_HOST }}"
+
+          echo "🔐 Authenticating with CICD AppRole to generate fresh service credentials..."
+
+          BAO_TOKEN=$(curl -sS --fail --max-time 10 \
+            -X POST "${OPENBAO_ADDR}/v1/auth/approle/login" \
+            -d "{\"role_id\":\"${OPENBAO_CICD_ROLE_ID}\",\"secret_id\":\"${OPENBAO_CICD_SECRET_ID}\"}" \
+            | jq -r '.auth.client_token')
+
+          if [ -z "$BAO_TOKEN" ] || [ "$BAO_TOKEN" = "null" ]; then
+            echo "❌ CICD AppRole authentication failed"
+            exit 1
+          fi
+          echo "✅ CICD authenticated"
+
+          $SSH_CMD "mkdir -p /opt/cerniq/secrets && chmod 700 /opt/cerniq/secrets"
+
+          for ROLE in cerniq-api cerniq-workers cerniq-infra; do
+            SHORT=$(echo "$ROLE" | sed 's/cerniq-//')
+            ROLE_ID=$(curl -sS --fail -H "X-Vault-Token: $BAO_TOKEN" \
+              "${OPENBAO_ADDR}/v1/auth/approle/role/${ROLE}/role-id" | jq -r '.data.role_id')
+            SECRET_ID=$(curl -sS --fail -X POST -H "X-Vault-Token: $BAO_TOKEN" \
+              "${OPENBAO_ADDR}/v1/auth/approle/role/${ROLE}/secret-id" | jq -r '.data.secret_id')
+
+            echo -n "$ROLE_ID" | $SSH_CMD "cat > /opt/cerniq/secrets/${SHORT}_role_id && chmod 600 /opt/cerniq/secrets/${SHORT}_role_id"
+            echo -n "$SECRET_ID" | $SSH_CMD "cat > /opt/cerniq/secrets/${SHORT}_secret_id && chmod 600 /opt/cerniq/secrets/${SHORT}_secret_id"
+            echo "  ✅ ${ROLE}: credentials rotated"
+          done
+
+          echo "✅ All AppRole credentials rotated on staging"
+
+      # =========================================================================
+      # STEP 3: Save current version for rollback
       # =========================================================================
       - name: 💾 Save current version for rollback
         continue-on-error: true
@@ -319,8 +360,6 @@ jobs:
           ssh -i ~/.ssh/deploy_key deploy@${{ secrets.STAGING_HOST }} << 'ENDSSH'
             cd /opt/cerniq
             
-            # Prefer a dedicated marker file; docker ps parsing is unreliable when
-            # the app stack is not deployed yet (infra-only deployments).
             if [ -f /opt/cerniq/.current_deploy ]; then
               cp -f /opt/cerniq/.current_deploy /opt/cerniq/.previous_deploy
               echo "💾 Saved previous version: $(cat /opt/cerniq/.previous_deploy 2>/dev/null || echo 'none')"
@@ -330,7 +369,7 @@ jobs:
           ENDSSH
 
       # =========================================================================
-      # STEP 3: Deploy Docker services
+      # STEP 4: Deploy Docker services
       # =========================================================================
       - name: 🔐 Login to GHCR on staging
         run: |
@@ -348,34 +387,25 @@ jobs:
             set -euo pipefail
             cd /opt/cerniq
 
-            # Remove legacy placeholder containers (one-time cleanup)
             for c in cerniq-placeholder-web cerniq-placeholder-api cerniq-placeholder-admin; do
               docker rm -f "$c" 2>/dev/null || true
             done
 
-            # Ensure Docker networks exist
             docker network create --driver bridge --subnet=172.29.10.0/24 cerniq_public 2>/dev/null || true
             docker network create --driver bridge --subnet=172.29.20.0/24 cerniq_backend 2>/dev/null || true
             docker network create --driver bridge --subnet=172.29.30.0/24 cerniq_data 2>/dev/null || true
 
-            # Prepare runtime-secrets with correct permissions (755 so uid 1001 can read)
             mkdir -p /opt/cerniq/runtime-secrets/{api,workers,infra}
             chmod 755 /opt/cerniq/runtime-secrets /opt/cerniq/runtime-secrets/*
 
-            # Purge stale rendered secrets to prevent race condition:
-            # old files would pass agent healthcheck instantly before fresh secrets are rendered
             rm -f /opt/cerniq/runtime-secrets/api/api.env \
                   /opt/cerniq/runtime-secrets/api/pg_password \
                   /opt/cerniq/runtime-secrets/workers/workers.env \
                   /opt/cerniq/runtime-secrets/infra/pgbouncer.ini \
                   /opt/cerniq/runtime-secrets/infra/userlist.txt
 
-            # OpenBao server is external on orchestrator (s3cr3ts.neanelu.ro).
-            # Skipped: OpenBao server is external — only agents run locally.
-            # Agents authenticate via AppRole and render secrets locally.
             if [ ! -f /opt/cerniq/secrets/api_role_id ]; then
-              echo "❌ AppRole credentials not found at /opt/cerniq/secrets/api_role_id"
-              echo "   Run OpenBao setup first (see docs/infrastructure/openbao-setup-guide.md)"
+              echo "❌ AppRole credentials not found — rotation step may have failed"
               exit 1
             fi
 
@@ -666,7 +696,6 @@ jobs:
           echo "📄 Syncing docker-compose files..."
           $SCP_CMD infra/docker/docker-compose.yml ${HOST}:/opt/cerniq/
           $SCP_CMD infra/docker/docker-compose.prod.yml ${HOST}:/opt/cerniq/
-          # Vector/OTEL configs removed — observability is centralized on orchestrator
 
           echo "📄 Syncing OpenBao config (CORRECT PATH)..."
           $SCP_CMD infra/config/openbao/*.hcl ${HOST}:/opt/cerniq/config/openbao/
@@ -685,6 +714,47 @@ jobs:
           $SSH_CMD "chmod +x /opt/cerniq/scripts/*.sh"
 
           echo "✅ COMPLETE configuration sync done"
+
+      # =========================================================================
+      # STEP 1b: Rotate AppRole secret_ids (dynamic credentials)
+      # =========================================================================
+      - name: 🔄 Rotate OpenBao AppRole credentials
+        env:
+          OPENBAO_ADDR: ${{ secrets.OPENBAO_ADDR }}
+          OPENBAO_CICD_ROLE_ID: ${{ secrets.OPENBAO_CICD_ROLE_ID }}
+          OPENBAO_CICD_SECRET_ID: ${{ secrets.OPENBAO_CICD_SECRET_ID }}
+        run: |
+          set -euo pipefail
+          SSH_CMD="ssh -i ~/.ssh/deploy_key deploy@${{ secrets.PRODUCTION_HOST }}"
+
+          echo "🔐 Authenticating with CICD AppRole to generate fresh service credentials..."
+
+          BAO_TOKEN=$(curl -sS --fail --max-time 10 \
+            -X POST "${OPENBAO_ADDR}/v1/auth/approle/login" \
+            -d "{\"role_id\":\"${OPENBAO_CICD_ROLE_ID}\",\"secret_id\":\"${OPENBAO_CICD_SECRET_ID}\"}" \
+            | jq -r '.auth.client_token')
+
+          if [ -z "$BAO_TOKEN" ] || [ "$BAO_TOKEN" = "null" ]; then
+            echo "❌ CICD AppRole authentication failed"
+            exit 1
+          fi
+          echo "✅ CICD authenticated"
+
+          $SSH_CMD "mkdir -p /opt/cerniq/secrets && chmod 700 /opt/cerniq/secrets"
+
+          for ROLE in cerniq-api cerniq-workers cerniq-infra; do
+            SHORT=$(echo "$ROLE" | sed 's/cerniq-//')
+            ROLE_ID=$(curl -sS --fail -H "X-Vault-Token: $BAO_TOKEN" \
+              "${OPENBAO_ADDR}/v1/auth/approle/role/${ROLE}/role-id" | jq -r '.data.role_id')
+            SECRET_ID=$(curl -sS --fail -X POST -H "X-Vault-Token: $BAO_TOKEN" \
+              "${OPENBAO_ADDR}/v1/auth/approle/role/${ROLE}/secret-id" | jq -r '.data.secret_id')
+
+            echo -n "$ROLE_ID" | $SSH_CMD "cat > /opt/cerniq/secrets/${SHORT}_role_id && chmod 600 /opt/cerniq/secrets/${SHORT}_role_id"
+            echo -n "$SECRET_ID" | $SSH_CMD "cat > /opt/cerniq/secrets/${SHORT}_secret_id && chmod 600 /opt/cerniq/secrets/${SHORT}_secret_id"
+            echo "  ✅ ${ROLE}: credentials rotated"
+          done
+
+          echo "✅ All AppRole credentials rotated on production"
 
       - name: 🔁 Sync orchestrator Traefik route
         run: |
