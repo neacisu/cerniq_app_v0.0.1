@@ -116,7 +116,7 @@ http:
               - "*.staging.cerniq.app"
 
     # ==========================================================================
-    # DEV Environment — dev.cerniq.app (hot-reload on 10.0.1.6:65xxx)
+    # DEV Environment — dev.cerniq.app (hot-reload on 10.0.1.6:64xxx)
     # ==========================================================================
     # Direct routing from orchestrator Traefik to dev machine (no HAProxy).
     # Dev containers: volume-mounted source + Vite HMR / tsx watch.
@@ -238,7 +238,7 @@ http:
           timeout: "5s"
 
     # ==========================================================================
-    # DEV Services — Direct to dev machine (10.0.1.6:65xxx)
+    # DEV Services — Direct to dev machine (10.0.1.6:64xxx)
     # ==========================================================================
     # Dev routes bypass HAProxy (no L4 gateway needed for development).
     # Orchestrator Traefik reaches dev machine directly via VLAN.
@@ -246,17 +246,17 @@ http:
     cerniq-dev-web-svc:
       loadBalancer:
         servers:
-          - url: "http://10.0.1.6:65000"
+          - url: "http://10.0.1.6:64000"
 
     cerniq-dev-api-svc:
       loadBalancer:
         servers:
-          - url: "http://10.0.1.6:65010"
+          - url: "http://10.0.1.6:64010"
 
     cerniq-dev-admin-svc:
       loadBalancer:
         servers:
-          - url: "http://10.0.1.6:65012"
+          - url: "http://10.0.1.6:64012"
 
     # OTLP collector intake (central, on orchestrator loopback).
     # Traefik on orchestrator uses host networking, so 127.0.0.1 is stable.

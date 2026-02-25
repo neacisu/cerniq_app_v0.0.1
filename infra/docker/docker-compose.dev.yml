@@ -12,7 +12,7 @@
 # DEV-SPECIFIC for application services:
 #   - Volume mounts for source code (hot-reload)
 #   - Vite dev server (HMR) / tsx watch (auto-restart)
-#   - Ports: 65xxx range (dev) vs 64xxx (staging/prod)
+#   - Ports: 64xxx range (same as staging/prod internal ports)
 #   - No security hardening (cap_drop, no-new-privileges) for ergonomics
 #
 # Prerequisites:
@@ -205,12 +205,12 @@ services:
     working_dir: /app
     volumes:
       - ../../:/app
-    command: sh -c "npm install -g pnpm@10.29.3 && pnpm --filter @cerniq/web dev --host 0.0.0.0 --port 65000"
+    command: sh -c "npm install -g pnpm@10.29.3 && pnpm --filter @cerniq/web dev --host 0.0.0.0 --port 64000"
     ports:
-      - "65000:65000"
+      - "64000:64000"
     environment:
       NODE_ENV: development
-      VITE_API_PROXY_TARGET: "http://cerniq-dev-api:65010"
+      VITE_API_PROXY_TARGET: "http://cerniq-dev-api:64010"
     networks:
       - cerniq_public
       - cerniq_backend
@@ -230,12 +230,12 @@ services:
     working_dir: /app
     volumes:
       - ../../:/app
-    command: sh -c "npm install -g pnpm@10.29.3 && pnpm --filter @cerniq/web-admin dev --host 0.0.0.0 --port 65012"
+    command: sh -c "npm install -g pnpm@10.29.3 && pnpm --filter @cerniq/web-admin dev --host 0.0.0.0 --port 64012"
     ports:
-      - "65012:65012"
+      - "64012:64012"
     environment:
       NODE_ENV: development
-      VITE_API_PROXY_TARGET: "http://cerniq-dev-api:65010"
+      VITE_API_PROXY_TARGET: "http://cerniq-dev-api:64010"
     networks:
       - cerniq_public
       - cerniq_backend
@@ -258,10 +258,10 @@ services:
       - ${CERNIQ_RENDERED_SECRETS_DIR:-/opt/cerniq/runtime-secrets}/api:/secrets:ro
     command: sh -c "npm install -g pnpm@10.29.3 && pnpm --filter @cerniq/api dev"
     ports:
-      - "65010:65010"
+      - "64010:64010"
     environment:
       NODE_ENV: development
-      PORT: "65010"
+      PORT: "64010"
       LOG_LEVEL: debug
       SECRETS_PATH: /secrets/api.env
     extra_hosts:
@@ -293,10 +293,10 @@ services:
       - ${CERNIQ_RENDERED_SECRETS_DIR:-/opt/cerniq/runtime-secrets}/api:/secrets:ro
     command: sh -c "npm install -g pnpm@10.29.3 && pnpm --filter @cerniq/monitoring-api dev"
     ports:
-      - "65080:65080"
+      - "64080:64080"
     environment:
       NODE_ENV: development
-      PORT: "65080"
+      PORT: "64080"
       SECRETS_PATH: /secrets/api.env
     networks:
       - cerniq_backend
