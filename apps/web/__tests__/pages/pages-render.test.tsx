@@ -29,7 +29,7 @@ describe("Page Rendering", () => {
   });
   it("ForgotPassword renders", () => {
     wrap(<ForgotPassword />);
-    expect(screen.getByText(/Resetare Parolă/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Resetare Parolă/i })).toBeInTheDocument();
   });
   it("Dashboard renders KPIs", () => {
     wrap(<Dashboard />);
