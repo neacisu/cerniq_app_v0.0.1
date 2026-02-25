@@ -21,6 +21,8 @@ exporters:
   otlphttp:
     endpoint: https://otel-cerniq.neanelu.ro
 
+# Only traces pipeline is configured for Etapa 0. Metrics and logs pipelines
+# can be added when Prometheus/Vector exporters are integrated.
 service:
   pipelines:
     traces:

@@ -5,13 +5,18 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "jsdom",
-    include: [
-      "src/**/*.test.tsx",
-      "__tests__/**/*.test.tsx",
-      "__tests__/**/*.test.ts",
-    ],
+    include: ["src/**/*.test.tsx", "__tests__/**/*.test.tsx", "__tests__/**/*.test.ts"],
     setupFiles: ["__tests__/setup.ts"],
     css: true,
+    coverage: {
+      provider: "v8",
+      thresholds: {
+        statements: 80,
+        branches: 75,
+        functions: 80,
+        lines: 80,
+      },
+    },
   },
   resolve: { alias: { "@": path.resolve(__dirname, "./src") } },
 });

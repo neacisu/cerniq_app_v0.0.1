@@ -33,12 +33,8 @@ networks:
     external: true
 
 # ============================================================================
-# Volumes
+# Volumes (add named volumes here when needed)
 # ============================================================================
-# Persistent storage for databases and application data
-# ============================================================================
-
-volumes: {}
 # ============================================================================
 # X-Common Configurations (YAML Anchors)
 # ============================================================================
@@ -235,6 +231,116 @@ services:
       <<: *default-logging
 
   # ==========================================================================
+  # Workers — BullMQ (AI, Enrichment, Outreach)
+  # ==========================================================================
+  # Redis connection via OpenBao-rendered workers.env (REDIS_URL, REDIS_PREFIX).
+  # ==========================================================================
+  cerniq-worker-ai:
+    image: ${REGISTRY:-ghcr.io}/${IMAGE_OWNER:-cerniqapp}/cerniq/worker-ai:${CERNIQ_VERSION:-latest}
+    container_name: cerniq-worker-ai
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    env_file:
+      - ${CERNIQ_RENDERED_SECRETS_DIR:-/opt/cerniq/runtime-secrets}/workers/workers.env
+    environment:
+      NODE_ENV: ${CERNIQ_ENV:-staging}
+      PORT: "3000"
+    networks:
+      - cerniq_backend
+    depends_on:
+      openbao-agent-workers:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+    labels:
+      <<: *common-labels
+      com.cerniq.service: "worker-ai"
+    logging:
+      <<: *default-logging
+
+  cerniq-worker-enrichment:
+    image: ${REGISTRY:-ghcr.io}/${IMAGE_OWNER:-cerniqapp}/cerniq/worker-enrichment:${CERNIQ_VERSION:-latest}
+    container_name: cerniq-worker-enrichment
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    env_file:
+      - ${CERNIQ_RENDERED_SECRETS_DIR:-/opt/cerniq/runtime-secrets}/workers/workers.env
+    environment:
+      NODE_ENV: ${CERNIQ_ENV:-staging}
+      PORT: "3000"
+    networks:
+      - cerniq_backend
+    depends_on:
+      openbao-agent-workers:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+    labels:
+      <<: *common-labels
+      com.cerniq.service: "worker-enrichment"
+    logging:
+      <<: *default-logging
+
+  cerniq-worker-outreach:
+    image: ${REGISTRY:-ghcr.io}/${IMAGE_OWNER:-cerniqapp}/cerniq/worker-outreach:${CERNIQ_VERSION:-latest}
+    container_name: cerniq-worker-outreach
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    env_file:
+      - ${CERNIQ_RENDERED_SECRETS_DIR:-/opt/cerniq/runtime-secrets}/workers/workers.env
+    environment:
+      NODE_ENV: ${CERNIQ_ENV:-staging}
+      PORT: "3000"
+    networks:
+      - cerniq_backend
+    depends_on:
+      openbao-agent-workers:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+    labels:
+      <<: *common-labels
+      com.cerniq.service: "worker-outreach"
+    logging:
+      <<: *default-logging
+
+  # ==========================================================================
   # PgBouncer 1.25 - Connection Pooling
   # ==========================================================================
   # Reference: pgbouncer-connection-pooling.md, ADR-0004
@@ -243,7 +349,7 @@ services:
   pgbouncer:
     # NOTE: specific tags are not consistently resolvable from all environments;
     # use latest and pin to digest if reproducibility is required.
-    image: edoburu/pgbouncer:latest
+    image: edoburu/pgbouncer:v1.25.1-p0
     container_name: cerniq-pgbouncer
     restart: unless-stopped
     # Security hardening - F0.8.1.T003
@@ -527,7 +633,7 @@ services:
   cadvisor:
     # NOTE: version tags are not consistently published on gcr.io; use latest.
     # If you need strict pinning, replace with an image digest after pull.
-    image: gcr.io/cadvisor/cadvisor:latest
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
     container_name: cerniq-cadvisor
     restart: unless-stopped
     privileged: false

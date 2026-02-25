@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 
 interface PageWrapperProps {
   title: string;
@@ -7,12 +7,16 @@ interface PageWrapperProps {
   actions?: ReactNode;
 }
 
-export function PageWrapper({
-  title,
-  subtitle,
-  children,
-  actions,
-}: PageWrapperProps) {
+const BASE_TITLE = "Cerniq";
+
+export function PageWrapper({ title, subtitle, children, actions }: PageWrapperProps) {
+  useEffect(() => {
+    document.title = title ? `${title} — ${BASE_TITLE}` : BASE_TITLE;
+    return () => {
+      document.title = BASE_TITLE;
+    };
+  }, [title]);
+
   return (
     <div className="page">
       <div className="ph">

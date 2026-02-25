@@ -1,5 +1,6 @@
 import Fastify from "fastify";
 import type { FastifyInstance } from "fastify";
+import { serializerCompiler, validatorCompiler } from "fastify-type-provider-zod";
 import { envConfig } from "./config.js";
 import { registerPlugins } from "./plugins/index.js";
 import { registerRoutes } from "./routes/index.js";
@@ -27,6 +28,8 @@ export async function buildApp(): Promise<FastifyInstance> {
     requestTimeout: 30000,
   });
 
+  app.setValidatorCompiler(validatorCompiler);
+  app.setSerializerCompiler(serializerCompiler);
   app.setErrorHandler(errorHandler);
 
   await registerPlugins(app);

@@ -1,12 +1,25 @@
-import type { FastifyPluginCallback } from "fastify";
+import type { FastifyPluginCallback, FastifyRequest, FastifyReply } from "fastify";
 import fp from "fastify-plugin";
-import {
-  Registry,
-  Counter,
-  Histogram,
-  Gauge,
-  collectDefaultMetrics,
-} from "prom-client";
+import { Registry, Counter, Histogram, Gauge, collectDefaultMetrics } from "prom-client";
+
+/** CIDR-style allowlist for /metrics (internal network + localhost). Comma-separated, e.g. "10.0.0.0/16,127.0.0.1,::1". */
+const METRICS_ALLOW_CIDR = (process.env.METRICS_ALLOW_CIDR ?? "10.0.0.0/16,127.0.0.1,::1")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+function isIpAllowed(ip: string): boolean {
+  if (!ip) return false;
+  if (ip === "127.0.0.1" || ip === "::1" || ip === "::ffff:127.0.0.1") return true;
+  if (ip.startsWith("10.0.")) return true;
+  if (ip.startsWith("fd") || ip === "::") return false;
+  for (const cidr of METRICS_ALLOW_CIDR) {
+    if (cidr === ip) return true;
+    if (cidr.endsWith("/16") && cidr.startsWith("10.0.") && ip.startsWith("10.0.")) return true;
+    if (cidr.endsWith("/32") && ip === cidr.replace("/32", "")) return true;
+  }
+  return false;
+}
 
 const register = new Registry();
 collectDefaultMetrics({ register, prefix: "cerniq_" });
@@ -54,7 +67,13 @@ const metricsPluginFn: FastifyPluginCallback = (app, _opts, done) => {
     hookDone();
   });
 
-  app.get("/metrics", async (_request, reply) => {
+  app.get("/metrics", async (request: FastifyRequest, reply: FastifyReply) => {
+    const ip = request.ip ?? request.headers["x-forwarded-for"] ?? request.headers["x-real-ip"];
+    const clientIp = typeof ip === "string" ? ip.split(",")[0].trim() : String(ip ?? "");
+    if (!isIpAllowed(clientIp)) {
+      request.log.warn({ ip: clientIp }, "Metrics access denied");
+      return reply.status(403).send({ error: "Forbidden" });
+    }
     const metrics = await register.metrics();
     reply.header("Content-Type", register.contentType);
     return metrics;

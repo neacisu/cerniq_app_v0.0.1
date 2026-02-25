@@ -23,9 +23,9 @@ export function CardHeader({ className, children, ...props }: CardProps) {
 
 export function CardTitle({ className, children, ...props }: CardProps) {
   return (
-    <h3 className={cn("ct", className)} {...props}>
+    <h2 className={cn("ct", className)} {...props}>
       {children}
-    </h3>
+    </h2>
   );
 }
 

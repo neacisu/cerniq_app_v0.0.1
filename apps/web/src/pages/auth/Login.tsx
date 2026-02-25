@@ -1,31 +1,51 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Eye, EyeOff, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button.js";
 import { Input } from "@/components/ui/input.js";
 import { Spinner } from "@/components/ui/spinner.js";
 import { CerniqLogo } from "@/components/brand/CerniqLogo.js";
+import { useAuth } from "@/providers/auth-provider.js";
+
+const loginSchema = z.object({
+  email: z.string().min(1, "Email obligatoriu").email("Email invalid"),
+  password: z.string().min(6, "Minim 6 caractere"),
+});
+
+type LoginForm = z.infer<typeof loginSchema>;
 
 export function Login() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("admin@demo-tenant.com");
-  const [password, setPassword] = useState("demo123456");
+  const { login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [submitError, setSubmitError] = useState("");
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !password) {
-      setError("Completați toate câmpurile");
-      return;
-    }
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginForm>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "admin@demo-tenant.com",
+      password: "demo123456",
+    },
+  });
+
+  const onSubmit = async (data: LoginForm) => {
     setLoading(true);
-    setError("");
-    setTimeout(() => {
-      setLoading(false);
+    setSubmitError("");
+    const result = await login(data.email, data.password);
+    setLoading(false);
+    if (result.success) {
       navigate("/dashboard");
-    }, 1000);
+    } else {
+      setSubmitError(result.error ?? "Autentificare eșuată");
+    }
   };
 
   return (
@@ -41,43 +61,47 @@ export function Login() {
           Autentificare
         </h2>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
-            <label className="text-xs text-[var(--color-t3)] mb-1 block">
+            <label className="lbl" htmlFor="email">
               Email
             </label>
             <Input
+              id="email"
               type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="username"
               autoFocus
               placeholder="email@companie.ro"
-              error={!!error}
+              error={!!errors.email}
+              {...register("email")}
             />
+            {errors.email && <p className="ferr">{errors.email.message}</p>}
           </div>
           <div>
-            <label className="text-xs text-[var(--color-t3)] mb-1 block">
+            <label className="lbl" htmlFor="password">
               Parolă
             </label>
-            <div className="relative">
+            <div className="inpw">
               <Input
+                id="password"
                 type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
                 placeholder="••••••••"
-                error={!!error}
+                error={!!errors.password}
+                {...register("password")}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-t3)]"
-                aria-label="Toggle password"
+                className="inpi"
+                aria-label="Arată/ascunde parola"
               >
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
+            {errors.password && <p className="ferr">{errors.password.message}</p>}
           </div>
-          {error && <p className="text-xs text-[var(--color-er)]">{error}</p>}
+          {submitError && <p className="ferr">{submitError}</p>}
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? (
               <Spinner size={16} />

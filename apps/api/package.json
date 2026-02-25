@@ -15,6 +15,7 @@
   "dependencies": {
     "@cerniq/config": "workspace:*",
     "@cerniq/db": "workspace:*",
+    "@cerniq/observability": "workspace:*",
     "@cerniq/shared-types": "workspace:*",
     "@fastify/cookie": "^11.0.2",
     "@fastify/cors": "^11.2.0",
@@ -23,10 +24,11 @@
     "@fastify/rate-limit": "^10.3.0",
     "@fastify/swagger": "^9.7.0",
     "@fastify/swagger-ui": "^5.2.5",
-    "@types/opossum": "^8.1.9",
+    "bcrypt": "^6.0.0",
     "bullmq": "^5.69.2",
     "fastify": "^5.7.4",
     "fastify-plugin": "^5.1.0",
+    "fastify-type-provider-zod": "^6.1.0",
     "ioredis": "^5.9.3",
     "opossum": "^9.0.0",
     "pino": "^10.3.1",
@@ -35,7 +37,9 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
     "@types/node": "^24.10.13",
+    "@types/opossum": "^8.1.9",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   }

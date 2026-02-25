@@ -269,7 +269,7 @@ jobs:
 
           echo "📁 Creating COMPLETE server directory structure..."
           $SSH_CMD << 'ENDSSH'
-            mkdir -p /opt/cerniq/{config/{openbao/{policies,templates},fail2ban,cron,logrotate,docker},scripts,secrets,backups}
+            mkdir -p /opt/cerniq/{config/{openbao/{policies,templates},fail2ban,cron,logrotate,docker,sudoers},scripts,secrets,backups}
           ENDSSH
 
           echo "📄 Syncing docker-compose files..."
@@ -287,6 +287,7 @@ jobs:
           $SCP_CMD infra/config/cron/cerniq-backup ${HOST}:/opt/cerniq/config/cron/
           $SCP_CMD infra/config/logrotate/cerniq-backup ${HOST}:/opt/cerniq/config/logrotate/
           $SCP_CMD infra/config/docker/daemon.json ${HOST}:/opt/cerniq/config/docker/ 2>/dev/null || true
+          $SCP_CMD infra/config/sudoers/deploy ${HOST}:/opt/cerniq/config/sudoers/ 2>/dev/null || true
 
           echo "📄 Syncing ALL scripts..."
           $SCP_CMD infra/scripts/*.sh ${HOST}:/opt/cerniq/scripts/
@@ -404,6 +405,14 @@ jobs:
 
             sleep 5
 
+            # Run DB migrations (extensions, Drizzle tables, RLS) using API image + rendered secrets
+            echo "🗄️ Running database migrations..."
+            IMG="ghcr.io/${{ github.repository_owner }}/cerniq/api:${{ needs.setup.outputs.version }}"
+            docker run --rm --network cerniq_backend \
+              -v /opt/cerniq/runtime-secrets/api:/secrets:ro \
+              -e SECRETS_PATH=/secrets/api.env -e NODE_ENV=staging \
+              "$IMG" node apps/api/dist/migrate-runner.js || { echo "⚠️ Migration failed (non-fatal; may already be applied)"; true; }
+
             # Finally start application services (depend on agents + pgbouncer being healthy)
             echo "🚀 Starting application services..."
             docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-orphans
@@ -419,6 +428,21 @@ jobs:
             "echo '${{ needs.setup.outputs.version }}' > /opt/cerniq/.current_deploy"
 
       # =========================================================================
+      # STEP 6b: Install deploy sudoers and node_exporter (staging)
+      # =========================================================================
+      - name: 👤 Install deploy sudoers and node_exporter (Staging)
+        continue-on-error: true
+        run: |
+          ssh -i ~/.ssh/deploy_key deploy@${{ secrets.STAGING_HOST }} << 'ENDSSH'
+            if [ -f /opt/cerniq/config/sudoers/deploy ]; then
+              sudo -n cp /opt/cerniq/config/sudoers/deploy /etc/sudoers.d/deploy && sudo chmod 440 /etc/sudoers.d/deploy && echo "✅ deploy sudoers installed" || echo "⚠️ deploy sudoers skip (no sudo)"
+            fi
+            if [ -f /opt/cerniq/scripts/setup-node-exporter.sh ]; then
+              sudo -n bash /opt/cerniq/scripts/setup-node-exporter.sh && echo "✅ node_exporter enabled" || echo "⚠️ node_exporter skip"
+            fi
+          ENDSSH
+
+      # =========================================================================
       # STEP 7: Configure firewall
       # =========================================================================
       - name: 🔥 Configure Firewall
@@ -426,19 +450,18 @@ jobs:
         run: |
           ssh -i ~/.ssh/deploy_key deploy@${{ secrets.STAGING_HOST }} << 'ENDSSH'
             cd /opt/cerniq
-            
+            export GITHUB_ACTIONS=true
             # Check if UFW is active
             if sudo -n ufw status 2>/dev/null | grep -q "Status: active"; then
               echo "✅ UFW already active"
             else
               echo "🔥 Configuring firewall..."
               if [ -f /opt/cerniq/scripts/setup-firewall.sh ]; then
-                sudo -n /opt/cerniq/scripts/setup-firewall.sh || echo "⚠️ Firewall setup skipped/failed (no sudo)"
+                sudo -n -E /opt/cerniq/scripts/setup-firewall.sh || echo "⚠️ Firewall setup skipped/failed (no sudo)"
               else
                 echo "⚠️ No setup-firewall.sh; skipping (requires sudo)"
               fi
             fi
-            
             sudo -n ufw status verbose 2>/dev/null | head -10 || true
           ENDSSH
 
@@ -637,7 +660,7 @@ jobs:
 
           echo "📁 Creating COMPLETE server directory structure..."
           $SSH_CMD << 'ENDSSH'
-            mkdir -p /opt/cerniq/{config/{openbao/{policies,templates},fail2ban,cron,logrotate,docker},scripts,secrets,backups}
+            mkdir -p /opt/cerniq/{config/{openbao/{policies,templates},fail2ban,cron,logrotate,docker,sudoers},scripts,secrets,backups}
           ENDSSH
 
           echo "📄 Syncing docker-compose files..."
@@ -655,6 +678,7 @@ jobs:
           $SCP_CMD infra/config/cron/cerniq-backup ${HOST}:/opt/cerniq/config/cron/
           $SCP_CMD infra/config/logrotate/cerniq-backup ${HOST}:/opt/cerniq/config/logrotate/
           $SCP_CMD infra/config/docker/daemon.json ${HOST}:/opt/cerniq/config/docker/ 2>/dev/null || true
+          $SCP_CMD infra/config/sudoers/deploy ${HOST}:/opt/cerniq/config/sudoers/ 2>/dev/null || true
 
           echo "📄 Syncing ALL scripts..."
           $SCP_CMD infra/scripts/*.sh ${HOST}:/opt/cerniq/scripts/
@@ -769,6 +793,14 @@ jobs:
 
             sleep 5
 
+            # Run DB migrations (extensions, Drizzle tables, RLS) using API image + rendered secrets
+            echo "🗄️ Running database migrations..."
+            IMG="ghcr.io/${{ github.repository_owner }}/cerniq/api:${{ needs.setup.outputs.version }}"
+            docker run --rm --network cerniq_backend \
+              -v /opt/cerniq/runtime-secrets/api:/secrets:ro \
+              -e SECRETS_PATH=/secrets/api.env -e NODE_ENV=production \
+              "$IMG" node apps/api/dist/migrate-runner.js || { echo "⚠️ Migration failed (non-fatal; may already be applied)"; true; }
+
             # Finally start application services
             echo "🚀 Starting application services..."
             docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-orphans
@@ -784,6 +816,21 @@ jobs:
             "echo '${{ needs.setup.outputs.version }}' > /opt/cerniq/.current_deploy"
 
       # =========================================================================
+      # STEP 6b: Install deploy sudoers and node_exporter (production)
+      # =========================================================================
+      - name: 👤 Install deploy sudoers and node_exporter (Production)
+        continue-on-error: true
+        run: |
+          ssh -i ~/.ssh/deploy_key deploy@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
+            if [ -f /opt/cerniq/config/sudoers/deploy ]; then
+              sudo -n cp /opt/cerniq/config/sudoers/deploy /etc/sudoers.d/deploy && sudo chmod 440 /etc/sudoers.d/deploy && echo "✅ deploy sudoers installed" || echo "⚠️ deploy sudoers skip (no sudo; run manually once as root)"
+            fi
+            if [ -f /opt/cerniq/scripts/setup-node-exporter.sh ]; then
+              sudo -n bash /opt/cerniq/scripts/setup-node-exporter.sh && echo "✅ node_exporter enabled" || echo "⚠️ node_exporter skip"
+            fi
+          ENDSSH
+
+      # =========================================================================
       # STEP 7: Configure firewall
       # =========================================================================
       - name: 🔥 Configure Firewall
@@ -791,18 +838,17 @@ jobs:
         run: |
           ssh -i ~/.ssh/deploy_key deploy@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
             cd /opt/cerniq
-            
+            export GITHUB_ACTIONS=true
             if sudo -n ufw status 2>/dev/null | grep -q "Status: active"; then
               echo "✅ UFW already active"
             else
               echo "🔥 Configuring production firewall..."
               if [ -f /opt/cerniq/scripts/setup-firewall.sh ]; then
-                sudo -n CERNIQ_UFW_AUTO_APPROVE=true /opt/cerniq/scripts/setup-firewall.sh || true
+                sudo -n -E /opt/cerniq/scripts/setup-firewall.sh || true
               else
                 echo "⚠️ No setup-firewall.sh; skipping (requires sudo)"
               fi
             fi
-            
             sudo -n ufw status verbose 2>/dev/null | head -10 || true
           ENDSSH
 
@@ -997,18 +1043,18 @@ jobs:
           if [[ "${{ inputs.environment }}" == "production" ]]; then
             echo "${{ secrets.PRODUCTION_SSH_KEY_RESTRICTED }}" > ~/.ssh/deploy_key
             echo "HOST=${{ secrets.PRODUCTION_HOST }}" >> $GITHUB_ENV
-            echo "USER=deploy" >> $GITHUB_ENV
+            echo "DEPLOY_USER=deploy" >> $GITHUB_ENV
           else
             echo "${{ secrets.STAGING_SSH_KEY_RESTRICTED }}" > ~/.ssh/deploy_key
             echo "HOST=${{ secrets.STAGING_HOST }}" >> $GITHUB_ENV
-            echo "USER=deploy" >> $GITHUB_ENV
+            echo "DEPLOY_USER=deploy" >> $GITHUB_ENV
           fi
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H $HOST >> ~/.ssh/known_hosts 2>/dev/null
 
       - name: ⏮️ Execute Rollback
         run: |
-          ssh -i ~/.ssh/deploy_key ${USER}@${HOST} << 'ENDSSH'
+          ssh -i ~/.ssh/deploy_key ${DEPLOY_USER}@${HOST} << 'ENDSSH'
             cd /opt/cerniq
             
             echo "========================================"

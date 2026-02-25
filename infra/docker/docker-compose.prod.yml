@@ -29,8 +29,7 @@ services:
   # PgBouncer - Path overrides for production
   # ==========================================================================
   pgbouncer:
-    environment:
-      REDIS_MAXMEMORY: ${REDIS_MAXMEMORY:-8gb}
+    environment: {}
     networks:
       cerniq_data:
         ipv4_address: 172.29.30.11
@@ -145,6 +144,27 @@ services:
       driver: "json-file"
       options:
         max-size: "50m"
+        max-file: "3"
+
+  cerniq-worker-ai:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+  cerniq-worker-enrichment:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+  cerniq-worker-outreach:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
         max-file: "3"
 
 # =============================================================================

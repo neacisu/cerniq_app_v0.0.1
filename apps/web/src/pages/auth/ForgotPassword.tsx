@@ -8,19 +8,13 @@ export function ForgotPassword() {
         <div className="flex justify-center mb-6">
           <CerniqLogo size={40} />
         </div>
-        <h2
-          className="text-xl font-bold mb-4"
-          style={{ fontFamily: "var(--font-display)" }}
-        >
+        <h2 className="text-xl font-bold mb-4" style={{ fontFamily: "var(--font-display)" }}>
           Resetare Parolă
         </h2>
         <p className="text-sm text-[var(--color-t3)] mb-6">
-          Funcționalitate disponibilă în Etapa 1
+          Coming in Etapa 1 — resetare parolă va fi disponibilă în curând.
         </p>
-        <Link
-          to="/login"
-          className="text-sm text-[var(--color-b5)] hover:underline"
-        >
+        <Link to="/login" className="text-sm text-[var(--color-b5)] hover:underline">
           ← Înapoi la autentificare
         </Link>
       </div>

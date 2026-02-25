@@ -8,7 +8,7 @@
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
-    "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "lint:fix": "eslint . --fix",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test && vitest run --config vitest.config.ts",
     "test:watch": "vitest",
@@ -17,6 +17,7 @@
     "test:e2e": "vitest run --config vitest.config.ts",
     "validate": "turbo run lint typecheck test",
     "prepare": "husky",
+    "approve-builds": "CI=1 pnpm rebuild",
     "smoke:bullmq-prefix": "node ./infra/scripts/bullmq-prefix-smoketest.mjs"
   },
   "lint-staged": {
@@ -26,8 +27,11 @@
     ]
   },
   "devDependencies": {
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
     "@eslint/js": "^10.0.1",
     "@faker-js/faker": "^10.3.0",
+    "@playwright/test": "^1.58.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
@@ -46,7 +50,10 @@
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.56.0",
     "vitest": "^4.0.18",
-    "yaml": "^2.8.2"
+    "yaml": "^2.8.2",
+    "bullmq": "^5.69.2",
+    "ioredis": "^5.9.3",
+    "zod": "^4.3.6"
   },
   "engines": {
     "node": ">=24",
@@ -57,10 +64,5 @@
     "overrides": {
       "minimatch": "^10.2.2"
     }
-  },
-  "dependencies": {
-    "bullmq": "^5.69.2",
-    "ioredis": "^5.9.3",
-    "zod": "^4.3.6"
   }
 }

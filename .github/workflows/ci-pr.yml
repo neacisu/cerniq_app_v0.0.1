@@ -453,7 +453,7 @@ jobs:
       - name: 🔎 Check for Dockerfiles
         id: check-dockerfiles
         run: |
-          if [ -f "./apps/api/Dockerfile" ] && [ -f "./apps/web/Dockerfile" ]; then
+          if [ -f "./apps/api/Dockerfile" ] && [ -f "./apps/web/Dockerfile" ] && [ -f "./apps/web-admin/Dockerfile" ] && [ -f "./apps/monitoring-api/Dockerfile" ]; then
             echo "dockerfiles_exist=true" >> $GITHUB_OUTPUT
           else
             echo "dockerfiles_exist=false" >> $GITHUB_OUTPUT
@@ -483,6 +483,28 @@ jobs:
           file: ./apps/web/Dockerfile
           push: false
           tags: cerniq/web:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: 🏗️ Build Web Admin image
+        if: steps.check-dockerfiles.outputs.dockerfiles_exist == 'true'
+        uses: docker/build-push-action@v6.19.2
+        with:
+          context: .
+          file: ./apps/web-admin/Dockerfile
+          push: false
+          tags: cerniq/web-admin:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: 🏗️ Build Monitoring API image
+        if: steps.check-dockerfiles.outputs.dockerfiles_exist == 'true'
+        uses: docker/build-push-action@v6.19.2
+        with:
+          context: .
+          file: ./apps/monitoring-api/Dockerfile
+          push: false
+          tags: cerniq/monitoring-api:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

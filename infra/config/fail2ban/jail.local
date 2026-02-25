@@ -13,24 +13,19 @@
 [DEFAULT]
 # Ban duration: 1 hour
 bantime = 1h
-
-# Time window for counting failures
 findtime = 10m
-
-# Max failures before ban
 maxretry = 5
-
+backend = auto
+# Use UFW for banning
+banaction = ufw
+banaction_allports = ufw
+# Whitelisted IPs (never ban these)
+ignoreip = 127.0.0.1/8 ::1 92.180.19.237 95.216.225.145 94.130.68.123 135.181.183.164 95.216.72.100 95.216.72.118 10.0.1.107 10.0.1.108 10.0.1.109 10.0.1.110
 # Email notifications (optional)
 # destemail = security@cerniq.app
 # sender = fail2ban@cerniq.app
 # mta = sendmail
 # action = %(action_mwl)s
-
-# Backend to use (auto-detect)
-backend = auto
-
-# Whitelisted IPs (never ban these)
-ignoreip = 127.0.0.1/8 ::1 92.180.19.237 95.216.225.145 94.130.68.123 135.181.183.164 95.216.72.100 95.216.72.118 10.0.1.107 10.0.1.108 10.0.1.109 10.0.1.110
 
 # =============================================================================
 # SSH Protection
@@ -84,14 +79,8 @@ bantime = 30m
 findtime = 5m
 
 # =============================================================================
-# Ban actions
+# Ban actions (see [DEFAULT] above: banaction = ufw)
 # =============================================================================
-
-# Use UFW for banning (recommended for this setup)
-[DEFAULT]
-banaction = ufw
-banaction_allports = ufw
-
 # Alternative: use iptables-multiport
 # banaction = iptables-multiport
 # banaction_allports = iptables-allports

@@ -59,12 +59,12 @@
 
 | Environment | CT    | HAProxy Port | →   | Cerniq Port | Service         |
 | ----------- | ----- | ------------ | --- | ----------- | --------------- |
-| Staging     | CT109 | 19000        | →   | 64000       | Web Frontend    |
-| Staging     | CT109 | 19010        | →   | 64010       | API             |
-| Staging     | CT109 | 19012        | →   | 64012       | Admin Dashboard |
-| Production  | CT110 | 29000        | →   | 64000       | Web Frontend    |
-| Production  | CT110 | 29010        | →   | 64010       | API             |
-| Production  | CT110 | 29012        | →   | 64012       | Admin Dashboard |
+| Staging     | CT110 | 19000        | →   | 64000       | Web Frontend    |
+| Staging     | CT110 | 19010        | →   | 64010       | API             |
+| Staging     | CT110 | 19012        | →   | 64012       | Admin Dashboard |
+| Production  | CT109 | 29000        | →   | 64000       | Web Frontend    |
+| Production  | CT109 | 29010        | →   | 64010       | API             |
+| Production  | CT109 | 29012        | →   | 64012       | Admin Dashboard |
 
 ---
 
@@ -213,7 +213,7 @@ networks:
 | Service         | Locație                                      | Endpoint                   |
 | --------------- | -------------------------------------------- | -------------------------- |
 | PostgreSQL 18.2 | CT107                                        | 10.0.1.107:5432            |
-| Redis 8.4.0     | Orchestrator (shared)                        | 10.0.1.10:6379 via gateway |
+| Redis 8.6.0     | Orchestrator (shared)                        | 10.0.1.10:6379 via gateway |
 | OpenBao         | Orchestrator                                 | s3cr3ts.neanelu.ro:443     |
 | Observability   | Orchestrator (Grafana/Prometheus/Loki/Tempo) | 77.42.76.185               |
 | OTLP            | Orchestrator                                 | otel-cerniq.neanelu.ro     |

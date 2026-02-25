@@ -4,16 +4,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch worker.ts",
-    "build": "tsc -p tsconfig.json",
-    "start": "node dist/worker.js",
-    "lint": "echo 'No TS files yet — skeleton worker'",
-    "typecheck": "tsc --noEmit",
-    "test": "echo 'No tests yet — skeleton worker'"
+    "dev": "node worker.js",
+    "start": "node worker.js",
+    "lint": "echo 'No lint'",
+    "test": "echo 'No tests'"
   },
   "dependencies": {
-    "@cerniq/db": "workspace:*",
-    "@cerniq/shared-types": "workspace:*",
-    "@cerniq/config": "workspace:*"
+    "bullmq": "^5.69.2",
+    "ioredis": "^5.9.3"
   }
 }

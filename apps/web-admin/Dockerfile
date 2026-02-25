@@ -33,10 +33,8 @@ server {
     location / {
         try_files $uri $uri/ /index.html;
     }
-    location /health {
-        return 200 '{"status":"ok"}';
-        add_header Content-Type application/json;
-    }
+    location /health { return 200 '{"status":"ok"}'; add_header Content-Type application/json; }
+    location /health/live { return 200 '{"status":"ok"}'; add_header Content-Type application/json; }
 }
 EOF
 

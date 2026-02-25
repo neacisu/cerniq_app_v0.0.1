@@ -1,20 +1,18 @@
-import {
-  BrowserRouter,
-  Routes,
-  Route,
-  NavLink,
-  Navigate,
-} from "react-router-dom";
+import { BrowserRouter, Routes, Route, NavLink, Navigate } from "react-router-dom";
+import { AdminAuthProvider, useAdminAuth } from "./providers/admin-auth-provider.js";
 import { Dashboard } from "./pages/Dashboard.js";
 import { Queues } from "./pages/Queues.js";
 import { Health } from "./pages/Health.js";
-import { LayoutDashboard, ListTodo, HeartPulse } from "lucide-react";
+import { Logs } from "./pages/Logs.js";
+import { Login } from "./pages/Login.js";
+import { LayoutDashboard, ListTodo, HeartPulse, ScrollText } from "lucide-react";
 
 function AdminLayout() {
   const links = [
     { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { to: "/queues", icon: ListTodo, label: "Queues" },
     { to: "/health", icon: HeartPulse, label: "System Health" },
+    { to: "/logs", icon: ScrollText, label: "Logs" },
   ];
 
   return (
@@ -75,18 +73,43 @@ function AdminLayout() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/queues" element={<Queues />} />
           <Route path="/health" element={<Health />} />
+          <Route path="/logs" element={<Logs />} />
+          <Route
+            path="*"
+            element={
+              <div style={{ padding: "2rem", color: "#a0a0a8" }}>404 — Pagina nu a fost găsită</div>
+            }
+          />
         </Routes>
       </main>
     </div>
   );
 }
 
+function AdminGate({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated } = useAdminAuth();
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  return <>{children}</>;
+}
+
 export function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/*" element={<AdminLayout />} />
-      </Routes>
+      <AdminAuthProvider>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route
+            path="/*"
+            element={
+              <AdminGate>
+                <AdminLayout />
+              </AdminGate>
+            }
+          />
+        </Routes>
+      </AdminAuthProvider>
     </BrowserRouter>
   );
 }

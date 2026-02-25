@@ -3,6 +3,17 @@
 @import "./animations.css";
 @import "./typography.css";
 
+/*
+ * CSS naming conventions (Cerniq web):
+ * - t1, t2, t3, t4: text hierarchy (primary, secondary, tertiary, muted)
+ * - s600–s950: surface/background shades
+ * - b5, b10: brand accent
+ * - lbl, sel, inpw: form elements (label, select, input wrapper)
+ * - hb, av, bc, bcc: header (header button, avatar, breadcrumb)
+ * - ph, ptl, ps, pa: page (page header, page title, page subtitle, page actions)
+ * - hdr, nd: header, notification dot
+ */
+
 /* === Reset === */
 *,
 *::before,
@@ -39,6 +50,23 @@ body {
   outline: 2px solid var(--color-b5);
   outline-offset: 2px;
   border-radius: 4px;
+}
+
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 16px;
+  z-index: 9999;
+  padding: 8px 16px;
+  background: var(--color-b5);
+  color: oklch(0.1 0.02 255);
+  border-radius: 0 0 8px 8px;
+  font-weight: 600;
+  font-size: 13px;
+  transition: top 0.2s;
+}
+.skip-link:focus {
+  top: 0;
 }
 
 a {

@@ -12,6 +12,7 @@ const KNOWN_QUEUES = [
 function parseRedisUrl(url: string): {
   host: string;
   port: number;
+  username?: string;
   password?: string;
   db?: number;
 } {
@@ -19,7 +20,8 @@ function parseRedisUrl(url: string): {
   return {
     host: parsed.hostname,
     port: Number(parsed.port) || 6379,
-    password: parsed.password || undefined,
+    username: parsed.username || undefined,
+    password: decodeURIComponent(parsed.password) || undefined,
     db: parsed.pathname ? Number(parsed.pathname.slice(1)) || 0 : 0,
   };
 }

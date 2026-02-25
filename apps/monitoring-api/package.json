@@ -9,8 +9,7 @@
     "start": "node dist/index.js",
     "lint": "eslint src/",
     "typecheck": "tsc --noEmit",
-    "test": "echo 'No tests yet'",
-    "test:watch": "vitest"
+    "test": "echo 'No tests yet'"
   },
   "dependencies": {
     "@cerniq/config": "workspace:*",

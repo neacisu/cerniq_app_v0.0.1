@@ -1,14 +1,4 @@
-export interface NavItem {
-  label: string;
-  path: string;
-  icon: string;
-  badge?: { count: number; type: "danger" | "warning" };
-}
-
-export interface NavSection {
-  title: string;
-  items: NavItem[];
-}
+/** NavItem and NavSection are defined in @/config/navigation. */
 
 export interface KpiData {
   label: string;

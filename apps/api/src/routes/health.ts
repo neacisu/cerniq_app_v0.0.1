@@ -1,6 +1,19 @@
 import type { FastifyInstance } from "fastify";
 import { healthCheckStatus, healthCheckLatency } from "../plugins/metrics.js";
 
+let redisSingleton: import("ioredis").default | null = null;
+
+async function getRedisClient(): Promise<import("ioredis").default> {
+  if (redisSingleton) return redisSingleton;
+  const Redis = (await import("ioredis")).default;
+  redisSingleton = new Redis(process.env.REDIS_URL ?? "redis://localhost:6379", {
+    maxRetriesPerRequest: 1,
+    connectTimeout: 3000,
+    lazyConnect: true,
+  });
+  return redisSingleton;
+}
+
 async function checkDatabase(): Promise<{ status: string; latencyMs: number }> {
   const start = performance.now();
   try {
@@ -21,14 +34,8 @@ async function checkDatabase(): Promise<{ status: string; latencyMs: number }> {
 async function checkRedis(): Promise<{ status: string; latencyMs: number }> {
   const start = performance.now();
   try {
-    const Redis = (await import("ioredis")).default;
-    const redis = new Redis(process.env.REDIS_URL ?? "redis://localhost:6379", {
-      maxRetriesPerRequest: 1,
-      connectTimeout: 3000,
-      lazyConnect: true,
-    });
+    const redis = await getRedisClient();
     await redis.ping();
-    await redis.quit();
     const latencyMs = performance.now() - start;
     healthCheckStatus.set({ component: "redis" }, 1);
     healthCheckLatency.observe({ component: "redis" }, latencyMs);
@@ -50,8 +57,7 @@ export async function healthRoutes(app: FastifyInstance) {
   app.get("/ready", async (_request, reply) => {
     const dbCheck = await checkDatabase();
     const redisCheck = await checkRedis();
-    const allHealthy =
-      dbCheck.status === "healthy" && redisCheck.status === "healthy";
+    const allHealthy = dbCheck.status === "healthy" && redisCheck.status === "healthy";
 
     reply.status(allHealthy ? 200 : 503);
     return {

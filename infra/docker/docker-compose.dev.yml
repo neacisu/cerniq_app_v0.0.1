@@ -160,7 +160,7 @@ services:
   # PgBouncer 1.25 - Connection Pooling (identical to staging/prod)
   # ==========================================================================
   pgbouncer:
-    image: edoburu/pgbouncer:latest
+    image: edoburu/pgbouncer:v1.25.1-p0
     container_name: cerniq-dev-pgbouncer
     restart: unless-stopped
     volumes:
@@ -205,13 +205,15 @@ services:
     working_dir: /app
     volumes:
       - ../../:/app
-    command: sh -c "corepack enable && pnpm --filter @cerniq/web dev --host 0.0.0.0 --port 65000"
+    command: sh -c "npm install -g pnpm@10.29.3 && pnpm --filter @cerniq/web dev --host 0.0.0.0 --port 65000"
     ports:
       - "65000:65000"
     environment:
       NODE_ENV: development
+      VITE_API_PROXY_TARGET: "http://cerniq-dev-api:65010"
     networks:
       - cerniq_public
+      - cerniq_backend
     restart: unless-stopped
     labels:
       <<: *common-labels
@@ -228,13 +230,15 @@ services:
     working_dir: /app
     volumes:
       - ../../:/app
-    command: sh -c "corepack enable && pnpm --filter @cerniq/web-admin dev --host 0.0.0.0 --port 65012"
+    command: sh -c "npm install -g pnpm@10.29.3 && pnpm --filter @cerniq/web-admin dev --host 0.0.0.0 --port 65012"
     ports:
       - "65012:65012"
     environment:
       NODE_ENV: development
+      VITE_API_PROXY_TARGET: "http://cerniq-dev-api:65010"
     networks:
       - cerniq_public
+      - cerniq_backend
     restart: unless-stopped
     labels:
       <<: *common-labels
@@ -252,7 +256,7 @@ services:
     volumes:
       - ../../:/app
       - ${CERNIQ_RENDERED_SECRETS_DIR:-/opt/cerniq/runtime-secrets}/api:/secrets:ro
-    command: sh -c "corepack enable && pnpm --filter @cerniq/api dev"
+    command: sh -c "npm install -g pnpm@10.29.3 && pnpm --filter @cerniq/api dev"
     ports:
       - "65010:65010"
     environment:
@@ -287,7 +291,7 @@ services:
     volumes:
       - ../../:/app
       - ${CERNIQ_RENDERED_SECRETS_DIR:-/opt/cerniq/runtime-secrets}/api:/secrets:ro
-    command: sh -c "corepack enable && pnpm --filter @cerniq/monitoring-api dev"
+    command: sh -c "npm install -g pnpm@10.29.3 && pnpm --filter @cerniq/monitoring-api dev"
     ports:
       - "65080:65080"
     environment:
@@ -316,7 +320,7 @@ services:
     volumes:
       - ../../:/app
       - ${CERNIQ_RENDERED_SECRETS_DIR:-/opt/cerniq/runtime-secrets}/workers:/secrets:ro
-    command: sh -c "corepack enable && pnpm --filter @cerniq/worker-ai dev"
+    command: sh -c "npm install -g pnpm@10.29.3 && pnpm --filter @cerniq/worker-ai dev"
     environment:
       NODE_ENV: development
       SECRETS_PATH: /secrets/workers.env
@@ -342,7 +346,7 @@ services:
     volumes:
       - ../../:/app
       - ${CERNIQ_RENDERED_SECRETS_DIR:-/opt/cerniq/runtime-secrets}/workers:/secrets:ro
-    command: sh -c "corepack enable && pnpm --filter @cerniq/worker-enrichment dev"
+    command: sh -c "npm install -g pnpm@10.29.3 && pnpm --filter @cerniq/worker-enrichment dev"
     environment:
       NODE_ENV: development
       SECRETS_PATH: /secrets/workers.env
@@ -359,19 +363,18 @@ services:
       <<: *default-logging
 
   # ==========================================================================
-  # Worker Outreach — Python dev server with auto-reload
+  # Worker Outreach — Node dev (tsx watch, aligned with ai/enrichment)
   # ==========================================================================
   cerniq-worker-outreach:
-    image: python:3.13-slim
+    image: node:24
     container_name: cerniq-dev-worker-outreach
     working_dir: /app
     volumes:
-      - ../../workers/outreach:/app
+      - ../../:/app
       - ${CERNIQ_RENDERED_SECRETS_DIR:-/opt/cerniq/runtime-secrets}/workers:/secrets:ro
-    command: sh -c "pip install -r requirements.txt 2>/dev/null; python -u worker.py"
+    command: sh -c "npm install -g pnpm@10.29.3 && pnpm --filter @cerniq/worker-outreach dev"
     environment:
       NODE_ENV: development
-      PYTHONUNBUFFERED: "1"
       SECRETS_PATH: /secrets/workers.env
     networks:
       - cerniq_backend

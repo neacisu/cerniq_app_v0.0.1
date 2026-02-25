@@ -62,8 +62,8 @@ template {
   destination = "/secrets/workers.env"
   perms       = 0644
   
-  # Send HUP signal to Python workers for graceful reload
-  command     = "pkill -HUP python3 2>/dev/null || true"
+  # Send HUP signal to Node workers for graceful reload
+  command     = "pkill -HUP node 2>/dev/null || true"
   
   # Error handling
   error_on_missing_key = true

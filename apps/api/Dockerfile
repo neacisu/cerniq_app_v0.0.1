@@ -17,6 +17,7 @@ COPY apps/api/package.json ./apps/api/
 COPY packages/db/package.json ./packages/db/
 COPY packages/shared-types/package.json ./packages/shared-types/
 COPY packages/config/package.json ./packages/config/
+COPY packages/observability/package.json ./packages/observability/
 RUN pnpm install --frozen-lockfile --filter @cerniq/api...
 
 # --- Build ---
@@ -24,6 +25,7 @@ FROM deps AS builder
 COPY packages/ ./packages/
 COPY apps/api/ ./apps/api/
 RUN pnpm --filter @cerniq/shared-types build
+RUN pnpm --filter @cerniq/observability build
 RUN pnpm --filter @cerniq/db build
 RUN pnpm --filter @cerniq/api build
 
@@ -36,10 +38,14 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=deps /app/packages/db/node_modules ./packages/db/node_modules
+COPY --from=deps /app/packages/observability/node_modules ./packages/observability/node_modules
 COPY --from=builder /app/packages/shared-types/dist ./packages/shared-types/dist
 COPY --from=builder /app/packages/shared-types/package.json ./packages/shared-types/
 COPY --from=builder /app/packages/db/dist ./packages/db/dist
+COPY --from=builder /app/packages/db/drizzle ./packages/db/drizzle
 COPY --from=builder /app/packages/db/package.json ./packages/db/
+COPY --from=builder /app/packages/observability/dist ./packages/observability/dist
+COPY --from=builder /app/packages/observability/package.json ./packages/observability/
 COPY --from=builder /app/packages/config/ ./packages/config/
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 COPY --from=builder /app/apps/api/package.json ./apps/api/

@@ -53,6 +53,14 @@ path "auth/approle/role/cerniq-workers/role-id" {
   capabilities = ["read"]
 }
 
+# Generate new secret_id for infra AppRole (e.g. deploy runners)
+path "auth/approle/role/cerniq-infra/secret-id" {
+  capabilities = ["create", "update"]
+}
+path "auth/approle/role/cerniq-infra/role-id" {
+  capabilities = ["read"]
+}
+
 # =============================================================================
 # Token Self-Management
 # =============================================================================

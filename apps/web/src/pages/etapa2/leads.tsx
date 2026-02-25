@@ -1,21 +1,26 @@
 import { useState } from "react";
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardBody,
-  Badge,
-  SBadge,
-} from "@/components/ui/index.js";
+import { Card, CardHeader, CardTitle, CardBody, Badge, SBadge } from "@/components/ui/index.js";
 import { ProgressBar } from "@/components/data/ProgressBar.js";
 import { MOCK_LEADS } from "@/config/constants.js";
 import { cn } from "@/lib/utils.js";
 
 const TABS = ["ALL", "COLD", "CONTACTED", "WARM", "NEGOTIATION", "CONVERTED"];
 
+function matchTab(status: string, tab: string): boolean {
+  if (tab === "ALL") return true;
+  const u = status.toUpperCase();
+  if (tab === "COLD") return u === "COLD";
+  if (tab === "CONTACTED") return u.includes("CONTACTED");
+  if (tab === "WARM") return u.includes("WARM");
+  if (tab === "NEGOTIATION") return u === "NEGOTIATION";
+  if (tab === "CONVERTED") return u === "CONVERTED";
+  return false;
+}
+
 export function Leads() {
   const [tab, setTab] = useState("ALL");
+  const filteredLeads = MOCK_LEADS.filter((l) => matchTab(l.status, tab));
 
   return (
     <PageWrapper title="Leads">
@@ -54,17 +59,13 @@ export function Leads() {
               </tr>
             </thead>
             <tbody>
-              {MOCK_LEADS.map((l) => (
+              {filteredLeads.map((l) => (
                 <tr
                   key={l.id}
                   className="border-b border-[var(--color-s700)] last:border-0 hover:bg-[var(--color-s800)]/50"
                 >
-                  <td className="px-5 py-3 font-medium text-[var(--color-t1)]">
-                    {l.company}
-                  </td>
-                  <td className="px-5 py-3 text-[var(--color-t2)]">
-                    {l.contact}
-                  </td>
+                  <td className="px-5 py-3 font-medium text-[var(--color-t1)]">{l.company}</td>
+                  <td className="px-5 py-3 text-[var(--color-t2)]">{l.contact}</td>
                   <td className="px-5 py-3">
                     <SBadge status={l.status} />
                   </td>
@@ -75,9 +76,7 @@ export function Leads() {
                     <ProgressBar value={l.sentiment * 100} />
                   </td>
                   <td className="px-5 py-3">{l.score}</td>
-                  <td className="px-5 py-3 text-[var(--color-t3)]">
-                    {l.timeAgo}
-                  </td>
+                  <td className="px-5 py-3 text-[var(--color-t3)]">{l.timeAgo}</td>
                 </tr>
               ))}
             </tbody>
