@@ -89,6 +89,7 @@ export async function finalizeOwnership() {
     "public.role_permissions",
     "public.user_roles",
     "public.tenants",
+    "public.invite_codes",
     "approval.approval_tasks",
     "approval.approval_type_configs",
     "audit.approval_audit_log",

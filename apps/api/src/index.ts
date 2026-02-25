@@ -1,6 +1,11 @@
 import { envConfig, refreshEnvConfig } from "./config.js";
 import { initTelemetry, shutdownTelemetry } from "@cerniq/observability";
-import { refreshDbConnection, closeDbConnection } from "@cerniq/db";
+import {
+  refreshDbConnection,
+  closeDbConnection,
+  runMigrations,
+  runDrizzleMigrations,
+} from "@cerniq/db";
 import { buildApp } from "./app.js";
 
 initTelemetry({
@@ -9,6 +14,16 @@ initTelemetry({
 });
 
 async function main() {
+  if (envConfig.NODE_ENV === "development") {
+    try {
+      await runMigrations();
+      await runDrizzleMigrations();
+      console.log("Development: migrations applied.");
+    } catch (err) {
+      console.error("Development: migrations failed (continuing anyway):", err);
+    }
+  }
+
   const app = await buildApp();
 
   process.on("unhandledRejection", (reason, promise) => {

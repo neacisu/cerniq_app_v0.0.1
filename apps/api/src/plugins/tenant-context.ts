@@ -8,7 +8,7 @@ declare module "fastify" {
   }
 }
 
-const PUBLIC_PREFIXES = ["/health", "/docs", "/metrics", "/auth/login"];
+const PUBLIC_PREFIXES = ["/health", "/docs", "/metrics", "/auth/login", "/auth/register"];
 
 function isPublicRoute(url: string): boolean {
   return url === "/" || PUBLIC_PREFIXES.some((p) => url.startsWith(p));

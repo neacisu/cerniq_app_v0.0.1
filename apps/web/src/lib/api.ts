@@ -54,13 +54,17 @@ export async function apiFetch<T>(path: string, options?: RequestInit): Promise<
     } catch {
       // keep as text
     }
-    throw new ApiError(
-      (data && typeof data === "object" && "message" in data
-        ? String((data as { message: unknown }).message)
-        : res.statusText) || `API ${res.status}`,
-      res.status,
-      data,
-    );
+    const message =
+      data && typeof data === "object"
+        ? String(
+            "error" in data
+              ? (data as { error: unknown }).error
+              : "message" in data
+                ? (data as { message: unknown }).message
+                : res.statusText,
+          )
+        : res.statusText;
+    throw new ApiError(message || `API ${res.status}`, res.status, data);
   }
 
   const contentType = res.headers.get("content-type");

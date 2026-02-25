@@ -1,18 +1,18 @@
+/**
+ * Auth context: provider, hook and route guard.
+ * We export both the provider and useAuth from this file by design; Fast Refresh
+ * is limited for this pattern, so we allow it via eslint.
+ */
+/* eslint-disable react-refresh/only-export-components */
+
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 import { Navigate } from "react-router-dom";
 import { api } from "@/lib/api.js";
 import { LoadingPage } from "@/components/feedback/LoadingPage.js";
+import type { User, RegisterData } from "./auth-types.js";
 
 const STORAGE_KEY = "cerniq_token";
 const USER_KEY = "cerniq_user";
-
-export type User = {
-  id?: string;
-  email: string;
-  name?: string;
-  tenantId: string;
-  role: string;
-};
 
 type AuthState = {
   user: User | null;
@@ -22,6 +22,7 @@ type AuthState = {
 
 type AuthContextValue = AuthState & {
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  register: (data: RegisterData) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   setAuth: (token: string, user: User) => void;
   getAuthHeader: () => { Authorization?: string };
@@ -71,6 +72,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const register = useCallback(async (data: RegisterData) => {
+    try {
+      const payload = {
+        name: data.name,
+        email: data.email,
+        password: data.password,
+        mode: data.mode,
+        ...(data.mode === "new_company" && data.companyName && { companyName: data.companyName }),
+        ...(data.mode === "invite_code" && data.inviteCode && { inviteCode: data.inviteCode }),
+      };
+      const res = await api.post<{
+        success?: boolean;
+        error?: string;
+        data?: { token: string; user: User };
+      }>("/auth/register", payload);
+      if (!res?.success || !res?.data?.token) {
+        return { success: false, error: res?.error ?? "Inregistrare esuata" };
+      }
+      const { token, user } = res.data;
+      localStorage.setItem(STORAGE_KEY, token);
+      localStorage.setItem(USER_KEY, JSON.stringify(user));
+      setState({ user, token, loading: false });
+      return { success: true };
+    } catch (err) {
+      const message =
+        err && typeof err === "object" && "message" in err
+          ? String((err as { message: unknown }).message)
+          : "Eroare de retea";
+      return { success: false, error: message };
+    }
+  }, []);
+
   const logout = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(USER_KEY);
@@ -92,11 +125,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       ...state,
       login,
+      register,
       logout,
       setAuth,
       getAuthHeader,
     }),
-    [state, login, logout, setAuth, getAuthHeader],
+    [state, login, register, logout, setAuth, getAuthHeader],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
