@@ -21,9 +21,11 @@ if ! command -v node_exporter &>/dev/null; then
         echo "prometheus-node-exporter not in repos; trying direct download..."
         VER="1.8.2"
         ARCH="$(dpkg --print-architecture)"
-        [ "$ARCH" = "amd64" ] && ARCH="amd64" || true
-        [ "$ARCH" = "arm64" ] && ARCH="arm64" || true
-        curl -sSL "https://github.com/prometheus/node_exporter/releases/download/v${VER}/node_exporter-${VER}.linux-${ARCH}.tar.gz" | tar -xz -C /usr/local/bin --strip-components=1 node_exporter-${VER}.linux-${ARCH}/node_exporter
+        if [ "$ARCH" != "amd64" ] && [ "$ARCH" != "arm64" ]; then
+            echo "Unsupported architecture: ${ARCH}"
+            exit 1
+        fi
+        curl -sSL "https://github.com/prometheus/node_exporter/releases/download/v${VER}/node_exporter-${VER}.linux-${ARCH}.tar.gz" | tar -xz -C /usr/local/bin --strip-components=1 "node_exporter-${VER}.linux-${ARCH}/node_exporter"
         chmod +x /usr/local/bin/node_exporter
     }
 fi
