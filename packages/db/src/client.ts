@@ -20,7 +20,7 @@ const postgresOptions = {
   max: poolSize,
   idle_timeout: 20,
   connect_timeout: 10,
-  prepare: true,
+  prepare: false,
 } as const;
 
 export function createDbClient(connectionString: string) {
@@ -82,7 +82,7 @@ export async function get_user_by_email(
     created_at: Date;
     updated_at: Date;
   };
-  const rows = await connection.sql<[RawRow]>`SELECT * FROM get_user_by_email(${email})`;
+  const rows = await connection.sql<[RawRow]>`SELECT * FROM get_user_by_email(${email}::text)`;
   const row = rows[0];
   if (!row) return null;
   return {
