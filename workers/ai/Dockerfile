@@ -9,13 +9,12 @@
 FROM node:25.6.1-alpine3.23 AS base
 ENV CI=true
 RUN apk add --no-cache curl
-RUN npm install -g pnpm@10.29.3
 WORKDIR /app
 
 # --- Dependencies only ---
 FROM base AS deps
-COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile --prod
+COPY package.json ./
+RUN npm install --omit=dev
 
 # --- Runtime (minimal copy) ---
 FROM base AS runner
