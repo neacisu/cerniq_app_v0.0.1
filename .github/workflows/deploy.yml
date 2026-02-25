@@ -441,7 +441,7 @@ jobs:
             docker run --rm --network cerniq_backend \
               -v /opt/cerniq/runtime-secrets/api:/secrets:ro \
               -e SECRETS_PATH=/secrets/api.env -e NODE_ENV=staging \
-              "$IMG" node apps/api/dist/migrate-runner.js || { echo "⚠️ Migration failed (non-fatal; may already be applied)"; true; }
+              "$IMG" node apps/api/dist/migrate-runner.js
 
             # Finally start application services (depend on agents + pgbouncer being healthy)
             echo "🚀 Starting application services..."
@@ -869,7 +869,7 @@ jobs:
             docker run --rm --network cerniq_backend \
               -v /opt/cerniq/runtime-secrets/api:/secrets:ro \
               -e SECRETS_PATH=/secrets/api.env -e NODE_ENV=production \
-              "$IMG" node apps/api/dist/migrate-runner.js || { echo "⚠️ Migration failed (non-fatal; may already be applied)"; true; }
+              "$IMG" node apps/api/dist/migrate-runner.js
 
             # Finally start application services
             echo "🚀 Starting application services..."

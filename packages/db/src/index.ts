@@ -7,7 +7,7 @@ export {
   get_user_by_email,
 } from "./client.js";
 export { sql } from "drizzle-orm";
-export { runMigrations, runDrizzleMigrations, applyRlsPolicies } from "./migrate.js";
+export { runMigrations, runDrizzleMigrations, finalizeOwnership } from "./migrate.js";
 export * from "./schemas/tenants.js";
 export * from "./schemas/users.js";
 export * from "./schemas/rbac.js";

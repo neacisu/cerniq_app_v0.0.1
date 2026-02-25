@@ -4,7 +4,7 @@
  * Usage: node dist/migrate-runner.js
  */
 import "./config.js";
-import { runMigrations, runDrizzleMigrations, applyRlsPolicies } from "@cerniq/db";
+import { runMigrations, runDrizzleMigrations, finalizeOwnership } from "@cerniq/db";
 
 async function main() {
   console.log("Running extensions and schemas...");
@@ -13,8 +13,8 @@ async function main() {
   console.log("Running Drizzle SQL migrations...");
   await runDrizzleMigrations();
 
-  console.log("Applying RLS policies...");
-  await applyRlsPolicies();
+  console.log("Finalizing table ownership...");
+  await finalizeOwnership();
 
   console.log("Migrations completed successfully.");
   process.exit(0);

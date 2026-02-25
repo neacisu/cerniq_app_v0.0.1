@@ -3,21 +3,17 @@
  *   DATABASE_URL=postgresql://... pnpm run db:migrate
  *   DATABASE_URL=postgresql://... pnpm run db:migrate -- --rls  # also apply RLS policies
  */
-import { runMigrations, runDrizzleMigrations, applyRlsPolicies } from "./migrate.js";
+import { runMigrations, runDrizzleMigrations, finalizeOwnership } from "./migrate.js";
 
 async function main() {
-  const applyRls = process.argv.includes("--rls");
-
   console.log("Running extensions and schemas...");
   await runMigrations();
 
   console.log("Running Drizzle SQL migrations...");
   await runDrizzleMigrations();
 
-  if (applyRls) {
-    console.log("Applying RLS policies...");
-    await applyRlsPolicies();
-  }
+  console.log("Finalizing table ownership...");
+  await finalizeOwnership();
 
   console.log("Done.");
   process.exit(0);

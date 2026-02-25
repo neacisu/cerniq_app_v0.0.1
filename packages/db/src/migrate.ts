@@ -12,13 +12,19 @@ export async function runMigrations() {
   await db.execute(sql`CREATE EXTENSION IF NOT EXISTS "vector"`);
   await db.execute(sql`CREATE EXTENSION IF NOT EXISTS "pg_trgm"`);
 
-  await db.execute(sql`CREATE SCHEMA IF NOT EXISTS bronze`);
-  await db.execute(sql`CREATE SCHEMA IF NOT EXISTS silver`);
-  await db.execute(sql`CREATE SCHEMA IF NOT EXISTS gold`);
-  await db.execute(sql`CREATE SCHEMA IF NOT EXISTS approval`);
-  await db.execute(sql`CREATE SCHEMA IF NOT EXISTS audit`);
+  const schemas = ["bronze", "silver", "gold", "approval", "audit"];
+  for (const schema of schemas) {
+    await db.execute(sql.raw(`CREATE SCHEMA IF NOT EXISTS ${schema}`));
+  }
 
-  console.log("Extensions and schemas created");
+  const [{ current_user: currentUser }] = (await db.execute(
+    sql`SELECT current_user`,
+  )) as unknown as [{ current_user: string }];
+  for (const schema of schemas) {
+    await db.execute(sql.raw(`GRANT ALL ON SCHEMA ${schema} TO "${currentUser}"`));
+  }
+
+  console.log(`Extensions and schemas created (grants applied for ${currentUser})`);
 }
 
 const IGNORABLE_ERROR_CODES = new Set([
@@ -69,41 +75,40 @@ export async function runDrizzleMigrations() {
   }
 }
 
-export async function applyRlsPolicies() {
-  const tablesWithTenantId = ["users", "roles", "user_roles"];
-  const approvalTables = ["approval.approval_tasks", "approval.approval_type_configs"];
-  const auditTables = ["audit.approval_audit_log"];
+/**
+ * RLS policies are applied via 0005_rls_policies.sql (idempotent DROP+CREATE pattern).
+ * This function transfers ownership of all Cerniq tables to the base role (c3rn1q)
+ * so objects created by ephemeral OpenBao dynamic roles survive credential rotation.
+ */
+export async function finalizeOwnership() {
+  const BASE_ROLE = "c3rn1q";
+  const tables = [
+    "public.users",
+    "public.roles",
+    "public.permissions",
+    "public.role_permissions",
+    "public.user_roles",
+    "public.tenants",
+    "approval.approval_tasks",
+    "approval.approval_type_configs",
+    "audit.approval_audit_log",
+  ];
 
-  const allTables = [...tablesWithTenantId, ...approvalTables, ...auditTables];
-
-  const tenantCondition = "(tenant_id = current_setting('app.tenant_id')::uuid)";
-
-  for (const table of allTables) {
-    const policyName = table.replace(".", "_");
-    await db.execute(sql.raw(`ALTER TABLE ${table} ENABLE ROW LEVEL SECURITY`));
-    await db.execute(sql.raw(`ALTER TABLE ${table} FORCE ROW LEVEL SECURITY`));
-
-    await db.execute(
-      sql.raw(
-        `CREATE POLICY IF NOT EXISTS tenant_isolation_${policyName} ON ${table} FOR SELECT USING ${tenantCondition}`,
-      ),
-    );
-    await db.execute(
-      sql.raw(
-        `CREATE POLICY IF NOT EXISTS tenant_insert_${policyName} ON ${table} FOR INSERT WITH CHECK ${tenantCondition}`,
-      ),
-    );
-    await db.execute(
-      sql.raw(
-        `CREATE POLICY IF NOT EXISTS tenant_update_${policyName} ON ${table} FOR UPDATE USING ${tenantCondition} WITH CHECK ${tenantCondition}`,
-      ),
-    );
-    await db.execute(
-      sql.raw(
-        `CREATE POLICY IF NOT EXISTS tenant_delete_${policyName} ON ${table} FOR DELETE USING ${tenantCondition}`,
-      ),
-    );
+  for (const table of tables) {
+    try {
+      await db.execute(sql.raw(`ALTER TABLE ${table} OWNER TO ${BASE_ROLE}`));
+    } catch {
+      // Table may not exist yet on first run
+    }
   }
 
-  console.log(`RLS policies applied to ${allTables.length} tables`);
+  try {
+    await db.execute(
+      sql.raw(`ALTER FUNCTION public.get_user_by_email(text) OWNER TO ${BASE_ROLE}`),
+    );
+  } catch {
+    // Function may not exist yet
+  }
+
+  console.log(`Ownership transferred to ${BASE_ROLE}`);
 }
