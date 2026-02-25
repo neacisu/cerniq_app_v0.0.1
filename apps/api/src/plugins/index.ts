@@ -66,8 +66,15 @@ export async function registerPlugins(app: FastifyInstance) {
     maxRetriesPerRequest: 3,
     retryStrategy: (times) => (times > 3 ? null : Math.min(times * 100, 3000)),
   });
-  app.addHook("onClose", (instance, done) => {
-    rateLimitRedis.quit().finally(done);
+  app.addHook("onClose", (_instance, done) => {
+    if (rateLimitRedis.status === "ready" || rateLimitRedis.status === "connect") {
+      rateLimitRedis
+        .quit()
+        .catch(() => {})
+        .finally(done);
+    } else {
+      done();
+    }
   });
   await app.register(rateLimit, {
     max: envConfig.RATE_LIMIT_MAX,
