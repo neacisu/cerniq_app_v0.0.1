@@ -2,26 +2,64 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { sql } from "drizzle-orm";
-import { db } from "./client.js";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
+const BASE_ROLE = "c3rn1q";
+
+let _migrationPg: ReturnType<typeof postgres> | null = null;
+let _migrationDb: PostgresJsDatabase | null = null;
+
+/**
+ * Dedicated single-connection client for migrations.
+ * Using max:1 guarantees SET ROLE persists across all statements.
+ */
+function getMigrationDb(): PostgresJsDatabase {
+  if (!_migrationDb) {
+    const url = process.env.DATABASE_URL ?? "postgresql://localhost:6432/cerniq";
+    _migrationPg = postgres(url, { max: 1, prepare: false, idle_timeout: 20, connect_timeout: 10 });
+    _migrationDb = drizzle(_migrationPg);
+  }
+  return _migrationDb;
+}
+
+/** Close the dedicated migration connection. Call after all migrations complete. */
+export async function closeMigrationDb(): Promise<void> {
+  if (_migrationPg) {
+    await _migrationPg.end();
+    _migrationPg = null;
+    _migrationDb = null;
+  }
+}
+
 export async function runMigrations() {
-  await db.execute(sql`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`);
-  await db.execute(sql`CREATE EXTENSION IF NOT EXISTS "postgis"`);
-  await db.execute(sql`CREATE EXTENSION IF NOT EXISTS "vector"`);
-  await db.execute(sql`CREATE EXTENSION IF NOT EXISTS "pg_trgm"`);
+  const mdb = getMigrationDb();
+
+  await mdb.execute(sql`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`);
+  await mdb.execute(sql`CREATE EXTENSION IF NOT EXISTS "postgis"`);
+  await mdb.execute(sql`CREATE EXTENSION IF NOT EXISTS "vector"`);
+  await mdb.execute(sql`CREATE EXTENSION IF NOT EXISTS "pg_trgm"`);
+
+  // Switch session to the permanent base role so all DDL objects
+  // (tables, functions, triggers, policies) are owned by c3rn1q.
+  // Dynamic OpenBao roles are members of c3rn1q (INHERIT IN ROLE c3rn1q)
+  // so SET ROLE is permitted. With max:1 the role persists for all queries.
+  await mdb.execute(sql.raw(`SET ROLE "${BASE_ROLE}"`));
+  console.log(`Session role set to ${BASE_ROLE} (all DDL will be owned by ${BASE_ROLE})`);
 
   const schemas = ["bronze", "silver", "gold", "approval", "audit"];
   for (const schema of schemas) {
-    await db.execute(sql.raw(`CREATE SCHEMA IF NOT EXISTS ${schema}`));
+    await mdb.execute(sql.raw(`CREATE SCHEMA IF NOT EXISTS ${schema}`));
   }
 
-  const [{ current_user: currentUser }] = (await db.execute(
+  const [{ current_user: currentUser }] = (await mdb.execute(
     sql`SELECT current_user`,
   )) as unknown as [{ current_user: string }];
   for (const schema of schemas) {
-    await db.execute(sql.raw(`GRANT ALL ON SCHEMA ${schema} TO "${currentUser}"`));
+    await mdb.execute(sql.raw(`GRANT ALL ON SCHEMA ${schema} TO "${currentUser}"`));
   }
 
   console.log(`Extensions and schemas created (grants applied for ${currentUser})`);
@@ -53,8 +91,8 @@ function getAddConstraintName(statement: string): string | null {
   return match?.[1] ?? null;
 }
 
-async function constraintExists(constraintName: string): Promise<boolean> {
-  const rows = (await db.execute(
+async function constraintExists(mdb: PostgresJsDatabase, constraintName: string): Promise<boolean> {
+  const rows = (await mdb.execute(
     sql`SELECT 1 FROM pg_constraint WHERE conname = ${constraintName} LIMIT 1`,
   )) as unknown as Array<Record<string, unknown>>;
   return rows.length > 0;
@@ -62,11 +100,11 @@ async function constraintExists(constraintName: string): Promise<boolean> {
 
 /** Run generated Drizzle SQL migrations from ./drizzle/*.sql (idempotent: ignores "already exists" errors). */
 export async function runDrizzleMigrations() {
+  const mdb = getMigrationDb();
   const drizzleDir = join(__dirname, "..", "drizzle");
   const files = readdirSync(drizzleDir)
     .filter((f) => f.endsWith(".sql"))
     .sort((a, b) => {
-      // Keep policy migration last so schema/FK changes are not blocked by FORCE RLS.
       if (a === "0005_rls_policies.sql") return 1;
       if (b === "0005_rls_policies.sql") return -1;
       return a.localeCompare(b);
@@ -82,46 +120,22 @@ export async function runDrizzleMigrations() {
 
     for (const statement of statements) {
       const addConstraintName = getAddConstraintName(statement);
-      if (addConstraintName && (await constraintExists(addConstraintName))) {
+      if (addConstraintName && (await constraintExists(mdb, addConstraintName))) {
         console.log(`Skipped (already exists): ${statement.slice(0, 60)}...`);
         continue;
       }
 
       try {
-        await db.execute(sql.raw(statement));
+        await mdb.execute(sql.raw(statement));
       } catch (err: unknown) {
         const { code, message } = getPgError(err);
-        const isOwnerFunction = code === "42501" && /must be owner of function/i.test(message);
-        const isOwnerRelation = code === "42501" && /must be owner of relation/i.test(message);
-        const isOwnerTriggerRelation =
-          isOwnerRelation && /^DROP TRIGGER IF EXISTS /i.test(statement);
-        const isOwnerPolicyRelation = isOwnerRelation && /^DROP POLICY IF EXISTS /i.test(statement);
-        const isOwnerRlsToggle =
-          isOwnerRelation &&
-          /^ALTER TABLE .* (ENABLE|FORCE) ROW LEVEL SECURITY;?$/i.test(statement);
-        const isOwnerTable = code === "42501" && /must be owner of table/i.test(message);
-        const isAddConstraint = /ALTER TABLE .* ADD CONSTRAINT /i.test(statement);
 
-        const shouldSkipOwnerAddConstraint = isOwnerTable && isAddConstraint;
+        const isOwnership = code === "42501" && /must be owner of/i.test(message);
 
         if (IGNORABLE_ERROR_CODES.has(code)) {
           console.log(`Skipped (already exists): ${statement.slice(0, 60)}...`);
-        } else if (
-          isOwnerFunction ||
-          isOwnerTriggerRelation ||
-          isOwnerPolicyRelation ||
-          isOwnerRlsToggle ||
-          shouldSkipOwnerAddConstraint
-        ) {
-          if (shouldSkipOwnerAddConstraint && addConstraintName) {
-            console.log(
-              `Skipped (constraint ownership mismatch, requires base role): ${addConstraintName}`,
-            );
-          } else {
-            console.log(
-              `Skipped (object owned by base role, idempotent): ${statement.slice(0, 60)}...`,
-            );
-          }
+        } else if (isOwnership) {
+          console.log(`Skipped (ownership mismatch, idempotent): ${statement.slice(0, 80)}...`);
         } else {
           throw err;
         }
@@ -132,12 +146,12 @@ export async function runDrizzleMigrations() {
 }
 
 /**
- * RLS policies are applied via 0005_rls_policies.sql (idempotent DROP+CREATE pattern).
- * This function transfers ownership of all Cerniq tables to the base role (c3rn1q)
- * so objects created by ephemeral OpenBao dynamic roles survive credential rotation.
+ * Safety-net: ensure all Cerniq tables/functions are owned by the base role.
+ * With SET ROLE this should already be the case, but this handles edge cases
+ * (e.g. objects created before SET ROLE was introduced).
  */
 export async function finalizeOwnership() {
-  const BASE_ROLE = "c3rn1q";
+  const mdb = getMigrationDb();
   const tables = [
     "public.users",
     "public.roles",
@@ -153,7 +167,7 @@ export async function finalizeOwnership() {
 
   for (const table of tables) {
     try {
-      await db.execute(sql.raw(`ALTER TABLE ${table} OWNER TO ${BASE_ROLE}`));
+      await mdb.execute(sql.raw(`ALTER TABLE ${table} OWNER TO "${BASE_ROLE}"`));
     } catch {
       // Table may not exist yet on first run
     }
@@ -162,7 +176,7 @@ export async function finalizeOwnership() {
   const functions = ["public.get_user_by_email(text)", "public.trigger_set_updated_at()"];
   for (const fn of functions) {
     try {
-      await db.execute(sql.raw(`ALTER FUNCTION ${fn} OWNER TO ${BASE_ROLE}`));
+      await mdb.execute(sql.raw(`ALTER FUNCTION ${fn} OWNER TO "${BASE_ROLE}"`));
     } catch {
       // Function may not exist yet
     }

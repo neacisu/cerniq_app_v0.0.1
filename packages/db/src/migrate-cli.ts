@@ -3,19 +3,28 @@
  *   DATABASE_URL=postgresql://... pnpm run db:migrate
  *   DATABASE_URL=postgresql://... pnpm run db:migrate -- --rls  # also apply RLS policies
  */
-import { runMigrations, runDrizzleMigrations, finalizeOwnership } from "./migrate.js";
+import {
+  runMigrations,
+  runDrizzleMigrations,
+  finalizeOwnership,
+  closeMigrationDb,
+} from "./migrate.js";
 
 async function main() {
-  console.log("Running extensions and schemas...");
-  await runMigrations();
+  try {
+    console.log("Running extensions and schemas...");
+    await runMigrations();
 
-  console.log("Running Drizzle SQL migrations...");
-  await runDrizzleMigrations();
+    console.log("Running Drizzle SQL migrations...");
+    await runDrizzleMigrations();
 
-  console.log("Finalizing table ownership...");
-  await finalizeOwnership();
+    console.log("Finalizing table ownership...");
+    await finalizeOwnership();
 
-  console.log("Done.");
+    console.log("Done.");
+  } finally {
+    await closeMigrationDb();
+  }
   process.exit(0);
 }
 

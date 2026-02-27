@@ -14,7 +14,12 @@ export {
   register_with_invite_code,
 } from "./client.js";
 export { sql } from "drizzle-orm";
-export { runMigrations, runDrizzleMigrations, finalizeOwnership } from "./migrate.js";
+export {
+  runMigrations,
+  runDrizzleMigrations,
+  finalizeOwnership,
+  closeMigrationDb,
+} from "./migrate.js";
 export * from "./schemas/tenants.js";
 export * from "./schemas/users.js";
 export * from "./schemas/rbac.js";
