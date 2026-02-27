@@ -33,6 +33,21 @@ const IGNORABLE_ERROR_CODES = new Set([
   "42710", // duplicate_object (e.g. type, constraint)
 ]);
 
+function getPgError(err: unknown): { code: string; message: string } {
+  const obj = err && typeof err === "object" ? err : null;
+  const cause =
+    obj && "cause" in obj && obj.cause && typeof obj.cause === "object"
+      ? (obj.cause as { code?: string; message?: string })
+      : null;
+  const code =
+    (cause?.code as string) || (obj && "code" in obj ? (obj as { code: string }).code : "") || "";
+  const message =
+    (cause?.message as string) ||
+    (obj && "message" in obj ? (obj as { message: string }).message : "") ||
+    "";
+  return { code, message };
+}
+
 /** Run generated Drizzle SQL migrations from ./drizzle/*.sql (idempotent: ignores "already exists" errors). */
 export async function runDrizzleMigrations() {
   const drizzleDir = join(__dirname, "..", "drizzle");
@@ -52,20 +67,15 @@ export async function runDrizzleMigrations() {
       try {
         await db.execute(sql.raw(statement));
       } catch (err: unknown) {
-        const directCode =
-          err && typeof err === "object" && "code" in err ? (err as { code: string }).code : "";
-        const causeCode =
-          err &&
-          typeof err === "object" &&
-          "cause" in err &&
-          (err as { cause: unknown }).cause &&
-          typeof (err as { cause: unknown }).cause === "object" &&
-          "code" in ((err as { cause: unknown }).cause as object)
-            ? (err as { cause: { code: string } }).cause.code
-            : "";
-        const code = directCode || causeCode;
+        const { code, message } = getPgError(err);
+        const isOwnerFunction =
+          code === "42501" && /must be owner of (function|trigger)/i.test(message);
         if (IGNORABLE_ERROR_CODES.has(code)) {
           console.log(`Skipped (already exists): ${statement.slice(0, 60)}...`);
+        } else if (isOwnerFunction) {
+          console.log(
+            `Skipped (object owned by base role, idempotent): ${statement.slice(0, 60)}...`,
+          );
         } else {
           throw err;
         }
@@ -103,12 +113,13 @@ export async function finalizeOwnership() {
     }
   }
 
-  try {
-    await db.execute(
-      sql.raw(`ALTER FUNCTION public.get_user_by_email(text) OWNER TO ${BASE_ROLE}`),
-    );
-  } catch {
-    // Function may not exist yet
+  const functions = ["public.get_user_by_email(text)", "public.trigger_set_updated_at()"];
+  for (const fn of functions) {
+    try {
+      await db.execute(sql.raw(`ALTER FUNCTION ${fn} OWNER TO ${BASE_ROLE}`));
+    } catch {
+      // Function may not exist yet
+    }
   }
 
   console.log(`Ownership transferred to ${BASE_ROLE}`);
