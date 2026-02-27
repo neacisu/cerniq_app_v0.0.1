@@ -406,10 +406,20 @@ jobs:
                   /opt/cerniq/runtime-secrets/infra/pgbouncer.ini \
                   /opt/cerniq/runtime-secrets/infra/userlist.txt
 
-            if [ ! -f /opt/cerniq/secrets/api_role_id ]; then
-              echo "❌ AppRole credentials not found — rotation step may have failed"
-              exit 1
-            fi
+            # Ensure all OpenBao AppRole credential pairs exist before starting agents.
+            for f in \
+              /opt/cerniq/secrets/api_role_id \
+              /opt/cerniq/secrets/api_secret_id \
+              /opt/cerniq/secrets/workers_role_id \
+              /opt/cerniq/secrets/workers_secret_id \
+              /opt/cerniq/secrets/infra_role_id \
+              /opt/cerniq/secrets/infra_secret_id; do
+              if [ ! -f "$f" ]; then
+                echo "❌ Missing AppRole credential file: $f"
+                echo "   Rotation/setup step may have failed for one or more agents."
+                exit 1
+              fi
+            done
 
             echo "🐳 Pulling images..."
             docker compose -f docker-compose.yml -f docker-compose.prod.yml pull --quiet
@@ -422,9 +432,9 @@ jobs:
             echo "⏳ Waiting for agents to render secrets..."
             SECRETS_OK=0
             for i in $(seq 1 60); do
-              if docker exec cerniq-openbao-agent-api test -f /secrets/api.env 2>/dev/null && \
-                 docker exec cerniq-openbao-agent-workers test -f /secrets/workers.env 2>/dev/null && \
-                 docker exec cerniq-openbao-agent-infra test -f /secrets/pgbouncer.ini 2>/dev/null; then
+              if [ -f /opt/cerniq/runtime-secrets/api/api.env ] && \
+                 [ -f /opt/cerniq/runtime-secrets/workers/workers.env ] && \
+                 [ -f /opt/cerniq/runtime-secrets/infra/pgbouncer.ini ]; then
                 echo "✅ All secrets rendered (after ${i}s)"
                 SECRETS_OK=1
                 break
@@ -434,7 +444,12 @@ jobs:
             if [ "$SECRETS_OK" -ne 1 ]; then
               echo "❌ OpenBao agents did not render secrets. Agent logs:"
               docker logs cerniq-openbao-agent-api 2>&1 | tail -40
+              docker logs cerniq-openbao-agent-workers 2>&1 | tail -40
               docker logs cerniq-openbao-agent-infra 2>&1 | tail -20
+              echo "📁 Rendered secrets directory state:"
+              ls -la /opt/cerniq/runtime-secrets/api || true
+              ls -la /opt/cerniq/runtime-secrets/workers || true
+              ls -la /opt/cerniq/runtime-secrets/infra || true
               exit 1
             fi
 
@@ -842,11 +857,20 @@ jobs:
             # OpenBao server is external on orchestrator (s3cr3ts.neanelu.ro).
             # Skipped: OpenBao server is external — only agents run locally.
             # Agents authenticate via AppRole and render secrets locally.
-            if [ ! -f /opt/cerniq/secrets/api_role_id ]; then
-              echo "❌ AppRole credentials not found at /opt/cerniq/secrets/api_role_id"
-              echo "   Run OpenBao setup first (see docs/infrastructure/openbao-setup-guide.md)"
-              exit 1
-            fi
+            # Ensure all OpenBao AppRole credential pairs exist before starting agents.
+            for f in \
+              /opt/cerniq/secrets/api_role_id \
+              /opt/cerniq/secrets/api_secret_id \
+              /opt/cerniq/secrets/workers_role_id \
+              /opt/cerniq/secrets/workers_secret_id \
+              /opt/cerniq/secrets/infra_role_id \
+              /opt/cerniq/secrets/infra_secret_id; do
+              if [ ! -f "$f" ]; then
+                echo "❌ Missing AppRole credential file: $f"
+                echo "   Run OpenBao setup first (see docs/infrastructure/openbao-setup-guide.md)"
+                exit 1
+              fi
+            done
 
             echo "🐳 Pulling images..."
             docker compose -f docker-compose.yml -f docker-compose.prod.yml pull --quiet
@@ -859,9 +883,9 @@ jobs:
             echo "⏳ Waiting for agents to render secrets..."
             SECRETS_OK=0
             for i in $(seq 1 60); do
-              if docker exec cerniq-openbao-agent-api test -f /secrets/api.env 2>/dev/null && \
-                 docker exec cerniq-openbao-agent-workers test -f /secrets/workers.env 2>/dev/null && \
-                 docker exec cerniq-openbao-agent-infra test -f /secrets/pgbouncer.ini 2>/dev/null; then
+              if [ -f /opt/cerniq/runtime-secrets/api/api.env ] && \
+                 [ -f /opt/cerniq/runtime-secrets/workers/workers.env ] && \
+                 [ -f /opt/cerniq/runtime-secrets/infra/pgbouncer.ini ]; then
                 echo "✅ All secrets rendered (after ${i}s)"
                 SECRETS_OK=1
                 break
@@ -871,7 +895,12 @@ jobs:
             if [ "$SECRETS_OK" -ne 1 ]; then
               echo "❌ OpenBao agents did not render secrets. Agent logs:"
               docker logs cerniq-openbao-agent-api 2>&1 | tail -40
+              docker logs cerniq-openbao-agent-workers 2>&1 | tail -40
               docker logs cerniq-openbao-agent-infra 2>&1 | tail -20
+              echo "📁 Rendered secrets directory state:"
+              ls -la /opt/cerniq/runtime-secrets/api || true
+              ls -la /opt/cerniq/runtime-secrets/workers || true
+              ls -la /opt/cerniq/runtime-secrets/infra || true
               exit 1
             fi
 
