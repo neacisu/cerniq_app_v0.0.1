@@ -68,11 +68,22 @@ export async function runDrizzleMigrations() {
         await db.execute(sql.raw(statement));
       } catch (err: unknown) {
         const { code, message } = getPgError(err);
-        const isOwnerFunction =
-          code === "42501" && /must be owner of (function|trigger)/i.test(message);
+        const isOwnerFunction = code === "42501" && /must be owner of function/i.test(message);
+        const isOwnerRelation = code === "42501" && /must be owner of relation/i.test(message);
+        const isOwnerTriggerRelation =
+          isOwnerRelation && /^DROP TRIGGER IF EXISTS /i.test(statement);
+        const isOwnerPolicyRelation = isOwnerRelation && /^DROP POLICY IF EXISTS /i.test(statement);
+        const isOwnerRlsToggle =
+          isOwnerRelation &&
+          /^ALTER TABLE .* (ENABLE|FORCE) ROW LEVEL SECURITY;?$/i.test(statement);
         if (IGNORABLE_ERROR_CODES.has(code)) {
           console.log(`Skipped (already exists): ${statement.slice(0, 60)}...`);
-        } else if (isOwnerFunction) {
+        } else if (
+          isOwnerFunction ||
+          isOwnerTriggerRelation ||
+          isOwnerPolicyRelation ||
+          isOwnerRlsToggle
+        ) {
           console.log(
             `Skipped (object owned by base role, idempotent): ${statement.slice(0, 60)}...`,
           );
