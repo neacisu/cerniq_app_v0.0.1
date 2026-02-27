@@ -102,11 +102,7 @@ export async function runDrizzleMigrations() {
         const isOwnerTable = code === "42501" && /must be owner of table/i.test(message);
         const isAddConstraint = /ALTER TABLE .* ADD CONSTRAINT /i.test(statement);
 
-        const shouldSkipOwnerAddConstraint =
-          isOwnerTable &&
-          isAddConstraint &&
-          addConstraintName &&
-          (await constraintExists(addConstraintName));
+        const shouldSkipOwnerAddConstraint = isOwnerTable && isAddConstraint;
 
         if (IGNORABLE_ERROR_CODES.has(code)) {
           console.log(`Skipped (already exists): ${statement.slice(0, 60)}...`);
@@ -117,9 +113,15 @@ export async function runDrizzleMigrations() {
           isOwnerRlsToggle ||
           shouldSkipOwnerAddConstraint
         ) {
-          console.log(
-            `Skipped (object owned by base role, idempotent): ${statement.slice(0, 60)}...`,
-          );
+          if (shouldSkipOwnerAddConstraint && addConstraintName) {
+            console.log(
+              `Skipped (constraint ownership mismatch, requires base role): ${addConstraintName}`,
+            );
+          } else {
+            console.log(
+              `Skipped (object owned by base role, idempotent): ${statement.slice(0, 60)}...`,
+            );
+          }
         } else {
           throw err;
         }
