@@ -50,9 +50,14 @@ services:
         max-file: "3"
 
   # ==========================================================================
-  # OpenBao Agent API - Path overrides for production
+  # OpenBao Agent API - Path overrides + reachable OpenBao address
   # ==========================================================================
+  # VAULT_ADDR from OPENBAO_ADDR (.env) so agents connect to same endpoint as CI;
+  # extra_hosts: [] overrides base (no 10.0.1.10) so staging can reach OpenBao.
   openbao-agent-api:
+    environment:
+      VAULT_ADDR: ${OPENBAO_ADDR}
+    extra_hosts: []
     volumes:
       # Server paths are relative to /opt/cerniq (where compose files are deployed).
       - ./config/openbao/agent-api.hcl:/openbao/config/agent-api.hcl:ro
@@ -67,9 +72,12 @@ services:
         max-file: "3"
 
   # ==========================================================================
-  # OpenBao Agent Workers - Path overrides for production
+  # OpenBao Agent Workers - Path overrides + reachable OpenBao address
   # ==========================================================================
   openbao-agent-workers:
+    environment:
+      VAULT_ADDR: ${OPENBAO_ADDR}
+    extra_hosts: []
     volumes:
       - ./config/openbao/agent-workers.hcl:/openbao/config/agent-workers.hcl:ro
       - ./config/openbao/templates:/openbao/templates:ro
@@ -83,9 +91,12 @@ services:
         max-file: "3"
 
   # ==========================================================================
-  # OpenBao Agent Infra - Path overrides for production (PgBouncer auth/config)
+  # OpenBao Agent Infra - Path overrides + reachable OpenBao address
   # ==========================================================================
   openbao-agent-infra:
+    environment:
+      VAULT_ADDR: ${OPENBAO_ADDR}
+    extra_hosts: []
     volumes:
       - ./config/openbao/agent-infra.hcl:/openbao/config/agent-infra.hcl:ro
       - ./config/openbao/templates:/openbao/templates:ro
