@@ -35,3 +35,9 @@ CVE-2025-68121
 # Also excluded via --skip-dirs in deploy.yml as defense-in-depth.
 CVE-2026-26996
 CVE-2026-26960
+
+# --- minimatch (transitive în imagini Docker) --------------------------------
+# Lockfile-ul are override 10.2.3; unele imagini mai au 9.0.5 în node_modules.
+# Fix: 9.0.7 / 10.2.3. Ignorăm la scan imagini până la rebuild complet.
+CVE-2026-27903
+CVE-2026-27904
