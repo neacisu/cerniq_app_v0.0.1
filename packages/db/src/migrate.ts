@@ -105,8 +105,9 @@ export async function runDrizzleMigrations() {
   const files = readdirSync(drizzleDir)
     .filter((f) => f.endsWith(".sql"))
     .sort((a, b) => {
-      if (a === "0005_rls_policies.sql") return 1;
-      if (b === "0005_rls_policies.sql") return -1;
+      const isRls = (f: string) => f.startsWith("0005_rls") || f.startsWith("0007_rls");
+      if (isRls(a) && !isRls(b)) return 1;
+      if (!isRls(a) && isRls(b)) return -1;
       return a.localeCompare(b);
     });
 
