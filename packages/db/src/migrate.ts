@@ -48,6 +48,18 @@ function getPgError(err: unknown): { code: string; message: string } {
   return { code, message };
 }
 
+function getAddConstraintName(statement: string): string | null {
+  const match = statement.match(/ADD\s+CONSTRAINT\s+"([^"]+)"/i);
+  return match?.[1] ?? null;
+}
+
+async function constraintExists(constraintName: string): Promise<boolean> {
+  const rows = (await db.execute(
+    sql`SELECT 1 FROM pg_constraint WHERE conname = ${constraintName} LIMIT 1`,
+  )) as unknown as Array<Record<string, unknown>>;
+  return rows.length > 0;
+}
+
 /** Run generated Drizzle SQL migrations from ./drizzle/*.sql (idempotent: ignores "already exists" errors). */
 export async function runDrizzleMigrations() {
   const drizzleDir = join(__dirname, "..", "drizzle");
@@ -69,6 +81,12 @@ export async function runDrizzleMigrations() {
       .filter(Boolean);
 
     for (const statement of statements) {
+      const addConstraintName = getAddConstraintName(statement);
+      if (addConstraintName && (await constraintExists(addConstraintName))) {
+        console.log(`Skipped (already exists): ${statement.slice(0, 60)}...`);
+        continue;
+      }
+
       try {
         await db.execute(sql.raw(statement));
       } catch (err: unknown) {
@@ -81,13 +99,23 @@ export async function runDrizzleMigrations() {
         const isOwnerRlsToggle =
           isOwnerRelation &&
           /^ALTER TABLE .* (ENABLE|FORCE) ROW LEVEL SECURITY;?$/i.test(statement);
+        const isOwnerTable = code === "42501" && /must be owner of table/i.test(message);
+        const isAddConstraint = /ALTER TABLE .* ADD CONSTRAINT /i.test(statement);
+
+        const shouldSkipOwnerAddConstraint =
+          isOwnerTable &&
+          isAddConstraint &&
+          addConstraintName &&
+          (await constraintExists(addConstraintName));
+
         if (IGNORABLE_ERROR_CODES.has(code)) {
           console.log(`Skipped (already exists): ${statement.slice(0, 60)}...`);
         } else if (
           isOwnerFunction ||
           isOwnerTriggerRelation ||
           isOwnerPolicyRelation ||
-          isOwnerRlsToggle
+          isOwnerRlsToggle ||
+          shouldSkipOwnerAddConstraint
         ) {
           console.log(
             `Skipped (object owned by base role, idempotent): ${statement.slice(0, 60)}...`,
