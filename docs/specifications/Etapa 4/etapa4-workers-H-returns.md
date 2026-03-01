@@ -35,7 +35,8 @@ export async function returnRequestCreateProcessor(
   }
 
   const daysSinceDelivery = Math.floor(
-    (Date.now() - new Date(order.shipment.deliveredAt).getTime()) / (1000 * 60 * 60 * 24),
+    (Date.now() - new Date(order.shipment.deliveredAt).getTime()) /
+      (1000 * 60 * 60 * 24),
   );
 
   if (daysSinceDelivery > RETURN_POLICY.maxDaysFromDelivery) {
@@ -67,7 +68,8 @@ export async function returnRequestCreateProcessor(
       orderId,
       originalShipmentId: order.shipmentId,
       clientId: order.clientId,
-      status: itemsValue <= RETURN_POLICY.autoApproveUnder ? "APPROVED" : "REQUESTED",
+      status:
+        itemsValue <= RETURN_POLICY.autoApproveUnder ? "APPROVED" : "REQUESTED",
       reason: items[0].reason,
       reasonDetails: customerNotes,
       customerNotes,
@@ -116,7 +118,9 @@ export async function returnProcessStockProcessor(
 
   // Restock items
   for (const returnItem of returnRecord.items as any[]) {
-    const orderItem = returnRecord.order.items.find((i) => i.id === returnItem.orderItemId);
+    const orderItem = returnRecord.order.items.find(
+      (i) => i.id === returnItem.orderItemId,
+    );
     if (orderItem) {
       await db
         .update(goldProducts)

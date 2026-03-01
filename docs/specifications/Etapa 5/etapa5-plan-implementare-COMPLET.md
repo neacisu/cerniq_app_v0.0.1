@@ -56,7 +56,10 @@
       "prioritate": "CRITICAL",
       "estimare_ore": 4,
       "dependente": [399],
-      "deliverables": ["configs/queues/etapa5-queues.ts", "Queue definitions pentru 58 workers"]
+      "deliverables": [
+        "configs/queues/etapa5-queues.ts",
+        "Queue definitions pentru 58 workers"
+      ]
     },
     {
       "task_number": 401,

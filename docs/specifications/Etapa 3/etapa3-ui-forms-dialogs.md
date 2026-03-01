@@ -305,7 +305,10 @@ export const phoneSchema = z
   });
 
 // Email validation
-export const emailSchema = z.string().min(1, "Email obligatoriu").email("Email invalid");
+export const emailSchema = z
+  .string()
+  .min(1, "Email obligatoriu")
+  .email("Email invalid");
 
 // Price validation (positive number)
 export const priceSchema = z
@@ -359,7 +362,13 @@ export const vatRateSchema = z.enum(["0", "5", "9", "19"], {
 ```typescript
 // schemas/negotiations.ts
 import { z } from "zod";
-import { cuiSchema, emailSchema, phoneSchema, priceSchema, quantitySchema } from "./common";
+import {
+  cuiSchema,
+  emailSchema,
+  phoneSchema,
+  priceSchema,
+  quantitySchema,
+} from "./common";
 
 // Cart item schema
 export const cartItemSchema = z.object({
@@ -442,7 +451,13 @@ export const stateTransitionSchema = z.object({
 ```typescript
 // schemas/products.ts
 import { z } from "zod";
-import { skuSchema, priceSchema, currencySchema, vatRateSchema, quantitySchema } from "./common";
+import {
+  skuSchema,
+  priceSchema,
+  currencySchema,
+  vatRateSchema,
+  quantitySchema,
+} from "./common";
 
 // Product create/edit schema
 export const productSchema = z.object({
@@ -544,14 +559,25 @@ export const discountRuleSchema = z.object({
   value: z
     .number()
     .min(0)
-    .when((_, ctx) => (ctx.parent?.type === "percentage" ? percentSchema : priceSchema)),
+    .when((_, ctx) =>
+      ctx.parent?.type === "percentage" ? percentSchema : priceSchema,
+    ),
 
   // Conditions
   conditions: z
     .array(
       z.object({
         field: z.enum(["quantity", "total", "category", "sku", "client_type"]),
-        operator: z.enum(["eq", "neq", "gt", "gte", "lt", "lte", "in", "not_in"]),
+        operator: z.enum([
+          "eq",
+          "neq",
+          "gt",
+          "gte",
+          "lt",
+          "lte",
+          "in",
+          "not_in",
+        ]),
         value: z.union([z.string(), z.number(), z.array(z.string())]),
       }),
     )
@@ -15468,10 +15494,20 @@ interface WebhookPayload {
 ```typescript
 import crypto from "crypto";
 
-function verifyWebhookSignature(payload: string, signature: string, secret: string): boolean {
-  const expectedSignature = crypto.createHmac("sha256", secret).update(payload).digest("hex");
+function verifyWebhookSignature(
+  payload: string,
+  signature: string,
+  secret: string,
+): boolean {
+  const expectedSignature = crypto
+    .createHmac("sha256", secret)
+    .update(payload)
+    .digest("hex");
 
-  return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature));
+  return crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(expectedSignature),
+  );
 }
 ```
 
@@ -18483,7 +18519,9 @@ const ibanRegex = /^RO[0-9]{2}[A-Z]{4}[A-Z0-9]{16}$/;
 
 export const bankAccountSchema = z.object({
   bankName: z.string().min(2, "Numele băncii este obligatoriu"),
-  iban: z.string().regex(ibanRegex, "IBAN invalid (format: RO49AAAA1B31007593840000)"),
+  iban: z
+    .string()
+    .regex(ibanRegex, "IBAN invalid (format: RO49AAAA1B31007593840000)"),
   currency: z.enum(["RON", "EUR", "USD"]),
   isDefault: z.boolean().default(false),
 });
@@ -18494,10 +18532,18 @@ export const tenantSettingsSchema = z.object({
     .string()
     .min(2, "Numele companiei trebuie să aibă minim 2 caractere")
     .max(200, "Numele companiei trebuie să aibă maxim 200 caractere"),
-  cui: z.string().regex(/^(RO)?[0-9]{2,10}$/, "CUI invalid (format: RO12345678 sau 12345678)"),
+  cui: z
+    .string()
+    .regex(
+      /^(RO)?[0-9]{2,10}$/,
+      "CUI invalid (format: RO12345678 sau 12345678)",
+    ),
   regCom: z
     .string()
-    .regex(/^J[0-9]{1,2}\/[0-9]{1,6}\/[0-9]{4}$/, "Nr. Reg. Com. invalid (format: J40/123/2020)")
+    .regex(
+      /^J[0-9]{1,2}\/[0-9]{1,6}\/[0-9]{4}$/,
+      "Nr. Reg. Com. invalid (format: J40/123/2020)",
+    )
     .optional()
     .or(z.literal("")),
   address: z.string().min(10, "Adresa trebuie să aibă minim 10 caractere"),
@@ -18511,7 +18557,9 @@ export const tenantSettingsSchema = z.object({
   logo: z.string().url().optional().nullable(),
 
   // Bank Accounts
-  bankAccounts: z.array(bankAccountSchema).min(1, "Adăugați cel puțin un cont bancar"),
+  bankAccounts: z
+    .array(bankAccountSchema)
+    .min(1, "Adăugați cel puțin un cont bancar"),
 
   // Defaults
   defaults: z.object({
@@ -18536,10 +18584,16 @@ export const tenantSettingsSchema = z.object({
     autoApproveThreshold: z.number().int().min(50).max(100).default(85),
     maxDailyTokens: z.number().int().min(10000).max(10000000).default(1000000),
     defaultModel: z
-      .enum(["claude-3-5-haiku-20241022", "claude-sonnet-4-20250514", "claude-opus-4-20250514"])
+      .enum([
+        "claude-3-5-haiku-20241022",
+        "claude-sonnet-4-20250514",
+        "claude-opus-4-20250514",
+      ])
       .default("claude-sonnet-4-20250514"),
     defaultTemperature: z.number().min(0).max(1).default(0.3),
-    guardrailsProfile: z.enum(["strict", "balanced", "permissive", "custom"]).default("balanced"),
+    guardrailsProfile: z
+      .enum(["strict", "balanced", "permissive", "custom"])
+      .default("balanced"),
   }),
 
   // Compliance
@@ -18548,7 +18602,9 @@ export const tenantSettingsSchema = z.object({
     auditLogEnabled: z.boolean().default(true),
     ipWhitelist: z.array(z.string()).optional(),
     twoFactorRequired: z.boolean().default(false),
-    passwordPolicy: z.enum(["standard", "strong", "enterprise"]).default("standard"),
+    passwordPolicy: z
+      .enum(["standard", "strong", "enterprise"])
+      .default("standard"),
     sessionTimeoutMinutes: z.number().int().min(15).max(480).default(60),
   }),
 });
@@ -28868,7 +28924,9 @@ test.describe("Product Management E2E", () => {
     await expect(page.locator(".toast")).toContainText("Produs actualizat");
 
     // Verify new value
-    await expect(page.locator('tr:has-text("Semințe porumb")')).toContainText("150");
+    await expect(page.locator('tr:has-text("Semințe porumb")')).toContainText(
+      "150",
+    );
   });
 
   test("should handle bulk delete", async ({ page }) => {

@@ -752,7 +752,13 @@ paths:
             type: array
             items:
               type: string
-              enum: [churn_intervention, nps_followup, referral_consent, winback_approval]
+              enum:
+                [
+                  churn_intervention,
+                  nps_followup,
+                  referral_consent,
+                  winback_approval,
+                ]
         - name: priority
           in: query
           schema:

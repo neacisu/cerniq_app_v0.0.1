@@ -128,7 +128,9 @@ describe("ApprovalService State Transitions", () => {
       const task = await createPendingTask();
       await service.claim(task.id, "user-123");
 
-      await expect(service.claim(task.id, "user-456")).rejects.toThrow("Task already assigned");
+      await expect(service.claim(task.id, "user-456")).rejects.toThrow(
+        "Task already assigned",
+      );
     });
 
     it("should allow reassignment by admin", async () => {
@@ -325,7 +327,9 @@ describe("HITL Audit Logging", () => {
     const log = await createAuditLog();
 
     await expect(
-      db.execute(sql`UPDATE approval_audit_log SET action = 'HACKED' WHERE id = ${log.id}`),
+      db.execute(
+        sql`UPDATE approval_audit_log SET action = 'HACKED' WHERE id = ${log.id}`,
+      ),
     ).rejects.toThrow(); // Trigger should block
   });
 
@@ -365,7 +369,9 @@ describe("HITL Authorization", () => {
     await setTenantContext("tenant-B");
 
     // Should not find task from tenant A
-    await expect(service.getTask(taskTenantA.id)).rejects.toThrow("Task not found");
+    await expect(service.getTask(taskTenantA.id)).rejects.toThrow(
+      "Task not found",
+    );
   });
 
   it("should allow only eligible roles to decide", async () => {

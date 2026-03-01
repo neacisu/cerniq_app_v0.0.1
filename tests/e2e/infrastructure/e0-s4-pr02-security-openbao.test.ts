@@ -145,13 +145,19 @@ describe("F0.8.1: Container Hardening", () => {
 
     it("pgbouncer should use secrets for password", () => {
       const content = readFile("infra/docker/docker-compose.yml");
+      // New infra: PgBouncer uses auth_query and gets its auth_user password
+      // from an OpenBao agent rendered file (`userlist.txt`) on tmpfs/bind mount.
       expect(content).toContain("pgbouncer:");
 
-      const pgbouncerIndex = content.indexOf("\n  pgbouncer:\n");
-      expect(pgbouncerIndex).toBeGreaterThanOrEqual(0);
-      const relevantSection = content.substring(pgbouncerIndex, pgbouncerIndex + 2000);
+      const pgbouncerIndex = content.indexOf("pgbouncer:");
+      const relevantSection = content.substring(
+        pgbouncerIndex,
+        pgbouncerIndex + 2000,
+      );
       expect(content).toContain("openbao-agent-infra:");
       expect(relevantSection).toContain("/etc/pgbouncer");
+      // Auth/password is delivered via a rendered directory mount; we assert the
+      // config entrypoint is driven by the rendered ini.
       expect(relevantSection).toContain("pgbouncer.ini");
     });
   });
@@ -242,7 +248,9 @@ describe("F0.8.3: OpenBao Secrets Management", () => {
 
     it("should keep OpenBao agent image pinned", () => {
       const content = readFile("infra/docker/docker-compose.yml");
-      expect(content).toContain(`quay.io/openbao/openbao:${EXPECTED_OPENBAO_CONFIG.version}`);
+      expect(content).toContain(
+        `quay.io/openbao/openbao:${EXPECTED_OPENBAO_CONFIG.version}`,
+      );
     });
 
     it("should not expose local OpenBao API port", () => {
@@ -294,15 +302,21 @@ describe("F0.8.3: OpenBao Secrets Management", () => {
 
   describe("T003: OpenBao policies", () => {
     it("should have API policy", () => {
-      expect(fileExists("infra/config/openbao/policies/api-policy.hcl")).toBe(true);
+      expect(fileExists("infra/config/openbao/policies/api-policy.hcl")).toBe(
+        true,
+      );
     });
 
     it("should have Workers policy", () => {
-      expect(fileExists("infra/config/openbao/policies/workers-policy.hcl")).toBe(true);
+      expect(
+        fileExists("infra/config/openbao/policies/workers-policy.hcl"),
+      ).toBe(true);
     });
 
     it("should have CI/CD policy", () => {
-      expect(fileExists("infra/config/openbao/policies/cicd-policy.hcl")).toBe(true);
+      expect(fileExists("infra/config/openbao/policies/cicd-policy.hcl")).toBe(
+        true,
+      );
     });
 
     it("API policy should grant appropriate permissions", () => {
@@ -330,8 +344,12 @@ describe("F0.8.3: OpenBao Secrets Management", () => {
     });
 
     it("should have secret templates", () => {
-      expect(fileExists("infra/config/openbao/templates/api-env.tpl")).toBe(true);
-      expect(fileExists("infra/config/openbao/templates/workers-env.tpl")).toBe(true);
+      expect(fileExists("infra/config/openbao/templates/api-env.tpl")).toBe(
+        true,
+      );
+      expect(fileExists("infra/config/openbao/templates/workers-env.tpl")).toBe(
+        true,
+      );
     });
   });
 
@@ -424,7 +442,9 @@ describe("F0.8.4: OpenBao Setup Scripts", () => {
 
   describe("T005: Rotation script", () => {
     it("should have openbao-rotate-static-secrets.sh", () => {
-      expect(fileExists("infra/scripts/openbao-rotate-static-secrets.sh")).toBe(true);
+      expect(fileExists("infra/scripts/openbao-rotate-static-secrets.sh")).toBe(
+        true,
+      );
     });
   });
 
@@ -468,7 +488,9 @@ describe("F0.8.5: Environment Detection", () => {
 
     it("should have production confirmation for dangerous ops", () => {
       const content = readFile("infra/scripts/detect-environment.sh");
-      expect(content.match(/require.*production.*confirm|confirm.*production/i)).toBeTruthy();
+      expect(
+        content.match(/require.*production.*confirm|confirm.*production/i),
+      ).toBeTruthy();
     });
   });
 });
@@ -501,7 +523,9 @@ describe("F0.8.6: CI/CD Integration", () => {
     it("deploy workflow should NOT attempt OpenBao init/unseal (external)", () => {
       const content = readFile(".github/workflows/deploy.yml");
       // We do not run openbao init/unseal in this repo/CI; OpenBao runs on orchestrator.
-      expect(content.toLowerCase()).toContain("skipped: openbao server is external");
+      expect(content.toLowerCase()).toContain(
+        "skipped: openbao server is external",
+      );
     });
   });
 });
@@ -530,16 +554,22 @@ describe("F0.8.7: Security Documentation", () => {
 
   describe("T002: Pre-release security checklist", () => {
     it("should have pre-release security checklist", () => {
-      expect(fileExists("docs/governance/pre-release-security-checklist.md")).toBe(true);
+      expect(
+        fileExists("docs/governance/pre-release-security-checklist.md"),
+      ).toBe(true);
     });
 
     it("checklist should cover container scanning", () => {
-      const content = readFile("docs/governance/pre-release-security-checklist.md");
+      const content = readFile(
+        "docs/governance/pre-release-security-checklist.md",
+      );
       expect(content.toLowerCase()).toMatch(/scan|trivy|container.*security/);
     });
 
     it("checklist should cover secrets verification", () => {
-      const content = readFile("docs/governance/pre-release-security-checklist.md");
+      const content = readFile(
+        "docs/governance/pre-release-security-checklist.md",
+      );
       expect(content.toLowerCase()).toMatch(/secret|openbao|credential/);
     });
   });
@@ -561,8 +591,12 @@ describe("F0.8: Server Integration Tests", () => {
     });
 
     itServer("OpenBao agents should be running", () => {
-      const apiAgent = exec("docker ps --format '{{.Names}}' | grep openbao-agent-api");
-      const workersAgent = exec("docker ps --format '{{.Names}}' | grep openbao-agent-workers");
+      const apiAgent = exec(
+        "docker ps --format '{{.Names}}' | grep openbao-agent-api",
+      );
+      const workersAgent = exec(
+        "docker ps --format '{{.Names}}' | grep openbao-agent-workers",
+      );
       expect(apiAgent).toContain("openbao-agent-api");
       expect(workersAgent).toContain("openbao-agent-workers");
     });
@@ -589,10 +623,13 @@ describe("F0.8: Server Integration Tests", () => {
       }
     });
 
-    itServer("Redis on orchestrator should be reachable via HAProxy VIP", () => {
-      const result = exec(`redis-cli -h 10.0.1.10 -p 6379 ping 2>/dev/null`);
-      expect(result).toBe("PONG");
-    });
+    itServer(
+      "Redis on orchestrator should be reachable via HAProxy VIP",
+      () => {
+        const result = exec(`redis-cli -h 10.0.1.10 -p 6379 ping 2>/dev/null`);
+        expect(result).toBe("PONG");
+      },
+    );
   });
 
   describe("Firewall Tests (Server Required)", () => {

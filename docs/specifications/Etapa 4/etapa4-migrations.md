@@ -369,14 +369,28 @@ export async function up(db: DrizzleDb) {
   `);
 
   // Indexes
-  await db.execute(sql`CREATE INDEX idx_orders_tenant ON gold_orders(tenant_id)`);
-  await db.execute(sql`CREATE INDEX idx_orders_client ON gold_orders(client_id)`);
+  await db.execute(
+    sql`CREATE INDEX idx_orders_tenant ON gold_orders(tenant_id)`,
+  );
+  await db.execute(
+    sql`CREATE INDEX idx_orders_client ON gold_orders(client_id)`,
+  );
   await db.execute(sql`CREATE INDEX idx_orders_status ON gold_orders(status)`);
-  await db.execute(sql`CREATE INDEX idx_orders_created ON gold_orders(created_at DESC)`);
-  await db.execute(sql`CREATE INDEX idx_order_items_order ON gold_order_items(order_id)`);
-  await db.execute(sql`CREATE INDEX idx_payments_tenant ON gold_payments(tenant_id)`);
-  await db.execute(sql`CREATE INDEX idx_payments_status ON gold_payments(status)`);
-  await db.execute(sql`CREATE INDEX idx_refunds_tenant ON gold_refunds(tenant_id)`);
+  await db.execute(
+    sql`CREATE INDEX idx_orders_created ON gold_orders(created_at DESC)`,
+  );
+  await db.execute(
+    sql`CREATE INDEX idx_order_items_order ON gold_order_items(order_id)`,
+  );
+  await db.execute(
+    sql`CREATE INDEX idx_payments_tenant ON gold_payments(tenant_id)`,
+  );
+  await db.execute(
+    sql`CREATE INDEX idx_payments_status ON gold_payments(status)`,
+  );
+  await db.execute(
+    sql`CREATE INDEX idx_refunds_tenant ON gold_refunds(tenant_id)`,
+  );
 }
 
 export async function down(db: DrizzleDb) {
@@ -495,9 +509,15 @@ export async function up(db: DrizzleDb) {
   `);
 
   // Indexes
-  await db.execute(sql`CREATE INDEX idx_credit_profiles_tenant ON gold_credit_profiles(tenant_id)`);
-  await db.execute(sql`CREATE INDEX idx_credit_profiles_client ON gold_credit_profiles(client_id)`);
-  await db.execute(sql`CREATE INDEX idx_credit_profiles_risk ON gold_credit_profiles(risk_tier)`);
+  await db.execute(
+    sql`CREATE INDEX idx_credit_profiles_tenant ON gold_credit_profiles(tenant_id)`,
+  );
+  await db.execute(
+    sql`CREATE INDEX idx_credit_profiles_client ON gold_credit_profiles(client_id)`,
+  );
+  await db.execute(
+    sql`CREATE INDEX idx_credit_profiles_risk ON gold_credit_profiles(risk_tier)`,
+  );
   await db.execute(
     sql`CREATE INDEX idx_reservations_profile ON gold_credit_reservations(credit_profile_id)`,
   );
@@ -675,14 +695,30 @@ export async function up(db: DrizzleDb) {
   `);
 
   // Indexes
-  await db.execute(sql`CREATE INDEX idx_addresses_tenant ON gold_addresses(tenant_id)`);
-  await db.execute(sql`CREATE INDEX idx_addresses_client ON gold_addresses(client_id)`);
-  await db.execute(sql`CREATE INDEX idx_shipments_tenant ON gold_shipments(tenant_id)`);
-  await db.execute(sql`CREATE INDEX idx_shipments_order ON gold_shipments(order_id)`);
-  await db.execute(sql`CREATE INDEX idx_shipments_awb ON gold_shipments(awb_number)`);
-  await db.execute(sql`CREATE INDEX idx_shipments_status ON gold_shipments(status)`);
-  await db.execute(sql`CREATE INDEX idx_returns_tenant ON gold_returns(tenant_id)`);
-  await db.execute(sql`CREATE INDEX idx_returns_order ON gold_returns(order_id)`);
+  await db.execute(
+    sql`CREATE INDEX idx_addresses_tenant ON gold_addresses(tenant_id)`,
+  );
+  await db.execute(
+    sql`CREATE INDEX idx_addresses_client ON gold_addresses(client_id)`,
+  );
+  await db.execute(
+    sql`CREATE INDEX idx_shipments_tenant ON gold_shipments(tenant_id)`,
+  );
+  await db.execute(
+    sql`CREATE INDEX idx_shipments_order ON gold_shipments(order_id)`,
+  );
+  await db.execute(
+    sql`CREATE INDEX idx_shipments_awb ON gold_shipments(awb_number)`,
+  );
+  await db.execute(
+    sql`CREATE INDEX idx_shipments_status ON gold_shipments(status)`,
+  );
+  await db.execute(
+    sql`CREATE INDEX idx_returns_tenant ON gold_returns(tenant_id)`,
+  );
+  await db.execute(
+    sql`CREATE INDEX idx_returns_order ON gold_returns(order_id)`,
+  );
 }
 
 export async function down(db: DrizzleDb) {
@@ -824,18 +860,30 @@ export async function up(db: DrizzleDb) {
   `);
 
   // Indexes
-  await db.execute(sql`CREATE INDEX idx_templates_tenant ON gold_contract_templates(tenant_id)`);
-  await db.execute(sql`CREATE INDEX idx_contracts_tenant ON gold_contracts(tenant_id)`);
-  await db.execute(sql`CREATE INDEX idx_contracts_client ON gold_contracts(client_id)`);
-  await db.execute(sql`CREATE INDEX idx_contracts_order ON gold_contracts(order_id)`);
-  await db.execute(sql`CREATE INDEX idx_contracts_status ON gold_contracts(status)`);
+  await db.execute(
+    sql`CREATE INDEX idx_templates_tenant ON gold_contract_templates(tenant_id)`,
+  );
+  await db.execute(
+    sql`CREATE INDEX idx_contracts_tenant ON gold_contracts(tenant_id)`,
+  );
+  await db.execute(
+    sql`CREATE INDEX idx_contracts_client ON gold_contracts(client_id)`,
+  );
+  await db.execute(
+    sql`CREATE INDEX idx_contracts_order ON gold_contracts(order_id)`,
+  );
+  await db.execute(
+    sql`CREATE INDEX idx_contracts_status ON gold_contracts(status)`,
+  );
   await db.execute(
     sql`CREATE INDEX idx_signatures_contract ON gold_contract_signatures(contract_id)`,
   );
 }
 
 export async function down(db: DrizzleDb) {
-  await db.execute(sql`ALTER TABLE gold_orders DROP CONSTRAINT IF EXISTS fk_orders_contract`);
+  await db.execute(
+    sql`ALTER TABLE gold_orders DROP CONSTRAINT IF EXISTS fk_orders_contract`,
+  );
   await db.execute(sql`DROP TABLE IF EXISTS gold_contract_signatures CASCADE`);
   await db.execute(sql`DROP TABLE IF EXISTS gold_contracts CASCADE`);
   await db.execute(sql`DROP TABLE IF EXISTS gold_contract_templates CASCADE`);
@@ -899,14 +947,18 @@ export async function up(db: DrizzleDb) {
   `);
 
   // Indexes
-  await db.execute(sql`CREATE INDEX idx_audit_tenant ON gold_audit_logs_etapa4(tenant_id)`);
+  await db.execute(
+    sql`CREATE INDEX idx_audit_tenant ON gold_audit_logs_etapa4(tenant_id)`,
+  );
   await db.execute(
     sql`CREATE INDEX idx_audit_entity ON gold_audit_logs_etapa4(entity_type, entity_id)`,
   );
   await db.execute(
     sql`CREATE INDEX idx_audit_correlation ON gold_audit_logs_etapa4(correlation_id)`,
   );
-  await db.execute(sql`CREATE INDEX idx_audit_created ON gold_audit_logs_etapa4(created_at DESC)`);
+  await db.execute(
+    sql`CREATE INDEX idx_audit_created ON gold_audit_logs_etapa4(created_at DESC)`,
+  );
 }
 
 export async function down(db: DrizzleDb) {

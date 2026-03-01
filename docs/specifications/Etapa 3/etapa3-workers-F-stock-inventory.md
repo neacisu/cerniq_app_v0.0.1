@@ -140,7 +140,9 @@ export const StockReserveCreateJobDataSchema = z.object({
         sku: z.string().min(1).max(50),
         productId: z.string().uuid(),
         quantity: z.number().int().positive().max(10000),
-        unitOfMeasure: z.enum(["BUC", "KG", "L", "M", "M2", "M3", "SET", "PAL"]).default("BUC"),
+        unitOfMeasure: z
+          .enum(["BUC", "KG", "L", "M", "M2", "M3", "SET", "PAL"])
+          .default("BUC"),
       }),
     )
     .min(1)
@@ -158,7 +160,9 @@ export const StockReserveCreateJobDataSchema = z.object({
     .optional(),
 });
 
-export type StockReserveCreateJobData = z.infer<typeof StockReserveCreateJobDataSchema>;
+export type StockReserveCreateJobData = z.infer<
+  typeof StockReserveCreateJobDataSchema
+>;
 
 // Reservation types:
 // SOFT: Can be overridden by HARD reservations or manual intervention
@@ -196,7 +200,11 @@ export interface ReservationItemResult {
 
 export interface ReservationError {
   sku: string;
-  code: "INSUFFICIENT_STOCK" | "PRODUCT_NOT_FOUND" | "PRODUCT_DISCONTINUED" | "RESERVATION_EXISTS";
+  code:
+    | "INSUFFICIENT_STOCK"
+    | "PRODUCT_NOT_FOUND"
+    | "PRODUCT_DISCONTINUED"
+    | "RESERVATION_EXISTS";
   message: string;
   availableQuantity?: number;
 }
@@ -209,7 +217,12 @@ export interface ReservationError {
 
 import { Worker, Job } from "bullmq";
 import { db } from "@cerniq/database";
-import { products, stockReservations, stockMovements, negotiations } from "@cerniq/database/schema";
+import {
+  products,
+  stockReservations,
+  stockMovements,
+  negotiations,
+} from "@cerniq/database/schema";
 import { eq, and, sql, inArray } from "drizzle-orm";
 import { redis } from "@cerniq/redis";
 import { logger } from "@cerniq/logger";
@@ -232,7 +245,9 @@ export const stockReserveCreateWorker = new Worker<
   StockReserveCreateResult
 >(
   QUEUE_NAME,
-  async (job: Job<StockReserveCreateJobData>): Promise<StockReserveCreateResult> => {
+  async (
+    job: Job<StockReserveCreateJobData>,
+  ): Promise<StockReserveCreateResult> => {
     const startTime = Date.now();
     const {
       tenantId,
@@ -244,7 +259,8 @@ export const stockReserveCreateWorker = new Worker<
       priority,
     } = job.data;
 
-    const actualReservationKey = reservationKey || `res_${negotiationId}_${nanoid(10)}`;
+    const actualReservationKey =
+      reservationKey || `res_${negotiationId}_${nanoid(10)}`;
 
     logger.info({
       msg: "Starting stock reservation",
@@ -256,7 +272,10 @@ export const stockReserveCreateWorker = new Worker<
     });
 
     // Check idempotency - return existing reservation if key exists
-    const existingReservation = await checkExistingReservation(tenantId, actualReservationKey);
+    const existingReservation = await checkExistingReservation(
+      tenantId,
+      actualReservationKey,
+    );
     if (existingReservation) {
       logger.info({
         msg: "Returning existing reservation (idempotent)",
@@ -279,7 +298,10 @@ export const stockReserveCreateWorker = new Worker<
     const result = await db.transaction(async (tx) => {
       // Verify negotiation exists and is in valid state
       const negotiation = await tx.query.negotiations.findFirst({
-        where: and(eq(negotiations.id, negotiationId), eq(negotiations.tenantId, tenantId)),
+        where: and(
+          eq(negotiations.id, negotiationId),
+          eq(negotiations.tenantId, tenantId),
+        ),
       });
 
       if (!negotiation) {
@@ -288,7 +310,9 @@ export const stockReserveCreateWorker = new Worker<
 
       const validStatesForReservation = ["PROPOSAL", "NEGOTIATION", "CLOSING"];
       if (!validStatesForReservation.includes(negotiation.currentState)) {
-        throw new Error(`Cannot reserve stock in state: ${negotiation.currentState}`);
+        throw new Error(
+          `Cannot reserve stock in state: ${negotiation.currentState}`,
+        );
       }
 
       // Get all products with FOR UPDATE lock
@@ -296,7 +320,9 @@ export const stockReserveCreateWorker = new Worker<
       const productRows = await tx
         .select()
         .from(products)
-        .where(and(eq(products.tenantId, tenantId), inArray(products.sku, skus)))
+        .where(
+          and(eq(products.tenantId, tenantId), inArray(products.sku, skus)),
+        )
         .for("update"); // Row-level lock
 
       const productMap = new Map(productRows.map((p) => [p.sku, p]));
@@ -423,13 +449,19 @@ export const stockReserveCreateWorker = new Worker<
           availableAfter: availableBefore - reservedQty,
           status,
           backorderDate:
-            reservedQty < item.quantity ? product.expectedRestockDate?.toISOString() : undefined,
+            reservedQty < item.quantity
+              ? product.expectedRestockDate?.toISOString()
+              : undefined,
         });
       }
 
       // Update reservation status
       const finalStatus =
-        totalReserved === 0 ? "FAILED" : totalReserved < totalRequested ? "PARTIAL" : "ACTIVE";
+        totalReserved === 0
+          ? "FAILED"
+          : totalReserved < totalRequested
+            ? "PARTIAL"
+            : "ACTIVE";
 
       await tx
         .update(stockReservations)
@@ -462,7 +494,8 @@ export const stockReserveCreateWorker = new Worker<
       );
 
       // Schedule expiration job
-      const { stockReserveReleaseQueue } = await import("./reserve-release.queue");
+      const { stockReserveReleaseQueue } =
+        await import("./reserve-release.queue");
       await stockReserveReleaseQueue.add(
         "auto-expire",
         {
@@ -556,7 +589,10 @@ async function checkExistingReservation(
   };
 }
 
-async function invalidateStockCache(tenantId: string, skus: string[]): Promise<void> {
+async function invalidateStockCache(
+  tenantId: string,
+  skus: string[],
+): Promise<void> {
   const keys = skus.map((sku) => `stock:${tenantId}:${sku}`);
   if (keys.length > 0) {
     await redis.del(...keys);
@@ -648,7 +684,9 @@ export const StockReserveReleaseJobDataSchema = z.object({
   notes: z.string().max(500).optional(),
 });
 
-export type StockReserveReleaseJobData = z.infer<typeof StockReserveReleaseJobDataSchema>;
+export type StockReserveReleaseJobData = z.infer<
+  typeof StockReserveReleaseJobDataSchema
+>;
 ```
 
 ### 3.4 Output Schema
@@ -683,7 +721,11 @@ export interface ReleasedItem {
 
 import { Worker, Job } from "bullmq";
 import { db } from "@cerniq/database";
-import { products, stockReservations, stockMovements } from "@cerniq/database/schema";
+import {
+  products,
+  stockReservations,
+  stockMovements,
+} from "@cerniq/database/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { redis } from "@cerniq/redis";
 import { logger } from "@cerniq/logger";
@@ -692,7 +734,10 @@ import {
   StockReserveReleaseJobData,
   StockReserveReleaseJobDataSchema,
 } from "./reserve-release.schema";
-import { StockReserveReleaseResult, ReleasedItem } from "./reserve-release.result";
+import {
+  StockReserveReleaseResult,
+  ReleasedItem,
+} from "./reserve-release.result";
 
 const QUEUE_NAME = "stock:reserve:release";
 
@@ -701,7 +746,9 @@ export const stockReserveReleaseWorker = new Worker<
   StockReserveReleaseResult
 >(
   QUEUE_NAME,
-  async (job: Job<StockReserveReleaseJobData>): Promise<StockReserveReleaseResult> => {
+  async (
+    job: Job<StockReserveReleaseJobData>,
+  ): Promise<StockReserveReleaseResult> => {
     const startTime = Date.now();
     const {
       tenantId,
@@ -724,7 +771,11 @@ export const stockReserveReleaseWorker = new Worker<
     });
 
     // Find reservation by ID or negotiation ID
-    const reservation = await findReservation(tenantId, reservationId, negotiationId);
+    const reservation = await findReservation(
+      tenantId,
+      reservationId,
+      negotiationId,
+    );
 
     if (!reservation) {
       logger.warn({
@@ -790,13 +841,18 @@ export const stockReserveReleaseWorker = new Worker<
           continue;
         }
 
-        const releaseQty = Math.min(item.quantity, reservedItem.reservedQuantity);
+        const releaseQty = Math.min(
+          item.quantity,
+          reservedItem.reservedQuantity,
+        );
 
         // Get current product state
         const [product] = await tx
           .select()
           .from(products)
-          .where(and(eq(products.tenantId, tenantId), eq(products.sku, item.sku)))
+          .where(
+            and(eq(products.tenantId, tenantId), eq(products.sku, item.sku)),
+          )
           .for("update");
 
         if (!product) {
@@ -831,7 +887,8 @@ export const stockReserveReleaseWorker = new Worker<
           referenceId: reservation.id,
           negotiationId: reservation.negotiationId,
           notes:
-            notes || `Stock ${reason === "CONSUMED" ? "consumed (sold)" : "released"}: ${reason}`,
+            notes ||
+            `Stock ${reason === "CONSUMED" ? "consumed (sold)" : "released"}: ${reason}`,
           createdBy: releasedBy,
           createdAt: new Date(),
         });
@@ -850,9 +907,16 @@ export const stockReserveReleaseWorker = new Worker<
       }
 
       // Determine new status
-      const remainingReserved = reservedItems.reduce((sum, i) => sum + i.reservedQuantity, 0);
+      const remainingReserved = reservedItems.reduce(
+        (sum, i) => sum + i.reservedQuantity,
+        0,
+      );
       const newStatus =
-        reason === "CONSUMED" ? "CONSUMED" : remainingReserved > 0 ? "PARTIAL" : "RELEASED";
+        reason === "CONSUMED"
+          ? "CONSUMED"
+          : remainingReserved > 0
+            ? "PARTIAL"
+            : "RELEASED";
 
       // Update reservation record
       await tx
@@ -874,7 +938,8 @@ export const stockReserveReleaseWorker = new Worker<
     await redis.del(`stock:reservation:${reservation.id}:expiry`);
 
     // Cancel scheduled expiration job
-    const { stockReserveReleaseQueue } = await import("./reserve-release.queue");
+    const { stockReserveReleaseQueue } =
+      await import("./reserve-release.queue");
     await stockReserveReleaseQueue.remove(`expire_${reservation.id}`);
 
     // Invalidate stock cache
@@ -924,10 +989,17 @@ export const stockReserveReleaseWorker = new Worker<
 );
 
 // Helper functions
-async function findReservation(tenantId: string, reservationId?: string, negotiationId?: string) {
+async function findReservation(
+  tenantId: string,
+  reservationId?: string,
+  negotiationId?: string,
+) {
   if (reservationId) {
     return db.query.stockReservations.findFirst({
-      where: and(eq(stockReservations.id, reservationId), eq(stockReservations.tenantId, tenantId)),
+      where: and(
+        eq(stockReservations.id, reservationId),
+        eq(stockReservations.tenantId, tenantId),
+      ),
     });
   }
 
@@ -944,7 +1016,10 @@ async function findReservation(tenantId: string, reservationId?: string, negotia
   return null;
 }
 
-async function invalidateStockCache(tenantId: string, skus: string[]): Promise<void> {
+async function invalidateStockCache(
+  tenantId: string,
+  skus: string[],
+): Promise<void> {
   const keys = skus.map((sku) => `stock:${tenantId}:${sku}`);
   if (keys.length > 0) {
     await redis.del(...keys);
@@ -1104,13 +1179,20 @@ export interface SyncError {
 
 import { Worker, Job } from "bullmq";
 import { db } from "@cerniq/database";
-import { products, stockSyncLogs, erpIntegrations } from "@cerniq/database/schema";
+import {
+  products,
+  stockSyncLogs,
+  erpIntegrations,
+} from "@cerniq/database/schema";
 import { eq, and, sql, gt, inArray } from "drizzle-orm";
 import { redis } from "@cerniq/redis";
 import { logger } from "@cerniq/logger";
 import { metrics } from "@cerniq/metrics";
 import { nanoid } from "nanoid";
-import { StockSyncErpJobData, StockSyncErpJobDataSchema } from "./sync-erp.schema";
+import {
+  StockSyncErpJobData,
+  StockSyncErpJobDataSchema,
+} from "./sync-erp.schema";
 import {
   StockSyncErpResult,
   StockChange,
@@ -1129,7 +1211,10 @@ import { CsvImportAdapter } from "../adapters/csv-import.adapter";
 const QUEUE_NAME = "stock:sync:erp";
 const BATCH_SIZE = 100;
 
-export const stockSyncErpWorker = new Worker<StockSyncErpJobData, StockSyncErpResult>(
+export const stockSyncErpWorker = new Worker<
+  StockSyncErpJobData,
+  StockSyncErpResult
+>(
   QUEUE_NAME,
   async (job: Job<StockSyncErpJobData>): Promise<StockSyncErpResult> => {
     const startTime = Date.now();
@@ -1318,7 +1403,9 @@ export const stockSyncErpWorker = new Worker<StockSyncErpJobData, StockSyncErpRe
 
     // Calculate next recommended sync time
     const nextSyncMinutes = syncType === "FULL" ? 60 : 15;
-    const nextSyncRecommended = new Date(Date.now() + nextSyncMinutes * 60 * 1000);
+    const nextSyncRecommended = new Date(
+      Date.now() + nextSyncMinutes * 60 * 1000,
+    );
 
     return {
       success: errors.length === 0,
@@ -1381,7 +1468,10 @@ async function getErpConfig(tenantId: string, erpSystem: string) {
   });
 }
 
-async function getLastSyncTime(tenantId: string, erpSystem: string): Promise<Date> {
+async function getLastSyncTime(
+  tenantId: string,
+  erpSystem: string,
+): Promise<Date> {
   const lastSync = await db.query.stockSyncLogs.findFirst({
     where: and(
       eq(stockSyncLogs.tenantId, tenantId),
@@ -1395,7 +1485,10 @@ async function getLastSyncTime(tenantId: string, erpSystem: string): Promise<Dat
 }
 
 async function updateLastSyncTime(tenantId: string, erpSystem: string) {
-  await redis.set(`stock:sync:lasttime:${tenantId}:${erpSystem}`, new Date().toISOString());
+  await redis.set(
+    `stock:sync:lasttime:${tenantId}:${erpSystem}`,
+    new Date().toISOString(),
+  );
 }
 
 async function processBatch(
@@ -1468,7 +1561,8 @@ async function processBatch(
         localProduct.stockTotal !== erpItem.stockTotal ||
         (erpItem.stockAvailable !== undefined &&
           localProduct.stockAvailable !== erpItem.stockAvailable) ||
-        (erpItem.price !== undefined && localProduct.priceBase !== erpItem.price);
+        (erpItem.price !== undefined &&
+          localProduct.priceBase !== erpItem.price);
 
       if (!needsUpdate) {
         statistics.productsSkipped++;
@@ -1495,7 +1589,8 @@ async function processBatch(
           .set({
             stockTotal: erpItem.stockTotal,
             stockAvailable:
-              erpItem.stockAvailable ?? erpItem.stockTotal - localProduct.stockReserved,
+              erpItem.stockAvailable ??
+              erpItem.stockTotal - localProduct.stockReserved,
             priceBase: erpItem.price ?? localProduct.priceBase,
             erpLastSyncAt: new Date(),
             updatedAt: new Date(),
@@ -1548,7 +1643,10 @@ function resolveConflict(
   }
 }
 
-async function invalidateStockCache(tenantId: string, skus: string[]): Promise<void> {
+async function invalidateStockCache(
+  tenantId: string,
+  skus: string[],
+): Promise<void> {
   const keys = skus.map((sku) => `stock:${tenantId}:${sku}`);
   const chunks = [];
   for (let i = 0; i < keys.length; i += 100) {
@@ -1739,19 +1837,25 @@ export class SagaErpAdapter implements IErpAdapter {
       sku: item.cod_articol,
       stockTotal: parseFloat(item.cantitate_totala) || 0,
       stockAvailable:
-        parseFloat(item.cantitate_disponibila) || parseFloat(item.cantitate_totala) || 0,
+        parseFloat(item.cantitate_disponibila) ||
+        parseFloat(item.cantitate_totala) ||
+        0,
       price: parseFloat(item.pret_vanzare) || undefined,
       currency: item.moneda || "RON",
       status: this.mapSagaStatus(item.stare),
       warehouse: item.cod_gestiune,
       location: item.locatie,
-      lastModified: item.data_modificare ? new Date(item.data_modificare) : undefined,
+      lastModified: item.data_modificare
+        ? new Date(item.data_modificare)
+        : undefined,
       batchNumber: item.lot,
       expiryDate: item.data_expirare ? new Date(item.data_expirare) : undefined,
     }));
   }
 
-  private mapSagaStatus(sagaStatus: string): "ACTIVE" | "INACTIVE" | "DISCONTINUED" {
+  private mapSagaStatus(
+    sagaStatus: string,
+  ): "ACTIVE" | "INACTIVE" | "DISCONTINUED" {
     const statusMap: Record<string, "ACTIVE" | "INACTIVE" | "DISCONTINUED"> = {
       A: "ACTIVE",
       ACTIV: "ACTIVE",
@@ -1791,7 +1895,9 @@ export class SagaErpAdapter implements IErpAdapter {
       });
 
       if (!response.ok) {
-        throw new Error(`SAGA API error: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `SAGA API error: ${response.status} ${response.statusText}`,
+        );
       }
 
       return response.json();
@@ -1853,7 +1959,8 @@ export class CustomApiAdapter implements IErpAdapter {
   }
 
   async fetchStockChangedSince(since: Date): Promise<ErpStockItem[]> {
-    const endpoint = this.config.endpoints.changedStock || this.config.endpoints.allStock;
+    const endpoint =
+      this.config.endpoints.changedStock || this.config.endpoints.allStock;
     const url = `${endpoint}?since=${since.toISOString()}`;
     const response = await this.makeRequest(url);
     return this.mapResponse(response);
@@ -1861,10 +1968,13 @@ export class CustomApiAdapter implements IErpAdapter {
 
   async fetchStockBySku(skus: string[]): Promise<ErpStockItem[]> {
     if (this.config.endpoints.stockBySku) {
-      const response = await this.makeRequest(this.config.endpoints.stockBySku, {
-        method: "POST",
-        body: { skus },
-      });
+      const response = await this.makeRequest(
+        this.config.endpoints.stockBySku,
+        {
+          method: "POST",
+          body: { skus },
+        },
+      );
       return this.mapResponse(response);
     }
     // Fallback: fetch all and filter
@@ -1873,7 +1983,9 @@ export class CustomApiAdapter implements IErpAdapter {
   }
 
   parseWebhookPayload(payload: any): ErpStockItem[] {
-    const items = Array.isArray(payload) ? payload : payload.items || payload.data || [payload];
+    const items = Array.isArray(payload)
+      ? payload
+      : payload.items || payload.data || [payload];
     return this.mapResponse(items);
   }
 
@@ -1893,14 +2005,18 @@ export class CustomApiAdapter implements IErpAdapter {
 
     return items.map((item: any) => ({
       sku: this.getNestedValue(item, mapping.sku),
-      stockTotal: parseFloat(this.getNestedValue(item, mapping.stockTotal)) || 0,
+      stockTotal:
+        parseFloat(this.getNestedValue(item, mapping.stockTotal)) || 0,
       stockAvailable: mapping.stockAvailable
-        ? parseFloat(this.getNestedValue(item, mapping.stockAvailable)) || undefined
+        ? parseFloat(this.getNestedValue(item, mapping.stockAvailable)) ||
+          undefined
         : undefined,
       price: mapping.price
         ? parseFloat(this.getNestedValue(item, mapping.price)) || undefined
         : undefined,
-      currency: mapping.currency ? this.getNestedValue(item, mapping.currency) : undefined,
+      currency: mapping.currency
+        ? this.getNestedValue(item, mapping.currency)
+        : undefined,
       status: mapping.status
         ? this.normalizeStatus(this.getNestedValue(item, mapping.status))
         : undefined,
@@ -1914,16 +2030,24 @@ export class CustomApiAdapter implements IErpAdapter {
     return path.split(".").reduce((current, key) => current?.[key], obj);
   }
 
-  private normalizeStatus(status: string): "ACTIVE" | "INACTIVE" | "DISCONTINUED" {
+  private normalizeStatus(
+    status: string,
+  ): "ACTIVE" | "INACTIVE" | "DISCONTINUED" {
     if (!status) return "ACTIVE";
     const lower = status.toLowerCase();
     if (["inactive", "disabled", "off"].includes(lower)) return "INACTIVE";
-    if (["discontinued", "obsolete", "deleted"].includes(lower)) return "DISCONTINUED";
+    if (["discontinued", "obsolete", "deleted"].includes(lower))
+      return "DISCONTINUED";
     return "ACTIVE";
   }
 
-  private async makeRequest(url: string, options?: { method?: string; body?: any }): Promise<any> {
-    const fullUrl = url.startsWith("http") ? url : `${this.config.baseUrl}${url}`;
+  private async makeRequest(
+    url: string,
+    options?: { method?: string; body?: any },
+  ): Promise<any> {
+    const fullUrl = url.startsWith("http")
+      ? url
+      : `${this.config.baseUrl}${url}`;
     const headers = this.buildAuthHeaders();
 
     const response = await fetch(fullUrl, {
@@ -2332,13 +2456,19 @@ export async function setupStockScheduledJobs() {
 }
 
 // Queue schedulers for delayed jobs
-export const reserveCreateScheduler = new QueueScheduler("stock:reserve:create", {
-  connection: redis,
-});
+export const reserveCreateScheduler = new QueueScheduler(
+  "stock:reserve:create",
+  {
+    connection: redis,
+  },
+);
 
-export const reserveReleaseScheduler = new QueueScheduler("stock:reserve:release", {
-  connection: redis,
-});
+export const reserveReleaseScheduler = new QueueScheduler(
+  "stock:reserve:release",
+  {
+    connection: redis,
+  },
+);
 
 export const syncErpScheduler = new QueueScheduler("stock:sync:erp", {
   connection: redis,

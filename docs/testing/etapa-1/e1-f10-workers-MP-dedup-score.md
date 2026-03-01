@@ -88,8 +88,18 @@ describe("Silver to Gold Promotion", () => {
 describe("Pipeline Orchestrator", () => {
   it("should execute DAG in order", async () => {
     const executionOrder: string[] = [];
-    const result = await pipeline.execute(["normalize", "validate", "enrich", "score"]);
-    expect(result.completed).toEqual(["normalize", "validate", "enrich", "score"]);
+    const result = await pipeline.execute([
+      "normalize",
+      "validate",
+      "enrich",
+      "score",
+    ]);
+    expect(result.completed).toEqual([
+      "normalize",
+      "validate",
+      "enrich",
+      "score",
+    ]);
   });
 });
 ```

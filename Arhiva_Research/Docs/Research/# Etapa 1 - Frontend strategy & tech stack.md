@@ -27,10 +27,10 @@ export default async function DashboardPage() {
 The **useOptimistic** hook provides instant UI feedback while async operations complete—critical for responsive CRM interactions:
 
 ```tsx
-const [optimisticLeads, addOptimisticLead] = useOptimistic(leads, (state, newLead) => [
-  ...state,
-  { ...newLead, pending: true },
-]);
+const [optimisticLeads, addOptimisticLead] = useOptimistic(
+  leads,
+  (state, newLead) => [...state, { ...newLead, pending: true }],
+);
 ```
 
 **Server Actions** replace traditional REST APIs for CRUD operations, with `useActionState` and `useFormStatus` enabling sophisticated form handling with built-in pending states and error handling. The **use() hook** allows reading promises within components, enabling conditional data fetching impossible with `useContext`.
@@ -188,15 +188,20 @@ The recommended stack combines **shadcn/ui** (October 2025 added `Field`, `Item`
 
 ```tsx
 <DndContext onDragEnd={handleDragEnd}>
-  {["prospecting", "qualified", "proposal", "negotiation", "closed"].map((stage) => (
-    <DroppableColumn key={stage} id={stage}>
-      <SortableContext items={deals[stage]} strategy={verticalListSortingStrategy}>
-        {deals[stage].map((deal) => (
-          <DraggableDealCard key={deal.id} deal={deal} />
-        ))}
-      </SortableContext>
-    </DroppableColumn>
-  ))}
+  {["prospecting", "qualified", "proposal", "negotiation", "closed"].map(
+    (stage) => (
+      <DroppableColumn key={stage} id={stage}>
+        <SortableContext
+          items={deals[stage]}
+          strategy={verticalListSortingStrategy}
+        >
+          {deals[stage].map((deal) => (
+            <DraggableDealCard key={deal.id} deal={deal} />
+          ))}
+        </SortableContext>
+      </DroppableColumn>
+    ),
+  )}
 </DndContext>
 ```
 
@@ -217,7 +222,11 @@ const EnrichmentStages = [
 
 <Steps current={currentStage}>
   {EnrichmentStages.map((stage) => (
-    <Step key={stage.key} title={stage.label} status={getStageStatus(stage.key)} />
+    <Step
+      key={stage.key}
+      title={stage.label}
+      status={getStageStatus(stage.key)}
+    />
   ))}
 </Steps>;
 ```
@@ -231,11 +240,14 @@ Display essential metrics: **waiting**, **active**, **completed**, **failed**, *
 **SSE (Server-Sent Events)** suits one-way dashboard updates (queue stats, job progress), while **WebSockets** handle bidirectional needs (job control commands). The `react-use-websocket` library provides automatic reconnection:
 
 ```tsx
-const { lastJsonMessage, readyState } = useWebSocket("wss://api.cerniq.app/queue-updates", {
-  shouldReconnect: () => true,
-  reconnectAttempts: 10,
-  share: true, // Singleton connection
-});
+const { lastJsonMessage, readyState } = useWebSocket(
+  "wss://api.cerniq.app/queue-updates",
+  {
+    shouldReconnect: () => true,
+    reconnectAttempts: 10,
+    share: true, // Singleton connection
+  },
+);
 ```
 
 Integrate with TanStack Query for cache invalidation on real-time events:
@@ -283,7 +295,10 @@ Display tier prominently in contact card headers with drill-down capability show
       <EmailButton email={contact.email} />
       <AddNoteButton contactId={contact.id} />
     </QuickActions>
-    <EnrichmentStatus status={contact.enrichmentStatus} lastUpdated={contact.lastEnriched} />
+    <EnrichmentStatus
+      status={contact.enrichmentStatus}
+      lastUpdated={contact.lastEnriched}
+    />
   </CardContent>
 </Card>
 ```
@@ -306,11 +321,18 @@ Display tier prominently in contact card headers with drill-down capability show
   </FilterGroup>
   <FilterGroup label="Enrichment">
     <SelectFilter field="tier" options={["bronze", "silver", "gold"]} />
-    <SelectFilter field="enrichmentStatus" options={["verified", "pending", "failed"]} />
+    <SelectFilter
+      field="enrichmentStatus"
+      options={["verified", "pending", "failed"]}
+    />
     <RangeFilter field="enrichmentScore" min={0} max={100} />
   </FilterGroup>
   <SavedViewsDropdown views={userSavedViews} onApply={applyView} />
-  <ActiveFilters chips={activeFilters} onClear={clearFilter} onClearAll={clearAll} />
+  <ActiveFilters
+    chips={activeFilters}
+    onClear={clearFilter}
+    onClearAll={clearAll}
+  />
 </FilterBar>
 ```
 
@@ -335,10 +357,14 @@ Implement checkbox-based selection with contextual action bar appearing on selec
       <AlertDialog trigger={<Button variant="destructive">Delete</Button>}>
         <AlertDialogContent>
           <AlertDialogTitle>Delete {selectedCount} contacts?</AlertDialogTitle>
-          <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+          <AlertDialogDescription>
+            This action cannot be undone.
+          </AlertDialogDescription>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={bulkDelete}>Confirm Delete</AlertDialogAction>
+            <AlertDialogAction onClick={bulkDelete}>
+              Confirm Delete
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

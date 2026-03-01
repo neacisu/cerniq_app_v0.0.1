@@ -17,7 +17,9 @@ describe("AI Agent", () => {
 
   it("should use tools", async () => {
     const response = await agent.chat("Cât costă porumbul Pioneer P9911?");
-    expect(response.toolCalls).toContainEqual(expect.objectContaining({ name: "searchProducts" }));
+    expect(response.toolCalls).toContainEqual(
+      expect.objectContaining({ name: "searchProducts" }),
+    );
   });
 
   it("should maintain conversation context", async () => {

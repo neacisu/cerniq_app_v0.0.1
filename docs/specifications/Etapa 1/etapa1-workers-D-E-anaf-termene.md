@@ -31,7 +31,10 @@ interface AnafFiscalResult {
 }
 
 // Rate limit: 1 request/second conform ANAF API
-export const anafFiscalStatusWorker = createWorker<AnafFiscalJobData, AnafFiscalResult>({
+export const anafFiscalStatusWorker = createWorker<
+  AnafFiscalJobData,
+  AnafFiscalResult
+>({
   queueName: "silver:enrich:anaf-fiscal-status",
   concurrency: 1, // Single thread pentru rate limit
   limiter: {
@@ -51,7 +54,9 @@ export const anafFiscalStatusWorker = createWorker<AnafFiscalJobData, AnafFiscal
     logger.info({ cui }, "Fetching ANAF fiscal status");
 
     const anafClient = new AnafApiClient({
-      baseUrl: process.env.ANAF_API_URL || "https://webservicesp.anaf.ro/AsynchWebService/api/v8",
+      baseUrl:
+        process.env.ANAF_API_URL ||
+        "https://webservicesp.anaf.ro/AsynchWebService/api/v8",
       timeout: 15000,
     });
 
@@ -86,7 +91,9 @@ export const anafFiscalStatusWorker = createWorker<AnafFiscalJobData, AnafFiscal
         denumire: data.denumire || undefined,
         nrRegCom: data.nrRegCom || undefined,
         statusFirma: mapAnafStatus(data.stare_inregistrare),
-        dataInregistrare: data.data_inregistrare ? new Date(data.data_inregistrare) : undefined,
+        dataInregistrare: data.data_inregistrare
+          ? new Date(data.data_inregistrare)
+          : undefined,
         adresaCompleta: data.adresa || undefined,
         codCaenPrincipal: data.cod_CAEN || undefined,
         updatedAt: new Date(),
@@ -107,7 +114,10 @@ export const anafFiscalStatusWorker = createWorker<AnafFiscalJobData, AnafFiscal
       `;
       updateData.lastEnrichmentAt = new Date();
 
-      await db.update(silverCompanies).set(updateData).where(eq(silverCompanies.id, companyId));
+      await db
+        .update(silverCompanies)
+        .set(updateData)
+        .where(eq(silverCompanies.id, companyId));
 
       // Log enrichment
       await db.insert(silverEnrichmentLog).values({
@@ -228,7 +238,10 @@ export const anafTvaStatusWorker = createWorker<AnafTvaJobData, AnafTvaResult>({
 ```typescript
 // apps/workers/src/silver/anaf-efactura.worker.ts
 
-export const anafEfacturaWorker = createWorker<AnafEfacturaJobData, AnafEfacturaResult>({
+export const anafEfacturaWorker = createWorker<
+  AnafEfacturaJobData,
+  AnafEfacturaResult
+>({
   queueName: "silver:enrich:anaf-efactura",
   concurrency: 1,
   limiter: { max: 1, duration: 1000 },
@@ -252,7 +265,9 @@ export const anafEfacturaWorker = createWorker<AnafEfacturaJobData, AnafEfactura
         .update(silverCompanies)
         .set({
           inregistratEFactura: isRegistered,
-          dataInregistrareEFactura: dataInregistrare ? new Date(dataInregistrare) : undefined,
+          dataInregistrareEFactura: dataInregistrare
+            ? new Date(dataInregistrare)
+            : undefined,
           enrichmentSourcesCompleted: db.sql`
             array_append(
               array_remove(enrichment_sources_completed, 'anaf_efactura'),
@@ -280,7 +295,10 @@ export const anafEfacturaWorker = createWorker<AnafEfacturaJobData, AnafEfactura
 ```typescript
 // apps/workers/src/silver/anaf-datorii.worker.ts
 
-export const anafDatoriiWorker = createWorker<AnafDatoriiJobData, AnafDatoriiResult>({
+export const anafDatoriiWorker = createWorker<
+  AnafDatoriiJobData,
+  AnafDatoriiResult
+>({
   queueName: "silver:enrich:anaf-datorii",
   concurrency: 1,
   limiter: { max: 1, duration: 1000 },
@@ -422,7 +440,10 @@ interface TermeneBalanceJobData {
 }
 
 // Rate limit: 20 requests/second conform Termene.ro API
-export const termeneBalanceWorker = createWorker<TermeneBalanceJobData, TermeneBalanceResult>({
+export const termeneBalanceWorker = createWorker<
+  TermeneBalanceJobData,
+  TermeneBalanceResult
+>({
   queueName: "silver:enrich:termene-balance",
   concurrency: 10, // Higher concurrency due to better rate limit
   limiter: {
@@ -496,7 +517,12 @@ export const termeneBalanceWorker = createWorker<TermeneBalanceJobData, TermeneB
         source: "termene_balance",
         operation: "fetch",
         status: "success",
-        fieldsUpdated: ["cifraAfaceri", "profitNet", "numarAngajati", "anBilant"],
+        fieldsUpdated: [
+          "cifraAfaceri",
+          "profitNet",
+          "numarAngajati",
+          "anBilant",
+        ],
         responseData: { year: latestYear },
       });
 
@@ -523,7 +549,10 @@ export const termeneBalanceWorker = createWorker<TermeneBalanceJobData, TermeneB
 ```typescript
 // apps/workers/src/silver/termene-risk.worker.ts
 
-export const termeneRiskWorker = createWorker<TermeneRiskJobData, TermeneRiskResult>({
+export const termeneRiskWorker = createWorker<
+  TermeneRiskJobData,
+  TermeneRiskResult
+>({
   queueName: "silver:enrich:termene-risk",
   concurrency: 10,
   limiter: { max: 20, duration: 1000 },
@@ -593,7 +622,10 @@ function categorizeRisk(score: number): "LOW" | "MEDIUM" | "HIGH" {
 ```typescript
 // apps/workers/src/silver/termene-dosare.worker.ts
 
-export const termeneDosareWorker = createWorker<TermeneDosareJobData, TermeneDosareResult>({
+export const termeneDosareWorker = createWorker<
+  TermeneDosareJobData,
+  TermeneDosareResult
+>({
   queueName: "silver:enrich:termene-dosare",
   concurrency: 10,
   limiter: { max: 20, duration: 1000 },
@@ -611,8 +643,10 @@ export const termeneDosareWorker = createWorker<TermeneDosareJobData, TermeneDos
     try {
       const response = await termeneClient.getDosare(cui);
 
-      const dosareActuale = response?.dosare?.filter((d) => d.status === "ACTIV") || [];
-      const dosareInchise = response?.dosare?.filter((d) => d.status === "INCHIS") || [];
+      const dosareActuale =
+        response?.dosare?.filter((d) => d.status === "ACTIV") || [];
+      const dosareInchise =
+        response?.dosare?.filter((d) => d.status === "INCHIS") || [];
 
       // Check for insolvency proceedings
       const inInsolventa = dosareActuale.some(
@@ -673,68 +707,46 @@ export const termeneDosareWorker = createWorker<TermeneDosareJobData, TermeneDos
 ```typescript
 // apps/workers/src/silver/termene-actionari.worker.ts
 
-export const termeneActionariWorker = createWorker<TermeneActionariJobData, TermeneActionariResult>(
-  {
-    queueName: "silver:enrich:termene-actionari",
-    concurrency: 10,
-    limiter: { max: 20, duration: 1000 },
-    attempts: 3,
-    backoff: { type: "fixed", delay: 1000 },
-    timeout: 30000,
+export const termeneActionariWorker = createWorker<
+  TermeneActionariJobData,
+  TermeneActionariResult
+>({
+  queueName: "silver:enrich:termene-actionari",
+  concurrency: 10,
+  limiter: { max: 20, duration: 1000 },
+  attempts: 3,
+  backoff: { type: "fixed", delay: 1000 },
+  timeout: 30000,
 
-    processor: async (job, logger) => {
-      const { tenantId, companyId, cui } = job.data;
+  processor: async (job, logger) => {
+    const { tenantId, companyId, cui } = job.data;
 
-      const termeneClient = new TermeneApiClient({
-        apiKey: process.env.TERMENE_API_KEY!,
-      });
+    const termeneClient = new TermeneApiClient({
+      apiKey: process.env.TERMENE_API_KEY!,
+    });
 
-      try {
-        const response = await termeneClient.getActionari(cui);
+    try {
+      const response = await termeneClient.getActionari(cui);
 
-        if (!response || !response.actionari) {
-          return { status: "not_found" };
-        }
+      if (!response || !response.actionari) {
+        return { status: "not_found" };
+      }
 
-        const actionari = response.actionari;
-        const administratori = response.administratori || [];
+      const actionari = response.actionari;
+      const administratori = response.administratori || [];
 
-        // Store in silver_contacts
-        for (const actionar of actionari) {
-          if (actionar.tip === "PERSOANA_FIZICA") {
-            await db
-              .insert(silverContacts)
-              .values({
-                tenantId,
-                silverCompanyId: companyId,
-                fullName: actionar.nume,
-                role: "ACTIONAR",
-                ownershipPercent: actionar.procent_detineri,
-                sourceData: actionar,
-              })
-              .onConflictDoUpdate({
-                target: [
-                  silverContacts.silverCompanyId,
-                  silverContacts.fullName,
-                  silverContacts.role,
-                ],
-                set: {
-                  ownershipPercent: actionar.procent_detineri,
-                  updatedAt: new Date(),
-                },
-              });
-          }
-        }
-
-        for (const admin of administratori) {
+      // Store in silver_contacts
+      for (const actionar of actionari) {
+        if (actionar.tip === "PERSOANA_FIZICA") {
           await db
             .insert(silverContacts)
             .values({
               tenantId,
               silverCompanyId: companyId,
-              fullName: admin.nume,
-              role: admin.functie || "ADMINISTRATOR",
-              sourceData: admin,
+              fullName: actionar.nume,
+              role: "ACTIONAR",
+              ownershipPercent: actionar.procent_detineri,
+              sourceData: actionar,
             })
             .onConflictDoUpdate({
               target: [
@@ -742,49 +754,72 @@ export const termeneActionariWorker = createWorker<TermeneActionariJobData, Term
                 silverContacts.fullName,
                 silverContacts.role,
               ],
-              set: { updatedAt: new Date() },
+              set: {
+                ownershipPercent: actionar.procent_detineri,
+                updatedAt: new Date(),
+              },
             });
         }
+      }
 
-        // Update company with summary
+      for (const admin of administratori) {
         await db
-          .update(silverCompanies)
-          .set({
-            numarActionari: actionari.length,
-            numarAdministratori: administratori.length,
-            areActionarMajoritar: actionari.some((a) => a.procent_detineri > 50),
-            enrichmentSourcesCompleted: db.sql`
+          .insert(silverContacts)
+          .values({
+            tenantId,
+            silverCompanyId: companyId,
+            fullName: admin.nume,
+            role: admin.functie || "ADMINISTRATOR",
+            sourceData: admin,
+          })
+          .onConflictDoUpdate({
+            target: [
+              silverContacts.silverCompanyId,
+              silverContacts.fullName,
+              silverContacts.role,
+            ],
+            set: { updatedAt: new Date() },
+          });
+      }
+
+      // Update company with summary
+      await db
+        .update(silverCompanies)
+        .set({
+          numarActionari: actionari.length,
+          numarAdministratori: administratori.length,
+          areActionarMajoritar: actionari.some((a) => a.procent_detineri > 50),
+          enrichmentSourcesCompleted: db.sql`
             array_append(
               array_remove(enrichment_sources_completed, 'termene_actionari'),
               'termene_actionari'
             )
           `,
-            lastEnrichmentAt: new Date(),
-            updatedAt: new Date(),
-          })
-          .where(eq(silverCompanies.id, companyId));
+          lastEnrichmentAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(silverCompanies.id, companyId));
 
-        logger.info(
-          {
-            cui,
-            actionari: actionari.length,
-            administratori: administratori.length,
-          },
-          "Actionari/Administratori updated",
-        );
+      logger.info(
+        {
+          cui,
+          actionari: actionari.length,
+          administratori: administratori.length,
+        },
+        "Actionari/Administratori updated",
+      );
 
-        return {
-          status: "success",
-          actionariCount: actionari.length,
-          administratoriCount: administratori.length,
-        };
-      } catch (error) {
-        logger.error({ error, cui }, "Termene.ro actionari API error");
-        throw error;
-      }
-    },
+      return {
+        status: "success",
+        actionariCount: actionari.length,
+        administratoriCount: administratori.length,
+      };
+    } catch (error) {
+      logger.error({ error, cui }, "Termene.ro actionari API error");
+      throw error;
+    }
   },
-);
+});
 ```
 
 ---
@@ -813,7 +848,9 @@ export class AnafApiClient {
     this.logger = config.logger;
 
     this.client = axios.create({
-      baseURL: config.baseUrl || "https://webservicesp.anaf.ro/AsynchWebService/api/v8",
+      baseURL:
+        config.baseUrl ||
+        "https://webservicesp.anaf.ro/AsynchWebService/api/v8",
       timeout: config.timeout || 15000,
       headers: {
         "Content-Type": "application/json",
@@ -822,12 +859,15 @@ export class AnafApiClient {
     });
 
     // Circuit breaker for resilience
-    this.breaker = new CircuitBreaker((cui: string) => this.fetchFiscalStatusInternal(cui), {
-      timeout: 15000,
-      errorThresholdPercentage: 50,
-      resetTimeout: 30000,
-      volumeThreshold: 5,
-    });
+    this.breaker = new CircuitBreaker(
+      (cui: string) => this.fetchFiscalStatusInternal(cui),
+      {
+        timeout: 15000,
+        errorThresholdPercentage: 50,
+        resetTimeout: 30000,
+        volumeThreshold: 5,
+      },
+    );
 
     this.breaker.on("open", () => {
       this.logger?.warn("ANAF circuit breaker OPEN");
@@ -853,7 +893,9 @@ export class AnafApiClient {
     }
   }
 
-  private async fetchFiscalStatusInternal(cui: string): Promise<AnafFiscalResponse | null> {
+  private async fetchFiscalStatusInternal(
+    cui: string,
+  ): Promise<AnafFiscalResponse | null> {
     // ANAF expects array of CUI
     const payload = [cui.replace(/^RO/i, "")];
 
@@ -883,7 +925,9 @@ export class AnafApiClient {
     return null;
   }
 
-  async checkEfacturaRegistration(cui: string): Promise<AnafEfacturaResponse | null> {
+  async checkEfacturaRegistration(
+    cui: string,
+  ): Promise<AnafEfacturaResponse | null> {
     // API endpoint pentru verificare e-Factura
     const response = await this.client.get(`/listeRO_e_Factura`, {
       params: { cui: cui.replace(/^RO/i, "") },

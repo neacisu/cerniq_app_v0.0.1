@@ -1695,16 +1695,27 @@ export const oblioClients = pgTable(
     oblioClientId: varchar("oblio_client_id", { length: 50 }),
     lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }),
 
-    totalInvoiced: decimal("total_invoiced", { precision: 15, scale: 2 }).default("0").notNull(),
-    totalPaid: decimal("total_paid", { precision: 15, scale: 2 }).default("0").notNull(),
+    totalInvoiced: decimal("total_invoiced", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
+    totalPaid: decimal("total_paid", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
     lastInvoiceDate: date("last_invoice_date"),
     lastPaymentDate: date("last_payment_date"),
 
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
   (table) => ({
-    uniqueClientCif: uniqueIndex("unique_client_cif").on(table.tenantId, table.cif),
+    uniqueClientCif: uniqueIndex("unique_client_cif").on(
+      table.tenantId,
+      table.cif,
+    ),
     searchIdx: index("idx_oblio_clients_search").using("gin", table.name),
     cifIdx: index("idx_oblio_clients_cif").on(table.tenantId, table.cif),
   }),
@@ -1724,8 +1735,12 @@ export const oblioDocuments = pgTable(
 
     negotiationId: uuid("negotiation_id").references(() => goldNegotiations.id),
     leadId: uuid("lead_id").references(() => goldLeads.id),
-    originalDocumentId: uuid("original_document_id").references((): any => oblioDocuments.id),
-    referenceDocumentId: uuid("reference_document_id").references((): any => oblioDocuments.id),
+    originalDocumentId: uuid("original_document_id").references(
+      (): any => oblioDocuments.id,
+    ),
+    referenceDocumentId: uuid("reference_document_id").references(
+      (): any => oblioDocuments.id,
+    ),
 
     issuerCif: varchar("issuer_cif", { length: 15 }).notNull(),
     issuerName: varchar("issuer_name", { length: 255 }).notNull(),
@@ -1740,14 +1755,18 @@ export const oblioDocuments = pgTable(
     vatAmount: decimal("vat_amount", { precision: 15, scale: 2 }).notNull(),
     total: decimal("total", { precision: 15, scale: 2 }).notNull(),
     currency: varchar("currency", { length: 3 }).default("RON").notNull(),
-    exchangeRate: decimal("exchange_rate", { precision: 10, scale: 6 }).default("1.0"),
+    exchangeRate: decimal("exchange_rate", { precision: 10, scale: 6 }).default(
+      "1.0",
+    ),
 
     issueDate: date("issue_date").notNull(),
     dueDate: date("due_date"),
     deliveryDate: date("delivery_date"),
 
     status: documentStatusEnum("status").default("DRAFT").notNull(),
-    einvoiceStatus: einvoiceStatusEnum("einvoice_status").default("NOT_APPLICABLE").notNull(),
+    einvoiceStatus: einvoiceStatusEnum("einvoice_status")
+      .default("NOT_APPLICABLE")
+      .notNull(),
 
     oblioId: varchar("oblio_id", { length: 50 }),
     pdfLink: text("pdf_link"),
@@ -1775,8 +1794,12 @@ export const oblioDocuments = pgTable(
     oblioRequest: jsonb("oblio_request"),
     oblioResponse: jsonb("oblio_response"),
 
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
     createdBy: uuid("created_by").references(() => users.id),
   },
   (table) => ({
@@ -1797,7 +1820,10 @@ export const oblioDocuments = pgTable(
       table.status,
     ),
     clientIdx: index("idx_doc_client").on(table.tenantId, table.clientCif),
-    issueDateIdx: index("idx_doc_issue_date").on(table.tenantId, table.issueDate),
+    issueDateIdx: index("idx_doc_issue_date").on(
+      table.tenantId,
+      table.issueDate,
+    ),
   }),
 );
 
@@ -1824,8 +1850,12 @@ export const oblioSeries = pgTable(
     isActive: boolean("is_active").default(true).notNull(),
     isDefault: boolean("is_default").default(false).notNull(),
 
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
   (table) => ({
     uniqueSeriesTypeYear: uniqueIndex("unique_series_per_type_year").on(
@@ -1859,7 +1889,9 @@ export const einvoiceSubmissions = pgTable(
     action: spvActionEnum("action").notNull(),
     submissionAttempt: integer("submission_attempt").default(1).notNull(),
 
-    submittedAt: timestamp("submitted_at", { withTimezone: true }).defaultNow().notNull(),
+    submittedAt: timestamp("submitted_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
     deadlineAt: timestamp("deadline_at", { withTimezone: true }).notNull(),
 
     spvIndex: varchar("spv_index", { length: 100 }),
@@ -1883,11 +1915,16 @@ export const einvoiceSubmissions = pgTable(
     maxRetries: integer("max_retries").default(3).notNull(),
     nextRetryAt: timestamp("next_retry_at", { withTimezone: true }),
 
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
     triggeredBy: varchar("triggered_by", { length: 50 }),
   },
   (table) => ({
-    pendingIdx: index("idx_einvoice_pending").on(table.tenantId, table.deadlineAt),
+    pendingIdx: index("idx_einvoice_pending").on(
+      table.tenantId,
+      table.deadlineAt,
+    ),
     spvIndexIdx: index("idx_einvoice_spv_index").on(table.spvIndex),
   }),
 );
@@ -1906,7 +1943,9 @@ export const paymentReconciliation = pgTable(
 
     amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
     currency: varchar("currency", { length: 3 }).default("RON").notNull(),
-    exchangeRate: decimal("exchange_rate", { precision: 10, scale: 6 }).default("1.0"),
+    exchangeRate: decimal("exchange_rate", { precision: 10, scale: 6 }).default(
+      "1.0",
+    ),
 
     payerName: varchar("payer_name", { length: 255 }),
     payerAccount: varchar("payer_account", { length: 50 }),
@@ -1938,8 +1977,12 @@ export const paymentReconciliation = pgTable(
     bankStatementText: text("bank_statement_text"),
     bankRawData: jsonb("bank_raw_data"),
 
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
   (table) => ({
     pendingIdx: index("idx_payment_pending").on(table.tenantId, table.payerCif),
@@ -1970,7 +2013,9 @@ export const documentDelivery = pgTable(
     providerStatus: varchar("provider_status", { length: 50 }),
     providerResponse: jsonb("provider_response"),
 
-    queuedAt: timestamp("queued_at", { withTimezone: true }).defaultNow().notNull(),
+    queuedAt: timestamp("queued_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
     sentAt: timestamp("sent_at", { withTimezone: true }),
     deliveredAt: timestamp("delivered_at", { withTimezone: true }),
     readAt: timestamp("read_at", { withTimezone: true }),
@@ -1985,8 +2030,12 @@ export const documentDelivery = pgTable(
     bodyPreview: text("body_preview"),
     attachmentCount: integer("attachment_count").default(1).notNull(),
 
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
     createdBy: uuid("created_by").references(() => users.id),
   },
   (table) => ({
@@ -2010,11 +2059,15 @@ export const fiscalAuditTrail = pgTable(
       .references(() => tenants.id),
 
     eventType: fiscalEventTypeEnum("event_type").notNull(),
-    eventTimestamp: timestamp("event_timestamp", { withTimezone: true }).defaultNow().notNull(),
+    eventTimestamp: timestamp("event_timestamp", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
 
     documentId: uuid("document_id").references(() => oblioDocuments.id),
     negotiationId: uuid("negotiation_id").references(() => goldNegotiations.id),
-    einvoiceSubmissionId: uuid("einvoice_submission_id").references(() => einvoiceSubmissions.id),
+    einvoiceSubmissionId: uuid("einvoice_submission_id").references(
+      () => einvoiceSubmissions.id,
+    ),
 
     actorType: varchar("actor_type", { length: 20 }).notNull(),
     actorId: uuid("actor_id"),
@@ -2029,10 +2082,14 @@ export const fiscalAuditTrail = pgTable(
     isVerified: boolean("is_verified"),
     verifiedAt: timestamp("verified_at", { withTimezone: true }),
 
-    sourceSystem: varchar("source_system", { length: 50 }).default("CERNIQ").notNull(),
+    sourceSystem: varchar("source_system", { length: 50 })
+      .default("CERNIQ")
+      .notNull(),
     correlationId: uuid("correlation_id"),
 
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
   (table) => ({
     chainIdx: index("idx_fiscal_audit_chain").on(table.tenantId, table.id),
@@ -2049,36 +2106,39 @@ export const fiscalAuditTrail = pgTable(
 // Relations
 // =====================
 
-export const oblioDocumentsRelations = relations(oblioDocuments, ({ one, many }) => ({
-  tenant: one(tenants, {
-    fields: [oblioDocuments.tenantId],
-    references: [tenants.id],
+export const oblioDocumentsRelations = relations(
+  oblioDocuments,
+  ({ one, many }) => ({
+    tenant: one(tenants, {
+      fields: [oblioDocuments.tenantId],
+      references: [tenants.id],
+    }),
+    negotiation: one(goldNegotiations, {
+      fields: [oblioDocuments.negotiationId],
+      references: [goldNegotiations.id],
+    }),
+    lead: one(goldLeads, {
+      fields: [oblioDocuments.leadId],
+      references: [goldLeads.id],
+    }),
+    client: one(oblioClients, {
+      fields: [oblioDocuments.clientId],
+      references: [oblioClients.id],
+    }),
+    originalDocument: one(oblioDocuments, {
+      fields: [oblioDocuments.originalDocumentId],
+      references: [oblioDocuments.id],
+    }),
+    referenceDocument: one(oblioDocuments, {
+      fields: [oblioDocuments.referenceDocumentId],
+      references: [oblioDocuments.id],
+    }),
+    einvoiceSubmissions: many(einvoiceSubmissions),
+    deliveries: many(documentDelivery),
+    payments: many(paymentReconciliation),
+    auditTrail: many(fiscalAuditTrail),
   }),
-  negotiation: one(goldNegotiations, {
-    fields: [oblioDocuments.negotiationId],
-    references: [goldNegotiations.id],
-  }),
-  lead: one(goldLeads, {
-    fields: [oblioDocuments.leadId],
-    references: [goldLeads.id],
-  }),
-  client: one(oblioClients, {
-    fields: [oblioDocuments.clientId],
-    references: [oblioClients.id],
-  }),
-  originalDocument: one(oblioDocuments, {
-    fields: [oblioDocuments.originalDocumentId],
-    references: [oblioDocuments.id],
-  }),
-  referenceDocument: one(oblioDocuments, {
-    fields: [oblioDocuments.referenceDocumentId],
-    references: [oblioDocuments.id],
-  }),
-  einvoiceSubmissions: many(einvoiceSubmissions),
-  deliveries: many(documentDelivery),
-  payments: many(paymentReconciliation),
-  auditTrail: many(fiscalAuditTrail),
-}));
+);
 
 // =====================
 // Types

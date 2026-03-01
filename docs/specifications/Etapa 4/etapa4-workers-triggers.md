@@ -64,7 +64,10 @@ const REVOLUT_WEBHOOK_EVENTS = {
 app.post("/webhooks/revolut/business", async (req, reply) => {
   // 1. Validate HMAC
   const signature = req.headers["x-revolut-signature-v1"];
-  const isValid = await validateRevolutHmac(signature, JSON.stringify(req.body));
+  const isValid = await validateRevolutHmac(
+    signature,
+    JSON.stringify(req.body),
+  );
   if (!isValid) return reply.code(401).send({ error: "Invalid signature" });
 
   // 2. Idempotency
@@ -129,7 +132,8 @@ app.post("/webhooks/sameday/status", async (req, reply) => {
 ```typescript
 // POST /webhooks/docusign/connect
 app.post("/webhooks/docusign/connect", async (req, reply) => {
-  const { envelopeId, status, recipientStatuses } = req.body.data.envelopeSummary;
+  const { envelopeId, status, recipientStatuses } =
+    req.body.data.envelopeSummary;
 
   await flowProducer.add({
     queueName: "contract:sign:complete",

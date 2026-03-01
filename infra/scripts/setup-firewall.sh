@@ -66,18 +66,15 @@ else
 fi
 
 # Ports to open publicly (environment-aware)
-# NOTE: 80/443 = Cerniq + ingress. Porturile 3000, 3002, 5173, 3060, 3061 sunt
-# pentru alte aplicatii (IWMS, WMS v1, WAppBuss) pe acelasi host; pastrate
-# temporar pana la migrare. Doar 80/443 sunt Cerniq-specific.
 if is_production; then
     PUBLIC_PORTS=(
-        "80/tcp"    # HTTP (Cerniq + ingress)
-        "443/tcp"   # HTTPS (Cerniq + ingress)
-        "3000/tcp"  # IWMS API (non-Cerniq, temporary)
-        "3002/tcp"  # IWMS UI (non-Cerniq, temporary)
-        "5173/tcp"  # WMS v1 UI (non-Cerniq, temporary)
-        "3060/tcp"  # WAppBuss backend (non-Cerniq, temporary)
-        "3061/tcp"  # WAppBuss frontend (non-Cerniq, temporary)
+        "80/tcp"    # HTTP
+        "443/tcp"   # HTTPS
+        "3000/tcp"  # IWMS API (temporary allow)
+        "3002/tcp"  # IWMS UI (temporary allow)
+        "5173/tcp"  # WMS v1 UI (temporary allow)
+        "3060/tcp"  # WAppBuss backend (temporary allow)
+        "3061/tcp"  # WAppBuss frontend (temporary allow)
     )
 else
     PUBLIC_PORTS=(
@@ -90,9 +87,6 @@ fi
 ADMIN_PORTS=(
     "22/tcp"   # SSH
 )
-
-# Ports 5000-5002: non-Cerniq (e.g. GeniusERP 5000 per etapa0-port-matrix). On hz.164
-# verify with: sudo ufw status | grep -E '5000|5001|5002'. Document if open for other projects.
 
 # Docker networks (internal, don't block)
 if is_production; then
@@ -110,11 +104,10 @@ else
 fi
 
 # Explicitly blocked ports (environment-aware)
-# 3062/3063 = WAppBuss (non-Cerniq), blocate explicit ca sa nu fie expuse.
 if is_production; then
     BLOCKED_PORTS=(
-        "3062/tcp"  # WAppBuss PostgreSQL (non-Cerniq, must not be public)
-        "3063/tcp"  # WAppBuss Redis (non-Cerniq, must not be public)
+        "3062/tcp"  # WAppBuss PostgreSQL (should not be public)
+        "3063/tcp"  # WAppBuss Redis (should not be public)
     )
 else
     BLOCKED_PORTS=()

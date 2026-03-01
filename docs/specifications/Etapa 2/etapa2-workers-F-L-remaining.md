@@ -18,7 +18,10 @@
 
 ```typescript
 // Spintax: {option1|option2|option3}
-export function processSpintax(template: string, variables: Record<string, string>): string {
+export function processSpintax(
+  template: string,
+  variables: Record<string, string>,
+): string {
   // Replace variables
   let result = template;
   for (const [key, value] of Object.entries(variables)) {
@@ -189,7 +192,9 @@ type InstantlyEvent =
   | { event_type: "email_bounced"; lead_email: string; bounce_type: string }
   | { event_type: "lead_unsubscribed"; lead_email: string };
 
-export async function instantlyIngestProcessor(job: Job<InstantlyEvent>): Promise<SystemEvent> {
+export async function instantlyIngestProcessor(
+  job: Job<InstantlyEvent>,
+): Promise<SystemEvent> {
   const payload = job.data;
 
   // Find lead by email
@@ -238,7 +243,12 @@ export async function instantlyIngestProcessor(job: Job<InstantlyEvent>): Promis
 
 ```typescript
 interface ResendWebhook {
-  type: "email.sent" | "email.delivered" | "email.bounced" | "email.opened" | "email.clicked";
+  type:
+    | "email.sent"
+    | "email.delivered"
+    | "email.bounced"
+    | "email.opened"
+    | "email.clicked";
   data: {
     email_id: string;
     to: string[];
@@ -246,7 +256,9 @@ interface ResendWebhook {
   };
 }
 
-export async function resendIngestProcessor(job: Job<ResendWebhook>): Promise<SystemEvent> {
+export async function resendIngestProcessor(
+  job: Job<ResendWebhook>,
+): Promise<SystemEvent> {
   const { type, data } = job.data;
 
   // Get lead_id from tags
@@ -358,7 +370,12 @@ export async function sequenceStopProcessor(
       stoppedAt: new Date(),
       stopReason: reason,
     })
-    .where(and(eq(sequenceEnrollments.leadId, leadId), eq(sequenceEnrollments.status, "ACTIVE")));
+    .where(
+      and(
+        eq(sequenceEnrollments.leadId, leadId),
+        eq(sequenceEnrollments.status, "ACTIVE"),
+      ),
+    );
 
   // Clear next action
   await db
@@ -634,12 +651,18 @@ export async function phoneHealthProcessor(job: Job): Promise<void> {
 ```typescript
 interface ReviewQueueJobData {
   leadId: string;
-  reason: "NEGATIVE_SENTIMENT" | "KEYWORD_TRIGGER" | "AI_UNCERTAIN" | "MANUAL_FLAG";
+  reason:
+    | "NEGATIVE_SENTIMENT"
+    | "KEYWORD_TRIGGER"
+    | "AI_UNCERTAIN"
+    | "MANUAL_FLAG";
   priority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
   content?: string;
 }
 
-export async function reviewQueueProcessor(job: Job<ReviewQueueJobData>): Promise<void> {
+export async function reviewQueueProcessor(
+  job: Job<ReviewQueueJobData>,
+): Promise<void> {
   const { leadId, reason, priority, content } = job.data;
 
   // Calculate SLA based on priority

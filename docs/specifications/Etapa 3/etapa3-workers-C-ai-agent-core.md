@@ -191,7 +191,9 @@ export const AgentOrchestrateJobDataSchema = z.object({
     .optional(),
 });
 
-export type AgentOrchestrateJobData = z.infer<typeof AgentOrchestrateJobDataSchema>;
+export type AgentOrchestrateJobData = z.infer<
+  typeof AgentOrchestrateJobDataSchema
+>;
 ```
 
 ### 2.3 Result Schema
@@ -237,7 +239,12 @@ export const AgentOrchestrateResultSchema = z.object({
       from: z.string(),
       to: z.string(),
       reason: z.string(),
-      triggeredBy: z.enum(["AI_DECISION", "TOOL_RESULT", "USER_ACTION", "TIMEOUT"]),
+      triggeredBy: z.enum([
+        "AI_DECISION",
+        "TOOL_RESULT",
+        "USER_ACTION",
+        "TIMEOUT",
+      ]),
     })
     .optional(),
   suggestedActions: z.array(z.string()),
@@ -255,7 +262,9 @@ export const AgentOrchestrateResultSchema = z.object({
   modelUsed: z.string(),
 });
 
-export type AgentOrchestrateResult = z.infer<typeof AgentOrchestrateResultSchema>;
+export type AgentOrchestrateResult = z.infer<
+  typeof AgentOrchestrateResultSchema
+>;
 ```
 
 ### 2.4 Implementare Completă
@@ -311,7 +320,8 @@ const MCP_TOOLS = [
     type: "function" as const,
     function: {
       name: "search_products",
-      description: "Caută produse în catalog folosind căutare hibridă (semantic + lexical)",
+      description:
+        "Caută produse în catalog folosind căutare hibridă (semantic + lexical)",
       parameters: {
         type: "object",
         properties: {
@@ -465,7 +475,8 @@ export async function agentOrchestrateProcessor(
   }
 
   const { shopId, leadId, negotiationId, message, context, options } = job.data;
-  const maxAttempts = options?.maxRegenerationAttempts ?? MAX_REGENERATION_ATTEMPTS;
+  const maxAttempts =
+    options?.maxRegenerationAttempts ?? MAX_REGENERATION_ATTEMPTS;
 
   logger.info(
     { correlationId, negotiationId, state: context.currentState },
@@ -702,7 +713,8 @@ export async function agentOrchestrateProcessor(
     }
 
     // Calculate token cost
-    result.tokensUsed.total = result.tokensUsed.prompt + result.tokensUsed.completion;
+    result.tokensUsed.total =
+      result.tokensUsed.prompt + result.tokensUsed.completion;
     result.tokensUsed.estimatedCost =
       (result.tokensUsed.prompt / 1000) * TOKEN_COST_PER_1K_PROMPT +
       (result.tokensUsed.completion / 1000) * TOKEN_COST_PER_1K_COMPLETION;
@@ -728,7 +740,8 @@ export async function agentOrchestrateProcessor(
             originalMessage: message.content,
             failedGuardrails: result.guardrailChecks.filter((g) => !g.passed),
             lastAttemptedResponse:
-              result.guardrailChecks[result.guardrailChecks.length - 1]?.details,
+              result.guardrailChecks[result.guardrailChecks.length - 1]
+                ?.details,
           },
         },
         redis,
@@ -764,7 +777,14 @@ export async function agentOrchestrateProcessor(
     );
 
     // Save conversation to database
-    await saveConversation(negotiationId, leadId, shopId, message, result, logger);
+    await saveConversation(
+      negotiationId,
+      leadId,
+      shopId,
+      message,
+      result,
+      logger,
+    );
   } finally {
     // Close MCP client
     await mcpClient?.close();
@@ -803,7 +823,8 @@ function buildSalesAgentSystemPrompt(context: any): string {
     context.cartItems.length > 0
       ? context.cartItems
           .map(
-            (item: any) => `- ${item.sku}: ${item.title} x${item.quantity} @ ${item.unitPrice} RON`,
+            (item: any) =>
+              `- ${item.sku}: ${item.title} x${item.quantity} @ ${item.unitPrice} RON`,
           )
           .join("\n")
       : "Coșul este gol";
@@ -1019,8 +1040,11 @@ async function determineStateTransition(
       from: ["DISCOVERY"],
       to: "PROPOSAL",
       condition: () =>
-        toolsCalled.some((t) => t.name === "search_products" && t.result?.products?.length > 0) &&
-        (toolsCalled.some((t) => t.name === "update_cart") || cartItems.length > 0),
+        toolsCalled.some(
+          (t) => t.name === "search_products" && t.result?.products?.length > 0,
+        ) &&
+        (toolsCalled.some((t) => t.name === "update_cart") ||
+          cartItems.length > 0),
       reason: "Produse identificate și adăugate în coș",
       trigger: "TOOL_RESULT",
     },
@@ -1043,7 +1067,8 @@ async function determineStateTransition(
       from: ["NEGOTIATION"],
       to: "CLOSING",
       condition: () =>
-        (toolsCalled.some((t) => t.name === "calculate_discount") || cartItems.length > 0) &&
+        (toolsCalled.some((t) => t.name === "calculate_discount") ||
+          cartItems.length > 0) &&
         (userMessage.toLowerCase().includes("comand") ||
           userMessage.toLowerCase().includes("cumpăr") ||
           userMessage.toLowerCase().includes("ok") ||
@@ -1057,8 +1082,12 @@ async function determineStateTransition(
       from: ["CLOSING"],
       to: "PROFORMA_SENT",
       condition: () =>
-        toolsCalled.some((t) => t.name === "validate_client_data" && t.result?.valid) &&
-        toolsCalled.some((t) => t.name === "create_proforma" && t.result?.proformaId),
+        toolsCalled.some(
+          (t) => t.name === "validate_client_data" && t.result?.valid,
+        ) &&
+        toolsCalled.some(
+          (t) => t.name === "create_proforma" && t.result?.proformaId,
+        ),
       reason: "Date validate și proformă creată",
       trigger: "TOOL_RESULT",
     },
@@ -1089,7 +1118,13 @@ async function determineStateTransition(
 
     // Any state → DEAD if client explicitly rejects
     {
-      from: ["DISCOVERY", "PROPOSAL", "NEGOTIATION", "CLOSING", "PROFORMA_SENT"],
+      from: [
+        "DISCOVERY",
+        "PROPOSAL",
+        "NEGOTIATION",
+        "CLOSING",
+        "PROFORMA_SENT",
+      ],
       to: "DEAD",
       condition: () =>
         userMessage.toLowerCase().includes("nu mai") ||
@@ -1183,7 +1218,9 @@ async function triggerHumanReview(
       ...data,
       sourceQueue: queueName,
       requestedAt: new Date().toISOString(),
-      slaDeadline: new Date(Date.now() + getSLAByPriority(data.priority)).toISOString(),
+      slaDeadline: new Date(
+        Date.now() + getSLAByPriority(data.priority),
+      ).toISOString(),
     },
     {
       priority: getPriorityNumber(data.priority),
@@ -1255,7 +1292,10 @@ async function saveConversation(
     created_at: new Date(),
   });
 
-  logger.debug({ negotiationId, tokensUsed: result.tokensUsed.total }, "Conversation saved");
+  logger.debug(
+    { negotiationId, tokensUsed: result.tokensUsed.total },
+    "Conversation saved",
+  );
 }
 ```
 
@@ -1398,11 +1438,18 @@ export const ResponseGenerateJobDataSchema = z.object({
   options: z.object({
     maxTokens: z.number().min(50).max(1000).default(300),
     temperature: z.number().min(0).max(1).default(0.7),
-    responseType: z.enum(["CONFIRMATION", "CLARIFICATION", "FOLLOWUP", "GENERAL"]),
+    responseType: z.enum([
+      "CONFIRMATION",
+      "CLARIFICATION",
+      "FOLLOWUP",
+      "GENERAL",
+    ]),
   }),
 });
 
-export type ResponseGenerateJobData = z.infer<typeof ResponseGenerateJobDataSchema>;
+export type ResponseGenerateJobData = z.infer<
+  typeof ResponseGenerateJobDataSchema
+>;
 
 export const ResponseGenerateResultSchema = z.object({
   content: z.string(),
@@ -1416,7 +1463,9 @@ export const ResponseGenerateResultSchema = z.object({
   sentiment: z.enum(["POSITIVE", "NEUTRAL", "NEGATIVE"]).optional(),
 });
 
-export type ResponseGenerateResult = z.infer<typeof ResponseGenerateResultSchema>;
+export type ResponseGenerateResult = z.infer<
+  typeof ResponseGenerateResultSchema
+>;
 ```
 
 ### 3.4 Implementare
@@ -1450,7 +1499,10 @@ export async function responseGenerateProcessor(
 
   const { correlationId, prompt, context, options } = job.data;
 
-  logger.debug({ correlationId, responseType: options.responseType }, "Generating response");
+  logger.debug(
+    { correlationId, responseType: options.responseType },
+    "Generating response",
+  );
 
   // Build messages
   const messages = [
@@ -1506,13 +1558,29 @@ export async function responseGenerateProcessor(
 }
 
 function analyzeSentiment(text: string): "POSITIVE" | "NEUTRAL" | "NEGATIVE" {
-  const positiveKeywords = ["mulțumim", "bucuros", "perfect", "excelent", "minunat"];
-  const negativeKeywords = ["regret", "scuze", "din păcate", "imposibil", "problemă"];
+  const positiveKeywords = [
+    "mulțumim",
+    "bucuros",
+    "perfect",
+    "excelent",
+    "minunat",
+  ];
+  const negativeKeywords = [
+    "regret",
+    "scuze",
+    "din păcate",
+    "imposibil",
+    "problemă",
+  ];
 
   const lowerText = text.toLowerCase();
 
-  const positiveCount = positiveKeywords.filter((k) => lowerText.includes(k)).length;
-  const negativeCount = negativeKeywords.filter((k) => lowerText.includes(k)).length;
+  const positiveCount = positiveKeywords.filter((k) =>
+    lowerText.includes(k),
+  ).length;
+  const negativeCount = negativeKeywords.filter((k) =>
+    lowerText.includes(k),
+  ).length;
 
   if (positiveCount > negativeCount) return "POSITIVE";
   if (negativeCount > positiveCount) return "NEGATIVE";
@@ -1710,7 +1778,8 @@ export async function toolExecuteProcessor(
     throw new Error(`Invalid job data: ${validationResult.error.message}`);
   }
 
-  const { correlationId, shopId, negotiationId, leadId, tool, options } = job.data;
+  const { correlationId, shopId, negotiationId, leadId, tool, options } =
+    job.data;
   const toolName = tool.name;
   const toolConfig = TOOL_CONFIG[toolName] ?? {
     cacheable: false,
@@ -1718,7 +1787,10 @@ export async function toolExecuteProcessor(
     timeout: 30000,
   };
 
-  logger.debug({ correlationId, toolName, args: tool.arguments }, "Executing tool");
+  logger.debug(
+    { correlationId, toolName, args: tool.arguments },
+    "Executing tool",
+  );
 
   // Generate cache key
   const cacheKey = generateCacheKey(toolName, tool.arguments, shopId);
@@ -1794,7 +1866,10 @@ export async function toolExecuteProcessor(
 
     // Metrics
     metrics.toolCallsTotal.inc({ tool: toolName, status: "success" });
-    metrics.toolCallDuration.observe({ tool: toolName }, result.executionTimeMs);
+    metrics.toolCallDuration.observe(
+      { tool: toolName },
+      result.executionTimeMs,
+    );
 
     logger.info(
       {
@@ -1867,7 +1942,11 @@ async function executeTool(
   }
 }
 
-function generateCacheKey(toolName: string, args: Record<string, any>, shopId: string): string {
+function generateCacheKey(
+  toolName: string,
+  args: Record<string, any>,
+  shopId: string,
+): string {
   const sortedArgs = Object.keys(args)
     .sort()
     .reduce(
@@ -1887,7 +1966,10 @@ function generateCacheKey(toolName: string, args: Record<string, any>, shopId: s
 
 function timeout(ms: number): Promise<never> {
   return new Promise((_, reject) => {
-    setTimeout(() => reject(new TimeoutError(`Tool execution timed out after ${ms}ms`)), ms);
+    setTimeout(
+      () => reject(new TimeoutError(`Tool execution timed out after ${ms}ms`)),
+      ms,
+    );
   });
 }
 
@@ -1923,10 +2005,14 @@ class TimeoutError extends Error {
 export function createToolExecuteWorker(redis: Redis): Worker {
   const logger = createLogger("ai:tool:execute");
 
-  return new Worker("ai:tool:execute", async (job) => toolExecuteProcessor(job, logger, redis), {
-    connection: redis,
-    concurrency: 200,
-  });
+  return new Worker(
+    "ai:tool:execute",
+    async (job) => toolExecuteProcessor(job, logger, redis),
+    {
+      connection: redis,
+      concurrency: 200,
+    },
+  );
 }
 
 // Cleanup MCP clients on shutdown

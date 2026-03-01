@@ -25,7 +25,10 @@ export async function contractTemplateSelectProcessor(
       eq(goldContractTemplates.isActive, true),
       sql`${riskTier} = ANY(applicable_risk_tiers)`,
     ),
-    orderBy: [desc(goldContractTemplates.isDefault), desc(goldContractTemplates.version)],
+    orderBy: [
+      desc(goldContractTemplates.isDefault),
+      desc(goldContractTemplates.version),
+    ],
   });
 
   if (!template) {
@@ -78,7 +81,10 @@ export async function contractClauseAssembleProcessor(
     where: and(
       eq(goldContractClauses.tenantId, tenantId),
       eq(goldContractClauses.isActive, true),
-      or(eq(goldContractClauses.isMandatory, true), sql`${riskTier} = ANY(applicable_risk_tiers)`),
+      or(
+        eq(goldContractClauses.isMandatory, true),
+        sql`${riskTier} = ANY(applicable_risk_tiers)`,
+      ),
     ),
     orderBy: [asc(goldContractClauses.category)],
   });
@@ -95,7 +101,9 @@ export async function contractClauseAssembleProcessor(
   const selectedClauseIds = [
     ...template.defaultClauses,
     ...clauses.filter((c) => c.isMandatory).map((c) => c.id),
-    ...clauses.filter((c) => riskClauses[riskTier]?.includes(c.code)).map((c) => c.id),
+    ...clauses
+      .filter((c) => riskClauses[riskTier]?.includes(c.code))
+      .map((c) => c.id),
   ];
 
   // Update contract with clauses
@@ -175,13 +183,19 @@ export async function contractGenerateDocxProcessor(
   };
 
   // Generate DOCX using Python docxtpl
-  const docxPath = await generateDocxFromTemplate(contract.template.templateDocxUrl, variables);
+  const docxPath = await generateDocxFromTemplate(
+    contract.template.templateDocxUrl,
+    variables,
+  );
 
   // Convert to PDF
   const pdfPath = await convertDocxToPdf(docxPath);
 
   // Upload to storage
-  const docxUrl = await uploadToStorage(docxPath, `contracts/${contractId}.docx`);
+  const docxUrl = await uploadToStorage(
+    docxPath,
+    `contracts/${contractId}.docx`,
+  );
   const pdfUrl = await uploadToStorage(pdfPath, `contracts/${contractId}.pdf`);
 
   // Update contract
@@ -206,7 +220,10 @@ export async function contractGenerateDocxProcessor(
 }
 
 // Python integration for docxtpl
-async function generateDocxFromTemplate(templateUrl: string, variables: object): Promise<string> {
+async function generateDocxFromTemplate(
+  templateUrl: string,
+  variables: object,
+): Promise<string> {
   const result = await pythonBridge.call("generate_contract", {
     template_url: templateUrl,
     variables: variables,
@@ -316,7 +333,10 @@ export async function contractSignCompleteProcessor(
   if (status === "completed") {
     // Download signed document
     const signedPdf = await docuSignClient.getDocument(envelopeId, "1");
-    const signedPdfUrl = await uploadToStorage(signedPdf, `contracts/${contract.id}-signed.pdf`);
+    const signedPdfUrl = await uploadToStorage(
+      signedPdf,
+      `contracts/${contract.id}-signed.pdf`,
+    );
 
     // Update contract
     await db

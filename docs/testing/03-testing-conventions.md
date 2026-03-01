@@ -383,7 +383,8 @@ expect.extend({
     const pass = /^\d{2,10}$/.test(received);
     return {
       pass,
-      message: () => `expected ${received} ${pass ? "not " : ""}to be a valid CUI`,
+      message: () =>
+        `expected ${received} ${pass ? "not " : ""}to be a valid CUI`,
     };
   },
 
@@ -391,7 +392,8 @@ expect.extend({
     const pass = received >= floor && received <= ceiling;
     return {
       pass,
-      message: () => `expected ${received} to be within range ${floor} - ${ceiling}`,
+      message: () =>
+        `expected ${received} to be within range ${floor} - ${ceiling}`,
     };
   },
 });
@@ -491,29 +493,32 @@ describe("with spy", () => {
 import { http, HttpResponse } from "msw";
 
 export const anafHandlers = [
-  http.post("https://webservicesp.anaf.ro/api/v2/stare_tva", async ({ request }) => {
-    const body = await request.json();
-    const cui = body[0]?.cui;
+  http.post(
+    "https://webservicesp.anaf.ro/api/v2/stare_tva",
+    async ({ request }) => {
+      const body = await request.json();
+      const cui = body[0]?.cui;
 
-    if (cui === "12345678") {
-      return HttpResponse.json({
-        found: [
-          {
-            date_generale: {
-              cui: cui,
-              denumire: "Test Company SRL",
-              adresa: "Str. Test 123, București",
+      if (cui === "12345678") {
+        return HttpResponse.json({
+          found: [
+            {
+              date_generale: {
+                cui: cui,
+                denumire: "Test Company SRL",
+                adresa: "Str. Test 123, București",
+              },
+              inregistrare_scop_tva: {
+                scpTVA: true,
+              },
             },
-            inregistrare_scop_tva: {
-              scpTVA: true,
-            },
-          },
-        ],
-      });
-    }
+          ],
+        });
+      }
 
-    return HttpResponse.json({ found: [], notfound: [cui] });
-  }),
+      return HttpResponse.json({ found: [], notfound: [cui] });
+    },
+  ),
 ];
 ```
 
@@ -539,7 +544,9 @@ it("should resolve with data", async () => {
 
 // ✅ CORECT - expect.rejects
 it("should reject with error", async () => {
-  await expect(companyService.findById("invalid")).rejects.toThrow(NotFoundError);
+  await expect(companyService.findById("invalid")).rejects.toThrow(
+    NotFoundError,
+  );
 });
 
 // ❌ GREȘIT - Missing await
@@ -757,7 +764,9 @@ it("should return paginated companies", async () => {
   const result = await service.getCompanies({ page: 1, limit: 10 });
 
   expect(result).toMatchObject({
-    data: expect.arrayContaining([expect.objectContaining({ id: expect.any(String) })]),
+    data: expect.arrayContaining([
+      expect.objectContaining({ id: expect.any(String) }),
+    ]),
     pagination: {
       page: 1,
       limit: 10,

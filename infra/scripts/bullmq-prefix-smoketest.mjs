@@ -54,14 +54,18 @@ try {
   const wantedKeys = await redis.keys(wantedPattern);
 
   if (wantedKeys.length === 0) {
-    throw new Error(`No BullMQ keys found for pattern ${wantedPattern} (prefix not applied?)`);
+    throw new Error(
+      `No BullMQ keys found for pattern ${wantedPattern} (prefix not applied?)`,
+    );
   }
 
   // Negative check: make sure default "bull" prefix didn't leak for this queue.
   const defaultPattern = `bull:${queueName}:*`;
   const defaultKeys = await redis.keys(defaultPattern);
   if (defaultKeys.length > 0) {
-    throw new Error(`Found keys with default BullMQ prefix for this queue: ${defaultPattern}`);
+    throw new Error(
+      `Found keys with default BullMQ prefix for this queue: ${defaultPattern}`,
+    );
   }
 
   console.log(

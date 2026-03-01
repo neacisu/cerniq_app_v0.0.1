@@ -148,13 +148,21 @@ export const TRIGGER_MAP: Record<string, TriggerConfig[]> = {
   // ═══════════════════════════════════════════════════════════════
   // CATEGORIA A → B
   // ═══════════════════════════════════════════════════════════════
-  "bronze:ingest:csv-parser": [{ queue: "bronze:normalize:batch", condition: "always" }],
-  "bronze:ingest:excel-parser": [{ queue: "bronze:normalize:batch", condition: "always" }],
+  "bronze:ingest:csv-parser": [
+    { queue: "bronze:normalize:batch", condition: "always" },
+  ],
+  "bronze:ingest:excel-parser": [
+    { queue: "bronze:normalize:batch", condition: "always" },
+  ],
   "bronze:ingest:webhook": [
     { queue: "bronze:normalize:single", condition: "always", perEntity: true },
   ],
-  "bronze:ingest:manual": [{ queue: "bronze:normalize:single", condition: "always" }],
-  "bronze:ingest:api": [{ queue: "bronze:normalize:batch", condition: "always" }],
+  "bronze:ingest:manual": [
+    { queue: "bronze:normalize:single", condition: "always" },
+  ],
+  "bronze:ingest:api": [
+    { queue: "bronze:normalize:batch", condition: "always" },
+  ],
 
   // ═══════════════════════════════════════════════════════════════
   // CATEGORIA B → C
@@ -167,7 +175,9 @@ export const TRIGGER_MAP: Record<string, TriggerConfig[]> = {
   ],
 
   // Wait for all B.* to complete before C.*
-  "bronze:normalize:complete": [{ queue: "silver:validate:cui-modulo11", condition: "always" }],
+  "bronze:normalize:complete": [
+    { queue: "silver:validate:cui-modulo11", condition: "always" },
+  ],
 
   // ═══════════════════════════════════════════════════════════════
   // CATEGORIA C → D-L (PARALLEL ENRICHMENT)
@@ -200,12 +210,20 @@ export const TRIGGER_MAP: Record<string, TriggerConfig[]> = {
   "enrich:email:hunter-discovery": [
     { queue: "enrich:email:zerobounce-verify", condition: "emails_found" },
   ],
-  "enrich:email:zerobounce-verify": [{ queue: "enrich:email:enricher", condition: "valid_emails" }],
+  "enrich:email:zerobounce-verify": [
+    { queue: "enrich:email:enricher", condition: "valid_emails" },
+  ],
 
-  "enrich:geo:nominatim": [{ queue: "enrich:geo:zone-calculator", condition: "coords_found" }],
+  "enrich:geo:nominatim": [
+    { queue: "enrich:geo:zone-calculator", condition: "coords_found" },
+  ],
 
-  "enrich:agri:apia-subventii": [{ queue: "enrich:agri:ouai-membership", condition: "always" }],
-  "enrich:agri:ouai-membership": [{ queue: "enrich:agri:cooperative-mapper", condition: "always" }],
+  "enrich:agri:apia-subventii": [
+    { queue: "enrich:agri:ouai-membership", condition: "always" },
+  ],
+  "enrich:agri:ouai-membership": [
+    { queue: "enrich:agri:cooperative-mapper", condition: "always" },
+  ],
 
   "enrich:scrape:website-finder": [
     { queue: "enrich:scrape:contact-page", condition: "website_found" },
@@ -214,8 +232,12 @@ export const TRIGGER_MAP: Record<string, TriggerConfig[]> = {
   // ═══════════════════════════════════════════════════════════════
   // ALL ENRICHMENT COMPLETE → DEDUP
   // ═══════════════════════════════════════════════════════════════
-  "enrich:complete": [{ queue: "silver:dedup:exact-match", condition: "always" }],
-  "silver:dedup:exact-match": [{ queue: "silver:dedup:fuzzy-match", condition: "always" }],
+  "enrich:complete": [
+    { queue: "silver:dedup:exact-match", condition: "always" },
+  ],
+  "silver:dedup:exact-match": [
+    { queue: "silver:dedup:fuzzy-match", condition: "always" },
+  ],
 
   // ═══════════════════════════════════════════════════════════════
   // DEDUP → SCORING
@@ -232,8 +254,12 @@ export const TRIGGER_MAP: Record<string, TriggerConfig[]> = {
   // ═══════════════════════════════════════════════════════════════
   // SCORING → PROMOTION
   // ═══════════════════════════════════════════════════════════════
-  "silver:score:completeness": [{ queue: "silver:score:accuracy", condition: "always" }],
-  "silver:score:accuracy": [{ queue: "silver:score:freshness", condition: "always" }],
+  "silver:score:completeness": [
+    { queue: "silver:score:accuracy", condition: "always" },
+  ],
+  "silver:score:accuracy": [
+    { queue: "silver:score:freshness", condition: "always" },
+  ],
   "silver:score:freshness": [
     { queue: "pipeline:promote:to-gold", condition: "score >= 70" },
     {
@@ -251,7 +277,9 @@ export const TRIGGER_MAP: Record<string, TriggerConfig[]> = {
     { queue: "silver:dedup:merge", condition: "approved" },
     { queue: "silver:score:completeness", condition: "approved" },
   ],
-  "approval:completed:data_quality": [{ queue: "pipeline:promote:to-gold", condition: "approved" }],
+  "approval:completed:data_quality": [
+    { queue: "pipeline:promote:to-gold", condition: "approved" },
+  ],
 };
 ```
 
@@ -278,7 +306,9 @@ export const TRIGGER_CONDITIONS: Record<string, ConditionFn> = {
 
   is_agricultural: (result) => {
     const caen = result.codCaenPrincipal || "";
-    return caen.startsWith("01") || caen.startsWith("02") || caen.startsWith("03");
+    return (
+      caen.startsWith("01") || caen.startsWith("02") || caen.startsWith("03")
+    );
   },
 
   emails_found: (result) => {
@@ -337,7 +367,10 @@ export class FlowOrchestrator {
     this.flowProducer = new FlowProducer({ connection });
   }
 
-  async triggerNext(completedJob: Job, result: Record<string, unknown>): Promise<void> {
+  async triggerNext(
+    completedJob: Job,
+    result: Record<string, unknown>,
+  ): Promise<void> {
     const queueName = completedJob.queueName;
     const triggers = TRIGGER_MAP[queueName];
 
@@ -464,7 +497,11 @@ const ENRICHMENT_STAGES = [
 export class CompletionTracker {
   constructor(private redis: Redis) {}
 
-  async markStageComplete(entityId: string, stage: string, success: boolean): Promise<boolean> {
+  async markStageComplete(
+    entityId: string,
+    stage: string,
+    success: boolean,
+  ): Promise<boolean> {
     const key = `enrich:progress:${entityId}`;
 
     await this.redis.hset(key, stage, success ? "success" : "failed");

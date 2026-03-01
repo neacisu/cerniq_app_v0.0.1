@@ -163,7 +163,11 @@ E4.S{sprint}.PR{pr}.{task}
         "Rate limiting middleware",
         "IP allowlisting pentru Revolut"
       ],
-      "acceptare": ["Routes accesibile extern", "SSL/TLS funcțional", "Rate limiting activ"]
+      "acceptare": [
+        "Routes accesibile extern",
+        "SSL/TLS funcțional",
+        "Rate limiting activ"
+      ]
     },
     {
       "task_number": 303,
@@ -223,7 +227,11 @@ E4.S{sprint}.PR{pr}.{task}
         "Cron expressions pentru toate joburile",
         "Monitoring pentru cron jobs"
       ],
-      "acceptare": ["14 cron jobs configurate", "Logging pentru execuții", "Health checks active"]
+      "acceptare": [
+        "14 cron jobs configurate",
+        "Logging pentru execuții",
+        "Health checks active"
+      ]
     },
     {
       "task_number": 306,
@@ -240,7 +248,11 @@ E4.S{sprint}.PR{pr}.{task}
         "Email templates",
         "WhatsApp template configs"
       ],
-      "acceptare": ["Email sending funcțional", "WhatsApp via TimelinesAI", "Slack webhook activ"]
+      "acceptare": [
+        "Email sending funcțional",
+        "WhatsApp via TimelinesAI",
+        "Slack webhook activ"
+      ]
     },
     {
       "task_number": 307,
@@ -311,8 +323,14 @@ E4.S{sprint}.PR{pr}.{task}
       "prioritate": "CRITICAL",
       "estimare_ore": 2,
       "dependente": [],
-      "deliverables": ["migrations/0400_create_etapa4_enums.ts", "16 enum types definite"],
-      "acceptare": ["Migration executată cu succes", "Enums vizibile în pg_type"]
+      "deliverables": [
+        "migrations/0400_create_etapa4_enums.ts",
+        "16 enum types definite"
+      ],
+      "acceptare": [
+        "Migration executată cu succes",
+        "Enums vizibile în pg_type"
+      ]
     },
     {
       "task_number": 310,
@@ -417,7 +435,10 @@ E4.S{sprint}.PR{pr}.{task}
       "prioritate": "HIGH",
       "estimare_ore": 3,
       "dependente": [309],
-      "deliverables": ["migrations/0405_create_audit_tables.ts", "Partition management script"],
+      "deliverables": [
+        "migrations/0405_create_audit_tables.ts",
+        "Partition management script"
+      ],
       "adr_reference": "ADR-0095"
     },
     {
@@ -1012,7 +1033,11 @@ E4.S{sprint}.PR{pr}.{task}
       "prioritate": "CRITICAL",
       "estimare_ore": 6,
       "dependente": [308],
-      "deliverables": ["Template variable injection", "Clause assembly logic", "Conflict detection"]
+      "deliverables": [
+        "Template variable injection",
+        "Clause assembly logic",
+        "Conflict detection"
+      ]
     },
     {
       "task_number": 360,
@@ -1342,7 +1367,12 @@ E4.S{sprint}.PR{pr}.{task}
       "prioritate": "CRITICAL",
       "estimare_ore": 8,
       "dependente": [],
-      "deliverables": ["KPI cards", "Cash flow chart", "Status distribution", "Alerts panel"]
+      "deliverables": [
+        "KPI cards",
+        "Cash flow chart",
+        "Status distribution",
+        "Alerts panel"
+      ]
     },
     {
       "task_number": 384,

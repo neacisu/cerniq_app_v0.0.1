@@ -256,10 +256,15 @@ export default function SalesLayout() {
         <div className="flex items-center justify-between h-16 px-4 border-b">
           {!sidebarCollapsed && (
             <span className="text-xl font-bold text-primary">
-              Cerniq <span className="text-sm font-normal text-gray-500">Sales</span>
+              Cerniq{" "}
+              <span className="text-sm font-normal text-gray-500">Sales</span>
             </span>
           )}
-          <Button variant="ghost" size="sm" onClick={() => setSidebarCollapsed(!sidebarCollapsed)}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+          >
             {sidebarCollapsed ? (
               <ChevronRight className="h-4 w-4" />
             ) : (
@@ -318,13 +323,21 @@ export default function SalesLayout() {
       </aside>
 
       {/* Main content */}
-      <main className={cn("transition-all duration-300", sidebarCollapsed ? "ml-16" : "ml-64")}>
+      <main
+        className={cn(
+          "transition-all duration-300",
+          sidebarCollapsed ? "ml-16" : "ml-64",
+        )}
+      >
         {/* Top bar */}
         <header className="sticky top-0 z-40 flex items-center justify-between h-16 px-6 bg-white border-b">
           {/* Search */}
           <div className="relative w-96">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input placeholder="Caută negocieri, produse, clienți..." className="pl-10" />
+            <Input
+              placeholder="Caută negocieri, produse, clienți..."
+              className="pl-10"
+            />
           </div>
 
           {/* Actions */}
@@ -342,8 +355,12 @@ export default function SalesLayout() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-80">
-                <DropdownMenuItem>{hitlPendingCount} aprobări în așteptare</DropdownMenuItem>
-                <DropdownMenuItem>{einvoiceAlertCount} alerte e-Factura</DropdownMenuItem>
+                <DropdownMenuItem>
+                  {hitlPendingCount} aprobări în așteptare
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  {einvoiceAlertCount} alerte e-Factura
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
 
@@ -399,7 +416,13 @@ import {
   ArrowUpRight,
   RefreshCw,
 } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -418,7 +441,11 @@ import { PendingApprovalsCard } from "@/components/sales/dashboard/PendingApprov
 
 export default function SalesDashboardPage() {
   const [period, setPeriod] = useState<"today" | "week" | "month">("today");
-  const { data: stats, isLoading: statsLoading, refetch } = useDashboardStats(period);
+  const {
+    data: stats,
+    isLoading: statsLoading,
+    refetch,
+  } = useDashboardStats(period);
   const { data: negotiations } = useActiveNegotiations({ limit: 10 });
   const { data: conversions } = useRecentConversions({ limit: 5 });
   const { data: guardrailStatus } = useGuardrailStatus();
@@ -429,7 +456,9 @@ export default function SalesDashboardPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">AI Sales Dashboard</h1>
-          <p className="text-gray-500">Monitorizare în timp real a agentului AI de vânzări</p>
+          <p className="text-gray-500">
+            Monitorizare în timp real a agentului AI de vânzări
+          </p>
         </div>
         <div className="flex items-center gap-4">
           <Tabs value={period} onValueChange={(v) => setPeriod(v as any)}>
@@ -487,7 +516,9 @@ export default function SalesDashboardPage() {
           <Card>
             <CardHeader>
               <CardTitle>Funnel Conversie</CardTitle>
-              <CardDescription>Progresul negocierilor prin toate etapele</CardDescription>
+              <CardDescription>
+                Progresul negocierilor prin toate etapele
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <ConversionFunnel data={stats?.funnel} />
@@ -499,7 +530,9 @@ export default function SalesDashboardPage() {
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle>Negocieri Active</CardTitle>
-                <CardDescription>Cele mai recente conversații gestionate de AI</CardDescription>
+                <CardDescription>
+                  Cele mai recente conversații gestionate de AI
+                </CardDescription>
               </div>
               <Button variant="outline" size="sm" asChild>
                 <a href="/sales/negotiations">
@@ -517,7 +550,9 @@ export default function SalesDashboardPage() {
           <Card>
             <CardHeader>
               <CardTitle>Venituri din Negocieri AI</CardTitle>
-              <CardDescription>Evoluția veniturilor generate de agent</CardDescription>
+              <CardDescription>
+                Evoluția veniturilor generate de agent
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <RevenueChart data={stats?.revenueHistory} period={period} />
@@ -549,11 +584,17 @@ export default function SalesDashboardPage() {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-500">Răspunsuri azi</span>
-                <span className="text-sm font-medium">{stats?.aiResponsesToday ?? 0}</span>
+                <span className="text-sm font-medium">
+                  {stats?.aiResponsesToday ?? 0}
+                </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-500">Timp mediu răspuns</span>
-                <span className="text-sm font-medium">{stats?.avgResponseTime ?? 0}s</span>
+                <span className="text-sm text-gray-500">
+                  Timp mediu răspuns
+                </span>
+                <span className="text-sm font-medium">
+                  {stats?.avgResponseTime ?? 0}s
+                </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-500">Tokens utilizați</span>

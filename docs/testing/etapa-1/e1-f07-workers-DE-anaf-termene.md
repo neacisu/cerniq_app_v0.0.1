@@ -32,31 +32,34 @@ import { setupServer } from "msw/node";
 import { AnafTvaWorker } from "../src/anaf-tva.worker";
 
 const server = setupServer(
-  http.post("https://webservicesp.anaf.ro/api/v2/stare_tva", async ({ request }) => {
-    const body = await request.json();
-    const cui = body[0]?.cui;
+  http.post(
+    "https://webservicesp.anaf.ro/api/v2/stare_tva",
+    async ({ request }) => {
+      const body = await request.json();
+      const cui = body[0]?.cui;
 
-    if (cui === "12345678") {
-      return HttpResponse.json({
-        found: [
-          {
-            date_generale: {
-              cui: 12345678,
-              denumire: "COMPANY TEST SRL",
-              adresa: "JUD. BUCURESTI, MUN. BUCURESTI",
+      if (cui === "12345678") {
+        return HttpResponse.json({
+          found: [
+            {
+              date_generale: {
+                cui: 12345678,
+                denumire: "COMPANY TEST SRL",
+                adresa: "JUD. BUCURESTI, MUN. BUCURESTI",
+              },
+              inregistrare_scop_tva: {
+                scpTVA: true,
+                dataInceputScpTVA: "2020-01-01",
+              },
             },
-            inregistrare_scop_tva: {
-              scpTVA: true,
-              dataInceputScpTVA: "2020-01-01",
-            },
-          },
-        ],
-        notfound: [],
-      });
-    }
+          ],
+          notfound: [],
+        });
+      }
 
-    return HttpResponse.json({ found: [], notfound: [{ cui }] });
-  }),
+      return HttpResponse.json({ found: [], notfound: [{ cui }] });
+    },
+  ),
 );
 
 beforeAll(() => server.listen());
@@ -116,7 +119,9 @@ describe("ANAF TVA Worker", () => {
       }
 
       // Check that rate limit was respected
-      const firstMinuteRequests = requests.filter((t) => t < requests[0] + 60000).length;
+      const firstMinuteRequests = requests.filter(
+        (t) => t < requests[0] + 60000,
+      ).length;
 
       expect(firstMinuteRequests).toBeLessThanOrEqual(100);
     }, 120000);

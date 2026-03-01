@@ -147,7 +147,8 @@ interface RevolutWebhookIngestOutput {
 export async function revolutWebhookIngestProcessor(
   job: Job<RevolutWebhookIngestInput>,
 ): Promise<RevolutWebhookIngestOutput> {
-  const { correlationId, tenantId, headers, rawPayload, payload, receivedAt } = job.data;
+  const { correlationId, tenantId, headers, rawPayload, payload, receivedAt } =
+    job.data;
   const span = tracer.startSpan("revolut:webhook:ingest");
 
   try {
@@ -247,7 +248,10 @@ async function validateRevolutSignature(
   payload: string,
   secret: string,
 ): Promise<boolean> {
-  const expected = crypto.createHmac("sha256", secret).update(payload).digest("hex");
+  const expected = crypto
+    .createHmac("sha256", secret)
+    .update(payload)
+    .digest("hex");
 
   return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
 }
@@ -303,7 +307,8 @@ interface RevolutTransactionProcessInput {
 export async function revolutTransactionProcessProcessor(
   job: Job<RevolutTransactionProcessInput>,
 ): Promise<RevolutTransactionProcessOutput> {
-  const { correlationId, tenantId, transactionId, state, type, legs } = job.data;
+  const { correlationId, tenantId, transactionId, state, type, legs } =
+    job.data;
 
   // Only process completed incoming transfers
   if (state !== "completed") {
@@ -325,7 +330,8 @@ export async function revolutTransactionProcessProcessor(
     counterpartyName: incomingLeg.counterparty?.name || "Unknown",
     counterpartyAccount: incomingLeg.counterparty?.account_id,
     description: incomingLeg.description || "",
-    reference: incomingLeg.reference || extractReference(incomingLeg.description || ""),
+    reference:
+      incomingLeg.reference || extractReference(incomingLeg.description || ""),
     transactionDate: job.data.completedAt || job.data.createdAt,
   };
 
@@ -351,7 +357,12 @@ export async function revolutTransactionProcessProcessor(
 function extractReference(description: string): string | null {
   // Try to extract invoice reference from description
   // Common patterns: "INV-12345", "Factura 12345", "REF: 12345"
-  const patterns = [/INV[-\s]?(\d+)/i, /FACTURA[-\s]?(\d+)/i, /REF[:\s]+([A-Z0-9-]+)/i, /(\d{6,})/];
+  const patterns = [
+    /INV[-\s]?(\d+)/i,
+    /FACTURA[-\s]?(\d+)/i,
+    /REF[:\s]+([A-Z0-9-]+)/i,
+    /(\d{6,})/,
+  ];
 
   for (const pattern of patterns) {
     const match = description.match(pattern);
@@ -435,11 +446,17 @@ export async function revolutPaymentRecordProcessor(
   });
 
   // 3. Log audit
-  await logAudit("PAYMENT_RECEIVED", "gold_payments", payment.id, correlationId, {
-    amount,
-    currency,
-    source: "REVOLUT",
-  });
+  await logAudit(
+    "PAYMENT_RECEIVED",
+    "gold_payments",
+    payment.id,
+    correlationId,
+    {
+      amount,
+      currency,
+      source: "REVOLUT",
+    },
+  );
 
   return {
     success: true,
@@ -470,7 +487,8 @@ export async function revolutPaymentRecordProcessor(
 export async function revolutRefundProcessProcessor(
   job: Job<RefundProcessInput>,
 ): Promise<RefundProcessOutput> {
-  const { correlationId, tenantId, refundId, clientId, amount, currency } = job.data;
+  const { correlationId, tenantId, refundId, clientId, amount, currency } =
+    job.data;
 
   // 1. Get client bank details
   const client = await db.query.goldClients.findFirst({
@@ -560,7 +578,9 @@ export async function revolutBalanceSyncProcessor(
   }
 
   // 3. Update metrics
-  metrics.revolutBalance.set(accounts.find((a) => a.currency === "RON")?.balance || 0);
+  metrics.revolutBalance.set(
+    accounts.find((a) => a.currency === "RON")?.balance || 0,
+  );
 
   return {
     success: true,
@@ -589,7 +609,8 @@ export async function revolutBalanceSyncProcessor(
 export async function revolutWebhookValidateProcessor(
   job: Job<WebhookValidateInput>,
 ): Promise<WebhookValidateOutput> {
-  const { correlationId, transactionId, expectedAmount, expectedCurrency } = job.data;
+  const { correlationId, transactionId, expectedAmount, expectedCurrency } =
+    job.data;
 
   // Fetch transaction from Revolut API to verify
   const transaction = await revolutClient.getTransaction(transactionId);
@@ -600,7 +621,10 @@ export async function revolutWebhookValidateProcessor(
     transaction.legs[0].currency === expectedCurrency;
 
   if (!isValid) {
-    logger.warn({ correlationId, transactionId }, "Transaction validation mismatch");
+    logger.warn(
+      { correlationId, transactionId },
+      "Transaction validation mismatch",
+    );
     // Queue for manual review
     await flowProducer.add({
       queueName: "hitl:investigation:payment",

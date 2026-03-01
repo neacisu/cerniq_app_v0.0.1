@@ -11,7 +11,11 @@
 ```typescript
 describe("WhatsApp Send", () => {
   it("should send message via TimelinesAI", async () => {
-    server.use(http.post("https://api.timelines.ai/*", () => HttpResponse.json({ id: "msg-123" })));
+    server.use(
+      http.post("https://api.timelines.ai/*", () =>
+        HttpResponse.json({ id: "msg-123" }),
+      ),
+    );
     const result = await whatsappService.send("+40721123456", "Hello");
     expect(result.messageId).toBe("msg-123");
   });

@@ -71,7 +71,9 @@ export default function OutreachDashboard() {
       <Card className="mb-6">
         <CardHeader>
           <CardTitle>Utilizare Cotă WhatsApp</CardTitle>
-          <CardDescription>20 numere × 200 contacte/zi = 4,000 max</CardDescription>
+          <CardDescription>
+            20 numere × 200 contacte/zi = 4,000 max
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <QuotaUsageGrid phones={phones} />
@@ -158,7 +160,9 @@ export function QuotaUsageGrid({ phones }: { phones: Phone[] }) {
                     style={{ height: `${percentage}%` }}
                   />
                 </div>
-                <span className="text-xs text-center block mt-1">{phone.label}</span>
+                <span className="text-xs text-center block mt-1">
+                  {phone.label}
+                </span>
               </div>
             </TooltipTrigger>
             <TooltipContent>
@@ -243,7 +247,9 @@ export default function LeadsPage() {
               <Checkbox
                 id="hasReply"
                 checked={filters.hasReply}
-                onCheckedChange={(v) => setFilters((f) => ({ ...f, hasReply: !!v }))}
+                onCheckedChange={(v) =>
+                  setFilters((f) => ({ ...f, hasReply: !!v }))
+                }
               />
               <label htmlFor="hasReply">Cu răspuns</label>
             </div>
@@ -252,7 +258,9 @@ export default function LeadsPage() {
               <Checkbox
                 id="needsReview"
                 checked={filters.needsReview}
-                onCheckedChange={(v) => setFilters((f) => ({ ...f, needsReview: !!v }))}
+                onCheckedChange={(v) =>
+                  setFilters((f) => ({ ...f, needsReview: !!v }))
+                }
               />
               <label htmlFor="needsReview">Necesită review</label>
             </div>
@@ -261,7 +269,9 @@ export default function LeadsPage() {
               placeholder="Caută companie, email..."
               className="w-[250px]"
               value={filters.search}
-              onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))}
+              onChange={(e) =>
+                setFilters((f) => ({ ...f, search: e.target.value }))
+              }
             />
           </div>
         </CardContent>
@@ -284,7 +294,9 @@ const leadsColumns: ColumnDef<Lead>[] = [
     cell: ({ row }) => (
       <div>
         <p className="font-medium">{row.original.company.denumire}</p>
-        <p className="text-sm text-muted-foreground">{row.original.company.judet}</p>
+        <p className="text-sm text-muted-foreground">
+          {row.original.company.judet}
+        </p>
       </div>
     ),
   },
@@ -301,7 +313,9 @@ const leadsColumns: ColumnDef<Lead>[] = [
   {
     accessorKey: "sentimentScore",
     header: "Sentiment",
-    cell: ({ row }) => <SentimentIndicator score={row.original.sentimentScore} />,
+    cell: ({ row }) => (
+      <SentimentIndicator score={row.original.sentimentScore} />
+    ),
   },
   {
     accessorKey: "replyCount",
@@ -333,8 +347,14 @@ const leadsColumns: ColumnDef<Lead>[] = [
 ```tsx
 // pages/outreach/leads/[leadId].tsx
 
-export default function LeadDetailPage({ params }: { params: { leadId: string } }) {
-  const { data: lead } = useQuery(["lead", params.leadId], () => fetchLead(params.leadId));
+export default function LeadDetailPage({
+  params,
+}: {
+  params: { leadId: string };
+}) {
+  const { data: lead } = useQuery(["lead", params.leadId], () =>
+    fetchLead(params.leadId),
+  );
 
   return (
     <PageLayout
@@ -364,14 +384,19 @@ export default function LeadDetailPage({ params }: { params: { leadId: string } 
               <CardTitle>Conversație</CardTitle>
               <Button
                 variant="outline"
-                onClick={() => router.push(`/outreach/leads/${lead.id}/conversation`)}
+                onClick={() =>
+                  router.push(`/outreach/leads/${lead.id}/conversation`)
+                }
               >
                 <Expand className="w-4 h-4 mr-2" />
                 Deschide Full
               </Button>
             </CardHeader>
             <CardContent>
-              <ConversationTimeline messages={lead.communications} maxMessages={5} />
+              <ConversationTimeline
+                messages={lead.communications}
+                maxMessages={5}
+              />
             </CardContent>
           </Card>
         </div>
@@ -385,29 +410,39 @@ export default function LeadDetailPage({ params }: { params: { leadId: string } 
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <label className="text-sm text-muted-foreground">Stare Curentă</label>
+                <label className="text-sm text-muted-foreground">
+                  Stare Curentă
+                </label>
                 <StageBadge stage={lead.currentState} size="lg" />
               </div>
 
               <div>
-                <label className="text-sm text-muted-foreground">Sentiment</label>
+                <label className="text-sm text-muted-foreground">
+                  Sentiment
+                </label>
                 <SentimentIndicator score={lead.sentimentScore} showLabel />
               </div>
 
               <div>
-                <label className="text-sm text-muted-foreground">Canal Preferat</label>
+                <label className="text-sm text-muted-foreground">
+                  Canal Preferat
+                </label>
                 <p>{lead.preferredChannel || "Nedeterminat"}</p>
               </div>
 
               <Separator />
 
               <div>
-                <label className="text-sm text-muted-foreground">Telefon WhatsApp Atribuit</label>
+                <label className="text-sm text-muted-foreground">
+                  Telefon WhatsApp Atribuit
+                </label>
                 <p>{lead.assignedPhone?.phoneLabel || "Neatribuit"}</p>
               </div>
 
               <div>
-                <label className="text-sm text-muted-foreground">Secvență Activă</label>
+                <label className="text-sm text-muted-foreground">
+                  Secvență Activă
+                </label>
                 <p>{lead.currentSequence?.name || "Nicio secvență"}</p>
                 {lead.currentSequence && (
                   <p className="text-sm text-muted-foreground">
@@ -429,19 +464,31 @@ export default function LeadDetailPage({ params }: { params: { leadId: string } 
                 Trimite Mesaj
               </Button>
 
-              <Button variant="outline" className="w-full" onClick={handleStartSequence}>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={handleStartSequence}
+              >
                 <Play className="w-4 h-4 mr-2" />
                 Pornește Secvență
               </Button>
 
-              <Button variant="outline" className="w-full" onClick={handleAssignUser}>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={handleAssignUser}
+              >
                 <User className="w-4 h-4 mr-2" />
                 Atribuie Utilizator
               </Button>
 
               <Separator />
 
-              <Button variant="ghost" className="w-full text-destructive" onClick={handleMarkDead}>
+              <Button
+                variant="ghost"
+                className="w-full text-destructive"
+                onClick={handleMarkDead}
+              >
                 <X className="w-4 h-4 mr-2" />
                 Marchează Pierdut
               </Button>
@@ -493,12 +540,17 @@ export function ConversationTimeline({
       {displayMessages.map((msg) => (
         <div
           key={msg.id}
-          className={cn("flex", msg.direction === "OUTBOUND" ? "justify-end" : "justify-start")}
+          className={cn(
+            "flex",
+            msg.direction === "OUTBOUND" ? "justify-end" : "justify-start",
+          )}
         >
           <div
             className={cn(
               "max-w-[70%] rounded-lg px-4 py-2",
-              msg.direction === "OUTBOUND" ? "bg-primary text-primary-foreground" : "bg-muted",
+              msg.direction === "OUTBOUND"
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted",
             )}
           >
             <div className="flex items-center gap-2 mb-1">
@@ -511,8 +563,12 @@ export function ConversationTimeline({
             </div>
             <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
             <div className="flex items-center justify-end gap-2 mt-1">
-              <span className="text-xs opacity-70">{format(msg.sentAt, "HH:mm")}</span>
-              {msg.direction === "OUTBOUND" && <MessageStatusIcon status={msg.status} />}
+              <span className="text-xs opacity-70">
+                {format(msg.sentAt, "HH:mm")}
+              </span>
+              {msg.direction === "OUTBOUND" && (
+                <MessageStatusIcon status={msg.status} />
+              )}
             </div>
           </div>
         </div>
@@ -553,7 +609,9 @@ export default function ReviewQueuePage() {
 }
 
 function ReviewItemsList({ priority }: { priority: string }) {
-  const { data: items } = useQuery(["reviews", priority], () => fetchReviews(priority));
+  const { data: items } = useQuery(["reviews", priority], () =>
+    fetchReviews(priority),
+  );
 
   return (
     <div className="space-y-4 mt-4">
@@ -571,7 +629,9 @@ function ReviewCard({ item }: { item: ReviewItem }) {
         <div className="flex justify-between items-start">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
-              <Badge variant={getPriorityVariant(item.priority)}>{item.priority}</Badge>
+              <Badge variant={getPriorityVariant(item.priority)}>
+                {item.priority}
+              </Badge>
               <Badge variant="outline">{item.reason}</Badge>
               <SLACountdown dueAt={item.slaDueAt} />
             </div>
@@ -586,7 +646,9 @@ function ReviewCard({ item }: { item: ReviewItem }) {
 
             {item.suggestedResponse && (
               <div className="mt-2 p-3 bg-blue-50 rounded border border-blue-200">
-                <p className="text-xs text-blue-600 mb-1">Răspuns Sugerat AI:</p>
+                <p className="text-xs text-blue-600 mb-1">
+                  Răspuns Sugerat AI:
+                </p>
                 <p className="text-sm">{item.suggestedResponse}</p>
               </div>
             )}
@@ -597,15 +659,27 @@ function ReviewCard({ item }: { item: ReviewItem }) {
               <Check className="w-4 h-4 mr-1" />
               Aprobă
             </Button>
-            <Button size="sm" variant="outline" onClick={() => handleRespond(item.id)}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleRespond(item.id)}
+            >
               <MessageSquare className="w-4 h-4 mr-1" />
               Răspunde
             </Button>
-            <Button size="sm" variant="outline" onClick={() => handleTakeover(item.id)}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleTakeover(item.id)}
+            >
               <User className="w-4 h-4 mr-1" />
               Preia
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => handleIgnore(item.id)}>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => handleIgnore(item.id)}
+            >
               <X className="w-4 h-4 mr-1" />
               Ignoră
             </Button>
@@ -694,7 +768,11 @@ function PhoneCard({ phone }: { phone: Phone }) {
       </CardContent>
       <CardFooter className="flex gap-2">
         {phone.status === "ACTIVE" ? (
-          <Button variant="outline" size="sm" onClick={() => pausePhone(phone.id)}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => pausePhone(phone.id)}
+          >
             <Pause className="w-4 h-4 mr-1" />
             Pauză
           </Button>
@@ -753,7 +831,9 @@ function SequenceCard({ sequence }: { sequence: Sequence }) {
         <div className="flex justify-between items-start">
           <div>
             <h3 className="font-medium text-lg">{sequence.name}</h3>
-            <p className="text-sm text-muted-foreground">{sequence.description}</p>
+            <p className="text-sm text-muted-foreground">
+              {sequence.description}
+            </p>
 
             <div className="flex gap-4 mt-4">
               <div>
@@ -761,11 +841,15 @@ function SequenceCard({ sequence }: { sequence: Sequence }) {
                 <p className="font-medium">{sequence.steps.length}</p>
               </div>
               <div>
-                <span className="text-sm text-muted-foreground">Leads Înrolați</span>
+                <span className="text-sm text-muted-foreground">
+                  Leads Înrolați
+                </span>
                 <p className="font-medium">{sequence.totalLeadsEnrolled}</p>
               </div>
               <div>
-                <span className="text-sm text-muted-foreground">Rată Răspuns</span>
+                <span className="text-sm text-muted-foreground">
+                  Rată Răspuns
+                </span>
                 <p className="font-medium">{sequence.avgResponseRate}%</p>
               </div>
               <div>
@@ -832,7 +916,13 @@ export function StageBadge({
   const config = stageConfig[stage] || { label: stage, color: "bg-gray-500" };
 
   return (
-    <Badge className={cn(config.color, "text-white", size === "lg" && "text-base px-3 py-1")}>
+    <Badge
+      className={cn(
+        config.color,
+        "text-white",
+        size === "lg" && "text-base px-3 py-1",
+      )}
+    >
       {config.label}
     </Badge>
   );

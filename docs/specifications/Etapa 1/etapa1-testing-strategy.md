@@ -53,7 +53,13 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html"],
-      exclude: ["node_modules/", "test/", "**/*.d.ts", "**/*.config.*", "**/types/**"],
+      exclude: [
+        "node_modules/",
+        "test/",
+        "**/*.d.ts",
+        "**/*.config.*",
+        "**/types/**",
+      ],
       thresholds: {
         lines: 80,
         functions: 80,
@@ -68,7 +74,10 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
       "@cerniq/db": path.resolve(__dirname, "../packages/db/src"),
-      "@cerniq/validation": path.resolve(__dirname, "../packages/validation/src"),
+      "@cerniq/validation": path.resolve(
+        __dirname,
+        "../packages/validation/src",
+      ),
     },
   },
 });
@@ -334,7 +343,10 @@ describe("Quality Scoring", () => {
 
 ```typescript
 // test/integration/db.setup.ts
-import { PostgreSqlContainer, StartedPostgreSqlContainer } from "@testcontainers/postgresql";
+import {
+  PostgreSqlContainer,
+  StartedPostgreSqlContainer,
+} from "@testcontainers/postgresql";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
@@ -625,7 +637,9 @@ test.describe("Import Flow", () => {
 
     // Wait for preview
     await expect(page.locator('[data-testid="preview-table"]')).toBeVisible();
-    await expect(page.locator('[data-testid="preview-rows"]')).toHaveText("5 rânduri");
+    await expect(page.locator('[data-testid="preview-rows"]')).toHaveText(
+      "5 rânduri",
+    );
 
     // Configure mapping
     await page.selectOption('[data-testid="mapping-name"]', "nume_firma");
@@ -636,10 +650,15 @@ test.describe("Import Flow", () => {
     await page.click('[data-testid="start-import-button"]');
 
     // Wait for completion
-    await expect(page.locator('[data-testid="import-status"]')).toHaveText("Completat", {
-      timeout: 30000,
-    });
-    await expect(page.locator('[data-testid="imported-count"]')).toHaveText("5");
+    await expect(page.locator('[data-testid="import-status"]')).toHaveText(
+      "Completat",
+      {
+        timeout: 30000,
+      },
+    );
+    await expect(page.locator('[data-testid="imported-count"]')).toHaveText(
+      "5",
+    );
   });
 
   test("should handle import errors gracefully", async ({ page }) => {
@@ -674,7 +693,9 @@ test.describe("HITL Approval Flow", () => {
 
     // Navigate to approvals
     await page.goto("/approvals");
-    await expect(page.locator('[data-testid="pending-count"]')).toHaveText(/[1-9]/);
+    await expect(page.locator('[data-testid="pending-count"]')).toHaveText(
+      /[1-9]/,
+    );
 
     // Open task
     await page.click(`[data-testid="task-${taskId}"]`);
@@ -683,14 +704,21 @@ test.describe("HITL Approval Flow", () => {
     // Review comparison
     await expect(page.locator('[data-testid="company-a"]')).toBeVisible();
     await expect(page.locator('[data-testid="company-b"]')).toBeVisible();
-    await expect(page.locator('[data-testid="similarity-score"]')).toBeVisible();
+    await expect(
+      page.locator('[data-testid="similarity-score"]'),
+    ).toBeVisible();
 
     // Make decision
-    await page.fill('[data-testid="decision-reason"]', "Confirmat - aceleași date de contact");
+    await page.fill(
+      '[data-testid="decision-reason"]',
+      "Confirmat - aceleași date de contact",
+    );
     await page.click('[data-testid="approve-merge-button"]');
 
     // Verify success
-    await expect(page.locator('[data-testid="success-toast"]')).toContainText("Aprobat");
+    await expect(page.locator('[data-testid="success-toast"]')).toContainText(
+      "Aprobat",
+    );
     await expect(page).toHaveURL("/approvals");
   });
 
@@ -754,9 +782,12 @@ export function setup() {
 
 export default function () {
   // Test bronze contacts list
-  const bronzeResponse = http.get(`${BASE_URL}/api/v1/bronze/contacts?limit=20`, {
-    headers: { Authorization: `Bearer ${AUTH_TOKEN}` },
-  });
+  const bronzeResponse = http.get(
+    `${BASE_URL}/api/v1/bronze/contacts?limit=20`,
+    {
+      headers: { Authorization: `Bearer ${AUTH_TOKEN}` },
+    },
+  );
 
   check(bronzeResponse, {
     "bronze list status 200": (r) => r.status === 200,
@@ -769,9 +800,12 @@ export default function () {
   sleep(1);
 
   // Test silver companies list
-  const silverResponse = http.get(`${BASE_URL}/api/v1/silver/companies?limit=20`, {
-    headers: { Authorization: `Bearer ${AUTH_TOKEN}` },
-  });
+  const silverResponse = http.get(
+    `${BASE_URL}/api/v1/silver/companies?limit=20`,
+    {
+      headers: { Authorization: `Bearer ${AUTH_TOKEN}` },
+    },
+  );
 
   check(silverResponse, {
     "silver list status 200": (r) => r.status === 200,
@@ -785,9 +819,12 @@ export default function () {
   // Test company detail
   const companyId = silverResponse.json("data")[0]?.id;
   if (companyId) {
-    const detailResponse = http.get(`${BASE_URL}/api/v1/silver/companies/${companyId}`, {
-      headers: { Authorization: `Bearer ${AUTH_TOKEN}` },
-    });
+    const detailResponse = http.get(
+      `${BASE_URL}/api/v1/silver/companies/${companyId}`,
+      {
+        headers: { Authorization: `Bearer ${AUTH_TOKEN}` },
+      },
+    );
 
     check(detailResponse, {
       "detail status 200": (r) => r.status === 200,

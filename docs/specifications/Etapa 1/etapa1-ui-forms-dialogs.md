@@ -97,7 +97,11 @@ const phoneRoSchema = z
   .optional();
 
 // Email validation
-const emailSchema = z.string().email("Invalid email format").max(255, "Email too long").optional();
+const emailSchema = z
+  .string()
+  .email("Invalid email format")
+  .max(255, "Email too long")
+  .optional();
 
 export const bronzeContactSchema = z.object({
   // Source identification
@@ -142,7 +146,10 @@ import { z } from "zod";
 export const silverCompanySchema = z.object({
   // Identification
   cui: z.string().regex(/^\d{6,10}$/, "CUI invalid"),
-  denumire: z.string().min(2, "Denumire prea scurtă").max(255, "Denumire prea lungă"),
+  denumire: z
+    .string()
+    .min(2, "Denumire prea scurtă")
+    .max(255, "Denumire prea lungă"),
   nrRegCom: z
     .string()
     .regex(/^J\d{2}\/\d+\/\d{4}$/, "Format Nr. Reg. Com invalid")
@@ -171,7 +178,18 @@ export const silverCompanySchema = z.object({
     .regex(/^\d{4}$/, "Cod CAEN invalid")
     .optional(),
   formaJuridica: z
-    .enum(["SRL", "SA", "PFA", "II", "IF", "SNC", "SCS", "ONG", "COOP", "OTHER"])
+    .enum([
+      "SRL",
+      "SA",
+      "PFA",
+      "II",
+      "IF",
+      "SNC",
+      "SCS",
+      "ONG",
+      "COOP",
+      "OTHER",
+    ])
     .optional(),
 
   // Agricultural
@@ -240,7 +258,13 @@ interface FormFieldProps {
   children: React.ReactElement;
 }
 
-export function FormField({ name, label, description, required, children }: FormFieldProps) {
+export function FormField({
+  name,
+  label,
+  description,
+  required,
+  children,
+}: FormFieldProps) {
   const {
     control,
     formState: { errors },
@@ -272,7 +296,9 @@ export function FormField({ name, label, description, required, children }: Form
         }
       />
 
-      {description && !error && <p className="text-sm text-muted-foreground">{description}</p>}
+      {description && !error && (
+        <p className="text-sm text-muted-foreground">{description}</p>
+      )}
 
       {error && (
         <p id={`${name}-error`} className="text-sm text-destructive">
@@ -300,9 +326,20 @@ interface InputFieldProps extends Omit<InputProps, "name"> {
   required?: boolean;
 }
 
-export function InputField({ name, label, description, required, ...props }: InputFieldProps) {
+export function InputField({
+  name,
+  label,
+  description,
+  required,
+  ...props
+}: InputFieldProps) {
   return (
-    <FormField name={name} label={label} description={description} required={required}>
+    <FormField
+      name={name}
+      label={label}
+      description={description}
+      required={required}
+    >
       <Input {...props} />
     </FormField>
   );
@@ -315,7 +352,13 @@ export function InputField({ name, label, description, required, ...props }: Inp
 // packages/ui/src/components/form/select-field.tsx
 
 import * as React from "react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 import { FormField } from "./form-field";
 
 interface SelectOption {
@@ -341,7 +384,12 @@ export function SelectField({
   options,
 }: SelectFieldProps) {
   return (
-    <FormField name={name} label={label} description={description} required={required}>
+    <FormField
+      name={name}
+      label={label}
+      description={description}
+      required={required}
+    >
       <Select>
         <SelectTrigger>
           <SelectValue placeholder={placeholder} />
@@ -378,7 +426,11 @@ interface CuiInputFieldProps {
   onValidate?: (cui: string) => Promise<boolean>;
 }
 
-export function CuiInputField({ name, label = "CUI", onValidate }: CuiInputFieldProps) {
+export function CuiInputField({
+  name,
+  label = "CUI",
+  onValidate,
+}: CuiInputFieldProps) {
   const [validationState, setValidationState] = useState<
     "idle" | "validating" | "valid" | "invalid"
   >("idle");
@@ -388,7 +440,9 @@ export function CuiInputField({ name, label = "CUI", onValidate }: CuiInputField
 
     setValidationState("validating");
     try {
-      const isValid = onValidate ? await onValidate(value) : validateCuiChecksum(value);
+      const isValid = onValidate
+        ? await onValidate(value)
+        : validateCuiChecksum(value);
       setValidationState(isValid ? "valid" : "invalid");
     } catch {
       setValidationState("invalid");
@@ -408,8 +462,12 @@ export function CuiInputField({ name, label = "CUI", onValidate }: CuiInputField
           {validationState === "validating" && (
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
           )}
-          {validationState === "valid" && <CheckCircle className="h-4 w-4 text-green-500" />}
-          {validationState === "invalid" && <XCircle className="h-4 w-4 text-red-500" />}
+          {validationState === "valid" && (
+            <CheckCircle className="h-4 w-4 text-green-500" />
+          )}
+          {validationState === "invalid" && (
+            <XCircle className="h-4 w-4 text-red-500" />
+          )}
         </div>
       </div>
     </FormField>
@@ -431,7 +489,10 @@ interface PhoneInputFieldProps {
   label?: string;
 }
 
-export function PhoneInputField({ name, label = "Telefon" }: PhoneInputFieldProps) {
+export function PhoneInputField({
+  name,
+  label = "Telefon",
+}: PhoneInputFieldProps) {
   const formatPhone = (value: string) => {
     // Remove non-digits
     const digits = value.replace(/\D/g, "");
@@ -472,7 +533,12 @@ export function PhoneInputField({ name, label = "Telefon" }: PhoneInputFieldProp
 // apps/web/src/components/forms/ManualEntryForm.tsx
 
 import { Form } from "@cerniq/ui/form";
-import { InputField, SelectField, CuiInputField, PhoneInputField } from "@cerniq/ui/form";
+import {
+  InputField,
+  SelectField,
+  CuiInputField,
+  PhoneInputField,
+} from "@cerniq/ui/form";
 import { Button } from "@cerniq/ui/button";
 import { bronzeContactSchema, BronzeContactInput } from "@cerniq/validation";
 import { useCreate } from "@refinedev/core";
@@ -558,7 +624,13 @@ import { Form } from "@cerniq/ui/form";
 import { SelectField, SwitchField } from "@cerniq/ui/form";
 import { Button } from "@cerniq/ui/button";
 import { importConfigSchema, ImportConfigInput } from "@cerniq/validation";
-import { Table, TableHead, TableRow, TableCell, TableBody } from "@cerniq/ui/table";
+import {
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+} from "@cerniq/ui/table";
 
 interface ImportMappingFormProps {
   fileColumns: string[];
@@ -566,7 +638,11 @@ interface ImportMappingFormProps {
   onSubmit: (config: ImportConfigInput) => void;
 }
 
-export function ImportMappingForm({ fileColumns, previewData, onSubmit }: ImportMappingFormProps) {
+export function ImportMappingForm({
+  fileColumns,
+  previewData,
+  onSubmit,
+}: ImportMappingFormProps) {
   const columnOptions = [
     { value: "", label: "-- Nu mapează --" },
     ...fileColumns.map((col) => ({ value: col, label: col })),
@@ -704,13 +780,28 @@ const DialogContent = React.forwardRef<
   </DialogPortal>
 ));
 
-const DialogHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn("flex flex-col space-y-1.5 text-center sm:text-left", className)} {...props} />
+const DialogHeader = ({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) => (
+  <div
+    className={cn(
+      "flex flex-col space-y-1.5 text-center sm:text-left",
+      className,
+    )}
+    {...props}
+  />
 );
 
-const DialogFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
+const DialogFooter = ({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) => (
   <div
-    className={cn("flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2", className)}
+    className={cn(
+      "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2",
+      className,
+    )}
     {...props}
   />
 );
@@ -721,7 +812,10 @@ const DialogTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Title
     ref={ref}
-    className={cn("text-lg font-semibold leading-none tracking-tight", className)}
+    className={cn(
+      "text-lg font-semibold leading-none tracking-tight",
+      className,
+    )}
     {...props}
   />
 ));
@@ -838,7 +932,12 @@ export function ConfirmationDialog({
 ```tsx
 // apps/web/src/components/dialogs/CompanyDetailsDialog.tsx
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@cerniq/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@cerniq/ui/dialog";
 import { Badge } from "@cerniq/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@cerniq/ui/tabs";
 import { QualityScoreBadge } from "@cerniq/ui/badges";
@@ -898,7 +997,13 @@ export function CompanyDetailsDialog({
                 <InfoRow
                   label="Status"
                   value={
-                    <Badge variant={company.statusFirma === "ACTIVA" ? "success" : "destructive"}>
+                    <Badge
+                      variant={
+                        company.statusFirma === "ACTIVA"
+                          ? "success"
+                          : "destructive"
+                      }
+                    >
                       {company.statusFirma}
                     </Badge>
                   }
@@ -915,8 +1020,14 @@ export function CompanyDetailsDialog({
 
             <TabsContent value="financial" className="space-y-4">
               <InfoSection title="Date Financiare">
-                <InfoRow label="Cifră Afaceri" value={formatCurrency(company.cifraAfaceri)} />
-                <InfoRow label="Profit Net" value={formatCurrency(company.profitNet)} />
+                <InfoRow
+                  label="Cifră Afaceri"
+                  value={formatCurrency(company.cifraAfaceri)}
+                />
+                <InfoRow
+                  label="Profit Net"
+                  value={formatCurrency(company.profitNet)}
+                />
                 <InfoRow label="Nr. Angajați" value={company.numarAngajati} />
                 <InfoRow label="An Bilanț" value={company.anBilant} />
               </InfoSection>
@@ -976,25 +1087,47 @@ export function CompanyDetailsDialog({
               </InfoSection>
 
               <InfoSection title="Scoruri Calitate">
-                <InfoRow label="Completitudine" value={`${company.completenessScore}%`} />
-                <InfoRow label="Acuratețe" value={`${company.accuracyScore}%`} />
-                <InfoRow label="Prospețime" value={`${company.freshnessScore}%`} />
+                <InfoRow
+                  label="Completitudine"
+                  value={`${company.completenessScore}%`}
+                />
+                <InfoRow
+                  label="Acuratețe"
+                  value={`${company.accuracyScore}%`}
+                />
+                <InfoRow
+                  label="Prospețime"
+                  value={`${company.freshnessScore}%`}
+                />
                 <InfoRow
                   label="Total"
-                  value={<QualityScoreBadge score={company.totalQualityScore} showLabel />}
+                  value={
+                    <QualityScoreBadge
+                      score={company.totalQualityScore}
+                      showLabel
+                    />
+                  }
                 />
               </InfoSection>
             </TabsContent>
           </Tabs>
         ) : (
-          <div className="py-8 text-center text-muted-foreground">Compania nu a fost găsită</div>
+          <div className="py-8 text-center text-muted-foreground">
+            Compania nu a fost găsită
+          </div>
         )}
       </DialogContent>
     </Dialog>
   );
 }
 
-function InfoSection({ title, children }: { title: string; children: React.ReactNode }) {
+function InfoSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="space-y-2">
       <h4 className="font-medium text-sm text-muted-foreground">{title}</h4>
@@ -1018,7 +1151,13 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
 ```tsx
 // apps/web/src/components/dialogs/DedupReviewDialog.tsx
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@cerniq/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@cerniq/ui/dialog";
 import { Button } from "@cerniq/ui/button";
 import { Badge } from "@cerniq/ui/badge";
 import { Progress } from "@cerniq/ui/progress";
@@ -1050,7 +1189,9 @@ export function DedupReviewDialog({
         {/* Confidence Score */}
         <div className="flex items-center gap-4 p-4 bg-muted rounded-lg">
           <div className="flex-1">
-            <div className="text-sm text-muted-foreground mb-1">Scor Similaritate</div>
+            <div className="text-sm text-muted-foreground mb-1">
+              Scor Similaritate
+            </div>
             <Progress value={confidence * 100} className="h-2" />
           </div>
           <Badge variant={confidence >= 0.85 ? "success" : "warning"}>
@@ -1068,14 +1209,21 @@ export function DedupReviewDialog({
         {/* Company Comparison */}
         <div className="grid grid-cols-2 gap-4">
           <CompanyCard title="Compania A" company={task.metadata.companyA} />
-          <CompanyCard title="Compania B (Master)" company={task.metadata.companyB} isMaster />
+          <CompanyCard
+            title="Compania B (Master)"
+            company={task.metadata.companyB}
+            isMaster
+          />
         </div>
 
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Anulează
           </Button>
-          <Button variant="destructive" onClick={() => onDecision("reject", "Not duplicates")}>
+          <Button
+            variant="destructive"
+            onClick={() => onDecision("reject", "Not duplicates")}
+          >
             <XCircle className="w-4 h-4 mr-2" />
             Nu sunt duplicate
           </Button>
@@ -1096,7 +1244,9 @@ function ScoreCard({ label, score }: { label: string; score: number }) {
         <div className="text-sm text-muted-foreground">{label}</div>
         <div className="flex items-center gap-2 mt-1">
           <Progress value={score * 100} className="h-1.5 flex-1" />
-          <span className="text-sm font-medium">{Math.round(score * 100)}%</span>
+          <span className="text-sm font-medium">
+            {Math.round(score * 100)}%
+          </span>
         </div>
       </CardContent>
     </Card>
@@ -1158,7 +1308,10 @@ const Drawer = ({
   shouldScaleBackground = true,
   ...props
 }: React.ComponentProps<typeof DrawerPrimitive.Root>) => (
-  <DrawerPrimitive.Root shouldScaleBackground={shouldScaleBackground} {...props} />
+  <DrawerPrimitive.Root
+    shouldScaleBackground={shouldScaleBackground}
+    {...props}
+  />
 );
 
 const DrawerTrigger = DrawerPrimitive.Trigger;
@@ -1199,12 +1352,21 @@ const DrawerContent = React.forwardRef<
   </DrawerPortal>
 ));
 
-const DrawerHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
+const DrawerHeader = ({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) => (
   <div className={cn("grid gap-1.5 p-4 border-b", className)} {...props} />
 );
 
-const DrawerFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn("mt-auto flex flex-col gap-2 p-4 border-t", className)} {...props} />
+const DrawerFooter = ({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) => (
+  <div
+    className={cn("mt-auto flex flex-col gap-2 p-4 border-t", className)}
+    {...props}
+  />
 );
 
 const DrawerTitle = React.forwardRef<
@@ -1213,7 +1375,10 @@ const DrawerTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DrawerPrimitive.Title
     ref={ref}
-    className={cn("text-lg font-semibold leading-none tracking-tight", className)}
+    className={cn(
+      "text-lg font-semibold leading-none tracking-tight",
+      className,
+    )}
     {...props}
   />
 ));

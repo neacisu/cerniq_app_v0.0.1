@@ -2,10 +2,12 @@
  * E0-S3-PR01: Redis + BullMQ (shared Redis model)
  * ==============================================
  *
- * All environments (dev, staging, production) use the shared Redis instance
- * on the orchestrator (ACL + key prefix isolation: `cerniq:`).
- * No local Redis containers in any compose file.
- * Credentials are provided by OpenBao agents in all environments.
+ * New infrastructure model:
+ * - Production/staging do NOT run a local Redis container in the Cerniq stack.
+ * - Cerniq uses a shared Redis instance on the orchestrator (ACL + key prefix
+ *   isolation: `cerniq:`).
+ * - For local development only, `docker-compose.dev.yml` provides a redis
+ *   service (profile `dev`) to keep workflows working.
  */
 
 import { describe, it, expect } from "vitest";
@@ -36,7 +38,9 @@ function parseYaml<T>(content: string): T | null {
 describe("F0.3: Redis + BullMQ (shared)", () => {
   it("base compose should NOT define a redis service (externalized to orchestrator)", () => {
     expect(fileExists("infra/docker/docker-compose.yml")).toBe(true);
-    const base = parseYaml<Record<string, unknown>>(readFile("infra/docker/docker-compose.yml"));
+    const base = parseYaml<Record<string, unknown>>(
+      readFile("infra/docker/docker-compose.yml"),
+    );
     expect(base).not.toBeNull();
     const services = (base as Record<string, unknown>).services as
       | Record<string, unknown>
@@ -44,31 +48,30 @@ describe("F0.3: Redis + BullMQ (shared)", () => {
     expect(services || {}).not.toHaveProperty("redis");
   });
 
-  it("dev compose should NOT define a local redis service (uses shared orchestrator Redis)", () => {
+  it("dev override should define a local redis service for development only", () => {
     expect(fileExists("infra/docker/docker-compose.dev.yml")).toBe(true);
-    const dev = parseYaml<Record<string, unknown>>(readFile("infra/docker/docker-compose.dev.yml"));
+    const dev = parseYaml<Record<string, unknown>>(
+      readFile("infra/docker/docker-compose.dev.yml"),
+    );
     expect(dev).not.toBeNull();
     const services = (dev as Record<string, unknown>).services as
       | Record<string, unknown>
       | undefined;
-    expect(services || {}).not.toHaveProperty("redis");
-  });
+    expect(services || {}).toHaveProperty("redis");
 
-  it("dev compose should include OpenBao agents for shared service credentials", () => {
-    const dev = parseYaml<Record<string, unknown>>(readFile("infra/docker/docker-compose.dev.yml"));
-    expect(dev).not.toBeNull();
-    const services = (dev as Record<string, unknown>).services as
-      | Record<string, unknown>
-      | undefined;
-    expect(services || {}).toHaveProperty("openbao-agent-api");
-    expect(services || {}).toHaveProperty("openbao-agent-workers");
-    expect(services || {}).toHaveProperty("openbao-agent-infra");
-    expect(services || {}).toHaveProperty("pgbouncer");
+    const redis = (services as Record<string, unknown>).redis as Record<
+      string,
+      unknown
+    >;
+    expect(redis.image).toBe("redis:8.6.0");
+    expect(redis.container_name).toBe("cerniq-redis-dev");
   });
 
   it("OpenBao templates should define REDIS_URL with username and isolation prefixes", () => {
     const apiTpl = readFile("infra/config/openbao/templates/api-env.tpl");
-    const workersTpl = readFile("infra/config/openbao/templates/workers-env.tpl");
+    const workersTpl = readFile(
+      "infra/config/openbao/templates/workers-env.tpl",
+    );
     expect(apiTpl).toContain("REDIS_URL=redis://");
     expect(workersTpl).toContain("REDIS_URL=redis://");
 

@@ -37,7 +37,7 @@ In infrastructura noua:
 
 ## Network Topology Validation
 
-```text
+```
 CT109 / CT110 (LXC)                       CT107 (LXC)               Orchestrator (shared)
 ┌──────────────────────────────┐          ┌───────────────────┐     ┌──────────────────────┐
 │ Docker networks 172.29.x.x   │          │ PostgreSQL native │     │ Traefik/OpenBao/Obs  │

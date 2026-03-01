@@ -684,8 +684,12 @@ worker_C1.process(async (job) => {
 
   // Step 1: Parallel intent + sentiment
   const [intent, sentiment] = await Promise.all([
-    queue_K3.add("classify-intent", { message }).then((j) => j.waitUntilFinished()),
-    queue_K1.add("analyze-sentiment", { message }).then((j) => j.waitUntilFinished()),
+    queue_K3
+      .add("classify-intent", { message })
+      .then((j) => j.waitUntilFinished()),
+    queue_K1
+      .add("analyze-sentiment", { message })
+      .then((j) => j.waitUntilFinished()),
   ]);
 
   // Step 2: Hybrid search for context
@@ -803,7 +807,10 @@ worker_E3.process(async (job) => {
 
   // Get price rules
   const rules = await db.query.priceRules.findFirst({
-    where: and(eq(priceRules.tenantId, tenantId), eq(priceRules.productSku, productSku)),
+    where: and(
+      eq(priceRules.tenantId, tenantId),
+      eq(priceRules.productSku, productSku),
+    ),
   });
 
   const maxAutoApprove = rules?.maxAutoDiscount ?? 15;
@@ -862,10 +869,14 @@ worker_F1.process(async (job) => {
 
   // Check available stock
   const stock = await db.query.stockInventory.findFirst({
-    where: and(eq(stockInventory.tenantId, tenantId), eq(stockInventory.productSku, productSku)),
+    where: and(
+      eq(stockInventory.tenantId, tenantId),
+      eq(stockInventory.productSku, productSku),
+    ),
   });
 
-  const available = (stock?.quantityAvailable ?? 0) - (stock?.quantityReserved ?? 0);
+  const available =
+    (stock?.quantityAvailable ?? 0) - (stock?.quantityReserved ?? 0);
 
   if (available >= quantity) {
     // Reserve stock
@@ -915,7 +926,12 @@ worker_F2.process(async (job) => {
   await db
     .update(stockInventory)
     .set({ quantityReserved: sql`quantity_reserved + ${quantity}` })
-    .where(and(eq(stockInventory.tenantId, tenantId), eq(stockInventory.productSku, productSku)));
+    .where(
+      and(
+        eq(stockInventory.tenantId, tenantId),
+        eq(stockInventory.productSku, productSku),
+      ),
+    );
 
   // Schedule expiry check
   await queue_F3.add(
@@ -990,7 +1006,9 @@ worker_G1.process(async (job) => {
       county: negotiation.client.county,
     },
     issueDate: new Date().toISOString().split("T")[0],
-    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split("T")[0],
     products: negotiation.items.map((item) => ({
       name: item.productName,
       code: item.productSku,
@@ -1095,7 +1113,10 @@ worker_G7.process(async (job) => {
     where: and(
       eq(oblioDocuments.tenantId, tenantId),
       gte(oblioDocuments.createdAt, new Date(date)),
-      lt(oblioDocuments.createdAt, new Date(new Date(date).getTime() + 24 * 60 * 60 * 1000)),
+      lt(
+        oblioDocuments.createdAt,
+        new Date(new Date(date).getTime() + 24 * 60 * 60 * 1000),
+      ),
     ),
   });
 
@@ -1106,9 +1127,13 @@ worker_G7.process(async (job) => {
   });
 
   // Compare and reconcile
-  const missingInLocal = oblioApiDocs.filter((od) => !localDocs.find((ld) => ld.oblioId === od.id));
+  const missingInLocal = oblioApiDocs.filter(
+    (od) => !localDocs.find((ld) => ld.oblioId === od.id),
+  );
 
-  const missingInOblio = localDocs.filter((ld) => !oblioApiDocs.find((od) => od.id === ld.oblioId));
+  const missingInOblio = localDocs.filter(
+    (ld) => !oblioApiDocs.find((od) => od.id === ld.oblioId),
+  );
 
   // Log discrepancies
   if (missingInLocal.length > 0 || missingInOblio.length > 0) {
@@ -1177,7 +1202,9 @@ worker_H1.process(async (job) => {
     status: "SUBMITTED",
     submittedAt: new Date(),
     // Legal deadline: 5 calendar days from invoice issue
-    legalDeadline: new Date(oblioInvoice.issueDate.getTime() + 5 * 24 * 60 * 60 * 1000),
+    legalDeadline: new Date(
+      oblioInvoice.issueDate.getTime() + 5 * 24 * 60 * 60 * 1000,
+    ),
   });
 
   // Schedule status check (ANAF processes in ~30 minutes)
@@ -1259,11 +1286,17 @@ worker_H2.process(async (job) => {
 
 // H4 Handle Error → decide retry or HITL
 worker_H4.process(async (job) => {
-  const { invoiceId, tenantId, errorCode, errorMessage, retryCount = 0 } = job.data;
+  const {
+    invoiceId,
+    tenantId,
+    errorCode,
+    errorMessage,
+    retryCount = 0,
+  } = job.data;
 
   // Categorize error
-  const isRetryable = ["TIMEOUT", "SERVICE_UNAVAILABLE", "INTERNAL_ERROR"].some((e) =>
-    errorCode?.includes(e),
+  const isRetryable = ["TIMEOUT", "SERVICE_UNAVAILABLE", "INTERNAL_ERROR"].some(
+    (e) => errorCode?.includes(e),
   );
 
   if (isRetryable && retryCount < 3) {
@@ -1358,7 +1391,9 @@ worker_I2.process(async (job) => {
       type: documentType,
       number: await generateDocumentNumber(tenantId, documentType),
       date: new Date().toLocaleDateString("ro-RO"),
-      validUntil: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString("ro-RO"),
+      validUntil: new Date(
+        Date.now() + 7 * 24 * 60 * 60 * 1000,
+      ).toLocaleDateString("ro-RO"),
     },
     seller: {
       name: tenant.companyName,
@@ -1421,7 +1456,8 @@ worker_I2.process(async (job) => {
 
 // I3 Render PDF → Puppeteer
 worker_I3.process(async (job) => {
-  const { html, documentType, documentNumber, negotiationId, tenantId } = job.data;
+  const { html, documentType, documentNumber, negotiationId, tenantId } =
+    job.data;
 
   // Launch Puppeteer
   const browser = await puppeteer.launch({
@@ -1462,7 +1498,14 @@ worker_I3.process(async (job) => {
 
 // I4 Store Document → MinIO/S3
 worker_I4.process(async (job) => {
-  const { pdfBuffer, documentType, documentNumber, negotiationId, tenantId, filename } = job.data;
+  const {
+    pdfBuffer,
+    documentType,
+    documentNumber,
+    negotiationId,
+    tenantId,
+    filename,
+  } = job.data;
 
   // Store in MinIO
   const objectKey = `tenants/${tenantId}/documents/${documentType.toLowerCase()}/${filename}`;
@@ -1536,7 +1579,10 @@ worker_J1.process(async (job) => {
 
   // Stop any active Etapa 2 sequences
   const activeSequences = await db.query.outreachSequences.findMany({
-    where: and(eq(outreachSequences.contactId, contactId), eq(outreachSequences.status, "ACTIVE")),
+    where: and(
+      eq(outreachSequences.contactId, contactId),
+      eq(outreachSequences.status, "ACTIVE"),
+    ),
   });
 
   for (const seq of activeSequences) {
@@ -1634,7 +1680,8 @@ worker_J2.process(async (job) => {
 
 // J3 WhatsApp Send - via TimelinesAI
 worker_J3.process(async (job) => {
-  const { negotiationId, phoneNumber, message, attachments, tenantId } = job.data;
+  const { negotiationId, phoneNumber, message, attachments, tenantId } =
+    job.data;
 
   // Get assigned WhatsApp number for sticky session
   const negotiation = await db.query.goldNegotiations.findFirst({
@@ -1723,7 +1770,8 @@ worker_J4.process(async (job) => {
 
 // J5 Channel Router - decide delivery channel
 worker_J5.process(async (job) => {
-  const { negotiationId, message, attachments, preferredChannel, tenantId } = job.data;
+  const { negotiationId, message, attachments, preferredChannel, tenantId } =
+    job.data;
 
   // Get negotiation and contact
   const negotiation = await db.query.goldNegotiations.findFirst({
@@ -1840,7 +1888,8 @@ Message: "${messageText}"
 
 // K2 Intent Classification
 worker_K2.process(async (job) => {
-  const { messageId, messageText, negotiationId, sentiment, tenantId } = job.data;
+  const { messageId, messageText, negotiationId, sentiment, tenantId } =
+    job.data;
 
   const intentPrompt = `
 Classify the intent of this B2B sales conversation message.
@@ -2023,7 +2072,13 @@ worker_L1.process(async (job) => {
 
 // L2 MCP Tool Execution - routes to appropriate workers
 worker_L2.process(async (job) => {
-  const { sessionId, toolName, arguments: args, tenantId, negotiationId } = job.data;
+  const {
+    sessionId,
+    toolName,
+    arguments: args,
+    tenantId,
+    negotiationId,
+  } = job.data;
 
   // Validate session
   const session = await redis.hgetall(`mcp:session:${sessionId}`);
@@ -2103,7 +2158,10 @@ worker_L3.process(async (job) => {
   switch (resourceType) {
     case "product":
       resource = await db.query.goldProducts.findFirst({
-        where: and(eq(goldProducts.tenantId, tenantId), eq(goldProducts.sku, resourceId)),
+        where: and(
+          eq(goldProducts.tenantId, tenantId),
+          eq(goldProducts.sku, resourceId),
+        ),
         with: {
           embeddings: true,
           priceRules: true,
@@ -2114,7 +2172,10 @@ worker_L3.process(async (job) => {
 
     case "client":
       resource = await db.query.goldCompanies.findFirst({
-        where: and(eq(goldCompanies.tenantId, tenantId), eq(goldCompanies.cui, resourceId)),
+        where: and(
+          eq(goldCompanies.tenantId, tenantId),
+          eq(goldCompanies.cui, resourceId),
+        ),
         with: {
           contacts: true,
           negotiations: { limit: 5, orderBy: desc(goldNegotiations.createdAt) },
@@ -2230,47 +2291,51 @@ worker_M5.process(async (job) => {
   const MAX_REGENERATE = 3;
 
   // Run all guardrails in parallel
-  const [priceResult, stockResult, discountResult, complianceResult] = await Promise.all([
-    // M1: Price validation
-    queue_M1
-      .add("check-price", {
-        eventType: "GUARDRAIL_PRICE_CHECK",
-        extractedData,
-        tenantId,
-      })
-      .then((j) => j.waitUntilFinished(queue_M1.queueEvents)),
+  const [priceResult, stockResult, discountResult, complianceResult] =
+    await Promise.all([
+      // M1: Price validation
+      queue_M1
+        .add("check-price", {
+          eventType: "GUARDRAIL_PRICE_CHECK",
+          extractedData,
+          tenantId,
+        })
+        .then((j) => j.waitUntilFinished(queue_M1.queueEvents)),
 
-    // M2: Stock validation
-    queue_M2
-      .add("check-stock", {
-        eventType: "GUARDRAIL_STOCK_CHECK",
-        extractedData,
-        tenantId,
-      })
-      .then((j) => j.waitUntilFinished(queue_M2.queueEvents)),
+      // M2: Stock validation
+      queue_M2
+        .add("check-stock", {
+          eventType: "GUARDRAIL_STOCK_CHECK",
+          extractedData,
+          tenantId,
+        })
+        .then((j) => j.waitUntilFinished(queue_M2.queueEvents)),
 
-    // M3: Discount validation
-    queue_M3
-      .add("check-discount", {
-        eventType: "GUARDRAIL_DISCOUNT_CHECK",
-        extractedData,
-        tenantId,
-      })
-      .then((j) => j.waitUntilFinished(queue_M3.queueEvents)),
+      // M3: Discount validation
+      queue_M3
+        .add("check-discount", {
+          eventType: "GUARDRAIL_DISCOUNT_CHECK",
+          extractedData,
+          tenantId,
+        })
+        .then((j) => j.waitUntilFinished(queue_M3.queueEvents)),
 
-    // M4: Compliance validation
-    queue_M4
-      .add("check-compliance", {
-        eventType: "GUARDRAIL_COMPLIANCE_CHECK",
-        responseText,
-        tenantId,
-      })
-      .then((j) => j.waitUntilFinished(queue_M4.queueEvents)),
-  ]);
+      // M4: Compliance validation
+      queue_M4
+        .add("check-compliance", {
+          eventType: "GUARDRAIL_COMPLIANCE_CHECK",
+          responseText,
+          tenantId,
+        })
+        .then((j) => j.waitUntilFinished(queue_M4.queueEvents)),
+    ]);
 
   // Aggregate results
   const allPassed =
-    priceResult.passed && stockResult.passed && discountResult.passed && complianceResult.passed;
+    priceResult.passed &&
+    stockResult.passed &&
+    discountResult.passed &&
+    complianceResult.passed;
 
   const violations = [
     ...(!priceResult.passed ? priceResult.violations : []),
@@ -2343,7 +2408,10 @@ worker_M1.process(async (job) => {
   for (const item of extractedData.products || []) {
     // Get product with min price
     const product = await db.query.goldProducts.findFirst({
-      where: and(eq(goldProducts.tenantId, tenantId), eq(goldProducts.sku, item.sku)),
+      where: and(
+        eq(goldProducts.tenantId, tenantId),
+        eq(goldProducts.sku, item.sku),
+      ),
     });
 
     if (!product) {
@@ -2401,10 +2469,14 @@ worker_M2.process(async (job) => {
   for (const item of extractedData.products || []) {
     // Get current stock
     const stock = await db.query.stockInventory.findFirst({
-      where: and(eq(stockInventory.tenantId, tenantId), eq(stockInventory.productSku, item.sku)),
+      where: and(
+        eq(stockInventory.tenantId, tenantId),
+        eq(stockInventory.productSku, item.sku),
+      ),
     });
 
-    const available = (stock?.quantityAvailable ?? 0) - (stock?.quantityReserved ?? 0);
+    const available =
+      (stock?.quantityAvailable ?? 0) - (stock?.quantityReserved ?? 0);
 
     if (item.quantity > available) {
       violations.push({
@@ -2446,7 +2518,10 @@ worker_M3.process(async (job) => {
   for (const discount of extractedData.discounts || []) {
     // Get discount rules
     const rules = await db.query.priceRules.findFirst({
-      where: and(eq(priceRules.tenantId, tenantId), eq(priceRules.productSku, discount.sku)),
+      where: and(
+        eq(priceRules.tenantId, tenantId),
+        eq(priceRules.productSku, discount.sku),
+      ),
     });
 
     const maxAutoApprove = rules?.maxAutoDiscount ?? 15;
@@ -2685,8 +2760,14 @@ worker_N2.process(async (job) => {
 
 // N3 Discount Approval Workflow
 worker_N3.process(async (job) => {
-  const { negotiationId, discountPercent, productSku, requiredRole, slaMinutes, tenantId } =
-    job.data;
+  const {
+    negotiationId,
+    discountPercent,
+    productSku,
+    requiredRole,
+    slaMinutes,
+    tenantId,
+  } = job.data;
 
   // Get product and negotiation context
   const [product, negotiation] = await Promise.all([
@@ -2702,7 +2783,8 @@ worker_N3.process(async (job) => {
   // Calculate financial impact
   const originalValue =
     product.listPrice *
-    (negotiation.items?.find((i) => i.productSku === productSku)?.quantity || 1);
+    (negotiation.items?.find((i) => i.productSku === productSku)?.quantity ||
+      1);
   const discountValue = originalValue * (discountPercent / 100);
 
   // Create approval request
@@ -2762,8 +2844,15 @@ worker_N3.process(async (job) => {
 
 // N4 Document Review (e-Factura errors, etc.)
 worker_N4.process(async (job) => {
-  const { invoiceId, documentType, errorCode, errorMessage, slaMinutes, requiredRole, tenantId } =
-    job.data;
+  const {
+    invoiceId,
+    documentType,
+    errorCode,
+    errorMessage,
+    slaMinutes,
+    requiredRole,
+    tenantId,
+  } = job.data;
 
   // Get document context
   const document = await db.query.oblioDocuments.findFirst({
@@ -2955,7 +3044,8 @@ export const ETAPA3_EVENTS = {
   HITL_RESOLVED: "hitl.resolved",
 } as const;
 
-export type Etapa3EventType = (typeof ETAPA3_EVENTS)[keyof typeof ETAPA3_EVENTS];
+export type Etapa3EventType =
+  (typeof ETAPA3_EVENTS)[keyof typeof ETAPA3_EVENTS];
 ```
 
 ## 4.2 Event Payload Schemas
@@ -3163,7 +3253,10 @@ worker_D6.process(async (job) => {
     tenantId,
   };
 
-  await redis.publish("etapa4:events:sale_completed", JSON.stringify(completionEvent));
+  await redis.publish(
+    "etapa4:events:sale_completed",
+    JSON.stringify(completionEvent),
+  );
 
   return { completed: true };
 });
@@ -3175,7 +3268,10 @@ worker_D6.process(async (job) => {
 // Central event bus configuration
 const CROSS_STAGE_CHANNELS = {
   // Etapa 2 → Etapa 3
-  ETAPA2_TO_ETAPA3: ["etapa2:events:warm_reply", "etapa2:events:callback_requested"],
+  ETAPA2_TO_ETAPA3: [
+    "etapa2:events:warm_reply",
+    "etapa2:events:callback_requested",
+  ],
 
   // Etapa 3 → Etapa 4
   ETAPA3_TO_ETAPA4: [
@@ -3235,7 +3331,8 @@ class NegotiationCompletionSaga {
       // Step 1: Create proforma in Oblio
       await this.executeStep({
         name: "CREATE_PROFORMA",
-        execute: () => queue_G1.add("create-proforma", { negotiationId, tenantId }),
+        execute: () =>
+          queue_G1.add("create-proforma", { negotiationId, tenantId }),
         compensate: () => this.cancelProforma(negotiationId),
       });
 
@@ -3249,21 +3346,24 @@ class NegotiationCompletionSaga {
       // Step 3: Convert to invoice
       await this.executeStep({
         name: "CREATE_INVOICE",
-        execute: () => queue_G3.add("create-invoice", { negotiationId, tenantId }),
+        execute: () =>
+          queue_G3.add("create-invoice", { negotiationId, tenantId }),
         compensate: () => this.stornInvoice(negotiationId),
       });
 
       // Step 4: Submit to e-Factura
       await this.executeStep({
         name: "SUBMIT_EINVOICE",
-        execute: () => queue_H1.add("submit-einvoice", { negotiationId, tenantId }),
+        execute: () =>
+          queue_H1.add("submit-einvoice", { negotiationId, tenantId }),
         compensate: () => this.cancelEinvoice(negotiationId),
       });
 
       // Step 5: Update stock
       await this.executeStep({
         name: "UPDATE_STOCK",
-        execute: () => queue_F4.add("update-stock", { negotiationId, tenantId }),
+        execute: () =>
+          queue_F4.add("update-stock", { negotiationId, tenantId }),
         compensate: () => this.restoreStock(negotiationId),
       });
 
@@ -3470,7 +3570,11 @@ const ERROR_CATALOG: Record<string, WorkerError> = {
 
 ```typescript
 // Centralized error handling for all workers
-async function handleWorkerError(error: Error, job: Job, workerName: string): Promise<void> {
+async function handleWorkerError(
+  error: Error,
+  job: Job,
+  workerName: string,
+): Promise<void> {
   const errorDef = ERROR_CATALOG[error.name] || {
     code: "UNKNOWN",
     message: error.message,
@@ -3523,7 +3627,10 @@ async function handleWorkerError(error: Error, job: Job, workerName: string): Pr
 }
 
 // Apply to all workers
-function createWorkerWithErrorHandling(queueName: string, processor: (job: Job) => Promise<any>) {
+function createWorkerWithErrorHandling(
+  queueName: string,
+  processor: (job: Job) => Promise<any>,
+) {
   const worker = new Worker(
     queueName,
     async (job) => {
@@ -3623,7 +3730,11 @@ class ExternalServiceCircuitBreaker {
     }
   }
 
-  async call<T>(service: string, fn: () => Promise<T>, fallback?: () => T): Promise<T> {
+  async call<T>(
+    service: string,
+    fn: () => Promise<T>,
+    fallback?: () => T,
+  ): Promise<T> {
     const breaker = this.breakers.get(service);
 
     if (!breaker) {
@@ -3640,7 +3751,11 @@ class ExternalServiceCircuitBreaker {
   getStatus(service: string) {
     const breaker = this.breakers.get(service);
     return {
-      state: breaker?.opened ? "OPEN" : breaker?.halfOpen ? "HALF_OPEN" : "CLOSED",
+      state: breaker?.opened
+        ? "OPEN"
+        : breaker?.halfOpen
+          ? "HALF_OPEN"
+          : "CLOSED",
       stats: breaker?.stats,
     };
   }
@@ -3954,10 +4069,22 @@ setInterval(async () => {
     const queue = new Queue(queueName, { connection: redisConnection });
     const counts = await queue.getJobCounts();
 
-    workerMetrics.queueDepth.set({ queue: queueName, status: "waiting" }, counts.waiting);
-    workerMetrics.queueDepth.set({ queue: queueName, status: "active" }, counts.active);
-    workerMetrics.queueDepth.set({ queue: queueName, status: "delayed" }, counts.delayed);
-    workerMetrics.queueDepth.set({ queue: queueName, status: "failed" }, counts.failed);
+    workerMetrics.queueDepth.set(
+      { queue: queueName, status: "waiting" },
+      counts.waiting,
+    );
+    workerMetrics.queueDepth.set(
+      { queue: queueName, status: "active" },
+      counts.active,
+    );
+    workerMetrics.queueDepth.set(
+      { queue: queueName, status: "delayed" },
+      counts.delayed,
+    );
+    workerMetrics.queueDepth.set(
+      { queue: queueName, status: "failed" },
+      counts.failed,
+    );
   }
 }, 10000); // Every 10 seconds
 ```
@@ -4109,7 +4236,12 @@ worker_C1.process(async (job) => {
       client: `client://${negotiation.client.cui}`,
       products: products.map((p) => `product://${p.sku}`),
     },
-    tools: ["search_products", "check_stock", "calculate_price", "create_quote"],
+    tools: [
+      "search_products",
+      "check_stock",
+      "calculate_price",
+      "create_quote",
+    ],
   };
 
   // Generate AI response

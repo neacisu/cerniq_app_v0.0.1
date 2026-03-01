@@ -73,8 +73,12 @@ export function DashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Data Enrichment Dashboard</h1>
-          <p className="text-sm text-gray-500">Pipeline Bronze → Silver → Gold</p>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Data Enrichment Dashboard
+          </h1>
+          <p className="text-sm text-gray-500">
+            Pipeline Bronze → Silver → Gold
+          </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={handleRefresh}>
@@ -209,7 +213,13 @@ export function DashboardPage() {
 // src/pages/imports/list.tsx
 
 import { useTable } from "@refinedev/core";
-import { Table, TableHeader, TableBody, TableRow, TableCell } from "@/components/ui/table";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableCell,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, formatBytes } from "@/lib/utils";
 
@@ -250,7 +260,9 @@ export function ImportsListPage() {
           onValueChange={(value) =>
             setFilters([
               ...filters.filter((f) => f.field !== "status"),
-              ...(value !== "all" ? [{ field: "status", operator: "eq", value }] : []),
+              ...(value !== "all"
+                ? [{ field: "status", operator: "eq", value }]
+                : []),
             ])
           }
         >
@@ -270,7 +282,9 @@ export function ImportsListPage() {
           onValueChange={(value) =>
             setFilters([
               ...filters.filter((f) => f.field !== "sourceType"),
-              ...(value !== "all" ? [{ field: "sourceType", operator: "eq", value }] : []),
+              ...(value !== "all"
+                ? [{ field: "sourceType", operator: "eq", value }]
+                : []),
             ])
           }
         >
@@ -316,7 +330,10 @@ export function ImportsListPage() {
               </TableRow>
             ) : data?.data?.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                <TableCell
+                  colSpan={8}
+                  className="text-center py-8 text-gray-500"
+                >
                   No imports found
                 </TableCell>
               </TableRow>
@@ -328,19 +345,26 @@ export function ImportsListPage() {
                   onClick={() => navigate(`/imports/${batch.id}`)}
                 >
                   <TableCell>{formatDate(batch.createdAt)}</TableCell>
-                  <TableCell className="font-medium">{batch.filename}</TableCell>
+                  <TableCell className="font-medium">
+                    {batch.filename}
+                  </TableCell>
                   <TableCell>
                     <Badge variant="outline">{batch.sourceType}</Badge>
                   </TableCell>
                   <TableCell className="text-right text-gray-500">
                     {formatBytes(batch.fileSizeBytes)}
                   </TableCell>
-                  <TableCell className="text-right">{batch.totalRows}</TableCell>
+                  <TableCell className="text-right">
+                    {batch.totalRows}
+                  </TableCell>
                   <TableCell className="text-center">
                     <StatusBadge status={batch.status} />
                   </TableCell>
                   <TableCell className="text-right">
-                    <SuccessRate success={batch.successRows} total={batch.totalRows} />
+                    <SuccessRate
+                      success={batch.successRows}
+                      total={batch.totalRows}
+                    />
                   </TableCell>
                   <TableCell>
                     <Button variant="ghost" size="sm">
@@ -404,7 +428,9 @@ export function ImportNewPage() {
     onDrop,
     accept: {
       "text/csv": [".csv"],
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"],
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [
+        ".xlsx",
+      ],
       "application/vnd.ms-excel": [".xls"],
     },
     maxFiles: 1,
@@ -441,7 +467,9 @@ export function ImportNewPage() {
         <Card>
           <CardHeader>
             <CardTitle>Upload File</CardTitle>
-            <CardDescription>Upload a CSV or Excel file with contact data</CardDescription>
+            <CardDescription>
+              Upload a CSV or Excel file with contact data
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div
@@ -459,9 +487,13 @@ export function ImportNewPage() {
               <input {...getInputProps()} />
               <UploadCloudIcon className="w-12 h-12 mx-auto text-gray-400" />
               <p className="mt-4 text-lg">
-                {isDragActive ? "Drop the file here" : "Drag & drop a file, or click to select"}
+                {isDragActive
+                  ? "Drop the file here"
+                  : "Drag & drop a file, or click to select"}
               </p>
-              <p className="mt-2 text-sm text-gray-500">CSV, XLS, XLSX up to 50MB</p>
+              <p className="mt-2 text-sm text-gray-500">
+                CSV, XLS, XLSX up to 50MB
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -472,7 +504,9 @@ export function ImportNewPage() {
         <Card>
           <CardHeader>
             <CardTitle>Map Columns</CardTitle>
-            <CardDescription>Match your file columns to Cerniq fields</CardDescription>
+            <CardDescription>
+              Match your file columns to Cerniq fields
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Preview Table */}
@@ -486,21 +520,27 @@ export function ImportNewPage() {
                           <span className="text-xs text-gray-500">{col}</span>
                           <Select
                             value={mapping[col] || ""}
-                            onValueChange={(value) => setMapping({ ...mapping, [col]: value })}
+                            onValueChange={(value) =>
+                              setMapping({ ...mapping, [col]: value })
+                            }
                           >
                             <SelectTrigger className="h-8">
                               <SelectValue placeholder="Select field" />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="">Skip</SelectItem>
-                              <SelectItem value="denumire">Company Name</SelectItem>
+                              <SelectItem value="denumire">
+                                Company Name
+                              </SelectItem>
                               <SelectItem value="cui">CUI</SelectItem>
                               <SelectItem value="adresa">Address</SelectItem>
                               <SelectItem value="judet">County</SelectItem>
                               <SelectItem value="localitate">City</SelectItem>
                               <SelectItem value="telefon">Phone</SelectItem>
                               <SelectItem value="email">Email</SelectItem>
-                              <SelectItem value="contact_name">Contact Name</SelectItem>
+                              <SelectItem value="contact_name">
+                                Contact Name
+                              </SelectItem>
                               <SelectItem value="functie">Position</SelectItem>
                             </SelectContent>
                           </Select>
@@ -559,7 +599,8 @@ export function ImportNewPage() {
             <Alert>
               <InfoIcon className="w-4 h-4" />
               <AlertDescription>
-                Import will run in background. You can track progress on the import details page.
+                Import will run in background. You can track progress on the
+                import details page.
               </AlertDescription>
             </Alert>
 
@@ -619,7 +660,11 @@ const columns: ColumnDef<SilverCompany>[] = [
     accessorKey: "statusFirma",
     header: "Status",
     cell: ({ row }) => (
-      <Badge variant={row.original.statusFirma === "ACTIVA" ? "success" : "destructive"}>
+      <Badge
+        variant={
+          row.original.statusFirma === "ACTIVA" ? "success" : "destructive"
+        }
+      >
         {row.original.statusFirma}
       </Badge>
     ),
@@ -627,17 +672,23 @@ const columns: ColumnDef<SilverCompany>[] = [
   {
     accessorKey: "enrichmentStatus",
     header: "Enrichment",
-    cell: ({ row }) => <EnrichmentStatusBadge status={row.original.enrichmentStatus} />,
+    cell: ({ row }) => (
+      <EnrichmentStatusBadge status={row.original.enrichmentStatus} />
+    ),
   },
   {
     accessorKey: "totalQualityScore",
     header: "Quality",
-    cell: ({ row }) => <QualityScoreBadge score={row.original.totalQualityScore} />,
+    cell: ({ row }) => (
+      <QualityScoreBadge score={row.original.totalQualityScore} />
+    ),
   },
   {
     accessorKey: "promotionStatus",
     header: "Promotion",
-    cell: ({ row }) => <PromotionStatusBadge status={row.original.promotionStatus} />,
+    cell: ({ row }) => (
+      <PromotionStatusBadge status={row.original.promotionStatus} />
+    ),
   },
   {
     id: "actions",
@@ -649,7 +700,9 @@ const columns: ColumnDef<SilverCompany>[] = [
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => navigate(`/silver/companies/${row.original.id}`)}>
+          <DropdownMenuItem
+            onClick={() => navigate(`/silver/companies/${row.original.id}`)}
+          >
             View Details
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => handleReEnrich(row.original.id)}>
@@ -696,7 +749,10 @@ export function SilverCompaniesListPage() {
       </div>
 
       {/* Advanced Filters */}
-      <SilverCompanyFilters filters={table.filters} setFilters={table.setFilters} />
+      <SilverCompanyFilters
+        filters={table.filters}
+        setFilters={table.setFilters}
+      />
 
       {/* Data Table */}
       <DataTable
@@ -750,7 +806,9 @@ import { useList } from "@refinedev/core";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export function ApprovalsListPage() {
-  const [activeTab, setActiveTab] = useState<"pending" | "completed">("pending");
+  const [activeTab, setActiveTab] = useState<"pending" | "completed">(
+    "pending",
+  );
 
   const { data: pendingData, isLoading: pendingLoading } = useList({
     resource: "approvals",
@@ -782,7 +840,9 @@ export function ApprovalsListPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold">Approval Inbox</h1>
-          <p className="text-sm text-gray-500">{pendingData?.total || 0} pending approvals</p>
+          <p className="text-sm text-gray-500">
+            {pendingData?.total || 0} pending approvals
+          </p>
         </div>
       </div>
 
@@ -824,7 +884,10 @@ export function ApprovalsListPage() {
         </TabsContent>
 
         <TabsContent value="completed">
-          <CompletedApprovalsList data={completedData?.data || []} isLoading={completedLoading} />
+          <CompletedApprovalsList
+            data={completedData?.data || []}
+            isLoading={completedLoading}
+          />
         </TabsContent>
       </Tabs>
     </div>

@@ -77,7 +77,9 @@ export async function alertClientShippedProcessor(
     to: order.client.email,
     subject: `Comanda ${order.orderNumber} a fost expediată`,
     template: "order_shipped",
-    attachments: [{ filename: `AWB-${awbNumber}.pdf`, url: order.shipment.labelPdfUrl }],
+    attachments: [
+      { filename: `AWB-${awbNumber}.pdf`, url: order.shipment.labelPdfUrl },
+    ],
   });
 }
 ```
@@ -85,7 +87,9 @@ export async function alertClientShippedProcessor(
 ## Worker #41: alert:client:delivered
 
 ```typescript
-export async function alertClientDeliveredProcessor(job: Job<{ orderId: string }>): Promise<void> {
+export async function alertClientDeliveredProcessor(
+  job: Job<{ orderId: string }>,
+): Promise<void> {
   const { orderId, tenantId } = job.data;
 
   const order = await db.query.goldOrders.findFirst({
@@ -222,28 +226,36 @@ export async function alertInternalDailySummaryProcessor(
   today.setHours(0, 0, 0, 0);
 
   // Gather metrics
-  const [ordersCreated, paymentsReceived, shipmentsDelivered, overdueOrders] = await Promise.all([
-    db
-      .select({ count: sql`count(*)` })
-      .from(goldOrders)
-      .where(gte(goldOrders.createdAt, today)),
-    db
-      .select({ sum: sql`sum(amount)` })
-      .from(goldPayments)
-      .where(gte(goldPayments.transactionDate, today)),
-    db
-      .select({ count: sql`count(*)` })
-      .from(goldShipments)
-      .where(and(eq(goldShipments.status, "DELIVERED"), gte(goldShipments.deliveredAt, today))),
-    db
-      .select({ count: sql`count(*)`, sum: sql`sum(amount_due)` })
-      .from(goldOrders)
-      .where(and(lt(goldOrders.dueDate, today), gt(goldOrders.amountDue, 0))),
-  ]);
+  const [ordersCreated, paymentsReceived, shipmentsDelivered, overdueOrders] =
+    await Promise.all([
+      db
+        .select({ count: sql`count(*)` })
+        .from(goldOrders)
+        .where(gte(goldOrders.createdAt, today)),
+      db
+        .select({ sum: sql`sum(amount)` })
+        .from(goldPayments)
+        .where(gte(goldPayments.transactionDate, today)),
+      db
+        .select({ count: sql`count(*)` })
+        .from(goldShipments)
+        .where(
+          and(
+            eq(goldShipments.status, "DELIVERED"),
+            gte(goldShipments.deliveredAt, today),
+          ),
+        ),
+      db
+        .select({ count: sql`count(*)`, sum: sql`sum(amount_due)` })
+        .from(goldOrders)
+        .where(and(lt(goldOrders.dueDate, today), gt(goldOrders.amountDue, 0))),
+    ]);
 
   // Send email summary
   await notificationService.sendEmail({
-    to: process.env.DAILY_SUMMARY_RECIPIENTS?.split(",") || ["admin@company.com"],
+    to: process.env.DAILY_SUMMARY_RECIPIENTS?.split(",") || [
+      "admin@company.com",
+    ],
     subject: `📊 Raport Zilnic - ${today.toLocaleDateString("ro-RO")}`,
     template: "daily_summary",
     variables: {

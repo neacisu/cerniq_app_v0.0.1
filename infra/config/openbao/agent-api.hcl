@@ -14,7 +14,7 @@ log_level = "info"
 # Auto-Auth Configuration
 # =============================================================================
 # AppRole authentication method
-# role_id is static, secret_id is rotated automatically by CD pipeline on each deploy
+# role_id is static, secret_id rotates monthly
 # =============================================================================
 
 auto_auth {
@@ -60,7 +60,10 @@ vault {
 template {
   source      = "/openbao/templates/api-env.tpl"
   destination = "/secrets/api.env"
-  perms       = 0644
+  perms       = 0600
+  
+  # Send HUP signal to Node.js process for graceful reload
+  command     = "pkill -HUP node 2>/dev/null || true"
   
   # Error handling
   error_on_missing_key = true
@@ -76,7 +79,7 @@ template {
 template {
   source      = "/openbao/templates/pg-password-api.tpl"
   destination = "/secrets/pg_password"
-  perms       = 0644
+  perms       = 0600
   
   # Don't fail if database engine not yet configured
   error_on_missing_key = false

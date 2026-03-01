@@ -94,7 +94,9 @@ const connection = new IORedis({
   enableOfflineQueue: true,
 });
 
-function createEnrichmentWorker<T, R>(config: WorkerConfig<T, R>): Worker<T, R> {
+function createEnrichmentWorker<T, R>(
+  config: WorkerConfig<T, R>,
+): Worker<T, R> {
   const worker = new Worker<T, R>(config.queueName, config.processor, {
     connection,
     concurrency: config.concurrency,
@@ -111,7 +113,9 @@ function createEnrichmentWorker<T, R>(config: WorkerConfig<T, R>): Worker<T, R> 
   worker.on("failed", (job, err) =>
     logger.warn({ jobId: job?.id, error: err.message }, "Job failed"),
   );
-  worker.on("stalled", (jobId) => metrics.increment("jobs.stalled", { queue: config.queueName }));
+  worker.on("stalled", (jobId) =>
+    metrics.increment("jobs.stalled", { queue: config.queueName }),
+  );
 
   return worker;
 }
@@ -339,7 +343,8 @@ const emailVerificationWorker = createEnrichmentWorker({
       freeEmail: result.free_email,
       mxFound: result.mx_found === "true",
       smtpProvider: result.smtp_provider,
-      aiScore: result.sub_status === "" ? undefined : parseFloat(result.sub_status),
+      aiScore:
+        result.sub_status === "" ? undefined : parseFloat(result.sub_status),
     };
   },
 });
@@ -466,7 +471,8 @@ const rateLimitedWorker = new Worker(
     const response = await apiBreaker.fire(job.data);
 
     if (response.status === 429) {
-      const retryAfter = parseInt(response.headers["retry-after"]) * 1000 || 60000;
+      const retryAfter =
+        parseInt(response.headers["retry-after"]) * 1000 || 60000;
       await worker.rateLimit(retryAfter);
       throw Worker.RateLimitError();
     }
@@ -515,13 +521,16 @@ const TIER_THRESHOLDS = {
 };
 
 function calculateQualityTier(result: EnrichmentResult): string {
-  const filledFields = Object.values(result.fields).filter((f) => f.value !== null).length;
+  const filledFields = Object.values(result.fields).filter(
+    (f) => f.value !== null,
+  ).length;
   const avgConfidence =
     Object.values(result.fields).reduce((sum, f) => sum + f.confidence, 0) /
     Object.keys(result.fields).length;
   const hasVerifiedEmail = result.fields.email?.verified === true;
 
-  if (filledFields >= 12 && avgConfidence >= 0.85 && hasVerifiedEmail) return "gold";
+  if (filledFields >= 12 && avgConfidence >= 0.85 && hasVerifiedEmail)
+    return "gold";
   if (filledFields >= 8 && avgConfidence >= 0.7) return "silver";
   return "bronze";
 }
@@ -566,7 +575,8 @@ const sdk = new NodeSDK({
     "deployment.environment": process.env.NODE_ENV,
   }),
   traceExporter: new OTLPTraceExporter({
-    url: process.env.OTEL_EXPORTER_OTLP_ENDPOINT || "http://signoz:4318/v1/traces",
+    url:
+      process.env.OTEL_EXPORTER_OTLP_ENDPOINT || "http://signoz:4318/v1/traces",
   }),
 });
 
@@ -678,7 +688,9 @@ interface AuditLogEntry {
   correlationId: string;
 }
 
-async function logDataAccess(entry: Omit<AuditLogEntry, "timestamp" | "correlationId">) {
+async function logDataAccess(
+  entry: Omit<AuditLogEntry, "timestamp" | "correlationId">,
+) {
   await auditQueue.add("audit-log", {
     ...entry,
     timestamp: new Date().toISOString(),

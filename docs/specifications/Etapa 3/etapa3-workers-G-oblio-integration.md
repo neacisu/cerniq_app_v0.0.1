@@ -254,7 +254,11 @@ export interface ClientValidateResult {
   };
 
   // Action taken
-  action: "VALIDATED_EXISTING" | "CREATED_NEW" | "UPDATED_EXISTING" | "VALIDATION_FAILED";
+  action:
+    | "VALIDATED_EXISTING"
+    | "CREATED_NEW"
+    | "UPDATED_EXISTING"
+    | "VALIDATION_FAILED";
 
   // If failed, what needs to be fixed
   requiredFixes?: Array<{
@@ -314,11 +318,15 @@ const redis = new Redis(process.env.REDIS_URL!);
  *
  * Validates and syncs client data with Oblio.eu before fiscal document creation
  */
-export const oblioClientValidateWorker = new Worker<ClientValidateJobData, ClientValidateResult>(
+export const oblioClientValidateWorker = new Worker<
+  ClientValidateJobData,
+  ClientValidateResult
+>(
   "oblio:client:validate",
   async (job: Job<ClientValidateJobData, ClientValidateResult>) => {
     const startTime = Date.now();
-    const { tenantId, negotiationId, contactId, clientData, options } = job.data;
+    const { tenantId, negotiationId, contactId, clientData, options } =
+      job.data;
 
     const log = logger.child({
       worker: "oblio:client:validate",
@@ -378,7 +386,14 @@ export const oblioClientValidateWorker = new Worker<ClientValidateJobData, Clien
         };
 
         // Record validation failure
-        await recordValidation(tenantId, negotiationId, contactId, clientData.cui, result, false);
+        await recordValidation(
+          tenantId,
+          negotiationId,
+          contactId,
+          clientData.cui,
+          result,
+          false,
+        );
 
         metrics.oblioClientValidationsFailed.inc({
           tenant_id: tenantId,
@@ -389,12 +404,19 @@ export const oblioClientValidateWorker = new Worker<ClientValidateJobData, Clien
       }
 
       // 7. Check if client exists in Oblio
-      let oblioClientRecord = await findOblioClient(oblioClient, clientData.cui);
+      let oblioClientRecord = await findOblioClient(
+        oblioClient,
+        clientData.cui,
+      );
       let action: ClientValidateResult["action"] = "VALIDATED_EXISTING";
 
       // 8. Create or update client in Oblio
       if (!oblioClientRecord && options?.createIfNotExists !== false) {
-        oblioClientRecord = await createOblioClient(oblioClient, clientData, anafData);
+        oblioClientRecord = await createOblioClient(
+          oblioClient,
+          clientData,
+          anafData,
+        );
         action = "CREATED_NEW";
         log.info("Created new client in Oblio", {
           oblioClientId: oblioClientRecord.cif,
@@ -435,7 +457,9 @@ export const oblioClientValidateWorker = new Worker<ClientValidateJobData, Clien
         });
 
       // 10. Build success result
-      const cachedUntil = new Date(Date.now() + (options?.cacheTtlSeconds || 86400) * 1000);
+      const cachedUntil = new Date(
+        Date.now() + (options?.cacheTtlSeconds || 86400) * 1000,
+      );
 
       const result: ClientValidateResult = {
         valid: true,
@@ -449,11 +473,23 @@ export const oblioClientValidateWorker = new Worker<ClientValidateJobData, Clien
 
       // 11. Cache result
       if (options?.cacheValidation !== false) {
-        await cacheValidation(tenantId, clientData.cui, result, options?.cacheTtlSeconds || 86400);
+        await cacheValidation(
+          tenantId,
+          clientData.cui,
+          result,
+          options?.cacheTtlSeconds || 86400,
+        );
       }
 
       // 12. Record successful validation
-      await recordValidation(tenantId, negotiationId, contactId, clientData.cui, result, true);
+      await recordValidation(
+        tenantId,
+        negotiationId,
+        contactId,
+        clientData.cui,
+        result,
+        true,
+      );
 
       // 13. Emit success metric
       metrics.oblioClientValidationsSuccess.inc({
@@ -462,7 +498,10 @@ export const oblioClientValidateWorker = new Worker<ClientValidateJobData, Clien
       });
 
       const duration = Date.now() - startTime;
-      metrics.oblioClientValidationDuration.observe({ tenant_id: tenantId }, duration);
+      metrics.oblioClientValidationDuration.observe(
+        { tenant_id: tenantId },
+        duration,
+      );
 
       log.info("Client validation completed", { action, duration });
 
@@ -658,7 +697,10 @@ function validateClientData(
 /**
  * Find existing client in Oblio
  */
-async function findOblioClient(client: OblioClient, cui: string): Promise<any | null> {
+async function findOblioClient(
+  client: OblioClient,
+  cui: string,
+): Promise<any | null> {
   try {
     const result = await client.getClients({ cif: cui });
     return result?.data?.[0] || null;
@@ -723,7 +765,10 @@ async function updateOblioClient(
 /**
  * Check if client needs update
  */
-function checkNeedsUpdate(oblioClient: any, clientData: OblioClientData): boolean {
+function checkNeedsUpdate(
+  oblioClient: any,
+  clientData: OblioClientData,
+): boolean {
   return (
     oblioClient.email !== clientData.email ||
     oblioClient.phone !== clientData.phone ||
@@ -963,7 +1008,9 @@ export const ProformaCreateJobDataSchema = z.object({
       deliveryAddress: z.string().optional(),
 
       // Payment terms
-      paymentMethod: z.enum(["TRANSFER", "CASH", "CARD", "RAMBURS"]).default("TRANSFER"),
+      paymentMethod: z
+        .enum(["TRANSFER", "CASH", "CARD", "RAMBURS"])
+        .default("TRANSFER"),
 
       // Currency
       currency: z.string().default("RON"),
@@ -1074,11 +1121,15 @@ const redis = new Redis(process.env.REDIS_URL!);
  *
  * Creates proforma invoices (offers) in Oblio for negotiation closing
  */
-export const oblioProformaCreateWorker = new Worker<ProformaCreateJobData, ProformaCreateResult>(
+export const oblioProformaCreateWorker = new Worker<
+  ProformaCreateJobData,
+  ProformaCreateResult
+>(
   "oblio:proforma:create",
   async (job: Job<ProformaCreateJobData, ProformaCreateResult>) => {
     const startTime = Date.now();
-    const { tenantId, negotiationId, oblioClientCif, items, details, options } = job.data;
+    const { tenantId, negotiationId, oblioClientCif, items, details, options } =
+      job.data;
 
     const log = logger.child({
       worker: "oblio:proforma:create",
@@ -1095,7 +1146,10 @@ export const oblioProformaCreateWorker = new Worker<ProformaCreateJobData, Profo
 
       // 2. Verify negotiation state
       const negotiation = await db.query.negotiations.findFirst({
-        where: and(eq(negotiations.id, negotiationId), eq(negotiations.tenantId, tenantId)),
+        where: and(
+          eq(negotiations.id, negotiationId),
+          eq(negotiations.tenantId, tenantId),
+        ),
       });
 
       if (!negotiation) {
@@ -1103,7 +1157,9 @@ export const oblioProformaCreateWorker = new Worker<ProformaCreateJobData, Profo
       }
 
       if (negotiation.state !== "CLOSING") {
-        throw new Error(`Cannot create proforma in state ${negotiation.state}, expected CLOSING`);
+        throw new Error(
+          `Cannot create proforma in state ${negotiation.state}, expected CLOSING`,
+        );
       }
 
       // 3. Get Oblio client
@@ -1163,7 +1219,9 @@ export const oblioProformaCreateWorker = new Worker<ProformaCreateJobData, Profo
           grandTotal: calculations.grandTotal,
           currency: details?.currency || "RON",
           issueDate: new Date(oblioResponse.issueDate),
-          dueDate: oblioResponse.dueDate ? new Date(oblioResponse.dueDate) : null,
+          dueDate: oblioResponse.dueDate
+            ? new Date(oblioResponse.dueDate)
+            : null,
           validUntil: details?.validUntil ? new Date(details.validUntil) : null,
           pdfUrl,
           pdfStoragePath,
@@ -1203,12 +1261,17 @@ export const oblioProformaCreateWorker = new Worker<ProformaCreateJobData, Profo
       let emailSentTo: string | undefined;
 
       if (options?.sendEmail !== false && oblioResponse.clientEmail) {
-        await oblioClient.sendProformaEmail(oblioResponse.seriesName, oblioResponse.number, {
-          to: oblioResponse.clientEmail,
-          subject:
-            options?.emailSubject || `Proforma ${oblioResponse.seriesName}-${oblioResponse.number}`,
-          body: options?.emailBody || buildDefaultEmailBody(oblioResponse),
-        });
+        await oblioClient.sendProformaEmail(
+          oblioResponse.seriesName,
+          oblioResponse.number,
+          {
+            to: oblioResponse.clientEmail,
+            subject:
+              options?.emailSubject ||
+              `Proforma ${oblioResponse.seriesName}-${oblioResponse.number}`,
+            body: options?.emailBody || buildDefaultEmailBody(oblioResponse),
+          },
+        );
         emailSent = true;
         emailSentTo = oblioResponse.clientEmail;
 
@@ -1239,8 +1302,14 @@ export const oblioProformaCreateWorker = new Worker<ProformaCreateJobData, Profo
       // 13. Emit metrics
       const duration = Date.now() - startTime;
       metrics.oblioProformasCreated.inc({ tenant_id: tenantId });
-      metrics.oblioProformaTotal.inc({ tenant_id: tenantId }, calculations.grandTotal);
-      metrics.oblioProformaCreateDuration.observe({ tenant_id: tenantId }, duration);
+      metrics.oblioProformaTotal.inc(
+        { tenant_id: tenantId },
+        calculations.grandTotal,
+      );
+      metrics.oblioProformaCreateDuration.observe(
+        { tenant_id: tenantId },
+        duration,
+      );
 
       log.info("Proforma creation completed", {
         proformaId: proformaRecord.id,
@@ -1612,13 +1681,23 @@ export interface InvoiceCreateResult {
 import { Worker, Job, Queue } from "bullmq";
 import { Redis } from "ioredis";
 import { db } from "@/db";
-import { negotiations, proformas, invoices, negotiationStateHistory, tenants } from "@/db/schema";
+import {
+  negotiations,
+  proformas,
+  invoices,
+  negotiationStateHistory,
+  tenants,
+} from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { OblioClient } from "@/integrations/oblio";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { logger } from "@/lib/logger";
 import { metrics } from "@/lib/metrics";
-import { InvoiceCreateJobData, InvoiceCreateJobDataSchema, InvoiceCreateResult } from "./types";
+import {
+  InvoiceCreateJobData,
+  InvoiceCreateJobDataSchema,
+  InvoiceCreateResult,
+} from "./types";
 
 const redis = new Redis(process.env.REDIS_URL!);
 
@@ -1630,7 +1709,10 @@ const efacturaQueue = new Queue("efactura:send", { connection: redis });
  *
  * Creates fiscal invoices from accepted proformas
  */
-export const oblioInvoiceCreateWorker = new Worker<InvoiceCreateJobData, InvoiceCreateResult>(
+export const oblioInvoiceCreateWorker = new Worker<
+  InvoiceCreateJobData,
+  InvoiceCreateResult
+>(
   "oblio:invoice:create",
   async (job: Job<InvoiceCreateJobData, InvoiceCreateResult>) => {
     const startTime = Date.now();
@@ -1652,7 +1734,10 @@ export const oblioInvoiceCreateWorker = new Worker<InvoiceCreateJobData, Invoice
 
       // 2. Verify negotiation state
       const negotiation = await db.query.negotiations.findFirst({
-        where: and(eq(negotiations.id, negotiationId), eq(negotiations.tenantId, tenantId)),
+        where: and(
+          eq(negotiations.id, negotiationId),
+          eq(negotiations.tenantId, tenantId),
+        ),
       });
 
       if (!negotiation) {
@@ -1667,7 +1752,10 @@ export const oblioInvoiceCreateWorker = new Worker<InvoiceCreateJobData, Invoice
 
       // 3. Get proforma details
       const proforma = await db.query.proformas.findFirst({
-        where: and(eq(proformas.id, proformaId), eq(proformas.tenantId, tenantId)),
+        where: and(
+          eq(proformas.id, proformaId),
+          eq(proformas.tenantId, tenantId),
+        ),
       });
 
       if (!proforma) {
@@ -1675,14 +1763,17 @@ export const oblioInvoiceCreateWorker = new Worker<InvoiceCreateJobData, Invoice
       }
 
       if (proforma.status !== "ACCEPTED") {
-        throw new Error(`Proforma ${proformaId} is not accepted (status: ${proforma.status})`);
+        throw new Error(
+          `Proforma ${proformaId} is not accepted (status: ${proforma.status})`,
+        );
       }
 
       // 4. Get Oblio client
       const oblioClient = await getOblioClient(tenantId);
 
       // 5. Prepare items (from proforma or override)
-      const items = options?.convertProforma !== false ? proforma.items : options?.items;
+      const items =
+        options?.convertProforma !== false ? proforma.items : options?.items;
 
       if (!items || items.length === 0) {
         throw new Error("No items to invoice");
@@ -1741,7 +1832,9 @@ export const oblioInvoiceCreateWorker = new Worker<InvoiceCreateJobData, Invoice
           grandTotal: calculations.grandTotal,
           currency: proforma.currency,
           issueDate: new Date(oblioResponse.issueDate),
-          dueDate: oblioResponse.dueDate ? new Date(oblioResponse.dueDate) : null,
+          dueDate: oblioResponse.dueDate
+            ? new Date(oblioResponse.dueDate)
+            : null,
           pdfUrl,
           pdfStoragePath,
           oblioViewUrl: oblioResponse.viewUrl,
@@ -1792,12 +1885,18 @@ export const oblioInvoiceCreateWorker = new Worker<InvoiceCreateJobData, Invoice
       let emailSentTo: string | undefined;
 
       if (options?.sendEmail !== false && oblioResponse.clientEmail) {
-        await oblioClient.sendInvoiceEmail(oblioResponse.seriesName, oblioResponse.number, {
-          to: oblioResponse.clientEmail,
-          subject:
-            options?.emailSubject || `Factura ${oblioResponse.seriesName}-${oblioResponse.number}`,
-          body: options?.emailBody || buildDefaultInvoiceEmailBody(oblioResponse),
-        });
+        await oblioClient.sendInvoiceEmail(
+          oblioResponse.seriesName,
+          oblioResponse.number,
+          {
+            to: oblioResponse.clientEmail,
+            subject:
+              options?.emailSubject ||
+              `Factura ${oblioResponse.seriesName}-${oblioResponse.number}`,
+            body:
+              options?.emailBody || buildDefaultInvoiceEmailBody(oblioResponse),
+          },
+        );
         emailSent = true;
         emailSentTo = oblioResponse.clientEmail;
 
@@ -1874,8 +1973,14 @@ export const oblioInvoiceCreateWorker = new Worker<InvoiceCreateJobData, Invoice
       // 17. Emit metrics
       const duration = Date.now() - startTime;
       metrics.oblioInvoicesCreated.inc({ tenant_id: tenantId });
-      metrics.oblioInvoiceTotal.inc({ tenant_id: tenantId }, calculations.grandTotal);
-      metrics.oblioInvoiceCreateDuration.observe({ tenant_id: tenantId }, duration);
+      metrics.oblioInvoiceTotal.inc(
+        { tenant_id: tenantId },
+        calculations.grandTotal,
+      );
+      metrics.oblioInvoiceCreateDuration.observe(
+        { tenant_id: tenantId },
+        duration,
+      );
 
       log.info("Invoice creation completed", {
         invoiceId: invoiceRecord.id,
@@ -2291,11 +2396,21 @@ const invoiceCreateQueue = new Queue("oblio:invoice:create", {
  *
  * Handles invoice storno/cancellation with proper fiscal compliance
  */
-export const oblioInvoiceCancelWorker = new Worker<InvoiceCancelJobData, InvoiceCancelResult>(
+export const oblioInvoiceCancelWorker = new Worker<
+  InvoiceCancelJobData,
+  InvoiceCancelResult
+>(
   "oblio:invoice:cancel",
   async (job: Job<InvoiceCancelJobData, InvoiceCancelResult>) => {
     const startTime = Date.now();
-    const { tenantId, negotiationId, invoiceId, cancellation, options, hitlApprovalId } = job.data;
+    const {
+      tenantId,
+      negotiationId,
+      invoiceId,
+      cancellation,
+      options,
+      hitlApprovalId,
+    } = job.data;
 
     const log = logger.child({
       worker: "oblio:invoice:cancel",
@@ -2318,7 +2433,9 @@ export const oblioInvoiceCancelWorker = new Worker<InvoiceCancelJobData, Invoice
       if (hitlApprovalId) {
         const approval = await verifyHitlApproval(hitlApprovalId);
         if (!approval.approved) {
-          throw new Error(`HITL approval ${hitlApprovalId} not approved or expired`);
+          throw new Error(
+            `HITL approval ${hitlApprovalId} not approved or expired`,
+          );
         }
       }
 
@@ -2346,7 +2463,11 @@ export const oblioInvoiceCancelWorker = new Worker<InvoiceCancelJobData, Invoice
       );
 
       // 6. Create storno invoice in Oblio
-      const stornoRequest = buildStornoRequest(invoice, cancellation, cancelledAmounts);
+      const stornoRequest = buildStornoRequest(
+        invoice,
+        cancellation,
+        cancelledAmounts,
+      );
       const oblioStorno = await oblioClient.createStorno(stornoRequest);
 
       log.info("Storno created in Oblio", {
@@ -2358,7 +2479,10 @@ export const oblioInvoiceCancelWorker = new Worker<InvoiceCancelJobData, Invoice
       let stornoPdfUrl: string | undefined;
       let stornoPdfStoragePath: string | undefined;
 
-      const pdfData = await oblioClient.getInvoicePdf(oblioStorno.seriesName, oblioStorno.number);
+      const pdfData = await oblioClient.getInvoicePdf(
+        oblioStorno.seriesName,
+        oblioStorno.number,
+      );
 
       const storagePath = `tenants/${tenantId}/stornos/${negotiationId}/${oblioStorno.seriesName}-${oblioStorno.number}.pdf`;
       stornoPdfStoragePath = storagePath;
@@ -2398,7 +2522,8 @@ export const oblioInvoiceCancelWorker = new Worker<InvoiceCancelJobData, Invoice
       await db
         .update(invoices)
         .set({
-          status: cancellation.type === "FULL" ? "CANCELLED" : "PARTIAL_CANCELLED",
+          status:
+            cancellation.type === "FULL" ? "CANCELLED" : "PARTIAL_CANCELLED",
           stornoInvoiceId: stornoRecord.id,
           updatedAt: new Date(),
         })
@@ -2421,7 +2546,8 @@ export const oblioInvoiceCancelWorker = new Worker<InvoiceCancelJobData, Invoice
       });
 
       // 11. Update negotiation state
-      const newState = cancellation.type === "FULL" ? "DEAD" : negotiation.state;
+      const newState =
+        cancellation.type === "FULL" ? "DEAD" : negotiation.state;
 
       if (cancellation.type === "FULL") {
         await db
@@ -2454,12 +2580,19 @@ export const oblioInvoiceCancelWorker = new Worker<InvoiceCancelJobData, Invoice
       let emailSentTo: string | undefined;
 
       if (options?.sendEmail !== false && oblioStorno.clientEmail) {
-        await oblioClient.sendInvoiceEmail(oblioStorno.seriesName, oblioStorno.number, {
-          to: oblioStorno.clientEmail,
-          subject:
-            options?.emailSubject || `Stornare factura ${invoice.seriesName}-${invoice.number}`,
-          body: options?.emailBody || buildStornoEmailBody(invoice, oblioStorno, cancellation),
-        });
+        await oblioClient.sendInvoiceEmail(
+          oblioStorno.seriesName,
+          oblioStorno.number,
+          {
+            to: oblioStorno.clientEmail,
+            subject:
+              options?.emailSubject ||
+              `Stornare factura ${invoice.seriesName}-${invoice.number}`,
+            body:
+              options?.emailBody ||
+              buildStornoEmailBody(invoice, oblioStorno, cancellation),
+          },
+        );
         emailSent = true;
         emailSentTo = oblioStorno.clientEmail;
       }
@@ -2468,7 +2601,10 @@ export const oblioInvoiceCancelWorker = new Worker<InvoiceCancelJobData, Invoice
       let efacturaStornoTriggered = false;
       let efacturaStornoJobId: string | undefined;
 
-      if (options?.autoSendEfacturaStorno !== false && invoice.efacturaStatus === "SENT") {
+      if (
+        options?.autoSendEfacturaStorno !== false &&
+        invoice.efacturaStatus === "SENT"
+      ) {
         const efacturaJob = await efacturaStornoQueue.add("send", {
           tenantId,
           negotiationId,
@@ -2504,7 +2640,8 @@ export const oblioInvoiceCancelWorker = new Worker<InvoiceCancelJobData, Invoice
         cancelledVat: cancelledAmounts.vatAmount,
         cancelledTotal: cancelledAmounts.total,
         cancellationType: cancellation.type,
-        itemsCancelled: cancellation.itemsToCancel?.length || invoice.items.length,
+        itemsCancelled:
+          cancellation.itemsToCancel?.length || invoice.items.length,
         stornoPdfUrl,
         stornoPdfStoragePath,
         emailSent,
@@ -2522,7 +2659,10 @@ export const oblioInvoiceCancelWorker = new Worker<InvoiceCancelJobData, Invoice
         reason_code: cancellation.reasonCode,
         type: cancellation.type,
       });
-      metrics.oblioStornoTotal.inc({ tenant_id: tenantId }, cancelledAmounts.total);
+      metrics.oblioStornoTotal.inc(
+        { tenant_id: tenantId },
+        cancelledAmounts.total,
+      );
       metrics.oblioStornoDuration.observe({ tenant_id: tenantId }, duration);
 
       log.info("Invoice cancellation completed", {
@@ -2561,7 +2701,9 @@ export const oblioInvoiceCancelWorker = new Worker<InvoiceCancelJobData, Invoice
 /**
  * Verify HITL approval
  */
-async function verifyHitlApproval(approvalId: string): Promise<{ approved: boolean }> {
+async function verifyHitlApproval(
+  approvalId: string,
+): Promise<{ approved: boolean }> {
   const approval = await db.query.hitlApprovals.findFirst({
     where: eq(hitlApprovals.id, approvalId),
   });
@@ -2572,7 +2714,8 @@ async function verifyHitlApproval(approvalId: string): Promise<{ approved: boole
 
   return {
     approved:
-      approval.status === "APPROVED" && (!approval.expiresAt || approval.expiresAt > new Date()),
+      approval.status === "APPROVED" &&
+      (!approval.expiresAt || approval.expiresAt > new Date()),
   };
 }
 
@@ -2620,7 +2763,9 @@ function calculateCancelledAmounts(
   let subtotal = 0;
   let vatAmount = 0;
 
-  const cancelMap = new Map(itemsToCancel?.map((i) => [i.sku, i.quantity]) || []);
+  const cancelMap = new Map(
+    itemsToCancel?.map((i) => [i.sku, i.quantity]) || [],
+  );
 
   invoice.items.forEach((item: any) => {
     const cancelQty = cancelMap.get(item.sku);
@@ -2814,7 +2959,11 @@ export class OblioClient {
    */
   private async getAccessToken(): Promise<string> {
     // Check if token is still valid (with 5 min buffer)
-    if (this.accessToken && this.tokenExpiry && this.tokenExpiry > new Date(Date.now() + 300000)) {
+    if (
+      this.accessToken &&
+      this.tokenExpiry &&
+      this.tokenExpiry > new Date(Date.now() + 300000)
+    ) {
       return this.accessToken;
     }
 
@@ -2887,10 +3036,13 @@ export class OblioClient {
    * Get proforma PDF
    */
   async getProformaPdf(seriesName: string, number: number): Promise<Buffer> {
-    const response = await this.client.get(`/v1/api/proforma/pdf/${seriesName}/${number}`, {
-      params: { cif: this.config.companyCif },
-      responseType: "arraybuffer",
-    });
+    const response = await this.client.get(
+      `/v1/api/proforma/pdf/${seriesName}/${number}`,
+      {
+        params: { cif: this.config.companyCif },
+        responseType: "arraybuffer",
+      },
+    );
     return Buffer.from(response.data);
   }
 
@@ -2931,10 +3083,13 @@ export class OblioClient {
    * Get invoice PDF
    */
   async getInvoicePdf(seriesName: string, number: number): Promise<Buffer> {
-    const response = await this.client.get(`/v1/api/invoice/pdf/${seriesName}/${number}`, {
-      params: { cif: this.config.companyCif },
-      responseType: "arraybuffer",
-    });
+    const response = await this.client.get(
+      `/v1/api/invoice/pdf/${seriesName}/${number}`,
+      {
+        params: { cif: this.config.companyCif },
+        responseType: "arraybuffer",
+      },
+    );
     return Buffer.from(response.data);
   }
 
@@ -2981,9 +3136,12 @@ export class OblioClient {
    * Get e-Factura XML for invoice
    */
   async getEfacturaXml(seriesName: string, number: number): Promise<string> {
-    const response = await this.client.get(`/v1/api/efactura/xml/${seriesName}/${number}`, {
-      params: { cif: this.config.companyCif },
-    });
+    const response = await this.client.get(
+      `/v1/api/efactura/xml/${seriesName}/${number}`,
+      {
+        params: { cif: this.config.companyCif },
+      },
+    );
     return response.data.data.xml;
   }
 
@@ -2997,9 +3155,10 @@ export class OblioClient {
     indexIncarcare: string;
     dataIncarcare: string;
   }> {
-    const response = await this.client.post(`/v1/api/efactura/send/${seriesName}/${number}`, {
-      cif: this.config.companyCif,
-    });
+    const response = await this.client.post(
+      `/v1/api/efactura/send/${seriesName}/${number}`,
+      { cif: this.config.companyCif },
+    );
     return response.data.data;
   }
 
@@ -3011,9 +3170,12 @@ export class OblioClient {
     idDescarcare?: string;
     erori?: string[];
   }> {
-    const response = await this.client.get(`/v1/api/efactura/status/${indexIncarcare}`, {
-      params: { cif: this.config.companyCif },
-    });
+    const response = await this.client.get(
+      `/v1/api/efactura/status/${indexIncarcare}`,
+      {
+        params: { cif: this.config.companyCif },
+      },
+    );
     return response.data.data;
   }
 
@@ -3021,10 +3183,13 @@ export class OblioClient {
    * Get e-Factura PDF from ANAF
    */
   async getEfacturaPdf(idDescarcare: string): Promise<Buffer> {
-    const response = await this.client.get(`/v1/api/efactura/download/${idDescarcare}`, {
-      params: { cif: this.config.companyCif },
-      responseType: "arraybuffer",
-    });
+    const response = await this.client.get(
+      `/v1/api/efactura/download/${idDescarcare}`,
+      {
+        params: { cif: this.config.companyCif },
+        responseType: "arraybuffer",
+      },
+    );
     return Buffer.from(response.data);
   }
 
@@ -3142,7 +3307,8 @@ export class OblioRateLimiter {
   }> {
     const key = `oblio:rate:${tenantId}:${endpoint}:${Math.floor(Date.now() / 60000)}`;
     const limit =
-      OBLIO_RATE_LIMITS.ENDPOINTS[endpoint]?.perMinute || OBLIO_RATE_LIMITS.REQUESTS_PER_MINUTE;
+      OBLIO_RATE_LIMITS.ENDPOINTS[endpoint]?.perMinute ||
+      OBLIO_RATE_LIMITS.REQUESTS_PER_MINUTE;
 
     const current = await this.redis.incr(key);
 
@@ -3233,7 +3399,10 @@ export function classifyOblioError(error: AxiosError): {
   // Validation errors
   if (status === 400 || status === 422) {
     // Check for fiscal violations
-    if (code === "EFACTURA_ALREADY_SENT" || code === "INVOICE_ALREADY_CANCELLED") {
+    if (
+      code === "EFACTURA_ALREADY_SENT" ||
+      code === "INVOICE_ALREADY_CANCELLED"
+    ) {
       return { type: OblioErrorType.FISCAL_VIOLATION, retryable: false };
     }
     return { type: OblioErrorType.VALIDATION, retryable: false };
@@ -3336,7 +3505,11 @@ export class OblioIdempotencyManager {
   /**
    * Generate idempotency key
    */
-  generateKey(tenantId: string, operation: string, params: Record<string, any>): string {
+  generateKey(
+    tenantId: string,
+    operation: string,
+    params: Record<string, any>,
+  ): string {
     const hash = crypto
       .createHash("sha256")
       .update(JSON.stringify({ tenantId, operation, ...params }))
@@ -3363,7 +3536,11 @@ export class OblioIdempotencyManager {
   /**
    * Mark operation as completed
    */
-  async markCompleted(key: string, result: any, ttlSeconds: number = 86400): Promise<void> {
+  async markCompleted(
+    key: string,
+    result: any,
+    ttlSeconds: number = 86400,
+  ): Promise<void> {
     await this.redis.setex(key, ttlSeconds, JSON.stringify(result));
   }
 
@@ -3858,21 +4035,33 @@ export const oblioInvoiceCancelQueue = new Queue("oblio:invoice:cancel", {
 // Queue Schedulers (for delayed jobs)
 // ============================================================================
 
-export const clientValidateScheduler = new QueueScheduler("oblio:client:validate", {
-  connection: redis,
-});
+export const clientValidateScheduler = new QueueScheduler(
+  "oblio:client:validate",
+  {
+    connection: redis,
+  },
+);
 
-export const proformaCreateScheduler = new QueueScheduler("oblio:proforma:create", {
-  connection: redis,
-});
+export const proformaCreateScheduler = new QueueScheduler(
+  "oblio:proforma:create",
+  {
+    connection: redis,
+  },
+);
 
-export const invoiceCreateScheduler = new QueueScheduler("oblio:invoice:create", {
-  connection: redis,
-});
+export const invoiceCreateScheduler = new QueueScheduler(
+  "oblio:invoice:create",
+  {
+    connection: redis,
+  },
+);
 
-export const invoiceCancelScheduler = new QueueScheduler("oblio:invoice:cancel", {
-  connection: redis,
-});
+export const invoiceCancelScheduler = new QueueScheduler(
+  "oblio:invoice:cancel",
+  {
+    connection: redis,
+  },
+);
 
 // ============================================================================
 // Queue Events (for monitoring)
@@ -3934,14 +4123,15 @@ export async function checkOblioQueuesHealth(): Promise<{
   let healthy = true;
 
   for (const { name, queue } of queues) {
-    const [waiting, active, completed, failed, delayed, isPaused] = await Promise.all([
-      queue.getWaitingCount(),
-      queue.getActiveCount(),
-      queue.getCompletedCount(),
-      queue.getFailedCount(),
-      queue.getDelayedCount(),
-      queue.isPaused(),
-    ]);
+    const [waiting, active, completed, failed, delayed, isPaused] =
+      await Promise.all([
+        queue.getWaitingCount(),
+        queue.getActiveCount(),
+        queue.getCompletedCount(),
+        queue.getFailedCount(),
+        queue.getDelayedCount(),
+        queue.isPaused(),
+      ]);
 
     results[name] = {
       waiting,

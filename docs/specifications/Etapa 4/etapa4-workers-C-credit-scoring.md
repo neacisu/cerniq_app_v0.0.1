@@ -52,7 +52,9 @@ export async function creditProfileCreateProcessor(
 
 ```typescript
 // Worker #14: credit:data:fetch-anaf
-export async function creditDataFetchAnafProcessor(job: Job): Promise<AnafData> {
+export async function creditDataFetchAnafProcessor(
+  job: Job,
+): Promise<AnafData> {
   const { cui } = job.data;
   const anafData = await termeneClient.getAnafStatus(cui);
   return {
@@ -64,7 +66,9 @@ export async function creditDataFetchAnafProcessor(job: Job): Promise<AnafData> 
 }
 
 // Worker #15: credit:data:fetch-bilant
-export async function creditDataFetchBilantProcessor(job: Job): Promise<FinancialData> {
+export async function creditDataFetchBilantProcessor(
+  job: Job,
+): Promise<FinancialData> {
   const { cui } = job.data;
   const bilant = await termeneClient.getBilant(cui);
   return {

@@ -163,9 +163,6 @@ def _specs(orchestrator_ip: str) -> list[RecordSpec]:
         RecordSpec(z_cerniq, "A", "staging.cerniq.app", orchestrator_ip),
         RecordSpec(z_cerniq, "A", "api.staging.cerniq.app", orchestrator_ip),
         RecordSpec(z_cerniq, "A", "admin.staging.cerniq.app", orchestrator_ip),
-        RecordSpec(z_cerniq, "A", "dev.cerniq.app", orchestrator_ip),
-        RecordSpec(z_cerniq, "A", "api.dev.cerniq.app", orchestrator_ip),
-        RecordSpec(z_cerniq, "A", "admin.dev.cerniq.app", orchestrator_ip),
         # neanelu.ro
         RecordSpec(z_neanelu, "A", "otel-cerniq.neanelu.ro", orchestrator_ip),
         # Cerniq-only Loki push endpoint (scoped allowlist via Traefik router labels)

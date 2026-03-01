@@ -54,14 +54,6 @@ ANAF_CLIENT_SECRET={{- $v := index $d "anaf_client_secret" -}}{{ if $v }}{{ $v }
 RESEND_API_KEY={{- $v := index $d "resend_api_key" -}}{{ if $v }}{{ $v }}{{ end }}
 HUNTER_API_KEY={{- $v := index $d "hunter_api_key" -}}{{ if $v }}{{ $v }}{{ end }}
 TERMENE_API_KEY={{- $v := index $d "termene_api_key" -}}{{ if $v }}{{ $v }}{{ end }}
-ZEROBOUNCE_API_KEY={{- $v := index $d "zerobounce_api_key" -}}{{ if $v }}{{ $v }}{{ end }}
-XAI_GROK_API_KEY={{- $v := index $d "xai_grok_api_key" -}}{{ if $v }}{{ $v }}{{ end }}
-NOMINATIM_URL={{- $v := index $d "nominatim_url" -}}{{ if $v }}{{ $v }}{{ end }}
-ONRC_PORTAL_URL={{- $v := index $d "onrc_portal_url" -}}{{ if $v }}{{ $v }}{{ end }}
-HLR_API_KEY={{- $v := index $d "hlr_api_key" -}}{{ if $v }}{{ $v }}{{ end }}
-BING_API_KEY={{- $v := index $d "bing_api_key" -}}{{ if $v }}{{ $v }}{{ end }}
-ANAF_API_URL={{- $v := index $d "anaf_api_url" -}}{{ if $v }}{{ $v }}{{ end }}
-TERMENE_API_URL={{- $v := index $d "termene_api_url" -}}{{ if $v }}{{ $v }}{{ end }}
 {{- end }}
 
 # =============================================================================

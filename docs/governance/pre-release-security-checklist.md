@@ -241,7 +241,7 @@ This checklist must be completed before any production release of Cerniq. All it
 
 _Add any additional notes, exceptions, or risk acceptances here:_
 
-```text
+```
 [NOTES]
 
 

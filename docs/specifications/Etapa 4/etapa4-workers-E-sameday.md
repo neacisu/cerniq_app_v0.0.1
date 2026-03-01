@@ -216,9 +216,14 @@ export async function samedayStatusProcessProcessor(
 
 ```typescript
 // Worker #25: sameday:cod:process
-export async function samedayCodProcessProcessor(job: Job<{ shipmentId: string }>): Promise<void> {
+export async function samedayCodProcessProcessor(
+  job: Job<{ shipmentId: string }>,
+): Promise<void> {
   const shipment = await db.query.goldShipments.findFirst({
-    where: and(eq(goldShipments.id, job.data.shipmentId), ne(goldShipments.codType, "NONE")),
+    where: and(
+      eq(goldShipments.id, job.data.shipmentId),
+      ne(goldShipments.codType, "NONE"),
+    ),
   });
 
   if (!shipment || shipment.codCollected) return;
@@ -254,7 +259,10 @@ export async function samedayCodProcessProcessor(job: Job<{ shipmentId: string }
 // Worker #27: sameday:pickup:schedule (Cron 14:00)
 export async function samedayPickupScheduleProcessor(job: Job): Promise<void> {
   const pendingPickups = await db.query.goldShipments.findMany({
-    where: and(eq(goldShipments.status, "CREATED"), isNull(goldShipments.pickupScheduledAt)),
+    where: and(
+      eq(goldShipments.status, "CREATED"),
+      isNull(goldShipments.pickupScheduledAt),
+    ),
   });
 
   if (pendingPickups.length > 0) {

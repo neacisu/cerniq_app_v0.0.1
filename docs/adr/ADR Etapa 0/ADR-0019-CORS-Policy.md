@@ -25,8 +25,17 @@ fastify.register(cors, {
   ],
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Correlation-Id", "X-Tenant-Id"],
-  exposedHeaders: ["X-Request-Id", "X-RateLimit-Limit", "X-RateLimit-Remaining"],
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "X-Correlation-Id",
+    "X-Tenant-Id",
+  ],
+  exposedHeaders: [
+    "X-Request-Id",
+    "X-RateLimit-Limit",
+    "X-RateLimit-Remaining",
+  ],
   maxAge: 86400, // 24 hours preflight cache
 });
 ```

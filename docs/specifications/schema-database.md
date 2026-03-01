@@ -797,13 +797,30 @@ CREATE INDEX idx_affiliations_type ON gold_affiliations(relation_type);
 
     "forma_juridica": {
       "type": "string",
-      "enum": ["SRL", "SA", "PFA", "II", "IF", "COOP", "OUAI", "ASOCIATIE", "FUNDATIE"],
+      "enum": [
+        "SRL",
+        "SA",
+        "PFA",
+        "II",
+        "IF",
+        "COOP",
+        "OUAI",
+        "ASOCIATIE",
+        "FUNDATIE"
+      ],
       "description": "Forma juridică a entității"
     },
 
     "tip_entitate": {
       "type": "string",
-      "enum": ["FIRMA", "FERMA_PF", "COOPERATIVA", "OUAI", "GRUP_PRODUCATORI", "ASOCIATIE"],
+      "enum": [
+        "FIRMA",
+        "FERMA_PF",
+        "COOPERATIVA",
+        "OUAI",
+        "GRUP_PRODUCATORI",
+        "ASOCIATIE"
+      ],
       "description": "Tipul de entitate agricolă"
     },
 
@@ -928,7 +945,14 @@ CREATE INDEX idx_affiliations_type ON gold_affiliations(relation_type);
         },
         "conditii_plata": {
           "type": "string",
-          "enum": ["AVANS", "RAMBURS", "TERMEN_15", "TERMEN_30", "TERMEN_60", "TERMEN_90"]
+          "enum": [
+            "AVANS",
+            "RAMBURS",
+            "TERMEN_15",
+            "TERMEN_30",
+            "TERMEN_60",
+            "TERMEN_90"
+          ]
         }
       }
     },
@@ -990,7 +1014,12 @@ CREATE INDEX idx_affiliations_type ON gold_affiliations(relation_type);
       "properties": {
         "legal_basis": {
           "type": "string",
-          "enum": ["CONSENT", "CONTRACT", "LEGITIMATE_INTEREST", "LEGAL_OBLIGATION"]
+          "enum": [
+            "CONSENT",
+            "CONTRACT",
+            "LEGITIMATE_INTEREST",
+            "LEGAL_OBLIGATION"
+          ]
         },
         "consent_email_marketing": { "type": "boolean" },
         "consent_whatsapp": { "type": "boolean" },
@@ -1014,7 +1043,13 @@ CREATE INDEX idx_affiliations_type ON gold_affiliations(relation_type);
           "functie": { "type": "string" },
           "buying_role": {
             "type": "string",
-            "enum": ["DECISION_MAKER", "INFLUENCER", "CHAMPION", "GATEKEEPER", "USER"]
+            "enum": [
+              "DECISION_MAKER",
+              "INFLUENCER",
+              "CHAMPION",
+              "GATEKEEPER",
+              "USER"
+            ]
           },
           "is_primary_contact": { "type": "boolean" }
         }

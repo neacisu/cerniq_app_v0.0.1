@@ -37,18 +37,24 @@ describe("Anti-Hallucination", () => {
 ```typescript
 describe("Sentiment Analysis", () => {
   it("should detect positive sentiment", async () => {
-    const result = await sentimentService.analyze("Mulțumesc, sunteți foarte de ajutor!");
+    const result = await sentimentService.analyze(
+      "Mulțumesc, sunteți foarte de ajutor!",
+    );
     expect(result.sentiment).toBe("positive");
     expect(result.score).toBeGreaterThan(0.7);
   });
 
   it("should detect negative sentiment", async () => {
-    const result = await sentimentService.analyze("Sunt foarte nemulțumit de servicii!");
+    const result = await sentimentService.analyze(
+      "Sunt foarte nemulțumit de servicii!",
+    );
     expect(result.sentiment).toBe("negative");
   });
 
   it("should trigger escalation on very negative", async () => {
-    const result = await sentimentService.analyze("Vreau să vorbesc cu un manager ACUM!");
+    const result = await sentimentService.analyze(
+      "Vreau să vorbesc cu un manager ACUM!",
+    );
     expect(result.requiresEscalation).toBe(true);
   });
 });
@@ -59,7 +65,9 @@ describe("Sentiment Analysis", () => {
 ```typescript
 describe("Human Handover", () => {
   it("should trigger on explicit request", async () => {
-    const result = await handoverService.check("Vreau să vorbesc cu o persoană");
+    const result = await handoverService.check(
+      "Vreau să vorbesc cu o persoană",
+    );
     expect(result.shouldHandover).toBe(true);
     expect(result.reason).toBe("explicit_request");
   });

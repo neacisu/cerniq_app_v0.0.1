@@ -288,7 +288,11 @@ export class ApprovalService {
   /**
    * Assign task to user
    */
-  async assignTask(taskId: string, userId: string, actorId: string): Promise<ApprovalTask> {
+  async assignTask(
+    taskId: string,
+    userId: string,
+    actorId: string,
+  ): Promise<ApprovalTask> {
     const [task] = await db
       .update(approvalTasks)
       .set({
@@ -324,11 +328,15 @@ export class ApprovalService {
     }
 
     if (!["pending", "assigned"].includes(existingTask.status)) {
-      throw new Error(`Cannot decide on task with status: ${existingTask.status}`);
+      throw new Error(
+        `Cannot decide on task with status: ${existingTask.status}`,
+      );
     }
 
     const newStatus =
-      input.decision === "approve" || input.decision === "merge" ? "approved" : "rejected";
+      input.decision === "approve" || input.decision === "merge"
+        ? "approved"
+        : "rejected";
 
     const [task] = await db
       .update(approvalTasks)
@@ -366,7 +374,11 @@ export class ApprovalService {
   /**
    * Escalate task
    */
-  async escalate(taskId: string, escalateTo: string, reason: string): Promise<ApprovalTask> {
+  async escalate(
+    taskId: string,
+    escalateTo: string,
+    reason: string,
+  ): Promise<ApprovalTask> {
     const existingTask = await db.query.approvalTasks.findFirst({
       where: eq(approvalTasks.id, taskId),
     });
@@ -438,11 +450,19 @@ export class ApprovalService {
   ): Promise<void> {
     // Warning at 80% SLA
     const warningDelay = slaHours * 0.8 * 60 * 60 * 1000;
-    await this.escalationQueue.add("warning", { taskId }, { delay: warningDelay });
+    await this.escalationQueue.add(
+      "warning",
+      { taskId },
+      { delay: warningDelay },
+    );
 
     // Escalation at 100% SLA
     const escalationDelay = slaHours * 60 * 60 * 1000;
-    await this.escalationQueue.add("escalate", { taskId }, { delay: escalationDelay });
+    await this.escalationQueue.add(
+      "escalate",
+      { taskId },
+      { delay: escalationDelay },
+    );
   }
 
   /**
@@ -491,7 +511,9 @@ export class ApprovalService {
         and(
           eq(approvalTasks.tenantId, tenantId),
           eq(approvalTasks.status, "pending"),
-          userId ? eq(approvalTasks.assignedTo, userId) : isNull(approvalTasks.assignedTo),
+          userId
+            ? eq(approvalTasks.assignedTo, userId)
+            : isNull(approvalTasks.assignedTo),
         ),
       )
       .orderBy(approvalTasks.dueAt);
@@ -502,7 +524,10 @@ export class ApprovalService {
   /**
    * Get task statistics
    */
-  async getStats(tenantId: string, pipelineStage?: string): Promise<ApprovalStats> {
+  async getStats(
+    tenantId: string,
+    pipelineStage?: string,
+  ): Promise<ApprovalStats> {
     const stats = await db.execute(sql`
       SELECT 
         COUNT(*) FILTER (WHERE status = 'pending') as pending,
@@ -579,7 +604,10 @@ export const escalationWarningWorker = createWorker({
 
       if (escalationTarget) {
         await approvalService.escalate(taskId, escalationTarget, "SLA breach");
-        logger.error({ taskId, escalateTo: escalationTarget }, "HITL task escalated");
+        logger.error(
+          { taskId, escalateTo: escalationTarget },
+          "HITL task escalated",
+        );
       } else {
         // Mark as expired if no escalation target
         await db
@@ -607,10 +635,15 @@ async function findEscalationTarget(
   // Level 3: Admin
 
   const roleHierarchy = ["operator", "team_lead", "manager", "admin"];
-  const targetRole = roleHierarchy[Math.min(escalationLevel + 1, roleHierarchy.length - 1)];
+  const targetRole =
+    roleHierarchy[Math.min(escalationLevel + 1, roleHierarchy.length - 1)];
 
   const escalationTarget = await db.query.users.findFirst({
-    where: and(eq(users.tenantId, tenantId), eq(users.role, targetRole), eq(users.active, true)),
+    where: and(
+      eq(users.tenantId, tenantId),
+      eq(users.role, targetRole),
+      eq(users.active, true),
+    ),
   });
 
   return escalationTarget?.id || null;
@@ -627,7 +660,14 @@ export const resumeAfterApprovalWorker = createWorker({
   concurrency: 10,
 
   processor: async (job, logger) => {
-    const { approvalTaskId, decision, decisionMetadata, entityType, entityId, tenantId } = job.data;
+    const {
+      approvalTaskId,
+      decision,
+      decisionMetadata,
+      entityType,
+      entityId,
+      tenantId,
+    } = job.data;
 
     logger.info({ approvalTaskId, decision }, "Resuming after HITL decision");
 
@@ -660,7 +700,10 @@ export const resumeAfterApprovalWorker = createWorker({
         break;
 
       default:
-        logger.warn({ approvalType: task.approvalType }, "Unknown approval type");
+        logger.warn(
+          { approvalType: task.approvalType },
+          "Unknown approval type",
+        );
     }
 
     return { status: "success", decision };
@@ -774,7 +817,8 @@ async function handleAiDecision(
 
   if (decision === "approve") {
     // Apply AI-suggested data
-    const suggestedData = task.metadata.structuredData || task.metadata.mergedData;
+    const suggestedData =
+      task.metadata.structuredData || task.metadata.mergedData;
 
     await db
       .update(silverCompanies)
@@ -831,11 +875,11 @@ router.get("/", async (req, res) => {
     limit = 20,
   } = req.query;
 
-  const tasks = await approvalService.getPendingTasks(req.tenantId, assignedTo as string, {
-    approvalType,
-    pipelineStage,
-    priority,
-  });
+  const tasks = await approvalService.getPendingTasks(
+    req.tenantId,
+    assignedTo as string,
+    { approvalType, pipelineStage, priority },
+  );
 
   res.json({
     success: true,
@@ -848,7 +892,10 @@ router.get("/", async (req, res) => {
 router.get("/stats", async (req, res) => {
   const { pipelineStage } = req.query;
 
-  const stats = await approvalService.getStats(req.tenantId, pipelineStage as string);
+  const stats = await approvalService.getStats(
+    req.tenantId,
+    pipelineStage as string,
+  );
 
   res.json({
     success: true,
@@ -889,7 +936,11 @@ const assignSchema = z.object({
 });
 
 router.post("/:id/assign", validateRequest(assignSchema), async (req, res) => {
-  const task = await approvalService.assignTask(req.params.id, req.body.userId, req.userId);
+  const task = await approvalService.assignTask(
+    req.params.id,
+    req.body.userId,
+    req.userId,
+  );
 
   res.json({
     success: true,
@@ -966,7 +1017,9 @@ export const ApprovalInbox: React.FC = () => {
       field: "approvalType",
       headerName: "Type",
       width: 150,
-      renderCell: ({ value }) => <Badge variant="outline">{formatApprovalType(value)}</Badge>,
+      renderCell: ({ value }) => (
+        <Badge variant="outline">{formatApprovalType(value)}</Badge>
+      ),
     },
     {
       field: "entitySummary",
@@ -974,7 +1027,9 @@ export const ApprovalInbox: React.FC = () => {
       flex: 1,
       valueGetter: (_, row) => {
         if (row.entityType === "company") {
-          return row.metadata?.companyAName || row.metadata?.denumire || "Company";
+          return (
+            row.metadata?.companyAName || row.metadata?.denumire || "Company"
+          );
         }
         return row.entityId;
       },
@@ -990,7 +1045,9 @@ export const ApprovalInbox: React.FC = () => {
       headerName: "Status",
       width: 120,
       renderCell: ({ value }) => (
-        <Badge variant={value === "pending" ? "secondary" : "default"}>{value}</Badge>
+        <Badge variant={value === "pending" ? "secondary" : "default"}>
+          {value}
+        </Badge>
       ),
     },
     {
@@ -1142,7 +1199,9 @@ export const ApprovalReview: React.FC<ApprovalReviewProps> = ({ taskId }) => {
 
       {/* Type-specific review panel */}
       {task.approvalType === "dedup_review" && <DedupReviewPanel task={task} />}
-      {task.approvalType === "quality_review" && <QualityReviewPanel task={task} />}
+      {task.approvalType === "quality_review" && (
+        <QualityReviewPanel task={task} />
+      )}
 
       {/* Decision panel */}
       <Card>

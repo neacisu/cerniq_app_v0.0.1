@@ -103,7 +103,9 @@ import { logger } from "@cerniq/logger";
 
 const INSTANTLY_API = "https://api.instantly.ai/api/v2";
 
-export async function emailColdProcessor(job: Job<EmailColdJobData>): Promise<EmailColdResult> {
+export async function emailColdProcessor(
+  job: Job<EmailColdJobData>,
+): Promise<EmailColdResult> {
   const {
     leadId,
     recipientEmail,
@@ -123,7 +125,8 @@ export async function emailColdProcessor(job: Job<EmailColdJobData>): Promise<Em
         campaign_id: campaignId,
         email: recipientEmail,
         first_name: personalization.contactName?.split(" ")[0] || "",
-        last_name: personalization.contactName?.split(" ").slice(1).join(" ") || "",
+        last_name:
+          personalization.contactName?.split(" ").slice(1).join(" ") || "",
         company_name: personalization.companyName,
         custom_variables: {
           lead_id: leadId,
@@ -201,7 +204,10 @@ export async function emailColdProcessor(job: Job<EmailColdJobData>): Promise<Em
 
       // Campaign paused or invalid
       if (error.response?.status === 400) {
-        logger.warn({ campaignId, error: error.response.data }, "Campaign issue");
+        logger.warn(
+          { campaignId, error: error.response.data },
+          "Campaign issue",
+        );
         throw new Error("CAMPAIGN_INVALID");
       }
     }
@@ -332,7 +338,9 @@ export async function campaignPauseProcessor(
 ### 5.2 Implementation
 
 ```typescript
-export async function analyticsProcessor(job: Job<{ tenantId: string }>): Promise<AnalyticsResult> {
+export async function analyticsProcessor(
+  job: Job<{ tenantId: string }>,
+): Promise<AnalyticsResult> {
   const { tenantId } = job.data;
 
   // Get all active campaigns
@@ -346,11 +354,14 @@ export async function analyticsProcessor(job: Job<{ tenantId: string }>): Promis
   const results: CampaignAnalytics[] = [];
 
   for (const campaign of campaigns) {
-    const analytics = await axios.get(`${INSTANTLY_API}/campaign/${campaign.id}/analytics`, {
-      headers: {
-        Authorization: `Bearer ${process.env.INSTANTLY_API_KEY}`,
+    const analytics = await axios.get(
+      `${INSTANTLY_API}/campaign/${campaign.id}/analytics`,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.INSTANTLY_API_KEY}`,
+        },
       },
-    });
+    );
 
     const stats = analytics.data;
     const bounceRate = stats.bounced / (stats.sent || 1);
@@ -483,8 +494,17 @@ interface EmailWarmJobData {
   }>;
 }
 
-export async function emailWarmProcessor(job: Job<EmailWarmJobData>): Promise<EmailWarmResult> {
-  const { tenantId, leadId, recipientEmail, subject, htmlContent, textContent } = job.data;
+export async function emailWarmProcessor(
+  job: Job<EmailWarmJobData>,
+): Promise<EmailWarmResult> {
+  const {
+    tenantId,
+    leadId,
+    recipientEmail,
+    subject,
+    htmlContent,
+    textContent,
+  } = job.data;
 
   // CRITICAL: Verify lead is warm
   const journey = await db.query.goldLeadJourney.findFirst({
@@ -578,7 +598,9 @@ interface ProformaJobData {
   };
 }
 
-export async function proformaProcessor(job: Job<ProformaJobData>): Promise<void> {
+export async function proformaProcessor(
+  job: Job<ProformaJobData>,
+): Promise<void> {
   const { leadId, recipientEmail, proformaData } = job.data;
 
   // Generate PDF
@@ -634,8 +656,11 @@ interface DocumentJobData {
   message: string;
 }
 
-export async function documentProcessor(job: Job<DocumentJobData>): Promise<void> {
-  const { recipientEmail, documentType, documentUrl, subject, message } = job.data;
+export async function documentProcessor(
+  job: Job<DocumentJobData>,
+): Promise<void> {
+  const { recipientEmail, documentType, documentUrl, subject, message } =
+    job.data;
 
   // Download document
   const documentBuffer = await downloadDocument(documentUrl);

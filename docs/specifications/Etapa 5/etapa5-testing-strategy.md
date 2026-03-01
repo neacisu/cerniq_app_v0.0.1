@@ -454,7 +454,9 @@ describe("Graph Performance", () => {
 
 ```typescript
 // tests/factories/nurturing.factory.ts
-export const createMockNurturingState = (overrides?: Partial<NurturingState>): NurturingState => ({
+export const createMockNurturingState = (
+  overrides?: Partial<NurturingState>,
+): NurturingState => ({
   id: faker.string.uuid(),
   tenantId: testTenantId,
   clientId: faker.string.uuid(),
@@ -468,7 +470,9 @@ export const createMockNurturingState = (overrides?: Partial<NurturingState>): N
   ...overrides,
 });
 
-export const createMockChurnSignal = (overrides?: Partial<ChurnSignal>): ChurnSignal => ({
+export const createMockChurnSignal = (
+  overrides?: Partial<ChurnSignal>,
+): ChurnSignal => ({
   id: faker.string.uuid(),
   clientId: faker.string.uuid(),
   signalType: faker.helpers.arrayElement([

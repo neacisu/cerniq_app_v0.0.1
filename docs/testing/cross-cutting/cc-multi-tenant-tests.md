@@ -133,7 +133,9 @@ describe("RLS Policies", () => {
       // All should be tenant A
       expect(allCompanies.every((c) => c.tenantId === TENANT_A)).toBe(true);
       // Should not contain tenant B company
-      expect(allCompanies.find((c) => c.id === companyIdTenantB)).toBeUndefined();
+      expect(
+        allCompanies.find((c) => c.id === companyIdTenantB),
+      ).toBeUndefined();
     });
   });
 
@@ -194,7 +196,9 @@ describe("RLS Policies", () => {
     it("should block all access when tenant context not set", async () => {
       await resetTenantContext();
 
-      await expect(db.select().from(goldCompanies)).rejects.toThrow("tenant context required");
+      await expect(db.select().from(goldCompanies)).rejects.toThrow(
+        "tenant context required",
+      );
     });
   });
 });
@@ -249,7 +253,9 @@ describe("API Multi-Tenant Isolation", () => {
 
       expect(response.status).toBe(200);
       // Should not contain tenant A's company
-      expect(response.body.data.find((c) => c.id === companyIdTenantA)).toBeUndefined();
+      expect(
+        response.body.data.find((c) => c.id === companyIdTenantA),
+      ).toBeUndefined();
     });
   });
 
@@ -327,7 +333,9 @@ describe("Worker Tenant Context Propagation", () => {
         await setTenantContext(job.data.tenantId);
 
         // Capture current context
-        const result = await db.execute(sql`SELECT current_setting('app.current_tenant_id')`);
+        const result = await db.execute(
+          sql`SELECT current_setting('app.current_tenant_id')`,
+        );
         capturedTenantId = result[0].current_setting;
 
         return { success: true };
@@ -433,7 +441,9 @@ describe("Per-Tenant Rate Limiting", () => {
 
     // Exhaust tenant A's limit
     for (let i = 0; i < 110; i++) {
-      await api.get("/api/v1/companies").set("Authorization", `Bearer ${tokenA}`);
+      await api
+        .get("/api/v1/companies")
+        .set("Authorization", `Bearer ${tokenA}`);
     }
 
     // Tenant A should be rate limited

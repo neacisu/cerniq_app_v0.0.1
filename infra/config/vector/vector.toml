@@ -18,7 +18,7 @@ path = "/loki/api/v1/push"
 labels = { project = "cerniq", environment = "{{ environment }}", host = "{{ host }}" }
 
 [sinks.loki.healthcheck]
-enabled = true
+enabled = false
 
 [sinks.loki.encoding]
 codec = "json"

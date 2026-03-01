@@ -239,7 +239,8 @@ import { processSpintax } from "@/utils/spintax";
 
 describe("Spintax Processing", () => {
   it("should replace simple variables", () => {
-    const template = "Bună ziua {{contactName}}, vă contactăm de la {{companyName}}.";
+    const template =
+      "Bună ziua {{contactName}}, vă contactăm de la {{companyName}}.";
     const variables = {
       contactName: "Ion",
       companyName: "Agro SRL",
@@ -301,7 +302,10 @@ describe("Spintax Processing", () => {
 // tests/unit/workers/lead/state-transition.test.ts
 
 import { describe, it, expect } from "vitest";
-import { validateTransition, VALID_TRANSITIONS } from "@/workers/lead/state-machine";
+import {
+  validateTransition,
+  VALID_TRANSITIONS,
+} from "@/workers/lead/state-machine";
 
 describe("Lead State Machine", () => {
   describe("Valid transitions", () => {
@@ -354,11 +358,20 @@ describe("Lead State Machine", () => {
 // tests/integration/outreach-flow.test.ts
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { setupTestDB, cleanupTestDB, createTestTenant, createTestLead } from "@/tests/utils/db";
+import {
+  setupTestDB,
+  cleanupTestDB,
+  createTestTenant,
+  createTestLead,
+} from "@/tests/utils/db";
 import { setupTestQueues, waitForJob, clearQueues } from "@/tests/utils/queues";
 import { mockTimelinesAI } from "@/tests/mocks/timelinesai";
 import { db } from "@cerniq/db";
-import { goldLeadJourney, goldCommunicationLog, waPhoneNumbers } from "@cerniq/db/schema";
+import {
+  goldLeadJourney,
+  goldCommunicationLog,
+  waPhoneNumbers,
+} from "@cerniq/db/schema";
 
 describe("Outreach Flow Integration", () => {
   let tenant: any;
@@ -441,7 +454,11 @@ describe("Outreach Flow Integration", () => {
   it("should process reply and transition to WARM_REPLY", async () => {
     // Setup: lead in CONTACTED_WA state
     const lead = await createTestLead(tenant.id);
-    const journey = await createJourneyInState(lead.id, "CONTACTED_WA", phone.id);
+    const journey = await createJourneyInState(
+      lead.id,
+      "CONTACTED_WA",
+      phone.id,
+    );
 
     // Simulate incoming webhook
     const webhookPayload = mockTimelinesAI.createReplyWebhook({
@@ -467,7 +484,11 @@ describe("Outreach Flow Integration", () => {
 
   it("should trigger human review for negative sentiment", async () => {
     const lead = await createTestLead(tenant.id);
-    const journey = await createJourneyInState(lead.id, "CONTACTED_WA", phone.id);
+    const journey = await createJourneyInState(
+      lead.id,
+      "CONTACTED_WA",
+      phone.id,
+    );
 
     const webhookPayload = mockTimelinesAI.createReplyWebhook({
       chatId: journey.lastChatId,
