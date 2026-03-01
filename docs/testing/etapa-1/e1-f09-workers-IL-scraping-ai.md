@@ -26,7 +26,11 @@ describe("Website Scraper", () => {
 
 describe("Social Scraper", () => {
   it("should extract LinkedIn data", async () => {
-    server.use(http.get("https://linkedin.com/*", () => HttpResponse.html("<html>...</html>")));
+    server.use(
+      http.get("https://linkedin.com/*", () =>
+        HttpResponse.html("<html>...</html>"),
+      ),
+    );
     const result = await socialScraper.scrapeLinkedIn("company-name");
     expect(result.employees).toBeDefined();
   });

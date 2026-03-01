@@ -20,14 +20,20 @@ const meter = metrics.getMeter("cerniq-outreach");
 // QUOTA METRICS
 // ============================================
 
-export const quotaUsage = meter.createUpDownCounter("cerniq_outreach_wa_quota_usage", {
-  description: "Current WhatsApp quota usage per phone",
-  unit: "1",
-});
+export const quotaUsage = meter.createUpDownCounter(
+  "cerniq_outreach_wa_quota_usage",
+  {
+    description: "Current WhatsApp quota usage per phone",
+    unit: "1",
+  },
+);
 
-export const quotaCheckTotal = meter.createCounter("cerniq_outreach_quota_check_total", {
-  description: "Total quota checks performed",
-});
+export const quotaCheckTotal = meter.createCounter(
+  "cerniq_outreach_quota_check_total",
+  {
+    description: "Total quota checks performed",
+  },
+);
 
 // ============================================
 // MESSAGE METRICS
@@ -547,7 +553,12 @@ export async function outreachHealthCheck(): Promise<HealthStatus> {
   const activePhones = phones.filter((p) => p.status === "ACTIVE").length;
   checks.push({
     name: "phones",
-    status: activePhones >= 10 ? "healthy" : activePhones >= 5 ? "degraded" : "unhealthy",
+    status:
+      activePhones >= 10
+        ? "healthy"
+        : activePhones >= 5
+          ? "degraded"
+          : "unhealthy",
     details: { active: activePhones, total: phones.length },
   });
 

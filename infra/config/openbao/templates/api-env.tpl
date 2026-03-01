@@ -41,17 +41,6 @@ BULLMQ_PREFIX={{ .Data.bullmq_prefix }}
 JWT_SECRET={{ .Data.jwt_secret }}
 JWT_ISSUER=cerniq.app
 JWT_AUDIENCE=cerniq-api
-
-# =============================================================================
-# CORS (restrict in production; * only for dev)
-# =============================================================================
-{{- if eq $env "staging" }}
-CORS_ORIGIN=https://staging.cerniq.app,https://admin.staging.cerniq.app
-{{- else if eq $env "production" }}
-CORS_ORIGIN=https://cerniq.app,https://admin.cerniq.app
-{{- else }}
-CORS_ORIGIN=*
-{{- end }}
 {{- end }}
 
 {{- with secret "secret/cerniq/shared/external" }}

@@ -154,7 +154,9 @@ const TIMEOUT_MS = 30000;
 const MAX_RETRIES = 3;
 
 // 3. PROCESSOR FUNCTION - Named export, descriptive name
-export async function myActionProcessor(job: Job<MyWorkerJobData>): Promise<MyWorkerResult> {
+export async function myActionProcessor(
+  job: Job<MyWorkerJobData>,
+): Promise<MyWorkerResult> {
   const startTime = Date.now();
   const { correlationId, tenantId } = job.data;
 
@@ -228,7 +230,10 @@ export async function myActionProcessor(job: Job<MyWorkerJobData>): Promise<MyWo
 function classifyError(error: unknown): string {
   // Network errors - retry
   if (error instanceof Error) {
-    if ((error as any).code === "ECONNREFUSED" || (error as any).code === "ETIMEDOUT") {
+    if (
+      (error as any).code === "ECONNREFUSED" ||
+      (error as any).code === "ETIMEDOUT"
+    ) {
       return "RETRYABLE";
     }
     // Rate limit - retry with backoff
@@ -300,15 +305,24 @@ export function startOutreachWorkers(): Worker[] {
     });
 
     worker.on("failed", (job, error) => {
-      logger.error({ queue: config.name, jobId: job?.id, error: error.message }, "Job failed");
+      logger.error(
+        { queue: config.name, jobId: job?.id, error: error.message },
+        "Job failed",
+      );
     });
 
     worker.on("error", (error) => {
-      logger.error({ queue: config.name, error: error.message }, "Worker error");
+      logger.error(
+        { queue: config.name, error: error.message },
+        "Worker error",
+      );
     });
 
     workers.push(worker);
-    logger.info({ queue: config.name, concurrency: config.concurrency }, "Worker started");
+    logger.info(
+      { queue: config.name, concurrency: config.concurrency },
+      "Worker started",
+    );
   }
 
   return workers;
@@ -582,7 +596,10 @@ const invalidTemplates = [
 ```typescript
 // utils/spintax.ts
 
-export function processSpintax(template: string, variables: Record<string, string>): string {
+export function processSpintax(
+  template: string,
+  variables: Record<string, string>,
+): string {
   // 1. Replace variables first
   let result = template;
   for (const [key, value] of Object.entries(variables)) {
@@ -761,7 +778,9 @@ function LeadsPage() {
       <Alert variant="destructive">
         <AlertCircle className="h-4 w-4" />
         <AlertTitle>Error</AlertTitle>
-        <AlertDescription>Failed to load leads. Please try again.</AlertDescription>
+        <AlertDescription>
+          Failed to load leads. Please try again.
+        </AlertDescription>
       </Alert>
     );
   }

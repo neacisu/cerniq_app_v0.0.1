@@ -317,7 +317,10 @@ export function HITLQueuePage() {
           <HITLTaskCard key={task.id} task={task} />
         ))}
         {tasks?.length === 0 && (
-          <EmptyState icon={CheckCircle} message="Nu există sarcini în așteptare" />
+          <EmptyState
+            icon={CheckCircle}
+            message="Nu există sarcini în așteptare"
+          />
         )}
       </div>
     </PageLayout>
@@ -339,7 +342,9 @@ function HITLTaskCard({ task }: { task: HITLTask }) {
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
               <h3 className="font-medium">{task.title}</h3>
-              <Badge variant={getPriorityVariant(task.priority)}>{task.priority}</Badge>
+              <Badge variant={getPriorityVariant(task.priority)}>
+                {task.priority}
+              </Badge>
             </div>
             <p className="text-sm text-gray-600 mb-2">{task.description}</p>
             <div className="flex items-center gap-4 text-sm text-gray-500">
@@ -352,7 +357,11 @@ function HITLTaskCard({ task }: { task: HITLTask }) {
         </div>
       </CardContent>
 
-      <HITLApprovalDialog task={task} open={showDialog} onClose={() => setShowDialog(false)} />
+      <HITLApprovalDialog
+        task={task}
+        open={showDialog}
+        onClose={() => setShowDialog(false)}
+      />
     </Card>
   );
 }

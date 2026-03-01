@@ -52,12 +52,17 @@ export function CreditOverrideDialog({
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">Valoare Comandă:</span>
-                <span className="font-medium">{formatCurrency(order.totalAmount)}</span>
+                <span className="font-medium">
+                  {formatCurrency(order.totalAmount)}
+                </span>
               </div>
               <div className="flex justify-between text-red-600">
                 <span>Depășire:</span>
                 <span className="font-medium">
-                  {formatCurrency(order.totalAmount - order.client.creditProfile.creditAvailable)}
+                  {formatCurrency(
+                    order.totalAmount -
+                      order.client.creditProfile.creditAvailable,
+                  )}
                 </span>
               </div>
             </div>
@@ -69,14 +74,23 @@ export function CreditOverrideDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Tip Override</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="ONE_TIME">Doar această comandă</SelectItem>
-                      <SelectItem value="TEMPORARY">Temporar (30 zile)</SelectItem>
-                      <SelectItem value="PERMANENT">Mărire permanentă limită</SelectItem>
+                      <SelectItem value="ONE_TIME">
+                        Doar această comandă
+                      </SelectItem>
+                      <SelectItem value="TEMPORARY">
+                        Temporar (30 zile)
+                      </SelectItem>
+                      <SelectItem value="PERMANENT">
+                        Mărire permanentă limită
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </FormItem>
@@ -156,7 +170,9 @@ export function ManualReconciliationDialog({
           <h4 className="font-medium mb-2">Plată de reconciliat:</h4>
           <div className="grid grid-cols-2 gap-2 text-sm">
             <span className="text-gray-500">Sumă:</span>
-            <span className="font-medium">{formatCurrency(payment.amount)}</span>
+            <span className="font-medium">
+              {formatCurrency(payment.amount)}
+            </span>
             <span className="text-gray-500">De la:</span>
             <span>{payment.counterpartyName}</span>
             <span className="text-gray-500">Descriere:</span>
@@ -180,7 +196,9 @@ export function ManualReconciliationDialog({
               <div
                 key={invoice.id}
                 className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                  selectedInvoice === invoice.id ? "border-blue-500 bg-blue-50" : "hover:bg-gray-50"
+                  selectedInvoice === invoice.id
+                    ? "border-blue-500 bg-blue-50"
+                    : "hover:bg-gray-50"
                 }`}
                 onClick={() => setSelectedInvoice(invoice.id)}
               >
@@ -192,7 +210,9 @@ export function ManualReconciliationDialog({
                     {formatCurrency(invoice.totalAmount)}
                   </span>
                 </div>
-                <div className="text-sm text-gray-500">{invoice.client.companyName}</div>
+                <div className="text-sm text-gray-500">
+                  {invoice.client.companyName}
+                </div>
               </div>
             ))}
           </div>
@@ -217,7 +237,11 @@ export function ManualReconciliationDialog({
 ## 3. Return Request Dialog
 
 ```tsx
-export function ReturnRequestDialog({ order, open, onClose }: ReturnRequestDialogProps) {
+export function ReturnRequestDialog({
+  order,
+  open,
+  onClose,
+}: ReturnRequestDialogProps) {
   const form = useForm<ReturnRequestFormData>({
     defaultValues: {
       items: order.items.map((item) => ({
@@ -245,7 +269,10 @@ export function ReturnRequestDialog({ order, open, onClose }: ReturnRequestDialo
               <FormLabel>Selectează produsele pentru retur:</FormLabel>
               <div className="mt-2 space-y-2 max-h-48 overflow-y-auto">
                 {order.items.map((item, index) => (
-                  <div key={item.id} className="flex items-center gap-3 p-2 border rounded">
+                  <div
+                    key={item.id}
+                    className="flex items-center gap-3 p-2 border rounded"
+                  >
                     <Checkbox
                       checked={form.watch(`items.${index}.selected`)}
                       onCheckedChange={(checked) =>
@@ -287,11 +314,19 @@ export function ReturnRequestDialog({ order, open, onClose }: ReturnRequestDialo
                       <SelectValue placeholder="Selectează motiv" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="WRONG_PRODUCT">Produs greșit</SelectItem>
-                      <SelectItem value="DAMAGED_IN_TRANSIT">Deteriorat în transport</SelectItem>
+                      <SelectItem value="WRONG_PRODUCT">
+                        Produs greșit
+                      </SelectItem>
+                      <SelectItem value="DAMAGED_IN_TRANSIT">
+                        Deteriorat în transport
+                      </SelectItem>
                       <SelectItem value="DEFECTIVE">Defect</SelectItem>
-                      <SelectItem value="NOT_AS_DESCRIBED">Nu corespunde descrierii</SelectItem>
-                      <SelectItem value="CUSTOMER_CHANGED_MIND">M-am răzgândit</SelectItem>
+                      <SelectItem value="NOT_AS_DESCRIBED">
+                        Nu corespunde descrierii
+                      </SelectItem>
+                      <SelectItem value="CUSTOMER_CHANGED_MIND">
+                        M-am răzgândit
+                      </SelectItem>
                       <SelectItem value="OTHER">Altul</SelectItem>
                     </SelectContent>
                   </Select>
@@ -330,8 +365,14 @@ export function ReturnRequestDialog({ order, open, onClose }: ReturnRequestDialo
 ## 4. HITL Approval Dialog
 
 ```tsx
-export function HITLApprovalDialog({ task, open, onClose }: HITLApprovalDialogProps) {
-  const [decision, setDecision] = useState<"APPROVED" | "REJECTED" | null>(null);
+export function HITLApprovalDialog({
+  task,
+  open,
+  onClose,
+}: HITLApprovalDialogProps) {
+  const [decision, setDecision] = useState<"APPROVED" | "REJECTED" | null>(
+    null,
+  );
   const [notes, setNotes] = useState("");
 
   const handleSubmit = async () => {
@@ -370,9 +411,13 @@ export function HITLApprovalDialog({ task, open, onClose }: HITLApprovalDialogPr
               <div className="mt-3 space-y-1 text-sm">
                 {Object.entries(task.metadata).map(([key, value]) => (
                   <div key={key} className="flex justify-between">
-                    <span className="text-gray-500 capitalize">{key.replace(/_/g, " ")}:</span>
+                    <span className="text-gray-500 capitalize">
+                      {key.replace(/_/g, " ")}:
+                    </span>
                     <span className="font-medium">
-                      {typeof value === "number" ? formatCurrency(value) : String(value)}
+                      {typeof value === "number"
+                        ? formatCurrency(value)
+                        : String(value)}
                     </span>
                   </div>
                 ))}
@@ -431,7 +476,10 @@ export function HITLApprovalDialog({ task, open, onClose }: HITLApprovalDialogPr
 ## 5. Payment Reminder Settings Form
 
 ```tsx
-export function PaymentReminderSettingsForm({ settings, onSave }: PaymentReminderSettingsProps) {
+export function PaymentReminderSettingsForm({
+  settings,
+  onSave,
+}: PaymentReminderSettingsProps) {
   const form = useForm({
     defaultValues: {
       firstReminderDays: settings.firstReminderDays || 7,
@@ -508,8 +556,12 @@ export function PaymentReminderSettingsForm({ settings, onSave }: PaymentReminde
                         <Checkbox
                           checked={field.value.includes(channel)}
                           onCheckedChange={(checked) => {
-                            if (checked) field.onChange([...field.value, channel]);
-                            else field.onChange(field.value.filter((c) => c !== channel));
+                            if (checked)
+                              field.onChange([...field.value, channel]);
+                            else
+                              field.onChange(
+                                field.value.filter((c) => c !== channel),
+                              );
                           }}
                         />
                         <span className="capitalize">{channel}</span>

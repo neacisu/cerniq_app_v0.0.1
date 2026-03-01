@@ -161,7 +161,9 @@ const container = new Container();
 
 // Register based on environment/config
 if (process.env.MESSAGING_PROVIDER === "timelines") {
-  container.bind<IMessagingProvider>("IMessagingProvider").to(TimelinesAIProvider);
+  container
+    .bind<IMessagingProvider>("IMessagingProvider")
+    .to(TimelinesAIProvider);
 } else if (process.env.MESSAGING_PROVIDER === "twilio") {
   container.bind<IMessagingProvider>("IMessagingProvider").to(TwilioProvider);
 }

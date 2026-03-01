@@ -163,12 +163,16 @@ export const externalApiDuration = new Histogram({
     {
       "title": "Orders Today",
       "type": "stat",
-      "targets": [{ "expr": "increase(cerniq_etapa4_orders_created_total[24h])" }]
+      "targets": [
+        { "expr": "increase(cerniq_etapa4_orders_created_total[24h])" }
+      ]
     },
     {
       "title": "Payments Today",
       "type": "stat",
-      "targets": [{ "expr": "increase(cerniq_etapa4_payments_received_total[24h])" }]
+      "targets": [
+        { "expr": "increase(cerniq_etapa4_payments_received_total[24h])" }
+      ]
     },
     {
       "title": "Deliveries Today",
@@ -307,7 +311,11 @@ import { trace, SpanKind, SpanStatusCode } from "@opentelemetry/api";
 const tracer = trace.getTracer("cerniq-etapa4");
 
 // Order flow trace
-export async function traceOrderFlow(orderId: string, operation: string, fn: () => Promise<any>) {
+export async function traceOrderFlow(
+  orderId: string,
+  operation: string,
+  fn: () => Promise<any>,
+) {
   const span = tracer.startSpan(`order.${operation}`, {
     kind: SpanKind.INTERNAL,
     attributes: {
@@ -330,7 +338,11 @@ export async function traceOrderFlow(orderId: string, operation: string, fn: () 
 }
 
 // External API trace
-export async function traceExternalApi(service: string, endpoint: string, fn: () => Promise<any>) {
+export async function traceExternalApi(
+  service: string,
+  endpoint: string,
+  fn: () => Promise<any>,
+) {
   const span = tracer.startSpan(`external.${service}`, {
     kind: SpanKind.CLIENT,
     attributes: {

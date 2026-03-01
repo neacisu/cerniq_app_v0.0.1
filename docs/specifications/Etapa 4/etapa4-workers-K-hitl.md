@@ -44,14 +44,23 @@ export async function hitlApprovalCreditOverrideProcessor(
     overage: number;
   }>,
 ): Promise<{ approvalId: string }> {
-  const { orderId, clientId, orderTotal, available, overage, tenantId, correlationId } = job.data;
+  const {
+    orderId,
+    clientId,
+    orderTotal,
+    available,
+    overage,
+    tenantId,
+    correlationId,
+  } = job.data;
 
   const client = await db.query.goldClients.findFirst({
     where: eq(goldClients.id, clientId),
   });
   const overagePercent = (overage / available) * 100;
 
-  const taskType = overagePercent > 10 ? "credit:override:large" : "credit:override:small";
+  const taskType =
+    overagePercent > 10 ? "credit:override:large" : "credit:override:small";
   const matrix = HITL_APPROVAL_MATRIX[taskType];
 
   // Create HITL task
@@ -112,7 +121,8 @@ export async function hitlApprovalCreditLimitProcessor(
     score: number;
   }>,
 ): Promise<{ approvalId: string }> {
-  const { profileId, proposedLimit, riskTier, score, tenantId, correlationId } = job.data;
+  const { profileId, proposedLimit, riskTier, score, tenantId, correlationId } =
+    job.data;
 
   const profile = await db.query.goldCreditProfiles.findFirst({
     where: eq(goldCreditProfiles.id, profileId),
@@ -184,7 +194,10 @@ export async function hitlApprovalRefundLargeProcessor(
     })
     .returning();
 
-  await db.update(goldReturns).set({ approvalId: approval.id }).where(eq(goldReturns.id, returnId));
+  await db
+    .update(goldReturns)
+    .set({ approvalId: approval.id })
+    .where(eq(goldReturns.id, returnId));
 
   return { approvalId: approval.id };
 }
@@ -201,7 +214,14 @@ export async function hitlInvestigationPaymentProcessor(
     candidates: any[];
   }>,
 ): Promise<{ approvalId: string }> {
-  const { paymentId, amount, counterpartyName, candidates, tenantId, correlationId } = job.data;
+  const {
+    paymentId,
+    amount,
+    counterpartyName,
+    candidates,
+    tenantId,
+    correlationId,
+  } = job.data;
 
   const matrix = HITL_APPROVAL_MATRIX["payment:unmatched"];
 
@@ -243,7 +263,8 @@ export async function hitlTaskResolveProcessor(
     notes?: string;
   }>,
 ): Promise<void> {
-  const { approvalId, decision, userId, notes, tenantId, correlationId } = job.data;
+  const { approvalId, decision, userId, notes, tenantId, correlationId } =
+    job.data;
 
   const approval = await db.query.hitlApprovals.findFirst({
     where: eq(hitlApprovals.id, approvalId),

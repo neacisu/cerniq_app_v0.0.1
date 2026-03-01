@@ -681,7 +681,9 @@ fastify.register(fastifyJwt, {
 // Middleware pentru setare context tenant
 fastify.addHook("preHandler", async (request) => {
   if (request.user) {
-    await fastify.pg.query("SET LOCAL app.current_tenant_id = $1", [request.user.tenant_id]);
+    await fastify.pg.query("SET LOCAL app.current_tenant_id = $1", [
+      request.user.tenant_id,
+    ]);
   }
 });
 ```
@@ -986,7 +988,13 @@ const authConfig = {
 
 ```typescript
 // Layer 1: RBAC (Role-Based)
-const roles = ["super_admin", "tenant_admin", "sales_manager", "sales_rep", "viewer"];
+const roles = [
+  "super_admin",
+  "tenant_admin",
+  "sales_manager",
+  "sales_rep",
+  "viewer",
+];
 
 // Layer 2: ReBAC (Relationship-Based)
 function canEdit(user: User, lead: Lead): boolean {
@@ -1059,11 +1067,14 @@ interface GuardrailChecks {
   client_validated: boolean; // CUI valid + date fiscale OK
 }
 
-async function validateAIResponse(response: AIResponse): Promise<ValidatedResponse> {
+async function validateAIResponse(
+  response: AIResponse,
+): Promise<ValidatedResponse> {
   const guardrails: GuardrailChecks = {
     price_guard: response.price >= (await getMinPrice(response.productId)),
     stock_guard: (await getStockQuantity(response.productId)) > 0,
-    discount_guard: response.discount <= (await getMaxDiscount(response.productId)),
+    discount_guard:
+      response.discount <= (await getMaxDiscount(response.productId)),
     product_exists: await productExists(response.productId),
     client_validated: await validateClient(response.clientCui),
   };
@@ -1094,7 +1105,9 @@ const SalesProposalSchema = z.object({
   delivery_date: z.string().datetime(),
 });
 
-async function generateProposal(request: ProposalRequest): Promise<SalesProposal> {
+async function generateProposal(
+  request: ProposalRequest,
+): Promise<SalesProposal> {
   const llmResponse = await callGrok(request);
 
   // 1. Parse și validare structură
@@ -1116,7 +1129,9 @@ async function generateProposal(request: ProposalRequest): Promise<SalesProposal
 
   // 3. Recalculare preț (nu ne bazăm pe LLM pentru aritmetică)
   const calculatedTotal =
-    proposal.unit_price * proposal.quantity * (1 - proposal.discount_percent / 100);
+    proposal.unit_price *
+    proposal.quantity *
+    (1 - proposal.discount_percent / 100);
   proposal.total_price = Math.round(calculatedTotal * 100) / 100;
 
   return proposal;

@@ -118,16 +118,29 @@ import { sql } from "drizzle-orm";
 import { db } from "@cerniq/db";
 
 describe("PostgreSQL Extensions", () => {
-  const requiredExtensions = ["pgvector", "postgis", "postgis_topology", "pg_trgm", "uuid-ossp"];
+  const requiredExtensions = [
+    "pgvector",
+    "postgis",
+    "postgis_topology",
+    "pg_trgm",
+    "uuid-ossp",
+  ];
 
-  it.each(requiredExtensions)("should have %s extension installed", async (extName) => {
-    const result = await db.execute(sql`SELECT 1 FROM pg_extension WHERE extname = ${extName}`);
-    expect(result.length).toBe(1);
-  });
+  it.each(requiredExtensions)(
+    "should have %s extension installed",
+    async (extName) => {
+      const result = await db.execute(
+        sql`SELECT 1 FROM pg_extension WHERE extname = ${extName}`,
+      );
+      expect(result.length).toBe(1);
+    },
+  );
 
   it("should have pgvector with VECTOR type available", async () => {
     // Test that VECTOR type works
-    await expect(db.execute(sql`SELECT '[1,2,3]'::vector(3)`)).resolves.not.toThrow();
+    await expect(
+      db.execute(sql`SELECT '[1,2,3]'::vector(3)`),
+    ).resolves.not.toThrow();
   });
 
   it("should have PostGIS with GEOGRAPHY type available", async () => {
@@ -166,7 +179,9 @@ describe("PostgreSQL Schemas", () => {
   });
 
   it("should have c3rn1q role with correct grants", async () => {
-    const result = await db.execute(sql`SELECT 1 FROM pg_roles WHERE rolname = 'c3rn1q'`);
+    const result = await db.execute(
+      sql`SELECT 1 FROM pg_roles WHERE rolname = 'c3rn1q'`,
+    );
     expect(result.length).toBe(1);
   });
 });
@@ -252,7 +267,9 @@ describe("PostgreSQL Connectivity", () => {
   });
 
   it("should handle connection pooling", async () => {
-    const connections = await Promise.all(Array.from({ length: 10 }, () => pool.connect()));
+    const connections = await Promise.all(
+      Array.from({ length: 10 }, () => pool.connect()),
+    );
 
     expect(connections).toHaveLength(10);
 

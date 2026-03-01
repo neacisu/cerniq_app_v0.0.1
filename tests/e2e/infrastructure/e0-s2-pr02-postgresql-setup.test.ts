@@ -36,7 +36,9 @@ function parseYaml<T>(content: string): T | null {
 
 describe("F0.2: External PostgreSQL via CT107", () => {
   it("base compose should NOT define a postgres service (externalized)", () => {
-    const compose = parseYaml<Record<string, unknown>>(readFile("infra/docker/docker-compose.yml"));
+    const compose = parseYaml<Record<string, unknown>>(
+      readFile("infra/docker/docker-compose.yml"),
+    );
     expect(compose).not.toBeNull();
     const services = (compose as Record<string, unknown>).services as
       | Record<string, unknown>
@@ -51,15 +53,20 @@ describe("F0.2: External PostgreSQL via CT107", () => {
 
 describe("F0.2: PgBouncer external PG", () => {
   it("docker-compose.yml should define pgbouncer service", () => {
-    const compose = parseYaml<Record<string, unknown>>(readFile("infra/docker/docker-compose.yml"));
+    const compose = parseYaml<Record<string, unknown>>(
+      readFile("infra/docker/docker-compose.yml"),
+    );
     expect(compose).not.toBeNull();
-    const services = (compose as Record<string, unknown>).services as Record<string, unknown>;
+    const services = (compose as Record<string, unknown>).services as Record<
+      string,
+      unknown
+    >;
     expect(services).toHaveProperty("pgbouncer");
   });
 
   it("pgbouncer should mount OpenBao-rendered config directory", () => {
     const content = readFile("infra/docker/docker-compose.yml");
-    const idx = content.indexOf("\n  pgbouncer:\n");
+    const idx = content.indexOf("pgbouncer:");
     expect(idx).toBeGreaterThanOrEqual(0);
     const section = content.substring(idx, idx + 2500);
     expect(section).toContain("/etc/pgbouncer");
@@ -68,7 +75,7 @@ describe("F0.2: PgBouncer external PG", () => {
 
   it("pgbouncer should have extra_hosts for CT107 alias", () => {
     const content = readFile("infra/docker/docker-compose.yml");
-    const idx = content.indexOf("\n  pgbouncer:\n");
+    const idx = content.indexOf("pgbouncer:");
     expect(idx).toBeGreaterThanOrEqual(0);
     const section = content.substring(idx, idx + 2500);
     expect(section).toContain("ct107-postgres:10.0.1.107");

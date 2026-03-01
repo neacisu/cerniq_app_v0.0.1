@@ -197,7 +197,10 @@ import { trace, SpanStatusCode } from "@opentelemetry/api";
 
 const tracer = trace.getTracer("etapa5-workers");
 
-export function traceWorker<T>(workerName: string, handler: (job: Job) => Promise<T>) {
+export function traceWorker<T>(
+  workerName: string,
+  handler: (job: Job) => Promise<T>,
+) {
   return async (job: Job): Promise<T> => {
     const span = tracer.startSpan(`worker:${workerName}`, {
       attributes: {
@@ -249,7 +252,10 @@ export function extractTrace(jobData: any): Context {
     return opentelemetry.context.active();
   }
 
-  return opentelemetry.propagation.extract(opentelemetry.context.active(), jobData._traceContext);
+  return opentelemetry.propagation.extract(
+    opentelemetry.context.active(),
+    jobData._traceContext,
+  );
 }
 ```
 

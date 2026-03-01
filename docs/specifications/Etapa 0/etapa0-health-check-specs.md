@@ -72,41 +72,44 @@ interface ReadinessResponse {
 }
 
 const readyRoute: FastifyPluginAsync = async (fastify) => {
-  fastify.get("/health/ready", async (request, reply): Promise<ReadinessResponse> => {
-    const checks = {
-      database: false,
-      redis: false,
-    };
+  fastify.get(
+    "/health/ready",
+    async (request, reply): Promise<ReadinessResponse> => {
+      const checks = {
+        database: false,
+        redis: false,
+      };
 
-    // Check PostgreSQL
-    try {
-      await fastify.db.execute("SELECT 1");
-      checks.database = true;
-    } catch (err) {
-      fastify.log.error({ err }, "Database health check failed");
-    }
+      // Check PostgreSQL
+      try {
+        await fastify.db.execute("SELECT 1");
+        checks.database = true;
+      } catch (err) {
+        fastify.log.error({ err }, "Database health check failed");
+      }
 
-    // Check Redis
-    try {
-      await fastify.redis.ping();
-      checks.redis = true;
-    } catch (err) {
-      fastify.log.error({ err }, "Redis health check failed");
-    }
+      // Check Redis
+      try {
+        await fastify.redis.ping();
+        checks.redis = true;
+      } catch (err) {
+        fastify.log.error({ err }, "Redis health check failed");
+      }
 
-    const allHealthy = checks.database && checks.redis;
-    const status = allHealthy ? "ok" : "unhealthy";
+      const allHealthy = checks.database && checks.redis;
+      const status = allHealthy ? "ok" : "unhealthy";
 
-    if (!allHealthy) {
-      reply.code(503);
-    }
+      if (!allHealthy) {
+        reply.code(503);
+      }
 
-    return {
-      status,
-      checks,
-      timestamp: new Date().toISOString(),
-    };
-  });
+      return {
+        status,
+        checks,
+        timestamp: new Date().toISOString(),
+      };
+    },
+  );
 };
 
 export default readyRoute;
@@ -139,7 +142,9 @@ const depsRoute: FastifyPluginAsync = async (fastify) => {
     // PostgreSQL
     const pgStart = Date.now();
     try {
-      const result = await fastify.db.execute("SELECT version(), pg_postmaster_start_time()");
+      const result = await fastify.db.execute(
+        "SELECT version(), pg_postmaster_start_time()",
+      );
       dependencies.push({
         name: "postgresql",
         status: "healthy",
@@ -207,7 +212,9 @@ const depsRoute: FastifyPluginAsync = async (fastify) => {
       });
     }
 
-    const unhealthyCount = dependencies.filter((d) => d.status === "unhealthy").length;
+    const unhealthyCount = dependencies.filter(
+      (d) => d.status === "unhealthy",
+    ).length;
     let status: "ok" | "degraded" | "unhealthy";
 
     if (unhealthyCount === 0) {

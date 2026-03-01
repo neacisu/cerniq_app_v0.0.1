@@ -27,12 +27,7 @@ set -euo pipefail
 
 BAO_ADDR="${BAO_ADDR:-https://s3cr3ts.neanelu.ro}"
 SECRETS_DIR="${SECRETS_DIR:-/opt/cerniq/secrets}"
-RENDERED_SECRETS_DIR="${RENDERED_SECRETS_DIR:-/opt/cerniq/runtime-secrets}"
 LOG_FILE="/var/log/cerniq/secrets-rotation.log"
-REDIS_ORCHESTRATOR_ALIAS="${REDIS_ORCHESTRATOR_ALIAS:-orchestrator}"
-REDIS_CONTAINER_NAME="${REDIS_CONTAINER_NAME:-redis-shared}"
-HEALTH_ENDPOINTS="${HEALTH_ENDPOINTS:-http://localhost:64010/health/ready http://localhost:64080/health/live}"
-REDIS_ADMIN_URL="${REDIS_ADMIN_URL:-}"
 
 # =============================================================================
 # Colors for output
@@ -96,84 +91,6 @@ print(json.dumps(data))
         -H "X-Vault-Token: ${BAO_TOKEN}" \
         -H "Content-Type: application/json" \
         --data "$merged_json" >/dev/null
-}
-
-sha256_hex() {
-    python3 -c "import hashlib,sys; print(hashlib.sha256(sys.argv[1].encode()).hexdigest())" "$1"
-}
-
-redis_cli_admin() {
-    if [[ -z "$REDIS_ADMIN_URL" ]]; then
-        log_error "REDIS_ADMIN_URL is required for ACL operations (ACL SETUSER/CONFIG REWRITE)."
-        log_error "Set REDIS_ADMIN_URL to an admin Redis user with +acl and +config permissions."
-        exit 1
-    fi
-    ssh "$REDIS_ORCHESTRATOR_ALIAS" \
-      "docker exec $REDIS_CONTAINER_NAME redis-cli --no-auth-warning -u '$REDIS_ADMIN_URL' $*"
-}
-
-wait_for_secret_render() {
-    local expected_password="$1"
-    local timeout_seconds="${2:-60}"
-    local start_epoch now
-    start_epoch="$(date +%s)"
-
-    while true; do
-        now="$(date +%s)"
-        if (( now - start_epoch > timeout_seconds )); then
-            log_warning "Timed out waiting for rendered secret files to include new Redis password."
-            return 1
-        fi
-
-        local api_env workers_env api_ok workers_ok
-        api_env="$RENDERED_SECRETS_DIR/api/api.env"
-        workers_env="$RENDERED_SECRETS_DIR/workers/workers.env"
-        api_ok=false
-        workers_ok=false
-
-        if [[ -f "$api_env" ]] && [[ -f "$workers_env" ]]; then
-            if grep -q "REDIS_PASSWORD=$expected_password" "$api_env" && grep -q "REDIS_PASSWORD=$expected_password" "$workers_env"; then
-                api_ok=true
-                workers_ok=true
-            fi
-        fi
-
-        if [[ "$api_ok" == "true" && "$workers_ok" == "true" ]]; then
-            log_success "Rendered secrets picked up new Redis password."
-            return 0
-        fi
-
-        sleep 2
-    done
-}
-
-wait_for_health_endpoints() {
-    local timeout_seconds="${1:-30}"
-    local start_epoch now
-    start_epoch="$(date +%s)"
-
-    while true; do
-        now="$(date +%s)"
-        if (( now - start_epoch > timeout_seconds )); then
-            log_warning "Timed out waiting for health endpoints."
-            return 1
-        fi
-
-        local all_ok=true
-        for endpoint in $HEALTH_ENDPOINTS; do
-            if ! curl -fsS --max-time 5 "$endpoint" >/dev/null; then
-                all_ok=false
-                break
-            fi
-        done
-
-        if [[ "$all_ok" == "true" ]]; then
-            log_success "Health endpoints are passing after secret rotation."
-            return 0
-        fi
-
-        sleep 2
-    done
 }
 
 # =============================================================================
@@ -291,41 +208,18 @@ CURRENT_JWT=$(echo "$CURRENT_CONFIG" | jq -r '.data.jwt_secret')
 
 if [[ "$ROTATE_REDIS" == "true" ]]; then
     log_info "🔑 Rotating Redis password..."
-    log_warning "NOTE: Redis is shared on the orchestrator. Applying dual-password transition for zero downtime."
-
-    local_current_hash="$(sha256_hex "$CURRENT_REDIS")"
-
+    log_warning "NOTE: Redis is shared on the orchestrator. Rotating the password requires updating BOTH:"
+    log_warning "  - OpenBao KV (so apps pick it up via agents)"
+    log_warning "  - Redis ACL/user password on orchestrator (otherwise apps will fail)"
+    
     # Generate new password
     NEW_REDIS_PASS=$(openssl rand -base64 64 | tr -dc 'a-zA-Z0-9' | head -c 64)
-    local_new_hash="$(sha256_hex "$NEW_REDIS_PASS")"
-
-    # Step 1: Allow both old and new passwords on Redis user cerniq.
-    log_info "Step 1/6: applying dual-password ACL window for user cerniq..."
-    redis_cli_admin \
-      "ACL SETUSER cerniq on #$local_current_hash #$local_new_hash ~cerniq:* &cerniq:* +@all -acl -config -shutdown" >/dev/null
-
-    # Step 2: Update in OpenBao KV v1 (merge write) so agents render new password.
-    log_info "Step 2/6: writing new Redis password to OpenBao KV..."
+    
+    # Update in OpenBao KV v1 (merge write)
     kv1_merge_write "secret/cerniq/api/config" "$(printf '{"redis_password":%s}' "$(python3 -c 'import json,sys; print(json.dumps(sys.argv[1]))' "$NEW_REDIS_PASS")")"
-
-    # Step 3: Wait for OpenBao templates to re-render secret files.
-    log_info "Step 3/6: waiting for rendered secret files..."
-    wait_for_secret_render "$NEW_REDIS_PASS" 60 || true
-
-    # Step 4: Wait for app health checks to recover with new credentials.
-    log_info "Step 4/6: waiting for health endpoints..."
-    wait_for_health_endpoints 30 || true
-
-    # Step 5: Remove old password, keep only new password.
-    log_info "Step 5/6: removing old password from Redis ACL..."
-    redis_cli_admin \
-      "ACL SETUSER cerniq on #$local_new_hash ~cerniq:* &cerniq:* +@all -acl -config -shutdown" >/dev/null
-
-    # Step 6: Persist ACL update to disk.
-    log_info "Step 6/6: persisting Redis ACL with CONFIG REWRITE..."
-    redis_cli_admin "CONFIG REWRITE" >/dev/null
-
-    log_success "Redis password rotation completed with dual-password transition."
+    
+    log_success "Redis password updated in OpenBao"
+    log_warning "ACTION REQUIRED: update Redis user/ACL on orchestrator for user 'cerniq' to the new password."
 fi
 
 # =============================================================================

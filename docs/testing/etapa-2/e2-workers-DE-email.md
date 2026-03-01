@@ -11,7 +11,11 @@
 ```typescript
 describe("Resend Integration", () => {
   it("should send email", async () => {
-    server.use(http.post("https://api.resend.com/*", () => HttpResponse.json({ id: "email-123" })));
+    server.use(
+      http.post("https://api.resend.com/*", () =>
+        HttpResponse.json({ id: "email-123" }),
+      ),
+    );
     const result = await resendService.send({
       to: "test@example.com",
       subject: "Test",
@@ -42,13 +46,21 @@ describe("Resend Integration", () => {
 ```typescript
 describe("Instantly Warmup", () => {
   it("should add domain to warmup", async () => {
-    server.use(http.post("https://api.instantly.ai/*", () => HttpResponse.json({ success: true })));
+    server.use(
+      http.post("https://api.instantly.ai/*", () =>
+        HttpResponse.json({ success: true }),
+      ),
+    );
     const result = await instantlyService.addDomainToWarmup("company.com");
     expect(result.success).toBe(true);
   });
 
   it("should check deliverability score", async () => {
-    server.use(http.get("https://api.instantly.ai/*", () => HttpResponse.json({ score: 85 })));
+    server.use(
+      http.get("https://api.instantly.ai/*", () =>
+        HttpResponse.json({ score: 85 }),
+      ),
+    );
     const score = await instantlyService.getDeliverabilityScore("company.com");
     expect(score).toBe(85);
   });

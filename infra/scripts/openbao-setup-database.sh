@@ -128,11 +128,11 @@ log_warning "⚠️  The initial vault_initial_password_change_me is no longer v
 
 log_info "Creating dynamic credential roles..."
 
-# API role - full access to all schemas (INHERIT from c3rn1q gives DML; explicit GRANT for DDL during migrations)
+# API role - full access to all schemas
 bao_exec write cerniq-db/roles/api-dynamic \
     db_name=cerniq-postgres \
-    creation_statements="CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}' INHERIT IN ROLE c3rn1q; GRANT ALL ON SCHEMA public, bronze, silver, gold, approval, audit TO \"{{name}}\"; GRANT ALL ON ALL TABLES IN SCHEMA public, bronze, silver, gold, approval, audit TO \"{{name}}\"; GRANT ALL ON ALL SEQUENCES IN SCHEMA public, bronze, silver, gold, approval, audit TO \"{{name}}\";" \
-    revocation_statements="REASSIGN OWNED BY \"{{name}}\" TO c3rn1q; DROP ROLE IF EXISTS \"{{name}}\";" \
+    creation_statements="CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}' INHERIT IN ROLE c3rn1q; GRANT USAGE ON ALL SCHEMAS IN DATABASE cerniq TO \"{{name}}\";" \
+    revocation_statements="DROP ROLE IF EXISTS \"{{name}}\";" \
     default_ttl="1h" \
     max_ttl="4h"
 
@@ -141,8 +141,8 @@ log_success "api-dynamic role created (1h default TTL)"
 # Workers role - full access to all schemas
 bao_exec write cerniq-db/roles/workers-dynamic \
     db_name=cerniq-postgres \
-    creation_statements="CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}' INHERIT IN ROLE c3rn1q; GRANT ALL ON SCHEMA public, bronze, silver, gold, approval, audit TO \"{{name}}\"; GRANT ALL ON ALL TABLES IN SCHEMA public, bronze, silver, gold, approval, audit TO \"{{name}}\"; GRANT ALL ON ALL SEQUENCES IN SCHEMA public, bronze, silver, gold, approval, audit TO \"{{name}}\";" \
-    revocation_statements="REASSIGN OWNED BY \"{{name}}\" TO c3rn1q; DROP ROLE IF EXISTS \"{{name}}\";" \
+    creation_statements="CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}' INHERIT IN ROLE c3rn1q; GRANT USAGE ON ALL SCHEMAS IN DATABASE cerniq TO \"{{name}}\";" \
+    revocation_statements="DROP ROLE IF EXISTS \"{{name}}\";" \
     default_ttl="1h" \
     max_ttl="4h"
 
@@ -152,7 +152,7 @@ log_success "workers-dynamic role created (1h default TTL)"
 bao_exec write cerniq-db/roles/readonly-dynamic \
     db_name=cerniq-postgres \
     creation_statements="CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}' INHERIT; GRANT CONNECT ON DATABASE cerniq TO \"{{name}}\"; GRANT USAGE ON ALL SCHEMAS IN DATABASE cerniq TO \"{{name}}\"; GRANT SELECT ON ALL TABLES IN SCHEMA public, bronze, silver, gold, approval, audit TO \"{{name}}\";" \
-    revocation_statements="REASSIGN OWNED BY \"{{name}}\" TO c3rn1q; DROP ROLE IF EXISTS \"{{name}}\";" \
+    revocation_statements="DROP ROLE IF EXISTS \"{{name}}\";" \
     default_ttl="30m" \
     max_ttl="1h"
 

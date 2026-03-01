@@ -53,11 +53,5 @@
     "**/node_modules": true,
     "**/pnpm-lock.yaml": true,
     "**/.pnpm-store": true
-  },
-
-  // ---------------------------------------------------------------------------
-  // CSS — Tailwind CSS v4 @theme support
-  // ---------------------------------------------------------------------------
-  "css.customData": [],
-  "css.lint.unknownAtRules": "ignore"
+  }
 }

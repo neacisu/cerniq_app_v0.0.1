@@ -57,7 +57,11 @@ const shipmentsColumns: ColumnDef<Shipment>[] = [
     id: "tracking",
     header: "Tracking",
     cell: ({ row }) => (
-      <Button size="sm" variant="ghost" onClick={() => window.open(row.original.trackingUrl)}>
+      <Button
+        size="sm"
+        variant="ghost"
+        onClick={() => window.open(row.original.trackingUrl)}
+      >
         <ExternalLink className="w-4 h-4" />
       </Button>
     ),

@@ -92,12 +92,12 @@ bao_exec write auth/approle/role/cerniq-api \
     token_policies="api-policy" \
     token_ttl=1h \
     token_max_ttl=4h \
-    secret_id_ttl=0 \
+    secret_id_ttl=720h \
     secret_id_num_uses=0 \
     token_num_uses=0 \
     token_type=service
 
-log_success "API role created: cerniq-api (policies: api-policy, secret_id: no expiration)"
+log_success "API role created: cerniq-api (policies: api-policy)"
 
 # =============================================================================
 # Create Workers Service Role
@@ -109,12 +109,12 @@ bao_exec write auth/approle/role/cerniq-workers \
     token_policies="workers-policy" \
     token_ttl=1h \
     token_max_ttl=4h \
-    secret_id_ttl=0 \
+    secret_id_ttl=720h \
     secret_id_num_uses=0 \
     token_num_uses=0 \
     token_type=service
 
-log_success "Workers role created: cerniq-workers (policies: workers-policy, secret_id: no expiration)"
+log_success "Workers role created: cerniq-workers (policies: workers-policy)"
 
 # =============================================================================
 # Create CI/CD Role
@@ -125,13 +125,13 @@ log_info "Creating CI/CD role (cerniq-cicd)..."
 bao_exec write auth/approle/role/cerniq-cicd \
     token_policies="cicd-policy" \
     token_ttl=30m \
-    token_max_ttl=2h \
-    secret_id_ttl=0 \
-    secret_id_num_uses=0 \
+    token_max_ttl=1h \
+    secret_id_ttl=24h \
+    secret_id_num_uses=10 \
     token_num_uses=0 \
     token_type=service
 
-log_success "CI/CD role created: cerniq-cicd (policies: cicd-policy, secret_id: no expiration)"
+log_success "CI/CD role created: cerniq-cicd (policies: cicd-policy)"
 
 # =============================================================================
 # Create Infra Role (PgBouncer auth/config sidecar)
@@ -143,12 +143,12 @@ bao_exec write auth/approle/role/cerniq-infra \
     token_policies="cerniq-infra" \
     token_ttl=1h \
     token_max_ttl=4h \
-    secret_id_ttl=0 \
+    secret_id_ttl=720h \
     secret_id_num_uses=0 \
     token_num_uses=0 \
     token_type=service
 
-log_success "Infra role created: cerniq-infra (policies: cerniq-infra, secret_id: no expiration)"
+log_success "Infra role created: cerniq-infra (policies: cerniq-infra)"
 
 # =============================================================================
 # Get Role IDs
@@ -235,10 +235,10 @@ log_success "AppRole Setup Complete!"
 log_success "=========================================="
 echo ""
 log_info "Roles created:"
-log_info "  - cerniq-api     token_ttl=1h, secret_id: no expiration"
-log_info "  - cerniq-workers token_ttl=1h, secret_id: no expiration"
-log_info "  - cerniq-cicd    token_ttl=30m, secret_id: no expiration"
-log_info "  - cerniq-infra   token_ttl=1h, secret_id: no expiration"
+log_info "  - cerniq-api     token_ttl=1h, secret_id_ttl=30d"
+log_info "  - cerniq-workers token_ttl=1h, secret_id_ttl=30d"
+log_info "  - cerniq-cicd    token_ttl=30m, secret_id_ttl=24h"
+log_info "  - cerniq-infra   token_ttl=1h, secret_id_ttl=30d"
 echo ""
 log_info "Credentials saved to $SECRETS_DIR/:"
 log_info "  - api_role_id, api_secret_id"

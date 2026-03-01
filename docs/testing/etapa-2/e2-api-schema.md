@@ -9,7 +9,9 @@
 ```typescript
 describe("Campaigns API", () => {
   it("should create campaign", async () => {
-    const response = await api.post("/api/v1/campaigns").send({ name: "Test", type: "email" });
+    const response = await api
+      .post("/api/v1/campaigns")
+      .send({ name: "Test", type: "email" });
     expect(response.status).toBe(201);
   });
 

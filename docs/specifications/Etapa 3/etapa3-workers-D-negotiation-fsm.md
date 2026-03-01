@@ -174,10 +174,19 @@ export const VALID_TRANSITIONS: Record<NegotiationState, NegotiationState[]> = {
     NegotiationState.NEGOTIATION,
     NegotiationState.DEAD,
   ],
-  [NegotiationState.PROFORMA_ACCEPTED]: [NegotiationState.INVOICED, NegotiationState.DEAD],
-  [NegotiationState.INVOICED]: [NegotiationState.EINVOICE_PENDING, NegotiationState.EINVOICE_SENT],
+  [NegotiationState.PROFORMA_ACCEPTED]: [
+    NegotiationState.INVOICED,
+    NegotiationState.DEAD,
+  ],
+  [NegotiationState.INVOICED]: [
+    NegotiationState.EINVOICE_PENDING,
+    NegotiationState.EINVOICE_SENT,
+  ],
   [NegotiationState.EINVOICE_PENDING]: [NegotiationState.EINVOICE_SENT],
-  [NegotiationState.EINVOICE_SENT]: [NegotiationState.PAID, NegotiationState.DEAD],
+  [NegotiationState.EINVOICE_SENT]: [
+    NegotiationState.PAID,
+    NegotiationState.DEAD,
+  ],
   [NegotiationState.PAID]: [NegotiationState.COMPLETED],
   [NegotiationState.COMPLETED]: [],
   [NegotiationState.DEAD]: [
@@ -210,11 +219,22 @@ export const ALLOWED_ACTIONS: Record<NegotiationState, string[]> = {
     "apply_discount",
     "request_approval",
   ],
-  [NegotiationState.CLOSING]: ["validate_client_data", "update_client_data", "create_proforma"],
-  [NegotiationState.PROFORMA_SENT]: ["send_reminder", "cancel_proforma", "view_proforma"],
+  [NegotiationState.CLOSING]: [
+    "validate_client_data",
+    "update_client_data",
+    "create_proforma",
+  ],
+  [NegotiationState.PROFORMA_SENT]: [
+    "send_reminder",
+    "cancel_proforma",
+    "view_proforma",
+  ],
   [NegotiationState.PROFORMA_ACCEPTED]: ["convert_to_invoice"],
   [NegotiationState.INVOICED]: ["send_einvoice", "view_invoice"],
-  [NegotiationState.EINVOICE_PENDING]: ["check_einvoice_status", "force_send_einvoice"],
+  [NegotiationState.EINVOICE_PENDING]: [
+    "check_einvoice_status",
+    "force_send_einvoice",
+  ],
   [NegotiationState.EINVOICE_SENT]: ["mark_paid", "view_einvoice_status"],
   [NegotiationState.PAID]: ["complete_negotiation", "generate_summary"],
   [NegotiationState.COMPLETED]: ["view_summary"],
@@ -264,7 +284,9 @@ export const StateTransitionJobDataSchema = z.object({
   operatorRole: z.enum(["AI", "USER", "ADMIN", "SYSTEM"]).optional(),
 });
 
-export type StateTransitionJobData = z.infer<typeof StateTransitionJobDataSchema>;
+export type StateTransitionJobData = z.infer<
+  typeof StateTransitionJobDataSchema
+>;
 
 /**
  * Result interface
@@ -301,7 +323,12 @@ import {
 import { eq, and } from "drizzle-orm";
 import { createLogger } from "@cerniq/logger";
 import { metricsClient } from "@cerniq/metrics";
-import { NegotiationState, NegotiationSubState, VALID_TRANSITIONS, ALLOWED_ACTIONS } from "./types";
+import {
+  NegotiationState,
+  NegotiationSubState,
+  VALID_TRANSITIONS,
+  ALLOWED_ACTIONS,
+} from "./types";
 import {
   StateTransitionJobData,
   StateTransitionJobDataSchema,
@@ -319,7 +346,10 @@ const notificationQueue = new Queue("etapa3:notification:send");
 /**
  * Validate transition is allowed
  */
-function isValidTransition(currentState: NegotiationState, targetState: NegotiationState): boolean {
+function isValidTransition(
+  currentState: NegotiationState,
+  targetState: NegotiationState,
+): boolean {
   const allowedTargets = VALID_TRANSITIONS[currentState];
   return allowedTargets?.includes(targetState) ?? false;
 }
@@ -401,7 +431,10 @@ async function executeSideEffects(
       clientAddress: negotiation.client_address,
     });
     effects.push("oblio:proforma:create");
-    logger.info({ negotiationId: negotiation.id }, "Triggered proforma creation");
+    logger.info(
+      { negotiationId: negotiation.id },
+      "Triggered proforma creation",
+    );
   }
 
   // PROFORMA_ACCEPTED → INVOICED: Create invoice
@@ -413,7 +446,10 @@ async function executeSideEffects(
       proformaRef: negotiation.proforma_ref,
     });
     effects.push("oblio:invoice:create");
-    logger.info({ negotiationId: negotiation.id }, "Triggered invoice creation");
+    logger.info(
+      { negotiationId: negotiation.id },
+      "Triggered invoice creation",
+    );
   }
 
   // INVOICED → EINVOICE_SENT: Send e-Factura
@@ -425,7 +461,10 @@ async function executeSideEffects(
       invoiceRef: negotiation.invoice_ref,
     });
     effects.push("efactura:send");
-    logger.info({ negotiationId: negotiation.id }, "Triggered e-Factura submission");
+    logger.info(
+      { negotiationId: negotiation.id },
+      "Triggered e-Factura submission",
+    );
   }
 
   // Send notifications for state changes
@@ -459,7 +498,8 @@ export async function stateTransitionProcessor(
 ): Promise<StateTransitionResult> {
   const startTime = Date.now();
   const data = StateTransitionJobDataSchema.parse(job.data);
-  const { correlationId, shopId, negotiationId, targetState, trigger, reason } = data;
+  const { correlationId, shopId, negotiationId, targetState, trigger, reason } =
+    data;
 
   logger.info(
     {
@@ -476,7 +516,12 @@ export async function stateTransitionProcessor(
     const [neg] = await tx
       .select()
       .from(gold_negotiations)
-      .where(and(eq(gold_negotiations.id, negotiationId), eq(gold_negotiations.shop_id, shopId)))
+      .where(
+        and(
+          eq(gold_negotiations.id, negotiationId),
+          eq(gold_negotiations.shop_id, shopId),
+        ),
+      )
       .for("update");
 
     return neg;
@@ -515,7 +560,11 @@ export async function stateTransitionProcessor(
 
   // Pre-transition validation
   if (!data.skipValidation) {
-    const preValidation = await validatePreTransition(negotiation, targetState, logger);
+    const preValidation = await validatePreTransition(
+      negotiation,
+      targetState,
+      logger,
+    );
 
     if (!preValidation.valid) {
       metricsClient.increment("negotiation_transitions_rejected_total", {
@@ -529,7 +578,8 @@ export async function stateTransitionProcessor(
         previousState: currentState,
         newState: currentState,
         transitionValid: false,
-        transitionReason: preValidation.reason || "Pre-transition validation failed",
+        transitionReason:
+          preValidation.reason || "Pre-transition validation failed",
         actionsNowAllowed: ALLOWED_ACTIONS[currentState],
         triggeredSideEffects: [],
         timestamp: new Date().toISOString(),
@@ -910,7 +960,8 @@ export async function cartUpdateProcessor(
 
   // Verify negotiation exists and is in valid state
   const negotiation = await db.query.gold_negotiations.findFirst({
-    where: (gn, { and, eq }) => and(eq(gn.id, negotiationId), eq(gn.shop_id, shopId)),
+    where: (gn, { and, eq }) =>
+      and(eq(gn.id, negotiationId), eq(gn.shop_id, shopId)),
   });
 
   if (!negotiation) {
@@ -999,7 +1050,14 @@ async function handleAddItem(
   negotiation: any,
   logger: Logger,
 ): Promise<CartUpdateResult> {
-  const { correlationId, shopId, negotiationId, item, validateStock, validatePrice } = data;
+  const {
+    correlationId,
+    shopId,
+    negotiationId,
+    item,
+    validateStock,
+    validatePrice,
+  } = data;
 
   if (!item) {
     throw new Error("Item required for ADD_ITEM operation");
@@ -1007,7 +1065,8 @@ async function handleAddItem(
 
   // Get product details
   const product = await db.query.gold_products.findFirst({
-    where: (gp, { and, eq }) => and(eq(gp.shop_id, shopId), eq(gp.sku, item.sku)),
+    where: (gp, { and, eq }) =>
+      and(eq(gp.shop_id, shopId), eq(gp.sku, item.sku)),
   });
 
   if (!product) {
@@ -1025,7 +1084,12 @@ async function handleAddItem(
     warning: undefined as string | undefined,
   };
   if (validateStock) {
-    stockResult = await verifyStock(shopId, item.sku, item.quantity, correlationId);
+    stockResult = await verifyStock(
+      shopId,
+      item.sku,
+      item.quantity,
+      correlationId,
+    );
     if (!stockResult.canFulfill) {
       return createErrorResult(
         negotiationId,
@@ -1051,7 +1115,8 @@ async function handleAddItem(
 
   // Check if item already in cart
   const existingItem = await db.query.negotiation_cart.findFirst({
-    where: (nc, { and, eq }) => and(eq(nc.negotiation_id, negotiationId), eq(nc.sku, item.sku)),
+    where: (nc, { and, eq }) =>
+      and(eq(nc.negotiation_id, negotiationId), eq(nc.sku, item.sku)),
   });
 
   if (existingItem) {
@@ -1060,7 +1125,12 @@ async function handleAddItem(
 
     // Re-validate stock for total quantity
     if (validateStock) {
-      stockResult = await verifyStock(shopId, item.sku, newQuantity, correlationId);
+      stockResult = await verifyStock(
+        shopId,
+        item.sku,
+        newQuantity,
+        correlationId,
+      );
       if (!stockResult.canFulfill) {
         return createErrorResult(
           negotiationId,
@@ -1160,7 +1230,8 @@ async function handleUpdateQuantity(
   }
 
   const existingItem = await db.query.negotiation_cart.findFirst({
-    where: (nc, { and, eq }) => and(eq(nc.negotiation_id, negotiationId), eq(nc.sku, item.sku)),
+    where: (nc, { and, eq }) =>
+      and(eq(nc.negotiation_id, negotiationId), eq(nc.sku, item.sku)),
   });
 
   if (!existingItem) {
@@ -1173,7 +1244,12 @@ async function handleUpdateQuantity(
 
   // Validate stock
   if (validateStock) {
-    const stockResult = await verifyStock(shopId, item.sku, item.quantity, correlationId);
+    const stockResult = await verifyStock(
+      shopId,
+      item.sku,
+      item.quantity,
+      correlationId,
+    );
     if (!stockResult.canFulfill) {
       return createErrorResult(
         negotiationId,
@@ -1218,7 +1294,8 @@ async function handleApplyDiscount(
 
   // Find cart item
   const existingItem = await db.query.negotiation_cart.findFirst({
-    where: (nc, { and, eq }) => and(eq(nc.negotiation_id, negotiationId), eq(nc.sku, sku)),
+    where: (nc, { and, eq }) =>
+      and(eq(nc.negotiation_id, negotiationId), eq(nc.sku, sku)),
   });
 
   if (!existingItem) {
@@ -1330,7 +1407,9 @@ async function handleClearCart(
   }
 
   // Delete all items
-  await db.delete(negotiation_cart).where(eq(negotiation_cart.negotiation_id, negotiationId));
+  await db
+    .delete(negotiation_cart)
+    .where(eq(negotiation_cart.negotiation_id, negotiationId));
 
   return {
     negotiationId,
@@ -1439,7 +1518,9 @@ async function buildCartResult(
 
       const itemWarnings: string[] = [];
       if (stockAvailable < Number(item.quantity)) {
-        itemWarnings.push(`Stock: ${stockAvailable} < requested: ${item.quantity}`);
+        itemWarnings.push(
+          `Stock: ${stockAvailable} < requested: ${item.quantity}`,
+        );
       }
 
       const { discountAmount, lineTotal } = calculateLineItem(
@@ -1463,8 +1544,14 @@ async function buildCartResult(
     }),
   );
 
-  const subtotal = items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
-  const totalDiscount = items.reduce((sum, item) => sum + item.discountAmount, 0);
+  const subtotal = items.reduce(
+    (sum, item) => sum + item.quantity * item.unitPrice,
+    0,
+  );
+  const totalDiscount = items.reduce(
+    (sum, item) => sum + item.discountAmount,
+    0,
+  );
   const grandTotal = items.reduce((sum, item) => sum + item.lineTotal, 0);
 
   return {
@@ -1523,12 +1610,16 @@ function createErrorResult(
 export function createCartUpdateWorker(redis: Redis): Worker {
   const logger = createLogger("negotiation:cart:update");
 
-  return new Worker("negotiation:cart:update", async (job) => cartUpdateProcessor(job, logger), {
-    connection: redis,
-    concurrency: 100,
-    removeOnComplete: { count: 1000 },
-    removeOnFail: { count: 5000 },
-  });
+  return new Worker(
+    "negotiation:cart:update",
+    async (job) => cartUpdateProcessor(job, logger),
+    {
+      connection: redis,
+      concurrency: 100,
+      removeOnComplete: { count: 1000 },
+      removeOnFail: { count: 5000 },
+    },
+  );
 }
 ```
 
@@ -1608,7 +1699,9 @@ export const SummaryGenerateJobDataSchema = z.object({
   sendToClient: z.boolean().default(false),
 });
 
-export type SummaryGenerateJobData = z.infer<typeof SummaryGenerateJobDataSchema>;
+export type SummaryGenerateJobData = z.infer<
+  typeof SummaryGenerateJobDataSchema
+>;
 
 /**
  * Result interface
@@ -1826,7 +1919,9 @@ function buildTimeline(
   }
 
   // Sort by timestamp
-  timeline.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+  timeline.sort(
+    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+  );
 
   return timeline;
 }
@@ -1854,7 +1949,8 @@ export async function summaryGenerateProcessor(
 
   // Fetch negotiation
   const negotiation = await db.query.gold_negotiations.findFirst({
-    where: (gn, { and, eq }) => and(eq(gn.id, negotiationId), eq(gn.shop_id, shopId)),
+    where: (gn, { and, eq }) =>
+      and(eq(gn.id, negotiationId), eq(gn.shop_id, shopId)),
   });
 
   if (!negotiation) {
@@ -1906,7 +2002,10 @@ export async function summaryGenerateProcessor(
         (1 - (Number(item.discount_percent) || 0) / 100),
     }));
 
-    const subtotal = items.reduce((sum, i) => sum + i.quantity * i.unitPrice, 0);
+    const subtotal = items.reduce(
+      (sum, i) => sum + i.quantity * i.unitPrice,
+      0,
+    );
     const discount = items.reduce(
       (sum, i) => sum + (i.quantity * i.unitPrice * i.discount) / 100,
       0,
@@ -2466,7 +2565,9 @@ import { NegotiationState, VALID_TRANSITIONS } from "../types";
 describe("State Transition Worker", () => {
   describe("isValidTransition", () => {
     it("allows DISCOVERY -> PROPOSAL", () => {
-      expect(VALID_TRANSITIONS[NegotiationState.DISCOVERY]).toContain(NegotiationState.PROPOSAL);
+      expect(VALID_TRANSITIONS[NegotiationState.DISCOVERY]).toContain(
+        NegotiationState.PROPOSAL,
+      );
     });
 
     it("prevents DISCOVERY -> INVOICED", () => {
@@ -2476,7 +2577,9 @@ describe("State Transition Worker", () => {
     });
 
     it("allows DEAD -> DISCOVERY (resurrection)", () => {
-      expect(VALID_TRANSITIONS[NegotiationState.DEAD]).toContain(NegotiationState.DISCOVERY);
+      expect(VALID_TRANSITIONS[NegotiationState.DEAD]).toContain(
+        NegotiationState.DISCOVERY,
+      );
     });
 
     it("prevents modification of COMPLETED state", () => {
@@ -2489,7 +2592,11 @@ describe("State Transition Worker", () => {
       // Mock empty cart
       const mockNegotiation = { id: "123", state: "NEGOTIATION" };
 
-      const result = await validatePreTransition(mockNegotiation, NegotiationState.CLOSING, logger);
+      const result = await validatePreTransition(
+        mockNegotiation,
+        NegotiationState.CLOSING,
+        logger,
+      );
 
       expect(result.valid).toBe(false);
       expect(result.reason).toContain("cart");

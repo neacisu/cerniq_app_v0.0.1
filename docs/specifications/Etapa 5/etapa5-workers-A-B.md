@@ -131,11 +131,15 @@ export const stateEvaluateWorker = new Worker<StateEvaluatePayload>(
       where: eq(goldNurturingState.id, nurturingStateId),
     });
 
-    if (!state) throw new Error(`Nurturing state not found: ${nurturingStateId}`);
+    if (!state)
+      throw new Error(`Nurturing state not found: ${nurturingStateId}`);
 
     // 2. Get churn signals
     const churnSignals = await db.query.goldChurnSignals.findMany({
-      where: and(eq(goldChurnSignals.clientId, clientId), eq(goldChurnSignals.isResolved, false)),
+      where: and(
+        eq(goldChurnSignals.clientId, clientId),
+        eq(goldChurnSignals.isResolved, false),
+      ),
     });
 
     // 3. Evaluate transition rules
@@ -243,7 +247,8 @@ interface TransitionPayload {
 export const transitionExecuteWorker = new Worker<TransitionPayload>(
   "state",
   async (job: Job<TransitionPayload>) => {
-    const { tenantId, clientId, nurturingStateId, fromState, toState, reason } = job.data;
+    const { tenantId, clientId, nurturingStateId, fromState, toState, reason } =
+      job.data;
 
     // 1. Update state
     await db
@@ -442,7 +447,10 @@ export const churnScoreCalculateWorker = new Worker<ScoreCalculatePayload>(
 
     // 1. Get all active signals
     const signals = await db.query.goldChurnSignals.findMany({
-      where: and(eq(goldChurnSignals.clientId, clientId), eq(goldChurnSignals.isResolved, false)),
+      where: and(
+        eq(goldChurnSignals.clientId, clientId),
+        eq(goldChurnSignals.isResolved, false),
+      ),
     });
 
     // 2. Get client metrics
@@ -533,7 +541,10 @@ export const churnScoreCalculateWorker = new Worker<ScoreCalculatePayload>(
       .where(eq(goldNurturingState.clientId, clientId));
 
     // 9. Escalate if needed
-    if (riskLevel === "CRITICAL" || (riskLevel === "HIGH" && !state?.atRiskSince)) {
+    if (
+      riskLevel === "CRITICAL" ||
+      (riskLevel === "HIGH" && !state?.atRiskSince)
+    ) {
       await churnQueue.add("churn:risk:escalate", {
         tenantId,
         clientId,
@@ -564,7 +575,14 @@ interface SentimentAnalyzePayload {
 export const sentimentAnalyzeWorker = new Worker<SentimentAnalyzePayload>(
   "sentiment",
   async (job: Job<SentimentAnalyzePayload>) => {
-    const { tenantId, clientId, sourceType, sourceId, text, language = "ro" } = job.data;
+    const {
+      tenantId,
+      clientId,
+      sourceType,
+      sourceId,
+      text,
+      language = "ro",
+    } = job.data;
 
     // 1. Call LLM for sentiment analysis
     const prompt = `Analizează următorul mesaj în română și returnează un JSON cu:
@@ -617,7 +635,10 @@ Răspunde DOAR cu JSON valid.`;
       .returning();
 
     // 3. Generate churn signal if negative
-    if (analysis.sentiment === "NEGATIVE" || analysis.churn_indicators?.length > 0) {
+    if (
+      analysis.sentiment === "NEGATIVE" ||
+      analysis.churn_indicators?.length > 0
+    ) {
       await churnQueue.add("churn:signal:detect", {
         tenantId,
         clientId,

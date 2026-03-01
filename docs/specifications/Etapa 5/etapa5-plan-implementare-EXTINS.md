@@ -243,7 +243,10 @@
       "prioritate": "HIGH",
       "estimare_ore": 5,
       "dependente": [412],
-      "deliverables": ["api/routes/referrals.ts", "api/schemas/referral.schema.ts"]
+      "deliverables": [
+        "api/routes/referrals.ts",
+        "api/schemas/referral.schema.ts"
+      ]
     },
     {
       "task_number": 459,
@@ -404,7 +407,10 @@
       "prioritate": "HIGH",
       "estimare_ore": 5,
       "dependente": [404, 414],
-      "deliverables": ["workers/association/ouai-scrape.worker.ts", "python-pdf/ouai_extractor.py"],
+      "deliverables": [
+        "workers/association/ouai-scrape.worker.ts",
+        "python-pdf/ouai_extractor.py"
+      ],
       "acceptance_criteria": [
         "Download PDF from MADR URLs",
         "Extract tables with tabula-py/pdfplumber",
@@ -752,7 +758,10 @@
       "prioritate": "CRITICAL",
       "estimare_ore": 8,
       "dependente": [496, 497],
-      "deliverables": ["scripts/deploy-etapa5.sh", "docs/etapa5-rollback-procedures.md"],
+      "deliverables": [
+        "scripts/deploy-etapa5.sh",
+        "docs/etapa5-rollback-procedures.md"
+      ],
       "acceptance_criteria": [
         "Migrations executate successfully",
         "Health checks passing",

@@ -1,44 +1,28 @@
 # syntax=docker/dockerfile:1.7
 # =============================================================================
-# Cerniq.app - Web Admin Dockerfile
+# Cerniq.app - Admin Dashboard Dockerfile
+# =============================================================================
+# PLACEHOLDER - Will be updated when Admin development begins
 # Reference: ADR-0015 Container Strategy
 # =============================================================================
 
 FROM node:25.6.1-alpine3.23 AS base
+
 RUN apk add --no-cache curl
-RUN npm install -g pnpm@10.29.3
+
 WORKDIR /app
 
-# --- Dependencies ---
-FROM base AS deps
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
-COPY apps/web-admin/package.json ./apps/web-admin/
-COPY packages/shared-types/package.json ./packages/shared-types/
-RUN pnpm install --frozen-lockfile --filter @cerniq/web-admin...
+RUN addgroup -g 1001 -S cerniq && \
+    adduser -S -D -H -u 1001 -G cerniq cerniq
 
-# --- Build ---
-FROM deps AS builder
-COPY packages/shared-types/ ./packages/shared-types/
-COPY apps/web-admin/ ./apps/web-admin/
-RUN pnpm --filter @cerniq/web-admin build
+COPY server.js ./server.js
 
-# --- Serve (unprivileged nginx — no root capabilities needed) ---
-FROM nginxinc/nginx-unprivileged:alpine AS runner
-COPY --from=builder /app/apps/web-admin/dist /usr/share/nginx/html
-COPY <<'EOF' /etc/nginx/conf.d/default.conf
-server {
-    listen 64012;
-    root /usr/share/nginx/html;
-    index index.html;
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-    location /health { return 200 '{"status":"ok"}'; add_header Content-Type application/json; }
-    location /health/live { return 200 '{"status":"ok"}'; add_header Content-Type application/json; }
-}
-EOF
+RUN chown -R cerniq:cerniq /app
+USER cerniq
 
-EXPOSE 64012
+EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD wget --spider -q http://localhost:64012/health || exit 1
+  CMD curl -f http://localhost:3000/health || exit 1
+
+CMD ["node", "server.js"]

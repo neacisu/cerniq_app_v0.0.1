@@ -41,7 +41,9 @@ describe("E0-S5-PR03: Orchestrator YAML and resource limits", () => {
     expect(Object.keys(services).length).toBeGreaterThan(0);
 
     // Ensure Cerniq host rules exist somewhere in routers
-    const routerRules = Object.values(routers).map((r) => String(r?.rule || ""));
+    const routerRules = Object.values(routers).map((r) =>
+      String(r?.rule || ""),
+    );
     expect(routerRules.join("\n")).toContain("Host(`cerniq.app`)");
     expect(routerRules.join("\n")).toContain("Host(`staging.cerniq.app`)");
   });

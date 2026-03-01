@@ -209,7 +209,9 @@ export function ClientInfoCard({
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-gray-500">Limită</span>
-                <span className="font-medium">{formatCurrency(creditProfile.creditLimit)} EUR</span>
+                <span className="font-medium">
+                  {formatCurrency(creditProfile.creditLimit)} EUR
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-gray-500">Disponibil</span>
@@ -218,7 +220,9 @@ export function ClientInfoCard({
                 </span>
               </div>
               <Progress
-                value={(creditProfile.creditUsed / creditProfile.creditLimit) * 100}
+                value={
+                  (creditProfile.creditUsed / creditProfile.creditLimit) * 100
+                }
                 className="h-2"
               />
             </div>
@@ -248,12 +252,16 @@ export function ShipmentTrackingCard({ shipment }: { shipment: Shipment }) {
           <div>{shipment.carrier}</div>
           <div className="text-gray-500">ETA:</div>
           <div>
-            {shipment.estimatedDeliveryDate ? formatDate(shipment.estimatedDeliveryDate) : "N/A"}
+            {shipment.estimatedDeliveryDate
+              ? formatDate(shipment.estimatedDeliveryDate)
+              : "N/A"}
           </div>
           {shipment.codAmount > 0 && (
             <>
               <div className="text-gray-500">Ramburs:</div>
-              <div className="font-medium">{formatCurrency(shipment.codAmount)}</div>
+              <div className="font-medium">
+                {formatCurrency(shipment.codAmount)}
+              </div>
             </>
           )}
         </div>
@@ -322,12 +330,20 @@ export function OrderTimeline({ orderId }: { orderId: string }) {
             <div className="flex-1 pb-4">
               <div className="flex items-center justify-between">
                 <span className="font-medium">{event.title}</span>
-                <span className="text-sm text-gray-500">{formatDateTime(event.createdAt)}</span>
+                <span className="text-sm text-gray-500">
+                  {formatDateTime(event.createdAt)}
+                </span>
               </div>
               {event.description && (
-                <p className="text-sm text-gray-600 mt-1">{event.description}</p>
+                <p className="text-sm text-gray-600 mt-1">
+                  {event.description}
+                </p>
               )}
-              {event.actor && <p className="text-xs text-gray-400 mt-1">De către: {event.actor}</p>}
+              {event.actor && (
+                <p className="text-xs text-gray-400 mt-1">
+                  De către: {event.actor}
+                </p>
+              )}
             </div>
           </div>
         ))}
@@ -351,7 +367,8 @@ export function OrderStatusBanner({ order }: { order: Order }) {
     alerts.push({
       type: "warning",
       title: "Credit Blocat",
-      message: "Această comandă necesită aprobare manuală pentru depășire credit.",
+      message:
+        "Această comandă necesită aprobare manuală pentru depășire credit.",
       action: {
         label: "Solicită Aprobare",
         onClick: () => requestCreditOverride(order.id),
@@ -396,7 +413,11 @@ export function OrderStatusBanner({ order }: { order: Order }) {
           <AlertDescription className="flex items-center justify-between">
             <span>{alert.message}</span>
             {alert.action && (
-              <Button variant="outline" size="sm" onClick={alert.action.onClick}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={alert.action.onClick}
+              >
                 {alert.action.label}
               </Button>
             )}
@@ -442,7 +463,11 @@ export function CreditScoreGauge({
 
   return (
     <div className="relative" style={{ width: dimension, height: dimension }}>
-      <svg className="transform -rotate-90" width={dimension} height={dimension}>
+      <svg
+        className="transform -rotate-90"
+        width={dimension}
+        height={dimension}
+      >
         <circle
           cx={dimension / 2}
           cy={dimension / 2}

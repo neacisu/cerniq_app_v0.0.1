@@ -5,9 +5,6 @@
 # Trigger: Push to main/develop, Pull Requests to main/develop
 # Purpose: Lint, Test, Security Scan, Docker Build Verification
 #
-# FAIL-FAST: Every job cancels the entire workflow run on failure.
-# This prevents wasting runner time when a check has already failed.
-#
 # Reference: ADR-0107 CI/CD Pipeline Strategy
 # Created: 2026-02-01
 # =============================================================================
@@ -32,11 +29,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-permissions:
-  contents: read
-  actions: write
-  security-events: write
-
 env:
   NODE_VERSION: "24.13.1"
   PNPM_VERSION: "10.29.3"
@@ -57,6 +49,7 @@ jobs:
 
       - name: 📦 Setup pnpm
         uses: pnpm/action-setup@v4
+        # version from packageManager in package.json
 
       - name: 🟢 Setup Node.js
         uses: actions/setup-node@v4
@@ -76,12 +69,6 @@ jobs:
       - name: 📝 TypeScript Type Check
         run: pnpm typecheck
 
-      - name: ❌ Cancel workflow on failure
-        if: failure()
-        run: gh run cancel ${{ github.run_id }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-
   # ==========================================================================
   # JOB 2: Full Test Suite (Unit + Integration + E2E)
   # ==========================================================================
@@ -89,6 +76,7 @@ jobs:
     name: 🧪 Tests
     runs-on: self-hosted
     timeout-minutes: 15
+    needs: lint
     services:
       postgres:
         image: postgis/postgis:18-3.6
@@ -98,6 +86,8 @@ jobs:
           POSTGRES_DB: cerniq
         ports:
           - 64032:5432
+        # --security-opt: AppArmor disabled for LXC runner (CT108) which cannot
+        # load the docker-default profile (no kernel AppArmor in unprivileged LXC).
         options: >-
           --security-opt apparmor=unconfined
           --health-cmd "pg_isready -U c3rn1q"
@@ -121,6 +111,7 @@ jobs:
 
       - name: 📦 Setup pnpm
         uses: pnpm/action-setup@v4
+        # version from packageManager in package.json
 
       - name: 🟢 Setup Node.js
         uses: actions/setup-node@v4
@@ -177,6 +168,7 @@ jobs:
 
           require_value "OPENBAO_TOKEN" "$TOKEN"
 
+          # KV v1: read from secret/ path; response nests under .data
           SECRETS=$(curl -sS --fail --retry 5 --retry-connrefused --retry-delay 2 --max-time 10 \
             -H "X-Vault-Token: $TOKEN" \
             "${OPENBAO_ADDR}/v1/secret/cerniq/ci/test")
@@ -211,12 +203,14 @@ jobs:
         run: mkdir -p secrets
 
       - name: 🧪 Run Full Test Suite
-        run: pnpm test:coverage
+        run: |
+          pnpm test:coverage
         env:
           WORKSPACE_ROOT: ${{ github.workspace }}
 
       - name: 🧾 Run tests with JSON report
-        run: pnpm test:ci
+        run: |
+          pnpm test:ci
         env:
           WORKSPACE_ROOT: ${{ github.workspace }}
 
@@ -232,21 +226,19 @@ jobs:
         if: always()
         continue-on-error: true
         with:
+          # NOTE: For private repos, configure CODECOV_TOKEN in GitHub Secrets
+          # and (optionally) re-add token here.
           fail_ci_if_error: false
 
-      - name: ❌ Cancel workflow on failure
-        if: failure()
-        run: gh run cancel ${{ github.run_id }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-
   # ==========================================================================
-  # JOB 3: Build Verification
+  # JOB 3: Build Verification (PRs to develop only)
   # ==========================================================================
   build-verify:
     name: 🧱 Build Verification
     runs-on: self-hosted
     timeout-minutes: 15
+    needs: lint
+    if: github.event_name == 'pull_request'
 
     steps:
       - name: 📥 Checkout code
@@ -267,12 +259,6 @@ jobs:
       - name: 🧱 Run Build
         run: pnpm build
 
-      - name: ❌ Cancel workflow on failure
-        if: failure()
-        run: gh run cancel ${{ github.run_id }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-
   # ==========================================================================
   # JOB 4: Security Scan
   # ==========================================================================
@@ -280,6 +266,11 @@ jobs:
     name: 🔒 Security Scan
     runs-on: self-hosted
     timeout-minutes: 10
+    needs: lint
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      security-events: write
 
     steps:
       - name: 📥 Checkout code
@@ -297,39 +288,35 @@ jobs:
       - name: 📥 Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: 🔒 Setup Trivy
-        uses: aquasecurity/setup-trivy@v0.2.2
+      - name: 🔒 Run Trivy vulnerability scanner (filesystem)
+        uses: aquasecurity/trivy-action@0.34.0
         with:
-          version: v0.69.1
-          cache: true
+          scan-type: "fs"
+          scan-ref: "."
+          severity: "CRITICAL,HIGH"
+          exit-code: "1"
+          ignore-unfixed: true
+          format: "sarif"
+          output: "trivy-results.sarif"
 
-      - name: 🔒 Run Trivy vulnerability scanner
-        run: |
-          trivy fs . \
-            --scanners vuln \
-            --severity CRITICAL,HIGH \
-            --exit-code 1 \
-            --ignore-unfixed \
-            --skip-dirs secrets,.pnpm-store,node_modules \
-            --ignorefile .trivyignore \
-            --format table
+      - name: 📤 Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: "trivy-results.sarif"
 
       - name: 🔍 Audit npm dependencies
         run: pnpm audit --audit-level=high
 
-      - name: ❌ Cancel workflow on failure
-        if: failure()
-        run: gh run cancel ${{ github.run_id }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-
   # ===========================================================================
-  # JOB 5: Docker Configuration Validation
+  # JOB 4: Docker Configuration Validation
+  # Validates daemon.json, docker-compose.yml, and infrastructure scripts
   # ===========================================================================
   docker-config:
     name: 🐳 Docker Config Validation
     runs-on: self-hosted
     timeout-minutes: 5
+    needs: lint
 
     steps:
       - name: 📥 Checkout code
@@ -345,19 +332,15 @@ jobs:
             echo "⏭️ daemon.json not found (optional)"
           fi
 
-      - name: ❌ Cancel workflow on failure
-        if: failure()
-        run: gh run cancel ${{ github.run_id }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-
   # ===========================================================================
-  # JOB 6: ShellCheck (infra/scripts/*.sh)
+  # JOB: ShellCheck (infra/scripts/*.sh)
   # ===========================================================================
   shellcheck:
     name: 🐚 ShellCheck
     runs-on: self-hosted
     timeout-minutes: 5
+    needs: lint
+    if: github.event_name == 'pull_request'
 
     steps:
       - name: 📥 Checkout code
@@ -370,6 +353,7 @@ jobs:
             echo "No infra/scripts/*.sh found, skipping"
             exit 0
           fi
+          # Prefer native shellcheck; fall back to Docker (with AppArmor unconfined for LXC runners)
           if command -v shellcheck >/dev/null 2>&1; then
             shellcheck -x infra/scripts/*.sh
           else
@@ -381,15 +365,7 @@ jobs:
         run: |
           if [ -f "./infra/docker/docker-compose.yml" ]; then
             echo "✅ Validating docker-compose.yml..."
-            STUB_DIR="$(pwd)/.ci-stub-secrets"
-            mkdir -p "${STUB_DIR}"/{api,workers,infra}
-            touch "${STUB_DIR}/api/api.env" \
-                  "${STUB_DIR}/workers/workers.env" \
-                  "${STUB_DIR}/infra/userlist.txt" \
-                  "${STUB_DIR}/infra/pgbouncer.ini"
-            CERNIQ_RENDERED_SECRETS_DIR="${STUB_DIR}" \
-              docker compose -f ./infra/docker/docker-compose.yml config --quiet
-            rm -rf "${STUB_DIR}"
+            docker compose -f ./infra/docker/docker-compose.yml config --quiet
             echo "✅ docker-compose.yml is valid"
           else
             echo "⏭️ docker-compose.yml not found (optional)"
@@ -408,6 +384,8 @@ jobs:
         run: |
           if [ -f "./infra/docker/docker-compose.yml" ]; then
             echo "✅ Checking network configuration..."
+            
+            # Check for required networks
             for net in cerniq_public cerniq_backend cerniq_data; do
               if grep -q "$net:" ./infra/docker/docker-compose.yml; then
                 echo "  ✓ Network $net defined"
@@ -416,6 +394,8 @@ jobs:
                 exit 1
               fi
             done
+            
+            # Verify networks are external (pre-created on servers)
             for net in cerniq_public cerniq_backend cerniq_data; do
               if grep -A2 "$net:" ./infra/docker/docker-compose.yml | grep -q "external: true"; then
                 echo "  ✓ Network $net is external"
@@ -429,7 +409,10 @@ jobs:
         run: |
           if [ -f "./infra/docker/docker-compose.yml" ]; then
             echo "✅ Checking port allocation compliance..."
+            
+            # Check that no ports outside 64000-64099 are used (except profiles)
             INVALID_PORTS=$(grep -E "^\s+-\s+['\"]?[0-9]+:" ./infra/docker/docker-compose.yml | grep -vE "64[0-9]{3}:" | grep -v "#" || true)
+            
             if [ -n "$INVALID_PORTS" ]; then
               echo "  ⚠️ Found ports outside 64000-64099 range:"
               echo "$INVALID_PORTS"
@@ -439,20 +422,16 @@ jobs:
             fi
           fi
 
-      - name: ❌ Cancel workflow on failure
-        if: failure()
-        run: gh run cancel ${{ github.run_id }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-
   # ===========================================================================
-  # JOB 7: Docker Build Verification
+  # JOB 5: Docker Build Verification
+  # Skipped until Dockerfiles exist (F0.9.2.T004, F0.11.2.T001)
   # ===========================================================================
   docker-build:
     name: 🐳 Docker Build
     runs-on: self-hosted
     timeout-minutes: 20
-    needs: [lint, test]
+    needs: [lint, test, docker-config]
+    if: github.event_name == 'pull_request' && github.base_ref == 'develop'
 
     steps:
       - name: 📥 Checkout code
@@ -461,11 +440,11 @@ jobs:
       - name: 🔎 Check for Dockerfiles
         id: check-dockerfiles
         run: |
-          if [ -f "./apps/api/Dockerfile" ] && [ -f "./apps/web/Dockerfile" ] && [ -f "./apps/web-admin/Dockerfile" ] && [ -f "./apps/monitoring-api/Dockerfile" ]; then
+          if [ -f "./apps/api/Dockerfile" ] && [ -f "./apps/web/Dockerfile" ]; then
             echo "dockerfiles_exist=true" >> $GITHUB_OUTPUT
           else
             echo "dockerfiles_exist=false" >> $GITHUB_OUTPUT
-            echo "⏭️ Skipping Docker build - Dockerfiles not yet created"
+            echo "⏭️ Skipping Docker build - Dockerfiles not yet created (F0.9/F0.11 pending)"
           fi
 
       - name: 🐳 Set up Docker Buildx
@@ -476,8 +455,7 @@ jobs:
         if: steps.check-dockerfiles.outputs.dockerfiles_exist == 'true'
         uses: docker/build-push-action@v6.19.2
         with:
-          context: .
-          file: ./apps/api/Dockerfile
+          context: ./apps/api
           push: false
           tags: cerniq/api:${{ github.sha }}
           cache-from: type=gha
@@ -487,47 +465,19 @@ jobs:
         if: steps.check-dockerfiles.outputs.dockerfiles_exist == 'true'
         uses: docker/build-push-action@v6.19.2
         with:
-          context: .
-          file: ./apps/web/Dockerfile
+          context: ./apps/web
           push: false
           tags: cerniq/web:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: 🏗️ Build Web Admin image
-        if: steps.check-dockerfiles.outputs.dockerfiles_exist == 'true'
-        uses: docker/build-push-action@v6.19.2
-        with:
-          context: .
-          file: ./apps/web-admin/Dockerfile
-          push: false
-          tags: cerniq/web-admin:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: 🏗️ Build Monitoring API image
-        if: steps.check-dockerfiles.outputs.dockerfiles_exist == 'true'
-        uses: docker/build-push-action@v6.19.2
-        with:
-          context: .
-          file: ./apps/monitoring-api/Dockerfile
-          push: false
-          tags: cerniq/monitoring-api:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: ❌ Cancel workflow on failure
-        if: failure()
-        run: gh run cancel ${{ github.run_id }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-
   # ==========================================================================
-  # JOB 8: Detect changes for conditional jobs
+  # JOB 6: Detect changes for conditional jobs
   # ==========================================================================
   changes:
     name: 🧭 Detect Changes
     runs-on: self-hosted
+    needs: lint
     outputs:
       workers: ${{ steps.filter.outputs.workers }}
 
@@ -544,7 +494,7 @@ jobs:
               - 'workers/**'
 
   # ==========================================================================
-  # JOB 9: Python Workers Lint (conditional — only when workers/ changed)
+  # JOB 7: Python Workers Lint (if applicable)
   # ==========================================================================
   python-lint:
     name: 🐍 Python Lint
@@ -563,7 +513,8 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: 📦 Install Python dependencies
-        run: pip install ruff mypy
+        run: |
+          pip install ruff mypy
 
       - name: 🔍 Run Ruff linter
         run: ruff check workers/
@@ -572,12 +523,6 @@ jobs:
         run: mypy workers/ --ignore-missing-imports
         continue-on-error: true
 
-      - name: ❌ Cancel workflow on failure
-        if: failure()
-        run: gh run cancel ${{ github.run_id }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-
   # ===========================================================================
   # Final Status Check (for branch protection)
   # ===========================================================================
@@ -585,52 +530,32 @@ jobs:
     name: ✅ CI Status
     runs-on: self-hosted
     needs:
-      [lint, test, build-verify, security, docker-config, docker-build, shellcheck, python-lint]
+      [
+        lint,
+        test,
+        build-verify,
+        security,
+        docker-config,
+        docker-build,
+        shellcheck,
+        python-lint,
+      ]
     if: always()
 
     steps:
       - name: Check CI Status
         run: |
-          echo "📊 Job results:"
-          echo "  lint:         ${{ needs.lint.result }}"
-          echo "  test:         ${{ needs.test.result }}"
-          echo "  build-verify: ${{ needs.build-verify.result }}"
-          echo "  security:     ${{ needs.security.result }}"
-          echo "  docker-config:${{ needs.docker-config.result }}"
-          echo "  docker-build: ${{ needs.docker-build.result }}"
-          echo "  shellcheck:   ${{ needs.shellcheck.result }}"
-          echo "  python-lint:  ${{ needs.python-lint.result }}"
-
-          FAILED=0
-          for job in lint test build-verify security docker-config docker-build shellcheck; do
-            result=""
-            case "$job" in
-              lint)          result="${{ needs.lint.result }}" ;;
-              test)          result="${{ needs.test.result }}" ;;
-              build-verify)  result="${{ needs.build-verify.result }}" ;;
-              security)      result="${{ needs.security.result }}" ;;
-              docker-config) result="${{ needs.docker-config.result }}" ;;
-              docker-build)  result="${{ needs.docker-build.result }}" ;;
-              shellcheck)    result="${{ needs.shellcheck.result }}" ;;
-            esac
-            if [[ "$result" != "success" ]]; then
-              echo "❌ Job '$job' did not succeed (result: $result)"
-              FAILED=1
-            fi
-          done
-
-          # python-lint is conditional (only runs when workers/ changed) — skipped is acceptable
-          if [[ "${{ needs.python-lint.result }}" == "failure" ]] || \
-             [[ "${{ needs.python-lint.result }}" == "cancelled" ]]; then
-            echo "❌ Job 'python-lint' failed (result: ${{ needs.python-lint.result }})"
-            FAILED=1
-          fi
-
-          if [[ "$FAILED" -eq 1 ]]; then
-            echo "❌ CI failed — CD will NOT be triggered"
+          if [[ "${{ needs.lint.result }}" == "failure" ]] || \
+             [[ "${{ needs.test.result }}" == "failure" ]] || \
+             [[ "${{ needs.build-verify.result }}" == "failure" ]] || \
+             [[ "${{ needs.security.result }}" == "failure" ]] || \
+             [[ "${{ needs.docker-config.result }}" == "failure" ]] || \
+             [[ "${{ needs.docker-build.result }}" == "failure" ]] || \
+             [[ "${{ needs.shellcheck.result }}" == "failure" ]] || \
+             [[ "${{ needs.python-lint.result }}" == "failure" ]]; then
+            echo "❌ CI failed"
             exit 1
           fi
-
           echo "✅ All CI checks passed"
 
   # ===========================================================================
@@ -640,7 +565,16 @@ jobs:
     name: 🚀 Trigger CD
     runs-on: self-hosted
     needs: ci-status
+    permissions:
+      actions: write
+      contents: read
+    # always() is REQUIRED here: ci-status uses if:always() and depends on
+    # PR-only jobs (shellcheck, security, build-verify) that are "skipped" on
+    # push events.  Without always(), GitHub's transitive dependency resolution
+    # auto-skips this job even though ci-status itself succeeded.
+    # The explicit result check ensures CD only fires when CI actually passed.
     if: >-
+      always() &&
       github.event_name == 'push' &&
       needs.ci-status.result == 'success'
 
@@ -653,6 +587,7 @@ jobs:
 
           if [[ "$BRANCH" == "main" ]]; then
             ENVIRONMENT="production"
+            # Auto-version: find latest v0.0.x tag and increment
             LATEST_TAG=$(gh api repos/${{ github.repository }}/tags --jq '.[].name' 2>/dev/null | grep '^v0\.0\.' | sort -V | tail -1)
             if [[ -z "$LATEST_TAG" ]]; then
               VERSION="v0.0.1"

@@ -282,7 +282,11 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { logger } from "@/lib/logger";
 import { metrics } from "@/lib/metrics";
 import { validateUblXml } from "@/lib/ubl-validator";
-import { EfacturaSendJobData, EfacturaSendJobDataSchema, EfacturaSendResult } from "./types";
+import {
+  EfacturaSendJobData,
+  EfacturaSendJobDataSchema,
+  EfacturaSendResult,
+} from "./types";
 
 const redis = new Redis(process.env.REDIS_URL!);
 
@@ -296,11 +300,21 @@ const statusCheckQueue = new Queue("efactura:status:check", {
  *
  * Submits invoices to ANAF via e-Factura system
  */
-export const efacturaSendWorker = new Worker<EfacturaSendJobData, EfacturaSendResult>(
+export const efacturaSendWorker = new Worker<
+  EfacturaSendJobData,
+  EfacturaSendResult
+>(
   "efactura:send",
   async (job: Job<EfacturaSendJobData, EfacturaSendResult>) => {
     const startTime = Date.now();
-    const { tenantId, negotiationId, invoiceId, oblioInvoiceId, options, context } = job.data;
+    const {
+      tenantId,
+      negotiationId,
+      invoiceId,
+      oblioInvoiceId,
+      options,
+      context,
+    } = job.data;
 
     const log = logger.child({
       worker: "efactura:send",
@@ -387,10 +401,17 @@ export const efacturaSendWorker = new Worker<EfacturaSendJobData, EfacturaSendRe
 
       // 7. Store XML for audit
       const xmlStoragePath = `tenants/${tenantId}/efactura/${negotiationId}/${oblioInvoiceId}.xml`;
-      await uploadToStorage(Buffer.from(ublXml, "utf-8"), xmlStoragePath, "application/xml");
+      await uploadToStorage(
+        Buffer.from(ublXml, "utf-8"),
+        xmlStoragePath,
+        "application/xml",
+      );
 
       // 8. Submit to ANAF via Oblio
-      const submissionResult = await oblioClient.sendEfactura(seriesName, number);
+      const submissionResult = await oblioClient.sendEfactura(
+        seriesName,
+        number,
+      );
 
       log.info("e-Factura submitted to ANAF", {
         indexIncarcare: submissionResult.indexIncarcare,
@@ -479,7 +500,10 @@ export const efacturaSendWorker = new Worker<EfacturaSendJobData, EfacturaSendRe
         tenant_id: tenantId,
         resubmission: String(context?.isResubmission || false),
       });
-      metrics.efacturaSubmissionDuration.observe({ tenant_id: tenantId }, duration);
+      metrics.efacturaSubmissionDuration.observe(
+        { tenant_id: tenantId },
+        duration,
+      );
 
       log.info("e-Factura submission completed", {
         indexIncarcare: submissionResult.indexIncarcare,
@@ -559,7 +583,11 @@ async function getOblioClient(tenantId: string): Promise<OblioClient> {
 /**
  * Upload file to S3-compatible storage
  */
-async function uploadToStorage(data: Buffer, path: string, contentType: string): Promise<string> {
+async function uploadToStorage(
+  data: Buffer,
+  path: string,
+  contentType: string,
+): Promise<string> {
   const s3 = new S3Client({
     region: process.env.S3_REGION || "eu-central-1",
     endpoint: process.env.S3_ENDPOINT,
@@ -669,7 +697,9 @@ export const efacturaStatusCheckJobSchema = z.object({
   scheduledCheckAt: z.string().datetime().optional(),
 });
 
-export type EfacturaStatusCheckJobData = z.infer<typeof efacturaStatusCheckJobSchema>;
+export type EfacturaStatusCheckJobData = z.infer<
+  typeof efacturaStatusCheckJobSchema
+>;
 
 /**
  * Result of status check
@@ -724,7 +754,12 @@ export interface EfacturaStatusCheckResult {
 import { Worker, Queue, Job } from "bullmq";
 import { eq, and } from "drizzle-orm";
 import { db } from "@/db";
-import { efacturaSubmissions, invoices, negotiations, hitlApprovalRequests } from "@/db/schema";
+import {
+  efacturaSubmissions,
+  invoices,
+  negotiations,
+  hitlApprovalRequests,
+} from "@/db/schema";
 import { OblioClient } from "@/integrations/oblio";
 import { logger } from "@/lib/logger";
 import { metrics } from "@/lib/metrics";
@@ -760,7 +795,9 @@ export const efacturaStatusCheckWorker = new Worker<
   EfacturaStatusCheckResult
 >(
   "efactura:status:check",
-  async (job: Job<EfacturaStatusCheckJobData>): Promise<EfacturaStatusCheckResult> => {
+  async (
+    job: Job<EfacturaStatusCheckJobData>,
+  ): Promise<EfacturaStatusCheckResult> => {
     const startTime = Date.now();
     const data = efacturaStatusCheckJobSchema.parse(job.data);
 
@@ -780,7 +817,9 @@ export const efacturaStatusCheckWorker = new Worker<
     });
 
     if (!submission) {
-      throw new Error(`E-Factura submission not found: ${data.efacturaSubmissionId}`);
+      throw new Error(
+        `E-Factura submission not found: ${data.efacturaSubmissionId}`,
+      );
     }
 
     // Check if already has final status
@@ -804,7 +843,10 @@ export const efacturaStatusCheckWorker = new Worker<
     const oblioClient = await getOblioClient(data.tenantId);
 
     // Check status via Oblio API
-    const statusResponse = await checkEfacturaStatusViaOblio(oblioClient, data.indexIncarcare);
+    const statusResponse = await checkEfacturaStatusViaOblio(
+      oblioClient,
+      data.indexIncarcare,
+    );
 
     // Update metrics
     metrics.increment("efacturaStatusChecks", {
@@ -817,7 +859,12 @@ export const efacturaStatusCheckWorker = new Worker<
 
     switch (statusResponse.status) {
       case EfacturaStatus.OK:
-        result = await handleAcceptedStatus(data, submission, statusResponse, oblioClient);
+        result = await handleAcceptedStatus(
+          data,
+          submission,
+          statusResponse,
+          oblioClient,
+        );
         break;
 
       case EfacturaStatus.NOK:
@@ -911,7 +958,8 @@ async function checkEfacturaStatusViaOblio(
     // Return processing status to retry later
     return {
       status: EfacturaStatus.IN_PRELUCRARE,
-      mesaj_eroare: error instanceof Error ? error.message : "Status check failed",
+      mesaj_eroare:
+        error instanceof Error ? error.message : "Status check failed",
     };
   }
 }
@@ -943,7 +991,11 @@ async function handleAcceptedStatus(
 
     if (pdfBuffer && pdfBuffer.length > 0) {
       const storagePath = `tenants/${data.tenantId}/efactura/pdf/${data.invoiceId}-anaf.pdf`;
-      pdfStoragePath = await uploadToStorage(pdfBuffer, storagePath, "application/pdf");
+      pdfStoragePath = await uploadToStorage(
+        pdfBuffer,
+        storagePath,
+        "application/pdf",
+      );
       pdfDownloaded = true;
 
       logger.info("ANAF PDF downloaded and stored", {
@@ -1336,7 +1388,11 @@ async function getOblioClient(tenantId: string): Promise<OblioClient> {
   });
 }
 
-async function uploadToStorage(data: Buffer, path: string, contentType: string): Promise<string> {
+async function uploadToStorage(
+  data: Buffer,
+  path: string,
+  contentType: string,
+): Promise<string> {
   const s3 = new S3Client({
     region: process.env.S3_REGION || "eu-central-1",
     endpoint: process.env.S3_ENDPOINT,
@@ -1441,7 +1497,9 @@ export const efacturaDeadlineMonitorJobSchema = z.object({
   dryRun: z.boolean().default(false),
 });
 
-export type EfacturaDeadlineMonitorJobData = z.infer<typeof efacturaDeadlineMonitorJobSchema>;
+export type EfacturaDeadlineMonitorJobData = z.infer<
+  typeof efacturaDeadlineMonitorJobSchema
+>;
 
 /**
  * Individual invoice deadline check result
@@ -1537,7 +1595,9 @@ export const efacturaDeadlineMonitorWorker = new Worker<
   EfacturaDeadlineMonitorResult
 >(
   "efactura:deadline:monitor",
-  async (job: Job<EfacturaDeadlineMonitorJobData>): Promise<EfacturaDeadlineMonitorResult> => {
+  async (
+    job: Job<EfacturaDeadlineMonitorJobData>,
+  ): Promise<EfacturaDeadlineMonitorResult> => {
     const startTime = Date.now();
     const data = efacturaDeadlineMonitorJobSchema.parse(job.data);
 
@@ -1658,7 +1718,9 @@ interface PendingInvoice {
   totalAmount: number;
 }
 
-async function getPendingInvoices(data: EfacturaDeadlineMonitorJobData): Promise<PendingInvoice[]> {
+async function getPendingInvoices(
+  data: EfacturaDeadlineMonitorJobData,
+): Promise<PendingInvoice[]> {
   // Calculate date range - only check invoices from last 10 days
   const tenDaysAgo = new Date();
   tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
@@ -1722,7 +1784,9 @@ async function getPendingInvoices(data: EfacturaDeadlineMonitorJobData): Promise
 // Deadline Calculation
 // ============================================================================
 
-function calculateDeadlineStatus(invoice: PendingInvoice): InvoiceDeadlineCheck {
+function calculateDeadlineStatus(
+  invoice: PendingInvoice,
+): InvoiceDeadlineCheck {
   const now = new Date();
   const invoiceDate = new Date(invoice.invoiceDate);
 
@@ -1771,7 +1835,9 @@ function calculateDeadlineStatus(invoice: PendingInvoice): InvoiceDeadlineCheck 
 /**
  * Handle warning deadline (Day 4 - 1-2 days remaining)
  */
-async function handleWarningDeadline(check: InvoiceDeadlineCheck): Promise<void> {
+async function handleWarningDeadline(
+  check: InvoiceDeadlineCheck,
+): Promise<void> {
   logger.warn("E-Factura deadline warning", {
     invoiceId: check.invoiceId,
     invoiceNumber: check.invoiceNumber,
@@ -1814,7 +1880,9 @@ async function handleWarningDeadline(check: InvoiceDeadlineCheck): Promise<void>
  * Handle critical deadline (Day 5 - less than 1 day remaining)
  * Attempts automatic submission if possible
  */
-async function handleCriticalDeadline(check: InvoiceDeadlineCheck): Promise<boolean> {
+async function handleCriticalDeadline(
+  check: InvoiceDeadlineCheck,
+): Promise<boolean> {
   logger.error("E-Factura deadline CRITICAL", {
     invoiceId: check.invoiceId,
     invoiceNumber: check.invoiceNumber,
@@ -1866,7 +1934,9 @@ async function handleCriticalDeadline(check: InvoiceDeadlineCheck): Promise<bool
 /**
  * Handle overdue deadline (past 5 days)
  */
-async function handleOverdueDeadline(check: InvoiceDeadlineCheck): Promise<void> {
+async function handleOverdueDeadline(
+  check: InvoiceDeadlineCheck,
+): Promise<void> {
   logger.error("E-Factura deadline OVERDUE", {
     invoiceId: check.invoiceId,
     invoiceNumber: check.invoiceNumber,
@@ -2048,7 +2118,10 @@ async function createDeadlineHitl(
 // Alert Recording
 // ============================================================================
 
-async function recordDeadlineAlert(check: InvoiceDeadlineCheck, alertType: string): Promise<void> {
+async function recordDeadlineAlert(
+  check: InvoiceDeadlineCheck,
+  alertType: string,
+): Promise<void> {
   await db.insert(efacturaDeadlineAlerts).values({
     tenantId: check.tenantId,
     invoiceId: check.invoiceId,
@@ -2486,24 +2559,28 @@ export const EN16931_ROMANIA_RULES = {
   // Seller rules
   "BR-RO-010": {
     description: "CIF-ul furnizorului trebuie să fie valid",
-    xpath: "//cac:AccountingSupplierParty/cac:Party/cac:PartyTaxScheme/cbc:CompanyID",
+    xpath:
+      "//cac:AccountingSupplierParty/cac:Party/cac:PartyTaxScheme/cbc:CompanyID",
     validation: "Romanian CIF format (RO + 2-10 digits)",
   },
   "BR-RO-015": {
     description: "Furnizorul trebuie să fie înregistrat în SPV",
-    xpath: "//cac:AccountingSupplierParty/cac:Party/cac:PartyTaxScheme/cbc:CompanyID",
+    xpath:
+      "//cac:AccountingSupplierParty/cac:Party/cac:PartyTaxScheme/cbc:CompanyID",
     validation: "Must be registered in ANAF SPV",
   },
 
   // Buyer rules
   "BR-RO-020": {
     description: "CIF-ul clientului trebuie să fie valid pentru B2B",
-    xpath: "//cac:AccountingCustomerParty/cac:Party/cac:PartyTaxScheme/cbc:CompanyID",
+    xpath:
+      "//cac:AccountingCustomerParty/cac:Party/cac:PartyTaxScheme/cbc:CompanyID",
     validation: "Romanian CIF format for B2B transactions",
   },
   "BR-RO-025": {
     description: "CNP-ul clientului pentru B2C",
-    xpath: "//cac:AccountingCustomerParty/cac:Party/cac:PartyLegalEntity/cbc:CompanyID",
+    xpath:
+      "//cac:AccountingCustomerParty/cac:Party/cac:PartyLegalEntity/cbc:CompanyID",
     validation: "Romanian CNP format (13 digits) for B2C",
   },
 
@@ -2788,7 +2865,12 @@ export class UblInvoiceGenerator {
 
     // Payment terms
     if (invoice.paymentTerms) {
-      doc.ele("cac:PaymentTerms").ele("cbc:Note").txt(invoice.paymentTerms).up().up();
+      doc
+        .ele("cac:PaymentTerms")
+        .ele("cbc:Note")
+        .txt(invoice.paymentTerms)
+        .up()
+        .up();
     }
 
     // Tax totals
@@ -2814,7 +2896,9 @@ export class UblInvoiceGenerator {
     // Customization ID - mandatory for Romania
     doc
       .ele("cbc:CustomizationID")
-      .txt("urn:cen.eu:en16931:2017#compliant#urn:efactura.mfinante.ro:CIUS-RO:1.0.1")
+      .txt(
+        "urn:cen.eu:en16931:2017#compliant#urn:efactura.mfinante.ro:CIUS-RO:1.0.1",
+      )
       .up();
 
     // Profile ID
@@ -2855,7 +2939,12 @@ export class UblInvoiceGenerator {
 
     // Order reference
     if (invoice.orderReference) {
-      doc.ele("cac:OrderReference").ele("cbc:ID").txt(invoice.orderReference).up().up();
+      doc
+        .ele("cac:OrderReference")
+        .ele("cbc:ID")
+        .txt(invoice.orderReference)
+        .up()
+        .up();
     }
 
     // Contract reference
@@ -2886,20 +2975,31 @@ export class UblInvoiceGenerator {
     }
 
     // Party name
-    party.ele("cac:PartyName").ele("cbc:Name").txt(supplier.registrationName).up().up();
+    party
+      .ele("cac:PartyName")
+      .ele("cbc:Name")
+      .txt(supplier.registrationName)
+      .up()
+      .up();
 
     // Postal address
     const address = party.ele("cac:PostalAddress");
     address.ele("cbc:StreetName").txt(supplier.address.streetName).up();
     if (supplier.address.additionalStreetName) {
-      address.ele("cbc:AdditionalStreetName").txt(supplier.address.additionalStreetName).up();
+      address
+        .ele("cbc:AdditionalStreetName")
+        .txt(supplier.address.additionalStreetName)
+        .up();
     }
     address.ele("cbc:CityName").txt(supplier.address.cityName).up();
     if (supplier.address.postalZone) {
       address.ele("cbc:PostalZone").txt(supplier.address.postalZone).up();
     }
     if (supplier.address.countrySubentity) {
-      address.ele("cbc:CountrySubentity").txt(supplier.address.countrySubentity).up();
+      address
+        .ele("cbc:CountrySubentity")
+        .txt(supplier.address.countrySubentity)
+        .up();
     }
     address
       .ele("cac:Country")
@@ -2966,20 +3066,31 @@ export class UblInvoiceGenerator {
     }
 
     // Party name
-    party.ele("cac:PartyName").ele("cbc:Name").txt(customer.registrationName).up().up();
+    party
+      .ele("cac:PartyName")
+      .ele("cbc:Name")
+      .txt(customer.registrationName)
+      .up()
+      .up();
 
     // Postal address
     const address = party.ele("cac:PostalAddress");
     address.ele("cbc:StreetName").txt(customer.address.streetName).up();
     if (customer.address.additionalStreetName) {
-      address.ele("cbc:AdditionalStreetName").txt(customer.address.additionalStreetName).up();
+      address
+        .ele("cbc:AdditionalStreetName")
+        .txt(customer.address.additionalStreetName)
+        .up();
     }
     address.ele("cbc:CityName").txt(customer.address.cityName).up();
     if (customer.address.postalZone) {
       address.ele("cbc:PostalZone").txt(customer.address.postalZone).up();
     }
     if (customer.address.countrySubentity) {
-      address.ele("cbc:CountrySubentity").txt(customer.address.countrySubentity).up();
+      address
+        .ele("cbc:CountrySubentity")
+        .txt(customer.address.countrySubentity)
+        .up();
     }
     address
       .ele("cac:Country")
@@ -3042,13 +3153,19 @@ export class UblInvoiceGenerator {
       const account = pm.ele("cac:PayeeFinancialAccount");
       account.ele("cbc:ID").txt(paymentMeans.payeeFinancialAccount.id).up();
 
-      if (paymentMeans.payeeFinancialAccount.bankName || paymentMeans.payeeFinancialAccount.bic) {
+      if (
+        paymentMeans.payeeFinancialAccount.bankName ||
+        paymentMeans.payeeFinancialAccount.bic
+      ) {
         const branch = account.ele("cac:FinancialInstitutionBranch");
         if (paymentMeans.payeeFinancialAccount.bic) {
           branch.ele("cbc:ID").txt(paymentMeans.payeeFinancialAccount.bic).up();
         }
         if (paymentMeans.payeeFinancialAccount.bankName) {
-          branch.ele("cbc:Name").txt(paymentMeans.payeeFinancialAccount.bankName).up();
+          branch
+            .ele("cbc:Name")
+            .txt(paymentMeans.payeeFinancialAccount.bankName)
+            .up();
         }
         branch.up();
       }
@@ -3080,10 +3197,18 @@ export class UblInvoiceGenerator {
       cat.ele("cbc:Percent").txt(subtotal.taxCategory.percent.toString()).up();
 
       if (subtotal.taxCategory.exemptionReason) {
-        cat.ele("cbc:TaxExemptionReason").txt(subtotal.taxCategory.exemptionReason).up();
+        cat
+          .ele("cbc:TaxExemptionReason")
+          .txt(subtotal.taxCategory.exemptionReason)
+          .up();
       }
 
-      cat.ele("cac:TaxScheme").ele("cbc:ID").txt(subtotal.taxCategory.taxScheme).up().up();
+      cat
+        .ele("cac:TaxScheme")
+        .ele("cbc:ID")
+        .txt(subtotal.taxCategory.taxScheme)
+        .up()
+        .up();
       cat.up();
       ts.up();
     }
@@ -3111,7 +3236,10 @@ export class UblInvoiceGenerator {
       .txt(this.formatAmount(total.taxInclusiveAmount))
       .up();
 
-    if (total.allowanceTotalAmount !== undefined && total.allowanceTotalAmount > 0) {
+    if (
+      total.allowanceTotalAmount !== undefined &&
+      total.allowanceTotalAmount > 0
+    ) {
       lmt
         .ele("cbc:AllowanceTotalAmount", { currencyID: "RON" })
         .txt(this.formatAmount(total.allowanceTotalAmount))
@@ -3163,11 +3291,17 @@ export class UblInvoiceGenerator {
     if (line.allowanceCharges && line.allowanceCharges.length > 0) {
       for (const ac of line.allowanceCharges) {
         const allowance = il.ele("cac:AllowanceCharge");
-        allowance.ele("cbc:ChargeIndicator").txt(ac.chargeIndicator.toString()).up();
+        allowance
+          .ele("cbc:ChargeIndicator")
+          .txt(ac.chargeIndicator.toString())
+          .up();
         if (ac.reason) {
           allowance.ele("cbc:AllowanceChargeReason").txt(ac.reason).up();
         }
-        allowance.ele("cbc:Amount", { currencyID: "RON" }).txt(this.formatAmount(ac.amount)).up();
+        allowance
+          .ele("cbc:Amount", { currencyID: "RON" })
+          .txt(this.formatAmount(ac.amount))
+          .up();
         allowance.up();
       }
     }
@@ -3212,7 +3346,10 @@ export class UblInvoiceGenerator {
     // Classified tax category
     const taxCat = item.ele("cac:ClassifiedTaxCategory");
     taxCat.ele("cbc:ID").txt(line.item.classifiedTaxCategory.id).up();
-    taxCat.ele("cbc:Percent").txt(line.item.classifiedTaxCategory.percent.toString()).up();
+    taxCat
+      .ele("cbc:Percent")
+      .txt(line.item.classifiedTaxCategory.percent.toString())
+      .up();
     taxCat
       .ele("cac:TaxScheme")
       .ele("cbc:ID")
@@ -3503,7 +3640,8 @@ export class UblXmlValidator {
             code: "BR-RO-010",
             severity: "error",
             message: "Supplier CIF is invalid",
-            xpath: "//cac:AccountingSupplierParty/cac:Party/cac:PartyTaxScheme/cbc:CompanyID",
+            xpath:
+              "//cac:AccountingSupplierParty/cac:Party/cac:PartyTaxScheme/cbc:CompanyID",
             value: taxId,
           });
         }
@@ -3512,7 +3650,8 @@ export class UblXmlValidator {
           code: "BR-RO-010",
           severity: "error",
           message: "Supplier CIF is required",
-          xpath: "//cac:AccountingSupplierParty/cac:Party/cac:PartyTaxScheme/cbc:CompanyID",
+          xpath:
+            "//cac:AccountingSupplierParty/cac:Party/cac:PartyTaxScheme/cbc:CompanyID",
         });
       }
     }
@@ -3526,7 +3665,8 @@ export class UblXmlValidator {
           code: "BR-RO-020",
           severity: "error",
           message: "Customer CIF is invalid",
-          xpath: "//cac:AccountingCustomerParty/cac:Party/cac:PartyTaxScheme/cbc:CompanyID",
+          xpath:
+            "//cac:AccountingCustomerParty/cac:Party/cac:PartyTaxScheme/cbc:CompanyID",
           value: taxId,
         });
       }
@@ -3559,7 +3699,8 @@ export class UblXmlValidator {
         errors.push({
           code: "BR-RO-080",
           severity: "warning",
-          message: "For foreign currency invoices, TaxCurrencyCode should be RON",
+          message:
+            "For foreign currency invoices, TaxCurrencyCode should be RON",
           xpath: "//cbc:TaxCurrencyCode",
           value: taxCurrencyCode || "missing",
         });
@@ -3578,7 +3719,10 @@ export class UblXmlValidator {
           const subs = Array.isArray(subtotals) ? subtotals : [subtotals];
           for (const sub of subs) {
             const percent = sub["cac:TaxCategory"]?.["cbc:Percent"];
-            if (percent !== undefined && !validVatRates.includes(Number(percent))) {
+            if (
+              percent !== undefined &&
+              !validVatRates.includes(Number(percent))
+            ) {
               errors.push({
                 code: "BR-RO-050",
                 severity: "error",
@@ -3618,7 +3762,9 @@ export class UblXmlValidator {
     // Check LineExtensionAmount
     const monetaryTotal = inv["cac:LegalMonetaryTotal"];
     if (monetaryTotal) {
-      const declaredLineTotal = this.parseAmount(monetaryTotal["cbc:LineExtensionAmount"]);
+      const declaredLineTotal = this.parseAmount(
+        monetaryTotal["cbc:LineExtensionAmount"],
+      );
 
       if (Math.abs(calculatedLineTotal - declaredLineTotal) > tolerance) {
         errors.push({
@@ -3630,8 +3776,12 @@ export class UblXmlValidator {
       }
 
       // Check PayableAmount = TaxExclusiveAmount + TaxAmount
-      const taxExclusive = this.parseAmount(monetaryTotal["cbc:TaxExclusiveAmount"]);
-      const taxInclusive = this.parseAmount(monetaryTotal["cbc:TaxInclusiveAmount"]);
+      const taxExclusive = this.parseAmount(
+        monetaryTotal["cbc:TaxExclusiveAmount"],
+      );
+      const taxInclusive = this.parseAmount(
+        monetaryTotal["cbc:TaxInclusiveAmount"],
+      );
       const payable = this.parseAmount(monetaryTotal["cbc:PayableAmount"]);
 
       const taxTotals = inv["cac:TaxTotal"];
@@ -3852,9 +4002,15 @@ export const EFACTURA_ERROR_CLASSIFICATION: Record<
 /**
  * Classify error from ANAF/Oblio response
  */
-export function classifyEfacturaError(error: Error | AxiosError | any): EfacturaErrorType {
+export function classifyEfacturaError(
+  error: Error | AxiosError | any,
+): EfacturaErrorType {
   // Network errors
-  if (error.code === "ECONNREFUSED" || error.code === "ENOTFOUND" || error.code === "ENETUNREACH") {
+  if (
+    error.code === "ECONNREFUSED" ||
+    error.code === "ENOTFOUND" ||
+    error.code === "ENETUNREACH"
+  ) {
     return EfacturaErrorType.NETWORK_ERROR;
   }
 
@@ -3920,7 +4076,10 @@ export function classifyEfacturaError(error: Error | AxiosError | any): Efactura
       }
 
       // Signature error
-      if (errorMessage.includes("semnătură") || errorMessage.includes("signature")) {
+      if (
+        errorMessage.includes("semnătură") ||
+        errorMessage.includes("signature")
+      ) {
         return EfacturaErrorType.SIGNATURE_ERROR;
       }
 
@@ -4056,7 +4215,8 @@ export async function handleEfacturaRetry(
   jobId: string,
   logger: Logger,
 ): Promise<void> {
-  const errorType = error instanceof EfacturaError ? error.type : classifyEfacturaError(error);
+  const errorType =
+    error instanceof EfacturaError ? error.type : classifyEfacturaError(error);
 
   const config = EFACTURA_ERROR_CLASSIFICATION[errorType];
 
@@ -4078,7 +4238,9 @@ export async function handleEfacturaRetry(
       await createEfacturaHitlTask(jobId, error, errorType);
     }
 
-    throw new UnrecoverableError(`Non-retryable e-Factura error: ${errorType} - ${error.message}`);
+    throw new UnrecoverableError(
+      `Non-retryable e-Factura error: ${errorType} - ${error.message}`,
+    );
   }
 
   // Check if max retries exceeded
@@ -4142,7 +4304,8 @@ async function createEfacturaHitlTask(
       errorType,
       errorMessage: error.message,
       errorDetails: error instanceof EfacturaError ? error.details : undefined,
-      anafResponse: error instanceof EfacturaError ? error.anafResponse : undefined,
+      anafResponse:
+        error instanceof EfacturaError ? error.anafResponse : undefined,
       priority: priorityMap[config.severity],
       requiredAction: getRequiredAction(errorType),
       deadline:
@@ -4206,7 +4369,11 @@ export class EfacturaIdempotencyManager {
   /**
    * Generate idempotency key for invoice submission
    */
-  generateSubmissionKey(tenantId: string, invoiceSeries: string, invoiceNumber: number): string {
+  generateSubmissionKey(
+    tenantId: string,
+    invoiceSeries: string,
+    invoiceNumber: number,
+  ): string {
     const data = `${tenantId}:${invoiceSeries}:${invoiceNumber}`;
     return createHash("sha256").update(data).digest("hex").substring(0, 32);
   }
@@ -4275,7 +4442,10 @@ export class EfacturaIdempotencyManager {
   /**
    * Mark submission as completed
    */
-  async markSubmissionCompleted(key: string, indexIncarcare: string): Promise<void> {
+  async markSubmissionCompleted(
+    key: string,
+    indexIncarcare: string,
+  ): Promise<void> {
     const fullKey = this.prefix + "submit:" + key;
 
     await this.redis.hset(fullKey, {
@@ -4342,7 +4512,10 @@ export class EfacturaIdempotencyManager {
   /**
    * Record status check
    */
-  async recordStatusCheck(indexIncarcare: string, status: string): Promise<void> {
+  async recordStatusCheck(
+    indexIncarcare: string,
+    status: string,
+  ): Promise<void> {
     const fullKey = this.prefix + "status:" + indexIncarcare;
 
     await this.redis.hset(fullKey, {
@@ -4408,23 +4581,41 @@ export function createEfacturaCircuitBreaker(
   // Event handlers
   breaker.on("open", () => {
     logger.warn("e-Factura circuit breaker OPENED", { name });
-    efacturaCircuitBreakerState.labels({ operation: name, state: "open" }).set(1);
-    efacturaCircuitBreakerState.labels({ operation: name, state: "closed" }).set(0);
-    efacturaCircuitBreakerState.labels({ operation: name, state: "half_open" }).set(0);
+    efacturaCircuitBreakerState
+      .labels({ operation: name, state: "open" })
+      .set(1);
+    efacturaCircuitBreakerState
+      .labels({ operation: name, state: "closed" })
+      .set(0);
+    efacturaCircuitBreakerState
+      .labels({ operation: name, state: "half_open" })
+      .set(0);
   });
 
   breaker.on("close", () => {
     logger.info("e-Factura circuit breaker CLOSED", { name });
-    efacturaCircuitBreakerState.labels({ operation: name, state: "open" }).set(0);
-    efacturaCircuitBreakerState.labels({ operation: name, state: "closed" }).set(1);
-    efacturaCircuitBreakerState.labels({ operation: name, state: "half_open" }).set(0);
+    efacturaCircuitBreakerState
+      .labels({ operation: name, state: "open" })
+      .set(0);
+    efacturaCircuitBreakerState
+      .labels({ operation: name, state: "closed" })
+      .set(1);
+    efacturaCircuitBreakerState
+      .labels({ operation: name, state: "half_open" })
+      .set(0);
   });
 
   breaker.on("halfOpen", () => {
     logger.info("e-Factura circuit breaker HALF-OPEN", { name });
-    efacturaCircuitBreakerState.labels({ operation: name, state: "open" }).set(0);
-    efacturaCircuitBreakerState.labels({ operation: name, state: "closed" }).set(0);
-    efacturaCircuitBreakerState.labels({ operation: name, state: "half_open" }).set(1);
+    efacturaCircuitBreakerState
+      .labels({ operation: name, state: "open" })
+      .set(0);
+    efacturaCircuitBreakerState
+      .labels({ operation: name, state: "closed" })
+      .set(0);
+    efacturaCircuitBreakerState
+      .labels({ operation: name, state: "half_open" })
+      .set(1);
   });
 
   breaker.on("reject", () => {
@@ -5371,16 +5562,20 @@ export const efacturaSendQueue = new Queue("efactura:send", {
   },
 });
 
-export const efacturaSendWorker = new Worker("efactura:send", efacturaSendProcessor, {
-  connection: redisConnection,
-  concurrency: 20,
-  limiter: {
-    max: 30,
-    duration: 60000, // 30 per minute (ANAF consideration)
+export const efacturaSendWorker = new Worker(
+  "efactura:send",
+  efacturaSendProcessor,
+  {
+    connection: redisConnection,
+    concurrency: 20,
+    limiter: {
+      max: 30,
+      duration: 60000, // 30 per minute (ANAF consideration)
+    },
+    lockDuration: 120000, // 2 minutes lock
+    lockRenewTime: 60000, // Renew every minute
   },
-  lockDuration: 120000, // 2 minutes lock
-  lockRenewTime: 60000, // Renew every minute
-});
+);
 
 // ============================================================================
 // Queue: efactura:status:check
@@ -5421,23 +5616,26 @@ export const efacturaStatusCheckWorker = new Worker(
 // Queue: efactura:deadline:monitor
 // ============================================================================
 
-export const efacturaDeadlineMonitorQueue = new Queue("efactura:deadline:monitor", {
-  connection: redisConnection,
-  defaultJobOptions: {
-    attempts: 3,
-    backoff: {
-      type: "fixed",
-      delay: 60000, // 1 minute
-    },
-    removeOnComplete: {
-      age: 24 * 3600, // 1 day
-      count: 1000,
-    },
-    removeOnFail: {
-      age: 7 * 24 * 3600, // 7 days
+export const efacturaDeadlineMonitorQueue = new Queue(
+  "efactura:deadline:monitor",
+  {
+    connection: redisConnection,
+    defaultJobOptions: {
+      attempts: 3,
+      backoff: {
+        type: "fixed",
+        delay: 60000, // 1 minute
+      },
+      removeOnComplete: {
+        age: 24 * 3600, // 1 day
+        count: 1000,
+      },
+      removeOnFail: {
+        age: 7 * 24 * 3600, // 7 days
+      },
     },
   },
-});
+);
 
 export const efacturaDeadlineMonitorWorker = new Worker(
   "efactura:deadline:monitor",
@@ -5460,17 +5658,23 @@ const efacturaSendScheduler = new QueueScheduler("efactura:send", {
   maxStalledCount: 3,
 });
 
-const efacturaStatusCheckScheduler = new QueueScheduler("efactura:status:check", {
-  connection: redisConnection,
-  stalledInterval: 60000,
-  maxStalledCount: 2,
-});
+const efacturaStatusCheckScheduler = new QueueScheduler(
+  "efactura:status:check",
+  {
+    connection: redisConnection,
+    stalledInterval: 60000,
+    maxStalledCount: 2,
+  },
+);
 
-const efacturaDeadlineMonitorScheduler = new QueueScheduler("efactura:deadline:monitor", {
-  connection: redisConnection,
-  stalledInterval: 300000, // 5 minutes
-  maxStalledCount: 2,
-});
+const efacturaDeadlineMonitorScheduler = new QueueScheduler(
+  "efactura:deadline:monitor",
+  {
+    connection: redisConnection,
+    stalledInterval: 300000, // 5 minutes
+    maxStalledCount: 2,
+  },
+);
 
 // ============================================================================
 // Queue Events
@@ -5681,10 +5885,14 @@ export async function checkEfacturaQueueHealth(): Promise<HealthCheckResult> {
 
   try {
     // Check send queue
-    const sendQueueHealth = await checkQueueHealth(efacturaSendQueue, "efactura:send", {
-      maxWaiting: 100,
-      maxFailed: 10,
-    });
+    const sendQueueHealth = await checkQueueHealth(
+      efacturaSendQueue,
+      "efactura:send",
+      {
+        maxWaiting: 100,
+        maxFailed: 10,
+      },
+    );
     checks.push(sendQueueHealth);
 
     // Check status check queue
@@ -5752,7 +5960,8 @@ async function checkQueueHealth(
   const delayed = await queue.getDelayedCount();
   const failed = await queue.getFailedCount();
 
-  const healthy = waiting < thresholds.maxWaiting && failed < thresholds.maxFailed;
+  const healthy =
+    waiting < thresholds.maxWaiting && failed < thresholds.maxFailed;
 
   return {
     name,
@@ -5800,7 +6009,9 @@ describe("UblInvoiceGenerator", () => {
 
       expect(xml).toContain('<?xml version="1.0" encoding="UTF-8"?>');
       expect(xml).toContain("<Invoice");
-      expect(xml).toContain("urn:oasis:names:specification:ubl:schema:xsd:Invoice-2");
+      expect(xml).toContain(
+        "urn:oasis:names:specification:ubl:schema:xsd:Invoice-2",
+      );
       expect(xml).toContain(
         "urn:cen.eu:en16931:2017#compliant#urn:efactura.mfinante.ro:CIUS-RO:1.0.1",
       );
@@ -5824,7 +6035,9 @@ describe("UblInvoiceGenerator", () => {
       const xml = generator.generateInvoiceXml(invoice);
 
       expect(xml).toContain("<cbc:CompanyID>RO12345678</cbc:CompanyID>");
-      expect(xml).toContain("<cbc:RegistrationName>Test SRL</cbc:RegistrationName>");
+      expect(xml).toContain(
+        "<cbc:RegistrationName>Test SRL</cbc:RegistrationName>",
+      );
     });
 
     it("should calculate correct tax totals", () => {
@@ -5850,7 +6063,9 @@ describe("UblInvoiceGenerator", () => {
 
       const xml = generator.generateInvoiceXml(invoice);
 
-      expect(xml).toContain('<cbc:TaxAmount currencyID="RON">190.00</cbc:TaxAmount>');
+      expect(xml).toContain(
+        '<cbc:TaxAmount currencyID="RON">190.00</cbc:TaxAmount>',
+      );
       expect(xml).toContain("<cbc:Percent>19</cbc:Percent>");
     });
 
@@ -5905,7 +6120,9 @@ describe("UblXmlValidator", () => {
       const result = await validator.validate(xml);
 
       expect(result.valid).toBe(false);
-      expect(result.errors).toContainEqual(expect.objectContaining({ code: "XML-001" }));
+      expect(result.errors).toContainEqual(
+        expect.objectContaining({ code: "XML-001" }),
+      );
     });
 
     it("should fail on missing invoice ID", async () => {
@@ -5913,7 +6130,9 @@ describe("UblXmlValidator", () => {
       const result = await validator.validate(xml);
 
       expect(result.valid).toBe(false);
-      expect(result.errors).toContainEqual(expect.objectContaining({ code: "BR-01" }));
+      expect(result.errors).toContainEqual(
+        expect.objectContaining({ code: "BR-01" }),
+      );
     });
 
     it("should fail on invalid Romanian CIF", async () => {
@@ -5921,7 +6140,9 @@ describe("UblXmlValidator", () => {
       const result = await validator.validate(xml);
 
       expect(result.valid).toBe(false);
-      expect(result.errors).toContainEqual(expect.objectContaining({ code: "BR-RO-010" }));
+      expect(result.errors).toContainEqual(
+        expect.objectContaining({ code: "BR-RO-010" }),
+      );
     });
 
     it("should fail on future invoice date", async () => {
@@ -5931,7 +6152,9 @@ describe("UblXmlValidator", () => {
       const result = await validator.validate(xml);
 
       expect(result.valid).toBe(false);
-      expect(result.errors).toContainEqual(expect.objectContaining({ code: "BR-RO-040" }));
+      expect(result.errors).toContainEqual(
+        expect.objectContaining({ code: "BR-RO-040" }),
+      );
     });
 
     it("should fail on invalid VAT rate", async () => {
@@ -5939,7 +6162,9 @@ describe("UblXmlValidator", () => {
       const result = await validator.validate(xml);
 
       expect(result.valid).toBe(false);
-      expect(result.errors).toContainEqual(expect.objectContaining({ code: "BR-RO-050" }));
+      expect(result.errors).toContainEqual(
+        expect.objectContaining({ code: "BR-RO-050" }),
+      );
     });
 
     it("should fail on calculation mismatch", async () => {
@@ -5947,7 +6172,9 @@ describe("UblXmlValidator", () => {
       const result = await validator.validate(xml);
 
       expect(result.valid).toBe(false);
-      expect(result.errors).toContainEqual(expect.objectContaining({ code: "BR-RO-070" }));
+      expect(result.errors).toContainEqual(
+        expect.objectContaining({ code: "BR-RO-070" }),
+      );
     });
   });
 });
@@ -6213,7 +6440,9 @@ describe("e-Factura Integration Tests", () => {
       await container.waitForJob(job.id);
 
       // Verify
-      const updatedSubmission = await container.getEfacturaSubmission(submission.invoiceId);
+      const updatedSubmission = await container.getEfacturaSubmission(
+        submission.invoiceId,
+      );
       expect(updatedSubmission.status).toBe("accepted");
 
       const invoice = await container.getInvoice(submission.invoiceId);
@@ -6241,8 +6470,12 @@ describe("e-Factura Integration Tests", () => {
       await container.waitForJob(job.id);
 
       // Verify new check scheduled
-      const delayedJobs = await container.getDelayedJobs("efactura:status:check");
-      expect(delayedJobs.some((j) => j.data.indexIncarcare === "TEST456")).toBe(true);
+      const delayedJobs = await container.getDelayedJobs(
+        "efactura:status:check",
+      );
+      expect(delayedJobs.some((j) => j.data.indexIncarcare === "TEST456")).toBe(
+        true,
+      );
     });
 
     it("should create HITL task on rejection", async () => {
@@ -6366,7 +6599,9 @@ test.describe("e-Factura Flow", () => {
     await page.waitForSelector('[data-testid="invoice-preview"]');
 
     // Verify invoice details
-    expect(await page.textContent('[data-testid="invoice-total"]')).toContain("RON");
+    expect(await page.textContent('[data-testid="invoice-total"]')).toContain(
+      "RON",
+    );
 
     // Confirm invoice creation
     await page.click('[data-testid="confirm-invoice-button"]');
@@ -6375,13 +6610,17 @@ test.describe("e-Factura Flow", () => {
     await page.waitForSelector('[data-testid="invoice-created-success"]');
 
     // Verify e-Factura status shows pending
-    await expect(page.locator('[data-testid="efactura-status"]')).toContainText("În așteptare");
+    await expect(page.locator('[data-testid="efactura-status"]')).toContainText(
+      "În așteptare",
+    );
 
     // Navigate to e-Factura monitor
     await page.goto("/efactura");
 
     // Verify invoice appears in pending list
-    await expect(page.locator('[data-testid="pending-submissions"]')).toContainText("1");
+    await expect(
+      page.locator('[data-testid="pending-submissions"]'),
+    ).toContainText("1");
   });
 
   test("e-Factura HITL resolution flow", async ({ page }) => {
@@ -6402,7 +6641,9 @@ test.describe("e-Factura Flow", () => {
     await page.click('[data-testid="hitl-task-row"]:first-child');
 
     // View task details
-    await expect(page.locator('[data-testid="task-type"]')).toContainText("e-Factura");
+    await expect(page.locator('[data-testid="task-type"]')).toContainText(
+      "e-Factura",
+    );
     await expect(page.locator('[data-testid="error-details"]')).toBeVisible();
 
     // Edit invoice data to fix error
@@ -6417,7 +6658,9 @@ test.describe("e-Factura Flow", () => {
     await page.click('[data-testid="confirm-dialog-yes"]');
 
     // Verify task resolved
-    await expect(page.locator('[data-testid="task-status"]')).toContainText("Rezolvat");
+    await expect(page.locator('[data-testid="task-status"]')).toContainText(
+      "Rezolvat",
+    );
   });
 });
 ```

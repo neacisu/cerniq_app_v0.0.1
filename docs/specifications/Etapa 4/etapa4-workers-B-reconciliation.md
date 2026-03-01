@@ -41,7 +41,14 @@ Payment Recorded → B7 (Auto Match) → Match Found?
 export async function paymentReconcileAutoProcessor(
   job: Job<ReconcileAutoInput>,
 ): Promise<ReconcileAutoOutput> {
-  const { correlationId, tenantId, paymentId, amount, reference, counterpartyName } = job.data;
+  const {
+    correlationId,
+    tenantId,
+    paymentId,
+    amount,
+    reference,
+    counterpartyName,
+  } = job.data;
 
   // Tier 1: Exact match by reference
   if (reference) {
@@ -55,7 +62,12 @@ export async function paymentReconcileAutoProcessor(
 
     if (exactMatch && Math.abs(exactMatch.totalAmount - amount) < 0.01) {
       // Exact match found
-      await recordReconciliation(paymentId, exactMatch.id, "MATCHED_EXACT", 100);
+      await recordReconciliation(
+        paymentId,
+        exactMatch.id,
+        "MATCHED_EXACT",
+        100,
+      );
       await updateOrderPayment(exactMatch.orderId, amount);
       await triggerBalanceUpdate(exactMatch.clientId);
 
@@ -92,7 +104,8 @@ export async function paymentReconcileAutoProcessor(
 export async function paymentReconcileFuzzyProcessor(
   job: Job<ReconcileFuzzyInput>,
 ): Promise<ReconcileFuzzyOutput> {
-  const { correlationId, tenantId, paymentId, amount, counterpartyName } = job.data;
+  const { correlationId, tenantId, paymentId, amount, counterpartyName } =
+    job.data;
 
   // Find potential matches: amount within 5%, pending status
   const candidates = await db.query.goldInvoices.findMany({
@@ -107,8 +120,10 @@ export async function paymentReconcileFuzzyProcessor(
 
   // Score each candidate
   const scored = candidates.map((invoice) => {
-    const amountScore = 100 - (Math.abs(invoice.totalAmount - amount) / amount) * 100;
-    const nameScore = fuzzyMatch(counterpartyName, invoice.client.companyName) * 100;
+    const amountScore =
+      100 - (Math.abs(invoice.totalAmount - amount) / amount) * 100;
+    const nameScore =
+      fuzzyMatch(counterpartyName, invoice.client.companyName) * 100;
     const totalScore = amountScore * 0.6 + nameScore * 0.4;
 
     return { invoice, score: totalScore, amountScore, nameScore };
@@ -118,7 +133,12 @@ export async function paymentReconcileFuzzyProcessor(
   const bestMatch = scored.sort((a, b) => b.score - a.score)[0];
 
   if (bestMatch && bestMatch.score >= 85) {
-    await recordReconciliation(paymentId, bestMatch.invoice.id, "MATCHED_FUZZY", bestMatch.score);
+    await recordReconciliation(
+      paymentId,
+      bestMatch.invoice.id,
+      "MATCHED_FUZZY",
+      bestMatch.score,
+    );
     await updateOrderPayment(bestMatch.invoice.orderId, amount);
 
     return {
@@ -163,7 +183,9 @@ export async function paymentReconcileFuzzyProcessor(
 ### Worker #10: payment:balance:update
 
 ```typescript
-export async function paymentBalanceUpdateProcessor(job: Job<BalanceUpdateInput>): Promise<void> {
+export async function paymentBalanceUpdateProcessor(
+  job: Job<BalanceUpdateInput>,
+): Promise<void> {
   const { tenantId, clientId, orderId, amount } = job.data;
 
   // Update order
@@ -214,7 +236,8 @@ export async function paymentOverdueDetectProcessor(
         clientId: order.clientId,
         amountDue: order.amountDue,
         daysOverdue,
-        escalationLevel: daysOverdue > 30 ? "CRITICAL" : daysOverdue > 14 ? "HIGH" : "NORMAL",
+        escalationLevel:
+          daysOverdue > 30 ? "CRITICAL" : daysOverdue > 14 ? "HIGH" : "NORMAL",
       },
     });
   }

@@ -1,4 +1,0 @@
-# Cerniq deploy user - required for CD pipeline (UFW, fail2ban, cron, node_exporter).
-# Install once on each host: sudo cp infra/config/sudoers/deploy /etc/sudoers.d/deploy && sudo chmod 440 /etc/sudoers.d/deploy
-# Restricted to commands required by deploy.yml (no full NOPASSWD: ALL).
-deploy ALL=(ALL) NOPASSWD: /usr/sbin/ufw, /usr/bin/systemctl enable fail2ban, /usr/bin/systemctl restart fail2ban, /usr/bin/systemctl reload cron, /usr/bin/systemctl is-active fail2ban, /usr/bin/cp, /usr/bin/chmod, /usr/bin/bash /opt/cerniq/scripts/setup-node-exporter.sh

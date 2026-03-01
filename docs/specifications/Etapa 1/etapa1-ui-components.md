@@ -89,14 +89,20 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary-600 text-white hover:bg-primary-700 focus-visible:ring-primary-500",
-        destructive: "bg-danger-600 text-white hover:bg-danger-700 focus-visible:ring-danger-500",
-        outline: "border border-gray-300 bg-white hover:bg-gray-50 focus-visible:ring-primary-500",
-        secondary: "bg-gray-100 text-gray-900 hover:bg-gray-200 focus-visible:ring-gray-500",
+        default:
+          "bg-primary-600 text-white hover:bg-primary-700 focus-visible:ring-primary-500",
+        destructive:
+          "bg-danger-600 text-white hover:bg-danger-700 focus-visible:ring-danger-500",
+        outline:
+          "border border-gray-300 bg-white hover:bg-gray-50 focus-visible:ring-primary-500",
+        secondary:
+          "bg-gray-100 text-gray-900 hover:bg-gray-200 focus-visible:ring-gray-500",
         ghost: "hover:bg-gray-100 focus-visible:ring-gray-500",
         link: "text-primary-600 underline-offset-4 hover:underline",
-        success: "bg-success-600 text-white hover:bg-success-700 focus-visible:ring-success-500",
-        warning: "bg-warning-600 text-white hover:bg-warning-700 focus-visible:ring-warning-500",
+        success:
+          "bg-success-600 text-white hover:bg-success-700 focus-visible:ring-success-500",
+        warning:
+          "bg-warning-600 text-white hover:bg-warning-700 focus-visible:ring-warning-500",
       },
       size: {
         default: "h-10 px-4 py-2",
@@ -115,13 +121,27 @@ const buttonVariants = cva(
 );
 
 export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof buttonVariants> {
+  extends
+    React.ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof buttonVariants> {
   asChild?: boolean;
   loading?: boolean;
 }
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, loading, children, disabled, ...props }, ref) => {
+  (
+    {
+      className,
+      variant,
+      size,
+      asChild = false,
+      loading,
+      children,
+      disabled,
+      ...props
+    },
+    ref,
+  ) => {
     const Comp = asChild ? Slot : "button";
     return (
       <Comp
@@ -198,10 +218,14 @@ const badgeVariants = cva(
 );
 
 export interface BadgeProps
-  extends React.HTMLAttributes<HTMLDivElement>, VariantProps<typeof badgeVariants> {}
+  extends
+    React.HTMLAttributes<HTMLDivElement>,
+    VariantProps<typeof badgeVariants> {}
 
 function Badge({ className, variant, ...props }: BadgeProps) {
-  return <div className={cn(badgeVariants({ variant }), className)} {...props} />;
+  return (
+    <div className={cn(badgeVariants({ variant }), className)} {...props} />
+  );
 }
 
 export { Badge, badgeVariants };
@@ -219,29 +243,41 @@ const Card = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn("rounded-lg border border-gray-200 bg-white shadow-sm", className)}
+      className={cn(
+        "rounded-lg border border-gray-200 bg-white shadow-sm",
+        className,
+      )}
       {...props}
     />
   ),
 );
 Card.displayName = "Card";
 
-const CardHeader = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-  ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn("flex flex-col space-y-1.5 p-6", className)} {...props} />
-  ),
-);
+const CardHeader = forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn("flex flex-col space-y-1.5 p-6", className)}
+    {...props}
+  />
+));
 CardHeader.displayName = "CardHeader";
 
-const CardTitle = forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLHeadingElement>>(
-  ({ className, ...props }, ref) => (
-    <h3
-      ref={ref}
-      className={cn("text-lg font-semibold leading-none tracking-tight", className)}
-      {...props}
-    />
-  ),
-);
+const CardTitle = forwardRef<
+  HTMLParagraphElement,
+  React.HTMLAttributes<HTMLHeadingElement>
+>(({ className, ...props }, ref) => (
+  <h3
+    ref={ref}
+    className={cn(
+      "text-lg font-semibold leading-none tracking-tight",
+      className,
+    )}
+    {...props}
+  />
+));
 CardTitle.displayName = "CardTitle";
 
 const CardDescription = forwardRef<
@@ -252,21 +288,34 @@ const CardDescription = forwardRef<
 ));
 CardDescription.displayName = "CardDescription";
 
-const CardContent = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-  ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn("p-6 pt-0", className)} {...props} />
-  ),
-);
+const CardContent = forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div ref={ref} className={cn("p-6 pt-0", className)} {...props} />
+));
 CardContent.displayName = "CardContent";
 
-const CardFooter = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-  ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn("flex items-center p-6 pt-0", className)} {...props} />
-  ),
-);
+const CardFooter = forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn("flex items-center p-6 pt-0", className)}
+    {...props}
+  />
+));
 CardFooter.displayName = "CardFooter";
 
-export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent };
+export {
+  Card,
+  CardHeader,
+  CardFooter,
+  CardTitle,
+  CardDescription,
+  CardContent,
+};
 ```
 
 ---
@@ -288,7 +337,14 @@ interface KPICardProps {
   change?: number;
   changeLabel?: string;
   icon?: React.ReactNode;
-  color?: "primary" | "success" | "warning" | "danger" | "bronze" | "silver" | "gold";
+  color?:
+    | "primary"
+    | "success"
+    | "warning"
+    | "danger"
+    | "bronze"
+    | "silver"
+    | "gold";
   href?: string;
   loading?: boolean;
 }
@@ -316,7 +372,9 @@ export function KPICard({
   const Wrapper = href ? "a" : "div";
 
   return (
-    <Card className={cn("transition-all", href && "hover:shadow-md cursor-pointer")}>
+    <Card
+      className={cn("transition-all", href && "hover:shadow-md cursor-pointer")}
+    >
       <Wrapper href={href}>
         <CardContent className="p-6">
           <div className="flex items-start justify-between">
@@ -345,11 +403,17 @@ export function KPICard({
                     {change >= 0 ? "+" : ""}
                     {change}
                   </span>
-                  {changeLabel && <span className="text-sm text-gray-500">{changeLabel}</span>}
+                  {changeLabel && (
+                    <span className="text-sm text-gray-500">{changeLabel}</span>
+                  )}
                 </div>
               )}
             </div>
-            {icon && <div className={cn("p-3 rounded-lg", colorClasses[color])}>{icon}</div>}
+            {icon && (
+              <div className={cn("p-3 rounded-lg", colorClasses[color])}>
+                {icon}
+              </div>
+            )}
           </div>
         </CardContent>
       </Wrapper>
@@ -377,8 +441,10 @@ export function QualityScoreBadge({
   size = "md",
 }: QualityScoreBadgeProps) {
   const getColorClass = (score: number) => {
-    if (score >= 70) return "bg-success-100 text-success-800 border-success-300";
-    if (score >= 40) return "bg-warning-100 text-warning-800 border-warning-300";
+    if (score >= 70)
+      return "bg-success-100 text-success-800 border-success-300";
+    if (score >= 40)
+      return "bg-warning-100 text-warning-800 border-warning-300";
     return "bg-danger-100 text-danger-800 border-danger-300";
   };
 
@@ -403,7 +469,9 @@ export function QualityScoreBadge({
       )}
     >
       <span className="font-bold">{score}</span>
-      {showLabel && <span className="text-xs opacity-75">/ {getLabel(score)}</span>}
+      {showLabel && (
+        <span className="text-xs opacity-75">/ {getLabel(score)}</span>
+      )}
     </span>
   );
 }
@@ -415,9 +483,20 @@ export function QualityScoreBadge({
 // src/components/data/enrichment-status-badge.tsx
 
 import { Badge } from "@/components/ui/badge";
-import { CheckCircleIcon, ClockIcon, AlertCircleIcon, XCircleIcon, LoaderIcon } from "lucide-react";
+import {
+  CheckCircleIcon,
+  ClockIcon,
+  AlertCircleIcon,
+  XCircleIcon,
+  LoaderIcon,
+} from "lucide-react";
 
-type EnrichmentStatus = "pending" | "in_progress" | "partial" | "complete" | "failed";
+type EnrichmentStatus =
+  | "pending"
+  | "in_progress"
+  | "partial"
+  | "complete"
+  | "failed";
 
 interface EnrichmentStatusBadgeProps {
   status: EnrichmentStatus;
@@ -644,7 +723,11 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { CheckIcon, ChevronsUpDownIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -746,14 +829,25 @@ interface EmptyStateProps {
   className?: string;
 }
 
-export function EmptyState({ icon, title, description, action, className }: EmptyStateProps) {
+export function EmptyState({
+  icon,
+  title,
+  description,
+  action,
+  className,
+}: EmptyStateProps) {
   return (
     <div
-      className={cn("flex flex-col items-center justify-center py-12 px-4 text-center", className)}
+      className={cn(
+        "flex flex-col items-center justify-center py-12 px-4 text-center",
+        className,
+      )}
     >
       {icon && <div className="mb-4 text-gray-400">{icon}</div>}
       <h3 className="text-lg font-medium text-gray-900">{title}</h3>
-      {description && <p className="mt-2 text-sm text-gray-500 max-w-sm">{description}</p>}
+      {description && (
+        <p className="mt-2 text-sm text-gray-500 max-w-sm">{description}</p>
+      )}
       {action && <div className="mt-6">{action}</div>}
     </div>
   );
@@ -773,7 +867,13 @@ interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
   height?: number | string;
 }
 
-export function Skeleton({ className, variant = "text", width, height, ...props }: SkeletonProps) {
+export function Skeleton({
+  className,
+  variant = "text",
+  width,
+  height,
+  ...props
+}: SkeletonProps) {
   return (
     <div
       className={cn(
@@ -821,7 +921,13 @@ export function CardSkeleton() {
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
-import { XIcon, CheckCircleIcon, AlertCircleIcon, InfoIcon, AlertTriangleIcon } from "lucide-react";
+import {
+  XIcon,
+  CheckCircleIcon,
+  AlertCircleIcon,
+  InfoIcon,
+  AlertTriangleIcon,
+} from "lucide-react";
 
 type ToastType = "success" | "error" | "warning" | "info";
 
@@ -848,7 +954,14 @@ const toastStyles: Record<ToastType, string> = {
   info: "border-primary-200 bg-primary-50",
 };
 
-export function Toast({ id, type, title, description, duration = 5000, onClose }: ToastProps) {
+export function Toast({
+  id,
+  type,
+  title,
+  description,
+  duration = 5000,
+  onClose,
+}: ToastProps) {
   useEffect(() => {
     if (duration > 0) {
       const timer = setTimeout(() => onClose(id), duration);
@@ -867,9 +980,14 @@ export function Toast({ id, type, title, description, duration = 5000, onClose }
       {toastIcons[type]}
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-gray-900">{title}</p>
-        {description && <p className="mt-1 text-sm text-gray-600">{description}</p>}
+        {description && (
+          <p className="mt-1 text-sm text-gray-600">{description}</p>
+        )}
       </div>
-      <button onClick={() => onClose(id)} className="text-gray-400 hover:text-gray-600">
+      <button
+        onClick={() => onClose(id)}
+        className="text-gray-400 hover:text-gray-600"
+      >
         <XIcon className="w-4 h-4" />
       </button>
     </div>

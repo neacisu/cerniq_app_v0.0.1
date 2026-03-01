@@ -12,13 +12,21 @@
 describe("Quota Lua Scripts", () => {
   it("should atomically check and consume", async () => {
     await redis.set("quota:phone:123:daily", "200");
-    const result = await redis.eval(CONSUME_QUOTA_LUA, 1, "quota:phone:123:daily");
+    const result = await redis.eval(
+      CONSUME_QUOTA_LUA,
+      1,
+      "quota:phone:123:daily",
+    );
     expect(result).toBe(199);
   });
 
   it("should reject when exhausted", async () => {
     await redis.set("quota:phone:123:daily", "0");
-    const result = await redis.eval(CONSUME_QUOTA_LUA, 1, "quota:phone:123:daily");
+    const result = await redis.eval(
+      CONSUME_QUOTA_LUA,
+      1,
+      "quota:phone:123:daily",
+    );
     expect(result).toBe(-1);
   });
 

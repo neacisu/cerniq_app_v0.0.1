@@ -1,12 +1,12 @@
-# Cerniq Backup Schedule Configuration (CT109/CT110)
-# Deploy: scripturile sunt în /opt/cerniq/scripts/, secrets în /opt/cerniq/secrets/
-# Install: cp /opt/cerniq/config/cron/cerniq-backup /etc/cron.d/cerniq-backup
-# Reference: docs/infrastructure/backup-strategy.md, ADR-0020
+# /var/www/CerniqAPP/infra/config/cron/cerniq-backup
+# Cerniq Backup Schedule Configuration
+# Install: cp /var/www/CerniqAPP/infra/config/cron/cerniq-backup /etc/cron.d/
+# Reference: docs/infrastructure/backup-strategy.md
+# Task: F0.7.1.T003
 
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-SCRIPTS=/opt/cerniq/scripts
-SECRETS=/opt/cerniq/secrets
+SCRIPTS=/var/www/CerniqAPP/infra/scripts
 
 # Environment
 BORG_REPO=ssh://u502048@u502048.your-storagebox.de:23/./backups/cerniq/borg
@@ -45,17 +45,17 @@ BORG_RSH="ssh -i /root/.ssh/hetzner_storagebox -o StrictHostKeyChecking=no"
 
 # Daily Borg incremental backup - every day at 04:00
 # After all other backups complete, includes local backup files
-0 4 * * * root BORG_PASSPHRASE=$(cat $SECRETS/borg_passphrase.txt 2>/dev/null) $SCRIPTS/borg_backup_daily.sh >> /var/log/cerniq/cron.log 2>&1
+0 4 * * * root BORG_PASSPHRASE=$(cat /var/www/CerniqAPP/secrets/borg_passphrase.txt) $SCRIPTS/borg_backup_daily.sh >> /var/log/cerniq/cron.log 2>&1
 
 # Weekly Borg integrity check - every Sunday at 05:00
-0 5 * * 0 root BORG_PASSPHRASE=$(cat $SECRETS/borg_passphrase.txt 2>/dev/null) $SCRIPTS/borg_check.sh >> /var/log/cerniq/cron.log 2>&1
+0 5 * * 0 root BORG_PASSPHRASE=$(cat /var/www/CerniqAPP/secrets/borg_passphrase.txt) $SCRIPTS/borg_check.sh >> /var/log/cerniq/cron.log 2>&1
 
 # ============================================================================
 # MAINTENANCE & MONITORING
 # ============================================================================
 
 # Backup health check - every 6 hours
-0 */6 * * * root BORG_PASSPHRASE=$(cat $SECRETS/borg_passphrase.txt 2>/dev/null) $SCRIPTS/backup_health_check.sh >> /var/log/cerniq/cron.log 2>&1
+0 */6 * * * root BORG_PASSPHRASE=$(cat /var/www/CerniqAPP/secrets/borg_passphrase.txt) $SCRIPTS/backup_health_check.sh >> /var/log/cerniq/cron.log 2>&1
 
 # Storage Box space check - daily at 06:00
 0 6 * * * root $SCRIPTS/check_storagebox_space.sh >> /var/log/cerniq/cron.log 2>&1
@@ -65,7 +65,7 @@ BORG_RSH="ssh -i /root/.ssh/hetzner_storagebox -o StrictHostKeyChecking=no"
 
 # Monthly restore test - 1st of month at 07:00
 # Validates backup integrity by performing test restores
-0 7 1 * * root BORG_PASSPHRASE=$(cat $SECRETS/borg_passphrase.txt 2>/dev/null) $SCRIPTS/backup_restore_test.sh >> /var/log/cerniq/cron.log 2>&1
+0 7 1 * * root BORG_PASSPHRASE=$(cat /var/www/CerniqAPP/secrets/borg_passphrase.txt) $SCRIPTS/backup_restore_test.sh >> /var/log/cerniq/cron.log 2>&1
 
 # ============================================================================
 # LOG ROTATION

@@ -4,7 +4,6 @@ dist
 coverage
 test-results
 .cache
-.turbo
 secrets
 *.min.js
 *.min.css

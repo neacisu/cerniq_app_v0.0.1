@@ -81,7 +81,9 @@ describe("Database Failure (via PgBouncer)", () => {
     const results = await Promise.all(promises);
 
     // Should timeout, not crash
-    expect(results.every((r) => r.status === 408 || r.code === "ETIMEDOUT")).toBe(true);
+    expect(
+      results.every((r) => r.status === 408 || r.code === "ETIMEDOUT"),
+    ).toBe(true);
 
     // Unpause
     await exec("docker unpause cerniq-pgbouncer");
@@ -117,7 +119,9 @@ services:
 describe("Network Delay", () => {
   it("should handle 500ms latency spike", async () => {
     // Start chaos
-    await exec("docker compose -f docker-compose.chaos.yml up -d chaos-network-delay");
+    await exec(
+      "docker compose -f docker-compose.chaos.yml up -d chaos-network-delay",
+    );
 
     const start = Date.now();
     const response = await api.get("/api/v1/companies");

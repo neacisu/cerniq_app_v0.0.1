@@ -35,7 +35,9 @@ describe("E0-S3-PR02: Centralized ingress model", () => {
 
   it("removes deprecated internal ingress files", () => {
     expect(fileExists("infra/docker/traefik/traefik.yml")).toBe(false);
-    expect(fileExists("infra/docker/traefik/dynamic/middlewares.yml")).toBe(false);
+    expect(fileExists("infra/docker/traefik/dynamic/middlewares.yml")).toBe(
+      false,
+    );
     expect(fileExists("infra/docker/nginx/staging-proxy.conf")).toBe(false);
 
     // Legacy file names sometimes used in older iterations

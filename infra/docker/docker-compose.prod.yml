@@ -29,7 +29,8 @@ services:
   # PgBouncer - Path overrides for production
   # ==========================================================================
   pgbouncer:
-    environment: {}
+    environment:
+      REDIS_MAXMEMORY: ${REDIS_MAXMEMORY:-8gb}
     networks:
       cerniq_data:
         ipv4_address: 172.29.30.11
@@ -50,14 +51,9 @@ services:
         max-file: "3"
 
   # ==========================================================================
-  # OpenBao Agent API - Path overrides + reachable OpenBao address
+  # OpenBao Agent API - Path overrides for production
   # ==========================================================================
-  # VAULT_ADDR from OPENBAO_ADDR (.env) so agents connect to same endpoint as CI;
-  # extra_hosts: [] overrides base (no 10.0.1.10) so staging can reach OpenBao.
   openbao-agent-api:
-    environment:
-      VAULT_ADDR: ${OPENBAO_ADDR}
-    extra_hosts: []
     volumes:
       # Server paths are relative to /opt/cerniq (where compose files are deployed).
       - ./config/openbao/agent-api.hcl:/openbao/config/agent-api.hcl:ro
@@ -72,12 +68,9 @@ services:
         max-file: "3"
 
   # ==========================================================================
-  # OpenBao Agent Workers - Path overrides + reachable OpenBao address
+  # OpenBao Agent Workers - Path overrides for production
   # ==========================================================================
   openbao-agent-workers:
-    environment:
-      VAULT_ADDR: ${OPENBAO_ADDR}
-    extra_hosts: []
     volumes:
       - ./config/openbao/agent-workers.hcl:/openbao/config/agent-workers.hcl:ro
       - ./config/openbao/templates:/openbao/templates:ro
@@ -91,12 +84,9 @@ services:
         max-file: "3"
 
   # ==========================================================================
-  # OpenBao Agent Infra - Path overrides + reachable OpenBao address
+  # OpenBao Agent Infra - Path overrides for production (PgBouncer auth/config)
   # ==========================================================================
   openbao-agent-infra:
-    environment:
-      VAULT_ADDR: ${OPENBAO_ADDR}
-    extra_hosts: []
     volumes:
       - ./config/openbao/agent-infra.hcl:/openbao/config/agent-infra.hcl:ro
       - ./config/openbao/templates:/openbao/templates:ro
@@ -119,63 +109,14 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # ==========================================================================
-  # Application Stack - Production overrides
-  # ==========================================================================
-  cerniq-web:
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "20m"
-        max-file: "3"
-
-  cerniq-api:
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "50m"
-        max-file: "5"
-
-  cerniq-admin:
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "20m"
-        max-file: "3"
-
-  cerniq-monitoring-api:
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "20m"
-        max-file: "3"
+  # vector and otel-collector REMOVED — centralized on orchestrator
+  # See docker-compose.yml comment for rationale.
 
   cadvisor:
     logging:
       driver: "json-file"
       options:
         max-size: "50m"
-        max-file: "3"
-
-  cerniq-worker-ai:
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "20m"
-        max-file: "3"
-
-  cerniq-worker-enrichment:
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "20m"
-        max-file: "3"
-
-  cerniq-worker-outreach:
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "20m"
         max-file: "3"
 
 # =============================================================================

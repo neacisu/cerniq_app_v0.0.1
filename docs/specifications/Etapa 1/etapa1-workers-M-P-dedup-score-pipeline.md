@@ -24,7 +24,10 @@ interface DedupExactJobData {
   correlationId: string;
 }
 
-export const dedupExactHashWorker = createWorker<DedupExactJobData, DedupExactResult>({
+export const dedupExactHashWorker = createWorker<
+  DedupExactJobData,
+  DedupExactResult
+>({
   queueName: "silver:dedup:exact-hash",
   concurrency: 10,
   attempts: 2,
@@ -159,7 +162,10 @@ async function mergeCompanyData(masterId: string, duplicateId: string) {
   }
 
   if (Object.keys(updates).length > 0) {
-    await db.update(silverCompanies).set(updates).where(eq(silverCompanies.id, masterId));
+    await db
+      .update(silverCompanies)
+      .set(updates)
+      .where(eq(silverCompanies.id, masterId));
   }
 }
 ```
@@ -185,7 +191,10 @@ const AUTO_MERGE_THRESHOLD = 0.85; // >= 85% confidence = auto merge
 const HITL_THRESHOLD = 0.7; // 70-85% = HITL review
 const IGNORE_THRESHOLD = 0.7; // < 70% = not duplicate
 
-export const dedupFuzzyWorker = createWorker<DedupFuzzyJobData, DedupFuzzyResult>({
+export const dedupFuzzyWorker = createWorker<
+  DedupFuzzyJobData,
+  DedupFuzzyResult
+>({
   queueName: "silver:dedup:fuzzy-match",
   concurrency: 5,
   attempts: 2,
@@ -233,15 +242,18 @@ export const dedupFuzzyWorker = createWorker<DedupFuzzyJobData, DedupFuzzyResult
         ) / 100;
 
       const addressSimilarity =
-        fuzzball.partial_ratio(company.adresaNormalizata || "", candidate.adresaNormalizata || "") /
-        100;
+        fuzzball.partial_ratio(
+          company.adresaNormalizata || "",
+          candidate.adresaNormalizata || "",
+        ) / 100;
 
       // Phone similarity (if both have phones)
       let phoneSimilarity = 0;
       if (company.telefonPrincipal && candidate.telefonPrincipal) {
         const phoneA = company.telefonPrincipal.replace(/\D/g, "");
         const phoneB = candidate.telefonPrincipal.replace(/\D/g, "");
-        phoneSimilarity = phoneA === phoneB ? 1.0 : fuzzball.ratio(phoneA, phoneB) / 100;
+        phoneSimilarity =
+          phoneA === phoneB ? 1.0 : fuzzball.ratio(phoneA, phoneB) / 100;
       }
 
       // Weighted overall confidence
@@ -306,7 +318,10 @@ export const dedupFuzzyWorker = createWorker<DedupFuzzyJobData, DedupFuzzyResult
         addressSimilarity: bestMatch.scores.address,
         phoneSimilarity: bestMatch.scores.phone,
         overallConfidence: bestMatch.confidence,
-        status: bestMatch.confidence >= AUTO_MERGE_THRESHOLD ? "auto_merged" : "pending_review",
+        status:
+          bestMatch.confidence >= AUTO_MERGE_THRESHOLD
+            ? "auto_merged"
+            : "pending_review",
       })
       .onConflictDoNothing();
 
@@ -326,7 +341,10 @@ export const dedupFuzzyWorker = createWorker<DedupFuzzyJobData, DedupFuzzyResult
       // Merge data
       await mergeCompanyData(bestMatch.candidateId, companyId);
 
-      logger.info({ confidence: bestMatch.confidence }, "Auto-merged fuzzy duplicate");
+      logger.info(
+        { confidence: bestMatch.confidence },
+        "Auto-merged fuzzy duplicate",
+      );
 
       return {
         status: "auto_merged",
@@ -347,13 +365,17 @@ export const dedupFuzzyWorker = createWorker<DedupFuzzyJobData, DedupFuzzyResult
         companyAId: companyId,
         companyBId: bestMatch.candidateId,
         companyAName: company.denumire,
-        companyBName: candidates.find((c) => c.id === bestMatch.candidateId)?.denumire,
+        companyBName: candidates.find((c) => c.id === bestMatch.candidateId)
+          ?.denumire,
         confidence: bestMatch.confidence,
         scores: bestMatch.scores,
       },
     });
 
-    logger.info({ confidence: bestMatch.confidence }, "HITL review created for fuzzy duplicate");
+    logger.info(
+      { confidence: bestMatch.confidence },
+      "HITL review created for fuzzy duplicate",
+    );
 
     return {
       status: "hitl_required",
@@ -425,7 +447,10 @@ const FIELD_WEIGHTS: Record<string, { weight: number; required: boolean }> = {
   culturiPrincipale: { weight: 2, required: false },
 };
 
-export const scoreCompletenessWorker = createWorker<CompletenessJobData, CompletenessResult>({
+export const scoreCompletenessWorker = createWorker<
+  CompletenessJobData,
+  CompletenessResult
+>({
   queueName: "silver:score:completeness",
   concurrency: 20,
   attempts: 2,
@@ -504,7 +529,10 @@ export const scoreCompletenessWorker = createWorker<CompletenessJobData, Complet
 ```typescript
 // apps/workers/src/silver/score-accuracy.worker.ts
 
-export const scoreAccuracyWorker = createWorker<AccuracyJobData, AccuracyResult>({
+export const scoreAccuracyWorker = createWorker<
+  AccuracyJobData,
+  AccuracyResult
+>({
   queueName: "silver:score:accuracy",
   concurrency: 20,
   attempts: 2,
@@ -570,7 +598,9 @@ export const scoreAccuracyWorker = createWorker<AccuracyJobData, AccuracyResult>
     // Data Source Quality (10 points)
     const officialSources = ["anaf_fiscal", "termene_balance", "onrc_data"];
     const completedOfficial =
-      company.enrichmentSourcesCompleted?.filter((s) => officialSources.includes(s)).length || 0;
+      company.enrichmentSourcesCompleted?.filter((s) =>
+        officialSources.includes(s),
+      ).length || 0;
     accuracyPoints += Math.min(10, completedOfficial * 3);
 
     // Data Consistency (10 points)
@@ -601,7 +631,10 @@ export const scoreAccuracyWorker = createWorker<AccuracyJobData, AccuracyResult>
       })
       .where(eq(silverCompanies.id, companyId));
 
-    logger.info({ companyId, score: accuracyScore }, "Accuracy score calculated");
+    logger.info(
+      { companyId, score: accuracyScore },
+      "Accuracy score calculated",
+    );
 
     return {
       status: "success",
@@ -617,7 +650,10 @@ export const scoreAccuracyWorker = createWorker<AccuracyJobData, AccuracyResult>
 ```typescript
 // apps/workers/src/silver/score-freshness.worker.ts
 
-export const scoreFreshnessWorker = createWorker<FreshnessJobData, FreshnessResult>({
+export const scoreFreshnessWorker = createWorker<
+  FreshnessJobData,
+  FreshnessResult
+>({
   queueName: "silver:score:freshness",
   concurrency: 20,
   attempts: 2,
@@ -641,7 +677,8 @@ export const scoreFreshnessWorker = createWorker<FreshnessJobData, FreshnessResu
     // Last enrichment age (40 points max deduction)
     if (company.lastEnrichmentAt) {
       const daysSinceEnrichment = Math.floor(
-        (now.getTime() - company.lastEnrichmentAt.getTime()) / (1000 * 60 * 60 * 24),
+        (now.getTime() - company.lastEnrichmentAt.getTime()) /
+          (1000 * 60 * 60 * 24),
       );
 
       if (daysSinceEnrichment > 180) {
@@ -675,7 +712,8 @@ export const scoreFreshnessWorker = createWorker<FreshnessJobData, FreshnessResu
     // CUI validation age (15 points)
     if (company.cuiValidationDate) {
       const daysSinceValidation = Math.floor(
-        (now.getTime() - company.cuiValidationDate.getTime()) / (1000 * 60 * 60 * 24),
+        (now.getTime() - company.cuiValidationDate.getTime()) /
+          (1000 * 60 * 60 * 24),
       );
 
       if (daysSinceValidation > 365) {
@@ -689,7 +727,8 @@ export const scoreFreshnessWorker = createWorker<FreshnessJobData, FreshnessResu
     // Email validation age (15 points)
     if (company.emailValidatedAt) {
       const daysSinceValidation = Math.floor(
-        (now.getTime() - company.emailValidatedAt.getTime()) / (1000 * 60 * 60 * 24),
+        (now.getTime() - company.emailValidatedAt.getTime()) /
+          (1000 * 60 * 60 * 24),
       );
 
       if (daysSinceValidation > 90) {
@@ -711,7 +750,10 @@ export const scoreFreshnessWorker = createWorker<FreshnessJobData, FreshnessResu
       })
       .where(eq(silverCompanies.id, companyId));
 
-    logger.info({ companyId, score: freshnessScore }, "Freshness score calculated");
+    logger.info(
+      { companyId, score: freshnessScore },
+      "Freshness score calculated",
+    );
 
     return {
       status: "success",
@@ -731,24 +773,26 @@ export const scoreFreshnessWorker = createWorker<FreshnessJobData, FreshnessResu
 ```typescript
 // apps/workers/src/silver/stats-aggregation.worker.ts
 
-export const statsAggregationWorker = createWorker<StatsAggregationJobData, StatsAggregationResult>(
-  {
-    queueName: "silver:aggregate:daily-stats",
-    concurrency: 1, // Single execution
-    attempts: 3,
-    timeout: 300000, // 5 minutes
+export const statsAggregationWorker = createWorker<
+  StatsAggregationJobData,
+  StatsAggregationResult
+>({
+  queueName: "silver:aggregate:daily-stats",
+  concurrency: 1, // Single execution
+  attempts: 3,
+  timeout: 300000, // 5 minutes
 
-    processor: async (job, logger) => {
-      const { tenantId, date } = job.data;
+  processor: async (job, logger) => {
+    const { tenantId, date } = job.data;
 
-      logger.info({ tenantId, date }, "Aggregating daily stats");
+    logger.info({ tenantId, date }, "Aggregating daily stats");
 
-      const targetDate = date ? new Date(date) : new Date();
-      const startOfDay = new Date(targetDate.setHours(0, 0, 0, 0));
-      const endOfDay = new Date(targetDate.setHours(23, 59, 59, 999));
+    const targetDate = date ? new Date(date) : new Date();
+    const startOfDay = new Date(targetDate.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(targetDate.setHours(23, 59, 59, 999));
 
-      // Bronze stats
-      const bronzeStats = await db.execute(sql`
+    // Bronze stats
+    const bronzeStats = await db.execute(sql`
       SELECT 
         COUNT(*) as total,
         COUNT(*) FILTER (WHERE processing_status = 'pending') as pending,
@@ -759,8 +803,8 @@ export const statsAggregationWorker = createWorker<StatsAggregationJobData, Stat
       WHERE tenant_id = ${tenantId}
     `);
 
-      // Silver stats
-      const silverStats = await db.execute(sql`
+    // Silver stats
+    const silverStats = await db.execute(sql`
       SELECT 
         COUNT(*) as total,
         COUNT(*) FILTER (WHERE cui_validated = true) as validated,
@@ -775,8 +819,8 @@ export const statsAggregationWorker = createWorker<StatsAggregationJobData, Stat
         AND is_master_record = true
     `);
 
-      // Gold stats
-      const goldStats = await db.execute(sql`
+    // Gold stats
+    const goldStats = await db.execute(sql`
       SELECT 
         COUNT(*) as total,
         COUNT(*) FILTER (WHERE created_at >= ${startOfDay}) as today_promoted,
@@ -788,8 +832,8 @@ export const statsAggregationWorker = createWorker<StatsAggregationJobData, Stat
       WHERE tenant_id = ${tenantId}
     `);
 
-      // Enrichment queue stats
-      const queueStats = await db.execute(sql`
+    // Enrichment queue stats
+    const queueStats = await db.execute(sql`
       SELECT 
         COUNT(*) FILTER (WHERE enrichment_status = 'pending') as pending,
         COUNT(*) FILTER (WHERE enrichment_status = 'in_progress') as processing,
@@ -798,8 +842,8 @@ export const statsAggregationWorker = createWorker<StatsAggregationJobData, Stat
       WHERE tenant_id = ${tenantId}
     `);
 
-      // HITL stats
-      const hitlStats = await db.execute(sql`
+    // HITL stats
+    const hitlStats = await db.execute(sql`
       SELECT 
         COUNT(*) FILTER (WHERE status = 'pending') as pending,
         COUNT(*) FILTER (WHERE status = 'pending' AND due_at < NOW()) as overdue,
@@ -810,53 +854,52 @@ export const statsAggregationWorker = createWorker<StatsAggregationJobData, Stat
         AND pipeline_stage = 'E1'
     `);
 
-      // Store aggregated stats
-      await db
-        .insert(dailyStats)
-        .values({
-          tenantId,
-          date: startOfDay,
+    // Store aggregated stats
+    await db
+      .insert(dailyStats)
+      .values({
+        tenantId,
+        date: startOfDay,
+        bronzeTotal: bronzeStats[0].total,
+        bronzePending: bronzeStats[0].pending,
+        bronzePromoted: bronzeStats[0].promoted,
+        bronzeTodayIngested: bronzeStats[0].today_ingested,
+        silverTotal: silverStats[0].total,
+        silverValidated: silverStats[0].validated,
+        silverEnriched: silverStats[0].enriched,
+        silverEligible: silverStats[0].eligible,
+        silverAvgQuality: silverStats[0].avg_quality,
+        goldTotal: goldStats[0].total,
+        goldTodayPromoted: goldStats[0].today_promoted,
+        goldAvgLeadScore: goldStats[0].avg_lead_score,
+        queuePending: queueStats[0].pending,
+        queueProcessing: queueStats[0].processing,
+        hitlPending: hitlStats[0].pending,
+        hitlOverdue: hitlStats[0].overdue,
+        hitlAvgResolutionHours: hitlStats[0].avg_resolution_hours,
+      })
+      .onConflictDoUpdate({
+        target: [dailyStats.tenantId, dailyStats.date],
+        set: {
+          // Update all fields
           bronzeTotal: bronzeStats[0].total,
-          bronzePending: bronzeStats[0].pending,
-          bronzePromoted: bronzeStats[0].promoted,
-          bronzeTodayIngested: bronzeStats[0].today_ingested,
-          silverTotal: silverStats[0].total,
-          silverValidated: silverStats[0].validated,
-          silverEnriched: silverStats[0].enriched,
-          silverEligible: silverStats[0].eligible,
-          silverAvgQuality: silverStats[0].avg_quality,
-          goldTotal: goldStats[0].total,
-          goldTodayPromoted: goldStats[0].today_promoted,
-          goldAvgLeadScore: goldStats[0].avg_lead_score,
-          queuePending: queueStats[0].pending,
-          queueProcessing: queueStats[0].processing,
-          hitlPending: hitlStats[0].pending,
-          hitlOverdue: hitlStats[0].overdue,
-          hitlAvgResolutionHours: hitlStats[0].avg_resolution_hours,
-        })
-        .onConflictDoUpdate({
-          target: [dailyStats.tenantId, dailyStats.date],
-          set: {
-            // Update all fields
-            bronzeTotal: bronzeStats[0].total,
-            // ... etc
-            updatedAt: new Date(),
-          },
-        });
-
-      logger.info({ tenantId, date: startOfDay }, "Daily stats aggregated");
-
-      return {
-        status: "success",
-        stats: {
-          bronze: bronzeStats[0],
-          silver: silverStats[0],
-          gold: goldStats[0],
+          // ... etc
+          updatedAt: new Date(),
         },
-      };
-    },
+      });
+
+    logger.info({ tenantId, date: startOfDay }, "Daily stats aggregated");
+
+    return {
+      status: "success",
+      stats: {
+        bronze: bronzeStats[0],
+        silver: silverStats[0],
+        gold: goldStats[0],
+      },
+    };
   },
-);
+});
 ```
 
 ## 3.2 O.2 - Quality Rollup Worker
@@ -864,7 +907,10 @@ export const statsAggregationWorker = createWorker<StatsAggregationJobData, Stat
 ```typescript
 // apps/workers/src/silver/quality-rollup.worker.ts
 
-export const qualityRollupWorker = createWorker<QualityRollupJobData, QualityRollupResult>({
+export const qualityRollupWorker = createWorker<
+  QualityRollupJobData,
+  QualityRollupResult
+>({
   queueName: "silver:aggregate:quality-rollup",
   concurrency: 10,
   attempts: 2,
@@ -975,7 +1021,8 @@ function getBlockedReason(company: any, score: number): string {
   if (score < 40) return "Quality score too low (< 40)";
   if (!company.cuiValidated) return "CUI not validated";
   if (company.inInsolventa) return "Company in insolvency";
-  if (company.statusFirma !== "ACTIVA") return `Company status: ${company.statusFirma}`;
+  if (company.statusFirma !== "ACTIVA")
+    return `Company status: ${company.statusFirma}`;
   return "Does not meet promotion criteria";
 }
 ```
@@ -1001,7 +1048,10 @@ interface OrchestratorJobData {
   correlationId: string;
 }
 
-export const pipelineOrchestratorWorker = createWorker<OrchestratorJobData, OrchestratorResult>({
+export const pipelineOrchestratorWorker = createWorker<
+  OrchestratorJobData,
+  OrchestratorResult
+>({
   queueName: "pipeline:orchestrate",
   concurrency: 20,
   attempts: 3,
@@ -1060,7 +1110,11 @@ export const pipelineOrchestratorWorker = createWorker<OrchestratorJobData, Orch
             companyId,
             cui: company.cui,
           });
-          jobsTriggered.push("termene_balance", "termene_risk", "termene_dosare");
+          jobsTriggered.push(
+            "termene_balance",
+            "termene_risk",
+            "termene_dosare",
+          );
 
           // ONRC enrichment
           await onrcQueues.data.add("enrich", {
@@ -1098,7 +1152,9 @@ export const pipelineOrchestratorWorker = createWorker<OrchestratorJobData, Orch
         // Check if all enrichment sources complete
         const requiredSources = ["anaf_fiscal", "termene_balance"];
         const completedSources = company.enrichmentSourcesCompleted || [];
-        const allRequired = requiredSources.every((s) => completedSources.includes(s));
+        const allRequired = requiredSources.every((s) =>
+          completedSources.includes(s),
+        );
 
         if (allRequired) {
           // Trigger deduplication
@@ -1109,7 +1165,11 @@ export const pipelineOrchestratorWorker = createWorker<OrchestratorJobData, Orch
           await scoreQueues.completeness.add("score", { tenantId, companyId });
           await scoreQueues.accuracy.add("score", { tenantId, companyId });
           await scoreQueues.freshness.add("score", { tenantId, companyId });
-          jobsTriggered.push("score_completeness", "score_accuracy", "score_freshness");
+          jobsTriggered.push(
+            "score_completeness",
+            "score_accuracy",
+            "score_freshness",
+          );
 
           // Update enrichment status
           await db
@@ -1132,7 +1192,10 @@ export const pipelineOrchestratorWorker = createWorker<OrchestratorJobData, Orch
         break;
     }
 
-    logger.info({ companyId, stage, triggered: jobsTriggered }, "Pipeline orchestration complete");
+    logger.info(
+      { companyId, stage, triggered: jobsTriggered },
+      "Pipeline orchestration complete",
+    );
 
     return {
       status: "success",
@@ -1317,7 +1380,10 @@ function calculateInitialFitScore(company: any): number {
 ```typescript
 // apps/workers/src/pipeline/monitor.worker.ts
 
-export const pipelineMonitorWorker = createWorker<MonitorJobData, MonitorResult>({
+export const pipelineMonitorWorker = createWorker<
+  MonitorJobData,
+  MonitorResult
+>({
   queueName: "pipeline:monitor",
   concurrency: 1,
   attempts: 2,
@@ -1412,16 +1478,29 @@ export const pipelineMonitorWorker = createWorker<MonitorJobData, MonitorResult>
 ```typescript
 // apps/workers/src/pipeline/error-handler.worker.ts
 
-export const errorHandlerWorker = createWorker<ErrorHandlerJobData, ErrorHandlerResult>({
+export const errorHandlerWorker = createWorker<
+  ErrorHandlerJobData,
+  ErrorHandlerResult
+>({
   queueName: "pipeline:error-handler",
   concurrency: 10,
   attempts: 1, // No retry for error handler
   timeout: 30000,
 
   processor: async (job, logger) => {
-    const { tenantId, companyId, errorType, errorMessage, sourceWorker, jobId } = job.data;
+    const {
+      tenantId,
+      companyId,
+      errorType,
+      errorMessage,
+      sourceWorker,
+      jobId,
+    } = job.data;
 
-    logger.info({ companyId, errorType, sourceWorker }, "Handling pipeline error");
+    logger.info(
+      { companyId, errorType, sourceWorker },
+      "Handling pipeline error",
+    );
 
     // Log error
     await db.insert(pipelineErrors).values({

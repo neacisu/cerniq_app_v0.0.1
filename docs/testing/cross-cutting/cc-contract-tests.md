@@ -39,7 +39,9 @@ describe("Companies API Contract", () => {
       .given("companies exist")
       .uponReceiving("a request for companies list")
       .withRequest("GET", "/api/v1/companies", (builder) => {
-        builder.query({ page: "1", limit: "10" }).headers({ Authorization: like("Bearer token") });
+        builder
+          .query({ page: "1", limit: "10" })
+          .headers({ Authorization: like("Bearer token") });
       })
       .willRespondWith(200, (builder) => {
         builder.headers({ "Content-Type": "application/json" }).jsonBody({
@@ -58,9 +60,10 @@ describe("Companies API Contract", () => {
         });
       })
       .executeTest(async (mockServer) => {
-        const response = await fetch(`${mockServer.url}/api/v1/companies?page=1&limit=10`, {
-          headers: { Authorization: "Bearer test" },
-        });
+        const response = await fetch(
+          `${mockServer.url}/api/v1/companies?page=1&limit=10`,
+          { headers: { Authorization: "Bearer test" } },
+        );
 
         expect(response.status).toBe(200);
         const data = await response.json();

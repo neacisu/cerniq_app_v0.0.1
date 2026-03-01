@@ -115,7 +115,8 @@ interface ConsentProcessPayload {
 export const referralConsentProcessWorker = new Worker<ConsentProcessPayload>(
   "referral",
   async (job: Job<ConsentProcessPayload>) => {
-    const { tenantId, referralId, responseType, contactDetails, messageId } = job.data;
+    const { tenantId, referralId, responseType, contactDetails, messageId } =
+      job.data;
 
     if (responseType === "APPROVED") {
       // Update referral with consent and contact details
@@ -213,7 +214,8 @@ export const winbackCampaignCreateWorker = new Worker<CampaignCreatePayload>(
         { day: 7, action: "OFFER_EMAIL", channel: "EMAIL" },
         {
           day: 14,
-          action: campaignType === "PERSONAL_CALL" ? "PHONE_CALL" : "FINAL_EMAIL",
+          action:
+            campaignType === "PERSONAL_CALL" ? "PHONE_CALL" : "FINAL_EMAIL",
           channel: campaignType === "PERSONAL_CALL" ? "PHONE" : "EMAIL",
         },
       ],
@@ -405,7 +407,10 @@ export const ouaiParseWorker = new Worker<OuaiParsePayload>(
         sourceDocumentDate: new Date(),
       })
       .onConflictDoUpdate({
-        target: [goldAssociations.associationNameNormalized, goldAssociations.associationType],
+        target: [
+          goldAssociations.associationNameNormalized,
+          goldAssociations.associationType,
+        ],
         set: {
           declaredAreaHa: ouaiData.area_net,
           updatedAt: new Date(),

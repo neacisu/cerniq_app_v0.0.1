@@ -1,43 +1,10 @@
-# =============================================================================
-# Trivy Ignore Rules — Cerniq.app
-# =============================================================================
-# Self-hosted runner artifacts (not in repository, present on disk only):
-#   - secrets/ssh/*  — deploy keys managed outside git (.gitignore)
-#   - .pnpm-store/*  — pnpm content-addressable cache
-#
-# These are excluded via skip-dirs in ci-pr.yml; this file serves as
-# documentation and catch-all for any residual false-positives.
-# =============================================================================
+# Vulnerabilities in npm bundled with the official Node.js Docker image.
+# These are NOT in our application code — they exist in /usr/local/lib/node_modules/npm/.
+# We accept the risk until the Node.js image maintainers release a patched build.
+# Reviewed: 2026-02-20
 
-# =============================================================================
-# Base image: node:25.6.1-alpine3.23 (latest as of 2026-02-22)
-# =============================================================================
-
-# --- Go stdlib CVEs (gobinary) -----------------------------------------------
-# From compiled Go binaries in Alpine OS packages. Not application code.
-# Resolved when Alpine rebuilds packages with a patched Go toolchain.
-CVE-2023-39325
-CVE-2023-44487
-CVE-2023-45283
-CVE-2023-45288
-CVE-2024-24790
-CVE-2024-34156
-CVE-2025-47907
-CVE-2025-58183
-CVE-2025-61726
-CVE-2025-61728
-CVE-2025-61729
-CVE-2025-61730
-CVE-2025-68121
-
-# --- npm bundled dependency CVEs (node-pkg) ----------------------------------
-# From npm's own deps at usr/local/lib/node_modules/npm/node_modules/.
-# Also excluded via --skip-dirs in deploy.yml as defense-in-depth.
+# minimatch ReDoS in npm's bundled copy (fixed in minimatch >=10.2.1)
 CVE-2026-26996
-CVE-2026-26960
 
-# --- minimatch (transitive în imagini Docker) --------------------------------
-# Lockfile-ul are override 10.2.3; unele imagini mai au 9.0.5 în node_modules.
-# Fix: 9.0.7 / 10.2.3. Ignorăm la scan imagini până la rebuild complet.
-CVE-2026-27903
-CVE-2026-27904
+# tar path traversal in npm's bundled copy (fixed in tar >=7.5.8)
+CVE-2026-26960

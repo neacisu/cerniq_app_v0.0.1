@@ -282,14 +282,17 @@ describe("F0.7: Server Integration Tests", () => {
       expect(version).toMatch(/borg\s+\d+\.\d+/i);
     });
 
-    it.skipIf(!CAN_REACH_STORAGE_BOX)("should be able to reach Storage Box", () => {
-      // Test SSH connectivity (with timeout)
-      // Skip this test if Storage Box SSH keys are not configured
-      const result = exec(
-        `ssh -o ConnectTimeout=5 -o BatchMode=yes -p ${STORAGE_BOX_PORT} ${STORAGE_BOX_USER}@${STORAGE_BOX_HOST} echo ok 2>/dev/null || echo fail`,
-      );
-      expect(result).toBe("ok");
-    });
+    it.skipIf(!CAN_REACH_STORAGE_BOX)(
+      "should be able to reach Storage Box",
+      () => {
+        // Test SSH connectivity (with timeout)
+        // Skip this test if Storage Box SSH keys are not configured
+        const result = exec(
+          `ssh -o ConnectTimeout=5 -o BatchMode=yes -p ${STORAGE_BOX_PORT} ${STORAGE_BOX_USER}@${STORAGE_BOX_HOST} echo ok 2>/dev/null || echo fail`,
+        );
+        expect(result).toBe("ok");
+      },
+    );
   });
 
   describe("PostgreSQL WAL Tests (Server Required)", () => {
@@ -314,7 +317,9 @@ describe("F0.7: Server Integration Tests", () => {
   describe("Cron Job Tests (Server Required)", () => {
     itServer("should have backup cron job scheduled", () => {
       const cronContent = exec("crontab -l 2>/dev/null || echo ''");
-      const systemdTimers = exec("systemctl list-timers --all 2>/dev/null || echo ''");
+      const systemdTimers = exec(
+        "systemctl list-timers --all 2>/dev/null || echo ''",
+      );
 
       const hasBackupSchedule =
         cronContent.includes("borg_backup") ||
