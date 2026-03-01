@@ -150,9 +150,7 @@ interface WorkerConfig<T, R> {
   onFailed?: (job: Job<T>, error: Error) => Promise<void>;
 }
 
-export function createOutreachWorker<T = any, R = any>(
-  config: WorkerConfig<T, R>,
-): Worker<T, R> {
+export function createOutreachWorker<T = any, R = any>(config: WorkerConfig<T, R>): Worker<T, R> {
   const worker = new Worker<T, R>(
     config.queueName,
     async (job) => {

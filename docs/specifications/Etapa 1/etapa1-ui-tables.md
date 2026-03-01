@@ -105,8 +105,7 @@ export function DataTable<TData, TValue>({
 }: DataTableProps<TData, TValue>) {
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
-  const [internalRowSelection, setInternalRowSelection] =
-    useState<RowSelectionState>({});
+  const [internalRowSelection, setInternalRowSelection] = useState<RowSelectionState>({});
 
   // Controlled sorting
   const [internalSorting, setInternalSorting] = useState<SortingState>([]);
@@ -126,8 +125,7 @@ export function DataTable<TData, TValue>({
     },
     enableRowSelection: rowSelection?.enabled,
     onSortingChange: (updater) => {
-      const newSorting =
-        typeof updater === "function" ? updater(internalSorting) : updater;
+      const newSorting = typeof updater === "function" ? updater(internalSorting) : updater;
       setInternalSorting(newSorting);
 
       if (sorting?.setSorters) {
@@ -142,8 +140,7 @@ export function DataTable<TData, TValue>({
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: (updater) => {
-      const newSelection =
-        typeof updater === "function" ? updater(internalRowSelection) : updater;
+      const newSelection = typeof updater === "function" ? updater(internalRowSelection) : updater;
       setInternalRowSelection(newSelection);
       rowSelection?.onSelectionChange(newSelection);
     },
@@ -178,18 +175,14 @@ export function DataTable<TData, TValue>({
                   <TableHead
                     key={header.id}
                     className={cn(
-                      header.column.getCanSort() &&
-                        "cursor-pointer select-none hover:bg-gray-50",
+                      header.column.getCanSort() && "cursor-pointer select-none hover:bg-gray-50",
                     )}
                     onClick={header.column.getToggleSortingHandler()}
                   >
                     <div className="flex items-center gap-2">
                       {header.isPlaceholder
                         ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext(),
-                          )}
+                        : flexRender(header.column.columnDef.header, header.getContext())}
                       {header.column.getIsSorted() && (
                         <span className="text-primary-500">
                           {header.column.getIsSorted() === "desc" ? "↓" : "↑"}
@@ -212,32 +205,22 @@ export function DataTable<TData, TValue>({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
-                  className={cn(
-                    onRowClick && "cursor-pointer hover:bg-gray-50",
-                  )}
+                  className={cn(onRowClick && "cursor-pointer hover:bg-gray-50")}
                   onClick={() => onRowClick?.(row.original)}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext(),
-                      )}
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-48 text-center"
-                >
+                <TableCell colSpan={columns.length} className="h-48 text-center">
                   <EmptyState
                     title={emptyState?.title || "No results"}
-                    description={
-                      emptyState?.description || "No data to display"
-                    }
+                    description={emptyState?.description || "No data to display"}
                     icon={emptyState?.icon}
                     action={emptyState?.action}
                   />
@@ -312,9 +295,7 @@ export function DataTablePagination({
     <div className="flex items-center justify-between px-2">
       <div className="flex items-center gap-4 text-sm text-gray-600">
         {selectedCount !== undefined && selectedCount > 0 && (
-          <span className="font-medium text-primary-600">
-            {selectedCount} selected
-          </span>
+          <span className="font-medium text-primary-600">{selectedCount} selected</span>
         )}
         <span>
           Showing {startItem} to {endItem} of {total.toLocaleString()} results
@@ -405,10 +386,7 @@ export function DataTablePagination({
   );
 }
 
-function generatePageNumbers(
-  current: number,
-  total: number,
-): (number | "...")[] {
+function generatePageNumbers(current: number, total: number): (number | "...")[] {
   if (total <= 7) {
     return Array.from({ length: total }, (_, i) => i + 1);
   }
@@ -552,9 +530,7 @@ export const bronzeContactsColumns: ColumnDef<BronzeContact>[] = [
     header: "Name",
     cell: ({ row }) => (
       <div className="font-medium">
-        {row.original.extractedName || (
-          <span className="text-gray-400 italic">Not extracted</span>
-        )}
+        {row.original.extractedName || <span className="text-gray-400 italic">Not extracted</span>}
       </div>
     ),
   },
@@ -580,9 +556,7 @@ export const bronzeContactsColumns: ColumnDef<BronzeContact>[] = [
   {
     accessorKey: "sourceType",
     header: "Source",
-    cell: ({ row }) => (
-      <Badge variant="outline">{row.original.sourceType}</Badge>
-    ),
+    cell: ({ row }) => <Badge variant="outline">{row.original.sourceType}</Badge>,
   },
   {
     accessorKey: "processingStatus",
@@ -648,9 +622,7 @@ export const silverCompaniesColumns: ColumnDef<SilverCompany>[] = [
       <div>
         <div className="font-medium">{row.original.denumire}</div>
         <div className="text-sm text-gray-500 flex items-center gap-2">
-          <code className="bg-gray-100 px-1 rounded text-xs">
-            {row.original.cui}
-          </code>
+          <code className="bg-gray-100 px-1 rounded text-xs">{row.original.cui}</code>
           {row.original.cuiValidated && (
             <Badge variant="success" className="text-xs">
               Validated
@@ -675,26 +647,18 @@ export const silverCompaniesColumns: ColumnDef<SilverCompany>[] = [
     header: "Status",
     cell: ({ row }) => {
       const status = row.original.statusFirma;
-      return (
-        <Badge variant={status === "ACTIVA" ? "success" : "destructive"}>
-          {status}
-        </Badge>
-      );
+      return <Badge variant={status === "ACTIVA" ? "success" : "destructive"}>{status}</Badge>;
     },
   },
   {
     accessorKey: "enrichmentStatus",
     header: "Enrichment",
-    cell: ({ row }) => (
-      <EnrichmentStatusBadge status={row.original.enrichmentStatus as any} />
-    ),
+    cell: ({ row }) => <EnrichmentStatusBadge status={row.original.enrichmentStatus as any} />,
   },
   {
     accessorKey: "totalQualityScore",
     header: "Quality",
-    cell: ({ row }) => (
-      <QualityScoreBadge score={row.original.totalQualityScore} />
-    ),
+    cell: ({ row }) => <QualityScoreBadge score={row.original.totalQualityScore} />,
   },
   {
     accessorKey: "promotionStatus",
@@ -765,9 +729,7 @@ export const goldCompaniesColumns: ColumnDef<GoldCompany>[] = [
     cell: ({ row }) => (
       <div className="flex items-center gap-3">
         <Avatar className="h-10 w-10 bg-gold-100 text-gold-700">
-          <AvatarFallback>
-            {row.original.denumire.slice(0, 2).toUpperCase()}
-          </AvatarFallback>
+          <AvatarFallback>{row.original.denumire.slice(0, 2).toUpperCase()}</AvatarFallback>
         </Avatar>
         <div>
           <div className="font-medium">{row.original.denumire}</div>
@@ -904,9 +866,7 @@ export function BulkActionBar({ count, actions, onClear }: BulkActionBarProps) {
             <Button
               key={i}
               size="sm"
-              variant={
-                action.variant === "destructive" ? "destructive" : "secondary"
-              }
+              variant={action.variant === "destructive" ? "destructive" : "secondary"}
               onClick={action.onClick}
               disabled={action.disabled}
             >
@@ -942,11 +902,7 @@ export function BulkActionBar({ count, actions, onClear }: BulkActionBarProps) {
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ChevronDownIcon, XIcon } from "lucide-react";
 
@@ -963,12 +919,7 @@ interface MultiSelectFilterProps {
   onChange: (values: string[]) => void;
 }
 
-export function MultiSelectFilter({
-  title,
-  options,
-  selected,
-  onChange,
-}: MultiSelectFilterProps) {
+export function MultiSelectFilter({ title, options, selected, onChange }: MultiSelectFilterProps) {
   const [open, setOpen] = useState(false);
 
   const handleToggle = (value: string) => {
@@ -1041,11 +992,7 @@ export function MultiSelectFilter({
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { DateRange } from "react-day-picker";
@@ -1056,11 +1003,7 @@ interface DateRangeFilterProps {
   presets?: { label: string; range: DateRange }[];
 }
 
-export function DateRangeFilter({
-  value,
-  onChange,
-  presets,
-}: DateRangeFilterProps) {
+export function DateRangeFilter({ value, onChange, presets }: DateRangeFilterProps) {
   const [open, setOpen] = useState(false);
 
   const defaultPresets = [
@@ -1084,11 +1027,7 @@ export function DateRangeFilter({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-9 min-w-[200px] justify-start"
-        >
+        <Button variant="outline" size="sm" className="h-9 min-w-[200px] justify-start">
           <CalendarIcon className="mr-2 h-4 w-4" />
           {value?.from ? (
             value.to ? (
@@ -1121,12 +1060,7 @@ export function DateRangeFilter({
               </Button>
             ))}
           </div>
-          <Calendar
-            mode="range"
-            selected={value}
-            onSelect={onChange}
-            numberOfMonths={2}
-          />
+          <Calendar mode="range" selected={value} onSelect={onChange} numberOfMonths={2} />
         </div>
       </PopoverContent>
     </Popover>

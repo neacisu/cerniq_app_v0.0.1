@@ -14,7 +14,7 @@ log_level = "info"
 # Auto-Auth Configuration
 # =============================================================================
 # AppRole authentication method
-# role_id is static, secret_id rotates monthly
+# role_id is static, secret_id is rotated automatically by CD pipeline on each deploy
 # =============================================================================
 
 auto_auth {
@@ -60,10 +60,7 @@ vault {
 template {
   source      = "/openbao/templates/workers-env.tpl"
   destination = "/secrets/workers.env"
-  perms       = 0600
-  
-  # Send HUP signal to Python workers for graceful reload
-  command     = "pkill -HUP python3 2>/dev/null || true"
+  perms       = 0644
   
   # Error handling
   error_on_missing_key = true
@@ -79,7 +76,7 @@ template {
 template {
   source      = "/openbao/templates/pg-password-workers.tpl"
   destination = "/secrets/pg_password"
-  perms       = 0600
+  perms       = 0644
   
   # Don't fail if database engine not yet configured
   error_on_missing_key = false

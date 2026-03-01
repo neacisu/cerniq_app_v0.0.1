@@ -131,9 +131,7 @@ describe("RLS Security Tests", () => {
     it("should prevent UUID enumeration", async () => {
       const responses = await Promise.all(
         Array.from({ length: 100 }, () =>
-          api
-            .get(`/api/v1/companies/${uuidv4()}`)
-            .set("Authorization", `Bearer ${token}`),
+          api.get(`/api/v1/companies/${uuidv4()}`).set("Authorization", `Bearer ${token}`),
         ),
       );
 
@@ -162,9 +160,7 @@ describe("RLS Security Tests", () => {
       ];
 
       for (const endpoint of adminEndpoints) {
-        const response = await api
-          .get(endpoint)
-          .set("Authorization", `Bearer ${regularUserToken}`);
+        const response = await api.get(endpoint).set("Authorization", `Bearer ${regularUserToken}`);
 
         expect(response.status).toBe(403);
       }
@@ -242,9 +238,7 @@ describe("XSS Prevention", () => {
         .send({ denumire: payload });
 
       // Retrieve and verify escaped
-      const response = await api
-        .get("/api/v1/companies")
-        .set("Authorization", `Bearer ${token}`);
+      const response = await api.get("/api/v1/companies").set("Authorization", `Bearer ${token}`);
 
       const html = JSON.stringify(response.body);
       expect(html).not.toContain("<script>");
@@ -254,19 +248,16 @@ describe("XSS Prevention", () => {
   });
 
   describe("Reflected XSS", () => {
-    it.each(xssPayloads)(
-      "should escape in error messages: %s",
-      async (payload) => {
-        const response = await api
-          .get("/api/v1/companies")
-          .query({ search: payload })
-          .set("Authorization", `Bearer ${token}`);
+    it.each(xssPayloads)("should escape in error messages: %s", async (payload) => {
+      const response = await api
+        .get("/api/v1/companies")
+        .query({ search: payload })
+        .set("Authorization", `Bearer ${token}`);
 
-        // Error message should not reflect unescaped
-        const body = JSON.stringify(response.body);
-        expect(body).not.toContain("<script>");
-      },
-    );
+      // Error message should not reflect unescaped
+      const body = JSON.stringify(response.body);
+      expect(body).not.toContain("<script>");
+    });
   });
 });
 ```
@@ -324,9 +315,7 @@ describe("Security Headers", () => {
   it("should have Strict-Transport-Security", () => {
     const hsts = response.headers.get("strict-transport-security");
     expect(hsts).toContain("max-age=");
-    expect(parseInt(hsts.match(/max-age=(\d+)/)?.[1] || "0")).toBeGreaterThan(
-      31536000,
-    );
+    expect(parseInt(hsts.match(/max-age=(\d+)/)?.[1] || "0")).toBeGreaterThan(31536000);
   });
 
   it("should have Content-Security-Policy", () => {
@@ -344,9 +333,7 @@ describe("Security Headers", () => {
     });
 
     // Should NOT allow arbitrary origins
-    expect(corsResponse.headers.get("access-control-allow-origin")).not.toBe(
-      "https://evil.com",
-    );
+    expect(corsResponse.headers.get("access-control-allow-origin")).not.toBe("https://evil.com");
   });
 });
 ```
@@ -485,19 +472,13 @@ describe("Brute Force Protection", () => {
     const nonExistingEmail = "nonexistent@cerniq.app";
 
     const [existingResponse, nonExistingResponse] = await Promise.all([
-      api
-        .post("/api/v1/auth/login")
-        .send({ email: existingEmail, password: "wrong" }),
-      api
-        .post("/api/v1/auth/login")
-        .send({ email: nonExistingEmail, password: "wrong" }),
+      api.post("/api/v1/auth/login").send({ email: existingEmail, password: "wrong" }),
+      api.post("/api/v1/auth/login").send({ email: nonExistingEmail, password: "wrong" }),
     ]);
 
     // Same response to prevent enumeration
     expect(existingResponse.status).toBe(nonExistingResponse.status);
-    expect(existingResponse.body.message).toBe(
-      nonExistingResponse.body.message,
-    );
+    expect(existingResponse.body.message).toBe(nonExistingResponse.body.message);
   });
 });
 ```

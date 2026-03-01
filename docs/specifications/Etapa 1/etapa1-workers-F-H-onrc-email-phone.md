@@ -60,9 +60,7 @@ export const onrcDataWorker = createWorker<OnrcDataJobData, OnrcDataResult>({
       const updateData: Partial<typeof silverCompanies.$inferInsert> = {
         // Registration data
         nrRegCom: response.numar_registru || nrRegCom,
-        dataInfiintare: response.data_infiintare
-          ? new Date(response.data_infiintare)
-          : undefined,
+        dataInfiintare: response.data_infiintare ? new Date(response.data_infiintare) : undefined,
         formaJuridica: response.forma_juridica || undefined,
         capitalSocial: response.capital_social || undefined,
 
@@ -92,10 +90,7 @@ export const onrcDataWorker = createWorker<OnrcDataJobData, OnrcDataResult>({
         if (updateData[key] !== undefined) fieldsUpdated.push(key);
       });
 
-      await db
-        .update(silverCompanies)
-        .set(updateData)
-        .where(eq(silverCompanies.id, companyId));
+      await db.update(silverCompanies).set(updateData).where(eq(silverCompanies.id, companyId));
 
       await db.insert(silverEnrichmentLog).values({
         tenantId,
@@ -176,10 +171,7 @@ function mapJudetToCode(judet: string): string | undefined {
 ```typescript
 // apps/workers/src/silver/onrc-administratori.worker.ts
 
-export const onrcAdministratoriWorker = createWorker<
-  OnrcAdminJobData,
-  OnrcAdminResult
->({
+export const onrcAdministratoriWorker = createWorker<OnrcAdminJobData, OnrcAdminResult>({
   queueName: "silver:enrich:onrc-administratori",
   concurrency: 5,
   limiter: { max: 10, duration: 1000 },
@@ -214,22 +206,14 @@ export const onrcAdministratoriWorker = createWorker<
             role: admin.functie || "ADMINISTRATOR",
             cnp: admin.cnp ? maskCNP(admin.cnp) : undefined, // Masked for GDPR
             cetatenie: admin.cetatenie || "ROMANA",
-            dataNumire: admin.data_numire
-              ? new Date(admin.data_numire)
-              : undefined,
+            dataNumire: admin.data_numire ? new Date(admin.data_numire) : undefined,
             puteri: admin.puteri || undefined,
             sourceData: { source: "onrc", raw: admin },
           })
           .onConflictDoUpdate({
-            target: [
-              silverContacts.silverCompanyId,
-              silverContacts.fullName,
-              silverContacts.role,
-            ],
+            target: [silverContacts.silverCompanyId, silverContacts.fullName, silverContacts.role],
             set: {
-              dataNumire: admin.data_numire
-                ? new Date(admin.data_numire)
-                : undefined,
+              dataNumire: admin.data_numire ? new Date(admin.data_numire) : undefined,
               puteri: admin.puteri,
               updatedAt: new Date(),
             },
@@ -258,10 +242,7 @@ export const onrcAdministratoriWorker = createWorker<
         })
         .where(eq(silverCompanies.id, companyId));
 
-      logger.info(
-        { cui, count: administratori.length },
-        "Administratori updated",
-      );
+      logger.info({ cui, count: administratori.length }, "Administratori updated");
 
       return { status: "success", count: administratori.length };
     } catch (error) {
@@ -322,10 +303,7 @@ export const onrcSediiWorker = createWorker<OnrcSediiJobData, OnrcSediiResult>({
             activ: sediu.activ !== false,
           })
           .onConflictDoUpdate({
-            target: [
-              silverCompanyLocations.silverCompanyId,
-              silverCompanyLocations.adresaCompleta,
-            ],
+            target: [silverCompanyLocations.silverCompanyId, silverCompanyLocations.adresaCompleta],
             set: { activ: sediu.activ !== false, updatedAt: new Date() },
           });
       }
@@ -393,10 +371,7 @@ interface HunterEmailJobData {
 }
 
 // Rate limit: 15 requests/second for Hunter.io
-export const hunterEmailFinderWorker = createWorker<
-  HunterEmailJobData,
-  HunterEmailResult
->({
+export const hunterEmailFinderWorker = createWorker<HunterEmailJobData, HunterEmailResult>({
   queueName: "silver:enrich:hunter-email-finder",
   concurrency: 5,
   limiter: { max: 15, duration: 1000 },
@@ -443,9 +418,7 @@ export const hunterEmailFinderWorker = createWorker<
             emailVerified: emailData.verification?.status === "valid",
             emailConfidence: emailData.confidence || 0,
             fullName:
-              [emailData.first_name, emailData.last_name]
-                .filter(Boolean)
-                .join(" ") || undefined,
+              [emailData.first_name, emailData.last_name].filter(Boolean).join(" ") || undefined,
             firstName: emailData.first_name || undefined,
             lastName: emailData.last_name || undefined,
             role: emailData.position || emailData.department || undefined,
@@ -466,9 +439,7 @@ export const hunterEmailFinderWorker = createWorker<
 
       // Update company with best email
       const bestEmail = emails
-        .filter(
-          (e) => e.verification?.status === "valid" && !isGenericEmail(e.value),
-        )
+        .filter((e) => e.verification?.status === "valid" && !isGenericEmail(e.value))
         .sort((a, b) => (b.confidence || 0) - (a.confidence || 0))[0];
 
       if (bestEmail) {
@@ -498,10 +469,7 @@ export const hunterEmailFinderWorker = createWorker<
         })
         .where(eq(silverCompanies.id, companyId));
 
-      logger.info(
-        { domain, found: emails.length, stored: storedCount },
-        "Hunter search complete",
-      );
+      logger.info({ domain, found: emails.length, stored: storedCount }, "Hunter search complete");
 
       return {
         status: "success",
@@ -543,10 +511,7 @@ function isGenericEmail(email: string): boolean {
 ```typescript
 // apps/workers/src/silver/zerobounce-validation.worker.ts
 
-export const zerobounceValidationWorker = createWorker<
-  ZerobounceJobData,
-  ZerobounceResult
->({
+export const zerobounceValidationWorker = createWorker<ZerobounceJobData, ZerobounceResult>({
   queueName: "silver:enrich:zerobounce-validation",
   concurrency: 10,
   limiter: { max: 100, duration: 1000 }, // ZeroBounce allows higher rate
@@ -615,10 +580,7 @@ export const zerobounceValidationWorker = createWorker<
 ```typescript
 // apps/workers/src/silver/email-enricher.worker.ts
 
-export const emailEnricherWorker = createWorker<
-  EmailEnricherJobData,
-  EmailEnricherResult
->({
+export const emailEnricherWorker = createWorker<EmailEnricherJobData, EmailEnricherResult>({
   queueName: "silver:enrich:email-enricher",
   concurrency: 5,
   limiter: { max: 10, duration: 1000 },
@@ -683,10 +645,7 @@ export const emailEnricherWorker = createWorker<
 ```typescript
 // apps/workers/src/silver/email-pattern-validator.worker.ts
 
-export const emailPatternValidatorWorker = createWorker<
-  EmailPatternJobData,
-  EmailPatternResult
->({
+export const emailPatternValidatorWorker = createWorker<EmailPatternJobData, EmailPatternResult>({
   queueName: "silver:enrich:email-pattern",
   concurrency: 5,
   attempts: 2,
@@ -792,18 +751,14 @@ function detectEmailPatterns(contacts: Contact[]) {
 ```typescript
 // apps/workers/src/silver/email-generator.worker.ts
 
-export const emailGeneratorWorker = createWorker<
-  EmailGenJobData,
-  EmailGenResult
->({
+export const emailGeneratorWorker = createWorker<EmailGenJobData, EmailGenResult>({
   queueName: "silver:enrich:email-generator",
   concurrency: 5,
   attempts: 2,
   timeout: 15000,
 
   processor: async (job, logger) => {
-    const { tenantId, contactId, firstName, lastName, domain, pattern } =
-      job.data;
+    const { tenantId, contactId, firstName, lastName, domain, pattern } = job.data;
 
     if (!firstName || !lastName || !domain || !pattern) {
       return { status: "skipped", reason: "missing_data" };
@@ -885,10 +840,7 @@ interface PhoneNormalizerJobData {
   correlationId: string;
 }
 
-export const phoneNormalizerWorker = createWorker<
-  PhoneNormalizerJobData,
-  PhoneNormalizerResult
->({
+export const phoneNormalizerWorker = createWorker<PhoneNormalizerJobData, PhoneNormalizerResult>({
   queueName: "silver:enrich:phone-normalizer",
   concurrency: 20, // High concurrency - CPU-bound
   attempts: 2,
@@ -1025,15 +977,9 @@ export const hlrLookupWorker = createWorker<HlrLookupJobData, HlrLookupResult>({
       };
 
       if (entityType === "company") {
-        await db
-          .update(silverCompanies)
-          .set(updateData)
-          .where(eq(silverCompanies.id, entityId));
+        await db.update(silverCompanies).set(updateData).where(eq(silverCompanies.id, entityId));
       } else {
-        await db
-          .update(silverContacts)
-          .set(updateData)
-          .where(eq(silverContacts.id, entityId));
+        await db.update(silverContacts).set(updateData).where(eq(silverContacts.id, entityId));
       }
 
       logger.info(
@@ -1063,21 +1009,18 @@ export const hlrLookupWorker = createWorker<HlrLookupJobData, HlrLookupResult>({
 ```typescript
 // apps/workers/src/silver/carrier-detection.worker.ts
 
-export const carrierDetectionWorker = createWorker<
-  CarrierDetectionJobData,
-  CarrierDetectionResult
->({
-  queueName: "silver:enrich:carrier-detection",
-  concurrency: 20,
-  attempts: 2,
-  timeout: 10000,
+export const carrierDetectionWorker = createWorker<CarrierDetectionJobData, CarrierDetectionResult>(
+  {
+    queueName: "silver:enrich:carrier-detection",
+    concurrency: 20,
+    attempts: 2,
+    timeout: 10000,
 
-  processor: async (job, logger) => {
-    const { tenantId, entityType, entityId, phone } = job.data;
+    processor: async (job, logger) => {
+      const { tenantId, entityType, entityId, phone } = job.data;
 
-    // Romanian mobile prefixes
-    const romanianPrefixes: Record<string, { carrier: string; type: string }> =
-      {
+      // Romanian mobile prefixes
+      const romanianPrefixes: Record<string, { carrier: string; type: string }> = {
         // Vodafone
         "0721": { carrier: "Vodafone", type: "MOBILE" },
         "0722": { carrier: "Vodafone", type: "MOBILE" },
@@ -1129,51 +1072,43 @@ export const carrierDetectionWorker = createWorker<
         "0239": { carrier: "Braila", type: "FIXED" },
       };
 
-    // Normalize to national format
-    let nationalPhone = phone
-      .replace(/^\+40/, "0")
-      .replace(/^40/, "0")
-      .replace(/[^\d]/g, "");
+      // Normalize to national format
+      let nationalPhone = phone.replace(/^\+40/, "0").replace(/^40/, "0").replace(/[^\d]/g, "");
 
-    // Find carrier by prefix
-    let detected = null;
-    for (const [prefix, info] of Object.entries(romanianPrefixes)) {
-      if (nationalPhone.startsWith(prefix)) {
-        detected = info;
-        break;
+      // Find carrier by prefix
+      let detected = null;
+      for (const [prefix, info] of Object.entries(romanianPrefixes)) {
+        if (nationalPhone.startsWith(prefix)) {
+          detected = info;
+          break;
+        }
       }
-    }
 
-    if (!detected) {
-      return { status: "unknown_carrier" };
-    }
+      if (!detected) {
+        return { status: "unknown_carrier" };
+      }
 
-    const updateData = {
-      detectedCarrier: detected.carrier,
-      detectedPhoneType: detected.type,
-    };
+      const updateData = {
+        detectedCarrier: detected.carrier,
+        detectedPhoneType: detected.type,
+      };
 
-    if (entityType === "company") {
-      await db
-        .update(silverCompanies)
-        .set(updateData)
-        .where(eq(silverCompanies.id, entityId));
-    } else {
-      await db
-        .update(silverContacts)
-        .set(updateData)
-        .where(eq(silverContacts.id, entityId));
-    }
+      if (entityType === "company") {
+        await db.update(silverCompanies).set(updateData).where(eq(silverCompanies.id, entityId));
+      } else {
+        await db.update(silverContacts).set(updateData).where(eq(silverContacts.id, entityId));
+      }
 
-    logger.info({ phone, carrier: detected.carrier }, "Carrier detected");
+      logger.info({ phone, carrier: detected.carrier }, "Carrier detected");
 
-    return {
-      status: "success",
-      carrier: detected.carrier,
-      phoneType: detected.type,
-    };
+      return {
+        status: "success",
+        carrier: detected.carrier,
+        phoneType: detected.type,
+      };
+    },
   },
-});
+);
 ```
 
 ---

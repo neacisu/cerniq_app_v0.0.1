@@ -56,10 +56,7 @@ export function SendMessageForm({
 
   return (
     <Form {...form}>
-      <form
-        onSubmit={form.handleSubmit(sendMutation.mutate)}
-        className="space-y-4"
-      >
+      <form onSubmit={form.handleSubmit(sendMutation.mutate)} className="space-y-4">
         {/* Channel Selection */}
         <FormField
           control={form.control}
@@ -161,9 +158,7 @@ export function SendMessageForm({
                   className="resize-none"
                 />
               </FormControl>
-              <FormDescription>
-                {field.value.length}/4000 caractere
-              </FormDescription>
+              <FormDescription>{field.value.length}/4000 caractere</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -195,9 +190,7 @@ export function SendMessageForm({
                 <Input
                   type="datetime-local"
                   value={field.value?.slice(0, 16)}
-                  onChange={(e) =>
-                    field.onChange(new Date(e.target.value).toISOString())
-                  }
+                  onChange={(e) => field.onChange(new Date(e.target.value).toISOString())}
                   className="w-auto"
                 />
               )}
@@ -255,9 +248,7 @@ export function CreateSequenceForm({ onSuccess }: { onSuccess?: () => void }) {
       primaryChannel: "WHATSAPP",
       respectBusinessHours: true,
       stopOnReply: true,
-      steps: [
-        { delayHours: 0, delayMinutes: 0, channel: "WHATSAPP", templateId: "" },
-      ],
+      steps: [{ delayHours: 0, delayMinutes: 0, channel: "WHATSAPP", templateId: "" }],
     },
   });
 
@@ -291,10 +282,7 @@ export function CreateSequenceForm({ onSuccess }: { onSuccess?: () => void }) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Canal Principal</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue />
@@ -317,11 +305,7 @@ export function CreateSequenceForm({ onSuccess }: { onSuccess?: () => void }) {
             <FormItem>
               <FormLabel>Descriere (opțional)</FormLabel>
               <FormControl>
-                <Textarea
-                  {...field}
-                  placeholder="Descriere secvență..."
-                  rows={2}
-                />
+                <Textarea {...field} placeholder="Descriere secvență..." rows={2} />
               </FormControl>
             </FormItem>
           )}
@@ -335,14 +319,9 @@ export function CreateSequenceForm({ onSuccess }: { onSuccess?: () => void }) {
             render={({ field }) => (
               <FormItem className="flex items-center gap-2">
                 <FormControl>
-                  <Checkbox
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
+                  <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                 </FormControl>
-                <FormLabel className="!mt-0">
-                  Respectă orele de lucru (09-18)
-                </FormLabel>
+                <FormLabel className="!mt-0">Respectă orele de lucru (09-18)</FormLabel>
               </FormItem>
             )}
           />
@@ -353,10 +332,7 @@ export function CreateSequenceForm({ onSuccess }: { onSuccess?: () => void }) {
             render={({ field }) => (
               <FormItem className="flex items-center gap-2">
                 <FormControl>
-                  <Checkbox
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
+                  <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                 </FormControl>
                 <FormLabel className="!mt-0">Oprește la răspuns</FormLabel>
               </FormItem>
@@ -407,18 +383,14 @@ export function CreateSequenceForm({ onSuccess }: { onSuccess?: () => void }) {
                             <Input
                               type="number"
                               {...field}
-                              onChange={(e) =>
-                                field.onChange(parseInt(e.target.value))
-                              }
+                              onChange={(e) => field.onChange(parseInt(e.target.value))}
                             />
                           </FormControl>
                         </FormItem>
                       )}
                     />
                     {index === 0 && (
-                      <span className="text-sm text-muted-foreground mt-6">
-                        după înrolare
-                      </span>
+                      <span className="text-sm text-muted-foreground mt-6">după înrolare</span>
                     )}
                     {index > 0 && (
                       <span className="text-sm text-muted-foreground mt-6">
@@ -434,10 +406,7 @@ export function CreateSequenceForm({ onSuccess }: { onSuccess?: () => void }) {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-xs">Canal</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue />
@@ -445,12 +414,8 @@ export function CreateSequenceForm({ onSuccess }: { onSuccess?: () => void }) {
                           </FormControl>
                           <SelectContent>
                             <SelectItem value="WHATSAPP">WhatsApp</SelectItem>
-                            <SelectItem value="EMAIL_COLD">
-                              Email Cold
-                            </SelectItem>
-                            <SelectItem value="EMAIL_WARM">
-                              Email Warm
-                            </SelectItem>
+                            <SelectItem value="EMAIL_COLD">Email Cold</SelectItem>
+                            <SelectItem value="EMAIL_WARM">Email Warm</SelectItem>
                           </SelectContent>
                         </Select>
                       </FormItem>
@@ -565,10 +530,7 @@ export function CreateTemplateForm({ onSuccess }: { onSuccess?: () => void }) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Canal</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue />
@@ -617,8 +579,8 @@ export function CreateTemplateForm({ onSuccess }: { onSuccess?: () => void }) {
                 />
               </FormControl>
               <FormDescription>
-                Folosește {`{{variabilă}}`} pentru personalizare și{" "}
-                {`{opțiune1|opțiune2}`} pentru spintax.
+                Folosește {`{{variabilă}}`} pentru personalizare și {`{opțiune1|opțiune2}`} pentru
+                spintax.
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -647,14 +609,9 @@ export function CreateTemplateForm({ onSuccess }: { onSuccess?: () => void }) {
             render={({ field }) => (
               <FormItem className="flex items-center gap-2">
                 <FormControl>
-                  <Checkbox
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
+                  <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                 </FormControl>
-                <FormLabel className="!mt-0">
-                  Include media (imagine/document)
-                </FormLabel>
+                <FormLabel className="!mt-0">Include media (imagine/document)</FormLabel>
               </FormItem>
             )}
           />
@@ -724,17 +681,11 @@ interface TakeoverDialogProps {
   companyName: string;
 }
 
-export function TakeoverDialog({
-  open,
-  onOpenChange,
-  leadId,
-  companyName,
-}: TakeoverDialogProps) {
+export function TakeoverDialog({ open, onOpenChange, leadId, companyName }: TakeoverDialogProps) {
   const [reason, setReason] = useState("");
 
   const takeoverMutation = useMutation({
-    mutationFn: () =>
-      api.post(`/outreach/leads/${leadId}/takeover`, { reason }),
+    mutationFn: () => api.post(`/outreach/leads/${leadId}/takeover`, { reason }),
     onSuccess: () => {
       toast.success("Conversație preluată cu succes");
       onOpenChange(false);
@@ -747,8 +698,8 @@ export function TakeoverDialog({
         <DialogHeader>
           <DialogTitle>Preia Conversația Manual</DialogTitle>
           <DialogDescription>
-            Vei prelua controlul manual al conversației cu {companyName}.
-            Automatizările vor fi oprite până când returnezi controlul.
+            Vei prelua controlul manual al conversației cu {companyName}. Automatizările vor fi
+            oprite până când returnezi controlul.
           </DialogDescription>
         </DialogHeader>
 
@@ -767,8 +718,7 @@ export function TakeoverDialog({
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Atenție</AlertTitle>
             <AlertDescription>
-              Secvențele automate vor fi oprite. Va trebui să răspunzi manual la
-              toate mesajele.
+              Secvențele automate vor fi oprite. Va trebui să răspunzi manual la toate mesajele.
             </AlertDescription>
           </Alert>
         </div>
@@ -801,11 +751,7 @@ interface EnrollSequenceDialogProps {
   leadIds: string[];
 }
 
-export function EnrollSequenceDialog({
-  open,
-  onOpenChange,
-  leadIds,
-}: EnrollSequenceDialogProps) {
+export function EnrollSequenceDialog({ open, onOpenChange, leadIds }: EnrollSequenceDialogProps) {
   const [sequenceId, setSequenceId] = useState("");
   const [startStep, setStartStep] = useState(1);
   const [scheduledStart, setScheduledStart] = useState<Date | undefined>();
@@ -825,9 +771,7 @@ export function EnrollSequenceDialog({
     onSuccess: (data) => {
       toast.success(`${data.enrolled} leads înrolați în secvență`);
       if (data.skipped > 0) {
-        toast.warning(
-          `${data.skipped} leads au fost săriți (deja înrolați sau ineligibili)`,
-        );
+        toast.warning(`${data.skipped} leads au fost săriți (deja înrolați sau ineligibili)`);
       }
       onOpenChange(false);
     },
@@ -872,9 +816,7 @@ export function EnrollSequenceDialog({
                       <Badge variant="outline">{idx + 1}</Badge>
                       <ChannelIcon channel={step.channel} size="sm" />
                       <span>+{step.delayHours}h</span>
-                      <span className="text-muted-foreground">
-                        {step.template?.name}
-                      </span>
+                      <span className="text-muted-foreground">{step.template?.name}</span>
                     </div>
                   ))}
                 </div>
@@ -905,9 +847,7 @@ export function EnrollSequenceDialog({
                   <PopoverTrigger asChild>
                     <Button variant="outline" className="w-full justify-start">
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {scheduledStart
-                        ? format(scheduledStart, "PPP HH:mm")
-                        : "Imediat"}
+                      {scheduledStart ? format(scheduledStart, "PPP HH:mm") : "Imediat"}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0">
@@ -951,17 +891,9 @@ interface ResolveReviewDialogProps {
   review: ReviewItem;
 }
 
-export function ResolveReviewDialog({
-  open,
-  onOpenChange,
-  review,
-}: ResolveReviewDialogProps) {
-  const [action, setAction] = useState<
-    "APPROVE" | "EDIT" | "REJECT" | "TAKEOVER"
-  >("APPROVE");
-  const [editedContent, setEditedContent] = useState(
-    review.suggestedResponse || "",
-  );
+export function ResolveReviewDialog({ open, onOpenChange, review }: ResolveReviewDialogProps) {
+  const [action, setAction] = useState<"APPROVE" | "EDIT" | "REJECT" | "TAKEOVER">("APPROVE");
+  const [editedContent, setEditedContent] = useState(review.suggestedResponse || "");
   const [notes, setNotes] = useState("");
 
   const resolveMutation = useMutation({
@@ -991,9 +923,7 @@ export function ResolveReviewDialog({
           {/* Original Message */}
           {review.triggerContent && (
             <div className="bg-muted p-4 rounded-lg">
-              <Label className="text-xs text-muted-foreground">
-                Mesaj Primit
-              </Label>
+              <Label className="text-xs text-muted-foreground">Mesaj Primit</Label>
               <p className="mt-1">{review.triggerContent}</p>
             </div>
           )}
@@ -1001,9 +931,7 @@ export function ResolveReviewDialog({
           {/* AI Suggested Response */}
           {review.suggestedResponse && (
             <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-              <Label className="text-xs text-blue-600">
-                Răspuns Sugerat AI
-              </Label>
+              <Label className="text-xs text-blue-600">Răspuns Sugerat AI</Label>
               <p className="mt-1">{review.suggestedResponse}</p>
             </div>
           )}
@@ -1011,16 +939,10 @@ export function ResolveReviewDialog({
           {/* Action Selection */}
           <div>
             <Label>Acțiune</Label>
-            <RadioGroup
-              value={action}
-              onValueChange={(v: any) => setAction(v)}
-              className="mt-2"
-            >
+            <RadioGroup value={action} onValueChange={(v: any) => setAction(v)} className="mt-2">
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="APPROVE" id="approve" />
-                <Label htmlFor="approve">
-                  Aprobă și trimite răspunsul sugerat
-                </Label>
+                <Label htmlFor="approve">Aprobă și trimite răspunsul sugerat</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="EDIT" id="edit" />

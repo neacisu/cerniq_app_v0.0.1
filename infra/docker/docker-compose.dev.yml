@@ -1,91 +1,390 @@
-# =============================================================================
-# CERNIQ.APP — Docker Compose Override (Development Only)
-# =============================================================================
-# This file is automatically loaded by docker compose alongside docker-compose.yml
-# DO NOT USE IN PRODUCTION - contains development-only services
+# ============================================================================
+# Cerniq.app - Docker Compose DEV Configuration (Hot-Reload)
+# ============================================================================
+# Usage: docker compose -f docker-compose.dev.yml up
 #
-# Usage:
-#   docker compose --profile dev up -d redisinsight
-#   OR
-#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d redisinsight
+# IDENTICAL to staging/production for shared services:
+#   - OpenBao agents (secrets from orchestrator)
+#   - PgBouncer (connection pooling to CT107 PostgreSQL)
+#   - Redis shared (orchestrator via HAProxy at 10.0.1.10:6379)
+#   - Observability (OTLP to otel-cerniq.neanelu.ro)
 #
-# Reference: F0.3.2.T003, etapa0-plan-implementare-complet-v2.md, etapa0-port-matrix.md
-# =============================================================================
+# DEV-SPECIFIC for application services:
+#   - Volume mounts for source code (hot-reload)
+#   - Vite dev server (HMR) / tsx watch (auto-restart)
+#   - Ports: 64xxx range (same as staging/prod internal ports)
+#   - No security hardening (cap_drop, no-new-privileges) for ergonomics
+#
+# Prerequisites:
+#   - Docker networks created: docker network create cerniq_dev_{public,backend,data}
+#   - AppRole credentials in ../../secrets/ (api, workers, infra)
+#   - Runtime secrets dir at /opt/cerniq/runtime-secrets/{api,workers,infra}
+# ============================================================================
 
+name: cerniq-dev
+
+# ============================================================================
+# Networks
+# ============================================================================
+networks:
+  cerniq_public:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.10.0/24
+  cerniq_backend:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.20.0/24
+  cerniq_data:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.30.0/24
+
+# ============================================================================
+# Common configurations
+# ============================================================================
+x-common-labels: &common-labels
+  com.cerniq.app: "cerniq"
+  com.cerniq.environment: "development"
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+# ============================================================================
+# Services
+# ============================================================================
 services:
   # ==========================================================================
-  # Redis (DEV ONLY) - local instance for development laptops
+  # OpenBao Agent - API Service Sidecar
   # ==========================================================================
-  # Production/staging uses shared Redis on orchestrator (10.0.0.2:6379).
-  # This dev service exists only to keep local workflows working.
-  # ==========================================================================
-  redis:
-    image: redis:8.6.0
-    container_name: cerniq-redis-dev
+  openbao-agent-api:
+    image: quay.io/openbao/openbao:2.5.0
+    container_name: cerniq-dev-openbao-agent-api
     restart: unless-stopped
-    # Local-only: bind to docker networks, no host port exposure
-    command:
-      - redis-server
-      - --port
-      - "64039"
-      - --requirepass
-      - "${REDIS_DEV_PASSWORD:-dev-only-change-me}"
-      - --maxmemory
-      - "1gb"
-      - --maxmemory-policy
-      - "noeviction"
+    command: agent -config=/openbao/config/agent-api.hcl
+    environment:
+      CERNIQ_ENV: development
+    extra_hosts:
+      - "s3cr3ts.neanelu.ro:10.0.1.10"
+    volumes:
+      - ../config/openbao/agent-api.hcl:/openbao/config/agent-api.hcl:ro
+      - ../config/openbao/templates:/openbao/templates:ro
+      - ${CERNIQ_RENDERED_SECRETS_DIR:-/opt/cerniq/runtime-secrets}/api:/secrets
+      - ../../secrets/api_role_id:/openbao/config/role_id:ro
+      - ../../secrets/api_secret_id:/openbao/config/secret_id:ro
+    networks:
+      - cerniq_backend
+    healthcheck:
+      test: ["CMD", "test", "-f", "/secrets/api.env"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    labels:
+      <<: *common-labels
+      com.cerniq.service: "openbao-agent-api"
+    logging:
+      <<: *default-logging
+
+  # ==========================================================================
+  # OpenBao Agent - Workers Service Sidecar
+  # ==========================================================================
+  openbao-agent-workers:
+    image: quay.io/openbao/openbao:2.5.0
+    container_name: cerniq-dev-openbao-agent-workers
+    restart: unless-stopped
+    command: agent -config=/openbao/config/agent-workers.hcl
+    environment:
+      CERNIQ_ENV: development
+    extra_hosts:
+      - "s3cr3ts.neanelu.ro:10.0.1.10"
+    volumes:
+      - ../config/openbao/agent-workers.hcl:/openbao/config/agent-workers.hcl:ro
+      - ../config/openbao/templates:/openbao/templates:ro
+      - ${CERNIQ_RENDERED_SECRETS_DIR:-/opt/cerniq/runtime-secrets}/workers:/secrets
+      - ../../secrets/workers_role_id:/openbao/config/role_id:ro
+      - ../../secrets/workers_secret_id:/openbao/config/secret_id:ro
+    networks:
+      - cerniq_backend
+    healthcheck:
+      test: ["CMD", "test", "-f", "/secrets/workers.env"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    labels:
+      <<: *common-labels
+      com.cerniq.service: "openbao-agent-workers"
+    logging:
+      <<: *default-logging
+
+  # ==========================================================================
+  # OpenBao Agent - Infra Sidecar (PgBouncer auth/config)
+  # ==========================================================================
+  openbao-agent-infra:
+    image: quay.io/openbao/openbao:2.5.0
+    container_name: cerniq-dev-openbao-agent-infra
+    restart: unless-stopped
+    pid: "service:pgbouncer"
+    command: agent -config=/openbao/config/agent-infra.hcl
+    environment:
+      CERNIQ_ENV: development
+    extra_hosts:
+      - "s3cr3ts.neanelu.ro:10.0.1.10"
+    volumes:
+      - ../config/openbao/agent-infra.hcl:/openbao/config/agent-infra.hcl:ro
+      - ../config/openbao/templates:/openbao/templates:ro
+      - ${CERNIQ_RENDERED_SECRETS_DIR:-/opt/cerniq/runtime-secrets}/infra:/secrets
+      - ../../secrets/infra_role_id:/openbao/config/role_id:ro
+      - ../../secrets/infra_secret_id:/openbao/config/secret_id:ro
+    networks:
+      - cerniq_backend
+    healthcheck:
+      test: ["CMD", "test", "-f", "/secrets/pgbouncer.ini"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    labels:
+      <<: *common-labels
+      com.cerniq.service: "openbao-agent-infra"
+    logging:
+      <<: *default-logging
+
+  # ==========================================================================
+  # PgBouncer 1.25 - Connection Pooling (identical to staging/prod)
+  # ==========================================================================
+  pgbouncer:
+    image: edoburu/pgbouncer:v1.25.1-p0
+    container_name: cerniq-dev-pgbouncer
+    restart: unless-stopped
+    volumes:
+      - ${CERNIQ_RENDERED_SECRETS_DIR:-/opt/cerniq/runtime-secrets}/infra:/etc/pgbouncer:ro
+    environment:
+      CERNIQ_ENV: development
+    entrypoint: ["/usr/bin/pgbouncer", "/etc/pgbouncer/pgbouncer.ini"]
+    extra_hosts:
+      - "ct107-postgres:10.0.1.107"
     networks:
       cerniq_data:
-        ipv4_address: 172.29.30.20
+        ipv4_address: 172.30.30.11
       cerniq_backend:
-        ipv4_address: 172.29.20.20
+        ipv4_address: 172.30.20.11
     healthcheck:
       test:
         [
-          "CMD-SHELL",
-          'redis-cli -p 64039 -a "$${REDIS_DEV_PASSWORD:-dev-only-change-me}" ping | grep -q PONG',
+          "CMD",
+          "sh",
+          "-c",
+          'pg_isready -h localhost -p 64033 >/dev/null 2>&1; rc=$$?; [ "$$rc" = "0" ] || [ "$$rc" = "3" ]',
         ]
       interval: 10s
       timeout: 5s
       retries: 5
-    profiles:
-      - dev
-
-  # ==========================================================================
-  # RedisInsight - Redis GUI for Development
-  # ==========================================================================
-  # Access: http://localhost:8001
-  # Configure connection in UI:
-  #   - Host: redis (or 172.29.20.20 via cerniq_backend)
-  #   - Port: 64039 (per ADR-0022 port allocation)
-  #   - Password: (from /var/www/CerniqAPP/secrets/redis_password.txt)
-  # ==========================================================================
-  redisinsight:
-    image: redis/redisinsight:3.0.2
-    container_name: cerniq-redisinsight
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:8001:5540" # Bind only to localhost for security
-    volumes:
-      - redisinsight_data:/data
-    networks:
-      - cerniq_data # Primary: Redis is on cerniq_data (172.29.30.20:64039)
-      - cerniq_backend # Secondary: For potential API access
+      start_period: 10s
     depends_on:
-      redis:
+      openbao-agent-infra:
         condition: service_healthy
-    profiles:
-      - dev
     labels:
-      com.cerniq.app: "cerniq"
-      com.cerniq.environment: "development"
-      com.cerniq.service: "redisinsight"
+      <<: *common-labels
+      com.cerniq.service: "pgbouncer"
     logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
+      <<: *default-logging
 
-volumes:
-  redisinsight_data:
-    driver: local
+  # ==========================================================================
+  # Web Frontend — Vite Dev Server with HMR
+  # ==========================================================================
+  cerniq-web:
+    image: node:24
+    container_name: cerniq-dev-web
+    working_dir: /app
+    volumes:
+      - ../../:/app
+    command: sh -c "corepack enable && corepack install && pnpm --filter @cerniq/web dev --host 0.0.0.0 --port 64000"
+    ports:
+      - "64000:64000"
+    environment:
+      NODE_ENV: development
+      VITE_API_PROXY_TARGET: "http://cerniq-dev-api:64010"
+    networks:
+      - cerniq_public
+      - cerniq_backend
+    restart: unless-stopped
+    labels:
+      <<: *common-labels
+      com.cerniq.service: "web"
+    logging:
+      <<: *default-logging
+
+  # ==========================================================================
+  # Web Admin — Vite Dev Server with HMR
+  # ==========================================================================
+  cerniq-admin:
+    image: node:24
+    container_name: cerniq-dev-admin
+    working_dir: /app
+    volumes:
+      - ../../:/app
+    command: sh -c "corepack enable && corepack install && pnpm --filter @cerniq/web-admin dev --host 0.0.0.0 --port 64012"
+    ports:
+      - "64012:64012"
+    environment:
+      NODE_ENV: development
+      VITE_API_PROXY_TARGET: "http://cerniq-dev-api:64010"
+    networks:
+      - cerniq_public
+      - cerniq_backend
+    restart: unless-stopped
+    labels:
+      <<: *common-labels
+      com.cerniq.service: "admin"
+    logging:
+      <<: *default-logging
+
+  # ==========================================================================
+  # API — tsx watch (auto-restart on file changes)
+  # ==========================================================================
+  cerniq-api:
+    image: node:24
+    container_name: cerniq-dev-api
+    working_dir: /app
+    volumes:
+      - ../../:/app
+      - ${CERNIQ_RENDERED_SECRETS_DIR:-/opt/cerniq/runtime-secrets}/api:/secrets:ro
+    command: sh -c "corepack enable && corepack install && pnpm --filter @cerniq/api dev"
+    ports:
+      - "64010:64010"
+    environment:
+      NODE_ENV: development
+      PORT: "64010"
+      LOG_LEVEL: debug
+      SECRETS_PATH: /secrets/api.env
+    extra_hosts:
+      - "ct107-postgres:10.0.1.107"
+    networks:
+      - cerniq_public
+      - cerniq_backend
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+      openbao-agent-api:
+        condition: service_healthy
+    restart: unless-stopped
+    labels:
+      <<: *common-labels
+      com.cerniq.service: "api"
+    logging:
+      <<: *default-logging
+
+  # ==========================================================================
+  # Monitoring API — tsx watch (auto-restart on file changes)
+  # ==========================================================================
+  cerniq-monitoring-api:
+    image: node:24
+    container_name: cerniq-dev-monitoring-api
+    working_dir: /app
+    volumes:
+      - ../../:/app
+      - ${CERNIQ_RENDERED_SECRETS_DIR:-/opt/cerniq/runtime-secrets}/api:/secrets:ro
+    command: sh -c "corepack enable && corepack install && pnpm --filter @cerniq/monitoring-api dev"
+    ports:
+      - "64080:64080"
+    environment:
+      NODE_ENV: development
+      PORT: "64080"
+      SECRETS_PATH: /secrets/api.env
+    networks:
+      - cerniq_backend
+    depends_on:
+      openbao-agent-api:
+        condition: service_healthy
+    restart: unless-stopped
+    labels:
+      <<: *common-labels
+      com.cerniq.service: "monitoring-api"
+    logging:
+      <<: *default-logging
+
+  # ==========================================================================
+  # Worker AI — tsx watch (auto-restart on file changes)
+  # ==========================================================================
+  cerniq-worker-ai:
+    image: node:24
+    container_name: cerniq-dev-worker-ai
+    working_dir: /app
+    volumes:
+      - ../../:/app
+      - ${CERNIQ_RENDERED_SECRETS_DIR:-/opt/cerniq/runtime-secrets}/workers:/secrets:ro
+    command: sh -c "corepack enable && corepack install && pnpm --filter @cerniq/worker-ai dev"
+    environment:
+      NODE_ENV: development
+      SECRETS_PATH: /secrets/workers.env
+    networks:
+      - cerniq_backend
+    depends_on:
+      openbao-agent-workers:
+        condition: service_healthy
+    restart: unless-stopped
+    labels:
+      <<: *common-labels
+      com.cerniq.service: "worker-ai"
+    logging:
+      <<: *default-logging
+
+  # ==========================================================================
+  # Worker Enrichment — tsx watch (auto-restart on file changes)
+  # ==========================================================================
+  cerniq-worker-enrichment:
+    image: node:24
+    container_name: cerniq-dev-worker-enrichment
+    working_dir: /app
+    volumes:
+      - ../../:/app
+      - ${CERNIQ_RENDERED_SECRETS_DIR:-/opt/cerniq/runtime-secrets}/workers:/secrets:ro
+    command: sh -c "corepack enable && corepack install && pnpm --filter @cerniq/worker-enrichment dev"
+    environment:
+      NODE_ENV: development
+      SECRETS_PATH: /secrets/workers.env
+    networks:
+      - cerniq_backend
+    depends_on:
+      openbao-agent-workers:
+        condition: service_healthy
+    restart: unless-stopped
+    labels:
+      <<: *common-labels
+      com.cerniq.service: "worker-enrichment"
+    logging:
+      <<: *default-logging
+
+  # ==========================================================================
+  # Worker Outreach — Node dev (tsx watch, aligned with ai/enrichment)
+  # ==========================================================================
+  cerniq-worker-outreach:
+    image: node:24
+    container_name: cerniq-dev-worker-outreach
+    working_dir: /app
+    volumes:
+      - ../../:/app
+      - ${CERNIQ_RENDERED_SECRETS_DIR:-/opt/cerniq/runtime-secrets}/workers:/secrets:ro
+    command: sh -c "corepack enable && corepack install && pnpm --filter @cerniq/worker-outreach dev"
+    environment:
+      NODE_ENV: development
+      SECRETS_PATH: /secrets/workers.env
+    networks:
+      - cerniq_backend
+    depends_on:
+      openbao-agent-workers:
+        condition: service_healthy
+    restart: unless-stopped
+    labels:
+      <<: *common-labels
+      com.cerniq.service: "worker-outreach"
+    logging:
+      <<: *default-logging

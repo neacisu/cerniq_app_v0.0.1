@@ -212,10 +212,7 @@ import { stripHtml } from "@cerniq/shared/utils";
 
 const QUEUE_NAME = "product:sync:shopify";
 
-export const productSyncShopifyWorker = new Worker<
-  ProductSyncJobData,
-  ProductSyncResult
->(
+export const productSyncShopifyWorker = new Worker<ProductSyncJobData, ProductSyncResult>(
   QUEUE_NAME,
   async (job: Job<ProductSyncJobData>): Promise<ProductSyncResult> => {
     const startTime = Date.now();
@@ -390,8 +387,7 @@ export const productSyncShopifyWorker = new Worker<
         duration_ms: Date.now() - startTime,
       };
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
       logger.error("Product sync failed", {
         jobId: job.id,
@@ -421,9 +417,7 @@ export const productSyncShopifyWorker = new Worker<
 
 // Helper Functions
 
-function mapShopifyStatus(
-  status: string,
-): "ACTIVE" | "INACTIVE" | "DISCONTINUED" {
+function mapShopifyStatus(status: string): "ACTIVE" | "INACTIVE" | "DISCONTINUED" {
   switch (status) {
     case "active":
       return "ACTIVE";
@@ -436,9 +430,7 @@ function mapShopifyStatus(
   }
 }
 
-function extractSpecifications(
-  product: ShopifyProductWebhook,
-): Record<string, string> {
+function extractSpecifications(product: ShopifyProductWebhook): Record<string, string> {
   const specs: Record<string, string> = {};
 
   // Extract from metafields if available
@@ -545,9 +537,7 @@ export const shopifyWebhooksPlugin: FastifyPluginAsync = async (fastify) => {
     }
 
     const shopifyProduct =
-      action !== "delete"
-        ? ShopifyProductWebhookSchema.parse(request.body)
-        : undefined;
+      action !== "delete" ? ShopifyProductWebhookSchema.parse(request.body) : undefined;
 
     const shopifyProductId = shopifyProduct?.id || (request.body as any).id;
 
@@ -647,10 +637,7 @@ export type EmbeddingResult = z.infer<typeof EmbeddingResultSchema>;
 import { Worker, Job } from "bullmq";
 import { eq, and } from "drizzle-orm";
 import { db } from "@cerniq/database";
-import {
-  goldProducts,
-  goldProductEmbeddings,
-} from "@cerniq/database/schema/etapa3";
+import { goldProducts, goldProductEmbeddings } from "@cerniq/database/schema/etapa3";
 import {
   EmbeddingJobData,
   EmbeddingJobDataSchema,
@@ -670,10 +657,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
 });
 
-export const productEmbeddingGenerateWorker = new Worker<
-  EmbeddingJobData,
-  EmbeddingResult
->(
+export const productEmbeddingGenerateWorker = new Worker<EmbeddingJobData, EmbeddingResult>(
   QUEUE_NAME,
   async (job: Job<EmbeddingJobData>): Promise<EmbeddingResult> => {
     const startTime = Date.now();
@@ -693,10 +677,7 @@ export const productEmbeddingGenerateWorker = new Worker<
 
       // 2. Fetch product data
       const product = await db.query.goldProducts.findFirst({
-        where: and(
-          eq(goldProducts.id, data.productId),
-          eq(goldProducts.tenant_id, data.tenantId),
-        ),
+        where: and(eq(goldProducts.id, data.productId), eq(goldProducts.tenant_id, data.tenantId)),
       });
 
       if (!product) {
@@ -705,19 +686,17 @@ export const productEmbeddingGenerateWorker = new Worker<
 
       // 3. Check if embedding already exists (skip if not forced)
       if (!data.forceRegenerate) {
-        const existingEmbedding =
-          await db.query.goldProductEmbeddings.findFirst({
-            where: and(
-              eq(goldProductEmbeddings.product_id, data.productId),
-              eq(goldProductEmbeddings.is_current, true),
-            ),
-            columns: { id: true, created_at: true },
-          });
+        const existingEmbedding = await db.query.goldProductEmbeddings.findFirst({
+          where: and(
+            eq(goldProductEmbeddings.product_id, data.productId),
+            eq(goldProductEmbeddings.is_current, true),
+          ),
+          columns: { id: true, created_at: true },
+        });
 
         // Skip if embedding is less than 24h old and product wasn't updated
         if (existingEmbedding && data.action !== "created") {
-          const embeddingAge =
-            Date.now() - existingEmbedding.created_at.getTime();
+          const embeddingAge = Date.now() - existingEmbedding.created_at.getTime();
           const productAge = Date.now() - product.updated_at.getTime();
 
           if (productAge < embeddingAge) {
@@ -789,9 +768,7 @@ export const productEmbeddingGenerateWorker = new Worker<
       );
 
       metrics.counter("embeddings_generated_total").inc();
-      metrics
-        .counter("openai_tokens_used_total", { model: EMBEDDING_MODEL })
-        .inc(tokensUsed);
+      metrics.counter("openai_tokens_used_total", { model: EMBEDDING_MODEL }).inc(tokensUsed);
       timer.observe(Date.now() - startTime);
 
       logger.info("Embedding generation completed", {
@@ -812,8 +789,7 @@ export const productEmbeddingGenerateWorker = new Worker<
         duration_ms: Date.now() - startTime,
       };
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
       logger.error("Embedding generation failed", {
         jobId: job.id,
@@ -838,9 +814,7 @@ export const productEmbeddingGenerateWorker = new Worker<
 
 // Helper Functions
 
-function composeEmbeddingText(
-  product: typeof goldProducts.$inferSelect,
-): string {
+function composeEmbeddingText(product: typeof goldProducts.$inferSelect): string {
   const parts: string[] = [];
 
   // Name (weighted by repetition)
@@ -969,15 +943,8 @@ export type ChunkResult = z.infer<typeof ChunkResultSchema>;
 import { Worker, Job } from "bullmq";
 import { eq, and } from "drizzle-orm";
 import { db } from "@cerniq/database";
-import {
-  goldProducts,
-  goldProductChunks,
-} from "@cerniq/database/schema/etapa3";
-import {
-  ChunkCreateJobData,
-  ChunkCreateJobDataSchema,
-  ChunkResult,
-} from "../types/chunk.types";
+import { goldProducts, goldProductChunks } from "@cerniq/database/schema/etapa3";
+import { ChunkCreateJobData, ChunkCreateJobDataSchema, ChunkResult } from "../types/chunk.types";
 import { redisConnection } from "@cerniq/shared/redis";
 import { logger } from "@cerniq/shared/logger";
 import { metrics } from "@cerniq/shared/metrics";
@@ -991,10 +958,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
 });
 
-export const productChunkCreateWorker = new Worker<
-  ChunkCreateJobData,
-  ChunkResult
->(
+export const productChunkCreateWorker = new Worker<ChunkCreateJobData, ChunkResult>(
   QUEUE_NAME,
   async (job: Job<ChunkCreateJobData>): Promise<ChunkResult> => {
     const startTime = Date.now();
@@ -1013,10 +977,7 @@ export const productChunkCreateWorker = new Worker<
 
       // 2. Fetch product data
       const product = await db.query.goldProducts.findFirst({
-        where: and(
-          eq(goldProducts.id, data.productId),
-          eq(goldProducts.tenant_id, data.tenantId),
-        ),
+        where: and(eq(goldProducts.id, data.productId), eq(goldProducts.tenant_id, data.tenantId)),
       });
 
       if (!product) {
@@ -1024,9 +985,7 @@ export const productChunkCreateWorker = new Worker<
       }
 
       // 3. Delete existing chunks
-      await db
-        .delete(goldProductChunks)
-        .where(eq(goldProductChunks.product_id, data.productId));
+      await db.delete(goldProductChunks).where(eq(goldProductChunks.product_id, data.productId));
 
       // 4. Create content sections for chunking
       const sections = createContentSections(product);
@@ -1042,11 +1001,7 @@ export const productChunkCreateWorker = new Worker<
       let globalIndex = 0;
 
       for (const section of sections) {
-        const sectionChunks = chunkText(
-          section.content,
-          data.chunkSize,
-          data.chunkOverlap,
-        );
+        const sectionChunks = chunkText(section.content, data.chunkSize, data.chunkOverlap);
 
         for (const chunkContent of sectionChunks) {
           chunks.push({
@@ -1129,8 +1084,7 @@ export const productChunkCreateWorker = new Worker<
         duration_ms: Date.now() - startTime,
       };
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
       logger.error("Chunk creation failed", {
         jobId: job.id,
@@ -1156,9 +1110,7 @@ interface ContentSection {
   content: string;
 }
 
-function createContentSections(
-  product: typeof goldProducts.$inferSelect,
-): ContentSection[] {
+function createContentSections(product: typeof goldProducts.$inferSelect): ContentSection[] {
   const sections: ContentSection[] = [];
 
   // Name + Category
@@ -1202,11 +1154,7 @@ function createContentSections(
   return sections;
 }
 
-function chunkText(
-  text: string,
-  maxTokens: number,
-  overlapTokens: number,
-): string[] {
+function chunkText(text: string, maxTokens: number, overlapTokens: number): string[] {
   const tokens = encode(text);
 
   if (tokens.length <= maxTokens) {
@@ -1313,11 +1261,7 @@ import { Worker, Job } from "bullmq";
 import { eq, and } from "drizzle-orm";
 import { db } from "@cerniq/database";
 import { stockInventory, goldProducts } from "@cerniq/database/schema/etapa3";
-import {
-  StockCheckJobData,
-  StockCheckJobDataSchema,
-  StockCheckResult,
-} from "../types/stock.types";
+import { StockCheckJobData, StockCheckJobDataSchema, StockCheckResult } from "../types/stock.types";
 import { redisConnection, redis } from "@cerniq/shared/redis";
 import { logger } from "@cerniq/shared/logger";
 import { metrics } from "@cerniq/shared/metrics";
@@ -1326,10 +1270,7 @@ const QUEUE_NAME = "product:stock:realtime-check";
 const CACHE_TTL = 30; // 30 seconds cache
 const CACHE_PREFIX = "stock:realtime:";
 
-export const productStockRealtimeCheckWorker = new Worker<
-  StockCheckJobData,
-  StockCheckResult
->(
+export const productStockRealtimeCheckWorker = new Worker<StockCheckJobData, StockCheckResult>(
   QUEUE_NAME,
   async (job: Job<StockCheckJobData>): Promise<StockCheckResult> => {
     const startTime = Date.now();
@@ -1357,8 +1298,7 @@ export const productStockRealtimeCheckWorker = new Worker<
         // Verify can fulfill if quantity requested
         if (data.requestedQuantity) {
           cachedResult.requestedQuantity = data.requestedQuantity;
-          cachedResult.canFulfill =
-            cachedResult.availableQuantity >= data.requestedQuantity;
+          cachedResult.canFulfill = cachedResult.availableQuantity >= data.requestedQuantity;
         }
 
         cachedResult.cacheHit = true;
@@ -1374,10 +1314,7 @@ export const productStockRealtimeCheckWorker = new Worker<
       let productId = data.productId;
       if (!productId) {
         const product = await db.query.goldProducts.findFirst({
-          where: and(
-            eq(goldProducts.tenant_id, data.tenantId),
-            eq(goldProducts.sku, data.sku),
-          ),
+          where: and(eq(goldProducts.tenant_id, data.tenantId), eq(goldProducts.sku, data.sku)),
           columns: { id: true },
         });
 
@@ -1482,10 +1419,7 @@ export const productStockRealtimeCheckWorker = new Worker<
       };
 
       // 7. Add warning if low stock
-      if (
-        inventory?.low_stock_threshold &&
-        availableQuantity <= inventory.low_stock_threshold
-      ) {
+      if (inventory?.low_stock_threshold && availableQuantity <= inventory.low_stock_threshold) {
         result.warning = `Low stock alert: only ${availableQuantity} units available`;
       }
 
@@ -1493,9 +1427,7 @@ export const productStockRealtimeCheckWorker = new Worker<
       await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(result));
 
       metrics.counter("stock_checks_total", { cache: "miss" }).inc();
-      metrics
-        .gauge("stock_available", { sku: data.sku })
-        .set(availableQuantity);
+      metrics.gauge("stock_available", { sku: data.sku }).set(availableQuantity);
       timer.observe(Date.now() - startTime);
 
       logger.info("Stock check completed", {
@@ -1508,8 +1440,7 @@ export const productStockRealtimeCheckWorker = new Worker<
 
       return result;
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
       logger.error("Stock check failed", {
         jobId: job.id,
@@ -1548,10 +1479,7 @@ export const productStockRealtimeCheckWorker = new Worker<
 
 // External Stock Check Functions
 
-async function checkERPStock(
-  tenantId: string,
-  sku: string,
-): Promise<number | null> {
+async function checkERPStock(tenantId: string, sku: string): Promise<number | null> {
   // TODO: Implement actual ERP integration
   // This would call your ERP API
 
@@ -1559,10 +1487,7 @@ async function checkERPStock(
   return null;
 }
 
-async function checkShopifyStock(
-  tenantId: string,
-  sku: string,
-): Promise<number | null> {
+async function checkShopifyStock(tenantId: string, sku: string): Promise<number | null> {
   // TODO: Implement Shopify inventory check
   // GET /admin/api/2024-01/inventory_levels.json?inventory_item_ids={id}
 
@@ -1729,10 +1654,7 @@ const QUEUE_NAME = "product:price:validate";
 const DEFAULT_MIN_MARGIN = 0.1; // 10% minimum margin
 const DEFAULT_MAX_DISCOUNT = 0.2; // 20% maximum discount
 
-export const productPriceValidateWorker = new Worker<
-  PriceValidateJobData,
-  PriceValidateResult
->(
+export const productPriceValidateWorker = new Worker<PriceValidateJobData, PriceValidateResult>(
   QUEUE_NAME,
   async (job: Job<PriceValidateJobData>): Promise<PriceValidateResult> => {
     const startTime = Date.now();
@@ -1753,10 +1675,7 @@ export const productPriceValidateWorker = new Worker<
 
       // 2. Get product data
       const product = await db.query.goldProducts.findFirst({
-        where: and(
-          eq(goldProducts.tenant_id, data.tenantId),
-          eq(goldProducts.sku, data.sku),
-        ),
+        where: and(eq(goldProducts.tenant_id, data.tenantId), eq(goldProducts.sku, data.sku)),
       });
 
       if (!product) {
@@ -1792,14 +1711,8 @@ export const productPriceValidateWorker = new Worker<
             eq(priceRules.category_id, product.category_id),
             and(isNull(priceRules.product_id), isNull(priceRules.category_id)),
           ),
-          or(
-            isNull(priceRules.valid_from),
-            lte(priceRules.valid_from, new Date()),
-          ),
-          or(
-            isNull(priceRules.valid_until),
-            gte(priceRules.valid_until, new Date()),
-          ),
+          or(isNull(priceRules.valid_from), lte(priceRules.valid_from, new Date())),
+          or(isNull(priceRules.valid_until), gte(priceRules.valid_until, new Date())),
         ),
         orderBy: (rules, { desc }) => [desc(rules.priority)],
       });
@@ -1807,10 +1720,8 @@ export const productPriceValidateWorker = new Worker<
       // 4. Calculate effective pricing
       const basePrice = product.base_price;
       const currentPrice = product.current_price;
-      let minPrice =
-        product.min_price ?? basePrice * (1 - DEFAULT_MAX_DISCOUNT);
-      let maxDiscount =
-        product.max_discount_percent ?? DEFAULT_MAX_DISCOUNT * 100;
+      let minPrice = product.min_price ?? basePrice * (1 - DEFAULT_MAX_DISCOUNT);
+      let maxDiscount = product.max_discount_percent ?? DEFAULT_MAX_DISCOUNT * 100;
       let minMargin = DEFAULT_MIN_MARGIN;
 
       // Apply rules (highest priority first)
@@ -1826,11 +1737,7 @@ export const productPriceValidateWorker = new Worker<
         }
 
         // Volume discounts
-        if (
-          rule.rule_type === "VOLUME_DISCOUNT" &&
-          rule.volume_tiers &&
-          data.quantity > 1
-        ) {
+        if (rule.rule_type === "VOLUME_DISCOUNT" && rule.volume_tiers && data.quantity > 1) {
           const tiers = rule.volume_tiers as Array<{
             min_qty: number;
             discount: number;
@@ -1846,11 +1753,9 @@ export const productPriceValidateWorker = new Worker<
       }
 
       // 5. Validate mentioned price
-      const effectiveDiscount =
-        ((currentPrice - data.mentionedPrice) / currentPrice) * 100;
+      const effectiveDiscount = ((currentPrice - data.mentionedPrice) / currentPrice) * 100;
       const margin =
-        (data.mentionedPrice - (product.cost_price ?? basePrice * 0.7)) /
-        data.mentionedPrice;
+        (data.mentionedPrice - (product.cost_price ?? basePrice * 0.7)) / data.mentionedPrice;
 
       const priceValid = data.mentionedPrice >= minPrice;
       const discountValid = effectiveDiscount <= maxDiscount;
@@ -1916,8 +1821,7 @@ export const productPriceValidateWorker = new Worker<
         duration_ms: Date.now() - startTime,
       };
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
       logger.error("Price validation failed", {
         jobId: job.id,
@@ -2035,10 +1939,7 @@ export type CategorySyncResult = z.infer<typeof CategorySyncResultSchema>;
 import { Worker, Job } from "bullmq";
 import { eq, and, isNull, sql } from "drizzle-orm";
 import { db } from "@cerniq/database";
-import {
-  goldProductCategories,
-  goldProducts,
-} from "@cerniq/database/schema/etapa3";
+import { goldProductCategories, goldProducts } from "@cerniq/database/schema/etapa3";
 import {
   CategorySyncJobData,
   CategorySyncJobDataSchema,
@@ -2051,10 +1952,7 @@ import { embeddingQueue } from "../queues";
 
 const QUEUE_NAME = "product:category:sync";
 
-export const productCategorySyncWorker = new Worker<
-  CategorySyncJobData,
-  CategorySyncResult
->(
+export const productCategorySyncWorker = new Worker<CategorySyncJobData, CategorySyncResult>(
   QUEUE_NAME,
   async (job: Job<CategorySyncJobData>): Promise<CategorySyncResult> => {
     const startTime = Date.now();
@@ -2087,9 +1985,7 @@ export const productCategorySyncWorker = new Worker<
       }
 
       if (!categories) {
-        throw new Error(
-          "No categories provided and could not fetch from source",
-        );
+        throw new Error("No categories provided and could not fetch from source");
       }
 
       // 3. Build external ID to internal ID mapping
@@ -2107,18 +2003,14 @@ export const productCategorySyncWorker = new Worker<
       // 4. Process categories (parents first)
       // Sort to ensure parents are processed before children
       const sortedCategories = [...categories].sort((a, b) => {
-        if (a.parentExternalId === null && b.parentExternalId !== null)
-          return -1;
-        if (a.parentExternalId !== null && b.parentExternalId === null)
-          return 1;
+        if (a.parentExternalId === null && b.parentExternalId !== null) return -1;
+        if (a.parentExternalId !== null && b.parentExternalId === null) return 1;
         return 0;
       });
 
       for (const cat of sortedCategories) {
         const existingId = externalToInternal.get(cat.externalId);
-        const parentId = cat.parentExternalId
-          ? externalToInternal.get(cat.parentExternalId)
-          : null;
+        const parentId = cat.parentExternalId ? externalToInternal.get(cat.parentExternalId) : null;
 
         if (existingId) {
           // Update
@@ -2171,9 +2063,7 @@ export const productCategorySyncWorker = new Worker<
             })
             .where(eq(goldProducts.category_id, cat.id));
 
-          await db
-            .delete(goldProductCategories)
-            .where(eq(goldProductCategories.id, cat.id));
+          await db.delete(goldProductCategories).where(eq(goldProductCategories.id, cat.id));
 
           categoriesDeleted++;
         }
@@ -2219,8 +2109,7 @@ export const productCategorySyncWorker = new Worker<
         duration_ms: Date.now() - startTime,
       };
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
       logger.error("Category sync failed", {
         jobId: job.id,

@@ -1,0 +1,29 @@
+{
+  "name": "@cerniq/worker-enrichment",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node worker.js",
+    "start": "node worker.js",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@cerniq/db": "workspace:*",
+    "@cerniq/shared-types": "workspace:*",
+    "@cerniq/worker-shared": "workspace:*",
+    "@types/papaparse": "^5.5.2",
+    "bullmq": "^5.70.1",
+    "exceljs": "^4.4.0",
+    "fuzzball": "^2.2.3",
+    "ioredis": "^5.10.0",
+    "libphonenumber-js": "^1.12.38",
+    "papaparse": "^5.5.3"
+  },
+  "devDependencies": {
+    "vitest": "^4.0.18"
+  }
+}

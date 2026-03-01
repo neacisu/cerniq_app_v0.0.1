@@ -1,0 +1,16 @@
+{
+  "name": "@cerniq/worker-ai",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node worker.js",
+    "start": "node worker.js",
+    "lint": "echo 'No lint'",
+    "test": "echo 'No tests'"
+  },
+  "dependencies": {
+    "bullmq": "^5.70.1",
+    "ioredis": "^5.10.0"
+  }
+}

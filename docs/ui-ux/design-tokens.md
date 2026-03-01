@@ -1,54 +1,113 @@
-# Design Tokens
+# CERNIQ.APP — Design Tokens (OKLCH P3)
 
-Sistemul de design **Cerniq.app** este implementat prin CSS Variables și utilitare Tailwind v4.
+Toate tokenurile sunt definite în CSS via `@theme` (Tailwind v4). **Niciodată valori hardcodate în componente.**
 
-## 1. Culori
+---
 
-Paleta cromatică este inspirată de natură (agricultură), dar păstrează un aspect sharp, profesional (SaaS B2B).
+## Brand (Amber/Gold)
 
-### Primary (Brand)
+| Token  | Valoare             | Utilizare      |
+| ------ | ------------------- | -------------- |
+| `--b3` | `oklch(.75 .18 85)` | Accent light   |
+| `--b4` | `oklch(.70 .17 80)` | Hover          |
+| `--b5` | `oklch(.65 .16 75)` | CTA principal  |
+| `--b6` | `oklch(.60 .15 70)` | Pressed/active |
 
-- **Primary Green**: `hsl(142, 76%, 36%)` (Green-600) — Acțiuni principale, butoane, logo.
-- **Primary Dark**: `hsl(145, 80%, 10%)` (Green-950) — Accente în dark mode.
+---
 
-### Secondary (Accents)
+## Surface (Deep Navy)
 
-- **Harvest Gold**: `hsl(45, 93%, 47%)` (Amber-500) — Status "Pending", "Negotiation".
-- **Soil Brown**: `hsl(25, 40%, 30%)` (Brown-800) — Elemente de fundal secundare.
+| Token    | Valoare              | Utilizare             |
+| -------- | -------------------- | --------------------- |
+| `--s950` | `oklch(.13 .02 260)` | Fundal principal dark |
+| `--s900` | `oklch(.17 .02 260)` | Card background       |
+| `--s800` | `oklch(.22 .03 260)` | Card hover            |
+| `--s700` | `oklch(.28 .03 260)` | Borders               |
+| `--s600` | `oklch(.35 .03 260)` | Muted backgrounds     |
 
-### Semantic
+---
 
-- **Destructive**: `hsl(0, 84%, 60%)` (Red-500) — Ștergere, Erori (Banned phone).
-- **Success**: `hsl(142, 70%, 45%)` (Green-500) — Succes (Sale closed).
-- **Warning**: `hsl(38, 92%, 50%)` (Orange-500) — Atenționări (SLA Breach).
-- **Info**: `hsl(217, 91%, 60%)` (Blue-500) — Informații neutre.
+## Text
 
-## 2. Tipografie
+| Token  | Valoare              | Utilizare                |
+| ------ | -------------------- | ------------------------ |
+| `--t1` | `oklch(.95 .01 260)` | Headings, important data |
+| `--t2` | `oklch(.75 .02 260)` | Labels, secondary        |
+| `--t3` | `oklch(.55 .02 260)` | Helper text              |
+| `--t4` | `oklch(.40 .02 260)` | Disabled, placeholders   |
 
-### Font Family
+---
 
-- **Sans**: `Inter`, system-ui, sans-serif.
-- **Mono**: `JetBrains Mono`, monospace (pentru log-uri, JSON, CUI-uri).
+## Semantic
 
-### Scale
+| Token  | Valoare              | Utilizare |
+| ------ | -------------------- | --------- |
+| `--ok` | `oklch(.72 .20 145)` | Success   |
+| `--wa` | `oklch(.80 .18 85)`  | Warning   |
+| `--er` | `oklch(.65 .25 25)`  | Error     |
+| `--in` | `oklch(.70 .15 240)` | Info      |
 
-- **h1**: 2.25rem (36px), font-bold, tracking-tight.
-- **h2**: 1.875rem (30px), font-semibold.
-- **h3**: 1.5rem (24px), font-semibold.
-- **body**: 1rem (16px), text-slate-700 (light) / text-slate-300 (dark).
-- **small**: 0.875rem (14px).
+---
 
-## 3. Spacing & Radius
+## Tier (Cerniq)
 
-### Radius
+| Token      | Valoare              | Utilizare   |
+| ---------- | -------------------- | ----------- |
+| `--bronze` | `oklch(.65 .12 55)`  | Bronze tier |
+| `--silver` | `oklch(.70 .03 260)` | Silver tier |
+| `--gold`   | `oklch(.78 .17 85)`  | Gold tier   |
 
-- **Default**: `0.5rem` (8px) — Carduri, Input-uri.
-- **Small**: `0.25rem` (4px) — Badge-uri, Checkbox.
-- **Full**: `9999px` — Butoane "Pill", Avatare.
+---
 
-### Layout Z-Index
+## Spacing (4px base)
 
-- **Modal**: 50
-- **Drawer**: 40
-- **Popover**: 30
-- **Sticky Header**: 20
+| Token | Valoare                   |
+| ----- | ------------------------- |
+| Base  | 4px                       |
+| Scale | 8, 12, 16, 24, 32, 48, 64 |
+
+---
+
+## Shadows (OKLCH alpha)
+
+| Token           | Utilizare         |
+| --------------- | ----------------- |
+| `--shadow-sm`   | Subtle elevation  |
+| `--shadow-md`   | Cards             |
+| `--shadow-lg`   | Modals            |
+| `--shadow-glow` | Brand accent glow |
+
+---
+
+## Border Radius
+
+| Token           | Valoare |
+| --------------- | ------- |
+| `--radius-sm`   | 6px     |
+| `--radius-md`   | 10px    |
+| `--radius-lg`   | 14px    |
+| `--radius-xl`   | 20px    |
+| `--radius-full` | 9999px  |
+
+---
+
+## Z-Index
+
+| Layer   | Valoare |
+| ------- | ------- |
+| Sidebar | 40      |
+| Header  | 50      |
+| Modal   | 60      |
+| Toast   | 70      |
+| Tooltip | 80      |
+
+---
+
+## Transitions
+
+| Token               | Valoare                      |
+| ------------------- | ---------------------------- |
+| `--duration-fast`   | 150ms                        |
+| `--duration-normal` | 250ms                        |
+| `--duration-slow`   | 350ms                        |
+| `--ease-spring`     | `cubic-bezier(.4, 0, .2, 1)` |

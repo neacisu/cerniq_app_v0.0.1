@@ -9,9 +9,7 @@
 ## Worker #28: stock:sync:oblio (Cron \*/15min)
 
 ```typescript
-export async function stockSyncOblioProcessor(
-  job: Job,
-): Promise<{ synced: number }> {
+export async function stockSyncOblioProcessor(job: Job): Promise<{ synced: number }> {
   const tenants = await db.query.tenants.findMany({
     where: eq(tenants.oblioEnabled, true),
   });
@@ -29,10 +27,7 @@ export async function stockSyncOblioProcessor(
           stockUpdatedAt: new Date(),
         })
         .where(
-          and(
-            eq(goldProducts.tenantId, tenant.id),
-            eq(goldProducts.oblioProductId, product.id),
-          ),
+          and(eq(goldProducts.tenantId, tenant.id), eq(goldProducts.oblioProductId, product.id)),
         );
       totalSynced++;
     }
@@ -82,9 +77,7 @@ export async function stockReserveOrderProcessor(
 
 ```typescript
 // Worker #30: stock:release:order
-export async function stockReleaseOrderProcessor(
-  job: Job<{ orderId: string }>,
-): Promise<void> {
+export async function stockReleaseOrderProcessor(job: Job<{ orderId: string }>): Promise<void> {
   const items = await db.query.goldOrderItems.findMany({
     where: and(
       eq(goldOrderItems.orderId, job.data.orderId),
@@ -101,9 +94,7 @@ export async function stockReleaseOrderProcessor(
 }
 
 // Worker #31: stock:deduct:delivered
-export async function stockDeductDeliveredProcessor(
-  job: Job<{ orderId: string }>,
-): Promise<void> {
+export async function stockDeductDeliveredProcessor(job: Job<{ orderId: string }>): Promise<void> {
   const items = await db.query.goldOrderItems.findMany({
     where: eq(goldOrderItems.orderId, job.data.orderId),
   });

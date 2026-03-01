@@ -31,9 +31,7 @@ describe("Worker Factory", () => {
 
   it("should emit metrics", async () => {
     const metrics: any[] = [];
-    worker.on("completed", (job) =>
-      metrics.push({ job: job.id, status: "completed" }),
-    );
+    worker.on("completed", (job) => metrics.push({ job: job.id, status: "completed" }));
 
     await queue.add("test", {});
     await sleep(1000);

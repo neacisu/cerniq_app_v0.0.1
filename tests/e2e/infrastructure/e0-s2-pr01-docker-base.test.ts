@@ -57,7 +57,7 @@ export const EXPECTED_DAEMON_CONFIG = {
   "log-driver": "json-file",
   "live-restore": true,
   "userland-proxy": false,
-  "metrics-addr": "0.0.0.0:64094",
+  "metrics-addr": "127.0.0.1:64093",
 } as const;
 
 // =============================================================================
@@ -104,33 +104,24 @@ function parseJson<T>(content: string): T | null {
 
 describe("F0.1.1: Docker Engine Setup", () => {
   describe("F0.1.1.T001: Docker Engine Installation", () => {
-    it.skipIf(!CAN_RUN_SERVER_TESTS)(
-      "should have Docker Engine 28.x+ installed",
-      () => {
-        const version = exec('docker version --format "{{.Server.Version}}"');
-        expect(version).toMatch(/^(28|29|30)\.\d+\.\d+/);
-      },
-    );
+    it.skipIf(!CAN_RUN_SERVER_TESTS)("should have Docker Engine 28.x+ installed", () => {
+      const version = exec('docker version --format "{{.Server.Version}}"');
+      expect(version).toMatch(/^(28|29|30)\.\d+\.\d+/);
+    });
 
-    it.skipIf(!CAN_RUN_SERVER_TESTS)(
-      "should have Docker Compose v2.40+ installed",
-      () => {
-        const version = exec("docker compose version --short");
-        const [major, minor] = version.replace("v", "").split(".").map(Number);
-        expect(major).toBeGreaterThanOrEqual(2);
-        if (major === 2) {
-          expect(minor).toBeGreaterThanOrEqual(20);
-        }
-      },
-    );
+    it.skipIf(!CAN_RUN_SERVER_TESTS)("should have Docker Compose v2.40+ installed", () => {
+      const version = exec("docker compose version --short");
+      const [major, minor] = version.replace("v", "").split(".").map(Number);
+      expect(major).toBeGreaterThanOrEqual(2);
+      if (major === 2) {
+        expect(minor).toBeGreaterThanOrEqual(20);
+      }
+    });
 
-    it.skipIf(!CAN_RUN_SERVER_TESTS)(
-      "should have Docker service running",
-      () => {
-        const status = exec("systemctl is-active docker");
-        expect(status).toBe("active");
-      },
-    );
+    it.skipIf(!CAN_RUN_SERVER_TESTS)("should have Docker service running", () => {
+      const status = exec("systemctl is-active docker");
+      expect(status).toBe("active");
+    });
   });
 
   describe("F0.1.1.T002: daemon.json Configuration", () => {
@@ -165,9 +156,7 @@ describe("F0.1.1: Docker Engine Setup", () => {
     it("should have correct log rotation settings", () => {
       const content = readFile("infra/config/docker/daemon.json");
       const config = parseJson<Record<string, unknown>>(content);
-      const logOpts = config?.["log-opts"] as
-        | Record<string, string>
-        | undefined;
+      const logOpts = config?.["log-opts"] as Record<string, string> | undefined;
       expect(logOpts?.["max-size"]).toBe("50m");
       expect(logOpts?.["max-file"]).toBe("5");
     });
@@ -175,15 +164,13 @@ describe("F0.1.1: Docker Engine Setup", () => {
     it("should have metrics endpoint configured", () => {
       const content = readFile("infra/config/docker/daemon.json");
       const config = parseJson<Record<string, unknown>>(content);
-      expect(config?.["metrics-addr"]).toBe("0.0.0.0:64094");
+      expect(config?.["metrics-addr"]).toBe("127.0.0.1:64093");
     });
 
     it("should use 172.29.0.0/16 subnet (standardized)", () => {
       const content = readFile("infra/config/docker/daemon.json");
       const config = parseJson<Record<string, unknown>>(content);
-      const pools = config?.["default-address-pools"] as
-        | Array<{ base: string }>
-        | undefined;
+      const pools = config?.["default-address-pools"] as Array<{ base: string }> | undefined;
       expect(pools?.[0]?.base).toBe("172.29.0.0/16");
     });
 
@@ -229,51 +216,33 @@ describe("F0.1.1: Docker Engine Setup", () => {
 
 describe("F0.1.2: Docker Networks Setup", () => {
   describe("F0.1.2.T001: Network Creation", () => {
-    it.skipIf(!CAN_RUN_SERVER_TESTS)(
-      "should have cerniq_public network",
-      () => {
-        const networks = exec('docker network ls --format "{{.Name}}"');
-        expect(networks).toContain("cerniq_public");
-      },
-    );
+    it.skipIf(!CAN_RUN_SERVER_TESTS)("should have cerniq_public network", () => {
+      const networks = exec('docker network ls --format "{{.Name}}"');
+      expect(networks).toContain("cerniq_public");
+    });
 
-    it.skipIf(!CAN_RUN_SERVER_TESTS)(
-      "should have cerniq_backend network",
-      () => {
-        const networks = exec('docker network ls --format "{{.Name}}"');
-        expect(networks).toContain("cerniq_backend");
-      },
-    );
+    it.skipIf(!CAN_RUN_SERVER_TESTS)("should have cerniq_backend network", () => {
+      const networks = exec('docker network ls --format "{{.Name}}"');
+      expect(networks).toContain("cerniq_backend");
+    });
 
     it.skipIf(!CAN_RUN_SERVER_TESTS)("should have cerniq_data network", () => {
       const networks = exec('docker network ls --format "{{.Name}}"');
       expect(networks).toContain("cerniq_data");
     });
 
-    it.skipIf(!CAN_RUN_SERVER_TESTS)(
-      "cerniq_public should NOT be internal",
-      () => {
-        const inspect = exec(
-          'docker network inspect cerniq_public --format "{{.Internal}}"',
-        );
-        expect(inspect).toBe("false");
-      },
-    );
+    it.skipIf(!CAN_RUN_SERVER_TESTS)("cerniq_public should NOT be internal", () => {
+      const inspect = exec('docker network inspect cerniq_public --format "{{.Internal}}"');
+      expect(inspect).toBe("false");
+    });
 
-    it.skipIf(!CAN_RUN_SERVER_TESTS)(
-      "cerniq_backend should be internal",
-      () => {
-        const inspect = exec(
-          'docker network inspect cerniq_backend --format "{{.Internal}}"',
-        );
-        expect(inspect).toBe("true");
-      },
-    );
+    it.skipIf(!CAN_RUN_SERVER_TESTS)("cerniq_backend should be internal", () => {
+      const inspect = exec('docker network inspect cerniq_backend --format "{{.Internal}}"');
+      expect(inspect).toBe("true");
+    });
 
     it.skipIf(!CAN_RUN_SERVER_TESTS)("cerniq_data should be internal", () => {
-      const inspect = exec(
-        'docker network inspect cerniq_data --format "{{.Internal}}"',
-      );
+      const inspect = exec('docker network inspect cerniq_data --format "{{.Internal}}"');
       expect(inspect).toBe("true");
     });
 
@@ -329,55 +298,62 @@ describe("F0.1.2: Docker Networks Setup", () => {
     });
 
     it("should have cerniq_public network as external", () => {
-      const networks = composeConfig?.networks as Record<
-        string,
-        { external: boolean }
-      >;
+      const networks = composeConfig?.networks as Record<string, { external: boolean }>;
       expect(networks?.cerniq_public?.external).toBe(true);
     });
 
     it("should have cerniq_backend network as external", () => {
-      const networks = composeConfig?.networks as Record<
-        string,
-        { external: boolean }
-      >;
+      const networks = composeConfig?.networks as Record<string, { external: boolean }>;
       expect(networks?.cerniq_backend?.external).toBe(true);
     });
 
     it("should have cerniq_data network as external", () => {
-      const networks = composeConfig?.networks as Record<
-        string,
-        { external: boolean }
-      >;
+      const networks = composeConfig?.networks as Record<string, { external: boolean }>;
       expect(networks?.cerniq_data?.external).toBe(true);
     });
 
     it("should not define deprecated postgres_data volume", () => {
-      const volumes = composeConfig?.volumes as Record<string, unknown>;
+      const volumes = (composeConfig?.volumes ?? {}) as Record<string, unknown>;
       expect(volumes).not.toHaveProperty("postgres_data");
     });
 
     it("should not define redis_data volume (Redis is external/shared)", () => {
-      const volumes = composeConfig?.volumes as Record<string, unknown>;
+      const volumes = (composeConfig?.volumes ?? {}) as Record<string, unknown>;
       expect(volumes).not.toHaveProperty("redis_data");
     });
 
     it("should not define deprecated traefik_certs volume", () => {
-      const volumes = composeConfig?.volumes as Record<string, unknown>;
+      const volumes = (composeConfig?.volumes ?? {}) as Record<string, unknown>;
       expect(volumes).not.toHaveProperty("traefik_certs");
     });
 
     it("should not define deprecated signoz_data volume", () => {
-      const volumes = composeConfig?.volumes as Record<string, unknown>;
+      const volumes = (composeConfig?.volumes ?? {}) as Record<string, unknown>;
       expect(volumes).not.toHaveProperty("signoz_data");
     });
 
     it("should validate with docker compose config", () => {
-      const result = exec(
-        `cd ${WORKSPACE_ROOT}/infra/docker && docker compose -f docker-compose.yml config --quiet 2>&1 || echo "INVALID"`,
-      );
-      expect(result).not.toContain("INVALID");
-      expect(result).not.toContain("error");
+      const stubDir = path.join(WORKSPACE_ROOT, ".test-stub-secrets");
+      fs.mkdirSync(path.join(stubDir, "api"), { recursive: true });
+      fs.mkdirSync(path.join(stubDir, "workers"), { recursive: true });
+      fs.mkdirSync(path.join(stubDir, "infra"), { recursive: true });
+      for (const f of [
+        "api/api.env",
+        "workers/workers.env",
+        "infra/userlist.txt",
+        "infra/pgbouncer.ini",
+      ]) {
+        fs.writeFileSync(path.join(stubDir, f), "");
+      }
+      try {
+        const result = exec(
+          `cd ${WORKSPACE_ROOT}/infra/docker && CERNIQ_RENDERED_SECRETS_DIR="${stubDir}" docker compose -f docker-compose.yml config --quiet 2>&1 || echo "INVALID"`,
+        );
+        expect(result).not.toContain("INVALID");
+        expect(result).not.toContain("error");
+      } finally {
+        fs.rmSync(stubDir, { recursive: true, force: true });
+      }
     });
   });
 });
@@ -393,9 +369,7 @@ describe("F0.1.3: Validation Scripts & Documentation", () => {
     });
 
     it("should be executable", () => {
-      const mode = fs.statSync(
-        path.join(WORKSPACE_ROOT, "infra/scripts/check-docker.sh"),
-      ).mode;
+      const mode = fs.statSync(path.join(WORKSPACE_ROOT, "infra/scripts/check-docker.sh")).mode;
       const isExecutable = (mode & 0o111) !== 0;
       expect(isExecutable).toBe(true);
     });
@@ -425,9 +399,7 @@ describe("F0.1.3: Validation Scripts & Documentation", () => {
 
   describe("F0.1.3.T002: Log Rotation Documentation", () => {
     it("should have docker-log-rotation.md", () => {
-      expect(fileExists("docs/infrastructure/docker-log-rotation.md")).toBe(
-        true,
-      );
+      expect(fileExists("docs/infrastructure/docker-log-rotation.md")).toBe(true);
     });
 
     it("should document max-size setting", () => {
@@ -522,37 +494,27 @@ describe.skipIf(!CAN_RUN_SERVER_TESTS)("Server: /opt/cerniq Structure", () => {
   });
 
   it("should have /opt/cerniq/scripts directory", () => {
-    const exists = exec(
-      'test -d /opt/cerniq/scripts && echo "yes" || echo "no"',
-    );
+    const exists = exec('test -d /opt/cerniq/scripts && echo "yes" || echo "no"');
     expect(exists).toBe("yes");
   });
 
   it("should have /opt/cerniq/secrets directory", () => {
-    const exists = exec(
-      'test -d /opt/cerniq/secrets && echo "yes" || echo "no"',
-    );
+    const exists = exec('test -d /opt/cerniq/secrets && echo "yes" || echo "no"');
     expect(exists).toBe("yes");
   });
 
   it("should have /opt/cerniq/config directory", () => {
-    const exists = exec(
-      'test -d /opt/cerniq/config && echo "yes" || echo "no"',
-    );
+    const exists = exec('test -d /opt/cerniq/config && echo "yes" || echo "no"');
     expect(exists).toBe("yes");
   });
 
   it("should have docker-compose.yml in /opt/cerniq", () => {
-    const exists = exec(
-      'test -f /opt/cerniq/docker-compose.yml && echo "yes" || echo "no"',
-    );
+    const exists = exec('test -f /opt/cerniq/docker-compose.yml && echo "yes" || echo "no"');
     expect(exists).toBe("yes");
   });
 
   it("should have check-docker.sh in /opt/cerniq/scripts", () => {
-    const exists = exec(
-      'test -f /opt/cerniq/scripts/check-docker.sh && echo "yes" || echo "no"',
-    );
+    const exists = exec('test -f /opt/cerniq/scripts/check-docker.sh && echo "yes" || echo "no"');
     expect(exists).toBe("yes");
   });
 });

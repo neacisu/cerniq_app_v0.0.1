@@ -36,11 +36,7 @@ Utilizăm **Fastify v5.6.2** cu **@fastify/type-provider-zod**.
 
 ```typescript
 import Fastify from "fastify";
-import {
-  serializerCompiler,
-  validatorCompiler,
-  ZodTypeProvider,
-} from "fastify-type-provider-zod";
+import { serializerCompiler, validatorCompiler, ZodTypeProvider } from "fastify-type-provider-zod";
 
 const fastify = Fastify({
   logger: {

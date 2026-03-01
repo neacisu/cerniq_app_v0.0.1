@@ -2,7 +2,7 @@
 
 ## Data Enrichment Pipeline — Plan Execuție
 
-### Versiunea 1.0 | 2 Februarie 2026
+### Versiunea 1.1 | 27 Februarie 2026
 
 ---
 
@@ -11,14 +11,14 @@
 | Câmp                | Valoare                                 |
 | ------------------- | --------------------------------------- |
 | **Etapă**           | E1 - Data Enrichment                    |
-| **Versiune**        | 1.0                                     |
-| **Data creării**    | 2 Februarie 2026                        |
+| **Versiune**        | 1.1                                     |
+| **Data creării**    | 27 Februarie 2026                       |
 | **Autor**           | Cerniq Development Team                 |
 | **Status**          | APPROVED - Ready for Execution          |
 | **Durată totală**   | 8 săptămâni (4 sprinturi × 2 săptămâni) |
 | **Total Sprinturi** | 4                                       |
 | **Total PR-uri**    | 32                                      |
-| **Total Task-uri**  | 126                                     |
+| **Total Task-uri**  | 193                                     |
 
 ---
 
@@ -56,7 +56,7 @@ E1.S1.PR1.001
 
 ## SPRINT 1: FOUNDATION (Săptămâna 1-2)
 
-### 📅 Perioada: 3-14 Februarie 2026
+### 📅 Perioada: 27 Februarie - 12 Martie 2026
 
 ### 🎯 Obiective Sprint
 
@@ -257,7 +257,7 @@ E1.S1.PR1.001
 
 ## SPRINT 2: INGESTION & ENRICHMENT CORE (Săptămâna 3-4)
 
-### 📅 Perioada: 17-28 Februarie 2026
+### 📅 Perioada: 13-26 Martie 2026
 
 ### 🎯 Obiective Sprint
 
@@ -343,7 +343,7 @@ E1.S1.PR1.001
 
 ---
 
-### PR E1.S2.PR4: Workers C.1-C.2 (Validare CUI/Email)
+### PR E1.S2.PR4: Workers C.1-C.2 (Validare CUI)
 
 **Branch:** `feature/e1-s2-pr4-workers-validate`  
 **Reviewer:** @lead-dev  
@@ -354,7 +354,7 @@ E1.S1.PR1.001
 | Task ID       | Denumire                                   | Status  | Assignee | Estimare |
 | ------------- | ------------------------------------------ | ------- | -------- | -------- |
 | E1.S2.PR4.001 | Implementare C.1 CUI Validator (Modulo-11) | ⬜ TODO | -        | 3h       |
-| E1.S2.PR4.002 | Implementare C.2 Email Syntax Validator    | ⬜ TODO | -        | 2h       |
+| E1.S2.PR4.002 | Implementare C.2 CUI ANAF Validator         | ⬜ TODO | -        | 3h       |
 | E1.S2.PR4.003 | Batch validation pentru eficiență          | ⬜ TODO | -        | 2h       |
 | E1.S2.PR4.004 | Tests și edge cases                        | ⬜ TODO | -        | 2h       |
 
@@ -439,7 +439,7 @@ E1.S1.PR1.001
 
 ## SPRINT 3: ENRICHMENT ADVANCED & HITL (Săptămâna 5-6)
 
-### 📅 Perioada: 3-14 Martie 2026
+### 📅 Perioada: 27 Martie - 9 Aprilie 2026
 
 ### 🎯 Obiective Sprint
 
@@ -527,7 +527,7 @@ E1.S1.PR1.001
 
 | Task ID       | Denumire                                            | Status  | Assignee | Estimare |
 | ------------- | --------------------------------------------------- | ------- | -------- | -------- |
-| E1.S3.PR4.001 | Implementare K.1 Google Geocoder Worker             | ⬜ TODO | -        | 3h       |
+| E1.S3.PR4.001 | Implementare K.1 Nominatim Geocoding Worker         | ⬜ TODO | -        | 3h       |
 | E1.S3.PR4.002 | Implementare K.2 Nominatim Fallback Worker          | ⬜ TODO | -        | 2h       |
 | E1.S3.PR4.003 | Implementare K.3 Address Standardizer Worker        | ⬜ TODO | -        | 2h       |
 | E1.S3.PR4.004 | Implementare L.1 APIA Data Worker                   | ⬜ TODO | -        | 3h       |
@@ -568,11 +568,11 @@ E1.S1.PR1.001
 | Task ID       | Denumire                                  | Status  | Assignee | Estimare |
 | ------------- | ----------------------------------------- | ------- | -------- | -------- |
 | E1.S3.PR6.001 | Implementare O.1 Silver Aggregator Worker | ⬜ TODO | -        | 3h       |
-| E1.S3.PR6.002 | Implementare O.2 Gold Promoter Worker     | ⬜ TODO | -        | 3h       |
+| E1.S3.PR6.002 | Implementare O.2 Quality Rollup Worker    | ⬜ TODO | -        | 3h       |
 | E1.S3.PR6.003 | Implementare P.1 Pipeline Orchestrator    | ⬜ TODO | -        | 4h       |
-| E1.S3.PR6.004 | Implementare P.2 Retry Handler Worker     | ⬜ TODO | -        | 2h       |
-| E1.S3.PR6.005 | Implementare P.3 Dead Letter Handler      | ⬜ TODO | -        | 2h       |
-| E1.S3.PR6.006 | Implementare P.4 Stats Collector Worker   | ⬜ TODO | -        | 2h       |
+| E1.S3.PR6.004 | Implementare P.2 Promotion Silver->Gold   | ⬜ TODO | -        | 3h       |
+| E1.S3.PR6.005 | Implementare P.3 Pipeline Monitor          | ⬜ TODO | -        | 2h       |
+| E1.S3.PR6.006 | Implementare P.4 Error Handler             | ⬜ TODO | -        | 2h       |
 
 ---
 
@@ -614,11 +614,11 @@ E1.S1.PR1.001
 
 ## SPRINT 4: API & FRONTEND (Săptămâna 7-8)
 
-### 📅 Perioada: 17-28 Martie 2026
+### 📅 Perioada: 10-23 Aprilie 2026
 
 ### 🎯 Obiective Sprint
 
-- [ ] Backend API complet (40+ endpoints)
+- [ ] Backend API complet (28 endpoints E1)
 - [ ] Frontend pages și components
 - [ ] Testing complet și documentație
 - [ ] Deployment și monitoring
@@ -629,7 +629,7 @@ E1.S1.PR1.001
 | -------------------- | ------ | ------ |
 | PR-uri planificate   | 8      | -      |
 | Task-uri planificate | 28     | -      |
-| API Endpoints        | 40+    | -      |
+| API Endpoints        | 28     | -      |
 | Story Points         | 45     | -      |
 
 ---
@@ -786,27 +786,27 @@ E1.S1.PR1.001
 | ------------------- | ----------- |
 | **Sprinturi**       | 4           |
 | **PR-uri totale**   | 32          |
-| **Task-uri totale** | 126         |
+| **Task-uri totale** | 193         |
 | **Durată totală**   | 8 săptămâni |
 | **Workers**         | 58          |
-| **API Endpoints**   | 40+         |
-| **Pagini Frontend** | 15+         |
+| **API Endpoints**   | 28          |
+| **Pagini Frontend** | 20          |
 
 ### Calendar Execuție
 
 | Sprint | Perioada       | Focus                       |
 | ------ | -------------- | --------------------------- |
-| S1     | 3-14 Feb 2026  | Foundation (DB + Infra)     |
-| S2     | 17-28 Feb 2026 | Ingestion & Core Enrichment |
-| S3     | 3-14 Mar 2026  | Advanced Enrichment + HITL  |
-| S4     | 17-28 Mar 2026 | API + Frontend + Testing    |
+| S1     | 27 Feb - 12 Mar 2026 | Foundation (DB + Infra)     |
+| S2     | 13-26 Mar 2026        | Ingestion & Core Enrichment |
+| S3     | 27 Mar - 9 Apr 2026   | Advanced Enrichment + HITL  |
+| S4     | 10-23 Apr 2026        | API + Frontend + Testing    |
 
 ### Criterii Acceptare Etapa 1
 
 - [ ] Toate cele 58 workers funcționale
 - [ ] Pipeline Bronze → Silver → Gold complet
-- [ ] HITL system operațional (3 tipuri aprobare)
-- [ ] API cu 40+ endpoints documentate
+- [ ] HITL system operațional (8 tipuri aprobare)
+- [ ] API cu 28 endpoints documentate
 - [ ] Frontend admin dashboard funcțional
 - [ ] Test coverage ≥ 80%
 - [ ] Documentație completă și actualizată
@@ -832,6 +832,6 @@ E1.S1.PR1.001
 
 ---
 
-**Document generat:** 2 Februarie 2026  
+**Document generat:** 27 Februarie 2026  
 **Conformitate:** Master Spec v1.2  
 **Status:** APPROVED - Ready for Execution

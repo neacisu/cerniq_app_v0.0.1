@@ -871,16 +871,11 @@ export const goldProductCategories = pgTable(
       scale: 2,
     }).default("15.00"),
     customFields: jsonb("custom_fields").default({}),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
   },
   (table) => ({
-    uniqueTenantSlug: uniqueIndex("idx_unique_category_slug").on(
-      table.tenantId,
-      table.slug,
-    ),
+    uniqueTenantSlug: uniqueIndex("idx_unique_category_slug").on(table.tenantId, table.slug),
     parentIdx: index("idx_categories_parent").on(table.parentId),
   }),
 );
@@ -912,9 +907,7 @@ export const goldProducts = pgTable(
     currency: varchar("currency", { length: 3 }).default("RON"),
     costPrice: decimal("cost_price", { precision: 12, scale: 2 }),
     minPrice: decimal("min_price", { precision: 12, scale: 2 }),
-    vatPercent: decimal("vat_percent", { precision: 5, scale: 2 }).default(
-      "19.00",
-    ),
+    vatPercent: decimal("vat_percent", { precision: 5, scale: 2 }).default("19.00"),
 
     // Discount rules
     maxDiscountPercent: decimal("max_discount_percent", {
@@ -967,17 +960,12 @@ export const goldProducts = pgTable(
     sourceSyncedAt: timestamp("source_synced_at", { withTimezone: true }),
 
     // Audit
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
     createdBy: uuid("created_by").references(() => users.id),
   },
   (table) => ({
-    uniqueTenantSku: uniqueIndex("idx_unique_tenant_sku").on(
-      table.tenantId,
-      table.sku,
-    ),
+    uniqueTenantSku: uniqueIndex("idx_unique_tenant_sku").on(table.tenantId, table.sku),
     tenantIdx: index("idx_products_tenant").on(table.tenantId),
     categoryIdx: index("idx_products_category").on(table.categoryId),
     statusIdx: index("idx_products_status").on(table.tenantId, table.status),

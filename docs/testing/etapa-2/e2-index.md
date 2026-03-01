@@ -69,11 +69,7 @@ describe("Quota Guardian Redis Scripts", () => {
   it("should atomically check and consume quota", async () => {
     await redis.set("quota:phone:123:daily", "200");
 
-    const result = await redis.eval(
-      CONSUME_QUOTA_LUA,
-      1,
-      "quota:phone:123:daily",
-    );
+    const result = await redis.eval(CONSUME_QUOTA_LUA, 1, "quota:phone:123:daily");
 
     expect(result).toBe(199);
   });
@@ -81,11 +77,7 @@ describe("Quota Guardian Redis Scripts", () => {
   it("should reject when quota exhausted", async () => {
     await redis.set("quota:phone:123:daily", "0");
 
-    const result = await redis.eval(
-      CONSUME_QUOTA_LUA,
-      1,
-      "quota:phone:123:daily",
-    );
+    const result = await redis.eval(CONSUME_QUOTA_LUA, 1, "quota:phone:123:daily");
 
     expect(result).toBe(-1); // Rejected
   });

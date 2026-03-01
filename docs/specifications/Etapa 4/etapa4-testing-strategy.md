@@ -211,14 +211,10 @@ test("Complete order from quote to delivery", async ({ page }) => {
   await page.click("text=ORD-001");
 
   // Check status
-  await expect(page.locator("[data-testid=order-status]")).toHaveText(
-    "În Tranzit",
-  );
+  await expect(page.locator("[data-testid=order-status]")).toHaveText("În Tranzit");
 
   // Check payment
-  await expect(page.locator("[data-testid=amount-paid]")).toContainText(
-    "1,000",
-  );
+  await expect(page.locator("[data-testid=amount-paid]")).toContainText("1,000");
 });
 ```
 

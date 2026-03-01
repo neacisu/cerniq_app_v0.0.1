@@ -1,29 +1,30 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
+    "target": "ESNext",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "lib": ["ES2022"],
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
-    "outDir": "./dist",
-    "rootDir": ".",
+    "jsx": "react-jsx",
     "types": ["vitest/globals", "node"],
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
-    "noEmit": true
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": { "@/*": ["./apps/web/src/*"] }
   },
   "include": [
     "tests/**/*.ts",
     "packages/**/*.ts",
     "apps/**/*.ts",
+    "apps/**/*.tsx",
     "workers/**/*.ts",
-    "vitest.config.ts"
+    "e2e/**/*.ts",
+    "vitest.config.ts",
+    "playwright.config.ts"
   ],
   "exclude": ["node_modules", "dist", "**/node_modules/**"]
 }

@@ -57,12 +57,7 @@
 ```tsx
 // pages/monitoring/dashboard.tsx
 import { useQuery } from "@tanstack/react-query";
-import {
-  KPICard,
-  StatusChart,
-  RecentActivity,
-  AlertsPanel,
-} from "@/components/monitoring";
+import { KPICard, StatusChart, RecentActivity, AlertsPanel } from "@/components/monitoring";
 
 export default function MonitoringDashboard() {
   const { data: stats } = useQuery({
@@ -71,10 +66,7 @@ export default function MonitoringDashboard() {
   });
 
   return (
-    <PageLayout
-      title="Monitorizare Post-Vânzare"
-      breadcrumbs={["Monitoring", "Dashboard"]}
-    >
+    <PageLayout title="Monitorizare Post-Vânzare" breadcrumbs={["Monitoring", "Dashboard"]}>
       {/* KPI Cards Row */}
       <div className="grid grid-cols-5 gap-4 mb-6">
         <KPICard
@@ -176,14 +168,7 @@ interface KPICardProps {
   href?: string;
 }
 
-export function KPICard({
-  title,
-  value,
-  change,
-  icon,
-  variant = "default",
-  href,
-}: KPICardProps) {
+export function KPICard({ title, value, change, icon, variant = "default", href }: KPICardProps) {
   const variants = {
     default: "bg-white border-gray-200",
     success: "bg-green-50 border-green-200",
@@ -192,9 +177,7 @@ export function KPICard({
   };
 
   const content = (
-    <div
-      className={`p-4 rounded-lg border ${variants[variant]} hover:shadow-md transition-shadow`}
-    >
+    <div className={`p-4 rounded-lg border ${variants[variant]} hover:shadow-md transition-shadow`}>
       <div className="flex items-center justify-between mb-2">
         <span className="text-sm text-gray-500">{title}</span>
         {icon && <div className="text-gray-400">{icon}</div>}
@@ -202,9 +185,7 @@ export function KPICard({
       <div className="flex items-end gap-2">
         <span className="text-2xl font-semibold">{value}</span>
         {change !== undefined && (
-          <span
-            className={`text-sm ${change >= 0 ? "text-green-600" : "text-red-600"}`}
-          >
+          <span className={`text-sm ${change >= 0 ? "text-green-600" : "text-red-600"}`}>
             {change >= 0 ? "+" : ""}
             {change}%
           </span>
@@ -247,9 +228,7 @@ export default function OrdersListPage() {
               <Input
                 placeholder="Caută comandă, client..."
                 value={filters.search}
-                onChange={(e) =>
-                  setFilters({ ...filters, search: e.target.value })
-                }
+                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
                 leftIcon={<Search className="w-4 h-4" />}
               />
             </div>
@@ -273,22 +252,14 @@ export default function OrdersListPage() {
             {/* Quick Filters */}
             <div className="flex gap-2">
               <Button
-                variant={
-                  filters.status.includes("PENDING_PAYMENT")
-                    ? "primary"
-                    : "outline"
-                }
+                variant={filters.status.includes("PENDING_PAYMENT") ? "primary" : "outline"}
                 size="sm"
                 onClick={() => toggleStatusFilter("PENDING_PAYMENT")}
               >
                 Așteaptă Plată
               </Button>
               <Button
-                variant={
-                  filters.status.includes("CREDIT_BLOCKED")
-                    ? "primary"
-                    : "outline"
-                }
+                variant={filters.status.includes("CREDIT_BLOCKED") ? "primary" : "outline"}
                 size="sm"
                 onClick={() => toggleStatusFilter("CREDIT_BLOCKED")}
               >
@@ -324,14 +295,11 @@ export default function OrdersListPage() {
           sorting={{
             sortBy: filters.sortBy,
             sortOrder: filters.sortOrder,
-            onSort: (sortBy, sortOrder) =>
-              setFilters({ ...filters, sortBy, sortOrder }),
+            onSort: (sortBy, sortOrder) => setFilters({ ...filters, sortBy, sortOrder }),
           }}
           rowActions={(order) => (
             <DropdownMenu>
-              <DropdownMenuItem
-                onClick={() => router.push(`/monitoring/orders/${order.id}`)}
-              >
+              <DropdownMenuItem onClick={() => router.push(`/monitoring/orders/${order.id}`)}>
                 <Eye className="w-4 h-4 mr-2" /> Vezi Detalii
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => openInvoiceDialog(order)}>
@@ -341,9 +309,7 @@ export default function OrdersListPage() {
                 <Truck className="w-4 h-4 mr-2" /> Tracking
               </DropdownMenuItem>
               {order.status === "CREDIT_BLOCKED" && (
-                <DropdownMenuItem
-                  onClick={() => openCreditOverrideDialog(order)}
-                >
+                <DropdownMenuItem onClick={() => openCreditOverrideDialog(order)}>
                   <CheckCircle className="w-4 h-4 mr-2" /> Override Credit
                 </DropdownMenuItem>
               )}
@@ -384,9 +350,7 @@ const ordersColumns: ColumnDef<Order>[] = [
     header: "Valoare",
     cell: ({ row }) => (
       <div className="text-right">
-        <div className="font-medium">
-          {formatCurrency(row.original.totalAmount)}
-        </div>
+        <div className="font-medium">{formatCurrency(row.original.totalAmount)}</div>
         {row.original.amountDue > 0 && (
           <div className="text-sm text-red-500">
             Restant: {formatCurrency(row.original.amountDue)}
@@ -410,9 +374,7 @@ const ordersColumns: ColumnDef<Order>[] = [
     header: "Scadență",
     cell: ({ row }) => {
       if (!row.original.dueDate) return "-";
-      const isOverdue =
-        new Date(row.original.dueDate) < new Date() &&
-        row.original.amountDue > 0;
+      const isOverdue = new Date(row.original.dueDate) < new Date() && row.original.amountDue > 0;
       return (
         <span className={isOverdue ? "text-red-600 font-medium" : ""}>
           {formatDate(row.original.dueDate)}
@@ -477,22 +439,10 @@ export default function OrderDetailPage() {
             <CardContent>
               <div className="grid grid-cols-2 gap-4">
                 <InfoRow label="Număr Comandă" value={order.orderNumber} />
-                <InfoRow
-                  label="Data Creare"
-                  value={formatDateTime(order.createdAt)}
-                />
-                <InfoRow
-                  label="Status"
-                  value={<OrderStatusBadge status={order.status} />}
-                />
-                <InfoRow
-                  label="Metodă Plată"
-                  value={PAYMENT_METHODS[order.paymentMethod]}
-                />
-                <InfoRow
-                  label="Termeni Plată"
-                  value={`${order.paymentTermsDays} zile`}
-                />
+                <InfoRow label="Data Creare" value={formatDateTime(order.createdAt)} />
+                <InfoRow label="Status" value={<OrderStatusBadge status={order.status} />} />
+                <InfoRow label="Metodă Plată" value={PAYMENT_METHODS[order.paymentMethod]} />
+                <InfoRow label="Termeni Plată" value={`${order.paymentTermsDays} zile`} />
                 <InfoRow label="Scadență" value={formatDate(order.dueDate)} />
               </div>
             </CardContent>
@@ -518,16 +468,12 @@ export default function OrderDetailPage() {
                     <TableRow key={item.id}>
                       <TableCell>
                         <div className="font-medium">{item.productName}</div>
-                        <div className="text-sm text-gray-500">
-                          {item.productSku}
-                        </div>
+                        <div className="text-sm text-gray-500">{item.productSku}</div>
                       </TableCell>
                       <TableCell className="text-right">
                         {item.quantity} {item.unitOfMeasure}
                       </TableCell>
-                      <TableCell className="text-right">
-                        {formatCurrency(item.unitPrice)}
-                      </TableCell>
+                      <TableCell className="text-right">{formatCurrency(item.unitPrice)}</TableCell>
                       <TableCell className="text-right font-medium">
                         {formatCurrency(item.lineTotal)}
                       </TableCell>
@@ -539,17 +485,13 @@ export default function OrderDetailPage() {
                     <TableCell colSpan={3} className="text-right">
                       Subtotal
                     </TableCell>
-                    <TableCell className="text-right">
-                      {formatCurrency(order.subtotal)}
-                    </TableCell>
+                    <TableCell className="text-right">{formatCurrency(order.subtotal)}</TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell colSpan={3} className="text-right">
                       TVA ({order.vatRate}%)
                     </TableCell>
-                    <TableCell className="text-right">
-                      {formatCurrency(order.vatAmount)}
-                    </TableCell>
+                    <TableCell className="text-right">{formatCurrency(order.vatAmount)}</TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell colSpan={3} className="text-right font-bold">
@@ -569,12 +511,8 @@ export default function OrderDetailPage() {
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <span>Plăți</span>
-                <Badge
-                  variant={order.amountDue > 0 ? "destructive" : "success"}
-                >
-                  {order.amountDue > 0
-                    ? `Restant: ${formatCurrency(order.amountDue)}`
-                    : "Achitat"}
+                <Badge variant={order.amountDue > 0 ? "destructive" : "success"}>
+                  {order.amountDue > 0 ? `Restant: ${formatCurrency(order.amountDue)}` : "Achitat"}
                 </Badge>
               </CardTitle>
             </CardHeader>
@@ -593,12 +531,8 @@ export default function OrderDetailPage() {
                   <TableBody>
                     {order.payments.map((payment) => (
                       <TableRow key={payment.id}>
-                        <TableCell>
-                          {formatDateTime(payment.transactionDate)}
-                        </TableCell>
-                        <TableCell>
-                          {payment.reference || payment.externalId}
-                        </TableCell>
+                        <TableCell>{formatDateTime(payment.transactionDate)}</TableCell>
+                        <TableCell>{payment.reference || payment.externalId}</TableCell>
                         <TableCell>{payment.externalSource}</TableCell>
                         <TableCell className="text-right">
                           {formatCurrency(payment.amount)}
@@ -638,9 +572,7 @@ export default function OrderDetailPage() {
               <div className="space-y-3">
                 <div>
                   <div className="font-medium">{order.client.companyName}</div>
-                  <div className="text-sm text-gray-500">
-                    CUI: {order.client.cui}
-                  </div>
+                  <div className="text-sm text-gray-500">CUI: {order.client.cui}</div>
                 </div>
                 <Separator />
                 <div className="text-sm">
@@ -651,18 +583,12 @@ export default function OrderDetailPage() {
                 <Separator />
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-gray-500">Credit Score:</span>
-                  <CreditScoreBadge
-                    score={order.client.creditProfile?.creditScore}
-                  />
+                  <CreditScoreBadge score={order.client.creditProfile?.creditScore} />
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-500">
-                    Credit Disponibil:
-                  </span>
+                  <span className="text-sm text-gray-500">Credit Disponibil:</span>
                   <span className="font-medium">
-                    {formatCurrency(
-                      order.client.creditProfile?.creditAvailable,
-                    )}
+                    {formatCurrency(order.client.creditProfile?.creditAvailable)}
                   </span>
                 </div>
               </div>
@@ -688,9 +614,7 @@ export default function OrderDetailPage() {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-500">AWB</span>
-                    <span className="font-mono">
-                      {order.shipment.awbNumber}
-                    </span>
+                    <span className="font-mono">{order.shipment.awbNumber}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-500">Curier</span>
@@ -705,8 +629,7 @@ export default function OrderDetailPage() {
                     <div className="font-medium">Adresa Livrare</div>
                     <div>{order.deliveryAddress?.streetAddress}</div>
                     <div>
-                      {order.deliveryAddress?.city},{" "}
-                      {order.deliveryAddress?.county}
+                      {order.deliveryAddress?.city}, {order.deliveryAddress?.county}
                     </div>
                   </div>
                 </div>
@@ -715,9 +638,7 @@ export default function OrderDetailPage() {
                 <Button
                   variant="outline"
                   className="flex-1"
-                  onClick={() =>
-                    window.open(order.shipment.trackingUrl, "_blank")
-                  }
+                  onClick={() => window.open(order.shipment.trackingUrl, "_blank")}
                 >
                   <ExternalLink className="w-4 h-4 mr-2" /> Track
                 </Button>
@@ -830,30 +751,22 @@ function ReconciliationQueue() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <div className="font-medium">
-                  {formatCurrency(payment.amount)}
-                </div>
-                <div className="text-sm text-gray-500">
-                  {payment.counterpartyName}
-                </div>
+                <div className="font-medium">{formatCurrency(payment.amount)}</div>
+                <div className="text-sm text-gray-500">{payment.counterpartyName}</div>
                 <div className="text-sm text-gray-500">
                   {formatDateTime(payment.transactionDate)}
                 </div>
               </div>
 
               <div className="flex-1 mx-6">
-                <div className="text-sm text-gray-500 mb-2">
-                  Candidați posibili:
-                </div>
+                <div className="text-sm text-gray-500 mb-2">Candidați posibili:</div>
                 <div className="flex gap-2 flex-wrap">
                   {payment.candidates?.map((candidate) => (
                     <Button
                       key={candidate.invoiceId}
                       variant="outline"
                       size="sm"
-                      onClick={() =>
-                        manualMatch(payment.id, candidate.invoiceId)
-                      }
+                      onClick={() => manualMatch(payment.id, candidate.invoiceId)}
                     >
                       {candidate.invoiceNumber} ({candidate.score}%)
                     </Button>

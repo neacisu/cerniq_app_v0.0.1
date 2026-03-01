@@ -159,15 +159,8 @@ const SLA_HOURS: Record<string, number> = {
 export async function reviewQueueProcessor(
   job: Job<ReviewQueueJobData>,
 ): Promise<{ reviewId: string; slaDueAt: string }> {
-  const {
-    tenantId,
-    leadId,
-    communicationId,
-    reason,
-    priority,
-    triggerContent,
-    aiAnalysis,
-  } = job.data;
+  const { tenantId, leadId, communicationId, reason, priority, triggerContent, aiAnalysis } =
+    job.data;
 
   // Calculate SLA due time
   const slaHours = SLA_HOURS[priority];
@@ -269,9 +262,7 @@ interface TakeoverJobData {
   reason: string;
 }
 
-export async function takeoverInitiateProcessor(
-  job: Job<TakeoverJobData>,
-): Promise<void> {
+export async function takeoverInitiateProcessor(job: Job<TakeoverJobData>): Promise<void> {
   const { leadId, userId, reason } = job.data;
 
   // Stop all automation
@@ -312,9 +303,7 @@ interface TakeoverCompleteJobData {
   newSequenceId?: string;
 }
 
-export async function takeoverCompleteProcessor(
-  job: Job<TakeoverCompleteJobData>,
-): Promise<void> {
+export async function takeoverCompleteProcessor(job: Job<TakeoverCompleteJobData>): Promise<void> {
   const { leadId, userId, returnToAutomation, newSequenceId } = job.data;
 
   await db
@@ -352,9 +341,7 @@ interface ApproveMessageJobData {
   notes?: string;
 }
 
-export async function approveMessageProcessor(
-  job: Job<ApproveMessageJobData>,
-): Promise<void> {
+export async function approveMessageProcessor(job: Job<ApproveMessageJobData>): Promise<void> {
   const { reviewId, leadId, userId, action, editedContent, notes } = job.data;
 
   // Get review and journey
@@ -389,16 +376,13 @@ export async function approveMessageProcessor(
         where: eq(waPhoneNumbers.id, journey.assignedPhoneId),
       });
 
-      await triggerQueue(
-        `q:wa:phone_${phone?.phoneNumber.slice(-2)}:followup`,
-        {
-          leadId,
-          chatId: journey.lastChatId,
-          content,
-          isHumanApproved: true,
-          approvedBy: userId,
-        },
-      );
+      await triggerQueue(`q:wa:phone_${phone?.phoneNumber.slice(-2)}:followup`, {
+        leadId,
+        chatId: journey.lastChatId,
+        content,
+        isHumanApproved: true,
+        approvedBy: userId,
+      });
     }
   }
 
@@ -431,9 +415,7 @@ export async function approveMessageProcessor(
 ```typescript
 // workers/human/sla-check.worker.ts
 
-export async function slaCheckProcessor(
-  job: Job<{ reviewId: string }>,
-): Promise<void> {
+export async function slaCheckProcessor(job: Job<{ reviewId: string }>): Promise<void> {
   const { reviewId } = job.data;
 
   const review = await db.query.humanReviewQueue.findFirst({
@@ -480,9 +462,7 @@ interface EscalateJobData {
   originalPriority: string;
 }
 
-export async function escalateProcessor(
-  job: Job<EscalateJobData>,
-): Promise<void> {
+export async function escalateProcessor(job: Job<EscalateJobData>): Promise<void> {
   const { reviewId, reason, originalPriority } = job.data;
 
   // Get escalation target (e.g., team lead)
@@ -546,9 +526,7 @@ export async function hitlRoutes(fastify: FastifyInstance) {
     {
       schema: {
         querystring: z.object({
-          status: z
-            .enum(["PENDING", "ASSIGNED", "RESOLVED", "ESCALATED"])
-            .optional(),
+          status: z.enum(["PENDING", "ASSIGNED", "RESOLVED", "ESCALATED"]).optional(),
           priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).optional(),
           assignedTo: z.string().uuid().optional(),
           page: z.coerce.number().default(1),
@@ -571,10 +549,7 @@ export async function hitlRoutes(fastify: FastifyInstance) {
           .select()
           .from(humanReviewQueue)
           .where(where)
-          .orderBy(
-            desc(humanReviewQueue.priority),
-            asc(humanReviewQueue.slaDueAt),
-          )
+          .orderBy(desc(humanReviewQueue.priority), asc(humanReviewQueue.slaDueAt))
           .limit(limit)
           .offset((page - 1) * limit),
         db.select({ count: count() }).from(humanReviewQueue).where(where),
@@ -597,10 +572,7 @@ export async function hitlRoutes(fastify: FastifyInstance) {
     const { id } = request.params;
 
     const review = await db.query.humanReviewQueue.findFirst({
-      where: and(
-        eq(humanReviewQueue.id, id),
-        eq(humanReviewQueue.tenantId, request.tenantId),
-      ),
+      where: and(eq(humanReviewQueue.id, id), eq(humanReviewQueue.tenantId, request.tenantId)),
       with: {
         leadJourney: {
           with: {
@@ -650,13 +622,7 @@ export async function hitlRoutes(fastify: FastifyInstance) {
     {
       schema: {
         body: z.object({
-          action: z.enum([
-            "APPROVED",
-            "REJECTED",
-            "EDITED",
-            "TAKEOVER",
-            "IGNORED",
-          ]),
+          action: z.enum(["APPROVED", "REJECTED", "EDITED", "TAKEOVER", "IGNORED"]),
           notes: z.string().optional(),
           editedContent: z.string().optional(),
         }),

@@ -381,14 +381,8 @@ WHERE avg_leaf_density < 0.9;
         "type": "timeseries",
         "queries":
           [
-            {
-              "name": "ANAF Queue",
-              "query": 'sum(bullmq_queue_waiting{queue=~".*anaf.*"})',
-            },
-            {
-              "name": "Termene Queue",
-              "query": 'sum(bullmq_queue_waiting{queue=~".*termene.*"})',
-            },
+            { "name": "ANAF Queue", "query": 'sum(bullmq_queue_waiting{queue=~".*anaf.*"})' },
+            { "name": "Termene Queue", "query": 'sum(bullmq_queue_waiting{queue=~".*termene.*"})' },
           ],
       },
       {
@@ -404,12 +398,7 @@ WHERE avg_leaf_density < 0.9;
       {
         "title": "HITL Pending Tasks",
         "type": "gauge",
-        "queries":
-          [
-            {
-              "query": "SELECT COUNT(*) FROM approval_tasks WHERE status = 'pending'",
-            },
-          ],
+        "queries": [{ "query": "SELECT COUNT(*) FROM approval_tasks WHERE status = 'pending'" }],
         "thresholds": { "warning": 50, "critical": 100 },
       },
     ],
@@ -427,20 +416,14 @@ import { metrics } from "@opentelemetry/api";
 const meter = metrics.getMeter("cerniq-worker");
 
 // Bronze metrics
-export const bronzeContactsIngested = meter.createCounter(
-  "cerniq_bronze_contacts_ingested",
-  {
-    description: "Total number of bronze contacts ingested",
-  },
-);
+export const bronzeContactsIngested = meter.createCounter("cerniq_bronze_contacts_ingested", {
+  description: "Total number of bronze contacts ingested",
+});
 
-export const bronzeProcessingDuration = meter.createHistogram(
-  "cerniq_bronze_processing_duration",
-  {
-    description: "Duration of bronze contact processing",
-    unit: "ms",
-  },
-);
+export const bronzeProcessingDuration = meter.createHistogram("cerniq_bronze_processing_duration", {
+  description: "Duration of bronze contact processing",
+  unit: "ms",
+});
 ```
 
 **Queue Metrics:**

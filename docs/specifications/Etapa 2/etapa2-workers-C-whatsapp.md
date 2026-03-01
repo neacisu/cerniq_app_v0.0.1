@@ -117,11 +117,7 @@ import axios from "axios";
 import { createHash } from "crypto";
 import { v4 as uuidv4 } from "uuid";
 import { db } from "@cerniq/db";
-import {
-  goldLeadJourney,
-  goldCommunicationLog,
-  waPhoneNumbers,
-} from "@cerniq/db/schema";
+import { goldLeadJourney, goldCommunicationLog, waPhoneNumbers } from "@cerniq/db/schema";
 import { processSpintax } from "@cerniq/utils/spintax";
 import { logger } from "@cerniq/logger";
 
@@ -150,10 +146,7 @@ export async function waSendInitialProcessor(
   // 2. Get template and process spintax
   const template = await getTemplate(templateId || "default_initial");
   const processedContent = processSpintax(template.content, personalization);
-  const contentHash = createHash("sha256")
-    .update(processedContent)
-    .digest("hex")
-    .slice(0, 16);
+  const contentHash = createHash("sha256").update(processedContent).digest("hex").slice(0, 16);
 
   // 3. Get phone configuration
   const phoneConfig = await db.query.waPhoneNumbers.findFirst({
@@ -275,11 +268,7 @@ export async function waSendInitialProcessor(
   }
 }
 
-async function handleTimelinesAIError(
-  error: any,
-  phoneId: string,
-  leadId: string,
-): Promise<never> {
+async function handleTimelinesAIError(error: any, phoneId: string, leadId: string): Promise<never> {
   if (axios.isAxiosError(error)) {
     const statusCode = error.response?.status;
     const errorMessage = error.response?.data?.message || error.message;
@@ -383,17 +372,14 @@ const response = await axios.post(
 export async function waSendFollowupProcessor(
   job: Job<WaSendFollowupJobData>,
 ): Promise<WaSendFollowupResult> {
-  const { leadId, phoneId, chatId, templateId, personalization, sequenceStep } =
-    job.data;
+  const { leadId, phoneId, chatId, templateId, personalization, sequenceStep } = job.data;
 
   // Apply jitter (same as initial)
   const jitterMs = 30000 + Math.random() * 120000;
   await sleep(jitterMs);
 
   // Get template
-  const template = await getTemplate(
-    templateId || `followup_step_${sequenceStep}`,
-  );
+  const template = await getTemplate(templateId || `followup_step_${sequenceStep}`);
   const processedContent = processSpintax(template.content, personalization);
 
   // Send to existing chat (no quota cost)
@@ -460,9 +446,7 @@ interface WaReplyJobData {
   timestamp: string;
 }
 
-export async function waReplyProcessor(
-  job: Job<WaReplyJobData>,
-): Promise<WaReplyResult> {
+export async function waReplyProcessor(job: Job<WaReplyJobData>): Promise<WaReplyResult> {
   const { chatId, content, senderPhone, timestamp } = job.data;
 
   // Find lead by chatId
@@ -575,9 +559,7 @@ function requiresHumanReview(content: string): boolean {
 ## 5.2 Implementation
 
 ```typescript
-export async function waMessageRetryProcessor(
-  job: Job<WaRetryJobData>,
-): Promise<WaRetryResult> {
+export async function waMessageRetryProcessor(job: Job<WaRetryJobData>): Promise<WaRetryResult> {
   const { originalJobId, leadId, phoneId, attemptNumber } = job.data;
 
   // Check if we should retry
@@ -646,15 +628,12 @@ export async function waChatHistoryFetchProcessor(
     where: eq(waPhoneNumbers.id, phoneId),
   });
 
-  const response = await axios.get(
-    `${TIMELINESAI_API}/chats/${chatId}/messages`,
-    {
-      params: { limit: 100 },
-      headers: {
-        Authorization: `Bearer ${process.env.TIMELINESAI_API_KEY}`,
-      },
+  const response = await axios.get(`${TIMELINESAI_API}/chats/${chatId}/messages`, {
+    params: { limit: 100 },
+    headers: {
+      Authorization: `Bearer ${process.env.TIMELINESAI_API_KEY}`,
     },
-  );
+  });
 
   const messages = response.data.messages;
 

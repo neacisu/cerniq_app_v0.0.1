@@ -10,10 +10,7 @@
 - **Resend**: DOAR warm leads (domeniu principal, reputație)
 
 ```typescript
-if (
-  lead.current_state === "WARM_REPLY" ||
-  lead.current_state === "NEGOTIATION"
-) {
+if (lead.current_state === "WARM_REPLY" || lead.current_state === "NEGOTIATION") {
   queue = "email:warm"; // Resend
 } else {
   queue = "email:cold"; // Instantly

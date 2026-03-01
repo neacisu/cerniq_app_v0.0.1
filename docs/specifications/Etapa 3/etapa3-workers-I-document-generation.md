@@ -274,11 +274,7 @@ export interface PdfGenerateResult {
 import { Worker, Job, DelayedError } from "bullmq";
 import puppeteer, { Browser, Page } from "puppeteer";
 import Handlebars from "handlebars";
-import {
-  S3Client,
-  PutObjectCommand,
-  GetObjectCommand,
-} from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { createHash } from "crypto";
 import { promisify } from "util";
@@ -386,52 +382,38 @@ const s3Client = new S3Client({
 // Handlebars helpers registration
 function registerHandlebarsHelpers(): void {
   // Format currency
-  Handlebars.registerHelper(
-    "formatCurrency",
-    (amount: number, currency: string = "RON") => {
-      return new Intl.NumberFormat("ro-RO", {
-        style: "currency",
-        currency,
-      }).format(amount);
-    },
-  );
+  Handlebars.registerHelper("formatCurrency", (amount: number, currency: string = "RON") => {
+    return new Intl.NumberFormat("ro-RO", {
+      style: "currency",
+      currency,
+    }).format(amount);
+  });
 
   // Format date
-  Handlebars.registerHelper(
-    "formatDate",
-    (date: Date | string, format: string = "long") => {
-      const d = new Date(date);
-      if (format === "short") {
-        return d.toLocaleDateString("ro-RO");
-      }
-      return d.toLocaleDateString("ro-RO", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      });
-    },
-  );
+  Handlebars.registerHelper("formatDate", (date: Date | string, format: string = "long") => {
+    const d = new Date(date);
+    if (format === "short") {
+      return d.toLocaleDateString("ro-RO");
+    }
+    return d.toLocaleDateString("ro-RO", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  });
 
   // Format number
-  Handlebars.registerHelper(
-    "formatNumber",
-    (num: number, decimals: number = 2) => {
-      return new Intl.NumberFormat("ro-RO", {
-        minimumFractionDigits: decimals,
-        maximumFractionDigits: decimals,
-      }).format(num);
-    },
-  );
+  Handlebars.registerHelper("formatNumber", (num: number, decimals: number = 2) => {
+    return new Intl.NumberFormat("ro-RO", {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    }).format(num);
+  });
 
   // Conditional helper
   Handlebars.registerHelper(
     "ifEquals",
-    function (
-      this: unknown,
-      arg1: unknown,
-      arg2: unknown,
-      options: Handlebars.HelperOptions,
-    ) {
+    function (this: unknown, arg1: unknown, arg2: unknown, options: Handlebars.HelperOptions) {
       return arg1 === arg2 ? options.fn(this) : options.inverse(this);
     },
   );
@@ -440,20 +422,14 @@ function registerHandlebarsHelpers(): void {
   Handlebars.registerHelper("addOne", (index: number) => index + 1);
 
   // VAT calculation
-  Handlebars.registerHelper(
-    "calculateVat",
-    (amount: number, vatRate: number) => {
-      return ((amount * vatRate) / 100).toFixed(2);
-    },
-  );
+  Handlebars.registerHelper("calculateVat", (amount: number, vatRate: number) => {
+    return ((amount * vatRate) / 100).toFixed(2);
+  });
 
   // Total with VAT
-  Handlebars.registerHelper(
-    "totalWithVat",
-    (amount: number, vatRate: number) => {
-      return (amount * (1 + vatRate / 100)).toFixed(2);
-    },
-  );
+  Handlebars.registerHelper("totalWithVat", (amount: number, vatRate: number) => {
+    return (amount * (1 + vatRate / 100)).toFixed(2);
+  });
 
   // Romanian CIF format
   Handlebars.registerHelper("formatCif", (cif: string) => {
@@ -476,8 +452,7 @@ registerHandlebarsHelpers();
 
 // Template loader and compiler
 class TemplateEngine {
-  private compiledTemplates: Map<string, Handlebars.TemplateDelegate> =
-    new Map();
+  private compiledTemplates: Map<string, Handlebars.TemplateDelegate> = new Map();
 
   async loadTemplate(
     tenantId: string,
@@ -549,10 +524,7 @@ class TemplateEngine {
 const templateEngine = new TemplateEngine();
 
 // Data fetchers for different source types
-async function fetchOfferData(
-  tenantId: string,
-  offerId: string,
-): Promise<Record<string, unknown>> {
+async function fetchOfferData(tenantId: string, offerId: string): Promise<Record<string, unknown>> {
   const [offer] = await db
     .select({
       offer: offers,
@@ -761,16 +733,8 @@ function formatAddress(contact: {
 }
 
 // Main PDF generation process
-async function processPdfGeneration(
-  job: Job<PdfGenerateJobData>,
-): Promise<PdfGenerateResult> {
-  const {
-    tenantId,
-    documentType,
-    sourceId,
-    sourceType,
-    language = "ro",
-  } = job.data;
+async function processPdfGeneration(job: Job<PdfGenerateJobData>): Promise<PdfGenerateResult> {
+  const { tenantId, documentType, sourceId, sourceType, language = "ro" } = job.data;
   const startTime = Date.now();
 
   logger.info("Starting PDF generation", {
@@ -814,11 +778,7 @@ async function processPdfGeneration(
     }
 
     // 2. Load and compile template
-    const template = await templateEngine.loadTemplate(
-      tenantId,
-      documentType,
-      language,
-    );
+    const template = await templateEngine.loadTemplate(tenantId, documentType, language);
 
     // 3. Render HTML
     const htmlContent = template(documentData);
@@ -901,9 +861,7 @@ async function processPdfGeneration(
       { expiresIn: PDF_CONFIG.storage.presignedUrlExpiry },
     );
 
-    const presignedUrlExpiry = new Date(
-      Date.now() + PDF_CONFIG.storage.presignedUrlExpiry * 1000,
-    );
+    const presignedUrlExpiry = new Date(Date.now() + PDF_CONFIG.storage.presignedUrlExpiry * 1000);
 
     // 11. Save document record
     const documentId = crypto.randomUUID();
@@ -942,10 +900,7 @@ async function processPdfGeneration(
       { document_type: documentType },
       generationTimeMs / 1000,
     );
-    pdfGenerateMetrics.documentSize.observe(
-      { document_type: documentType },
-      processedPdf.length,
-    );
+    pdfGenerateMetrics.documentSize.observe({ document_type: documentType }, processedPdf.length);
 
     logger.info("PDF generation completed", {
       jobId: job.id,
@@ -995,12 +950,8 @@ async function processPdfGeneration(
 }
 
 // Header template generator
-function generateHeaderTemplate(
-  documentType: DocumentType,
-  data: Record<string, unknown>,
-): string {
-  const companyName =
-    (data.supplier as Record<string, string>)?.companyName || "";
+function generateHeaderTemplate(documentType: DocumentType, data: Record<string, unknown>): string {
+  const companyName = (data.supplier as Record<string, string>)?.companyName || "";
 
   return `
     <div style="font-size: 8px; width: 100%; padding: 5mm 15mm; color: #666;">
@@ -1028,9 +979,7 @@ async function postProcessPdf(
   const pdfDoc = await pdfLib.PDFDocument.load(pdfBuffer);
 
   // Set PDF metadata
-  pdfDoc.setTitle(
-    `${documentType} - ${(data as Record<string, string>).documentNumber || ""}`,
-  );
+  pdfDoc.setTitle(`${documentType} - ${(data as Record<string, string>).documentNumber || ""}`);
   pdfDoc.setAuthor(process.env.COMPANY_NAME || "Cerniq SRL");
   pdfDoc.setSubject(`${documentType} Document`);
   pdfDoc.setCreator("Cerniq Document Generator");
@@ -1058,17 +1007,11 @@ async function postProcessPdf(
 }
 
 // Filename generator
-function generateFilename(
-  documentType: DocumentType,
-  data: Record<string, unknown>,
-): string {
+function generateFilename(documentType: DocumentType, data: Record<string, unknown>): string {
   const documentNumber =
-    (data as Record<string, string>).documentNumber ||
-    crypto.randomUUID().substring(0, 8);
+    (data as Record<string, string>).documentNumber || crypto.randomUUID().substring(0, 8);
   const date = new Date().toISOString().split("T")[0];
-  const customerName = (
-    (data.customer as Record<string, string>)?.companyName || "unknown"
-  )
+  const customerName = ((data.customer as Record<string, string>)?.companyName || "unknown")
     .replace(/[^a-zA-Z0-9]/g, "_")
     .substring(0, 30);
 
@@ -1076,13 +1019,14 @@ function generateFilename(
 }
 
 // Create worker
-export const pdfGenerateWorker = new Worker<
-  PdfGenerateJobData,
-  PdfGenerateResult
->(PDF_GENERATE_QUEUE_NAME, processPdfGeneration, {
-  connection: getRedisConnection(),
-  ...PDF_GENERATE_WORKER_CONFIG,
-});
+export const pdfGenerateWorker = new Worker<PdfGenerateJobData, PdfGenerateResult>(
+  PDF_GENERATE_QUEUE_NAME,
+  processPdfGeneration,
+  {
+    connection: getRedisConnection(),
+    ...PDF_GENERATE_WORKER_CONFIG,
+  },
+);
 
 // Worker event handlers
 pdfGenerateWorker.on("completed", (job, result) => {
@@ -1213,8 +1157,7 @@ export const EMAIL_CONFIG = {
     region: process.env.AWS_SES_REGION || "eu-central-1",
     accessKeyId: process.env.AWS_SES_ACCESS_KEY,
     secretAccessKey: process.env.AWS_SES_SECRET_KEY,
-    configurationSetName:
-      process.env.AWS_SES_CONFIG_SET || "cerniq-transactional",
+    configurationSetName: process.env.AWS_SES_CONFIG_SET || "cerniq-transactional",
   },
 
   // SendGrid settings
@@ -1345,11 +1288,7 @@ export enum EmailTemplateType {
 // src/workers/etapa3/document-generation/email-send.worker.ts
 
 import { Worker, Job } from "bullmq";
-import {
-  SESClient,
-  SendEmailCommand,
-  SendRawEmailCommand,
-} from "@aws-sdk/client-ses";
+import { SESClient, SendEmailCommand, SendRawEmailCommand } from "@aws-sdk/client-ses";
 import sgMail from "@sendgrid/mail";
 import nodemailer from "nodemailer";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
@@ -1440,9 +1379,7 @@ class EmailTemplateCompiler {
     const compiled = {
       subject: Handlebars.compile(template.subjectTemplate),
       html: Handlebars.compile(template.htmlTemplate),
-      text: template.textTemplate
-        ? Handlebars.compile(template.textTemplate)
-        : undefined,
+      text: template.textTemplate ? Handlebars.compile(template.textTemplate) : undefined,
     };
 
     this.compiledTemplates.set(cacheKey, compiled);
@@ -1461,9 +1398,7 @@ async function sendViaSes(
   job: Job<EmailSendJobData>,
   preparedEmail: PreparedEmail,
 ): Promise<EmailSendResult> {
-  const toAddresses = Array.isArray(preparedEmail.to)
-    ? preparedEmail.to
-    : [preparedEmail.to];
+  const toAddresses = Array.isArray(preparedEmail.to) ? preparedEmail.to : [preparedEmail.to];
 
   // For emails with attachments, use raw email
   if (preparedEmail.attachments && preparedEmail.attachments.length > 0) {
@@ -1606,9 +1541,7 @@ async function sendViaSmtp(
 ): Promise<EmailSendResult> {
   const mailOptions = {
     from: `${EMAIL_CONFIG.defaultFrom.name} <${EMAIL_CONFIG.defaultFrom.email}>`,
-    to: Array.isArray(preparedEmail.to)
-      ? preparedEmail.to.join(", ")
-      : preparedEmail.to,
+    to: Array.isArray(preparedEmail.to) ? preparedEmail.to.join(", ") : preparedEmail.to,
     cc: preparedEmail.cc
       ? Array.isArray(preparedEmail.cc)
         ? preparedEmail.cc.join(", ")
@@ -1637,9 +1570,7 @@ async function sendViaSmtp(
     messageId: info.messageId,
     provider: "smtp",
     status: "sent",
-    recipientCount: Array.isArray(preparedEmail.to)
-      ? preparedEmail.to.length
-      : 1,
+    recipientCount: Array.isArray(preparedEmail.to) ? preparedEmail.to.length : 1,
     sentAt: new Date(),
   };
 }
@@ -1719,9 +1650,7 @@ async function buildRawEmail(preparedEmail: PreparedEmail): Promise<string> {
 }
 
 // Fetch attachment content from S3 or URL
-async function fetchAttachment(
-  attachment: EmailAttachment,
-): Promise<PreparedAttachment> {
+async function fetchAttachment(attachment: EmailAttachment): Promise<PreparedAttachment> {
   if (attachment.content) {
     return {
       filename: attachment.filename,
@@ -1735,9 +1664,7 @@ async function fetchAttachment(
   if (attachment.path) {
     // Check if S3 path
     if (attachment.path.startsWith("s3://")) {
-      const [bucket, ...keyParts] = attachment.path
-        .replace("s3://", "")
-        .split("/");
+      const [bucket, ...keyParts] = attachment.path.replace("s3://", "").split("/");
       const key = keyParts.join("/");
 
       const command = new GetObjectCommand({
@@ -1749,9 +1676,7 @@ async function fetchAttachment(
       const content = await response.Body?.transformToByteArray();
 
       if (!content) {
-        throw new Error(
-          `Failed to fetch attachment from S3: ${attachment.path}`,
-        );
+        throw new Error(`Failed to fetch attachment from S3: ${attachment.path}`);
       }
 
       return {
@@ -1778,9 +1703,7 @@ async function fetchAttachment(
 }
 
 // Main email send process
-async function processEmailSend(
-  job: Job<EmailSendJobData>,
-): Promise<EmailSendResult> {
+async function processEmailSend(job: Job<EmailSendJobData>): Promise<EmailSendResult> {
   const { tenantId, templateId, templateData } = job.data;
   const startTime = Date.now();
 
@@ -1810,11 +1733,7 @@ async function processEmailSend(
     if (job.data.attachments && job.data.attachments.length > 0) {
       for (const attachment of job.data.attachments) {
         // Validate attachment
-        if (
-          !EMAIL_CONFIG.attachments.allowedMimeTypes.includes(
-            attachment.contentType,
-          )
-        ) {
+        if (!EMAIL_CONFIG.attachments.allowedMimeTypes.includes(attachment.contentType)) {
           throw new Error(`Invalid attachment type: ${attachment.contentType}`);
         }
 
@@ -1864,8 +1783,7 @@ async function processEmailSend(
       logger.warn("Primary provider failed, falling back to SMTP", {
         jobId: job.id,
         provider,
-        error:
-          providerError instanceof Error ? providerError.message : "Unknown",
+        error: providerError instanceof Error ? providerError.message : "Unknown",
       });
 
       if (provider !== "smtp") {
@@ -1882,11 +1800,7 @@ async function processEmailSend(
       messageId: result.messageId,
       provider: result.provider,
       toAddresses: Array.isArray(job.data.to) ? job.data.to : [job.data.to],
-      ccAddresses: job.data.cc
-        ? Array.isArray(job.data.cc)
-          ? job.data.cc
-          : [job.data.cc]
-        : null,
+      ccAddresses: job.data.cc ? (Array.isArray(job.data.cc) ? job.data.cc : [job.data.cc]) : null,
       bccAddresses: job.data.bcc
         ? Array.isArray(job.data.bcc)
           ? job.data.bcc
@@ -2008,14 +1922,7 @@ interface SesNotification {
 interface SendGridEvent {
   email: string;
   timestamp: number;
-  event:
-    | "delivered"
-    | "open"
-    | "click"
-    | "bounce"
-    | "dropped"
-    | "spamreport"
-    | "unsubscribe";
+  event: "delivered" | "open" | "click" | "bounce" | "dropped" | "spamreport" | "unsubscribe";
   sg_message_id: string;
   url?: string;
   useragent?: string;
@@ -2023,70 +1930,58 @@ interface SendGridEvent {
 
 export function registerEmailWebhooks(app: FastifyInstance): void {
   // AWS SES webhook
-  app.post(
-    "/webhooks/email/ses",
-    async (request: FastifyRequest, reply: FastifyReply) => {
-      const body = request.body as
-        | { Type?: string; Message?: string }
-        | SesNotification;
+  app.post("/webhooks/email/ses", async (request: FastifyRequest, reply: FastifyReply) => {
+    const body = request.body as { Type?: string; Message?: string } | SesNotification;
 
-      // Handle SNS subscription confirmation
-      if ("Type" in body && body.Type === "SubscriptionConfirmation") {
-        const subscribeUrl = (body as { SubscribeURL: string }).SubscribeURL;
-        await fetch(subscribeUrl);
-        return reply.send({ status: "subscribed" });
-      }
+    // Handle SNS subscription confirmation
+    if ("Type" in body && body.Type === "SubscriptionConfirmation") {
+      const subscribeUrl = (body as { SubscribeURL: string }).SubscribeURL;
+      await fetch(subscribeUrl);
+      return reply.send({ status: "subscribed" });
+    }
 
-      // Parse notification
-      const notification: SesNotification =
-        "Message" in body && body.Message
-          ? JSON.parse(body.Message)
-          : (body as SesNotification);
+    // Parse notification
+    const notification: SesNotification =
+      "Message" in body && body.Message ? JSON.parse(body.Message) : (body as SesNotification);
 
-      await processEmailEvent({
-        provider: "ses",
-        messageId: notification.mail.messageId,
-        eventType: mapSesEventType(notification),
-        timestamp: new Date(notification.mail.timestamp),
-        recipients: getAffectedRecipients(notification),
-        metadata: notification,
-      });
+    await processEmailEvent({
+      provider: "ses",
+      messageId: notification.mail.messageId,
+      eventType: mapSesEventType(notification),
+      timestamp: new Date(notification.mail.timestamp),
+      recipients: getAffectedRecipients(notification),
+      metadata: notification,
+    });
 
-      return reply.send({ status: "ok" });
-    },
-  );
+    return reply.send({ status: "ok" });
+  });
 
   // SendGrid webhook
-  app.post(
-    "/webhooks/email/sendgrid",
-    async (request: FastifyRequest, reply: FastifyReply) => {
-      const events = request.body as SendGridEvent[];
+  app.post("/webhooks/email/sendgrid", async (request: FastifyRequest, reply: FastifyReply) => {
+    const events = request.body as SendGridEvent[];
 
-      for (const event of events) {
-        await processEmailEvent({
-          provider: "sendgrid",
-          messageId: event.sg_message_id,
-          eventType: event.event,
-          timestamp: new Date(event.timestamp * 1000),
-          recipients: [event.email],
-          metadata: {
-            url: event.url,
-            userAgent: event.useragent,
-          },
-        });
-      }
+    for (const event of events) {
+      await processEmailEvent({
+        provider: "sendgrid",
+        messageId: event.sg_message_id,
+        eventType: event.event,
+        timestamp: new Date(event.timestamp * 1000),
+        recipients: [event.email],
+        metadata: {
+          url: event.url,
+          userAgent: event.useragent,
+        },
+      });
+    }
 
-      return reply.send({ status: "ok" });
-    },
-  );
+    return reply.send({ status: "ok" });
+  });
 }
 
 function mapSesEventType(notification: SesNotification): string {
   switch (notification.notificationType) {
     case "Bounce":
-      return notification.bounce?.bounceType === "Permanent"
-        ? "hard_bounce"
-        : "soft_bounce";
+      return notification.bounce?.bounceType === "Permanent" ? "hard_bounce" : "soft_bounce";
     case "Complaint":
       return "complaint";
     case "Delivery":
@@ -2101,9 +1996,7 @@ function getAffectedRecipients(notification: SesNotification): string[] {
     return notification.bounce.bouncedRecipients.map((r) => r.emailAddress);
   }
   if (notification.complaint) {
-    return notification.complaint.complainedRecipients.map(
-      (r) => r.emailAddress,
-    );
+    return notification.complaint.complainedRecipients.map((r) => r.emailAddress);
   }
   if (notification.delivery) {
     return notification.delivery.recipients;
@@ -3177,18 +3070,15 @@ const DOCUMENT_QUEUE_THRESHOLDS: Record<string, QueueHealthThresholds> = {
   },
 };
 
-export async function checkDocumentQueueHealth(
-  queue: Queue,
-): Promise<QueueHealthStatus> {
-  const [waiting, active, delayed, failed, completed, workers] =
-    await Promise.all([
-      queue.getWaitingCount(),
-      queue.getActiveCount(),
-      queue.getDelayedCount(),
-      queue.getFailedCount(),
-      queue.getCompletedCount(),
-      queue.getWorkersCount(),
-    ]);
+export async function checkDocumentQueueHealth(queue: Queue): Promise<QueueHealthStatus> {
+  const [waiting, active, delayed, failed, completed, workers] = await Promise.all([
+    queue.getWaitingCount(),
+    queue.getActiveCount(),
+    queue.getDelayedCount(),
+    queue.getFailedCount(),
+    queue.getCompletedCount(),
+    queue.getWorkersCount(),
+  ]);
 
   const thresholds = DOCUMENT_QUEUE_THRESHOLDS[queue.name] || {
     maxWaiting: 100,
@@ -3200,24 +3090,16 @@ export async function checkDocumentQueueHealth(
   const issues: string[] = [];
 
   if (waiting > thresholds.maxWaiting) {
-    issues.push(
-      `High waiting count: ${waiting} (threshold: ${thresholds.maxWaiting})`,
-    );
+    issues.push(`High waiting count: ${waiting} (threshold: ${thresholds.maxWaiting})`);
   }
   if (failed > thresholds.maxFailed) {
-    issues.push(
-      `High failed count: ${failed} (threshold: ${thresholds.maxFailed})`,
-    );
+    issues.push(`High failed count: ${failed} (threshold: ${thresholds.maxFailed})`);
   }
   if (delayed > thresholds.maxDelayed) {
-    issues.push(
-      `High delayed count: ${delayed} (threshold: ${thresholds.maxDelayed})`,
-    );
+    issues.push(`High delayed count: ${delayed} (threshold: ${thresholds.maxDelayed})`);
   }
   if (workers < thresholds.minWorkers) {
-    issues.push(
-      `Insufficient workers: ${workers} (minimum: ${thresholds.minWorkers})`,
-    );
+    issues.push(`Insufficient workers: ${workers} (minimum: ${thresholds.minWorkers})`);
   }
 
   return {
@@ -3245,9 +3127,7 @@ export async function checkAllDocumentQueuesHealth(): Promise<{
     attachmentProcessingQueue,
   ];
 
-  const healthStatuses = await Promise.all(
-    queues.map((q) => checkDocumentQueueHealth(q)),
-  );
+  const healthStatuses = await Promise.all(queues.map((q) => checkDocumentQueueHealth(q)));
 
   return {
     overall: healthStatuses.every((s) => s.isHealthy),
@@ -3298,10 +3178,7 @@ export interface DocumentErrorConfig {
   category: "pdf" | "email" | "whatsapp" | "general";
 }
 
-export const DOCUMENT_ERROR_CLASSIFICATION: Record<
-  DocumentErrorType,
-  DocumentErrorConfig
-> = {
+export const DOCUMENT_ERROR_CLASSIFICATION: Record<DocumentErrorType, DocumentErrorConfig> = {
   // Retryable
   [DocumentErrorType.NETWORK_ERROR]: {
     retryable: true,
@@ -3452,21 +3329,13 @@ export const DOCUMENT_ERROR_CLASSIFICATION: Record<
 };
 
 // Error classification function
-export function classifyDocumentError(
-  error: Error | unknown,
-): DocumentErrorType {
+export function classifyDocumentError(error: Error | unknown): DocumentErrorType {
   const message =
-    error instanceof Error
-      ? error.message.toLowerCase()
-      : String(error).toLowerCase();
+    error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
   const code = (error as any)?.code;
 
   // Network errors
-  if (
-    code === "ECONNREFUSED" ||
-    code === "ENOTFOUND" ||
-    code === "ENETUNREACH"
-  ) {
+  if (code === "ECONNREFUSED" || code === "ENOTFOUND" || code === "ENETUNREACH") {
     return DocumentErrorType.NETWORK_ERROR;
   }
   if (message.includes("timeout") || code === "ETIMEDOUT") {
@@ -3503,10 +3372,7 @@ export function classifyDocumentError(
   if (message.includes("messaging window") || message.includes("24 hour")) {
     return DocumentErrorType.MESSAGING_WINDOW_CLOSED;
   }
-  if (
-    message.includes("invalid") &&
-    (message.includes("phone") || message.includes("number"))
-  ) {
+  if (message.includes("invalid") && (message.includes("phone") || message.includes("number"))) {
     return DocumentErrorType.INVALID_PHONE;
   }
   if (message.includes("blocked") || message.includes("blacklist")) {
@@ -3517,10 +3383,7 @@ export function classifyDocumentError(
   if (message.includes("template") && message.includes("not found")) {
     return DocumentErrorType.TEMPLATE_NOT_FOUND;
   }
-  if (
-    message.includes("template") &&
-    (message.includes("syntax") || message.includes("parse"))
-  ) {
+  if (message.includes("template") && (message.includes("syntax") || message.includes("parse"))) {
     return DocumentErrorType.TEMPLATE_SYNTAX_ERROR;
   }
 
@@ -3533,18 +3396,10 @@ export function classifyDocumentError(
   }
 
   // Auth errors
-  if (
-    message.includes("auth") ||
-    message.includes("unauthorized") ||
-    code === 401
-  ) {
+  if (message.includes("auth") || message.includes("unauthorized") || code === 401) {
     return DocumentErrorType.AUTHENTICATION_ERROR;
   }
-  if (
-    message.includes("permission") ||
-    message.includes("forbidden") ||
-    code === 403
-  ) {
+  if (message.includes("permission") || message.includes("forbidden") || code === 403) {
     return DocumentErrorType.PERMISSION_DENIED;
   }
   if (message.includes("quota") || message.includes("limit exceeded")) {
@@ -3552,10 +3407,7 @@ export function classifyDocumentError(
   }
 
   // Server errors
-  if (
-    (error as any)?.statusCode >= 500 ||
-    message.includes("internal server error")
-  ) {
+  if ((error as any)?.statusCode >= 500 || message.includes("internal server error")) {
     return DocumentErrorType.SERVER_ERROR;
   }
 
@@ -3597,8 +3449,7 @@ export class DocumentError extends Error {
     this.context = context;
 
     // Classify error if not provided
-    this.errorType =
-      errorType || classifyDocumentError(originalError || message);
+    this.errorType = errorType || classifyDocumentError(originalError || message);
 
     // Get configuration
     const config = DOCUMENT_ERROR_CLASSIFICATION[this.errorType];
@@ -3630,10 +3481,7 @@ export class DocumentError extends Error {
     };
   }
 
-  static fromError(
-    error: Error,
-    context?: Record<string, unknown>,
-  ): DocumentError {
+  static fromError(error: Error, context?: Record<string, unknown>): DocumentError {
     if (error instanceof DocumentError) {
       return error;
     }
@@ -3681,8 +3529,7 @@ function calculateBackoffDelay(
     DOCUMENT_RETRY_CONFIG[category as keyof typeof DOCUMENT_RETRY_CONFIG] ||
     DOCUMENT_RETRY_CONFIG.email;
 
-  const exponentialDelay =
-    config.baseDelay * Math.pow(multiplier, attemptsMade - 1);
+  const exponentialDelay = config.baseDelay * Math.pow(multiplier, attemptsMade - 1);
   const cappedDelay = Math.min(exponentialDelay, config.maxDelay);
 
   // Add jitter to prevent thundering herd
@@ -3816,17 +3663,9 @@ export interface IdempotencyResult {
 
 export class DocumentIdempotencyManager {
   // Generate idempotency key for PDF
-  generatePdfKey(
-    tenantId: string,
-    templateId: string,
-    dataHash: string,
-  ): string {
+  generatePdfKey(tenantId: string, templateId: string, dataHash: string): string {
     const input = `pdf:${tenantId}:${templateId}:${dataHash}`;
-    return crypto
-      .createHash("sha256")
-      .update(input)
-      .digest("hex")
-      .substring(0, 32);
+    return crypto.createHash("sha256").update(input).digest("hex").substring(0, 32);
   }
 
   // Generate idempotency key for email
@@ -3838,11 +3677,7 @@ export class DocumentIdempotencyManager {
   ): string {
     const recipients = Array.isArray(to) ? to.sort().join(",") : to;
     const input = `email:${tenantId}:${recipients}:${subject}:${templateId || "custom"}`;
-    return crypto
-      .createHash("sha256")
-      .update(input)
-      .digest("hex")
-      .substring(0, 32);
+    return crypto.createHash("sha256").update(input).digest("hex").substring(0, 32);
   }
 
   // Generate idempotency key for WhatsApp
@@ -3853,11 +3688,7 @@ export class DocumentIdempotencyManager {
     contentHash: string,
   ): string {
     const input = `whatsapp:${tenantId}:${phoneNumber}:${messageType}:${contentHash}`;
-    return crypto
-      .createHash("sha256")
-      .update(input)
-      .digest("hex")
-      .substring(0, 32);
+    return crypto.createHash("sha256").update(input).digest("hex").substring(0, 32);
   }
 
   // Check for duplicate operation
@@ -3942,15 +3773,8 @@ export class DocumentIdempotencyManager {
 
   // Generate content hash for comparison
   static hashContent(content: unknown): string {
-    const serialized = JSON.stringify(
-      content,
-      Object.keys(content as object).sort(),
-    );
-    return crypto
-      .createHash("sha256")
-      .update(serialized)
-      .digest("hex")
-      .substring(0, 16);
+    const serialized = JSON.stringify(content, Object.keys(content as object).sort());
+    return crypto.createHash("sha256").update(serialized).digest("hex").substring(0, 16);
   }
 }
 
@@ -4002,9 +3826,7 @@ const CIRCUIT_BREAKER_CONFIGS = {
 type CircuitBreakerCategory = keyof typeof CIRCUIT_BREAKER_CONFIGS;
 
 // Create circuit breaker with monitoring
-export function createDocumentCircuitBreaker<
-  T extends (...args: any[]) => Promise<any>,
->(
+export function createDocumentCircuitBreaker<T extends (...args: any[]) => Promise<any>>(
   fn: T,
   category: CircuitBreakerCategory,
   name: string,
@@ -4072,11 +3894,7 @@ export const circuitBreakers = {
     "puppeteer",
   ),
 
-  smtp: createDocumentCircuitBreaker(
-    async (fn: () => Promise<any>) => fn(),
-    "smtp",
-    "smtp-server",
-  ),
+  smtp: createDocumentCircuitBreaker(async (fn: () => Promise<any>) => fn(), "smtp", "smtp-server"),
 
   whatsappApi: createDocumentCircuitBreaker(
     async (fn: () => Promise<any>) => fn(),
@@ -4967,9 +4785,7 @@ export function createDocumentLogger(category: "pdf" | "email" | "whatsapp") {
       });
     },
 
-    templateRendered(
-      ctx: DocumentLogContext & { templateName?: string },
-    ): void {
+    templateRendered(ctx: DocumentLogContext & { templateName?: string }): void {
       logger.debug("Template rendered", {
         ...baseContext,
         ...ctx,
@@ -5001,9 +4817,7 @@ export function createDocumentLogger(category: "pdf" | "email" | "whatsapp") {
       });
     },
 
-    retryScheduled(
-      ctx: DocumentLogContext & { delay?: number; attempt?: number },
-    ): void {
+    retryScheduled(ctx: DocumentLogContext & { delay?: number; attempt?: number }): void {
       logger.info("Retry scheduled", {
         ...baseContext,
         ...ctx,
@@ -5011,9 +4825,7 @@ export function createDocumentLogger(category: "pdf" | "email" | "whatsapp") {
       });
     },
 
-    hitlCreated(
-      ctx: DocumentLogContext & { taskId?: string; priority?: number },
-    ): void {
+    hitlCreated(ctx: DocumentLogContext & { taskId?: string; priority?: number }): void {
       logger.warn("HITL task created", {
         ...baseContext,
         ...ctx,
@@ -5029,9 +4841,7 @@ export function createDocumentLogger(category: "pdf" | "email" | "whatsapp") {
       });
     },
 
-    rateLimitApproaching(
-      ctx: DocumentLogContext & { remaining?: number },
-    ): void {
+    rateLimitApproaching(ctx: DocumentLogContext & { remaining?: number }): void {
       logger.warn("Rate limit approaching", {
         ...baseContext,
         ...ctx,
@@ -5203,12 +5013,7 @@ describe("Email Validator", () => {
     });
 
     it("should reject invalid email addresses", () => {
-      const invalidEmails = [
-        "not-an-email",
-        "@nodomain.com",
-        "spaces in@email.com",
-        "missing@tld",
-      ];
+      const invalidEmails = ["not-an-email", "@nodomain.com", "spaces in@email.com", "missing@tld"];
 
       invalidEmails.forEach((email) => {
         expect(validateEmailRecipient(email).isValid).toBe(false);
@@ -5281,12 +5086,7 @@ import {
 describe("WhatsApp Validator", () => {
   describe("validatePhoneNumber", () => {
     it("should accept valid Romanian phone numbers", () => {
-      const validNumbers = [
-        "+40722123456",
-        "0722123456",
-        "40722123456",
-        "+40 722 123 456",
-      ];
+      const validNumbers = ["+40722123456", "0722123456", "40722123456", "+40 722 123 456"];
 
       validNumbers.forEach((number) => {
         expect(validatePhoneNumber(number).isValid).toBe(true);
@@ -5295,9 +5095,7 @@ describe("WhatsApp Validator", () => {
 
     it("should normalize phone numbers to E.164 format", () => {
       expect(validatePhoneNumber("0722123456").normalized).toBe("40722123456");
-      expect(validatePhoneNumber("+40722123456").normalized).toBe(
-        "40722123456",
-      );
+      expect(validatePhoneNumber("+40722123456").normalized).toBe("40722123456");
     });
 
     it("should reject invalid phone numbers", () => {
@@ -5507,22 +5305,16 @@ describe("Error Classification", () => {
   });
 
   it("should classify messaging window errors", () => {
-    const error = new Error(
-      "Cannot send message: 24 hour messaging window closed",
-    );
+    const error = new Error("Cannot send message: 24 hour messaging window closed");
 
-    expect(classifyDocumentError(error)).toBe(
-      DocumentErrorType.MESSAGING_WINDOW_CLOSED,
-    );
+    expect(classifyDocumentError(error)).toBe(DocumentErrorType.MESSAGING_WINDOW_CLOSED);
   });
 
   it("should classify authentication errors", () => {
     const error = new Error("Unauthorized");
     (error as any).statusCode = 401;
 
-    expect(classifyDocumentError(error)).toBe(
-      DocumentErrorType.AUTHENTICATION_ERROR,
-    );
+    expect(classifyDocumentError(error)).toBe(DocumentErrorType.AUTHENTICATION_ERROR);
   });
 });
 ```
@@ -5589,10 +5381,7 @@ describe("PDF Generation Worker Integration", () => {
     expect(result.fileUrl).toBeDefined();
 
     // Verify document record created
-    const [document] = await db
-      .select()
-      .from(documents)
-      .where(eq(documents.id, result.documentId));
+    const [document] = await db.select().from(documents).where(eq(documents.id, result.documentId));
 
     expect(document).toBeDefined();
     expect(document.type).toBe("INVOICE");
@@ -5607,9 +5396,7 @@ describe("PDF Generation Worker Integration", () => {
       data: { invoiceNumber: "TEST-001" },
     });
 
-    await expect(
-      job.waitUntilFinished(pdfGenerationQueue.queueEvents),
-    ).rejects.toThrow();
+    await expect(job.waitUntilFinished(pdfGenerationQueue.queueEvents)).rejects.toThrow();
 
     const failedJob = await pdfGenerationQueue.getJob(job.id!);
     expect(failedJob?.failedReason).toContain("Template not found");
@@ -5630,12 +5417,8 @@ describe("PDF Generation Worker Integration", () => {
     const job1 = await pdfGenerationQueue.add("generate", data);
     const job2 = await pdfGenerationQueue.add("generate", data);
 
-    const result1 = await job1.waitUntilFinished(
-      pdfGenerationQueue.queueEvents,
-    );
-    const result2 = await job2.waitUntilFinished(
-      pdfGenerationQueue.queueEvents,
-    );
+    const result1 = await job1.waitUntilFinished(pdfGenerationQueue.queueEvents);
+    const result2 = await job2.waitUntilFinished(pdfGenerationQueue.queueEvents);
 
     // Both should return same document
     expect(result1.documentId).toBe(result2.documentId);
@@ -5643,15 +5426,7 @@ describe("PDF Generation Worker Integration", () => {
 });
 
 // tests/integration/workers/etapa3/document-generation/email-worker.test.ts
-import {
-  describe,
-  it,
-  expect,
-  beforeAll,
-  afterAll,
-  beforeEach,
-  vi,
-} from "vitest";
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest";
 import { createTestContainer, TestContainer } from "@/tests/utils/container";
 import { emailDeliveryQueue } from "@/workers/etapa3/document-generation/queues";
 import { createMockSmtpServer, MockSmtpServer } from "@/tests/utils/mock-smtp";
@@ -5733,10 +5508,7 @@ describe("Email Delivery Worker Integration", () => {
       html: "<p>Should succeed after retries</p>",
     });
 
-    const result = await job.waitUntilFinished(
-      emailDeliveryQueue.queueEvents,
-      60000,
-    );
+    const result = await job.waitUntilFinished(emailDeliveryQueue.queueEvents, 60000);
 
     expect(result.messageId).toBeDefined();
     expect(job.attemptsMade).toBeGreaterThan(1);
@@ -5763,21 +5535,10 @@ describe("Email Delivery Worker Integration", () => {
 });
 
 // tests/integration/workers/etapa3/document-generation/whatsapp-worker.test.ts
-import {
-  describe,
-  it,
-  expect,
-  beforeAll,
-  afterAll,
-  beforeEach,
-  vi,
-} from "vitest";
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest";
 import { createTestContainer, TestContainer } from "@/tests/utils/container";
 import { whatsappDeliveryQueue } from "@/workers/etapa3/document-generation/queues";
-import {
-  createWhatsAppMockServer,
-  WhatsAppMockServer,
-} from "@/tests/utils/mock-whatsapp";
+import { createWhatsAppMockServer, WhatsAppMockServer } from "@/tests/utils/mock-whatsapp";
 import { db } from "@/db";
 import { whatsappMessages, whatsappConversations } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
@@ -5813,9 +5574,7 @@ describe("WhatsApp Delivery Worker Integration", () => {
       },
     });
 
-    const result = await job.waitUntilFinished(
-      whatsappDeliveryQueue.queueEvents,
-    );
+    const result = await job.waitUntilFinished(whatsappDeliveryQueue.queueEvents);
 
     expect(result.waMessageId).toBeDefined();
     expect(result.status).toBe("sent");
@@ -5852,9 +5611,7 @@ describe("WhatsApp Delivery Worker Integration", () => {
       },
     });
 
-    const result = await job.waitUntilFinished(
-      whatsappDeliveryQueue.queueEvents,
-    );
+    const result = await job.waitUntilFinished(whatsappDeliveryQueue.queueEvents);
 
     expect(result.waMessageId).toBeDefined();
   });
@@ -5872,9 +5629,7 @@ describe("WhatsApp Delivery Worker Integration", () => {
       },
     });
 
-    await expect(
-      job.waitUntilFinished(whatsappDeliveryQueue.queueEvents),
-    ).rejects.toThrow();
+    await expect(job.waitUntilFinished(whatsappDeliveryQueue.queueEvents)).rejects.toThrow();
 
     const failedJob = await whatsappDeliveryQueue.getJob(job.id!);
     expect(failedJob?.failedReason).toContain("messaging window");
@@ -5922,9 +5677,7 @@ describe("WhatsApp Delivery Worker Integration", () => {
     });
 
     // Should be delayed and retried
-    await expect(
-      job.waitUntilFinished(whatsappDeliveryQueue.queueEvents, 5000),
-    ).rejects.toThrow();
+    await expect(job.waitUntilFinished(whatsappDeliveryQueue.queueEvents, 5000)).rejects.toThrow();
 
     // Job should be delayed, not failed
     const jobState = await job.getState();
@@ -5977,9 +5730,7 @@ test.describe("Document Generation E2E", () => {
       });
 
       // Verify download link appears
-      await expect(
-        page.getByRole("link", { name: /Descarcă PDF/i }),
-      ).toBeVisible();
+      await expect(page.getByRole("link", { name: /Descarcă PDF/i })).toBeVisible();
     });
 
     test("should preview document before generation", async ({ page }) => {
@@ -5994,9 +5745,7 @@ test.describe("Document Generation E2E", () => {
 
       // Verify preview modal
       await expect(page.getByTestId("pdf-preview")).toBeVisible();
-      await expect(
-        page.frameLocator("iframe").getByText(/Ofertă/i),
-      ).toBeVisible();
+      await expect(page.frameLocator("iframe").getByText(/Ofertă/i)).toBeVisible();
     });
   });
 
@@ -6021,9 +5770,7 @@ test.describe("Document Generation E2E", () => {
       await page.getByLabel("Subiect").fill("Ofertă personalizată - Test E2E");
 
       // Add message
-      await page
-        .getByLabel("Mesaj")
-        .fill("Vă transmitem oferta noastră personalizată.");
+      await page.getByLabel("Mesaj").fill("Vă transmitem oferta noastră personalizată.");
 
       // Send
       await page.getByRole("button", { name: "Trimite" }).click();
@@ -6067,9 +5814,7 @@ test.describe("Document Generation E2E", () => {
       await page.getByRole("tab", { name: "WhatsApp" }).click();
 
       // Type message
-      await page
-        .getByPlaceholder("Scrie un mesaj...")
-        .fill("Bună ziua! Aceasta este un test E2E.");
+      await page.getByPlaceholder("Scrie un mesaj...").fill("Bună ziua! Aceasta este un test E2E.");
 
       // Send
       await page.getByRole("button", { name: "Trimite" }).click();
@@ -6120,9 +5865,7 @@ test.describe("Document Generation E2E", () => {
   });
 
   test.describe("Document HITL Resolution", () => {
-    test("should resolve document generation error via HITL", async ({
-      page,
-    }) => {
+    test("should resolve document generation error via HITL", async ({ page }) => {
       await loginAsAdmin(page);
       await page.goto("/admin/hitl");
 
@@ -6162,10 +5905,7 @@ export interface MockSmtpServer {
   port: number;
   getReceivedEmails(): ReceivedEmail[];
   reset(): void;
-  setFailureMode(
-    mode: "none" | "temporary" | "permanent",
-    count?: number,
-  ): void;
+  setFailureMode(mode: "none" | "temporary" | "permanent", count?: number): void;
   close(): Promise<void>;
 }
 
@@ -6178,9 +5918,7 @@ interface ReceivedEmail {
   attachments: Array<{ filename: string; size: number }>;
 }
 
-export async function createMockSmtpServer(
-  port: number,
-): Promise<MockSmtpServer> {
+export async function createMockSmtpServer(port: number): Promise<MockSmtpServer> {
   const receivedEmails: ReceivedEmail[] = [];
   let failureMode: "none" | "temporary" | "permanent" = "none";
   let failureCount = 0;
@@ -6254,9 +5992,7 @@ interface SentMessage {
   timestamp: Date;
 }
 
-export async function createWhatsAppMockServer(
-  port: number,
-): Promise<WhatsAppMockServer> {
+export async function createWhatsAppMockServer(port: number): Promise<WhatsAppMockServer> {
   const sentMessages: SentMessage[] = [];
   const closedWindows = new Set<string>();
   let rateLimitRemaining = 1000;
@@ -6340,11 +6076,7 @@ export async function createWhatsAppMockServer(
 
 ```typescript
 // src/workers/etapa3/document-generation/integration/triggers.ts
-import {
-  pdfGenerationQueue,
-  emailDeliveryQueue,
-  whatsappDeliveryQueue,
-} from "../queues";
+import { pdfGenerationQueue, emailDeliveryQueue, whatsappDeliveryQueue } from "../queues";
 import { logger } from "@/lib/logger";
 
 /**
@@ -6541,10 +6273,7 @@ export async function executeDocumentWorkflow(
   );
 
   // Wait for PDF completion
-  const pdfResult = await pdfJob.waitUntilFinished(
-    pdfGenerationQueue.queueEvents,
-    120000,
-  );
+  const pdfResult = await pdfJob.waitUntilFinished(pdfGenerationQueue.queueEvents, 120000);
 
   // Step 2: Trigger deliveries
   const deliveryJobIds: string[] = [];
@@ -6646,17 +6375,11 @@ class DocumentEventBus extends EventEmitter {
     return super.emit(event, fullEvent);
   }
 
-  subscribe(
-    event: DocumentEventType,
-    handler: (event: DocumentEvent) => void,
-  ): void {
+  subscribe(event: DocumentEventType, handler: (event: DocumentEvent) => void): void {
     this.on(event, handler);
   }
 
-  unsubscribe(
-    event: DocumentEventType,
-    handler: (event: DocumentEvent) => void,
-  ): void {
+  unsubscribe(event: DocumentEventType, handler: (event: DocumentEvent) => void): void {
     this.off(event, handler);
   }
 }
@@ -6664,31 +6387,28 @@ class DocumentEventBus extends EventEmitter {
 export const documentEventBus = new DocumentEventBus();
 
 // Event handlers for cross-worker communication
-documentEventBus.subscribe(
-  DocumentEventType.PDF_GENERATION_COMPLETED,
-  async (event) => {
-    // Auto-trigger delivery if configured
-    if (event.data.autoDelivery) {
-      const { deliveryChannel, recipient } = event.data.autoDelivery as {
-        deliveryChannel: "email" | "whatsapp";
-        recipient: string;
-      };
+documentEventBus.subscribe(DocumentEventType.PDF_GENERATION_COMPLETED, async (event) => {
+  // Auto-trigger delivery if configured
+  if (event.data.autoDelivery) {
+    const { deliveryChannel, recipient } = event.data.autoDelivery as {
+      deliveryChannel: "email" | "whatsapp";
+      recipient: string;
+    };
 
-      if (deliveryChannel === "email") {
-        await emailDeliveryQueue.add("auto-send", {
-          tenantId: event.tenantId,
-          to: recipient,
-          subject: `Document generat: ${event.data.documentType}`,
-          attachments: [
-            {
-              path: event.data.fileUrl as string,
-            },
-          ],
-        });
-      }
+    if (deliveryChannel === "email") {
+      await emailDeliveryQueue.add("auto-send", {
+        tenantId: event.tenantId,
+        to: recipient,
+        subject: `Document generat: ${event.data.documentType}`,
+        attachments: [
+          {
+            path: event.data.fileUrl as string,
+          },
+        ],
+      });
     }
-  },
-);
+  }
+});
 
 documentEventBus.subscribe(DocumentEventType.EMAIL_BOUNCED, async (event) => {
   // Update contact status
@@ -6763,9 +6483,7 @@ export async function createDocumentHitlTask(
   data: DocumentHitlTaskData,
 ): Promise<string> {
   const slaDeadline = new Date();
-  slaDeadline.setHours(
-    slaDeadline.getHours() + SEVERITY_TO_SLA_HOURS[data.severity],
-  );
+  slaDeadline.setHours(slaDeadline.getHours() + SEVERITY_TO_SLA_HOURS[data.severity]);
 
   const [task] = await db
     .insert(hitlTasks)
@@ -6814,32 +6532,23 @@ export async function createDocumentHitlTask(
 
 function getSuggestedAction(errorType: string): string {
   const actions: Record<string, string> = {
-    TEMPLATE_NOT_FOUND:
-      "Verificați dacă șablonul există și este activ în sistem.",
-    TEMPLATE_SYNTAX_ERROR:
-      "Verificați sintaxa șablonului și corectați erorile.",
-    INVALID_DATA:
-      "Verificați datele de intrare și corectați valorile invalide.",
+    TEMPLATE_NOT_FOUND: "Verificați dacă șablonul există și este activ în sistem.",
+    TEMPLATE_SYNTAX_ERROR: "Verificați sintaxa șablonului și corectați erorile.",
+    INVALID_DATA: "Verificați datele de intrare și corectați valorile invalide.",
     INVALID_EMAIL: "Verificați și actualizați adresa de email a contactului.",
-    INVALID_PHONE:
-      "Verificați și actualizați numărul de telefon al contactului.",
+    INVALID_PHONE: "Verificați și actualizați numărul de telefon al contactului.",
     BLOCKED_RECIPIENT:
       "Contactați destinatarul pentru a verifica dacă dorește să primească mesaje.",
-    MESSAGING_WINDOW_CLOSED:
-      "Folosiți un șablon aprobat WhatsApp pentru a iniția conversația.",
+    MESSAGING_WINDOW_CLOSED: "Folosiți un șablon aprobat WhatsApp pentru a iniția conversația.",
     MEDIA_TOO_LARGE:
       "Reduceți dimensiunea fișierului sau folosiți o metodă alternativă de livrare.",
-    AUTHENTICATION_ERROR:
-      "Verificați credențialele de autentificare pentru serviciul extern.",
+    AUTHENTICATION_ERROR: "Verificați credențialele de autentificare pentru serviciul extern.",
     QUOTA_EXCEEDED:
       "Așteptați resetarea cotei sau contactați furnizorul pentru creșterea limitelor.",
-    BROWSER_CRASH:
-      "Reporniți serviciul de generare PDF și reîncercați operația.",
+    BROWSER_CRASH: "Reporniți serviciul de generare PDF și reîncercați operația.",
   };
 
-  return (
-    actions[errorType] || "Analizați eroarea și efectuați acțiunile necesare."
-  );
+  return actions[errorType] || "Analizați eroarea și efectuați acțiunile necesare.";
 }
 
 // Handle HITL task resolution
@@ -6851,10 +6560,7 @@ export async function handleDocumentHitlResolution(
     notes?: string;
   },
 ): Promise<void> {
-  const [task] = await db
-    .select()
-    .from(hitlTasks)
-    .where(eq(hitlTasks.id, taskId));
+  const [task] = await db.select().from(hitlTasks).where(eq(hitlTasks.id, taskId));
 
   if (!task) {
     throw new Error(`HITL task not found: ${taskId}`);
@@ -6951,9 +6657,7 @@ const PII_PATTERNS = {
   creditCard: /\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b/g,
 };
 
-export function detectPII(
-  text: string,
-): Array<{ type: string; value: string; position: number }> {
+export function detectPII(text: string): Array<{ type: string; value: string; position: number }> {
   const findings: Array<{ type: string; value: string; position: number }> = [];
 
   for (const [type, pattern] of Object.entries(PII_PATTERNS)) {
@@ -6970,10 +6674,7 @@ export function detectPII(
   return findings;
 }
 
-export function maskPII(
-  text: string,
-  typesToMask: string[] = ["cnp", "creditCard"],
-): string {
+export function maskPII(text: string, typesToMask: string[] = ["cnp", "creditCard"]): string {
   let masked = text;
 
   for (const type of typesToMask) {
@@ -6981,9 +6682,7 @@ export function maskPII(
     if (pattern) {
       masked = masked.replace(pattern, (match) => {
         const visibleChars = Math.min(4, Math.floor(match.length / 4));
-        return (
-          match.slice(0, visibleChars) + "*".repeat(match.length - visibleChars)
-        );
+        return match.slice(0, visibleChars) + "*".repeat(match.length - visibleChars);
       });
     }
   }
@@ -7015,11 +6714,7 @@ export class DocumentEncryption {
   }
 
   decrypt(encrypted: Buffer, iv: Buffer, tag: Buffer): Buffer {
-    const decipher = crypto.createDecipheriv(
-      this.algorithm,
-      this.masterKey,
-      iv,
-    );
+    const decipher = crypto.createDecipheriv(this.algorithm, this.masterKey, iv);
     decipher.setAuthTag(tag);
 
     return Buffer.concat([decipher.update(encrypted), decipher.final()]);
@@ -7049,15 +6744,11 @@ export interface DocumentAuditEntry {
   errorMessage?: string;
 }
 
-export async function logDocumentAudit(
-  entry: DocumentAuditEntry,
-): Promise<void> {
+export async function logDocumentAudit(entry: DocumentAuditEntry): Promise<void> {
   // Mask sensitive data before logging
   const maskedEntry = {
     ...entry,
-    recipientInfo: entry.recipientInfo
-      ? maskPII(entry.recipientInfo)
-      : undefined,
+    recipientInfo: entry.recipientInfo ? maskPII(entry.recipientInfo) : undefined,
   };
 
   logger.info("Document audit", maskedEntry);
@@ -7108,12 +6799,7 @@ export async function checkDocumentAccess(
   const [userPerm] = await db
     .select()
     .from(userPermissions)
-    .where(
-      and(
-        eq(userPermissions.userId, userId),
-        eq(userPermissions.tenantId, tenantId),
-      ),
-    );
+    .where(and(eq(userPermissions.userId, userId), eq(userPermissions.tenantId, tenantId)));
 
   if (!userPerm) {
     return { allowed: false, reason: "User not found in tenant" };
@@ -7122,10 +6808,7 @@ export async function checkDocumentAccess(
   const permissions = userPerm.permissions as string[];
 
   // Check if user has required permission
-  if (
-    !permissions.includes(requiredPermission) &&
-    !permissions.includes("document:*")
-  ) {
+  if (!permissions.includes(requiredPermission) && !permissions.includes("document:*")) {
     return {
       allowed: false,
       reason: `Missing permission: ${requiredPermission}`,

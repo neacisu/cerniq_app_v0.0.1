@@ -696,10 +696,7 @@ export const CATEGORY_CONFIGS = {
 // packages/workers-etapa3/src/queues/index.ts
 
 import { Queue } from "bullmq";
-import {
-  DEFAULT_QUEUE_OPTIONS,
-  CATEGORY_CONFIGS,
-} from "../config/bullmq.config";
+import { DEFAULT_QUEUE_OPTIONS, CATEGORY_CONFIGS } from "../config/bullmq.config";
 
 // Categoria A: Product Knowledge
 export const productIngestQueue = new Queue("product:ingest", {
@@ -719,10 +716,7 @@ export const productEmbedQueue = new Queue("product:embed", {
 });
 
 // Categoria C: AI Agent Core
-export const aiContextBuildQueue = new Queue(
-  "ai:context:build",
-  DEFAULT_QUEUE_OPTIONS,
-);
+export const aiContextBuildQueue = new Queue("ai:context:build", DEFAULT_QUEUE_OPTIONS);
 
 export const aiAgentOrchestrateQueue = new Queue("ai:agent:orchestrate", {
   ...DEFAULT_QUEUE_OPTIONS,
@@ -1023,10 +1017,9 @@ export const fiscalMetrics = {
   einvoiceErrors: meter.createCounter("cerniq_einvoice_errors_total", {
     description: "e-Factura errors",
   }),
-  proformaConversion: meter.createObservableGauge(
-    "cerniq_fiscal_conversion_rate",
-    { description: "Proforma to Invoice rate" },
-  ),
+  proformaConversion: meter.createObservableGauge("cerniq_fiscal_conversion_rate", {
+    description: "Proforma to Invoice rate",
+  }),
 };
 
 // 3. Negotiation Metrics

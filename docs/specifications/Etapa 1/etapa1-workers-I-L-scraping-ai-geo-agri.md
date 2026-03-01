@@ -27,10 +27,7 @@ interface DajScraperJobData {
 }
 
 // Rate limit: 0.5 requests/second (2s delay)
-export const dajScraperWorker = createWorker<
-  DajScraperJobData,
-  DajScraperResult
->({
+export const dajScraperWorker = createWorker<DajScraperJobData, DajScraperResult>({
   queueName: "silver:enrich:daj-scraper",
   concurrency: 2,
   limiter: { max: 1, duration: 2000 },
@@ -66,8 +63,7 @@ export const dajScraperWorker = createWorker<
       });
 
       const context = await browser.newContext({
-        userAgent:
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
       });
 
       const page = await context.newPage();
@@ -117,10 +113,8 @@ export const dajScraperWorker = createWorker<
           dajRegistrationDate: data["Data Înregistrare"]
             ? new Date(data["Data Înregistrare"])
             : undefined,
-          suprafataAgricola:
-            parseFloat(data["Suprafață Totală (ha)"]) || undefined,
-          culturiPrincipale:
-            data["Culturi Principale"]?.split(",").map((c) => c.trim()) || [],
+          suprafataAgricola: parseFloat(data["Suprafață Totală (ha)"]) || undefined,
+          culturiPrincipale: data["Culturi Principale"]?.split(",").map((c) => c.trim()) || [],
           categorieExploatatie: data["Categorie Exploatație"] || undefined,
           enrichmentSourcesCompleted: db.sql`
             array_append(
@@ -153,10 +147,7 @@ export const dajScraperWorker = createWorker<
 ```typescript
 // apps/workers/src/silver/anif-scraper.worker.ts
 
-export const anifScraperWorker = createWorker<
-  AnifScraperJobData,
-  AnifScraperResult
->({
+export const anifScraperWorker = createWorker<AnifScraperJobData, AnifScraperResult>({
   queueName: "silver:enrich:anif-scraper",
   concurrency: 2,
   limiter: { max: 1, duration: 2000 },
@@ -255,10 +246,7 @@ export const anifScraperWorker = createWorker<
 import axios from "axios";
 import * as cheerio from "cheerio";
 
-export const websiteFinderWorker = createWorker<
-  WebsiteFinderJobData,
-  WebsiteFinderResult
->({
+export const websiteFinderWorker = createWorker<WebsiteFinderJobData, WebsiteFinderResult>({
   queueName: "silver:enrich:website-finder",
   concurrency: 5,
   limiter: { max: 5, duration: 1000 },
@@ -275,13 +263,10 @@ export const websiteFinderWorker = createWorker<
 
     try {
       // Use Bing search API (free tier)
-      const searchResponse = await axios.get(
-        "https://api.bing.microsoft.com/v7.0/search",
-        {
-          headers: { "Ocp-Apim-Subscription-Key": process.env.BING_API_KEY },
-          params: { q: searchQuery, count: 10 },
-        },
-      );
+      const searchResponse = await axios.get("https://api.bing.microsoft.com/v7.0/search", {
+        headers: { "Ocp-Apim-Subscription-Key": process.env.BING_API_KEY },
+        params: { q: searchQuery, count: 10 },
+      });
 
       const results = searchResponse.data.webPages?.value || [];
 
@@ -313,11 +298,7 @@ export const websiteFinderWorker = createWorker<
 
       // Verify first result is actually company website
       const bestCandidate = companyUrls[0];
-      const verified = await verifyCompanyWebsite(
-        bestCandidate.url,
-        denumire,
-        cui,
-      );
+      const verified = await verifyCompanyWebsite(bestCandidate.url, denumire, cui);
 
       if (verified.isCompanyWebsite) {
         await db
@@ -345,10 +326,7 @@ export const websiteFinderWorker = createWorker<
           websiteUrl: verified.normalizedUrl,
         });
 
-        logger.info(
-          { denumire, website: verified.normalizedUrl },
-          "Website found",
-        );
+        logger.info({ denumire, website: verified.normalizedUrl }, "Website found");
 
         return { status: "success", website: verified.normalizedUrl };
       }
@@ -379,9 +357,7 @@ async function verifyCompanyWebsite(
     // Check if company name or CUI appears on page
     const hasCompanyName =
       pageText.includes(denumireLower) ||
-      denumireLower
-        .split(" ")
-        .some((word) => word.length > 4 && pageText.includes(word));
+      denumireLower.split(" ").some((word) => word.length > 4 && pageText.includes(word));
     const hasCui = pageText.includes(cui);
 
     // Normalize URL
@@ -411,10 +387,7 @@ function extractDomain(url: string): string {
 ```typescript
 // apps/workers/src/silver/contact-page-scraper.worker.ts
 
-export const contactPageScraperWorker = createWorker<
-  ContactPageJobData,
-  ContactPageResult
->({
+export const contactPageScraperWorker = createWorker<ContactPageJobData, ContactPageResult>({
   queueName: "silver:enrich:contact-page-scraper",
   concurrency: 3,
   limiter: { max: 2, duration: 1000 },
@@ -449,8 +422,7 @@ export const contactPageScraperWorker = createWorker<
           const emails = [...new Set(pageText.match(emailRegex) || [])];
 
           // Extract phones
-          const phoneRegex =
-            /(?:\+40|0)[2-9]\d{8}|\(?0\d{2,3}\)?[\s.-]?\d{3}[\s.-]?\d{3,4}/g;
+          const phoneRegex = /(?:\+40|0)[2-9]\d{8}|\(?0\d{2,3}\)?[\s.-]?\d{3}[\s.-]?\d{3,4}/g;
           const phones = [...new Set(pageText.match(phoneRegex) || [])];
 
           // Extract address
@@ -559,10 +531,7 @@ interface GrokStructuringJobData {
 }
 
 // Rate limit: 60 requests/minute for xAI
-export const grokStructuringWorker = createWorker<
-  GrokStructuringJobData,
-  GrokStructuringResult
->({
+export const grokStructuringWorker = createWorker<GrokStructuringJobData, GrokStructuringResult>({
   queueName: "silver:enrich:grok-structuring",
   concurrency: 5,
   limiter: { max: 60, duration: 60000 },
@@ -604,18 +573,13 @@ Răspunde DOAR cu JSON valid, fără text suplimentar.`,
         response_format: { type: "json_object" },
       });
 
-      const structured = JSON.parse(
-        response.choices[0].message.content || "{}",
-      );
+      const structured = JSON.parse(response.choices[0].message.content || "{}");
 
       // Validate structured data
       const validated = validateStructuredData(structured);
 
       if (!validated.isValid) {
-        logger.warn(
-          { errors: validated.errors },
-          "Structured data validation failed",
-        );
+        logger.warn({ errors: validated.errors }, "Structured data validation failed");
 
         // Trigger HITL for low confidence
         await createApprovalTask({
@@ -653,10 +617,7 @@ Răspunde DOAR cu JSON valid, fără text suplimentar.`,
         })
         .where(eq(silverCompanies.id, companyId));
 
-      logger.info(
-        { companyId, confidence: validated.confidence },
-        "Data structured with AI",
-      );
+      logger.info({ companyId, confidence: validated.confidence }, "Data structured with AI");
 
       return {
         status: "success",
@@ -726,19 +687,13 @@ function validateStructuredData(data: any): {
   }
 
   // Validate phone format
-  if (
-    data.contact?.telefon &&
-    !/^\+?40?\d{9,10}$/.test(data.contact.telefon.replace(/\D/g, ""))
-  ) {
+  if (data.contact?.telefon && !/^\+?40?\d{9,10}$/.test(data.contact.telefon.replace(/\D/g, ""))) {
     errors.push("Invalid phone format");
     confidence *= 0.8;
   }
 
   // Validate email format
-  if (
-    data.contact?.email &&
-    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.contact.email)
-  ) {
+  if (data.contact?.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.contact.email)) {
     errors.push("Invalid email format");
     confidence *= 0.8;
   }
@@ -770,29 +725,25 @@ function validateCuiChecksum(cui: string): boolean {
 ```typescript
 // apps/workers/src/silver/ai-data-merger.worker.ts
 
-export const aiDataMergerWorker = createWorker<AiMergerJobData, AiMergerResult>(
-  {
-    queueName: "silver:enrich:ai-data-merger",
-    concurrency: 5,
-    limiter: { max: 60, duration: 60000 },
-    attempts: 2,
-    timeout: 60000,
+export const aiDataMergerWorker = createWorker<AiMergerJobData, AiMergerResult>({
+  queueName: "silver:enrich:ai-data-merger",
+  concurrency: 5,
+  limiter: { max: 60, duration: 60000 },
+  attempts: 2,
+  timeout: 60000,
 
-    processor: async (job, logger) => {
-      const { tenantId, companyId, dataSources } = job.data;
+  processor: async (job, logger) => {
+    const { tenantId, companyId, dataSources } = job.data;
 
-      logger.info(
-        { companyId, sources: Object.keys(dataSources) },
-        "Merging data with AI",
-      );
+    logger.info({ companyId, sources: Object.keys(dataSources) }, "Merging data with AI");
 
-      const xai = new OpenAI({
-        baseURL: "https://api.x.ai/v1",
-        apiKey: process.env.XAI_API_KEY,
-      });
+    const xai = new OpenAI({
+      baseURL: "https://api.x.ai/v1",
+      apiKey: process.env.XAI_API_KEY,
+    });
 
-      try {
-        const prompt = `Analizează următoarele date despre aceeași companie din surse diferite și unifică-le:
+    try {
+      const prompt = `Analizează următoarele date despre aceeași companie din surse diferite și unifică-le:
 
 ${JSON.stringify(dataSources, null, 2)}
 
@@ -811,71 +762,66 @@ Returnează JSON cu:
   "confidence": 0-1
 }`;
 
-        const response = await xai.chat.completions.create({
-          model: "grok-beta",
-          messages: [
-            {
-              role: "system",
-              content:
-                "Ești un expert în reconcilierea datelor din surse multiple.",
-            },
-            { role: "user", content: prompt },
-          ],
-          temperature: 0.1,
-          max_tokens: 3000,
-          response_format: { type: "json_object" },
+      const response = await xai.chat.completions.create({
+        model: "grok-beta",
+        messages: [
+          {
+            role: "system",
+            content: "Ești un expert în reconcilierea datelor din surse multiple.",
+          },
+          { role: "user", content: prompt },
+        ],
+        temperature: 0.1,
+        max_tokens: 3000,
+        response_format: { type: "json_object" },
+      });
+
+      const result = JSON.parse(response.choices[0].message.content || "{}");
+
+      if (result.confidence < 0.7 && result.conflicts_resolved?.length > 0) {
+        // Create HITL task for low confidence merges
+        await createApprovalTask({
+          tenantId,
+          entityType: "company",
+          entityId: companyId,
+          approvalType: "ai_merge_review",
+          pipelineStage: "E1",
+          metadata: {
+            dataSources,
+            mergedData: result.merged_data,
+            conflicts: result.conflicts_resolved,
+            confidence: result.confidence,
+          },
         });
 
-        const result = JSON.parse(response.choices[0].message.content || "{}");
-
-        if (result.confidence < 0.7 && result.conflicts_resolved?.length > 0) {
-          // Create HITL task for low confidence merges
-          await createApprovalTask({
-            tenantId,
-            entityType: "company",
-            entityId: companyId,
-            approvalType: "ai_merge_review",
-            pipelineStage: "E1",
-            metadata: {
-              dataSources,
-              mergedData: result.merged_data,
-              conflicts: result.conflicts_resolved,
-              confidence: result.confidence,
-            },
-          });
-
-          return { status: "hitl_required", confidence: result.confidence };
-        }
-
-        // Apply merged data
-        await db
-          .update(silverCompanies)
-          .set({
-            ...result.merged_data,
-            aiMergeConfidence: result.confidence,
-            aiMergedAt: new Date(),
-            mergeHistory: db.sql`merge_history || ${JSON.stringify({
-              timestamp: new Date(),
-              sources: Object.keys(dataSources),
-              conflicts: result.conflicts_resolved,
-            })}::jsonb`,
-            updatedAt: new Date(),
-          })
-          .where(eq(silverCompanies.id, companyId));
-
-        logger.info(
-          { companyId, confidence: result.confidence },
-          "Data merged",
-        );
-
-        return { status: "success", confidence: result.confidence };
-      } catch (error) {
-        logger.error({ error, companyId }, "AI merger error");
-        throw error;
+        return { status: "hitl_required", confidence: result.confidence };
       }
-    },
+
+      // Apply merged data
+      await db
+        .update(silverCompanies)
+        .set({
+          ...result.merged_data,
+          aiMergeConfidence: result.confidence,
+          aiMergedAt: new Date(),
+          mergeHistory: db.sql`merge_history || ${JSON.stringify({
+            timestamp: new Date(),
+            sources: Object.keys(dataSources),
+            conflicts: result.conflicts_resolved,
+          })}::jsonb`,
+          updatedAt: new Date(),
+        })
+        .where(eq(silverCompanies.id, companyId));
+
+      logger.info({ companyId, confidence: result.confidence }, "Data merged");
+
+      return { status: "success", confidence: result.confidence };
+    } catch (error) {
+      logger.error({ error, companyId }, "AI merger error");
+      throw error;
+    }
   },
-);
+});
 ```
 
 ## 2.3 J.3 - AI Confidence Scorer Worker
@@ -883,10 +829,7 @@ Returnează JSON cu:
 ```typescript
 // apps/workers/src/silver/ai-confidence-scorer.worker.ts
 
-export const aiConfidenceScorerWorker = createWorker<
-  AiConfidenceJobData,
-  AiConfidenceResult
->({
+export const aiConfidenceScorerWorker = createWorker<AiConfidenceJobData, AiConfidenceResult>({
   queueName: "silver:enrich:ai-confidence-scorer",
   concurrency: 10,
   attempts: 2,
@@ -922,11 +865,7 @@ export const aiConfidenceScorerWorker = createWorker<
     }
 
     // Address confidence
-    if (
-      company.latitude &&
-      company.longitude &&
-      company.geocodingAccuracy === "rooftop"
-    ) {
+    if (company.latitude && company.longitude && company.geocodingAccuracy === "rooftop") {
       fieldConfidences.adresa = 1.0;
     } else if (company.localitate && company.judet) {
       fieldConfidences.adresa = 0.7;
@@ -1003,10 +942,7 @@ export const aiConfidenceScorerWorker = createWorker<
 ```typescript
 // apps/workers/src/silver/ai-fallback-enrichment.worker.ts
 
-export const aiFallbackEnrichmentWorker = createWorker<
-  AiFallbackJobData,
-  AiFallbackResult
->({
+export const aiFallbackEnrichmentWorker = createWorker<AiFallbackJobData, AiFallbackResult>({
   queueName: "silver:enrich:ai-fallback",
   concurrency: 3,
   limiter: { max: 30, duration: 60000 },
@@ -1074,16 +1010,12 @@ Returnează JSON:
       for (const [field, data] of Object.entries(result.found_data || {})) {
         if ((data as any).confidence >= 0.6) {
           updateData[field] = (data as any).value;
-          updateData[`${field}_source`] =
-            `ai_fallback: ${(data as any).source}`;
+          updateData[`${field}_source`] = `ai_fallback: ${(data as any).source}`;
         }
       }
 
       if (Object.keys(updateData).length > 1) {
-        await db
-          .update(silverCompanies)
-          .set(updateData)
-          .where(eq(silverCompanies.id, companyId));
+        await db.update(silverCompanies).set(updateData).where(eq(silverCompanies.id, companyId));
       }
 
       logger.info(
@@ -1122,10 +1054,7 @@ import axios from "axios";
 import { db, silverCompanies } from "@cerniq/db";
 import { eq, sql } from "drizzle-orm";
 
-export const nominatimGeocodingWorker = createWorker<
-  GeocodingJobData,
-  GeocodingResult
->({
+export const nominatimGeocodingWorker = createWorker<GeocodingJobData, GeocodingResult>({
   queueName: "silver:enrich:nominatim-geocoding",
   concurrency: 1, // Nominatim: 1 request/second
   limiter: { max: 1, duration: 1000 },
@@ -1147,39 +1076,33 @@ export const nominatimGeocodingWorker = createWorker<
     const query = searchParts.join(", ");
 
     try {
-      const response = await axios.get(
-        "https://nominatim.openstreetmap.org/search",
-        {
-          params: {
-            q: query,
-            format: "json",
-            addressdetails: 1,
-            limit: 1,
-            countrycodes: "ro",
-          },
-          headers: {
-            "User-Agent": "CerniqApp/1.0 (contact@cerniq.app)",
-          },
+      const response = await axios.get("https://nominatim.openstreetmap.org/search", {
+        params: {
+          q: query,
+          format: "json",
+          addressdetails: 1,
+          limit: 1,
+          countrycodes: "ro",
         },
-      );
+        headers: {
+          "User-Agent": "CerniqApp/1.0 (contact@cerniq.app)",
+        },
+      });
 
       if (!response.data || response.data.length === 0) {
         // Try fallback with just locality
         if (localitate) {
-          const fallbackResponse = await axios.get(
-            "https://nominatim.openstreetmap.org/search",
-            {
-              params: {
-                q: `${localitate}, ${judet}, Romania`,
-                format: "json",
-                limit: 1,
-                countrycodes: "ro",
-              },
-              headers: {
-                "User-Agent": "CerniqApp/1.0 (contact@cerniq.app)",
-              },
+          const fallbackResponse = await axios.get("https://nominatim.openstreetmap.org/search", {
+            params: {
+              q: `${localitate}, ${judet}, Romania`,
+              format: "json",
+              limit: 1,
+              countrycodes: "ro",
             },
-          );
+            headers: {
+              "User-Agent": "CerniqApp/1.0 (contact@cerniq.app)",
+            },
+          });
 
           if (fallbackResponse.data?.length > 0) {
             const result = fallbackResponse.data[0];
@@ -1226,11 +1149,7 @@ export const nominatimGeocodingWorker = createWorker<
   },
 });
 
-async function updateGeocodingResult(
-  companyId: string,
-  result: any,
-  accuracy: string,
-) {
+async function updateGeocodingResult(companyId: string, result: any, accuracy: string) {
   const lat = parseFloat(result.lat);
   const lon = parseFloat(result.lon);
 
@@ -1245,8 +1164,7 @@ async function updateGeocodingResult(
       geocodingSource: "nominatim",
       geocodedAt: new Date(),
       // Extract address components
-      localitateGeocoded:
-        result.address?.city || result.address?.town || result.address?.village,
+      localitateGeocoded: result.address?.city || result.address?.town || result.address?.village,
       judetGeocoded: result.address?.county,
       codPostalGeocoded: result.address?.postcode,
       enrichmentSourcesCompleted: sql`
@@ -1277,10 +1195,7 @@ function determineAccuracy(result: any): string {
 ```typescript
 // apps/workers/src/silver/postgis-zones.worker.ts
 
-export const postgisZonesWorker = createWorker<
-  PostgisZonesJobData,
-  PostgisZonesResult
->({
+export const postgisZonesWorker = createWorker<PostgisZonesJobData, PostgisZonesResult>({
   queueName: "silver:enrich:postgis-zones",
   concurrency: 10,
   attempts: 2,
@@ -1368,10 +1283,7 @@ export const postgisZonesWorker = createWorker<
         updateData.isRuralArea = cityResult[0].distance_km > 30;
       }
 
-      await db
-        .update(silverCompanies)
-        .set(updateData)
-        .where(eq(silverCompanies.id, companyId));
+      await db.update(silverCompanies).set(updateData).where(eq(silverCompanies.id, companyId));
 
       logger.info({ companyId, updateData }, "PostGIS zones calculated");
 
@@ -1389,10 +1301,7 @@ export const postgisZonesWorker = createWorker<
 ```typescript
 // apps/workers/src/silver/proximity-calculator.worker.ts
 
-export const proximityCalculatorWorker = createWorker<
-  ProximityJobData,
-  ProximityResult
->({
+export const proximityCalculatorWorker = createWorker<ProximityJobData, ProximityResult>({
   queueName: "silver:enrich:proximity-calculator",
   concurrency: 10,
   attempts: 2,
@@ -1555,30 +1464,23 @@ export const apiaDataWorker = createWorker<ApiaDataJobData, ApiaDataResult>({
         result.subsidies = Array.from(subsidyRows).map((row) => ({
           year: row.querySelector(".year")?.textContent,
           amount: parseFloat(
-            row.querySelector(".amount")?.textContent?.replace(/[^\d.]/g, "") ||
-              "0",
+            row.querySelector(".amount")?.textContent?.replace(/[^\d.]/g, "") || "0",
           ),
           type: row.querySelector(".type")?.textContent,
         }));
 
         // Extract farm data
         result.suprafataTotala = parseFloat(
-          document
-            .querySelector(".suprafata-totala")
-            ?.textContent?.replace(/[^\d.]/g, "") || "0",
+          document.querySelector(".suprafata-totala")?.textContent?.replace(/[^\d.]/g, "") || "0",
         );
-        result.categorieExploatatie =
-          document.querySelector(".categorie")?.textContent;
+        result.categorieExploatatie = document.querySelector(".categorie")?.textContent;
 
         return result;
       });
 
       // Calculate total subsidies
       const totalSubsidies =
-        data.subsidies?.reduce(
-          (sum: number, s: any) => sum + (s.amount || 0),
-          0,
-        ) || 0;
+        data.subsidies?.reduce((sum: number, s: any) => sum + (s.amount || 0), 0) || 0;
       const lastSubsidyYear = Math.max(
         ...(data.subsidies?.map((s: any) => parseInt(s.year) || 0) || [0]),
       );
@@ -1642,10 +1544,7 @@ export const ouaiMembershipWorker = createWorker<OuaiJobData, OuaiResult>({
 
     // Check OUAI membership
     const membership = await db.query.ouaiMemberships.findFirst({
-      where: and(
-        eq(ouaiMemberships.cui, cui),
-        eq(ouaiMemberships.ouaiId, ouaiZoneId),
-      ),
+      where: and(eq(ouaiMemberships.cui, cui), eq(ouaiMemberships.ouaiId, ouaiZoneId)),
     });
 
     if (membership) {
@@ -1670,10 +1569,7 @@ export const ouaiMembershipWorker = createWorker<OuaiJobData, OuaiResult>({
 });
 
 // apps/workers/src/silver/cooperative-membership.worker.ts
-export const cooperativeMembershipWorker = createWorker<
-  CoopJobData,
-  CoopResult
->({
+export const cooperativeMembershipWorker = createWorker<CoopJobData, CoopResult>({
   queueName: "silver:enrich:cooperative-membership",
   concurrency: 5,
   attempts: 2,
@@ -1700,10 +1596,7 @@ export const cooperativeMembershipWorker = createWorker<
         })
         .where(eq(silverCompanies.id, companyId));
 
-      logger.info(
-        { cui, coops: memberships.length },
-        "Cooperative memberships found",
-      );
+      logger.info({ cui, coops: memberships.length }, "Cooperative memberships found");
     }
 
     return {
@@ -1715,10 +1608,7 @@ export const cooperativeMembershipWorker = createWorker<
 });
 
 // apps/workers/src/silver/culturi-classifier.worker.ts
-export const culturiClassifierWorker = createWorker<
-  CulturiJobData,
-  CulturiResult
->({
+export const culturiClassifierWorker = createWorker<CulturiJobData, CulturiResult>({
   queueName: "silver:enrich:culturi-classifier",
   concurrency: 10,
   attempts: 2,
@@ -1767,11 +1657,7 @@ export const culturiClassifierWorker = createWorker<
 
     let primaryCategory = "DIVERSE";
     for (const [cat, keywords] of Object.entries(categories)) {
-      if (
-        classifiedCrops.some((c) =>
-          keywords.some((k) => c.toLowerCase().includes(k)),
-        )
-      ) {
+      if (classifiedCrops.some((c) => keywords.some((k) => c.toLowerCase().includes(k)))) {
         primaryCategory = cat;
         break;
       }
@@ -1786,10 +1672,7 @@ export const culturiClassifierWorker = createWorker<
       })
       .where(eq(silverCompanies.id, companyId));
 
-    logger.info(
-      { companyId, crops: classifiedCrops.length },
-      "Crops classified",
-    );
+    logger.info({ companyId, crops: classifiedCrops.length }, "Crops classified");
 
     return {
       status: "success",
@@ -1807,10 +1690,7 @@ function determineTipProducator(culturi: string[]): string {
 }
 
 // apps/workers/src/silver/animale-classifier.worker.ts
-export const animaleClassifierWorker = createWorker<
-  AnimaleJobData,
-  AnimaleResult
->({
+export const animaleClassifierWorker = createWorker<AnimaleJobData, AnimaleResult>({
   queueName: "silver:enrich:animale-classifier",
   concurrency: 10,
   attempts: 2,

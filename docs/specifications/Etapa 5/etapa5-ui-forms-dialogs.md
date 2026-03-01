@@ -161,9 +161,7 @@ const churnInterventionSchema = z
     scheduledAt: z.date().optional(),
     assignedTo: z.string().uuid().optional(),
     notes: z.string().max(2000),
-    offerType: z
-      .enum(["DISCOUNT", "CREDIT", "FREE_SHIPPING", "GIFT"])
-      .optional(),
+    offerType: z.enum(["DISCOUNT", "CREDIT", "FREE_SHIPPING", "GIFT"]).optional(),
     offerValue: z.number().positive().max(50).optional(), // Max 50%
     offerValidDays: z.number().int().min(7).max(90).default(30),
   })
@@ -371,13 +369,7 @@ interface HITLResolutionFormData {
 const hitlResolutionSchema = z
   .object({
     taskId: z.string().uuid(),
-    decision: z.enum([
-      "APPROVED",
-      "REJECTED",
-      "MODIFIED",
-      "ESCALATED",
-      "DEFERRED",
-    ]),
+    decision: z.enum(["APPROVED", "REJECTED", "MODIFIED", "ESCALATED", "DEFERRED"]),
     notes: z.string().min(10).max(2000),
     actionTaken: z.string().max(500).optional(),
     scheduledFollowup: z.date().optional(),

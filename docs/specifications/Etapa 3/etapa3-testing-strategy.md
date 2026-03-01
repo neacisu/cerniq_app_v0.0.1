@@ -501,11 +501,7 @@ describe("AIAgentCore", () => {
 ```typescript
 // tests/unit/workers/negotiation/fsm.test.ts
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import {
-  NegotiationFSM,
-  NegotiationState,
-  NegotiationEvent,
-} from "@/workers/negotiation/fsm";
+import { NegotiationFSM, NegotiationState, NegotiationEvent } from "@/workers/negotiation/fsm";
 import { createMockNegotiation } from "@test/factories";
 import { mockDb } from "@test/setup";
 
@@ -743,11 +739,7 @@ describe("NegotiationFSM", () => {
 // tests/unit/workers/pricing/engine.test.ts
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { PricingEngine } from "@/workers/pricing/engine";
-import {
-  createMockProduct,
-  createMockCustomer,
-  createMockOffer,
-} from "@test/factories";
+import { createMockProduct, createMockCustomer, createMockOffer } from "@test/factories";
 import { mockDb } from "@test/setup";
 
 describe("PricingEngine", () => {
@@ -1030,8 +1022,7 @@ describe("AntiHallucinationGuardrail", () => {
         },
       });
 
-      const response =
-        "Semințele Pioneer P9911 costă 850 RON și au un randament de 12-14 tone/ha.";
+      const response = "Semințele Pioneer P9911 costă 850 RON și au un randament de 12-14 tone/ha.";
 
       const result = await guardrail.validateProductClaims(response);
 
@@ -1083,8 +1074,7 @@ describe("AntiHallucinationGuardrail", () => {
         stock: 50, // Only 50 in stock
       });
 
-      const response =
-        "Avem peste 500 unități în stoc, suficient pentru orice comandă.";
+      const response = "Avem peste 500 unități în stoc, suficient pentru orice comandă.";
 
       const result = await guardrail.validateProductClaims(response);
 
@@ -1148,8 +1138,7 @@ describe("AntiHallucinationGuardrail", () => {
         maxAutoDiscount: 15,
       });
 
-      const response =
-        "Putem aplica un discount de 10% pentru această comandă.";
+      const response = "Putem aplica un discount de 10% pentru această comandă.";
 
       const result = await guardrail.validatePriceClaims(response, {
         customerId: "cust-123",
@@ -1216,18 +1205,14 @@ describe("AntiHallucinationGuardrail", () => {
         },
       ];
 
-      const corrected = await guardrail.correctResponse(
-        originalResponse,
-        corrections,
-      );
+      const corrected = await guardrail.correctResponse(originalResponse, corrections);
 
       expect(corrected).toContain("850 RON");
       expect(corrected).not.toContain("650 RON");
     });
 
     it("should remove fabricated product claims", async () => {
-      const originalResponse =
-        "Vă recomand produsul FakeProduct XL care este excelent.";
+      const originalResponse = "Vă recomand produsul FakeProduct XL care este excelent.";
       const corrections = [
         {
           type: "PRODUCT_NOT_FOUND",
@@ -1236,10 +1221,7 @@ describe("AntiHallucinationGuardrail", () => {
         },
       ];
 
-      const corrected = await guardrail.correctResponse(
-        originalResponse,
-        corrections,
-      );
+      const corrected = await guardrail.correctResponse(originalResponse, corrections);
 
       expect(corrected).not.toContain("FakeProduct XL");
       expect(corrected).toMatch(/nu am găsit|verificați|contactați/i);
@@ -1254,10 +1236,7 @@ describe("AntiHallucinationGuardrail", () => {
         { type: "DELIVERY_PROMISE_VIOLATION", severity: "MEDIUM" },
       ];
 
-      const result = await guardrail.correctResponse(
-        originalResponse,
-        corrections,
-      );
+      const result = await guardrail.correctResponse(originalResponse, corrections);
 
       expect(result.requiresHITL).toBe(true);
       expect(result.hitlReason).toBe("EXCESSIVE_CORRECTIONS");
@@ -1272,11 +1251,7 @@ describe("AntiHallucinationGuardrail", () => {
 // tests/unit/workers/document-generation/templates.test.ts
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { DocumentGenerator } from "@/workers/document-generation/generator";
-import {
-  createMockOffer,
-  createMockOrder,
-  createMockCustomer,
-} from "@test/factories";
+import { createMockOffer, createMockOrder, createMockCustomer } from "@test/factories";
 
 describe("DocumentGenerator", () => {
   let generator: DocumentGenerator;
@@ -1362,9 +1337,7 @@ describe("DocumentGenerator", () => {
     it("should generate e-factura compliant invoice", async () => {
       const order = createMockOrder({
         invoiceNumber: "FC-2026-001234",
-        items: [
-          { product: "Semințe", quantity: 100, unitPrice: 50, vatRate: 19 },
-        ],
+        items: [{ product: "Semințe", quantity: 100, unitPrice: 50, vatRate: 19 }],
       });
 
       const result = await generator.generateInvoice(order, {
@@ -1374,9 +1347,7 @@ describe("DocumentGenerator", () => {
 
       expect(result.pdf).toBeDefined();
       expect(result.xml).toBeDefined();
-      expect(result.xml).toContain(
-        "urn:oasis:names:specification:ubl:schema:xsd:Invoice-2",
-      );
+      expect(result.xml).toContain("urn:oasis:names:specification:ubl:schema:xsd:Invoice-2");
     });
 
     it("should validate e-factura XML schema", async () => {

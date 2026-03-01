@@ -115,6 +115,58 @@ http:
               - "*.cerniq.app"
               - "*.staging.cerniq.app"
 
+    # ==========================================================================
+    # DEV Environment — dev.cerniq.app (hot-reload on 10.0.1.6:64xxx)
+    # ==========================================================================
+    # Direct routing from orchestrator Traefik to dev machine (no HAProxy).
+    # Dev containers: volume-mounted source + Vite HMR / tsx watch.
+    # Shared services: OpenBao, Redis, PostgreSQL, Observability from orchestrator.
+    # ==========================================================================
+    cerniq-dev-web:
+      rule: "Host(`dev.cerniq.app`)"
+      service: cerniq-dev-web-svc
+      entryPoints:
+        - websecure
+      middlewares:
+        - chain-web
+      tls:
+        certResolver: cloudflare
+        domains:
+          - main: "cerniq.app"
+            sans:
+              - "*.cerniq.app"
+              - "*.dev.cerniq.app"
+
+    cerniq-dev-api:
+      rule: "Host(`api.dev.cerniq.app`)"
+      service: cerniq-dev-api-svc
+      entryPoints:
+        - websecure
+      middlewares:
+        - chain-api
+      tls:
+        certResolver: cloudflare
+        domains:
+          - main: "cerniq.app"
+            sans:
+              - "*.cerniq.app"
+              - "*.dev.cerniq.app"
+
+    cerniq-dev-admin:
+      rule: "Host(`admin.dev.cerniq.app`)"
+      service: cerniq-dev-admin-svc
+      entryPoints:
+        - websecure
+      middlewares:
+        - chain-auth
+      tls:
+        certResolver: cloudflare
+        domains:
+          - main: "cerniq.app"
+            sans:
+              - "*.cerniq.app"
+              - "*.dev.cerniq.app"
+
     # Cerniq-only OTLP (HTTP) entrypoint.
     # Applications on CT109/CT110 send OTLP directly (no local collector relay):
     #   https://otel-cerniq.neanelu.ro/v1/{traces,metrics,logs}
@@ -135,7 +187,7 @@ http:
           # Route orchestrator -> CT109 via hz.247 L4 gateway (fixes TCP handshake issues).
           - url: "http://10.0.1.10:29000"
         healthCheck:
-          path: "/health"
+          path: "/health/live"
           interval: "30s"
           timeout: "5s"
 
@@ -144,7 +196,7 @@ http:
         servers:
           - url: "http://10.0.1.10:29010"
         healthCheck:
-          path: "/health"
+          path: "/health/live"
           interval: "30s"
           timeout: "5s"
 
@@ -153,7 +205,7 @@ http:
         servers:
           - url: "http://10.0.1.10:29012"
         healthCheck:
-          path: "/health"
+          path: "/health/live"
           interval: "30s"
           timeout: "5s"
 
@@ -163,7 +215,7 @@ http:
           # Route orchestrator -> CT110 via hz.247 L4 gateway (fixes TCP handshake issues).
           - url: "http://10.0.1.10:19000"
         healthCheck:
-          path: "/health"
+          path: "/health/live"
           interval: "30s"
           timeout: "5s"
 
@@ -172,7 +224,7 @@ http:
         servers:
           - url: "http://10.0.1.10:19010"
         healthCheck:
-          path: "/health"
+          path: "/health/live"
           interval: "30s"
           timeout: "5s"
 
@@ -181,9 +233,30 @@ http:
         servers:
           - url: "http://10.0.1.10:19012"
         healthCheck:
-          path: "/health"
+          path: "/health/live"
           interval: "30s"
           timeout: "5s"
+
+    # ==========================================================================
+    # DEV Services — Direct to dev machine (10.0.1.6:64xxx)
+    # ==========================================================================
+    # Dev routes bypass HAProxy (no L4 gateway needed for development).
+    # Orchestrator Traefik reaches dev machine directly via VLAN.
+    # ==========================================================================
+    cerniq-dev-web-svc:
+      loadBalancer:
+        servers:
+          - url: "http://10.0.1.6:64000"
+
+    cerniq-dev-api-svc:
+      loadBalancer:
+        servers:
+          - url: "http://10.0.1.6:64010"
+
+    cerniq-dev-admin-svc:
+      loadBalancer:
+        servers:
+          - url: "http://10.0.1.6:64012"
 
     # OTLP collector intake (central, on orchestrator loopback).
     # Traefik on orchestrator uses host networking, so 127.0.0.1 is stable.

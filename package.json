@@ -5,16 +5,20 @@
   "type": "module",
   "description": "Cerniq.app - B2B Sales Automation Platform",
   "scripts": {
-    "lint": "eslint . --ext .ts,.tsx",
-    "lint:fix": "eslint . --ext .ts,.tsx --fix",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "lint:fix": "eslint . --fix",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test && vitest run --config vitest.config.ts",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
-    "test:ci": "vitest run --reporter=json --reporter=verbose --outputFile=test-results/results.json",
-    "validate": "pnpm lint && pnpm typecheck && pnpm test",
-    "build": "echo 'Build placeholder - F0.6 pending'",
+    "test:coverage": "turbo run test && vitest run --config vitest.config.ts",
+    "test:ci": "turbo run test && vitest run --config vitest.config.ts",
+    "test:e2e": "vitest run --config vitest.config.ts",
+    "test:load:etapa1": "k6 run ./tests/performance/etapa1-throughput.k6.js",
+    "validate": "turbo run lint typecheck test",
     "prepare": "husky",
+    "approve-builds": "CI=1 pnpm rebuild",
     "smoke:bullmq-prefix": "node ./infra/scripts/bullmq-prefix-smoketest.mjs"
   },
   "lint-staged": {
@@ -25,32 +29,61 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@faker-js/faker": "^10.3.0",
+    "@playwright/test": "^1.58.2",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^24.10.13",
-    "@typescript-eslint/eslint-plugin": "^8.56.0",
-    "@typescript-eslint/parser": "^8.56.0",
+    "@typescript-eslint/eslint-plugin": "^8.56.1",
+    "@typescript-eslint/parser": "^8.56.1",
     "@vitest/coverage-v8": "^4.0.18",
-    "eslint": "^10.0.1",
+    "bullmq": "^5.70.1",
+    "eslint": "^10.0.2",
     "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
     "husky": "^9.1.7",
-    "lint-staged": "^16.2.7",
+    "ioredis": "^5.10.0",
+    "jsdom": "^28.1.0",
+    "lint-staged": "^16.3.1",
+    "msw": "^2.12.10",
     "prettier": "^3.8.1",
+    "turbo": "^2.8.12",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.56.0",
+    "typescript-eslint": "^8.56.1",
     "vitest": "^4.0.18",
-    "yaml": "^2.8.2"
+    "yaml": "^2.8.2",
+    "zod": "^4.3.6"
   },
   "engines": {
     "node": ">=24",
     "pnpm": ">=10"
   },
-  "packageManager": "pnpm@10.29.3",
+  "packageManager": "pnpm@10.30.3",
   "pnpm": {
     "overrides": {
-      "minimatch": "^10.2.2"
-    }
-  },
-  "dependencies": {
-    "bullmq": "^5.69.2",
-    "ioredis": "^5.9.3"
+      "minimatch": "^10.2.3",
+      "rollup": "^4.59.0",
+      "esbuild": ">=0.25.0"
+    },
+    "peerDependencyRules": {
+      "allowedVersions": {
+        "eslint-plugin-react-hooks>eslint": "10"
+      }
+    },
+    "allowedDeprecatedVersions": {
+      "@esbuild-kit/core-utils": "3",
+      "@esbuild-kit/esm-loader": "2",
+      "glob": "*",
+      "fstream": "1",
+      "inflight": "1",
+      "lodash.isequal": "4",
+      "rimraf": "2"
+    },
+    "onlyBuiltDependencies": [
+      "msw",
+      "protobufjs"
+    ]
   }
 }

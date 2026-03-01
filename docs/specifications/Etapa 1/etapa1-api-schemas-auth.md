@@ -48,9 +48,7 @@ export const cuiSchema = z
 export const phoneRoSchema = z
   .string()
   .transform((val) => val.replace(/[\s-]/g, ""))
-  .pipe(
-    z.string().regex(/^(\+40|0)[2-9]\d{8}$/, "Invalid Romanian phone number"),
-  );
+  .pipe(z.string().regex(/^(\+40|0)[2-9]\d{8}$/, "Invalid Romanian phone number"));
 
 // Email
 export const emailSchema = z
@@ -88,12 +86,7 @@ export const apiResponseSchema = <T extends z.ZodTypeAny>(dataSchema: T) =>
 // packages/validation/src/schemas/bronze.ts
 
 import { z } from "zod";
-import {
-  cuiSchema,
-  emailSchema,
-  phoneRoSchema,
-  paginationSchema,
-} from "./common";
+import { cuiSchema, emailSchema, phoneRoSchema, paginationSchema } from "./common";
 
 // Create bronze contact
 export const createBronzeContactSchema = z.object({
@@ -108,27 +101,15 @@ export const createBronzeContactSchema = z.object({
   rawPayload: z.record(z.any()).optional(),
 });
 
-export type CreateBronzeContactInput = z.infer<
-  typeof createBronzeContactSchema
->;
+export type CreateBronzeContactInput = z.infer<typeof createBronzeContactSchema>;
 
 // List bronze contacts query
 export const listBronzeContactsSchema = paginationSchema.extend({
   processingStatus: z
-    .enum([
-      "pending",
-      "processing",
-      "validated",
-      "promoted",
-      "failed",
-      "duplicate",
-      "invalid",
-    ])
+    .enum(["pending", "processing", "validated", "promoted", "failed", "duplicate", "invalid"])
     .optional(),
   batchId: z.string().uuid().optional(),
-  sourceType: z
-    .enum(["csv", "xlsx", "xls", "api", "webhook", "manual"])
-    .optional(),
+  sourceType: z.enum(["csv", "xlsx", "xls", "api", "webhook", "manual"]).optional(),
   search: z.string().max(100).optional(),
   createdAfter: z.coerce.date().optional(),
   createdBefore: z.coerce.date().optional(),
@@ -163,26 +144,14 @@ export type ImportConfigInput = z.infer<typeof importConfigSchema>;
 // packages/validation/src/schemas/silver.ts
 
 import { z } from "zod";
-import {
-  cuiSchema,
-  emailSchema,
-  phoneRoSchema,
-  paginationSchema,
-  uuidSchema,
-} from "./common";
+import { cuiSchema, emailSchema, phoneRoSchema, paginationSchema, uuidSchema } from "./common";
 
 // Silver company filter
 export const listSilverCompaniesSchema = paginationSchema.extend({
-  enrichmentStatus: z
-    .enum(["pending", "in_progress", "complete", "partial", "failed"])
-    .optional(),
-  promotionStatus: z
-    .enum(["eligible", "review_required", "blocked", "promoted"])
-    .optional(),
+  enrichmentStatus: z.enum(["pending", "in_progress", "complete", "partial", "failed"]).optional(),
+  promotionStatus: z.enum(["eligible", "review_required", "blocked", "promoted"]).optional(),
   isAgricultural: z.coerce.boolean().optional(),
-  agriculturalCategory: z
-    .enum(["CULTIVARE", "SILVICULTURA", "PESCUIT"])
-    .optional(),
+  agriculturalCategory: z.enum(["CULTIVARE", "SILVICULTURA", "PESCUIT"]).optional(),
   judet: z.string().max(50).optional(),
   localitate: z.string().max(100).optional(),
   minQualityScore: z.coerce.number().min(0).max(100).optional(),
@@ -192,9 +161,7 @@ export const listSilverCompaniesSchema = paginationSchema.extend({
   cui: cuiSchema.optional(),
 });
 
-export type ListSilverCompaniesInput = z.infer<
-  typeof listSilverCompaniesSchema
->;
+export type ListSilverCompaniesInput = z.infer<typeof listSilverCompaniesSchema>;
 
 // Update silver company (manual edit)
 export const updateSilverCompanySchema = z
@@ -217,9 +184,7 @@ export const updateSilverCompanySchema = z
     message: "At least one field must be provided",
   });
 
-export type UpdateSilverCompanyInput = z.infer<
-  typeof updateSilverCompanySchema
->;
+export type UpdateSilverCompanyInput = z.infer<typeof updateSilverCompanySchema>;
 
 // Trigger enrichment
 export const triggerEnrichmentSchema = z.object({
@@ -263,9 +228,7 @@ import { paginationSchema, uuidSchema } from "./common";
 
 // Gold company filter
 export const listGoldCompaniesSchema = paginationSchema.extend({
-  currentState: z
-    .enum(["COLD", "WARM", "HOT", "QUALIFIED", "CONVERTED", "LOST"])
-    .optional(),
+  currentState: z.enum(["COLD", "WARM", "HOT", "QUALIFIED", "CONVERTED", "LOST"]).optional(),
   assignedTo: uuidSchema.optional(),
   unassigned: z.coerce.boolean().optional(),
   minLeadScore: z.coerce.number().min(0).max(100).optional(),
@@ -297,14 +260,7 @@ export type AssignLeadInput = z.infer<typeof assignLeadSchema>;
 // Schedule next action
 export const scheduleActionSchema = z.object({
   nextActionAt: z.coerce.date(),
-  nextActionType: z.enum([
-    "call",
-    "email",
-    "meeting",
-    "follow_up",
-    "demo",
-    "proposal",
-  ]),
+  nextActionType: z.enum(["call", "email", "meeting", "follow_up", "demo", "proposal"]),
   notes: z.string().max(1000).optional(),
 });
 
@@ -322,15 +278,7 @@ import { paginationSchema, uuidSchema } from "./common";
 // List approval tasks
 export const listApprovalTasksSchema = paginationSchema.extend({
   status: z
-    .enum([
-      "pending",
-      "assigned",
-      "approved",
-      "rejected",
-      "escalated",
-      "expired",
-      "cancelled",
-    ])
+    .enum(["pending", "assigned", "approved", "rejected", "escalated", "expired", "cancelled"])
     .optional(),
   approvalType: z
     .enum([
@@ -441,15 +389,11 @@ export class JWTService {
    * Generate access token
    */
   generateAccessToken(payload: TokenPayload): string {
-    return jwt.sign(
-      { ...payload, type: "access" },
-      AUTH_CONFIG.jwt.accessTokenSecret,
-      {
-        expiresIn: AUTH_CONFIG.jwt.accessTokenExpiry,
-        issuer: AUTH_CONFIG.jwt.issuer,
-        audience: AUTH_CONFIG.jwt.audience,
-      },
-    );
+    return jwt.sign({ ...payload, type: "access" }, AUTH_CONFIG.jwt.accessTokenSecret, {
+      expiresIn: AUTH_CONFIG.jwt.accessTokenExpiry,
+      issuer: AUTH_CONFIG.jwt.issuer,
+      audience: AUTH_CONFIG.jwt.audience,
+    });
   }
 
   /**
@@ -539,11 +483,7 @@ declare global {
   }
 }
 
-export async function authMiddleware(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) {
+export async function authMiddleware(req: Request, res: Response, next: NextFunction) {
   try {
     // Get token from header
     const authHeader = req.headers.authorization;
@@ -627,11 +567,7 @@ export function requireRole(...roles: string[]) {
 /**
  * Optional auth middleware (doesn't fail if no token)
  */
-export async function optionalAuthMiddleware(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) {
+export async function optionalAuthMiddleware(req: Request, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
 
   if (authHeader?.startsWith("Bearer ")) {
@@ -736,13 +672,12 @@ router.post("/login", validateRequest(loginSchema), async (req, res) => {
   }
 
   // Generate tokens
-  const { accessToken, refreshToken, tokenFamily } =
-    jwtService.generateTokenPair({
-      userId: user.id,
-      tenantId: user.tenantId,
-      email: user.email,
-      role: user.role,
-    });
+  const { accessToken, refreshToken, tokenFamily } = jwtService.generateTokenPair({
+    userId: user.id,
+    tenantId: user.tenantId,
+    email: user.email,
+    role: user.role,
+  });
 
   // Store refresh token
   await db.insert(refreshTokens).values({
@@ -752,10 +687,7 @@ router.post("/login", validateRequest(loginSchema), async (req, res) => {
   });
 
   // Update last login
-  await db
-    .update(users)
-    .set({ lastLoginAt: new Date() })
-    .where(eq(users.id, user.id));
+  await db.update(users).set({ lastLoginAt: new Date() }).where(eq(users.id, user.id));
 
   res.json({
     success: true,
@@ -918,10 +850,7 @@ interface ValidationOptions {
   stripUnknown?: boolean;
 }
 
-export function validateRequest<T extends ZodSchema>(
-  schema: T,
-  options: ValidationOptions = {},
-) {
+export function validateRequest<T extends ZodSchema>(schema: T, options: ValidationOptions = {}) {
   const { target = "body", stripUnknown = true } = options;
 
   return async (req: Request, res: Response, next: NextFunction) => {
@@ -1025,12 +954,7 @@ export class ConflictError extends AppError {
   }
 }
 
-export function errorHandler(
-  err: Error,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) {
+export function errorHandler(err: Error, req: Request, res: Response, next: NextFunction) {
   // Log error
   logger.error({
     err,
@@ -1084,10 +1008,7 @@ export function errorHandler(
     success: false,
     error: {
       code: "INTERNAL_ERROR",
-      message:
-        process.env.NODE_ENV === "production"
-          ? "An unexpected error occurred"
-          : err.message,
+      message: process.env.NODE_ENV === "production" ? "An unexpected error occurred" : err.message,
     },
   });
 }

@@ -9,9 +9,7 @@
 ## Worker #45: audit:log:write
 
 ```typescript
-export async function auditLogWriteProcessor(
-  job: Job<AuditLogInput>,
-): Promise<{ logId: string }> {
+export async function auditLogWriteProcessor(job: Job<AuditLogInput>): Promise<{ logId: string }> {
   const {
     eventType,
     entityType,
@@ -35,9 +33,7 @@ export async function auditLogWriteProcessor(
   const prevHash = lastLog
     ? crypto
         .createHash("sha256")
-        .update(
-          `${lastLog.id}${lastLog.eventType}${lastLog.entityId}${lastLog.createdAt}`,
-        )
+        .update(`${lastLog.id}${lastLog.eventType}${lastLog.entityId}${lastLog.createdAt}`)
         .digest("hex")
     : null;
 
@@ -114,10 +110,7 @@ export async function auditComplianceCheckProcessor(
 
   // 1. Check GDPR - Data retention
   const oldData = await db.query.goldAuditLogsEtapa4.findMany({
-    where: lt(
-      goldAuditLogsEtapa4.createdAt,
-      new Date(Date.now() - 7 * 365 * 24 * 60 * 60 * 1000),
-    ),
+    where: lt(goldAuditLogsEtapa4.createdAt, new Date(Date.now() - 7 * 365 * 24 * 60 * 60 * 1000)),
   });
   if (oldData.length > 0) {
     issues.push({
@@ -131,10 +124,7 @@ export async function auditComplianceCheckProcessor(
   const pendingInvoices = await db.query.goldInvoices.findMany({
     where: and(
       isNull(goldInvoices.efacturaId),
-      lt(
-        goldInvoices.createdAt,
-        new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-      ),
+      lt(goldInvoices.createdAt, new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)),
     ),
   });
   if (pendingInvoices.length > 0) {
@@ -149,10 +139,7 @@ export async function auditComplianceCheckProcessor(
   const unscoredClients = await db.query.goldCreditProfiles.findMany({
     where: or(
       isNull(goldCreditProfiles.creditScore),
-      lt(
-        goldCreditProfiles.lastScoredAt,
-        new Date(Date.now() - 90 * 24 * 60 * 60 * 1000),
-      ),
+      lt(goldCreditProfiles.lastScoredAt, new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)),
     ),
   });
   if (unscoredClients.length > 0) {
@@ -224,10 +211,7 @@ export async function auditDataAnonymizeProcessor(
       newValues: sql`'{}'::jsonb`,
     })
     .where(
-      and(
-        lt(goldAuditLogsEtapa4.createdAt, sevenYearsAgo),
-        sql`NOT (metadata ? 'anonymized')`,
-      ),
+      and(lt(goldAuditLogsEtapa4.createdAt, sevenYearsAgo), sql`NOT (metadata ? 'anonymized')`),
     )
     .returning();
   anonymizedCount += oldLogs.length;
@@ -238,9 +222,7 @@ export async function auditDataAnonymizeProcessor(
   const month = String(tenYearsAgo.getMonth() + 1).padStart(2, "0");
 
   try {
-    await db.execute(
-      sql.raw(`DROP TABLE IF EXISTS gold_audit_logs_etapa4_${year}_${month}`),
-    );
+    await db.execute(sql.raw(`DROP TABLE IF EXISTS gold_audit_logs_etapa4_${year}_${month}`));
   } catch (e) {
     // Partition may not exist
   }

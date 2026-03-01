@@ -60,6 +60,11 @@ concurrency:
   group: deploy-${{ github.ref }}
   cancel-in-progress: false
 
+permissions:
+  contents: write
+  packages: write
+  actions: write
+
 env:
   REGISTRY: ghcr.io
   IMAGE_PREFIX: ${{ github.repository_owner }}/cerniq
@@ -71,8 +76,6 @@ jobs:
   setup:
     name: 🔧 Setup Deployment
     runs-on: self-hosted
-    permissions:
-      contents: write
     outputs:
       environment: ${{ steps.determine.outputs.environment }}
       version: ${{ steps.determine.outputs.version }}
@@ -124,24 +127,31 @@ jobs:
     runs-on: self-hosted
     needs: setup
     if: inputs.rollback != true
-    permissions:
-      contents: read
-      packages: write
 
     strategy:
+      fail-fast: true
       matrix:
         app:
           - name: api
-            context: ./apps/api
+            dockerfile: ./apps/api/Dockerfile
+            context: .
           - name: web
-            context: ./apps/web
+            dockerfile: ./apps/web/Dockerfile
+            context: .
           - name: web-admin
-            context: ./apps/web-admin
+            dockerfile: ./apps/web-admin/Dockerfile
+            context: .
+          - name: monitoring-api
+            dockerfile: ./apps/monitoring-api/Dockerfile
+            context: .
           - name: worker-enrichment
-            context: ./workers/enrichment
+            dockerfile: ./workers/enrichment/Dockerfile
+            context: .
           - name: worker-outreach
+            dockerfile: ./workers/outreach/Dockerfile
             context: ./workers/outreach
           - name: worker-ai
+            dockerfile: ./workers/ai/Dockerfile
             context: ./workers/ai
 
     steps:
@@ -173,6 +183,7 @@ jobs:
         uses: docker/build-push-action@v6.19.2
         with:
           context: ${{ matrix.app.context }}
+          file: ${{ matrix.app.dockerfile }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -182,15 +193,30 @@ jobs:
             VERSION=${{ needs.setup.outputs.version }}
             BUILD_SHA=${{ needs.setup.outputs.sha }}
 
-      - name: 🔒 Scan image for vulnerabilities
-        uses: aquasecurity/trivy-action@0.34.0
+      - name: 🔒 Setup Trivy
+        uses: aquasecurity/setup-trivy@v0.2.2
         with:
-          image-ref: "${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.app.name }}:${{ needs.setup.outputs.version }}"
-          format: "table"
-          exit-code: "1"
-          severity: "CRITICAL,HIGH"
-          ignore-unfixed: true
-          trivyignores: ".trivyignore"
+          version: v0.69.1
+          cache: true
+
+      - name: 🔒 Scan image for vulnerabilities
+        run: |
+          trivy image \
+            "${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.app.name }}:${{ needs.setup.outputs.version }}" \
+            --scanners vuln \
+            --pkg-types library \
+            --severity CRITICAL,HIGH \
+            --exit-code 1 \
+            --ignore-unfixed \
+            --skip-dirs usr/local/lib/node_modules/npm/node_modules \
+            --ignorefile .trivyignore \
+            --format table
+
+      - name: ❌ Cancel workflow on failure
+        if: failure()
+        run: gh run cancel ${{ github.run_id }}
+        env:
+          GH_TOKEN: ${{ github.token }}
 
   # ===========================================================================
   # JOB 3: Deploy to Staging
@@ -243,7 +269,7 @@ jobs:
 
           echo "📁 Creating COMPLETE server directory structure..."
           $SSH_CMD << 'ENDSSH'
-            mkdir -p /opt/cerniq/{config/{openbao/{policies,templates},fail2ban,cron,logrotate,docker},scripts,secrets,backups}
+            mkdir -p /opt/cerniq/{config/{openbao/{policies,templates},fail2ban,cron,logrotate,docker,sudoers},scripts,secrets,backups}
           ENDSSH
 
           echo "📄 Syncing docker-compose files..."
@@ -261,6 +287,7 @@ jobs:
           $SCP_CMD infra/config/cron/cerniq-backup ${HOST}:/opt/cerniq/config/cron/
           $SCP_CMD infra/config/logrotate/cerniq-backup ${HOST}:/opt/cerniq/config/logrotate/
           $SCP_CMD infra/config/docker/daemon.json ${HOST}:/opt/cerniq/config/docker/ 2>/dev/null || true
+          $SCP_CMD infra/config/sudoers/deploy ${HOST}:/opt/cerniq/config/sudoers/ 2>/dev/null || true
 
           echo "📄 Syncing ALL scripts..."
           $SCP_CMD infra/scripts/*.sh ${HOST}:/opt/cerniq/scripts/
@@ -284,7 +311,48 @@ jobs:
           echo "✅ Traefik file provider will auto-reload (no restart needed)"
 
       # =========================================================================
-      # STEP 2: Save current version for rollback
+      # STEP 2: Rotate AppRole secret_ids (dynamic credentials)
+      # =========================================================================
+      - name: 🔄 Rotate OpenBao AppRole credentials
+        env:
+          OPENBAO_ADDR: ${{ secrets.OPENBAO_ADDR }}
+          OPENBAO_CICD_ROLE_ID: ${{ secrets.OPENBAO_CICD_ROLE_ID }}
+          OPENBAO_CICD_SECRET_ID: ${{ secrets.OPENBAO_CICD_SECRET_ID }}
+        run: |
+          set -euo pipefail
+          SSH_CMD="ssh -i ~/.ssh/deploy_key deploy@${{ secrets.STAGING_HOST }}"
+
+          echo "🔐 Authenticating with CICD AppRole to generate fresh service credentials..."
+
+          BAO_TOKEN=$(curl -sS --fail --max-time 10 \
+            -X POST "${OPENBAO_ADDR}/v1/auth/approle/login" \
+            -d "{\"role_id\":\"${OPENBAO_CICD_ROLE_ID}\",\"secret_id\":\"${OPENBAO_CICD_SECRET_ID}\"}" \
+            | jq -r '.auth.client_token')
+
+          if [ -z "$BAO_TOKEN" ] || [ "$BAO_TOKEN" = "null" ]; then
+            echo "❌ CICD AppRole authentication failed"
+            exit 1
+          fi
+          echo "✅ CICD authenticated"
+
+          $SSH_CMD "mkdir -p /opt/cerniq/secrets && chmod 700 /opt/cerniq/secrets"
+
+          for ROLE in cerniq-api cerniq-workers cerniq-infra; do
+            SHORT=$(echo "$ROLE" | sed 's/cerniq-//')
+            ROLE_ID=$(curl -sS --fail -H "X-Vault-Token: $BAO_TOKEN" \
+              "${OPENBAO_ADDR}/v1/auth/approle/role/${ROLE}/role-id" | jq -r '.data.role_id')
+            SECRET_ID=$(curl -sS --fail -X POST -H "X-Vault-Token: $BAO_TOKEN" \
+              "${OPENBAO_ADDR}/v1/auth/approle/role/${ROLE}/secret-id" | jq -r '.data.secret_id')
+
+            echo -n "$ROLE_ID" | $SSH_CMD "cat > /opt/cerniq/secrets/${SHORT}_role_id && chmod 600 /opt/cerniq/secrets/${SHORT}_role_id"
+            echo -n "$SECRET_ID" | $SSH_CMD "cat > /opt/cerniq/secrets/${SHORT}_secret_id && chmod 600 /opt/cerniq/secrets/${SHORT}_secret_id"
+            echo "  ✅ ${ROLE}: credentials rotated"
+          done
+
+          echo "✅ All AppRole credentials rotated on staging"
+
+      # =========================================================================
+      # STEP 3: Save current version for rollback
       # =========================================================================
       - name: 💾 Save current version for rollback
         continue-on-error: true
@@ -292,8 +360,6 @@ jobs:
           ssh -i ~/.ssh/deploy_key deploy@${{ secrets.STAGING_HOST }} << 'ENDSSH'
             cd /opt/cerniq
             
-            # Prefer a dedicated marker file; docker ps parsing is unreliable when
-            # the app stack is not deployed yet (infra-only deployments).
             if [ -f /opt/cerniq/.current_deploy ]; then
               cp -f /opt/cerniq/.current_deploy /opt/cerniq/.previous_deploy
               echo "💾 Saved previous version: $(cat /opt/cerniq/.previous_deploy 2>/dev/null || echo 'none')"
@@ -303,76 +369,131 @@ jobs:
           ENDSSH
 
       # =========================================================================
-      # STEP 3: Deploy Docker services
+      # STEP 4: Deploy Docker services
       # =========================================================================
+      - name: 🔐 Login to GHCR on staging
+        run: |
+          echo '${{ secrets.GITHUB_TOKEN }}' | ssh -i ~/.ssh/deploy_key deploy@${{ secrets.STAGING_HOST }} \
+            'docker login ghcr.io -u ${{ github.actor }} --password-stdin'
+
+      - name: 📝 Set deployment environment
+        env:
+          OPENBAO_ADDR: ${{ secrets.OPENBAO_ADDR }}
+        run: |
+          ssh -i ~/.ssh/deploy_key deploy@${{ secrets.STAGING_HOST }} \
+            "printf '%s\n' 'REGISTRY=ghcr.io' 'IMAGE_OWNER=${{ github.repository_owner }}' 'CERNIQ_VERSION=${{ needs.setup.outputs.version }}' 'CERNIQ_ENV=staging' 'OPENBAO_ADDR=${OPENBAO_ADDR}' > /opt/cerniq/.env"
+
       - name: 🚀 Deploy Docker services
         run: |
           ssh -i ~/.ssh/deploy_key deploy@${{ secrets.STAGING_HOST }} << 'ENDSSH'
+            set -euo pipefail
             cd /opt/cerniq
-            
-            # Ensure Docker networks exist
+
+            for c in cerniq-placeholder-web cerniq-placeholder-api cerniq-placeholder-admin; do
+              docker rm -f "$c" 2>/dev/null || true
+            done
+
             docker network create --driver bridge --subnet=172.29.10.0/24 cerniq_public 2>/dev/null || true
             docker network create --driver bridge --subnet=172.29.20.0/24 cerniq_backend 2>/dev/null || true
             docker network create --driver bridge --subnet=172.29.30.0/24 cerniq_data 2>/dev/null || true
-            
-            # Pull and deploy with production overlay
-            echo "🐳 Pulling images..."
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml pull || true
-            
-            echo "🚀 Starting services..."
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --force-recreate --remove-orphans
-            
-            echo "⏳ Waiting for services to start..."
-            sleep 15
-            
-            # Verify core services
-            echo "📊 Service status:"
-            docker ps --format 'table {{.Names}}\t{{.Status}}' | grep cerniq || true
 
-            # Persist deployed version marker for safe future rollbacks.
-            echo '${{ needs.setup.outputs.version }}' > /opt/cerniq/.current_deploy
-          ENDSSH
-
-      # =========================================================================
-      # STEP 4: Initialize OpenBao (if needed)
-      # =========================================================================
-      - name: 🔐 Initialize OpenBao
-        run: |
-          ssh -i ~/.ssh/deploy_key deploy@${{ secrets.STAGING_HOST }} << 'ENDSSH'
-            cd /opt/cerniq
-            echo "✅ Skipped: OpenBao server is external on orchestrator (s3cr3ts.neanelu.ro)"
-          ENDSSH
-
-      # =========================================================================
-      # STEP 6: Start OpenBao agents
-      # =========================================================================
-      - name: 🤖 Start OpenBao Agents
-        run: |
-          ssh -i ~/.ssh/deploy_key deploy@${{ secrets.STAGING_HOST }} << 'ENDSSH'
-            cd /opt/cerniq
-            
-            # Runtime secrets directory (render target for templates).
             mkdir -p /opt/cerniq/runtime-secrets/{api,workers,infra}
-            chmod 700 /opt/cerniq/runtime-secrets /opt/cerniq/runtime-secrets/* || true
-            
-            # Check prerequisites
-            if [ ! -f /opt/cerniq/secrets/api_role_id ]; then
-              echo "⚠️ AppRole credentials not found, skipping agents"
-              exit 0
-            fi
-            
-            echo "🤖 Starting OpenBao agents..."
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d openbao-agent-api openbao-agent-workers openbao-agent-infra
-            
+            chmod 755 /opt/cerniq/runtime-secrets /opt/cerniq/runtime-secrets/*
+
+            rm -f /opt/cerniq/runtime-secrets/api/api.env \
+                  /opt/cerniq/runtime-secrets/api/pg_password \
+                  /opt/cerniq/runtime-secrets/workers/workers.env \
+                  /opt/cerniq/runtime-secrets/infra/pgbouncer.ini \
+                  /opt/cerniq/runtime-secrets/infra/userlist.txt
+
+            # Ensure all OpenBao AppRole credential pairs exist before starting agents.
+            for f in \
+              /opt/cerniq/secrets/api_role_id \
+              /opt/cerniq/secrets/api_secret_id \
+              /opt/cerniq/secrets/workers_role_id \
+              /opt/cerniq/secrets/workers_secret_id \
+              /opt/cerniq/secrets/infra_role_id \
+              /opt/cerniq/secrets/infra_secret_id; do
+              if [ ! -f "$f" ]; then
+                echo "❌ Missing AppRole credential file: $f"
+                echo "   Rotation/setup step may have failed for one or more agents."
+                exit 1
+              fi
+            done
+
+            echo "🐳 Pulling images..."
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml pull --quiet
+
+            # Start infrastructure first: OpenBao agents + PgBouncer
+            echo "🤖 Starting OpenBao agents (connecting to s3cr3ts.neanelu.ro)..."
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d \
+              openbao-agent-api openbao-agent-workers openbao-agent-infra
+
             echo "⏳ Waiting for agents to render secrets..."
-            sleep 10
-            
-            # Verify secrets rendered
-            if docker exec cerniq-openbao-agent-api test -f /secrets/api.env 2>/dev/null; then
-              echo "✅ API secrets rendered successfully"
-            else
-              echo "⚠️ API secrets not yet rendered"
-              docker logs cerniq-openbao-agent-api --tail 10 2>&1 || true
+            SECRETS_OK=0
+            for i in $(seq 1 60); do
+              if [ -f /opt/cerniq/runtime-secrets/api/api.env ] && \
+                 [ -f /opt/cerniq/runtime-secrets/workers/workers.env ] && \
+                 [ -f /opt/cerniq/runtime-secrets/infra/pgbouncer.ini ]; then
+                echo "✅ All secrets rendered (after ${i}s)"
+                SECRETS_OK=1
+                break
+              fi
+              sleep 1
+            done
+            if [ "$SECRETS_OK" -ne 1 ]; then
+              echo "❌ OpenBao agents did not render secrets. Agent logs:"
+              docker logs cerniq-openbao-agent-api 2>&1 | tail -40
+              docker logs cerniq-openbao-agent-workers 2>&1 | tail -40
+              docker logs cerniq-openbao-agent-infra 2>&1 | tail -20
+              echo "📁 Rendered secrets directory state:"
+              ls -la /opt/cerniq/runtime-secrets/api || true
+              ls -la /opt/cerniq/runtime-secrets/workers || true
+              ls -la /opt/cerniq/runtime-secrets/infra || true
+              exit 1
+            fi
+
+            # Now start PgBouncer (depends on infra secrets)
+            echo "🔌 Starting PgBouncer..."
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d pgbouncer pgbouncer-exporter
+
+            sleep 5
+
+            # Run DB migrations (extensions, Drizzle tables, RLS) using API image + rendered secrets
+            echo "🗄️ Running database migrations..."
+            IMG="ghcr.io/${{ github.repository_owner }}/cerniq/api:${{ needs.setup.outputs.version }}"
+            docker run --rm --network cerniq_backend \
+              -v /opt/cerniq/runtime-secrets/api:/secrets:ro \
+              -e SECRETS_PATH=/secrets/api.env -e NODE_ENV=staging \
+              -e MIGRATION_DRY_RUN=false -e MIGRATION_ROLLBACK=false \
+              "$IMG" node apps/api/dist/migrate-runner.js
+
+            # Finally start application services (depend on agents + pgbouncer being healthy)
+            echo "🚀 Starting application services..."
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-orphans
+
+            echo "⏳ Waiting for services to stabilize..."
+            sleep 15
+
+            echo "📊 Service status:"
+            docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Image}}' | grep cerniq || true
+          ENDSSH
+
+          ssh -i ~/.ssh/deploy_key deploy@${{ secrets.STAGING_HOST }} \
+            "echo '${{ needs.setup.outputs.version }}' > /opt/cerniq/.current_deploy"
+
+      # =========================================================================
+      # STEP 6b: Install deploy sudoers and node_exporter (staging)
+      # =========================================================================
+      - name: 👤 Install deploy sudoers and node_exporter (Staging)
+        continue-on-error: true
+        run: |
+          ssh -i ~/.ssh/deploy_key deploy@${{ secrets.STAGING_HOST }} << 'ENDSSH'
+            if [ -f /opt/cerniq/config/sudoers/deploy ]; then
+              sudo -n cp /opt/cerniq/config/sudoers/deploy /etc/sudoers.d/deploy && sudo chmod 440 /etc/sudoers.d/deploy && echo "✅ deploy sudoers installed" || echo "⚠️ deploy sudoers skip (no sudo)"
+            fi
+            if [ -f /opt/cerniq/scripts/setup-node-exporter.sh ]; then
+              sudo -n bash /opt/cerniq/scripts/setup-node-exporter.sh && echo "✅ node_exporter enabled" || echo "⚠️ node_exporter skip"
             fi
           ENDSSH
 
@@ -384,19 +505,18 @@ jobs:
         run: |
           ssh -i ~/.ssh/deploy_key deploy@${{ secrets.STAGING_HOST }} << 'ENDSSH'
             cd /opt/cerniq
-            
+            export GITHUB_ACTIONS=true
             # Check if UFW is active
             if sudo -n ufw status 2>/dev/null | grep -q "Status: active"; then
               echo "✅ UFW already active"
             else
               echo "🔥 Configuring firewall..."
               if [ -f /opt/cerniq/scripts/setup-firewall.sh ]; then
-                sudo -n /opt/cerniq/scripts/setup-firewall.sh || echo "⚠️ Firewall setup skipped/failed (no sudo)"
+                sudo -n -E /opt/cerniq/scripts/setup-firewall.sh || echo "⚠️ Firewall setup skipped/failed (no sudo)"
               else
                 echo "⚠️ No setup-firewall.sh; skipping (requires sudo)"
               fi
             fi
-            
             sudo -n ufw status verbose 2>/dev/null | head -10 || true
           ENDSSH
 
@@ -543,8 +663,6 @@ jobs:
     runs-on: self-hosted
     needs: [setup, build-push]
     if: needs.setup.outputs.environment == 'production'
-    permissions:
-      contents: write
     environment:
       name: production
       url: https://cerniq.app
@@ -597,13 +715,12 @@ jobs:
 
           echo "📁 Creating COMPLETE server directory structure..."
           $SSH_CMD << 'ENDSSH'
-            mkdir -p /opt/cerniq/{config/{openbao/{policies,templates},fail2ban,cron,logrotate,docker},scripts,secrets,backups}
+            mkdir -p /opt/cerniq/{config/{openbao/{policies,templates},fail2ban,cron,logrotate,docker,sudoers},scripts,secrets,backups}
           ENDSSH
 
           echo "📄 Syncing docker-compose files..."
           $SCP_CMD infra/docker/docker-compose.yml ${HOST}:/opt/cerniq/
           $SCP_CMD infra/docker/docker-compose.prod.yml ${HOST}:/opt/cerniq/
-          # Vector/OTEL configs removed — observability is centralized on orchestrator
 
           echo "📄 Syncing OpenBao config (CORRECT PATH)..."
           $SCP_CMD infra/config/openbao/*.hcl ${HOST}:/opt/cerniq/config/openbao/
@@ -615,12 +732,54 @@ jobs:
           $SCP_CMD infra/config/cron/cerniq-backup ${HOST}:/opt/cerniq/config/cron/
           $SCP_CMD infra/config/logrotate/cerniq-backup ${HOST}:/opt/cerniq/config/logrotate/
           $SCP_CMD infra/config/docker/daemon.json ${HOST}:/opt/cerniq/config/docker/ 2>/dev/null || true
+          $SCP_CMD infra/config/sudoers/deploy ${HOST}:/opt/cerniq/config/sudoers/ 2>/dev/null || true
 
           echo "📄 Syncing ALL scripts..."
           $SCP_CMD infra/scripts/*.sh ${HOST}:/opt/cerniq/scripts/
           $SSH_CMD "chmod +x /opt/cerniq/scripts/*.sh"
 
           echo "✅ COMPLETE configuration sync done"
+
+      # =========================================================================
+      # STEP 1b: Rotate AppRole secret_ids (dynamic credentials)
+      # =========================================================================
+      - name: 🔄 Rotate OpenBao AppRole credentials
+        env:
+          OPENBAO_ADDR: ${{ secrets.OPENBAO_ADDR }}
+          OPENBAO_CICD_ROLE_ID: ${{ secrets.OPENBAO_CICD_ROLE_ID }}
+          OPENBAO_CICD_SECRET_ID: ${{ secrets.OPENBAO_CICD_SECRET_ID }}
+        run: |
+          set -euo pipefail
+          SSH_CMD="ssh -i ~/.ssh/deploy_key deploy@${{ secrets.PRODUCTION_HOST }}"
+
+          echo "🔐 Authenticating with CICD AppRole to generate fresh service credentials..."
+
+          BAO_TOKEN=$(curl -sS --fail --max-time 10 \
+            -X POST "${OPENBAO_ADDR}/v1/auth/approle/login" \
+            -d "{\"role_id\":\"${OPENBAO_CICD_ROLE_ID}\",\"secret_id\":\"${OPENBAO_CICD_SECRET_ID}\"}" \
+            | jq -r '.auth.client_token')
+
+          if [ -z "$BAO_TOKEN" ] || [ "$BAO_TOKEN" = "null" ]; then
+            echo "❌ CICD AppRole authentication failed"
+            exit 1
+          fi
+          echo "✅ CICD authenticated"
+
+          $SSH_CMD "mkdir -p /opt/cerniq/secrets && chmod 700 /opt/cerniq/secrets"
+
+          for ROLE in cerniq-api cerniq-workers cerniq-infra; do
+            SHORT=$(echo "$ROLE" | sed 's/cerniq-//')
+            ROLE_ID=$(curl -sS --fail -H "X-Vault-Token: $BAO_TOKEN" \
+              "${OPENBAO_ADDR}/v1/auth/approle/role/${ROLE}/role-id" | jq -r '.data.role_id')
+            SECRET_ID=$(curl -sS --fail -X POST -H "X-Vault-Token: $BAO_TOKEN" \
+              "${OPENBAO_ADDR}/v1/auth/approle/role/${ROLE}/secret-id" | jq -r '.data.secret_id')
+
+            echo -n "$ROLE_ID" | $SSH_CMD "cat > /opt/cerniq/secrets/${SHORT}_role_id && chmod 600 /opt/cerniq/secrets/${SHORT}_role_id"
+            echo -n "$SECRET_ID" | $SSH_CMD "cat > /opt/cerniq/secrets/${SHORT}_secret_id && chmod 600 /opt/cerniq/secrets/${SHORT}_secret_id"
+            echo "  ✅ ${ROLE}: credentials rotated"
+          done
+
+          echo "✅ All AppRole credentials rotated on production"
 
       - name: 🔁 Sync orchestrator Traefik route
         run: |
@@ -657,69 +816,136 @@ jobs:
       # =========================================================================
       # STEP 3: Deploy Docker services
       # =========================================================================
+      - name: 🔐 Login to GHCR on production
+        run: |
+          echo '${{ secrets.GITHUB_TOKEN }}' | ssh -i ~/.ssh/deploy_key deploy@${{ secrets.PRODUCTION_HOST }} \
+            'docker login ghcr.io -u ${{ github.actor }} --password-stdin'
+
+      - name: 📝 Set deployment environment
+        env:
+          OPENBAO_ADDR: ${{ secrets.OPENBAO_ADDR }}
+        run: |
+          ssh -i ~/.ssh/deploy_key deploy@${{ secrets.PRODUCTION_HOST }} \
+            "printf '%s\n' 'REGISTRY=ghcr.io' 'IMAGE_OWNER=${{ github.repository_owner }}' 'CERNIQ_VERSION=${{ needs.setup.outputs.version }}' 'CERNIQ_ENV=production' 'OPENBAO_ADDR=${OPENBAO_ADDR}' > /opt/cerniq/.env"
+
       - name: 🚀 Deploy Docker services
         run: |
           ssh -i ~/.ssh/deploy_key deploy@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
+            set -euo pipefail
             cd /opt/cerniq
-            
+
+            # Remove legacy placeholder containers (one-time cleanup)
+            for c in cerniq-placeholder-web cerniq-placeholder-api cerniq-placeholder-admin; do
+              docker rm -f "$c" 2>/dev/null || true
+            done
+
             # Ensure Docker networks exist
             docker network create --driver bridge --subnet=172.29.10.0/24 cerniq_public 2>/dev/null || true
             docker network create --driver bridge --subnet=172.29.20.0/24 cerniq_backend 2>/dev/null || true
             docker network create --driver bridge --subnet=172.29.30.0/24 cerniq_data 2>/dev/null || true
-            
-            # Deploy with production overlay
+
+            # Prepare runtime-secrets with correct permissions (755 so uid 1001 can read)
+            mkdir -p /opt/cerniq/runtime-secrets/{api,workers,infra}
+            chmod 755 /opt/cerniq/runtime-secrets /opt/cerniq/runtime-secrets/*
+
+            # Purge stale rendered secrets to prevent race condition
+            rm -f /opt/cerniq/runtime-secrets/api/api.env \
+                  /opt/cerniq/runtime-secrets/api/pg_password \
+                  /opt/cerniq/runtime-secrets/workers/workers.env \
+                  /opt/cerniq/runtime-secrets/infra/pgbouncer.ini \
+                  /opt/cerniq/runtime-secrets/infra/userlist.txt
+
+            # OpenBao server is external on orchestrator (s3cr3ts.neanelu.ro).
+            # Skipped: OpenBao server is external — only agents run locally.
+            # Agents authenticate via AppRole and render secrets locally.
+            # Ensure all OpenBao AppRole credential pairs exist before starting agents.
+            for f in \
+              /opt/cerniq/secrets/api_role_id \
+              /opt/cerniq/secrets/api_secret_id \
+              /opt/cerniq/secrets/workers_role_id \
+              /opt/cerniq/secrets/workers_secret_id \
+              /opt/cerniq/secrets/infra_role_id \
+              /opt/cerniq/secrets/infra_secret_id; do
+              if [ ! -f "$f" ]; then
+                echo "❌ Missing AppRole credential file: $f"
+                echo "   Run OpenBao setup first (see docs/infrastructure/openbao-setup-guide.md)"
+                exit 1
+              fi
+            done
+
             echo "🐳 Pulling images..."
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml pull || true
-            
-            echo "🚀 Starting services..."
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml pull --quiet
+
+            # Start infrastructure first: OpenBao agents + PgBouncer
+            echo "🤖 Starting OpenBao agents (connecting to s3cr3ts.neanelu.ro)..."
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d \
+              openbao-agent-api openbao-agent-workers openbao-agent-infra
+
+            echo "⏳ Waiting for agents to render secrets..."
+            SECRETS_OK=0
+            for i in $(seq 1 60); do
+              if [ -f /opt/cerniq/runtime-secrets/api/api.env ] && \
+                 [ -f /opt/cerniq/runtime-secrets/workers/workers.env ] && \
+                 [ -f /opt/cerniq/runtime-secrets/infra/pgbouncer.ini ]; then
+                echo "✅ All secrets rendered (after ${i}s)"
+                SECRETS_OK=1
+                break
+              fi
+              sleep 1
+            done
+            if [ "$SECRETS_OK" -ne 1 ]; then
+              echo "❌ OpenBao agents did not render secrets. Agent logs:"
+              docker logs cerniq-openbao-agent-api 2>&1 | tail -40
+              docker logs cerniq-openbao-agent-workers 2>&1 | tail -40
+              docker logs cerniq-openbao-agent-infra 2>&1 | tail -20
+              echo "📁 Rendered secrets directory state:"
+              ls -la /opt/cerniq/runtime-secrets/api || true
+              ls -la /opt/cerniq/runtime-secrets/workers || true
+              ls -la /opt/cerniq/runtime-secrets/infra || true
+              exit 1
+            fi
+
+            # Now start PgBouncer (depends on infra secrets)
+            echo "🔌 Starting PgBouncer..."
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d pgbouncer pgbouncer-exporter
+
+            sleep 5
+
+            # Run DB migrations (extensions, Drizzle tables, RLS) using API image + rendered secrets
+            echo "🗄️ Running database migrations..."
+            IMG="ghcr.io/${{ github.repository_owner }}/cerniq/api:${{ needs.setup.outputs.version }}"
+            docker run --rm --network cerniq_backend \
+              -v /opt/cerniq/runtime-secrets/api:/secrets:ro \
+              -e SECRETS_PATH=/secrets/api.env -e NODE_ENV=production \
+              -e MIGRATION_DRY_RUN=false -e MIGRATION_ROLLBACK=false \
+              "$IMG" node apps/api/dist/migrate-runner.js
+
+            # Finally start application services
+            echo "🚀 Starting application services..."
             docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-orphans
-            
-            echo "⏳ Waiting for services to start..."
+
+            echo "⏳ Waiting for services to stabilize..."
             sleep 20
-            
+
             echo "📊 Service status:"
-            docker ps --format 'table {{.Names}}\t{{.Status}}' | grep cerniq || true
-
-            # Persist deployed version marker for safe future rollbacks.
-            echo '${{ needs.setup.outputs.version }}' > /opt/cerniq/.current_deploy
+            docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Image}}' | grep cerniq || true
           ENDSSH
 
-      # =========================================================================
-      # STEP 4: Initialize OpenBao (if needed) - NO AUTO-UNSEAL IN PRODUCTION
-      # =========================================================================
-      - name: 🔐 Initialize OpenBao (Production)
-        run: |
-          ssh -i ~/.ssh/deploy_key deploy@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
-            cd /opt/cerniq
-            echo "✅ Skipped: OpenBao server is external on orchestrator (s3cr3ts.neanelu.ro)"
-          ENDSSH
+          ssh -i ~/.ssh/deploy_key deploy@${{ secrets.PRODUCTION_HOST }} \
+            "echo '${{ needs.setup.outputs.version }}' > /opt/cerniq/.current_deploy"
 
       # =========================================================================
-      # STEP 6: Start agents (external OpenBao, if configured)
+      # STEP 6b: Install deploy sudoers and node_exporter (production)
       # =========================================================================
-      - name: 🤖 Start OpenBao Agents
+      - name: 👤 Install deploy sudoers and node_exporter (Production)
         continue-on-error: true
         run: |
           ssh -i ~/.ssh/deploy_key deploy@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
-            cd /opt/cerniq
-            
-            # Runtime secrets directory (render target for templates).
-            mkdir -p /opt/cerniq/runtime-secrets/{api,workers,infra}
-            chmod 700 /opt/cerniq/runtime-secrets /opt/cerniq/runtime-secrets/* || true
-            
-            if [ ! -f /opt/cerniq/secrets/api_role_id ]; then
-              echo "⚠️ AppRole credentials not found, skipping agents"
-              exit 0
+            if [ -f /opt/cerniq/config/sudoers/deploy ]; then
+              sudo -n cp /opt/cerniq/config/sudoers/deploy /etc/sudoers.d/deploy && sudo chmod 440 /etc/sudoers.d/deploy && echo "✅ deploy sudoers installed" || echo "⚠️ deploy sudoers skip (no sudo; run manually once as root)"
             fi
-            
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d openbao-agent-api openbao-agent-workers openbao-agent-infra
-            
-            sleep 10
-            
-            if docker exec cerniq-openbao-agent-api test -f /secrets/api.env 2>/dev/null; then
-              echo "✅ API secrets rendered"
-            else
-              echo "⚠️ API secrets not rendered yet"
+            if [ -f /opt/cerniq/scripts/setup-node-exporter.sh ]; then
+              sudo -n bash /opt/cerniq/scripts/setup-node-exporter.sh && echo "✅ node_exporter enabled" || echo "⚠️ node_exporter skip"
             fi
           ENDSSH
 
@@ -731,18 +957,17 @@ jobs:
         run: |
           ssh -i ~/.ssh/deploy_key deploy@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
             cd /opt/cerniq
-            
+            export GITHUB_ACTIONS=true
             if sudo -n ufw status 2>/dev/null | grep -q "Status: active"; then
               echo "✅ UFW already active"
             else
               echo "🔥 Configuring production firewall..."
               if [ -f /opt/cerniq/scripts/setup-firewall.sh ]; then
-                sudo -n CERNIQ_UFW_AUTO_APPROVE=true /opt/cerniq/scripts/setup-firewall.sh || true
+                sudo -n -E /opt/cerniq/scripts/setup-firewall.sh || true
               else
                 echo "⚠️ No setup-firewall.sh; skipping (requires sudo)"
               fi
             fi
-            
             sudo -n ufw status verbose 2>/dev/null | head -10 || true
           ENDSSH
 
@@ -937,18 +1162,18 @@ jobs:
           if [[ "${{ inputs.environment }}" == "production" ]]; then
             echo "${{ secrets.PRODUCTION_SSH_KEY_RESTRICTED }}" > ~/.ssh/deploy_key
             echo "HOST=${{ secrets.PRODUCTION_HOST }}" >> $GITHUB_ENV
-            echo "USER=deploy" >> $GITHUB_ENV
+            echo "DEPLOY_USER=deploy" >> $GITHUB_ENV
           else
             echo "${{ secrets.STAGING_SSH_KEY_RESTRICTED }}" > ~/.ssh/deploy_key
             echo "HOST=${{ secrets.STAGING_HOST }}" >> $GITHUB_ENV
-            echo "USER=deploy" >> $GITHUB_ENV
+            echo "DEPLOY_USER=deploy" >> $GITHUB_ENV
           fi
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H $HOST >> ~/.ssh/known_hosts 2>/dev/null
 
       - name: ⏮️ Execute Rollback
         run: |
-          ssh -i ~/.ssh/deploy_key ${USER}@${HOST} << 'ENDSSH'
+          ssh -i ~/.ssh/deploy_key ${DEPLOY_USER}@${HOST} << 'ENDSSH'
             cd /opt/cerniq
             
             echo "========================================"

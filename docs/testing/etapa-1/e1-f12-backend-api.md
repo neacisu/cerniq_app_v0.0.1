@@ -48,9 +48,7 @@ describe("Companies API", () => {
         .query({ judet: "București" })
         .set("Authorization", `Bearer ${token}`);
 
-      expect(response.body.data.every((c) => c.judet === "București")).toBe(
-        true,
-      );
+      expect(response.body.data.every((c) => c.judet === "București")).toBe(true);
     });
 
     it("should filter by leadScore range", async () => {
@@ -59,9 +57,7 @@ describe("Companies API", () => {
         .query({ leadScoreMin: 50, leadScoreMax: 80 })
         .set("Authorization", `Bearer ${token}`);
 
-      expect(
-        response.body.data.every((c) => c.leadScore >= 50 && c.leadScore <= 80),
-      ).toBe(true);
+      expect(response.body.data.every((c) => c.leadScore >= 50 && c.leadScore <= 80)).toBe(true);
     });
 
     it("should search by denumire", async () => {
@@ -70,9 +66,7 @@ describe("Companies API", () => {
         .query({ q: "AGRO" })
         .set("Authorization", `Bearer ${token}`);
 
-      expect(response.body.data.every((c) => c.denumire.includes("AGRO"))).toBe(
-        true,
-      );
+      expect(response.body.data.every((c) => c.denumire.includes("AGRO"))).toBe(true);
     });
   });
 

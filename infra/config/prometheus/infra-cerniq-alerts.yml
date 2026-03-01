@@ -38,3 +38,184 @@ groups:
         annotations:
           summary: "Cerniq memory low (<10% available)"
           description: "Memory available is below 10% on {{ $labels.instance }}"
+
+      - alert: CerniqContainerRestarting
+        expr: increase(container_restart_count{project="cerniq"}[15m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          project: cerniq
+        annotations:
+          summary: "Cerniq container restarting"
+          description: "Container {{ $labels.name }} has restarted in the last 15m"
+
+      - alert: PgBouncerPoolExhausted
+        expr: pgbouncer_pool_client_wait_ratio > 0.9 or pgbouncer_pools_cl_active >= pgbouncer_pools_max_client_conn
+        for: 5m
+        labels:
+          severity: critical
+          project: cerniq
+        annotations:
+          summary: "PgBouncer pool near or at capacity"
+          description: "PgBouncer connection pool exhausted or high wait ratio"
+
+      - alert: RedisMemoryHigh
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+        for: 10m
+        labels:
+          severity: warning
+          project: cerniq
+        annotations:
+          summary: "Redis memory usage high (>90%)"
+          description: "Redis memory usage is above 90% on {{ $labels.instance }}"
+
+      - alert: CerniqSecretsStale
+        expr: cerniq_secrets_file_age_seconds{service="api"} > 7200
+        for: 10m
+        labels:
+          severity: warning
+          project: cerniq
+        annotations:
+          summary: "Rendered secrets file stale"
+          description: "Secrets file age is above 2 hours for {{ $labels.service }}"
+
+      - alert: CerniqSecretsReloadFailed
+        expr: increase(cerniq_secrets_reload_total{service="api",status="failed"}[15m]) >= 3
+        for: 0m
+        labels:
+          severity: critical
+          project: cerniq
+        annotations:
+          summary: "Repeated secret reload failures"
+          description: "API secrets reload failed at least 3 times in the last 15m"
+
+      - alert: BackupFailed
+        expr: time() - backup_health_check_last_success_timestamp > 86400
+        for: 1h
+        labels:
+          severity: critical
+          project: cerniq
+        annotations:
+          summary: "Backup health check has not succeeded in 24h"
+          description: "Last successful backup check was more than 24 hours ago"
+
+      - alert: CertExpiringSoon
+        expr: (probe_ssl_earliest_cert_expiry - time()) / 86400 < 14
+        for: 0m
+        labels:
+          severity: warning
+          project: cerniq
+        annotations:
+          summary: "TLS certificate expiring in less than 14 days"
+          description: "Certificate for {{ $labels.instance }} expires in {{ $value }} days"
+
+      - alert: EnrichmentQueueDepthHigh
+        expr: sum(cerniq_worker_queue_depth{queue=~"silver:.*|pipeline:.*"}) > 1000
+        for: 10m
+        labels:
+          severity: warning
+          project: cerniq
+        annotations:
+          summary: "Enrichment queue depth high"
+          description: "Total enrichment/pipeline queue depth is above 1000 jobs for 10m"
+
+      - alert: EnrichmentQueueDepthCritical
+        expr: sum(cerniq_worker_queue_depth{queue=~"silver:.*|pipeline:.*"}) > 5000
+        for: 5m
+        labels:
+          severity: critical
+          project: cerniq
+        annotations:
+          summary: "Enrichment queue depth critical"
+          description: "Total enrichment/pipeline queue depth is above 5000 jobs"
+
+      - alert: EnrichmentFailureRateHigh
+        expr: sum(rate(cerniq_worker_jobs_failed_total{queue=~"silver:.*|pipeline:.*"}[5m])) > 0.2
+        for: 5m
+        labels:
+          severity: critical
+          project: cerniq
+        annotations:
+          summary: "Enrichment worker failure rate high"
+          description: "Failed jobs rate is above 0.2 jobs/sec on enrichment pipeline"
+
+      - alert: HitlBacklogHigh
+        expr: cerniq_worker_queue_depth{queue="pipeline:hitl-resume-after-approval"} > 100
+        for: 10m
+        labels:
+          severity: warning
+          project: cerniq
+        annotations:
+          summary: "HITL backlog high"
+          description: "HITL resume queue backlog is above 100 jobs for 10m"
+
+      - alert: HitlSlaBreach
+        expr: increase(cerniq_hitl_sla_breach_total[1h]) > 0
+        for: 0m
+        labels:
+          severity: warning
+          project: cerniq
+        annotations:
+          summary: "HITL SLA breach detected"
+          description: "{{ $value }} HITL tasks breached SLA in the last hour"
+
+      - alert: EnrichmentStalled
+        expr: |
+          increase(cerniq_worker_jobs_processed_total{queue=~"silver:.*|pipeline:.*"}[30m]) == 0
+          and
+          sum(cerniq_worker_queue_depth{queue=~"silver:.*|pipeline:.*"}) > 0
+        for: 15m
+        labels:
+          severity: critical
+          project: cerniq
+        annotations:
+          summary: "Enrichment pipeline stalled"
+          description: "No enrichment/pipeline jobs processed in 30m while queue depth remains non-zero"
+
+      - alert: WorkerDown
+        expr: up{job=~"cerniq-workers|cerniq-docker",project="cerniq"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          project: cerniq
+        annotations:
+          summary: "Worker instance down"
+          description: "Worker target {{ $labels.instance }} is not responding"
+
+      - alert: HighJobFailureRate
+        expr: |
+          sum(rate(cerniq_worker_jobs_failed_total{queue=~"silver:.*|pipeline:.*"}[10m]))
+          /
+          clamp_min(sum(rate(cerniq_worker_jobs_processed_total{queue=~"silver:.*|pipeline:.*"}[10m])), 0.001)
+          > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          project: cerniq
+        annotations:
+          summary: "High enrichment job failure rate"
+          description: "Enrichment/pipeline failure ratio exceeded 5% in the last 10m"
+
+      - alert: PostgresHighConnections
+        expr: |
+          sum(pg_stat_activity_count{project="cerniq"})
+          /
+          clamp_min(sum(pg_settings_max_connections{project="cerniq"}), 1)
+          > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          project: cerniq
+        annotations:
+          summary: "PostgreSQL connections high"
+          description: "PostgreSQL active connections exceeded 80% of max_connections"
+
+      - alert: SlowQueries
+        expr: pg_stat_statements_mean_time_seconds{project="cerniq"} > 5
+        for: 10m
+        labels:
+          severity: warning
+          project: cerniq
+        annotations:
+          summary: "Slow queries detected"
+          description: "Mean query time above 5 seconds on {{ $labels.instance }}"

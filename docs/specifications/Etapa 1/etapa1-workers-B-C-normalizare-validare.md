@@ -310,10 +310,7 @@ export const addressNormalizerWorker = createWorker<AddressNormalizerJobData>({
 
     // Extragere județ
     for (const [judetName, judetData] of Object.entries(JUDETE_MAP)) {
-      if (
-        normalized.includes(judetName) ||
-        normalized.includes(judetData.cod)
-      ) {
+      if (normalized.includes(judetName) || normalized.includes(judetData.cod)) {
         result.judet = judetData.nume;
         result.judetCod = judetData.cod;
         break;
@@ -893,22 +890,19 @@ export const cuiAnafWorker = createWorker<AnafValidatorJobData>({
     try {
       // Step 3: Call ANAF API
       // API ANAF: POST https://webservicesp.anaf.ro/AsynchProdFurniz/api/v10/ws/tva
-      const response = await fetch(
-        "https://webservicesp.anaf.ro/AsynchProdFurniz/api/v10/ws/tva",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify([
-            {
-              cui: parseInt(cleanCui),
-              data: new Date().toISOString().split("T")[0], // Format: YYYY-MM-DD
-            },
-          ]),
-          signal: AbortSignal.timeout(25000),
+      const response = await fetch("https://webservicesp.anaf.ro/AsynchProdFurniz/api/v10/ws/tva", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+        body: JSON.stringify([
+          {
+            cui: parseInt(cleanCui),
+            data: new Date().toISOString().split("T")[0], // Format: YYYY-MM-DD
+          },
+        ]),
+        signal: AbortSignal.timeout(25000),
+      });
 
       if (!response.ok) {
         throw new Error(`ANAF API error: ${response.status}`);
@@ -996,9 +990,7 @@ export const cuiAnafWorker = createWorker<AnafValidatorJobData>({
 ```typescript
 // Când toate B.* complete → trigger C.1
 const NORMALIZE_COMPLETE_TRIGGERS = {
-  "bronze:normalize:complete": [
-    { queue: "silver:validate:cui-modulo11", condition: "has_cui" },
-  ],
+  "bronze:normalize:complete": [{ queue: "silver:validate:cui-modulo11", condition: "has_cui" }],
   "silver:validate:cui-modulo11": [
     { queue: "silver:validate:cui-anaf", condition: "cui_valid_modulo11" },
   ],

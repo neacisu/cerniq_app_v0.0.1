@@ -43,8 +43,7 @@ export function FunnelChart({
   const stagesWithMetrics = useMemo(() => {
     return stages.map((stage, index) => {
       const prevValue = index > 0 ? stages[index - 1].value : stage.value;
-      const conversionRate =
-        prevValue > 0 ? (stage.value / prevValue) * 100 : 0;
+      const conversionRate = prevValue > 0 ? (stage.value / prevValue) * 100 : 0;
       const widthPercent = maxValue > 0 ? (stage.value / maxValue) * 100 : 0;
 
       return {
@@ -82,15 +81,11 @@ export function FunnelChart({
           >
             {showLabels && (
               <div className="text-white text-center px-2">
-                <div className="font-semibold text-sm truncate">
-                  {stage.name}
-                </div>
+                <div className="font-semibold text-sm truncate">{stage.name}</div>
                 <div className="text-xs opacity-90">
                   {stage.value.toLocaleString()}
                   {showPercentage && index > 0 && (
-                    <span className="ml-1">
-                      ({stage.conversionRate.toFixed(1)}%)
-                    </span>
+                    <span className="ml-1">({stage.conversionRate.toFixed(1)}%)</span>
                   )}
                 </div>
               </div>
@@ -171,11 +166,7 @@ export function GaugeChart({
   return (
     <div className={cn("flex flex-col items-center", className)}>
       <div className="relative" style={{ width, height: width / 2 + 20 }}>
-        <svg
-          width={width}
-          height={width / 2 + 20}
-          viewBox={`0 0 ${width} ${width / 2 + 20}`}
-        >
+        <svg width={width} height={width / 2 + 20} viewBox={`0 0 ${width} ${width / 2 + 20}`}>
           {/* Background arc */}
           <path
             d={describeArc(width / 2, width / 2, radius, -90, 90)}
@@ -205,16 +196,12 @@ export function GaugeChart({
             className="absolute inset-0 flex items-end justify-center pb-2"
             style={{ top: width / 4 }}
           >
-            <span className={cn(fontSize, "font-bold", getColor())}>
-              {Math.round(value)}
-            </span>
+            <span className={cn(fontSize, "font-bold", getColor())}>{Math.round(value)}</span>
           </div>
         )}
       </div>
 
-      {label && (
-        <span className="text-sm text-muted-foreground mt-1">{label}</span>
-      )}
+      {label && <span className="text-sm text-muted-foreground mt-1">{label}</span>}
     </div>
   );
 }
@@ -230,19 +217,7 @@ function describeArc(
   const end = polarToCartesian(x, y, radius, startAngle);
   const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
 
-  return [
-    "M",
-    start.x,
-    start.y,
-    "A",
-    radius,
-    radius,
-    0,
-    largeArcFlag,
-    0,
-    end.x,
-    end.y,
-  ].join(" ");
+  return ["M", start.x, start.y, "A", radius, radius, 0, largeArcFlag, 0, end.x, end.y].join(" ");
 }
 
 function polarToCartesian(
@@ -300,12 +275,7 @@ export function ProgressRing({
   };
 
   return (
-    <div
-      className={cn(
-        "relative inline-flex items-center justify-center",
-        className,
-      )}
-    >
+    <div className={cn("relative inline-flex items-center justify-center", className)}>
       <svg width={size} height={size} className="-rotate-90">
         {/* Background circle */}
         <circle
@@ -337,14 +307,8 @@ export function ProgressRing({
 
       {/* Center content */}
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        {showPercentage && (
-          <span className="text-xs font-semibold">
-            {Math.round(percentage)}%
-          </span>
-        )}
-        {label && (
-          <span className="text-[10px] text-muted-foreground">{label}</span>
-        )}
+        {showPercentage && <span className="text-xs font-semibold">{Math.round(percentage)}%</span>}
+        {label && <span className="text-[10px] text-muted-foreground">{label}</span>}
       </div>
     </div>
   );
@@ -401,13 +365,8 @@ export function BarChart({
   return (
     <div className={cn("w-full", className)} style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
-        <RechartsBarChart
-          data={data}
-          margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-        >
-          {showGrid && (
-            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-          )}
+        <RechartsBarChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+          {showGrid && <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />}
           <XAxis
             dataKey={xAxisKey}
             tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
@@ -494,13 +453,8 @@ export function LineChart({
   return (
     <div className={cn("w-full", className)} style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
-        <RechartsLineChart
-          data={data}
-          margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-        >
-          {showGrid && (
-            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-          )}
+        <RechartsLineChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+          {showGrid && <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />}
           <XAxis
             dataKey={xAxisKey}
             tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
@@ -545,14 +499,7 @@ export function LineChart({
 ```tsx
 // packages/ui/src/components/charts/donut-chart.tsx
 
-import {
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-  Legend,
-  Tooltip,
-} from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 
 interface DonutChartData {
   name: string;
@@ -607,16 +554,12 @@ export function DonutChart({
             dataKey="value"
             label={
               showLabels
-                ? ({ name, percent }) =>
-                    `${name} (${(percent * 100).toFixed(0)}%)`
+                ? ({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`
                 : undefined
             }
           >
             {data.map((entry, index) => (
-              <Cell
-                key={`cell-${index}`}
-                fill={entry.color || COLORS[index % COLORS.length]}
-              />
+              <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
             ))}
           </Pie>
           <Tooltip
@@ -624,21 +567,15 @@ export function DonutChart({
               `${value.toLocaleString()} (${((value / total) * 100).toFixed(1)}%)`,
             ]}
           />
-          {showLegend && (
-            <Legend verticalAlign="bottom" iconType="circle" iconSize={8} />
-          )}
+          {showLegend && <Legend verticalAlign="bottom" iconType="circle" iconSize={8} />}
         </PieChart>
       </ResponsiveContainer>
 
       {/* Center content */}
       {(centerLabel || centerValue) && (
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          {centerValue !== undefined && (
-            <span className="text-2xl font-bold">{centerValue}</span>
-          )}
-          {centerLabel && (
-            <span className="text-sm text-muted-foreground">{centerLabel}</span>
-          )}
+          {centerValue !== undefined && <span className="text-2xl font-bold">{centerValue}</span>}
+          {centerLabel && <span className="text-sm text-muted-foreground">{centerLabel}</span>}
         </div>
       )}
     </div>
@@ -659,12 +596,7 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "../ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 import {
   LayoutDashboard,
   Upload,
@@ -780,10 +712,7 @@ export function Sidebar() {
               <Link to="/settings">
                 <Button
                   variant="ghost"
-                  className={cn(
-                    "w-full justify-start",
-                    collapsed && "justify-center px-2",
-                  )}
+                  className={cn("w-full justify-start", collapsed && "justify-center px-2")}
                 >
                   <Settings className="h-4 w-4" />
                   {!collapsed && <span className="ml-3">Setări</span>}
@@ -798,10 +727,7 @@ export function Sidebar() {
             variant="ghost"
             size="sm"
             onClick={() => setCollapsed(!collapsed)}
-            className={cn(
-              "w-full justify-start mt-2",
-              collapsed && "justify-center px-2",
-            )}
+            className={cn("w-full justify-start mt-2", collapsed && "justify-center px-2")}
           >
             {collapsed ? (
               <ChevronRight className="h-4 w-4" />
@@ -885,12 +811,7 @@ function NavItemComponent({
         <ul className="ml-6 mt-1 space-y-1">
           {item.children!.map((child) => (
             <li key={child.href}>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full justify-start"
-                asChild
-              >
+              <Button variant="ghost" size="sm" className="w-full justify-start" asChild>
                 <Link to={child.href}>
                   <child.icon className="h-3 w-3" />
                   <span className="ml-3">{child.title}</span>
@@ -925,16 +846,9 @@ interface BreadcrumbsProps {
   className?: string;
 }
 
-export function Breadcrumbs({
-  items,
-  showHome = true,
-  className,
-}: BreadcrumbsProps) {
+export function Breadcrumbs({ items, showHome = true, className }: BreadcrumbsProps) {
   return (
-    <nav
-      aria-label="Breadcrumb"
-      className={cn("flex items-center text-sm", className)}
-    >
+    <nav aria-label="Breadcrumb" className={cn("flex items-center text-sm", className)}>
       <ol className="flex items-center gap-1">
         {showHome && (
           <>
@@ -965,19 +879,13 @@ export function Breadcrumbs({
                 </Link>
               ) : (
                 <span
-                  className={cn(
-                    isLast
-                      ? "text-foreground font-medium"
-                      : "text-muted-foreground",
-                  )}
+                  className={cn(isLast ? "text-foreground font-medium" : "text-muted-foreground")}
                   aria-current={isLast ? "page" : undefined}
                 >
                   {item.label}
                 </span>
               )}
-              {!isLast && (
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
-              )}
+              {!isLast && <ChevronRight className="h-4 w-4 text-muted-foreground" />}
             </li>
           );
         })}
@@ -1013,16 +921,12 @@ export function PageHeader({
 }: PageHeaderProps) {
   return (
     <div className={cn("space-y-4", className)}>
-      {breadcrumbs && breadcrumbs.length > 0 && (
-        <Breadcrumbs items={breadcrumbs} />
-      )}
+      {breadcrumbs && breadcrumbs.length > 0 && <Breadcrumbs items={breadcrumbs} />}
 
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
-          {description && (
-            <p className="text-muted-foreground mt-1">{description}</p>
-          )}
+          {description && <p className="text-muted-foreground mt-1">{description}</p>}
         </div>
 
         {actions && <div className="flex items-center gap-2">{actions}</div>}
@@ -1078,9 +982,7 @@ export function TabsNav({ tabs, className }: TabsNavProps) {
                 <span
                   className={cn(
                     "ml-1 px-2 py-0.5 text-xs rounded-full",
-                    isActive
-                      ? "bg-primary/10 text-primary"
-                      : "bg-muted text-muted-foreground",
+                    isActive ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
                   )}
                 >
                   {tab.count}
@@ -1141,9 +1043,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
         <CommandEmpty>Nu s-au găsit rezultate.</CommandEmpty>
 
         <CommandGroup heading="Navigare">
-          <CommandItem
-            onSelect={() => runCommand(() => navigate("/dashboard"))}
-          >
+          <CommandItem onSelect={() => runCommand(() => navigate("/dashboard"))}>
             <LayoutDashboard className="mr-2 h-4 w-4" />
             <span>Dashboard</span>
           </CommandItem>
@@ -1151,21 +1051,15 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
             <Upload className="mr-2 h-4 w-4" />
             <span>Import Date</span>
           </CommandItem>
-          <CommandItem
-            onSelect={() => runCommand(() => navigate("/silver/companies"))}
-          >
+          <CommandItem onSelect={() => runCommand(() => navigate("/silver/companies"))}>
             <Database className="mr-2 h-4 w-4" />
             <span>Companii Silver</span>
           </CommandItem>
-          <CommandItem
-            onSelect={() => runCommand(() => navigate("/gold/companies"))}
-          >
+          <CommandItem onSelect={() => runCommand(() => navigate("/gold/companies"))}>
             <Crown className="mr-2 h-4 w-4" />
             <span>Companii Gold</span>
           </CommandItem>
-          <CommandItem
-            onSelect={() => runCommand(() => navigate("/approvals"))}
-          >
+          <CommandItem onSelect={() => runCommand(() => navigate("/approvals"))}>
             <CheckSquare className="mr-2 h-4 w-4" />
             <span>Aprobări</span>
           </CommandItem>
@@ -1174,15 +1068,11 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
         <CommandSeparator />
 
         <CommandGroup heading="Acțiuni">
-          <CommandItem
-            onSelect={() => runCommand(() => navigate("/imports/new"))}
-          >
+          <CommandItem onSelect={() => runCommand(() => navigate("/imports/new"))}>
             <Upload className="mr-2 h-4 w-4" />
             <span>Import nou</span>
           </CommandItem>
-          <CommandItem
-            onSelect={() => runCommand(() => navigate("/bronze/manual"))}
-          >
+          <CommandItem onSelect={() => runCommand(() => navigate("/bronze/manual"))}>
             <Database className="mr-2 h-4 w-4" />
             <span>Adaugă contact manual</span>
           </CommandItem>
@@ -1263,27 +1153,18 @@ export function StatsGrid({ stats, columns = 4, className }: StatsGridProps) {
       {stats.map((stat) => (
         <Card
           key={stat.title}
-          className={cn(
-            stat.href &&
-              "cursor-pointer hover:border-primary/50 transition-colors",
-          )}
+          className={cn(stat.href && "cursor-pointer hover:border-primary/50 transition-colors")}
           onClick={() => stat.href && (window.location.href = stat.href)}
         >
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-muted-foreground">
-                {stat.title}
-              </p>
-              {stat.icon && (
-                <stat.icon className="h-4 w-4 text-muted-foreground" />
-              )}
+              <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
+              {stat.icon && <stat.icon className="h-4 w-4 text-muted-foreground" />}
             </div>
 
             <div className="mt-2 flex items-baseline gap-2">
               <span className="text-2xl font-bold">
-                {typeof stat.value === "number"
-                  ? stat.value.toLocaleString()
-                  : stat.value}
+                {typeof stat.value === "number" ? stat.value.toLocaleString() : stat.value}
               </span>
 
               {stat.change !== undefined && (
@@ -1308,9 +1189,7 @@ export function StatsGrid({ stats, columns = 4, className }: StatsGridProps) {
             </div>
 
             {stat.changeLabel && (
-              <p className="text-xs text-muted-foreground mt-1">
-                {stat.changeLabel}
-              </p>
+              <p className="text-xs text-muted-foreground mt-1">{stat.changeLabel}</p>
             )}
           </CardContent>
         </Card>
@@ -1328,14 +1207,7 @@ export function StatsGrid({ stats, columns = 4, className }: StatsGridProps) {
 import { formatDistanceToNow } from "date-fns";
 import { ro } from "date-fns/locale";
 import { Badge } from "@cerniq/ui/badge";
-import {
-  Upload,
-  CheckCircle,
-  XCircle,
-  AlertTriangle,
-  Database,
-  Crown,
-} from "lucide-react";
+import { Upload, CheckCircle, XCircle, AlertTriangle, Database, Crown } from "lucide-react";
 
 interface ActivityItem {
   id: string;
@@ -1386,9 +1258,7 @@ export function ActivityFeed({ activities, maxItems = 10 }: ActivityFeedProps) {
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">{activity.title}</p>
               {activity.description && (
-                <p className="text-xs text-muted-foreground truncate">
-                  {activity.description}
-                </p>
+                <p className="text-xs text-muted-foreground truncate">{activity.description}</p>
               )}
               <p className="text-xs text-muted-foreground mt-1">
                 {formatDistanceToNow(new Date(activity.timestamp), {
@@ -1418,9 +1288,7 @@ export function ActivityFeed({ activities, maxItems = 10 }: ActivityFeedProps) {
       })}
 
       {activities.length === 0 && (
-        <p className="text-sm text-muted-foreground text-center py-4">
-          Nicio activitate recentă
-        </p>
+        <p className="text-sm text-muted-foreground text-center py-4">Nicio activitate recentă</p>
       )}
     </div>
   );
