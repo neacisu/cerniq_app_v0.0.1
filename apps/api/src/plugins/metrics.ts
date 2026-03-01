@@ -54,6 +54,27 @@ export const healthCheckLatency = new Histogram({
   registers: [register],
 });
 
+export const secretsReloadTotal = new Counter({
+  name: "cerniq_secrets_reload_total",
+  help: "Total secret reload attempts",
+  labelNames: ["service", "status"],
+  registers: [register],
+});
+
+export const secretsLastReloadTimestamp = new Gauge({
+  name: "cerniq_secrets_last_reload_timestamp",
+  help: "Unix timestamp of last successful secrets reload",
+  labelNames: ["service"],
+  registers: [register],
+});
+
+export const secretsFileAgeSeconds = new Gauge({
+  name: "cerniq_secrets_file_age_seconds",
+  help: "Age in seconds of the rendered secrets file",
+  labelNames: ["service"],
+  registers: [register],
+});
+
 const metricsPluginFn: FastifyPluginCallback = (app, _opts, done) => {
   app.addHook("onResponse", (request, reply, hookDone) => {
     const route = request.routeOptions?.url ?? request.url;

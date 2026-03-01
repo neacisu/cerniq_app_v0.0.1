@@ -74,11 +74,20 @@ GRANT c3rn1q TO cerniq_vault WITH ADMIN OPTION;
 -- ====================
 -- BASE PRIVILEGES
 -- ====================
+-- Ensure medallion schemas are owned by base app role so future GRANT/DDL
+-- can be managed without postgres superuser intervention.
+ALTER SCHEMA bronze OWNER TO c3rn1q;
+ALTER SCHEMA silver OWNER TO c3rn1q;
+ALTER SCHEMA gold OWNER TO c3rn1q;
+ALTER SCHEMA approval OWNER TO c3rn1q;
+ALTER SCHEMA audit OWNER TO c3rn1q;
+
 GRANT USAGE ON SCHEMA public, bronze, silver, gold, approval, audit TO c3rn1q;
 
 -- Existing objects
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public, bronze, silver, gold, approval, audit TO c3rn1q;
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public, bronze, silver, gold, approval, audit TO c3rn1q;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public, bronze, silver, gold, approval, audit TO c3rn1q;
 
 -- Future objects
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON TABLES TO c3rn1q;

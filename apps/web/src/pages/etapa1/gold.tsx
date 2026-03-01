@@ -1,14 +1,39 @@
+import { useQuery } from "@tanstack/react-query";
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
+import { Spinner } from "@/components/ui/spinner.js";
 import { Button, Card, CardHeader, CardTitle, CardBody } from "@/components/ui/index.js";
-import { ProgressBar } from "@/components/data/ProgressBar.js";
-import { MOCK_COMPANIES } from "@/config/constants.js";
-
-const goldLeads = MOCK_COMPANIES.filter((c) => c.tier === "gold").map((c, i) => ({
-  ...c,
-  contact: ["Ion Popescu", "Maria Ionescu", "Adrian Niculescu"][i] ?? "Contact",
-}));
+import { fetchGoldCompanies } from "@/lib/etapa1-api.js";
+import { DataTable } from "@/components/data/DataTable.js";
+import { goldCompaniesColumns } from "@/lib/table-columns.js";
+import type { GoldCompanyRow } from "@/lib/etapa1-types.js";
 
 export function Gold() {
+  const goldQuery = useQuery({
+    queryKey: ["etapa1", "gold"],
+    queryFn: () => fetchGoldCompanies({ limit: 50, offset: 0 }),
+  });
+  const goldLeads = (goldQuery.data?.data ?? []) as unknown as GoldCompanyRow[];
+
+  if (goldQuery.isPending) {
+    return (
+      <PageWrapper title="Gold Leads">
+        <div className="flex items-center justify-center py-12">
+          <Spinner size={32} />
+        </div>
+      </PageWrapper>
+    );
+  }
+
+  if (goldQuery.isError) {
+    return (
+      <PageWrapper title="Gold Leads">
+        <div className="rounded-lg border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 p-4 text-sm text-[var(--color-danger)]">
+          Eroare la încărcarea datelor: {goldQuery.error?.message ?? "Eroare necunoscută"}
+        </div>
+      </PageWrapper>
+    );
+  }
+
   return (
     <PageWrapper title="Gold Leads" actions={<Button>Launch Outreach</Button>}>
       <Card>
@@ -16,37 +41,14 @@ export function Gold() {
           <CardTitle>Leads Gold</CardTitle>
         </CardHeader>
         <CardBody className="p-0">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-[var(--color-s700)] text-left text-[var(--color-t3)]">
-                <th className="px-5 py-3">Company</th>
-                <th className="px-5 py-3">Contact</th>
-                <th className="px-5 py-3">County</th>
-                <th className="px-5 py-3">Revenue</th>
-                <th className="px-5 py-3">Score</th>
-                <th className="px-5 py-3">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {goldLeads.map((c) => (
-                <tr
-                  key={c.id}
-                  className="border-b border-[var(--color-s700)] last:border-0 hover:bg-[var(--color-s800)]/50"
-                >
-                  <td className="px-5 py-3 font-medium text-[var(--color-t1)]">{c.name}</td>
-                  <td className="px-5 py-3 text-[var(--color-t2)]">{c.contact}</td>
-                  <td className="px-5 py-3 text-[var(--color-t2)]">{c.county}</td>
-                  <td className="px-5 py-3 text-[var(--color-t2)]">{c.revenue}</td>
-                  <td className="px-5 py-3 w-28">
-                    <ProgressBar value={c.score} />
-                  </td>
-                  <td className="px-5 py-3">
-                    <Button size="sm">Send</Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <DataTable columns={goldCompaniesColumns} data={goldLeads} />
+          <div className="px-5 pb-4">
+            {goldLeads.map((c) => (
+              <Button key={`send-${c.id}`} size="sm" className="mr-2 mb-2">
+                Send {c.denumire ?? c.id}
+              </Button>
+            ))}
+          </div>
         </CardBody>
       </Card>
     </PageWrapper>

@@ -146,7 +146,7 @@ jobs:
             context: .
           - name: worker-enrichment
             dockerfile: ./workers/enrichment/Dockerfile
-            context: ./workers/enrichment
+            context: .
           - name: worker-outreach
             dockerfile: ./workers/outreach/Dockerfile
             context: ./workers/outreach
@@ -465,6 +465,7 @@ jobs:
             docker run --rm --network cerniq_backend \
               -v /opt/cerniq/runtime-secrets/api:/secrets:ro \
               -e SECRETS_PATH=/secrets/api.env -e NODE_ENV=staging \
+              -e MIGRATION_DRY_RUN=false -e MIGRATION_ROLLBACK=false \
               "$IMG" node apps/api/dist/migrate-runner.js
 
             # Finally start application services (depend on agents + pgbouncer being healthy)
@@ -916,6 +917,7 @@ jobs:
             docker run --rm --network cerniq_backend \
               -v /opt/cerniq/runtime-secrets/api:/secrets:ro \
               -e SECRETS_PATH=/secrets/api.env -e NODE_ENV=production \
+              -e MIGRATION_DRY_RUN=false -e MIGRATION_ROLLBACK=false \
               "$IMG" node apps/api/dist/migrate-runner.js
 
             # Finally start application services

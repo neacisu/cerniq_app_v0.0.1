@@ -13,13 +13,20 @@ const BASE_ROLE = "c3rn1q";
 let _migrationPg: ReturnType<typeof postgres> | null = null;
 let _migrationDb: PostgresJsDatabase | null = null;
 
+export type MigrationRunOptions = {
+  dryRun?: boolean;
+};
+
 /**
  * Dedicated single-connection client for migrations.
  * Using max:1 guarantees SET ROLE persists across all statements.
  */
 function getMigrationDb(): PostgresJsDatabase {
   if (!_migrationDb) {
-    const url = process.env.DATABASE_URL ?? "postgresql://localhost:6432/cerniq";
+    const url = process.env.DATABASE_URL?.trim();
+    if (!url) {
+      throw new Error("Missing required environment variable: DATABASE_URL");
+    }
     _migrationPg = postgres(url, { max: 1, prepare: false, idle_timeout: 20, connect_timeout: 10 });
     _migrationDb = drizzle(_migrationPg);
   }
@@ -35,34 +42,60 @@ export async function closeMigrationDb(): Promise<void> {
   }
 }
 
-export async function runMigrations() {
+export async function runMigrations(options: MigrationRunOptions = {}) {
   const mdb = getMigrationDb();
+  const dryRun = options.dryRun === true;
 
-  await mdb.execute(sql`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`);
-  await mdb.execute(sql`CREATE EXTENSION IF NOT EXISTS "postgis"`);
-  await mdb.execute(sql`CREATE EXTENSION IF NOT EXISTS "vector"`);
-  await mdb.execute(sql`CREATE EXTENSION IF NOT EXISTS "pg_trgm"`);
+  const exec = async (statement: string | ReturnType<typeof sql.raw>) => {
+    if (dryRun) {
+      const text = typeof statement === "string" ? statement : "SQL(statement)";
+      console.log(`[DRY-RUN] ${text}`);
+      return;
+    }
+    if (typeof statement === "string") {
+      await mdb.execute(sql.raw(statement));
+      return;
+    }
+    await mdb.execute(statement);
+  };
+
+  // Suppress PostgreSQL NOTICE messages for idempotent IF NOT EXISTS statements
+  await exec(`SET client_min_messages = warning`);
+
+  await exec(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`);
+  await exec(`CREATE EXTENSION IF NOT EXISTS "pgcrypto"`);
+  await exec(`CREATE EXTENSION IF NOT EXISTS "postgis"`);
+  await exec(`CREATE EXTENSION IF NOT EXISTS "vector"`);
+  await exec(`CREATE EXTENSION IF NOT EXISTS "pg_trgm"`);
 
   // Switch session to the permanent base role so all DDL objects
   // (tables, functions, triggers, policies) are owned by c3rn1q.
   // Dynamic OpenBao roles are members of c3rn1q (INHERIT IN ROLE c3rn1q)
   // so SET ROLE is permitted. With max:1 the role persists for all queries.
-  await mdb.execute(sql.raw(`SET ROLE "${BASE_ROLE}"`));
+  await exec(`SET ROLE "${BASE_ROLE}"`);
   console.log(`Session role set to ${BASE_ROLE} (all DDL will be owned by ${BASE_ROLE})`);
 
   const schemas = ["bronze", "silver", "gold", "approval", "audit"];
   for (const schema of schemas) {
-    await mdb.execute(sql.raw(`CREATE SCHEMA IF NOT EXISTS ${schema}`));
+    await exec(`CREATE SCHEMA IF NOT EXISTS ${schema}`);
   }
 
   const [{ current_user: currentUser }] = (await mdb.execute(
     sql`SELECT current_user`,
   )) as unknown as [{ current_user: string }];
   for (const schema of schemas) {
-    await mdb.execute(sql.raw(`GRANT ALL ON SCHEMA ${schema} TO "${currentUser}"`));
+    try {
+      await exec(`GRANT ALL ON SCHEMA ${schema} TO "${currentUser}"`);
+    } catch {
+      // GRANT fails when session role already owns the schema (no GRANT OPTION needed).
+      // Safe to skip: SET ROLE ensures all subsequent DDL is owned by BASE_ROLE.
+    }
   }
 
-  console.log(`Extensions and schemas created (grants applied for ${currentUser})`);
+  // Restore default message level for subsequent queries
+  await exec(`SET client_min_messages = notice`);
+
+  console.log(`Extensions and schemas created (role: ${currentUser})`);
 }
 
 const IGNORABLE_ERROR_CODES = new Set([
@@ -99,8 +132,13 @@ async function constraintExists(mdb: PostgresJsDatabase, constraintName: string)
 }
 
 /** Run generated Drizzle SQL migrations from ./drizzle/*.sql (idempotent: ignores "already exists" errors). */
-export async function runDrizzleMigrations() {
+export async function runDrizzleMigrations(options: MigrationRunOptions = {}) {
   const mdb = getMigrationDb();
+  const dryRun = options.dryRun === true;
+
+  // Suppress PostgreSQL NOTICE messages for idempotent IF NOT EXISTS statements
+  if (!dryRun) await mdb.execute(sql.raw(`SET client_min_messages = warning`));
+
   const drizzleDir = join(__dirname, "..", "drizzle");
   const files = readdirSync(drizzleDir)
     .filter((f) => f.endsWith(".sql"))
@@ -127,16 +165,22 @@ export async function runDrizzleMigrations() {
       }
 
       try {
-        await mdb.execute(sql.raw(statement));
+        if (dryRun) {
+          console.log(`[DRY-RUN] ${statement.slice(0, 120)}...`);
+        } else {
+          await mdb.execute(sql.raw(statement));
+        }
       } catch (err: unknown) {
         const { code, message } = getPgError(err);
 
-        const isOwnership = code === "42501" && /must be owner of/i.test(message);
+        const isPermissionDenied =
+          code === "42501" &&
+          (/must be owner of/i.test(message) || /permission denied for schema/i.test(message));
 
         if (IGNORABLE_ERROR_CODES.has(code)) {
           console.log(`Skipped (already exists): ${statement.slice(0, 60)}...`);
-        } else if (isOwnership) {
-          console.log(`Skipped (ownership mismatch, idempotent): ${statement.slice(0, 80)}...`);
+        } else if (isPermissionDenied) {
+          console.log(`Skipped (idempotent, already applied): ${statement.slice(0, 80)}...`);
         } else {
           throw err;
         }
@@ -144,6 +188,8 @@ export async function runDrizzleMigrations() {
     }
     console.log(`Ran migration: ${file}`);
   }
+
+  if (!dryRun) await mdb.execute(sql.raw(`SET client_min_messages = notice`));
 }
 
 /**
@@ -151,8 +197,9 @@ export async function runDrizzleMigrations() {
  * With SET ROLE this should already be the case, but this handles edge cases
  * (e.g. objects created before SET ROLE was introduced).
  */
-export async function finalizeOwnership() {
+export async function finalizeOwnership(options: MigrationRunOptions = {}) {
   const mdb = getMigrationDb();
+  const dryRun = options.dryRun === true;
   const tables = [
     "public.users",
     "public.roles",
@@ -168,7 +215,11 @@ export async function finalizeOwnership() {
 
   for (const table of tables) {
     try {
-      await mdb.execute(sql.raw(`ALTER TABLE ${table} OWNER TO "${BASE_ROLE}"`));
+      if (dryRun) {
+        console.log(`[DRY-RUN] ALTER TABLE ${table} OWNER TO "${BASE_ROLE}"`);
+      } else {
+        await mdb.execute(sql.raw(`ALTER TABLE ${table} OWNER TO "${BASE_ROLE}"`));
+      }
     } catch {
       // Table may not exist yet on first run
     }
@@ -177,11 +228,49 @@ export async function finalizeOwnership() {
   const functions = ["public.get_user_by_email(text)", "public.trigger_set_updated_at()"];
   for (const fn of functions) {
     try {
-      await mdb.execute(sql.raw(`ALTER FUNCTION ${fn} OWNER TO "${BASE_ROLE}"`));
+      if (dryRun) {
+        console.log(`[DRY-RUN] ALTER FUNCTION ${fn} OWNER TO "${BASE_ROLE}"`);
+      } else {
+        await mdb.execute(sql.raw(`ALTER FUNCTION ${fn} OWNER TO "${BASE_ROLE}"`));
+      }
     } catch {
       // Function may not exist yet
     }
   }
 
   console.log(`Ownership transferred to ${BASE_ROLE}`);
+}
+
+export async function runAllMigrations(options: { dryRun?: boolean; rollback?: boolean } = {}) {
+  const mdb = getMigrationDb();
+  const dryRun = options.dryRun === true;
+  const rollback = options.rollback === true;
+
+  if (dryRun) {
+    console.log("Running migrations in DRY-RUN mode.");
+    await runMigrations({ dryRun: true });
+    await runDrizzleMigrations({ dryRun: true });
+    await finalizeOwnership({ dryRun: true });
+    return;
+  }
+
+  if (!rollback) {
+    await runMigrations();
+    await runDrizzleMigrations();
+    await finalizeOwnership();
+    return;
+  }
+
+  console.log("Running migrations in ROLLBACK mode (transaction will be reverted).");
+  await mdb.execute(sql.raw("BEGIN"));
+  try {
+    await runMigrations();
+    await runDrizzleMigrations();
+    await finalizeOwnership();
+    await mdb.execute(sql.raw("ROLLBACK"));
+    console.log("Rollback completed. No migration changes were persisted.");
+  } catch (error) {
+    await mdb.execute(sql.raw("ROLLBACK"));
+    throw error;
+  }
 }

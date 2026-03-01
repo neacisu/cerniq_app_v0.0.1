@@ -218,8 +218,8 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256M
-          cpus: "0.5"
+          memory: 1G
+          cpus: "2.0"
         reservations:
           memory: 128M
           cpus: "0.1"
@@ -297,8 +297,8 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256M
-          cpus: "0.5"
+          memory: 1G
+          cpus: "2.0"
     labels:
       <<: *common-labels
       com.cerniq.service: "worker-enrichment"
@@ -526,6 +526,7 @@ services:
     image: quay.io/openbao/openbao:2.5.0
     container_name: cerniq-openbao-agent-infra
     restart: unless-stopped
+    pid: "service:pgbouncer"
     user: "1000:1000"
     security_opt:
       - no-new-privileges:true

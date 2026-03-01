@@ -1,42 +1,27 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
-import { Button, Card, CardHeader, CardTitle, CardBody } from "@/components/ui/index.js";
+import { Spinner } from "@/components/ui/spinner.js";
+import { Card, CardHeader, CardTitle, CardBody } from "@/components/ui/index.js";
 import { ProgressBar } from "@/components/data/ProgressBar.js";
-import { cn } from "@/lib/utils.js";
-
-const MOCK_IMPORTS = [
-  {
-    id: "1",
-    name: "contacte_ian2025.csv",
-    rows: 2345,
-    progress: 100,
-    status: "Complet",
-    date: "22 feb 2025",
-  },
-  {
-    id: "2",
-    name: "firme_dolj.xlsx",
-    rows: 1200,
-    progress: 67,
-    status: "În curs",
-    date: "21 feb 2025",
-  },
-  {
-    id: "3",
-    name: "ouai_ialomita.csv",
-    rows: 890,
-    progress: 23,
-    status: "În curs",
-    date: "20 feb 2025",
-  },
-];
+import { fetchImports, uploadImport } from "@/lib/etapa1-api.js";
+import { FileUpload } from "@/components/forms/FileUpload.js";
 
 const ACCEPT =
   ".csv,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv";
 
 export function Import() {
-  const [drag, setDrag] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [uploadMessage, setUploadMessage] = useState("");
+  const importsQuery = useQuery({
+    queryKey: ["etapa1", "imports"],
+    queryFn: () => fetchImports({ limit: 25, offset: 0 }),
+  });
+  const uploadMutation = useMutation({
+    mutationFn: (file: File) => uploadImport(file),
+    onSuccess: () => {
+      void importsQuery.refetch();
+    },
+  });
 
   const handleFiles = (files: FileList | File[] | null) => {
     const list = files ? (Array.isArray(files) ? files : Array.from(files)) : [];
@@ -51,49 +36,45 @@ export function Import() {
         )
       : [];
     if (allowed.length) {
-      // TODO Etapa 1: upload la API / preprocesare
-      console.info(
-        "Import files selected:",
-        allowed.map((f) => f.name),
-      );
+      void uploadMutation.mutateAsync(allowed[0]).then(() => {
+        setUploadMessage(`Fisier incarcat: ${allowed[0].name}`);
+      });
     }
   };
 
-  const onDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDrag(false);
-    handleFiles(e.dataTransfer?.files ?? null);
-  };
+  const imports = importsQuery.data?.data ?? [];
+
+  if (importsQuery.isPending) {
+    return (
+      <PageWrapper title="Import Contacte">
+        <div className="flex items-center justify-center py-12">
+          <Spinner size={32} />
+        </div>
+      </PageWrapper>
+    );
+  }
+
+  if (importsQuery.isError) {
+    return (
+      <PageWrapper title="Import Contacte">
+        <div className="rounded-lg border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 p-4 text-sm text-[var(--color-danger)]">
+          Eroare la încărcarea datelor: {importsQuery.error?.message ?? "Eroare necunoscută"}
+        </div>
+      </PageWrapper>
+    );
+  }
 
   return (
     <PageWrapper title="Import Contacte">
-      <input
-        type="file"
-        ref={fileInputRef}
+      <FileUpload
         accept={ACCEPT}
         multiple
-        className="hidden"
-        onChange={(e) => handleFiles(e.target.files)}
+        onFilesSelected={(files) => handleFiles(files)}
+        label="Trage fișiere CSV sau Excel aici"
       />
-      <div
-        className={cn(
-          "border-2 border-dashed rounded-[var(--radius-lg)] p-12 text-center transition-colors",
-          drag
-            ? "border-[var(--color-b5)] bg-[var(--color-b5)]/5"
-            : "border-[var(--color-s600)] bg-[var(--color-s900)]/50",
-        )}
-        onDragOver={(e) => {
-          e.preventDefault();
-          setDrag(true);
-        }}
-        onDragLeave={() => setDrag(false)}
-        onDrop={onDrop}
-      >
-        <p className="text-[var(--color-t2)] mb-4">Trage fișiere CSV sau Excel aici</p>
-        <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
-          Browse Files
-        </Button>
-      </div>
+      {uploadMessage ? (
+        <p className="mt-3 text-xs text-[var(--color-ok)]">{uploadMessage}</p>
+      ) : null}
 
       <Card className="mt-6">
         <CardHeader>
@@ -101,23 +82,30 @@ export function Import() {
         </CardHeader>
         <CardBody>
           <div className="space-y-4">
-            {MOCK_IMPORTS.map((imp) => (
-              <div
-                key={imp.id}
-                className="flex items-center gap-4 py-2 border-b border-[var(--color-s700)] last:border-0"
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-[var(--color-t1)] truncate">{imp.name}</p>
-                  <p className="text-xs text-[var(--color-t3)]">
-                    {imp.rows} rânduri · {imp.date}
-                  </p>
+            {imports.map((imp: Record<string, unknown>) => {
+              const processed = Number(imp.processedRows ?? 0);
+              const total = Number(imp.totalRows ?? 0);
+              const progress = total > 0 ? Math.min(100, Math.round((processed / total) * 100)) : 0;
+              return (
+                <div
+                  key={String(imp.id)}
+                  className="flex items-center gap-4 py-2 border-b border-[var(--color-s700)] last:border-0"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-[var(--color-t1)] truncate">
+                      {String(imp.filename ?? imp.id)}
+                    </p>
+                    <p className="text-xs text-[var(--color-t3)]">
+                      {total} rânduri · {new Date(String(imp.createdAt)).toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="w-32">
+                    <ProgressBar value={progress} />
+                  </div>
+                  <span className="text-xs text-[var(--color-t2)] w-20">{String(imp.status)}</span>
                 </div>
-                <div className="w-32">
-                  <ProgressBar value={imp.progress} />
-                </div>
-                <span className="text-xs text-[var(--color-t2)] w-20">{imp.status}</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </CardBody>
       </Card>

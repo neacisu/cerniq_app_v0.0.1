@@ -9,6 +9,14 @@ import {
   register_with_invite_code,
 } from "@cerniq/db";
 import { envConfig } from "../config.js";
+import {
+  consumeRefreshToken,
+  isRefreshFamilyRevoked,
+  newTokenIds,
+  revokeRefreshFamily,
+  storeRefreshToken,
+  verifyRefreshTokenHash,
+} from "../lib/refresh-token-store.js";
 
 function getPgErrorCode(err: unknown): string {
   if (!err || typeof err !== "object") return "";
@@ -54,6 +62,74 @@ const RegisterBodySchema = z
     message: "Camp obligatoriu lipsa pentru modul selectat",
   });
 
+const RefreshBodySchema = z.object({
+  refreshToken: z.string().min(20).optional(),
+});
+
+const LogoutBodySchema = z.object({
+  refreshToken: z.string().min(20).optional(),
+});
+
+type AuthUserPayload = {
+  id: string;
+  email: string;
+  tenantId: string;
+  role: string;
+};
+
+function parseDurationToSeconds(value: string): number {
+  const match = value.trim().match(/^(\d+)([smhd])$/i);
+  if (!match) return 60 * 60 * 24 * 30;
+  const amount = Number(match[1]);
+  const unit = match[2].toLowerCase();
+  if (unit === "s") return amount;
+  if (unit === "m") return amount * 60;
+  if (unit === "h") return amount * 60 * 60;
+  return amount * 60 * 60 * 24;
+}
+
+async function issueAuthTokens(
+  app: FastifyInstance,
+  user: AuthUserPayload,
+  existingFamilyId?: string,
+) {
+  const accessToken = await app.jwt.sign(
+    {
+      id: user.id,
+      email: user.email,
+      tenantId: user.tenantId,
+      role: user.role,
+      sub: user.id,
+      tokenType: "access",
+    },
+    { expiresIn: envConfig.JWT_EXPIRES_IN },
+  );
+
+  const ids = newTokenIds(existingFamilyId);
+  const refreshToken = await app.jwt.sign(
+    {
+      id: user.id,
+      email: user.email,
+      tenantId: user.tenantId,
+      role: user.role,
+      sub: user.id,
+      tokenType: "refresh",
+      jti: ids.jti,
+      familyId: ids.familyId,
+    },
+    { expiresIn: envConfig.JWT_REFRESH_EXPIRES_IN },
+  );
+  await storeRefreshToken({
+    jti: ids.jti,
+    familyId: ids.familyId,
+    userId: user.id,
+    tenantId: user.tenantId,
+    token: refreshToken,
+    expiresInSeconds: parseDurationToSeconds(envConfig.JWT_REFRESH_EXPIRES_IN),
+  });
+  return { accessToken, refreshToken, familyId: ids.familyId };
+}
+
 export async function authRoutes(app: FastifyInstance) {
   app.post("/login", async (request, reply) => {
     const parsed = LoginBodySchema.safeParse(request.body);
@@ -86,21 +162,25 @@ export async function authRoutes(app: FastifyInstance) {
     const tenantId = user.tenantId;
     const role = user.role;
 
-    const token = app.jwt.sign(
-      {
-        id: user.id,
-        email: user.email,
-        tenantId,
-        role,
-        sub: user.id,
-      },
-      { expiresIn: envConfig.JWT_EXPIRES_IN },
-    );
+    const { accessToken, refreshToken } = await issueAuthTokens(app, {
+      id: user.id,
+      email: user.email,
+      tenantId,
+      role,
+    });
+    reply.setCookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: envConfig.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/auth",
+      maxAge: parseDurationToSeconds(envConfig.JWT_REFRESH_EXPIRES_IN),
+    });
 
     return reply.send({
       success: true,
       data: {
-        token,
+        token: accessToken,
+        refreshToken,
         user: { id: user.id, email: user.email, name: user.name, tenantId, role },
         expiresIn: envConfig.JWT_EXPIRES_IN,
       },
@@ -194,21 +274,25 @@ export async function authRoutes(app: FastifyInstance) {
       });
     }
 
-    const token = app.jwt.sign(
-      {
-        id: user.id,
-        email: user.email,
-        tenantId: user.tenantId,
-        role: user.role,
-        sub: user.id,
-      },
-      { expiresIn: envConfig.JWT_EXPIRES_IN },
-    );
+    const { accessToken, refreshToken } = await issueAuthTokens(app, {
+      id: user.id,
+      email: user.email,
+      tenantId: user.tenantId,
+      role: user.role,
+    });
+    reply.setCookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: envConfig.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/auth",
+      maxAge: parseDurationToSeconds(envConfig.JWT_REFRESH_EXPIRES_IN),
+    });
 
     return reply.send({
       success: true,
       data: {
-        token,
+        token: accessToken,
+        refreshToken,
         user: {
           id: user.id,
           email: user.email,
@@ -219,6 +303,112 @@ export async function authRoutes(app: FastifyInstance) {
         expiresIn: envConfig.JWT_EXPIRES_IN,
       },
     });
+  });
+
+  app.post("/refresh", async (request, reply) => {
+    const parsed = RefreshBodySchema.safeParse(request.body ?? {});
+    if (!parsed.success) {
+      return reply.status(400).send({
+        success: false,
+        error: "Date invalide",
+        details: parsed.error.flatten(),
+      });
+    }
+    const cookieToken = request.cookies?.refreshToken;
+    const refreshToken = parsed.data.refreshToken ?? cookieToken;
+    if (!refreshToken) {
+      return reply.status(401).send({ success: false, error: "Refresh token lipsa" });
+    }
+
+    let payload: Record<string, unknown>;
+    try {
+      payload = await app.jwt.verify<Record<string, unknown>>(refreshToken);
+    } catch {
+      return reply.status(401).send({ success: false, error: "Refresh token invalid" });
+    }
+
+    if (
+      payload.tokenType !== "refresh" ||
+      typeof payload.jti !== "string" ||
+      typeof payload.familyId !== "string"
+    ) {
+      return reply.status(401).send({ success: false, error: "Refresh token invalid" });
+    }
+    const familyRevoked = await isRefreshFamilyRevoked(payload.familyId);
+    if (familyRevoked) {
+      return reply.status(401).send({ success: false, error: "Refresh token family revocata" });
+    }
+
+    const isHashValid = await verifyRefreshTokenHash(payload.jti, refreshToken);
+    if (!isHashValid) {
+      await revokeRefreshFamily(payload.familyId);
+      return reply.status(401).send({ success: false, error: "Refresh token invalidat" });
+    }
+
+    const consumed = await consumeRefreshToken(payload.jti);
+    if (!consumed) {
+      await revokeRefreshFamily(payload.familyId);
+      return reply.status(401).send({ success: false, error: "Refresh token reutilizat" });
+    }
+
+    const user = await get_user_by_email(String(payload.email ?? ""));
+    if (!user || user.status !== "active") {
+      return reply.status(401).send({ success: false, error: "Utilizator invalid" });
+    }
+    const { accessToken, refreshToken: rotatedRefresh } = await issueAuthTokens(
+      app,
+      {
+        id: user.id,
+        email: user.email,
+        tenantId: user.tenantId,
+        role: user.role,
+      },
+      payload.familyId,
+    );
+    reply.setCookie("refreshToken", rotatedRefresh, {
+      httpOnly: true,
+      secure: envConfig.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/auth",
+      maxAge: parseDurationToSeconds(envConfig.JWT_REFRESH_EXPIRES_IN),
+    });
+
+    return reply.send({
+      success: true,
+      data: {
+        token: accessToken,
+        refreshToken: rotatedRefresh,
+        expiresIn: envConfig.JWT_EXPIRES_IN,
+      },
+    });
+  });
+
+  app.post("/logout", async (request, reply) => {
+    const parsed = LogoutBodySchema.safeParse(request.body ?? {});
+    if (!parsed.success) {
+      return reply.status(400).send({
+        success: false,
+        error: "Date invalide",
+        details: parsed.error.flatten(),
+      });
+    }
+    const refreshToken = parsed.data.refreshToken ?? request.cookies?.refreshToken;
+    if (refreshToken) {
+      try {
+        const payload = await app.jwt.verify<Record<string, unknown>>(refreshToken);
+        if (typeof payload.familyId === "string") {
+          await revokeRefreshFamily(payload.familyId);
+        }
+        if (typeof payload.jti === "string") {
+          await consumeRefreshToken(payload.jti);
+        }
+      } catch {
+        // No-op for already invalid tokens.
+      }
+    }
+
+    reply.clearCookie("refreshToken", { path: "/auth" });
+    return reply.send({ success: true, data: { loggedOut: true } });
   });
 
   app.get(

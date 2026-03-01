@@ -1,17 +1,29 @@
 import type { FastifyInstance } from "fastify";
 import { healthCheckStatus, healthCheckLatency } from "../plugins/metrics.js";
+import { envConfig } from "../config.js";
 
 let redisSingleton: import("ioredis").default | null = null;
 
 async function getRedisClient(): Promise<import("ioredis").default> {
   if (redisSingleton) return redisSingleton;
   const Redis = (await import("ioredis")).default;
-  redisSingleton = new Redis(process.env.REDIS_URL ?? "redis://localhost:6379", {
+  redisSingleton = new Redis(envConfig.REDIS_URL, {
     maxRetriesPerRequest: 1,
     connectTimeout: 3000,
     lazyConnect: true,
   });
   return redisSingleton;
+}
+
+export async function resetHealthRedis() {
+  if (!redisSingleton) return;
+  try {
+    await redisSingleton.quit();
+  } catch {
+    // Ignore disconnection errors and reset client reference.
+  } finally {
+    redisSingleton = null;
+  }
 }
 
 async function checkDatabase(): Promise<{ status: string; latencyMs: number }> {

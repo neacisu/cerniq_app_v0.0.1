@@ -1,10 +1,11 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { AuthProvider } from "@/providers/auth-provider";
-import { Dashboard } from "@/pages/dashboard/index";
-import { Login } from "@/pages/auth/Login";
-import { ForgotPassword } from "@/pages/auth/ForgotPassword";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { AuthProvider } from "@/providers/auth-provider.js";
+import { Dashboard } from "@/pages/dashboard/index.js";
+import { Login } from "@/pages/auth/Login.js";
+import { ForgotPassword } from "@/pages/auth/ForgotPassword.js";
 
 vi.mock("sonner", () => ({
   toast: { success: vi.fn(), error: vi.fn() },
@@ -13,9 +14,11 @@ vi.mock("sonner", () => ({
 
 const wrap = (ui: React.ReactElement) =>
   render(
-    <MemoryRouter>
-      <AuthProvider>{ui}</AuthProvider>
-    </MemoryRouter>,
+    <QueryClientProvider client={new QueryClient()}>
+      <MemoryRouter>
+        <AuthProvider>{ui}</AuthProvider>
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 
 describe("Page Rendering", () => {
@@ -31,24 +34,12 @@ describe("Page Rendering", () => {
     wrap(<ForgotPassword />);
     expect(screen.getByRole("heading", { name: /Resetare Parolă/i })).toBeInTheDocument();
   });
-  it("Dashboard renders KPIs", () => {
+  it("Dashboard renders title", () => {
     wrap(<Dashboard />);
     expect(screen.getByText("Dashboard")).toBeInTheDocument();
   });
-  it("Dashboard shows Bronze KPI", () => {
+  it("Dashboard shows loading state", () => {
     wrap(<Dashboard />);
-    expect(screen.getByText("47,382")).toBeInTheDocument();
-  });
-  it("Dashboard shows Silver KPI", () => {
-    wrap(<Dashboard />);
-    expect(screen.getByText("8,941")).toBeInTheDocument();
-  });
-  it("Dashboard shows Gold KPI", () => {
-    wrap(<Dashboard />);
-    expect(screen.getByText("1,247")).toBeInTheDocument();
-  });
-  it("Dashboard shows Revenue KPI", () => {
-    wrap(<Dashboard />);
-    expect(screen.getByText("184K")).toBeInTheDocument();
+    expect(screen.getByRole("status", { name: /loading/i })).toBeInTheDocument();
   });
 });

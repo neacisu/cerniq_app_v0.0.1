@@ -10,7 +10,7 @@
     "test": "echo 'No tests'"
   },
   "dependencies": {
-    "bullmq": "^5.69.2",
-    "ioredis": "^5.9.3"
+    "bullmq": "^5.70.1",
+    "ioredis": "^5.10.0"
   }
 }

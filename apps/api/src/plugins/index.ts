@@ -7,10 +7,29 @@ import cookie from "@fastify/cookie";
 import rateLimit from "@fastify/rate-limit";
 import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
+import multipart from "@fastify/multipart";
 import { envConfig } from "../config.js";
 import { metricsPlugin } from "./metrics.js";
 import { requestLoggingPlugin } from "./request-logging.js";
 import { tenantContext } from "./tenant-context.js";
+
+function createRateLimitRedis() {
+  return new Redis(envConfig.REDIS_URL, {
+    maxRetriesPerRequest: 3,
+    retryStrategy: (times) => (times > 3 ? null : Math.min(times * 100, 3000)),
+  });
+}
+
+let rateLimitRedis = createRateLimitRedis();
+
+export async function refreshRateLimitRedis() {
+  try {
+    await rateLimitRedis.quit();
+  } catch {
+    // Ignore disconnect errors and replace client.
+  }
+  rateLimitRedis = createRateLimitRedis();
+}
 
 export async function registerPlugins(app: FastifyInstance) {
   await app.register(swagger, {
@@ -56,16 +75,18 @@ export async function registerPlugins(app: FastifyInstance) {
   });
 
   await app.register(jwt, {
-    secret: envConfig.JWT_SECRET,
+    secret: async (_request: unknown, _tokenOrPayload: unknown) => envConfig.JWT_SECRET,
     sign: { expiresIn: envConfig.JWT_EXPIRES_IN },
   });
 
   await app.register(cookie);
-
-  const rateLimitRedis = new Redis(envConfig.REDIS_URL, {
-    maxRetriesPerRequest: 3,
-    retryStrategy: (times) => (times > 3 ? null : Math.min(times * 100, 3000)),
+  await app.register(multipart, {
+    limits: {
+      files: 1,
+      fileSize: 100 * 1024 * 1024,
+    },
   });
+
   app.addHook("onClose", (_instance, done) => {
     if (rateLimitRedis.status === "ready" || rateLimitRedis.status === "connect") {
       rateLimitRedis
@@ -77,6 +98,7 @@ export async function registerPlugins(app: FastifyInstance) {
     }
   });
   await app.register(rateLimit, {
+    nameSpace: `${envConfig.REDIS_PREFIX ?? "cerniq"}:ratelimit:`,
     max: envConfig.RATE_LIMIT_MAX,
     timeWindow: envConfig.RATE_LIMIT_WINDOW,
     redis: rateLimitRedis,

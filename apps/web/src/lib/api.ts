@@ -8,9 +8,7 @@ const STORAGE_KEY = "cerniq_token";
 
 function getAuthHeaders(): Record<string, string> {
   const token = typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null;
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
+  const headers: Record<string, string> = {};
   if (token) headers.Authorization = `Bearer ${token}`;
   return headers;
 }
@@ -35,6 +33,9 @@ export async function apiFetch<T>(path: string, options?: RequestInit): Promise<
   const authHeaders = getAuthHeaders();
   for (const [k, v] of Object.entries(authHeaders)) {
     if (!headers.has(k)) headers.set(k, v);
+  }
+  if (!(options?.body instanceof FormData) && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
   }
 
   const res = await fetch(url, { ...options, headers });
@@ -79,17 +80,17 @@ export const api = {
   post: <T>(path: string, body?: unknown) =>
     apiFetch<T>(path, {
       method: "POST",
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body),
     }),
   put: <T>(path: string, body?: unknown) =>
     apiFetch<T>(path, {
       method: "PUT",
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body),
     }),
   patch: <T>(path: string, body?: unknown) =>
     apiFetch<T>(path, {
       method: "PATCH",
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body),
     }),
   delete: <T>(path: string) => apiFetch<T>(path, { method: "DELETE" }),
 };

@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, NavLink, Navigate } from "react-router-dom";
-import { AdminAuthProvider, useAdminAuth } from "./providers/admin-auth-provider.js";
+import { AdminAuthProvider } from "./providers/admin-auth-provider.js";
+import { useAdminAuth } from "./hooks/use-admin-auth.js";
 import { Dashboard } from "./pages/Dashboard.js";
 import { Queues } from "./pages/Queues.js";
 import { Health } from "./pages/Health.js";

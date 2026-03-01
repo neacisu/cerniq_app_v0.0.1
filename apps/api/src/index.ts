@@ -1,3 +1,4 @@
+import { existsSync, statSync, readFileSync, watchFile, unwatchFile } from "node:fs";
 import { envConfig, refreshEnvConfig } from "./config.js";
 import { initTelemetry, shutdownTelemetry } from "@cerniq/observability";
 import {
@@ -7,6 +8,36 @@ import {
   runDrizzleMigrations,
 } from "@cerniq/db";
 import { buildApp } from "./app.js";
+import { refreshRedisClient, closeRedisClient } from "./lib/refresh-token-store.js";
+import { refreshRateLimitRedis } from "./plugins/index.js";
+import { resetHealthRedis } from "./routes/health.js";
+import {
+  secretsFileAgeSeconds,
+  secretsLastReloadTimestamp,
+  secretsReloadTotal,
+} from "./plugins/metrics.js";
+
+function watchSecretsFile(
+  path: string,
+  onReload: () => void | Promise<void>,
+  pollIntervalMs = 2000,
+): () => void {
+  let reloading = false;
+  watchFile(path, { interval: pollIntervalMs }, async (curr, prev) => {
+    if (reloading) return;
+    if (curr.mtimeMs === prev.mtimeMs && curr.size === prev.size) return;
+    if (!existsSync(path)) return;
+    const content = readFileSync(path, "utf-8");
+    if (!content.includes("OPENBAO_SECRETS_LOADED=true")) return;
+    reloading = true;
+    try {
+      await onReload();
+    } finally {
+      reloading = false;
+    }
+  });
+  return () => unwatchFile(path);
+}
 
 initTelemetry({
   serviceName: "cerniq-api",
@@ -36,6 +67,19 @@ async function main() {
     process.exit(1);
   });
 
+  let isDraining = false;
+  let isReloading = false;
+
+  app.addHook("onRequest", async (request, reply) => {
+    if (!isDraining) return;
+    const payload = {
+      status: "reloading",
+      message: "Service is reloading credentials, retry shortly.",
+      timestamp: new Date().toISOString(),
+    };
+    reply.status(503).send(payload);
+  });
+
   try {
     await app.listen({ port: envConfig.PORT, host: "0.0.0.0" });
     app.log.info(`API server listening on port ${envConfig.PORT}`);
@@ -44,15 +88,43 @@ async function main() {
     process.exit(1);
   }
 
-  process.on("SIGHUP", async () => {
-    app.log.info("SIGHUP received, reloading secrets and DB connection...");
+  const reloadAll = async () => {
+    if (isReloading) return;
+    isReloading = true;
+    isDraining = true;
+    app.log.info("Reloading secrets and service connections...");
     try {
+      await new Promise((resolve) => setTimeout(resolve, 5000));
       refreshEnvConfig();
       await refreshDbConnection();
-      app.log.info("Secrets and DB connection reloaded successfully.");
+      await refreshRedisClient();
+      await refreshRateLimitRedis();
+      await resetHealthRedis();
+      secretsReloadTotal.inc({ service: "api", status: "success" });
+      secretsLastReloadTimestamp.set({ service: "api" }, Math.floor(Date.now() / 1000));
+      app.log.info("Secrets and service connections reloaded successfully.");
     } catch (err) {
-      app.log.error(err, "Failed to reload secrets/DB connection");
+      secretsReloadTotal.inc({ service: "api", status: "failed" });
+      app.log.error(err, "Failed to reload secrets/service connections");
+    } finally {
+      isDraining = false;
+      isReloading = false;
     }
+  };
+
+  const secretsPath = process.env.SECRETS_PATH ?? "/secrets/api.env";
+  const updateSecretsFileAge = () => {
+    if (!existsSync(secretsPath)) return;
+    const ageSeconds = Math.max(0, Math.floor((Date.now() - statSync(secretsPath).mtimeMs) / 1000));
+    secretsFileAgeSeconds.set({ service: "api" }, ageSeconds);
+  };
+  updateSecretsFileAge();
+  const ageInterval = setInterval(updateSecretsFileAge, 30000);
+  const stopSecretsWatch = watchSecretsFile(secretsPath, reloadAll, 2000);
+
+  process.on("SIGHUP", async () => {
+    app.log.info("SIGHUP received, triggering secrets reload...");
+    await reloadAll();
   });
 
   const shutdown = async (signal: string) => {
@@ -65,8 +137,12 @@ async function main() {
     }, envConfig.SHUTDOWN_TIMEOUT_MS);
 
     try {
+      stopSecretsWatch();
+      clearInterval(ageInterval);
       await app.close();
       await closeDbConnection();
+      await closeRedisClient();
+      await resetHealthRedis();
       await shutdownTelemetry();
       clearTimeout(t);
       app.log.info("Shutdown complete");

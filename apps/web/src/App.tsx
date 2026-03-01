@@ -17,6 +17,21 @@ import { Bronze } from "./pages/etapa1/bronze.js";
 import { Silver } from "./pages/etapa1/silver.js";
 import { Gold } from "./pages/etapa1/gold.js";
 import { Approvals } from "./pages/etapa1/approvals.js";
+import { DashboardE1 } from "./pages/etapa1/dashboard-e1.js";
+import { ImportNew } from "./pages/etapa1/import-new.js";
+import { ImportDetail } from "./pages/etapa1/import-detail.js";
+import { ImportMapping } from "./pages/etapa1/import-mapping.js";
+import { BronzeDetail } from "./pages/etapa1/bronze-detail.js";
+import { SilverContacts } from "./pages/etapa1/silver-contacts.js";
+import { SilverDedup } from "./pages/etapa1/silver-dedup.js";
+import { GoldContacts } from "./pages/etapa1/gold-contacts.js";
+import { SilverCompanyDetail } from "./pages/etapa1/silver-company-detail.js";
+import { GoldCompanyDetail } from "./pages/etapa1/gold-company-detail.js";
+import { EnrichmentQueues } from "./pages/etapa1/enrichment-queues.js";
+import { EnrichmentLogs } from "./pages/etapa1/enrichment-logs.js";
+import { ApprovalReview } from "./pages/etapa1/approval-review.js";
+import { SettingsMappings } from "./pages/etapa1/settings-mappings.js";
+import { SettingsIntegrations } from "./pages/etapa1/settings-integrations.js";
 import { Outreach } from "./pages/etapa2/outreach.js";
 import { Leads } from "./pages/etapa2/leads.js";
 import { Sequences } from "./pages/etapa2/sequences.js";
@@ -84,11 +99,30 @@ export function App() {
                   >
                     <Route path="/" element={<Navigate to="/dashboard" replace />} />
                     <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/etapa1/dashboard" element={<DashboardE1 />} />
                     <Route path="/import" element={<Import />} />
+                    <Route path="/imports" element={<Import />} />
+                    <Route path="/imports/new" element={<ImportNew />} />
+                    <Route path="/imports/:id" element={<ImportDetail />} />
+                    <Route path="/imports/:id/mapping" element={<ImportMapping />} />
                     <Route path="/bronze" element={<Bronze />} />
+                    <Route path="/bronze/contacts" element={<Bronze />} />
+                    <Route path="/bronze/contacts/:id" element={<BronzeDetail />} />
                     <Route path="/silver" element={<Silver />} />
+                    <Route path="/silver/companies" element={<Silver />} />
+                    <Route path="/silver/companies/:id" element={<SilverCompanyDetail />} />
+                    <Route path="/silver/contacts" element={<SilverContacts />} />
+                    <Route path="/silver/dedup" element={<SilverDedup />} />
                     <Route path="/gold" element={<Gold />} />
+                    <Route path="/gold/companies" element={<Gold />} />
+                    <Route path="/gold/companies/:id" element={<GoldCompanyDetail />} />
+                    <Route path="/gold/contacts" element={<GoldContacts />} />
                     <Route path="/approvals" element={<Approvals />} />
+                    <Route path="/approvals/:id" element={<ApprovalReview />} />
+                    <Route path="/enrichment/queue" element={<EnrichmentQueues />} />
+                    <Route path="/enrichment/logs" element={<EnrichmentLogs />} />
+                    <Route path="/settings/mappings" element={<SettingsMappings />} />
+                    <Route path="/settings/integrations" element={<SettingsIntegrations />} />
                     <Route path="/outreach" element={<Outreach />} />
                     <Route path="/leads" element={<Leads />} />
                     <Route path="/sequences" element={<Sequences />} />

@@ -1,12 +1,58 @@
+import { useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
-import { Card, CardHeader, CardTitle, CardBody, Input, SBadge } from "@/components/ui/index.js";
-import { ProgressBar } from "@/components/data/ProgressBar.js";
-import { MOCK_COMPANIES, COUNTIES } from "@/config/constants.js";
+import { Spinner } from "@/components/ui/spinner.js";
+import { Card, CardHeader, CardTitle, CardBody, Input } from "@/components/ui/index.js";
+import { fetchBronzeContacts, reprocessBronzeContact } from "@/lib/etapa1-api.js";
+import { DataTable } from "@/components/data/DataTable.js";
+import { bronzeContactsColumns } from "@/lib/table-columns.js";
+import type { BronzeContactRow } from "@/lib/etapa1-types.js";
 
 export function Bronze() {
-  const avgQuality = Math.round(
-    MOCK_COMPANIES.reduce((s, c) => s + c.quality, 0) / MOCK_COMPANIES.length,
-  );
+  const [search, setSearch] = useState("");
+  const contactsQuery = useQuery({
+    queryKey: ["etapa1", "bronze", search],
+    queryFn: () => fetchBronzeContacts({ limit: 50, offset: 0, search: search || undefined }),
+  });
+  const reprocessMutation = useMutation({
+    mutationFn: (id: string) => reprocessBronzeContact(id),
+    onSuccess: () => {
+      void contactsQuery.refetch();
+    },
+  });
+  const contacts = (contactsQuery.data?.data ?? []) as unknown as BronzeContactRow[];
+  const avgQuality =
+    contacts.length === 0
+      ? 0
+      : Math.round(
+          contacts.reduce((sum: number, row: Record<string, unknown>) => {
+            const status = String(row.processingStatus ?? "pending");
+            if (status === "promoted") return sum + 95;
+            if (status === "processing") return sum + 60;
+            if (status === "error") return sum + 20;
+            return sum + 40;
+          }, 0) / contacts.length,
+        );
+
+  if (contactsQuery.isPending) {
+    return (
+      <PageWrapper title="Bronze Contacte">
+        <div className="flex items-center justify-center py-12">
+          <Spinner size={32} />
+        </div>
+      </PageWrapper>
+    );
+  }
+
+  if (contactsQuery.isError) {
+    return (
+      <PageWrapper title="Bronze Contacte">
+        <div className="rounded-lg border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 p-4 text-sm text-[var(--color-danger)]">
+          Eroare la încărcarea datelor: {contactsQuery.error?.message ?? "Eroare necunoscută"}
+        </div>
+      </PageWrapper>
+    );
+  }
 
   return (
     <PageWrapper title="Bronze Contacte">
@@ -16,15 +62,12 @@ export function Bronze() {
       </div>
 
       <div className="flex gap-4 mb-6">
-        <Input placeholder="Caută firmă sau CUI..." className="max-w-xs" />
-        <select className="px-3 py-2 rounded-[var(--radius-md)] bg-[var(--color-s800)] border border-[var(--color-s600)] text-[var(--color-t1)] text-sm">
-          <option value="">Toate județele</option>
-          {COUNTIES.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
+        <Input
+          placeholder="Caută firmă sau CUI..."
+          className="max-w-xs"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
       </div>
 
       <Card>
@@ -32,35 +75,18 @@ export function Bronze() {
           <CardTitle>Contacte Bronze</CardTitle>
         </CardHeader>
         <CardBody className="p-0">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-[var(--color-s700)] text-left text-[var(--color-t3)]">
-                <th className="px-5 py-3">Name</th>
-                <th className="px-5 py-3">CUI</th>
-                <th className="px-5 py-3">County</th>
-                <th className="px-5 py-3">Quality</th>
-                <th className="px-5 py-3">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {MOCK_COMPANIES.map((c) => (
-                <tr
-                  key={c.id}
-                  className="border-b border-[var(--color-s700)] last:border-0 hover:bg-[var(--color-s800)]/50"
-                >
-                  <td className="px-5 py-3 font-medium text-[var(--color-t1)]">{c.name}</td>
-                  <td className="px-5 py-3 text-[var(--color-t2)]">{c.cui}</td>
-                  <td className="px-5 py-3 text-[var(--color-t2)]">{c.county}</td>
-                  <td className="px-5 py-3 w-32">
-                    <ProgressBar value={c.quality} />
-                  </td>
-                  <td className="px-5 py-3">
-                    <SBadge status={c.status} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <DataTable columns={bronzeContactsColumns} data={contacts} />
+          <div className="px-5 pb-4">
+            {contacts.map((c) => (
+              <button
+                key={`r-${c.id}`}
+                className="mr-3 text-xs text-[var(--color-b5)] underline"
+                onClick={() => void reprocessMutation.mutateAsync(String(c.id))}
+              >
+                Reprocess {c.extractedName ?? c.id}
+              </button>
+            ))}
+          </div>
         </CardBody>
       </Card>
     </PageWrapper>

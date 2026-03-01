@@ -13,11 +13,12 @@ export {
   register_new_company,
   register_with_invite_code,
 } from "./client.js";
-export { sql } from "drizzle-orm";
+export { sql, eq, and, or, desc, asc } from "drizzle-orm";
 export {
   runMigrations,
   runDrizzleMigrations,
   finalizeOwnership,
+  runAllMigrations,
   closeMigrationDb,
 } from "./migrate.js";
 export * from "./schemas/tenants.js";
@@ -26,3 +27,7 @@ export * from "./schemas/rbac.js";
 export * from "./schemas/approval.js";
 export * from "./schemas/audit.js";
 export * from "./schemas/invite-codes.js";
+export * from "./schemas/bronze.js";
+export * from "./schemas/silver.js";
+export * from "./schemas/gold.js";
+export * from "./services/approval-service.js";

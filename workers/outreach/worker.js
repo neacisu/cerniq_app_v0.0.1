@@ -8,7 +8,14 @@ import http from "http";
 import fs from "fs";
 
 const SECRETS_PATH = process.env.SECRETS_PATH || "/secrets/workers.env";
-const REDIS_KEYS = ["REDIS_URL", "REDIS_PASSWORD", "REDIS_PREFIX"];
+const REDIS_KEYS = ["REDIS_URL", "REDIS_PASSWORD", "REDIS_PREFIX", "BULLMQ_PREFIX"];
+const OPENBAO_READY_MARKER = "OPENBAO_SECRETS_LOADED=true";
+
+function getRequiredEnv(name) {
+  const value = process.env[name]?.trim();
+  if (!value) throw new Error(`Missing required environment variable: ${name}`);
+  return value;
+}
 
 function loadSecretsFromFile(forceOverwrite = false) {
   if (!fs.existsSync(SECRETS_PATH)) return;
@@ -31,7 +38,7 @@ const queues = ["email-campaigns", "linkedin-automation", "sequence-processing"]
 const stats = { processed: 0, failed: 0, lastJob: null };
 
 function getRedisConnection() {
-  const url = process.env.REDIS_URL || "redis://localhost:6379";
+  const url = getRequiredEnv("REDIS_URL");
   const u = new URL(url);
   return {
     host: u.hostname,
@@ -55,7 +62,8 @@ let workers = [];
 
 function startWorkers() {
   const conn = getRedisConnection();
-  const prefix = process.env.REDIS_PREFIX || "cerniq";
+  const prefix = process.env.BULLMQ_PREFIX?.trim() || process.env.REDIS_PREFIX?.trim();
+  if (!prefix) throw new Error("Missing required environment variable: BULLMQ_PREFIX or REDIS_PREFIX");
   workers = queues.map(
     (name) =>
       new Worker(
@@ -80,6 +88,15 @@ function startWorkers() {
 async function stopWorkers() {
   await Promise.all(workers.map((w) => w.close()));
   workers = [];
+}
+
+async function reloadWorkersFromSecrets() {
+  if (!fs.existsSync(SECRETS_PATH)) return;
+  const content = fs.readFileSync(SECRETS_PATH, "utf-8");
+  if (!content.includes(OPENBAO_READY_MARKER)) return;
+  loadSecretsFromFile(true);
+  await stopWorkers();
+  startWorkers();
 }
 
 loadSecretsFromFile();
@@ -110,16 +127,25 @@ server.listen(PORT, "0.0.0.0", () => {
 process.on("SIGHUP", async () => {
   console.log("[Outreach] SIGHUP: reloading secrets and Redis connection...");
   try {
-    loadSecretsFromFile(true);
-    await stopWorkers();
-    startWorkers();
+    await reloadWorkersFromSecrets();
     console.log("[Outreach] Secrets and Redis connection reloaded.");
   } catch (err) {
     console.error("[Outreach] SIGHUP reload failed:", err);
   }
 });
 
+fs.watchFile(SECRETS_PATH, { interval: 2000 }, async (curr, prev) => {
+  if (curr.mtimeMs === prev.mtimeMs) return;
+  try {
+    await reloadWorkersFromSecrets();
+    console.log("[Outreach] Secret file change detected and reloaded.");
+  } catch (err) {
+    console.error("[Outreach] Secret file reload failed:", err);
+  }
+});
+
 async function shutdown() {
+  fs.unwatchFile(SECRETS_PATH);
   server.close();
   await stopWorkers();
   process.exit(0);

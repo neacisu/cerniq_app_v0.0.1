@@ -57,6 +57,62 @@
       "when": 1772070000000,
       "tag": "0007_rls_safe_current_setting",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1772080000000,
+      "tag": "0008_bronze_schema",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1772090000000,
+      "tag": "0009_silver_schema",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1772100000000,
+      "tag": "0010_gold_schema",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1772110000000,
+      "tag": "0011_hitl_approval_schema",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1772120000000,
+      "tag": "0012_silver_trgm_search",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1772130000000,
+      "tag": "0013_add_missing_etapa1_columns",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1772140000000,
+      "tag": "0014_fix_indexes_fks_alignment",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1772150000000,
+      "tag": "0015_ai_embedding_vector_type",
+      "breakpoints": true
     }
   ]
 }

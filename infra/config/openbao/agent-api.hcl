@@ -62,9 +62,6 @@ template {
   destination = "/secrets/api.env"
   perms       = 0644
   
-  # Send HUP signal to Node.js process for graceful reload
-  command     = "pkill -HUP node 2>/dev/null || true"
-  
   # Error handling
   error_on_missing_key = true
   

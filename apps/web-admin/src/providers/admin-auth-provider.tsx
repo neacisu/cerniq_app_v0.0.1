@@ -1,15 +1,7 @@
-import { createContext, useCallback, useContext, useState, type ReactNode } from "react";
+import { useCallback, useState, type ReactNode } from "react";
+import { AdminAuthContext, type AdminAuthContextValue } from "./admin-auth-context.js";
 
 const STORAGE_KEY = "cerniq_admin_key";
-
-type AdminAuthContextValue = {
-  adminKey: string | null;
-  setAdminKey: (key: string | null) => void;
-  logout: () => void;
-  isAuthenticated: boolean;
-};
-
-const AdminAuthContext = createContext<AdminAuthContextValue | null>(null);
 
 export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const [adminKey, setAdminKeyState] = useState<string | null>(() =>
@@ -36,10 +28,4 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   };
 
   return <AdminAuthContext.Provider value={value}>{children}</AdminAuthContext.Provider>;
-}
-
-export function useAdminAuth(): AdminAuthContextValue {
-  const ctx = useContext(AdminAuthContext);
-  if (!ctx) throw new Error("useAdminAuth must be used within AdminAuthProvider");
-  return ctx;
 }

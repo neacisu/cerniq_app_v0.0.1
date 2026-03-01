@@ -5,8 +5,74 @@ import { tenants } from "./schemas/tenants.js";
 import { users } from "./schemas/users.js";
 import { roles } from "./schemas/rbac.js";
 import { approvalTypeConfigs } from "./schemas/approval.js";
+import { silverCompanies, silverContacts } from "./schemas/silver.js";
 
 const DEMO_PASSWORD_HASH = bcrypt.hashSync("demo123456", 10);
+
+async function seedTenantPipelineData(tenantId: string, tenantSlug: string) {
+  const insertedCompanies = await db
+    .insert(silverCompanies)
+    .values(
+      Array.from({ length: 10 }).map((_, idx) => {
+        const companyNo = idx + 1;
+        return {
+          tenantId,
+          cui: `${tenantSlug.replace(/-/g, "").slice(0, 6).toUpperCase()}${String(companyNo).padStart(4, "0")}`,
+          denumire: `Ferma ${tenantSlug} ${companyNo}`,
+          email: `office${companyNo}@${tenantSlug}.ro`,
+          telefon: `07${String(10000000 + companyNo)}`,
+          adresa: `Str. Agricultorilor ${companyNo}`,
+          judet: "Cluj",
+          localitate: "Cluj-Napoca",
+          enrichmentStatus: "pending" as const,
+          promotionStatus: "blocked" as const,
+          dedupStatus: "pending" as const,
+          metadata: { seeded: true, seedBatch: "s1-pr6" },
+        };
+      }),
+    )
+    .onConflictDoNothing({ target: [silverCompanies.tenantId, silverCompanies.cui] })
+    .returning({ id: silverCompanies.id });
+
+  const companyIds =
+    insertedCompanies.length > 0
+      ? insertedCompanies.map((row) => row.id)
+      : (
+          await db
+            .select({ id: silverCompanies.id })
+            .from(silverCompanies)
+            .where(eq(silverCompanies.tenantId, tenantId))
+            .limit(10)
+        ).map((row) => row.id);
+
+  const contactsPayload = companyIds.flatMap((companyId, companyIndex) =>
+    Array.from({ length: 5 }).map((_, contactIndex) => {
+      const n = companyIndex * 5 + contactIndex + 1;
+      return {
+        tenantId,
+        companyId,
+        prenume: `Contact${n}`,
+        nume: `Demo${companyIndex + 1}`,
+        email: `contact${n}.${tenantSlug}@example.com`,
+        telefon: `07${String(20000000 + n)}`,
+        telefonE164: `+407${String(20000000 + n)}`,
+        functie: n % 2 === 0 ? "Administrator" : "Manager",
+        seniority: n % 2 === 0 ? "senior" : "mid",
+        isDecisionMaker: n % 3 === 0,
+        isPrimary: contactIndex === 0,
+        enrichmentStatus: "pending" as const,
+        metadata: { seeded: true, seedBatch: "s1-pr6" },
+      };
+    }),
+  );
+
+  if (contactsPayload.length > 0) {
+    await db
+      .insert(silverContacts)
+      .values(contactsPayload)
+      .onConflictDoNothing({ target: [silverContacts.tenantId, silverContacts.emailNormalized] });
+  }
+}
 
 async function seed() {
   console.log("Seeding database...");
@@ -88,6 +154,8 @@ async function seed() {
         description: "Sales representative",
       },
     ]);
+
+    await seedTenantPipelineData(tenant.id, tenant.slug);
   }
 
   if (demoTenant) {

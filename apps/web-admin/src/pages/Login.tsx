@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAdminAuth } from "../providers/admin-auth-provider.js";
+import { useAdminAuth } from "../hooks/use-admin-auth.js";
 
 export function Login() {
   const [key, setKey] = useState("");

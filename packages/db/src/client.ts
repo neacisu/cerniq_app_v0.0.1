@@ -9,8 +9,21 @@ import * as rbac from "./schemas/rbac.js";
 import * as approval from "./schemas/approval.js";
 import * as audit from "./schemas/audit.js";
 import * as inviteCodesSchema from "./schemas/invite-codes.js";
+import * as bronze from "./schemas/bronze.js";
+import * as silver from "./schemas/silver.js";
+import * as gold from "./schemas/gold.js";
 
-const schema = { ...tenants, ...users, ...rbac, ...approval, ...audit, ...inviteCodesSchema };
+const schema = {
+  ...tenants,
+  ...users,
+  ...rbac,
+  ...approval,
+  ...audit,
+  ...inviteCodesSchema,
+  ...bronze,
+  ...silver,
+  ...gold,
+};
 
 const poolSize =
   typeof process.env.DB_POOL_SIZE === "string"
@@ -30,7 +43,15 @@ export function createDbClient(connectionString: string) {
   return { db, sql };
 }
 
-const connectionString = process.env.DATABASE_URL ?? "postgresql://localhost:6432/cerniq";
+function requireDatabaseUrl(): string {
+  const url = process.env.DATABASE_URL;
+  if (!url || !url.trim()) {
+    throw new Error("DATABASE_URL is required for @cerniq/db");
+  }
+  return url.trim();
+}
+
+const connectionString = requireDatabaseUrl();
 
 let connection = createDbClient(connectionString);
 
@@ -47,7 +68,7 @@ export const db = new Proxy(connection.db, {
  */
 export async function refreshDbConnection(): Promise<void> {
   await connection.sql.end();
-  const url = process.env.DATABASE_URL ?? "postgresql://localhost:6432/cerniq";
+  const url = requireDatabaseUrl();
   connection = createDbClient(url);
 }
 
@@ -56,6 +77,7 @@ export async function closeDbConnection(): Promise<void> {
   await connection.sql.end();
 }
 
+// Non-secret safety sentinel used to keep RLS fail-closed when tenant is absent.
 const SENTINEL_TENANT_ID = "00000000-0000-0000-0000-000000000000";
 
 /**
@@ -65,7 +87,8 @@ const SENTINEL_TENANT_ID = "00000000-0000-0000-0000-000000000000";
  */
 export async function setSessionTenantId(tenantId: string | null): Promise<void> {
   const value = tenantId ?? SENTINEL_TENANT_ID;
-  await connection.sql`SELECT set_config('app.tenant_id', ${value}, true)`;
+  // Session-level scope is required because request queries are not wrapped in a single DB transaction.
+  await connection.sql`SELECT set_config('app.tenant_id', ${value}, false)`;
 }
 
 /** Look up user by email (SECURITY DEFINER, bypasses RLS). Use for login only. */

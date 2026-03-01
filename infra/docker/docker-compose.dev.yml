@@ -131,6 +131,7 @@ services:
     image: quay.io/openbao/openbao:2.5.0
     container_name: cerniq-dev-openbao-agent-infra
     restart: unless-stopped
+    pid: "service:pgbouncer"
     command: agent -config=/openbao/config/agent-infra.hcl
     environment:
       CERNIQ_ENV: development
@@ -205,7 +206,7 @@ services:
     working_dir: /app
     volumes:
       - ../../:/app
-    command: sh -c "npm install -g pnpm@10.29.3 && pnpm --filter @cerniq/web dev --host 0.0.0.0 --port 64000"
+    command: sh -c "corepack enable && corepack install && pnpm --filter @cerniq/web dev --host 0.0.0.0 --port 64000"
     ports:
       - "64000:64000"
     environment:
@@ -230,7 +231,7 @@ services:
     working_dir: /app
     volumes:
       - ../../:/app
-    command: sh -c "npm install -g pnpm@10.29.3 && pnpm --filter @cerniq/web-admin dev --host 0.0.0.0 --port 64012"
+    command: sh -c "corepack enable && corepack install && pnpm --filter @cerniq/web-admin dev --host 0.0.0.0 --port 64012"
     ports:
       - "64012:64012"
     environment:
@@ -256,7 +257,7 @@ services:
     volumes:
       - ../../:/app
       - ${CERNIQ_RENDERED_SECRETS_DIR:-/opt/cerniq/runtime-secrets}/api:/secrets:ro
-    command: sh -c "npm install -g pnpm@10.29.3 && pnpm --filter @cerniq/api dev"
+    command: sh -c "corepack enable && corepack install && pnpm --filter @cerniq/api dev"
     ports:
       - "64010:64010"
     environment:
@@ -291,7 +292,7 @@ services:
     volumes:
       - ../../:/app
       - ${CERNIQ_RENDERED_SECRETS_DIR:-/opt/cerniq/runtime-secrets}/api:/secrets:ro
-    command: sh -c "npm install -g pnpm@10.29.3 && pnpm --filter @cerniq/monitoring-api dev"
+    command: sh -c "corepack enable && corepack install && pnpm --filter @cerniq/monitoring-api dev"
     ports:
       - "64080:64080"
     environment:
@@ -320,7 +321,7 @@ services:
     volumes:
       - ../../:/app
       - ${CERNIQ_RENDERED_SECRETS_DIR:-/opt/cerniq/runtime-secrets}/workers:/secrets:ro
-    command: sh -c "npm install -g pnpm@10.29.3 && pnpm --filter @cerniq/worker-ai dev"
+    command: sh -c "corepack enable && corepack install && pnpm --filter @cerniq/worker-ai dev"
     environment:
       NODE_ENV: development
       SECRETS_PATH: /secrets/workers.env
@@ -346,7 +347,7 @@ services:
     volumes:
       - ../../:/app
       - ${CERNIQ_RENDERED_SECRETS_DIR:-/opt/cerniq/runtime-secrets}/workers:/secrets:ro
-    command: sh -c "npm install -g pnpm@10.29.3 && pnpm --filter @cerniq/worker-enrichment dev"
+    command: sh -c "corepack enable && corepack install && pnpm --filter @cerniq/worker-enrichment dev"
     environment:
       NODE_ENV: development
       SECRETS_PATH: /secrets/workers.env
@@ -372,7 +373,7 @@ services:
     volumes:
       - ../../:/app
       - ${CERNIQ_RENDERED_SECRETS_DIR:-/opt/cerniq/runtime-secrets}/workers:/secrets:ro
-    command: sh -c "npm install -g pnpm@10.29.3 && pnpm --filter @cerniq/worker-outreach dev"
+    command: sh -c "corepack enable && corepack install && pnpm --filter @cerniq/worker-outreach dev"
     environment:
       NODE_ENV: development
       SECRETS_PATH: /secrets/workers.env

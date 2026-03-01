@@ -1,72 +1,78 @@
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
-import { Button, Card, CardBody, Badge } from "@/components/ui/index.js";
-import { ProgressBar } from "@/components/data/ProgressBar.js";
+import { Spinner } from "@/components/ui/spinner.js";
 import { EmptyState } from "@/components/feedback/EmptyState.js";
-import { cn } from "@/lib/utils.js";
-
-const MOCK_APPROVALS = [
-  {
-    id: "1",
-    company: "OUAI Ialomita Nord",
-    reason: "CUI nevalidat ANAF",
-    confidence: 34,
-    urgency: "HIGH" as const,
-  },
-  {
-    id: "2",
-    company: "Cooperativa Agriland",
-    reason: "Termene lipsă",
-    confidence: 72,
-    urgency: "MED" as const,
-  },
-  {
-    id: "3",
-    company: "SC AgroSud SRL",
-    reason: "Revenue estimat incert",
-    confidence: 58,
-    urgency: "LOW" as const,
-  },
-];
-
-const urgencyBorder: Record<string, string> = {
-  HIGH: "border-[var(--color-er)]",
-  MED: "border-[var(--color-wa)]",
-  LOW: "border-[var(--color-in)]",
-};
+import { decideApproval, fetchApprovals } from "@/lib/etapa1-api.js";
+import { ApprovalCard } from "@/components/data/ApprovalCard.js";
+import { SLACountdown } from "@/components/data/SLACountdown.js";
 
 export function Approvals() {
-  const hasItems = MOCK_APPROVALS.length > 0;
+  const approvalsQuery = useQuery({
+    queryKey: ["etapa1", "approvals"],
+    queryFn: () => fetchApprovals({ limit: 100 }),
+  });
+  const decisionMutation = useMutation({
+    mutationFn: ({
+      id,
+      decision,
+    }: {
+      id: string;
+      decision: "approve" | "reject" | "merge" | "skip";
+    }) => decideApproval(id, decision),
+    onSuccess: () => void approvalsQuery.refetch(),
+  });
+  const items = approvalsQuery.data?.data ?? [];
+  const hasItems = items.length > 0;
+
+  if (approvalsQuery.isPending) {
+    return (
+      <PageWrapper title="HITL Approvals">
+        <div className="flex items-center justify-center py-12">
+          <Spinner size={32} />
+        </div>
+      </PageWrapper>
+    );
+  }
+
+  if (approvalsQuery.isError) {
+    return (
+      <PageWrapper title="HITL Approvals">
+        <div className="rounded-lg border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 p-4 text-sm text-[var(--color-danger)]">
+          Eroare la încărcarea datelor: {approvalsQuery.error?.message ?? "Eroare necunoscută"}
+        </div>
+      </PageWrapper>
+    );
+  }
 
   return (
     <PageWrapper title="HITL Approvals">
       {hasItems ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {MOCK_APPROVALS.map((a) => (
-            <Card key={a.id} className={cn("border-l-4", urgencyBorder[a.urgency])}>
-              <CardBody>
-                <div className="flex justify-between items-start mb-3">
-                  <h3 className="font-semibold text-[var(--color-t1)]">{a.company}</h3>
-                  <Badge
-                    variant={
-                      a.urgency === "HIGH" ? "error" : a.urgency === "MED" ? "warning" : "info"
-                    }
-                  >
-                    {a.urgency}
-                  </Badge>
-                </div>
-                <p className="text-sm text-[var(--color-t3)] mb-3">{a.reason}</p>
-                <ProgressBar value={a.confidence} />
-                <div className="flex gap-2">
-                  <Button variant="success" size="sm" className="flex-1">
-                    Aprobă
-                  </Button>
-                  <Button variant="danger" size="sm" className="flex-1">
-                    Respinge
-                  </Button>
-                </div>
-              </CardBody>
-            </Card>
-          ))}
+          {items.map((a: Record<string, unknown>) => {
+            const urgency = String(a.urgency ?? "MED").toUpperCase();
+            return (
+              <div key={String(a.id)} className="space-y-2">
+                <ApprovalCard
+                  id={String(a.id)}
+                  title={String(a.title ?? a.entityId)}
+                  description={String(a.description ?? "")}
+                  urgency={urgency === "HIGH" ? "HIGH" : urgency === "LOW" ? "LOW" : "MED"}
+                  confidence={Number(a.aiConfidence ?? 0) * 100}
+                  onApprove={() =>
+                    void decisionMutation.mutateAsync({ id: String(a.id), decision: "approve" })
+                  }
+                  onReject={() =>
+                    void decisionMutation.mutateAsync({ id: String(a.id), decision: "reject" })
+                  }
+                />
+                {a.dueAt ? (
+                  <div className="text-xs text-[var(--color-t3)]">
+                    SLA: <SLACountdown dueAt={String(a.dueAt)} />
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
         </div>
       ) : (
         <EmptyState title="Inbox gol" description="Nu există aprobări în așteptare." />

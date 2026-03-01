@@ -32,6 +32,7 @@ template {
   source      = "/openbao/templates/pgbouncer-userlist.tpl"
   destination = "/secrets/userlist.txt"
   perms       = 0644
+  command     = "pkill -HUP pgbouncer 2>/dev/null || true"
   error_on_missing_key = true
   wait { min = "2s" max = "10s" }
 }
@@ -40,6 +41,7 @@ template {
   source      = "/openbao/templates/pgbouncer-ini.tpl"
   destination = "/secrets/pgbouncer.ini"
   perms       = 0644
+  command     = "pkill -HUP pgbouncer 2>/dev/null || true"
   error_on_missing_key = true
   wait { min = "2s" max = "10s" }
 }

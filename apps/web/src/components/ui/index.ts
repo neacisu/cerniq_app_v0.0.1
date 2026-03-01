@@ -10,4 +10,5 @@ export { Select } from "./select.js";
 export type { SelectOption } from "./select.js";
 export { TableWrapper, TableRoot, Th, Td } from "./table.js";
 export { Tabs, TabsList, TabsTrigger, TabsContent } from "./tabs.js";
-export { Toaster, toast } from "./toast.js";
+export { Toaster } from "./toast.js";
+export { toast } from "./toast-api.js";

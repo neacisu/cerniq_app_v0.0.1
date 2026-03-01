@@ -8,6 +8,7 @@ const SECRET_KEYS = [
   "REDIS_URL",
   "REDIS_PASSWORD",
   "REDIS_PREFIX",
+  "BULLMQ_PREFIX",
   "JWT_SECRET",
 ] as const;
 
@@ -55,8 +56,12 @@ const EnvSchema = z.object({
   POSTGRES_PASSWORD: z.string().optional(),
   REDIS_URL: z.string().url(),
   REDIS_PASSWORD: z.string().optional(),
+  REDIS_PREFIX: z.string().optional(),
+  BULLMQ_PREFIX: z.string().optional(),
   JWT_SECRET: z.string().min(32),
   JWT_EXPIRES_IN: z.string().default("24h"),
+  JWT_REFRESH_SECRET: z.string().min(32).optional(),
+  JWT_REFRESH_EXPIRES_IN: z.string().default("30d"),
   CORS_ORIGIN: z.string().default("*"),
   RATE_LIMIT_MAX: z.coerce.number().default(100),
   RATE_LIMIT_WINDOW: z.string().default("1 minute"),

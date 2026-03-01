@@ -1,4 +1,4 @@
-import { Toaster as SonnerToaster, toast as sonnerToast } from "sonner";
+import { Toaster as SonnerToaster } from "sonner";
 import { cn } from "@/lib/utils.js";
 
 type ToasterProps = React.ComponentProps<typeof SonnerToaster>;
@@ -18,5 +18,3 @@ export function Toaster({ className, ...props }: ToasterProps) {
     />
   );
 }
-
-export const toast = sonnerToast;

@@ -48,4 +48,89 @@ export const handlers = [
       },
     }),
   ),
+
+  http.get(`${apiBase}/api/v1/dashboard/stats`, () =>
+    HttpResponse.json({
+      success: true,
+      data: {
+        bronze: { total: 47382 },
+        silver: { total: 8941 },
+        gold: { total: 1247 },
+        pipeline: { queueDepth: 184000 },
+      },
+    }),
+  ),
+  http.get(`/api/v1/dashboard/stats`, () =>
+    HttpResponse.json({
+      success: true,
+      data: {
+        bronze: { total: 47382 },
+        silver: { total: 8941 },
+        gold: { total: 1247 },
+        pipeline: { queueDepth: 184000 },
+      },
+    }),
+  ),
+  http.get(`${apiBase}/api/v1/dashboard/activity`, () =>
+    HttpResponse.json({
+      success: true,
+      data: [
+        {
+          id: "a1",
+          type: "pipeline_error",
+          severity: "warning",
+          message: "Activity test event",
+          timestamp: new Date().toISOString(),
+        },
+      ],
+    }),
+  ),
+  http.get(`/api/v1/dashboard/activity`, () =>
+    HttpResponse.json({
+      success: true,
+      data: [
+        {
+          id: "a1",
+          type: "pipeline_error",
+          severity: "warning",
+          message: "Activity test event",
+          timestamp: new Date().toISOString(),
+        },
+      ],
+    }),
+  ),
+  http.get(`${apiBase}/api/v1/dashboard/daily-stats`, () =>
+    HttpResponse.json({
+      success: true,
+      data: [
+        {
+          id: "ds1",
+          statDate: new Date().toISOString(),
+          bronzeTotal: 100,
+          silverTotal: 50,
+          goldTotal: 10,
+          enrichmentJobsCompleted: 42,
+          enrichmentJobsFailed: 2,
+        },
+      ],
+      meta: { total: 1, limit: 30, offset: 0 },
+    }),
+  ),
+  http.get(`/api/v1/dashboard/daily-stats`, () =>
+    HttpResponse.json({
+      success: true,
+      data: [
+        {
+          id: "ds1",
+          statDate: new Date().toISOString(),
+          bronzeTotal: 100,
+          silverTotal: 50,
+          goldTotal: 10,
+          enrichmentJobsCompleted: 42,
+          enrichmentJobsFailed: 2,
+        },
+      ],
+      meta: { total: 1, limit: 30, offset: 0 },
+    }),
+  ),
 ];
