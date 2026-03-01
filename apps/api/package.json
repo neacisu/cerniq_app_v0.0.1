@@ -40,7 +40,7 @@
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
-    "@types/node": "^24.10.13",
+    "@types/node": "^25.3.3",
     "@types/opossum": "^8.1.9",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
