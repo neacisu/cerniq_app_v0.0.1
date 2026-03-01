@@ -1,7 +1,7 @@
 # CERNIQ.APP — ETAPA 1: Plan Implementare (UPDATED pentru infra noua)
 
-> **Versiune:** 2.0  
-> **Ultima actualizare:** 2026-02-15  
+> **Versiune:** 2.1  
+> **Ultima actualizare:** 2026-02-27  
 > **Nota:** Versiunea anterioara continea multe exemple legacy (PostgreSQL/Redis locale in Docker). Pentru operare curenta, folosim infrastructura noua (CT107 + orchestrator + PgBouncer + OpenBao Agents).
 
 ## 1) Premise (infra noua)
@@ -36,3 +36,16 @@ Recomandari:
 
 - Integration tests ruleaza cu service containers (Postgres:5432, Redis:6379) in CI pentru izolare
 - E2E (staging/prod) valideaza conectivitate catre CT107 si Redis shared + observability in Grafana
+
+## 5) Discrepante confirmate (documentatie vs implementare curenta)
+
+- Workers existenti in repo sunt inca stubs JavaScript (`workers/enrichment/worker.js`, `workers/ai/worker.js`, `workers/outreach/worker.js`), in timp ce Etapa 1 cere implementare TypeScript + worker shared package.
+- `approval_tasks` si tipurile de aprobare din E0 necesita extindere pentru E1 (`approval_type`, `approval_priority`, `pipeline_stage`, SLA/escalation fields).
+- Specificatiile de schema si migrari au diferente punctuale (ex: tabele prezente in schema docs dar neenumerate explicit in lista SQL); implementarea ramane condusa de schema Drizzle + migrari generate.
+- Prefixul API E1 este `/api/v1/`, iar fluxul auth include `POST /auth/refresh` si `POST /auth/logout`.
+- OpenBao template pentru workers trebuie completat cu variabilele externe lipsa (ZeroBounce, xAI, Nominatim, ONRC, HLR, Bing, plus URL-uri provider).
+
+## 6) Referinta executie
+
+- Planul de executie canonic pentru implementare este documentat in planul operational de lucru din sesiunea curenta.
+- Pentru sprint scheduling, se foloseste calendarul recalibrat in `etapa1-sprint-plan.md` (S1 porneste pe 27 Feb 2026).
