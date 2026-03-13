@@ -21,6 +21,94 @@ type MatchResult = {
   matchValue: string;
 };
 
+async function findCuiMatches(
+  tenantId: string,
+  companyId: string,
+  cui: string,
+): Promise<MatchResult[]> {
+  const rows = await db.query.silverCompanies.findMany({
+    where: (t) =>
+      sql`${t.tenantId} = ${tenantId}
+          AND ${t.id} <> ${companyId}
+          AND ${t.cui} = ${cui}
+          AND COALESCE(${t.isMasterRecord}, TRUE) = TRUE`,
+  });
+  return rows.map((r) => ({ matchedCompanyId: r.id, matchType: "cui" as const, matchValue: cui }));
+}
+
+async function findNrRegComMatches(
+  tenantId: string,
+  companyId: string,
+  nrRegCom: string,
+): Promise<MatchResult[]> {
+  const rows = await db.query.silverCompanies.findMany({
+    where: (t) =>
+      sql`${t.tenantId} = ${tenantId}
+          AND ${t.id} <> ${companyId}
+          AND ${t.nrRegCom} = ${nrRegCom}
+          AND COALESCE(${t.isMasterRecord}, TRUE) = TRUE`,
+  });
+  return rows.map((r) => ({
+    matchedCompanyId: r.id,
+    matchType: "nrRegCom" as const,
+    matchValue: nrRegCom,
+  }));
+}
+
+async function findEmailMatches(
+  tenantId: string,
+  companyId: string,
+  email: string,
+): Promise<MatchResult[]> {
+  const emailNorm = email.trim().toLowerCase();
+  const contacts = await db.query.silverContacts.findMany({
+    where: (t) =>
+      sql`${t.tenantId} = ${tenantId}
+          AND ${t.companyId} <> ${companyId}
+          AND LOWER(TRIM(COALESCE(${t.email}, ''))) = ${emailNorm}
+          AND ${t.email} IS NOT NULL`,
+  });
+  const seen = new Set<string>();
+  return contacts
+    .filter((c) => {
+      const fresh = !seen.has(c.companyId);
+      seen.add(c.companyId);
+      return fresh;
+    })
+    .map((c) => ({
+      matchedCompanyId: c.companyId,
+      matchType: "email" as const,
+      matchValue: emailNorm,
+    }));
+}
+
+async function findPhoneMatches(
+  tenantId: string,
+  companyId: string,
+  telefon: string,
+): Promise<MatchResult[]> {
+  const phoneNorm = telefon.replaceAll(/\D/g, "");
+  if (phoneNorm.length < 8) return [];
+  const contacts = await db.query.silverContacts.findMany({
+    where: (t) =>
+      sql`${t.tenantId} = ${tenantId}
+          AND ${t.companyId} <> ${companyId}
+          AND REPLACE(REPLACE(REPLACE(COALESCE(${t.telefonE164}, ${t.telefon}, ''), ' ', ''), '-', ''), '+', '') LIKE ${"%" + phoneNorm.slice(-8)}`,
+  });
+  const seen = new Set<string>();
+  return contacts
+    .filter((c) => {
+      const fresh = !seen.has(c.companyId);
+      seen.add(c.companyId);
+      return fresh;
+    })
+    .map((c) => ({
+      matchedCompanyId: c.companyId,
+      matchType: "phone" as const,
+      matchValue: telefon,
+    }));
+}
+
 async function findExactMatches(
   tenantId: string,
   companyId: string,
@@ -29,80 +117,22 @@ async function findExactMatches(
   email: string | null,
   telefon: string | null,
 ): Promise<MatchResult[]> {
-  const matches: MatchResult[] = [];
-
   if (cui) {
-    const cuiDuplicates = await db.query.silverCompanies.findMany({
-      where: (t) =>
-        sql`${t.tenantId} = ${tenantId}
-            AND ${t.id} <> ${companyId}
-            AND ${t.cui} = ${cui}
-            AND COALESCE(${t.isMasterRecord}, TRUE) = TRUE`,
-    });
-    for (const dup of cuiDuplicates) {
-      matches.push({ matchedCompanyId: dup.id, matchType: "cui", matchValue: cui });
-    }
+    const m = await findCuiMatches(tenantId, companyId, cui);
+    if (m.length > 0) return m;
   }
-
-  if (nrRegCom && !matches.length) {
-    const nrRegComDuplicates = await db.query.silverCompanies.findMany({
-      where: (t) =>
-        sql`${t.tenantId} = ${tenantId}
-            AND ${t.id} <> ${companyId}
-            AND ${t.nrRegCom} = ${nrRegCom}
-            AND COALESCE(${t.isMasterRecord}, TRUE) = TRUE`,
-    });
-    for (const dup of nrRegComDuplicates) {
-      matches.push({ matchedCompanyId: dup.id, matchType: "nrRegCom", matchValue: nrRegCom });
-    }
+  if (nrRegCom) {
+    const m = await findNrRegComMatches(tenantId, companyId, nrRegCom);
+    if (m.length > 0) return m;
   }
-
-  if (email && !matches.length) {
-    const emailNorm = email.trim().toLowerCase();
-    const emailContacts = await db.query.silverContacts.findMany({
-      where: (t) =>
-        sql`${t.tenantId} = ${tenantId}
-            AND ${t.companyId} <> ${companyId}
-            AND LOWER(TRIM(COALESCE(${t.email}, ''))) = ${emailNorm}
-            AND ${t.email} IS NOT NULL`,
-    });
-    const seen = new Set<string>();
-    for (const contact of emailContacts) {
-      if (!seen.has(contact.companyId)) {
-        seen.add(contact.companyId);
-        matches.push({
-          matchedCompanyId: contact.companyId,
-          matchType: "email",
-          matchValue: emailNorm,
-        });
-      }
-    }
+  if (email) {
+    const m = await findEmailMatches(tenantId, companyId, email);
+    if (m.length > 0) return m;
   }
-
-  if (telefon && !matches.length) {
-    const phoneNorm = telefon.replace(/\D/g, "");
-    if (phoneNorm.length >= 8) {
-      const phoneContacts = await db.query.silverContacts.findMany({
-        where: (t) =>
-          sql`${t.tenantId} = ${tenantId}
-              AND ${t.companyId} <> ${companyId}
-              AND REPLACE(REPLACE(REPLACE(COALESCE(${t.telefonE164}, ${t.telefon}, ''), ' ', ''), '-', ''), '+', '') LIKE ${"%" + phoneNorm.slice(-8)}`,
-      });
-      const seen = new Set<string>();
-      for (const contact of phoneContacts) {
-        if (!seen.has(contact.companyId)) {
-          seen.add(contact.companyId);
-          matches.push({
-            matchedCompanyId: contact.companyId,
-            matchType: "phone",
-            matchValue: telefon,
-          });
-        }
-      }
-    }
+  if (telefon) {
+    return findPhoneMatches(tenantId, companyId, telefon);
   }
-
-  return matches;
+  return [];
 }
 
 export const dedupExactHashProcessor: Processor<DedupExactJobData> = async (job) => {

@@ -81,14 +81,15 @@ function readErrorCode(error: unknown): string {
   return "";
 }
 
+function resolveCauseMessage(cause: unknown): string {
+  if (cause instanceof Error) return cause.message;
+  if (cause != null) return String(cause);
+  return "";
+}
+
 function readErrorMessage(error: unknown): string {
   if (error instanceof Error) {
-    const causeMessage =
-      error.cause instanceof Error
-        ? error.cause.message
-        : error.cause != null
-          ? String(error.cause)
-          : "";
+    const causeMessage = resolveCauseMessage(error.cause);
     return causeMessage ? `${error.message} | cause: ${causeMessage}` : error.message;
   }
   return String(error);
@@ -492,6 +493,38 @@ async function handleBatchReprocess(jobData: PromotionBronzeSilverJobData) {
     });
     mapping = await loadBatchMapping(jobData.tenantId, batchId);
 
+    const processOneBronzeContact = async (
+      bronze: BronzeContactRow,
+      batchMapping: Mapping,
+    ): Promise<void> => {
+      const payload = bronze.rawPayload as Payload;
+      await backfillBronzeIdentityFields(bronze, payload, batchMapping);
+      const resolution = await resolveBronzeContactIdentity({
+        tenantId: jobData.tenantId,
+        bronzeContactId: bronze.id,
+        sourceAuthority: "import",
+      });
+      processed += 1;
+      if (resolution.status === "resolved") {
+        resolved += 1;
+        return;
+      }
+      if (resolution.status === "duplicate_source") {
+        duplicateSource += 1;
+        return;
+      }
+      if (resolution.status === "insufficient_identifiers") {
+        insufficientIdentifiers += 1;
+        return;
+      }
+      identityConflict += 1;
+      await ensureIdentityConflictApprovalTask(
+        jobData.tenantId,
+        bronze,
+        resolution.conflictCompanyIds,
+      );
+    };
+
     while (true) {
       const contacts = await db.query.bronzeContacts.findMany({
         where: (t) => {
@@ -513,38 +546,7 @@ async function handleBatchReprocess(jobData: PromotionBronzeSilverJobData) {
       }
 
       for (const bronze of contacts) {
-        const payload = bronze.rawPayload as Payload;
-        await backfillBronzeIdentityFields(bronze, payload, mapping);
-
-        const resolution = await resolveBronzeContactIdentity({
-          tenantId: jobData.tenantId,
-          bronzeContactId: bronze.id,
-          sourceAuthority: "import",
-        });
-
-        processed += 1;
-
-        if (resolution.status === "resolved") {
-          resolved += 1;
-          continue;
-        }
-
-        if (resolution.status === "duplicate_source") {
-          duplicateSource += 1;
-          continue;
-        }
-
-        if (resolution.status === "insufficient_identifiers") {
-          insufficientIdentifiers += 1;
-          continue;
-        }
-
-        identityConflict += 1;
-        await ensureIdentityConflictApprovalTask(
-          jobData.tenantId,
-          bronze,
-          resolution.conflictCompanyIds,
-        );
+        await processOneBronzeContact(bronze, mapping);
       }
 
       await updateBatchReprocessMetadata({
