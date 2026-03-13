@@ -4,9 +4,31 @@
 # Reference: ADR-0015 Container Strategy
 # =============================================================================
 
-FROM node:25.6.1-alpine3.23 AS base
-RUN apk add --no-cache curl
-RUN npm install -g pnpm@10.29.3
+ARG WOLFI_BASE_IMAGE=cgr.dev/chainguard/wolfi-base:latest@sha256:a9a3a0c9fb954fd70b398afdd055d74a4f196095b9fdfbcfb13495aefeefd075
+ARG NODE_VERSION=25.8.1
+ARG NPM_VERSION=11.11.1
+ARG PNPM_VERSION=10.32.1
+
+FROM ${WOLFI_BASE_IMAGE} AS base
+ARG NODE_VERSION
+ARG NPM_VERSION
+ARG PNPM_VERSION
+ARG TARGETARCH
+RUN apk add --no-cache ca-certificates-bundle curl libatomic libstdc++ \
+    && case "${TARGETARCH}" in \
+      amd64) node_arch="x64" ;; \
+      arm64) node_arch="arm64" ;; \
+      *) echo "Unsupported TARGETARCH: ${TARGETARCH}" >&2; exit 1 ;; \
+    esac \
+    && node_dist="node-v${NODE_VERSION}-linux-${node_arch}.tar.xz" \
+    && curl -fsSLO "https://nodejs.org/dist/v${NODE_VERSION}/${node_dist}" \
+    && curl -fsSLO "https://nodejs.org/dist/v${NODE_VERSION}/SHASUMS256.txt" \
+    && grep " ${node_dist}$" SHASUMS256.txt | sha256sum -c - \
+    && tar -xJf "${node_dist}" -C /usr/local --strip-components=1 --no-same-owner \
+    && rm -f "${node_dist}" SHASUMS256.txt \
+    && npm install -g "npm@${NPM_VERSION}" "pnpm@${PNPM_VERSION}" \
+    && npm cache clean --force
+ENV PATH=/usr/local/bin:${PATH}
 WORKDIR /app
 
 # --- Dependencies ---

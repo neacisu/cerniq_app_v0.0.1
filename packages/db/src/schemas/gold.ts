@@ -134,16 +134,47 @@ export const goldCompanies = goldSchema.table(
     // --- SECȚIUNEA 5: DATE FINANCIARE ȘI CREDIT ---
     cifraAfaceri: numeric("cifra_afaceri", { precision: 18, scale: 2 }),
     profitNet: numeric("profit_net", { precision: 18, scale: 2 }),
+    profitBrut: numeric("profit_brut", { precision: 18, scale: 2 }),
+    venituriTotale: numeric("venituri_totale", { precision: 18, scale: 2 }),
+    cheltuieliTotale: numeric("cheltuieli_totale", { precision: 18, scale: 2 }),
     activeTotale: numeric("active_totale", { precision: 18, scale: 2 }),
+    activeImobilizate: numeric("active_imobilizate", { precision: 18, scale: 2 }),
+    activeCirculante: numeric("active_circulante", { precision: 18, scale: 2 }),
+    creante: numeric("creante", { precision: 18, scale: 2 }),
+    stocuri: numeric("stocuri", { precision: 18, scale: 2 }),
+    cheltuieliInAvans: numeric("cheltuieli_in_avans", { precision: 18, scale: 2 }),
+    casaSiConturiBanci: numeric("casa_si_conturi_banci", { precision: 18, scale: 2 }),
     datoriiTotale: numeric("datorii_totale", { precision: 18, scale: 2 }),
     capitaluriProprii: numeric("capitaluri_proprii", { precision: 18, scale: 2 }),
+    provizioane: numeric("provizioane", { precision: 18, scale: 2 }),
+    venituriInAvans: numeric("venituri_in_avans", { precision: 18, scale: 2 }),
     numarAngajati: integer("numar_angajati"),
     anBilant: integer("an_bilant"),
+    anulInfiintarii: integer("anul_infiintarii"),
+    ratingExtern: integer("rating_extern"),
+    limitaCreditEur: numeric("limita_credit_eur", { precision: 15, scale: 2 }),
     lididitateaCurenta: numeric("lichiditate_curenta", { precision: 8, scale: 4 }),
     gradIndatorare: numeric("grad_indatorare", { precision: 8, scale: 4 }),
     marjaProfit: numeric("marja_profit", { precision: 8, scale: 4 }),
+
+    // --- DATORII ANAF ---
     datoriiAnaf: numeric("datorii_anaf", { precision: 15, scale: 2 }).notNull().default("0"),
     dataVerificareDatorii: date("data_verificare_datorii"),
+    obligatiiBugetStat: numeric("obligatii_buget_stat", { precision: 15, scale: 2 }),
+    obligatiiBugetSomaj: numeric("obligatii_buget_somaj", { precision: 15, scale: 2 }),
+    obligatiiBugetAsigSociale: numeric("obligatii_buget_asig_sociale", { precision: 15, scale: 2 }),
+    obligatiiBugetSanatate: numeric("obligatii_buget_sanatate", { precision: 15, scale: 2 }),
+
+    // --- BPI (INSOLVENȚĂ) ---
+    bpiNumarActe: integer("bpi_numar_acte").notNull().default(0),
+    bpiInInsolventa: boolean("bpi_in_insolventa").notNull().default(false),
+
+    // --- CIP (INCIDENTE PLĂȚI) ---
+    cipTotalIncidente: integer("cip_total_incidente").notNull().default(0),
+    cipIncidenteMajore: integer("cip_incidente_majore").notNull().default(0),
+    cipSumaRefuzata: numeric("cip_suma_refuzata", { precision: 18, scale: 2 }),
+
+    // --- DOSARE ---
     numarDosareActuale: integer("numar_dosare_actuale").notNull().default(0),
     inInsolventa: boolean("in_insolventa").notNull().default(false),
     scorRiscIntern: integer("scor_risc_intern"),

@@ -1,6 +1,6 @@
-import { Queue, type Processor } from "bullmq";
+import type { Processor } from "bullmq";
 import { db, setSessionTenantId, silverCompanies, silverEnrichmentLog, sql } from "@cerniq/db";
-import { getQueuePrefix, getRedisConnectionOptions } from "@cerniq/worker-shared";
+import { createQueue } from "@cerniq/worker-shared";
 
 export type WebsiteFinderJobData = {
   tenantId: string;
@@ -105,9 +105,7 @@ export const websiteFinderProcessor: Processor<WebsiteFinderJobData> = async (jo
     })
     .where(sql`${silverCompanies.id} = ${job.data.companyId}`);
 
-  const connection = getRedisConnectionOptions();
-  const prefix = getQueuePrefix();
-  const queue = new Queue("silver:enrich:contact-page-scraper", { connection, prefix });
+  const queue = createQueue("scrape:website:contact-page");
   await queue.add("scrape-contact-page", {
     tenantId: job.data.tenantId,
     companyId: job.data.companyId,

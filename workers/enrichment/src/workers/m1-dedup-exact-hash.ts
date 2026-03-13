@@ -1,10 +1,9 @@
 import type { Processor } from "bullmq";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- silverContacts used via db.query.silverContacts
+
 import {
   db,
   setSessionTenantId,
   silverCompanies,
-  silverContacts,
   silverDedupCandidates,
   silverEnrichmentLog,
   sql,
@@ -18,7 +17,7 @@ export type DedupExactJobData = {
 
 type MatchResult = {
   matchedCompanyId: string;
-  matchType: "cui" | "email" | "phone";
+  matchType: "cui" | "nrRegCom" | "email" | "phone";
   matchValue: string;
 };
 
@@ -26,6 +25,7 @@ async function findExactMatches(
   tenantId: string,
   companyId: string,
   cui: string | null,
+  nrRegCom: string | null,
   email: string | null,
   telefon: string | null,
 ): Promise<MatchResult[]> {
@@ -41,6 +41,19 @@ async function findExactMatches(
     });
     for (const dup of cuiDuplicates) {
       matches.push({ matchedCompanyId: dup.id, matchType: "cui", matchValue: cui });
+    }
+  }
+
+  if (nrRegCom && !matches.length) {
+    const nrRegComDuplicates = await db.query.silverCompanies.findMany({
+      where: (t) =>
+        sql`${t.tenantId} = ${tenantId}
+            AND ${t.id} <> ${companyId}
+            AND ${t.nrRegCom} = ${nrRegCom}
+            AND COALESCE(${t.isMasterRecord}, TRUE) = TRUE`,
+    });
+    for (const dup of nrRegComDuplicates) {
+      matches.push({ matchedCompanyId: dup.id, matchType: "nrRegCom", matchValue: nrRegCom });
     }
   }
 
@@ -101,13 +114,14 @@ export const dedupExactHashProcessor: Processor<DedupExactJobData> = async (job)
   });
   if (!company) return { ok: true, status: "skipped", reason: "not_found" };
 
-  const hasIdentifier = company.cui || company.email || company.telefon;
+  const hasIdentifier = company.cui || company.nrRegCom || company.email || company.telefon;
   if (!hasIdentifier) return { ok: true, status: "skipped", reason: "no_identifiers" };
 
   const matches = await findExactMatches(
     job.data.tenantId,
     job.data.companyId,
     company.cui,
+    company.nrRegCom,
     company.email,
     company.telefon,
   );
@@ -126,6 +140,8 @@ export const dedupExactHashProcessor: Processor<DedupExactJobData> = async (job)
   const master = allRecords[0];
   const slave = allRecords[1];
 
+  const isAutoMerge = best.matchType === "cui" || best.matchType === "nrRegCom";
+
   await db.insert(silverDedupCandidates).values({
     tenantId: job.data.tenantId,
     companyAId: master.id,
@@ -133,30 +149,43 @@ export const dedupExactHashProcessor: Processor<DedupExactJobData> = async (job)
     cuiMatch: best.matchType === "cui",
     phoneMatch: best.matchType === "phone",
     overallConfidence: "1",
-    status: "auto_merged",
+    status: isAutoMerge ? "auto_merged" : "hitl_pending",
     masterCompanyId: master.id,
     matchingFields: { method: "exact", type: best.matchType, value: best.matchValue },
     metadata: { method: `exact_${best.matchType}`, allMatches: matches },
   });
 
-  await db
-    .update(silverCompanies)
-    .set({
-      dedupStatus: "auto_merged",
-      isMasterRecord: false,
-      masterRecordId: master.id,
-      duplicateConfidence: "1",
-      mergeHistory: sql`COALESCE(${silverCompanies.mergeHistory}, '[]'::jsonb) || ${JSON.stringify([
-        {
-          masterCompanyId: master.id,
-          matchType: best.matchType,
-          matchValue: best.matchValue,
-          mergedAt: new Date().toISOString(),
-        },
-      ])}::jsonb`,
-      updatedAt: new Date(),
-    })
-    .where(sql`${silverCompanies.id} = ${slave.id}`);
+  if (isAutoMerge) {
+    await db
+      .update(silverCompanies)
+      .set({
+        dedupStatus: "auto_merged",
+        isMasterRecord: false,
+        masterRecordId: master.id,
+        duplicateConfidence: "1",
+        mergeHistory: sql`COALESCE(${silverCompanies.mergeHistory}, '[]'::jsonb) || ${JSON.stringify(
+          [
+            {
+              masterCompanyId: master.id,
+              matchType: best.matchType,
+              matchValue: best.matchValue,
+              mergedAt: new Date().toISOString(),
+            },
+          ],
+        )}::jsonb`,
+        updatedAt: new Date(),
+      })
+      .where(sql`${silverCompanies.id} = ${slave.id}`);
+  } else {
+    await db
+      .update(silverCompanies)
+      .set({
+        dedupStatus: "hitl_pending",
+        duplicateConfidence: best.matchType === "email" ? "0.8" : "0.7",
+        updatedAt: new Date(),
+      })
+      .where(sql`${silverCompanies.id} = ${slave.id}`);
+  }
 
   await db.insert(silverEnrichmentLog).values({
     tenantId: job.data.tenantId,
@@ -168,8 +197,9 @@ export const dedupExactHashProcessor: Processor<DedupExactJobData> = async (job)
     requestPayload: { cui: company.cui, email: company.email, telefon: company.telefon },
     responsePayload: {
       masterCompanyId: master.id,
-      mergedCompanyId: slave.id,
+      mergedCompanyId: isAutoMerge ? slave.id : null,
       matchType: best.matchType,
+      decision: isAutoMerge ? "auto_merge" : "hitl_pending",
     },
     fieldsUpdated: [
       "dedupStatus",
@@ -183,5 +213,10 @@ export const dedupExactHashProcessor: Processor<DedupExactJobData> = async (job)
     durationMs: Date.now() - startedAt,
   });
 
-  return { ok: true, status: "merged", masterId: master.id, matchType: best.matchType };
+  return {
+    ok: true,
+    status: isAutoMerge ? "merged" : "hitl_pending",
+    masterId: master.id,
+    matchType: best.matchType,
+  };
 };

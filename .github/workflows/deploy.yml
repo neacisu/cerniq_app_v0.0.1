@@ -147,12 +147,6 @@ jobs:
           - name: worker-enrichment
             dockerfile: ./workers/enrichment/Dockerfile
             context: .
-          - name: worker-outreach
-            dockerfile: ./workers/outreach/Dockerfile
-            context: ./workers/outreach
-          - name: worker-ai
-            dockerfile: ./workers/ai/Dockerfile
-            context: ./workers/ai
 
     steps:
       - name: 📥 Checkout code

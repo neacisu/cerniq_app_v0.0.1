@@ -1,6 +1,5 @@
 import type { Processor } from "bullmq";
-import { Queue } from "bullmq";
-import { createCircuitBreaker, getRedisConnectionOptions } from "@cerniq/worker-shared";
+import { createCircuitBreaker, createQueue, normalizeNrRegCom } from "@cerniq/worker-shared";
 import {
   bronzeContacts,
   db,
@@ -8,6 +7,7 @@ import {
   silverCompanies,
   silverEnrichmentLog,
   sql,
+  upsertCompanyIdentityKey,
 } from "@cerniq/db";
 import { sanitizeCui } from "../lib/cui-validation.js";
 
@@ -18,6 +18,24 @@ export type CuiAnafJobData = {
   cui: string;
   correlationId: string;
 };
+
+function extractNrRegCom(value: unknown): { raw: string | null; canonical: string | null } {
+  if (!value || typeof value !== "object") {
+    return { raw: null, canonical: null };
+  }
+  const record = value as Record<string, unknown>;
+  const rawCandidate =
+    (typeof record.nrRegCom === "string" && record.nrRegCom) ||
+    (typeof record.nr_reg_com === "string" && record.nr_reg_com) ||
+    (typeof record.nrRegComert === "string" && record.nrRegComert) ||
+    (typeof record.nr_reg_comert === "string" && record.nr_reg_comert) ||
+    (typeof record.numar_reg_comert === "string" && record.numar_reg_comert) ||
+    null;
+  return {
+    raw: rawCandidate,
+    canonical: rawCandidate ? normalizeNrRegCom(rawCandidate) : null,
+  };
+}
 
 type AnafCompanyResult = {
   denumire?: string;
@@ -73,6 +91,163 @@ const anafBreaker = createCircuitBreaker(
   },
 );
 
+function buildAnafPatch(cleanedCui: string, companyData: AnafCompanyResult) {
+  return {
+    anafValidation: {
+      status: "valid",
+      cui: cleanedCui,
+      validatedAt: new Date().toISOString(),
+      response: companyData,
+    },
+  };
+}
+
+async function persistAnafNotFound(bronzeContactId: string | undefined, cleanedCui: string) {
+  if (!bronzeContactId) {
+    return;
+  }
+
+  await db
+    .update(bronzeContacts)
+    .set({
+      metadata: sql`COALESCE(${bronzeContacts.metadata}, '{}'::jsonb) || ${JSON.stringify({
+        anafValidation: {
+          status: "not_found",
+          cui: cleanedCui,
+          validatedAt: new Date().toISOString(),
+        },
+      })}::jsonb`,
+    })
+    .where(sql`${bronzeContacts.id} = ${bronzeContactId}`);
+}
+
+async function updateAnafCompany(
+  jobData: CuiAnafJobData,
+  cleanedCui: string,
+  companyData: AnafCompanyResult,
+  nrRegCom: { raw: string | null; canonical: string | null },
+  patch: Record<string, unknown>,
+) {
+  if (!jobData.companyId) {
+    return;
+  }
+
+  const denumireAnaf = typeof companyData.denumire === "string" ? companyData.denumire : null;
+  await db
+    .update(silverCompanies)
+    .set({
+      denumire: denumireAnaf ?? sql`${silverCompanies.denumire}`,
+      cui: cleanedCui,
+      nrRegCom: nrRegCom.canonical ?? sql`${silverCompanies.nrRegCom}`,
+      nrRegComOriginal: nrRegCom.raw ?? sql`${silverCompanies.nrRegComOriginal}`,
+      metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify(patch)}::jsonb`,
+    })
+    .where(sql`${silverCompanies.id} = ${jobData.companyId}`);
+  await upsertCompanyIdentityKey({
+    tenantId: jobData.tenantId,
+    companyId: jobData.companyId,
+    keyType: "cui",
+    keyValueCanonical: cleanedCui,
+    keyValueOriginal: cleanedCui,
+    sourceAuthority: "anaf",
+    isAuthoritative: true,
+    sourceBronzeId: jobData.bronzeContactId,
+  });
+  if (nrRegCom.canonical) {
+    await upsertCompanyIdentityKey({
+      tenantId: jobData.tenantId,
+      companyId: jobData.companyId,
+      keyType: "nr_reg_com",
+      keyValueCanonical: nrRegCom.canonical,
+      keyValueOriginal: nrRegCom.raw,
+      sourceAuthority: "anaf",
+      sourceBronzeId: jobData.bronzeContactId,
+    });
+  }
+}
+
+async function updateAnafBronzeContact(
+  jobData: CuiAnafJobData,
+  cleanedCui: string,
+  companyData: AnafCompanyResult,
+  nrRegCom: { raw: string | null; canonical: string | null },
+  patch: Record<string, unknown>,
+) {
+  if (!jobData.bronzeContactId) {
+    return;
+  }
+
+  const denumireAnaf = typeof companyData.denumire === "string" ? companyData.denumire : null;
+  await db
+    .update(bronzeContacts)
+    .set({
+      extractedName: denumireAnaf,
+      extractedCuiRaw: cleanedCui,
+      extractedCui: cleanedCui,
+      extractedNrRegComRaw: nrRegCom.raw ?? sql`${bronzeContacts.extractedNrRegComRaw}`,
+      extractedNrRegCom: nrRegCom.canonical ?? sql`${bronzeContacts.extractedNrRegCom}`,
+      metadata: sql`COALESCE(${bronzeContacts.metadata}, '{}'::jsonb) || ${JSON.stringify(patch)}::jsonb`,
+    })
+    .where(sql`${bronzeContacts.id} = ${jobData.bronzeContactId}`);
+}
+
+async function enqueueAnafPromotion(
+  jobData: CuiAnafJobData,
+  cleanedCui: string,
+  companyData: AnafCompanyResult,
+) {
+  if (!jobData.bronzeContactId) {
+    return;
+  }
+
+  try {
+    const promotionQueue = createQueue("pipeline:promote:bronze-silver");
+    await promotionQueue.add(
+      `promote-${jobData.bronzeContactId}`,
+      {
+        tenantId: jobData.tenantId,
+        bronzeContactId: jobData.bronzeContactId,
+        cui: cleanedCui,
+        correlationId: jobData.correlationId,
+        anafData: companyData,
+      },
+      { jobId: `promote-${jobData.bronzeContactId}` },
+    );
+    await promotionQueue.close();
+  } catch {
+    // Non-critical: promotion can be triggered manually if auto-enqueue fails
+  }
+}
+
+async function logAnafValidation(
+  job: {
+    data: CuiAnafJobData;
+    id?: string | number;
+  },
+  cleanedCui: string,
+  companyData: AnafCompanyResult,
+  startedAt: number,
+) {
+  const entityId = job.data.companyId ?? job.data.bronzeContactId;
+  if (!entityId) {
+    return;
+  }
+
+  await db.insert(silverEnrichmentLog).values({
+    tenantId: job.data.tenantId,
+    entityType: job.data.companyId ? "company" : "contact",
+    entityId,
+    source: "anaf_cui_validation",
+    operation: "validate",
+    requestPayload: { cui: cleanedCui },
+    responsePayload: { status: "valid", denumire: companyData.denumire },
+    fieldsUpdated: ["metadata", "denumire", "cui", "nrRegCom"],
+    correlationId: job.data.correlationId,
+    jobId: String(job.id ?? ""),
+    durationMs: Date.now() - startedAt,
+  });
+}
+
 export const cuiAnafValidatorProcessor: Processor<CuiAnafJobData> = async (job) => {
   const startedAt = Date.now();
   const cleanedCui = sanitizeCui(job.data.cui);
@@ -83,20 +258,7 @@ export const cuiAnafValidatorProcessor: Processor<CuiAnafJobData> = async (job) 
   await setSessionTenantId(job.data.tenantId);
   const companyData = await anafBreaker.fire(cleanedCui);
   if (!companyData) {
-    if (job.data.bronzeContactId) {
-      await db
-        .update(bronzeContacts)
-        .set({
-          metadata: sql`COALESCE(${bronzeContacts.metadata}, '{}'::jsonb) || ${JSON.stringify({
-            anafValidation: {
-              status: "not_found",
-              cui: cleanedCui,
-              validatedAt: new Date().toISOString(),
-            },
-          })}::jsonb`,
-        })
-        .where(sql`${bronzeContacts.id} = ${job.data.bronzeContactId}`);
-    }
+    await persistAnafNotFound(job.data.bronzeContactId, cleanedCui);
     return {
       ok: true,
       status: "not_found",
@@ -105,73 +267,12 @@ export const cuiAnafValidatorProcessor: Processor<CuiAnafJobData> = async (job) 
     };
   }
 
-  const patch = {
-    anafValidation: {
-      status: "valid",
-      cui: cleanedCui,
-      validatedAt: new Date().toISOString(),
-      response: companyData,
-    },
-  };
-  if (job.data.companyId) {
-    const denumireAnaf = typeof companyData.denumire === "string" ? companyData.denumire : null;
-    await db
-      .update(silverCompanies)
-      .set({
-        denumire: denumireAnaf ?? sql`${silverCompanies.denumire}`,
-        metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify(patch)}::jsonb`,
-      })
-      .where(sql`${silverCompanies.id} = ${job.data.companyId}`);
-  }
-  if (job.data.bronzeContactId) {
-    const denumireAnaf = typeof companyData.denumire === "string" ? companyData.denumire : null;
-    await db
-      .update(bronzeContacts)
-      .set({
-        extractedName: denumireAnaf,
-        metadata: sql`COALESCE(${bronzeContacts.metadata}, '{}'::jsonb) || ${JSON.stringify(patch)}::jsonb`,
-      })
-      .where(sql`${bronzeContacts.id} = ${job.data.bronzeContactId}`);
-  }
-
-  if (job.data.bronzeContactId) {
-    try {
-      const promotionQueue = new Queue("pipeline:promote-bronze-silver", {
-        connection: getRedisConnectionOptions(),
-      });
-      await promotionQueue.add(
-        `promote-${job.data.bronzeContactId}`,
-        {
-          tenantId: job.data.tenantId,
-          bronzeContactId: job.data.bronzeContactId,
-          cui: cleanedCui,
-          correlationId: job.data.correlationId,
-          anafData: companyData,
-        },
-        { jobId: `promote-${job.data.bronzeContactId}` },
-      );
-      await promotionQueue.close();
-    } catch {
-      // Non-critical: promotion can be triggered manually if auto-enqueue fails
-    }
-  }
-
-  const entityId = job.data.companyId ?? job.data.bronzeContactId;
-  if (entityId) {
-    await db.insert(silverEnrichmentLog).values({
-      tenantId: job.data.tenantId,
-      entityType: job.data.companyId ? "company" : "contact",
-      entityId,
-      source: "anaf_cui_validation",
-      operation: "validate",
-      requestPayload: { cui: cleanedCui },
-      responsePayload: { status: "valid", denumire: companyData.denumire },
-      fieldsUpdated: ["metadata", "denumire"],
-      correlationId: job.data.correlationId,
-      jobId: String(job.id ?? ""),
-      durationMs: Date.now() - startedAt,
-    });
-  }
+  const patch = buildAnafPatch(cleanedCui, companyData);
+  const nrRegCom = extractNrRegCom(companyData);
+  await updateAnafCompany(job.data, cleanedCui, companyData, nrRegCom, patch);
+  await updateAnafBronzeContact(job.data, cleanedCui, companyData, nrRegCom, patch);
+  await enqueueAnafPromotion(job.data, cleanedCui, companyData);
+  await logAnafValidation(job, cleanedCui, companyData, startedAt);
 
   return {
     ok: true,

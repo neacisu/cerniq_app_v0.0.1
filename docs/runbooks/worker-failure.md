@@ -17,10 +17,9 @@
 cd /opt/cerniq
 docker compose ps
 
-# Worker logs (exemple)
+# Worker logs (runtime activ Etapa 0 + 1)
 docker compose logs --tail 200 worker-enrichment
-docker compose logs --tail 200 worker-outreach
-docker compose logs --tail 200 worker-ai
+docker compose logs --tail 200 monitoring-api
 ```
 
 Verifica dependinte:
@@ -38,9 +37,9 @@ docker inspect -f '{{.State.Health.Status}}' cerniq-pgbouncer
 ### A) Container worker down / restart loop
 
 ```bash
-docker compose ps | rg 'worker-'
+docker compose ps | rg 'worker-|monitoring-api'
 docker compose logs --tail 200 <worker-service>
-docker stats --no-stream | rg 'worker-'
+docker stats --no-stream | rg 'worker-|monitoring-api'
 ```
 
 Remediere:

@@ -3,7 +3,7 @@ import { http, HttpResponse } from "msw";
 const apiBase = "http://localhost:64010";
 
 export const handlers = [
-  http.post(`${apiBase}/auth/login`, async ({ request }) => {
+  http.post(`${apiBase}/api/v1/auth/login`, async ({ request }) => {
     const body = (await request.json()) as { email?: string; password?: string };
     if (body?.email === "admin@demo-tenant.com" && body?.password === "demo123456") {
       return HttpResponse.json({
@@ -16,6 +16,18 @@ export const handlers = [
     }
     return HttpResponse.json({ success: false, error: "Invalid credentials" }, { status: 401 });
   }),
+  http.post(`${apiBase}/api/v1/auth/refresh`, () =>
+    HttpResponse.json({
+      success: true,
+      data: {
+        token: "mock-jwt-token-refreshed",
+        expiresIn: "15m",
+      },
+    }),
+  ),
+  http.post(`${apiBase}/api/v1/auth/logout`, () =>
+    HttpResponse.json({ success: true, data: { loggedOut: true } }),
+  ),
 
   http.get(`${apiBase}/health`, () =>
     HttpResponse.json({ status: "ok", timestamp: new Date().toISOString() }),
@@ -33,7 +45,7 @@ export const handlers = [
   http.get(`${apiBase}/api/admin/queues`, () =>
     HttpResponse.json({
       success: true,
-      data: [{ name: "cerniq:ai-processing", waiting: 0, active: 0, completed: 10, failed: 0 }],
+      data: [{ name: "cerniq.ai-processing", waiting: 0, active: 0, completed: 10, failed: 0 }],
     }),
   ),
 

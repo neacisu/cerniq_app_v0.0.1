@@ -219,13 +219,13 @@ const LEGACY_ALIASES = {
 
 ## 4.1 Technology Decisions
 
-### Stack Tehnologic Canonic (Ianuarie 2026)
+### Stack Tehnologic Canonic (Martie 2026)
 
 > 📖 **Sursă Canonică Versiuni:** [`master-specification.md`](../specifications/master-specification.md) § "Canonical Technology Versions"
 
 | Strat                 | Tehnologie                    | Versiune                | Justificare                                      |
 | --------------------- | ----------------------------- | ----------------------- | ------------------------------------------------ |
-| **Runtime API**       | Node.js                       | v24.13.1 LTS "Krypton"  | ESM natim, --watch, V8 Maglev JIT                |
+| **Runtime API**       | Node.js                       | v25.8.1 Current         | ESM nativ, current release line, V8 14.1         |
 | **Framework API**     | Fastify                       | v5.6.2                  | Type Provider Zod, hook-based                    |
 | **AI/Worker Runtime** | Python                        | 3.14.2 Free-Threading   | True parallelism, no GIL                         |
 | **Database**          | PostgreSQL                    | 18.1                    | JSON_TABLE, async I/O, UUIDv7                    |
@@ -1395,7 +1395,7 @@ Nivel 5 (Anexe Data Model):
 
 | Technology                    | Version   | Release Date | EOL Date | Notes                        |
 | ----------------------------- | --------- | ------------ | -------- | ---------------------------- |
-| Node.js                       | 24.13.1   | Oct 2025     | Apr 2028 | LTS "Krypton"                |
+| Node.js                       | 25.8.1    | 11 Mar 2026  | —        | Current release line (non-LTS) |
 | Python                        | 3.14.2    | Dec 2025     | Oct 2029 | Free-Threading stable        |
 | PostgreSQL                    | 18.1      | Nov 2025     | Nov 2030 | Async I/O, UUIDv7            |
 | Redis                         | 8.4.0     | Nov 2025     | -        | Latest Stable                |

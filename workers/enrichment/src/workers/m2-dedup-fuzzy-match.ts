@@ -45,6 +45,13 @@ export const dedupFuzzyMatchProcessor: Processor<DedupFuzzyJobData> = async (job
   if (candidates.length === 0) return { ok: true, status: "unique" };
 
   const scored = candidates
+    .filter((candidate) => {
+      if (company.cui && candidate.cui && company.cui !== candidate.cui) return false;
+      if (company.nrRegCom && candidate.nrRegCom && company.nrRegCom !== candidate.nrRegCom) {
+        return false;
+      }
+      return true;
+    })
     .map((candidate) => {
       const name = computeNameSimilarity(company.denumire ?? "", candidate.denumire ?? "");
       const addr = computeNameSimilarity(company.adresa ?? "", candidate.adresa ?? "");

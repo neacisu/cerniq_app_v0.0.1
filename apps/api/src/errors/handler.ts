@@ -8,10 +8,10 @@ export function errorHandler(error: FastifyError, request: FastifyRequest, reply
   if (error instanceof AppError) {
     return reply.status(error.statusCode).send({
       success: false,
-      error: {
+      error: error.message,
+      details: {
         statusCode: error.statusCode,
-        error: error.code,
-        message: error.message,
+        code: error.code,
       },
     });
   }
@@ -19,11 +19,11 @@ export function errorHandler(error: FastifyError, request: FastifyRequest, reply
   if (error.validation) {
     return reply.status(400).send({
       success: false,
-      error: {
+      error: "Validation failed",
+      details: {
         statusCode: 400,
-        error: "VALIDATION_ERROR",
-        message: "Validation failed",
-        details: error.validation,
+        code: "VALIDATION_ERROR",
+        validation: error.validation,
       },
     });
   }
@@ -31,10 +31,10 @@ export function errorHandler(error: FastifyError, request: FastifyRequest, reply
   const statusCode = error.statusCode ?? 500;
   return reply.status(statusCode).send({
     success: false,
-    error: {
+    error: envConfig.NODE_ENV === "production" ? "Internal Server Error" : error.message,
+    details: {
       statusCode,
-      error: "INTERNAL_ERROR",
-      message: envConfig.NODE_ENV === "production" ? "Internal Server Error" : error.message,
+      code: error.code ?? "INTERNAL_ERROR",
     },
   });
 }

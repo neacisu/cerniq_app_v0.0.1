@@ -3,6 +3,7 @@ import { db, silverCompanies, silverEnrichmentLog, setSessionTenantId, sql } fro
 import { sanitizeCui } from "../lib/cui-validation.js";
 import { getOnrcSedii, getOnrcHistory } from "../lib/onrc-api-client.js";
 import { upsertCompanyLocation } from "./company-enrichment-utils.js";
+import { markEnrichmentSourceComplete } from "../lib/enrichment-completion.js";
 
 export type OnrcSediiJobData = {
   tenantId: string;
@@ -89,6 +90,12 @@ export const onrcSediiProcessor: Processor<OnrcSediiJobData> = async (job) => {
     jobId: String(job.id ?? ""),
     durationMs: Date.now() - startedAt,
   });
+  await markEnrichmentSourceComplete(
+    job.data.tenantId,
+    job.data.companyId,
+    "onrc_sedii",
+    job.data.correlationId,
+  );
 
   return {
     ok: true,

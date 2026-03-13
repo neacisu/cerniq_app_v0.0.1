@@ -50,8 +50,8 @@ Actiuni tipice (CT109/CT110):
 # Restart controlat un singur serviciu (exemplu)
 docker compose restart api
 
-# Daca un worker produce erori in cascada
-docker compose stop worker-ai
+# Daca workerul activ produce erori in cascada
+docker compose stop worker-enrichment
 ```
 
 > Nota: nu exista `postgres`/`redis` local in stack-ul Cerniq pe CT109/CT110.

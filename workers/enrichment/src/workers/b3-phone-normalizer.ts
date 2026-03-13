@@ -10,21 +10,9 @@ export type PhoneNormalizerJobData = BronzeNormalizationJobData;
 
 const MOBILE_PREFIXES = ["72", "73", "74", "75", "76", "77", "78", "79"];
 
-function pickRawPhone(payload: Record<string, unknown>): string | null {
-  const aliases = ["phone", "telefon", "telefon_mobil", "mobile", "mobile_phone"];
-  for (const key of aliases) {
-    const value = payload[key];
-    if (typeof value === "string" && value.trim().length > 0) {
-      return value.trim();
-    }
-  }
-  return null;
-}
-
 export const phoneNormalizerProcessor: Processor<PhoneNormalizerJobData> = async (job) => {
   const contact = await getBronzeContactForTenant(job.data.tenantId, job.data.bronzeContactId);
-  const rawPayload = contact.rawPayload as Record<string, unknown>;
-  const rawPhone = pickRawPhone(rawPayload);
+  const rawPhone = typeof contact.extractedPhone === "string" ? contact.extractedPhone : null;
   if (!rawPhone) {
     return { ok: true, status: "skipped", reason: "empty_phone" };
   }

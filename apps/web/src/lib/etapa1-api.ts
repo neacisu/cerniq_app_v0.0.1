@@ -21,6 +21,17 @@ export type ImportListParams = {
   sortDir?: SortDir;
 };
 
+export type ImportRowsParams = {
+  limit?: number;
+  offset?: number;
+  identityStatus?:
+    | "unresolved"
+    | "resolved"
+    | "duplicate_source"
+    | "identity_conflict"
+    | "insufficient_identifiers";
+};
+
 export type BronzeContactsParams = {
   limit?: number;
   offset?: number;
@@ -70,6 +81,7 @@ export type ApprovalListParams = {
   approvalType?:
     | "dedup_review"
     | "quality_review"
+    | "identity_conflict"
     | "ai_structuring_review"
     | "ai_merge_review"
     | "low_confidence_review"
@@ -106,6 +118,42 @@ export async function fetchDashboardActivity(limit = 20) {
   );
 }
 
+export type TemplateColumn = {
+  header: string;
+  required: boolean;
+  description: string;
+  example: string;
+  autoMapped: boolean;
+};
+
+export async function fetchTemplateColumns() {
+  return api.get<{ success: boolean; data: TemplateColumn[] }>("/api/v1/imports/template/columns");
+}
+
+export async function downloadImportTemplate(format: "csv" | "xlsx" = "csv"): Promise<void> {
+  const { getApiBase } = await import("./api-url.js");
+  const base = getApiBase();
+  const hasWindow = typeof globalThis.window === "object";
+  const token = hasWindow ? globalThis.localStorage.getItem("cerniq_token") : null;
+  const headers: Record<string, string> = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const res = await fetch(`${base.replace(/\/$/, "")}/api/v1/imports/template?format=${format}`, {
+    headers,
+  });
+  if (!res.ok) throw new Error(`Descărcare template eșuată: ${res.status}`);
+
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `template_import_cerniq.${format}`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 export async function fetchImports(params: ImportListParams = {}) {
   const query = new URLSearchParams();
   appendParams(query, {
@@ -123,6 +171,30 @@ export async function fetchImports(params: ImportListParams = {}) {
 
 export async function fetchImportById(id: string) {
   return api.get<ApiObjectResponse<Record<string, unknown>>>(`/api/v1/imports/${id}`);
+}
+
+export async function fetchImportRows(id: string, params: ImportRowsParams = {}) {
+  const query = new URLSearchParams();
+  appendParams(query, {
+    limit: params.limit ?? 100,
+    offset: params.offset ?? 0,
+    identityStatus: params.identityStatus,
+  });
+  return api.get<ApiListResponse<Record<string, unknown>>>(`/api/v1/imports/${id}/rows?${query}`);
+}
+
+export async function fetchImportEntities(
+  id: string,
+  params: { limit?: number; offset?: number } = {},
+) {
+  const query = new URLSearchParams();
+  appendParams(query, {
+    limit: params.limit ?? 100,
+    offset: params.offset ?? 0,
+  });
+  return api.get<ApiListResponse<Record<string, unknown>>>(
+    `/api/v1/imports/${id}/entities?${query}`,
+  );
 }
 
 export async function uploadImport(
@@ -149,6 +221,42 @@ export async function uploadImport(
 
 export async function cancelImport(id: string) {
   return api.post<ApiObjectResponse<Record<string, unknown>>>(`/api/v1/imports/${id}/cancel`);
+}
+
+export async function retryImport(id: string) {
+  return api.post<ApiObjectResponse<Record<string, unknown>>>(`/api/v1/imports/${id}/retry`);
+}
+
+export type MappingTarget = { key: string; label: string; aliases: string[] };
+
+export async function fetchMappingTargets() {
+  return api.get<ApiListResponse<MappingTarget>>("/api/v1/imports/mapping-targets");
+}
+
+export type ImportHeadersResponse = {
+  sheets: Array<{ sheetName: string; headers: string[] }>;
+  autoMapping: Record<string, string>;
+  savedMapping: Record<string, string> | null;
+};
+
+export async function fetchImportHeaders(id: string) {
+  return api.get<ApiObjectResponse<ImportHeadersResponse>>(`/api/v1/imports/${id}/headers`);
+}
+
+export async function retryImportWithMapping(id: string, mapping: Record<string, string>) {
+  return api.post<ApiObjectResponse<Record<string, unknown>>>(`/api/v1/imports/${id}/retry`, {
+    mapping,
+  });
+}
+
+export async function saveImportMapping(id: string, mapping: Record<string, string>) {
+  return api.put<ApiObjectResponse<Record<string, unknown>>>(`/api/v1/imports/${id}/mapping`, {
+    mapping,
+  });
+}
+
+export async function rePromoteImport(id: string) {
+  return api.post<ApiObjectResponse<Record<string, unknown>>>(`/api/v1/imports/${id}/re-promote`);
 }
 
 export async function fetchBronzeContacts(params: BronzeContactsParams = {}) {

@@ -8,7 +8,6 @@ import {
   pgSchema,
   text,
   timestamp,
-  uniqueIndex,
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
@@ -35,6 +34,14 @@ export const bronzeProcessingStatusEnum = pgEnum("bronze_processing_status", [
   "error",
 ]);
 
+export const bronzeIdentityStatusEnum = pgEnum("bronze_identity_status", [
+  "unresolved",
+  "resolved",
+  "duplicate_source",
+  "identity_conflict",
+  "insufficient_identifiers",
+]);
+
 export const importStatusEnum = pgEnum("import_status", [
   "pending",
   "processing",
@@ -53,13 +60,24 @@ export const bronzeContacts = bronzeSchema.table(
     sourceType: bronzeSourceTypeEnum("source_type").notNull(),
     rawPayload: jsonb("raw_payload").notNull(),
     contentHash: varchar("content_hash", { length: 64 }).notNull(),
+    sourcePayloadHash: varchar("source_payload_hash", { length: 64 }).notNull(),
     processingStatus: bronzeProcessingStatusEnum("processing_status").notNull().default("pending"),
+    extractedCuiRaw: varchar("extracted_cui_raw", { length: 64 }),
     extractedCui: varchar("extracted_cui", { length: 32 }),
+    extractedNrRegComRaw: varchar("extracted_nr_reg_com_raw", { length: 32 }),
+    extractedNrRegCom: varchar("extracted_nr_reg_com", { length: 20 }),
     extractedEmail: varchar("extracted_email", { length: 320 }),
     extractedPhone: varchar("extracted_phone", { length: 32 }),
     extractedName: varchar("extracted_name", { length: 255 }),
+    extractedJudet: varchar("extracted_judet", { length: 100 }),
+    extractedLocalitate: varchar("extracted_localitate", { length: 100 }),
+    extractedAddress: text("extracted_address"),
+    extractedCaen: varchar("extracted_caen", { length: 8 }),
     isDuplicate: boolean("is_duplicate").notNull().default(false),
     duplicateOfId: uuid("duplicate_of_id"),
+    identityStatus: bronzeIdentityStatusEnum("identity_status").notNull().default("unresolved"),
+    resolvedCompanyId: uuid("resolved_company_id"),
+    identityResolutionMetadata: jsonb("identity_resolution_metadata").notNull().default({}),
     promotedToSilverId: uuid("promoted_to_silver_id"),
     doNotProcess: boolean("do_not_process").notNull().default(false),
     metadata: jsonb("metadata").notNull().default({}),
@@ -68,15 +86,16 @@ export const bronzeContacts = bronzeSchema.table(
   },
   (t) => [
     index("idx_bronze_contacts_tenant_status").on(t.tenantId, t.processingStatus),
-    uniqueIndex("idx_bronze_contacts_hash_unique")
-      .on(t.tenantId, t.contentHash)
-      .where(sql`${t.isDuplicate} = false`),
     index("idx_bronze_contacts_pending")
       .on(t.tenantId, t.createdAt)
       .where(sql`${t.processingStatus} = 'pending'`),
+    index("idx_bronze_contacts_source_payload_hash").on(t.tenantId, t.sourcePayloadHash),
     index("idx_bronze_contacts_cui").on(t.extractedCui),
+    index("idx_bronze_contacts_nr_reg_com").on(t.extractedNrRegCom),
     index("idx_bronze_contacts_email").on(t.extractedEmail),
     index("idx_bronze_contacts_source").on(t.sourceType),
+    index("idx_bronze_contacts_identity_status").on(t.tenantId, t.identityStatus),
+    index("idx_bronze_contacts_resolved_company").on(t.resolvedCompanyId),
     index("idx_bronze_contacts_payload_gin").using("gin", t.rawPayload),
     index("idx_bronze_contacts_promoted").on(t.promotedToSilverId),
   ],

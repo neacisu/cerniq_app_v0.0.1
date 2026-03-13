@@ -1,6 +1,6 @@
-import { Queue, type Processor } from "bullmq";
+import { type Processor } from "bullmq";
 import { db, setSessionTenantId, silverCompanies, sql } from "@cerniq/db";
-import { getQueuePrefix, getRedisConnectionOptions } from "@cerniq/worker-shared";
+import { createQueue } from "@cerniq/worker-shared";
 
 export type OrchestratorJobData = {
   tenantId: string;
@@ -16,10 +16,8 @@ export const pipelineOrchestratorProcessor: Processor<OrchestratorJobData> = asy
   });
   if (!company) return { ok: false, status: "not_found" };
 
-  const connection = getRedisConnectionOptions();
-  const prefix = getQueuePrefix();
   const add = async (queueName: string, payload: Record<string, unknown>) => {
-    const queue = new Queue(queueName, { connection, prefix });
+    const queue = createQueue(queueName);
     await queue.add("process", payload);
     await queue.close();
   };
@@ -27,22 +25,22 @@ export const pipelineOrchestratorProcessor: Processor<OrchestratorJobData> = asy
   const jobsTriggered: string[] = [];
   if (job.data.stage === "post_validation") {
     const enrichQueues = [
-      "silver:enrich:anaf-fiscal-status",
-      "silver:enrich:anaf-tva-status",
-      "silver:enrich:anaf-efactura",
-      "silver:enrich:anaf-datorii",
-      "silver:enrich:anaf-caen",
-      "silver:enrich:termene-balance",
-      "silver:enrich:termene-risk",
-      "silver:enrich:termene-dosare",
-      "silver:enrich:termene-actionari",
-      "silver:enrich:onrc-data",
-      "silver:enrich:onrc-administratori",
-      "silver:enrich:onrc-sedii",
-      "silver:enrich:website-finder",
-      "silver:enrich:nominatim-geocoding",
-      "silver:enrich:apia-data",
-      "silver:enrich:grok-structuring",
+      "enrich:anaf:fiscal-status",
+      "enrich:anaf:tva-status",
+      "enrich:anaf:efactura",
+      "enrich:anaf:datorii",
+      "enrich:anaf:caen",
+      "enrich:termene:balance",
+      "enrich:termene:risk",
+      "enrich:termene:dosare",
+      "enrich:termene:actionari",
+      "enrich:onrc:data",
+      "enrich:onrc:administratori",
+      "enrich:onrc:sedii",
+      "scrape:website:finder",
+      "geo:geocode:nominatim",
+      "agri:apia",
+      "ai:structure:xai",
     ];
     for (const queueName of enrichQueues) {
       await add(queueName, {
@@ -62,11 +60,11 @@ export const pipelineOrchestratorProcessor: Processor<OrchestratorJobData> = asy
 
   if (job.data.stage === "post_enrichment") {
     for (const queueName of [
-      "silver:dedup:exact-hash",
-      "silver:dedup:fuzzy-match",
-      "silver:score:completeness",
-      "silver:score:accuracy",
-      "silver:score:freshness",
+      "dedup:exact",
+      "dedup:fuzzy",
+      "score:completeness",
+      "score:accuracy",
+      "score:freshness",
     ]) {
       await add(queueName, {
         tenantId: job.data.tenantId,
@@ -82,12 +80,12 @@ export const pipelineOrchestratorProcessor: Processor<OrchestratorJobData> = asy
   }
 
   if (job.data.stage === "post_scoring") {
-    await add("silver:aggregate:quality-rollup", {
+    await add("aggregate:quality-rollup", {
       tenantId: job.data.tenantId,
       companyId: job.data.companyId,
       correlationId: job.data.correlationId,
     });
-    jobsTriggered.push("silver:aggregate:quality-rollup");
+    jobsTriggered.push("aggregate:quality-rollup");
   }
 
   return { ok: true, status: "success", stage: job.data.stage, jobsTriggered };

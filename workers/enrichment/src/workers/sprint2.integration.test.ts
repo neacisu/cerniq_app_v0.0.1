@@ -36,6 +36,17 @@ describe("S2.PR8 integration - CSV -> Bronze", () => {
       detectEncoding: vi.fn(() => "utf8"),
       getInsertBatchSize: vi.fn(() => 1000),
     }));
+    vi.doMock("@cerniq/db", () => ({
+      db: {
+        update: vi.fn(() => ({
+          set: vi.fn(() => ({
+            where: vi.fn(async () => undefined),
+          })),
+        })),
+      },
+      bronzeImportBatches: { id: "id", metadata: "metadata" },
+      sql: (parts: TemplateStringsArray) => parts.join(""),
+    }));
 
     const { csvParserProcessor } = await import("./a1-csv-parser.js");
     const result = await csvParserProcessor({
@@ -59,7 +70,10 @@ describe("S2.PR8 integration - CSV -> Bronze", () => {
 
 describe("S2.PR8 integration - ANAF mock", () => {
   it("d1 fiscal updateaza silver cu raspunsul ANAF", async () => {
-    const setValues = vi.fn(() => ({ where: vi.fn(async () => undefined) }));
+    const returning = vi.fn(async () => [{ sources: ["anaf_fiscal"] }]);
+    const setValues = vi.fn(() => ({
+      where: vi.fn(() => ({ returning })),
+    }));
     const dbMock = {
       update: vi.fn(() => ({ set: setValues })),
       insert: vi.fn(() => ({ values: vi.fn(async () => undefined) })),
@@ -163,7 +177,10 @@ describe("S2.PR8 integration - CSV -> Bronze -> Silver promotion", () => {
 
 describe("S2.PR8 integration - Termene mock", () => {
   it("e1 balance actualizeaza date financiare in silver", async () => {
-    const setValues = vi.fn(() => ({ where: vi.fn(async () => undefined) }));
+    const returning = vi.fn(async () => [{ sources: ["termene_balance"] }]);
+    const setValues = vi.fn(() => ({
+      where: vi.fn(() => ({ returning })),
+    }));
     const dbMock = {
       update: vi.fn(() => ({ set: setValues })),
       insert: vi.fn(() => ({ values: vi.fn(async () => undefined) })),

@@ -59,5 +59,24 @@
   // CSS — Tailwind CSS v4 @theme support
   // ---------------------------------------------------------------------------
   "css.customData": [],
-  "css.lint.unknownAtRules": "ignore"
+  "css.lint.unknownAtRules": "ignore",
+
+  // ---------------------------------------------------------------------------
+  // SonarLint — Java Runtime
+  // ---------------------------------------------------------------------------
+  "sonarlint.ls.javaHome": "/usr/lib/jvm/java-21-openjdk-amd64",
+
+  // ---------------------------------------------------------------------------
+  // SonarLint — Connected Mode (SonarCloud)
+  // ---------------------------------------------------------------------------
+  "sonarlint.connectedMode.connections.sonarcloud": [
+    {
+      "connectionId": "neacisu",
+      "organizationKey": "neacisu"
+    }
+  ],
+  "sonarlint.connectedMode.project": {
+    "connectionId": "neacisu",
+    "projectKey": "neacisu_cerniq_app_v0.0.1"
+  }
 }

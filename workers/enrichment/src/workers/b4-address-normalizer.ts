@@ -75,21 +75,9 @@ const ADDRESS_ABBREVIATIONS: Record<string, string> = {
   "OR.": "ORAS",
 };
 
-function pickRawAddress(payload: Record<string, unknown>): string | null {
-  const aliases = ["address", "adresa", "street_address", "adresa_sediu"];
-  for (const key of aliases) {
-    const value = payload[key];
-    if (typeof value === "string" && value.trim().length > 0) {
-      return value.trim();
-    }
-  }
-  return null;
-}
-
 export const addressNormalizerProcessor: Processor<AddressNormalizerJobData> = async (job) => {
   const contact = await getBronzeContactForTenant(job.data.tenantId, job.data.bronzeContactId);
-  const rawPayload = contact.rawPayload as Record<string, unknown>;
-  const rawAddress = pickRawAddress(rawPayload);
+  const rawAddress = typeof contact.extractedAddress === "string" ? contact.extractedAddress : null;
   if (!rawAddress) {
     return { ok: true, status: "skipped", reason: "empty_address" };
   }

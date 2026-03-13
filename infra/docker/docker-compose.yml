@@ -35,6 +35,9 @@ networks:
 # ============================================================================
 # Volumes (add named volumes here when needed)
 # ============================================================================
+volumes:
+  cerniq_imports:
+
 # ============================================================================
 # X-Common Configurations (YAML Anchors)
 # ============================================================================
@@ -119,6 +122,7 @@ services:
       - "64010:64010"
     volumes:
       - ${CERNIQ_RENDERED_SECRETS_DIR:-/opt/cerniq/runtime-secrets}/api:/secrets:ro
+      - cerniq_imports:/app/data/imports
     environment:
       NODE_ENV: ${CERNIQ_ENV:-staging}
       PORT: "64010"
@@ -231,45 +235,10 @@ services:
       <<: *default-logging
 
   # ==========================================================================
-  # Workers — BullMQ (AI, Enrichment, Outreach)
+  # Workers — BullMQ (Etapa 0/1 active runtime)
   # ==========================================================================
   # Redis connection via OpenBao-rendered workers.env (REDIS_URL, REDIS_PREFIX).
   # ==========================================================================
-  cerniq-worker-ai:
-    image: ${REGISTRY:-ghcr.io}/${IMAGE_OWNER:-cerniqapp}/cerniq/worker-ai:${CERNIQ_VERSION:-latest}
-    container_name: cerniq-worker-ai
-    restart: unless-stopped
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    env_file:
-      - ${CERNIQ_RENDERED_SECRETS_DIR:-/opt/cerniq/runtime-secrets}/workers/workers.env
-    environment:
-      NODE_ENV: ${CERNIQ_ENV:-staging}
-      PORT: "3000"
-    networks:
-      - cerniq_backend
-    depends_on:
-      openbao-agent-workers:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 15s
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-          cpus: "0.5"
-    labels:
-      <<: *common-labels
-      com.cerniq.service: "worker-ai"
-    logging:
-      <<: *default-logging
-
   cerniq-worker-enrichment:
     image: ${REGISTRY:-ghcr.io}/${IMAGE_OWNER:-cerniqapp}/cerniq/worker-enrichment:${CERNIQ_VERSION:-latest}
     container_name: cerniq-worker-enrichment
@@ -283,6 +252,9 @@ services:
     environment:
       NODE_ENV: ${CERNIQ_ENV:-staging}
       PORT: "3000"
+      IMPORT_UPLOAD_DIR: /app/data/imports
+    volumes:
+      - cerniq_imports:/app/data/imports
     networks:
       - cerniq_backend
     depends_on:
@@ -302,41 +274,6 @@ services:
     labels:
       <<: *common-labels
       com.cerniq.service: "worker-enrichment"
-    logging:
-      <<: *default-logging
-
-  cerniq-worker-outreach:
-    image: ${REGISTRY:-ghcr.io}/${IMAGE_OWNER:-cerniqapp}/cerniq/worker-outreach:${CERNIQ_VERSION:-latest}
-    container_name: cerniq-worker-outreach
-    restart: unless-stopped
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    env_file:
-      - ${CERNIQ_RENDERED_SECRETS_DIR:-/opt/cerniq/runtime-secrets}/workers/workers.env
-    environment:
-      NODE_ENV: ${CERNIQ_ENV:-staging}
-      PORT: "3000"
-    networks:
-      - cerniq_backend
-    depends_on:
-      openbao-agent-workers:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 15s
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-          cpus: "0.5"
-    labels:
-      <<: *common-labels
-      com.cerniq.service: "worker-outreach"
     logging:
       <<: *default-logging
 

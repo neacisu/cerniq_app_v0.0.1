@@ -194,13 +194,13 @@ sudo truncate -s 0 $(docker inspect --format='{{.LogPath}}' <container_name>)
 
 ```bash
 # 1. Stop non-critical containers
-docker compose stop worker-enrichment worker-outreach worker-ai || true
+docker compose stop worker-enrichment monitoring-api web-admin || true
 
 # 2. Clear all logs
 sudo find /var/lib/docker/containers -name "*-json.log" -exec truncate -s 0 {} \;
 
 # 3. Restart containers
-docker compose up -d worker-enrichment worker-outreach worker-ai || true
+docker compose up -d worker-enrichment monitoring-api web-admin || true
 ```
 
 ## Integration with Centralized Logging

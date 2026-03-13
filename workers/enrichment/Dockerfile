@@ -1,8 +1,7 @@
 # syntax=docker/dockerfile:1.7
-FROM node:25.6.1-alpine3.23 AS base
+FROM node:25.8.1-alpine3.23 AS base
 ENV CI=true
-RUN apk add --no-cache curl
-RUN npm install -g pnpm@10.29.3
+RUN apk upgrade --no-cache && apk add --no-cache curl && npm install -g pnpm@10.32.1
 WORKDIR /app
 
 FROM base AS deps

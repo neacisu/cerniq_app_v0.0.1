@@ -113,6 +113,34 @@
       "when": 1772150000000,
       "tag": "0015_ai_embedding_vector_type",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1772160000000,
+      "tag": "0016_bronze_extracted_fields_extension",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1772170000000,
+      "tag": "0017_silver_gold_financial_extension",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1772180000000,
+      "tag": "0018_dedup_nrregcom_email_locations",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1772190000000,
+      "tag": "0019_company_identity_registry",
+      "breakpoints": true
     }
   ]
 }

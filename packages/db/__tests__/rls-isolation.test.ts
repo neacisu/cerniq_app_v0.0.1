@@ -38,13 +38,16 @@ describe("RLS policy definitions", () => {
 
 describe("RLS tenant isolation logic", () => {
   it("setSessionTenantId function exists in db exports", async () => {
-    const { setSessionTenantId } = await import("../src/index.js");
+    process.env.DATABASE_URL ??= "postgresql://test:test@127.0.0.1:5432/test";
+    const { setSessionTenantId } = await import("../src/client.js");
     expect(typeof setSessionTenantId).toBe("function");
   });
 
   it("schema tables have tenantId column defined", async () => {
-    const { bronzeContacts, silverCompanies, goldCompanies, approvalTasks } =
-      await import("../src/index.js");
+    const { bronzeContacts } = await import("../src/schemas/bronze.js");
+    const { silverCompanies } = await import("../src/schemas/silver.js");
+    const { goldCompanies } = await import("../src/schemas/gold.js");
+    const { approvalTasks } = await import("../src/schemas/approval.js");
 
     expect(bronzeContacts.tenantId).toBeDefined();
     expect(silverCompanies.tenantId).toBeDefined();
@@ -74,7 +77,9 @@ describe("SQL triggers and functions", () => {
   });
 
   it("index definitions exist in schemas", async () => {
-    const { silverCompanies, goldCompanies, bronzeContacts } = await import("../src/index.js");
+    const { bronzeContacts } = await import("../src/schemas/bronze.js");
+    const { silverCompanies } = await import("../src/schemas/silver.js");
+    const { goldCompanies } = await import("../src/schemas/gold.js");
 
     expect(silverCompanies).toBeDefined();
     expect(goldCompanies).toBeDefined();

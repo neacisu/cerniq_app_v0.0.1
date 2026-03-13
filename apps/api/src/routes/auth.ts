@@ -77,6 +77,8 @@ type AuthUserPayload = {
   role: string;
 };
 
+const AUTH_COOKIE_PATH = "/api/v1/auth";
+
 function parseDurationToSeconds(value: string): number {
   const match = value.trim().match(/^(\d+)([smhd])$/i);
   if (!match) return 60 * 60 * 24 * 30;
@@ -172,7 +174,7 @@ export async function authRoutes(app: FastifyInstance) {
       httpOnly: true,
       secure: envConfig.NODE_ENV === "production",
       sameSite: "lax",
-      path: "/auth",
+      path: AUTH_COOKIE_PATH,
       maxAge: parseDurationToSeconds(envConfig.JWT_REFRESH_EXPIRES_IN),
     });
 
@@ -284,7 +286,7 @@ export async function authRoutes(app: FastifyInstance) {
       httpOnly: true,
       secure: envConfig.NODE_ENV === "production",
       sameSite: "lax",
-      path: "/auth",
+      path: AUTH_COOKIE_PATH,
       maxAge: parseDurationToSeconds(envConfig.JWT_REFRESH_EXPIRES_IN),
     });
 
@@ -369,7 +371,7 @@ export async function authRoutes(app: FastifyInstance) {
       httpOnly: true,
       secure: envConfig.NODE_ENV === "production",
       sameSite: "lax",
-      path: "/auth",
+      path: AUTH_COOKIE_PATH,
       maxAge: parseDurationToSeconds(envConfig.JWT_REFRESH_EXPIRES_IN),
     });
 
@@ -407,7 +409,7 @@ export async function authRoutes(app: FastifyInstance) {
       }
     }
 
-    reply.clearCookie("refreshToken", { path: "/auth" });
+    reply.clearCookie("refreshToken", { path: AUTH_COOKIE_PATH });
     return reply.send({ success: true, data: { loggedOut: true } });
   });
 

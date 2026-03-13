@@ -1,11 +1,6 @@
-import { useState } from "react";
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card.js";
-import { Button } from "@/components/ui/button.js";
 import { Badge } from "@/components/ui/badge.js";
-import { InputField } from "@/components/forms/InputField.js";
-import { SelectField } from "@/components/forms/SelectField.js";
-import { toast } from "@/components/ui/toast-api.js";
 
 type Integration = {
   key: string;
@@ -76,59 +71,19 @@ const INTEGRATIONS: Integration[] = [
 
 const GROUPS = ["Fiscal", "Risk", "Email", "AI", "Geo", "Phone"] as const;
 
-type IntegrationState = {
-  url: string;
-  status: "connected" | "disconnected";
-};
-
-function getInitialState(): Record<string, IntegrationState> {
-  const state: Record<string, IntegrationState> = {};
-  for (const i of INTEGRATIONS) {
-    state[i.key] = { url: i.defaultUrl, status: "disconnected" };
-  }
-  return state;
-}
-
 export function SettingsIntegrations() {
-  const [config, setConfig] = useState<Record<string, IntegrationState>>(getInitialState);
-  const [mode, setMode] = useState("production");
-
-  const updateUrl = (key: string, url: string) => {
-    setConfig((prev) => ({ ...prev, [key]: { ...prev[key], url } }));
-  };
-
-  const toggleStatus = (key: string) => {
-    setConfig((prev) => ({
-      ...prev,
-      [key]: {
-        ...prev[key],
-        status: prev[key].status === "connected" ? "disconnected" : "connected",
-      },
-    }));
-  };
-
-  const handleSave = () => {
-    toast.success("Configuratia integrarilor a fost salvata");
-  };
-
   return (
     <PageWrapper title="Settings - Integrations">
       <div className="mb-4 rounded-lg border border-[var(--color-b5)]/30 bg-[var(--color-b5)]/5 p-3 text-sm text-[var(--color-t2)]">
-        Configurare servicii externe. Modificarile sunt locale pana la implementarea API-ului de
-        setari.
+        Configuratiile runtime pentru integrari sunt administrate operational prin OpenBao,
+        variabile de mediu si manifestele de deploy. Interfata din Etapa 1 este read-only si
+        afiseaza doar punctele de integrare sustinute de platforma.
       </div>
 
-      <div className="mb-6 max-w-xs">
-        <SelectField
-          label="Mod de operare"
-          value={mode}
-          onChange={setMode}
-          options={[
-            { label: "Production", value: "production" },
-            { label: "Staging", value: "staging" },
-            { label: "Sandbox", value: "sandbox" },
-          ]}
-        />
+      <div className="mb-6 flex flex-wrap gap-2">
+        <Badge variant="brand">Production managed</Badge>
+        <Badge variant="info">Staging managed</Badge>
+        <Badge variant="warning">Tenant UI disabled</Badge>
       </div>
 
       {GROUPS.map((group) => {
@@ -138,32 +93,26 @@ export function SettingsIntegrations() {
             <h3 className="mb-3 text-sm font-semibold text-[var(--color-t2)]">{group}</h3>
             <div className="grid gap-4 lg:grid-cols-2">
               {items.map((integration) => {
-                const state = config[integration.key];
                 return (
                   <Card key={integration.key}>
                     <CardHeader>
                       <div className="flex items-center justify-between">
                         <CardTitle className="text-base">{integration.name}</CardTitle>
-                        <button
-                          type="button"
-                          className="cursor-pointer"
-                          onClick={() => toggleStatus(integration.key)}
-                        >
-                          <Badge variant={state.status === "connected" ? "brand" : "warning"}>
-                            {state.status === "connected" ? "Conectat" : "Deconectat"}
-                          </Badge>
-                        </button>
+                        <Badge variant="info">Managed centrally</Badge>
                       </div>
                     </CardHeader>
                     <CardBody>
                       <p className="mb-3 text-xs text-[var(--color-t3)]">
                         {integration.description}
                       </p>
-                      <InputField
-                        label="URL API"
-                        value={state.url}
-                        onChange={(val) => updateUrl(integration.key, val)}
-                      />
+                      <div className="rounded-lg border border-[var(--color-s700)] bg-[var(--color-s900)]/40 p-3">
+                        <div className="mb-1 text-[11px] uppercase tracking-[0.08em] text-[var(--color-t3)]">
+                          Endpoint operational
+                        </div>
+                        <div className="font-mono text-sm text-[var(--color-t1)]">
+                          {integration.defaultUrl}
+                        </div>
+                      </div>
                     </CardBody>
                   </Card>
                 );
@@ -172,10 +121,6 @@ export function SettingsIntegrations() {
           </div>
         );
       })}
-
-      <div className="flex justify-end">
-        <Button onClick={handleSave}>Salveaza configuratia</Button>
-      </div>
     </PageWrapper>
   );
 }

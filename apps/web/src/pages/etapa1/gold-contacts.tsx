@@ -47,6 +47,47 @@ export function GoldContacts() {
     : allRows;
   const total = response?.meta?.total ?? filtered.length;
 
+  function renderContent() {
+    if (isPending) {
+      return (
+        <div className="flex items-center justify-center py-16">
+          <Spinner size={32} />
+        </div>
+      );
+    }
+    if (isError) {
+      return (
+        <div className="rounded-lg border border-(--color-danger) bg-(--color-danger)/10 p-4 text-sm text-(--color-danger)">
+          Eroare la incarcarea companiilor gold: {error?.message ?? "Eroare necunoscuta"}
+        </div>
+      );
+    }
+    if (filtered.length === 0) {
+      return (
+        <EmptyState
+          icon="Star"
+          title="Nicio companie gold"
+          description={
+            search
+              ? "Niciun rezultat pentru cautarea curenta."
+              : "Nu exista companii in stratul Gold."
+          }
+        />
+      );
+    }
+    return (
+      <>
+        <DataTable columns={goldCompaniesColumns} data={filtered} />
+        <DataTablePagination
+          page={page}
+          pageSize={PAGE_SIZE}
+          total={total}
+          onPageChange={setPage}
+        />
+      </>
+    );
+  }
+
   return (
     <PageWrapper title="Gold Contacts">
       <Card>
@@ -63,37 +104,7 @@ export function GoldContacts() {
             />
           </div>
         </CardHeader>
-        <CardBody>
-          {isPending ? (
-            <div className="flex items-center justify-center py-16">
-              <Spinner size={32} />
-            </div>
-          ) : isError ? (
-            <div className="rounded-lg border border-[var(--color-danger)] bg-[var(--color-danger)]/10 p-4 text-sm text-[var(--color-danger)]">
-              Eroare la incarcarea companiilor gold: {error?.message ?? "Eroare necunoscuta"}
-            </div>
-          ) : filtered.length === 0 ? (
-            <EmptyState
-              icon="Star"
-              title="Nicio companie gold"
-              description={
-                search
-                  ? "Niciun rezultat pentru cautarea curenta."
-                  : "Nu exista companii in stratul Gold."
-              }
-            />
-          ) : (
-            <>
-              <DataTable columns={goldCompaniesColumns} data={filtered} />
-              <DataTablePagination
-                page={page}
-                pageSize={PAGE_SIZE}
-                total={total}
-                onPageChange={setPage}
-              />
-            </>
-          )}
-        </CardBody>
+        <CardBody>{renderContent()}</CardBody>
       </Card>
     </PageWrapper>
   );

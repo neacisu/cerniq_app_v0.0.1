@@ -35,7 +35,10 @@ describe("S4 integration - quality rollup", () => {
       silverEnrichmentLog: {},
       sql: (parts: TemplateStringsArray) => parts.join(""),
     }));
-    vi.doMock("@cerniq/worker-shared", () => ({ getRedisConnectionOptions: vi.fn(() => ({})) }));
+    vi.doMock("@cerniq/worker-shared", () => ({
+      getRedisConnectionOptions: vi.fn(() => ({})),
+      getQueuePrefix: vi.fn(() => "cerniq"),
+    }));
     vi.doMock("bullmq", () => ({
       Queue: class {
         async add() {}
@@ -82,7 +85,10 @@ describe("S4 integration - orchestrator", () => {
       setSessionTenantId: vi.fn(async () => undefined),
       silverCompanies: { id: "id" },
     }));
-    vi.doMock("@cerniq/worker-shared", () => ({ getRedisConnectionOptions: vi.fn(() => ({})) }));
+    vi.doMock("@cerniq/worker-shared", () => ({
+      getRedisConnectionOptions: vi.fn(() => ({})),
+      getQueuePrefix: vi.fn(() => "cerniq"),
+    }));
     vi.doMock("bullmq", () => ({
       Queue: class {
         async add(name: string, payload: unknown) {
@@ -121,7 +127,10 @@ describe("S4 integration - error handler replay", () => {
       silverCompanies: { id: "id", metadata: "metadata" },
       sql: (parts: TemplateStringsArray) => parts.join(""),
     }));
-    vi.doMock("@cerniq/worker-shared", () => ({ getRedisConnectionOptions: vi.fn(() => ({})) }));
+    vi.doMock("@cerniq/worker-shared", () => ({
+      getRedisConnectionOptions: vi.fn(() => ({})),
+      getQueuePrefix: vi.fn(() => "cerniq"),
+    }));
     vi.doMock("./pipeline-utils.js", () => ({ createHitlApprovalTask: vi.fn(async () => "a1") }));
     vi.doMock("bullmq", () => ({
       Queue: class {
@@ -140,7 +149,7 @@ describe("S4 integration - error handler replay", () => {
         companyId: "c1",
         errorType: "API_TIMEOUT",
         errorMessage: "timeout",
-        sourceWorker: "silver:enrich:anaf-fiscal-status",
+        sourceWorker: "enrich:anaf:fiscal-status",
         sourcePayload: { tenantId: "t1", companyId: "c1", cui: "12345678" },
         retryCount: 1,
         maxRetries: 3,
@@ -260,7 +269,7 @@ describe("S4 integration - HITL resume worker", () => {
 
     expect(set).toHaveBeenCalled();
     expect(addQueueJob).toHaveBeenCalledWith(
-      "pipeline:promote-to-gold",
+      "pipeline:promote:gold",
       expect.objectContaining({ tenantId: "t1", companyId: "c1", force: true }),
     );
     expect(patchCompanyMetadata).not.toHaveBeenCalled();

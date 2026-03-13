@@ -2,6 +2,7 @@ import type { Processor } from "bullmq";
 import { db, silverCompanies, silverEnrichmentLog, setSessionTenantId, sql } from "@cerniq/db";
 import { sanitizeCui } from "../lib/cui-validation.js";
 import { getTermeneDosare } from "../lib/termene-api-client.js";
+import { markEnrichmentSourceComplete } from "../lib/enrichment-completion.js";
 
 export type TermeneDosareJobData = {
   tenantId: string;
@@ -67,6 +68,12 @@ export const termeneDosareProcessor: Processor<TermeneDosareJobData> = async (jo
     jobId: String(job.id ?? ""),
     durationMs: Date.now() - startedAt,
   });
+  await markEnrichmentSourceComplete(
+    job.data.tenantId,
+    job.data.companyId,
+    "termene_dosare",
+    job.data.correlationId,
+  );
 
   return {
     ok: true,

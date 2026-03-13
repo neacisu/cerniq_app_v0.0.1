@@ -54,6 +54,7 @@ export const listApprovalTasksSchema = z.object({
     .enum([
       "dedup_review",
       "quality_review",
+      "identity_conflict",
       "ai_structuring_review",
       "ai_merge_review",
       "low_confidence_review",

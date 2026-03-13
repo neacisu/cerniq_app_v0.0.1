@@ -1,7 +1,6 @@
 import { createHash } from "node:crypto";
-import { Queue } from "bullmq";
 import { approvalTasks, db, setSessionTenantId, silverCompanies, sql } from "@cerniq/db";
-import { getQueuePrefix, getRedisConnectionOptions } from "@cerniq/worker-shared";
+import { createQueue } from "@cerniq/worker-shared";
 
 export async function resolveRequesterUserId(tenantId: string): Promise<string | null> {
   if (process.env.SYSTEM_USER_ID) return process.env.SYSTEM_USER_ID;
@@ -19,6 +18,7 @@ export async function createHitlApprovalTask(args: {
   type:
     | "dedup_review"
     | "quality_review"
+    | "identity_conflict"
     | "ai_structuring_review"
     | "ai_merge_review"
     | "low_confidence_review"
@@ -81,9 +81,7 @@ export async function createHitlApprovalTask(args: {
 }
 
 export async function addQueueJob(queueName: string, payload: Record<string, unknown>) {
-  const connection = getRedisConnectionOptions();
-  const prefix = getQueuePrefix();
-  const queue = new Queue(queueName, { connection, prefix });
+  const queue = createQueue(queueName);
   const payloadForId = {
     tenantId: typeof payload.tenantId === "string" ? payload.tenantId : null,
     companyId: typeof payload.companyId === "string" ? payload.companyId : null,

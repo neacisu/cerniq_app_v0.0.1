@@ -1,7 +1,16 @@
 import type { Processor } from "bullmq";
-import { db, silverCompanies, silverEnrichmentLog, setSessionTenantId, sql } from "@cerniq/db";
+import {
+  db,
+  silverCompanies,
+  silverEnrichmentLog,
+  setSessionTenantId,
+  sql,
+  upsertCompanyIdentityKey,
+} from "@cerniq/db";
+import { normalizeNrRegCom } from "@cerniq/worker-shared";
 import { sanitizeCui } from "../lib/cui-validation.js";
 import { getOnrcData } from "../lib/onrc-api-client.js";
+import { markEnrichmentSourceComplete } from "../lib/enrichment-completion.js";
 
 export type OnrcDataJobData = {
   tenantId: string;
@@ -9,6 +18,18 @@ export type OnrcDataJobData = {
   cui: string;
   correlationId?: string;
 };
+
+function extractOnrcNrRegCom(payload: unknown): { raw: string | null; canonical: string | null } {
+  if (!payload || typeof payload !== "object") return { raw: null, canonical: null };
+  const record = payload as Record<string, unknown>;
+  const raw =
+    (typeof record.nrRegCom === "string" && record.nrRegCom) ||
+    (typeof record.nr_reg_com === "string" && record.nr_reg_com) ||
+    (typeof record.numar_reg_comert === "string" && record.numar_reg_comert) ||
+    (typeof record.nrRegComert === "string" && record.nrRegComert) ||
+    null;
+  return { raw, canonical: raw ? normalizeNrRegCom(raw) : null };
+}
 
 function mapFormaJuridica(
   raw: string | null,
@@ -34,18 +55,43 @@ export const onrcDataProcessor: Processor<OnrcDataJobData> = async (job) => {
   const payload = await getOnrcData(cleanedCui);
   const denumire = String(payload?.denumire ?? payload?.name ?? "").trim();
   const formaJuridica = mapFormaJuridica(String(payload?.forma_juridica ?? ""));
+  const formaJuridicaValue = formaJuridica === "OTHER" ? undefined : formaJuridica;
   const adresa = String(payload?.adresa ?? payload?.address ?? "").trim();
+  const nrRegCom = extractOnrcNrRegCom(payload);
 
   await db
     .update(silverCompanies)
     .set({
+      cui: cleanedCui,
       denumire: denumire || undefined,
-      formaJuridica: formaJuridica !== "OTHER" ? formaJuridica : undefined,
+      formaJuridica: formaJuridicaValue,
       adresa: adresa || undefined,
+      nrRegCom: nrRegCom.canonical || undefined,
+      nrRegComOriginal: nrRegCom.raw || undefined,
       metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify({ onrcData: payload })}::jsonb`,
       lastEnrichedAt: new Date(),
     })
     .where(sql`${silverCompanies.id} = ${job.data.companyId}`);
+
+  await upsertCompanyIdentityKey({
+    tenantId: job.data.tenantId,
+    companyId: job.data.companyId,
+    keyType: "cui",
+    keyValueCanonical: cleanedCui,
+    keyValueOriginal: cleanedCui,
+    sourceAuthority: "onrc",
+  });
+  if (nrRegCom.canonical) {
+    await upsertCompanyIdentityKey({
+      tenantId: job.data.tenantId,
+      companyId: job.data.companyId,
+      keyType: "nr_reg_com",
+      keyValueCanonical: nrRegCom.canonical,
+      keyValueOriginal: nrRegCom.raw,
+      sourceAuthority: "onrc",
+      isAuthoritative: true,
+    });
+  }
 
   await db.insert(silverEnrichmentLog).values({
     tenantId: job.data.tenantId,
@@ -55,11 +101,17 @@ export const onrcDataProcessor: Processor<OnrcDataJobData> = async (job) => {
     operation: "fetch",
     requestPayload: { cui: cleanedCui },
     responsePayload: payload,
-    fieldsUpdated: ["denumire", "formaJuridica", "adresa", "metadata"],
+    fieldsUpdated: ["denumire", "formaJuridica", "adresa", "cui", "nrRegCom", "metadata"],
     correlationId: job.data.correlationId,
     jobId: String(job.id ?? ""),
     durationMs: Date.now() - startedAt,
   });
+  await markEnrichmentSourceComplete(
+    job.data.tenantId,
+    job.data.companyId,
+    "onrc_data",
+    job.data.correlationId,
+  );
 
   return { ok: true, status: payload ? "success" : "not_found", source: "onrc_data", cleanedCui };
 };

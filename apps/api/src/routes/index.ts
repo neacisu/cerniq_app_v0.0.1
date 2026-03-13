@@ -9,7 +9,7 @@ import { silverGoldRoutes } from "./silver-gold.js";
 
 export async function registerRoutes(app: FastifyInstance) {
   await app.register(healthRoutes, { prefix: "/health" });
-  await app.register(authRoutes, { prefix: "/auth" });
+  await app.register(authRoutes, { prefix: "/api/v1/auth" });
   await app.register(adminMonitoringRoutes, { prefix: "/api/admin" });
   await app.register(enrichmentRoutes, { prefix: "/api/v1/enrichment" });
   await app.register(dashboardRoutes, { prefix: "/api/v1/dashboard" });

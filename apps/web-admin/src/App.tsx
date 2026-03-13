@@ -69,6 +69,15 @@ function AdminLayout() {
         ))}
       </aside>
       <main style={{ flex: 1, overflow: "auto", padding: "1.5rem" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "flex-end",
+            marginBottom: "1rem",
+          }}
+        >
+          <AdminSession />
+        </div>
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<Dashboard />} />
@@ -93,6 +102,27 @@ function AdminGate({ children }: { children: React.ReactNode }) {
     return <Navigate to="/login" replace />;
   }
   return <>{children}</>;
+}
+
+function AdminSession() {
+  const { user, logout } = useAdminAuth();
+  return (
+    <button
+      type="button"
+      onClick={() => void logout()}
+      style={{
+        border: "1px solid #2a2d35",
+        borderRadius: "999px",
+        background: "rgba(22,24,30,0.8)",
+        color: "#e5e5e7",
+        padding: "0.5rem 0.9rem",
+        cursor: "pointer",
+        fontSize: "0.875rem",
+      }}
+    >
+      {user?.email ?? "Admin"} • Logout
+    </button>
+  );
 }
 
 export function App() {

@@ -10,15 +10,15 @@
     "lint": "turbo run lint",
     "lint:fix": "eslint . --fix",
     "typecheck": "turbo run typecheck",
-    "test": "turbo run test && vitest run --config vitest.config.ts",
+    "test": "turbo run test",
     "test:watch": "vitest",
-    "test:coverage": "turbo run test && vitest run --config vitest.config.ts",
-    "test:ci": "turbo run test && vitest run --config vitest.config.ts",
-    "test:e2e": "vitest run --config vitest.config.ts",
+    "test:coverage": "turbo run test -- --coverage",
+    "test:ci": "node ./infra/scripts/run-vitest-ci.mjs",
+    "test:e2e": "playwright test",
     "test:load:etapa1": "k6 run ./tests/performance/etapa1-throughput.k6.js",
     "validate": "turbo run lint typecheck test",
     "prepare": "husky",
-    "approve-builds": "CI=1 pnpm rebuild",
+    "approve-builds": "pnpm approve-builds",
     "smoke:bullmq-prefix": "node ./infra/scripts/bullmq-prefix-smoketest.mjs"
   },
   "lint-staged": {
@@ -57,10 +57,10 @@
     "zod": "^4.3.6"
   },
   "engines": {
-    "node": ">=24",
-    "pnpm": ">=10"
+    "node": ">=25.8.1 <26",
+    "pnpm": ">=10.32.1 <11"
   },
-  "packageManager": "pnpm@10.30.3",
+  "packageManager": "pnpm@10.32.1",
   "pnpm": {
     "overrides": {
       "minimatch": "^10.2.3",
@@ -80,10 +80,6 @@
       "inflight": "1",
       "lodash.isequal": "4",
       "rimraf": "2"
-    },
-    "onlyBuiltDependencies": [
-      "msw",
-      "protobufjs"
-    ]
+    }
   }
 }

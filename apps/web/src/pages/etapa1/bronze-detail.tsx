@@ -28,18 +28,18 @@ const META_FIELDS: { key: string; label: string }[] = [
 function FieldGrid({
   fields,
   data,
-}: {
-  fields: { key: string; label: string }[];
+}: Readonly<{
+  fields: ReadonlyArray<{ key: string; label: string }>;
   data: Record<string, unknown>;
-}) {
+}>) {
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       {fields.map(({ key, label }) => {
         const val = data[key];
         return (
           <div key={key} className="space-y-1">
-            <span className="text-xs font-medium text-[var(--color-t3)]">{label}</span>
-            <p className="text-sm text-[var(--color-t1)]">
+            <span className="text-xs font-medium text-t3">{label}</span>
+            <p className="text-sm text-t1">
               {val !== null && val !== undefined ? String(val) : "—"}
             </p>
           </div>
@@ -76,7 +76,7 @@ export function BronzeDetail() {
   if (isError) {
     return (
       <PageWrapper title="Bronze Contact Detail">
-        <div className="rounded-lg border border-[var(--color-danger)] bg-[var(--color-danger)]/10 p-4 text-sm text-[var(--color-danger)]">
+        <div className="rounded-lg border border-(--color-danger) bg-(--color-danger)/10 p-4 text-sm text-(--color-danger)">
           Eroare la incarcarea contactului: {error?.message ?? "Eroare necunoscuta"}
         </div>
       </PageWrapper>
@@ -98,7 +98,7 @@ export function BronzeDetail() {
   return (
     <PageWrapper title="Bronze Contact Detail">
       <div className="mb-4 flex items-center justify-between">
-        <Link to="/etapa1/bronze" className="text-sm text-[var(--color-b5)] hover:underline">
+        <Link to="/etapa1/bronze" className="text-sm text-b5 hover:underline">
           &larr; Inapoi la Bronze
         </Link>
         <div className="flex items-center gap-2">
@@ -130,7 +130,7 @@ export function BronzeDetail() {
             </TabsContent>
 
             <TabsContent value="raw">
-              <pre className="max-h-96 overflow-auto rounded-lg border border-[var(--color-s700)] bg-[var(--color-s950)] p-4 text-xs text-[var(--color-t2)]">
+              <pre className="max-h-96 overflow-auto rounded-lg border border-s700 bg-s950 p-4 text-xs text-t2">
                 {JSON.stringify(item, null, 2)}
               </pre>
             </TabsContent>

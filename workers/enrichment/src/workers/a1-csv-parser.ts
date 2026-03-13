@@ -1,12 +1,13 @@
 import Papa from "papaparse";
 import type { Processor } from "bullmq";
+import { bronzeImportBatches, db, sql } from "@cerniq/db";
 import {
   createFileReadStream,
   detectColumnMapping,
   detectEncoding,
   getInsertBatchSize,
   insertBronzeRows,
-  normalizeRow,
+  markImportBatchFailed,
   readInputContent,
   shouldUseStreaming,
   triggerNormalizationForContacts,
@@ -26,172 +27,306 @@ export type CsvParserJobData = {
   columnMapping?: Record<string, string>;
   skipRows?: number;
   maxRows?: number;
+  resumeFrom?: {
+    processedRows?: number;
+    successRows?: number;
+    errorRows?: number;
+    duplicateRows?: number;
+  };
   correlationId: string;
 };
 
 type CsvRow = Record<string, unknown>;
 
 async function parseSmallFile(job: { data: CsvParserJobData }) {
-  const content = await readInputContent(job.data);
-  const parsed = Papa.parse<CsvRow>(content, {
-    header: job.data.hasHeader ?? true,
-    delimiter: job.data.delimiter ?? ",",
-    skipEmptyLines: true,
-    dynamicTyping: false,
-  });
+  const resumeFrom = job.data.resumeFrom ?? {};
+  let processedRows = Number(resumeFrom.processedRows ?? 0);
+  let successRows = Number(resumeFrom.successRows ?? 0);
+  let errorRows = Number(resumeFrom.errorRows ?? 0);
+  let duplicateRows = Number(resumeFrom.duplicateRows ?? 0);
+  let resolvedRows = 0;
+  let identityConflictRows = 0;
+  let insufficientIdentifierRows = 0;
 
-  if (parsed.errors.length > 0) {
-    throw new Error(`CSV parse failed: ${parsed.errors[0]?.message ?? "unknown error"}`);
-  }
-
-  const autoMapping =
-    job.data.columnMapping ??
-    detectColumnMapping(
-      parsed.meta.fields?.filter((field): field is string => typeof field === "string") ?? [],
-    );
-
-  const allRows = parsed.data
-    .filter((row) => row && Object.keys(row).length > 0)
-    .map((row) => normalizeRow(row, autoMapping));
-
-  const startIdx = Math.max(0, job.data.skipRows ?? 0);
-  const limitedRows =
-    typeof job.data.maxRows === "number"
-      ? allRows.slice(startIdx, startIdx + job.data.maxRows)
-      : allRows.slice(startIdx);
-
-  const { rowsInserted, insertedIds } = await insertBronzeRows(
-    job.data.tenantId,
-    limitedRows,
-    "csv_import",
-    job.data.batchId,
-  );
-  const duplicateRows = Math.max(0, limitedRows.length - rowsInserted);
-
-  await updateImportBatchCounters({
-    tenantId: job.data.tenantId,
-    batchId: job.data.batchId,
-    processedRows: limitedRows.length,
-    successRows: rowsInserted,
-    errorRows: 0,
-    duplicateRows,
-    status: "completed",
-  });
-  await triggerNormalizationForContacts(job.data.tenantId, insertedIds, job.data.correlationId);
-
-  return { ok: true as const, rowsRead: limitedRows.length, rowsInserted, duplicateRows };
-}
-
-async function parseLargeFileStreaming(job: { data: CsvParserJobData }) {
-  const encoding = job.data.encoding ?? (await detectFileEncoding(job.data.filePath));
-  const readable = createFileReadStream(job.data.filePath, encoding);
-
-  const skipRows = Math.max(0, job.data.skipRows ?? 0);
-  const maxRows = job.data.maxRows;
-  const batchSize = getInsertBatchSize();
-
-  let autoMapping: Record<string, string> | undefined = job.data.columnMapping;
-  let rowBuffer: Array<Record<string, unknown>> = [];
-  let totalRowsRead = 0;
-  let totalRowsInserted = 0;
-  let totalDuplicateRows = 0;
-  let allInsertedIds: string[] = [];
-  let rowIndex = 0;
-  let reachedMax = false;
-
-  await new Promise<void>((resolve, reject) => {
-    Papa.parse(readable, {
+  try {
+    const content = await readInputContent(job.data);
+    const parsed = Papa.parse<CsvRow>(content, {
       header: job.data.hasHeader ?? true,
       delimiter: job.data.delimiter ?? ",",
       skipEmptyLines: true,
       dynamicTyping: false,
-      step: (results: Papa.ParseStepResult<CsvRow>, parser: Papa.Parser) => {
-        if (reachedMax) return;
-
-        if (!autoMapping && results.meta.fields) {
-          autoMapping = detectColumnMapping(
-            results.meta.fields.filter((f): f is string => typeof f === "string"),
-          );
-        }
-
-        rowIndex++;
-        if (rowIndex <= skipRows) return;
-        if (maxRows !== undefined && totalRowsRead >= maxRows) {
-          reachedMax = true;
-          parser.abort();
-          return;
-        }
-
-        const row = results.data;
-        if (!row || Object.keys(row).length === 0) return;
-
-        rowBuffer.push(normalizeRow(row, autoMapping ?? {}));
-        totalRowsRead++;
-
-        if (rowBuffer.length >= batchSize) {
-          parser.pause();
-          flushBuffer()
-            .then(() => parser.resume())
-            .catch((err) => {
-              parser.abort();
-              reject(err);
-            });
-        }
-      },
-      complete: () => {
-        if (rowBuffer.length > 0) {
-          flushBuffer().then(resolve).catch(reject);
-        } else {
-          resolve();
-        }
-      },
-      error: (err: Error) => reject(err),
     });
-  });
 
-  async function flushBuffer() {
-    if (rowBuffer.length === 0) return;
-    const batch = rowBuffer;
-    rowBuffer = [];
+    if (parsed.errors.length > 0) {
+      throw new Error(`CSV parse failed: ${parsed.errors[0]?.message ?? "unknown error"}`);
+    }
 
-    const { rowsInserted, insertedIds } = await insertBronzeRows(
+    const autoMapping =
+      job.data.columnMapping ??
+      detectColumnMapping(
+        parsed.meta.fields?.filter((field): field is string => typeof field === "string") ?? [],
+      );
+
+    const allRows = parsed.data
+      .filter((row) => row && Object.keys(row).length > 0)
+      .map((row) => row);
+
+    const startIdx = Math.max(0, job.data.skipRows ?? 0);
+    const limitedRows =
+      typeof job.data.maxRows === "number"
+        ? allRows.slice(startIdx, startIdx + job.data.maxRows)
+        : allRows.slice(startIdx);
+
+    const rowsInThisRun = limitedRows.length;
+
+    const result = await insertBronzeRows(
       job.data.tenantId,
-      batch,
+      limitedRows,
       "csv_import",
       job.data.batchId,
+      undefined,
+      {
+        startingRowNumber: processedRows + 1,
+        columnMapping: autoMapping,
+      },
     );
-    totalRowsInserted += rowsInserted;
-    totalDuplicateRows += Math.max(0, batch.length - rowsInserted);
-    allInsertedIds = allInsertedIds.concat(insertedIds);
+    processedRows += rowsInThisRun;
+    successRows += result.rowsInserted;
+    errorRows += result.errorRows;
+    duplicateRows += result.duplicateRows;
+    resolvedRows += result.resolvedRows;
+    identityConflictRows += result.identityConflictRows;
+    insufficientIdentifierRows += result.insufficientIdentifierRows;
+
+    if (job.data.batchId && Object.keys(autoMapping).length > 0) {
+      await db
+        .update(bronzeImportBatches)
+        .set({
+          metadata: sql`COALESCE(${bronzeImportBatches.metadata}, '{}'::jsonb) || ${JSON.stringify({
+            columnMapping: autoMapping,
+          })}::jsonb`,
+        })
+        .where(sql`${bronzeImportBatches.id} = ${job.data.batchId}`);
+    }
+
+    await updateImportBatchCounters({
+      tenantId: job.data.tenantId,
+      batchId: job.data.batchId,
+      processedRows,
+      successRows,
+      errorRows,
+      duplicateRows,
+      totalRows: processedRows,
+      status: "completed",
+      identityMetrics: {
+        resolvedRows,
+        duplicateSourceRows: duplicateRows,
+        identityConflictRows,
+        insufficientIdentifierRows,
+      },
+    });
+    await triggerNormalizationForContacts(
+      job.data.tenantId,
+      result.processableIds,
+      job.data.correlationId,
+    );
+
+    return {
+      ok: true as const,
+      rowsRead: processedRows,
+      rowsInserted: successRows,
+      duplicateRows,
+      errorRows,
+    };
+  } catch (error) {
+    await markImportBatchFailed({
+      tenantId: job.data.tenantId,
+      batchId: job.data.batchId,
+      processedRows,
+      successRows,
+      errorRows,
+      duplicateRows,
+      totalRows: processedRows || undefined,
+      errorMessage: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
+  }
+}
+
+async function parseLargeFileStreaming(job: { data: CsvParserJobData }) {
+  let autoMapping: Record<string, string> | undefined = job.data.columnMapping;
+  const resumeFrom = job.data.resumeFrom ?? {};
+  let totalRowsRead = Number(resumeFrom.processedRows ?? 0);
+  let totalRowsInserted = Number(resumeFrom.successRows ?? 0);
+  let totalDuplicateRows = Number(resumeFrom.duplicateRows ?? 0);
+  let totalErrorRows = Number(resumeFrom.errorRows ?? 0);
+  let totalResolvedRows = 0;
+  let totalIdentityConflictRows = 0;
+  let totalInsufficientIdentifierRows = 0;
+  let allInsertedIds: string[] = [];
+  let rowIndex = 0;
+  try {
+    const encoding = job.data.encoding ?? (await detectFileEncoding(job.data.filePath));
+    const readable = createFileReadStream(job.data.filePath, encoding);
+
+    const skipRows = Math.max(0, job.data.skipRows ?? 0);
+    const maxRows = job.data.maxRows;
+    const batchSize = getInsertBatchSize();
+    let rowBuffer: Array<Record<string, unknown>> = [];
+    let reachedMax = false;
+
+    await new Promise<void>((resolve, reject) => {
+      Papa.parse(readable, {
+        header: job.data.hasHeader ?? true,
+        delimiter: job.data.delimiter ?? ",",
+        skipEmptyLines: true,
+        dynamicTyping: false,
+        step: (results: Papa.ParseStepResult<CsvRow>, parser: Papa.Parser) => {
+          if (reachedMax) return;
+
+          if (!autoMapping && results.meta.fields) {
+            autoMapping = detectColumnMapping(
+              results.meta.fields.filter((f): f is string => typeof f === "string"),
+            );
+          }
+
+          rowIndex++;
+          if (rowIndex <= skipRows) return;
+          if (maxRows !== undefined && totalRowsRead >= maxRows) {
+            reachedMax = true;
+            parser.abort();
+            return;
+          }
+
+          const row = results.data;
+          if (!row || Object.keys(row).length === 0) return;
+
+          rowBuffer.push(row);
+          totalRowsRead++;
+
+          if (rowBuffer.length >= batchSize) {
+            parser.pause();
+            flushBuffer()
+              .then(() => parser.resume())
+              .catch((err) => {
+                parser.abort();
+                reject(err);
+              });
+          }
+        },
+        complete: () => {
+          if (rowBuffer.length > 0) {
+            flushBuffer().then(resolve).catch(reject);
+          } else {
+            resolve();
+          }
+        },
+        error: (err: Error) => reject(err),
+      });
+    });
+
+    async function flushBuffer() {
+      if (rowBuffer.length === 0) return;
+      const batch = rowBuffer;
+      rowBuffer = [];
+
+      const {
+        rowsInserted,
+        processableIds,
+        errorRows,
+        duplicateRows,
+        resolvedRows,
+        identityConflictRows,
+        insufficientIdentifierRows,
+      } = await insertBronzeRows(
+        job.data.tenantId,
+        batch,
+        "csv_import",
+        job.data.batchId,
+        undefined,
+        {
+          startingRowNumber: totalRowsRead - batch.length + 1,
+          columnMapping: autoMapping,
+        },
+      );
+      totalRowsInserted += rowsInserted;
+      totalErrorRows += errorRows;
+      totalDuplicateRows += duplicateRows;
+      totalResolvedRows += resolvedRows;
+      totalIdentityConflictRows += identityConflictRows;
+      totalInsufficientIdentifierRows += insufficientIdentifierRows;
+      allInsertedIds = allInsertedIds.concat(processableIds);
+
+      await updateImportBatchCounters({
+        tenantId: job.data.tenantId,
+        batchId: job.data.batchId,
+        processedRows: totalRowsRead,
+        successRows: totalRowsInserted,
+        errorRows: totalErrorRows,
+        duplicateRows: totalDuplicateRows,
+        status: "processing",
+        identityMetrics: {
+          resolvedRows: totalResolvedRows,
+          duplicateSourceRows: totalDuplicateRows,
+          identityConflictRows: totalIdentityConflictRows,
+          insufficientIdentifierRows: totalInsufficientIdentifierRows,
+        },
+      });
+    }
 
     await updateImportBatchCounters({
       tenantId: job.data.tenantId,
       batchId: job.data.batchId,
       processedRows: totalRowsRead,
       successRows: totalRowsInserted,
-      errorRows: 0,
+      errorRows: totalErrorRows,
       duplicateRows: totalDuplicateRows,
-      status: "processing",
+      totalRows: totalRowsRead,
+      status: "completed",
+      identityMetrics: {
+        resolvedRows: totalResolvedRows,
+        duplicateSourceRows: totalDuplicateRows,
+        identityConflictRows: totalIdentityConflictRows,
+        insufficientIdentifierRows: totalInsufficientIdentifierRows,
+      },
     });
+    await triggerNormalizationForContacts(
+      job.data.tenantId,
+      allInsertedIds,
+      job.data.correlationId,
+    );
+
+    if (job.data.batchId && autoMapping && Object.keys(autoMapping).length > 0) {
+      await db
+        .update(bronzeImportBatches)
+        .set({
+          metadata: sql`COALESCE(${bronzeImportBatches.metadata}, '{}'::jsonb) || ${JSON.stringify({
+            columnMapping: autoMapping,
+          })}::jsonb`,
+        })
+        .where(sql`${bronzeImportBatches.id} = ${job.data.batchId}`);
+    }
+
+    return {
+      ok: true as const,
+      rowsRead: totalRowsRead,
+      rowsInserted: totalRowsInserted,
+      duplicateRows: totalDuplicateRows,
+      errorRows: totalErrorRows,
+    };
+  } catch (error) {
+    await markImportBatchFailed({
+      tenantId: job.data.tenantId,
+      batchId: job.data.batchId,
+      processedRows: totalRowsRead,
+      successRows: totalRowsInserted,
+      errorRows: totalErrorRows,
+      duplicateRows: totalDuplicateRows,
+      totalRows: totalRowsRead || undefined,
+      errorMessage: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
   }
-
-  await updateImportBatchCounters({
-    tenantId: job.data.tenantId,
-    batchId: job.data.batchId,
-    processedRows: totalRowsRead,
-    successRows: totalRowsInserted,
-    errorRows: 0,
-    duplicateRows: totalDuplicateRows,
-    status: "completed",
-  });
-  await triggerNormalizationForContacts(job.data.tenantId, allInsertedIds, job.data.correlationId);
-
-  return {
-    ok: true as const,
-    rowsRead: totalRowsRead,
-    rowsInserted: totalRowsInserted,
-    duplicateRows: totalDuplicateRows,
-  };
 }
 
 async function detectFileEncoding(filePath: string): Promise<string> {

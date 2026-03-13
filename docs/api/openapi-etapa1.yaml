@@ -948,7 +948,7 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: JWT token obținut din /auth/login
+      description: JWT token obținut din /api/v1/auth/login
 
   parameters:
     PageParam:

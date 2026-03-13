@@ -1,5 +1,4 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
-import { Queue } from "bullmq";
 import {
   approvalTasks,
   bronzeContacts,
@@ -10,8 +9,9 @@ import {
   silverCompanies,
   sql,
 } from "@cerniq/db";
-import { getQueuePrefix, queueRegistry, getRedisConnectionOptions } from "@cerniq/worker-shared";
+import { queueRegistry } from "@cerniq/worker-shared";
 import { z } from "zod";
+import { createQueue } from "../lib/queue-factory.js";
 import { parseLimit, parseOffset, requireTenantId } from "./utils.js";
 
 function getErrorMessage(err: unknown): string {
@@ -39,21 +39,15 @@ function isSchemaPermissionError(err: unknown): boolean {
   return /permission denied for schema/i.test(values) || /\b42501\b/.test(values);
 }
 
-function isBullMqQueueNameError(err: unknown): boolean {
-  return /Queue name cannot contain :/i.test(getErrorMessage(err));
-}
-
 export async function dashboardRoutes(app: FastifyInstance) {
   const authOpts = { onRequest: [async (req: FastifyRequest) => req.jwtVerify()] };
 
   app.get("/stats", authOpts, async (request) => {
     const tenantId = requireTenantId(request);
-    const connection = getRedisConnectionOptions();
-    const prefix = getQueuePrefix();
     try {
       const queueDepthsSettled = await Promise.allSettled(
         queueRegistry.map(async (q) => {
-          const queue = new Queue(q.name, { connection, prefix });
+          const queue = createQueue(q.name);
           try {
             const counts = await queue.getJobCounts(
               "waiting",
@@ -78,13 +72,6 @@ export async function dashboardRoutes(app: FastifyInstance) {
 
       const queueDepths = queueDepthsSettled.flatMap((result) => {
         if (result.status === "fulfilled") return [result.value];
-        if (isBullMqQueueNameError(result.reason)) {
-          app.log.warn(
-            { err: result.reason },
-            "BullMQ queue name invalid (contains ':'); queue metrics skipped for this queue",
-          );
-          return [];
-        }
         throw result.reason;
       });
 

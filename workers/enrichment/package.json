@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node worker.js",
-    "start": "node worker.js",
+    "dev": "tsx watch src/bootstrap.ts",
+    "start": "node dist/main.js",
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src/",
@@ -24,6 +24,7 @@
     "papaparse": "^5.5.3"
   },
   "devDependencies": {
+    "tsx": "^4.21.0",
     "vitest": "^4.0.18"
   }
 }

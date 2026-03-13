@@ -1,4 +1,4 @@
-import { Queue, type Processor } from "bullmq";
+import type { Processor } from "bullmq";
 import {
   db,
   setSessionTenantId,
@@ -7,7 +7,7 @@ import {
   silverEnrichmentLog,
   sql,
 } from "@cerniq/db";
-import { getQueuePrefix, getRedisConnectionOptions } from "@cerniq/worker-shared";
+import { createQueue } from "@cerniq/worker-shared";
 import { parsePhoneNumberFromString } from "libphonenumber-js";
 
 export type PhoneNormalizerJobData = {
@@ -61,9 +61,7 @@ export const phoneNormalizerSilverProcessor: Processor<PhoneNormalizerJobData> =
   }
 
   if (isValid && e164) {
-    const connection = getRedisConnectionOptions();
-    const prefix = getQueuePrefix();
-    const hlrQueue = new Queue("silver:enrich:hlr-lookup", { connection, prefix });
+    const hlrQueue = createQueue("enrich:phone:hlr");
     await hlrQueue.add("hlr-lookup", {
       tenantId: job.data.tenantId,
       entityType: job.data.entityType,
@@ -73,7 +71,7 @@ export const phoneNormalizerSilverProcessor: Processor<PhoneNormalizerJobData> =
     });
     await hlrQueue.close();
 
-    const carrierQueue = new Queue("silver:enrich:carrier-detection", { connection, prefix });
+    const carrierQueue = createQueue("enrich:phone:carrier");
     await carrierQueue.add("carrier-detect", {
       tenantId: job.data.tenantId,
       entityType: job.data.entityType,

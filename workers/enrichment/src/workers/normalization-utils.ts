@@ -1,6 +1,5 @@
-import { Queue } from "bullmq";
 import { bronzeContacts, db, setSessionTenantId, sql } from "@cerniq/db";
-import { getQueuePrefix, getRedisConnectionOptions } from "@cerniq/worker-shared";
+import { createQueue } from "@cerniq/worker-shared";
 
 export type BronzeNormalizationJobData = {
   tenantId: string;
@@ -45,12 +44,30 @@ export async function triggerCuiValidationIfPossible(
   tenantId: string,
   bronzeContactId: string,
   cui: string | null | undefined,
+  extractedNrRegCom: string | null | undefined,
   correlationId: string,
 ) {
-  if (!cui) return;
-  const connection = getRedisConnectionOptions();
-  const prefix = getQueuePrefix();
-  const queue = new Queue("silver:validate:cui-modulo11", { connection, prefix });
+  if (!cui) {
+    if (!extractedNrRegCom) return;
+    const promotionQueue = createQueue("pipeline:promote:bronze-silver");
+    await promotionQueue.add(
+      `promote-nrc-${bronzeContactId}`,
+      {
+        tenantId,
+        bronzeContactId,
+        correlationId,
+      },
+      {
+        jobId: `promote-nrc:${bronzeContactId}:${Date.now()}`,
+        attempts: 2,
+        backoff: { type: "fixed", delay: 500 },
+      },
+    );
+    await promotionQueue.close();
+    return;
+  }
+
+  const queue = createQueue("validate:cui:mod11");
   await queue.add(
     "validate-cui",
     {

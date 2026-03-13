@@ -1,5 +1,4 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
-import { Queue } from "bullmq";
 import {
   db,
   goldCompanies,
@@ -12,9 +11,9 @@ import {
   desc,
   eq,
 } from "@cerniq/db";
-import { getQueuePrefix, getRedisConnectionOptions } from "@cerniq/worker-shared";
 import { z } from "zod";
 import { getActorId, parseLimit, parseOffset, requireTenantId } from "./utils.js";
+import { createQueue } from "../lib/queue-factory.js";
 import {
   assignLeadSchema,
   dedupDecisionSchema,
@@ -214,9 +213,7 @@ export async function silverGoldRoutes(app: FastifyInstance) {
       if (!company)
         return reply.code(404).send({ success: false, error: "Silver company not found" });
 
-      const connection = getRedisConnectionOptions();
-      const prefix = getQueuePrefix();
-      const queue = new Queue("pipeline:orchestrate", { connection, prefix });
+      const queue = createQueue("pipeline:orchestrate");
       await queue.add("orchestrate", {
         tenantId,
         companyId: company.id,
@@ -265,9 +262,7 @@ export async function silverGoldRoutes(app: FastifyInstance) {
       if (!company)
         return reply.code(404).send({ success: false, error: "Silver company not found" });
 
-      const connection = getRedisConnectionOptions();
-      const prefix = getQueuePrefix();
-      const queue = new Queue("pipeline:promote-to-gold", { connection, prefix });
+      const queue = createQueue("pipeline:promote:gold");
       await queue.add("promote", {
         tenantId,
         companyId: params.data.id,

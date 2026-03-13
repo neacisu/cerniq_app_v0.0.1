@@ -115,10 +115,10 @@ pnpm db:migrate
 pnpm --filter @cerniq/api start
 
 # 4. Start enrichment workers
-pnpm --filter @cerniq/enrichment-workers start
+pnpm --filter @cerniq/worker-enrichment start
 
 # 5. Verify health endpoints
-curl -sf http://localhost:3000/health && echo "API OK" || echo "API FAILED"
+curl -sf http://localhost:64010/health && echo "API OK" || echo "API FAILED"
 curl -sf http://localhost:9090/health && echo "Workers OK" || echo "Workers FAILED"
 ```
 
@@ -140,10 +140,10 @@ The pipeline is defined in `.github/workflows/deploy.yml`. On merge to `main`:
 
 | Endpoint | Port | Expected Response |
 | --- | --- | --- |
-| `GET /health` | 3000 | `200 OK` with `{ "status": "ok" }` |
+| `GET /health` | 64010 | `200 OK` with `{ "status": "ok" }` |
 
 ```bash
-curl -sf http://localhost:3000/health | jq .
+curl -sf http://localhost:64010/health | jq .
 ```
 
 ### 3.2 Enrichment Workers
@@ -191,7 +191,7 @@ check() {
   fi
 }
 
-check "API /health"           "curl -sf http://localhost:3000/health"
+check "API /health"           "curl -sf http://localhost:64010/health"
 check "Workers /health"       "curl -sf http://localhost:9090/health"
 check "Redis PING"            "redis-cli -u $REDIS_URL PING"
 check "PostgreSQL SELECT 1"   "psql $DATABASE_URL -c 'SELECT 1' -t -q"
@@ -266,7 +266,7 @@ Alert rules are defined in `infra/config/prometheus/infra-cerniq-alerts.yml`.
 redis-cli -u "$REDIS_URL" INFO memory
 
 # Check queue status via API
-curl -sf http://localhost:3000/enrichment/queues | jq .
+curl -sf http://localhost:64010/api/v1/enrichment/queues | jq .
 
 # Check active/waiting counts per queue
 redis-cli -u "$REDIS_URL" KEYS "bull:*:waiting" | while read key; do
@@ -458,7 +458,7 @@ docker compose -f infra/docker/docker-compose.yml up -d \
   -e WORKER_IMAGE=registry.cerniq.ro/workers:<previous-tag>
 
 # 6. Verify health
-curl -sf http://localhost:3000/health && echo "API OK"
+curl -sf http://localhost:64010/health && echo "API OK"
 curl -sf http://localhost:9090/health && echo "Workers OK"
 ```
 
@@ -559,10 +559,10 @@ psql "$DATABASE_URL" -c "
 docker logs -f cerniq-workers
 
 # Check all queue sizes at a glance
-curl -sf http://localhost:3000/enrichment/queues | jq '.queues[] | {name, waiting, active, failed}'
+curl -sf http://localhost:64010/api/v1/enrichment/queues | jq '.data[] | {name, waiting, active, failed}'
 
 # Force-retry all failed jobs in a queue
-curl -X POST http://localhost:3000/enrichment/queues/<queue-name>/retry-all
+curl -X POST http://localhost:64010/api/admin/queues/<queue-name>/retry-failed
 
 # Check migration status
 pnpm db:migrate --dry-run

@@ -23,12 +23,11 @@ export function ApprovalReview() {
   const task = detailQuery.data?.data ?? {};
   const entityData = detailQuery.data?.entityData ?? null;
 
-  const decide = (decision: "approve" | "reject" | "merge" | "skip") => {
+  const decide = async (decision: "approve" | "reject" | "merge" | "skip") => {
     if (!id) return;
-    void decideMutation.mutateAsync({ id, decision }).then(() => {
-      toast.success(`Decizie salvata: ${decision}`);
-      void detailQuery.refetch();
-    });
+    await decideMutation.mutateAsync({ id, decision });
+    toast.success(`Decizie salvata: ${decision}`);
+    await detailQuery.refetch();
   };
 
   if (detailQuery.isPending) {
@@ -44,7 +43,7 @@ export function ApprovalReview() {
   if (detailQuery.isError) {
     return (
       <PageWrapper title="Approval Review">
-        <div className="rounded-lg border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 p-4 text-sm text-[var(--color-danger)]">
+        <div className="rounded-lg border border-(--color-danger)/30 bg-(--color-danger)/10 p-4 text-sm text-(--color-danger)">
           Eroare la încărcarea datelor: {detailQuery.error?.message ?? "Eroare necunoscută"}
         </div>
       </PageWrapper>
@@ -59,27 +58,21 @@ export function ApprovalReview() {
         </CardHeader>
         <CardBody>
           <div className="grid gap-3 md:grid-cols-4">
-            <div className="rounded border border-[var(--color-s700)] p-3 text-sm">
-              <div className="text-[var(--color-t3)]">Status</div>
-              <div className="font-semibold text-[var(--color-t1)]">
-                {String(task.status ?? "-")}
-              </div>
+            <div className="rounded border border-s700 p-3 text-sm">
+              <div className="text-t3">Status</div>
+              <div className="font-semibold text-t1">{String(task.status ?? "-")}</div>
             </div>
-            <div className="rounded border border-[var(--color-s700)] p-3 text-sm">
-              <div className="text-[var(--color-t3)]">Type</div>
-              <div className="font-semibold text-[var(--color-t1)]">
-                {String(task.approvalType ?? "-")}
-              </div>
+            <div className="rounded border border-s700 p-3 text-sm">
+              <div className="text-t3">Type</div>
+              <div className="font-semibold text-t1">{String(task.approvalType ?? "-")}</div>
             </div>
-            <div className="rounded border border-[var(--color-s700)] p-3 text-sm">
-              <div className="text-[var(--color-t3)]">Priority</div>
-              <div className="font-semibold text-[var(--color-t1)]">
-                {String(task.priorityLevel ?? "-")}
-              </div>
+            <div className="rounded border border-s700 p-3 text-sm">
+              <div className="text-t3">Priority</div>
+              <div className="font-semibold text-t1">{String(task.priorityLevel ?? "-")}</div>
             </div>
-            <div className="rounded border border-[var(--color-s700)] p-3 text-sm">
-              <div className="text-[var(--color-t3)]">SLA</div>
-              <div className="font-semibold text-[var(--color-t1)]">
+            <div className="rounded border border-s700 p-3 text-sm">
+              <div className="text-t3">SLA</div>
+              <div className="font-semibold text-t1">
                 {task.dueAt ? <SLACountdown dueAt={String(task.dueAt)} /> : "-"}
               </div>
             </div>
@@ -93,12 +86,12 @@ export function ApprovalReview() {
           <TabsTrigger value="entity">Entity Context</TabsTrigger>
         </TabsList>
         <TabsContent value="task">
-          <pre className="rounded border border-[var(--color-s700)] p-3 text-xs text-[var(--color-t2)]">
+          <pre className="rounded border border-s700 p-3 text-xs text-t2">
             {JSON.stringify(task, null, 2)}
           </pre>
         </TabsContent>
         <TabsContent value="entity">
-          <pre className="rounded border border-[var(--color-s700)] p-3 text-xs text-[var(--color-t2)]">
+          <pre className="rounded border border-s700 p-3 text-xs text-t2">
             {JSON.stringify(entityData, null, 2)}
           </pre>
         </TabsContent>

@@ -39,21 +39,9 @@ function normalizeEmail(email: string, stripPlusAlias = true): string {
   return `${localPart.split("+")[0]}@${domain}`;
 }
 
-function pickRawEmail(payload: Record<string, unknown>): string | null {
-  const aliases = ["email", "email_address", "mail", "e_mail"];
-  for (const key of aliases) {
-    const value = payload[key];
-    if (typeof value === "string" && value.trim().length > 0) {
-      return value.trim();
-    }
-  }
-  return null;
-}
-
 export const emailNormalizerProcessor: Processor<EmailNormalizerJobData> = async (job) => {
   const contact = await getBronzeContactForTenant(job.data.tenantId, job.data.bronzeContactId);
-  const rawPayload = contact.rawPayload as Record<string, unknown>;
-  const rawEmail = pickRawEmail(rawPayload);
+  const rawEmail = typeof contact.extractedEmail === "string" ? contact.extractedEmail : null;
   if (!rawEmail) {
     return { ok: true, status: "skipped", reason: "empty_email" };
   }

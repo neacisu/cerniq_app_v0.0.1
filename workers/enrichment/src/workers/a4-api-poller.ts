@@ -1,7 +1,6 @@
 import { createHash } from "node:crypto";
 import type { Processor } from "bullmq";
-import { Queue } from "bullmq";
-import { getQueuePrefix, getRedisConnectionOptions } from "@cerniq/worker-shared";
+import { createQueue } from "@cerniq/worker-shared";
 import { bronzeContacts, db, sql } from "@cerniq/db";
 import { insertBronzeRows, triggerNormalizationForContacts } from "./ingest-utils.js";
 
@@ -85,9 +84,7 @@ export const apiPollerProcessor: Processor<ApiPollerJobData> = async (job) => {
   const asObj = payload && typeof payload === "object" ? (payload as Record<string, unknown>) : {};
   const hasMore = Boolean(asObj.hasMore);
   if (hasMore) {
-    const connection = getRedisConnectionOptions();
-    const prefix = getQueuePrefix();
-    const queue = new Queue("bronze:ingest:api", { connection, prefix });
+    const queue = createQueue("ingest:api");
     await queue.add("poll-next-page", {
       ...job.data,
       pagination: {

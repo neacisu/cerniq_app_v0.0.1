@@ -3,23 +3,27 @@
  * Monitoring API is on cerniq_backend and not exposed to the browser.
  */
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
-import { z } from "zod";
+import { isKnownQueueName } from "@cerniq/worker-shared";
 import { envConfig } from "../config.js";
 
 const MONITORING_API_BASE =
   process.env.MONITORING_API_INTERNAL_URL ?? "http://cerniq-monitoring-api:64080";
 
-const QueueNameSchema = z
-  .string()
-  .min(1)
-  .max(200)
-  .regex(/^[a-zA-Z0-9_-]+$/);
-
-async function proxyGet(request: FastifyRequest, reply: FastifyReply, path: string) {
+async function proxyRequest(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  path: string,
+  init: RequestInit = {},
+) {
   try {
     const res = await fetch(`${MONITORING_API_BASE}${path}`, {
-      method: "GET",
-      headers: { Accept: "application/json" },
+      headers: {
+        Accept: "application/json",
+        ...(init.body ? { "Content-Type": "application/json" } : {}),
+        ...(envConfig.ADMIN_KEY ? { "x-admin-key": envConfig.ADMIN_KEY } : {}),
+        ...(init.headers ?? {}),
+      },
+      ...init,
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
@@ -54,49 +58,105 @@ export async function adminMonitoringRoutes(app: FastifyInstance) {
   const authOpts = { onRequest: [requireAdminOrOwner] };
 
   app.get("/queues", authOpts, async (request, reply) => {
-    return proxyGet(request, reply, "/api/queues");
+    return proxyRequest(request, reply, "/api/queues");
   });
 
   app.get("/queues/:name", authOpts, async (request, reply) => {
-    const parsed = QueueNameSchema.safeParse((request.params as { name?: string })?.name);
-    if (!parsed.success) {
+    const name = (request.params as { name?: string })?.name ?? "";
+    if (!isKnownQueueName(name)) {
       return reply.status(400).send({ success: false, error: "Invalid queue name" });
     }
-    return proxyGet(request, reply, `/api/queues/${encodeURIComponent(parsed.data)}`);
+    return proxyRequest(request, reply, `/api/queues/${encodeURIComponent(name)}`);
   });
 
   app.get("/system/metrics", authOpts, async (request, reply) => {
-    return proxyGet(request, reply, "/api/system/metrics");
+    return proxyRequest(request, reply, "/api/system/metrics");
   });
 
-  app.post<{
-    Body: { queue: string; action: "pause" | "resume" };
-  }>("/control/pause", async (request, reply) => {
-    const adminKey = request.headers["x-admin-key"];
-    const key = envConfig.ADMIN_KEY;
-    if (!key || adminKey !== key) {
-      return reply.status(403).send({ success: false, error: "Forbidden" });
-    }
+  app.get("/live", authOpts, async (request, reply) => {
     try {
-      const res = await fetch(`${MONITORING_API_BASE}/api/control/pause`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-admin-key": String(adminKey ?? ""),
-        },
-        body: JSON.stringify(request.body),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        return reply.status(res.status).send(data);
+      const [queuesRes, metricsRes] = await Promise.all([
+        fetch(`${MONITORING_API_BASE}/api/queues`, {
+          headers: {
+            Accept: "application/json",
+            ...(envConfig.ADMIN_KEY ? { "x-admin-key": envConfig.ADMIN_KEY } : {}),
+          },
+        }),
+        fetch(`${MONITORING_API_BASE}/api/system/metrics`, {
+          headers: {
+            Accept: "application/json",
+            ...(envConfig.ADMIN_KEY ? { "x-admin-key": envConfig.ADMIN_KEY } : {}),
+          },
+        }),
+      ]);
+      const [queuesBody, metricsBody] = await Promise.all([
+        queuesRes.json().catch(() => ({})),
+        metricsRes.json().catch(() => ({})),
+      ]);
+      if (!queuesRes.ok || !metricsRes.ok) {
+        return reply.status(502).send({
+          success: false,
+          error: "Monitoring API unavailable",
+          details: {
+            queues: queuesBody,
+            metrics: metricsBody,
+          },
+        });
       }
-      return data;
+      return {
+        success: true,
+        data: {
+          timestamp: Date.now(),
+          queues: Array.isArray((queuesBody as { data?: unknown }).data)
+            ? (queuesBody as { data: unknown[] }).data
+            : [],
+          system:
+            typeof metricsBody === "object" && metricsBody !== null && "data" in metricsBody
+              ? (metricsBody as { data: unknown }).data
+              : null,
+        },
+      };
     } catch (err) {
-      request.log.warn({ err }, "Monitoring API control proxy error");
+      request.log.warn({ err }, "Monitoring API live proxy error");
       return reply.status(502).send({
         success: false,
         error: "Monitoring API unavailable",
       });
     }
+  });
+
+  const controlRoute =
+    (action: "pause" | "resume" | "retry-failed" | "drain") =>
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const name = (request.params as { name?: string })?.name ?? "";
+      if (!isKnownQueueName(name)) {
+        return reply.status(400).send({ success: false, error: "Invalid queue name" });
+      }
+      if (!envConfig.ADMIN_KEY) {
+        return reply.status(503).send({ success: false, error: "Admin control unavailable" });
+      }
+      return proxyRequest(request, reply, `/api/queues/${encodeURIComponent(name)}/${action}`, {
+        method: "POST",
+      });
+    };
+
+  app.post("/queues/:name/pause", authOpts, controlRoute("pause"));
+  app.post("/queues/:name/resume", authOpts, controlRoute("resume"));
+  app.post("/queues/:name/retry-failed", authOpts, controlRoute("retry-failed"));
+  app.post("/queues/:name/drain", authOpts, controlRoute("drain"));
+
+  app.post<{
+    Body: { queue: string; action: "pause" | "resume" };
+  }>("/control/pause", authOpts, async (request, reply) => {
+    const { queue, action } = request.body ?? {};
+    if (typeof queue !== "string" || !isKnownQueueName(queue)) {
+      return reply.status(400).send({ success: false, error: "Invalid queue name" });
+    }
+    if (action !== "pause" && action !== "resume") {
+      return reply.status(400).send({ success: false, error: "Invalid action" });
+    }
+    return proxyRequest(request, reply, `/api/queues/${encodeURIComponent(queue)}/${action}`, {
+      method: "POST",
+    });
   });
 }

@@ -1,6 +1,6 @@
-import { Queue, type Processor } from "bullmq";
+import type { Processor } from "bullmq";
 import { db, setSessionTenantId, silverContacts, silverEnrichmentLog, sql } from "@cerniq/db";
-import { getQueuePrefix, getRedisConnectionOptions } from "@cerniq/worker-shared";
+import { createQueue } from "@cerniq/worker-shared";
 
 export type EmailGeneratorJobData = {
   tenantId: string;
@@ -101,9 +101,7 @@ export const emailGeneratorProcessor: Processor<EmailGeneratorJobData> = async (
     })
     .where(sql`${silverContacts.id} = ${job.data.contactId}`);
 
-  const connection = getRedisConnectionOptions();
-  const prefix = getQueuePrefix();
-  const queue = new Queue("silver:enrich:zerobounce-validation", { connection, prefix });
+  const queue = createQueue("discover:email:zerobounce");
   await queue.add("validate-generated-email", {
     tenantId: job.data.tenantId,
     contactId: job.data.contactId,

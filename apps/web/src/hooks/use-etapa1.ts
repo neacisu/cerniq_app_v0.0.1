@@ -24,6 +24,8 @@ import {
   fetchGoldCompanyJourney,
   fetchGoldCompanies,
   fetchImportById,
+  fetchImportEntities,
+  fetchImportRows,
   fetchImports,
   fetchQueueStatusByName,
   fetchQueueStatuses,
@@ -40,6 +42,28 @@ import {
   uploadImport,
 } from "@/lib/etapa1-api.js";
 
+function isIdentityReprocessActive(item: Record<string, unknown> | undefined) {
+  const metadata = (item?.metadata as Record<string, unknown> | undefined) ?? {};
+  const state = String(metadata.identityReprocessStatus ?? "");
+  return state === "queued" || state === "running";
+}
+
+function getImportRefetchInterval(item: Record<string, unknown> | undefined) {
+  const status = String(item?.status ?? "");
+  if (["pending", "processing"].includes(status) || isIdentityReprocessActive(item)) {
+    return 3000;
+  }
+
+  const metadata = (item?.metadata as Record<string, unknown> | undefined) ?? {};
+  const hasIdentityReprocessHistory =
+    typeof metadata.identityReprocessQueuedAt === "string" ||
+    typeof metadata.identityReprocessStartedAt === "string" ||
+    typeof metadata.identityReprocessCompletedAt === "string" ||
+    typeof metadata.identityReprocessFailedAt === "string";
+
+  return hasIdentityReprocessHistory ? 15000 : false;
+}
+
 export function useDashboardStats() {
   return useQuery({ queryKey: ["etapa1", "dashboard", "stats"], queryFn: fetchDashboardStats });
 }
@@ -55,6 +79,16 @@ export function useImports(params: ImportListParams = {}) {
   return useQuery({
     queryKey: ["etapa1", "imports", params],
     queryFn: () => fetchImports(params),
+    refetchInterval: (query) => {
+      const rows =
+        (query.state.data as { data?: Array<Record<string, unknown>> } | undefined)?.data ?? [];
+      if (rows.some((row) => getImportRefetchInterval(row) === 3000)) {
+        return 3000;
+      }
+
+      return rows.some((row) => getImportRefetchInterval(row) === 15000) ? 15000 : false;
+    },
+    refetchIntervalInBackground: true,
   });
 }
 
@@ -63,6 +97,31 @@ export function useImportDetail(id?: string) {
     queryKey: ["etapa1", "imports", "detail", id],
     queryFn: () => fetchImportById(String(id)),
     enabled: Boolean(id),
+    refetchInterval: (query) => {
+      const item = (query.state.data as { data?: Record<string, unknown> } | undefined)?.data;
+      return getImportRefetchInterval(item);
+    },
+    refetchIntervalInBackground: true,
+  });
+}
+
+export function useImportRows(id?: string, limit = 100, offset = 0) {
+  return useQuery({
+    queryKey: ["etapa1", "imports", "rows", id, limit, offset],
+    queryFn: () => fetchImportRows(String(id), { limit, offset }),
+    enabled: Boolean(id),
+    refetchInterval: 3000,
+    refetchIntervalInBackground: true,
+  });
+}
+
+export function useImportEntities(id?: string, limit = 100, offset = 0) {
+  return useQuery({
+    queryKey: ["etapa1", "imports", "entities", id, limit, offset],
+    queryFn: () => fetchImportEntities(String(id), { limit, offset }),
+    enabled: Boolean(id),
+    refetchInterval: 3000,
+    refetchIntervalInBackground: true,
   });
 }
 
@@ -71,7 +130,9 @@ export function useUploadImport() {
   return useMutation({
     mutationFn: ({ file, config }: { file: File; config?: Parameters<typeof uploadImport>[1] }) =>
       uploadImport(file, config),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["etapa1", "imports"] }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["etapa1", "imports"] });
+    },
   });
 }
 
@@ -79,7 +140,9 @@ export function useCancelImport() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: cancelImport,
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["etapa1", "imports"] }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["etapa1", "imports"] });
+    },
   });
 }
 
@@ -102,7 +165,9 @@ export function useReprocessBronze() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: reprocessBronzeContact,
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["etapa1", "bronze"] }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["etapa1", "bronze"] });
+    },
   });
 }
 
@@ -132,7 +197,9 @@ export function useTriggerSilverEnrich() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: triggerSilverEnrich,
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["etapa1", "silver"] }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["etapa1", "silver"] });
+    },
   });
 }
 
@@ -140,7 +207,9 @@ export function useTriggerSilverPromote() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: triggerSilverPromote,
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["etapa1", "silver"] }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["etapa1", "silver"] });
+    },
   });
 }
 
@@ -184,7 +253,9 @@ export function usePatchGoldCompany() {
       id: string;
       payload: Parameters<typeof patchGoldCompany>[1];
     }) => patchGoldCompany(id, payload),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["etapa1", "gold"] }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["etapa1", "gold"] });
+    },
   });
 }
 
@@ -198,7 +269,9 @@ export function useTransitionGoldCompany() {
       id: string;
       payload: Parameters<typeof transitionGoldCompany>[1];
     }) => transitionGoldCompany(id, payload),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["etapa1", "gold"] }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["etapa1", "gold"] });
+    },
   });
 }
 
@@ -231,7 +304,9 @@ export function useDecideApproval() {
       id: string;
       decision: "approve" | "reject" | "merge" | "skip";
     }) => decideApproval(id, decision),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["etapa1", "approvals"] }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["etapa1", "approvals"] });
+    },
   });
 }
 
@@ -239,7 +314,9 @@ export function useAssignApproval() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, userId }: { id: string; userId: string }) => assignApproval(id, userId),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["etapa1", "approvals"] }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["etapa1", "approvals"] });
+    },
   });
 }
 
@@ -264,7 +341,9 @@ export function usePauseQueue() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: pauseQueue,
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["etapa1", "queues"] }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["etapa1", "queues"] });
+    },
   });
 }
 
@@ -272,7 +351,9 @@ export function useResumeQueue() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: resumeQueue,
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["etapa1", "queues"] }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["etapa1", "queues"] });
+    },
   });
 }
 
@@ -295,7 +376,8 @@ export function useDecideDedup() {
       decision: "merge" | "reject" | "skip";
       masterCompanyId?: string;
     }) => decideDedupPair(id, decision, masterCompanyId),
-    onSuccess: () =>
-      void qc.invalidateQueries({ queryKey: ["etapa1", "silver", "dedup-candidates"] }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["etapa1", "silver", "dedup-candidates"] });
+    },
   });
 }

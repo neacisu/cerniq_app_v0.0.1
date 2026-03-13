@@ -4,22 +4,14 @@ import { Button } from "@/components/ui/button.js";
 import { Badge } from "@/components/ui/badge.js";
 import { Spinner } from "@/components/ui/spinner.js";
 import { EmptyState } from "@/components/feedback/EmptyState.js";
-import { useApprovals, useDecideApproval } from "@/hooks/use-etapa1.js";
+import { useDecideDedup, useDedupCandidates } from "@/hooks/use-etapa1.js";
 import { toast } from "@/components/ui/toast-api.js";
 
 export function SilverDedup() {
-  const {
-    data: response,
-    isPending,
-    isError,
-    error,
-  } = useApprovals({
-    approvalType: "dedup_review",
-    limit: 50,
-  });
-  const decide = useDecideApproval();
+  const { data: response, isPending, isError, error } = useDedupCandidates({ limit: 50 });
+  const decide = useDecideDedup();
 
-  const approvals = (response?.data ?? []) as Array<Record<string, unknown>>;
+  const candidates = (response?.data ?? []) as Array<Record<string, unknown>>;
 
   const handleDecision = (id: string, decision: "merge" | "reject" | "skip") => {
     decide.mutate(
@@ -51,7 +43,7 @@ export function SilverDedup() {
     );
   }
 
-  if (approvals.length === 0) {
+  if (candidates.length === 0) {
     return (
       <PageWrapper title="Silver Dedup Candidates">
         <EmptyState
@@ -66,16 +58,19 @@ export function SilverDedup() {
   return (
     <PageWrapper title="Silver Dedup Candidates">
       <div className="space-y-4">
-        {approvals.map((approval) => {
-          const id = String(approval.id ?? "");
-          const payload = (approval.payload ?? approval.entityData ?? {}) as Record<
+        {candidates.map((candidate) => {
+          const id = String(candidate.id ?? "");
+          const left = (candidate.companyAData ?? candidate.leftCompany ?? {}) as Record<
             string,
             unknown
           >;
-          const left = (payload.left ?? payload.companyA ?? {}) as Record<string, unknown>;
-          const right = (payload.right ?? payload.companyB ?? {}) as Record<string, unknown>;
-          const score = Number(payload.similarityScore ?? payload.score ?? 0);
-          const status = String(approval.status ?? "pending");
+          const right = (candidate.companyBData ?? candidate.rightCompany ?? {}) as Record<
+            string,
+            unknown
+          >;
+          const score = Number(candidate.similarityScore ?? candidate.score ?? 0);
+          const status = String(candidate.status ?? "pending");
+          const canDecide = status === "pending" || status === "hitl_pending";
 
           return (
             <Card key={id}>
@@ -125,7 +120,7 @@ export function SilverDedup() {
                       size="sm"
                       variant="outline"
                       onClick={() => handleDecision(id, "skip")}
-                      disabled={decide.isPending || status !== "pending"}
+                      disabled={decide.isPending || !canDecide}
                     >
                       Skip
                     </Button>
@@ -134,14 +129,14 @@ export function SilverDedup() {
                       variant="outline"
                       className="border-[var(--color-danger)] text-[var(--color-danger)]"
                       onClick={() => handleDecision(id, "reject")}
-                      disabled={decide.isPending || status !== "pending"}
+                      disabled={decide.isPending || !canDecide}
                     >
                       Respinge
                     </Button>
                     <Button
                       size="sm"
                       onClick={() => handleDecision(id, "merge")}
-                      disabled={decide.isPending || status !== "pending"}
+                      disabled={decide.isPending || !canDecide}
                     >
                       Merge
                     </Button>

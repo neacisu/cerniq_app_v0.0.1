@@ -1,6 +1,6 @@
-import { Queue, type Processor } from "bullmq";
+import { type Processor } from "bullmq";
 import { db, setSessionTenantId, sql } from "@cerniq/db";
-import { getQueuePrefix, getRedisConnectionOptions } from "@cerniq/worker-shared";
+import { createQueue } from "@cerniq/worker-shared";
 
 export type PipelineMonitorJobData = {
   tenantId: string;
@@ -40,9 +40,7 @@ export const pipelineMonitorProcessor: Processor<PipelineMonitorJobData> = async
         )`,
   });
 
-  const connection = getRedisConnectionOptions();
-  const prefix = getQueuePrefix();
-  const orchestrator = new Queue("pipeline:orchestrate", { connection, prefix });
+  const orchestrator = createQueue("pipeline:orchestrate");
   for (const c of stalled) {
     await orchestrator.add("re-orchestrate", {
       tenantId: job.data.tenantId,
@@ -53,7 +51,7 @@ export const pipelineMonitorProcessor: Processor<PipelineMonitorJobData> = async
   }
   await orchestrator.close();
 
-  const promoter = new Queue("pipeline:promote-to-gold", { connection, prefix });
+  const promoter = createQueue("pipeline:promote:gold");
   for (const c of stuck) {
     await promoter.add("re-promote", {
       tenantId: job.data.tenantId,
@@ -63,7 +61,7 @@ export const pipelineMonitorProcessor: Processor<PipelineMonitorJobData> = async
   }
   await promoter.close();
 
-  const hitlEscalation = new Queue("pipeline:hitl-escalation", { connection, prefix });
+  const hitlEscalation = createQueue("hitl:escalate");
   await hitlEscalation.add("check-sla", {
     tenantId: job.data.tenantId,
     correlationId: job.data.correlationId,

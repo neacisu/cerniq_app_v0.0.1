@@ -1,8 +1,8 @@
-import Fastify from "fastify";
+import Fastify, { type FastifyReply, type FastifyRequest } from "fastify";
 import cors from "@fastify/cors";
 import websocket from "@fastify/websocket";
 import { readFileSync, existsSync, watchFile, unwatchFile } from "node:fs";
-import { queueMonitor } from "./queue-monitor.js";
+import { queueMonitor, type QueueControlAction } from "./queue-monitor.js";
 import { systemMetrics } from "./system-metrics.js";
 
 const OPENBAO_READY_MARKER = "OPENBAO_SECRETS_LOADED=true";
@@ -96,19 +96,43 @@ async function start() {
     success: true,
     data: metrics.collect(),
   }));
+  app.get("/health", async () => ({
+    status: "ok",
+    timestamp: new Date().toISOString(),
+  }));
 
-  app.post("/api/control/pause", async (request, reply) => {
+  async function handleControl(
+    request: FastifyRequest<{ Params: { name: string } }>,
+    reply: FastifyReply,
+    action: QueueControlAction,
+  ) {
     const adminKey = request.headers["x-admin-key"];
     if (adminKey !== process.env.ADMIN_KEY) {
       return reply.status(403).send({ success: false, error: "Forbidden" });
     }
-    const { queue, action } = request.body as {
-      queue: string;
-      action: "pause" | "resume";
-    };
-    await monitor.controlQueue(queue, action);
-    return { success: true };
-  });
+    try {
+      const snapshot = await monitor.controlQueue(request.params.name, action);
+      return { success: true, data: snapshot };
+    } catch (error) {
+      return reply.status(404).send({
+        success: false,
+        error: error instanceof Error ? error.message : "Queue control failed",
+      });
+    }
+  }
+
+  app.post("/api/queues/:name/pause", async (request, reply) =>
+    handleControl(request as FastifyRequest<{ Params: { name: string } }>, reply, "pause"),
+  );
+  app.post("/api/queues/:name/resume", async (request, reply) =>
+    handleControl(request as FastifyRequest<{ Params: { name: string } }>, reply, "resume"),
+  );
+  app.post("/api/queues/:name/retry-failed", async (request, reply) =>
+    handleControl(request as FastifyRequest<{ Params: { name: string } }>, reply, "retry-failed"),
+  );
+  app.post("/api/queues/:name/drain", async (request, reply) =>
+    handleControl(request as FastifyRequest<{ Params: { name: string } }>, reply, "drain"),
+  );
 
   app.register(async function wsRoutes(fastify) {
     fastify.get("/ws/live", { websocket: true }, (socket) => {
@@ -116,9 +140,11 @@ async function start() {
         try {
           const data = {
             type: "METRIC_UPDATE",
-            queues: await monitor.getAllQueues(),
-            system: metrics.collect(),
-            timestamp: new Date().toISOString(),
+            payload: {
+              timestamp: Date.now(),
+              queues: await monitor.getAllQueues(),
+              system: metrics.collect(),
+            },
           };
           socket.send(JSON.stringify(data));
         } catch {

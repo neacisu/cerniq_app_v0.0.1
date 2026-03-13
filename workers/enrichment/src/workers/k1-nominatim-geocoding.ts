@@ -1,6 +1,6 @@
-import { Queue, type Processor } from "bullmq";
+import type { Processor } from "bullmq";
 import { db, setSessionTenantId, silverCompanies, silverEnrichmentLog, sql } from "@cerniq/db";
-import { getQueuePrefix, getRedisConnectionOptions } from "@cerniq/worker-shared";
+import { createQueue } from "@cerniq/worker-shared";
 
 export type GeocodingJobData = {
   tenantId: string;
@@ -78,9 +78,7 @@ export const nominatimGeocodingProcessor: Processor<GeocodingJobData> = async (j
     })
     .where(sql`${silverCompanies.id} = ${job.data.companyId}`);
 
-  const connection = getRedisConnectionOptions();
-  const prefix = getQueuePrefix();
-  const zoneQueue = new Queue("silver:enrich:postgis-zones", { connection, prefix });
+  const zoneQueue = createQueue("geo:zones:postgis");
   await zoneQueue.add("zones", {
     tenantId: job.data.tenantId,
     companyId: job.data.companyId,

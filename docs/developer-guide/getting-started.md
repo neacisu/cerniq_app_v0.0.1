@@ -32,9 +32,9 @@
 
 | Componenta         | Versiune OBLIGATORIE  | Verificare               |
 | ------------------ | --------------------- | ------------------------ |
-| **Node.js**        | 24.13.1 "Krypton"     | `node --version`         |
-| **PNPM**           | 9.x                   | `pnpm --version`         |
-| **Python**         | 3.14.2 Free-Threading | `python3 --version`      |
+| **Node.js**        | 25.8.1 (Current)      | `node --version`         |
+| **PNPM**           | 10.32.1               | `pnpm --version`         |
+| **Python**         | 3.14.3 Free-Threading | `python3 --version`      |
 | **Docker**         | 29.2.0                | `docker --version`       |
 | **Docker Compose** | 2.20+                 | `docker compose version` |
 
@@ -87,14 +87,15 @@ NODE_ENV=development
 LOG_LEVEL=debug
 
 # Database
-DATABASE_URL=postgresql://cerniq:devpassword@localhost:5432/cerniq_dev
+DATABASE_URL=postgresql://c3rn1q:cerniq_ci@localhost:64032/cerniq
 
 # Redis
-REDIS_URL=redis://localhost:6379/0
+REDIS_URL=redis://localhost:64039/0
+REDIS_PREFIX=cerniq
 
 # API Server
 HOST=0.0.0.0
-PORT=64000
+PORT=64010
 
 # Authentication (generate cu: openssl rand -hex 32)
 JWT_SECRET=your-development-jwt-secret-min-32-chars
@@ -117,7 +118,7 @@ OTEL_SERVICE_NAME=cerniq-api
 
 # Exemplu (optional): porniți servicii DEV (ex: redisinsight) din `infra/docker/`:
 cd infra/docker
-docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile dev up -d redisinsight
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 docker compose ps
 ```
 
@@ -128,22 +129,26 @@ docker compose ps
 ```text
 /var/www/CerniqAPP/
 ├── apps/
-│   ├── api/              # Fastify 5.6.2 API Server (localhost:64000)
-│   └── web-admin/        # React 19.2.3 Admin Dashboard (localhost:64010)
+│   ├── api/              # Fastify API Server (localhost:64010)
+│   ├── web/              # React app (localhost:64000)
+│   ├── web-admin/        # React Admin Dashboard (localhost:64012)
+│   └── monitoring-api/   # Internal monitoring service (localhost:64080)
 ├── packages/
-│   ├── db/               # Drizzle ORM + Migrations
-│   ├── workers/          # BullMQ 5.66.5 Workers (313 total)
-│   ├── shared/           # Shared utilities, types
-│   └── events/           # Event schemas (Zod)
+│   ├── config/           # Config package
+│   ├── db/               # Drizzle ORM + migrations
+│   ├── observability/    # OpenTelemetry bootstrap
+│   └── shared-types/     # Shared schemas/types
+├── workers/
+│   ├── enrichment/       # Worker runtime activ Etapa 0 + 1
+│   └── shared/           # Queue registry, Redis, metrics
 ├── infra/
 │   └── docker/           # Docker Compose files
-├── docs/                 # 📚 Documentația completă
-└── config/               # Configurații globale
+└── docs/                 # Documentația proiectului
 ```
 
 ### Mono-repo Management
 
-- **Package Manager:** PNPM 9.x cu workspaces
+- **Package Manager:** PNPM 10.32.1 cu workspaces
 - **Build Tool:** Turborepo
 - **Linting:** ESLint + Prettier + markdownlint
 
@@ -155,38 +160,44 @@ docker compose ps
 
 ```bash
 # Terminal 1: API Server
-pnpm --filter api dev
+pnpm --filter @cerniq/api dev
 
-# Terminal 2: Workers (opțional - pentru testare jobs)
-pnpm --filter workers dev
+# Terminal 2: Web App
+pnpm --filter @cerniq/web dev
 
-# Terminal 3: Frontend (opțional)
-pnpm --filter web-admin dev
+# Terminal 3: Admin Dashboard
+pnpm --filter @cerniq/web-admin dev
+
+# Terminal 4: Monitoring API
+pnpm --filter @cerniq/monitoring-api dev
+
+# Terminal 5: Worker runtime
+pnpm --filter @cerniq/worker-enrichment dev
 ```
 
 ### 4.2 Verificare Lint și Types
 
 ```bash
 # Verificare TypeScript
-pnpm -r typecheck
+pnpm typecheck
 
 # Verificare Lint
-pnpm -r lint
+pnpm lint
 
-# Formatare automată
-pnpm -r format
+# Validare agregată
+pnpm validate
 ```
 
 ### 4.3 Rulare Teste
 
 ```bash
-# Unit tests (Vitest)
-pnpm -r test
+# Workspace tests cu coverage
+pnpm test:coverage
 
-# Integration tests (necesită Docker)
-pnpm -r test:integration
+# Workspace tests cu artefacte JSON reale
+pnpm test:ci
 
-# E2E tests (necesită tot stack-ul)
+# E2E Playwright
 pnpm test:e2e
 ```
 
@@ -198,13 +209,15 @@ pnpm test:e2e
 
 > 📖 **Referință Canonică:** [`ADR-0022-Port-Allocation-Strategy.md`](../adr/ADR%20Etapa%200/ADR-0022-Port-Allocation-Strategy.md)
 
-| Range       | Serviciu                 | Port        | Endpoint                        |
-| ----------- | ------------------------ | ----------- | ------------------------------- |
-| 64000-64009 | **API**                  | 64000       | `http://localhost:64000/api/v1` |
-| 64010-64019 | **Web Admin**            | 64010       | `http://localhost:64010`        |
-| 5432        | **PostgreSQL (dev)**     | 5432        | `postgresql://localhost:5432`   |
-| 6379        | **Redis (dev)**          | 6379        | `redis://localhost:6379`        |
-| 64070-64071 | **OTEL Collector (dev)** | 64070/64071 | `http://localhost:64071`        |
+| Serviciu               | Port  | Endpoint                             |
+| ---------------------- | ----- | ------------------------------------ |
+| **Web**                | 64000 | `http://localhost:64000`             |
+| **API**                | 64010 | `http://localhost:64010/api/v1`      |
+| **Web Admin**          | 64012 | `http://localhost:64012`             |
+| **Monitoring API**     | 64080 | `http://localhost:64080/health`      |
+| **PostgreSQL (CI/dev)**| 64032 | `postgresql://localhost:64032/cerniq`|
+| **Redis (CI/dev)**     | 64039 | `redis://localhost:64039/0`          |
+| **OTEL Collector**     | 64070/64071 | `http://localhost:64071`      |
 
 ### 5.2 Migrații Database
 
@@ -289,7 +302,7 @@ curl -s http://localhost:64000/health/ready | jq .
 | `ECONNREFUSED :5432` | PostgreSQL local nu rulează | Porniți PostgreSQL local sau ajustați `DATABASE_URL` |
 | `ECONNREFUSED :6379` | Redis local nu rulează      | Porniți Redis local sau ajustați `REDIS_URL`         |
 | `Invalid token`      | JWT_SECRET nesetat          | Verifică `.env`                                      |
-| Type errors          | Versiune Node greșită       | `nvm use 24.13.1`                                    |
+| Type errors          | Versiune Node greșită       | `nvm use 25.8.1`                                     |
 
 ### Comenzi Utile de Debug
 

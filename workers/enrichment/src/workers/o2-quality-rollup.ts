@@ -1,6 +1,6 @@
-import { Queue, type Processor } from "bullmq";
+import type { Processor } from "bullmq";
 import { db, setSessionTenantId, silverCompanies, silverEnrichmentLog, sql } from "@cerniq/db";
-import { getQueuePrefix, getRedisConnectionOptions } from "@cerniq/worker-shared";
+import { createQueue } from "@cerniq/worker-shared";
 import { createHitlApprovalTask } from "./pipeline-utils.js";
 
 export type QualityRollupJobData = {
@@ -84,9 +84,7 @@ export const qualityRollupProcessor: Processor<QualityRollupJobData> = async (jo
   }
 
   if (promotionStatus === "eligible") {
-    const connection = getRedisConnectionOptions();
-    const prefix = getQueuePrefix();
-    const queue = new Queue("pipeline:promote-to-gold", { connection, prefix });
+    const queue = createQueue("pipeline:promote:gold");
     await queue.add("promote", {
       tenantId: job.data.tenantId,
       companyId: job.data.companyId,

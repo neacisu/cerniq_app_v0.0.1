@@ -39,21 +39,9 @@ function titleCase(input: string): string {
     .join(" ");
 }
 
-function pickRawName(payload: Record<string, unknown>): string | null {
-  const aliases = ["companyName", "denumire", "nume_firma", "name", "company", "company_name"];
-  for (const key of aliases) {
-    const value = payload[key];
-    if (typeof value === "string" && value.trim().length > 0) {
-      return value.trim();
-    }
-  }
-  return null;
-}
-
 export const nameNormalizerProcessor: Processor<NameNormalizerJobData> = async (job) => {
   const contact = await getBronzeContactForTenant(job.data.tenantId, job.data.bronzeContactId);
-  const rawPayload = contact.rawPayload as Record<string, unknown>;
-  const rawName = pickRawName(rawPayload);
+  const rawName = typeof contact.extractedName === "string" ? contact.extractedName : null;
 
   if (!rawName) {
     return { ok: true, status: "skipped", reason: "empty_name" };
@@ -84,7 +72,9 @@ export const nameNormalizerProcessor: Processor<NameNormalizerJobData> = async (
     normalized = `${normalized} ${formaJuridica}`.trim();
   }
 
-  const cui = typeof rawPayload.cui === "string" ? rawPayload.cui : null;
+  const cui = typeof contact.extractedCui === "string" ? contact.extractedCui : null;
+  const extractedNrRegCom =
+    typeof contact.extractedNrRegCom === "string" ? contact.extractedNrRegCom : null;
   await markNormalizationResult(
     job.data.tenantId,
     job.data.bronzeContactId,
@@ -102,6 +92,7 @@ export const nameNormalizerProcessor: Processor<NameNormalizerJobData> = async (
     job.data.tenantId,
     job.data.bronzeContactId,
     cui,
+    extractedNrRegCom,
     job.data.correlationId,
   );
 

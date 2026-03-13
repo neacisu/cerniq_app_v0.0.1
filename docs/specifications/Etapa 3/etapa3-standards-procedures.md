@@ -93,9 +93,9 @@ echo "=== Cerniq Development Environment Setup ==="
 check_prerequisites() {
     echo "Verificare prerequisite..."
 
-    # Node.js v24+
-    if ! command -v node &> /dev/null || [[ $(node -v | cut -d'v' -f2 | cut -d'.' -f1) -lt 24 ]]; then
-        echo "❌ Node.js v24+ required"
+    # Node.js v25+
+    if ! command -v node &> /dev/null || [[ $(node -v | cut -d'v' -f2 | cut -d'.' -f1) -lt 25 ]]; then
+        echo "❌ Node.js v25+ required"
         exit 1
     fi
     echo "✅ Node.js $(node -v)"

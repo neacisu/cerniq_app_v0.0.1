@@ -887,6 +887,24 @@ a {
   border-radius: 999px;
   transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
 }
+.pf-indeterminate {
+  animation: progress-slide 1.5s ease-in-out infinite;
+}
+
+@keyframes progress-slide {
+  0% {
+    transform: translateX(-120%);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translateX(110%);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(240%);
+    opacity: 0.5;
+  }
+}
 
 /* === Skeleton === */
 .sk {

@@ -10,7 +10,7 @@ const queueNameSchema = z
   .string()
   .min(3)
   .max(120)
-  .regex(/^[a-z0-9:-]+$/);
+  .regex(/^[a-z0-9.-]+$/);
 const idParamsSchema = z.object({ id: z.string().uuid() });
 const queueParamsSchema = z.object({ name: queueNameSchema });
 const errorResponseSchema = z.object({
@@ -233,7 +233,7 @@ export async function enrichmentRoutes(app: FastifyInstance) {
       });
 
       // Resume worker consumes the decision and continues the pipeline.
-      const resumeQueue = createQueue("pipeline:hitl-resume-after-approval");
+      const resumeQueue = createQueue("hitl:resume");
       await resumeQueue.add("resume", {
         tenantId,
         approvalTaskId: task.id,

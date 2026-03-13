@@ -1,6 +1,6 @@
-import { Queue, type Processor } from "bullmq";
+import { type Processor } from "bullmq";
 import { db, pipelineErrors, setSessionTenantId, silverCompanies, sql } from "@cerniq/db";
-import { getQueuePrefix, getRedisConnectionOptions } from "@cerniq/worker-shared";
+import { createQueue } from "@cerniq/worker-shared";
 import { createHitlApprovalTask } from "./pipeline-utils.js";
 
 export type ErrorHandlerJobData = {
@@ -46,9 +46,6 @@ export const pipelineErrorHandlerProcessor: Processor<ErrorHandlerJobData> = asy
     },
   });
 
-  const connection = getRedisConnectionOptions();
-  const prefix = getQueuePrefix();
-
   switch (job.data.errorType) {
     case "API_TIMEOUT":
     case "RATE_LIMITED": {
@@ -60,7 +57,7 @@ export const pipelineErrorHandlerProcessor: Processor<ErrorHandlerJobData> = asy
           companyId: job.data.companyId,
           correlationId: job.data.correlationId,
         };
-        const queue = new Queue(job.data.sourceWorker, { connection, prefix });
+        const queue = createQueue(job.data.sourceWorker);
         await queue.add("replay", replayPayload, {
           delay: delayMs,
           attempts: maxRetries,

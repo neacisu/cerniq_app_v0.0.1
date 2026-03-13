@@ -6,6 +6,12 @@ import { decideApproval, fetchApprovals } from "@/lib/etapa1-api.js";
 import { ApprovalCard } from "@/components/data/ApprovalCard.js";
 import { SLACountdown } from "@/components/data/SLACountdown.js";
 
+function resolveUrgency(raw: string): "HIGH" | "LOW" | "MED" {
+  if (raw === "HIGH") return "HIGH";
+  if (raw === "LOW") return "LOW";
+  return "MED";
+}
+
 export function Approvals() {
   const approvalsQuery = useQuery({
     queryKey: ["etapa1", "approvals"],
@@ -19,7 +25,9 @@ export function Approvals() {
       id: string;
       decision: "approve" | "reject" | "merge" | "skip";
     }) => decideApproval(id, decision),
-    onSuccess: () => void approvalsQuery.refetch(),
+    onSuccess: () => {
+      approvalsQuery.refetch();
+    },
   });
   const items = approvalsQuery.data?.data ?? [];
   const hasItems = items.length > 0;
@@ -37,7 +45,7 @@ export function Approvals() {
   if (approvalsQuery.isError) {
     return (
       <PageWrapper title="HITL Approvals">
-        <div className="rounded-lg border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 p-4 text-sm text-[var(--color-danger)]">
+        <div className="rounded-lg border border-(--color-danger)/30 bg-(--color-danger)/10 p-4 text-sm text-(--color-danger)">
           Eroare la încărcarea datelor: {approvalsQuery.error?.message ?? "Eroare necunoscută"}
         </div>
       </PageWrapper>
@@ -56,17 +64,15 @@ export function Approvals() {
                   id={String(a.id)}
                   title={String(a.title ?? a.entityId)}
                   description={String(a.description ?? "")}
-                  urgency={urgency === "HIGH" ? "HIGH" : urgency === "LOW" ? "LOW" : "MED"}
+                  urgency={resolveUrgency(urgency)}
                   confidence={Number(a.aiConfidence ?? 0) * 100}
                   onApprove={() =>
-                    void decisionMutation.mutateAsync({ id: String(a.id), decision: "approve" })
+                    decisionMutation.mutate({ id: String(a.id), decision: "approve" })
                   }
-                  onReject={() =>
-                    void decisionMutation.mutateAsync({ id: String(a.id), decision: "reject" })
-                  }
+                  onReject={() => decisionMutation.mutate({ id: String(a.id), decision: "reject" })}
                 />
                 {a.dueAt ? (
-                  <div className="text-xs text-[var(--color-t3)]">
+                  <div className="text-xs text-t3">
                     SLA: <SLACountdown dueAt={String(a.dueAt)} />
                   </div>
                 ) : null}

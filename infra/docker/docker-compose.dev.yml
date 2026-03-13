@@ -201,12 +201,12 @@ services:
   # Web Frontend — Vite Dev Server with HMR
   # ==========================================================================
   cerniq-web:
-    image: node:24
+    image: node:25.8.1
     container_name: cerniq-dev-web
-    working_dir: /app
+    working_dir: /app/apps/web
     volumes:
       - ../../:/app
-    command: sh -c "corepack enable && corepack install && pnpm --filter @cerniq/web dev --host 0.0.0.0 --port 64000"
+    command: sh -c "corepack enable && corepack install && pnpm dev --host 0.0.0.0 --port 64000"
     ports:
       - "64000:64000"
     environment:
@@ -226,7 +226,7 @@ services:
   # Web Admin — Vite Dev Server with HMR
   # ==========================================================================
   cerniq-admin:
-    image: node:24
+    image: node:25.8.1
     container_name: cerniq-dev-admin
     working_dir: /app
     volumes:
@@ -251,12 +251,13 @@ services:
   # API — tsx watch (auto-restart on file changes)
   # ==========================================================================
   cerniq-api:
-    image: node:24
+    image: node:25.8.1
     container_name: cerniq-dev-api
     working_dir: /app
     volumes:
       - ../../:/app
       - ${CERNIQ_RENDERED_SECRETS_DIR:-/opt/cerniq/runtime-secrets}/api:/secrets:ro
+      - ../../data/imports:/app/data/imports
     command: sh -c "corepack enable && corepack install && pnpm --filter @cerniq/api dev"
     ports:
       - "64010:64010"
@@ -265,6 +266,7 @@ services:
       PORT: "64010"
       LOG_LEVEL: debug
       SECRETS_PATH: /secrets/api.env
+      IMPORT_UPLOAD_DIR: /app/data/imports
     extra_hosts:
       - "ct107-postgres:10.0.1.107"
     networks:
@@ -286,7 +288,7 @@ services:
   # Monitoring API — tsx watch (auto-restart on file changes)
   # ==========================================================================
   cerniq-monitoring-api:
-    image: node:24
+    image: node:25.8.1
     container_name: cerniq-dev-monitoring-api
     working_dir: /app
     volumes:
@@ -312,45 +314,21 @@ services:
       <<: *default-logging
 
   # ==========================================================================
-  # Worker AI — tsx watch (auto-restart on file changes)
-  # ==========================================================================
-  cerniq-worker-ai:
-    image: node:24
-    container_name: cerniq-dev-worker-ai
-    working_dir: /app
-    volumes:
-      - ../../:/app
-      - ${CERNIQ_RENDERED_SECRETS_DIR:-/opt/cerniq/runtime-secrets}/workers:/secrets:ro
-    command: sh -c "corepack enable && corepack install && pnpm --filter @cerniq/worker-ai dev"
-    environment:
-      NODE_ENV: development
-      SECRETS_PATH: /secrets/workers.env
-    networks:
-      - cerniq_backend
-    depends_on:
-      openbao-agent-workers:
-        condition: service_healthy
-    restart: unless-stopped
-    labels:
-      <<: *common-labels
-      com.cerniq.service: "worker-ai"
-    logging:
-      <<: *default-logging
-
-  # ==========================================================================
   # Worker Enrichment — tsx watch (auto-restart on file changes)
   # ==========================================================================
   cerniq-worker-enrichment:
-    image: node:24
+    image: node:25.8.1
     container_name: cerniq-dev-worker-enrichment
     working_dir: /app
     volumes:
       - ../../:/app
       - ${CERNIQ_RENDERED_SECRETS_DIR:-/opt/cerniq/runtime-secrets}/workers:/secrets:ro
+      - ../../data/imports:/app/data/imports
     command: sh -c "corepack enable && corepack install && pnpm --filter @cerniq/worker-enrichment dev"
     environment:
       NODE_ENV: development
       SECRETS_PATH: /secrets/workers.env
+      IMPORT_UPLOAD_DIR: /app/data/imports
     networks:
       - cerniq_backend
     depends_on:
@@ -360,31 +338,5 @@ services:
     labels:
       <<: *common-labels
       com.cerniq.service: "worker-enrichment"
-    logging:
-      <<: *default-logging
-
-  # ==========================================================================
-  # Worker Outreach — Node dev (tsx watch, aligned with ai/enrichment)
-  # ==========================================================================
-  cerniq-worker-outreach:
-    image: node:24
-    container_name: cerniq-dev-worker-outreach
-    working_dir: /app
-    volumes:
-      - ../../:/app
-      - ${CERNIQ_RENDERED_SECRETS_DIR:-/opt/cerniq/runtime-secrets}/workers:/secrets:ro
-    command: sh -c "corepack enable && corepack install && pnpm --filter @cerniq/worker-outreach dev"
-    environment:
-      NODE_ENV: development
-      SECRETS_PATH: /secrets/workers.env
-    networks:
-      - cerniq_backend
-    depends_on:
-      openbao-agent-workers:
-        condition: service_healthy
-    restart: unless-stopped
-    labels:
-      <<: *common-labels
-      com.cerniq.service: "worker-outreach"
     logging:
       <<: *default-logging

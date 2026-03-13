@@ -31,3 +31,4 @@ export * from "./schemas/bronze.js";
 export * from "./schemas/silver.js";
 export * from "./schemas/gold.js";
 export * from "./services/approval-service.js";
+export * from "./services/company-identity.js";

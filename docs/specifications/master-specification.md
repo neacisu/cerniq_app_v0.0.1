@@ -225,8 +225,8 @@ jobId: `warn-${approvalId}`; // Warning jobs
 
 | Component          | Versiune CANONICĂ     | Release Date | Status         | EOL/Suport              |
 | ------------------ | --------------------- | ------------ | -------------- | ----------------------- |
-| **Node.js**        | **24.13.1 "Krypton"** | 10 Dec 2025  | Active LTS     | Apr 2028                |
-| **V8 Engine**      | 13.6.233.17           | Bundled      | —              | —                       |
+| **Node.js**        | **25.8.1 (Current)** | 11 Mar 2026  | Current        | Non-LTS release line    |
+| **V8 Engine**      | 14.1.146.11           | Bundled      | —              | —                       |
 | **NPM**            | 11.x                  | Bundled      | —              | —                       |
 | **Python**         | **3.14.2**            | 5 Dec 2025   | Stable         | Free-threading Phase II |
 | **PostgreSQL**     | **18.2**              | 13 Nov 2025  | Current Stable | —                       |
@@ -2004,7 +2004,7 @@ $$ LANGUAGE plpgsql;
 
 | #   | Inconsistență                         | Sursă                   | Rezoluție                                 | Status |
 | --- | ------------------------------------- | ----------------------- | ----------------------------------------- | ------ |
-| 1   | Node.js 24.13 vs 24.12                | Etapa 1 vs Etapa 2-5    | **CANONIC: 24.13.1**                      | ✅     |
+| 1   | Node.js 25 current vs 24 LTS          | Runtime curent vs LTS   | **CANONIC: 25.8.1**                       | ✅     |
 | 2   | Python 3.14.1 vs 3.14.2               | Docs vechi vs Research  | **CANONIC: 3.14.2**                       | ✅     |
 | 3   | `gold_hitl_tasks` vs `approval_tasks` | Etapa 4 vs Unified HITL | **CANONIC: `approval_tasks`**             | ✅     |
 | 4   | React 19.2.3 vs 19.2.1                | TOC vs npm              | **CANONIC: 19.2.3**                       | ✅     |

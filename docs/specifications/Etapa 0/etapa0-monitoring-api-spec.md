@@ -20,7 +20,7 @@ Serviciul `monitoring-api` funcționează ca un **Observability Sidecar** pentru
 
 ## 2. TECHNOLOGY STACK
 
-- **Runtime:** Node.js v24 (LTS)
+- **Runtime:** Node.js v25.8.1 (Current)
 - **Framework:** Fastify v5.x
 - **Queue Interface:** BullMQ (Read-Only wrappers)
 - **Real-Time:** `@fastify/websocket`

@@ -725,7 +725,7 @@
 
 | Componentă       | Versiune Canonică       | Rol                          |
 | ---------------- | ----------------------- | ---------------------------- |
-| **Node.js**      | v24.13.1 LTS            | Runtime principal            |
+| **Node.js**      | v25.8.1 Current         | Runtime principal            |
 | **Python**       | 3.14.2 (Free-Threading) | AI/ML, scraping              |
 | **PostgreSQL**   | 18.1                    | Bază de date principală      |
 | **Redis**        | 8.4.0                   | Cache, queues, rate limiting |
