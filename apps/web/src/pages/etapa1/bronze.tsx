@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import type { ColumnDef } from "@tanstack/react-table";
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
+import { Button, Card, CardHeader, CardTitle, CardBody } from "@/components/ui/index.js";
 import { Spinner } from "@/components/ui/spinner.js";
-import { Card, CardHeader, CardTitle, CardBody } from "@/components/ui/index.js";
 import { DataTable } from "@/components/data/DataTable.js";
 import { DataTablePagination } from "@/components/data/DataTablePagination.js";
 import { SearchInput } from "@/components/forms/SearchInput.js";
@@ -11,6 +12,33 @@ import type { BronzeContactRow } from "@/lib/etapa1-types.js";
 import { useBronzeContacts, useReprocessBronze } from "@/hooks/use-etapa1.js";
 
 const PAGE_SIZE_OPTIONS = [25, 50, 100] as const;
+
+type ReprocessCellProps = Readonly<{
+  id: string;
+  onReprocess: (id: string) => void;
+  isPending: boolean;
+}>;
+
+function ReprocessCell({ id, onReprocess, isPending }: ReprocessCellProps) {
+  return (
+    <Button size="sm" variant="ghost" onClick={() => onReprocess(id)} disabled={isPending}>
+      Reproceseaza
+    </Button>
+  );
+}
+
+function makeActionsColumn(
+  onReprocess: (id: string) => void,
+  isPending: boolean,
+): ColumnDef<BronzeContactRow> {
+  return {
+    id: "actiuni",
+    header: "Acțiuni",
+    cell: ({ row }) => (
+      <ReprocessCell id={String(row.original.id)} onReprocess={onReprocess} isPending={isPending} />
+    ),
+  };
+}
 
 export function Bronze() {
   const [page, setPage] = useState(1);
@@ -41,6 +69,14 @@ export function Bronze() {
   });
 
   const reprocessMutation = useReprocessBronze();
+
+  const columns = useMemo<ColumnDef<BronzeContactRow>[]>(
+    () => [
+      ...bronzeContactsColumns,
+      makeActionsColumn((id) => reprocessMutation.mutate(id), reprocessMutation.isPending),
+    ],
+    [reprocessMutation],
+  );
 
   const contacts = (response?.data ?? []) as unknown as BronzeContactRow[];
   const total = response?.meta?.total ?? contacts.length;
@@ -88,18 +124,7 @@ export function Bronze() {
     }
     return (
       <>
-        <DataTable columns={bronzeContactsColumns} data={contacts} />
-        <div className="pt-2 pb-1">
-          {contacts.map((c) => (
-            <button
-              key={`r-${c.id}`}
-              className="mr-3 text-xs text-b5 underline"
-              onClick={() => reprocessMutation.mutate(String(c.id))}
-            >
-              Reprocess {c.extractedName ?? c.id}
-            </button>
-          ))}
-        </div>
+        <DataTable columns={columns} data={contacts} />
         <DataTablePagination
           page={page}
           pageSize={pageSize}
