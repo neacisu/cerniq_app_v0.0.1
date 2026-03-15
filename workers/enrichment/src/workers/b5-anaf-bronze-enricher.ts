@@ -218,36 +218,42 @@ export const anafBronzeEnricherProcessor: Processor<AnafBronzeEnricherJobData> =
       await triggerCuiValidationIfPossible(tenantId, bronzeContactId, cui, nrRegCom, correlationId);
     }
 
-    // Write progress back to batch metadata so UI can poll it
-    const isLastBatch = batchIndex + 1 >= totalBatches;
-    await db.transaction(async (tx) => {
-      await tx.execute(sql`SELECT set_config('app.tenant_id', ${tenantId}, true)`);
-      const existing = await tx.query.bronzeImportBatches.findFirst({
-        where: (t, { and, eq }) => and(eq(t.tenantId, tenantId), eq(t.id, batchId)),
-        columns: { metadata: true },
+    // Write progress back to batch metadata so UI can poll it — non-critical, never fail the job
+    try {
+      const isLastBatch = batchIndex + 1 >= totalBatches;
+      // Deterministic: batchIndex * 100 is the count before this batch; add current batch size.
+      // This is retry-safe (no read-then-write, no cumulative state from DB).
+      const processedCuisTotal = batchIndex * 100 + cuiList.length;
+      await db.transaction(async (tx) => {
+        await tx.execute(sql`SELECT set_config('app.tenant_id', ${tenantId}, true)`);
+        await tx
+          .update(bronzeImportBatches)
+          .set({
+            metadata: sql`COALESCE(${bronzeImportBatches.metadata}, '{}'::jsonb) || ${JSON.stringify(
+              {
+                anafEnrichmentProcessedBatches: batchIndex + 1,
+                anafEnrichmentProcessedCuis: processedCuisTotal,
+                anafEnrichmentLastProgressAt: new Date().toISOString(),
+                ...(isLastBatch
+                  ? {
+                      anafEnrichmentStatus: "completed",
+                      anafEnrichmentCompletedAt: new Date().toISOString(),
+                    }
+                  : {}),
+              },
+            )}::jsonb`,
+            updatedAt: new Date(),
+          })
+          .where(
+            sql`${bronzeImportBatches.id} = ${batchId} AND ${bronzeImportBatches.tenantId} = ${tenantId}`,
+          );
       });
-      const prevMeta = (existing?.metadata ?? {}) as Record<string, unknown>;
-      const prevProcessedCuis = Number(prevMeta.anafEnrichmentProcessedCuis ?? 0);
-      await tx
-        .update(bronzeImportBatches)
-        .set({
-          metadata: sql`COALESCE(${bronzeImportBatches.metadata}, '{}'::jsonb) || ${JSON.stringify({
-            anafEnrichmentProcessedBatches: batchIndex + 1,
-            anafEnrichmentProcessedCuis: prevProcessedCuis + cuiList.length,
-            anafEnrichmentLastProgressAt: new Date().toISOString(),
-            ...(isLastBatch
-              ? {
-                  anafEnrichmentStatus: "completed",
-                  anafEnrichmentCompletedAt: new Date().toISOString(),
-                }
-              : {}),
-          })}::jsonb`,
-          updatedAt: new Date(),
-        })
-        .where(
-          sql`${bronzeImportBatches.id} = ${batchId} AND ${bronzeImportBatches.tenantId} = ${tenantId}`,
-        );
-    });
+    } catch (progressError) {
+      console.warn(
+        `[b5] Progress write failed for batch ${batchIndex + 1}/${totalBatches} — continuing`,
+        progressError,
+      );
+    }
 
     jobsProcessed.add(1, { worker: "b5-anaf-bronze-enricher", status: "success" });
     return {
