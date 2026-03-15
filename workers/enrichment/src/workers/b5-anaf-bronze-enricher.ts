@@ -1,5 +1,5 @@
 import type { Processor } from "bullmq";
-import { bronzeContacts, db, sql } from "@cerniq/db";
+import { bronzeContacts, bronzeImportBatches, db, sql } from "@cerniq/db";
 import { jobsProcessed, jobDuration, jobErrors } from "../lib/worker-metrics.js";
 import { fetchAnafBatchByCuis, type AnafV9CompanyRecord } from "../lib/anaf-api-client.js";
 import { triggerCuiValidationIfPossible } from "./normalization-utils.js";
@@ -217,6 +217,37 @@ export const anafBronzeEnricherProcessor: Processor<AnafBronzeEnricherJobData> =
       triggeredCuis.add(dedupeKey);
       await triggerCuiValidationIfPossible(tenantId, bronzeContactId, cui, nrRegCom, correlationId);
     }
+
+    // Write progress back to batch metadata so UI can poll it
+    const isLastBatch = batchIndex + 1 >= totalBatches;
+    await db.transaction(async (tx) => {
+      await tx.execute(sql`SELECT set_config('app.tenant_id', ${tenantId}, true)`);
+      const existing = await tx.query.bronzeImportBatches.findFirst({
+        where: (t, { and, eq }) => and(eq(t.tenantId, tenantId), eq(t.id, batchId)),
+        columns: { metadata: true },
+      });
+      const prevMeta = (existing?.metadata ?? {}) as Record<string, unknown>;
+      const prevProcessedCuis = Number(prevMeta.anafEnrichmentProcessedCuis ?? 0);
+      await tx
+        .update(bronzeImportBatches)
+        .set({
+          metadata: sql`COALESCE(${bronzeImportBatches.metadata}, '{}'::jsonb) || ${JSON.stringify({
+            anafEnrichmentProcessedBatches: batchIndex + 1,
+            anafEnrichmentProcessedCuis: prevProcessedCuis + cuiList.length,
+            anafEnrichmentLastProgressAt: new Date().toISOString(),
+            ...(isLastBatch
+              ? {
+                  anafEnrichmentStatus: "completed",
+                  anafEnrichmentCompletedAt: new Date().toISOString(),
+                }
+              : {}),
+          })}::jsonb`,
+          updatedAt: new Date(),
+        })
+        .where(
+          sql`${bronzeImportBatches.id} = ${batchId} AND ${bronzeImportBatches.tenantId} = ${tenantId}`,
+        );
+    });
 
     jobsProcessed.add(1, { worker: "b5-anaf-bronze-enricher", status: "success" });
     return {

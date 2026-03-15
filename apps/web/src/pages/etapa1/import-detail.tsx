@@ -18,6 +18,7 @@ import {
   useImportDetail,
   useImportEntities,
   useImportRows,
+  useAnafEnrichImport,
 } from "@/hooks/use-etapa1.js";
 import { toast } from "@/components/ui/toast-api.js";
 
@@ -184,7 +185,50 @@ function getIdentityReprocessSummary(metadata: Record<string, unknown>, totalRow
   };
 }
 
-function SummaryCard({ label, value }: { label: string; value: string }) {
+function getAnafEnrichmentState(metadata: Record<string, unknown>) {
+  const status = String(metadata.anafEnrichmentStatus ?? "");
+  if (!status) return null;
+  const queuedAt =
+    typeof metadata.anafEnrichmentQueuedAt === "string" ? metadata.anafEnrichmentQueuedAt : null;
+  const completedAt =
+    typeof metadata.anafEnrichmentCompletedAt === "string"
+      ? metadata.anafEnrichmentCompletedAt
+      : null;
+  const lastProgressAt =
+    typeof metadata.anafEnrichmentLastProgressAt === "string"
+      ? metadata.anafEnrichmentLastProgressAt
+      : null;
+  const totalCuis = Number(metadata.anafEnrichmentTotalCuis ?? 0);
+  const totalBatches = Number(metadata.anafEnrichmentTotalBatches ?? 0);
+  const processedCuis = Number(metadata.anafEnrichmentProcessedCuis ?? 0);
+  const processedBatches = Number(metadata.anafEnrichmentProcessedBatches ?? 0);
+
+  const progress = totalCuis > 0 ? Math.min(100, Math.round((processedCuis / totalCuis) * 100)) : 0;
+
+  const startedAt = queuedAt ? Date.parse(queuedAt) : Number.NaN;
+  const referenceNow = lastProgressAt ? Date.parse(lastProgressAt) : Date.now();
+  const elapsedMs =
+    Number.isFinite(startedAt) && referenceNow > startedAt ? referenceNow - startedAt : null;
+  const throughput = elapsedMs && processedCuis > 0 ? processedCuis / (elapsedMs / 1000) : null;
+  const remainingCuis = totalCuis > processedCuis ? totalCuis - processedCuis : 0;
+  const etaMs = throughput && remainingCuis > 0 ? (remainingCuis / throughput) * 1000 : null;
+
+  return {
+    status,
+    queuedAt,
+    completedAt,
+    lastProgressAt,
+    totalCuis,
+    totalBatches,
+    processedCuis,
+    processedBatches,
+    progress,
+    throughput,
+    etaMs,
+  };
+}
+
+function SummaryCard({ label, value }: Readonly<{ label: string; value: string }>) {
   return (
     <div className="rounded border border-s700 p-3 text-sm">
       <div className="text-t3">{label}</div>
@@ -199,7 +243,7 @@ function CanonicalizedBadge() {
   );
 }
 
-function ImportEntitiesTable({ entities }: { entities: Array<Record<string, unknown>> }) {
+function ImportEntitiesTable({ entities }: Readonly<{ entities: Array<Record<string, unknown>> }>) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse text-xs">
@@ -237,7 +281,7 @@ function ImportEntitiesTable({ entities }: { entities: Array<Record<string, unkn
   );
 }
 
-function ImportRowsTable({ rows }: { rows: Array<Record<string, unknown>> }) {
+function ImportRowsTable({ rows }: Readonly<{ rows: Array<Record<string, unknown>> }>) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse text-xs">
@@ -280,18 +324,108 @@ function ImportRowsTable({ rows }: { rows: Array<Record<string, unknown>> }) {
   );
 }
 
+function AnafStatusCard({
+  anafState,
+}: Readonly<{ anafState: ReturnType<typeof getAnafEnrichmentState> }>) {
+  if (!anafState) return null;
+  const isProcessing = anafState.status === "processing";
+  const isCompleted = anafState.status === "completed";
+
+  const details = [
+    anafState.totalCuis > 0
+      ? `${anafState.processedCuis.toLocaleString("ro-RO")} / ${anafState.totalCuis.toLocaleString("ro-RO")} CUI-uri`
+      : null,
+    anafState.totalBatches > 0
+      ? `batch ${anafState.processedBatches} / ${anafState.totalBatches}`
+      : null,
+    anafState.throughput && isProcessing
+      ? `~${Math.max(1, Math.round(anafState.throughput)).toLocaleString("ro-RO")} CUI-uri/s`
+      : null,
+    anafState.etaMs && isProcessing ? `ETA ${formatCompactDuration(anafState.etaMs)}` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  return (
+    <div className="mb-4 rounded-lg border border-s700 bg-s800/40 p-3 text-sm">
+      <div className={`font-semibold ${isCompleted ? "text-ok" : "text-t2"}`}>
+        {isCompleted ? "Îmbogățire ANAF finalizată" : "Îmbogățire ANAF în curs"}
+      </div>
+      {details ? <div className="mt-1 text-t2">{details}</div> : null}
+      <div className="mt-3">
+        <ProgressBar
+          value={anafState.progress}
+          indeterminate={isProcessing && anafState.progress <= 0}
+        />
+      </div>
+      <div className="mt-2 flex flex-wrap gap-x-4 text-xs text-t3">
+        {anafState.queuedAt ? (
+          <span>Trimis la: {new Date(anafState.queuedAt).toLocaleString()}</span>
+        ) : null}
+        {anafState.completedAt ? (
+          <span>Finalizat la: {new Date(anafState.completedAt).toLocaleString()}</span>
+        ) : null}
+        {anafState.lastProgressAt && isProcessing ? (
+          <span>Heartbeat: {new Date(anafState.lastProgressAt).toLocaleString()}</span>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function ImportErrorCard({
+  lastError,
+  failedAt,
+}: Readonly<{ lastError: string | null; failedAt: string | null }>) {
+  if (!lastError) return null;
+  return (
+    <div className="mb-4 rounded-lg border border-(--color-danger)/30 bg-(--color-danger)/10 p-3 text-sm text-(--color-danger)">
+      <div className="font-semibold">Ultima eroare de import</div>
+      <div className="mt-1 wrap-break-word">{lastError}</div>
+      {failedAt ? (
+        <div className="mt-1 text-xs opacity-80">
+          Marcat ca eșuat la {new Date(failedAt).toLocaleString()}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function IdentityReprocessCard({
+  summary,
+}: Readonly<{ summary: ReturnType<typeof getIdentityReprocessSummary> }>) {
+  if (!summary) return null;
+  return (
+    <div className="mb-4 rounded-lg border border-s700 bg-s800/40 p-3 text-sm">
+      <div className={`font-semibold ${summary.tone}`}>{summary.title}</div>
+      <div className="mt-1 text-t2">{summary.body}</div>
+      <div className="mt-3">
+        <ProgressBar value={summary.progress} indeterminate={summary.progress <= 0} />
+      </div>
+      <div className="mt-2 text-xs text-t3">{summary.stats}</div>
+      {summary.lastProgressAt ? (
+        <div className="mt-1 text-xs text-t3">
+          Ultimul heartbeat: {new Date(summary.lastProgressAt).toLocaleString()}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function ImportDetail() {
   const { id } = useParams();
   const detailQuery = useImportDetail(id);
   const entitiesQuery = useImportEntities(id, 100, 0);
   const rowsQuery = useImportRows(id, 100, 0);
   const cancelMutation = useCancelImport();
+  const anafEnrichMutation = useAnafEnrichImport();
   const item = detailQuery.data?.data ?? {};
   const metadata = (item.metadata as Record<string, unknown> | undefined) ?? {};
   const uploadConfig = (metadata.uploadConfig as Record<string, unknown> | undefined) ?? {};
   const identitySummary = (item.identitySummary as Record<string, unknown> | undefined) ?? {};
   const status = String(item.status ?? "unknown");
   const canCancel = status === "pending" || status === "processing";
+  const isCompleted = status === "completed";
   const processedRows = Number(item.processedRows ?? 0);
   const totalRows = Number(item.totalRows ?? 0);
   const hasKnownTotal = totalRows > 0;
@@ -304,6 +438,7 @@ export function ImportDetail() {
     ? `${processedRows} / ${totalRows}`
     : `${processedRows} procesate până acum`;
   const identityReprocessSummary = getIdentityReprocessSummary(metadata, totalRows);
+  const anafState = getAnafEnrichmentState(metadata);
 
   const handleCancelImport = async () => {
     if (!id) {
@@ -316,6 +451,26 @@ export function ImportDetail() {
       await detailQuery.refetch();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Eroare la anularea importului");
+    }
+  };
+
+  const handleAnafEnrich = async () => {
+    if (!id) {
+      return;
+    }
+
+    try {
+      const result = await anafEnrichMutation.mutateAsync(id);
+      const data = result?.data as Record<string, unknown> | undefined;
+      const queued = Number(data?.queued ?? 0);
+      if (queued === 0) {
+        toast.success("Toate contactele au fost deja îmbogățite ANAF");
+      } else {
+        toast.success(`${queued} CUI-uri trimise la ANAF pentru îmbogățire`);
+      }
+      await detailQuery.refetch();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Eroare la trimiterea către ANAF");
     }
   };
 
@@ -343,11 +498,26 @@ export function ImportDetail() {
     <PageWrapper
       title="Import Detail"
       actions={
-        canCancel ? (
-          <Button variant="danger" onClick={handleCancelImport} disabled={cancelMutation.isPending}>
-            {cancelMutation.isPending ? "Se anuleaza..." : "Anuleaza Import"}
-          </Button>
-        ) : null
+        <div className="flex gap-2">
+          {isCompleted ? (
+            <Button
+              variant="outline"
+              onClick={handleAnafEnrich}
+              disabled={anafEnrichMutation.isPending || anafState?.status === "processing"}
+            >
+              {anafEnrichMutation.isPending ? "Se trimite..." : "Prelucreaza ANAF"}
+            </Button>
+          ) : null}
+          {canCancel ? (
+            <Button
+              variant="danger"
+              onClick={handleCancelImport}
+              disabled={cancelMutation.isPending}
+            >
+              {cancelMutation.isPending ? "Se anuleaza..." : "Anuleaza Import"}
+            </Button>
+          ) : null}
+        </div>
       }
     >
       <Card>
@@ -387,39 +557,11 @@ export function ImportDetail() {
             ) : null}
           </div>
 
-          {lastError ? (
-            <div className="mb-4 rounded-lg border border-(--color-danger)/30 bg-(--color-danger)/10 p-3 text-sm text-(--color-danger)">
-              <div className="font-semibold">Ultima eroare de import</div>
-              <div className="mt-1 wrap-break-word">{lastError}</div>
-              {failedAt ? (
-                <div className="mt-1 text-xs opacity-80">
-                  Marcat ca eșuat la {new Date(failedAt).toLocaleString()}
-                </div>
-              ) : null}
-            </div>
-          ) : null}
+          <ImportErrorCard lastError={lastError} failedAt={failedAt} />
 
-          {identityReprocessSummary ? (
-            <div className="mb-4 rounded-lg border border-s700 bg-s800/40 p-3 text-sm">
-              <div className={`font-semibold ${identityReprocessSummary.tone}`}>
-                {identityReprocessSummary.title}
-              </div>
-              <div className="mt-1 text-t2">{identityReprocessSummary.body}</div>
-              <div className="mt-3">
-                <ProgressBar
-                  value={identityReprocessSummary.progress}
-                  indeterminate={identityReprocessSummary.progress <= 0}
-                />
-              </div>
-              <div className="mt-2 text-xs text-t3">{identityReprocessSummary.stats}</div>
-              {identityReprocessSummary.lastProgressAt ? (
-                <div className="mt-1 text-xs text-t3">
-                  Ultimul heartbeat:{" "}
-                  {new Date(identityReprocessSummary.lastProgressAt).toLocaleString()}
-                </div>
-              ) : null}
-            </div>
-          ) : null}
+          <IdentityReprocessCard summary={identityReprocessSummary} />
+
+          <AnafStatusCard anafState={anafState} />
 
           <Tabs defaultValue="entities">
             <TabsList>

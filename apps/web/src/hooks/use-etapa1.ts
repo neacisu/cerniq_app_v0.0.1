@@ -7,6 +7,7 @@ import {
   type ImportListParams,
   type SilverCompaniesParams,
   type DedupCandidatesParams,
+  anafEnrichImport,
   assignApproval,
   cancelImport,
   decideApproval,
@@ -48,9 +49,18 @@ function isIdentityReprocessActive(item: Record<string, unknown> | undefined) {
   return state === "queued" || state === "running";
 }
 
+function isAnafEnrichActive(item: Record<string, unknown> | undefined) {
+  const metadata = (item?.metadata as Record<string, unknown> | undefined) ?? {};
+  return String(metadata.anafEnrichmentStatus ?? "") === "processing";
+}
+
 function getImportRefetchInterval(item: Record<string, unknown> | undefined) {
   const status = String(item?.status ?? "");
-  if (["pending", "processing"].includes(status) || isIdentityReprocessActive(item)) {
+  if (
+    ["pending", "processing"].includes(status) ||
+    isIdentityReprocessActive(item) ||
+    isAnafEnrichActive(item)
+  ) {
     return 3000;
   }
 
@@ -140,6 +150,16 @@ export function useCancelImport() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: cancelImport,
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["etapa1", "imports"] });
+    },
+  });
+}
+
+export function useAnafEnrichImport() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: anafEnrichImport,
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ["etapa1", "imports"] });
     },
