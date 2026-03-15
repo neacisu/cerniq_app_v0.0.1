@@ -110,5 +110,5 @@ test-results/
 # Docker volumes (local)
 # =============================================================================
 docker-data/
-data/
+/data/
 .turbo/
