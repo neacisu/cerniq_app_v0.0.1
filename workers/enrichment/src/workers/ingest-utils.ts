@@ -793,7 +793,7 @@ export async function triggerNormalizationForContacts(
           correlationId,
         },
         {
-          jobId: `${queueName}:${bronzeContactId}`,
+          jobId: `${queueName}-${bronzeContactId}`,
           attempts: 2,
           backoff: { type: "fixed", delay: 500 },
         },
@@ -966,7 +966,7 @@ export async function triggerAnafBronzeEnrichment(
           totalBatches,
         },
         {
-          jobId: `anaf-bronze:${batchId}:${i}`,
+          jobId: `anaf-bronze-${batchId}-${i}`,
           delay: i * ANAF_BATCH_DELAY_MS,
           attempts: 5,
           backoff: { type: "exponential", delay: 1000 },

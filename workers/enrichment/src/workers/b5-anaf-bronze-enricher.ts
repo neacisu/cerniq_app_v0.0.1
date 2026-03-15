@@ -1,5 +1,5 @@
 import type { Processor } from "bullmq";
-import { bronzeContacts, db, setSessionTenantId, sql } from "@cerniq/db";
+import { bronzeContacts, db, sql } from "@cerniq/db";
 import { jobsProcessed, jobDuration, jobErrors } from "../lib/worker-metrics.js";
 import { fetchAnafBatchByCuis, type AnafV9CompanyRecord } from "../lib/anaf-api-client.js";
 import { triggerCuiValidationIfPossible } from "./normalization-utils.js";
@@ -18,7 +18,7 @@ type ContactTrigger = { bronzeContactId: string; cui: string | null; nrRegCom: s
 
 async function processFoundCui(
   tenantId: string,
-  bronzeContactIds: string[],
+  batchId: string,
   cui: number,
   anafRecord: AnafV9CompanyRecord,
   contactsToTrigger: ContactTrigger[],
@@ -27,10 +27,17 @@ async function processFoundCui(
   const nrRegCom = extractNrRegCom(anafRecord);
   const denumire = anafRecord.date_generale?.denumire ?? null;
 
-  const matchingContacts = await db.query.bronzeContacts.findMany({
-    where: (t, { and, eq, inArray }) =>
-      and(eq(t.tenantId, tenantId), inArray(t.id, bronzeContactIds), eq(t.extractedCui, cuiStr)),
-    columns: { id: true, extractedNrRegCom: true, extractedName: true },
+  const matchingContacts = await db.transaction(async (tx) => {
+    await tx.execute(sql`SELECT set_config('app.tenant_id', ${tenantId}, true)`);
+    return tx.query.bronzeContacts.findMany({
+      where: (t, { and, eq }) =>
+        and(
+          eq(t.tenantId, tenantId),
+          eq(sql`COALESCE(jsonb_extract_path_text(${t.metadata}, 'batchId'), '')`, batchId),
+          eq(t.extractedCui, cuiStr),
+        ),
+      columns: { id: true, extractedNrRegCom: true, extractedName: true },
+    });
   });
 
   for (const contact of matchingContacts) {
@@ -71,7 +78,7 @@ async function processFoundCui(
   if (nrRegCom) {
     await crossReferenceNrRegComContacts(
       tenantId,
-      bronzeContactIds,
+      batchId,
       cuiStr,
       nrRegCom,
       denumire,
@@ -83,22 +90,25 @@ async function processFoundCui(
 
 async function crossReferenceNrRegComContacts(
   tenantId: string,
-  bronzeContactIds: string[],
+  batchId: string,
   cuiStr: string,
   nrRegCom: string,
   denumire: string | null,
   anafRecord: AnafV9CompanyRecord,
   contactsToTrigger: ContactTrigger[],
 ) {
-  const nrRegComContacts = await db.query.bronzeContacts.findMany({
-    where: (t, { and, eq, isNull, inArray }) =>
-      and(
-        eq(t.tenantId, tenantId),
-        inArray(t.id, bronzeContactIds),
-        isNull(t.extractedCui),
-        eq(t.extractedNrRegCom, nrRegCom),
-      ),
-    columns: { id: true, extractedName: true },
+  const nrRegComContacts = await db.transaction(async (tx) => {
+    await tx.execute(sql`SELECT set_config('app.tenant_id', ${tenantId}, true)`);
+    return tx.query.bronzeContacts.findMany({
+      where: (t, { and, eq, isNull }) =>
+        and(
+          eq(t.tenantId, tenantId),
+          eq(sql`COALESCE(jsonb_extract_path_text(${t.metadata}, 'batchId'), '')`, batchId),
+          isNull(t.extractedCui),
+          eq(t.extractedNrRegCom, nrRegCom),
+        ),
+      columns: { id: true, extractedName: true },
+    });
   });
 
   for (const nrContact of nrRegComContacts) {
@@ -135,15 +145,22 @@ async function crossReferenceNrRegComContacts(
 
 async function processNotFoundCui(
   tenantId: string,
-  bronzeContactIds: string[],
+  batchId: string,
   notFoundCui: number,
   contactsToTrigger: ContactTrigger[],
 ) {
   const cuiStr = String(notFoundCui);
-  const matchingContacts = await db.query.bronzeContacts.findMany({
-    where: (t, { and, eq, inArray }) =>
-      and(eq(t.tenantId, tenantId), inArray(t.id, bronzeContactIds), eq(t.extractedCui, cuiStr)),
-    columns: { id: true, extractedNrRegCom: true },
+  const matchingContacts = await db.transaction(async (tx) => {
+    await tx.execute(sql`SELECT set_config('app.tenant_id', ${tenantId}, true)`);
+    return tx.query.bronzeContacts.findMany({
+      where: (t, { and, eq }) =>
+        and(
+          eq(t.tenantId, tenantId),
+          eq(sql`COALESCE(jsonb_extract_path_text(${t.metadata}, 'batchId'), '')`, batchId),
+          eq(t.extractedCui, cuiStr),
+        ),
+      columns: { id: true, extractedNrRegCom: true },
+    });
   });
 
   for (const contact of matchingContacts) {
@@ -170,23 +187,34 @@ async function processNotFoundCui(
 export const anafBronzeEnricherProcessor: Processor<AnafBronzeEnricherJobData> = async (job) => {
   const startedAt = Date.now();
   try {
-    const { tenantId, cuiList, bronzeContactIds, correlationId, batchIndex, totalBatches } =
-      job.data;
+    const { tenantId, batchId, cuiList, correlationId, batchIndex, totalBatches } = job.data;
 
-    await setSessionTenantId(tenantId);
+    console.log(
+      `[b5] Processing batch ${batchIndex + 1}/${totalBatches} with ${cuiList.length} CUIs`,
+    );
+
     const result = await fetchAnafBatchByCuis(cuiList);
+
+    console.log(
+      `[b5] ANAF response: found=${result.found.size}, notFound=${result.notFound.length}`,
+    );
 
     const contactsToTrigger: ContactTrigger[] = [];
 
     for (const [cui, anafRecord] of result.found) {
-      await processFoundCui(tenantId, bronzeContactIds, cui, anafRecord, contactsToTrigger);
+      await processFoundCui(tenantId, batchId, cui, anafRecord, contactsToTrigger);
     }
 
     for (const notFoundCui of result.notFound) {
-      await processNotFoundCui(tenantId, bronzeContactIds, notFoundCui, contactsToTrigger);
+      await processNotFoundCui(tenantId, batchId, notFoundCui, contactsToTrigger);
     }
 
+    // Deduplicate by CUI: only trigger c1 once per unique CUI to avoid flooding ANAF
+    const triggeredCuis = new Set<string>();
     for (const { bronzeContactId, cui, nrRegCom } of contactsToTrigger) {
+      const dedupeKey = cui ?? bronzeContactId;
+      if (triggeredCuis.has(dedupeKey)) continue;
+      triggeredCuis.add(dedupeKey);
       await triggerCuiValidationIfPossible(tenantId, bronzeContactId, cui, nrRegCom, correlationId);
     }
 
@@ -200,6 +228,7 @@ export const anafBronzeEnricherProcessor: Processor<AnafBronzeEnricherJobData> =
       contactsTriggered: contactsToTrigger.length,
     };
   } catch (error) {
+    console.error(`[b5] Error processing batch:`, error);
     jobErrors.add(1, { worker: "b5-anaf-bronze-enricher" });
     throw error;
   } finally {

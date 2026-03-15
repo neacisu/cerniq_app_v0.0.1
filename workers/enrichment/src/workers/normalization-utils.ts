@@ -79,7 +79,7 @@ export async function triggerCuiValidationIfPossible(
         correlationId,
       },
       {
-        jobId: `promote-nrc:${bronzeContactId}`,
+        jobId: `promote-nrc-${bronzeContactId}`,
         attempts: 2,
         backoff: { type: "fixed", delay: 500 },
       },
@@ -98,7 +98,7 @@ export async function triggerCuiValidationIfPossible(
       correlationId,
     },
     {
-      jobId: `c1:${bronzeContactId}`,
+      jobId: `c1-${bronzeContactId}`,
       attempts: 2,
       backoff: { type: "fixed", delay: 500 },
     },

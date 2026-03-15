@@ -1,9 +1,10 @@
 import type { Processor } from "bullmq";
 import { createCircuitBreaker, createQueue, normalizeNrRegCom } from "@cerniq/worker-shared";
 import {
+  and,
   bronzeContacts,
   db,
-  setSessionTenantId,
+  eq,
   silverCompanies,
   silverEnrichmentLog,
   sql,
@@ -111,24 +112,26 @@ async function persistAnafNotFound(jobData: CuiAnafJobData, cleanedCui: string) 
     },
   };
 
-  if (jobData.bronzeContactId) {
-    await db
-      .update(bronzeContacts)
-      .set({
-        metadata: sql`COALESCE(${bronzeContacts.metadata}, '{}'::jsonb) || ${JSON.stringify(notFoundPatch)}::jsonb`,
-      })
-      .where(sql`${bronzeContacts.id} = ${jobData.bronzeContactId}`);
-  }
-
-  // GAP-B4: Also update silverCompanies.metadata on not_found
-  if (jobData.companyId) {
-    await db
-      .update(silverCompanies)
-      .set({
-        metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify(notFoundPatch)}::jsonb`,
-      })
-      .where(sql`${silverCompanies.id} = ${jobData.companyId}`);
-  }
+  await db.transaction(async (tx) => {
+    await tx.execute(sql`SELECT set_config('app.tenant_id', ${jobData.tenantId}, true)`);
+    if (jobData.bronzeContactId) {
+      await tx
+        .update(bronzeContacts)
+        .set({
+          metadata: sql`COALESCE(${bronzeContacts.metadata}, '{}'::jsonb) || ${JSON.stringify(notFoundPatch)}::jsonb`,
+        })
+        .where(sql`${bronzeContacts.id} = ${jobData.bronzeContactId}`);
+    }
+    // GAP-B4: Also update silverCompanies.metadata on not_found
+    if (jobData.companyId) {
+      await tx
+        .update(silverCompanies)
+        .set({
+          metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify(notFoundPatch)}::jsonb`,
+        })
+        .where(sql`${silverCompanies.id} = ${jobData.companyId}`);
+    }
+  });
 }
 
 async function updateAnafCompany(
@@ -143,16 +146,19 @@ async function updateAnafCompany(
   }
 
   const denumireAnaf = typeof companyData.denumire === "string" ? companyData.denumire : null;
-  await db
-    .update(silverCompanies)
-    .set({
-      denumire: denumireAnaf ?? sql`${silverCompanies.denumire}`,
-      cui: cleanedCui,
-      nrRegCom: nrRegCom.canonical ?? sql`${silverCompanies.nrRegCom}`,
-      nrRegComOriginal: nrRegCom.raw ?? sql`${silverCompanies.nrRegComOriginal}`,
-      metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify(patch)}::jsonb`,
-    })
-    .where(sql`${silverCompanies.id} = ${jobData.companyId}`);
+  await db.transaction(async (tx) => {
+    await tx.execute(sql`SELECT set_config('app.tenant_id', ${jobData.tenantId}, true)`);
+    await tx
+      .update(silverCompanies)
+      .set({
+        denumire: denumireAnaf ?? sql`${silverCompanies.denumire}`,
+        cui: cleanedCui,
+        nrRegCom: nrRegCom.canonical ?? sql`${silverCompanies.nrRegCom}`,
+        nrRegComOriginal: nrRegCom.raw ?? sql`${silverCompanies.nrRegComOriginal}`,
+        metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify(patch)}::jsonb`,
+      })
+      .where(sql`${silverCompanies.id} = ${jobData.companyId}`);
+  });
   await upsertCompanyIdentityKey({
     tenantId: jobData.tenantId,
     companyId: jobData.companyId,
@@ -188,17 +194,86 @@ async function updateAnafBronzeContact(
   }
 
   const denumireAnaf = typeof companyData.denumire === "string" ? companyData.denumire : null;
-  await db
-    .update(bronzeContacts)
-    .set({
-      extractedName: denumireAnaf,
-      extractedCuiRaw: cleanedCui,
-      extractedCui: cleanedCui,
-      extractedNrRegComRaw: nrRegCom.raw ?? sql`${bronzeContacts.extractedNrRegComRaw}`,
-      extractedNrRegCom: nrRegCom.canonical ?? sql`${bronzeContacts.extractedNrRegCom}`,
-      metadata: sql`COALESCE(${bronzeContacts.metadata}, '{}'::jsonb) || ${JSON.stringify(patch)}::jsonb`,
-    })
-    .where(sql`${bronzeContacts.id} = ${jobData.bronzeContactId}`);
+  await db.transaction(async (tx) => {
+    await tx.execute(sql`SELECT set_config('app.tenant_id', ${jobData.tenantId}, true)`);
+    await tx
+      .update(bronzeContacts)
+      .set({
+        extractedName: denumireAnaf,
+        extractedCuiRaw: cleanedCui,
+        extractedCui: cleanedCui,
+        extractedNrRegComRaw: nrRegCom.raw ?? sql`${bronzeContacts.extractedNrRegComRaw}`,
+        extractedNrRegCom: nrRegCom.canonical ?? sql`${bronzeContacts.extractedNrRegCom}`,
+        metadata: sql`COALESCE(${bronzeContacts.metadata}, '{}'::jsonb) || ${JSON.stringify(patch)}::jsonb`,
+      })
+      .where(sql`${bronzeContacts.id} = ${jobData.bronzeContactId}`);
+  });
+}
+
+async function fanOutAnafResultToSiblings(
+  tenantId: string,
+  cleanedCui: string,
+  originContactId: string | undefined,
+  companyData: AnafCompanyResult,
+  nrRegCom: { raw: string | null; canonical: string | null },
+  patch: Record<string, unknown>,
+) {
+  if (!originContactId) return;
+
+  const siblings = await db.transaction(async (tx) => {
+    await tx.execute(sql`SELECT set_config('app.tenant_id', ${tenantId}, true)`);
+    return tx
+      .select({ id: bronzeContacts.id })
+      .from(bronzeContacts)
+      .where(
+        and(
+          eq(bronzeContacts.tenantId, tenantId),
+          eq(bronzeContacts.extractedCui, cleanedCui),
+          sql`${bronzeContacts.id} != ${originContactId}`,
+          sql`(${bronzeContacts.metadata}->'anafValidation'->>'status') IS DISTINCT FROM 'valid'`,
+        ),
+      );
+  });
+
+  if (siblings.length === 0) return;
+
+  await db.transaction(async (tx) => {
+    await tx.execute(sql`SELECT set_config('app.tenant_id', ${tenantId}, true)`);
+    await tx
+      .update(bronzeContacts)
+      .set({
+        extractedCuiRaw: cleanedCui,
+        extractedCui: cleanedCui,
+        extractedNrRegComRaw: nrRegCom.raw ?? sql`${bronzeContacts.extractedNrRegComRaw}`,
+        extractedNrRegCom: nrRegCom.canonical ?? sql`${bronzeContacts.extractedNrRegCom}`,
+        metadata: sql`COALESCE(${bronzeContacts.metadata}, '{}'::jsonb) || ${JSON.stringify(patch)}::jsonb`,
+      })
+      .where(
+        and(
+          eq(bronzeContacts.tenantId, tenantId),
+          eq(bronzeContacts.extractedCui, cleanedCui),
+          sql`${bronzeContacts.id} != ${originContactId}`,
+          sql`(${bronzeContacts.metadata}->'anafValidation'->>'status') IS DISTINCT FROM 'valid'`,
+        ),
+      );
+  });
+
+  // Enqueue promotion for each sibling contact
+  const promotionQueue = createQueue("pipeline:promote:bronze-silver");
+  for (const sibling of siblings) {
+    await promotionQueue.add(
+      `promote-${sibling.id}`,
+      {
+        tenantId,
+        bronzeContactId: sibling.id,
+        cui: cleanedCui,
+        correlationId: `fanout-${originContactId}`,
+        anafData: companyData,
+      },
+      { jobId: `promote-${sibling.id}` },
+    );
+  }
+  await promotionQueue.close();
 }
 
 async function enqueueAnafPromotion(
@@ -243,18 +318,21 @@ async function logAnafValidation(
     return;
   }
 
-  await db.insert(silverEnrichmentLog).values({
-    tenantId: job.data.tenantId,
-    entityType: job.data.companyId ? "company" : "contact",
-    entityId,
-    source: "anaf_cui_validation",
-    operation: "validate",
-    requestPayload: { cui: cleanedCui },
-    responsePayload: { status: "valid", denumire: companyData.denumire },
-    fieldsUpdated: ["metadata", "denumire", "cui", "nrRegCom"],
-    correlationId: job.data.correlationId,
-    jobId: String(job.id ?? ""),
-    durationMs: Date.now() - startedAt,
+  await db.transaction(async (tx) => {
+    await tx.execute(sql`SELECT set_config('app.tenant_id', ${job.data.tenantId}, true)`);
+    await tx.insert(silverEnrichmentLog).values({
+      tenantId: job.data.tenantId,
+      entityType: job.data.companyId ? "company" : "contact",
+      entityId,
+      source: "anaf_cui_validation",
+      operation: "validate",
+      requestPayload: { cui: cleanedCui },
+      responsePayload: { status: "valid", denumire: companyData.denumire },
+      fieldsUpdated: ["metadata", "denumire", "cui", "nrRegCom"],
+      correlationId: job.data.correlationId,
+      jobId: String(job.id ?? ""),
+      durationMs: Date.now() - startedAt,
+    });
   });
 }
 
@@ -265,7 +343,51 @@ export const cuiAnafValidatorProcessor: Processor<CuiAnafJobData> = async (job) 
     return { ok: false, status: "invalid", reason: "missing_cui", source: "anaf" };
   }
 
-  await setSessionTenantId(job.data.tenantId);
+  // CUI dedup: check if another contact with same CUI was already validated via ANAF
+  const alreadyValidated = await db.transaction(async (tx) => {
+    await tx.execute(sql`SELECT set_config('app.tenant_id', ${job.data.tenantId}, true)`);
+    return tx.query.bronzeContacts.findFirst({
+      where: (t, { and, eq }) =>
+        and(
+          eq(t.tenantId, job.data.tenantId),
+          eq(t.extractedCui, cleanedCui),
+          sql`(${t.metadata}->'anafValidation'->>'status') = 'valid'`,
+        ),
+      columns: { id: true, metadata: true },
+    });
+  });
+
+  if (alreadyValidated && alreadyValidated.id !== job.data.bronzeContactId) {
+    const existingMeta = (alreadyValidated.metadata ?? {}) as Record<string, unknown>;
+    const existingAnaf = existingMeta.anafValidation as Record<string, unknown> | undefined;
+    if (existingAnaf) {
+      const patch = { anafValidation: existingAnaf };
+      const reusedCompanyData = (existingAnaf.response ?? null) as AnafCompanyResult | null;
+      const nrRegCom = reusedCompanyData
+        ? extractNrRegCom(reusedCompanyData)
+        : { raw: null, canonical: null };
+      await updateAnafBronzeContact(
+        job.data,
+        cleanedCui,
+        reusedCompanyData ?? ({} as AnafCompanyResult),
+        nrRegCom,
+        patch,
+      );
+      await enqueueAnafPromotion(
+        job.data,
+        cleanedCui,
+        reusedCompanyData ?? ({} as AnafCompanyResult),
+      );
+      return {
+        ok: true,
+        status: "valid",
+        source: "anaf_dedup_reuse",
+        cleanedCui,
+        reusedFrom: alreadyValidated.id,
+      };
+    }
+  }
+
   const companyData = await anafBreaker.fire(cleanedCui);
   if (!companyData) {
     await persistAnafNotFound(job.data, cleanedCui);
@@ -281,6 +403,15 @@ export const cuiAnafValidatorProcessor: Processor<CuiAnafJobData> = async (job) 
   const nrRegCom = extractNrRegCom(companyData);
   await updateAnafCompany(job.data, cleanedCui, companyData, nrRegCom, patch);
   await updateAnafBronzeContact(job.data, cleanedCui, companyData, nrRegCom, patch);
+  // Fan-out: update all sibling bronze contacts with same CUI that haven't been validated yet
+  await fanOutAnafResultToSiblings(
+    job.data.tenantId,
+    cleanedCui,
+    job.data.bronzeContactId,
+    companyData,
+    nrRegCom,
+    patch,
+  );
   await enqueueAnafPromotion(job.data, cleanedCui, companyData);
   await logAnafValidation(job, cleanedCui, companyData, startedAt);
 

@@ -66,7 +66,7 @@ export const cuiModulo11ValidatorProcessor: Processor<CuiModulo11JobData> = asyn
         correlationId: job.data.correlationId,
       },
       {
-        jobId: `c2:${job.data.companyId ?? job.data.bronzeContactId}:${Date.now()}`,
+        jobId: `c2-${job.data.tenantId}-${result.cleaned}`,
         attempts: 5,
         backoff: { type: "exponential", delay: 1000 },
       },

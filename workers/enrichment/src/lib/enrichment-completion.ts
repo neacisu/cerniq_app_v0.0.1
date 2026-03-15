@@ -51,7 +51,7 @@ export async function markEnrichmentSourceComplete(
         correlationId,
       },
       {
-        jobId: `post-enrich:${companyId}`,
+        jobId: `post-enrich-${companyId}`,
       },
     );
     await queue.close();
