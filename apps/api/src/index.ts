@@ -56,7 +56,24 @@ if (envConfig.NODE_ENV === "development") {
 
 const app = await buildApp();
 
+// Transient pgbouncer/postgres connection pool errors occasionally surface as unhandled
+// rejections (e.g. DB in recovery mode, cached login failure). They are self-healing
+// and must not crash the server process.
+const TRANSIENT_PG_CODES = new Set(["08P01", "08006", "08001", "08004", "57P03", "53300", "53200"]);
+
 process.on("unhandledRejection", (reason, promise) => {
+  if (
+    reason != null &&
+    typeof reason === "object" &&
+    "code" in reason &&
+    TRANSIENT_PG_CODES.has(String((reason as Record<string, unknown>).code))
+  ) {
+    app.log.warn(
+      { err: reason },
+      "Transient postgres connection error (unhandled rejection) — not exiting",
+    );
+    return;
+  }
   app.log.fatal({ err: reason, promise }, "Unhandled rejection");
   process.exit(1);
 });
