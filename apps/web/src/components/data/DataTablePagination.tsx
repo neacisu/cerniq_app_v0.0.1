@@ -22,8 +22,8 @@ export function DataTablePagination({
   const current = Math.min(page, totalPages);
 
   return (
-    <div className="flex items-center justify-between pt-4">
-      <div className="flex items-center gap-4">
+    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-s700 px-4 py-3">
+      <div className="flex flex-wrap items-center gap-3">
         <span className="text-xs text-t3">
           Pagina {current} din {totalPages} ({total} rezultate)
         </span>

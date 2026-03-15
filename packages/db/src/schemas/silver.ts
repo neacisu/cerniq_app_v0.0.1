@@ -125,7 +125,7 @@ export const silverCompanies = silverSchema.table(
     denumireComerciala: varchar("denumire_comerciala", { length: 255 }),
     formaJuridica: formaJuridicaEnum("forma_juridica"),
 
-    // --- ADRESĂ ---
+    // --- ADRESĂ SEDIU SOCIAL ---
     adresa: text("adresa"),
     adresaNormalizata: text("adresa_normalizata"),
     strada: varchar("strada", { length: 200 }),
@@ -140,6 +140,10 @@ export const silverCompanies = silverSchema.table(
     judet: varchar("judet", { length: 100 }),
     judetCod: varchar("judet_cod", { length: 2 }),
     codSiruta: integer("cod_siruta"),
+    detaliiAdresa: text("detalii_adresa"),
+
+    // --- ADRESĂ DOMICILIU FISCAL ---
+    adresaDomiciliuFiscal: jsonb("adresa_domiciliu_fiscal"),
 
     // --- COORDONATE ---
     latitude: numeric("latitude", { precision: 10, scale: 7 }),
@@ -150,16 +154,36 @@ export const silverCompanies = silverSchema.table(
 
     // --- DATE FISCALE (ANAF) ---
     statusFirma: companyStatusEnum("status_firma"),
+    stareInregistrare: text("stare_inregistrare"),
     dataInregistrare: date("data_inregistrare"),
     dataRadiere: date("data_radiere"),
     dataSuspendare: date("data_suspendare"),
+    dataInactivare: date("data_inactivare"),
+    dataReactivare: date("data_reactivare"),
+    actInfiintare: text("act_infiintare"),
+    organFiscalCompetent: varchar("organ_fiscal_competent", { length: 255 }),
+    formaDeProprietate: varchar("forma_de_proprietate", { length: 255 }),
+    formaOrganizare: varchar("forma_organizare", { length: 255 }),
+
+    // --- TVA ---
     platitorTva: boolean("platitor_tva"),
     dataInceputTva: date("data_inceput_tva"),
     dataSfarsitTva: date("data_sfarsit_tva"),
+    periodeTva: jsonb("perioade_tva"),
     tvaLaIncasare: boolean("tva_la_incasare").notNull().default(false),
+    dataInceputTvaIncasare: date("data_inceput_tva_incasare"),
+    dataSfarsitTvaIncasare: date("data_sfarsit_tva_incasare"),
     splitTva: boolean("split_tva").notNull().default(false),
+    dataInceputSplitTva: date("data_inceput_split_tva"),
+    dataAnulareSplitTva: date("data_anulare_split_tva"),
+
+    // --- E-FACTURA ---
     inregistratEfactura: boolean("inregistrat_e_factura").notNull().default(false),
     dataInregistrareEfactura: date("data_inregistrare_e_factura"),
+
+    // --- CONTACT ANAF ---
+    fax: varchar("fax", { length: 32 }),
+    iban: varchar("iban", { length: 34 }),
 
     // --- CAEN ---
     codCaenPrincipal: varchar("cod_caen_principal", { length: 8 }),

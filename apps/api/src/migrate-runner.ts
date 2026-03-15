@@ -6,22 +6,18 @@
 import "./config.js";
 import { runAllMigrations, closeMigrationDb } from "@cerniq/db";
 
-async function main() {
-  const args = new Set(process.argv.slice(2));
-  const dryRun = args.has("--dry-run") || process.env.MIGRATION_DRY_RUN === "true";
-  const rollback = args.has("--rollback") || process.env.MIGRATION_ROLLBACK === "true";
+const args = new Set(process.argv.slice(2));
+const dryRun = args.has("--dry-run") || process.env.MIGRATION_DRY_RUN === "true";
+const rollback = args.has("--rollback") || process.env.MIGRATION_ROLLBACK === "true";
 
-  try {
-    await runAllMigrations({ dryRun, rollback });
-
-    console.log("Migrations completed successfully.");
-  } finally {
-    await closeMigrationDb();
-  }
-  process.exit(0);
-}
-
-main().catch((err) => {
+let exitCode = 0;
+try {
+  await runAllMigrations({ dryRun, rollback });
+  console.log("Migrations completed successfully.");
+} catch (err) {
   console.error("Migration failed:", err);
-  process.exit(1);
-});
+  exitCode = 1;
+} finally {
+  await closeMigrationDb();
+}
+process.exit(exitCode);

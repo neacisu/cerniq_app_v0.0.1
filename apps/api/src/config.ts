@@ -32,9 +32,7 @@ function loadSecretsFromFile(forceOverwrite = false): void {
     const key = trimmed.slice(0, eqIndex).trim();
     const value = trimmed.slice(eqIndex + 1).trim();
     const isSecret = SECRET_KEYS.includes(key as (typeof SECRET_KEYS)[number]);
-    if (forceOverwrite && isSecret) {
-      process.env[key] = value;
-    } else if (!process.env[key]) {
+    if ((forceOverwrite && isSecret) || !process.env[key]) {
       process.env[key] = value;
     }
   }
@@ -51,10 +49,10 @@ const EnvSchema = z.object({
   NODE_ENV: z.enum(["development", "staging", "production", "test"]).default("development"),
   PORT: z.coerce.number().default(64010),
   LOG_LEVEL: z.enum(["trace", "debug", "info", "warn", "error", "fatal"]).default("info"),
-  DATABASE_URL: z.string().url(),
+  DATABASE_URL: z.url(),
   POSTGRES_USER: z.string().optional(),
   POSTGRES_PASSWORD: z.string().optional(),
-  REDIS_URL: z.string().url(),
+  REDIS_URL: z.url(),
   REDIS_PASSWORD: z.string().optional(),
   REDIS_PREFIX: z.string().optional(),
   BULLMQ_PREFIX: z.string().optional(),
@@ -73,7 +71,10 @@ const EnvSchema = z.object({
 function parseEnv(): z.infer<typeof EnvSchema> {
   const parsed = EnvSchema.safeParse(process.env);
   if (!parsed.success) {
-    console.error("Missing or invalid environment variables:", parsed.error.flatten().fieldErrors);
+    console.error(
+      "Missing or invalid environment variables:",
+      z.flattenError(parsed.error).fieldErrors,
+    );
     console.error("Ensure OpenBao agent has rendered secrets to SECRETS_PATH.");
     process.exit(1);
   }
@@ -91,6 +92,9 @@ export function refreshEnvConfig(): void {
   if (parsed.success) {
     Object.assign(envConfigRef, parsed.data);
   } else {
-    console.error("refreshEnvConfig: re-parse failed", parsed.error?.flatten().fieldErrors);
+    console.error(
+      "refreshEnvConfig: re-parse failed",
+      parsed.error ? z.flattenError(parsed.error).fieldErrors : undefined,
+    );
   }
 }

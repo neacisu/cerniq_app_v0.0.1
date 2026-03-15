@@ -293,7 +293,7 @@ export const goldCompanies = goldSchema.table(
     index("idx_gold_companies_embedding").using("hnsw", t.aiEmbedding.op("vector_cosine_ops")),
     check(
       "chk_gold_state",
-      sql`${t.currentState} IN (${sql.raw(leadStates.map((s) => `'${s}'`).join(","))})`,
+      sql`${t.currentState} IN (${sql.raw(leadStates.map((s) => "'" + s + "'").join(","))})`,
     ),
     check("chk_gold_lead_score", sql`${t.leadScore} IS NULL OR (${t.leadScore} BETWEEN 0 AND 100)`),
   ],

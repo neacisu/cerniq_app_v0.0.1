@@ -1,6 +1,7 @@
 import Papa from "papaparse";
 import type { Processor } from "bullmq";
 import { bronzeImportBatches, db, sql } from "@cerniq/db";
+import { jobsProcessed, jobDuration, jobErrors } from "../lib/worker-metrics.js";
 import {
   createFileReadStream,
   detectColumnMapping,
@@ -11,6 +12,7 @@ import {
   readInputContent,
   shouldUseStreaming,
   triggerNormalizationForContacts,
+  triggerAnafBronzeEnrichment,
   updateImportBatchCounters,
 } from "./ingest-utils.js";
 
@@ -52,7 +54,7 @@ async function parseSmallFile(job: { data: CsvParserJobData }) {
     const content = await readInputContent(job.data);
     const parsed = Papa.parse<CsvRow>(content, {
       header: job.data.hasHeader ?? true,
-      delimiter: job.data.delimiter ?? ",",
+      delimiter: job.data.delimiter,
       skipEmptyLines: true,
       dynamicTyping: false,
     });
@@ -130,6 +132,12 @@ async function parseSmallFile(job: { data: CsvParserJobData }) {
       result.processableIds,
       job.data.correlationId,
     );
+    await triggerAnafBronzeEnrichment(
+      job.data.tenantId,
+      job.data.batchId,
+      result.processableIds,
+      job.data.correlationId,
+    );
 
     return {
       ok: true as const,
@@ -178,7 +186,7 @@ async function parseLargeFileStreaming(job: { data: CsvParserJobData }) {
     await new Promise<void>((resolve, reject) => {
       Papa.parse(readable, {
         header: job.data.hasHeader ?? true,
-        delimiter: job.data.delimiter ?? ",",
+        delimiter: job.data.delimiter,
         skipEmptyLines: true,
         dynamicTyping: false,
         step: (results: Papa.ParseStepResult<CsvRow>, parser: Papa.Parser) => {
@@ -295,6 +303,12 @@ async function parseLargeFileStreaming(job: { data: CsvParserJobData }) {
       allInsertedIds,
       job.data.correlationId,
     );
+    await triggerAnafBronzeEnrichment(
+      job.data.tenantId,
+      job.data.batchId,
+      allInsertedIds,
+      job.data.correlationId,
+    );
 
     if (job.data.batchId && autoMapping && Object.keys(autoMapping).length > 0) {
       await db
@@ -315,6 +329,7 @@ async function parseLargeFileStreaming(job: { data: CsvParserJobData }) {
       errorRows: totalErrorRows,
     };
   } catch (error) {
+    jobErrors.add(1, { worker: "a1-csv-parser" });
     await markImportBatchFailed({
       tenantId: job.data.tenantId,
       batchId: job.data.batchId,
@@ -351,10 +366,11 @@ async function detectFileEncoding(filePath: string): Promise<string> {
 }
 
 export const csvParserProcessor: Processor<CsvParserJobData> = async (job) => {
+  const startedAt = Date.now();
   const useStreaming = await shouldUseStreaming(job.data);
 
-  if (useStreaming) {
-    return parseLargeFileStreaming(job);
-  }
-  return parseSmallFile(job);
+  const result = useStreaming ? await parseLargeFileStreaming(job) : await parseSmallFile(job);
+  jobsProcessed.add(1, { worker: "a1-csv-parser", status: "success" });
+  jobDuration.record(Date.now() - startedAt, { worker: "a1-csv-parser" });
+  return result;
 };

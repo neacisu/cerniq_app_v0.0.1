@@ -13,7 +13,7 @@ export {
   register_new_company,
   register_with_invite_code,
 } from "./client.js";
-export { sql, eq, and, or, desc, asc } from "drizzle-orm";
+export { sql, eq, and, or, desc, asc, inArray } from "drizzle-orm";
 export {
   runMigrations,
   runDrizzleMigrations,

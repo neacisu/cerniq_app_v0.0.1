@@ -14,10 +14,14 @@ import { requestLoggingPlugin } from "./request-logging.js";
 import { tenantContext } from "./tenant-context.js";
 
 function createRateLimitRedis() {
-  return new Redis(envConfig.REDIS_URL, {
+  const client = new Redis(envConfig.REDIS_URL, {
     maxRetriesPerRequest: 3,
-    retryStrategy: (times) => (times > 3 ? null : Math.min(times * 100, 3000)),
+    retryStrategy: (times) => Math.min(times * 200, 10000),
   });
+  client.on("error", () => {
+    // Rate-limit Redis errors are handled via skipOnError:true; suppress unhandled event.
+  });
+  return client;
 }
 
 let rateLimitRedis = createRateLimitRedis();

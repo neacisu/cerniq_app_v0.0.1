@@ -11,7 +11,7 @@ const queueNameSchema = z
   .min(3)
   .max(120)
   .regex(/^[a-z0-9.-]+$/);
-const idParamsSchema = z.object({ id: z.string().uuid() });
+const idParamsSchema = z.object({ id: z.uuid() });
 const queueParamsSchema = z.object({ name: queueNameSchema });
 const errorResponseSchema = z.object({
   success: z.literal(false),

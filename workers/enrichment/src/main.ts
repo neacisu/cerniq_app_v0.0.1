@@ -1,9 +1,13 @@
-import { createHealthServer } from "@cerniq/worker-shared";
-import { createQueue } from "@cerniq/worker-shared";
-import { createRedisConnections, closeRedisConnections } from "@cerniq/worker-shared";
-import { createWorker } from "@cerniq/worker-shared";
-import { loadSecretsFromFile } from "@cerniq/worker-shared";
-import { assertQueueRegistryComplete, queueRegistry } from "@cerniq/worker-shared";
+import {
+  assertQueueRegistryComplete,
+  closeRedisConnections,
+  createHealthServer,
+  createQueue,
+  createRedisConnections,
+  createWorker,
+  loadSecretsFromFile,
+  queueRegistry,
+} from "@cerniq/worker-shared";
 import type { Job } from "bullmq";
 import { csvParserProcessor } from "./workers/a1-csv-parser.js";
 import { excelParserProcessor } from "./workers/a2-excel-parser.js";
@@ -14,6 +18,7 @@ import { nameNormalizerProcessor } from "./workers/b1-name-normalizer.js";
 import { emailNormalizerProcessor } from "./workers/b2-email-normalizer.js";
 import { phoneNormalizerProcessor } from "./workers/b3-phone-normalizer.js";
 import { addressNormalizerProcessor } from "./workers/b4-address-normalizer.js";
+import { anafBronzeEnricherProcessor } from "./workers/b5-anaf-bronze-enricher.js";
 import { cuiModulo11ValidatorProcessor } from "./workers/c1-cui-modulo11-validator.js";
 import { cuiAnafValidatorProcessor } from "./workers/c2-cui-anaf-validator.js";
 import { anafFiscalProcessor } from "./workers/d1-anaf-fiscal.js";
@@ -141,12 +146,12 @@ async function enqueuePipelineError(args: {
   if (args.queueName === "pipeline:error-handler") return;
   const jobData = (args.job?.data ?? {}) as Record<string, unknown>;
   const tenantId = typeof jobData.tenantId === "string" ? jobData.tenantId : null;
-  const companyId =
-    typeof jobData.companyId === "string"
-      ? jobData.companyId
-      : typeof jobData.bronzeContactId === "string"
-        ? jobData.bronzeContactId
-        : null;
+  let companyId: string | null = null;
+  if (typeof jobData.companyId === "string") {
+    companyId = jobData.companyId;
+  } else if (typeof jobData.bronzeContactId === "string") {
+    companyId = jobData.bronzeContactId;
+  }
   if (!tenantId || !companyId) return;
 
   const queue = createQueue("pipeline:error-handler");
@@ -176,6 +181,7 @@ const processors: Partial<Record<string, (job: Job) => Promise<unknown>>> = {
   "normalize:email": emailNormalizerProcessor as (job: Job) => Promise<unknown>,
   "normalize:phone": phoneNormalizerProcessor as (job: Job) => Promise<unknown>,
   "normalize:address": addressNormalizerProcessor as (job: Job) => Promise<unknown>,
+  "enrich:bronze:anaf": anafBronzeEnricherProcessor as (job: Job) => Promise<unknown>,
   "validate:cui:mod11": cuiModulo11ValidatorProcessor as (job: Job) => Promise<unknown>,
   "validate:cui:anaf": cuiAnafValidatorProcessor as (job: Job) => Promise<unknown>,
   "enrich:anaf:fiscal-status": anafFiscalProcessor as (job: Job) => Promise<unknown>,
@@ -305,9 +311,11 @@ async function reloadSecretsAndConnections() {
 }
 
 buildWorkers();
-void scheduleRecurringControlJobs().catch((error) => {
+try {
+  await scheduleRecurringControlJobs();
+} catch (error) {
   console.error("[cron-scheduler] failed", error);
-});
+}
 
 const server = createHealthServer(PORT, () => ({
   service: "cerniq-worker-enrichment",

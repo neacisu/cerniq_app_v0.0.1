@@ -141,6 +141,13 @@
       "when": 1772190000000,
       "tag": "0019_company_identity_registry",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1772200000000,
+      "tag": "0020_silver_anaf_extended_fields",
+      "breakpoints": true
     }
   ]
 }

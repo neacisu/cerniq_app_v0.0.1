@@ -16,19 +16,21 @@ const tabs: { key: TabKey; label: string }[] = [
   { key: "enrichment", label: "Enrichment" },
 ];
 
-export function CompanyDetailsDialog({ open, company, onClose }: CompanyDetailsDialogProps) {
+export function CompanyDetailsDialog({
+  open,
+  company,
+  onClose,
+}: Readonly<CompanyDetailsDialogProps>) {
   const [tab, setTab] = useState<TabKey>("general");
   if (!open || !company) return null;
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
-      <div className="w-full max-w-3xl rounded-[var(--radius-lg)] border border-[var(--color-s600)] bg-[var(--color-s900)] p-5">
+      <div className="w-full max-w-3xl rounded-(--radius-lg) border border-s600 bg-s900 p-5">
         <div className="mb-4 flex items-start justify-between">
           <div>
-            <h3 className="text-lg font-semibold text-[var(--color-t1)]">
-              {String(company.denumire ?? "-")}
-            </h3>
-            <p className="text-xs text-[var(--color-t3)]">CUI: {String(company.cui ?? "-")}</p>
+            <h3 className="text-lg font-semibold text-t1">{String(company.denumire ?? "-")}</h3>
+            <p className="text-xs text-t3">CUI: {String(company.cui ?? "-")}</p>
           </div>
           <Button variant="ghost" onClick={onClose}>
             Inchide
@@ -46,7 +48,7 @@ export function CompanyDetailsDialog({ open, company, onClose }: CompanyDetailsD
             </Button>
           ))}
         </div>
-        <div className="rounded-[var(--radius-md)] border border-[var(--color-s700)] p-3 text-sm text-[var(--color-t2)]">
+        <div className="rounded-md border border-s700 p-3 text-sm text-t2">
           {tab === "general" ? <pre>{JSON.stringify(company, null, 2)}</pre> : null}
           {tab === "financial" ? (
             <pre>{JSON.stringify(company.metadata ?? {}, null, 2)}</pre>

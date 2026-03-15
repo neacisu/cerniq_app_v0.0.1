@@ -2,11 +2,13 @@ import { readFile } from "node:fs/promises";
 import type { Processor } from "bullmq";
 import ExcelJS from "exceljs";
 import { bronzeImportBatches, db, sql } from "@cerniq/db";
+import { jobsProcessed, jobDuration, jobErrors } from "../lib/worker-metrics.js";
 import {
   detectColumnMapping,
   getInsertBatchSize,
   insertBronzeRows,
   markImportBatchFailed,
+  triggerAnafBronzeEnrichment,
   triggerNormalizationForContacts,
   updateImportBatchCounters,
 } from "./ingest-utils.js";
@@ -274,6 +276,7 @@ async function persistBatchMappingMetadata(
 }
 
 export const excelParserProcessor: Processor<ExcelParserJobData> = async (job) => {
+  const startedAt = Date.now();
   const state = createExcelImportState(job.data);
 
   try {
@@ -319,7 +322,15 @@ export const excelParserProcessor: Processor<ExcelParserJobData> = async (job) =
       state.allInsertedIds,
       job.data.correlationId,
     );
+    await triggerAnafBronzeEnrichment(
+      job.data.tenantId,
+      job.data.batchId,
+      state.allInsertedIds,
+      job.data.correlationId,
+    );
 
+    jobsProcessed.add(1, { worker: "a2-excel-parser", status: "success" });
+    jobDuration.record(Date.now() - startedAt, { worker: "a2-excel-parser" });
     return {
       ok: true,
       sheetsParsed: targetSheets.length,
@@ -329,6 +340,7 @@ export const excelParserProcessor: Processor<ExcelParserJobData> = async (job) =
       errorRows: state.totalErrorRows,
     };
   } catch (error) {
+    jobErrors.add(1, { worker: "a2-excel-parser" });
     await markImportBatchFailed({
       tenantId: job.data.tenantId,
       batchId: job.data.batchId,

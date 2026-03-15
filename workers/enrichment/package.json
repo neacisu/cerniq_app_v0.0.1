@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@cerniq/db": "workspace:*",
+    "@cerniq/observability": "workspace:*",
     "@cerniq/shared-types": "workspace:*",
     "@cerniq/worker-shared": "workspace:*",
     "@types/papaparse": "^5.5.2",

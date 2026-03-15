@@ -7,7 +7,7 @@ import {
   silverEnrichmentLog,
   sql,
 } from "@cerniq/db";
-import { createQueue } from "@cerniq/worker-shared";
+import { createQueue, QUEUES } from "@cerniq/worker-shared";
 import { validateCuiModulo11 } from "../lib/cui-validation.js";
 
 export type CuiModulo11JobData = {
@@ -55,7 +55,7 @@ export const cuiModulo11ValidatorProcessor: Processor<CuiModulo11JobData> = asyn
   }
 
   if (result.isValid) {
-    const queue = createQueue("validate:cui:anaf");
+    const queue = createQueue(QUEUES.VALIDATE_CUI_ANAF);
     await queue.add(
       "validate-cui-anaf",
       {

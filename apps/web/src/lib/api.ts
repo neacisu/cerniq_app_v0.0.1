@@ -9,7 +9,7 @@ const USER_KEY = "cerniq_user";
 const AUTH_PREFIX = "/api/v1/auth";
 
 function persistAccessToken(token: string | null) {
-  if (typeof window === "undefined") return;
+  if (globalThis.window === undefined) return;
   if (token) {
     localStorage.setItem(STORAGE_KEY, token);
   } else {
@@ -18,13 +18,13 @@ function persistAccessToken(token: string | null) {
 }
 
 function clearStoredAuth() {
-  if (typeof window === "undefined") return;
+  if (globalThis.window === undefined) return;
   localStorage.removeItem(STORAGE_KEY);
   localStorage.removeItem(USER_KEY);
 }
 
 function getAuthHeaders(): Record<string, string> {
-  const token = typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null;
+  const token = globalThis.window === undefined ? null : localStorage.getItem(STORAGE_KEY);
   const headers: Record<string, string> = {};
   if (token) headers.Authorization = `Bearer ${token}`;
   return headers;
@@ -99,15 +99,64 @@ export class ApiError extends Error {
   }
 }
 
+function buildUrl(path: string, base: string): string {
+  if (path.startsWith("http")) return path;
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  return `${base.replace(/\/$/, "")}${normalizedPath}`;
+}
+
+function extractErrorMessage(data: unknown, statusText: string): string {
+  if (data && typeof data === "object") {
+    if ("error" in data) return String((data as { error: unknown }).error);
+    if ("message" in data) return String((data as { message: unknown }).message);
+    return statusText;
+  }
+  return statusText;
+}
+
+async function throwApiError(res: Response): Promise<never> {
+  const text = await res.text();
+  let data: unknown = text;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    // keep as text
+  }
+  const message = extractErrorMessage(data, res.statusText);
+  throw new ApiError(message || `API ${res.status}`, res.status, data);
+}
+
+async function handle401<T>(
+  path: string,
+  options: RequestInit | undefined,
+  allowRetry: boolean,
+): Promise<T> {
+  if (allowRetry) {
+    const nextToken = await refreshAccessToken();
+    if (nextToken) {
+      const retryHeaders = new Headers(options?.headers as HeadersInit);
+      retryHeaders.set("Authorization", `Bearer ${nextToken}`);
+      return apiFetch<T>(path, { ...options, headers: retryHeaders }, false);
+    }
+  }
+  clearStoredAuth();
+  requestRedirectToLogin();
+  throw new ApiError("Unauthorized", 401);
+}
+
+function serializeBody(body: unknown): BodyInit | undefined {
+  if (body === undefined) return undefined;
+  if (body instanceof FormData) return body;
+  return JSON.stringify(body);
+}
+
 export async function apiFetch<T>(
   path: string,
   options?: RequestInit,
   allowRetry = true,
 ): Promise<T> {
   const base = getApiBase();
-  const url = path.startsWith("http")
-    ? path
-    : `${base.replace(/\/$/, "")}${path.startsWith("/") ? path : `/${path}`}`;
+  const url = buildUrl(path, base);
   const headers = new Headers(options?.headers as HeadersInit);
   const authHeaders = getAuthHeaders();
   for (const [k, v] of Object.entries(authHeaders)) {
@@ -119,47 +168,12 @@ export async function apiFetch<T>(
 
   const res = await fetch(url, { ...options, headers, credentials: "include" });
 
-  if (res.status === 401 && typeof window !== "undefined" && allowRetry && !isAuthUrl(url)) {
-    const nextToken = await refreshAccessToken();
-    if (nextToken) {
-      const retryHeaders = new Headers(options?.headers as HeadersInit);
-      retryHeaders.set("Authorization", `Bearer ${nextToken}`);
-      return apiFetch<T>(
-        path,
-        {
-          ...options,
-          headers: retryHeaders,
-        },
-        false,
-      );
-    }
-  }
-
-  if (res.status === 401 && typeof window !== "undefined" && !isAuthUrl(url)) {
-    clearStoredAuth();
-    requestRedirectToLogin();
-    throw new ApiError("Unauthorized", 401);
+  if (res.status === 401 && globalThis.window !== undefined && !isAuthUrl(url)) {
+    return handle401<T>(path, options, allowRetry);
   }
 
   if (!res.ok) {
-    const text = await res.text();
-    let data: unknown = text;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      // keep as text
-    }
-    const message =
-      data && typeof data === "object"
-        ? String(
-            "error" in data
-              ? (data as { error: unknown }).error
-              : "message" in data
-                ? (data as { message: unknown }).message
-                : res.statusText,
-          )
-        : res.statusText;
-    throw new ApiError(message || `API ${res.status}`, res.status, data);
+    return throwApiError(res);
   }
 
   const contentType = res.headers.get("content-type");
@@ -172,19 +186,10 @@ export async function apiFetch<T>(
 export const api = {
   get: <T>(path: string) => apiFetch<T>(path, { method: "GET" }),
   post: <T>(path: string, body?: unknown) =>
-    apiFetch<T>(path, {
-      method: "POST",
-      body: body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body),
-    }),
+    apiFetch<T>(path, { method: "POST", body: serializeBody(body) }),
   put: <T>(path: string, body?: unknown) =>
-    apiFetch<T>(path, {
-      method: "PUT",
-      body: body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body),
-    }),
+    apiFetch<T>(path, { method: "PUT", body: serializeBody(body) }),
   patch: <T>(path: string, body?: unknown) =>
-    apiFetch<T>(path, {
-      method: "PATCH",
-      body: body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body),
-    }),
+    apiFetch<T>(path, { method: "PATCH", body: serializeBody(body) }),
   delete: <T>(path: string) => apiFetch<T>(path, { method: "DELETE" }),
 };

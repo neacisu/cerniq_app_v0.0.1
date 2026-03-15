@@ -7,9 +7,10 @@ import { DataTable } from "@/components/data/DataTable.js";
 import { DataTablePagination } from "@/components/data/DataTablePagination.js";
 import { SearchInput } from "@/components/forms/SearchInput.js";
 import { EmptyState } from "@/components/feedback/EmptyState.js";
-import { bronzeContactsColumns } from "@/lib/table-columns.js";
+import { makeBronzeContactsColumns } from "@/lib/table-columns.js";
 import type { BronzeContactRow } from "@/lib/etapa1-types.js";
 import { useBronzeContacts, useReprocessBronze } from "@/hooks/use-etapa1.js";
+import { BronzeContactDrawer } from "@/components/drawers/BronzeContactDrawer.js";
 
 const PAGE_SIZE_OPTIONS = [25, 50, 100] as const;
 
@@ -45,6 +46,7 @@ export function Bronze() {
   const [pageSize, setPageSize] = useState<number>(25);
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   // Debounce search input by 300ms
   useEffect(() => {
@@ -72,7 +74,7 @@ export function Bronze() {
 
   const columns = useMemo<ColumnDef<BronzeContactRow>[]>(
     () => [
-      ...bronzeContactsColumns,
+      ...makeBronzeContactsColumns(setSelectedId),
       makeActionsColumn((id) => reprocessMutation.mutate(id), reprocessMutation.isPending),
     ],
     [reprocessMutation],
@@ -142,6 +144,11 @@ export function Bronze() {
 
   return (
     <PageWrapper title="Bronze Contacte">
+      <BronzeContactDrawer
+        open={selectedId !== null}
+        id={selectedId}
+        onClose={() => setSelectedId(null)}
+      />
       <div className="flex items-center gap-4 mb-6">
         <span className="text-sm text-t3">Calitate Medie:</span>
         <span className="text-xl font-bold text-t1">{avgQuality}%</span>

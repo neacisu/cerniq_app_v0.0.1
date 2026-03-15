@@ -11,7 +11,7 @@ import {
   setSessionTenantId,
   sql,
 } from "@cerniq/db";
-import { createQueue, normalizeNrRegCom } from "@cerniq/worker-shared";
+import { createQueue, normalizeNrRegCom, QUEUES } from "@cerniq/worker-shared";
 import { sanitizeCui } from "../lib/cui-validation.js";
 import { createHitlApprovalTask } from "./pipeline-utils.js";
 
@@ -326,9 +326,26 @@ function normalizeLookupKey(value: string) {
 
 export function detectColumnMapping(headers: string[]): Record<string, string> {
   const mapping: Record<string, string> = {};
+  // GAP-B13: Track target→source mappings to detect collisions
+  const targetToSources = new Map<string, string[]>();
+
   for (const originalHeader of headers) {
-    mapping[originalHeader] =
-      COLUMN_ALIAS_TO_TARGET.get(normalizeLookupKey(originalHeader)) ?? originalHeader;
+    const target = COLUMN_ALIAS_TO_TARGET.get(normalizeLookupKey(originalHeader)) ?? originalHeader;
+    mapping[originalHeader] = target;
+
+    if (target !== originalHeader) {
+      const sources = targetToSources.get(target) ?? [];
+      sources.push(originalHeader);
+      targetToSources.set(target, sources);
+    }
+  }
+
+  for (const [target, sources] of targetToSources) {
+    if (sources.length > 1) {
+      console.warn(
+        `[ingest-utils] Column mapping collision: multiple headers (${sources.join(", ")}) map to "${target}". First match will be used.`,
+      );
+    }
   }
 
   return mapping;
@@ -759,10 +776,10 @@ export async function triggerNormalizationForContacts(
 ): Promise<void> {
   if (bronzeContactIds.length === 0) return;
   const targetQueues = [
-    "normalize:name",
-    "normalize:email",
-    "normalize:phone",
-    "normalize:address",
+    QUEUES.NORMALIZE_NAME,
+    QUEUES.NORMALIZE_EMAIL,
+    QUEUES.NORMALIZE_PHONE,
+    QUEUES.NORMALIZE_ADDRESS,
   ] as const;
 
   for (const queueName of targetQueues) {
@@ -861,4 +878,102 @@ export async function markImportBatchFailed(args: {
     .update(bronzeImportBatches)
     .set(values)
     .where(sql`${bronzeImportBatches.id} = ${args.batchId}`);
+}
+
+// ── ANAF Bronze Enrichment Trigger ──────────────────────────────────
+
+const ANAF_BATCH_SIZE = 100;
+const ANAF_BATCH_DELAY_MS = 1100;
+
+export async function triggerAnafBronzeEnrichment(
+  tenantId: string,
+  batchId: string,
+  bronzeContactIds: string[],
+  correlationId?: string,
+): Promise<void> {
+  if (bronzeContactIds.length === 0) return;
+
+  await setSessionTenantId(tenantId);
+
+  // Find all contacts in this batch that have a CUI
+  const contactsWithCui = await db.query.bronzeContacts.findMany({
+    where: (t, { and, eq, isNotNull, inArray }) =>
+      and(eq(t.tenantId, tenantId), inArray(t.id, bronzeContactIds), isNotNull(t.extractedCui)),
+    columns: { id: true, extractedCui: true },
+  });
+
+  if (contactsWithCui.length === 0) return;
+
+  // Mark all contacts with CUI as pending ANAF enrichment
+  const cuiContactIds = contactsWithCui.map((c) => c.id);
+  await db
+    .update(bronzeContacts)
+    .set({
+      metadata: sql`COALESCE(${bronzeContacts.metadata}, '{}'::jsonb) || '{"anafBronzeEnrichmentStatus":"pending"}'::jsonb`,
+      updatedAt: new Date(),
+    })
+    .where(
+      sql`${bronzeContacts.tenantId} = ${tenantId} AND ${bronzeContacts.id} = ANY(${cuiContactIds})`,
+    );
+
+  // Also mark NrRegCom-only contacts as pending (they may get cross-referenced)
+  const contactsNrRegComOnly = await db.query.bronzeContacts.findMany({
+    where: (t, { and, eq, isNull, isNotNull, inArray }) =>
+      and(
+        eq(t.tenantId, tenantId),
+        inArray(t.id, bronzeContactIds),
+        isNull(t.extractedCui),
+        isNotNull(t.extractedNrRegCom),
+      ),
+    columns: { id: true },
+  });
+
+  if (contactsNrRegComOnly.length > 0) {
+    const nrRegComIds = contactsNrRegComOnly.map((c) => c.id);
+    await db
+      .update(bronzeContacts)
+      .set({
+        metadata: sql`COALESCE(${bronzeContacts.metadata}, '{}'::jsonb) || '{"anafBronzeEnrichmentStatus":"pending"}'::jsonb`,
+        updatedAt: new Date(),
+      })
+      .where(
+        sql`${bronzeContacts.tenantId} = ${tenantId} AND ${bronzeContacts.id} = ANY(${nrRegComIds})`,
+      );
+  }
+
+  // Collect unique CUIs and chunk into batches of 100
+  const cuiSet = new Set<string>();
+  for (const contact of contactsWithCui) {
+    if (contact.extractedCui) cuiSet.add(contact.extractedCui);
+  }
+  const allCuis = [...cuiSet];
+  const allBronzeIds = [...new Set([...cuiContactIds, ...contactsNrRegComOnly.map((c) => c.id)])];
+  const totalBatches = Math.ceil(allCuis.length / ANAF_BATCH_SIZE);
+
+  const queue = createQueue(QUEUES.ENRICH_BRONZE_ANAF);
+  try {
+    for (let i = 0; i < totalBatches; i++) {
+      const cuiChunk = allCuis.slice(i * ANAF_BATCH_SIZE, (i + 1) * ANAF_BATCH_SIZE);
+      await queue.add(
+        "anaf-bronze-enrich",
+        {
+          tenantId,
+          batchId,
+          cuiList: cuiChunk,
+          bronzeContactIds: allBronzeIds,
+          correlationId: correlationId ?? batchId,
+          batchIndex: i,
+          totalBatches,
+        },
+        {
+          jobId: `anaf-bronze:${batchId}:${i}`,
+          delay: i * ANAF_BATCH_DELAY_MS,
+          attempts: 5,
+          backoff: { type: "exponential", delay: 1000 },
+        },
+      );
+    }
+  } finally {
+    await queue.close();
+  }
 }

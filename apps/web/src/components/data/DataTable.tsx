@@ -2,7 +2,6 @@ import {
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
   type ColumnDef,
@@ -36,19 +35,19 @@ export function DataTable<TData>({
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     onSortingChange: setSorting,
     state: { sorting },
   });
 
   return (
-    <TableWrapper className={cn("w-full overflow-x-auto", className)}>
-      <TableRoot className="w-full text-sm">
+    <TableWrapper className={cn("w-full", className)}>
+      <div className="overflow-x-auto">
+        <TableRoot className="w-full text-sm" style={{ minWidth: "600px" }}>
         <thead>
           {table.getHeaderGroups().map((headerGroup) => (
             <tr
               key={headerGroup.id}
-              className="border-b border-[var(--color-s700)] text-left text-[var(--color-t3)]"
+              className="border-b border-s700 text-left text-t3"
             >
               {headerGroup.headers.map((header) => (
                 <Th key={header.id} className="px-5 py-3">
@@ -65,10 +64,10 @@ export function DataTable<TData>({
             table.getRowModel().rows.map((row) => (
               <tr
                 key={row.id}
-                className="border-b border-[var(--color-s700)] last:border-0 hover:bg-[var(--color-s800)]/50"
+                className="border-b border-s700 last:border-0 hover:bg-s800/50"
               >
                 {row.getVisibleCells().map((cell) => (
-                  <Td key={cell.id} className="px-5 py-3 text-[var(--color-t1)]">
+                  <Td key={cell.id} className="px-5 py-3 text-t1">
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </Td>
                 ))}
@@ -76,13 +75,14 @@ export function DataTable<TData>({
             ))
           ) : (
             <tr>
-              <Td colSpan={columns.length} className="px-5 py-8 text-center text-[var(--color-t3)]">
+              <Td colSpan={columns.length} className="px-5 py-8 text-center text-t3">
                 {emptyMessage}
               </Td>
             </tr>
           )}
         </tbody>
-      </TableRoot>
+        </TableRoot>
+      </div>
     </TableWrapper>
   );
 }

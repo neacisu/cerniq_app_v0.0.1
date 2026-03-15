@@ -12,23 +12,22 @@ export type AnifScraperJobData = {
 
 function parseAnifHtml(html: string) {
   const plain = html
-    .replace(/<[^>]+>/g, " ")
-    .replace(/\s+/g, " ")
+    .replaceAll(/<[^>]+>/g, " ")
+    .replaceAll(/\s+/g, " ")
     .trim();
   const suprafata =
     Number(
       (
-        plain.match(/(Suprafa[țt]a\s*Irigat[ăa])\s*[:-]?\s*(\d+(?:[.,]\d+)?)/i)?.[2] ?? "NaN"
+        /(Suprafa[țt]a\s*Irigat[ăa])\s*[:-]?\s*(\d+(?:[.,]\d+)?)/i.exec(plain)?.[2] ?? "NaN"
       ).replace(",", "."),
     ) || null;
   return {
     suprafataIrigata: suprafata,
     areContractIrigare: /contract\s+irigare/i.test(plain),
-    tipContract:
-      plain.match(/(Tip\s*Contract)\s*[:-]?\s*([A-Za-zĂÂÎȘȚăâîșț0-9\s-]+)/i)?.[2]?.trim() ?? null,
+    tipContract: /(Tip\s*Contract)\s*[:-]?\s*([a-zăâîșț0-9\s-]+)/i.exec(plain)?.[2]?.trim() ?? null,
     amenajare:
-      plain
-        .match(/(Amenajare\s*Irigare|Sistem\s*Irigare)\s*[:-]?\s*([A-Za-zĂÂÎȘȚăâîșț0-9\s-]+)/i)?.[2]
+      /(Amenajare\s*Irigare|Sistem\s*Irigare)\s*[:-]?\s*([a-zăâîșț0-9\s-]+)/i
+        .exec(plain)?.[2]
         ?.trim() ?? null,
   };
 }

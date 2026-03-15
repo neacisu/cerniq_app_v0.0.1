@@ -1,31 +1,86 @@
-import { useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useState, useMemo } from "react";
+import type { ColumnDef } from "@tanstack/react-table";
+import { useMutation } from "@tanstack/react-query";
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
 import { Spinner } from "@/components/ui/spinner.js";
 import { Button, Card, CardHeader, CardTitle, CardBody, TBadge } from "@/components/ui/index.js";
-import {
-  fetchSilverCompanies,
-  triggerSilverEnrich,
-  triggerSilverPromote,
-} from "@/lib/etapa1-api.js";
+import { triggerSilverEnrich, triggerSilverPromote } from "@/lib/etapa1-api.js";
 import { DataTable } from "@/components/data/DataTable.js";
-import { silverCompaniesColumns } from "@/lib/table-columns.js";
+import { DataTablePagination } from "@/components/data/DataTablePagination.js";
+import { makeSilverCompaniesColumns } from "@/lib/table-columns.js";
+import { useSilverCompanies } from "@/hooks/use-etapa1.js";
+import { SilverCompanyDrawer } from "@/components/drawers/SilverCompanyDrawer.js";
 import type { SilverCompanyRow } from "@/lib/etapa1-types.js";
 
+const PAGE_SIZE_OPTIONS = [25, 50, 100] as const;
+
+type ActionHandlers = { onEnrich: (id: string) => void; onPromote: (id: string) => void };
+
+function ActionsCell({ c, onEnrich, onPromote }: { c: SilverCompanyRow } & ActionHandlers) {
+  return (
+    <div className="flex items-center gap-2">
+      <TBadge tier={String(c.promotionStatus) === "promoted" ? "gold" : "silver"} />
+      <button className="text-b5 underline text-xs" onClick={() => onEnrich(String(c.id))}>
+        Enrich
+      </button>
+      <button className="text-ok underline text-xs" onClick={() => onPromote(String(c.id))}>
+        Promote
+      </button>
+    </div>
+  );
+}
+
+function createActionsColumn(handlers: ActionHandlers): ColumnDef<SilverCompanyRow> {
+  return {
+    id: "actions",
+    header: "Acțiuni",
+    cell: ({ row }) => <ActionsCell c={row.original} {...handlers} />,
+  };
+}
+
 export function Silver() {
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(25);
   const [search, setSearch] = useState("");
-  const companiesQuery = useQuery({
-    queryKey: ["etapa1", "silver", search],
-    queryFn: () => fetchSilverCompanies({ limit: 50, offset: 0, search: search || undefined }),
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const offset = (page - 1) * pageSize;
+
+  const companiesQuery = useSilverCompanies({
+    limit: pageSize,
+    offset,
+    search: search || undefined,
   });
   const enrichMutation = useMutation({
     mutationFn: (id: string) => triggerSilverEnrich(id),
   });
   const promoteMutation = useMutation({
     mutationFn: (id: string) => triggerSilverPromote(id),
-    onSuccess: () => void companiesQuery.refetch(),
+    onSuccess: () => {
+      companiesQuery.refetch();
+    },
   });
+
+  const actionsColumn = useMemo(
+    () =>
+      createActionsColumn({
+        onEnrich: (id) => {
+          enrichMutation.mutateAsync(id);
+        },
+        onPromote: (id) => {
+          promoteMutation.mutateAsync(id);
+        },
+      }),
+    [enrichMutation, promoteMutation],
+  );
+
+  const columns = useMemo(
+    () => [...makeSilverCompaniesColumns(setSelectedId), actionsColumn],
+    [actionsColumn],
+  );
+
   const silverCompanies = (companiesQuery.data?.data ?? []) as unknown as SilverCompanyRow[];
+  const total = companiesQuery.data?.meta?.total ?? silverCompanies.length;
 
   if (companiesQuery.isPending) {
     return (
@@ -40,7 +95,7 @@ export function Silver() {
   if (companiesQuery.isError) {
     return (
       <PageWrapper title="Silver Companies">
-        <div className="rounded-lg border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 p-4 text-sm text-[var(--color-danger)]">
+        <div className="rounded-lg border border-(--color-danger)/30 bg-(--color-danger)/10 p-4 text-sm text-(--color-danger)">
           Eroare la încărcarea datelor: {companiesQuery.error?.message ?? "Eroare necunoscută"}
         </div>
       </PageWrapper>
@@ -53,42 +108,44 @@ export function Silver() {
       actions={
         <>
           <input
-            className="px-3 py-2 rounded-[var(--radius-md)] bg-[var(--color-s800)] border border-[var(--color-s600)] text-[var(--color-t1)] text-sm"
-            placeholder="Cauta dupa denumire/CUI"
+            className="px-3 py-2 rounded-md bg-s800 border border-s600 text-t1 text-sm"
+            placeholder="Cauta dupa denumire, CUI sau Nr. Reg. Com."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-          <Button variant="outline" onClick={() => void companiesQuery.refetch()}>
+          <Button
+            variant="outline"
+            onClick={() => {
+              companiesQuery.refetch();
+            }}
+          >
             Refresh
           </Button>
         </>
       }
     >
+      <SilverCompanyDrawer
+        open={selectedId !== null}
+        id={selectedId}
+        onClose={() => setSelectedId(null)}
+      />
       <Card>
         <CardHeader>
           <CardTitle>Companii Validate</CardTitle>
         </CardHeader>
         <CardBody className="p-0">
-          <DataTable columns={silverCompaniesColumns} data={silverCompanies} />
-          <div className="px-5 pb-4">
-            {silverCompanies.map((c) => (
-              <div key={`actions-${c.id}`} className="mb-1 flex items-center gap-2 text-xs">
-                <TBadge tier={String(c.promotionStatus) === "promoted" ? "gold" : "silver"} />
-                <button
-                  className="text-[var(--color-b5)] underline"
-                  onClick={() => void enrichMutation.mutateAsync(String(c.id))}
-                >
-                  Enrich {c.denumire ?? c.id}
-                </button>
-                <button
-                  className="text-[var(--color-ok)] underline"
-                  onClick={() => void promoteMutation.mutateAsync(String(c.id))}
-                >
-                  Promote
-                </button>
-              </div>
-            ))}
-          </div>
+          <DataTable columns={columns} data={silverCompanies} />
+          <DataTablePagination
+            page={page}
+            pageSize={pageSize}
+            total={total}
+            onPageChange={(p) => setPage(p)}
+            pageSizeOptions={[...PAGE_SIZE_OPTIONS]}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setPage(1);
+            }}
+          />
         </CardBody>
       </Card>
     </PageWrapper>

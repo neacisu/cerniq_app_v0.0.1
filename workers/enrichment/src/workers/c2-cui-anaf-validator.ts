@@ -102,23 +102,33 @@ function buildAnafPatch(cleanedCui: string, companyData: AnafCompanyResult) {
   };
 }
 
-async function persistAnafNotFound(bronzeContactId: string | undefined, cleanedCui: string) {
-  if (!bronzeContactId) {
-    return;
+async function persistAnafNotFound(jobData: CuiAnafJobData, cleanedCui: string) {
+  const notFoundPatch = {
+    anafValidation: {
+      status: "not_found",
+      cui: cleanedCui,
+      validatedAt: new Date().toISOString(),
+    },
+  };
+
+  if (jobData.bronzeContactId) {
+    await db
+      .update(bronzeContacts)
+      .set({
+        metadata: sql`COALESCE(${bronzeContacts.metadata}, '{}'::jsonb) || ${JSON.stringify(notFoundPatch)}::jsonb`,
+      })
+      .where(sql`${bronzeContacts.id} = ${jobData.bronzeContactId}`);
   }
 
-  await db
-    .update(bronzeContacts)
-    .set({
-      metadata: sql`COALESCE(${bronzeContacts.metadata}, '{}'::jsonb) || ${JSON.stringify({
-        anafValidation: {
-          status: "not_found",
-          cui: cleanedCui,
-          validatedAt: new Date().toISOString(),
-        },
-      })}::jsonb`,
-    })
-    .where(sql`${bronzeContacts.id} = ${bronzeContactId}`);
+  // GAP-B4: Also update silverCompanies.metadata on not_found
+  if (jobData.companyId) {
+    await db
+      .update(silverCompanies)
+      .set({
+        metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify(notFoundPatch)}::jsonb`,
+      })
+      .where(sql`${silverCompanies.id} = ${jobData.companyId}`);
+  }
 }
 
 async function updateAnafCompany(
@@ -258,7 +268,7 @@ export const cuiAnafValidatorProcessor: Processor<CuiAnafJobData> = async (job) 
   await setSessionTenantId(job.data.tenantId);
   const companyData = await anafBreaker.fire(cleanedCui);
   if (!companyData) {
-    await persistAnafNotFound(job.data.bronzeContactId, cleanedCui);
+    await persistAnafNotFound(job.data, cleanedCui);
     return {
       ok: true,
       status: "not_found",

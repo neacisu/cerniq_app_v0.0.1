@@ -2,8 +2,12 @@ import type { Processor } from "bullmq";
 import {
   getBronzeContactForTenant,
   markNormalizationResult,
+  triggerCuiValidationIfPossible,
   type BronzeNormalizationJobData,
 } from "./normalization-utils.js";
+import { jobsProcessed, jobDuration, jobErrors } from "../lib/worker-metrics.js";
+import { classifyAndRethrow } from "../lib/error-classification.js";
+import { stripDiacritics } from "../lib/diacritics.js";
 
 export type AddressNormalizerJobData = BronzeNormalizationJobData;
 
@@ -76,49 +80,72 @@ const ADDRESS_ABBREVIATIONS: Record<string, string> = {
 };
 
 export const addressNormalizerProcessor: Processor<AddressNormalizerJobData> = async (job) => {
-  const contact = await getBronzeContactForTenant(job.data.tenantId, job.data.bronzeContactId);
-  const rawAddress = typeof contact.extractedAddress === "string" ? contact.extractedAddress : null;
-  if (!rawAddress) {
-    return { ok: true, status: "skipped", reason: "empty_address" };
-  }
+  const startedAt = Date.now();
+  try {
+    const contact = await getBronzeContactForTenant(job.data.tenantId, job.data.bronzeContactId);
+    const rawAddress =
+      typeof contact.extractedAddress === "string" ? contact.extractedAddress : null;
+    if (!rawAddress) {
+      return { ok: true, status: "skipped", reason: "empty_address" };
+    }
 
-  let normalizedAddress = rawAddress.toUpperCase().trim().replace(/\s+/g, " ");
-  for (const [abbr, full] of Object.entries(ADDRESS_ABBREVIATIONS)) {
-    const regex = new RegExp(`\\b${abbr.replace(/\./g, "\\.")}\\b`, "g");
-    normalizedAddress = normalizedAddress.replace(regex, full);
-  }
+    let normalizedAddress = rawAddress.toUpperCase().trim().replaceAll(/\s+/g, " ");
+    for (const [abbr, full] of Object.entries(ADDRESS_ABBREVIATIONS)) {
+      const escaped = abbr.replaceAll(".", String.raw`\.`);
+      const regex = new RegExp(String.raw`\b${escaped}\b`, "g");
+      normalizedAddress = normalizedAddress.replaceAll(regex, full);
+    }
 
-  const nrMatch = normalizedAddress.match(/\bNR\.?\s*(\d+[A-Z]?)/i);
-  const blocMatch = normalizedAddress.match(/\bBL\.?\s*([A-Z0-9]+)/i);
-  const scaraMatch = normalizedAddress.match(/\bSC\.?\s*([A-Z0-9]+)/i);
-  const etajMatch = normalizedAddress.match(/\bET\.?\s*(\d+|P|PARTER|M|MANSARDA)/i);
-  const apMatch = normalizedAddress.match(/\bAP\.?\s*(\d+)/i);
-  const cpMatch = normalizedAddress.match(/\b(\d{6})\b/);
-  const lowered = normalizedAddress.toLowerCase();
-  const county = Object.entries(countyMap).find(([name]) => lowered.includes(name))?.[1] ?? null;
-  await markNormalizationResult(
-    job.data.tenantId,
-    job.data.bronzeContactId,
-    {},
-    {
-      addressNormalization: {
-        original: rawAddress,
-        normalized: normalizedAddress,
-        countyCode: county,
-        number: nrMatch?.[1] ?? null,
-        block: blocMatch?.[1] ?? null,
-        staircase: scaraMatch?.[1] ?? null,
-        floor: etajMatch?.[1] ?? null,
-        apartment: apMatch?.[1] ?? null,
-        postalCode: cpMatch?.[1] ?? null,
+    const nrMatch = /\bNR\.?\s*(\d+[A-Z]?)/i.exec(normalizedAddress);
+    const blocMatch = /\bBL\.?\s*([A-Z0-9]+)/i.exec(normalizedAddress);
+    const scaraMatch = /\bSC\.?\s*([A-Z0-9]+)/i.exec(normalizedAddress);
+    const etajMatch = /\bET\.?\s*(\d+|P|PARTER|M|MANSARDA)/i.exec(normalizedAddress);
+    const apMatch = /\bAP\.?\s*(\d+)/i.exec(normalizedAddress);
+    const cpMatch = /\b(\d{6})\b/.exec(normalizedAddress);
+    const lowered = stripDiacritics(normalizedAddress.toLowerCase());
+    const county = Object.entries(countyMap).find(([name]) => lowered.includes(name))?.[1] ?? null;
+    await markNormalizationResult(
+      job.data.tenantId,
+      job.data.bronzeContactId,
+      {},
+      {
+        addressNormalization: {
+          original: rawAddress,
+          normalized: normalizedAddress,
+          countyCode: county,
+          number: nrMatch?.[1] ?? null,
+          block: blocMatch?.[1] ?? null,
+          staircase: scaraMatch?.[1] ?? null,
+          floor: etajMatch?.[1] ?? null,
+          apartment: apMatch?.[1] ?? null,
+          postalCode: cpMatch?.[1] ?? null,
+        },
       },
-    },
-  );
+    );
 
-  return {
-    ok: true,
-    status: "success",
-    normalizedAddress,
-    countyCode: county,
-  };
+    // GAP-B14: Safety net — trigger CUI validation if not yet triggered by B1
+    const cui = typeof contact.extractedCui === "string" ? contact.extractedCui : null;
+    const nrRegCom =
+      typeof contact.extractedNrRegCom === "string" ? contact.extractedNrRegCom : null;
+    await triggerCuiValidationIfPossible(
+      job.data.tenantId,
+      job.data.bronzeContactId,
+      cui,
+      nrRegCom,
+      job.data.correlationId,
+    );
+
+    return {
+      ok: true,
+      status: "success",
+      normalizedAddress,
+      countyCode: county,
+    };
+  } catch (error) {
+    jobErrors.add(1, { worker: "b4-address-normalizer" });
+    classifyAndRethrow(error);
+  } finally {
+    jobsProcessed.add(1, { worker: "b4-address-normalizer" });
+    jobDuration.record(Date.now() - startedAt, { worker: "b4-address-normalizer" });
+  }
 };

@@ -18,7 +18,7 @@ import {
   resolveBronzeContactIdentity,
   upsertCompanyIdentityKey,
 } from "@cerniq/db";
-import { createQueue, normalizeNrRegCom } from "@cerniq/worker-shared";
+import { createQueue, normalizeNrRegCom, QUEUES } from "@cerniq/worker-shared";
 import { sanitizeCui } from "../lib/cui-validation.js";
 import { normalizeRow } from "./ingest-utils.js";
 import { createHitlApprovalTask } from "./pipeline-utils.js";
@@ -31,20 +31,20 @@ export type PromotionBronzeSilverJobData = {
 };
 
 const NEXT_ENRICHMENT_QUEUES = [
-  "enrich:anaf:fiscal-status",
-  "enrich:anaf:tva-status",
-  "enrich:anaf:efactura",
-  "enrich:anaf:datorii",
-  "enrich:anaf:caen",
-  "enrich:termene:balance",
-  "enrich:termene:risk",
-  "enrich:termene:dosare",
-  "enrich:termene:actionari",
-  "enrich:onrc:data",
-  "enrich:onrc:administratori",
-  "enrich:onrc:sedii",
-  "discover:email:hunter",
-  "discover:email:pattern",
+  QUEUES.ENRICH_ANAF_FISCAL_STATUS,
+  QUEUES.ENRICH_ANAF_TVA_STATUS,
+  QUEUES.ENRICH_ANAF_EFACTURA,
+  QUEUES.ENRICH_ANAF_DATORII,
+  QUEUES.ENRICH_ANAF_CAEN,
+  QUEUES.ENRICH_TERMENE_BALANCE,
+  QUEUES.ENRICH_TERMENE_RISK,
+  QUEUES.ENRICH_TERMENE_DOSARE,
+  QUEUES.ENRICH_TERMENE_ACTIONARI,
+  QUEUES.ENRICH_ONRC_DATA,
+  QUEUES.ENRICH_ONRC_ADMINISTRATORI,
+  QUEUES.ENRICH_ONRC_SEDII,
+  QUEUES.DISCOVER_EMAIL_HUNTER,
+  QUEUES.DISCOVER_EMAIL_PATTERN,
 ] as const;
 
 type Payload = Record<string, unknown>;
@@ -617,7 +617,7 @@ async function handleBatchReprocess(jobData: PromotionBronzeSilverJobData) {
 }
 
 async function queueResolvedBatchPromotions(tenantId: string, batchId: string, pageSize: number) {
-  const promotionQueue = createQueue("pipeline:promote:bronze-silver");
+  const promotionQueue = createQueue(QUEUES.PIPELINE_PROMOTE_BRONZE_SILVER);
   let lastId: string | null = null;
   let queued = 0;
 
@@ -761,6 +761,237 @@ function getPromotionKind(existingSilver: SilverCompanyRow | undefined, bronzeId
   return "bronze_to_silver_insert";
 }
 
+const FORMA_JURIDICA_MAP: Record<string, string> = {
+  "SOCIETATE COMERCIALĂ CU RĂSPUNDERE LIMITATĂ": "SRL",
+  "SOCIETATE CU RĂSPUNDERE LIMITATĂ": "SRL",
+  "SOCIETATE PE ACȚIUNI": "SA",
+  "SOCIETATE COMERCIALĂ PE ACȚIUNI": "SA",
+  "PERSOANA FIZICA AUTORIZATA": "PFA",
+  "INTREPRINDERE INDIVIDUALA": "II",
+  "INTREPRINDERE FAMILIALA": "IF",
+  "SOCIETATE IN NUME COLECTIV": "SNC",
+  "SOCIETATE IN COMANDITA SIMPLA": "SCS",
+  COOPERATIVA: "COOP",
+  ASOCIATIE: "ONG",
+  FUNDATIE: "ONG",
+};
+
+function mapFormaJuridica(raw: string | undefined | null): string | undefined {
+  if (!raw) return undefined;
+  const upper = raw
+    .toUpperCase()
+    .normalize("NFD")
+    .replaceAll(/[\u0300-\u036f]/g, "");
+  for (const [pattern, value] of Object.entries(FORMA_JURIDICA_MAP)) {
+    const normalized = pattern.normalize("NFD").replaceAll(/[\u0300-\u036f]/g, "");
+    if (upper.includes(normalized)) return value;
+  }
+  return "OTHER";
+}
+
+function mapStatusFirma(
+  stareInregistrare: string | undefined | null,
+  statusInactivi: boolean | undefined | null,
+): string | undefined {
+  if (statusInactivi === true) return "INACTIVA";
+  if (!stareInregistrare) return undefined;
+  const upper = stareInregistrare.toUpperCase();
+  if (upper.includes("RADIAT")) return "RADIATA";
+  if (upper.includes("DIZOLV")) return "DIZOLVARE";
+  if (upper.includes("INSOLV")) return "INSOLVENTA";
+  if (upper.includes("INREGISTRAT")) return "ACTIVA";
+  return undefined;
+}
+
+function mergeWithSource(
+  excelValue: string | null | undefined,
+  anafValue: string | null | undefined,
+  fieldName: string,
+  fieldSources: Record<string, string>,
+): string | null {
+  if (excelValue) {
+    fieldSources[fieldName] = "excel";
+    return excelValue;
+  }
+  if (anafValue) {
+    fieldSources[fieldName] = "anaf";
+    return anafValue;
+  }
+  return null;
+}
+
+function resolveAnulInfiintariiFromAnaf(
+  anafDG: Record<string, unknown> | null,
+  fieldSources: Record<string, string>,
+): number | null {
+  if (typeof anafDG?.data_inregistrare !== "string" || !anafDG.data_inregistrare) return null;
+  const year = parseIntSafe(anafDG.data_inregistrare.slice(0, 4));
+  if (year) {
+    fieldSources.anulInfiintarii = "anaf";
+    return year;
+  }
+  return null;
+}
+
+function setSourceIfTruthy(
+  value: unknown,
+  fieldName: string,
+  fieldSources: Record<string, string>,
+): void {
+  if (value !== undefined && value !== null && value !== "" && value !== false) {
+    fieldSources[fieldName] = "anaf";
+  }
+}
+
+function anafStr(
+  source: Record<string, unknown> | null,
+  key: string,
+  fieldName: string,
+  fieldSources: Record<string, string>,
+): string | undefined {
+  const val = (source?.[key] as string | undefined) || undefined;
+  if (val) fieldSources[fieldName] = "anaf";
+  return val;
+}
+
+function resolveAnafOnlyFields(anafSources: {
+  anafV9: Record<string, unknown> | null | undefined;
+  anafDG: Record<string, unknown> | null;
+  anafAddr: Record<string, unknown> | null;
+  anafTva: Record<string, unknown> | null;
+  anafRTVAI: Record<string, unknown> | null;
+  anafSplit: Record<string, unknown> | null;
+  anafInactiv: Record<string, unknown> | null;
+  fieldSources: Record<string, string>;
+}) {
+  const { anafV9, anafDG, anafAddr, anafTva, anafRTVAI, anafSplit, anafInactiv, fieldSources } =
+    anafSources;
+  const statusFirma = mapStatusFirma(
+    anafDG?.stare_inregistrare as string | undefined,
+    anafInactiv?.statusInactivi as boolean | undefined,
+  );
+  setSourceIfTruthy(statusFirma, "statusFirma", fieldSources);
+
+  const formaJuridica = mapFormaJuridica(anafDG?.forma_juridica as string | undefined);
+  setSourceIfTruthy(formaJuridica, "formaJuridica", fieldSources);
+
+  const platitorTva = anafTva?.scpTVA as boolean | undefined;
+  if (platitorTva !== undefined) fieldSources.platitorTva = "anaf";
+
+  const tvaLaIncasare = anafRTVAI?.statusTvaIncasare as boolean | undefined;
+  if (tvaLaIncasare !== undefined) fieldSources.tvaLaIncasare = "anaf";
+
+  const splitTvaVal = anafSplit?.statusSplitTVA as boolean | undefined;
+  if (splitTvaVal !== undefined) fieldSources.splitTva = "anaf";
+
+  const inregistratEfactura = anafDG?.statusRO_e_Factura as boolean | undefined;
+  if (inregistratEfactura !== undefined) fieldSources.inregistratEfactura = "anaf";
+
+  const periodeTva = anafTva?.perioade_TVA as Array<Record<string, string>> | undefined;
+  const lastTvaPeriod = periodeTva?.length ? periodeTva.at(-1) : undefined;
+
+  const codSiruta = anafAddr?.scod_Localitate
+    ? Number(anafAddr.scod_Localitate) || undefined
+    : undefined;
+  setSourceIfTruthy(codSiruta, "codSiruta", fieldSources);
+
+  const anafAddrFiscal = anafV9?.adresa_domiciliu_fiscal as
+    | Record<string, unknown>
+    | null
+    | undefined;
+  const adresaDomiciliuFiscal =
+    anafAddrFiscal && Object.keys(anafAddrFiscal).length > 0 ? anafAddrFiscal : undefined;
+  setSourceIfTruthy(adresaDomiciliuFiscal, "adresaDomiciliuFiscal", fieldSources);
+
+  return {
+    statusFirma,
+    formaJuridica,
+    dataInregistrare: anafStr(anafDG, "data_inregistrare", "dataInregistrare", fieldSources),
+    platitorTva,
+    periodeTva,
+    dataInceputTva: lastTvaPeriod?.data_inceput_ScpTVA || undefined,
+    dataSfarsitTva: lastTvaPeriod?.data_sfarsit_ScpTVA || undefined,
+    tvaLaIncasare,
+    dataInceputTvaIncasare: anafStr(
+      anafRTVAI,
+      "dataInceputTvaInc",
+      "dataInceputTvaIncasare",
+      fieldSources,
+    ),
+    dataSfarsitTvaIncasare: anafStr(
+      anafRTVAI,
+      "dataSfarsitTvaInc",
+      "dataSfarsitTvaIncasare",
+      fieldSources,
+    ),
+    splitTvaVal,
+    dataInceputSplitTva: anafStr(
+      anafSplit,
+      "dataInceputSplitTVA",
+      "dataInceputSplitTva",
+      fieldSources,
+    ),
+    dataAnulareSplitTva: anafStr(
+      anafSplit,
+      "dataAnulareSplitTVA",
+      "dataAnulareSplitTva",
+      fieldSources,
+    ),
+    inregistratEfactura,
+    dataInregistrareEfactura: anafStr(
+      anafDG,
+      "data_inreg_Reg_RO_e_Factura",
+      "dataInregistrareEfactura",
+      fieldSources,
+    ),
+    // Address details
+    strada: mergeWithSource(
+      null,
+      anafAddr?.sdenumire_Strada as string | undefined,
+      "strada",
+      fieldSources,
+    ),
+    numar: mergeWithSource(
+      null,
+      anafAddr?.snumar_Strada as string | undefined,
+      "numar",
+      fieldSources,
+    ),
+    codPostal: mergeWithSource(
+      null,
+      anafAddr?.scod_Postal as string | undefined,
+      "codPostal",
+      fieldSources,
+    ),
+    judetCod: mergeWithSource(
+      null,
+      anafAddr?.scod_JudetAuto as string | undefined,
+      "judetCod",
+      fieldSources,
+    ),
+    detaliiAdresa: anafStr(anafAddr, "sdetalii_Adresa", "detaliiAdresa", fieldSources),
+    codSiruta,
+    adresaDomiciliuFiscal,
+    // General fields
+    fax: anafStr(anafDG, "fax", "fax", fieldSources),
+    iban: anafStr(anafDG, "iban", "iban", fieldSources),
+    stareInregistrare: anafStr(anafDG, "stare_inregistrare", "stareInregistrare", fieldSources),
+    actInfiintare: anafStr(anafDG, "act", "actInfiintare", fieldSources),
+    organFiscalCompetent: anafStr(
+      anafDG,
+      "organFiscalCompetent",
+      "organFiscalCompetent",
+      fieldSources,
+    ),
+    formaDeProprietate: anafStr(anafDG, "forma_de_proprietate", "formaDeProprietate", fieldSources),
+    formaOrganizare: anafStr(anafDG, "forma_organizare", "formaOrganizare", fieldSources),
+    // Inactivation/radiation dates
+    dataInactivare: anafStr(anafInactiv, "dataInactivare", "dataInactivare", fieldSources),
+    dataReactivare: anafStr(anafInactiv, "dataReactivare", "dataReactivare", fieldSources),
+    dataRadiere: anafStr(anafInactiv, "dataRadiere", "dataRadiere", fieldSources),
+  };
+}
+
 function buildCompanyUpdate(args: {
   bronze: BronzeContactRow;
   payload: Payload;
@@ -771,21 +1002,113 @@ function buildCompanyUpdate(args: {
   existingSilver?: SilverCompanyRow;
 }) {
   const { bronze, payload, mapping, rawNrRegCom, cui, nrRegCom, existingSilver } = args;
-  const companyName =
+  const bronzeMeta = (bronze.metadata as Record<string, unknown>) ?? {};
+
+  // ANAF v9 data appended by b5-anaf-bronze-enricher (multi-source collection)
+  const anafV9 = bronzeMeta.anafResponse as Record<string, unknown> | null | undefined;
+  const anafDG = (anafV9?.date_generale ?? null) as Record<string, unknown> | null;
+  const anafAddr = (anafV9?.adresa_sediu_social ?? null) as Record<string, unknown> | null;
+  const anafTva = (anafV9?.inregistrare_scop_Tva ?? null) as Record<string, unknown> | null;
+  const anafRTVAI = (anafV9?.inregistrare_RTVAI ?? null) as Record<string, unknown> | null;
+  const anafSplit = (anafV9?.inregistrare_SplitTVA ?? null) as Record<string, unknown> | null;
+  const anafInactiv = (anafV9?.stare_inactiv ?? null) as Record<string, unknown> | null;
+  const fieldSources: Record<string, string> = {};
+
+  // Excel resolution
+  const excelName =
     bronze.extractedName ??
     resolveField(payload, mapping, "companyName", "denumire", "Denumire Firma", "name");
-  const email =
+  const excelEmail =
     bronze.extractedEmail ??
     resolveField(payload, mapping, "email", "Email", "email_address", "mail");
-  const phone =
+  const excelPhone =
     bronze.extractedPhone ??
     resolveField(payload, mapping, "phone", "telefon", "Telefon MF", "mobile");
-  const address =
+  const excelAddress =
     bronze.extractedAddress ?? resolveField(payload, mapping, "address", "adresa", "Adresa ANAF");
+  const excelCaen = resolveField(payload, mapping, "caen", "CAEN", "cod_caen", "nace code");
+  const excelCaenText = resolveField(payload, mapping, "caenText", "denumire_caen", "nace text");
+  const excelJudet =
+    bronze.extractedJudet ?? resolveField(payload, mapping, "judet", "Judet", "county");
+  const excelLocalitate =
+    bronze.extractedLocalitate ??
+    resolveField(payload, mapping, "localitate", "Localitate", "oras", "city");
+  const excelAnulInfiintarii = parseIntSafe(
+    resolveField(payload, mapping, "anulInfiintarii", "Anul infiintarii calculat"),
+  );
+
+  // Merge: Excel first, ANAF appends when Excel has no value
+  const companyName = mergeWithSource(
+    excelName,
+    anafDG?.denumire as string | undefined,
+    "denumire",
+    fieldSources,
+  );
+
+  const email = excelEmail;
+  if (email) fieldSources.email = "excel";
+
+  const phone = mergeWithSource(
+    excelPhone,
+    anafDG?.telefon as string | undefined,
+    "telefon",
+    fieldSources,
+  );
+  const address = mergeWithSource(
+    excelAddress,
+    anafDG?.adresa as string | undefined,
+    "adresa",
+    fieldSources,
+  );
+
   const website = resolveField(payload, mapping, "website", "site", "url");
+  if (website) fieldSources.website = "excel";
+
+  const codCaenPrincipal = mergeWithSource(
+    excelCaen,
+    anafDG?.cod_CAEN as string | undefined,
+    "codCaenPrincipal",
+    fieldSources,
+  );
+  if (excelCaenText) fieldSources.denumireCaen = "excel";
+
+  const judet = mergeWithSource(
+    excelJudet,
+    anafAddr?.sdenumire_Judet as string | undefined,
+    "judet",
+    fieldSources,
+  );
+  const localitate = mergeWithSource(
+    excelLocalitate,
+    anafAddr?.sdenumire_Localitate as string | undefined,
+    "localitate",
+    fieldSources,
+  );
+
+  let anulInfiintarii = excelAnulInfiintarii;
+  if (anulInfiintarii == null) {
+    anulInfiintarii = resolveAnulInfiintariiFromAnaf(anafDG, fieldSources);
+  } else {
+    fieldSources.anulInfiintarii = "excel";
+  }
+
+  // ANAF-only fields (fiscal, TVA, split, inactiv, address details)
+  const anaf = resolveAnafOnlyFields({
+    anafV9,
+    anafDG,
+    anafAddr,
+    anafTva,
+    anafRTVAI,
+    anafSplit,
+    anafInactiv,
+    fieldSources,
+  });
+  if (anaf.dataInceputTva) fieldSources.dataInceputTva = "anaf";
+  if (anaf.dataSfarsitTva) fieldSources.dataSfarsitTva = "anaf";
+
   const identityStatus = getCompanyIdentityStatus(cui, nrRegCom);
   const promotion = getPromotionKind(existingSilver, bronze.id);
-  const sourceSheet = (bronze.metadata as Record<string, unknown> | undefined)?.sheetName ?? null;
+  const sourceSheet = bronzeMeta.sheetName ?? null;
 
   return {
     companyName,
@@ -801,16 +1124,59 @@ function buildCompanyUpdate(args: {
       nrRegCom: nrRegCom ?? undefined,
       nrRegComOriginal: rawNrRegCom ?? undefined,
       identityStatus,
-      codCaenPrincipal:
-        resolveField(payload, mapping, "caen", "CAEN", "cod_caen", "nace code") ?? undefined,
-      denumireCaen:
-        resolveField(payload, mapping, "caenText", "denumire_caen", "nace text") ?? undefined,
-      judet:
-        bronze.extractedJudet ??
-        (resolveField(payload, mapping, "judet", "Judet", "county") || undefined),
-      localitate:
-        bronze.extractedLocalitate ??
-        (resolveField(payload, mapping, "localitate", "Localitate", "oras", "city") || undefined),
+      codCaenPrincipal: codCaenPrincipal ?? undefined,
+      denumireCaen: excelCaenText ?? undefined,
+      strada: anaf.strada ?? undefined,
+      numar: anaf.numar ?? undefined,
+      codPostal: anaf.codPostal ?? undefined,
+      judet: judet || undefined,
+      judetCod: anaf.judetCod ?? undefined,
+      localitate: localitate || undefined,
+      codSiruta: anaf.codSiruta,
+      detaliiAdresa: anaf.detaliiAdresa,
+      adresaDomiciliuFiscal: anaf.adresaDomiciliuFiscal,
+      statusFirma: anaf.statusFirma as
+        | "ACTIVA"
+        | "INACTIVA"
+        | "DIZOLVARE"
+        | "RADIATA"
+        | "INSOLVENTA"
+        | undefined,
+      stareInregistrare: anaf.stareInregistrare,
+      formaJuridica: anaf.formaJuridica as
+        | "SRL"
+        | "SA"
+        | "PFA"
+        | "II"
+        | "IF"
+        | "SNC"
+        | "SCS"
+        | "ONG"
+        | "COOP"
+        | "OTHER"
+        | undefined,
+      dataInregistrare: anaf.dataInregistrare ?? undefined,
+      dataRadiere: anaf.dataRadiere ?? undefined,
+      dataInactivare: anaf.dataInactivare ?? undefined,
+      dataReactivare: anaf.dataReactivare ?? undefined,
+      actInfiintare: anaf.actInfiintare,
+      organFiscalCompetent: anaf.organFiscalCompetent,
+      formaDeProprietate: anaf.formaDeProprietate,
+      formaOrganizare: anaf.formaOrganizare,
+      fax: anaf.fax,
+      iban: anaf.iban,
+      platitorTva: anaf.platitorTva ?? undefined,
+      dataInceputTva: anaf.dataInceputTva ?? undefined,
+      dataSfarsitTva: anaf.dataSfarsitTva ?? undefined,
+      periodeTva: anaf.periodeTva ?? undefined,
+      tvaLaIncasare: anaf.tvaLaIncasare ?? false,
+      dataInceputTvaIncasare: anaf.dataInceputTvaIncasare,
+      dataSfarsitTvaIncasare: anaf.dataSfarsitTvaIncasare,
+      splitTva: anaf.splitTvaVal ?? false,
+      dataInceputSplitTva: anaf.dataInceputSplitTva,
+      dataAnulareSplitTva: anaf.dataAnulareSplitTva,
+      inregistratEfactura: anaf.inregistratEfactura ?? false,
+      dataInregistrareEfactura: anaf.dataInregistrareEfactura ?? undefined,
       cifraAfaceri: parseRomanianNumeric(
         resolveField(payload, mapping, "cifraAfaceri", "Cifra de afaceri"),
       ),
@@ -849,9 +1215,7 @@ function buildCompanyUpdate(args: {
       numarAngajati: parseIntSafe(
         resolveField(payload, mapping, "numarAngajati", "Numar mediu de salariati"),
       ),
-      anulInfiintarii: parseIntSafe(
-        resolveField(payload, mapping, "anulInfiintarii", "Anul infiintarii calculat"),
-      ),
+      anulInfiintarii,
       ratingExtern: parseIntSafe(resolveField(payload, mapping, "ratingExtern", "Rating")),
       limitaCreditEur: parseRomanianNumeric(
         resolveField(payload, mapping, "limitaCreditEur", "Limita de credit (EUR)"),
@@ -861,6 +1225,8 @@ function buildCompanyUpdate(args: {
         promotion,
         promotedAt: new Date().toISOString(),
         sourceSheet,
+        fieldSources,
+        ...(anafV9 ? { anafV9Response: anafV9 } : {}),
       })}::jsonb`,
     },
   };
@@ -1057,6 +1423,22 @@ async function handleCompanyPromotion(args: {
     bronze.extractedNrRegCom ??
     resolveField(payload, mapping, "nrRegistru", "nr reg com", "Nr reg com", "nr_reg_com");
   const { cui, nrRegCom } = sanitizeIdentifiers(rawCui, rawNrRegCom);
+
+  // GAP-B1: Verify CUI validation before promotion
+  const metadata = (bronze.metadata as Record<string, unknown>) ?? {};
+  const cuiValidation = metadata.cuiValidation as { status?: string } | undefined;
+  const cuiValidated = cui
+    ? cuiValidation?.status === "valid" || cuiValidation?.status === "not_found"
+    : false;
+
+  if (cui && !cuiValidated) {
+    return {
+      ok: false,
+      status: "blocked",
+      reason: "cui_not_validated",
+      cui,
+    };
+  }
   const existingSilver = await getResolvedCompany(
     jobData.tenantId,
     bronze.resolvedCompanyId,
@@ -1467,32 +1849,50 @@ export const promotionBronzeSilverProcessor: Processor<PromotionBronzeSilverJobD
   }
 
   const payload = bronze.rawPayload as Payload;
-  const metadata = (bronze.metadata as Record<string, unknown>) ?? {};
+  const bronzeMetadata = (bronze.metadata as Record<string, unknown>) ?? {};
   const mapping = await loadBatchMapping(
     job.data.tenantId,
-    typeof metadata.batchId === "string" ? metadata.batchId : null,
+    typeof bronzeMetadata.batchId === "string" ? bronzeMetadata.batchId : null,
   );
   const sheetType = detectSheetType(
-    typeof metadata.sheetName === "string" ? metadata.sheetName : null,
+    typeof bronzeMetadata.sheetName === "string" ? bronzeMetadata.sheetName : null,
     Object.keys(payload),
   );
 
+  // GAP-B5: Wrap single promotion in retry logic for serialization/deadlock errors
+  const promotionArgs = { jobData: job.data, bronze, payload, mapping };
   switch (sheetType) {
     case "company":
-      return handleCompanyPromotion({ jobData: job.data, bronze, payload, mapping });
+      return withBatchMetadataRetry(job.data.tenantId, "single-promote-company", () =>
+        handleCompanyPromotion(promotionArgs),
+      );
     case "anaf_debts":
-      return handleAnafDebtDetail({ jobData: job.data, bronze, payload, mapping });
+      return withBatchMetadataRetry(job.data.tenantId, "single-promote-anaf-debts", () =>
+        handleAnafDebtDetail(promotionArgs),
+      );
     case "bpi":
-      return handleBpiDetail({ jobData: job.data, bronze, payload, mapping });
+      return withBatchMetadataRetry(job.data.tenantId, "single-promote-bpi", () =>
+        handleBpiDetail(promotionArgs),
+      );
     case "cip":
-      return handleCipDetail({ jobData: job.data, bronze, payload, mapping });
+      return withBatchMetadataRetry(job.data.tenantId, "single-promote-cip", () =>
+        handleCipDetail(promotionArgs),
+      );
     case "dosare":
-      return handleDosareDetail({ jobData: job.data, bronze, payload, mapping });
+      return withBatchMetadataRetry(job.data.tenantId, "single-promote-dosare", () =>
+        handleDosareDetail(promotionArgs),
+      );
     case "parti_dosare":
-      return handlePartiDosareDetail({ jobData: job.data, bronze, payload, mapping });
+      return withBatchMetadataRetry(job.data.tenantId, "single-promote-parti-dosare", () =>
+        handlePartiDosareDetail(promotionArgs),
+      );
     case "termene_dosare":
-      return handleTermeneDosareDetail({ jobData: job.data, bronze, payload, mapping });
+      return withBatchMetadataRetry(job.data.tenantId, "single-promote-termene-dosare", () =>
+        handleTermeneDosareDetail(promotionArgs),
+      );
     default:
-      return handleCompanyPromotion({ jobData: job.data, bronze, payload, mapping });
+      return withBatchMetadataRetry(job.data.tenantId, "single-promote-default", () =>
+        handleCompanyPromotion(promotionArgs),
+      );
   }
 };

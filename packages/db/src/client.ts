@@ -27,7 +27,7 @@ const schema = {
 
 const poolSize =
   typeof process.env.DB_POOL_SIZE === "string"
-    ? Math.max(1, Math.min(100, parseInt(process.env.DB_POOL_SIZE, 10) || 10))
+    ? Math.max(1, Math.min(100, Number.parseInt(process.env.DB_POOL_SIZE, 10) || 10))
     : 10;
 
 const postgresOptions = {
@@ -45,7 +45,7 @@ export function createDbClient(connectionString: string) {
 
 function requireDatabaseUrl(): string {
   const url = process.env.DATABASE_URL;
-  if (!url || !url.trim()) {
+  if (!url?.trim()) {
     throw new Error("DATABASE_URL is required for @cerniq/db");
   }
   return url.trim();
@@ -221,8 +221,6 @@ export async function generate_invite_code(
   return { id: row.id, code: row.code };
 }
 
-export type RegisterNewCompanyResult = InsertUserResult;
-
 /** Register new company + owner user + default invite code in a single transaction. */
 export async function register_new_company(
   companyName: string,
@@ -230,7 +228,7 @@ export async function register_new_company(
   email: string,
   passwordHash: string,
   name: string,
-): Promise<RegisterNewCompanyResult> {
+): Promise<InsertUserResult> {
   const { randomBytes } = await import("node:crypto");
   const inviteCode = randomBytes(4).toString("hex");
   return connection.sql.begin(async (sql: unknown) => {

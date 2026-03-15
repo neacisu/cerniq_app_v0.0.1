@@ -31,6 +31,47 @@ export function SilverContacts() {
   const rows = (response?.data ?? []) as unknown as SilverCompanyRow[];
   const total = response?.meta?.total ?? rows.length;
 
+  function renderBody() {
+    if (isPending) {
+      return (
+        <div className="flex items-center justify-center py-16">
+          <Spinner size={32} />
+        </div>
+      );
+    }
+    if (isError) {
+      return (
+        <div className="rounded-lg border border-(--color-danger) bg-(--color-danger)/10 p-4 text-sm text-(--color-danger)">
+          Eroare la incarcarea companiilor silver: {error?.message ?? "Eroare necunoscuta"}
+        </div>
+      );
+    }
+    if (rows.length === 0) {
+      return (
+        <EmptyState
+          icon="Building"
+          title="Nicio companie silver"
+          description={
+            search
+              ? "Niciun rezultat pentru cautarea curenta."
+              : "Nu exista companii in stratul Silver."
+          }
+        />
+      );
+    }
+    return (
+      <>
+        <DataTable columns={silverCompaniesColumns} data={rows} />
+        <DataTablePagination
+          page={page}
+          pageSize={PAGE_SIZE}
+          total={total}
+          onPageChange={setPage}
+        />
+      </>
+    );
+  }
+
   return (
     <PageWrapper title="Silver Contacts">
       <Card>
@@ -47,37 +88,7 @@ export function SilverContacts() {
             />
           </div>
         </CardHeader>
-        <CardBody>
-          {isPending ? (
-            <div className="flex items-center justify-center py-16">
-              <Spinner size={32} />
-            </div>
-          ) : isError ? (
-            <div className="rounded-lg border border-[var(--color-danger)] bg-[var(--color-danger)]/10 p-4 text-sm text-[var(--color-danger)]">
-              Eroare la incarcarea companiilor silver: {error?.message ?? "Eroare necunoscuta"}
-            </div>
-          ) : rows.length === 0 ? (
-            <EmptyState
-              icon="Building"
-              title="Nicio companie silver"
-              description={
-                search
-                  ? "Niciun rezultat pentru cautarea curenta."
-                  : "Nu exista companii in stratul Silver."
-              }
-            />
-          ) : (
-            <>
-              <DataTable columns={silverCompaniesColumns} data={rows} />
-              <DataTablePagination
-                page={page}
-                pageSize={PAGE_SIZE}
-                total={total}
-                onPageChange={setPage}
-              />
-            </>
-          )}
-        </CardBody>
+        <CardBody>{renderBody()}</CardBody>
       </Card>
     </PageWrapper>
   );

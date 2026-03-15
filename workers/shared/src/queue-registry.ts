@@ -19,6 +19,7 @@ export const QUEUES = {
   NORMALIZE_ADDRESS: "normalize:address",
   NORMALIZE_PHONE: "normalize:phone",
   NORMALIZE_EMAIL: "normalize:email",
+  ENRICH_BRONZE_ANAF: "enrich:bronze:anaf",
   VALIDATE_CUI_MOD11: "validate:cui:mod11",
   VALIDATE_CUI_ANAF: "validate:cui:anaf",
   ENRICH_ANAF_FISCAL_STATUS: "enrich:anaf:fiscal-status",
@@ -93,6 +94,8 @@ export const queueRegistry: QueueConfig[] = [
   { name: QUEUES.NORMALIZE_ADDRESS, concurrency: 20 },
   { name: QUEUES.NORMALIZE_PHONE, concurrency: 30 },
   { name: QUEUES.NORMALIZE_EMAIL, concurrency: 30 },
+  // B5 (1)
+  withProvider(QUEUES.ENRICH_BRONZE_ANAF, 1, "anaf"),
   // C (2)
   { name: QUEUES.VALIDATE_CUI_MOD11, concurrency: 50 },
   withProvider(QUEUES.VALIDATE_CUI_ANAF, 1, "anaf"),
@@ -173,7 +176,7 @@ export function isKnownQueueName(name: string): boolean {
 }
 
 export function assertQueueRegistryComplete() {
-  if (queueRegistry.length !== 62) {
-    throw new Error(`Expected 62 queues, got ${queueRegistry.length}`);
+  if (queueRegistry.length !== 63) {
+    throw new Error(`Expected 63 queues, got ${queueRegistry.length}`);
   }
 }

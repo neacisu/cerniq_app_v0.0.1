@@ -1,5 +1,5 @@
 import { db, silverCompanies, sql } from "@cerniq/db";
-import { createQueue } from "@cerniq/worker-shared";
+import { createQueue, QUEUES } from "@cerniq/worker-shared";
 
 export const REQUIRED_ENRICHMENT_SOURCES = [
   "anaf_fiscal",
@@ -41,7 +41,7 @@ export async function markEnrichmentSourceComplete(
   const allComplete = REQUIRED_ENRICHMENT_SOURCES.every((item) => completedSources.includes(item));
 
   if (allComplete) {
-    const queue = createQueue("pipeline:orchestrate");
+    const queue = createQueue(QUEUES.PIPELINE_ORCHESTRATE);
     await queue.add(
       "post-enrichment",
       {
