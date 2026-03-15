@@ -34,25 +34,25 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
-    "@types/node": "^24.10.13",
-    "@typescript-eslint/eslint-plugin": "^8.56.1",
-    "@typescript-eslint/parser": "^8.56.1",
-    "@vitest/coverage-v8": "^4.0.18",
-    "bullmq": "^5.70.1",
-    "eslint": "^10.0.2",
+    "@types/node": "^25.5.0",
+    "@typescript-eslint/eslint-plugin": "^8.57.0",
+    "@typescript-eslint/parser": "^8.57.0",
+    "@vitest/coverage-v8": "^4.1.0",
+    "bullmq": "5.71.0",
+    "eslint": "^10.0.3",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "husky": "^9.1.7",
     "ioredis": "^5.10.0",
     "jsdom": "^28.1.0",
-    "lint-staged": "^16.3.1",
+    "lint-staged": "^16.4.0",
     "msw": "^2.12.10",
     "prettier": "^3.8.1",
     "turbo": "^2.8.17",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.56.1",
-    "vitest": "^4.0.18",
+    "typescript-eslint": "^8.57.0",
+    "vitest": "^4.1.0",
     "yaml": "^2.8.2",
     "zod": "^4.3.6"
   },
@@ -81,5 +81,8 @@
       "lodash.isequal": "4",
       "rimraf": "2"
     }
+  },
+  "dependencies": {
+    "fastify": "5.8.2"
   }
 }

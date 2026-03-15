@@ -17,15 +17,15 @@
     "@cerniq/shared-types": "workspace:*",
     "@cerniq/worker-shared": "workspace:*",
     "@types/papaparse": "^5.5.2",
-    "bullmq": "^5.70.1",
+    "bullmq": "^5.71.0",
     "exceljs": "^4.4.0",
     "fuzzball": "^2.2.3",
     "ioredis": "^5.10.0",
-    "libphonenumber-js": "^1.12.38",
+    "libphonenumber-js": "^1.12.40",
     "papaparse": "^5.5.3"
   },
   "devDependencies": {
     "tsx": "^4.21.0",
-    "vitest": "^4.0.18"
+    "vitest": "^4.1.0"
   }
 }
