@@ -1,0 +1,92 @@
+{
+  "scannerVersion": 2,
+  "generatedAt": "2026-03-19T14:37:31.183Z",
+  "completedAt": "2026-03-19T14:37:31.185Z",
+  "interrupted": false,
+  "root": "/var/www/CerniqAPP",
+  "options": {
+    "extensions": [
+      ".json"
+    ],
+    "roots": [
+      "package.json"
+    ],
+    "analyzers": [
+      "eslint",
+      "typescript",
+      "json",
+      "yaml",
+      "shell",
+      "python"
+    ],
+    "output": "tmp/scan-diagnostics-smoke.json",
+    "maxFiles": 1,
+    "checkpointEvery": 1,
+    "resume": false,
+    "includeUnsupported": true
+  },
+  "excludedDirectories": [
+    ".git",
+    ".turbo",
+    "node_modules",
+    "dist",
+    "build",
+    "coverage",
+    "playwright-report",
+    "test-results",
+    "tmp",
+    "data",
+    "secrets",
+    "Arhiva_Research"
+  ],
+  "discoveredFiles": 1,
+  "summary": {
+    "totalFiles": 1,
+    "supportedFiles": 1,
+    "unsupportedFiles": 0,
+    "cleanFiles": 1,
+    "filesWithDiagnostics": 0,
+    "analyzerErrors": 0,
+    "diagnosticsCount": 0,
+    "severityCounts": {
+      "error": 0,
+      "warning": 0
+    },
+    "analyzerCounts": {
+      "json": 1
+    },
+    "ruleCounts": {},
+    "sourceCounts": {}
+  },
+  "files": [
+    {
+      "path": "package.json",
+      "extension": ".json",
+      "size": 2998,
+      "mtimeMs": 1773925463125.0366,
+      "fingerprint": "package.json:2998:1773925463125",
+      "analysis": {
+        "supported": true,
+        "status": "clean",
+        "analyzers": [
+          "json"
+        ],
+        "diagnostics": [],
+        "runs": [
+          {
+            "analyzer": "json",
+            "status": "clean",
+            "command": "JSON.parse(<file>)",
+            "startedAt": "2026-03-19T14:37:31.184Z",
+            "finishedAt": "2026-03-19T14:37:31.184Z",
+            "durationMs": 0,
+            "exitCode": 0,
+            "diagnostics": [],
+            "stderr": null,
+            "parserError": null
+          }
+        ]
+      }
+    }
+  ]
+}

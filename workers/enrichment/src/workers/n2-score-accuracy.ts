@@ -1,5 +1,6 @@
 import type { Processor } from "bullmq";
 import { db, setSessionTenantId, silverCompanies, silverEnrichmentLog, sql } from "@cerniq/db";
+import { createQueue, QUEUES } from "@cerniq/worker-shared";
 import { validateCuiModulo11 } from "../lib/cui-validation.js";
 
 export type AccuracyJobData = {
@@ -64,6 +65,15 @@ export const scoreAccuracyProcessor: Processor<AccuracyJobData> = async (job) =>
     jobId: String(job.id ?? ""),
     durationMs: Date.now() - startedAt,
   });
+
+  // Sequential scoring: accuracy -> freshness (spec: N.1 -> N.2 -> N.3)
+  const freshnessQueue = createQueue(QUEUES.SCORE_FRESHNESS);
+  await freshnessQueue.add("score", {
+    tenantId: job.data.tenantId,
+    companyId: job.data.companyId,
+    correlationId: job.data.correlationId,
+  });
+  await freshnessQueue.close();
 
   return { ok: true, status: "success", score, issues: issues.length };
 };

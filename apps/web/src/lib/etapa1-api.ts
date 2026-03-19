@@ -101,7 +101,9 @@ export type ApprovalListParams = {
   limit?: number;
 };
 
-function appendParams(params: URLSearchParams, values: Record<string, unknown>) {
+type QueryParamValue = string | number | boolean | string[] | number[] | undefined | null;
+
+function appendParams(params: URLSearchParams, values: Record<string, QueryParamValue>) {
   for (const [key, value] of Object.entries(values)) {
     if (value === undefined || value === null || value === "") continue;
     if (Array.isArray(value)) {
@@ -117,8 +119,33 @@ export async function fetchDashboardStats() {
   return api.get<ApiObjectResponse<Record<string, unknown>>>("/api/v1/dashboard/stats");
 }
 
+export type DashboardActivityItem = {
+  id: string;
+  type: string;
+  timestamp: string;
+  message: string;
+  severity: string | null;
+};
+
+export type DailyStatRow = {
+  id: string;
+  tenantId: string;
+  statDate: string;
+  pipelineStage: string;
+  bronzeTotal: number;
+  silverTotal: number;
+  goldTotal: number;
+  avgQualityScore: string | null;
+  avgLeadScore: string | null;
+  hitlPending: number;
+  hitlCompleted: number;
+  enrichmentJobsCompleted: number;
+  enrichmentJobsFailed: number;
+  createdAt: string;
+};
+
 export async function fetchDashboardActivity(limit = 20) {
-  return api.get<ApiObjectResponse<Array<Record<string, unknown>>>>(
+  return api.get<ApiObjectResponse<DashboardActivityItem[]>>(
     `/api/v1/dashboard/activity?limit=${limit}`,
   );
 }
@@ -497,10 +524,47 @@ export async function fetchDashboardDailyStats(params: DailyStatsParams = {}) {
     limit: params.limit,
     offset: params.offset,
   });
-  return api.get<ApiListResponse<Record<string, unknown>>>(
-    `/api/v1/dashboard/daily-stats?${query}`,
-  );
+  return api.get<ApiListResponse<DailyStatRow>>(`/api/v1/dashboard/daily-stats?${query}`);
 }
+
+export type ApprovalTask = {
+  id: string;
+  tenantId: string;
+  type: string;
+  approvalType:
+    | "dedup_review"
+    | "identity_conflict"
+    | "quality_review"
+    | "ai_structuring_review"
+    | "ai_merge_review"
+    | "low_confidence_review"
+    | "data_anomaly"
+    | "manual_verification"
+    | "error_review";
+  status: "pending" | "assigned" | "approved" | "rejected" | "escalated" | "expired" | "cancelled";
+  urgency: "low" | "medium" | "high" | "critical";
+  priorityLevel: "critical" | "high" | "normal" | "low";
+  pipelineStage: string;
+  entityType: string;
+  entityId: string;
+  title: string;
+  description: string | null;
+  aiConfidence: number | null;
+  aiRecommendation: string | null;
+  aiReasoning: string | null;
+  requestedBy: string;
+  assignedTo: string | null;
+  decidedBy: string | null;
+  decidedAt: string | null;
+  decision: string | null;
+  decisionReason: string | null;
+  dueAt: string | null;
+  escalationLevel: number;
+  expiresAt: string | null;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+};
 
 export async function fetchApprovals(params: ApprovalListParams = {}) {
   const query = new URLSearchParams();
@@ -516,9 +580,7 @@ export async function fetchApprovals(params: ApprovalListParams = {}) {
     sortDir: params.sortDir,
     limit: params.limit ?? 25,
   });
-  return api.get<ApiObjectResponse<Array<Record<string, unknown>>>>(
-    `/api/v1/enrichment/approvals?${query}`,
-  );
+  return api.get<ApiObjectResponse<ApprovalTask[]>>(`/api/v1/enrichment/approvals?${query}`);
 }
 
 export async function fetchApprovalById(id: string) {

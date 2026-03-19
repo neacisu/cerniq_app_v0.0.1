@@ -8,6 +8,7 @@ import * as users from "./schemas/users.js";
 import * as rbac from "./schemas/rbac.js";
 import * as approval from "./schemas/approval.js";
 import * as audit from "./schemas/audit.js";
+import * as consent from "./schemas/consent.js";
 import * as inviteCodesSchema from "./schemas/invite-codes.js";
 import * as bronze from "./schemas/bronze.js";
 import * as silver from "./schemas/silver.js";
@@ -19,6 +20,7 @@ const schema = {
   ...rbac,
   ...approval,
   ...audit,
+  ...consent,
   ...inviteCodesSchema,
   ...bronze,
   ...silver,
@@ -79,6 +81,7 @@ export async function closeDbConnection(): Promise<void> {
 
 // Non-secret safety sentinel used to keep RLS fail-closed when tenant is absent.
 const SENTINEL_TENANT_ID = "00000000-0000-0000-0000-000000000000";
+const SENTINEL_USER_ID = "00000000-0000-0000-0000-000000000000";
 
 /**
  * Set session variable app.tenant_id for RLS policies.
@@ -89,6 +92,23 @@ export async function setSessionTenantId(tenantId: string | null): Promise<void>
   const value = tenantId ?? SENTINEL_TENANT_ID;
   // Session-level scope is required because request queries are not wrapped in a single DB transaction.
   await connection.sql`SELECT set_config('app.tenant_id', ${value}, false)`;
+}
+
+/**
+ * Set request/session context for both tenant and actor.
+ * Uses sentinels when values are absent so SQL consumers can fail closed.
+ */
+export async function setSessionRequestContext(args: {
+  tenantId: string | null;
+  userId: string | null;
+}): Promise<void> {
+  const tenantValue = args.tenantId ?? SENTINEL_TENANT_ID;
+  const userValue = args.userId ?? SENTINEL_USER_ID;
+  await connection.sql`
+    SELECT
+      set_config('app.tenant_id', ${tenantValue}, false),
+      set_config('app.current_user_id', ${userValue}, false)
+  `;
 }
 
 /** Look up user by email (SECURITY DEFINER, bypasses RLS). Use for login only. */

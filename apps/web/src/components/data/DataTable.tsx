@@ -6,6 +6,8 @@ import {
   useReactTable,
   type ColumnDef,
   type SortingState,
+  type RowSelectionState,
+  type OnChangeFn,
 } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 import { TableRoot, TableWrapper, Th, Td } from "@/components/ui/table.js";
@@ -16,6 +18,8 @@ type DataTableProps<TData> = {
   readonly data: TData[];
   readonly emptyMessage?: string;
   readonly className?: string;
+  readonly rowSelection?: RowSelectionState;
+  readonly onRowSelectionChange?: OnChangeFn<RowSelectionState>;
 };
 
 export function DataTable<TData>({
@@ -23,6 +27,8 @@ export function DataTable<TData>({
   data,
   emptyMessage = "Nu exista date.",
   className,
+  rowSelection,
+  onRowSelectionChange,
 }: DataTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const safeData = useMemo(() => data ?? [], [data]);
@@ -36,7 +42,12 @@ export function DataTable<TData>({
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onSortingChange: setSorting,
-    state: { sorting },
+    state: {
+      sorting,
+      ...(rowSelection === undefined ? {} : { rowSelection }),
+    },
+    ...(onRowSelectionChange ? { onRowSelectionChange } : {}),
+    enableRowSelection: onRowSelectionChange !== undefined,
   });
 
   return (

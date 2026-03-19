@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { approvalTasks, db, setSessionTenantId, silverCompanies, sql } from "@cerniq/db";
-import { createQueue } from "@cerniq/worker-shared";
+import { createQueue, hitlTasksCreatedTotal } from "@cerniq/worker-shared";
 
 export async function resolveRequesterUserId(tenantId: string): Promise<string | null> {
   if (process.env.SYSTEM_USER_ID) return process.env.SYSTEM_USER_ID;
@@ -77,7 +77,11 @@ export async function createHitlApprovalTask(args: {
     })
     .returning({ id: approvalTasks.id });
 
-  return inserted[0]?.id ?? null;
+  const taskId = inserted[0]?.id ?? null;
+  if (taskId) {
+    hitlTasksCreatedTotal.inc({ approval_type: args.type, tenant_id: args.tenantId });
+  }
+  return taskId;
 }
 
 export async function addQueueJob(queueName: string, payload: Record<string, unknown>) {

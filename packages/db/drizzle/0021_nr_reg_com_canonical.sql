@@ -25,11 +25,19 @@ WHERE "extracted_nr_reg_com_raw" IS NOT NULL
 -- Step 3: Data migration — restore raw NrRegCom in silver_companies.
 -- nr_reg_com_original holds the original raw value;
 -- nr_reg_com was incorrectly set to the normalized canonical form.
-UPDATE "silver"."silver_companies"
-SET "nr_reg_com" = UPPER(TRIM("nr_reg_com_original"))
-WHERE "nr_reg_com_original" IS NOT NULL
-  AND TRIM("nr_reg_com_original") <> ''
-  AND UPPER(TRIM("nr_reg_com_original")) IS DISTINCT FROM UPPER(TRIM(COALESCE("nr_reg_com", '')));
+-- Skip rows where restoring the raw value would create a duplicate (tenant_id, nr_reg_com)
+-- pair — those companies already have the correct raw value via another row.
+UPDATE "silver"."silver_companies" sc
+SET "nr_reg_com" = UPPER(TRIM(sc."nr_reg_com_original"))
+WHERE sc."nr_reg_com_original" IS NOT NULL
+  AND TRIM(sc."nr_reg_com_original") <> ''
+  AND UPPER(TRIM(sc."nr_reg_com_original")) IS DISTINCT FROM UPPER(TRIM(COALESCE(sc."nr_reg_com", '')))
+  AND NOT EXISTS (
+    SELECT 1 FROM "silver"."silver_companies" other
+    WHERE other.tenant_id = sc.tenant_id
+      AND other.id <> sc.id
+      AND UPPER(TRIM(other.nr_reg_com)) = UPPER(TRIM(sc.nr_reg_com_original))
+  );
 --> statement-breakpoint
 
 -- Step 4: Revoke all nr_reg_com identity keys so re-promote rebuilds them correctly

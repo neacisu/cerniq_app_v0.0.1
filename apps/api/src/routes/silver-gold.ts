@@ -38,6 +38,10 @@ const goldStateSchema = z.enum([
   "PROPOSAL",
   "CLOSING",
   "CONVERTED",
+  "ONBOARDING",
+  "NURTURING_ACTIVE",
+  "AT_RISK",
+  "LOYAL_ADVOCATE",
   "CHURNED",
   "DEAD",
   "DO_NOT_CONTACT",
@@ -71,6 +75,10 @@ const goldPatchBodySchema = z.object({ ...assignLeadSchema.shape, ...updateLeadS
 
 export async function silverGoldRoutes(app: FastifyInstance) {
   const authOpts = { onRequest: [async (req: FastifyRequest) => req.jwtVerify()] };
+  const enrichmentMutationRateLimit = app.rateLimit({
+    max: 60,
+    timeWindow: "1 minute",
+  });
 
   app.get(
     "/silver/companies",
@@ -254,6 +262,7 @@ export async function silverGoldRoutes(app: FastifyInstance) {
     "/silver/companies/:id/enrich",
     {
       ...authOpts,
+      preHandler: [enrichmentMutationRateLimit],
       schema: {
         tags: ["etapa1-silver"],
         summary: "Trigger silver enrichment",
@@ -304,6 +313,7 @@ export async function silverGoldRoutes(app: FastifyInstance) {
     "/silver/companies/:id/promote",
     {
       ...authOpts,
+      preHandler: [enrichmentMutationRateLimit],
       schema: {
         tags: ["etapa1-silver"],
         summary: "Trigger silver to gold promotion",
@@ -461,6 +471,7 @@ export async function silverGoldRoutes(app: FastifyInstance) {
     "/silver/dedup-candidates/:id/decide",
     {
       ...authOpts,
+      preHandler: [enrichmentMutationRateLimit],
       schema: {
         tags: ["etapa1-silver"],
         summary: "Decide on a dedup candidate pair",
@@ -496,17 +507,65 @@ export async function silverGoldRoutes(app: FastifyInstance) {
       if (body.data.decision === "merge") newStatus = "merged";
       else if (body.data.decision === "reject") newStatus = "rejected";
       else newStatus = "pending";
+
+      const now = new Date();
+      let masterCompanyId: string | undefined;
+
+      if (body.data.decision === "merge") {
+        // Determine master: prefer explicit selection, otherwise companyAId
+        masterCompanyId = body.data.masterCompanyId;
+        if (!masterCompanyId) masterCompanyId = candidate.companyAId;
+        const secondaryId =
+          masterCompanyId === candidate.companyAId ? candidate.companyBId : candidate.companyAId;
+
+        // Merge secondary into master: update secondary company record
+        const secondary = await db.query.silverCompanies.findFirst({
+          where: (t, { and: a, eq: e }) => a(e(t.tenantId, tenantId), e(t.id, secondaryId)),
+        });
+        if (secondary) {
+          const newMergeHistory = [
+            ...((secondary.mergeHistory as unknown[]) ?? []),
+            {
+              mergedAt: now.toISOString(),
+              mergedBy: actorId,
+              mergedInto: masterCompanyId,
+              dedupCandidateId: candidate.id,
+              reason: body.data.reason ?? null,
+            },
+          ];
+          await db
+            .update(silverCompanies)
+            .set({
+              isMasterRecord: false,
+              masterRecordId: masterCompanyId,
+              dedupStatus: "merged",
+              mergeHistory: newMergeHistory,
+              updatedAt: now,
+            })
+            .where(eq(silverCompanies.id, secondaryId));
+        }
+      }
+
       await db
         .update(silverDedupCandidates)
         .set({
           status: newStatus,
-          decidedAt: new Date(),
+          decidedAt: now,
           decidedBy: actorId,
-          updatedAt: new Date(),
+          ...(masterCompanyId ? { masterCompanyId, mergedAt: now } : {}),
+          decisionReason: body.data.reason,
+          updatedAt: now,
         })
         .where(eq(silverDedupCandidates.id, params.data.id));
 
-      return { success: true, data: { id: params.data.id, decision: body.data.decision } };
+      return {
+        success: true,
+        data: {
+          id: params.data.id,
+          decision: body.data.decision,
+          masterCompanyId: masterCompanyId ?? null,
+        },
+      };
     },
   );
 
@@ -699,6 +758,7 @@ export async function silverGoldRoutes(app: FastifyInstance) {
     "/gold/companies/:id",
     {
       ...authOpts,
+      preHandler: [enrichmentMutationRateLimit],
       schema: {
         tags: ["etapa1-gold"],
         summary: "Patch gold company assignment/state",
@@ -741,6 +801,7 @@ export async function silverGoldRoutes(app: FastifyInstance) {
     "/gold/companies/:id/transition",
     {
       ...authOpts,
+      preHandler: [enrichmentMutationRateLimit],
       schema: {
         tags: ["etapa1-gold"],
         summary: "Apply FSM transition for gold lead",
@@ -776,7 +837,11 @@ export async function silverGoldRoutes(app: FastifyInstance) {
         NEGOTIATION: ["PROPOSAL", "CLOSING", "CHURNED", "DEAD"],
         PROPOSAL: ["CLOSING", "CONVERTED", "CHURNED", "DEAD"],
         CLOSING: ["CONVERTED", "CHURNED", "DEAD"],
-        CONVERTED: ["CHURNED"],
+        CONVERTED: ["ONBOARDING", "CHURNED"],
+        ONBOARDING: ["NURTURING_ACTIVE"],
+        NURTURING_ACTIVE: ["AT_RISK", "LOYAL_ADVOCATE", "DEAD"],
+        AT_RISK: ["NURTURING_ACTIVE", "CHURNED", "DEAD"],
+        LOYAL_ADVOCATE: ["AT_RISK", "DEAD"],
         CHURNED: [],
         DEAD: [],
         DO_NOT_CONTACT: [],
@@ -798,15 +863,6 @@ export async function silverGoldRoutes(app: FastifyInstance) {
         })
         .where(sql`${goldCompanies.id} = ${existing.id}`)
         .returning();
-
-      await db.insert(goldLeadJourney).values({
-        tenantId,
-        companyId: existing.id,
-        eventType: "state_transition",
-        fromState: existing.currentState,
-        toState: body.data.toState,
-        metadata: {},
-      });
 
       return { success: true, data: updated };
     },

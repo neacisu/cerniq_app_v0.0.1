@@ -8,13 +8,25 @@ import {
   sql,
   upsertCompanyIdentityKey,
 } from "@cerniq/db";
+import {
+  validateJobData,
+  hitlTasksResolvedTotal,
+  hitlResolutionTimeSeconds,
+} from "@cerniq/worker-shared";
 import { addQueueJob, patchCompanyMetadata } from "./pipeline-utils.js";
+import { z } from "zod";
 
 export type HitlResumeAfterApprovalJobData = {
   tenantId: string;
   approvalTaskId: string;
   correlationId?: string;
 };
+
+const hitlResumeAfterApprovalJobDataSchema = z.object({
+  tenantId: z.uuid(),
+  approvalTaskId: z.uuid(),
+  correlationId: z.string().trim().min(1).optional(),
+});
 
 function readMetadataObject(input: unknown): Record<string, unknown> {
   return typeof input === "object" && input !== null ? (input as Record<string, unknown>) : {};
@@ -322,6 +334,10 @@ async function handleIdentityConflict(context: ApprovalContext): Promise<ResumeP
 export const hitlResumeAfterApprovalProcessor: Processor<HitlResumeAfterApprovalJobData> = async (
   job,
 ) => {
+  validateJobData(hitlResumeAfterApprovalJobDataSchema, job.data, {
+    queueName: "hitl:resume",
+    jobId: job.id,
+  });
   await setSessionTenantId(job.data.tenantId);
   const task = await db.query.approvalTasks.findFirst({
     where: (t, { and, eq }) =>
@@ -341,6 +357,21 @@ export const hitlResumeAfterApprovalProcessor: Processor<HitlResumeAfterApproval
     resolvedApprovalType: getResolvedApprovalType(task),
     correlationId: job.data.correlationId,
   };
+
+  // Track HITL resolution metrics
+  const approvalType = context.resolvedApprovalType ?? task.type;
+  hitlTasksResolvedTotal.inc({
+    approval_type: approvalType,
+    decision: context.decision ?? "unknown",
+    tenant_id: job.data.tenantId,
+  });
+  if (task.createdAt) {
+    const resolutionSeconds = (Date.now() - new Date(task.createdAt).getTime()) / 1000;
+    hitlResolutionTimeSeconds.observe(
+      { approval_type: approvalType, tenant_id: job.data.tenantId },
+      resolutionSeconds,
+    );
+  }
 
   if (context.resolvedApprovalType === "dedup_review") {
     return handleDedupReview(context);

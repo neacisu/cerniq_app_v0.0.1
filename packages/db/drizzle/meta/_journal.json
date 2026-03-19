@@ -155,6 +155,20 @@
       "when": 1772210000000,
       "tag": "0021_nr_reg_com_canonical",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1772220000000,
+      "tag": "0022_etapa1_schema_phase2_alignment",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1772230000000,
+      "tag": "0023_etapa1_schema_phase2_fsm_functions",
+      "breakpoints": true
     }
   ]
 }

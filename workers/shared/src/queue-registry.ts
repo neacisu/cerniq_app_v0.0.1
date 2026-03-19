@@ -180,3 +180,44 @@ export function assertQueueRegistryComplete() {
     throw new Error(`Expected 63 queues, got ${queueRegistry.length}`);
   }
 }
+
+/**
+ * Standard retry strategies for BullMQ job options.
+ * Use these across all workers for consistent retry behavior.
+ */
+export const RETRY_STRATEGIES = {
+  /** Fast internal operations: 3 attempts, exponential 500ms base */
+  FAST: {
+    attempts: 3,
+    backoff: { type: "exponential" as const, delay: 500 },
+    removeOnFail: { count: 100 },
+    removeOnComplete: { count: 100 },
+  },
+  /** External API calls: 5 attempts, exponential 1000ms base (up to ~16s last retry) */
+  EXTERNAL_API: {
+    attempts: 5,
+    backoff: { type: "exponential" as const, delay: 1000 },
+    removeOnFail: { count: 100 },
+    removeOnComplete: { count: 100 },
+  },
+  /** Scraping / slow external: 3 attempts, exponential 5000ms base */
+  SCRAPING: {
+    attempts: 3,
+    backoff: { type: "exponential" as const, delay: 5000 },
+    removeOnFail: { count: 50 },
+    removeOnComplete: { count: 50 },
+  },
+  /** Pipeline control flow: 2 attempts, fixed 1000ms (fail fast if orchestration breaks) */
+  PIPELINE: {
+    attempts: 2,
+    backoff: { type: "fixed" as const, delay: 1000 },
+    removeOnFail: { count: 200 },
+    removeOnComplete: { count: 200 },
+  },
+  /** HITL tasks: 1 attempt (no auto retry – human decision required) */
+  HITL: {
+    attempts: 1,
+    removeOnFail: { count: 200 },
+    removeOnComplete: { count: 200 },
+  },
+} as const;

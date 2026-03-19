@@ -1,6 +1,60 @@
 import { createHash } from "node:crypto";
 import type { Processor } from "bullmq";
 import { db, setSessionTenantId, silverContacts, silverEnrichmentLog, sql } from "@cerniq/db";
+import { createCircuitBreaker } from "@cerniq/worker-shared";
+
+const clearbitBreaker = createCircuitBreaker(
+  async (email: string, apiKey: string) => {
+    const response = await fetch(
+      `https://person.clearbit.com/v2/people/find?email=${encodeURIComponent(email)}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          Accept: "application/json",
+        },
+        signal: AbortSignal.timeout(Number(process.env.CLEARBIT_TIMEOUT_MS ?? "12000")),
+      },
+    );
+    if (response.status === 404) return null;
+    if (!response.ok) throw new Error(`Clearbit API error: ${response.status}`);
+    return (await response.json()) as Record<string, unknown>;
+  },
+  "clearbit",
+  { timeout: 12000, errorThresholdPercentage: 50, resetTimeout: 60000 },
+);
+
+const fullcontactBreaker = createCircuitBreaker(
+  async (email: string, apiKey: string) => {
+    const response = await fetch("https://api.fullcontact.com/v3/person.enrich", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({ email }),
+      signal: AbortSignal.timeout(Number(process.env.FULLCONTACT_TIMEOUT_MS ?? "12000")),
+    });
+    if (response.status === 404) return null;
+    if (!response.ok) throw new Error(`FullContact API error: ${response.status}`);
+    return (await response.json()) as Record<string, unknown>;
+  },
+  "fullcontact",
+  { timeout: 12000, errorThresholdPercentage: 50, resetTimeout: 60000 },
+);
+
+async function fetchClearbit(email: string): Promise<Record<string, unknown> | null> {
+  const apiKey = process.env.CLEARBIT_API_KEY;
+  if (!apiKey) return null;
+  return clearbitBreaker.fire(email, apiKey);
+}
+
+async function fetchFullContact(email: string): Promise<Record<string, unknown> | null> {
+  const apiKey = process.env.FULLCONTACT_API_KEY;
+  if (!apiKey) return null;
+  return fullcontactBreaker.fire(email, apiKey);
+}
 
 export type EmailEnricherJobData = {
   tenantId: string;
@@ -8,43 +62,6 @@ export type EmailEnricherJobData = {
   email?: string;
   correlationId?: string;
 };
-
-async function fetchClearbit(email: string): Promise<Record<string, unknown> | null> {
-  const apiKey = process.env.CLEARBIT_API_KEY;
-  if (!apiKey) return null;
-  const response = await fetch(
-    `https://person.clearbit.com/v2/people/find?email=${encodeURIComponent(email)}`,
-    {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        Accept: "application/json",
-      },
-      signal: AbortSignal.timeout(Number(process.env.CLEARBIT_TIMEOUT_MS ?? "12000")),
-    },
-  );
-  if (response.status === 404) return null;
-  if (!response.ok) throw new Error(`Clearbit API error: ${response.status}`);
-  return (await response.json()) as Record<string, unknown>;
-}
-
-async function fetchFullContact(email: string): Promise<Record<string, unknown> | null> {
-  const apiKey = process.env.FULLCONTACT_API_KEY;
-  if (!apiKey) return null;
-  const response = await fetch("https://api.fullcontact.com/v3/person.enrich", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    },
-    body: JSON.stringify({ email }),
-    signal: AbortSignal.timeout(Number(process.env.FULLCONTACT_TIMEOUT_MS ?? "12000")),
-  });
-  if (response.status === 404) return null;
-  if (!response.ok) throw new Error(`FullContact API error: ${response.status}`);
-  return (await response.json()) as Record<string, unknown>;
-}
 
 export const emailEnricherProcessor: Processor<EmailEnricherJobData> = async (job) => {
   const startedAt = Date.now();

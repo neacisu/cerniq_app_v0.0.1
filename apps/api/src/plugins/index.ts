@@ -13,6 +13,10 @@ import { metricsPlugin } from "./metrics.js";
 import { requestLoggingPlugin } from "./request-logging.js";
 import { tenantContext } from "./tenant-context.js";
 
+function getRateLimitScope(request: { routeOptions?: { url?: string }; url: string }) {
+  return request.routeOptions?.url ?? request.url.split("?")[0] ?? "unknown";
+}
+
 function createRateLimitRedis() {
   const client = new Redis(envConfig.REDIS_URL, {
     maxRetriesPerRequest: 3,
@@ -75,12 +79,38 @@ export async function registerPlugins(app: FastifyInstance) {
   });
 
   await app.register(helmet, {
-    contentSecurityPolicy: envConfig.NODE_ENV === "production",
+    contentSecurityPolicy:
+      envConfig.NODE_ENV === "development"
+        ? false
+        : {
+            directives: {
+              "default-src": ["'self'"],
+              "script-src": ["'self'"],
+              "style-src": ["'self'", "'unsafe-inline'"],
+              "img-src": ["'self'", "data:", "blob:"],
+              "connect-src": ["'self'"],
+              "font-src": ["'self'"],
+              "object-src": ["'none'"],
+              "frame-ancestors": ["'none'"],
+              "base-uri": ["'self'"],
+            },
+          },
   });
 
   await app.register(jwt, {
     secret: async (_request: unknown, _tokenOrPayload: unknown) => envConfig.JWT_SECRET,
-    sign: { expiresIn: envConfig.JWT_EXPIRES_IN },
+    sign: {
+      expiresIn: envConfig.JWT_EXPIRES_IN,
+    },
+    verify: {
+      allowedIss: "cerniq.app",
+      allowedAud: "cerniq-api",
+    },
+    messages: {
+      authorizationTokenExpiredMessage: "Token expired",
+      authorizationTokenInvalid: "Invalid token",
+      authorizationTokenUntrusted: "Untrusted authorization token",
+    },
   });
 
   await app.register(cookie);
@@ -102,11 +132,20 @@ export async function registerPlugins(app: FastifyInstance) {
     }
   });
   await app.register(rateLimit, {
+    hook: "preHandler",
     nameSpace: `${envConfig.REDIS_PREFIX ?? "cerniq"}:ratelimit:`,
     max: envConfig.RATE_LIMIT_MAX,
     timeWindow: envConfig.RATE_LIMIT_WINDOW,
     redis: rateLimitRedis,
     skipOnError: true,
+    keyGenerator: (request) => {
+      const scope = getRateLimitScope(request);
+      const tenantId =
+        typeof request.tenantId === "string" && request.tenantId.trim().length > 0
+          ? request.tenantId.trim()
+          : null;
+      return tenantId ? `tenant:${tenantId}:${scope}` : `ip:${request.ip}:${scope}`;
+    },
   });
 
   await app.register(tenantContext);

@@ -4,6 +4,7 @@ export {
   refreshDbConnection,
   closeDbConnection,
   setSessionTenantId,
+  setSessionRequestContext,
   get_user_by_email,
   insert_tenant,
   insert_user,
@@ -26,6 +27,7 @@ export * from "./schemas/users.js";
 export * from "./schemas/rbac.js";
 export * from "./schemas/approval.js";
 export * from "./schemas/audit.js";
+export * from "./schemas/consent.js";
 export * from "./schemas/invite-codes.js";
 export * from "./schemas/bronze.js";
 export * from "./schemas/silver.js";

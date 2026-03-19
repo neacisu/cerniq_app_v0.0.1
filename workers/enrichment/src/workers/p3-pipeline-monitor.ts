@@ -1,13 +1,23 @@
 import { type Processor } from "bullmq";
 import { db, setSessionTenantId, sql } from "@cerniq/db";
-import { createQueue } from "@cerniq/worker-shared";
+import { createQueue, validateJobData, hitlSlaBreachTotal } from "@cerniq/worker-shared";
+import { z } from "zod";
 
 export type PipelineMonitorJobData = {
   tenantId: string;
   correlationId?: string;
 };
 
+const pipelineMonitorJobDataSchema = z.object({
+  tenantId: z.uuid(),
+  correlationId: z.string().trim().min(1).optional(),
+});
+
 export const pipelineMonitorProcessor: Processor<PipelineMonitorJobData> = async (job) => {
+  validateJobData(pipelineMonitorJobDataSchema, job.data, {
+    queueName: "pipeline:monitor",
+    jobId: job.id,
+  });
   await setSessionTenantId(job.data.tenantId);
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
   const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
@@ -67,6 +77,14 @@ export const pipelineMonitorProcessor: Processor<PipelineMonitorJobData> = async
     correlationId: job.data.correlationId,
   });
   await hitlEscalation.close();
+
+  // Track SLA breaches per approval type
+  for (const breached of breachedApprovals) {
+    hitlSlaBreachTotal.inc({
+      approval_type: ((breached as Record<string, unknown>).type as string) ?? "unknown",
+      tenant_id: job.data.tenantId,
+    });
+  }
 
   return {
     ok: true,

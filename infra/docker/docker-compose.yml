@@ -266,16 +266,19 @@ services:
       timeout: 10s
       retries: 3
       start_period: 15s
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-          cpus: "2.0"
     labels:
       <<: *common-labels
       com.cerniq.service: "worker-enrichment"
     logging:
       <<: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "2.0"
+        reservations:
+          memory: 256M
+          cpus: "0.25"
 
   # ==========================================================================
   # PgBouncer 1.25 - Connection Pooling
@@ -589,5 +592,11 @@ services:
     labels:
       <<: *common-labels
       com.cerniq.service: "cadvisor"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     logging:
       <<: *default-logging

@@ -7,17 +7,19 @@ import {
   fetchDashboardActivity,
   fetchDashboardDailyStats,
   fetchDashboardStats,
+  type DashboardActivityItem,
 } from "@/lib/etapa1-api.js";
 import { FunnelChart } from "@/components/charts/FunnelChart.js";
 import { BarTrendChart } from "@/components/charts/BarTrendChart.js";
 import { LineTrendChart } from "@/components/charts/LineTrendChart.js";
+import { GaugeChart } from "@/components/charts/GaugeChart.js";
 import { StatsGrid } from "@/components/widgets/StatsGrid.js";
 import { ActivityFeed } from "@/components/widgets/ActivityFeed.js";
 
-function getActivityStatus(item: Record<string, unknown>): "error" | "warning" | "info" {
-  const severity = String(item.severity).toLowerCase();
+function getActivityStatus(item: DashboardActivityItem): "error" | "warning" | "info" {
+  const severity = (item.severity ?? "").toLowerCase();
   if (severity.includes("critical") || severity.includes("error")) return "error";
-  if (String(item.type).includes("approval")) return "warning";
+  if (item.type.includes("approval")) return "warning";
   return "info";
 }
 
@@ -80,10 +82,10 @@ export function Dashboard() {
       change: "",
     },
   ];
-  const activity = (activityQuery.data?.data ?? []).map((item: Record<string, unknown>) => ({
+  const activity = (activityQuery.data?.data ?? []).map((item: DashboardActivityItem) => ({
     status: getActivityStatus(item),
-    text: String(item.message ?? ""),
-    time: new Date(String(item.timestamp)).toLocaleString(),
+    text: item.message,
+    time: new Date(item.timestamp).toLocaleString(),
   }));
   const pipeline = [
     { label: "Bronze", value: bronzeTotal, color: "var(--color-tier-bronze)" },
@@ -96,16 +98,16 @@ export function Dashboard() {
     label: String(i + 1),
     value: getTrendValue(item.status),
   }));
-  const dailyStatsData = ((dailyStatsQuery.data?.data ?? []) as Array<Record<string, unknown>>)
-    .sort((a, b) => String(a.statDate ?? "").localeCompare(String(b.statDate ?? "")))
+  const dailyStatsData = (dailyStatsQuery.data?.data ?? [])
+    .sort((a, b) => (a.statDate ?? "").localeCompare(b.statDate ?? ""))
     .map((row) => ({
       label: row.statDate
-        ? new Date(String(row.statDate)).toLocaleDateString("ro-RO", {
+        ? new Date(row.statDate).toLocaleDateString("ro-RO", {
             day: "2-digit",
             month: "short",
           })
         : "-",
-      value: Number(row.enrichmentJobsCompleted ?? 0),
+      value: row.enrichmentJobsCompleted,
     }));
 
   if (statsQuery.isPending) {
@@ -198,12 +200,23 @@ export function Dashboard() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>HITL Approvals</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>HITL Approvals</CardTitle>
+              <button
+                type="button"
+                onClick={() => navigate("/approvals")}
+                className="text-xs text-b5 hover:underline"
+              >
+                View all →
+              </button>
+            </div>
           </CardHeader>
           <CardBody className="space-y-2 text-sm">
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center">
               <span className="text-t3">Pending</span>
-              <span className="text-t1">
+              <span className="flex items-center gap-1 text-t1">
+                {Number((statsData.hitl as Record<string, unknown> | undefined)?.pending ?? 0) >
+                  0 && <span className="inline-block h-2 w-2 rounded-full bg-amber-500" />}
                 {Number((statsData.hitl as Record<string, unknown> | undefined)?.pending ?? 0)}
               </span>
             </div>
@@ -215,9 +228,11 @@ export function Dashboard() {
                 )}
               </span>
             </div>
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center">
               <span className="text-t3">Overdue</span>
-              <span className="text-t1">
+              <span className="flex items-center gap-1 text-t1">
+                {Number((statsData.hitl as Record<string, unknown> | undefined)?.overdue ?? 0) >
+                  0 && <span className="inline-block h-2 w-2 rounded-full bg-red-500" />}
                 {Number((statsData.hitl as Record<string, unknown> | undefined)?.overdue ?? 0)}
               </span>
             </div>
@@ -228,26 +243,40 @@ export function Dashboard() {
             <CardTitle>Enrichment Quality</CardTitle>
           </CardHeader>
           <CardBody className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-t3">Avg Quality Score</span>
-              <span className="text-t1">
-                {Number(
+            <div className="flex items-center gap-4">
+              <GaugeChart
+                value={Number(
                   (statsData.quality as Record<string, unknown> | undefined)?.avgScore ?? 0,
-                ).toFixed(1)}
-                %
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-t3">Eligible for Gold</span>
-              <span className="text-t1">
-                {Number((statsData.quality as Record<string, unknown> | undefined)?.eligible ?? 0)}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-t3">Blocked</span>
-              <span className="text-t1">
-                {Number((statsData.quality as Record<string, unknown> | undefined)?.blocked ?? 0)}
-              </span>
+                )}
+                size="sm"
+              />
+              <div className="flex-1 space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-t3">Avg Quality Score</span>
+                  <span className="text-t1">
+                    {Number(
+                      (statsData.quality as Record<string, unknown> | undefined)?.avgScore ?? 0,
+                    ).toFixed(1)}
+                    %
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-t3">Eligible for Gold</span>
+                  <span className="text-t1">
+                    {Number(
+                      (statsData.quality as Record<string, unknown> | undefined)?.eligible ?? 0,
+                    )}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-t3">Blocked</span>
+                  <span className="text-t1">
+                    {Number(
+                      (statsData.quality as Record<string, unknown> | undefined)?.blocked ?? 0,
+                    )}
+                  </span>
+                </div>
+              </div>
             </div>
           </CardBody>
         </Card>

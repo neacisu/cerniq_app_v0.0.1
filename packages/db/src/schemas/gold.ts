@@ -20,6 +20,7 @@ import { tenants } from "./tenants.js";
 import { users } from "./users.js";
 import { silverCompanies } from "./silver.js";
 import { bronzeContacts } from "./bronze.js";
+import { geographyPoint } from "./postgis.js";
 
 export const goldSchema = pgSchema("gold");
 
@@ -44,6 +45,10 @@ const leadStates = [
   "PROPOSAL",
   "CLOSING",
   "CONVERTED",
+  "ONBOARDING",
+  "NURTURING_ACTIVE",
+  "AT_RISK",
+  "LOYAL_ADVOCATE",
   "CHURNED",
   "DEAD",
   "DO_NOT_CONTACT",
@@ -62,7 +67,7 @@ export const goldCompanies = goldSchema.table(
     bronzeIds: uuid("bronze_ids").array().notNull().default([]),
 
     // --- SECȚIUNEA 1: IDENTIFICATORI ---
-    cui: varchar("cui", { length: 32 }),
+    cui: varchar("cui", { length: 32 }).notNull(),
     cuiRo: varchar("cui_ro", { length: 34 }).generatedAlwaysAs(
       sql`CASE WHEN "cui" IS NOT NULL THEN 'RO' || "cui" ELSE NULL END`,
     ),
@@ -90,7 +95,9 @@ export const goldCompanies = goldSchema.table(
     codCaenPrincipal: varchar("cod_caen_principal", { length: 8 }),
     denumireCaen: varchar("denumire_caen", { length: 255 }),
     coduriCaenSecundare: jsonb("coduri_caen_secundare").notNull().default([]),
-    isAgricultural: boolean("is_agricultural"),
+    isAgricultural: boolean("is_agricultural").generatedAlwaysAs(
+      sql`"cod_caen_principal" LIKE '01%' OR "cod_caen_principal" LIKE '02%' OR "cod_caen_principal" LIKE '03%'`,
+    ),
     capitalSocial: numeric("capital_social", { precision: 15, scale: 2 }),
 
     // --- SECȚIUNEA 3: DATE AGRICOLE ---
@@ -124,7 +131,7 @@ export const goldCompanies = goldSchema.table(
     codSiruta: integer("cod_siruta"),
     latitude: numeric("latitude", { precision: 10, scale: 7 }),
     longitude: numeric("longitude", { precision: 10, scale: 7 }),
-    locationGeography: text("location_geography"),
+    locationGeography: geographyPoint("location_geography"),
     zonaAgricola: varchar("zona_agricola", { length: 50 }),
     bazinHidrografic: varchar("bazin_hidrografic", { length: 100 }),
     nearestDepotKm: numeric("nearest_depot_km", { precision: 8, scale: 2 }),
@@ -294,6 +301,10 @@ export const goldCompanies = goldSchema.table(
     check(
       "chk_gold_state",
       sql`${t.currentState} IN (${sql.raw(leadStates.map((s) => "'" + s + "'").join(","))})`,
+    ),
+    check(
+      "chk_gold_coords_romania",
+      sql`(${t.latitude} IS NULL AND ${t.longitude} IS NULL) OR (${t.latitude} BETWEEN 43.5 AND 48.5 AND ${t.longitude} BETWEEN 20 AND 30)`,
     ),
     check("chk_gold_lead_score", sql`${t.leadScore} IS NULL OR (${t.leadScore} BETWEEN 0 AND 100)`),
   ],

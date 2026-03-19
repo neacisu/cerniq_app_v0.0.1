@@ -58,6 +58,7 @@ export const bronzeContacts = bronzeSchema.table(
       .notNull()
       .references(() => tenants.id, { onDelete: "cascade" }),
     sourceType: bronzeSourceTypeEnum("source_type").notNull(),
+    sourceIdentifier: varchar("source_identifier", { length: 500 }).notNull(),
     rawPayload: jsonb("raw_payload").notNull(),
     contentHash: varchar("content_hash", { length: 64 }).notNull(),
     sourcePayloadHash: varchar("source_payload_hash", { length: 64 }).notNull(),

@@ -153,7 +153,6 @@ async function collectImportHeaders(args: {
 }): Promise<Array<{ sheetName: string; headers: string[] }>> {
   if (detectImportSourceType(args.uploadConfig, args.filename) === "excel_import") {
     const workbook = new ExcelJS.Workbook();
-    // @ts-expect-error - ExcelJS types lag behind current Node Buffer generics; runtime is compatible.
     await workbook.xlsx.load(args.fileBuffer);
 
     const sheetsInfo: Array<{ sheetName: string; headers: string[] }> = [];
@@ -902,6 +901,10 @@ function buildBullJobResponseData(
 
 export async function importsBronzeRoutes(app: FastifyInstance) {
   const authOpts = { onRequest: [async (req: FastifyRequest) => req.jwtVerify()] };
+  const importMutationRateLimit = app.rateLimit({
+    max: 10,
+    timeWindow: "1 minute",
+  });
 
   app.get(
     "/imports",
@@ -1123,6 +1126,7 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
     "/imports/:id/re-promote",
     {
       ...authOpts,
+      preHandler: [importMutationRateLimit],
       schema: {
         tags: ["etapa1-imports"],
         summary: "Re-run Bronze->Silver promotion for all contacts in batch",
@@ -1335,6 +1339,7 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
     "/imports/:id/resume-promote",
     {
       ...authOpts,
+      preHandler: [importMutationRateLimit],
       schema: {
         tags: ["etapa1-imports"],
         summary: "Force-resume a stale or failed re-promote batch job",
@@ -1505,6 +1510,7 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
     "/imports/:id/reprocess-errors/resume",
     {
       ...authOpts,
+      preHandler: [importMutationRateLimit],
       schema: {
         tags: ["etapa1-imports"],
         summary: "Resume identity reprocess only for contacts that previously failed",
@@ -1614,6 +1620,7 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
     "/imports/:id/anaf-enrich",
     {
       ...authOpts,
+      preHandler: [importMutationRateLimit],
       schema: {
         tags: ["etapa1-imports"],
         summary: "Trigger ANAF enrichment for contacts in batch",
@@ -2080,6 +2087,7 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
     "/imports",
     {
       ...authOpts,
+      preHandler: [importMutationRateLimit],
       schema: {
         tags: ["etapa1-imports"],
         summary: "Upload and enqueue import batch",
@@ -2216,6 +2224,7 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
     "/imports/:id/cancel",
     {
       ...authOpts,
+      preHandler: [importMutationRateLimit],
       schema: {
         tags: ["etapa1-imports"],
         summary: "Cancel active import batch",
@@ -2258,6 +2267,7 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
     "/imports/:id/retry",
     {
       ...authOpts,
+      preHandler: [importMutationRateLimit],
       schema: {
         tags: ["etapa1-imports"],
         summary: "Retry (resume) a failed or pending import batch",
@@ -2471,6 +2481,7 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
     "/bronze/contacts/:id/reprocess",
     {
       ...authOpts,
+      preHandler: [importMutationRateLimit],
       schema: {
         tags: ["etapa1-bronze"],
         summary: "Requeue bronze contact for processing",

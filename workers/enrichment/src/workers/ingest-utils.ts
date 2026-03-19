@@ -11,7 +11,12 @@ import {
   setSessionTenantId,
   sql,
 } from "@cerniq/db";
-import { createQueue, sanitizeNrRegCom, QUEUES } from "@cerniq/worker-shared";
+import {
+  createQueue,
+  sanitizeNrRegCom,
+  QUEUES,
+  bronzeContactsIngestedTotal,
+} from "@cerniq/worker-shared";
 import { sanitizeCui } from "../lib/cui-validation.js";
 import { createHitlApprovalTask } from "./pipeline-utils.js";
 
@@ -692,6 +697,7 @@ export async function insertBronzeRows(
     return {
       tenantId,
       sourceType,
+      sourceIdentifier: `${sourceType}:${batchId ?? "adhoc"}:${sheetName ?? "default"}:${(options?.startingRowNumber ?? 1) + index}`,
       rawPayload: row,
       contentHash: createHash("sha256").update(JSON.stringify(row)).digest("hex"),
       sourcePayloadHash: computeStableSourcePayloadHash(mappedRow),
@@ -769,7 +775,14 @@ export async function insertBronzeRows(
     };
   });
 
-  return insertBronzePayloadSafely(payload);
+  const result = await insertBronzePayloadSafely(payload);
+  if (result.rowsInserted > 0) {
+    bronzeContactsIngestedTotal.inc(
+      { source: sourceType, tenant_id: tenantId },
+      result.rowsInserted,
+    );
+  }
+  return result;
 }
 
 export async function triggerNormalizationForContacts(

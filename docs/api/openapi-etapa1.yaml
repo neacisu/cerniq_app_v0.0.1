@@ -876,6 +876,212 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /approvals/{approvalId}/escalate:
+    post:
+      tags: [Approvals]
+      operationId: escalateApproval
+      summary: Escaladează task de aprobare
+      description: Escaladează un task HITL la un supervisor sau la o prioritate mai mare
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: approvalId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  maxLength: 2000
+                  description: Motivul escaladării
+                escalateTo:
+                  type: string
+                  format: uuid
+                  description: ID user căruia i se escaladează
+      responses:
+        "200":
+          description: Task escaldat
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      status:
+                        type: string
+                        enum: [escalated]
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ==================== SILVER DEDUP ====================
+  /silver/dedup-candidates:
+    get:
+      tags: [Silver]
+      operationId: listDedupCandidates
+      summary: Listează candidați deduplicare
+      description: Returnează perechi de companii potențial duplicate pentru revizuire
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, merged, rejected, hitl_pending]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Lista candidați dedup
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/DedupCandidate"
+                  meta:
+                    $ref: "#/components/schemas/PaginationMeta"
+
+  /silver/dedup-candidates/{candidateId}/decide:
+    post:
+      tags: [Silver]
+      operationId: decideDedupCandidate
+      summary: Decide asupra candidat deduplicare
+      description: |
+        Decide dacă două companii duplicate se vor fuziona sau nu.
+        Dacă decizia este "merge", compania secundară va fi marcată ca non-master
+        și toate referințele vor fi actualizate la compania master.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: candidateId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision]
+              properties:
+                decision:
+                  type: string
+                  enum: [merge, reject, skip]
+                masterCompanyId:
+                  type: string
+                  format: uuid
+                  description: ID compania master (default companyAId dacă nu se specifică)
+                reason:
+                  type: string
+                  maxLength: 2000
+      responses:
+        "200":
+          description: Decizie înregistrată
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      decision:
+                        type: string
+                        enum: [merge, reject, skip]
+                      masterCompanyId:
+                        type: string
+                        format: uuid
+                        nullable: true
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /gold/companies/{companyId}/journey:
+    get:
+      tags: [Gold]
+      operationId: getGoldLeadJourney
+      summary: Returnează istoricul stărilor unui lead Gold
+      description: Returnează toate tranzițiile de stare FSM ale unui lead Gold
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Istoricul tranzițiilor
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                        fromState:
+                          type: string
+                        toState:
+                          type: string
+                        triggeredBy:
+                          type: string
+                          format: uuid
+                          nullable: true
+                        transitionedAt:
+                          type: string
+                          format: date-time
+                        note:
+                          type: string
+                          nullable: true
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   # ==================== ENRICHMENT QUEUES ====================
   /enrichment/queues:
     get:
@@ -2112,6 +2318,65 @@ components:
               type: string
             paused:
               type: boolean
+
+    DedupCandidate:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+          format: uuid
+        companyAId:
+          type: string
+          format: uuid
+        companyBId:
+          type: string
+          format: uuid
+        nameSimilarity:
+          type: number
+          format: float
+          nullable: true
+        addressSimilarity:
+          type: number
+          format: float
+          nullable: true
+        cuiMatch:
+          type: boolean
+        phoneMatch:
+          type: boolean
+        overallConfidence:
+          type: number
+          format: float
+        matchingFields:
+          type: object
+          nullable: true
+        status:
+          type: string
+          enum: [pending, merged, rejected, hitl_pending]
+        masterCompanyId:
+          type: string
+          format: uuid
+          nullable: true
+        decidedBy:
+          type: string
+          format: uuid
+          nullable: true
+        decisionReason:
+          type: string
+          nullable: true
+        decidedAt:
+          type: string
+          format: date-time
+          nullable: true
+        mergedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
 
 security:
   - BearerAuth: []

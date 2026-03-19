@@ -1,5 +1,6 @@
 import type { Processor } from "bullmq";
 import { db, setSessionTenantId, silverCompanies, silverEnrichmentLog, sql } from "@cerniq/db";
+import { createQueue, QUEUES } from "@cerniq/worker-shared";
 
 export type FreshnessJobData = {
   tenantId: string;
@@ -68,6 +69,16 @@ export const scoreFreshnessProcessor: Processor<FreshnessJobData> = async (job) 
     jobId: String(job.id ?? ""),
     durationMs: Date.now() - startedAt,
   });
+
+  // After all 3 scores complete, trigger post_scoring orchestration (spec: N.3 -> aggregate/promote)
+  const orchestrateQueue = createQueue(QUEUES.PIPELINE_ORCHESTRATE);
+  await orchestrateQueue.add("process", {
+    tenantId: job.data.tenantId,
+    companyId: job.data.companyId,
+    stage: "post_scoring",
+    correlationId: job.data.correlationId,
+  });
+  await orchestrateQueue.close();
 
   return { ok: true, status: "success", score, issues: issues.length };
 };

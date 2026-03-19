@@ -1,6 +1,7 @@
 import type { Processor } from "bullmq";
 import { db, setSessionTenantId, silverCompanies, silverEnrichmentLog, sql } from "@cerniq/db";
-import { createQueue } from "@cerniq/worker-shared";
+import { createQueue, validateJobData } from "@cerniq/worker-shared";
+import { z } from "zod";
 
 export type GeocodingJobData = {
   tenantId: string;
@@ -10,6 +11,15 @@ export type GeocodingJobData = {
   judet?: string;
   correlationId?: string;
 };
+
+const geocodingJobDataSchema = z.object({
+  tenantId: z.uuid(),
+  companyId: z.uuid(),
+  adresa: z.string().trim().min(1).optional(),
+  localitate: z.string().trim().min(1).optional(),
+  judet: z.string().trim().min(1).optional(),
+  correlationId: z.string().trim().min(1).optional(),
+});
 
 function determineAccuracy(
   placeRank: number | null,
@@ -23,6 +33,10 @@ function determineAccuracy(
 }
 
 export const nominatimGeocodingProcessor: Processor<GeocodingJobData> = async (job) => {
+  validateJobData(geocodingJobDataSchema, job.data, {
+    queueName: "geo:geocode:nominatim",
+    jobId: job.id,
+  });
   const startedAt = Date.now();
   await setSessionTenantId(job.data.tenantId);
 
@@ -62,10 +76,6 @@ export const nominatimGeocodingProcessor: Processor<GeocodingJobData> = async (j
     .set({
       latitude: Number.isFinite(latitude) ? String(latitude) : undefined,
       longitude: Number.isFinite(longitude) ? String(longitude) : undefined,
-      locationGeography:
-        Number.isFinite(latitude) && Number.isFinite(longitude)
-          ? `POINT(${longitude} ${latitude})`
-          : undefined,
       metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify({
         geocoding: {
           query,

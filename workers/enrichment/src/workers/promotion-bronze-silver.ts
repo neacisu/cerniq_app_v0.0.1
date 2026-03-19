@@ -1,5 +1,5 @@
 import { setTimeout as delay } from "node:timers/promises";
-import { type Processor } from "bullmq";
+import { type Job, type Processor } from "bullmq";
 import {
   db,
   bronzeContacts,
@@ -18,10 +18,11 @@ import {
   resolveBronzeContactIdentity,
   upsertCompanyIdentityKey,
 } from "@cerniq/db";
-import { createQueue, sanitizeNrRegCom, QUEUES } from "@cerniq/worker-shared";
+import { createQueue, sanitizeNrRegCom, QUEUES, validateJobData } from "@cerniq/worker-shared";
 import { sanitizeCui } from "../lib/cui-validation.js";
 import { normalizeRow } from "./ingest-utils.js";
 import { createHitlApprovalTask } from "./pipeline-utils.js";
+import { z } from "zod";
 
 export type PromotionBronzeSilverJobData = {
   tenantId: string;
@@ -31,9 +32,24 @@ export type PromotionBronzeSilverJobData = {
   reprocessErrorsOnly?: boolean;
 };
 
+const promotionBronzeSilverJobDataSchema = z
+  .object({
+    tenantId: z.uuid(),
+    bronzeContactId: z.uuid().optional(),
+    batchId: z.uuid().optional(),
+    correlationId: z.string().trim().min(1).optional(),
+    reprocessErrorsOnly: z.boolean().optional(),
+  })
+  .refine((data) => Boolean(data.bronzeContactId || data.batchId), {
+    message: "Either bronzeContactId or batchId must be provided",
+    path: ["bronzeContactId"],
+  });
+
 const CONTACT_REPROCESS_MAX_ATTEMPTS = 3;
 const CONTACT_REPROCESS_RETRY_DELAYS_MS = [12_000, 24_000, 36_000] as const;
 const REPROCESS_ERROR_HISTORY_LIMIT = 10;
+const JOB_HEARTBEAT_MIN_INTERVAL_MS = 10_000;
+const JOB_HEARTBEAT_CONTACT_INTERVAL = 25;
 
 const NEXT_ENRICHMENT_QUEUES = [
   QUEUES.ENRICH_ANAF_FISCAL_STATUS,
@@ -654,6 +670,85 @@ type ReprocessRunCounters = {
   failedContacts: number;
 };
 
+type BatchProgressReporter = {
+  force: (payload?: Record<string, unknown>) => Promise<void>;
+  maybeReportContactProgress: (
+    counters: ReprocessRunCounters,
+    phase: ReprocessPhase,
+    lastBronzeId: string,
+  ) => Promise<void>;
+  maybeReportPromotionProgress: (queued: number, lastQueuedId: string) => Promise<void>;
+};
+
+function createBatchProgressReporter(
+  job: Job<PromotionBronzeSilverJobData> | undefined,
+): BatchProgressReporter {
+  let lastHeartbeatAt = 0;
+  let lastProcessedCount = -1;
+  let lastQueuedCount = -1;
+
+  async function sendProgress(payload: Record<string, unknown>) {
+    if (!job) {
+      return;
+    }
+
+    lastHeartbeatAt = Date.now();
+    try {
+      await job.updateProgress({
+        ...payload,
+        heartbeatAt: new Date(lastHeartbeatAt).toISOString(),
+      });
+    } catch (error) {
+      console.warn(
+        `[promotion-bronze-silver] failed to update job progress for ${String(job.id)}: ${readErrorMessage(error)}`,
+      );
+    }
+  }
+
+  return {
+    async force(payload = {}) {
+      await sendProgress(payload);
+    },
+    async maybeReportContactProgress(counters, phase, lastBronzeId) {
+      const now = Date.now();
+      const shouldReportByCount = counters.processed % JOB_HEARTBEAT_CONTACT_INTERVAL === 0;
+      const shouldReportByTime = now - lastHeartbeatAt >= JOB_HEARTBEAT_MIN_INTERVAL_MS;
+
+      if (
+        counters.processed === lastProcessedCount ||
+        (!shouldReportByCount && !shouldReportByTime)
+      ) {
+        return;
+      }
+
+      lastProcessedCount = counters.processed;
+      await sendProgress({
+        phase,
+        processed: counters.processed,
+        resolved: counters.resolved,
+        duplicateSource: counters.duplicateSource,
+        identityConflict: counters.identityConflict,
+        insufficientIdentifiers: counters.insufficientIdentifiers,
+        failedContacts: counters.failedContacts,
+        lastBronzeId,
+      });
+    },
+    async maybeReportPromotionProgress(queued, lastQueuedId) {
+      const now = Date.now();
+      if (queued === lastQueuedCount || now - lastHeartbeatAt < JOB_HEARTBEAT_MIN_INTERVAL_MS) {
+        return;
+      }
+
+      lastQueuedCount = queued;
+      await sendProgress({
+        phase: "queue_promotions",
+        queued,
+        lastQueuedId,
+      });
+    },
+  };
+}
+
 async function processOneBronzeContact(
   bronze: BronzeContactRow,
   mapping: Mapping,
@@ -930,12 +1025,22 @@ type IdentityResolutionLoopOptions = {
   pageSize: number;
   initialCursor: { lastCreatedAt: string | null; lastId: string | null };
   counters: ReprocessRunCounters;
+  progressReporter: BatchProgressReporter;
 };
 
 async function runIdentityResolutionLoop(
   opts: IdentityResolutionLoopOptions,
 ): Promise<{ lastCreatedAt: string | null; lastId: string | null }> {
-  const { tenantId, batchId, mapping, errorsOnly, initialRunTotalRows, pageSize, counters } = opts;
+  const {
+    tenantId,
+    batchId,
+    mapping,
+    errorsOnly,
+    initialRunTotalRows,
+    pageSize,
+    counters,
+    progressReporter,
+  } = opts;
   let lastCreatedAt = opts.initialCursor.lastCreatedAt;
   let lastId = opts.initialCursor.lastId;
 
@@ -971,6 +1076,7 @@ async function runIdentityResolutionLoop(
       await processOneBronzeContactWithRetries(bronze, mapping, tenantId, batchId, counters);
       lastCreatedAt = bronze.createdAt.toISOString();
       lastId = bronze.id;
+      await progressReporter.maybeReportContactProgress(counters, "resolve_identities", bronze.id);
     }
 
     await updateBatchReprocessMetadata(tenantId, batchId, {
@@ -996,7 +1102,10 @@ async function runIdentityResolutionLoop(
   return { lastCreatedAt, lastId };
 }
 
-async function handleBatchReprocess(jobData: PromotionBronzeSilverJobData) {
+async function handleBatchReprocess(
+  jobData: PromotionBronzeSilverJobData,
+  progressReporter: BatchProgressReporter = createBatchProgressReporter(undefined),
+) {
   if (!jobData.batchId) {
     return { ok: false, status: "missing_batch_id" };
   }
@@ -1059,6 +1168,13 @@ async function handleBatchReprocess(jobData: PromotionBronzeSilverJobData) {
       identityReprocessFailedContactCount: counters.failedContacts,
     });
     mapping = await loadBatchMapping(jobData.tenantId, batchId);
+    await progressReporter.force({
+      phase,
+      batchId,
+      processed: counters.processed,
+      queued: counters.promotionQueued,
+      status: "running",
+    });
 
     if (phase === "resolve_identities") {
       ({ lastCreatedAt, lastId } = await runIdentityResolutionLoop({
@@ -1070,6 +1186,7 @@ async function handleBatchReprocess(jobData: PromotionBronzeSilverJobData) {
         pageSize,
         initialCursor: { lastCreatedAt, lastId },
         counters,
+        progressReporter,
       }));
 
       phase = "queue_promotions";
@@ -1096,6 +1213,13 @@ async function handleBatchReprocess(jobData: PromotionBronzeSilverJobData) {
         identityReprocessPromotionQueued: counters.promotionQueued,
         identityReprocessFailedContactCount: counters.failedContacts,
       });
+      await progressReporter.force({
+        phase,
+        batchId,
+        processed: counters.processed,
+        queued: counters.promotionQueued,
+        status: "running",
+      });
     }
 
     counters.promotionQueued = await queueResolvedBatchPromotions(
@@ -1106,6 +1230,7 @@ async function handleBatchReprocess(jobData: PromotionBronzeSilverJobData) {
         initialQueued: counters.promotionQueued,
         resumeFromCreatedAt: promotionLastCreatedAt,
         resumeFromId: promotionLastId,
+        progressReporter,
         onCheckpoint: async ({ queued, lastQueuedCreatedAt, lastQueuedId }) => {
           counters.promotionQueued = queued;
           promotionLastCreatedAt = lastQueuedCreatedAt;
@@ -1129,6 +1254,14 @@ async function handleBatchReprocess(jobData: PromotionBronzeSilverJobData) {
             identityReprocessInsufficientIdentifierRows: counters.insufficientIdentifiers,
             identityReprocessPromotionQueued: counters.promotionQueued,
             identityReprocessFailedContactCount: counters.failedContacts,
+          });
+          await progressReporter.force({
+            phase: "queue_promotions",
+            batchId,
+            processed: counters.processed,
+            queued: counters.promotionQueued,
+            lastQueuedId: lastQueuedId ?? null,
+            status: "running",
           });
         },
       },
@@ -1171,6 +1304,14 @@ async function handleBatchReprocess(jobData: PromotionBronzeSilverJobData) {
       identityReprocessFailedContactSamples: failedSummary.samples,
       identityReprocessErrorListGeneratedAt: failedSummary.generatedAt,
     });
+    await progressReporter.force({
+      phase: "queue_promotions",
+      batchId,
+      processed: completedMetrics.processed,
+      queued: counters.promotionQueued,
+      failedContacts: completedMetrics.failedContacts,
+      status: "completed",
+    });
   } catch (error) {
     try {
       await updateBatchReprocessMetadata(jobData.tenantId, batchId, {
@@ -1200,6 +1341,15 @@ async function handleBatchReprocess(jobData: PromotionBronzeSilverJobData) {
         `[promotion-bronze-silver] failed to persist reprocess failure metadata for batch ${batchId}: ${readErrorMessage(metadataError)}`,
       );
     }
+    await progressReporter.force({
+      phase,
+      batchId,
+      processed: counters.processed,
+      queued: counters.promotionQueued,
+      failedContacts: counters.failedContacts,
+      status: "failed",
+      error: readErrorMessage(error),
+    });
     throw error;
   }
 
@@ -1229,6 +1379,7 @@ async function queueResolvedBatchPromotions(
       lastQueuedCreatedAt: string | null;
       lastQueuedId: string | null;
     }) => Promise<void>;
+    progressReporter?: BatchProgressReporter;
   },
 ) {
   const promotionQueue = createQueue(QUEUES.PIPELINE_PROMOTE_BRONZE_SILVER);
@@ -1293,6 +1444,10 @@ async function queueResolvedBatchPromotions(
       lastCreatedAt = lastContact?.createdAt?.toISOString() ?? null;
       lastId = lastContact?.id ?? null;
 
+      if (lastId && options?.progressReporter) {
+        await options.progressReporter.maybeReportPromotionProgress(queued, lastId);
+      }
+
       if (options?.onCheckpoint) {
         await options.onCheckpoint({
           queued,
@@ -1306,6 +1461,19 @@ async function queueResolvedBatchPromotions(
   }
 
   return queued;
+}
+
+async function handleBatchReprocessJob(
+  job: Job<PromotionBronzeSilverJobData>,
+  jobData: PromotionBronzeSilverJobData,
+) {
+  const progressReporter = createBatchProgressReporter(job);
+  await progressReporter.force({
+    phase: "resolve_identities",
+    batchId: jobData.batchId ?? null,
+    status: "started",
+  });
+  return handleBatchReprocess(jobData, progressReporter);
 }
 
 async function markBronzePromoted(
@@ -1387,7 +1555,7 @@ function getPromotionKind(existingSilver: SilverCompanyRow | undefined, bronzeId
     return "bronze_to_silver_merge";
   }
   if (existingSilver) {
-    return "bronze_to_silver_fill_placeholder";
+    return "bronze_to_silver_update";
   }
   return "bronze_to_silver_insert";
 }
@@ -2010,7 +2178,7 @@ async function findOrCreateParentCompany(args: {
         enrichmentStatus: "pending",
         promotionStatus: "blocked",
         metadata: {
-          promotion: "stub_from_detail",
+          promotion: "auto_created_from_detail",
           sourceSheet: args.metadata.sheetName ?? null,
         },
       })
@@ -2288,7 +2456,7 @@ async function findOrCreateDosar(args: {
         companyId: args.companyId,
         numarDosar: numarDosar ?? undefined,
         instanta: resolveField(args.payload, args.mapping, "instanta", "Instanta") ?? undefined,
-        metadata: { promotedAsStub: true },
+        metadata: { autoCreatedFromDetail: true },
       })
       .returning();
     dosar = inserted[0];
@@ -2453,10 +2621,14 @@ async function handleTermeneDosareDetail(args: {
 export const promotionBronzeSilverProcessor: Processor<PromotionBronzeSilverJobData> = async (
   job,
 ) => {
+  validateJobData(promotionBronzeSilverJobDataSchema, job.data, {
+    queueName: QUEUES.PIPELINE_PROMOTE_BRONZE_SILVER,
+    jobId: job.id,
+  });
   await setSessionTenantId(job.data.tenantId);
 
   if (job.data.batchId && !job.data.bronzeContactId) {
-    return handleBatchReprocess(job.data);
+    return handleBatchReprocessJob(job, job.data);
   }
 
   const bronze = (

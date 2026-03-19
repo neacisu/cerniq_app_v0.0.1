@@ -44,3 +44,63 @@ export const jobsActiveGauge = new Gauge({
   labelNames: ["queue"],
   registers: [metricsRegistry],
 });
+
+// ── Etapa 1 specific metrics ──────────────────────────────────────────────────
+
+export const bronzeContactsIngestedTotal = new Counter({
+  name: "cerniq_bronze_contacts_ingested",
+  help: "Total Bronze contacts ingested (from CSV, Excel, webhook, API, manual)",
+  labelNames: ["source", "tenant_id"],
+  registers: [metricsRegistry],
+});
+
+export const silverEnrichmentDurationSeconds = new Histogram({
+  name: "cerniq_silver_enrichment_duration_seconds",
+  help: "Duration of Silver company enrichment in seconds",
+  labelNames: ["source", "tenant_id"],
+  buckets: [0.5, 1, 2, 5, 10, 30, 60, 120],
+  registers: [metricsRegistry],
+});
+
+export const silverEnrichmentErrorsTotal = new Counter({
+  name: "cerniq_silver_enrichment_errors_total",
+  help: "Total Silver enrichment errors per source",
+  labelNames: ["source", "tenant_id"],
+  registers: [metricsRegistry],
+});
+
+export const goldCompaniesTotal = new Gauge({
+  name: "cerniq_gold_companies_total",
+  help: "Total Gold companies (promoted from Silver)",
+  labelNames: ["tenant_id"],
+  registers: [metricsRegistry],
+});
+
+export const hitlTasksCreatedTotal = new Counter({
+  name: "cerniq_hitl_tasks_created_total",
+  help: "Total HITL approval tasks created",
+  labelNames: ["approval_type", "tenant_id"],
+  registers: [metricsRegistry],
+});
+
+export const hitlTasksResolvedTotal = new Counter({
+  name: "cerniq_hitl_tasks_resolved_total",
+  help: "Total HITL approval tasks resolved",
+  labelNames: ["approval_type", "decision", "tenant_id"],
+  registers: [metricsRegistry],
+});
+
+export const hitlResolutionTimeSeconds = new Histogram({
+  name: "cerniq_hitl_resolution_time_seconds",
+  help: "Time from HITL task creation to resolution in seconds",
+  labelNames: ["approval_type", "tenant_id"],
+  buckets: [60, 300, 900, 1800, 3600, 7200, 14400, 28800, 86400],
+  registers: [metricsRegistry],
+});
+
+export const hitlSlaBreachTotal = new Counter({
+  name: "cerniq_hitl_sla_breach_total",
+  help: "Total HITL tasks that breached SLA (expired without resolution)",
+  labelNames: ["approval_type", "tenant_id"],
+  registers: [metricsRegistry],
+});

@@ -7,12 +7,12 @@ const DEFAULT_OPTIONS = {
   volumeThreshold: 5,
 };
 
-export function createCircuitBreaker<T>(
-  fn: (...args: unknown[]) => Promise<T>,
+export function createCircuitBreaker<TArgs extends unknown[], TResult>(
+  fn: (...args: TArgs) => Promise<TResult>,
   name: string,
   options?: Partial<typeof DEFAULT_OPTIONS>,
 ) {
-  const breaker = new CircuitBreaker(fn, {
+  const breaker = new CircuitBreaker(fn as (...args: unknown[]) => Promise<TResult>, {
     ...DEFAULT_OPTIONS,
     ...options,
     name,
@@ -22,5 +22,11 @@ export function createCircuitBreaker<T>(
   breaker.on("halfOpen", () => console.info(`[CircuitBreaker:${name}] half-open`));
   breaker.on("close", () => console.info(`[CircuitBreaker:${name}] closed`));
 
-  return breaker;
+  return breaker as unknown as {
+    fire(...args: TArgs): Promise<TResult>;
+    on(event: string, listener: (...args: unknown[]) => void): void;
+    opened: boolean;
+    closed: boolean;
+    halfOpen: boolean;
+  };
 }

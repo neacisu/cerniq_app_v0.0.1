@@ -6,7 +6,7 @@
 
 ---
 
-# CATEGORIA B: NORMALIZARE (4 Workers)
+## CATEGORIA B: NORMALIZARE (4 Workers)
 
 ## B.1 Name Normalizer Worker
 
@@ -149,7 +149,7 @@ export const nameNormalizerWorker = createWorker<NameNormalizerJobData>({
 | `SOCIETATEA COMERCIALA VERDE S.A.` | `VERDE SA`             | `SA`           |
 | `P.F.A. ION POPESCU`               | `ION POPESCU PFA`      | `PFA`          |
 | `O.U.A.I. LUNCA SIRETULUI`         | `LUNCA SIRETULUI OUAI` | `OUAI`         |
-| `  agro   farm  srl  `             | `AGRO FARM SRL`        | `SRL`          |
+| `agro   farm  srl`                 | `AGRO FARM SRL`        | `SRL`          |
 
 ---
 
@@ -678,7 +678,7 @@ export const emailNormalizerWorker = createWorker<EmailNormalizerJobData>({
 
 ---
 
-# CATEGORIA C: VALIDARE CUI (2 Workers)
+## CATEGORIA C: VALIDARE CUI (2 Workers)
 
 ## C.1 CUI Modulo-11 Validator Worker
 
@@ -985,7 +985,7 @@ export const cuiAnafWorker = createWorker<AnafValidatorJobData>({
 
 ---
 
-# TRIGGERS CATEGORIA B → C
+## TRIGGERS CATEGORIA B → C
 
 ```typescript
 // Când toate B.* complete → trigger C.1
@@ -999,18 +999,64 @@ const NORMALIZE_COMPLETE_TRIGGERS = {
 
 ---
 
-# REZUMAT CATEGORIA B-C
+## REZUMAT CATEGORIA B-C
 
-| Worker            | Queue                          | Concurrency | Rate Limit | Timeout |
-| ----------------- | ------------------------------ | ----------- | ---------- | ------- |
-| B.1 Name          | `bronze:normalize:name`        | 20          | -          | 10s     |
-| B.2 Address       | `bronze:normalize:address`     | 20          | -          | 15s     |
-| B.3 Phone         | `bronze:normalize:phone`       | 30          | -          | 5s      |
-| B.4 Email         | `bronze:normalize:email`       | 30          | -          | 5s      |
-| C.1 CUI Modulo-11 | `silver:validate:cui-modulo11` | 50          | -          | 2s      |
-| C.2 CUI ANAF      | `silver:validate:cui-anaf`     | 1           | 1/s        | 30s     |
+| Worker                       | Queue                          | Concurrency | Rate Limit | Timeout |
+| ---------------------------- | ------------------------------ | ----------- | ---------- | ------- |
+| B.1 Name                     | `bronze:normalize:name`        | 20          | -          | 10s     |
+| B.2 Address                  | `bronze:normalize:address`     | 20          | -          | 15s     |
+| B.3 Phone                    | `bronze:normalize:phone`       | 30          | -          | 5s      |
+| B.4 Email                    | `bronze:normalize:email`       | 30          | -          | 5s      |
+| **B.5 ANAF Bronze Enricher** | `enrich:bronze:anaf`           | 1           | 1/s (ANAF) | 30s     |
+| C.1 CUI Modulo-11            | `silver:validate:cui-modulo11` | 50          | -          | 2s      |
+| C.2 CUI ANAF                 | `silver:validate:cui-anaf`     | 1           | 1/s        | 30s     |
 
 ---
 
-**Document generat:** 15 Ianuarie 2026
-**Total workers Cat. B-C:** 6
+## B.5 ANAF Bronze Enricher Worker
+
+### Scop
+
+Îmbogățește batch-uri de contacte Bronze cu date ANAF prin căutarea CUI-urilor în lista `open-data` ANAF. Actualizează denumire, nr. registru comerț și declanșează validarea CUI pentru contactele găsite.
+
+### Configurare
+
+```typescript
+// Queue: enrich:bronze:anaf
+// Concurrency: 1 (rate-limited by ANAF)
+// Rate limit: 1 req/sec (ANAF API v9)
+// Retry: 5 attempts, exponential backoff 1000ms
+```
+
+### Job Data
+
+```typescript
+type AnafBronzeEnricherJobData = {
+  tenantId: string;       // UUID tenant
+  batchId: string;        // UUID batch import
+  cuiList: string[];      // Lista CUI-uri de verificat (max 500/request)
+  bronzeContactIds: string[]; // IDs contacte Bronze corespunzătoare
+  correlationId: string;  // UUID tracing
+  batchIndex: number;     // Index batch curent (1-based)
+  totalBatches: number;   // Total batch-uri pentru acest import
+};
+```
+
+### Logică
+
+1. Apelează ANAF API v9 (`/PlatitorTvaRest/api/v9/ws/tva`) cu lista de CUI-uri
+2. Pentru fiecare CUI găsit: actualizează `extractedName`, `extractedNrRegCom` pe Bronze contact
+3. Setează `processingStatus = "anaf_enriched"` pe contactele actualizate
+4. Declanșează validarea CUI (`validate:cui:anaf`) pentru CUI-urile confirmate
+5. Înregistrează metrici: jobs procesate, durate, erori
+
+### Note Implementare
+
+- Worker-ul rulează la nivel Bronze (înainte de promovare Silver)
+- Numărul de CUI-uri per request ANAF este limitat la 500 (batch intern)
+- ANAF API poate returna date incomplete - worker-ul tratează cazurile de răspuns parțial
+
+---
+
+**Document generat:** 15 Ianuarie 2026 (B.5 adăugat: 19 Martie 2026)  
+**Total workers Cat. B-C:** 7

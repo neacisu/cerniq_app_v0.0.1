@@ -18,6 +18,7 @@ import { sql } from "drizzle-orm";
 import { tenants } from "./tenants.js";
 import { users } from "./users.js";
 import { bronzeContacts } from "./bronze.js";
+import { geographyPoint } from "./postgis.js";
 
 export const silverSchema = pgSchema("silver");
 
@@ -42,6 +43,7 @@ export const companyStatusEnum = pgEnum("company_status", [
   "DIZOLVARE",
   "RADIATA",
   "INSOLVENTA",
+  "UNKNOWN",
 ]);
 
 export const formaJuridicaEnum = pgEnum("forma_juridica", [
@@ -121,7 +123,7 @@ export const silverCompanies = silverSchema.table(
     // --- DENUMIRE ---
     denumire: varchar("denumire", { length: 255 }),
     denumireNormalizata: varchar("denumire_normalizata", { length: 255 }).generatedAlwaysAs(
-      sql`UPPER(TRIM(COALESCE("denumire", '')))`,
+      sql`UPPER(TRIM(REGEXP_REPLACE(COALESCE("denumire", ''), '\s+', ' ', 'g')))`,
     ),
     denumireComerciala: varchar("denumire_comerciala", { length: 255 }),
     formaJuridica: formaJuridicaEnum("forma_juridica"),
@@ -149,7 +151,7 @@ export const silverCompanies = silverSchema.table(
     // --- COORDONATE ---
     latitude: numeric("latitude", { precision: 10, scale: 7 }),
     longitude: numeric("longitude", { precision: 10, scale: 7 }),
-    locationGeography: text("location_geography"),
+    locationGeography: geographyPoint("location_geography"),
     geocodingAccuracy: varchar("geocoding_accuracy", { length: 30 }),
     geocodingSource: varchar("geocoding_source", { length: 30 }),
 
@@ -498,7 +500,7 @@ export const silverCompanyLocations = silverSchema.table(
     judet: varchar("judet", { length: 100 }),
     latitude: numeric("latitude", { precision: 10, scale: 7 }),
     longitude: numeric("longitude", { precision: 10, scale: 7 }),
-    locationGeography: text("location_geography"),
+    locationGeography: geographyPoint("location_geography"),
     suprafataHa: numeric("suprafata_ha", { precision: 12, scale: 2 }),
     culturi: jsonb("culturi").notNull().default([]),
     source: varchar("source", { length: 50 }),

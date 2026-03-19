@@ -1,5 +1,6 @@
 import type { Processor } from "bullmq";
 import { db, setSessionTenantId, silverCompanies, silverEnrichmentLog, sql } from "@cerniq/db";
+import { createQueue, QUEUES } from "@cerniq/worker-shared";
 
 export type CompletenessJobData = {
   tenantId: string;
@@ -75,6 +76,15 @@ export const scoreCompletenessProcessor: Processor<CompletenessJobData> = async 
     jobId: String(job.id ?? ""),
     durationMs: Date.now() - startedAt,
   });
+
+  // Sequential scoring: completeness -> accuracy (spec: N.1 -> N.2 -> N.3)
+  const accuracyQueue = createQueue(QUEUES.SCORE_ACCURACY);
+  await accuracyQueue.add("score", {
+    tenantId: job.data.tenantId,
+    companyId: job.data.companyId,
+    correlationId: job.data.correlationId,
+  });
+  await accuracyQueue.close();
 
   return { ok: true, status: "success", score, missing: missing.length };
 };

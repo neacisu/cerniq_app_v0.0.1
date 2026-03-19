@@ -77,6 +77,11 @@ import { hitlResumeAfterApprovalProcessor } from "./workers/hitl-resume-after-ap
 
 const PORT = Number(process.env.PORT || "3000");
 const SECRETS_PATH = process.env.SECRETS_PATH?.trim() || "/secrets/workers.env";
+const PROMOTE_BRONZE_SILVER_WORKER_OPTIONS = {
+  lockDuration: 15 * 60 * 1000,
+  stalledInterval: 2 * 60 * 1000,
+  maxStalledCount: 4,
+} as const;
 assertQueueRegistryComplete();
 const extraQueueNames = ["pipeline:promote:bronze-silver", "hitl:escalate", "hitl:resume"];
 const queueNames = Array.from(new Set([...queueRegistry.map((q) => q.name), ...extraQueueNames]));
@@ -155,7 +160,19 @@ async function enqueuePipelineError(args: {
   } else if (typeof jobData.bronzeContactId === "string") {
     companyId = jobData.bronzeContactId;
   }
-  if (!tenantId || !companyId) return;
+  if (!tenantId || !companyId) {
+    console.error(
+      "[pipeline:error-handler] skipped enqueue because tenant/company context is missing",
+      {
+        sourceWorker: args.queueName,
+        sourceJobId: String(args.job?.id ?? ""),
+        tenantId,
+        companyId,
+        jobName: args.job?.name ?? null,
+      },
+    );
+    return;
+  }
 
   const queue = createQueue("pipeline:error-handler");
   await queue.add("handle-error", {
@@ -242,6 +259,25 @@ const processors: Partial<Record<string, (job: Job) => Promise<unknown>>> = {
   "hitl:resume": hitlResumeAfterApprovalProcessor as (job: Job) => Promise<unknown>,
 };
 
+function getWorkerOptions(
+  queueName: string,
+  queueConfig?: { concurrency?: number; rateLimit?: { max: number; duration: number } },
+) {
+  const baseOptions = {
+    concurrency: queueConfig?.concurrency ?? 2,
+    limiter: queueConfig?.rateLimit,
+  };
+
+  if (queueName === "pipeline:promote:bronze-silver") {
+    return {
+      ...baseOptions,
+      ...PROMOTE_BRONZE_SILVER_WORKER_OPTIONS,
+    };
+  }
+
+  return baseOptions;
+}
+
 function buildWorkers() {
   workers = queueNames.map((queueName) => {
     const queueConfig = queueRegistry.find((q) => q.name === queueName);
@@ -275,10 +311,7 @@ function buildWorkers() {
           observeDuration(startedAt);
         }
       },
-      {
-        concurrency: queueConfig?.concurrency ?? 2,
-        limiter: queueConfig?.rateLimit,
-      },
+      getWorkerOptions(queueName, queueConfig),
     );
 
     worker.on("error", (err: Error) => {

@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import fp from "fastify-plugin";
-import { setSessionTenantId } from "@cerniq/db";
+import { db, sql } from "@cerniq/db";
 
 declare module "fastify" {
   interface FastifyRequest {
@@ -25,25 +25,39 @@ function isPublicRoute(url: string): boolean {
 async function tenantContextPlugin(app: FastifyInstance) {
   app.decorateRequest("tenantId", null);
 
+  const setRequestContext = async (tenantId: string | null, userId: string | null) => {
+    const tenantValue = tenantId ?? "00000000-0000-0000-0000-000000000000";
+    const userValue = userId ?? "00000000-0000-0000-0000-000000000000";
+    await db.execute(sql`
+      SELECT
+        set_config('app.tenant_id', ${tenantValue}, false),
+        set_config('app.current_user_id', ${userValue}, false)
+    `);
+  };
+
   app.addHook("onRequest", async (request: FastifyRequest) => {
     if (isPublicRoute(request.url)) {
+      await setRequestContext(null, null);
       return;
     }
 
     let tenantId: string | null = null;
+    let userId: string | null;
     let role: string | undefined;
 
     try {
       await request.jwtVerify();
       const user = request.user as
-        | { tenantId?: string; tenant_id?: string; role?: string }
+        | { tenantId?: string; tenant_id?: string; role?: string; id?: string; sub?: string }
         | undefined;
       if (user?.tenantId) tenantId = user.tenantId;
       else if (user?.tenant_id) tenantId = user.tenant_id;
+      userId =
+        typeof user?.id === "string" ? user.id : typeof user?.sub === "string" ? user.sub : null;
       role = user?.role;
     } catch {
       request.tenantId = null;
-      await setSessionTenantId(null);
+      await setRequestContext(null, null);
       return;
     }
 
@@ -53,7 +67,7 @@ async function tenantContextPlugin(app: FastifyInstance) {
     }
 
     request.tenantId = tenantId;
-    await setSessionTenantId(tenantId);
+    await setRequestContext(tenantId, userId);
   });
 }
 

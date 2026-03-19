@@ -150,6 +150,7 @@ function computeReprocessTiming(metadata: Record<string, unknown>): {
   sessionProcessedBaseRows: number;
   hasFreshHeartbeat: boolean;
   elapsedMs: number | null;
+  overallElapsedMs: number | null;
 } {
   const startedAtRaw =
     typeof metadata.identityReprocessStartedAt === "string"
@@ -180,13 +181,15 @@ function computeReprocessTiming(metadata: Record<string, unknown>): {
     Number.isFinite(sessionStartedAt) && referenceNow > sessionStartedAt
       ? referenceNow - sessionStartedAt
       : null;
+  const overallElapsedMs =
+    Number.isFinite(startedAt) && referenceNow > startedAt ? referenceNow - startedAt : null;
   const heartbeatLagMs = lastProgressAtRaw ? Date.now() - referenceNow : null;
   const hasFreshHeartbeat = heartbeatLagMs === null || heartbeatLagMs <= 60_000;
   const sessionProcessedBaseRows = Math.max(
     0,
     Number(metadata.identityReprocessSessionProcessedBaseRows ?? 0),
   );
-  return { sessionProcessedBaseRows, hasFreshHeartbeat, elapsedMs };
+  return { sessionProcessedBaseRows, hasFreshHeartbeat, elapsedMs, overallElapsedMs };
 }
 
 function getIdentityReprocessMetrics(metadata: Record<string, unknown>, totalRows: number) {
@@ -201,13 +204,18 @@ function getIdentityReprocessMetrics(metadata: Record<string, unknown>, totalRow
   const failedContacts = Number(metadata.identityReprocessFailedContactCount ?? 0);
   const total = Math.max(runTotalRows, processedRows, 0);
   const progress = computeReprocessProgress(processedRows, total);
-  const { hasFreshHeartbeat, elapsedMs, sessionProcessedBaseRows } =
+  const { hasFreshHeartbeat, elapsedMs, overallElapsedMs, sessionProcessedBaseRows } =
     computeReprocessTiming(metadata);
   const sessionProcessedRows = Math.max(0, processedRows - sessionProcessedBaseRows);
-  const throughput =
+  const sessionThroughput =
     hasFreshHeartbeat && elapsedMs && sessionProcessedRows > 0
       ? sessionProcessedRows / (elapsedMs / 1000)
       : null;
+  const overallThroughput =
+    hasFreshHeartbeat && overallElapsedMs && processedRows > 0
+      ? processedRows / (overallElapsedMs / 1000)
+      : null;
+  const throughput = sessionThroughput ?? overallThroughput;
   const remainingRows = total > processedRows ? total - processedRows : 0;
   const etaMs =
     hasFreshHeartbeat && throughput && remainingRows > 0

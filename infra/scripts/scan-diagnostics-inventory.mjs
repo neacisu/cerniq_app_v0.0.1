@@ -13,6 +13,11 @@ import { parseDocument } from "yaml";
 
 const SCANNER_VERSION = 2;
 const repoRoot = process.cwd();
+const TRUSTED_EXECUTABLE_PATHS = Object.freeze({
+  bash: ["/usr/bin/bash", "/bin/bash"],
+  pnpm: ["/usr/local/bin/pnpm", "/usr/bin/pnpm", "/bin/pnpm"],
+  python3: ["/usr/local/bin/python3", "/usr/bin/python3", "/bin/python3"],
+});
 
 const DEFAULT_EXCLUDED_DIRS = new Set([
   ".git",
@@ -46,6 +51,59 @@ const PYTHON_SYNTAX_CHECK = [
   "source = pathlib.Path(sys.argv[1]).read_text(encoding='utf-8')",
   "ast.parse(source, filename=sys.argv[1])",
 ].join("; ");
+
+function resolveTrustedExecutable(executableName) {
+  const candidates = TRUSTED_EXECUTABLE_PATHS[executableName] ?? [];
+
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) {
+      return candidate;
+    }
+  }
+
+  return null;
+}
+
+function resolvePnpmRuntime() {
+  const npmExecPath = process.env.npm_execpath;
+  if (typeof npmExecPath === "string" && path.isAbsolute(npmExecPath) && existsSync(npmExecPath)) {
+    return {
+      command: process.execPath,
+      argsPrefix: [npmExecPath],
+    };
+  }
+
+  const pnpmExecutable = resolveTrustedExecutable("pnpm");
+  if (pnpmExecutable) {
+    return {
+      command: pnpmExecutable,
+      argsPrefix: [],
+    };
+  }
+
+  return null;
+}
+
+function createMissingExecutableContext(command) {
+  return {
+    command,
+    exitCode: 1,
+    diagnosticsByFile: new Map(),
+    stderr: null,
+    parserError: `Required executable is not available in trusted system paths: ${command}`,
+  };
+}
+
+function createMissingExecutableRun(analyzer, startedAt, startedMs, command) {
+  return createAnalyzerRun(analyzer, startedAt, startedMs, {
+    status: "analyzer-error",
+    command,
+    exitCode: 1,
+    diagnostics: [],
+    stderr: null,
+    parserError: `Required executable is not available in trusted system paths: ${command}`,
+  });
+}
 
 function printHelp() {
   console.log(`Usage: node ./infra/scripts/scan-diagnostics-inventory.mjs [options]
@@ -378,6 +436,7 @@ function prepareEslintContext(targetFiles, options) {
   const eslintTargets = targetFiles.filter(
     (file) => options.analyzers.includes("eslint") && ANALYZER_SUPPORT.eslint.has(file.extension),
   );
+  const pnpmRuntime = resolvePnpmRuntime();
 
   if (eslintTargets.length === 0) {
     return {
@@ -389,9 +448,14 @@ function prepareEslintContext(targetFiles, options) {
     };
   }
 
+  if (!pnpmRuntime) {
+    return createMissingExecutableContext("pnpm");
+  }
+
   const result = spawnSync(
-    "pnpm",
+    pnpmRuntime.command,
     [
+      ...pnpmRuntime.argsPrefix,
       "exec",
       "eslint",
       "--format",
@@ -549,7 +613,13 @@ function parseShellDiagnostic(stderr) {
 function runShell(file) {
   const startedAt = new Date().toISOString();
   const startedMs = Date.now();
-  const result = spawnSync("bash", ["-n", file.absolutePath], {
+  const bashExecutable = resolveTrustedExecutable("bash");
+
+  if (!bashExecutable) {
+    return createMissingExecutableRun("shell", startedAt, startedMs, "bash -n <file>");
+  }
+
+  const result = spawnSync(bashExecutable, ["-n", file.absolutePath], {
     cwd: repoRoot,
     encoding: "utf-8",
   });
@@ -587,7 +657,18 @@ function parsePythonDiagnostic(stderr) {
 function runPython(file) {
   const startedAt = new Date().toISOString();
   const startedMs = Date.now();
-  const result = spawnSync("python3", ["-c", PYTHON_SYNTAX_CHECK, file.absolutePath], {
+  const pythonExecutable = resolveTrustedExecutable("python3");
+
+  if (!pythonExecutable) {
+    return createMissingExecutableRun(
+      "python",
+      startedAt,
+      startedMs,
+      "python3 -c <ast.parse checker> <file>",
+    );
+  }
+
+  const result = spawnSync(pythonExecutable, ["-c", PYTHON_SYNTAX_CHECK, file.absolutePath], {
     cwd: repoRoot,
     encoding: "utf-8",
   });
@@ -634,6 +715,69 @@ function appendTypeScriptDiagnostic(map, filePath, diagnostic) {
   map.set(filePath, diagnostics);
 }
 
+function parseTypeScriptDiagnosticLine(line) {
+  const suffixSeparator = line.indexOf(": ");
+  const locationSeparator = line.lastIndexOf("): ", suffixSeparator);
+  if (locationSeparator < 0) {
+    return null;
+  }
+
+  const openParen = line.lastIndexOf("(", locationSeparator);
+  if (openParen < 0) {
+    return null;
+  }
+
+  const filePath = line.slice(0, openParen);
+  const locationText = line.slice(openParen + 1, locationSeparator);
+  const [lineText, columnText] = locationText.split(",", 2);
+  const lineNumber = Number.parseInt(lineText, 10);
+  const columnNumber = Number.parseInt(columnText, 10);
+  if (!Number.isInteger(lineNumber) || !Number.isInteger(columnNumber)) {
+    return null;
+  }
+
+  const diagnosticText = line.slice(locationSeparator + 3);
+  let severity = null;
+  if (diagnosticText.startsWith("error ")) {
+    severity = "error";
+  } else if (diagnosticText.startsWith("warning ")) {
+    severity = "warning";
+  }
+
+  if (!severity) {
+    return null;
+  }
+
+  const rulePrefixLength = severity.length + 1;
+  if (!diagnosticText.startsWith("TS", rulePrefixLength)) {
+    return null;
+  }
+
+  const messageSeparator = diagnosticText.indexOf(": ", rulePrefixLength + 2);
+  if (messageSeparator < 0) {
+    return null;
+  }
+
+  const ruleSuffix = diagnosticText.slice(rulePrefixLength + 2, messageSeparator);
+  if (
+    !Number.isInteger(Number.parseInt(ruleSuffix, 10)) ||
+    String(Number.parseInt(ruleSuffix, 10)) !== ruleSuffix
+  ) {
+    return null;
+  }
+
+  const message = diagnosticText.slice(messageSeparator + 2);
+
+  return {
+    filePath,
+    lineNumber,
+    columnNumber,
+    severity,
+    ruleId: `TS${ruleSuffix}`,
+    message,
+  };
+}
+
 function parseTypeScriptOutput(output) {
   const diagnosticsByFile = new Map();
   const lines = output.split(/\r?\n/);
@@ -645,18 +789,18 @@ function parseTypeScriptOutput(output) {
       continue;
     }
 
-    const match = /^(.*)\((\d+),(\d+)\):\s+(error|warning)\s+TS(\d+):\s+(.*)$/.exec(line);
+    const match = parseTypeScriptDiagnosticLine(line);
     if (match) {
-      const filePath = normalizeTypeScriptPath(match[1]);
+      const filePath = normalizeTypeScriptPath(match.filePath);
       currentDiagnostic = createDiagnostic(
         "typescript",
-        match[4] === "error" ? "error" : "warning",
-        match[6],
-        Number.parseInt(match[2], 10),
-        Number.parseInt(match[3], 10),
+        match.severity === "error" ? "error" : "warning",
+        match.message,
+        match.lineNumber,
+        match.columnNumber,
         {
-          ruleId: `TS${match[5]}`,
-          fatal: match[4] === "error",
+          ruleId: match.ruleId,
+          fatal: match.severity === "error",
         },
       );
       appendTypeScriptDiagnostic(diagnosticsByFile, filePath, currentDiagnostic);
@@ -676,6 +820,7 @@ function prepareTypeScriptContext(targetFiles, options) {
     (file) =>
       options.analyzers.includes("typescript") && ANALYZER_SUPPORT.typescript.has(file.extension),
   );
+  const pnpmRuntime = resolvePnpmRuntime();
 
   if (!hasTypeScriptTargets) {
     return {
@@ -687,9 +832,22 @@ function prepareTypeScriptContext(targetFiles, options) {
     };
   }
 
+  if (!pnpmRuntime) {
+    return createMissingExecutableContext("pnpm");
+  }
+
   const result = spawnSync(
-    "pnpm",
-    ["exec", "tsc", "--noEmit", "--pretty", "false", "--project", "tsconfig.json"],
+    pnpmRuntime.command,
+    [
+      ...pnpmRuntime.argsPrefix,
+      "exec",
+      "tsc",
+      "--noEmit",
+      "--pretty",
+      "false",
+      "--project",
+      "tsconfig.json",
+    ],
     {
       cwd: repoRoot,
       encoding: "utf-8",

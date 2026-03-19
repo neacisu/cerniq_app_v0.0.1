@@ -1,5 +1,6 @@
 import type { Processor } from "bullmq";
 import { db, setSessionTenantId, silverCompanies, silverEnrichmentLog, sql } from "@cerniq/db";
+import { createCircuitBreaker } from "@cerniq/worker-shared";
 
 export type ContactPageScraperJobData = {
   tenantId: string;
@@ -39,6 +40,18 @@ function extractFromHtml(html: string) {
   return { emails, phones, address };
 }
 
+const contactPageBreaker = createCircuitBreaker(
+  async (url: string) => {
+    const response = await fetch(url, {
+      signal: AbortSignal.timeout(Number(process.env.CONTACT_SCRAPE_TIMEOUT_MS ?? "12000")),
+    });
+    if (!response.ok) return null;
+    return extractFromHtml(await response.text());
+  },
+  "contact-page-scraper",
+  { timeout: 12000, errorThresholdPercentage: 60, resetTimeout: 60000, volumeThreshold: 3 },
+);
+
 export const contactPageScraperProcessor: Processor<ContactPageScraperJobData> = async (job) => {
   const startedAt = Date.now();
   await setSessionTenantId(job.data.tenantId);
@@ -55,12 +68,11 @@ export const contactPageScraperProcessor: Processor<ContactPageScraperJobData> =
   for (const path of paths) {
     const url = `${base}${path}`;
     try {
-      const response = await fetch(url, {
-        signal: AbortSignal.timeout(Number(process.env.CONTACT_SCRAPE_TIMEOUT_MS ?? "12000")),
-      });
-      if (!response.ok) continue;
-      const extracted = extractFromHtml(await response.text());
-      if (extracted.emails.length > 0 || extracted.phones.length > 0 || extracted.address) {
+      const extracted = await contactPageBreaker.fire(url);
+      if (
+        extracted &&
+        (extracted.emails.length > 0 || extracted.phones.length > 0 || extracted.address)
+      ) {
         found = { ...extracted, sourceUrl: url };
         break;
       }

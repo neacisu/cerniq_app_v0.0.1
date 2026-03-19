@@ -7,6 +7,8 @@ import {
   silverEnrichmentLog,
   sql,
 } from "@cerniq/db";
+import { validateJobData, goldCompaniesTotal } from "@cerniq/worker-shared";
+import { z } from "zod";
 
 export type PromoteToGoldJobData = {
   tenantId: string;
@@ -14,6 +16,13 @@ export type PromoteToGoldJobData = {
   force?: boolean;
   correlationId?: string;
 };
+
+const promoteToGoldJobDataSchema = z.object({
+  tenantId: z.uuid(),
+  companyId: z.uuid(),
+  force: z.boolean().optional(),
+  correlationId: z.string().trim().min(1).optional(),
+});
 
 function initialFitScore(input: {
   numarAngajati: number | null;
@@ -31,12 +40,19 @@ function initialFitScore(input: {
 }
 
 export const promoteToGoldProcessor: Processor<PromoteToGoldJobData> = async (job) => {
+  validateJobData(promoteToGoldJobDataSchema, job.data, {
+    queueName: "pipeline:promote:gold",
+    jobId: job.id,
+  });
   const startedAt = Date.now();
   await setSessionTenantId(job.data.tenantId);
   const silver = await db.query.silverCompanies.findFirst({
     where: (t, { and, eq }) => and(eq(t.tenantId, job.data.tenantId), eq(t.id, job.data.companyId)),
   });
   if (!silver) return { ok: false, status: "not_found" };
+  if (!silver.cui) {
+    return { ok: true, status: "blocked", reason: "missing_cui_for_gold" };
+  }
 
   if (!job.data.force && silver.promotionStatus !== "eligible") {
     return { ok: true, status: "not_eligible", reason: silver.promotionStatus };
@@ -60,7 +76,7 @@ export const promoteToGoldProcessor: Processor<PromoteToGoldJobData> = async (jo
       tenantId: job.data.tenantId,
       silverId: silver.id,
       bronzeIds: silver.sourceBronzeId ? [silver.sourceBronzeId] : [],
-      cui: silver.cui ?? undefined,
+      cui: silver.cui,
       nrRegCom: silver.nrRegCom ?? undefined,
       denumire: silver.denumire ?? undefined,
       denumireComerciala: silver.denumireComerciala ?? undefined,
@@ -94,7 +110,6 @@ export const promoteToGoldProcessor: Processor<PromoteToGoldJobData> = async (jo
           : undefined,
       latitude: silver.latitude ?? undefined,
       longitude: silver.longitude ?? undefined,
-      locationGeography: silver.locationGeography ?? undefined,
       cifraAfaceri: silver.cifraAfaceri ?? undefined,
       profitNet: silver.profitNet ?? undefined,
       profitBrut: silver.profitBrut ?? undefined,
@@ -144,6 +159,7 @@ export const promoteToGoldProcessor: Processor<PromoteToGoldJobData> = async (jo
     })
     .returning({ id: goldCompanies.id });
   const goldId = inserted[0].id;
+  goldCompaniesTotal.inc({ tenant_id: job.data.tenantId });
 
   await db
     .update(silverCompanies)

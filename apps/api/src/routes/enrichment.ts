@@ -1,16 +1,18 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
-import { approvalService, db } from "@cerniq/db";
+import { approvalService, approvalTasks, db, sql } from "@cerniq/db";
 import { createQueue } from "../lib/queue-factory.js";
-import { queueRegistry } from "@cerniq/worker-shared";
-import { getActorId, requireTenantId } from "./utils.js";
-import { assignTaskSchema, decisionSchema, listApprovalTasksSchema } from "../schemas/etapa1.js";
+import { isKnownQueueName, queueRegistry } from "@cerniq/worker-shared";
+import { getActorId, parseOffset, requireTenantId } from "./utils.js";
+import {
+  assignTaskSchema,
+  decisionSchema,
+  escalateTaskSchema,
+  listApprovalTasksSchema,
+} from "../schemas/etapa1.js";
+import { requireRole } from "../middleware/authz.js";
 
-const queueNameSchema = z
-  .string()
-  .min(3)
-  .max(120)
-  .regex(/^[a-z0-9.-]+$/);
+const queueNameSchema = z.string().min(3).max(120).refine(isKnownQueueName, "Invalid queue name");
 const idParamsSchema = z.object({ id: z.uuid() });
 const queueParamsSchema = z.object({ name: queueNameSchema });
 const errorResponseSchema = z.object({
@@ -34,11 +36,22 @@ const approvalDetailResponseSchema = z.object({
 
 export async function enrichmentRoutes(app: FastifyInstance) {
   const authOpts = { onRequest: [async (req: FastifyRequest) => req.jwtVerify()] };
+  const queueAdminAuthOpts = {
+    onRequest: [
+      async (req: FastifyRequest) => req.jwtVerify(),
+      requireRole("admin", "owner", "superadmin"),
+    ],
+  };
+  const enrichmentMutationRateLimit = app.rateLimit({
+    max: 60,
+    timeWindow: "1 minute",
+  });
 
   app.get(
     "/approvals",
     {
       ...authOpts,
+      preHandler: [enrichmentMutationRateLimit],
       schema: {
         tags: ["etapa1-approvals"],
         summary: "List approval tasks",
@@ -59,7 +72,7 @@ export async function enrichmentRoutes(app: FastifyInstance) {
       }
       const query = parsed.data;
       const limit = query.limit ?? 50;
-      const offset = query.offset ?? 0;
+      const offset = parseOffset(query.offset, 0);
       const tasks = await approvalService.getPendingTasks(tenantId, {
         statuses: query.statuses as
           | (
@@ -82,8 +95,44 @@ export async function enrichmentRoutes(app: FastifyInstance) {
         limit,
         offset,
       });
+      const countConditions = [sql`${approvalTasks.tenantId} = ${tenantId}`];
+      const effectiveStatuses = query.statuses?.length
+        ? query.statuses
+        : ["pending", "assigned", "escalated"];
+      countConditions.push(
+        sql`${approvalTasks.status} IN (${sql.join(
+          effectiveStatuses.map((status) => sql`${status}`),
+          sql`, `,
+        )})`,
+      );
+      if (query.unassigned) {
+        countConditions.push(sql`${approvalTasks.assignedTo} IS NULL`);
+      } else if (query.assignedTo) {
+        countConditions.push(sql`${approvalTasks.assignedTo} = ${query.assignedTo}`);
+      }
+      if (query.approvalType) {
+        countConditions.push(sql`${approvalTasks.approvalType} = ${query.approvalType}`);
+      }
+      if (query.priority) {
+        countConditions.push(sql`${approvalTasks.priorityLevel} = ${query.priority}`);
+      }
+      if (query.pipelineStage) {
+        countConditions.push(sql`${approvalTasks.pipelineStage} = ${query.pipelineStage}`);
+      }
+      if (query.overdue) {
+        countConditions.push(sql`${approvalTasks.dueAt} < NOW()`);
+      }
 
-      return { success: true, data: tasks, meta: { total: tasks.length, limit, offset } };
+      const [countRow] = await db
+        .select({ total: sql<number>`COUNT(*)` })
+        .from(approvalTasks)
+        .where(sql.join(countConditions, sql` AND `));
+
+      return {
+        success: true,
+        data: tasks,
+        meta: { total: Number(countRow?.total ?? 0), limit, offset },
+      };
     },
   );
 
@@ -91,6 +140,7 @@ export async function enrichmentRoutes(app: FastifyInstance) {
     "/approvals/stats",
     {
       ...authOpts,
+      preHandler: [enrichmentMutationRateLimit],
       schema: {
         tags: ["etapa1-approvals"],
         summary: "Get approval statistics",
@@ -118,7 +168,7 @@ export async function enrichmentRoutes(app: FastifyInstance) {
   app.get(
     "/approvals/:id",
     {
-      ...authOpts,
+      ...queueAdminAuthOpts,
       schema: {
         tags: ["etapa1-approvals"],
         summary: "Get approval detail with entity context",
@@ -245,6 +295,41 @@ export async function enrichmentRoutes(app: FastifyInstance) {
     },
   );
 
+  app.post(
+    "/approvals/:id/escalate",
+    {
+      ...authOpts,
+      preHandler: [enrichmentMutationRateLimit],
+      schema: {
+        tags: ["etapa1-approvals"],
+        summary: "Escalate approval task",
+        params: idParamsSchema,
+        body: escalateTaskSchema,
+        response: {
+          200: successObjectResponseSchema,
+          400: errorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const tenantId = requireTenantId(request);
+      const actorId = getActorId(request);
+      const p = idParamsSchema.safeParse(request.params);
+      const b = escalateTaskSchema.safeParse(request.body);
+      if (!p.success || !b.success) {
+        return reply.code(400).send({ success: false, error: "Request invalid" });
+      }
+
+      const task = await approvalService.escalate({
+        tenantId,
+        taskId: p.data.id,
+        actorId,
+        reason: b.data.reason,
+      });
+      return { success: true, data: task };
+    },
+  );
+
   app.get(
     "/queues/:name",
     {
@@ -282,7 +367,7 @@ export async function enrichmentRoutes(app: FastifyInstance) {
   app.get(
     "/queues",
     {
-      ...authOpts,
+      ...queueAdminAuthOpts,
       schema: {
         tags: ["etapa1-queues"],
         summary: "List all queue statuses",
@@ -324,7 +409,8 @@ export async function enrichmentRoutes(app: FastifyInstance) {
   app.post(
     "/queues/:name/pause",
     {
-      ...authOpts,
+      ...queueAdminAuthOpts,
+      preHandler: [enrichmentMutationRateLimit],
       schema: {
         tags: ["etapa1-queues"],
         summary: "Pause queue",
@@ -350,7 +436,8 @@ export async function enrichmentRoutes(app: FastifyInstance) {
   app.post(
     "/queues/:name/resume",
     {
-      ...authOpts,
+      ...queueAdminAuthOpts,
+      preHandler: [enrichmentMutationRateLimit],
       schema: {
         tags: ["etapa1-queues"],
         summary: "Resume queue",

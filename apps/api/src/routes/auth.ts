@@ -1,4 +1,4 @@
-import type { FastifyInstance } from "fastify";
+import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import bcrypt from "bcrypt";
 import { randomBytes } from "node:crypto";
@@ -78,6 +78,46 @@ type AuthUserPayload = {
 };
 
 const AUTH_COOKIE_PATH = "/api/v1/auth";
+const CSRF_COOKIE_NAME = "cerniq_csrf";
+const CSRF_HEADER_NAME = "x-csrf-token";
+const AUTH_ISSUER = "cerniq.app";
+const AUTH_AUDIENCE = "cerniq-api";
+
+function buildAuthCookieOptions(maxAgeSeconds: number) {
+  return {
+    httpOnly: true,
+    secure: envConfig.NODE_ENV === "production",
+    sameSite: "lax" as const,
+    path: AUTH_COOKIE_PATH,
+    maxAge: maxAgeSeconds,
+  };
+}
+
+function buildCsrfCookieOptions(maxAgeSeconds: number) {
+  return {
+    httpOnly: false,
+    secure: envConfig.NODE_ENV === "production",
+    sameSite: "lax" as const,
+    path: AUTH_COOKIE_PATH,
+    maxAge: maxAgeSeconds,
+  };
+}
+
+function issueCsrfToken(reply: FastifyReply): string {
+  const csrfToken = randomBytes(32).toString("hex");
+  reply.setCookie(
+    CSRF_COOKIE_NAME,
+    csrfToken,
+    buildCsrfCookieOptions(parseDurationToSeconds(envConfig.JWT_REFRESH_EXPIRES_IN)),
+  );
+  return csrfToken;
+}
+
+function shouldEnforceCsrf(request: FastifyRequest): boolean {
+  const routeUrl = request.routeOptions.url;
+  const isProtectedAuthMutation = routeUrl === "/refresh" || routeUrl === "/logout";
+  return isProtectedAuthMutation && typeof request.cookies?.refreshToken === "string";
+}
 
 function parseDurationToSeconds(value: string): number {
   const match = value.trim().match(/^(\d+)([smhd])$/i);
@@ -102,9 +142,13 @@ async function issueAuthTokens(
       tenantId: user.tenantId,
       role: user.role,
       sub: user.id,
+      iss: AUTH_ISSUER,
+      aud: AUTH_AUDIENCE,
       tokenType: "access",
     },
-    { expiresIn: envConfig.JWT_EXPIRES_IN },
+    {
+      expiresIn: envConfig.JWT_EXPIRES_IN,
+    },
   );
 
   const ids = newTokenIds(existingFamilyId);
@@ -115,11 +159,16 @@ async function issueAuthTokens(
       tenantId: user.tenantId,
       role: user.role,
       sub: user.id,
+      iss: AUTH_ISSUER,
+      aud: AUTH_AUDIENCE,
       tokenType: "refresh",
       jti: ids.jti,
       familyId: ids.familyId,
     },
-    { expiresIn: envConfig.JWT_REFRESH_EXPIRES_IN },
+    {
+      key: envConfig.JWT_REFRESH_SECRET,
+      expiresIn: envConfig.JWT_REFRESH_EXPIRES_IN,
+    },
   );
   await storeRefreshToken({
     jti: ids.jti,
@@ -133,7 +182,35 @@ async function issueAuthTokens(
 }
 
 export async function authRoutes(app: FastifyInstance) {
-  app.post("/login", async (request, reply) => {
+  const loginRateLimit = app.rateLimit({
+    max: 10,
+    timeWindow: "15 minutes",
+  });
+
+  app.addHook("preHandler", async (request, reply) => {
+    if (!shouldEnforceCsrf(request)) {
+      return;
+    }
+    const headerToken = request.headers[CSRF_HEADER_NAME];
+    const csrfHeaderValue =
+      typeof headerToken === "string"
+        ? headerToken
+        : Array.isArray(headerToken)
+          ? headerToken[0]
+          : null;
+    const csrfCookieValue =
+      typeof request.cookies?.[CSRF_COOKIE_NAME] === "string"
+        ? request.cookies[CSRF_COOKIE_NAME]
+        : null;
+    if (!csrfHeaderValue || !csrfCookieValue || csrfHeaderValue !== csrfCookieValue) {
+      return reply.status(403).send({
+        success: false,
+        error: "CSRF validation failed",
+      });
+    }
+  });
+
+  app.post("/login", { preHandler: [loginRateLimit] }, async (request, reply) => {
     const parsed = LoginBodySchema.safeParse(request.body);
     if (!parsed.success) {
       return reply.status(400).send({
@@ -170,26 +247,26 @@ export async function authRoutes(app: FastifyInstance) {
       tenantId,
       role,
     });
-    reply.setCookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: envConfig.NODE_ENV === "production",
-      sameSite: "lax",
-      path: AUTH_COOKIE_PATH,
-      maxAge: parseDurationToSeconds(envConfig.JWT_REFRESH_EXPIRES_IN),
-    });
+    reply.setCookie(
+      "refreshToken",
+      refreshToken,
+      buildAuthCookieOptions(parseDurationToSeconds(envConfig.JWT_REFRESH_EXPIRES_IN)),
+    );
+    const csrfToken = issueCsrfToken(reply);
 
     return reply.send({
       success: true,
       data: {
         token: accessToken,
         refreshToken,
+        csrfToken,
         user: { id: user.id, email: user.email, name: user.name, tenantId, role },
         expiresIn: envConfig.JWT_EXPIRES_IN,
       },
     });
   });
 
-  app.post("/register", async (request, reply) => {
+  app.post("/register", { preHandler: [loginRateLimit] }, async (request, reply) => {
     const parsed = RegisterBodySchema.safeParse(request.body);
     if (!parsed.success) {
       return reply.status(400).send({
@@ -282,13 +359,12 @@ export async function authRoutes(app: FastifyInstance) {
       tenantId: user.tenantId,
       role: user.role,
     });
-    reply.setCookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: envConfig.NODE_ENV === "production",
-      sameSite: "lax",
-      path: AUTH_COOKIE_PATH,
-      maxAge: parseDurationToSeconds(envConfig.JWT_REFRESH_EXPIRES_IN),
-    });
+    reply.setCookie(
+      "refreshToken",
+      refreshToken,
+      buildAuthCookieOptions(parseDurationToSeconds(envConfig.JWT_REFRESH_EXPIRES_IN)),
+    );
+    const csrfToken = issueCsrfToken(reply);
 
     return reply.send({
       success: true,
@@ -302,6 +378,7 @@ export async function authRoutes(app: FastifyInstance) {
           tenantId: user.tenantId,
           role: user.role,
         },
+        csrfToken,
         expiresIn: envConfig.JWT_EXPIRES_IN,
       },
     });
@@ -324,7 +401,11 @@ export async function authRoutes(app: FastifyInstance) {
 
     let payload: Record<string, unknown>;
     try {
-      payload = await app.jwt.verify<Record<string, unknown>>(refreshToken);
+      payload = await app.jwt.verify<Record<string, unknown>>(refreshToken, {
+        key: envConfig.JWT_REFRESH_SECRET,
+        allowedIss: AUTH_ISSUER,
+        allowedAud: AUTH_AUDIENCE,
+      });
     } catch {
       return reply.status(401).send({ success: false, error: "Refresh token invalid" });
     }
@@ -367,19 +448,19 @@ export async function authRoutes(app: FastifyInstance) {
       },
       payload.familyId,
     );
-    reply.setCookie("refreshToken", rotatedRefresh, {
-      httpOnly: true,
-      secure: envConfig.NODE_ENV === "production",
-      sameSite: "lax",
-      path: AUTH_COOKIE_PATH,
-      maxAge: parseDurationToSeconds(envConfig.JWT_REFRESH_EXPIRES_IN),
-    });
+    reply.setCookie(
+      "refreshToken",
+      rotatedRefresh,
+      buildAuthCookieOptions(parseDurationToSeconds(envConfig.JWT_REFRESH_EXPIRES_IN)),
+    );
+    const csrfToken = issueCsrfToken(reply);
 
     return reply.send({
       success: true,
       data: {
         token: accessToken,
         refreshToken: rotatedRefresh,
+        csrfToken,
         expiresIn: envConfig.JWT_EXPIRES_IN,
       },
     });
@@ -397,7 +478,11 @@ export async function authRoutes(app: FastifyInstance) {
     const refreshToken = parsed.data.refreshToken ?? request.cookies?.refreshToken;
     if (refreshToken) {
       try {
-        const payload = await app.jwt.verify<Record<string, unknown>>(refreshToken);
+        const payload = await app.jwt.verify<Record<string, unknown>>(refreshToken, {
+          key: envConfig.JWT_REFRESH_SECRET,
+          allowedIss: AUTH_ISSUER,
+          allowedAud: AUTH_AUDIENCE,
+        });
         if (typeof payload.familyId === "string") {
           await revokeRefreshFamily(payload.familyId);
         }
@@ -410,6 +495,7 @@ export async function authRoutes(app: FastifyInstance) {
     }
 
     reply.clearCookie("refreshToken", { path: AUTH_COOKIE_PATH });
+    reply.clearCookie(CSRF_COOKIE_NAME, { path: AUTH_COOKIE_PATH });
     return reply.send({ success: true, data: { loggedOut: true } });
   });
 

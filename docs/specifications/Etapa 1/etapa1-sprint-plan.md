@@ -8,17 +8,18 @@
 
 ## METADATA DOCUMENT
 
-| Câmp                | Valoare                                 |
-| ------------------- | --------------------------------------- |
-| **Etapă**           | E1 - Data Enrichment                    |
-| **Versiune**        | 1.1                                     |
-| **Data creării**    | 27 Februarie 2026                       |
-| **Autor**           | Cerniq Development Team                 |
-| **Status**          | APPROVED - Ready for Execution          |
-| **Durată totală**   | 8 săptămâni (4 sprinturi × 2 săptămâni) |
-| **Total Sprinturi** | 4                                       |
-| **Total PR-uri**    | 32                                      |
-| **Total Task-uri**  | 193                                     |
+| Câmp                    | Valoare                                     |
+| ----------------------- | ------------------------------------------- |
+| **Etapă**               | E1 - Data Enrichment                        |
+| **Versiune**            | 1.1                                         |
+| **Data creării**        | 27 Februarie 2026                           |
+| **Autor**               | Cerniq Development Team                     |
+| **Status**              | IN PROGRESS - Implementare activă Faza 3-7  |
+| **Ultima actualizare**  | 19 Martie 2026                              |
+| **Durată totală**       | 8 săptămâni (4 sprinturi × 2 săptămâni)     |
+| **Total Sprinturi**     | 4                                           |
+| **Total PR-uri**        | 32                                          |
+| **Total Task-uri**      | 193                                         |
 
 ---
 
@@ -26,7 +27,7 @@
 
 ### Schema Standardizată: `E{etapa}.S{sprint}.PR{pr}.{task}`
 
-```
+```text
 E1.S1.PR1.001
 │  │  │   │
 │  │  │   └── Task secvențial (001-999)
@@ -351,12 +352,12 @@ E1.S1.PR1.001
 
 #### Tasks
 
-| Task ID       | Denumire                                   | Status  | Assignee | Estimare |
-| ------------- | ------------------------------------------ | ------- | -------- | -------- |
-| E1.S2.PR4.001 | Implementare C.1 CUI Validator (Modulo-11) | ⬜ TODO | -        | 3h       |
+| Task ID       | Denumire                                    | Status  | Assignee | Estimare |
+| ------------- | ------------------------------------------- | ------- | -------- | -------- |
+| E1.S2.PR4.001 | Implementare C.1 CUI Validator (Modulo-11)  | ⬜ TODO | -        | 3h       |
 | E1.S2.PR4.002 | Implementare C.2 CUI ANAF Validator         | ⬜ TODO | -        | 3h       |
-| E1.S2.PR4.003 | Batch validation pentru eficiență          | ⬜ TODO | -        | 2h       |
-| E1.S2.PR4.004 | Tests și edge cases                        | ⬜ TODO | -        | 2h       |
+| E1.S2.PR4.003 | Batch validation pentru eficiență           | ⬜ TODO | -        | 2h       |
+| E1.S2.PR4.004 | Tests și edge cases                         | ⬜ TODO | -        | 2h       |
 
 ---
 
@@ -565,12 +566,12 @@ E1.S1.PR1.001
 
 #### Tasks
 
-| Task ID       | Denumire                                  | Status  | Assignee | Estimare |
-| ------------- | ----------------------------------------- | ------- | -------- | -------- |
-| E1.S3.PR6.001 | Implementare O.1 Silver Aggregator Worker | ⬜ TODO | -        | 3h       |
-| E1.S3.PR6.002 | Implementare O.2 Quality Rollup Worker    | ⬜ TODO | -        | 3h       |
-| E1.S3.PR6.003 | Implementare P.1 Pipeline Orchestrator    | ⬜ TODO | -        | 4h       |
-| E1.S3.PR6.004 | Implementare P.2 Promotion Silver->Gold   | ⬜ TODO | -        | 3h       |
+| Task ID       | Denumire                                   | Status  | Assignee | Estimare |
+| ------------- | ------------------------------------------ | ------- | -------- | -------- |
+| E1.S3.PR6.001 | Implementare O.1 Silver Aggregator Worker  | ⬜ TODO | -        | 3h       |
+| E1.S3.PR6.002 | Implementare O.2 Quality Rollup Worker     | ⬜ TODO | -        | 3h       |
+| E1.S3.PR6.003 | Implementare P.1 Pipeline Orchestrator     | ⬜ TODO | -        | 4h       |
+| E1.S3.PR6.004 | Implementare P.2 Promotion Silver->Gold    | ⬜ TODO | -        | 3h       |
 | E1.S3.PR6.005 | Implementare P.3 Pipeline Monitor          | ⬜ TODO | -        | 2h       |
 | E1.S3.PR6.006 | Implementare P.4 Error Handler             | ⬜ TODO | -        | 2h       |
 
@@ -794,12 +795,12 @@ E1.S1.PR1.001
 
 ### Calendar Execuție
 
-| Sprint | Perioada       | Focus                       |
-| ------ | -------------- | --------------------------- |
-| S1     | 27 Feb - 12 Mar 2026 | Foundation (DB + Infra)     |
-| S2     | 13-26 Mar 2026        | Ingestion & Core Enrichment |
-| S3     | 27 Mar - 9 Apr 2026   | Advanced Enrichment + HITL  |
-| S4     | 10-23 Apr 2026        | API + Frontend + Testing    |
+| Sprint | Perioada                | Focus                        |
+| ------ | ----------------------- | ---------------------------- |
+| S1     | 27 Feb - 12 Mar 2026    | Foundation (DB + Infra)      |
+| S2     | 13-26 Mar 2026          | Ingestion & Core Enrichment  |
+| S3     | 27 Mar - 9 Apr 2026     | Advanced Enrichment + HITL   |
+| S4     | 10-23 Apr 2026          | API + Frontend + Testing     |
 
 ### Criterii Acceptare Etapa 1
 
