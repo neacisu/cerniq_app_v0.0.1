@@ -7,7 +7,7 @@ import {
 } from "./api.js";
 
 describe("web-admin api", () => {
-  const originalFetch = global.fetch;
+  const originalFetch = globalThis.fetch;
 
   beforeEach(() => {
     localStorage.clear();
@@ -15,11 +15,11 @@ describe("web-admin api", () => {
   });
 
   afterAll(() => {
-    global.fetch = originalFetch;
+    globalThis.fetch = originalFetch;
   });
 
   it("stores admin session for allowed roles", async () => {
-    global.fetch = vi.fn().mockResolvedValue(
+    globalThis.fetch = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
           success: true,
@@ -46,7 +46,7 @@ describe("web-admin api", () => {
   });
 
   it("rejects non-admin roles and clears persisted auth", async () => {
-    global.fetch = vi.fn().mockResolvedValue(
+    globalThis.fetch = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
           success: true,
@@ -69,7 +69,7 @@ describe("web-admin api", () => {
 
   it("uses authenticated admin proxy for live metrics", async () => {
     localStorage.setItem("cerniq_admin_token", "persisted-admin-token");
-    global.fetch = vi.fn().mockResolvedValue(
+    globalThis.fetch = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
           success: true,
@@ -85,7 +85,7 @@ describe("web-admin api", () => {
     const response = await fetchLiveMetrics();
 
     expect(response.success).toBe(true);
-    expect(global.fetch).toHaveBeenCalledWith(
+    expect(globalThis.fetch).toHaveBeenCalledWith(
       expect.stringContaining("/api/admin/live"),
       expect.objectContaining({
         credentials: "include",
@@ -93,7 +93,7 @@ describe("web-admin api", () => {
       }),
     );
 
-    const headers = (global.fetch as unknown as ReturnType<typeof vi.fn>).mock.calls[0][1]
+    const headers = (globalThis.fetch as unknown as ReturnType<typeof vi.fn>).mock.calls[0][1]
       .headers as Headers;
     expect(headers.get("Authorization")).toBe("Bearer persisted-admin-token");
   });
@@ -104,7 +104,7 @@ describe("web-admin api", () => {
       "cerniq_admin_user",
       JSON.stringify({ email: "admin@cerniq.app", role: "admin" }),
     );
-    global.fetch = vi.fn().mockResolvedValue(
+    globalThis.fetch = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ success: true }), {
         status: 200,
         headers: { "Content-Type": "application/json" },

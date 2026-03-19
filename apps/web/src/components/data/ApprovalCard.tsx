@@ -4,16 +4,23 @@ import { Badge } from "@/components/ui/badge.js";
 import { ProgressBar } from "@/components/data/ProgressBar.js";
 
 type ApprovalCardProps = {
-  id: string;
-  title: string;
-  description?: string;
-  urgency?: "LOW" | "MED" | "HIGH";
-  confidence?: number;
-  onApprove?: () => void;
-  onReject?: () => void;
+  readonly id: string;
+  readonly title: string;
+  readonly description?: string;
+  readonly urgency?: "LOW" | "MED" | "HIGH";
+  readonly confidence?: number;
+  readonly onApprove?: () => void;
+  readonly onReject?: () => void;
 };
 
+const URGENCY_VARIANT = {
+  HIGH: "error",
+  MED: "warning",
+  LOW: "info",
+} as const satisfies Record<"HIGH" | "MED" | "LOW", "error" | "warning" | "info">;
+
 export function ApprovalCard({
+  id,
   title,
   description,
   urgency = "MED",
@@ -21,15 +28,15 @@ export function ApprovalCard({
   onApprove,
   onReject,
 }: ApprovalCardProps) {
-  const variant = urgency === "HIGH" ? "error" : urgency === "MED" ? "warning" : "info";
+  const variant = URGENCY_VARIANT[urgency];
   return (
-    <Card className="border-l-4 border-l-[var(--color-wa)]">
+    <Card className="border-l-4 border-l-wa" data-approval-id={id}>
       <CardBody>
         <div className="mb-3 flex items-start justify-between">
-          <h3 className="font-semibold text-[var(--color-t1)]">{title}</h3>
+          <h3 className="font-semibold text-t1">{title}</h3>
           <Badge variant={variant}>{urgency}</Badge>
         </div>
-        {description ? <p className="mb-3 text-sm text-[var(--color-t3)]">{description}</p> : null}
+        {description ? <p className="mb-3 text-sm text-t3">{description}</p> : null}
         <ProgressBar value={confidence} />
         <div className="mt-3 flex gap-2">
           <Button variant="success" size="sm" className="flex-1" onClick={onApprove}>

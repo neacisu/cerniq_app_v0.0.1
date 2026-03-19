@@ -67,7 +67,7 @@ export function AiDashboard() {
           <CardBody className="space-y-3">
             {MODELS.map((m) => (
               <div key={m.label} className="flex items-center gap-3">
-                <span className="text-xs text-[var(--color-t3)] w-20">{m.label}</span>
+                <span className="w-20 text-xs text-t3">{m.label}</span>
                 <ProgressBar value={m.value} max={100} />
               </div>
             ))}
@@ -82,7 +82,7 @@ export function AiDashboard() {
               {GUARDRAILS.map((g) => (
                 <div key={g.name} className={cn("flex items-center gap-2 text-sm")}>
                   <StatusDot status={g.status} />
-                  <span className="text-[var(--color-t2)]">{g.name}</span>
+                  <span className="text-t2">{g.name}</span>
                 </div>
               ))}
             </div>

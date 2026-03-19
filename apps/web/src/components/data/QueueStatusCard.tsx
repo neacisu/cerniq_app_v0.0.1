@@ -2,13 +2,13 @@ import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card.js";
 import { Badge } from "@/components/ui/badge.js";
 
 type QueueStatusCardProps = {
-  name: string;
-  paused: boolean;
-  waiting: number;
-  active: number;
-  failed: number;
-  delayed: number;
-  rateLimit?: { max: number; duration: number } | null;
+  readonly name: string;
+  readonly paused: boolean;
+  readonly waiting: number;
+  readonly active: number;
+  readonly failed: number;
+  readonly delayed: number;
+  readonly rateLimit?: { readonly max: number; readonly duration: number } | null;
 };
 
 export function QueueStatusCard({
@@ -28,7 +28,7 @@ export function QueueStatusCard({
           <Badge variant={paused ? "warning" : "ok"}>{paused ? "paused" : "running"}</Badge>
         </CardTitle>
       </CardHeader>
-      <CardBody className="space-y-1 text-xs text-[var(--color-t2)]">
+      <CardBody className="space-y-1 text-xs text-t2">
         <div className="flex justify-between">
           <span>waiting</span>
           <span>{waiting}</span>

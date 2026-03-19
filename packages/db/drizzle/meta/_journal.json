@@ -148,6 +148,13 @@
       "when": 1772200000000,
       "tag": "0020_silver_anaf_extended_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1772210000000,
+      "tag": "0021_nr_reg_com_canonical",
+      "breakpoints": true
     }
   ]
 }

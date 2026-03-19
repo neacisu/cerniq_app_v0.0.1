@@ -101,7 +101,7 @@ export function GoldCompanyDetail() {
   if (detailQuery.isError) {
     return (
       <PageWrapper title="Gold Company Detail">
-        <div className="rounded-lg border border-(--color-danger)/30 bg-(--color-danger)/10 p-4 text-sm text-(--color-danger)">
+        <div className="rounded-lg border border-er/30 bg-er/10 p-4 text-sm text-er">
           Eroare la încărcarea datelor: {detailQuery.error?.message ?? "Eroare necunoscută"}
         </div>
       </PageWrapper>
@@ -196,9 +196,15 @@ export function GoldCompanyDetail() {
                 <p className="py-4 text-sm text-t3">Niciun eveniment în timeline.</p>
               ) : (
                 <div className="relative space-y-0 border-l-2 border-s700 pl-4">
-                  {journey.map((event, idx) => (
-                    <div key={String(event.id ?? idx)} className="relative pb-4">
-                      <div className="absolute -left-[1.3rem] top-1 h-2.5 w-2.5 rounded-full bg-(--color-brand)" />
+                  {journey.map((event) => (
+                    <div
+                      key={String(
+                        event.id ??
+                          `${event.createdAt ?? ""}-${event.eventType ?? ""}-${event.toState ?? ""}`,
+                      )}
+                      className="relative pb-4"
+                    >
+                      <div className="absolute -left-[1.3rem] top-1 h-2.5 w-2.5 rounded-full bg-b5" />
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium text-t1">
                           {String(event.eventType ?? "-")}

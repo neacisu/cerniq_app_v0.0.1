@@ -7,7 +7,7 @@ import {
   sql,
   upsertCompanyIdentityKey,
 } from "@cerniq/db";
-import { normalizeNrRegCom } from "@cerniq/worker-shared";
+import { sanitizeNrRegCom } from "@cerniq/worker-shared";
 import { fetchAnafRecordByCui } from "../lib/anaf-api-client.js";
 import { sanitizeCui } from "../lib/cui-validation.js";
 import { markEnrichmentSourceComplete } from "../lib/enrichment-completion.js";
@@ -21,7 +21,7 @@ export type AnafFiscalJobData = {
 
 function extractNrRegCom(record: Record<string, unknown>): {
   raw: string | null;
-  canonical: string | null;
+  sanitized: string | null;
 } {
   const raw =
     (typeof record.nrRegCom === "string" && record.nrRegCom) ||
@@ -30,7 +30,9 @@ function extractNrRegCom(record: Record<string, unknown>): {
     (typeof record.nr_reg_comert === "string" && record.nr_reg_comert) ||
     (typeof record.numar_reg_comert === "string" && record.numar_reg_comert) ||
     null;
-  return { raw, canonical: raw ? normalizeNrRegCom(raw) : null };
+  // Sanitize without converting old format to canonical new format.
+  // ANAF provides old format (J09/98/2003) — we have no authority to auto-convert.
+  return { raw, sanitized: raw ? sanitizeNrRegCom(raw) : null };
 }
 
 function mapStatus(value: unknown): "ACTIVA" | "INACTIVA" | "DIZOLVARE" | "RADIATA" | "INSOLVENTA" {
@@ -85,7 +87,7 @@ export const anafFiscalProcessor: Processor<AnafFiscalJobData> = async (job) => 
       adresa: adresa ?? undefined,
       statusFirma,
       codCaenPrincipal: codCaenPrincipal ?? undefined,
-      nrRegCom: nrRegCom.canonical ?? undefined,
+      nrRegCom: nrRegCom.sanitized ?? undefined,
       nrRegComOriginal: nrRegCom.raw ?? undefined,
       lastEnrichedAt: new Date(),
       metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify({ anafFiscal: record })}::jsonb`,
@@ -101,12 +103,13 @@ export const anafFiscalProcessor: Processor<AnafFiscalJobData> = async (job) => 
     sourceAuthority: "anaf",
     isAuthoritative: true,
   });
-  if (nrRegCom.canonical) {
+  if (nrRegCom.sanitized) {
     await upsertCompanyIdentityKey({
       tenantId: job.data.tenantId,
       companyId: job.data.companyId,
       keyType: "nr_reg_com",
-      keyValueCanonical: nrRegCom.canonical,
+      // raw/sanitized value used as canonical key — no auto-conversion old→new
+      keyValueCanonical: nrRegCom.sanitized,
       keyValueOriginal: nrRegCom.raw,
       sourceAuthority: "anaf",
     });

@@ -46,10 +46,10 @@ export function Referrals() {
               {kolList.map((k) => (
                 <div
                   key={k.name}
-                  className="flex justify-between items-center py-2 border-b border-[var(--color-s700)] last:border-0"
+                  className="flex justify-between items-center py-2 border-b border-s700 last:border-0"
                 >
-                  <span className="font-medium text-[var(--color-t1)]">{k.name}</span>
-                  <span className="text-sm text-[var(--color-b5)]">{k.influence}% influence</span>
+                  <span className="font-medium text-t1">{k.name}</span>
+                  <span className="text-sm text-b5">{k.influence}% influence</span>
                 </div>
               ))}
             </div>
@@ -61,11 +61,11 @@ export function Referrals() {
             <CardTitle>KNN Proximity Map</CardTitle>
           </CardHeader>
           <CardBody>
-            <div className="relative h-64 bg-[var(--color-s800)] rounded-[var(--radius-md)]">
-              {activePoints.map((p, i) => (
+            <div className="relative h-64 bg-s800 rounded-md">
+              {activePoints.map((p) => (
                 <div
-                  key={`a-${i}`}
-                  className="absolute rounded-full bg-[var(--color-b5)] border-2 border-[var(--color-b4)]"
+                  key={`a-${p.x}-${p.y}-${p.r}`}
+                  className="absolute rounded-full bg-b5 border-2 border-b4"
                   style={{
                     left: `${p.x}%`,
                     top: `${p.y}%`,
@@ -75,10 +75,10 @@ export function Referrals() {
                   }}
                 />
               ))}
-              {knnPoints.map((p, i) => (
+              {knnPoints.map((p) => (
                 <div
-                  key={`k-${i}`}
-                  className="absolute rounded-full border-2 border-dashed border-[var(--color-s500)] bg-transparent"
+                  key={`k-${p.x}-${p.y}`}
+                  className="absolute rounded-full border-2 border-dashed border-(--color-s500) bg-transparent"
                   style={{
                     left: `${p.x}%`,
                     top: `${p.y}%`,
@@ -91,10 +91,10 @@ export function Referrals() {
             </div>
             <div className="flex gap-4 mt-3 text-xs">
               <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-[var(--color-b5)]" /> Active
+                <span className="w-2 h-2 rounded-full bg-b5" /> Active
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full border-2 border-dashed border-[var(--color-s500)]" />{" "}
+                <span className="w-2 h-2 rounded-full border-2 border-dashed border-(--color-s500)" />{" "}
                 KNN candidates
               </span>
             </div>

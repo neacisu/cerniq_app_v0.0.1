@@ -7,6 +7,11 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
+    "diagnostics:inventory": "node ./infra/scripts/build-diagnostics-inventory.mjs",
+    "diagnostics:inventory:all": "node ./infra/scripts/build-diagnostics-inventory.mjs",
+    "diagnostics:inventory:ts": "node ./infra/scripts/build-diagnostics-inventory.mjs --extensions=.ts,.tsx",
+    "diagnostics:problems": "node ./infra/scripts/replay-diagnostics-problems.mjs --input=test-results/diagnostics/workspace-diagnostics.json",
+    "diagnostics:sonar:fetch": "node ./infra/scripts/fetch-sonar-issues.mjs --output=test-results/diagnostics/sonar-issues.json",
     "lint": "turbo run lint",
     "lint:fix": "eslint . --fix",
     "typecheck": "turbo run typecheck",

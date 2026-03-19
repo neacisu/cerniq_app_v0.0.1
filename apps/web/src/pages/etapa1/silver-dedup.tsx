@@ -36,7 +36,7 @@ export function SilverDedup() {
   if (isError) {
     return (
       <PageWrapper title="Silver Dedup Candidates">
-        <div className="rounded-lg border border-[var(--color-danger)] bg-[var(--color-danger)]/10 p-4 text-sm text-[var(--color-danger)]">
+        <div className="rounded-lg border border-er bg-er/10 p-4 text-sm text-er">
           Eroare la incarcarea candidatilor dedup: {error?.message ?? "Eroare necunoscuta"}
         </div>
       </PageWrapper>
@@ -82,27 +82,23 @@ export function SilverDedup() {
               </CardHeader>
               <CardBody>
                 <div className="grid gap-4 md:grid-cols-2">
-                  <div className="rounded-lg border border-[var(--color-s700)] p-3">
-                    <span className="mb-1 block text-xs font-medium text-[var(--color-t3)]">
-                      Compania A
-                    </span>
-                    <p className="text-sm font-semibold text-[var(--color-t1)]">
+                  <div className="rounded-lg border border-s700 p-3">
+                    <span className="mb-1 block text-xs font-medium text-t3">Compania A</span>
+                    <p className="text-sm font-semibold text-t1">
                       {String(left.denumire ?? left.name ?? "—")}
                     </p>
-                    <p className="text-xs text-[var(--color-t2)]">
+                    <p className="text-xs text-t2">
                       CUI: {String(left.cui ?? "—")} | Judet:{" "}
                       {String(left.judet ?? left.judetCod ?? "—")}
                     </p>
                   </div>
 
-                  <div className="rounded-lg border border-[var(--color-s700)] p-3">
-                    <span className="mb-1 block text-xs font-medium text-[var(--color-t3)]">
-                      Compania B
-                    </span>
-                    <p className="text-sm font-semibold text-[var(--color-t1)]">
+                  <div className="rounded-lg border border-s700 p-3">
+                    <span className="mb-1 block text-xs font-medium text-t3">Compania B</span>
+                    <p className="text-sm font-semibold text-t1">
                       {String(right.denumire ?? right.name ?? "—")}
                     </p>
-                    <p className="text-xs text-[var(--color-t2)]">
+                    <p className="text-xs text-t2">
                       CUI: {String(right.cui ?? "—")} | Judet:{" "}
                       {String(right.judet ?? right.judetCod ?? "—")}
                     </p>
@@ -110,9 +106,8 @@ export function SilverDedup() {
                 </div>
 
                 <div className="mt-3 flex items-center justify-between">
-                  <span className="text-xs text-[var(--color-t3)]">
-                    Scor similaritate:{" "}
-                    <span className="font-semibold text-[var(--color-t1)]">{score}%</span>
+                  <span className="text-xs text-t3">
+                    Scor similaritate: <span className="font-semibold text-t1">{score}%</span>
                   </span>
 
                   <div className="flex gap-2">
@@ -127,7 +122,7 @@ export function SilverDedup() {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="border-[var(--color-danger)] text-[var(--color-danger)]"
+                      className="border-er text-er"
                       onClick={() => handleDecision(id, "reject")}
                       disabled={decide.isPending || !canDecide}
                     >

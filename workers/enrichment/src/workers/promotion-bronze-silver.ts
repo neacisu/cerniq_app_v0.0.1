@@ -18,7 +18,7 @@ import {
   resolveBronzeContactIdentity,
   upsertCompanyIdentityKey,
 } from "@cerniq/db";
-import { createQueue, normalizeNrRegCom, QUEUES } from "@cerniq/worker-shared";
+import { createQueue, sanitizeNrRegCom, QUEUES } from "@cerniq/worker-shared";
 import { sanitizeCui } from "../lib/cui-validation.js";
 import { normalizeRow } from "./ingest-utils.js";
 import { createHitlApprovalTask } from "./pipeline-utils.js";
@@ -28,7 +28,12 @@ export type PromotionBronzeSilverJobData = {
   bronzeContactId?: string;
   batchId?: string;
   correlationId?: string;
+  reprocessErrorsOnly?: boolean;
 };
+
+const CONTACT_REPROCESS_MAX_ATTEMPTS = 3;
+const CONTACT_REPROCESS_RETRY_DELAYS_MS = [12_000, 24_000, 36_000] as const;
+const REPROCESS_ERROR_HISTORY_LIMIT = 10;
 
 const NEXT_ENRICHMENT_QUEUES = [
   QUEUES.ENRICH_ANAF_FISCAL_STATUS,
@@ -61,10 +66,57 @@ type SheetType =
 type SilverCompanyRow = typeof silverCompanies.$inferSelect;
 type BronzeContactRow = typeof bronzeContacts.$inferSelect;
 
+function stringifyUnknownForLog(value: unknown): string {
+  if (value == null) {
+    return "";
+  }
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean" ||
+    typeof value === "bigint"
+  ) {
+    return String(value);
+  }
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+  if (value instanceof Error) {
+    return value.message;
+  }
+  try {
+    const serialized = JSON.stringify(value);
+    if (serialized) {
+      return serialized;
+    }
+  } catch {
+    // Fall through to a stable tag if the value is not JSON-serializable.
+  }
+  return Object.prototype.toString.call(value);
+}
+
+function coerceUnknownToText(value: unknown): string | null {
+  if (value == null) {
+    return null;
+  }
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean" ||
+    typeof value === "bigint"
+  ) {
+    return String(value);
+  }
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+  return null;
+}
+
 function readErrorCode(error: unknown): string {
   if (error && typeof error === "object") {
     if ("code" in error && error.code) {
-      return String(error.code);
+      return stringifyUnknownForLog(error.code);
     }
     if (
       "cause" in error &&
@@ -74,7 +126,7 @@ function readErrorCode(error: unknown): string {
     ) {
       const causeCode = (error.cause as { code?: unknown }).code;
       if (causeCode) {
-        return String(causeCode);
+        return stringifyUnknownForLog(causeCode);
       }
     }
   }
@@ -83,7 +135,7 @@ function readErrorCode(error: unknown): string {
 
 function resolveCauseMessage(cause: unknown): string {
   if (cause instanceof Error) return cause.message;
-  if (cause != null) return String(cause);
+  if (cause != null) return stringifyUnknownForLog(cause);
   return "";
 }
 
@@ -92,7 +144,7 @@ function readErrorMessage(error: unknown): string {
     const causeMessage = resolveCauseMessage(error.cause);
     return causeMessage ? `${error.message} | cause: ${causeMessage}` : error.message;
   }
-  return String(error);
+  return stringifyUnknownForLog(error);
 }
 
 function isRetriableBatchMetadataError(error: unknown): boolean {
@@ -148,15 +200,155 @@ function batchIdMetadataEquals(metadataColumn: unknown, batchId: string) {
   return sql`COALESCE(jsonb_extract_path_text(${metadataColumn}, ${"batchId"}), ${""}) = ${batchId}`;
 }
 
+function failedReprocessContactEquals(metadataColumn: unknown) {
+  return sql`COALESCE(jsonb_extract_path_text(${metadataColumn}, 'identityReprocessError', 'status'), '') = 'failed'`;
+}
+
+function sqlTimestamp(value: string) {
+  return sql`${value}::timestamptz`;
+}
+
+type ContactReprocessErrorEntry = {
+  attempt: number;
+  at: string;
+  message: string;
+};
+
+async function updateBronzeContactMetadata(
+  tenantId: string,
+  bronzeId: string,
+  mutate: (currentMetadata: Record<string, unknown>) => Record<string, unknown>,
+  extraPatch?: Partial<typeof bronzeContacts.$inferInsert>,
+) {
+  await withBatchMetadataRetry(tenantId, "updateBronzeContactMetadata", async () => {
+    const [contact] = await db
+      .select({ metadata: bronzeContacts.metadata })
+      .from(bronzeContacts)
+      .where(sql`${bronzeContacts.tenantId} = ${tenantId} AND ${bronzeContacts.id} = ${bronzeId}`)
+      .limit(1);
+
+    const currentMetadata = (contact?.metadata as Record<string, unknown> | undefined) ?? {};
+    const patch = extraPatch ?? undefined;
+
+    const nextValues = patch
+      ? { metadata: mutate(currentMetadata), updatedAt: new Date(), ...patch }
+      : { metadata: mutate(currentMetadata), updatedAt: new Date() };
+
+    await db
+      .update(bronzeContacts)
+      .set(nextValues)
+      .where(sql`${bronzeContacts.tenantId} = ${tenantId} AND ${bronzeContacts.id} = ${bronzeId}`);
+  });
+}
+
+async function recordContactReprocessFailure(args: {
+  tenantId: string;
+  bronzeId: string;
+  batchId: string;
+  attempt: number;
+  error: unknown;
+}) {
+  const timestamp = new Date().toISOString();
+  const message = readErrorMessage(args.error);
+
+  await updateBronzeContactMetadata(
+    args.tenantId,
+    args.bronzeId,
+    (currentMetadata) => {
+      const currentError =
+        currentMetadata.identityReprocessError &&
+        typeof currentMetadata.identityReprocessError === "object"
+          ? (currentMetadata.identityReprocessError as Record<string, unknown>)
+          : {};
+      const currentHistory = Array.isArray(currentError.errorHistory)
+        ? (currentError.errorHistory as ContactReprocessErrorEntry[])
+        : [];
+
+      return {
+        ...currentMetadata,
+        identityReprocessError: {
+          status: "failed",
+          batchId: args.batchId,
+          attempts: args.attempt,
+          lastErrorAt: timestamp,
+          lastErrorMessage: message,
+          lastErrorStack: args.error instanceof Error ? (args.error.stack ?? null) : null,
+          errorHistory: [
+            ...currentHistory,
+            { attempt: args.attempt, at: timestamp, message },
+          ].slice(-REPROCESS_ERROR_HISTORY_LIMIT),
+        },
+      };
+    },
+    { processingStatus: "error" },
+  );
+}
+
+async function clearContactReprocessFailure(args: { tenantId: string; bronzeId: string }) {
+  const timestamp = new Date().toISOString();
+  await updateBronzeContactMetadata(args.tenantId, args.bronzeId, (currentMetadata) => {
+    const currentError =
+      currentMetadata.identityReprocessError &&
+      typeof currentMetadata.identityReprocessError === "object"
+        ? (currentMetadata.identityReprocessError as Record<string, unknown>)
+        : {};
+
+    return {
+      ...currentMetadata,
+      identityReprocessError: {
+        ...currentError,
+        status: "resolved",
+        resolvedAt: timestamp,
+      },
+    };
+  });
+}
+
+async function loadFailedReprocessContactsSummary(tenantId: string, batchId: string) {
+  await setSessionTenantId(tenantId);
+  const failedContacts = await db.query.bronzeContacts.findMany({
+    where: (t) =>
+      sql`${t.tenantId} = ${tenantId}
+        AND ${batchIdMetadataEquals(t.metadata, batchId)}
+        AND ${failedReprocessContactEquals(t.metadata)}`,
+    columns: {
+      id: true,
+      extractedName: true,
+      metadata: true,
+    },
+    orderBy: (t) => [t.id],
+  });
+
+  return {
+    count: failedContacts.length,
+    generatedAt: new Date().toISOString(),
+    samples: failedContacts.slice(0, 10).map((contact) => {
+      const metadata = (contact.metadata as Record<string, unknown> | undefined) ?? {};
+      const error =
+        metadata.identityReprocessError && typeof metadata.identityReprocessError === "object"
+          ? (metadata.identityReprocessError as Record<string, unknown>)
+          : {};
+      return {
+        contactId: contact.id,
+        rowNumber: metadata.rowNumber ?? null,
+        companyName: contact.extractedName ?? null,
+        attempts: Number(error.attempts ?? 0),
+        lastErrorMessage:
+          typeof error.lastErrorMessage === "string" ? error.lastErrorMessage : null,
+      };
+    }),
+  };
+}
+
 function normalizeKey(input: string): string {
   return input.toLowerCase().replaceAll(/[^a-z0-9]/g, "");
 }
 
 function readTrimmedValue(value: unknown): string | null {
-  if (value == null) {
+  const text = coerceUnknownToText(value)?.trim();
+  if (!text) {
     return null;
   }
-  const text = String(value).trim();
   return text.length > 0 ? text : null;
 }
 
@@ -211,8 +403,8 @@ export function resolveField(
 }
 
 export function parseRomanianNumeric(value: unknown): string | null {
-  if (value == null) return null;
-  const str = String(value).trim();
+  const str = coerceUnknownToText(value)?.trim();
+  if (!str) return null;
   if (!str || str === "-" || str.toLowerCase() === "n/a") return null;
 
   if (/^-?[\d.]+,\d{1,2}$/.test(str)) {
@@ -225,16 +417,16 @@ export function parseRomanianNumeric(value: unknown): string | null {
 }
 
 export function parseIntSafe(value: unknown): number | null {
-  if (value == null) return null;
-  const str = String(value).trim();
+  const str = coerceUnknownToText(value)?.trim();
+  if (!str) return null;
   if (!str || str === "-") return null;
   const n = Number.parseInt(str.replaceAll(/[^\d-]/g, ""), 10);
   return Number.isFinite(n) ? n : null;
 }
 
 export function parseTimestampSafe(value: unknown): Date | null {
-  if (value == null) return null;
-  const str = String(value).trim();
+  const str = coerceUnknownToText(value)?.trim();
+  if (!str) return null;
   if (!str) return null;
   const parsed = new Date(str);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
@@ -433,167 +625,575 @@ async function ensureIdentityConflictApprovalTask(
   });
 }
 
+type ReprocessPhase = "resolve_identities" | "queue_promotions";
+
+type ReprocessCheckpoint = {
+  metadata: Record<string, unknown>;
+  batchTotalRows: number;
+  phase: ReprocessPhase;
+  cursorCreatedAt: string | null;
+  cursorLastBronzeId: string | null;
+  promotionCursorCreatedAt: string | null;
+  promotionCursorLastBronzeId: string | null;
+  processed: number;
+  resolved: number;
+  duplicateSource: number;
+  identityConflict: number;
+  insufficientIdentifiers: number;
+  promotionQueued: number;
+  failedContacts: number;
+};
+
+type ReprocessRunCounters = {
+  processed: number;
+  resolved: number;
+  duplicateSource: number;
+  identityConflict: number;
+  insufficientIdentifiers: number;
+  promotionQueued: number;
+  failedContacts: number;
+};
+
+async function processOneBronzeContact(
+  bronze: BronzeContactRow,
+  mapping: Mapping,
+  tenantId: string,
+  counters: ReprocessRunCounters,
+): Promise<void> {
+  const payload = bronze.rawPayload as Payload;
+  await backfillBronzeIdentityFields(bronze, payload, mapping);
+  const resolution = await resolveBronzeContactIdentity({
+    tenantId,
+    bronzeContactId: bronze.id,
+    sourceAuthority: "import",
+  });
+  counters.processed += 1;
+  if (resolution.status === "resolved") {
+    counters.resolved += 1;
+    return;
+  }
+  if (resolution.status === "duplicate_source") {
+    counters.duplicateSource += 1;
+    return;
+  }
+  if (resolution.status === "insufficient_identifiers") {
+    counters.insufficientIdentifiers += 1;
+    return;
+  }
+  counters.identityConflict += 1;
+  await ensureIdentityConflictApprovalTask(tenantId, bronze, resolution.conflictCompanyIds);
+}
+
+async function processOneBronzeContactWithRetries(
+  bronze: BronzeContactRow,
+  mapping: Mapping,
+  tenantId: string,
+  batchId: string,
+  counters: ReprocessRunCounters,
+): Promise<void> {
+  let lastError: unknown = null;
+
+  for (let attempt = 1; attempt <= CONTACT_REPROCESS_MAX_ATTEMPTS; attempt += 1) {
+    try {
+      await processOneBronzeContact(bronze, mapping, tenantId, counters);
+      await clearContactReprocessFailure({ tenantId, bronzeId: bronze.id });
+      return;
+    } catch (error) {
+      lastError = error;
+      await recordContactReprocessFailure({
+        tenantId,
+        bronzeId: bronze.id,
+        batchId,
+        attempt,
+        error,
+      });
+
+      if (attempt < CONTACT_REPROCESS_MAX_ATTEMPTS) {
+        await delay(CONTACT_REPROCESS_RETRY_DELAYS_MS[attempt - 1]);
+        continue;
+      }
+    }
+  }
+
+  counters.processed += 1;
+  counters.failedContacts += 1;
+  console.error(
+    `[promotion-bronze-silver] contact ${bronze.id} failed after ${CONTACT_REPROCESS_MAX_ATTEMPTS} attempts in batch ${batchId}: ${readErrorMessage(lastError)}`,
+  );
+}
+
+function readReprocessNumber(value: unknown): number {
+  const parsed = Number(value ?? 0);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+async function rebuildFullRunCheckpointFromCursor(
+  tenantId: string,
+  batchId: string,
+  args: {
+    cursorCreatedAt: string | null;
+    cursorLastBronzeId: string | null;
+    batchTotalRows: number;
+    phase: ReprocessPhase;
+    promotionCursorCreatedAt: string | null;
+    promotionCursorLastBronzeId: string | null;
+    failedContacts: number;
+    metadata: Record<string, unknown>;
+  },
+): Promise<ReprocessCheckpoint> {
+  if (!args.cursorCreatedAt || !args.cursorLastBronzeId) {
+    return {
+      metadata: args.metadata,
+      batchTotalRows: args.batchTotalRows,
+      phase: args.phase,
+      cursorCreatedAt: null,
+      cursorLastBronzeId: null,
+      promotionCursorCreatedAt: args.promotionCursorCreatedAt,
+      promotionCursorLastBronzeId: args.promotionCursorLastBronzeId,
+      processed: 0,
+      resolved: 0,
+      duplicateSource: 0,
+      identityConflict: 0,
+      insufficientIdentifiers: 0,
+      promotionQueued: 0,
+      failedContacts: args.failedContacts,
+    };
+  }
+
+  await setSessionTenantId(tenantId);
+  const [row] = await db
+    .select({
+      processed: sql<number>`COUNT(*)`,
+      resolved: sql<number>`COUNT(*) FILTER (WHERE ${bronzeContacts.identityStatus} = 'resolved')`,
+      duplicateSource: sql<number>`COUNT(*) FILTER (WHERE ${bronzeContacts.identityStatus} = 'duplicate_source')`,
+      identityConflict: sql<number>`COUNT(*) FILTER (WHERE ${bronzeContacts.identityStatus} = 'identity_conflict')`,
+      insufficientIdentifiers: sql<number>`COUNT(*) FILTER (WHERE ${bronzeContacts.identityStatus} = 'insufficient_identifiers')`,
+    })
+    .from(bronzeContacts)
+    .where(
+      sql`${bronzeContacts.tenantId} = ${tenantId}
+        AND ${batchIdMetadataEquals(bronzeContacts.metadata, batchId)}
+        AND (
+          ${bronzeContacts.createdAt} < ${sqlTimestamp(args.cursorCreatedAt)}
+          OR (
+            ${bronzeContacts.createdAt} = ${sqlTimestamp(args.cursorCreatedAt)}
+            AND ${bronzeContacts.id} <= ${args.cursorLastBronzeId}
+          )
+        )`,
+    );
+
+  return {
+    metadata: args.metadata,
+    batchTotalRows: args.batchTotalRows,
+    phase: args.phase,
+    cursorCreatedAt: args.cursorCreatedAt,
+    cursorLastBronzeId: args.cursorLastBronzeId,
+    promotionCursorCreatedAt: args.promotionCursorCreatedAt,
+    promotionCursorLastBronzeId: args.promotionCursorLastBronzeId,
+    processed: Number(row?.processed ?? 0),
+    resolved: Number(row?.resolved ?? 0),
+    duplicateSource: Number(row?.duplicateSource ?? 0),
+    identityConflict: Number(row?.identityConflict ?? 0),
+    insufficientIdentifiers: Number(row?.insufficientIdentifiers ?? 0),
+    promotionQueued: Number(args.metadata.identityReprocessPromotionQueued ?? 0),
+    failedContacts: args.failedContacts,
+  };
+}
+
+async function loadBatchReprocessCheckpoint(
+  tenantId: string,
+  batchId: string,
+): Promise<ReprocessCheckpoint> {
+  const [batch] = await db
+    .select({ metadata: bronzeImportBatches.metadata, totalRows: bronzeImportBatches.totalRows })
+    .from(bronzeImportBatches)
+    .where(
+      sql`${bronzeImportBatches.tenantId} = ${tenantId} AND ${bronzeImportBatches.id} = ${batchId}`,
+    )
+    .limit(1);
+
+  const metadata = (batch?.metadata as Record<string, unknown> | undefined) ?? {};
+  const phase =
+    metadata.identityReprocessPhase === "queue_promotions"
+      ? "queue_promotions"
+      : "resolve_identities";
+
+  const baseCheckpoint: ReprocessCheckpoint = {
+    metadata,
+    batchTotalRows: Number(batch?.totalRows ?? 0),
+    phase,
+    cursorCreatedAt:
+      typeof metadata.identityReprocessCursorCreatedAt === "string"
+        ? metadata.identityReprocessCursorCreatedAt
+        : null,
+    cursorLastBronzeId:
+      typeof metadata.identityReprocessCursorLastBronzeId === "string"
+        ? metadata.identityReprocessCursorLastBronzeId
+        : null,
+    promotionCursorCreatedAt:
+      typeof metadata.identityReprocessPromotionCursorCreatedAt === "string"
+        ? metadata.identityReprocessPromotionCursorCreatedAt
+        : null,
+    promotionCursorLastBronzeId:
+      typeof metadata.identityReprocessPromotionCursorLastBronzeId === "string"
+        ? metadata.identityReprocessPromotionCursorLastBronzeId
+        : null,
+    processed: readReprocessNumber(metadata.identityReprocessProcessedRows),
+    resolved: readReprocessNumber(metadata.identityReprocessResolvedRows),
+    duplicateSource: readReprocessNumber(metadata.identityReprocessDuplicateSourceRows),
+    identityConflict: readReprocessNumber(metadata.identityReprocessIdentityConflictRows),
+    insufficientIdentifiers: readReprocessNumber(
+      metadata.identityReprocessInsufficientIdentifierRows,
+    ),
+    promotionQueued: readReprocessNumber(metadata.identityReprocessPromotionQueued),
+    failedContacts: readReprocessNumber(metadata.identityReprocessFailedContactCount),
+  };
+
+  const mode = metadata.identityReprocessMode === "errors_only" ? "errors_only" : "full";
+  if (mode === "full") {
+    try {
+      return await rebuildFullRunCheckpointFromCursor(tenantId, batchId, baseCheckpoint);
+    } catch (error) {
+      console.error(
+        `[promotion-bronze-silver] failed to rebuild checkpoint for batch ${batchId}; falling back to persisted metadata: ${readErrorMessage(error)}`,
+      );
+    }
+  }
+
+  return baseCheckpoint;
+}
+
+async function loadCompletedFullRunMetrics(tenantId: string, batchId: string) {
+  await setSessionTenantId(tenantId);
+  const [row] = await db
+    .select({
+      processed: sql<number>`COUNT(*)`,
+      resolved: sql<number>`COUNT(*) FILTER (WHERE ${bronzeContacts.identityStatus} = 'resolved')`,
+      duplicateSource: sql<number>`COUNT(*) FILTER (WHERE ${bronzeContacts.identityStatus} = 'duplicate_source')`,
+      identityConflict: sql<number>`COUNT(*) FILTER (WHERE ${bronzeContacts.identityStatus} = 'identity_conflict')`,
+      insufficientIdentifiers: sql<number>`COUNT(*) FILTER (WHERE ${bronzeContacts.identityStatus} = 'insufficient_identifiers')`,
+      failedContacts: sql<number>`COUNT(*) FILTER (WHERE ${failedReprocessContactEquals(bronzeContacts.metadata)})`,
+    })
+    .from(bronzeContacts)
+    .where(
+      sql`${bronzeContacts.tenantId} = ${tenantId}
+        AND ${batchIdMetadataEquals(bronzeContacts.metadata, batchId)}`,
+    );
+
+  return {
+    processed: Number(row?.processed ?? 0),
+    resolved: Number(row?.resolved ?? 0),
+    duplicateSource: Number(row?.duplicateSource ?? 0),
+    identityConflict: Number(row?.identityConflict ?? 0),
+    insufficientIdentifiers: Number(row?.insufficientIdentifiers ?? 0),
+    failedContacts: Number(row?.failedContacts ?? 0),
+  };
+}
+
+async function updateBatchReprocessMetadata(
+  tenantId: string,
+  batchId: string,
+  patch: Record<string, unknown>,
+) {
+  await withBatchMetadataRetry(tenantId, "updateBatchReprocessMetadata", async () => {
+    const [batch] = await db
+      .select({ metadata: bronzeImportBatches.metadata })
+      .from(bronzeImportBatches)
+      .where(
+        sql`${bronzeImportBatches.tenantId} = ${tenantId} AND ${bronzeImportBatches.id} = ${batchId}`,
+      )
+      .limit(1);
+
+    const currentMetadata = (batch?.metadata as Record<string, unknown> | undefined) ?? {};
+
+    await db
+      .update(bronzeImportBatches)
+      .set({
+        metadata: {
+          ...currentMetadata,
+          ...patch,
+        },
+        updatedAt: new Date(),
+      })
+      .where(
+        sql`${bronzeImportBatches.tenantId} = ${tenantId} AND ${bronzeImportBatches.id} = ${batchId}`,
+      );
+  });
+}
+
+type IdentityResolutionLoopOptions = {
+  tenantId: string;
+  batchId: string;
+  mapping: Mapping;
+  errorsOnly: boolean;
+  initialRunTotalRows: number;
+  pageSize: number;
+  initialCursor: { lastCreatedAt: string | null; lastId: string | null };
+  counters: ReprocessRunCounters;
+};
+
+async function runIdentityResolutionLoop(
+  opts: IdentityResolutionLoopOptions,
+): Promise<{ lastCreatedAt: string | null; lastId: string | null }> {
+  const { tenantId, batchId, mapping, errorsOnly, initialRunTotalRows, pageSize, counters } = opts;
+  let lastCreatedAt = opts.initialCursor.lastCreatedAt;
+  let lastId = opts.initialCursor.lastId;
+
+  while (true) {
+    const contacts = await db.query.bronzeContacts.findMany({
+      where: (t) => {
+        const conditions = [
+          sql`${t.tenantId} = ${tenantId}`,
+          batchIdMetadataEquals(t.metadata, batchId),
+        ];
+        if (errorsOnly) {
+          conditions.push(failedReprocessContactEquals(t.metadata));
+        }
+        const base = sql.join(conditions, sql` AND `);
+        if (!lastCreatedAt || !lastId) {
+          return base;
+        }
+        return sql`${base}
+          AND (
+            ${t.createdAt} > ${sqlTimestamp(lastCreatedAt)}
+            OR (${t.createdAt} = ${sqlTimestamp(lastCreatedAt)} AND ${t.id} > ${lastId})
+          )`;
+      },
+      orderBy: (t) => [t.createdAt, t.id],
+      limit: pageSize,
+    });
+
+    if (contacts.length === 0) {
+      break;
+    }
+
+    for (const bronze of contacts) {
+      await processOneBronzeContactWithRetries(bronze, mapping, tenantId, batchId, counters);
+      lastCreatedAt = bronze.createdAt.toISOString();
+      lastId = bronze.id;
+    }
+
+    await updateBatchReprocessMetadata(tenantId, batchId, {
+      identityReprocessStatus: "running",
+      identityReprocessPhase: "resolve_identities",
+      identityReprocessCursorCreatedAt: lastCreatedAt,
+      identityReprocessCursorLastBronzeId: lastId,
+      identityReprocessMode: errorsOnly ? "errors_only" : "full",
+      identityReprocessRunTotalRows: initialRunTotalRows,
+      identityReprocessFailedAt: null,
+      identityReprocessLastError: null,
+      identityReprocessLastProgressAt: new Date().toISOString(),
+      identityReprocessProcessedRows: counters.processed,
+      identityReprocessResolvedRows: counters.resolved,
+      identityReprocessDuplicateSourceRows: counters.duplicateSource,
+      identityReprocessIdentityConflictRows: counters.identityConflict,
+      identityReprocessInsufficientIdentifierRows: counters.insufficientIdentifiers,
+      identityReprocessPromotionQueued: counters.promotionQueued,
+      identityReprocessFailedContactCount: counters.failedContacts,
+    });
+  }
+
+  return { lastCreatedAt, lastId };
+}
+
 async function handleBatchReprocess(jobData: PromotionBronzeSilverJobData) {
   if (!jobData.batchId) {
     return { ok: false, status: "missing_batch_id" };
   }
   const batchId = jobData.batchId;
 
-  async function updateBatchReprocessMetadata(patch: Record<string, unknown>) {
-    await withBatchMetadataRetry(jobData.tenantId, "updateBatchReprocessMetadata", async () => {
-      const [batch] = await db
-        .select({ metadata: bronzeImportBatches.metadata })
-        .from(bronzeImportBatches)
-        .where(
-          sql`${bronzeImportBatches.tenantId} = ${jobData.tenantId} AND ${bronzeImportBatches.id} = ${jobData.batchId}`,
-        )
-        .limit(1);
-
-      const currentMetadata = (batch?.metadata as Record<string, unknown> | undefined) ?? {};
-
-      await db
-        .update(bronzeImportBatches)
-        .set({
-          metadata: {
-            ...currentMetadata,
-            ...patch,
-          },
-          updatedAt: new Date(),
-        })
-        .where(
-          sql`${bronzeImportBatches.tenantId} = ${jobData.tenantId} AND ${bronzeImportBatches.id} = ${jobData.batchId}`,
-        );
-    });
-  }
   const pageSize = 500;
 
-  let lastId: string | null = null;
-  let processed = 0;
-  let resolved = 0;
-  let duplicateSource = 0;
-  let identityConflict = 0;
-  let insufficientIdentifiers = 0;
-  let promotionQueued = 0;
+  const checkpoint = await loadBatchReprocessCheckpoint(jobData.tenantId, batchId);
+  let phase: ReprocessPhase = checkpoint.phase;
+  let lastCreatedAt: string | null = checkpoint.cursorCreatedAt;
+  let lastId: string | null = checkpoint.cursorLastBronzeId;
+  let promotionLastCreatedAt: string | null = checkpoint.promotionCursorCreatedAt;
+  let promotionLastId: string | null = checkpoint.promotionCursorLastBronzeId;
+  const counters: ReprocessRunCounters = {
+    processed: checkpoint.processed,
+    resolved: checkpoint.resolved,
+    duplicateSource: checkpoint.duplicateSource,
+    identityConflict: checkpoint.identityConflict,
+    insufficientIdentifiers: checkpoint.insufficientIdentifiers,
+    promotionQueued: checkpoint.promotionQueued,
+    failedContacts: checkpoint.failedContacts,
+  };
+  const errorsOnly = jobData.reprocessErrorsOnly === true;
   let mapping: Mapping;
+  const initialRunTotalRows = errorsOnly ? checkpoint.failedContacts : checkpoint.batchTotalRows;
+  const sessionStartedAt =
+    typeof checkpoint.metadata.identityReprocessSessionStartedAt === "string"
+      ? checkpoint.metadata.identityReprocessSessionStartedAt
+      : new Date().toISOString();
+  const sessionProcessedBaseRows = Number(
+    checkpoint.metadata.identityReprocessSessionProcessedBaseRows ?? checkpoint.processed,
+  );
 
   try {
-    await updateBatchReprocessMetadata({
+    await updateBatchReprocessMetadata(jobData.tenantId, batchId, {
       identityReprocessStatus: "running",
-      identityReprocessStartedAt: new Date().toISOString(),
+      identityReprocessStartedAt:
+        typeof checkpoint.metadata.identityReprocessStartedAt === "string"
+          ? checkpoint.metadata.identityReprocessStartedAt
+          : new Date().toISOString(),
       identityReprocessCompletedAt: null,
       identityReprocessFailedAt: null,
       identityReprocessLastError: null,
+      identityReprocessSessionStartedAt: sessionStartedAt,
+      identityReprocessSessionProcessedBaseRows: sessionProcessedBaseRows,
       identityReprocessLastProgressAt: new Date().toISOString(),
-      identityReprocessProcessedRows: 0,
-      identityReprocessResolvedRows: 0,
-      identityReprocessDuplicateSourceRows: 0,
-      identityReprocessIdentityConflictRows: 0,
-      identityReprocessInsufficientIdentifierRows: 0,
-      identityReprocessPromotionQueued: 0,
+      identityReprocessPhase: phase,
+      identityReprocessCursorCreatedAt: lastCreatedAt,
+      identityReprocessCursorLastBronzeId: lastId,
+      identityReprocessPromotionCursorCreatedAt: promotionLastCreatedAt,
+      identityReprocessPromotionCursorLastBronzeId: promotionLastId,
+      identityReprocessMode: errorsOnly ? "errors_only" : "full",
+      identityReprocessRunTotalRows: initialRunTotalRows,
+      identityReprocessProcessedRows: counters.processed,
+      identityReprocessResolvedRows: counters.resolved,
+      identityReprocessDuplicateSourceRows: counters.duplicateSource,
+      identityReprocessIdentityConflictRows: counters.identityConflict,
+      identityReprocessInsufficientIdentifierRows: counters.insufficientIdentifiers,
+      identityReprocessPromotionQueued: counters.promotionQueued,
+      identityReprocessFailedContactCount: counters.failedContacts,
     });
     mapping = await loadBatchMapping(jobData.tenantId, batchId);
 
-    const processOneBronzeContact = async (
-      bronze: BronzeContactRow,
-      batchMapping: Mapping,
-    ): Promise<void> => {
-      const payload = bronze.rawPayload as Payload;
-      await backfillBronzeIdentityFields(bronze, payload, batchMapping);
-      const resolution = await resolveBronzeContactIdentity({
+    if (phase === "resolve_identities") {
+      ({ lastCreatedAt, lastId } = await runIdentityResolutionLoop({
         tenantId: jobData.tenantId,
-        bronzeContactId: bronze.id,
-        sourceAuthority: "import",
-      });
-      processed += 1;
-      if (resolution.status === "resolved") {
-        resolved += 1;
-        return;
-      }
-      if (resolution.status === "duplicate_source") {
-        duplicateSource += 1;
-        return;
-      }
-      if (resolution.status === "insufficient_identifiers") {
-        insufficientIdentifiers += 1;
-        return;
-      }
-      identityConflict += 1;
-      await ensureIdentityConflictApprovalTask(
-        jobData.tenantId,
-        bronze,
-        resolution.conflictCompanyIds,
-      );
-    };
+        batchId,
+        mapping,
+        errorsOnly,
+        initialRunTotalRows,
+        pageSize,
+        initialCursor: { lastCreatedAt, lastId },
+        counters,
+      }));
 
-    while (true) {
-      const contacts = await db.query.bronzeContacts.findMany({
-        where: (t) => {
-          const base = sql`${t.tenantId} = ${jobData.tenantId}
-            AND ${batchIdMetadataEquals(t.metadata, batchId)}`;
+      phase = "queue_promotions";
+      promotionLastCreatedAt = null;
+      promotionLastId = null;
 
-          if (!lastId) {
-            return base;
-          }
-
-          return sql`${base} AND ${t.id} > ${lastId}`;
-        },
-        orderBy: (t) => [t.id],
-        limit: pageSize,
-      });
-
-      if (contacts.length === 0) {
-        break;
-      }
-
-      for (const bronze of contacts) {
-        await processOneBronzeContact(bronze, mapping);
-      }
-
-      await updateBatchReprocessMetadata({
+      await updateBatchReprocessMetadata(jobData.tenantId, batchId, {
         identityReprocessStatus: "running",
-        identityReprocessFailedAt: null,
-        identityReprocessLastError: null,
+        identityReprocessPhase: phase,
+        identityReprocessCursorCreatedAt: lastCreatedAt,
+        identityReprocessCursorLastBronzeId: lastId,
+        identityReprocessPromotionCursorCreatedAt: promotionLastCreatedAt,
+        identityReprocessPromotionCursorLastBronzeId: promotionLastId,
+        identityReprocessMode: errorsOnly ? "errors_only" : "full",
+        identityReprocessRunTotalRows: initialRunTotalRows,
+        identityReprocessSessionStartedAt: sessionStartedAt,
+        identityReprocessSessionProcessedBaseRows: sessionProcessedBaseRows,
         identityReprocessLastProgressAt: new Date().toISOString(),
-        identityReprocessProcessedRows: processed,
-        identityReprocessResolvedRows: resolved,
-        identityReprocessDuplicateSourceRows: duplicateSource,
-        identityReprocessIdentityConflictRows: identityConflict,
-        identityReprocessInsufficientIdentifierRows: insufficientIdentifiers,
-        identityReprocessPromotionQueued: promotionQueued,
+        identityReprocessProcessedRows: counters.processed,
+        identityReprocessResolvedRows: counters.resolved,
+        identityReprocessDuplicateSourceRows: counters.duplicateSource,
+        identityReprocessIdentityConflictRows: counters.identityConflict,
+        identityReprocessInsufficientIdentifierRows: counters.insufficientIdentifiers,
+        identityReprocessPromotionQueued: counters.promotionQueued,
+        identityReprocessFailedContactCount: counters.failedContacts,
       });
-
-      const lastContact = contacts.at(-1);
-      lastId = lastContact?.id ?? null;
     }
 
-    promotionQueued = await queueResolvedBatchPromotions(jobData.tenantId, batchId, pageSize);
+    counters.promotionQueued = await queueResolvedBatchPromotions(
+      jobData.tenantId,
+      batchId,
+      pageSize,
+      {
+        initialQueued: counters.promotionQueued,
+        resumeFromCreatedAt: promotionLastCreatedAt,
+        resumeFromId: promotionLastId,
+        onCheckpoint: async ({ queued, lastQueuedCreatedAt, lastQueuedId }) => {
+          counters.promotionQueued = queued;
+          promotionLastCreatedAt = lastQueuedCreatedAt;
+          promotionLastId = lastQueuedId;
+          await updateBatchReprocessMetadata(jobData.tenantId, batchId, {
+            identityReprocessStatus: "running",
+            identityReprocessPhase: "queue_promotions",
+            identityReprocessCursorCreatedAt: lastCreatedAt,
+            identityReprocessCursorLastBronzeId: lastId,
+            identityReprocessPromotionCursorCreatedAt: promotionLastCreatedAt,
+            identityReprocessPromotionCursorLastBronzeId: promotionLastId,
+            identityReprocessMode: errorsOnly ? "errors_only" : "full",
+            identityReprocessRunTotalRows: initialRunTotalRows,
+            identityReprocessSessionStartedAt: sessionStartedAt,
+            identityReprocessSessionProcessedBaseRows: sessionProcessedBaseRows,
+            identityReprocessLastProgressAt: new Date().toISOString(),
+            identityReprocessProcessedRows: counters.processed,
+            identityReprocessResolvedRows: counters.resolved,
+            identityReprocessDuplicateSourceRows: counters.duplicateSource,
+            identityReprocessIdentityConflictRows: counters.identityConflict,
+            identityReprocessInsufficientIdentifierRows: counters.insufficientIdentifiers,
+            identityReprocessPromotionQueued: counters.promotionQueued,
+            identityReprocessFailedContactCount: counters.failedContacts,
+          });
+        },
+      },
+    );
 
-    await updateBatchReprocessMetadata({
+    const failedSummary = await loadFailedReprocessContactsSummary(jobData.tenantId, batchId);
+    const completedMetrics = errorsOnly
+      ? {
+          processed: counters.processed,
+          resolved: counters.resolved,
+          duplicateSource: counters.duplicateSource,
+          identityConflict: counters.identityConflict,
+          insufficientIdentifiers: counters.insufficientIdentifiers,
+          failedContacts: failedSummary.count,
+        }
+      : await loadCompletedFullRunMetrics(jobData.tenantId, batchId);
+
+    await updateBatchReprocessMetadata(jobData.tenantId, batchId, {
       identityReprocessStatus: "completed",
       identityReprocessCompletedAt: new Date().toISOString(),
       identityReprocessFailedAt: null,
       identityReprocessLastError: null,
       identityReprocessLastProgressAt: new Date().toISOString(),
-      identityReprocessProcessedRows: processed,
-      identityReprocessResolvedRows: resolved,
-      identityReprocessDuplicateSourceRows: duplicateSource,
-      identityReprocessIdentityConflictRows: identityConflict,
-      identityReprocessInsufficientIdentifierRows: insufficientIdentifiers,
-      identityReprocessPromotionQueued: promotionQueued,
+      identityReprocessPhase: null,
+      identityReprocessCursorCreatedAt: null,
+      identityReprocessCursorLastBronzeId: null,
+      identityReprocessPromotionCursorCreatedAt: null,
+      identityReprocessPromotionCursorLastBronzeId: null,
+      identityReprocessMode: errorsOnly ? "errors_only" : "full",
+      identityReprocessRunTotalRows: initialRunTotalRows,
+      identityReprocessSessionStartedAt: sessionStartedAt,
+      identityReprocessSessionProcessedBaseRows: sessionProcessedBaseRows,
+      identityReprocessProcessedRows: completedMetrics.processed,
+      identityReprocessResolvedRows: completedMetrics.resolved,
+      identityReprocessDuplicateSourceRows: completedMetrics.duplicateSource,
+      identityReprocessIdentityConflictRows: completedMetrics.identityConflict,
+      identityReprocessInsufficientIdentifierRows: completedMetrics.insufficientIdentifiers,
+      identityReprocessPromotionQueued: counters.promotionQueued,
+      identityReprocessFailedContactCount: completedMetrics.failedContacts,
+      identityReprocessFailedContactSamples: failedSummary.samples,
+      identityReprocessErrorListGeneratedAt: failedSummary.generatedAt,
     });
   } catch (error) {
     try {
-      await updateBatchReprocessMetadata({
+      await updateBatchReprocessMetadata(jobData.tenantId, batchId, {
         identityReprocessStatus: "failed",
         identityReprocessFailedAt: new Date().toISOString(),
         identityReprocessLastProgressAt: new Date().toISOString(),
         identityReprocessLastError: readErrorMessage(error),
-        identityReprocessProcessedRows: processed,
-        identityReprocessResolvedRows: resolved,
-        identityReprocessDuplicateSourceRows: duplicateSource,
-        identityReprocessIdentityConflictRows: identityConflict,
-        identityReprocessInsufficientIdentifierRows: insufficientIdentifiers,
-        identityReprocessPromotionQueued: promotionQueued,
+        identityReprocessPhase: phase,
+        identityReprocessCursorCreatedAt: lastCreatedAt,
+        identityReprocessCursorLastBronzeId: lastId,
+        identityReprocessPromotionCursorCreatedAt: promotionLastCreatedAt,
+        identityReprocessPromotionCursorLastBronzeId: promotionLastId,
+        identityReprocessMode: errorsOnly ? "errors_only" : "full",
+        identityReprocessRunTotalRows: initialRunTotalRows,
+        identityReprocessSessionStartedAt: sessionStartedAt,
+        identityReprocessSessionProcessedBaseRows: sessionProcessedBaseRows,
+        identityReprocessProcessedRows: counters.processed,
+        identityReprocessResolvedRows: counters.resolved,
+        identityReprocessDuplicateSourceRows: counters.duplicateSource,
+        identityReprocessIdentityConflictRows: counters.identityConflict,
+        identityReprocessInsufficientIdentifierRows: counters.insufficientIdentifiers,
+        identityReprocessPromotionQueued: counters.promotionQueued,
+        identityReprocessFailedContactCount: counters.failedContacts,
       });
     } catch (metadataError) {
       console.error(
@@ -607,19 +1207,34 @@ async function handleBatchReprocess(jobData: PromotionBronzeSilverJobData) {
     ok: true,
     status: "batch_reprocessed",
     batchId,
-    processed,
-    resolved,
-    duplicateSource,
-    identityConflict,
-    insufficientIdentifiers,
-    promotionQueued,
+    processed: counters.processed,
+    resolved: counters.resolved,
+    duplicateSource: counters.duplicateSource,
+    identityConflict: counters.identityConflict,
+    insufficientIdentifiers: counters.insufficientIdentifiers,
+    promotionQueued: counters.promotionQueued,
   };
 }
 
-async function queueResolvedBatchPromotions(tenantId: string, batchId: string, pageSize: number) {
+async function queueResolvedBatchPromotions(
+  tenantId: string,
+  batchId: string,
+  pageSize: number,
+  options?: {
+    initialQueued?: number;
+    resumeFromCreatedAt?: string | null;
+    resumeFromId?: string | null;
+    onCheckpoint?: (checkpoint: {
+      queued: number;
+      lastQueuedCreatedAt: string | null;
+      lastQueuedId: string | null;
+    }) => Promise<void>;
+  },
+) {
   const promotionQueue = createQueue(QUEUES.PIPELINE_PROMOTE_BRONZE_SILVER);
-  let lastId: string | null = null;
-  let queued = 0;
+  let lastCreatedAt: string | null = options?.resumeFromCreatedAt ?? null;
+  let lastId: string | null = options?.resumeFromId ?? null;
+  let queued = options?.initialQueued ?? 0;
 
   try {
     while (true) {
@@ -630,15 +1245,20 @@ async function queueResolvedBatchPromotions(tenantId: string, batchId: string, p
             AND ${t.identityStatus} = 'resolved'
             AND COALESCE(${t.doNotProcess}, FALSE) = FALSE`;
 
-          if (!lastId) {
+          if (!lastCreatedAt || !lastId) {
             return base;
           }
 
-          return sql`${base} AND ${t.id} > ${lastId}`;
+          return sql`${base}
+            AND (
+                ${t.createdAt} > ${sqlTimestamp(lastCreatedAt)}
+                OR (${t.createdAt} = ${sqlTimestamp(lastCreatedAt)} AND ${t.id} > ${lastId})
+            )`;
         },
-        orderBy: (t) => [t.id],
+        orderBy: (t) => [t.createdAt, t.id],
         limit: pageSize,
         columns: {
+          createdAt: true,
           id: true,
         },
       });
@@ -670,7 +1290,16 @@ async function queueResolvedBatchPromotions(tenantId: string, batchId: string, p
       queued += contacts.length;
 
       const lastContact = contacts.at(-1);
+      lastCreatedAt = lastContact?.createdAt?.toISOString() ?? null;
       lastId = lastContact?.id ?? null;
+
+      if (options?.onCheckpoint) {
+        await options.onCheckpoint({
+          queued,
+          lastQueuedCreatedAt: lastCreatedAt,
+          lastQueuedId: lastId,
+        });
+      }
     }
   } finally {
     await promotionQueue.close();
@@ -721,7 +1350,9 @@ async function triggerCompanyEnrichment(data: {
 function sanitizeIdentifiers(rawCui: string | null, rawNrRegCom: string | null) {
   return {
     cui: rawCui ? sanitizeCui(rawCui) || null : null,
-    nrRegCom: rawNrRegCom ? normalizeNrRegCom(rawNrRegCom) : null,
+    // Store raw format — old format (J09/98/2003) is preserved as-is.
+    // Canonical new format is only set from official ONRC source, never auto-converted.
+    nrRegCom: rawNrRegCom ? sanitizeNrRegCom(rawNrRegCom) : null,
   };
 }
 

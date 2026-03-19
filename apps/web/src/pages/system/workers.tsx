@@ -120,7 +120,7 @@ export function Workers() {
         <CardBody className="p-0">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[var(--color-s700)] text-left text-[var(--color-t3)]">
+              <tr className="border-b border-s700 text-left text-t3">
                 <th className="px-5 py-3">Service Name</th>
                 <th className="px-5 py-3">Detail</th>
                 <th className="px-5 py-3">Latency</th>
@@ -133,22 +133,22 @@ export function Workers() {
                 <tr
                   key={s.name}
                   className={cn(
-                    "border-b border-[var(--color-s700)] last:border-0 hover:bg-[var(--color-s800)]/50",
-                    i % 2 === 1 && "bg-[var(--color-s800)]/30",
+                    "border-b border-s700 last:border-0 hover:bg-s800/50",
+                    i % 2 === 1 && "bg-s800/30",
                   )}
                 >
                   <td className="px-5 py-3">
                     <span className="inline-flex items-center gap-2">
                       <StatusDot status={s.status} />
-                      <span className="font-medium text-[var(--color-t1)]">{s.name}</span>
+                      <span className="font-medium text-t1">{s.name}</span>
                     </span>
                   </td>
-                  <td className="px-5 py-3 text-[var(--color-t2)]">{s.detail}</td>
-                  <td className="px-5 py-3 text-[var(--color-t2)]">
+                  <td className="px-5 py-3 text-t2">{s.detail}</td>
+                  <td className="px-5 py-3 text-t2">
                     {s.latency}
                     {s.latency > 0 ? "ms" : ""}
                   </td>
-                  <td className="px-5 py-3 text-[var(--color-t2)]">{s.jobs}</td>
+                  <td className="px-5 py-3 text-t2">{s.jobs}</td>
                   <td className="px-5 py-3">
                     <SBadge status={statusLabel[s.status]} />
                   </td>

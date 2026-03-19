@@ -4,9 +4,9 @@ import { Button } from "@/components/ui/button.js";
 type TabKey = "general" | "financial" | "contact" | "enrichment";
 
 type CompanyDetailsDialogProps = {
-  open: boolean;
-  company: Record<string, unknown> | null;
-  onClose: () => void;
+  readonly open: boolean;
+  readonly company: Record<string, unknown> | null;
+  readonly onClose: () => void;
 };
 
 const tabs: { key: TabKey; label: string }[] = [
@@ -26,7 +26,7 @@ export function CompanyDetailsDialog({
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
-      <div className="w-full max-w-3xl rounded-(--radius-lg) border border-s600 bg-s900 p-5">
+      <div className="w-full max-w-3xl rounded-lg border border-s600 bg-s900 p-5">
         <div className="mb-4 flex items-start justify-between">
           <div>
             <h3 className="text-lg font-semibold text-t1">{String(company.denumire ?? "-")}</h3>

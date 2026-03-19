@@ -7,4 +7,5 @@ export {
   normalizeNrRegCom,
   nrRegComSchema,
   sanitizeCui,
+  sanitizeNrRegCom,
 } from "@cerniq/shared-types";

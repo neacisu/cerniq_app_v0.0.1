@@ -52,6 +52,19 @@ function titleCase(input: string): string {
     .join(" ");
 }
 
+function trimEdges(str: string, shouldTrim: (ch: string) => boolean): string {
+  let start = 0;
+  while (start < str.length && shouldTrim(str[start])) start++;
+  let end = str.length;
+  while (end > start && shouldTrim(str[end - 1])) end--;
+  return str.slice(start, end);
+}
+
+const isNonAlphanumeric = (ch: string) => !(ch >= "A" && ch <= "Z") && !(ch >= "0" && ch <= "9");
+
+const isEdgePunctuation = (ch: string) =>
+  ch === "-" || ch === "," || ch === "." || ch === " " || ch === "\t" || ch === "\n" || ch === "\r";
+
 export const nameNormalizerProcessor: Processor<NameNormalizerJobData> = async (job) => {
   const startedAt = Date.now();
   try {
@@ -65,7 +78,7 @@ export const nameNormalizerProcessor: Processor<NameNormalizerJobData> = async (
     let normalized = rawName.toUpperCase().replaceAll(/\s+/g, " ").trim();
     // GAP-B10: Strip diacritics for consistent matching
     normalized = stripDiacritics(normalized);
-    normalized = normalized.replaceAll(/^[^A-Z0-9]+|[^A-Z0-9]+$/g, "");
+    normalized = trimEdges(normalized, isNonAlphanumeric);
 
     let formaJuridica: string | null = null;
     for (const [pattern, forma] of Object.entries(FORMA_JURIDICA_MAP)) {
@@ -82,10 +95,7 @@ export const nameNormalizerProcessor: Processor<NameNormalizerJobData> = async (
       normalized = normalized.replaceAll(new RegExp(String.raw`\b${word}\b`, "g"), "");
     }
 
-    normalized = normalized
-      .replaceAll(/\s+/g, " ")
-      .replaceAll(/^[-,.\s]+|[-,.\s]+$/g, "")
-      .trim();
+    normalized = trimEdges(normalized.replaceAll(/\s+/g, " "), isEdgePunctuation).trim();
     if (formaJuridica) {
       normalized = `${normalized} ${formaJuridica}`.trim();
     }

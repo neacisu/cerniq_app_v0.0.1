@@ -11,7 +11,7 @@ import {
   setSessionTenantId,
   sql,
 } from "@cerniq/db";
-import { createQueue, normalizeNrRegCom, QUEUES } from "@cerniq/worker-shared";
+import { createQueue, sanitizeNrRegCom, QUEUES } from "@cerniq/worker-shared";
 import { sanitizeCui } from "../lib/cui-validation.js";
 import { createHitlApprovalTask } from "./pipeline-utils.js";
 
@@ -699,7 +699,10 @@ export async function insertBronzeRows(
       extractedCuiRaw,
       extractedCui: extractedCuiRaw ? sanitizeCui(extractedCuiRaw) || null : null,
       extractedNrRegComRaw,
-      extractedNrRegCom: extractedNrRegComRaw ? normalizeNrRegCom(extractedNrRegComRaw) : null,
+      // Store raw format as-is — do NOT auto-convert old format (J09/98/2003) to canonical
+      // new format (J2003000098095). Canonical is only set from authoritative official sources (ONRC).
+      extractedNrRegCom: extractedNrRegComRaw ? sanitizeNrRegCom(extractedNrRegComRaw) : null,
+      extractedNrRegComCanonical: null,
       extractedEmail:
         extractField(
           mappedRow,

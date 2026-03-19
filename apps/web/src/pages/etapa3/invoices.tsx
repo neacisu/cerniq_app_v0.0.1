@@ -66,27 +66,24 @@ export function Invoices() {
         <CardBody className="p-0 overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[var(--color-s700)]">
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">Nr</th>
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">Company</th>
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">Amount</th>
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">TVA 24%</th>
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">Status</th>
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">SPV</th>
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">Date</th>
+              <tr className="border-b border-s700">
+                <th className="px-4 py-3 text-left font-medium text-t3">Nr</th>
+                <th className="px-4 py-3 text-left font-medium text-t3">Company</th>
+                <th className="px-4 py-3 text-left font-medium text-t3">Amount</th>
+                <th className="px-4 py-3 text-left font-medium text-t3">TVA 24%</th>
+                <th className="px-4 py-3 text-left font-medium text-t3">Status</th>
+                <th className="px-4 py-3 text-left font-medium text-t3">SPV</th>
+                <th className="px-4 py-3 text-left font-medium text-t3">Date</th>
               </tr>
             </thead>
             <tbody>
               {MOCK_INVOICES.map((inv) => (
                 <tr
                   key={inv.nr}
-                  className={cn(
-                    "border-b border-[var(--color-s800)] hover:bg-[var(--color-s800)]/50",
-                    inv.overdue && "bg-[var(--color-er)]/10",
-                  )}
+                  className={cn("border-b border-s800 hover:bg-s800/50", inv.overdue && "bg-er/10")}
                 >
-                  <td className="py-3 px-4 text-[var(--color-t2)]">{inv.nr}</td>
-                  <td className="py-3 px-4 text-[var(--color-t1)]">{inv.company}</td>
+                  <td className="px-4 py-3 text-t2">{inv.nr}</td>
+                  <td className="px-4 py-3 text-t1">{inv.company}</td>
                   <td className="py-3 px-4">{inv.amount}</td>
                   <td className="py-3 px-4">{inv.vat}</td>
                   <td className="py-3 px-4">
@@ -95,7 +92,7 @@ export function Invoices() {
                   <td className="py-3 px-4">
                     <Badge variant={inv.spv === "ok" ? "ok" : "warning"}>{inv.spv}</Badge>
                   </td>
-                  <td className="py-3 px-4 text-[var(--color-t3)]">{inv.date}</td>
+                  <td className="px-4 py-3 text-t3">{inv.date}</td>
                 </tr>
               ))}
             </tbody>

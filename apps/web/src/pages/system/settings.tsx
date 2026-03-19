@@ -26,15 +26,15 @@ export function Settings() {
   return (
     <PageWrapper title="Settings">
       <Tabs.Root defaultValue="general" className="w-full">
-        <Tabs.List className="flex gap-1 border-b border-[var(--color-s700)] mb-6">
+        <Tabs.List className="flex gap-1 border-b border-s700 mb-6">
           {["general", "integrations", "team", "billing"].map((v) => (
             <Tabs.Trigger
               key={v}
               value={v}
               className={cn(
                 "px-4 py-2 text-sm font-medium capitalize border-b-2 -mb-px transition-colors",
-                "data-[state=active]:border-[var(--color-b5)] data-[state=active]:text-[var(--color-t1)]",
-                "data-[state=inactive]:border-transparent data-[state=inactive]:text-[var(--color-t3)] hover:text-[var(--color-t2)]",
+                "data-[state=active]:border-b5 data-[state=active]:text-t1",
+                "data-[state=inactive]:border-transparent data-[state=inactive]:text-t3 hover:text-t2",
               )}
             >
               {v}
@@ -51,7 +51,7 @@ export function Settings() {
               <CardBody className="space-y-3">
                 {["Company Name", "Domain", "Timezone", "Locale"].map((l) => (
                   <div key={l}>
-                    <label className="text-xs text-[var(--color-t3)] block mb-1">{l}</label>
+                    <label className="text-xs text-t3 block mb-1">{l}</label>
                     <Input placeholder={l} />
                   </div>
                 ))}
@@ -65,7 +65,7 @@ export function Settings() {
                 {["Churn risk %", "NPS alert", "CLTV target (EUR)", "Contact interval (days)"].map(
                   (l) => (
                     <div key={l}>
-                      <label className="text-xs text-[var(--color-t3)] block mb-1">{l}</label>
+                      <label className="text-xs text-t3 block mb-1">{l}</label>
                       <Input type="number" placeholder="0" />
                     </div>
                   ),
@@ -83,8 +83,8 @@ export function Settings() {
                   <div className="flex items-center gap-3">
                     <StatusDot status={a.status} />
                     <div>
-                      <div className="font-medium text-[var(--color-t1)]">{a.name}</div>
-                      <div className="text-xs text-[var(--color-t3)] font-mono">{a.key}</div>
+                      <div className="font-medium text-t1">{a.name}</div>
+                      <div className="text-xs text-t3 font-mono">{a.key}</div>
                     </div>
                   </div>
                   <Button size="sm" variant="outline">
@@ -99,7 +99,7 @@ export function Settings() {
         <Tabs.Content value="team">
           <Card>
             <CardBody>
-              <p className="text-[var(--color-t3)] text-sm">Team management placeholder.</p>
+              <p className="text-t3 text-sm">Team management placeholder.</p>
             </CardBody>
           </Card>
         </Tabs.Content>
@@ -110,11 +110,11 @@ export function Settings() {
               <CardTitle>Pro Plan</CardTitle>
             </CardHeader>
             <CardBody>
-              <div className="text-2xl font-bold text-[var(--color-t1)] mb-4">EUR 99/mo</div>
+              <div className="text-2xl font-bold text-t1 mb-4">EUR 99/mo</div>
               <ul className="space-y-2">
                 {planFeatures.map((f) => (
-                  <li key={f} className="flex items-center gap-2 text-sm text-[var(--color-t2)]">
-                    <span className="text-[var(--color-ok)]">✓</span> {f}
+                  <li key={f} className="flex items-center gap-2 text-sm text-t2">
+                    <span className="text-ok">✓</span> {f}
                   </li>
                 ))}
               </ul>

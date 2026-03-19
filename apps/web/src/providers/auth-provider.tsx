@@ -45,7 +45,7 @@ function loadPersistedAuth(): AuthState {
   return { user: null, token: null, loading: false };
 }
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   const [state, setState] = useState<AuthState>(loadPersistedAuth);
 
   const login = useCallback(async (email: string, password: string) => {
@@ -143,7 +143,7 @@ export function useAuth(): AuthContextValue {
   return ctx;
 }
 
-export function ProtectedRoute({ children }: { children: ReactNode }) {
+export function ProtectedRoute({ children }: Readonly<{ children: ReactNode }>) {
   const { user, loading } = useAuth();
   if (loading) return <LoadingPage />;
   if (!user) return <Navigate to="/login" replace />;

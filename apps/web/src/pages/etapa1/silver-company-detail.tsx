@@ -49,7 +49,7 @@ export function SilverCompanyDetail() {
   if (detailQuery.isError) {
     return (
       <PageWrapper title="Silver Company Detail">
-        <div className="rounded-lg border border-(--color-danger)/30 bg-(--color-danger)/10 p-4 text-sm text-(--color-danger)">
+        <div className="rounded-lg border border-er/30 bg-er/10 p-4 text-sm text-er">
           Eroare la încărcarea datelor: {detailQuery.error?.message ?? "Eroare necunoscută"}
         </div>
       </PageWrapper>
@@ -162,9 +162,12 @@ export function SilverCompanyDetail() {
                 <p className="py-4 text-sm text-t3">Niciun log de enrichment disponibil.</p>
               ) : (
                 <div className="space-y-2">
-                  {enrichmentLogs.map((log, idx) => (
+                  {enrichmentLogs.map((log) => (
                     <div
-                      key={String(log.id ?? idx)}
+                      key={String(
+                        log.id ??
+                          `${log.createdAt ?? ""}-${log.source ?? ""}-${log.operation ?? ""}`,
+                      )}
                       className="rounded border border-s700 p-3 text-sm"
                     >
                       <div className="flex items-center justify-between">

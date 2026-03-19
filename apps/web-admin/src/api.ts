@@ -11,13 +11,26 @@ const USER_KEY = "cerniq_admin_user";
 const AUTH_PREFIX = "/api/v1/auth";
 const ADMIN_ROLES = new Set(["admin", "owner", "superadmin"]);
 
+function hasBrowserWindow(): boolean {
+  return globalThis.window !== undefined;
+}
+
+function getBrowserLocation(): Location | null {
+  if (!hasBrowserWindow()) {
+    return null;
+  }
+
+  return globalThis.window.location;
+}
+
 function getApiBase(): string {
   const env = import.meta.env as { VITE_API_URL?: string; DEV?: boolean };
   if (env.VITE_API_URL) return env.VITE_API_URL.replace(/\/$/, "");
   if (env.DEV) return "http://localhost:64010";
-  if (typeof window !== "undefined" && window.location?.hostname) {
-    const host = window.location.hostname.replace(/^admin\./, "api.");
-    const proto = window.location.protocol || "https:";
+  const location = getBrowserLocation();
+  if (location?.hostname) {
+    const host = location.hostname.replace(/^admin\./, "api.");
+    const proto = location.protocol || "https:";
     return `${proto}//${host}`;
   }
   return "";
@@ -26,32 +39,36 @@ function getApiBase(): string {
 export const apiBase = getApiBase();
 
 export function getStoredAdminToken(): string | null {
-  return typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null;
+  if (!hasBrowserWindow()) {
+    return null;
+  }
+
+  return globalThis.localStorage.getItem(TOKEN_KEY);
 }
 
 export function getStoredAdminUser(): AdminUser | null {
-  if (typeof window === "undefined") return null;
-  const raw = localStorage.getItem(USER_KEY);
+  if (!hasBrowserWindow()) return null;
+  const raw = globalThis.localStorage.getItem(USER_KEY);
   if (!raw) return null;
   try {
     return JSON.parse(raw) as AdminUser;
   } catch {
-    localStorage.removeItem(USER_KEY);
+    globalThis.localStorage.removeItem(USER_KEY);
     return null;
   }
 }
 
 export function persistAdminAuth(token: string | null, user: AdminUser | null) {
-  if (typeof window === "undefined") return;
+  if (!hasBrowserWindow()) return;
   if (token) {
-    localStorage.setItem(TOKEN_KEY, token);
+    globalThis.localStorage.setItem(TOKEN_KEY, token);
   } else {
-    localStorage.removeItem(TOKEN_KEY);
+    globalThis.localStorage.removeItem(TOKEN_KEY);
   }
   if (user) {
-    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    globalThis.localStorage.setItem(USER_KEY, JSON.stringify(user));
   } else {
-    localStorage.removeItem(USER_KEY);
+    globalThis.localStorage.removeItem(USER_KEY);
   }
 }
 
@@ -68,6 +85,73 @@ function isAuthPath(url: string): boolean {
 }
 
 let refreshPromise: Promise<string | null> | null = null;
+
+function buildAdminUrl(path: string): string {
+  if (path.startsWith("http")) {
+    return path;
+  }
+
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  return `${apiBase}${normalizedPath}`;
+}
+
+function createAdminHeaders(init: RequestInit): Headers {
+  const headers = new Headers(init.headers);
+  const token = getStoredAdminToken();
+
+  if (token && !headers.has("Authorization")) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  if (!(init.body instanceof FormData) && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  return headers;
+}
+
+function createRetryHeaders(init: RequestInit, token: string): Headers {
+  const headers = new Headers(init.headers);
+  headers.set("Authorization", `Bearer ${token}`);
+  return headers;
+}
+
+async function parseAdminFetchError(res: Response): Promise<Error> {
+  const text = await res.text();
+  let errorBody: unknown = text;
+
+  try {
+    errorBody = JSON.parse(text);
+  } catch {
+    // Keep raw text when response body is not JSON.
+  }
+
+  const message =
+    typeof errorBody === "object" && errorBody !== null && "error" in errorBody
+      ? String((errorBody as { error: unknown }).error)
+      : `HTTP ${res.status}`;
+
+  return new Error(message);
+}
+
+async function retryUnauthorizedRequest<T>(
+  url: string,
+  path: string,
+  init: RequestInit,
+  allowRetry: boolean,
+): Promise<T | null> {
+  if (!allowRetry || isAuthPath(url)) {
+    return null;
+  }
+
+  const nextToken = await refreshAdminToken();
+  if (!nextToken) {
+    return null;
+  }
+
+  const retryHeaders = createRetryHeaders(init, nextToken);
+  return adminFetch<T>(path, { ...init, headers: retryHeaders }, false);
+}
 
 async function refreshAdminToken(): Promise<string | null> {
   if (refreshPromise) return refreshPromise;
@@ -104,17 +188,8 @@ async function refreshAdminToken(): Promise<string | null> {
 }
 
 async function adminFetch<T>(path: string, init: RequestInit = {}, allowRetry = true): Promise<T> {
-  const url = path.startsWith("http")
-    ? path
-    : `${apiBase}${path.startsWith("/") ? path : `/${path}`}`;
-  const headers = new Headers(init.headers);
-  const token = getStoredAdminToken();
-  if (token && !headers.has("Authorization")) {
-    headers.set("Authorization", `Bearer ${token}`);
-  }
-  if (!(init.body instanceof FormData) && !headers.has("Content-Type")) {
-    headers.set("Content-Type", "application/json");
-  }
+  const url = buildAdminUrl(path);
+  const headers = createAdminHeaders(init);
 
   const res = await fetch(url, {
     ...init,
@@ -122,28 +197,15 @@ async function adminFetch<T>(path: string, init: RequestInit = {}, allowRetry = 
     credentials: "include",
   });
 
-  if (res.status === 401 && allowRetry && !isAuthPath(url)) {
-    const nextToken = await refreshAdminToken();
-    if (nextToken) {
-      const retryHeaders = new Headers(init.headers);
-      retryHeaders.set("Authorization", `Bearer ${nextToken}`);
-      return adminFetch<T>(path, { ...init, headers: retryHeaders }, false);
+  if (res.status === 401) {
+    const retryResult = await retryUnauthorizedRequest<T>(url, path, init, allowRetry);
+    if (retryResult) {
+      return retryResult;
     }
   }
 
   if (!res.ok) {
-    const text = await res.text();
-    let errorBody: unknown = text;
-    try {
-      errorBody = JSON.parse(text);
-    } catch {
-      // Keep text.
-    }
-    const message =
-      typeof errorBody === "object" && errorBody !== null && "error" in errorBody
-        ? String((errorBody as { error: unknown }).error)
-        : `HTTP ${res.status}`;
-    throw new Error(message);
+    throw await parseAdminFetchError(res);
   }
 
   return res.json() as Promise<T>;

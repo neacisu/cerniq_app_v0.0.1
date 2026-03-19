@@ -15,8 +15,15 @@
     "paths": {
       "@/*": ["./src/*"]
     },
-    "types": ["node", "@testing-library/jest-dom"]
+    "types": ["node", "vite/client", "@testing-library/jest-dom"]
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "vite.config.ts", "__tests__/**/*.ts", "__tests__/**/*.tsx"],
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/**/*.d.ts",
+    "vite.config.ts",
+    "__tests__/**/*.ts",
+    "__tests__/**/*.tsx"
+  ],
   "exclude": ["node_modules", "dist"]
 }

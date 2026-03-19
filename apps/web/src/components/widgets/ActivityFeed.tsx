@@ -6,18 +6,25 @@ type FeedItem = {
   time: string;
 };
 
-export function ActivityFeed({ items }: { items: FeedItem[] }) {
+type ActivityFeedProps = Readonly<{
+  items: readonly FeedItem[];
+}>;
+
+export function ActivityFeed({ items }: ActivityFeedProps) {
   if (items.length === 0) {
-    return <p className="text-sm text-[var(--color-t3)]">Nu exista activitate recenta.</p>;
+    return <p className="text-sm text-t3">Nu exista activitate recenta.</p>;
   }
 
   return (
     <div className="space-y-3">
-      {items.map((item, idx) => (
-        <div key={`${item.time}-${idx}`} className="flex items-center gap-3 text-sm">
+      {items.map((item) => (
+        <div
+          key={`${item.time}-${item.status}-${item.text}`}
+          className="flex items-center gap-3 text-sm"
+        >
           <StatusDot status={item.status === "success" ? "ok" : item.status} />
-          <span className="flex-1 text-[var(--color-t1)]">{item.text}</span>
-          <span className="text-xs text-[var(--color-t3)]">{item.time}</span>
+          <span className="flex-1 text-t1">{item.text}</span>
+          <span className="text-xs text-t3">{item.time}</span>
         </div>
       ))}
     </div>

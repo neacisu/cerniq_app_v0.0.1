@@ -1,4 +1,4 @@
 import { loadSecretsFromFile } from "@cerniq/worker-shared";
 
-loadSecretsFromFile();
+loadSecretsFromFile(true);
 await import("./main.js");

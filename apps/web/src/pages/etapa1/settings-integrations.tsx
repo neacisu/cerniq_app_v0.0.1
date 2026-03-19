@@ -74,7 +74,7 @@ const GROUPS = ["Fiscal", "Risk", "Email", "AI", "Geo", "Phone"] as const;
 export function SettingsIntegrations() {
   return (
     <PageWrapper title="Settings - Integrations">
-      <div className="mb-4 rounded-lg border border-[var(--color-b5)]/30 bg-[var(--color-b5)]/5 p-3 text-sm text-[var(--color-t2)]">
+      <div className="mb-4 rounded-lg border border-b5/30 bg-b5/5 p-3 text-sm text-t2">
         Configuratiile runtime pentru integrari sunt administrate operational prin OpenBao,
         variabile de mediu si manifestele de deploy. Interfata din Etapa 1 este read-only si
         afiseaza doar punctele de integrare sustinute de platforma.
@@ -90,7 +90,7 @@ export function SettingsIntegrations() {
         const items = INTEGRATIONS.filter((i) => i.group === group);
         return (
           <div key={group} className="mb-6">
-            <h3 className="mb-3 text-sm font-semibold text-[var(--color-t2)]">{group}</h3>
+            <h3 className="mb-3 text-sm font-semibold text-t2">{group}</h3>
             <div className="grid gap-4 lg:grid-cols-2">
               {items.map((integration) => {
                 return (
@@ -102,16 +102,12 @@ export function SettingsIntegrations() {
                       </div>
                     </CardHeader>
                     <CardBody>
-                      <p className="mb-3 text-xs text-[var(--color-t3)]">
-                        {integration.description}
-                      </p>
-                      <div className="rounded-lg border border-[var(--color-s700)] bg-[var(--color-s900)]/40 p-3">
-                        <div className="mb-1 text-[11px] uppercase tracking-[0.08em] text-[var(--color-t3)]">
+                      <p className="mb-3 text-xs text-t3">{integration.description}</p>
+                      <div className="rounded-lg border border-s700 bg-s900/40 p-3">
+                        <div className="mb-1 text-[11px] uppercase tracking-[0.08em] text-t3">
                           Endpoint operational
                         </div>
-                        <div className="font-mono text-sm text-[var(--color-t1)]">
-                          {integration.defaultUrl}
-                        </div>
+                        <div className="font-mono text-sm text-t1">{integration.defaultUrl}</div>
                       </div>
                     </CardBody>
                   </Card>

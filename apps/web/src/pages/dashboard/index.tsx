@@ -121,7 +121,7 @@ export function Dashboard() {
   if (statsQuery.isError) {
     return (
       <PageWrapper title="Dashboard">
-        <div className="rounded-lg border border-(--color-danger)/30 bg-(--color-danger)/10 p-4 text-sm text-(--color-danger)">
+        <div className="rounded-lg border border-er/30 bg-er/10 p-4 text-sm text-er">
           Eroare la încărcarea datelor: {statsQuery.error?.message ?? "Eroare necunoscută"}
         </div>
       </PageWrapper>

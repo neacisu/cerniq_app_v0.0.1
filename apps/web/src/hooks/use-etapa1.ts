@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ApiError } from "@/lib/api.js";
 import {
   type ApprovalListParams,
   type BronzeContactsParams,
@@ -7,6 +8,7 @@ import {
   type ImportListParams,
   type SilverCompaniesParams,
   type DedupCandidatesParams,
+  type PromoteJobStatus,
   anafEnrichImport,
   assignApproval,
   cancelImport,
@@ -26,8 +28,12 @@ import {
   fetchGoldCompanies,
   fetchImportById,
   fetchImportEntities,
+  fetchImportReprocessErrors,
   fetchImportRows,
   fetchImports,
+  fetchPromoteJobStatus,
+  resumeImportReprocessErrors,
+  resumePromoteJob,
   fetchQueueStatusByName,
   fetchQueueStatuses,
   fetchSilverCompanies,
@@ -42,6 +48,19 @@ import {
   triggerSilverPromote,
   uploadImport,
 } from "@/lib/etapa1-api.js";
+
+function isTransientApiUnavailable(error: unknown): error is ApiError {
+  return error instanceof ApiError && [502, 503, 504].includes(error.status);
+}
+
+function getPollingBackoffMs(error: unknown, failureCount: number, baseIntervalMs: number): number {
+  if (!isTransientApiUnavailable(error)) {
+    return baseIntervalMs;
+  }
+
+  const retryStep = Math.max(0, failureCount - 1);
+  return Math.min(60_000, baseIntervalMs * 2 ** retryStep);
+}
 
 function isIdentityReprocessActive(item: Record<string, unknown> | undefined) {
   const metadata = (item?.metadata as Record<string, unknown> | undefined) ?? {};
@@ -90,6 +109,10 @@ export function useImports(params: ImportListParams = {}) {
     queryKey: ["etapa1", "imports", params],
     queryFn: () => fetchImports(params),
     refetchInterval: (query) => {
+      if (isTransientApiUnavailable(query.state.error)) {
+        return getPollingBackoffMs(query.state.error, query.state.fetchFailureCount, 3000);
+      }
+
       const rows =
         (query.state.data as { data?: Array<Record<string, unknown>> } | undefined)?.data ?? [];
       if (rows.some((row) => getImportRefetchInterval(row) === 3000)) {
@@ -99,6 +122,13 @@ export function useImports(params: ImportListParams = {}) {
       return rows.some((row) => getImportRefetchInterval(row) === 15000) ? 15000 : false;
     },
     refetchIntervalInBackground: true,
+    retry: (failureCount, error) => {
+      if (isTransientApiUnavailable(error)) {
+        return false;
+      }
+
+      return failureCount < 3;
+    },
   });
 }
 
@@ -108,10 +138,21 @@ export function useImportDetail(id?: string) {
     queryFn: () => fetchImportById(String(id)),
     enabled: Boolean(id),
     refetchInterval: (query) => {
+      if (isTransientApiUnavailable(query.state.error)) {
+        return getPollingBackoffMs(query.state.error, query.state.fetchFailureCount, 3000);
+      }
+
       const item = (query.state.data as { data?: Record<string, unknown> } | undefined)?.data;
       return getImportRefetchInterval(item);
     },
     refetchIntervalInBackground: true,
+    retry: (failureCount, error) => {
+      if (isTransientApiUnavailable(error)) {
+        return false;
+      }
+
+      return failureCount < 3;
+    },
   });
 }
 
@@ -121,6 +162,16 @@ export function useImportRows(id?: string, limit = 100, offset = 0) {
     queryFn: () => fetchImportRows(String(id), { limit, offset }),
     enabled: Boolean(id),
     refetchInterval: 3000,
+    refetchIntervalInBackground: true,
+  });
+}
+
+export function useImportReprocessErrors(id?: string, limit = 100, offset = 0) {
+  return useQuery({
+    queryKey: ["etapa1", "imports", "reprocess-errors", id, limit, offset],
+    queryFn: () => fetchImportReprocessErrors(String(id), { limit, offset }),
+    enabled: Boolean(id),
+    refetchInterval: 5000,
     refetchIntervalInBackground: true,
   });
 }
@@ -187,6 +238,71 @@ export function useReprocessBronze() {
     mutationFn: reprocessBronzeContact,
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ["etapa1", "bronze"] });
+    },
+  });
+}
+
+/** Poll the live BullMQ state of the re-promote batch job for a given import batch. */
+export function usePromoteJobStatus(
+  batchId: string | undefined,
+  opts?: { enabled?: boolean; expectedDbStatus?: string | null },
+) {
+  return useQuery({
+    queryKey: ["etapa1", "promote-job-status", batchId, opts?.expectedDbStatus ?? null],
+    queryFn: () => fetchPromoteJobStatus(String(batchId)),
+    enabled: Boolean(batchId) && (opts?.enabled ?? true),
+    refetchInterval: (query) => {
+      if (isTransientApiUnavailable(query.state.error)) {
+        return getPollingBackoffMs(query.state.error, query.state.fetchFailureCount, 3000);
+      }
+
+      const state = (query.state.data as { data?: PromoteJobStatus } | undefined)?.data?.state;
+      const expectedDbStatus = opts?.expectedDbStatus ?? null;
+      if (expectedDbStatus === "queued" || expectedDbStatus === "running") {
+        return 3000;
+      }
+      // Poll aggressively while the job is running or queued; back off otherwise
+      if (state === "waiting" || state === "active" || state === "delayed" || state === "none") {
+        return 3000;
+      }
+      if (state === "stale" || state === "stalled") {
+        return 5000;
+      }
+      // failed / completed / unknown — stop polling
+      return false;
+    },
+    refetchIntervalInBackground: true,
+    retry: (failureCount, error) => {
+      if (isTransientApiUnavailable(error)) {
+        return false;
+      }
+
+      return failureCount < 3;
+    },
+  });
+}
+
+/** Force-resume a stale or failed re-promote job. */
+export function useResumePromoteJob() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: resumePromoteJob,
+    onSuccess: async (_data, batchId) => {
+      await qc.invalidateQueries({ queryKey: ["etapa1", "promote-job-status", batchId] });
+      await qc.invalidateQueries({ queryKey: ["etapa1", "imports"] });
+    },
+  });
+}
+
+export function useResumeImportReprocessErrors() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: resumeImportReprocessErrors,
+    onSuccess: async (_data, batchId) => {
+      await qc.invalidateQueries({ queryKey: ["etapa1", "imports"] });
+      await qc.invalidateQueries({ queryKey: ["etapa1", "imports", "detail", batchId] });
+      await qc.invalidateQueries({ queryKey: ["etapa1", "imports", "reprocess-errors", batchId] });
+      await qc.invalidateQueries({ queryKey: ["etapa1", "promote-job-status", batchId] });
     },
   });
 }

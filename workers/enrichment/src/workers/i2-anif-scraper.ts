@@ -10,25 +10,74 @@ export type AnifScraperJobData = {
   correlationId?: string;
 };
 
+const ANIF_VALUE_CHARS = new Set("abcdefghijklmnopqrstuvwxyz0123456789 -ăâîșțĂÂÎȘȚ".split(""));
+
+function stripHtmlTags(html: string): string {
+  const parts: string[] = [];
+  let inTag = false;
+  for (const ch of html) {
+    if (ch === "<") {
+      inTag = true;
+      parts.push(" ");
+    } else if (ch === ">") {
+      inTag = false;
+    } else if (!inTag) {
+      parts.push(ch);
+    }
+  }
+  return parts.join("");
+}
+
+function findLabelEnd(lower: string, variants: string[]): number {
+  for (const v of variants) {
+    const idx = lower.indexOf(v);
+    if (idx >= 0) return idx + v.length;
+  }
+  return -1;
+}
+
+function skipSeparators(text: string, from: number): number {
+  let pos = from;
+  while (pos < text.length && (text[pos] === " " || text[pos] === ":" || text[pos] === "-")) pos++;
+  return pos;
+}
+
+function extractTextValue(text: string, labelEnd: number): string | null {
+  const start = skipSeparators(text, labelEnd);
+  let end = start;
+  while (end < text.length && end - start < 200 && ANIF_VALUE_CHARS.has(text[end].toLowerCase())) {
+    end++;
+  }
+  const value = text.slice(start, end).trim();
+  return value.length > 0 ? value : null;
+}
+
+function extractNumericValue(text: string, labelEnd: number): number | null {
+  const start = skipSeparators(text, labelEnd);
+  let end = start;
+  while (end < text.length && "0123456789.,".includes(text[end])) end++;
+  if (end === start) return null;
+  return Number(text.slice(start, end).replace(",", ".")) || null;
+}
+
 function parseAnifHtml(html: string) {
-  const plain = html
-    .replaceAll(/<[^>]+>/g, " ")
-    .replaceAll(/\s+/g, " ")
-    .trim();
-  const suprafata =
-    Number(
-      (
-        /(Suprafa[țt]a\s*Irigat[ăa])\s*[:-]?\s*(\d+(?:[.,]\d+)?)/i.exec(plain)?.[2] ?? "NaN"
-      ).replace(",", "."),
-    ) || null;
+  const plain = stripHtmlTags(html).replaceAll(/\s+/g, " ").trim();
+  const lower = plain.toLowerCase();
+
+  const suprafataEnd = findLabelEnd(lower, [
+    "suprafata irigata",
+    "suprafata irigată",
+    "suprafața irigata",
+    "suprafața irigată",
+  ]);
+  const tipContractEnd = findLabelEnd(lower, ["tip contract"]);
+  const amenajareEnd = findLabelEnd(lower, ["amenajare irigare", "sistem irigare"]);
+
   return {
-    suprafataIrigata: suprafata,
-    areContractIrigare: /contract\s+irigare/i.test(plain),
-    tipContract: /(Tip\s*Contract)\s*[:-]?\s*([a-zăâîșț0-9\s-]+)/i.exec(plain)?.[2]?.trim() ?? null,
-    amenajare:
-      /(Amenajare\s*Irigare|Sistem\s*Irigare)\s*[:-]?\s*([a-zăâîșț0-9\s-]+)/i
-        .exec(plain)?.[2]
-        ?.trim() ?? null,
+    suprafataIrigata: suprafataEnd >= 0 ? extractNumericValue(plain, suprafataEnd) : null,
+    areContractIrigare: lower.includes("contract irigare"),
+    tipContract: tipContractEnd >= 0 ? extractTextValue(plain, tipContractEnd) : null,
+    amenajare: amenajareEnd >= 0 ? extractTextValue(plain, amenajareEnd) : null,
   };
 }
 

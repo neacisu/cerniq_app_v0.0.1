@@ -47,7 +47,7 @@ export function GoldCompanyDrawer({ open, id, onClose }: Props) {
         </div>
       )}
       {isError && (
-        <div className="rounded-lg border border-(--color-danger)/30 bg-(--color-danger)/10 p-4 text-sm text-(--color-danger)">
+        <div className="rounded-lg border border-er/30 bg-er/10 p-4 text-sm text-er">
           Eroare la incarcarea companiei: {error?.message ?? "Eroare necunoscuta"}
         </div>
       )}
@@ -115,9 +115,12 @@ export function GoldCompanyDrawer({ open, id, onClose }: Props) {
                 {journey.length === 0 ? (
                   <p className="py-4 text-sm text-t3">Niciun eveniment în timeline.</p>
                 ) : (
-                  journey.map((event, idx) => (
+                  journey.map((event) => (
                     <div
-                      key={String(event.id ?? idx)}
+                      key={String(
+                        event.id ??
+                          `${event.createdAt ?? ""}-${event.fromState ?? ""}-${event.toState ?? ""}`,
+                      )}
                       className="rounded border border-s700 p-3 text-sm"
                     >
                       <div className="flex items-center justify-between">

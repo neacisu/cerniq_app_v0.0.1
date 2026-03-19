@@ -106,7 +106,7 @@ export function Bronze() {
     }
     if (isError) {
       return (
-        <div className="rounded-lg border border-(--color-danger)/30 bg-(--color-danger)/10 p-4 text-sm text-(--color-danger)">
+        <div className="rounded-lg border border-er/30 bg-er/10 p-4 text-sm text-er">
           Eroare la încărcarea datelor: {error?.message ?? "Eroare necunoscută"}
         </div>
       );

@@ -11,12 +11,22 @@ const kpis = [
   { label: "Errors", value: "2", icon: "AlertCircle" },
 ];
 
-const phones = Array.from({ length: 20 }, (_, i) => ({
-  id: `WA-${String(i + 1).padStart(2, "0")}`,
-  number: `+40 7${String(100 + i).padStart(8, "0")}`,
-  pct: 20 + ((i * 4) % 80),
-  status: (i % 7 === 2 ? "error" : "ok") as "ok" | "error",
-}));
+type PhoneCard = Readonly<{
+  id: string;
+  number: string;
+  pct: number;
+  status: "ok" | "error";
+}>;
+
+const phones: readonly PhoneCard[] = Array.from(
+  { length: 20 },
+  (_, i): PhoneCard => ({
+    id: `WA-${String(i + 1).padStart(2, "0")}`,
+    number: `+40 7${String(100 + i).padStart(8, "0")}`,
+    pct: 20 + ((i * 4) % 80),
+    status: i % 7 === 2 ? "error" : "ok",
+  }),
+);
 
 export function Phones() {
   return (
@@ -31,15 +41,15 @@ export function Phones() {
         {phones.map((p) => (
           <Card
             key={p.id}
-            className="cursor-pointer hover:border-[var(--color-b5)]"
+            className="cursor-pointer hover:border-b5"
             onClick={() => toast.info(`${p.id}: ${p.number}`)}
           >
             <CardBody className="p-4">
               <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium text-[var(--color-t1)]">{p.id}</span>
+                <span className="text-sm font-medium text-t1">{p.id}</span>
                 <StatusDot status={p.status} />
               </div>
-              <p className="text-xs text-[var(--color-t3)] mb-2 truncate">{p.number}</p>
+              <p className="mb-2 truncate text-xs text-t3">{p.number}</p>
               <ProgressBar value={p.pct} />
             </CardBody>
           </Card>

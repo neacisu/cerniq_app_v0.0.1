@@ -2,9 +2,9 @@ import { useMemo } from "react";
 import { SearchableSelect } from "@/components/forms/SearchableSelect.js";
 
 type MultiSelectFilterProps = {
-  options: { label: string; value: string }[];
-  values: string[];
-  onChange: (values: string[]) => void;
+  readonly options: ReadonlyArray<{ readonly label: string; readonly value: string }>;
+  readonly values: readonly string[];
+  readonly onChange: (values: string[]) => void;
 };
 
 export function MultiSelectFilter({ options, values, onChange }: MultiSelectFilterProps) {
@@ -15,7 +15,7 @@ export function MultiSelectFilter({ options, values, onChange }: MultiSelectFilt
   return (
     <div className="space-y-2">
       <SearchableSelect
-        options={options}
+        options={[...options]}
         onChange={(value) => {
           if (!value) return;
           if (!values.includes(value)) onChange([...values, value]);
@@ -25,7 +25,7 @@ export function MultiSelectFilter({ options, values, onChange }: MultiSelectFilt
         {selectedOptions.map((opt) => (
           <button
             key={opt.value}
-            className="rounded bg-[var(--color-s700)] px-2 py-1 text-xs text-[var(--color-t2)]"
+            className="rounded bg-s700 px-2 py-1 text-xs text-t2"
             onClick={() => onChange(values.filter((v) => v !== opt.value))}
           >
             {opt.label} x

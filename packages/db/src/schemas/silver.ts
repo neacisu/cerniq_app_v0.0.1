@@ -112,8 +112,9 @@ export const silverCompanies = silverSchema.table(
     cuiRo: varchar("cui_ro", { length: 34 }).generatedAlwaysAs(
       sql`CASE WHEN "cui" IS NOT NULL THEN 'RO' || "cui" ELSE NULL END`,
     ),
-    nrRegCom: varchar("nr_reg_com", { length: 20 }),
+    nrRegCom: varchar("nr_reg_com", { length: 32 }),
     nrRegComOriginal: varchar("nr_reg_com_original", { length: 32 }),
+    nrRegComCanonical: varchar("nr_reg_com_canonical", { length: 20 }),
     identityStatus: silverIdentityStatusEnum("identity_status").notNull().default("partial"),
     identityMetadata: jsonb("identity_metadata").notNull().default({}),
 

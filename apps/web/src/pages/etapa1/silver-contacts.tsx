@@ -41,7 +41,7 @@ export function SilverContacts() {
     }
     if (isError) {
       return (
-        <div className="rounded-lg border border-(--color-danger) bg-(--color-danger)/10 p-4 text-sm text-(--color-danger)">
+        <div className="rounded-lg border border-er bg-er/10 p-4 text-sm text-er">
           Eroare la incarcarea companiilor silver: {error?.message ?? "Eroare necunoscuta"}
         </div>
       );

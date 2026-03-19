@@ -123,7 +123,7 @@ export function SilverCompanyDrawer({ open, id, onClose }: Props) {
         </div>
       )}
       {isError && (
-        <div className="rounded-lg border border-(--color-danger)/30 bg-(--color-danger)/10 p-4 text-sm text-(--color-danger)">
+        <div className="rounded-lg border border-er/30 bg-er/10 p-4 text-sm text-er">
           Eroare la incarcarea companiei: {error?.message ?? "Eroare necunoscuta"}
         </div>
       )}
@@ -228,8 +228,14 @@ export function SilverCompanyDrawer({ open, id, onClose }: Props) {
                 {contacts.length === 0 ? (
                   <p className="py-4 text-sm text-t3">Niciun contact disponibil.</p>
                 ) : (
-                  contacts.map((c, idx) => (
-                    <div key={String(c.id ?? idx)} className="mb-3 rounded border border-s700 p-3">
+                  contacts.map((c) => (
+                    <div
+                      key={String(
+                        c.id ??
+                          `${c.email ?? ""}-${c.telefon ?? ""}-${c.prenume ?? ""}-${c.nume ?? ""}`,
+                      )}
+                      className="mb-3 rounded border border-s700 p-3"
+                    >
                       {Boolean(c.isPrimary) && (
                         <Badge variant="brand" className="mb-2 text-xs">
                           Primary
@@ -251,8 +257,14 @@ export function SilverCompanyDrawer({ open, id, onClose }: Props) {
                 {datoriiAnaf.length === 0 ? (
                   <p className="py-4 text-sm text-t3">Nicio datorie ANAF înregistrată.</p>
                 ) : (
-                  datoriiAnaf.map((d, idx) => (
-                    <div key={String(d.id ?? idx)} className="mb-3 rounded border border-s700 p-3">
+                  datoriiAnaf.map((d) => (
+                    <div
+                      key={String(
+                        d.id ??
+                          `${d.tipBuget ?? ""}-${d.dataVerificare ?? ""}-${d.sumaRestanta ?? ""}`,
+                      )}
+                      className="mb-3 rounded border border-s700 p-3"
+                    >
                       <FieldRow label="Tip buget" value={d.tipBuget} />
                       <FieldRow label="Sumă restantă" value={d.sumaRestanta} />
                       <FieldRow label="Data verificare" value={d.dataVerificare} />
@@ -268,8 +280,13 @@ export function SilverCompanyDrawer({ open, id, onClose }: Props) {
                 {bpiActe.length === 0 ? (
                   <p className="py-4 text-sm text-t3">Niciun act BPI înregistrat.</p>
                 ) : (
-                  bpiActe.map((b, idx) => (
-                    <div key={String(b.id ?? idx)} className="mb-3 rounded border border-s700 p-3">
+                  bpiActe.map((b) => (
+                    <div
+                      key={String(
+                        b.id ?? `${b.numarAct ?? ""}-${b.dataAct ?? ""}-${b.numarDosar ?? ""}`,
+                      )}
+                      className="mb-3 rounded border border-s700 p-3"
+                    >
                       <FieldRow label="Tip act" value={b.tipAct} />
                       <FieldRow label="Număr act" value={b.numarAct} />
                       <FieldRow label="Data act" value={b.dataAct} />
@@ -287,8 +304,14 @@ export function SilverCompanyDrawer({ open, id, onClose }: Props) {
                 {cipIncidente.length === 0 ? (
                   <p className="py-4 text-sm text-t3">Niciun incident CIP înregistrat.</p>
                 ) : (
-                  cipIncidente.map((c, idx) => (
-                    <div key={String(c.id ?? idx)} className="mb-3 rounded border border-s700 p-3">
+                  cipIncidente.map((c) => (
+                    <div
+                      key={String(
+                        c.id ??
+                          `${c.serieNumar ?? ""}-${c.dataRefuz ?? ""}-${c.sumaRefuzata ?? ""}`,
+                      )}
+                      className="mb-3 rounded border border-s700 p-3"
+                    >
                       {c.esteMajor === true && (
                         <Badge variant="error" className="mb-2 text-xs">
                           Incident Major
@@ -311,8 +334,14 @@ export function SilverCompanyDrawer({ open, id, onClose }: Props) {
                 {dosare.length === 0 ? (
                   <p className="py-4 text-sm text-t3">Niciun dosar înregistrat.</p>
                 ) : (
-                  dosare.map((d, idx) => (
-                    <div key={String(d.id ?? idx)} className="mb-4 rounded border border-s700 p-3">
+                  dosare.map((d) => (
+                    <div
+                      key={String(
+                        d.id ??
+                          `${d.numarDosar ?? ""}-${d.instanta ?? ""}-${d.dataUltimaModificare ?? ""}`,
+                      )}
+                      className="mb-4 rounded border border-s700 p-3"
+                    >
                       <FieldRow label="Nr. dosar" value={d.numarDosar} />
                       <FieldRow label="Instanță" value={d.instanta} />
                       <FieldRow label="Categorie" value={d.categorieDosar} />
@@ -322,8 +351,11 @@ export function SilverCompanyDrawer({ open, id, onClose }: Props) {
                       {Array.isArray(d.parti) && d.parti.length > 0 && (
                         <>
                           <SectionTitle>Părți dosar</SectionTitle>
-                          {d.parti.map((p, pi) => (
-                            <div key={String(p.id ?? pi)} className="ml-2 mb-1">
+                          {d.parti.map((p) => (
+                            <div
+                              key={String(p.id ?? `${p.calitate ?? ""}-${p.numeParte ?? ""}`)}
+                              className="ml-2 mb-1"
+                            >
                               <FieldRow label={String(p.calitate ?? "Parte")} value={p.numeParte} />
                             </div>
                           ))}
@@ -332,8 +364,11 @@ export function SilverCompanyDrawer({ open, id, onClose }: Props) {
                       {Array.isArray(d.termene) && d.termene.length > 0 && (
                         <>
                           <SectionTitle>Termene dosar</SectionTitle>
-                          {d.termene.map((t, ti) => (
-                            <div key={String(t.id ?? ti)} className="ml-2 mb-1">
+                          {d.termene.map((t) => (
+                            <div
+                              key={String(t.id ?? `${t.dataTermen ?? ""}-${t.solutie ?? ""}`)}
+                              className="ml-2 mb-1"
+                            >
                               <FieldRow label="Dată" value={t.dataTermen} />
                               <FieldRow label="Soluție" value={t.solutie} />
                             </div>
@@ -357,9 +392,12 @@ export function SilverCompanyDrawer({ open, id, onClose }: Props) {
                 {enrichmentLogs.length === 0 ? (
                   <p className="py-4 text-sm text-t3">Niciun log de enrichment disponibil.</p>
                 ) : (
-                  enrichmentLogs.map((log, logIdx) => (
+                  enrichmentLogs.map((log) => (
                     <div
-                      key={String(log.id ?? logIdx)}
+                      key={String(
+                        log.id ??
+                          `${log.createdAt ?? ""}-${log.source ?? ""}-${log.operation ?? ""}`,
+                      )}
                       className="rounded border border-s700 p-3 text-sm"
                     >
                       <div className="flex items-center justify-between">

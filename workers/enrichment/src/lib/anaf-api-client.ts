@@ -1,12 +1,24 @@
+import { webcrypto } from "node:crypto";
 import { createCircuitBreaker } from "@cerniq/worker-shared";
 
 const ANAF_API_URL =
-  process.env.ANAF_API_URL ?? "https://webservicesp.anaf.ro/AsynchProdFurniz/api/v10/ws/tva";
+  process.env.ANAF_API_URL || "https://webservicesp.anaf.ro/api/PlatitorTvaRest/v9/tva";
 const ANAF_TIMEOUT_MS = Number(process.env.ANAF_API_TIMEOUT_MS ?? "25000");
+const ANAF_MIN_DELAY_MS = Number(process.env.ANAF_MIN_DELAY_MS ?? "1000");
+const ANAF_MAX_DELAY_MS = Number(process.env.ANAF_MAX_DELAY_MS ?? "4000");
+
+function randomDelay(): Promise<void> {
+  // Use CSPRNG (WebCrypto) instead of Math.random() — Uint32 gives 32 bits
+  // of entropy; dividing by 0xFFFFFFFF maps uniformly to [0, 1].
+  const [rand] = webcrypto.getRandomValues(new Uint32Array(1));
+  const ms = ANAF_MIN_DELAY_MS + (rand / 0xffffffff) * (ANAF_MAX_DELAY_MS - ANAF_MIN_DELAY_MS);
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 export type AnafRecord = Record<string, unknown>;
 
 async function callAnaf(cleanCui: string): Promise<AnafRecord | null> {
+  await randomDelay();
   const payload = [
     { cui: Number.parseInt(cleanCui, 10), data: new Date().toISOString().split("T")[0] },
   ];

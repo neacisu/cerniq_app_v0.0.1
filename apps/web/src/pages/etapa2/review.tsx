@@ -41,9 +41,9 @@ export function Review() {
           {queue.map((item) => (
             <Card key={item.id}>
               <CardBody>
-                <p className="text-sm text-[var(--color-t2)] mb-2">→ {item.contact}</p>
-                <p className="text-[var(--color-t1)] mb-3">{item.msg}</p>
-                <div className="p-3 rounded-[var(--radius-md)] bg-[var(--color-wa)]/10 border border-[var(--color-wa)]/30 text-sm text-[var(--color-wa)] mb-4">
+                <p className="mb-2 text-sm text-t2">→ {item.contact}</p>
+                <p className="mb-3 text-t1">{item.msg}</p>
+                <div className="mb-4 rounded-md border border-wa/30 bg-wa/10 p-3 text-sm text-wa">
                   {item.reason}
                 </div>
                 <div className="flex gap-2">

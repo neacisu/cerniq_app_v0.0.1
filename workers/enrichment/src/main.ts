@@ -7,7 +7,9 @@ import {
   createWorker,
   loadSecretsFromFile,
   queueRegistry,
+  watchSecretsFile,
 } from "@cerniq/worker-shared";
+import { closeDbConnection, refreshDbConnection } from "@cerniq/db";
 import type { Job } from "bullmq";
 import { csvParserProcessor } from "./workers/a1-csv-parser.js";
 import { excelParserProcessor } from "./workers/a2-excel-parser.js";
@@ -74,6 +76,7 @@ import { hitlEscalationProcessor } from "./workers/hitl-escalation.js";
 import { hitlResumeAfterApprovalProcessor } from "./workers/hitl-resume-after-approval.js";
 
 const PORT = Number(process.env.PORT || "3000");
+const SECRETS_PATH = process.env.SECRETS_PATH?.trim() || "/secrets/workers.env";
 assertQueueRegistryComplete();
 const extraQueueNames = ["pipeline:promote:bronze-silver", "hitl:escalate", "hitl:resume"];
 const queueNames = Array.from(new Set([...queueRegistry.map((q) => q.name), ...extraQueueNames]));
@@ -306,6 +309,7 @@ async function reloadSecretsAndConnections() {
   loadSecretsFromFile(true);
   await stopWorkers();
   await closeRedisConnections(redisConnections);
+  await refreshDbConnection();
   redisConnections = createRedisConnections();
   buildWorkers();
 }
@@ -325,10 +329,16 @@ const server = createHealthServer(PORT, () => ({
   timestamp: new Date().toISOString(),
 }));
 
+const stopWatchingSecrets = watchSecretsFile(SECRETS_PATH, async () => {
+  await reloadSecretsAndConnections();
+});
+
 async function shutdown() {
+  stopWatchingSecrets();
   server.close();
   await stopWorkers();
   await closeRedisConnections(redisConnections);
+  await closeDbConnection();
   process.exit(0);
 }
 

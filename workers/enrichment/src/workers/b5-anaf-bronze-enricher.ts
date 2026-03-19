@@ -105,7 +105,9 @@ async function crossReferenceNrRegComContacts(
           eq(t.tenantId, tenantId),
           eq(sql`COALESCE(jsonb_extract_path_text(${t.metadata}, 'batchId'), '')`, batchId),
           isNull(t.extractedCui),
-          eq(t.extractedNrRegCom, nrRegCom),
+          // Case-insensitive comparison: ANAF and Excel both store old format (J09/98/2003)
+          // but may differ in case/whitespace. Use UPPER(TRIM(...)) for robust matching.
+          eq(sql`UPPER(TRIM(${t.extractedNrRegCom}))`, nrRegCom.toUpperCase().trim()),
         ),
       columns: { id: true, extractedName: true },
     });

@@ -6,11 +6,40 @@ import { server } from "../src/test-utils/msw/server.js";
 
 expect.extend(toHaveNoViolations);
 
-class ResizeObserverMock {
-  constructor(_callback: ResizeObserverCallback) {}
-  observe(_target: Element, _options?: ResizeObserverOptions) {}
-  unobserve(_target: Element) {}
-  disconnect() {}
+class ResizeObserverMock implements ResizeObserver {
+  private readonly observedElements = new Set<Element>();
+
+  public constructor(private readonly callback: ResizeObserverCallback) {}
+
+  public observe(target: Element): void {
+    this.observedElements.add(target);
+    this.callback([this.createEntry(target)], this);
+  }
+
+  public unobserve(target: Element): void {
+    this.observedElements.delete(target);
+  }
+
+  public disconnect(): void {
+    this.observedElements.clear();
+  }
+
+  public takeRecords(): ResizeObserverEntry[] {
+    return Array.from(this.observedElements, (target) => this.createEntry(target));
+  }
+
+  private createEntry(target: Element): ResizeObserverEntry {
+    const contentRect = target.getBoundingClientRect();
+    const boxSize = [{ inlineSize: contentRect.width, blockSize: contentRect.height }];
+
+    return {
+      target,
+      contentRect,
+      borderBoxSize: boxSize,
+      contentBoxSize: boxSize,
+      devicePixelContentBoxSize: boxSize,
+    } as ResizeObserverEntry;
+  }
 }
 
 if (!("ResizeObserver" in globalThis)) {

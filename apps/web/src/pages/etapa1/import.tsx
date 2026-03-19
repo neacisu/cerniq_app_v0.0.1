@@ -14,12 +14,19 @@ import {
   fetchImportHeaders,
   saveImportMapping,
   rePromoteImport,
+  anafEnrichImport,
 } from "@/lib/etapa1-api.js";
-import type { MappingTarget } from "@/lib/etapa1-api.js";
+import type { MappingTarget, PromoteJobStatus } from "@/lib/etapa1-api.js";
 import { FileUpload } from "@/components/forms/FileUpload.js";
 import { Button } from "@/components/ui/button.js";
 import { Select } from "@/components/ui/select.js";
 import { Dialog, DialogContent } from "@/components/ui/dialog.js";
+import {
+  usePromoteJobStatus,
+  useResumeImportReprocessErrors,
+  useResumePromoteJob,
+} from "@/hooks/use-etapa1.js";
+import { ApiError } from "@/lib/api.js";
 
 const ACCEPT =
   ".csv,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv";
@@ -92,7 +99,7 @@ function getStatusToneClass(status: string) {
   }
 
   if (status === "failed") {
-    return "text-(--color-danger)";
+    return "text-er";
   }
 
   if (status === "cancelled") {
@@ -134,16 +141,16 @@ function formatCompactDuration(ms: number) {
   return `${seconds}s`;
 }
 
-function getIdentityReprocessMetrics(metadata: Record<string, unknown>, totalRows: number) {
-  const state = getIdentityReprocessState(metadata);
-  if (!state) {
-    return null;
-  }
+function computeReprocessProgress(processedRows: number, total: number): number {
+  if (total <= 0) return 0;
+  return processedRows >= total ? 100 : Math.max(0, Math.floor((processedRows / total) * 100));
+}
 
-  const processedRows = Number(metadata.identityReprocessProcessedRows ?? 0);
-  const resolvedRows = Number(metadata.identityReprocessResolvedRows ?? 0);
-  const total = Math.max(totalRows, processedRows, 0);
-  const progress = total > 0 ? Math.min(100, Math.round((processedRows / total) * 100)) : 0;
+function computeReprocessTiming(metadata: Record<string, unknown>): {
+  sessionProcessedBaseRows: number;
+  hasFreshHeartbeat: boolean;
+  elapsedMs: number | null;
+} {
   const startedAtRaw =
     typeof metadata.identityReprocessStartedAt === "string"
       ? metadata.identityReprocessStartedAt
@@ -152,22 +159,71 @@ function getIdentityReprocessMetrics(metadata: Record<string, unknown>, totalRow
     typeof metadata.identityReprocessLastProgressAt === "string"
       ? metadata.identityReprocessLastProgressAt
       : null;
+  const queuedAtRaw =
+    typeof metadata.identityReprocessQueuedAt === "string"
+      ? metadata.identityReprocessQueuedAt
+      : null;
+  const sessionStartedAtRaw =
+    typeof metadata.identityReprocessSessionStartedAt === "string"
+      ? metadata.identityReprocessSessionStartedAt
+      : null;
   const startedAt = startedAtRaw ? Date.parse(startedAtRaw) : Number.NaN;
+  const queuedAt = queuedAtRaw ? Date.parse(queuedAtRaw) : Number.NaN;
+  let sessionStartedAt = startedAt;
+  if (sessionStartedAtRaw) {
+    sessionStartedAt = Date.parse(sessionStartedAtRaw);
+  } else if (Number.isFinite(queuedAt) && (!Number.isFinite(startedAt) || queuedAt > startedAt)) {
+    sessionStartedAt = queuedAt;
+  }
   const referenceNow = lastProgressAtRaw ? Date.parse(lastProgressAtRaw) : Date.now();
   const elapsedMs =
-    Number.isFinite(startedAt) && referenceNow > startedAt ? referenceNow - startedAt : null;
-  const throughput = elapsedMs && processedRows > 0 ? processedRows / (elapsedMs / 1000) : null;
+    Number.isFinite(sessionStartedAt) && referenceNow > sessionStartedAt
+      ? referenceNow - sessionStartedAt
+      : null;
+  const heartbeatLagMs = lastProgressAtRaw ? Date.now() - referenceNow : null;
+  const hasFreshHeartbeat = heartbeatLagMs === null || heartbeatLagMs <= 60_000;
+  const sessionProcessedBaseRows = Math.max(
+    0,
+    Number(metadata.identityReprocessSessionProcessedBaseRows ?? 0),
+  );
+  return { sessionProcessedBaseRows, hasFreshHeartbeat, elapsedMs };
+}
+
+function getIdentityReprocessMetrics(metadata: Record<string, unknown>, totalRows: number) {
+  const state = getIdentityReprocessState(metadata);
+  if (!state) {
+    return null;
+  }
+
+  const processedRows = Number(metadata.identityReprocessProcessedRows ?? 0);
+  const resolvedRows = Number(metadata.identityReprocessResolvedRows ?? 0);
+  const runTotalRows = Number(metadata.identityReprocessRunTotalRows ?? totalRows ?? 0);
+  const failedContacts = Number(metadata.identityReprocessFailedContactCount ?? 0);
+  const total = Math.max(runTotalRows, processedRows, 0);
+  const progress = computeReprocessProgress(processedRows, total);
+  const { hasFreshHeartbeat, elapsedMs, sessionProcessedBaseRows } =
+    computeReprocessTiming(metadata);
+  const sessionProcessedRows = Math.max(0, processedRows - sessionProcessedBaseRows);
+  const throughput =
+    hasFreshHeartbeat && elapsedMs && sessionProcessedRows > 0
+      ? sessionProcessedRows / (elapsedMs / 1000)
+      : null;
   const remainingRows = total > processedRows ? total - processedRows : 0;
-  const etaMs = throughput && remainingRows > 0 ? (remainingRows / throughput) * 1000 : null;
+  const etaMs =
+    hasFreshHeartbeat && throughput && remainingRows > 0
+      ? (remainingRows / throughput) * 1000
+      : null;
 
   return {
     state,
     processedRows,
     resolvedRows,
+    failedContacts,
     totalRows: total,
     progress,
     throughput,
     etaMs,
+    hasFreshHeartbeat,
   };
 }
 
@@ -189,6 +245,14 @@ function getIdentityReprocessLabel(metadata: Record<string, unknown>, totalRows:
     return "Re-rezolvare identitate: eșuată";
   }
 
+  if (metrics.processedRows < metrics.totalRows) {
+    return `Re-rezolvare identitate: finalizată incomplet (${(metrics.totalRows - metrics.processedRows).toLocaleString("ro-RO")} rânduri lipsă)`;
+  }
+
+  if (metrics.failedContacts > 0) {
+    return `Re-rezolvare identitate: finalizată cu erori (${metrics.failedContacts.toLocaleString("ro-RO")} contacte eșuate)`;
+  }
+
   return `Re-rezolvare identitate: finalizată (${metrics.resolvedRows.toLocaleString("ro-RO")} rânduri rezolvate)`;
 }
 
@@ -197,9 +261,330 @@ function isIdentityReprocessActive(metadata: Record<string, unknown>) {
   return state === "queued" || state === "running";
 }
 
+function isTransientApiUnavailable(error: unknown): error is ApiError {
+  return error instanceof ApiError && [502, 503, 504].includes(error.status);
+}
+
+function getPollingBackoffMs(error: unknown, failureCount: number, baseIntervalMs: number): number {
+  if (!isTransientApiUnavailable(error)) {
+    return baseIntervalMs;
+  }
+
+  const retryStep = Math.max(0, failureCount - 1);
+  return Math.min(60_000, baseIntervalMs * 2 ** retryStep);
+}
+
+// ── Promote Job Heartbeat ─────────────────────────────────────────────────────
+
+const ACTIONABLE_JOB_STATES = new Set(["failed", "stale", "stalled", "backlogged"]);
+
+function getHeartbeatStateClass(state: string): string {
+  if (ACTIONABLE_JOB_STATES.has(state)) return "text-er";
+  if (state === "completed") return "text-ok";
+  return "text-t2";
+}
+
+function getAttemptsSuffix(job: Pick<PromoteJobStatus, "attemptsMade" | "maxAttempts">): string {
+  if (job.attemptsMade != null && job.maxAttempts != null && job.maxAttempts > 1) {
+    return ` (tentativa ${job.attemptsMade}/${job.maxAttempts})`;
+  }
+  return "";
+}
+
+function HeartbeatErrorPanel({
+  job,
+  failedContactCount,
+  visible,
+}: Readonly<{ job: PromoteJobStatus; failedContactCount: number; visible: boolean }>) {
+  if (!visible) return null;
+  return (
+    <div className="rounded-md border border-er/30 bg-er/8 px-3 py-2 space-y-1">
+      {failedContactCount > 0 ? (
+        <p className="text-[11px] font-medium text-t2">
+          {failedContactCount.toLocaleString("ro-RO")} contacte au rămas în lista de erori pentru
+          reprocess separat.
+        </p>
+      ) : null}
+      {job.failedReason ? (
+        <p className="text-[11px] font-medium text-er break-all">{job.failedReason}</p>
+      ) : null}
+      {job.stacktrace ? (
+        <pre className="text-[10px] text-t3 whitespace-pre-wrap break-all leading-relaxed max-h-36 overflow-y-auto font-mono">
+          {job.stacktrace}
+        </pre>
+      ) : null}
+      {job.processedOn ? (
+        <p className="text-[10px] text-t3">
+          Ultima rulare: {new Date(job.processedOn).toLocaleString("ro-RO")}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+type HeartbeatDotProps = { state: string };
+
+function HeartbeatDot({ state }: Readonly<HeartbeatDotProps>) {
+  if (state === "active" || state === "waiting" || state === "delayed" || state === "prioritized") {
+    return (
+      <span className="relative flex h-2 w-2 shrink-0">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-ok opacity-75" />
+        <span className="relative inline-flex h-2 w-2 rounded-full bg-ok" />
+      </span>
+    );
+  }
+  if (state === "stale" || state === "stalled") {
+    return (
+      <span className="relative flex h-2 w-2 shrink-0">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-wa opacity-60" />
+        <span className="relative inline-flex h-2 w-2 rounded-full bg-wa" />
+      </span>
+    );
+  }
+  if (state === "backlogged") {
+    return (
+      <span className="relative flex h-2 w-2 shrink-0">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-wa opacity-60" />
+        <span className="relative inline-flex h-2 w-2 rounded-full bg-wa" />
+      </span>
+    );
+  }
+  if (state === "failed") {
+    return <span className="inline-flex h-2 w-2 shrink-0 rounded-full bg-er" />;
+  }
+  if (state === "completed") {
+    return <span className="inline-flex h-2 w-2 shrink-0 rounded-full bg-ok" />;
+  }
+  // queued / unknown
+  return <span className="inline-flex h-2 w-2 shrink-0 rounded-full bg-t3 opacity-50" />;
+}
+
+function heartbeatStateLabel(state: string): string {
+  const labels: Record<string, string> = {
+    waiting: "în coadă",
+    prioritized: "prioritizat în coadă",
+    active: "rulează",
+    delayed: "amânat",
+    backlogged: "blocat în coadă",
+    stale: "blocat (stale)",
+    stalled: "blocat (stalled)",
+    failed: "eșuat",
+    completed: "finalizat",
+    unknown: "necunoscut",
+    none: "",
+  };
+  return labels[state] ?? state;
+}
+
+type PromoteJobHeartbeatProps = {
+  batchId: string;
+  identityReprocessStatus: string | null;
+  failedContactCount: number;
+  onResumed: () => void;
+};
+
+function HeartbeatUnavailableMessage({ status }: Readonly<{ status: number }>) {
+  return (
+    <div className="mt-2 space-y-1.5">
+      <div className="flex items-center gap-2">
+        <HeartbeatDot state="unknown" />
+        <span className="text-[10px] font-medium text-wa">
+          Job re-promovare: status indisponibil temporar (API {status})
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function HeartbeatAvailabilityHint({ status }: Readonly<{ status: number }>) {
+  return (
+    <span className="text-[10px] text-wa">heartbeat indisponibil temporar (API {status})</span>
+  );
+}
+
+function shouldShowResumeErrorsButton(
+  state: PromoteJobStatus["state"],
+  failedContactCount: number,
+) {
+  return failedContactCount > 0 && (state === "failed" || state === "completed");
+}
+
+type HeartbeatStatusRowProps = {
+  state: PromoteJobStatus["state"];
+  stateClass: string;
+  stateLabel: string;
+  attemptsSuffix: string;
+  apiUnavailableStatus: number | null;
+  isActionable: boolean;
+  showErrorsButton: boolean;
+  hasErrorDetails: boolean;
+  errorExpanded: boolean;
+  failedContactCount: number;
+  resumePending: boolean;
+  resumeErrorsPending: boolean;
+  onResume: () => void;
+  onResumeErrors: () => void;
+  onToggleDetails: () => void;
+};
+
+function HeartbeatStatusRow({
+  state,
+  stateClass,
+  stateLabel,
+  attemptsSuffix,
+  apiUnavailableStatus,
+  isActionable,
+  showErrorsButton,
+  hasErrorDetails,
+  errorExpanded,
+  failedContactCount,
+  resumePending,
+  resumeErrorsPending,
+  onResume,
+  onResumeErrors,
+  onToggleDetails,
+}: Readonly<HeartbeatStatusRowProps>) {
+  return (
+    <div className="flex items-center gap-2">
+      <HeartbeatDot state={state} />
+      <span className={`text-[10px] font-medium ${stateClass}`}>
+        Job re-promovare: {stateLabel}
+        {attemptsSuffix}
+      </span>
+
+      {apiUnavailableStatus === null ? null : (
+        <HeartbeatAvailabilityHint status={apiUnavailableStatus} />
+      )}
+
+      {isActionable ? (
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={resumePending}
+          onClick={onResume}
+          className="h-5 px-2 py-0 text-[10px] font-semibold"
+        >
+          {resumePending ? "…" : "Resume"}
+        </Button>
+      ) : null}
+
+      {showErrorsButton ? (
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={resumeErrorsPending}
+          onClick={onResumeErrors}
+          className="h-5 px-2 py-0 text-[10px] font-semibold"
+        >
+          {resumeErrorsPending ? "…" : `Resume erori (${failedContactCount})`}
+        </Button>
+      ) : null}
+
+      {hasErrorDetails ? (
+        <button
+          type="button"
+          className="text-[10px] text-t3 underline underline-offset-2 hover:text-t2"
+          onClick={onToggleDetails}
+        >
+          {errorExpanded ? "ascunde" : "detalii"}
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+function PromoteJobHeartbeat({
+  batchId,
+  identityReprocessStatus,
+  failedContactCount,
+  onResumed,
+}: Readonly<PromoteJobHeartbeatProps>) {
+  const [errorExpanded, setErrorExpanded] = useState(false);
+
+  // Only poll when a re-promote has ever been triggered
+  const hasReprocessHistory = Boolean(identityReprocessStatus);
+  const jobStatusQuery = usePromoteJobStatus(batchId, {
+    enabled: hasReprocessHistory,
+    expectedDbStatus: identityReprocessStatus,
+  });
+  const resumeMutation = useResumePromoteJob();
+  const resumeErrorsMutation = useResumeImportReprocessErrors();
+  const apiUnavailableError = isTransientApiUnavailable(jobStatusQuery.error)
+    ? jobStatusQuery.error
+    : null;
+
+  if (!hasReprocessHistory) return null;
+  if (jobStatusQuery.isPending) return null;
+
+  const job = jobStatusQuery.data?.data;
+  if (!job || job.state === "none") {
+    return apiUnavailableError ? (
+      <HeartbeatUnavailableMessage status={apiUnavailableError.status} />
+    ) : null;
+  }
+
+  const state = job.state;
+  const isActionable = ACTIONABLE_JOB_STATES.has(state);
+  const showErrorsButton = shouldShowResumeErrorsButton(state, failedContactCount);
+  const hasErrorDetails = (state === "failed" || state === "stale") && Boolean(job.failedReason);
+  const showErrorPanel = errorExpanded && (state === "failed" || state === "stale");
+  const stateLabel = heartbeatStateLabel(state);
+  const stateClass = getHeartbeatStateClass(state);
+  const attemptsSuffix = getAttemptsSuffix(job);
+  const apiUnavailableStatus = apiUnavailableError?.status ?? null;
+
+  const handleResume = () => {
+    resumeMutation
+      .mutateAsync(batchId)
+      .then(onResumed)
+      .catch(() => undefined);
+  };
+
+  const handleResumeErrors = () => {
+    resumeErrorsMutation
+      .mutateAsync(batchId)
+      .then(onResumed)
+      .catch(() => undefined);
+  };
+
+  const handleToggleDetails = () => {
+    setErrorExpanded((value) => !value);
+  };
+
+  return (
+    <div className="mt-2 space-y-1.5">
+      <HeartbeatStatusRow
+        state={state}
+        stateClass={stateClass}
+        stateLabel={stateLabel}
+        attemptsSuffix={attemptsSuffix}
+        apiUnavailableStatus={apiUnavailableStatus}
+        isActionable={isActionable}
+        showErrorsButton={showErrorsButton}
+        hasErrorDetails={hasErrorDetails}
+        errorExpanded={errorExpanded}
+        failedContactCount={failedContactCount}
+        resumePending={resumeMutation.isPending}
+        resumeErrorsPending={resumeErrorsMutation.isPending}
+        onResume={handleResume}
+        onResumeErrors={handleResumeErrors}
+        onToggleDetails={handleToggleDetails}
+      />
+
+      <HeartbeatErrorPanel
+        job={job}
+        failedContactCount={failedContactCount}
+        visible={showErrorPanel}
+      />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 function RequiredBadge({ required }: { required: boolean }) {
   return required ? (
-    <span className="inline-flex items-center rounded-full bg-(--color-danger)/15 px-2 py-0.5 text-[10px] font-semibold text-(--color-danger)">
+    <span className="inline-flex items-center rounded-full bg-er/15 px-2 py-0.5 text-[10px] font-semibold text-er">
       OBLIGATORIU
     </span>
   ) : (
@@ -220,20 +605,94 @@ function AutoMapBadge({ autoMapped }: { autoMapped: boolean }) {
 }
 
 type ImportRowProps = {
-  imp: Record<string, unknown>;
-  actionInProgress: string | null;
-  onOpenMappingDialog: (id: string) => Promise<void>;
-  onRePromote: (id: string) => Promise<void>;
-  onRetry: (id: string) => Promise<void>;
+  readonly imp: Record<string, unknown>;
+  readonly actionInProgress: string | null;
+  readonly onOpenMappingDialog: (id: string) => Promise<void>;
+  readonly onRePromote: (id: string) => Promise<void>;
+  readonly onAnafEnrich: (id: string) => Promise<void>;
+  readonly onRetry: (id: string) => Promise<void>;
+  readonly onImportRefetch: () => void;
 };
+
+type ImportRowActionsProps = {
+  readonly id: string;
+  readonly status: string;
+  readonly actionInProgress: string | null;
+  readonly onOpenMappingDialog: (id: string) => Promise<void>;
+  readonly onRePromote: (id: string) => Promise<void>;
+  readonly onAnafEnrich: (id: string) => Promise<void>;
+  readonly onRetry: (id: string) => Promise<void>;
+};
+
+function ImportRowActions({
+  id,
+  status,
+  actionInProgress,
+  onOpenMappingDialog,
+  onRePromote,
+  onAnafEnrich,
+  onRetry,
+}: ImportRowActionsProps) {
+  const canRetry = ["pending", "failed", "cancelled"].includes(status);
+  return (
+    <div className="flex shrink-0 items-center gap-1.5">
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={actionInProgress !== null}
+        onClick={async () => {
+          await onOpenMappingDialog(id);
+        }}
+      >
+        Mapeaza
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={actionInProgress !== null}
+        onClick={async () => {
+          await onRePromote(id);
+        }}
+      >
+        {actionInProgress === `repromote-${id}` ? "…" : "Re-promoveaza"}
+      </Button>
+      {status === "completed" ? (
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={actionInProgress !== null}
+          onClick={async () => {
+            await onAnafEnrich(id);
+          }}
+        >
+          {actionInProgress === `anaf-${id}` ? "…" : "Prelucreaza ANAF"}
+        </Button>
+      ) : null}
+      {canRetry ? (
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={actionInProgress !== null}
+          onClick={async () => {
+            await onRetry(id);
+          }}
+        >
+          {actionInProgress === `retry-${id}` ? "…" : "Resume"}
+        </Button>
+      ) : null}
+    </div>
+  );
+}
 
 function ImportHistoryRow({
   imp,
   actionInProgress,
   onOpenMappingDialog,
   onRePromote,
+  onAnafEnrich,
   onRetry,
-}: Readonly<ImportRowProps>) {
+  onImportRefetch,
+}: ImportRowProps) {
   const id = String(imp.id);
   const status = String(imp.status);
   const processed = Number(imp.processedRows ?? 0);
@@ -246,7 +705,6 @@ function ImportHistoryRow({
   const timeLabel = getImportTimeLabel(imp.createdAt, lastProgressAt);
   const isProcessing = status === "processing";
   const hasKnownTotal = total > 0;
-  const canRetry = ["pending", "failed", "cancelled"].includes(status);
   const identitySummary = (imp.identitySummary as Record<string, unknown> | undefined) ?? {};
   const resolvedCompanies = Number(identitySummary.resolvedCompanies ?? 0).toLocaleString("ro-RO");
   const duplicateSourceRows = Number(identitySummary.duplicateSourceRows ?? 0).toLocaleString(
@@ -257,6 +715,7 @@ function ImportHistoryRow({
   );
   const identityReprocessLabel = getIdentityReprocessLabel(metadata, total);
   const identityReprocessMetrics = getIdentityReprocessMetrics(metadata, total);
+  const failedReprocessContacts = Number(metadata.identityReprocessFailedContactCount ?? 0);
   const identityReprocessDetails = identityReprocessMetrics
     ? [
         `${identityReprocessMetrics.processedRows.toLocaleString("ro-RO")} / ${identityReprocessMetrics.totalRows.toLocaleString("ro-RO")} reevaluate`,
@@ -299,48 +758,33 @@ function ImportHistoryRow({
             ) : null}
           </div>
         ) : null}
+        <PromoteJobHeartbeat
+          batchId={id}
+          identityReprocessStatus={
+            typeof metadata.identityReprocessStatus === "string"
+              ? metadata.identityReprocessStatus
+              : null
+          }
+          failedContactCount={failedReprocessContacts}
+          onResumed={onImportRefetch}
+        />
         {lastError && status === "failed" ? (
-          <p className="mt-1 line-clamp-2 text-xs text-(--color-danger)">{lastError}</p>
+          <p className="mt-1 line-clamp-2 text-xs text-er">{lastError}</p>
         ) : null}
       </div>
       <div className="w-32">
         <ProgressBar value={progress} indeterminate={isProcessing && !hasKnownTotal} />
       </div>
       <span className={`w-20 text-xs font-medium ${getStatusToneClass(status)}`}>{status}</span>
-      <div className="flex shrink-0 items-center gap-1.5">
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={actionInProgress !== null}
-          onClick={async () => {
-            await onOpenMappingDialog(id);
-          }}
-        >
-          Mapeaza
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={actionInProgress !== null}
-          onClick={async () => {
-            await onRePromote(id);
-          }}
-        >
-          {actionInProgress === `repromote-${id}` ? "…" : "Re-promoveaza"}
-        </Button>
-        {canRetry ? (
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={actionInProgress !== null}
-            onClick={async () => {
-              await onRetry(id);
-            }}
-          >
-            {actionInProgress === `retry-${id}` ? "…" : "Resume"}
-          </Button>
-        ) : null}
-      </div>
+      <ImportRowActions
+        id={id}
+        status={status}
+        actionInProgress={actionInProgress}
+        onOpenMappingDialog={onOpenMappingDialog}
+        onRePromote={onRePromote}
+        onAnafEnrich={onAnafEnrich}
+        onRetry={onRetry}
+      />
     </div>
   );
 }
@@ -363,6 +807,10 @@ export function Import() {
     queryKey: ["etapa1", "imports"],
     queryFn: () => fetchImports({ limit: 25, offset: 0 }),
     refetchInterval: (query) => {
+      if (isTransientApiUnavailable(query.state.error)) {
+        return getPollingBackoffMs(query.state.error, query.state.fetchFailureCount, 3000);
+      }
+
       const rows =
         (query.state.data as { data?: Array<Record<string, unknown>> } | undefined)?.data ?? [];
       const getRefetchInterval = (row: Record<string, unknown>) => {
@@ -390,6 +838,13 @@ export function Import() {
       return rows.some((row) => getRefetchInterval(row) === 15000) ? 15000 : false;
     },
     refetchIntervalInBackground: true,
+    retry: (failureCount, error) => {
+      if (isTransientApiUnavailable(error)) {
+        return false;
+      }
+
+      return failureCount < 3;
+    },
   });
 
   const columnsQuery = useQuery({
@@ -503,7 +958,29 @@ export function Import() {
     }
   };
 
+  const handleAnafEnrich = async (id: string) => {
+    setActionInProgress(`anaf-${id}`);
+    try {
+      const result = await anafEnrichImport(id);
+      const data = result?.data as Record<string, unknown> | undefined;
+      const queued = Number(data?.queued ?? 0);
+      if (queued === 0) {
+        setUploadMessage("Toate contactele au fost deja îmbogățite ANAF.");
+      } else {
+        setUploadMessage(`${queued} CUI-uri trimise la ANAF pentru îmbogățire.`);
+      }
+      await importsQuery.refetch();
+    } catch (err) {
+      setUploadMessage(err instanceof Error ? err.message : "Eroare la îmbogățirea ANAF.");
+    } finally {
+      setActionInProgress(null);
+    }
+  };
+
   const imports = importsQuery.data?.data ?? [];
+  const importsRefetchUnavailableError = isTransientApiUnavailable(importsQuery.error)
+    ? importsQuery.error
+    : null;
   const columns = columnsQuery.data?.data ?? [];
 
   const allUniqueHeaders = Array.from(new Set(mappingHeaders.flatMap((s) => s.headers)));
@@ -531,7 +1008,7 @@ export function Import() {
   if (importsQuery.isError) {
     return (
       <PageWrapper title="Import Contacte">
-        <div className="rounded-lg border border-(--color-danger)/30 bg-(--color-danger)/10 p-4 text-sm text-(--color-danger)">
+        <div className="rounded-lg border border-er/30 bg-er/10 p-4 text-sm text-er">
           Eroare la încărcarea datelor: {importsQuery.error?.message ?? "Eroare necunoscută"}
         </div>
       </PageWrapper>
@@ -631,6 +1108,12 @@ export function Import() {
         label="Trage fișiere CSV sau Excel aici"
       />
       {uploadMessage ? <p className="mt-3 text-xs text-ok">{uploadMessage}</p> : null}
+      {importsQuery.isRefetchError && importsRefetchUnavailableError ? (
+        <p className="mt-2 text-xs text-wa">
+          API import este indisponibil temporar. Ultimele date afișate rămân vizibile, iar poll-ul a
+          trecut pe backoff.
+        </p>
+      ) : null}
 
       {/* Import history */}
       <Card className="mt-6">
@@ -651,7 +1134,11 @@ export function Import() {
                   actionInProgress={actionInProgress}
                   onOpenMappingDialog={openMappingDialog}
                   onRePromote={handleRePromote}
+                  onAnafEnrich={handleAnafEnrich}
                   onRetry={handleRetry}
+                  onImportRefetch={() => {
+                    importsQuery.refetch().catch(() => undefined);
+                  }}
                 />
               ))
             )}

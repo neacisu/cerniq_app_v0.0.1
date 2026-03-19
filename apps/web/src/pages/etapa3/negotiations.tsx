@@ -56,19 +56,19 @@ export function Negotiations() {
 
   return (
     <PageWrapper title="Negotiations">
-      <div className="flex gap-4 min-h-[400px]">
+      <div className="flex min-h-100 gap-4">
         <div className={cn("w-80 shrink-0 space-y-2", selected && "max-[768px]:hidden")}>
           {MOCK_NEGOTIATIONS.map((n) => (
             <Card
               key={n.id}
-              className={cn("cursor-pointer", selected === n.id && "border-[var(--color-b5)]")}
+              className={cn("cursor-pointer", selected === n.id && "border-b5")}
               onClick={() => setSelected(n.id)}
             >
               <CardBody className="py-3">
-                <div className="font-medium text-[var(--color-t1)]">{n.company}</div>
+                <div className="font-medium text-t1">{n.company}</div>
                 <div className="flex justify-between items-center mt-1">
                   <SBadge status={n.status} />
-                  <span className="text-xs text-[var(--color-t3)]">{n.value}</span>
+                  <span className="text-xs text-t3">{n.value}</span>
                 </div>
               </CardBody>
             </Card>
@@ -87,9 +87,13 @@ export function Negotiations() {
                 >
                   ← Back
                 </Button>
-                <div className="space-y-3 mb-4 max-h-[280px] overflow-y-auto">
-                  {MOCK_MESSAGES.map((m, i) => (
-                    <ChatMessage key={i} type={m.type} timestamp={m.timestamp}>
+                <div className="mb-4 max-h-70 space-y-3 overflow-y-auto">
+                  {MOCK_MESSAGES.map((m) => (
+                    <ChatMessage
+                      key={`${m.type}-${m.timestamp ?? "system"}-${m.content}`}
+                      type={m.type}
+                      timestamp={m.timestamp}
+                    >
                       {m.content}
                     </ChatMessage>
                   ))}
@@ -101,7 +105,7 @@ export function Negotiations() {
               </CardBody>
             </Card>
           ) : (
-            <div className="flex items-center justify-center h-full text-[var(--color-t3)] text-sm">
+            <div className="flex h-full items-center justify-center text-sm text-t3">
               Selectează o negociere
             </div>
           )}

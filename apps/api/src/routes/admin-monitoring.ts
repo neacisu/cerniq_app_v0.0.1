@@ -6,8 +6,7 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { isKnownQueueName } from "@cerniq/worker-shared";
 import { envConfig } from "../config.js";
 
-const MONITORING_API_BASE =
-  process.env.MONITORING_API_INTERNAL_URL ?? "http://cerniq-monitoring-api:64080";
+const MONITORING_API_BASE = envConfig.MONITORING_API_INTERNAL_URL;
 
 async function proxyRequest(
   request: FastifyRequest,
@@ -21,7 +20,7 @@ async function proxyRequest(
         Accept: "application/json",
         ...(init.body ? { "Content-Type": "application/json" } : {}),
         ...(envConfig.ADMIN_KEY ? { "x-admin-key": envConfig.ADMIN_KEY } : {}),
-        ...(init.headers ?? {}),
+        ...(init.headers as Record<string, string> | undefined),
       },
       ...init,
     });
@@ -39,7 +38,7 @@ async function proxyRequest(
   }
 }
 
-const ALLOWED_ADMIN_ROLES = ["admin", "owner", "superadmin"];
+const ALLOWED_ADMIN_ROLES = new Set(["admin", "owner", "superadmin"]);
 
 async function requireAdminOrOwner(request: FastifyRequest, reply: FastifyReply) {
   try {
@@ -49,7 +48,7 @@ async function requireAdminOrOwner(request: FastifyRequest, reply: FastifyReply)
   }
   const user = request.user as { role?: string } | undefined;
   const role = user?.role;
-  if (!role || !ALLOWED_ADMIN_ROLES.includes(role)) {
+  if (!role || !ALLOWED_ADMIN_ROLES.has(role)) {
     return reply.status(403).send({ success: false, error: "Forbidden" });
   }
 }

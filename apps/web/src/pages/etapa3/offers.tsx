@@ -1,7 +1,6 @@
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
 import { KpiCard } from "@/components/data/KpiCard.js";
-import { Button } from "@/components/ui/index.js";
-import { SBadge } from "@/components/ui/index.js";
+import { Button, SBadge } from "@/components/ui/index.js";
 import { Card, CardBody } from "@/components/ui/card.js";
 import { FileText, Send } from "lucide-react";
 
@@ -56,28 +55,25 @@ export function Offers() {
         <CardBody className="p-0 overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[var(--color-s700)]">
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">ID</th>
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">Company</th>
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">Amount</th>
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">Status</th>
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">Date</th>
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">Actions</th>
+              <tr className="border-b border-s700">
+                <th className="px-4 py-3 text-left font-medium text-t3">ID</th>
+                <th className="px-4 py-3 text-left font-medium text-t3">Company</th>
+                <th className="px-4 py-3 text-left font-medium text-t3">Amount</th>
+                <th className="px-4 py-3 text-left font-medium text-t3">Status</th>
+                <th className="px-4 py-3 text-left font-medium text-t3">Date</th>
+                <th className="px-4 py-3 text-left font-medium text-t3">Actions</th>
               </tr>
             </thead>
             <tbody>
               {MOCK_OFFERS.map((o) => (
-                <tr
-                  key={o.id}
-                  className="border-b border-[var(--color-s800)] hover:bg-[var(--color-s800)]/50"
-                >
-                  <td className="py-3 px-4 text-[var(--color-t2)]">{o.id}</td>
-                  <td className="py-3 px-4 text-[var(--color-t1)]">{o.company}</td>
+                <tr key={o.id} className="border-b border-s800 hover:bg-s800/50">
+                  <td className="px-4 py-3 text-t2">{o.id}</td>
+                  <td className="px-4 py-3 text-t1">{o.company}</td>
                   <td className="py-3 px-4">{o.amount}</td>
                   <td className="py-3 px-4">
                     <SBadge status={o.status} />
                   </td>
-                  <td className="py-3 px-4 text-[var(--color-t3)]">{o.date}</td>
+                  <td className="px-4 py-3 text-t3">{o.date}</td>
                   <td className="py-3 px-4">
                     <div className="flex gap-1">
                       <Button variant="ghost" size="icon">

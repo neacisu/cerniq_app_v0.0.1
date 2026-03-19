@@ -71,7 +71,7 @@ export function BronzeContactDrawer({ open, id, onClose }: Props) {
         </div>
       )}
       {isError && (
-        <div className="rounded-lg border border-(--color-danger)/30 bg-(--color-danger)/10 p-4 text-sm text-(--color-danger)">
+        <div className="rounded-lg border border-er/30 bg-er/10 p-4 text-sm text-er">
           Eroare la incarcarea contactului: {error?.message ?? "Eroare necunoscuta"}
         </div>
       )}

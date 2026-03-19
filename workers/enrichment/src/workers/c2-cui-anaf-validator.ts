@@ -1,5 +1,5 @@
 import type { Processor } from "bullmq";
-import { createCircuitBreaker, createQueue, normalizeNrRegCom } from "@cerniq/worker-shared";
+import { createCircuitBreaker, createQueue, sanitizeNrRegCom } from "@cerniq/worker-shared";
 import {
   and,
   bronzeContacts,
@@ -20,9 +20,9 @@ export type CuiAnafJobData = {
   correlationId: string;
 };
 
-function extractNrRegCom(value: unknown): { raw: string | null; canonical: string | null } {
+function extractNrRegCom(value: unknown): { raw: string | null; sanitized: string | null } {
   if (!value || typeof value !== "object") {
-    return { raw: null, canonical: null };
+    return { raw: null, sanitized: null };
   }
   const record = value as Record<string, unknown>;
   const rawCandidate =
@@ -34,7 +34,9 @@ function extractNrRegCom(value: unknown): { raw: string | null; canonical: strin
     null;
   return {
     raw: rawCandidate,
-    canonical: rawCandidate ? normalizeNrRegCom(rawCandidate) : null,
+    // Validate and sanitize without converting old format → new.
+    // ANAF provides old format (J09/98/2003) — we have no authority to auto-convert.
+    sanitized: rawCandidate ? sanitizeNrRegCom(rawCandidate) : null,
   };
 }
 
@@ -46,10 +48,19 @@ type AnafCompanyResult = {
 };
 
 const ANAF_API_URL =
-  process.env.ANAF_API_URL ?? "https://webservicesp.anaf.ro/AsynchProdFurniz/api/v10/ws/tva";
+  process.env.ANAF_API_URL || "https://webservicesp.anaf.ro/api/PlatitorTvaRest/v9/tva";
 const ANAF_TIMEOUT_MS = Number(process.env.ANAF_API_TIMEOUT_MS ?? "25000");
+const ANAF_MIN_DELAY_MS = Number(process.env.ANAF_MIN_DELAY_MS ?? "1000");
+const ANAF_MAX_DELAY_MS = Number(process.env.ANAF_MAX_DELAY_MS ?? "4000");
+
+/** Random jitter delay between ANAF calls — reduces risk of rate-limiting / IP ban. */
+function randomDelay(): Promise<void> {
+  const ms = ANAF_MIN_DELAY_MS + Math.random() * (ANAF_MAX_DELAY_MS - ANAF_MIN_DELAY_MS);
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 async function callAnafApi(cleanCui: string): Promise<AnafCompanyResult | null> {
+  await randomDelay();
   const payload = [
     { cui: Number.parseInt(cleanCui, 10), data: new Date().toISOString().split("T")[0] },
   ];
@@ -91,6 +102,12 @@ const anafBreaker = createCircuitBreaker(
     volumeThreshold: 5,
   },
 );
+anafBreaker.on("failure", (err: unknown) => {
+  console.error("[ANAF] call failed:", err instanceof Error ? err.message : String(err));
+});
+anafBreaker.on("timeout", () => {
+  console.error(`[ANAF] call timed out (limit: ${ANAF_TIMEOUT_MS}ms)`);
+});
 
 function buildAnafPatch(cleanedCui: string, companyData: AnafCompanyResult) {
   return {
@@ -138,7 +155,7 @@ async function updateAnafCompany(
   jobData: CuiAnafJobData,
   cleanedCui: string,
   companyData: AnafCompanyResult,
-  nrRegCom: { raw: string | null; canonical: string | null },
+  nrRegCom: { raw: string | null; sanitized: string | null },
   patch: Record<string, unknown>,
 ) {
   if (!jobData.companyId) {
@@ -153,7 +170,7 @@ async function updateAnafCompany(
       .set({
         denumire: denumireAnaf ?? sql`${silverCompanies.denumire}`,
         cui: cleanedCui,
-        nrRegCom: nrRegCom.canonical ?? sql`${silverCompanies.nrRegCom}`,
+        nrRegCom: nrRegCom.sanitized ?? sql`${silverCompanies.nrRegCom}`,
         nrRegComOriginal: nrRegCom.raw ?? sql`${silverCompanies.nrRegComOriginal}`,
         metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify(patch)}::jsonb`,
       })
@@ -169,12 +186,13 @@ async function updateAnafCompany(
     isAuthoritative: true,
     sourceBronzeId: jobData.bronzeContactId,
   });
-  if (nrRegCom.canonical) {
+  if (nrRegCom.sanitized) {
     await upsertCompanyIdentityKey({
       tenantId: jobData.tenantId,
       companyId: jobData.companyId,
       keyType: "nr_reg_com",
-      keyValueCanonical: nrRegCom.canonical,
+      // raw/sanitized value used as canonical key — no auto-conversion old→new
+      keyValueCanonical: nrRegCom.sanitized,
       keyValueOriginal: nrRegCom.raw,
       sourceAuthority: "anaf",
       sourceBronzeId: jobData.bronzeContactId,
@@ -186,7 +204,7 @@ async function updateAnafBronzeContact(
   jobData: CuiAnafJobData,
   cleanedCui: string,
   companyData: AnafCompanyResult,
-  nrRegCom: { raw: string | null; canonical: string | null },
+  nrRegCom: { raw: string | null; sanitized: string | null },
   patch: Record<string, unknown>,
 ) {
   if (!jobData.bronzeContactId) {
@@ -203,7 +221,7 @@ async function updateAnafBronzeContact(
         extractedCuiRaw: cleanedCui,
         extractedCui: cleanedCui,
         extractedNrRegComRaw: nrRegCom.raw ?? sql`${bronzeContacts.extractedNrRegComRaw}`,
-        extractedNrRegCom: nrRegCom.canonical ?? sql`${bronzeContacts.extractedNrRegCom}`,
+        extractedNrRegCom: nrRegCom.sanitized ?? sql`${bronzeContacts.extractedNrRegCom}`,
         metadata: sql`COALESCE(${bronzeContacts.metadata}, '{}'::jsonb) || ${JSON.stringify(patch)}::jsonb`,
       })
       .where(sql`${bronzeContacts.id} = ${jobData.bronzeContactId}`);
@@ -215,7 +233,7 @@ async function fanOutAnafResultToSiblings(
   cleanedCui: string,
   originContactId: string | undefined,
   companyData: AnafCompanyResult,
-  nrRegCom: { raw: string | null; canonical: string | null },
+  nrRegCom: { raw: string | null; sanitized: string | null },
   patch: Record<string, unknown>,
 ) {
   if (!originContactId) return;
@@ -245,7 +263,7 @@ async function fanOutAnafResultToSiblings(
         extractedCuiRaw: cleanedCui,
         extractedCui: cleanedCui,
         extractedNrRegComRaw: nrRegCom.raw ?? sql`${bronzeContacts.extractedNrRegComRaw}`,
-        extractedNrRegCom: nrRegCom.canonical ?? sql`${bronzeContacts.extractedNrRegCom}`,
+        extractedNrRegCom: nrRegCom.sanitized ?? sql`${bronzeContacts.extractedNrRegCom}`,
         metadata: sql`COALESCE(${bronzeContacts.metadata}, '{}'::jsonb) || ${JSON.stringify(patch)}::jsonb`,
       })
       .where(
@@ -365,7 +383,7 @@ export const cuiAnafValidatorProcessor: Processor<CuiAnafJobData> = async (job) 
       const reusedCompanyData = (existingAnaf.response ?? null) as AnafCompanyResult | null;
       const nrRegCom = reusedCompanyData
         ? extractNrRegCom(reusedCompanyData)
-        : { raw: null, canonical: null };
+        : { raw: null, sanitized: null };
       await updateAnafBronzeContact(
         job.data,
         cleanedCui,

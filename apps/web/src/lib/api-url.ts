@@ -2,11 +2,16 @@
  * Centralized API base URL detection for web app.
  * Used by api.ts and data-provider to avoid duplication.
  */
+function getBrowserWindow(): Window | null {
+  return globalThis.window ?? null;
+}
+
 export function getApiBase(): string {
   const env = (import.meta as unknown as { env?: { VITE_API_URL?: string; DEV?: boolean } }).env;
   if (env?.VITE_API_URL) return env.VITE_API_URL.replace(/\/$/, "");
-  if (typeof window !== "undefined" && window.location?.hostname) {
-    const { protocol, hostname } = window.location;
+  const browserWindow = getBrowserWindow();
+  if (browserWindow?.location?.hostname) {
+    const { protocol, hostname } = browserWindow.location;
     if (hostname === "localhost" || hostname === "127.0.0.1") {
       return env?.DEV ? "" : "http://localhost:64010";
     }
@@ -25,7 +30,8 @@ export function getApiBase(): string {
 export const REDIRECT_LOGIN_EVENT = "cerniq:redirect-to-login";
 
 export function requestRedirectToLogin(): void {
-  if (typeof window !== "undefined") {
-    window.dispatchEvent(new CustomEvent(REDIRECT_LOGIN_EVENT));
+  const browserWindow = getBrowserWindow();
+  if (browserWindow) {
+    browserWindow.dispatchEvent(new CustomEvent(REDIRECT_LOGIN_EVENT));
   }
 }

@@ -10,9 +10,9 @@ import {
 
 type LinePoint = { label: string; value: number };
 
-export function LineTrendChart({ data }: { data: LinePoint[] }) {
+export function LineTrendChart({ data }: Readonly<{ data: readonly LinePoint[] }>) {
   return (
-    <div className="h-[240px] w-full">
+    <div className="h-60 w-full">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--color-s700)" />

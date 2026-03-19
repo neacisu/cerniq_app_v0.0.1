@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card.js";
 import { Spinner } from "@/components/ui/spinner.js";
@@ -46,10 +46,10 @@ const TARGET_FIELDS = [
 export function SettingsMappings() {
   const [ready, setReady] = useState(false);
 
-  useState(() => {
+  useEffect(() => {
     const t = setTimeout(() => setReady(true), 300);
     return () => clearTimeout(t);
-  });
+  }, []);
 
   if (!ready) {
     return (
@@ -68,7 +68,7 @@ export function SettingsMappings() {
           <CardTitle>Configurare Mapping-uri Default</CardTitle>
         </CardHeader>
         <CardBody>
-          <div className="mb-4 rounded-lg border border-[var(--color-b5)]/30 bg-[var(--color-b5)]/5 p-3 text-sm text-[var(--color-t2)]">
+          <div className="mb-4 rounded-lg border border-b5/30 bg-b5/5 p-3 text-sm text-t2">
             Configuratia default pentru mapping-uri. Aceste setari se vor aplica la importurile noi.
           </div>
 

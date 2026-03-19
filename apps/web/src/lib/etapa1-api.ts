@@ -32,6 +32,11 @@ export type ImportRowsParams = {
     | "insufficient_identifiers";
 };
 
+export type ImportReprocessErrorsParams = {
+  limit?: number;
+  offset?: number;
+};
+
 export type BronzeContactsParams = {
   limit?: number;
   offset?: number;
@@ -183,6 +188,26 @@ export async function fetchImportRows(id: string, params: ImportRowsParams = {})
   return api.get<ApiListResponse<Record<string, unknown>>>(`/api/v1/imports/${id}/rows?${query}`);
 }
 
+export async function fetchImportReprocessErrors(
+  id: string,
+  params: ImportReprocessErrorsParams = {},
+) {
+  const query = new URLSearchParams();
+  appendParams(query, {
+    limit: params.limit ?? 100,
+    offset: params.offset ?? 0,
+  });
+  return api.get<ApiListResponse<Record<string, unknown>>>(
+    `/api/v1/imports/${id}/reprocess-errors?${query}`,
+  );
+}
+
+export async function resumeImportReprocessErrors(id: string) {
+  return api.post<ApiObjectResponse<Record<string, unknown>>>(
+    `/api/v1/imports/${id}/reprocess-errors/resume`,
+  );
+}
+
 export async function fetchImportEntities(
   id: string,
   params: { limit?: number; offset?: number } = {},
@@ -257,6 +282,48 @@ export async function saveImportMapping(id: string, mapping: Record<string, stri
 
 export async function rePromoteImport(id: string) {
   return api.post<ApiObjectResponse<Record<string, unknown>>>(`/api/v1/imports/${id}/re-promote`);
+}
+
+export type PromoteJobStatus = {
+  state:
+    | "none"
+    | "waiting"
+    | "backlogged"
+    | "active"
+    | "stale"
+    | "failed"
+    | "completed"
+    | "delayed"
+    | "prioritized"
+    | "stalled"
+    | "unknown";
+  isStale?: boolean;
+  isBacklogged?: boolean;
+  jobId?: string | null;
+  attemptsMade?: number;
+  maxAttempts?: number;
+  failedReason?: string | null;
+  stacktrace?: string | null;
+  progress?: number | null;
+  timestamp?: string | null;
+  processedOn?: string | null;
+  finishedOn?: string | null;
+  waitingJobs?: number | null;
+  dbStatus?: string;
+};
+
+export async function fetchPromoteJobStatus(id: string) {
+  return api.get<ApiObjectResponse<PromoteJobStatus>>(`/api/v1/imports/${id}/promote-job-status`);
+}
+
+export async function resumePromoteJob(id: string) {
+  return api.post<ApiObjectResponse<Record<string, unknown>>>(
+    `/api/v1/imports/${id}/resume-promote`,
+  );
+}
+
+export async function anafEnrichImport(id: string) {
+  return api.post<ApiObjectResponse<Record<string, unknown>>>(`/api/v1/imports/${id}/anaf-enrich`);
 }
 
 export async function fetchBronzeContacts(params: BronzeContactsParams = {}) {

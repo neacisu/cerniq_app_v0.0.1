@@ -7,7 +7,7 @@ import {
   sql,
   upsertCompanyIdentityKey,
 } from "@cerniq/db";
-import { normalizeNrRegCom } from "@cerniq/worker-shared";
+import { sanitizeNrRegCom } from "@cerniq/worker-shared";
 import { sanitizeCui } from "../lib/cui-validation.js";
 import { getOnrcData } from "../lib/onrc-api-client.js";
 import { markEnrichmentSourceComplete } from "../lib/enrichment-completion.js";
@@ -28,7 +28,11 @@ function extractOnrcNrRegCom(payload: unknown): { raw: string | null; canonical:
     (typeof record.numar_reg_comert === "string" && record.numar_reg_comert) ||
     (typeof record.nrRegComert === "string" && record.nrRegComert) ||
     null;
-  return { raw, canonical: raw ? normalizeNrRegCom(raw) : null };
+  const sanitized = raw ? sanitizeNrRegCom(raw) : null;
+  // canonical is only set when ONRC provides new format directly (no slash = new canonical).
+  // We do NOT auto-convert old format (J09/98/2003) to new canonical (J2003000098095).
+  const canonical = sanitized && !sanitized.includes("/") ? sanitized : null;
+  return { raw: sanitized, canonical };
 }
 
 function mapFormaJuridica(
@@ -66,8 +70,10 @@ export const onrcDataProcessor: Processor<OnrcDataJobData> = async (job) => {
       denumire: denumire || undefined,
       formaJuridica: formaJuridicaValue,
       adresa: adresa || undefined,
-      nrRegCom: nrRegCom.canonical || undefined,
+      nrRegCom: nrRegCom.raw || undefined,
       nrRegComOriginal: nrRegCom.raw || undefined,
+      // nrRegComCanonical: only set when ONRC provides new canonical format directly
+      nrRegComCanonical: nrRegCom.canonical || undefined,
       metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify({ onrcData: payload })}::jsonb`,
       lastEnrichedAt: new Date(),
     })
@@ -81,12 +87,13 @@ export const onrcDataProcessor: Processor<OnrcDataJobData> = async (job) => {
     keyValueOriginal: cleanedCui,
     sourceAuthority: "onrc",
   });
-  if (nrRegCom.canonical) {
+  if (nrRegCom.raw) {
     await upsertCompanyIdentityKey({
       tenantId: job.data.tenantId,
       companyId: job.data.companyId,
       keyType: "nr_reg_com",
-      keyValueCanonical: nrRegCom.canonical,
+      // Use canonical (new format) if ONRC provided it directly; otherwise raw
+      keyValueCanonical: nrRegCom.canonical ?? nrRegCom.raw,
       keyValueOriginal: nrRegCom.raw,
       sourceAuthority: "onrc",
       isAuthoritative: true,

@@ -43,7 +43,7 @@ export function ImportMapping() {
   if (detailQuery.isError) {
     return (
       <PageWrapper title="Import Mapping">
-        <div className="rounded-lg border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 p-4 text-sm text-[var(--color-danger)]">
+        <div className="rounded-lg border border-er/30 bg-er/10 p-4 text-sm text-er">
           Eroare la încărcarea datelor: {detailQuery.error?.message ?? "Eroare necunoscută"}
         </div>
       </PageWrapper>
@@ -65,9 +65,8 @@ export function ImportMapping() {
           sheetName: (uploadConfig.sheetName as string | undefined) ?? "",
           mappings: (uploadConfig.mapping as Record<string, string> | undefined) ?? {},
         }}
-        onSubmit={async (config) => {
+        onSubmit={async () => {
           toast.success("Mapping validat");
-          void config;
         }}
       />
     </PageWrapper>

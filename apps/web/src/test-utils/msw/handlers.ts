@@ -1,11 +1,12 @@
 import { http, HttpResponse } from "msw";
+import { isDemoLoginCredentials } from "@/lib/demo-auth.js";
 
 const apiBase = "http://localhost:64010";
 
 export const handlers = [
   http.post(`${apiBase}/api/v1/auth/login`, async ({ request }) => {
     const body = (await request.json()) as { email?: string; password?: string };
-    if (body?.email === "admin@demo-tenant.com" && body?.password === "demo123456") {
+    if (isDemoLoginCredentials(body ?? {})) {
       return HttpResponse.json({
         success: true,
         data: {

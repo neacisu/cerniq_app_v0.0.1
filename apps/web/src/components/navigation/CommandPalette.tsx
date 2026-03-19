@@ -2,10 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input.js";
 
-type CommandItem = { label: string; path: string; keywords?: string[] };
+type CommandItem = { readonly label: string; readonly path: string; readonly keywords?: string[] };
 
 type CommandPaletteProps = {
-  commands: CommandItem[];
+  readonly commands: readonly CommandItem[];
 };
 
 export function CommandPalette({ commands }: CommandPaletteProps) {
@@ -21,8 +21,8 @@ export function CommandPalette({ commands }: CommandPaletteProps) {
       }
       if (event.key === "Escape") setOpen(false);
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    globalThis.addEventListener("keydown", onKey);
+    return () => globalThis.removeEventListener("keydown", onKey);
   }, []);
 
   const filtered = useMemo(() => {
@@ -37,7 +37,7 @@ export function CommandPalette({ commands }: CommandPaletteProps) {
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-start bg-black/40 p-4 pt-[8vh]">
-      <div className="w-full max-w-2xl rounded-[var(--radius-lg)] border border-[var(--color-s600)] bg-[var(--color-s900)] p-4">
+      <div className="w-full max-w-2xl rounded-lg border border-s600 bg-s900 p-4">
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -47,7 +47,7 @@ export function CommandPalette({ commands }: CommandPaletteProps) {
           {filtered.map((cmd) => (
             <button
               key={cmd.path}
-              className="w-full rounded p-2 text-left text-sm text-[var(--color-t2)] hover:bg-[var(--color-s800)]"
+              className="w-full rounded p-2 text-left text-sm text-t2 hover:bg-s800"
               onClick={() => {
                 navigate(cmd.path);
                 setOpen(false);

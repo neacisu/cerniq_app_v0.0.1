@@ -56,7 +56,7 @@ export function Guardrails() {
           <Card key={g.name} className="p-4">
             <div className="flex items-center gap-3">
               <StatusDot status={g.status} />
-              <span className="font-medium text-[var(--color-t1)]">{g.name}</span>
+              <span className="font-medium text-t1">{g.name}</span>
             </div>
           </Card>
         ))}
@@ -66,34 +66,31 @@ export function Guardrails() {
         <CardBody className="p-0 overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[var(--color-s700)]">
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">Time</th>
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">Guard</th>
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">Input</th>
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">Result</th>
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">Action</th>
+              <tr className="border-b border-s700">
+                <th className="px-4 py-3 text-left font-medium text-t3">Time</th>
+                <th className="px-4 py-3 text-left font-medium text-t3">Guard</th>
+                <th className="px-4 py-3 text-left font-medium text-t3">Input</th>
+                <th className="px-4 py-3 text-left font-medium text-t3">Result</th>
+                <th className="px-4 py-3 text-left font-medium text-t3">Action</th>
               </tr>
             </thead>
             <tbody>
-              {MOCK_AUDIT.map((r, i) => (
+              {MOCK_AUDIT.map((r) => (
                 <tr
-                  key={i}
-                  className="border-b border-[var(--color-s800)] hover:bg-[var(--color-s800)]/50"
+                  key={`${r.time}-${r.guard}-${r.input}`}
+                  className="border-b border-s800 hover:bg-s800/50"
                 >
-                  <td className="py-3 px-4 text-[var(--color-t3)]">{r.time}</td>
-                  <td className="py-3 px-4 text-[var(--color-t2)]">{r.guard}</td>
-                  <td className="py-3 px-4 text-[var(--color-t1)]">{r.input}</td>
+                  <td className="px-4 py-3 text-t3">{r.time}</td>
+                  <td className="px-4 py-3 text-t2">{r.guard}</td>
+                  <td className="px-4 py-3 text-t1">{r.input}</td>
                   <td className="py-3 px-4">
                     <span
-                      className={cn(
-                        "font-semibold",
-                        r.result === "PASS" ? "text-[var(--color-ok)]" : "text-[var(--color-er)]",
-                      )}
+                      className={cn("font-semibold", r.result === "PASS" ? "text-ok" : "text-er")}
                     >
                       {r.result}
                     </span>
                   </td>
-                  <td className="py-3 px-4 text-[var(--color-t3)]">{r.action}</td>
+                  <td className="px-4 py-3 text-t3">{r.action}</td>
                 </tr>
               ))}
             </tbody>

@@ -66,6 +66,13 @@ const EnvSchema = z.object({
   OTEL_EXPORTER_OTLP_ENDPOINT: z.string().default("https://otel-cerniq.neanelu.ro"),
   ADMIN_KEY: z.string().optional(),
   SHUTDOWN_TIMEOUT_MS: z.coerce.number().default(10000),
+  /**
+   * Base URL of the internal Monitoring API container.
+   * Uses plain HTTP because traffic is confined to the Docker bridge network
+   * (cerniq_backend) and never transits a public interface.
+   * Override with an https:// URL if TLS termination is added to the sidecar.
+   */
+  MONITORING_API_INTERNAL_URL: z.url().default("http://cerniq-monitoring-api:64080"),
 });
 
 function parseEnv(): z.infer<typeof EnvSchema> {

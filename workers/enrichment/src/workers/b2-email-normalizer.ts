@@ -52,7 +52,7 @@ export const emailNormalizerProcessor: Processor<EmailNormalizerJobData> = async
     }
 
     const normalizedEmail = normalizeEmail(rawEmail, true);
-    const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail);
+    const isValid = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/.test(normalizedEmail);
 
     // GAP-B11: RFC 5321 length limits (254 total, 64 local part)
     const [localPartCheck] = normalizedEmail.split("@");

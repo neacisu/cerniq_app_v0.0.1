@@ -9,23 +9,32 @@ import { Input } from "@/components/ui/input.js";
 import { Spinner } from "@/components/ui/spinner.js";
 import { CerniqLogo } from "@/components/brand/CerniqLogo.js";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs.js";
+import { DEMO_LOGIN_CREDENTIALS } from "@/lib/demo-auth.js";
 import { useAuth } from "@/providers/auth-provider.js";
 
+const requiredEmailSchema = z
+  .string()
+  .trim()
+  .min(1, "Email obligatoriu")
+  .refine((value) => z.email().safeParse(value).success, {
+    message: "Email invalid",
+  });
+
 const loginSchema = z.object({
-  email: z.string().min(1, "Email obligatoriu").email("Email invalid"),
+  email: requiredEmailSchema,
   password: z.string().min(6, "Minim 6 caractere"),
 });
 
 const signupSchema = z
   .object({
     name: z.string().min(2, "Minim 2 caractere"),
-    email: z.string().min(1, "Email obligatoriu").email("Email invalid"),
+    email: requiredEmailSchema,
     password: z
       .string()
       .min(8, "Minim 8 caractere")
       .regex(/[A-Z]/, "Litera mare obligatorie")
       .regex(/[a-z]/, "Litera mica obligatorie")
-      .regex(/[0-9]/, "Cifra obligatorie")
+      .regex(/\d/, "Cifra obligatorie")
       .regex(/[^A-Za-z0-9]/, "Caracter special obligatoriu"),
     confirmPassword: z.string().min(1, "Confirmare obligatorie"),
     mode: z.enum(["new_company", "invite_code"]),
@@ -60,10 +69,7 @@ export function Login() {
 
   const loginForm = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: "admin@demo-tenant.com",
-      password: "demo123456",
-    },
+    defaultValues: DEMO_LOGIN_CREDENTIALS,
   });
 
   const signupForm = useForm<SignupForm>({
@@ -78,8 +84,8 @@ export function Login() {
   const signupMode = useWatch({
     control: signupForm.control,
     name: "mode",
-    defaultValue: "new_company",
-  }) as "new_company" | "invite_code";
+    defaultValue: "new_company" satisfies SignupForm["mode"],
+  });
 
   const onLoginSubmit = async (data: LoginForm) => {
     setLoginLoading(true);
@@ -114,7 +120,7 @@ export function Login() {
 
   return (
     <div className="lr">
-      <div className="lc w-full max-w-[400px]">
+      <div className="lc w-full max-w-100">
         <div className="flex justify-center mb-8">
           <CerniqLogo size={40} />
         </div>
@@ -187,7 +193,7 @@ export function Login() {
                 )}
               </Button>
             </form>
-            <p className="text-[0.65rem] text-[var(--color-t4)] text-center mt-6">
+            <p className="mt-6 text-center text-[0.65rem] text-t4">
               Demo precompletat • GDPR compliant
             </p>
           </TabsContent>

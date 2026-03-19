@@ -3,8 +3,8 @@ import { z } from "zod";
 export const cuiRegex = /^RO\d{2,10}$/;
 
 export const CompanySchema = z.object({
-  id: z.string().uuid(),
-  tenantId: z.string().uuid(),
+  id: z.uuid(),
+  tenantId: z.uuid(),
   cui: z.string().regex(cuiRegex, "CUI must match RO + 2-10 digits"),
   name: z.string().min(1).max(500),
   county: z.string().max(100).optional(),

@@ -19,6 +19,8 @@ const mapPoints = [
   { x: 30, y: 75, r: 12, density: 5 },
 ];
 
+const maxCountyValue = Math.max(...topCounties.map((county) => county.value), 1);
+
 export function GeoMap() {
   return (
     <PageWrapper title="Geographic Map">
@@ -36,13 +38,13 @@ export function GeoMap() {
               <CardTitle>Map</CardTitle>
             </CardHeader>
             <CardBody>
-              <div className="relative h-80 bg-[var(--color-s800)] rounded-[var(--radius-md)]">
-                {mapPoints.map((p, i) => (
+              <div className="relative h-80 bg-s800 rounded-md">
+                {mapPoints.map((p) => (
                   <button
-                    key={i}
+                    key={`${p.x}-${p.y}-${p.density}`}
                     type="button"
                     onClick={() => toast.info(`Region density: ${p.density}`)}
-                    className="absolute rounded-full bg-[var(--color-b5)]/60 hover:bg-[var(--color-b5)]/80 transition-colors cursor-pointer"
+                    className="absolute rounded-full bg-b5/60 hover:bg-b5/80 transition-colors cursor-pointer"
                     style={{
                       left: `${p.x}%`,
                       top: `${p.y}%`,
@@ -66,7 +68,6 @@ export function GeoMap() {
             <CardBody>
               <div className="space-y-2">
                 {topCounties.map((c) => {
-                  const max = Math.max(...topCounties.map((i) => i.value), 1);
                   return (
                     <button
                       key={c.label}
@@ -74,19 +75,17 @@ export function GeoMap() {
                       onClick={() => toast.info(`${c.label}: ${c.value} clients`)}
                       className="flex items-center gap-3 w-full text-left hover:opacity-80 transition-opacity"
                     >
-                      <span className="text-xs text-[var(--color-t3)] w-24 truncate">
-                        {c.label}
-                      </span>
-                      <div className="flex-1 h-1.5 rounded-full bg-[var(--color-s700)] overflow-hidden">
+                      <span className="text-xs text-t3 w-24 truncate">{c.label}</span>
+                      <div className="flex-1 h-1.5 rounded-full bg-s700 overflow-hidden">
                         <div
                           className="h-full rounded-full"
                           style={{
-                            width: `${(c.value / max) * 100}%`,
+                            width: `${(c.value / maxCountyValue) * 100}%`,
                             background: "var(--color-b5)",
                           }}
                         />
                       </div>
-                      <span className="text-xs font-medium text-[var(--color-t2)] min-w-[2rem] text-right">
+                      <span className="text-xs font-medium text-t2 min-w-8 text-right">
                         {c.value}
                       </span>
                     </button>
@@ -98,7 +97,7 @@ export function GeoMap() {
 
           <div
             className={cn(
-              "border-2 border-dashed border-[var(--color-s600)] rounded-[var(--radius-md)] p-4 text-center text-sm text-[var(--color-t3)]",
+              "border-2 border-dashed border-s600 rounded-md p-4 text-center text-sm text-t3",
             )}
           >
             Potential neexplorat

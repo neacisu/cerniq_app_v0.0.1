@@ -7,7 +7,7 @@ type FunnelPoint = {
   fill?: string;
 };
 
-export function FunnelChart({ data }: { data: FunnelPoint[] }) {
+export function FunnelChart({ data }: Readonly<{ data: readonly FunnelPoint[] }>) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [size, setSize] = useState({ width: 0, height: 240 });
 
@@ -32,7 +32,7 @@ export function FunnelChart({ data }: { data: FunnelPoint[] }) {
   }, []);
 
   return (
-    <div ref={containerRef} className="h-[240px] min-h-[240px] w-full min-w-0">
+    <div ref={containerRef} className="h-60 min-h-60 w-full min-w-0">
       {size.width > 0 ? (
         <ReFunnelChart width={size.width} height={size.height}>
           <Tooltip />

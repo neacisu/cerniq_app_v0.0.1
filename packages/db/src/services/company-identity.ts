@@ -540,6 +540,195 @@ function parseConflictCompanyIds(companyId: string, errorMessage: string): strin
   return Array.from(new Set([companyId, conflictCompanyId].filter(Boolean)));
 }
 
+/**
+ * Auto-merges a secondary Silver company into a primary one.
+ * Used when two incomplete Silver records (one with CUI, one with NrRegCom) are found
+ * for the same real-world company due to a past data quality issue.
+ * The CUI-based company is kept as primary; the secondary is archived.
+ */
+async function autoMergeSplitCompanies(
+  tx: TransactionClient,
+  tenantId: string,
+  primaryCompanyId: string,
+  secondaryCompanyId: string,
+): Promise<void> {
+  const [primary, secondary] = await Promise.all([
+    tx.query.silverCompanies.findFirst({
+      where: (t, { and, eq }) => and(eq(t.tenantId, tenantId), eq(t.id, primaryCompanyId)),
+    }),
+    tx.query.silverCompanies.findFirst({
+      where: (t, { and, eq }) => and(eq(t.tenantId, tenantId), eq(t.id, secondaryCompanyId)),
+    }),
+  ]);
+  if (!primary || !secondary) return;
+
+  // Transfer all active identity keys from secondary → primary
+  const secondaryKeys = await tx.query.companyIdentityKeys.findMany({
+    where: (t, { and, eq }) =>
+      and(
+        eq(t.tenantId, tenantId),
+        eq(t.companyId, secondaryCompanyId),
+        sql`${t.revokedAt} IS NULL`,
+      ),
+  });
+  for (const key of secondaryKeys) {
+    await tx
+      .update(companyIdentityKeys)
+      .set({ revokedAt: sql`NOW()` })
+      .where(sql`${companyIdentityKeys.id} = ${key.id}`);
+    await insertIdentityKey(tx, {
+      tenantId,
+      companyId: primaryCompanyId,
+      keyType: key.keyType as IdentityKeyType,
+      keyValueCanonical: key.keyValueCanonical,
+      keyValueOriginal: key.keyValueOriginal ?? null,
+      sourceAuthority: key.sourceAuthority as IdentitySourceAuthority,
+      isAuthoritative: key.isAuthoritative,
+      sourceBronzeId: key.sourceBronzeId ?? null,
+    });
+  }
+
+  // Merge non-null fields from secondary into primary.
+  // IMPORTANT: Archive secondary FIRST to free the unique columns (cui, nr_reg_com)
+  // before copying them onto primary — otherwise the unique constraint fires.
+  const mergedAt = new Date().toISOString();
+  await tx
+    .update(silverCompanies)
+    .set({
+      promotionStatus: "blocked",
+      cui: null,
+      nrRegCom: null,
+      identityMetadata: sql`COALESCE(${silverCompanies.identityMetadata}, '{}'::jsonb) || ${JSON.stringify({ mergedInto: primaryCompanyId, mergedAt, autoMerged: true })}::jsonb`,
+    })
+    .where(sql`${silverCompanies.id} = ${secondaryCompanyId}`);
+
+  await tx
+    .update(silverCompanies)
+    .set({
+      nrRegCom: primary.nrRegCom ?? secondary.nrRegCom ?? undefined,
+      nrRegComOriginal: primary.nrRegComOriginal ?? secondary.nrRegComOriginal ?? undefined,
+      denumire: primary.denumire ?? secondary.denumire ?? undefined,
+      identityMetadata: sql`COALESCE(${silverCompanies.identityMetadata}, '{}'::jsonb) || ${JSON.stringify({ mergedFrom: secondaryCompanyId, mergedAt, autoMerged: true })}::jsonb`,
+    })
+    .where(sql`${silverCompanies.id} = ${primaryCompanyId}`);
+
+  // Re-point all bronze contacts that referenced secondary → primary
+  await tx
+    .update(bronzeContacts)
+    .set({ resolvedCompanyId: primaryCompanyId })
+    .where(
+      and(
+        eq(bronzeContacts.tenantId, tenantId),
+        eq(bronzeContacts.resolvedCompanyId, secondaryCompanyId),
+      ),
+    );
+  await tx
+    .update(bronzeContacts)
+    .set({ promotedToSilverId: primaryCompanyId })
+    .where(
+      and(
+        eq(bronzeContacts.tenantId, tenantId),
+        eq(bronzeContacts.promotedToSilverId, secondaryCompanyId),
+      ),
+    );
+}
+
+/**
+ * Detects a "split company" scenario from identity-registry matches and auto-merges.
+ * Returns the primary company ID if a split was detected and merged, null otherwise.
+ */
+async function tryAutoMergeFromRegistryMatches(
+  tx: TransactionClient,
+  tenantId: string,
+  matches: IdentityMatch[],
+  extractedCui: string | null,
+  extractedNrRegCom: string | null,
+): Promise<string | null> {
+  if (!extractedCui || !extractedNrRegCom || matches.length !== 2) return null;
+  const cuiMatch = matches.find((m) => m.keyType === "cui" && m.keyValueCanonical === extractedCui);
+  const nrMatch = matches.find(
+    (m) => m.keyType === "nr_reg_com" && m.keyValueCanonical === extractedNrRegCom,
+  );
+  if (!cuiMatch || !nrMatch || cuiMatch.companyId === nrMatch.companyId) return null;
+  await autoMergeSplitCompanies(tx, tenantId, cuiMatch.companyId, nrMatch.companyId);
+  return cuiMatch.companyId;
+}
+
+/**
+ * Same as tryAutoMergeFromRegistryMatches but for legacy (direct-field) matches.
+ */
+async function tryAutoMergeFromLegacyMatches(
+  tx: TransactionClient,
+  tenantId: string,
+  legacyCompanyIds: string[],
+  extractedCui: string | null,
+  extractedNrRegCom: string | null,
+): Promise<string | null> {
+  if (!extractedCui || !extractedNrRegCom || legacyCompanyIds.length !== 2) return null;
+  const companies = await tx.query.silverCompanies.findMany({
+    where: (t, { and, eq, or }) =>
+      and(
+        eq(t.tenantId, tenantId),
+        or(eq(t.id, legacyCompanyIds[0]), eq(t.id, legacyCompanyIds[1])), // length already checked above
+      ),
+    columns: { id: true, cui: true, nrRegCom: true },
+  });
+  const cuiCompany = companies.find((c) => c.cui === extractedCui);
+  const nrCompany = companies.find((c) => c.nrRegCom === extractedNrRegCom);
+  if (!cuiCompany || !nrCompany || cuiCompany.id === nrCompany.id) return null;
+  await autoMergeSplitCompanies(tx, tenantId, cuiCompany.id, nrCompany.id);
+  return cuiCompany.id;
+}
+
+/**
+ * When the registry returned exactly one match (e.g. via CUI) but the NrRegCom from the
+ * Bronze contact already lives on a *different* Silver company (its registry key may have
+ * been revoked), we must merge those two split-companies before writing the identity
+ * snapshot, otherwise the unique constraint on silver_companies.nr_reg_com would fire.
+ *
+ * Returns the primary (CUI) company id on success, null if no conflict was found, or a
+ * conflict result if the merge could not be resolved.
+ */
+async function tryAutoMergeNrRegComConflict(
+  tx: TransactionClient,
+  tenantId: string,
+  registryCompanyId: string,
+  context: BronzeIdentityContext,
+  matches: Awaited<ReturnType<typeof findIdentityMatches>>,
+): Promise<DetectCompanyResult | null> {
+  const { extractedCui, extractedNrRegCom } = context;
+  if (!extractedCui || !extractedNrRegCom) return null;
+
+  const nrRegComLegacy = await findLegacySilverCompanyMatches(tx, tenantId, {
+    cui: null,
+    nrRegCom: extractedNrRegCom,
+  });
+  const conflictingId = nrRegComLegacy.find((id) => id !== registryCompanyId);
+  if (!conflictingId) return null;
+
+  const mergedId = await tryAutoMergeFromLegacyMatches(
+    tx,
+    tenantId,
+    [registryCompanyId, conflictingId],
+    extractedCui,
+    extractedNrRegCom,
+  );
+  if (mergedId) return { ok: true, companyId: mergedId };
+
+  const conflictCompanyIds = [registryCompanyId, conflictingId];
+  const result = await markIdentityConflictBronze(
+    tx,
+    context,
+    {
+      companyIds: conflictCompanyIds,
+      matchedKeys: matches,
+      resolution: "legacy_silver_match_conflict",
+    },
+    conflictCompanyIds,
+  );
+  return { ok: false, result };
+}
+
 async function upsertContextIdentityKeys(
   tx: TransactionClient,
   context: BronzeIdentityContext,
@@ -570,6 +759,168 @@ async function upsertContextIdentityKeys(
       sourceBronzeId: context.bronzeId,
     });
   }
+}
+
+type DetectCompanyResult =
+  | { ok: false; result: BronzeIdentityResolutionResult }
+  | { ok: true; companyId: string | null };
+
+async function detectSingleCompanyId(
+  tx: TransactionClient,
+  tenantId: string,
+  context: BronzeIdentityContext,
+  bronze: typeof bronzeContacts.$inferSelect,
+): Promise<DetectCompanyResult> {
+  const matches = await findIdentityMatches(tx, tenantId, {
+    cui: context.extractedCui,
+    nrRegCom: context.extractedNrRegCom,
+  });
+  const distinctRegistryIds = Array.from(new Set(matches.map((m) => m.companyId)));
+
+  if (distinctRegistryIds.length > 1) {
+    const mergedId = await tryAutoMergeFromRegistryMatches(
+      tx,
+      tenantId,
+      matches,
+      context.extractedCui,
+      context.extractedNrRegCom,
+    );
+    if (!mergedId) {
+      const result = await markIdentityConflictBronze(
+        tx,
+        context,
+        { companyIds: distinctRegistryIds, matchedKeys: matches },
+        distinctRegistryIds,
+      );
+      return { ok: false, result };
+    }
+    return { ok: true, companyId: mergedId };
+  }
+
+  const legacyIds =
+    distinctRegistryIds.length === 0
+      ? await findLegacySilverCompanyMatches(tx, tenantId, {
+          cui: context.extractedCui,
+          nrRegCom: context.extractedNrRegCom,
+        })
+      : [];
+
+  if (legacyIds.length > 1) {
+    const mergedId = await tryAutoMergeFromLegacyMatches(
+      tx,
+      tenantId,
+      legacyIds,
+      context.extractedCui,
+      context.extractedNrRegCom,
+    );
+    if (!mergedId) {
+      const result = await markIdentityConflictBronze(
+        tx,
+        context,
+        { companyIds: legacyIds, matchedKeys: matches, resolution: "legacy_silver_match_conflict" },
+        legacyIds,
+      );
+      return { ok: false, result };
+    }
+    return { ok: true, companyId: mergedId };
+  }
+
+  // When exactly 1 registry match is found (e.g. via CUI) but we also have an NrRegCom,
+  // check if a *different* Silver company already directly holds that NrRegCom.
+  if (distinctRegistryIds.length === 1) {
+    const mergeResult = await tryAutoMergeNrRegComConflict(
+      tx,
+      tenantId,
+      distinctRegistryIds[0],
+      context,
+      matches,
+    );
+    if (mergeResult) return mergeResult;
+  }
+
+  return {
+    ok: true,
+    companyId:
+      distinctRegistryIds[0] ??
+      legacyIds[0] ??
+      bronze.resolvedCompanyId ??
+      bronze.promotedToSilverId ??
+      null,
+  };
+}
+
+async function finalizeNormalResolution(
+  tx: TransactionClient,
+  tenantId: string,
+  context: BronzeIdentityContext,
+  existingCompanyId: string | null,
+): Promise<BronzeIdentityResolutionResult> {
+  const { companyId, createdCompanyId } = await ensureResolvedCompany(tx, {
+    tenantId,
+    context,
+    existingCompanyId,
+  });
+
+  try {
+    await upsertContextIdentityKeys(tx, context, companyId);
+  } catch (error) {
+    if (!(error instanceof Error) || !error.message.startsWith("identity_conflict:")) {
+      throw error;
+    }
+    const conflictIds = parseConflictCompanyIds(companyId, error.message);
+    const conflictResult = await markIdentityConflictBronze(
+      tx,
+      context,
+      { companyIds: conflictIds, conflictMessage: error.message },
+      conflictIds,
+    );
+    if (companyId) {
+      await updateCompanyIdentitySnapshot(tx, {
+        companyId,
+        tenantId,
+        identityStatus: "identity_conflict",
+        identityPatch: {
+          lastIdentityConflictAt: new Date().toISOString(),
+          latestConflictMessage: error.message,
+        },
+      });
+    }
+    return conflictResult;
+  }
+
+  const companyIdentityStatus = deriveSilverIdentityStatus({
+    cui: context.extractedCui,
+    nrRegCom: context.extractedNrRegCom,
+  });
+  await updateCompanyIdentitySnapshot(tx, {
+    companyId,
+    tenantId,
+    cui: context.extractedCui,
+    nrRegCom: context.extractedNrRegCom,
+    nrRegComOriginal: context.extractedNrRegComRaw,
+    sourceBronzeId: context.bronzeId,
+    identityStatus: companyIdentityStatus,
+    identityPatch: {
+      lastResolvedBronzeId: context.bronzeId,
+      lastResolvedAt: new Date().toISOString(),
+      sourceAuthority: context.sourceAuthority,
+    },
+  });
+  await updateBronzeResolution(tx, {
+    bronzeId: context.bronzeId,
+    identityStatus: "resolved",
+    resolvedCompanyId: companyId,
+    processingStatus: "pending",
+    patch: { resolution: "resolved", companyId, sourceAuthority: context.sourceAuthority },
+  });
+  return {
+    status: "resolved",
+    companyId,
+    companyIdentityStatus,
+    duplicateOfId: null,
+    createdCompanyId,
+    conflictCompanyIds: [],
+  };
 }
 
 export async function resolveBronzeContactIdentity(args: {
@@ -604,131 +955,16 @@ export async function resolveBronzeContactIdentity(args: {
       bronzeId: context.bronzeId,
       sourcePayloadHash: context.sourcePayloadHash,
     });
-    if (duplicate) {
-      return markDuplicateSourceBronze(tx, context, duplicate);
-    }
+    if (duplicate) return markDuplicateSourceBronze(tx, context, duplicate);
 
     if (!context.extractedCui && !context.extractedNrRegCom) {
       return markInsufficientIdentityBronze(tx, context);
     }
 
-    const matches = await findIdentityMatches(tx, args.tenantId, {
-      cui: context.extractedCui,
-      nrRegCom: context.extractedNrRegCom,
-    });
-    const distinctRegistryCompanyIds = Array.from(new Set(matches.map((match) => match.companyId)));
+    const detected = await detectSingleCompanyId(tx, args.tenantId, context, bronze);
+    if (!detected.ok) return detected.result;
 
-    if (distinctRegistryCompanyIds.length > 1) {
-      return markIdentityConflictBronze(
-        tx,
-        context,
-        { companyIds: distinctRegistryCompanyIds, matchedKeys: matches },
-        distinctRegistryCompanyIds,
-      );
-    }
-
-    const distinctLegacyCompanyIds =
-      distinctRegistryCompanyIds.length === 0
-        ? await findLegacySilverCompanyMatches(tx, args.tenantId, {
-            cui: context.extractedCui,
-            nrRegCom: context.extractedNrRegCom,
-          })
-        : [];
-
-    if (distinctLegacyCompanyIds.length > 1) {
-      return markIdentityConflictBronze(
-        tx,
-        context,
-        {
-          companyIds: distinctLegacyCompanyIds,
-          matchedKeys: matches,
-          resolution: "legacy_silver_match_conflict",
-        },
-        distinctLegacyCompanyIds,
-      );
-    }
-
-    const existingCompanyId =
-      distinctRegistryCompanyIds[0] ??
-      distinctLegacyCompanyIds[0] ??
-      bronze.resolvedCompanyId ??
-      bronze.promotedToSilverId ??
-      null;
-
-    const { companyId, createdCompanyId } = await ensureResolvedCompany(tx, {
-      tenantId: args.tenantId,
-      context,
-      existingCompanyId,
-    });
-
-    try {
-      await upsertContextIdentityKeys(tx, context, companyId);
-    } catch (error) {
-      if (!(error instanceof Error) || !error.message.startsWith("identity_conflict:")) {
-        throw error;
-      }
-      const conflictIds = parseConflictCompanyIds(companyId, error.message);
-      const conflictResult = await markIdentityConflictBronze(
-        tx,
-        context,
-        {
-          companyIds: conflictIds,
-          conflictMessage: error.message,
-        },
-        conflictIds,
-      );
-      if (companyId) {
-        await updateCompanyIdentitySnapshot(tx, {
-          companyId,
-          tenantId: args.tenantId,
-          identityStatus: "identity_conflict",
-          identityPatch: {
-            lastIdentityConflictAt: new Date().toISOString(),
-            latestConflictMessage: error.message,
-          },
-        });
-      }
-      return conflictResult;
-    }
-
-    const companyIdentityStatus = deriveSilverIdentityStatus({
-      cui: context.extractedCui,
-      nrRegCom: context.extractedNrRegCom,
-    });
-    await updateCompanyIdentitySnapshot(tx, {
-      companyId,
-      tenantId: args.tenantId,
-      cui: context.extractedCui,
-      nrRegCom: context.extractedNrRegCom,
-      nrRegComOriginal: context.extractedNrRegComRaw,
-      sourceBronzeId: context.bronzeId,
-      identityStatus: companyIdentityStatus,
-      identityPatch: {
-        lastResolvedBronzeId: context.bronzeId,
-        lastResolvedAt: new Date().toISOString(),
-        sourceAuthority: context.sourceAuthority,
-      },
-    });
-    await updateBronzeResolution(tx, {
-      bronzeId: context.bronzeId,
-      identityStatus: "resolved",
-      resolvedCompanyId: companyId,
-      processingStatus: "pending",
-      patch: {
-        resolution: "resolved",
-        companyId,
-        sourceAuthority: context.sourceAuthority,
-      },
-    });
-
-    return {
-      status: "resolved",
-      companyId,
-      companyIdentityStatus,
-      duplicateOfId: null,
-      createdCompanyId,
-      conflictCompanyIds: [],
-    };
+    return finalizeNormalResolution(tx, args.tenantId, context, detected.companyId);
   });
 }
 

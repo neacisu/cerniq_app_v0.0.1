@@ -16,7 +16,7 @@ export function TabsTrigger({
   return (
     <TabsPrimitive.Trigger
       className={cn(
-        "tab data-[state=active]:!text-[oklch(0.83_0.13_76)] data-[state=active]:!border-b-[var(--color-b5)] data-[state=active]:!font-semibold",
+        "tab data-[state=active]:text-b3! data-[state=active]:border-b-b5! data-[state=active]:font-semibold!",
         className,
       )}
       {...props}

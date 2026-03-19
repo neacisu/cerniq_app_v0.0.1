@@ -61,6 +61,42 @@ export function convertOldNrRegComToCanonical(
   return `${base}${check}`;
 }
 
+/**
+ * Normalize and VALIDATE a NrRegCom without converting old format to new.
+ * Old format (J09/98/2003) is returned as-is (uppercased).
+ * New format (J2003000098095) is validated via check digit and returned as-is.
+ * Invalid input returns null.
+ *
+ * Use this for storing values from non-authoritative sources (CSV, Excel imports).
+ */
+export function sanitizeNrRegCom(input: string): string | null {
+  const raw = normalizeIdentifierWhitespace(input);
+  if (!raw) return null;
+
+  if (NEW_NR_REG_COM_RE.test(raw)) {
+    const newMatch = NEW_NR_REG_COM_RE.exec(raw);
+    if (!newMatch) return null;
+    const [, type, year, order, county, checkDigit] = newMatch;
+    const base = `${type}${year}${order}${county}`;
+    const expected = computeNrRegComCheckDigit(base);
+    return expected === Number(checkDigit) ? raw : null;
+  }
+
+  if (OLD_NR_REG_COM_RE.test(raw)) {
+    return raw; // valid old format — preserve as-is, do NOT convert to canonical
+  }
+
+  return null;
+}
+
+/**
+ * Convert NrRegCom to the new canonical format (J2003000098095).
+ * Old format is converted; new format is validated and returned as-is.
+ * Returns null for invalid input.
+ *
+ * Only use this when producing canonical keys for identity matching,
+ * or when processing data from authoritative official sources (ONRC).
+ */
 export function normalizeNrRegCom(input: string): string | null {
   const raw = normalizeIdentifierWhitespace(input);
   if (!raw) return null;

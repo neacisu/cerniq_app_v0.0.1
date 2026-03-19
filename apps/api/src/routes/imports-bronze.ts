@@ -11,7 +11,7 @@ import { importConfigSchema, listBronzeContactsSchema } from "../schemas/etapa1.
 import { createQueue } from "../lib/queue-factory.js";
 
 const IMPORT_DIR = process.env.IMPORT_UPLOAD_DIR || "/app/data/imports";
-const LEGACY_IMPORT_DIR = "/tmp/cerniq-imports";
+const LEGACY_IMPORT_DIR = process.env.LEGACY_IMPORT_DIR ?? `${IMPORT_DIR}/legacy`;
 const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
 
 const importStatusSchema = z.enum(["pending", "processing", "completed", "failed", "cancelled"]);
@@ -74,6 +74,10 @@ type BatchMetadata = Record<string, unknown>;
 
 function batchIdMetadataEquals(metadataColumn: unknown, batchId: string) {
   return sql`COALESCE(jsonb_extract_path_text(${metadataColumn}, ${"batchId"}), ${""}) = ${batchId}`;
+}
+
+function failedReprocessContactEquals(metadataColumn: unknown) {
+  return sql`COALESCE(jsonb_extract_path_text(${metadataColumn}, 'identityReprocessError', 'status'), '') = 'failed'`;
 }
 
 function sanitizeImportFilename(filename: string): string {
@@ -753,16 +757,146 @@ async function enrichImportBatch(tenantId: string, row: typeof bronzeImportBatch
   };
 }
 
-function withIdentityReprocessQueuedMetadata(metadata: BatchMetadata): BatchMetadata {
+function withIdentityReprocessQueuedMetadata(
+  metadata: BatchMetadata,
+  options?: { preserveCheckpoint?: boolean },
+): BatchMetadata {
+  const preserveCheckpoint = options?.preserveCheckpoint ?? false;
+  const queuedAt = new Date().toISOString();
+  const processedBaseRows = preserveCheckpoint
+    ? Number(metadata.identityReprocessProcessedRows ?? 0)
+    : 0;
+
   return {
     ...metadata,
     identityReprocessStatus: "queued",
-    identityReprocessQueuedAt: new Date().toISOString(),
-    identityReprocessStartedAt: null,
+    identityReprocessQueuedAt: queuedAt,
+    identityReprocessSessionStartedAt: queuedAt,
+    identityReprocessSessionProcessedBaseRows: processedBaseRows,
+    identityReprocessStartedAt: preserveCheckpoint
+      ? (metadata.identityReprocessStartedAt ?? null)
+      : null,
     identityReprocessCompletedAt: null,
     identityReprocessFailedAt: null,
     identityReprocessLastError: null,
-    identityReprocessLastProgressAt: null,
+    identityReprocessLastProgressAt: preserveCheckpoint
+      ? (metadata.identityReprocessLastProgressAt ?? null)
+      : null,
+    identityReprocessPhase: preserveCheckpoint ? (metadata.identityReprocessPhase ?? null) : null,
+    identityReprocessCursorLastBronzeId: preserveCheckpoint
+      ? (metadata.identityReprocessCursorLastBronzeId ?? null)
+      : null,
+    identityReprocessPromotionCursorLastBronzeId: preserveCheckpoint
+      ? (metadata.identityReprocessPromotionCursorLastBronzeId ?? null)
+      : null,
+    identityReprocessProcessedRows: preserveCheckpoint
+      ? Number(metadata.identityReprocessProcessedRows ?? 0)
+      : 0,
+    identityReprocessResolvedRows: preserveCheckpoint
+      ? Number(metadata.identityReprocessResolvedRows ?? 0)
+      : 0,
+    identityReprocessDuplicateSourceRows: preserveCheckpoint
+      ? Number(metadata.identityReprocessDuplicateSourceRows ?? 0)
+      : 0,
+    identityReprocessIdentityConflictRows: preserveCheckpoint
+      ? Number(metadata.identityReprocessIdentityConflictRows ?? 0)
+      : 0,
+    identityReprocessInsufficientIdentifierRows: preserveCheckpoint
+      ? Number(metadata.identityReprocessInsufficientIdentifierRows ?? 0)
+      : 0,
+    identityReprocessPromotionQueued: preserveCheckpoint
+      ? Number(metadata.identityReprocessPromotionQueued ?? 0)
+      : 0,
+  };
+}
+
+function extractReprocessHeartbeat(metadata: BatchMetadata): {
+  lastProgressAtRaw: string | null;
+  startedAtRaw: string | null;
+  heartbeatAtMs: number;
+} {
+  const lastProgressAtRaw =
+    typeof metadata.identityReprocessLastProgressAt === "string"
+      ? metadata.identityReprocessLastProgressAt
+      : null;
+  const startedAtRaw =
+    typeof metadata.identityReprocessStartedAt === "string"
+      ? metadata.identityReprocessStartedAt
+      : null;
+  const heartbeatAtRaw = lastProgressAtRaw ?? startedAtRaw;
+  const heartbeatAtMs = heartbeatAtRaw ? Date.parse(heartbeatAtRaw) : Number.NaN;
+  return { lastProgressAtRaw, startedAtRaw, heartbeatAtMs };
+}
+
+function derivePromoteStateFromDb(
+  reprocessStatus: string,
+  heartbeatAtMs: number,
+  staleThresholdMs: number,
+): string {
+  if (reprocessStatus === "running") {
+    return Number.isFinite(heartbeatAtMs) && Date.now() - heartbeatAtMs <= staleThresholdMs
+      ? "active"
+      : "stale";
+  }
+  if (reprocessStatus === "queued") {
+    return "stale";
+  }
+  return reprocessStatus;
+}
+
+function resolvePromoteResponseState(
+  isStale: boolean,
+  isBacklogged: boolean,
+  state: string,
+): string {
+  if (isStale) return "stale";
+  if (isBacklogged) return "backlogged";
+  return state;
+}
+
+type BullJobLike = {
+  id?: string | null;
+  attemptsMade?: number;
+  opts?: { attempts?: number };
+  failedReason?: string | null;
+  stacktrace?: unknown;
+  progress?: number | string | object | boolean | null;
+  timestamp?: number | null;
+  processedOn?: number | null;
+  finishedOn?: number | null;
+};
+
+function buildBullJobResponseData(
+  job: BullJobLike,
+  state: string,
+  isStale: boolean,
+  isBacklogged: boolean,
+  waitingJobs: number,
+  lastProgressAtRaw: string | null,
+  reprocessStatus: string,
+) {
+  const stacktraceLines = Array.isArray(job.stacktrace) ? job.stacktrace : [];
+  const lastStacktrace =
+    stacktraceLines.length > 0 ? String(stacktraceLines.at(-1) ?? "").slice(0, 2000) || null : null;
+  const processedOnIso = job.processedOn == null ? null : new Date(job.processedOn).toISOString();
+  const finishedOnIso = job.finishedOn == null ? null : new Date(job.finishedOn).toISOString();
+  const responseState = resolvePromoteResponseState(isStale, isBacklogged, state);
+  return {
+    state: responseState,
+    isStale,
+    isBacklogged,
+    jobId: job.id ?? null,
+    attemptsMade: job.attemptsMade ?? 0,
+    maxAttempts: job.opts?.attempts ?? 3,
+    failedReason: job.failedReason ?? null,
+    stacktrace: lastStacktrace,
+    progress: typeof job.progress === "number" ? job.progress : null,
+    timestamp: job.timestamp ? new Date(job.timestamp).toISOString() : null,
+    processedOn: processedOnIso,
+    finishedOn: finishedOnIso,
+    lastProgressAt: lastProgressAtRaw,
+    waitingJobs,
+    dbStatus: reprocessStatus,
   };
 }
 
@@ -1059,6 +1193,7 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
 
       const nextMetadata = withIdentityReprocessQueuedMetadata(
         (existing.metadata as BatchMetadata | null) ?? {},
+        { preserveCheckpoint: false },
       );
       await db
         .update(bronzeImportBatches)
@@ -1076,6 +1211,578 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
           alreadyQueued: Boolean(
             existingJob && !["completed", "failed"].includes(existingState ?? ""),
           ),
+        },
+      };
+    },
+  );
+
+  // ── Promote Job Heartbeat ─────────────────────────────────────────────
+  // Stale threshold: job is "active" but has not made progress in > 5 min
+  const PROMOTE_STALE_THRESHOLD_MS = 5 * 60 * 1000;
+  const PROMOTE_BACKLOG_THRESHOLD_MS = 60 * 1000;
+  const PROMOTE_BACKLOG_WAIT_COUNT_THRESHOLD = 1000;
+
+  app.get(
+    "/imports/:id/promote-job-status",
+    {
+      ...authOpts,
+      schema: {
+        tags: ["etapa1-imports"],
+        summary: "Live BullMQ state of the re-promote batch job",
+        params: idParamsSchema,
+        response: {
+          200: successObjectResponseSchema,
+          400: errorResponseSchema,
+          404: errorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const tenantId = requireTenantId(request);
+      const parsedParams = idParamsSchema.safeParse(request.params);
+      if (!parsedParams.success) {
+        return reply.code(400).send({ success: false, error: "Parametru id invalid" });
+      }
+
+      const batchId = parsedParams.data.id;
+      const existing = await db.query.bronzeImportBatches.findFirst({
+        where: (t, { and, eq }) => and(eq(t.tenantId, tenantId), eq(t.id, batchId)),
+      });
+      if (!existing) {
+        return reply.code(404).send({ success: false, error: "Import batch not found" });
+      }
+
+      const metadata = (existing.metadata as BatchMetadata | null) ?? {};
+      const reprocessStatus = String(metadata.identityReprocessStatus ?? "");
+      const { lastProgressAtRaw, heartbeatAtMs } = extractReprocessHeartbeat(metadata);
+
+      // No re-promote has ever been triggered — nothing to report
+      if (!reprocessStatus) {
+        return { success: true, data: { state: "none" } };
+      }
+
+      const queue = createQueue("pipeline:promote:bronze-silver");
+      try {
+        const reprocessJobId = `reprocess-batch__${batchId}`;
+        const job = await queue.getJob(reprocessJobId);
+
+        if (!job) {
+          // Job was pruned from Redis — derive state from DB metadata
+          const derivedState = derivePromoteStateFromDb(
+            reprocessStatus,
+            heartbeatAtMs,
+            PROMOTE_STALE_THRESHOLD_MS,
+          );
+          return {
+            success: true,
+            data: {
+              state: derivedState,
+              isStale: derivedState === "stale",
+              isBacklogged: false,
+              jobId: null,
+              attemptsMade: 0,
+              maxAttempts: 3,
+              failedReason: null,
+              stacktrace: null,
+              progress: null,
+              timestamp: null,
+              processedOn: null,
+              finishedOn: null,
+              lastProgressAt: lastProgressAtRaw,
+              waitingJobs: 0,
+              dbStatus: reprocessStatus,
+            },
+          };
+        }
+
+        const state = await job.getState();
+        const now = Date.now();
+        const waitingDurationMs = typeof job.timestamp === "number" ? now - job.timestamp : 0;
+        const queueCounts = await queue.getJobCounts("wait", "prioritized");
+        const waitingJobs =
+          Number(queueCounts.wait ?? 0) +
+          Number((queueCounts as Record<string, number>).prioritized ?? 0);
+
+        // Stale: job is active but DB progress heartbeat has not advanced recently.
+        const isStale =
+          state === "active" &&
+          Number.isFinite(heartbeatAtMs) &&
+          now - heartbeatAtMs > PROMOTE_STALE_THRESHOLD_MS;
+        const isBacklogged =
+          state === "waiting" &&
+          waitingDurationMs > PROMOTE_BACKLOG_THRESHOLD_MS &&
+          waitingJobs > PROMOTE_BACKLOG_WAIT_COUNT_THRESHOLD;
+
+        return {
+          success: true,
+          data: buildBullJobResponseData(
+            job,
+            state,
+            isStale,
+            isBacklogged,
+            waitingJobs,
+            lastProgressAtRaw,
+            reprocessStatus,
+          ),
+        };
+      } finally {
+        await queue.close();
+      }
+    },
+  );
+
+  app.post(
+    "/imports/:id/resume-promote",
+    {
+      ...authOpts,
+      schema: {
+        tags: ["etapa1-imports"],
+        summary: "Force-resume a stale or failed re-promote batch job",
+        params: idParamsSchema,
+        response: {
+          200: successObjectResponseSchema,
+          400: errorResponseSchema,
+          404: errorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const tenantId = requireTenantId(request);
+      const parsedParams = idParamsSchema.safeParse(request.params);
+      if (!parsedParams.success) {
+        return reply.code(400).send({ success: false, error: "Parametru id invalid" });
+      }
+
+      const batchId = parsedParams.data.id;
+      const existing = await db.query.bronzeImportBatches.findFirst({
+        where: (t, { and, eq }) => and(eq(t.tenantId, tenantId), eq(t.id, batchId)),
+      });
+      if (!existing) {
+        return reply.code(404).send({ success: false, error: "Import batch not found" });
+      }
+
+      const contacts = await db.query.bronzeContacts.findMany({
+        where: (t) =>
+          sql`${t.tenantId} = ${tenantId}
+            AND ${batchIdMetadataEquals(t.metadata, batchId)}`,
+      });
+
+      if (contacts.length === 0) {
+        return { success: true, data: { id: batchId, requeued: 0 } };
+      }
+
+      const queue = createQueue("pipeline:promote:bronze-silver");
+      try {
+        const reprocessJobId = `reprocess-batch__${batchId}`;
+        const existingJob = await queue.getJob(reprocessJobId);
+
+        if (existingJob) {
+          // Remove regardless of state — we're forcing a fresh restart
+          await existingJob.remove();
+        }
+
+        await queue.add(
+          "reprocess-batch",
+          {
+            tenantId,
+            batchId,
+            correlationId: `resume-promote-${batchId}-${Date.now()}`,
+          },
+          {
+            jobId: reprocessJobId,
+            attempts: 3,
+            priority: 1,
+            backoff: { type: "exponential", delay: 5000 },
+            removeOnComplete: 20,
+            removeOnFail: 50,
+          },
+        );
+      } finally {
+        await queue.close();
+      }
+
+      const nextMetadata = withIdentityReprocessQueuedMetadata(
+        (existing.metadata as BatchMetadata | null) ?? {},
+        { preserveCheckpoint: true },
+      );
+      await db
+        .update(bronzeImportBatches)
+        .set({ metadata: nextMetadata, updatedAt: new Date() })
+        .where(sql`${bronzeImportBatches.id} = ${batchId}`);
+
+      return { success: true, data: { id: batchId, requeued: contacts.length } };
+    },
+  );
+
+  app.get(
+    "/imports/:id/reprocess-errors",
+    {
+      ...authOpts,
+      schema: {
+        tags: ["etapa1-imports"],
+        summary: "List contacts that failed during identity reprocess for a batch",
+        params: idParamsSchema,
+        querystring: z.object({
+          limit: z.coerce.number().int().min(1).max(500).optional(),
+          offset: z.coerce.number().int().min(0).optional(),
+        }),
+        response: {
+          200: successListResponseSchema,
+          400: errorResponseSchema,
+          404: errorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const tenantId = requireTenantId(request);
+      const params = idParamsSchema.safeParse(request.params);
+      const query = z
+        .object({
+          limit: z.coerce.number().int().min(1).max(500).optional(),
+          offset: z.coerce.number().int().min(0).optional(),
+        })
+        .safeParse(request.query);
+      if (!params.success) {
+        return reply
+          .code(400)
+          .send({ success: false, error: "Parametri invalizi", details: params.error.issues });
+      }
+      if (!query.success) {
+        return reply
+          .code(400)
+          .send({ success: false, error: "Parametri invalizi", details: query.error.issues });
+      }
+
+      const batch = await db.query.bronzeImportBatches.findFirst({
+        where: (t, { and, eq }) => and(eq(t.tenantId, tenantId), eq(t.id, params.data.id)),
+      });
+      if (!batch) {
+        return reply.code(404).send({ success: false, error: "Import batch not found" });
+      }
+
+      const limit = parseLimit(query.data.limit, 100);
+      const offset = parseOffset(query.data.offset, 0);
+      const whereSql = sql`${bronzeContacts.tenantId} = ${tenantId}
+        AND ${batchIdMetadataEquals(bronzeContacts.metadata, params.data.id)}
+        AND ${failedReprocessContactEquals(bronzeContacts.metadata)}`;
+
+      const [rows, total] = await db.transaction(async (tx) => {
+        await tx.execute(sql`SELECT set_config('app.tenant_id', ${tenantId}, true)`);
+        const resultRows = await tx.query.bronzeContacts.findMany({
+          where: whereSql,
+          orderBy: (t) => [sql`${t.updatedAt} DESC`, t.id],
+          limit,
+          offset,
+        });
+        const [countRow] = await tx
+          .select({ total: sql<number>`COUNT(*)` })
+          .from(bronzeContacts)
+          .where(whereSql);
+        return [resultRows, Number(countRow?.total ?? 0)] as const;
+      });
+
+      return {
+        success: true,
+        data: rows.map((row) => {
+          const metadata = (row.metadata as Record<string, unknown> | undefined) ?? {};
+          const error =
+            metadata.identityReprocessError && typeof metadata.identityReprocessError === "object"
+              ? (metadata.identityReprocessError as Record<string, unknown>)
+              : {};
+
+          return {
+            ...row,
+            rowNumber: metadata.rowNumber ?? null,
+            reprocessError: error,
+          };
+        }),
+        meta: { total, limit, offset },
+      };
+    },
+  );
+
+  app.post(
+    "/imports/:id/reprocess-errors/resume",
+    {
+      ...authOpts,
+      schema: {
+        tags: ["etapa1-imports"],
+        summary: "Resume identity reprocess only for contacts that previously failed",
+        params: idParamsSchema,
+        response: {
+          200: successObjectResponseSchema,
+          400: errorResponseSchema,
+          404: errorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const tenantId = requireTenantId(request);
+      const parsedParams = idParamsSchema.safeParse(request.params);
+      if (!parsedParams.success) {
+        return reply.code(400).send({ success: false, error: "Parametru id invalid" });
+      }
+
+      const batchId = parsedParams.data.id;
+      const existing = await db.query.bronzeImportBatches.findFirst({
+        where: (t, { and, eq }) => and(eq(t.tenantId, tenantId), eq(t.id, batchId)),
+      });
+      if (!existing) {
+        return reply.code(404).send({ success: false, error: "Import batch not found" });
+      }
+
+      const failedContacts = await db.query.bronzeContacts.findMany({
+        where: (t) =>
+          sql`${t.tenantId} = ${tenantId}
+            AND ${batchIdMetadataEquals(t.metadata, batchId)}
+            AND ${failedReprocessContactEquals(t.metadata)}`,
+        columns: { id: true },
+      });
+
+      if (failedContacts.length === 0) {
+        return { success: true, data: { id: batchId, requeued: 0 } };
+      }
+
+      const queue = createQueue("pipeline:promote:bronze-silver");
+      try {
+        const reprocessJobId = `reprocess-errors-batch__${batchId}`;
+        const existingJob = await queue.getJob(reprocessJobId);
+        if (existingJob) {
+          await existingJob.remove();
+        }
+
+        await queue.add(
+          "reprocess-errors-batch",
+          {
+            tenantId,
+            batchId,
+            reprocessErrorsOnly: true,
+            correlationId: `resume-reprocess-errors-${batchId}-${Date.now()}`,
+          },
+          {
+            jobId: reprocessJobId,
+            attempts: 1,
+            priority: 1,
+            backoff: { type: "exponential", delay: 5000 },
+            removeOnComplete: 20,
+            removeOnFail: 50,
+          },
+        );
+      } finally {
+        await queue.close();
+      }
+
+      const currentMetadata = (existing.metadata as BatchMetadata | null) ?? {};
+      const queuedAt = new Date().toISOString();
+      const nextMetadata = {
+        ...currentMetadata,
+        identityReprocessStatus: "queued",
+        identityReprocessQueuedAt: queuedAt,
+        identityReprocessSessionStartedAt: queuedAt,
+        identityReprocessSessionProcessedBaseRows: 0,
+        identityReprocessCompletedAt: null,
+        identityReprocessFailedAt: null,
+        identityReprocessLastError: null,
+        identityReprocessLastProgressAt: null,
+        identityReprocessPhase: "resolve_identities",
+        identityReprocessCursorLastBronzeId: null,
+        identityReprocessPromotionCursorLastBronzeId: null,
+        identityReprocessMode: "errors_only",
+        identityReprocessProcessedRows: 0,
+        identityReprocessResolvedRows: 0,
+        identityReprocessDuplicateSourceRows: 0,
+        identityReprocessIdentityConflictRows: 0,
+        identityReprocessInsufficientIdentifierRows: 0,
+        identityReprocessPromotionQueued: 0,
+        identityReprocessRunTotalRows: failedContacts.length,
+      } satisfies BatchMetadata;
+
+      await db
+        .update(bronzeImportBatches)
+        .set({ metadata: nextMetadata, updatedAt: new Date() })
+        .where(sql`${bronzeImportBatches.id} = ${batchId}`);
+
+      return { success: true, data: { id: batchId, requeued: failedContacts.length } };
+    },
+  );
+
+  // ── ANAF Bronze Enrichment (manual trigger for existing imports) ───
+  const ANAF_BATCH_SIZE = 100;
+  const ANAF_BATCH_DELAY_MS = 1100;
+
+  app.post(
+    "/imports/:id/anaf-enrich",
+    {
+      ...authOpts,
+      schema: {
+        tags: ["etapa1-imports"],
+        summary: "Trigger ANAF enrichment for contacts in batch",
+        params: idParamsSchema,
+        querystring: z.object({
+          limit: z.coerce.number().int().min(1).max(50000).optional(),
+        }),
+        response: {
+          200: successObjectResponseSchema,
+          400: errorResponseSchema,
+          404: errorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const tenantId = requireTenantId(request);
+      const parsedParams = idParamsSchema.safeParse(request.params);
+      if (!parsedParams.success) {
+        return reply.code(400).send({ success: false, error: "Parametru id invalid" });
+      }
+      const batchId = parsedParams.data.id;
+      const cuiLimit = (request.query as { limit?: number }).limit;
+
+      const existing = await db.query.bronzeImportBatches.findFirst({
+        where: (t, { and, eq }) => and(eq(t.tenantId, tenantId), eq(t.id, batchId)),
+      });
+      if (!existing) {
+        return reply.code(404).send({ success: false, error: "Import batch not found" });
+      }
+
+      await setSessionTenantId(tenantId);
+
+      // Common filter for unenriched contacts in this batch
+      const batchFilter = sql`tenant_id = ${tenantId}
+        AND COALESCE(jsonb_extract_path_text(metadata, 'batchId'), '') = ${batchId}
+        AND COALESCE(jsonb_extract_path_text(metadata, 'anafBronzeEnrichmentStatus'), '') NOT IN ('completed', 'pending')`;
+
+      // Count total unique CUIs available
+      const cuiCountResult = await db.execute<{ total: string }>(
+        sql`SELECT COUNT(DISTINCT extracted_cui) AS total
+            FROM bronze.bronze_contacts
+            WHERE ${batchFilter} AND extracted_cui IS NOT NULL`,
+      );
+      const totalAvailableCuis = Number(cuiCountResult[0]?.total ?? 0);
+
+      // Get unique CUIs with optional limit
+      const cuiLimitClause = cuiLimit ? sql` LIMIT ${cuiLimit}` : sql``;
+      const cuiRows = await db.execute<{ cui: string }>(
+        sql`SELECT DISTINCT extracted_cui AS cui
+            FROM bronze.bronze_contacts
+            WHERE ${batchFilter} AND extracted_cui IS NOT NULL${cuiLimitClause}`,
+      );
+      const allCuis: string[] = [...cuiRows].map((r) => r.cui);
+
+      // Count NrRegCom-only contacts (skip when using limit to keep test focused)
+      let nrRegComCount = 0;
+      if (!cuiLimit) {
+        const nrResult = await db.execute<{ cnt: string }>(
+          sql`SELECT COUNT(*) AS cnt
+              FROM bronze.bronze_contacts
+              WHERE ${batchFilter}
+                AND extracted_cui IS NULL
+                AND extracted_nr_reg_com IS NOT NULL`,
+        );
+        nrRegComCount = Number(nrResult[0]?.cnt ?? 0);
+      }
+
+      if (allCuis.length === 0 && nrRegComCount === 0) {
+        return {
+          success: true,
+          data: {
+            id: batchId,
+            queued: 0,
+            message: "Toate contactele au fost deja îmbogățite ANAF",
+          },
+        };
+      }
+
+      // Build a subquery for selected CUIs (avoids passing huge arrays via params)
+      const cuiSubquery = sql`(SELECT DISTINCT extracted_cui FROM bronze.bronze_contacts
+                               WHERE ${batchFilter} AND extracted_cui IS NOT NULL${cuiLimitClause})`;
+
+      // Mark matching contacts as pending
+      if (allCuis.length > 0) {
+        await db.execute(
+          sql`UPDATE bronze.bronze_contacts
+              SET metadata = COALESCE(metadata, '{}'::jsonb) || '{"anafBronzeEnrichmentStatus":"pending"}'::jsonb,
+                  updated_at = NOW()
+              WHERE tenant_id = ${tenantId}
+                AND COALESCE(jsonb_extract_path_text(metadata, 'batchId'), '') = ${batchId}
+                AND extracted_cui IN ${cuiSubquery}`,
+        );
+      }
+
+      if (nrRegComCount > 0) {
+        await db.execute(
+          sql`UPDATE bronze.bronze_contacts
+              SET metadata = COALESCE(metadata, '{}'::jsonb) || '{"anafBronzeEnrichmentStatus":"pending"}'::jsonb,
+                  updated_at = NOW()
+              WHERE tenant_id = ${tenantId}
+                AND COALESCE(jsonb_extract_path_text(metadata, 'batchId'), '') = ${batchId}
+                AND extracted_cui IS NULL
+                AND extracted_nr_reg_com IS NOT NULL
+                AND COALESCE(jsonb_extract_path_text(metadata, 'anafBronzeEnrichmentStatus'), '') NOT IN ('completed', 'cross_referenced', 'pending')`,
+        );
+      }
+
+      // Get contact IDs for the selected CUIs (for b5 worker reference)
+      const contactIdRows = await db.execute<{ id: string }>(
+        sql`SELECT id FROM bronze.bronze_contacts
+            WHERE tenant_id = ${tenantId}
+              AND COALESCE(jsonb_extract_path_text(metadata, 'batchId'), '') = ${batchId}
+              AND extracted_cui IN ${cuiSubquery}`,
+      );
+      const allBronzeIds: string[] = [...contactIdRows].map((r) => r.id);
+
+      const totalBatches = Math.ceil(allCuis.length / ANAF_BATCH_SIZE);
+
+      const queue = createQueue("enrich:bronze:anaf");
+      try {
+        for (let i = 0; i < totalBatches; i++) {
+          const cuiChunk = allCuis.slice(i * ANAF_BATCH_SIZE, (i + 1) * ANAF_BATCH_SIZE);
+          await queue.add(
+            "anaf-bronze-enrich",
+            {
+              tenantId,
+              batchId,
+              cuiList: cuiChunk,
+              bronzeContactIds: allBronzeIds,
+              correlationId: `manual-anaf-${batchId}-${Date.now()}`,
+              batchIndex: i,
+              totalBatches,
+            },
+            {
+              jobId: `anaf-bronze-${batchId}-manual-${i}`,
+              delay: i * ANAF_BATCH_DELAY_MS,
+              attempts: 5,
+              backoff: { type: "exponential", delay: 1000 },
+            },
+          );
+        }
+      } finally {
+        await queue.close();
+      }
+
+      // Update batch metadata
+      const batchMeta = (existing.metadata as BatchMetadata | null) ?? {};
+      await db
+        .update(bronzeImportBatches)
+        .set({
+          metadata: {
+            ...batchMeta,
+            anafEnrichmentStatus: "processing",
+            anafEnrichmentQueuedAt: new Date().toISOString(),
+            anafEnrichmentTotalCuis: allCuis.length,
+            anafEnrichmentTotalBatches: totalBatches,
+          },
+          updatedAt: new Date(),
+        })
+        .where(sql`${bronzeImportBatches.id} = ${batchId}`);
+
+      return {
+        success: true,
+        data: {
+          id: batchId,
+          queued: allCuis.length,
+          totalAvailable: totalAvailableCuis,
+          batches: totalBatches,
+          nrRegComPending: nrRegComCount,
         },
       };
     },
