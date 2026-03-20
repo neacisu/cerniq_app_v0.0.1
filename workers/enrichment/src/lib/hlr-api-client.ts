@@ -1,4 +1,4 @@
-import { createCircuitBreaker } from "@cerniq/worker-shared";
+import { createCircuitBreaker, withExternalApiMetrics } from "@cerniq/worker-shared";
 
 const HLR_API_URL = process.env.HLR_API_URL ?? "";
 const HLR_API_KEY = process.env.HLR_API_KEY ?? "";
@@ -35,17 +35,13 @@ async function hlrLookupInternal(phoneE164: string): Promise<HlrLookupResult | n
   return (await response.json()) as HlrLookupResult;
 }
 
-const hlrBreaker = createCircuitBreaker(
-  async (...args: unknown[]) => hlrLookupInternal(String(args[0] ?? "")),
-  "hlr-api-client",
-  {
-    timeout: HLR_TIMEOUT_MS,
-    errorThresholdPercentage: 50,
-    resetTimeout: 30000,
-    volumeThreshold: 5,
-  },
-);
+const hlrBreaker = createCircuitBreaker(hlrLookupInternal, "hlr-api-client", {
+  timeout: HLR_TIMEOUT_MS,
+  errorThresholdPercentage: 50,
+  resetTimeout: 30000,
+  volumeThreshold: 5,
+});
 
 export async function hlrLookup(phoneE164: string): Promise<HlrLookupResult | null> {
-  return hlrBreaker.fire(phoneE164);
+  return withExternalApiMetrics("hlr", () => hlrBreaker.fire(phoneE164));
 }

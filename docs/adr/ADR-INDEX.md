@@ -2,8 +2,8 @@
 
 ## Centralized Architecture Decision Records
 
-**Total ADR-uri:** 108  
-**Actualizat:** 5 Februarie 2026
+**Total ADR-uri:** 109  
+**Actualizat:** 12 Martie 2026
 
 ---
 
@@ -24,11 +24,12 @@
 
 | ID                                                                                           | Titlu                                          | Status                       | Data                                 |
 | -------------------------------------------------------------------------------------------- | ---------------------------------------------- | ---------------------------- | ------------------------------------ |
+| [ADR-E0-0035](./ADR%20Etapa%200/ADR-E0-0035-Node-js-v25-Current-Line.md)                     | Node.js v25 Current Line pentru workspace      | Accepted                     | 2026-03-12                           |
 | [ADR-E0-0033](./ADR%20Etapa%200/ADR-0033-OpenBao-Secrets-Management.md)                      | **OpenBao Secrets Management** 🆕              | **Accepted**                 | **2026-02-05**                       |
 | [ADR-0032](./ADR%20Etapa%200/ADR-0032-CI-CD-Pipeline-Strategy.md)                            | CI/CD Pipeline Strategy                        | Accepted                     | 2026-02-01                           |
 | [ADR-0031](./ADR%20Etapa%200/ADR-0031-Provider-Abstraction-Layer.md)                         | Provider Abstraction Layer                     | Accepted                     | 2026-02-01                           |
 | [ADR-0001](./ADR%20Etapa%200/ADR-0001-PNPM-ca-Package-Manager-Exclusiv.md)                   | PNPM ca Package Manager Exclusiv               | Accepted                     | 2026-01-15                           |
-| [ADR-0002](./ADR%20Etapa%200/ADR-0002-Node-js-v24-LTS-Krypton.md)                            | Node.js v24 LTS "Krypton"                      | Accepted                     | 2026-01-15                           |
+| [ADR-0002](./ADR%20Etapa%200/ADR-0002-Node-js-v24-LTS-Krypton.md)                            | Node.js v24 LTS "Krypton"                      | Superseded (ADR-E0-0035)     | 2026-01-15                           |
 | [ADR-0003](./ADR%20Etapa%200/ADR-0003-Python-3-14-Free-Threading-pentru-Workers.md)          | Python 3.14 Free-Threading pentru Workers      | Accepted                     | 2026-01-15                           |
 | [ADR-0004](./ADR%20Etapa%200/ADR-0004-PostgreSQL-18-1-cu-PostGIS.md)                         | PostgreSQL 18.2 cu PostGIS                     | Accepted                     | 2026-01-15                           |
 | [ADR-0005](./ADR%20Etapa%200/ADR-0005-Row-Level-Security-pentru-Multi-Tenancy.md)            | Row-Level Security pentru Multi-Tenancy        | Accepted                     | 2026-01-15                           |

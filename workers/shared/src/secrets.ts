@@ -1,7 +1,13 @@
 import fs from "node:fs";
 
 const DEFAULT_SECRETS_PATH = "/secrets/workers.env";
-const SENSITIVE_KEYS = ["REDIS_URL", "REDIS_PASSWORD", "REDIS_PREFIX", "BULLMQ_PREFIX"];
+const SENSITIVE_KEYS = new Set([
+  "DATABASE_URL",
+  "REDIS_URL",
+  "REDIS_PASSWORD",
+  "REDIS_PREFIX",
+  "BULLMQ_PREFIX",
+]);
 const OPENBAO_READY_MARKER = "OPENBAO_SECRETS_LOADED=true";
 
 export function loadSecretsFromFile(forceOverwrite = false, path = DEFAULT_SECRETS_PATH): void {
@@ -16,7 +22,7 @@ export function loadSecretsFromFile(forceOverwrite = false, path = DEFAULT_SECRE
 
     const key = trimmed.slice(0, eq).trim();
     const value = trimmed.slice(eq + 1).trim();
-    const isSensitive = SENSITIVE_KEYS.includes(key);
+    const isSensitive = SENSITIVE_KEYS.has(key);
 
     if (forceOverwrite && isSensitive) {
       process.env[key] = value;

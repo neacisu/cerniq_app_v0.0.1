@@ -45,7 +45,7 @@ function loadPersistedAuth(): AuthState {
   return { user: null, token: null, loading: false };
 }
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   const [state, setState] = useState<AuthState>(loadPersistedAuth);
 
   const login = useCallback(async (email: string, password: string) => {
@@ -54,7 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         success?: boolean;
         error?: string;
         data?: { token: string; user: User };
-      }>("/auth/login", { email, password });
+      }>("/api/v1/auth/login", { email, password });
       if (!data?.success || !data?.data?.token) {
         return { success: false, error: data?.error ?? "Login failed" };
       }
@@ -86,7 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         success?: boolean;
         error?: string;
         data?: { token: string; user: User };
-      }>("/auth/register", payload);
+      }>("/api/v1/auth/register", payload);
       if (!res?.success || !res?.data?.token) {
         return { success: false, error: res?.error ?? "Inregistrare esuata" };
       }
@@ -105,6 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(() => {
+    void api.post("/api/v1/auth/logout").catch(() => undefined);
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(USER_KEY);
     setState({ user: null, token: null, loading: false });
@@ -142,7 +143,7 @@ export function useAuth(): AuthContextValue {
   return ctx;
 }
 
-export function ProtectedRoute({ children }: { children: ReactNode }) {
+export function ProtectedRoute({ children }: Readonly<{ children: ReactNode }>) {
   const { user, loading } = useAuth();
   if (loading) return <LoadingPage />;
   if (!user) return <Navigate to="/login" replace />;

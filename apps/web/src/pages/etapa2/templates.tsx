@@ -30,7 +30,7 @@ export function Templates() {
 
   return (
     <PageWrapper title="Template Library">
-      <div className="grid grid-cols-[240px_1fr] gap-4 min-h-[400px]">
+      <div className="grid min-h-100 grid-cols-[240px_1fr] gap-4">
         <Card className="overflow-hidden">
           <div className="p-2 space-y-1">
             {MOCK_TEMPLATES.map((x) => (
@@ -38,10 +38,8 @@ export function Templates() {
                 key={x.id}
                 onClick={() => setSel(x.id)}
                 className={cn(
-                  "w-full text-left px-3 py-2 rounded-[var(--radius-md)] text-sm",
-                  sel === x.id
-                    ? "bg-[var(--color-b5)]/20 text-[var(--color-b5)] border border-[var(--color-b5)]/40"
-                    : "text-[var(--color-t2)] hover:bg-[var(--color-s800)]",
+                  "w-full rounded-md px-3 py-2 text-left text-sm",
+                  sel === x.id ? "border border-b5/40 bg-b5/20 text-b5" : "text-t2 hover:bg-s800",
                 )}
               >
                 {x.name}
@@ -51,13 +49,13 @@ export function Templates() {
         </Card>
         <Card>
           <CardBody>
-            <h3 className="font-semibold text-[var(--color-t1)] mb-2">{t.name}</h3>
+            <h3 className="mb-2 font-semibold text-t1">{t.name}</h3>
             <div className="flex flex-wrap gap-1 mb-3">
               {t.vars.map((v) => (
                 <Badge key={v} variant="brand">{`{{${v}}}`}</Badge>
               ))}
             </div>
-            <pre className="p-4 rounded-[var(--radius-md)] bg-[var(--color-s950)] text-[var(--color-t2)] font-mono text-sm overflow-x-auto">
+            <pre className="overflow-x-auto rounded-md bg-s950 p-4 font-mono text-sm text-t2">
               {t.preview}
             </pre>
           </CardBody>

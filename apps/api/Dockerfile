@@ -4,10 +4,32 @@
 # Reference: ADR-0015 Container Strategy
 # =============================================================================
 
-FROM node:25.6.1-alpine3.23 AS base
+ARG WOLFI_BASE_IMAGE=cgr.dev/chainguard/wolfi-base:latest@sha256:a9a3a0c9fb954fd70b398afdd055d74a4f196095b9fdfbcfb13495aefeefd075
+ARG NODE_VERSION=25.8.1
+ARG NPM_VERSION=11.11.1
+ARG PNPM_VERSION=10.32.1
+
+FROM ${WOLFI_BASE_IMAGE} AS base
 ENV CI=true
-RUN apk add --no-cache curl
-RUN npm install -g pnpm@10.29.3
+ARG NODE_VERSION
+ARG NPM_VERSION
+ARG PNPM_VERSION
+ARG TARGETARCH
+RUN apk add --no-cache ca-certificates-bundle curl libatomic libstdc++ \
+    && case "${TARGETARCH}" in \
+      amd64) node_arch="x64" ;; \
+      arm64) node_arch="arm64" ;; \
+      *) echo "Unsupported TARGETARCH: ${TARGETARCH}" >&2; exit 1 ;; \
+    esac \
+    && node_dist="node-v${NODE_VERSION}-linux-${node_arch}.tar.xz" \
+    && curl -fsSLO "https://nodejs.org/dist/v${NODE_VERSION}/${node_dist}" \
+    && curl -fsSLO "https://nodejs.org/dist/v${NODE_VERSION}/SHASUMS256.txt" \
+    && grep " ${node_dist}$" SHASUMS256.txt | sha256sum -c - \
+    && tar -xJf "${node_dist}" -C /usr/local --strip-components=1 --no-same-owner \
+    && rm -f "${node_dist}" SHASUMS256.txt \
+    && npm install -g "npm@${NPM_VERSION}" "pnpm@${PNPM_VERSION}" \
+    && npm cache clean --force
+ENV PATH=/usr/local/bin:${PATH}
 WORKDIR /app
 
 # --- Dependencies ---
@@ -18,40 +40,44 @@ COPY packages/db/package.json ./packages/db/
 COPY packages/shared-types/package.json ./packages/shared-types/
 COPY packages/config/package.json ./packages/config/
 COPY packages/observability/package.json ./packages/observability/
+COPY workers/shared/package.json ./workers/shared/
 RUN pnpm install --frozen-lockfile --filter @cerniq/api...
 
 # --- Build ---
 FROM deps AS builder
 COPY packages/ ./packages/
+COPY workers/shared/ ./workers/shared/
 COPY apps/api/ ./apps/api/
 RUN pnpm --filter @cerniq/shared-types build
 RUN pnpm --filter @cerniq/observability build
 RUN pnpm --filter @cerniq/db build
+RUN pnpm --filter @cerniq/worker-shared build
 RUN pnpm --filter @cerniq/api build
 
 # --- Production ---
-FROM base AS runner
-RUN addgroup -g 1001 -S cerniq && \
-    adduser -S -D -H -u 1001 -G cerniq cerniq
-
+FROM ${WOLFI_BASE_IMAGE} AS runner
+RUN apk add --no-cache ca-certificates-bundle curl libatomic libstdc++
+COPY --from=base /usr/local/ /usr/local/
+ENV PATH=/usr/local/bin:${PATH}
 WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
-COPY --from=deps /app/packages/db/node_modules ./packages/db/node_modules
-COPY --from=deps /app/packages/observability/node_modules ./packages/observability/node_modules
-COPY --from=builder /app/packages/shared-types/dist ./packages/shared-types/dist
-COPY --from=builder /app/packages/shared-types/package.json ./packages/shared-types/
-COPY --from=builder /app/packages/db/dist ./packages/db/dist
-COPY --from=builder /app/packages/db/drizzle ./packages/db/drizzle
-COPY --from=builder /app/packages/db/package.json ./packages/db/
-COPY --from=builder /app/packages/observability/dist ./packages/observability/dist
-COPY --from=builder /app/packages/observability/package.json ./packages/observability/
-COPY --from=builder /app/packages/config/ ./packages/config/
-COPY --from=builder /app/apps/api/dist ./apps/api/dist
-COPY --from=builder /app/apps/api/package.json ./apps/api/
-
-RUN chown -R cerniq:cerniq /app
-USER cerniq
+COPY --from=deps --chown=65532:65532 /app/node_modules ./node_modules
+COPY --from=deps --chown=65532:65532 /app/apps/api/node_modules ./apps/api/node_modules
+COPY --from=deps --chown=65532:65532 /app/packages/db/node_modules ./packages/db/node_modules
+COPY --from=deps --chown=65532:65532 /app/packages/observability/node_modules ./packages/observability/node_modules
+COPY --from=deps --chown=65532:65532 /app/workers/shared/node_modules ./workers/shared/node_modules
+COPY --from=builder --chown=65532:65532 /app/packages/shared-types/dist ./packages/shared-types/dist
+COPY --from=builder --chown=65532:65532 /app/packages/shared-types/package.json ./packages/shared-types/
+COPY --from=builder --chown=65532:65532 /app/packages/db/dist ./packages/db/dist
+COPY --from=builder --chown=65532:65532 /app/packages/db/drizzle ./packages/db/drizzle
+COPY --from=builder --chown=65532:65532 /app/packages/db/package.json ./packages/db/
+COPY --from=builder --chown=65532:65532 /app/packages/observability/dist ./packages/observability/dist
+COPY --from=builder --chown=65532:65532 /app/packages/observability/package.json ./packages/observability/
+COPY --from=builder --chown=65532:65532 /app/packages/config/ ./packages/config/
+COPY --from=builder --chown=65532:65532 /app/workers/shared/dist ./workers/shared/dist
+COPY --from=builder --chown=65532:65532 /app/workers/shared/package.json ./workers/shared/
+COPY --from=builder --chown=65532:65532 /app/apps/api/dist ./apps/api/dist
+COPY --from=builder --chown=65532:65532 /app/apps/api/package.json ./apps/api/
+USER 65532:65532
 
 EXPOSE 64010
 

@@ -40,19 +40,19 @@ export function Returns() {
   return (
     <PageWrapper title="Returns RMA">
       <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="rounded-[var(--radius-lg)] border border-[var(--color-s700)] bg-[var(--color-s900)]/80 p-4">
-          <div className="text-2xl font-bold text-[var(--color-t1)]">{rmas.length}</div>
-          <div className="text-sm text-[var(--color-t3)]">Active RMAs</div>
+        <div className="rounded-lg border border-s700 bg-s900/80 p-4">
+          <div className="text-2xl font-bold text-t1">{rmas.length}</div>
+          <div className="text-sm text-t3">Active RMAs</div>
         </div>
-        <div className="rounded-[var(--radius-lg)] border border-[var(--color-s700)] bg-[var(--color-s900)]/80 p-4">
-          <div className="text-2xl font-bold text-[var(--color-wa)]">
+        <div className="rounded-lg border border-s700 bg-s900/80 p-4">
+          <div className="text-2xl font-bold text-wa">
             {rmas.filter((r) => r.status === "PENDING").length}
           </div>
-          <div className="text-sm text-[var(--color-t3)]">Pending</div>
+          <div className="text-sm text-t3">Pending</div>
         </div>
-        <div className="rounded-[var(--radius-lg)] border border-[var(--color-s700)] bg-[var(--color-s900)]/80 p-4">
-          <div className="text-2xl font-bold text-[var(--color-ok)]">EUR 800</div>
-          <div className="text-sm text-[var(--color-t3)]">Total Value</div>
+        <div className="rounded-lg border border-s700 bg-s900/80 p-4">
+          <div className="text-2xl font-bold text-ok">EUR 800</div>
+          <div className="text-sm text-t3">Total Value</div>
         </div>
       </div>
 
@@ -62,14 +62,14 @@ export function Returns() {
             <Card key={r.id}>
               <CardBody>
                 <div className="flex justify-between items-start mb-2">
-                  <span className="font-mono text-sm text-[var(--color-t3)]">{r.id}</span>
+                  <span className="font-mono text-sm text-t3">{r.id}</span>
                   <SBadge status={r.status} />
                 </div>
-                <div className="font-medium text-[var(--color-t1)] mb-1">{r.company}</div>
-                <p className="text-sm text-[var(--color-t3)] mb-2">{r.reason}</p>
-                <div className="flex justify-between text-xs text-[var(--color-t3)] mb-4">
+                <div className="font-medium text-t1 mb-1">{r.company}</div>
+                <p className="text-sm text-t3 mb-2">{r.reason}</p>
+                <div className="flex justify-between text-xs text-t3 mb-4">
                   <span>{r.date}</span>
-                  <span className="font-medium text-[var(--color-t2)]">{r.value}</span>
+                  <span className="font-medium text-t2">{r.value}</span>
                 </div>
                 <div className="flex gap-2">
                   {r.status === "PENDING" && (

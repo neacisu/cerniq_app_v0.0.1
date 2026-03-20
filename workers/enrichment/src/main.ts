@@ -1,10 +1,17 @@
-import { createHealthServer } from "@cerniq/worker-shared";
-import { createRedisConnections, closeRedisConnections } from "@cerniq/worker-shared";
-import { createWorker } from "@cerniq/worker-shared";
-import { loadSecretsFromFile } from "@cerniq/worker-shared";
-import { assertQueueRegistryComplete, queueRegistry } from "@cerniq/worker-shared";
-import { getQueuePrefix, getRedisConnectionOptions } from "@cerniq/worker-shared";
-import { Queue, type Job } from "bullmq";
+import {
+  assertQueueRegistryComplete,
+  closeRedisConnections,
+  createHealthServer,
+  createQueue,
+  createRedisConnections,
+  createWorker,
+  loadSecretsFromFile,
+  queueDepth,
+  queueRegistry,
+  watchSecretsFile,
+} from "@cerniq/worker-shared";
+import { closeDbConnection, db, inArray, refreshDbConnection, tenants } from "@cerniq/db";
+import type { Job } from "bullmq";
 import { csvParserProcessor } from "./workers/a1-csv-parser.js";
 import { excelParserProcessor } from "./workers/a2-excel-parser.js";
 import { webhookReceiverProcessor } from "./workers/a3-webhook-receiver.js";
@@ -14,6 +21,7 @@ import { nameNormalizerProcessor } from "./workers/b1-name-normalizer.js";
 import { emailNormalizerProcessor } from "./workers/b2-email-normalizer.js";
 import { phoneNormalizerProcessor } from "./workers/b3-phone-normalizer.js";
 import { addressNormalizerProcessor } from "./workers/b4-address-normalizer.js";
+import { anafBronzeEnricherProcessor } from "./workers/b5-anaf-bronze-enricher.js";
 import { cuiModulo11ValidatorProcessor } from "./workers/c1-cui-modulo11-validator.js";
 import { cuiAnafValidatorProcessor } from "./workers/c2-cui-anaf-validator.js";
 import { anafFiscalProcessor } from "./workers/d1-anaf-fiscal.js";
@@ -67,18 +75,22 @@ import { pipelineMonitorProcessor } from "./workers/p3-pipeline-monitor.js";
 import { pipelineErrorHandlerProcessor } from "./workers/p4-error-handler.js";
 import { hitlEscalationProcessor } from "./workers/hitl-escalation.js";
 import { hitlResumeAfterApprovalProcessor } from "./workers/hitl-resume-after-approval.js";
+import { importFileCleanupProcessor } from "./workers/o3-import-file-cleanup.js";
 
 const PORT = Number(process.env.PORT || "3000");
+const SECRETS_PATH = process.env.SECRETS_PATH?.trim() || "/secrets/workers.env";
+const PROMOTE_BRONZE_SILVER_WORKER_OPTIONS = {
+  lockDuration: 15 * 60 * 1000,
+  stalledInterval: 2 * 60 * 1000,
+  maxStalledCount: 4,
+} as const;
 assertQueueRegistryComplete();
-const extraQueueNames = [
-  "pipeline:promote-bronze-silver",
-  "pipeline:hitl-escalation",
-  "pipeline:hitl-resume-after-approval",
-];
-const queueNames = Array.from(new Set([...queueRegistry.map((q) => q.name), ...extraQueueNames]));
-const defaultTenantId = process.env.DEFAULT_TENANT_ID?.trim();
+const queueNames = queueRegistry.map((q) => q.name);
+const defaultTenantId = process.env.DEFAULT_TENANT_ID?.trim() ?? null;
 if (!defaultTenantId) {
-  throw new Error("Missing required environment variable: DEFAULT_TENANT_ID");
+  console.warn(
+    "[enrichment] DEFAULT_TENANT_ID not set — recurring cron jobs (monitor, daily-stats) will be skipped.",
+  );
 }
 
 const stats = {
@@ -91,49 +103,145 @@ let redisConnections = createRedisConnections();
 let workers: Array<ReturnType<typeof createWorker>["worker"]> = [];
 
 async function scheduleRecurringControlJobs() {
-  const connection = getRedisConnectionOptions();
-  const prefix = getQueuePrefix();
+  // Fetch all active (and trial) tenants to schedule cron jobs for each
+  let activeTenants: { id: string }[] = [];
+  try {
+    activeTenants = await db
+      .select({ id: tenants.id })
+      .from(tenants)
+      .where(inArray(tenants.status, ["active", "trial"]));
+  } catch {
+    // Fallback to DEFAULT_TENANT_ID if DB query fails
+    if (defaultTenantId) {
+      activeTenants = [{ id: defaultTenantId }];
+    }
+  }
 
-  const monitorQueue = new Queue("pipeline:monitor", { connection, prefix });
-  await monitorQueue.add(
-    "hourly-monitor",
-    {
-      tenantId: defaultTenantId,
-      correlationId: "cron-hourly-monitor",
-    },
-    {
-      jobId: "cron:pipeline-monitor:hourly",
-      repeat: { pattern: "0 * * * *" },
-      removeOnComplete: 50,
-      removeOnFail: 200,
-    },
-  );
+  // If DB returned nothing but we have a default, include it
+  if (activeTenants.length === 0 && defaultTenantId) {
+    activeTenants = [{ id: defaultTenantId }];
+  }
+
+  if (activeTenants.length === 0) {
+    console.warn("[enrichment] No active tenants found — cron jobs will be skipped.");
+    return;
+  }
+
+  const monitorQueue = createQueue("pipeline:monitor");
+  const dailyStatsQueue = createQueue("aggregate:daily-stats");
+  const cleanupQueue = createQueue("maintenance:import-file-cleanup");
+
+  for (const tenant of activeTenants) {
+    await monitorQueue.add(
+      "hourly-monitor",
+      {
+        tenantId: tenant.id,
+        correlationId: "cron-hourly-monitor",
+      },
+      {
+        jobId: `cron:pipeline-monitor:hourly:${tenant.id}`,
+        repeat: { pattern: "0 * * * *" },
+        removeOnComplete: 50,
+        removeOnFail: 200,
+      },
+    );
+    await dailyStatsQueue.add(
+      "daily-aggregation",
+      {
+        tenantId: tenant.id,
+        correlationId: "cron-daily-stats",
+      },
+      {
+        jobId: `cron:daily-stats:02:00:${tenant.id}`,
+        repeat: { pattern: "0 2 * * *" },
+        removeOnComplete: 50,
+        removeOnFail: 200,
+      },
+    );
+  }
+
   await monitorQueue.close();
+  await dailyStatsQueue.close();
 
-  const dailyStatsQueue = new Queue("silver:aggregate:daily-stats", { connection, prefix });
-  await dailyStatsQueue.add(
-    "daily-aggregation",
+  // Cleanup old import files once daily at 03:00 (tenant-agnostic)
+  await cleanupQueue.add(
+    "cleanup-import-files",
+    { correlationId: "cron-import-cleanup" },
     {
-      tenantId: defaultTenantId,
-      correlationId: "cron-daily-stats",
-    },
-    {
-      jobId: "cron:daily-stats:02:00",
-      repeat: { pattern: "0 2 * * *" },
-      removeOnComplete: 50,
-      removeOnFail: 200,
+      jobId: "cron:import-file-cleanup:03:00",
+      repeat: { pattern: "0 3 * * *" },
+      removeOnComplete: 10,
+      removeOnFail: 50,
     },
   );
-  await dailyStatsQueue.close();
+  await cleanupQueue.close();
 }
 
 function classifyErrorType(error: unknown): string {
   const message =
     error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
-  if (message.includes("timeout")) return "API_TIMEOUT";
-  if (message.includes("rate") && message.includes("limit")) return "RATE_LIMITED";
-  if (message.includes("not found")) return "DATA_NOT_FOUND";
-  if (message.includes("validation") || message.includes("invalid")) return "VALIDATION_ERROR";
+  const errorCode = (error as { code?: string })?.code?.toUpperCase() ?? "";
+  const statusCode =
+    (error as { status?: number; statusCode?: number })?.status ??
+    (error as { status?: number; statusCode?: number })?.statusCode ??
+    0;
+
+  if (statusCode === 429 || message.includes("too many requests")) {
+    return "RATE_LIMITED";
+  }
+  if (statusCode === 402 || message.includes("quota exceeded") || message.includes("billing")) {
+    return "QUOTA_EXCEEDED";
+  }
+  if (
+    statusCode === 401 ||
+    statusCode === 403 ||
+    message.includes("unauthorized") ||
+    message.includes("forbidden") ||
+    message.includes("api key") ||
+    message.includes("credentials")
+  ) {
+    return "AUTH_ERROR";
+  }
+  if (message.includes("circuit") && message.includes("open")) {
+    return "CIRCUIT_OPEN";
+  }
+
+  const RETRYABLE_CODES = [
+    "ECONNREFUSED",
+    "ETIMEDOUT",
+    "ENOTFOUND",
+    "ECONNRESET",
+    "EPIPE",
+    "EAI_AGAIN",
+  ];
+  if (RETRYABLE_CODES.includes(errorCode)) {
+    return "NETWORK_ERROR";
+  }
+
+  if (
+    statusCode === 408 ||
+    statusCode === 504 ||
+    message.includes("timeout") ||
+    message.includes("timed out")
+  ) {
+    return "API_TIMEOUT";
+  }
+  if (statusCode >= 500 && statusCode < 600) {
+    return "NETWORK_ERROR";
+  }
+  if (
+    message.includes("fetch failed") ||
+    message.includes("econnrefused") ||
+    message.includes("enotfound") ||
+    message.includes("etimedout") ||
+    message.includes("econnreset") ||
+    message.includes("network error")
+  ) {
+    return "NETWORK_ERROR";
+  }
+  if (statusCode === 404 || message.includes("not found")) return "DATA_NOT_FOUND";
+  if (message.includes("validation") || message.includes("invalid") || message.includes("schema"))
+    return "VALIDATION_ERROR";
   return "PERMANENT_FAILURE";
 }
 
@@ -145,17 +253,27 @@ async function enqueuePipelineError(args: {
   if (args.queueName === "pipeline:error-handler") return;
   const jobData = (args.job?.data ?? {}) as Record<string, unknown>;
   const tenantId = typeof jobData.tenantId === "string" ? jobData.tenantId : null;
-  const companyId =
-    typeof jobData.companyId === "string"
-      ? jobData.companyId
-      : typeof jobData.bronzeContactId === "string"
-        ? jobData.bronzeContactId
-        : null;
-  if (!tenantId || !companyId) return;
+  let companyId: string | null = null;
+  if (typeof jobData.companyId === "string") {
+    companyId = jobData.companyId;
+  } else if (typeof jobData.bronzeContactId === "string") {
+    companyId = jobData.bronzeContactId;
+  }
+  if (!tenantId || !companyId) {
+    console.error(
+      "[pipeline:error-handler] skipped enqueue because tenant/company context is missing",
+      {
+        sourceWorker: args.queueName,
+        sourceJobId: String(args.job?.id ?? ""),
+        tenantId,
+        companyId,
+        jobName: args.job?.name ?? null,
+      },
+    );
+    return;
+  }
 
-  const connection = getRedisConnectionOptions();
-  const prefix = getQueuePrefix();
-  const queue = new Queue("pipeline:error-handler", { connection, prefix });
+  const queue = createQueue("pipeline:error-handler");
   await queue.add("handle-error", {
     tenantId,
     companyId,
@@ -173,89 +291,92 @@ async function enqueuePipelineError(args: {
 }
 
 const processors: Partial<Record<string, (job: Job) => Promise<unknown>>> = {
-  "bronze:ingest:csv-parser": csvParserProcessor as (job: Job) => Promise<unknown>,
-  "bronze:ingest:excel-parser": excelParserProcessor as (job: Job) => Promise<unknown>,
-  "bronze:ingest:webhook": webhookReceiverProcessor as (job: Job) => Promise<unknown>,
-  "bronze:ingest:api": apiPollerProcessor as (job: Job) => Promise<unknown>,
-  "bronze:ingest:manual": manualEntryProcessor as (job: Job) => Promise<unknown>,
-  "bronze:normalize:name": nameNormalizerProcessor as (job: Job) => Promise<unknown>,
-  "bronze:normalize:email": emailNormalizerProcessor as (job: Job) => Promise<unknown>,
-  "bronze:normalize:phone": phoneNormalizerProcessor as (job: Job) => Promise<unknown>,
-  "bronze:normalize:address": addressNormalizerProcessor as (job: Job) => Promise<unknown>,
-  "silver:validate:cui-modulo11": cuiModulo11ValidatorProcessor as (job: Job) => Promise<unknown>,
-  "silver:validate:cui-anaf": cuiAnafValidatorProcessor as (job: Job) => Promise<unknown>,
-  "silver:enrich:anaf-fiscal-status": anafFiscalProcessor as (job: Job) => Promise<unknown>,
-  "silver:enrich:anaf-tva-status": anafTvaProcessor as (job: Job) => Promise<unknown>,
-  "silver:enrich:anaf-efactura": anafEfacturaProcessor as (job: Job) => Promise<unknown>,
-  "silver:enrich:anaf-datorii": anafDatoriiProcessor as (job: Job) => Promise<unknown>,
-  "silver:enrich:anaf-caen": anafCaenProcessor as (job: Job) => Promise<unknown>,
-  "silver:enrich:termene-balance": termeneBalanceProcessor as (job: Job) => Promise<unknown>,
-  "silver:enrich:termene-risk": termeneRiskProcessor as (job: Job) => Promise<unknown>,
-  "silver:enrich:termene-dosare": termeneDosareProcessor as (job: Job) => Promise<unknown>,
-  "silver:enrich:termene-actionari": termeneAssociatesProcessor as (job: Job) => Promise<unknown>,
-  "silver:enrich:onrc-data": onrcDataProcessor as (job: Job) => Promise<unknown>,
-  "silver:enrich:onrc-administratori": onrcAdministratoriProcessor as (
-    job: Job,
-  ) => Promise<unknown>,
-  "silver:enrich:onrc-sedii": onrcSediiProcessor as (job: Job) => Promise<unknown>,
-  "silver:enrich:hunter-email-finder": hunterEmailFinderProcessor as (job: Job) => Promise<unknown>,
-  "silver:enrich:hunter-verifier": hunterVerifierProcessor as (job: Job) => Promise<unknown>,
-  "silver:enrich:zerobounce-validation": zerobounceValidationProcessor as (
-    job: Job,
-  ) => Promise<unknown>,
-  "silver:enrich:email-enricher": emailEnricherProcessor as (job: Job) => Promise<unknown>,
-  "silver:enrich:email-pattern": emailPatternProcessor as (job: Job) => Promise<unknown>,
-  "silver:enrich:email-generator": emailGeneratorProcessor as (job: Job) => Promise<unknown>,
-  "silver:enrich:phone-normalizer": phoneNormalizerSilverProcessor as (
-    job: Job,
-  ) => Promise<unknown>,
-  "silver:enrich:hlr-lookup": hlrLookupProcessor as (job: Job) => Promise<unknown>,
-  "silver:enrich:carrier-detection": carrierDetectionProcessor as (job: Job) => Promise<unknown>,
-  "silver:enrich:daj-scraper": dajScraperProcessor as (job: Job) => Promise<unknown>,
-  "silver:enrich:anif-scraper": anifScraperProcessor as (job: Job) => Promise<unknown>,
-  "silver:enrich:website-finder": websiteFinderProcessor as (job: Job) => Promise<unknown>,
-  "silver:enrich:contact-page-scraper": contactPageScraperProcessor as (
-    job: Job,
-  ) => Promise<unknown>,
-  "silver:enrich:grok-structuring": grokStructuringProcessor as (job: Job) => Promise<unknown>,
-  "silver:enrich:ai-data-merger": aiDataMergerProcessor as (job: Job) => Promise<unknown>,
-  "silver:enrich:ai-confidence-scorer": aiConfidenceScorerProcessor as (
-    job: Job,
-  ) => Promise<unknown>,
-  "silver:enrich:ai-fallback": aiFallbackProcessor as (job: Job) => Promise<unknown>,
-  "silver:enrich:nominatim-geocoding": nominatimGeocodingProcessor as (
-    job: Job,
-  ) => Promise<unknown>,
-  "silver:enrich:postgis-zones": postgisZonesProcessor as (job: Job) => Promise<unknown>,
-  "silver:enrich:proximity-calculator": proximityCalculatorProcessor as (
-    job: Job,
-  ) => Promise<unknown>,
-  "silver:enrich:apia-data": apiaDataProcessor as (job: Job) => Promise<unknown>,
-  "silver:enrich:ouai-membership": ouaiMembershipProcessor as (job: Job) => Promise<unknown>,
-  "silver:enrich:cooperative-membership": cooperativeMembershipProcessor as (
-    job: Job,
-  ) => Promise<unknown>,
-  "silver:enrich:culturi-classifier": culturiClassifierProcessor as (job: Job) => Promise<unknown>,
-  "silver:enrich:animale-classifier": animaleClassifierProcessor as (job: Job) => Promise<unknown>,
-  "silver:dedup:exact-hash": dedupExactHashProcessor as (job: Job) => Promise<unknown>,
-  "silver:dedup:fuzzy-match": dedupFuzzyMatchProcessor as (job: Job) => Promise<unknown>,
-  "silver:score:completeness": scoreCompletenessProcessor as (job: Job) => Promise<unknown>,
-  "silver:score:accuracy": scoreAccuracyProcessor as (job: Job) => Promise<unknown>,
-  "silver:score:freshness": scoreFreshnessProcessor as (job: Job) => Promise<unknown>,
-  "silver:aggregate:daily-stats": dailyStatsProcessor as (job: Job) => Promise<unknown>,
-  "silver:aggregate:quality-rollup": qualityRollupProcessor as (job: Job) => Promise<unknown>,
+  "ingest:csv": csvParserProcessor as (job: Job) => Promise<unknown>,
+  "ingest:excel": excelParserProcessor as (job: Job) => Promise<unknown>,
+  "ingest:webhook": webhookReceiverProcessor as (job: Job) => Promise<unknown>,
+  "ingest:api": apiPollerProcessor as (job: Job) => Promise<unknown>,
+  "ingest:manual": manualEntryProcessor as (job: Job) => Promise<unknown>,
+  "normalize:name": nameNormalizerProcessor as (job: Job) => Promise<unknown>,
+  "normalize:email": emailNormalizerProcessor as (job: Job) => Promise<unknown>,
+  "normalize:phone": phoneNormalizerProcessor as (job: Job) => Promise<unknown>,
+  "normalize:address": addressNormalizerProcessor as (job: Job) => Promise<unknown>,
+  "enrich:bronze:anaf": anafBronzeEnricherProcessor as (job: Job) => Promise<unknown>,
+  "validate:cui:mod11": cuiModulo11ValidatorProcessor as (job: Job) => Promise<unknown>,
+  "validate:cui:anaf": cuiAnafValidatorProcessor as (job: Job) => Promise<unknown>,
+  "enrich:anaf:fiscal-status": anafFiscalProcessor as (job: Job) => Promise<unknown>,
+  "enrich:anaf:tva-status": anafTvaProcessor as (job: Job) => Promise<unknown>,
+  "enrich:anaf:efactura": anafEfacturaProcessor as (job: Job) => Promise<unknown>,
+  "enrich:anaf:datorii": anafDatoriiProcessor as (job: Job) => Promise<unknown>,
+  "enrich:anaf:caen": anafCaenProcessor as (job: Job) => Promise<unknown>,
+  "enrich:termene:balance": termeneBalanceProcessor as (job: Job) => Promise<unknown>,
+  "enrich:termene:risk": termeneRiskProcessor as (job: Job) => Promise<unknown>,
+  "enrich:termene:dosare": termeneDosareProcessor as (job: Job) => Promise<unknown>,
+  "enrich:termene:actionari": termeneAssociatesProcessor as (job: Job) => Promise<unknown>,
+  "enrich:onrc:data": onrcDataProcessor as (job: Job) => Promise<unknown>,
+  "enrich:onrc:administratori": onrcAdministratoriProcessor as (job: Job) => Promise<unknown>,
+  "enrich:onrc:sedii": onrcSediiProcessor as (job: Job) => Promise<unknown>,
+  "discover:email:hunter": hunterEmailFinderProcessor as (job: Job) => Promise<unknown>,
+  "discover:email:hunter-verify": hunterVerifierProcessor as (job: Job) => Promise<unknown>,
+  "discover:email:zerobounce": zerobounceValidationProcessor as (job: Job) => Promise<unknown>,
+  "enrich:email:enricher": emailEnricherProcessor as (job: Job) => Promise<unknown>,
+  "discover:email:pattern": emailPatternProcessor as (job: Job) => Promise<unknown>,
+  "discover:email:generate": emailGeneratorProcessor as (job: Job) => Promise<unknown>,
+  "enrich:phone:normalize": phoneNormalizerSilverProcessor as (job: Job) => Promise<unknown>,
+  "enrich:phone:hlr": hlrLookupProcessor as (job: Job) => Promise<unknown>,
+  "enrich:phone:carrier": carrierDetectionProcessor as (job: Job) => Promise<unknown>,
+  "scrape:legal:daj": dajScraperProcessor as (job: Job) => Promise<unknown>,
+  "scrape:legal:anif": anifScraperProcessor as (job: Job) => Promise<unknown>,
+  "scrape:website:finder": websiteFinderProcessor as (job: Job) => Promise<unknown>,
+  "scrape:website:contact-page": contactPageScraperProcessor as (job: Job) => Promise<unknown>,
+  "ai:structure:xai": grokStructuringProcessor as (job: Job) => Promise<unknown>,
+  "ai:merge:xai": aiDataMergerProcessor as (job: Job) => Promise<unknown>,
+  "ai:score:confidence": aiConfidenceScorerProcessor as (job: Job) => Promise<unknown>,
+  "ai:fallback": aiFallbackProcessor as (job: Job) => Promise<unknown>,
+  "geo:geocode:nominatim": nominatimGeocodingProcessor as (job: Job) => Promise<unknown>,
+  "geo:zones:postgis": postgisZonesProcessor as (job: Job) => Promise<unknown>,
+  "geo:proximity": proximityCalculatorProcessor as (job: Job) => Promise<unknown>,
+  "agri:apia": apiaDataProcessor as (job: Job) => Promise<unknown>,
+  "agri:ouai": ouaiMembershipProcessor as (job: Job) => Promise<unknown>,
+  "agri:cooperative": cooperativeMembershipProcessor as (job: Job) => Promise<unknown>,
+  "agri:culturi": culturiClassifierProcessor as (job: Job) => Promise<unknown>,
+  "agri:animale": animaleClassifierProcessor as (job: Job) => Promise<unknown>,
+  "dedup:exact": dedupExactHashProcessor as (job: Job) => Promise<unknown>,
+  "dedup:fuzzy": dedupFuzzyMatchProcessor as (job: Job) => Promise<unknown>,
+  "score:completeness": scoreCompletenessProcessor as (job: Job) => Promise<unknown>,
+  "score:accuracy": scoreAccuracyProcessor as (job: Job) => Promise<unknown>,
+  "score:freshness": scoreFreshnessProcessor as (job: Job) => Promise<unknown>,
+  "aggregate:daily-stats": dailyStatsProcessor as (job: Job) => Promise<unknown>,
+  "aggregate:quality-rollup": qualityRollupProcessor as (job: Job) => Promise<unknown>,
   "pipeline:orchestrate": pipelineOrchestratorProcessor as (job: Job) => Promise<unknown>,
-  "pipeline:promote-to-gold": promoteToGoldProcessor as (job: Job) => Promise<unknown>,
+  "pipeline:promote:gold": promoteToGoldProcessor as (job: Job) => Promise<unknown>,
   "pipeline:monitor": pipelineMonitorProcessor as (job: Job) => Promise<unknown>,
   "pipeline:error-handler": pipelineErrorHandlerProcessor as (job: Job) => Promise<unknown>,
-  "pipeline:promote-bronze-silver": promotionBronzeSilverProcessor as (
+  "pipeline:promote:bronze-silver": promotionBronzeSilverProcessor as (
     job: Job,
   ) => Promise<unknown>,
-  "pipeline:hitl-escalation": hitlEscalationProcessor as (job: Job) => Promise<unknown>,
-  "pipeline:hitl-resume-after-approval": hitlResumeAfterApprovalProcessor as (
-    job: Job,
-  ) => Promise<unknown>,
+  "hitl:escalate": hitlEscalationProcessor as (job: Job) => Promise<unknown>,
+  "hitl:resume": hitlResumeAfterApprovalProcessor as (job: Job) => Promise<unknown>,
+  "maintenance:import-file-cleanup": importFileCleanupProcessor as (job: Job) => Promise<unknown>,
 };
+
+function getWorkerOptions(
+  queueName: string,
+  queueConfig?: { concurrency?: number; rateLimit?: { max: number; duration: number } },
+) {
+  const baseOptions = {
+    concurrency: queueConfig?.concurrency ?? 2,
+    limiter: queueConfig?.rateLimit,
+  };
+
+  if (queueName === "pipeline:promote:bronze-silver") {
+    return {
+      ...baseOptions,
+      ...PROMOTE_BRONZE_SILVER_WORKER_OPTIONS,
+    };
+  }
+
+  return baseOptions;
+}
 
 function buildWorkers() {
   workers = queueNames.map((queueName) => {
@@ -290,10 +411,7 @@ function buildWorkers() {
           observeDuration(startedAt);
         }
       },
-      {
-        concurrency: queueConfig?.concurrency ?? 2,
-        limiter: queueConfig?.rateLimit,
-      },
+      getWorkerOptions(queueName, queueConfig),
     );
 
     worker.on("error", (err: Error) => {
@@ -324,15 +442,29 @@ async function reloadSecretsAndConnections() {
   loadSecretsFromFile(true);
   await stopWorkers();
   await closeRedisConnections(redisConnections);
+  await refreshDbConnection();
   redisConnections = createRedisConnections();
   buildWorkers();
 }
 
-loadSecretsFromFile();
 buildWorkers();
-void scheduleRecurringControlJobs().catch((error) => {
+try {
+  await scheduleRecurringControlJobs();
+} catch (error) {
   console.error("[cron-scheduler] failed", error);
-});
+}
+
+const monitorQueues = queueNames.map((name) => ({ name, queue: createQueue(name) }));
+const queueDepthInterval = setInterval(async () => {
+  for (const { name, queue } of monitorQueues) {
+    try {
+      const counts = await queue.getJobCounts("waiting");
+      queueDepth.set({ queue: name }, counts.waiting ?? 0);
+    } catch {
+      // silently skip unreachable queues
+    }
+  }
+}, 15_000);
 
 const server = createHealthServer(PORT, () => ({
   service: "cerniq-worker-enrichment",
@@ -342,10 +474,18 @@ const server = createHealthServer(PORT, () => ({
   timestamp: new Date().toISOString(),
 }));
 
+const stopWatchingSecrets = watchSecretsFile(SECRETS_PATH, async () => {
+  await reloadSecretsAndConnections();
+});
+
 async function shutdown() {
+  stopWatchingSecrets();
+  clearInterval(queueDepthInterval);
   server.close();
+  await Promise.all(monitorQueues.map(({ queue }) => queue.close()));
   await stopWorkers();
   await closeRedisConnections(redisConnections);
+  await closeDbConnection();
   process.exit(0);
 }
 

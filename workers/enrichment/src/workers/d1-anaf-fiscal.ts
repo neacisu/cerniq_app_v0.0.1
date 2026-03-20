@@ -1,7 +1,16 @@
 import type { Processor } from "bullmq";
-import { db, silverCompanies, silverEnrichmentLog, setSessionTenantId, sql } from "@cerniq/db";
+import {
+  db,
+  silverCompanies,
+  silverEnrichmentLog,
+  setSessionTenantId,
+  sql,
+  upsertCompanyIdentityKey,
+} from "@cerniq/db";
+import { sanitizeNrRegCom } from "@cerniq/worker-shared";
 import { fetchAnafRecordByCui } from "../lib/anaf-api-client.js";
 import { sanitizeCui } from "../lib/cui-validation.js";
+import { markEnrichmentSourceComplete } from "../lib/enrichment-completion.js";
 
 export type AnafFiscalJobData = {
   tenantId: string;
@@ -9,6 +18,22 @@ export type AnafFiscalJobData = {
   cui: string;
   correlationId?: string;
 };
+
+function extractNrRegCom(record: Record<string, unknown>): {
+  raw: string | null;
+  sanitized: string | null;
+} {
+  const raw =
+    (typeof record.nrRegCom === "string" && record.nrRegCom) ||
+    (typeof record.nr_reg_com === "string" && record.nr_reg_com) ||
+    (typeof record.nrRegComert === "string" && record.nrRegComert) ||
+    (typeof record.nr_reg_comert === "string" && record.nr_reg_comert) ||
+    (typeof record.numar_reg_comert === "string" && record.numar_reg_comert) ||
+    null;
+  // Sanitize without converting old format to canonical new format.
+  // ANAF provides old format (J09/98/2003) — we have no authority to auto-convert.
+  return { raw, sanitized: raw ? sanitizeNrRegCom(raw) : null };
+}
 
 function mapStatus(value: unknown): "ACTIVA" | "INACTIVA" | "DIZOLVARE" | "RADIATA" | "INSOLVENTA" {
   const status = String(value ?? "").toUpperCase();
@@ -39,6 +64,12 @@ export const anafFiscalProcessor: Processor<AnafFiscalJobData> = async (job) => 
       jobId: String(job.id ?? ""),
       durationMs: Date.now() - startedAt,
     });
+    await markEnrichmentSourceComplete(
+      job.data.tenantId,
+      job.data.companyId,
+      "anaf_fiscal",
+      job.data.correlationId,
+    );
     return { ok: true, status: "not_found", source: "anaf_fiscal", cleanedCui };
   }
 
@@ -46,18 +77,43 @@ export const anafFiscalProcessor: Processor<AnafFiscalJobData> = async (job) => 
   const adresa = String(record.adresa ?? "").trim() || null;
   const statusFirma = mapStatus(record.stare_inregistrare ?? record.stare);
   const codCaenPrincipal = String(record.caen ?? record.cod_CAEN ?? "").trim() || null;
+  const nrRegCom = extractNrRegCom(record as Record<string, unknown>);
 
   await db
     .update(silverCompanies)
     .set({
+      cui: cleanedCui,
       denumire: denumire ?? undefined,
       adresa: adresa ?? undefined,
       statusFirma,
       codCaenPrincipal: codCaenPrincipal ?? undefined,
+      nrRegCom: nrRegCom.sanitized ?? undefined,
+      nrRegComOriginal: nrRegCom.raw ?? undefined,
       lastEnrichedAt: new Date(),
       metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify({ anafFiscal: record })}::jsonb`,
     })
     .where(sql`${silverCompanies.id} = ${job.data.companyId}`);
+
+  await upsertCompanyIdentityKey({
+    tenantId: job.data.tenantId,
+    companyId: job.data.companyId,
+    keyType: "cui",
+    keyValueCanonical: cleanedCui,
+    keyValueOriginal: cleanedCui,
+    sourceAuthority: "anaf",
+    isAuthoritative: true,
+  });
+  if (nrRegCom.sanitized) {
+    await upsertCompanyIdentityKey({
+      tenantId: job.data.tenantId,
+      companyId: job.data.companyId,
+      keyType: "nr_reg_com",
+      // raw/sanitized value used as canonical key — no auto-conversion old→new
+      keyValueCanonical: nrRegCom.sanitized,
+      keyValueOriginal: nrRegCom.raw,
+      sourceAuthority: "anaf",
+    });
+  }
 
   await db.insert(silverEnrichmentLog).values({
     tenantId: job.data.tenantId,
@@ -67,11 +123,17 @@ export const anafFiscalProcessor: Processor<AnafFiscalJobData> = async (job) => 
     operation: "fetch",
     requestPayload: { cui: cleanedCui },
     responsePayload: record,
-    fieldsUpdated: ["denumire", "adresa", "statusFirma", "codCaenPrincipal"],
+    fieldsUpdated: ["denumire", "adresa", "statusFirma", "codCaenPrincipal", "cui", "nrRegCom"],
     correlationId: job.data.correlationId,
     jobId: String(job.id ?? ""),
     durationMs: Date.now() - startedAt,
   });
+  await markEnrichmentSourceComplete(
+    job.data.tenantId,
+    job.data.companyId,
+    "anaf_fiscal",
+    job.data.correlationId,
+  );
 
   return {
     ok: true,

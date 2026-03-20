@@ -7,32 +7,47 @@ import {
   fetchDashboardActivity,
   fetchDashboardDailyStats,
   fetchDashboardStats,
+  type DashboardActivityItem,
 } from "@/lib/etapa1-api.js";
 import { FunnelChart } from "@/components/charts/FunnelChart.js";
 import { BarTrendChart } from "@/components/charts/BarTrendChart.js";
 import { LineTrendChart } from "@/components/charts/LineTrendChart.js";
+import { GaugeChart } from "@/components/charts/GaugeChart.js";
 import { StatsGrid } from "@/components/widgets/StatsGrid.js";
 import { ActivityFeed } from "@/components/widgets/ActivityFeed.js";
+
+function getActivityStatus(item: DashboardActivityItem): "error" | "warning" | "info" {
+  const severity = (item.severity ?? "").toLowerCase();
+  if (severity.includes("critical") || severity.includes("error")) return "error";
+  if (item.type.includes("approval")) return "warning";
+  return "info";
+}
+
+function getTrendValue(status: "error" | "warning" | "info"): number {
+  if (status === "error") return 3;
+  if (status === "warning") return 2;
+  return 1;
+}
 
 const kpiTemplates = [
   {
     label: "Bronze Contacts",
     icon: "Database",
     color: "var(--color-tier-bronze)",
-    path: "/etapa1/bronze",
+    path: "/bronze",
   },
   {
     label: "Silver Companies",
     icon: "Building2",
     color: "var(--color-tier-silver)",
-    path: "/etapa1/silver",
+    path: "/silver",
   },
-  { label: "Gold Leads", icon: "Star", color: "var(--color-tier-gold)", path: "/etapa1/gold" },
+  { label: "Gold Leads", icon: "Star", color: "var(--color-tier-gold)", path: "/gold" },
   {
     label: "Queue Depth",
     icon: "TrendingUp",
     color: "var(--color-ok)",
-    path: "/etapa1/enrichment-queues",
+    path: "/enrichment/queue",
   },
 ];
 
@@ -67,16 +82,10 @@ export function Dashboard() {
       change: "",
     },
   ];
-  const activity = (activityQuery.data?.data ?? []).map((item: Record<string, unknown>) => ({
-    status:
-      String(item.severity).toLowerCase().includes("critical") ||
-      String(item.severity).toLowerCase().includes("error")
-        ? ("error" as const)
-        : String(item.type).includes("approval")
-          ? ("warning" as const)
-          : ("info" as const),
-    text: String(item.message ?? ""),
-    time: new Date(String(item.timestamp)).toLocaleString(),
+  const activity = (activityQuery.data?.data ?? []).map((item: DashboardActivityItem) => ({
+    status: getActivityStatus(item),
+    text: item.message,
+    time: new Date(item.timestamp).toLocaleString(),
   }));
   const pipeline = [
     { label: "Bronze", value: bronzeTotal, color: "var(--color-tier-bronze)" },
@@ -87,18 +96,18 @@ export function Dashboard() {
   const funnelChartData = pipeline.map((p) => ({ name: p.label, value: p.value, fill: p.color }));
   const activityTrendData = activity.slice(0, 8).map((item, i) => ({
     label: String(i + 1),
-    value: item.status === "error" ? 3 : item.status === "warning" ? 2 : 1,
+    value: getTrendValue(item.status),
   }));
-  const dailyStatsData = ((dailyStatsQuery.data?.data ?? []) as Array<Record<string, unknown>>)
-    .sort((a, b) => String(a.statDate ?? "").localeCompare(String(b.statDate ?? "")))
+  const dailyStatsData = (dailyStatsQuery.data?.data ?? [])
+    .sort((a, b) => (a.statDate ?? "").localeCompare(b.statDate ?? ""))
     .map((row) => ({
       label: row.statDate
-        ? new Date(String(row.statDate)).toLocaleDateString("ro-RO", {
+        ? new Date(row.statDate).toLocaleDateString("ro-RO", {
             day: "2-digit",
             month: "short",
           })
         : "-",
-      value: Number(row.enrichmentJobsCompleted ?? 0),
+      value: row.enrichmentJobsCompleted,
     }));
 
   if (statsQuery.isPending) {
@@ -114,7 +123,7 @@ export function Dashboard() {
   if (statsQuery.isError) {
     return (
       <PageWrapper title="Dashboard">
-        <div className="rounded-lg border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 p-4 text-sm text-[var(--color-danger)]">
+        <div className="rounded-lg border border-er/30 bg-er/10 p-4 text-sm text-er">
           Eroare la încărcarea datelor: {statsQuery.error?.message ?? "Eroare necunoscută"}
         </div>
       </PageWrapper>
@@ -154,9 +163,7 @@ export function Dashboard() {
           {dailyStatsData.length > 0 ? (
             <LineTrendChart data={dailyStatsData} />
           ) : (
-            <p className="py-4 text-center text-sm text-[var(--color-t3)]">
-              Nu sunt date disponibile.
-            </p>
+            <p className="py-4 text-center text-sm text-t3">Nu sunt date disponibile.</p>
           )}
         </CardBody>
       </Card>
@@ -168,24 +175,24 @@ export function Dashboard() {
           </CardHeader>
           <CardBody className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-[var(--color-t3)]">Bronze → Silver</span>
-              <span className="text-[var(--color-t1)]">
+              <span className="text-t3">Bronze → Silver</span>
+              <span className="text-t1">
                 {silverTotal > 0 && bronzeTotal > 0
                   ? `${Math.round((silverTotal / bronzeTotal) * 100)}%`
                   : "—"}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-[var(--color-t3)]">Silver → Gold</span>
-              <span className="text-[var(--color-t1)]">
+              <span className="text-t3">Silver → Gold</span>
+              <span className="text-t1">
                 {goldTotal > 0 && silverTotal > 0
                   ? `${Math.round((goldTotal / silverTotal) * 100)}%`
                   : "—"}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-[var(--color-t3)]">Total Pipeline</span>
-              <span className="text-[var(--color-t1)]">
+              <span className="text-t3">Total Pipeline</span>
+              <span className="text-t1">
                 {(bronzeTotal + silverTotal + goldTotal).toLocaleString("ro-RO")}
               </span>
             </div>
@@ -193,26 +200,39 @@ export function Dashboard() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>HITL Approvals</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>HITL Approvals</CardTitle>
+              <button
+                type="button"
+                onClick={() => navigate("/approvals")}
+                className="text-xs text-b5 hover:underline"
+              >
+                View all →
+              </button>
+            </div>
           </CardHeader>
           <CardBody className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-[var(--color-t3)]">Pending</span>
-              <span className="text-[var(--color-t1)]">
+            <div className="flex justify-between items-center">
+              <span className="text-t3">Pending</span>
+              <span className="flex items-center gap-1 text-t1">
+                {Number((statsData.hitl as Record<string, unknown> | undefined)?.pending ?? 0) >
+                  0 && <span className="inline-block h-2 w-2 rounded-full bg-amber-500" />}
                 {Number((statsData.hitl as Record<string, unknown> | undefined)?.pending ?? 0)}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-[var(--color-t3)]">Resolved Today</span>
-              <span className="text-[var(--color-t1)]">
+              <span className="text-t3">Resolved Today</span>
+              <span className="text-t1">
                 {Number(
                   (statsData.hitl as Record<string, unknown> | undefined)?.resolvedToday ?? 0,
                 )}
               </span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-[var(--color-t3)]">Overdue</span>
-              <span className="text-[var(--color-t1)]">
+            <div className="flex justify-between items-center">
+              <span className="text-t3">Overdue</span>
+              <span className="flex items-center gap-1 text-t1">
+                {Number((statsData.hitl as Record<string, unknown> | undefined)?.overdue ?? 0) >
+                  0 && <span className="inline-block h-2 w-2 rounded-full bg-red-500" />}
                 {Number((statsData.hitl as Record<string, unknown> | undefined)?.overdue ?? 0)}
               </span>
             </div>
@@ -223,26 +243,40 @@ export function Dashboard() {
             <CardTitle>Enrichment Quality</CardTitle>
           </CardHeader>
           <CardBody className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-[var(--color-t3)]">Avg Quality Score</span>
-              <span className="text-[var(--color-t1)]">
-                {Number(
+            <div className="flex items-center gap-4">
+              <GaugeChart
+                value={Number(
                   (statsData.quality as Record<string, unknown> | undefined)?.avgScore ?? 0,
-                ).toFixed(1)}
-                %
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-[var(--color-t3)]">Eligible for Gold</span>
-              <span className="text-[var(--color-t1)]">
-                {Number((statsData.quality as Record<string, unknown> | undefined)?.eligible ?? 0)}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-[var(--color-t3)]">Blocked</span>
-              <span className="text-[var(--color-t1)]">
-                {Number((statsData.quality as Record<string, unknown> | undefined)?.blocked ?? 0)}
-              </span>
+                )}
+                size="sm"
+              />
+              <div className="flex-1 space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-t3">Avg Quality Score</span>
+                  <span className="text-t1">
+                    {Number(
+                      (statsData.quality as Record<string, unknown> | undefined)?.avgScore ?? 0,
+                    ).toFixed(1)}
+                    %
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-t3">Eligible for Gold</span>
+                  <span className="text-t1">
+                    {Number(
+                      (statsData.quality as Record<string, unknown> | undefined)?.eligible ?? 0,
+                    )}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-t3">Blocked</span>
+                  <span className="text-t1">
+                    {Number(
+                      (statsData.quality as Record<string, unknown> | undefined)?.blocked ?? 0,
+                    )}
+                  </span>
+                </div>
+              </div>
             </div>
           </CardBody>
         </Card>

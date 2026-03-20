@@ -71,7 +71,7 @@ const enrichmentLogColumns: ColumnDef<EnrichmentLogRow>[] = [
       if (d === null || d === undefined) return "—";
       const str = typeof d === "string" ? d : JSON.stringify(d);
       return (
-        <span className="block max-w-[200px] truncate text-xs text-[var(--color-t3)]" title={str}>
+        <span className="block max-w-50 truncate text-xs text-t3" title={str}>
           {str}
         </span>
       );
@@ -96,6 +96,44 @@ export function EnrichmentLogs() {
   const rows = (response?.data ?? []) as EnrichmentLogRow[];
   const total = response?.meta?.total ?? rows.length;
 
+  let content: React.ReactNode;
+
+  if (isPending) {
+    content = (
+      <div className="flex items-center justify-center py-16">
+        <Spinner size={32} />
+      </div>
+    );
+  } else if (isError) {
+    content = (
+      <div className="rounded-lg border border-er bg-er/10 p-4 text-sm text-er">
+        Eroare la incarcarea log-urilor: {error?.message ?? "Eroare necunoscuta"}
+      </div>
+    );
+  } else if (rows.length === 0) {
+    content = (
+      <EmptyState
+        icon="FileText"
+        title="Niciun log de enrichment"
+        description={
+          entityId ? "Niciun log gasit pentru acest Entity ID." : "Nu exista log-uri de enrichment."
+        }
+      />
+    );
+  } else {
+    content = (
+      <>
+        <DataTable columns={enrichmentLogColumns} data={rows} />
+        <DataTablePagination
+          page={page}
+          pageSize={PAGE_SIZE}
+          total={total}
+          onPageChange={setPage}
+        />
+      </>
+    );
+  }
+
   return (
     <PageWrapper title="Enrichment Logs">
       <Card>
@@ -112,37 +150,7 @@ export function EnrichmentLogs() {
             />
           </div>
         </CardHeader>
-        <CardBody>
-          {isPending ? (
-            <div className="flex items-center justify-center py-16">
-              <Spinner size={32} />
-            </div>
-          ) : isError ? (
-            <div className="rounded-lg border border-[var(--color-danger)] bg-[var(--color-danger)]/10 p-4 text-sm text-[var(--color-danger)]">
-              Eroare la incarcarea log-urilor: {error?.message ?? "Eroare necunoscuta"}
-            </div>
-          ) : rows.length === 0 ? (
-            <EmptyState
-              icon="FileText"
-              title="Niciun log de enrichment"
-              description={
-                entityId
-                  ? "Niciun log gasit pentru acest Entity ID."
-                  : "Nu exista log-uri de enrichment."
-              }
-            />
-          ) : (
-            <>
-              <DataTable columns={enrichmentLogColumns} data={rows} />
-              <DataTablePagination
-                page={page}
-                pageSize={PAGE_SIZE}
-                total={total}
-                onPageChange={setPage}
-              />
-            </>
-          )}
-        </CardBody>
+        <CardBody>{content}</CardBody>
       </Card>
     </PageWrapper>
   );

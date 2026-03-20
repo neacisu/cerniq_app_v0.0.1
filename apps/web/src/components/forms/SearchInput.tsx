@@ -1,10 +1,10 @@
 import { Input } from "@/components/ui/input.js";
 
-type SearchInputProps = {
+type SearchInputProps = Readonly<{
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
-};
+}>;
 
 export function SearchInput({ value, onChange, placeholder = "Cauta..." }: SearchInputProps) {
   return (

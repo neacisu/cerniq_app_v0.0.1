@@ -59,7 +59,7 @@ frontend:
   state: TanStack Query v5, Zustand v5
 
 backend:
-  language: TypeScript 5.7+ / Node.js v24.13.1 LTS
+  language: TypeScript 5.7+ / Node.js v25.8.1 Current
   framework: Fastify v5.6.2
   orm: Drizzle ORM v0.44.0
 

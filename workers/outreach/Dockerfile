@@ -6,9 +6,9 @@
 # Reference: ADR-0015 Container Strategy
 # =============================================================================
 
-FROM node:25.6.1-alpine3.23 AS base
+FROM node:25.8.1-alpine3.23 AS base
 ENV CI=true
-RUN apk add --no-cache curl
+RUN apk upgrade --no-cache && apk add --no-cache curl
 WORKDIR /app
 
 FROM base AS deps

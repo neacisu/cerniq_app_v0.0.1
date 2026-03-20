@@ -126,7 +126,7 @@ on:
 | Aspect         | Detalii                                                            |
 | -------------- | ------------------------------------------------------------------ |
 | **Registry**   | GitHub Container Registry (ghcr.io)                                |
-| **Images**     | api, web, web-admin, worker-ai, worker-enrichment, worker-outreach |
+| **Images**     | api, web, web-admin, monitoring-api, worker-enrichment |
 | **Tags**       | `v{version}`, `sha-{commit}`                                       |
 | **Build Args** | VERSION, BUILD_SHA                                                 |
 

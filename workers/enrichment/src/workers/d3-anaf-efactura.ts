@@ -2,6 +2,7 @@ import type { Processor } from "bullmq";
 import { db, silverCompanies, silverEnrichmentLog, setSessionTenantId, sql } from "@cerniq/db";
 import { fetchAnafRecordByCui } from "../lib/anaf-api-client.js";
 import { sanitizeCui } from "../lib/cui-validation.js";
+import { markEnrichmentSourceComplete } from "../lib/enrichment-completion.js";
 
 export type AnafEfacturaJobData = {
   tenantId: string;
@@ -41,6 +42,12 @@ export const anafEfacturaProcessor: Processor<AnafEfacturaJobData> = async (job)
     jobId: String(job.id ?? ""),
     durationMs: Date.now() - startedAt,
   });
+  await markEnrichmentSourceComplete(
+    job.data.tenantId,
+    job.data.companyId,
+    "anaf_efactura",
+    job.data.correlationId,
+  );
 
   return {
     ok: true,

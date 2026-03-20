@@ -118,6 +118,9 @@ TOTAL: 5 Monolithic Workers (Scaling Vertical/Horizontal per Etapă)
 | **Tabele Silver** | `silver_*`                    | `silver_companies`, `silver_contacts`    |
 | **Tabele Gold**   | `gold_*`                      | `gold_lead_journey`, `gold_negotiations` |
 | **Cozi BullMQ**   | `{layer}:{category}:{action}` | `enrich:anaf:fiscal-status`              |
+
+> **Notă:** Lista canonică a tuturor celor 62 de cozi BullMQ este definită în `workers/shared/src/queue-registry.ts` (constanta `QUEUES`). Toate referințele din cod trebuie să utilizeze aceste constante, nu string-uri literale.
+
 | **Events**        | `{entity}.{action}.{status}`  | `lead.outreach.completed`                |
 
 ### Deprecated Terms (Alias Mapping)
@@ -219,13 +222,13 @@ const LEGACY_ALIASES = {
 
 ## 4.1 Technology Decisions
 
-### Stack Tehnologic Canonic (Ianuarie 2026)
+### Stack Tehnologic Canonic (Martie 2026)
 
 > 📖 **Sursă Canonică Versiuni:** [`master-specification.md`](../specifications/master-specification.md) § "Canonical Technology Versions"
 
 | Strat                 | Tehnologie                    | Versiune                | Justificare                                      |
 | --------------------- | ----------------------------- | ----------------------- | ------------------------------------------------ |
-| **Runtime API**       | Node.js                       | v24.13.1 LTS "Krypton"  | ESM natim, --watch, V8 Maglev JIT                |
+| **Runtime API**       | Node.js                       | v25.8.1 Current         | ESM nativ, current release line, V8 14.1         |
 | **Framework API**     | Fastify                       | v5.6.2                  | Type Provider Zod, hook-based                    |
 | **AI/Worker Runtime** | Python                        | 3.14.2 Free-Threading   | True parallelism, no GIL                         |
 | **Database**          | PostgreSQL                    | 18.1                    | JSON_TABLE, async I/O, UUIDv7                    |
@@ -472,7 +475,7 @@ const GUARDRAILS = {
 │   ┌───────────┬───────────────────┬────────────────────┬──────┬───────────────────┐ │
 │   │ Etapă     │ Approval Type     │ Trigger            │ SLA  │ Auto-Action       │ │
 │   ├───────────┼───────────────────┼────────────────────┼──────┼───────────────────┤ │
-│   │ E1        │ data_quality      │ Score < 0.7        │ 24h  │ Escalate          │ │
+│   │ E1        │ quality_review      │ Score < 0.7        │ 24h  │ Escalate          │ │
 │   │ E2        │ content_review    │ All messages       │ 8h   │ Escalate          │ │
 │   │ E3        │ pricing_approval  │ Discount > 15%     │ 4h   │ Escalate to VP    │ │
 │   │ E4        │ credit_approval   │ Risk > 0.5         │ 48h  │ Reject            │ │
@@ -1393,20 +1396,20 @@ Nivel 5 (Anexe Data Model):
 
 ## Appendix B: Technology Version Matrix
 
-| Technology                    | Version   | Release Date | EOL Date | Notes                        |
-| ----------------------------- | --------- | ------------ | -------- | ---------------------------- |
-| Node.js                       | 24.13.1   | Oct 2025     | Apr 2028 | LTS "Krypton"                |
-| Python                        | 3.14.2    | Dec 2025     | Oct 2029 | Free-Threading stable        |
-| PostgreSQL                    | 18.1      | Nov 2025     | Nov 2030 | Async I/O, UUIDv7            |
-| Redis                         | 8.4.0     | Nov 2025     | -        | Latest Stable                |
-| React                         | 19.2.3    | Dec 2025     | -        | Server Components stable     |
-| Fastify                       | 5.6.2     | Nov 2025     | -        | v4 EOL Jun 2025              |
-| Tailwind CSS                  | 4.1.x     | Jan 2025     | -        | Oxide engine                 |
-| Refine                        | 5.x       | Oct 2025     | -        | TanStack Query v5            |
-| BullMQ                        | 5.66.5    | Jan 2026     | -        | -                            |
-| Traefik                       | 3.6.6     | Dec 2025     | -        | -                            |
-| Grafana/Prometheus/Loki/Tempo | (central) | 2026         | -        | Stack shared pe orchestrator |
-| Docker Engine                 | 29.2.0    | 2026         | -        | -                            |
+| Technology | Version | Release Date | EOL Date | Notes |
+| --- | --- | --- | --- | --- |
+| Node.js | 25.8.1 | 11 Mar 2026 | — | Current release line (non-LTS) |
+| Python | 3.14.2 | Dec 2025 | Oct 2029 | Free-Threading stable |
+| PostgreSQL | 18.1 | Nov 2025 | Nov 2030 | Async I/O, UUIDv7 |
+| Redis | 8.4.0 | Nov 2025 | - | Latest Stable |
+| React | 19.2.3 | Dec 2025 | - | Server Components stable |
+| Fastify | 5.6.2 | Nov 2025 | - | v4 EOL Jun 2025 |
+| Tailwind CSS | 4.1.x | Jan 2025 | - | Oxide engine |
+| Refine | 5.x | Oct 2025 | - | TanStack Query v5 |
+| BullMQ | 5.66.5 | Jan 2026 | - | - |
+| Traefik | 3.6.6 | Dec 2025 | - | - |
+| Grafana/Prometheus/Loki/Tempo | (central) | 2026 | - | Stack shared pe orchestrator |
+| Docker Engine | 29.2.0 | 2026 | - | - |
 
 ---
 

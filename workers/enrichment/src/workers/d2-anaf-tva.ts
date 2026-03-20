@@ -2,6 +2,7 @@ import type { Processor } from "bullmq";
 import { db, silverCompanies, silverEnrichmentLog, setSessionTenantId, sql } from "@cerniq/db";
 import { fetchAnafRecordByCui } from "../lib/anaf-api-client.js";
 import { sanitizeCui } from "../lib/cui-validation.js";
+import { markEnrichmentSourceComplete } from "../lib/enrichment-completion.js";
 
 export type AnafTvaJobData = {
   tenantId: string;
@@ -30,6 +31,12 @@ export const anafTvaProcessor: Processor<AnafTvaJobData> = async (job) => {
       jobId: String(job.id ?? ""),
       durationMs: Date.now() - startedAt,
     });
+    await markEnrichmentSourceComplete(
+      job.data.tenantId,
+      job.data.companyId,
+      "anaf_tva",
+      job.data.correlationId,
+    );
     return { ok: true, status: "not_found", source: "anaf_tva", cleanedCui };
   }
 
@@ -59,6 +66,12 @@ export const anafTvaProcessor: Processor<AnafTvaJobData> = async (job) => {
     jobId: String(job.id ?? ""),
     durationMs: Date.now() - startedAt,
   });
+  await markEnrichmentSourceComplete(
+    job.data.tenantId,
+    job.data.companyId,
+    "anaf_tva",
+    job.data.correlationId,
+  );
 
   return { ok: true, status: "success", source: "anaf_tva", cleanedCui, tvaActive };
 };

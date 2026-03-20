@@ -91,10 +91,10 @@
 
 | Category        | Count | Queue Prefix              |
 | --------------- | ----- | ------------------------- |
-| A: Ingestie     | 5     | `bronze:ingest:*`         |
-| B: Normalizare  | 4     | `bronze:normalize:*`      |
-| C: Validare CUI | 2     | `bronze:validate:*`       |
-| D: ANAF         | 5     | `silver:enrich:anaf-*`    |
+| A: Ingestie     | 5     | `ingest:*`         |
+| B: Normalizare  | 4     | `normalize:*`      |
+| C: Validare CUI | 2     | `validate:cui:*`       |
+| D: ANAF         | 5     | `enrich:anaf:*`    |
 | E: Termene.ro   | 4     | `silver:enrich:termene-*` |
 | F: ONRC         | 3     | `silver:enrich:onrc-*`    |
 | G: Email        | 5     | `silver:enrich:*-email-*` |

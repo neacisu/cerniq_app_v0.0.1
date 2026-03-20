@@ -7,7 +7,7 @@ export function Toaster({ className, ...props }: ToasterProps) {
   return (
     <SonnerToaster
       theme="dark"
-      className={cn("tc [&_[data-sonner-toast]]:to [&_[data-sonner-toast]_button]:tcl", className)}
+      className={cn("tc", className)}
       toastOptions={{
         classNames: {
           toast: "to",

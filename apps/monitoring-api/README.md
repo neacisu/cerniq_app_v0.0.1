@@ -1,4 +1,4 @@
-# CERNIQ.APP — Monitoring API (Sidecar)
+# CERNIQ.APP — Monitoring API (Internal Ops Service)
 
 > **Status:** Documentație tehnică  
 > **Rol:** Observability sidecar pentru infrastructura Cerniq.app  
@@ -8,22 +8,22 @@
 
 ## 🎯 Scop
 
-`monitoring-api` este un serviciu **read-only** care agregă metrici operaționale în timp real (Redis queues, sistem, erori) și le expune către Admin UI prin REST și WebSocket, fără a impacta performanța API-ului principal.
+`monitoring-api` este un serviciu intern care agregă metrici operaționale în timp real (BullMQ queues și metrici de sistem) și expune o suprafață de observabilitate/control pentru API-ul principal.
 
 **Principii:**
 
-- Read-only (nu modifică starea business)
+- Internal-only (nu este expus direct browserului)
 - Izolat de `apps/api` (availability independent)
-- Real-time push prin WebSocket (evită polling agresiv)
+- Queue control strict operațional, fără logică business
 
 ---
 
 ## ✅ Responsabilități
 
 - Agregare **queue depth** și job counts pentru BullMQ
-- Metrici sistem (CPU, RAM, load)
+- Metrici sistem (CPU, RAM, load, uptime, hostname)
 - Health check pentru observabilitate
-- Broadcast real-time către Admin UI
+- Feed realtime intern pentru relay-ul din `apps/api`
 
 **Non-goals:**
 
@@ -37,33 +37,40 @@
 
 ### REST Endpoints
 
-| Method | Endpoint              | Descriere                  |
-| :----- | :-------------------- | :------------------------- |
-| `GET`  | `/health`             | Health check               |
-| `GET`  | `/api/queues`         | Toate queue-urile + counts |
-| `GET`  | `/api/queues/:name`   | Detalii per queue          |
-| `GET`  | `/api/system/metrics` | CPU, RAM, load             |
-| `POST` | `/api/control/pause`  | (Protected) pause queue    |
+| Method | Endpoint                   | Descriere                               |
+| :----- | :------------------------- | :-------------------------------------- |
+| `GET`  | `/health`                  | Health check                            |
+| `GET`  | `/health/live`             | Liveness                                |
+| `GET`  | `/api/queues`              | Toate queue-urile + counts              |
+| `GET`  | `/api/queues/:name`        | Detalii per queue                       |
+| `GET`  | `/api/system/metrics`      | CPU, RAM, load, uptime                  |
+| `POST` | `/api/queues/:name/pause`  | Pause queue (protected)                 |
+| `POST` | `/api/queues/:name/resume` | Resume queue (protected)                |
+| `POST` | `/api/queues/:name/drain`  | Drain queue (protected)                 |
+| `POST` | `/api/queues/:name/retry-failed` | Retry failed jobs (protected)     |
 
 ### WebSocket (`/ws/live`)
 
-Push updates către UI cu payload JSON:
+Push updates interne cu payload JSON:
 
 ```json
 {
   "type": "METRIC_UPDATE",
   "payload": {
     "timestamp": 1705312345678,
-    "queues": {
-      "outreach:whatsapp:send": {
+    "queues": [
+      {
+        "name": "pipeline:orchestrate",
         "waiting": 12,
         "active": 5,
-        "failed": 0
+        "failed": 0,
+        "throughput": 8.4,
+        "latency": 412
       }
-    },
+    ],
     "system": {
-      "cpuPercent": 45.2,
-      "memoryUsageMB": 1024
+      "hostname": "ct109",
+      "uptime": 12345
     }
   }
 }
@@ -73,21 +80,22 @@ Push updates către UI cu payload JSON:
 
 ## 🔐 Securitate
 
-- Acces **internal-only** (VPC/VPN/Admin)
+- Acces **internal-only** (backend network / VPN / admin path)
 - Endpoints de control protejate prin `x-admin-key`
-- Fără expunere publică
+- Browserul nu consumă direct `monitoring-api`; `apps/api` face relay/proxy autentificat
 
 ---
 
 ## ⚙️ Configurare (Environment Variables)
 
-| Variabilă                     | Descriere                  | Exemplu     |
-| ----------------------------- | -------------------------- | ----------- |
-| `PORT`                        | Port server                | `64000`     |
-| `REDIS_HOST`                  | Redis host                 | `redis`     |
-| `REDIS_PORT`                  | Redis port                 | `6379`      |
-| `MONITORING_POLL_INTERVAL_MS` | Interval polling           | `2000`      |
-| `ADMIN_KEY`                   | Cheie admin pentru control | `change_me` |
+| Variabilă        | Descriere                                | Exemplu                |
+| ---------------- | ---------------------------------------- | ---------------------- |
+| `PORT`           | Port server                              | `64080`                |
+| `REDIS_URL`      | Redis connection string                  | `redis://redis:6379/0` |
+| `REDIS_PREFIX`   | Prefix BullMQ canonic                    | `cerniq`               |
+| `BULLMQ_PREFIX`  | Alias compatibil pentru prefix           | `cerniq`               |
+| `ADMIN_KEY`      | Cheie admin pentru queue control intern  | `change_me`            |
+| `SECRETS_PATH`   | Fișier randat de OpenBao agent           | `/secrets/api.env`     |
 
 ---
 
@@ -101,11 +109,11 @@ Specificația completă este în:
 
 ## 🧭 Observații Operaționale
 
-- Folosește conexiune Redis **read-only** pentru metrici
+- Folosește registry-ul canonic din `@cerniq/worker-shared`
 - Evită instrumentarea queue depth direct în workers
-- Se recomandă limitare la intervale >= 2s pentru polling
+- Queue control este folosit de API-ul admin proxy, nu direct de browser
 
 ---
 
 **Owner:** DevOps/Platform Team  
-**Ultima actualizare:** 1 Februarie 2026
+**Ultima actualizare:** 12 Martie 2026

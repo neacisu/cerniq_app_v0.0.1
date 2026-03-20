@@ -30,10 +30,8 @@ export function Leads() {
             key={t}
             onClick={() => setTab(t)}
             className={cn(
-              "px-3 py-1.5 rounded-[var(--radius-md)] text-sm font-medium whitespace-nowrap",
-              tab === t
-                ? "bg-[var(--color-b5)] text-[var(--color-s950)]"
-                : "bg-[var(--color-s800)] text-[var(--color-t2)] hover:bg-[var(--color-s700)]",
+              "px-3 py-1.5 rounded-md text-sm font-medium whitespace-nowrap",
+              tab === t ? "bg-b5 text-s950" : "bg-s800 text-t2 hover:bg-s700",
             )}
           >
             {t}
@@ -48,7 +46,7 @@ export function Leads() {
         <CardBody className="p-0">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[var(--color-s700)] text-left text-[var(--color-t3)]">
+              <tr className="border-b border-s700 text-left text-t3">
                 <th className="px-5 py-3">Company</th>
                 <th className="px-5 py-3">Contact</th>
                 <th className="px-5 py-3">Status</th>
@@ -60,12 +58,9 @@ export function Leads() {
             </thead>
             <tbody>
               {filteredLeads.map((l) => (
-                <tr
-                  key={l.id}
-                  className="border-b border-[var(--color-s700)] last:border-0 hover:bg-[var(--color-s800)]/50"
-                >
-                  <td className="px-5 py-3 font-medium text-[var(--color-t1)]">{l.company}</td>
-                  <td className="px-5 py-3 text-[var(--color-t2)]">{l.contact}</td>
+                <tr key={l.id} className="border-b border-s700 last:border-0 hover:bg-s800/50">
+                  <td className="px-5 py-3 font-medium text-t1">{l.company}</td>
+                  <td className="px-5 py-3 text-t2">{l.contact}</td>
                   <td className="px-5 py-3">
                     <SBadge status={l.status} />
                   </td>
@@ -76,7 +71,7 @@ export function Leads() {
                     <ProgressBar value={l.sentiment * 100} />
                   </td>
                   <td className="px-5 py-3">{l.score}</td>
-                  <td className="px-5 py-3 text-[var(--color-t3)]">{l.timeAgo}</td>
+                  <td className="px-5 py-3 text-t3">{l.timeAgo}</td>
                 </tr>
               ))}
             </tbody>

@@ -5,6 +5,9 @@ import {
   type BronzeNormalizationJobData,
   triggerCuiValidationIfPossible,
 } from "./normalization-utils.js";
+import { jobsProcessed, jobDuration, jobErrors } from "../lib/worker-metrics.js";
+import { classifyAndRethrow } from "../lib/error-classification.js";
+import { stripDiacritics } from "../lib/diacritics.js";
 
 export type NameNormalizerJobData = BronzeNormalizationJobData;
 
@@ -28,7 +31,17 @@ const FORMA_JURIDICA_MAP: Record<string, string> = {
   OUAI: "OUAI",
 };
 
-const NOISE_WORDS = ["SOCIETATEA", "COMERCIALA", "FIRMA", "COMPANIA", "INTREPRINDEREA", "AGRICOLA"];
+const NOISE_WORDS = [
+  "SOCIETATEA",
+  "COMERCIALA",
+  "FIRMA",
+  "COMPANIA",
+  "INTREPRINDEREA",
+  "AGRICOLA",
+  "ÎNTREPRINDEREA",
+  "COMERCIALĂ",
+  "AGRICOLĂ",
+];
 
 function titleCase(input: string): string {
   return input
@@ -39,76 +52,89 @@ function titleCase(input: string): string {
     .join(" ");
 }
 
-function pickRawName(payload: Record<string, unknown>): string | null {
-  const aliases = ["companyName", "denumire", "nume_firma", "name", "company", "company_name"];
-  for (const key of aliases) {
-    const value = payload[key];
-    if (typeof value === "string" && value.trim().length > 0) {
-      return value.trim();
-    }
-  }
-  return null;
+function trimEdges(str: string, shouldTrim: (ch: string) => boolean): string {
+  let start = 0;
+  while (start < str.length && shouldTrim(str[start])) start++;
+  let end = str.length;
+  while (end > start && shouldTrim(str[end - 1])) end--;
+  return str.slice(start, end);
 }
 
+const isNonAlphanumeric = (ch: string) => !(ch >= "A" && ch <= "Z") && !(ch >= "0" && ch <= "9");
+
+const isEdgePunctuation = (ch: string) =>
+  ch === "-" || ch === "," || ch === "." || ch === " " || ch === "\t" || ch === "\n" || ch === "\r";
+
 export const nameNormalizerProcessor: Processor<NameNormalizerJobData> = async (job) => {
-  const contact = await getBronzeContactForTenant(job.data.tenantId, job.data.bronzeContactId);
-  const rawPayload = contact.rawPayload as Record<string, unknown>;
-  const rawName = pickRawName(rawPayload);
+  const startedAt = Date.now();
+  try {
+    const contact = await getBronzeContactForTenant(job.data.tenantId, job.data.bronzeContactId);
+    const rawName = typeof contact.extractedName === "string" ? contact.extractedName : null;
 
-  if (!rawName) {
-    return { ok: true, status: "skipped", reason: "empty_name" };
-  }
-
-  let normalized = rawName.toUpperCase().replace(/\s+/g, " ").trim();
-  normalized = normalized.replace(/^[^A-Z0-9]+|[^A-Z0-9]+$/g, "");
-
-  let formaJuridica: string | null = null;
-  for (const [pattern, forma] of Object.entries(FORMA_JURIDICA_MAP)) {
-    const regex = new RegExp(`\\b${pattern.replace(/\./g, "\\.")}\\b`, "i");
-    if (regex.test(normalized)) {
-      formaJuridica = forma;
-      normalized = normalized.replace(regex, "").trim();
-      break;
+    if (!rawName) {
+      return { ok: true, status: "skipped", reason: "empty_name" };
     }
-  }
 
-  for (const word of NOISE_WORDS) {
-    normalized = normalized.replace(new RegExp(`\\b${word}\\b`, "g"), "");
-  }
+    let normalized = rawName.toUpperCase().replaceAll(/\s+/g, " ").trim();
+    // GAP-B10: Strip diacritics for consistent matching
+    normalized = stripDiacritics(normalized);
+    normalized = trimEdges(normalized, isNonAlphanumeric);
 
-  normalized = normalized
-    .replace(/\s+/g, " ")
-    .replace(/^[-,.\s]+|[-,.\s]+$/g, "")
-    .trim();
-  if (formaJuridica) {
-    normalized = `${normalized} ${formaJuridica}`.trim();
-  }
+    let formaJuridica: string | null = null;
+    for (const [pattern, forma] of Object.entries(FORMA_JURIDICA_MAP)) {
+      const escaped = pattern.replaceAll(".", String.raw`\.`);
+      const regex = new RegExp(String.raw`\b${escaped}\b`, "i");
+      if (regex.test(normalized)) {
+        formaJuridica = forma;
+        normalized = normalized.replace(regex, "").trim();
+        break;
+      }
+    }
 
-  const cui = typeof rawPayload.cui === "string" ? rawPayload.cui : null;
-  await markNormalizationResult(
-    job.data.tenantId,
-    job.data.bronzeContactId,
-    { extractedName: titleCase(normalized), extractedCui: cui },
-    {
-      nameNormalization: {
-        original: rawName,
-        normalized,
-        formaJuridica,
-        normalizedAt: new Date().toISOString(),
+    for (const word of NOISE_WORDS) {
+      normalized = normalized.replaceAll(new RegExp(String.raw`\b${word}\b`, "g"), "");
+    }
+
+    normalized = trimEdges(normalized.replaceAll(/\s+/g, " "), isEdgePunctuation).trim();
+    if (formaJuridica) {
+      normalized = `${normalized} ${formaJuridica}`.trim();
+    }
+
+    const cui = typeof contact.extractedCui === "string" ? contact.extractedCui : null;
+    const extractedNrRegCom =
+      typeof contact.extractedNrRegCom === "string" ? contact.extractedNrRegCom : null;
+    await markNormalizationResult(
+      job.data.tenantId,
+      job.data.bronzeContactId,
+      { extractedName: titleCase(normalized), extractedCui: cui },
+      {
+        nameNormalization: {
+          original: rawName,
+          normalized,
+          formaJuridica,
+          normalizedAt: new Date().toISOString(),
+        },
       },
-    },
-  );
-  await triggerCuiValidationIfPossible(
-    job.data.tenantId,
-    job.data.bronzeContactId,
-    cui,
-    job.data.correlationId,
-  );
+    );
+    await triggerCuiValidationIfPossible(
+      job.data.tenantId,
+      job.data.bronzeContactId,
+      cui,
+      extractedNrRegCom,
+      job.data.correlationId,
+    );
 
-  return {
-    ok: true,
-    status: "success",
-    normalized,
-    formaJuridica,
-  };
+    return {
+      ok: true,
+      status: "success",
+      normalized,
+      formaJuridica,
+    };
+  } catch (error) {
+    jobErrors.add(1, { worker: "b1-name-normalizer" });
+    classifyAndRethrow(error);
+  } finally {
+    jobsProcessed.add(1, { worker: "b1-name-normalizer" });
+    jobDuration.record(Date.now() - startedAt, { worker: "b1-name-normalizer" });
+  }
 };

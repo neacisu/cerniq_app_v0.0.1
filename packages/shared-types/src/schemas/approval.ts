@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+const uuidSchema = z.uuid();
+
 export const ApprovalUrgencySchema = z.enum(["low", "medium", "high", "critical"]);
 export type ApprovalUrgency = z.infer<typeof ApprovalUrgencySchema>;
 
@@ -20,6 +22,7 @@ export type ApprovalPriority = z.infer<typeof ApprovalPrioritySchema>;
 export const ApprovalTypeSchema = z.enum([
   "dedup_review",
   "quality_review",
+  "identity_conflict",
   "ai_structuring_review",
   "ai_merge_review",
   "low_confidence_review",
@@ -33,8 +36,8 @@ export const ApprovalDecisionSchema = z.enum(["approve", "reject", "merge", "ski
 export type ApprovalDecision = z.infer<typeof ApprovalDecisionSchema>;
 
 export const ApprovalTaskSchema = z.object({
-  id: z.string().uuid(),
-  tenantId: z.string().uuid(),
+  id: uuidSchema,
+  tenantId: uuidSchema,
   type: z.string().min(1),
   approvalType: ApprovalTypeSchema,
   status: ApprovalStatusSchema.default("pending"),
@@ -42,17 +45,17 @@ export const ApprovalTaskSchema = z.object({
   priorityLevel: ApprovalPrioritySchema.default("normal"),
   pipelineStage: z.string().default("E1"),
   entityType: z.string().min(1),
-  entityId: z.string().uuid(),
+  entityId: uuidSchema,
   title: z.string().min(1).max(500),
   description: z.string().optional(),
   aiConfidence: z.number().min(0).max(1).optional(),
   aiRecommendation: z.enum(["approve", "reject", "review"]).optional(),
   aiReasoning: z.string().optional(),
-  requestedBy: z.string().uuid(),
-  createdBy: z.string().uuid().optional(),
-  assignedTo: z.string().uuid().optional(),
+  requestedBy: uuidSchema,
+  createdBy: uuidSchema.optional(),
+  assignedTo: uuidSchema.optional(),
   assignedAt: z.coerce.date().optional(),
-  decidedBy: z.string().uuid().optional(),
+  decidedBy: uuidSchema.optional(),
   decidedAt: z.coerce.date().optional(),
   decision: z.string().optional(),
   decisionReason: z.string().optional(),
@@ -60,7 +63,7 @@ export const ApprovalTaskSchema = z.object({
   dueAt: z.coerce.date().optional(),
   escalationLevel: z.number().int().default(0),
   escalatedAt: z.coerce.date().optional(),
-  escalatedTo: z.string().uuid().optional(),
+  escalatedTo: uuidSchema.optional(),
   blockedJobId: z.string().optional(),
   blockedQueueName: z.string().optional(),
   expiresAt: z.coerce.date().optional(),

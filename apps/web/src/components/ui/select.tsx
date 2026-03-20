@@ -25,7 +25,7 @@ export function Select({
   disabled,
   error,
   className,
-}: SelectProps) {
+}: Readonly<SelectProps>) {
   return (
     <SelectPrimitive.Root
       value={value ?? undefined}
@@ -35,7 +35,7 @@ export function Select({
       <SelectPrimitive.Trigger
         className={cn(
           "sel w-full flex items-center justify-between gap-2",
-          error && "border-[var(--color-er)]",
+          error && "border-er",
           className,
         )}
         aria-invalid={error}
@@ -47,7 +47,7 @@ export function Select({
       </SelectPrimitive.Trigger>
       <SelectPrimitive.Portal>
         <SelectPrimitive.Content
-          className="z-50 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-lg border border-[oklch(0.22_0.018_255/60%)] bg-[oklch(0.12_0.018_255/95%)] backdrop-blur-xl shadow-lg"
+          className="z-50 min-w-(--radix-select-trigger-width) overflow-hidden rounded-lg border border-[oklch(0.22_0.018_255/60%)] bg-[oklch(0.12_0.018_255/95%)] backdrop-blur-xl shadow-lg"
           position="popper"
           sideOffset={4}
         >
@@ -56,7 +56,7 @@ export function Select({
               <SelectPrimitive.Item
                 key={opt.value}
                 value={opt.value}
-                className="relative flex cursor-default select-none items-center rounded-md py-2 pl-3 pr-8 text-sm outline-none data-[highlighted]:bg-[oklch(0.2_0.018_255)] data-[state=checked]:bg-[oklch(0.7_0.18_72/14%)]"
+                className="relative flex cursor-default select-none items-center rounded-md py-2 pl-3 pr-8 text-sm outline-none data-highlighted:bg-[oklch(0.2_0.018_255)] data-[state=checked]:bg-[oklch(0.7_0.18_72/14%)]"
               >
                 <SelectPrimitive.ItemText>{opt.label}</SelectPrimitive.ItemText>
                 <SelectPrimitive.ItemIndicator className="absolute right-2 inline-flex items-center">

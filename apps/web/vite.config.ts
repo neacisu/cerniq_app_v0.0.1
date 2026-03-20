@@ -22,10 +22,6 @@ export default defineConfig({
     host: true,
     allowedHosts: ["dev.cerniq.app", "localhost"],
     proxy: {
-      "/auth": {
-        target: process.env.VITE_API_PROXY_TARGET ?? "http://localhost:64010",
-        changeOrigin: true,
-      },
       "/health": {
         target: process.env.VITE_API_PROXY_TARGET ?? "http://localhost:64010",
         changeOrigin: true,

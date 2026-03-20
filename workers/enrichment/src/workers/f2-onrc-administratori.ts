@@ -3,6 +3,7 @@ import { db, silverCompanies, silverEnrichmentLog, setSessionTenantId, sql } fro
 import { sanitizeCui } from "../lib/cui-validation.js";
 import { getOnrcAdministratori } from "../lib/onrc-api-client.js";
 import { upsertSilverContact } from "./company-enrichment-utils.js";
+import { markEnrichmentSourceComplete } from "../lib/enrichment-completion.js";
 
 export type OnrcAdministratoriJobData = {
   tenantId: string;
@@ -59,6 +60,12 @@ export const onrcAdministratoriProcessor: Processor<OnrcAdministratoriJobData> =
     jobId: String(job.id ?? ""),
     durationMs: Date.now() - startedAt,
   });
+  await markEnrichmentSourceComplete(
+    job.data.tenantId,
+    job.data.companyId,
+    "onrc_administratori",
+    job.data.correlationId,
+  );
 
   return {
     ok: true,

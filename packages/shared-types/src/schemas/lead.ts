@@ -3,10 +3,10 @@ import { z } from "zod";
 export const LeadScoreSchema = z.number().min(0).max(100);
 
 export const LeadSchema = z.object({
-  id: z.string().uuid(),
-  tenantId: z.string().uuid(),
-  companyId: z.string().uuid(),
-  contactId: z.string().uuid().optional(),
+  id: z.uuid(),
+  tenantId: z.uuid(),
+  companyId: z.uuid(),
+  contactId: z.uuid().optional(),
   score: LeadScoreSchema.default(0),
   status: z.enum([
     "cold",

@@ -9,12 +9,23 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "jsx": "react-jsx",
-    "types": ["vitest/globals", "node"],
+    "types": ["vitest/globals", "node", "@testing-library/jest-dom"],
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
     "noEmit": true,
-    "baseUrl": ".",
-    "paths": { "@/*": ["./apps/web/src/*"] }
+    "paths": {
+      "@/*": ["./apps/web/src/*"],
+      "@cerniq/db": ["./packages/db/src/index.ts"],
+      "@cerniq/db/*": ["./packages/db/src/*"],
+      "@cerniq/shared-types": ["./packages/shared-types/src/index.ts"],
+      "@cerniq/shared-types/*": ["./packages/shared-types/src/*"],
+      "@cerniq/observability": ["./packages/observability/src/index.ts"],
+      "@cerniq/observability/*": ["./packages/observability/src/*"],
+      "@cerniq/config": ["./packages/config/index.ts"],
+      "@cerniq/config/*": ["./packages/config/*"],
+      "@cerniq/worker-shared": ["./workers/shared/src/index.ts"],
+      "@cerniq/worker-shared/*": ["./workers/shared/src/*"]
+    }
   },
   "include": [
     "tests/**/*.ts",

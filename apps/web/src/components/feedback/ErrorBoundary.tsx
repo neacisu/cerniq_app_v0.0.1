@@ -1,11 +1,11 @@
 import { Component, type ReactNode, type ErrorInfo } from "react";
 
 interface Props {
-  children: ReactNode;
+  readonly children: ReactNode;
 }
 interface State {
-  hasError: boolean;
-  error?: Error;
+  readonly hasError: boolean;
+  readonly error?: Error;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
@@ -22,12 +22,12 @@ export class ErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex flex-col items-center justify-center min-h-[300px] p-8 text-center">
-          <h2 className="text-xl font-bold text-[var(--color-er)] mb-2">Something went wrong</h2>
-          <p className="text-sm text-[var(--color-t3)] mb-4">{this.state.error?.message}</p>
+        <div className="flex flex-col items-center justify-center min-h-75 p-8 text-center">
+          <h2 className="text-xl font-bold text-er mb-2">Something went wrong</h2>
+          <p className="text-sm text-t3 mb-4">{this.state.error?.message}</p>
           <button
             onClick={() => this.setState({ hasError: false })}
-            className="px-4 py-2 text-sm rounded-[var(--radius-md)] bg-[var(--color-b5)] text-[var(--color-s950)]"
+            className="px-4 py-2 text-sm rounded-md bg-b5 text-s950"
           >
             Try again
           </button>

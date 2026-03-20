@@ -1,6 +1,5 @@
-import { Queue } from "bullmq";
 import { bronzeContacts, db, setSessionTenantId, sql } from "@cerniq/db";
-import { getQueuePrefix, getRedisConnectionOptions } from "@cerniq/worker-shared";
+import { createQueue, QUEUES } from "@cerniq/worker-shared";
 
 export type BronzeNormalizationJobData = {
   tenantId: string;
@@ -45,12 +44,51 @@ export async function triggerCuiValidationIfPossible(
   tenantId: string,
   bronzeContactId: string,
   cui: string | null | undefined,
+  extractedNrRegCom: string | null | undefined,
   correlationId: string,
 ) {
-  if (!cui) return;
-  const connection = getRedisConnectionOptions();
-  const prefix = getQueuePrefix();
-  const queue = new Queue("silver:validate:cui-modulo11", { connection, prefix });
+  // Gate: wait for b5-anaf-bronze-enricher to finish before proceeding
+  const contact = await getBronzeContactForTenant(tenantId, bronzeContactId);
+  const meta = (contact.metadata ?? {}) as Record<string, unknown>;
+  if (meta.anafBronzeEnrichmentStatus === "pending") {
+    return; // b5 will call triggerCuiValidationIfPossible when done
+  }
+
+  if (!cui) {
+    if (!extractedNrRegCom) return;
+    // GAP-B3: Flag cuiValidated = false for NrRegCom-only promotions
+    await setSessionTenantId(tenantId);
+    await db
+      .update(bronzeContacts)
+      .set({
+        metadata: sql`COALESCE(${bronzeContacts.metadata}, '{}'::jsonb) || ${JSON.stringify({
+          cuiValidation: {
+            status: "skipped",
+            reason: "nrregcom_only",
+            validatedAt: new Date().toISOString(),
+          },
+        })}::jsonb`,
+      })
+      .where(sql`${bronzeContacts.id} = ${bronzeContactId}`);
+    const promotionQueue = createQueue(QUEUES.PIPELINE_PROMOTE_BRONZE_SILVER);
+    await promotionQueue.add(
+      `promote-nrc-${bronzeContactId}`,
+      {
+        tenantId,
+        bronzeContactId,
+        correlationId,
+      },
+      {
+        jobId: `promote-nrc-${bronzeContactId}`,
+        attempts: 2,
+        backoff: { type: "fixed", delay: 500 },
+      },
+    );
+    await promotionQueue.close();
+    return;
+  }
+
+  const queue = createQueue(QUEUES.VALIDATE_CUI_MOD11);
   await queue.add(
     "validate-cui",
     {
@@ -60,7 +98,7 @@ export async function triggerCuiValidationIfPossible(
       correlationId,
     },
     {
-      jobId: `c1:${bronzeContactId}:${Date.now()}`,
+      jobId: `c1-${bronzeContactId}`,
       attempts: 2,
       backoff: { type: "fixed", delay: 500 },
     },

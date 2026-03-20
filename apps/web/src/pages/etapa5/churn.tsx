@@ -36,9 +36,9 @@ const profiles = [
 ];
 
 const borderMap = {
-  high: "border-[var(--color-er)]",
-  medium: "border-[var(--color-wa)]",
-  low: "border-[var(--color-ok)]",
+  high: "border-er",
+  medium: "border-wa",
+  low: "border-ok",
 };
 
 export function Churn() {
@@ -54,7 +54,7 @@ export function Churn() {
         {profiles.map((p) => (
           <Card key={p.company} className={cn("border-l-4", borderMap[p.severity])}>
             <CardBody className="space-y-3">
-              <div className="font-semibold text-[var(--color-t1)]">{p.company}</div>
+              <div className="font-semibold text-t1">{p.company}</div>
               <ProgressBar value={p.risk} />
               <div className="flex flex-wrap gap-1">
                 {p.signals.map((s) => (
@@ -63,7 +63,7 @@ export function Churn() {
                   </Badge>
                 ))}
               </div>
-              <p className="text-xs text-[var(--color-t3)]">{p.action}</p>
+              <p className="text-xs text-t3">{p.action}</p>
               <div className="flex gap-2 pt-1">
                 <Button size="sm" variant="brand">
                   Win-Back

@@ -11,9 +11,9 @@
 ## Configurare
 
 ```typescript
-// Worker: bronze:ingest:csv-parser
+// Worker: ingest:csv
 const A1_CONFIG: WorkerConfig = {
-  queueName: "bronze:ingest:csv-parser",
+  queueName: "ingest:csv",
   concurrency: 5,
   attempts: 3,
   backoff: { type: "exponential", delay: 1000 },
@@ -55,7 +55,7 @@ import { logger } from "@cerniq/logger";
 import { metrics } from "@cerniq/metrics";
 
 const csvParserWorker = new Worker<CsvParserJobData>(
-  "bronze:ingest:csv-parser",
+  "ingest:csv",
   async (job: Job<CsvParserJobData>) => {
     const { tenantId, batchId, filePath, fileName, columnMapping, correlationId } = job.data;
     const log = logger.child({ jobId: job.id, correlationId, batchId });
@@ -225,7 +225,7 @@ export { csvParserWorker };
 
 | Event       | Target Queue             | Condition          |
 | ----------- | ------------------------ | ------------------ |
-| `completed` | `bronze:normalize:batch` | Always             |
+| `completed` | `normalize:name` | Always             |
 | `failed`    | `pipeline:error:handler` | After max attempts |
 
 ---
@@ -236,7 +236,7 @@ export { csvParserWorker };
 
 ```typescript
 const A2_CONFIG: WorkerConfig = {
-  queueName: "bronze:ingest:excel-parser",
+  queueName: "ingest:excel",
   concurrency: 3,
   attempts: 3,
   backoff: { type: "exponential", delay: 1000 },
@@ -273,7 +273,7 @@ import { db, bronzeContacts } from "@cerniq/db";
 import { logger } from "@cerniq/logger";
 
 const excelParserWorker = new Worker<ExcelParserJobData>(
-  "bronze:ingest:excel-parser",
+  "ingest:excel",
   async (job: Job<ExcelParserJobData>) => {
     const { tenantId, batchId, filePath, sheetName, sheetIndex, headerRow, columnMapping } =
       job.data;
@@ -372,7 +372,7 @@ export { excelParserWorker };
 
 ```typescript
 const A3_CONFIG: WorkerConfig = {
-  queueName: "bronze:ingest:webhook",
+  queueName: "ingest:webhook",
   concurrency: 20,
   attempts: 3,
   backoff: { type: "fixed", delay: 1000 },
@@ -406,7 +406,7 @@ import { logger } from "@cerniq/logger";
 import { verifyWebhookSignature } from "@cerniq/security";
 
 const webhookHandlerWorker = new Worker<WebhookJobData>(
-  "bronze:ingest:webhook",
+  "ingest:webhook",
   async (job: Job<WebhookJobData>) => {
     const { tenantId, webhookId, webhookType, payload, headers, sourceIp } = job.data;
     const log = logger.child({ jobId: job.id, webhookId, webhookType });
@@ -506,7 +506,7 @@ export { webhookHandlerWorker };
 
 ```typescript
 const A4_CONFIG: WorkerConfig = {
-  queueName: "bronze:ingest:manual",
+  queueName: "ingest:manual",
   concurrency: 10,
   attempts: 2,
   timeout: 10000,
@@ -531,7 +531,7 @@ interface ManualEntryJobData {
 // /apps/workers/src/bronze/manual-entry.worker.ts
 
 const manualEntryWorker = new Worker<ManualEntryJobData>(
-  "bronze:ingest:manual",
+  "ingest:manual",
   async (job: Job<ManualEntryJobData>) => {
     const { tenantId, userId, formData, formId } = job.data;
     const log = logger.child({ jobId: job.id, userId });
@@ -589,7 +589,7 @@ export { manualEntryWorker };
 
 ```typescript
 const A5_CONFIG: WorkerConfig = {
-  queueName: "bronze:ingest:api",
+  queueName: "ingest:api",
   concurrency: 5,
   attempts: 3,
   backoff: { type: "exponential", delay: 2000 },
@@ -623,7 +623,7 @@ interface ApiIngestJobData {
 // /apps/workers/src/bronze/api-ingest.worker.ts
 
 const apiIngestWorker = new Worker<ApiIngestJobData>(
-  "bronze:ingest:api",
+  "ingest:api",
   async (job: Job<ApiIngestJobData>) => {
     const { tenantId, apiSource, endpoint, method, params, body, pagination } = job.data;
     const log = logger.child({ jobId: job.id, apiSource });
@@ -676,7 +676,7 @@ const apiIngestWorker = new Worker<ApiIngestJobData>(
 
     // Schedule next page if pagination
     if (pagination && data.hasMore) {
-      const queue = new Queue("bronze:ingest:api", {
+      const queue = new Queue("ingest:api", {
         connection: workerConnection,
       });
       await queue.add(`api-${apiSource}-page-${pagination.page + 1}`, {
@@ -713,20 +713,20 @@ export { apiIngestWorker };
 
 | Worker              | Queue                        | Concurrency | Rate Limit | Timeout |
 | ------------------- | ---------------------------- | ----------- | ---------- | ------- |
-| A.1 CSV Parser      | `bronze:ingest:csv-parser`   | 5           | -          | 5m      |
-| A.2 Excel Parser    | `bronze:ingest:excel-parser` | 3           | -          | 10m     |
-| A.3 Webhook Handler | `bronze:ingest:webhook`      | 20          | -          | 30s     |
-| A.4 Manual Entry    | `bronze:ingest:manual`       | 10          | -          | 10s     |
-| A.5 API Ingest      | `bronze:ingest:api`          | 5           | 10/s       | 2m      |
+| A.1 CSV Parser      | `ingest:csv`   | 5           | -          | 5m      |
+| A.2 Excel Parser    | `ingest:excel` | 3           | -          | 10m     |
+| A.3 Webhook Handler | `ingest:webhook`      | 20          | -          | 30s     |
+| A.4 Manual Entry    | `ingest:manual`       | 10          | -          | 10s     |
+| A.5 API Ingest      | `ingest:api`          | 5           | 10/s       | 2m      |
 
 ## Trigger Map
 
 ```
-A.1 completed → bronze:normalize:batch
-A.2 completed → bronze:normalize:batch
-A.3 completed → bronze:normalize:single (per contact)
-A.4 completed → bronze:normalize:single
-A.5 completed → bronze:normalize:batch
+A.1 completed → normalize:name (triggered via pipeline)
+A.2 completed → normalize:name (triggered via pipeline)
+A.3 completed → normalize:name (triggered via pipeline, per contact)
+A.4 completed → normalize:name (triggered via pipeline)
+A.5 completed → normalize:name (triggered via pipeline)
 ```
 
 ---

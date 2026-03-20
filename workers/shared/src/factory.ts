@@ -1,5 +1,5 @@
-import { Worker } from "bullmq";
-import type { Processor, WorkerOptions } from "bullmq";
+import { Queue, Worker } from "bullmq";
+import type { Processor, QueueOptions, WorkerOptions } from "bullmq";
 import { getQueuePrefix, getRedisConnectionOptions } from "./redis.js";
 import {
   jobDurationSeconds,
@@ -16,12 +16,34 @@ const DEFAULT_WORKER_OPTIONS: Partial<WorkerOptions> = {
   lockDuration: 60000,
 };
 
+const BULLMQ_QUEUE_SEPARATOR = "__";
+
+export const DEFAULT_JOB_OPTIONS = {
+  attempts: 3,
+  backoff: { type: "exponential" as const, delay: 1000 },
+  removeOnComplete: { count: 1000, age: 24 * 3600 },
+  removeOnFail: { count: 5000, age: 7 * 24 * 3600 },
+};
+
+export function toBullMqQueueName(name: string): string {
+  return name.replaceAll(":", BULLMQ_QUEUE_SEPARATOR);
+}
+
+export function createQueue<T = unknown>(name: string, options?: Partial<QueueOptions>) {
+  return new Queue<T>(toBullMqQueueName(name), {
+    connection: getRedisConnectionOptions(),
+    prefix: getQueuePrefix(),
+    defaultJobOptions: DEFAULT_JOB_OPTIONS,
+    ...options,
+  });
+}
+
 export function createWorker<T = unknown>(
   name: string,
   processor: Processor<T>,
   options?: Partial<WorkerOptions>,
 ) {
-  const worker = new Worker<T>(name, processor, {
+  const worker = new Worker<T>(toBullMqQueueName(name), processor, {
     connection: getRedisConnectionOptions(),
     prefix: getQueuePrefix(),
     ...DEFAULT_WORKER_OPTIONS,

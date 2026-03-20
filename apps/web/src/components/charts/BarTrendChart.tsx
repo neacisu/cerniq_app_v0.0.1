@@ -3,7 +3,7 @@ import { Bar, BarChart, CartesianGrid, Tooltip, XAxis, YAxis } from "recharts";
 
 type BarPoint = { label: string; value: number };
 
-export function BarTrendChart({ data }: { data: BarPoint[] }) {
+export function BarTrendChart({ data }: Readonly<{ data: readonly BarPoint[] }>) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [size, setSize] = useState({ width: 0, height: 240 });
 
@@ -28,7 +28,7 @@ export function BarTrendChart({ data }: { data: BarPoint[] }) {
   }, []);
 
   return (
-    <div ref={containerRef} className="h-[240px] min-h-[240px] w-full min-w-0">
+    <div ref={containerRef} className="h-60 min-h-60 w-full min-w-0">
       {size.width > 0 ? (
         <BarChart width={size.width} height={size.height} data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--color-s700)" />

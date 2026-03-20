@@ -105,9 +105,17 @@ describe("Card Component", () => {
 });
 
 describe("Utility Components", () => {
-  it("renders Spinner", () => {
-    render(<Spinner />);
-    expect(screen.getByRole("status")).toBeInTheDocument();
+  it("renders Spinner as an accessible loading output", () => {
+    const { container } = render(<Spinner />);
+
+    expect(container.querySelector("output")).toBeInTheDocument();
+    expect(screen.getByText("Loading")).toHaveClass("sr-only");
+  });
+
+  it("allows a custom loading label", () => {
+    render(<Spinner label="Signing in" />);
+
+    expect(screen.getByText("Signing in")).toHaveClass("sr-only");
   });
   it("renders Separator", () => {
     render(<Separator />);

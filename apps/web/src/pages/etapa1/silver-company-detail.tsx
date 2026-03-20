@@ -22,6 +22,31 @@ import {
 } from "@/hooks/use-etapa1.js";
 import { toast } from "@/components/ui/toast-api.js";
 
+/**
+ * Enterprise-grade numeric value formatter for financial fields.
+ * Safely formats numeric values (from PostgreSQL numeric fields) with Romanian locale formatting.
+ *
+ * @param value - The value to format (can be string, number, null, or undefined from DB)
+ * @returns Formatted number string with Romanian locale (e.g., "1.234.567,89") or "-" for invalid values
+ */
+function formatNumericValue(value: unknown): string {
+  // Positive check: if value is null or undefined, return placeholder
+  if (value == null) {
+    return "-";
+  }
+
+  // Convert to number and validate
+  const numValue = typeof value === "number" ? value : Number(value);
+
+  // Positive check: if conversion resulted in a valid finite number, format it
+  if (Number.isFinite(numValue)) {
+    return numValue.toLocaleString("ro-RO");
+  }
+
+  // Fallback for invalid numeric values
+  return "-";
+}
+
 export function SilverCompanyDetail() {
   const { id } = useParams();
   const detailQuery = useSilverCompanyDetail(id);
@@ -49,7 +74,7 @@ export function SilverCompanyDetail() {
   if (detailQuery.isError) {
     return (
       <PageWrapper title="Silver Company Detail">
-        <div className="rounded-lg border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 p-4 text-sm text-[var(--color-danger)]">
+        <div className="rounded-lg border border-er/30 bg-er/10 p-4 text-sm text-er">
           Eroare la încărcarea datelor: {detailQuery.error?.message ?? "Eroare necunoscută"}
         </div>
       </PageWrapper>
@@ -65,9 +90,9 @@ export function SilverCompanyDetail() {
             variant="outline"
             onClick={() => {
               if (!id) return;
-              void enrichMutation.mutateAsync(id).then(() => {
+              enrichMutation.mutateAsync(id).then(() => {
                 toast.success("Enrichment declansat");
-                void detailQuery.refetch();
+                detailQuery.refetch();
               });
             }}
             disabled={enrichMutation.isPending}
@@ -77,7 +102,7 @@ export function SilverCompanyDetail() {
           <Button
             onClick={() => {
               if (!id) return;
-              void promoteMutation.mutateAsync(id).then(() => {
+              promoteMutation.mutateAsync(id).then(() => {
                 toast.success("Promovare in Gold declansata");
               });
             }}
@@ -94,27 +119,25 @@ export function SilverCompanyDetail() {
         </CardHeader>
         <CardBody>
           <div className="mb-4 grid gap-3 md:grid-cols-4">
-            <div className="rounded border border-[var(--color-s700)] p-3 text-sm">
-              <div className="text-[var(--color-t3)]">CUI</div>
-              <div className="font-semibold text-[var(--color-t1)]">{String(item.cui ?? "-")}</div>
+            <div className="rounded border border-s700 p-3 text-sm">
+              <div className="text-t3">CUI</div>
+              <div className="font-semibold text-t1">{String(item.cui ?? "-")}</div>
             </div>
-            <div className="rounded border border-[var(--color-s700)] p-3 text-sm">
-              <div className="text-[var(--color-t3)]">Enrichment</div>
-              <div className="font-semibold text-[var(--color-t1)]">
+            <div className="rounded border border-s700 p-3 text-sm">
+              <div className="text-t3">Enrichment</div>
+              <div className="font-semibold text-t1">
                 <EnrichmentStatusBadge status={String(item.enrichmentStatus ?? "pending")} />
               </div>
             </div>
-            <div className="rounded border border-[var(--color-s700)] p-3 text-sm">
-              <div className="text-[var(--color-t3)]">Quality</div>
-              <div className="font-semibold text-[var(--color-t1)]">
+            <div className="rounded border border-s700 p-3 text-sm">
+              <div className="text-t3">Quality</div>
+              <div className="font-semibold text-t1">
                 <QualityScoreBadge value={Number.isFinite(totalQuality) ? totalQuality : 0} />
               </div>
             </div>
-            <div className="rounded border border-[var(--color-s700)] p-3 text-sm">
-              <div className="text-[var(--color-t3)]">Promotion</div>
-              <div className="font-semibold text-[var(--color-t1)]">
-                {String(item.promotionStatus ?? "-")}
-              </div>
+            <div className="rounded border border-s700 p-3 text-sm">
+              <div className="text-t3">Promotion</div>
+              <div className="font-semibold text-t1">{String(item.promotionStatus ?? "-")}</div>
             </div>
           </div>
 
@@ -127,64 +150,74 @@ export function SilverCompanyDetail() {
               <TabsTrigger value="enrichment-logs">Enrichment Logs</TabsTrigger>
             </TabsList>
             <TabsContent value="general">
-              <pre className="text-xs text-[var(--color-t2)]">{JSON.stringify(item, null, 2)}</pre>
+              <pre className="text-xs text-t2">{JSON.stringify(item, null, 2)}</pre>
             </TabsContent>
             <TabsContent value="financial">
-              <pre className="text-xs text-[var(--color-t2)]">
-                {JSON.stringify(
-                  {
-                    cifraAfaceri: metadata.cifraAfaceri,
-                    profitNet: metadata.profitNet,
-                    angajati: metadata.angajati,
-                  },
-                  null,
-                  2,
-                )}
-              </pre>
+              <div className="grid gap-3 text-sm md:grid-cols-3">
+                <div>
+                  <div className="text-t3">Cifra Afaceri</div>
+                  <div className="font-medium text-t1">{formatNumericValue(item.cifraAfaceri)}</div>
+                </div>
+                <div>
+                  <div className="text-t3">Profit Net</div>
+                  <div className="font-medium text-t1">{formatNumericValue(item.profitNet)}</div>
+                </div>
+                <div>
+                  <div className="text-t3">Angajați</div>
+                  <div className="font-medium text-t1">
+                    {formatNumericValue(item.numarAngajati)}
+                  </div>
+                </div>
+              </div>
             </TabsContent>
             <TabsContent value="contact">
-              <pre className="text-xs text-[var(--color-t2)]">
-                {JSON.stringify(
-                  {
-                    email: item.email,
-                    phone: item.phone,
-                    website: item.website,
-                    address: item.adresa,
-                  },
-                  null,
-                  2,
-                )}
-              </pre>
+              <div className="grid gap-3 text-sm md:grid-cols-2">
+                <div>
+                  <div className="text-t3">Email</div>
+                  <div className="font-medium text-t1">{String(item.email ?? "-")}</div>
+                </div>
+                <div>
+                  <div className="text-t3">Telefon</div>
+                  <div className="font-medium text-t1">{String(item.telefon ?? "-")}</div>
+                </div>
+                <div>
+                  <div className="text-t3">Website</div>
+                  <div className="font-medium text-t1">{String(item.website ?? "-")}</div>
+                </div>
+                <div>
+                  <div className="text-t3">Adresa</div>
+                  <div className="font-medium text-t1">{String(item.adresa ?? "-")}</div>
+                </div>
+              </div>
             </TabsContent>
             <TabsContent value="enrichment">
-              <pre className="text-xs text-[var(--color-t2)]">
-                {JSON.stringify(metadata, null, 2)}
-              </pre>
+              <pre className="text-xs text-t2">{JSON.stringify(metadata, null, 2)}</pre>
             </TabsContent>
             <TabsContent value="enrichment-logs">
               {enrichmentLogs.length === 0 ? (
-                <p className="py-4 text-sm text-[var(--color-t3)]">
-                  Niciun log de enrichment disponibil.
-                </p>
+                <p className="py-4 text-sm text-t3">Niciun log de enrichment disponibil.</p>
               ) : (
                 <div className="space-y-2">
-                  {enrichmentLogs.map((log, idx) => (
+                  {enrichmentLogs.map((log) => (
                     <div
-                      key={String(log.id ?? idx)}
-                      className="rounded border border-[var(--color-s700)] p-3 text-sm"
+                      key={String(
+                        log.id ??
+                          `${log.createdAt ?? ""}-${log.source ?? ""}-${log.operation ?? ""}`,
+                      )}
+                      className="rounded border border-s700 p-3 text-sm"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="font-medium text-[var(--color-t1)]">
+                        <span className="font-medium text-t1">
                           {String(log.source ?? "-")} &middot; {String(log.operation ?? "-")}
                         </span>
-                        <span className="text-xs text-[var(--color-t3)]">
+                        <span className="text-xs text-t3">
                           {log.createdAt
                             ? new Date(String(log.createdAt)).toLocaleString("ro-RO")
                             : "-"}
                         </span>
                       </div>
                       {Boolean(log.fieldsUpdated) && (
-                        <div className="mt-1 text-xs text-[var(--color-t2)]">
+                        <div className="mt-1 text-xs text-t2">
                           Câmpuri:{" "}
                           {Array.isArray(log.fieldsUpdated)
                             ? (log.fieldsUpdated as string[]).join(", ")
@@ -192,7 +225,7 @@ export function SilverCompanyDetail() {
                         </div>
                       )}
                       {log.durationMs != null && (
-                        <div className="mt-0.5 text-xs text-[var(--color-t3)]">
+                        <div className="mt-0.5 text-xs text-t3">
                           Durată: {Number(log.durationMs)}ms
                         </div>
                       )}

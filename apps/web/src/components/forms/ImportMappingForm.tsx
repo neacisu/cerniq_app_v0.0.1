@@ -13,10 +13,10 @@ export type ImportMappingConfig = {
 };
 
 type ImportMappingFormProps = {
-  sourceColumns: string[];
-  targetFields: SelectOption[];
-  initial?: Partial<ImportMappingConfig>;
-  onSubmit: (config: ImportMappingConfig) => Promise<void> | void;
+  readonly sourceColumns: string[];
+  readonly targetFields: SelectOption[];
+  readonly initial?: Partial<ImportMappingConfig>;
+  readonly onSubmit: (config: ImportMappingConfig) => Promise<void> | void;
 };
 
 export function ImportMappingForm({
@@ -69,20 +69,20 @@ export function ImportMappingForm({
         />
       </div>
       <InputField label="Sheet name (Excel)" value={sheetName} onChange={setSheetName} />
-      <label className="flex items-center gap-2 text-sm text-[var(--color-t2)]">
+      <label className="flex items-center gap-2 text-sm text-t2">
         <input
           type="checkbox"
           checked={hasHeader}
           onChange={(e) => setHasHeader(e.target.checked)}
-        />
+        />{" "}
         Primul rand contine header
       </label>
 
-      <div className="space-y-2 rounded-[var(--radius-md)] border border-[var(--color-s600)] p-3">
-        <h4 className="text-sm font-semibold text-[var(--color-t1)]">Column mapping</h4>
+      <div className="space-y-2 rounded-md border border-s600 p-3">
+        <h4 className="text-sm font-semibold text-t1">Column mapping</h4>
         {mappingRows.map((sourceCol) => (
           <div key={sourceCol} className="grid gap-2 md:grid-cols-2">
-            <div className="text-xs text-[var(--color-t3)]">{sourceCol}</div>
+            <div className="text-xs text-t3">{sourceCol}</div>
             <SelectField
               label=""
               value={mappings[sourceCol] ?? ""}

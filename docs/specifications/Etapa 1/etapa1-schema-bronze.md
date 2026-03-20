@@ -10,8 +10,8 @@
 
 Bronze Layer este **zona de aterizare** pentru toate datele brute din surse multiple. Caracteristici fundamentale:
 
-- **Append-only**: Nu se permite UPDATE sau DELETE
-- **Imuabil**: Datele rămân nemodificate
+- **Append-only**: Nu se permite DELETE
+- **Imuabil parțial**: Payload-ul raw (`raw_payload`, `content_hash`, `source_type`, `source_identifier`) este imuabil și nu poate fi modificat. Câmpurile de procesare (`processing_status`, `identity_status`, `resolved_company_id`, `promoted_to_silver_id`, etc.) sunt mutabile pentru a permite tracking-ul progresului procesării.
 - **Raw Format**: Păstrează payload-ul original exact cum a fost primit
 - **Multi-tenant**: Izolare completă prin RLS
 
@@ -102,11 +102,14 @@ CREATE TABLE bronze_contacts (
     duplicate_of_id UUID REFERENCES bronze_contacts(id),
 
     -- ─────────────────────────────────────────────────────────────────────────
-    -- TIMESTAMPS (APPEND-ONLY: DOAR created_at)
+    -- TIMESTAMPS
     -- ─────────────────────────────────────────────────────────────────────────
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 
-    -- NOTĂ: NU există updated_at - Bronze este IMUABIL
+    -- NOTĂ: updated_at este necesar pentru tracking-ul câmpurilor de procesare
+    -- (processing_status, identity_status, etc.) care sunt mutabile.
+    -- Payload-ul raw rămâne imuabil prin trigger.
 );
 
 -- Comentariu tabel

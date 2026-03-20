@@ -1,6 +1,21 @@
 import type { Processor } from "bullmq";
-import { db, setSessionTenantId, silverCompanies, silverDedupCandidates, sql } from "@cerniq/db";
+import {
+  bronzeContacts,
+  db,
+  setSessionTenantId,
+  silverCompanies,
+  silverDedupCandidates,
+  sql,
+  upsertCompanyIdentityKey,
+} from "@cerniq/db";
+import {
+  validateJobData,
+  hitlTasksResolvedTotal,
+  hitlResolutionTimeSeconds,
+  createQueue,
+} from "@cerniq/worker-shared";
 import { addQueueJob, patchCompanyMetadata } from "./pipeline-utils.js";
+import { z } from "zod";
 
 export type HitlResumeAfterApprovalJobData = {
   tenantId: string;
@@ -8,13 +23,362 @@ export type HitlResumeAfterApprovalJobData = {
   correlationId?: string;
 };
 
+const hitlResumeAfterApprovalJobDataSchema = z.object({
+  tenantId: z.uuid(),
+  approvalTaskId: z.uuid(),
+  correlationId: z.string().trim().min(1).optional(),
+});
+
 function readMetadataObject(input: unknown): Record<string, unknown> {
   return typeof input === "object" && input !== null ? (input as Record<string, unknown>) : {};
+}
+
+function readString(input: unknown): string | null {
+  return typeof input === "string" && input.trim().length > 0 ? input.trim() : null;
+}
+
+type ApprovalTaskRecord = NonNullable<Awaited<ReturnType<typeof db.query.approvalTasks.findFirst>>>;
+
+type ResumeProcessorResult = {
+  ok: boolean;
+  status: string;
+  handled?: string;
+  reason?: string;
+};
+
+type ApprovalContext = {
+  task: ApprovalTaskRecord;
+  decision: string;
+  taskMetadata: Record<string, unknown>;
+  decisionMetadata: Record<string, unknown>;
+  resolvedApprovalType: string;
+  correlationId?: string;
+};
+
+function getResolvedApprovalType(task: ApprovalTaskRecord) {
+  const taskRecord = task as Record<string, unknown>;
+  return readString(taskRecord.approvalType) ?? task.type;
+}
+
+function getDecisionMetadata(task: ApprovalTaskRecord) {
+  const taskRecord = task as Record<string, unknown>;
+  return readMetadataObject(taskRecord.decisionMetadata);
+}
+
+function getBlockedQueueName(task: ApprovalTaskRecord) {
+  const taskRecord = task as Record<string, unknown>;
+  return readString(taskRecord.blockedQueueName);
+}
+
+function getBlockedJobId(task: ApprovalTaskRecord) {
+  const taskRecord = task as Record<string, unknown>;
+  return readString(taskRecord.blockedJobId);
+}
+
+function getDecisionTimestamp(task: ApprovalTaskRecord) {
+  return task.decidedAt?.toISOString() ?? new Date().toISOString();
+}
+
+async function handleDedupReview(context: ApprovalContext): Promise<ResumeProcessorResult> {
+  const companyAId = readString(context.taskMetadata.companyA);
+  const companyBId = readString(context.taskMetadata.companyB);
+  if (!companyAId || !companyBId) {
+    return { ok: false, status: "invalid_metadata_dedup" };
+  }
+
+  const merged = context.decision === "merge" || context.decision === "approve";
+  await db
+    .update(silverDedupCandidates)
+    .set({
+      status: merged ? "merged" : "rejected",
+      masterCompanyId: merged ? companyBId : undefined,
+      updatedAt: new Date(),
+      metadata: sql`COALESCE(${silverDedupCandidates.metadata}, '{}'::jsonb) || ${JSON.stringify({
+        hitlDecision: merged ? "merge" : "reject",
+        approvalTaskId: context.task.id,
+        decidedAt: getDecisionTimestamp(context.task),
+        decisionMetadata: context.decisionMetadata,
+      })}::jsonb`,
+    })
+    .where(
+      sql`${silverDedupCandidates.tenantId} = ${context.task.tenantId}
+      AND ${silverDedupCandidates.companyAId} = ${companyAId}
+      AND ${silverDedupCandidates.companyBId} = ${companyBId}`,
+    );
+
+  await db
+    .update(silverCompanies)
+    .set({ dedupStatus: merged ? "merged" : "rejected", updatedAt: new Date() })
+    .where(sql`${silverCompanies.id} = ${companyAId}`);
+
+  await addQueueJob("pipeline:orchestrate", {
+    tenantId: context.task.tenantId,
+    companyId: companyAId,
+    stage: "post_enrichment",
+    correlationId: context.correlationId,
+    source: "hitl-resume-dedup",
+  });
+  return { ok: true, status: "success", handled: "dedup_review" };
+}
+
+async function handleQualityReview(context: ApprovalContext): Promise<ResumeProcessorResult> {
+  const companyId = context.task.entityId;
+  const approved = context.decision === "approve" || context.decision === "merge";
+  await db
+    .update(silverCompanies)
+    .set({
+      promotionStatus: approved ? "eligible" : "blocked",
+      updatedAt: new Date(),
+      metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify({
+        hitlQualityDecision: approved ? "approved" : "rejected",
+        approvalTaskId: context.task.id,
+        decisionMetadata: context.decisionMetadata,
+      })}::jsonb`,
+    })
+    .where(sql`${silverCompanies.id} = ${companyId}`);
+
+  if (approved) {
+    await addQueueJob("pipeline:promote:gold", {
+      tenantId: context.task.tenantId,
+      companyId,
+      force: true,
+      correlationId: context.correlationId,
+      source: "hitl-resume-quality",
+    });
+  }
+
+  return { ok: true, status: "success", handled: "quality_review" };
+}
+
+async function handleAiReview(context: ApprovalContext): Promise<ResumeProcessorResult> {
+  await patchCompanyMetadata(context.task.tenantId, context.task.entityId, {
+    hitlAiDecision: context.decision,
+    hitlAiApprovalTaskId: context.task.id,
+    hitlAiDecisionMetadata: context.decisionMetadata,
+    hitlAiDecisionAt: getDecisionTimestamp(context.task),
+  });
+  await addQueueJob("pipeline:orchestrate", {
+    tenantId: context.task.tenantId,
+    companyId: context.task.entityId,
+    stage: "post_enrichment",
+    correlationId: context.correlationId,
+    source: "hitl-resume-ai",
+  });
+  return { ok: true, status: "success", handled: context.resolvedApprovalType };
+}
+
+async function handleErrorReview(context: ApprovalContext): Promise<ResumeProcessorResult> {
+  const blockedQueueName = getBlockedQueueName(context.task);
+  const blockedJobId = getBlockedJobId(context.task);
+
+  if ((context.decision === "approve" || context.decision === "skip") && blockedQueueName) {
+    // Prefer resume blocked job if blockedJobId exists, otherwise replay from sourcePayload
+    if (blockedJobId) {
+      try {
+        const queue = createQueue(blockedQueueName);
+        const job = await queue.getJob(blockedJobId);
+
+        if (job) {
+          const state = await job.getState();
+          // Only retry if job is in a retryable state
+          if (state === "failed" || state === "delayed" || state === "waiting") {
+            await job.retry();
+          }
+        }
+
+        await queue.close();
+      } catch (error) {
+        // If resume fails, fall back to replay pattern
+        console.warn(
+          `[hitl-resume] Failed to resume blocked job ${blockedJobId}, falling back to replay:`,
+          error,
+        );
+        const sourcePayload = readMetadataObject(context.taskMetadata.sourcePayload);
+        await addQueueJob(blockedQueueName, {
+          ...sourcePayload,
+          tenantId: context.task.tenantId,
+          replayedFromApprovalTaskId: context.task.id,
+          correlationId: context.correlationId,
+        });
+      }
+    } else {
+      // No blockedJobId, use replay pattern with sourcePayload
+      const sourcePayload = readMetadataObject(context.taskMetadata.sourcePayload);
+      await addQueueJob(blockedQueueName, {
+        ...sourcePayload,
+        tenantId: context.task.tenantId,
+        replayedFromApprovalTaskId: context.task.id,
+        correlationId: context.correlationId,
+      });
+    }
+  }
+
+  await patchCompanyMetadata(context.task.tenantId, context.task.entityId, {
+    hitlErrorDecision: context.decision,
+    hitlErrorApprovalTaskId: context.task.id,
+    hitlErrorDecisionMetadata: context.decisionMetadata,
+  });
+  return { ok: true, status: "success", handled: "error_review" };
+}
+
+function resolveIdentityConflictAction(context: ApprovalContext) {
+  return (
+    readString(context.decisionMetadata.action) ??
+    (context.decision === "reject" ? "mark_source_invalid" : "attach_to_existing_company")
+  );
+}
+
+async function createIdentityConflictCompany(
+  context: ApprovalContext,
+  bronze: typeof bronzeContacts.$inferSelect,
+) {
+  const identityStatus = bronze.extractedCui && bronze.extractedNrRegCom ? "resolved" : "partial";
+  const inserted = await db
+    .insert(silverCompanies)
+    .values({
+      tenantId: context.task.tenantId,
+      sourceBronzeId: bronze.id,
+      denumire: bronze.extractedName ?? undefined,
+      cui: bronze.extractedCui ?? undefined,
+      nrRegCom: bronze.extractedNrRegCom ?? undefined,
+      nrRegComOriginal: bronze.extractedNrRegComRaw ?? undefined,
+      identityStatus,
+      identityMetadata: {
+        createdFrom: "hitl_identity_conflict",
+        approvalTaskId: context.task.id,
+      },
+      enrichmentStatus: "pending",
+      promotionStatus: "blocked",
+    })
+    .returning({ id: silverCompanies.id });
+
+  return inserted[0]?.id ?? null;
+}
+
+async function upsertManualIdentityKeys(
+  context: ApprovalContext,
+  bronze: typeof bronzeContacts.$inferSelect,
+  targetCompanyId: string,
+): Promise<ResumeProcessorResult | null> {
+  if (bronze.extractedCui) {
+    const result = await upsertCompanyIdentityKey({
+      tenantId: context.task.tenantId,
+      companyId: targetCompanyId,
+      keyType: "cui",
+      keyValueCanonical: bronze.extractedCui,
+      keyValueOriginal: bronze.extractedCuiRaw,
+      sourceAuthority: "manual",
+      isAuthoritative: true,
+      sourceBronzeId: bronze.id,
+    });
+    if (result.status === "conflict" && result.conflictCompanyId !== targetCompanyId) {
+      return { ok: false, status: "identity_conflict_unresolved_cui" };
+    }
+  }
+
+  if (bronze.extractedNrRegCom) {
+    const result = await upsertCompanyIdentityKey({
+      tenantId: context.task.tenantId,
+      companyId: targetCompanyId,
+      keyType: "nr_reg_com",
+      keyValueCanonical: bronze.extractedNrRegCom,
+      keyValueOriginal: bronze.extractedNrRegComRaw,
+      sourceAuthority: "manual",
+      isAuthoritative: true,
+      sourceBronzeId: bronze.id,
+    });
+    if (result.status === "conflict" && result.conflictCompanyId !== targetCompanyId) {
+      return { ok: false, status: "identity_conflict_unresolved_nr_reg_com" };
+    }
+  }
+
+  return null;
+}
+
+async function handleIdentityConflict(context: ApprovalContext): Promise<ResumeProcessorResult> {
+  const bronzeContactId =
+    readString(context.taskMetadata.bronzeContactId) ?? readString(context.task.entityId);
+  if (!bronzeContactId) {
+    return { ok: false, status: "invalid_metadata_identity_conflict" };
+  }
+
+  const bronze = await db.query.bronzeContacts.findFirst({
+    where: (t, { and, eq }) =>
+      and(eq(t.tenantId, context.task.tenantId), eq(t.id, bronzeContactId)),
+  });
+  if (!bronze) {
+    return { ok: false, status: "bronze_contact_not_found" };
+  }
+
+  const action = resolveIdentityConflictAction(context);
+  if (action === "mark_source_invalid" || context.decision === "reject") {
+    await db
+      .update(bronzeContacts)
+      .set({
+        doNotProcess: true,
+        processingStatus: "rejected",
+        identityStatus: "identity_conflict",
+        identityResolutionMetadata: {
+          resolution: "identity_conflict_marked_invalid",
+          approvalTaskId: context.task.id,
+          action,
+          decidedAt: getDecisionTimestamp(context.task),
+          decisionMetadata: context.decisionMetadata,
+        },
+      })
+      .where(sql`${bronzeContacts.id} = ${bronzeContactId}`);
+    return { ok: true, status: "success", handled: "identity_conflict" };
+  }
+
+  let targetCompanyId =
+    readString(context.decisionMetadata.targetCompanyId) ??
+    readString(context.decisionMetadata.masterCompanyId);
+  if (action === "create_new_company") {
+    targetCompanyId = await createIdentityConflictCompany(context, bronze);
+  }
+  if (!targetCompanyId) {
+    return { ok: false, status: "missing_target_company_for_identity_conflict" };
+  }
+
+  const unresolvedConflict = await upsertManualIdentityKeys(context, bronze, targetCompanyId);
+  if (unresolvedConflict) {
+    return unresolvedConflict;
+  }
+
+  await db
+    .update(bronzeContacts)
+    .set({
+      resolvedCompanyId: targetCompanyId,
+      doNotProcess: false,
+      processingStatus: "pending",
+      identityStatus: "resolved",
+      identityResolutionMetadata: {
+        resolution: "hitl_resolved",
+        approvalTaskId: context.task.id,
+        action,
+        targetCompanyId,
+        decidedAt: getDecisionTimestamp(context.task),
+        decisionMetadata: context.decisionMetadata,
+      },
+    })
+    .where(sql`${bronzeContacts.id} = ${bronzeContactId}`);
+
+  await addQueueJob("pipeline:promote:bronze-silver", {
+    tenantId: context.task.tenantId,
+    bronzeContactId,
+    correlationId: context.correlationId,
+    source: "hitl-resume-identity",
+  });
+  return { ok: true, status: "success", handled: "identity_conflict" };
 }
 
 export const hitlResumeAfterApprovalProcessor: Processor<HitlResumeAfterApprovalJobData> = async (
   job,
 ) => {
+  validateJobData(hitlResumeAfterApprovalJobDataSchema, job.data, {
+    queueName: "hitl:resume",
+    jobId: job.id,
+  });
   await setSessionTenantId(job.data.tenantId);
   const task = await db.query.approvalTasks.findFirst({
     where: (t, { and, eq }) =>
@@ -26,171 +390,50 @@ export const hitlResumeAfterApprovalProcessor: Processor<HitlResumeAfterApproval
     return { ok: true, status: "skipped", reason: `task_status_${task.status}` };
   }
 
-  const decision = task.decision ?? (task.status === "approved" ? "approve" : "reject");
-  const taskMetadata = readMetadataObject(task.metadata);
-  const decisionMetadata = readMetadataObject(
-    (
-      task as {
-        decisionMetadata?: unknown;
-      }
-    ).decisionMetadata,
-  );
-  const resolvedApprovalType = ((
-    task as {
-      approvalType?: string | null;
-    }
-  ).approvalType ?? task.type) as string;
+  const context: ApprovalContext = {
+    task,
+    decision: task.decision ?? (task.status === "approved" ? "approve" : "reject"),
+    taskMetadata: readMetadataObject(task.metadata),
+    decisionMetadata: getDecisionMetadata(task),
+    resolvedApprovalType: getResolvedApprovalType(task),
+    correlationId: job.data.correlationId,
+  };
 
-  if (resolvedApprovalType === "dedup_review") {
-    const companyAId = typeof taskMetadata.companyA === "string" ? taskMetadata.companyA : null;
-    const companyBId = typeof taskMetadata.companyB === "string" ? taskMetadata.companyB : null;
-    if (!companyAId || !companyBId) return { ok: false, status: "invalid_metadata_dedup" };
-
-    if (decision === "merge" || decision === "approve") {
-      await db
-        .update(silverDedupCandidates)
-        .set({
-          status: "merged",
-          masterCompanyId: companyBId,
-          updatedAt: new Date(),
-          metadata: sql`COALESCE(${silverDedupCandidates.metadata}, '{}'::jsonb) || ${JSON.stringify(
-            {
-              hitlDecision: "merge",
-              approvalTaskId: task.id,
-              decidedAt: task.decidedAt?.toISOString() ?? new Date().toISOString(),
-              decisionMetadata,
-            },
-          )}::jsonb`,
-        })
-        .where(
-          sql`${silverDedupCandidates.tenantId} = ${task.tenantId}
-          AND ${silverDedupCandidates.companyAId} = ${companyAId}
-          AND ${silverDedupCandidates.companyBId} = ${companyBId}`,
-        );
-
-      await db
-        .update(silverCompanies)
-        .set({ dedupStatus: "merged", updatedAt: new Date() })
-        .where(sql`${silverCompanies.id} = ${companyAId}`);
-    } else {
-      await db
-        .update(silverDedupCandidates)
-        .set({
-          status: "rejected",
-          updatedAt: new Date(),
-          metadata: sql`COALESCE(${silverDedupCandidates.metadata}, '{}'::jsonb) || ${JSON.stringify(
-            {
-              hitlDecision: "reject",
-              approvalTaskId: task.id,
-              decidedAt: task.decidedAt?.toISOString() ?? new Date().toISOString(),
-              decisionMetadata,
-            },
-          )}::jsonb`,
-        })
-        .where(
-          sql`${silverDedupCandidates.tenantId} = ${task.tenantId}
-          AND ${silverDedupCandidates.companyAId} = ${companyAId}
-          AND ${silverDedupCandidates.companyBId} = ${companyBId}`,
-        );
-
-      await db
-        .update(silverCompanies)
-        .set({ dedupStatus: "rejected", updatedAt: new Date() })
-        .where(sql`${silverCompanies.id} = ${companyAId}`);
-    }
-
-    await addQueueJob("pipeline:orchestrate", {
-      tenantId: task.tenantId,
-      companyId: companyAId,
-      stage: "post_enrichment",
-      correlationId: job.data.correlationId,
-      source: "hitl-resume-dedup",
-    });
-    return { ok: true, status: "success", handled: "dedup_review" };
+  // Track HITL resolution metrics
+  const approvalType = context.resolvedApprovalType ?? task.type;
+  hitlTasksResolvedTotal.inc({
+    approval_type: approvalType,
+    decision: context.decision ?? "unknown",
+    tenant_id: job.data.tenantId,
+  });
+  if (task.createdAt) {
+    const resolutionSeconds = (Date.now() - new Date(task.createdAt).getTime()) / 1000;
+    hitlResolutionTimeSeconds.observe(
+      { approval_type: approvalType, tenant_id: job.data.tenantId },
+      resolutionSeconds,
+    );
   }
 
-  if (resolvedApprovalType === "quality_review") {
-    const companyId = task.entityId;
-    if (decision === "approve" || decision === "merge") {
-      await db
-        .update(silverCompanies)
-        .set({
-          promotionStatus: "eligible",
-          updatedAt: new Date(),
-          metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify({
-            hitlQualityDecision: "approved",
-            approvalTaskId: task.id,
-            decisionMetadata,
-          })}::jsonb`,
-        })
-        .where(sql`${silverCompanies.id} = ${companyId}`);
-      await addQueueJob("pipeline:promote-to-gold", {
-        tenantId: task.tenantId,
-        companyId,
-        force: true,
-        correlationId: job.data.correlationId,
-        source: "hitl-resume-quality",
-      });
-    } else {
-      await db
-        .update(silverCompanies)
-        .set({
-          promotionStatus: "blocked",
-          updatedAt: new Date(),
-          metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify({
-            hitlQualityDecision: "rejected",
-            approvalTaskId: task.id,
-            decisionMetadata,
-          })}::jsonb`,
-        })
-        .where(sql`${silverCompanies.id} = ${companyId}`);
-    }
-    return { ok: true, status: "success", handled: "quality_review" };
+  if (context.resolvedApprovalType === "dedup_review") {
+    return handleDedupReview(context);
   }
-
+  if (context.resolvedApprovalType === "quality_review") {
+    return handleQualityReview(context);
+  }
   if (
-    resolvedApprovalType === "ai_structuring_review" ||
-    resolvedApprovalType === "ai_merge_review" ||
-    resolvedApprovalType === "low_confidence_review" ||
-    resolvedApprovalType === "manual_verification" ||
-    resolvedApprovalType === "data_anomaly"
+    context.resolvedApprovalType === "ai_structuring_review" ||
+    context.resolvedApprovalType === "ai_merge_review" ||
+    context.resolvedApprovalType === "low_confidence_review" ||
+    context.resolvedApprovalType === "manual_verification" ||
+    context.resolvedApprovalType === "data_anomaly"
   ) {
-    await patchCompanyMetadata(task.tenantId, task.entityId, {
-      hitlAiDecision: decision,
-      hitlAiApprovalTaskId: task.id,
-      hitlAiDecisionMetadata: decisionMetadata,
-      hitlAiDecisionAt: task.decidedAt?.toISOString() ?? new Date().toISOString(),
-    });
-    await addQueueJob("pipeline:orchestrate", {
-      tenantId: task.tenantId,
-      companyId: task.entityId,
-      stage: "post_enrichment",
-      correlationId: job.data.correlationId,
-      source: "hitl-resume-ai",
-    });
-    return { ok: true, status: "success", handled: resolvedApprovalType };
+    return handleAiReview(context);
   }
-
-  if (resolvedApprovalType === "error_review") {
-    const sourcePayload = readMetadataObject(taskMetadata.sourcePayload);
-    const fallbackQueue =
-      typeof (task as { blockedQueueName?: unknown }).blockedQueueName === "string"
-        ? ((task as { blockedQueueName?: string }).blockedQueueName ?? null)
-        : null;
-    if ((decision === "approve" || decision === "skip") && fallbackQueue) {
-      await addQueueJob(fallbackQueue, {
-        ...sourcePayload,
-        tenantId: task.tenantId,
-        replayedFromApprovalTaskId: task.id,
-        correlationId: job.data.correlationId,
-      });
-    }
-    await patchCompanyMetadata(task.tenantId, task.entityId, {
-      hitlErrorDecision: decision,
-      hitlErrorApprovalTaskId: task.id,
-      hitlErrorDecisionMetadata: decisionMetadata,
-    });
-    return { ok: true, status: "success", handled: "error_review" };
+  if (context.resolvedApprovalType === "error_review") {
+    return handleErrorReview(context);
+  }
+  if (context.resolvedApprovalType === "identity_conflict") {
+    return handleIdentityConflict(context);
   }
 
   return { ok: true, status: "skipped", reason: "unknown_approval_type" };

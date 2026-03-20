@@ -54,6 +54,7 @@ export const listApprovalTasksSchema = z.object({
     .enum([
       "dedup_review",
       "quality_review",
+      "identity_conflict",
       "ai_structuring_review",
       "ai_merge_review",
       "low_confidence_review",
@@ -117,6 +118,7 @@ export const dedupDecisionSchema = z.object({
 });
 
 export const listGoldCompaniesSchema = z.object({
+  search: z.string().trim().min(1).max(200).optional(),
   currentState: z
     .string()
     .optional()
@@ -154,6 +156,10 @@ export const updateLeadStateSchema = z.object({
       "PROPOSAL",
       "CLOSING",
       "CONVERTED",
+      "ONBOARDING",
+      "NURTURING_ACTIVE",
+      "AT_RISK",
+      "LOYAL_ADVOCATE",
       "CHURNED",
       "DEAD",
       "DO_NOT_CONTACT",

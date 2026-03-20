@@ -52,31 +52,28 @@ export function Payments() {
         <CardBody className="p-0 overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[var(--color-s700)]">
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">Date</th>
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">Company</th>
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">Amount</th>
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">Type</th>
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">Status</th>
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">Currency</th>
+              <tr className="border-b border-s700">
+                <th className="text-left py-3 px-4 text-t3 font-medium">Date</th>
+                <th className="text-left py-3 px-4 text-t3 font-medium">Company</th>
+                <th className="text-left py-3 px-4 text-t3 font-medium">Amount</th>
+                <th className="text-left py-3 px-4 text-t3 font-medium">Type</th>
+                <th className="text-left py-3 px-4 text-t3 font-medium">Status</th>
+                <th className="text-left py-3 px-4 text-t3 font-medium">Currency</th>
               </tr>
             </thead>
             <tbody>
-              {MOCK_PAYMENTS.map((p, i) => (
+              {MOCK_PAYMENTS.map((p) => (
                 <tr
-                  key={i}
+                  key={`${p.date}-${p.company}-${p.type}-${p.amount}`}
                   className={cn(
-                    "border-b border-[var(--color-s800)] hover:bg-[var(--color-s800)]/50",
-                    p.status === "UNMATCHED" && "bg-[var(--color-wa)]/10",
+                    "border-b border-s800 hover:bg-s800/50",
+                    p.status === "UNMATCHED" && "bg-wa/10",
                   )}
                 >
-                  <td className="py-3 px-4 text-[var(--color-t3)]">{p.date}</td>
-                  <td className="py-3 px-4 text-[var(--color-t1)]">{p.company}</td>
+                  <td className="py-3 px-4 text-t3">{p.date}</td>
+                  <td className="py-3 px-4 text-t1">{p.company}</td>
                   <td
-                    className={cn(
-                      "py-3 px-4 font-medium",
-                      p.amount >= 0 ? "text-[var(--color-ok)]" : "text-[var(--color-er)]",
-                    )}
+                    className={cn("py-3 px-4 font-medium", p.amount >= 0 ? "text-ok" : "text-er")}
                   >
                     {p.amount >= 0 ? "+" : ""}
                     {p.amount.toLocaleString()} EUR

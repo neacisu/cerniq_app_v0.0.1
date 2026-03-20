@@ -6,7 +6,7 @@
 
 ---
 
-# CATEGORIA B: NORMALIZARE (4 Workers)
+## CATEGORIA B: NORMALIZARE (4 Workers)
 
 ## B.1 Name Normalizer Worker
 
@@ -14,7 +14,7 @@
 
 ```typescript
 const B1_CONFIG: WorkerConfig = {
-  queueName: "bronze:normalize:name",
+  queueName: "normalize:name",
   concurrency: 20,
   attempts: 2,
   backoff: { type: "fixed", delay: 500 },
@@ -78,7 +78,7 @@ const NOISE_WORDS = [
 ];
 
 export const nameNormalizerWorker = createWorker<NameNormalizerJobData>({
-  queueName: "bronze:normalize:name",
+  queueName: "normalize:name",
   concurrency: B1_CONFIG.concurrency,
 
   processor: async (job, logger) => {
@@ -149,7 +149,7 @@ export const nameNormalizerWorker = createWorker<NameNormalizerJobData>({
 | `SOCIETATEA COMERCIALA VERDE S.A.` | `VERDE SA`             | `SA`           |
 | `P.F.A. ION POPESCU`               | `ION POPESCU PFA`      | `PFA`          |
 | `O.U.A.I. LUNCA SIRETULUI`         | `LUNCA SIRETULUI OUAI` | `OUAI`         |
-| `  agro   farm  srl  `             | `AGRO FARM SRL`        | `SRL`          |
+| `agro   farm  srl`                 | `AGRO FARM SRL`        | `SRL`          |
 
 ---
 
@@ -159,7 +159,7 @@ export const nameNormalizerWorker = createWorker<NameNormalizerJobData>({
 
 ```typescript
 const B2_CONFIG: WorkerConfig = {
-  queueName: "bronze:normalize:address",
+  queueName: "normalize:address",
   concurrency: 20,
   attempts: 2,
   timeout: 15000,
@@ -249,7 +249,7 @@ const JUDETE_MAP: Record<string, { cod: string; nume: string }> = {
 };
 
 export const addressNormalizerWorker = createWorker<AddressNormalizerJobData>({
-  queueName: "bronze:normalize:address",
+  queueName: "normalize:address",
   concurrency: B2_CONFIG.concurrency,
 
   processor: async (job, logger) => {
@@ -341,7 +341,7 @@ export const addressNormalizerWorker = createWorker<AddressNormalizerJobData>({
 
 ```typescript
 const B3_CONFIG: WorkerConfig = {
-  queueName: "bronze:normalize:phone",
+  queueName: "normalize:phone",
   concurrency: 30,
   attempts: 2,
   timeout: 5000,
@@ -408,7 +408,7 @@ const LANDLINE_PREFIXES: Record<string, string> = {
 };
 
 export const phoneNormalizerWorker = createWorker<PhoneNormalizerJobData>({
-  queueName: "bronze:normalize:phone",
+  queueName: "normalize:phone",
   concurrency: B3_CONFIG.concurrency,
 
   processor: async (job, logger) => {
@@ -519,7 +519,7 @@ export const phoneNormalizerWorker = createWorker<PhoneNormalizerJobData>({
 
 ```typescript
 const B4_CONFIG: WorkerConfig = {
-  queueName: "bronze:normalize:email",
+  queueName: "normalize:email",
   concurrency: 30,
   attempts: 2,
   timeout: 5000,
@@ -589,7 +589,7 @@ const RO_BUSINESS_PROVIDERS = [
 ];
 
 export const emailNormalizerWorker = createWorker<EmailNormalizerJobData>({
-  queueName: "bronze:normalize:email",
+  queueName: "normalize:email",
   concurrency: B4_CONFIG.concurrency,
 
   processor: async (job, logger) => {
@@ -678,7 +678,7 @@ export const emailNormalizerWorker = createWorker<EmailNormalizerJobData>({
 
 ---
 
-# CATEGORIA C: VALIDARE CUI (2 Workers)
+## CATEGORIA C: VALIDARE CUI (2 Workers)
 
 ## C.1 CUI Modulo-11 Validator Worker
 
@@ -686,7 +686,7 @@ export const emailNormalizerWorker = createWorker<EmailNormalizerJobData>({
 
 ```typescript
 const C1_CONFIG: WorkerConfig = {
-  queueName: "silver:validate:cui-modulo11",
+  queueName: "validate:cui:mod11",
   concurrency: 50, // Offline, foarte rapid
   attempts: 2,
   timeout: 2000,
@@ -709,7 +709,7 @@ interface CuiValidatorJobData {
 const CONTROL_KEY = [7, 5, 3, 2, 1, 7, 5, 3, 2];
 
 export const cuiModulo11Worker = createWorker<CuiValidatorJobData>({
-  queueName: "silver:validate:cui-modulo11",
+  queueName: "validate:cui:mod11",
   concurrency: C1_CONFIG.concurrency,
 
   processor: async (job, logger) => {
@@ -843,7 +843,7 @@ export function validateCuiModulo11(cui: string): boolean {
 
 ```typescript
 const C2_CONFIG: WorkerConfig = {
-  queueName: "silver:validate:cui-anaf",
+  queueName: "validate:cui:anaf",
   concurrency: 1, // ANAF rate limit: 1/sec
   attempts: 5,
   backoff: { type: "exponential", delay: 1000 },
@@ -872,7 +872,7 @@ interface AnafValidatorJobData {
 }
 
 export const cuiAnafWorker = createWorker<AnafValidatorJobData>({
-  queueName: "silver:validate:cui-anaf",
+  queueName: "validate:cui:anaf",
   concurrency: C2_CONFIG.concurrency,
   limiter: C2_CONFIG.limiter,
 
@@ -985,32 +985,78 @@ export const cuiAnafWorker = createWorker<AnafValidatorJobData>({
 
 ---
 
-# TRIGGERS CATEGORIA B → C
+## TRIGGERS CATEGORIA B → C
 
 ```typescript
 // Când toate B.* complete → trigger C.1
 const NORMALIZE_COMPLETE_TRIGGERS = {
-  "bronze:normalize:complete": [{ queue: "silver:validate:cui-modulo11", condition: "has_cui" }],
-  "silver:validate:cui-modulo11": [
-    { queue: "silver:validate:cui-anaf", condition: "cui_valid_modulo11" },
+  "normalize:complete": [{ queue: "validate:cui:mod11", condition: "has_cui" }],
+  "validate:cui:mod11": [
+    { queue: "validate:cui:anaf", condition: "cui_valid_modulo11" },
   ],
 };
 ```
 
 ---
 
-# REZUMAT CATEGORIA B-C
+## REZUMAT CATEGORIA B-C
 
-| Worker            | Queue                          | Concurrency | Rate Limit | Timeout |
-| ----------------- | ------------------------------ | ----------- | ---------- | ------- |
-| B.1 Name          | `bronze:normalize:name`        | 20          | -          | 10s     |
-| B.2 Address       | `bronze:normalize:address`     | 20          | -          | 15s     |
-| B.3 Phone         | `bronze:normalize:phone`       | 30          | -          | 5s      |
-| B.4 Email         | `bronze:normalize:email`       | 30          | -          | 5s      |
-| C.1 CUI Modulo-11 | `silver:validate:cui-modulo11` | 50          | -          | 2s      |
-| C.2 CUI ANAF      | `silver:validate:cui-anaf`     | 1           | 1/s        | 30s     |
+| Worker                       | Queue                          | Concurrency | Rate Limit | Timeout |
+| ---------------------------- | ------------------------------ | ----------- | ---------- | ------- |
+| B.1 Name                     | `normalize:name`        | 20          | -          | 10s     |
+| B.2 Address                  | `normalize:address`     | 20          | -          | 15s     |
+| B.3 Phone                    | `normalize:phone`       | 30          | -          | 5s      |
+| B.4 Email                    | `normalize:email`       | 30          | -          | 5s      |
+| **B.5 ANAF Bronze Enricher** | `enrich:bronze:anaf`           | 1           | 1/s (ANAF) | 30s     |
+| C.1 CUI Modulo-11            | `validate:cui:mod11` | 50          | -          | 2s      |
+| C.2 CUI ANAF                 | `validate:cui:anaf`     | 1           | 1/s        | 30s     |
 
 ---
 
-**Document generat:** 15 Ianuarie 2026
-**Total workers Cat. B-C:** 6
+## B.5 ANAF Bronze Enricher Worker
+
+### Scop
+
+Îmbogățește batch-uri de contacte Bronze cu date ANAF prin căutarea CUI-urilor în lista `open-data` ANAF. Actualizează denumire, nr. registru comerț și declanșează validarea CUI pentru contactele găsite.
+
+### Configurare
+
+```typescript
+// Queue: enrich:bronze:anaf
+// Concurrency: 1 (rate-limited by ANAF)
+// Rate limit: 1 req/sec (ANAF API v9)
+// Retry: 5 attempts, exponential backoff 1000ms
+```
+
+### Job Data
+
+```typescript
+type AnafBronzeEnricherJobData = {
+  tenantId: string;       // UUID tenant
+  batchId: string;        // UUID batch import
+  cuiList: string[];      // Lista CUI-uri de verificat (max 500/request)
+  bronzeContactIds: string[]; // IDs contacte Bronze corespunzătoare
+  correlationId: string;  // UUID tracing
+  batchIndex: number;     // Index batch curent (1-based)
+  totalBatches: number;   // Total batch-uri pentru acest import
+};
+```
+
+### Logică
+
+1. Apelează ANAF API v9 (`/PlatitorTvaRest/api/v9/ws/tva`) cu lista de CUI-uri
+2. Pentru fiecare CUI găsit: actualizează `extractedName`, `extractedNrRegCom` pe Bronze contact
+3. Setează `processingStatus = "anaf_enriched"` pe contactele actualizate
+4. Declanșează validarea CUI (`validate:cui:anaf`) pentru CUI-urile confirmate
+5. Înregistrează metrici: jobs procesate, durate, erori
+
+### Note Implementare
+
+- Worker-ul rulează la nivel Bronze (înainte de promovare Silver)
+- Numărul de CUI-uri per request ANAF este limitat la 500 (batch intern)
+- ANAF API poate returna date incomplete - worker-ul tratează cazurile de răspuns parțial
+
+---
+
+**Document generat:** 15 Ianuarie 2026 (B.5 adăugat: 19 Martie 2026)  
+**Total workers Cat. B-C:** 7

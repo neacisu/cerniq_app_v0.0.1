@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ApiError } from "@/lib/api.js";
 import {
   type ApprovalListParams,
   type BronzeContactsParams,
@@ -7,9 +8,12 @@ import {
   type ImportListParams,
   type SilverCompaniesParams,
   type DedupCandidatesParams,
+  type PromoteJobStatus,
+  anafEnrichImport,
   assignApproval,
   cancelImport,
   decideApproval,
+  escalateApproval,
   decideDedupPair,
   fetchApprovals,
   fetchApprovalById,
@@ -24,12 +28,20 @@ import {
   fetchGoldCompanyJourney,
   fetchGoldCompanies,
   fetchImportById,
+  fetchImportEntities,
+  fetchImportReprocessErrors,
+  fetchImportRows,
   fetchImports,
+  fetchPromoteJobStatus,
+  resumeImportReprocessErrors,
+  resumePromoteJob,
   fetchQueueStatusByName,
   fetchQueueStatuses,
   fetchSilverCompanies,
   fetchSilverCompanyById,
   fetchSilverEnrichmentLog,
+  fetchMappingTargets,
+  saveImportMapping,
   patchGoldCompany,
   pauseQueue,
   reprocessBronzeContact,
@@ -39,6 +51,80 @@ import {
   triggerSilverPromote,
   uploadImport,
 } from "@/lib/etapa1-api.js";
+
+function isTransientApiUnavailable(error: unknown): error is ApiError {
+  return error instanceof ApiError && [502, 503, 504].includes(error.status);
+}
+
+function getPollingBackoffMs(error: unknown, failureCount: number, baseIntervalMs: number): number {
+  if (!isTransientApiUnavailable(error)) {
+    return baseIntervalMs;
+  }
+
+  const retryStep = Math.max(0, failureCount - 1);
+  return Math.min(60_000, baseIntervalMs * 2 ** retryStep);
+}
+
+/**
+ * Type-safe extractor for identityReprocessStatus from metadata.
+ * Returns the status string if it's a valid string value, otherwise returns empty string.
+ */
+function extractIdentityReprocessStatus(metadata: Record<string, unknown> | undefined): string {
+  if (metadata == null) return "";
+  const value = metadata.identityReprocessStatus;
+  return typeof value === "string" ? value : "";
+}
+
+/**
+ * Type-safe extractor for anafEnrichmentStatus from metadata.
+ * Returns the status string if it's a valid string value, otherwise returns empty string.
+ */
+function extractAnafEnrichmentStatus(metadata: Record<string, unknown> | undefined): string {
+  if (metadata == null) return "";
+  const value = metadata.anafEnrichmentStatus;
+  return typeof value === "string" ? value : "";
+}
+
+/**
+ * Type-safe extractor for import status from item.
+ * Returns the status string if it's a valid string value, otherwise returns empty string.
+ */
+function extractImportStatus(item: Record<string, unknown> | undefined): string {
+  if (item == null) return "";
+  const value = item.status;
+  return typeof value === "string" ? value : "";
+}
+
+function isIdentityReprocessActive(item: Record<string, unknown> | undefined) {
+  const metadata = (item?.metadata as Record<string, unknown> | undefined) ?? {};
+  const state = extractIdentityReprocessStatus(metadata);
+  return state === "queued" || state === "running";
+}
+
+function isAnafEnrichActive(item: Record<string, unknown> | undefined) {
+  const metadata = (item?.metadata as Record<string, unknown> | undefined) ?? {};
+  return extractAnafEnrichmentStatus(metadata) === "processing";
+}
+
+function getImportRefetchInterval(item: Record<string, unknown> | undefined) {
+  const status = extractImportStatus(item);
+  if (
+    ["pending", "processing"].includes(status) ||
+    isIdentityReprocessActive(item) ||
+    isAnafEnrichActive(item)
+  ) {
+    return 3000;
+  }
+
+  const metadata = (item?.metadata as Record<string, unknown> | undefined) ?? {};
+  const hasIdentityReprocessHistory =
+    typeof metadata.identityReprocessQueuedAt === "string" ||
+    typeof metadata.identityReprocessStartedAt === "string" ||
+    typeof metadata.identityReprocessCompletedAt === "string" ||
+    typeof metadata.identityReprocessFailedAt === "string";
+
+  return hasIdentityReprocessHistory ? 15000 : false;
+}
 
 export function useDashboardStats() {
   return useQuery({ queryKey: ["etapa1", "dashboard", "stats"], queryFn: fetchDashboardStats });
@@ -55,6 +141,27 @@ export function useImports(params: ImportListParams = {}) {
   return useQuery({
     queryKey: ["etapa1", "imports", params],
     queryFn: () => fetchImports(params),
+    refetchInterval: (query) => {
+      if (isTransientApiUnavailable(query.state.error)) {
+        return getPollingBackoffMs(query.state.error, query.state.fetchFailureCount, 3000);
+      }
+
+      const rows =
+        (query.state.data as { data?: Array<Record<string, unknown>> } | undefined)?.data ?? [];
+      if (rows.some((row) => getImportRefetchInterval(row) === 3000)) {
+        return 3000;
+      }
+
+      return rows.some((row) => getImportRefetchInterval(row) === 15000) ? 15000 : false;
+    },
+    refetchIntervalInBackground: true,
+    retry: (failureCount, error) => {
+      if (isTransientApiUnavailable(error)) {
+        return false;
+      }
+
+      return failureCount < 3;
+    },
   });
 }
 
@@ -63,6 +170,52 @@ export function useImportDetail(id?: string) {
     queryKey: ["etapa1", "imports", "detail", id],
     queryFn: () => fetchImportById(String(id)),
     enabled: Boolean(id),
+    refetchInterval: (query) => {
+      if (isTransientApiUnavailable(query.state.error)) {
+        return getPollingBackoffMs(query.state.error, query.state.fetchFailureCount, 3000);
+      }
+
+      const item = (query.state.data as { data?: Record<string, unknown> } | undefined)?.data;
+      return getImportRefetchInterval(item);
+    },
+    refetchIntervalInBackground: true,
+    retry: (failureCount, error) => {
+      if (isTransientApiUnavailable(error)) {
+        return false;
+      }
+
+      return failureCount < 3;
+    },
+  });
+}
+
+export function useImportRows(id?: string, limit = 100, offset = 0) {
+  return useQuery({
+    queryKey: ["etapa1", "imports", "rows", id, limit, offset],
+    queryFn: () => fetchImportRows(String(id), { limit, offset }),
+    enabled: Boolean(id),
+    refetchInterval: 3000,
+    refetchIntervalInBackground: true,
+  });
+}
+
+export function useImportReprocessErrors(id?: string, limit = 100, offset = 0) {
+  return useQuery({
+    queryKey: ["etapa1", "imports", "reprocess-errors", id, limit, offset],
+    queryFn: () => fetchImportReprocessErrors(String(id), { limit, offset }),
+    enabled: Boolean(id),
+    refetchInterval: 5000,
+    refetchIntervalInBackground: true,
+  });
+}
+
+export function useImportEntities(id?: string, limit = 100, offset = 0) {
+  return useQuery({
+    queryKey: ["etapa1", "imports", "entities", id, limit, offset],
+    queryFn: () => fetchImportEntities(String(id), { limit, offset }),
+    enabled: Boolean(id),
+    refetchInterval: 3000,
+    refetchIntervalInBackground: true,
   });
 }
 
@@ -71,7 +224,9 @@ export function useUploadImport() {
   return useMutation({
     mutationFn: ({ file, config }: { file: File; config?: Parameters<typeof uploadImport>[1] }) =>
       uploadImport(file, config),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["etapa1", "imports"] }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["etapa1", "imports"] });
+    },
   });
 }
 
@@ -79,7 +234,19 @@ export function useCancelImport() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: cancelImport,
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["etapa1", "imports"] }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["etapa1", "imports"] });
+    },
+  });
+}
+
+export function useAnafEnrichImport() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: anafEnrichImport,
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["etapa1", "imports"] });
+    },
   });
 }
 
@@ -102,7 +269,74 @@ export function useReprocessBronze() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: reprocessBronzeContact,
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["etapa1", "bronze"] }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["etapa1", "bronze"] });
+    },
+  });
+}
+
+/** Poll the live BullMQ state of the re-promote batch job for a given import batch. */
+export function usePromoteJobStatus(
+  batchId: string | undefined,
+  opts?: { enabled?: boolean; expectedDbStatus?: string | null },
+) {
+  return useQuery({
+    queryKey: ["etapa1", "promote-job-status", batchId, opts?.expectedDbStatus ?? null],
+    queryFn: () => fetchPromoteJobStatus(String(batchId)),
+    enabled: Boolean(batchId) && (opts?.enabled ?? true),
+    refetchInterval: (query) => {
+      if (isTransientApiUnavailable(query.state.error)) {
+        return getPollingBackoffMs(query.state.error, query.state.fetchFailureCount, 3000);
+      }
+
+      const state = (query.state.data as { data?: PromoteJobStatus } | undefined)?.data?.state;
+      const expectedDbStatus = opts?.expectedDbStatus ?? null;
+      if (expectedDbStatus === "queued" || expectedDbStatus === "running") {
+        return 3000;
+      }
+      // Poll aggressively while the job is running or queued; back off otherwise
+      if (state === "waiting" || state === "active" || state === "delayed" || state === "none") {
+        return 3000;
+      }
+      if (state === "stale" || state === "stalled") {
+        return 5000;
+      }
+      // failed / completed / unknown — stop polling
+      return false;
+    },
+    refetchIntervalInBackground: true,
+    retry: (failureCount, error) => {
+      if (isTransientApiUnavailable(error)) {
+        return false;
+      }
+
+      return failureCount < 3;
+    },
+  });
+}
+
+/** Force-resume a stale or failed re-promote job. */
+export function useResumePromoteJob() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: resumePromoteJob,
+    onSuccess: async (_data, batchId) => {
+      await qc.invalidateQueries({ queryKey: ["etapa1", "promote-job-status", batchId] });
+      await qc.invalidateQueries({ queryKey: ["etapa1", "imports"] });
+    },
+  });
+}
+
+export function useResumeImportReprocessErrors() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: resumeImportReprocessErrors,
+    onSuccess: async (_data, batchId) => {
+      await qc.invalidateQueries({ queryKey: ["etapa1", "imports"] });
+      await qc.invalidateQueries({ queryKey: ["etapa1", "imports", "detail", batchId] });
+      await qc.invalidateQueries({ queryKey: ["etapa1", "imports", "reprocess-errors", batchId] });
+      await qc.invalidateQueries({ queryKey: ["etapa1", "promote-job-status", batchId] });
+    },
   });
 }
 
@@ -132,7 +366,9 @@ export function useTriggerSilverEnrich() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: triggerSilverEnrich,
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["etapa1", "silver"] }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["etapa1", "silver"] });
+    },
   });
 }
 
@@ -140,7 +376,9 @@ export function useTriggerSilverPromote() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: triggerSilverPromote,
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["etapa1", "silver"] }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["etapa1", "silver"] });
+    },
   });
 }
 
@@ -184,7 +422,9 @@ export function usePatchGoldCompany() {
       id: string;
       payload: Parameters<typeof patchGoldCompany>[1];
     }) => patchGoldCompany(id, payload),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["etapa1", "gold"] }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["etapa1", "gold"] });
+    },
   });
 }
 
@@ -198,7 +438,9 @@ export function useTransitionGoldCompany() {
       id: string;
       payload: Parameters<typeof transitionGoldCompany>[1];
     }) => transitionGoldCompany(id, payload),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["etapa1", "gold"] }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["etapa1", "gold"] });
+    },
   });
 }
 
@@ -231,7 +473,9 @@ export function useDecideApproval() {
       id: string;
       decision: "approve" | "reject" | "merge" | "skip";
     }) => decideApproval(id, decision),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["etapa1", "approvals"] }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["etapa1", "approvals"] });
+    },
   });
 }
 
@@ -239,7 +483,20 @@ export function useAssignApproval() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, userId }: { id: string; userId: string }) => assignApproval(id, userId),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["etapa1", "approvals"] }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["etapa1", "approvals"] });
+    },
+  });
+}
+
+export function useEscalateApproval() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, reason, escalateTo }: { id: string; reason: string; escalateTo?: string }) =>
+      escalateApproval(id, reason, escalateTo),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["etapa1", "approvals"] });
+    },
   });
 }
 
@@ -264,7 +521,9 @@ export function usePauseQueue() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: pauseQueue,
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["etapa1", "queues"] }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["etapa1", "queues"] });
+    },
   });
 }
 
@@ -272,7 +531,9 @@ export function useResumeQueue() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: resumeQueue,
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["etapa1", "queues"] }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["etapa1", "queues"] });
+    },
   });
 }
 
@@ -295,7 +556,29 @@ export function useDecideDedup() {
       decision: "merge" | "reject" | "skip";
       masterCompanyId?: string;
     }) => decideDedupPair(id, decision, masterCompanyId),
-    onSuccess: () =>
-      void qc.invalidateQueries({ queryKey: ["etapa1", "silver", "dedup-candidates"] }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["etapa1", "silver", "dedup-candidates"] });
+    },
+  });
+}
+
+export function useMappingTargets() {
+  return useQuery({
+    queryKey: ["etapa1", "mapping-targets"],
+    queryFn: fetchMappingTargets,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useSaveImportMapping(importId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (mapping: Record<string, string>) => {
+      if (!importId) throw new Error("Missing importId");
+      return saveImportMapping(importId, mapping);
+    },
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["etapa1", "import", importId] });
+    },
   });
 }

@@ -4,22 +4,14 @@ import { Button } from "@/components/ui/button.js";
 import { Badge } from "@/components/ui/badge.js";
 import { Spinner } from "@/components/ui/spinner.js";
 import { EmptyState } from "@/components/feedback/EmptyState.js";
-import { useApprovals, useDecideApproval } from "@/hooks/use-etapa1.js";
+import { useDecideDedup, useDedupCandidates } from "@/hooks/use-etapa1.js";
 import { toast } from "@/components/ui/toast-api.js";
 
 export function SilverDedup() {
-  const {
-    data: response,
-    isPending,
-    isError,
-    error,
-  } = useApprovals({
-    approvalType: "dedup_review",
-    limit: 50,
-  });
-  const decide = useDecideApproval();
+  const { data: response, isPending, isError, error } = useDedupCandidates({ limit: 50 });
+  const decide = useDecideDedup();
 
-  const approvals = (response?.data ?? []) as Array<Record<string, unknown>>;
+  const candidates = (response?.data ?? []) as Array<Record<string, unknown>>;
 
   const handleDecision = (id: string, decision: "merge" | "reject" | "skip") => {
     decide.mutate(
@@ -44,14 +36,14 @@ export function SilverDedup() {
   if (isError) {
     return (
       <PageWrapper title="Silver Dedup Candidates">
-        <div className="rounded-lg border border-[var(--color-danger)] bg-[var(--color-danger)]/10 p-4 text-sm text-[var(--color-danger)]">
+        <div className="rounded-lg border border-er bg-er/10 p-4 text-sm text-er">
           Eroare la incarcarea candidatilor dedup: {error?.message ?? "Eroare necunoscuta"}
         </div>
       </PageWrapper>
     );
   }
 
-  if (approvals.length === 0) {
+  if (candidates.length === 0) {
     return (
       <PageWrapper title="Silver Dedup Candidates">
         <EmptyState
@@ -66,16 +58,19 @@ export function SilverDedup() {
   return (
     <PageWrapper title="Silver Dedup Candidates">
       <div className="space-y-4">
-        {approvals.map((approval) => {
-          const id = String(approval.id ?? "");
-          const payload = (approval.payload ?? approval.entityData ?? {}) as Record<
+        {candidates.map((candidate) => {
+          const id = String(candidate.id ?? "");
+          const left = (candidate.companyAData ?? candidate.leftCompany ?? {}) as Record<
             string,
             unknown
           >;
-          const left = (payload.left ?? payload.companyA ?? {}) as Record<string, unknown>;
-          const right = (payload.right ?? payload.companyB ?? {}) as Record<string, unknown>;
-          const score = Number(payload.similarityScore ?? payload.score ?? 0);
-          const status = String(approval.status ?? "pending");
+          const right = (candidate.companyBData ?? candidate.rightCompany ?? {}) as Record<
+            string,
+            unknown
+          >;
+          const score = Number(candidate.similarityScore ?? candidate.score ?? 0);
+          const status = String(candidate.status ?? "pending");
+          const canDecide = status === "pending" || status === "hitl_pending";
 
           return (
             <Card key={id}>
@@ -87,27 +82,23 @@ export function SilverDedup() {
               </CardHeader>
               <CardBody>
                 <div className="grid gap-4 md:grid-cols-2">
-                  <div className="rounded-lg border border-[var(--color-s700)] p-3">
-                    <span className="mb-1 block text-xs font-medium text-[var(--color-t3)]">
-                      Compania A
-                    </span>
-                    <p className="text-sm font-semibold text-[var(--color-t1)]">
+                  <div className="rounded-lg border border-s700 p-3">
+                    <span className="mb-1 block text-xs font-medium text-t3">Compania A</span>
+                    <p className="text-sm font-semibold text-t1">
                       {String(left.denumire ?? left.name ?? "—")}
                     </p>
-                    <p className="text-xs text-[var(--color-t2)]">
+                    <p className="text-xs text-t2">
                       CUI: {String(left.cui ?? "—")} | Judet:{" "}
                       {String(left.judet ?? left.judetCod ?? "—")}
                     </p>
                   </div>
 
-                  <div className="rounded-lg border border-[var(--color-s700)] p-3">
-                    <span className="mb-1 block text-xs font-medium text-[var(--color-t3)]">
-                      Compania B
-                    </span>
-                    <p className="text-sm font-semibold text-[var(--color-t1)]">
+                  <div className="rounded-lg border border-s700 p-3">
+                    <span className="mb-1 block text-xs font-medium text-t3">Compania B</span>
+                    <p className="text-sm font-semibold text-t1">
                       {String(right.denumire ?? right.name ?? "—")}
                     </p>
-                    <p className="text-xs text-[var(--color-t2)]">
+                    <p className="text-xs text-t2">
                       CUI: {String(right.cui ?? "—")} | Judet:{" "}
                       {String(right.judet ?? right.judetCod ?? "—")}
                     </p>
@@ -115,9 +106,8 @@ export function SilverDedup() {
                 </div>
 
                 <div className="mt-3 flex items-center justify-between">
-                  <span className="text-xs text-[var(--color-t3)]">
-                    Scor similaritate:{" "}
-                    <span className="font-semibold text-[var(--color-t1)]">{score}%</span>
+                  <span className="text-xs text-t3">
+                    Scor similaritate: <span className="font-semibold text-t1">{score}%</span>
                   </span>
 
                   <div className="flex gap-2">
@@ -125,23 +115,23 @@ export function SilverDedup() {
                       size="sm"
                       variant="outline"
                       onClick={() => handleDecision(id, "skip")}
-                      disabled={decide.isPending || status !== "pending"}
+                      disabled={decide.isPending || !canDecide}
                     >
                       Skip
                     </Button>
                     <Button
                       size="sm"
                       variant="outline"
-                      className="border-[var(--color-danger)] text-[var(--color-danger)]"
+                      className="border-er text-er"
                       onClick={() => handleDecision(id, "reject")}
-                      disabled={decide.isPending || status !== "pending"}
+                      disabled={decide.isPending || !canDecide}
                     >
                       Respinge
                     </Button>
                     <Button
                       size="sm"
                       onClick={() => handleDecision(id, "merge")}
-                      disabled={decide.isPending || status !== "pending"}
+                      disabled={decide.isPending || !canDecide}
                     >
                       Merge
                     </Button>

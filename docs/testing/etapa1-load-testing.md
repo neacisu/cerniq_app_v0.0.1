@@ -7,13 +7,13 @@ Validare throughput pentru pipeline-ul Etapa 1 la o tinta de **1000 requests/min
 ## Prerequisite
 
 - `k6` instalat local sau in CI runner
-- API pornit si accesibil (ex: `http://localhost:3000`)
+- API pornit si accesibil (ex: `http://localhost:64010`)
 - token JWT valid exportat in `AUTH_TOKEN`
 
 ## Rulare
 
 ```bash
-API_BASE_URL=http://localhost:3000 AUTH_TOKEN="<jwt>" pnpm test:load:etapa1
+API_BASE_URL=http://localhost:64010 AUTH_TOKEN="<jwt>" pnpm test:load:etapa1
 ```
 
 ## Praguri

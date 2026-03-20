@@ -1,6 +1,6 @@
 # ADR-0002: Node.js v24 LTS "Krypton"
 
-**Status:** Accepted  
+**Status:** Superseded by ADR-E0-0035  
 **Data:** 2026-01-15  
 **Deciders:** Alex (1-Person-Team)
 

@@ -11,6 +11,7 @@ export type SilverCompanyRow = {
   id: string;
   denumire: string | null;
   cui: string | null;
+  nrRegCom: string | null;
   enrichmentStatus: string;
   promotionStatus: string;
   totalQualityScore: number | string | null;

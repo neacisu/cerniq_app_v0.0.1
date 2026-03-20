@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react";
-import { fetchQueues } from "../api";
-
-const PREFIX = "cerniq";
+import { drainQueue, fetchQueues, pauseQueue, resumeQueue, retryFailedQueue } from "../api";
 
 type QueueRow = {
   name: string;
@@ -17,6 +15,23 @@ export function Queues() {
   const [queues, setQueues] = useState<QueueRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [busyQueue, setBusyQueue] = useState<string | null>(null);
+
+  async function runAction(name: string, action: "pause" | "resume" | "retry-failed" | "drain") {
+    setBusyQueue(`${name}:${action}`);
+    try {
+      if (action === "pause") await pauseQueue(name);
+      if (action === "resume") await resumeQueue(name);
+      if (action === "retry-failed") await retryFailedQueue(name);
+      if (action === "drain") await drainQueue(name);
+      const res = await fetchQueues();
+      if (res.success && Array.isArray(res.data)) setQueues(res.data);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Queue action failed");
+    } finally {
+      setBusyQueue(null);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -84,7 +99,7 @@ export function Queues() {
       >
         <thead>
           <tr style={{ borderBottom: "1px solid #2a2d35" }}>
-            {["Queue", "Waiting", "Active", "Completed", "Failed", "Status"].map((h) => (
+            {["Queue", "Waiting", "Active", "Completed", "Failed", "Status", "Actions"].map((h) => (
               <th
                 key={h}
                 style={{
@@ -104,7 +119,7 @@ export function Queues() {
           {queues.length === 0 ? (
             <tr>
               <td
-                colSpan={6}
+                colSpan={7}
                 style={{
                   padding: "1.5rem",
                   color: "#6b6b75",
@@ -123,7 +138,7 @@ export function Queues() {
                     fontFamily: "'Geist Mono', monospace",
                   }}
                 >
-                  {PREFIX}:{q.name}
+                  {q.name}
                 </td>
                 <td style={{ padding: "0.75rem", color: "#d4a845" }}>{q.waiting ?? 0}</td>
                 <td style={{ padding: "0.75rem", color: "#60a5fa" }}>{q.active ?? 0}</td>
@@ -150,6 +165,59 @@ export function Queues() {
                   >
                     {q.paused ? "PAUSED" : "ACTIVE"}
                   </span>
+                </td>
+                <td style={{ padding: "0.75rem" }}>
+                  <div style={{ display: "flex", gap: "0.35rem", flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      onClick={() => void runAction(q.name, q.paused ? "resume" : "pause")}
+                      disabled={busyQueue !== null}
+                      style={{
+                        border: "1px solid #2a2d35",
+                        borderRadius: 6,
+                        padding: "0.3rem 0.55rem",
+                        background: "rgba(22,24,30,0.8)",
+                        color: "#e5e5e7",
+                        cursor: "pointer",
+                      }}
+                    >
+                      {busyQueue === `${q.name}:${q.paused ? "resume" : "pause"}`
+                        ? "..."
+                        : q.paused
+                          ? "Resume"
+                          : "Pause"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void runAction(q.name, "retry-failed")}
+                      disabled={busyQueue !== null}
+                      style={{
+                        border: "1px solid #2a2d35",
+                        borderRadius: 6,
+                        padding: "0.3rem 0.55rem",
+                        background: "rgba(22,24,30,0.8)",
+                        color: "#e5e5e7",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Retry
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void runAction(q.name, "drain")}
+                      disabled={busyQueue !== null}
+                      style={{
+                        border: "1px solid #452222",
+                        borderRadius: 6,
+                        padding: "0.3rem 0.55rem",
+                        background: "rgba(80,20,20,0.25)",
+                        color: "#fca5a5",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Drain
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))

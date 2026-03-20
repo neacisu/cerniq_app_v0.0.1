@@ -2,6 +2,7 @@ import type { Processor } from "bullmq";
 import { db, silverCompanies, silverEnrichmentLog, setSessionTenantId, sql } from "@cerniq/db";
 import { sanitizeCui } from "../lib/cui-validation.js";
 import { getTermeneRisk } from "../lib/termene-api-client.js";
+import { markEnrichmentSourceComplete } from "../lib/enrichment-completion.js";
 
 export type TermeneRiskJobData = {
   tenantId: string;
@@ -36,6 +37,12 @@ export const termeneRiskProcessor: Processor<TermeneRiskJobData> = async (job) =
       jobId: String(job.id ?? ""),
       durationMs: Date.now() - startedAt,
     });
+    await markEnrichmentSourceComplete(
+      job.data.tenantId,
+      job.data.companyId,
+      "termene_risk",
+      job.data.correlationId,
+    );
     return { ok: true, status: "not_found", source: "termene_risk", cleanedCui };
   }
 
@@ -68,6 +75,12 @@ export const termeneRiskProcessor: Processor<TermeneRiskJobData> = async (job) =
     jobId: String(job.id ?? ""),
     durationMs: Date.now() - startedAt,
   });
+  await markEnrichmentSourceComplete(
+    job.data.tenantId,
+    job.data.companyId,
+    "termene_risk",
+    job.data.correlationId,
+  );
 
   return {
     ok: true,

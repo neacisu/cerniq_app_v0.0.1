@@ -12,7 +12,7 @@ Sursa date: loguri audit locale (hetzner_audit_logs/20260211_135424)
 - Nota: sectiunile marcate explicit ca "snapshot" (ex: 2026-02-11) sunt pastrate ca istoric/audit trail si NU reprezinta starea curenta.
 - Starea curenta pentru Cerniq (Traefik master, HAProxy gateway, CT109/CT110, OpenBao, CI/CD) este documentata in `### Implementare Cerniq.app` (actualizat 2026-02-16).
 - **KV Engine**: OpenBao foloseste **KV Secrets Engine v1** (nu v2) — path API: `secret/cerniq/*`, raspuns JSON: `.data.key`.
-- **Node.js**: Versiunea LTS **24.13.1** ("Krypton"), pnpm **10.29.3** (actualizat feb 2026).
+- **Node.js**: Versiunea curentă **25.8.1**, pnpm **10.32.1** (aliniat martie 2026).
 - **CI/CD**: Flow secvential CI → CD prin `workflow_dispatch`, **fail-fast** la lint, CD doar pe `workflow_dispatch`.
 - **Observabilitate**: Centralizata exclusiv pe orchestrator — CT-urile expun doar exportere (cadvisor, node-exporter, pgbouncer-exporter), **fara Vector/OTEL local**.
 
@@ -571,9 +571,9 @@ Repo-ul este un **monorepo pnpm** (workspaces) cu:
 
 Din `package.json` (root):
 
-- Node: `>=24.0.0`
-- pnpm: `>=10.0.0`
-- packageManager: `pnpm@10.28.0`
+- Node: `>=25.8.1 <26`
+- pnpm: `>=10.32.1 <11`
+- packageManager: `pnpm@10.32.1`
 
 ##### Runtime curent (docker-compose "all-in-one")
 
@@ -2459,7 +2459,7 @@ Taskurile marcate `completed` in planul de migrare sunt implementate si au refer
   - `cadvisor` (docker metrics, container Docker) + `node-exporter` (host metrics, serviciu nativ systemd `prometheus-node-exporter.service`, NU container Docker) — scrape-uite remote de Prometheus orchestrator
   - `pgbouncer-exporter` (metrici PgBouncer, port 64095) — scrape-uit prin HAProxy
   - **Nota**: `vector` si `otel-collector` au fost **eliminate** (feb 2026) — observabilitate centralizata exclusiv pe orchestrator
-- Runtime: placeholders ruleaza Python 3.12 Alpine; aplicatia reala va folosi **Node 24.13.1 (LTS "Krypton")**, pnpm 10.29.3
+- Runtime: placeholders ruleaza Python 3.12 Alpine; aplicatia reala va folosi **Node 25.8.1 (current release line)**, pnpm 10.32.1
 
 #### Observabilitate Cerniq (centralizata pe orchestrator)
 
@@ -2489,7 +2489,7 @@ Fiecare CT expune doar exportere care sunt scrape-uite remote de Prometheus de p
 #### CI/CD (CT 108 runner)
 
 - **Runner**: CT108 (`CI-worker`), self-hosted GitHub Actions runner
-  - Software: Docker 28.2.2, Node.js 24.13.1 (via actions/setup-node), pnpm 10.29.3 (via corepack), shellcheck 0.9.0 (nativ), **gh CLI 2.86.0**
+  - Software: Docker 28.2.2, Node.js 25.8.1 (via actions/setup-node), pnpm 10.32.1 (via corepack), shellcheck 0.9.0 (nativ), **gh CLI 2.86.0**
   - User: `runner`, serviciu `actions.runner.*` activ
 - **Workflows**:
   - CI: `.github/workflows/ci-pr.yml`

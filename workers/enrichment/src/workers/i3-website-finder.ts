@@ -1,6 +1,6 @@
-import { Queue, type Processor } from "bullmq";
+import type { Processor } from "bullmq";
 import { db, setSessionTenantId, silverCompanies, silverEnrichmentLog, sql } from "@cerniq/db";
-import { getQueuePrefix, getRedisConnectionOptions } from "@cerniq/worker-shared";
+import { createCircuitBreaker, createQueue } from "@cerniq/worker-shared";
 
 export type WebsiteFinderJobData = {
   tenantId: string;
@@ -36,6 +36,23 @@ async function verifyCompanyWebsite(url: string, denumire: string, cui?: string)
   }
 }
 
+const bingSearchBreaker = createCircuitBreaker(
+  async (query: string, bingKey: string) => {
+    const url = new URL("https://api.bing.microsoft.com/v7.0/search");
+    url.searchParams.set("q", query);
+    url.searchParams.set("count", "10");
+    const response = await fetch(url.toString(), {
+      method: "GET",
+      headers: { "Ocp-Apim-Subscription-Key": bingKey, Accept: "application/json" },
+      signal: AbortSignal.timeout(Number(process.env.BING_TIMEOUT_MS ?? "15000")),
+    });
+    if (!response.ok) throw new Error(`Bing search failed: ${response.status}`);
+    return (await response.json()) as Record<string, unknown>;
+  },
+  "bing-search",
+  { timeout: 15000, errorThresholdPercentage: 50, resetTimeout: 60000 },
+);
+
 export const websiteFinderProcessor: Processor<WebsiteFinderJobData> = async (job) => {
   const startedAt = Date.now();
   await setSessionTenantId(job.data.tenantId);
@@ -46,17 +63,7 @@ export const websiteFinderProcessor: Processor<WebsiteFinderJobData> = async (jo
   }
 
   const query = `${job.data.denumire} romania site oficial`;
-  const url = new URL("https://api.bing.microsoft.com/v7.0/search");
-  url.searchParams.set("q", query);
-  url.searchParams.set("count", "10");
-  const response = await fetch(url.toString(), {
-    method: "GET",
-    headers: { "Ocp-Apim-Subscription-Key": bingKey, Accept: "application/json" },
-    signal: AbortSignal.timeout(Number(process.env.BING_TIMEOUT_MS ?? "15000")),
-  });
-  if (!response.ok) throw new Error(`Bing search failed: ${response.status}`);
-
-  const payload = (await response.json()) as Record<string, unknown>;
+  const payload = await bingSearchBreaker.fire(query, bingKey);
   const webPages =
     payload.webPages && typeof payload.webPages === "object"
       ? (((payload.webPages as Record<string, unknown>).value as
@@ -105,9 +112,7 @@ export const websiteFinderProcessor: Processor<WebsiteFinderJobData> = async (jo
     })
     .where(sql`${silverCompanies.id} = ${job.data.companyId}`);
 
-  const connection = getRedisConnectionOptions();
-  const prefix = getQueuePrefix();
-  const queue = new Queue("silver:enrich:contact-page-scraper", { connection, prefix });
+  const queue = createQueue("scrape:website:contact-page");
   await queue.add("scrape-contact-page", {
     tenantId: job.data.tenantId,
     companyId: job.data.companyId,

@@ -9,10 +9,10 @@ type StatsGridItem = {
   path?: string;
 };
 
-type StatsGridProps = {
+type StatsGridProps = Readonly<{
   items: StatsGridItem[];
   onNavigate?: (path: string) => void;
-};
+}>;
 
 export function StatsGrid({ items, onNavigate }: StatsGridProps) {
   return (

@@ -3,6 +3,27 @@ import { Badge } from "@/components/ui/badge.js";
 import { ProgressBar } from "@/components/data/ProgressBar.js";
 import type { BronzeContactRow, GoldCompanyRow, SilverCompanyRow } from "./etapa1-types.js";
 
+export function makeBronzeContactsColumns(
+  onOpen: (id: string) => void,
+): ColumnDef<BronzeContactRow>[] {
+  return [
+    {
+      accessorKey: "extractedName",
+      header: "Nume",
+      cell: ({ row }) => (
+        <button
+          type="button"
+          className="text-left text-b5 underline-offset-2 hover:underline"
+          onClick={() => onOpen(String(row.original.id))}
+        >
+          {row.original.extractedName ?? "-"}
+        </button>
+      ),
+    },
+    ...bronzeContactsColumns.slice(1),
+  ];
+}
+
 export const bronzeContactsColumns: ColumnDef<BronzeContactRow>[] = [
   {
     accessorKey: "extractedName",
@@ -32,9 +53,14 @@ export const silverCompaniesColumns: ColumnDef<SilverCompanyRow>[] = [
     cell: ({ row }) => row.original.denumire ?? "-",
   },
   {
-    accessorKey: "cui",
-    header: "CUI",
-    cell: ({ row }) => row.original.cui ?? "-",
+    id: "cui",
+    header: "CUI / Nr. Reg.",
+    cell: ({ row }) => (
+      <div className="flex flex-col leading-tight">
+        <span>{row.original.cui ?? <span className="text-t3">—</span>}</span>
+        {row.original.nrRegCom && <span className="text-xs text-t3">{row.original.nrRegCom}</span>}
+      </div>
+    ),
   },
   {
     accessorKey: "enrichmentStatus",
@@ -52,6 +78,27 @@ export const silverCompaniesColumns: ColumnDef<SilverCompanyRow>[] = [
     cell: ({ row }) => <ProgressBar value={Number(row.original.totalQualityScore ?? 0)} />,
   },
 ];
+
+export function makeSilverCompaniesColumns(
+  onOpen: (id: string) => void,
+): ColumnDef<SilverCompanyRow>[] {
+  return [
+    {
+      accessorKey: "denumire",
+      header: "Companie",
+      cell: ({ row }) => (
+        <button
+          type="button"
+          className="text-left text-b5 underline-offset-2 hover:underline"
+          onClick={() => onOpen(String(row.original.id))}
+        >
+          {row.original.denumire ?? "-"}
+        </button>
+      ),
+    },
+    ...silverCompaniesColumns.slice(1),
+  ];
+}
 
 export const goldCompaniesColumns: ColumnDef<GoldCompanyRow>[] = [
   {
@@ -80,3 +127,24 @@ export const goldCompaniesColumns: ColumnDef<GoldCompanyRow>[] = [
     cell: ({ row }) => <ProgressBar value={Number(row.original.leadScore ?? 0)} />,
   },
 ];
+
+export function makeGoldCompaniesColumns(
+  onOpen: (id: string) => void,
+): ColumnDef<GoldCompanyRow>[] {
+  return [
+    {
+      accessorKey: "denumire",
+      header: "Companie",
+      cell: ({ row }) => (
+        <button
+          type="button"
+          className="text-left text-b5 underline-offset-2 hover:underline"
+          onClick={() => onOpen(String(row.original.id))}
+        >
+          {row.original.denumire ?? "-"}
+        </button>
+      ),
+    },
+    ...goldCompaniesColumns.slice(1),
+  ];
+}

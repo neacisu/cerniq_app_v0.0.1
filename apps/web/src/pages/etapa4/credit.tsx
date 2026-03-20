@@ -28,7 +28,7 @@ const MOCK_CREDIT = [
   },
   {
     company: "SC Ferma Dunarea SA",
-    score: 9.0,
+    score: 9,
     limit: "EUR 100K",
     used: "EUR 45K",
     risk: "RISK_LOW",
@@ -48,27 +48,22 @@ export function Credit() {
         <CardBody className="p-0 overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[var(--color-s700)]">
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">Company</th>
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">Score</th>
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">
-                  Credit Limit
-                </th>
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">Used</th>
-                <th className="text-left py-3 px-4 text-[var(--color-t3)] font-medium">Risk</th>
+              <tr className="border-b border-s700">
+                <th className="px-4 py-3 text-left font-medium text-t3">Company</th>
+                <th className="px-4 py-3 text-left font-medium text-t3">Score</th>
+                <th className="px-4 py-3 text-left font-medium text-t3">Credit Limit</th>
+                <th className="px-4 py-3 text-left font-medium text-t3">Used</th>
+                <th className="px-4 py-3 text-left font-medium text-t3">Risk</th>
               </tr>
             </thead>
             <tbody>
               {MOCK_CREDIT.map((c) => (
-                <tr
-                  key={c.company}
-                  className="border-b border-[var(--color-s800)] hover:bg-[var(--color-s800)]/50"
-                >
-                  <td className="py-3 px-4 text-[var(--color-t1)]">{c.company}</td>
+                <tr key={c.company} className="border-b border-s800 hover:bg-s800/50">
+                  <td className="px-4 py-3 text-t1">{c.company}</td>
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-2 w-32">
                       <ProgressBar value={c.score * 10} max={100} />
-                      <span className="text-xs text-[var(--color-t3)]">{c.score}/10</span>
+                      <span className="text-xs text-t3">{c.score}/10</span>
                     </div>
                   </td>
                   <td className="py-3 px-4">{c.limit}</td>

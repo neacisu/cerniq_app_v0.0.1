@@ -1,6 +1,6 @@
-import { Queue, type Processor } from "bullmq";
+import type { Processor } from "bullmq";
 import { db, setSessionTenantId, silverCompanies, silverEnrichmentLog, sql } from "@cerniq/db";
-import { getQueuePrefix, getRedisConnectionOptions } from "@cerniq/worker-shared";
+import { createQueue } from "@cerniq/worker-shared";
 
 export type PostgisZonesJobData = {
   tenantId: string;
@@ -145,9 +145,7 @@ export const postgisZonesProcessor: Processor<PostgisZonesJobData> = async (job)
     })
     .where(sql`${silverCompanies.id} = ${companyId}`);
 
-  const connection = getRedisConnectionOptions();
-  const prefix = getQueuePrefix();
-  const proximityQueue = new Queue("silver:enrich:proximity-calculator", { connection, prefix });
+  const proximityQueue = createQueue("geo:proximity");
   await proximityQueue.add("proximity", {
     tenantId,
     companyId,

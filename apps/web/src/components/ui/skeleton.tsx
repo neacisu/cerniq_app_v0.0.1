@@ -1,5 +1,9 @@
 import { cn } from "@/lib/utils.js";
 
-export function Skeleton({ className }: { className?: string }) {
+type SkeletonProps = Readonly<{
+  className?: string;
+}>;
+
+export function Skeleton({ className }: SkeletonProps) {
   return <div className={cn("sk", className)} />;
 }

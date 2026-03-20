@@ -1,4 +1,4 @@
-import { createCircuitBreaker } from "@cerniq/worker-shared";
+import { createCircuitBreaker, withExternalApiMetrics } from "@cerniq/worker-shared";
 
 const XAI_BASE_URL = process.env.XAI_BASE_URL ?? "https://api.x.ai/v1";
 const XAI_API_KEY = process.env.XAI_API_KEY ?? "";
@@ -51,20 +51,16 @@ async function callXaiJson(
   }
 }
 
-const xaiBreaker = createCircuitBreaker(
-  async (...args: unknown[]) => callXaiJson(String(args[0] ?? ""), String(args[1] ?? "")),
-  "xai-client",
-  {
-    timeout: XAI_TIMEOUT_MS,
-    errorThresholdPercentage: 50,
-    resetTimeout: 30000,
-    volumeThreshold: 5,
-  },
-);
+const xaiBreaker = createCircuitBreaker(callXaiJson, "xai-client", {
+  timeout: XAI_TIMEOUT_MS,
+  errorThresholdPercentage: 50,
+  resetTimeout: 30000,
+  volumeThreshold: 5,
+});
 
 export async function xaiStructuredJson(
   systemPrompt: string,
   userPrompt: string,
 ): Promise<Record<string, unknown>> {
-  return xaiBreaker.fire(systemPrompt, userPrompt);
+  return withExternalApiMetrics("xai", () => xaiBreaker.fire(systemPrompt, userPrompt));
 }

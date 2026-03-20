@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node worker.js",
-    "start": "node worker.js",
+    "dev": "tsx watch src/bootstrap.ts",
+    "start": "node dist/main.js",
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src/",
@@ -13,17 +13,20 @@
   },
   "dependencies": {
     "@cerniq/db": "workspace:*",
+    "@cerniq/observability": "workspace:*",
     "@cerniq/shared-types": "workspace:*",
     "@cerniq/worker-shared": "workspace:*",
     "@types/papaparse": "^5.5.2",
-    "bullmq": "^5.70.1",
+    "bullmq": "^5.71.0",
     "exceljs": "^4.4.0",
     "fuzzball": "^2.2.3",
     "ioredis": "^5.10.0",
-    "libphonenumber-js": "^1.12.38",
-    "papaparse": "^5.5.3"
+    "libphonenumber-js": "^1.12.40",
+    "papaparse": "^5.5.3",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
-    "vitest": "^4.0.18"
+    "tsx": "^4.21.0",
+    "vitest": "^4.1.0"
   }
 }

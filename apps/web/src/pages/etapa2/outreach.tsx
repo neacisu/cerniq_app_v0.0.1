@@ -59,7 +59,7 @@ export function Outreach() {
             <div className={cn("grid grid-cols-5 gap-3")}>
               {waQuota.map((w) => (
                 <div key={w.id} className="space-y-1">
-                  <span className="text-xs text-[var(--color-t3)]">{w.id}</span>
+                  <span className="text-xs text-t3">{w.id}</span>
                   <ProgressBar value={w.pct} />
                 </div>
               ))}

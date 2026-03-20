@@ -36,9 +36,9 @@
 
 | Cat.  | Nume               | Workers | Cozi BullMQ          | Descriere                      |
 | ----- | ------------------ | ------- | -------------------- | ------------------------------ |
-| **A** | Ingestie Bronze    | 5       | `bronze:ingest:*`    | Import CSV, webhooks, scraping |
-| **B** | Normalizare        | 4       | `bronze:normalize:*` | Standardizare date             |
-| **C** | Validare CUI       | 2       | `silver:validate:*`  | Validare algoritm modulo-11    |
+| **A** | Ingestie Bronze    | 5       | `ingest:*`    | Import CSV, webhooks, scraping |
+| **B** | Normalizare        | 4       | `normalize:*` | Standardizare date             |
+| **C** | Validare CUI       | 2       | `validate:cui:*`  | Validare algoritm modulo-11    |
 | **D** | ANAF API           | 5       | `enrich:anaf:*`      | Date fiscale ANAF              |
 | **E** | Termene.ro         | 4       | `enrich:termene:*`   | Date financiare                |
 | **F** | ONRC               | 3       | `enrich:onrc:*`      | Registrul Comerțului           |
@@ -48,9 +48,9 @@
 | **J** | AI Structuring     | 4       | `enrich:ai:*`        | Parsare AI, extraction         |
 | **K** | Geocoding          | 3       | `enrich:geo:*`       | Nominatim, PostGIS             |
 | **L** | Agricol            | 5       | `enrich:agri:*`      | APIA, OUAI, culturi            |
-| **M** | Deduplicare        | 2       | `silver:dedup:*`     | Fuzzy match, merge             |
-| **N** | Quality Scoring    | 3       | `silver:score:*`     | Completeness, accuracy         |
-| **O** | Agregare           | 2       | `silver:aggregate:*` | Statistici, rollup             |
+| **M** | Deduplicare        | 2       | `dedup:*`     | Fuzzy match, merge             |
+| **N** | Quality Scoring    | 3       | `score:*`     | Completeness, accuracy         |
+| **O** | Agregare           | 2       | `aggregate:*` | Statistici, rollup             |
 | **P** | Pipeline Control   | 4       | `pipeline:*`         | Orchestrare, monitoring        |
 |       | **TOTAL**          | **58**  |                      |                                |
 
@@ -64,9 +64,9 @@
 {layer}:{category}:{action}
 
 Exemple:
-- bronze:ingest:csv-parser      → Worker A.1
+- ingest:csv-parser      → Worker A.1
 - enrich:anaf:fiscal-status     → Worker D.1
-- silver:dedup:fuzzy-matcher    → Worker M.1
+- dedup:fuzzy    → Worker M.1
 - pipeline:orchestrator:start   → Worker P.1
 ```
 
@@ -197,7 +197,7 @@ const SEQUENTIAL_GROUP_2 = ["M.*", "N.*", "O.*", "P.*"];
 | Worker | HITL Trigger        | Approval Type   | SLA |
 | ------ | ------------------- | --------------- | --- |
 | M.2    | Fuzzy match 70-85%  | `dedup_review`  | 24h |
-| N.1    | Quality score 40-60 | `data_quality`  | 24h |
+| N.1    | Quality score 40-60 | `quality_review`  | 24h |
 | J.3    | Low confidence AI   | `manual_enrich` | 48h |
 
 ---

@@ -391,8 +391,8 @@ export const hitlTaskCreateWorker = new Worker("hitl", async (job) => {
     entity_id: entityId,
     pipeline_stage: "E5", // ← Marker pentru Etapa 5
     approval_type: approvalType, // ← churn_intervention, nps_followup, etc.
-    bullmq_job_id: job.id,
-    bullmq_queue_name: job.queueName,
+    blocked_job_id: job.id,
+    blocked_queue_name: job.queueName,
     correlation_id: job.data.correlationId,
     priority: priority.toLowerCase(), // ← lowercase în schema canonică
     sla_minutes: slaMinutes,
@@ -465,8 +465,8 @@ export const hitlTaskResolveWorker = new Worker("hitl", async (job) => {
   }
 
   // Resume BullMQ job if waiting
-  if (task.bullmq_job_id && task.bullmq_queue_name) {
-    await resumeWaitingJob(task.bullmq_queue_name, task.bullmq_job_id, {
+  if (task.blocked_job_id && task.blocked_queue_name) {
+    await resumeWaitingJob(task.blocked_queue_name, task.blocked_job_id, {
       decision,
       taskId: task.id,
     });

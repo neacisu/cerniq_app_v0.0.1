@@ -1,6 +1,6 @@
-import { Queue, type Processor } from "bullmq";
+import { type Processor } from "bullmq";
 import { db, pipelineErrors, setSessionTenantId, silverCompanies, sql } from "@cerniq/db";
-import { getQueuePrefix, getRedisConnectionOptions } from "@cerniq/worker-shared";
+import { createQueue } from "@cerniq/worker-shared";
 import { createHitlApprovalTask } from "./pipeline-utils.js";
 
 export type ErrorHandlerJobData = {
@@ -16,6 +16,18 @@ export type ErrorHandlerJobData = {
   stackTrace?: string;
   correlationId?: string;
 };
+
+function mapErrorSeverity(errorType: string): "critical" | "error" | "warning" {
+  if (errorType === "PERMANENT_FAILURE" || errorType === "AUTH_ERROR") return "critical";
+  if (errorType === "DATA_NOT_FOUND" || errorType === "QUOTA_EXCEEDED") return "warning";
+  return "error";
+}
+
+function getBaseDelay(errorType: string): number {
+  if (errorType === "RATE_LIMITED" || errorType === "QUOTA_EXCEEDED") return 60_000;
+  if (errorType === "CIRCUIT_OPEN") return 120_000;
+  return 30_000;
+}
 
 export const pipelineErrorHandlerProcessor: Processor<ErrorHandlerJobData> = async (job) => {
   await setSessionTenantId(job.data.tenantId);
@@ -34,10 +46,7 @@ export const pipelineErrorHandlerProcessor: Processor<ErrorHandlerJobData> = asy
     errorType: job.data.errorType,
     errorMessage: job.data.errorMessage,
     errorStack: job.data.stackTrace,
-    severity:
-      job.data.errorType === "PERMANENT_FAILURE" || job.data.errorType === "VALIDATION_ERROR"
-        ? "critical"
-        : "error",
+    severity: mapErrorSeverity(job.data.errorType),
     recoveryAction: "pending",
     metadata: {
       sourcePayload: job.data.sourcePayload ?? null,
@@ -46,21 +55,23 @@ export const pipelineErrorHandlerProcessor: Processor<ErrorHandlerJobData> = asy
     },
   });
 
-  const connection = getRedisConnectionOptions();
-  const prefix = getQueuePrefix();
-
   switch (job.data.errorType) {
     case "API_TIMEOUT":
-    case "RATE_LIMITED": {
+    case "NETWORK_ERROR":
+    case "RATE_LIMITED":
+    case "QUOTA_EXCEEDED":
+    case "CIRCUIT_OPEN": {
+      const baseDelay = getBaseDelay(job.data.errorType);
       if (retryCount < maxRetries) {
-        const delayMs = Math.min(300_000, 30_000 * 2 ** retryCount);
+        const delayMs = Math.min(600_000, baseDelay * 2 ** retryCount);
+        const sourcePayload = job.data.sourcePayload ?? {};
         const replayPayload = {
-          ...(job.data.sourcePayload ?? {}),
+          ...sourcePayload,
           tenantId: job.data.tenantId,
           companyId: job.data.companyId,
           correlationId: job.data.correlationId,
         };
-        const queue = new Queue(job.data.sourceWorker, { connection, prefix });
+        const queue = createQueue(job.data.sourceWorker);
         await queue.add("replay", replayPayload, {
           delay: delayMs,
           attempts: maxRetries,
@@ -94,12 +105,34 @@ export const pipelineErrorHandlerProcessor: Processor<ErrorHandlerJobData> = asy
       }
       break;
     }
-    case "VALIDATION_ERROR": {
+    case "AUTH_ERROR": {
       await createHitlApprovalTask({
         tenantId: job.data.tenantId,
         entityType: "company",
         entityId: job.data.companyId,
         type: "error_review",
+        title: "Eroare autentificare API extern",
+        description: `${job.data.sourceWorker}: ${job.data.errorMessage}`,
+        urgency: "critical",
+        aiRecommendation: "check_credentials",
+        blockedJobId: job.data.sourceJobId,
+        blockedQueueName: job.data.sourceWorker,
+        metadata: {
+          errorType: job.data.errorType,
+          sourceWorker: job.data.sourceWorker,
+          sourcePayload: job.data.sourcePayload ?? null,
+        },
+        expiresInHours: 4,
+      });
+      recoveryAction = "alert_credentials";
+      break;
+    }
+    case "VALIDATION_ERROR": {
+      await createHitlApprovalTask({
+        tenantId: job.data.tenantId,
+        entityType: "company",
+        entityId: job.data.companyId,
+        type: "quality_review",
         title: "Eroare validare in pipeline",
         description: `${job.data.sourceWorker}: ${job.data.errorMessage}`,
         aiRecommendation: "review",

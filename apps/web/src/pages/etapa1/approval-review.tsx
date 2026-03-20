@@ -1,4 +1,5 @@
 import { useParams } from "react-router-dom";
+import { useState } from "react";
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
 import { Spinner } from "@/components/ui/spinner.js";
 import {
@@ -12,7 +13,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/index.js";
-import { useApprovalDetail, useDecideApproval } from "@/hooks/use-etapa1.js";
+import { useApprovalDetail, useDecideApproval, useEscalateApproval } from "@/hooks/use-etapa1.js";
 import { SLACountdown } from "@/components/data/SLACountdown.js";
 import { toast } from "@/components/ui/toast-api.js";
 
@@ -20,15 +21,26 @@ export function ApprovalReview() {
   const { id } = useParams();
   const detailQuery = useApprovalDetail(id);
   const decideMutation = useDecideApproval();
+  const escalateMutation = useEscalateApproval();
+  const [showEscalate, setShowEscalate] = useState(false);
+  const [escalateReason, setEscalateReason] = useState("");
   const task = detailQuery.data?.data ?? {};
   const entityData = detailQuery.data?.entityData ?? null;
 
-  const decide = (decision: "approve" | "reject" | "merge" | "skip") => {
+  const decide = async (decision: "approve" | "reject" | "merge" | "skip") => {
     if (!id) return;
-    void decideMutation.mutateAsync({ id, decision }).then(() => {
-      toast.success(`Decizie salvata: ${decision}`);
-      void detailQuery.refetch();
-    });
+    await decideMutation.mutateAsync({ id, decision });
+    toast.success(`Decizie salvata: ${decision}`);
+    await detailQuery.refetch();
+  };
+
+  const handleEscalate = async () => {
+    if (!id || !escalateReason.trim()) return;
+    await escalateMutation.mutateAsync({ id, reason: escalateReason });
+    toast.success("Task escalat cu succes");
+    setShowEscalate(false);
+    setEscalateReason("");
+    await detailQuery.refetch();
   };
 
   if (detailQuery.isPending) {
@@ -44,7 +56,7 @@ export function ApprovalReview() {
   if (detailQuery.isError) {
     return (
       <PageWrapper title="Approval Review">
-        <div className="rounded-lg border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 p-4 text-sm text-[var(--color-danger)]">
+        <div className="rounded-lg border border-er/30 bg-er/10 p-4 text-sm text-er">
           Eroare la încărcarea datelor: {detailQuery.error?.message ?? "Eroare necunoscută"}
         </div>
       </PageWrapper>
@@ -59,27 +71,21 @@ export function ApprovalReview() {
         </CardHeader>
         <CardBody>
           <div className="grid gap-3 md:grid-cols-4">
-            <div className="rounded border border-[var(--color-s700)] p-3 text-sm">
-              <div className="text-[var(--color-t3)]">Status</div>
-              <div className="font-semibold text-[var(--color-t1)]">
-                {String(task.status ?? "-")}
-              </div>
+            <div className="rounded border border-s700 p-3 text-sm">
+              <div className="text-t3">Status</div>
+              <div className="font-semibold text-t1">{String(task.status ?? "-")}</div>
             </div>
-            <div className="rounded border border-[var(--color-s700)] p-3 text-sm">
-              <div className="text-[var(--color-t3)]">Type</div>
-              <div className="font-semibold text-[var(--color-t1)]">
-                {String(task.approvalType ?? "-")}
-              </div>
+            <div className="rounded border border-s700 p-3 text-sm">
+              <div className="text-t3">Type</div>
+              <div className="font-semibold text-t1">{String(task.approvalType ?? "-")}</div>
             </div>
-            <div className="rounded border border-[var(--color-s700)] p-3 text-sm">
-              <div className="text-[var(--color-t3)]">Priority</div>
-              <div className="font-semibold text-[var(--color-t1)]">
-                {String(task.priorityLevel ?? "-")}
-              </div>
+            <div className="rounded border border-s700 p-3 text-sm">
+              <div className="text-t3">Priority</div>
+              <div className="font-semibold text-t1">{String(task.priorityLevel ?? "-")}</div>
             </div>
-            <div className="rounded border border-[var(--color-s700)] p-3 text-sm">
-              <div className="text-[var(--color-t3)]">SLA</div>
-              <div className="font-semibold text-[var(--color-t1)]">
+            <div className="rounded border border-s700 p-3 text-sm">
+              <div className="text-t3">SLA</div>
+              <div className="font-semibold text-t1">
                 {task.dueAt ? <SLACountdown dueAt={String(task.dueAt)} /> : "-"}
               </div>
             </div>
@@ -93,12 +99,12 @@ export function ApprovalReview() {
           <TabsTrigger value="entity">Entity Context</TabsTrigger>
         </TabsList>
         <TabsContent value="task">
-          <pre className="rounded border border-[var(--color-s700)] p-3 text-xs text-[var(--color-t2)]">
+          <pre className="rounded border border-s700 p-3 text-xs text-t2">
             {JSON.stringify(task, null, 2)}
           </pre>
         </TabsContent>
         <TabsContent value="entity">
-          <pre className="rounded border border-[var(--color-s700)] p-3 text-xs text-[var(--color-t2)]">
+          <pre className="rounded border border-s700 p-3 text-xs text-t2">
             {JSON.stringify(entityData, null, 2)}
           </pre>
         </TabsContent>
@@ -125,7 +131,39 @@ export function ApprovalReview() {
         <Button variant="ghost" onClick={() => decide("skip")} disabled={decideMutation.isPending}>
           Skip
         </Button>
+        <Button
+          variant="outline"
+          onClick={() => setShowEscalate((v) => !v)}
+          disabled={escalateMutation.isPending}
+        >
+          Escaleaza
+        </Button>
       </div>
+
+      {showEscalate && (
+        <div className="mt-3 rounded border border-s700 p-3">
+          <p className="mb-2 text-sm text-t3">Motiv escalare (minim 3 caractere)</p>
+          <textarea
+            className="w-full rounded border border-s600 bg-s800 p-2 text-sm text-t1"
+            rows={3}
+            value={escalateReason}
+            onChange={(e) => setEscalateReason(e.target.value)}
+            placeholder="Descrie motivul escalarii..."
+          />
+          <div className="mt-2 flex gap-2">
+            <Button
+              size="sm"
+              onClick={handleEscalate}
+              disabled={escalateMutation.isPending || escalateReason.trim().length < 3}
+            >
+              Confirma escalare
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setShowEscalate(false)}>
+              Anuleaza
+            </Button>
+          </div>
+        </div>
+      )}
     </PageWrapper>
   );
 }

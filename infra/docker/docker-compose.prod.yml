@@ -157,21 +157,7 @@ services:
         max-size: "50m"
         max-file: "3"
 
-  cerniq-worker-ai:
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "20m"
-        max-file: "3"
-
   cerniq-worker-enrichment:
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "20m"
-        max-file: "3"
-
-  cerniq-worker-outreach:
     logging:
       driver: "json-file"
       options:

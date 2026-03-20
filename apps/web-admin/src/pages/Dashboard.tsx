@@ -12,9 +12,9 @@ type QueueRow = {
 };
 
 type WsPayload = {
-  type?: string;
+  timestamp?: number;
   queues?: QueueRow[];
-  metrics?: {
+  system?: {
     cpu?: { loadAvg?: number[] };
     memory?: { used?: number; total?: number; usagePercent?: string };
   };
@@ -31,7 +31,7 @@ export function Dashboard() {
 
   const { state: wsState } = useWebSocket<WsPayload>((data) => {
     if (Array.isArray(data?.queues)) setQueues(data.queues);
-    if (data?.metrics) setMetrics(data.metrics);
+    if (data?.system) setMetrics(data.system);
   });
   const wsStateRef = useRef(wsState);
   wsStateRef.current = wsState;

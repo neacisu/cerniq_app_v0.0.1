@@ -28,7 +28,7 @@ interface DajScraperJobData {
 
 // Rate limit: 0.5 requests/second (2s delay)
 export const dajScraperWorker = createWorker<DajScraperJobData, DajScraperResult>({
-  queueName: "silver:enrich:daj-scraper",
+  queueName: "scrape:legal:daj",
   concurrency: 2,
   limiter: { max: 1, duration: 2000 },
   attempts: 2,
@@ -148,7 +148,7 @@ export const dajScraperWorker = createWorker<DajScraperJobData, DajScraperResult
 // apps/workers/src/silver/anif-scraper.worker.ts
 
 export const anifScraperWorker = createWorker<AnifScraperJobData, AnifScraperResult>({
-  queueName: "silver:enrich:anif-scraper",
+  queueName: "scrape:legal:anif",
   concurrency: 2,
   limiter: { max: 1, duration: 2000 },
   attempts: 2,
@@ -247,7 +247,7 @@ import axios from "axios";
 import * as cheerio from "cheerio";
 
 export const websiteFinderWorker = createWorker<WebsiteFinderJobData, WebsiteFinderResult>({
-  queueName: "silver:enrich:website-finder",
+  queueName: "scrape:website:finder",
   concurrency: 5,
   limiter: { max: 5, duration: 1000 },
   attempts: 2,
@@ -388,7 +388,7 @@ function extractDomain(url: string): string {
 // apps/workers/src/silver/contact-page-scraper.worker.ts
 
 export const contactPageScraperWorker = createWorker<ContactPageJobData, ContactPageResult>({
-  queueName: "silver:enrich:contact-page-scraper",
+  queueName: "scrape:website:contact-page",
   concurrency: 3,
   limiter: { max: 2, duration: 1000 },
   attempts: 2,
@@ -532,7 +532,7 @@ interface GrokStructuringJobData {
 
 // Rate limit: 60 requests/minute for xAI
 export const grokStructuringWorker = createWorker<GrokStructuringJobData, GrokStructuringResult>({
-  queueName: "silver:enrich:grok-structuring",
+  queueName: "ai:structure:xai",
   concurrency: 5,
   limiter: { max: 60, duration: 60000 },
   attempts: 3,
@@ -726,7 +726,7 @@ function validateCuiChecksum(cui: string): boolean {
 // apps/workers/src/silver/ai-data-merger.worker.ts
 
 export const aiDataMergerWorker = createWorker<AiMergerJobData, AiMergerResult>({
-  queueName: "silver:enrich:ai-data-merger",
+  queueName: "ai:merge:xai",
   concurrency: 5,
   limiter: { max: 60, duration: 60000 },
   attempts: 2,
@@ -830,7 +830,7 @@ Returnează JSON cu:
 // apps/workers/src/silver/ai-confidence-scorer.worker.ts
 
 export const aiConfidenceScorerWorker = createWorker<AiConfidenceJobData, AiConfidenceResult>({
-  queueName: "silver:enrich:ai-confidence-scorer",
+  queueName: "ai:score:confidence",
   concurrency: 10,
   attempts: 2,
   timeout: 30000,
@@ -943,7 +943,7 @@ export const aiConfidenceScorerWorker = createWorker<AiConfidenceJobData, AiConf
 // apps/workers/src/silver/ai-fallback-enrichment.worker.ts
 
 export const aiFallbackEnrichmentWorker = createWorker<AiFallbackJobData, AiFallbackResult>({
-  queueName: "silver:enrich:ai-fallback",
+  queueName: "ai:fallback",
   concurrency: 3,
   limiter: { max: 30, duration: 60000 },
   attempts: 2,
@@ -1055,7 +1055,7 @@ import { db, silverCompanies } from "@cerniq/db";
 import { eq, sql } from "drizzle-orm";
 
 export const nominatimGeocodingWorker = createWorker<GeocodingJobData, GeocodingResult>({
-  queueName: "silver:enrich:nominatim-geocoding",
+  queueName: "geo:geocode:nominatim",
   concurrency: 1, // Nominatim: 1 request/second
   limiter: { max: 1, duration: 1000 },
   attempts: 3,
@@ -1196,7 +1196,7 @@ function determineAccuracy(result: any): string {
 // apps/workers/src/silver/postgis-zones.worker.ts
 
 export const postgisZonesWorker = createWorker<PostgisZonesJobData, PostgisZonesResult>({
-  queueName: "silver:enrich:postgis-zones",
+  queueName: "geo:zones:postgis",
   concurrency: 10,
   attempts: 2,
   timeout: 30000,
@@ -1302,7 +1302,7 @@ export const postgisZonesWorker = createWorker<PostgisZonesJobData, PostgisZones
 // apps/workers/src/silver/proximity-calculator.worker.ts
 
 export const proximityCalculatorWorker = createWorker<ProximityJobData, ProximityResult>({
-  queueName: "silver:enrich:proximity-calculator",
+  queueName: "geo:proximity",
   concurrency: 10,
   attempts: 2,
   timeout: 30000,
@@ -1423,7 +1423,7 @@ export const proximityCalculatorWorker = createWorker<ProximityJobData, Proximit
 // apps/workers/src/silver/apia-data.worker.ts
 
 export const apiaDataWorker = createWorker<ApiaDataJobData, ApiaDataResult>({
-  queueName: "silver:enrich:apia-data",
+  queueName: "agri:apia",
   concurrency: 2,
   limiter: { max: 1, duration: 2000 },
   attempts: 2,
@@ -1530,7 +1530,7 @@ export const apiaDataWorker = createWorker<ApiaDataJobData, ApiaDataResult>({
 // apps/workers/src/silver/ouai-membership.worker.ts
 
 export const ouaiMembershipWorker = createWorker<OuaiJobData, OuaiResult>({
-  queueName: "silver:enrich:ouai-membership",
+  queueName: "agri:ouai",
   concurrency: 5,
   attempts: 2,
   timeout: 30000,
@@ -1570,7 +1570,7 @@ export const ouaiMembershipWorker = createWorker<OuaiJobData, OuaiResult>({
 
 // apps/workers/src/silver/cooperative-membership.worker.ts
 export const cooperativeMembershipWorker = createWorker<CoopJobData, CoopResult>({
-  queueName: "silver:enrich:cooperative-membership",
+  queueName: "agri:cooperative",
   concurrency: 5,
   attempts: 2,
   timeout: 30000,
@@ -1609,7 +1609,7 @@ export const cooperativeMembershipWorker = createWorker<CoopJobData, CoopResult>
 
 // apps/workers/src/silver/culturi-classifier.worker.ts
 export const culturiClassifierWorker = createWorker<CulturiJobData, CulturiResult>({
-  queueName: "silver:enrich:culturi-classifier",
+  queueName: "agri:culturi",
   concurrency: 10,
   attempts: 2,
   timeout: 30000,
@@ -1691,7 +1691,7 @@ function determineTipProducator(culturi: string[]): string {
 
 // apps/workers/src/silver/animale-classifier.worker.ts
 export const animaleClassifierWorker = createWorker<AnimaleJobData, AnimaleResult>({
-  queueName: "silver:enrich:animale-classifier",
+  queueName: "agri:animale",
   concurrency: 10,
   attempts: 2,
   timeout: 30000,
@@ -1747,22 +1747,22 @@ export const animaleClassifierWorker = createWorker<AnimaleJobData, AnimaleResul
 
 | Worker                | Queue Name                             | Concurrency | Rate Limit | Timeout |
 | --------------------- | -------------------------------------- | ----------- | ---------- | ------- |
-| I.1 DAJ Scraper       | `silver:enrich:daj-scraper`            | 2           | 0.5/s      | 120s    |
-| I.2 ANIF Scraper      | `silver:enrich:anif-scraper`           | 2           | 0.5/s      | 120s    |
-| I.3 Website Finder    | `silver:enrich:website-finder`         | 5           | 5/s        | 30s     |
-| I.4 Contact Scraper   | `silver:enrich:contact-page-scraper`   | 3           | 2/s        | 60s     |
-| J.1 Grok Structuring  | `silver:enrich:grok-structuring`       | 5           | 60/min     | 60s     |
-| J.2 AI Merger         | `silver:enrich:ai-data-merger`         | 5           | 60/min     | 60s     |
-| J.3 Confidence Scorer | `silver:enrich:ai-confidence-scorer`   | 10          | -          | 30s     |
-| J.4 AI Fallback       | `silver:enrich:ai-fallback`            | 3           | 30/min     | 90s     |
-| K.1 Nominatim         | `silver:enrich:nominatim-geocoding`    | 1           | 1/s        | 30s     |
-| K.2 PostGIS Zones     | `silver:enrich:postgis-zones`          | 10          | -          | 30s     |
-| K.3 Proximity         | `silver:enrich:proximity-calculator`   | 10          | -          | 30s     |
-| L.1 APIA              | `silver:enrich:apia-data`              | 2           | 0.5/s      | 120s    |
-| L.2 OUAI              | `silver:enrich:ouai-membership`        | 5           | -          | 30s     |
-| L.3 Cooperative       | `silver:enrich:cooperative-membership` | 5           | -          | 30s     |
-| L.4 Culturi           | `silver:enrich:culturi-classifier`     | 10          | -          | 30s     |
-| L.5 Animale           | `silver:enrich:animale-classifier`     | 10          | -          | 30s     |
+| I.1 DAJ Scraper       | `scrape:legal:daj`            | 2           | 0.5/s      | 120s    |
+| I.2 ANIF Scraper      | `scrape:legal:anif`           | 2           | 0.5/s      | 120s    |
+| I.3 Website Finder    | `scrape:website:finder`         | 5           | 5/s        | 30s     |
+| I.4 Contact Scraper   | `scrape:website:contact-page`   | 3           | 2/s        | 60s     |
+| J.1 Grok Structuring  | `ai:structure:xai`       | 5           | 60/min     | 60s     |
+| J.2 AI Merger         | `ai:merge:xai`         | 5           | 60/min     | 60s     |
+| J.3 Confidence Scorer | `ai:score:confidence`   | 10          | -          | 30s     |
+| J.4 AI Fallback       | `ai:fallback`            | 3           | 30/min     | 90s     |
+| K.1 Nominatim         | `geo:geocode:nominatim`    | 1           | 1/s        | 30s     |
+| K.2 PostGIS Zones     | `geo:zones:postgis`          | 10          | -          | 30s     |
+| K.3 Proximity         | `geo:proximity`   | 10          | -          | 30s     |
+| L.1 APIA              | `agri:apia`              | 2           | 0.5/s      | 120s    |
+| L.2 OUAI              | `agri:ouai`        | 5           | -          | 30s     |
+| L.3 Cooperative       | `agri:cooperative` | 5           | -          | 30s     |
+| L.4 Culturi           | `agri:culturi`     | 10          | -          | 30s     |
+| L.5 Animale           | `agri:animale`     | 10          | -          | 30s     |
 
 ---
 

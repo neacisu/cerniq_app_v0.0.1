@@ -1,0 +1,5 @@
+                  id                  |                        filename                        | total_rows | processed_rows | success_rows |  status   |          created_at           
+--------------------------------------+--------------------------------------------------------+------------+----------------+--------------+-----------+-------------------------------
+ 32f90cbb-03f9-44ed-9d9a-e950ee4c23f9 | Baza de date de marketing AGRO COFACE_QBIKNEF SRL.xlsx |     316434 |         316434 |       108678 | completed | 2026-03-02 15:43:14.742349+00
+(1 row)
+

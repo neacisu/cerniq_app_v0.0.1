@@ -3,6 +3,7 @@ import { db, silverCompanies, silverEnrichmentLog, setSessionTenantId, sql } fro
 import { sanitizeCui } from "../lib/cui-validation.js";
 import { getTermeneActionari } from "../lib/termene-api-client.js";
 import { upsertSilverContact } from "./company-enrichment-utils.js";
+import { markEnrichmentSourceComplete } from "../lib/enrichment-completion.js";
 
 export type TermeneAssociatesJobData = {
   tenantId: string;
@@ -66,6 +67,12 @@ export const termeneAssociatesProcessor: Processor<TermeneAssociatesJobData> = a
     jobId: String(job.id ?? ""),
     durationMs: Date.now() - startedAt,
   });
+  await markEnrichmentSourceComplete(
+    job.data.tenantId,
+    job.data.companyId,
+    "termene_actionari",
+    job.data.correlationId,
+  );
 
   return {
     ok: true,

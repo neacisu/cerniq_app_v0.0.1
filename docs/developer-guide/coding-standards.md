@@ -78,8 +78,8 @@ Pentru agenți AI (Cursor, Copilot), instrucțiunile se aplică în această ord
 
 | Component      | Versiune CANONICĂ         | Release Date | EOL/Suport          |
 | -------------- | ------------------------- | ------------ | ------------------- |
-| **Node.js**    | **24.13.1 "Krypton"**     | 10 Dec 2025  | Apr 2028            |
-| **V8 Engine**  | 13.6.233.17               | Bundled      | —                   |
+| **Node.js**    | **25.8.1 (Current)**      | 11 Mar 2026  | Current, non-LTS    |
+| **V8 Engine**  | 14.1.146.11               | Bundled      | —                   |
 | **NPM**        | 11.x                      | Bundled      | —                   |
 | **Python**     | **3.14.2** Free-Threading | 5 Dec 2025   | Phase II            |
 | **PostgreSQL** | **18.1**                  | 13 Nov 2025  | —                   |
@@ -1233,7 +1233,7 @@ alwaysApply: true
 
 ## Technology Stack (MANDATORY VERSIONS)
 
-- Node.js: 24.13.1 LTS "Krypton"
+- Node.js: 25.8.1 Current
 - Python: 3.14.2 Free-Threading
 - PostgreSQL: 18.1
 - React: 19.2.3
@@ -1408,7 +1408,7 @@ Master Spec v1.2 is the authoritative source for all decisions.
 
 ## Technology Stack (use these exact versions)
 
-- Node.js 24.13.1, Python 3.14.2, PostgreSQL 18.2
+- Node.js 25.8.1, Python 3.14.2, PostgreSQL 18.2
 - React 19.2.3, Tailwind 4.1.x, Fastify 5.6.2
 
 ## Architecture

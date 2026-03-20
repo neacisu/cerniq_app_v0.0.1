@@ -27,7 +27,7 @@ interface OnrcDataJobData {
 }
 
 export const onrcDataWorker = createWorker<OnrcDataJobData, OnrcDataResult>({
-  queueName: "silver:enrich:onrc-data",
+  queueName: "enrich:onrc:data",
   concurrency: 5,
   limiter: { max: 10, duration: 1000 },
   attempts: 3,
@@ -172,7 +172,7 @@ function mapJudetToCode(judet: string): string | undefined {
 // apps/workers/src/silver/onrc-administratori.worker.ts
 
 export const onrcAdministratoriWorker = createWorker<OnrcAdminJobData, OnrcAdminResult>({
-  queueName: "silver:enrich:onrc-administratori",
+  queueName: "enrich:onrc:administratori",
   concurrency: 5,
   limiter: { max: 10, duration: 1000 },
   attempts: 3,
@@ -264,7 +264,7 @@ function maskCNP(cnp: string): string {
 // apps/workers/src/silver/onrc-sedii.worker.ts
 
 export const onrcSediiWorker = createWorker<OnrcSediiJobData, OnrcSediiResult>({
-  queueName: "silver:enrich:onrc-sedii",
+  queueName: "enrich:onrc:sedii",
   concurrency: 5,
   limiter: { max: 10, duration: 1000 },
   attempts: 3,
@@ -372,7 +372,7 @@ interface HunterEmailJobData {
 
 // Rate limit: 15 requests/second for Hunter.io
 export const hunterEmailFinderWorker = createWorker<HunterEmailJobData, HunterEmailResult>({
-  queueName: "silver:enrich:hunter-email-finder",
+  queueName: "discover:email:hunter",
   concurrency: 5,
   limiter: { max: 15, duration: 1000 },
   attempts: 3,
@@ -506,13 +506,63 @@ function isGenericEmail(email: string): boolean {
 }
 ```
 
-## 2.2 G.2 - ZeroBounce Email Validation Worker
+## 2.2 G.2 - Hunter Email Verification Worker
+
+Worker pentru verificarea email-urilor găsite de Hunter.io folosind API-ul de verificare.
+
+**Queue:** `discover:email:hunter-verify`
+
+**Configurare:**
+- Concurrency: 5
+- Rate limit: 15/s (conform Hunter.io API)
+- Attempts: 3
+- Timeout: 30s
+
+**Job Payload:**
+```typescript
+interface HunterVerifyJobData {
+  tenantId: string;
+  contactId: string;
+  email: string;
+  correlationId?: string;
+}
+```
+
+**Procesare:**
+1. Validează formatul email-ului
+2. Apelează Hunter.io Email Verification API
+3. Actualizează `silver_contacts` cu:
+   - `email_verified`: boolean (deliverable/valid)
+   - `email_validation_date`: timestamp
+   - `email_validation_source`: 'hunter'
+   - `email_deliverability`: 'deliverable' | 'risky' | 'undeliverable'
+   - `email_catch_all`: boolean
+   - `email_role_based`: boolean
+   - Metadata cu detalii API (status, result, score, disposable, webmail, mx_records)
+
+**Output:**
+```typescript
+{
+  ok: boolean;
+  status: 'success' | 'invalid_email' | 'api_no_result';
+  email?: string;
+}
+```
+
+**Erori:**
+- Rate limit exceeded → retry cu backoff exponential
+- API timeout → retry până la 3 încercări
+- Email invalid → skip (nu retry)
+
+---
+
+## 2.3 G.3 - ZeroBounce Email Validation Worker
 
 ```typescript
 // apps/workers/src/silver/zerobounce-validation.worker.ts
 
 export const zerobounceValidationWorker = createWorker<ZerobounceJobData, ZerobounceResult>({
-  queueName: "silver:enrich:zerobounce-validation",
+  queueName: "discover:email:zerobounce",
   concurrency: 10,
   limiter: { max: 100, duration: 1000 }, // ZeroBounce allows higher rate
   attempts: 3,
@@ -575,13 +625,13 @@ export const zerobounceValidationWorker = createWorker<ZerobounceJobData, Zerobo
 });
 ```
 
-## 2.3 G.3 - Email Enricher Worker (Clearbit-style)
+## 2.4 G.4 - Email Enricher Worker (Clearbit-style)
 
 ```typescript
 // apps/workers/src/silver/email-enricher.worker.ts
 
 export const emailEnricherWorker = createWorker<EmailEnricherJobData, EmailEnricherResult>({
-  queueName: "silver:enrich:email-enricher",
+  queueName: "enrich:email:enricher",
   concurrency: 5,
   limiter: { max: 10, duration: 1000 },
   attempts: 3,
@@ -646,7 +696,7 @@ export const emailEnricherWorker = createWorker<EmailEnricherJobData, EmailEnric
 // apps/workers/src/silver/email-pattern-validator.worker.ts
 
 export const emailPatternValidatorWorker = createWorker<EmailPatternJobData, EmailPatternResult>({
-  queueName: "silver:enrich:email-pattern",
+  queueName: "discover:email:pattern",
   concurrency: 5,
   attempts: 2,
   timeout: 15000,
@@ -752,7 +802,7 @@ function detectEmailPatterns(contacts: Contact[]) {
 // apps/workers/src/silver/email-generator.worker.ts
 
 export const emailGeneratorWorker = createWorker<EmailGenJobData, EmailGenResult>({
-  queueName: "silver:enrich:email-generator",
+  queueName: "discover:email:generate",
   concurrency: 5,
   attempts: 2,
   timeout: 15000,
@@ -841,7 +891,7 @@ interface PhoneNormalizerJobData {
 }
 
 export const phoneNormalizerWorker = createWorker<PhoneNormalizerJobData, PhoneNormalizerResult>({
-  queueName: "silver:enrich:phone-normalizer",
+  queueName: "enrich:phone:normalize",
   concurrency: 20, // High concurrency - CPU-bound
   attempts: 2,
   timeout: 10000,
@@ -946,7 +996,7 @@ export const phoneNormalizerWorker = createWorker<PhoneNormalizerJobData, PhoneN
 // apps/workers/src/silver/hlr-lookup.worker.ts
 
 export const hlrLookupWorker = createWorker<HlrLookupJobData, HlrLookupResult>({
-  queueName: "silver:enrich:hlr-lookup",
+  queueName: "enrich:phone:hlr",
   concurrency: 5,
   limiter: { max: 10, duration: 1000 }, // API rate limit
   attempts: 3,
@@ -1011,7 +1061,7 @@ export const hlrLookupWorker = createWorker<HlrLookupJobData, HlrLookupResult>({
 
 export const carrierDetectionWorker = createWorker<CarrierDetectionJobData, CarrierDetectionResult>(
   {
-    queueName: "silver:enrich:carrier-detection",
+    queueName: "enrich:phone:carrier",
     concurrency: 20,
     attempts: 2,
     timeout: 10000,
@@ -1117,17 +1167,18 @@ export const carrierDetectionWorker = createWorker<CarrierDetectionJobData, Carr
 
 | Worker             | Queue Name                            | Concurrency | Rate Limit | Attempts |
 | ------------------ | ------------------------------------- | ----------- | ---------- | -------- |
-| F.1 ONRC Data      | `silver:enrich:onrc-data`             | 5           | 10/s       | 3        |
-| F.2 ONRC Admin     | `silver:enrich:onrc-administratori`   | 5           | 10/s       | 3        |
-| F.3 ONRC Sedii     | `silver:enrich:onrc-sedii`            | 5           | 10/s       | 3        |
-| G.1 Hunter Finder  | `silver:enrich:hunter-email-finder`   | 5           | 15/s       | 3        |
-| G.2 ZeroBounce     | `silver:enrich:zerobounce-validation` | 10          | 100/s      | 3        |
-| G.3 Email Enricher | `silver:enrich:email-enricher`        | 5           | 10/s       | 3        |
-| G.4 Email Pattern  | `silver:enrich:email-pattern`         | 5           | -          | 2        |
-| G.5 Email Gen      | `silver:enrich:email-generator`       | 5           | -          | 2        |
-| H.1 Phone Norm     | `silver:enrich:phone-normalizer`      | 20          | -          | 2        |
-| H.2 HLR Lookup     | `silver:enrich:hlr-lookup`            | 5           | 10/s       | 3        |
-| H.3 Carrier Det    | `silver:enrich:carrier-detection`     | 20          | -          | 2        |
+| F.1 ONRC Data      | `enrich:onrc:data`             | 5           | 10/s       | 3        |
+| F.2 ONRC Admin     | `enrich:onrc:administratori`   | 5           | 10/s       | 3        |
+| F.3 ONRC Sedii     | `enrich:onrc:sedii`            | 5           | 10/s       | 3        |
+| G.1 Hunter Finder  | `discover:email:hunter`   | 5           | 15/s       | 3        |
+| G.2 Hunter Verify | `discover:email:hunter-verify` | 5           | 15/s       | 3        |
+| G.3 ZeroBounce     | `discover:email:zerobounce` | 10          | 100/s      | 3        |
+| G.4 Email Enricher | `enrich:email:enricher`        | 5           | 10/s       | 3        |
+| G.5 Email Pattern  | `discover:email:pattern`         | 5           | -          | 2        |
+| G.6 Email Gen      | `discover:email:generate`       | 5           | -          | 2        |
+| H.1 Phone Norm     | `enrich:phone:normalize`      | 20          | -          | 2        |
+| H.2 HLR Lookup     | `enrich:phone:hlr`            | 5           | 10/s       | 3        |
+| H.3 Carrier Det    | `enrich:phone:carrier`     | 20          | -          | 2        |
 
 ---
 

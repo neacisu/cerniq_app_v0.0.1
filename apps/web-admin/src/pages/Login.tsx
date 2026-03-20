@@ -3,21 +3,29 @@ import { useNavigate } from "react-router-dom";
 import { useAdminAuth } from "../hooks/use-admin-auth.js";
 
 export function Login() {
-  const [key, setKey] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const { setAdminKey } = useAdminAuth();
+  const [loading, setLoading] = useState(false);
+  const { login } = useAdminAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    const trimmed = key.trim();
-    if (!trimmed) {
-      setError("Introdu cheia de admin.");
+    if (!email.trim() || !password) {
+      setError("Introdu email-ul si parola.");
       return;
     }
-    setAdminKey(trimmed);
-    navigate("/dashboard", { replace: true });
+    setLoading(true);
+    try {
+      await login(email.trim(), password);
+      navigate("/dashboard", { replace: true });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Autentificare esuata");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -55,6 +63,7 @@ export function Login() {
           cerniq<span style={{ color: "#d4a845" }}>.admin</span> — Autentificare
         </h1>
         <label
+          htmlFor="admin-email"
           style={{
             display: "block",
             marginBottom: "0.5rem",
@@ -62,14 +71,44 @@ export function Login() {
             color: "#a0a0a8",
           }}
         >
-          Cheie admin
+          Email
         </label>
         <input
+          id="admin-email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          autoComplete="username"
+          placeholder="admin@companie.ro"
+          style={{
+            width: "100%",
+            padding: "0.75rem 1rem",
+            marginBottom: "1rem",
+            border: "1px solid #2a2d35",
+            borderRadius: "8px",
+            background: "#0f1117",
+            color: "#e5e5e7",
+            fontSize: "0.875rem",
+          }}
+        />
+        <label
+          htmlFor="admin-password"
+          style={{
+            display: "block",
+            marginBottom: "0.5rem",
+            fontSize: "0.875rem",
+            color: "#a0a0a8",
+          }}
+        >
+          Parola
+        </label>
+        <input
+          id="admin-password"
           type="password"
-          value={key}
-          onChange={(e) => setKey(e.target.value)}
-          autoComplete="off"
-          placeholder="Introdu cheia de admin"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          autoComplete="current-password"
+          placeholder="••••••••"
           style={{
             width: "100%",
             padding: "0.75rem 1rem",
@@ -98,7 +137,7 @@ export function Login() {
             cursor: "pointer",
           }}
         >
-          Autentificare
+          {loading ? "Se autentifica..." : "Autentificare"}
         </button>
       </form>
     </div>

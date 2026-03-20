@@ -43,18 +43,18 @@ export function Sequences() {
         {MOCK_SEQUENCES.map((seq) => (
           <Card key={seq.id}>
             <CardBody>
-              <h3 className="font-semibold text-[var(--color-t1)] mb-2">{seq.name}</h3>
+              <h3 className="mb-2 font-semibold text-t1">{seq.name}</h3>
               <div className="flex flex-wrap gap-1 mb-3">
-                {seq.steps.map((s, i) => (
+                {seq.steps.map((s) => (
                   <span
-                    key={i}
-                    className="text-xs px-2 py-0.5 rounded bg-[var(--color-s700)] text-[var(--color-t2)]"
+                    key={`${seq.id}-${s}`}
+                    className="rounded bg-s700 px-2 py-0.5 text-xs text-t2"
                   >
                     {s}
                   </span>
                 ))}
               </div>
-              <div className="flex gap-4 text-xs text-[var(--color-t3)] mb-4">
+              <div className="mb-4 flex gap-4 text-xs text-t3">
                 <span>{seq.leads} leads</span>
                 <span>{seq.rate}% rate</span>
                 <span>{seq.conversions} conv.</span>

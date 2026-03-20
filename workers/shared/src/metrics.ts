@@ -44,3 +44,124 @@ export const jobsActiveGauge = new Gauge({
   labelNames: ["queue"],
   registers: [metricsRegistry],
 });
+
+// ── Etapa 1 specific metrics ──────────────────────────────────────────────────
+
+export const bronzeContactsIngestedTotal = new Counter({
+  name: "cerniq_bronze_contacts_ingested",
+  help: "Total Bronze contacts ingested (from CSV, Excel, webhook, API, manual)",
+  labelNames: ["source", "tenant_id"],
+  registers: [metricsRegistry],
+});
+
+export const silverEnrichmentDurationSeconds = new Histogram({
+  name: "cerniq_silver_enrichment_duration_seconds",
+  help: "Duration of Silver company enrichment in seconds",
+  labelNames: ["source", "tenant_id"],
+  buckets: [0.5, 1, 2, 5, 10, 30, 60, 120],
+  registers: [metricsRegistry],
+});
+
+export const silverEnrichmentErrorsTotal = new Counter({
+  name: "cerniq_silver_enrichment_errors_total",
+  help: "Total Silver enrichment errors per source",
+  labelNames: ["source", "tenant_id"],
+  registers: [metricsRegistry],
+});
+
+export const goldCompaniesTotal = new Gauge({
+  name: "cerniq_gold_companies_total",
+  help: "Total Gold companies (promoted from Silver)",
+  labelNames: ["tenant_id"],
+  registers: [metricsRegistry],
+});
+
+export const hitlTasksCreatedTotal = new Counter({
+  name: "cerniq_hitl_tasks_created_total",
+  help: "Total HITL approval tasks created",
+  labelNames: ["approval_type", "tenant_id"],
+  registers: [metricsRegistry],
+});
+
+export const hitlTasksResolvedTotal = new Counter({
+  name: "cerniq_hitl_tasks_resolved_total",
+  help: "Total HITL approval tasks resolved",
+  labelNames: ["approval_type", "decision", "tenant_id"],
+  registers: [metricsRegistry],
+});
+
+export const hitlResolutionTimeSeconds = new Histogram({
+  name: "cerniq_hitl_resolution_time_seconds",
+  help: "Time from HITL task creation to resolution in seconds",
+  labelNames: ["approval_type", "tenant_id"],
+  buckets: [60, 300, 900, 1800, 3600, 7200, 14400, 28800, 86400],
+  registers: [metricsRegistry],
+});
+
+export const hitlSlaBreachTotal = new Counter({
+  name: "cerniq_hitl_sla_breach_total",
+  help: "Total HITL tasks that breached SLA (expired without resolution)",
+  labelNames: ["approval_type", "tenant_id"],
+  registers: [metricsRegistry],
+});
+
+// ── External API metrics ──────────────────────────────────────────────────────
+
+export const externalApiRequestsTotal = new Counter({
+  name: "cerniq_external_api_requests_total",
+  help: "Total requests made to external APIs",
+  labelNames: ["provider", "status"],
+  registers: [metricsRegistry],
+});
+
+export const externalApiDurationSeconds = new Histogram({
+  name: "cerniq_external_api_duration_seconds",
+  help: "Duration of external API calls in seconds",
+  labelNames: ["provider", "status"],
+  buckets: [0.1, 0.25, 0.5, 1, 2.5, 5, 10],
+  registers: [metricsRegistry],
+});
+
+export const externalApiErrorsTotal = new Counter({
+  name: "cerniq_external_api_errors_total",
+  help: "Total errors from external APIs",
+  labelNames: ["provider", "error_type"],
+  registers: [metricsRegistry],
+});
+
+/**
+ * Wraps an external API call with latency and error metrics.
+ * @param provider - Short name for the provider (anaf, termene, hunter, etc.)
+ * @param fn - The async function to instrument
+ */
+export async function withExternalApiMetrics<T>(
+  provider: string,
+  fn: () => Promise<T>,
+): Promise<T> {
+  const end = externalApiDurationSeconds.startTimer({ provider });
+  try {
+    const result = await fn();
+    externalApiRequestsTotal.inc({ provider, status: "success" });
+    end({ status: "success" });
+    return result;
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message.toLowerCase() : String(err);
+    let errorType = "unknown";
+    if (message.includes("timeout") || message.includes("etimedout")) errorType = "timeout";
+    else if (message.includes("rate") || message.includes("429")) errorType = "rate_limited";
+    else if (message.includes("401") || message.includes("403") || message.includes("unauthorized"))
+      errorType = "auth";
+    else if (message.includes("404") || message.includes("not found")) errorType = "not_found";
+    else if (message.includes("circuit") && message.includes("open")) errorType = "circuit_open";
+    else if (
+      message.includes("network") ||
+      message.includes("econnrefused") ||
+      message.includes("5")
+    )
+      errorType = "network";
+    externalApiRequestsTotal.inc({ provider, status: "error" });
+    externalApiErrorsTotal.inc({ provider, error_type: errorType });
+    end({ status: errorType });
+    throw err;
+  }
+}

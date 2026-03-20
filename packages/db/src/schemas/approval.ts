@@ -39,6 +39,7 @@ export const approvalPriorityEnum = pgEnum("approval_priority", [
 ]);
 export const approvalTypeEnum = pgEnum("approval_type", [
   "dedup_review",
+  "identity_conflict",
   "quality_review",
   "ai_structuring_review",
   "ai_merge_review",

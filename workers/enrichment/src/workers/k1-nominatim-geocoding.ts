@@ -1,6 +1,7 @@
-import { Queue, type Processor } from "bullmq";
+import type { Processor } from "bullmq";
 import { db, setSessionTenantId, silverCompanies, silverEnrichmentLog, sql } from "@cerniq/db";
-import { getQueuePrefix, getRedisConnectionOptions } from "@cerniq/worker-shared";
+import { createQueue, validateJobData, withExternalApiMetrics } from "@cerniq/worker-shared";
+import { z } from "zod";
 
 export type GeocodingJobData = {
   tenantId: string;
@@ -10,6 +11,15 @@ export type GeocodingJobData = {
   judet?: string;
   correlationId?: string;
 };
+
+const geocodingJobDataSchema = z.object({
+  tenantId: z.uuid(),
+  companyId: z.uuid(),
+  adresa: z.string().trim().min(1).optional(),
+  localitate: z.string().trim().min(1).optional(),
+  judet: z.string().trim().min(1).optional(),
+  correlationId: z.string().trim().min(1).optional(),
+});
 
 function determineAccuracy(
   placeRank: number | null,
@@ -23,6 +33,10 @@ function determineAccuracy(
 }
 
 export const nominatimGeocodingProcessor: Processor<GeocodingJobData> = async (job) => {
+  validateJobData(geocodingJobDataSchema, job.data, {
+    queueName: "geo:geocode:nominatim",
+    jobId: job.id,
+  });
   const startedAt = Date.now();
   await setSessionTenantId(job.data.tenantId);
 
@@ -37,14 +51,16 @@ export const nominatimGeocodingProcessor: Processor<GeocodingJobData> = async (j
   url.searchParams.set("limit", "1");
   url.searchParams.set("countrycodes", "ro");
 
-  const response = await fetch(url.toString(), {
-    method: "GET",
-    headers: {
-      Accept: "application/json",
-      "User-Agent": process.env.NOMINATIM_USER_AGENT ?? "CerniqApp/1.0 (contact@cerniq.app)",
-    },
-    signal: AbortSignal.timeout(Number(process.env.NOMINATIM_TIMEOUT_MS ?? "20000")),
-  });
+  const response = await withExternalApiMetrics("nominatim", () =>
+    fetch(url.toString(), {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        "User-Agent": process.env.NOMINATIM_USER_AGENT ?? "CerniqApp/1.0 (contact@cerniq.app)",
+      },
+      signal: AbortSignal.timeout(Number(process.env.NOMINATIM_TIMEOUT_MS ?? "20000")),
+    }),
+  );
   if (!response.ok) throw new Error(`Nominatim failed: ${response.status}`);
   const payload = (await response.json()) as Array<Record<string, unknown>>;
   if (!Array.isArray(payload) || payload.length === 0) {
@@ -52,9 +68,9 @@ export const nominatimGeocodingProcessor: Processor<GeocodingJobData> = async (j
   }
 
   const first = payload[0];
-  const latitude = Number(first.lat ?? NaN);
-  const longitude = Number(first.lon ?? NaN);
-  const placeRank = Number(first.place_rank ?? NaN);
+  const latitude = Number(first.lat ?? Number.NaN);
+  const longitude = Number(first.lon ?? Number.NaN);
+  const placeRank = Number(first.place_rank ?? Number.NaN);
   const accuracy = determineAccuracy(Number.isFinite(placeRank) ? placeRank : null);
 
   await db
@@ -62,10 +78,6 @@ export const nominatimGeocodingProcessor: Processor<GeocodingJobData> = async (j
     .set({
       latitude: Number.isFinite(latitude) ? String(latitude) : undefined,
       longitude: Number.isFinite(longitude) ? String(longitude) : undefined,
-      locationGeography:
-        Number.isFinite(latitude) && Number.isFinite(longitude)
-          ? `POINT(${longitude} ${latitude})`
-          : undefined,
       metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify({
         geocoding: {
           query,
@@ -78,9 +90,7 @@ export const nominatimGeocodingProcessor: Processor<GeocodingJobData> = async (j
     })
     .where(sql`${silverCompanies.id} = ${job.data.companyId}`);
 
-  const connection = getRedisConnectionOptions();
-  const prefix = getQueuePrefix();
-  const zoneQueue = new Queue("silver:enrich:postgis-zones", { connection, prefix });
+  const zoneQueue = createQueue("geo:zones:postgis");
   await zoneQueue.add("zones", {
     tenantId: job.data.tenantId,
     companyId: job.data.companyId,

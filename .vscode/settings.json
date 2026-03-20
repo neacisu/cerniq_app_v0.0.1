@@ -1,63 +1,81 @@
 {
-  // ==========================================================================
-  // CERNIQ.APP — VS Code Workspace Settings
-  // ==========================================================================
-
-  // ---------------------------------------------------------------------------
-  // GitHub Actions Extension - Disable ALL validation completely
-  // ---------------------------------------------------------------------------
-  "github-actions.workflows.pinned.workflows": [],
-  "github-actions.remote-validation": false,
-  "github-actions.expression-validation": false,
-  "github-actions.workflows.allowUnnamedEnvironments": true,
-  
-  // Disable the GitHub Actions extension validation entirely for this workspace
-  "github-actions.org.enabled": false,
-
-  // ---------------------------------------------------------------------------
-  // YAML Extension - Disable schema validation for workflow files
-  // ---------------------------------------------------------------------------
-  "yaml.schemas": {
-    // Don't apply any schema to workflow files - let them pass without validation
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "always"
   },
-  
-  // Disable YAML validation for workflow files specifically
-  "yaml.validate": true,
-  "yaml.schemaStore.enable": false,
-  
-  // Custom schema validation settings
-  "yaml.customTags": [
-    "!reference sequence"
-  ],
-
-  // ---------------------------------------------------------------------------
-  // File Associations
-  // ---------------------------------------------------------------------------
-  "[yaml]": {
-    "editor.formatOnSave": false
-  },
-
-  "[github-actions-workflow]": {
-    "editor.formatOnSave": false
-  },
-
-  // ---------------------------------------------------------------------------
-  // Files to exclude from problems/validation
-  // ---------------------------------------------------------------------------
+  "editor.codeActionsOnSaveTimeout": 5000,
+  "files.autoSave": "afterDelay",
+  "files.autoSaveDelay": 1000,
   "files.exclude": {
     "**/node_modules": true,
     "**/.pnpm-store": true
   },
-
   "search.exclude": {
     "**/node_modules": true,
     "**/pnpm-lock.yaml": true,
     "**/.pnpm-store": true
   },
-
-  // ---------------------------------------------------------------------------
-  // CSS — Tailwind CSS v4 @theme support
-  // ---------------------------------------------------------------------------
+  "eslint.useFlatConfig": true,
+  "eslint.run": "onType",
+  "eslint.quiet": false,
+  "eslint.workingDirectories": [
+    {
+      "mode": "auto"
+    }
+  ],
+  "eslint.probe": ["javascript", "javascriptreact", "typescript", "typescriptreact"],
+  "eslint.validate": ["javascript", "javascriptreact", "typescript", "typescriptreact"],
+  "eslint.lintTask.enable": true,
+  "github-actions.workflows.pinned.workflows": [],
+  "github-actions.remote-validation": false,
+  "github-actions.expression-validation": false,
+  "github-actions.workflows.allowUnnamedEnvironments": true,
+  "github-actions.org.enabled": false,
+  "yaml.schemas": {},
+  "yaml.validate": true,
+  "yaml.schemaStore.enable": false,
+  "yaml.customTags": ["!reference sequence"],
   "css.customData": [],
-  "css.lint.unknownAtRules": "ignore"
+  "css.lint.unknownAtRules": "ignore",
+  "sonarlint.ls.javaHome": "/usr/lib/jvm/java-21-openjdk-amd64",
+  "sonarlint.connectedMode.connections.sonarcloud": [
+    {
+      "connectionId": "neacisu",
+      "organizationKey": "neacisu"
+    }
+  ],
+  "sonarlint.connectedMode.project": {
+    "connectionId": "neacisu",
+    "projectKey": "neacisu_cerniq_app_v0.0.1"
+  },
+  "chat.tools.terminal.autoApprove": {
+    "/^python3 - <<'PY'\nimport json\npath='\/root\/\\.vscode-server-insiders\/extensions\/ms-vscode\\.vscode-typescript-next-6\\.0\\.20260317\/package\\.json'\nwith open\\(path\\) as f:\n    data=json\\.load\\(f\\)\nprops=\\{\\}\nconf=data\\.get\\('contributes',\\{\\}\\)\\.get\\('configuration',\\[\\]\\)\nfor entry in conf:\n    props\\.update\\(entry\\.get\\('properties',\\{\\}\\)\\)\nfor key in sorted\\(k for k in props if k\\.startswith\\('typescript\\.'\\) or k\\.startswith\\('javascript\\.'\\)\\):\n    if any\\(s in key for s in \\['format','validate','tsserver','project','diagnostic','suggest','preferences'\\]\\):\n        print\\(key\\)\nPY$/": {
+      "approve": true,
+      "matchCommandLine": true
+    }
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[javascriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[yaml]": {
+    "editor.formatOnSave": false
+  },
+  "[github-actions-workflow]": {
+    "editor.formatOnSave": false
+  }
 }

@@ -1,5 +1,6 @@
 import type { Processor } from "bullmq";
 import { db, setSessionTenantId, silverCompanies, silverEnrichmentLog, sql } from "@cerniq/db";
+import { createQueue, QUEUES } from "@cerniq/worker-shared";
 
 export type CompletenessJobData = {
   tenantId: string;
@@ -7,23 +8,38 @@ export type CompletenessJobData = {
   correlationId?: string;
 };
 
+/**
+ * Field weights for completeness scoring.
+ * Exactly aligned with the DB silver_compute_completeness() function (20 fields).
+ * Weights reflect business importance; DB trigger uses simple count (1 per field).
+ * Total weight = 100 so score = (earned / total * 100) is already 0-100.
+ */
 const FIELD_WEIGHTS: Record<string, number> = {
+  // Identity
   cui: 8,
   denumire: 8,
+  nrRegCom: 6,
+  // Location
   localitate: 6,
   judet: 6,
   adresa: 5,
-  email: 5,
-  telefon: 5,
-  website: 4,
-  statusFirma: 5,
+  codSiruta: 3,
+  // ANAF legal status
+  statusFirma: 7,
+  platitorTva: 4,
+  inregistratEFactura: 3,
   codCaenPrincipal: 5,
-  cifraAfaceri: 4,
+  dataInregistrare: 4,
+  // Financial
+  cifraAfaceri: 6,
+  profitNet: 4,
   numarAngajati: 4,
+  anBilant: 3,
+  // Risk/Geo
+  categorieRisc: 6,
+  scorRiscTermene: 4,
   latitude: 3,
-  longitude: 3,
-  categorieRisc: 4,
-  metadata: 5,
+  longitude: 5,
 };
 
 function hasValue(value: unknown): boolean {
@@ -75,6 +91,15 @@ export const scoreCompletenessProcessor: Processor<CompletenessJobData> = async 
     jobId: String(job.id ?? ""),
     durationMs: Date.now() - startedAt,
   });
+
+  // Sequential scoring: completeness -> accuracy (spec: N.1 -> N.2 -> N.3)
+  const accuracyQueue = createQueue(QUEUES.SCORE_ACCURACY);
+  await accuracyQueue.add("score", {
+    tenantId: job.data.tenantId,
+    companyId: job.data.companyId,
+    correlationId: job.data.correlationId,
+  });
+  await accuracyQueue.close();
 
   return { ok: true, status: "success", score, missing: missing.length };
 };

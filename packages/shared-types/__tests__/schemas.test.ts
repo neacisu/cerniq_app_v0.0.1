@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { cuiRegex } from "../src/schemas/company.js";
 import { LeadScoreSchema } from "../src/schemas/lead.js";
 import { TenantSchema } from "../src/schemas/tenant.js";
-import { redactPii } from "../src/schemas/pii.js";
+import { createPiiRedactor, redactPii } from "../src/schemas/pii.js";
 
 describe("Zod Schemas", () => {
   describe("CUI regex", () => {
@@ -35,6 +35,34 @@ describe("Zod Schemas", () => {
     });
     it("redacts phone", () => {
       expect(redactPii("0722123456")).toContain("[PHONE_REDACTED]");
+    });
+    it("redacts CNP and CUI", () => {
+      expect(redactPii("CNP 1234567890123, CUI RO12345678")).toBe(
+        "CNP [CNP_REDACTED], CUI [CUI_REDACTED]",
+      );
+    });
+    it("redacts standalone IBAN values", () => {
+      expect(redactPii("DE12 BANK 1234 1234 1234 1234")).toBe("[IBAN_REDACTED]");
+    });
+    it("creates recursive object redactors", () => {
+      const redactor = createPiiRedactor();
+      expect(
+        redactor.redactObject({
+          email: "user@email.com",
+          nested: {
+            phone: "+40 722 123 456",
+            note: "safe",
+          },
+          count: 2,
+        }),
+      ).toEqual({
+        email: "[EMAIL_REDACTED]",
+        nested: {
+          phone: "+[PHONE_REDACTED]",
+          note: "safe",
+        },
+        count: 2,
+      });
     });
   });
 

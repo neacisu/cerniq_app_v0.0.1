@@ -5,8 +5,7 @@ import { Refine } from "@refinedev/core";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "./components/ui/toast.js";
 import { ThemeProvider } from "./providers/theme-provider.js";
-import { AuthProvider } from "./providers/auth-provider.js";
-import { ProtectedRoute } from "./providers/auth-provider.js";
+import * as Auth from "./providers/auth-provider.js";
 import { cerniqDataProvider } from "./providers/data-provider.js";
 import { AppLayout } from "./components/layout/AppLayout.js";
 import { Login } from "./pages/auth/Login.js";
@@ -57,13 +56,15 @@ import { NotFound } from "./pages/NotFound.js";
 import { ErrorBoundary } from "./components/feedback/ErrorBoundary.js";
 
 const queryClient = new QueryClient();
+const redirectEventTarget: Pick<typeof globalThis, "addEventListener" | "removeEventListener"> =
+  globalThis;
 
 function RedirectToLoginListener() {
   const navigate = useNavigate();
   useEffect(() => {
     const handler = () => navigate("/login", { replace: true });
-    window.addEventListener(REDIRECT_LOGIN_EVENT, handler);
-    return () => window.removeEventListener(REDIRECT_LOGIN_EVENT, handler);
+    redirectEventTarget.addEventListener(REDIRECT_LOGIN_EVENT, handler);
+    return () => redirectEventTarget.removeEventListener(REDIRECT_LOGIN_EVENT, handler);
   }, [navigate]);
   return null;
 }
@@ -72,7 +73,7 @@ export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <AuthProvider>
+        <Auth.AuthProvider>
           <Refine
             dataProvider={cerniqDataProvider}
             authProvider={{
@@ -92,9 +93,9 @@ export function App() {
                   <Route path="/forgot-password" element={<ForgotPassword />} />
                   <Route
                     element={
-                      <ProtectedRoute>
+                      <Auth.ProtectedRoute>
                         <AppLayout />
-                      </ProtectedRoute>
+                      </Auth.ProtectedRoute>
                     }
                   >
                     <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -150,7 +151,7 @@ export function App() {
               </ErrorBoundary>
             </BrowserRouter>
           </Refine>
-        </AuthProvider>
+        </Auth.AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );

@@ -44,7 +44,7 @@ CREATE TABLE gold_companies (
     -- ─────────────────────────────────────────────────────────────────────────
 
     -- Identificatori unici
-    cui VARCHAR(12) NOT NULL,
+    cui VARCHAR(32) NOT NULL,
     cui_ro VARCHAR(14) GENERATED ALWAYS AS ('RO' || cui) STORED,
     nr_reg_com VARCHAR(20),
     iban_principal VARCHAR(34),
@@ -64,7 +64,7 @@ CREATE TABLE gold_companies (
     -- ─────────────────────────────────────────────────────────────────────────
 
     status_firma VARCHAR(20) NOT NULL DEFAULT 'ACTIVA',
-    data_inregistrare DATE NOT NULL,
+    data_inregistrare DATE,  -- NOTĂ: Nullable în implementare
     data_radiere DATE,
 
     -- TVA
@@ -79,7 +79,7 @@ CREATE TABLE gold_companies (
     data_inregistrare_e_factura DATE,
 
     -- CAEN
-    cod_caen_principal VARCHAR(6) NOT NULL,
+    cod_caen_principal VARCHAR(6),  -- NOTĂ: Nullable în implementare
     denumire_caen VARCHAR(255),
     coduri_caen_secundare VARCHAR(6)[] DEFAULT '{}',
 
@@ -135,19 +135,19 @@ CREATE TABLE gold_companies (
     -- ─────────────────────────────────────────────────────────────────────────
 
     -- Adresa completă
-    adresa_completa TEXT NOT NULL,
+    adresa TEXT,  -- NOTĂ: Nullable în implementare (promovarea permite NULL)
     strada VARCHAR(200),
     numar VARCHAR(20),
     cod_postal VARCHAR(10),
-    localitate VARCHAR(100) NOT NULL,
+    localitate VARCHAR(100),  -- NOTĂ: Nullable în implementare
     comuna VARCHAR(100),
-    judet VARCHAR(50) NOT NULL,
-    judet_cod VARCHAR(2) NOT NULL,
+    judet VARCHAR(50),  -- NOTĂ: Nullable în implementare
+    judet_cod VARCHAR(2),  -- NOTĂ: Nullable în implementare (extras din metadata.postgisZones)
     cod_siruta INTEGER,
 
     -- Coordonate
-    latitude DECIMAL(10, 7) NOT NULL,
-    longitude DECIMAL(10, 7) NOT NULL,
+    latitude DECIMAL(10, 7),  -- NOTĂ: Nullable în implementare
+    longitude DECIMAL(10, 7),  -- NOTĂ: Nullable în implementare
     location_geography GEOGRAPHY(POINT, 4326) NOT NULL,
 
     -- Zone agricole
@@ -202,10 +202,10 @@ CREATE TABLE gold_companies (
     -- ─────────────────────────────────────────────────────────────────────────
 
     -- Lead scoring composite (0-100)
-    lead_score INTEGER NOT NULL DEFAULT 0,
-    fit_score INTEGER DEFAULT 0, -- ICP match
-    engagement_score INTEGER DEFAULT 0, -- Activitate
-    intent_score INTEGER DEFAULT 0, -- Semnal cumpărare
+    lead_score NUMERIC(5,2),
+    fit_score NUMERIC(5,2), -- ICP match
+    engagement_score NUMERIC(5,2), -- Activitate
+    intent_score NUMERIC(5,2), -- Semnal cumpărare
 
     -- Componente detaliate
     score_firmografic INTEGER DEFAULT 0,
@@ -217,7 +217,8 @@ CREATE TABLE gold_companies (
     current_state VARCHAR(30) NOT NULL DEFAULT 'COLD',
     -- 'COLD', 'CONTACTED_WA', 'CONTACTED_EMAIL', 'CONTACTED_PHONE',
     -- 'WARM_REPLY', 'ENGAGED', 'NEGOTIATION', 'PROPOSAL',
-    -- 'CLOSING', 'CONVERTED', 'CHURNED', 'DEAD', 'DO_NOT_CONTACT'
+    -- 'CLOSING', 'CONVERTED', 'ONBOARDING', 'NURTURING_ACTIVE',
+    -- 'AT_RISK', 'LOYAL_ADVOCATE', 'CHURNED', 'DEAD', 'DO_NOT_CONTACT'
 
     previous_state VARCHAR(30),
     state_changed_at TIMESTAMPTZ DEFAULT NOW(),
@@ -405,7 +406,7 @@ CHECK (cui ~ '^\d{2,10}$');
 -- Lead score range
 ALTER TABLE gold_companies
 ADD CONSTRAINT chk_gold_lead_score
-CHECK (lead_score BETWEEN 0 AND 100);
+CHECK (lead_score IS NULL OR lead_score BETWEEN 0 AND 100);
 
 -- Valid coordinates
 ALTER TABLE gold_companies
@@ -419,7 +420,8 @@ ADD CONSTRAINT chk_gold_state
 CHECK (current_state IN (
     'COLD', 'CONTACTED_WA', 'CONTACTED_EMAIL', 'CONTACTED_PHONE',
     'WARM_REPLY', 'ENGAGED', 'NEGOTIATION', 'PROPOSAL',
-    'CLOSING', 'CONVERTED', 'CHURNED', 'DEAD', 'DO_NOT_CONTACT'
+    'CLOSING', 'CONVERTED', 'ONBOARDING', 'NURTURING_ACTIVE',
+    'AT_RISK', 'LOYAL_ADVOCATE', 'CHURNED', 'DEAD', 'DO_NOT_CONTACT'
 ));
 
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -463,7 +465,7 @@ BEGIN
         (COALESCE(NEW.fit_score, 0) * 0.40) +
         (COALESCE(NEW.engagement_score, 0) * 0.35) +
         (COALESCE(NEW.intent_score, 0) * 0.25)
-    ))::INTEGER;
+    ))::NUMERIC(5,2);
     NEW.data_calcul_scor := NOW();
     RETURN NEW;
 END;
@@ -516,57 +518,36 @@ CREATE TABLE gold_contacts (
     -- ─────────────────────────────────────────────────────────────────────────
 
     -- Email (verified deliverable)
-    email VARCHAR(255),
-    email_verified BOOLEAN NOT NULL DEFAULT TRUE,
-    email_deliverability VARCHAR(20) NOT NULL DEFAULT 'deliverable',
+    email VARCHAR(320),  -- NOTĂ: Nullable în implementare
+    email_verified BOOLEAN NOT NULL DEFAULT FALSE,  -- NOTĂ: Default FALSE în implementare
 
     -- Telefon (format E.164, verified)
-    telefon VARCHAR(20),
-    telefon_verified BOOLEAN NOT NULL DEFAULT TRUE,
-    telefon_type VARCHAR(20), -- mobile, landline
+    telefon VARCHAR(32),  -- NOTĂ: Nullable în implementare
+    telefon_verified BOOLEAN NOT NULL DEFAULT FALSE,  -- NOTĂ: Default FALSE în implementare
 
     -- WhatsApp
-    whatsapp_number VARCHAR(20),
-    whatsapp_verified BOOLEAN DEFAULT FALSE,
-    whatsapp_opted_in BOOLEAN DEFAULT TRUE,
+    whatsapp_number VARCHAR(32),  -- NOTĂ: Nullable în implementare
 
     -- ─────────────────────────────────────────────────────────────────────────
-    -- PROFESIONAL
+    -- ENGAGEMENT TRACKING (Etapa 1 - minim)
     -- ─────────────────────────────────────────────────────────────────────────
-    functie VARCHAR(100),
-    departament VARCHAR(50),
-    seniority VARCHAR(30),
-    is_decision_maker BOOLEAN DEFAULT FALSE,
-    is_primary_contact BOOLEAN DEFAULT FALSE,
+    -- NOTĂ: Coloanele spec-ului (email_deliverability, telefon_type, whatsapp_verified,
+    -- functie, departament, seniority, is_decision_maker, is_primary_contact, linkedin_url,
+    -- last_contacted_at, last_responded_at, preferred_channel, preferred_time, language,
+    -- consent_email, consent_whatsapp, consent_phone, unsubscribed, unsubscribed_at)
+    -- NU sunt implementate în Etapa 1. Acestea vor fi adăugate în Etapa 2 (Outreach).
 
-    linkedin_url VARCHAR(500),
-
-    -- ─────────────────────────────────────────────────────────────────────────
-    -- ENGAGEMENT TRACKING
-    -- ─────────────────────────────────────────────────────────────────────────
-    last_contacted_at TIMESTAMPTZ,
-    last_responded_at TIMESTAMPTZ,
-    total_messages_sent INTEGER DEFAULT 0,
-    total_responses INTEGER DEFAULT 0,
-    response_rate DECIMAL(5, 4) GENERATED ALWAYS AS (
+    -- Engagement tracking minim pentru Etapa 1
+    consent_given BOOLEAN NOT NULL DEFAULT FALSE,  -- NOTĂ: Simplificat față de spec (consent_email/phone/whatsapp)
+    preferred_channel VARCHAR(30),  -- NOTĂ: String, nu TIME ca în spec
+    preferred_time VARCHAR(30),  -- NOTĂ: String, nu TIME ca în spec
+    total_messages_sent INTEGER NOT NULL DEFAULT 0,
+    total_responses INTEGER NOT NULL DEFAULT 0,
+    response_rate DECIMAL(5, 2) GENERATED ALWAYS AS (
         CASE WHEN total_messages_sent > 0
-        THEN total_responses::DECIMAL / total_messages_sent
+        THEN (total_responses::DECIMAL / total_messages_sent::DECIMAL) * 100
         ELSE 0 END
-    ) STORED,
-
-    -- Preferences learned
-    preferred_channel VARCHAR(20),
-    preferred_time TIME,
-    language VARCHAR(10) DEFAULT 'ro',
-
-    -- ─────────────────────────────────────────────────────────────────────────
-    -- GDPR
-    -- ─────────────────────────────────────────────────────────────────────────
-    consent_email BOOLEAN DEFAULT TRUE,
-    consent_whatsapp BOOLEAN DEFAULT TRUE,
-    consent_phone BOOLEAN DEFAULT TRUE,
-    unsubscribed BOOLEAN DEFAULT FALSE,
-    unsubscribed_at TIMESTAMPTZ,
+    ) STORED,  -- NOTĂ: Calculat ca procent (0-100), nu ca raport (0-1)
 
     -- ─────────────────────────────────────────────────────────────────────────
     -- TIMESTAMPS
@@ -765,6 +746,50 @@ GRANT EXECUTE ON FUNCTION gold_get_dashboard_stats(UUID) TO c3rn1q;
 
 ---
 
+---
+
+## 3.4 Tabele Suplimentare Gold
+
+### 3.4.1 daily_stats
+
+Tabel pentru statistici agregate zilnice per etapă pipeline.
+
+**Coloane principale:**
+- `id`, `tenant_id`
+- `stat_date`: DATE NOT NULL
+- `pipeline_stage`: VARCHAR(10) NOT NULL DEFAULT 'E1'
+- `bronze_total`, `silver_total`, `gold_total`: INTEGER DEFAULT 0
+- `avg_quality_score`, `avg_lead_score`: NUMERIC(5,2)
+- `hitl_pending`, `hitl_completed`: INTEGER DEFAULT 0
+- `enrichment_jobs_completed`, `enrichment_jobs_failed`: INTEGER DEFAULT 0
+- `created_at`: TIMESTAMPTZ
+
+**Indecși:**
+- UNIQUE pe (tenant_id, stat_date, pipeline_stage)
+
+### 3.4.2 pipeline_errors
+
+Tabel pentru erorile din pipeline (tracking și recovery).
+
+**Coloane principale:**
+- `id`, `tenant_id`
+- `pipeline_stage`: VARCHAR(10) NOT NULL
+- `worker_name`: VARCHAR(100) NOT NULL
+- `job_id`: VARCHAR(100)
+- `entity_type`: VARCHAR(50)
+- `entity_id`: UUID (FK către bronze_contacts sau alte entități)
+- `error_type`: VARCHAR(50) NOT NULL
+- `error_message`: TEXT NOT NULL
+- `error_stack`: TEXT
+- `severity`: ENUM('warning', 'error', 'critical') DEFAULT 'error'
+- `recovery_action`: VARCHAR(50)
+- `metadata`: JSONB
+
+**Indecși:**
+- Index pe (pipeline_stage, severity)
+
+---
+
 **Document generat:** 15 Ianuarie 2026
-**Total tabele Gold:** 3
+**Total tabele Gold:** 5 (3 principale + 2 suplimentare)
 **Conformitate:** Master Spec v1.2, ADR-0041 (Quality Scoring)

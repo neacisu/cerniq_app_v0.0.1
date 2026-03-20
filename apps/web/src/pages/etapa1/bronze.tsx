@@ -1,26 +1,88 @@
-import { useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
+import type { ColumnDef } from "@tanstack/react-table";
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
+import { Button, Card, CardHeader, CardTitle, CardBody } from "@/components/ui/index.js";
 import { Spinner } from "@/components/ui/spinner.js";
-import { Card, CardHeader, CardTitle, CardBody, Input } from "@/components/ui/index.js";
-import { fetchBronzeContacts, reprocessBronzeContact } from "@/lib/etapa1-api.js";
 import { DataTable } from "@/components/data/DataTable.js";
-import { bronzeContactsColumns } from "@/lib/table-columns.js";
+import { DataTablePagination } from "@/components/data/DataTablePagination.js";
+import { SearchInput } from "@/components/forms/SearchInput.js";
+import { EmptyState } from "@/components/feedback/EmptyState.js";
+import { makeBronzeContactsColumns } from "@/lib/table-columns.js";
 import type { BronzeContactRow } from "@/lib/etapa1-types.js";
+import { useBronzeContacts, useReprocessBronze } from "@/hooks/use-etapa1.js";
+import { BronzeContactDrawer } from "@/components/drawers/BronzeContactDrawer.js";
+
+const PAGE_SIZE_OPTIONS = [25, 50, 100] as const;
+
+type ReprocessCellProps = Readonly<{
+  id: string;
+  onReprocess: (id: string) => void;
+  isPending: boolean;
+}>;
+
+function ReprocessCell({ id, onReprocess, isPending }: ReprocessCellProps) {
+  return (
+    <Button size="sm" variant="ghost" onClick={() => onReprocess(id)} disabled={isPending}>
+      Reproceseaza
+    </Button>
+  );
+}
+
+function makeActionsColumn(
+  onReprocess: (id: string) => void,
+  isPending: boolean,
+): ColumnDef<BronzeContactRow> {
+  return {
+    id: "actiuni",
+    header: "Acțiuni",
+    cell: ({ row }) => (
+      <ReprocessCell id={String(row.original.id)} onReprocess={onReprocess} isPending={isPending} />
+    ),
+  };
+}
 
 export function Bronze() {
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(25);
+  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
-  const contactsQuery = useQuery({
-    queryKey: ["etapa1", "bronze", search],
-    queryFn: () => fetchBronzeContacts({ limit: 50, offset: 0, search: search || undefined }),
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  // Debounce search input by 300ms
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearch(searchInput);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  const offset = (page - 1) * pageSize;
+
+  const {
+    data: response,
+    isPending,
+    isError,
+    error,
+  } = useBronzeContacts({
+    limit: pageSize,
+    offset,
+    search: search || undefined,
   });
-  const reprocessMutation = useMutation({
-    mutationFn: (id: string) => reprocessBronzeContact(id),
-    onSuccess: () => {
-      void contactsQuery.refetch();
-    },
-  });
-  const contacts = (contactsQuery.data?.data ?? []) as unknown as BronzeContactRow[];
+
+  const reprocessMutation = useReprocessBronze();
+
+  const columns = useMemo<ColumnDef<BronzeContactRow>[]>(
+    () => [
+      ...makeBronzeContactsColumns(setSelectedId),
+      makeActionsColumn((id) => reprocessMutation.mutate(id), reprocessMutation.isPending),
+    ],
+    [reprocessMutation],
+  );
+
+  const contacts = (response?.data ?? []) as unknown as BronzeContactRow[];
+  const total = response?.meta?.total ?? contacts.length;
+
   const avgQuality =
     contacts.length === 0
       ? 0
@@ -34,60 +96,76 @@ export function Bronze() {
           }, 0) / contacts.length,
         );
 
-  if (contactsQuery.isPending) {
-    return (
-      <PageWrapper title="Bronze Contacte">
-        <div className="flex items-center justify-center py-12">
+  function renderContent() {
+    if (isPending) {
+      return (
+        <div className="flex items-center justify-center py-16">
           <Spinner size={32} />
         </div>
-      </PageWrapper>
-    );
-  }
-
-  if (contactsQuery.isError) {
-    return (
-      <PageWrapper title="Bronze Contacte">
-        <div className="rounded-lg border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 p-4 text-sm text-[var(--color-danger)]">
-          Eroare la încărcarea datelor: {contactsQuery.error?.message ?? "Eroare necunoscută"}
+      );
+    }
+    if (isError) {
+      return (
+        <div className="rounded-lg border border-er/30 bg-er/10 p-4 text-sm text-er">
+          Eroare la încărcarea datelor: {error?.message ?? "Eroare necunoscută"}
         </div>
-      </PageWrapper>
+      );
+    }
+    if (contacts.length === 0) {
+      return (
+        <EmptyState
+          icon="Database"
+          title="Niciun contact bronze"
+          description={
+            search
+              ? "Niciun rezultat pentru căutarea curentă."
+              : "Nu există contacte în stratul Bronze."
+          }
+        />
+      );
+    }
+    return (
+      <>
+        <DataTable columns={columns} data={contacts} />
+        <DataTablePagination
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          onPageChange={setPage}
+          pageSizeOptions={[...PAGE_SIZE_OPTIONS]}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPage(1);
+          }}
+        />
+      </>
     );
   }
 
   return (
     <PageWrapper title="Bronze Contacte">
+      <BronzeContactDrawer
+        open={selectedId !== null}
+        id={selectedId}
+        onClose={() => setSelectedId(null)}
+      />
       <div className="flex items-center gap-4 mb-6">
-        <span className="text-sm text-[var(--color-t3)]">Calitate Medie:</span>
-        <span className="text-xl font-bold text-[var(--color-t1)]">{avgQuality}%</span>
-      </div>
-
-      <div className="flex gap-4 mb-6">
-        <Input
-          placeholder="Caută firmă sau CUI..."
-          className="max-w-xs"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+        <span className="text-sm text-t3">Calitate Medie:</span>
+        <span className="text-xl font-bold text-t1">{avgQuality}%</span>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Contacte Bronze</CardTitle>
-        </CardHeader>
-        <CardBody className="p-0">
-          <DataTable columns={bronzeContactsColumns} data={contacts} />
-          <div className="px-5 pb-4">
-            {contacts.map((c) => (
-              <button
-                key={`r-${c.id}`}
-                className="mr-3 text-xs text-[var(--color-b5)] underline"
-                onClick={() => void reprocessMutation.mutateAsync(String(c.id))}
-              >
-                Reprocess {c.extractedName ?? c.id}
-              </button>
-            ))}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <CardTitle>Contacte Bronze</CardTitle>
+            <SearchInput
+              value={searchInput}
+              onChange={(val) => setSearchInput(val)}
+              placeholder="Caută după CUI, Nume firmă sau Nr. reg. com..."
+            />
           </div>
-        </CardBody>
+        </CardHeader>
+        <CardBody>{renderContent()}</CardBody>
       </Card>
     </PageWrapper>
   );

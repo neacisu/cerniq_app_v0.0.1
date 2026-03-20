@@ -1,9 +1,13 @@
 import { Queue, Worker } from "bullmq";
 import type { QueueOptions, WorkerOptions, Processor } from "bullmq";
-import { getQueuePrefix, getRedisConnectionOptions } from "@cerniq/worker-shared";
+import {
+  getQueuePrefix,
+  getRedisConnectionOptions,
+  toBullMqQueueName,
+} from "@cerniq/worker-shared";
 
 export function createQueue<T = unknown>(name: string, opts?: Partial<QueueOptions>) {
-  return new Queue<T>(name, {
+  return new Queue<T>(toBullMqQueueName(name), {
     connection: getRedisConnectionOptions(),
     prefix: getQueuePrefix(),
     defaultJobOptions: {
@@ -21,7 +25,7 @@ export function createWorker<T = unknown>(
   processor: Processor<T>,
   opts?: Partial<WorkerOptions>,
 ) {
-  return new Worker<T>(name, processor, {
+  return new Worker<T>(toBullMqQueueName(name), processor, {
     connection: getRedisConnectionOptions(),
     prefix: getQueuePrefix(),
     concurrency: 5,

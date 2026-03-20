@@ -1,5 +1,6 @@
 import type { Processor } from "bullmq";
 import { db, setSessionTenantId, silverCompanies, silverEnrichmentLog, sql } from "@cerniq/db";
+import { createCircuitBreaker } from "@cerniq/worker-shared";
 
 export type ContactPageScraperJobData = {
   tenantId: string;
@@ -8,23 +9,48 @@ export type ContactPageScraperJobData = {
   correlationId?: string;
 };
 
+// ---------------------------------------------------------------------------
+// Regex constants — compiled once at module load, Unicode-aware (u flag),
+// case-insensitive where noted (i flag). Hoisted here so they are auditable,
+// testable in isolation, and allocated only once regardless of job throughput.
+// ---------------------------------------------------------------------------
+
+const HTML_TAG_RE = /<[^>]+>/gu;
+const WHITESPACE_COLLAPSE_RE = /\s+/gu;
+const EMAIL_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[A-Za-z]{2,}/gu;
+const PHONE_RO_RE = /(?:\+40|0040|0)\s?[2-9]\d(?:[\s.-]?\d){7,9}/gu;
+/** \p{L} with the `u` flag covers all Unicode letters — including the full
+ *  Romanian alphabet — without listing them explicitly and without the [A-Za-z]
+ *  duplication that arises when the `i` flag makes [A-Z] and [a-z] identical. */
+const ADDRESS_RE = /(str\.?|strada|bd\.?|bulevardul)\s+[\p{L}0-9\s,.-]{10,120}/iu;
+
+// ---------------------------------------------------------------------------
+
 function uniq<T>(arr: T[]): T[] {
   return [...new Set(arr)];
 }
 
 function extractFromHtml(html: string) {
-  const text = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
-  const emails = uniq(text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[A-Za-z]{2,}/g) ?? []).filter(
-    (e) => !e.includes("example.com"),
+  const text = html.replaceAll(HTML_TAG_RE, " ").replaceAll(WHITESPACE_COLLAPSE_RE, " ");
+  const emails = uniq(text.match(EMAIL_RE) ?? []).filter((e) => !e.includes("example.com"));
+  const phones = uniq(text.match(PHONE_RO_RE) ?? []).map((p) =>
+    p.replaceAll(WHITESPACE_COLLAPSE_RE, " ").trim(),
   );
-  const phones = uniq(text.match(/(?:\+40|0040|0)\s?[2-9]\d(?:[\s.-]?\d){7,9}/g) ?? []).map((p) =>
-    p.replace(/\s+/g, " ").trim(),
-  );
-  const address =
-    text.match(/(str\.?|strada|bd\.?|bulevardul)\s+[A-Za-zĂÂÎȘȚăâîșț0-9\s,.-]{10,120}/i)?.[0] ??
-    null;
+  const address = ADDRESS_RE.exec(text)?.[0] ?? null;
   return { emails, phones, address };
 }
+
+const contactPageBreaker = createCircuitBreaker(
+  async (url: string) => {
+    const response = await fetch(url, {
+      signal: AbortSignal.timeout(Number(process.env.CONTACT_SCRAPE_TIMEOUT_MS ?? "12000")),
+    });
+    if (!response.ok) return null;
+    return extractFromHtml(await response.text());
+  },
+  "contact-page-scraper",
+  { timeout: 12000, errorThresholdPercentage: 60, resetTimeout: 60000, volumeThreshold: 3 },
+);
 
 export const contactPageScraperProcessor: Processor<ContactPageScraperJobData> = async (job) => {
   const startedAt = Date.now();
@@ -42,12 +68,11 @@ export const contactPageScraperProcessor: Processor<ContactPageScraperJobData> =
   for (const path of paths) {
     const url = `${base}${path}`;
     try {
-      const response = await fetch(url, {
-        signal: AbortSignal.timeout(Number(process.env.CONTACT_SCRAPE_TIMEOUT_MS ?? "12000")),
-      });
-      if (!response.ok) continue;
-      const extracted = extractFromHtml(await response.text());
-      if (extracted.emails.length > 0 || extracted.phones.length > 0 || extracted.address) {
+      const extracted = await contactPageBreaker.fire(url);
+      if (
+        extracted &&
+        (extracted.emails.length > 0 || extracted.phones.length > 0 || extracted.address)
+      ) {
         found = { ...extracted, sourceUrl: url };
         break;
       }

@@ -10,19 +10,18 @@ export function ImportNew() {
   return (
     <PageWrapper title="Import Nou">
       {uploadMutation.isError ? (
-        <div className="mb-4 rounded-lg border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 p-4 text-sm text-[var(--color-danger)]">
+        <div className="mb-4 rounded-lg border border-er/30 bg-er/10 p-4 text-sm text-er">
           Eroare la încărcarea fișierului: {uploadMutation.error?.message ?? "Eroare necunoscută"}
         </div>
       ) : null}
       <FileUpload
         multiple
-        onFilesSelected={(files) => {
-          void uploadMutation
-            .mutateAsync({ file: files[0] })
-            .then(() => setMessage(`Import creat: ${files[0].name}`));
+        onFilesSelected={async (files) => {
+          await uploadMutation.mutateAsync({ file: files[0] });
+          setMessage(`Import creat: ${files[0].name}`);
         }}
       />
-      {message ? <p className="mt-3 text-sm text-[var(--color-ok)]">{message}</p> : null}
+      {message ? <p className="mt-3 text-sm text-ok">{message}</p> : null}
     </PageWrapper>
   );
 }

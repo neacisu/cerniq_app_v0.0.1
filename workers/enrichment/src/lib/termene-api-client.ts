@@ -1,4 +1,4 @@
-import { createCircuitBreaker } from "@cerniq/worker-shared";
+import { createCircuitBreaker, withExternalApiMetrics } from "@cerniq/worker-shared";
 
 const TERMENE_API_URL = process.env.TERMENE_API_URL ?? "https://api.termene.ro/v2";
 const TERMENE_API_KEY = process.env.TERMENE_API_KEY ?? "";
@@ -26,29 +26,25 @@ async function callTermene(path: string): Promise<Record<string, unknown> | null
   return (await response.json()) as Record<string, unknown>;
 }
 
-const termeneBreaker = createCircuitBreaker(
-  async (...args: unknown[]) => callTermene(String(args[0] ?? "")),
-  "termene-api-client",
-  {
-    timeout: TERMENE_TIMEOUT_MS,
-    errorThresholdPercentage: 50,
-    resetTimeout: 30000,
-    volumeThreshold: 5,
-  },
-);
+const termeneBreaker = createCircuitBreaker(callTermene, "termene-api-client", {
+  timeout: TERMENE_TIMEOUT_MS,
+  errorThresholdPercentage: 50,
+  resetTimeout: 30000,
+  volumeThreshold: 5,
+});
 
 export async function getTermeneBalance(cui: string): Promise<Record<string, unknown> | null> {
-  return termeneBreaker.fire(`/firme/${cui}/bilant`);
+  return withExternalApiMetrics("termene", () => termeneBreaker.fire(`/firme/${cui}/bilant`));
 }
 
 export async function getTermeneRisk(cui: string): Promise<Record<string, unknown> | null> {
-  return termeneBreaker.fire(`/firme/${cui}/scor-risc`);
+  return withExternalApiMetrics("termene", () => termeneBreaker.fire(`/firme/${cui}/scor-risc`));
 }
 
 export async function getTermeneDosare(cui: string): Promise<Record<string, unknown> | null> {
-  return termeneBreaker.fire(`/firme/${cui}/dosare`);
+  return withExternalApiMetrics("termene", () => termeneBreaker.fire(`/firme/${cui}/dosare`));
 }
 
 export async function getTermeneActionari(cui: string): Promise<Record<string, unknown> | null> {
-  return termeneBreaker.fire(`/firme/${cui}/actionari`);
+  return withExternalApiMetrics("termene", () => termeneBreaker.fire(`/firme/${cui}/actionari`));
 }

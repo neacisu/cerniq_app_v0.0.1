@@ -1,5 +1,4 @@
 import type { Processor } from "bullmq";
-import { Queue } from "bullmq";
 import {
   bronzeContacts,
   db,
@@ -8,7 +7,7 @@ import {
   silverEnrichmentLog,
   sql,
 } from "@cerniq/db";
-import { getQueuePrefix, getRedisConnectionOptions } from "@cerniq/worker-shared";
+import { createQueue, QUEUES } from "@cerniq/worker-shared";
 import { validateCuiModulo11 } from "../lib/cui-validation.js";
 
 export type CuiModulo11JobData = {
@@ -56,9 +55,7 @@ export const cuiModulo11ValidatorProcessor: Processor<CuiModulo11JobData> = asyn
   }
 
   if (result.isValid) {
-    const connection = getRedisConnectionOptions();
-    const prefix = getQueuePrefix();
-    const queue = new Queue("silver:validate:cui-anaf", { connection, prefix });
+    const queue = createQueue(QUEUES.VALIDATE_CUI_ANAF);
     await queue.add(
       "validate-cui-anaf",
       {
@@ -69,7 +66,7 @@ export const cuiModulo11ValidatorProcessor: Processor<CuiModulo11JobData> = asyn
         correlationId: job.data.correlationId,
       },
       {
-        jobId: `c2:${job.data.companyId ?? job.data.bronzeContactId}:${Date.now()}`,
+        jobId: `c2-${job.data.tenantId}-${result.cleaned}`,
         attempts: 5,
         backoff: { type: "exponential", delay: 1000 },
       },

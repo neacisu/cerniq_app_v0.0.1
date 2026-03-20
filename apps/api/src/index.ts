@@ -44,118 +44,131 @@ initTelemetry({
   otlpEndpoint: envConfig.OTEL_EXPORTER_OTLP_ENDPOINT,
 });
 
-async function main() {
-  if (envConfig.NODE_ENV === "development") {
-    try {
-      await runMigrations();
-      await runDrizzleMigrations();
-      console.log("Development: migrations applied.");
-    } catch (err) {
-      console.error("Development: migrations failed (continuing anyway):", err);
-    }
-  }
-
-  const app = await buildApp();
-
-  process.on("unhandledRejection", (reason, promise) => {
-    app.log.fatal({ err: reason, promise }, "Unhandled rejection");
-    process.exit(1);
-  });
-
-  process.on("uncaughtException", (err) => {
-    app.log.fatal(err, "Uncaught exception");
-    process.exit(1);
-  });
-
-  let isDraining = false;
-  let isReloading = false;
-
-  app.addHook("onRequest", async (request, reply) => {
-    if (!isDraining) return;
-    const payload = {
-      status: "reloading",
-      message: "Service is reloading credentials, retry shortly.",
-      timestamp: new Date().toISOString(),
-    };
-    reply.status(503).send(payload);
-  });
-
+if (envConfig.NODE_ENV === "development") {
   try {
-    await app.listen({ port: envConfig.PORT, host: "0.0.0.0" });
-    app.log.info(`API server listening on port ${envConfig.PORT}`);
+    await runMigrations();
+    await runDrizzleMigrations();
+    console.log("Development: migrations applied.");
   } catch (err) {
-    app.log.fatal(err, "Failed to start server");
-    process.exit(1);
+    console.error("Development: migrations failed (continuing anyway):", err);
   }
-
-  const reloadAll = async () => {
-    if (isReloading) return;
-    isReloading = true;
-    isDraining = true;
-    app.log.info("Reloading secrets and service connections...");
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 5000));
-      refreshEnvConfig();
-      await refreshDbConnection();
-      await refreshRedisClient();
-      await refreshRateLimitRedis();
-      await resetHealthRedis();
-      secretsReloadTotal.inc({ service: "api", status: "success" });
-      secretsLastReloadTimestamp.set({ service: "api" }, Math.floor(Date.now() / 1000));
-      app.log.info("Secrets and service connections reloaded successfully.");
-    } catch (err) {
-      secretsReloadTotal.inc({ service: "api", status: "failed" });
-      app.log.error(err, "Failed to reload secrets/service connections");
-    } finally {
-      isDraining = false;
-      isReloading = false;
-    }
-  };
-
-  const secretsPath = process.env.SECRETS_PATH ?? "/secrets/api.env";
-  const updateSecretsFileAge = () => {
-    if (!existsSync(secretsPath)) return;
-    const ageSeconds = Math.max(0, Math.floor((Date.now() - statSync(secretsPath).mtimeMs) / 1000));
-    secretsFileAgeSeconds.set({ service: "api" }, ageSeconds);
-  };
-  updateSecretsFileAge();
-  const ageInterval = setInterval(updateSecretsFileAge, 30000);
-  const stopSecretsWatch = watchSecretsFile(secretsPath, reloadAll, 2000);
-
-  process.on("SIGHUP", async () => {
-    app.log.info("SIGHUP received, triggering secrets reload...");
-    await reloadAll();
-  });
-
-  const shutdown = async (signal: string) => {
-    app.log.info(
-      `Received ${signal}, shutting down gracefully (timeout ${envConfig.SHUTDOWN_TIMEOUT_MS}ms)...`,
-    );
-    const t = setTimeout(() => {
-      app.log.warn("Shutdown timeout reached, exiting");
-      process.exit(1);
-    }, envConfig.SHUTDOWN_TIMEOUT_MS);
-
-    try {
-      stopSecretsWatch();
-      clearInterval(ageInterval);
-      await app.close();
-      await closeDbConnection();
-      await closeRedisClient();
-      await resetHealthRedis();
-      await shutdownTelemetry();
-      clearTimeout(t);
-      app.log.info("Shutdown complete");
-      process.exit(0);
-    } catch (err) {
-      app.log.error(err, "Error during shutdown");
-      clearTimeout(t);
-      process.exit(1);
-    }
-  };
-
-  process.on("SIGTERM", () => shutdown("SIGTERM"));
-  process.on("SIGINT", () => shutdown("SIGINT"));
 }
 
-main();
+const app = await buildApp();
+
+// Transient pgbouncer/postgres connection pool errors occasionally surface as unhandled
+// rejections (e.g. DB in recovery mode, cached login failure). They are self-healing
+// and must not crash the server process.
+const TRANSIENT_PG_CODES = new Set(["08P01", "08006", "08001", "08004", "57P03", "53300", "53200"]);
+
+process.on("unhandledRejection", (reason, promise) => {
+  if (
+    reason != null &&
+    typeof reason === "object" &&
+    "code" in reason &&
+    TRANSIENT_PG_CODES.has(String((reason as Record<string, unknown>).code))
+  ) {
+    app.log.warn(
+      { err: reason },
+      "Transient postgres connection error (unhandled rejection) — not exiting",
+    );
+    return;
+  }
+  app.log.fatal({ err: reason, promise }, "Unhandled rejection");
+  process.exit(1);
+});
+
+process.on("uncaughtException", (err) => {
+  app.log.fatal(err, "Uncaught exception");
+  process.exit(1);
+});
+
+let isDraining = false;
+let isReloading = false;
+
+app.addHook("onRequest", async (request, reply) => {
+  if (!isDraining) return;
+  const payload = {
+    status: "reloading",
+    message: "Service is reloading credentials, retry shortly.",
+    timestamp: new Date().toISOString(),
+  };
+  reply.status(503).send(payload);
+});
+
+try {
+  await app.listen({ port: envConfig.PORT, host: "0.0.0.0" });
+  app.log.info(`API server listening on port ${envConfig.PORT}`);
+} catch (err) {
+  app.log.fatal(err, "Failed to start server");
+  process.exit(1);
+}
+
+const reloadAll = async () => {
+  if (isReloading) return;
+  isReloading = true;
+  isDraining = true;
+  app.log.info("Reloading secrets and service connections...");
+  try {
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+    refreshEnvConfig();
+    await refreshDbConnection();
+    await refreshRedisClient();
+    await refreshRateLimitRedis();
+    await resetHealthRedis();
+    secretsReloadTotal.inc({ service: "api", status: "success" });
+    secretsLastReloadTimestamp.set({ service: "api" }, Math.floor(Date.now() / 1000));
+    app.log.info("Secrets and service connections reloaded successfully.");
+  } catch (err) {
+    secretsReloadTotal.inc({ service: "api", status: "failed" });
+    app.log.error(err, "Failed to reload secrets/service connections");
+  } finally {
+    isDraining = false;
+    isReloading = false;
+  }
+};
+
+const secretsPath = process.env.SECRETS_PATH ?? "/secrets/api.env";
+const updateSecretsFileAge = () => {
+  if (!existsSync(secretsPath)) return;
+  const ageSeconds = Math.max(0, Math.floor((Date.now() - statSync(secretsPath).mtimeMs) / 1000));
+  secretsFileAgeSeconds.set({ service: "api" }, ageSeconds);
+};
+updateSecretsFileAge();
+const ageInterval = setInterval(updateSecretsFileAge, 30000);
+const stopSecretsWatch = watchSecretsFile(secretsPath, reloadAll, 2000);
+
+process.on("SIGHUP", async () => {
+  app.log.info("SIGHUP received, triggering secrets reload...");
+  await reloadAll();
+});
+
+const shutdown = async (signal: string) => {
+  app.log.info(
+    `Received ${signal}, shutting down gracefully (timeout ${envConfig.SHUTDOWN_TIMEOUT_MS}ms)...`,
+  );
+  const t = setTimeout(() => {
+    app.log.warn("Shutdown timeout reached, exiting");
+    process.exit(1);
+  }, envConfig.SHUTDOWN_TIMEOUT_MS);
+
+  try {
+    stopSecretsWatch();
+    clearInterval(ageInterval);
+    await app.close();
+    await closeDbConnection();
+    await closeRedisClient();
+    await resetHealthRedis();
+    await shutdownTelemetry();
+    clearTimeout(t);
+    app.log.info("Shutdown complete");
+    process.exit(0);
+  } catch (err) {
+    app.log.error(err, "Error during shutdown");
+    clearTimeout(t);
+    process.exit(1);
+  }
+};
+
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));

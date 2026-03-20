@@ -51,7 +51,7 @@ export function Health() {
           name: "Monitoring API",
           status: queuesRes.success && Array.isArray(queuesRes.data) ? "healthy" : "unhealthy",
           latency: "—",
-          detail: "Port 64080 (queues)",
+          detail: "Internal proxy via API",
         });
 
         if (metricsRes.success && metricsRes.data) {

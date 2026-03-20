@@ -1,30 +1,29 @@
 import { useCallback, useState, type ReactNode } from "react";
 import { AdminAuthContext, type AdminAuthContextValue } from "./admin-auth-context.js";
-
-const STORAGE_KEY = "cerniq_admin_key";
+import { getStoredAdminToken, getStoredAdminUser, loginAdmin, logoutAdmin } from "../api.js";
 
 export function AdminAuthProvider({ children }: { children: ReactNode }) {
-  const [adminKey, setAdminKeyState] = useState<string | null>(() =>
-    typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null,
-  );
+  const [token, setToken] = useState<string | null>(() => getStoredAdminToken());
+  const [user, setUser] = useState<AdminAuthContextValue["user"]>(() => getStoredAdminUser());
 
-  const setAdminKey = useCallback((key: string | null) => {
-    if (typeof window !== "undefined") {
-      if (key) localStorage.setItem(STORAGE_KEY, key);
-      else localStorage.removeItem(STORAGE_KEY);
-    }
-    setAdminKeyState(key);
+  const login = useCallback(async (email: string, password: string) => {
+    const session = await loginAdmin(email, password);
+    setToken(session.token);
+    setUser(session.user);
   }, []);
 
-  const logout = useCallback(() => {
-    setAdminKey(null);
-  }, [setAdminKey]);
+  const logout = useCallback(async () => {
+    await logoutAdmin();
+    setToken(null);
+    setUser(null);
+  }, []);
 
   const value: AdminAuthContextValue = {
-    adminKey,
-    setAdminKey,
+    token,
+    user,
+    login,
     logout,
-    isAuthenticated: Boolean(adminKey?.trim()),
+    isAuthenticated: Boolean(token?.trim()),
   };
 
   return <AdminAuthContext.Provider value={value}>{children}</AdminAuthContext.Provider>;

@@ -1,5 +1,4 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
-import { Queue } from "bullmq";
 import {
   approvalTasks,
   bronzeContacts,
@@ -10,8 +9,9 @@ import {
   silverCompanies,
   sql,
 } from "@cerniq/db";
-import { getQueuePrefix, queueRegistry, getRedisConnectionOptions } from "@cerniq/worker-shared";
+import { queueRegistry } from "@cerniq/worker-shared";
 import { z } from "zod";
+import { createQueue } from "../lib/queue-factory.js";
 import { parseLimit, parseOffset, requireTenantId } from "./utils.js";
 
 function getErrorMessage(err: unknown): string {
@@ -39,21 +39,15 @@ function isSchemaPermissionError(err: unknown): boolean {
   return /permission denied for schema/i.test(values) || /\b42501\b/.test(values);
 }
 
-function isBullMqQueueNameError(err: unknown): boolean {
-  return /Queue name cannot contain :/i.test(getErrorMessage(err));
-}
-
 export async function dashboardRoutes(app: FastifyInstance) {
   const authOpts = { onRequest: [async (req: FastifyRequest) => req.jwtVerify()] };
 
   app.get("/stats", authOpts, async (request) => {
     const tenantId = requireTenantId(request);
-    const connection = getRedisConnectionOptions();
-    const prefix = getQueuePrefix();
     try {
       const queueDepthsSettled = await Promise.allSettled(
         queueRegistry.map(async (q) => {
-          const queue = new Queue(q.name, { connection, prefix });
+          const queue = createQueue(q.name);
           try {
             const counts = await queue.getJobCounts(
               "waiting",
@@ -78,66 +72,81 @@ export async function dashboardRoutes(app: FastifyInstance) {
 
       const queueDepths = queueDepthsSettled.flatMap((result) => {
         if (result.status === "fulfilled") return [result.value];
-        if (isBullMqQueueNameError(result.reason)) {
-          app.log.warn(
-            { err: result.reason },
-            "BullMQ queue name invalid (contains ':'); queue metrics skipped for this queue",
-          );
-          return [];
-        }
         throw result.reason;
       });
 
-      const [bronzeStats, silverStats, goldStats, approvalStats, errorStats] = await db.transaction(
-        async (tx) => {
-          await tx.execute(sql`SELECT set_config('app.tenant_id', ${tenantId}, true)`);
+      const [
+        bronzeStats,
+        silverStats,
+        goldStats,
+        approvalStats,
+        errorStats,
+        hitlResolvedToday,
+        qualityStats,
+      ] = await db.transaction(async (tx) => {
+        await tx.execute(sql`SELECT set_config('app.tenant_id', ${tenantId}, true)`);
 
-          return Promise.all([
-            tx
-              .select({
-                total: sql<number>`COUNT(*)`,
-                pending: sql<number>`COUNT(*) FILTER (WHERE ${bronzeContacts.processingStatus} = 'pending')`,
-                processing: sql<number>`COUNT(*) FILTER (WHERE ${bronzeContacts.processingStatus} = 'processing')`,
-                promoted: sql<number>`COUNT(*) FILTER (WHERE ${bronzeContacts.processingStatus} = 'promoted')`,
-              })
-              .from(bronzeContacts)
-              .where(sql`${bronzeContacts.tenantId} = ${tenantId}`),
-            tx
-              .select({
-                total: sql<number>`COUNT(*)`,
-                pending: sql<number>`COUNT(*) FILTER (WHERE ${silverCompanies.enrichmentStatus} = 'pending')`,
-                inProgress: sql<number>`COUNT(*) FILTER (WHERE ${silverCompanies.enrichmentStatus} = 'in_progress')`,
-                complete: sql<number>`COUNT(*) FILTER (WHERE ${silverCompanies.enrichmentStatus} = 'complete')`,
-                eligible: sql<number>`COUNT(*) FILTER (WHERE ${silverCompanies.promotionStatus} = 'eligible')`,
-              })
-              .from(silverCompanies)
-              .where(sql`${silverCompanies.tenantId} = ${tenantId}`),
-            tx
-              .select({
-                total: sql<number>`COUNT(*)`,
-                cold: sql<number>`COUNT(*) FILTER (WHERE ${goldCompanies.currentState} = 'COLD')`,
-                engaged: sql<number>`COUNT(*) FILTER (WHERE ${goldCompanies.currentState} IN ('WARM_REPLY','ENGAGED','NEGOTIATION','PROPOSAL','CLOSING'))`,
-                converted: sql<number>`COUNT(*) FILTER (WHERE ${goldCompanies.currentState} = 'CONVERTED')`,
-              })
-              .from(goldCompanies)
-              .where(sql`${goldCompanies.tenantId} = ${tenantId}`),
-            tx
-              .select({
-                pending: sql<number>`COUNT(*) FILTER (WHERE ${approvalTasks.status} IN ('pending','assigned','escalated'))`,
-                overdue: sql<number>`COUNT(*) FILTER (WHERE ${approvalTasks.status} IN ('pending','assigned','escalated') AND COALESCE(${approvalTasks.dueAt}, ${approvalTasks.expiresAt}) < NOW())`,
-              })
-              .from(approvalTasks)
-              .where(sql`${approvalTasks.tenantId} = ${tenantId}`),
-            tx
-              .select({
-                last24h: sql<number>`COUNT(*) FILTER (WHERE ${pipelineErrors.createdAt} >= NOW() - INTERVAL '24 hours')`,
-                critical: sql<number>`COUNT(*) FILTER (WHERE ${pipelineErrors.severity} = 'critical')`,
-              })
-              .from(pipelineErrors)
-              .where(sql`${pipelineErrors.tenantId} = ${tenantId}`),
-          ]);
-        },
-      );
+        return Promise.all([
+          tx
+            .select({
+              total: sql<number>`COUNT(*)`,
+              pending: sql<number>`COUNT(*) FILTER (WHERE ${bronzeContacts.processingStatus} = 'pending')`,
+              processing: sql<number>`COUNT(*) FILTER (WHERE ${bronzeContacts.processingStatus} = 'processing')`,
+              promoted: sql<number>`COUNT(*) FILTER (WHERE ${bronzeContacts.processingStatus} = 'promoted')`,
+            })
+            .from(bronzeContacts)
+            .where(sql`${bronzeContacts.tenantId} = ${tenantId}`),
+          tx
+            .select({
+              total: sql<number>`COUNT(*)`,
+              pending: sql<number>`COUNT(*) FILTER (WHERE ${silverCompanies.enrichmentStatus} = 'pending')`,
+              inProgress: sql<number>`COUNT(*) FILTER (WHERE ${silverCompanies.enrichmentStatus} = 'in_progress')`,
+              complete: sql<number>`COUNT(*) FILTER (WHERE ${silverCompanies.enrichmentStatus} = 'complete')`,
+              eligible: sql<number>`COUNT(*) FILTER (WHERE ${silverCompanies.promotionStatus} = 'eligible')`,
+            })
+            .from(silverCompanies)
+            .where(sql`${silverCompanies.tenantId} = ${tenantId}`),
+          tx
+            .select({
+              total: sql<number>`COUNT(*)`,
+              cold: sql<number>`COUNT(*) FILTER (WHERE ${goldCompanies.currentState} = 'COLD')`,
+              engaged: sql<number>`COUNT(*) FILTER (WHERE ${goldCompanies.currentState} IN ('WARM_REPLY','ENGAGED','NEGOTIATION','PROPOSAL','CLOSING'))`,
+              converted: sql<number>`COUNT(*) FILTER (WHERE ${goldCompanies.currentState} = 'CONVERTED')`,
+            })
+            .from(goldCompanies)
+            .where(sql`${goldCompanies.tenantId} = ${tenantId}`),
+          tx
+            .select({
+              pending: sql<number>`COUNT(*) FILTER (WHERE ${approvalTasks.status} IN ('pending','assigned','escalated'))`,
+              overdue: sql<number>`COUNT(*) FILTER (WHERE ${approvalTasks.status} IN ('pending','assigned','escalated') AND COALESCE(${approvalTasks.dueAt}, ${approvalTasks.expiresAt}) < NOW())`,
+            })
+            .from(approvalTasks)
+            .where(sql`${approvalTasks.tenantId} = ${tenantId}`),
+          tx
+            .select({
+              last24h: sql<number>`COUNT(*) FILTER (WHERE ${pipelineErrors.createdAt} >= NOW() - INTERVAL '24 hours')`,
+              critical: sql<number>`COUNT(*) FILTER (WHERE ${pipelineErrors.severity} = 'critical')`,
+            })
+            .from(pipelineErrors)
+            .where(sql`${pipelineErrors.tenantId} = ${tenantId}`),
+          tx
+            .select({
+              resolvedToday: sql<number>`COUNT(*) FILTER (WHERE ${approvalTasks.status} IN ('approved', 'rejected', 'cancelled', 'expired') AND DATE(${approvalTasks.decidedAt}) = CURRENT_DATE)`,
+            })
+            .from(approvalTasks)
+            .where(sql`${approvalTasks.tenantId} = ${tenantId}`),
+          tx
+            .select({
+              avgScore: sql<number>`AVG(${silverCompanies.totalQualityScore})`,
+              eligible: sql<number>`COUNT(*) FILTER (WHERE ${silverCompanies.promotionStatus} = 'eligible')`,
+              blocked: sql<number>`COUNT(*) FILTER (WHERE ${silverCompanies.promotionStatus} = 'blocked')`,
+            })
+            .from(silverCompanies)
+            .where(
+              sql`${silverCompanies.tenantId} = ${tenantId} AND ${silverCompanies.totalQualityScore} IS NOT NULL`,
+            ),
+        ]);
+      });
 
       const queueDepth = queueDepths.reduce((sum, q) => sum + q.waiting + q.active + q.delayed, 0);
       const failingQueues = queueDepths.filter((q) => q.failed > 0).length;
@@ -153,6 +162,16 @@ export async function dashboardRoutes(app: FastifyInstance) {
           pipeline: {
             queueDepth,
             failingQueues,
+          },
+          hitl: {
+            pending: Number(approvalStats[0]?.pending ?? 0),
+            resolvedToday: Number(hitlResolvedToday[0]?.resolvedToday ?? 0),
+            overdue: Number(approvalStats[0]?.overdue ?? 0),
+          },
+          quality: {
+            avgScore: Number(qualityStats[0]?.avgScore ?? 0),
+            eligible: Number(qualityStats[0]?.eligible ?? 0),
+            blocked: Number(qualityStats[0]?.blocked ?? 0),
           },
         },
       };
@@ -171,6 +190,8 @@ export async function dashboardRoutes(app: FastifyInstance) {
             approvals: { pending: 0, overdue: 0 },
             errors: { last24h: 0, critical: 0 },
             pipeline: { queueDepth: 0, failingQueues: 0 },
+            hitl: { pending: 0, resolvedToday: 0, overdue: 0 },
+            quality: { avgScore: 0, eligible: 0, blocked: 0 },
           },
         };
       }
@@ -270,7 +291,7 @@ export async function dashboardRoutes(app: FastifyInstance) {
 
     const conditions = [
       sql`${dailyStats.tenantId} = ${tenantId}`,
-      sql`${dailyStats.statDate} >= NOW() - INTERVAL '${sql.raw(String(parsed.data.days))} days'`,
+      sql`${dailyStats.statDate} >= NOW() - (${parsed.data.days} * INTERVAL '1 day')`,
     ];
     if (parsed.data.pipelineStage) {
       conditions.push(sql`${dailyStats.pipelineStage} = ${parsed.data.pipelineStage}`);

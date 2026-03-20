@@ -120,9 +120,9 @@ CREATE TABLE approval_tasks (
         CHECK (pipeline_stage IN ('E1', 'E2', 'E3', 'E4', 'E5')),
     approval_type VARCHAR(100) NOT NULL,
 
-    -- Corelare BullMQ
-    bullmq_job_id VARCHAR(255),
-    bullmq_queue_name VARCHAR(255),
+    -- Corelare BullMQ (coloanele reale în schema sunt blocked_job_id și blocked_queue_name)
+    blocked_job_id VARCHAR(255),
+    blocked_queue_name VARCHAR(255),
     correlation_id VARCHAR(255),
 
     -- State Machine
@@ -171,7 +171,7 @@ CREATE INDEX idx_approvals_due ON approval_tasks(due_at)
     WHERE status NOT IN ('approved', 'rejected', 'expired');
 
 -- Pentru corelarea cu BullMQ jobs
-CREATE INDEX idx_approvals_correlation ON approval_tasks(bullmq_job_id, bullmq_queue_name);
+CREATE INDEX idx_approvals_correlation ON approval_tasks(blocked_job_id, blocked_queue_name);
 
 -- Pentru lookup by entity
 CREATE INDEX idx_approvals_entity ON approval_tasks(entity_type, entity_id);
@@ -195,13 +195,25 @@ CREATE POLICY tenant_isolation_approvals ON approval_tasks
 
 ### 4.1 Matrice Approval Types
 
-| Stage            | approval_type       | Trigger Condition                 | SLA | Timeout Action |
-| ---------------- | ------------------- | --------------------------------- | --- | -------------- |
-| **E1** Data      | `data_quality`      | Completeness < 70%                | 24h | Escalate       |
-| **E2** Outreach  | `content_review`    | First message to segment          | 8h  | Escalate       |
-| **E3** AI Sales  | `pricing_approval`  | Discount > 15% OR value > €50K    | 4h  | Escalate to VP |
-| **E4** Post-Sale | `credit_approval`   | Risk score > 0.5 OR value > €100K | 48h | Reject         |
-| **E5** Nurturing | `campaign_approval` | All campaigns                     | 72h | Escalate       |
+**ATENȚIE: Tipurile E1 implementate în DB sunt diferite de schema inițială.**
+
+| Stage            | approval_type           | Trigger Condition                 | SLA | Timeout Action |
+| ---------------- | ----------------------- | --------------------------------- | --- | -------------- |
+| **E1** Data      | `dedup_review`          | Candidați dedup cu scor ambiguu   | 24h | Escalate       |
+| **E1** Data      | `identity_conflict`     | Conflict identitate companii      | 8h  | Escalate       |
+| **E1** Data      | `quality_review`        | Completeness < 70%                | 24h | Escalate       |
+| **E1** Data      | `ai_structuring_review` | Structurare AI incertă            | 24h | Escalate       |
+| **E1** Data      | `ai_merge_review`       | AI merge propus, confidence < 0.9 | 12h | Escalate       |
+| **E1** Data      | `low_confidence_review` | Scor AI < 0.7                     | 72h | Escalate       |
+| **E1** Data      | `data_anomaly`          | Anomalie detectată în date        | 48h | Escalate       |
+| **E1** Data      | `manual_verification`   | Verificare manuală cerută         | 72h | Escalate       |
+| **E1** Data      | `error_review`          | Eroare pipeline                   | 4h  | Escalate       |
+| **E2** Outreach  | `content_review`        | First message to segment          | 8h  | Escalate       |
+| **E3** AI Sales  | `pricing_approval`      | Discount > 15% OR value > €50K    | 4h  | Escalate to VP |
+| **E4** Post-Sale | `credit_approval`       | Risk score > 0.5 OR value > €100K | 48h | Reject         |
+| **E5** Nurturing | `campaign_approval`     | All campaigns                     | 72h | Escalate       |
+
+> **NOTE:** Schema DB (`approval_type` enum) defineste 9 tipuri pentru E1. Tipul `data_quality` din doc inițial NU există în implementare.
 
 ### 4.2 Schema approval_type_configs
 
@@ -244,7 +256,7 @@ CREATE TABLE approval_type_configs (
 ```sql
 -- Configurații per etapă
 INSERT INTO approval_type_configs (approval_type, display_name, pipeline_stage, sla_normal) VALUES
-    ('data_quality', 'Data Quality Review', 'E1', 1440),
+    ('quality_review', 'Data Quality Review', 'E1', 1440),
     ('content_review', 'Message Content Approval', 'E2', 480),
     ('pricing_approval', 'Pricing & Discount Approval', 'E3', 240),
     ('credit_approval', 'Credit & Contract Approval', 'E4', 2880),
@@ -450,8 +462,8 @@ async function processWithHITL(job: Job) {
       entity_id: job.data.orderId,
       pipeline_stage: "E3",
       approval_type: "pricing_approval",
-      bullmq_job_id: job.id,
-      bullmq_queue_name: job.queueName,
+      blocked_job_id: job.id,
+      blocked_queue_name: job.queueName,
       correlation_id: job.data.correlationId,
       priority: determinePriority(job.data),
       metadata: { discount: job.data.discount },

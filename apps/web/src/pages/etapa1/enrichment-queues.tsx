@@ -23,7 +23,7 @@ export function EnrichmentQueues() {
   if (queuesQuery.isError) {
     return (
       <PageWrapper title="Enrichment Queues">
-        <div className="rounded-lg border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 p-4 text-sm text-[var(--color-danger)]">
+        <div className="rounded-lg border border-er/30 bg-er/10 p-4 text-sm text-er">
           Eroare la încărcarea datelor: {queuesQuery.error?.message ?? "Eroare necunoscută"}
         </div>
       </PageWrapper>
@@ -55,11 +55,18 @@ export function EnrichmentQueues() {
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => void pauseMutation.mutateAsync(String(q.name))}
+                onClick={async () => {
+                  await pauseMutation.mutateAsync(String(q.name));
+                }}
               >
                 Pause
               </Button>
-              <Button size="sm" onClick={() => void resumeMutation.mutateAsync(String(q.name))}>
+              <Button
+                size="sm"
+                onClick={async () => {
+                  await resumeMutation.mutateAsync(String(q.name));
+                }}
+              >
                 Resume
               </Button>
             </div>
