@@ -121,9 +121,18 @@ export const leadJourney = outreachSchema.table(
   (t) => [
     unique("unique_lead_journey").on(t.tenantId, t.leadId),
     index("idx_lead_journey_tenant_state").on(t.tenantId, t.currentState),
-    index("idx_lead_journey_next_action").on(t.nextActionAt),
-    index("idx_lead_journey_review").on(t.tenantId, t.requiresHumanReview),
-    index("idx_lead_journey_sequence").on(t.currentSequenceId, t.sequenceStep),
+    index("idx_lead_journey_next_action")
+      .on(t.nextActionAt)
+      .where(sql`${t.nextActionAt} IS NOT NULL`),
+    index("idx_lead_journey_review")
+      .on(t.tenantId, t.requiresHumanReview)
+      .where(sql`${t.requiresHumanReview} = TRUE`),
+    index("idx_lead_journey_sequence")
+      .on(t.currentSequenceId, t.sequenceStep)
+      .where(sql`${t.currentSequenceId} IS NOT NULL`),
+    index("idx_lead_journey_phone")
+      .on(t.assignedPhoneId)
+      .where(sql`${t.assignedPhoneId} IS NOT NULL`),
     check("chk_sentiment_score", sql`${t.sentimentScore} BETWEEN -100 AND 100`),
     check("chk_engagement_score", sql`${t.engagementScore} BETWEEN 0 AND 100`),
   ],
@@ -140,7 +149,9 @@ export const communicationLog = outreachSchema.table(
     tenantId: uuid("tenant_id")
       .notNull()
       .references(() => tenants.id, { onDelete: "cascade" }),
-    leadJourneyId: uuid("lead_journey_id").notNull(),
+    leadJourneyId: uuid("lead_journey_id")
+      .notNull()
+      .references(() => leadJourney.id, { onDelete: "cascade" }),
 
     // Message identity
     externalMessageId: varchar("external_message_id", { length: 255 }),
@@ -206,8 +217,16 @@ export const communicationLog = outreachSchema.table(
     createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
   },
   (t) => [
-    index("idx_comm_log_journey").on(t.leadJourneyId, t.createdAt),
-    index("idx_comm_log_external_id").on(t.externalMessageId),
+    index("idx_comm_log_journey").on(t.leadJourneyId, t.createdAt.desc()),
+    index("idx_comm_log_external_id")
+      .on(t.externalMessageId)
+      .where(sql`${t.externalMessageId} IS NOT NULL`),
+    index("idx_comm_log_thread")
+      .on(t.threadId)
+      .where(sql`${t.threadId} IS NOT NULL`),
+    index("idx_comm_log_phone_created")
+      .on(t.phoneId, t.createdAt)
+      .where(sql`${t.phoneId} IS NOT NULL`),
     index("idx_comm_log_tenant_channel").on(t.tenantId, t.channel),
     index("idx_comm_log_status").on(t.status, t.createdAt),
     check("chk_quota_cost", sql`${t.quotaCost} IN (0, 1)`),
@@ -275,6 +294,9 @@ export const waQuotaUsage = outreachSchema.table(
   "wa_quota_usage",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
     phoneId: uuid("phone_id")
       .notNull()
       .references(() => waPhoneNumbers.id, { onDelete: "cascade" }),
@@ -291,6 +313,51 @@ export const waQuotaUsage = outreachSchema.table(
   (t) => [
     unique("uq_quota_phone_date").on(t.phoneId, t.usageDate),
     index("idx_quota_phone_date").on(t.phoneId, t.usageDate),
+    index("idx_wa_quota_usage_tenant_date").on(t.tenantId, t.usageDate),
+    index("idx_quota_usage_date_desc").on(t.usageDate),
+  ],
+);
+
+// ---------------------------------------------------------------------------
+// Outreach settings (per-tenant configuration)
+// ---------------------------------------------------------------------------
+export const outreachSettings = outreachSchema.table("outreach_settings", {
+  tenantId: uuid("tenant_id")
+    .primaryKey()
+    .references(() => tenants.id, { onDelete: "cascade" }),
+  businessHoursStart: smallint("business_hours_start").notNull().default(9),
+  businessHoursEnd: smallint("business_hours_end").notNull().default(18),
+  workDays: jsonb("work_days").notNull().default([1, 2, 3, 4, 5]),
+  timezone: varchar("timezone", { length: 50 }).notNull().default("Europe/Bucharest"),
+  dailyQuotaLimit: integer("daily_quota_limit").notNull().default(200),
+  followupQuotaLimit: integer("followup_quota_limit").notNull().default(500),
+  emailSignature: text("email_signature"),
+  waReplyTimeoutMinutes: integer("wa_reply_timeout_minutes").notNull().default(60),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// ---------------------------------------------------------------------------
+// In-app notifications (Etapa 2)
+// ---------------------------------------------------------------------------
+export const outreachNotifications = outreachSchema.table(
+  "outreach_notifications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
+    type: varchar("type", { length: 50 }).notNull(),
+    title: varchar("title", { length: 255 }).notNull(),
+    body: text("body"),
+    resourceType: varchar("resource_type", { length: 50 }),
+    resourceId: uuid("resource_id"),
+    isRead: boolean("is_read").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("idx_outreach_notifications_tenant_read_created").on(t.tenantId, t.isRead, t.createdAt),
   ],
 );
 
@@ -367,7 +434,9 @@ export const sequenceEnrollments = outreachSchema.table(
     sequenceId: uuid("sequence_id")
       .notNull()
       .references(() => outreachSequences.id, { onDelete: "cascade" }),
-    journeyId: uuid("journey_id").notNull(),
+    journeyId: uuid("journey_id")
+      .notNull()
+      .references(() => leadJourney.id, { onDelete: "cascade" }),
     tenantId: uuid("tenant_id")
       .notNull()
       .references(() => tenants.id, { onDelete: "cascade" }),
@@ -386,6 +455,9 @@ export const sequenceEnrollments = outreachSchema.table(
     unique("uq_enrollment_journey_sequence").on(t.journeyId, t.sequenceId),
     index("idx_enrollments_status").on(t.status, t.nextStepAt),
     index("idx_enrollments_journey").on(t.journeyId),
+    index("idx_enrollments_next_step")
+      .on(t.nextStepAt)
+      .where(sql`${t.status} = 'ACTIVE'`),
   ],
 );
 
@@ -470,8 +542,12 @@ export const humanReviewQueue = outreachSchema.table(
     tenantId: uuid("tenant_id")
       .notNull()
       .references(() => tenants.id, { onDelete: "cascade" }),
-    journeyId: uuid("journey_id").notNull(),
-    communicationLogId: uuid("communication_log_id"),
+    journeyId: uuid("journey_id")
+      .notNull()
+      .references(() => leadJourney.id, { onDelete: "cascade" }),
+    communicationLogId: uuid("communication_log_id").references(() => communicationLog.id, {
+      onDelete: "set null",
+    }),
 
     // Review metadata
     priority: reviewPriorityEnum("priority").notNull().default("MEDIUM"),
@@ -505,6 +581,9 @@ export const humanReviewQueue = outreachSchema.table(
     index("idx_review_queue_tenant_status").on(t.tenantId, t.status, t.priority),
     index("idx_review_queue_sla").on(t.slaDueAt, t.status),
     index("idx_review_queue_journey").on(t.journeyId),
+    index("idx_review_queue_assigned")
+      .on(t.assignedTo, t.status)
+      .where(sql`${t.assignedTo} IS NOT NULL`),
   ],
 );
 
@@ -516,7 +595,9 @@ export const hitlAuditLog = outreachSchema.table(
   "hitl_audit_log",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    reviewId: uuid("review_id").notNull(),
+    reviewId: uuid("review_id")
+      .notNull()
+      .references(() => humanReviewQueue.id, { onDelete: "cascade" }),
     tenantId: uuid("tenant_id")
       .notNull()
       .references(() => tenants.id, { onDelete: "cascade" }),

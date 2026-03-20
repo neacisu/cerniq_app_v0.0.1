@@ -1,0 +1,14 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["../apps/web/src/*"]
+    }
+  },
+  "include": [
+    "./App.tsx",
+    "./pages/**/*.tsx",
+    "../apps/web/src/App.tsx"
+  ]
+}

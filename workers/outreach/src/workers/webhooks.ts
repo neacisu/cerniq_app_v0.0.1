@@ -15,6 +15,8 @@ import { v4 as uuidv4 } from "uuid";
 import { Redis } from "ioredis";
 import { QUEUES } from "@cerniq/worker-shared";
 import { asBullmqConnection } from "../utils/bullmq-connection.js";
+import type { CleanupJobData, HealthCheckJobData } from "./monitoring.js";
+import type { PriorityJobData } from "./resilience.js";
 
 // =============================================================================
 // SystemEvent — ADR-0061 EXACT format
@@ -236,6 +238,17 @@ export function createTimelinesAIEventProcessorWorker(redis: Redis): Worker {
         quotaCost: 0,
       });
 
+      const { outreachNotifications } = await import("@cerniq/db");
+      await db.insert(outreachNotifications).values({
+        tenantId,
+        type: "REPLY_WHATSAPP",
+        title: "Răspuns nou pe WhatsApp",
+        body: String(rawEvent.message ?? "").slice(0, 500),
+        resourceType: "lead_journey",
+        resourceId: journeyId,
+        isRead: false,
+      });
+
       // Trigger state transition to WARM_REPLY
       await stateQueue.add(
         "reply",
@@ -393,22 +406,15 @@ export interface EventDeduplicateJobData {
   tenantId: string;
 }
 
-export function createEventDeduplicationWorker(redis: Redis): Worker {
-  const connection = asBullmqConnection(redis);
-  return new Worker(
-    QUEUES.PIPELINE_OUTREACH_HEALTH,
-    async (job: Job<EventDeduplicateJobData>): Promise<{ isDuplicate: boolean }> => {
-      const { eventId, source, tenantId } = job.data;
-      const dedupKey = `dedup:${tenantId}:${source}:${eventId}`;
-
-      // NX = only set if not exists — atomic idempotency check
-      const result = await redis.set(dedupKey, "1", "EX", DEDUP_TTL_SECONDS, "NX");
-      const isDuplicate = result === null;
-
-      return { isDuplicate };
-    },
-    { connection, concurrency: 100 },
-  );
+export async function executeEventDedupJob(
+  redis: Redis,
+  job: Job<EventDeduplicateJobData>,
+): Promise<{ isDuplicate: boolean }> {
+  const { eventId, source, tenantId } = job.data;
+  const dedupKey = `dedup:${tenantId}:${source}:${eventId}`;
+  const result = await redis.set(dedupKey, "1", "EX", DEDUP_TTL_SECONDS, "NX");
+  const isDuplicate = result === null;
+  return { isDuplicate };
 }
 
 // =============================================================================
@@ -420,35 +426,71 @@ export interface EventArchiveJobData {
   event: SystemEvent;
 }
 
-export function createEventArchiveWorker(redis: Redis): Worker {
+export async function executeEventArchiveJob(job: Job<EventArchiveJobData>): Promise<void> {
+  const { tenantId, event } = job.data;
+  const { db } = await import("@cerniq/db");
+  const { webhookEventArchive } = await import("@cerniq/db");
+
+  const eventTimestamp = Number.isNaN(Date.parse(event.timestamp))
+    ? new Date()
+    : new Date(event.timestamp);
+
+  await db
+    .insert(webhookEventArchive)
+    .values({
+      tenantId,
+      eventId: event.eventId,
+      source: event.source,
+      eventType: event.eventType,
+      eventTimestamp,
+      payload: event.payload,
+      rawEvent: event.rawEvent as Record<string, unknown>,
+    })
+    .onConflictDoNothing({
+      target: [webhookEventArchive.tenantId, webhookEventArchive.eventId],
+    });
+}
+
+// ---------------------------------------------------------------------------
+// Merged workers — o singură instanță BullMQ per coadă (evită procesare dublă)
+// ---------------------------------------------------------------------------
+
+/** Dedup + cleanup pe `PIPELINE_OUTREACH_HEALTH`. */
+export function createMergedPipelineHealthWorker(redis: Redis): Worker {
+  const connection = asBullmqConnection(redis);
+  return new Worker(
+    QUEUES.PIPELINE_OUTREACH_HEALTH,
+    async (job: Job<EventDeduplicateJobData | CleanupJobData>) => {
+      const d = job.data as { eventId?: string };
+      if (d.eventId) {
+        return executeEventDedupJob(redis, job as Job<EventDeduplicateJobData>);
+      }
+      const { executeCleanupJob } = await import("./monitoring.js");
+      return executeCleanupJob(job as Job<CleanupJobData>);
+    },
+    { connection, concurrency: 50 },
+  );
+}
+
+/** Priority router + archive + health pe `PIPELINE_OUTREACH_METRICS`. */
+export function createMergedPipelineMetricsWorker(redis: Redis): Worker {
   const connection = asBullmqConnection(redis);
   return new Worker(
     QUEUES.PIPELINE_OUTREACH_METRICS,
-    async (job: Job<EventArchiveJobData>): Promise<void> => {
-      const { tenantId, event } = job.data;
-      const { db } = await import("@cerniq/db");
-      const { webhookEventArchive } = await import("@cerniq/db");
-
-      const eventTimestamp = Number.isNaN(Date.parse(event.timestamp))
-        ? new Date()
-        : new Date(event.timestamp);
-
-      // outreach.hitl_audit_log requires review_id → human_review_queue; webhook payloads use webhook_event_archive.
-      await db
-        .insert(webhookEventArchive)
-        .values({
-          tenantId,
-          eventId: event.eventId,
-          source: event.source,
-          eventType: event.eventType,
-          eventTimestamp,
-          payload: event.payload,
-          rawEvent: event.rawEvent as Record<string, unknown>,
-        })
-        .onConflictDoNothing({
-          target: [webhookEventArchive.tenantId, webhookEventArchive.eventId],
-        });
+    async (
+      job: Job<PriorityJobData | EventArchiveJobData | HealthCheckJobData>,
+    ): Promise<void | Record<string, unknown>> => {
+      const raw = job.data as Record<string, unknown>;
+      if (typeof raw.targetQueue === "string") {
+        const { executePriorityRouteJob } = await import("./resilience.js");
+        return executePriorityRouteJob(redis, job as Job<PriorityJobData>);
+      }
+      if (raw.event && typeof raw.event === "object") {
+        return executeEventArchiveJob(job as Job<EventArchiveJobData>);
+      }
+      const { executeHealthCheckAggregatorJob } = await import("./monitoring.js");
+      return executeHealthCheckAggregatorJob(redis, job as Job<HealthCheckJobData>);
     },
-    { connection, concurrency: 50 },
+    { connection, concurrency: 10 },
   );
 }

@@ -71,6 +71,8 @@ export type GoldCompaniesParams = {
   assignedTo?: string;
   unassigned?: boolean;
   doNotContact?: boolean;
+  /** Exclude companii care au deja rând în Etapa 2 (`outreach.lead_journey`). */
+  notInOutreach?: boolean;
   minLeadScore?: number;
   maxLeadScore?: number;
   isAgricultural?: boolean;
@@ -430,6 +432,7 @@ export async function fetchGoldCompanies(params: GoldCompaniesParams = {}) {
     assignedTo: params.assignedTo,
     unassigned: params.unassigned,
     doNotContact: params.doNotContact,
+    notInOutreach: params.notInOutreach,
     minLeadScore: params.minLeadScore,
     maxLeadScore: params.maxLeadScore,
     isAgricultural: params.isAgricultural,

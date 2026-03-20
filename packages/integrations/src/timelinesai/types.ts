@@ -25,6 +25,10 @@ export interface SendMessageRequest {
   message: string;
   /** Optional correlation ID for deduplication */
   correlationId?: string;
+  /** Media (worker `wa:media:send`) — trimis către API dacă e setat. */
+  mediaUrl?: string;
+  mediaType?: string;
+  caption?: string;
 }
 
 export interface SendMessageResponse {

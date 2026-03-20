@@ -41,6 +41,28 @@ export interface GetCampaignsResponse {
   total: number;
 }
 
+/** Răspuns tipic GET /campaign/{id}/analytics (Instantly). */
+export interface CampaignAnalytics {
+  sent: number;
+  opened: number;
+  replied: number;
+  bounced: number;
+  unsubscribed: number;
+  click_rate?: number;
+  open_rate?: number;
+  reply_rate?: number;
+}
+
+/** Creare campanie — body minim (API poate accepta câmpuri suplimentare). */
+export interface CreateCampaignRequest {
+  name: string;
+  daily_sending_limit?: number;
+}
+
+export interface CreateCampaignResponse {
+  id: string;
+}
+
 // ===== Webhook events =====
 
 export type InstantlyWebhookEvent =

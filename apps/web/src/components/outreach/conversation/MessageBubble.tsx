@@ -36,6 +36,9 @@ interface MessageBubbleProps {
   readonly templateName?: string;
   readonly isAI?: boolean;
   readonly className?: string;
+  /** Retrimitere mesaj eșuat (G4). */
+  readonly onRetry?: () => void | Promise<void>;
+  readonly retryPending?: boolean;
 }
 
 function bubbleAvatarGlyph(isOutbound: boolean, isAI: boolean): string {
@@ -54,6 +57,8 @@ export function MessageBubble({
   templateName,
   isAI = false,
   className,
+  onRetry,
+  retryPending = false,
 }: Readonly<MessageBubbleProps>) {
   const isOutbound = direction === "OUTBOUND";
   const avatarGlyph = bubbleAvatarGlyph(isOutbound, isAI);
@@ -89,10 +94,20 @@ export function MessageBubble({
           <ChannelIcon channel={channel} size="xs" />
           <p className="break-words">{content ?? "(fără conținut)"}</p>
         </div>
-        <div className="flex items-center justify-end gap-1 mt-1">
+        <div className="flex items-center justify-end gap-1 mt-1 flex-wrap">
           <span className="text-[10px] text-t3">{ts}</span>
           {isOutbound && status && <MessageStatusIcon status={status} />}
           {isAI && <span className="text-[10px] text-blue-400">AI</span>}
+          {isOutbound && onRetry && status && (status === "FAILED" || status === "BOUNCED") && (
+            <button
+              type="button"
+              disabled={retryPending}
+              onClick={() => void onRetry()}
+              className="text-[10px] text-b5 hover:underline disabled:opacity-50"
+            >
+              {retryPending ? "Se trimite…" : "Retrimite"}
+            </button>
+          )}
         </div>
       </div>
     </div>

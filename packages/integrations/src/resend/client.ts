@@ -1,3 +1,5 @@
+import Bottleneck from "bottleneck";
+
 /**
  * Resend API Client — WARM emails ONLY (ADR-0059)
  * Source: etapa2-workers-D-E-email.md sec. 6-8
@@ -26,6 +28,13 @@ function requireEnv(name: string): string {
   return value.trim();
 }
 
+/** Config opțională; valorile lipsă se citesc din `process.env`. */
+export type ResendClientConfig = {
+  apiUrl?: string;
+  apiKey?: string;
+  webhookSecret?: string;
+};
+
 async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -35,14 +44,18 @@ export class ResendClient {
   private readonly apiKey: string;
   readonly webhookSecret: string;
 
+  /** ~10 req/s, max 5 concurenți — aliniat la TimelinesAI/Instantly. */
+  private readonly sendLimiter: Bottleneck;
+
   readonly fromEmail: string = "sales@cerniq.app";
   readonly fromName: string = "Cerniq Sales";
   readonly replyTo: string = "reply@cerniq.app";
 
-  constructor() {
-    this.baseUrl = requireEnv("RESEND_API_URL");
-    this.apiKey = requireEnv("RESEND_API_KEY");
-    this.webhookSecret = requireEnv("RESEND_WEBHOOK_SECRET");
+  constructor(config?: ResendClientConfig) {
+    this.baseUrl = config?.apiUrl?.trim() ?? requireEnv("RESEND_API_URL");
+    this.apiKey = config?.apiKey?.trim() ?? requireEnv("RESEND_API_KEY");
+    this.webhookSecret = config?.webhookSecret?.trim() ?? requireEnv("RESEND_WEBHOOK_SECRET");
+    this.sendLimiter = new Bottleneck({ maxConcurrent: 5, minTime: 100 });
   }
 
   private async request<T>(
@@ -106,7 +119,9 @@ export class ResendClient {
       tags: req.tags ?? [],
       ...(req.attachments?.length && { attachments: req.attachments }),
     };
-    return this.request<ResendEmailResponse>("POST", "/emails", payload);
+    return this.sendLimiter.schedule(() =>
+      this.request<ResendEmailResponse>("POST", "/emails", payload),
+    );
   }
 }
 
@@ -144,7 +159,10 @@ export function normalizeResendEvent(payload: ResendWebhookPayload): ResendSyste
 
 /** Singleton client — lazy initialization. */
 let _client: ResendClient | undefined;
-export function getResendClient(): ResendClient {
+export function getResendClient(config?: ResendClientConfig): ResendClient {
+  if (config) {
+    return new ResendClient(config);
+  }
   _client ??= new ResendClient();
   return _client;
 }

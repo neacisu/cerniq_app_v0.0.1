@@ -1,11 +1,9 @@
-import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
 import { Skeleton } from "@/components/ui/skeleton.js";
 import { ConversationTimeline } from "@/components/outreach/conversation/ConversationTimeline.js";
-import { SendMessageDialog } from "@/components/outreach/dialogs/SendMessageDialog.js";
+import { ConversationMessageBar } from "@/components/outreach/conversation/ConversationMessageBar.js";
 import { useOutreachLead } from "@/hooks/use-etapa2.js";
-import { Button } from "@/components/ui/index.js";
 
 const CONVERSATION_TIMELINE_SKELETON_KEYS = [
   "conv-tl-1",
@@ -19,7 +17,6 @@ export function ConversationView() {
   const { id } = useParams<{ id: string }>();
   const { data, isLoading } = useOutreachLead(id);
   const lead = data?.data;
-  const [showSend, setShowSend] = useState(false);
 
   return (
     <PageWrapper title="Conversație Completă">
@@ -47,30 +44,13 @@ export function ConversationView() {
             ))}
           </div>
         ) : (
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto min-h-0">
             <ConversationTimeline messages={lead?.communications ?? []} autoScroll />
           </div>
         )}
 
-        <div className="border-t border-s700 p-3 flex items-center gap-2 bg-s850">
-          <p className="flex-1 text-xs text-t3">
-            {lead?.isHumanControlled
-              ? "Control uman activ — poți trimite mesaje"
-              : "Lead în control AI — activează takeover pentru mesaje manuale"}
-          </p>
-          <Button size="sm" onClick={() => setShowSend(true)} disabled={!lead}>
-            Trimite Mesaj
-          </Button>
-        </div>
+        {id && <ConversationMessageBar leadId={id} lead={lead} />}
       </div>
-
-      {showSend && id && (
-        <SendMessageDialog
-          leadId={id}
-          isHumanControlled={lead?.isHumanControlled}
-          onClose={() => setShowSend(false)}
-        />
-      )}
     </PageWrapper>
   );
 }

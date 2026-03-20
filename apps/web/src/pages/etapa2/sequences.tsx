@@ -55,7 +55,7 @@ export function Sequences() {
           <Card
             key={seq.id}
             className={cn("hover:border-b5 cursor-pointer", !seq.isActive && "opacity-70")}
-            onClick={() => navigate(`/outreach/sequences/${seq.id}`)}
+            onClick={() => navigate(`/outreach/sequences/${seq.id}/edit`)}
           >
             <CardBody>
               <div className="flex items-start justify-between mb-2">

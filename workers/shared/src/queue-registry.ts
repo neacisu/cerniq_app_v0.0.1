@@ -147,8 +147,9 @@ export const QUEUES = {
   ALERT_PHONE_BANNED: "alert:phone:banned",
   ALERT_BOUNCE_HIGH: "alert:bounce:high",
 
-  // L — HITL / Human Review (4 queues)
+  // L — HITL / Human Review (5 queues)
   HUMAN_REVIEW_QUEUE: "human:review:queue",
+  HUMAN_REVIEW_ASSIGN: "human:review:assign",
   HUMAN_TAKEOVER_INITIATE: "human:takeover:initiate",
   HUMAN_TAKEOVER_COMPLETE: "human:takeover:complete",
   HUMAN_APPROVE_MESSAGE: "human:approve:message",
@@ -156,6 +157,9 @@ export const QUEUES = {
   // Outreach Pipeline (2 queues)
   PIPELINE_OUTREACH_HEALTH: "pipeline:outreach:health",
   PIPELINE_OUTREACH_METRICS: "pipeline:outreach:metrics",
+
+  /** Dead letter queue — mesaje eșuate outreach (retention scurtă, alertare). */
+  OUTREACH_DLQ: "dlq:outreach",
 } as const;
 
 const withProvider = (name: string, concurrency: number, provider: string): QueueConfig => ({
@@ -278,7 +282,7 @@ export const queueRegistry: QueueConfig[] = [
   { name: QUEUES.MAINTENANCE_IMPORT_FILE_CLEANUP, concurrency: 1 },
 
   // =========================================================================
-  // ETAPA 2 — 52 static queues + 40 per-phone queues
+  // ETAPA 2 — 52 static queues + 40 per-phone queues (HUMAN_REVIEW_ASSIGN added)
   // Source: etapa2-workers-overview.md sec. 3.2
   // =========================================================================
 
@@ -350,6 +354,7 @@ export const queueRegistry: QueueConfig[] = [
 
   // L — HITL
   { name: QUEUES.HUMAN_REVIEW_QUEUE, concurrency: 50 },
+  { name: QUEUES.HUMAN_REVIEW_ASSIGN, concurrency: 20 },
   { name: QUEUES.HUMAN_TAKEOVER_INITIATE, concurrency: 10 },
   { name: QUEUES.HUMAN_TAKEOVER_COMPLETE, concurrency: 10 },
   { name: QUEUES.HUMAN_APPROVE_MESSAGE, concurrency: 20 },
@@ -357,6 +362,7 @@ export const queueRegistry: QueueConfig[] = [
   // Outreach Pipeline
   { name: QUEUES.PIPELINE_OUTREACH_HEALTH, concurrency: 1 },
   { name: QUEUES.PIPELINE_OUTREACH_METRICS, concurrency: 1 },
+  { name: QUEUES.OUTREACH_DLQ, concurrency: 1 },
 
   // C — Per-phone WhatsApp queues (40 queues, concurrency=1 strict per ADR-0060)
   ...buildWaPhoneQueues(),
@@ -373,8 +379,8 @@ export function isKnownQueueName(name: string): boolean {
 }
 
 export function assertQueueRegistryComplete() {
-  // 64 Etapa 1 queues + 50 Etapa 2 static queues + 40 Etapa 2 per-phone queues = 154
-  const expected = 154;
+  // 64 Etapa 1 queues + 52 Etapa 2 static queues + 40 Etapa 2 per-phone queues = 156
+  const expected = 156;
   if (queueRegistry.length !== expected) {
     throw new Error(`Expected ${expected} queues, got ${queueRegistry.length}`);
   }

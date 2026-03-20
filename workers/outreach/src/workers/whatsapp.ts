@@ -285,7 +285,7 @@ export function createWaReadReceiptWorker(redis: Redis): Worker {
       const { tenantId, externalMessageId, readAt, journeyId } = job.data;
 
       const { db } = await import("@cerniq/db");
-      const { communicationLog } = await import("@cerniq/db");
+      const { communicationLog, leadJourney } = await import("@cerniq/db");
       const { eq, and, sql } = await import("@cerniq/db");
 
       // Update message to READ with read_at timestamp
@@ -303,14 +303,48 @@ export function createWaReadReceiptWorker(redis: Redis): Worker {
           ),
         );
 
-      // Update engagement score on lead journey
-      // Uses calculate_engagement_score SQL function from migration 0210
-      await db.execute(
-        sql`UPDATE outreach.lead_journey
-            SET engagement_score = calculate_engagement_score(id),
-                updated_at = NOW()
-            WHERE id = ${journeyId}`,
-      );
+      const [j] = await db
+        .select({
+          replyCount: leadJourney.replyCount,
+          sentimentScore: leadJourney.sentimentScore,
+        })
+        .from(leadJourney)
+        .where(eq(leadJourney.id, journeyId))
+        .limit(1);
+
+      const outbound = await db
+        .select({ c: sql<number>`COUNT(*)::int` })
+        .from(communicationLog)
+        .where(
+          and(
+            eq(communicationLog.leadJourneyId, journeyId),
+            eq(communicationLog.direction, "OUTBOUND"),
+          ),
+        );
+      const inbound = await db
+        .select({ c: sql<number>`COUNT(*)::int` })
+        .from(communicationLog)
+        .where(
+          and(
+            eq(communicationLog.leadJourneyId, journeyId),
+            eq(communicationLog.direction, "INBOUND"),
+          ),
+        );
+
+      const sent = outbound[0]?.c ?? 0;
+      const received = inbound[0]?.c ?? 0;
+      const sentiment = j?.sentimentScore ?? 0;
+      const vResponseRate = sent > 0 ? (received / sent) * 40 : 0;
+      const vSentiment = ((sentiment + 100) / 200) * 30;
+      const engagementScore = Math.min(100, Math.max(0, Math.round(vResponseRate + vSentiment)));
+
+      await db
+        .update(leadJourney)
+        .set({
+          engagementScore,
+          updatedAt: new Date(),
+        })
+        .where(eq(leadJourney.id, journeyId));
     },
     { connection, concurrency: 100 },
   );

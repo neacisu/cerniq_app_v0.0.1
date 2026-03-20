@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
 import { Card, CardHeader, CardTitle, CardBody, Button } from "@/components/ui/index.js";
@@ -7,15 +7,25 @@ import { StageBadge } from "@/components/outreach/shared/StageBadge.js";
 import { ChannelIcon } from "@/components/outreach/shared/ChannelIcon.js";
 import { SentimentIndicator } from "@/components/outreach/shared/SentimentIndicator.js";
 import { MessageBubble } from "@/components/outreach/conversation/MessageBubble.js";
-import { useOutreachLead } from "@/hooks/use-etapa2.js";
+import { useOutreachLead, useLeadActivity, useSendMessage } from "@/hooks/use-etapa2.js";
 import type { CommunicationLog } from "@/lib/etapa2-api.js";
+import { StateChangeDialog } from "@/components/outreach/dialogs/StateChangeDialog.js";
+import { EnrollSequenceDialog } from "@/components/outreach/dialogs/EnrollSequenceDialog.js";
+import { TakeoverDialog } from "@/components/outreach/dialogs/TakeoverDialog.js";
+import { LeadStateHistory } from "@/components/outreach/leads/LeadStateHistory.js";
 
 export function LeadDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data, isLoading } = useOutreachLead(id);
+  const { data: actRes } = useLeadActivity(id);
+  const { mutateAsync: sendRetry, isPending: retryPending } = useSendMessage();
   const lead = data?.data;
+  const activity = actRes?.data ?? [];
   const bottomRef = useRef<HTMLDivElement>(null);
+  const [stateOpen, setStateOpen] = useState(false);
+  const [enrollOpen, setEnrollOpen] = useState(false);
+  const [takeoverOpen, setTakeoverOpen] = useState(false);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -113,6 +123,31 @@ export function LeadDetail() {
             </CardBody>
           </Card>
 
+          <LeadStateHistory lead={lead} />
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Activity log</CardTitle>
+            </CardHeader>
+            <CardBody>
+              {activity.length === 0 ? (
+                <p className="text-t3 text-sm">Nicio activitate agregată.</p>
+              ) : (
+                <ul className="space-y-2 text-xs max-h-52 overflow-y-auto">
+                  {activity.map((a, i) => (
+                    <li key={`${a.timestamp}-${i}`} className="border-l-2 border-s600 pl-2">
+                      <span className="text-t3">
+                        {new Date(a.timestamp).toLocaleString("ro-RO")}
+                      </span>{" "}
+                      <span className="text-t3">[{a.type}]</span>
+                      <p className="text-t2 mt-0.5">{a.description}</p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardBody>
+          </Card>
+
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -133,8 +168,23 @@ export function LeadDetail() {
                     direction={comm.direction}
                     content={comm.contentPreview}
                     channel={comm.channel}
-                    status={comm.messageStatus}
+                    status={comm.status}
                     timestamp={comm.createdAt}
+                    retryPending={retryPending}
+                    onRetry={
+                      comm.direction === "OUTBOUND" &&
+                      (comm.status === "FAILED" || comm.status === "BOUNCED")
+                        ? async () => {
+                            await sendRetry({
+                              id: lead.id,
+                              payload: {
+                                channel: comm.channel === "WHATSAPP" ? "WHATSAPP" : "EMAIL_WARM",
+                                content: (comm.contentPreview ?? "").trim() || "(retry)",
+                              },
+                            });
+                          }
+                        : undefined
+                    }
                   />
                 ))}
                 {(!lead.communications || lead.communications.length === 0) && (
@@ -212,11 +262,54 @@ export function LeadDetail() {
                 >
                   Conversație completă
                 </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => setStateOpen(true)}
+                >
+                  Schimbă stare
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => setEnrollOpen(true)}
+                >
+                  Pornește secvență
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => setTakeoverOpen(true)}
+                >
+                  Preia control (HITL)
+                </Button>
               </div>
             </CardBody>
           </Card>
         </div>
       </div>
+
+      {stateOpen && (
+        <StateChangeDialog
+          leadId={lead.id}
+          currentState={lead.currentState}
+          companyName={lead.company?.name}
+          onClose={() => setStateOpen(false)}
+        />
+      )}
+      {enrollOpen && (
+        <EnrollSequenceDialog leadIds={[lead.id]} onClose={() => setEnrollOpen(false)} />
+      )}
+      {takeoverOpen && (
+        <TakeoverDialog
+          leadId={lead.id}
+          companyName={lead.company?.name}
+          onClose={() => setTakeoverOpen(false)}
+        />
+      )}
     </PageWrapper>
   );
 }

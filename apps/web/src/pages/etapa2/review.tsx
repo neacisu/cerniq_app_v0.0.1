@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton.js";
 import { PriorityBadge } from "@/components/outreach/shared/PriorityBadge.js";
 import { SlaTimer } from "@/components/outreach/shared/SlaTimer.js";
 import { ResolveReviewDialog } from "@/components/outreach/dialogs/ResolveReviewDialog.js";
+import { TakeoverDialog } from "@/components/outreach/dialogs/TakeoverDialog.js";
 import { useOutreachReviews, useReviewStats } from "@/hooks/use-etapa2.js";
 import type { ReviewPriority, ReviewStatus } from "@/lib/etapa2-api.js";
 import { cn } from "@/lib/utils.js";
@@ -32,6 +33,9 @@ const REVIEW_QUEUE_SKELETON_KEYS = ["review-sk-1", "review-sk-2", "review-sk-3"]
 export function Review() {
   const [priorityFilter, setPriorityFilter] = useState<ReviewPriority | "ALL">("ALL");
   const [resolving, setResolving] = useState<{ id: string; content: string } | null>(null);
+  const [takeover, setTakeover] = useState<{ journeyId: string; companyName?: string } | null>(
+    null,
+  );
 
   const params =
     priorityFilter === "ALL"
@@ -70,7 +74,7 @@ export function Review() {
                 <div className="flex items-center gap-2 flex-wrap">
                   <PriorityBadge priority={review.priority as ReviewPriority} />
                   <SlaTimer
-                    slaDeadline={review.slaDueAt}
+                    slaDueAt={review.slaDueAt}
                     priority={review.priority as ReviewPriority}
                   />
                   <span
@@ -96,7 +100,7 @@ export function Review() {
                 </p>
               ) : null}
 
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
                   className="rounded-md bg-green-700/30 px-3 py-1.5 text-xs text-green-400 hover:bg-green-700/50"
@@ -105,6 +109,18 @@ export function Review() {
                   }
                 >
                   Rezolvă
+                </button>
+                <button
+                  type="button"
+                  className="rounded-md bg-amber-700/30 px-3 py-1.5 text-xs text-amber-400 hover:bg-amber-700/50"
+                  onClick={() =>
+                    setTakeover({
+                      journeyId: review.journeyId,
+                      companyName: review.lead?.company?.name,
+                    })
+                  }
+                >
+                  Preia control
                 </button>
               </div>
             </CardBody>
@@ -163,6 +179,14 @@ export function Review() {
           reviewId={resolving.id}
           originalContent={resolving.content}
           onClose={() => setResolving(null)}
+        />
+      )}
+
+      {takeover && (
+        <TakeoverDialog
+          leadId={takeover.journeyId}
+          companyName={takeover.companyName}
+          onClose={() => setTakeover(null)}
         />
       )}
     </PageWrapper>

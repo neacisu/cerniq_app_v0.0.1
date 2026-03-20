@@ -18,7 +18,10 @@ const VALID_TRANSITIONS: Record<LeadState, LeadState[]> = {
 };
 
 interface StateChangeDialogProps {
-  readonly leadId: string;
+  /** Un singur lead (alternativ la `leadIds`). */
+  readonly leadId?: string;
+  /** Bulk: mai multe lead-uri (aceeași stare curentă). */
+  readonly leadIds?: readonly string[];
   readonly currentState: LeadState;
   readonly companyName?: string;
   readonly onClose: () => void;
@@ -26,6 +29,7 @@ interface StateChangeDialogProps {
 
 export function StateChangeDialog({
   leadId,
+  leadIds,
   currentState,
   companyName,
   onClose,
@@ -33,13 +37,29 @@ export function StateChangeDialog({
   const [newState, setNewState] = useState<LeadState | null>(null);
   const { mutateAsync, isPending } = useUpdateLead();
 
+  const ids = (() => {
+    if (leadIds !== undefined && leadIds.length > 0) return [...leadIds];
+    if (leadId) return [leadId];
+    return [];
+  })();
+
   const validTargets = VALID_TRANSITIONS[currentState] ?? [];
 
   const handleChange = async () => {
-    if (!newState) return;
+    if (!newState || ids.length === 0) return;
+    if (ids.length > 1 && newState === "CONVERTED") {
+      toast.error("Tranziția în CONVERTED nu este permisă pentru mai multe lead-uri simultan.");
+      return;
+    }
     try {
-      await mutateAsync({ id: leadId, payload: { currentState: newState } });
-      toast.success(`Lead mutat în starea ${newState}`);
+      for (const id of ids) {
+        await mutateAsync({ id, payload: { currentState: newState } });
+      }
+      toast.success(
+        ids.length > 1
+          ? `${ids.length} lead-uri mutate în ${newState}`
+          : `Lead mutat în starea ${newState}`,
+      );
       onClose();
     } catch {
       toast.error("Eroare la schimbarea stării");
@@ -63,6 +83,12 @@ export function StateChangeDialog({
         {companyName && (
           <p className="mb-4 text-sm text-t2">
             <span className="font-medium text-t1">{companyName}</span>
+          </p>
+        )}
+        {ids.length > 1 && (
+          <p className="mb-3 text-xs text-amber-400">
+            Se aplică aceluși tip de tranziție pentru {ids.length} lead-uri (stare curentă
+            identică).
           </p>
         )}
 

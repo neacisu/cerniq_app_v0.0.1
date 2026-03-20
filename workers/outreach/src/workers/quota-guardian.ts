@@ -133,12 +133,13 @@ export async function createQuotaIncrementWorker(redis: Redis): Promise<Worker> 
   return new Worker(
     QUEUES.QUOTA_GUARDIAN_INCREMENT,
     async (job: Job<QuotaIncrementJobData>): Promise<QuotaIncrementResult> => {
-      const { phoneId, dateIso, cost } = job.data;
+      const { phoneId, dateIso, cost, tenantId } = job.data;
 
       // UPSERT quota usage — Redis is source of truth, this persists to PG
       await db
         .insert(waQuotaUsage)
         .values({
+          tenantId,
           phoneId,
           usageDate: dateIso,
           messagesSent: cost,

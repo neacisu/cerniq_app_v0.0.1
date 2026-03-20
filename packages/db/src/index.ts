@@ -14,7 +14,8 @@ export {
   register_new_company,
   register_with_invite_code,
 } from "./client.js";
-export { sql, eq, and, or, desc, asc, inArray, lt, lte, gte, isNull } from "drizzle-orm";
+export { sql, eq, and, or, desc, asc, inArray, lt, lte, gte, isNull, isNotNull } from "drizzle-orm";
+export type { SQL } from "drizzle-orm";
 export {
   runMigrations,
   runDrizzleMigrations,

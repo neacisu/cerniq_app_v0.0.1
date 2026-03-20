@@ -8,6 +8,7 @@ import type {
   OutreachAnalytics,
   OutreachCampaign,
   OutreachDashboard,
+  PhoneAnalytics,
   ReviewAction,
   ReviewsListParams,
   SequencesListParams,
@@ -23,9 +24,13 @@ import {
   enrollLeadsInSequence,
   fetchOutreachCampaigns,
   fetchOutreachAnalytics,
+  fetchPhoneAnalytics,
   fetchOutreachDailyStats,
   fetchOutreachDashboard,
+  fetchOutreachNotifications,
+  fetchOutreachSettings,
   fetchOutreachLeadById,
+  fetchLeadActivity,
   fetchOutreachLeads,
   fetchOutreachPhoneById,
   fetchOutreachPhones,
@@ -37,8 +42,11 @@ import {
   fetchOutreachTemplates,
   fetchReviewStats,
   initiateLeadTakeover,
+  markAllOutreachNotificationsRead,
+  markOutreachNotificationRead,
   patchOutreachLead,
   patchOutreachPhone,
+  patchOutreachSettings,
   previewOutreachTemplate,
   resolveReview,
   sendOutreachMessage,
@@ -49,12 +57,59 @@ import {
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
-export function useOutreachDashboard() {
+export function useOutreachDashboard(period: "7d" | "30d" | "90d" | "custom" = "7d") {
   return useQuery<ApiObjectResponse<OutreachDashboard>>({
-    queryKey: ["etapa2", "dashboard"],
-    queryFn: fetchOutreachDashboard,
+    queryKey: ["etapa2", "dashboard", period],
+    queryFn: () => fetchOutreachDashboard(period),
     refetchInterval: 30_000,
     staleTime: 10_000,
+  });
+}
+
+export function useOutreachSettings() {
+  return useQuery({
+    queryKey: ["etapa2", "settings"],
+    queryFn: fetchOutreachSettings,
+    staleTime: 60_000,
+  });
+}
+
+export function usePatchOutreachSettings() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: patchOutreachSettings,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["etapa2", "settings"] }).catch(() => undefined);
+    },
+  });
+}
+
+export function useOutreachNotifications(unread?: boolean) {
+  return useQuery({
+    queryKey: ["etapa2", "notifications", unread ?? "all"],
+    queryFn: () => fetchOutreachNotifications(unread),
+    refetchInterval: 30_000,
+    staleTime: 15_000,
+  });
+}
+
+export function useMarkNotificationRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: markOutreachNotificationRead,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["etapa2", "notifications"] }).catch(() => undefined);
+    },
+  });
+}
+
+export function useMarkAllNotificationsRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: markAllOutreachNotificationsRead,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["etapa2", "notifications"] }).catch(() => undefined);
+    },
   });
 }
 
@@ -70,6 +125,38 @@ export function useOutreachDailyStats(params: { from?: string; to?: string } = {
   return useQuery<ApiListResponse<DailyStat>>({
     queryKey: ["etapa2", "analytics", "daily", params],
     queryFn: () => fetchOutreachDailyStats(params),
+    staleTime: 60_000,
+  });
+}
+
+function analyticsPeriodToRange(
+  period: AnalyticsParams["period"] | undefined,
+  custom?: { from?: string; to?: string },
+): { from: string; to: string } {
+  if (period === "custom" && custom?.from && custom?.to) {
+    return { from: custom.from, to: custom.to };
+  }
+  const to = new Date();
+  let days = 7;
+  if (period === "30d") days = 30;
+  else if (period === "90d") days = 90;
+  const from = new Date(to.getTime() - days * 24 * 60 * 60 * 1000);
+  return { from: from.toISOString(), to: to.toISOString() };
+}
+
+/** Metrici per telefon WA (GET /analytics/phones), aliniat la perioada selectată. */
+export function usePhoneAnalytics(params: AnalyticsParams & { phoneId?: string } = {}) {
+  const { period, from: fromParam, to: toParam, phoneId } = params;
+  const range = analyticsPeriodToRange(period, { from: fromParam, to: toParam });
+
+  return useQuery<ApiObjectResponse<PhoneAnalytics>>({
+    queryKey: ["etapa2", "analytics", "phones", range.from, range.to, phoneId],
+    queryFn: () =>
+      fetchPhoneAnalytics({
+        from: range.from,
+        to: range.to,
+        phoneId,
+      }),
     staleTime: 60_000,
   });
 }
@@ -93,6 +180,15 @@ export function useOutreachLead(id?: string) {
   });
 }
 
+export function useLeadActivity(leadId?: string) {
+  return useQuery({
+    queryKey: ["etapa2", "leads", "activity", leadId],
+    queryFn: () => fetchLeadActivity(String(leadId)),
+    enabled: Boolean(leadId),
+    staleTime: 15_000,
+  });
+}
+
 export function useUpdateLead() {
   const qc = useQueryClient();
   return useMutation({
@@ -101,9 +197,7 @@ export function useUpdateLead() {
       payload,
     }: {
       id: string;
-      payload: Partial<
-        Pick<OutreachLead, "currentState" | "assignedToUser" | "isHumanControlled" | "notes">
-      >;
+      payload: Partial<Pick<OutreachLead, "currentState" | "assignedToUser" | "isHumanControlled">>;
     }) => patchOutreachLead(id, payload),
     onSuccess: async (_data, { id }) => {
       await qc.invalidateQueries({ queryKey: ["etapa2", "leads"] });
@@ -130,6 +224,7 @@ export function useSendMessage() {
     }) => sendOutreachMessage(id, payload),
     onSuccess: async (_data, { id }) => {
       await qc.invalidateQueries({ queryKey: ["etapa2", "leads", "detail", id] });
+      await qc.invalidateQueries({ queryKey: ["etapa2", "leads", "activity", id] });
     },
   });
 }

@@ -4,7 +4,7 @@
 
 **Total ADR-uri:** 109  
 **Actualizat:** 20 Martie 2026  
-**Etapa 2 Sprint 4:** ✅ IMPLEMENTAT COMPLET (20 Martie 2026)
+**Etapa 2 Sprint 4:** 🔄 **ÎN CURS — remediere defecte / aliniere plan audit** (20 Martie 2026)
 
 ---
 

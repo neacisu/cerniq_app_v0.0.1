@@ -2,19 +2,12 @@ import { useState, useId } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
 import { Card, CardBody, CardHeader, CardTitle, Button } from "@/components/ui/index.js";
-import { useCreateSequence } from "@/hooks/use-etapa2.js";
-import type { LeadChannel } from "@/lib/etapa2-api.js";
+import { useCreateSequence, useOutreachTemplates } from "@/hooks/use-etapa2.js";
 import { toast } from "sonner";
-
-interface StepDraft {
-  /** Cheie stabilă pentru `key` în listă. */
-  draftKey: string;
-  stepNumber: number;
-  channel: LeadChannel;
-  delayHours: number;
-  delayMinutes: number;
-  subject: string;
-}
+import {
+  SequenceBuilder,
+  type SequenceBuilderStep,
+} from "@/components/outreach/sequences/SequenceBuilder.js";
 
 function newDraftKey(): string {
   return (
@@ -22,18 +15,18 @@ function newDraftKey(): string {
   );
 }
 
-const CHANNELS: LeadChannel[] = ["WHATSAPP", "EMAIL_COLD", "EMAIL_WARM"];
-
 export function SequenceNew() {
   const formId = useId();
   const navigate = useNavigate();
   const { mutateAsync, isPending } = useCreateSequence();
+  const { data: tplData } = useOutreachTemplates({ status: "ACTIVE", limit: 200 });
+  const templates = tplData?.data ?? [];
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [stopOnReply, setStopOnReply] = useState(true);
   const [respectBusinessHours, setRespectBusinessHours] = useState(true);
-  const [steps, setSteps] = useState<StepDraft[]>([
+  const [steps, setSteps] = useState<SequenceBuilderStep[]>([
     {
       draftKey: newDraftKey(),
       stepNumber: 1,
@@ -41,6 +34,7 @@ export function SequenceNew() {
       delayHours: 0,
       delayMinutes: 0,
       subject: "",
+      templateId: "",
     },
   ]);
 
@@ -54,6 +48,7 @@ export function SequenceNew() {
         delayHours: 24,
         delayMinutes: 0,
         subject: "",
+        templateId: "",
       },
     ]);
 
@@ -62,12 +57,26 @@ export function SequenceNew() {
       prev.filter((_, i) => i !== idx).map((s, i) => ({ ...s, stepNumber: i + 1 })),
     );
 
-  const updateStep = (idx: number, patch: Partial<StepDraft>) =>
+  const updateStep = (idx: number, patch: Partial<SequenceBuilderStep>) =>
     setSteps((prev) => prev.map((s, i) => (i === idx ? { ...s, ...patch } : s)));
+
+  const moveStep = (idx: number, dir: -1 | 1) => {
+    setSteps((prev) => {
+      const j = idx + dir;
+      if (j < 0 || j >= prev.length) return prev;
+      const copy = [...prev];
+      [copy[idx], copy[j]] = [copy[j], copy[idx]];
+      return copy.map((s, i) => ({ ...s, stepNumber: i + 1 }));
+    });
+  };
 
   const handleSave = async () => {
     if (!name.trim()) {
       toast.error("Numele secvenței este obligatoriu");
+      return;
+    }
+    if (steps.some((s) => !s.templateId)) {
+      toast.error("Selectați un template pentru fiecare pas.");
       return;
     }
     try {
@@ -82,6 +91,7 @@ export function SequenceNew() {
           delayHours: s.delayHours,
           delayMinutes: s.delayMinutes,
           channel: s.channel,
+          templateId: s.templateId,
         })),
       });
       toast.success("Secvență creată cu succes");
@@ -163,107 +173,18 @@ export function SequenceNew() {
 
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Pași Secvență ({steps.length})</CardTitle>
-              <Button size="sm" variant="outline" onClick={addStep}>
-                + Adaugă Pas
-              </Button>
-            </div>
+            <CardTitle>Constructor secvență</CardTitle>
           </CardHeader>
           <CardBody>
-            <div className="space-y-3">
-              {steps.map((step, idx) => (
-                <div key={step.draftKey} className="rounded-md border border-s600 bg-s700 p-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-b5">Pas {step.stepNumber}</span>
-                    {steps.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeStep(idx)}
-                        className="text-xs text-red-400 hover:text-red-300"
-                      >
-                        Șterge
-                      </button>
-                    )}
-                  </div>
-                  <div className="grid grid-cols-3 gap-2">
-                    <div>
-                      <label
-                        htmlFor={`${formId}-step-${step.draftKey}-channel`}
-                        className="text-xs text-t3 mb-1 block"
-                      >
-                        Canal
-                      </label>
-                      <select
-                        id={`${formId}-step-${step.draftKey}-channel`}
-                        value={step.channel}
-                        onChange={(e) =>
-                          updateStep(idx, { channel: e.target.value as LeadChannel })
-                        }
-                        className="w-full rounded border border-s500 bg-s600 px-2 py-1.5 text-sm text-t1 focus:outline-none"
-                      >
-                        {CHANNELS.map((ch) => (
-                          <option key={ch} value={ch}>
-                            {ch}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label
-                        htmlFor={`${formId}-step-${step.draftKey}-delay-h`}
-                        className="text-xs text-t3 mb-1 block"
-                      >
-                        Delay (ore)
-                      </label>
-                      <input
-                        id={`${formId}-step-${step.draftKey}-delay-h`}
-                        type="number"
-                        min={0}
-                        value={step.delayHours}
-                        onChange={(e) => updateStep(idx, { delayHours: Number(e.target.value) })}
-                        className="w-full rounded border border-s500 bg-s600 px-2 py-1.5 text-sm text-t1 focus:outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label
-                        htmlFor={`${formId}-step-${step.draftKey}-delay-m`}
-                        className="text-xs text-t3 mb-1 block"
-                      >
-                        Delay (min)
-                      </label>
-                      <input
-                        id={`${formId}-step-${step.draftKey}-delay-m`}
-                        type="number"
-                        min={0}
-                        max={59}
-                        value={step.delayMinutes}
-                        onChange={(e) => updateStep(idx, { delayMinutes: Number(e.target.value) })}
-                        className="w-full rounded border border-s500 bg-s600 px-2 py-1.5 text-sm text-t1 focus:outline-none"
-                      />
-                    </div>
-                  </div>
-                  {(step.channel === "EMAIL_COLD" || step.channel === "EMAIL_WARM") && (
-                    <div className="mt-2">
-                      <label
-                        htmlFor={`${formId}-step-${step.draftKey}-subject`}
-                        className="text-xs text-t3 mb-1 block"
-                      >
-                        Subiect Email
-                      </label>
-                      <input
-                        id={`${formId}-step-${step.draftKey}-subject`}
-                        type="text"
-                        value={step.subject}
-                        onChange={(e) => updateStep(idx, { subject: e.target.value })}
-                        placeholder="Subiect email"
-                        className="w-full rounded border border-s500 bg-s600 px-2 py-1.5 text-sm text-t1 focus:outline-none"
-                      />
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
+            <SequenceBuilder
+              formIdPrefix={formId}
+              steps={steps}
+              templates={templates}
+              onAddStep={addStep}
+              onRemoveStep={removeStep}
+              onUpdateStep={updateStep}
+              onMoveStep={moveStep}
+            />
           </CardBody>
         </Card>
 

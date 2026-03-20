@@ -92,7 +92,8 @@ describe("Etapa 2 Outreach API Integration Tests", () => {
       expect(response.statusCode).toBe(200);
       const body = JSON.parse(response.body);
       expect(body.success).toBe(true);
-      expect(body.data).toHaveProperty("leads");
+      expect(body.data).toHaveProperty("kpis");
+      expect(body.data).toHaveProperty("leadFunnel");
       expect(body.data).toHaveProperty("phones");
     });
 
@@ -147,11 +148,12 @@ describe("Etapa 2 Outreach API Integration Tests", () => {
         payload: JSON.stringify({
           name: "Test Sequence",
           description: "Integration test sequence",
+          primaryChannel: "WHATSAPP",
           stopOnReply: true,
           respectBusinessHours: true,
           steps: [
-            { stepNumber: 1, channel: "WHATSAPP", delayHours: 0, delayMinutes: 0 },
-            { stepNumber: 2, channel: "EMAIL_COLD", delayHours: 24, delayMinutes: 0 },
+            { channel: "WHATSAPP", delayHours: 0, delayMinutes: 0 },
+            { channel: "EMAIL_COLD", delayHours: 24, delayMinutes: 0 },
           ],
         }),
       });
@@ -172,7 +174,8 @@ describe("Etapa 2 Outreach API Integration Tests", () => {
         },
         payload: JSON.stringify({
           name: "Bad Sequence",
-          steps: [{ stepNumber: 1, channel: "INVALID_CHANNEL", delayHours: 0, delayMinutes: 0 }],
+          primaryChannel: "WHATSAPP",
+          steps: [{ channel: "INVALID_CHANNEL", delayHours: 0, delayMinutes: 0 }],
         }),
       });
       expect(response.statusCode).toBe(400);
@@ -239,7 +242,7 @@ describe("Etapa 2 Outreach API Integration Tests", () => {
       expect(response.statusCode).toBe(201);
       const body = JSON.parse(response.body);
       expect(body.success).toBe(true);
-      expect(body.data.channel).toBe("EMAIL");
+      expect(body.data.channel).toBe("EMAIL_COLD");
     });
   });
 

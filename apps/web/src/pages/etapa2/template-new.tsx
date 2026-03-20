@@ -1,10 +1,11 @@
-import { useState, useId } from "react";
+import { useState, useId, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
 import { Card, CardBody, CardHeader, CardTitle, Button, Badge } from "@/components/ui/index.js";
 import { useCreateTemplate } from "@/hooks/use-etapa2.js";
 import type { TemplateChannel, TemplateType } from "@/lib/etapa2-api.js";
 import { toast } from "sonner";
+import { VariableInserter } from "@/components/outreach/templates/VariableInserter.js";
 
 const SPINTAX_RE = /\{([^}]+)\}/g;
 const VAR_RE = /\{\{(\w+)\}\}/g;
@@ -35,6 +36,7 @@ export function TemplateNew() {
   const [templateType, setTemplateType] = useState<TemplateType>("INITIAL");
   const [subject, setSubject] = useState("");
   const [bodyTemplate, setBodyTemplate] = useState("");
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
 
   const variables = extractVariables(bodyTemplate);
 
@@ -154,7 +156,14 @@ export function TemplateNew() {
                     Suportă spintax <span className="text-purple-400">{`{opțiune1|opțiune2}`}</span>{" "}
                     și variabile <span className="text-b5">{`{{variabila}}`}</span>
                   </p>
+                  <VariableInserter
+                    textareaRef={bodyRef}
+                    value={bodyTemplate}
+                    onChange={setBodyTemplate}
+                    className="mb-2"
+                  />
                   <textarea
+                    ref={bodyRef}
                     id={`${formId}-body`}
                     rows={8}
                     value={bodyTemplate}

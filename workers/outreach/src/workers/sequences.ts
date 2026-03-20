@@ -199,11 +199,10 @@ export function createSequenceStopWorker(redis: Redis): Worker {
       const { leadJourney } = await import("@cerniq/db");
       const { eq, and } = await import("@cerniq/db");
 
-      // sequence_status_enum: DRAFT | ACTIVE | PAUSED | COMPLETED | ARCHIVED — no STOPPED; PAUSED + stopped_reason = oprire operațională
       await db
         .update(sequenceEnrollments)
         .set({
-          status: "PAUSED",
+          status: "STOPPED",
           stoppedReason: reason,
           lastStepExecutedAt: new Date(),
         })
@@ -366,62 +365,76 @@ export interface SequenceStatsResult {
   };
 }
 
-export function createSequenceStatsAggregatorWorker(redis: Redis): Worker {
+export async function executeSequenceStatsJob(
+  job: Job<SequenceStatsJobData>,
+): Promise<SequenceStatsResult> {
+  const { tenantId, sequenceId } = job.data;
+
+  const { db } = await import("@cerniq/db");
+  const { sequenceEnrollments } = await import("@cerniq/db");
+  const { communicationLog } = await import("@cerniq/db");
+  const { eq, and, sql } = await import("@cerniq/db");
+
+  const enrollmentStats = await db
+    .select({
+      totalEnrolled: sql<number>`COUNT(*)::int`,
+      totalCompleted: sql<number>`COUNT(*) FILTER (WHERE ${sequenceEnrollments.status} = 'COMPLETED')::int`,
+      totalStopped: sql<number>`COUNT(*) FILTER (WHERE ${sequenceEnrollments.status} = 'STOPPED' OR (${sequenceEnrollments.status} = 'PAUSED' AND ${sequenceEnrollments.stoppedReason} IS NOT NULL))::int`,
+    })
+    .from(sequenceEnrollments)
+    .where(
+      and(
+        eq(sequenceEnrollments.tenantId, tenantId),
+        eq(sequenceEnrollments.sequenceId, sequenceId),
+      ),
+    );
+
+  const msgStats = await db
+    .select({
+      sent: sql<number>`COUNT(*) FILTER (WHERE ${communicationLog.direction} = 'OUTBOUND')::int`,
+      opened: sql<number>`COUNT(*) FILTER (WHERE ${communicationLog.direction} = 'OUTBOUND' AND ${communicationLog.status} IN ('DELIVERED','READ','OPENED'))::int`,
+      replied: sql<number>`COUNT(*) FILTER (WHERE ${communicationLog.direction} = 'INBOUND')::int`,
+    })
+    .from(communicationLog)
+    .where(
+      and(eq(communicationLog.tenantId, tenantId), eq(communicationLog.sequenceId, sequenceId)),
+    );
+
+  const e = enrollmentStats[0];
+  const m = msgStats[0];
+  const sent = m?.sent ?? 0;
+
+  return {
+    sequenceId,
+    totalEnrolled: e?.totalEnrolled ?? 0,
+    totalCompleted: e?.totalCompleted ?? 0,
+    totalStopped: e?.totalStopped ?? 0,
+    stats: {
+      sent,
+      opened: m?.opened ?? 0,
+      replied: m?.replied ?? 0,
+      converted: 0,
+      openRate: sent > 0 ? (m?.opened ?? 0) / sent : 0,
+      replyRate: sent > 0 ? (m?.replied ?? 0) / sent : 0,
+      conversionRate: 0,
+    },
+  };
+}
+
+/** Un singur worker pe `EMAIL_COLD_ANALYTICS_FETCH`: raport zilnic vs. agregare stats secvență. */
+export function createMergedEmailColdAnalyticsWorker(redis: Redis): Worker {
   const connection = asBullmqConnection(redis);
   return new Worker(
     QUEUES.EMAIL_COLD_ANALYTICS_FETCH,
-    async (job: Job<SequenceStatsJobData>): Promise<SequenceStatsResult> => {
-      const { tenantId, sequenceId } = job.data;
-
-      const { db } = await import("@cerniq/db");
-      const { sequenceEnrollments } = await import("@cerniq/db");
-      const { communicationLog } = await import("@cerniq/db");
-      const { eq, and, sql } = await import("@cerniq/db");
-
-      const enrollmentStats = await db
-        .select({
-          totalEnrolled: sql<number>`COUNT(*)::int`,
-          totalCompleted: sql<number>`COUNT(*) FILTER (WHERE ${sequenceEnrollments.status} = 'COMPLETED')::int`,
-          totalStopped: sql<number>`COUNT(*) FILTER (WHERE ${sequenceEnrollments.status} = 'PAUSED' AND ${sequenceEnrollments.stoppedReason} IS NOT NULL)::int`,
-        })
-        .from(sequenceEnrollments)
-        .where(
-          and(
-            eq(sequenceEnrollments.tenantId, tenantId),
-            eq(sequenceEnrollments.sequenceId, sequenceId),
-          ),
-        );
-
-      const msgStats = await db
-        .select({
-          sent: sql<number>`COUNT(*) FILTER (WHERE ${communicationLog.direction} = 'OUTBOUND')::int`,
-          opened: sql<number>`COUNT(*) FILTER (WHERE ${communicationLog.direction} = 'OUTBOUND' AND ${communicationLog.status} IN ('DELIVERED','READ','OPENED'))::int`,
-          replied: sql<number>`COUNT(*) FILTER (WHERE ${communicationLog.direction} = 'INBOUND')::int`,
-        })
-        .from(communicationLog)
-        .where(
-          and(eq(communicationLog.tenantId, tenantId), eq(communicationLog.sequenceId, sequenceId)),
-        );
-
-      const e = enrollmentStats[0];
-      const m = msgStats[0];
-      const sent = m?.sent ?? 0;
-
-      return {
-        sequenceId,
-        totalEnrolled: e?.totalEnrolled ?? 0,
-        totalCompleted: e?.totalCompleted ?? 0,
-        totalStopped: e?.totalStopped ?? 0,
-        stats: {
-          sent,
-          opened: m?.opened ?? 0,
-          replied: m?.replied ?? 0,
-          converted: 0,
-          openRate: sent > 0 ? (m?.opened ?? 0) / sent : 0,
-          replyRate: sent > 0 ? (m?.replied ?? 0) / sent : 0,
-          conversionRate: 0,
-        },
-      };
+    async (
+      job: Job<SequenceStatsJobData | import("./monitoring.js").DailyReportJobData>,
+    ): Promise<SequenceStatsResult | Record<string, unknown>> => {
+      const d = job.data as { sequenceId?: string };
+      if (d.sequenceId) {
+        return executeSequenceStatsJob(job as Job<SequenceStatsJobData>);
+      }
+      const { executeDailyReportJob } = await import("./monitoring.js");
+      return executeDailyReportJob(job as Job<import("./monitoring.js").DailyReportJobData>);
     },
     { connection, concurrency: 10 },
   );

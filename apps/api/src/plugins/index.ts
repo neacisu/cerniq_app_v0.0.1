@@ -98,7 +98,7 @@ export async function registerPlugins(app: FastifyInstance) {
   });
 
   await app.register(jwt, {
-    secret: async (_request: unknown, _tokenOrPayload: unknown) => envConfig.JWT_SECRET,
+    secret: envConfig.JWT_SECRET,
     sign: {
       expiresIn: envConfig.JWT_EXPIRES_IN,
     },

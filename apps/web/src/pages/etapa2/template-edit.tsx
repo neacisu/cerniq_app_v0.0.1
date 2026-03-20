@@ -1,4 +1,4 @@
-import { useState, useId } from "react";
+import { useState, useId, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
 import { Card, CardBody, CardHeader, CardTitle, Button, Badge } from "@/components/ui/index.js";
@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton.js";
 import { useOutreachTemplate, useUpdateTemplate } from "@/hooks/use-etapa2.js";
 import type { OutreachTemplate, TemplateStatus } from "@/lib/etapa2-api.js";
 import { toast } from "sonner";
+import { VariableInserter } from "@/components/outreach/templates/VariableInserter.js";
 
 const VAR_RE = /\{\{(\w+)\}\}/g;
 const SPINTAX_RE = /\{([^}]+)\}/g;
@@ -40,6 +41,7 @@ function TemplateEditForm({ templateId, template }: TemplateEditFormProps) {
   const [subject, setSubject] = useState(template.subject ?? "");
   const [bodyTemplate, setBodyTemplate] = useState(template.bodyTemplate);
   const [status, setStatus] = useState<TemplateStatus>(template.status);
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
 
   const variables = extractVariables(bodyTemplate);
 
@@ -143,7 +145,14 @@ function TemplateEditForm({ templateId, template }: TemplateEditFormProps) {
                   <label htmlFor={`${formId}-body`} className="mb-1 block text-xs text-t3">
                     Corp Mesaj
                   </label>
+                  <VariableInserter
+                    textareaRef={bodyRef}
+                    value={bodyTemplate}
+                    onChange={setBodyTemplate}
+                    className="mb-2"
+                  />
                   <textarea
+                    ref={bodyRef}
                     id={`${formId}-body`}
                     rows={8}
                     value={bodyTemplate}

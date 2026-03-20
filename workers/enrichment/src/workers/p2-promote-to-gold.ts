@@ -2,6 +2,7 @@ import type { Processor } from "bullmq";
 import {
   db,
   goldCompanies,
+  goldContacts,
   setSessionTenantId,
   silverCompanies,
   silverEnrichmentLog,
@@ -23,6 +24,20 @@ const promoteToGoldJobDataSchema = z.object({
   force: z.boolean().optional(),
   correlationId: z.string().trim().min(1).optional(),
 });
+
+/** Mapare pragmatică Silver → `gold.contact_role` (Silver nu are coloană `role`). */
+function mapSilverToGoldContactRole(c: {
+  isDecisionMaker: boolean;
+  functieNormalizata: string | null;
+}): "ADMINISTRATOR" | "REPREZENTANT" | "CONTACT" | "ACTIONAR" | "ASOCIAT" {
+  if (c.isDecisionMaker) return "ADMINISTRATOR";
+  const f = (c.functieNormalizata ?? "").toLowerCase();
+  if (f.includes("administrator") || f.includes("administrato")) return "ADMINISTRATOR";
+  if (f.includes("reprezentant")) return "REPREZENTANT";
+  if (f.includes("actionar") || f.includes("acționar")) return "ACTIONAR";
+  if (f.includes("asociat")) return "ASOCIAT";
+  return "CONTACT";
+}
 
 function initialFitScore(input: {
   numarAngajati: number | null;
@@ -199,6 +214,27 @@ export const promoteToGoldProcessor: Processor<PromoteToGoldJobData> = async (jo
     .returning({ id: goldCompanies.id });
   const goldId = inserted[0].id;
   goldCompaniesTotal.inc({ tenant_id: job.data.tenantId });
+
+  const silverContactRows = await db.query.silverContacts.findMany({
+    where: (t, { eq: e }) => e(t.companyId, silver.id),
+  });
+  if (silverContactRows.length > 0) {
+    await db.insert(goldContacts).values(
+      silverContactRows.map((c) => ({
+        tenantId: job.data.tenantId,
+        companyId: goldId,
+        role: mapSilverToGoldContactRole(c),
+        prenume: c.prenume ?? undefined,
+        nume: c.nume ?? undefined,
+        email: c.email ?? undefined,
+        emailVerified: c.emailVerified,
+        telefon: c.telefonE164 ?? c.telefon ?? undefined,
+        telefonVerified: c.telefonValid ?? false,
+        whatsappNumber: c.whatsappNumber ?? undefined,
+        consentGiven: Boolean(c.consentDate),
+      })),
+    );
+  }
 
   await db
     .update(silverCompanies)

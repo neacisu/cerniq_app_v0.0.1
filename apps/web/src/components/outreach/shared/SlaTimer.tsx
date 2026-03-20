@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 interface SlaTimerProps {
-  readonly slaDeadline: string;
+  readonly slaDueAt: string;
   readonly priority?: "URGENT" | "HIGH" | "MEDIUM" | "LOW";
 }
 
@@ -33,15 +33,15 @@ function resolveSlaColorClass(
   return "text-t2 bg-s700";
 }
 
-export function SlaTimer({ slaDeadline, priority = "MEDIUM" }: Readonly<SlaTimerProps>) {
-  const [remaining, setRemaining] = useState(() => new Date(slaDeadline).getTime() - Date.now());
+export function SlaTimer({ slaDueAt, priority = "MEDIUM" }: Readonly<SlaTimerProps>) {
+  const [remaining, setRemaining] = useState(() => new Date(slaDueAt).getTime() - Date.now());
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setRemaining(new Date(slaDeadline).getTime() - Date.now());
+      setRemaining(new Date(slaDueAt).getTime() - Date.now());
     }, 1000);
     return () => clearInterval(interval);
-  }, [slaDeadline]);
+  }, [slaDueAt]);
 
   const isExpired = remaining <= 0;
   const isUrgent = remaining < 15 * 60 * 1000 && !isExpired;
@@ -51,7 +51,7 @@ export function SlaTimer({ slaDeadline, priority = "MEDIUM" }: Readonly<SlaTimer
   return (
     <span
       className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-mono font-medium ${colorClass}`}
-      title={`SLA deadline: ${new Date(slaDeadline).toLocaleString("ro-RO")}`}
+      title={`SLA: ${new Date(slaDueAt).toLocaleString("ro-RO")}`}
     >
       {isExpired ? "⏰ Expirat" : `⏱ ${formatCountdown(remaining)}`}
     </span>

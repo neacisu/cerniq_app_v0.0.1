@@ -13,6 +13,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@cerniq/integrations": "workspace:*",
     "@cerniq/config": "workspace:*",
     "@cerniq/db": "workspace:*",
     "@cerniq/observability": "workspace:*",

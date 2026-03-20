@@ -83,7 +83,7 @@ export function ConversationTimeline({
               direction={msg.direction}
               content={msg.contentPreview ?? "(conținut indisponibil)"}
               channel={msg.channel}
-              status={msg.messageStatus}
+              status={msg.status}
               timestamp={msg.createdAt}
             />
           </div>

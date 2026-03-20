@@ -2,7 +2,7 @@
 
 **Versiune:** 1.0  
 **Actualizat:** 20 Martie 2026  
-**Status:** Production Ready
+**Status:** În remediere continuă (vezi plan audit Etapa 2)
 
 ---
 
@@ -29,7 +29,10 @@ Etapa 2 implementează un sistem de outreach multi-canal (WhatsApp via Timelines
 # Monitor Bull queues
 curl http://localhost:3010/api/monitoring/queues
 
-# Health check API
+# Health HTTP — worker outreach (`workers/outreach`, PORT din env, implicit 3000)
+curl http://localhost:3000/health
+
+# Health check API Fastify (port dev tipic 3001 — vezi `apps/api`)
 curl http://localhost:3001/health
 
 # Redis ping

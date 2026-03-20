@@ -2,10 +2,10 @@ import { PageWrapper } from "@/components/layout/PageWrapper.js";
 import { Card, CardBody } from "@/components/ui/index.js";
 import { KpiCard } from "@/components/data/KpiCard.js";
 import { Skeleton } from "@/components/ui/skeleton.js";
-import { useOutreachPhones, usePhoneHealthCheck } from "@/hooks/use-etapa2.js";
+import { useOutreachPhones } from "@/hooks/use-etapa2.js";
 import type { PhoneStatus } from "@/lib/etapa2-api.js";
-import { toast } from "sonner";
 import { cn } from "@/lib/utils.js";
+import { useNavigate } from "react-router-dom";
 
 function quotaBarColorClass(quotaPercentage: number, isEnabled: boolean): string {
   const pct = quotaPercentage;
@@ -40,8 +40,8 @@ const STATUS_CONFIG: Record<PhoneStatus, { label: string; color: string; dot: st
 };
 
 export function Phones() {
+  const navigate = useNavigate();
   const { data, isLoading } = useOutreachPhones();
-  const { mutateAsync: healthCheck } = usePhoneHealthCheck();
 
   const phones = data?.data ?? [];
   const active = phones.filter((p) => p.status === "ACTIVE").length;
@@ -85,14 +85,15 @@ export function Phones() {
                   "cursor-pointer hover:border-b5 transition-colors",
                   !phone.isEnabled && "opacity-60",
                 )}
-                onClick={async () => {
-                  try {
-                    await healthCheck(phone.id);
-                    toast.success(`Health check declanșat: ${phone.label}`);
-                  } catch {
-                    toast.error("Eroare health check");
+                onClick={() => navigate(`/outreach/phones/${phone.id}`)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    navigate(`/outreach/phones/${phone.id}`);
                   }
                 }}
+                role="button"
+                tabIndex={0}
               >
                 <CardBody className="p-4">
                   <div className="flex justify-between items-center mb-2">

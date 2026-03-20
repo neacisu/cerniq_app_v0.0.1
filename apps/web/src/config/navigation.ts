@@ -45,6 +45,7 @@ export const navigation: NavSection[] = [
       { label: "Campanii Email", path: "/outreach/campaigns", icon: "Mail" },
       { label: "Review Queue", path: "/outreach/review", icon: "MessageSquare" },
       { label: "Analytics", path: "/outreach/analytics", icon: "TrendingUp" },
+      { label: "Setări Outreach", path: "/outreach/settings", icon: "Settings" },
     ],
   },
   {

@@ -169,6 +169,55 @@
       "when": 1772230000000,
       "tag": "0023_etapa1_schema_phase2_fsm_functions",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1772240000000,
+      "tag": "0024_create_e2_enums",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1772250000000,
+      "tag": "0025_create_outreach_schema",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1772260000000,
+      "tag": "0026_sequence_status_add_stopped",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1772270000000,
+      "tag": "0026_webhook_event_archive",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1772280000000,
+      "tag": "0027_wa_quota_usage_tenant_id",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1772290000000,
+      "tag": "0028_outreach_settings_notifications_columns",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1772300000000,
+      "tag": "0029_outreach_sql_functions",
+      "breakpoints": true
     }
   ]
 }

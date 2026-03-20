@@ -17,6 +17,9 @@ import Bottleneck from "bottleneck";
 import type {
   AddLeadRequest,
   AddLeadResponse,
+  CampaignAnalytics,
+  CreateCampaignRequest,
+  CreateCampaignResponse,
   GetCampaignsResponse,
   InstantlyWebhookPayload,
   InstantlySystemEvent,
@@ -35,6 +38,12 @@ function requireEnv(name: string): string {
   return value.trim();
 }
 
+/** Config opțională; valorile lipsă se citesc din `process.env`. */
+export type InstantlyClientConfig = {
+  apiUrl?: string;
+  apiKey?: string;
+};
+
 async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -48,9 +57,9 @@ export class InstantlyClient {
   // 100/min = 1 per 600ms (analytics)
   private readonly analyticsLimiter: Bottleneck;
 
-  constructor() {
-    this.baseUrl = requireEnv("INSTANTLY_API_URL");
-    this.apiKey = requireEnv("INSTANTLY_API_KEY");
+  constructor(config?: InstantlyClientConfig) {
+    this.baseUrl = config?.apiUrl?.trim() ?? requireEnv("INSTANTLY_API_URL");
+    this.apiKey = config?.apiKey?.trim() ?? requireEnv("INSTANTLY_API_KEY");
 
     this.addLeadLimiter = new Bottleneck({ maxConcurrent: 10, minTime: 3600 });
     this.analyticsLimiter = new Bottleneck({ maxConcurrent: 5, minTime: 600 });
@@ -122,6 +131,23 @@ export class InstantlyClient {
   }
 
   /**
+   * Metrici detaliate per campanie.
+   * Source: etapa2-workers-D-E-email.md — GET /campaign/{id}/analytics
+   */
+  getCampaignAnalytics(campaignId: string): Promise<CampaignAnalytics> {
+    return this.analyticsLimiter.schedule(() =>
+      this.request<CampaignAnalytics>("GET", `/campaign/${campaignId}/analytics`),
+    );
+  }
+
+  /** Creare campanie rece (trimis din worker `email:cold:campaign:create`). */
+  createCampaign(body: CreateCampaignRequest): Promise<CreateCampaignResponse> {
+    return this.analyticsLimiter.schedule(() =>
+      this.request<CreateCampaignResponse>("POST", "/campaign", body),
+    );
+  }
+
+  /**
    * Pause a campaign (used by circuit breaker on high bounce rate).
    * ADR-0066: bounce > 3% triggers pause.
    */
@@ -150,9 +176,10 @@ export function normalizeInstantlyEvent(payload: InstantlyWebhookPayload): Insta
 
 /** Singleton client — lazy initialization. */
 let _client: InstantlyClient | undefined;
-export function getInstantlyClient(): InstantlyClient {
-  if (!_client) {
-    _client = new InstantlyClient();
+export function getInstantlyClient(config?: InstantlyClientConfig): InstantlyClient {
+  if (config) {
+    return new InstantlyClient(config);
   }
+  _client ??= new InstantlyClient();
   return _client;
 }

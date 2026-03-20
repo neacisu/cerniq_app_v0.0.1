@@ -1,4 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
+import type { ColumnDef } from "@tanstack/react-table";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
 import { Spinner } from "@/components/ui/spinner.js";
 import { Button, Card, CardHeader, CardTitle, CardBody } from "@/components/ui/index.js";
@@ -9,6 +12,8 @@ import { makeGoldCompaniesColumns } from "@/lib/table-columns.js";
 import { useGoldCompanies } from "@/hooks/use-etapa1.js";
 import { GoldCompanyDrawer } from "@/components/drawers/GoldCompanyDrawer.js";
 import type { GoldCompanyRow } from "@/lib/etapa1-types.js";
+import { createOutreachLeadsFromGold } from "@/lib/etapa2-api.js";
+import { buildGoldSelectColumnDef } from "@/pages/etapa1/gold-select-column-def.js";
 
 const PAGE_SIZE_OPTIONS = [25, 50, 100] as const;
 
@@ -33,14 +38,16 @@ const GOLD_STATE_OPTIONS = [
 ] as const;
 
 export function Gold() {
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(25);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [currentStates, setCurrentStates] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [searchJudet, setSearchJudet] = useState("");
-
-  const columns = useMemo(() => makeGoldCompaniesColumns(setSelectedId), []);
+  /** Doar companii fără rând în `lead_journey` (outreach). */
+  const [notInOutreachOnly, setNotInOutreachOnly] = useState(false);
 
   const offset = (page - 1) * pageSize;
 
@@ -49,9 +56,65 @@ export function Gold() {
     offset,
     currentState: currentStates.length > 0 ? currentStates : undefined,
     judetCod: searchJudet || undefined,
+    notInOutreach: notInOutreachOnly ? true : undefined,
   });
-  const goldLeads = (goldQuery.data?.data ?? []) as unknown as GoldCompanyRow[];
+  /** Referință stabilă — evită `[]` nou la fiecare render când lipsește `data` (react-hooks/exhaustive-deps). */
+  const goldLeads = useMemo(
+    () => (goldQuery.data?.data ?? []) as unknown as GoldCompanyRow[],
+    [goldQuery.data?.data],
+  );
   const total = goldQuery.data?.meta?.total ?? goldLeads.length;
+
+  const toggleRow = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const toggleSelectPage = useCallback(() => {
+    const pageIds = goldLeads.map((r) => r.id);
+    const allSelected = pageIds.length > 0 && pageIds.every((id) => selectedIds.has(id));
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allSelected) {
+        for (const id of pageIds) next.delete(id);
+      } else {
+        for (const id of pageIds) next.add(id);
+      }
+      return next;
+    });
+  }, [goldLeads, selectedIds]);
+
+  const addToOutreachMutation = useMutation({
+    mutationFn: (ids: string[]) => createOutreachLeadsFromGold(ids),
+    onSuccess: async (res) => {
+      const d = res.data;
+      await queryClient.invalidateQueries({ queryKey: ["etapa2", "leads"] });
+      toast.success(
+        `Outreach: ${d.created} create, ${d.alreadyExists} deja existente` +
+          (d.rejectedDnc ? `, ${d.rejectedDnc} DNC` : "") +
+          (d.rejectedNoContact ? `, ${d.rejectedNoContact} fără contact` : "") +
+          (d.notFound ? `, ${d.notFound} negăsite` : ""),
+      );
+      setSelectedIds(new Set());
+    },
+    onError: (e: Error) => {
+      toast.error(e.message ?? "Eroare la adăugare în outreach");
+    },
+  });
+
+  const columns = useMemo((): ColumnDef<GoldCompanyRow>[] => {
+    const base = makeGoldCompaniesColumns(setSelectedId);
+    const pageIds = goldLeads.map((r) => r.id);
+    const allPageSelected = pageIds.length > 0 && pageIds.every((id) => selectedIds.has(id));
+    return [
+      buildGoldSelectColumnDef(allPageSelected, toggleSelectPage, selectedIds, toggleRow),
+      ...base,
+    ];
+  }, [goldLeads, selectedIds, toggleRow, toggleSelectPage, setSelectedId]);
 
   if (goldQuery.isPending) {
     return (
@@ -117,8 +180,42 @@ export function Gold() {
               }}
             />
           </div>
+          <div className="col-span-2 flex items-center gap-2">
+            <input
+              id="gold-not-in-outreach"
+              type="checkbox"
+              className="h-4 w-4 rounded border-s600"
+              checked={notInOutreachOnly}
+              onChange={(e) => {
+                setNotInOutreachOnly(e.target.checked);
+                setPage(1);
+              }}
+            />
+            <label htmlFor="gold-not-in-outreach" className="text-sm text-t2">
+              Doar companii nepromovate în Outreach (fără lead_journey)
+            </label>
+          </div>
         </div>
       )}
+
+      {selectedIds.size > 0 && (
+        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-b5/40 bg-s800 px-4 py-3">
+          <span className="text-sm text-t2">{selectedIds.size} selectat(e)</span>
+          <Button
+            variant="brand"
+            disabled={addToOutreachMutation.isPending}
+            onClick={() => addToOutreachMutation.mutate([...selectedIds])}
+          >
+            {addToOutreachMutation.isPending
+              ? "Se adaugă…"
+              : `Adaugă la Outreach (${selectedIds.size})`}
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())}>
+            Anulează selecția
+          </Button>
+        </div>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle>Leads Gold</CardTitle>

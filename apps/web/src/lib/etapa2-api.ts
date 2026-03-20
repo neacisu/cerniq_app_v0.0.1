@@ -64,7 +64,10 @@ export interface OutreachLead {
   currentState: LeadState;
   previousState: LeadState | null;
   stateChangedAt: string;
+  stateChangeReason?: string | null;
   channel: LeadChannel | null;
+  /** Ultimul canal folosit (alias API pentru `last_channel_used`). */
+  lastChannelUsed?: LeadChannel | null;
   assignedPhoneId: string | null;
   isHumanControlled: boolean;
   requiresHumanReview: boolean;
@@ -72,8 +75,8 @@ export interface OutreachLead {
   sentimentScore: number | null;
   intent: string | null;
   engagementScore: number | null;
+  replyCount?: number;
   lastContactAt: string | null;
-  notes: string | null;
   assignedToUser: string | null;
   createdAt: string;
   updatedAt: string;
@@ -96,7 +99,8 @@ export interface CommunicationLog {
   tenantId: string;
   channel: LeadChannel;
   direction: MessageDirection;
-  messageStatus: MessageStatus;
+  /** Aliniat cu coloana DB `communication_log.status`. */
+  status: MessageStatus;
   contentPreview: string | null;
   externalMessageId: string | null;
   threadId: string | null;
@@ -105,6 +109,23 @@ export interface CommunicationLog {
   sentAt: string | null;
   deliveredAt: string | null;
   readAt: string | null;
+  createdAt: string;
+}
+
+export interface WaPhoneQuotaDay {
+  usageDate: string;
+  messagesSent: number;
+  newContacts: number;
+  followUps: number;
+}
+
+/** Mesaje recente pe telefon (GET /phones/:id — detaliu). */
+export interface WaPhoneRecentMessage {
+  id: string;
+  channel: string;
+  direction: string;
+  status: string;
+  contentPreview: string | null;
   createdAt: string;
 }
 
@@ -124,6 +145,10 @@ export interface WaPhone {
   updatedAt: string;
   currentUsage?: number;
   quotaPercentage?: number;
+  /** Ultimele până la 7 zile de utilizare cotă (detaliu telefon). */
+  quotaHistory?: WaPhoneQuotaDay[];
+  /** Ultimele mesaje asociate acestui telefon în communication_log. */
+  recentMessages?: WaPhoneRecentMessage[];
 }
 
 export interface OutreachSequence {
@@ -231,6 +256,26 @@ export interface OutreachAnalytics {
   daily: DailyStat[];
 }
 
+/** GET /outreach/analytics/phones — comparație performanță per număr WA. */
+export interface PhoneAnalyticsRow {
+  id: string;
+  label: string;
+  phoneNumber: string;
+  quotaUsed: number;
+  messagesSent: number;
+  repliesReceived: number;
+  replyRate: number;
+  avgResponseTime: number;
+  status: string;
+  messagesDelivered: number;
+  bounces: number;
+  bounceRate: number;
+}
+
+export interface PhoneAnalytics {
+  phones: PhoneAnalyticsRow[];
+}
+
 export interface DailyStat {
   statDate: string;
   messagesSent: number;
@@ -256,6 +301,8 @@ export interface OutreachCampaign {
 // ─── Params ───────────────────────────────────────────────────────────────────
 
 export type LeadsListParams = {
+  /** ID companie Gold — filtrează după `lead_journey.lead_id`. */
+  goldCompanyId?: string;
   state?: LeadState;
   channel?: LeadChannel;
   assignedTo?: string;
@@ -311,15 +358,94 @@ export async function fetchOutreachLeads(params: LeadsListParams = {}) {
   return api.get<ApiListResponse<OutreachLead>>(`/api/v1/outreach/leads${query}`);
 }
 
+/** Descarcă CSV cu aceleași filtre ca lista de leads (max 10k rânduri). */
+export async function downloadOutreachLeadsCsv(params: LeadsListParams = {}): Promise<void> {
+  const qs = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (v !== undefined && v !== null) qs.set(k, String(v));
+  }
+  const query = qs.toString() ? `?${qs}` : "";
+  const { getApiBase } = await import("./api-url.js");
+  const base = getApiBase();
+  const token =
+    globalThis.window === undefined
+      ? null
+      : (globalThis.window.localStorage?.getItem("cerniq_token") ?? null);
+  const url = `${base.replace(/\/$/, "")}/api/v1/outreach/leads/export${query}`;
+  const res = await fetch(url, {
+    method: "GET",
+    credentials: "include",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) {
+    const t = await res.text();
+    throw new Error(t || `Export eșuat (${res.status})`);
+  }
+  const blob = await res.blob();
+  const a = globalThis.document.createElement("a");
+  const href = URL.createObjectURL(blob);
+  a.href = href;
+  a.download = "outreach-leads.csv";
+  a.click();
+  URL.revokeObjectURL(href);
+}
+
 export async function fetchOutreachLeadById(id: string) {
   return api.get<ApiObjectResponse<OutreachLead>>(`/api/v1/outreach/leads/${id}`);
 }
 
+export type LeadActivityItem = {
+  type: string;
+  description: string;
+  timestamp: string;
+};
+
+export async function fetchLeadActivity(leadId: string) {
+  return api.get<ApiObjectResponse<LeadActivityItem[]>>(
+    `/api/v1/outreach/leads/${leadId}/activity`,
+  );
+}
+
+export type CreateOutreachLeadsResult = {
+  created: number;
+  alreadyExists: number;
+  rejectedDnc: number;
+  rejectedNoContact: number;
+  notFound: number;
+};
+
+/** Promovează companii Gold în Etapa 2 (creare rânduri `lead_journey`). */
+export async function createOutreachLeadsFromGold(goldCompanyIds: string[]) {
+  return api.post<ApiObjectResponse<CreateOutreachLeadsResult>>(`/api/v1/outreach/leads`, {
+    goldCompanyIds,
+  });
+}
+
+export type OutreachImportLeadRow = {
+  denumire: string;
+  cui?: string;
+  judet?: string;
+  email?: string;
+  telefon?: string;
+};
+
+export type OutreachImportLeadsResult = {
+  created: number;
+  rejectedNoContact: number;
+  rejectedDuplicate: number;
+  errors: number;
+};
+
+/** Import CSV: companii noi (silver+gold stub) + contact + lead_journey. */
+export async function importOutreachLeads(rows: OutreachImportLeadRow[]) {
+  return api.post<ApiObjectResponse<OutreachImportLeadsResult>>(`/api/v1/outreach/leads/import`, {
+    rows,
+  });
+}
+
 export async function patchOutreachLead(
   id: string,
-  payload: Partial<
-    Pick<OutreachLead, "currentState" | "assignedToUser" | "isHumanControlled" | "notes">
-  >,
+  payload: Partial<Pick<OutreachLead, "currentState" | "assignedToUser" | "isHumanControlled">>,
 ) {
   return api.patch<ApiObjectResponse<OutreachLead>>(`/api/v1/outreach/leads/${id}`, payload);
 }
@@ -539,11 +665,77 @@ export async function fetchReviewStats() {
   >("/api/v1/outreach/reviews/stats");
 }
 
+// ─── Outreach settings & notifications ───────────────────────────────────────
+
+export type OutreachSettings = {
+  tenantId: string;
+  businessHoursStart: number;
+  businessHoursEnd: number;
+  workDays: number[];
+  timezone: string;
+  dailyQuotaLimit: number;
+  followupQuotaLimit: number;
+  emailSignature: string | null;
+  waReplyTimeoutMinutes: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type OutreachNotificationRow = {
+  id: string;
+  tenantId: string;
+  userId: string | null;
+  type: string;
+  title: string;
+  body: string | null;
+  resourceType: string | null;
+  resourceId: string | null;
+  isRead: boolean;
+  createdAt: string;
+};
+
+export async function fetchOutreachSettings() {
+  return api.get<ApiObjectResponse<OutreachSettings>>("/api/v1/outreach/settings");
+}
+
+export async function patchOutreachSettings(
+  payload: Partial<{
+    businessHoursStart: number;
+    businessHoursEnd: number;
+    workDays: number[];
+    timezone: string;
+    dailyQuotaLimit: number;
+    followupQuotaLimit: number;
+    emailSignature: string | null;
+    waReplyTimeoutMinutes: number;
+  }>,
+) {
+  return api.patch<ApiObjectResponse<OutreachSettings>>("/api/v1/outreach/settings", payload);
+}
+
+export async function fetchOutreachNotifications(unread?: boolean) {
+  const q = unread ? "?unread=true" : "";
+  return api.get<ApiObjectResponse<{ items: OutreachNotificationRow[]; unreadCount: number }>>(
+    `/api/v1/outreach/notifications${q}`,
+  );
+}
+
+export async function markOutreachNotificationRead(id: string) {
+  return api.patch<ApiObjectResponse<OutreachNotificationRow>>(
+    `/api/v1/outreach/notifications/${id}/read`,
+    {},
+  );
+}
+
+export async function markAllOutreachNotificationsRead() {
+  return api.post<{ success: boolean }>("/api/v1/outreach/notifications/mark-all-read", {});
+}
+
 // ─── Analytics API ────────────────────────────────────────────────────────────
 
-export async function fetchOutreachDashboard() {
+export async function fetchOutreachDashboard(period: "7d" | "30d" | "90d" | "custom" = "7d") {
   return api.get<ApiObjectResponse<OutreachDashboard>>(
-    "/api/v1/outreach/analytics/overview?period=7d",
+    `/api/v1/outreach/dashboard?period=${period}`,
   );
 }
 
@@ -556,6 +748,21 @@ export async function fetchOutreachAnalytics(params: AnalyticsParams = {}) {
   return api.get<ApiObjectResponse<OutreachAnalytics>>(
     `/api/v1/outreach/analytics/overview${query}`,
   );
+}
+
+export async function fetchPhoneAnalytics(
+  params: {
+    from?: string;
+    to?: string;
+    phoneId?: string;
+  } = {},
+) {
+  const qs = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (v !== undefined) qs.set(k, String(v));
+  }
+  const query = qs.toString() ? `?${qs}` : "";
+  return api.get<ApiObjectResponse<PhoneAnalytics>>(`/api/v1/outreach/analytics/phones${query}`);
 }
 
 export async function fetchOutreachDailyStats(params: { from?: string; to?: string } = {}) {

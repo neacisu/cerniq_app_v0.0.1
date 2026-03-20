@@ -34,6 +34,13 @@ function requireEnv(name: string): string {
   return value.trim();
 }
 
+/** Config opțională; valorile lipsă se citesc din `process.env`. */
+export type TimelinesAIClientConfig = {
+  apiUrl?: string;
+  apiKey?: string;
+  webhookSecret?: string;
+};
+
 async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -48,10 +55,10 @@ export class TimelinesAIClient {
   private readonly chatHistoryLimiter: Bottleneck;
   private readonly getChatsLimiter: Bottleneck;
 
-  constructor() {
-    this.baseUrl = requireEnv("TIMELINESAI_API_URL");
-    this.apiKey = requireEnv("TIMELINESAI_API_KEY");
-    this.webhookSecret = requireEnv("TIMELINESAI_WEBHOOK_SECRET");
+  constructor(config?: TimelinesAIClientConfig) {
+    this.baseUrl = config?.apiUrl?.trim() ?? requireEnv("TIMELINESAI_API_URL");
+    this.apiKey = config?.apiKey?.trim() ?? requireEnv("TIMELINESAI_API_KEY");
+    this.webhookSecret = config?.webhookSecret?.trim() ?? requireEnv("TIMELINESAI_WEBHOOK_SECRET");
 
     // 50/min = 1 request per 1200ms
     this.sendMessageLimiter = new Bottleneck({ maxConcurrent: 10, minTime: 1200 });
@@ -167,9 +174,12 @@ export function normalizeTimelinesAIEvent(payload: TimelinesAIWebhookPayload): S
   };
 }
 
-/** Singleton client — lazy initialization. */
+/** Singleton client — lazy initialization (fără config în apeluri repetate). */
 let _client: TimelinesAIClient | undefined;
-export function getTimelinesAIClient(): TimelinesAIClient {
+export function getTimelinesAIClient(config?: TimelinesAIClientConfig): TimelinesAIClient {
+  if (config) {
+    return new TimelinesAIClient(config);
+  }
   _client ??= new TimelinesAIClient();
   return _client;
 }

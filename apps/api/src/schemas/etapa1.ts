@@ -137,6 +137,8 @@ export const listGoldCompaniesSchema = z.object({
   minLeadScore: z.coerce.number().min(0).max(100).optional(),
   maxLeadScore: z.coerce.number().min(0).max(100).optional(),
   isAgricultural: z.coerce.boolean().optional(),
+  /** Doar companii fără rând în `outreach.lead_journey` (LEFT JOIN IS NULL). */
+  notInOutreach: z.coerce.boolean().optional(),
   sortBy: z.enum(["updatedAt", "leadScore", "createdAt"]).default("updatedAt"),
   sortDir: z.enum(["asc", "desc"]).default("desc"),
   limit: z.coerce.number().int().min(1).max(100).optional(),

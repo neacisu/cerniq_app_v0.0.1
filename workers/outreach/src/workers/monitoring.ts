@@ -154,42 +154,57 @@ function rollupToDailyStatsColumns(m: DayCommunicationRollup, pipeline: LeadPipe
 // Writes to outreach.outreach_daily_stats (schema sec. 9 — nu există wa_sent / email_cold_*)
 // =============================================================================
 
-export function createStatsAggregatorWorker(redis: Redis): Worker {
+export async function executeStatsAggregatorJob(job: Job<StatsAggregatorJobData>): Promise<void> {
+  const { tenantId } = job.data;
+  const statDate = job.data.statDate ?? new Date().toISOString().split("T")[0];
+
+  const { db } = await import("@cerniq/db");
+  const { outreachDailyStats } = await import("@cerniq/db");
+  const { sql } = await import("@cerniq/db");
+
+  const m = await loadDayCommunicationRollup(tenantId, statDate);
+  const pipeline = await loadLeadPipelineSnapshot(tenantId);
+  const cols = rollupToDailyStatsColumns(m, pipeline);
+
+  await db
+    .insert(outreachDailyStats)
+    .values({
+      tenantId,
+      statDate,
+      ...cols,
+    })
+    .onConflictDoUpdate({
+      target: [outreachDailyStats.tenantId, outreachDailyStats.statDate],
+      set: {
+        messagesSent: sql`EXCLUDED.messages_sent`,
+        messagesReceived: sql`EXCLUDED.messages_received`,
+        newContacts: sql`EXCLUDED.new_contacts`,
+        replies: sql`EXCLUDED.replies`,
+        conversions: sql`EXCLUDED.conversions`,
+        bounceCount: sql`EXCLUDED.bounce_count`,
+        quotaUsageAvg: sql`EXCLUDED.quota_usage_avg`,
+        updatedAt: new Date(),
+      },
+    });
+}
+
+/** Un singur procesor pe `MONITOR_QUOTA_USAGE`: stats zilnice vs. reputație telefon (după `phoneId` în payload). */
+export function createMergedMonitorQuotaWorker(redis: Redis): Worker {
   const connection = asBullmqConnection(redis);
   return new Worker(
     QUEUES.MONITOR_QUOTA_USAGE,
-    async (job: Job<StatsAggregatorJobData>): Promise<void> => {
-      const { tenantId } = job.data;
-      const statDate = job.data.statDate ?? new Date().toISOString().split("T")[0];
-
-      const { db } = await import("@cerniq/db");
-      const { outreachDailyStats } = await import("@cerniq/db");
-      const { sql } = await import("@cerniq/db");
-
-      const m = await loadDayCommunicationRollup(tenantId, statDate);
-      const pipeline = await loadLeadPipelineSnapshot(tenantId);
-      const cols = rollupToDailyStatsColumns(m, pipeline);
-
-      await db
-        .insert(outreachDailyStats)
-        .values({
-          tenantId,
-          statDate,
-          ...cols,
-        })
-        .onConflictDoUpdate({
-          target: [outreachDailyStats.tenantId, outreachDailyStats.statDate],
-          set: {
-            messagesSent: sql`EXCLUDED.messages_sent`,
-            messagesReceived: sql`EXCLUDED.messages_received`,
-            newContacts: sql`EXCLUDED.new_contacts`,
-            replies: sql`EXCLUDED.replies`,
-            conversions: sql`EXCLUDED.conversions`,
-            bounceCount: sql`EXCLUDED.bounce_count`,
-            quotaUsageAvg: sql`EXCLUDED.quota_usage_avg`,
-            updatedAt: new Date(),
-          },
-        });
+    async (
+      job: Job<StatsAggregatorJobData | import("./phone-monitoring.js").PhoneReputationJobData>,
+    ): Promise<void | import("./phone-monitoring.js").PhoneReputationResult> => {
+      const data = job.data as { phoneId?: string };
+      if (data.phoneId) {
+        const { executePhoneReputationJob } = await import("./phone-monitoring.js");
+        return executePhoneReputationJob(
+          redis,
+          job as Job<import("./phone-monitoring.js").PhoneReputationJobData>,
+        );
+      }
+      await executeStatsAggregatorJob(job as Job<StatsAggregatorJobData>);
     },
     { connection, concurrency: 10 },
   );
@@ -200,75 +215,67 @@ export function createStatsAggregatorWorker(redis: Redis): Worker {
 // End-of-day summary per tenant
 // =============================================================================
 
-export function createDailyReportGeneratorWorker(redis: Redis): Worker {
-  const connection = asBullmqConnection(redis);
-  return new Worker(
-    QUEUES.EMAIL_COLD_ANALYTICS_FETCH,
-    async (job: Job<DailyReportJobData>): Promise<Record<string, unknown>> => {
-      const { tenantId, reportDate } = job.data;
+export async function executeDailyReportJob(
+  job: Job<DailyReportJobData>,
+): Promise<Record<string, unknown>> {
+  const { tenantId, reportDate } = job.data;
 
-      const { db } = await import("@cerniq/db");
-      const { outreachDailyStats } = await import("@cerniq/db");
-      const { eq, and } = await import("@cerniq/db");
+  const { db } = await import("@cerniq/db");
+  const { outreachDailyStats } = await import("@cerniq/db");
+  const { eq, and } = await import("@cerniq/db");
 
-      const m = await loadDayCommunicationRollup(tenantId, reportDate);
-      const pipeline = await loadLeadPipelineSnapshot(tenantId);
+  const m = await loadDayCommunicationRollup(tenantId, reportDate);
+  const pipeline = await loadLeadPipelineSnapshot(tenantId);
 
-      const commTotal =
-        m.waOutbound +
-        m.waInbound +
-        m.emailColdSent +
-        m.emailColdReplies +
-        m.emailWarmSent +
-        m.emailWarmReplies;
+  const commTotal =
+    m.waOutbound +
+    m.waInbound +
+    m.emailColdSent +
+    m.emailColdReplies +
+    m.emailWarmSent +
+    m.emailWarmReplies;
 
-      const [s] = await db
-        .select()
-        .from(outreachDailyStats)
-        .where(
-          and(
-            eq(outreachDailyStats.tenantId, tenantId),
-            eq(outreachDailyStats.statDate, reportDate),
-          ),
-        )
-        .limit(1);
+  const [s] = await db
+    .select()
+    .from(outreachDailyStats)
+    .where(
+      and(eq(outreachDailyStats.tenantId, tenantId), eq(outreachDailyStats.statDate, reportDate)),
+    )
+    .limit(1);
 
-      if (!s && commTotal === 0) {
-        return { date: reportDate, noData: true };
-      }
+  if (!s && commTotal === 0) {
+    return { date: reportDate, noData: true };
+  }
 
-      const waReplyRate = m.waOutbound > 0 ? m.waInbound / m.waOutbound : 0;
-      const coldReplyRate = m.emailColdSent > 0 ? m.emailColdReplies / m.emailColdSent : 0;
-      const coldBounceRate = m.emailColdSent > 0 ? m.emailColdBounces / m.emailColdSent : 0;
+  const waReplyRate = m.waOutbound > 0 ? m.waInbound / m.waOutbound : 0;
+  const coldReplyRate = m.emailColdSent > 0 ? m.emailColdReplies / m.emailColdSent : 0;
+  const coldBounceRate = m.emailColdSent > 0 ? m.emailColdBounces / m.emailColdSent : 0;
 
-      const totalSentRollup = m.waOutbound + m.emailColdSent + m.emailWarmSent;
+  const totalSentRollup = m.waOutbound + m.emailColdSent + m.emailWarmSent;
 
-      return {
-        date: reportDate,
-        rollupSource: "communication_log.created_at",
-        persistedDailyStatsRow: s ?? null,
-        summary: {
-          messagesSent: s?.messagesSent ?? totalSentRollup,
-          messagesReceived: s?.messagesReceived,
-          newContacts: s?.newContacts,
-          replies: s?.replies,
-          conversions: s?.conversions ?? pipeline.converted,
-          warmReplyLeads: pipeline.warmReplyLeads,
-          bounceCount: s?.bounceCount ?? m.emailColdBounces,
-        },
-        whatsapp: { sent: m.waOutbound, replies: m.waInbound, replyRate: waReplyRate },
-        emailCold: {
-          sent: m.emailColdSent,
-          replies: m.emailColdReplies,
-          bounces: m.emailColdBounces,
-          replyRate: coldReplyRate,
-          bounceRate: coldBounceRate,
-        },
-        emailWarm: { sent: m.emailWarmSent, replies: m.emailWarmReplies },
-      };
+  return {
+    date: reportDate,
+    rollupSource: "communication_log.created_at",
+    persistedDailyStatsRow: s ?? null,
+    summary: {
+      messagesSent: s?.messagesSent ?? totalSentRollup,
+      messagesReceived: s?.messagesReceived,
+      newContacts: s?.newContacts,
+      replies: s?.replies,
+      conversions: s?.conversions ?? pipeline.converted,
+      warmReplyLeads: pipeline.warmReplyLeads,
+      bounceCount: s?.bounceCount ?? m.emailColdBounces,
     },
-    { connection, concurrency: 10 },
-  );
+    whatsapp: { sent: m.waOutbound, replies: m.waInbound, replyRate: waReplyRate },
+    emailCold: {
+      sent: m.emailColdSent,
+      replies: m.emailColdReplies,
+      bounces: m.emailColdBounces,
+      replyRate: coldReplyRate,
+      bounceRate: coldBounceRate,
+    },
+    emailWarm: { sent: m.emailWarmSent, replies: m.emailWarmReplies },
+  };
 }
 
 // =============================================================================
@@ -321,28 +328,20 @@ export function createAlertWorker(redis: Redis): Worker {
 // Deletes communication_log, daily_stats older than 90 days
 // =============================================================================
 
-export function createCleanupWorker(redis: Redis): Worker {
-  const connection = asBullmqConnection(redis);
-  return new Worker(
-    QUEUES.PIPELINE_OUTREACH_HEALTH,
-    async (job: Job<CleanupJobData>): Promise<{ deleted: number }> => {
-      const retainDays = job.data.retainDays ?? STATS_RETENTION_DAYS;
-      /** ms/zi — grupuri de 3 cifre (Sonar S7749), echivalent `retainDays * 86_400_000`. */
-      const cutoffDate = new Date(Date.now() - retainDays * 86_400_000);
+export async function executeCleanupJob(job: Job<CleanupJobData>): Promise<{ deleted: number }> {
+  const retainDays = job.data.retainDays ?? STATS_RETENTION_DAYS;
+  const cutoffDate = new Date(Date.now() - retainDays * 86_400_000);
 
-      const { db } = await import("@cerniq/db");
-      const { communicationLog } = await import("@cerniq/db");
-      const { lt } = await import("@cerniq/db");
+  const { db } = await import("@cerniq/db");
+  const { communicationLog } = await import("@cerniq/db");
+  const { lt } = await import("@cerniq/db");
 
-      const removed = await db
-        .delete(communicationLog)
-        .where(lt(communicationLog.createdAt, cutoffDate))
-        .returning({ id: communicationLog.id });
+  const removed = await db
+    .delete(communicationLog)
+    .where(lt(communicationLog.createdAt, cutoffDate))
+    .returning({ id: communicationLog.id });
 
-      return { deleted: removed.length };
-    },
-    { connection, concurrency: 1 }, // Single cleanup to avoid conflicts
-  );
+  return { deleted: removed.length };
 }
 
 // =============================================================================
@@ -350,51 +349,47 @@ export function createCleanupWorker(redis: Redis): Worker {
 // Pipeline health: queues active, phones online, jobs waiting/failed
 // =============================================================================
 
-export function createHealthCheckAggregatorWorker(redis: Redis): Worker {
+export async function executeHealthCheckAggregatorJob(
+  redis: Redis,
+  _job: Job<HealthCheckJobData>,
+): Promise<Record<string, unknown>> {
   const connection = asBullmqConnection(redis);
-  return new Worker(
-    QUEUES.PIPELINE_OUTREACH_METRICS,
-    async (_job: Job<HealthCheckJobData>): Promise<Record<string, unknown>> => {
-      const { db } = await import("@cerniq/db");
-      const { waPhoneNumbers } = await import("@cerniq/db");
-      const { sql } = await import("@cerniq/db");
+  const { db } = await import("@cerniq/db");
+  const { waPhoneNumbers } = await import("@cerniq/db");
+  const { sql } = await import("@cerniq/db");
 
-      const phoneStats = await db
-        .select({
-          total: sql<number>`COUNT(*)::int`,
-          active: sql<number>`COUNT(*) FILTER (WHERE ${waPhoneNumbers.status} = 'ACTIVE' AND ${waPhoneNumbers.isEnabled} = true)::int`,
-          offline: sql<number>`COUNT(*) FILTER (WHERE ${waPhoneNumbers.status} = 'OFFLINE')::int`,
-          banned: sql<number>`COUNT(*) FILTER (WHERE ${waPhoneNumbers.status} = 'BANNED')::int`,
-        })
-        .from(waPhoneNumbers);
+  const phoneStats = await db
+    .select({
+      total: sql<number>`COUNT(*)::int`,
+      active: sql<number>`COUNT(*) FILTER (WHERE ${waPhoneNumbers.status} = 'ACTIVE' AND ${waPhoneNumbers.isEnabled} = true)::int`,
+      offline: sql<number>`COUNT(*) FILTER (WHERE ${waPhoneNumbers.status} = 'OFFLINE')::int`,
+      banned: sql<number>`COUNT(*) FILTER (WHERE ${waPhoneNumbers.status} = 'BANNED')::int`,
+    })
+    .from(waPhoneNumbers);
 
-      const p = phoneStats[0];
-      const phonesActive = p?.active ?? 0;
+  const p = phoneStats[0];
+  const phonesActive = p?.active ?? 0;
 
-      // Alert if too few phones online
-      if (phonesActive < LOW_PHONE_ALERT_THRESHOLD) {
-        const alertQueue = new Queue(QUEUES.ALERT_PHONE_OFFLINE, { connection });
-        await alertQueue.add(
-          "low-phones",
-          {
-            alertType: "PIPELINE_DEGRADED",
-            payload: { phonesActive, threshold: LOW_PHONE_ALERT_THRESHOLD },
-          },
-          { priority: 1, removeOnComplete: 100 },
-        );
-      }
+  if (phonesActive < LOW_PHONE_ALERT_THRESHOLD) {
+    const alertQueue = new Queue(QUEUES.ALERT_PHONE_OFFLINE, { connection });
+    await alertQueue.add(
+      "low-phones",
+      {
+        alertType: "PIPELINE_DEGRADED",
+        payload: { phonesActive, threshold: LOW_PHONE_ALERT_THRESHOLD },
+      },
+      { priority: 1, removeOnComplete: 100 },
+    );
+  }
 
-      return {
-        timestamp: new Date().toISOString(),
-        phones: {
-          total: p?.total ?? 0,
-          active: phonesActive,
-          offline: p?.offline ?? 0,
-          banned: p?.banned ?? 0,
-        },
-        healthy: phonesActive >= LOW_PHONE_ALERT_THRESHOLD,
-      };
+  return {
+    timestamp: new Date().toISOString(),
+    phones: {
+      total: p?.total ?? 0,
+      active: phonesActive,
+      offline: p?.offline ?? 0,
+      banned: p?.banned ?? 0,
     },
-    { connection, concurrency: 1 },
-  );
+    healthy: phonesActive >= LOW_PHONE_ALERT_THRESHOLD,
+  };
 }

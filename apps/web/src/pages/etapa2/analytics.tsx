@@ -1,10 +1,19 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
 import { Card, CardHeader, CardTitle, CardBody } from "@/components/ui/index.js";
 import { Skeleton } from "@/components/ui/skeleton.js";
 import { StageBadge } from "@/components/outreach/shared/StageBadge.js";
-import { useOutreachAnalytics, useOutreachDailyStats } from "@/hooks/use-etapa2.js";
-import type { AnalyticsParams, DailyStat, OutreachAnalytics } from "@/lib/etapa2-api.js";
+import {
+  useOutreachAnalytics,
+  useOutreachDailyStats,
+  usePhoneAnalytics,
+} from "@/hooks/use-etapa2.js";
+import type {
+  AnalyticsParams,
+  DailyStat,
+  OutreachAnalytics,
+  PhoneAnalyticsRow,
+} from "@/lib/etapa2-api.js";
 import { cn } from "@/lib/utils.js";
 
 type FunnelRow = OutreachAnalytics["funnel"][number];
@@ -25,10 +34,20 @@ const ANALYTICS_GRID_SKELETON_KEYS = [
 export function Analytics() {
   const [period, setPeriod] = useState<AnalyticsParams["period"]>("7d");
   const { data: analyticsData, isLoading } = useOutreachAnalytics({ period });
-  const { data: dailyData } = useOutreachDailyStats();
+  const { data: phoneAnalyticsData } = usePhoneAnalytics({ period });
+  const dailyRange = useMemo(() => {
+    const to = new Date();
+    let days = 7;
+    if (period === "30d") days = 30;
+    else if (period === "90d") days = 90;
+    const from = new Date(to.getTime() - days * 86400000);
+    return { from: from.toISOString(), to: to.toISOString() };
+  }, [period]);
+  const { data: dailyData } = useOutreachDailyStats(dailyRange);
 
   const analytics = analyticsData?.data;
   const daily = dailyData?.data ?? [];
+  const phoneRows = phoneAnalyticsData?.data?.phones ?? [];
 
   return (
     <PageWrapper title="Analytics Outreach">
@@ -166,6 +185,49 @@ export function Analytics() {
                 </div>
               ) : (
                 <p className="text-t3 text-sm">Nicio dată</p>
+              )}
+            </CardBody>
+          </Card>
+
+          <Card className="col-span-2 max-[900px]:col-span-1">
+            <CardHeader>
+              <CardTitle>Telefoane WhatsApp — performanță în perioada selectată</CardTitle>
+            </CardHeader>
+            <CardBody>
+              {phoneRows.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="text-t3 border-b border-s700">
+                        <th className="text-left py-1 pr-3">Telefon</th>
+                        <th className="text-right py-1 pr-3">Trimise</th>
+                        <th className="text-right py-1 pr-3">Răspunsuri</th>
+                        <th className="text-right py-1 pr-3">Reply rate</th>
+                        <th className="text-right py-1 pr-3">Cotă azi</th>
+                        <th className="text-left py-1">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {phoneRows.map((p: PhoneAnalyticsRow) => (
+                        <tr key={p.id} className="border-b border-s700/50 last:border-0">
+                          <td className="py-1 pr-3 text-t2">
+                            <div className="font-medium text-t1">{p.label}</div>
+                            <div className="text-t3">{p.phoneNumber}</div>
+                          </td>
+                          <td className="py-1 pr-3 text-right text-t1">{p.messagesSent}</td>
+                          <td className="py-1 pr-3 text-right text-t1">{p.repliesReceived}</td>
+                          <td className="py-1 pr-3 text-right text-t1">
+                            {(p.replyRate * 100).toFixed(0)}%
+                          </td>
+                          <td className="py-1 pr-3 text-right text-t1">{p.quotaUsed}</td>
+                          <td className="py-1 text-t2">{p.status}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-t3 text-sm">Niciun telefon sau nicio activitate în interval.</p>
               )}
             </CardBody>
           </Card>

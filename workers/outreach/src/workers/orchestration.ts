@@ -81,7 +81,7 @@ export function createDispatchWorker(redis: Redis): Worker {
       const startTime = Date.now();
 
       const { db } = await import("@cerniq/db");
-      const { leadJourney } = await import("@cerniq/db");
+      const { leadJourney, goldCompanies } = await import("@cerniq/db");
       const { and, eq, lte, inArray, isNull, or } = await import("@cerniq/db");
 
       // Fetch eligible leads — EXACT query from etapa2-workers-B-orchestration.md sec. 2
@@ -99,6 +99,22 @@ export function createDispatchWorker(redis: Redis): Worker {
         )
         .limit(batchSize);
 
+      const goldIds = eligibleLeads.map((l) => l.leadId);
+      const dncRows =
+        goldIds.length === 0
+          ? []
+          : await db
+              .select({ id: goldCompanies.id })
+              .from(goldCompanies)
+              .where(
+                and(
+                  eq(goldCompanies.tenantId, tenantId),
+                  inArray(goldCompanies.id, goldIds),
+                  eq(goldCompanies.doNotContact, true),
+                ),
+              );
+      const doNotContactSet = new Set(dncRows.map((r) => r.id));
+
       const result: DispatchResult = {
         totalEligibleLeads: eligibleLeads.length,
         dispatchedToWhatsApp: 0,
@@ -111,6 +127,9 @@ export function createDispatchWorker(redis: Redis): Worker {
 
       // Dispatch each lead to phone allocator
       for (const lead of eligibleLeads) {
+        if (doNotContactSet.has(lead.leadId)) {
+          continue;
+        }
         const allocJob = await phoneAllocatorQueue.add(
           "allocate",
           {

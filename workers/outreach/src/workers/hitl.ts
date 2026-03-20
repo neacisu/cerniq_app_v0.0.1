@@ -209,6 +209,17 @@ export function createSlaEnforcerWorker(redis: Redis): Worker {
           .set({ slaBreached: true, status: "ESCALATED", updatedAt: new Date() })
           .where(eq(humanReviewQueue.id, reviewId));
 
+        const { outreachNotifications } = await import("@cerniq/db");
+        await db.insert(outreachNotifications).values({
+          tenantId,
+          type: "SLA_BREACH",
+          title: "SLA review depășit",
+          body: `Review ${reviewId} — prioritate ${priority}`,
+          resourceType: "human_review",
+          resourceId: reviewId,
+          isRead: false,
+        });
+
         // Log SLA breach to audit
         await db.insert(hitlAuditLog).values({
           id: uuidv4(),
@@ -391,7 +402,7 @@ export function createReviewAssignmentWorker(redis: Redis): Worker {
   const takeoverQueue = new Queue(QUEUES.HUMAN_TAKEOVER_INITIATE, { connection });
 
   return new Worker(
-    QUEUES.HUMAN_REVIEW_QUEUE, // shares queue with manager (different job names)
+    QUEUES.HUMAN_REVIEW_ASSIGN,
     async (job: Job<ReviewAssignJobData>): Promise<void> => {
       const { reviewId, assignedUserId } = job.data;
 

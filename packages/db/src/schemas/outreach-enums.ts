@@ -77,6 +77,7 @@ export const sequenceStatusEnum = pgEnum("sequence_status_enum", [
   "DRAFT",
   "ACTIVE",
   "PAUSED",
+  "STOPPED",
   "COMPLETED",
   "ARCHIVED",
 ]);

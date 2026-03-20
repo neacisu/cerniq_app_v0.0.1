@@ -257,24 +257,20 @@ export function createBusinessHoursSchedulerWorker(redis: Redis): Worker {
 // Priority: 1=Highest (alerts), 2=Normal (outreach), 3=Low (cleanup/stats)
 // =============================================================================
 
-export function createPriorityQueueManagerWorker(redis: Redis): Worker {
+export async function executePriorityRouteJob(
+  redis: Redis,
+  job: Job<PriorityJobData>,
+): Promise<void> {
   const connection = asBullmqConnection(redis);
-  return new Worker(
-    QUEUES.PIPELINE_OUTREACH_METRICS,
-    async (job: Job<PriorityJobData>): Promise<void> => {
-      const { targetQueue, jobData, jobName, priority } = job.data;
+  const { targetQueue, jobData, jobName, priority } = job.data;
 
-      // Validate priority is 1, 2, or 3 only
-      if (![1, 2, 3].includes(priority)) {
-        throw new Error(`Invalid priority ${priority}. Must be 1, 2, or 3.`);
-      }
+  if (![1, 2, 3].includes(priority)) {
+    throw new Error(`Invalid priority ${priority}. Must be 1, 2, or 3.`);
+  }
 
-      const queue = new Queue(targetQueue, { connection });
-      await queue.add(jobName, jobData as object, {
-        priority,
-        removeOnComplete: { count: 1000 },
-      });
-    },
-    { connection, concurrency: 50 },
-  );
+  const queue = new Queue(targetQueue, { connection });
+  await queue.add(jobName, jobData as object, {
+    priority,
+    removeOnComplete: { count: 1000 },
+  });
 }

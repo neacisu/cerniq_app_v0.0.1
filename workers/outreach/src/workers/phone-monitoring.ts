@@ -293,99 +293,89 @@ export function createPhoneQuarantineWorker(redis: Redis): Worker {
 // Data from outreach.communication_log
 // =============================================================================
 
-export function createPhoneReputationWorker(redis: Redis): Worker {
+/** Logica reutilizabilă — un singur worker BullMQ pe `MONITOR_QUOTA_USAGE` (merge cu stats). */
+export async function executePhoneReputationJob(
+  redis: Redis,
+  job: Job<PhoneReputationJobData>,
+): Promise<PhoneReputationResult> {
   const connection = asBullmqConnection(redis);
   const quarantineQueue = new Queue(QUEUES.ALERT_PHONE_BANNED, { connection });
 
-  return new Worker(
-    QUEUES.MONITOR_QUOTA_USAGE, // monitors phone metrics alongside quota
-    async (job: Job<PhoneReputationJobData>): Promise<PhoneReputationResult> => {
-      const { tenantId, phoneId, windowHours = 24 } = job.data;
+  const { tenantId, phoneId, windowHours = 24 } = job.data;
 
-      const { db } = await import("@cerniq/db");
-      const { communicationLog } = await import("@cerniq/db");
-      const { waPhoneNumbers } = await import("@cerniq/db");
-      const { eq, and, gte, sql } = await import("@cerniq/db");
+  const { db } = await import("@cerniq/db");
+  const { communicationLog } = await import("@cerniq/db");
+  const { waPhoneNumbers } = await import("@cerniq/db");
+  const { eq, and, gte, sql } = await import("@cerniq/db");
 
-      /** ms/oră — grupuri de 3 cifre (Sonar S7749), echivalent `windowHours * 3_600_000`. */
-      const windowStart = new Date(Date.now() - windowHours * 3_600_000);
+  /** ms/oră — grupuri de 3 cifre (Sonar S7749), echivalent `windowHours * 3_600_000`. */
+  const windowStart = new Date(Date.now() - windowHours * 3_600_000);
 
-      // Count message metrics from communication_log
-      const metrics = await db
-        .select({
-          total: sql<number>`COUNT(*)::int`,
-          delivered: sql<number>`COUNT(*) FILTER (WHERE ${communicationLog.status} IN ('DELIVERED','READ'))::int`,
-          replied: sql<number>`COUNT(*) FILTER (WHERE ${communicationLog.direction} = 'INBOUND')::int`,
-          bounced: sql<number>`COUNT(*) FILTER (WHERE ${communicationLog.status} = 'FAILED')::int`,
-        })
-        .from(communicationLog)
-        .where(
-          and(
-            eq(communicationLog.tenantId, tenantId),
-            eq(communicationLog.phoneId, phoneId),
-            eq(communicationLog.direction, "OUTBOUND"),
-            gte(communicationLog.sentAt, windowStart),
-          ),
-        );
+  const metrics = await db
+    .select({
+      total: sql<number>`COUNT(*)::int`,
+      delivered: sql<number>`COUNT(*) FILTER (WHERE ${communicationLog.status} IN ('DELIVERED','READ'))::int`,
+      replied: sql<number>`COUNT(*) FILTER (WHERE ${communicationLog.direction} = 'INBOUND')::int`,
+      bounced: sql<number>`COUNT(*) FILTER (WHERE ${communicationLog.status} = 'FAILED')::int`,
+    })
+    .from(communicationLog)
+    .where(
+      and(
+        eq(communicationLog.tenantId, tenantId),
+        eq(communicationLog.phoneId, phoneId),
+        eq(communicationLog.direction, "OUTBOUND"),
+        gte(communicationLog.sentAt, windowStart),
+      ),
+    );
 
-      const m = metrics[0];
-      const total = m?.total ?? 0;
+  const m = metrics[0];
+  const total = m?.total ?? 0;
 
-      if (total === 0) {
-        return {
-          phoneId,
-          score: 100, // Default score when no data
-          factors: { deliveryRate: 1, replyRate: 0, bounceRate: 0, blockRate: 0 },
-          quarantineTriggered: false,
-        };
-      }
+  if (total === 0) {
+    return {
+      phoneId,
+      score: 100,
+      factors: { deliveryRate: 1, replyRate: 0, bounceRate: 0, blockRate: 0 },
+      quarantineTriggered: false,
+    };
+  }
 
-      const deliveryRate = m.delivered / total; // 0-1
-      const replyRate = m.replied / total; // 0-1 (positive)
-      const bounceRate = m.bounced / total; // 0-1 (negative)
-      // blockRate: not directly tracked — use 0 when unavailable
-      const blockRate = 0;
+  const deliveryRate = m.delivered / total;
+  const replyRate = m.replied / total;
+  const bounceRate = m.bounced / total;
+  const blockRate = 0;
 
-      // Reputation formula from spec (normalized to 0-100)
-      // Positive factors: delivery_rate * 50 + reply_rate * 30
-      // Negative factors: bounce_rate * 60 + block_rate * 80
-      const rawScore = deliveryRate * 50 + replyRate * 30 - bounceRate * 60 - blockRate * 80;
+  const rawScore = deliveryRate * 50 + replyRate * 30 - bounceRate * 60 - blockRate * 80;
+  const score = Math.min(100, Math.max(0, Math.round(rawScore)));
 
-      const score = Math.min(100, Math.max(0, Math.round(rawScore)));
+  await db
+    .update(waPhoneNumbers)
+    .set({
+      reputationScore: score,
+      updatedAt: new Date(),
+    })
+    .where(eq(waPhoneNumbers.id, phoneId));
 
-      // Update reputation score in wa_phone_numbers
-      await db
-        .update(waPhoneNumbers)
-        .set({
-          reputationScore: score,
-          updatedAt: new Date(),
-        })
-        .where(eq(waPhoneNumbers.id, phoneId));
+  let quarantineTriggered = false;
 
-      let quarantineTriggered = false;
-
-      // Sub 20: trigger quarantine
-      if (score < REPUTATION_QUARANTINE_THRESHOLD) {
-        await quarantineQueue.add(
-          "quarantine",
-          {
-            tenantId,
-            phoneId,
-            reason: "LOW_REPUTATION",
-            currentReputationScore: score,
-          },
-          { priority: 1 },
-        );
-        quarantineTriggered = true;
-      }
-
-      return {
+  if (score < REPUTATION_QUARANTINE_THRESHOLD) {
+    await quarantineQueue.add(
+      "quarantine",
+      {
+        tenantId,
         phoneId,
-        score,
-        factors: { deliveryRate, replyRate, bounceRate, blockRate },
-        quarantineTriggered,
-      };
-    },
-    { connection, concurrency: 10 },
-  );
+        reason: "LOW_REPUTATION",
+        currentReputationScore: score,
+      },
+      { priority: 1 },
+    );
+    quarantineTriggered = true;
+  }
+
+  return {
+    phoneId,
+    score,
+    factors: { deliveryRate, replyRate, bounceRate, blockRate },
+    quarantineTriggered,
+  };
 }
