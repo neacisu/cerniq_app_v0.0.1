@@ -37,12 +37,14 @@ export const navigation: NavSection[] = [
   {
     title: "ETAPA 2 — OUTREACH",
     items: [
-      { label: "Outreach Dashboard", path: "/outreach", icon: "Send" },
-      { label: "Leads", path: "/leads", icon: "Users" },
-      { label: "Sequences", path: "/sequences", icon: "BarChart3" },
-      { label: "Templates", path: "/templates", icon: "FileText" },
-      { label: "Phones WA", path: "/phones", icon: "Phone" },
-      { label: "Review Queue", path: "/review", icon: "MessageSquare" },
+      { label: "Outreach Dashboard", path: "/outreach/dashboard", icon: "Send" },
+      { label: "Leads", path: "/outreach/leads", icon: "Users" },
+      { label: "Sequences", path: "/outreach/sequences", icon: "BarChart3" },
+      { label: "Templates", path: "/outreach/templates", icon: "FileText" },
+      { label: "Phones WA", path: "/outreach/phones", icon: "Phone" },
+      { label: "Campanii Email", path: "/outreach/campaigns", icon: "Mail" },
+      { label: "Review Queue", path: "/outreach/review", icon: "MessageSquare" },
+      { label: "Analytics", path: "/outreach/analytics", icon: "TrendingUp" },
     ],
   },
   {

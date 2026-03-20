@@ -33,10 +33,18 @@ import { SettingsMappings } from "./pages/etapa1/settings-mappings.js";
 import { SettingsIntegrations } from "./pages/etapa1/settings-integrations.js";
 import { Outreach } from "./pages/etapa2/outreach.js";
 import { Leads } from "./pages/etapa2/leads.js";
+import { LeadDetail } from "./pages/etapa2/lead-detail.js";
+import { ConversationView } from "./pages/etapa2/conversation-view.js";
 import { Sequences } from "./pages/etapa2/sequences.js";
+import { SequenceNew } from "./pages/etapa2/sequence-new.js";
+import { SequenceEdit } from "./pages/etapa2/sequence-edit.js";
 import { Templates } from "./pages/etapa2/templates.js";
+import { TemplateNew } from "./pages/etapa2/template-new.js";
+import { TemplateEdit } from "./pages/etapa2/template-edit.js";
 import { Phones } from "./pages/etapa2/phones.js";
 import { Review } from "./pages/etapa2/review.js";
+import { Campaigns } from "./pages/etapa2/campaigns.js";
+import { Analytics } from "./pages/etapa2/analytics.js";
 import { AiDashboard } from "./pages/etapa3/ai-dashboard.js";
 import { Negotiations } from "./pages/etapa3/negotiations.js";
 import { Offers } from "./pages/etapa3/offers.js";
@@ -125,6 +133,20 @@ export function App() {
                     <Route path="/settings/mappings" element={<SettingsMappings />} />
                     <Route path="/settings/integrations" element={<SettingsIntegrations />} />
                     <Route path="/outreach" element={<Outreach />} />
+                    <Route path="/outreach/dashboard" element={<Outreach />} />
+                    <Route path="/outreach/leads" element={<Leads />} />
+                    <Route path="/outreach/leads/:id" element={<LeadDetail />} />
+                    <Route path="/outreach/leads/:id/conversation" element={<ConversationView />} />
+                    <Route path="/outreach/sequences" element={<Sequences />} />
+                    <Route path="/outreach/sequences/new" element={<SequenceNew />} />
+                    <Route path="/outreach/sequences/:id/edit" element={<SequenceEdit />} />
+                    <Route path="/outreach/templates" element={<Templates />} />
+                    <Route path="/outreach/templates/new" element={<TemplateNew />} />
+                    <Route path="/outreach/templates/:id/edit" element={<TemplateEdit />} />
+                    <Route path="/outreach/phones" element={<Phones />} />
+                    <Route path="/outreach/review" element={<Review />} />
+                    <Route path="/outreach/campaigns" element={<Campaigns />} />
+                    <Route path="/outreach/analytics" element={<Analytics />} />
                     <Route path="/leads" element={<Leads />} />
                     <Route path="/sequences" element={<Sequences />} />
                     <Route path="/templates" element={<Templates />} />

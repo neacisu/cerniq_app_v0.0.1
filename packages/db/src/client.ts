@@ -13,6 +13,8 @@ import * as inviteCodesSchema from "./schemas/invite-codes.js";
 import * as bronze from "./schemas/bronze.js";
 import * as silver from "./schemas/silver.js";
 import * as gold from "./schemas/gold.js";
+import * as outreachEnums from "./schemas/outreach-enums.js";
+import * as outreach from "./schemas/outreach.js";
 
 const schema = {
   ...tenants,
@@ -25,6 +27,8 @@ const schema = {
   ...bronze,
   ...silver,
   ...gold,
+  ...outreachEnums,
+  ...outreach,
 };
 
 const poolSize =

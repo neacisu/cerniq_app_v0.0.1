@@ -11,7 +11,8 @@ import {
 describe("queue-registry", () => {
   it("contains the expected number of canonical queues", () => {
     expect(() => assertQueueRegistryComplete()).not.toThrow();
-    expect(queueRegistry).toHaveLength(64);
+    // 64 Etapa 1 + 50 Etapa 2 static + 40 Etapa 2 per-phone = 154
+    expect(queueRegistry).toHaveLength(154);
   });
 
   it("uses canonical colon-based queue names", () => {
@@ -37,7 +38,7 @@ describe("queue-registry", () => {
   it("throws when the registry inventory is incomplete", () => {
     const removed = queueRegistry.pop();
     try {
-      expect(() => assertQueueRegistryComplete()).toThrow("Expected 64 queues");
+      expect(() => assertQueueRegistryComplete()).toThrow("Expected 154 queues");
     } finally {
       if (removed) queueRegistry.push(removed);
     }

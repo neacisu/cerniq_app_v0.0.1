@@ -2,6 +2,7 @@ packages:
   - apps/*
   - packages/*
   - workers/enrichment
+  - workers/outreach
   - workers/shared
 
 # Enforce a reviewed allow/deny policy for every dependency build script.

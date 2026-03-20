@@ -7,7 +7,8 @@ export type QueueConfig = {
   rateLimit?: { max: number; duration: number };
 };
 
-export const QUEUE_NAME_PATTERN = /^[a-z0-9]+(?::[a-z0-9-]+){1,3}$/;
+// Updated to allow underscores (used by Etapa 2 per-phone queue names, e.g. q:wa:phone-01)
+export const QUEUE_NAME_PATTERN = /^[a-z0-9]+(?::[a-z0-9_-]+){1,4}$/;
 
 export const QUEUES = {
   INGEST_CSV: "ingest:csv",
@@ -74,6 +75,87 @@ export const QUEUES = {
   HITL_ESCALATION: "hitl:escalate",
   HITL_RESUME_AFTER_APPROVAL: "hitl:resume",
   MAINTENANCE_IMPORT_FILE_CLEANUP: "maintenance:import-file-cleanup",
+
+  // =========================================================================
+  // ETAPA 2 — Cold Outreach Multi-Canal
+  // Source: etapa2-workers-overview.md sec. 3.2
+  // =========================================================================
+
+  // A — Quota Guardian (4 queues)
+  QUOTA_GUARDIAN_CHECK: "quota:guardian:check",
+  QUOTA_GUARDIAN_INCREMENT: "quota:guardian:increment",
+  QUOTA_GUARDIAN_RESET: "quota:guardian:reset",
+  QUOTA_BUSINESS_HOURS_CHECK: "quota:business-hours:check",
+
+  // B — Orchestration (4 queues)
+  OUTREACH_ORCHESTRATOR_DISPATCH: "outreach:orchestrator:dispatch",
+  OUTREACH_ORCHESTRATOR_ROUTER: "outreach:orchestrator:router",
+  OUTREACH_PHONE_ALLOCATOR: "outreach:phone:allocator",
+  OUTREACH_CHANNEL_SELECTOR: "outreach:channel:selector",
+
+  // C — WhatsApp non-per-phone (7 queues; per-phone generated separately)
+  WA_REPLY: "q:wa:reply",
+  WA_MESSAGE_RETRY: "wa:message:retry",
+  WA_CHAT_HISTORY_FETCH: "wa:chat:history:fetch",
+  WA_STATUS_SYNC: "wa:status:sync",
+  WA_MEDIA_SEND: "wa:media:send",
+
+  // D — Email Cold (5 queues)
+  EMAIL_COLD: "q:email:cold",
+  EMAIL_COLD_CAMPAIGN_CREATE: "email:cold:campaign:create",
+  EMAIL_COLD_CAMPAIGN_PAUSE: "email:cold:campaign:pause",
+  EMAIL_COLD_ANALYTICS_FETCH: "email:cold:analytics:fetch",
+  EMAIL_COLD_LEAD_STATUS: "email:cold:lead:status",
+
+  // E — Email Warm (3 queues)
+  EMAIL_WARM: "q:email:warm",
+  EMAIL_WARM_PROFORMA: "email:warm:proforma",
+  EMAIL_WARM_DOCUMENT: "email:warm:document",
+
+  // F — Template processing (3 queues)
+  TEMPLATE_SPINTAX_PROCESS: "template:spintax:process",
+  TEMPLATE_PERSONALIZE: "template:personalize",
+  TEMPLATE_VALIDATE: "template:validate",
+
+  // G — Webhooks (4 queues)
+  WEBHOOK_TIMELINESAI_INGEST: "webhook:timelinesai:ingest",
+  WEBHOOK_INSTANTLY_INGEST: "webhook:instantly:ingest",
+  WEBHOOK_RESEND_INGEST: "webhook:resend:ingest",
+  WEBHOOK_NORMALIZE: "webhook:normalize",
+
+  // H — Sequences (4 queues)
+  SEQUENCE_SCHEDULE_FOLLOWUP: "sequence:schedule:followup",
+  SEQUENCE_STOP: "sequence:stop",
+  SEQUENCE_ADVANCE: "sequence:advance",
+  SEQUENCE_CREATE: "sequence:create",
+
+  // I — Lead State Machine (3 queues)
+  LEAD_STATE_TRANSITION: "lead:state:transition",
+  LEAD_STATE_VALIDATE: "lead:state:validate",
+  LEAD_ASSIGN_USER: "lead:assign:user",
+
+  // J — AI (3 queues)
+  AI_SENTIMENT_ANALYZE: "ai:sentiment:analyze",
+  AI_RESPONSE_GENERATE: "ai:response:generate",
+  AI_INTENT_CLASSIFY: "ai:intent:classify",
+
+  // K — Monitoring & Alerts (6 queues)
+  MONITOR_PHONE_HEALTH: "monitor:phone:health",
+  MONITOR_EMAIL_DELIVERABILITY: "monitor:email:deliverability",
+  MONITOR_QUOTA_USAGE: "monitor:quota:usage",
+  ALERT_PHONE_OFFLINE: "alert:phone:offline",
+  ALERT_PHONE_BANNED: "alert:phone:banned",
+  ALERT_BOUNCE_HIGH: "alert:bounce:high",
+
+  // L — HITL / Human Review (4 queues)
+  HUMAN_REVIEW_QUEUE: "human:review:queue",
+  HUMAN_TAKEOVER_INITIATE: "human:takeover:initiate",
+  HUMAN_TAKEOVER_COMPLETE: "human:takeover:complete",
+  HUMAN_APPROVE_MESSAGE: "human:approve:message",
+
+  // Outreach Pipeline (2 queues)
+  PIPELINE_OUTREACH_HEALTH: "pipeline:outreach:health",
+  PIPELINE_OUTREACH_METRICS: "pipeline:outreach:metrics",
 } as const;
 
 const withProvider = (name: string, concurrency: number, provider: string): QueueConfig => ({
@@ -82,6 +164,34 @@ const withProvider = (name: string, concurrency: number, provider: string): Queu
   provider,
   rateLimit: getRateLimitForProvider(provider),
 });
+
+// =========================================================================
+// Etapa 2: Generate per-phone WhatsApp queues (40 queues total)
+// 20 initial queues + 20 followup queues
+// ADR-0060: concurrency MUST be 1 per queue (HOL blocking prevention)
+// =========================================================================
+export const WA_PHONE_COUNT = 20;
+
+/** Get queue name for a specific phone number (1-indexed) */
+export function getWaPhoneQueueName(phoneIndex: number): string {
+  return `q:wa:phone-${String(phoneIndex).padStart(2, "0")}`;
+}
+
+/** Get followup queue name for a specific phone number (1-indexed) */
+export function getWaPhoneFollowupQueueName(phoneIndex: number): string {
+  return `q:wa:phone-${String(phoneIndex).padStart(2, "0")}:followup`;
+}
+
+/** All 40 per-phone queue configs (concurrency=1 strict per ADR-0060) */
+export function buildWaPhoneQueues(): QueueConfig[] {
+  return Array.from({ length: WA_PHONE_COUNT }, (_, idx) => {
+    const i = idx + 1;
+    return [
+      { name: getWaPhoneQueueName(i), concurrency: 1 },
+      { name: getWaPhoneFollowupQueueName(i), concurrency: 1 },
+    ] as const;
+  }).flat();
+}
 
 export const queueRegistry: QueueConfig[] = [
   // A (5)
@@ -166,6 +276,90 @@ export const queueRegistry: QueueConfig[] = [
   { name: QUEUES.HITL_RESUME_AFTER_APPROVAL, concurrency: 10 },
   // Maintenance (1)
   { name: QUEUES.MAINTENANCE_IMPORT_FILE_CLEANUP, concurrency: 1 },
+
+  // =========================================================================
+  // ETAPA 2 — 52 static queues + 40 per-phone queues
+  // Source: etapa2-workers-overview.md sec. 3.2
+  // =========================================================================
+
+  // A — Quota Guardian
+  { name: QUEUES.QUOTA_GUARDIAN_CHECK, concurrency: 100 },
+  { name: QUEUES.QUOTA_GUARDIAN_INCREMENT, concurrency: 50 },
+  { name: QUEUES.QUOTA_GUARDIAN_RESET, concurrency: 1 },
+  { name: QUEUES.QUOTA_BUSINESS_HOURS_CHECK, concurrency: 20 },
+
+  // B — Orchestration
+  { name: QUEUES.OUTREACH_ORCHESTRATOR_DISPATCH, concurrency: 20 },
+  { name: QUEUES.OUTREACH_ORCHESTRATOR_ROUTER, concurrency: 20 },
+  { name: QUEUES.OUTREACH_PHONE_ALLOCATOR, concurrency: 20 },
+  { name: QUEUES.OUTREACH_CHANNEL_SELECTOR, concurrency: 20 },
+
+  // C — WhatsApp non-per-phone
+  { name: QUEUES.WA_REPLY, concurrency: 10 },
+  { name: QUEUES.WA_MESSAGE_RETRY, concurrency: 5 },
+  { name: QUEUES.WA_CHAT_HISTORY_FETCH, concurrency: 20 },
+  { name: QUEUES.WA_STATUS_SYNC, concurrency: 5 },
+  { name: QUEUES.WA_MEDIA_SEND, concurrency: 5 },
+
+  // D — Email Cold
+  { name: QUEUES.EMAIL_COLD, concurrency: 50 },
+  { name: QUEUES.EMAIL_COLD_CAMPAIGN_CREATE, concurrency: 5 },
+  { name: QUEUES.EMAIL_COLD_CAMPAIGN_PAUSE, concurrency: 10 },
+  { name: QUEUES.EMAIL_COLD_ANALYTICS_FETCH, concurrency: 5 },
+  { name: QUEUES.EMAIL_COLD_LEAD_STATUS, concurrency: 20 },
+
+  // E — Email Warm
+  { name: QUEUES.EMAIL_WARM, concurrency: 50 },
+  { name: QUEUES.EMAIL_WARM_PROFORMA, concurrency: 20 },
+  { name: QUEUES.EMAIL_WARM_DOCUMENT, concurrency: 20 },
+
+  // F — Template processing
+  { name: QUEUES.TEMPLATE_SPINTAX_PROCESS, concurrency: 100 },
+  { name: QUEUES.TEMPLATE_PERSONALIZE, concurrency: 50 },
+  { name: QUEUES.TEMPLATE_VALIDATE, concurrency: 20 },
+
+  // G — Webhooks
+  { name: QUEUES.WEBHOOK_TIMELINESAI_INGEST, concurrency: 100 },
+  { name: QUEUES.WEBHOOK_INSTANTLY_INGEST, concurrency: 100 },
+  { name: QUEUES.WEBHOOK_RESEND_INGEST, concurrency: 100 },
+  { name: QUEUES.WEBHOOK_NORMALIZE, concurrency: 100 },
+
+  // H — Sequences
+  { name: QUEUES.SEQUENCE_SCHEDULE_FOLLOWUP, concurrency: 20 },
+  { name: QUEUES.SEQUENCE_STOP, concurrency: 20 },
+  { name: QUEUES.SEQUENCE_ADVANCE, concurrency: 20 },
+  { name: QUEUES.SEQUENCE_CREATE, concurrency: 20 },
+
+  // I — Lead State Machine
+  { name: QUEUES.LEAD_STATE_TRANSITION, concurrency: 50 },
+  { name: QUEUES.LEAD_STATE_VALIDATE, concurrency: 50 },
+  { name: QUEUES.LEAD_ASSIGN_USER, concurrency: 20 },
+
+  // J — AI
+  { name: QUEUES.AI_SENTIMENT_ANALYZE, concurrency: 20 },
+  { name: QUEUES.AI_RESPONSE_GENERATE, concurrency: 10 },
+  { name: QUEUES.AI_INTENT_CLASSIFY, concurrency: 20 },
+
+  // K — Monitoring & Alerts
+  { name: QUEUES.MONITOR_PHONE_HEALTH, concurrency: 5 },
+  { name: QUEUES.MONITOR_EMAIL_DELIVERABILITY, concurrency: 5 },
+  { name: QUEUES.MONITOR_QUOTA_USAGE, concurrency: 5 },
+  { name: QUEUES.ALERT_PHONE_OFFLINE, concurrency: 10 },
+  { name: QUEUES.ALERT_PHONE_BANNED, concurrency: 10 },
+  { name: QUEUES.ALERT_BOUNCE_HIGH, concurrency: 10 },
+
+  // L — HITL
+  { name: QUEUES.HUMAN_REVIEW_QUEUE, concurrency: 50 },
+  { name: QUEUES.HUMAN_TAKEOVER_INITIATE, concurrency: 10 },
+  { name: QUEUES.HUMAN_TAKEOVER_COMPLETE, concurrency: 10 },
+  { name: QUEUES.HUMAN_APPROVE_MESSAGE, concurrency: 20 },
+
+  // Outreach Pipeline
+  { name: QUEUES.PIPELINE_OUTREACH_HEALTH, concurrency: 1 },
+  { name: QUEUES.PIPELINE_OUTREACH_METRICS, concurrency: 1 },
+
+  // C — Per-phone WhatsApp queues (40 queues, concurrency=1 strict per ADR-0060)
+  ...buildWaPhoneQueues(),
 ];
 
 export const queueNameSet = new Set(queueRegistry.map((queue) => queue.name));
@@ -179,8 +373,10 @@ export function isKnownQueueName(name: string): boolean {
 }
 
 export function assertQueueRegistryComplete() {
-  if (queueRegistry.length !== 64) {
-    throw new Error(`Expected 64 queues, got ${queueRegistry.length}`);
+  // 64 Etapa 1 queues + 50 Etapa 2 static queues + 40 Etapa 2 per-phone queues = 154
+  const expected = 154;
+  if (queueRegistry.length !== expected) {
+    throw new Error(`Expected ${expected} queues, got ${queueRegistry.length}`);
   }
 }
 

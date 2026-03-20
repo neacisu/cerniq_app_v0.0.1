@@ -49,7 +49,7 @@ describe("Etapa 1 API Integration Tests", () => {
     testUserId = user.id;
     await setSessionRequestContext({ tenantId: testTenantId, userId: testUserId });
 
-    const jwt = await app.jwt.sign({
+    const jwt = app.jwt.sign({
       id: testUserId,
       userId: testUserId,
       sub: testUserId,
@@ -124,7 +124,7 @@ describe("Etapa 1 API Integration Tests", () => {
         "active",
       );
 
-      const otherToken = await app.jwt.sign({
+      const otherToken = app.jwt.sign({
         id: otherUser.id,
         userId: otherUser.id,
         sub: otherUser.id,

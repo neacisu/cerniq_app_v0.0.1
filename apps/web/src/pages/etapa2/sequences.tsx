@@ -1,75 +1,143 @@
-import { useState } from "react";
+import type { ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
-import { Button, Card, CardBody } from "@/components/ui/index.js";
+import { Card, CardBody, Button } from "@/components/ui/index.js";
+import { Skeleton } from "@/components/ui/skeleton.js";
+import { useOutreachSequences, useUpdateSequence } from "@/hooks/use-etapa2.js";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils.js";
 
-const MOCK_SEQUENCES = [
-  {
-    id: "1",
-    name: "Agro Intro WA+Email",
-    steps: ["WA-1", "Email-1", "WA-2"],
-    leads: 1200,
-    rate: 28,
-    conversions: 45,
-    active: true,
-  },
-  {
-    id: "2",
-    name: "Follow-up Cold",
-    steps: ["Email-1", "Email-2", "WA-1"],
-    leads: 800,
-    rate: 18,
-    conversions: 22,
-    active: false,
-  },
-  {
-    id: "3",
-    name: "Re-engagement",
-    steps: ["WA-1", "Email-1"],
-    leads: 340,
-    rate: 32,
-    conversions: 18,
-    active: true,
-  },
-];
+const SEQUENCE_GRID_SKELETON_KEYS = [
+  "sequences-skeleton-1",
+  "sequences-skeleton-2",
+  "sequences-skeleton-3",
+] as const;
 
 export function Sequences() {
-  const [active, setActive] = useState<Record<string, boolean>>(
-    Object.fromEntries(MOCK_SEQUENCES.map((s) => [s.id, s.active])),
-  );
+  const navigate = useNavigate();
+  const { data, isLoading } = useOutreachSequences();
+  const { mutateAsync: updateSeq } = useUpdateSequence();
 
-  return (
-    <PageWrapper title="Sequences">
+  const sequences = data?.data ?? [];
+
+  const handleToggle = async (id: string, isActive: boolean) => {
+    try {
+      await updateSeq({ id, payload: { isActive: !isActive } });
+      toast.success(isActive ? "Secvență oprită" : "Secvență activată");
+    } catch {
+      toast.error("Eroare la actualizare");
+    }
+  };
+
+  let listBody: ReactNode;
+  if (isLoading) {
+    listBody = (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {MOCK_SEQUENCES.map((seq) => (
-          <Card key={seq.id}>
+        {SEQUENCE_GRID_SKELETON_KEYS.map((k) => (
+          <Skeleton key={k} className="h-48 rounded-lg" />
+        ))}
+      </div>
+    );
+  } else if (sequences.length === 0) {
+    listBody = (
+      <div className="flex flex-col items-center justify-center py-16 text-t3">
+        <p className="font-medium text-t1">Nicio secvență</p>
+        <p className="text-sm mt-1 mb-4">Creează prima ta secvență de outreach</p>
+        <Button size="sm" onClick={() => navigate("/outreach/sequences/new")}>
+          Creează Secvență
+        </Button>
+      </div>
+    );
+  } else {
+    listBody = (
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {sequences.map((seq) => (
+          <Card
+            key={seq.id}
+            className={cn("hover:border-b5 cursor-pointer", !seq.isActive && "opacity-70")}
+            onClick={() => navigate(`/outreach/sequences/${seq.id}`)}
+          >
             <CardBody>
-              <h3 className="mb-2 font-semibold text-t1">{seq.name}</h3>
-              <div className="flex flex-wrap gap-1 mb-3">
-                {seq.steps.map((s) => (
-                  <span
-                    key={`${seq.id}-${s}`}
-                    className="rounded bg-s700 px-2 py-0.5 text-xs text-t2"
-                  >
-                    {s}
-                  </span>
-                ))}
+              <div className="flex items-start justify-between mb-2">
+                <h3 className="font-semibold text-t1 truncate">{seq.name}</h3>
+                <span
+                  className={cn(
+                    "ml-2 rounded-full px-2 py-0.5 text-[10px] font-medium flex-shrink-0",
+                    seq.isActive ? "bg-green-900/30 text-green-400" : "bg-s600 text-t3",
+                  )}
+                >
+                  {seq.isActive ? "Activ" : "Inactiv"}
+                </span>
               </div>
+
+              {seq.description && (
+                <p className="mb-2 text-xs text-t3 line-clamp-2">{seq.description}</p>
+              )}
+
+              {seq.steps && seq.steps.length > 0 && (
+                <div className="flex flex-wrap gap-1 mb-3">
+                  {seq.steps.map((step) => (
+                    <span
+                      key={step.id}
+                      className="rounded bg-s700 px-2 py-0.5 text-xs text-t2"
+                      title={`Pas ${step.stepNumber}: ${step.channel} (+${step.delayHours}h)`}
+                    >
+                      {step.stepNumber}. {step.channel}
+                    </span>
+                  ))}
+                </div>
+              )}
+
               <div className="mb-4 flex gap-4 text-xs text-t3">
-                <span>{seq.leads} leads</span>
-                <span>{seq.rate}% rate</span>
-                <span>{seq.conversions} conv.</span>
+                <span>{seq.totalEnrolled} înrolați</span>
+                <span>{seq.totalCompletions} completări</span>
+                <span>{seq.totalConversions} conv.</span>
               </div>
-              <Button
-                variant={active[seq.id] ? "danger" : "success"}
-                size="sm"
-                onClick={() => setActive((p) => ({ ...p, [seq.id]: !p[seq.id] }))}
-              >
-                {active[seq.id] ? "Pause" : "Activate"}
-              </Button>
+
+              <div className="flex gap-2">
+                <Button
+                  variant={seq.isActive ? "danger" : "success"}
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void handleToggle(seq.id, seq.isActive);
+                  }}
+                >
+                  {seq.isActive ? "Oprește" : "Activează"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/outreach/sequences/${seq.id}/edit`);
+                  }}
+                >
+                  Editează
+                </Button>
+              </div>
             </CardBody>
           </Card>
         ))}
       </div>
+    );
+  }
+
+  return (
+    <PageWrapper title="Sequences">
+      <div className="flex items-center justify-between mb-5">
+        <p className="text-sm text-t3">
+          {sequences.length} secvențe{" "}
+          <span className="text-green-400">
+            ({sequences.filter((s) => s.isActive).length} active)
+          </span>
+        </p>
+        <Button size="sm" onClick={() => navigate("/outreach/sequences/new")}>
+          + Secvență Nouă
+        </Button>
+      </div>
+
+      {listBody}
     </PageWrapper>
   );
 }

@@ -3,20 +3,21 @@
 ## Centralized Architecture Decision Records
 
 **Total ADR-uri:** 109  
-**Actualizat:** 12 Martie 2026
+**Actualizat:** 20 Martie 2026  
+**Etapa 2 Sprint 4:** ✅ IMPLEMENTAT COMPLET (20 Martie 2026)
 
 ---
 
 ## SUMAR PER ETAPĂ
 
-| Etapă               | ADR Count | Focus Principal                         |
-| ------------------- | --------- | --------------------------------------- |
-| [Etapa 0](#etapa-0) | 33        | Infrastructure, DevOps, Security, CI/CD |
-| [Etapa 1](#etapa-1) | 20        | Data Pipeline, Workers, Schema          |
-| [Etapa 2](#etapa-2) | 15        | Outreach, WhatsApp, Email               |
-| [Etapa 3](#etapa-3) | 20        | AI, RAG, Negotiation                    |
-| [Etapa 4](#etapa-4) | 10        | Payments, Logistics                     |
-| [Etapa 5](#etapa-5) | 10        | Campaigns, Churn, Graph                 |
+| Etapă | ADR Count | Focus principal |
+| --- | --- | --- |
+| [Etapa 0](#etapa-0-infrastructure-devops-security) | 33 | Infrastructure, DevOps, Security, CI/CD |
+| [Etapa 1](#etapa-1-data-pipeline-workers-schema) | 20 | Data Pipeline, Workers, Schema |
+| [Etapa 2](#etapa-2-outreach-whatsapp-email) | 15 | Outreach, WhatsApp, Email |
+| [Etapa 3](#etapa-3-ai-rag-negotiation) | 20 | AI, RAG, Negotiation |
+| [Etapa 4](#etapa-4-payments-logistics) | 10 | Payments, Logistics |
+| [Etapa 5](#etapa-5-campaigns-churn-graph) | 10 | Campaigns, Churn, Graph |
 
 ---
 
@@ -89,23 +90,25 @@
 
 ## ETAPA 2: OUTREACH, WHATSAPP, EMAIL
 
-| ID                                                                          | Titlu                              | Status   | Data       |
-| --------------------------------------------------------------------------- | ---------------------------------- | -------- | ---------- |
-| [ADR-0053](./ADR%20Etapa%202/ADR-0053-Multi-Channel-Outreach-Strategy.md)   | Multi-Channel Outreach Strategy    | Accepted | 2026-01-15 |
-| [ADR-0054](./ADR%20Etapa%202/ADR-0054-Quota-Guardian-Pattern.md)            | Quota Guardian Pattern             | Accepted | 2026-01-15 |
-| [ADR-0055](./ADR%20Etapa%202/ADR-0055-Sticky-Phone-Assignment.md)           | Sticky Phone Assignment            | Accepted | 2026-01-15 |
-| [ADR-0056](./ADR%20Etapa%202/ADR-0056-Business-Hours-Enforcement.md)        | Business Hours Enforcement         | Accepted | 2026-01-15 |
-| [ADR-0057](./ADR%20Etapa%202/ADR-0057-Jitter-Pattern-for-Human-Behavior.md) | Jitter Pattern for Human Behavior  | Accepted | 2026-01-15 |
-| [ADR-0058](./ADR%20Etapa%202/ADR-0058-Spintax-for-Message-Uniqueness.md)    | Spintax for Message Uniqueness     | Accepted | 2026-01-15 |
-| [ADR-0059](./ADR%20Etapa%202/ADR-0059-Channel-Segregation-Cold-vs-Warm.md)  | Channel Segregation (Cold vs Warm) | Accepted | 2026-01-15 |
-| [ADR-0060](./ADR%20Etapa%202/ADR-0060-Head-of-Line-Blocking-Prevention.md)  | Head-of-Line Blocking Prevention   | Accepted | 2026-01-15 |
-| [ADR-0061](./ADR%20Etapa%202/ADR-0061-Webhook-Normalization-Pattern.md)     | Webhook Normalization Pattern      | Accepted | 2026-01-15 |
-| [ADR-0062](./ADR%20Etapa%202/ADR-0062-Lead-State-Machine.md)                | Lead State Machine                 | Accepted | 2026-01-15 |
-| [ADR-0063](./ADR%20Etapa%202/ADR-0063-Sentiment-Based-Routing.md)           | Sentiment-Based Routing            | Accepted | 2026-01-15 |
-| [ADR-0064](./ADR%20Etapa%202/ADR-0064-Human-Takeover-Protocol.md)           | Human Takeover Protocol            | Accepted | 2026-01-15 |
-| [ADR-0065](./ADR%20Etapa%202/ADR-0065-Sequence-Based-Follow-up.md)          | Sequence-Based Follow-up           | Accepted | 2026-01-15 |
-| [ADR-0066](./ADR%20Etapa%202/ADR-0066-Circuit-Breaker-for-Bounce-Rate.md)   | Circuit Breaker for Bounce Rate    | Accepted | 2026-01-15 |
-| [ADR-0067](./ADR%20Etapa%202/ADR-0067-Phone-Health-Monitoring.md)           | Phone Health Monitoring            | Accepted | 2026-01-15 |
+> ✅ **Sprint 4 Frontend+API Implementat** (20 Martie 2026): Toate endpoint-urile API, hook-urile React Query, paginile UI și testele de integrare au fost implementate.
+
+| ID                                                                          | Titlu                              | Status   | Data       | Implementat |
+| --------------------------------------------------------------------------- | ---------------------------------- | -------- | ---------- | ----------- |
+| [ADR-0053](./ADR%20Etapa%202/ADR-0053-Multi-Channel-Outreach-Strategy.md)   | Multi-Channel Outreach Strategy    | Accepted | 2026-01-15 | ✅ S2-S4    |
+| [ADR-0054](./ADR%20Etapa%202/ADR-0054-Quota-Guardian-Pattern.md)            | Quota Guardian Pattern             | Accepted | 2026-01-15 | ✅ S2-PR1   |
+| [ADR-0055](./ADR%20Etapa%202/ADR-0055-Sticky-Phone-Assignment.md)           | Sticky Phone Assignment            | Accepted | 2026-01-15 | ✅ S2-PR3   |
+| [ADR-0056](./ADR%20Etapa%202/ADR-0056-Business-Hours-Enforcement.md)        | Business Hours Enforcement         | Accepted | 2026-01-15 | ✅ S2-PR4   |
+| [ADR-0057](./ADR%20Etapa%202/ADR-0057-Jitter-Pattern-for-Human-Behavior.md) | Jitter Pattern for Human Behavior  | Accepted | 2026-01-15 | ✅ S2-PR5   |
+| [ADR-0058](./ADR%20Etapa%202/ADR-0058-Spintax-for-Message-Uniqueness.md)    | Spintax for Message Uniqueness     | Accepted | 2026-01-15 | ✅ S4-PR12  |
+| [ADR-0059](./ADR%20Etapa%202/ADR-0059-Channel-Segregation-Cold-vs-Warm.md)  | Channel Segregation (Cold vs Warm) | Accepted | 2026-01-15 | ✅ S2-PR7   |
+| [ADR-0060](./ADR%20Etapa%202/ADR-0060-Head-of-Line-Blocking-Prevention.md)  | Head-of-Line Blocking Prevention   | Accepted | 2026-01-15 | ✅ S2-PR5   |
+| [ADR-0061](./ADR%20Etapa%202/ADR-0061-Webhook-Normalization-Pattern.md)     | Webhook Normalization Pattern      | Accepted | 2026-01-15 | ✅ S3-PR1   |
+| [ADR-0062](./ADR%20Etapa%202/ADR-0062-Lead-State-Machine.md)                | Lead State Machine                 | Accepted | 2026-01-15 | ✅ S3-PR3   |
+| [ADR-0063](./ADR%20Etapa%202/ADR-0063-Sentiment-Based-Routing.md)           | Sentiment-Based Routing            | Accepted | 2026-01-15 | ✅ S3-PR4   |
+| [ADR-0064](./ADR%20Etapa%202/ADR-0064-Human-Takeover-Protocol.md)           | Human Takeover Protocol            | Accepted | 2026-01-15 | ✅ S3-PR5   |
+| [ADR-0065](./ADR%20Etapa%202/ADR-0065-Sequence-Based-Follow-up.md)          | Sequence-Based Follow-up           | Accepted | 2026-01-15 | ✅ S3-PR2   |
+| [ADR-0066](./ADR%20Etapa%202/ADR-0066-Circuit-Breaker-for-Bounce-Rate.md)   | Circuit Breaker for Bounce Rate    | Accepted | 2026-01-15 | ✅ S1-PR5   |
+| [ADR-0067](./ADR%20Etapa%202/ADR-0067-Phone-Health-Monitoring.md)           | Phone Health Monitoring            | Accepted | 2026-01-15 | ✅ S2-PR6   |
 
 ## ETAPA 3: AI, RAG, NEGOTIATION
 

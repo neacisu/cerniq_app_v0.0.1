@@ -1,0 +1,46 @@
+{
+  "name": "@cerniq/integrations",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./timelinesai": {
+      "types": "./src/timelinesai/index.ts",
+      "import": "./dist/timelinesai/index.js",
+      "default": "./dist/timelinesai/index.js"
+    },
+    "./instantly": {
+      "types": "./src/instantly/index.ts",
+      "import": "./dist/instantly/index.js",
+      "default": "./dist/instantly/index.js"
+    },
+    "./resend": {
+      "types": "./src/resend/index.ts",
+      "import": "./dist/resend/index.js",
+      "default": "./dist/resend/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "bottleneck": "^2.19.5",
+    "svix": "^1.62.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.2"
+  }
+}
