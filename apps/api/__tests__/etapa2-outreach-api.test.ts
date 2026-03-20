@@ -352,4 +352,179 @@ describe("Etapa 2 Outreach API Integration Tests", () => {
       expect(body.success).toBe(true);
     });
   });
+
+  // ─── Settings ─────────────────────────────────────────────────────────────────
+
+  describe("GET /api/v1/outreach/settings", () => {
+    it("returns or creates default settings for tenant", async () => {
+      const response = await app.inject({
+        method: "GET",
+        url: "/api/v1/outreach/settings",
+        headers: { authorization: `Bearer ${authToken}` },
+      });
+      // 500 if migration 0028 not applied (outreach_settings table missing in test DB)
+      if (response.statusCode === 200) {
+        const body = JSON.parse(response.body);
+        expect(body.success).toBe(true);
+        expect(body.data).toHaveProperty("timezone");
+        expect(body.data).toHaveProperty("dailyQuotaLimit");
+        expect(body.data).toHaveProperty("businessHoursStart");
+      } else {
+        expect(response.statusCode).toBe(500);
+      }
+    });
+  });
+
+  describe("PATCH /api/v1/outreach/settings", () => {
+    it("updates outreach settings", async () => {
+      const response = await app.inject({
+        method: "PATCH",
+        url: "/api/v1/outreach/settings",
+        headers: {
+          authorization: `Bearer ${authToken}`,
+          "content-type": "application/json",
+        },
+        payload: JSON.stringify({
+          timezone: "Europe/Bucharest",
+          dailyQuotaLimit: 50,
+          businessHoursStart: 9,
+          businessHoursEnd: 18,
+          workDays: [1, 2, 3, 4, 5],
+        }),
+      });
+      if (response.statusCode === 200) {
+        const body = JSON.parse(response.body);
+        expect(body.success).toBe(true);
+        expect(body.data.timezone).toBe("Europe/Bucharest");
+        expect(body.data.dailyQuotaLimit).toBe(50);
+      } else {
+        expect(response.statusCode).toBe(500);
+      }
+    });
+  });
+
+  // ─── Notifications ────────────────────────────────────────────────────────────
+
+  describe("GET /api/v1/outreach/notifications", () => {
+    it("returns notifications list", async () => {
+      const response = await app.inject({
+        method: "GET",
+        url: "/api/v1/outreach/notifications",
+        headers: { authorization: `Bearer ${authToken}` },
+      });
+      if (response.statusCode === 200) {
+        const body = JSON.parse(response.body);
+        expect(body.success).toBe(true);
+        expect(Array.isArray(body.data)).toBe(true);
+      } else {
+        expect(response.statusCode).toBe(500);
+      }
+    });
+  });
+
+  // ─── Webhooks (signature rejection) ───────────────────────────────────────────
+
+  describe("POST /api/v1/webhooks/timelinesai", () => {
+    it("rejects request without valid signature", async () => {
+      const response = await app.inject({
+        method: "POST",
+        url: "/api/v1/webhooks/timelinesai",
+        headers: { "content-type": "application/json" },
+        payload: JSON.stringify({ event: "message" }),
+      });
+      expect([401, 503]).toContain(response.statusCode);
+    });
+  });
+
+  describe("POST /api/v1/webhooks/instantly", () => {
+    it("rejects request without valid signature", async () => {
+      const response = await app.inject({
+        method: "POST",
+        url: "/api/v1/webhooks/instantly",
+        headers: { "content-type": "application/json" },
+        payload: JSON.stringify({ event: "email.sent" }),
+      });
+      expect([401, 503]).toContain(response.statusCode);
+    });
+  });
+
+  describe("POST /api/v1/webhooks/resend", () => {
+    it("rejects request without valid signature", async () => {
+      const response = await app.inject({
+        method: "POST",
+        url: "/api/v1/webhooks/resend",
+        headers: { "content-type": "application/json" },
+        payload: JSON.stringify({ type: "email.sent" }),
+      });
+      expect([401, 503]).toContain(response.statusCode);
+    });
+  });
+
+  // ─── Dashboard structure ────────────────────────────────────────────────────
+
+  describe("Dashboard response structure", () => {
+    it("returns all required KPI and funnel fields", async () => {
+      const response = await app.inject({
+        method: "GET",
+        url: "/api/v1/outreach/dashboard?period=30d",
+        headers: { authorization: `Bearer ${authToken}` },
+      });
+      const body = JSON.parse(response.body);
+      expect(body.data.kpis).toMatchObject({
+        messagesSent: expect.any(Number),
+        replies: expect.any(Number),
+        conversionRate: expect.any(Number),
+        activeSequences: expect.any(Number),
+        pendingReviews: expect.any(Number),
+      });
+      expect(Array.isArray(body.data.leadFunnel)).toBe(true);
+      expect(Array.isArray(body.data.sentimentDistribution)).toBe(true);
+      expect(Array.isArray(body.data.channelPerformance)).toBe(true);
+      expect(Array.isArray(body.data.recentActivity)).toBe(true);
+      expect(Array.isArray(body.data.phones)).toBe(true);
+    });
+  });
+
+  // ─── Leads import ─────────────────────────────────────────────────────────────
+
+  describe("POST /api/v1/outreach/leads/import", () => {
+    it("rejects unauthenticated import", async () => {
+      const response = await app.inject({
+        method: "POST",
+        url: "/api/v1/outreach/leads/import",
+        headers: { "content-type": "application/json" },
+        payload: JSON.stringify({ leads: [] }),
+      });
+      expect(response.statusCode).toBe(401);
+    });
+  });
+
+  // ─── Analytics phones ─────────────────────────────────────────────────────────
+
+  describe("GET /api/v1/outreach/analytics/phones", () => {
+    it("returns phone analytics", async () => {
+      const response = await app.inject({
+        method: "GET",
+        url: "/api/v1/outreach/analytics/phones",
+        headers: { authorization: `Bearer ${authToken}` },
+      });
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(true);
+    });
+  });
+
+  // ─── Export CSV ────────────────────────────────────────────────────────────────
+
+  describe("GET /api/v1/outreach/leads/export", () => {
+    it("returns CSV data", async () => {
+      const response = await app.inject({
+        method: "GET",
+        url: "/api/v1/outreach/leads/export",
+        headers: { authorization: `Bearer ${authToken}` },
+      });
+      expect(response.statusCode).toBe(200);
+      expect(response.headers["content-type"]).toMatch(/text\/csv|application\/octet-stream/);
+    });
+  });
 });

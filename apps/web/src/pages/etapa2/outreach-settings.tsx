@@ -20,6 +20,16 @@ type OutreachSettingsFormProps = {
   readonly initial: OutreachSettings;
 };
 
+const WEEKDAYS: ReadonlyArray<{ value: number; label: string }> = [
+  { value: 1, label: "Lun" },
+  { value: 2, label: "Mar" },
+  { value: 3, label: "Mie" },
+  { value: 4, label: "Joi" },
+  { value: 5, label: "Vin" },
+  { value: 6, label: "Sâm" },
+  { value: 7, label: "Dum" },
+];
+
 function OutreachSettingsForm({ initial }: OutreachSettingsFormProps) {
   const patch = usePatchOutreachSettings();
 
@@ -30,12 +40,19 @@ function OutreachSettingsForm({ initial }: OutreachSettingsFormProps) {
   const [followupQuotaLimit, setFollowupQuotaLimit] = useState(initial.followupQuotaLimit);
   const [emailSignature, setEmailSignature] = useState(initial.emailSignature ?? "");
   const [waReplyTimeoutMinutes, setWaReplyTimeoutMinutes] = useState(initial.waReplyTimeoutMinutes);
+  const [workDays, setWorkDays] = useState<number[]>(initial.workDays ?? [1, 2, 3, 4, 5]);
+
+  const toggleWorkDay = (day: number) =>
+    setWorkDays((prev) =>
+      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day].sort((a, b) => a - b),
+    );
 
   const handleSave = async () => {
     try {
       await patch.mutateAsync({
         businessHoursStart,
         businessHoursEnd,
+        workDays,
         timezone,
         dailyQuotaLimit,
         followupQuotaLimit,
@@ -80,6 +97,25 @@ function OutreachSettingsForm({ initial }: OutreachSettingsFormProps) {
             className="rounded-md border border-s600 bg-s700 px-3 py-2 text-t1"
           />
         </label>
+        <div className="flex flex-col gap-1 text-sm">
+          <span className="text-t3">Zile de lucru (trimitere mesaje)</span>
+          <div className="flex gap-2 flex-wrap">
+            {WEEKDAYS.map((wd) => (
+              <button
+                key={wd.value}
+                type="button"
+                onClick={() => toggleWorkDay(wd.value)}
+                className={`rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
+                  workDays.includes(wd.value)
+                    ? "border-b5 bg-b5/20 text-b5"
+                    : "border-s600 bg-s700 text-t3 hover:border-s500"
+                }`}
+              >
+                {wd.label}
+              </button>
+            ))}
+          </div>
+        </div>
         <label className="flex flex-col gap-1 text-sm">
           <span className="text-t3">Fus orar (IANA)</span>
           <input

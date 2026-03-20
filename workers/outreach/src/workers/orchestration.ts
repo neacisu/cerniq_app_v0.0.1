@@ -304,15 +304,46 @@ export function createChannelSelectorWorker(redis: Redis): Worker {
   return new Worker(
     QUEUES.OUTREACH_CHANNEL_SELECTOR,
     async (job: Job<ChannelSelectorJobData>): Promise<ChannelSelectorResult> => {
-      const { tenantId, currentState, hasPhone, phoneId } = job.data;
+      const { tenantId, leadId, currentState, hasPhone, phoneId, journeyId } = job.data;
 
-      // Get phone index to determine which queue (1-indexed)
+      const { db } = await import("@cerniq/db");
+      const { waPhoneNumbers, goldCompanies, leadJourney } = await import("@cerniq/db");
+      const { eq, and } = await import("@cerniq/db");
+
+      // ── GDPR / DNC per-channel gate (real-time query, not stale data) ──
+      const [dncFlags] = await db
+        .select({
+          doNotWhatsapp: goldCompanies.doNotWhatsapp,
+          doNotEmail: goldCompanies.doNotEmail,
+          consentWhatsapp: goldCompanies.consentWhatsapp,
+          consentEmailMarketing: goldCompanies.consentEmailMarketing,
+          emailOptedOut: leadJourney.emailOptedOut,
+          whatsappOptedOut: leadJourney.whatsappOptedOut,
+        })
+        .from(leadJourney)
+        .innerJoin(goldCompanies, eq(leadJourney.leadId, goldCompanies.id))
+        .where(and(eq(leadJourney.id, journeyId), eq(leadJourney.tenantId, tenantId)))
+        .limit(1);
+
+      const waBlocked =
+        dncFlags?.doNotWhatsapp === true ||
+        dncFlags?.whatsappOptedOut === true ||
+        dncFlags?.consentWhatsapp === false;
+      const emailBlocked =
+        dncFlags?.doNotEmail === true ||
+        dncFlags?.emailOptedOut === true ||
+        dncFlags?.consentEmailMarketing === false;
+
+      if (waBlocked && emailBlocked) {
+        throw new Error(
+          `All channels blocked by DNC/consent for lead ${leadId} (journey ${journeyId}). ` +
+            `WA blocked=${waBlocked}, Email blocked=${emailBlocked}`,
+        );
+      }
+
+      // ── Phone index for WA queue routing ──
       let phoneIndex = 1;
       if (phoneId) {
-        const { db } = await import("@cerniq/db");
-        const { waPhoneNumbers } = await import("@cerniq/db");
-        const { eq, and } = await import("@cerniq/db");
-
         const phones = await db
           .select()
           .from(waPhoneNumbers)
@@ -329,8 +360,8 @@ export function createChannelSelectorWorker(redis: Redis): Worker {
         phoneIndex = phoneIdx >= 0 ? phoneIdx + 1 : 1;
       }
 
-      // Route by channel scoring (ADR-0059)
-      if (hasPhone && phoneId) {
+      // ── Route by channel scoring (ADR-0059) with GDPR enforcement ──
+      if (hasPhone && phoneId && !waBlocked) {
         return {
           channel: "WHATSAPP",
           targetQueue: getWaPhoneQueueName(Math.min(phoneIndex, 20)),
@@ -338,7 +369,7 @@ export function createChannelSelectorWorker(redis: Redis): Worker {
         };
       }
 
-      if (EMAIL_WARM_STAGES.has(currentState)) {
+      if (EMAIL_WARM_STAGES.has(currentState) && !emailBlocked) {
         return {
           channel: "EMAIL_WARM",
           targetQueue: QUEUES.EMAIL_WARM,
@@ -346,7 +377,7 @@ export function createChannelSelectorWorker(redis: Redis): Worker {
         };
       }
 
-      if (EMAIL_COLD_STAGES.has(currentState)) {
+      if (EMAIL_COLD_STAGES.has(currentState) && !emailBlocked) {
         return {
           channel: "EMAIL_COLD",
           targetQueue: QUEUES.EMAIL_COLD,
@@ -354,7 +385,18 @@ export function createChannelSelectorWorker(redis: Redis): Worker {
         };
       }
 
-      throw new Error(`No channel available for state ${currentState}`);
+      // Fallback: WA was preferred but blocked → email cold if allowed by ADR-0059
+      if (!emailBlocked && EMAIL_COLD_STAGES.has(currentState)) {
+        return {
+          channel: "EMAIL_COLD",
+          targetQueue: QUEUES.EMAIL_COLD,
+          score: CHANNEL_SCORES.EMAIL_COLD,
+        };
+      }
+
+      throw new Error(
+        `No available channel for state=${currentState}, waBlocked=${waBlocked}, emailBlocked=${emailBlocked}`,
+      );
     },
     { connection: conn, concurrency: 20 },
   );

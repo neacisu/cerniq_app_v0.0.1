@@ -147,12 +147,14 @@ export const QUEUES = {
   ALERT_PHONE_BANNED: "alert:phone:banned",
   ALERT_BOUNCE_HIGH: "alert:bounce:high",
 
-  // L — HITL / Human Review (5 queues)
+  // L — HITL / Human Review (7 queues)
   HUMAN_REVIEW_QUEUE: "human:review:queue",
   HUMAN_REVIEW_ASSIGN: "human:review:assign",
   HUMAN_TAKEOVER_INITIATE: "human:takeover:initiate",
   HUMAN_TAKEOVER_COMPLETE: "human:takeover:complete",
   HUMAN_APPROVE_MESSAGE: "human:approve:message",
+  HUMAN_REVIEW_ESCALATION: "human:review:escalation",
+  HUMAN_REVIEW_AUDIT_LOG: "human:review:audit-log",
 
   // Outreach Pipeline (2 queues)
   PIPELINE_OUTREACH_HEALTH: "pipeline:outreach:health",
@@ -358,6 +360,8 @@ export const queueRegistry: QueueConfig[] = [
   { name: QUEUES.HUMAN_TAKEOVER_INITIATE, concurrency: 10 },
   { name: QUEUES.HUMAN_TAKEOVER_COMPLETE, concurrency: 10 },
   { name: QUEUES.HUMAN_APPROVE_MESSAGE, concurrency: 20 },
+  { name: QUEUES.HUMAN_REVIEW_ESCALATION, concurrency: 10 },
+  { name: QUEUES.HUMAN_REVIEW_AUDIT_LOG, concurrency: 50 },
 
   // Outreach Pipeline
   { name: QUEUES.PIPELINE_OUTREACH_HEALTH, concurrency: 1 },
@@ -379,8 +383,8 @@ export function isKnownQueueName(name: string): boolean {
 }
 
 export function assertQueueRegistryComplete() {
-  // 64 Etapa 1 queues + 52 Etapa 2 static queues + 40 Etapa 2 per-phone queues = 156
-  const expected = 156;
+  // 64 Etapa 1 queues + 54 Etapa 2 static queues + 40 Etapa 2 per-phone queues = 158
+  const expected = 158;
   if (queueRegistry.length !== expected) {
     throw new Error(`Expected ${expected} queues, got ${queueRegistry.length}`);
   }

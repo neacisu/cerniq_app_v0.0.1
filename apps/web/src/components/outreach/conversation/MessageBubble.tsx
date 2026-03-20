@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import type { MessageDirection, MessageStatus, LeadChannel } from "@/lib/etapa2-api";
-import { ChannelIcon } from "@/components/outreach/shared/ChannelIcon";
+import { ChannelIcon } from "@/components/outreach/shared/ChannelIcon.js";
 
 const STATUS_CONFIG: Record<MessageStatus, { icon: string; colorClass: string; label: string }> = {
   QUEUED: { icon: "🕐", colorClass: "text-gray-400", label: "În coadă" },

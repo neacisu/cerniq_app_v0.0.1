@@ -83,11 +83,14 @@ export interface OutreachLead {
   company?: {
     id: string;
     name: string;
+    denumire?: string;
     cui: string;
     judet: string;
     localitate: string;
     telefon: string | null;
     email: string | null;
+    whatsappNumber: string | null;
+    contactName: string | null;
     website: string | null;
   };
   communications?: CommunicationLog[];

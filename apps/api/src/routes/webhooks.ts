@@ -83,6 +83,7 @@ export async function webhooksRoutes(app: FastifyInstance) {
     const sig =
       getHeader(request, "x-timelines-signature") ?? getHeader(request, "X-Timelines-Signature");
     if (!verifyTimelinesAIWebhookSignature(raw, sig, secret)) {
+      request.log.warn("TimelinesAI webhook: invalid signature");
       return reply.status(401).send({ success: false, error: "Invalid signature" });
     }
     await timelinesQueue.add("ingest", {
@@ -109,6 +110,7 @@ export async function webhooksRoutes(app: FastifyInstance) {
         secret,
       )
     ) {
+      request.log.warn("Instantly webhook: invalid signature");
       return reply.status(401).send({ success: false, error: "Invalid signature" });
     }
     await instantlyQueue.add("ingest", {
@@ -132,6 +134,7 @@ export async function webhooksRoutes(app: FastifyInstance) {
     try {
       await verifyResendWebhook(raw.toString("utf8"), hdrs, secret);
     } catch {
+      request.log.warn("Resend webhook: invalid signature (Svix verification failed)");
       return reply.status(401).send({ success: false, error: "Invalid signature" });
     }
     await resendQueue.add("ingest", {

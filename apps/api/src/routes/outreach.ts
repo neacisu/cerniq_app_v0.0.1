@@ -411,6 +411,17 @@ async function loadOutreachMetrics(tenantId: string, period: "7d" | "30d" | "90d
   const days = ANALYTICS_PERIOD_DAYS[period];
   const from = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
+  const FUNNEL_ORDER = sql`case ${leadJourney.currentState}
+    when 'COLD' then 1
+    when 'CONTACTED_WA' then 2
+    when 'CONTACTED_EMAIL' then 3
+    when 'WARM_REPLY' then 4
+    when 'NEGOTIATION' then 5
+    when 'CONVERTED' then 6
+    when 'DEAD' then 7
+    when 'PAUSED' then 8
+    else 9 end`;
+
   const funnel = await db
     .select({
       state: leadJourney.currentState,
@@ -418,7 +429,8 @@ async function loadOutreachMetrics(tenantId: string, period: "7d" | "30d" | "90d
     })
     .from(leadJourney)
     .where(eq(leadJourney.tenantId, tenantId))
-    .groupBy(leadJourney.currentState);
+    .groupBy(leadJourney.currentState)
+    .orderBy(FUNNEL_ORDER);
 
   const sentimentStats = await db
     .select({
@@ -714,6 +726,8 @@ export async function outreachRoutes(app: FastifyInstance) {
   const outreachEnrollLimiter = app.rateLimit({ max: 50, timeWindow: "1 minute" });
   const outreachPreviewLimiter = app.rateLimit({ max: 30, timeWindow: "1 minute" });
   const outreachTakeoverLimiter = app.rateLimit({ max: 5, timeWindow: "1 minute" });
+  const outreachWriteLimiter = app.rateLimit({ max: 30, timeWindow: "1 minute" });
+  const outreachResolveLimiter = app.rateLimit({ max: 20, timeWindow: "1 minute" });
 
   const outreachSettingsPatchSchema = z.object({
     businessHoursStart: z.number().int().min(0).max(23).optional(),
@@ -824,7 +838,7 @@ export async function outreachRoutes(app: FastifyInstance) {
 
   // ─── Leads ────────────────────────────────────────────────────────────────
 
-  app.post("/leads", { ...authOpts }, async (req, reply) => {
+  app.post("/leads", { ...authOpts, preHandler: [outreachWriteLimiter] }, async (req, reply) => {
     const tenantId = requireTenantId(req);
     const body = createOutreachLeadsSchema.parse(req.body);
 
@@ -1442,37 +1456,41 @@ export async function outreachRoutes(app: FastifyInstance) {
     return reply.send({ success: true, data: { ...seq, steps } });
   });
 
-  app.post("/sequences", { ...authOpts }, async (req, reply) => {
-    const tenantId = requireTenantId(req);
-    const body = createSequenceSchema.parse(req.body);
+  app.post(
+    "/sequences",
+    { ...authOpts, preHandler: [outreachWriteLimiter] },
+    async (req, reply) => {
+      const tenantId = requireTenantId(req);
+      const body = createSequenceSchema.parse(req.body);
 
-    const [seq] = await db
-      .insert(outreachSequences)
-      .values({
-        tenantId,
-        name: body.name,
-        description: body.description,
-        primaryChannel: mapApiEmailAggregateToChannel(body.primaryChannel),
-        isActive: false,
-        stopOnReply: body.stopOnReply,
-        respectBusinessHours: body.respectBusinessHours,
-      })
-      .returning();
+      const [seq] = await db
+        .insert(outreachSequences)
+        .values({
+          tenantId,
+          name: body.name,
+          description: body.description,
+          primaryChannel: mapApiEmailAggregateToChannel(body.primaryChannel),
+          isActive: false,
+          stopOnReply: body.stopOnReply,
+          respectBusinessHours: body.respectBusinessHours,
+        })
+        .returning();
 
-    for (let i = 0; i < body.steps.length; i++) {
-      const step = body.steps[i];
-      await db.insert(outreachSequenceSteps).values({
-        sequenceId: seq.id,
-        stepNumber: i + 1,
-        channel: step.channel,
-        templateId: step.templateId ?? null,
-        delayHours: step.delayHours,
-        delayMinutes: step.delayMinutes,
-      });
-    }
+      for (let i = 0; i < body.steps.length; i++) {
+        const step = body.steps[i];
+        await db.insert(outreachSequenceSteps).values({
+          sequenceId: seq.id,
+          stepNumber: i + 1,
+          channel: step.channel,
+          templateId: step.templateId ?? null,
+          delayHours: step.delayHours,
+          delayMinutes: step.delayMinutes,
+        });
+      }
 
-    return reply.status(201).send({ success: true, data: seq });
-  });
+      return reply.status(201).send({ success: true, data: seq });
+    },
+  );
 
   app.patch("/sequences/:id", { ...authOpts }, async (req, reply) => {
     const tenantId = requireTenantId(req);
@@ -1569,7 +1587,9 @@ export async function outreachRoutes(app: FastifyInstance) {
 
       const queue = createQueue("sequence:create");
       let enrolled = 0;
-      let skipped = 0;
+      let skippedNotFound = 0;
+      let skippedDnc = 0;
+      let skippedAlreadyEnrolled = 0;
 
       for (const journeyId of body.leadIds) {
         const [row] = await db
@@ -1577,6 +1597,8 @@ export async function outreachRoutes(app: FastifyInstance) {
             journeyPk: leadJourney.id,
             leadId: leadJourney.leadId,
             doNotContact: goldCompanies.doNotContact,
+            doNotEmail: goldCompanies.doNotEmail,
+            doNotWhatsapp: goldCompanies.doNotWhatsapp,
           })
           .from(leadJourney)
           .innerJoin(goldCompanies, eq(leadJourney.leadId, goldCompanies.id))
@@ -1584,11 +1606,27 @@ export async function outreachRoutes(app: FastifyInstance) {
           .limit(1);
 
         if (!row) {
-          skipped += 1;
+          skippedNotFound += 1;
           continue;
         }
-        if (row.doNotContact) {
-          skipped += 1;
+        if (row.doNotContact || (row.doNotEmail && row.doNotWhatsapp)) {
+          skippedDnc += 1;
+          continue;
+        }
+
+        const [activeEnrollment] = await db
+          .select({ id: sequenceEnrollments.id })
+          .from(sequenceEnrollments)
+          .where(
+            and(
+              eq(sequenceEnrollments.journeyId, row.journeyPk),
+              inArray(sequenceEnrollments.status, ["ACTIVE", "PAUSED"]),
+            ),
+          )
+          .limit(1);
+
+        if (activeEnrollment) {
+          skippedAlreadyEnrolled += 1;
           continue;
         }
 
@@ -1608,7 +1646,7 @@ export async function outreachRoutes(app: FastifyInstance) {
 
       return reply.send({
         success: true,
-        data: { enrolled, skipped },
+        data: { enrolled, skippedNotFound, skippedDnc, skippedAlreadyEnrolled },
       });
     },
   );
@@ -1745,40 +1783,44 @@ export async function outreachRoutes(app: FastifyInstance) {
     return reply.send({ success: true, data: updated });
   });
 
-  app.post("/reviews/:id/resolve", { ...authOpts }, async (req, reply) => {
-    const tenantId = requireTenantId(req);
-    const actorId = getActorId(req);
-    const { id } = idParamSchema.parse(req.params);
-    const body = resolveReviewSchema.parse(req.body);
+  app.post(
+    "/reviews/:id/resolve",
+    { ...authOpts, preHandler: [outreachResolveLimiter] },
+    async (req, reply) => {
+      const tenantId = requireTenantId(req);
+      const actorId = getActorId(req);
+      const { id } = idParamSchema.parse(req.params);
+      const body = resolveReviewSchema.parse(req.body);
 
-    const [updated] = await db
-      .update(humanReviewQueue)
-      .set({
-        status: "RESOLVED",
-        resolutionAction: body.action,
-        resolvedAt: new Date(),
-        resolvedBy: actorId,
-        resolutionNotes: body.notes ?? null,
-        editedContent: body.editedContent ?? null,
-        updatedAt: new Date(),
-      })
-      .where(and(eq(humanReviewQueue.id, id), eq(humanReviewQueue.tenantId, tenantId)))
-      .returning();
+      const [updated] = await db
+        .update(humanReviewQueue)
+        .set({
+          status: "RESOLVED",
+          resolutionAction: body.action,
+          resolvedAt: new Date(),
+          resolvedBy: actorId,
+          resolutionNotes: body.notes ?? null,
+          editedContent: body.editedContent ?? null,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(humanReviewQueue.id, id), eq(humanReviewQueue.tenantId, tenantId)))
+        .returning();
 
-    if (!updated) return reply.status(404).send({ success: false, error: "Review not found" });
+      if (!updated) return reply.status(404).send({ success: false, error: "Review not found" });
 
-    const resolveQueue = createQueue("human:approve:message");
-    await resolveQueue.add("resolve-review", {
-      reviewId: id,
-      tenantId,
-      actorId,
-      action: body.action,
-      editedContent: body.editedContent,
-      notes: body.notes,
-    });
+      const resolveQueue = createQueue("human:approve:message");
+      await resolveQueue.add("resolve-review", {
+        reviewId: id,
+        tenantId,
+        actorId,
+        action: body.action,
+        editedContent: body.editedContent,
+        notes: body.notes,
+      });
 
-    return reply.send({ success: true, data: updated });
-  });
+      return reply.send({ success: true, data: updated });
+    },
+  );
 
   // ─── Templates ────────────────────────────────────────────────────────────
 
@@ -1832,30 +1874,34 @@ export async function outreachRoutes(app: FastifyInstance) {
     return reply.send({ success: true, data: tmpl });
   });
 
-  app.post("/templates", { ...authOpts }, async (req, reply) => {
-    const tenantId = requireTenantId(req);
-    const body = createTemplateSchema.parse(req.body);
+  app.post(
+    "/templates",
+    { ...authOpts, preHandler: [outreachWriteLimiter] },
+    async (req, reply) => {
+      const tenantId = requireTenantId(req);
+      const body = createTemplateSchema.parse(req.body);
 
-    const [tmpl] = await db
-      .insert(outreachTemplates)
-      .values({
-        tenantId,
-        name: body.name,
-        description: body.description ?? null,
-        channel: mapApiEmailAggregateToChannel(body.channel),
-        subject: body.subject ?? null,
-        bodyTemplate: body.bodyTemplate,
-        templateType: body.templateType,
-        status: "DRAFT" as const,
-        variables: body.variables,
-        hasMedia: body.hasMedia,
-        mediaType: body.mediaType ?? null,
-        mediaUrl: body.mediaUrl ?? null,
-      })
-      .returning();
+      const [tmpl] = await db
+        .insert(outreachTemplates)
+        .values({
+          tenantId,
+          name: body.name,
+          description: body.description ?? null,
+          channel: mapApiEmailAggregateToChannel(body.channel),
+          subject: body.subject ?? null,
+          bodyTemplate: body.bodyTemplate,
+          templateType: body.templateType,
+          status: "DRAFT" as const,
+          variables: body.variables,
+          hasMedia: body.hasMedia,
+          mediaType: body.mediaType ?? null,
+          mediaUrl: body.mediaUrl ?? null,
+        })
+        .returning();
 
-    return reply.status(201).send({ success: true, data: tmpl });
-  });
+      return reply.status(201).send({ success: true, data: tmpl });
+    },
+  );
 
   app.patch("/templates/:id", { ...authOpts }, async (req, reply) => {
     const tenantId = requireTenantId(req);

@@ -180,7 +180,7 @@ export function createReviewQueueManagerWorker(redis: Redis): Worker {
 
 export function createSlaEnforcerWorker(redis: Redis): Worker {
   const connection = asBullmqConnection(redis);
-  const escalationQueue = new Queue(QUEUES.HUMAN_TAKEOVER_COMPLETE, { connection });
+  const escalationQueue = new Queue(QUEUES.HUMAN_REVIEW_ESCALATION, { connection });
 
   return new Worker(
     QUEUES.HUMAN_APPROVE_MESSAGE,
@@ -373,7 +373,7 @@ export interface HitlAuditJobData {
 export function createHitlAuditLoggerWorker(redis: Redis): Worker {
   const connection = asBullmqConnection(redis);
   return new Worker(
-    QUEUES.LEAD_ASSIGN_USER, // reuse for audit events
+    QUEUES.HUMAN_REVIEW_AUDIT_LOG,
     async (job: Job<HitlAuditJobData>): Promise<void> => {
       const { tenantId, reviewId, actorUserId, eventType, payload } = job.data;
 
@@ -448,7 +448,7 @@ export function createReviewAssignmentWorker(redis: Redis): Worker {
 export function createEscalationWorker(redis: Redis): Worker {
   const connection = asBullmqConnection(redis);
   return new Worker(
-    QUEUES.HUMAN_TAKEOVER_COMPLETE,
+    QUEUES.HUMAN_REVIEW_ESCALATION,
     async (job: Job<EscalationJobData>): Promise<void> => {
       const { tenantId, reviewId, escalationReason } = job.data;
 
