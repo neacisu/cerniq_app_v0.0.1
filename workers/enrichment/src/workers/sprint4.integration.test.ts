@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+const TENANT_ID = "11111111-1111-4111-8111-111111111111";
+const COMPANY_ID = "22222222-2222-4222-8222-222222222222";
+const APPROVAL_TASK_ID = "33333333-3333-4333-8333-333333333333";
+
 beforeEach(() => {
   vi.resetModules();
   vi.clearAllMocks();
@@ -36,21 +40,17 @@ describe("S4 integration - quality rollup", () => {
       sql: (parts: TemplateStringsArray) => parts.join(""),
     }));
     vi.doMock("@cerniq/worker-shared", () => ({
-      getRedisConnectionOptions: vi.fn(() => ({})),
-      getQueuePrefix: vi.fn(() => "cerniq"),
-    }));
-    vi.doMock("bullmq", () => ({
-      Queue: class {
-        async add() {}
-        async close() {}
-      },
+      createQueue: vi.fn(() => ({
+        add: vi.fn(async () => undefined),
+        close: vi.fn(async () => undefined),
+      })),
     }));
     vi.doMock("./pipeline-utils.js", () => ({ createHitlApprovalTask: vi.fn(async () => "a1") }));
 
     const { qualityRollupProcessor } = await import("./o2-quality-rollup.js");
     const result = await qualityRollupProcessor({
       id: "j1",
-      data: { tenantId: "t1", companyId: "c1", correlationId: "corr-1" },
+      data: { tenantId: TENANT_ID, companyId: COMPANY_ID, correlationId: "corr-1" },
     } as never);
 
     expect(dbMock.update).toHaveBeenCalled();
@@ -61,6 +61,9 @@ describe("S4 integration - quality rollup", () => {
 
 describe("S4 integration - orchestrator", () => {
   it("p1 declanseaza joburi post_validation", async () => {
+    const sql = Object.assign((parts: TemplateStringsArray) => parts.join(""), {
+      raw: (value: string) => value,
+    });
     const dbMock = {
       query: {
         silverCompanies: {
@@ -84,24 +87,24 @@ describe("S4 integration - orchestrator", () => {
       db: dbMock,
       setSessionTenantId: vi.fn(async () => undefined),
       silverCompanies: { id: "id" },
+      sql,
     }));
     vi.doMock("@cerniq/worker-shared", () => ({
-      getRedisConnectionOptions: vi.fn(() => ({})),
-      getQueuePrefix: vi.fn(() => "cerniq"),
+      validateJobData: vi.fn(),
+      silverEnrichmentDurationSeconds: { observe: vi.fn() },
+      silverEnrichmentErrorsTotal: { inc: vi.fn() },
     }));
-    vi.doMock("bullmq", () => ({
-      Queue: class {
-        async add(name: string, payload: unknown) {
-          await add(name, payload);
-        }
-        async close() {}
-      },
-    }));
+    vi.doMock("./pipeline-utils.js", () => ({ addQueueJob: add }));
 
     const { pipelineOrchestratorProcessor } = await import("./p1-orchestrate.js");
     const result = await pipelineOrchestratorProcessor({
       id: "j2",
-      data: { tenantId: "t1", companyId: "c1", stage: "post_validation", correlationId: "corr-2" },
+      data: {
+        tenantId: TENANT_ID,
+        companyId: COMPANY_ID,
+        stage: "post_validation",
+        correlationId: "corr-2",
+      },
     } as never);
 
     expect(add).toHaveBeenCalled();
@@ -128,29 +131,23 @@ describe("S4 integration - error handler replay", () => {
       sql: (parts: TemplateStringsArray) => parts.join(""),
     }));
     vi.doMock("@cerniq/worker-shared", () => ({
-      getRedisConnectionOptions: vi.fn(() => ({})),
-      getQueuePrefix: vi.fn(() => "cerniq"),
+      createQueue: vi.fn(() => ({
+        add,
+        close: vi.fn(async () => undefined),
+      })),
     }));
     vi.doMock("./pipeline-utils.js", () => ({ createHitlApprovalTask: vi.fn(async () => "a1") }));
-    vi.doMock("bullmq", () => ({
-      Queue: class {
-        async add(name: string, payload: unknown) {
-          await add(name, payload);
-        }
-        async close() {}
-      },
-    }));
 
     const { pipelineErrorHandlerProcessor } = await import("./p4-error-handler.js");
     const result = await pipelineErrorHandlerProcessor({
       id: "job-p4",
       data: {
-        tenantId: "t1",
-        companyId: "c1",
+        tenantId: TENANT_ID,
+        companyId: COMPANY_ID,
         errorType: "API_TIMEOUT",
         errorMessage: "timeout",
         sourceWorker: "enrich:anaf:fiscal-status",
-        sourcePayload: { tenantId: "t1", companyId: "c1", cui: "12345678" },
+        sourcePayload: { tenantId: TENANT_ID, companyId: COMPANY_ID, cui: "12345678" },
         retryCount: 1,
         maxRetries: 3,
       },
@@ -229,20 +226,30 @@ describe("S4 integration - HITL resume worker", () => {
       addQueueJob,
       patchCompanyMetadata,
     }));
+    vi.doMock("@cerniq/worker-shared", () => ({
+      validateJobData: vi.fn(),
+      hitlTasksResolvedTotal: { inc: vi.fn() },
+      hitlResolutionTimeSeconds: { observe: vi.fn() },
+      createQueue: vi.fn(() => ({
+        add: vi.fn(async () => undefined),
+        close: vi.fn(async () => undefined),
+      })),
+    }));
     vi.doMock("@cerniq/db", () => ({
       db: {
         query: {
           approvalTasks: {
             findFirst: vi.fn(async () => ({
-              id: "a1",
-              tenantId: "t1",
-              entityId: "c1",
+              id: APPROVAL_TASK_ID,
+              tenantId: TENANT_ID,
+              entityId: COMPANY_ID,
               status: "approved",
               decision: "approve",
               type: "quality_review",
               approvalType: "quality_review",
               metadata: {},
               decisionMetadata: {},
+              createdAt: new Date(),
               decidedAt: new Date(),
             })),
           },
@@ -264,13 +271,13 @@ describe("S4 integration - HITL resume worker", () => {
     const { hitlResumeAfterApprovalProcessor } = await import("./hitl-resume-after-approval.js");
     const result = await hitlResumeAfterApprovalProcessor({
       id: "job-hitl-resume",
-      data: { tenantId: "t1", approvalTaskId: "a1", correlationId: "corr-2" },
+      data: { tenantId: TENANT_ID, approvalTaskId: APPROVAL_TASK_ID, correlationId: "corr-2" },
     } as never);
 
     expect(set).toHaveBeenCalled();
     expect(addQueueJob).toHaveBeenCalledWith(
       "pipeline:promote:gold",
-      expect.objectContaining({ tenantId: "t1", companyId: "c1", force: true }),
+      expect.objectContaining({ tenantId: TENANT_ID, companyId: COMPANY_ID, force: true }),
     );
     expect(patchCompanyMetadata).not.toHaveBeenCalled();
     expect(result).toMatchObject({ ok: true, status: "success", handled: "quality_review" });

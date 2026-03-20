@@ -1,5 +1,38 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
-import {
+import { randomUUID } from "node:crypto";
+import type { Job } from "bullmq";
+
+type DbModule = typeof import("@cerniq/db");
+type ProcessorBundle = {
+  pipelineOrchestratorProcessor: typeof import("./p1-orchestrate.js").pipelineOrchestratorProcessor;
+  promoteToGoldProcessor: typeof import("./p2-promote-to-gold.js").promoteToGoldProcessor;
+  dedupFuzzyMatchProcessor: typeof import("./m2-dedup-fuzzy-match.js").dedupFuzzyMatchProcessor;
+  qualityRollupProcessor: typeof import("./o2-quality-rollup.js").qualityRollupProcessor;
+  hitlResumeAfterApprovalProcessor: typeof import("./hitl-resume-after-approval.js").hitlResumeAfterApprovalProcessor;
+  hitlEscalationProcessor: typeof import("./hitl-escalation.js").hitlEscalationProcessor;
+};
+
+const hasDatabase = Boolean(process.env.DATABASE_URL);
+const dbModule: DbModule | null = hasDatabase ? await import("@cerniq/db") : null;
+const processors: ProcessorBundle | null = hasDatabase
+  ? {
+      ...(await import("./p1-orchestrate.js")),
+      ...(await import("./p2-promote-to-gold.js")),
+      ...(await import("./m2-dedup-fuzzy-match.js")),
+      ...(await import("./o2-quality-rollup.js")),
+      ...(await import("./hitl-resume-after-approval.js")),
+      ...(await import("./hitl-escalation.js")),
+    }
+  : null;
+
+function requireLoaded<T>(value: T | null, name: string): T {
+  if (!value) {
+    throw new Error(`${name} unavailable without DATABASE_URL`);
+  }
+  return value;
+}
+
+const {
   db,
   tenants,
   users,
@@ -10,17 +43,18 @@ import {
   setSessionTenantId,
   eq,
   TEST_PASSWORD_HASH,
-} from "@cerniq/db";
-import { randomUUID } from "node:crypto";
-import { pipelineOrchestratorProcessor } from "./p1-orchestrate.js";
-import { promoteToGoldProcessor } from "./p2-promote-to-gold.js";
-import { dedupFuzzyMatchProcessor } from "./m2-dedup-fuzzy-match.js";
-import { qualityRollupProcessor } from "./o2-quality-rollup.js";
-import { hitlResumeAfterApprovalProcessor } from "./hitl-resume-after-approval.js";
-import { hitlEscalationProcessor } from "./hitl-escalation.js";
-import type { Job } from "bullmq";
+} = hasDatabase ? requireLoaded(dbModule, "db module") : ({} as DbModule);
 
-describe("Critical Workers Integration Tests", () => {
+const {
+  pipelineOrchestratorProcessor,
+  promoteToGoldProcessor,
+  dedupFuzzyMatchProcessor,
+  qualityRollupProcessor,
+  hitlResumeAfterApprovalProcessor,
+  hitlEscalationProcessor,
+} = hasDatabase ? requireLoaded(processors, "processors") : ({} as ProcessorBundle);
+
+describe.skipIf(!hasDatabase)("Critical Workers Integration Tests", () => {
   let testTenantId: string;
   let testUserId: string;
 

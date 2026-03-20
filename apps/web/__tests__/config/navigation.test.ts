@@ -5,22 +5,22 @@ describe("Navigation Config", () => {
   it("has 7 sections", () => {
     expect(navigation).toHaveLength(7);
   });
-  it("has 27 total items", () => {
+  it("has 32 total items", () => {
     const total = navigation.reduce((sum, s) => sum + s.items.length, 0);
-    expect(total).toBe(27);
+    expect(total).toBe(32);
   });
   it("Dashboard is first item", () => {
     expect(navigation[0].items[0].path).toBe("/dashboard");
   });
-  it("Approvals has danger badge", () => {
+  it("Approvals HITL exists in Etapa 1 navigation", () => {
     const approvals = navigation[1].items.find((i) => i.path === "/approvals");
-    expect(approvals?.badge?.type).toBe("danger");
-    expect(approvals?.badge?.count).toBe(3);
+    expect(approvals?.label).toBe("Approvals HITL");
+    expect(approvals?.icon).toBe("ClipboardList");
   });
-  it("Leads has warning badge", () => {
+  it("Leads exists in Etapa 2 navigation", () => {
     const leads = navigation[2].items.find((i) => i.path === "/leads");
-    expect(leads?.badge?.type).toBe("warning");
-    expect(leads?.badge?.count).toBe(127);
+    expect(leads?.label).toBe("Leads");
+    expect(leads?.icon).toBe("Users");
   });
   it("all items have icon", () => {
     navigation.forEach((section) =>

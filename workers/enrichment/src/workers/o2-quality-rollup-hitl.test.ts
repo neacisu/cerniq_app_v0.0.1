@@ -1,5 +1,30 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
-import {
+import { randomUUID } from "node:crypto";
+import type { Job } from "bullmq";
+
+type DbModule = typeof import("@cerniq/db");
+type ProcessorBundle = {
+  qualityRollupProcessor: typeof import("./o2-quality-rollup.js").qualityRollupProcessor;
+  hitlResumeAfterApprovalProcessor: typeof import("./hitl-resume-after-approval.js").hitlResumeAfterApprovalProcessor;
+};
+
+const hasDatabase = Boolean(process.env.DATABASE_URL);
+const dbModule: DbModule | null = hasDatabase ? await import("@cerniq/db") : null;
+const processors: ProcessorBundle | null = hasDatabase
+  ? {
+      ...(await import("./o2-quality-rollup.js")),
+      ...(await import("./hitl-resume-after-approval.js")),
+    }
+  : null;
+
+function requireLoaded<T>(value: T | null, name: string): T {
+  if (!value) {
+    throw new Error(`${name} unavailable without DATABASE_URL`);
+  }
+  return value;
+}
+
+const {
   db,
   tenants,
   users,
@@ -8,13 +33,13 @@ import {
   setSessionTenantId,
   eq,
   TEST_PASSWORD_HASH,
-} from "@cerniq/db";
-import { randomUUID } from "node:crypto";
-import { qualityRollupProcessor } from "./o2-quality-rollup.js";
-import { hitlResumeAfterApprovalProcessor } from "./hitl-resume-after-approval.js";
-import type { Job } from "bullmq";
+} = hasDatabase ? requireLoaded(dbModule, "db module") : ({} as DbModule);
 
-describe("HITL Quality Review Integration Tests", () => {
+const { qualityRollupProcessor, hitlResumeAfterApprovalProcessor } = hasDatabase
+  ? requireLoaded(processors, "processors")
+  : ({} as ProcessorBundle);
+
+describe.skipIf(!hasDatabase)("HITL Quality Review Integration Tests", () => {
   let testTenantId: string;
   let testUserId: string;
 

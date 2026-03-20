@@ -26,6 +26,10 @@ async function tenantContextPlugin(app: FastifyInstance) {
   app.decorateRequest("tenantId", null);
 
   const setRequestContext = async (tenantId: string | null, userId: string | null) => {
+    if (!tenantId && !userId) {
+      return;
+    }
+
     const tenantValue = tenantId ?? "00000000-0000-0000-0000-000000000000";
     const userValue = userId ?? "00000000-0000-0000-0000-000000000000";
     await db.execute(sql`
@@ -48,12 +52,24 @@ async function tenantContextPlugin(app: FastifyInstance) {
     try {
       await request.jwtVerify();
       const user = request.user as
-        | { tenantId?: string; tenant_id?: string; role?: string; id?: string; sub?: string }
+        | {
+            tenantId?: string;
+            tenant_id?: string;
+            role?: string;
+            id?: string;
+            userId?: string;
+            sub?: string;
+          }
         | undefined;
       if (user?.tenantId) tenantId = user.tenantId;
       else if (user?.tenant_id) tenantId = user.tenant_id;
-      userId =
-        typeof user?.id === "string" ? user.id : typeof user?.sub === "string" ? user.sub : null;
+      let explicitUserId: string | null = null;
+      if (typeof user?.id === "string") {
+        explicitUserId = user.id;
+      } else if (typeof user?.userId === "string") {
+        explicitUserId = user.userId;
+      }
+      userId = explicitUserId ?? (typeof user?.sub === "string" ? user.sub : null);
       role = user?.role;
     } catch {
       request.tenantId = null;

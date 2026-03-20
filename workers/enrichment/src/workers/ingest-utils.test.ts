@@ -5,6 +5,24 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
+function mockWorkerShared() {
+  return {
+    QUEUES: {
+      NORMALIZE_NAME: "normalize:name",
+      NORMALIZE_EMAIL: "normalize:email",
+      NORMALIZE_PHONE: "normalize:phone",
+      NORMALIZE_ADDRESS: "normalize:address",
+      ENRICH_BRONZE_ANAF: "enrich:bronze:anaf",
+    },
+    bronzeContactsIngestedTotal: { inc: vi.fn() },
+    createQueue: vi.fn(() => ({
+      add: vi.fn(async () => undefined),
+      close: vi.fn(async () => undefined),
+    })),
+    sanitizeNrRegCom: vi.fn((value: string) => value || null),
+  };
+}
+
 describe("ingest-utils", () => {
   it("splits oversized bronze inserts into smaller chunks", async () => {
     let currentPayload: Array<Record<string, unknown>> = [];
@@ -16,10 +34,9 @@ describe("ingest-utils", () => {
       }
       return currentPayload.map(() => ({ id: `bronze-${++idCounter}` }));
     });
-    const onConflictDoNothing = vi.fn(() => ({ returning }));
     const values = vi.fn((payload: Array<Record<string, unknown>>) => {
       currentPayload = payload;
-      return { onConflictDoNothing };
+      return { returning };
     });
     const insert = vi.fn(() => ({ values }));
 
@@ -27,20 +44,20 @@ describe("ingest-utils", () => {
       db: { insert },
       bronzeContacts: { id: "id" },
       bronzeImportBatches: { id: "id", metadata: "metadata" },
+      computeStableSourcePayloadHash: vi.fn((row: Record<string, unknown>) => JSON.stringify(row)),
+      resolveBronzeContactIdentity: vi.fn(async () => ({ status: "resolved" as const })),
       setSessionTenantId: vi.fn(async () => undefined),
       sql: (parts: TemplateStringsArray) => parts.join(""),
     }));
 
-    vi.doMock("@cerniq/worker-shared", () => ({
-      createQueue: vi.fn(() => ({
-        add: vi.fn(async () => undefined),
-        close: vi.fn(async () => undefined),
-      })),
-      normalizeNrRegCom: vi.fn((value: string) => value || null),
-    }));
+    vi.doMock("@cerniq/worker-shared", mockWorkerShared);
 
     vi.doMock("../lib/cui-validation.js", () => ({
       sanitizeCui: vi.fn((value: string) => value || null),
+    }));
+
+    vi.doMock("./pipeline-utils.js", () => ({
+      createHitlApprovalTask: vi.fn(async () => undefined),
     }));
 
     const { insertBronzeRows } = await import("./ingest-utils.js");
@@ -63,10 +80,9 @@ describe("ingest-utils", () => {
     const returning = vi.fn(async () => {
       throw new Error('Failed query: insert into "bronze"."bronze_contacts" invalid byte sequence');
     });
-    const onConflictDoNothing = vi.fn(() => ({ returning }));
     const values = vi.fn((payload: Array<Record<string, unknown>>) => {
       currentPayload = payload;
-      return { onConflictDoNothing };
+      return { returning };
     });
     const insert = vi.fn(() => ({ values }));
 
@@ -74,20 +90,20 @@ describe("ingest-utils", () => {
       db: { insert },
       bronzeContacts: { id: "id" },
       bronzeImportBatches: { id: "id", metadata: "metadata" },
+      computeStableSourcePayloadHash: vi.fn((row: Record<string, unknown>) => JSON.stringify(row)),
+      resolveBronzeContactIdentity: vi.fn(async () => ({ status: "resolved" as const })),
       setSessionTenantId: vi.fn(async () => undefined),
       sql: (parts: TemplateStringsArray) => parts.join(""),
     }));
 
-    vi.doMock("@cerniq/worker-shared", () => ({
-      createQueue: vi.fn(() => ({
-        add: vi.fn(async () => undefined),
-        close: vi.fn(async () => undefined),
-      })),
-      normalizeNrRegCom: vi.fn((value: string) => value || null),
-    }));
+    vi.doMock("@cerniq/worker-shared", mockWorkerShared);
 
     vi.doMock("../lib/cui-validation.js", () => ({
       sanitizeCui: vi.fn((value: string) => value || null),
+    }));
+
+    vi.doMock("./pipeline-utils.js", () => ({
+      createHitlApprovalTask: vi.fn(async () => undefined),
     }));
 
     const { insertBronzeRows } = await import("./ingest-utils.js");

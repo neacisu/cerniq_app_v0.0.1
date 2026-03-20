@@ -179,8 +179,8 @@ export function isKnownQueueName(name: string): boolean {
 }
 
 export function assertQueueRegistryComplete() {
-  if (queueRegistry.length !== 63) {
-    throw new Error(`Expected 63 queues, got ${queueRegistry.length}`);
+  if (queueRegistry.length !== 64) {
+    throw new Error(`Expected 64 queues, got ${queueRegistry.length}`);
   }
 }
 

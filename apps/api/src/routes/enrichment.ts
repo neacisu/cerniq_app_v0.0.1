@@ -32,6 +32,7 @@ const successObjectResponseSchema = z.object({
 const approvalDetailResponseSchema = z.object({
   success: z.literal(true),
   data: z.record(z.string(), z.unknown()),
+  entityData: z.record(z.string(), z.unknown()).nullable().optional(),
 });
 
 export async function enrichmentRoutes(app: FastifyInstance) {

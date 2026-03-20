@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+const TENANT_ID = "11111111-1111-4111-8111-111111111111";
+const SILVER_COMPANY_ID = "22222222-2222-4222-8222-222222222222";
+const GOLD_COMPANY_ID = "33333333-3333-4333-8333-333333333333";
+const APPROVAL_TASK_ID = "44444444-4444-4444-8444-444444444444";
+const COMPANY_B_ID = "55555555-5555-4555-8555-555555555555";
+
 beforeEach(() => {
   vi.resetModules();
   vi.clearAllMocks();
@@ -8,14 +14,14 @@ beforeEach(() => {
 describe("S3.PR8 integration - full pipeline Bronze -> Silver -> Gold", () => {
   it("promote-to-gold creeaza gold record din silver eligibil", async () => {
     const silverRow = {
-      id: "s1",
-      tenantId: "t1",
+      id: SILVER_COMPANY_ID,
+      tenantId: TENANT_ID,
       cui: "12345678",
       denumire: "Agro SRL",
       statusFirma: "ACTIVA",
       codCaenPrincipal: "0111",
       adresa: "Cluj-Napoca",
-      sourceBronzeId: "b1",
+      sourceBronzeId: GOLD_COMPANY_ID,
       promotionStatus: "eligible",
       totalQualityScore: "85",
       numarAngajati: 25,
@@ -28,7 +34,7 @@ describe("S3.PR8 integration - full pipeline Bronze -> Silver -> Gold", () => {
       metadata: { agriculturalCrops: true },
     };
 
-    const insertReturning = vi.fn(async () => [{ id: "g1" }]);
+    const insertReturning = vi.fn(async () => [{ id: GOLD_COMPANY_ID }]);
     const onConflictDoNothing = vi.fn(() => ({ returning: insertReturning }));
     const insertValues = vi.fn(() => ({ onConflictDoNothing, returning: insertReturning }));
     const whereUpdate = vi.fn(async () => undefined);
@@ -51,22 +57,26 @@ describe("S3.PR8 integration - full pipeline Bronze -> Silver -> Gold", () => {
       silverEnrichmentLog: {},
       sql: (parts: TemplateStringsArray) => parts.join(""),
     }));
+    vi.doMock("@cerniq/worker-shared", () => ({
+      validateJobData: vi.fn(),
+      goldCompaniesTotal: { inc: vi.fn() },
+    }));
 
     const { promoteToGoldProcessor } = await import("./p2-promote-to-gold.js");
     const result = await promoteToGoldProcessor({
       id: "j-p2",
-      data: { tenantId: "t1", companyId: "s1", correlationId: "corr-p2" },
+      data: { tenantId: TENANT_ID, companyId: SILVER_COMPANY_ID, correlationId: "corr-p2" },
     } as never);
 
     expect(dbMock.insert).toHaveBeenCalled();
     expect(insertValues).toHaveBeenCalledWith(
       expect.objectContaining({
-        tenantId: "t1",
-        silverId: "s1",
+        tenantId: TENANT_ID,
+        silverId: SILVER_COMPANY_ID,
         cui: "12345678",
       }),
     );
-    expect(result).toMatchObject({ ok: true, status: "success", goldId: "g1" });
+    expect(result).toMatchObject({ ok: true, status: "success", goldId: GOLD_COMPANY_ID });
   });
 });
 
@@ -195,15 +205,16 @@ describe("S3.PR8 integration - HITL decision flow", () => {
     const addMock = vi.fn(async () => undefined);
     const patchMock = vi.fn(async () => undefined);
     const findFirst = vi.fn(async () => ({
-      id: "a1",
-      tenantId: "t1",
-      entityId: "c1",
+      id: APPROVAL_TASK_ID,
+      tenantId: TENANT_ID,
+      entityId: SILVER_COMPANY_ID,
       status: "approved",
       decision: "approve",
       type: "dedup_review",
       approvalType: "dedup_review",
-      metadata: { companyA: "c1", companyB: "c2" },
+      metadata: { companyA: SILVER_COMPANY_ID, companyB: COMPANY_B_ID },
       decisionMetadata: { action: "merge" },
+      createdAt: new Date(),
       decidedAt: new Date(),
     }));
     const where = vi.fn(async () => undefined);
@@ -212,6 +223,15 @@ describe("S3.PR8 integration - HITL decision flow", () => {
     vi.doMock("./pipeline-utils.js", () => ({
       addQueueJob: addMock,
       patchCompanyMetadata: patchMock,
+    }));
+    vi.doMock("@cerniq/worker-shared", () => ({
+      validateJobData: vi.fn(),
+      hitlTasksResolvedTotal: { inc: vi.fn() },
+      hitlResolutionTimeSeconds: { observe: vi.fn() },
+      createQueue: vi.fn(() => ({
+        add: vi.fn(async () => undefined),
+        close: vi.fn(async () => undefined),
+      })),
     }));
     vi.doMock("@cerniq/db", () => ({
       db: {
@@ -233,7 +253,7 @@ describe("S3.PR8 integration - HITL decision flow", () => {
     const { hitlResumeAfterApprovalProcessor } = await import("./hitl-resume-after-approval.js");
     const result = await hitlResumeAfterApprovalProcessor({
       id: "job-hitl-resume-dedup",
-      data: { tenantId: "t1", approvalTaskId: "a1", correlationId: "corr-3" },
+      data: { tenantId: TENANT_ID, approvalTaskId: APPROVAL_TASK_ID, correlationId: "corr-3" },
     } as never);
 
     expect(findFirst).toHaveBeenCalled();

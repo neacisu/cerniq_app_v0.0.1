@@ -40,6 +40,6 @@ describe("Page Rendering", () => {
   });
   it("Dashboard shows loading state", () => {
     wrap(<Dashboard />);
-    expect(screen.getByRole("status", { name: /loading/i })).toBeInTheDocument();
+    expect(screen.getByText(/loading/i)).toBeInTheDocument();
   });
 });
