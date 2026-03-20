@@ -1,7 +1,7 @@
 # Etapa 1 – Data Enrichment Pipeline: Deployment Runbook
 
 > **Reference:** E1.S4.PR8.001  
-> **Last updated:** 2026-03-01  
+> **Last updated:** 2026-03-19  
 > **Owner:** Platform Engineering
 
 ---
@@ -29,6 +29,8 @@ Verify **all** required environment variables are set before deploying. Missing 
 | `DATABASE_URL` | PostgreSQL connection string | `postgresql://user:pass@host:5432/cerniq` |
 | `REDIS_URL` | Redis connection string | `redis://host:6379` |
 | `JWT_SECRET` | Secret for JWT token signing | (min 32 characters) |
+| `JWT_REFRESH_SECRET` | Secret for JWT refresh token signing | (min 32 characters) |
+| `CORS_ORIGIN` | Allowed CORS origin | `https://app.cerniq.ro` |
 | `ANAF_API_URL` | ANAF public API base URL | `https://webservicesp.anaf.ro/PlatitorTvaRest/api/v8/ws/tva` |
 | `TERMENE_API_KEY` | Termene.ro API key | |
 | `ONRC_API_KEY` | ONRC API key | |
@@ -38,13 +40,15 @@ Verify **all** required environment variables are set before deploying. Missing 
 | `HLR_API_KEY` | HLR Lookup phone validation key | |
 | `BING_API_KEY` | Bing Search API key | |
 | `NOMINATIM_USER_AGENT` | User-Agent for Nominatim geocoding | `CerniqApp/1.0 (contact@cerniq.ro)` |
+| `IMPORT_UPLOAD_DIR` | Directory for import file uploads | `/app/data/imports` |
+| `SECRETS_PATH` | Path to OpenBao-rendered secrets file | `/secrets/workers.env` |
 
 Quick validation command:
 
 ```bash
-for var in DATABASE_URL REDIS_URL JWT_SECRET ANAF_API_URL TERMENE_API_KEY \
-  ONRC_API_KEY HUNTER_API_KEY ZEROBOUNCE_API_KEY XAI_API_KEY HLR_API_KEY \
-  BING_API_KEY NOMINATIM_USER_AGENT; do
+for var in DATABASE_URL REDIS_URL JWT_SECRET JWT_REFRESH_SECRET CORS_ORIGIN \
+  ANAF_API_URL TERMENE_API_KEY ONRC_API_KEY HUNTER_API_KEY ZEROBOUNCE_API_KEY \
+  XAI_API_KEY HLR_API_KEY BING_API_KEY NOMINATIM_USER_AGENT; do
   if [ -z "${!var}" ]; then
     echo "MISSING: $var"
   else
@@ -119,7 +123,7 @@ pnpm --filter @cerniq/worker-enrichment start
 
 # 5. Verify health endpoints
 curl -sf http://localhost:64010/health && echo "API OK" || echo "API FAILED"
-curl -sf http://localhost:9090/health && echo "Workers OK" || echo "Workers FAILED"
+curl -sf http://localhost:3000/health && echo "Workers OK" || echo "Workers FAILED"
 ```
 
 ### 2.3 CI/CD Deployment (GitHub Actions)
@@ -150,12 +154,12 @@ curl -sf http://localhost:64010/health | jq .
 
 | Endpoint | Port | Expected Response |
 | --- | --- | --- |
-| `GET /health` | 9090 | `200 OK` with `{ "status": "ok", "queues": {...} }` |
-| `GET /metrics` | 9090 | Prometheus text format |
+| `GET /health` | 3000 | `200 OK` with `{ "status": "ok", "queues": {...} }` |
+| `GET /metrics` | 3000 | Prometheus text format |
 
 ```bash
-curl -sf http://localhost:9090/health | jq .
-curl -sf http://localhost:9090/metrics | head -20
+curl -sf http://localhost:3000/health | jq .
+curl -sf http://localhost:3000/metrics | head -20
 ```
 
 ### 3.3 Redis
@@ -192,7 +196,7 @@ check() {
 }
 
 check "API /health"           "curl -sf http://localhost:64010/health"
-check "Workers /health"       "curl -sf http://localhost:9090/health"
+check "Workers /health"       "curl -sf http://localhost:3000/health"
 check "Redis PING"            "redis-cli -u $REDIS_URL PING"
 check "PostgreSQL SELECT 1"   "psql $DATABASE_URL -c 'SELECT 1' -t -q"
 
@@ -205,7 +209,7 @@ exit $FAIL
 
 ### 4.1 Prometheus Metrics
 
-The workers expose a `/metrics` endpoint (port 9090) in Prometheus text format.
+The workers expose a `/metrics` endpoint (port 3000) in Prometheus text format.
 
 **Key metrics to monitor:**
 
@@ -355,11 +359,13 @@ psql "$DATABASE_URL" -c "
 
 **Symptoms:** Circuit breaker opening, enrichment jobs failing with timeout/HTTP errors.
 
+> **Note (2026-03-19):** The error classifier now distinguishes 7 error types: `API_TIMEOUT`, `NETWORK_ERROR`, `RATE_LIMITED`, `QUOTA_EXCEEDED`, `AUTH_ERROR`, `CIRCUIT_OPEN`, `DATA_NOT_FOUND`. `AUTH_ERROR` creates a critical HITL task and does NOT retry automatically (credentials must be fixed manually).
+
 **Diagnosis:**
 
 ```bash
 # Check circuit breaker states in metrics
-curl -sf http://localhost:9090/metrics | grep circuit_breaker
+curl -sf http://localhost:3000/metrics | grep circuit_breaker
 
 # Test API connectivity manually
 curl -sf https://webservicesp.anaf.ro/PlatitorTvaRest/api/v8/ws/tva -X POST \
@@ -459,7 +465,7 @@ docker compose -f infra/docker/docker-compose.yml up -d \
 
 # 6. Verify health
 curl -sf http://localhost:64010/health && echo "API OK"
-curl -sf http://localhost:9090/health && echo "Workers OK"
+curl -sf http://localhost:3000/health && echo "Workers OK"
 ```
 
 ### 6.3 Post-rollback Verification
@@ -534,6 +540,20 @@ psql "$DATABASE_URL" -c "
        (SELECT setting::int AS max_conn FROM pg_settings WHERE name = 'max_connections') s;
 "
 ```
+
+---
+
+## 8. Recurring Cron Jobs
+
+The enrichment workers automatically schedule recurring BullMQ jobs on startup for all active tenants:
+
+| Job | Schedule | Queue | Description |
+| --- | --- | --- | --- |
+| `hourly-monitor` | `0 * * * *` (every hour) | `pipeline:monitor` | Checks pipeline health, detects stale jobs |
+| `daily-aggregation` | `0 2 * * *` (daily at 02:00) | `aggregate:daily-stats` | Aggregates daily pipeline statistics |
+| `cleanup-import-files` | `0 3 * * *` (daily at 03:00) | `maintenance:import-file-cleanup` | Removes old import files from disk |
+
+**Note:** The `DEFAULT_TENANT_ID` environment variable is used as fallback if the database query for active tenants fails. If neither is available, cron jobs will be skipped.
 
 ---
 

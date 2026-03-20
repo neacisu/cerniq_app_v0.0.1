@@ -125,7 +125,7 @@ All Enrichment Complete
          │
          ├──▶ Total Score >= 70 ──▶ P.3 Promote to Gold
          │
-         └──▶ Total Score 40-70 ──▶ HITL Review (data_quality)
+         └──▶ Total Score 40-70 ──▶ HITL Review (quality_review)
                                         │
                                         ▼
                               ┌─────────────────┐
@@ -148,31 +148,25 @@ export const TRIGGER_MAP: Record<string, TriggerConfig[]> = {
   // ═══════════════════════════════════════════════════════════════
   // CATEGORIA A → B
   // ═══════════════════════════════════════════════════════════════
-  "bronze:ingest:csv-parser": [{ queue: "bronze:normalize:batch", condition: "always" }],
-  "bronze:ingest:excel-parser": [{ queue: "bronze:normalize:batch", condition: "always" }],
-  "bronze:ingest:webhook": [
-    { queue: "bronze:normalize:single", condition: "always", perEntity: true },
+  "ingest:csv": [{ queue: "normalize:name", condition: "always" }],
+  "ingest:excel": [{ queue: "normalize:name", condition: "always" }],
+  "ingest:webhook": [
+    { queue: "normalize:name", condition: "always", perEntity: true },
   ],
-  "bronze:ingest:manual": [{ queue: "bronze:normalize:single", condition: "always" }],
-  "bronze:ingest:api": [{ queue: "bronze:normalize:batch", condition: "always" }],
+  "ingest:manual": [{ queue: "normalize:name", condition: "always" }],
+  "ingest:api": [{ queue: "normalize:name", condition: "always" }],
 
   // ═══════════════════════════════════════════════════════════════
   // CATEGORIA B → C
   // ═══════════════════════════════════════════════════════════════
-  "bronze:normalize:batch": [
-    { queue: "bronze:normalize:name", condition: "always", parallel: true },
-    { queue: "bronze:normalize:address", condition: "always", parallel: true },
-    { queue: "bronze:normalize:phone", condition: "always", parallel: true },
-    { queue: "bronze:normalize:email", condition: "always", parallel: true },
-  ],
-
-  // Wait for all B.* to complete before C.*
-  "bronze:normalize:complete": [{ queue: "silver:validate:cui-modulo11", condition: "always" }],
+  // Normalizarea se face în paralel pentru name, address, phone, email
+  // Trigger-ul se face din pipeline:orchestrate după completarea normalizării
+  "normalize:name": [{ queue: "validate:cui:mod11", condition: "has_cui" }],
 
   // ═══════════════════════════════════════════════════════════════
   // CATEGORIA C → D-L (PARALLEL ENRICHMENT)
   // ═══════════════════════════════════════════════════════════════
-  "silver:validate:cui-anaf": [
+  "validate:cui:anaf": [
     // Only trigger if CUI is valid
     { queue: "enrich:anaf:fiscal-status", condition: "cui_valid" },
     { queue: "enrich:anaf:tva-status", condition: "cui_valid" },
@@ -187,43 +181,43 @@ export const TRIGGER_MAP: Record<string, TriggerConfig[]> = {
 
     { queue: "enrich:onrc:data", condition: "cui_valid" },
 
-    { queue: "enrich:email:hunter-discovery", condition: "has_domain" },
+    { queue: "discover:email:hunter", condition: "has_domain" },
 
-    { queue: "enrich:geo:nominatim", condition: "has_address" },
+    { queue: "geo:geocode:nominatim", condition: "has_address" },
 
-    { queue: "enrich:agri:apia-subventii", condition: "is_agricultural" },
+    { queue: "agri:apia", condition: "is_agricultural" },
   ],
 
   // ═══════════════════════════════════════════════════════════════
   // ENRICHMENT CHAINS
   // ═══════════════════════════════════════════════════════════════
-  "enrich:email:hunter-discovery": [
-    { queue: "enrich:email:zerobounce-verify", condition: "emails_found" },
+  "discover:email:hunter": [
+    { queue: "discover:email:zerobounce", condition: "emails_found" },
   ],
-  "enrich:email:zerobounce-verify": [{ queue: "enrich:email:enricher", condition: "valid_emails" }],
+  "discover:email:zerobounce": [{ queue: "enrich:email:enricher", condition: "valid_emails" }],
 
-  "enrich:geo:nominatim": [{ queue: "enrich:geo:zone-calculator", condition: "coords_found" }],
+  "geo:geocode:nominatim": [{ queue: "geo:zones:postgis", condition: "coords_found" }],
 
-  "enrich:agri:apia-subventii": [{ queue: "enrich:agri:ouai-membership", condition: "always" }],
-  "enrich:agri:ouai-membership": [{ queue: "enrich:agri:cooperative-mapper", condition: "always" }],
+  "agri:apia": [{ queue: "agri:ouai", condition: "always" }],
+  "agri:ouai": [{ queue: "agri:cooperative", condition: "always" }],
 
-  "enrich:scrape:website-finder": [
-    { queue: "enrich:scrape:contact-page", condition: "website_found" },
+  "scrape:website:finder": [
+    { queue: "scrape:website:contact-page", condition: "website_found" },
   ],
 
   // ═══════════════════════════════════════════════════════════════
   // ALL ENRICHMENT COMPLETE → DEDUP
   // ═══════════════════════════════════════════════════════════════
-  "enrich:complete": [{ queue: "silver:dedup:exact-match", condition: "always" }],
-  "silver:dedup:exact-match": [{ queue: "silver:dedup:fuzzy-match", condition: "always" }],
+  // Trigger-ul se face din pipeline:orchestrate după completarea enrichment-ului
+  "dedup:exact": [{ queue: "dedup:fuzzy", condition: "always" }],
 
   // ═══════════════════════════════════════════════════════════════
   // DEDUP → SCORING
   // ═══════════════════════════════════════════════════════════════
-  "silver:dedup:fuzzy-match": [
-    { queue: "silver:score:completeness", condition: "is_master_record" },
+  "dedup:fuzzy": [
+    { queue: "score:completeness", condition: "is_master_record" },
     {
-      queue: "approval:create",
+      queue: "hitl:create",
       condition: "needs_hitl_review",
       metadata: { type: "dedup_review" },
     },
@@ -232,26 +226,25 @@ export const TRIGGER_MAP: Record<string, TriggerConfig[]> = {
   // ═══════════════════════════════════════════════════════════════
   // SCORING → PROMOTION
   // ═══════════════════════════════════════════════════════════════
-  "silver:score:completeness": [{ queue: "silver:score:accuracy", condition: "always" }],
-  "silver:score:accuracy": [{ queue: "silver:score:freshness", condition: "always" }],
-  "silver:score:freshness": [
-    { queue: "pipeline:promote:to-gold", condition: "score >= 70" },
+  "score:completeness": [{ queue: "score:accuracy", condition: "always" }],
+  "score:accuracy": [{ queue: "score:freshness", condition: "always" }],
+  "score:freshness": [
+    { queue: "pipeline:promote:gold", condition: "score >= 70" },
     {
-      queue: "approval:create",
+      queue: "hitl:create",
       condition: "score 40-70",
-      metadata: { type: "data_quality" },
+      metadata: { type: "quality_review" },
     },
-    { queue: "silver:aggregate:stats", condition: "always" },
+    { queue: "aggregate:daily-stats", condition: "always" },
   ],
 
   // ═══════════════════════════════════════════════════════════════
   // HITL APPROVAL OUTCOMES
   // ═══════════════════════════════════════════════════════════════
-  "approval:completed:dedup_review": [
-    { queue: "silver:dedup:merge", condition: "approved" },
-    { queue: "silver:score:completeness", condition: "approved" },
+  "hitl:resume": [
+    { queue: "score:completeness", condition: "approved && type=dedup_review" },
+    { queue: "pipeline:promote:gold", condition: "approved && type=quality_review" },
   ],
-  "approval:completed:data_quality": [{ queue: "pipeline:promote:to-gold", condition: "approved" }],
 };
 ```
 

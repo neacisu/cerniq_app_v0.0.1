@@ -7,6 +7,7 @@ import ExcelJS from "exceljs";
 import Papa from "papaparse";
 import { z } from "zod";
 import { getActorId, parseLimit, parseOffset, requireTenantId } from "./utils.js";
+import { requireRole } from "../middleware/authz.js";
 import { importConfigSchema, listBronzeContactsSchema } from "../schemas/etapa1.js";
 import { createQueue } from "../lib/queue-factory.js";
 
@@ -112,20 +113,36 @@ function resolveBatchOrderSql(sortBy: "createdAt" | "updatedAt", sortDir: "asc" 
     : sql`${bronzeImportBatches.createdAt} DESC`;
 }
 
+function extractFormulaResult(result: ExcelJS.CellFormulaValue["result"]): string {
+  if (result == null) return "";
+  if (result instanceof Date) return result.toISOString();
+  if (typeof result === "object") return "";
+  return String(result);
+}
+
+function extractExcelCellObject(
+  value: Exclude<ExcelJS.CellValue, null | undefined | number | string | boolean | Date>,
+): string {
+  if ("text" in value) return String(value.text);
+  if ("richText" in value) return value.richText.map((rt) => rt.text).join("");
+  if ("error" in value) return value.error;
+  if ("formula" in value) return extractFormulaResult(value.result);
+  if ("sharedFormula" in value) return extractFormulaResult(value.result);
+  return "";
+}
+
 function extractExcelCellText(value: ExcelJS.CellValue | undefined): string {
   if (value == null) return "";
-  if (typeof value === "object" && "text" in value) {
-    return String((value as { text: string }).text);
-  }
-  return String(value);
+  if (typeof value !== "object") return String(value);
+  if (value instanceof Date) return value.toISOString();
+  return extractExcelCellObject(value);
 }
 
 function detectImportSourceType(
   uploadConfig: Record<string, unknown>,
   filename: string,
 ): "csv_import" | "excel_import" {
-  const explicitSourceType = String(uploadConfig.sourceType ?? "csv_import");
-  if (explicitSourceType === "excel_import") {
+  if (typeof uploadConfig.sourceType === "string" && uploadConfig.sourceType === "excel_import") {
     return "excel_import";
   }
 
@@ -901,6 +918,9 @@ function buildBullJobResponseData(
 
 export async function importsBronzeRoutes(app: FastifyInstance) {
   const authOpts = { onRequest: [async (req: FastifyRequest) => req.jwtVerify()] };
+  const operatorAuthOpts = {
+    onRequest: [async (req: FastifyRequest) => req.jwtVerify(), requireRole("operator")],
+  };
   const importMutationRateLimit = app.rateLimit({
     max: 10,
     timeWindow: "1 minute",
@@ -1060,7 +1080,7 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
   app.put(
     "/imports/:id/mapping",
     {
-      ...authOpts,
+      ...operatorAuthOpts,
       schema: {
         tags: ["etapa1-imports"],
         summary: "Save mapping configuration for Bronze->Silver promotion",
@@ -1125,11 +1145,9 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
   app.post(
     "/imports/:id/re-promote",
     {
-      ...authOpts,
+      ...operatorAuthOpts,
       preHandler: [importMutationRateLimit],
       schema: {
-        tags: ["etapa1-imports"],
-        summary: "Re-run Bronze->Silver promotion for all contacts in batch",
         params: idParamsSchema,
         response: {
           200: successObjectResponseSchema,
@@ -1257,10 +1275,12 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
       }
 
       const metadata = (existing.metadata as BatchMetadata | null) ?? {};
-      const reprocessStatus = String(metadata.identityReprocessStatus ?? "");
+      const reprocessStatus =
+        typeof metadata.identityReprocessStatus === "string"
+          ? metadata.identityReprocessStatus
+          : "";
       const { lastProgressAtRaw, heartbeatAtMs } = extractReprocessHeartbeat(metadata);
 
-      // No re-promote has ever been triggered — nothing to report
       if (!reprocessStatus) {
         return { success: true, data: { state: "none" } };
       }
@@ -1338,11 +1358,9 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
   app.post(
     "/imports/:id/resume-promote",
     {
-      ...authOpts,
+      ...operatorAuthOpts,
       preHandler: [importMutationRateLimit],
       schema: {
-        tags: ["etapa1-imports"],
-        summary: "Force-resume a stale or failed re-promote batch job",
         params: idParamsSchema,
         response: {
           200: successObjectResponseSchema,
@@ -1509,11 +1527,9 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
   app.post(
     "/imports/:id/reprocess-errors/resume",
     {
-      ...authOpts,
+      ...operatorAuthOpts,
       preHandler: [importMutationRateLimit],
       schema: {
-        tags: ["etapa1-imports"],
-        summary: "Resume identity reprocess only for contacts that previously failed",
         params: idParamsSchema,
         response: {
           200: successObjectResponseSchema,
@@ -1619,11 +1635,9 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
   app.post(
     "/imports/:id/anaf-enrich",
     {
-      ...authOpts,
+      ...operatorAuthOpts,
       preHandler: [importMutationRateLimit],
       schema: {
-        tags: ["etapa1-imports"],
-        summary: "Trigger ANAF enrichment for contacts in batch",
         params: idParamsSchema,
         querystring: z.object({
           limit: z.coerce.number().int().min(1).max(50000).optional(),
@@ -2086,11 +2100,9 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
   app.post(
     "/imports",
     {
-      ...authOpts,
+      ...operatorAuthOpts,
       preHandler: [importMutationRateLimit],
       schema: {
-        tags: ["etapa1-imports"],
-        summary: "Upload and enqueue import batch",
         response: {
           201: successObjectResponseSchema,
           400: errorResponseSchema,
@@ -2223,11 +2235,9 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
   app.post(
     "/imports/:id/cancel",
     {
-      ...authOpts,
+      ...operatorAuthOpts,
       preHandler: [importMutationRateLimit],
       schema: {
-        tags: ["etapa1-imports"],
-        summary: "Cancel active import batch",
         params: idParamsSchema,
         response: {
           200: successObjectResponseSchema,
@@ -2266,11 +2276,9 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
   app.post(
     "/imports/:id/retry",
     {
-      ...authOpts,
+      ...operatorAuthOpts,
       preHandler: [importMutationRateLimit],
       schema: {
-        tags: ["etapa1-imports"],
-        summary: "Retry (resume) a failed or pending import batch",
         params: idParamsSchema,
         response: {
           200: successObjectResponseSchema,
@@ -2302,8 +2310,10 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
 
       const baseMeta = (existing.metadata as BatchMetadata | null) ?? {};
       const uploadConfig = (baseMeta.uploadConfig ?? {}) as Record<string, unknown>;
-      const sourceType = String(uploadConfig.sourceType ?? "csv_import");
-      const isExcel = sourceType === "excel_import";
+      const isExcel =
+        typeof uploadConfig.sourceType === "string"
+          ? uploadConfig.sourceType === "excel_import"
+          : /\.xlsx?$/i.test(existing.filename);
 
       const body = (request.body ?? {}) as Record<string, unknown>;
       const newMapping =
@@ -2480,11 +2490,9 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
   app.post(
     "/bronze/contacts/:id/reprocess",
     {
-      ...authOpts,
+      ...operatorAuthOpts,
       preHandler: [importMutationRateLimit],
       schema: {
-        tags: ["etapa1-bronze"],
-        summary: "Requeue bronze contact for processing",
         params: idParamsSchema,
         response: {
           200: reprocessResponseSchema,

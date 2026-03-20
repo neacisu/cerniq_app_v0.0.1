@@ -14,7 +14,7 @@
 
 ```typescript
 const B1_CONFIG: WorkerConfig = {
-  queueName: "bronze:normalize:name",
+  queueName: "normalize:name",
   concurrency: 20,
   attempts: 2,
   backoff: { type: "fixed", delay: 500 },
@@ -78,7 +78,7 @@ const NOISE_WORDS = [
 ];
 
 export const nameNormalizerWorker = createWorker<NameNormalizerJobData>({
-  queueName: "bronze:normalize:name",
+  queueName: "normalize:name",
   concurrency: B1_CONFIG.concurrency,
 
   processor: async (job, logger) => {
@@ -159,7 +159,7 @@ export const nameNormalizerWorker = createWorker<NameNormalizerJobData>({
 
 ```typescript
 const B2_CONFIG: WorkerConfig = {
-  queueName: "bronze:normalize:address",
+  queueName: "normalize:address",
   concurrency: 20,
   attempts: 2,
   timeout: 15000,
@@ -249,7 +249,7 @@ const JUDETE_MAP: Record<string, { cod: string; nume: string }> = {
 };
 
 export const addressNormalizerWorker = createWorker<AddressNormalizerJobData>({
-  queueName: "bronze:normalize:address",
+  queueName: "normalize:address",
   concurrency: B2_CONFIG.concurrency,
 
   processor: async (job, logger) => {
@@ -341,7 +341,7 @@ export const addressNormalizerWorker = createWorker<AddressNormalizerJobData>({
 
 ```typescript
 const B3_CONFIG: WorkerConfig = {
-  queueName: "bronze:normalize:phone",
+  queueName: "normalize:phone",
   concurrency: 30,
   attempts: 2,
   timeout: 5000,
@@ -408,7 +408,7 @@ const LANDLINE_PREFIXES: Record<string, string> = {
 };
 
 export const phoneNormalizerWorker = createWorker<PhoneNormalizerJobData>({
-  queueName: "bronze:normalize:phone",
+  queueName: "normalize:phone",
   concurrency: B3_CONFIG.concurrency,
 
   processor: async (job, logger) => {
@@ -519,7 +519,7 @@ export const phoneNormalizerWorker = createWorker<PhoneNormalizerJobData>({
 
 ```typescript
 const B4_CONFIG: WorkerConfig = {
-  queueName: "bronze:normalize:email",
+  queueName: "normalize:email",
   concurrency: 30,
   attempts: 2,
   timeout: 5000,
@@ -589,7 +589,7 @@ const RO_BUSINESS_PROVIDERS = [
 ];
 
 export const emailNormalizerWorker = createWorker<EmailNormalizerJobData>({
-  queueName: "bronze:normalize:email",
+  queueName: "normalize:email",
   concurrency: B4_CONFIG.concurrency,
 
   processor: async (job, logger) => {
@@ -686,7 +686,7 @@ export const emailNormalizerWorker = createWorker<EmailNormalizerJobData>({
 
 ```typescript
 const C1_CONFIG: WorkerConfig = {
-  queueName: "silver:validate:cui-modulo11",
+  queueName: "validate:cui:mod11",
   concurrency: 50, // Offline, foarte rapid
   attempts: 2,
   timeout: 2000,
@@ -709,7 +709,7 @@ interface CuiValidatorJobData {
 const CONTROL_KEY = [7, 5, 3, 2, 1, 7, 5, 3, 2];
 
 export const cuiModulo11Worker = createWorker<CuiValidatorJobData>({
-  queueName: "silver:validate:cui-modulo11",
+  queueName: "validate:cui:mod11",
   concurrency: C1_CONFIG.concurrency,
 
   processor: async (job, logger) => {
@@ -843,7 +843,7 @@ export function validateCuiModulo11(cui: string): boolean {
 
 ```typescript
 const C2_CONFIG: WorkerConfig = {
-  queueName: "silver:validate:cui-anaf",
+  queueName: "validate:cui:anaf",
   concurrency: 1, // ANAF rate limit: 1/sec
   attempts: 5,
   backoff: { type: "exponential", delay: 1000 },
@@ -872,7 +872,7 @@ interface AnafValidatorJobData {
 }
 
 export const cuiAnafWorker = createWorker<AnafValidatorJobData>({
-  queueName: "silver:validate:cui-anaf",
+  queueName: "validate:cui:anaf",
   concurrency: C2_CONFIG.concurrency,
   limiter: C2_CONFIG.limiter,
 
@@ -990,9 +990,9 @@ export const cuiAnafWorker = createWorker<AnafValidatorJobData>({
 ```typescript
 // Când toate B.* complete → trigger C.1
 const NORMALIZE_COMPLETE_TRIGGERS = {
-  "bronze:normalize:complete": [{ queue: "silver:validate:cui-modulo11", condition: "has_cui" }],
-  "silver:validate:cui-modulo11": [
-    { queue: "silver:validate:cui-anaf", condition: "cui_valid_modulo11" },
+  "normalize:complete": [{ queue: "validate:cui:mod11", condition: "has_cui" }],
+  "validate:cui:mod11": [
+    { queue: "validate:cui:anaf", condition: "cui_valid_modulo11" },
   ],
 };
 ```
@@ -1003,13 +1003,13 @@ const NORMALIZE_COMPLETE_TRIGGERS = {
 
 | Worker                       | Queue                          | Concurrency | Rate Limit | Timeout |
 | ---------------------------- | ------------------------------ | ----------- | ---------- | ------- |
-| B.1 Name                     | `bronze:normalize:name`        | 20          | -          | 10s     |
-| B.2 Address                  | `bronze:normalize:address`     | 20          | -          | 15s     |
-| B.3 Phone                    | `bronze:normalize:phone`       | 30          | -          | 5s      |
-| B.4 Email                    | `bronze:normalize:email`       | 30          | -          | 5s      |
+| B.1 Name                     | `normalize:name`        | 20          | -          | 10s     |
+| B.2 Address                  | `normalize:address`     | 20          | -          | 15s     |
+| B.3 Phone                    | `normalize:phone`       | 30          | -          | 5s      |
+| B.4 Email                    | `normalize:email`       | 30          | -          | 5s      |
 | **B.5 ANAF Bronze Enricher** | `enrich:bronze:anaf`           | 1           | 1/s (ANAF) | 30s     |
-| C.1 CUI Modulo-11            | `silver:validate:cui-modulo11` | 50          | -          | 2s      |
-| C.2 CUI ANAF                 | `silver:validate:cui-anaf`     | 1           | 1/s        | 30s     |
+| C.1 CUI Modulo-11            | `validate:cui:mod11` | 50          | -          | 2s      |
+| C.2 CUI ANAF                 | `validate:cui:anaf`     | 1           | 1/s        | 30s     |
 
 ---
 

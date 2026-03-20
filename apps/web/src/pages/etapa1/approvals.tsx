@@ -110,6 +110,10 @@ export function Approvals() {
               <option value="quality_review">Calitate</option>
               <option value="identity_conflict">Conflict identitate</option>
               <option value="ai_structuring_review">AI Structurare</option>
+              <option value="ai_merge_review">AI Merge</option>
+              <option value="low_confidence_review">Incredere scazuta</option>
+              <option value="data_anomaly">Anomalie date</option>
+              <option value="manual_verification">Verificare manuala</option>
               <option value="error_review">Eroare</option>
             </select>
             <label className="flex items-center gap-1 text-xs text-t3 cursor-pointer">

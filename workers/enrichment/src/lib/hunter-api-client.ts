@@ -1,4 +1,4 @@
-import { createCircuitBreaker } from "@cerniq/worker-shared";
+import { createCircuitBreaker, withExternalApiMetrics } from "@cerniq/worker-shared";
 
 const HUNTER_API_URL = process.env.HUNTER_API_URL ?? "https://api.hunter.io/v2";
 const HUNTER_API_KEY = process.env.HUNTER_API_KEY ?? "";
@@ -48,17 +48,12 @@ async function hunterGet(
   return (await response.json()) as Record<string, unknown>;
 }
 
-const hunterBreaker = createCircuitBreaker(
-  async (...args: unknown[]) =>
-    hunterGet(String(args[0] ?? ""), (args[1] ?? {}) as Record<string, string>),
-  "hunter-api-client",
-  {
-    timeout: HUNTER_TIMEOUT_MS,
-    errorThresholdPercentage: 50,
-    resetTimeout: 30000,
-    volumeThreshold: 5,
-  },
-);
+const hunterBreaker = createCircuitBreaker(hunterGet, "hunter-api-client", {
+  timeout: HUNTER_TIMEOUT_MS,
+  errorThresholdPercentage: 50,
+  resetTimeout: 30000,
+  volumeThreshold: 5,
+});
 
 export type HunterEmailVerifyResult = {
   email: string;
@@ -79,17 +74,19 @@ export type HunterEmailVerifyResult = {
 };
 
 export async function hunterEmailVerify(email: string): Promise<HunterEmailVerifyResult | null> {
-  const result = await hunterBreaker.fire("/email-verifier", { email });
+  const result = await withExternalApiMetrics("hunter", () =>
+    hunterBreaker.fire("/email-verifier", { email }),
+  );
   if (!result || typeof result !== "object") return null;
 
   const data = (result.data ?? null) as Record<string, unknown> | null;
   if (!data) return null;
 
   return {
-    email: String(data.email ?? email),
-    status: String(data.status ?? "unknown"),
+    email: typeof data.email === "string" ? data.email : email,
+    status: typeof data.status === "string" ? data.status : "unknown",
     score: Number(data.score ?? 0),
-    result: String(data.result ?? "unknown"),
+    result: typeof data.result === "string" ? data.result : "unknown",
     regexp: Boolean(data.regexp),
     gibberish: Boolean(data.gibberish),
     disposable: Boolean(data.disposable),
@@ -107,14 +104,16 @@ export async function hunterEmailVerify(email: string): Promise<HunterEmailVerif
 }
 
 export async function hunterDomainSearch(domain: string): Promise<HunterDomainSearchResult | null> {
-  const result = await hunterBreaker.fire("/domain-search", { domain });
+  const result = await withExternalApiMetrics("hunter", () =>
+    hunterBreaker.fire("/domain-search", { domain }),
+  );
   if (!result || typeof result !== "object") return null;
 
   const data = (result.data ?? null) as Record<string, unknown> | null;
   if (!data) return null;
   const emails = Array.isArray(data.emails) ? (data.emails as HunterEmailRecord[]) : [];
   return {
-    domain: String(data.domain ?? domain),
+    domain: typeof data.domain === "string" ? data.domain : domain,
     emails,
   };
 }

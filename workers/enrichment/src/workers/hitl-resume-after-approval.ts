@@ -12,6 +12,7 @@ import {
   validateJobData,
   hitlTasksResolvedTotal,
   hitlResolutionTimeSeconds,
+  createQueue,
 } from "@cerniq/worker-shared";
 import { addQueueJob, patchCompanyMetadata } from "./pipeline-utils.js";
 import { z } from "zod";
@@ -67,6 +68,11 @@ function getDecisionMetadata(task: ApprovalTaskRecord) {
 function getBlockedQueueName(task: ApprovalTaskRecord) {
   const taskRecord = task as Record<string, unknown>;
   return readString(taskRecord.blockedQueueName);
+}
+
+function getBlockedJobId(task: ApprovalTaskRecord) {
+  const taskRecord = task as Record<string, unknown>;
+  return readString(taskRecord.blockedJobId);
 }
 
 function getDecisionTimestamp(task: ApprovalTaskRecord) {
@@ -162,16 +168,51 @@ async function handleAiReview(context: ApprovalContext): Promise<ResumeProcessor
 }
 
 async function handleErrorReview(context: ApprovalContext): Promise<ResumeProcessorResult> {
-  const sourcePayload = readMetadataObject(context.taskMetadata.sourcePayload);
-  const fallbackQueue = getBlockedQueueName(context.task);
-  if ((context.decision === "approve" || context.decision === "skip") && fallbackQueue) {
-    await addQueueJob(fallbackQueue, {
-      ...sourcePayload,
-      tenantId: context.task.tenantId,
-      replayedFromApprovalTaskId: context.task.id,
-      correlationId: context.correlationId,
-    });
+  const blockedQueueName = getBlockedQueueName(context.task);
+  const blockedJobId = getBlockedJobId(context.task);
+
+  if ((context.decision === "approve" || context.decision === "skip") && blockedQueueName) {
+    // Prefer resume blocked job if blockedJobId exists, otherwise replay from sourcePayload
+    if (blockedJobId) {
+      try {
+        const queue = createQueue(blockedQueueName);
+        const job = await queue.getJob(blockedJobId);
+
+        if (job) {
+          const state = await job.getState();
+          // Only retry if job is in a retryable state
+          if (state === "failed" || state === "delayed" || state === "waiting") {
+            await job.retry();
+          }
+        }
+
+        await queue.close();
+      } catch (error) {
+        // If resume fails, fall back to replay pattern
+        console.warn(
+          `[hitl-resume] Failed to resume blocked job ${blockedJobId}, falling back to replay:`,
+          error,
+        );
+        const sourcePayload = readMetadataObject(context.taskMetadata.sourcePayload);
+        await addQueueJob(blockedQueueName, {
+          ...sourcePayload,
+          tenantId: context.task.tenantId,
+          replayedFromApprovalTaskId: context.task.id,
+          correlationId: context.correlationId,
+        });
+      }
+    } else {
+      // No blockedJobId, use replay pattern with sourcePayload
+      const sourcePayload = readMetadataObject(context.taskMetadata.sourcePayload);
+      await addQueueJob(blockedQueueName, {
+        ...sourcePayload,
+        tenantId: context.task.tenantId,
+        replayedFromApprovalTaskId: context.task.id,
+        correlationId: context.correlationId,
+      });
+    }
   }
+
   await patchCompanyMetadata(context.task.tenantId, context.task.entityId, {
     hitlErrorDecision: context.decision,
     hitlErrorApprovalTaskId: context.task.id,

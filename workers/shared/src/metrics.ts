@@ -104,3 +104,64 @@ export const hitlSlaBreachTotal = new Counter({
   labelNames: ["approval_type", "tenant_id"],
   registers: [metricsRegistry],
 });
+
+// ── External API metrics ──────────────────────────────────────────────────────
+
+export const externalApiRequestsTotal = new Counter({
+  name: "cerniq_external_api_requests_total",
+  help: "Total requests made to external APIs",
+  labelNames: ["provider", "status"],
+  registers: [metricsRegistry],
+});
+
+export const externalApiDurationSeconds = new Histogram({
+  name: "cerniq_external_api_duration_seconds",
+  help: "Duration of external API calls in seconds",
+  labelNames: ["provider", "status"],
+  buckets: [0.1, 0.25, 0.5, 1, 2.5, 5, 10],
+  registers: [metricsRegistry],
+});
+
+export const externalApiErrorsTotal = new Counter({
+  name: "cerniq_external_api_errors_total",
+  help: "Total errors from external APIs",
+  labelNames: ["provider", "error_type"],
+  registers: [metricsRegistry],
+});
+
+/**
+ * Wraps an external API call with latency and error metrics.
+ * @param provider - Short name for the provider (anaf, termene, hunter, etc.)
+ * @param fn - The async function to instrument
+ */
+export async function withExternalApiMetrics<T>(
+  provider: string,
+  fn: () => Promise<T>,
+): Promise<T> {
+  const end = externalApiDurationSeconds.startTimer({ provider });
+  try {
+    const result = await fn();
+    externalApiRequestsTotal.inc({ provider, status: "success" });
+    end({ status: "success" });
+    return result;
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message.toLowerCase() : String(err);
+    let errorType = "unknown";
+    if (message.includes("timeout") || message.includes("etimedout")) errorType = "timeout";
+    else if (message.includes("rate") || message.includes("429")) errorType = "rate_limited";
+    else if (message.includes("401") || message.includes("403") || message.includes("unauthorized"))
+      errorType = "auth";
+    else if (message.includes("404") || message.includes("not found")) errorType = "not_found";
+    else if (message.includes("circuit") && message.includes("open")) errorType = "circuit_open";
+    else if (
+      message.includes("network") ||
+      message.includes("econnrefused") ||
+      message.includes("5")
+    )
+      errorType = "network";
+    externalApiRequestsTotal.inc({ provider, status: "error" });
+    externalApiErrorsTotal.inc({ provider, error_type: errorType });
+    end({ status: errorType });
+    throw err;
+  }
+}

@@ -747,7 +747,7 @@ interface ApprovalListParams {
       "entityId": "uuid",
       "entityTitle": "AGRO FARM SRL",
       "pipelineStage": "E1",
-      "approvalType": "data_quality",
+      "approvalType": "quality_review",
       "status": "pending",
       "priority": "normal",
       "slaMinutes": 1440,

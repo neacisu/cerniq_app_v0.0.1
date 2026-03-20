@@ -13,13 +13,23 @@ import type { GoldCompanyRow } from "@/lib/etapa1-types.js";
 const PAGE_SIZE_OPTIONS = [25, 50, 100] as const;
 
 const GOLD_STATE_OPTIONS = [
-  { label: "New", value: "new" },
-  { label: "Contacted", value: "contacted" },
-  { label: "Qualified", value: "qualified" },
-  { label: "Proposal", value: "proposal" },
-  { label: "Won", value: "won" },
-  { label: "Lost", value: "lost" },
-  { label: "Do Not Contact", value: "do_not_contact" },
+  { label: "Cold", value: "COLD" },
+  { label: "Contacted WA", value: "CONTACTED_WA" },
+  { label: "Contacted Email", value: "CONTACTED_EMAIL" },
+  { label: "Contacted Phone", value: "CONTACTED_PHONE" },
+  { label: "Warm Reply", value: "WARM_REPLY" },
+  { label: "Engaged", value: "ENGAGED" },
+  { label: "Negotiation", value: "NEGOTIATION" },
+  { label: "Proposal", value: "PROPOSAL" },
+  { label: "Closing", value: "CLOSING" },
+  { label: "Converted", value: "CONVERTED" },
+  { label: "Onboarding", value: "ONBOARDING" },
+  { label: "Nurturing Active", value: "NURTURING_ACTIVE" },
+  { label: "At Risk", value: "AT_RISK" },
+  { label: "Loyal Advocate", value: "LOYAL_ADVOCATE" },
+  { label: "Churned", value: "CHURNED" },
+  { label: "Dead", value: "DEAD" },
+  { label: "Do Not Contact", value: "DO_NOT_CONTACT" },
 ] as const;
 
 export function Gold() {

@@ -1399,7 +1399,7 @@ Sistemul HITL folosește **asocieri polimorfe** pentru a gestiona aprobări din 
 
 | Etapă            | approval_type       | Trigger Condition                 | SLA | Timeout Action |
 | ---------------- | ------------------- | --------------------------------- | --- | -------------- |
-| **E1** Data      | `data_quality`      | Completeness < 70%                | 24h | Escalate       |
+| **E1** Data      | `quality_review`      | Completeness < 70%                | 24h | Escalate       |
 | **E2** Outreach  | `content_review`    | First message to segment          | 8h  | Escalate       |
 | **E3** AI Sales  | `pricing_approval`  | Discount > 15% OR value > €50K    | 4h  | Escalate to VP |
 | **E4** Post-Sale | `credit_approval`   | Risk score > 0.5 OR value > €100K | 48h | Reject         |

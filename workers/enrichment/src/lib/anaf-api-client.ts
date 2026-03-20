@@ -1,5 +1,5 @@
 import { webcrypto } from "node:crypto";
-import { createCircuitBreaker } from "@cerniq/worker-shared";
+import { createCircuitBreaker, withExternalApiMetrics } from "@cerniq/worker-shared";
 
 const ANAF_API_URL =
   process.env.ANAF_API_URL || "https://webservicesp.anaf.ro/api/PlatitorTvaRest/v9/tva";
@@ -50,19 +50,15 @@ async function callAnaf(cleanCui: string): Promise<AnafRecord | null> {
   return null;
 }
 
-const anafBreaker = createCircuitBreaker(
-  async (...args: unknown[]) => callAnaf(String(args[0] ?? "")),
-  "anaf-api-client",
-  {
-    timeout: ANAF_TIMEOUT_MS,
-    errorThresholdPercentage: 50,
-    resetTimeout: 30000,
-    volumeThreshold: 5,
-  },
-);
+const anafBreaker = createCircuitBreaker(callAnaf, "anaf-api-client", {
+  timeout: ANAF_TIMEOUT_MS,
+  errorThresholdPercentage: 50,
+  resetTimeout: 30000,
+  volumeThreshold: 5,
+});
 
 export async function fetchAnafRecordByCui(cleanCui: string): Promise<AnafRecord | null> {
-  return anafBreaker.fire(cleanCui);
+  return withExternalApiMetrics("anaf", () => anafBreaker.fire(cleanCui));
 }
 
 // ── ANAF v9 Batch API ───────────────────────────────────────────────
@@ -197,19 +193,15 @@ async function callAnafV9Batch(cuis: number[]): Promise<AnafV9BatchResult> {
   };
 }
 
-const anafV9Breaker = createCircuitBreaker(
-  async (...args: unknown[]) => callAnafV9Batch(args[0] as number[]),
-  "anaf-v9-batch",
-  {
-    timeout: ANAF_TIMEOUT_MS,
-    errorThresholdPercentage: 50,
-    resetTimeout: 30000,
-    volumeThreshold: 5,
-  },
-);
+const anafV9Breaker = createCircuitBreaker(callAnafV9Batch, "anaf-v9-batch", {
+  timeout: ANAF_TIMEOUT_MS,
+  errorThresholdPercentage: 50,
+  resetTimeout: 30000,
+  volumeThreshold: 5,
+});
 
 export async function fetchAnafBatchByCuis(cuis: string[]): Promise<AnafV9BatchResult> {
   const numericCuis = cuis.map((c) => Number.parseInt(c, 10)).filter((n) => !Number.isNaN(n));
   if (numericCuis.length === 0) return { found: new Map(), notFound: [] };
-  return anafV9Breaker.fire(numericCuis);
+  return withExternalApiMetrics("anaf_v9", () => anafV9Breaker.fire(numericCuis));
 }

@@ -74,6 +74,7 @@ CREATE TYPE approval_priority AS ENUM (
 
 CREATE TYPE approval_type AS ENUM (
   'dedup_review',
+  'identity_conflict',
   'quality_review',
   'ai_structuring_review',
   'ai_merge_review',
@@ -617,6 +618,50 @@ async function findEscalationTarget(
 }
 ```
 
+### 4.1 Escalation Worker
+
+Worker pentru escalarea task-urilor HITL care depășesc SLA-ul.
+
+**Queue:** `hitl:escalate`
+
+**Configurare:**
+- Concurrency: 5
+- Timeout: 60s
+- Rulează periodic (cron) sau manual
+
+**Job Payload:**
+```typescript
+interface HitlEscalationJobData {
+  tenantId: string;
+  correlationId?: string;
+  dryRun?: boolean;  // Dacă true, doar raportează fără a face modificări
+}
+```
+
+**Procesare:**
+1. **Warning threshold (80% SLA):**
+   - Caută task-uri `pending`/`assigned`/`escalated` care au consumat ≥80% din SLA
+   - Actualizează `metadata.slaWarningSent = true` și `slaWarningAt`
+   - Poate trimite notificare (email/Slack) către assignee
+
+2. **Breach SLA:**
+   - Caută task-uri cu `due_at < NOW()`
+   - Actualizează `status = 'escalated'`
+   - Reasignează către nivel superior (team_lead → manager → admin)
+   - Creează notificare de escalare
+
+**Output:**
+```typescript
+{
+  ok: boolean;
+  warnings: number;  // Task-uri cu warning
+  breached: number;  // Task-uri cu SLA breach
+  escalated: number;  // Task-uri escalate
+}
+```
+
+---
+
 ### 4.2 Resume Worker
 
 ```typescript
@@ -1030,6 +1075,7 @@ export const ApprovalInbox: React.FC = () => {
 function formatApprovalType(type: string): string {
   const labels: Record<string, string> = {
     dedup_review: "Duplicate Review",
+    identity_conflict: "Identity Conflict",
     quality_review: "Quality Review",
     ai_structuring_review: "AI Data Review",
     ai_merge_review: "AI Merge Review",

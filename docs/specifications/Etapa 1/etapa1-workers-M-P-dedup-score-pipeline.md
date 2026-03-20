@@ -25,7 +25,7 @@ interface DedupExactJobData {
 }
 
 export const dedupExactHashWorker = createWorker<DedupExactJobData, DedupExactResult>({
-  queueName: "silver:dedup:exact-hash",
+  queueName: "dedup:exact",
   concurrency: 10,
   attempts: 2,
   timeout: 30000,
@@ -186,7 +186,7 @@ const HITL_THRESHOLD = 0.7; // 70-85% = HITL review
 const IGNORE_THRESHOLD = 0.7; // < 70% = not duplicate
 
 export const dedupFuzzyWorker = createWorker<DedupFuzzyJobData, DedupFuzzyResult>({
-  queueName: "silver:dedup:fuzzy-match",
+  queueName: "dedup:fuzzy",
   concurrency: 5,
   attempts: 2,
   timeout: 60000,
@@ -426,7 +426,7 @@ const FIELD_WEIGHTS: Record<string, { weight: number; required: boolean }> = {
 };
 
 export const scoreCompletenessWorker = createWorker<CompletenessJobData, CompletenessResult>({
-  queueName: "silver:score:completeness",
+  queueName: "score:completeness",
   concurrency: 20,
   attempts: 2,
   timeout: 15000,
@@ -505,7 +505,7 @@ export const scoreCompletenessWorker = createWorker<CompletenessJobData, Complet
 // apps/workers/src/silver/score-accuracy.worker.ts
 
 export const scoreAccuracyWorker = createWorker<AccuracyJobData, AccuracyResult>({
-  queueName: "silver:score:accuracy",
+  queueName: "score:accuracy",
   concurrency: 20,
   attempts: 2,
   timeout: 15000,
@@ -618,7 +618,7 @@ export const scoreAccuracyWorker = createWorker<AccuracyJobData, AccuracyResult>
 // apps/workers/src/silver/score-freshness.worker.ts
 
 export const scoreFreshnessWorker = createWorker<FreshnessJobData, FreshnessResult>({
-  queueName: "silver:score:freshness",
+  queueName: "score:freshness",
   concurrency: 20,
   attempts: 2,
   timeout: 15000,
@@ -733,7 +733,7 @@ export const scoreFreshnessWorker = createWorker<FreshnessJobData, FreshnessResu
 
 export const statsAggregationWorker = createWorker<StatsAggregationJobData, StatsAggregationResult>(
   {
-    queueName: "silver:aggregate:daily-stats",
+    queueName: "aggregate:daily-stats",
     concurrency: 1, // Single execution
     attempts: 3,
     timeout: 300000, // 5 minutes
@@ -865,7 +865,7 @@ export const statsAggregationWorker = createWorker<StatsAggregationJobData, Stat
 // apps/workers/src/silver/quality-rollup.worker.ts
 
 export const qualityRollupWorker = createWorker<QualityRollupJobData, QualityRollupResult>({
-  queueName: "silver:aggregate:quality-rollup",
+  queueName: "aggregate:quality-rollup",
   concurrency: 10,
   attempts: 2,
   timeout: 30000,
@@ -1541,20 +1541,147 @@ export const errorHandlerWorker = createWorker<ErrorHandlerJobData, ErrorHandler
 
 | Worker             | Queue Name                        | Concurrency | Timeout | Notes                |
 | ------------------ | --------------------------------- | ----------- | ------- | -------------------- |
-| M.1 Dedup Exact    | `silver:dedup:exact-hash`         | 10          | 30s     | Per-tenant CUI match |
-| M.2 Dedup Fuzzy    | `silver:dedup:fuzzy-match`        | 5           | 60s     | Jaro-Winkler, HITL   |
-| N.1 Completeness   | `silver:score:completeness`       | 20          | 15s     | Field weights        |
-| N.2 Accuracy       | `silver:score:accuracy`           | 20          | 15s     | Validation checks    |
-| N.3 Freshness      | `silver:score:freshness`          | 20          | 15s     | Age penalties        |
-| O.1 Stats Aggreg   | `silver:aggregate:daily-stats`    | 1           | 300s    | Daily cron           |
-| O.2 Quality Rollup | `silver:aggregate:quality-rollup` | 10          | 30s     | 40/35/25 weights     |
+| M.1 Dedup Exact    | `dedup:exact`         | 10          | 30s     | Per-tenant CUI match |
+| M.2 Dedup Fuzzy    | `dedup:fuzzy`        | 5           | 60s     | Jaro-Winkler, HITL   |
+| N.1 Completeness   | `score:completeness`       | 20          | 15s     | Field weights        |
+| N.2 Accuracy       | `score:accuracy`           | 20          | 15s     | Validation checks    |
+| N.3 Freshness      | `score:freshness`          | 20          | 15s     | Age penalties        |
+| O.1 Stats Aggreg   | `aggregate:daily-stats`    | 1           | 300s    | Daily cron           |
+| O.2 Quality Rollup | `aggregate:quality-rollup` | 10          | 30s     | 40/35/25 weights     |
 | P.1 Orchestrator   | `pipeline:orchestrate`            | 20          | 30s     | Stage router         |
-| P.2 Promoter       | `pipeline:promote-to-gold`        | 10          | 60s     | Silver→Gold          |
+| P.2 Promoter       | `pipeline:promote:gold`        | 10          | 60s     | Silver→Gold          |
 | P.3 Monitor        | `pipeline:monitor`                | 1           | 120s    | Hourly cron          |
 | P.4 Error Handler  | `pipeline:error-handler`          | 10          | 30s     | Recovery logic       |
+| P.5 Bronze→Silver  | `pipeline:promote:bronze-silver`  | 1           | 15m     | Bronze→Silver        |
+| O.3 File Cleanup   | `maintenance:import-file-cleanup` | 1           | 300s    | Daily cron           |
+
+---
+
+## 5.1 P.5 - Promotion Bronze→Silver Worker
+
+Worker pentru promovarea contactelor din Bronze la Silver (crearea companiilor Silver din datele Bronze).
+
+**Queue:** `pipeline:promote:bronze-silver`
+
+**Configurare:**
+- Concurrency: 1 (procesare secvențială pentru consistență)
+- Lock duration: 15 minute
+- Stalled interval: 2 minute
+- Max stalled count: 4
+- Timeout: 15 minute
+
+**Job Payload:**
+```typescript
+interface PromotionBronzeSilverJobData {
+  tenantId: string;
+  bronzeContactId?: string;  // Procesare un singur contact
+  batchId?: string;          // Procesare întreg batch
+  correlationId?: string;
+  reprocessErrorsOnly?: boolean;  // Reprocesare doar erorile
+}
+```
+
+**Procesare:**
+1. **Identificare identitate:**
+   - Extrage CUI și NrRegCom din `raw_payload`
+   - Normalizează și validează CUI (sanitize)
+   - Normalizează NrRegCom (sanitize)
+   - Calculează hash pentru deduplicare
+
+2. **Rezolvare identitate:**
+   - Verifică `company_identity_keys` pentru CUI/NrRegCom existent
+   - Dacă există, asociază contactul la compania Silver existentă
+   - Dacă nu există, creează companie Silver nouă
+
+3. **Creare/Actualizare Silver:**
+   - Creează `silver_companies` cu datele din Bronze
+   - Creează `silver_contacts` asociat
+   - Populează `company_identity_keys` cu cheile de identitate
+   - Actualizează `bronze_contacts.identity_status` și `silver_company_id`
+
+4. **Enrichment detalii:**
+   - Dacă există date Termene/ONRC/ANAF în `raw_payload`, populează:
+     - `silver_datorii_anaf`
+     - `silver_bpi_acte`
+     - `silver_cip_incidente`
+     - `silver_dosare` (cu `silver_parti_dosare` și `silver_termene_dosare`)
+
+5. **HITL pentru conflicte:**
+   - Dacă există conflict de identitate (CUI diferit pentru același NrRegCom), creează task HITL
+
+**Output:**
+```typescript
+{
+  ok: boolean;
+  status: 'success' | 'partial' | 'error';
+  processed: number;
+  created: number;
+  updated: number;
+  errors: number;
+  errors?: Array<{ contactId: string; error: string }>;
+}
+```
+
+**Erori:**
+- Contact deja procesat → skip
+- Date invalide (CUI/NrRegCom lipsă sau invalid) → skip cu log
+- Conflict identitate → creează task HITL
+- Eroare DB → retry până la 3 încercări
+
+---
+
+## 5.2 O.3 - Import File Cleanup Worker
+
+Worker pentru curățarea fișierelor de import vechi (tracked și orphaned).
+
+**Queue:** `maintenance:import-file-cleanup`
+
+**Configurare:**
+- Concurrency: 1
+- Timeout: 300s (5 minute)
+- Retenție default: 90 zile (configurabilă via `IMPORT_FILE_RETENTION_DAYS`)
+
+**Job Payload:**
+```typescript
+interface ImportFileCleanupJobData {
+  tenantId?: string;  // Opțional: cleanup per tenant
+  olderThanDays?: number;  // Override retenție default
+  correlationId?: string;
+}
+```
+
+**Procesare:**
+1. **Cleanup fișiere tracked:**
+   - Caută `bronze_import_batches` cu status `completed`/`failed`/`cancelled`
+   - Filtrează după `created_at < cutoff` și `metadata.storedPath` existent
+   - Șterge fișierul de pe disk
+   - Actualizează `metadata.fileDeleted = true` și `fileDeletedAt`
+
+2. **Cleanup fișiere orphaned:**
+   - Scanează directorul `IMPORT_UPLOAD_DIR` (default: `/app/data/imports`)
+   - Șterge fișierele cu `mtime < cutoff` care nu sunt referențiate în DB
+
+**Output:**
+```typescript
+{
+  ok: boolean;
+  status: 'success';
+  scanned: number;  // Fișiere scanned din DB
+  deleted: number;  // Fișiere șterse din DB
+  failed: number;   // Erori la ștergere
+  fsScanned: number;  // Fișiere scanned din filesystem
+  fsDeleted: number;  // Fișiere orphaned șterse
+  fsFailed: number;   // Erori filesystem
+  errors: string[];   // Primele 10 erori
+}
+```
+
+**Erori:**
+- ENOENT (fișier deja șters) → marchează ca `fileDeleteNote: "already_missing"`
+- Alte erori → log și continuă cu următorul fișier
 
 ---
 
 **Document generat:** 15 Ianuarie 2026
-**Total workers:** 11 (M.1-M.2, N.1-N.3, O.1-O.2, P.1-P.4)
+**Total workers:** 13 (M.1-M.2, N.1-N.3, O.1-O.3, P.1-P.5)
 **Conformitate:** Master Spec v1.2

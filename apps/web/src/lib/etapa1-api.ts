@@ -65,6 +65,7 @@ export type SilverCompaniesParams = {
 };
 
 export type GoldCompaniesParams = {
+  search?: string;
   currentState?: string[];
   judetCod?: string;
   assignedTo?: string;
@@ -423,6 +424,7 @@ export async function triggerSilverPromote(id: string) {
 export async function fetchGoldCompanies(params: GoldCompaniesParams = {}) {
   const query = new URLSearchParams();
   appendParams(query, {
+    search: params.search,
     currentState: params.currentState,
     judetCod: params.judetCod,
     assignedTo: params.assignedTo,
@@ -483,6 +485,10 @@ export async function transitionGoldCompany(
       | "PROPOSAL"
       | "CLOSING"
       | "CONVERTED"
+      | "ONBOARDING"
+      | "NURTURING_ACTIVE"
+      | "AT_RISK"
+      | "LOYAL_ADVOCATE"
       | "CHURNED"
       | "DEAD"
       | "DO_NOT_CONTACT";
@@ -612,6 +618,16 @@ export async function assignApproval(id: string, userId: string) {
     `/api/v1/enrichment/approvals/${id}/assign`,
     {
       userId,
+    },
+  );
+}
+
+export async function escalateApproval(id: string, reason: string, escalateTo?: string) {
+  return api.post<ApiObjectResponse<Record<string, unknown>>>(
+    `/api/v1/enrichment/approvals/${id}/escalate`,
+    {
+      reason,
+      ...(escalateTo ? { escalateTo } : {}),
     },
   );
 }

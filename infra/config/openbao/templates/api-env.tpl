@@ -39,6 +39,7 @@ BULLMQ_PREFIX={{ .Data.bullmq_prefix }}
 # JWT Configuration
 # =============================================================================
 JWT_SECRET={{ .Data.jwt_secret }}
+JWT_REFRESH_SECRET={{ .Data.jwt_secret }}
 JWT_ISSUER=cerniq.app
 JWT_AUDIENCE=cerniq-api
 

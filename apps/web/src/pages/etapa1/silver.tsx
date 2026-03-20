@@ -89,13 +89,13 @@ export function Silver() {
   const enrichMutation = useMutation({
     mutationFn: (id: string) => triggerSilverEnrich(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["silver-companies"] }).catch(() => undefined);
+      queryClient.invalidateQueries({ queryKey: ["etapa1", "silver"] }).catch(() => undefined);
     },
   });
   const promoteMutation = useMutation({
     mutationFn: (id: string) => triggerSilverPromote(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["silver-companies"] }).catch(() => undefined);
+      queryClient.invalidateQueries({ queryKey: ["etapa1", "silver"] }).catch(() => undefined);
     },
   });
 

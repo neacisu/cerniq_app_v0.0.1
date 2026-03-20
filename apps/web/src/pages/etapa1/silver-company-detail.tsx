@@ -22,6 +22,31 @@ import {
 } from "@/hooks/use-etapa1.js";
 import { toast } from "@/components/ui/toast-api.js";
 
+/**
+ * Enterprise-grade numeric value formatter for financial fields.
+ * Safely formats numeric values (from PostgreSQL numeric fields) with Romanian locale formatting.
+ *
+ * @param value - The value to format (can be string, number, null, or undefined from DB)
+ * @returns Formatted number string with Romanian locale (e.g., "1.234.567,89") or "-" for invalid values
+ */
+function formatNumericValue(value: unknown): string {
+  // Positive check: if value is null or undefined, return placeholder
+  if (value == null) {
+    return "-";
+  }
+
+  // Convert to number and validate
+  const numValue = typeof value === "number" ? value : Number(value);
+
+  // Positive check: if conversion resulted in a valid finite number, format it
+  if (Number.isFinite(numValue)) {
+    return numValue.toLocaleString("ro-RO");
+  }
+
+  // Fallback for invalid numeric values
+  return "-";
+}
+
 export function SilverCompanyDetail() {
   const { id } = useParams();
   const detailQuery = useSilverCompanyDetail(id);
@@ -128,31 +153,42 @@ export function SilverCompanyDetail() {
               <pre className="text-xs text-t2">{JSON.stringify(item, null, 2)}</pre>
             </TabsContent>
             <TabsContent value="financial">
-              <pre className="text-xs text-t2">
-                {JSON.stringify(
-                  {
-                    cifraAfaceri: metadata.cifraAfaceri,
-                    profitNet: metadata.profitNet,
-                    angajati: metadata.angajati,
-                  },
-                  null,
-                  2,
-                )}
-              </pre>
+              <div className="grid gap-3 text-sm md:grid-cols-3">
+                <div>
+                  <div className="text-t3">Cifra Afaceri</div>
+                  <div className="font-medium text-t1">{formatNumericValue(item.cifraAfaceri)}</div>
+                </div>
+                <div>
+                  <div className="text-t3">Profit Net</div>
+                  <div className="font-medium text-t1">{formatNumericValue(item.profitNet)}</div>
+                </div>
+                <div>
+                  <div className="text-t3">Angajați</div>
+                  <div className="font-medium text-t1">
+                    {formatNumericValue(item.numarAngajati)}
+                  </div>
+                </div>
+              </div>
             </TabsContent>
             <TabsContent value="contact">
-              <pre className="text-xs text-t2">
-                {JSON.stringify(
-                  {
-                    email: item.email,
-                    phone: item.phone,
-                    website: item.website,
-                    address: item.adresa,
-                  },
-                  null,
-                  2,
-                )}
-              </pre>
+              <div className="grid gap-3 text-sm md:grid-cols-2">
+                <div>
+                  <div className="text-t3">Email</div>
+                  <div className="font-medium text-t1">{String(item.email ?? "-")}</div>
+                </div>
+                <div>
+                  <div className="text-t3">Telefon</div>
+                  <div className="font-medium text-t1">{String(item.telefon ?? "-")}</div>
+                </div>
+                <div>
+                  <div className="text-t3">Website</div>
+                  <div className="font-medium text-t1">{String(item.website ?? "-")}</div>
+                </div>
+                <div>
+                  <div className="text-t3">Adresa</div>
+                  <div className="font-medium text-t1">{String(item.adresa ?? "-")}</div>
+                </div>
+              </div>
             </TabsContent>
             <TabsContent value="enrichment">
               <pre className="text-xs text-t2">{JSON.stringify(metadata, null, 2)}</pre>

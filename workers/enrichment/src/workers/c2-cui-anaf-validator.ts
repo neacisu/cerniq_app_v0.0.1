@@ -1,5 +1,10 @@
 import type { Processor } from "bullmq";
-import { createCircuitBreaker, createQueue, sanitizeNrRegCom } from "@cerniq/worker-shared";
+import {
+  createCircuitBreaker,
+  createQueue,
+  sanitizeNrRegCom,
+  withExternalApiMetrics,
+} from "@cerniq/worker-shared";
 import {
   and,
   bronzeContacts,
@@ -60,40 +65,42 @@ function randomDelay(): Promise<void> {
 }
 
 async function callAnafApi(cleanCui: string): Promise<AnafCompanyResult | null> {
-  await randomDelay();
-  const payload = [
-    { cui: Number.parseInt(cleanCui, 10), data: new Date().toISOString().split("T")[0] },
-  ];
-  const response = await fetch(ANAF_API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-    signal: AbortSignal.timeout(ANAF_TIMEOUT_MS),
+  return withExternalApiMetrics("anaf", async () => {
+    await randomDelay();
+    const payload = [
+      { cui: Number.parseInt(cleanCui, 10), data: new Date().toISOString().split("T")[0] },
+    ];
+    const response = await fetch(ANAF_API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(ANAF_TIMEOUT_MS),
+    });
+
+    if (!response.ok) {
+      throw new Error(`ANAF API error: ${response.status}`);
+    }
+
+    const data = (await response.json()) as unknown;
+    if (Array.isArray(data) && data.length > 0 && typeof data[0] === "object") {
+      return data[0] as AnafCompanyResult;
+    }
+    if (
+      data &&
+      typeof data === "object" &&
+      "found" in data &&
+      Array.isArray((data as { found: unknown[] }).found) &&
+      (data as { found: unknown[] }).found.length > 0
+    ) {
+      return (data as { found: AnafCompanyResult[] }).found[0];
+    }
+
+    return null;
   });
-
-  if (!response.ok) {
-    throw new Error(`ANAF API error: ${response.status}`);
-  }
-
-  const data = (await response.json()) as unknown;
-  if (Array.isArray(data) && data.length > 0 && typeof data[0] === "object") {
-    return data[0] as AnafCompanyResult;
-  }
-  if (
-    data &&
-    typeof data === "object" &&
-    "found" in data &&
-    Array.isArray((data as { found: unknown[] }).found) &&
-    (data as { found: unknown[] }).found.length > 0
-  ) {
-    return (data as { found: AnafCompanyResult[] }).found[0];
-  }
-
-  return null;
 }
 
 const anafBreaker = createCircuitBreaker(
-  async (...args: unknown[]) => callAnafApi(String(args[0] ?? "")),
+  async (cui: string) => callAnafApi(cui),
   "anaf-cui-validation",
   {
     timeout: ANAF_TIMEOUT_MS,

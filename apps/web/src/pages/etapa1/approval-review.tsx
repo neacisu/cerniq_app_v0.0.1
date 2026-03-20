@@ -1,4 +1,5 @@
 import { useParams } from "react-router-dom";
+import { useState } from "react";
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
 import { Spinner } from "@/components/ui/spinner.js";
 import {
@@ -12,7 +13,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/index.js";
-import { useApprovalDetail, useDecideApproval } from "@/hooks/use-etapa1.js";
+import { useApprovalDetail, useDecideApproval, useEscalateApproval } from "@/hooks/use-etapa1.js";
 import { SLACountdown } from "@/components/data/SLACountdown.js";
 import { toast } from "@/components/ui/toast-api.js";
 
@@ -20,6 +21,9 @@ export function ApprovalReview() {
   const { id } = useParams();
   const detailQuery = useApprovalDetail(id);
   const decideMutation = useDecideApproval();
+  const escalateMutation = useEscalateApproval();
+  const [showEscalate, setShowEscalate] = useState(false);
+  const [escalateReason, setEscalateReason] = useState("");
   const task = detailQuery.data?.data ?? {};
   const entityData = detailQuery.data?.entityData ?? null;
 
@@ -27,6 +31,15 @@ export function ApprovalReview() {
     if (!id) return;
     await decideMutation.mutateAsync({ id, decision });
     toast.success(`Decizie salvata: ${decision}`);
+    await detailQuery.refetch();
+  };
+
+  const handleEscalate = async () => {
+    if (!id || !escalateReason.trim()) return;
+    await escalateMutation.mutateAsync({ id, reason: escalateReason });
+    toast.success("Task escalat cu succes");
+    setShowEscalate(false);
+    setEscalateReason("");
     await detailQuery.refetch();
   };
 
@@ -118,7 +131,39 @@ export function ApprovalReview() {
         <Button variant="ghost" onClick={() => decide("skip")} disabled={decideMutation.isPending}>
           Skip
         </Button>
+        <Button
+          variant="outline"
+          onClick={() => setShowEscalate((v) => !v)}
+          disabled={escalateMutation.isPending}
+        >
+          Escaleaza
+        </Button>
       </div>
+
+      {showEscalate && (
+        <div className="mt-3 rounded border border-s700 p-3">
+          <p className="mb-2 text-sm text-t3">Motiv escalare (minim 3 caractere)</p>
+          <textarea
+            className="w-full rounded border border-s600 bg-s800 p-2 text-sm text-t1"
+            rows={3}
+            value={escalateReason}
+            onChange={(e) => setEscalateReason(e.target.value)}
+            placeholder="Descrie motivul escalarii..."
+          />
+          <div className="mt-2 flex gap-2">
+            <Button
+              size="sm"
+              onClick={handleEscalate}
+              disabled={escalateMutation.isPending || escalateReason.trim().length < 3}
+            >
+              Confirma escalare
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setShowEscalate(false)}>
+              Anuleaza
+            </Button>
+          </div>
+        </div>
+      )}
     </PageWrapper>
   );
 }

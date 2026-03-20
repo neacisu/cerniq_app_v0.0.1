@@ -73,11 +73,11 @@ export function SilverContacts() {
   }
 
   return (
-    <PageWrapper title="Silver Contacts">
+    <PageWrapper title="Silver Companies">
       <Card>
         <CardHeader>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <CardTitle>Companii Silver (contact scope)</CardTitle>
+            <CardTitle>Companii Silver</CardTitle>
             <SearchInput
               value={search}
               onChange={(val) => {

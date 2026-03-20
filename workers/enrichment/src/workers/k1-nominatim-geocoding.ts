@@ -1,6 +1,6 @@
 import type { Processor } from "bullmq";
 import { db, setSessionTenantId, silverCompanies, silverEnrichmentLog, sql } from "@cerniq/db";
-import { createQueue, validateJobData } from "@cerniq/worker-shared";
+import { createQueue, validateJobData, withExternalApiMetrics } from "@cerniq/worker-shared";
 import { z } from "zod";
 
 export type GeocodingJobData = {
@@ -51,14 +51,16 @@ export const nominatimGeocodingProcessor: Processor<GeocodingJobData> = async (j
   url.searchParams.set("limit", "1");
   url.searchParams.set("countrycodes", "ro");
 
-  const response = await fetch(url.toString(), {
-    method: "GET",
-    headers: {
-      Accept: "application/json",
-      "User-Agent": process.env.NOMINATIM_USER_AGENT ?? "CerniqApp/1.0 (contact@cerniq.app)",
-    },
-    signal: AbortSignal.timeout(Number(process.env.NOMINATIM_TIMEOUT_MS ?? "20000")),
-  });
+  const response = await withExternalApiMetrics("nominatim", () =>
+    fetch(url.toString(), {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        "User-Agent": process.env.NOMINATIM_USER_AGENT ?? "CerniqApp/1.0 (contact@cerniq.app)",
+      },
+      signal: AbortSignal.timeout(Number(process.env.NOMINATIM_TIMEOUT_MS ?? "20000")),
+    }),
+  );
   if (!response.ok) throw new Error(`Nominatim failed: ${response.status}`);
   const payload = (await response.json()) as Array<Record<string, unknown>>;
   if (!Array.isArray(payload) || payload.length === 0) {
@@ -66,9 +68,9 @@ export const nominatimGeocodingProcessor: Processor<GeocodingJobData> = async (j
   }
 
   const first = payload[0];
-  const latitude = Number(first.lat ?? NaN);
-  const longitude = Number(first.lon ?? NaN);
-  const placeRank = Number(first.place_rank ?? NaN);
+  const latitude = Number(first.lat ?? Number.NaN);
+  const longitude = Number(first.lon ?? Number.NaN);
+  const placeRank = Number(first.place_rank ?? Number.NaN);
   const accuracy = determineAccuracy(Number.isFinite(placeRank) ? placeRank : null);
 
   await db

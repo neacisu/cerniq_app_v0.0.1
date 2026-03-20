@@ -34,20 +34,20 @@ const kpiTemplates = [
     label: "Bronze Contacts",
     icon: "Database",
     color: "var(--color-tier-bronze)",
-    path: "/etapa1/bronze",
+    path: "/bronze",
   },
   {
     label: "Silver Companies",
     icon: "Building2",
     color: "var(--color-tier-silver)",
-    path: "/etapa1/silver",
+    path: "/silver",
   },
-  { label: "Gold Leads", icon: "Star", color: "var(--color-tier-gold)", path: "/etapa1/gold" },
+  { label: "Gold Leads", icon: "Star", color: "var(--color-tier-gold)", path: "/gold" },
   {
     label: "Queue Depth",
     icon: "TrendingUp",
     color: "var(--color-ok)",
-    path: "/etapa1/enrichment-queues",
+    path: "/enrichment/queue",
   },
 ];
 

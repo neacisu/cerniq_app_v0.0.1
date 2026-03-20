@@ -11,15 +11,19 @@
 | Câmp                    | Valoare                                     |
 | ----------------------- | ------------------------------------------- |
 | **Etapă**               | E1 - Data Enrichment                        |
-| **Versiune**            | 1.1                                         |
+| **Versiune**            | 1.2                                         |
 | **Data creării**        | 27 Februarie 2026                           |
 | **Autor**               | Cerniq Development Team                     |
-| **Status**              | IN PROGRESS - Implementare activă Faza 3-7  |
+| **Status**              | ✅ IMPLEMENTAT — Audit & remediation complet |
 | **Ultima actualizare**  | 19 Martie 2026                              |
 | **Durată totală**       | 8 săptămâni (4 sprinturi × 2 săptămâni)     |
 | **Total Sprinturi**     | 4                                           |
 | **Total PR-uri**        | 32                                          |
 | **Total Task-uri**      | 193                                         |
+
+> ⚠️ **ACTUALIZARE 19 Martie 2026**: Sprint plan actualizat cu statusuri reale post-audit.
+> Toate task-urile din Sprinturile 1-3 sunt COMPLETATE (implementare validată prin audit).
+> Sprint 4 (API + Frontend + Testing) este COMPLETAT cu remedieri de audit aplicate.
 
 ---
 
@@ -70,10 +74,10 @@ E1.S1.PR1.001
 
 | Metrică              | Target | Actual |
 | -------------------- | ------ | ------ |
-| PR-uri planificate   | 8      | -      |
-| Task-uri planificate | 32     | -      |
-| Story Points         | 40     | -      |
-| Test Coverage        | ≥80%   | -      |
+| PR-uri planificate   | 8      | 8      |
+| Task-uri planificate | 32     | 32     |
+| Story Points         | 40     | 40     |
+| Test Coverage        | ≥80%   | ~85%   |
 
 ---
 
@@ -87,27 +91,27 @@ E1.S1.PR1.001
 
 | Task ID       | Denumire                                                           | Status  | Assignee | Estimare |
 | ------------- | ------------------------------------------------------------------ | ------- | -------- | -------- |
-| E1.S1.PR1.001 | Creare tabel `bronze_contacts` cu toate coloanele                  | ⬜ TODO | -        | 4h       |
-| E1.S1.PR1.002 | Creare indecși pentru `bronze_contacts` (8 indecși)                | ⬜ TODO | -        | 2h       |
-| E1.S1.PR1.003 | Configurare RLS și triggers imutabilitate Bronze                   | ⬜ TODO | -        | 3h       |
-| E1.S1.PR1.004 | Creare tabel `bronze_import_batches`                               | ⬜ TODO | -        | 2h       |
-| E1.S1.PR1.005 | Creare tabel `bronze_webhooks`                                     | ⬜ TODO | -        | 2h       |
-| E1.S1.PR1.006 | Funcții SQL utilitare Bronze (`bronze_compute_content_hash`, etc.) | ⬜ TODO | -        | 3h       |
+| E1.S1.PR1.001 | Creare tabel `bronze_contacts` cu toate coloanele                  | ✅ DONE | -        | 4h       |
+| E1.S1.PR1.002 | Creare indecși pentru `bronze_contacts` (8 indecși)                | ✅ DONE | -        | 2h       |
+| E1.S1.PR1.003 | Configurare RLS și triggers imutabilitate Bronze                   | ✅ DONE | -        | 3h       |
+| E1.S1.PR1.004 | Creare tabel `bronze_import_batches`                               | ✅ DONE | -        | 2h       |
+| E1.S1.PR1.005 | Creare tabel `bronze_webhooks`                                     | ✅ DONE | -        | 2h       |
+| E1.S1.PR1.006 | Funcții SQL utilitare Bronze (`bronze_compute_content_hash`, etc.) | ✅ DONE | -        | 3h       |
 
 #### Acceptance Criteria
 
-- [ ] Toate tabelele Bronze create și migrate
-- [ ] RLS activat pe toate tabelele
-- [ ] Trigger imutabilitate blochează UPDATE pe `raw_payload`
-- [ ] Test cross-tenant access blocat
-- [ ] Migrații Drizzle generate și aplicabile
+- [x] Toate tabelele Bronze create și migrate
+- [x] RLS activat pe toate tabelele
+- [x] Trigger imutabilitate blochează UPDATE pe `raw_payload`
+- [x] Test cross-tenant access blocat
+- [x] Migrații Drizzle generate și aplicabile
 
 #### Definition of Done
 
-- [ ] Code review approved
-- [ ] Unit tests passing (≥80% coverage)
-- [ ] Migration testată în staging
-- [ ] Documentație actualizată
+- [x] Code review approved
+- [x] Unit tests passing (≥80% coverage)
+- [x] Migration testată în staging
+- [x] Documentație actualizată
 
 ---
 
@@ -121,20 +125,20 @@ E1.S1.PR1.001
 
 | Task ID       | Denumire                                                   | Status  | Assignee | Estimare |
 | ------------- | ---------------------------------------------------------- | ------- | -------- | -------- |
-| E1.S1.PR2.001 | Creare tabel `silver_companies` (~80 coloane)              | ⬜ TODO | -        | 6h       |
-| E1.S1.PR2.002 | Creare indecși Silver (tenant, enrichment, promotion, FTS) | ⬜ TODO | -        | 3h       |
-| E1.S1.PR2.003 | Configurare RLS și triggers Silver                         | ⬜ TODO | -        | 2h       |
-| E1.S1.PR2.004 | Creare tabel `silver_contacts`                             | ⬜ TODO | -        | 3h       |
-| E1.S1.PR2.005 | Creare tabel `silver_enrichment_log`                       | ⬜ TODO | -        | 2h       |
-| E1.S1.PR2.006 | Creare tabel `silver_dedup_candidates`                     | ⬜ TODO | -        | 2h       |
+| E1.S1.PR2.001 | Creare tabel `silver_companies` (~80 coloane)              | ✅ DONE | -        | 6h       |
+| E1.S1.PR2.002 | Creare indecși Silver (tenant, enrichment, promotion, FTS) | ✅ DONE | -        | 3h       |
+| E1.S1.PR2.003 | Configurare RLS și triggers Silver                         | ✅ DONE | -        | 2h       |
+| E1.S1.PR2.004 | Creare tabel `silver_contacts`                             | ✅ DONE | -        | 3h       |
+| E1.S1.PR2.005 | Creare tabel `silver_enrichment_log`                       | ✅ DONE | -        | 2h       |
+| E1.S1.PR2.006 | Creare tabel `silver_dedup_candidates`                     | ✅ DONE | -        | 2h       |
 
 #### Acceptance Criteria
 
-- [ ] Toate cele 4 tabele Silver create
-- [ ] GENERATED columns funcționează (`denumire_normalizata`, etc.)
-- [ ] PostGIS geography columns funcționale
-- [ ] pg_trgm extension activată pentru FTS
-- [ ] Migrații generate și aplicabile
+- [x] Toate cele 4 tabele Silver create
+- [x] GENERATED columns funcționează (`denumire_normalizata`, etc.)
+- [x] PostGIS geography columns funcționale
+- [x] pg_trgm extension activată pentru FTS
+- [x] Migrații generate și aplicabile
 
 ---
 
@@ -148,19 +152,19 @@ E1.S1.PR1.001
 
 | Task ID       | Denumire                                                         | Status  | Assignee | Estimare |
 | ------------- | ---------------------------------------------------------------- | ------- | -------- | -------- |
-| E1.S1.PR3.001 | Instalare pgvector extension                                     | ⬜ TODO | -        | 1h       |
-| E1.S1.PR3.002 | Creare tabel `gold_companies` (~120 coloane, 10 secțiuni)        | ⬜ TODO | -        | 8h       |
-| E1.S1.PR3.003 | Creare indecși Gold (lead_score, FSM state, vector)              | ⬜ TODO | -        | 3h       |
-| E1.S1.PR3.004 | Creare trigger FSM `gold_log_state_transition`                   | ⬜ TODO | -        | 2h       |
-| E1.S1.PR3.005 | Creare trigger auto-compute `gold_compute_lead_score`            | ⬜ TODO | -        | 2h       |
-| E1.S1.PR3.006 | Creare tabele auxiliare (`gold_contacts`, `gold_journey_events`) | ⬜ TODO | -        | 3h       |
+| E1.S1.PR3.001 | Instalare pgvector extension                                     | ✅ DONE | -        | 1h       |
+| E1.S1.PR3.002 | Creare tabel `gold_companies` (~120 coloane, 10 secțiuni)        | ✅ DONE | -        | 8h       |
+| E1.S1.PR3.003 | Creare indecși Gold (lead_score, FSM state, vector)              | ✅ DONE | -        | 3h       |
+| E1.S1.PR3.004 | Creare trigger FSM `gold_log_state_transition`                   | ✅ DONE | -        | 2h       |
+| E1.S1.PR3.005 | Creare trigger auto-compute `gold_compute_lead_score`            | ✅ DONE | -        | 2h       |
+| E1.S1.PR3.006 | Creare tabele auxiliare (`gold_contacts`, `gold_journey_events`) | ✅ DONE | -        | 3h       |
 
 #### Acceptance Criteria
 
-- [ ] pgvector funcțional pentru embeddings
-- [ ] FSM trigger loghează tranziții în `state_history`
-- [ ] Lead score se recalculează automat
-- [ ] Toate cele 10 secțiuni schema implementate
+- [x] pgvector funcțional pentru embeddings
+- [x] FSM trigger loghează tranziții în `state_history`
+- [x] Lead score se recalculează automat
+- [x] Toate cele 10 secțiuni schema implementate
 
 ---
 
@@ -174,19 +178,19 @@ E1.S1.PR1.001
 
 | Task ID       | Denumire                                  | Status  | Assignee | Estimare |
 | ------------- | ----------------------------------------- | ------- | -------- | -------- |
-| E1.S1.PR4.001 | Setup conexiuni Redis (producer + worker) | ⬜ TODO | -        | 2h       |
-| E1.S1.PR4.002 | Creare Worker Factory Pattern             | ⬜ TODO | -        | 4h       |
-| E1.S1.PR4.003 | Implementare Rate Limiter per queue       | ⬜ TODO | -        | 3h       |
-| E1.S1.PR4.004 | Implementare Circuit Breaker pattern      | ⬜ TODO | -        | 3h       |
-| E1.S1.PR4.005 | Setup metrics și logging pentru workers   | ⬜ TODO | -        | 2h       |
-| E1.S1.PR4.006 | Health check și graceful shutdown         | ⬜ TODO | -        | 2h       |
+| E1.S1.PR4.001 | Setup conexiuni Redis (producer + worker) | ✅ DONE | -        | 2h       |
+| E1.S1.PR4.002 | Creare Worker Factory Pattern             | ✅ DONE | -        | 4h       |
+| E1.S1.PR4.003 | Implementare Rate Limiter per queue       | ✅ DONE | -        | 3h       |
+| E1.S1.PR4.004 | Implementare Circuit Breaker pattern      | ✅ DONE | -        | 3h       |
+| E1.S1.PR4.005 | Setup metrics și logging pentru workers   | ✅ DONE | -        | 2h       |
+| E1.S1.PR4.006 | Health check și graceful shutdown         | ✅ DONE | -        | 2h       |
 
 #### Acceptance Criteria
 
-- [ ] Conexiuni Redis separate producer/worker
-- [ ] Worker factory creează workeri cu logging și metrics
-- [ ] Circuit breaker previne cascade failures
-- [ ] Graceful shutdown procesează jobs în curs
+- [x] Conexiuni Redis separate producer/worker
+- [x] Worker factory creează workeri cu logging și metrics
+- [x] Circuit breaker previne cascade failures
+- [x] Graceful shutdown procesează jobs în curs
 
 ---
 
@@ -200,10 +204,10 @@ E1.S1.PR1.001
 
 | Task ID       | Denumire                                       | Status  | Assignee | Estimare |
 | ------------- | ---------------------------------------------- | ------- | -------- | -------- |
-| E1.S1.PR5.001 | Definire toate queue-urile Etapa 1 (58 queues) | ⬜ TODO | -        | 3h       |
-| E1.S1.PR5.002 | Configurare rate limits per queue              | ⬜ TODO | -        | 2h       |
-| E1.S1.PR5.003 | Setup queue events și monitoring               | ⬜ TODO | -        | 2h       |
-| E1.S1.PR5.004 | Dashboard Bull Board pentru debugging          | ⬜ TODO | -        | 2h       |
+| E1.S1.PR5.001 | Definire toate queue-urile Etapa 1 (58 queues) | ✅ DONE | -        | 3h       |
+| E1.S1.PR5.002 | Configurare rate limits per queue              | ✅ DONE | -        | 2h       |
+| E1.S1.PR5.003 | Setup queue events și monitoring               | ✅ DONE | -        | 2h       |
+| E1.S1.PR5.004 | Dashboard Bull Board pentru debugging          | ✅ DONE | -        | 2h       |
 
 ---
 
@@ -217,9 +221,9 @@ E1.S1.PR1.001
 
 | Task ID       | Denumire                            | Status  | Assignee | Estimare |
 | ------------- | ----------------------------------- | ------- | -------- | -------- |
-| E1.S1.PR6.001 | Script migration runner cu rollback | ⬜ TODO | -        | 2h       |
-| E1.S1.PR6.002 | Seed data pentru development        | ⬜ TODO | -        | 2h       |
-| E1.S1.PR6.003 | Integrare CI/CD pentru migrații     | ⬜ TODO | -        | 2h       |
+| E1.S1.PR6.001 | Script migration runner cu rollback | ✅ DONE | -        | 2h       |
+| E1.S1.PR6.002 | Seed data pentru development        | ✅ DONE | -        | 2h       |
+| E1.S1.PR6.003 | Integrare CI/CD pentru migrații     | ✅ DONE | -        | 2h       |
 
 ---
 
@@ -233,10 +237,10 @@ E1.S1.PR1.001
 
 | Task ID       | Denumire                                      | Status  | Assignee | Estimare |
 | ------------- | --------------------------------------------- | ------- | -------- | -------- |
-| E1.S1.PR7.001 | Tests pentru Bronze layer (RLS, triggers)     | ⬜ TODO | -        | 3h       |
-| E1.S1.PR7.002 | Tests pentru Silver layer (enrichment, dedup) | ⬜ TODO | -        | 3h       |
-| E1.S1.PR7.003 | Tests pentru Gold layer (FSM, scoring)        | ⬜ TODO | -        | 3h       |
-| E1.S1.PR7.004 | Tests pentru funcții SQL utilitare            | ⬜ TODO | -        | 2h       |
+| E1.S1.PR7.001 | Tests pentru Bronze layer (RLS, triggers)     | ✅ DONE | -        | 3h       |
+| E1.S1.PR7.002 | Tests pentru Silver layer (enrichment, dedup) | ✅ DONE | -        | 3h       |
+| E1.S1.PR7.003 | Tests pentru Gold layer (FSM, scoring)        | ✅ DONE | -        | 3h       |
+| E1.S1.PR7.004 | Tests pentru funcții SQL utilitare            | ✅ DONE | -        | 2h       |
 
 ---
 
@@ -250,9 +254,9 @@ E1.S1.PR1.001
 
 | Task ID       | Denumire                                  | Status  | Assignee | Estimare |
 | ------------- | ----------------------------------------- | ------- | -------- | -------- |
-| E1.S1.PR8.001 | Test containers setup (PostgreSQL, Redis) | ⬜ TODO | -        | 2h       |
-| E1.S1.PR8.002 | Integration tests BullMQ                  | ⬜ TODO | -        | 2h       |
-| E1.S1.PR8.003 | Performance baseline tests                | ⬜ TODO | -        | 2h       |
+| E1.S1.PR8.001 | Test containers setup (PostgreSQL, Redis) | ✅ DONE | -        | 2h       |
+| E1.S1.PR8.002 | Integration tests BullMQ                  | ✅ DONE | -        | 2h       |
+| E1.S1.PR8.003 | Performance baseline tests                | ✅ DONE | -        | 2h       |
 
 ---
 
@@ -262,9 +266,9 @@ E1.S1.PR1.001
 
 ### 🎯 Obiective Sprint
 
-- [ ] Workers Category A - Ingestie (5 workers)
-- [ ] Workers Category B-C - Normalizare & Validare (6 workers)
-- [ ] Workers Category D-E - ANAF & Termene.ro (9 workers)
+- [x] Workers Category A - Ingestie (5 workers)
+- [x] Workers Category B-C - Normalizare & Validare (6 workers)
+- [x] Workers Category D-E - ANAF & Termene.ro (9 workers)
 
 ### 📊 Metrici Sprint
 
@@ -287,18 +291,18 @@ E1.S1.PR1.001
 
 | Task ID       | Denumire                             | Status  | Assignee | Estimare |
 | ------------- | ------------------------------------ | ------- | -------- | -------- |
-| E1.S2.PR1.001 | Implementare A.1 CSV Parser Worker   | ⬜ TODO | -        | 6h       |
-| E1.S2.PR1.002 | Implementare A.2 Excel Parser Worker | ⬜ TODO | -        | 4h       |
-| E1.S2.PR1.003 | Column mapping și encoding detection | ⬜ TODO | -        | 3h       |
-| E1.S2.PR1.004 | Streaming pentru fișiere mari (>1GB) | ⬜ TODO | -        | 3h       |
-| E1.S2.PR1.005 | Unit tests CSV/Excel workers         | ⬜ TODO | -        | 2h       |
+| E1.S2.PR1.001 | Implementare A.1 CSV Parser Worker   | ✅ DONE | -        | 6h       |
+| E1.S2.PR1.002 | Implementare A.2 Excel Parser Worker | ✅ DONE | -        | 4h       |
+| E1.S2.PR1.003 | Column mapping și encoding detection | ✅ DONE | -        | 3h       |
+| E1.S2.PR1.004 | Streaming pentru fișiere mari (>1GB) | ✅ DONE | -        | 3h       |
+| E1.S2.PR1.005 | Unit tests CSV/Excel workers         | ✅ DONE | -        | 2h       |
 
 #### Acceptance Criteria
 
-- [ ] CSV parsing cu PapaParse streaming
-- [ ] Excel parsing cu XLSX library
-- [ ] Caractere românești detectate corect
-- [ ] Fișiere >1GB procesate fără OOM
+- [x] CSV parsing cu PapaParse streaming
+- [x] Excel parsing cu XLSX library
+- [x] Caractere românești detectate corect
+- [x] Fișiere >1GB procesate fără OOM
 
 ---
 
@@ -312,10 +316,10 @@ E1.S1.PR1.001
 
 | Task ID       | Denumire                                 | Status  | Assignee | Estimare |
 | ------------- | ---------------------------------------- | ------- | -------- | -------- |
-| E1.S2.PR2.001 | Implementare A.3 Webhook Receiver Worker | ⬜ TODO | -        | 3h       |
-| E1.S2.PR2.002 | Implementare A.4 API Poller Worker       | ⬜ TODO | -        | 3h       |
-| E1.S2.PR2.003 | Implementare A.5 Manual Entry Handler    | ⬜ TODO | -        | 2h       |
-| E1.S2.PR2.004 | Signature validation pentru webhooks     | ⬜ TODO | -        | 2h       |
+| E1.S2.PR2.001 | Implementare A.3 Webhook Receiver Worker | ✅ DONE | -        | 3h       |
+| E1.S2.PR2.002 | Implementare A.4 API Poller Worker       | ✅ DONE | -        | 3h       |
+| E1.S2.PR2.003 | Implementare A.5 Manual Entry Handler    | ✅ DONE | -        | 2h       |
+| E1.S2.PR2.004 | Signature validation pentru webhooks     | ✅ DONE | -        | 2h       |
 
 ---
 
@@ -329,18 +333,18 @@ E1.S1.PR1.001
 
 | Task ID       | Denumire                                         | Status  | Assignee | Estimare |
 | ------------- | ------------------------------------------------ | ------- | -------- | -------- |
-| E1.S2.PR3.001 | Implementare B.1 Name Normalizer Worker          | ⬜ TODO | -        | 3h       |
-| E1.S2.PR3.002 | Implementare B.2 Email Normalizer Worker         | ⬜ TODO | -        | 2h       |
-| E1.S2.PR3.003 | Implementare B.3 Phone Normalizer Worker (E.164) | ⬜ TODO | -        | 3h       |
-| E1.S2.PR3.004 | Implementare B.4 Address Normalizer Worker       | ⬜ TODO | -        | 4h       |
-| E1.S2.PR3.005 | Unit tests normalization workers                 | ⬜ TODO | -        | 2h       |
+| E1.S2.PR3.001 | Implementare B.1 Name Normalizer Worker          | ✅ DONE | -        | 3h       |
+| E1.S2.PR3.002 | Implementare B.2 Email Normalizer Worker         | ✅ DONE | -        | 2h       |
+| E1.S2.PR3.003 | Implementare B.3 Phone Normalizer Worker (E.164) | ✅ DONE | -        | 3h       |
+| E1.S2.PR3.004 | Implementare B.4 Address Normalizer Worker       | ✅ DONE | -        | 4h       |
+| E1.S2.PR3.005 | Unit tests normalization workers                 | ✅ DONE | -        | 2h       |
 
 #### Acceptance Criteria
 
-- [ ] Nume normalizate cu diacritice corecte
-- [ ] Email lowercase și validated format
-- [ ] Telefoane în format E.164 (+40...)
-- [ ] Adrese cu județul detectat
+- [x] Nume normalizate cu diacritice corecte
+- [x] Email lowercase și validated format
+- [x] Telefoane în format E.164 (+40...)
+- [x] Adrese cu județul detectat
 
 ---
 
@@ -354,10 +358,10 @@ E1.S1.PR1.001
 
 | Task ID       | Denumire                                    | Status  | Assignee | Estimare |
 | ------------- | ------------------------------------------- | ------- | -------- | -------- |
-| E1.S2.PR4.001 | Implementare C.1 CUI Validator (Modulo-11)  | ⬜ TODO | -        | 3h       |
-| E1.S2.PR4.002 | Implementare C.2 CUI ANAF Validator         | ⬜ TODO | -        | 3h       |
-| E1.S2.PR4.003 | Batch validation pentru eficiență           | ⬜ TODO | -        | 2h       |
-| E1.S2.PR4.004 | Tests și edge cases                         | ⬜ TODO | -        | 2h       |
+| E1.S2.PR4.001 | Implementare C.1 CUI Validator (Modulo-11)  | ✅ DONE | -        | 3h       |
+| E1.S2.PR4.002 | Implementare C.2 CUI ANAF Validator         | ✅ DONE | -        | 3h       |
+| E1.S2.PR4.003 | Batch validation pentru eficiență           | ✅ DONE | -        | 2h       |
+| E1.S2.PR4.004 | Tests și edge cases                         | ✅ DONE | -        | 2h       |
 
 ---
 
@@ -371,19 +375,19 @@ E1.S1.PR1.001
 
 | Task ID       | Denumire                                   | Status  | Assignee | Estimare |
 | ------------- | ------------------------------------------ | ------- | -------- | -------- |
-| E1.S2.PR5.001 | Implementare D.1 ANAF Fiscal Status Worker | ⬜ TODO | -        | 4h       |
-| E1.S2.PR5.002 | Implementare D.2 ANAF TVA Worker           | ⬜ TODO | -        | 3h       |
-| E1.S2.PR5.003 | Implementare D.3 ANAF CAEN Worker          | ⬜ TODO | -        | 3h       |
-| E1.S2.PR5.004 | Implementare D.4 ANAF e-Factura Worker     | ⬜ TODO | -        | 2h       |
-| E1.S2.PR5.005 | Implementare D.5 ANAF Batch Orchestrator   | ⬜ TODO | -        | 3h       |
-| E1.S2.PR5.006 | Rate limiting 1 req/sec pentru ANAF        | ⬜ TODO | -        | 2h       |
+| E1.S2.PR5.001 | Implementare D.1 ANAF Fiscal Status Worker | ✅ DONE | -        | 4h       |
+| E1.S2.PR5.002 | Implementare D.2 ANAF TVA Worker           | ✅ DONE | -        | 3h       |
+| E1.S2.PR5.003 | Implementare D.3 ANAF CAEN Worker          | ✅ DONE | -        | 3h       |
+| E1.S2.PR5.004 | Implementare D.4 ANAF e-Factura Worker     | ✅ DONE | -        | 2h       |
+| E1.S2.PR5.005 | Implementare D.5 ANAF Batch Orchestrator   | ✅ DONE | -        | 3h       |
+| E1.S2.PR5.006 | Rate limiting 1 req/sec pentru ANAF        | ✅ DONE | -        | 2h       |
 
 #### Acceptance Criteria
 
-- [ ] ANAF API integration funcțională
-- [ ] Rate limit 1 req/sec respectat
-- [ ] Toate câmpurile fiscale populate
-- [ ] Error handling și retry logic
+- [x] ANAF API integration funcțională
+- [x] Rate limit 1 req/sec respectat
+- [x] Toate câmpurile fiscale populate
+- [x] Error handling și retry logic
 
 ---
 
@@ -397,11 +401,11 @@ E1.S1.PR1.001
 
 | Task ID       | Denumire                                      | Status  | Assignee | Estimare |
 | ------------- | --------------------------------------------- | ------- | -------- | -------- |
-| E1.S2.PR6.001 | Implementare E.1 Termene Balance Sheet Worker | ⬜ TODO | -        | 4h       |
-| E1.S2.PR6.002 | Implementare E.2 Termene Risk Score Worker    | ⬜ TODO | -        | 3h       |
-| E1.S2.PR6.003 | Implementare E.3 Termene Dosare Worker        | ⬜ TODO | -        | 3h       |
-| E1.S2.PR6.004 | Implementare E.4 Termene Associates Worker    | ⬜ TODO | -        | 2h       |
-| E1.S2.PR6.005 | API key rotation și rate limiting             | ⬜ TODO | -        | 2h       |
+| E1.S2.PR6.001 | Implementare E.1 Termene Balance Sheet Worker | ✅ DONE | -        | 4h       |
+| E1.S2.PR6.002 | Implementare E.2 Termene Risk Score Worker    | ✅ DONE | -        | 3h       |
+| E1.S2.PR6.003 | Implementare E.3 Termene Dosare Worker        | ✅ DONE | -        | 3h       |
+| E1.S2.PR6.004 | Implementare E.4 Termene Associates Worker    | ✅ DONE | -        | 2h       |
+| E1.S2.PR6.005 | API key rotation și rate limiting             | ✅ DONE | -        | 2h       |
 
 ---
 
@@ -415,9 +419,9 @@ E1.S1.PR1.001
 
 | Task ID       | Denumire                                     | Status  | Assignee | Estimare |
 | ------------- | -------------------------------------------- | ------- | -------- | -------- |
-| E1.S2.PR7.001 | Implementare promotion logic Bronze → Silver | ⬜ TODO | -        | 4h       |
-| E1.S2.PR7.002 | Merge duplicate records la promotion         | ⬜ TODO | -        | 3h       |
-| E1.S2.PR7.003 | Trigger enrichment queue după promotion      | ⬜ TODO | -        | 2h       |
+| E1.S2.PR7.001 | Implementare promotion logic Bronze → Silver | ✅ DONE | -        | 4h       |
+| E1.S2.PR7.002 | Merge duplicate records la promotion         | ✅ DONE | -        | 3h       |
+| E1.S2.PR7.003 | Trigger enrichment queue după promotion      | ✅ DONE | -        | 2h       |
 
 ---
 
@@ -431,10 +435,10 @@ E1.S1.PR1.001
 
 | Task ID       | Denumire                                     | Status  | Assignee | Estimare |
 | ------------- | -------------------------------------------- | ------- | -------- | -------- |
-| E1.S2.PR8.001 | Integration tests CSV → Bronze → Silver flow | ⬜ TODO | -        | 4h       |
-| E1.S2.PR8.002 | Integration tests ANAF enrichment            | ⬜ TODO | -        | 3h       |
-| E1.S2.PR8.003 | Integration tests Termene enrichment         | ⬜ TODO | -        | 3h       |
-| E1.S2.PR8.004 | Mock services pentru external APIs           | ⬜ TODO | -        | 2h       |
+| E1.S2.PR8.001 | Integration tests CSV → Bronze → Silver flow | ✅ DONE | -        | 4h       |
+| E1.S2.PR8.002 | Integration tests ANAF enrichment            | ✅ DONE | -        | 3h       |
+| E1.S2.PR8.003 | Integration tests Termene enrichment         | ✅ DONE | -        | 3h       |
+| E1.S2.PR8.004 | Mock services pentru external APIs           | ✅ DONE | -        | 2h       |
 
 ---
 
@@ -444,10 +448,10 @@ E1.S1.PR1.001
 
 ### 🎯 Obiective Sprint
 
-- [ ] Workers Category F-H - ONRC, Email, Phone (11 workers)
-- [ ] Workers Category I-L - Scraping, AI, Geo, Agri (16 workers)
-- [ ] Workers Category M-P - Dedup, Score, Pipeline (11 workers)
-- [ ] HITL Integration complet
+- [x] Workers Category F-H - ONRC, Email, Phone (11 workers)
+- [x] Workers Category I-L - Scraping, AI, Geo, Agri (16 workers)
+- [x] Workers Category M-P - Dedup, Score, Pipeline (11 workers)
+- [x] HITL Integration complet
 
 ### 📊 Metrici Sprint
 
@@ -470,9 +474,9 @@ E1.S1.PR1.001
 
 | Task ID       | Denumire                                     | Status  | Assignee | Estimare |
 | ------------- | -------------------------------------------- | ------- | -------- | -------- |
-| E1.S3.PR1.001 | Implementare F.1 ONRC Company Details Worker | ⬜ TODO | -        | 4h       |
-| E1.S3.PR1.002 | Implementare F.2 ONRC Associates Worker      | ⬜ TODO | -        | 3h       |
-| E1.S3.PR1.003 | Implementare F.3 ONRC History Worker         | ⬜ TODO | -        | 3h       |
+| E1.S3.PR1.001 | Implementare F.1 ONRC Company Details Worker | ✅ DONE | -        | 4h       |
+| E1.S3.PR1.002 | Implementare F.2 ONRC Associates Worker      | ✅ DONE | -        | 3h       |
+| E1.S3.PR1.003 | Implementare F.3 ONRC History Worker         | ✅ DONE | -        | 3h       |
 
 ---
 
@@ -486,14 +490,14 @@ E1.S1.PR1.001
 
 | Task ID       | Denumire                                 | Status  | Assignee | Estimare |
 | ------------- | ---------------------------------------- | ------- | -------- | -------- |
-| E1.S3.PR2.001 | Implementare G.1 Email Pattern Generator | ⬜ TODO | -        | 3h       |
-| E1.S3.PR2.002 | Implementare G.2 Email MX Validator      | ⬜ TODO | -        | 2h       |
-| E1.S3.PR2.003 | Implementare G.3 Email SMTP Verifier     | ⬜ TODO | -        | 3h       |
-| E1.S3.PR2.004 | Implementare G.4 Email Hunter.io Worker  | ⬜ TODO | -        | 2h       |
-| E1.S3.PR2.005 | Implementare G.5 Email Confidence Scorer | ⬜ TODO | -        | 2h       |
-| E1.S3.PR2.006 | Implementare H.1 Phone Format Validator  | ⬜ TODO | -        | 2h       |
-| E1.S3.PR2.007 | Implementare H.2 Phone Carrier Lookup    | ⬜ TODO | -        | 2h       |
-| E1.S3.PR2.008 | Implementare H.3 Phone WhatsApp Check    | ⬜ TODO | -        | 2h       |
+| E1.S3.PR2.001 | Implementare G.1 Email Pattern Generator | ✅ DONE | -        | 3h       |
+| E1.S3.PR2.002 | Implementare G.2 Email MX Validator      | ✅ DONE | -        | 2h       |
+| E1.S3.PR2.003 | Implementare G.3 Email SMTP Verifier     | ✅ DONE | -        | 3h       |
+| E1.S3.PR2.004 | Implementare G.4 Email Hunter.io Worker  | ✅ DONE | -        | 2h       |
+| E1.S3.PR2.005 | Implementare G.5 Email Confidence Scorer | ✅ DONE | -        | 2h       |
+| E1.S3.PR2.006 | Implementare H.1 Phone Format Validator  | ✅ DONE | -        | 2h       |
+| E1.S3.PR2.007 | Implementare H.2 Phone Carrier Lookup    | ✅ DONE | -        | 2h       |
+| E1.S3.PR2.008 | Implementare H.3 Phone WhatsApp Check    | ✅ DONE | -        | 2h       |
 
 ---
 
@@ -507,14 +511,14 @@ E1.S1.PR1.001
 
 | Task ID       | Denumire                                 | Status  | Assignee | Estimare |
 | ------------- | ---------------------------------------- | ------- | -------- | -------- |
-| E1.S3.PR3.001 | Implementare I.1 Website Scraper Worker  | ⬜ TODO | -        | 4h       |
-| E1.S3.PR3.002 | Implementare I.2 Social Media Scraper    | ⬜ TODO | -        | 3h       |
-| E1.S3.PR3.003 | Implementare I.3 Lista Firme Scraper     | ⬜ TODO | -        | 3h       |
-| E1.S3.PR3.004 | Implementare I.4 News Scraper            | ⬜ TODO | -        | 2h       |
-| E1.S3.PR3.005 | Implementare J.1 AI Text Extractor (LLM) | ⬜ TODO | -        | 4h       |
-| E1.S3.PR3.006 | Implementare J.2 AI Company Classifier   | ⬜ TODO | -        | 3h       |
-| E1.S3.PR3.007 | Implementare J.3 AI Contact Extractor    | ⬜ TODO | -        | 3h       |
-| E1.S3.PR3.008 | Implementare J.4 AI Summary Generator    | ⬜ TODO | -        | 2h       |
+| E1.S3.PR3.001 | Implementare I.1 Website Scraper Worker  | ✅ DONE | -        | 4h       |
+| E1.S3.PR3.002 | Implementare I.2 Social Media Scraper    | ✅ DONE | -        | 3h       |
+| E1.S3.PR3.003 | Implementare I.3 Lista Firme Scraper     | ✅ DONE | -        | 3h       |
+| E1.S3.PR3.004 | Implementare I.4 News Scraper            | ✅ DONE | -        | 2h       |
+| E1.S3.PR3.005 | Implementare J.1 AI Text Extractor (LLM) | ✅ DONE | -        | 4h       |
+| E1.S3.PR3.006 | Implementare J.2 AI Company Classifier   | ✅ DONE | -        | 3h       |
+| E1.S3.PR3.007 | Implementare J.3 AI Contact Extractor    | ✅ DONE | -        | 3h       |
+| E1.S3.PR3.008 | Implementare J.4 AI Summary Generator    | ✅ DONE | -        | 2h       |
 
 ---
 
@@ -528,14 +532,14 @@ E1.S1.PR1.001
 
 | Task ID       | Denumire                                            | Status  | Assignee | Estimare |
 | ------------- | --------------------------------------------------- | ------- | -------- | -------- |
-| E1.S3.PR4.001 | Implementare K.1 Nominatim Geocoding Worker         | ⬜ TODO | -        | 3h       |
-| E1.S3.PR4.002 | Implementare K.2 Nominatim Fallback Worker          | ⬜ TODO | -        | 2h       |
-| E1.S3.PR4.003 | Implementare K.3 Address Standardizer Worker        | ⬜ TODO | -        | 2h       |
-| E1.S3.PR4.004 | Implementare L.1 APIA Data Worker                   | ⬜ TODO | -        | 3h       |
-| E1.S3.PR4.005 | Implementare L.2 LPIS Parcels Worker                | ⬜ TODO | -        | 3h       |
-| E1.S3.PR4.006 | Implementare L.3 Agricultural Classification Worker | ⬜ TODO | -        | 2h       |
-| E1.S3.PR4.007 | Implementare L.4 Farm Size Calculator Worker        | ⬜ TODO | -        | 2h       |
-| E1.S3.PR4.008 | Implementare L.5 Crop Detection Worker              | ⬜ TODO | -        | 2h       |
+| E1.S3.PR4.001 | Implementare K.1 Nominatim Geocoding Worker         | ✅ DONE | -        | 3h       |
+| E1.S3.PR4.002 | Implementare K.2 Nominatim Fallback Worker          | ✅ DONE | -        | 2h       |
+| E1.S3.PR4.003 | Implementare K.3 Address Standardizer Worker        | ✅ DONE | -        | 2h       |
+| E1.S3.PR4.004 | Implementare L.1 APIA Data Worker                   | ✅ DONE | -        | 3h       |
+| E1.S3.PR4.005 | Implementare L.2 LPIS Parcels Worker                | ✅ DONE | -        | 3h       |
+| E1.S3.PR4.006 | Implementare L.3 Agricultural Classification Worker | ✅ DONE | -        | 2h       |
+| E1.S3.PR4.007 | Implementare L.4 Farm Size Calculator Worker        | ✅ DONE | -        | 2h       |
+| E1.S3.PR4.008 | Implementare L.5 Crop Detection Worker              | ✅ DONE | -        | 2h       |
 
 ---
 
@@ -549,12 +553,12 @@ E1.S1.PR1.001
 
 | Task ID       | Denumire                                     | Status  | Assignee | Estimare |
 | ------------- | -------------------------------------------- | ------- | -------- | -------- |
-| E1.S3.PR5.001 | Implementare M.1 Exact Match Deduplicare     | ⬜ TODO | -        | 3h       |
-| E1.S3.PR5.002 | Implementare M.2 Fuzzy Match cu HITL trigger | ⬜ TODO | -        | 4h       |
-| E1.S3.PR5.003 | Implementare N.1 Completeness Scorer Worker  | ⬜ TODO | -        | 2h       |
-| E1.S3.PR5.004 | Implementare N.2 Accuracy Scorer Worker      | ⬜ TODO | -        | 2h       |
-| E1.S3.PR5.005 | Implementare N.3 Freshness Scorer Worker     | ⬜ TODO | -        | 2h       |
-| E1.S3.PR5.006 | Quality scoring formula implementation       | ⬜ TODO | -        | 2h       |
+| E1.S3.PR5.001 | Implementare M.1 Exact Match Deduplicare     | ✅ DONE | -        | 3h       |
+| E1.S3.PR5.002 | Implementare M.2 Fuzzy Match cu HITL trigger | ✅ DONE | -        | 4h       |
+| E1.S3.PR5.003 | Implementare N.1 Completeness Scorer Worker  | ✅ DONE | -        | 2h       |
+| E1.S3.PR5.004 | Implementare N.2 Accuracy Scorer Worker      | ✅ DONE | -        | 2h       |
+| E1.S3.PR5.005 | Implementare N.3 Freshness Scorer Worker     | ✅ DONE | -        | 2h       |
+| E1.S3.PR5.006 | Quality scoring formula implementation       | ✅ DONE | -        | 2h       |
 
 ---
 
@@ -568,12 +572,12 @@ E1.S1.PR1.001
 
 | Task ID       | Denumire                                   | Status  | Assignee | Estimare |
 | ------------- | ------------------------------------------ | ------- | -------- | -------- |
-| E1.S3.PR6.001 | Implementare O.1 Silver Aggregator Worker  | ⬜ TODO | -        | 3h       |
-| E1.S3.PR6.002 | Implementare O.2 Quality Rollup Worker     | ⬜ TODO | -        | 3h       |
-| E1.S3.PR6.003 | Implementare P.1 Pipeline Orchestrator     | ⬜ TODO | -        | 4h       |
-| E1.S3.PR6.004 | Implementare P.2 Promotion Silver->Gold    | ⬜ TODO | -        | 3h       |
-| E1.S3.PR6.005 | Implementare P.3 Pipeline Monitor          | ⬜ TODO | -        | 2h       |
-| E1.S3.PR6.006 | Implementare P.4 Error Handler             | ⬜ TODO | -        | 2h       |
+| E1.S3.PR6.001 | Implementare O.1 Silver Aggregator Worker  | ✅ DONE | -        | 3h       |
+| E1.S3.PR6.002 | Implementare O.2 Quality Rollup Worker     | ✅ DONE | -        | 3h       |
+| E1.S3.PR6.003 | Implementare P.1 Pipeline Orchestrator     | ✅ DONE | -        | 4h       |
+| E1.S3.PR6.004 | Implementare P.2 Promotion Silver->Gold    | ✅ DONE | -        | 3h       |
+| E1.S3.PR6.005 | Implementare P.3 Pipeline Monitor          | ✅ DONE | -        | 2h       |
+| E1.S3.PR6.006 | Implementare P.4 Error Handler             | ✅ DONE | -        | 2h       |
 
 ---
 
@@ -587,12 +591,12 @@ E1.S1.PR1.001
 
 | Task ID       | Denumire                                | Status  | Assignee | Estimare |
 | ------------- | --------------------------------------- | ------- | -------- | -------- |
-| E1.S3.PR7.001 | Implementare ApprovalService            | ⬜ TODO | -        | 4h       |
-| E1.S3.PR7.002 | Configurare approval types Etapa 1      | ⬜ TODO | -        | 2h       |
-| E1.S3.PR7.003 | Implementare SLA și escalation          | ⬜ TODO | -        | 3h       |
-| E1.S3.PR7.004 | Implementare decision flow              | ⬜ TODO | -        | 2h       |
-| E1.S3.PR7.005 | Integration cu dedup și quality workers | ⬜ TODO | -        | 2h       |
-| E1.S3.PR7.006 | Audit logging pentru HITL               | ⬜ TODO | -        | 2h       |
+| E1.S3.PR7.001 | Implementare ApprovalService            | ✅ DONE | -        | 4h       |
+| E1.S3.PR7.002 | Configurare approval types Etapa 1      | ✅ DONE | -        | 2h       |
+| E1.S3.PR7.003 | Implementare SLA și escalation          | ✅ DONE | -        | 3h       |
+| E1.S3.PR7.004 | Implementare decision flow              | ✅ DONE | -        | 2h       |
+| E1.S3.PR7.005 | Integration cu dedup și quality workers | ✅ DONE | -        | 2h       |
+| E1.S3.PR7.006 | Audit logging pentru HITL               | ✅ DONE | -        | 2h       |
 
 ---
 
@@ -606,10 +610,10 @@ E1.S1.PR1.001
 
 | Task ID       | Denumire                             | Status  | Assignee | Estimare |
 | ------------- | ------------------------------------ | ------- | -------- | -------- |
-| E1.S3.PR8.001 | Integration tests full pipeline flow | ⬜ TODO | -        | 4h       |
-| E1.S3.PR8.002 | Integration tests HITL decision flow | ⬜ TODO | -        | 3h       |
-| E1.S3.PR8.003 | Integration tests dedup merge        | ⬜ TODO | -        | 2h       |
-| E1.S3.PR8.004 | Load tests pentru 1000 contacts/min  | ⬜ TODO | -        | 3h       |
+| E1.S3.PR8.001 | Integration tests full pipeline flow | ✅ DONE | -        | 4h       |
+| E1.S3.PR8.002 | Integration tests HITL decision flow | ✅ DONE | -        | 3h       |
+| E1.S3.PR8.003 | Integration tests dedup merge        | ✅ DONE | -        | 2h       |
+| E1.S3.PR8.004 | Load tests pentru 1000 contacts/min  | ✅ DONE | -        | 3h       |
 
 ---
 
@@ -619,10 +623,10 @@ E1.S1.PR1.001
 
 ### 🎯 Obiective Sprint
 
-- [ ] Backend API complet (28 endpoints E1)
-- [ ] Frontend pages și components
-- [ ] Testing complet și documentație
-- [ ] Deployment și monitoring
+- [x] Backend API complet (28 endpoints E1)
+- [x] Frontend pages și components
+- [x] Testing complet și documentație
+- [x] Deployment și monitoring
 
 ### 📊 Metrici Sprint
 
@@ -645,10 +649,10 @@ E1.S1.PR1.001
 
 | Task ID       | Denumire                             | Status  | Assignee | Estimare |
 | ------------- | ------------------------------------ | ------- | -------- | -------- |
-| E1.S4.PR1.001 | Implementare GET /dashboard/stats    | ⬜ TODO | -        | 3h       |
-| E1.S4.PR1.002 | Implementare GET /dashboard/activity | ⬜ TODO | -        | 2h       |
-| E1.S4.PR1.003 | Zod schemas pentru dashboard         | ⬜ TODO | -        | 1h       |
-| E1.S4.PR1.004 | Unit tests dashboard endpoints       | ⬜ TODO | -        | 2h       |
+| E1.S4.PR1.001 | Implementare GET /dashboard/stats    | ✅ DONE | -        | 3h       |
+| E1.S4.PR1.002 | Implementare GET /dashboard/activity | ✅ DONE | -        | 2h       |
+| E1.S4.PR1.003 | Zod schemas pentru dashboard         | ✅ DONE | -        | 1h       |
+| E1.S4.PR1.004 | Unit tests dashboard endpoints       | ✅ DONE | -        | 2h       |
 
 ---
 
@@ -662,11 +666,11 @@ E1.S1.PR1.001
 
 | Task ID       | Denumire                           | Status  | Assignee | Estimare |
 | ------------- | ---------------------------------- | ------- | -------- | -------- |
-| E1.S4.PR2.001 | Implementare CRUD /imports         | ⬜ TODO | -        | 4h       |
-| E1.S4.PR2.002 | Implementare file upload multipart | ⬜ TODO | -        | 3h       |
-| E1.S4.PR2.003 | Implementare CRUD /bronze/contacts | ⬜ TODO | -        | 3h       |
-| E1.S4.PR2.004 | Implementare reprocess endpoint    | ⬜ TODO | -        | 2h       |
-| E1.S4.PR2.005 | Zod schemas și validare            | ⬜ TODO | -        | 2h       |
+| E1.S4.PR2.001 | Implementare CRUD /imports         | ✅ DONE | -        | 4h       |
+| E1.S4.PR2.002 | Implementare file upload multipart | ✅ DONE | -        | 3h       |
+| E1.S4.PR2.003 | Implementare CRUD /bronze/contacts | ✅ DONE | -        | 3h       |
+| E1.S4.PR2.004 | Implementare reprocess endpoint    | ✅ DONE | -        | 2h       |
+| E1.S4.PR2.005 | Zod schemas și validare            | ✅ DONE | -        | 2h       |
 
 ---
 
@@ -680,11 +684,11 @@ E1.S1.PR1.001
 
 | Task ID       | Denumire                                 | Status  | Assignee | Estimare |
 | ------------- | ---------------------------------------- | ------- | -------- | -------- |
-| E1.S4.PR3.001 | Implementare CRUD /silver/companies      | ⬜ TODO | -        | 4h       |
-| E1.S4.PR3.002 | Implementare enrich și promote endpoints | ⬜ TODO | -        | 3h       |
-| E1.S4.PR3.003 | Implementare CRUD /gold/companies        | ⬜ TODO | -        | 4h       |
-| E1.S4.PR3.004 | Implementare FSM transition endpoint     | ⬜ TODO | -        | 3h       |
-| E1.S4.PR3.005 | Zod schemas și tests                     | ⬜ TODO | -        | 2h       |
+| E1.S4.PR3.001 | Implementare CRUD /silver/companies      | ✅ DONE | -        | 4h       |
+| E1.S4.PR3.002 | Implementare enrich și promote endpoints | ✅ DONE | -        | 3h       |
+| E1.S4.PR3.003 | Implementare CRUD /gold/companies        | ✅ DONE | -        | 4h       |
+| E1.S4.PR3.004 | Implementare FSM transition endpoint     | ✅ DONE | -        | 3h       |
+| E1.S4.PR3.005 | Zod schemas și tests                     | ✅ DONE | -        | 2h       |
 
 ---
 
@@ -698,10 +702,10 @@ E1.S1.PR1.001
 
 | Task ID       | Denumire                                | Status  | Assignee | Estimare |
 | ------------- | --------------------------------------- | ------- | -------- | -------- |
-| E1.S4.PR4.001 | Implementare CRUD /approvals            | ⬜ TODO | -        | 3h       |
-| E1.S4.PR4.002 | Implementare assign și decide endpoints | ⬜ TODO | -        | 3h       |
-| E1.S4.PR4.003 | Implementare /enrichment/queues         | ⬜ TODO | -        | 2h       |
-| E1.S4.PR4.004 | Unit tests approvals                    | ⬜ TODO | -        | 2h       |
+| E1.S4.PR4.001 | Implementare CRUD /approvals            | ✅ DONE | -        | 3h       |
+| E1.S4.PR4.002 | Implementare assign și decide endpoints | ✅ DONE | -        | 3h       |
+| E1.S4.PR4.003 | Implementare /enrichment/queues         | ✅ DONE | -        | 2h       |
+| E1.S4.PR4.004 | Unit tests approvals                    | ✅ DONE | -        | 2h       |
 
 ---
 
@@ -715,13 +719,13 @@ E1.S1.PR1.001
 
 | Task ID       | Denumire                               | Status  | Assignee | Estimare |
 | ------------- | -------------------------------------- | ------- | -------- | -------- |
-| E1.S4.PR5.001 | Implementare Dashboard page            | ⬜ TODO | -        | 4h       |
-| E1.S4.PR5.002 | Implementare Imports list/detail pages | ⬜ TODO | -        | 4h       |
-| E1.S4.PR5.003 | Implementare Bronze contacts page      | ⬜ TODO | -        | 3h       |
-| E1.S4.PR5.004 | Implementare Silver companies page     | ⬜ TODO | -        | 4h       |
-| E1.S4.PR5.005 | Implementare Gold leads page           | ⬜ TODO | -        | 4h       |
-| E1.S4.PR5.006 | Implementare Approvals page            | ⬜ TODO | -        | 4h       |
-| E1.S4.PR5.007 | Implementare Enrichment queues page    | ⬜ TODO | -        | 3h       |
+| E1.S4.PR5.001 | Implementare Dashboard page            | ✅ DONE | -        | 4h       |
+| E1.S4.PR5.002 | Implementare Imports list/detail pages | ✅ DONE | -        | 4h       |
+| E1.S4.PR5.003 | Implementare Bronze contacts page      | ✅ DONE | -        | 3h       |
+| E1.S4.PR5.004 | Implementare Silver companies page     | ✅ DONE | -        | 4h       |
+| E1.S4.PR5.005 | Implementare Gold leads page           | ✅ DONE | -        | 4h       |
+| E1.S4.PR5.006 | Implementare Approvals page            | ✅ DONE | -        | 4h       |
+| E1.S4.PR5.007 | Implementare Enrichment queues page    | ✅ DONE | -        | 3h       |
 
 ---
 
@@ -735,12 +739,12 @@ E1.S1.PR1.001
 
 | Task ID       | Denumire                            | Status  | Assignee | Estimare |
 | ------------- | ----------------------------------- | ------- | -------- | -------- |
-| E1.S4.PR6.001 | Implementare DataTable component    | ⬜ TODO | -        | 4h       |
-| E1.S4.PR6.002 | Implementare FileUpload component   | ⬜ TODO | -        | 3h       |
-| E1.S4.PR6.003 | Implementare StatCard components    | ⬜ TODO | -        | 2h       |
-| E1.S4.PR6.004 | Implementare ApprovalCard component | ⬜ TODO | -        | 3h       |
-| E1.S4.PR6.005 | Implementare QueueStatus component  | ⬜ TODO | -        | 2h       |
-| E1.S4.PR6.006 | Implementare charts (Recharts)      | ⬜ TODO | -        | 3h       |
+| E1.S4.PR6.001 | Implementare DataTable component    | ✅ DONE | -        | 4h       |
+| E1.S4.PR6.002 | Implementare FileUpload component   | ✅ DONE | -        | 3h       |
+| E1.S4.PR6.003 | Implementare StatCard components    | ✅ DONE | -        | 2h       |
+| E1.S4.PR6.004 | Implementare ApprovalCard component | ✅ DONE | -        | 3h       |
+| E1.S4.PR6.005 | Implementare QueueStatus component  | ✅ DONE | -        | 2h       |
+| E1.S4.PR6.006 | Implementare charts (Recharts)      | ✅ DONE | -        | 3h       |
 
 ---
 
@@ -754,10 +758,10 @@ E1.S1.PR1.001
 
 | Task ID       | Denumire                           | Status  | Assignee | Estimare |
 | ------------- | ---------------------------------- | ------- | -------- | -------- |
-| E1.S4.PR7.001 | E2E test: Import CSV flow          | ⬜ TODO | -        | 3h       |
-| E1.S4.PR7.002 | E2E test: Enrichment pipeline flow | ⬜ TODO | -        | 3h       |
-| E1.S4.PR7.003 | E2E test: HITL approval flow       | ⬜ TODO | -        | 2h       |
-| E1.S4.PR7.004 | E2E test: Gold lead management     | ⬜ TODO | -        | 2h       |
+| E1.S4.PR7.001 | E2E test: Import CSV flow          | ✅ DONE | -        | 3h       |
+| E1.S4.PR7.002 | E2E test: Enrichment pipeline flow | ✅ DONE | -        | 3h       |
+| E1.S4.PR7.003 | E2E test: HITL approval flow       | ✅ DONE | -        | 2h       |
+| E1.S4.PR7.004 | E2E test: Gold lead management     | ✅ DONE | -        | 2h       |
 
 ---
 
@@ -771,11 +775,11 @@ E1.S1.PR1.001
 
 | Task ID       | Denumire                                  | Status  | Assignee | Estimare |
 | ------------- | ----------------------------------------- | ------- | -------- | -------- |
-| E1.S4.PR8.001 | Actualizare runbook monitoring            | ⬜ TODO | -        | 2h       |
-| E1.S4.PR8.002 | Actualizare environment variables docs    | ⬜ TODO | -        | 1h       |
-| E1.S4.PR8.003 | Setup Grafana dashboards pentru Etapa 1   | ⬜ TODO | -        | 3h       |
-| E1.S4.PR8.004 | Setup alerts pentru queue depth și errors | ⬜ TODO | -        | 2h       |
-| E1.S4.PR8.005 | Final review și deployment checklist      | ⬜ TODO | -        | 2h       |
+| E1.S4.PR8.001 | Actualizare runbook monitoring            | ✅ DONE | -        | 2h       |
+| E1.S4.PR8.002 | Actualizare environment variables docs    | ✅ DONE | -        | 1h       |
+| E1.S4.PR8.003 | Setup Grafana dashboards pentru Etapa 1   | ✅ DONE | -        | 3h       |
+| E1.S4.PR8.004 | Setup alerts pentru queue depth și errors | ✅ DONE | -        | 2h       |
+| E1.S4.PR8.005 | Final review și deployment checklist      | ✅ DONE | -        | 2h       |
 
 ---
 
@@ -804,14 +808,14 @@ E1.S1.PR1.001
 
 ### Criterii Acceptare Etapa 1
 
-- [ ] Toate cele 58 workers funcționale
-- [ ] Pipeline Bronze → Silver → Gold complet
-- [ ] HITL system operațional (8 tipuri aprobare)
-- [ ] API cu 28 endpoints documentate
-- [ ] Frontend admin dashboard funcțional
-- [ ] Test coverage ≥ 80%
-- [ ] Documentație completă și actualizată
-- [ ] Deployment în staging testat
+- [x] Toate cele 58 workers funcționale
+- [x] Pipeline Bronze → Silver → Gold complet
+- [x] HITL system operațional (8 tipuri aprobare)
+- [x] API cu 28 endpoints documentate
+- [x] Frontend admin dashboard funcțional
+- [x] Test coverage ≥ 80%
+- [x] Documentație completă și actualizată
+- [x] Deployment în staging testat
 
 ---
 

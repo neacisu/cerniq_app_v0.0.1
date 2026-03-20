@@ -13,6 +13,7 @@ import {
   assignApproval,
   cancelImport,
   decideApproval,
+  escalateApproval,
   decideDedupPair,
   fetchApprovals,
   fetchApprovalById,
@@ -39,6 +40,8 @@ import {
   fetchSilverCompanies,
   fetchSilverCompanyById,
   fetchSilverEnrichmentLog,
+  fetchMappingTargets,
+  saveImportMapping,
   patchGoldCompany,
   pauseQueue,
   reprocessBronzeContact,
@@ -62,19 +65,49 @@ function getPollingBackoffMs(error: unknown, failureCount: number, baseIntervalM
   return Math.min(60_000, baseIntervalMs * 2 ** retryStep);
 }
 
+/**
+ * Type-safe extractor for identityReprocessStatus from metadata.
+ * Returns the status string if it's a valid string value, otherwise returns empty string.
+ */
+function extractIdentityReprocessStatus(metadata: Record<string, unknown> | undefined): string {
+  if (metadata == null) return "";
+  const value = metadata.identityReprocessStatus;
+  return typeof value === "string" ? value : "";
+}
+
+/**
+ * Type-safe extractor for anafEnrichmentStatus from metadata.
+ * Returns the status string if it's a valid string value, otherwise returns empty string.
+ */
+function extractAnafEnrichmentStatus(metadata: Record<string, unknown> | undefined): string {
+  if (metadata == null) return "";
+  const value = metadata.anafEnrichmentStatus;
+  return typeof value === "string" ? value : "";
+}
+
+/**
+ * Type-safe extractor for import status from item.
+ * Returns the status string if it's a valid string value, otherwise returns empty string.
+ */
+function extractImportStatus(item: Record<string, unknown> | undefined): string {
+  if (item == null) return "";
+  const value = item.status;
+  return typeof value === "string" ? value : "";
+}
+
 function isIdentityReprocessActive(item: Record<string, unknown> | undefined) {
   const metadata = (item?.metadata as Record<string, unknown> | undefined) ?? {};
-  const state = String(metadata.identityReprocessStatus ?? "");
+  const state = extractIdentityReprocessStatus(metadata);
   return state === "queued" || state === "running";
 }
 
 function isAnafEnrichActive(item: Record<string, unknown> | undefined) {
   const metadata = (item?.metadata as Record<string, unknown> | undefined) ?? {};
-  return String(metadata.anafEnrichmentStatus ?? "") === "processing";
+  return extractAnafEnrichmentStatus(metadata) === "processing";
 }
 
 function getImportRefetchInterval(item: Record<string, unknown> | undefined) {
-  const status = String(item?.status ?? "");
+  const status = extractImportStatus(item);
   if (
     ["pending", "processing"].includes(status) ||
     isIdentityReprocessActive(item) ||
@@ -456,6 +489,17 @@ export function useAssignApproval() {
   });
 }
 
+export function useEscalateApproval() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, reason, escalateTo }: { id: string; reason: string; escalateTo?: string }) =>
+      escalateApproval(id, reason, escalateTo),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["etapa1", "approvals"] });
+    },
+  });
+}
+
 export function useQueueStatuses() {
   return useQuery({
     queryKey: ["etapa1", "queues"],
@@ -514,6 +558,27 @@ export function useDecideDedup() {
     }) => decideDedupPair(id, decision, masterCompanyId),
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ["etapa1", "silver", "dedup-candidates"] });
+    },
+  });
+}
+
+export function useMappingTargets() {
+  return useQuery({
+    queryKey: ["etapa1", "mapping-targets"],
+    queryFn: fetchMappingTargets,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useSaveImportMapping(importId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (mapping: Record<string, string>) => {
+      if (!importId) throw new Error("Missing importId");
+      return saveImportMapping(importId, mapping);
+    },
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["etapa1", "import", importId] });
     },
   });
 }

@@ -31,6 +31,10 @@ type GoldState =
   | "PROPOSAL"
   | "CLOSING"
   | "CONVERTED"
+  | "ONBOARDING"
+  | "NURTURING_ACTIVE"
+  | "AT_RISK"
+  | "LOYAL_ADVOCATE"
   | "CHURNED"
   | "DEAD"
   | "DO_NOT_CONTACT";
@@ -45,7 +49,11 @@ const transitions: Record<GoldState, GoldState[]> = {
   NEGOTIATION: ["PROPOSAL", "CLOSING", "CHURNED", "DEAD"],
   PROPOSAL: ["CLOSING", "CONVERTED", "CHURNED", "DEAD"],
   CLOSING: ["CONVERTED", "CHURNED", "DEAD"],
-  CONVERTED: ["CHURNED"],
+  CONVERTED: ["ONBOARDING", "CHURNED"],
+  ONBOARDING: ["NURTURING_ACTIVE"],
+  NURTURING_ACTIVE: ["AT_RISK", "LOYAL_ADVOCATE", "DEAD"],
+  AT_RISK: ["NURTURING_ACTIVE", "CHURNED", "DEAD"],
+  LOYAL_ADVOCATE: ["AT_RISK", "DEAD"],
   CHURNED: [],
   DEAD: [],
   DO_NOT_CONTACT: [],
@@ -175,18 +183,27 @@ export function GoldCompanyDetail() {
               <pre className="text-xs text-t2">{JSON.stringify(item, null, 2)}</pre>
             </TabsContent>
             <TabsContent value="contact">
-              <pre className="text-xs text-t2">
-                {JSON.stringify(
-                  {
-                    email: item.email,
-                    phone: item.phone,
-                    website: item.website,
-                    address: item.adresa,
-                  },
-                  null,
-                  2,
-                )}
-              </pre>
+              <div className="grid gap-3 text-sm md:grid-cols-2">
+                <div>
+                  <div className="text-t3">Adresa</div>
+                  <div className="font-medium text-t1">{String(item.adresa ?? "-")}</div>
+                </div>
+                <div>
+                  <div className="text-t3">Localitate</div>
+                  <div className="font-medium text-t1">{String(item.localitate ?? "-")}</div>
+                </div>
+                <div>
+                  <div className="text-t3">Județ</div>
+                  <div className="font-medium text-t1">{String(item.judet ?? "-")}</div>
+                </div>
+                <div>
+                  <div className="text-t3">Cod Poștal</div>
+                  <div className="font-medium text-t1">{String(item.codPostal ?? "-")}</div>
+                </div>
+              </div>
+              <p className="mt-4 text-xs text-t3">
+                Contactele detaliate (email, telefon) sunt disponibile în tabela gold_contacts.
+              </p>
             </TabsContent>
             <TabsContent value="enrichment">
               <pre className="text-xs text-t2">{JSON.stringify(metadata, null, 2)}</pre>

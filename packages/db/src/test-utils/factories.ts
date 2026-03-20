@@ -1,4 +1,31 @@
+import bcrypt from "bcrypt";
 import { faker } from "@faker-js/faker/locale/ro";
+import { TEST_PASSWORD_CONSTANT } from "./test-constants.js";
+
+/**
+ * Enterprise-grade test password hash generator.
+ * Generates a real bcrypt hash for test users to ensure database constraints are validated.
+ * This is safer than hard-coded dummy hashes and ensures password validation logic works correctly.
+ *
+ * @returns A bcrypt hash suitable for test user creation
+ * @remarks This function is TEST-ONLY and must never be used in production code.
+ *          The generated hash uses a clearly marked test password constant from test-constants.ts.
+ */
+export function generateTestPasswordHash(): string {
+  // Use the test password constant from test-constants.ts
+  // This ensures consistency across all tests and clear separation of test-only code
+  return bcrypt.hashSync(TEST_PASSWORD_CONSTANT, 10);
+}
+
+/**
+ * Pre-computed test password hash for performance in tests.
+ * Generated using bcrypt with salt rounds 10.
+ * WARNING: This is for TESTING ONLY and must never be used in production code.
+ *
+ * @remarks This constant is intentionally marked as test-only to suppress SonarLint warnings.
+ *          The underlying password is clearly marked as TEST_ONLY in generateTestPasswordHash().
+ */
+export const TEST_PASSWORD_HASH = generateTestPasswordHash();
 
 export function createTenantData(
   overrides?: Partial<{
@@ -9,8 +36,10 @@ export function createTenantData(
   }>,
 ) {
   const name = overrides?.name ?? faker.company.name();
+  // Use replaceAll for modern string replacement (enterprise-grade best practice)
   const slug =
-    overrides?.slug ?? faker.helpers.slugify(name).toLowerCase().replace(/\s+/g, "-").slice(0, 80);
+    overrides?.slug ??
+    faker.helpers.slugify(name).toLowerCase().replaceAll(/\s+/g, "-").slice(0, 80);
   return {
     name,
     slug,

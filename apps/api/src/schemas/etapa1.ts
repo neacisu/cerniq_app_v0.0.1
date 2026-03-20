@@ -118,6 +118,7 @@ export const dedupDecisionSchema = z.object({
 });
 
 export const listGoldCompaniesSchema = z.object({
+  search: z.string().trim().min(1).max(200).optional(),
   currentState: z
     .string()
     .optional()

@@ -21,7 +21,9 @@
 10. [AI/ML și Analiză](#10-aiml-și-analiză)
 11. [Integrări Externe](#11-integrări-externe)
 12. [Termeni UI/UX](#12-termeni-uiux)
-13. [Deprecated și Aliasuri Legacy](#13-deprecated-și-aliasuri-legacy)
+13. [Termeni V-Z](#13-termeni-v-z)
+14. [Deprecated și Aliasuri Legacy](#14-deprecated-și-aliasuri-legacy)
+15. [Termeni suplimentari (Audit complet)](#15-termeni-suplimentari-audit-complet)
 
 ---
 
@@ -405,7 +407,7 @@
 
 | Etapă  | approval_type       | Trigger                              | SLA Default |
 | ------ | ------------------- | ------------------------------------ | ----------- |
-| **E1** | `data_quality`      | Completeness < 70%                   | 24h         |
+| **E1** | `quality_review`    | Completeness < 70%                   | 24h         |
 | **E2** | `content_review`    | First message to segment             | 8h          |
 | **E3** | `pricing_approval`  | Discount > 15% sau valoare > €50K    | 4h          |
 | **E4** | `credit_approval`   | Risk score > 0.5 sau valoare > €100K | 48h         |

@@ -1,12 +1,12 @@
 import { type Processor } from "bullmq";
 import { db, setSessionTenantId, silverCompanies, sql } from "@cerniq/db";
 import {
-  createQueue,
   validateJobData,
   silverEnrichmentDurationSeconds,
   silverEnrichmentErrorsTotal,
 } from "@cerniq/worker-shared";
 import { z } from "zod";
+import { addQueueJob } from "./pipeline-utils.js";
 
 export type OrchestratorJobData = {
   tenantId: string;
@@ -25,12 +25,6 @@ const orchestratorJobDataSchema = z.object({
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-async function enqueue(queueName: string, payload: Record<string, unknown>): Promise<void> {
-  const queue = createQueue(queueName);
-  await queue.add("process", payload);
-  await queue.close();
-}
 
 type CompanySnapshot = {
   cui?: string | null;
@@ -106,31 +100,31 @@ async function handlePostValidation(ctx: StageContext): Promise<string[]> {
       "enrich:onrc:sedii",
     ];
     for (const q of cuiQueues) {
-      await enqueue(q, basePayload);
+      await addQueueJob(q, basePayload);
       jobsTriggered.push(q);
     }
   }
 
   if (hasDomain(company)) {
-    await enqueue("discover:email:hunter", basePayload);
+    await addQueueJob("discover:email:hunter", basePayload);
     jobsTriggered.push("discover:email:hunter");
   }
 
   if (hasAddress(company)) {
-    await enqueue("geo:geocode:nominatim", basePayload);
+    await addQueueJob("geo:geocode:nominatim", basePayload);
     jobsTriggered.push("geo:geocode:nominatim");
   }
 
   if (isAgricultural(company)) {
-    await enqueue("agri:apia", basePayload);
+    await addQueueJob("agri:apia", basePayload);
     jobsTriggered.push("agri:apia");
   }
 
   // Always-run queues — website scraping and AI structuring
-  await enqueue("scrape:website:finder", basePayload);
+  await addQueueJob("scrape:website:finder", basePayload);
   jobsTriggered.push("scrape:website:finder");
 
-  await enqueue("ai:structure:xai", basePayload);
+  await addQueueJob("ai:structure:xai", basePayload);
   jobsTriggered.push("ai:structure:xai");
 
   return jobsTriggered;
@@ -159,7 +153,7 @@ async function handlePostEnrichment(ctx: StageContext): Promise<string[]> {
   const dedupPayload = { tenantId, companyId, correlationId };
 
   for (const q of ["dedup:exact", "dedup:fuzzy"]) {
-    await enqueue(q, dedupPayload);
+    await addQueueJob(q, dedupPayload);
     jobsTriggered.push(q);
   }
 
@@ -168,7 +162,7 @@ async function handlePostEnrichment(ctx: StageContext): Promise<string[]> {
     .set({ enrichmentStatus: "complete" })
     .where(sql`${silverCompanies.id} = ${companyId}`);
 
-  await enqueue("score:completeness", dedupPayload);
+  await addQueueJob("score:completeness", dedupPayload);
   jobsTriggered.push("score:completeness");
 
   return jobsTriggered;
@@ -177,7 +171,7 @@ async function handlePostEnrichment(ctx: StageContext): Promise<string[]> {
 async function handlePostScoring(ctx: StageContext): Promise<string[]> {
   const { tenantId, companyId, correlationId } = ctx;
 
-  await enqueue("aggregate:quality-rollup", { tenantId, companyId, correlationId });
+  await addQueueJob("aggregate:quality-rollup", { tenantId, companyId, correlationId });
 
   return ["aggregate:quality-rollup"];
 }

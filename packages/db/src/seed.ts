@@ -17,7 +17,7 @@ async function seedTenantPipelineData(tenantId: string, tenantSlug: string) {
         const companyNo = idx + 1;
         return {
           tenantId,
-          cui: `${tenantSlug.replace(/-/g, "").slice(0, 6).toUpperCase()}${String(companyNo).padStart(4, "0")}`,
+          cui: `${tenantSlug.replaceAll("-", "").slice(0, 6).toUpperCase()}${String(companyNo).padStart(4, "0")}`,
           denumire: `Ferma ${tenantSlug} ${companyNo}`,
           email: `office${companyNo}@${tenantSlug}.ro`,
           telefon: `07${String(10000000 + companyNo)}`,
@@ -70,7 +70,9 @@ async function seedTenantPipelineData(tenantId: string, tenantSlug: string) {
     await db
       .insert(silverContacts)
       .values(contactsPayload)
-      .onConflictDoNothing({ target: [silverContacts.tenantId, silverContacts.emailNormalized] });
+      .onConflictDoNothing({
+        target: [silverContacts.tenantId, silverContacts.companyId, silverContacts.emailNormalized],
+      });
   }
 }
 
@@ -162,27 +164,73 @@ async function seed() {
     await db.insert(approvalTypeConfigs).values([
       {
         tenantId: demoTenant.id,
-        type: "company_validation",
+        type: "dedup_review",
         etapa: "E1",
         autoApproveThreshold: 0.95,
         autoRejectThreshold: 0.3,
         requiresHumanReview: "threshold",
+        maxDecisionTimeHours: 24,
+        escalationTimeHours: 4,
       },
       {
         tenantId: demoTenant.id,
-        type: "lead_qualification",
+        type: "identity_conflict",
+        etapa: "E1",
+        autoApproveThreshold: 0.98,
+        autoRejectThreshold: 0.4,
+        requiresHumanReview: "always",
+        maxDecisionTimeHours: 8,
+        escalationTimeHours: 2,
+      },
+      {
+        tenantId: demoTenant.id,
+        type: "quality_review",
         etapa: "E1",
         autoApproveThreshold: 0.9,
         autoRejectThreshold: 0.2,
-        requiresHumanReview: "always",
+        requiresHumanReview: "threshold",
+        maxDecisionTimeHours: 48,
+        escalationTimeHours: 8,
       },
       {
         tenantId: demoTenant.id,
-        type: "outreach_approval",
-        etapa: "E2",
+        type: "ai_structuring_review",
+        etapa: "E1",
         autoApproveThreshold: 0.85,
         autoRejectThreshold: 0.25,
         requiresHumanReview: "threshold",
+        maxDecisionTimeHours: 24,
+        escalationTimeHours: 4,
+      },
+      {
+        tenantId: demoTenant.id,
+        type: "ai_merge_review",
+        etapa: "E1",
+        autoApproveThreshold: 0.92,
+        autoRejectThreshold: 0.35,
+        requiresHumanReview: "threshold",
+        maxDecisionTimeHours: 12,
+        escalationTimeHours: 2,
+      },
+      {
+        tenantId: demoTenant.id,
+        type: "low_confidence_review",
+        etapa: "E1",
+        autoApproveThreshold: 0.8,
+        autoRejectThreshold: 0.2,
+        requiresHumanReview: "always",
+        maxDecisionTimeHours: 72,
+        escalationTimeHours: 12,
+      },
+      {
+        tenantId: demoTenant.id,
+        type: "error_review",
+        etapa: "E1",
+        autoApproveThreshold: 0,
+        autoRejectThreshold: 0,
+        requiresHumanReview: "always",
+        maxDecisionTimeHours: 4,
+        escalationTimeHours: 1,
       },
     ]);
   }
@@ -217,7 +265,10 @@ async function seed() {
   process.exit(0);
 }
 
-seed().catch((err) => {
+// Enterprise-grade: Use top-level await instead of promise chain for better error handling and clarity
+try {
+  await seed();
+} catch (err) {
   console.error("Seed failed:", err);
   process.exit(1);
-});
+}

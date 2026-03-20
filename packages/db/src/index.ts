@@ -34,3 +34,4 @@ export * from "./schemas/silver.js";
 export * from "./schemas/gold.js";
 export * from "./services/approval-service.js";
 export * from "./services/company-identity.js";
+export { TEST_PASSWORD_HASH } from "./test-utils/index.js";

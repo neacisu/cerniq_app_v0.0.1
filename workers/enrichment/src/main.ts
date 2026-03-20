@@ -6,10 +6,11 @@ import {
   createRedisConnections,
   createWorker,
   loadSecretsFromFile,
+  queueDepth,
   queueRegistry,
   watchSecretsFile,
 } from "@cerniq/worker-shared";
-import { closeDbConnection, refreshDbConnection } from "@cerniq/db";
+import { closeDbConnection, db, inArray, refreshDbConnection, tenants } from "@cerniq/db";
 import type { Job } from "bullmq";
 import { csvParserProcessor } from "./workers/a1-csv-parser.js";
 import { excelParserProcessor } from "./workers/a2-excel-parser.js";
@@ -74,6 +75,7 @@ import { pipelineMonitorProcessor } from "./workers/p3-pipeline-monitor.js";
 import { pipelineErrorHandlerProcessor } from "./workers/p4-error-handler.js";
 import { hitlEscalationProcessor } from "./workers/hitl-escalation.js";
 import { hitlResumeAfterApprovalProcessor } from "./workers/hitl-resume-after-approval.js";
+import { importFileCleanupProcessor } from "./workers/o3-import-file-cleanup.js";
 
 const PORT = Number(process.env.PORT || "3000");
 const SECRETS_PATH = process.env.SECRETS_PATH?.trim() || "/secrets/workers.env";
@@ -83,8 +85,7 @@ const PROMOTE_BRONZE_SILVER_WORKER_OPTIONS = {
   maxStalledCount: 4,
 } as const;
 assertQueueRegistryComplete();
-const extraQueueNames = ["pipeline:promote:bronze-silver", "hitl:escalate", "hitl:resume"];
-const queueNames = Array.from(new Set([...queueRegistry.map((q) => q.name), ...extraQueueNames]));
+const queueNames = queueRegistry.map((q) => q.name);
 const defaultTenantId = process.env.DEFAULT_TENANT_ID?.trim() ?? null;
 if (!defaultTenantId) {
   console.warn(
@@ -102,47 +103,145 @@ let redisConnections = createRedisConnections();
 let workers: Array<ReturnType<typeof createWorker>["worker"]> = [];
 
 async function scheduleRecurringControlJobs() {
-  if (!defaultTenantId) return;
-  const monitorQueue = createQueue("pipeline:monitor");
-  await monitorQueue.add(
-    "hourly-monitor",
-    {
-      tenantId: defaultTenantId,
-      correlationId: "cron-hourly-monitor",
-    },
-    {
-      jobId: "cron:pipeline-monitor:hourly",
-      repeat: { pattern: "0 * * * *" },
-      removeOnComplete: 50,
-      removeOnFail: 200,
-    },
-  );
-  await monitorQueue.close();
+  // Fetch all active (and trial) tenants to schedule cron jobs for each
+  let activeTenants: { id: string }[] = [];
+  try {
+    activeTenants = await db
+      .select({ id: tenants.id })
+      .from(tenants)
+      .where(inArray(tenants.status, ["active", "trial"]));
+  } catch {
+    // Fallback to DEFAULT_TENANT_ID if DB query fails
+    if (defaultTenantId) {
+      activeTenants = [{ id: defaultTenantId }];
+    }
+  }
 
+  // If DB returned nothing but we have a default, include it
+  if (activeTenants.length === 0 && defaultTenantId) {
+    activeTenants = [{ id: defaultTenantId }];
+  }
+
+  if (activeTenants.length === 0) {
+    console.warn("[enrichment] No active tenants found — cron jobs will be skipped.");
+    return;
+  }
+
+  const monitorQueue = createQueue("pipeline:monitor");
   const dailyStatsQueue = createQueue("aggregate:daily-stats");
-  await dailyStatsQueue.add(
-    "daily-aggregation",
+  const cleanupQueue = createQueue("maintenance:import-file-cleanup");
+
+  for (const tenant of activeTenants) {
+    await monitorQueue.add(
+      "hourly-monitor",
+      {
+        tenantId: tenant.id,
+        correlationId: "cron-hourly-monitor",
+      },
+      {
+        jobId: `cron:pipeline-monitor:hourly:${tenant.id}`,
+        repeat: { pattern: "0 * * * *" },
+        removeOnComplete: 50,
+        removeOnFail: 200,
+      },
+    );
+    await dailyStatsQueue.add(
+      "daily-aggregation",
+      {
+        tenantId: tenant.id,
+        correlationId: "cron-daily-stats",
+      },
+      {
+        jobId: `cron:daily-stats:02:00:${tenant.id}`,
+        repeat: { pattern: "0 2 * * *" },
+        removeOnComplete: 50,
+        removeOnFail: 200,
+      },
+    );
+  }
+
+  await monitorQueue.close();
+  await dailyStatsQueue.close();
+
+  // Cleanup old import files once daily at 03:00 (tenant-agnostic)
+  await cleanupQueue.add(
+    "cleanup-import-files",
+    { correlationId: "cron-import-cleanup" },
     {
-      tenantId: defaultTenantId,
-      correlationId: "cron-daily-stats",
-    },
-    {
-      jobId: "cron:daily-stats:02:00",
-      repeat: { pattern: "0 2 * * *" },
-      removeOnComplete: 50,
-      removeOnFail: 200,
+      jobId: "cron:import-file-cleanup:03:00",
+      repeat: { pattern: "0 3 * * *" },
+      removeOnComplete: 10,
+      removeOnFail: 50,
     },
   );
-  await dailyStatsQueue.close();
+  await cleanupQueue.close();
 }
 
 function classifyErrorType(error: unknown): string {
   const message =
     error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
-  if (message.includes("timeout")) return "API_TIMEOUT";
-  if (message.includes("rate") && message.includes("limit")) return "RATE_LIMITED";
-  if (message.includes("not found")) return "DATA_NOT_FOUND";
-  if (message.includes("validation") || message.includes("invalid")) return "VALIDATION_ERROR";
+  const errorCode = (error as { code?: string })?.code?.toUpperCase() ?? "";
+  const statusCode =
+    (error as { status?: number; statusCode?: number })?.status ??
+    (error as { status?: number; statusCode?: number })?.statusCode ??
+    0;
+
+  if (statusCode === 429 || message.includes("too many requests")) {
+    return "RATE_LIMITED";
+  }
+  if (statusCode === 402 || message.includes("quota exceeded") || message.includes("billing")) {
+    return "QUOTA_EXCEEDED";
+  }
+  if (
+    statusCode === 401 ||
+    statusCode === 403 ||
+    message.includes("unauthorized") ||
+    message.includes("forbidden") ||
+    message.includes("api key") ||
+    message.includes("credentials")
+  ) {
+    return "AUTH_ERROR";
+  }
+  if (message.includes("circuit") && message.includes("open")) {
+    return "CIRCUIT_OPEN";
+  }
+
+  const RETRYABLE_CODES = [
+    "ECONNREFUSED",
+    "ETIMEDOUT",
+    "ENOTFOUND",
+    "ECONNRESET",
+    "EPIPE",
+    "EAI_AGAIN",
+  ];
+  if (RETRYABLE_CODES.includes(errorCode)) {
+    return "NETWORK_ERROR";
+  }
+
+  if (
+    statusCode === 408 ||
+    statusCode === 504 ||
+    message.includes("timeout") ||
+    message.includes("timed out")
+  ) {
+    return "API_TIMEOUT";
+  }
+  if (statusCode >= 500 && statusCode < 600) {
+    return "NETWORK_ERROR";
+  }
+  if (
+    message.includes("fetch failed") ||
+    message.includes("econnrefused") ||
+    message.includes("enotfound") ||
+    message.includes("etimedout") ||
+    message.includes("econnreset") ||
+    message.includes("network error")
+  ) {
+    return "NETWORK_ERROR";
+  }
+  if (statusCode === 404 || message.includes("not found")) return "DATA_NOT_FOUND";
+  if (message.includes("validation") || message.includes("invalid") || message.includes("schema"))
+    return "VALIDATION_ERROR";
   return "PERMANENT_FAILURE";
 }
 
@@ -257,6 +356,7 @@ const processors: Partial<Record<string, (job: Job) => Promise<unknown>>> = {
   ) => Promise<unknown>,
   "hitl:escalate": hitlEscalationProcessor as (job: Job) => Promise<unknown>,
   "hitl:resume": hitlResumeAfterApprovalProcessor as (job: Job) => Promise<unknown>,
+  "maintenance:import-file-cleanup": importFileCleanupProcessor as (job: Job) => Promise<unknown>,
 };
 
 function getWorkerOptions(
@@ -354,6 +454,18 @@ try {
   console.error("[cron-scheduler] failed", error);
 }
 
+const monitorQueues = queueNames.map((name) => ({ name, queue: createQueue(name) }));
+const queueDepthInterval = setInterval(async () => {
+  for (const { name, queue } of monitorQueues) {
+    try {
+      const counts = await queue.getJobCounts("waiting");
+      queueDepth.set({ queue: name }, counts.waiting ?? 0);
+    } catch {
+      // silently skip unreachable queues
+    }
+  }
+}, 15_000);
+
 const server = createHealthServer(PORT, () => ({
   service: "cerniq-worker-enrichment",
   status: "running",
@@ -368,7 +480,9 @@ const stopWatchingSecrets = watchSecretsFile(SECRETS_PATH, async () => {
 
 async function shutdown() {
   stopWatchingSecrets();
+  clearInterval(queueDepthInterval);
   server.close();
+  await Promise.all(monitorQueues.map(({ queue }) => queue.close()));
   await stopWorkers();
   await closeRedisConnections(redisConnections);
   await closeDbConnection();

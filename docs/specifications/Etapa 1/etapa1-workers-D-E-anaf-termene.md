@@ -32,7 +32,7 @@ interface AnafFiscalResult {
 
 // Rate limit: 1 request/second conform ANAF API
 export const anafFiscalStatusWorker = createWorker<AnafFiscalJobData, AnafFiscalResult>({
-  queueName: "silver:enrich:anaf-fiscal-status",
+  queueName: "enrich:anaf:fiscal-status",
   concurrency: 1, // Single thread pentru rate limit
   limiter: {
     max: 1,
@@ -166,7 +166,7 @@ function mapAnafStatus(stare: string): string {
 // apps/workers/src/silver/anaf-tva-status.worker.ts
 
 export const anafTvaStatusWorker = createWorker<AnafTvaJobData, AnafTvaResult>({
-  queueName: "silver:enrich:anaf-tva-status",
+  queueName: "enrich:anaf:tva-status",
   concurrency: 1,
   limiter: { max: 1, duration: 1000 },
   attempts: 5,
@@ -229,7 +229,7 @@ export const anafTvaStatusWorker = createWorker<AnafTvaJobData, AnafTvaResult>({
 // apps/workers/src/silver/anaf-efactura.worker.ts
 
 export const anafEfacturaWorker = createWorker<AnafEfacturaJobData, AnafEfacturaResult>({
-  queueName: "silver:enrich:anaf-efactura",
+  queueName: "enrich:anaf:efactura",
   concurrency: 1,
   limiter: { max: 1, duration: 1000 },
   attempts: 3,
@@ -281,7 +281,7 @@ export const anafEfacturaWorker = createWorker<AnafEfacturaJobData, AnafEfactura
 // apps/workers/src/silver/anaf-datorii.worker.ts
 
 export const anafDatoriiWorker = createWorker<AnafDatoriiJobData, AnafDatoriiResult>({
-  queueName: "silver:enrich:anaf-datorii",
+  queueName: "enrich:anaf:datorii",
   concurrency: 1,
   limiter: { max: 1, duration: 1000 },
   attempts: 3,
@@ -340,7 +340,7 @@ export const anafDatoriiWorker = createWorker<AnafDatoriiJobData, AnafDatoriiRes
 // apps/workers/src/silver/anaf-caen.worker.ts
 
 export const anafCaenWorker = createWorker<AnafCaenJobData, AnafCaenResult>({
-  queueName: "silver:enrich:anaf-caen",
+  queueName: "enrich:anaf:caen",
   concurrency: 1,
   limiter: { max: 1, duration: 1000 },
   attempts: 3,
@@ -423,7 +423,7 @@ interface TermeneBalanceJobData {
 
 // Rate limit: 20 requests/second conform Termene.ro API
 export const termeneBalanceWorker = createWorker<TermeneBalanceJobData, TermeneBalanceResult>({
-  queueName: "silver:enrich:termene-balance",
+  queueName: "enrich:termene:balance",
   concurrency: 10, // Higher concurrency due to better rate limit
   limiter: {
     max: 20,
@@ -524,7 +524,7 @@ export const termeneBalanceWorker = createWorker<TermeneBalanceJobData, TermeneB
 // apps/workers/src/silver/termene-risk.worker.ts
 
 export const termeneRiskWorker = createWorker<TermeneRiskJobData, TermeneRiskResult>({
-  queueName: "silver:enrich:termene-risk",
+  queueName: "enrich:termene:risk",
   concurrency: 10,
   limiter: { max: 20, duration: 1000 },
   attempts: 3,
@@ -594,7 +594,7 @@ function categorizeRisk(score: number): "LOW" | "MEDIUM" | "HIGH" {
 // apps/workers/src/silver/termene-dosare.worker.ts
 
 export const termeneDosareWorker = createWorker<TermeneDosareJobData, TermeneDosareResult>({
-  queueName: "silver:enrich:termene-dosare",
+  queueName: "enrich:termene:dosare",
   concurrency: 10,
   limiter: { max: 20, duration: 1000 },
   attempts: 3,
@@ -675,7 +675,7 @@ export const termeneDosareWorker = createWorker<TermeneDosareJobData, TermeneDos
 
 export const termeneActionariWorker = createWorker<TermeneActionariJobData, TermeneActionariResult>(
   {
-    queueName: "silver:enrich:termene-actionari",
+    queueName: "enrich:termene:actionari",
     concurrency: 10,
     limiter: { max: 20, duration: 1000 },
     attempts: 3,
@@ -1018,15 +1018,15 @@ export class TermeneApiClient {
 
 | Worker                | Queue Name                         | Concurrency | Rate Limit | Attempts | Backoff        |
 | --------------------- | ---------------------------------- | ----------- | ---------- | -------- | -------------- |
-| D.1 ANAF Fiscal       | `silver:enrich:anaf-fiscal-status` | 1           | 1/s        | 5        | Exponential 2s |
-| D.2 ANAF TVA          | `silver:enrich:anaf-tva-status`    | 1           | 1/s        | 5        | Exponential 2s |
-| D.3 ANAF e-Factura    | `silver:enrich:anaf-efactura`      | 1           | 1/s        | 3        | Exponential 2s |
-| D.4 ANAF Datorii      | `silver:enrich:anaf-datorii`       | 1           | 1/s        | 3        | Exponential 2s |
-| D.5 ANAF CAEN         | `silver:enrich:anaf-caen`          | 1           | 1/s        | 3        | Exponential 2s |
-| E.1 Termene Balance   | `silver:enrich:termene-balance`    | 10          | 20/s       | 3        | Fixed 1s       |
-| E.2 Termene Risk      | `silver:enrich:termene-risk`       | 10          | 20/s       | 3        | Fixed 1s       |
-| E.3 Termene Dosare    | `silver:enrich:termene-dosare`     | 10          | 20/s       | 3        | Fixed 1s       |
-| E.4 Termene Actionari | `silver:enrich:termene-actionari`  | 10          | 20/s       | 3        | Fixed 1s       |
+| D.1 ANAF Fiscal       | `enrich:anaf:fiscal-status` | 1           | 1/s        | 5        | Exponential 2s |
+| D.2 ANAF TVA          | `enrich:anaf:tva-status`    | 1           | 1/s        | 5        | Exponential 2s |
+| D.3 ANAF e-Factura    | `enrich:anaf:efactura`      | 1           | 1/s        | 3        | Exponential 2s |
+| D.4 ANAF Datorii      | `enrich:anaf:datorii`       | 1           | 1/s        | 3        | Exponential 2s |
+| D.5 ANAF CAEN         | `enrich:anaf:caen`          | 1           | 1/s        | 3        | Exponential 2s |
+| E.1 Termene Balance   | `enrich:termene:balance`    | 10          | 20/s       | 3        | Fixed 1s       |
+| E.2 Termene Risk      | `enrich:termene:risk`       | 10          | 20/s       | 3        | Fixed 1s       |
+| E.3 Termene Dosare    | `enrich:termene:dosare`     | 10          | 20/s       | 3        | Fixed 1s       |
+| E.4 Termene Actionari | `enrich:termene:actionari`  | 10          | 20/s       | 3        | Fixed 1s       |
 
 ---
 

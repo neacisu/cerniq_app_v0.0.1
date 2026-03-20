@@ -64,6 +64,45 @@ export const promoteToGoldProcessor: Processor<PromoteToGoldJobData> = async (jo
   });
   if (existingGold) return { ok: true, status: "already_promoted", goldId: existingGold.id };
 
+  // Check by CUI to prevent duplicates (UNIQUE constraint on tenantId, cui)
+  const silverCui = silver.cui;
+  if (silverCui) {
+    const existingGoldByCui = await db.query.goldCompanies.findFirst({
+      where: (t, { and, eq }) => and(eq(t.tenantId, job.data.tenantId), eq(t.cui, silverCui)),
+    });
+    if (existingGoldByCui) {
+      await db
+        .update(silverCompanies)
+        .set({
+          promotionStatus: "promoted",
+          promotedToGoldId: existingGoldByCui.id,
+          promotedAt: new Date(),
+        })
+        .where(sql`${silverCompanies.id} = ${job.data.companyId}`);
+
+      await db.insert(silverEnrichmentLog).values({
+        tenantId: job.data.tenantId,
+        entityType: "company",
+        entityId: job.data.companyId,
+        source: "promote_to_gold",
+        operation: "promote_cui_existing",
+        requestPayload: { force: Boolean(job.data.force) },
+        responsePayload: { goldId: existingGoldByCui.id, reason: "cui_duplicate" },
+        fieldsUpdated: ["promotionStatus", "promotedToGoldId", "promotedAt"],
+        correlationId: job.data.correlationId,
+        jobId: String(job.id ?? ""),
+        durationMs: Date.now() - startedAt,
+      });
+
+      return {
+        ok: true,
+        status: "already_promoted_cui",
+        goldId: existingGoldByCui.id,
+        reason: `Gold already exists with CUI ${silver.cui}`,
+      };
+    }
+  }
+
   const fitScore = initialFitScore({
     numarAngajati: silver.numarAngajati ?? null,
     riskCategory: silver.categorieRisc ?? null,

@@ -4,8 +4,15 @@ import {
   goldCompanies,
   goldLeadJourney,
   silverCompanies,
+  silverCompanyLocations,
+  silverContacts,
   silverDedupCandidates,
   silverEnrichmentLog,
+  silverDatoriiAnaf,
+  silverBpiActe,
+  silverCipIncidente,
+  silverDosare,
+  companyIdentityKeys,
   silverPartiDosare,
   silverTermeneDosare,
   inArray,
@@ -16,6 +23,7 @@ import {
 } from "@cerniq/db";
 import { z } from "zod";
 import { getActorId, parseLimit, parseOffset, requireTenantId } from "./utils.js";
+import { requireRole } from "../middleware/authz.js";
 import { createQueue } from "../lib/queue-factory.js";
 import {
   assignLeadSchema,
@@ -26,6 +34,42 @@ import {
   triggerPromotionSchema,
   updateLeadStateSchema,
 } from "../schemas/etapa1.js";
+
+type GoldCompanyQuery = ReturnType<typeof listGoldCompaniesSchema.parse>;
+
+function buildGoldCompanyConditions(tenantId: string, q: GoldCompanyQuery) {
+  const conditions = [sql`${goldCompanies.tenantId} = ${tenantId}`];
+  if (q.search) {
+    conditions.push(
+      sql`(${goldCompanies.denumire} ILIKE ${"%" + q.search + "%"} OR ${goldCompanies.cui}::text ILIKE ${"%" + q.search + "%"})`,
+    );
+  }
+  if (q.currentState?.length) {
+    const orSeparator = sql` OR `;
+    const stateConditions = q.currentState.map(
+      (state) => sql`${goldCompanies.currentState} = ${state}`,
+    );
+    conditions.push(sql`(${sql.join(stateConditions, orSeparator)})`);
+  }
+  if (q.judetCod) conditions.push(sql`${goldCompanies.judetCod} = ${q.judetCod}`);
+  if (q.unassigned) conditions.push(sql`${goldCompanies.assignedTo} IS NULL`);
+  else if (q.assignedTo) conditions.push(sql`${goldCompanies.assignedTo} = ${q.assignedTo}`);
+  if (typeof q.doNotContact === "boolean")
+    conditions.push(sql`${goldCompanies.doNotContact} = ${q.doNotContact}`);
+  if (typeof q.minLeadScore === "number")
+    conditions.push(sql`COALESCE(${goldCompanies.leadScore},0)::numeric >= ${q.minLeadScore}`);
+  if (typeof q.maxLeadScore === "number")
+    conditions.push(sql`COALESCE(${goldCompanies.leadScore},100)::numeric <= ${q.maxLeadScore}`);
+  if (typeof q.isAgricultural === "boolean") {
+    const agriFilter = sql`(
+      ${goldCompanies.metadata} ? 'agriculturalCrops'
+      OR ${goldCompanies.metadata} ? 'agriculturalAnimals'
+      OR COALESCE(${goldCompanies.codCaenPrincipal}, '') LIKE '01%'
+    )`;
+    conditions.push(q.isAgricultural ? agriFilter : sql`NOT ${agriFilter}`);
+  }
+  return conditions;
+}
 
 const goldStateSchema = z.enum([
   "COLD",
@@ -71,10 +115,17 @@ const queuedResponseSchema = z.object({
   success: z.literal(true),
   data: z.object({ id: z.uuid(), queued: z.boolean() }),
 });
-const goldPatchBodySchema = z.object({ ...assignLeadSchema.shape, ...updateLeadStateSchema.shape });
+const goldPatchBodySchema = z.object({
+  ...assignLeadSchema.shape,
+  doNotContact: updateLeadStateSchema.shape.doNotContact,
+  canalPreferat: updateLeadStateSchema.shape.canalPreferat,
+});
 
 export async function silverGoldRoutes(app: FastifyInstance) {
   const authOpts = { onRequest: [async (req: FastifyRequest) => req.jwtVerify()] };
+  const operatorAuthOpts = {
+    onRequest: [async (req: FastifyRequest) => req.jwtVerify(), requireRole("operator")],
+  };
   const enrichmentMutationRateLimit = app.rateLimit({
     max: 60,
     timeWindow: "1 minute",
@@ -187,7 +238,7 @@ export async function silverGoldRoutes(app: FastifyInstance) {
 
       const companyId = params.data.id;
 
-      const [row, enrichmentLogs, datoriiAnaf, bpiActe, cipIncidente, dosare, contacts] =
+      const [row, enrichmentLogs, datoriiAnaf, bpiActe, cipIncidente, dosare, contacts, locations] =
         await Promise.all([
           db.query.silverCompanies.findFirst({
             where: (t, { and, eq }) => and(eq(t.tenantId, tenantId), eq(t.id, companyId)),
@@ -217,6 +268,13 @@ export async function silverGoldRoutes(app: FastifyInstance) {
             where: (t) => sql`${t.tenantId} = ${tenantId} AND ${t.companyId} = ${companyId}`,
             orderBy: (t, { desc }) => [desc(t.isPrimary)],
           }),
+          db
+            .select()
+            .from(silverCompanyLocations)
+            .where(
+              sql`${silverCompanyLocations.tenantId} = ${tenantId} AND ${silverCompanyLocations.companyId} = ${companyId}`,
+            )
+            .orderBy(silverCompanyLocations.tipLocatie),
         ]);
 
       if (!row) return reply.code(404).send({ success: false, error: "Silver company not found" });
@@ -253,6 +311,7 @@ export async function silverGoldRoutes(app: FastifyInstance) {
           cipIncidente,
           dosare: dosareWithDetails,
           contacts,
+          locations,
         },
       };
     },
@@ -261,11 +320,9 @@ export async function silverGoldRoutes(app: FastifyInstance) {
   app.post(
     "/silver/companies/:id/enrich",
     {
-      ...authOpts,
+      ...operatorAuthOpts,
       preHandler: [enrichmentMutationRateLimit],
       schema: {
-        tags: ["etapa1-silver"],
-        summary: "Trigger silver enrichment",
         params: idParamsSchema,
         body: triggerEnrichmentSchema,
         response: {
@@ -312,11 +369,9 @@ export async function silverGoldRoutes(app: FastifyInstance) {
   app.post(
     "/silver/companies/:id/promote",
     {
-      ...authOpts,
+      ...operatorAuthOpts,
       preHandler: [enrichmentMutationRateLimit],
       schema: {
-        tags: ["etapa1-silver"],
-        summary: "Trigger silver to gold promotion",
         params: idParamsSchema,
         body: triggerPromotionSchema,
         response: {
@@ -470,11 +525,9 @@ export async function silverGoldRoutes(app: FastifyInstance) {
   app.post(
     "/silver/dedup-candidates/:id/decide",
     {
-      ...authOpts,
+      ...operatorAuthOpts,
       preHandler: [enrichmentMutationRateLimit],
       schema: {
-        tags: ["etapa1-silver"],
-        summary: "Decide on a dedup candidate pair",
         params: idParamsSchema,
         body: dedupDecisionSchema,
         response: {
@@ -512,11 +565,10 @@ export async function silverGoldRoutes(app: FastifyInstance) {
       let masterCompanyId: string | undefined;
 
       if (body.data.decision === "merge") {
-        // Determine master: prefer explicit selection, otherwise companyAId
-        masterCompanyId = body.data.masterCompanyId;
-        if (!masterCompanyId) masterCompanyId = candidate.companyAId;
+        const resolvedMasterId = body.data.masterCompanyId ?? candidate.companyAId;
+        masterCompanyId = resolvedMasterId;
         const secondaryId =
-          masterCompanyId === candidate.companyAId ? candidate.companyBId : candidate.companyAId;
+          resolvedMasterId === candidate.companyAId ? candidate.companyBId : candidate.companyAId;
 
         // Merge secondary into master: update secondary company record
         const secondary = await db.query.silverCompanies.findFirst({
@@ -533,16 +585,86 @@ export async function silverGoldRoutes(app: FastifyInstance) {
               reason: body.data.reason ?? null,
             },
           ];
-          await db
-            .update(silverCompanies)
-            .set({
-              isMasterRecord: false,
-              masterRecordId: masterCompanyId,
-              dedupStatus: "merged",
-              mergeHistory: newMergeHistory,
-              updatedAt: now,
-            })
-            .where(eq(silverCompanies.id, secondaryId));
+          await db.transaction(async (tx) => {
+            await tx
+              .update(silverCompanies)
+              .set({
+                isMasterRecord: false,
+                masterRecordId: resolvedMasterId,
+                dedupStatus: "merged",
+                mergeHistory: newMergeHistory,
+                updatedAt: now,
+              })
+              .where(eq(silverCompanies.id, secondaryId));
+
+            await tx
+              .update(silverContacts)
+              .set({ companyId: resolvedMasterId })
+              .where(
+                and(
+                  eq(silverContacts.tenantId, tenantId),
+                  eq(silverContacts.companyId, secondaryId),
+                ),
+              );
+            await tx
+              .update(silverEnrichmentLog)
+              .set({ entityId: resolvedMasterId })
+              .where(
+                and(
+                  eq(silverEnrichmentLog.tenantId, tenantId),
+                  eq(silverEnrichmentLog.entityType, "silver_company"),
+                  eq(silverEnrichmentLog.entityId, secondaryId),
+                ),
+              );
+            await tx
+              .update(silverDatoriiAnaf)
+              .set({ companyId: resolvedMasterId })
+              .where(
+                and(
+                  eq(silverDatoriiAnaf.tenantId, tenantId),
+                  eq(silverDatoriiAnaf.companyId, secondaryId),
+                ),
+              );
+            await tx
+              .update(silverBpiActe)
+              .set({ companyId: resolvedMasterId })
+              .where(
+                and(eq(silverBpiActe.tenantId, tenantId), eq(silverBpiActe.companyId, secondaryId)),
+              );
+            await tx
+              .update(silverCipIncidente)
+              .set({ companyId: resolvedMasterId })
+              .where(
+                and(
+                  eq(silverCipIncidente.tenantId, tenantId),
+                  eq(silverCipIncidente.companyId, secondaryId),
+                ),
+              );
+            await tx
+              .update(silverDosare)
+              .set({ companyId: resolvedMasterId })
+              .where(
+                and(eq(silverDosare.tenantId, tenantId), eq(silverDosare.companyId, secondaryId)),
+              );
+            await tx
+              .update(companyIdentityKeys)
+              .set({ companyId: resolvedMasterId })
+              .where(
+                and(
+                  eq(companyIdentityKeys.tenantId, tenantId),
+                  eq(companyIdentityKeys.companyId, secondaryId),
+                ),
+              );
+            await tx
+              .update(silverCompanyLocations)
+              .set({ companyId: resolvedMasterId })
+              .where(
+                and(
+                  eq(silverCompanyLocations.tenantId, tenantId),
+                  eq(silverCompanyLocations.companyId, secondaryId),
+                ),
+              );
+          });
         }
       }
 
@@ -591,44 +713,7 @@ export async function silverGoldRoutes(app: FastifyInstance) {
           .code(400)
           .send({ success: false, error: "Query invalida", details: query.error.issues });
       const q = query.data;
-      const conditions = [sql`${goldCompanies.tenantId} = ${tenantId}`];
-      if (q.currentState?.length) {
-        const stateConditions = q.currentState.map(
-          (state) => sql`${goldCompanies.currentState} = ${state}`,
-        );
-        const orSeparator = sql` OR `;
-        conditions.push(sql`(${sql.join(stateConditions, orSeparator)})`);
-      }
-      if (q.judetCod) conditions.push(sql`${goldCompanies.judetCod} = ${q.judetCod}`);
-      if (q.unassigned) conditions.push(sql`${goldCompanies.assignedTo} IS NULL`);
-      else if (q.assignedTo) conditions.push(sql`${goldCompanies.assignedTo} = ${q.assignedTo}`);
-      if (typeof q.doNotContact === "boolean")
-        conditions.push(sql`${goldCompanies.doNotContact} = ${q.doNotContact}`);
-      if (typeof q.minLeadScore === "number")
-        conditions.push(sql`COALESCE(${goldCompanies.leadScore},0)::numeric >= ${q.minLeadScore}`);
-      if (typeof q.maxLeadScore === "number")
-        conditions.push(
-          sql`COALESCE(${goldCompanies.leadScore},100)::numeric <= ${q.maxLeadScore}`,
-        );
-      if (typeof q.isAgricultural === "boolean") {
-        if (q.isAgricultural) {
-          conditions.push(
-            sql`(
-            ${goldCompanies.metadata} ? 'agriculturalCrops'
-            OR ${goldCompanies.metadata} ? 'agriculturalAnimals'
-            OR COALESCE(${goldCompanies.codCaenPrincipal}, '') LIKE '01%'
-          )`,
-          );
-        } else {
-          conditions.push(
-            sql`NOT (
-            ${goldCompanies.metadata} ? 'agriculturalCrops'
-            OR ${goldCompanies.metadata} ? 'agriculturalAnimals'
-            OR COALESCE(${goldCompanies.codCaenPrincipal}, '') LIKE '01%'
-          )`,
-          );
-        }
-      }
+      const conditions = buildGoldCompanyConditions(tenantId, q);
 
       const whereSql = sql.join(conditions, sql` AND `);
       let sortColumn:
@@ -757,11 +842,9 @@ export async function silverGoldRoutes(app: FastifyInstance) {
   app.patch(
     "/gold/companies/:id",
     {
-      ...authOpts,
+      ...operatorAuthOpts,
       preHandler: [enrichmentMutationRateLimit],
       schema: {
-        tags: ["etapa1-gold"],
-        summary: "Patch gold company assignment/state",
         params: idParamsSchema,
         body: goldPatchBodySchema,
         response: {
@@ -781,7 +864,6 @@ export async function silverGoldRoutes(app: FastifyInstance) {
       const patch: Record<string, unknown> = { updatedAt: new Date() };
       if (body.data.assignedTo !== undefined) patch.assignedTo = body.data.assignedTo;
       if (body.data.doNotContact !== undefined) patch.doNotContact = body.data.doNotContact;
-      if (body.data.currentState) patch.currentState = body.data.currentState;
       if (body.data.canalPreferat !== undefined) patch.canalPreferat = body.data.canalPreferat;
 
       const [updated] = await db
@@ -800,11 +882,9 @@ export async function silverGoldRoutes(app: FastifyInstance) {
   app.post(
     "/gold/companies/:id/transition",
     {
-      ...authOpts,
+      ...operatorAuthOpts,
       preHandler: [enrichmentMutationRateLimit],
       schema: {
-        tags: ["etapa1-gold"],
-        summary: "Apply FSM transition for gold lead",
         params: idParamsSchema,
         body: z.object({ toState: goldStateSchema }),
         response: {

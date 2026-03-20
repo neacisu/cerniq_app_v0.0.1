@@ -28,6 +28,13 @@ Silver Layer conține date **curățate, validate și parțial îmbogățite**. 
 -- LAYER: Silver (mutable, validated)
 -- ═══════════════════════════════════════════════════════════════════════════
 
+CREATE TYPE promotion_status AS ENUM (
+    'eligible',
+    'review_required',
+    'blocked',
+    'promoted'
+);
+
 CREATE TABLE silver_companies (
     -- ─────────────────────────────────────────────────────────────────────────
     -- IDENTIFICARE
@@ -41,7 +48,7 @@ CREATE TABLE silver_companies (
     -- ─────────────────────────────────────────────────────────────────────────
     -- IDENTIFICATORI FISCALI (VALIDAȚI)
     -- ─────────────────────────────────────────────────────────────────────────
-    cui VARCHAR(12) NOT NULL,
+    cui VARCHAR(32), -- nullable; validat prin Modulo-11 si ANAF
     cui_validated BOOLEAN DEFAULT FALSE,
     cui_validation_date TIMESTAMPTZ,
     cui_validation_source VARCHAR(50), -- 'modulo11', 'anaf_api', 'manual'
@@ -153,10 +160,10 @@ CREATE TABLE silver_companies (
     -- ─────────────────────────────────────────────────────────────────────────
     -- QUALITY SCORING
     -- ─────────────────────────────────────────────────────────────────────────
-    completeness_score INTEGER DEFAULT 0, -- 0-100
-    accuracy_score INTEGER DEFAULT 0, -- 0-100
-    freshness_score INTEGER DEFAULT 0, -- 0-100
-    total_quality_score INTEGER DEFAULT 0, -- 0-100
+    completeness_score NUMERIC(5,2) DEFAULT 0, -- 0-100 cu 2 zecimale
+    accuracy_score NUMERIC(5,2) DEFAULT 0,
+    freshness_score NUMERIC(5,2) DEFAULT 0,
+    total_quality_score NUMERIC(5,2) DEFAULT 0,
 
     quality_issues JSONB DEFAULT '[]',
     -- [{"field": "email", "issue": "not_verified"}, ...]
@@ -164,8 +171,8 @@ CREATE TABLE silver_companies (
     -- ─────────────────────────────────────────────────────────────────────────
     -- PROMOTION TO GOLD
     -- ─────────────────────────────────────────────────────────────────────────
-    promotion_status VARCHAR(30) DEFAULT 'pending',
-    -- pending, eligible, promoted, blocked
+    promotion_status promotion_status NOT NULL DEFAULT 'blocked',
+    -- ENUM: 'eligible', 'review_required', 'blocked', 'promoted'
 
     promotion_blocked_reason TEXT,
     promoted_to_gold_id UUID,
@@ -317,7 +324,7 @@ BEGIN
         NEW.completeness_score * 0.40 +
         NEW.accuracy_score * 0.35 +
         NEW.freshness_score * 0.25
-    )::INTEGER;
+    )::NUMERIC(5,2);
 
     -- Auto-set promotion eligibility
     IF NEW.total_quality_score >= 70 AND NEW.cui_validated = TRUE THEN
@@ -704,6 +711,124 @@ GRANT EXECUTE ON FUNCTION silver_get_stats(UUID) TO c3rn1q;
 
 ---
 
+---
+
+## 2.5 Tabele Suplimentare (Detalii Enrichment)
+
+### 2.5.1 company_identity_keys
+
+Tabel pentru registrul centralizat de chei de identitate (CUI, NrRegCom) per companie. Permite tracking-ul surselor autoritative și rezolvarea conflictelor de identitate.
+
+**Coloane principale:**
+- `id`, `tenant_id`, `company_id`
+- `key_type`: ENUM('cui', 'nr_reg_com')
+- `key_value_canonical`: VARCHAR(20) NOT NULL (valoare normalizată)
+- `key_value_original`: VARCHAR(32) (valoare originală)
+- `source_authority`: ENUM('import', 'anaf', 'onrc', 'manual', 'migration')
+- `is_authoritative`: BOOLEAN (sursa autoritativă pentru această cheie)
+- `source_bronze_id`: UUID (referință la contact Bronze sursă)
+- `revoked_at`: TIMESTAMPTZ (dacă cheia a fost revocată)
+
+**Indecși:**
+- UNIQUE pe (tenant_id, key_type, key_value_canonical) WHERE revoked_at IS NULL
+- Index pe (company_id)
+- Index pe (tenant_id, key_type, key_value_canonical) pentru lookup rapid
+
+### 2.5.2 silver_company_locations
+
+Tabel pentru locații multiple ale unei companii (sediu social, puncte de lucru, depozite, ferme).
+
+**Coloane principale:**
+- `id`, `tenant_id`, `company_id`
+- `tip_locatie`: ENUM('SEDIU_SOCIAL', 'PUNCT_LUCRU', 'SUCURSALA', 'DEPOZIT', 'FERMA')
+- `cui`: VARCHAR(32) (CUI specific pentru această locație)
+- `adresa`: TEXT NOT NULL
+- `localitate`, `judet`: VARCHAR(100)
+- `latitude`, `longitude`: NUMERIC(10,7)
+- `location_geography`: GEOGRAPHY (PostGIS point)
+- `suprafata_ha`: NUMERIC(12,2) (suprafață în hectare)
+- `culturi`: JSONB DEFAULT '[]' (lista culturi agricole)
+- `source`: VARCHAR(50)
+
+### 2.5.3 silver_datorii_anaf
+
+Tabel pentru datoriile către ANAF (detalii per tip de buget).
+
+**Coloane principale:**
+- `id`, `tenant_id`, `company_id`
+- `tip_buget`: VARCHAR(100) NOT NULL (ex: 'buget_stat', 'buget_somaj', etc.)
+- `suma_restanta`: NUMERIC(15,2)
+- `data_verificare`: DATE
+- `sursa`: VARCHAR(50)
+- `metadata`: JSONB
+
+### 2.5.4 silver_bpi_acte
+
+Tabel pentru actele BPI (Biroul de Preluare în Insolvență).
+
+**Coloane principale:**
+- `id`, `tenant_id`, `company_id`
+- `tip_act`: VARCHAR(100)
+- `numar_act`, `numar_dosar`: VARCHAR(50)
+- `data_act`: DATE
+- `instanta`: VARCHAR(200)
+- `stare`: VARCHAR(50)
+- `metadata`: JSONB
+
+### 2.5.5 silver_cip_incidente
+
+Tabel pentru incidentele CIP (Centrul de Informare Plăți).
+
+**Coloane principale:**
+- `id`, `tenant_id`, `company_id`
+- `tip_instrument`: VARCHAR(50)
+- `serie_numar`: VARCHAR(50)
+- `suma_refuzata`: NUMERIC(18,2)
+- `data_refuz`: DATE
+- `motiv_refuz`: VARCHAR(200)
+- `institutie_financiara`: VARCHAR(200)
+- `este_major`: BOOLEAN DEFAULT FALSE
+- `metadata`: JSONB
+
+### 2.5.6 silver_dosare
+
+Tabel pentru dosarele judiciare asociate companiei.
+
+**Coloane principale:**
+- `id`, `tenant_id`, `company_id`
+- `numar_dosar`: VARCHAR(50)
+- `instanta`: VARCHAR(200)
+- `categorie_dosar`: VARCHAR(100)
+- `obiect_dosar`: TEXT
+- `stadiu`: VARCHAR(50)
+- `data_ultima_modificare`: TIMESTAMPTZ
+- `calitate_parte`: VARCHAR(50) (ex: 'reclamant', 'pârât')
+- `metadata`: JSONB
+
+### 2.5.7 silver_parti_dosare
+
+Tabel pentru părțile implicate în dosare (companii sau persoane fizice).
+
+**Coloane principale:**
+- `id`, `tenant_id`, `dosar_id` (FK către silver_dosare)
+- `nume_parte`: VARCHAR(255)
+- `calitate`: VARCHAR(50) (ex: 'reclamant', 'pârât', 'terț')
+- `metadata`: JSONB
+
+### 2.5.8 silver_termene_dosare
+
+Tabel pentru termenele procesuale din dosare.
+
+**Coloane principale:**
+- `id`, `tenant_id`, `dosar_id` (FK către silver_dosare)
+- `data_termen`: DATE
+- `ora_termen`: VARCHAR(10)
+- `solutie`: TEXT
+- `documente_solutie`: TEXT
+- `metadata`: JSONB
+
+---
+
 **Document generat:** 15 Ianuarie 2026
-**Total tabele Silver:** 4
+**Total tabele Silver:** 12 (4 principale + 8 suplimentare)
 **Conformitate:** Master Spec v1.2, ADR-0045 (Multi-tenant)

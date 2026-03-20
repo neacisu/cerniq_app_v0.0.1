@@ -4,19 +4,14 @@ import { PageWrapper } from "@/components/layout/PageWrapper.js";
 import { Spinner } from "@/components/ui/spinner.js";
 import { ImportMappingForm } from "@/components/forms/ImportMappingForm.js";
 import { toast } from "@/components/ui/toast-api.js";
-import { useImportDetail } from "@/hooks/use-etapa1.js";
-
-const targetFields = [
-  { label: "companyName", value: "companyName" },
-  { label: "cui", value: "cui" },
-  { label: "email", value: "email" },
-  { label: "phone", value: "phone" },
-  { label: "address", value: "address" },
-];
+import { useImportDetail, useMappingTargets, useSaveImportMapping } from "@/hooks/use-etapa1.js";
+import type { ImportMappingConfig } from "@/components/forms/ImportMappingForm.js";
 
 export function ImportMapping() {
   const { id } = useParams();
   const detailQuery = useImportDetail(id);
+  const targetsQuery = useMappingTargets();
+  const saveMutation = useSaveImportMapping(id);
   const item = detailQuery.data?.data ?? {};
   const uploadConfig =
     ((item.metadata as Record<string, unknown> | undefined)?.uploadConfig as
@@ -27,10 +22,27 @@ export function ImportMapping() {
     if (mapping && typeof mapping === "object") {
       return Object.keys(mapping as Record<string, string>);
     }
-    return ["Firm Name", "Vat", "Email", "Phone", "Address"];
+    return [];
   }, [uploadConfig.mapping]);
 
-  if (detailQuery.isPending) {
+  const targetFields = useMemo(() => {
+    const raw = targetsQuery.data?.data ?? [];
+    return (raw as Array<{ key: string; label: string }>).map((t) => ({
+      label: t.label,
+      value: t.key,
+    }));
+  }, [targetsQuery.data]);
+
+  const handleSubmit = async (config: ImportMappingConfig) => {
+    try {
+      await saveMutation.mutateAsync(config.mappings);
+      toast.success("Mapping salvat cu succes");
+    } catch {
+      toast.error("Eroare la salvarea mapping-ului");
+    }
+  };
+
+  if (detailQuery.isPending || targetsQuery.isPending) {
     return (
       <PageWrapper title="Import Mapping">
         <div className="flex items-center justify-center py-12">
@@ -53,7 +65,7 @@ export function ImportMapping() {
   return (
     <PageWrapper
       title="Import Mapping"
-      subtitle={`Import: ${String(item.filename ?? id ?? "-")} · encoding: ${String(uploadConfig.encoding ?? "utf-8")}`}
+      subtitle={`Import: ${String(item.filename ?? id ?? "-")} · encoding: ${typeof uploadConfig.encoding === "string" ? uploadConfig.encoding : "utf-8"}`}
     >
       <ImportMappingForm
         sourceColumns={sourceColumns}
@@ -65,9 +77,7 @@ export function ImportMapping() {
           sheetName: (uploadConfig.sheetName as string | undefined) ?? "",
           mappings: (uploadConfig.mapping as Record<string, string> | undefined) ?? {},
         }}
-        onSubmit={async () => {
-          toast.success("Mapping validat");
-        }}
+        onSubmit={handleSubmit}
       />
     </PageWrapper>
   );

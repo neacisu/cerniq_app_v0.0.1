@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { approvalTasks, db, setSessionTenantId, silverCompanies, sql } from "@cerniq/db";
-import { createQueue, hitlTasksCreatedTotal } from "@cerniq/worker-shared";
+import { createQueue, hitlTasksCreatedTotal, getRetryStrategy } from "@cerniq/worker-shared";
 
 export async function resolveRequesterUserId(tenantId: string): Promise<string | null> {
   if (process.env.SYSTEM_USER_ID) return process.env.SYSTEM_USER_ID;
@@ -9,6 +9,13 @@ export async function resolveRequesterUserId(tenantId: string): Promise<string |
     where: (t, { and, eq }) => and(eq(t.tenantId, tenantId), eq(t.status, "active")),
   });
   return found?.id ?? null;
+}
+
+function urgencyToPriority(urgency: string): "critical" | "high" | "normal" | "low" {
+  if (urgency === "critical") return "critical";
+  if (urgency === "high") return "high";
+  if (urgency === "low") return "low";
+  return "normal";
 }
 
 export async function createHitlApprovalTask(args: {
@@ -49,14 +56,7 @@ export async function createHitlApprovalTask(args: {
       approvalType: args.type,
       status: "pending",
       urgency: args.urgency ?? "medium",
-      priorityLevel:
-        (args.urgency ?? "medium") === "critical"
-          ? "critical"
-          : (args.urgency ?? "medium") === "high"
-            ? "high"
-            : (args.urgency ?? "medium") === "low"
-              ? "low"
-              : "normal",
+      priorityLevel: urgencyToPriority(args.urgency ?? "medium"),
       pipelineStage: "E1",
       entityType: args.entityType,
       entityId: args.entityId,
@@ -98,21 +98,10 @@ export async function addQueueJob(queueName: string, payload: Record<string, unk
     .update(JSON.stringify(payloadForId))
     .digest("hex")
     .slice(0, 20);
+  const retryStrategy = getRetryStrategy(queueName);
   await queue.add("process", payload, {
     jobId: `${queueName}:${deterministicHash}`,
-    attempts: Number(process.env.DEFAULT_JOB_ATTEMPTS ?? "3"),
-    backoff: {
-      type: "exponential",
-      delay: Number(process.env.DEFAULT_JOB_BACKOFF_MS ?? "1000"),
-    },
-    removeOnComplete: {
-      age: Number(process.env.JOB_RETENTION_COMPLETE_SECONDS ?? "86400"),
-      count: Number(process.env.JOB_RETENTION_COMPLETE_COUNT ?? "2000"),
-    },
-    removeOnFail: {
-      age: Number(process.env.JOB_RETENTION_FAIL_SECONDS ?? "604800"),
-      count: Number(process.env.JOB_RETENTION_FAIL_COUNT ?? "5000"),
-    },
+    ...retryStrategy,
   });
   await queue.close();
 }

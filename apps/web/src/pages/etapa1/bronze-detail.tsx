@@ -25,6 +25,79 @@ const META_FIELDS: { key: string; label: string }[] = [
   { key: "validationErrors", label: "Erori validare" },
 ];
 
+/**
+ * Type-safe extractor for processingStatus from bronze contact item.
+ * Returns the status string if it's a valid string value, otherwise returns "—".
+ */
+function extractProcessingStatus(item: Record<string, unknown> | undefined): string {
+  if (item == null) return "—";
+  const value = item.processingStatus;
+  return typeof value === "string" ? value : "—";
+}
+
+/**
+ * Enterprise-grade value formatter for display in FieldGrid.
+ * Handles all possible types safely without risking [object Object] stringification.
+ *
+ * @param value - The value to format (can be any type from Record<string, unknown>)
+ * @returns A safe string representation for display, or "—" for null/undefined
+ */
+function formatFieldValue(value: unknown): string {
+  // Handle null and undefined
+  if (value == null) return "—";
+
+  // Handle primitives (string, number, boolean)
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+
+  // Handle Date objects
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+
+  // Handle arrays
+  if (Array.isArray(value)) {
+    if (value.length === 0) return "[]";
+    // For arrays of primitives, join them; otherwise stringify
+    const hasOnlyPrimitives = value.every(
+      (item) =>
+        item == null ||
+        typeof item === "string" ||
+        typeof item === "number" ||
+        typeof item === "boolean",
+    );
+    if (hasOnlyPrimitives) {
+      return value.map((item) => (item == null ? "null" : String(item))).join(", ");
+    }
+    try {
+      return JSON.stringify(value, null, 2);
+    } catch {
+      return "[Array]";
+    }
+  }
+
+  // Handle objects (including plain objects, but not Date which is already handled)
+  if (typeof value === "object") {
+    try {
+      return JSON.stringify(value, null, 2);
+    } catch {
+      return "[Object]";
+    }
+  }
+
+  // Fallback for any other type (shouldn't happen, but defensive)
+  // Only use String() for primitives that weren't caught above (e.g., symbol, bigint)
+  if (typeof value === "symbol") {
+    return value.toString();
+  }
+  if (typeof value === "bigint") {
+    return value.toString();
+  }
+  // Ultimate fallback - but this should never be reached
+  return "[Unknown Type]";
+}
+
 function FieldGrid({
   fields,
   data,
@@ -39,9 +112,7 @@ function FieldGrid({
         return (
           <div key={key} className="space-y-1">
             <span className="text-xs font-medium text-t3">{label}</span>
-            <p className="text-sm text-t1">
-              {val !== null && val !== undefined ? String(val) : "—"}
-            </p>
+            <p className="text-sm text-t1">{formatFieldValue(val)}</p>
           </div>
         );
       })}
@@ -98,11 +169,11 @@ export function BronzeDetail() {
   return (
     <PageWrapper title="Bronze Contact Detail">
       <div className="mb-4 flex items-center justify-between">
-        <Link to="/etapa1/bronze" className="text-sm text-b5 hover:underline">
+        <Link to="/bronze" className="text-sm text-b5 hover:underline">
           &larr; Inapoi la Bronze
         </Link>
         <div className="flex items-center gap-2">
-          <Badge variant="info">{String(item.processingStatus ?? "—")}</Badge>
+          <Badge variant="info">{extractProcessingStatus(item)}</Badge>
           <Button size="sm" onClick={handleReprocess} disabled={reprocess.isPending}>
             {reprocess.isPending ? "Se proceseaza..." : "Reproceseaza"}
           </Button>

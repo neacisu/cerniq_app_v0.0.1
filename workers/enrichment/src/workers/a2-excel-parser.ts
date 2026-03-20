@@ -34,14 +34,25 @@ export type ExcelParserJobData = {
   correlationId: string;
 };
 
+function extractFormulaResult(result: unknown): string {
+  if (result == null) return "";
+  if (result instanceof Date) return result.toISOString();
+  if (typeof result === "string") return result;
+  if (typeof result === "number" || typeof result === "boolean") return String(result);
+  return "";
+}
+
 function cellToString(cell: ExcelJS.Cell): string {
   const v = cell.value;
   if (v == null) return "";
+  if (typeof v !== "object") return String(v);
   if (v instanceof Date) return v.toISOString();
-  if (typeof v === "object" && "text" in v) return String((v as { text: string }).text);
-  if (typeof v === "object" && "result" in v)
-    return String((v as { result: unknown }).result ?? "");
-  return String(v);
+  if ("text" in v) return typeof v.text === "string" ? v.text : String(v.text);
+  if ("richText" in v) return v.richText.map((rt: { text: string }) => rt.text).join("");
+  if ("error" in v) return v.error;
+  if ("formula" in v) return extractFormulaResult((v as ExcelJS.CellFormulaValue).result);
+  if ("sharedFormula" in v) return extractFormulaResult(v.result);
+  return "";
 }
 
 type ExcelImportState = {
@@ -282,8 +293,8 @@ export const excelParserProcessor: Processor<ExcelParserJobData> = async (job) =
   try {
     const fileBuffer = await readFile(job.data.filePath);
     const workbook = new ExcelJS.Workbook();
-    // @ts-expect-error — ExcelJS types expect pre-Node24 Buffer; compatible at runtime
-    await workbook.xlsx.load(fileBuffer);
+    // ExcelJS 4.x types expect legacy Buffer; incompatible with Node 22+ resizable ArrayBuffer
+    await workbook.xlsx.load(fileBuffer as unknown as import("exceljs").Buffer);
 
     const targetSheets = resolveTargetSheets(workbook, job.data);
     if (targetSheets.length === 0) {

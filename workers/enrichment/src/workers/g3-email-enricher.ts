@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import type { Processor } from "bullmq";
 import { db, setSessionTenantId, silverContacts, silverEnrichmentLog, sql } from "@cerniq/db";
-import { createCircuitBreaker } from "@cerniq/worker-shared";
+import { createCircuitBreaker, withExternalApiMetrics } from "@cerniq/worker-shared";
 
 const clearbitBreaker = createCircuitBreaker(
   async (email: string, apiKey: string) => {
@@ -47,13 +47,13 @@ const fullcontactBreaker = createCircuitBreaker(
 async function fetchClearbit(email: string): Promise<Record<string, unknown> | null> {
   const apiKey = process.env.CLEARBIT_API_KEY;
   if (!apiKey) return null;
-  return clearbitBreaker.fire(email, apiKey);
+  return withExternalApiMetrics("clearbit", () => clearbitBreaker.fire(email, apiKey));
 }
 
 async function fetchFullContact(email: string): Promise<Record<string, unknown> | null> {
   const apiKey = process.env.FULLCONTACT_API_KEY;
   if (!apiKey) return null;
-  return fullcontactBreaker.fire(email, apiKey);
+  return withExternalApiMetrics("fullcontact", () => fullcontactBreaker.fire(email, apiKey));
 }
 
 export type EmailEnricherJobData = {

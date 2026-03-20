@@ -10,6 +10,7 @@ const SECRET_KEYS = [
   "REDIS_PREFIX",
   "BULLMQ_PREFIX",
   "JWT_SECRET",
+  "JWT_REFRESH_SECRET",
 ] as const;
 
 function loadSecretsFromFile(forceOverwrite = false): void {
@@ -39,6 +40,10 @@ function loadSecretsFromFile(forceOverwrite = false): void {
 }
 
 loadSecretsFromFile();
+
+if (!process.env.JWT_REFRESH_SECRET && process.env.JWT_SECRET) {
+  process.env.JWT_REFRESH_SECRET = process.env.JWT_SECRET;
+}
 
 /** Reload secrets from file (e.g. on SIGHUP). Overwrites secret keys so new credentials take effect. */
 export function reloadSecretsFromFile(): void {
@@ -96,6 +101,9 @@ export type EnvConfig = z.infer<typeof EnvSchema>;
 /** Re-parse env after reloadSecretsFromFile (e.g. on SIGHUP). Updates envConfig in place. */
 export function refreshEnvConfig(): void {
   loadSecretsFromFile(true);
+  if (!process.env.JWT_REFRESH_SECRET && process.env.JWT_SECRET) {
+    process.env.JWT_REFRESH_SECRET = process.env.JWT_SECRET;
+  }
   const parsed = EnvSchema.safeParse(process.env);
   if (parsed.success) {
     Object.assign(envConfigRef, parsed.data);

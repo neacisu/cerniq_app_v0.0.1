@@ -42,6 +42,9 @@ export async function enrichmentRoutes(app: FastifyInstance) {
       requireRole("admin", "owner", "superadmin"),
     ],
   };
+  const operatorAuthOpts = {
+    onRequest: [async (req: FastifyRequest) => req.jwtVerify(), requireRole("operator")],
+  };
   const enrichmentMutationRateLimit = app.rateLimit({
     max: 60,
     timeWindow: "1 minute",
@@ -211,14 +214,14 @@ export async function enrichmentRoutes(app: FastifyInstance) {
         entityData = (bronze ?? null) as Record<string, unknown> | null;
       }
 
-      return { success: true, data: { ...task, entityData } };
+      return { success: true, data: task, entityData };
     },
   );
 
   app.post(
     "/approvals/:id/assign",
     {
-      ...authOpts,
+      ...operatorAuthOpts,
       schema: {
         tags: ["etapa1-approvals"],
         summary: "Assign approval task",
@@ -252,7 +255,7 @@ export async function enrichmentRoutes(app: FastifyInstance) {
   app.post(
     "/approvals/:id/decide",
     {
-      ...authOpts,
+      ...operatorAuthOpts,
       schema: {
         tags: ["etapa1-approvals"],
         summary: "Decide approval task and resume pipeline",
@@ -277,6 +280,7 @@ export async function enrichmentRoutes(app: FastifyInstance) {
         tenantId,
         taskId: p.data.id,
         actorId,
+        actorRole: (request.user as { role?: string } | undefined)?.role,
         decision: b.data.decision,
         reason: b.data.reason,
         metadata: b.data.metadata,
@@ -298,7 +302,7 @@ export async function enrichmentRoutes(app: FastifyInstance) {
   app.post(
     "/approvals/:id/escalate",
     {
-      ...authOpts,
+      ...operatorAuthOpts,
       preHandler: [enrichmentMutationRateLimit],
       schema: {
         tags: ["etapa1-approvals"],

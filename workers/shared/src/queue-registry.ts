@@ -73,6 +73,7 @@ export const QUEUES = {
   PIPELINE_ERROR_HANDLER: "pipeline:error-handler",
   HITL_ESCALATION: "hitl:escalate",
   HITL_RESUME_AFTER_APPROVAL: "hitl:resume",
+  MAINTENANCE_IMPORT_FILE_CLEANUP: "maintenance:import-file-cleanup",
 } as const;
 
 const withProvider = (name: string, concurrency: number, provider: string): QueueConfig => ({
@@ -163,6 +164,8 @@ export const queueRegistry: QueueConfig[] = [
   { name: QUEUES.PIPELINE_ERROR_HANDLER, concurrency: 10 },
   { name: QUEUES.HITL_ESCALATION, concurrency: 5 },
   { name: QUEUES.HITL_RESUME_AFTER_APPROVAL, concurrency: 10 },
+  // Maintenance (1)
+  { name: QUEUES.MAINTENANCE_IMPORT_FILE_CLEANUP, concurrency: 1 },
 ];
 
 export const queueNameSet = new Set(queueRegistry.map((queue) => queue.name));
@@ -221,3 +224,27 @@ export const RETRY_STRATEGIES = {
     removeOnComplete: { count: 200 },
   },
 } as const;
+
+const SCRAPING_PROVIDERS = new Set(["scraping", "nominatim"]);
+
+/**
+ * Resolve the retry strategy for a queue by checking the registry's provider
+ * field first, then falling back to queue-name prefix matching.
+ */
+export function getRetryStrategy(queueName: string) {
+  if (queueName.startsWith("hitl:")) return RETRY_STRATEGIES.HITL;
+  if (queueName.startsWith("pipeline:")) return RETRY_STRATEGIES.PIPELINE;
+
+  const config = getQueueConfig(queueName);
+  if (config?.provider) {
+    return SCRAPING_PROVIDERS.has(config.provider)
+      ? RETRY_STRATEGIES.SCRAPING
+      : RETRY_STRATEGIES.EXTERNAL_API;
+  }
+
+  if (queueName.startsWith("scrape:") || queueName.startsWith("agri:")) {
+    return RETRY_STRATEGIES.SCRAPING;
+  }
+
+  return RETRY_STRATEGIES.FAST;
+}

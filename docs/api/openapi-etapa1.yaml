@@ -118,8 +118,8 @@ paths:
       security:
         - BearerAuth: []
       parameters:
-        - $ref: "#/components/parameters/PageParam"
-        - $ref: "#/components/parameters/PageSizeParam"
+        - $ref: "#/components/parameters/LimitParam"
+        - $ref: "#/components/parameters/OffsetParam"
         - name: status
           in: query
           schema:
@@ -128,23 +128,25 @@ paths:
           in: query
           schema:
             $ref: "#/components/schemas/ImportSourceType"
-        - name: startDate
+        - name: dateFrom
           in: query
           schema:
             type: string
             format: date-time
-        - name: endDate
+          description: Data de început pentru filtrare
+        - name: dateTo
           in: query
           schema:
             type: string
             format: date-time
+          description: Data de sfârșit pentru filtrare
         - name: sortBy
           in: query
           schema:
             type: string
-            enum: [createdAt, filename, totalRows]
+            enum: [createdAt, updatedAt]
             default: createdAt
-        - name: sortOrder
+        - name: sortDir
           in: query
           schema:
             type: string
@@ -254,9 +256,15 @@ paths:
               schema:
                 $ref: "#/components/schemas/ImportCancelledResponse"
         "400":
-          description: Import nu poate fi anulat (deja completat sau anulat)
+          $ref: "#/components/responses/ValidationError"
         "404":
           $ref: "#/components/responses/NotFound"
+        "409":
+          description: Doar importurile active (pending/processing) pot fi anulate
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   # ==================== BRONZE ====================
   /bronze/contacts:
@@ -270,8 +278,8 @@ paths:
       security:
         - BearerAuth: []
       parameters:
-        - $ref: "#/components/parameters/PageParam"
-        - $ref: "#/components/parameters/PageSizeParam"
+        - $ref: "#/components/parameters/LimitParam"
+        - $ref: "#/components/parameters/OffsetParam"
         - name: status
           in: query
           schema:
@@ -291,23 +299,25 @@ paths:
             type: string
             format: uuid
           description: Filtrare după batch import
-        - name: startDate
+        - name: dateFrom
           in: query
           schema:
             type: string
             format: date-time
-        - name: endDate
+          description: Data de început pentru filtrare
+        - name: dateTo
           in: query
           schema:
             type: string
             format: date-time
+          description: Data de sfârșit pentru filtrare
         - name: sortBy
           in: query
           schema:
             type: string
             enum: [createdAt, extractedName, sourceType]
             default: createdAt
-        - name: sortOrder
+        - name: sortDir
           in: query
           schema:
             type: string
@@ -375,8 +385,8 @@ paths:
       security:
         - BearerAuth: []
       parameters:
-        - $ref: "#/components/parameters/PageParam"
-        - $ref: "#/components/parameters/PageSizeParam"
+        - $ref: "#/components/parameters/LimitParam"
+        - $ref: "#/components/parameters/OffsetParam"
         - name: search
           in: query
           schema:
@@ -418,9 +428,9 @@ paths:
           in: query
           schema:
             type: string
-            enum: [createdAt, denumire, totalQualityScore, updatedAt]
+            enum: [updatedAt, totalQualityScore, createdAt]
             default: updatedAt
-        - name: sortOrder
+        - name: sortDir
           in: query
           schema:
             type: string
@@ -464,6 +474,9 @@ paths:
       description: |
         Pornește sau re-pornește procesul de îmbogățire pentru o companie.
         Poate specifica sursele de îmbogățire dorite.
+        
+        **NOTĂ:** Acest endpoint este ASINCRON. Returnează imediat confirmarea că job-ul a fost adăugat în coadă.
+        Procesarea reală se face în background prin workers BullMQ.
       security:
         - BearerAuth: []
       parameters:
@@ -486,6 +499,17 @@ paths:
                   description: Re-îmbogățește chiar dacă deja completat
       responses:
         "200":
+          description: Job de îmbogățire adăugat în coadă
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QueuedResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+      responses:
+        "200":
           description: Îmbogățire pornită
           content:
             application/json:
@@ -502,6 +526,9 @@ paths:
       description: |
         Promovează manual o companie din Silver în Gold layer.
         Necesită quality score >= 70 sau force=true.
+        
+        **NOTĂ:** Acest endpoint este ASINCRON. Returnează imediat confirmarea că job-ul a fost adăugat în coadă.
+        Procesarea reală se face în background prin workers BullMQ.
       security:
         - BearerAuth: []
       parameters:
@@ -518,10 +545,15 @@ paths:
                   description: Promovează chiar dacă quality < 70
       responses:
         "200":
-          description: Companie promovată
+          description: Job de promovare adăugat în coadă
           content:
             application/json:
               schema:
+                $ref: "#/components/schemas/QueuedResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
                 $ref: "#/components/schemas/PromotionResponse"
         "400":
           description: Nu poate fi promovată (quality prea mic)
@@ -543,8 +575,8 @@ paths:
           schema:
             type: string
             format: uuid
-        - $ref: "#/components/parameters/PageParam"
-        - $ref: "#/components/parameters/PageSizeParam"
+        - $ref: "#/components/parameters/LimitParam"
+        - $ref: "#/components/parameters/OffsetParam"
       responses:
         "200":
           description: Log îmbogățire
@@ -565,8 +597,8 @@ paths:
       security:
         - BearerAuth: []
       parameters:
-        - $ref: "#/components/parameters/PageParam"
-        - $ref: "#/components/parameters/PageSizeParam"
+        - $ref: "#/components/parameters/LimitParam"
+        - $ref: "#/components/parameters/OffsetParam"
         - name: search
           in: query
           schema:
@@ -624,9 +656,9 @@ paths:
           in: query
           schema:
             type: string
-            enum: [leadScore, denumire, createdAt, dataUltimaInteractiune]
-            default: leadScore
-        - name: sortOrder
+            enum: [updatedAt, leadScore, createdAt]
+            default: updatedAt
+        - name: sortDir
           in: query
           schema:
             type: string
@@ -727,7 +759,7 @@ paths:
           $ref: "#/components/responses/NotFound"
 
   # ==================== APPROVALS ====================
-  /approvals:
+  /enrichment/approvals:
     get:
       tags: [Approvals]
       operationId: listApprovals
@@ -738,8 +770,8 @@ paths:
       security:
         - BearerAuth: []
       parameters:
-        - $ref: "#/components/parameters/PageParam"
-        - $ref: "#/components/parameters/PageSizeParam"
+        - $ref: "#/components/parameters/LimitParam"
+        - $ref: "#/components/parameters/OffsetParam"
         - name: status
           in: query
           schema:
@@ -750,7 +782,7 @@ paths:
           in: query
           schema:
             $ref: "#/components/schemas/ApprovalType"
-        - name: priority
+        - name: priorityLevel
           in: query
           schema:
             $ref: "#/components/schemas/ApprovalPriority"
@@ -768,9 +800,9 @@ paths:
           in: query
           schema:
             type: string
-            enum: [createdAt, dueAt, priority]
+            enum: [dueAt, createdAt, priorityLevel]
             default: dueAt
-        - name: sortOrder
+        - name: sortDir
           in: query
           schema:
             type: string
@@ -784,7 +816,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApprovalListResponse"
 
-  /approvals/{approvalId}:
+  /enrichment/approvals/{approvalId}:
     get:
       tags: [Approvals]
       operationId: getApproval
@@ -804,7 +836,7 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
-  /approvals/{approvalId}/assign:
+  /enrichment/approvals/{approvalId}/assign:
     post:
       tags: [Approvals]
       operationId: assignApproval
@@ -836,7 +868,7 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
-  /approvals/{approvalId}/decide:
+  /enrichment/approvals/{approvalId}/decide:
     post:
       tags: [Approvals]
       operationId: decideApproval
@@ -859,7 +891,7 @@ paths:
               properties:
                 decision:
                   type: string
-                  enum: [approved, rejected]
+                  enum: [approve, reject, merge, skip]
                 reason:
                   type: string
                   maxLength: 1000
@@ -876,7 +908,7 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
-  /approvals/{approvalId}/escalate:
+  /enrichment/approvals/{approvalId}/escalate:
     post:
       tags: [Approvals]
       operationId: escalateApproval
@@ -942,7 +974,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [pending, merged, rejected, hitl_pending]
+            enum: [pending, auto_merged, hitl_pending, merged, rejected, expired]
         - name: limit
           in: query
           schema:
@@ -1148,6 +1180,414 @@ paths:
         "404":
           description: Queue inexistent
 
+  # ==================== IMPORTS EXTENDED ====================
+  /imports/template:
+    get:
+      tags: [Imports]
+      operationId: downloadImportTemplate
+      summary: Descarca template CSV/Excel pentru import
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [csv, xlsx]
+            default: csv
+          description: Formatul template-ului (CSV sau Excel)
+      responses:
+        "200":
+          description: Fisier template
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+
+  /imports/template/columns:
+    get:
+      tags: [Imports]
+      operationId: getTemplateColumns
+      summary: Listeaza coloanele disponibile in template
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Lista coloane
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessObjectResponse"
+
+  /imports/mapping-targets:
+    get:
+      tags: [Imports]
+      operationId: getMappingTargets
+      summary: Listeaza campurile tinta disponibile pentru mapping
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Campuri disponibile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessObjectResponse"
+
+  /imports/{importId}/mapping:
+    put:
+      tags: [Imports]
+      operationId: saveImportMapping
+      summary: Salveaza configuratia de mapping pentru un import
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ImportIdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                mapping:
+                  type: object
+                  additionalProperties:
+                    type: string
+      responses:
+        "200":
+          description: Mapping salvat
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessObjectResponse"
+
+  /imports/{importId}/promote-job-status:
+    get:
+      tags: [Imports]
+      operationId: getPromoteJobStatus
+      summary: Statusul job-ului de promovare pentru un import
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ImportIdParam"
+      responses:
+        "200":
+          description: Status job promovare
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessObjectResponse"
+
+  /imports/{importId}/reprocess-errors:
+    get:
+      tags: [Imports]
+      operationId: getImportErrors
+      summary: Listeaza inregistrarile cu erori pentru reprocessare
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ImportIdParam"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 25
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Lista erori
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessListResponse"
+
+  /imports/{importId}/retry:
+    post:
+      tags: [Imports]
+      operationId: retryImport
+      summary: Retrimite un import eșuat
+      description: |
+        Repornește procesarea unui import eșuat sau anulat.
+        Poate primi opțional un nou mapping de coloane.
+        Nu se poate retrimite un import deja în procesare sau completat.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ImportIdParam"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                mapping:
+                  type: object
+                  additionalProperties:
+                    type: string
+                  description: Mapping de coloane opțional (suprascrie mapping-ul existent)
+      responses:
+        "200":
+          description: Import reprogramat
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessObjectResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Importul este deja în procesare sau completat
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /imports/{importId}/headers:
+    get:
+      tags: [Imports]
+      operationId: getImportHeaders
+      summary: Headerele detectate din fisierul de import
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ImportIdParam"
+      responses:
+        "200":
+          description: Headere detectate
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessObjectResponse"
+
+  /imports/{importId}/rows:
+    get:
+      tags: [Imports]
+      operationId: getImportRows
+      summary: Randuri din fisierul de import (preview)
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ImportIdParam"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 25
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Randuri import
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessListResponse"
+
+  /imports/{importId}/entities:
+    get:
+      tags: [Imports]
+      operationId: getImportEntities
+      summary: Entitatile create din import (Bronze contacts)
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ImportIdParam"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 25
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Entitati create
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessListResponse"
+
+  # ==================== APPROVALS EXTENDED ====================
+  /enrichment/approvals/stats:
+    get:
+      tags: [Approvals]
+      operationId: getApprovalStats
+      summary: Statistici HITL approvals (count per tip/status)
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Statistici approvals
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessObjectResponse"
+
+  # ==================== IMPORTS EXTENDED (batch 2) ====================
+  /imports/{importId}/re-promote:
+    post:
+      tags: [Imports]
+      operationId: rePromoteImport
+      summary: Re-promovează toate contactele din import (Bronze -> Silver)
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ImportIdParam"
+      responses:
+        "200":
+          description: Re-promovare pornită
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessObjectResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /imports/{importId}/resume-promote:
+    post:
+      tags: [Imports]
+      operationId: resumePromoteImport
+      summary: Reia promovarea Bronze -> Silver pentru contactele neprocesate
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ImportIdParam"
+      responses:
+        "200":
+          description: Promovare reluată
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessObjectResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /imports/{importId}/anaf-enrich:
+    post:
+      tags: [Imports]
+      operationId: anafEnrichImport
+      summary: Pornește îmbogățirea ANAF pentru toate companiile silver din import
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ImportIdParam"
+      responses:
+        "200":
+          description: Îmbogățire ANAF pornită
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessObjectResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /imports/{importId}/reprocess-errors/resume:
+    post:
+      tags: [Imports]
+      operationId: resumeReprocessErrors
+      summary: Reia reprocesarea erorilor de import
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ImportIdParam"
+      responses:
+        "200":
+          description: Reprocesare reluată
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessObjectResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ==================== DASHBOARD EXTENDED ====================
+  /dashboard/daily-stats:
+    get:
+      tags: [Dashboard]
+      operationId: getDailyStats
+      summary: Statistici zilnice agregate pe o perioadă configurabilă
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: days
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 365
+            default: 30
+          description: Numărul de zile de statistici
+        - name: pipelineStage
+          in: query
+          schema:
+            type: string
+          description: Filtrare după pipeline stage
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 365
+          description: Număr maxim de rezultate
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+          description: Offset pentru paginare
+      responses:
+        "200":
+          description: Statistici zilnice
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessListResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+
+  # ==================== ENRICHMENT QUEUES EXTENDED ====================
+  /enrichment/queues/{queueName}:
+    get:
+      tags: [Enrichment]
+      operationId: getQueueStatus
+      summary: Status detaliat pentru o coadă de îmbogățire specifică
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: queueName
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Numele cozii (e.g. enrich:anaf:cui, pipeline:orchestrate)
+      responses:
+        "200":
+          description: Status coadă
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QueueStatusResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
 components:
   securitySchemes:
     BearerAuth:
@@ -1157,24 +1597,24 @@ components:
       description: JWT token obținut din /api/v1/auth/login
 
   parameters:
-    PageParam:
-      name: page
-      in: query
-      schema:
-        type: integer
-        minimum: 1
-        default: 1
-      description: Numărul paginii (1-indexed)
-
-    PageSizeParam:
-      name: pageSize
+    LimitParam:
+      name: limit
       in: query
       schema:
         type: integer
         minimum: 1
         maximum: 100
         default: 20
-      description: Număr de rezultate per pagină
+      description: Număr maxim de rezultate returnate
+
+    OffsetParam:
+      name: offset
+      in: query
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+      description: Număr de rezultate de sărit (pentru paginare)
 
     ImportIdParam:
       name: importId
@@ -1211,6 +1651,15 @@ components:
         type: string
         format: uuid
       description: ID-ul task-ului de aprobare
+
+    TenantIdHeader:
+      name: X-Tenant-ID
+      in: header
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: ID-ul tenant-ului pentru multi-tenancy. Toate endpoint-urile necesită acest header.
 
   responses:
     Unauthorized:
@@ -1263,18 +1712,18 @@ components:
       type: object
       required:
         - total
-        - page
-        - pageSize
-        - totalPages
+        - limit
+        - offset
       properties:
         total:
           type: integer
-        page:
+          description: Numărul total de rezultate disponibile
+        limit:
           type: integer
-        pageSize:
+          description: Numărul de rezultate returnate în acest răspuns
+        offset:
           type: integer
-        totalPages:
-          type: integer
+          description: Numărul de rezultate sărite
 
     # ========== ENUMS ==========
     ImportStatus:
@@ -1283,7 +1732,7 @@ components:
 
     ImportSourceType:
       type: string
-      enum: [csv_import, excel_import, api, webhook, manual]
+      enum: [csv_import, webhook, scrape, manual, api, excel_import]
 
     BronzeProcessingStatus:
       type: string
@@ -1295,11 +1744,11 @@ components:
 
     PromotionStatus:
       type: string
-      enum: [pending, eligible, promoted, blocked]
+      enum: [eligible, review_required, blocked, promoted]
 
     StatusFirma:
       type: string
-      enum: [ACTIVA, INACTIVA, RADIATA, UNKNOWN]
+      enum: [ACTIVA, INACTIVA, DIZOLVARE, RADIATA, INSOLVENTA, UNKNOWN]
 
     LeadState:
       type: string
@@ -1308,12 +1757,18 @@ components:
         - CONTACTED_WA
         - CONTACTED_EMAIL
         - CONTACTED_PHONE
-        - RESPONDED
-        - QUALIFIED
-        - NEGOTIATING
-        - WON
-        - LOST
-        - NURTURING
+        - WARM_REPLY
+        - ENGAGED
+        - NEGOTIATION
+        - PROPOSAL
+        - CLOSING
+        - CONVERTED
+        - ONBOARDING
+        - NURTURING_ACTIVE
+        - AT_RISK
+        - LOYAL_ADVOCATE
+        - CHURNED
+        - DEAD
         - DO_NOT_CONTACT
 
     CategorieRisc:
@@ -1326,7 +1781,16 @@ components:
 
     ApprovalType:
       type: string
-      enum: [data_quality, dedup_review, ai_validation]
+      enum:
+        - dedup_review
+        - identity_conflict
+        - quality_review
+        - ai_structuring_review
+        - ai_merge_review
+        - low_confidence_review
+        - data_anomaly
+        - manual_verification
+        - error_review
 
     ApprovalPriority:
       type: string
@@ -1344,28 +1808,35 @@ components:
           const: true
         data:
           type: object
+          required:
+            - bronze
+            - silver
+            - gold
+            - approvals
+            - errors
+            - pipeline
           properties:
             bronze:
               type: object
               properties:
                 total:
                   type: integer
-                today:
-                  type: integer
                 pending:
                   type: integer
-                promoted:
+                processing:
                   type: integer
-                rejected:
+                promoted:
                   type: integer
             silver:
               type: object
               properties:
                 total:
                   type: integer
-                validated:
+                pending:
                   type: integer
-                enriched:
+                inProgress:
+                  type: integer
+                complete:
                   type: integer
                 eligible:
                   type: integer
@@ -1374,49 +1845,33 @@ components:
               properties:
                 total:
                   type: integer
-                promoted:
+                cold:
                   type: integer
-                thisWeek:
+                engaged:
+                  type: integer
+                converted:
                   type: integer
             approvals:
               type: object
               properties:
                 pending:
                   type: integer
-                urgent:
+                overdue:
                   type: integer
-                avgResolutionHours:
-                  type: number
-            quality:
+            errors:
               type: object
               properties:
-                average:
-                  type: number
-                distribution:
-                  type: object
-                  properties:
-                    high:
-                      type: integer
-                    medium:
-                      type: integer
-                    low:
-                      type: integer
-            enrichment:
+                last24h:
+                  type: integer
+                critical:
+                  type: integer
+            pipeline:
               type: object
               properties:
-                queues:
-                  type: array
-                  items:
-                    type: object
-                    properties:
-                      name:
-                        type: string
-                      depth:
-                        type: integer
-                      processing:
-                        type: integer
-                completionRate:
-                  type: number
+                queueDepth:
+                  type: integer
+                failingQueues:
+                  type: integer
 
     ActivityListResponse:
       type: object
@@ -1431,21 +1886,26 @@ components:
           type: array
           items:
             type: object
+            required:
+              - id
+              - type
+              - timestamp
+              - message
             properties:
               id:
                 type: string
-                format: uuid
+                description: ID unic al activității (prefix: err-, approval-, silver-)
               type:
                 type: string
-              title:
-                type: string
-              description:
-                type: string
+                enum: [pipeline_error, approval, silver_update]
               timestamp:
                 type: string
                 format: date-time
-              metadata:
-                type: object
+              message:
+                type: string
+              severity:
+                type: string
+                description: Severitate (pentru pipeline_error) sau urgency (pentru approval) sau promotionStatus (pentru silver_update)
 
     # ========== IMPORTS ==========
     ImportListResponse:
@@ -1844,17 +2304,18 @@ components:
           const: true
         data:
           type: object
+          required:
+            - id
+            - queued
           properties:
             id:
               type: string
               format: uuid
-            enrichmentStatus:
-              type: string
-              const: in_progress
-            jobIds:
-              type: object
-              additionalProperties:
-                type: string
+              description: ID-ul companiei Silver pentru care s-a pornit îmbogățirea
+            queued:
+              type: boolean
+              const: true
+              description: Confirmare că job-ul a fost adăugat în coadă BullMQ pentru procesare asincronă
 
     PromotionResponse:
       type: object
@@ -1867,16 +2328,18 @@ components:
           const: true
         data:
           type: object
+          required:
+            - id
+            - queued
           properties:
-            silverId:
+            id:
               type: string
               format: uuid
-            goldId:
-              type: string
-              format: uuid
-            promotedAt:
-              type: string
-              format: date-time
+              description: ID-ul companiei Silver care urmează să fie promovată
+            queued:
+              type: boolean
+              const: true
+              description: Confirmare că job-ul de promovare a fost adăugat în coadă BullMQ pentru procesare asincronă. Compania va fi promovată în Gold după procesare.
 
     EnrichmentLogResponse:
       type: object
@@ -2042,15 +2505,15 @@ components:
 
     GoldCompanyUpdateRequest:
       type: object
+      description: "PATCH body for gold company. currentState is NOT accepted — use POST /transition for FSM state changes."
       properties:
-        currentState:
-          $ref: "#/components/schemas/LeadState"
         assignedTo:
           type: string
           format: uuid
           nullable: true
         canalPreferat:
           type: string
+          enum: [whatsapp, email, phone, sms]
         doNotContact:
           type: boolean
         doNotContactReason:
@@ -2318,6 +2781,67 @@ components:
               type: string
             paused:
               type: boolean
+
+    QueuedResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          const: true
+        data:
+          type: object
+          required:
+            - id
+            - queued
+          properties:
+            id:
+              type: string
+              format: uuid
+              description: ID-ul entității pentru care job-ul a fost adăugat în coadă
+            queued:
+              type: boolean
+              const: true
+              description: Confirmă că job-ul a fost adăugat în coadă pentru procesare asincronă
+
+    SuccessObjectResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          const: true
+        data:
+          type: object
+          additionalProperties: true
+
+    SuccessListResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          const: true
+        data:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        meta:
+          type: object
+          properties:
+            total:
+              type: integer
+            limit:
+              type: integer
+            offset:
+              type: integer
 
     DedupCandidate:
       type: object

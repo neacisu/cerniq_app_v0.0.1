@@ -475,7 +475,7 @@ const GUARDRAILS = {
 │   ┌───────────┬───────────────────┬────────────────────┬──────┬───────────────────┐ │
 │   │ Etapă     │ Approval Type     │ Trigger            │ SLA  │ Auto-Action       │ │
 │   ├───────────┼───────────────────┼────────────────────┼──────┼───────────────────┤ │
-│   │ E1        │ data_quality      │ Score < 0.7        │ 24h  │ Escalate          │ │
+│   │ E1        │ quality_review      │ Score < 0.7        │ 24h  │ Escalate          │ │
 │   │ E2        │ content_review    │ All messages       │ 8h   │ Escalate          │ │
 │   │ E3        │ pricing_approval  │ Discount > 15%     │ 4h   │ Escalate to VP    │ │
 │   │ E4        │ credit_approval   │ Risk > 0.5         │ 48h  │ Reject            │ │
