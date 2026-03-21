@@ -225,6 +225,13 @@
       "when": 1772310000000,
       "tag": "0030_phase5_architectural_improvements",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1772320000000,
+      "tag": "0031_bronze_job_logs",
+      "breakpoints": true
     }
   ]
 }

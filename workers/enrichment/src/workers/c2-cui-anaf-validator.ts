@@ -17,6 +17,7 @@ import {
   upsertCompanyIdentityKey,
 } from "@cerniq/db";
 import { sanitizeCui } from "../lib/cui-validation.js";
+import { createJobLogger } from "../lib/job-logger.js";
 
 export type CuiAnafJobData = {
   tenantId: string;
@@ -368,10 +369,34 @@ async function logAnafValidation(
 
 export const cuiAnafValidatorProcessor: Processor<CuiAnafJobData> = async (job) => {
   const startedAt = Date.now();
+
+  const batchId =
+    typeof (job.data as Record<string, unknown>).batchId === "string"
+      ? String((job.data as Record<string, unknown>).batchId)
+      : "unknown";
+  const log = createJobLogger({
+    batchId,
+    tenantId: job.data.tenantId,
+    workerName: "C2:cui-anaf-validator",
+    jobId: String(job.id ?? ""),
+    startedAt,
+  });
+  const contactLog = job.data.bronzeContactId ? log.forContact(job.data.bronzeContactId) : log;
+
   const cleanedCui = sanitizeCui(job.data.cui);
   if (!cleanedCui) {
+    contactLog.error(
+      "invalid_cui",
+      `CUI lipsă sau complet invalid — contactul nu poate fi validat ANAF`,
+      { rawCui: job.data.cui },
+    );
     return { ok: false, status: "invalid", reason: "missing_cui", source: "anaf" };
   }
+
+  contactLog.step("start", `Validare ANAF CUI ${cleanedCui} — apel API ANAF`, {
+    cui: cleanedCui,
+    companyId: job.data.companyId,
+  });
 
   // CUI dedup: check if another contact with same CUI was already validated via ANAF
   const alreadyValidated = await db.transaction(async (tx) => {
@@ -391,6 +416,11 @@ export const cuiAnafValidatorProcessor: Processor<CuiAnafJobData> = async (job) 
     const existingMeta = (alreadyValidated.metadata ?? {}) as Record<string, unknown>;
     const existingAnaf = existingMeta.anafValidation as Record<string, unknown> | undefined;
     if (existingAnaf) {
+      contactLog.info(
+        "dedup_reuse",
+        `CUI ${cleanedCui} deja validat ANAF de un alt contact — reutilizez datele existente fără apel API`,
+        { reusedFromContactId: alreadyValidated.id },
+      );
       const patch = { anafValidation: existingAnaf };
       const reusedCompanyData = (existingAnaf.response ?? null) as AnafCompanyResult | null;
       const nrRegCom = reusedCompanyData
@@ -408,6 +438,11 @@ export const cuiAnafValidatorProcessor: Processor<CuiAnafJobData> = async (job) 
         cleanedCui,
         reusedCompanyData ?? ({} as AnafCompanyResult),
       );
+      contactLog.step(
+        "done_dedup",
+        `Contact actualizat cu date ANAF existente — promovat în silver`,
+        { cui: cleanedCui },
+      );
       return {
         ok: true,
         status: "valid",
@@ -420,6 +455,11 @@ export const cuiAnafValidatorProcessor: Processor<CuiAnafJobData> = async (job) 
 
   const companyData = await anafBreaker.fire(cleanedCui);
   if (!companyData) {
+    contactLog.warn(
+      "not_found",
+      `CUI ${cleanedCui} nu a fost găsit în baza de date ANAF — salvat ca not_found, contactul rămâne în bronze`,
+      { cui: cleanedCui },
+    );
     await persistAnafNotFound(job.data, cleanedCui);
     return {
       ok: true,
@@ -428,6 +468,16 @@ export const cuiAnafValidatorProcessor: Processor<CuiAnafJobData> = async (job) 
       cleanedCui,
     };
   }
+
+  contactLog.info(
+    "anaf_found",
+    `CUI ${cleanedCui} confirmat ANAF: ${typeof companyData.denumire === "string" ? companyData.denumire : "—"}`,
+    {
+      cui: cleanedCui,
+      denumire: companyData.denumire,
+      nrRegCom: (companyData as Record<string, unknown>).nrRegCom,
+    },
+  );
 
   const patch = buildAnafPatch(cleanedCui, companyData);
   const nrRegCom = extractNrRegCom(companyData);
@@ -444,6 +494,12 @@ export const cuiAnafValidatorProcessor: Processor<CuiAnafJobData> = async (job) 
   );
   await enqueueAnafPromotion(job.data, cleanedCui, companyData);
   await logAnafValidation(job, cleanedCui, companyData, startedAt);
+
+  contactLog.step(
+    "done",
+    `Validare ANAF completă — companie salvată în silver, promovare enqueued`,
+    { cui: cleanedCui, durationMs: Date.now() - startedAt },
+  );
 
   return {
     ok: true,

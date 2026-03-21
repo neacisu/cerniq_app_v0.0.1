@@ -9,6 +9,7 @@ import {
   register_with_invite_code,
 } from "@cerniq/db";
 import { envConfig } from "../config.js";
+import { AppError } from "../errors/app-error.js";
 import {
   consumeRefreshToken,
   isRefreshFamilyRevoked,
@@ -285,14 +286,18 @@ async function issueAuthTokens(
       expiresIn: envConfig.JWT_REFRESH_EXPIRES_IN,
     },
   );
-  await storeRefreshToken({
-    jti: ids.jti,
-    familyId: ids.familyId,
-    userId: user.id,
-    tenantId: user.tenantId,
-    token: refreshToken,
-    expiresInSeconds: parseDurationToSeconds(envConfig.JWT_REFRESH_EXPIRES_IN),
-  });
+  try {
+    await storeRefreshToken({
+      jti: ids.jti,
+      familyId: ids.familyId,
+      userId: user.id,
+      tenantId: user.tenantId,
+      token: refreshToken,
+      expiresInSeconds: parseDurationToSeconds(envConfig.JWT_REFRESH_EXPIRES_IN),
+    });
+  } catch {
+    throw new AppError("Cache unavailable. Please try again shortly.", 503, "CACHE_UNAVAILABLE");
+  }
   return { accessToken, refreshToken, familyId: ids.familyId };
 }
 
@@ -329,7 +334,16 @@ export async function authRoutes(app: FastifyInstance) {
 
     const { email, password } = parsed.data;
 
-    const user = await get_user_by_email(email);
+    let user;
+    try {
+      user = await get_user_by_email(email);
+    } catch (err: unknown) {
+      request.log.error({ err }, "login: database unreachable");
+      return reply.status(503).send({
+        success: false,
+        error: "Service temporarily unavailable. Please try again shortly.",
+      });
+    }
 
     if (!user?.passwordHash || !(await bcrypt.compare(password, user.passwordHash))) {
       return reply.status(401).send({

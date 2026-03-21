@@ -4,6 +4,7 @@ import { createCircuitBreaker, createQueue, QUEUES } from "@cerniq/worker-shared
 import { bronzeContacts, db, sql } from "@cerniq/db";
 import { jobsProcessed, jobDuration, jobErrors } from "../lib/worker-metrics.js";
 import { insertBronzeRows, triggerNormalizationForContacts } from "./ingest-utils.js";
+import { createJobLogger, type JobLogger } from "../lib/job-logger.js";
 
 export type ApiPollerJobData = {
   tenantId: string;
@@ -68,76 +69,201 @@ const apiPollerBreaker = createCircuitBreaker(
   },
 );
 
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Normalises any API payload shape into a flat array of plain objects.
+ * Handles both top-level arrays and single-object responses.
+ * Type-guard filter is defined once and reused to avoid duplicate complexity.
+ */
+function extractRowsFromPayload(payload: unknown): Record<string, unknown>[] {
+  const isObjectRow = (item: unknown): item is Record<string, unknown> =>
+    !!item && typeof item === "object";
+  return Array.isArray(payload) ? payload.filter(isObjectRow) : [payload].filter(isObjectRow);
+}
+
+interface DeltaFilterResult {
+  filteredRows: Record<string, unknown>[];
+  skippedDuplicates: number;
+}
+
+/**
+ * Performs content-hash delta detection against `bronze.bronze_contacts`.
+ * When `enabled` is false or the input array is empty it returns rows unchanged.
+ * Kept as an async helper so the processor stays below Sonar S3776 threshold
+ * while keeping the for-loop nesting and Drizzle query out of the hot path.
+ */
+async function filterByDeltaDetection(
+  tenantId: string,
+  rows: Record<string, unknown>[],
+  enabled: boolean,
+  log: JobLogger,
+): Promise<DeltaFilterResult> {
+  if (!enabled || rows.length === 0) {
+    return { filteredRows: rows, skippedDuplicates: 0 };
+  }
+
+  const hashes = rows.map(computeContentHash);
+  const existingResult = await db
+    .select({ contentHash: bronzeContacts.contentHash })
+    .from(bronzeContacts)
+    .where(
+      sql`${bronzeContacts.tenantId} = ${tenantId}
+        AND ${bronzeContacts.contentHash} = ANY(${hashes})`,
+    );
+
+  const existingHashes = new Set(existingResult.map((r) => r.contentHash));
+  const filteredRows: Record<string, unknown>[] = [];
+  let skippedDuplicates = 0;
+
+  for (const [index, row] of rows.entries()) {
+    if (existingHashes.has(hashes[index])) {
+      skippedDuplicates++;
+    } else {
+      filteredRows.push(row);
+    }
+  }
+
+  if (skippedDuplicates > 0) {
+    log.info(
+      "delta_filter",
+      `Delta detection: ${skippedDuplicates} duplicate(s) sărite (conținut identic deja în bronze)`,
+      { totalFetched: rows.length, skippedDuplicates, newRows: filteredRows.length },
+    );
+  }
+
+  return { filteredRows, skippedDuplicates };
+}
+
+/**
+ * Inserts the de-duplicated rows into `bronze.bronze_contacts` and triggers
+ * the B1 normalisation queue.  Returns the number of rows actually written.
+ * The if/else for the "nothing to insert" fast-path is handled here to keep
+ * the processor's structural complexity low.
+ */
+async function ingestFilteredRows(
+  tenantId: string,
+  filteredRows: Record<string, unknown>[],
+  totalFetched: number,
+  skippedDuplicates: number,
+  correlationId: string,
+  log: JobLogger,
+): Promise<number> {
+  if (filteredRows.length === 0) {
+    log.info(
+      "no_new_rows",
+      `Nicio înregistrare nouă — toate duplicate sau zero rânduri de la API`,
+      {
+        rowsFetched: totalFetched,
+        skippedDuplicates,
+      },
+    );
+    return 0;
+  }
+
+  const result = await insertBronzeRows(tenantId, filteredRows, "api");
+  await triggerNormalizationForContacts(tenantId, result.insertedIds, correlationId);
+  log.info(
+    "rows_inserted",
+    `${result.rowsInserted} contacte salvate în bronze, normalizare declanșată`,
+    {
+      rowsInserted: result.rowsInserted,
+      triggeredNormalization: result.insertedIds.length,
+    },
+  );
+  return result.rowsInserted;
+}
+
+/**
+ * Enqueues the next pagination page when the API signals more data is available.
+ * Returns true if another page was scheduled, false otherwise.
+ * Isolates the queue lifecycle (create → add → close) from the main processor.
+ */
+async function scheduleNextPageIfNeeded(
+  currentPage: number,
+  payload: unknown,
+  jobData: ApiPollerJobData,
+  log: JobLogger,
+): Promise<boolean> {
+  const asObj =
+    payload !== null && typeof payload === "object" ? (payload as Record<string, unknown>) : {};
+  if (!asObj.hasMore) return false;
+
+  const queue = createQueue(QUEUES.INGEST_API);
+  await queue.add("poll-next-page", {
+    ...jobData,
+    pagination: { ...jobData.pagination, page: currentPage + 1 },
+  });
+  await queue.close();
+  log.info("paginate", `Mai există date — pagina ${currentPage + 1} enqueued`, {
+    nextPage: currentPage + 1,
+  });
+  return true;
+}
+
+// ---------------------------------------------------------------------------
+// Processor
+// ---------------------------------------------------------------------------
+
 export const apiPollerProcessor: Processor<ApiPollerJobData> = async (job) => {
   const startedAt = Date.now();
+  const log = createJobLogger({
+    tenantId: job.data.tenantId,
+    workerName: "A4:api-poller",
+    jobId: String(job.id ?? ""),
+    startedAt,
+  });
+
   try {
     const currentPage = job.data.pagination?.page ?? 1;
+    const method = job.data.method ?? "GET";
+
+    log.step("start", `Polling API extern: ${job.data.apiSource} — pagina ${currentPage}`, {
+      endpoint: job.data.endpoint,
+      method,
+      page: currentPage,
+      deltaDetection: job.data.enableDeltaDetection !== false,
+    });
+
     const response: Response = await apiPollerBreaker.fire(job.data.endpoint, {
-      method: job.data.method ?? "GET",
+      method,
       headers: job.data.headers,
-      body: job.data.body ? JSON.stringify(job.data.body) : undefined,
+      body: job.data.body === undefined ? undefined : JSON.stringify(job.data.body),
     });
 
     const payload = (await response.json()) as unknown;
-    const rows = Array.isArray(payload)
-      ? payload.filter(
-          (item): item is Record<string, unknown> => !!item && typeof item === "object",
-        )
-      : [payload].filter(
-          (item): item is Record<string, unknown> => !!item && typeof item === "object",
-        );
+    const rows = extractRowsFromPayload(payload);
 
-    let filteredRows = rows;
-    let skippedDuplicates = 0;
+    log.info("api_response", `API a returnat ${rows.length} înregistrări (pagina ${currentPage})`, {
+      rowCount: rows.length,
+      page: currentPage,
+    });
 
-    if (job.data.enableDeltaDetection !== false && filteredRows.length > 0) {
-      const hashes = filteredRows.map((row) => computeContentHash(row));
-      const existingResult = await db
-        .select({ contentHash: bronzeContacts.contentHash })
-        .from(bronzeContacts)
-        .where(
-          sql`${bronzeContacts.tenantId} = ${job.data.tenantId}
-            AND ${bronzeContacts.contentHash} = ANY(${hashes})`,
-        );
+    const { filteredRows, skippedDuplicates } = await filterByDeltaDetection(
+      job.data.tenantId,
+      rows,
+      job.data.enableDeltaDetection !== false,
+      log,
+    );
 
-      const existingHashes = new Set(existingResult.map((r) => r.contentHash));
-      const newRows: Record<string, unknown>[] = [];
-      for (let i = 0; i < filteredRows.length; i++) {
-        if (existingHashes.has(hashes[i])) {
-          skippedDuplicates++;
-        } else {
-          newRows.push(filteredRows[i]);
-        }
-      }
-      filteredRows = newRows;
-    }
+    const rowsInserted = await ingestFilteredRows(
+      job.data.tenantId,
+      filteredRows,
+      rows.length,
+      skippedDuplicates,
+      job.data.correlationId,
+      log,
+    );
 
-    let rowsInserted = 0;
+    const hasMore = await scheduleNextPageIfNeeded(currentPage, payload, job.data, log);
 
-    if (filteredRows.length > 0) {
-      const result = await insertBronzeRows(job.data.tenantId, filteredRows, "api");
-      rowsInserted = result.rowsInserted;
-      await triggerNormalizationForContacts(
-        job.data.tenantId,
-        result.insertedIds,
-        job.data.correlationId,
-      );
-    }
-
-    const asObj =
-      payload && typeof payload === "object" ? (payload as Record<string, unknown>) : {};
-    const hasMore = Boolean(asObj.hasMore);
-    if (hasMore) {
-      const queue = createQueue(QUEUES.INGEST_API);
-      await queue.add("poll-next-page", {
-        ...job.data,
-        pagination: {
-          ...job.data.pagination,
-          page: currentPage + 1,
-        },
-      });
-      await queue.close();
-    }
+    log.done(
+      "done",
+      `Polling API finalizat: ${rowsInserted} contacte noi, ${skippedDuplicates} duplicate sărite`,
+      { rowsFetched: rows.length, rowsInserted, skippedDuplicates, page: currentPage, hasMore },
+    );
 
     await job.updateProgress(100);
     return {
@@ -151,6 +277,11 @@ export const apiPollerProcessor: Processor<ApiPollerJobData> = async (job) => {
     };
   } catch (error) {
     jobErrors.add(1, { worker: "a4-api-poller" });
+    log.error("fatal", `Eroare critică la polling API ${job.data.apiSource}`, {
+      endpoint: job.data.endpoint,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     throw error;
   } finally {
     jobsProcessed.add(1, { worker: "a4-api-poller" });

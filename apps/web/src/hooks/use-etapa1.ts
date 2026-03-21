@@ -9,6 +9,9 @@ import {
   type SilverCompaniesParams,
   type DedupCandidatesParams,
   type PromoteJobStatus,
+  type ImportPipelineStatus,
+  type JobLogsParams,
+  type JobLog,
   anafEnrichImport,
   assignApproval,
   cancelImport,
@@ -30,8 +33,10 @@ import {
   fetchImportById,
   fetchImportEntities,
   fetchImportReprocessErrors,
+  fetchImportJobLogs,
   fetchImportRows,
   fetchImports,
+  fetchImportPipelineStatus,
   fetchPromoteJobStatus,
   resumeImportReprocessErrors,
   resumePromoteJob,
@@ -328,6 +333,7 @@ export function useResumePromoteJob() {
     mutationFn: resumePromoteJob,
     onSuccess: async (_data, batchId) => {
       await qc.invalidateQueries({ queryKey: ["etapa1", "promote-job-status", batchId] });
+      await qc.invalidateQueries({ queryKey: ["etapa1", "pipeline-status", batchId] });
       await qc.invalidateQueries({ queryKey: ["etapa1", "imports"] });
     },
   });
@@ -342,6 +348,51 @@ export function useResumeImportReprocessErrors() {
       await qc.invalidateQueries({ queryKey: ["etapa1", "imports", "detail", batchId] });
       await qc.invalidateQueries({ queryKey: ["etapa1", "imports", "reprocess-errors", batchId] });
       await qc.invalidateQueries({ queryKey: ["etapa1", "promote-job-status", batchId] });
+      await qc.invalidateQueries({ queryKey: ["etapa1", "pipeline-status", batchId] });
+    },
+  });
+}
+
+/** Poll full real-time pipeline status for a batch (identity resolution + contact promotions). */
+export function useImportPipelineStatus(
+  batchId: string | undefined,
+  opts?: { enabled?: boolean; expectedDbStatus?: string | null },
+) {
+  return useQuery({
+    queryKey: ["etapa1", "pipeline-status", batchId, opts?.expectedDbStatus ?? null],
+    queryFn: () => fetchImportPipelineStatus(String(batchId)),
+    enabled: Boolean(batchId) && (opts?.enabled ?? true),
+    refetchInterval: (query) => {
+      if (query.state.error instanceof ApiError && query.state.error.status === 401) return false;
+      if (isTransientApiUnavailable(query.state.error)) {
+        return getPollingBackoffMs(query.state.error, query.state.fetchFailureCount, 3000);
+      }
+
+      const data = (query.state.data as { data?: ImportPipelineStatus } | undefined)?.data;
+      const expectedDbStatus = opts?.expectedDbStatus ?? null;
+      // Keep polling quickly while in a running/queued state
+      if (expectedDbStatus === "queued" || expectedDbStatus === "running") {
+        return 3000;
+      }
+      const jobState = data?.reprocessJob?.state;
+      if (jobState === "waiting" || jobState === "active" || jobState === "delayed") {
+        return 3000;
+      }
+      if (jobState === "stale" || jobState === "stalled") {
+        return 5000;
+      }
+      // Still poll if promote jobs are still running
+      const pq = data?.promotionQueue;
+      if (pq && (pq.waiting > 0 || pq.active > 0)) {
+        return 3000;
+      }
+      return false;
+    },
+    refetchIntervalInBackground: true,
+    retry: (failureCount, error) => {
+      if (error instanceof ApiError && error.status === 401) return false;
+      if (isTransientApiUnavailable(error)) return false;
+      return failureCount < 3;
     },
   });
 }
@@ -586,5 +637,32 @@ export function useSaveImportMapping(importId: string | undefined) {
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ["etapa1", "import", importId] });
     },
+  });
+}
+
+export function useImportJobLogs(
+  batchId: string | undefined,
+  params: JobLogsParams & { isActive?: boolean } = {},
+) {
+  const { isActive, ...queryParams } = params;
+  return useQuery({
+    queryKey: ["etapa1", "import", batchId, "job-logs", queryParams],
+    queryFn: () => {
+      // `enabled` prevents this from firing when batchId is undefined.
+      // We guard here explicitly so the function is safe in test / SSR contexts
+      // where React Query lifecycle is not guaranteed — removes the need for `!`.
+      if (!batchId) {
+        const empty: { success: boolean; data: JobLog[]; meta?: { total?: number } } = {
+          success: true,
+          data: [],
+          meta: { total: 0 },
+        };
+        return Promise.resolve(empty);
+      }
+      return fetchImportJobLogs(batchId, queryParams);
+    },
+    enabled: Boolean(batchId),
+    refetchInterval: isActive ? 3000 : false,
+    staleTime: isActive ? 0 : 30_000,
   });
 }

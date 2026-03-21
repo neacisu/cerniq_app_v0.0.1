@@ -3,6 +3,7 @@ import type { Processor } from "bullmq";
 import { bronzeWebhooks, db, setSessionTenantId } from "@cerniq/db";
 import { jobsProcessed, jobDuration, jobErrors } from "../lib/worker-metrics.js";
 import { insertBronzeRows, triggerNormalizationForContacts } from "./ingest-utils.js";
+import { createJobLogger } from "../lib/job-logger.js";
 
 // GAP-B8: Max payload size (10 MB)
 const MAX_PAYLOAD_SIZE_BYTES = 10 * 1024 * 1024;
@@ -48,9 +49,30 @@ function validatePayloadSize(data: WebhookReceiverJobData): boolean {
 
 export const webhookReceiverProcessor: Processor<WebhookReceiverJobData> = async (job) => {
   const startedAt = Date.now();
+  const log = createJobLogger({
+    tenantId: job.data.tenantId,
+    workerName: "A3:webhook-receiver",
+    jobId: String(job.id ?? ""),
+    startedAt,
+  });
+
   try {
+    log.step(
+      "start",
+      `Webhook primit: tip=${job.data.webhookType}, IP=${job.data.sourceIp ?? "unknown"}`,
+      {
+        webhookType: job.data.webhookType,
+        webhookId: job.data.webhookId,
+        sourceIp: job.data.sourceIp,
+        payloadIsArray: Array.isArray(job.data.payload),
+      },
+    );
+
     // GAP-B8: Reject oversized payloads
     if (!validatePayloadSize(job.data)) {
+      log.warn("payload_too_large", `Payload webhook depășește limita de 10MB — webhook respins`, {
+        webhookType: job.data.webhookType,
+      });
       await setSessionTenantId(job.data.tenantId);
       await db.insert(bronzeWebhooks).values({
         tenantId: job.data.tenantId,
@@ -68,6 +90,14 @@ export const webhookReceiverProcessor: Processor<WebhookReceiverJobData> = async
 
     // GAP-B7: Reject replayed webhooks (stale timestamp)
     if (!validateTimestamp(job.data)) {
+      log.warn(
+        "stale_timestamp",
+        `Timestamp webhook expirat (>5 min) — posibil replay attack, webhook respins`,
+        {
+          timestamp: job.data.timestamp,
+          ageMs: job.data.timestamp ? Math.abs(Date.now() - job.data.timestamp) : null,
+        },
+      );
       await setSessionTenantId(job.data.tenantId);
       await db.insert(bronzeWebhooks).values({
         tenantId: job.data.tenantId,
@@ -85,6 +115,14 @@ export const webhookReceiverProcessor: Processor<WebhookReceiverJobData> = async
 
     const signatureValid = validateSignature(job.data);
     if (job.data.signatureHeader && !signatureValid) {
+      log.warn(
+        "invalid_signature",
+        `Semnătură HMAC-SHA256 invalidă — webhook respins (posibil atac sau secret greșit)`,
+        {
+          webhookType: job.data.webhookType,
+          hasSignatureHeader: true,
+        },
+      );
       await setSessionTenantId(job.data.tenantId);
       await db.insert(bronzeWebhooks).values({
         tenantId: job.data.tenantId,
@@ -101,6 +139,10 @@ export const webhookReceiverProcessor: Processor<WebhookReceiverJobData> = async
     }
 
     const rows = Array.isArray(job.data.payload) ? job.data.payload : [job.data.payload];
+    log.info("payload_accepted", `Payload acceptat: ${rows.length} înregistrări de procesat`, {
+      rowCount: rows.length,
+      signatureValid: signatureValid || !job.data.signatureHeader,
+    });
 
     await setSessionTenantId(job.data.tenantId);
     await db.insert(bronzeWebhooks).values({
@@ -121,6 +163,17 @@ export const webhookReceiverProcessor: Processor<WebhookReceiverJobData> = async
       "webhook",
     );
     await triggerNormalizationForContacts(job.data.tenantId, insertedIds, job.data.correlationId);
+
+    log.step(
+      "done",
+      `Webhook procesat: ${rowsInserted} contacte salvate în bronze, normalizare declanșată`,
+      {
+        rowsInserted,
+        insertedIds: insertedIds.length,
+        durationMs: Date.now() - startedAt,
+      },
+    );
+
     jobsProcessed.add(1, { worker: "a3-webhook-receiver", status: "success" });
     jobDuration.record(Date.now() - startedAt, { worker: "a3-webhook-receiver" });
     await job.updateProgress(100);
@@ -132,6 +185,11 @@ export const webhookReceiverProcessor: Processor<WebhookReceiverJobData> = async
     };
   } catch (error) {
     jobErrors.add(1, { worker: "a3-webhook-receiver" });
+    log.error("fatal", `Eroare critică la procesare webhook`, {
+      webhookType: job.data.webhookType,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     throw error;
   }
 };

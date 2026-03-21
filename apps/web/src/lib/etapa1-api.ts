@@ -346,6 +346,52 @@ export async function fetchPromoteJobStatus(id: string) {
   return api.get<ApiObjectResponse<PromoteJobStatus>>(`/api/v1/imports/${id}/promote-job-status`);
 }
 
+export type ImportPipelineStatus = {
+  batchId: string;
+  batchStatus: string;
+  totalRows: number;
+  successRows: number;
+  reprocessJob: {
+    state: string;
+    isStale: boolean;
+    isBacklogged: boolean;
+    jobId: string | null;
+    attemptsMade: number;
+    maxAttempts: number;
+    failedReason: string | null;
+    stacktrace: string | null;
+    processedOn: string | null;
+    finishedOn: string | null;
+    lastProgressAt: string | null;
+    dbStatus: string;
+    phase: string | null;
+    processed: number;
+    total: number;
+    resolved: number;
+    duplicateSource: number;
+    identityConflict: number;
+    insufficientIdentifiers: number;
+    failedContacts: number;
+    promotionQueued: number;
+    startedAt: string | null;
+    completedAt: string | null;
+    failedAt: string | null;
+    sessionStartedAt: string | null;
+    mode: string | null;
+  } | null;
+  promotionQueue: {
+    waiting: number;
+    active: number;
+    completed: number;
+    failed: number;
+    delayed: number;
+  };
+};
+
+export async function fetchImportPipelineStatus(id: string) {
+  return api.get<ApiObjectResponse<ImportPipelineStatus>>(`/api/v1/imports/${id}/pipeline-status`);
+}
+
 export async function resumePromoteJob(id: string) {
   return api.post<ApiObjectResponse<Record<string, unknown>>>(
     `/api/v1/imports/${id}/resume-promote`,
@@ -685,4 +731,43 @@ export async function decideDedupPair(
       masterCompanyId,
     },
   );
+}
+
+// ── Job Logs ────────────────────────────────────────────────────────────────
+
+export type JobLogLevel = "info" | "warn" | "error" | "step";
+
+export type JobLog = {
+  id: string;
+  tenantId: string;
+  batchId: string | null;
+  bronzeContactId: string | null;
+  workerName: string;
+  jobId: string | null;
+  step: string;
+  level: JobLogLevel;
+  message: string;
+  details: Record<string, unknown> | null;
+  durationMs: number | null;
+  createdAt: string;
+};
+
+export type JobLogsParams = {
+  level?: JobLogLevel;
+  worker?: string;
+  bronzeContactId?: string;
+  limit?: number;
+  offset?: number;
+};
+
+export async function fetchImportJobLogs(batchId: string, params: JobLogsParams = {}) {
+  const query = new URLSearchParams();
+  appendParams(query, {
+    level: params.level,
+    worker: params.worker,
+    bronzeContactId: params.bronzeContactId,
+    limit: params.limit ?? 200,
+    offset: params.offset ?? 0,
+  });
+  return api.get<ApiListResponse<JobLog>>(`/api/v1/imports/${batchId}/job-logs?${query}`);
 }

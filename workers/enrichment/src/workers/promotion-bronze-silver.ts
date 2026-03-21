@@ -24,6 +24,7 @@ import { createQueue, sanitizeNrRegCom, QUEUES, validateJobData } from "@cerniq/
 import { sanitizeCui } from "../lib/cui-validation.js";
 import { normalizeRow } from "./ingest-utils.js";
 import { createHitlApprovalTask } from "./pipeline-utils.js";
+import { createJobLogger } from "../lib/job-logger.js";
 import { z } from "zod";
 
 export type PromotionBronzeSilverJobData = {
@@ -940,7 +941,7 @@ async function loadBatchReprocessCheckpoint(
       typeof metadata.identityReprocessPromotionCursorLastBronzeId === "string"
         ? metadata.identityReprocessPromotionCursorLastBronzeId
         : null,
-    processed: readReprocessNumber(metadata.identityReprocessProcessedRows),
+    processed: readReprocessNumber(metadata.identityReprocessCursorRowIndex),
     resolved: readReprocessNumber(metadata.identityReprocessResolvedRows),
     duplicateSource: readReprocessNumber(metadata.identityReprocessDuplicateSourceRows),
     identityConflict: readReprocessNumber(metadata.identityReprocessIdentityConflictRows),
@@ -1095,6 +1096,7 @@ async function runIdentityResolutionLoop(
       identityReprocessPhase: "resolve_identities",
       identityReprocessCursorCreatedAt: lastCreatedAt,
       identityReprocessCursorLastBronzeId: lastId,
+      identityReprocessCursorRowIndex: counters.processed,
       identityReprocessMode: errorsOnly ? "errors_only" : "full",
       identityReprocessRunTotalRows: initialRunTotalRows,
       identityReprocessFailedAt: null,
@@ -1166,6 +1168,7 @@ async function handleBatchReprocess(
       identityReprocessPhase: phase,
       identityReprocessCursorCreatedAt: lastCreatedAt,
       identityReprocessCursorLastBronzeId: lastId,
+      identityReprocessCursorRowIndex: counters.processed,
       identityReprocessPromotionCursorCreatedAt: promotionLastCreatedAt,
       identityReprocessPromotionCursorLastBronzeId: promotionLastId,
       identityReprocessMode: errorsOnly ? "errors_only" : "full",
@@ -1209,6 +1212,7 @@ async function handleBatchReprocess(
         identityReprocessPhase: phase,
         identityReprocessCursorCreatedAt: lastCreatedAt,
         identityReprocessCursorLastBronzeId: lastId,
+        identityReprocessCursorRowIndex: counters.processed,
         identityReprocessPromotionCursorCreatedAt: promotionLastCreatedAt,
         identityReprocessPromotionCursorLastBronzeId: promotionLastId,
         identityReprocessMode: errorsOnly ? "errors_only" : "full",
@@ -1251,6 +1255,7 @@ async function handleBatchReprocess(
             identityReprocessPhase: "queue_promotions",
             identityReprocessCursorCreatedAt: lastCreatedAt,
             identityReprocessCursorLastBronzeId: lastId,
+            identityReprocessCursorRowIndex: counters.processed,
             identityReprocessPromotionCursorCreatedAt: promotionLastCreatedAt,
             identityReprocessPromotionCursorLastBronzeId: promotionLastId,
             identityReprocessMode: errorsOnly ? "errors_only" : "full",
@@ -1333,6 +1338,7 @@ async function handleBatchReprocess(
         identityReprocessPhase: phase,
         identityReprocessCursorCreatedAt: lastCreatedAt,
         identityReprocessCursorLastBronzeId: lastId,
+        identityReprocessCursorRowIndex: counters.processed,
         identityReprocessPromotionCursorCreatedAt: promotionLastCreatedAt,
         identityReprocessPromotionCursorLastBronzeId: promotionLastId,
         identityReprocessMode: errorsOnly ? "errors_only" : "full",
@@ -2254,11 +2260,34 @@ async function handleCompanyPromotion(args: {
   mapping: Mapping;
 }) {
   const { jobData, bronze, payload, mapping } = args;
+  const bronzeMetaForLog = (bronze.metadata as Record<string, unknown>) ?? {};
+  const batchIdForLog =
+    typeof bronzeMetaForLog.batchId === "string"
+      ? bronzeMetaForLog.batchId
+      : (jobData.batchId ?? bronze.id);
+  const contactLog = createJobLogger({
+    batchId: batchIdForLog,
+    tenantId: jobData.tenantId,
+    workerName: "promotion:bronze-silver",
+  }).forContact(bronze.id);
+
   const rawCui = bronze.extractedCui ?? resolveField(payload, mapping, "cui", "CUI", "cif");
   const rawNrRegCom =
     bronze.extractedNrRegCom ??
     resolveField(payload, mapping, "nrRegistru", "nr reg com", "Nr reg com", "nr_reg_com");
   const { cui, nrRegCom } = sanitizeIdentifiers(rawCui, rawNrRegCom);
+
+  contactLog.step(
+    "start",
+    `Promovare contact bronze → silver: CUI=${cui ?? "lipsă"}, NrRegCom=${nrRegCom ?? "lipsă"}`,
+    {
+      bronzeId: bronze.id,
+      cui,
+      nrRegCom,
+      extractedName: bronze.extractedName,
+      identityStatus: bronze.identityStatus,
+    },
+  );
 
   // GAP-B1: Verify CUI validation before promotion
   const metadata = (bronze.metadata as Record<string, unknown>) ?? {};
@@ -2268,6 +2297,11 @@ async function handleCompanyPromotion(args: {
     : false;
 
   if (cui && !cuiValidated) {
+    contactLog.warn(
+      "cui_not_validated",
+      `Promovare blocată: CUI ${cui} nu a fost validat încă de WorkerC (C1/C2) — contactul rămâne în bronze`,
+      { cui, cuiValidation },
+    );
     return {
       ok: false,
       status: "blocked",
@@ -2294,6 +2328,22 @@ async function handleCompanyPromotion(args: {
     existingSilver?.sourceBronzeId && existingSilver.sourceBronzeId !== bronze.id,
   );
   const duplicateOfId = dedupMerged ? (existingSilver?.sourceBronzeId ?? null) : null;
+  const promotionKind = getPromotionKind(existingSilver, bronze.id);
+
+  if (existingSilver) {
+    contactLog.info(
+      "silver_match",
+      `Companie silver existentă găsită: ${existingSilver.denumire ?? existingSilver.id} (${promotionKind})`,
+      { silverId: existingSilver.id, cui: existingSilver.cui, promotionKind, dedupMerged },
+    );
+  } else {
+    contactLog.info(
+      "silver_new",
+      `Companie silver nouă va fi creată pentru „${companyName ?? cui ?? "necunoscută"}"`,
+      { cui, nrRegCom, companyName },
+    );
+  }
+
   const silverId = await persistSilverCompany({
     tenantId: jobData.tenantId,
     cui,
@@ -2328,6 +2378,18 @@ async function handleCompanyPromotion(args: {
     companyName,
     correlationId: jobData.correlationId,
   });
+
+  contactLog.step(
+    "done",
+    `Contact promovat cu succes în silver — ${NEXT_ENRICHMENT_QUEUES.length} cozi de enrichment declanșate`,
+    {
+      silverId,
+      promotionKind,
+      dedupMerged,
+      duplicateOfId,
+      enrichmentQueuesCount: NEXT_ENRICHMENT_QUEUES.length,
+    },
+  );
 
   return { ok: true, status: "promoted", silverId, dedupMerged };
 }
@@ -2658,14 +2720,32 @@ async function handleTermeneDosareDetail(args: {
 export const promotionBronzeSilverProcessor: Processor<PromotionBronzeSilverJobData> = async (
   job,
 ) => {
+  const startedAt = Date.now();
   validateJobData(promotionBronzeSilverJobDataSchema, job.data, {
     queueName: QUEUES.PIPELINE_PROMOTE_BRONZE_SILVER,
     jobId: job.id,
   });
   await setSessionTenantId(job.data.tenantId);
 
+  // Batch reprocess mode: no per-contact logging here, handled inside handleBatchReprocess
   if (job.data.batchId && !job.data.bronzeContactId) {
-    return handleBatchReprocessJob(job, job.data);
+    const log = createJobLogger({
+      batchId: job.data.batchId,
+      tenantId: job.data.tenantId,
+      workerName: "promotion:bronze-silver",
+      jobId: String(job.id ?? ""),
+      startedAt,
+    });
+    log.step("batch_reprocess_start", `Reprocesare batch ${job.data.batchId} declanșată`, {
+      batchId: job.data.batchId,
+      errorsOnly: job.data.reprocessErrorsOnly ?? false,
+    });
+    const result = await handleBatchReprocessJob(job, job.data);
+    log.step("batch_reprocess_done", `Reprocesare batch finalizată`, {
+      ...result,
+      durationMs: Date.now() - startedAt,
+    });
+    return result;
   }
 
   const bronze = (
@@ -2690,10 +2770,9 @@ export const promotionBronzeSilverProcessor: Processor<PromotionBronzeSilverJobD
 
   const payload = bronze.rawPayload as Payload;
   const bronzeMetadata = (bronze.metadata as Record<string, unknown>) ?? {};
-  const mapping = await loadBatchMapping(
-    job.data.tenantId,
-    typeof bronzeMetadata.batchId === "string" ? bronzeMetadata.batchId : null,
-  );
+  const batchIdFromMeta =
+    typeof bronzeMetadata.batchId === "string" ? bronzeMetadata.batchId : job.data.batchId;
+  const mapping = await loadBatchMapping(job.data.tenantId, batchIdFromMeta ?? null);
   const sheetType = detectSheetType(
     typeof bronzeMetadata.sheetName === "string" ? bronzeMetadata.sheetName : null,
     Object.keys(payload),

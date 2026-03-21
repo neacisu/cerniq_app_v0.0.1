@@ -9,6 +9,7 @@ import {
 } from "@cerniq/db";
 import { createQueue, QUEUES } from "@cerniq/worker-shared";
 import { validateCuiModulo11 } from "../lib/cui-validation.js";
+import { createJobLogger } from "../lib/job-logger.js";
 
 export type CuiModulo11JobData = {
   tenantId: string;
@@ -20,7 +21,40 @@ export type CuiModulo11JobData = {
 
 export const cuiModulo11ValidatorProcessor: Processor<CuiModulo11JobData> = async (job) => {
   const startedAt = Date.now();
+  const batchId =
+    typeof (job.data as Record<string, unknown>).batchId === "string"
+      ? String((job.data as Record<string, unknown>).batchId)
+      : "unknown";
+  const log = createJobLogger({
+    batchId,
+    tenantId: job.data.tenantId,
+    workerName: "C1:cui-modulo11",
+    jobId: String(job.id ?? ""),
+  });
+  const contactLog = job.data.bronzeContactId ? log.forContact(job.data.bronzeContactId) : log;
+
   const result = validateCuiModulo11(job.data.cui);
+
+  if (result.isValid) {
+    contactLog.info(
+      "modulo11_valid",
+      `CUI ${job.data.cui} valid matematic (modulo-11) — trimis la confirmare ANAF (C2)`,
+      { cui: job.data.cui, cleaned: result.cleaned },
+    );
+  } else {
+    contactLog.error(
+      "modulo11_invalid",
+      `CUI ${job.data.cui} INVALID matematic (modulo-11) — contactul va fi blocat, nu va fi promovat`,
+      {
+        cui: job.data.cui,
+        reason: result.reason,
+        cleaned: result.cleaned,
+        companyId: job.data.companyId,
+        bronzeContactId: job.data.bronzeContactId,
+      },
+    );
+  }
+
   await setSessionTenantId(job.data.tenantId);
 
   if (job.data.companyId) {

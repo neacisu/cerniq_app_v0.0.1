@@ -16,13 +16,19 @@ import {
   rePromoteImport,
   anafEnrichImport,
 } from "@/lib/etapa1-api.js";
-import type { MappingTarget, PromoteJobStatus } from "@/lib/etapa1-api.js";
+import type {
+  MappingTarget,
+  PromoteJobStatus,
+  ImportPipelineStatus,
+  JobLog,
+} from "@/lib/etapa1-api.js";
 import { FileUpload } from "@/components/forms/FileUpload.js";
 import { Button } from "@/components/ui/button.js";
 import { Select } from "@/components/ui/select.js";
 import { Dialog, DialogContent } from "@/components/ui/dialog.js";
 import {
-  usePromoteJobStatus,
+  useImportPipelineStatus,
+  useImportJobLogs,
   useResumeImportReprocessErrors,
   useResumePromoteJob,
 } from "@/hooks/use-etapa1.js";
@@ -203,7 +209,7 @@ function getIdentityReprocessMetrics(metadata: Record<string, unknown>, totalRow
   const resolvedRows = Number(metadata.identityReprocessResolvedRows ?? 0);
   const runTotalRows = Number(metadata.identityReprocessRunTotalRows ?? totalRows ?? 0);
   const failedContacts = Number(metadata.identityReprocessFailedContactCount ?? 0);
-  const total = Math.max(runTotalRows, processedRows, 0);
+  const total = runTotalRows > 0 ? runTotalRows : Math.max(processedRows, 0);
   const progress = computeReprocessProgress(processedRows, total);
   const { hasFreshHeartbeat, elapsedMs, overallElapsedMs, sessionProcessedBaseRows } =
     computeReprocessTiming(metadata);
@@ -293,12 +299,211 @@ function getHeartbeatStateClass(state: string): string {
   return "text-t2";
 }
 
-function getAttemptsSuffix(job: Pick<PromoteJobStatus, "attemptsMade" | "maxAttempts">): string {
-  if (job.attemptsMade != null && job.maxAttempts != null && job.maxAttempts > 1) {
-    return ` (tentativa ${job.attemptsMade}/${job.maxAttempts})`;
-  }
-  return "";
+// ── Counters Grid ─────────────────────────────────────────────────────────────
+
+type CounterItem = { label: string; value: number; tone?: "ok" | "er" | "wa" | "t3" };
+
+function getCounterValueClass(tone: CounterItem["tone"]): string {
+  if (tone === "ok") return "text-ok font-semibold";
+  if (tone === "er") return "text-er font-semibold";
+  if (tone === "wa") return "text-wa font-semibold";
+  return "text-t2";
 }
+
+function CountersGrid({ items }: Readonly<{ items: CounterItem[] }>) {
+  const visible = items.filter((i) => i.value > 0);
+  if (visible.length === 0) return null;
+  return (
+    <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5">
+      {visible.map((item) => {
+        const valueClass = getCounterValueClass(item.tone);
+        return (
+          <div key={item.label} className="flex items-center gap-1">
+            <span className="text-[10px] text-t3">{item.label}:</span>
+            <span className={`text-[10px] tabular-nums ${valueClass}`}>
+              {item.value.toLocaleString("ro-RO")}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Timing Details ────────────────────────────────────────────────────────────
+
+function computeHeartbeatAge(lastProgressAt: string | null | undefined): {
+  age: number | null;
+  isStale: boolean;
+} {
+  if (!lastProgressAt) return { age: null, isStale: false };
+  const age = Date.now() - Date.parse(lastProgressAt);
+  return { age, isStale: age > 120_000 };
+}
+
+function computeSessionElapsedMs(
+  sessionStartedAt: string | null | undefined,
+  lastProgressAt: string | null | undefined,
+): number | null {
+  const sessionStartedAtMs = sessionStartedAt ? Date.parse(sessionStartedAt) : Number.NaN;
+  const lastProgressAtMs = lastProgressAt ? Date.parse(lastProgressAt) : Number.NaN;
+  const refNow = Number.isFinite(lastProgressAtMs) ? lastProgressAtMs : Date.now();
+  return Number.isFinite(sessionStartedAtMs) ? refNow - sessionStartedAtMs : null;
+}
+
+function TimingDetails({
+  sessionStartedAt,
+  lastProgressAt,
+  completedAt,
+  elapsedMs,
+  etaMs,
+}: Readonly<{
+  sessionStartedAt?: string | null;
+  lastProgressAt?: string | null;
+  completedAt?: string | null;
+  elapsedMs?: number | null;
+  etaMs?: number | null;
+}>) {
+  const { age: heartbeatAge, isStale: isHeartbeatStale } = computeHeartbeatAge(lastProgressAt);
+  const parts: string[] = [];
+  if (sessionStartedAt) {
+    parts.push(
+      `Înc. ${new Date(sessionStartedAt).toLocaleTimeString("ro-RO", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`,
+    );
+  }
+  if (elapsedMs != null && elapsedMs > 0) parts.push(`Durată: ${formatCompactDuration(elapsedMs)}`);
+  if (etaMs != null) parts.push(`ETA: ${formatCompactDuration(etaMs)}`);
+  if (completedAt) {
+    parts.push(
+      `Fin. ${new Date(completedAt).toLocaleTimeString("ro-RO", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`,
+    );
+  }
+  if (parts.length === 0 && !isHeartbeatStale) return null;
+  return (
+    <div className="mt-1 space-y-0.5">
+      {parts.length > 0 && (
+        <p className="text-[10px] leading-relaxed text-t3">{parts.join(" · ")}</p>
+      )}
+      {isHeartbeatStale && heartbeatAge !== null && (
+        <p className="text-[10px] font-medium text-wa">
+          ⚠ Ultimul heartbeat acum {formatCompactDuration(heartbeatAge)} — worker posibil blocat
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ── Ingest Phase Stage ────────────────────────────────────────────────────────
+
+function getIngestStageState(batchStatus: string): string {
+  if (batchStatus === "processing") return "active";
+  if (batchStatus === "failed") return "failed";
+  if (batchStatus !== "pending") return "completed";
+  return "waiting";
+}
+
+function getIngestProgressLabel(
+  processedRows: number,
+  totalRows: number,
+  progress: number,
+): string {
+  if (totalRows > 0)
+    return `${processedRows.toLocaleString("ro-RO")} / ${totalRows.toLocaleString("ro-RO")} rânduri · ${progress}%`;
+  if (processedRows > 0) return `${processedRows.toLocaleString("ro-RO")} rânduri parsate`;
+  return "în progres…";
+}
+
+function IngestPhaseStage({
+  batchStatus,
+  processedRows,
+  totalRows,
+}: Readonly<{ batchStatus: string; processedRows: number; totalRows: number }>) {
+  const isActive = batchStatus === "processing";
+  const isDone = batchStatus !== "pending" && batchStatus !== "processing";
+  const isFailed = batchStatus === "failed";
+  const state = getIngestStageState(batchStatus);
+  const progress = totalRows > 0 ? Math.min(100, Math.floor((processedRows / totalRows) * 100)) : 0;
+  if (processedRows === 0 && !isActive) return null;
+  const progressLabel = getIngestProgressLabel(processedRows, totalRows, progress);
+  return (
+    <PipelineStageRow label="Ingest & Normalizare (A/B/C)" state={state}>
+      <div className="mt-1.5 space-y-1">
+        <ProgressBar
+          value={isDone && !isFailed ? 100 : progress}
+          indeterminate={isActive && totalRows <= 0}
+        />
+        <p className="text-[10px] text-t3">{progressLabel}</p>
+        <p className="text-[10px] text-t3 opacity-70">
+          A1:csv-parser / A2:excel-parser → B1–B5 normalizers → C1–C2 validators
+        </p>
+      </div>
+    </PipelineStageRow>
+  );
+}
+
+// ── ANAF Phase Stage ──────────────────────────────────────────────────────────
+
+function getAnafStageState(status: string): string {
+  if (status === "processing") return "active";
+  if (status === "completed") return "completed";
+  if (status === "failed") return "failed";
+  return "waiting";
+}
+
+function getAnafProgress(total: number, processed: number, state: string): number {
+  if (total > 0) return Math.min(100, Math.floor((processed / total) * 100));
+  if (state === "completed") return 100;
+  return 0;
+}
+
+function AnafPhaseStage({ metadata }: Readonly<{ metadata: Record<string, unknown> }>) {
+  const status =
+    typeof metadata.anafEnrichmentStatus === "string" ? metadata.anafEnrichmentStatus : null;
+  if (!status) return null;
+  const state = getAnafStageState(status);
+  const processed = Number(metadata.anafEnrichmentProcessed ?? 0);
+  const total = Number(metadata.anafEnrichmentTotal ?? 0);
+  const enriched = Number(metadata.anafEnrichedCount ?? 0);
+  const failed = Number(metadata.anafFailedCount ?? 0);
+  const progress = getAnafProgress(total, processed, state);
+  const startedAt =
+    typeof metadata.anafEnrichmentStartedAt === "string" ? metadata.anafEnrichmentStartedAt : null;
+  const completedAt =
+    typeof metadata.anafEnrichmentCompletedAt === "string"
+      ? metadata.anafEnrichmentCompletedAt
+      : null;
+  return (
+    <PipelineStageRow label="Îmbogățire ANAF Bronze" state={state}>
+      <div className="mt-1.5 space-y-1">
+        {total > 0 && (
+          <>
+            <ProgressBar value={progress} indeterminate={state === "active" && total <= 0} />
+            <p className="text-[10px] text-t3">
+              {processed.toLocaleString("ro-RO")} / {total.toLocaleString("ro-RO")} CUI-uri ·{" "}
+              {progress}%
+            </p>
+          </>
+        )}
+        <CountersGrid
+          items={[
+            { label: "Îmbogățite", value: enriched, tone: "ok" },
+            { label: "Eșuate", value: failed, tone: "er" },
+          ]}
+        />
+        {startedAt && (
+          <p className="text-[10px] text-t3">
+            {`Înc. ${new Date(startedAt).toLocaleTimeString("ro-RO", { hour: "2-digit", minute: "2-digit" })}`}
+            {completedAt
+              ? ` · Fin. ${new Date(completedAt).toLocaleTimeString("ro-RO", { hour: "2-digit", minute: "2-digit" })}`
+              : ""}
+          </p>
+        )}
+      </div>
+    </PipelineStageRow>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 function HeartbeatErrorPanel({
   job,
@@ -385,32 +590,6 @@ function heartbeatStateLabel(state: string): string {
   return labels[state] ?? state;
 }
 
-type PromoteJobHeartbeatProps = {
-  batchId: string;
-  identityReprocessStatus: string | null;
-  failedContactCount: number;
-  onResumed: () => void;
-};
-
-function HeartbeatUnavailableMessage({ status }: Readonly<{ status: number }>) {
-  return (
-    <div className="mt-2 space-y-1.5">
-      <div className="flex items-center gap-2">
-        <HeartbeatDot state="unknown" />
-        <span className="text-[10px] font-medium text-wa">
-          Job re-promovare: status indisponibil temporar (API {status})
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function HeartbeatAvailabilityHint({ status }: Readonly<{ status: number }>) {
-  return (
-    <span className="text-[10px] text-wa">heartbeat indisponibil temporar (API {status})</span>
-  );
-}
-
 function shouldShowResumeErrorsButton(
   state: PromoteJobStatus["state"],
   failedContactCount: number,
@@ -418,12 +597,132 @@ function shouldShowResumeErrorsButton(
   return failedContactCount > 0 && (state === "failed" || state === "completed");
 }
 
-type HeartbeatStatusRowProps = {
-  state: PromoteJobStatus["state"];
-  stateClass: string;
-  stateLabel: string;
+// ── Pipeline Progress Panel ────────────────────────────────────────────────────
+
+type PipelineProgressPanelProps = {
+  batchId: string;
+  batchStatus: string;
+  processedRows: number;
+  totalRows: number;
+  metadata: Record<string, unknown>;
+  identityReprocessStatus: string | null;
+  failedContactCount: number;
+  onResumed: () => void;
+};
+
+function pipelinePhaseLabel(phase: string | null | undefined): string {
+  if (phase === "resolve_identities") return "Re-rezolvare identitate";
+  if (phase === "queue_promotions") return "Punere în coadă promovări";
+  return "Orchestrare";
+}
+
+function PipelineStageRow({
+  label,
+  state,
+  children,
+}: Readonly<{ label: string; state: string; children?: React.ReactNode }>) {
+  return (
+    <div className="space-y-1 rounded-md border border-s700/60 bg-s700/20 px-3 py-2">
+      <div className="flex items-center gap-2">
+        <HeartbeatDot state={state} />
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-t3">{label}</span>
+        <span className={`text-[10px] font-medium ${getHeartbeatStateClass(state)}`}>
+          {heartbeatStateLabel(state)}
+        </span>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+type ReprocessJobMetrics = {
+  progress: number;
+  processed: number;
+  total: number;
+  throughput: number | null;
+  etaMs: number | null;
+  statsLine: string;
   attemptsSuffix: string;
-  apiUnavailableStatus: number | null;
+};
+
+function buildReprocessStatsLine(job: NonNullable<ImportPipelineStatus["reprocessJob"]>): string {
+  const parts: string[] = [];
+  if (job.resolved > 0) parts.push(`${job.resolved.toLocaleString("ro-RO")} rezolvate`);
+  if (job.duplicateSource > 0)
+    parts.push(`${job.duplicateSource.toLocaleString("ro-RO")} duplicate`);
+  if (job.identityConflict > 0)
+    parts.push(`${job.identityConflict.toLocaleString("ro-RO")} conflicte`);
+  if (job.insufficientIdentifiers > 0)
+    parts.push(`${job.insufficientIdentifiers.toLocaleString("ro-RO")} id. insuf.`);
+  if (job.failedContacts > 0) parts.push(`${job.failedContacts.toLocaleString("ro-RO")} eșuate`);
+  return parts.join(" · ");
+}
+
+function computeReprocessJobMetrics(
+  job: NonNullable<ImportPipelineStatus["reprocessJob"]>,
+): ReprocessJobMetrics {
+  const { processed, total } = job;
+  const progress = total > 0 ? Math.min(100, Math.floor((processed / total) * 100)) : 0;
+  const sessionStartedAtMs = job.sessionStartedAt ? Date.parse(job.sessionStartedAt) : Number.NaN;
+  const lastProgressAtMs = job.lastProgressAt ? Date.parse(job.lastProgressAt) : Number.NaN;
+  const refNow = Number.isFinite(lastProgressAtMs) ? lastProgressAtMs : Date.now();
+  const sessionElapsedMs =
+    Number.isFinite(sessionStartedAtMs) && refNow > sessionStartedAtMs
+      ? refNow - sessionStartedAtMs
+      : null;
+  const throughput =
+    sessionElapsedMs && sessionElapsedMs > 0 && processed > 0
+      ? processed / (sessionElapsedMs / 1000)
+      : null;
+  const remainingRows = total > processed ? total - processed : 0;
+  const etaMs = throughput && remainingRows > 0 ? (remainingRows / throughput) * 1000 : null;
+  const statsLine = buildReprocessStatsLine(job);
+  const attemptsSuffix =
+    job.attemptsMade != null && job.maxAttempts != null && job.maxAttempts > 1
+      ? ` · tentativa ${job.attemptsMade}/${job.maxAttempts}`
+      : "";
+  return { progress, processed, total, throughput, etaMs, statsLine, attemptsSuffix };
+}
+
+function ReprocessProgressDetails({
+  phase,
+  state,
+  metrics,
+}: Readonly<{
+  phase: string | null;
+  state: string;
+  metrics: ReprocessJobMetrics;
+}>) {
+  if (phase !== "resolve_identities" && phase !== "queue_promotions") return null;
+  const { processed, total, progress, throughput, etaMs, statsLine, attemptsSuffix } = metrics;
+  const progressLabelParts = [
+    `${processed.toLocaleString("ro-RO")} / ${total.toLocaleString("ro-RO")} rânduri · ${progress}%`,
+    throughput ? `~${Math.max(1, Math.round(throughput)).toLocaleString("ro-RO")} r/s` : null,
+    etaMs ? `ETA ${formatCompactDuration(etaMs)}` : null,
+  ].filter(Boolean);
+  const isQueuePhase = phase === "queue_promotions";
+  return (
+    <div className="mt-1.5 space-y-1">
+      {total > 0 ? (
+        <>
+          <ProgressBar
+            value={isQueuePhase ? 100 : progress}
+            indeterminate={state === "active" && total <= 0}
+          />
+          <p className="text-[10px] text-t3">
+            {isQueuePhase
+              ? `Finalizat · ${processed.toLocaleString("ro-RO")} rânduri procesate`
+              : progressLabelParts.join(" · ")}
+          </p>
+        </>
+      ) : null}
+      {statsLine ? <p className="text-[10px] text-t3 leading-relaxed">{statsLine}</p> : null}
+      {attemptsSuffix ? <p className="text-[10px] text-t3">{attemptsSuffix}</p> : null}
+    </div>
+  );
+}
+
+type ReprocessActionButtonsProps = {
   isActionable: boolean;
   showErrorsButton: boolean;
   hasErrorDetails: boolean;
@@ -436,12 +735,7 @@ type HeartbeatStatusRowProps = {
   onToggleDetails: () => void;
 };
 
-function HeartbeatStatusRow({
-  state,
-  stateClass,
-  stateLabel,
-  attemptsSuffix,
-  apiUnavailableStatus,
+function ReprocessActionButtons({
   isActionable,
   showErrorsButton,
   hasErrorDetails,
@@ -452,19 +746,10 @@ function HeartbeatStatusRow({
   onResume,
   onResumeErrors,
   onToggleDetails,
-}: Readonly<HeartbeatStatusRowProps>) {
+}: Readonly<ReprocessActionButtonsProps>) {
+  if (!isActionable && !showErrorsButton && !hasErrorDetails) return null;
   return (
-    <div className="flex items-center gap-2">
-      <HeartbeatDot state={state} />
-      <span className={`text-[10px] font-medium ${stateClass}`}>
-        Job re-promovare: {stateLabel}
-        {attemptsSuffix}
-      </span>
-
-      {apiUnavailableStatus === null ? null : (
-        <HeartbeatAvailabilityHint status={apiUnavailableStatus} />
-      )}
-
+    <div className="mt-1.5 flex flex-wrap items-center gap-2">
       {isActionable ? (
         <Button
           variant="outline"
@@ -476,7 +761,6 @@ function HeartbeatStatusRow({
           {resumePending ? "…" : "Resume"}
         </Button>
       ) : null}
-
       {showErrorsButton ? (
         <Button
           variant="outline"
@@ -488,7 +772,6 @@ function HeartbeatStatusRow({
           {resumeErrorsPending ? "…" : `Resume erori (${failedContactCount})`}
         </Button>
       ) : null}
-
       {hasErrorDetails ? (
         <button
           type="button"
@@ -502,45 +785,213 @@ function HeartbeatStatusRow({
   );
 }
 
-function PromoteJobHeartbeat({
+function ReprocessWorkerStage({
+  job,
+  onResume,
+  resumePending,
+  onResumeErrors,
+  resumeErrorsPending,
+  failedContactCount,
+}: Readonly<{
+  job: NonNullable<ImportPipelineStatus["reprocessJob"]>;
+  onResume: () => void;
+  resumePending: boolean;
+  onResumeErrors: () => void;
+  resumeErrorsPending: boolean;
+  failedContactCount: number;
+}>) {
+  const [errorExpanded, setErrorExpanded] = useState(false);
+  const { phase, state } = job;
+  const isActionable = ACTIONABLE_JOB_STATES.has(state);
+  const showErrorsButton = shouldShowResumeErrorsButton(
+    state as PromoteJobStatus["state"],
+    failedContactCount,
+  );
+  const hasErrorDetails = (state === "failed" || state === "stale") && Boolean(job.failedReason);
+  const showErrorPanel = errorExpanded && (state === "failed" || state === "stale");
+  const metrics = computeReprocessJobMetrics(job);
+  const workerLabel = phase ? pipelinePhaseLabel(phase) : "Worker Orchestrare";
+  const errorJob = {
+    failedReason: job.failedReason,
+    stacktrace: job.stacktrace,
+    processedOn: job.processedOn,
+  } as PromoteJobStatus;
+
+  // Compute session elapsed time (via helper to avoid Date.now() in render)
+  const elapsedMs = computeSessionElapsedMs(job.sessionStartedAt, job.lastProgressAt);
+
+  return (
+    <PipelineStageRow label={workerLabel} state={state}>
+      {/* Job metadata row */}
+      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
+        {job.mode === "errors_only" && (
+          <span className="text-[10px] font-medium text-t3">📋 Mod: erori</span>
+        )}
+        {job.jobId && (
+          <span className="text-[10px] font-mono text-t3">job …{job.jobId.slice(-8)}</span>
+        )}
+        {job.attemptsMade != null && job.maxAttempts != null && job.maxAttempts > 1 && (
+          <span className="text-[10px] text-t3">
+            tentativa {job.attemptsMade}/{job.maxAttempts}
+          </span>
+        )}
+        {job.dbStatus && job.dbStatus !== state && (
+          <span className="text-[10px] text-t3">DB: {job.dbStatus}</span>
+        )}
+      </div>
+      {/* Progress bar + row counter */}
+      <ReprocessProgressDetails phase={phase} state={state} metrics={metrics} />
+      {/* Counter breakdown grid */}
+      <CountersGrid
+        items={[
+          { label: "Rezolvate", value: job.resolved, tone: "ok" },
+          { label: "Duplicate sursă", value: job.duplicateSource },
+          { label: "Conflicte id.", value: job.identityConflict, tone: "wa" },
+          { label: "Id. insuf.", value: job.insufficientIdentifiers },
+          { label: "Coadă promovare", value: job.promotionQueued, tone: "ok" },
+          { label: "Eșuate", value: job.failedContacts, tone: "er" },
+        ]}
+      />
+      {/* Session timing + heartbeat warning */}
+      <TimingDetails
+        sessionStartedAt={job.sessionStartedAt}
+        lastProgressAt={job.lastProgressAt}
+        completedAt={job.completedAt ?? null}
+        elapsedMs={elapsedMs}
+        etaMs={metrics.etaMs}
+      />
+      {/* Action buttons */}
+      <ReprocessActionButtons
+        isActionable={isActionable}
+        showErrorsButton={showErrorsButton}
+        hasErrorDetails={hasErrorDetails}
+        errorExpanded={errorExpanded}
+        failedContactCount={failedContactCount}
+        resumePending={resumePending}
+        resumeErrorsPending={resumeErrorsPending}
+        onResume={onResume}
+        onResumeErrors={onResumeErrors}
+        onToggleDetails={() => setErrorExpanded((v) => !v)}
+      />
+      <HeartbeatErrorPanel
+        job={errorJob}
+        failedContactCount={failedContactCount}
+        visible={showErrorPanel}
+      />
+    </PipelineStageRow>
+  );
+}
+
+function derivePromotionQueueState(queue: ImportPipelineStatus["promotionQueue"]): string {
+  if (queue.active > 0) return "active";
+  if (queue.waiting > 0) return "waiting";
+  if (queue.failed > 0 && queue.completed === 0) return "failed";
+  if (queue.completed > 0) return "completed";
+  return "unknown";
+}
+
+function PromotionQueueStage({
+  queue,
+  promotionQueued,
+}: Readonly<{
+  queue: ImportPipelineStatus["promotionQueue"];
+  promotionQueued: number;
+}>) {
+  const total =
+    promotionQueued > 0
+      ? promotionQueued
+      : queue.waiting + queue.active + queue.completed + queue.failed;
+  const done = queue.completed;
+  const progress = total > 0 ? Math.min(100, Math.floor((done / total) * 100)) : 0;
+  const queueState = derivePromotionQueueState(queue);
+  return (
+    <PipelineStageRow label="Promovare Contacte (workers paraleli)" state={queueState}>
+      {total > 0 ? (
+        <div className="mt-1.5 space-y-1">
+          <ProgressBar value={progress} />
+          <p className="text-[10px] text-t3">
+            {done.toLocaleString("ro-RO")} / {total.toLocaleString("ro-RO")} · {progress}%
+          </p>
+          <CountersGrid
+            items={[
+              { label: "Finalizate", value: queue.completed, tone: "ok" },
+              { label: "Active", value: queue.active },
+              { label: "În coadă", value: queue.waiting },
+              { label: "Amânate", value: queue.delayed },
+              { label: "Eșuate", value: queue.failed, tone: "er" },
+            ]}
+          />
+        </div>
+      ) : null}
+    </PipelineStageRow>
+  );
+}
+
+function getReprocessFallbackMessage(status: string | null): string {
+  if (status === "queued") return "Job în așteptare în coadă BullMQ…";
+  if (status === "completed") return "Finalizat — job BullMQ arhivat";
+  if (status === "failed") return "Eșuat — apăsați Resume pentru retry";
+  return "Status din DB (job BullMQ indisponibil)";
+}
+
+function PipelineProgressPanel({
   batchId,
+  batchStatus,
+  processedRows,
+  totalRows,
+  metadata,
   identityReprocessStatus,
   failedContactCount,
   onResumed,
-}: Readonly<PromoteJobHeartbeatProps>) {
-  const [errorExpanded, setErrorExpanded] = useState(false);
-
-  // Only poll when a re-promote has ever been triggered
+}: Readonly<PipelineProgressPanelProps>) {
   const hasReprocessHistory = Boolean(identityReprocessStatus);
-  const jobStatusQuery = usePromoteJobStatus(batchId, {
+  const isAnyActive =
+    batchStatus === "processing" ||
+    identityReprocessStatus === "running" ||
+    identityReprocessStatus === "queued";
+  const hasAnaf = Boolean(metadata.anafEnrichmentStatus);
+  const shouldFetchLogs =
+    processedRows > 0 || batchStatus === "processing" || hasReprocessHistory || hasAnaf;
+
+  const pipelineQuery = useImportPipelineStatus(batchId, {
     enabled: hasReprocessHistory,
     expectedDbStatus: identityReprocessStatus,
   });
+  const logsQuery = useImportJobLogs(shouldFetchLogs ? batchId : undefined, {
+    level: "error",
+    limit: 50,
+    isActive: isAnyActive,
+  });
   const resumeMutation = useResumePromoteJob();
   const resumeErrorsMutation = useResumeImportReprocessErrors();
-  const apiUnavailableError = isTransientApiUnavailable(jobStatusQuery.error)
-    ? jobStatusQuery.error
-    : null;
+  const [errorsExpanded, setErrorsExpanded] = useState(false);
 
-  if (!hasReprocessHistory) return null;
-  if (jobStatusQuery.isPending) return null;
+  const hasIngestData = processedRows > 0 || batchStatus === "processing";
+  if (!hasIngestData && !hasReprocessHistory && !hasAnaf) return null;
 
-  const job = jobStatusQuery.data?.data;
-  if (!job || job.state === "none") {
-    return apiUnavailableError ? (
-      <HeartbeatUnavailableMessage status={apiUnavailableError.status} />
-    ) : null;
-  }
+  const apiUnavailableError =
+    pipelineQuery.error instanceof ApiError && [502, 503, 504].includes(pipelineQuery.error.status)
+      ? pipelineQuery.error
+      : null;
 
-  const state = job.state;
-  const isActionable = ACTIONABLE_JOB_STATES.has(state);
-  const showErrorsButton = shouldShowResumeErrorsButton(state, failedContactCount);
-  const hasErrorDetails = (state === "failed" || state === "stale") && Boolean(job.failedReason);
-  const showErrorPanel = errorExpanded && (state === "failed" || state === "stale");
-  const stateLabel = heartbeatStateLabel(state);
-  const stateClass = getHeartbeatStateClass(state);
-  const attemptsSuffix = getAttemptsSuffix(job);
-  const apiUnavailableStatus = apiUnavailableError?.status ?? null;
+  const logsResult = logsQuery.data as { data?: JobLog[]; meta?: { total?: number } } | undefined;
+  const errorLogs = logsResult?.data ?? [];
+  const totalErrors = logsResult?.meta?.total ?? 0;
+
+  const pipeline = apiUnavailableError ? null : (pipelineQuery.data?.data ?? null);
+  const reprocessJob = pipeline?.reprocessJob ?? null;
+  const promotionQueue = pipeline?.promotionQueue ?? {
+    waiting: 0,
+    active: 0,
+    completed: 0,
+    failed: 0,
+    delayed: 0,
+  };
+  const hasPromotionActivity =
+    promotionQueue.waiting > 0 ||
+    promotionQueue.active > 0 ||
+    promotionQueue.completed > 0 ||
+    promotionQueue.failed > 0;
 
   const handleResume = () => {
     resumeMutation
@@ -556,35 +1007,125 @@ function PromoteJobHeartbeat({
       .catch(() => undefined);
   };
 
-  const handleToggleDetails = () => {
-    setErrorExpanded((value) => !value);
-  };
-
   return (
     <div className="mt-2 space-y-1.5">
-      <HeartbeatStatusRow
-        state={state}
-        stateClass={stateClass}
-        stateLabel={stateLabel}
-        attemptsSuffix={attemptsSuffix}
-        apiUnavailableStatus={apiUnavailableStatus}
-        isActionable={isActionable}
-        showErrorsButton={showErrorsButton}
-        hasErrorDetails={hasErrorDetails}
-        errorExpanded={errorExpanded}
-        failedContactCount={failedContactCount}
-        resumePending={resumeMutation.isPending}
-        resumeErrorsPending={resumeErrorsMutation.isPending}
-        onResume={handleResume}
-        onResumeErrors={handleResumeErrors}
-        onToggleDetails={handleToggleDetails}
-      />
+      {/* Panel header */}
+      <div className="flex items-center justify-between">
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-t3">
+          Workeri pipeline
+        </p>
+        {isAnyActive && (
+          <span className="flex items-center gap-1 text-[10px] text-sky-500">
+            <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-sky-500" /> live
+          </span>
+        )}
+      </div>
 
-      <HeartbeatErrorPanel
-        job={job}
-        failedContactCount={failedContactCount}
-        visible={showErrorPanel}
-      />
+      {/* Error summary bar — toate erorile reale din job logs */}
+      {totalErrors > 0 && (
+        <div className="rounded-md border border-er/30 bg-er/8 px-3 py-2 space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold text-er">
+              ✗ {totalErrors} {totalErrors === 1 ? "eroare detectată" : "erori detectate"} în
+              pipeline
+            </span>
+            <button
+              type="button"
+              onClick={() => setErrorsExpanded((v) => !v)}
+              className="text-[10px] text-er underline underline-offset-2 hover:opacity-80"
+            >
+              {errorsExpanded ? "ascunde" : "detalii"}
+            </button>
+          </div>
+          {errorsExpanded && errorLogs.length > 0 && (
+            <div className="mt-1 max-h-64 space-y-1.5 overflow-y-auto">
+              {errorLogs.map((log) => (
+                <div key={log.id} className="rounded-sm border border-er/20 bg-er/5 px-2 py-1.5">
+                  <div className="flex flex-wrap items-start gap-1.5">
+                    <span className="mt-0.5 shrink-0 tabular-nums text-[9px] text-t3">
+                      {new Date(log.createdAt).toLocaleTimeString("ro-RO", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        second: "2-digit",
+                      })}
+                    </span>
+                    <span className="mt-0.5 shrink-0 rounded bg-surface-3 px-1 font-mono text-[9px] text-t3">
+                      {log.workerName}
+                    </span>
+                    <span className="mt-0.5 shrink-0 text-[9px] text-t3">[{log.step}]</span>
+                    <span className="flex-1 text-[10px] font-medium leading-snug text-er">
+                      {log.message}
+                    </span>
+                  </div>
+                  {log.details != null && Object.keys(log.details).length > 0 && (
+                    <pre className="mt-1 max-h-24 overflow-x-auto whitespace-pre-wrap break-all rounded bg-surface-3 p-1.5 font-mono text-[9px] leading-relaxed text-t3">
+                      {JSON.stringify(log.details, null, 2)}
+                    </pre>
+                  )}
+                </div>
+              ))}
+              {totalErrors > errorLogs.length && (
+                <p className="pt-1 text-center text-[10px] text-t3">
+                  +{totalErrors - errorLogs.length} erori suplimentare — accesați tab-ul "Progres
+                  pipeline" din pagina de detalii a importului.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* API unavailable notice */}
+      {apiUnavailableError && (
+        <div className="flex items-center gap-2">
+          <HeartbeatDot state="unknown" />
+          <span className="text-[10px] font-medium text-wa">
+            Pipeline: status indisponibil temporar (API {apiUnavailableError.status})
+          </span>
+        </div>
+      )}
+
+      {/* Faza 1 — Ingest & Normalizare */}
+      {hasIngestData && (
+        <IngestPhaseStage
+          batchStatus={batchStatus}
+          processedRows={processedRows}
+          totalRows={totalRows}
+        />
+      )}
+
+      {/* Faza 2 — Re-rezolvare Identitate */}
+      {reprocessJob ? (
+        <ReprocessWorkerStage
+          job={reprocessJob}
+          onResume={handleResume}
+          resumePending={resumeMutation.isPending}
+          onResumeErrors={handleResumeErrors}
+          resumeErrorsPending={resumeErrorsMutation.isPending}
+          failedContactCount={failedContactCount}
+        />
+      ) : null}
+      {!reprocessJob && hasReprocessHistory && !pipelineQuery.isPending && !pipeline ? (
+        <PipelineStageRow
+          label="Re-rezolvare Identitate"
+          state={identityReprocessStatus ?? "unknown"}
+        >
+          <p className="mt-1 text-[10px] text-t3">
+            {getReprocessFallbackMessage(identityReprocessStatus)}
+          </p>
+        </PipelineStageRow>
+      ) : null}
+
+      {/* Faza 3 — Promovare Contacte (paralel) */}
+      {(hasPromotionActivity || (reprocessJob?.promotionQueued ?? 0) > 0) && (
+        <PromotionQueueStage
+          queue={promotionQueue}
+          promotionQueued={reprocessJob?.promotionQueued ?? 0}
+        />
+      )}
+
+      {/* Faza 4 — ANAF Enrichment */}
+      <AnafPhaseStage metadata={metadata} />
     </div>
   );
 }
@@ -779,8 +1320,12 @@ function ImportHistoryRow({
               ) : null}
             </div>
           ) : null}
-          <PromoteJobHeartbeat
+          <PipelineProgressPanel
             batchId={id}
+            batchStatus={status}
+            processedRows={processed}
+            totalRows={total}
+            metadata={metadata}
             identityReprocessStatus={
               typeof metadata.identityReprocessStatus === "string"
                 ? metadata.identityReprocessStatus

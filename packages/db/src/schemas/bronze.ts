@@ -229,3 +229,34 @@ export const importReprocessSessions = bronzeSchema.table(
     index("idx_reprocess_sessions_tenant_status").on(t.tenantId, t.status),
   ],
 );
+
+// ─── Job Logs ─────────────────────────────────────────────────────────────────
+// Granular per-worker / per-job execution logs for the import pipeline.
+// Queried by GET /imports/:id/logs and streamed via GET /imports/:id/logs/stream (SSE).
+
+export const jobLogLevelEnum = pgEnum("job_log_level", ["debug", "info", "warn", "error"]);
+
+export const jobLogs = bronzeSchema.table(
+  "job_logs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    // Loose reference (no FK constraint) so logs survive batch deletion gracefully.
+    batchId: uuid("batch_id").notNull(),
+    contactId: uuid("contact_id"),
+    workerName: varchar("worker_name", { length: 64 }).notNull(),
+    jobId: varchar("job_id", { length: 255 }),
+    level: jobLogLevelEnum("level").notNull().default("info"),
+    step: varchar("step", { length: 128 }),
+    message: text("message").notNull(),
+    context: jsonb("context"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("idx_job_logs_batch_created").on(t.batchId, t.createdAt),
+    index("idx_job_logs_batch_level").on(t.batchId, t.level),
+    index("idx_job_logs_tenant_batch").on(t.tenantId, t.batchId),
+  ],
+);

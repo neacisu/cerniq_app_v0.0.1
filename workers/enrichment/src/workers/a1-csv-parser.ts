@@ -2,6 +2,8 @@ import Papa from "papaparse";
 import type { Processor } from "bullmq";
 import { bronzeImportBatches, db, sql } from "@cerniq/db";
 import { jobsProcessed, jobDuration, jobErrors } from "../lib/worker-metrics.js";
+import { createJobLogger } from "../lib/job-logger.js";
+import { type JobLogger } from "../lib/job-logger.js";
 import {
   createFileReadStream,
   detectColumnMapping,
@@ -41,7 +43,50 @@ export type CsvParserJobData = {
 
 type CsvRow = Record<string, unknown>;
 
+// ---------------------------------------------------------------------------
+// Helper: file integrity — extracted to reduce cognitive complexity (Sonar S3776)
+// ---------------------------------------------------------------------------
+
+/**
+ * Verifies the SHA-256 hash of the uploaded file against the value stored
+ * in `bronze_import_batches.metadata.fileHash`.  Throws if the file has been
+ * tampered with after upload.  No-ops when either `filePath`, `batchId`, or
+ * the stored hash are absent (supports the in-memory / `content`-only path).
+ */
+async function ensureFileIntegrity(data: CsvParserJobData, log: JobLogger): Promise<void> {
+  if (!data.filePath || !data.batchId) return;
+
+  const batch = await db.query.bronzeImportBatches.findFirst({
+    where: (t, { eq }) => eq(t.id, data.batchId),
+  });
+  const storedHash = (batch?.metadata as Record<string, unknown> | null)?.fileHash as
+    | string
+    | undefined;
+
+  if (storedHash === undefined) return;
+
+  const { valid } = await verifyFileHash(data.filePath, storedHash);
+  if (!valid) {
+    log.error(
+      "file_hash_check",
+      "Verificare integritate SHA-256 EȘUATĂ — fișierul a fost modificat după upload",
+      { filePath: data.filePath, expectedHash: storedHash },
+    );
+    throw new Error("File integrity check failed: SHA-256 hash mismatch");
+  }
+
+  log.info("file_hash_check", "Integritate fișier verificată cu succes (SHA-256 OK)", {
+    filePath: data.filePath,
+  });
+}
+
 async function parseSmallFile(job: { data: CsvParserJobData }) {
+  const log = createJobLogger({
+    batchId: job.data.batchId,
+    tenantId: job.data.tenantId,
+    workerName: "A1:csv-parser",
+    jobId: String((job as unknown as { id?: string }).id ?? ""),
+  });
   const resumeFrom = job.data.resumeFrom ?? {};
   let processedRows = Number(resumeFrom.processedRows ?? 0);
   let successRows = Number(resumeFrom.successRows ?? 0);
@@ -52,20 +97,14 @@ async function parseSmallFile(job: { data: CsvParserJobData }) {
   let insufficientIdentifierRows = 0;
 
   try {
-    if (job.data.filePath && job.data.batchId) {
-      const batch = await db.query.bronzeImportBatches.findFirst({
-        where: (t, { eq }) => eq(t.id, job.data.batchId),
-      });
-      const storedHash = (batch?.metadata as Record<string, unknown> | null)?.fileHash as
-        | string
-        | undefined;
-      if (storedHash) {
-        const { valid } = await verifyFileHash(job.data.filePath, storedHash);
-        if (!valid) {
-          throw new Error("File integrity check failed: SHA-256 hash mismatch");
-        }
-      }
-    }
+    log.step("start", `Începe parsarea CSV: ${job.data.fileName ?? "(necunoscut)"}`, {
+      fileSize: job.data.fileSize,
+      encoding: job.data.encoding,
+      hasHeader: job.data.hasHeader,
+      resumeFrom,
+    });
+
+    await ensureFileIntegrity(job.data, log);
 
     const content = await readInputContent(job.data);
     const parsed = Papa.parse<CsvRow>(content, {
@@ -76,8 +115,21 @@ async function parseSmallFile(job: { data: CsvParserJobData }) {
     });
 
     if (parsed.errors.length > 0) {
-      throw new Error(`CSV parse failed: ${parsed.errors[0]?.message ?? "unknown error"}`);
+      const firstErr = parsed.errors[0];
+      log.error("csv_parse", `Parsare CSV eșuată: ${firstErr?.message ?? "eroare necunoscută"}`, {
+        errorCode: firstErr?.code,
+        errorRow: firstErr?.row,
+        totalErrors: parsed.errors.length,
+        allErrors: parsed.errors
+          .slice(0, 10)
+          .map((e) => ({ code: e.code, message: e.message, row: e.row })),
+      });
+      throw new Error(`CSV parse failed: ${firstErr?.message ?? "unknown error"}`);
     }
+    log.info("csv_parse", `Fișier CSV parsat cu succes`, {
+      totalRows: parsed.data.length,
+      fields: parsed.meta.fields?.slice(0, 20),
+    });
 
     const autoMapping =
       job.data.columnMapping ??
@@ -97,6 +149,15 @@ async function parseSmallFile(job: { data: CsvParserJobData }) {
 
     const rowsInThisRun = limitedRows.length;
 
+    log.step(
+      "column_mapping",
+      `Mapare coloane detectată: ${Object.keys(autoMapping).length} câmpuri mapate`,
+      {
+        mapping: autoMapping,
+        rawHeaders: parsed.meta.fields?.slice(0, 30),
+      },
+    );
+
     const result = await insertBronzeRows(
       job.data.tenantId,
       limitedRows,
@@ -115,6 +176,31 @@ async function parseSmallFile(job: { data: CsvParserJobData }) {
     resolvedRows += result.resolvedRows;
     identityConflictRows += result.identityConflictRows;
     insufficientIdentifierRows += result.insufficientIdentifierRows;
+
+    log.step(
+      "insert_rows",
+      `Rânduri inserate în bronze: ${result.rowsInserted} succes, ${result.errorRows} erori, ${result.duplicateRows} duplicate`,
+      {
+        rowsInThisRun,
+        rowsInserted: result.rowsInserted,
+        errorRows: result.errorRows,
+        duplicateRows: result.duplicateRows,
+        resolvedRows: result.resolvedRows,
+        identityConflictRows: result.identityConflictRows,
+        insufficientIdentifierRows: result.insufficientIdentifierRows,
+        processableIds: result.processableIds?.length ?? 0,
+      },
+    );
+
+    if (result.identityConflictRows > 0) {
+      log.warn(
+        "identity_conflict",
+        `${result.identityConflictRows} rânduri au conflicte de identitate — au fost create taskuri HITL pentru revizie manuală`,
+        {
+          identityConflictRows: result.identityConflictRows,
+        },
+      );
+    }
 
     if (job.data.batchId && Object.keys(autoMapping).length > 0) {
       await db
@@ -143,10 +229,25 @@ async function parseSmallFile(job: { data: CsvParserJobData }) {
         insufficientIdentifierRows,
       },
     });
+    log.step(
+      "dispatch_normalization",
+      `Dispatch normalizare pentru ${result.processableIds?.length ?? 0} contacte (B1 Nume, B2 Email, B3 Telefon, B4 Adresă)`,
+      {
+        contactCount: result.processableIds?.length ?? 0,
+      },
+    );
     await triggerNormalizationForContacts(
       job.data.tenantId,
       result.processableIds,
       job.data.correlationId,
+    );
+
+    log.step(
+      "dispatch_anaf_bronze",
+      `Dispatch îmbogățire ANAF bronze (B5) — CUI-urile unice vor fi trimise în batch-uri de 100`,
+      {
+        contactCount: result.processableIds?.length ?? 0,
+      },
     );
     await triggerAnafBronzeEnrichment(
       job.data.tenantId,
@@ -154,6 +255,13 @@ async function parseSmallFile(job: { data: CsvParserJobData }) {
       result.processableIds,
       job.data.correlationId,
     );
+
+    log.step("done", `Parsare CSV finalizată cu succes`, {
+      rowsRead: processedRows,
+      rowsInserted: successRows,
+      duplicateRows,
+      errorRows,
+    });
 
     return {
       ok: true as const,
@@ -163,6 +271,16 @@ async function parseSmallFile(job: { data: CsvParserJobData }) {
       errorRows,
     };
   } catch (error) {
+    const errMsg = error instanceof Error ? error.message : String(error);
+    const errStack = error instanceof Error ? error.stack : undefined;
+    log.error("fatal", `Parsare CSV eșuată: ${errMsg}`, {
+      errorMessage: errMsg,
+      errorStack: errStack,
+      processedRows,
+      successRows,
+      errorRows,
+      duplicateRows,
+    });
     await markImportBatchFailed({
       tenantId: job.data.tenantId,
       batchId: job.data.batchId,

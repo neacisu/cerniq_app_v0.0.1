@@ -793,24 +793,43 @@ export async function outreachRoutes(app: FastifyInstance) {
     if (q.unread) {
       conditions.push(eq(outreachNotifications.isRead, false));
     }
-    const items = await db
-      .select()
-      .from(outreachNotifications)
-      .where(and(...conditions))
-      .orderBy(desc(outreachNotifications.createdAt))
-      .limit(50);
+    try {
+      const items = await db
+        .select()
+        .from(outreachNotifications)
+        .where(and(...conditions))
+        .orderBy(desc(outreachNotifications.createdAt))
+        .limit(50);
 
-    const [{ count: unreadCount }] = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(outreachNotifications)
-      .where(
-        and(eq(outreachNotifications.tenantId, tenantId), eq(outreachNotifications.isRead, false)),
-      );
+      const [{ count: unreadCount }] = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(outreachNotifications)
+        .where(
+          and(
+            eq(outreachNotifications.tenantId, tenantId),
+            eq(outreachNotifications.isRead, false),
+          ),
+        );
 
-    return reply.send({
-      success: true,
-      data: { items, unreadCount: unreadCount ?? 0 },
-    });
+      return reply.send({
+        success: true,
+        data: { items, unreadCount: unreadCount ?? 0 },
+      });
+    } catch (err: unknown) {
+      const pgCode =
+        err && typeof err === "object" && "code" in err
+          ? String((err as { code: unknown }).code)
+          : "";
+      if (pgCode === "42P01") {
+        req.log.error({ err }, "outreach/notifications: table missing — migrations not applied");
+        return reply.status(503).send({
+          success: false,
+          error: "Service temporarily unavailable. Database migrations pending.",
+          details: { statusCode: 503, code: "DB_MIGRATION_PENDING" },
+        });
+      }
+      throw err;
+    }
   });
 
   app.patch("/notifications/:id/read", { ...authOpts }, async (req, reply) => {

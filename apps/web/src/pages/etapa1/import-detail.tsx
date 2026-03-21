@@ -23,6 +23,7 @@ import {
   useResumeImportReprocessErrors,
 } from "@/hooks/use-etapa1.js";
 import { toast } from "@/components/ui/toast-api.js";
+import { PipelineProgressPanel } from "@/components/etapa1/PipelineProgressPanel.js";
 
 function getImportProgress(processedRows: number, totalRows: number, status: string) {
   if (totalRows > 0) {
@@ -822,6 +823,7 @@ export function ImportDetail() {
               <TabsTrigger value="entities">Entități</TabsTrigger>
               <TabsTrigger value="rows">Rânduri brute</TabsTrigger>
               <TabsTrigger value="reprocess-errors">Erori reprocess</TabsTrigger>
+              <TabsTrigger value="pipeline-logs">Progres pipeline</TabsTrigger>
               <TabsTrigger value="config">Config</TabsTrigger>
               <TabsTrigger value="metadata">Metadata</TabsTrigger>
               <TabsTrigger value="raw">Raw</TabsTrigger>
@@ -852,6 +854,14 @@ export function ImportDetail() {
               ) : (
                 <ReprocessErrorsTable rows={reprocessErrorsQuery.data?.data ?? []} />
               )}
+            </TabsContent>
+            <TabsContent value="pipeline-logs">
+              {id ? (
+                <PipelineProgressPanel
+                  batchId={id}
+                  isActive={status === "pending" || status === "processing"}
+                />
+              ) : null}
             </TabsContent>
             <TabsContent value="config">
               <pre className="text-xs text-t2">{JSON.stringify(uploadConfig, null, 2)}</pre>

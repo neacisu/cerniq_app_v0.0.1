@@ -6,6 +6,7 @@ import {
   bronzeContacts,
   bronzeImportBatches,
   db,
+  jobLogs,
   setSessionTenantId,
   sql,
   batchIdMetadataEquals,
@@ -713,6 +714,126 @@ function buildBullJobResponseData(
   };
 }
 
+type BatchReprocessProgress = {
+  phase: string | null;
+  processed: number;
+  total: number;
+  resolved: number;
+  duplicateSource: number;
+  identityConflict: number;
+  insufficientIdentifiers: number;
+  failedContacts: number;
+  promotionQueued: number;
+  startedAt: string | null;
+  completedAt: string | null;
+  failedAt: string | null;
+  sessionStartedAt: string | null;
+  mode: string | null;
+};
+
+function extractBatchReprocessProgress(
+  metadata: BatchMetadata,
+  totalRowsFallback: number,
+): BatchReprocessProgress {
+  return {
+    phase:
+      typeof metadata.identityReprocessPhase === "string" ? metadata.identityReprocessPhase : null,
+    processed: Number(metadata.identityReprocessProcessedRows ?? 0),
+    total: Number(metadata.identityReprocessRunTotalRows ?? totalRowsFallback),
+    resolved: Number(metadata.identityReprocessResolvedRows ?? 0),
+    duplicateSource: Number(metadata.identityReprocessDuplicateSourceRows ?? 0),
+    identityConflict: Number(metadata.identityReprocessIdentityConflictRows ?? 0),
+    insufficientIdentifiers: Number(metadata.identityReprocessInsufficientIdentifierRows ?? 0),
+    promotionQueued: Number(metadata.identityReprocessPromotionQueued ?? 0),
+    failedContacts: Number(metadata.identityReprocessFailedContactCount ?? 0),
+    startedAt:
+      typeof metadata.identityReprocessStartedAt === "string"
+        ? metadata.identityReprocessStartedAt
+        : null,
+    completedAt:
+      typeof metadata.identityReprocessCompletedAt === "string"
+        ? metadata.identityReprocessCompletedAt
+        : null,
+    failedAt:
+      typeof metadata.identityReprocessFailedAt === "string"
+        ? metadata.identityReprocessFailedAt
+        : null,
+    sessionStartedAt:
+      typeof metadata.identityReprocessSessionStartedAt === "string"
+        ? metadata.identityReprocessSessionStartedAt
+        : null,
+    mode:
+      typeof metadata.identityReprocessMode === "string" ? metadata.identityReprocessMode : null,
+  };
+}
+
+// ── Promote Job Heartbeat thresholds ────────────────────────────────────────
+const PROMOTE_STALE_THRESHOLD_MS = 5 * 60 * 1000;
+const PROMOTE_BACKLOG_THRESHOLD_MS = 60 * 1000;
+const PROMOTE_BACKLOG_WAIT_COUNT_THRESHOLD = 1000;
+
+async function lookupReprocessJobStatus(
+  queue: ReturnType<typeof createQueue>,
+  batchId: string,
+  reprocessStatus: string,
+  heartbeatAtMs: number,
+  lastProgressAtRaw: string | null,
+  allCounts: Record<string, number>,
+  extraProgress: BatchReprocessProgress,
+): Promise<Record<string, unknown>> {
+  const reprocessJobId = `reprocess-batch__${batchId}`;
+  const job = await queue.getJob(reprocessJobId);
+
+  if (job) {
+    const state = await job.getState();
+    const now = Date.now();
+    const waitingDurationMs = typeof job.timestamp === "number" ? now - job.timestamp : 0;
+    const waitingJobs = Number(allCounts.wait ?? 0) + Number(allCounts.prioritized ?? 0);
+    const isStale =
+      state === "active" &&
+      Number.isFinite(heartbeatAtMs) &&
+      now - heartbeatAtMs > PROMOTE_STALE_THRESHOLD_MS;
+    const isBacklogged =
+      state === "waiting" &&
+      waitingDurationMs > PROMOTE_BACKLOG_THRESHOLD_MS &&
+      waitingJobs > PROMOTE_BACKLOG_WAIT_COUNT_THRESHOLD;
+
+    return {
+      ...buildBullJobResponseData(
+        job,
+        state,
+        isStale,
+        isBacklogged,
+        waitingJobs,
+        lastProgressAtRaw,
+        reprocessStatus,
+      ),
+      ...extraProgress,
+    };
+  }
+
+  const derivedState = derivePromoteStateFromDb(
+    reprocessStatus,
+    heartbeatAtMs,
+    PROMOTE_STALE_THRESHOLD_MS,
+  );
+  return {
+    state: derivedState,
+    isStale: derivedState === "stale",
+    isBacklogged: false,
+    jobId: null,
+    attemptsMade: 0,
+    maxAttempts: 10,
+    failedReason: null,
+    stacktrace: null,
+    processedOn: null,
+    finishedOn: null,
+    lastProgressAt: lastProgressAtRaw,
+    dbStatus: reprocessStatus,
+    ...extraProgress,
+  };
+}
+
 export async function importsBronzeRoutes(app: FastifyInstance) {
   const authOpts = { onRequest: [async (req: FastifyRequest) => req.jwtVerify()] };
   const operatorAuthOpts = {
@@ -1039,10 +1160,6 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
   );
 
   // ── Promote Job Heartbeat ─────────────────────────────────────────────
-  // Stale threshold: job is "active" but has not made progress in > 5 min
-  const PROMOTE_STALE_THRESHOLD_MS = 5 * 60 * 1000;
-  const PROMOTE_BACKLOG_THRESHOLD_MS = 60 * 1000;
-  const PROMOTE_BACKLOG_WAIT_COUNT_THRESHOLD = 1000;
 
   app.get(
     "/imports/:id/promote-job-status",
@@ -1148,6 +1265,94 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
             lastProgressAtRaw,
             reprocessStatus,
           ),
+        };
+      } finally {
+        await queue.close();
+      }
+    },
+  );
+
+  app.get(
+    "/imports/:id/pipeline-status",
+    {
+      ...authOpts,
+      schema: {
+        tags: ["etapa1-imports"],
+        summary: "Full real-time pipeline status for a batch (identity resolution + promotions)",
+        params: idParamsSchema,
+        response: {
+          200: successObjectResponseSchema,
+          400: errorResponseSchema,
+          404: errorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const tenantId = requireTenantId(request);
+      const parsedParams = idParamsSchema.safeParse(request.params);
+      if (!parsedParams.success) {
+        return reply.code(400).send({ success: false, error: "Parametru id invalid" });
+      }
+
+      const batchId = parsedParams.data.id;
+      const existing = await db.query.bronzeImportBatches.findFirst({
+        where: (t, { and, eq }) => and(eq(t.tenantId, tenantId), eq(t.id, batchId)),
+      });
+      if (!existing) {
+        return reply.code(404).send({ success: false, error: "Import batch not found" });
+      }
+
+      const metadata = (existing.metadata as BatchMetadata | null) ?? {};
+      const reprocessStatus =
+        typeof metadata.identityReprocessStatus === "string"
+          ? metadata.identityReprocessStatus
+          : "";
+      const { lastProgressAtRaw, heartbeatAtMs } = extractReprocessHeartbeat(metadata);
+      const extraProgress = extractBatchReprocessProgress(
+        metadata,
+        Number(existing.totalRows ?? 0),
+      );
+
+      const queue = createQueue("pipeline:promote:bronze-silver");
+      try {
+        const allCounts = await queue.getJobCounts(
+          "wait",
+          "active",
+          "completed",
+          "failed",
+          "delayed",
+          "prioritized",
+        );
+        const countsMap = allCounts as Record<string, number>;
+
+        const reprocessJobData = reprocessStatus
+          ? await lookupReprocessJobStatus(
+              queue,
+              batchId,
+              reprocessStatus,
+              heartbeatAtMs,
+              lastProgressAtRaw,
+              countsMap,
+              extraProgress,
+            )
+          : null;
+
+        return {
+          success: true,
+          data: {
+            batchId,
+            batchStatus: existing.status,
+            totalRows: Number(existing.totalRows ?? 0),
+            successRows: Number(existing.successRows ?? 0),
+            reprocessJob: reprocessJobData,
+            promotionQueue: {
+              waiting: Number(countsMap.wait ?? 0),
+              active: Number(countsMap.active ?? 0),
+              completed: Number(countsMap.completed ?? 0),
+              failed: Number(countsMap.failed ?? 0),
+              delayed: Number(countsMap.delayed ?? 0),
+            },
+          },
         };
       } finally {
         await queue.close();
@@ -2343,6 +2548,88 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
         .where(sql`${bronzeContacts.id} = ${contact.id}`);
 
       return { success: true, data: { id: contact.id, requeued: true } };
+    },
+  );
+
+  app.get(
+    "/imports/:id/job-logs",
+    {
+      ...authOpts,
+      schema: {
+        tags: ["etapa1-imports"],
+        summary: "Get per-worker job logs for a specific import batch",
+        params: idParamsSchema,
+        querystring: z.object({
+          level: z.enum(["info", "warn", "error", "step"]).optional(),
+          worker: z.string().optional(),
+          bronzeContactId: z.uuid().optional(),
+          limit: z.coerce.number().int().min(1).max(500).optional(),
+          offset: z.coerce.number().int().min(0).optional(),
+        }),
+        response: {
+          200: successListResponseSchema,
+          400: errorResponseSchema,
+          404: errorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const tenantId = requireTenantId(request);
+      const parsedParams = idParamsSchema.safeParse(request.params);
+      if (!parsedParams.success)
+        return reply.code(400).send({ success: false, error: "Parametru id invalid" });
+
+      const querySchema = z.object({
+        level: z.enum(["info", "warn", "error", "step"]).optional(),
+        worker: z.string().optional(),
+        bronzeContactId: z.uuid().optional(),
+        limit: z.coerce.number().int().min(1).max(500).default(100),
+        offset: z.coerce.number().int().min(0).default(0),
+      });
+      const parsedQuery = querySchema.safeParse(request.query);
+      if (!parsedQuery.success)
+        return reply
+          .code(400)
+          .send({ success: false, error: "Query invalid", details: parsedQuery.error.issues });
+
+      const batchId = parsedParams.data.id;
+      const { level, worker, bronzeContactId, limit, offset } = parsedQuery.data;
+
+      const batch = await db.query.bronzeImportBatches.findFirst({
+        where: (t, { and, eq }) => and(eq(t.tenantId, tenantId), eq(t.id, batchId)),
+        columns: { id: true },
+      });
+      if (!batch) return reply.code(404).send({ success: false, error: "Import batch not found" });
+
+      const filters = [
+        sql`${jobLogs.tenantId} = ${tenantId}`,
+        sql`${jobLogs.batchId} = ${batchId}`,
+      ];
+      if (level) filters.push(sql`${jobLogs.level} = ${level}`);
+      if (worker) filters.push(sql`${jobLogs.workerName} = ${worker}`);
+      if (bronzeContactId) filters.push(sql`${jobLogs.contactId} = ${bronzeContactId}`);
+      const where = sql.join(filters, sql` AND `);
+
+      await setSessionTenantId(tenantId);
+      const [rows, [{ total }]] = await Promise.all([
+        db
+          .select()
+          .from(jobLogs)
+          .where(where)
+          .orderBy(sql`${jobLogs.createdAt} ASC`)
+          .limit(limit)
+          .offset(offset),
+        db
+          .select({ total: sql<number>`COUNT(*)` })
+          .from(jobLogs)
+          .where(where),
+      ]);
+
+      return {
+        success: true,
+        data: rows,
+        meta: { total: Number(total), limit, offset },
+      };
     },
   );
 }

@@ -4,6 +4,7 @@ import { sanitizeNrRegCom } from "@cerniq/worker-shared";
 import { jobsProcessed, jobDuration, jobErrors } from "../lib/worker-metrics.js";
 import { fetchAnafBatchByCuis, type AnafV9CompanyRecord } from "../lib/anaf-api-client.js";
 import { triggerCuiValidationIfPossible } from "./normalization-utils.js";
+import { createJobLogger } from "../lib/job-logger.js";
 
 export type AnafBronzeEnricherJobData = {
   tenantId: string;
@@ -205,18 +206,47 @@ async function processNotFoundCui(
 
 export const anafBronzeEnricherProcessor: Processor<AnafBronzeEnricherJobData> = async (job) => {
   const startedAt = Date.now();
+  const log = createJobLogger({
+    batchId: job.data.batchId,
+    tenantId: job.data.tenantId,
+    workerName: "B5:anaf-bronze-enricher",
+    jobId: String(job.id ?? ""),
+  });
+
   try {
     const { tenantId, batchId, cuiList, correlationId, batchIndex, totalBatches } = job.data;
 
-    console.log(
-      `[b5] Processing batch ${batchIndex + 1}/${totalBatches} with ${cuiList.length} CUIs`,
+    log.step(
+      "anaf_request_start",
+      `Trimitere batch ANAF ${batchIndex + 1}/${totalBatches} cu ${cuiList.length} CUI-uri la webservicesp.anaf.ro`,
+      {
+        batchIndex,
+        totalBatches,
+        cuiCount: cuiList.length,
+        cuiList: cuiList.slice(0, 20), // max 20 in log
+      },
     );
 
     const result = await fetchAnafBatchByCuis(cuiList);
 
-    console.log(
-      `[b5] ANAF response: found=${result.found.size}, notFound=${result.notFound.length}`,
+    log.step(
+      "anaf_response",
+      `Răspuns ANAF primit: ${result.found.size} găsite, ${result.notFound.length} negăsite din ${cuiList.length} CUI-uri`,
+      {
+        foundCount: result.found.size,
+        notFoundCount: result.notFound.length,
+        foundCuis: Array.from(result.found.keys()).map(String).slice(0, 20),
+        notFoundCuis: result.notFound.map(String).slice(0, 20),
+      },
     );
+
+    if (result.notFound.length > 0) {
+      log.warn(
+        "anaf_not_found",
+        `${result.notFound.length} CUI-uri nu au fost găsite în ANAF — firmele vor fi marcate ca 'not_found' dar vor continua în pipeline`,
+        { notFoundCuis: result.notFound.map(String), batchIndex },
+      );
+    }
 
     const contactsToTrigger: ContactTrigger[] = [];
 
@@ -230,12 +260,20 @@ export const anafBronzeEnricherProcessor: Processor<AnafBronzeEnricherJobData> =
 
     // Deduplicate by CUI: only trigger c1 once per unique CUI to avoid flooding ANAF
     const triggeredCuis = new Set<string>();
+    let triggeredCount = 0;
     for (const { bronzeContactId, cui, nrRegCom } of contactsToTrigger) {
       const dedupeKey = cui ?? bronzeContactId;
       if (triggeredCuis.has(dedupeKey)) continue;
       triggeredCuis.add(dedupeKey);
+      triggeredCount++;
       await triggerCuiValidationIfPossible(tenantId, bronzeContactId, cui, nrRegCom, correlationId);
     }
+
+    log.step(
+      "trigger_validation",
+      `${triggeredCount} contacte trimise la validare CUI (C1/C2) sau direct la promotion`,
+      { triggeredCount, totalContacts: contactsToTrigger.length },
+    );
 
     // Write progress back to batch metadata so UI can poll it — non-critical, never fail the job
     try {
@@ -266,11 +304,19 @@ export const anafBronzeEnricherProcessor: Processor<AnafBronzeEnricherJobData> =
           );
       });
     } catch (progressError) {
-      console.warn(
-        `[b5] Progress write failed for batch ${batchIndex + 1}/${totalBatches} — continuing`,
-        progressError,
+      log.warn(
+        "progress_write_failed",
+        `Actualizare progres metadata pentru batch ${batchIndex + 1}/${totalBatches} a eșuat — ignorat, procesarea continuă`,
+        { error: progressError instanceof Error ? progressError.message : String(progressError) },
       );
     }
+
+    log.step("done", `Batch ANAF ${batchIndex + 1}/${totalBatches} procesat cu succes`, {
+      batchIndex,
+      found: result.found.size,
+      notFound: result.notFound.length,
+      durationMs: Date.now() - startedAt,
+    });
 
     jobsProcessed.add(1, { worker: "b5-anaf-bronze-enricher", status: "success" });
     return {
@@ -282,7 +328,19 @@ export const anafBronzeEnricherProcessor: Processor<AnafBronzeEnricherJobData> =
       contactsTriggered: contactsToTrigger.length,
     };
   } catch (error) {
-    console.error(`[b5] Error processing batch:`, error);
+    const errMsg = error instanceof Error ? error.message : String(error);
+    const errStack = error instanceof Error ? error.stack : undefined;
+    log.error(
+      "fatal",
+      `Batch ANAF ${job.data.batchIndex + 1}/${job.data.totalBatches} eșuat: ${errMsg}`,
+      {
+        errorMessage: errMsg,
+        errorStack: errStack,
+        batchIndex: job.data.batchIndex,
+        totalBatches: job.data.totalBatches,
+        cuiList: job.data.cuiList.slice(0, 20),
+      },
+    );
     jobErrors.add(1, { worker: "b5-anaf-bronze-enricher" });
     throw error;
   } finally {
