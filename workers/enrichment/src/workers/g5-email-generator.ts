@@ -15,8 +15,8 @@ function normalizeName(value: string): string {
   return value
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z]/g, "");
+    .replaceAll(/[\u0300-\u036f]/g, "")
+    .replaceAll(/[^a-z]/g, "");
 }
 
 function extractDomain(input: string | null | undefined): string | null {
@@ -90,13 +90,13 @@ export const emailGeneratorProcessor: Processor<EmailGeneratorJobData> = async (
     .set({
       email: generatedEmail,
       emailVerified: false,
-      metadata: sql`COALESCE(${silverContacts.metadata}, '{}'::jsonb) || ${JSON.stringify({
-        emailGenerated: {
+      metadata: sql`jsonb_set(COALESCE(${silverContacts.metadata}, '{}'::jsonb), '{emailGenerated}', ${JSON.stringify(
+        {
           pattern,
           generatedEmail,
           generatedAt: new Date().toISOString(),
         },
-      })}::jsonb`,
+      )}::jsonb)`,
       updatedAt: new Date(),
     })
     .where(sql`${silverContacts.id} = ${job.data.contactId}`);

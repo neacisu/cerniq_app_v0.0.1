@@ -5,6 +5,7 @@ export {
   closeDbConnection,
   setSessionTenantId,
   setSessionRequestContext,
+  resetSessionContext,
   get_user_by_email,
   insert_tenant,
   insert_user,
@@ -37,4 +38,5 @@ export * from "./schemas/outreach-enums.js";
 export * from "./schemas/outreach.js";
 export * from "./services/approval-service.js";
 export * from "./services/company-identity.js";
+export * from "./helpers/sql-helpers.js";
 export { TEST_PASSWORD_HASH } from "./test-utils/index.js";

@@ -5,7 +5,7 @@
 import { Worker, Job } from "bullmq";
 import type { Redis } from "ioredis";
 import { QUEUES } from "@cerniq/worker-shared";
-import { and, db, eq, outreachTemplates } from "@cerniq/db";
+import { and, db, eq, outreachTemplates, setSessionTenantId } from "@cerniq/db";
 import { asBullmqConnection } from "../utils/bullmq-connection.js";
 import { detectVariables, processSpintax } from "../utils/spintax.js";
 
@@ -60,6 +60,7 @@ export function createPersonalizeWorker(redis: Redis): Worker {
     QUEUES.TEMPLATE_PERSONALIZE,
     async (job: Job<PersonalizeJobData>) => {
       const { tenantId, templateId, leadData } = job.data;
+      await setSessionTenantId(tenantId);
       const [tmpl] = await db
         .select()
         .from(outreachTemplates)

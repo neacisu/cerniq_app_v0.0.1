@@ -36,7 +36,15 @@ export async function upsertSilverContact(args: {
         email: args.email ?? existing.email ?? undefined,
         telefon: args.telefon ?? existing.telefon ?? undefined,
         isDecisionMaker: args.isDecisionMaker ?? existing.isDecisionMaker,
-        metadata: sql`COALESCE(${silverContacts.metadata}, '{}'::jsonb) || ${JSON.stringify(args.metadata)}::jsonb`,
+        metadata: (() => {
+          const keys = Object.keys(args.metadata);
+          let expr = sql`COALESCE(${silverContacts.metadata}, '{}'::jsonb)`;
+          for (const key of keys) {
+            const pathLiteral = sql.raw(`'{${key}}'`);
+            expr = sql`jsonb_set(${expr}, ${pathLiteral}, ${JSON.stringify(args.metadata[key])}::jsonb)`;
+          }
+          return expr;
+        })(),
         updatedAt: new Date(),
       })
       .where(sql`${silverContacts.id} = ${existing.id}`);

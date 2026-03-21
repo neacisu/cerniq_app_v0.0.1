@@ -7,9 +7,8 @@ import {
   sql,
   upsertCompanyIdentityKey,
 } from "@cerniq/db";
-import { sanitizeNrRegCom } from "@cerniq/worker-shared";
-import { fetchAnafRecordByCui } from "../lib/anaf-api-client.js";
-import { sanitizeCui } from "../lib/cui-validation.js";
+import { sanitizeNrRegCom, sanitizeCui } from "@cerniq/worker-shared";
+import { fetchAnafSingleByCui, type AnafV9CompanyRecord } from "../lib/anaf-api-client.js";
 import { markEnrichmentSourceComplete } from "../lib/enrichment-completion.js";
 
 export type AnafFiscalJobData = {
@@ -19,20 +18,20 @@ export type AnafFiscalJobData = {
   correlationId?: string;
 };
 
-function extractNrRegCom(record: Record<string, unknown>): {
+const NEW_NR_REG_COM_RE = /^[JFC]\d{4}\d{6}\d{2}\d$/i;
+
+function extractNrRegCom(record: AnafV9CompanyRecord): {
   raw: string | null;
   sanitized: string | null;
+  isCanonicalNew: boolean;
 } {
-  const raw =
-    (typeof record.nrRegCom === "string" && record.nrRegCom) ||
-    (typeof record.nr_reg_com === "string" && record.nr_reg_com) ||
-    (typeof record.nrRegComert === "string" && record.nrRegComert) ||
-    (typeof record.nr_reg_comert === "string" && record.nr_reg_comert) ||
-    (typeof record.numar_reg_comert === "string" && record.numar_reg_comert) ||
-    null;
-  // Sanitize without converting old format to canonical new format.
-  // ANAF provides old format (J09/98/2003) — we have no authority to auto-convert.
-  return { raw, sanitized: raw ? sanitizeNrRegCom(raw) : null };
+  const raw = record.date_generale?.nrRegCom;
+  if (!raw || typeof raw !== "string" || raw.trim() === "") {
+    return { raw: null, sanitized: null, isCanonicalNew: false };
+  }
+  const sanitized = sanitizeNrRegCom(raw.trim());
+  const isCanonicalNew = sanitized !== null && NEW_NR_REG_COM_RE.test(sanitized);
+  return { raw: raw.trim(), sanitized, isCanonicalNew };
 }
 
 function mapStatus(value: unknown): "ACTIVA" | "INACTIVA" | "DIZOLVARE" | "RADIATA" | "INSOLVENTA" {
@@ -49,7 +48,7 @@ export const anafFiscalProcessor: Processor<AnafFiscalJobData> = async (job) => 
   const cleanedCui = sanitizeCui(job.data.cui);
   await setSessionTenantId(job.data.tenantId);
 
-  const record = await fetchAnafRecordByCui(cleanedCui);
+  const record = await fetchAnafSingleByCui(cleanedCui);
   if (!record) {
     await db.insert(silverEnrichmentLog).values({
       tenantId: job.data.tenantId,
@@ -73,11 +72,21 @@ export const anafFiscalProcessor: Processor<AnafFiscalJobData> = async (job) => 
     return { ok: true, status: "not_found", source: "anaf_fiscal", cleanedCui };
   }
 
-  const denumire = String(record.denumire ?? record.denumire_firma ?? "").trim() || null;
-  const adresa = String(record.adresa ?? "").trim() || null;
-  const statusFirma = mapStatus(record.stare_inregistrare ?? record.stare);
-  const codCaenPrincipal = String(record.caen ?? record.cod_CAEN ?? "").trim() || null;
-  const nrRegCom = extractNrRegCom(record as Record<string, unknown>);
+  const dg = record.date_generale;
+  const denumire = dg.denumire?.trim() || null;
+  const adresa = dg.adresa?.trim() || null;
+  const statusFirma = mapStatus(dg.stare_inregistrare);
+  const nrRegCom = extractNrRegCom(record);
+
+  const anafSummary = {
+    cui: dg.cui,
+    denumire: dg.denumire,
+    adresa: dg.adresa,
+    stare_inregistrare: dg.stare_inregistrare,
+    cod_CAEN: dg.cod_CAEN,
+    nrRegCom: dg.nrRegCom,
+    statusRO_e_Factura: dg.statusRO_e_Factura,
+  };
 
   await db
     .update(silverCompanies)
@@ -86,11 +95,11 @@ export const anafFiscalProcessor: Processor<AnafFiscalJobData> = async (job) => 
       denumire: denumire ?? undefined,
       adresa: adresa ?? undefined,
       statusFirma,
-      codCaenPrincipal: codCaenPrincipal ?? undefined,
       nrRegCom: nrRegCom.sanitized ?? undefined,
       nrRegComOriginal: nrRegCom.raw ?? undefined,
+      nrRegComCanonical: nrRegCom.isCanonicalNew ? nrRegCom.sanitized : undefined,
       lastEnrichedAt: new Date(),
-      metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify({ anafFiscal: record })}::jsonb`,
+      metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{anafFiscal}', ${JSON.stringify(anafSummary)}::jsonb)`,
     })
     .where(sql`${silverCompanies.id} = ${job.data.companyId}`);
 
@@ -108,7 +117,6 @@ export const anafFiscalProcessor: Processor<AnafFiscalJobData> = async (job) => 
       tenantId: job.data.tenantId,
       companyId: job.data.companyId,
       keyType: "nr_reg_com",
-      // raw/sanitized value used as canonical key — no auto-conversion old→new
       keyValueCanonical: nrRegCom.sanitized,
       keyValueOriginal: nrRegCom.raw,
       sourceAuthority: "anaf",
@@ -122,8 +130,8 @@ export const anafFiscalProcessor: Processor<AnafFiscalJobData> = async (job) => 
     source: "anaf_fiscal",
     operation: "fetch",
     requestPayload: { cui: cleanedCui },
-    responsePayload: record,
-    fieldsUpdated: ["denumire", "adresa", "statusFirma", "codCaenPrincipal", "cui", "nrRegCom"],
+    responsePayload: anafSummary,
+    fieldsUpdated: ["denumire", "adresa", "statusFirma", "cui", "nrRegCom"],
     correlationId: job.data.correlationId,
     jobId: String(job.id ?? ""),
     durationMs: Date.now() - startedAt,

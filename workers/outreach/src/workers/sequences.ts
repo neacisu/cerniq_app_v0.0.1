@@ -77,7 +77,8 @@ export function createSequenceSchedulerWorker(redis: Redis): Worker {
     async (job: Job<ScheduleFollowupJobData>): Promise<ScheduleFollowupResult> => {
       const { tenantId, journeyId, sequenceId, sequenceEnrollmentId, currentStep } = job.data;
 
-      const { db } = await import("@cerniq/db");
+      const { db, setSessionTenantId } = await import("@cerniq/db");
+      await setSessionTenantId(tenantId);
       const { outreachSequences } = await import("@cerniq/db");
       const { outreachSequenceSteps } = await import("@cerniq/db");
       const { sequenceEnrollments } = await import("@cerniq/db");
@@ -241,7 +242,8 @@ export function createSequenceAdvanceWorker(redis: Redis): Worker {
     async (job: Job<SequenceAdvanceJobData>): Promise<void> => {
       const { tenantId, journeyId, sequenceEnrollmentId } = job.data;
 
-      const { db } = await import("@cerniq/db");
+      const { db, setSessionTenantId } = await import("@cerniq/db");
+      await setSessionTenantId(tenantId);
       const { leadJourney } = await import("@cerniq/db");
       const { sequenceEnrollments } = await import("@cerniq/db");
       const { eq } = await import("@cerniq/db");
@@ -295,7 +297,8 @@ export function createEnrollmentManagerWorker(redis: Redis): Worker {
     async (job: Job<EnrollmentCreateJobData>): Promise<{ enrollmentId: string }> => {
       const { tenantId, leadId, journeyId, sequenceId, startAt } = job.data;
 
-      const { db } = await import("@cerniq/db");
+      const { db, setSessionTenantId } = await import("@cerniq/db");
+      await setSessionTenantId(tenantId);
       const { sequenceEnrollments } = await import("@cerniq/db");
       const { leadJourney } = await import("@cerniq/db");
       const { eq } = await import("@cerniq/db");
@@ -370,7 +373,8 @@ export async function executeSequenceStatsJob(
 ): Promise<SequenceStatsResult> {
   const { tenantId, sequenceId } = job.data;
 
-  const { db } = await import("@cerniq/db");
+  const { db, setSessionTenantId } = await import("@cerniq/db");
+  await setSessionTenantId(tenantId);
   const { sequenceEnrollments } = await import("@cerniq/db");
   const { communicationLog } = await import("@cerniq/db");
   const { eq, and, sql } = await import("@cerniq/db");

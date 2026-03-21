@@ -14,7 +14,7 @@ export const hunterVerifierProcessor: Processor<HunterVerifyJobData> = async (jo
   await setSessionTenantId(job.data.tenantId);
 
   const email = job.data.email.trim().toLowerCase();
-  if (!email || !email.includes("@")) {
+  if (!email?.includes("@")) {
     return { ok: false, status: "invalid_email" };
   }
 
@@ -24,12 +24,22 @@ export const hunterVerifierProcessor: Processor<HunterVerifyJobData> = async (jo
   }
 
   const isVerified = result.result === "deliverable" || result.status === "valid";
-  const deliverability =
-    result.result === "deliverable"
-      ? "deliverable"
-      : result.result === "risky"
-        ? "risky"
-        : "undeliverable";
+  let deliverability: "deliverable" | "risky" | "undeliverable";
+  if (result.result === "deliverable") deliverability = "deliverable";
+  else if (result.result === "risky") deliverability = "risky";
+  else deliverability = "undeliverable";
+
+  const hunterPayload = JSON.stringify({
+    status: result.status,
+    result: result.result,
+    score: result.score,
+    disposable: result.disposable,
+    webmail: result.webmail,
+    mx_records: result.mx_records,
+    smtp_check: result.smtp_check,
+    gibberish: result.gibberish,
+    verifiedAt: new Date().toISOString(),
+  });
 
   await db
     .update(silverContacts)
@@ -40,19 +50,7 @@ export const hunterVerifierProcessor: Processor<HunterVerifyJobData> = async (jo
       emailDeliverability: deliverability,
       emailCatchAll: result.accept_all,
       emailRoleBased: Boolean(result.role ?? false),
-      metadata: sql`COALESCE(${silverContacts.metadata}, '{}'::jsonb) || ${JSON.stringify({
-        hunterVerify: {
-          status: result.status,
-          result: result.result,
-          score: result.score,
-          disposable: result.disposable,
-          webmail: result.webmail,
-          mx_records: result.mx_records,
-          smtp_check: result.smtp_check,
-          gibberish: result.gibberish,
-          verifiedAt: new Date().toISOString(),
-        },
-      })}::jsonb`,
+      metadata: sql`jsonb_set(COALESCE(${silverContacts.metadata}, '{}'::jsonb), '{hunterVerify}', ${hunterPayload}::jsonb)`,
       updatedAt: new Date(),
     })
     .where(sql`${silverContacts.id} = ${job.data.contactId}`);

@@ -626,6 +626,7 @@ type ImportRowActionsProps = {
   readonly id: string;
   readonly status: string;
   readonly actionInProgress: string | null;
+  readonly isReprocessActive: boolean;
   readonly onOpenMappingDialog: (id: string) => Promise<void>;
   readonly onRePromote: (id: string) => Promise<void>;
   readonly onAnafEnrich: (id: string) => Promise<void>;
@@ -636,6 +637,7 @@ function ImportRowActions({
   id,
   status,
   actionInProgress,
+  isReprocessActive,
   onOpenMappingDialog,
   onRePromote,
   onAnafEnrich,
@@ -657,7 +659,7 @@ function ImportRowActions({
       <Button
         variant="outline"
         size="sm"
-        disabled={actionInProgress !== null}
+        disabled={actionInProgress !== null || isReprocessActive}
         onClick={async () => {
           await onRePromote(id);
         }}
@@ -680,7 +682,7 @@ function ImportRowActions({
         <Button
           variant="outline"
           size="sm"
-          disabled={actionInProgress !== null}
+          disabled={actionInProgress !== null || isReprocessActive}
           onClick={async () => {
             await onRetry(id);
           }}
@@ -788,6 +790,7 @@ function ImportHistoryRow({
         id={id}
         status={status}
         actionInProgress={actionInProgress}
+        isReprocessActive={isIdentityReprocessActive(metadata)}
         onOpenMappingDialog={onOpenMappingDialog}
         onRePromote={onRePromote}
         onAnafEnrich={onAnafEnrich}
@@ -956,8 +959,13 @@ export function Import() {
   const handleRePromote = async (id: string) => {
     setActionInProgress(`repromote-${id}`);
     try {
-      await rePromoteImport(id);
-      setUploadMessage("Re-rezolvare identitate + promovare Bronze→Silver programate.");
+      const result = await rePromoteImport(id);
+      const data = result?.data as Record<string, unknown> | undefined;
+      if (data?.alreadyQueued) {
+        setUploadMessage("Re-promovare deja în curs. Așteaptă finalizarea job-ului existent.");
+      } else {
+        setUploadMessage("Re-rezolvare identitate + promovare Bronze→Silver programate.");
+      }
       await importsQuery.refetch();
     } catch (err) {
       setUploadMessage(err instanceof Error ? err.message : "Eroare la re-promovare.");

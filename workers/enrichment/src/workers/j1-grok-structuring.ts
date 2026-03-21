@@ -62,13 +62,13 @@ export const grokStructuringProcessor: Processor<GrokStructuringJobData> = async
         typeof structured.cod_caen_principal === "string"
           ? structured.cod_caen_principal
           : undefined,
-      metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify({
-        aiStructuring: {
+      metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{aiStructuring}', ${JSON.stringify(
+        {
           confidence,
           structured,
           appliedAt: new Date().toISOString(),
         },
-      })}::jsonb`,
+      )}::jsonb)`,
       lastEnrichedAt: new Date(),
     })
     .where(sql`${silverCompanies.id} = ${job.data.companyId}`);

@@ -13,6 +13,41 @@ function validEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+function computeAccuracyScore(company: {
+  cui: string | null;
+  email: string | null;
+  telefon: string | null;
+  latitude: string | null;
+  longitude: string | null;
+  statusFirma: string | null;
+  codCaenPrincipal: string | null;
+  categorieRisc: string | null;
+}): { score: number; issues: string[] } {
+  let points = 0;
+  const issues: string[] = [];
+
+  if (company.cui) {
+    const res = validateCuiModulo11(company.cui);
+    if (res.isValid) points += 30;
+    else issues.push("CUI invalid");
+  } else {
+    issues.push("CUI missing");
+  }
+
+  if (company.email) {
+    if (validEmail(company.email)) points += 20;
+    else issues.push("Email invalid");
+  }
+
+  if (company.telefon) points += 10;
+  if (company.latitude !== null && company.longitude !== null) points += 15;
+  if (company.statusFirma) points += 10;
+  if (company.codCaenPrincipal) points += 10;
+  if (company.categorieRisc) points += 5;
+
+  return { score: Math.max(0, Math.min(100, points)), issues };
+}
+
 export const scoreAccuracyProcessor: Processor<AccuracyJobData> = async (job) => {
   const startedAt = Date.now();
   await setSessionTenantId(job.data.tenantId);
@@ -21,33 +56,13 @@ export const scoreAccuracyProcessor: Processor<AccuracyJobData> = async (job) =>
   });
   if (!company) return { ok: false, status: "not_found" };
 
-  let points = 0;
-  const issues: string[] = [];
-  if (company.cui) {
-    const res = validateCuiModulo11(company.cui);
-    if (res.isValid) points += 30;
-    else issues.push("CUI invalid");
-  } else {
-    issues.push("CUI missing");
-  }
-  if (company.email) {
-    if (validEmail(company.email)) points += 20;
-    else issues.push("Email invalid");
-  }
-  if (company.telefon) points += 10;
-  if (company.latitude && company.longitude) points += 15;
-  if (company.statusFirma) points += 10;
-  if (company.codCaenPrincipal) points += 10;
-  if (company.categorieRisc) points += 5;
-  const score = Math.max(0, Math.min(100, points));
+  const { score, issues } = computeAccuracyScore(company);
 
   await db
     .update(silverCompanies)
     .set({
       accuracyScore: String(score),
-      metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify({
-        qualityAccuracy: { score, issues, calculatedAt: new Date().toISOString() },
-      })}::jsonb`,
+      metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{qualityAccuracy}', ${JSON.stringify({ score, issues, calculatedAt: new Date().toISOString() })}::jsonb)`,
       updatedAt: new Date(),
     })
     .where(sql`${silverCompanies.id} = ${job.data.companyId}`);

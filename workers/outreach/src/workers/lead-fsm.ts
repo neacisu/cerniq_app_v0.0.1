@@ -96,7 +96,8 @@ export function createStateTransitionWorker(redis: Redis): Worker {
     async (job: Job<StateTransitionJobData>): Promise<StateTransitionResult> => {
       const { tenantId, journeyId, newState, reason, trigger } = job.data;
 
-      const { db } = await import("@cerniq/db");
+      const { db, setSessionTenantId } = await import("@cerniq/db");
+      await setSessionTenantId(tenantId);
       const { leadJourney } = await import("@cerniq/db");
       const { eq, and } = await import("@cerniq/db");
 

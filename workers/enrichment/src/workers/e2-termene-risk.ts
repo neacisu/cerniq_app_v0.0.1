@@ -46,18 +46,16 @@ export const termeneRiskProcessor: Processor<TermeneRiskJobData> = async (job) =
     return { ok: true, status: "not_found", source: "termene_risk", cleanedCui };
   }
 
-  const scoreRaw = Number(payload.scor_risc ?? payload.risk_score ?? NaN);
+  const scoreRaw = Number(payload.scor_risc ?? payload.risk_score ?? Number.NaN);
   const hasValidScore = Number.isFinite(scoreRaw);
   const score = hasValidScore ? Math.max(0, Math.min(100, scoreRaw)) : null;
-  const riskCategory = score !== null ? mapRiskCategory(score) : undefined;
+  const riskCategory = score === null ? undefined : mapRiskCategory(score);
 
   await db
     .update(silverCompanies)
     .set({
       categorieRisc: riskCategory,
-      metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify({
-        termeneRisk: { score, riskCategory, payload },
-      })}::jsonb`,
+      metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{termeneRisk}', ${JSON.stringify({ score, riskCategory, payload })}::jsonb)`,
       lastEnrichedAt: new Date(),
     })
     .where(sql`${silverCompanies.id} = ${job.data.companyId}`);

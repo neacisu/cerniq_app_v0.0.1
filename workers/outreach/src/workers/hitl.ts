@@ -127,7 +127,8 @@ export function createReviewQueueManagerWorker(redis: Redis): Worker {
       const { tenantId, journeyId, priority, content } = job.data;
       const reason = toPersistedReviewReason(job.data.reason);
 
-      const { db } = await import("@cerniq/db");
+      const { db, setSessionTenantId } = await import("@cerniq/db");
+      await setSessionTenantId(tenantId);
       const { humanReviewQueue } = await import("@cerniq/db");
       const { leadJourney } = await import("@cerniq/db");
       const { eq } = await import("@cerniq/db");
@@ -187,7 +188,8 @@ export function createSlaEnforcerWorker(redis: Redis): Worker {
     async (job: Job<SlaEnforcerJobData>): Promise<void> => {
       const { tenantId, reviewId, priority } = job.data;
 
-      const { db } = await import("@cerniq/db");
+      const { db, setSessionTenantId } = await import("@cerniq/db");
+      await setSessionTenantId(tenantId);
       const { humanReviewQueue } = await import("@cerniq/db");
       const { hitlAuditLog } = await import("@cerniq/db");
       const { eq } = await import("@cerniq/db");
@@ -255,7 +257,8 @@ export function createHumanTakeoverWorker(redis: Redis): Worker {
     async (job: Job<TakeoverInitiateJobData>): Promise<void> => {
       const { tenantId, journeyId, reviewId, assignedUserId, reason } = job.data;
 
-      const { db } = await import("@cerniq/db");
+      const { db, setSessionTenantId } = await import("@cerniq/db");
+      await setSessionTenantId(tenantId);
       const { leadJourney } = await import("@cerniq/db");
       const { humanReviewQueue } = await import("@cerniq/db");
       const { hitlAuditLog } = await import("@cerniq/db");
@@ -316,7 +319,8 @@ export function createResolutionHandlerWorker(redis: Redis): Worker {
     async (job: Job<TakeoverCompleteJobData>): Promise<void> => {
       const { tenantId, journeyId, reviewId, resolution, resolvedByUserId } = job.data;
 
-      const { db } = await import("@cerniq/db");
+      const { db, setSessionTenantId } = await import("@cerniq/db");
+      await setSessionTenantId(tenantId);
       const { leadJourney } = await import("@cerniq/db");
       const { humanReviewQueue } = await import("@cerniq/db");
       const { hitlAuditLog } = await import("@cerniq/db");
@@ -377,7 +381,8 @@ export function createHitlAuditLoggerWorker(redis: Redis): Worker {
     async (job: Job<HitlAuditJobData>): Promise<void> => {
       const { tenantId, reviewId, actorUserId, eventType, payload } = job.data;
 
-      const { db } = await import("@cerniq/db");
+      const { db, setSessionTenantId } = await import("@cerniq/db");
+      await setSessionTenantId(tenantId);
       const { hitlAuditLog } = await import("@cerniq/db");
 
       await db.insert(hitlAuditLog).values({
@@ -406,7 +411,7 @@ export function createReviewAssignmentWorker(redis: Redis): Worker {
     async (job: Job<ReviewAssignJobData>): Promise<void> => {
       const { reviewId, assignedUserId } = job.data;
 
-      const { db } = await import("@cerniq/db");
+      const { db, setSessionTenantId } = await import("@cerniq/db");
       const { humanReviewQueue } = await import("@cerniq/db");
       const { leadJourney } = await import("@cerniq/db");
       const { eq } = await import("@cerniq/db");
@@ -425,6 +430,7 @@ export function createReviewAssignmentWorker(redis: Redis): Worker {
       if (rows.length === 0) return;
 
       const row = rows[0];
+      await setSessionTenantId(row.tenantId);
       await takeoverQueue.add(
         "assign",
         {
@@ -452,7 +458,8 @@ export function createEscalationWorker(redis: Redis): Worker {
     async (job: Job<EscalationJobData>): Promise<void> => {
       const { tenantId, reviewId, escalationReason } = job.data;
 
-      const { db } = await import("@cerniq/db");
+      const { db, setSessionTenantId } = await import("@cerniq/db");
+      await setSessionTenantId(tenantId);
       const { humanReviewQueue } = await import("@cerniq/db");
       const { hitlAuditLog } = await import("@cerniq/db");
       const { eq } = await import("@cerniq/db");

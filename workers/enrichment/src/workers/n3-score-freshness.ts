@@ -19,10 +19,7 @@ export const scoreFreshnessProcessor: Processor<FreshnessJobData> = async (job) 
   const now = Date.now();
   let score = 100;
   const issues: string[] = [];
-  if (!company.lastEnrichedAt) {
-    score -= 40;
-    issues.push("Never enriched");
-  } else {
+  if (company.lastEnrichedAt) {
     const days = Math.floor((now - company.lastEnrichedAt.getTime()) / (1000 * 60 * 60 * 24));
     if (days > 180) {
       score -= 40;
@@ -33,6 +30,9 @@ export const scoreFreshnessProcessor: Processor<FreshnessJobData> = async (job) 
     } else if (days > 30) {
       score -= 10;
     }
+  } else {
+    score -= 40;
+    issues.push("Never enriched");
   }
   if (company.updatedAt) {
     const daysSinceUpdate = Math.floor((now - company.updatedAt.getTime()) / (1000 * 60 * 60 * 24));
@@ -49,9 +49,7 @@ export const scoreFreshnessProcessor: Processor<FreshnessJobData> = async (job) 
     .update(silverCompanies)
     .set({
       freshnessScore: String(score),
-      metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify({
-        qualityFreshness: { score, issues, calculatedAt: new Date().toISOString() },
-      })}::jsonb`,
+      metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{qualityFreshness}', ${JSON.stringify({ score, issues, calculatedAt: new Date().toISOString() })}::jsonb)`,
       updatedAt: new Date(),
     })
     .where(sql`${silverCompanies.id} = ${job.data.companyId}`);

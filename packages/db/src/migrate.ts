@@ -20,12 +20,16 @@ export type MigrationRunOptions = {
 /**
  * Dedicated single-connection client for migrations.
  * Using max:1 guarantees SET ROLE persists across all statements.
+ * Prefers DATABASE_DIRECT_URL (bypasses PgBouncer) for DDL safety.
  */
 function getMigrationDb(): PostgresJsDatabase {
   if (!_migrationDb) {
-    const url = process.env.DATABASE_URL?.trim();
+    const url = (process.env.DATABASE_DIRECT_URL ?? process.env.DATABASE_URL)?.trim();
     if (!url) {
-      throw new Error("Missing required environment variable: DATABASE_URL");
+      throw new Error(
+        "Missing required environment variable: DATABASE_DIRECT_URL or DATABASE_URL. " +
+          "Ensure the OpenBao agent is rendering secrets to SECRETS_PATH (default: /secrets/api.env).",
+      );
     }
     _migrationPg = postgres(url, { max: 1, prepare: false, idle_timeout: 20, connect_timeout: 10 });
     _migrationDb = drizzle(_migrationPg);

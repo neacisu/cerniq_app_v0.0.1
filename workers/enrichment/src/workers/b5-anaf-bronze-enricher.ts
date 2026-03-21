@@ -1,5 +1,6 @@
 import type { Processor } from "bullmq";
 import { bronzeContacts, bronzeImportBatches, db, sql } from "@cerniq/db";
+import { sanitizeNrRegCom } from "@cerniq/worker-shared";
 import { jobsProcessed, jobDuration, jobErrors } from "../lib/worker-metrics.js";
 import { fetchAnafBatchByCuis, type AnafV9CompanyRecord } from "../lib/anaf-api-client.js";
 import { triggerCuiValidationIfPossible } from "./normalization-utils.js";
@@ -24,7 +25,7 @@ async function processFoundCui(
   contactsToTrigger: ContactTrigger[],
 ) {
   const cuiStr = String(cui);
-  const nrRegCom = extractNrRegCom(anafRecord);
+  const nrRegComResult = extractNrRegCom(anafRecord);
   const denumire = anafRecord.date_generale?.denumire ?? null;
 
   const matchingContacts = await db.transaction(async (tx) => {
@@ -43,26 +44,37 @@ async function processFoundCui(
   for (const contact of matchingContacts) {
     const updates: Record<string, unknown> = {};
     const fieldSources: Record<string, string> = {};
-    if (!contact.extractedNrRegCom && nrRegCom) {
-      updates.extractedNrRegCom = nrRegCom;
-      updates.extractedNrRegComRaw = nrRegCom;
+    if (!contact.extractedNrRegCom && nrRegComResult.sanitized) {
+      updates.extractedNrRegCom = nrRegComResult.sanitized;
+      updates.extractedNrRegComRaw = nrRegComResult.raw;
       fieldSources.extractedNrRegCom = "anaf_v9";
+    }
+    if (nrRegComResult.isCanonicalNew) {
+      updates.extractedNrRegComCanonical = nrRegComResult.sanitized;
+      fieldSources.extractedNrRegComCanonical = "anaf_v9";
     }
     if (!contact.extractedName && denumire) {
       updates.extractedName = denumire;
       fieldSources.extractedName = "anaf_v9";
     }
 
+    const anafSummary = {
+      cui: cuiStr,
+      enrichedAt: new Date().toISOString(),
+      found: true,
+    };
+
     await db
       .update(bronzeContacts)
       .set({
         ...updates,
-        metadata: sql`COALESCE(${bronzeContacts.metadata}, '{}'::jsonb) || ${JSON.stringify({
-          anafResponse: anafRecord,
-          anafBronzeEnrichmentStatus: "completed",
-          anafBronzeEnrichmentDate: new Date().toISOString(),
-          anafBronzeFieldSources: fieldSources,
-        })}::jsonb`,
+        metadata: sql`jsonb_set(COALESCE(${bronzeContacts.metadata}, '{}'::jsonb), '{anafBronzeEnrichment}', ${JSON.stringify(
+          {
+            ...anafSummary,
+            anafBronzeEnrichmentStatus: "completed",
+            anafBronzeFieldSources: fieldSources,
+          },
+        )}::jsonb)`,
         updatedAt: new Date(),
       })
       .where(sql`${bronzeContacts.id} = ${contact.id}`);
@@ -70,17 +82,16 @@ async function processFoundCui(
     contactsToTrigger.push({
       bronzeContactId: contact.id,
       cui: cuiStr,
-      nrRegCom: contact.extractedNrRegCom ?? nrRegCom,
+      nrRegCom: contact.extractedNrRegCom ?? nrRegComResult.sanitized,
     });
   }
 
-  // Cross-reference: NrRegCom-only contacts that match this company
-  if (nrRegCom) {
+  if (nrRegComResult.sanitized) {
     await crossReferenceNrRegComContacts(
       tenantId,
       batchId,
       cuiStr,
-      nrRegCom,
+      nrRegComResult.sanitized,
       denumire,
       anafRecord,
       contactsToTrigger,
@@ -130,13 +141,16 @@ async function crossReferenceNrRegComContacts(
       .update(bronzeContacts)
       .set({
         ...nrUpdates,
-        metadata: sql`COALESCE(${bronzeContacts.metadata}, '{}'::jsonb) || ${JSON.stringify({
-          anafResponse: anafRecord,
-          anafBronzeEnrichmentStatus: "cross_referenced",
-          anafBronzeEnrichmentDate: new Date().toISOString(),
-          anafBronzeFieldSources: nrFieldSources,
-          crossReferencedFromCui: cuiStr,
-        })}::jsonb`,
+        metadata: sql`jsonb_set(COALESCE(${bronzeContacts.metadata}, '{}'::jsonb), '{anafBronzeEnrichment}', ${JSON.stringify(
+          {
+            cui: cuiStr,
+            enrichedAt: new Date().toISOString(),
+            found: true,
+            anafBronzeEnrichmentStatus: "cross_referenced",
+            anafBronzeFieldSources: nrFieldSources,
+            crossReferencedFromCui: cuiStr,
+          },
+        )}::jsonb)`,
         updatedAt: new Date(),
       })
       .where(sql`${bronzeContacts.id} = ${nrContact.id}`);
@@ -169,11 +183,14 @@ async function processNotFoundCui(
     await db
       .update(bronzeContacts)
       .set({
-        metadata: sql`COALESCE(${bronzeContacts.metadata}, '{}'::jsonb) || ${JSON.stringify({
-          anafResponse: null,
-          anafBronzeEnrichmentStatus: "not_found",
-          anafBronzeEnrichmentDate: new Date().toISOString(),
-        })}::jsonb`,
+        metadata: sql`jsonb_set(COALESCE(${bronzeContacts.metadata}, '{}'::jsonb), '{anafBronzeEnrichment}', ${JSON.stringify(
+          {
+            cui: cuiStr,
+            enrichedAt: new Date().toISOString(),
+            found: false,
+            anafBronzeEnrichmentStatus: "not_found",
+          },
+        )}::jsonb)`,
         updatedAt: new Date(),
       })
       .where(sql`${bronzeContacts.id} = ${contact.id}`);
@@ -231,19 +248,17 @@ export const anafBronzeEnricherProcessor: Processor<AnafBronzeEnricherJobData> =
         await tx
           .update(bronzeImportBatches)
           .set({
-            metadata: sql`COALESCE(${bronzeImportBatches.metadata}, '{}'::jsonb) || ${JSON.stringify(
-              {
-                anafEnrichmentProcessedBatches: batchIndex + 1,
-                anafEnrichmentProcessedCuis: processedCuisTotal,
-                anafEnrichmentLastProgressAt: new Date().toISOString(),
-                ...(isLastBatch
-                  ? {
-                      anafEnrichmentStatus: "completed",
-                      anafEnrichmentCompletedAt: new Date().toISOString(),
-                    }
-                  : {}),
-              },
-            )}::jsonb`,
+            metadata: (() => {
+              let expr = sql`COALESCE(${bronzeImportBatches.metadata}, '{}'::jsonb)`;
+              expr = sql`jsonb_set(${expr}, '{anafEnrichmentProcessedBatches}', ${JSON.stringify(batchIndex + 1)}::jsonb)`;
+              expr = sql`jsonb_set(${expr}, '{anafEnrichmentProcessedCuis}', ${JSON.stringify(processedCuisTotal)}::jsonb)`;
+              expr = sql`jsonb_set(${expr}, '{anafEnrichmentLastProgressAt}', ${JSON.stringify(new Date().toISOString())}::jsonb)`;
+              if (isLastBatch) {
+                expr = sql`jsonb_set(${expr}, '{anafEnrichmentStatus}', '"completed"'::jsonb)`;
+                expr = sql`jsonb_set(${expr}, '{anafEnrichmentCompletedAt}', ${JSON.stringify(new Date().toISOString())}::jsonb)`;
+              }
+              return expr;
+            })(),
             updatedAt: new Date(),
           })
           .where(
@@ -275,8 +290,19 @@ export const anafBronzeEnricherProcessor: Processor<AnafBronzeEnricherJobData> =
   }
 };
 
-function extractNrRegCom(record: AnafV9CompanyRecord): string | null {
+const NEW_NR_REG_COM_RE = /^[JFC]\d{4}\d{6}\d{2}\d$/i;
+
+function extractNrRegCom(record: AnafV9CompanyRecord): {
+  raw: string | null;
+  sanitized: string | null;
+  isCanonicalNew: boolean;
+} {
   const raw = record.date_generale?.nrRegCom;
-  if (!raw || typeof raw !== "string" || raw.trim() === "") return null;
-  return raw.trim();
+  if (!raw || typeof raw !== "string" || raw.trim() === "") {
+    return { raw: null, sanitized: null, isCanonicalNew: false };
+  }
+  const trimmed = raw.trim();
+  const sanitized = sanitizeNrRegCom(trimmed);
+  const isCanonicalNew = sanitized !== null && NEW_NR_REG_COM_RE.test(sanitized);
+  return { raw: trimmed, sanitized, isCanonicalNew };
 }

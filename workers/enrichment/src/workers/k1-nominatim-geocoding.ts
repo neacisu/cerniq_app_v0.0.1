@@ -78,14 +78,14 @@ export const nominatimGeocodingProcessor: Processor<GeocodingJobData> = async (j
     .set({
       latitude: Number.isFinite(latitude) ? String(latitude) : undefined,
       longitude: Number.isFinite(longitude) ? String(longitude) : undefined,
-      metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify({
-        geocoding: {
+      metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{geocoding}', ${JSON.stringify(
+        {
           query,
           accuracy,
           result: first,
           geocodedAt: new Date().toISOString(),
         },
-      })}::jsonb`,
+      )}::jsonb)`,
       lastEnrichedAt: new Date(),
     })
     .where(sql`${silverCompanies.id} = ${job.data.companyId}`);

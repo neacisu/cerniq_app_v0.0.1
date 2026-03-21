@@ -34,7 +34,7 @@ export const dedupFuzzyMatchProcessor: Processor<DedupFuzzyJobData> = async (job
   const company = await db.query.silverCompanies.findFirst({
     where: (t, { and, eq }) => and(eq(t.tenantId, job.data.tenantId), eq(t.id, job.data.companyId)),
   });
-  if (!company || !company.denumire) return { ok: true, status: "skipped", reason: "no_name" };
+  if (!company?.denumire) return { ok: true, status: "skipped", reason: "no_name" };
 
   const candidates = await db.query.silverCompanies.findMany({
     where: (t) =>
@@ -55,12 +55,10 @@ export const dedupFuzzyMatchProcessor: Processor<DedupFuzzyJobData> = async (job
     .map((candidate) => {
       const name = computeNameSimilarity(company.denumire ?? "", candidate.denumire ?? "");
       const addr = computeNameSimilarity(company.adresa ?? "", candidate.adresa ?? "");
-      const phone =
-        company.telefon && candidate.telefon
-          ? company.telefon === candidate.telefon
-            ? 1
-            : 0.4
-          : 0;
+      let phone = 0;
+      if (company.telefon && candidate.telefon) {
+        phone = company.telefon === candidate.telefon ? 1 : 0.4;
+      }
       const confidence = name * 0.5 + addr * 0.3 + phone * 0.2;
       return { candidate, name, addr, phone, confidence };
     })
@@ -90,13 +88,13 @@ export const dedupFuzzyMatchProcessor: Processor<DedupFuzzyJobData> = async (job
       .update(silverCompanies)
       .set({
         dedupStatus: "auto_merged",
-        metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify({
-          dedupFuzzy: {
+        metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{dedupFuzzy}', ${JSON.stringify(
+          {
             masterCandidateId: best.candidate.id,
             confidence: best.confidence,
             autoMergedAt: new Date().toISOString(),
           },
-        })}::jsonb`,
+        )}::jsonb)`,
       })
       .where(sql`${silverCompanies.id} = ${job.data.companyId}`);
   } else {

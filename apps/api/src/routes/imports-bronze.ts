@@ -1,11 +1,20 @@
 import { mkdir, writeFile, readFile, access, copyFile } from "node:fs/promises";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { basename, extname } from "node:path";
 import type { FastifyInstance, FastifyRequest } from "fastify";
-import { bronzeContacts, bronzeImportBatches, db, setSessionTenantId, sql } from "@cerniq/db";
+import {
+  bronzeContacts,
+  bronzeImportBatches,
+  db,
+  setSessionTenantId,
+  sql,
+  batchIdMetadataEquals,
+  failedReprocessContactEquals,
+} from "@cerniq/db";
 import ExcelJS from "exceljs";
 import Papa from "papaparse";
 import { z } from "zod";
+import { COLUMN_MAPPING_DEFINITIONS } from "@cerniq/shared-types";
 import { getActorId, parseLimit, parseOffset, requireTenantId } from "./utils.js";
 import { requireRole } from "../middleware/authz.js";
 import { importConfigSchema, listBronzeContactsSchema } from "../schemas/etapa1.js";
@@ -72,14 +81,6 @@ type TemplateColumnDef = {
 };
 
 type BatchMetadata = Record<string, unknown>;
-
-function batchIdMetadataEquals(metadataColumn: unknown, batchId: string) {
-  return sql`COALESCE(jsonb_extract_path_text(${metadataColumn}, ${"batchId"}), ${""}) = ${batchId}`;
-}
-
-function failedReprocessContactEquals(metadataColumn: unknown) {
-  return sql`COALESCE(jsonb_extract_path_text(${metadataColumn}, 'identityReprocessError', 'status'), '') = 'failed'`;
-}
 
 function sanitizeImportFilename(filename: string): string {
   return filename.replaceAll(/[^a-zA-Z0-9._-]/g, "_");
@@ -410,211 +411,7 @@ const TEMPLATE_COLUMNS: TemplateColumnDef[] = [
   },
 ];
 
-const DB_MAPPING_TARGETS = [
-  // --- Identificatori ---
-  {
-    key: "companyName",
-    label: "Denumire Firmă",
-    aliases: [
-      "company",
-      "company_name",
-      "firma",
-      "denumire",
-      "nume_firma",
-      "denumire firma",
-      "denumirefirma",
-      "denumire companie",
-      "denumirecompanie",
-    ],
-  },
-  {
-    key: "cui",
-    label: "CUI / CIF",
-    aliases: ["cui", "cif", "vat", "vat_number", "cod_fiscal", "codfiscal"],
-  },
-  {
-    key: "nrRegistru",
-    label: "Nr. Registru Comerțului",
-    aliases: [
-      "reg_com",
-      "j_number",
-      "nr_registru",
-      "nr reg com",
-      "nrregcom",
-      "nr_reg_com",
-      "nr_reg_comert",
-      "nr. rc.",
-      "nrrc",
-      "numar_registru",
-    ],
-  },
-  // --- Contact ---
-  { key: "email", label: "Email", aliases: ["email", "email_address", "mail"] },
-  {
-    key: "phone",
-    label: "Telefon",
-    aliases: ["phone", "telefon", "telefon_mobil", "mobile", "telefon mf", "telefonmf"],
-  },
-  { key: "website", label: "Website", aliases: ["website", "site", "url"] },
-  {
-    key: "contactPerson",
-    label: "Persoana de contact",
-    aliases: ["contact", "persoana", "contact_person", "responsabil"],
-  },
-  // --- Locație ---
-  {
-    key: "address",
-    label: "Adresă",
-    aliases: ["address", "adresa", "street_address", "adresa anaf", "adresaanaf"],
-  },
-  { key: "judet", label: "Județ", aliases: ["judet", "county", "region"] },
-  { key: "localitate", label: "Localitate", aliases: ["localitate", "oras", "city", "town"] },
-  { key: "codPostal", label: "Cod Poștal", aliases: ["cod_postal", "zip", "postal_code"] },
-  // --- CAEN ---
-  {
-    key: "caen",
-    label: "Cod CAEN",
-    aliases: ["caen", "caen_code", "nace", "nace code", "nacecode", "cod_caen", "codcaen"],
-  },
-  {
-    key: "caenText",
-    label: "Denumire CAEN",
-    aliases: ["nace text", "nacetext", "nace_text", "denumire_caen", "denumirecaen"],
-  },
-  // --- Financiar (Tab 1 „Baza de date") ---
-  {
-    key: "cifraAfaceri",
-    label: "Cifra de afaceri",
-    aliases: ["cifra de afaceri", "cifradeafaceri", "cifra_afaceri", "turnover", "revenue"],
-  },
-  {
-    key: "profitNet",
-    label: "Profit / Pierdere Netă",
-    aliases: [
-      "profit / pierdere neta",
-      "profitpierderereta",
-      "profit_net",
-      "net_profit",
-      "profit net",
-    ],
-  },
-  {
-    key: "profitBrut",
-    label: "Profit / Pierdere Brută",
-    aliases: [
-      "profit / pierdere bruta",
-      "profitpierderebruta",
-      "profit_brut",
-      "gross_profit",
-      "profit brut",
-    ],
-  },
-  {
-    key: "venituriTotale",
-    label: "Venituri totale",
-    aliases: ["venituri totale", "venituritotale", "venituri_totale", "total_revenue"],
-  },
-  {
-    key: "cheltuieliTotale",
-    label: "Cheltuieli totale",
-    aliases: ["cheltuieli totale", "cheltuielitotale", "cheltuieli_totale", "total_expenses"],
-  },
-  {
-    key: "activeTotale",
-    label: "Total Active",
-    aliases: ["total active", "totalactive", "active_totale", "total_assets"],
-  },
-  {
-    key: "activeImobilizate",
-    label: "Active Imobilizate",
-    aliases: ["active imobilizate", "activeimobilizate", "active_imobilizate", "fixed_assets"],
-  },
-  {
-    key: "activeCirculante",
-    label: "Active Circulante",
-    aliases: ["active circulante", "activecirculante", "active_circulante", "current_assets"],
-  },
-  { key: "creante", label: "Creanțe", aliases: ["creante", "receivables", "trade_receivables"] },
-  { key: "stocuri", label: "Stocuri", aliases: ["stocuri", "inventories", "stocks"] },
-  {
-    key: "cheltuieliInAvans",
-    label: "Cheltuieli în avans",
-    aliases: [
-      "cheltuieli in avans",
-      "cheltuieliinavans",
-      "cheltuieli_in_avans",
-      "prepaid_expenses",
-    ],
-  },
-  {
-    key: "capitaluriProprii",
-    label: "Capitaluri proprii Total",
-    aliases: [
-      "capitaluri proprii total",
-      "capitaluriproprittotal",
-      "capitaluri_proprii",
-      "equity",
-      "shareholders_equity",
-    ],
-  },
-  {
-    key: "capitalSocial",
-    label: "Capital social",
-    aliases: ["capital social", "capitalsocial", "capital_social", "share_capital"],
-  },
-  {
-    key: "datoriiTotale",
-    label: "Datorii Total",
-    aliases: ["datorii total", "datoriitotal", "datorii_totale", "total_liabilities"],
-  },
-  {
-    key: "casaSiConturiBanci",
-    label: "Casa și conturi la bănci",
-    aliases: [
-      "casa si conturi la banci",
-      "casasiconturilabanci",
-      "casa_si_conturi_banci",
-      "cash_and_bank",
-    ],
-  },
-  { key: "provizioane", label: "Provizioane", aliases: ["provizioane", "provisions"] },
-  {
-    key: "venituriInAvans",
-    label: "Venituri în avans",
-    aliases: ["venituri in avans", "venituriinavans", "venituri_in_avans", "deferred_revenue"],
-  },
-  {
-    key: "numarAngajati",
-    label: "Număr mediu de salariați",
-    aliases: [
-      "numar mediu de salariati",
-      "numarmediudesalariati",
-      "numar_angajati",
-      "employees",
-      "nr_angajati",
-    ],
-  },
-  {
-    key: "anulInfiintarii",
-    label: "Anul înființării",
-    aliases: [
-      "anul infiintarii calculat",
-      "anulinfiintariicalculat",
-      "anul_infiintarii",
-      "year_founded",
-    ],
-  },
-  {
-    key: "ratingExtern",
-    label: "Rating extern",
-    aliases: ["rating", "rating_extern", "external_rating", "credit_rating"],
-  },
-  {
-    key: "limitaCreditEur",
-    label: "Limita de credit (EUR)",
-    aliases: ["limita de credit (eur)", "limitadecrediteur", "limita_credit_eur", "credit_limit"],
-  },
-];
+const DB_MAPPING_TARGETS = COLUMN_MAPPING_DEFINITIONS;
 
 const TEMPLATE_EXAMPLE_ROWS: string[][] = [
   TEMPLATE_COLUMNS.map((c) => c.example),
@@ -1170,13 +967,16 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
         return reply.code(404).send({ success: false, error: "Import batch not found" });
       }
 
-      const contacts = await db.query.bronzeContacts.findMany({
-        where: (t) =>
-          sql`${t.tenantId} = ${tenantId}
-            AND ${batchIdMetadataEquals(t.metadata, parsedParams.data.id)}`,
-      });
+      await setSessionTenantId(tenantId);
+      const [{ count: contactCount }] = await db
+        .select({ count: sql<number>`COUNT(*)` })
+        .from(bronzeContacts)
+        .where(
+          sql`${bronzeContacts.tenantId} = ${tenantId}
+            AND ${batchIdMetadataEquals(bronzeContacts.metadata, parsedParams.data.id)}`,
+        );
 
-      if (contacts.length === 0) {
+      if (Number(contactCount) === 0) {
         return { success: true, data: { id: parsedParams.data.id, requeued: 0 } };
       }
 
@@ -1229,7 +1029,7 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
         success: true,
         data: {
           id: parsedParams.data.id,
-          requeued: contacts.length,
+          requeued: Number(contactCount),
           alreadyQueued: Boolean(
             existingJob && !["completed", "failed"].includes(existingState ?? ""),
           ),
@@ -1384,13 +1184,16 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
         return reply.code(404).send({ success: false, error: "Import batch not found" });
       }
 
-      const contacts = await db.query.bronzeContacts.findMany({
-        where: (t) =>
-          sql`${t.tenantId} = ${tenantId}
-            AND ${batchIdMetadataEquals(t.metadata, batchId)}`,
-      });
+      await setSessionTenantId(tenantId);
+      const [{ count: contactCount }] = await db
+        .select({ count: sql<number>`COUNT(*)` })
+        .from(bronzeContacts)
+        .where(
+          sql`${bronzeContacts.tenantId} = ${tenantId}
+            AND ${batchIdMetadataEquals(bronzeContacts.metadata, batchId)}`,
+        );
 
-      if (contacts.length === 0) {
+      if (Number(contactCount) === 0) {
         return { success: true, data: { id: batchId, requeued: 0 } };
       }
 
@@ -1400,7 +1203,10 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
         const existingJob = await queue.getJob(reprocessJobId);
 
         if (existingJob) {
-          // Remove regardless of state — we're forcing a fresh restart
+          const state = await existingJob.getState();
+          if (state === "active") {
+            throw new Error("Job activ in curs");
+          }
           await existingJob.remove();
         }
 
@@ -1433,7 +1239,7 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
         .set({ metadata: nextMetadata, updatedAt: new Date() })
         .where(sql`${bronzeImportBatches.id} = ${batchId}`);
 
-      return { success: true, data: { id: batchId, requeued: contacts.length } };
+      return { success: true, data: { id: batchId, requeued: Number(contactCount) } };
     },
   );
 
@@ -1553,15 +1359,18 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
         return reply.code(404).send({ success: false, error: "Import batch not found" });
       }
 
-      const failedContacts = await db.query.bronzeContacts.findMany({
-        where: (t) =>
-          sql`${t.tenantId} = ${tenantId}
-            AND ${batchIdMetadataEquals(t.metadata, batchId)}
-            AND ${failedReprocessContactEquals(t.metadata)}`,
-        columns: { id: true },
-      });
+      await setSessionTenantId(tenantId);
+      const [{ count: failedCount }] = await db
+        .select({ count: sql<number>`COUNT(*)` })
+        .from(bronzeContacts)
+        .where(
+          sql`${bronzeContacts.tenantId} = ${tenantId}
+            AND ${batchIdMetadataEquals(bronzeContacts.metadata, batchId)}
+            AND ${failedReprocessContactEquals(bronzeContacts.metadata)}`,
+        );
+      const failedContactCount = Number(failedCount);
 
-      if (failedContacts.length === 0) {
+      if (failedContactCount === 0) {
         return { success: true, data: { id: batchId, requeued: 0 } };
       }
 
@@ -1570,6 +1379,10 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
         const reprocessJobId = `reprocess-errors-batch__${batchId}`;
         const existingJob = await queue.getJob(reprocessJobId);
         if (existingJob) {
+          const jobState = await existingJob.getState();
+          if (jobState === "active") {
+            throw new Error("Job activ in curs");
+          }
           await existingJob.remove();
         }
 
@@ -1616,7 +1429,7 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
         identityReprocessIdentityConflictRows: 0,
         identityReprocessInsufficientIdentifierRows: 0,
         identityReprocessPromotionQueued: 0,
-        identityReprocessRunTotalRows: failedContacts.length,
+        identityReprocessRunTotalRows: failedContactCount,
       } satisfies BatchMetadata;
 
       await db
@@ -1624,7 +1437,7 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
         .set({ metadata: nextMetadata, updatedAt: new Date() })
         .where(sql`${bronzeImportBatches.id} = ${batchId}`);
 
-      return { success: true, data: { id: batchId, requeued: failedContacts.length } };
+      return { success: true, data: { id: batchId, requeued: failedContactCount } };
     },
   );
 
@@ -1721,7 +1534,7 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
       if (allCuis.length > 0) {
         await db.execute(
           sql`UPDATE bronze.bronze_contacts
-              SET metadata = COALESCE(metadata, '{}'::jsonb) || '{"anafBronzeEnrichmentStatus":"pending"}'::jsonb,
+              SET metadata = jsonb_set(COALESCE(metadata, '{}'::jsonb), '{anafBronzeEnrichmentStatus}', '"pending"'::jsonb),
                   updated_at = NOW()
               WHERE tenant_id = ${tenantId}
                 AND COALESCE(jsonb_extract_path_text(metadata, 'batchId'), '') = ${batchId}
@@ -1732,7 +1545,7 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
       if (nrRegComCount > 0) {
         await db.execute(
           sql`UPDATE bronze.bronze_contacts
-              SET metadata = COALESCE(metadata, '{}'::jsonb) || '{"anafBronzeEnrichmentStatus":"pending"}'::jsonb,
+              SET metadata = jsonb_set(COALESCE(metadata, '{}'::jsonb), '{anafBronzeEnrichmentStatus}', '"pending"'::jsonb),
                   updated_at = NOW()
               WHERE tenant_id = ${tenantId}
                 AND COALESCE(jsonb_extract_path_text(metadata, 'batchId'), '') = ${batchId}
@@ -2188,6 +2001,8 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
       const storedPath = `${IMPORT_DIR}/${randomUUID()}-${sanitizeImportFilename(part.filename)}`;
       await writeFile(storedPath, bytes);
 
+      const fileHash = createHash("sha256").update(bytes).digest("hex");
+
       const [batch] = await db
         .insert(bronzeImportBatches)
         .values({
@@ -2199,6 +2014,7 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
           metadata: {
             mimetype: part.mimetype,
             storedPath,
+            fileHash,
             uploadConfig: {
               hasHeader: uploadConfig.hasHeader,
               encoding: uploadConfig.encoding,

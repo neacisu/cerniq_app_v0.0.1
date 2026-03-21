@@ -4,6 +4,7 @@ import {
   createQueue,
   sanitizeNrRegCom,
   withExternalApiMetrics,
+  QUEUES,
 } from "@cerniq/worker-shared";
 import {
   and,
@@ -142,7 +143,7 @@ async function persistAnafNotFound(jobData: CuiAnafJobData, cleanedCui: string) 
       await tx
         .update(bronzeContacts)
         .set({
-          metadata: sql`COALESCE(${bronzeContacts.metadata}, '{}'::jsonb) || ${JSON.stringify(notFoundPatch)}::jsonb`,
+          metadata: sql`jsonb_set(COALESCE(${bronzeContacts.metadata}, '{}'::jsonb), '{anafValidation}', ${JSON.stringify(notFoundPatch.anafValidation)}::jsonb)`,
         })
         .where(sql`${bronzeContacts.id} = ${jobData.bronzeContactId}`);
     }
@@ -151,7 +152,7 @@ async function persistAnafNotFound(jobData: CuiAnafJobData, cleanedCui: string) 
       await tx
         .update(silverCompanies)
         .set({
-          metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify(notFoundPatch)}::jsonb`,
+          metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{anafValidation}', ${JSON.stringify(notFoundPatch.anafValidation)}::jsonb)`,
         })
         .where(sql`${silverCompanies.id} = ${jobData.companyId}`);
     }
@@ -179,7 +180,7 @@ async function updateAnafCompany(
         cui: cleanedCui,
         nrRegCom: nrRegCom.sanitized ?? sql`${silverCompanies.nrRegCom}`,
         nrRegComOriginal: nrRegCom.raw ?? sql`${silverCompanies.nrRegComOriginal}`,
-        metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify(patch)}::jsonb`,
+        metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{anafValidation}', ${JSON.stringify(patch.anafValidation)}::jsonb)`,
       })
       .where(sql`${silverCompanies.id} = ${jobData.companyId}`);
   });
@@ -224,12 +225,12 @@ async function updateAnafBronzeContact(
     await tx
       .update(bronzeContacts)
       .set({
-        extractedName: denumireAnaf,
+        extractedName: sql`CASE WHEN ${bronzeContacts.extractedName} IS NULL OR ${bronzeContacts.extractedName} = '' THEN ${denumireAnaf} ELSE ${bronzeContacts.extractedName} END`,
         extractedCuiRaw: cleanedCui,
         extractedCui: cleanedCui,
         extractedNrRegComRaw: nrRegCom.raw ?? sql`${bronzeContacts.extractedNrRegComRaw}`,
         extractedNrRegCom: nrRegCom.sanitized ?? sql`${bronzeContacts.extractedNrRegCom}`,
-        metadata: sql`COALESCE(${bronzeContacts.metadata}, '{}'::jsonb) || ${JSON.stringify(patch)}::jsonb`,
+        metadata: sql`jsonb_set(COALESCE(${bronzeContacts.metadata}, '{}'::jsonb), '{anafValidation}', ${JSON.stringify(patch.anafValidation)}::jsonb)`,
       })
       .where(sql`${bronzeContacts.id} = ${jobData.bronzeContactId}`);
   });
@@ -271,7 +272,7 @@ async function fanOutAnafResultToSiblings(
         extractedCui: cleanedCui,
         extractedNrRegComRaw: nrRegCom.raw ?? sql`${bronzeContacts.extractedNrRegComRaw}`,
         extractedNrRegCom: nrRegCom.sanitized ?? sql`${bronzeContacts.extractedNrRegCom}`,
-        metadata: sql`COALESCE(${bronzeContacts.metadata}, '{}'::jsonb) || ${JSON.stringify(patch)}::jsonb`,
+        metadata: sql`jsonb_set(COALESCE(${bronzeContacts.metadata}, '{}'::jsonb), '{anafValidation}', ${JSON.stringify(patch.anafValidation)}::jsonb)`,
       })
       .where(
         and(
@@ -284,7 +285,7 @@ async function fanOutAnafResultToSiblings(
   });
 
   // Enqueue promotion for each sibling contact
-  const promotionQueue = createQueue("pipeline:promote:bronze-silver");
+  const promotionQueue = createQueue(QUEUES.PIPELINE_PROMOTE_BRONZE_SILVER);
   for (const sibling of siblings) {
     await promotionQueue.add(
       `promote-${sibling.id}`,
@@ -295,7 +296,11 @@ async function fanOutAnafResultToSiblings(
         correlationId: `fanout-${originContactId}`,
         anafData: companyData,
       },
-      { jobId: `promote-${sibling.id}` },
+      {
+        jobId: `promote-${sibling.id}`,
+        attempts: 3,
+        backoff: { type: "exponential", delay: 2000 },
+      },
     );
   }
   await promotionQueue.close();
@@ -311,7 +316,7 @@ async function enqueueAnafPromotion(
   }
 
   try {
-    const promotionQueue = createQueue("pipeline:promote:bronze-silver");
+    const promotionQueue = createQueue(QUEUES.PIPELINE_PROMOTE_BRONZE_SILVER);
     await promotionQueue.add(
       `promote-${jobData.bronzeContactId}`,
       {

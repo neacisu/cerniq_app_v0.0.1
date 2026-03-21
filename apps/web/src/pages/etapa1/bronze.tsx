@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import type { ColumnDef } from "@tanstack/react-table";
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
 import { Button, Card, CardHeader, CardTitle, CardBody } from "@/components/ui/index.js";
@@ -42,13 +43,17 @@ function makeActionsColumn(
 }
 
 export function Bronze() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialBatchId = searchParams.get("batchId") ?? "";
+
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(25);
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
+  const [batchIdInput, setBatchIdInput] = useState(initialBatchId);
+  const [batchId, setBatchId] = useState(initialBatchId);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  // Debounce search input by 300ms
   useEffect(() => {
     const timer = setTimeout(() => {
       setSearch(searchInput);
@@ -56,6 +61,28 @@ export function Bronze() {
     }, 300);
     return () => clearTimeout(timer);
   }, [searchInput]);
+
+  const handleBatchIdChange = (value: string) => {
+    setBatchIdInput(value);
+  };
+
+  const applyBatchFilter = () => {
+    const trimmed = batchIdInput.trim();
+    setBatchId(trimmed);
+    setPage(1);
+    if (trimmed) {
+      setSearchParams({ batchId: trimmed });
+    } else {
+      setSearchParams({});
+    }
+  };
+
+  const clearBatchFilter = () => {
+    setBatchIdInput("");
+    setBatchId("");
+    setPage(1);
+    setSearchParams({});
+  };
 
   const offset = (page - 1) * pageSize;
 
@@ -68,6 +95,7 @@ export function Bronze() {
     limit: pageSize,
     offset,
     search: search || undefined,
+    batchId: batchId || undefined,
   });
 
   const reprocessMutation = useReprocessBronze();
@@ -117,8 +145,8 @@ export function Bronze() {
           icon="Database"
           title="Niciun contact bronze"
           description={
-            search
-              ? "Niciun rezultat pentru căutarea curentă."
+            search || batchId
+              ? "Niciun rezultat pentru filtrele curente."
               : "Nu există contacte în stratul Bronze."
           }
         />
@@ -158,12 +186,39 @@ export function Bronze() {
         <CardHeader>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle>Contacte Bronze</CardTitle>
-            <SearchInput
-              value={searchInput}
-              onChange={(val) => setSearchInput(val)}
-              placeholder="Caută după CUI, Nume firmă sau Nr. reg. com..."
-            />
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <SearchInput
+                value={searchInput}
+                onChange={(val) => setSearchInput(val)}
+                placeholder="Caută după CUI, Nume firmă sau Nr. reg. com..."
+              />
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="text"
+                  className="h-8 w-64 rounded border border-s600 bg-s800 px-2 text-xs text-t1 placeholder:text-t3"
+                  placeholder="Filtru Batch ID..."
+                  value={batchIdInput}
+                  onChange={(e) => handleBatchIdChange(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") applyBatchFilter();
+                  }}
+                />
+                <Button variant="outline" size="sm" onClick={applyBatchFilter}>
+                  Filtru
+                </Button>
+                {batchId ? (
+                  <Button variant="ghost" size="sm" onClick={clearBatchFilter}>
+                    X
+                  </Button>
+                ) : null}
+              </div>
+            </div>
           </div>
+          {batchId ? (
+            <p className="mt-2 text-xs text-t3">
+              Filtrat după batch: <span className="font-mono text-t2">{batchId}</span>
+            </p>
+          ) : null}
         </CardHeader>
         <CardBody>{renderContent()}</CardBody>
       </Card>

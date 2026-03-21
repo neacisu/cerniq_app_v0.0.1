@@ -80,7 +80,8 @@ export function createDispatchWorker(redis: Redis): Worker {
       const { tenantId, batchSize = 100 } = job.data;
       const startTime = Date.now();
 
-      const { db } = await import("@cerniq/db");
+      const { db, setSessionTenantId } = await import("@cerniq/db");
+      await setSessionTenantId(tenantId);
       const { leadJourney, goldCompanies } = await import("@cerniq/db");
       const { and, eq, lte, inArray, isNull, or } = await import("@cerniq/db");
 
@@ -171,7 +172,8 @@ export function createPhoneAllocatorWorker(redis: Redis): Worker {
     async (job: Job<PhoneAllocatorJobData>): Promise<PhoneAllocatorResult> => {
       const { tenantId, leadId, journeyId, currentAssignedPhoneId } = job.data;
 
-      const { db } = await import("@cerniq/db");
+      const { db, setSessionTenantId } = await import("@cerniq/db");
+      await setSessionTenantId(tenantId);
       const { waPhoneNumbers, leadJourney } = await import("@cerniq/db");
       const { eq, and } = await import("@cerniq/db");
 
@@ -306,7 +308,8 @@ export function createChannelSelectorWorker(redis: Redis): Worker {
     async (job: Job<ChannelSelectorJobData>): Promise<ChannelSelectorResult> => {
       const { tenantId, leadId, currentState, hasPhone, phoneId, journeyId } = job.data;
 
-      const { db } = await import("@cerniq/db");
+      const { db, setSessionTenantId } = await import("@cerniq/db");
+      await setSessionTenantId(tenantId);
       const { waPhoneNumbers, goldCompanies, leadJourney } = await import("@cerniq/db");
       const { eq, and } = await import("@cerniq/db");
 

@@ -59,7 +59,7 @@ function resolveCountyCode(judet: string | null): string | null {
   if (!judet) return null;
   const normalized = judet
     .toLowerCase()
-    .replace(/[^a-z\s-]/g, "")
+    .replaceAll(/[^a-z\s-]/g, "")
     .trim();
   if (COUNTY_CODE_MAP[normalized]) return COUNTY_CODE_MAP[normalized];
   for (const [name, code] of Object.entries(COUNTY_CODE_MAP)) {
@@ -138,9 +138,7 @@ export const postgisZonesProcessor: Processor<PostgisZonesJobData> = async (job)
     .update(silverCompanies)
     .set({
       judetCod: judetCod ?? undefined,
-      metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify({
-        postgisZones: zoneData,
-      })}::jsonb`,
+      metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{postgisZones}', ${JSON.stringify(zoneData)}::jsonb)`,
       updatedAt: new Date(),
     })
     .where(sql`${silverCompanies.id} = ${companyId}`);

@@ -1,7 +1,7 @@
 import type { Processor } from "bullmq";
 import { db, silverCompanies, silverEnrichmentLog, setSessionTenantId, sql } from "@cerniq/db";
-import { fetchAnafRecordByCui } from "../lib/anaf-api-client.js";
-import { sanitizeCui } from "../lib/cui-validation.js";
+import { sanitizeCui } from "@cerniq/worker-shared";
+import { fetchAnafSingleByCui } from "../lib/anaf-api-client.js";
 import { markEnrichmentSourceComplete } from "../lib/enrichment-completion.js";
 
 export type AnafTvaJobData = {
@@ -16,7 +16,7 @@ export const anafTvaProcessor: Processor<AnafTvaJobData> = async (job) => {
   const cleanedCui = sanitizeCui(job.data.cui);
   await setSessionTenantId(job.data.tenantId);
 
-  const record = await fetchAnafRecordByCui(cleanedCui);
+  const record = await fetchAnafSingleByCui(cleanedCui);
   if (!record) {
     await db.insert(silverEnrichmentLog).values({
       tenantId: job.data.tenantId,
@@ -40,15 +40,19 @@ export const anafTvaProcessor: Processor<AnafTvaJobData> = async (job) => {
     return { ok: true, status: "not_found", source: "anaf_tva", cleanedCui };
   }
 
-  const tvaActive = Boolean(record.scpTVA ?? record.tva ?? false);
+  const tvaActive = record.inregistrare_scop_Tva?.scpTVA ?? null;
+  const tvaIncasare = record.inregistrare_RTVAI?.statusTvaIncasare ?? null;
+
+  const tvaSummary = {
+    scpTVA: tvaActive,
+    statusTvaIncasare: tvaIncasare,
+    perioade_TVA: record.inregistrare_scop_Tva?.perioade_TVA ?? [],
+  };
 
   await db
     .update(silverCompanies)
     .set({
-      metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify({
-        anafTva: record,
-        tvaActive,
-      })}::jsonb`,
+      metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{anafTva}', ${JSON.stringify(tvaSummary)}::jsonb)`,
       lastEnrichedAt: new Date(),
     })
     .where(sql`${silverCompanies.id} = ${job.data.companyId}`);
@@ -60,7 +64,7 @@ export const anafTvaProcessor: Processor<AnafTvaJobData> = async (job) => {
     source: "anaf_tva",
     operation: "fetch",
     requestPayload: { cui: cleanedCui },
-    responsePayload: record,
+    responsePayload: tvaSummary,
     fieldsUpdated: ["metadata"],
     correlationId: job.data.correlationId,
     jobId: String(job.id ?? ""),

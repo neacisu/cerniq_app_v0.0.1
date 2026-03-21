@@ -1,4 +1,4 @@
-import { ResponsiveContainer, RadialBarChart, RadialBar } from "recharts";
+import { RadialBarChart, RadialBar } from "recharts";
 
 type GaugeChartProps = {
   value: number;
@@ -15,21 +15,23 @@ export function GaugeChart({ value, size = "md" }: GaugeChartProps) {
   const dim = sizeMap[size];
   const data = [{ name: "score", value: Math.max(0, Math.min(100, value)) }];
 
+  // Dimensiuni fixe pe RadialBarChart (fără ResponsiveContainer): în flex/grid,
+  // ResponsiveContainer măsoară adesea -1×-1 la primul paint → warning Recharts.
   return (
-    <div style={{ width: dim, height: dim }}>
-      <ResponsiveContainer width="100%" height="100%">
-        <RadialBarChart
-          cx="50%"
-          cy="50%"
-          innerRadius="70%"
-          outerRadius="100%"
-          data={data}
-          startAngle={180}
-          endAngle={0}
-        >
-          <RadialBar dataKey="value" cornerRadius={8} fill="var(--color-b5)" />
-        </RadialBarChart>
-      </ResponsiveContainer>
+    <div className="shrink-0" style={{ width: dim, height: dim, minWidth: dim, minHeight: dim }}>
+      <RadialBarChart
+        width={dim}
+        height={dim}
+        cx="50%"
+        cy="50%"
+        innerRadius="70%"
+        outerRadius="100%"
+        data={data}
+        startAngle={180}
+        endAngle={0}
+      >
+        <RadialBar dataKey="value" cornerRadius={8} fill="var(--color-b5)" />
+      </RadialBarChart>
     </div>
   );
 }

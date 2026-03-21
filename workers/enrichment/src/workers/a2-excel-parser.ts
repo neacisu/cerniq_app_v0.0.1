@@ -11,6 +11,7 @@ import {
   triggerAnafBronzeEnrichment,
   triggerNormalizationForContacts,
   updateImportBatchCounters,
+  verifyFileHash,
 } from "./ingest-utils.js";
 
 export type ExcelParserJobData = {
@@ -30,6 +31,8 @@ export type ExcelParserJobData = {
     successRows?: number;
     errorRows?: number;
     duplicateRows?: number;
+    lastSheetIndex?: number;
+    lastRowNumber?: number;
   };
   correlationId: string;
 };
@@ -67,6 +70,8 @@ type ExcelImportState = {
   skippedDataRows: number;
   allInsertedIds: string[];
   autoDetectedMapping: Record<string, string>;
+  resumeSheetIndex: number;
+  resumeRowNumber: number;
 };
 
 function createExcelImportState(job: ExcelParserJobData): ExcelImportState {
@@ -84,6 +89,8 @@ function createExcelImportState(job: ExcelParserJobData): ExcelImportState {
     allInsertedIds: [],
     autoDetectedMapping:
       job.columnMapping && Object.keys(job.columnMapping).length > 0 ? job.columnMapping : {},
+    resumeSheetIndex: Number(resumeFrom.lastSheetIndex ?? -1),
+    resumeRowNumber: Number(resumeFrom.lastRowNumber ?? -1),
   };
 }
 
@@ -165,6 +172,8 @@ async function flushWorksheetBuffer(
   state: ExcelImportState,
   sheetName: string,
   rowBuffer: Array<Record<string, unknown>>,
+  currentSheetIndex: number,
+  currentRowNumber: number,
 ) {
   if (rowBuffer.length === 0) {
     return [];
@@ -220,13 +229,37 @@ async function flushWorksheetBuffer(
     identityMetrics: buildIdentityMetrics(state),
   });
 
+  await db
+    .update(bronzeImportBatches)
+    .set({
+      metadata: sql`jsonb_set(COALESCE(${bronzeImportBatches.metadata}, '{}'::jsonb), '{resumeCursor}', ${JSON.stringify({ lastSheetIndex: currentSheetIndex, lastRowNumber: currentRowNumber })}::jsonb)`,
+    })
+    .where(sql`${bronzeImportBatches.id} = ${job.data.batchId}`);
+
   return processableIds;
+}
+
+function shouldSkipRow(
+  row: ExcelJS.Row,
+  rowNum: number,
+  state: ExcelImportState,
+  skipRows: number,
+  resumeAfterRow: number,
+): boolean {
+  if (!row.hasValues) return true;
+  if (state.skippedDataRows < skipRows) {
+    state.skippedDataRows += 1;
+    return true;
+  }
+  if (resumeAfterRow >= 0 && rowNum <= resumeAfterRow) return true;
+  return false;
 }
 
 async function processWorksheet(
   job: Parameters<typeof excelParserProcessor>[0],
   worksheet: ExcelJS.Worksheet,
   sheetName: string,
+  sheetIndex: number,
   state: ExcelImportState,
   batchSize: number,
 ) {
@@ -240,30 +273,40 @@ async function processWorksheet(
     state.autoDetectedMapping = detectColumnMapping(headers);
   }
 
+  const isResumeSheet = state.resumeSheetIndex >= 0 && sheetIndex === state.resumeSheetIndex;
+  const resumeAfterRow = isResumeSheet ? state.resumeRowNumber : -1;
+
   const rowBuffer: Array<Record<string, unknown>> = [];
+  let lastRowNum = dataStartRowNum;
   for (let rowNum = dataStartRowNum; rowNum <= worksheet.rowCount; rowNum++) {
     const row = worksheet.getRow(rowNum);
-    if (!row.hasValues) {
-      continue;
-    }
-    if (state.skippedDataRows < skipRows) {
-      state.skippedDataRows += 1;
-      continue;
-    }
+    if (shouldSkipRow(row, rowNum, state, skipRows, resumeAfterRow)) continue;
 
     const rowObject = buildWorksheetRowObject(row, headers, hasHeader);
-    if (Object.keys(rowObject).length === 0) {
-      continue;
-    }
+    if (Object.keys(rowObject).length === 0) continue;
 
     rowBuffer.push(rowObject);
     state.totalRowsRead += 1;
+    lastRowNum = rowNum;
     if (rowBuffer.length >= batchSize) {
-      await flushWorksheetBuffer(job, state, sheetName, rowBuffer);
+      await flushWorksheetBuffer(job, state, sheetName, rowBuffer, sheetIndex, lastRowNum);
     }
   }
 
-  await flushWorksheetBuffer(job, state, sheetName, rowBuffer);
+  await flushWorksheetBuffer(job, state, sheetName, rowBuffer, sheetIndex, lastRowNum);
+}
+
+async function assertFileIntegrity(batchId: string, filePath: string): Promise<void> {
+  if (!batchId) return;
+  const batch = await db.query.bronzeImportBatches.findFirst({
+    where: (t, { eq }) => eq(t.id, batchId),
+  });
+  const storedHash = (batch?.metadata as Record<string, unknown> | null)?.fileHash as
+    | string
+    | undefined;
+  if (!storedHash) return;
+  const { valid } = await verifyFileHash(filePath, storedHash);
+  if (!valid) throw new Error("File integrity check failed: SHA-256 hash mismatch");
 }
 
 async function persistBatchMappingMetadata(
@@ -278,10 +321,7 @@ async function persistBatchMappingMetadata(
   await db
     .update(bronzeImportBatches)
     .set({
-      metadata: sql`COALESCE(${bronzeImportBatches.metadata}, '{}'::jsonb) || ${JSON.stringify({
-        columnMapping: autoDetectedMapping,
-        sheetNames: targetSheets,
-      })}::jsonb`,
+      metadata: sql`jsonb_set(jsonb_set(COALESCE(${bronzeImportBatches.metadata}, '{}'::jsonb), '{columnMapping}', ${JSON.stringify(autoDetectedMapping)}::jsonb), '{sheetNames}', ${JSON.stringify(targetSheets)}::jsonb)`,
     })
     .where(sql`${bronzeImportBatches.id} = ${batchId}`);
 }
@@ -292,6 +332,9 @@ export const excelParserProcessor: Processor<ExcelParserJobData> = async (job) =
 
   try {
     const fileBuffer = await readFile(job.data.filePath);
+
+    await assertFileIntegrity(job.data.batchId, job.data.filePath);
+
     const workbook = new ExcelJS.Workbook();
     // ExcelJS 4.x types expect legacy Buffer; incompatible with Node 22+ resizable ArrayBuffer
     await workbook.xlsx.load(fileBuffer as unknown as import("exceljs").Buffer);
@@ -307,12 +350,16 @@ export const excelParserProcessor: Processor<ExcelParserJobData> = async (job) =
     const dataStartRowNum = job.data.dataStartRow ?? 2;
     state.totalRowsExpected = calculateExpectedRows(workbook, targetSheets, dataStartRowNum);
 
-    for (const sheetName of targetSheets) {
+    for (let sheetIdx = 0; sheetIdx < targetSheets.length; sheetIdx++) {
+      if (state.resumeSheetIndex >= 0 && sheetIdx < state.resumeSheetIndex) {
+        continue;
+      }
+      const sheetName = targetSheets[sheetIdx];
       const worksheet = workbook.getWorksheet(sheetName);
       if (!worksheet || worksheet.rowCount === 0) {
         continue;
       }
-      await processWorksheet(job, worksheet, sheetName, state, batchSize);
+      await processWorksheet(job, worksheet, sheetName, sheetIdx, state, batchSize);
     }
 
     await persistBatchMappingMetadata(job.data.batchId, state.autoDetectedMapping, targetSheets);

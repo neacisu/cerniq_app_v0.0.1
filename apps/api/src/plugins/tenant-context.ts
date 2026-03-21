@@ -25,11 +25,8 @@ function isPublicRoute(url: string): boolean {
 async function tenantContextPlugin(app: FastifyInstance) {
   app.decorateRequest("tenantId", null);
 
+  /** Always apply session GUCs (sentinels when null) so pooled connections are fail-closed for RLS. */
   const setRequestContext = async (tenantId: string | null, userId: string | null) => {
-    if (!tenantId && !userId) {
-      return;
-    }
-
     const tenantValue = tenantId ?? "00000000-0000-0000-0000-000000000000";
     const userValue = userId ?? "00000000-0000-0000-0000-000000000000";
     await db.execute(sql`

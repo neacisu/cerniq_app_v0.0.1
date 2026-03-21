@@ -17,6 +17,8 @@ import {
   computeStableSourcePayloadHash,
   resolveBronzeContactIdentity,
   upsertCompanyIdentityKey,
+  batchIdMetadataEquals,
+  failedReprocessContactEquals,
 } from "@cerniq/db";
 import { createQueue, sanitizeNrRegCom, QUEUES, validateJobData } from "@cerniq/worker-shared";
 import { sanitizeCui } from "../lib/cui-validation.js";
@@ -210,14 +212,6 @@ async function withBatchMetadataRetry<T>(
   }
 
   throw new Error(`Retry loop exhausted for ${operation}`);
-}
-
-function batchIdMetadataEquals(metadataColumn: unknown, batchId: string) {
-  return sql`COALESCE(jsonb_extract_path_text(${metadataColumn}, ${"batchId"}), ${""}) = ${batchId}`;
-}
-
-function failedReprocessContactEquals(metadataColumn: unknown) {
-  return sql`COALESCE(jsonb_extract_path_text(${metadataColumn}, 'identityReprocessError', 'status'), '') = 'failed'`;
 }
 
 function sqlTimestamp(value: string) {
@@ -455,7 +449,7 @@ export function detectSheetType(sheetName: string | null, payloadKeys: string[])
   if (sn.includes("datoriianaf") || sn.includes("anaf")) return "anaf_debts";
   if (sn.includes("bpi") || sn.includes("insolventa")) return "bpi";
   if (sn.includes("cip") || sn.includes("incidente")) return "cip";
-  if (sn.includes("parti")) return "parti_dosare";
+  if (/\bparti\b/.test(sn) || sn.includes("partidosare")) return "parti_dosare";
   if (sn.includes("termene")) return "termene_dosare";
   if (sn.includes("dosare") || sn.includes("litigii")) return "dosare";
 
@@ -581,14 +575,19 @@ async function backfillBronzeIdentityFields(
   bronze: BronzeContactRow,
   payload: Payload,
   mapping: Mapping,
-) {
+): Promise<{ identityFieldsChanged: boolean }> {
   const { patch } = getIdentityReprocessPatch(bronze, payload, mapping);
+
+  const identityFieldsChanged =
+    patch.extractedCui !== bronze.extractedCui ||
+    patch.extractedNrRegCom !== bronze.extractedNrRegCom;
+
   const hasChanges = Object.entries(patch).some(
     ([key, value]) => bronze[key as keyof BronzeContactRow] !== value,
   );
 
   if (!hasChanges) {
-    return;
+    return { identityFieldsChanged: false };
   }
 
   await db
@@ -598,6 +597,8 @@ async function backfillBronzeIdentityFields(
       updatedAt: new Date(),
     })
     .where(sql`${bronzeContacts.id} = ${bronze.id}`);
+
+  return { identityFieldsChanged };
 }
 
 async function ensureIdentityConflictApprovalTask(
@@ -756,13 +757,18 @@ async function processOneBronzeContact(
   counters: ReprocessRunCounters,
 ): Promise<void> {
   const payload = bronze.rawPayload as Payload;
-  await backfillBronzeIdentityFields(bronze, payload, mapping);
+  const { identityFieldsChanged } = await backfillBronzeIdentityFields(bronze, payload, mapping);
+
+  if (bronze.identityStatus === "resolved" && !identityFieldsChanged) {
+    counters.resolved += 1;
+    return;
+  }
+
   const resolution = await resolveBronzeContactIdentity({
     tenantId,
     bronzeContactId: bronze.id,
     sourceAuthority: "import",
   });
-  counters.processed += 1;
   if (resolution.status === "resolved") {
     counters.resolved += 1;
     return;
@@ -792,6 +798,7 @@ async function processOneBronzeContactWithRetries(
     try {
       await processOneBronzeContact(bronze, mapping, tenantId, counters);
       await clearContactReprocessFailure({ tenantId, bronzeId: bronze.id });
+      counters.processed += 1;
       return;
     } catch (error) {
       lastError = error;
@@ -1477,6 +1484,7 @@ async function handleBatchReprocessJob(
 }
 
 async function markBronzePromoted(
+  tenantId: string,
   bronzeId: string,
   silverId: string,
   isDuplicate = false,
@@ -1490,7 +1498,7 @@ async function markBronzePromoted(
       isDuplicate,
       duplicateOfId,
     })
-    .where(sql`${bronzeContacts.id} = ${bronzeId}`);
+    .where(sql`${bronzeContacts.tenantId} = ${tenantId} AND ${bronzeContacts.id} = ${bronzeId}`);
 }
 
 async function triggerCompanyEnrichment(data: {
@@ -1922,6 +1930,7 @@ function buildCompanyUpdate(args: {
       website: website ?? undefined,
       nrRegCom: nrRegCom ?? undefined,
       nrRegComOriginal: rawNrRegCom ?? undefined,
+      nrRegComCanonical: bronze.extractedNrRegComCanonical ?? undefined,
       identityStatus,
       codCaenPrincipal: codCaenPrincipal ?? undefined,
       denumireCaen: excelCaenText ?? undefined,
@@ -1968,65 +1977,79 @@ function buildCompanyUpdate(args: {
       dataInceputTva: anaf.dataInceputTva ?? undefined,
       dataSfarsitTva: anaf.dataSfarsitTva ?? undefined,
       periodeTva: anaf.periodeTva ?? undefined,
-      tvaLaIncasare: anaf.tvaLaIncasare ?? false,
+      tvaLaIncasare: anaf.tvaLaIncasare ?? undefined,
       dataInceputTvaIncasare: anaf.dataInceputTvaIncasare,
       dataSfarsitTvaIncasare: anaf.dataSfarsitTvaIncasare,
-      splitTva: anaf.splitTvaVal ?? false,
+      splitTva: anaf.splitTvaVal ?? undefined,
       dataInceputSplitTva: anaf.dataInceputSplitTva,
       dataAnulareSplitTva: anaf.dataAnulareSplitTva,
-      inregistratEfactura: anaf.inregistratEfactura ?? false,
+      inregistratEfactura: anaf.inregistratEfactura ?? undefined,
       dataInregistrareEfactura: anaf.dataInregistrareEfactura ?? undefined,
-      cifraAfaceri: parseRomanianNumeric(
-        resolveField(payload, mapping, "cifraAfaceri", "Cifra de afaceri"),
-      ),
-      profitNet: parseRomanianNumeric(
-        resolveField(payload, mapping, "profitNet", "Profit / Pierdere Neta"),
-      ),
-      profitBrut: parseRomanianNumeric(
-        resolveField(payload, mapping, "profitBrut", "Profit / Pierdere Bruta", "profit brut"),
-      ),
-      venituriTotale: parseRomanianNumeric(
-        resolveField(payload, mapping, "venituriTotale", "Venituri totale"),
-      ),
-      cheltuieliTotale: parseRomanianNumeric(
-        resolveField(payload, mapping, "cheltuieliTotale", "Cheltuieli totale"),
-      ),
-      activeTotale: parseRomanianNumeric(
-        resolveField(payload, mapping, "activeTotale", "Total Active"),
-      ),
-      activeImobilizate: parseRomanianNumeric(
-        resolveField(payload, mapping, "activeImobilizate", "Active Imobilizate"),
-      ),
-      activeCirculante: parseRomanianNumeric(
-        resolveField(payload, mapping, "activeCirculante", "Active Circulante"),
-      ),
-      creante: parseRomanianNumeric(resolveField(payload, mapping, "creante", "Creante")),
-      stocuri: parseRomanianNumeric(resolveField(payload, mapping, "stocuri", "Stocuri")),
-      capitalSocial: parseRomanianNumeric(
-        resolveField(payload, mapping, "capitalSocial", "Capital social"),
-      ),
-      capitaluriProprii: parseRomanianNumeric(
-        resolveField(payload, mapping, "capitaluriProprii", "Capitaluri proprii Total"),
-      ),
-      datoriiTotale: parseRomanianNumeric(
-        resolveField(payload, mapping, "datoriiTotale", "Datorii Total"),
-      ),
-      numarAngajati: parseIntSafe(
-        resolveField(payload, mapping, "numarAngajati", "Numar mediu de salariati"),
-      ),
-      anulInfiintarii,
-      ratingExtern: parseIntSafe(resolveField(payload, mapping, "ratingExtern", "Rating")),
-      limitaCreditEur: parseRomanianNumeric(
-        resolveField(payload, mapping, "limitaCreditEur", "Limita de credit (EUR)"),
-      ),
+      cifraAfaceri:
+        parseRomanianNumeric(resolveField(payload, mapping, "cifraAfaceri", "Cifra de afaceri")) ??
+        undefined,
+      profitNet:
+        parseRomanianNumeric(
+          resolveField(payload, mapping, "profitNet", "Profit / Pierdere Neta"),
+        ) ?? undefined,
+      profitBrut:
+        parseRomanianNumeric(
+          resolveField(payload, mapping, "profitBrut", "Profit / Pierdere Bruta", "profit brut"),
+        ) ?? undefined,
+      venituriTotale:
+        parseRomanianNumeric(resolveField(payload, mapping, "venituriTotale", "Venituri totale")) ??
+        undefined,
+      cheltuieliTotale:
+        parseRomanianNumeric(
+          resolveField(payload, mapping, "cheltuieliTotale", "Cheltuieli totale"),
+        ) ?? undefined,
+      activeTotale:
+        parseRomanianNumeric(resolveField(payload, mapping, "activeTotale", "Total Active")) ??
+        undefined,
+      activeImobilizate:
+        parseRomanianNumeric(
+          resolveField(payload, mapping, "activeImobilizate", "Active Imobilizate"),
+        ) ?? undefined,
+      activeCirculante:
+        parseRomanianNumeric(
+          resolveField(payload, mapping, "activeCirculante", "Active Circulante"),
+        ) ?? undefined,
+      creante:
+        parseRomanianNumeric(resolveField(payload, mapping, "creante", "Creante")) ?? undefined,
+      stocuri:
+        parseRomanianNumeric(resolveField(payload, mapping, "stocuri", "Stocuri")) ?? undefined,
+      capitalSocial:
+        parseRomanianNumeric(resolveField(payload, mapping, "capitalSocial", "Capital social")) ??
+        undefined,
+      capitaluriProprii:
+        parseRomanianNumeric(
+          resolveField(payload, mapping, "capitaluriProprii", "Capitaluri proprii Total"),
+        ) ?? undefined,
+      datoriiTotale:
+        parseRomanianNumeric(resolveField(payload, mapping, "datoriiTotale", "Datorii Total")) ??
+        undefined,
+      numarAngajati:
+        parseIntSafe(resolveField(payload, mapping, "numarAngajati", "Numar mediu de salariati")) ??
+        undefined,
+      anulInfiintarii: anulInfiintarii ?? undefined,
+      ratingExtern:
+        parseIntSafe(resolveField(payload, mapping, "ratingExtern", "Rating")) ?? undefined,
+      limitaCreditEur:
+        parseRomanianNumeric(
+          resolveField(payload, mapping, "limitaCreditEur", "Limita de credit (EUR)"),
+        ) ?? undefined,
       sourceBronzeId: bronze.id,
-      metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify({
-        promotion,
-        promotedAt: new Date().toISOString(),
-        sourceSheet,
-        fieldSources,
-        ...(anafV9 ? { anafV9Response: anafV9 } : {}),
-      })}::jsonb`,
+      metadata: (() => {
+        let expr = sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb)`;
+        expr = sql`jsonb_set(${expr}, '{promotion}', ${JSON.stringify(promotion)}::jsonb)`;
+        expr = sql`jsonb_set(${expr}, '{promotedAt}', ${JSON.stringify(new Date().toISOString())}::jsonb)`;
+        expr = sql`jsonb_set(${expr}, '{sourceSheet}', ${JSON.stringify(sourceSheet)}::jsonb)`;
+        expr = sql`jsonb_set(${expr}, '{fieldSources}', ${JSON.stringify(fieldSources)}::jsonb)`;
+        if (anafV9) {
+          expr = sql`jsonb_set(${expr}, '{anafV9Response}', ${JSON.stringify(anafV9)}::jsonb)`;
+        }
+        return expr;
+      })(),
     },
   };
 }
@@ -2141,7 +2164,17 @@ async function upsertPromotionPrimaryContact(args: {
       isPrimary: true,
       metadata: { source: "promotion_bronze_silver" },
     })
-    .onConflictDoNothing();
+    .onConflictDoUpdate({
+      target: [silverContacts.tenantId, silverContacts.companyId, silverContacts.emailNormalized],
+      targetWhere: sql`${silverContacts.emailNormalized} <> ''`,
+      set: {
+        prenume: sql`COALESCE(EXCLUDED."prenume", ${silverContacts.prenume})`,
+        nume: sql`COALESCE(EXCLUDED."nume", ${silverContacts.nume})`,
+        telefon: sql`COALESCE(EXCLUDED."telefon", ${silverContacts.telefon})`,
+        isPrimary: true,
+        updatedAt: new Date(),
+      },
+    });
 }
 
 async function findOrCreateParentCompany(args: {
@@ -2282,7 +2315,7 @@ async function handleCompanyPromotion(args: {
     phone,
   });
 
-  await markBronzePromoted(bronze.id, silverId, dedupMerged, duplicateOfId);
+  await markBronzePromoted(jobData.tenantId, bronze.id, silverId, dedupMerged, duplicateOfId);
   await triggerCompanyEnrichment({
     tenantId: jobData.tenantId,
     companyId: silverId,
@@ -2329,7 +2362,7 @@ async function handleAnafDebtDetail(args: {
     },
   });
 
-  await markBronzePromoted(args.bronze.id, parent.id);
+  await markBronzePromoted(args.jobData.tenantId, args.bronze.id, parent.id);
   return { ok: true, status: "detail_promoted", type: "anaf_debts", silverId: parent.id };
 }
 
@@ -2368,7 +2401,7 @@ async function handleBpiDetail(args: {
     },
   });
 
-  await markBronzePromoted(args.bronze.id, parent.id);
+  await markBronzePromoted(args.jobData.tenantId, args.bronze.id, parent.id);
   return { ok: true, status: "detail_promoted", type: "bpi", silverId: parent.id };
 }
 
@@ -2429,7 +2462,7 @@ async function handleCipDetail(args: {
     },
   });
 
-  await markBronzePromoted(args.bronze.id, parent.id);
+  await markBronzePromoted(args.jobData.tenantId, args.bronze.id, parent.id);
   return { ok: true, status: "detail_promoted", type: "cip", silverId: parent.id };
 }
 
@@ -2523,7 +2556,7 @@ async function handleDosareDetail(args: {
     },
   });
 
-  await markBronzePromoted(args.bronze.id, parent.id);
+  await markBronzePromoted(args.jobData.tenantId, args.bronze.id, parent.id);
   return { ok: true, status: "detail_promoted", type: "dosare", silverId: parent.id };
 }
 
@@ -2563,7 +2596,7 @@ async function handlePartiDosareDetail(args: {
     },
   });
 
-  await markBronzePromoted(args.bronze.id, parent.id);
+  await markBronzePromoted(args.jobData.tenantId, args.bronze.id, parent.id);
   return { ok: true, status: "detail_promoted", type: "parti_dosare", silverId: parent.id };
 }
 
@@ -2614,7 +2647,7 @@ async function handleTermeneDosareDetail(args: {
     },
   });
 
-  await markBronzePromoted(args.bronze.id, parent.id);
+  await markBronzePromoted(args.jobData.tenantId, args.bronze.id, parent.id);
   return { ok: true, status: "detail_promoted", type: "termene_dosare", silverId: parent.id };
 }
 

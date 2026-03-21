@@ -36,15 +36,28 @@ const poolSize =
     ? Math.max(1, Math.min(100, Number.parseInt(process.env.DB_POOL_SIZE, 10) || 10))
     : 10;
 
+// Non-secret safety sentinel used to keep RLS fail-closed when tenant is absent.
+const SENTINEL_TENANT_ID = "00000000-0000-0000-0000-000000000000";
+const SENTINEL_USER_ID = "00000000-0000-0000-0000-000000000000";
+
 const postgresOptions = {
   max: poolSize,
   idle_timeout: 20,
   connect_timeout: 10,
   prepare: false,
-} as const;
+};
 
+/**
+ * Do NOT pass custom PostgreSQL startup parameters (e.g. app.tenant_id) via postgres.js
+ * `connection: { ... }`: PgBouncer rejects unknown keys with
+ * "unsupported startup parameter" (see ignore_startup_parameters in pgbouncer.ini).
+ * With pool_mode=transaction, session GUCs belong in set_config at the start of each
+ * request/transaction (see API tenant-context plugin and resetSessionContext for workers).
+ */
 export function createDbClient(connectionString: string) {
-  const sql = postgres(connectionString, postgresOptions);
+  const sql = postgres(connectionString, {
+    ...postgresOptions,
+  });
   const db = drizzle(sql, { schema });
   return { db, sql };
 }
@@ -83,10 +96,6 @@ export async function closeDbConnection(): Promise<void> {
   await connection.sql.end();
 }
 
-// Non-secret safety sentinel used to keep RLS fail-closed when tenant is absent.
-const SENTINEL_TENANT_ID = "00000000-0000-0000-0000-000000000000";
-const SENTINEL_USER_ID = "00000000-0000-0000-0000-000000000000";
-
 /**
  * Set session variable app.tenant_id for RLS policies.
  * Call at the start of each request (e.g. from tenant-context onRequest).
@@ -112,6 +121,19 @@ export async function setSessionRequestContext(args: {
     SELECT
       set_config('app.tenant_id', ${tenantValue}, false),
       set_config('app.current_user_id', ${userValue}, false)
+  `;
+}
+
+/**
+ * Reset session variables to sentinel values (fail-closed for RLS).
+ * Call after completing a unit of work (e.g. at the end of a worker job)
+ * to prevent tenant context from leaking to the next connection consumer.
+ */
+export async function resetSessionContext(): Promise<void> {
+  await connection.sql`
+    SELECT
+      set_config('app.tenant_id', ${SENTINEL_TENANT_ID}, false),
+      set_config('app.current_user_id', ${SENTINEL_USER_ID}, false)
   `;
 }
 

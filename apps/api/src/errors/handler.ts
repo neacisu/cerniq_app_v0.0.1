@@ -3,13 +3,12 @@ import { ZodError } from "zod";
 import { AppError } from "./app-error.js";
 import { envConfig } from "../config.js";
 
-// @fastify/jwt returns 400 (FST_JWT_BAD_REQUEST) for missing/malformed Authorization headers.
-// RFC 7235 mandates 401 for missing credentials, so we normalise these errors here.
-// Without this, the frontend's 401-triggered refresh/redirect flow never fires.
-const JWT_MISSING_TOKEN_CODES = new Set([
-  "FST_JWT_BAD_REQUEST",
-  "FST_JWT_NO_AUTHORIZATION_IN_HEADER",
-]);
+// @fastify/jwt emits 400 (not 401) for missing/malformed Authorization headers:
+// FST_JWT_BAD_REQUEST    — header present but malformed (e.g. not "Bearer <token>")
+// FST_JWT_BAD_COOKIE_REQUEST — cookie present but malformed
+// RFC 7235 mandates 401 for missing/invalid credentials.
+// Without this normalisation, the frontend's 401-triggered refresh/redirect flow never fires.
+const JWT_BAD_CREDENTIALS_CODES = new Set(["FST_JWT_BAD_REQUEST", "FST_JWT_BAD_COOKIE_REQUEST"]);
 
 export function errorHandler(error: FastifyError, request: FastifyRequest, reply: FastifyReply) {
   request.log.error(error);
@@ -49,7 +48,7 @@ export function errorHandler(error: FastifyError, request: FastifyRequest, reply
     });
   }
 
-  if (JWT_MISSING_TOKEN_CODES.has(error.code ?? "")) {
+  if (JWT_BAD_CREDENTIALS_CODES.has(error.code ?? "")) {
     return reply.status(401).send({
       success: false,
       error: "Unauthorized",

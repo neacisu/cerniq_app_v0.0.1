@@ -41,8 +41,8 @@ export const termeneDosareProcessor: Processor<TermeneDosareJobData> = async (jo
     .update(silverCompanies)
     .set({
       statusFirma: inInsolventa ? "INSOLVENTA" : undefined,
-      metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify({
-        termeneDosare: {
+      metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{termeneDosare}', ${JSON.stringify(
+        {
           totalCases: cases.length,
           activeCases: activeCases.length,
           inInsolventa,
@@ -50,7 +50,7 @@ export const termeneDosareProcessor: Processor<TermeneDosareJobData> = async (jo
           tipuri,
           payload,
         },
-      })}::jsonb`,
+      )}::jsonb)`,
       lastEnrichedAt: new Date(),
     })
     .where(sql`${silverCompanies.id} = ${job.data.companyId}`);

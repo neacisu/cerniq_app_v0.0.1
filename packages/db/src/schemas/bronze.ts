@@ -10,6 +10,7 @@ import {
   timestamp,
   uuid,
   varchar,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { tenants } from "./tenants.js";
@@ -50,6 +51,16 @@ export const importStatusEnum = pgEnum("import_status", [
   "cancelled",
 ]);
 
+export const reprocessTypeEnum = pgEnum("reprocess_type", ["identity", "promotion", "anaf"]);
+
+export const reprocessStatusEnum = pgEnum("reprocess_status", [
+  "pending",
+  "running",
+  "completed",
+  "failed",
+  "cancelled",
+]);
+
 export const bronzeContacts = bronzeSchema.table(
   "bronze_contacts",
   {
@@ -76,7 +87,9 @@ export const bronzeContacts = bronzeSchema.table(
     extractedAddress: text("extracted_address"),
     extractedCaen: varchar("extracted_caen", { length: 8 }),
     isDuplicate: boolean("is_duplicate").notNull().default(false),
-    duplicateOfId: uuid("duplicate_of_id"),
+    duplicateOfId: uuid("duplicate_of_id").references((): AnyPgColumn => bronzeContacts.id, {
+      onDelete: "set null",
+    }),
     identityStatus: bronzeIdentityStatusEnum("identity_status").notNull().default("unresolved"),
     resolvedCompanyId: uuid("resolved_company_id"),
     identityResolutionMetadata: jsonb("identity_resolution_metadata").notNull().default({}),
@@ -183,5 +196,36 @@ export const bronzeScrapeResults = bronzeSchema.table(
     index("idx_bronze_scrape_pending")
       .on(t.createdAt)
       .where(sql`${t.processingStatus} = 'pending'`),
+  ],
+);
+
+export const importReprocessSessions = bronzeSchema.table(
+  "import_reprocess_sessions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    batchId: uuid("batch_id")
+      .notNull()
+      .references(() => bronzeImportBatches.id, { onDelete: "cascade" }),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    type: reprocessTypeEnum("type").notNull(),
+    status: reprocessStatusEnum("status").notNull().default("pending"),
+    phase: varchar("phase", { length: 50 }),
+    cursorCreatedAt: timestamp("cursor_created_at", { withTimezone: true }),
+    cursorLastBronzeId: uuid("cursor_last_bronze_id"),
+    processedRows: integer("processed_rows").notNull().default(0),
+    totalRows: integer("total_rows").notNull().default(0),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    failedAt: timestamp("failed_at", { withTimezone: true }),
+    lastError: text("last_error"),
+    lastProgressAt: timestamp("last_progress_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("idx_reprocess_sessions_batch").on(t.batchId),
+    index("idx_reprocess_sessions_tenant_status").on(t.tenantId, t.status),
   ],
 );

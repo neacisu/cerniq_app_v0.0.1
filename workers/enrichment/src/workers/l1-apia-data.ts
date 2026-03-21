@@ -35,14 +35,14 @@ export const apiaDataProcessor: Processor<ApiaDataJobData> = async (job) => {
   await db
     .update(silverCompanies)
     .set({
-      metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify({
-        apiaData: {
+      metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{apiaData}', ${JSON.stringify(
+        {
           cui: job.data.cui,
           judet: job.data.judet ?? null,
           payload,
           fetchedAt: new Date().toISOString(),
         },
-      })}::jsonb`,
+      )}::jsonb)`,
       lastEnrichedAt: new Date(),
     })
     .where(sql`${silverCompanies.id} = ${job.data.companyId}`);

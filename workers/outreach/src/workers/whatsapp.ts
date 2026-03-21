@@ -113,7 +113,8 @@ export function createWaWorker(redis: Redis, phoneIndex: number, isFollowup: boo
       const jitterMs = applyJitter();
       await sleep(jitterMs);
 
-      const { db } = await import("@cerniq/db");
+      const { db, setSessionTenantId } = await import("@cerniq/db");
+      await setSessionTenantId(tenantId);
       const { communicationLog } = await import("@cerniq/db");
       const { leadJourney } = await import("@cerniq/db");
       const { waPhoneNumbers } = await import("@cerniq/db");
@@ -235,7 +236,8 @@ export function createWaDeliveryStatusWorker(redis: Redis): Worker {
         throw new Error(`Invalid message status: ${status}`);
       }
 
-      const { db } = await import("@cerniq/db");
+      const { db, setSessionTenantId } = await import("@cerniq/db");
+      await setSessionTenantId(tenantId);
       const { communicationLog } = await import("@cerniq/db");
       const { eq, and } = await import("@cerniq/db");
 
@@ -284,7 +286,8 @@ export function createWaReadReceiptWorker(redis: Redis): Worker {
     async (job: Job<WaReadReceiptJobData>): Promise<void> => {
       const { tenantId, externalMessageId, readAt, journeyId } = job.data;
 
-      const { db } = await import("@cerniq/db");
+      const { db, setSessionTenantId } = await import("@cerniq/db");
+      await setSessionTenantId(tenantId);
       const { communicationLog, leadJourney } = await import("@cerniq/db");
       const { eq, and, sql } = await import("@cerniq/db");
 

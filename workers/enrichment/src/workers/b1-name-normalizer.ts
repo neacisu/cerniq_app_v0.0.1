@@ -92,12 +92,17 @@ export const nameNormalizerProcessor: Processor<NameNormalizerJobData> = async (
     }
 
     for (const word of NOISE_WORDS) {
-      normalized = normalized.replaceAll(new RegExp(String.raw`\b${word}\b`, "g"), "");
+      const strippedWord = stripDiacritics(word);
+      normalized = normalized.replaceAll(new RegExp(String.raw`\b${strippedWord}\b`, "g"), "");
     }
 
     normalized = trimEdges(normalized.replaceAll(/\s+/g, " "), isEdgePunctuation).trim();
     if (formaJuridica) {
       normalized = `${normalized} ${formaJuridica}`.trim();
+    }
+
+    if (!normalized.trim()) {
+      return { ok: true, status: "skipped", reason: "whitespace_only_name" };
     }
 
     const cui = typeof contact.extractedCui === "string" ? contact.extractedCui : null;

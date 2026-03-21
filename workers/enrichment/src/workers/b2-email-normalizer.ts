@@ -35,7 +35,11 @@ const FREE_EMAIL_PROVIDERS = new Set([
 ]);
 
 function normalizeEmail(email: string, stripPlusAlias = true): string {
-  const [localPart, domain = ""] = email.trim().toLowerCase().split("@");
+  const trimmed = email.trim().toLowerCase();
+  const atIndex = trimmed.lastIndexOf("@");
+  if (atIndex === -1) return trimmed;
+  const localPart = trimmed.slice(0, atIndex);
+  const domain = trimmed.slice(atIndex + 1);
   if (!stripPlusAlias || !localPart.includes("+")) {
     return `${localPart}@${domain}`;
   }
@@ -54,9 +58,9 @@ export const emailNormalizerProcessor: Processor<EmailNormalizerJobData> = async
     const normalizedEmail = normalizeEmail(rawEmail, true);
     const isValid = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/.test(normalizedEmail);
 
-    // GAP-B11: RFC 5321 length limits (254 total, 64 local part)
-    const [localPartCheck] = normalizedEmail.split("@");
-    const exceedsLengthLimits = normalizedEmail.length > 254 || (localPartCheck?.length ?? 0) > 64;
+    const atIdx = normalizedEmail.lastIndexOf("@");
+    const localPartCheck = atIdx === -1 ? normalizedEmail : normalizedEmail.slice(0, atIdx);
+    const exceedsLengthLimits = normalizedEmail.length > 254 || localPartCheck.length > 64;
 
     if (!isValid || exceedsLengthLimits) {
       const reason = isValid ? "exceeds_rfc5321_length" : "invalid_format";
@@ -69,6 +73,7 @@ export const emailNormalizerProcessor: Processor<EmailNormalizerJobData> = async
             original: rawEmail,
             normalized: normalizedEmail,
             valid: false,
+            emailValid: false,
             reason,
           },
         },
@@ -76,7 +81,9 @@ export const emailNormalizerProcessor: Processor<EmailNormalizerJobData> = async
       return { ok: true, status: "invalid", normalizedEmail, isValid: false };
     }
 
-    const [localPart, domain] = normalizedEmail.split("@");
+    const domainAtIdx = normalizedEmail.lastIndexOf("@");
+    const localPart = domainAtIdx === -1 ? normalizedEmail : normalizedEmail.slice(0, domainAtIdx);
+    const domain = domainAtIdx === -1 ? "" : normalizedEmail.slice(domainAtIdx + 1);
     const emailType = FREE_EMAIL_PROVIDERS.has(domain) ? "free" : "corporate";
     const isRoleBased = ROLE_BASED_PREFIXES.some(
       (prefix) =>
@@ -92,6 +99,8 @@ export const emailNormalizerProcessor: Processor<EmailNormalizerJobData> = async
         emailNormalization: {
           original: rawEmail,
           normalized: normalizedEmail,
+          valid: true,
+          emailValid: true,
           localPart,
           domain,
           emailType,

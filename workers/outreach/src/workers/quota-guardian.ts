@@ -127,13 +127,14 @@ export interface QuotaIncrementResult {
 
 export async function createQuotaIncrementWorker(redis: Redis): Promise<Worker> {
   // Dynamic import to avoid circular deps
-  const { db, sql } = await import("@cerniq/db");
+  const { db, sql, setSessionTenantId } = await import("@cerniq/db");
   const { waQuotaUsage } = await import("@cerniq/db");
 
   return new Worker(
     QUEUES.QUOTA_GUARDIAN_INCREMENT,
     async (job: Job<QuotaIncrementJobData>): Promise<QuotaIncrementResult> => {
       const { phoneId, dateIso, cost, tenantId } = job.data;
+      await setSessionTenantId(tenantId);
 
       // UPSERT quota usage — Redis is source of truth, this persists to PG
       await db
@@ -229,7 +230,8 @@ export async function getQuotaDashboardData(
   redis: Redis,
   tenantId: string,
 ): Promise<PhoneQuotaStatus[]> {
-  const { db } = await import("@cerniq/db");
+  const { db, setSessionTenantId } = await import("@cerniq/db");
+  await setSessionTenantId(tenantId);
   const { waPhoneNumbers } = await import("@cerniq/db");
   const { eq } = await import("@cerniq/db");
 

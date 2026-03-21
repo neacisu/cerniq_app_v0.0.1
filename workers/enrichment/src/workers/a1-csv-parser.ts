@@ -14,6 +14,7 @@ import {
   triggerNormalizationForContacts,
   triggerAnafBronzeEnrichment,
   updateImportBatchCounters,
+  verifyFileHash,
 } from "./ingest-utils.js";
 
 export type CsvParserJobData = {
@@ -51,6 +52,21 @@ async function parseSmallFile(job: { data: CsvParserJobData }) {
   let insufficientIdentifierRows = 0;
 
   try {
+    if (job.data.filePath && job.data.batchId) {
+      const batch = await db.query.bronzeImportBatches.findFirst({
+        where: (t, { eq }) => eq(t.id, job.data.batchId),
+      });
+      const storedHash = (batch?.metadata as Record<string, unknown> | null)?.fileHash as
+        | string
+        | undefined;
+      if (storedHash) {
+        const { valid } = await verifyFileHash(job.data.filePath, storedHash);
+        if (!valid) {
+          throw new Error("File integrity check failed: SHA-256 hash mismatch");
+        }
+      }
+    }
+
     const content = await readInputContent(job.data);
     const parsed = Papa.parse<CsvRow>(content, {
       header: job.data.hasHeader ?? true,
@@ -104,11 +120,11 @@ async function parseSmallFile(job: { data: CsvParserJobData }) {
       await db
         .update(bronzeImportBatches)
         .set({
-          metadata: sql`COALESCE(${bronzeImportBatches.metadata}, '{}'::jsonb) || ${JSON.stringify({
-            columnMapping: autoMapping,
-          })}::jsonb`,
+          metadata: sql`jsonb_set(COALESCE(${bronzeImportBatches.metadata}, '{}'::jsonb), '{columnMapping}', ${JSON.stringify(autoMapping)}::jsonb)`,
         })
-        .where(sql`${bronzeImportBatches.id} = ${job.data.batchId}`);
+        .where(
+          sql`${bronzeImportBatches.tenantId} = ${job.data.tenantId} AND ${bronzeImportBatches.id} = ${job.data.batchId}`,
+        );
     }
 
     await updateImportBatchCounters({
@@ -182,6 +198,7 @@ async function parseLargeFileStreaming(job: { data: CsvParserJobData }) {
     const batchSize = getInsertBatchSize();
     let rowBuffer: Array<Record<string, unknown>> = [];
     let reachedMax = false;
+    let flushInProgress: Promise<void> = Promise.resolve();
 
     await new Promise<void>((resolve, reject) => {
       Papa.parse(readable, {
@@ -214,7 +231,7 @@ async function parseLargeFileStreaming(job: { data: CsvParserJobData }) {
 
           if (rowBuffer.length >= batchSize) {
             parser.pause();
-            flushBuffer()
+            flushInProgress = flushBuffer()
               .then(() => parser.resume())
               .catch((err) => {
                 parser.abort();
@@ -223,11 +240,15 @@ async function parseLargeFileStreaming(job: { data: CsvParserJobData }) {
           }
         },
         complete: () => {
-          if (rowBuffer.length > 0) {
-            flushBuffer().then(resolve).catch(reject);
-          } else {
-            resolve();
-          }
+          flushInProgress
+            .then(() => {
+              if (rowBuffer.length > 0) {
+                flushBuffer().then(resolve).catch(reject);
+              } else {
+                resolve();
+              }
+            })
+            .catch(reject);
         },
         error: (err: Error) => reject(err),
       });
@@ -314,11 +335,11 @@ async function parseLargeFileStreaming(job: { data: CsvParserJobData }) {
       await db
         .update(bronzeImportBatches)
         .set({
-          metadata: sql`COALESCE(${bronzeImportBatches.metadata}, '{}'::jsonb) || ${JSON.stringify({
-            columnMapping: autoMapping,
-          })}::jsonb`,
+          metadata: sql`jsonb_set(COALESCE(${bronzeImportBatches.metadata}, '{}'::jsonb), '{columnMapping}', ${JSON.stringify(autoMapping)}::jsonb)`,
         })
-        .where(sql`${bronzeImportBatches.id} = ${job.data.batchId}`);
+        .where(
+          sql`${bronzeImportBatches.tenantId} = ${job.data.tenantId} AND ${bronzeImportBatches.id} = ${job.data.batchId}`,
+        );
     }
 
     return {

@@ -191,7 +191,8 @@ export function createTimelinesAIEventProcessorWorker(redis: Redis): Worker {
       }
 
       // Inbound reply — find lead by chat_id (thread_id)
-      const { db } = await import("@cerniq/db");
+      const { db, setSessionTenantId } = await import("@cerniq/db");
+      await setSessionTenantId(tenantId);
       const { communicationLog } = await import("@cerniq/db");
       const { leadJourney } = await import("@cerniq/db");
       const { eq, and } = await import("@cerniq/db");
@@ -280,7 +281,8 @@ export function createInstantlyEventProcessorWorker(redis: Redis): Worker {
     QUEUES.WEBHOOK_INSTANTLY_INGEST,
     async (job: Job<InstantlyWebhookJobData>): Promise<void> => {
       const { tenantId, rawEvent } = job.data;
-      const { db } = await import("@cerniq/db");
+      const { db, setSessionTenantId } = await import("@cerniq/db");
+      await setSessionTenantId(tenantId);
       const { communicationLog } = await import("@cerniq/db");
       const { leadJourney } = await import("@cerniq/db");
       const { eq, and } = await import("@cerniq/db");
@@ -346,7 +348,8 @@ export function createResendEventProcessorWorker(redis: Redis): Worker {
       const leadIdTag = data.tags?.find((t) => t.name === "lead_id");
       const leadId = leadIdTag?.value;
 
-      const { db } = await import("@cerniq/db");
+      const { db, setSessionTenantId } = await import("@cerniq/db");
+      await setSessionTenantId(tenantId);
       const { leadJourney } = await import("@cerniq/db");
       const { eq, and } = await import("@cerniq/db");
 
@@ -428,7 +431,8 @@ export interface EventArchiveJobData {
 
 export async function executeEventArchiveJob(job: Job<EventArchiveJobData>): Promise<void> {
   const { tenantId, event } = job.data;
-  const { db } = await import("@cerniq/db");
+  const { db, setSessionTenantId } = await import("@cerniq/db");
+  await setSessionTenantId(tenantId);
   const { webhookEventArchive } = await import("@cerniq/db");
 
   const eventTimestamp = Number.isNaN(Date.parse(event.timestamp))

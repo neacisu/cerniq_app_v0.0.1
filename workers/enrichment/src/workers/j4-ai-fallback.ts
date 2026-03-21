@@ -68,13 +68,13 @@ Returneaza {"found_data":{"camp":{"value":"...","source":"...","confidence":0.0}
       .update(silverCompanies)
       .set({
         ...updates,
-        metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify({
-          aiFallback: {
+        metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{aiFallback}', ${JSON.stringify(
+          {
             result,
             applied,
             fallbackAt: new Date().toISOString(),
           },
-        })}::jsonb`,
+        )}::jsonb)`,
         lastEnrichedAt: new Date(),
       })
       .where(sql`${silverCompanies.id} = ${job.data.companyId}`);

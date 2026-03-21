@@ -40,7 +40,7 @@ export const hlrLookupProcessor: Processor<HlrLookupJobData> = async (job) => {
     await db
       .update(silverCompanies)
       .set({
-        metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify(patch)}::jsonb`,
+        metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{hlrLookup}', ${JSON.stringify(patch.hlrLookup)}::jsonb)`,
         updatedAt: new Date(),
       })
       .where(sql`${silverCompanies.id} = ${job.data.entityId}`);
@@ -48,7 +48,7 @@ export const hlrLookupProcessor: Processor<HlrLookupJobData> = async (job) => {
     await db
       .update(silverContacts)
       .set({
-        metadata: sql`COALESCE(${silverContacts.metadata}, '{}'::jsonb) || ${JSON.stringify(patch)}::jsonb`,
+        metadata: sql`jsonb_set(COALESCE(${silverContacts.metadata}, '{}'::jsonb), '{hlrLookup}', ${JSON.stringify(patch.hlrLookup)}::jsonb)`,
         updatedAt: new Date(),
       })
       .where(sql`${silverContacts.id} = ${job.data.entityId}`);

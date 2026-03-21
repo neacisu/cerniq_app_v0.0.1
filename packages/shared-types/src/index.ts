@@ -9,3 +9,4 @@ export * from "./schemas/tenant.js";
 export * from "./schemas/user.js";
 export * from "./schemas/approval.js";
 export * from "./identifiers.js";
+export * from "./column-mapping.js";

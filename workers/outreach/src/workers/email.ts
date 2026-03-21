@@ -147,7 +147,8 @@ export function createEmailColdSenderWorker(redis: Redis): Worker {
       }
 
       const { getInstantlyClient } = await import("@cerniq/integrations");
-      const { db } = await import("@cerniq/db");
+      const { db, setSessionTenantId } = await import("@cerniq/db");
+      await setSessionTenantId(tenantId);
       const { communicationLog } = await import("@cerniq/db");
 
       const instantlyClient = getInstantlyClient();
@@ -219,7 +220,8 @@ export function createEmailColdTrackingWorker(redis: Redis): Worker {
       const { tenantId, leadId, journeyId, eventType, campaignId, timestamp, replyContent } =
         job.data;
 
-      const { db } = await import("@cerniq/db");
+      const { db, setSessionTenantId } = await import("@cerniq/db");
+      await setSessionTenantId(tenantId);
       const { communicationLog } = await import("@cerniq/db");
       const { leadJourney } = await import("@cerniq/db");
       const { eq, and, sql } = await import("@cerniq/db");
@@ -361,7 +363,8 @@ export function createBounceRateMonitorWorker(redis: Redis): Worker {
     async (job: Job<BounceMonitorJobData>): Promise<void> => {
       const { tenantId, campaignId } = job.data;
 
-      const { db } = await import("@cerniq/db");
+      const { db, setSessionTenantId } = await import("@cerniq/db");
+      await setSessionTenantId(tenantId);
       const { communicationLog } = await import("@cerniq/db");
       const { eq, and, gte, sql } = await import("@cerniq/db");
 
@@ -439,7 +442,8 @@ export function createEmailWarmSenderWorker(redis: Redis): Worker {
       }
 
       const { getResendClient } = await import("@cerniq/integrations");
-      const { db } = await import("@cerniq/db");
+      const { db, setSessionTenantId } = await import("@cerniq/db");
+      await setSessionTenantId(tenantId);
       const { communicationLog } = await import("@cerniq/db");
 
       // Identitatea From este definită în ResendClient (job-ul poate include fromEmail/fromName în viitor).
@@ -493,7 +497,8 @@ export function createEmailWarmReplyWorker(redis: Redis): Worker {
     async (job: Job<EmailWarmReplyJobData>): Promise<void> => {
       const { tenantId, leadId, journeyId, emailId, replyContent, timestamp } = job.data;
 
-      const { db } = await import("@cerniq/db");
+      const { db, setSessionTenantId } = await import("@cerniq/db");
+      await setSessionTenantId(tenantId);
       const { communicationLog } = await import("@cerniq/db");
 
       // Log INBOUND warm reply
@@ -560,7 +565,8 @@ export function createEmailWarmTrackingWorker(redis: Redis): Worker {
     async (job: Job<EmailWarmTrackingJobData>): Promise<void> => {
       const { tenantId, journeyId, emailId, eventType, timestamp } = job.data;
 
-      const { db } = await import("@cerniq/db");
+      const { db, setSessionTenantId } = await import("@cerniq/db");
+      await setSessionTenantId(tenantId);
       const { communicationLog } = await import("@cerniq/db");
       const { leadJourney } = await import("@cerniq/db");
       const { eq, and, sql } = await import("@cerniq/db");

@@ -103,11 +103,16 @@ export const addressNormalizerProcessor: Processor<AddressNormalizerJobData> = a
     const apMatch = /\bAP\.?\s*(\d+)/i.exec(normalizedAddress);
     const cpMatch = /\b(\d{6})\b/.exec(normalizedAddress);
     const lowered = stripDiacritics(normalizedAddress.toLowerCase());
-    const county = Object.entries(countyMap).find(([name]) => lowered.includes(name))?.[1] ?? null;
+    const sortedCounties = Object.entries(countyMap).sort((a, b) => b[0].length - a[0].length);
+    const county =
+      sortedCounties.find(([name]) => {
+        const escaped = name.replaceAll(/[-.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+        return new RegExp(String.raw`\b${escaped}\b`).test(lowered);
+      })?.[1] ?? null;
     await markNormalizationResult(
       job.data.tenantId,
       job.data.bronzeContactId,
-      {},
+      { extractedAddress: normalizedAddress },
       {
         addressNormalization: {
           original: rawAddress,

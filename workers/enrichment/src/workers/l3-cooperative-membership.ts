@@ -49,8 +49,8 @@ export const cooperativeMembershipProcessor: Processor<CooperativeMembershipJobD
   await db
     .update(silverCompanies)
     .set({
-      metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify({
-        cooperativeMembership: {
+      metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{cooperativeMembership}', ${JSON.stringify(
+        {
           cui: job.data.cui,
           inferred: coopHint,
           inferredFrom: {
@@ -59,7 +59,7 @@ export const cooperativeMembershipProcessor: Processor<CooperativeMembershipJobD
           },
           checkedAt: new Date().toISOString(),
         },
-      })}::jsonb`,
+      )}::jsonb)`,
       updatedAt: new Date(),
     })
     .where(sql`${silverCompanies.id} = ${job.data.companyId}`);

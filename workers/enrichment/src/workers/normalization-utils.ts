@@ -26,6 +26,7 @@ export async function markNormalizationResult(
     extractedEmail?: string | null;
     extractedPhone?: string | null;
     extractedCui?: string | null;
+    extractedAddress?: string | null;
   },
   metadataPatch: Record<string, unknown>,
 ) {
@@ -34,10 +35,20 @@ export async function markNormalizationResult(
     .update(bronzeContacts)
     .set({
       ...values,
-      metadata: sql`COALESCE(${bronzeContacts.metadata}, '{}'::jsonb) || ${JSON.stringify(metadataPatch)}::jsonb`,
+      metadata: (() => {
+        const keys = Object.keys(metadataPatch);
+        let expr = sql`COALESCE(${bronzeContacts.metadata}, '{}'::jsonb)`;
+        for (const key of keys) {
+          const pathLiteral = sql.raw(`'{${key}}'`);
+          expr = sql`jsonb_set(${expr}, ${pathLiteral}, ${JSON.stringify(metadataPatch[key])}::jsonb)`;
+        }
+        return expr;
+      })(),
       updatedAt: new Date(),
     })
-    .where(sql`${bronzeContacts.id} = ${bronzeContactId}`);
+    .where(
+      sql`${bronzeContacts.tenantId} = ${tenantId} AND ${bronzeContacts.id} = ${bronzeContactId}`,
+    );
 }
 
 export async function triggerCuiValidationIfPossible(
@@ -61,15 +72,17 @@ export async function triggerCuiValidationIfPossible(
     await db
       .update(bronzeContacts)
       .set({
-        metadata: sql`COALESCE(${bronzeContacts.metadata}, '{}'::jsonb) || ${JSON.stringify({
-          cuiValidation: {
+        metadata: sql`jsonb_set(COALESCE(${bronzeContacts.metadata}, '{}'::jsonb), '{cuiValidation}', ${JSON.stringify(
+          {
             status: "skipped",
             reason: "nrregcom_only",
             validatedAt: new Date().toISOString(),
           },
-        })}::jsonb`,
+        )}::jsonb)`,
       })
-      .where(sql`${bronzeContacts.id} = ${bronzeContactId}`);
+      .where(
+        sql`${bronzeContacts.tenantId} = ${tenantId} AND ${bronzeContacts.id} = ${bronzeContactId}`,
+      );
     const promotionQueue = createQueue(QUEUES.PIPELINE_PROMOTE_BRONZE_SILVER);
     await promotionQueue.add(
       `promote-nrc-${bronzeContactId}`,

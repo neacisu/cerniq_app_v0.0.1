@@ -27,13 +27,13 @@ export const cuiModulo11ValidatorProcessor: Processor<CuiModulo11JobData> = asyn
     await db
       .update(silverCompanies)
       .set({
-        metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify({
-          cuiValidation: {
+        metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{cuiValidation}', ${JSON.stringify(
+          {
             source: "modulo11",
             ...result,
             validatedAt: new Date().toISOString(),
           },
-        })}::jsonb`,
+        )}::jsonb)`,
       })
       .where(sql`${silverCompanies.id} = ${job.data.companyId}`);
   }
@@ -43,13 +43,13 @@ export const cuiModulo11ValidatorProcessor: Processor<CuiModulo11JobData> = asyn
       .update(bronzeContacts)
       .set({
         extractedCui: result.cleaned || null,
-        metadata: sql`COALESCE(${bronzeContacts.metadata}, '{}'::jsonb) || ${JSON.stringify({
-          cuiValidation: {
+        metadata: sql`jsonb_set(COALESCE(${bronzeContacts.metadata}, '{}'::jsonb), '{cuiValidation}', ${JSON.stringify(
+          {
             source: "modulo11",
             ...result,
             validatedAt: new Date().toISOString(),
           },
-        })}::jsonb`,
+        )}::jsonb)`,
       })
       .where(sql`${bronzeContacts.id} = ${job.data.bronzeContactId}`);
   }

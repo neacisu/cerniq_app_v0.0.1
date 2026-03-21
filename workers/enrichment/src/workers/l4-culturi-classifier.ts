@@ -37,11 +37,8 @@ export const culturiClassifierProcessor: Processor<CulturiClassifierJobData> = a
   });
   if (!company) return { ok: false, status: "not_found" };
 
-  const fromCaen = job.data.codCaen
-    ? (CULTURES_MAP[job.data.codCaen] ?? [])
-    : company.codCaenPrincipal
-      ? (CULTURES_MAP[company.codCaenPrincipal] ?? [])
-      : [];
+  const effectiveCaen = job.data.codCaen ?? company.codCaenPrincipal ?? null;
+  const fromCaen = effectiveCaen ? (CULTURES_MAP[effectiveCaen] ?? []) : [];
   const crops = [
     ...new Set([...(job.data.culturiRaw ?? []), ...fromCaen].map((c) => c.trim()).filter(Boolean)),
   ];
@@ -50,13 +47,13 @@ export const culturiClassifierProcessor: Processor<CulturiClassifierJobData> = a
   await db
     .update(silverCompanies)
     .set({
-      metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify({
-        agriculturalCrops: {
+      metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{agriculturalCrops}', ${JSON.stringify(
+        {
           crops,
           category,
           classifiedAt: new Date().toISOString(),
         },
-      })}::jsonb`,
+      )}::jsonb)`,
       updatedAt: new Date(),
     })
     .where(sql`${silverCompanies.id} = ${job.data.companyId}`);

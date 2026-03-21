@@ -1,5 +1,12 @@
 import { createHash } from "node:crypto";
-import { approvalTasks, db, setSessionTenantId, silverCompanies, sql } from "@cerniq/db";
+import {
+  approvalTasks,
+  db,
+  setSessionTenantId,
+  silverCompanies,
+  silverEnrichmentLog,
+  sql,
+} from "@cerniq/db";
 import { createQueue, hitlTasksCreatedTotal, getRetryStrategy } from "@cerniq/worker-shared";
 
 export async function resolveRequesterUserId(tenantId: string): Promise<string | null> {
@@ -43,10 +50,14 @@ export async function createHitlApprovalTask(args: {
   blockedQueueName?: string;
   metadata?: Record<string, unknown>;
   expiresInHours?: number;
+  /** Default TTL for the approval task in hours. Defaults to 72. */
+  ttlHours?: number;
 }): Promise<string | null> {
   await setSessionTenantId(args.tenantId);
   const requestedBy = await resolveRequesterUserId(args.tenantId);
   if (!requestedBy) return null;
+
+  const ttl = args.ttlHours ?? args.expiresInHours ?? 72;
 
   const inserted = await db
     .insert(approvalTasks)
@@ -69,11 +80,11 @@ export async function createHitlApprovalTask(args: {
       createdBy: requestedBy,
       etapa: "E1",
       priority: args.priority ?? 0,
-      dueAt: new Date(Date.now() + (args.expiresInHours ?? 24) * 60 * 60 * 1000),
-      expiresAt: new Date(Date.now() + (args.expiresInHours ?? 24) * 60 * 60 * 1000),
+      dueAt: new Date(Date.now() + ttl * 60 * 60 * 1000),
+      expiresAt: new Date(Date.now() + ttl * 60 * 60 * 1000),
       blockedJobId: args.blockedJobId,
       blockedQueueName: args.blockedQueueName,
-      metadata: args.metadata ?? {},
+      metadata: { ...args.metadata, ttlHours: ttl },
     })
     .returning({ id: approvalTasks.id });
 
@@ -112,11 +123,69 @@ export async function patchCompanyMetadata(
   patch: Record<string, unknown>,
 ) {
   await setSessionTenantId(tenantId);
+  const keys = Object.keys(patch);
+  if (keys.length === 0) return;
+
+  let metaExpr = sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb)`;
+  for (const key of keys) {
+    const pathLiteral = sql.raw(`'{${key}}'`);
+    metaExpr = sql`jsonb_set(${metaExpr}, ${pathLiteral}, ${JSON.stringify(patch[key])}::jsonb)`;
+  }
+
   await db
     .update(silverCompanies)
     .set({
-      metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify(patch)}::jsonb`,
+      metadata: metaExpr,
       updatedAt: new Date(),
     })
     .where(sql`${silverCompanies.id} = ${companyId}`);
+}
+
+/**
+ * Insert an audit log entry into silver_enrichment_log with field-level changes.
+ * Used for tracking enrichment mutations with before/after values.
+ */
+export async function logEnrichmentAudit(args: {
+  tenantId: string;
+  entityType: string;
+  entityId: string;
+  source: string;
+  operation: string;
+  status?: string;
+  previousValues?: Record<string, unknown>;
+  newValues?: Record<string, unknown>;
+  correlationId?: string;
+  jobId?: string;
+  durationMs?: number;
+  errorMessage?: string;
+  errorCode?: string;
+}): Promise<void> {
+  await setSessionTenantId(args.tenantId);
+
+  const fieldsUpdated: string[] = [];
+  if (args.previousValues && args.newValues) {
+    const allKeys = new Set([...Object.keys(args.previousValues), ...Object.keys(args.newValues)]);
+    for (const key of allKeys) {
+      if (JSON.stringify(args.previousValues[key]) !== JSON.stringify(args.newValues[key])) {
+        fieldsUpdated.push(key);
+      }
+    }
+  }
+
+  await db.insert(silverEnrichmentLog).values({
+    tenantId: args.tenantId,
+    entityType: args.entityType,
+    entityId: args.entityId,
+    source: args.source,
+    operation: args.operation,
+    status: args.status ?? "success",
+    previousValues: args.previousValues ?? {},
+    newValues: args.newValues ?? {},
+    fieldsUpdated,
+    correlationId: args.correlationId ?? null,
+    jobId: args.jobId ?? null,
+    durationMs: args.durationMs ?? null,
+    errorMessage: args.errorMessage ?? null,
+    errorCode: args.errorCode ?? null,
+  });
 }

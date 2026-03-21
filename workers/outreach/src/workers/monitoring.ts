@@ -158,7 +158,8 @@ export async function executeStatsAggregatorJob(job: Job<StatsAggregatorJobData>
   const { tenantId } = job.data;
   const statDate = job.data.statDate ?? new Date().toISOString().split("T")[0];
 
-  const { db } = await import("@cerniq/db");
+  const { db, setSessionTenantId } = await import("@cerniq/db");
+  await setSessionTenantId(tenantId);
   const { outreachDailyStats } = await import("@cerniq/db");
   const { sql } = await import("@cerniq/db");
 
@@ -220,7 +221,8 @@ export async function executeDailyReportJob(
 ): Promise<Record<string, unknown>> {
   const { tenantId, reportDate } = job.data;
 
-  const { db } = await import("@cerniq/db");
+  const { db, setSessionTenantId } = await import("@cerniq/db");
+  await setSessionTenantId(tenantId);
   const { outreachDailyStats } = await import("@cerniq/db");
   const { eq, and } = await import("@cerniq/db");
 
@@ -288,6 +290,9 @@ export function createAlertWorker(redis: Redis): Worker {
     QUEUES.ALERT_BOUNCE_HIGH,
     async (job: Job<AlertJobData>): Promise<void> => {
       const { tenantId, alertType, payload } = job.data;
+
+      const { setSessionTenantId } = await import("@cerniq/db");
+      await setSessionTenantId(tenantId);
 
       // Log alert to Redis for dashboard visibility
       const alertKey = `alert:${tenantId}:${alertType}:${Date.now()}`;

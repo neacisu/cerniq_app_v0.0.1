@@ -106,7 +106,8 @@ export function createPhoneHealthMonitorWorker(redis: Redis): Worker {
     async (job: Job<PhoneHealthCheckJobData>): Promise<PhoneHealthCheckResult> => {
       const { tenantId } = job.data;
 
-      const { db } = await import("@cerniq/db");
+      const { db, setSessionTenantId } = await import("@cerniq/db");
+      await setSessionTenantId(tenantId);
       const { waPhoneNumbers } = await import("@cerniq/db");
       const { eq, and } = await import("@cerniq/db");
 
@@ -184,7 +185,8 @@ export function createPhoneStatusSyncWorker(redis: Redis): Worker {
     async (job: Job<PhoneStatusSyncJobData>): Promise<{ synced: number }> => {
       const { tenantId } = job.data;
 
-      const { db } = await import("@cerniq/db");
+      const { db, setSessionTenantId } = await import("@cerniq/db");
+      await setSessionTenantId(tenantId);
       const { waPhoneNumbers } = await import("@cerniq/db");
       const { eq } = await import("@cerniq/db");
 
@@ -241,7 +243,8 @@ export function createPhoneQuarantineWorker(redis: Redis): Worker {
     async (job: Job<PhoneQuarantineJobData>): Promise<void> => {
       const { tenantId, phoneId, reason } = job.data;
 
-      const { db } = await import("@cerniq/db");
+      const { db, setSessionTenantId } = await import("@cerniq/db");
+      await setSessionTenantId(tenantId);
       const { waPhoneNumbers } = await import("@cerniq/db");
       const { leadJourney } = await import("@cerniq/db");
       const { eq, and, sql } = await import("@cerniq/db");
@@ -303,7 +306,8 @@ export async function executePhoneReputationJob(
 
   const { tenantId, phoneId, windowHours = 24 } = job.data;
 
-  const { db } = await import("@cerniq/db");
+  const { db, setSessionTenantId } = await import("@cerniq/db");
+  await setSessionTenantId(tenantId);
   const { communicationLog } = await import("@cerniq/db");
   const { waPhoneNumbers } = await import("@cerniq/db");
   const { eq, and, gte, sql } = await import("@cerniq/db");

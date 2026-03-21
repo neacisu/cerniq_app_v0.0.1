@@ -114,7 +114,8 @@ export function createSentimentAnalyzerWorker(redis: Redis): Worker {
       await redis.set(cacheKey, JSON.stringify(analysis), "EX", AI_CACHE_TTL_SECONDS);
 
       // Update lead journey with sentiment
-      const { db } = await import("@cerniq/db");
+      const { db, setSessionTenantId } = await import("@cerniq/db");
+      await setSessionTenantId(tenantId);
       const { leadJourney } = await import("@cerniq/db");
       const { eq } = await import("@cerniq/db");
 
@@ -300,8 +301,8 @@ Răspunde DOAR cu JSON.`,
 
       const result = JSON.parse(anthropicFirstTextBlock(response.content, "{}"));
 
-      // Update sentiment score if classification changes things
-      const { db } = await import("@cerniq/db");
+      const { db, setSessionTenantId } = await import("@cerniq/db");
+      await setSessionTenantId(job.data.tenantId);
       const { leadJourney } = await import("@cerniq/db");
       const { eq } = await import("@cerniq/db");
 

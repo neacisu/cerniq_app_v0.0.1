@@ -43,13 +43,13 @@ export const termeneAssociatesProcessor: Processor<TermeneAssociatesJobData> = a
   await db
     .update(silverCompanies)
     .set({
-      metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify({
-        termeneAssociates: {
+      metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{termeneAssociates}', ${JSON.stringify(
+        {
           actionariCount: actionari.length,
           administratoriCount: administratori.length,
           payload,
         },
-      })}::jsonb`,
+      )}::jsonb)`,
       lastEnrichedAt: new Date(),
     })
     .where(sql`${silverCompanies.id} = ${job.data.companyId}`);

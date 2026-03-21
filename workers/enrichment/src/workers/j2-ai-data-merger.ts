@@ -63,14 +63,14 @@ export const aiDataMergerProcessor: Processor<AiDataMergerJobData> = async (job)
         typeof mergedData.cod_caen_principal === "string"
           ? mergedData.cod_caen_principal
           : undefined,
-      metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify({
-        aiMerge: {
+      metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{aiMerge}', ${JSON.stringify(
+        {
           confidence,
           conflicts,
           mergedData,
           mergedAt: new Date().toISOString(),
         },
-      })}::jsonb`,
+      )}::jsonb)`,
       lastEnrichedAt: new Date(),
     })
     .where(sql`${silverCompanies.id} = ${job.data.companyId}`);

@@ -4,47 +4,32 @@ import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card.js";
 import { Spinner } from "@/components/ui/spinner.js";
 import { ImportMappingForm } from "@/components/forms/ImportMappingForm.js";
 import { toast } from "@/components/ui/toast-api.js";
+import { COLUMN_MAPPING_DEFINITIONS } from "@cerniq/shared-types";
 
-const SOURCE_COLUMNS = [
-  "name",
-  "company_name",
-  "cui",
-  "cif",
-  "email",
-  "phone",
-  "address",
-  "city",
-  "county",
-  "country",
-  "website",
-  "contact_person",
-  "position",
-  "revenue",
-  "employees",
-  "industry",
-  "notes",
-];
+const LOCAL_STORAGE_KEY = "cerniq_default_mapping_config";
 
-const TARGET_FIELDS = [
-  { label: "Denumire companie", value: "companyName" },
-  { label: "CUI / CIF", value: "cui" },
-  { label: "Email", value: "email" },
-  { label: "Telefon", value: "phone" },
-  { label: "Adresa", value: "address" },
-  { label: "Oras", value: "city" },
-  { label: "Judet", value: "county" },
-  { label: "Tara", value: "country" },
-  { label: "Website", value: "website" },
-  { label: "Persoana contact", value: "contactPerson" },
-  { label: "Functie", value: "position" },
-  { label: "Cifra afaceri", value: "revenue" },
-  { label: "Nr. angajati", value: "employees" },
-  { label: "Industrie / CAEN", value: "industry" },
-  { label: "Note", value: "notes" },
-];
+const TARGET_FIELDS = COLUMN_MAPPING_DEFINITIONS.map((entry) => ({
+  label: entry.label,
+  value: entry.key,
+}));
+
+const SOURCE_COLUMNS = COLUMN_MAPPING_DEFINITIONS.map((entry) => entry.key);
+
+function loadSavedConfig() {
+  try {
+    const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (raw) return JSON.parse(raw) as Record<string, unknown>;
+  } catch {
+    // ignore
+  }
+  return undefined;
+}
 
 export function SettingsMappings() {
   const [ready, setReady] = useState(false);
+  const [savedConfig, setSavedConfig] = useState<Record<string, unknown> | undefined>(
+    loadSavedConfig,
+  );
 
   useEffect(() => {
     const t = setTimeout(() => setReady(true), 300);
@@ -75,8 +60,15 @@ export function SettingsMappings() {
           <ImportMappingForm
             sourceColumns={SOURCE_COLUMNS}
             targetFields={TARGET_FIELDS}
-            onSubmit={async () => {
-              toast.success("Mapping default salvat cu succes");
+            initial={savedConfig as Parameters<typeof ImportMappingForm>[0]["initial"]}
+            onSubmit={async (config) => {
+              try {
+                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(config));
+                setSavedConfig(config as unknown as Record<string, unknown>);
+                toast.success("Mapping default salvat cu succes");
+              } catch {
+                toast.error("Eroare la salvarea mapping-ului default");
+              }
             }}
           />
         </CardBody>
