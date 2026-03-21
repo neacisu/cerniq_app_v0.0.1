@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-route
 import { REDIRECT_LOGIN_EVENT } from "./lib/api-url.js";
 import { Refine } from "@refinedev/core";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ApiError } from "./lib/api.js";
 import { Toaster } from "./components/ui/toast.js";
 import { ThemeProvider } from "./providers/theme-provider.js";
 import * as Auth from "./providers/auth-provider.js";
@@ -66,7 +67,18 @@ import { Settings } from "./pages/system/settings.js";
 import { NotFound } from "./pages/NotFound.js";
 import { ErrorBoundary } from "./components/feedback/ErrorBoundary.js";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // 401 is handled internally by apiFetch (token refresh + redirect to login).
+      // Retrying with an expired/cleared token is pointless and causes console spam.
+      retry: (failureCount, error) => {
+        if (error instanceof ApiError && error.status === 401) return false;
+        return failureCount < 3;
+      },
+    },
+  },
+});
 const redirectEventTarget: Pick<typeof globalThis, "addEventListener" | "removeEventListener"> =
   globalThis;
 

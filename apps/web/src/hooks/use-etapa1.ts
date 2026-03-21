@@ -142,6 +142,7 @@ export function useImports(params: ImportListParams = {}) {
     queryKey: ["etapa1", "imports", params],
     queryFn: () => fetchImports(params),
     refetchInterval: (query) => {
+      if (query.state.error instanceof ApiError && query.state.error.status === 401) return false;
       if (isTransientApiUnavailable(query.state.error)) {
         return getPollingBackoffMs(query.state.error, query.state.fetchFailureCount, 3000);
       }
@@ -156,10 +157,8 @@ export function useImports(params: ImportListParams = {}) {
     },
     refetchIntervalInBackground: true,
     retry: (failureCount, error) => {
-      if (isTransientApiUnavailable(error)) {
-        return false;
-      }
-
+      if (error instanceof ApiError && error.status === 401) return false;
+      if (isTransientApiUnavailable(error)) return false;
       return failureCount < 3;
     },
   });
@@ -171,6 +170,7 @@ export function useImportDetail(id?: string) {
     queryFn: () => fetchImportById(String(id)),
     enabled: Boolean(id),
     refetchInterval: (query) => {
+      if (query.state.error instanceof ApiError && query.state.error.status === 401) return false;
       if (isTransientApiUnavailable(query.state.error)) {
         return getPollingBackoffMs(query.state.error, query.state.fetchFailureCount, 3000);
       }
@@ -180,10 +180,8 @@ export function useImportDetail(id?: string) {
     },
     refetchIntervalInBackground: true,
     retry: (failureCount, error) => {
-      if (isTransientApiUnavailable(error)) {
-        return false;
-      }
-
+      if (error instanceof ApiError && error.status === 401) return false;
+      if (isTransientApiUnavailable(error)) return false;
       return failureCount < 3;
     },
   });
@@ -194,7 +192,10 @@ export function useImportRows(id?: string, limit = 100, offset = 0) {
     queryKey: ["etapa1", "imports", "rows", id, limit, offset],
     queryFn: () => fetchImportRows(String(id), { limit, offset }),
     enabled: Boolean(id),
-    refetchInterval: 3000,
+    refetchInterval: (query) => {
+      if (query.state.error instanceof ApiError && query.state.error.status === 401) return false;
+      return 3000;
+    },
     refetchIntervalInBackground: true,
   });
 }
@@ -204,7 +205,10 @@ export function useImportReprocessErrors(id?: string, limit = 100, offset = 0) {
     queryKey: ["etapa1", "imports", "reprocess-errors", id, limit, offset],
     queryFn: () => fetchImportReprocessErrors(String(id), { limit, offset }),
     enabled: Boolean(id),
-    refetchInterval: 5000,
+    refetchInterval: (query) => {
+      if (query.state.error instanceof ApiError && query.state.error.status === 401) return false;
+      return 5000;
+    },
     refetchIntervalInBackground: true,
   });
 }
@@ -214,7 +218,10 @@ export function useImportEntities(id?: string, limit = 100, offset = 0) {
     queryKey: ["etapa1", "imports", "entities", id, limit, offset],
     queryFn: () => fetchImportEntities(String(id), { limit, offset }),
     enabled: Boolean(id),
-    refetchInterval: 3000,
+    refetchInterval: (query) => {
+      if (query.state.error instanceof ApiError && query.state.error.status === 401) return false;
+      return 3000;
+    },
     refetchIntervalInBackground: true,
   });
 }
@@ -285,6 +292,7 @@ export function usePromoteJobStatus(
     queryFn: () => fetchPromoteJobStatus(String(batchId)),
     enabled: Boolean(batchId) && (opts?.enabled ?? true),
     refetchInterval: (query) => {
+      if (query.state.error instanceof ApiError && query.state.error.status === 401) return false;
       if (isTransientApiUnavailable(query.state.error)) {
         return getPollingBackoffMs(query.state.error, query.state.fetchFailureCount, 3000);
       }
@@ -306,10 +314,8 @@ export function usePromoteJobStatus(
     },
     refetchIntervalInBackground: true,
     retry: (failureCount, error) => {
-      if (isTransientApiUnavailable(error)) {
-        return false;
-      }
-
+      if (error instanceof ApiError && error.status === 401) return false;
+      if (isTransientApiUnavailable(error)) return false;
       return failureCount < 3;
     },
   });

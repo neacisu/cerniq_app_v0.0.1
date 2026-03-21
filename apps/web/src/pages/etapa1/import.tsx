@@ -749,7 +749,7 @@ function ImportHistoryRow({
       <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-start lg:gap-5">
         {/* Metadata, identitate, progres secundar — ocupă lățimea disponibilă */}
         <div className="min-w-0 w-full flex-1 space-y-2">
-          <p className="break-words text-sm font-medium leading-snug text-t1">
+          <p className="wrap-break-word text-sm font-medium leading-snug text-t1">
             {String(imp.filename ?? imp.id)}
           </p>
           <p className="text-xs text-t3">
@@ -844,6 +844,7 @@ export function Import() {
     queryKey: ["etapa1", "imports"],
     queryFn: () => fetchImports({ limit: 25, offset: 0 }),
     refetchInterval: (query) => {
+      if (query.state.error instanceof ApiError && query.state.error.status === 401) return false;
       if (isTransientApiUnavailable(query.state.error)) {
         return getPollingBackoffMs(query.state.error, query.state.fetchFailureCount, 3000);
       }
@@ -876,10 +877,8 @@ export function Import() {
     },
     refetchIntervalInBackground: true,
     retry: (failureCount, error) => {
-      if (isTransientApiUnavailable(error)) {
-        return false;
-      }
-
+      if (error instanceof ApiError && error.status === 401) return false;
+      if (isTransientApiUnavailable(error)) return false;
       return failureCount < 3;
     },
   });
