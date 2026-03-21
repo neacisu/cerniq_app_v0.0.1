@@ -82,7 +82,7 @@ const SECRETS_PATH = process.env.SECRETS_PATH?.trim() || "/secrets/workers.env";
 const PROMOTE_BRONZE_SILVER_WORKER_OPTIONS = {
   lockDuration: 15 * 60 * 1000,
   stalledInterval: 2 * 60 * 1000,
-  maxStalledCount: 4,
+  maxStalledCount: 20,
 } as const;
 assertQueueRegistryComplete();
 const queueNames = queueRegistry.map((q) => q.name);
@@ -427,6 +427,11 @@ function buildWorkers() {
       } catch (enqueueError) {
         console.error(`[worker:${queueName}] failed to enqueue pipeline error`, enqueueError);
       }
+    });
+    worker.on("stalled", (jobId: string) => {
+      console.warn(
+        `[worker:${queueName}] job stalled: ${jobId} — BullMQ will requeue automatically on the next stalledInterval cycle`,
+      );
     });
 
     return worker;

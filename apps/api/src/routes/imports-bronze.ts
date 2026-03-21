@@ -1001,7 +1001,7 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
           },
           {
             jobId: reprocessJobId,
-            attempts: 3,
+            attempts: 10,
             backoff: {
               type: "exponential",
               delay: 5000,
@@ -1219,7 +1219,7 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
           },
           {
             jobId: reprocessJobId,
-            attempts: 3,
+            attempts: 10,
             priority: 1,
             backoff: { type: "exponential", delay: 5000 },
             removeOnComplete: 20,
@@ -1396,7 +1396,7 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
           },
           {
             jobId: reprocessJobId,
-            attempts: 1,
+            attempts: 5,
             priority: 1,
             backoff: { type: "exponential", delay: 5000 },
             removeOnComplete: 20,

@@ -952,7 +952,11 @@ async function loadBatchReprocessCheckpoint(
   };
 
   const mode = metadata.identityReprocessMode === "errors_only" ? "errors_only" : "full";
-  if (mode === "full") {
+  // Only run the full cursor rebuild (COUNT(*) scan) when there is no cursor yet (fresh start).
+  // On retries, the cursor + per-page counters in metadata are already accurate; the rebuild
+  // is redundant and extremely slow (full sequential scan of 316K+ rows on every retry startup).
+  const hasCursor = Boolean(baseCheckpoint.cursorCreatedAt && baseCheckpoint.cursorLastBronzeId);
+  if (mode === "full" && !hasCursor) {
     try {
       return await rebuildFullRunCheckpointFromCursor(tenantId, batchId, baseCheckpoint);
     } catch (error) {
