@@ -486,6 +486,8 @@ a {
 /* === Page === */
 .page {
   max-width: 1380px;
+  width: 100%;
+  min-width: 0;
   margin: 0 auto;
   padding: 24px 24px 48px;
   animation: pageIn 0.22s ease both;

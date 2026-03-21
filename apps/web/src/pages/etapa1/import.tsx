@@ -27,6 +27,7 @@ import {
   useResumePromoteJob,
 } from "@/hooks/use-etapa1.js";
 import { ApiError } from "@/lib/api.js";
+import { cn } from "@/lib/utils.js";
 
 const ACCEPT =
   ".csv,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv";
@@ -631,6 +632,7 @@ type ImportRowActionsProps = {
   readonly onRePromote: (id: string) => Promise<void>;
   readonly onAnafEnrich: (id: string) => Promise<void>;
   readonly onRetry: (id: string) => Promise<void>;
+  readonly className?: string;
 };
 
 function ImportRowActions({
@@ -642,10 +644,11 @@ function ImportRowActions({
   onRePromote,
   onAnafEnrich,
   onRetry,
+  className,
 }: ImportRowActionsProps) {
   const canRetry = ["pending", "failed", "cancelled"].includes(status);
   return (
-    <div className="flex shrink-0 items-center gap-1.5">
+    <div className={cn("flex shrink-0 flex-wrap items-center gap-1.5 lg:justify-end", className)}>
       <Button
         variant="outline"
         size="sm"
@@ -742,60 +745,83 @@ function ImportHistoryRow({
     : null;
 
   return (
-    <div key={id} className="flex items-center gap-4 border-b border-s700 py-2 last:border-0">
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-t1">{String(imp.filename ?? imp.id)}</p>
-        <p className="text-xs text-t3">
-          {progressLabel} · {timeLabel}
-        </p>
-        <p className="mt-1 text-[10px] text-t3">
-          {`Entități rezolvate: ${resolvedCompanies} · Duplicate sursă: ${duplicateSourceRows} · Conflicte identitate: ${identityConflictRows}`}
-        </p>
-        {identityReprocessLabel ? (
-          <p className="mt-1 text-[10px] font-medium text-t2">{identityReprocessLabel}</p>
-        ) : null}
-        {identityReprocessMetrics ? (
-          <div className="mt-1 max-w-xl">
-            <ProgressBar
-              value={identityReprocessMetrics.progress}
-              indeterminate={
-                identityReprocessMetrics.state === "running" &&
-                identityReprocessMetrics.totalRows <= 0
-              }
-            />
-            {identityReprocessDetails ? (
-              <p className="mt-1 text-[10px] text-t3">{identityReprocessDetails}</p>
-            ) : null}
+    <div key={id} className="py-4">
+      <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-start lg:gap-5">
+        {/* Metadata, identitate, progres secundar — ocupă lățimea disponibilă */}
+        <div className="min-w-0 w-full flex-1 space-y-2">
+          <p className="break-words text-sm font-medium leading-snug text-t1">
+            {String(imp.filename ?? imp.id)}
+          </p>
+          <p className="text-xs text-t3">
+            {progressLabel} · {timeLabel}
+          </p>
+          <p className="text-[10px] leading-relaxed text-t3 sm:text-[11px]">
+            {`Entități rezolvate: ${resolvedCompanies} · Duplicate sursă: ${duplicateSourceRows} · Conflicte identitate: ${identityConflictRows}`}
+          </p>
+          {identityReprocessLabel ? (
+            <p className="text-[10px] font-medium text-t2 sm:text-[11px]">
+              {identityReprocessLabel}
+            </p>
+          ) : null}
+          {identityReprocessMetrics ? (
+            <div className="mt-1 w-full max-w-full">
+              <ProgressBar
+                value={identityReprocessMetrics.progress}
+                indeterminate={
+                  identityReprocessMetrics.state === "running" &&
+                  identityReprocessMetrics.totalRows <= 0
+                }
+              />
+              {identityReprocessDetails ? (
+                <p className="mt-1 text-[10px] text-t3 sm:text-[11px]">
+                  {identityReprocessDetails}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+          <PromoteJobHeartbeat
+            batchId={id}
+            identityReprocessStatus={
+              typeof metadata.identityReprocessStatus === "string"
+                ? metadata.identityReprocessStatus
+                : null
+            }
+            failedContactCount={failedReprocessContacts}
+            onResumed={onImportRefetch}
+          />
+          {lastError && status === "failed" ? (
+            <p className="mt-1 line-clamp-3 text-xs text-er sm:line-clamp-2">{lastError}</p>
+          ) : null}
+        </div>
+
+        {/* Progres + status + acțiuni: coloană dedicată pe desktop; pe mobil sub metadata */}
+        <div className="flex w-full min-w-0 shrink-0 flex-col gap-3 border-t border-s700/50 pt-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:border-t-0 sm:pt-0 lg:w-60 lg:flex-col lg:items-stretch lg:justify-start lg:gap-3 xl:w-72">
+          <div className="flex min-w-0 w-full items-center gap-3 sm:max-w-[min(100%,28rem)] lg:max-w-none">
+            <div className="min-w-0 flex-1">
+              <ProgressBar value={progress} indeterminate={isProcessing && !hasKnownTotal} />
+            </div>
+            <span
+              className={cn(
+                "inline-flex shrink-0 text-xs font-medium capitalize tabular-nums",
+                getStatusToneClass(status),
+              )}
+            >
+              {status}
+            </span>
           </div>
-        ) : null}
-        <PromoteJobHeartbeat
-          batchId={id}
-          identityReprocessStatus={
-            typeof metadata.identityReprocessStatus === "string"
-              ? metadata.identityReprocessStatus
-              : null
-          }
-          failedContactCount={failedReprocessContacts}
-          onResumed={onImportRefetch}
-        />
-        {lastError && status === "failed" ? (
-          <p className="mt-1 line-clamp-2 text-xs text-er">{lastError}</p>
-        ) : null}
+          <ImportRowActions
+            id={id}
+            status={status}
+            actionInProgress={actionInProgress}
+            isReprocessActive={isIdentityReprocessActive(metadata)}
+            onOpenMappingDialog={onOpenMappingDialog}
+            onRePromote={onRePromote}
+            onAnafEnrich={onAnafEnrich}
+            onRetry={onRetry}
+            className="w-full justify-start sm:justify-end lg:w-full lg:justify-start"
+          />
+        </div>
       </div>
-      <div className="w-32">
-        <ProgressBar value={progress} indeterminate={isProcessing && !hasKnownTotal} />
-      </div>
-      <span className={`w-20 text-xs font-medium ${getStatusToneClass(status)}`}>{status}</span>
-      <ImportRowActions
-        id={id}
-        status={status}
-        actionInProgress={actionInProgress}
-        isReprocessActive={isIdentityReprocessActive(metadata)}
-        onOpenMappingDialog={onOpenMappingDialog}
-        onRePromote={onRePromote}
-        onAnafEnrich={onAnafEnrich}
-        onRetry={onRetry}
-      />
     </div>
   );
 }
@@ -1034,17 +1060,17 @@ export function Import() {
   return (
     <PageWrapper title="Import Contacte">
       {/* Template section */}
-      <Card className="mb-6">
+      <Card className="mb-6 min-w-0">
         <CardHeader>
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div>
+          <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-5">
+            <div className="min-w-0 flex-1">
               <CardTitle>Template Import</CardTitle>
-              <p className="mt-1 text-xs text-t3">
+              <p className="mt-2 text-xs leading-relaxed text-t3 sm:mt-1">
                 Descarcă template-ul (CSV sau Excel) cu toate coloanele necesare pentru un import
                 corect. Fișierul Excel include și o foaie cu instrucțiuni detaliate.
               </p>
             </div>
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex shrink-0 flex-wrap items-stretch gap-2 sm:justify-end">
               <Button variant="outline" size="sm" onClick={() => setShowColumns((v) => !v)}>
                 {showColumns ? "Ascunde coloane" : "Vezi structura coloanelor"}
               </Button>
@@ -1132,12 +1158,12 @@ export function Import() {
       ) : null}
 
       {/* Import history */}
-      <Card className="mt-6">
+      <Card className="mt-6 min-w-0">
         <CardHeader>
           <CardTitle>Istoric Importuri</CardTitle>
         </CardHeader>
-        <CardBody>
-          <div className="space-y-4">
+        <CardBody className="min-w-0">
+          <div className="min-w-0 space-y-0 divide-y divide-s700/60">
             {imports.length === 0 ? (
               <p className="py-4 text-center text-sm text-t3">
                 Niciun import efectuat. Folosește template-ul de mai sus pentru a pregăti datele.
