@@ -27,7 +27,7 @@ function processSpintaxGroups(text: string): string {
   // the single-brace spintax regex. Each placeholder is replaced with a
   // Unicode Private-Use-Area fence that cannot appear in normal template content.
   const protected_vars: string[] = [];
-  const guarded = text.replace(/\{\{\w+\}\}/g, (match) => {
+  const guarded = text.replaceAll(/\{\{\w+\}\}/g, (match) => {
     protected_vars.push(match);
     return `\uE001${protected_vars.length - 1}\uE001`;
   });
@@ -47,7 +47,7 @@ function processSpintaxGroups(text: string): string {
   }
 
   // Restore {{variable}} placeholders
-  return result.replace(/\uE001(\d+)\uE001/g, (_, idx) => protected_vars[Number(idx)] ?? "");
+  return result.replaceAll(/\uE001(\d+)\uE001/g, (_, idx) => protected_vars[Number(idx)] ?? "");
 }
 
 /**
