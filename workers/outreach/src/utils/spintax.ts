@@ -2,8 +2,7 @@
  * Spintax processor utility
  * Processes {option1|option2|option3} syntax in templates.
  * Source: etapa2-workers-F-templates.md
- */
-
+ */ import { randomInt } from "node:crypto";
 /**
  * Process spintax patterns in content.
  * Randomly selects one option from each {a|b|c} group.
@@ -42,7 +41,7 @@ function processSpintaxGroups(text: string): string {
     result = result.replaceAll(innerPattern, (_match, options) => {
       hasMore = true;
       const choices = options.split("|");
-      return choices[Math.floor(Math.random() * choices.length)] ?? "";
+      return choices[randomInt(0, choices.length)] ?? "";
     });
   }
 

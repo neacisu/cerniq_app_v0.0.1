@@ -117,7 +117,9 @@ function buildTenantSlugFromCompanyName(companyName: string): string {
   const normalized = companyName
     .toLowerCase()
     .replaceAll(/[^a-z\d]+/g, "-")
-    .replaceAll(/^-+|-+$/g, "");
+    .split("-")
+    .filter(Boolean)
+    .join("-");
   return `${normalized}-${randomBytes(2).toString("hex")}`;
 }
 

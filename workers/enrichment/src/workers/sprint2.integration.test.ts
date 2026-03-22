@@ -1,3 +1,4 @@
+import { tmpdir } from "node:os";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 const TENANT_ID = "11111111-1111-4111-8111-111111111111";
@@ -74,7 +75,7 @@ describe("S2.PR8 integration - CSV -> Bronze", () => {
       data: {
         tenantId: TENANT_ID,
         batchId: BATCH_ID,
-        filePath: "/tmp/test.csv",
+        filePath: `${tmpdir()}/test.csv`,
         fileName: "test.csv",
         fileSize: 12,
         correlationId: "corr-1",

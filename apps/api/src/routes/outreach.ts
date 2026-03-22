@@ -3,7 +3,7 @@
  * Sources: etapa2-api-endpoints.md, etapa2-hitl-system.md
  * Prefix registered at: /api/v1/outreach
  */
-import { randomUUID } from "node:crypto";
+import { randomInt, randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z, iso } from "zod";
 import {
@@ -1981,7 +1981,7 @@ export async function outreachRoutes(app: FastifyInstance) {
       const spintaxPattern = /\{([^{}]+)\}/g;
       preview = preview.replaceAll(spintaxPattern, (_match: string, group: string) => {
         const opts = group.split("|");
-        return opts[Math.floor(Math.random() * opts.length)] ?? opts[0] ?? "";
+        return opts[randomInt(0, opts.length)] ?? opts[0] ?? "";
       });
 
       return reply.send({ success: true, data: { preview } });

@@ -1,3 +1,4 @@
+import { randomInt } from "node:crypto";
 import type { Processor } from "bullmq";
 import {
   createCircuitBreaker,
@@ -65,7 +66,7 @@ const ANAF_MAX_DELAY_MS = Number(process.env.ANAF_MAX_DELAY_MS ?? "4000");
 
 /** Random jitter delay between ANAF calls — reduces risk of rate-limiting / IP ban. */
 function randomDelay(): Promise<void> {
-  const ms = ANAF_MIN_DELAY_MS + Math.random() * (ANAF_MAX_DELAY_MS - ANAF_MIN_DELAY_MS);
+  const ms = randomInt(ANAF_MIN_DELAY_MS, ANAF_MAX_DELAY_MS + 1);
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
