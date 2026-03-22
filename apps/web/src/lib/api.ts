@@ -6,6 +6,23 @@ import { getApiBase, requestRedirectToLogin } from "./api-url.js";
 
 const STORAGE_KEY = "cerniq_token";
 const USER_KEY = "cerniq_user";
+
+// ─── React auth-state bridge ──────────────────────────────────────────────────
+// api.ts is framework-agnostic; AuthProvider wires these callbacks on mount so
+// that token events are reflected in React state without a circular import.
+type AuthClearedListener = () => void;
+type TokenRefreshedListener = (newToken: string) => void;
+
+let _onAuthCleared: AuthClearedListener | null = null;
+let _onTokenRefreshed: TokenRefreshedListener | null = null;
+
+export function setOnAuthClearedListener(fn: AuthClearedListener | null): void {
+  _onAuthCleared = fn;
+}
+
+export function setOnTokenRefreshedListener(fn: TokenRefreshedListener | null): void {
+  _onTokenRefreshed = fn;
+}
 const AUTH_PREFIX = "/api/v1/auth";
 
 function persistAccessToken(token: string | null) {
@@ -21,6 +38,9 @@ function clearStoredAuth() {
   if (globalThis.window === undefined) return;
   localStorage.removeItem(STORAGE_KEY);
   localStorage.removeItem(USER_KEY);
+  // Notify AuthProvider so React state is cleared immediately (prevents ProtectedRoute
+  // from keeping the user on a protected page after auth expires).
+  _onAuthCleared?.();
 }
 
 function getAuthHeaders(): Record<string, string> {
@@ -76,6 +96,8 @@ async function refreshAccessToken(): Promise<string | null> {
       };
       const token = body?.data?.token ?? null;
       persistAccessToken(token);
+      // Keep AuthProvider React state in sync so getAuthHeader() returns the fresh token.
+      if (token) _onTokenRefreshed?.(token);
       return token;
     } catch {
       clearStoredAuth();

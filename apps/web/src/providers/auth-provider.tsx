@@ -5,9 +5,17 @@
  */
 /* eslint-disable react-refresh/only-export-components */
 
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import { Navigate } from "react-router-dom";
-import { api } from "@/lib/api.js";
+import { api, setOnAuthClearedListener, setOnTokenRefreshedListener } from "@/lib/api.js";
 import { LoadingPage } from "@/components/feedback/LoadingPage.js";
 import type { User, RegisterData } from "./auth-types.js";
 
@@ -121,6 +129,20 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
     const token = state.token ?? localStorage.getItem(STORAGE_KEY);
     return token ? { Authorization: `Bearer ${token}` } : {};
   }, [state.token]);
+
+  // Bridge api.ts auth events into React state so ProtectedRoute stays consistent.
+  useEffect(() => {
+    setOnAuthClearedListener(() => {
+      setState({ user: null, token: null, loading: false });
+    });
+    setOnTokenRefreshedListener((newToken) => {
+      setState((prev) => ({ ...prev, token: newToken }));
+    });
+    return () => {
+      setOnAuthClearedListener(null);
+      setOnTokenRefreshedListener(null);
+    };
+  }, []);
 
   const value = useMemo<AuthContextValue>(
     () => ({
