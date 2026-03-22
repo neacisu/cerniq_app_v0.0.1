@@ -415,7 +415,8 @@ describe("Etapa 2 Outreach API Integration Tests", () => {
       if (response.statusCode === 200) {
         const body = JSON.parse(response.body);
         expect(body.success).toBe(true);
-        expect(Array.isArray(body.data)).toBe(true);
+        expect(Array.isArray(body.data.items)).toBe(true);
+        expect(typeof body.data.unreadCount).toBe("number");
       } else {
         expect(response.statusCode).toBe(500);
       }
