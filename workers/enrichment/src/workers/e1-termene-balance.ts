@@ -43,9 +43,11 @@ export const termeneBalanceProcessor: Processor<TermeneBalanceJobData> = async (
   const cifraAfaceri =
     typeof payload.cifra_afaceri === "number"
       ? payload.cifra_afaceri
-      : Number(payload.cifra_afaceri ?? NaN);
+      : Number(payload.cifra_afaceri ?? Number.NaN);
   const profitNet =
-    typeof payload.profit_net === "number" ? payload.profit_net : Number(payload.profit_net ?? NaN);
+    typeof payload.profit_net === "number"
+      ? payload.profit_net
+      : Number(payload.profit_net ?? Number.NaN);
   const numarAngajati =
     typeof payload.numar_angajati === "number"
       ? payload.numar_angajati
@@ -57,7 +59,7 @@ export const termeneBalanceProcessor: Processor<TermeneBalanceJobData> = async (
       cifraAfaceri: Number.isFinite(cifraAfaceri) ? String(cifraAfaceri) : undefined,
       profitNet: Number.isFinite(profitNet) ? String(profitNet) : undefined,
       numarAngajati: Number.isFinite(numarAngajati) ? numarAngajati : undefined,
-      metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify({ termeneBalance: payload })}::jsonb`,
+      metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{termeneBalance}', ${JSON.stringify(payload)}::jsonb)`,
       lastEnrichedAt: new Date(),
     })
     .where(sql`${silverCompanies.id} = ${job.data.companyId}`);

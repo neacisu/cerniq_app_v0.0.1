@@ -1,6 +1,6 @@
 import type { Processor } from "bullmq";
 import { db, setSessionTenantId, silverCompanies, silverEnrichmentLog, sql } from "@cerniq/db";
-import { createQueue } from "@cerniq/worker-shared";
+import { createQueue, QUEUES } from "@cerniq/worker-shared";
 import { createHitlApprovalTask } from "./pipeline-utils.js";
 
 export type QualityRollupJobData = {
@@ -38,7 +38,10 @@ export const qualityRollupProcessor: Processor<QualityRollupJobData> = async (jo
     total >= 70 &&
     Boolean(company.cui) &&
     (company.statusFirma ? company.statusFirma === "ACTIVA" : true);
-  const promotionStatus = eligible ? "eligible" : total >= 40 ? "review_required" : "blocked";
+  let promotionStatus: "eligible" | "review_required" | "blocked";
+  if (eligible) promotionStatus = "eligible";
+  else if (total >= 40) promotionStatus = "review_required";
+  else promotionStatus = "blocked";
   const blockedReason = eligible
     ? null
     : getBlockedReason({
@@ -52,8 +55,8 @@ export const qualityRollupProcessor: Processor<QualityRollupJobData> = async (jo
     .set({
       totalQualityScore: String(total),
       promotionStatus,
-      metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify({
-        qualityRollup: {
+      metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{qualityRollup}', ${JSON.stringify(
+        {
           completeness,
           accuracy,
           freshness,
@@ -62,7 +65,7 @@ export const qualityRollupProcessor: Processor<QualityRollupJobData> = async (jo
           blockedReason,
           rolledAt: new Date().toISOString(),
         },
-      })}::jsonb`,
+      )}::jsonb)`,
       updatedAt: new Date(),
     })
     .where(sql`${silverCompanies.id} = ${job.data.companyId}`);
@@ -84,7 +87,7 @@ export const qualityRollupProcessor: Processor<QualityRollupJobData> = async (jo
   }
 
   if (promotionStatus === "eligible") {
-    const queue = createQueue("pipeline:promote:gold");
+    const queue = createQueue(QUEUES.PIPELINE_PROMOTE_TO_GOLD);
     await queue.add("promote", {
       tenantId: job.data.tenantId,
       companyId: job.data.companyId,

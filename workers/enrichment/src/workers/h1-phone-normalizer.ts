@@ -44,7 +44,7 @@ export const phoneNormalizerSilverProcessor: Processor<PhoneNormalizerJobData> =
       .update(silverCompanies)
       .set({
         telefon: e164 ?? undefined,
-        metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify(metadataPatch)}::jsonb`,
+        metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{phoneNormalization}', ${JSON.stringify(metadataPatch.phoneNormalization)}::jsonb)`,
         updatedAt: new Date(),
       })
       .where(sql`${silverCompanies.id} = ${job.data.entityId}`);
@@ -54,7 +54,7 @@ export const phoneNormalizerSilverProcessor: Processor<PhoneNormalizerJobData> =
       .set({
         telefon: e164 ?? undefined,
         telefonE164: e164 ?? undefined,
-        metadata: sql`COALESCE(${silverContacts.metadata}, '{}'::jsonb) || ${JSON.stringify(metadataPatch)}::jsonb`,
+        metadata: sql`jsonb_set(COALESCE(${silverContacts.metadata}, '{}'::jsonb), '{phoneNormalization}', ${JSON.stringify(metadataPatch.phoneNormalization)}::jsonb)`,
         updatedAt: new Date(),
       })
       .where(sql`${silverContacts.id} = ${job.data.entityId}`);

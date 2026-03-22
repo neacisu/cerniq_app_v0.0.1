@@ -153,13 +153,13 @@ export const pipelineErrorHandlerProcessor: Processor<ErrorHandlerJobData> = asy
       await db
         .update(silverCompanies)
         .set({
-          metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify({
-            enrichmentErrors: {
+          metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{enrichmentErrors}', ${JSON.stringify(
+            {
               sourceWorker: job.data.sourceWorker,
               error: job.data.errorMessage,
               skippedAt: new Date().toISOString(),
             },
-          })}::jsonb`,
+          )}::jsonb)`,
           updatedAt: new Date(),
         })
         .where(sql`${silverCompanies.id} = ${job.data.companyId}`);
@@ -172,13 +172,13 @@ export const pipelineErrorHandlerProcessor: Processor<ErrorHandlerJobData> = asy
         .set({
           enrichmentStatus: "failed",
           promotionStatus: "blocked",
-          metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify({
-            permanentFailure: {
+          metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{permanentFailure}', ${JSON.stringify(
+            {
               error: job.data.errorMessage,
               sourceWorker: job.data.sourceWorker,
               failedAt: new Date().toISOString(),
             },
-          })}::jsonb`,
+          )}::jsonb)`,
         })
         .where(sql`${silverCompanies.id} = ${job.data.companyId}`);
       recoveryAction = "blocked";

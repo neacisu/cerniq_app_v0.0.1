@@ -74,7 +74,7 @@ export const onrcDataProcessor: Processor<OnrcDataJobData> = async (job) => {
       nrRegComOriginal: nrRegCom.raw || undefined,
       // nrRegComCanonical: only set when ONRC provides new canonical format directly
       nrRegComCanonical: nrRegCom.canonical || undefined,
-      metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify({ onrcData: payload })}::jsonb`,
+      metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{onrcData}', ${JSON.stringify(payload)}::jsonb)`,
       lastEnrichedAt: new Date(),
     })
     .where(sql`${silverCompanies.id} = ${job.data.companyId}`);

@@ -25,23 +25,28 @@ function isPublicRoute(url: string): boolean {
 async function tenantContextPlugin(app: FastifyInstance) {
   app.decorateRequest("tenantId", null);
 
-  const setRequestContext = async (tenantId: string | null, userId: string | null) => {
-    if (!tenantId && !userId) {
-      return;
-    }
-
-    const tenantValue = tenantId ?? "00000000-0000-0000-0000-000000000000";
-    const userValue = userId ?? "00000000-0000-0000-0000-000000000000";
+  /** Always apply session GUCs (sentinels when null) so pooled connections are fail-closed for RLS. */
+  const SENTINEL = "00000000-0000-0000-0000-000000000000";
+  const setRequestContext = async (tenantId: string = SENTINEL, userId: string = SENTINEL) => {
     await db.execute(sql`
       SELECT
-        set_config('app.tenant_id', ${tenantValue}, false),
-        set_config('app.current_user_id', ${userValue}, false)
+        set_config('app.tenant_id', ${tenantId}, false),
+        set_config('app.current_user_id', ${userId}, false)
     `);
   };
 
   app.addHook("onRequest", async (request: FastifyRequest) => {
     if (isPublicRoute(request.url)) {
-      await setRequestContext(null, null);
+      // setRequestContext failures on public routes (e.g. DB unavailable) must not block
+      // login/logout/register — those handlers manage their own DB errors.
+      try {
+        await setRequestContext();
+      } catch (err) {
+        request.log.warn(
+          { err, url: request.url },
+          "tenant-context: DB unavailable on public route — continuing",
+        );
+      }
       return;
     }
 
@@ -73,7 +78,14 @@ async function tenantContextPlugin(app: FastifyInstance) {
       role = user?.role;
     } catch {
       request.tenantId = null;
-      await setRequestContext(null, null);
+      try {
+        await setRequestContext();
+      } catch (err) {
+        request.log.warn(
+          { err },
+          "tenant-context: DB unavailable when clearing unauthenticated context",
+        );
+      }
       return;
     }
 
@@ -83,7 +95,14 @@ async function tenantContextPlugin(app: FastifyInstance) {
     }
 
     request.tenantId = tenantId;
-    await setRequestContext(tenantId, userId);
+    try {
+      await setRequestContext(tenantId ?? undefined, userId ?? undefined);
+    } catch (err) {
+      // RLS context could not be applied — fail the request before the handler runs
+      // (fail-closed: better to 503 than to serve data without correct tenant isolation).
+      request.log.error({ err, tenantId }, "tenant-context: failed to set RLS session context");
+      throw err;
+    }
   });
 }
 

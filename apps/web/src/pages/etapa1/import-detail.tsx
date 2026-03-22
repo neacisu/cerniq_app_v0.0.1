@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
 import { Spinner } from "@/components/ui/spinner.js";
 import { ProgressBar } from "@/components/data/ProgressBar.js";
@@ -15,14 +15,27 @@ import {
 } from "@/components/ui/index.js";
 import {
   useCancelImport,
+  useDeleteImportBatch,
   useImportDetail,
   useImportEntities,
   useImportReprocessErrors,
   useImportRows,
   useAnafEnrichImport,
+  usePauseImportBatch,
   useResumeImportReprocessErrors,
+  useResumeImportBatch,
 } from "@/hooks/use-etapa1.js";
 import { toast } from "@/components/ui/toast-api.js";
+import { PipelineProgressPanel } from "@/components/etapa1/PipelineProgressPanel.js";
+
+type DetailRecord = Record<string, unknown>;
+type DetailRecordList = ReadonlyArray<DetailRecord>;
+type CancelImportMutation = ReturnType<typeof useCancelImport>;
+type DeleteImportBatchMutation = ReturnType<typeof useDeleteImportBatch>;
+type AnafEnrichImportMutation = ReturnType<typeof useAnafEnrichImport>;
+type PauseImportBatchMutation = ReturnType<typeof usePauseImportBatch>;
+type ResumeImportBatchMutation = ReturnType<typeof useResumeImportBatch>;
+type ResumeImportReprocessErrorsMutation = ReturnType<typeof useResumeImportReprocessErrors>;
 
 function getImportProgress(processedRows: number, totalRows: number, status: string) {
   if (totalRows > 0) {
@@ -144,7 +157,8 @@ function getIdentityReprocessMetrics(metadata: Record<string, unknown>, totalRow
   const insufficient = Number(metadata.identityReprocessInsufficientIdentifierRows ?? 0);
   const failedContacts = Number(metadata.identityReprocessFailedContactCount ?? 0);
   const runTotalRows = Number(metadata.identityReprocessRunTotalRows ?? totalRows ?? 0);
-  const total = Math.max(runTotalRows, processedRows, 0);
+  const total = runTotalRows > 0 ? runTotalRows : Math.max(processedRows, 0);
+  const counterDrift = total > 0 && processedRows > total;
   const progress = computeReprocessProgress(processedRows, total);
   const {
     lastProgressAtRaw,
@@ -177,6 +191,7 @@ function getIdentityReprocessMetrics(metadata: Record<string, unknown>, totalRow
     insufficient,
     failedContacts,
     totalRows: total,
+    counterDrift,
     progress,
     throughput,
     etaMs,
@@ -221,6 +236,17 @@ function getCompletedReprocessSummary(
   details: string,
   stats: string,
 ): ReprocessSummary {
+  if (metrics.counterDrift) {
+    return buildReprocessSummary(
+      "text-wa",
+      "Re-rezolvare identitate cu anomalie de contorizare",
+      "Contorul raportat depășește scope-ul curent al batch-ului; interpretarea progresului necesită verificarea checkpoint-ului de reprocess.",
+      details,
+      `${stats} · contor peste scope-ul batch-ului`,
+      metrics,
+    );
+  }
+
   if (metrics.processedRows < metrics.totalRows) {
     const incompleteStats = `${stats} · ${(metrics.totalRows - metrics.processedRows).toLocaleString("ro-RO")} rânduri lipsă`;
     const body = `${metrics.processedRows.toLocaleString("ro-RO")} din ${metrics.totalRows.toLocaleString("ro-RO")} rânduri au fost reevaluate.`;
@@ -256,7 +282,7 @@ function getIdentityReprocessSummary(metadata: Record<string, unknown>, totalRow
       ? metadata.identityReprocessLastError
       : null;
   const details = [
-    `${metrics.processedRows.toLocaleString("ro-RO")} / ${metrics.totalRows.toLocaleString("ro-RO")} reevaluate`,
+    `${metrics.processedRows.toLocaleString("ro-RO")} / ${metrics.totalRows.toLocaleString("ro-RO")} rânduri Bronze reevaluate`,
     `${metrics.progress}%`,
     metrics.throughput
       ? `~${Math.max(1, Math.round(metrics.throughput)).toLocaleString("ro-RO")} rânduri/s`
@@ -264,10 +290,11 @@ function getIdentityReprocessSummary(metadata: Record<string, unknown>, totalRow
     metrics.state === "running" && metrics.etaMs
       ? `ETA ${formatCompactDuration(metrics.etaMs)}`
       : null,
+    metrics.counterDrift ? "Avertisment: contor peste scope-ul batch-ului" : null,
   ]
     .filter(Boolean)
     .join(" · ");
-  const stats = `${metrics.resolvedRows.toLocaleString("ro-RO")} rezolvate · ${metrics.conflicts.toLocaleString("ro-RO")} conflicte · ${metrics.insufficient.toLocaleString("ro-RO")} insuficiente`;
+  const stats = `${metrics.resolvedRows.toLocaleString("ro-RO")} rânduri rezolv. · ${metrics.conflicts.toLocaleString("ro-RO")} conflicte · ${metrics.insufficient.toLocaleString("ro-RO")} insuficiente`;
 
   if (metrics.state === "queued") {
     return buildReprocessSummary(
@@ -282,8 +309,10 @@ function getIdentityReprocessSummary(metadata: Record<string, unknown>, totalRow
 
   if (metrics.state === "running") {
     return buildReprocessSummary(
-      "text-t2",
-      "Re-rezolvare identitate în curs",
+      metrics.counterDrift ? "text-wa" : "text-t2",
+      metrics.counterDrift
+        ? "Re-rezolvare identitate în curs cu anomalie de contorizare"
+        : "Re-rezolvare identitate în curs",
       details,
       details,
       stats,
@@ -305,7 +334,11 @@ function getIdentityReprocessSummary(metadata: Record<string, unknown>, totalRow
   );
 }
 
-function ReprocessErrorsTable({ rows }: Readonly<{ rows: Array<Record<string, unknown>> }>) {
+type ReprocessErrorsTableProps = Readonly<{
+  rows: DetailRecordList;
+}>;
+
+function ReprocessErrorsTable({ rows }: ReprocessErrorsTableProps) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse text-xs">
@@ -380,7 +413,12 @@ function getAnafEnrichmentState(metadata: Record<string, unknown>) {
   };
 }
 
-function SummaryCard({ label, value }: Readonly<{ label: string; value: string }>) {
+type SummaryCardProps = Readonly<{
+  label: string;
+  value: string;
+}>;
+
+function SummaryCard({ label, value }: SummaryCardProps) {
   return (
     <div className="rounded border border-s700 p-3 text-sm">
       <div className="text-t3">{label}</div>
@@ -395,7 +433,11 @@ function CanonicalizedBadge() {
   );
 }
 
-function ImportEntitiesTable({ entities }: Readonly<{ entities: Array<Record<string, unknown>> }>) {
+type ImportEntitiesTableProps = Readonly<{
+  entities: DetailRecordList;
+}>;
+
+function ImportEntitiesTable({ entities }: ImportEntitiesTableProps) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse text-xs">
@@ -433,7 +475,11 @@ function ImportEntitiesTable({ entities }: Readonly<{ entities: Array<Record<str
   );
 }
 
-function ImportRowsTable({ rows }: Readonly<{ rows: Array<Record<string, unknown>> }>) {
+type ImportRowsTableProps = Readonly<{
+  rows: DetailRecordList;
+}>;
+
+function ImportRowsTable({ rows }: ImportRowsTableProps) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse text-xs">
@@ -476,9 +522,12 @@ function ImportRowsTable({ rows }: Readonly<{ rows: Array<Record<string, unknown
   );
 }
 
-function AnafStatusCard({
-  anafState,
-}: Readonly<{ anafState: ReturnType<typeof getAnafEnrichmentState> }>) {
+type AnafEnrichmentState = ReturnType<typeof getAnafEnrichmentState>;
+type AnafStatusCardProps = Readonly<{
+  anafState: AnafEnrichmentState;
+}>;
+
+function AnafStatusCard({ anafState }: AnafStatusCardProps) {
   if (!anafState) return null;
   const isProcessing = anafState.status === "processing";
   const isCompleted = anafState.status === "completed";
@@ -525,10 +574,12 @@ function AnafStatusCard({
   );
 }
 
-function ImportErrorCard({
-  lastError,
-  failedAt,
-}: Readonly<{ lastError: string | null; failedAt: string | null }>) {
+type ImportErrorCardProps = Readonly<{
+  lastError: string | null;
+  failedAt: string | null;
+}>;
+
+function ImportErrorCard({ lastError, failedAt }: ImportErrorCardProps) {
   if (!lastError) return null;
   return (
     <div className="mb-4 rounded-lg border border-er/30 bg-er/10 p-3 text-sm text-er">
@@ -543,9 +594,12 @@ function ImportErrorCard({
   );
 }
 
-function IdentityReprocessCard({
-  summary,
-}: Readonly<{ summary: ReturnType<typeof getIdentityReprocessSummary> }>) {
+type IdentityReprocessSummary = ReturnType<typeof getIdentityReprocessSummary>;
+type IdentityReprocessCardProps = Readonly<{
+  summary: IdentityReprocessSummary;
+}>;
+
+function IdentityReprocessCard({ summary }: IdentityReprocessCardProps) {
   if (!summary) return null;
   return (
     <div className="mb-4 rounded-lg border border-s700 bg-s800/40 p-3 text-sm">
@@ -566,7 +620,7 @@ function IdentityReprocessCard({
 
 async function cancelImport(
   id: string,
-  cancelMutation: ReturnType<typeof useCancelImport>,
+  cancelMutation: CancelImportMutation,
   refetch: () => Promise<unknown>,
 ) {
   try {
@@ -580,7 +634,7 @@ async function cancelImport(
 
 async function triggerAnafEnrich(
   id: string,
-  anafEnrichMutation: ReturnType<typeof useAnafEnrichImport>,
+  anafEnrichMutation: AnafEnrichImportMutation,
   refetch: () => Promise<unknown>,
 ) {
   try {
@@ -600,7 +654,7 @@ async function triggerAnafEnrich(
 
 async function resumeReprocessErrors(
   id: string,
-  resumeErrorsMutation: ReturnType<typeof useResumeImportReprocessErrors>,
+  resumeErrorsMutation: ResumeImportReprocessErrorsMutation,
   refetchDetail: () => Promise<unknown>,
   refetchErrors: () => Promise<unknown>,
 ) {
@@ -617,25 +671,45 @@ async function resumeReprocessErrors(
   }
 }
 
+type ImportDetailActionsProps = Readonly<{
+  id: string;
+  isCompleted: boolean;
+  canCancel: boolean;
+  isPaused: boolean;
+  anafState: AnafEnrichmentState;
+  anafEnrichMutation: AnafEnrichImportMutation;
+  cancelMutation: CancelImportMutation;
+  pauseMutation: PauseImportBatchMutation;
+  resumeMutation: ResumeImportBatchMutation;
+  deleteMutation: DeleteImportBatchMutation;
+  refetch: () => Promise<unknown>;
+}>;
+
 function ImportDetailActions({
   id,
   isCompleted,
   canCancel,
+  isPaused,
   anafState,
   anafEnrichMutation,
   cancelMutation,
+  pauseMutation,
+  resumeMutation,
+  deleteMutation,
   refetch,
-}: Readonly<{
-  id: string;
-  isCompleted: boolean;
-  canCancel: boolean;
-  anafState: ReturnType<typeof getAnafEnrichmentState>;
-  anafEnrichMutation: ReturnType<typeof useAnafEnrichImport>;
-  cancelMutation: ReturnType<typeof useCancelImport>;
-  refetch: () => Promise<unknown>;
-}>) {
+}: ImportDetailActionsProps) {
+  const canDelete = isCompleted === false;
+
   return (
     <div className="flex gap-2">
+      {id ? (
+        <Link
+          to={`/etapa1/bronze?batchId=${id}`}
+          className="inline-flex items-center justify-center rounded-md border border-s600 bg-transparent px-3 py-1.5 text-sm font-medium text-t1 hover:bg-s700"
+        >
+          Vezi contacte Bronze
+        </Link>
+      ) : null}
       {isCompleted ? (
         <Button
           variant="outline"
@@ -645,6 +719,39 @@ function ImportDetailActions({
           {anafEnrichMutation.isPending ? "Se trimite..." : "Prelucreaza ANAF"}
         </Button>
       ) : null}
+      {isPaused ? (
+        <Button
+          variant="outline"
+          onClick={async () => {
+            try {
+              await resumeMutation.mutateAsync({ batchId: id, mode: "recover" });
+              toast.success("Import reluat.");
+              await refetch();
+            } catch (error) {
+              toast.error(error instanceof Error ? error.message : "Eroare la reluarea importului");
+            }
+          }}
+          disabled={resumeMutation.isPending}
+        >
+          {resumeMutation.isPending ? "Se reia..." : "Resume Import"}
+        </Button>
+      ) : (
+        <Button
+          variant="outline"
+          onClick={async () => {
+            try {
+              await pauseMutation.mutateAsync(id);
+              toast.success("Import pus pe pauză.");
+              await refetch();
+            } catch (error) {
+              toast.error(error instanceof Error ? error.message : "Eroare la pauzarea importului");
+            }
+          }}
+          disabled={pauseMutation.isPending}
+        >
+          {pauseMutation.isPending ? "Se pune pe pauză..." : "Pause Import"}
+        </Button>
+      )}
       {canCancel ? (
         <Button
           variant="danger"
@@ -654,15 +761,36 @@ function ImportDetailActions({
           {cancelMutation.isPending ? "Se anuleaza..." : "Anuleaza Import"}
         </Button>
       ) : null}
+      {canDelete ? (
+        <Button
+          variant="outline"
+          onClick={async () => {
+            try {
+              await deleteMutation.mutateAsync(id);
+              toast.success("Import șters logic; datele rămân în DB.");
+              await refetch();
+            } catch (error) {
+              toast.error(
+                error instanceof Error ? error.message : "Eroare la ștergerea importului",
+              );
+            }
+          }}
+          disabled={deleteMutation.isPending}
+        >
+          {deleteMutation.isPending ? "Se șterge..." : "Delete"}
+        </Button>
+      ) : null}
     </div>
   );
 }
 
-function FailedReprocessCard({
-  failedCount,
-  isPending,
-  onResume,
-}: Readonly<{ failedCount: number; isPending: boolean; onResume: () => void }>) {
+type FailedReprocessCardProps = Readonly<{
+  failedCount: number;
+  isPending: boolean;
+  onResume: () => void;
+}>;
+
+function FailedReprocessCard({ failedCount, isPending, onResume }: FailedReprocessCardProps) {
   if (failedCount <= 0) return null;
   return (
     <div className="mb-4 rounded-lg border border-er/30 bg-er/8 p-3 text-sm">
@@ -689,6 +817,9 @@ export function ImportDetail() {
   const rowsQuery = useImportRows(id, 100, 0);
   const reprocessErrorsQuery = useImportReprocessErrors(id, 100, 0);
   const cancelMutation = useCancelImport();
+  const pauseMutation = usePauseImportBatch();
+  const resumeMutation = useResumeImportBatch();
+  const deleteMutation = useDeleteImportBatch();
   const anafEnrichMutation = useAnafEnrichImport();
   const resumeErrorsMutation = useResumeImportReprocessErrors();
 
@@ -719,6 +850,9 @@ export function ImportDetail() {
   const status = String(item.status ?? "unknown");
   const canCancel = status === "pending" || status === "processing";
   const isCompleted = status === "completed";
+  const isPaused = Boolean(
+    (item.control as Record<string, unknown> | undefined)?.batchPaused ?? false,
+  );
   const processedRows = Number(item.processedRows ?? 0);
   const totalRows = Number(item.totalRows ?? 0);
   const hasKnownTotal = totalRows > 0;
@@ -743,9 +877,13 @@ export function ImportDetail() {
             id={id}
             isCompleted={isCompleted}
             canCancel={canCancel}
+            isPaused={isPaused}
             anafState={anafState}
             anafEnrichMutation={anafEnrichMutation}
             cancelMutation={cancelMutation}
+            pauseMutation={pauseMutation}
+            resumeMutation={resumeMutation}
+            deleteMutation={deleteMutation}
             refetch={() => detailQuery.refetch()}
           />
         ) : null
@@ -814,6 +952,7 @@ export function ImportDetail() {
               <TabsTrigger value="entities">Entități</TabsTrigger>
               <TabsTrigger value="rows">Rânduri brute</TabsTrigger>
               <TabsTrigger value="reprocess-errors">Erori reprocess</TabsTrigger>
+              <TabsTrigger value="pipeline-logs">Progres pipeline</TabsTrigger>
               <TabsTrigger value="config">Config</TabsTrigger>
               <TabsTrigger value="metadata">Metadata</TabsTrigger>
               <TabsTrigger value="raw">Raw</TabsTrigger>
@@ -844,6 +983,14 @@ export function ImportDetail() {
               ) : (
                 <ReprocessErrorsTable rows={reprocessErrorsQuery.data?.data ?? []} />
               )}
+            </TabsContent>
+            <TabsContent value="pipeline-logs">
+              {id ? (
+                <PipelineProgressPanel
+                  batchId={id}
+                  isActive={status === "pending" || status === "processing"}
+                />
+              ) : null}
             </TabsContent>
             <TabsContent value="config">
               <pre className="text-xs text-t2">{JSON.stringify(uploadConfig, null, 2)}</pre>

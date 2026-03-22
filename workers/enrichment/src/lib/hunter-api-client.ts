@@ -4,7 +4,7 @@ const HUNTER_API_URL = process.env.HUNTER_API_URL ?? "https://api.hunter.io/v2";
 const HUNTER_API_KEY = process.env.HUNTER_API_KEY ?? "";
 const HUNTER_TIMEOUT_MS = Number(process.env.HUNTER_API_TIMEOUT_MS ?? "20000");
 
-type HunterEmailRecord = {
+export type HunterEmailRecord = {
   value?: string;
   confidence?: number;
   first_name?: string;

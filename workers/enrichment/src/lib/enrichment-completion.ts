@@ -22,6 +22,19 @@ export async function markEnrichmentSourceComplete(
   source: (typeof REQUIRED_ENRICHMENT_SOURCES)[number],
   correlationId?: string,
 ): Promise<{ allComplete: boolean; completedSources: string[] }> {
+  // Pre-check: if source was already completed, skip update and queue.add entirely
+  const [current] = await db
+    .select({ sources: silverCompanies.enrichmentSourcesCompleted })
+    .from(silverCompanies)
+    .where(sql`${silverCompanies.tenantId} = ${tenantId} AND ${silverCompanies.id} = ${companyId}`)
+    .limit(1);
+
+  const existingSources = Array.isArray(current?.sources) ? (current.sources as string[]) : [];
+  if (existingSources.includes(source)) {
+    const allComplete = REQUIRED_ENRICHMENT_SOURCES.every((item) => existingSources.includes(item));
+    return { allComplete, completedSources: existingSources };
+  }
+
   const [updated] = await db
     .update(silverCompanies)
     .set({

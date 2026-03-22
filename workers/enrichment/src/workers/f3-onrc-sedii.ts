@@ -69,10 +69,7 @@ export const onrcSediiProcessor: Processor<OnrcSediiJobData> = async (job) => {
   await db
     .update(silverCompanies)
     .set({
-      metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify({
-        onrcSedii: { count: sedii.length, payload: sediiPayload },
-        onrcHistory: historyData,
-      })}::jsonb`,
+      metadata: sql`jsonb_set(jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{onrcSedii}', ${JSON.stringify({ count: sedii.length, payload: sediiPayload })}::jsonb), '{onrcHistory}', ${JSON.stringify(historyData)}::jsonb)`,
       lastEnrichedAt: new Date(),
     })
     .where(sql`${silverCompanies.id} = ${job.data.companyId}`);

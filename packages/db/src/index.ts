@@ -5,6 +5,7 @@ export {
   closeDbConnection,
   setSessionTenantId,
   setSessionRequestContext,
+  resetSessionContext,
   get_user_by_email,
   insert_tenant,
   insert_user,
@@ -14,7 +15,8 @@ export {
   register_new_company,
   register_with_invite_code,
 } from "./client.js";
-export { sql, eq, and, or, desc, asc, inArray } from "drizzle-orm";
+export { sql, eq, and, or, desc, asc, inArray, lt, lte, gte, isNull, isNotNull } from "drizzle-orm";
+export type { SQL } from "drizzle-orm";
 export {
   runMigrations,
   runDrizzleMigrations,
@@ -32,6 +34,9 @@ export * from "./schemas/invite-codes.js";
 export * from "./schemas/bronze.js";
 export * from "./schemas/silver.js";
 export * from "./schemas/gold.js";
+export * from "./schemas/outreach-enums.js";
+export * from "./schemas/outreach.js";
 export * from "./services/approval-service.js";
 export * from "./services/company-identity.js";
+export * from "./helpers/sql-helpers.js";
 export { TEST_PASSWORD_HASH } from "./test-utils/index.js";

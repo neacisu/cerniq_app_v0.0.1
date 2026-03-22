@@ -12,11 +12,14 @@ import {
   sql,
 } from "@cerniq/db";
 import {
-  createQueue,
+  enqueueImportJob,
+  enqueueImportJobBulk,
   sanitizeNrRegCom,
   QUEUES,
   bronzeContactsIngestedTotal,
+  type ImportExecutionContext,
 } from "@cerniq/worker-shared";
+import { buildColumnAliasToTargetMap } from "@cerniq/shared-types";
 import { sanitizeCui } from "../lib/cui-validation.js";
 import { createHitlApprovalTask } from "./pipeline-utils.js";
 
@@ -24,172 +27,7 @@ const STREAMING_THRESHOLD_BYTES = 50 * 1024 * 1024; // 50 MB
 const INSERT_BATCH_SIZE = 1000;
 const LOOKUP_KEY_RE = /[^a-z0-9]/g;
 
-const COLUMN_MAPPING_PATTERNS: Array<{ target: string; aliases: string[] }> = [
-  {
-    target: "companyName",
-    aliases: [
-      "company",
-      "company_name",
-      "firma",
-      "denumire",
-      "nume_firma",
-      "denumire firma",
-      "denumirefirma",
-      "denumire companie",
-      "denumirecompanie",
-    ],
-  },
-  { target: "cui", aliases: ["cui", "cif", "vat", "vat_number", "cod_fiscal", "codfiscal"] },
-  {
-    target: "nrRegistru",
-    aliases: [
-      "reg_com",
-      "j_number",
-      "nr_registru",
-      "nr reg com",
-      "nrregcom",
-      "nr_reg_com",
-      "nr_reg_comert",
-      "nr. rc.",
-      "nrrc",
-      "numar_registru",
-    ],
-  },
-  { target: "email", aliases: ["email", "email_address", "mail"] },
-  {
-    target: "phone",
-    aliases: ["phone", "telefon", "telefon_mobil", "mobile", "telefon mf", "telefonmf"],
-  },
-  { target: "website", aliases: ["website", "site", "url"] },
-  {
-    target: "address",
-    aliases: ["address", "adresa", "street_address", "adresa anaf", "adresaanaf"],
-  },
-  { target: "judet", aliases: ["judet", "county", "region"] },
-  { target: "localitate", aliases: ["localitate", "oras", "city", "town"] },
-  {
-    target: "caen",
-    aliases: ["caen", "caen_code", "nace", "nace code", "nacecode", "cod_caen", "codcaen"],
-  },
-  {
-    target: "caenText",
-    aliases: ["nace text", "nacetext", "nace_text", "denumire_caen", "denumirecaen"],
-  },
-  {
-    target: "cifraAfaceri",
-    aliases: ["cifra de afaceri", "cifradeafaceri", "cifra_afaceri", "turnover", "revenue"],
-  },
-  {
-    target: "profitNet",
-    aliases: [
-      "profit / pierdere neta",
-      "profitpierderereta",
-      "profit_net",
-      "net_profit",
-      "profit net",
-    ],
-  },
-  {
-    target: "profitBrut",
-    aliases: [
-      "profit / pierdere bruta",
-      "profitpierderebruta",
-      "profit_brut",
-      "gross_profit",
-      "profit brut",
-    ],
-  },
-  {
-    target: "venituriTotale",
-    aliases: ["venituri totale", "venituritotale", "venituri_totale", "total_revenue"],
-  },
-  {
-    target: "cheltuieliTotale",
-    aliases: ["cheltuieli totale", "cheltuielitotale", "cheltuieli_totale", "total_expenses"],
-  },
-  {
-    target: "activeTotale",
-    aliases: ["total active", "totalactive", "active_totale", "total_assets"],
-  },
-  {
-    target: "activeImobilizate",
-    aliases: ["active imobilizate", "activeimobilizate", "active_imobilizate", "fixed_assets"],
-  },
-  {
-    target: "activeCirculante",
-    aliases: ["active circulante", "activecirculante", "active_circulante", "current_assets"],
-  },
-  { target: "creante", aliases: ["creante", "receivables", "trade_receivables"] },
-  { target: "stocuri", aliases: ["stocuri", "inventories", "stocks"] },
-  {
-    target: "cheltuieliInAvans",
-    aliases: [
-      "cheltuieli in avans",
-      "cheltuieliinavans",
-      "cheltuieli_in_avans",
-      "prepaid_expenses",
-    ],
-  },
-  {
-    target: "capitaluriProprii",
-    aliases: ["capitaluri proprii total", "capitaluriproprittotal", "capitaluri_proprii", "equity"],
-  },
-  {
-    target: "capitalSocial",
-    aliases: ["capital social", "capitalsocial", "capital_social", "share_capital"],
-  },
-  {
-    target: "datoriiTotale",
-    aliases: ["datorii total", "datoriitotal", "datorii_totale", "total_liabilities"],
-  },
-  {
-    target: "casaSiConturiBanci",
-    aliases: [
-      "casa si conturi la banci",
-      "casasiconturilabanci",
-      "casa_si_conturi_banci",
-      "cash_and_bank",
-    ],
-  },
-  { target: "provizioane", aliases: ["provizioane", "provisions"] },
-  {
-    target: "venituriInAvans",
-    aliases: ["venituri in avans", "venituriinavans", "venituri_in_avans", "deferred_revenue"],
-  },
-  {
-    target: "numarAngajati",
-    aliases: [
-      "numar mediu de salariati",
-      "numarmediudesalariati",
-      "numar_angajati",
-      "employees",
-      "nr_angajati",
-    ],
-  },
-  {
-    target: "anulInfiintarii",
-    aliases: [
-      "anul infiintarii calculat",
-      "anulinfiintariicalculat",
-      "anul_infiintarii",
-      "year_founded",
-    ],
-  },
-  {
-    target: "ratingExtern",
-    aliases: ["rating", "rating_extern", "external_rating", "credit_rating"],
-  },
-  {
-    target: "limitaCreditEur",
-    aliases: ["limita de credit (eur)", "limitadecrediteur", "limita_credit_eur", "credit_limit"],
-  },
-];
-
-const COLUMN_ALIAS_TO_TARGET = new Map(
-  COLUMN_MAPPING_PATTERNS.flatMap((pattern) =>
-    pattern.aliases.map((alias) => [normalizeLookupKey(alias), pattern.target] as const),
-  ),
-);
+const COLUMN_ALIAS_TO_TARGET = buildColumnAliasToTargetMap(normalizeLookupKey);
 
 export type IngestBaseJobData = {
   tenantId: string;
@@ -205,6 +43,7 @@ export type IngestBaseJobData = {
   skipRows?: number;
   maxRows?: number;
   correlationId?: string;
+  importExecution?: ImportExecutionContext;
 };
 
 export async function readInputContent(jobData: IngestBaseJobData): Promise<string> {
@@ -320,6 +159,7 @@ export function normalizeRow(
   const normalized: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(row)) {
     const targetKey = mapping[key] ?? key;
+    if (targetKey in normalized) continue;
     normalized[targetKey] = value;
   }
   return normalized;
@@ -699,7 +539,14 @@ export async function insertBronzeRows(
       sourceType,
       sourceIdentifier: `${sourceType}:${batchId ?? "adhoc"}:${sheetName ?? "default"}:${(options?.startingRowNumber ?? 1) + index}`,
       rawPayload: row,
-      contentHash: createHash("sha256").update(JSON.stringify(row)).digest("hex"),
+      contentHash: createHash("sha256")
+        .update(
+          JSON.stringify(
+            row,
+            Object.keys(row).sort((a, b) => a.localeCompare(b)),
+          ),
+        )
+        .digest("hex"),
       sourcePayloadHash: computeStableSourcePayloadHash(mappedRow),
       processingStatus: "pending" as const,
       extractedCuiRaw,
@@ -785,10 +632,39 @@ export async function insertBronzeRows(
   return result;
 }
 
+const NORMALIZATION_BULK_CHUNK_SIZE = 500;
+
+/**
+ * Maps each normalization queue name to the canonical worker label used for
+ * BullMQ job telemetry, runtime topology, and structured logging.
+ *
+ * Declared as a module-level constant so the mapping is co-located with the
+ * queue definitions, is O(1), and avoids nested ternaries inside hot loop
+ * bodies (S3358 / S3776).
+ */
+const NORMALIZATION_WORKER_BY_QUEUE: ReadonlyMap<string, string> = new Map([
+  [QUEUES.NORMALIZE_NAME, "B1:name-normalizer"],
+  [QUEUES.NORMALIZE_EMAIL, "B2:email-normalizer"],
+  [QUEUES.NORMALIZE_PHONE, "B3:phone-normalizer"],
+  [QUEUES.NORMALIZE_ADDRESS, "B4:address-normalizer"],
+]);
+
+function resolveNormalizerWorkerName(queueName: string): string {
+  const workerName = NORMALIZATION_WORKER_BY_QUEUE.get(queueName);
+  if (!workerName) {
+    throw new Error(
+      `[ingest-utils] Unknown normalization queue "${queueName}". Update NORMALIZATION_WORKER_BY_QUEUE.`,
+    );
+  }
+  return workerName;
+}
+
 export async function triggerNormalizationForContacts(
   tenantId: string,
   bronzeContactIds: string[],
   correlationId?: string,
+  batchId?: string,
+  importExecution?: ImportExecutionContext | null,
 ): Promise<void> {
   if (bronzeContactIds.length === 0) return;
   const targetQueues = [
@@ -799,23 +675,30 @@ export async function triggerNormalizationForContacts(
   ] as const;
 
   for (const queueName of targetQueues) {
-    const queue = createQueue(queueName);
-    for (const bronzeContactId of bronzeContactIds) {
-      await queue.add(
-        "normalize",
-        {
-          tenantId,
-          bronzeContactId,
-          correlationId,
-        },
-        {
-          jobId: `${queueName}-${bronzeContactId}`,
-          attempts: 2,
-          backoff: { type: "fixed", delay: 500 },
-        },
-      );
+    for (let i = 0; i < bronzeContactIds.length; i += NORMALIZATION_BULK_CHUNK_SIZE) {
+      const chunk = bronzeContactIds.slice(i, i + NORMALIZATION_BULK_CHUNK_SIZE);
+      await enqueueImportJobBulk({
+        queueName,
+        importExecution: importExecution ?? undefined,
+        parentImportExecution: importExecution ?? null,
+        workerName: resolveNormalizerWorkerName(queueName),
+        stageKey: "normalization",
+        sessionKind: "ingest",
+        items: chunk.map((bronzeContactId) => ({
+          jobName: "normalize",
+          payload: { tenantId, bronzeContactId, correlationId, batchId },
+          opts: {
+            jobId: `${queueName}-${bronzeContactId}`,
+            attempts: 2,
+            backoff: { type: "fixed" as const, delay: 500 },
+          },
+          entityType: "bronze_contact",
+          entityId: bronzeContactId,
+          contactId: bronzeContactId,
+          idempotencyScope: `${queueName}-${bronzeContactId}`,
+        })),
+      });
     }
-    await queue.close();
   }
 }
 
@@ -844,10 +727,14 @@ export async function updateImportBatchCounters(args: {
     duplicateRows: args.duplicateRows,
     status: args.status ?? "processing",
     updatedAt: new Date(),
-    metadata: sql`COALESCE(${bronzeImportBatches.metadata}, '{}'::jsonb) || ${JSON.stringify({
-      lastProgressAt: new Date().toISOString(),
-      identityMetrics: args.identityMetrics ?? undefined,
-    })}::jsonb`,
+    metadata: (() => {
+      let expr = sql`COALESCE(${bronzeImportBatches.metadata}, '{}'::jsonb)`;
+      expr = sql`jsonb_set(${expr}, '{lastProgressAt}', ${JSON.stringify(new Date().toISOString())}::jsonb)`;
+      if (args.identityMetrics) {
+        expr = sql`jsonb_set(${expr}, '{identityMetrics}', ${JSON.stringify(args.identityMetrics)}::jsonb)`;
+      }
+      return expr;
+    })(),
   };
   if (typeof args.totalRows === "number") {
     values.totalRows = args.totalRows;
@@ -879,11 +766,7 @@ export async function markImportBatchFailed(args: {
     duplicateRows: args.duplicateRows,
     status: "failed",
     updatedAt: new Date(),
-    metadata: sql`COALESCE(${bronzeImportBatches.metadata}, '{}'::jsonb) || ${JSON.stringify({
-      lastProgressAt: new Date().toISOString(),
-      failedAt: new Date().toISOString(),
-      lastError: truncateErrorMessage(args.errorMessage, 4000),
-    })}::jsonb`,
+    metadata: sql`jsonb_set(jsonb_set(jsonb_set(COALESCE(${bronzeImportBatches.metadata}, '{}'::jsonb), '{lastProgressAt}', ${JSON.stringify(new Date().toISOString())}::jsonb), '{failedAt}', ${JSON.stringify(new Date().toISOString())}::jsonb), '{lastError}', ${JSON.stringify(truncateErrorMessage(args.errorMessage, 4000))}::jsonb)`,
   };
 
   if (typeof args.totalRows === "number") {
@@ -901,38 +784,71 @@ export async function markImportBatchFailed(args: {
 const ANAF_BATCH_SIZE = 100;
 const ANAF_BATCH_DELAY_MS = 1100;
 
+async function markContactsPendingAnaf(tenantId: string, contactIds: string[]): Promise<void> {
+  if (contactIds.length === 0) return;
+  await db
+    .update(bronzeContacts)
+    .set({
+      metadata: sql`jsonb_set(COALESCE(${bronzeContacts.metadata}, '{}'::jsonb), '{anafBronzeEnrichmentStatus}', '"pending"'::jsonb)`,
+      updatedAt: new Date(),
+    })
+    .where(
+      sql`${bronzeContacts.tenantId} = ${tenantId} AND ${bronzeContacts.id} = ANY(${contactIds})`,
+    );
+}
+
+function buildCuiToBronzeIdsMap(
+  contacts: { id: string; extractedCui: string | null }[],
+): Map<string, string[]> {
+  const map = new Map<string, string[]>();
+  for (const contact of contacts) {
+    if (!contact.extractedCui) continue;
+    const ids = map.get(contact.extractedCui) ?? [];
+    ids.push(contact.id);
+    map.set(contact.extractedCui, ids);
+  }
+  return map;
+}
+
+function collectBronzeIdsForChunk(
+  cuiChunk: string[],
+  cuiToBronzeIds: Map<string, string[]>,
+  nrRegComOnlyIds: string[],
+  isFirstBatch: boolean,
+): string[] {
+  const ids = new Set<string>();
+  for (const cui of cuiChunk) {
+    for (const id of cuiToBronzeIds.get(cui) ?? []) ids.add(id);
+  }
+  if (isFirstBatch) {
+    for (const id of nrRegComOnlyIds) ids.add(id);
+  }
+  return [...ids];
+}
+
 export async function triggerAnafBronzeEnrichment(
   tenantId: string,
   batchId: string,
   bronzeContactIds: string[],
   correlationId?: string,
+  importExecution?: ImportExecutionContext | null,
 ): Promise<void> {
   if (bronzeContactIds.length === 0) return;
 
   await setSessionTenantId(tenantId);
 
-  // Find all contacts in this batch that have a CUI
   const contactsWithCui = await db.query.bronzeContacts.findMany({
     where: (t, { and, eq, isNotNull, inArray }) =>
       and(eq(t.tenantId, tenantId), inArray(t.id, bronzeContactIds), isNotNull(t.extractedCui)),
     columns: { id: true, extractedCui: true },
   });
-
   if (contactsWithCui.length === 0) return;
 
-  // Mark all contacts with CUI as pending ANAF enrichment
-  const cuiContactIds = contactsWithCui.map((c) => c.id);
-  await db
-    .update(bronzeContacts)
-    .set({
-      metadata: sql`COALESCE(${bronzeContacts.metadata}, '{}'::jsonb) || '{"anafBronzeEnrichmentStatus":"pending"}'::jsonb`,
-      updatedAt: new Date(),
-    })
-    .where(
-      sql`${bronzeContacts.tenantId} = ${tenantId} AND ${bronzeContacts.id} = ANY(${cuiContactIds})`,
-    );
+  await markContactsPendingAnaf(
+    tenantId,
+    contactsWithCui.map((c) => c.id),
+  );
 
-  // Also mark NrRegCom-only contacts as pending (they may get cross-referenced)
   const contactsNrRegComOnly = await db.query.bronzeContacts.findMany({
     where: (t, { and, eq, isNull, isNotNull, inArray }) =>
       and(
@@ -943,53 +859,70 @@ export async function triggerAnafBronzeEnrichment(
       ),
     columns: { id: true },
   });
+  await markContactsPendingAnaf(
+    tenantId,
+    contactsNrRegComOnly.map((c) => c.id),
+  );
 
-  if (contactsNrRegComOnly.length > 0) {
-    const nrRegComIds = contactsNrRegComOnly.map((c) => c.id);
-    await db
-      .update(bronzeContacts)
-      .set({
-        metadata: sql`COALESCE(${bronzeContacts.metadata}, '{}'::jsonb) || '{"anafBronzeEnrichmentStatus":"pending"}'::jsonb`,
-        updatedAt: new Date(),
-      })
-      .where(
-        sql`${bronzeContacts.tenantId} = ${tenantId} AND ${bronzeContacts.id} = ANY(${nrRegComIds})`,
-      );
+  const cuiToBronzeIds = buildCuiToBronzeIdsMap(contactsWithCui);
+  const allCuis = [...cuiToBronzeIds.keys()];
+  const duplicateCuiCount = contactsWithCui.length - allCuis.length;
+  if (duplicateCuiCount > 0) {
+    console.log(
+      `[triggerAnafBronzeEnrichment] Deduped ${contactsWithCui.length} contacts → ${allCuis.length} unique CUIs (${duplicateCuiCount} duplicates skipped for ANAF batch)`,
+    );
   }
 
-  // Collect unique CUIs and chunk into batches of 100
-  const cuiSet = new Set<string>();
-  for (const contact of contactsWithCui) {
-    if (contact.extractedCui) cuiSet.add(contact.extractedCui);
-  }
-  const allCuis = [...cuiSet];
-  const allBronzeIds = [...new Set([...cuiContactIds, ...contactsNrRegComOnly.map((c) => c.id)])];
+  const nrRegComOnlyIds = contactsNrRegComOnly.map((c) => c.id);
   const totalBatches = Math.ceil(allCuis.length / ANAF_BATCH_SIZE);
-
-  const queue = createQueue(QUEUES.ENRICH_BRONZE_ANAF);
-  try {
-    for (let i = 0; i < totalBatches; i++) {
-      const cuiChunk = allCuis.slice(i * ANAF_BATCH_SIZE, (i + 1) * ANAF_BATCH_SIZE);
-      await queue.add(
-        "anaf-bronze-enrich",
-        {
-          tenantId,
-          batchId,
-          cuiList: cuiChunk,
-          bronzeContactIds: allBronzeIds,
-          correlationId: correlationId ?? batchId,
-          batchIndex: i,
-          totalBatches,
-        },
-        {
-          jobId: `anaf-bronze-${batchId}-${i}`,
-          delay: i * ANAF_BATCH_DELAY_MS,
-          attempts: 5,
-          backoff: { type: "exponential", delay: 1000 },
-        },
-      );
-    }
-  } finally {
-    await queue.close();
+  for (let i = 0; i < totalBatches; i++) {
+    const cuiChunk = allCuis.slice(i * ANAF_BATCH_SIZE, (i + 1) * ANAF_BATCH_SIZE);
+    const chunkBronzeIds = collectBronzeIdsForChunk(
+      cuiChunk,
+      cuiToBronzeIds,
+      nrRegComOnlyIds,
+      i === 0,
+    );
+    await enqueueImportJob({
+      queueName: QUEUES.ENRICH_BRONZE_ANAF,
+      jobName: "anaf-bronze-enrich",
+      payload: {
+        tenantId,
+        batchId,
+        cuiList: cuiChunk,
+        bronzeContactIds: chunkBronzeIds,
+        correlationId: correlationId ?? batchId,
+        batchIndex: i,
+        totalBatches,
+      },
+      opts: {
+        jobId: `anaf-bronze-${batchId}-${i}`,
+        delay: i * ANAF_BATCH_DELAY_MS,
+        attempts: 5,
+        backoff: { type: "exponential", delay: 1000 },
+      },
+      importExecution: importExecution ?? undefined,
+      parentImportExecution: importExecution ?? null,
+      workerName: "B5:anaf-bronze-enricher",
+      stageKey: "anaf_bronze",
+      entityType: "batch",
+      entityId: `${batchId}:${i}`,
+      sessionKind: "ingest",
+      idempotencyScope: `anaf-bronze-${batchId}-${i}`,
+    });
   }
+}
+
+/**
+ * Verify file integrity by comparing SHA-256 hash against stored value.
+ * Returns true if hash matches or no stored hash exists.
+ */
+export async function verifyFileHash(
+  filePath: string,
+  storedHash: string | undefined | null,
+): Promise<{ valid: boolean; computedHash: string }> {
+  const buffer = await readFile(filePath);
+  const computedHash = createHash("sha256").update(buffer).digest("hex");
+  if (!storedHash) return { valid: true, computedHash };
+  return { valid: computedHash === storedHash, computedHash };
 }

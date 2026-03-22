@@ -40,9 +40,7 @@ export const onrcAdministratoriProcessor: Processor<OnrcAdministratoriJobData> =
   await db
     .update(silverCompanies)
     .set({
-      metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify({
-        onrcAdministratori: { count: administratori.length, payload },
-      })}::jsonb`,
+      metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{onrcAdministratori}', ${JSON.stringify({ count: administratori.length, payload })}::jsonb)`,
       lastEnrichedAt: new Date(),
     })
     .where(sql`${silverCompanies.id} = ${job.data.companyId}`);

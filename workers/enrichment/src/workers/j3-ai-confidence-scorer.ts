@@ -57,9 +57,7 @@ export const aiConfidenceScorerProcessor: Processor<AiConfidenceJobData> = async
   await db
     .update(silverCompanies)
     .set({
-      metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify({
-        aiConfidence: { overall, fieldScores, lowFields, scoredAt: new Date().toISOString() },
-      })}::jsonb`,
+      metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{aiConfidence}', ${JSON.stringify({ overall, fieldScores, lowFields, scoredAt: new Date().toISOString() })}::jsonb)`,
       updatedAt: new Date(),
     })
     .where(sql`${silverCompanies.id} = ${job.data.companyId}`);

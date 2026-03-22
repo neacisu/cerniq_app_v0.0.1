@@ -1,4 +1,5 @@
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
 import { Spinner } from "@/components/ui/spinner.js";
 import {
@@ -19,6 +20,7 @@ import {
   useTransitionGoldCompany,
 } from "@/hooks/use-etapa1.js";
 import { toast } from "@/components/ui/toast-api.js";
+import { fetchOutreachLeads } from "@/lib/etapa2-api.js";
 
 type GoldState =
   | "COLD"
@@ -63,6 +65,15 @@ export function GoldCompanyDetail() {
   const { id } = useParams();
   const detailQuery = useGoldCompanyDetail(id);
   const journeyQuery = useGoldCompanyJourney(id);
+  const outreachLeadQuery = useQuery({
+    queryKey: ["etapa2", "leads", "by-gold", id],
+    queryFn: async () => {
+      if (!id) return null;
+      const r = await fetchOutreachLeads({ goldCompanyId: id, limit: 1 });
+      return r.data[0] ?? null;
+    },
+    enabled: Boolean(id),
+  });
   const transitionMutation = useTransitionGoldCompany();
   const patchMutation = usePatchGoldCompany();
   const item = detailQuery.data?.data ?? {};
@@ -120,13 +131,20 @@ export function GoldCompanyDetail() {
     <PageWrapper
       title="Gold Company Detail"
       actions={
-        <Button
-          variant={doNotContact ? "outline" : "danger"}
-          onClick={handleToggleDnc}
-          disabled={patchMutation.isPending}
-        >
-          {doNotContact ? "Permite Contact" : "Do Not Contact"}
-        </Button>
+        <>
+          {outreachLeadQuery.data?.id ? (
+            <Link to={`/outreach/leads/${outreachLeadQuery.data.id}`} className="btn bto">
+              Vezi în Outreach
+            </Link>
+          ) : null}
+          <Button
+            variant={doNotContact ? "outline" : "danger"}
+            onClick={handleToggleDnc}
+            disabled={patchMutation.isPending}
+          >
+            {doNotContact ? "Permite Contact" : "Do Not Contact"}
+          </Button>
+        </>
       }
     >
       <Card>

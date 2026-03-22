@@ -35,23 +35,23 @@ export const zerobounceValidationProcessor: Processor<ZeroBounceJobData> = async
   const isCatchAll = status === "catch-all";
   const isDisposable = String(result.sub_status ?? "").toLowerCase() === "disposable";
 
+  const zerobouncePayload = JSON.stringify({
+    email,
+    status: result.status,
+    subStatus: result.sub_status,
+    isCatchAll,
+    isDisposable,
+    didYouMean: result.did_you_mean ?? null,
+    mxFound: result.mx_found ?? null,
+    smtpProvider: result.smtp_provider ?? null,
+    validatedAt: new Date().toISOString(),
+  });
+
   await db
     .update(silverContacts)
     .set({
       emailVerified: isValid,
-      metadata: sql`COALESCE(${silverContacts.metadata}, '{}'::jsonb) || ${JSON.stringify({
-        zerobounce: {
-          email,
-          status: result.status,
-          subStatus: result.sub_status,
-          isCatchAll,
-          isDisposable,
-          didYouMean: result.did_you_mean ?? null,
-          mxFound: result.mx_found ?? null,
-          smtpProvider: result.smtp_provider ?? null,
-          validatedAt: new Date().toISOString(),
-        },
-      })}::jsonb`,
+      metadata: sql`jsonb_set(COALESCE(${silverContacts.metadata}, '{}'::jsonb), '{zerobounce}', ${zerobouncePayload}::jsonb)`,
       updatedAt: new Date(),
     })
     .where(sql`${silverContacts.id} = ${job.data.contactId}`);

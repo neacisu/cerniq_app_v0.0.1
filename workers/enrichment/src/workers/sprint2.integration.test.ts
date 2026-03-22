@@ -106,11 +106,50 @@ describe("S2.PR8 integration - ANAF mock", () => {
     }));
 
     vi.doMock("../lib/anaf-api-client.js", () => ({
-      fetchAnafRecordByCui: vi.fn(async () => ({
-        denumire: "Agro SRL",
-        adresa: "Cluj",
-        stare_inregistrare: "INREGISTRAT",
-        cod_CAEN: "0111",
+      fetchAnafSingleByCui: vi.fn(async () => ({
+        date_generale: {
+          cui: 12345678,
+          denumire: "Agro SRL",
+          adresa: "Cluj",
+          stare_inregistrare: "INREGISTRAT",
+          cod_CAEN: "0111",
+          nrRegCom: "",
+          data: "",
+          telefon: "",
+          fax: "",
+          codPostal: "",
+          act: "",
+          data_inregistrare: "",
+          iban: "",
+          statusRO_e_Factura: false,
+          organFiscalCompetent: "",
+          forma_de_proprietate: "",
+          forma_organizare: "",
+          forma_juridica: "",
+        },
+        inregistrare_scop_Tva: { scpTVA: false, perioade_TVA: [] },
+        inregistrare_RTVAI: {
+          dataInceputTvaInc: "",
+          dataSfarsitTvaInc: "",
+          dataActualizareTvaInc: "",
+          dataPublicareTvaInc: "",
+          tipActTvaInc: "",
+          statusTvaIncasare: false,
+        },
+        stare_inactiv: {
+          dataInactivare: "",
+          dataReactivare: "",
+          dataPublicare: "",
+          dataRadiere: "",
+          statusInactivi: false,
+        },
+        inregistrare_SplitTVA: {
+          dataInceputSplitTVA: "",
+          dataAnulareSplitTVA: "",
+          statusSplitTVA: false,
+        },
+        adresa_sediu_social: {},
+        adresa_domiciliu_fiscal: {},
       })),
     }));
     vi.doMock("../lib/enrichment-completion.js", () => ({

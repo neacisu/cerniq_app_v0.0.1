@@ -1,7 +1,7 @@
 import type { Processor } from "bullmq";
 import { db, silverCompanies, silverEnrichmentLog, setSessionTenantId, sql } from "@cerniq/db";
-import { fetchAnafRecordByCui } from "../lib/anaf-api-client.js";
-import { sanitizeCui } from "../lib/cui-validation.js";
+import { sanitizeCui } from "@cerniq/worker-shared";
+import { fetchAnafSingleByCui } from "../lib/anaf-api-client.js";
 import { markEnrichmentSourceComplete } from "../lib/enrichment-completion.js";
 
 export type AnafDatoriiJobData = {
@@ -16,16 +16,44 @@ export const anafDatoriiProcessor: Processor<AnafDatoriiJobData> = async (job) =
   const cleanedCui = sanitizeCui(job.data.cui);
   await setSessionTenantId(job.data.tenantId);
 
-  const record = await fetchAnafRecordByCui(cleanedCui);
-  const inactive = Boolean(record && (record.inactiv ?? record.stare === "INACTIV"));
+  const record = await fetchAnafSingleByCui(cleanedCui);
+  if (!record) {
+    await db.insert(silverEnrichmentLog).values({
+      tenantId: job.data.tenantId,
+      entityType: "company",
+      entityId: job.data.companyId,
+      source: "anaf_datorii",
+      operation: "fetch",
+      requestPayload: { cui: cleanedCui },
+      responsePayload: null,
+      fieldsUpdated: [],
+      correlationId: job.data.correlationId,
+      jobId: String(job.id ?? ""),
+      durationMs: Date.now() - startedAt,
+    });
+    await markEnrichmentSourceComplete(
+      job.data.tenantId,
+      job.data.companyId,
+      "anaf_datorii",
+      job.data.correlationId,
+    );
+    return { ok: true, status: "not_found", source: "anaf_datorii", cleanedCui };
+  }
+
+  const inactive = record.stare_inactiv?.statusInactivi ?? false;
+
+  const datoriiSummary = {
+    statusInactivi: inactive,
+    dataInactivare: record.stare_inactiv?.dataInactivare ?? null,
+    dataReactivare: record.stare_inactiv?.dataReactivare ?? null,
+    dataRadiere: record.stare_inactiv?.dataRadiere ?? null,
+  };
 
   await db
     .update(silverCompanies)
     .set({
       statusFirma: inactive ? "INACTIVA" : undefined,
-      metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify({
-        anafDatorii: record,
-      })}::jsonb`,
+      metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{anafDatorii}', ${JSON.stringify(datoriiSummary)}::jsonb)`,
       lastEnrichedAt: new Date(),
     })
     .where(sql`${silverCompanies.id} = ${job.data.companyId}`);
@@ -37,8 +65,8 @@ export const anafDatoriiProcessor: Processor<AnafDatoriiJobData> = async (job) =
     source: "anaf_datorii",
     operation: "fetch",
     requestPayload: { cui: cleanedCui },
-    responsePayload: record,
-    fieldsUpdated: ["statusFirma", "metadata"],
+    responsePayload: datoriiSummary,
+    fieldsUpdated: inactive ? ["statusFirma", "metadata"] : ["metadata"],
     correlationId: job.data.correlationId,
     jobId: String(job.id ?? ""),
     durationMs: Date.now() - startedAt,
@@ -50,5 +78,5 @@ export const anafDatoriiProcessor: Processor<AnafDatoriiJobData> = async (job) =
     job.data.correlationId,
   );
 
-  return { ok: true, status: record ? "success" : "not_found", source: "anaf_datorii", cleanedCui };
+  return { ok: true, status: "success", source: "anaf_datorii", cleanedCui };
 };

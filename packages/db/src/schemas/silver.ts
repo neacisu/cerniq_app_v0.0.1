@@ -13,6 +13,7 @@ import {
   uniqueIndex,
   uuid,
   varchar,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { tenants } from "./tenants.js";
@@ -270,7 +271,9 @@ export const silverCompanies = silverSchema.table(
     // --- DEDUPLICARE ---
     dedupStatus: dedupStatusEnum("dedup_status").notNull().default("pending"),
     isMasterRecord: boolean("is_master_record").notNull().default(true),
-    masterRecordId: uuid("master_record_id"),
+    masterRecordId: uuid("master_record_id").references((): AnyPgColumn => silverCompanies.id, {
+      onDelete: "set null",
+    }),
     duplicateConfidence: numeric("duplicate_confidence", { precision: 5, scale: 4 }),
     mergeHistory: jsonb("merge_history").notNull().default([]),
 
@@ -297,6 +300,8 @@ export const silverCompanies = silverSchema.table(
     index("idx_silver_companies_quality").on(t.tenantId, t.totalQualityScore),
     index("idx_silver_companies_cui").on(t.cui),
     index("idx_silver_companies_identity_status").on(t.tenantId, t.identityStatus),
+    index("idx_silver_companies_tenant_cui_lookup").on(t.tenantId, t.cui),
+    index("idx_silver_companies_tenant_nrregcom_lookup").on(t.tenantId, t.nrRegCom),
   ],
 );
 

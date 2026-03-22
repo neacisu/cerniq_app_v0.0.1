@@ -35,7 +35,10 @@ default_pool_size = 50
 min_pool_size = 10
 reserve_pool_size = 20
 reserve_pool_timeout = 5
-ignore_startup_parameters = extra_float_digits
+# Strip custom GUC keys if a client sends them as startup params (postgres.js `connection` option).
+# Otherwise PgBouncer rejects the handshake: "unsupported startup parameter: app.tenant_id".
+# RLS context must still be set via set_config in the app; transaction pool does not preserve startup options.
+ignore_startup_parameters = extra_float_digits,app.tenant_id,app.current_user_id
 server_reset_query = DISCARD ALL
 
 # Log settings

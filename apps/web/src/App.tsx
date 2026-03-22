@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-route
 import { REDIRECT_LOGIN_EVENT } from "./lib/api-url.js";
 import { Refine } from "@refinedev/core";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ApiError } from "./lib/api.js";
 import { Toaster } from "./components/ui/toast.js";
 import { ThemeProvider } from "./providers/theme-provider.js";
 import * as Auth from "./providers/auth-provider.js";
@@ -33,10 +34,21 @@ import { SettingsMappings } from "./pages/etapa1/settings-mappings.js";
 import { SettingsIntegrations } from "./pages/etapa1/settings-integrations.js";
 import { Outreach } from "./pages/etapa2/outreach.js";
 import { Leads } from "./pages/etapa2/leads.js";
+import { LeadsImport } from "./pages/etapa2/leads-import.js";
+import { LeadDetail } from "./pages/etapa2/lead-detail.js";
+import { ConversationView } from "./pages/etapa2/conversation-view.js";
 import { Sequences } from "./pages/etapa2/sequences.js";
+import { SequenceNew } from "./pages/etapa2/sequence-new.js";
+import { SequenceEdit } from "./pages/etapa2/sequence-edit.js";
 import { Templates } from "./pages/etapa2/templates.js";
+import { TemplateNew } from "./pages/etapa2/template-new.js";
+import { TemplateEdit } from "./pages/etapa2/template-edit.js";
 import { Phones } from "./pages/etapa2/phones.js";
+import { PhoneDetail } from "./pages/etapa2/phone-detail.js";
 import { Review } from "./pages/etapa2/review.js";
+import { Campaigns } from "./pages/etapa2/campaigns.js";
+import { Analytics } from "./pages/etapa2/analytics.js";
+import { OutreachSettingsPage } from "./pages/etapa2/outreach-settings.js";
 import { AiDashboard } from "./pages/etapa3/ai-dashboard.js";
 import { Negotiations } from "./pages/etapa3/negotiations.js";
 import { Offers } from "./pages/etapa3/offers.js";
@@ -55,7 +67,18 @@ import { Settings } from "./pages/system/settings.js";
 import { NotFound } from "./pages/NotFound.js";
 import { ErrorBoundary } from "./components/feedback/ErrorBoundary.js";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // 401 is handled internally by apiFetch (token refresh + redirect to login).
+      // Retrying with an expired/cleared token is pointless and causes console spam.
+      retry: (failureCount, error) => {
+        if (error instanceof ApiError && error.status === 401) return false;
+        return failureCount < 3;
+      },
+    },
+  },
+});
 const redirectEventTarget: Pick<typeof globalThis, "addEventListener" | "removeEventListener"> =
   globalThis;
 
@@ -125,6 +148,23 @@ export function App() {
                     <Route path="/settings/mappings" element={<SettingsMappings />} />
                     <Route path="/settings/integrations" element={<SettingsIntegrations />} />
                     <Route path="/outreach" element={<Outreach />} />
+                    <Route path="/outreach/dashboard" element={<Outreach />} />
+                    <Route path="/outreach/leads" element={<Leads />} />
+                    <Route path="/outreach/leads/import" element={<LeadsImport />} />
+                    <Route path="/outreach/leads/:id" element={<LeadDetail />} />
+                    <Route path="/outreach/leads/:id/conversation" element={<ConversationView />} />
+                    <Route path="/outreach/sequences" element={<Sequences />} />
+                    <Route path="/outreach/sequences/new" element={<SequenceNew />} />
+                    <Route path="/outreach/sequences/:id/edit" element={<SequenceEdit />} />
+                    <Route path="/outreach/templates" element={<Templates />} />
+                    <Route path="/outreach/templates/new" element={<TemplateNew />} />
+                    <Route path="/outreach/templates/:id/edit" element={<TemplateEdit />} />
+                    <Route path="/outreach/phones" element={<Phones />} />
+                    <Route path="/outreach/phones/:phoneId" element={<PhoneDetail />} />
+                    <Route path="/outreach/review" element={<Review />} />
+                    <Route path="/outreach/campaigns" element={<Campaigns />} />
+                    <Route path="/outreach/analytics" element={<Analytics />} />
+                    <Route path="/outreach/settings" element={<OutreachSettingsPage />} />
                     <Route path="/leads" element={<Leads />} />
                     <Route path="/sequences" element={<Sequences />} />
                     <Route path="/templates" element={<Templates />} />

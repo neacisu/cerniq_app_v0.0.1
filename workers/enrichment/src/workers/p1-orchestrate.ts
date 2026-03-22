@@ -71,7 +71,7 @@ async function handlePostValidation(ctx: StageContext): Promise<string[]> {
   await db
     .update(silverCompanies)
     .set({
-      metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || '{"enrichmentStartedAt":"${sql.raw(new Date().toISOString())}"}'::jsonb`,
+      metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{enrichmentStartedAt}', ${JSON.stringify(new Date().toISOString())}::jsonb)`,
     })
     .where(sql`${silverCompanies.id} = ${companyId}`);
 

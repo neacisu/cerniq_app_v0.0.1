@@ -13,10 +13,16 @@
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
     "noEmit": true,
+    "baseUrl": ".",
     "paths": {
       "@/*": ["./apps/web/src/*"],
       "@cerniq/db": ["./packages/db/src/index.ts"],
       "@cerniq/db/*": ["./packages/db/src/*"],
+      "@cerniq/integrations": ["./packages/integrations/src/index.ts"],
+      "@cerniq/integrations/instantly": ["./packages/integrations/src/instantly/index.ts"],
+      "@cerniq/integrations/timelinesai": ["./packages/integrations/src/timelinesai/index.ts"],
+      "@cerniq/integrations/resend": ["./packages/integrations/src/resend/index.ts"],
+      "@cerniq/integrations/*": ["./packages/integrations/src/*"],
       "@cerniq/shared-types": ["./packages/shared-types/src/index.ts"],
       "@cerniq/shared-types/*": ["./packages/shared-types/src/*"],
       "@cerniq/observability": ["./packages/observability/src/index.ts"],
@@ -35,7 +41,9 @@
     "workers/**/*.ts",
     "e2e/**/*.ts",
     "vitest.config.ts",
-    "playwright.config.ts"
+    "playwright.config.ts",
+    "src/App.tsx",
+    "src/pages/**/*.tsx"
   ],
   "exclude": ["node_modules", "dist", "**/node_modules/**"]
 }

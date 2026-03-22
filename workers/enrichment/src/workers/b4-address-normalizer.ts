@@ -8,6 +8,7 @@ import {
 import { jobsProcessed, jobDuration, jobErrors } from "../lib/worker-metrics.js";
 import { classifyAndRethrow } from "../lib/error-classification.js";
 import { stripDiacritics } from "../lib/diacritics.js";
+import { createJobLogger } from "../lib/job-logger.js";
 
 export type AddressNormalizerJobData = BronzeNormalizationJobData;
 
@@ -81,11 +82,28 @@ const ADDRESS_ABBREVIATIONS: Record<string, string> = {
 
 export const addressNormalizerProcessor: Processor<AddressNormalizerJobData> = async (job) => {
   const startedAt = Date.now();
+  const batchId =
+    typeof job.data.batchId === "string" && job.data.batchId.length > 0
+      ? job.data.batchId
+      : undefined;
+  const log = createJobLogger({
+    batchId,
+    tenantId: job.data.tenantId,
+    workerName: "B4:address-normalizer",
+    jobId: String(job.id ?? ""),
+    startedAt,
+  }).forContact(job.data.bronzeContactId);
   try {
+    log.step("start", "Pornire normalizare adresă", {
+      bronzeContactId: job.data.bronzeContactId,
+    });
     const contact = await getBronzeContactForTenant(job.data.tenantId, job.data.bronzeContactId);
     const rawAddress =
       typeof contact.extractedAddress === "string" ? contact.extractedAddress : null;
     if (!rawAddress) {
+      log.done("address_skip", "Adresă lipsă — normalizare sărită", {
+        bronzeContactId: job.data.bronzeContactId,
+      });
       return { ok: true, status: "skipped", reason: "empty_address" };
     }
 
@@ -103,11 +121,16 @@ export const addressNormalizerProcessor: Processor<AddressNormalizerJobData> = a
     const apMatch = /\bAP\.?\s*(\d+)/i.exec(normalizedAddress);
     const cpMatch = /\b(\d{6})\b/.exec(normalizedAddress);
     const lowered = stripDiacritics(normalizedAddress.toLowerCase());
-    const county = Object.entries(countyMap).find(([name]) => lowered.includes(name))?.[1] ?? null;
+    const sortedCounties = Object.entries(countyMap).sort((a, b) => b[0].length - a[0].length);
+    const county =
+      sortedCounties.find(([name]) => {
+        const escaped = name.replaceAll(/[-.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+        return new RegExp(String.raw`\b${escaped}\b`).test(lowered);
+      })?.[1] ?? null;
     await markNormalizationResult(
       job.data.tenantId,
       job.data.bronzeContactId,
-      {},
+      { extractedAddress: normalizedAddress },
       {
         addressNormalization: {
           original: rawAddress,
@@ -135,6 +158,11 @@ export const addressNormalizerProcessor: Processor<AddressNormalizerJobData> = a
       job.data.correlationId,
     );
 
+    log.done("done", "Normalizare adresă finalizată", {
+      original: rawAddress,
+      normalizedAddress,
+      countyCode: county,
+    });
     return {
       ok: true,
       status: "success",
@@ -142,6 +170,12 @@ export const addressNormalizerProcessor: Processor<AddressNormalizerJobData> = a
       countyCode: county,
     };
   } catch (error) {
+    const errMsg = error instanceof Error ? error.message : String(error);
+    log.error("fatal", `Normalizare adresă eșuată: ${errMsg}`, {
+      bronzeContactId: job.data.bronzeContactId,
+      errorMessage: errMsg,
+      errorStack: error instanceof Error ? error.stack : undefined,
+    });
     jobErrors.add(1, { worker: "b4-address-normalizer" });
     classifyAndRethrow(error);
   } finally {

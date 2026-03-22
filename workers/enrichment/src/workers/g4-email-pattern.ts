@@ -18,8 +18,8 @@ function normalizeName(value: string): string {
   return value
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z]/g, "");
+    .replaceAll(/[\u0300-\u036f]/g, "")
+    .replaceAll(/[^a-z]/g, "");
 }
 
 function detectEmailPatterns(contacts: ContactForPattern[]) {
@@ -88,14 +88,14 @@ export const emailPatternProcessor: Processor<EmailPatternJobData> = async (job)
   await db
     .update(silverCompanies)
     .set({
-      metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify({
-        emailPattern: {
+      metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{emailPattern}', ${JSON.stringify(
+        {
           pattern: patterns.bestPattern,
           confidence: patterns.confidence,
           observedContacts: patterns.observedContacts,
           detectedAt: new Date().toISOString(),
         },
-      })}::jsonb`,
+      )}::jsonb)`,
       lastEnrichedAt: new Date(),
     })
     .where(sql`${silverCompanies.id} = ${job.data.companyId}`);

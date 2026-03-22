@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { z } from "zod";
+import { z, flattenError } from "zod";
 import bcrypt from "bcrypt";
 import { randomBytes } from "node:crypto";
 import {
@@ -9,6 +9,7 @@ import {
   register_with_invite_code,
 } from "@cerniq/db";
 import { envConfig } from "../config.js";
+import { AppError } from "../errors/app-error.js";
 import {
   consumeRefreshToken,
   isRefreshFamilyRevoked,
@@ -34,7 +35,8 @@ function getErrorMessage(err: unknown): string {
 }
 
 const LoginBodySchema = z.object({
-  email: z.string().email(),
+  /** Zod 4: `z.string().email()` este deprecat; folosim `z.email()`. */
+  email: z.email(),
   password: z.string().min(1).max(72),
 });
 
@@ -42,7 +44,6 @@ const RegisterBodySchema = z
   .object({
     name: z.string().min(2, "Minim 2 caractere").max(200),
     email: z
-      .string()
       .email()
       .max(320)
       .transform((v) => v.toLowerCase().trim()),
@@ -52,8 +53,8 @@ const RegisterBodySchema = z
       .max(72, "Maxim 72 caractere (limita bcrypt)")
       .regex(/[A-Z]/, "Litera mare obligatorie")
       .regex(/[a-z]/, "Litera mica obligatorie")
-      .regex(/[0-9]/, "Cifra obligatorie")
-      .regex(/[^A-Za-z0-9]/, "Caracter special obligatoriu"),
+      .regex(/\d/, "Cifra obligatorie")
+      .regex(/[^A-Za-z\d]/, "Caracter special obligatoriu"),
     mode: z.enum(["new_company", "invite_code"]),
     companyName: z.string().min(2).max(200).optional(),
     inviteCode: z.string().min(4).max(20).optional(),
@@ -76,6 +77,132 @@ type AuthUserPayload = {
   tenantId: string;
   role: string;
 };
+
+type RegisterBody = z.infer<typeof RegisterBodySchema>;
+
+type RegisteredUserRow = {
+  id: string;
+  tenantId: string;
+  email: string;
+  name: string;
+  role: string;
+};
+
+/** Extrage prima valoare din header multi-valoare (ex. duplicate proxies). */
+function coerceSingleHeaderValue(raw: string | string[] | undefined): string | null {
+  if (typeof raw === "string") {
+    return raw;
+  }
+  if (Array.isArray(raw)) {
+    return raw[0] ?? null;
+  }
+  return null;
+}
+
+/** Durată tip `15m`, `24h` etc. — folosește `RegExp.exec` (Sonar S6594). */
+const JWT_DURATION_RE = /^(\d+)([smhd])$/i;
+
+function parseDurationToSeconds(value: string): number {
+  const match = JWT_DURATION_RE.exec(value.trim());
+  if (!match) return 60 * 60 * 24 * 30;
+  const amount = Number(match[1]);
+  const unit = match[2].toLowerCase();
+  if (unit === "s") return amount;
+  if (unit === "m") return amount * 60;
+  if (unit === "h") return amount * 60 * 60;
+  return amount * 60 * 60 * 24;
+}
+
+function buildTenantSlugFromCompanyName(companyName: string): string {
+  const normalized = companyName
+    .toLowerCase()
+    .replaceAll(/[^a-z\d]+/g, "-")
+    .replaceAll(/^-+|-+$/g, "");
+  return `${normalized}-${randomBytes(2).toString("hex")}`;
+}
+
+function jwtPayloadStringField(payload: Record<string, unknown>, key: string): string {
+  const v = payload[key];
+  return typeof v === "string" ? v : "";
+}
+
+function replyRegisterDatabaseError(
+  reply: FastifyReply,
+  request: FastifyRequest,
+  err: unknown,
+  logLabel: string,
+  userFacingError: string,
+) {
+  const pgCode = getPgErrorCode(err);
+  request.log.error({ err, pgCode }, `${logLabel} failed`);
+  if (pgCode === "42P01") {
+    return reply.status(503).send({
+      success: false,
+      error:
+        "Serviciu temporar indisponibil. Migrările bazei de date nu au fost aplicate. Contactați administratorul.",
+    });
+  }
+  const message = envConfig.NODE_ENV === "development" ? getErrorMessage(err) : undefined;
+  return reply.status(500).send({
+    success: false,
+    error: userFacingError,
+    ...(message && { details: { message } }),
+  });
+}
+
+async function tryCreateRegisteredUser(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  body: RegisterBody,
+  passwordHash: string,
+): Promise<RegisteredUserRow | null> {
+  const { name, email, mode, companyName, inviteCode } = body;
+
+  if (mode === "new_company" && companyName) {
+    const slug = buildTenantSlugFromCompanyName(companyName);
+    try {
+      return await register_new_company(companyName, slug, email, passwordHash, name);
+    } catch (err: unknown) {
+      replyRegisterDatabaseError(
+        reply,
+        request,
+        err,
+        "register_new_company",
+        "Eroare la crearea contului. Încercați din nou sau contactați administratorul.",
+      );
+      return null;
+    }
+  }
+
+  if (mode === "invite_code" && inviteCode) {
+    const codeRow = await get_invite_code(inviteCode.trim());
+    if (!codeRow) {
+      reply.status(400).send({
+        success: false,
+        error: "Cod de invitatie invalid sau expirat",
+      });
+      return null;
+    }
+    try {
+      return await register_with_invite_code(codeRow, email, passwordHash, name);
+    } catch (err: unknown) {
+      replyRegisterDatabaseError(
+        reply,
+        request,
+        err,
+        "register_with_invite_code",
+        "Eroare la înscriere. Încercați din nou sau contactați administratorul.",
+      );
+      return null;
+    }
+  }
+
+  reply.status(400).send({
+    success: false,
+    error: "Camp obligatoriu lipsa",
+  });
+  return null;
+}
 
 const AUTH_COOKIE_PATH = "/api/v1/auth";
 const CSRF_COOKIE_NAME = "cerniq_csrf";
@@ -119,23 +246,12 @@ function shouldEnforceCsrf(request: FastifyRequest): boolean {
   return isProtectedAuthMutation && typeof request.cookies?.refreshToken === "string";
 }
 
-function parseDurationToSeconds(value: string): number {
-  const match = value.trim().match(/^(\d+)([smhd])$/i);
-  if (!match) return 60 * 60 * 24 * 30;
-  const amount = Number(match[1]);
-  const unit = match[2].toLowerCase();
-  if (unit === "s") return amount;
-  if (unit === "m") return amount * 60;
-  if (unit === "h") return amount * 60 * 60;
-  return amount * 60 * 60 * 24;
-}
-
 async function issueAuthTokens(
   app: FastifyInstance,
   user: AuthUserPayload,
   existingFamilyId?: string,
 ) {
-  const accessToken = await app.jwt.sign(
+  const accessToken = app.jwt.sign(
     {
       id: user.id,
       email: user.email,
@@ -152,7 +268,7 @@ async function issueAuthTokens(
   );
 
   const ids = newTokenIds(existingFamilyId);
-  const refreshToken = await app.jwt.sign(
+  const refreshToken = app.jwt.sign(
     {
       id: user.id,
       email: user.email,
@@ -170,14 +286,18 @@ async function issueAuthTokens(
       expiresIn: envConfig.JWT_REFRESH_EXPIRES_IN,
     },
   );
-  await storeRefreshToken({
-    jti: ids.jti,
-    familyId: ids.familyId,
-    userId: user.id,
-    tenantId: user.tenantId,
-    token: refreshToken,
-    expiresInSeconds: parseDurationToSeconds(envConfig.JWT_REFRESH_EXPIRES_IN),
-  });
+  try {
+    await storeRefreshToken({
+      jti: ids.jti,
+      familyId: ids.familyId,
+      userId: user.id,
+      tenantId: user.tenantId,
+      token: refreshToken,
+      expiresInSeconds: parseDurationToSeconds(envConfig.JWT_REFRESH_EXPIRES_IN),
+    });
+  } catch {
+    throw new AppError("Cache unavailable. Please try again shortly.", 503, "CACHE_UNAVAILABLE");
+  }
   return { accessToken, refreshToken, familyId: ids.familyId };
 }
 
@@ -191,17 +311,9 @@ export async function authRoutes(app: FastifyInstance) {
     if (!shouldEnforceCsrf(request)) {
       return;
     }
-    const headerToken = request.headers[CSRF_HEADER_NAME];
-    const csrfHeaderValue =
-      typeof headerToken === "string"
-        ? headerToken
-        : Array.isArray(headerToken)
-          ? headerToken[0]
-          : null;
-    const csrfCookieValue =
-      typeof request.cookies?.[CSRF_COOKIE_NAME] === "string"
-        ? request.cookies[CSRF_COOKIE_NAME]
-        : null;
+    const csrfHeaderValue = coerceSingleHeaderValue(request.headers[CSRF_HEADER_NAME]);
+    const rawCookie = request.cookies?.[CSRF_COOKIE_NAME];
+    const csrfCookieValue = typeof rawCookie === "string" ? rawCookie : null;
     if (!csrfHeaderValue || !csrfCookieValue || csrfHeaderValue !== csrfCookieValue) {
       return reply.status(403).send({
         success: false,
@@ -216,15 +328,24 @@ export async function authRoutes(app: FastifyInstance) {
       return reply.status(400).send({
         success: false,
         error: "Invalid email or password",
-        details: parsed.error.flatten(),
+        details: flattenError(parsed.error),
       });
     }
 
     const { email, password } = parsed.data;
 
-    const user = await get_user_by_email(email);
+    let user;
+    try {
+      user = await get_user_by_email(email);
+    } catch (err: unknown) {
+      request.log.error({ err }, "login: database unreachable");
+      return reply.status(503).send({
+        success: false,
+        error: "Service temporarily unavailable. Please try again shortly.",
+      });
+    }
 
-    if (!user || !user.passwordHash || !(await bcrypt.compare(password, user.passwordHash))) {
+    if (!user?.passwordHash || !(await bcrypt.compare(password, user.passwordHash))) {
       return reply.status(401).send({
         success: false,
         error: "Invalid email or password",
@@ -272,10 +393,10 @@ export async function authRoutes(app: FastifyInstance) {
       return reply.status(400).send({
         success: false,
         error: "Date invalide",
-        details: parsed.error.flatten(),
+        details: flattenError(parsed.error),
       });
     }
-    const { name, email, password, mode, companyName, inviteCode } = parsed.data;
+    const { email, password } = parsed.data;
 
     const existing = await get_user_by_email(email);
     if (existing) {
@@ -290,67 +411,9 @@ export async function authRoutes(app: FastifyInstance) {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    let user: { id: string; tenantId: string; email: string; name: string; role: string };
-
-    if (mode === "new_company" && companyName) {
-      const slug =
-        companyName
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/^-|-$/g, "") +
-        "-" +
-        randomBytes(2).toString("hex");
-      try {
-        user = await register_new_company(companyName, slug, email, passwordHash, name);
-      } catch (err: unknown) {
-        const pgCode = getPgErrorCode(err);
-        request.log.error({ err, pgCode }, "register_new_company failed");
-        if (pgCode === "42P01") {
-          return reply.status(503).send({
-            success: false,
-            error:
-              "Serviciu temporar indisponibil. Migrările bazei de date nu au fost aplicate. Contactați administratorul.",
-          });
-        }
-        const message = envConfig.NODE_ENV === "development" ? getErrorMessage(err) : undefined;
-        return reply.status(500).send({
-          success: false,
-          error: "Eroare la crearea contului. Încercați din nou sau contactați administratorul.",
-          ...(message && { details: { message } }),
-        });
-      }
-    } else if (mode === "invite_code" && inviteCode) {
-      const codeRow = await get_invite_code(inviteCode.trim());
-      if (!codeRow) {
-        return reply.status(400).send({
-          success: false,
-          error: "Cod de invitatie invalid sau expirat",
-        });
-      }
-      try {
-        user = await register_with_invite_code(codeRow, email, passwordHash, name);
-      } catch (err: unknown) {
-        const pgCode = getPgErrorCode(err);
-        request.log.error({ err, pgCode }, "register_with_invite_code failed");
-        if (pgCode === "42P01") {
-          return reply.status(503).send({
-            success: false,
-            error:
-              "Serviciu temporar indisponibil. Migrările bazei de date nu au fost aplicate. Contactați administratorul.",
-          });
-        }
-        const message = envConfig.NODE_ENV === "development" ? getErrorMessage(err) : undefined;
-        return reply.status(500).send({
-          success: false,
-          error: "Eroare la înscriere. Încercați din nou sau contactați administratorul.",
-          ...(message && { details: { message } }),
-        });
-      }
-    } else {
-      return reply.status(400).send({
-        success: false,
-        error: "Camp obligatoriu lipsa",
-      });
+    const user = await tryCreateRegisteredUser(request, reply, parsed.data, passwordHash);
+    if (!user) {
+      return;
     }
 
     const { accessToken, refreshToken } = await issueAuthTokens(app, {
@@ -390,7 +453,7 @@ export async function authRoutes(app: FastifyInstance) {
       return reply.status(400).send({
         success: false,
         error: "Date invalide",
-        details: parsed.error.flatten(),
+        details: flattenError(parsed.error),
       });
     }
     const cookieToken = request.cookies?.refreshToken;
@@ -401,7 +464,7 @@ export async function authRoutes(app: FastifyInstance) {
 
     let payload: Record<string, unknown>;
     try {
-      payload = await app.jwt.verify<Record<string, unknown>>(refreshToken, {
+      payload = app.jwt.verify<Record<string, unknown>>(refreshToken, {
         key: envConfig.JWT_REFRESH_SECRET,
         allowedIss: AUTH_ISSUER,
         allowedAud: AUTH_AUDIENCE,
@@ -434,8 +497,8 @@ export async function authRoutes(app: FastifyInstance) {
       return reply.status(401).send({ success: false, error: "Refresh token reutilizat" });
     }
 
-    const user = await get_user_by_email(String(payload.email ?? ""));
-    if (!user || user.status !== "active") {
+    const user = await get_user_by_email(jwtPayloadStringField(payload, "email"));
+    if (user?.status !== "active") {
       return reply.status(401).send({ success: false, error: "Utilizator invalid" });
     }
     const { accessToken, refreshToken: rotatedRefresh } = await issueAuthTokens(
@@ -472,13 +535,13 @@ export async function authRoutes(app: FastifyInstance) {
       return reply.status(400).send({
         success: false,
         error: "Date invalide",
-        details: parsed.error.flatten(),
+        details: flattenError(parsed.error),
       });
     }
     const refreshToken = parsed.data.refreshToken ?? request.cookies?.refreshToken;
     if (refreshToken) {
       try {
-        const payload = await app.jwt.verify<Record<string, unknown>>(refreshToken, {
+        const payload = app.jwt.verify<Record<string, unknown>>(refreshToken, {
           key: envConfig.JWT_REFRESH_SECRET,
           allowedIss: AUTH_ISSUER,
           allowedAud: AUTH_AUDIENCE,

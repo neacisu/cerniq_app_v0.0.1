@@ -139,13 +139,13 @@ export const emailEnricherProcessor: Processor<EmailEnricherJobData> = async (jo
       prenume,
       nume,
       functie,
-      metadata: sql`COALESCE(${silverContacts.metadata}, '{}'::jsonb) || ${JSON.stringify({
-        emailEnrichment: {
+      metadata: sql`jsonb_set(COALESCE(${silverContacts.metadata}, '{}'::jsonb), '{emailEnrichment}', ${JSON.stringify(
+        {
           email,
           sources,
           enrichedAt: new Date().toISOString(),
         },
-      })}::jsonb`,
+      )}::jsonb)`,
       updatedAt: new Date(),
     })
     .where(sql`${silverContacts.id} = ${job.data.contactId}`);

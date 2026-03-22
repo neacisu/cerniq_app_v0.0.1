@@ -42,8 +42,8 @@ export const ouaiMembershipProcessor: Processor<OuaiMembershipJobData> = async (
   await db
     .update(silverCompanies)
     .set({
-      metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify({
-        ouaiMembership: {
+      metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{ouaiMembership}', ${JSON.stringify(
+        {
           cui: job.data.cui,
           isLikelyMember,
           inferredFrom: {
@@ -54,7 +54,7 @@ export const ouaiMembershipProcessor: Processor<OuaiMembershipJobData> = async (
           },
           checkedAt: new Date().toISOString(),
         },
-      })}::jsonb`,
+      )}::jsonb)`,
       updatedAt: new Date(),
     })
     .where(sql`${silverCompanies.id} = ${job.data.companyId}`);

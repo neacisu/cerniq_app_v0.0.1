@@ -28,7 +28,7 @@ async function verifyCompanyWebsite(url: string, denumire: string, cui?: string)
     const den = denumire.toLowerCase();
     const hasName =
       text.includes(den) || den.split(/\s+/).some((word) => word.length > 4 && text.includes(word));
-    const hasCui = cui ? text.includes(cui.replace(/\D/g, "")) : false;
+    const hasCui = cui ? text.includes(cui.replaceAll(/\D/g, "")) : false;
     const normalizedUrl = `${new URL(url).protocol}//${new URL(url).hostname}`;
     return { isCompanyWebsite: hasName || hasCui, normalizedUrl };
   } catch {
@@ -100,14 +100,14 @@ export const websiteFinderProcessor: Processor<WebsiteFinderJobData> = async (jo
     .update(silverCompanies)
     .set({
       website: selected,
-      metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify({
-        websiteFinder: {
+      metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{websiteFinder}', ${JSON.stringify(
+        {
           query,
           selected,
           candidates: candidates.slice(0, 5),
           searchedAt: new Date().toISOString(),
         },
-      })}::jsonb`,
+      )}::jsonb)`,
       lastEnrichedAt: new Date(),
     })
     .where(sql`${silverCompanies.id} = ${job.data.companyId}`);

@@ -71,9 +71,7 @@ export const scoreCompletenessProcessor: Processor<CompletenessJobData> = async 
     .update(silverCompanies)
     .set({
       completenessScore: String(score),
-      metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify({
-        qualityCompleteness: { score, missing, calculatedAt: new Date().toISOString() },
-      })}::jsonb`,
+      metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{qualityCompleteness}', ${JSON.stringify({ score, missing, calculatedAt: new Date().toISOString() })}::jsonb)`,
       updatedAt: new Date(),
     })
     .where(sql`${silverCompanies.id} = ${job.data.companyId}`);

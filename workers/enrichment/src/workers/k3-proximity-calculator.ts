@@ -69,9 +69,7 @@ export const proximityCalculatorProcessor: Processor<ProximityJobData> = async (
   await db
     .update(silverCompanies)
     .set({
-      metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify({
-        proximity: proximityData,
-      })}::jsonb`,
+      metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{proximity}', ${JSON.stringify(proximityData)}::jsonb)`,
       updatedAt: new Date(),
     })
     .where(sql`${silverCompanies.id} = ${companyId}`);

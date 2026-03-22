@@ -98,11 +98,11 @@ test.describe("Etapa 1 - Pipeline Flow Bronze → Silver → Gold", () => {
       })
       .where(eq(bronzeContacts.id, bronze.id));
 
-    // Step 3: Simulate validate (mark as validated)
+    // Step 3: Simulate validate (identitate rezolvată — schema `bronze_contacts` nu are `cuiValidated`)
     await db
       .update(bronzeContacts)
       .set({
-        cuiValidated: true,
+        identityStatus: "resolved",
         processingStatus: "promoted",
       })
       .where(eq(bronzeContacts.id, bronze.id));

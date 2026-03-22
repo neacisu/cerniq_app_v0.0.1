@@ -13,15 +13,27 @@ import {
   silverDosare,
   silverPartiDosare,
   silverTermeneDosare,
+  importRuntimeSessions,
   sql,
   computeStableSourcePayloadHash,
   resolveBronzeContactIdentity,
   upsertCompanyIdentityKey,
+  batchIdMetadataEquals,
+  failedReprocessContactEquals,
 } from "@cerniq/db";
-import { createQueue, sanitizeNrRegCom, QUEUES, validateJobData } from "@cerniq/worker-shared";
+import {
+  enqueueImportJob,
+  enqueueImportJobBulk,
+  patchImportRuntimeSession,
+  sanitizeNrRegCom,
+  QUEUES,
+  validateJobData,
+  type ImportExecutionContext,
+} from "@cerniq/worker-shared";
 import { sanitizeCui } from "../lib/cui-validation.js";
 import { normalizeRow } from "./ingest-utils.js";
 import { createHitlApprovalTask } from "./pipeline-utils.js";
+import { createJobLogger } from "../lib/job-logger.js";
 import { z } from "zod";
 
 export type PromotionBronzeSilverJobData = {
@@ -30,6 +42,7 @@ export type PromotionBronzeSilverJobData = {
   batchId?: string;
   correlationId?: string;
   reprocessErrorsOnly?: boolean;
+  importExecution?: ImportExecutionContext;
 };
 
 const promotionBronzeSilverJobDataSchema = z
@@ -67,6 +80,23 @@ const NEXT_ENRICHMENT_QUEUES = [
   QUEUES.DISCOVER_EMAIL_HUNTER,
   QUEUES.DISCOVER_EMAIL_PATTERN,
 ] as const;
+
+const NEXT_ENRICHMENT_WORKER_BY_QUEUE: Record<(typeof NEXT_ENRICHMENT_QUEUES)[number], string> = {
+  [QUEUES.ENRICH_ANAF_FISCAL_STATUS]: "D1:anaf-fiscal-status",
+  [QUEUES.ENRICH_ANAF_TVA_STATUS]: "D2:anaf-tva-status",
+  [QUEUES.ENRICH_ANAF_EFACTURA]: "D3:anaf-efactura",
+  [QUEUES.ENRICH_ANAF_DATORII]: "D4:anaf-datorii",
+  [QUEUES.ENRICH_ANAF_CAEN]: "D5:anaf-caen",
+  [QUEUES.ENRICH_TERMENE_BALANCE]: "E1:termene-balance",
+  [QUEUES.ENRICH_TERMENE_RISK]: "E2:termene-risk",
+  [QUEUES.ENRICH_TERMENE_DOSARE]: "E3:termene-dosare",
+  [QUEUES.ENRICH_TERMENE_ACTIONARI]: "E4:termene-actionari",
+  [QUEUES.ENRICH_ONRC_DATA]: "F1:onrc-data",
+  [QUEUES.ENRICH_ONRC_ADMINISTRATORI]: "F2:onrc-administratori",
+  [QUEUES.ENRICH_ONRC_SEDII]: "F3:onrc-sedii",
+  [QUEUES.DISCOVER_EMAIL_HUNTER]: "G1:hunter-email-finder",
+  [QUEUES.DISCOVER_EMAIL_PATTERN]: "G4:email-pattern",
+};
 
 type Payload = Record<string, unknown>;
 type Mapping = Record<string, string>;
@@ -210,14 +240,6 @@ async function withBatchMetadataRetry<T>(
   }
 
   throw new Error(`Retry loop exhausted for ${operation}`);
-}
-
-function batchIdMetadataEquals(metadataColumn: unknown, batchId: string) {
-  return sql`COALESCE(jsonb_extract_path_text(${metadataColumn}, ${"batchId"}), ${""}) = ${batchId}`;
-}
-
-function failedReprocessContactEquals(metadataColumn: unknown) {
-  return sql`COALESCE(jsonb_extract_path_text(${metadataColumn}, 'identityReprocessError', 'status'), '') = 'failed'`;
 }
 
 function sqlTimestamp(value: string) {
@@ -455,7 +477,7 @@ export function detectSheetType(sheetName: string | null, payloadKeys: string[])
   if (sn.includes("datoriianaf") || sn.includes("anaf")) return "anaf_debts";
   if (sn.includes("bpi") || sn.includes("insolventa")) return "bpi";
   if (sn.includes("cip") || sn.includes("incidente")) return "cip";
-  if (sn.includes("parti")) return "parti_dosare";
+  if (/\bparti\b/.test(sn) || sn.includes("partidosare")) return "parti_dosare";
   if (sn.includes("termene")) return "termene_dosare";
   if (sn.includes("dosare") || sn.includes("litigii")) return "dosare";
 
@@ -581,14 +603,19 @@ async function backfillBronzeIdentityFields(
   bronze: BronzeContactRow,
   payload: Payload,
   mapping: Mapping,
-) {
+): Promise<{ identityFieldsChanged: boolean }> {
   const { patch } = getIdentityReprocessPatch(bronze, payload, mapping);
+
+  const identityFieldsChanged =
+    patch.extractedCui !== bronze.extractedCui ||
+    patch.extractedNrRegCom !== bronze.extractedNrRegCom;
+
   const hasChanges = Object.entries(patch).some(
     ([key, value]) => bronze[key as keyof BronzeContactRow] !== value,
   );
 
   if (!hasChanges) {
-    return;
+    return { identityFieldsChanged: false };
   }
 
   await db
@@ -598,6 +625,8 @@ async function backfillBronzeIdentityFields(
       updatedAt: new Date(),
     })
     .where(sql`${bronzeContacts.id} = ${bronze.id}`);
+
+  return { identityFieldsChanged };
 }
 
 async function ensureIdentityConflictApprovalTask(
@@ -756,13 +785,18 @@ async function processOneBronzeContact(
   counters: ReprocessRunCounters,
 ): Promise<void> {
   const payload = bronze.rawPayload as Payload;
-  await backfillBronzeIdentityFields(bronze, payload, mapping);
+  const { identityFieldsChanged } = await backfillBronzeIdentityFields(bronze, payload, mapping);
+
+  if (bronze.identityStatus === "resolved" && !identityFieldsChanged) {
+    counters.resolved += 1;
+    return;
+  }
+
   const resolution = await resolveBronzeContactIdentity({
     tenantId,
     bronzeContactId: bronze.id,
     sourceAuthority: "import",
   });
-  counters.processed += 1;
   if (resolution.status === "resolved") {
     counters.resolved += 1;
     return;
@@ -792,6 +826,7 @@ async function processOneBronzeContactWithRetries(
     try {
       await processOneBronzeContact(bronze, mapping, tenantId, counters);
       await clearContactReprocessFailure({ tenantId, bronzeId: bronze.id });
+      counters.processed += 1;
       return;
     } catch (error) {
       lastError = error;
@@ -820,6 +855,29 @@ async function processOneBronzeContactWithRetries(
 function readReprocessNumber(value: unknown): number {
   const parsed = Number(value ?? 0);
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+async function countBatchReprocessScopeRows(
+  tenantId: string,
+  batchId: string,
+  errorsOnly: boolean,
+): Promise<number> {
+  await setSessionTenantId(tenantId);
+  const conditions = [
+    sql`${bronzeContacts.tenantId} = ${tenantId}`,
+    batchIdMetadataEquals(bronzeContacts.metadata, batchId),
+  ];
+
+  if (errorsOnly) {
+    conditions.push(failedReprocessContactEquals(bronzeContacts.metadata));
+  }
+
+  const [row] = await db
+    .select({ count: sql<number>`COUNT(*)` })
+    .from(bronzeContacts)
+    .where(sql.join(conditions, sql` AND `));
+
+  return Number(row?.count ?? 0);
 }
 
 async function rebuildFullRunCheckpointFromCursor(
@@ -908,6 +966,8 @@ async function loadBatchReprocessCheckpoint(
     .limit(1);
 
   const metadata = (batch?.metadata as Record<string, unknown> | undefined) ?? {};
+  const mode = metadata.identityReprocessMode === "errors_only" ? "errors_only" : "full";
+  const scopeRows = await countBatchReprocessScopeRows(tenantId, batchId, mode === "errors_only");
   const phase =
     metadata.identityReprocessPhase === "queue_promotions"
       ? "queue_promotions"
@@ -915,7 +975,7 @@ async function loadBatchReprocessCheckpoint(
 
   const baseCheckpoint: ReprocessCheckpoint = {
     metadata,
-    batchTotalRows: Number(batch?.totalRows ?? 0),
+    batchTotalRows: scopeRows > 0 ? scopeRows : Number(batch?.totalRows ?? 0),
     phase,
     cursorCreatedAt:
       typeof metadata.identityReprocessCursorCreatedAt === "string"
@@ -933,7 +993,7 @@ async function loadBatchReprocessCheckpoint(
       typeof metadata.identityReprocessPromotionCursorLastBronzeId === "string"
         ? metadata.identityReprocessPromotionCursorLastBronzeId
         : null,
-    processed: readReprocessNumber(metadata.identityReprocessProcessedRows),
+    processed: readReprocessNumber(metadata.identityReprocessCursorRowIndex),
     resolved: readReprocessNumber(metadata.identityReprocessResolvedRows),
     duplicateSource: readReprocessNumber(metadata.identityReprocessDuplicateSourceRows),
     identityConflict: readReprocessNumber(metadata.identityReprocessIdentityConflictRows),
@@ -944,8 +1004,19 @@ async function loadBatchReprocessCheckpoint(
     failedContacts: readReprocessNumber(metadata.identityReprocessFailedContactCount),
   };
 
-  const mode = metadata.identityReprocessMode === "errors_only" ? "errors_only" : "full";
-  if (mode === "full") {
+  const hasCursor = Boolean(baseCheckpoint.cursorCreatedAt && baseCheckpoint.cursorLastBronzeId);
+  const hasCounterOverflow =
+    baseCheckpoint.batchTotalRows > 0 &&
+    (baseCheckpoint.processed > baseCheckpoint.batchTotalRows ||
+      baseCheckpoint.resolved > baseCheckpoint.batchTotalRows ||
+      baseCheckpoint.duplicateSource > baseCheckpoint.batchTotalRows ||
+      baseCheckpoint.identityConflict > baseCheckpoint.batchTotalRows ||
+      baseCheckpoint.insufficientIdentifiers > baseCheckpoint.batchTotalRows);
+
+  // Full reprocess must reconcile against the actual Bronze-contact scope, not import-batch
+  // totalRows. If a restart left stale counters or an old denominator behind, rebuild from the
+  // persisted cursor so the resumed session continues from the real checkpoint.
+  if (mode === "full" && (!hasCursor || hasCounterOverflow)) {
     try {
       return await rebuildFullRunCheckpointFromCursor(tenantId, batchId, baseCheckpoint);
     } catch (error) {
@@ -1084,6 +1155,7 @@ async function runIdentityResolutionLoop(
       identityReprocessPhase: "resolve_identities",
       identityReprocessCursorCreatedAt: lastCreatedAt,
       identityReprocessCursorLastBronzeId: lastId,
+      identityReprocessCursorRowIndex: counters.processed,
       identityReprocessMode: errorsOnly ? "errors_only" : "full",
       identityReprocessRunTotalRows: initialRunTotalRows,
       identityReprocessFailedAt: null,
@@ -1155,6 +1227,7 @@ async function handleBatchReprocess(
       identityReprocessPhase: phase,
       identityReprocessCursorCreatedAt: lastCreatedAt,
       identityReprocessCursorLastBronzeId: lastId,
+      identityReprocessCursorRowIndex: counters.processed,
       identityReprocessPromotionCursorCreatedAt: promotionLastCreatedAt,
       identityReprocessPromotionCursorLastBronzeId: promotionLastId,
       identityReprocessMode: errorsOnly ? "errors_only" : "full",
@@ -1198,6 +1271,7 @@ async function handleBatchReprocess(
         identityReprocessPhase: phase,
         identityReprocessCursorCreatedAt: lastCreatedAt,
         identityReprocessCursorLastBronzeId: lastId,
+        identityReprocessCursorRowIndex: counters.processed,
         identityReprocessPromotionCursorCreatedAt: promotionLastCreatedAt,
         identityReprocessPromotionCursorLastBronzeId: promotionLastId,
         identityReprocessMode: errorsOnly ? "errors_only" : "full",
@@ -1227,6 +1301,7 @@ async function handleBatchReprocess(
       batchId,
       pageSize,
       {
+        importExecution: jobData.importExecution ?? null,
         initialQueued: counters.promotionQueued,
         resumeFromCreatedAt: promotionLastCreatedAt,
         resumeFromId: promotionLastId,
@@ -1240,6 +1315,7 @@ async function handleBatchReprocess(
             identityReprocessPhase: "queue_promotions",
             identityReprocessCursorCreatedAt: lastCreatedAt,
             identityReprocessCursorLastBronzeId: lastId,
+            identityReprocessCursorRowIndex: counters.processed,
             identityReprocessPromotionCursorCreatedAt: promotionLastCreatedAt,
             identityReprocessPromotionCursorLastBronzeId: promotionLastId,
             identityReprocessMode: errorsOnly ? "errors_only" : "full",
@@ -1322,6 +1398,7 @@ async function handleBatchReprocess(
         identityReprocessPhase: phase,
         identityReprocessCursorCreatedAt: lastCreatedAt,
         identityReprocessCursorLastBronzeId: lastId,
+        identityReprocessCursorRowIndex: counters.processed,
         identityReprocessPromotionCursorCreatedAt: promotionLastCreatedAt,
         identityReprocessPromotionCursorLastBronzeId: promotionLastId,
         identityReprocessMode: errorsOnly ? "errors_only" : "full",
@@ -1371,6 +1448,7 @@ async function queueResolvedBatchPromotions(
   batchId: string,
   pageSize: number,
   options?: {
+    importExecution?: ImportExecutionContext | null;
     initialQueued?: number;
     resumeFromCreatedAt?: string | null;
     resumeFromId?: string | null;
@@ -1382,82 +1460,88 @@ async function queueResolvedBatchPromotions(
     progressReporter?: BatchProgressReporter;
   },
 ) {
-  const promotionQueue = createQueue(QUEUES.PIPELINE_PROMOTE_BRONZE_SILVER);
   let lastCreatedAt: string | null = options?.resumeFromCreatedAt ?? null;
   let lastId: string | null = options?.resumeFromId ?? null;
   let queued = options?.initialQueued ?? 0;
 
-  try {
-    while (true) {
-      const contacts = await db.query.bronzeContacts.findMany({
-        where: (t) => {
-          const base = sql`${t.tenantId} = ${tenantId}
-            AND ${batchIdMetadataEquals(t.metadata, batchId)}
-            AND ${t.identityStatus} = 'resolved'
-            AND COALESCE(${t.doNotProcess}, FALSE) = FALSE`;
+  while (true) {
+    const contacts = await db.query.bronzeContacts.findMany({
+      where: (t) => {
+        const base = sql`${t.tenantId} = ${tenantId}
+          AND ${batchIdMetadataEquals(t.metadata, batchId)}
+          AND ${t.identityStatus} = 'resolved'
+          AND COALESCE(${t.doNotProcess}, FALSE) = FALSE`;
 
-          if (!lastCreatedAt || !lastId) {
-            return base;
-          }
+        if (!lastCreatedAt || !lastId) {
+          return base;
+        }
 
-          return sql`${base}
-            AND (
-                ${t.createdAt} > ${sqlTimestamp(lastCreatedAt)}
-                OR (${t.createdAt} = ${sqlTimestamp(lastCreatedAt)} AND ${t.id} > ${lastId})
-            )`;
-        },
-        orderBy: (t) => [t.createdAt, t.id],
-        limit: pageSize,
-        columns: {
-          createdAt: true,
-          id: true,
-        },
-      });
+        return sql`${base}
+          AND (
+              ${t.createdAt} > ${sqlTimestamp(lastCreatedAt)}
+              OR (${t.createdAt} = ${sqlTimestamp(lastCreatedAt)} AND ${t.id} > ${lastId})
+          )`;
+      },
+      orderBy: (t) => [t.createdAt, t.id],
+      limit: pageSize,
+      columns: {
+        createdAt: true,
+        id: true,
+      },
+    });
 
-      if (contacts.length === 0) {
-        break;
-      }
-
-      await promotionQueue.addBulk(
-        contacts.map((bronze, index) => ({
-          name: "promote",
-          data: {
-            tenantId,
-            bronzeContactId: bronze.id,
-            correlationId: `reprocess-${batchId}-promote-${queued + index + 1}`,
-          },
-          opts: {
-            attempts: 3,
-            backoff: {
-              type: "exponential",
-              delay: 5000,
-            },
-            removeOnComplete: 100,
-            removeOnFail: 200,
-          },
-        })),
-      );
-
-      queued += contacts.length;
-
-      const lastContact = contacts.at(-1);
-      lastCreatedAt = lastContact?.createdAt?.toISOString() ?? null;
-      lastId = lastContact?.id ?? null;
-
-      if (lastId && options?.progressReporter) {
-        await options.progressReporter.maybeReportPromotionProgress(queued, lastId);
-      }
-
-      if (options?.onCheckpoint) {
-        await options.onCheckpoint({
-          queued,
-          lastQueuedCreatedAt: lastCreatedAt,
-          lastQueuedId: lastId,
-        });
-      }
+    if (contacts.length === 0) {
+      break;
     }
-  } finally {
-    await promotionQueue.close();
+
+    await enqueueImportJobBulk({
+      queueName: QUEUES.PIPELINE_PROMOTE_BRONZE_SILVER,
+      items: contacts.map((bronze, index) => ({
+        jobName: "promote",
+        payload: {
+          tenantId,
+          bronzeContactId: bronze.id,
+          batchId,
+          correlationId: `reprocess-${batchId}-promote-${queued + index + 1}`,
+        },
+        opts: {
+          attempts: 3,
+          backoff: {
+            type: "exponential",
+            delay: 5000,
+          },
+          removeOnComplete: 100,
+          removeOnFail: 200,
+        },
+        workerName: "promotion:bronze-silver",
+        stageKey: "promotion",
+        entityType: "bronze_contact",
+        entityId: bronze.id,
+        contactId: bronze.id,
+        idempotencyScope: bronze.id,
+      })),
+      parentImportExecution: options?.importExecution ?? null,
+      workerName: "promotion:bronze-silver",
+      stageKey: "promotion",
+    });
+
+    queued += contacts.length;
+
+    const lastContact = contacts.at(-1);
+    lastCreatedAt = lastContact?.createdAt?.toISOString() ?? null;
+    lastId = lastContact?.id ?? null;
+
+    if (lastId && options?.progressReporter) {
+      await options.progressReporter.maybeReportPromotionProgress(queued, lastId);
+    }
+
+    if (options?.onCheckpoint) {
+      await options.onCheckpoint({
+        queued,
+        lastQueuedCreatedAt: lastCreatedAt,
+        lastQueuedId: lastId,
+      });
+    }
   }
 
   return queued;
@@ -1477,6 +1561,7 @@ async function handleBatchReprocessJob(
 }
 
 async function markBronzePromoted(
+  tenantId: string,
   bronzeId: string,
   silverId: string,
   isDuplicate = false,
@@ -1490,7 +1575,7 @@ async function markBronzePromoted(
       isDuplicate,
       duplicateOfId,
     })
-    .where(sql`${bronzeContacts.id} = ${bronzeId}`);
+    .where(sql`${bronzeContacts.tenantId} = ${tenantId} AND ${bronzeContacts.id} = ${bronzeId}`);
 }
 
 async function triggerCompanyEnrichment(data: {
@@ -1500,18 +1585,26 @@ async function triggerCompanyEnrichment(data: {
   website: string | null;
   companyName: string | null;
   correlationId?: string;
+  importExecution?: ImportExecutionContext | null;
 }) {
   for (const queueName of NEXT_ENRICHMENT_QUEUES) {
-    const queue = createQueue(queueName);
-    await queue.add("enrich", {
-      tenantId: data.tenantId,
-      companyId: data.companyId,
-      cui: data.cui ?? undefined,
-      domain: data.website ?? undefined,
-      companyName: data.companyName ?? undefined,
-      correlationId: data.correlationId,
+    await enqueueImportJob({
+      queueName,
+      jobName: "enrich",
+      payload: {
+        tenantId: data.tenantId,
+        companyId: data.companyId,
+        cui: data.cui ?? undefined,
+        domain: data.website ?? undefined,
+        companyName: data.companyName ?? undefined,
+        correlationId: data.correlationId,
+      },
+      parentImportExecution: data.importExecution ?? null,
+      workerName: NEXT_ENRICHMENT_WORKER_BY_QUEUE[queueName],
+      entityType: "company",
+      entityId: data.companyId,
+      idempotencyScope: data.companyId,
     });
-    await queue.close();
   }
 }
 
@@ -1922,6 +2015,7 @@ function buildCompanyUpdate(args: {
       website: website ?? undefined,
       nrRegCom: nrRegCom ?? undefined,
       nrRegComOriginal: rawNrRegCom ?? undefined,
+      nrRegComCanonical: bronze.extractedNrRegComCanonical ?? undefined,
       identityStatus,
       codCaenPrincipal: codCaenPrincipal ?? undefined,
       denumireCaen: excelCaenText ?? undefined,
@@ -1968,65 +2062,79 @@ function buildCompanyUpdate(args: {
       dataInceputTva: anaf.dataInceputTva ?? undefined,
       dataSfarsitTva: anaf.dataSfarsitTva ?? undefined,
       periodeTva: anaf.periodeTva ?? undefined,
-      tvaLaIncasare: anaf.tvaLaIncasare ?? false,
+      tvaLaIncasare: anaf.tvaLaIncasare ?? undefined,
       dataInceputTvaIncasare: anaf.dataInceputTvaIncasare,
       dataSfarsitTvaIncasare: anaf.dataSfarsitTvaIncasare,
-      splitTva: anaf.splitTvaVal ?? false,
+      splitTva: anaf.splitTvaVal ?? undefined,
       dataInceputSplitTva: anaf.dataInceputSplitTva,
       dataAnulareSplitTva: anaf.dataAnulareSplitTva,
-      inregistratEfactura: anaf.inregistratEfactura ?? false,
+      inregistratEfactura: anaf.inregistratEfactura ?? undefined,
       dataInregistrareEfactura: anaf.dataInregistrareEfactura ?? undefined,
-      cifraAfaceri: parseRomanianNumeric(
-        resolveField(payload, mapping, "cifraAfaceri", "Cifra de afaceri"),
-      ),
-      profitNet: parseRomanianNumeric(
-        resolveField(payload, mapping, "profitNet", "Profit / Pierdere Neta"),
-      ),
-      profitBrut: parseRomanianNumeric(
-        resolveField(payload, mapping, "profitBrut", "Profit / Pierdere Bruta", "profit brut"),
-      ),
-      venituriTotale: parseRomanianNumeric(
-        resolveField(payload, mapping, "venituriTotale", "Venituri totale"),
-      ),
-      cheltuieliTotale: parseRomanianNumeric(
-        resolveField(payload, mapping, "cheltuieliTotale", "Cheltuieli totale"),
-      ),
-      activeTotale: parseRomanianNumeric(
-        resolveField(payload, mapping, "activeTotale", "Total Active"),
-      ),
-      activeImobilizate: parseRomanianNumeric(
-        resolveField(payload, mapping, "activeImobilizate", "Active Imobilizate"),
-      ),
-      activeCirculante: parseRomanianNumeric(
-        resolveField(payload, mapping, "activeCirculante", "Active Circulante"),
-      ),
-      creante: parseRomanianNumeric(resolveField(payload, mapping, "creante", "Creante")),
-      stocuri: parseRomanianNumeric(resolveField(payload, mapping, "stocuri", "Stocuri")),
-      capitalSocial: parseRomanianNumeric(
-        resolveField(payload, mapping, "capitalSocial", "Capital social"),
-      ),
-      capitaluriProprii: parseRomanianNumeric(
-        resolveField(payload, mapping, "capitaluriProprii", "Capitaluri proprii Total"),
-      ),
-      datoriiTotale: parseRomanianNumeric(
-        resolveField(payload, mapping, "datoriiTotale", "Datorii Total"),
-      ),
-      numarAngajati: parseIntSafe(
-        resolveField(payload, mapping, "numarAngajati", "Numar mediu de salariati"),
-      ),
-      anulInfiintarii,
-      ratingExtern: parseIntSafe(resolveField(payload, mapping, "ratingExtern", "Rating")),
-      limitaCreditEur: parseRomanianNumeric(
-        resolveField(payload, mapping, "limitaCreditEur", "Limita de credit (EUR)"),
-      ),
+      cifraAfaceri:
+        parseRomanianNumeric(resolveField(payload, mapping, "cifraAfaceri", "Cifra de afaceri")) ??
+        undefined,
+      profitNet:
+        parseRomanianNumeric(
+          resolveField(payload, mapping, "profitNet", "Profit / Pierdere Neta"),
+        ) ?? undefined,
+      profitBrut:
+        parseRomanianNumeric(
+          resolveField(payload, mapping, "profitBrut", "Profit / Pierdere Bruta", "profit brut"),
+        ) ?? undefined,
+      venituriTotale:
+        parseRomanianNumeric(resolveField(payload, mapping, "venituriTotale", "Venituri totale")) ??
+        undefined,
+      cheltuieliTotale:
+        parseRomanianNumeric(
+          resolveField(payload, mapping, "cheltuieliTotale", "Cheltuieli totale"),
+        ) ?? undefined,
+      activeTotale:
+        parseRomanianNumeric(resolveField(payload, mapping, "activeTotale", "Total Active")) ??
+        undefined,
+      activeImobilizate:
+        parseRomanianNumeric(
+          resolveField(payload, mapping, "activeImobilizate", "Active Imobilizate"),
+        ) ?? undefined,
+      activeCirculante:
+        parseRomanianNumeric(
+          resolveField(payload, mapping, "activeCirculante", "Active Circulante"),
+        ) ?? undefined,
+      creante:
+        parseRomanianNumeric(resolveField(payload, mapping, "creante", "Creante")) ?? undefined,
+      stocuri:
+        parseRomanianNumeric(resolveField(payload, mapping, "stocuri", "Stocuri")) ?? undefined,
+      capitalSocial:
+        parseRomanianNumeric(resolveField(payload, mapping, "capitalSocial", "Capital social")) ??
+        undefined,
+      capitaluriProprii:
+        parseRomanianNumeric(
+          resolveField(payload, mapping, "capitaluriProprii", "Capitaluri proprii Total"),
+        ) ?? undefined,
+      datoriiTotale:
+        parseRomanianNumeric(resolveField(payload, mapping, "datoriiTotale", "Datorii Total")) ??
+        undefined,
+      numarAngajati:
+        parseIntSafe(resolveField(payload, mapping, "numarAngajati", "Numar mediu de salariati")) ??
+        undefined,
+      anulInfiintarii: anulInfiintarii ?? undefined,
+      ratingExtern:
+        parseIntSafe(resolveField(payload, mapping, "ratingExtern", "Rating")) ?? undefined,
+      limitaCreditEur:
+        parseRomanianNumeric(
+          resolveField(payload, mapping, "limitaCreditEur", "Limita de credit (EUR)"),
+        ) ?? undefined,
       sourceBronzeId: bronze.id,
-      metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify({
-        promotion,
-        promotedAt: new Date().toISOString(),
-        sourceSheet,
-        fieldSources,
-        ...(anafV9 ? { anafV9Response: anafV9 } : {}),
-      })}::jsonb`,
+      metadata: (() => {
+        let expr = sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb)`;
+        expr = sql`jsonb_set(${expr}, '{promotion}', ${JSON.stringify(promotion)}::jsonb)`;
+        expr = sql`jsonb_set(${expr}, '{promotedAt}', ${JSON.stringify(new Date().toISOString())}::jsonb)`;
+        expr = sql`jsonb_set(${expr}, '{sourceSheet}', ${JSON.stringify(sourceSheet)}::jsonb)`;
+        expr = sql`jsonb_set(${expr}, '{fieldSources}', ${JSON.stringify(fieldSources)}::jsonb)`;
+        if (anafV9) {
+          expr = sql`jsonb_set(${expr}, '{anafV9Response}', ${JSON.stringify(anafV9)}::jsonb)`;
+        }
+        return expr;
+      })(),
     },
   };
 }
@@ -2112,6 +2220,9 @@ async function upsertPromotionIdentityKeys(args: {
 async function upsertPromotionPrimaryContact(args: {
   tenantId: string;
   companyId: string;
+  bronzeId: string;
+  batchId?: string;
+  importExecution?: ImportExecutionContext | null;
   payload: Payload;
   mapping: Mapping;
   email: string | null;
@@ -2126,8 +2237,21 @@ async function upsertPromotionPrimaryContact(args: {
   );
   const contactNume = resolveField(args.payload, args.mapping, "nume", "lastName", "last_name");
   if (!args.email && !args.phone && !contactPrenume && !contactNume) {
-    return;
+    return "skipped" as const;
   }
+
+  const normalizedEmail = args.email?.trim().toLowerCase() ?? "";
+  const existingPrimaryContact =
+    normalizedEmail.length > 0
+      ? await db.query.silverContacts.findFirst({
+          where: (t) =>
+            sql`${t.tenantId} = ${args.tenantId}
+              AND ${t.companyId} = ${args.companyId}
+              AND ${t.emailNormalized} = ${normalizedEmail}`,
+          columns: { id: true },
+        })
+      : null;
+  const operation = existingPrimaryContact ? "updated_existing" : "inserted";
 
   await db
     .insert(silverContacts)
@@ -2139,9 +2263,57 @@ async function upsertPromotionPrimaryContact(args: {
       email: args.email ?? undefined,
       telefon: args.phone ?? undefined,
       isPrimary: true,
-      metadata: { source: "promotion_bronze_silver" },
+      metadata: {
+        source: "promotion_bronze_silver",
+        importProvenance: args.importExecution
+          ? {
+              batchId: args.batchId ?? args.importExecution.batchId,
+              bronzeContactId: args.bronzeId,
+              sessionId: args.importExecution.sessionId,
+              createdByPromotion: true,
+            }
+          : {
+              batchId: args.batchId ?? null,
+              bronzeContactId: args.bronzeId,
+              sessionId: null,
+              createdByPromotion: true,
+            },
+      },
     })
-    .onConflictDoNothing();
+    .onConflictDoUpdate({
+      target: [silverContacts.tenantId, silverContacts.companyId, silverContacts.emailNormalized],
+      targetWhere: sql`${silverContacts.emailNormalized} <> ''`,
+      set: {
+        prenume: sql`COALESCE(EXCLUDED."prenume", ${silverContacts.prenume})`,
+        nume: sql`COALESCE(EXCLUDED."nume", ${silverContacts.nume})`,
+        telefon: sql`COALESCE(EXCLUDED."telefon", ${silverContacts.telefon})`,
+        isPrimary: true,
+        updatedAt: new Date(),
+      },
+    });
+
+  if (operation === "inserted" && args.importExecution?.sessionId) {
+    await db
+      .update(importRuntimeSessions)
+      .set({
+        silverContactsPromotedDuringSession: sql`${importRuntimeSessions.silverContactsPromotedDuringSession} + 1`,
+        updatedAt: new Date(),
+      })
+      .where(
+        sql`${importRuntimeSessions.id} = ${args.importExecution.sessionId}
+          AND ${importRuntimeSessions.tenantId} = ${args.tenantId}`,
+      );
+    await patchImportRuntimeSession({
+      sessionId: args.importExecution.sessionId,
+      tenantId: args.tenantId,
+      metrics: {
+        promotionInserted: true,
+        lastPromotedBronzeContactId: args.bronzeId,
+      },
+    });
+  }
+
+  return operation;
 }
 
 async function findOrCreateParentCompany(args: {
@@ -2217,11 +2389,34 @@ async function handleCompanyPromotion(args: {
   mapping: Mapping;
 }) {
   const { jobData, bronze, payload, mapping } = args;
+  const bronzeMetaForLog = (bronze.metadata as Record<string, unknown>) ?? {};
+  const batchIdForLog =
+    typeof bronzeMetaForLog.batchId === "string"
+      ? bronzeMetaForLog.batchId
+      : (jobData.batchId ?? bronze.id);
+  const contactLog = createJobLogger({
+    batchId: batchIdForLog,
+    tenantId: jobData.tenantId,
+    workerName: "promotion:bronze-silver",
+  }).forContact(bronze.id);
+
   const rawCui = bronze.extractedCui ?? resolveField(payload, mapping, "cui", "CUI", "cif");
   const rawNrRegCom =
     bronze.extractedNrRegCom ??
     resolveField(payload, mapping, "nrRegistru", "nr reg com", "Nr reg com", "nr_reg_com");
   const { cui, nrRegCom } = sanitizeIdentifiers(rawCui, rawNrRegCom);
+
+  contactLog.step(
+    "start",
+    `Promovare contact bronze → silver: CUI=${cui ?? "lipsă"}, NrRegCom=${nrRegCom ?? "lipsă"}`,
+    {
+      bronzeId: bronze.id,
+      cui,
+      nrRegCom,
+      extractedName: bronze.extractedName,
+      identityStatus: bronze.identityStatus,
+    },
+  );
 
   // GAP-B1: Verify CUI validation before promotion
   const metadata = (bronze.metadata as Record<string, unknown>) ?? {};
@@ -2231,6 +2426,11 @@ async function handleCompanyPromotion(args: {
     : false;
 
   if (cui && !cuiValidated) {
+    contactLog.warn(
+      "cui_not_validated",
+      `Promovare blocată: CUI ${cui} nu a fost validat încă de WorkerC (C1/C2) — contactul rămâne în bronze`,
+      { cui, cuiValidation },
+    );
     return {
       ok: false,
       status: "blocked",
@@ -2257,6 +2457,22 @@ async function handleCompanyPromotion(args: {
     existingSilver?.sourceBronzeId && existingSilver.sourceBronzeId !== bronze.id,
   );
   const duplicateOfId = dedupMerged ? (existingSilver?.sourceBronzeId ?? null) : null;
+  const promotionKind = getPromotionKind(existingSilver, bronze.id);
+
+  if (existingSilver) {
+    contactLog.info(
+      "silver_match",
+      `Companie silver existentă găsită: ${existingSilver.denumire ?? existingSilver.id} (${promotionKind})`,
+      { silverId: existingSilver.id, cui: existingSilver.cui, promotionKind, dedupMerged },
+    );
+  } else {
+    contactLog.info(
+      "silver_new",
+      `Companie silver nouă va fi creată pentru „${companyName ?? cui ?? "necunoscută"}"`,
+      { cui, nrRegCom, companyName },
+    );
+  }
+
   const silverId = await persistSilverCompany({
     tenantId: jobData.tenantId,
     cui,
@@ -2276,13 +2492,16 @@ async function handleCompanyPromotion(args: {
   await upsertPromotionPrimaryContact({
     tenantId: jobData.tenantId,
     companyId: silverId,
+    bronzeId: bronze.id,
+    batchId: batchIdForLog,
+    importExecution: jobData.importExecution ?? null,
     payload,
     mapping,
     email,
     phone,
   });
 
-  await markBronzePromoted(bronze.id, silverId, dedupMerged, duplicateOfId);
+  await markBronzePromoted(jobData.tenantId, bronze.id, silverId, dedupMerged, duplicateOfId);
   await triggerCompanyEnrichment({
     tenantId: jobData.tenantId,
     companyId: silverId,
@@ -2290,7 +2509,20 @@ async function handleCompanyPromotion(args: {
     website,
     companyName,
     correlationId: jobData.correlationId,
+    importExecution: jobData.importExecution ?? null,
   });
+
+  contactLog.step(
+    "done",
+    `Contact promovat cu succes în silver — ${NEXT_ENRICHMENT_QUEUES.length} cozi de enrichment declanșate`,
+    {
+      silverId,
+      promotionKind,
+      dedupMerged,
+      duplicateOfId,
+      enrichmentQueuesCount: NEXT_ENRICHMENT_QUEUES.length,
+    },
+  );
 
   return { ok: true, status: "promoted", silverId, dedupMerged };
 }
@@ -2329,7 +2561,7 @@ async function handleAnafDebtDetail(args: {
     },
   });
 
-  await markBronzePromoted(args.bronze.id, parent.id);
+  await markBronzePromoted(args.jobData.tenantId, args.bronze.id, parent.id);
   return { ok: true, status: "detail_promoted", type: "anaf_debts", silverId: parent.id };
 }
 
@@ -2368,7 +2600,7 @@ async function handleBpiDetail(args: {
     },
   });
 
-  await markBronzePromoted(args.bronze.id, parent.id);
+  await markBronzePromoted(args.jobData.tenantId, args.bronze.id, parent.id);
   return { ok: true, status: "detail_promoted", type: "bpi", silverId: parent.id };
 }
 
@@ -2429,7 +2661,7 @@ async function handleCipDetail(args: {
     },
   });
 
-  await markBronzePromoted(args.bronze.id, parent.id);
+  await markBronzePromoted(args.jobData.tenantId, args.bronze.id, parent.id);
   return { ok: true, status: "detail_promoted", type: "cip", silverId: parent.id };
 }
 
@@ -2523,7 +2755,7 @@ async function handleDosareDetail(args: {
     },
   });
 
-  await markBronzePromoted(args.bronze.id, parent.id);
+  await markBronzePromoted(args.jobData.tenantId, args.bronze.id, parent.id);
   return { ok: true, status: "detail_promoted", type: "dosare", silverId: parent.id };
 }
 
@@ -2563,7 +2795,7 @@ async function handlePartiDosareDetail(args: {
     },
   });
 
-  await markBronzePromoted(args.bronze.id, parent.id);
+  await markBronzePromoted(args.jobData.tenantId, args.bronze.id, parent.id);
   return { ok: true, status: "detail_promoted", type: "parti_dosare", silverId: parent.id };
 }
 
@@ -2614,21 +2846,39 @@ async function handleTermeneDosareDetail(args: {
     },
   });
 
-  await markBronzePromoted(args.bronze.id, parent.id);
+  await markBronzePromoted(args.jobData.tenantId, args.bronze.id, parent.id);
   return { ok: true, status: "detail_promoted", type: "termene_dosare", silverId: parent.id };
 }
 
 export const promotionBronzeSilverProcessor: Processor<PromotionBronzeSilverJobData> = async (
   job,
 ) => {
+  const startedAt = Date.now();
   validateJobData(promotionBronzeSilverJobDataSchema, job.data, {
     queueName: QUEUES.PIPELINE_PROMOTE_BRONZE_SILVER,
     jobId: job.id,
   });
   await setSessionTenantId(job.data.tenantId);
 
+  // Batch reprocess mode: no per-contact logging here, handled inside handleBatchReprocess
   if (job.data.batchId && !job.data.bronzeContactId) {
-    return handleBatchReprocessJob(job, job.data);
+    const log = createJobLogger({
+      batchId: job.data.batchId,
+      tenantId: job.data.tenantId,
+      workerName: "promotion:bronze-silver",
+      jobId: String(job.id ?? ""),
+      startedAt,
+    });
+    log.step("batch_reprocess_start", `Reprocesare batch ${job.data.batchId} declanșată`, {
+      batchId: job.data.batchId,
+      errorsOnly: job.data.reprocessErrorsOnly ?? false,
+    });
+    const result = await handleBatchReprocessJob(job, job.data);
+    log.step("batch_reprocess_done", `Reprocesare batch finalizată`, {
+      ...result,
+      durationMs: Date.now() - startedAt,
+    });
+    return result;
   }
 
   const bronze = (
@@ -2653,10 +2903,9 @@ export const promotionBronzeSilverProcessor: Processor<PromotionBronzeSilverJobD
 
   const payload = bronze.rawPayload as Payload;
   const bronzeMetadata = (bronze.metadata as Record<string, unknown>) ?? {};
-  const mapping = await loadBatchMapping(
-    job.data.tenantId,
-    typeof bronzeMetadata.batchId === "string" ? bronzeMetadata.batchId : null,
-  );
+  const batchIdFromMeta =
+    typeof bronzeMetadata.batchId === "string" ? bronzeMetadata.batchId : job.data.batchId;
+  const mapping = await loadBatchMapping(job.data.tenantId, batchIdFromMeta ?? null);
   const sheetType = detectSheetType(
     typeof bronzeMetadata.sheetName === "string" ? bronzeMetadata.sheetName : null,
     Object.keys(payload),

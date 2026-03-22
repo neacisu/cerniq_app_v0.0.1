@@ -78,7 +78,7 @@ const EnvSchema = z.object({
    * (cerniq_backend) and never transits a public interface.
    * Override with an https:// URL if TLS termination is added to the sidecar.
    */
-  MONITORING_API_INTERNAL_URL: z.url().default("http://cerniq-monitoring-api:64080"),
+  MONITORING_API_INTERNAL_URL: z.url().default("https://cerniq-monitoring-api:64080"),
 });
 
 function parseEnv(): z.infer<typeof EnvSchema> {

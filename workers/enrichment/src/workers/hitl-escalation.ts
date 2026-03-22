@@ -29,11 +29,7 @@ export const hitlEscalationProcessor: Processor<HitlEscalationJobData> = async (
       await db
         .update(approvalTasks)
         .set({
-          metadata: sql`COALESCE(${approvalTasks.metadata}, '{}'::jsonb) || ${JSON.stringify({
-            slaWarningSent: true,
-            slaWarningAt: now.toISOString(),
-            warningCorrelationId: job.data.correlationId ?? null,
-          })}::jsonb`,
+          metadata: sql`jsonb_set(jsonb_set(jsonb_set(COALESCE(${approvalTasks.metadata}, '{}'::jsonb), '{slaWarningSent}', 'true'::jsonb), '{slaWarningAt}', ${JSON.stringify(now.toISOString())}::jsonb), '{warningCorrelationId}', ${JSON.stringify(job.data.correlationId ?? null)}::jsonb)`,
           updatedAt: now,
         })
         .where(sql`${approvalTasks.id} = ${task.id}`);

@@ -1,10 +1,13 @@
 import {
   assertQueueRegistryComplete,
+  beginImportRuntimeJob,
+  completeImportRuntimeJob,
   closeRedisConnections,
   createHealthServer,
   createQueue,
   createRedisConnections,
   createWorker,
+  failImportRuntimeJob,
   loadSecretsFromFile,
   queueDepth,
   queueRegistry,
@@ -82,7 +85,7 @@ const SECRETS_PATH = process.env.SECRETS_PATH?.trim() || "/secrets/workers.env";
 const PROMOTE_BRONZE_SILVER_WORKER_OPTIONS = {
   lockDuration: 15 * 60 * 1000,
   stalledInterval: 2 * 60 * 1000,
-  maxStalledCount: 4,
+  maxStalledCount: 20,
 } as const;
 assertQueueRegistryComplete();
 const queueNames = queueRegistry.map((q) => q.name);
@@ -386,9 +389,20 @@ function buildWorkers() {
       async (job: Job) => {
         const startedAt = Date.now();
         try {
+          const runtime = await beginImportRuntimeJob(queueName, job, queueName);
+          if (runtime.paused) {
+            stats.processed += 1;
+            stats.lastJob = {
+              name: job.name,
+              id: String(job.id),
+              timestamp: new Date().toISOString(),
+            };
+            return { ok: true, status: "paused" };
+          }
           const processor = processors[queueName];
           if (processor) {
             const result = await processor(job);
+            await completeImportRuntimeJob(job, result as Record<string, unknown> | undefined);
             stats.processed += 1;
             stats.lastJob = {
               name: job.name,
@@ -405,6 +419,7 @@ function buildWorkers() {
           };
           return { ok: true };
         } catch (error) {
+          await failImportRuntimeJob(job, error);
           stats.failed += 1;
           throw error;
         } finally {
@@ -427,6 +442,11 @@ function buildWorkers() {
       } catch (enqueueError) {
         console.error(`[worker:${queueName}] failed to enqueue pipeline error`, enqueueError);
       }
+    });
+    worker.on("stalled", (jobId: string) => {
+      console.warn(
+        `[worker:${queueName}] job stalled: ${jobId} — BullMQ will requeue automatically on the next stalledInterval cycle`,
+      );
     });
 
     return worker;

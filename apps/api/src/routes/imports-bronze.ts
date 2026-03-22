@@ -1,11 +1,36 @@
-import { mkdir, writeFile, readFile, access, copyFile } from "node:fs/promises";
-import { randomUUID } from "node:crypto";
+import { mkdir, writeFile, readFile, access, copyFile, unlink } from "node:fs/promises";
+import { createHash, randomUUID } from "node:crypto";
 import { basename, extname } from "node:path";
 import type { FastifyInstance, FastifyRequest } from "fastify";
-import { bronzeContacts, bronzeImportBatches, db, setSessionTenantId, sql } from "@cerniq/db";
+import {
+  bronzeContacts,
+  bronzeImportBatches,
+  db,
+  importRuntimeJobs,
+  importRuntimeSessions,
+  importRuntimeWorkerCounters,
+  jobLogs,
+  silverContacts,
+  silverEnrichmentLog,
+  setSessionTenantId,
+  sql,
+  tenants,
+  batchIdMetadataEquals,
+  failedReprocessContactEquals,
+} from "@cerniq/db";
 import ExcelJS from "exceljs";
 import Papa from "papaparse";
 import { z } from "zod";
+import { COLUMN_MAPPING_DEFINITIONS } from "@cerniq/shared-types";
+import {
+  QUEUES,
+  enqueueImportJob,
+  resumeImportRuntimeJobs,
+  setBatchImportPause,
+  setBatchWorkerPause,
+  setTenantImportGlobalPause,
+  markImportBatchDeleteRequested,
+} from "@cerniq/worker-shared";
 import { getActorId, parseLimit, parseOffset, requireTenantId } from "./utils.js";
 import { requireRole } from "../middleware/authz.js";
 import { importConfigSchema, listBronzeContactsSchema } from "../schemas/etapa1.js";
@@ -73,12 +98,78 @@ type TemplateColumnDef = {
 
 type BatchMetadata = Record<string, unknown>;
 
-function batchIdMetadataEquals(metadataColumn: unknown, batchId: string) {
-  return sql`COALESCE(jsonb_extract_path_text(${metadataColumn}, ${"batchId"}), ${""}) = ${batchId}`;
+type ImportGlobalControlState = {
+  globalPaused: boolean;
+  pausedAt: string | null;
+  pausedBy: string | null;
+  resumeRequestedAt: string | null;
+  version: number;
+};
+
+type ImportBatchControlState = {
+  batchPaused: boolean;
+  pausedAt: string | null;
+  pausedBy: string | null;
+  resumeRequestedAt: string | null;
+  workerPauses: Record<string, boolean>;
+  deleteRequested: boolean;
+  deleteRequestedAt: string | null;
+  deleteRequestedBy: string | null;
+  hidden: boolean;
+  deletedAt: string | null;
+  deletedBy: string | null;
+  fileDeleted: boolean;
+};
+
+const IMPORT_CONTROL_SETTINGS_KEY = "importContactsControl";
+const IMPORT_RUNTIME_STALE_THRESHOLD_MS = 5 * 60 * 1000;
+
+function readTenantImportControlState(settings: unknown): ImportGlobalControlState {
+  const settingsRecord = asRecord(settings) ?? {};
+  const control = asRecord(settingsRecord[IMPORT_CONTROL_SETTINGS_KEY]) ?? {};
+  return {
+    globalPaused: Boolean(control.globalPaused),
+    pausedAt: typeof control.pausedAt === "string" ? control.pausedAt : null,
+    pausedBy: typeof control.pausedBy === "string" ? control.pausedBy : null,
+    resumeRequestedAt:
+      typeof control.resumeRequestedAt === "string" ? control.resumeRequestedAt : null,
+    version: Number(control.version ?? 0),
+  };
 }
 
-function failedReprocessContactEquals(metadataColumn: unknown) {
-  return sql`COALESCE(jsonb_extract_path_text(${metadataColumn}, 'identityReprocessError', 'status'), '') = 'failed'`;
+function readBatchImportControlState(metadata: BatchMetadata): ImportBatchControlState {
+  const control = asRecord(metadata.importExecutionControl) ?? {};
+  const workerPausesRecord = asRecord(control.workerPauses) ?? {};
+  const workerPauses = Object.fromEntries(
+    Object.entries(workerPausesRecord).map(([key, value]) => [key, Boolean(value)]),
+  );
+
+  return {
+    batchPaused: Boolean(control.batchPaused),
+    pausedAt: typeof control.pausedAt === "string" ? control.pausedAt : null,
+    pausedBy: typeof control.pausedBy === "string" ? control.pausedBy : null,
+    resumeRequestedAt:
+      typeof control.resumeRequestedAt === "string" ? control.resumeRequestedAt : null,
+    workerPauses,
+    deleteRequested: Boolean(control.deleteRequested),
+    deleteRequestedAt:
+      typeof control.deleteRequestedAt === "string" ? control.deleteRequestedAt : null,
+    deleteRequestedBy:
+      typeof control.deleteRequestedBy === "string" ? control.deleteRequestedBy : null,
+    hidden: Boolean(control.hidden),
+    deletedAt: typeof control.deletedAt === "string" ? control.deletedAt : null,
+    deletedBy: typeof control.deletedBy === "string" ? control.deletedBy : null,
+    fileDeleted: Boolean(control.fileDeleted),
+  };
+}
+
+function isImportBatchHidden(metadata: BatchMetadata) {
+  const control = readBatchImportControlState(metadata);
+  return control.hidden || control.deletedAt !== null;
+}
+
+function importVisibleSql(column: typeof bronzeImportBatches.metadata) {
+  return sql`COALESCE(${column}->'importExecutionControl'->>'hidden', 'false') <> 'true'`;
 }
 
 function sanitizeImportFilename(filename: string): string {
@@ -410,211 +501,7 @@ const TEMPLATE_COLUMNS: TemplateColumnDef[] = [
   },
 ];
 
-const DB_MAPPING_TARGETS = [
-  // --- Identificatori ---
-  {
-    key: "companyName",
-    label: "Denumire Firmă",
-    aliases: [
-      "company",
-      "company_name",
-      "firma",
-      "denumire",
-      "nume_firma",
-      "denumire firma",
-      "denumirefirma",
-      "denumire companie",
-      "denumirecompanie",
-    ],
-  },
-  {
-    key: "cui",
-    label: "CUI / CIF",
-    aliases: ["cui", "cif", "vat", "vat_number", "cod_fiscal", "codfiscal"],
-  },
-  {
-    key: "nrRegistru",
-    label: "Nr. Registru Comerțului",
-    aliases: [
-      "reg_com",
-      "j_number",
-      "nr_registru",
-      "nr reg com",
-      "nrregcom",
-      "nr_reg_com",
-      "nr_reg_comert",
-      "nr. rc.",
-      "nrrc",
-      "numar_registru",
-    ],
-  },
-  // --- Contact ---
-  { key: "email", label: "Email", aliases: ["email", "email_address", "mail"] },
-  {
-    key: "phone",
-    label: "Telefon",
-    aliases: ["phone", "telefon", "telefon_mobil", "mobile", "telefon mf", "telefonmf"],
-  },
-  { key: "website", label: "Website", aliases: ["website", "site", "url"] },
-  {
-    key: "contactPerson",
-    label: "Persoana de contact",
-    aliases: ["contact", "persoana", "contact_person", "responsabil"],
-  },
-  // --- Locație ---
-  {
-    key: "address",
-    label: "Adresă",
-    aliases: ["address", "adresa", "street_address", "adresa anaf", "adresaanaf"],
-  },
-  { key: "judet", label: "Județ", aliases: ["judet", "county", "region"] },
-  { key: "localitate", label: "Localitate", aliases: ["localitate", "oras", "city", "town"] },
-  { key: "codPostal", label: "Cod Poștal", aliases: ["cod_postal", "zip", "postal_code"] },
-  // --- CAEN ---
-  {
-    key: "caen",
-    label: "Cod CAEN",
-    aliases: ["caen", "caen_code", "nace", "nace code", "nacecode", "cod_caen", "codcaen"],
-  },
-  {
-    key: "caenText",
-    label: "Denumire CAEN",
-    aliases: ["nace text", "nacetext", "nace_text", "denumire_caen", "denumirecaen"],
-  },
-  // --- Financiar (Tab 1 „Baza de date") ---
-  {
-    key: "cifraAfaceri",
-    label: "Cifra de afaceri",
-    aliases: ["cifra de afaceri", "cifradeafaceri", "cifra_afaceri", "turnover", "revenue"],
-  },
-  {
-    key: "profitNet",
-    label: "Profit / Pierdere Netă",
-    aliases: [
-      "profit / pierdere neta",
-      "profitpierderereta",
-      "profit_net",
-      "net_profit",
-      "profit net",
-    ],
-  },
-  {
-    key: "profitBrut",
-    label: "Profit / Pierdere Brută",
-    aliases: [
-      "profit / pierdere bruta",
-      "profitpierderebruta",
-      "profit_brut",
-      "gross_profit",
-      "profit brut",
-    ],
-  },
-  {
-    key: "venituriTotale",
-    label: "Venituri totale",
-    aliases: ["venituri totale", "venituritotale", "venituri_totale", "total_revenue"],
-  },
-  {
-    key: "cheltuieliTotale",
-    label: "Cheltuieli totale",
-    aliases: ["cheltuieli totale", "cheltuielitotale", "cheltuieli_totale", "total_expenses"],
-  },
-  {
-    key: "activeTotale",
-    label: "Total Active",
-    aliases: ["total active", "totalactive", "active_totale", "total_assets"],
-  },
-  {
-    key: "activeImobilizate",
-    label: "Active Imobilizate",
-    aliases: ["active imobilizate", "activeimobilizate", "active_imobilizate", "fixed_assets"],
-  },
-  {
-    key: "activeCirculante",
-    label: "Active Circulante",
-    aliases: ["active circulante", "activecirculante", "active_circulante", "current_assets"],
-  },
-  { key: "creante", label: "Creanțe", aliases: ["creante", "receivables", "trade_receivables"] },
-  { key: "stocuri", label: "Stocuri", aliases: ["stocuri", "inventories", "stocks"] },
-  {
-    key: "cheltuieliInAvans",
-    label: "Cheltuieli în avans",
-    aliases: [
-      "cheltuieli in avans",
-      "cheltuieliinavans",
-      "cheltuieli_in_avans",
-      "prepaid_expenses",
-    ],
-  },
-  {
-    key: "capitaluriProprii",
-    label: "Capitaluri proprii Total",
-    aliases: [
-      "capitaluri proprii total",
-      "capitaluriproprittotal",
-      "capitaluri_proprii",
-      "equity",
-      "shareholders_equity",
-    ],
-  },
-  {
-    key: "capitalSocial",
-    label: "Capital social",
-    aliases: ["capital social", "capitalsocial", "capital_social", "share_capital"],
-  },
-  {
-    key: "datoriiTotale",
-    label: "Datorii Total",
-    aliases: ["datorii total", "datoriitotal", "datorii_totale", "total_liabilities"],
-  },
-  {
-    key: "casaSiConturiBanci",
-    label: "Casa și conturi la bănci",
-    aliases: [
-      "casa si conturi la banci",
-      "casasiconturilabanci",
-      "casa_si_conturi_banci",
-      "cash_and_bank",
-    ],
-  },
-  { key: "provizioane", label: "Provizioane", aliases: ["provizioane", "provisions"] },
-  {
-    key: "venituriInAvans",
-    label: "Venituri în avans",
-    aliases: ["venituri in avans", "venituriinavans", "venituri_in_avans", "deferred_revenue"],
-  },
-  {
-    key: "numarAngajati",
-    label: "Număr mediu de salariați",
-    aliases: [
-      "numar mediu de salariati",
-      "numarmediudesalariati",
-      "numar_angajati",
-      "employees",
-      "nr_angajati",
-    ],
-  },
-  {
-    key: "anulInfiintarii",
-    label: "Anul înființării",
-    aliases: [
-      "anul infiintarii calculat",
-      "anulinfiintariicalculat",
-      "anul_infiintarii",
-      "year_founded",
-    ],
-  },
-  {
-    key: "ratingExtern",
-    label: "Rating extern",
-    aliases: ["rating", "rating_extern", "external_rating", "credit_rating"],
-  },
-  {
-    key: "limitaCreditEur",
-    label: "Limita de credit (EUR)",
-    aliases: ["limita de credit (eur)", "limitadecrediteur", "limita_credit_eur", "credit_limit"],
-  },
-];
+const DB_MAPPING_TARGETS = COLUMN_MAPPING_DEFINITIONS;
 
 const TEMPLATE_EXAMPLE_ROWS: string[][] = [
   TEMPLATE_COLUMNS.map((c) => c.example),
@@ -763,9 +650,46 @@ async function loadImportIdentitySummary(tenantId: string, batchId: string) {
 async function enrichImportBatch(tenantId: string, row: typeof bronzeImportBatches.$inferSelect) {
   const metadata = (row.metadata as Record<string, unknown> | null) ?? {};
   const uploadConfig = (metadata.uploadConfig as Record<string, unknown> | undefined) ?? {};
+  const [tenantRow, latestSession] = await Promise.all([
+    db
+      .select({ settings: tenants.settings })
+      .from(tenants)
+      .where(sql`${tenants.id} = ${tenantId}`)
+      .limit(1)
+      .then((rows) => rows[0] ?? null),
+    db
+      .select({
+        id: importRuntimeSessions.id,
+        kind: importRuntimeSessions.kind,
+        status: importRuntimeSessions.status,
+        lastHeartbeatAt: importRuntimeSessions.lastHeartbeatAt,
+        updatedAt: importRuntimeSessions.updatedAt,
+      })
+      .from(importRuntimeSessions)
+      .where(
+        sql`${importRuntimeSessions.tenantId} = ${tenantId}
+          AND ${importRuntimeSessions.batchId} = ${row.id}`,
+      )
+      .orderBy(sql`${importRuntimeSessions.updatedAt} DESC`)
+      .limit(1)
+      .then((rows) => rows[0] ?? null),
+  ]);
+
   return {
     ...row,
     identitySummary: await loadImportIdentitySummary(tenantId, row.id),
+    globalControl: readTenantImportControlState(tenantRow?.settings),
+    control: readBatchImportControlState(metadata),
+    hidden: isImportBatchHidden(metadata),
+    activeRuntimeSession: latestSession
+      ? {
+          id: latestSession.id,
+          kind: latestSession.kind,
+          status: latestSession.status,
+          lastHeartbeatAt: latestSession.lastHeartbeatAt?.toISOString?.() ?? null,
+          updatedAt: latestSession.updatedAt?.toISOString?.() ?? null,
+        }
+      : null,
     appliedMapping:
       (metadata.columnMapping as Record<string, string> | undefined) ??
       (uploadConfig.mapping as Record<string, string> | undefined) ??
@@ -775,54 +699,144 @@ async function enrichImportBatch(tenantId: string, row: typeof bronzeImportBatch
 
 function withIdentityReprocessQueuedMetadata(
   metadata: BatchMetadata,
-  options?: { preserveCheckpoint?: boolean },
+  options?: { preserveCheckpoint?: boolean; runTotalRows?: number },
 ): BatchMetadata {
   const preserveCheckpoint = options?.preserveCheckpoint ?? false;
   const queuedAt = new Date().toISOString();
-  const processedBaseRows = preserveCheckpoint
-    ? Number(metadata.identityReprocessProcessedRows ?? 0)
-    : 0;
 
   return {
     ...metadata,
     identityReprocessStatus: "queued",
     identityReprocessQueuedAt: queuedAt,
     identityReprocessSessionStartedAt: queuedAt,
-    identityReprocessSessionProcessedBaseRows: processedBaseRows,
-    identityReprocessStartedAt: preserveCheckpoint
-      ? (metadata.identityReprocessStartedAt ?? null)
-      : null,
+    identityReprocessSessionProcessedBaseRows: preserveCheckpointNumber(
+      preserveCheckpoint,
+      metadata.identityReprocessProcessedRows,
+    ),
     identityReprocessCompletedAt: null,
     identityReprocessFailedAt: null,
     identityReprocessLastError: null,
-    identityReprocessLastProgressAt: preserveCheckpoint
-      ? (metadata.identityReprocessLastProgressAt ?? null)
-      : null,
-    identityReprocessPhase: preserveCheckpoint ? (metadata.identityReprocessPhase ?? null) : null,
-    identityReprocessCursorLastBronzeId: preserveCheckpoint
-      ? (metadata.identityReprocessCursorLastBronzeId ?? null)
-      : null,
-    identityReprocessPromotionCursorLastBronzeId: preserveCheckpoint
-      ? (metadata.identityReprocessPromotionCursorLastBronzeId ?? null)
-      : null,
-    identityReprocessProcessedRows: preserveCheckpoint
-      ? Number(metadata.identityReprocessProcessedRows ?? 0)
-      : 0,
-    identityReprocessResolvedRows: preserveCheckpoint
-      ? Number(metadata.identityReprocessResolvedRows ?? 0)
-      : 0,
-    identityReprocessDuplicateSourceRows: preserveCheckpoint
-      ? Number(metadata.identityReprocessDuplicateSourceRows ?? 0)
-      : 0,
-    identityReprocessIdentityConflictRows: preserveCheckpoint
-      ? Number(metadata.identityReprocessIdentityConflictRows ?? 0)
-      : 0,
-    identityReprocessInsufficientIdentifierRows: preserveCheckpoint
-      ? Number(metadata.identityReprocessInsufficientIdentifierRows ?? 0)
-      : 0,
-    identityReprocessPromotionQueued: preserveCheckpoint
-      ? Number(metadata.identityReprocessPromotionQueued ?? 0)
-      : 0,
+    ...buildQueuedReprocessCheckpointState(metadata, preserveCheckpoint),
+    identityReprocessRunTotalRows: resolveQueuedRunTotalRows(metadata, options),
+  };
+}
+
+function preserveCheckpointValue<T>(
+  preserveCheckpoint: boolean,
+  value: T | null | undefined,
+  fallback: T,
+): T {
+  if (!preserveCheckpoint) {
+    return fallback;
+  }
+
+  return value ?? fallback;
+}
+
+function coerceFiniteNumber(value: unknown, fallback = 0): number {
+  const parsed = Number(value ?? fallback);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function preserveCheckpointNumber(
+  preserveCheckpoint: boolean,
+  value: unknown,
+  fallback = 0,
+): number {
+  if (!preserveCheckpoint) {
+    return fallback;
+  }
+
+  return coerceFiniteNumber(value, fallback);
+}
+
+function resolveQueuedRunTotalRows(
+  metadata: BatchMetadata,
+  options?: { preserveCheckpoint?: boolean; runTotalRows?: number },
+): number {
+  const runTotalRowsCandidate =
+    typeof options?.runTotalRows === "number"
+      ? options.runTotalRows
+      : coerceFiniteNumber(metadata.identityReprocessRunTotalRows, 0);
+
+  return Number.isFinite(runTotalRowsCandidate)
+    ? Math.max(0, Math.floor(runTotalRowsCandidate))
+    : 0;
+}
+
+function buildQueuedReprocessCheckpointState(
+  metadata: BatchMetadata,
+  preserveCheckpoint: boolean,
+): BatchMetadata {
+  const cursorRowIndex =
+    metadata.identityReprocessCursorRowIndex ?? metadata.identityReprocessProcessedRows ?? 0;
+
+  return {
+    identityReprocessStartedAt: preserveCheckpointValue(
+      preserveCheckpoint,
+      metadata.identityReprocessStartedAt,
+      null,
+    ),
+    identityReprocessLastProgressAt: preserveCheckpointValue(
+      preserveCheckpoint,
+      metadata.identityReprocessLastProgressAt,
+      null,
+    ),
+    identityReprocessPhase: preserveCheckpointValue(
+      preserveCheckpoint,
+      metadata.identityReprocessPhase,
+      "resolve_identities",
+    ),
+    identityReprocessCursorCreatedAt: preserveCheckpointValue(
+      preserveCheckpoint,
+      metadata.identityReprocessCursorCreatedAt,
+      null,
+    ),
+    identityReprocessCursorLastBronzeId: preserveCheckpointValue(
+      preserveCheckpoint,
+      metadata.identityReprocessCursorLastBronzeId,
+      null,
+    ),
+    identityReprocessCursorRowIndex: preserveCheckpointNumber(preserveCheckpoint, cursorRowIndex),
+    identityReprocessPromotionCursorCreatedAt: preserveCheckpointValue(
+      preserveCheckpoint,
+      metadata.identityReprocessPromotionCursorCreatedAt,
+      null,
+    ),
+    identityReprocessPromotionCursorLastBronzeId: preserveCheckpointValue(
+      preserveCheckpoint,
+      metadata.identityReprocessPromotionCursorLastBronzeId,
+      null,
+    ),
+    identityReprocessMode: preserveCheckpointValue(
+      preserveCheckpoint,
+      metadata.identityReprocessMode,
+      null,
+    ),
+    identityReprocessProcessedRows: preserveCheckpointNumber(
+      preserveCheckpoint,
+      metadata.identityReprocessProcessedRows,
+    ),
+    identityReprocessResolvedRows: preserveCheckpointNumber(
+      preserveCheckpoint,
+      metadata.identityReprocessResolvedRows,
+    ),
+    identityReprocessDuplicateSourceRows: preserveCheckpointNumber(
+      preserveCheckpoint,
+      metadata.identityReprocessDuplicateSourceRows,
+    ),
+    identityReprocessIdentityConflictRows: preserveCheckpointNumber(
+      preserveCheckpoint,
+      metadata.identityReprocessIdentityConflictRows,
+    ),
+    identityReprocessInsufficientIdentifierRows: preserveCheckpointNumber(
+      preserveCheckpoint,
+      metadata.identityReprocessInsufficientIdentifierRows,
+    ),
+    identityReprocessPromotionQueued: preserveCheckpointNumber(
+      preserveCheckpoint,
+      metadata.identityReprocessPromotionQueued,
+    ),
   };
 }
 
@@ -882,6 +896,877 @@ type BullJobLike = {
   finishedOn?: number | null;
 };
 
+type JobLogsApiLevel = "info" | "warn" | "error" | "step";
+
+function normalizeJobLogLevel(level: string): JobLogsApiLevel {
+  return level === "debug" ? "step" : (level as JobLogsApiLevel);
+}
+
+function buildJobLogResponseRow(row: typeof jobLogs.$inferSelect) {
+  const details =
+    row.context && typeof row.context === "object"
+      ? (row.context as Record<string, unknown>)
+      : null;
+  const durationMs =
+    details && typeof details.durationMs === "number" ? Math.round(details.durationMs) : null;
+
+  return {
+    id: row.id,
+    tenantId: row.tenantId,
+    batchId: row.batchId,
+    bronzeContactId: row.contactId ?? null,
+    workerName: row.workerName,
+    jobId: row.jobId ?? null,
+    level: normalizeJobLogLevel(row.level),
+    step: row.step ?? "event",
+    message: row.message,
+    details,
+    durationMs,
+    createdAt: row.createdAt.toISOString(),
+  };
+}
+
+type ImportRuntimeWorkerDef = {
+  workerName: string;
+  label: string;
+  stage: string;
+  queueName: string;
+  description: string;
+};
+
+type ImportRuntimeObservedBronzeLog = ReturnType<typeof buildJobLogResponseRow>;
+
+type ImportRuntimeObservedSilverLog = {
+  id: string;
+  entityId: string | null;
+  entityType: string | null;
+  workerName: string;
+  queueName: string;
+  jobId: string | null;
+  correlationId: string | null;
+  level: JobLogsApiLevel;
+  step: string;
+  message: string;
+  details: Record<string, unknown> | null;
+  durationMs: number | null;
+  createdAt: string;
+};
+
+type ImportRuntimeJobSnapshot = {
+  key: string;
+  source: "bullmq" | "job_logs" | "silver_logs" | "runtime" | "merged";
+  state: string;
+  workerName: string;
+  queueName: string;
+  jobId: string | null;
+  bronzeContactId: string | null;
+  entityId: string | null;
+  entityType: string | null;
+  correlationId: string | null;
+  level: JobLogsApiLevel | null;
+  step: string | null;
+  message: string | null;
+  progress: number | null;
+  attemptsMade: number;
+  maxAttempts: number;
+  failedReason: string | null;
+  createdAt: string | null;
+  processedOn: string | null;
+  finishedOn: string | null;
+  lastEventAt: string | null;
+  durationMs: number | null;
+};
+
+type ImportRuntimeWorkerSnapshot = {
+  workerName: string;
+  label: string;
+  stage: string;
+  queueName: string;
+  description: string;
+  counts: {
+    waiting: number;
+    active: number;
+    delayed: number;
+    prioritized: number;
+    failedLive: number;
+    observedCompleted: number;
+    observedWarnings: number;
+    observedErrors: number;
+    observedLogs: number;
+    observedJobs: number;
+  };
+  jobs: ImportRuntimeJobSnapshot[];
+};
+
+type ImportRuntimeWorkerCounts = ImportRuntimeWorkerSnapshot["counts"];
+
+type RuntimeObservedLogsByWorker<T extends { workerName: string }> = Map<string, T[]>;
+
+type ImportRuntimeObservedLogBundle = {
+  recentLogs: ImportRuntimeObservedBronzeLog[];
+  recentSilverLogs: ImportRuntimeObservedSilverLog[];
+  bronzeLogsByWorker: RuntimeObservedLogsByWorker<ImportRuntimeObservedBronzeLog>;
+  silverLogsByWorker: RuntimeObservedLogsByWorker<ImportRuntimeObservedSilverLog>;
+};
+
+type RuntimeQueueJobLike = {
+  id?: string | number | null;
+  data?: unknown;
+  progress?: unknown;
+  attemptsMade?: number;
+  opts?: { attempts?: number };
+  failedReason?: string | null;
+  timestamp?: number | null;
+  processedOn?: number | null;
+  finishedOn?: number | null;
+  getState(): Promise<string>;
+};
+
+type RuntimeQueueJobIdentity = {
+  bronzeContactId: string | null;
+  entityId: string | null;
+  entityType: string | null;
+  correlationId: string | null;
+};
+
+function defineRuntimeWorker(
+  workerName: string,
+  label: string,
+  stage: string,
+  queueName: string,
+  description: string,
+): ImportRuntimeWorkerDef {
+  return { workerName, label, stage, queueName, description };
+}
+
+function groupObservedLogsByWorker<T extends { workerName: string }>(
+  logs: T[],
+): RuntimeObservedLogsByWorker<T> {
+  const logsByWorker = new Map<string, T[]>();
+
+  for (const log of logs) {
+    const bucket = logsByWorker.get(log.workerName) ?? [];
+    bucket.push(log);
+    logsByWorker.set(log.workerName, bucket);
+  }
+
+  return logsByWorker;
+}
+
+const IMPORT_RUNTIME_WORKERS: ImportRuntimeWorkerDef[] = [
+  defineRuntimeWorker(
+    "A1:csv-parser",
+    "A1 CSV Parser",
+    "Ingestie",
+    QUEUES.INGEST_CSV,
+    "Parseaza CSV-ul, detecteaza mapping-ul si insereaza Bronze.",
+  ),
+  defineRuntimeWorker(
+    "A2:excel-parser",
+    "A2 Excel Parser",
+    "Ingestie",
+    QUEUES.INGEST_EXCEL,
+    "Parseaza workbook-ul Excel, unifica foile si lanseaza Bronze.",
+  ),
+  defineRuntimeWorker(
+    "A3:webhook-receiver",
+    "A3 Webhook Receiver",
+    "Ingestie",
+    QUEUES.INGEST_WEBHOOK,
+    "Valideaza payload-uri webhook si creeaza contacte Bronze.",
+  ),
+  defineRuntimeWorker(
+    "A4:api-poller",
+    "A4 API Poller",
+    "Ingestie",
+    QUEUES.INGEST_API,
+    "Importa contacte din surse API externe cu delta detection.",
+  ),
+  defineRuntimeWorker(
+    "A5:manual-entry",
+    "A5 Manual Entry",
+    "Ingestie",
+    QUEUES.INGEST_MANUAL,
+    "Creeaza contacte Bronze din introducere manuala.",
+  ),
+  defineRuntimeWorker(
+    "B1:name-normalizer",
+    "B1 Name Normalizer",
+    "Normalizare",
+    QUEUES.NORMALIZE_NAME,
+    "Normalizeaza numele si decide ruta spre C1 sau promotion.",
+  ),
+  defineRuntimeWorker(
+    "B2:email-normalizer",
+    "B2 Email Normalizer",
+    "Normalizare",
+    QUEUES.NORMALIZE_EMAIL,
+    "Normalizeaza emailul si semnalizeaza adrese invalide ori generice.",
+  ),
+  defineRuntimeWorker(
+    "B3:phone-normalizer",
+    "B3 Phone Normalizer",
+    "Normalizare",
+    QUEUES.NORMALIZE_PHONE,
+    "Normalizeaza telefonul Bronze si tipul numarului.",
+  ),
+  defineRuntimeWorker(
+    "B4:address-normalizer",
+    "B4 Address Normalizer",
+    "Normalizare",
+    QUEUES.NORMALIZE_ADDRESS,
+    "Standardizeaza adresa si extrage componente structurale.",
+  ),
+  defineRuntimeWorker(
+    "B5:anaf-bronze-enricher",
+    "B5 ANAF Bronze",
+    "Normalizare/Enrichment",
+    QUEUES.ENRICH_BRONZE_ANAF,
+    "Face batching pe CUI-uri Bronze si completeaza identificatorii din ANAF.",
+  ),
+  defineRuntimeWorker(
+    "C1:cui-modulo11",
+    "C1 CUI Modulo-11",
+    "Validare",
+    QUEUES.VALIDATE_CUI_MOD11,
+    "Valideaza matematic CUI-ul inainte de validarea oficiala.",
+  ),
+  defineRuntimeWorker(
+    "C2:cui-anaf-validator",
+    "C2 CUI ANAF",
+    "Validare",
+    QUEUES.VALIDATE_CUI_ANAF,
+    "Confirma CUI-ul la ANAF si trimite contactul in promotion.",
+  ),
+  defineRuntimeWorker(
+    "promotion:bronze-silver",
+    "Promotion Bronze -> Silver",
+    "Promotion",
+    QUEUES.PIPELINE_PROMOTE_BRONZE_SILVER,
+    "Reproceseaza identitatea, promoveaza contactul si porneste enrichment-ul Silver.",
+  ),
+  defineRuntimeWorker(
+    "D1:anaf-fiscal-status",
+    "D1 ANAF Fiscal",
+    "ANAF",
+    QUEUES.ENRICH_ANAF_FISCAL_STATUS,
+    "Completeaza status fiscal, nume, adresa si identitatea fiscala Silver.",
+  ),
+  defineRuntimeWorker(
+    "D2:anaf-tva-status",
+    "D2 ANAF TVA",
+    "ANAF",
+    QUEUES.ENRICH_ANAF_TVA_STATUS,
+    "Actualizeaza starea TVA si perioadele fiscale.",
+  ),
+  defineRuntimeWorker(
+    "D3:anaf-efactura",
+    "D3 ANAF eFactura",
+    "ANAF",
+    QUEUES.ENRICH_ANAF_EFACTURA,
+    "Verifica inregistrarea RO e-Factura.",
+  ),
+  defineRuntimeWorker(
+    "D4:anaf-datorii",
+    "D4 ANAF Datorii",
+    "ANAF",
+    QUEUES.ENRICH_ANAF_DATORII,
+    "Adauga restantele ANAF si descompunerea obligatiilor.",
+  ),
+  defineRuntimeWorker(
+    "D5:anaf-caen",
+    "D5 ANAF CAEN",
+    "ANAF",
+    QUEUES.ENRICH_ANAF_CAEN,
+    "Imbogateste codurile CAEN si denumirile asociate.",
+  ),
+  defineRuntimeWorker(
+    "E1:termene-balance",
+    "E1 Termene Balance",
+    "Termene",
+    QUEUES.ENRICH_TERMENE_BALANCE,
+    "Aduce cifre financiare, profit si numar de angajati.",
+  ),
+  defineRuntimeWorker(
+    "E2:termene-risk",
+    "E2 Termene Risk",
+    "Termene",
+    QUEUES.ENRICH_TERMENE_RISK,
+    "Actualizeaza scorul si categoria de risc.",
+  ),
+  defineRuntimeWorker(
+    "E3:termene-dosare",
+    "E3 Termene Dosare",
+    "Termene",
+    QUEUES.ENRICH_TERMENE_DOSARE,
+    "Incarca dosarele juridice si indicatorii asociati.",
+  ),
+  defineRuntimeWorker(
+    "E4:termene-actionari",
+    "E4 Termene Actionari",
+    "Termene",
+    QUEUES.ENRICH_TERMENE_ACTIONARI,
+    "Extrage actionari, asociati si persoane relevante.",
+  ),
+  defineRuntimeWorker(
+    "F1:onrc-data",
+    "F1 ONRC Data",
+    "ONRC",
+    QUEUES.ENRICH_ONRC_DATA,
+    "Sincronizeaza datele oficiale ONRC pentru companie.",
+  ),
+  defineRuntimeWorker(
+    "F2:onrc-administratori",
+    "F2 ONRC Administratori",
+    "ONRC",
+    QUEUES.ENRICH_ONRC_ADMINISTRATORI,
+    "Extrage administratorii si rolurile din ONRC.",
+  ),
+  defineRuntimeWorker(
+    "F3:onrc-sedii",
+    "F3 ONRC Sedii",
+    "ONRC",
+    QUEUES.ENRICH_ONRC_SEDII,
+    "Recupereaza istoricul de sedii si locatii ONRC.",
+  ),
+  defineRuntimeWorker(
+    "G1:hunter-email-finder",
+    "G1 Hunter Email Finder",
+    "Email",
+    QUEUES.DISCOVER_EMAIL_HUNTER,
+    "Cauta emailuri de companie si contacte relevante pe domeniu.",
+  ),
+  defineRuntimeWorker(
+    "G2:hunter-verifier",
+    "G2 Hunter Verifier",
+    "Email",
+    QUEUES.DISCOVER_EMAIL_HUNTER_VERIFY,
+    "Verifica emailurile descoperite prin Hunter.",
+  ),
+  defineRuntimeWorker(
+    "G2:zerobounce-validation",
+    "G2 ZeroBounce Validation",
+    "Email",
+    QUEUES.DISCOVER_EMAIL_ZEROBOUNCE,
+    "Valideaza livrabilitatea emailurilor la ZeroBounce.",
+  ),
+  defineRuntimeWorker(
+    "G3:email-enricher",
+    "G3 Email Enricher",
+    "Email",
+    QUEUES.ENRICH_EMAIL_ENRICHER,
+    "Face enrichment pe emailuri deja cunoscute.",
+  ),
+  defineRuntimeWorker(
+    "G4:email-pattern",
+    "G4 Email Pattern",
+    "Email",
+    QUEUES.DISCOVER_EMAIL_PATTERN,
+    "Inferă pattern-ul corporativ de email.",
+  ),
+  defineRuntimeWorker(
+    "G5:email-generator",
+    "G5 Email Generator",
+    "Email",
+    QUEUES.DISCOVER_EMAIL_GENERATE,
+    "Genereaza emailuri candidate pe baza pattern-ului confirmat.",
+  ),
+  defineRuntimeWorker(
+    "H1:phone-normalizer-silver",
+    "H1 Phone Normalizer",
+    "Phone",
+    QUEUES.ENRICH_PHONE_NORMALIZE,
+    "Normalizeaza telefoanele Silver si lanseaza validari ulterioare.",
+  ),
+  defineRuntimeWorker(
+    "H2:hlr-lookup",
+    "H2 HLR Lookup",
+    "Phone",
+    QUEUES.ENRICH_PHONE_HLR,
+    "Confirma validitatea si reteaua numerelor de telefon.",
+  ),
+  defineRuntimeWorker(
+    "H3:carrier-detection",
+    "H3 Carrier Detection",
+    "Phone",
+    QUEUES.ENRICH_PHONE_CARRIER,
+    "Detecteaza operatorul si semnalizeaza portarea.",
+  ),
+  defineRuntimeWorker(
+    "I1:daj-scraper",
+    "I1 DAJ Scraper",
+    "Scraping",
+    QUEUES.SCRAPE_LEGAL_DAJ,
+    "Cauta dosare in DAJ si completeaza contextul juridic.",
+  ),
+  defineRuntimeWorker(
+    "I2:anif-scraper",
+    "I2 ANIF Scraper",
+    "Scraping",
+    QUEUES.SCRAPE_LEGAL_ANIF,
+    "Cauta incidente sau litigii in ANIF.",
+  ),
+  defineRuntimeWorker(
+    "I3:website-finder",
+    "I3 Website Finder",
+    "Scraping",
+    QUEUES.SCRAPE_WEBSITE_FINDER,
+    "Identifica website-ul companiei si continua scraping-ul.",
+  ),
+  defineRuntimeWorker(
+    "I4:contact-page-scraper",
+    "I4 Contact Page Scraper",
+    "Scraping",
+    QUEUES.SCRAPE_WEBSITE_CONTACT_PAGE,
+    "Extrage emailuri, telefoane si pagini de contact de pe website.",
+  ),
+  defineRuntimeWorker(
+    "J1:ai-structuring",
+    "J1 AI Structuring",
+    "AI",
+    QUEUES.AI_STRUCTURE_XAI,
+    "Structureaza campurile neuniforme cu ajutor AI.",
+  ),
+  defineRuntimeWorker(
+    "J2:ai-data-merger",
+    "J2 AI Data Merger",
+    "AI",
+    QUEUES.AI_MERGE_XAI,
+    "Conciliaza datele venite din surse multiple.",
+  ),
+  defineRuntimeWorker(
+    "J3:ai-confidence-scorer",
+    "J3 AI Confidence",
+    "AI",
+    QUEUES.AI_SCORE_CONFIDENCE,
+    "Calculeaza increderea pentru campurile AI-generate.",
+  ),
+  defineRuntimeWorker(
+    "J4:ai-fallback",
+    "J4 AI Fallback",
+    "AI",
+    QUEUES.AI_FALLBACK,
+    "Ruleaza fallback-ul AI cand procesorul principal nu poate finaliza.",
+  ),
+  defineRuntimeWorker(
+    "K1:nominatim-geocoding",
+    "K1 Nominatim Geocoding",
+    "Geo",
+    QUEUES.GEO_GEOCODE_NOMINATIM,
+    "Geocodeaza adresa si propaga coordonatele.",
+  ),
+  defineRuntimeWorker(
+    "K2:postgis-zones",
+    "K2 PostGIS Zones",
+    "Geo",
+    QUEUES.GEO_ZONES_POSTGIS,
+    "Mapeaza judet, UAT si zonele postgis.",
+  ),
+  defineRuntimeWorker(
+    "K3:proximity-calculator",
+    "K3 Proximity Calculator",
+    "Geo",
+    QUEUES.GEO_PROXIMITY,
+    "Calculeaza proximitatea fata de reperele importante.",
+  ),
+  defineRuntimeWorker(
+    "L1:apia-data",
+    "L1 APIA Data",
+    "Agri",
+    QUEUES.AGRI_APIA,
+    "Cauta subventii si suprafete APIA pentru companiile agricole.",
+  ),
+  defineRuntimeWorker(
+    "L2:ouai-membership",
+    "L2 OUAI Membership",
+    "Agri",
+    QUEUES.AGRI_OUAI,
+    "Verifica apartenenta la OUAI.",
+  ),
+  defineRuntimeWorker(
+    "L3:cooperative-membership",
+    "L3 Cooperative Membership",
+    "Agri",
+    QUEUES.AGRI_COOPERATIVE,
+    "Verifica participarea in cooperative agricole.",
+  ),
+  defineRuntimeWorker(
+    "L4:culturi-classifier",
+    "L4 Culturi Classifier",
+    "Agri",
+    QUEUES.AGRI_CULTURI,
+    "Clasifica culturile si profilele agricole.",
+  ),
+  defineRuntimeWorker(
+    "L5:animale-classifier",
+    "L5 Animale Classifier",
+    "Agri",
+    QUEUES.AGRI_ANIMALE,
+    "Clasifica efectivele si activitatile zootehnice.",
+  ),
+  defineRuntimeWorker(
+    "M1:dedup-exact-hash",
+    "M1 Dedup Exact",
+    "Dedup",
+    QUEUES.DEDUP_EXACT,
+    "Detecteaza duplicate exacte pe baza cheilor tari.",
+  ),
+  defineRuntimeWorker(
+    "M2:dedup-fuzzy-match",
+    "M2 Dedup Fuzzy",
+    "Dedup",
+    QUEUES.DEDUP_FUZZY,
+    "Calculeaza similitudini fuzzy si propune merge/HITL.",
+  ),
+  defineRuntimeWorker(
+    "N1:score-completeness",
+    "N1 Completeness Score",
+    "Scoring",
+    QUEUES.SCORE_COMPLETENESS,
+    "Evalueaza cat de completa este fisa companiei.",
+  ),
+  defineRuntimeWorker(
+    "N2:score-accuracy",
+    "N2 Accuracy Score",
+    "Scoring",
+    QUEUES.SCORE_ACCURACY,
+    "Evalueaza consistenta si acuratetea datelor.",
+  ),
+  defineRuntimeWorker(
+    "N3:score-freshness",
+    "N3 Freshness Score",
+    "Scoring",
+    QUEUES.SCORE_FRESHNESS,
+    "Evalueaza cat de recente sunt datele acumulate.",
+  ),
+  defineRuntimeWorker(
+    "O2:quality-rollup",
+    "O2 Quality Rollup",
+    "Aggregare",
+    QUEUES.AGGREGATE_QUALITY_ROLLUP,
+    "Calculeaza scorul total si eligibilitatea pentru Gold.",
+  ),
+  defineRuntimeWorker(
+    "P1:pipeline-orchestrate",
+    "P1 Pipeline Orchestrate",
+    "Orchestrare",
+    QUEUES.PIPELINE_ORCHESTRATE,
+    "Porneste valurile post-validation, post-enrichment si post-scoring.",
+  ),
+  defineRuntimeWorker(
+    "P2:promote-to-gold",
+    "P2 Promote to Gold",
+    "Gold",
+    QUEUES.PIPELINE_PROMOTE_TO_GOLD,
+    "Promoveaza compania Silver in Gold cand scorul o permite.",
+  ),
+  defineRuntimeWorker(
+    "P4:error-handler",
+    "P4 Error Handler",
+    "Recovery",
+    QUEUES.PIPELINE_ERROR_HANDLER,
+    "Rejoaca sau escaladeaza joburile esuate din pipeline.",
+  ),
+  defineRuntimeWorker(
+    "HITL:escalation",
+    "HITL Escalation",
+    "HITL",
+    QUEUES.HITL_ESCALATION,
+    "Escaladeaza taskurile umane care depasesc SLA-ul.",
+  ),
+  defineRuntimeWorker(
+    "HITL:resume-after-approval",
+    "HITL Resume",
+    "HITL",
+    QUEUES.HITL_RESUME_AFTER_APPROVAL,
+    "Reia fluxul dupa aprobarea sau respingerea umana.",
+  ),
+];
+
+const IMPORT_RUNTIME_WORKER_BY_NAME = new Map(
+  IMPORT_RUNTIME_WORKERS.map((worker) => [worker.workerName, worker] as const),
+);
+
+const SILVER_LOG_SOURCE_TO_WORKER_NAME: Record<string, string> = {
+  cui_modulo11: "C1:cui-modulo11",
+  anaf_cui_validation: "C2:cui-anaf-validator",
+  batch_reprocess: "promotion:bronze-silver",
+  anaf_fiscal: "D1:anaf-fiscal-status",
+  anaf_tva: "D2:anaf-tva-status",
+  anaf_efactura: "D3:anaf-efactura",
+  anaf_datorii: "D4:anaf-datorii",
+  anaf_caen: "D5:anaf-caen",
+  termene_balance: "E1:termene-balance",
+  termene_risk: "E2:termene-risk",
+  termene_dosare: "E3:termene-dosare",
+  termene_actionari: "E4:termene-actionari",
+  onrc_data: "F1:onrc-data",
+  onrc_admin: "F2:onrc-administratori",
+  onrc_sedii_history: "F3:onrc-sedii",
+  hunter_email: "G1:hunter-email-finder",
+  hunter_verify: "G2:hunter-verifier",
+  zerobounce_validation: "G2:zerobounce-validation",
+  email_enricher: "G3:email-enricher",
+  email_pattern: "G4:email-pattern",
+  email_generator: "G5:email-generator",
+  phone_normalizer: "H1:phone-normalizer-silver",
+  hlr_lookup: "H2:hlr-lookup",
+  carrier_detection: "H3:carrier-detection",
+  daj_scraper: "I1:daj-scraper",
+  anif_scraper: "I2:anif-scraper",
+  website_finder: "I3:website-finder",
+  contact_scraper: "I4:contact-page-scraper",
+  ai_structuring: "J1:ai-structuring",
+  ai_data_merger: "J2:ai-data-merger",
+  ai_confidence_scorer: "J3:ai-confidence-scorer",
+  ai_fallback: "J4:ai-fallback",
+  nominatim_geocoding: "K1:nominatim-geocoding",
+  postgis_zones: "K2:postgis-zones",
+  proximity_calculator: "K3:proximity-calculator",
+  apia_data: "L1:apia-data",
+  ouai_membership: "L2:ouai-membership",
+  cooperative_membership: "L3:cooperative-membership",
+  culturi_classifier: "L4:culturi-classifier",
+  animale_classifier: "L5:animale-classifier",
+  dedup_exact: "M1:dedup-exact-hash",
+  dedup_fuzzy: "M2:dedup-fuzzy-match",
+  score_completeness: "N1:score-completeness",
+  score_accuracy: "N2:score-accuracy",
+  score_freshness: "N3:score-freshness",
+  quality_rollup: "O2:quality-rollup",
+  promote_to_gold: "P2:promote-to-gold",
+};
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" ? (value as Record<string, unknown>) : null;
+}
+
+function toIso(value: number | null | undefined): string | null {
+  return typeof value === "number" ? new Date(value).toISOString() : null;
+}
+
+function extractProgressValue(value: unknown): number | null {
+  if (typeof value === "number") {
+    return Math.round(value);
+  }
+
+  const record = asRecord(value);
+  if (!record) return null;
+
+  const candidate = record.progress ?? record.value ?? record.percent ?? null;
+  return typeof candidate === "number" ? Math.round(candidate) : null;
+}
+
+function buildRuntimeJobKey(workerName: string, jobId: string | null, entityId: string | null) {
+  if (jobId) return `${workerName}:${jobId}`;
+  if (entityId) return `${workerName}:entity:${entityId}`;
+  return `${workerName}:unknown`;
+}
+
+function correlationMatchesBatch(correlationId: unknown, batchId: string) {
+  return typeof correlationId === "string" && correlationId.includes(batchId);
+}
+
+function isRelevantImportQueueJob(
+  queueName: string,
+  job: { id?: string | number | null; data?: unknown },
+  batchId: string,
+) {
+  const data = asRecord(job.data);
+  const jobId = job.id == null ? "" : String(job.id);
+
+  if (data?.batchId === batchId) return true;
+  if (correlationMatchesBatch(data?.correlationId, batchId)) return true;
+
+  if (queueName === QUEUES.ENRICH_BRONZE_ANAF && jobId.startsWith(`anaf-bronze-${batchId}`)) {
+    return true;
+  }
+
+  if (
+    queueName === QUEUES.PIPELINE_PROMOTE_BRONZE_SILVER &&
+    (jobId === `reprocess-batch__${batchId}` || jobId === `reprocess-errors-batch__${batchId}`)
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+function inferObservedBronzeRuntimeState(logs: ImportRuntimeObservedBronzeLog[]) {
+  const latest = logs[0];
+  const step = latest.step.toLowerCase();
+  const message = latest.message.toLowerCase();
+  const hasError = logs.some((log) => log.level === "error");
+  const hasWarn = logs.some((log) => log.level === "warn");
+
+  if (hasError) return "error";
+  if (
+    step.includes("done") ||
+    step.includes("complete") ||
+    step.includes("invalid") ||
+    step.includes("skip") ||
+    message.includes("finaliz") ||
+    message.includes("sarit") ||
+    message.includes("procesat cu succes")
+  ) {
+    return hasWarn ? "warning" : "completed";
+  }
+  if (hasWarn) return "warning";
+  if (step.includes("start") || latest.level === "step") return "running";
+  return "seen";
+}
+
+function normalizeSilverObservedLevel(
+  row: typeof silverEnrichmentLog.$inferSelect,
+): JobLogsApiLevel {
+  if (row.errorMessage) return "error";
+  const status = typeof row.status === "string" ? row.status.toLowerCase() : "";
+  if (status.includes("fail") || status.includes("error")) return "error";
+  if (status === "not_found" || status === "skipped" || status === "blocked") return "warn";
+  if (status === "started" || status === "in_progress" || status === "processing") return "step";
+  return "info";
+}
+
+function buildSilverObservedMessage(
+  row: typeof silverEnrichmentLog.$inferSelect,
+  workerLabel: string,
+): string {
+  if (row.errorMessage) return row.errorMessage;
+
+  const status =
+    typeof row.status === "string" && row.status.trim().length > 0 ? row.status : "success";
+  const operation = row.operation?.trim() || "process";
+
+  if (status === "not_found") return `${workerLabel} · ${operation}: fara rezultat`;
+  if (status === "skipped") return `${workerLabel} · ${operation}: sarit`;
+  if (status === "blocked") return `${workerLabel} · ${operation}: blocat`;
+  if (status === "started" || status === "in_progress" || status === "processing") {
+    return `${workerLabel} · ${operation}: in curs`;
+  }
+
+  return `${workerLabel} · ${operation}: finalizat`;
+}
+
+function buildSilverObservedLogRow(
+  row: typeof silverEnrichmentLog.$inferSelect,
+): ImportRuntimeObservedSilverLog | null {
+  const workerName = SILVER_LOG_SOURCE_TO_WORKER_NAME[row.source];
+  if (!workerName) return null;
+
+  const worker = IMPORT_RUNTIME_WORKER_BY_NAME.get(workerName);
+  if (!worker) return null;
+
+  const level = normalizeSilverObservedLevel(row);
+  const fieldsUpdated = Array.isArray(row.fieldsUpdated) ? row.fieldsUpdated.map(String) : [];
+
+  return {
+    id: row.id,
+    entityId: row.entityId,
+    entityType: row.entityType,
+    workerName,
+    queueName: worker.queueName,
+    jobId: row.jobId ?? null,
+    correlationId: row.correlationId ?? null,
+    level,
+    step: row.operation || "event",
+    message: buildSilverObservedMessage(row, worker.label),
+    details: {
+      source: row.source,
+      operation: row.operation,
+      status: row.status ?? "success",
+      fieldsUpdated,
+      errorCode: row.errorCode ?? null,
+    },
+    durationMs: row.durationMs ?? null,
+    createdAt: row.createdAt.toISOString(),
+  };
+}
+
+function resolveFinishedOnFromDuration(
+  createdAt: string,
+  durationMs: number | null,
+): string | null {
+  return typeof durationMs === "number" ? createdAt : null;
+}
+
+function inferObservedSilverRuntimeState(logs: ImportRuntimeObservedSilverLog[]) {
+  const latest = logs[0];
+  if (logs.some((log) => log.level === "error")) return "error";
+  if (logs.some((log) => log.level === "warn")) return "warning";
+  if (latest.level === "step") return "running";
+  return "completed";
+}
+
+function buildObservedBronzeRuntimeJob(
+  workerName: string,
+  queueName: string,
+  logs: ImportRuntimeObservedBronzeLog[],
+): ImportRuntimeJobSnapshot {
+  const latest = logs[0];
+  const earliest = logs.at(-1) ?? latest;
+  const entityId = latest.bronzeContactId;
+
+  return {
+    key: buildRuntimeJobKey(workerName, latest.jobId, entityId),
+    source: "job_logs",
+    state: inferObservedBronzeRuntimeState(logs),
+    workerName,
+    queueName,
+    jobId: latest.jobId,
+    bronzeContactId: entityId,
+    entityId,
+    entityType: entityId ? "bronze_contact" : null,
+    correlationId: null,
+    level: latest.level,
+    step: latest.step,
+    message: latest.message,
+    progress: null,
+    attemptsMade: 0,
+    maxAttempts: 0,
+    failedReason: latest.level === "error" ? latest.message : null,
+    createdAt: earliest.createdAt,
+    processedOn: null,
+    finishedOn: resolveFinishedOnFromDuration(latest.createdAt, latest.durationMs),
+    lastEventAt: latest.createdAt,
+    durationMs: latest.durationMs,
+  };
+}
+
+function buildObservedSilverRuntimeJob(
+  workerName: string,
+  queueName: string,
+  logs: ImportRuntimeObservedSilverLog[],
+): ImportRuntimeJobSnapshot {
+  const latest = logs[0];
+  const earliest = logs.at(-1) ?? latest;
+  const bronzeContactId = latest.entityType === "bronze_contact" ? latest.entityId : null;
+
+  return {
+    key: buildRuntimeJobKey(workerName, latest.jobId, latest.entityId),
+    source: "silver_logs",
+    state: inferObservedSilverRuntimeState(logs),
+    workerName,
+    queueName,
+    jobId: latest.jobId,
+    bronzeContactId,
+    entityId: latest.entityId,
+    entityType: latest.entityType,
+    correlationId: latest.correlationId,
+    level: latest.level,
+    step: latest.step,
+    message: latest.message,
+    progress: null,
+    attemptsMade: 0,
+    maxAttempts: 0,
+    failedReason: latest.level === "error" ? latest.message : null,
+    createdAt: earliest.createdAt,
+    processedOn: null,
+    finishedOn: resolveFinishedOnFromDuration(latest.createdAt, latest.durationMs),
+    lastEventAt: latest.createdAt,
+    durationMs: latest.durationMs,
+  };
+}
+
 function buildBullJobResponseData(
   job: BullJobLike,
   state: string,
@@ -913,6 +1798,1040 @@ function buildBullJobResponseData(
     lastProgressAt: lastProgressAtRaw,
     waitingJobs,
     dbStatus: reprocessStatus,
+  };
+}
+
+function getRuntimeTimestamp(value: string | null | undefined): number {
+  const parsed = Date.parse(value ?? "");
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function resolveMergedRuntimeState(primaryState: string, secondaryState: string): string {
+  if (primaryState === "error" || secondaryState === "error") return "error";
+  if (primaryState === "warning" || secondaryState === "warning") return "warning";
+  return primaryState;
+}
+
+function mergeObservedRuntimeJobs(
+  left: ImportRuntimeJobSnapshot,
+  right: ImportRuntimeJobSnapshot,
+): ImportRuntimeJobSnapshot {
+  const leftTs = getRuntimeTimestamp(left.lastEventAt ?? left.createdAt);
+  const rightTs = getRuntimeTimestamp(right.lastEventAt ?? right.createdAt);
+  const primary = rightTs >= leftTs ? right : left;
+  const secondary = primary === right ? left : right;
+
+  return {
+    ...secondary,
+    ...primary,
+    source: "merged",
+    state: resolveMergedRuntimeState(primary.state, secondary.state),
+    bronzeContactId: primary.bronzeContactId ?? secondary.bronzeContactId ?? null,
+    entityId: primary.entityId ?? secondary.entityId ?? null,
+    entityType: primary.entityType ?? secondary.entityType ?? null,
+    correlationId: primary.correlationId ?? secondary.correlationId ?? null,
+    level: primary.level ?? secondary.level ?? null,
+    step: primary.step ?? secondary.step ?? null,
+    message: primary.message ?? secondary.message ?? null,
+    failedReason: primary.failedReason ?? secondary.failedReason ?? null,
+    durationMs: primary.durationMs ?? secondary.durationMs ?? null,
+    createdAt: secondary.createdAt ?? primary.createdAt,
+    lastEventAt: primary.lastEventAt ?? secondary.lastEventAt,
+  };
+}
+
+function groupObservedLogsByRuntimeKey<T>(
+  workerName: string,
+  logs: T[],
+  getJobId: (log: T) => string | null,
+  getEntityId: (log: T) => string | null,
+): Map<string, T[]> {
+  const groupedLogs = new Map<string, T[]>();
+
+  for (const log of logs) {
+    const key = buildRuntimeJobKey(workerName, getJobId(log), getEntityId(log));
+    const bucket = groupedLogs.get(key) ?? [];
+    bucket.push(log);
+    groupedLogs.set(key, bucket);
+  }
+
+  return groupedLogs;
+}
+
+function createBaseRuntimeWorkerCounts(
+  observedJobs: Map<string, ImportRuntimeJobSnapshot>,
+  observedLogs: number,
+): ImportRuntimeWorkerCounts {
+  const observedJobList = [...observedJobs.values()];
+
+  return {
+    waiting: 0,
+    active: 0,
+    delayed: 0,
+    prioritized: 0,
+    failedLive: 0,
+    observedCompleted: observedJobList.filter((job) => job.state === "completed").length,
+    observedWarnings: observedJobList.filter((job) => job.state === "warning").length,
+    observedErrors: observedJobList.filter((job) => job.state === "error").length,
+    observedLogs,
+    observedJobs: observedJobs.size,
+  };
+}
+
+function incrementRuntimeWorkerCount(counts: ImportRuntimeWorkerCounts, state: string) {
+  if (state === "waiting") {
+    counts.waiting += 1;
+    return;
+  }
+
+  if (state === "active") {
+    counts.active += 1;
+    return;
+  }
+
+  if (state === "delayed") {
+    counts.delayed += 1;
+    return;
+  }
+
+  if (state === "prioritized") {
+    counts.prioritized += 1;
+    return;
+  }
+
+  if (state === "failed") {
+    counts.failedLive += 1;
+  }
+}
+
+function resolveRuntimeQueueJobIdentity(
+  data: Record<string, unknown> | null,
+): RuntimeQueueJobIdentity {
+  const bronzeContactId = typeof data?.bronzeContactId === "string" ? data.bronzeContactId : null;
+  const companyId = typeof data?.companyId === "string" ? data.companyId : null;
+  const explicitEntityId = typeof data?.entityId === "string" ? data.entityId : null;
+  const entityId = bronzeContactId ?? companyId ?? explicitEntityId;
+
+  let entityType: string | null = null;
+  if (bronzeContactId) {
+    entityType = "bronze_contact";
+  } else if (companyId) {
+    entityType = "company";
+  } else if (typeof data?.entityType === "string") {
+    entityType = data.entityType;
+  }
+
+  return {
+    bronzeContactId,
+    entityId,
+    entityType,
+    correlationId: typeof data?.correlationId === "string" ? data.correlationId : null,
+  };
+}
+
+function buildRuntimeWorkerJobs(observedJobs: Map<string, ImportRuntimeJobSnapshot>) {
+  return [...observedJobs.values()]
+    .sort(
+      (left, right) =>
+        getRuntimeTimestamp(right.lastEventAt ?? right.createdAt) -
+        getRuntimeTimestamp(left.lastEventAt ?? left.createdAt),
+    )
+    .slice(0, 120);
+}
+
+async function loadImportRuntimeObservedLogs(
+  tenantId: string,
+  batchId: string,
+): Promise<ImportRuntimeObservedLogBundle> {
+  const batchCorrelationPattern = `%${batchId}%`;
+
+  await setSessionTenantId(tenantId);
+  const [recentLogRows, recentSilverLogRows] = await Promise.all([
+    db
+      .select()
+      .from(jobLogs)
+      .where(sql`${jobLogs.tenantId} = ${tenantId} AND ${jobLogs.batchId} = ${batchId}`)
+      .orderBy(sql`${jobLogs.createdAt} DESC`)
+      .limit(6000),
+    db
+      .select()
+      .from(silverEnrichmentLog)
+      .where(
+        sql`${silverEnrichmentLog.tenantId} = ${tenantId}
+            AND COALESCE(${silverEnrichmentLog.correlationId}, '') ILIKE ${batchCorrelationPattern}`,
+      )
+      .orderBy(sql`${silverEnrichmentLog.createdAt} DESC`)
+      .limit(6000),
+  ]);
+
+  const recentLogs = recentLogRows.map((row) => buildJobLogResponseRow(row));
+  const recentSilverLogs = recentSilverLogRows
+    .map((row) => buildSilverObservedLogRow(row))
+    .filter((row): row is ImportRuntimeObservedSilverLog => row !== null);
+
+  return {
+    recentLogs,
+    recentSilverLogs,
+    bronzeLogsByWorker: groupObservedLogsByWorker(recentLogs),
+    silverLogsByWorker: groupObservedLogsByWorker(recentSilverLogs),
+  };
+}
+
+function buildPersistedObservedJobs(args: {
+  workerDef: ImportRuntimeWorkerDef;
+  workerLogs: ImportRuntimeObservedBronzeLog[];
+  workerSilverLogs: ImportRuntimeObservedSilverLog[];
+}) {
+  const observedJobs = new Map<string, ImportRuntimeJobSnapshot>();
+  const groupedBronzeLogs = groupObservedLogsByRuntimeKey(
+    args.workerDef.workerName,
+    args.workerLogs,
+    (log) => log.jobId,
+    (log) => log.bronzeContactId,
+  );
+  const groupedSilverLogs = groupObservedLogsByRuntimeKey(
+    args.workerDef.workerName,
+    args.workerSilverLogs,
+    (log) => log.jobId,
+    (log) => log.entityId,
+  );
+
+  for (const [key, grouped] of groupedBronzeLogs) {
+    observedJobs.set(
+      key,
+      buildObservedBronzeRuntimeJob(args.workerDef.workerName, args.workerDef.queueName, grouped),
+    );
+  }
+
+  for (const [key, grouped] of groupedSilverLogs) {
+    const silverObserved = buildObservedSilverRuntimeJob(
+      args.workerDef.workerName,
+      args.workerDef.queueName,
+      grouped,
+    );
+    const existing = observedJobs.get(key);
+    observedJobs.set(
+      key,
+      existing ? mergeObservedRuntimeJobs(existing, silverObserved) : silverObserved,
+    );
+  }
+
+  return observedJobs;
+}
+
+function buildLiveRuntimeJobSnapshot(args: {
+  workerDef: ImportRuntimeWorkerDef;
+  job: RuntimeQueueJobLike;
+  state: string;
+  existing: ImportRuntimeJobSnapshot | undefined;
+}): ImportRuntimeJobSnapshot {
+  const data = asRecord(args.job.data);
+  const jobId = args.job.id == null ? null : String(args.job.id);
+  const identity = resolveRuntimeQueueJobIdentity(data);
+
+  return {
+    key: buildRuntimeJobKey(args.workerDef.workerName, jobId, identity.entityId),
+    source: args.existing ? "merged" : "bullmq",
+    state: args.state,
+    workerName: args.workerDef.workerName,
+    queueName: args.workerDef.queueName,
+    jobId,
+    bronzeContactId: identity.bronzeContactId,
+    entityId: identity.entityId,
+    entityType: identity.entityType,
+    correlationId: identity.correlationId,
+    level: args.existing?.level ?? null,
+    step: args.existing?.step ?? null,
+    message:
+      args.existing?.message ??
+      (typeof args.job.failedReason === "string" ? args.job.failedReason : null),
+    progress: extractProgressValue(args.job.progress),
+    attemptsMade: args.job.attemptsMade ?? args.existing?.attemptsMade ?? 0,
+    maxAttempts: args.job.opts?.attempts ?? args.existing?.maxAttempts ?? 0,
+    failedReason:
+      typeof args.job.failedReason === "string"
+        ? args.job.failedReason
+        : (args.existing?.failedReason ?? null),
+    createdAt: toIso(args.job.timestamp) ?? args.existing?.createdAt ?? null,
+    processedOn: toIso(args.job.processedOn) ?? args.existing?.processedOn ?? null,
+    finishedOn: toIso(args.job.finishedOn) ?? args.existing?.finishedOn ?? null,
+    lastEventAt:
+      args.existing?.lastEventAt ??
+      toIso(args.job.processedOn) ??
+      toIso(args.job.timestamp) ??
+      null,
+    durationMs: args.existing?.durationMs ?? null,
+  };
+}
+
+async function mergeLiveQueueJobsIntoObservedJobs(args: {
+  workerDef: ImportRuntimeWorkerDef;
+  batchId: string;
+  observedJobs: Map<string, ImportRuntimeJobSnapshot>;
+  counts: ImportRuntimeWorkerCounts;
+}) {
+  const queue = createQueue(args.workerDef.queueName);
+
+  try {
+    const queueJobs = (await queue.getJobs(
+      ["wait", "active", "delayed", "prioritized", "failed"],
+      0,
+      300,
+      true,
+    )) as RuntimeQueueJobLike[];
+
+    const relevantJobs = queueJobs.filter(
+      (job): job is RuntimeQueueJobLike =>
+        job != null && isRelevantImportQueueJob(args.workerDef.queueName, job, args.batchId),
+    );
+    const liveStates = await Promise.all(
+      relevantJobs.map(async (job) => {
+        try {
+          return await job.getState();
+        } catch {
+          return "unknown";
+        }
+      }),
+    );
+
+    for (const [index, job] of relevantJobs.entries()) {
+      const state = liveStates[index] ?? "unknown";
+      incrementRuntimeWorkerCount(args.counts, state);
+      const identity = resolveRuntimeQueueJobIdentity(asRecord(job.data));
+      const key = buildRuntimeJobKey(
+        args.workerDef.workerName,
+        job.id == null ? null : String(job.id),
+        identity.entityId,
+      );
+      const existing = args.observedJobs.get(key);
+
+      args.observedJobs.set(
+        key,
+        buildLiveRuntimeJobSnapshot({
+          workerDef: args.workerDef,
+          job,
+          state,
+          existing,
+        }),
+      );
+    }
+  } finally {
+    await queue.close();
+  }
+}
+
+async function buildRuntimeWorkerSnapshot(args: {
+  workerDef: ImportRuntimeWorkerDef;
+  batchId: string;
+  bronzeLogsByWorker: RuntimeObservedLogsByWorker<ImportRuntimeObservedBronzeLog>;
+  silverLogsByWorker: RuntimeObservedLogsByWorker<ImportRuntimeObservedSilverLog>;
+}): Promise<ImportRuntimeWorkerSnapshot> {
+  const workerLogs = args.bronzeLogsByWorker.get(args.workerDef.workerName) ?? [];
+  const workerSilverLogs = args.silverLogsByWorker.get(args.workerDef.workerName) ?? [];
+  const observedJobs = buildPersistedObservedJobs({
+    workerDef: args.workerDef,
+    workerLogs,
+    workerSilverLogs,
+  });
+  const counts = createBaseRuntimeWorkerCounts(
+    observedJobs,
+    workerLogs.length + workerSilverLogs.length,
+  );
+
+  await mergeLiveQueueJobsIntoObservedJobs({
+    workerDef: args.workerDef,
+    batchId: args.batchId,
+    observedJobs,
+    counts,
+  });
+
+  return {
+    workerName: args.workerDef.workerName,
+    label: args.workerDef.label,
+    stage: args.workerDef.stage,
+    queueName: args.workerDef.queueName,
+    description: args.workerDef.description,
+    counts,
+    jobs: buildRuntimeWorkerJobs(observedJobs),
+  };
+}
+
+function normalizeRuntimeHeartbeatState(
+  state: string,
+  heartbeatAt: Date | null | undefined,
+  staleThresholdMs = IMPORT_RUNTIME_STALE_THRESHOLD_MS,
+) {
+  if (
+    (state === "running" || state === "recovering") &&
+    heartbeatAt &&
+    Date.now() - heartbeatAt.getTime() > staleThresholdMs
+  ) {
+    return "stale";
+  }
+
+  return state;
+}
+
+function extractRuntimeJobProgress(row: typeof importRuntimeJobs.$inferSelect): number | null {
+  const metrics = asRecord(row.metrics);
+  const checkpoint = asRecord(row.checkpointPayload);
+  return (
+    extractProgressValue(metrics) ??
+    extractProgressValue(checkpoint) ??
+    (row.state === "completed" ? 100 : null)
+  );
+}
+
+function resolveRuntimeBronzeContactId(row: typeof importRuntimeJobs.$inferSelect) {
+  if (row.contactId) return row.contactId;
+  if (row.entityType === "bronze_contact" || row.entityType === "contact") {
+    return row.entityId;
+  }
+  return null;
+}
+
+function resolveRuntimeJobCorrelationId(metrics: Record<string, unknown> | null) {
+  return typeof metrics?.correlationId === "string" ? metrics.correlationId : null;
+}
+
+function resolveRuntimeJobLevel(state: string): JobLogsApiLevel | null {
+  if (state === "failed" || state === "terminal_error_skipped") return "error";
+  if (state === "paused" || state === "stale") return "warn";
+  if (state === "running" || state === "recovering") return "step";
+  if (state === "completed") return "info";
+  return null;
+}
+
+function resolveRuntimeJobTextValue(
+  primary: Record<string, unknown> | null,
+  secondary: Record<string, unknown> | null,
+  field: "message" | "step",
+) {
+  const primaryValue = primary?.[field];
+  if (typeof primaryValue === "string" && primaryValue.length > 0) {
+    return primaryValue;
+  }
+
+  const secondaryValue = secondary?.[field];
+  if (typeof secondaryValue === "string" && secondaryValue.length > 0) {
+    return secondaryValue;
+  }
+
+  return null;
+}
+
+function buildRuntimeJobTiming(row: typeof importRuntimeJobs.$inferSelect) {
+  const finishedAt = row.completedAt ?? row.failedAt;
+  return {
+    finishedAt,
+    createdAt: row.createdAt?.toISOString?.() ?? null,
+    processedOn: row.startedAt?.toISOString?.() ?? null,
+    finishedOn: finishedAt?.toISOString?.() ?? null,
+    lastEventAt: row.heartbeatAt?.toISOString?.() ?? row.updatedAt?.toISOString?.() ?? null,
+    durationMs: row.startedAt && finishedAt ? finishedAt.getTime() - row.startedAt.getTime() : null,
+  };
+}
+
+function buildRuntimeJobSnapshotFromRow(
+  row: typeof importRuntimeJobs.$inferSelect,
+): ImportRuntimeJobSnapshot {
+  const state = normalizeRuntimeHeartbeatState(row.state, row.heartbeatAt);
+  const bronzeContactId = resolveRuntimeBronzeContactId(row);
+  const metrics = asRecord(row.metrics);
+  const checkpoint = asRecord(row.checkpointPayload);
+  const messageCandidate = resolveRuntimeJobTextValue(metrics, checkpoint, "message");
+  const stepCandidate = resolveRuntimeJobTextValue(metrics, checkpoint, "step");
+  const timing = buildRuntimeJobTiming(row);
+
+  return {
+    key: row.runtimeJobKey,
+    source: "runtime",
+    state,
+    workerName: row.workerName,
+    queueName: row.queueName,
+    jobId: row.bullJobId ?? null,
+    bronzeContactId,
+    entityId: row.entityId ?? null,
+    entityType: row.entityType ?? null,
+    correlationId: resolveRuntimeJobCorrelationId(metrics),
+    level: resolveRuntimeJobLevel(state),
+    step: stepCandidate,
+    message: messageCandidate,
+    progress: extractRuntimeJobProgress(row),
+    attemptsMade: Number(row.attemptsUsed ?? 0),
+    maxAttempts: Number(row.maxRecoveryAttempts ?? 0),
+    failedReason: row.lastError ?? null,
+    createdAt: timing.createdAt,
+    processedOn: timing.processedOn,
+    finishedOn: timing.finishedOn,
+    lastEventAt: timing.lastEventAt,
+    durationMs: timing.durationMs,
+  };
+}
+
+function runtimeJobMatchesSearch(job: ImportRuntimeJobSnapshot, search: string | null | undefined) {
+  const normalized = search?.trim().toLowerCase();
+  if (!normalized) return true;
+  const haystack = [
+    job.workerName,
+    job.queueName,
+    job.jobId,
+    job.bronzeContactId,
+    job.entityId,
+    job.entityType,
+    job.correlationId,
+    job.step,
+    job.message,
+    job.state,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return haystack.includes(normalized);
+}
+
+async function loadImportRuntimeBatchContext(tenantId: string, batchId: string) {
+  const [tenantRow, batchRow] = await Promise.all([
+    db
+      .select({ settings: tenants.settings })
+      .from(tenants)
+      .where(sql`${tenants.id} = ${tenantId}`)
+      .limit(1)
+      .then((rows) => rows[0] ?? null),
+    db
+      .select({ metadata: bronzeImportBatches.metadata })
+      .from(bronzeImportBatches)
+      .where(
+        sql`${bronzeImportBatches.tenantId} = ${tenantId}
+          AND ${bronzeImportBatches.id} = ${batchId}`,
+      )
+      .limit(1)
+      .then((rows) => rows[0] ?? null),
+  ]);
+
+  const batchMetadata = ((batchRow?.metadata as Record<string, unknown> | null) ??
+    {}) as BatchMetadata;
+  return {
+    batchMetadata,
+    globalControl: readTenantImportControlState(tenantRow?.settings),
+    batchControl: readBatchImportControlState(batchMetadata),
+  };
+}
+
+async function loadImportRuntimeSessionForBatch(
+  tenantId: string,
+  batchId: string,
+  sessionId?: string | null,
+) {
+  const [session] = await db
+    .select()
+    .from(importRuntimeSessions)
+    .where(
+      sessionId
+        ? sql`${importRuntimeSessions.tenantId} = ${tenantId}
+            AND ${importRuntimeSessions.batchId} = ${batchId}
+            AND ${importRuntimeSessions.id} = ${sessionId}`
+        : sql`${importRuntimeSessions.tenantId} = ${tenantId}
+            AND ${importRuntimeSessions.batchId} = ${batchId}`,
+    )
+    .orderBy(sql`${importRuntimeSessions.updatedAt} DESC`)
+    .limit(1);
+
+  return session ?? null;
+}
+
+type RuntimeTopologyFilters = {
+  sessionId?: string | null;
+  worker?: string | null;
+  state?: string | null;
+  search?: string | null;
+  limit?: number;
+};
+
+function getRuntimeTopologyLimit(options?: RuntimeTopologyFilters) {
+  return Math.max(10, Math.min(options?.limit ?? 160, 500));
+}
+
+function buildRuntimeJobsWhereSql(args: {
+  tenantId: string;
+  batchId: string;
+  sessionId: string;
+  worker?: string | null;
+  state?: string | null;
+}) {
+  const clauses = [
+    sql`${importRuntimeJobs.tenantId} = ${args.tenantId}`,
+    sql`${importRuntimeJobs.batchId} = ${args.batchId}`,
+    sql`${importRuntimeJobs.sessionId} = ${args.sessionId}`,
+  ];
+
+  if (args.worker) {
+    clauses.push(sql`${importRuntimeJobs.workerName} = ${args.worker}`);
+  }
+
+  if (args.state) {
+    clauses.push(sql`${importRuntimeJobs.state} = ${args.state}`);
+  }
+
+  return sql.join(clauses, sql` AND `);
+}
+
+async function loadRuntimeJobsForSession(args: {
+  tenantId: string;
+  batchId: string;
+  sessionId: string;
+  search?: string | null;
+  worker?: string | null;
+  state?: string | null;
+  limit: number;
+}) {
+  const queryLimit = args.search ? Math.max(args.limit * 4, 400) : args.limit;
+  const runtimeJobRows = await db
+    .select()
+    .from(importRuntimeJobs)
+    .where(
+      buildRuntimeJobsWhereSql({
+        tenantId: args.tenantId,
+        batchId: args.batchId,
+        sessionId: args.sessionId,
+        worker: args.worker,
+        state: args.state,
+      }),
+    )
+    .orderBy(sql`${importRuntimeJobs.updatedAt} DESC`)
+    .limit(queryLimit);
+
+  return runtimeJobRows
+    .map((row) => buildRuntimeJobSnapshotFromRow(row))
+    .filter((job) => runtimeJobMatchesSearch(job, args.search))
+    .slice(0, args.limit);
+}
+
+async function loadPromotedSilverContactsDuringSession(tenantId: string, sessionId: string) {
+  const promotedDuringSessionRow = await db.execute<{ count: string }>(
+    sql`SELECT COUNT(*) AS count
+        FROM silver.silver_contacts
+        WHERE tenant_id = ${tenantId}
+          AND COALESCE(metadata->'importProvenance'->>'sessionId', '') = ${sessionId}
+          AND COALESCE(metadata->'importProvenance'->>'createdByPromotion', 'false') = 'true'`,
+  );
+
+  return Number(promotedDuringSessionRow[0]?.count ?? 0);
+}
+
+function deriveRuntimeAnafState(args: {
+  globalPaused: boolean;
+  batchPaused: boolean;
+  workerPaused: boolean;
+  batchMetadata: BatchMetadata;
+  anafCounter: typeof importRuntimeWorkerCounters.$inferSelect | undefined;
+}) {
+  if (args.globalPaused || args.batchPaused || args.workerPaused) {
+    return "paused";
+  }
+
+  if (typeof args.batchMetadata.anafEnrichmentStatus === "string") {
+    return args.batchMetadata.anafEnrichmentStatus;
+  }
+
+  if (Number(args.anafCounter?.runningJobs ?? 0) > 0) {
+    return normalizeRuntimeHeartbeatState("running", args.anafCounter?.lastHeartbeatAt);
+  }
+
+  if (Number(args.anafCounter?.queuedJobs ?? 0) > 0) {
+    return "queued";
+  }
+
+  if (Number(args.anafCounter?.completedJobs ?? 0) > 0) {
+    return "completed";
+  }
+
+  return "waiting";
+}
+
+function buildRuntimeAnafProgress(args: {
+  globalControl: ImportGlobalControlState;
+  batchControl: ImportBatchControlState;
+  batchMetadata: BatchMetadata;
+  anafCounter: typeof importRuntimeWorkerCounters.$inferSelect | undefined;
+  sessionStartedAt: Date | null;
+}) {
+  const anafMetrics = asRecord(args.anafCounter?.metrics) ?? {};
+  const workerPaused = Boolean(args.batchControl.workerPauses["B5:anaf-bronze-enricher"]);
+  const state = deriveRuntimeAnafState({
+    globalPaused: args.globalControl.globalPaused,
+    batchPaused: args.batchControl.batchPaused,
+    workerPaused,
+    batchMetadata: args.batchMetadata,
+    anafCounter: args.anafCounter,
+  });
+  const processedCuis = Number(
+    anafMetrics.processedCuis ?? args.batchMetadata.anafEnrichmentProcessedCuis ?? 0,
+  );
+
+  return {
+    state,
+    totalCuis: Number(anafMetrics.totalCuis ?? args.batchMetadata.anafEnrichmentTotalCuis ?? 0),
+    processedCuis,
+    totalBatches: Number(
+      anafMetrics.totalBatches ?? args.batchMetadata.anafEnrichmentTotalBatches ?? 0,
+    ),
+    processedBatches: Number(
+      anafMetrics.processedBatches ?? args.batchMetadata.anafEnrichmentProcessedBatches ?? 0,
+    ),
+    failedBatches: Number(args.batchMetadata.anafEnrichmentFailedBatches ?? 0),
+    heartbeatAt: args.anafCounter?.lastHeartbeatAt?.toISOString?.() ?? null,
+    startedAt:
+      typeof args.batchMetadata.anafEnrichmentQueuedAt === "string"
+        ? args.batchMetadata.anafEnrichmentQueuedAt
+        : (args.sessionStartedAt?.toISOString?.() ?? null),
+    completedAt:
+      typeof args.batchMetadata.anafEnrichmentCompletedAt === "string"
+        ? args.batchMetadata.anafEnrichmentCompletedAt
+        : null,
+    throughput:
+      processedCuis > 0 && args.anafCounter?.lastHeartbeatAt && args.sessionStartedAt
+        ? processedCuis /
+          Math.max(
+            1,
+            (args.anafCounter.lastHeartbeatAt.getTime() - args.sessionStartedAt.getTime()) / 1000,
+          )
+        : null,
+  };
+}
+
+async function buildImportRuntimeTopologyFromRuntime(
+  tenantId: string,
+  batchId: string,
+  batchStatus: string,
+  options?: RuntimeTopologyFilters,
+) {
+  const { batchMetadata, globalControl, batchControl } = await loadImportRuntimeBatchContext(
+    tenantId,
+    batchId,
+  );
+  const limit = getRuntimeTopologyLimit(options);
+
+  const session = await loadImportRuntimeSessionForBatch(tenantId, batchId, options?.sessionId);
+  if (!session) {
+    return null;
+  }
+
+  const [counterRows, liveSilverCountRow] = await Promise.all([
+    db
+      .select()
+      .from(importRuntimeWorkerCounters)
+      .where(
+        sql`${importRuntimeWorkerCounters.tenantId} = ${tenantId}
+          AND ${importRuntimeWorkerCounters.batchId} = ${batchId}
+          AND ${importRuntimeWorkerCounters.sessionId} = ${session.id}`,
+      ),
+    db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(silverContacts)
+      .where(sql`${silverContacts.tenantId} = ${tenantId}`)
+      .then((rows) => rows[0] ?? null),
+  ]);
+
+  const runtimeJobs = await loadRuntimeJobsForSession({
+    tenantId,
+    batchId,
+    sessionId: session.id,
+    search: options?.search,
+    worker: options?.worker,
+    state: options?.state,
+    limit,
+  });
+
+  const workerCountersByName = new Map(counterRows.map((row) => [row.workerName, row] as const));
+  const jobsByWorker = new Map<string, ImportRuntimeJobSnapshot[]>();
+  for (const job of runtimeJobs) {
+    const current = jobsByWorker.get(job.workerName) ?? [];
+    current.push(job);
+    jobsByWorker.set(job.workerName, current);
+  }
+
+  const promotedDuringSession = await loadPromotedSilverContactsDuringSession(tenantId, session.id);
+  const liveSilverCount = Number(liveSilverCountRow?.count ?? session.silverContactsCurrent ?? 0);
+  const silverInitial = Number(session.silverContactsInitial ?? 0);
+  const externalDelta = liveSilverCount - (silverInitial + promotedDuringSession);
+
+  const anafCounter = workerCountersByName.get("B5:anaf-bronze-enricher");
+  const anafProgress = buildRuntimeAnafProgress({
+    globalControl,
+    batchControl,
+    batchMetadata,
+    anafCounter,
+    sessionStartedAt: session.startedAt ?? null,
+  });
+
+  const promotionCounter = workerCountersByName.get("promotion:bronze-silver");
+  const promotionMetrics = {
+    scopeTotal: Number(promotionCounter?.totalJobs ?? 0),
+    processed:
+      Number(promotionCounter?.completedJobs ?? 0) +
+      Number(promotionCounter?.failedJobs ?? 0) +
+      Number(promotionCounter?.skippedJobs ?? 0),
+    completed: Number(promotionCounter?.completedJobs ?? 0),
+    failed: Number(promotionCounter?.failedJobs ?? 0),
+    skipped: Number(promotionCounter?.skippedJobs ?? 0),
+    running: Number(promotionCounter?.runningJobs ?? 0),
+    paused: Number(promotionCounter?.pausedJobs ?? 0),
+    silverContactsInitial: silverInitial,
+    silverContactsPromotedDuringSession: promotedDuringSession,
+    silverContactsCurrent: liveSilverCount,
+    externalDelta,
+  };
+
+  const workers = IMPORT_RUNTIME_WORKERS.filter((workerDef) =>
+    options?.worker ? workerDef.workerName === options.worker : true,
+  ).map((workerDef) => {
+    const counter = workerCountersByName.get(workerDef.workerName);
+    const workerJobs = jobsByWorker.get(workerDef.workerName) ?? [];
+    return {
+      workerName: workerDef.workerName,
+      label: workerDef.label,
+      stage: workerDef.stage,
+      queueName: workerDef.queueName,
+      description: workerDef.description,
+      control: {
+        globalPaused: globalControl.globalPaused,
+        batchPaused: batchControl.batchPaused,
+        workerPaused: Boolean(batchControl.workerPauses[workerDef.workerName]),
+      },
+      counts: {
+        waiting: Number(counter?.queuedJobs ?? 0),
+        active: Number(counter?.runningJobs ?? 0),
+        delayed: 0,
+        prioritized: 0,
+        failedLive: Number(counter?.failedJobs ?? 0),
+        observedCompleted: Number(counter?.completedJobs ?? 0),
+        observedWarnings: Number(counter?.warningJobs ?? 0),
+        observedErrors: Number(counter?.failedJobs ?? 0) + Number(counter?.skippedJobs ?? 0),
+        observedLogs: 0,
+        observedJobs: Number(counter?.totalJobs ?? workerJobs.length),
+        pausedJobs: Number(counter?.pausedJobs ?? 0),
+        skippedJobs: Number(counter?.skippedJobs ?? 0),
+        totalUnits: Number(counter?.totalUnits ?? 0),
+        processedUnits: Number(counter?.processedUnits ?? 0),
+        successUnits: Number(counter?.successUnits ?? 0),
+        failedUnits: Number(counter?.failedUnits ?? 0),
+        insertedUnits: Number(counter?.insertedUnits ?? 0),
+        updatedUnits: Number(counter?.updatedUnits ?? 0),
+      },
+      jobs: workerJobs,
+    };
+  });
+
+  return {
+    batchId,
+    batchStatus,
+    legacyTelemetry: false,
+    session: {
+      id: session.id,
+      kind: session.kind,
+      status: normalizeRuntimeHeartbeatState(session.status, session.lastHeartbeatAt),
+      label: session.label ?? null,
+      startedAt: session.startedAt?.toISOString?.() ?? null,
+      completedAt: session.completedAt?.toISOString?.() ?? null,
+      failedAt: session.failedAt?.toISOString?.() ?? null,
+      pausedAt: session.pausedAt?.toISOString?.() ?? null,
+      lastHeartbeatAt: session.lastHeartbeatAt?.toISOString?.() ?? null,
+      updatedAt: session.updatedAt?.toISOString?.() ?? null,
+    },
+    control: {
+      global: globalControl,
+      batch: batchControl,
+    },
+    anafProgress,
+    promotionMetrics,
+    workers,
+    totals: {
+      logsLoaded: 0,
+      workersDefined: IMPORT_RUNTIME_WORKERS.length,
+      liveWaiting: workers.reduce((sum, worker) => sum + worker.counts.waiting, 0),
+      liveActive: workers.reduce((sum, worker) => sum + worker.counts.active, 0),
+      liveDelayed: 0,
+      liveFailed: workers.reduce((sum, worker) => sum + worker.counts.failedLive, 0),
+      observedJobs: workers.reduce((sum, worker) => sum + worker.counts.observedJobs, 0),
+    },
+  };
+}
+
+async function buildImportRuntimeTopology(
+  tenantId: string,
+  batchId: string,
+  batchStatus: string,
+  options?: {
+    sessionId?: string | null;
+    worker?: string | null;
+    state?: string | null;
+    search?: string | null;
+    limit?: number;
+  },
+) {
+  const runtimeBacked = await buildImportRuntimeTopologyFromRuntime(
+    tenantId,
+    batchId,
+    batchStatus,
+    options,
+  );
+  if (runtimeBacked) {
+    return runtimeBacked;
+  }
+
+  const observedLogs = await loadImportRuntimeObservedLogs(tenantId, batchId);
+  const workerSnapshots: ImportRuntimeWorkerSnapshot[] = [];
+
+  for (const workerDef of IMPORT_RUNTIME_WORKERS) {
+    const snapshot = await buildRuntimeWorkerSnapshot({
+      workerDef,
+      batchId,
+      bronzeLogsByWorker: observedLogs.bronzeLogsByWorker,
+      silverLogsByWorker: observedLogs.silverLogsByWorker,
+    });
+    workerSnapshots.push(snapshot);
+  }
+
+  return {
+    batchId,
+    batchStatus,
+    legacyTelemetry: true,
+    workers: workerSnapshots,
+    totals: {
+      logsLoaded: observedLogs.recentLogs.length + observedLogs.recentSilverLogs.length,
+      workersDefined: IMPORT_RUNTIME_WORKERS.length,
+      liveWaiting: workerSnapshots.reduce((sum, worker) => sum + worker.counts.waiting, 0),
+      liveActive: workerSnapshots.reduce((sum, worker) => sum + worker.counts.active, 0),
+      liveDelayed: workerSnapshots.reduce((sum, worker) => sum + worker.counts.delayed, 0),
+      liveFailed: workerSnapshots.reduce((sum, worker) => sum + worker.counts.failedLive, 0),
+      observedJobs: workerSnapshots.reduce((sum, worker) => sum + worker.counts.observedJobs, 0),
+    },
+  };
+}
+
+type BatchReprocessProgress = {
+  phase: string | null;
+  processed: number;
+  total: number;
+  counterDrift: boolean;
+  resolved: number;
+  duplicateSource: number;
+  identityConflict: number;
+  insufficientIdentifiers: number;
+  failedContacts: number;
+  promotionQueued: number;
+  startedAt: string | null;
+  completedAt: string | null;
+  failedAt: string | null;
+  sessionStartedAt: string | null;
+  mode: string | null;
+};
+
+function extractBatchReprocessProgress(
+  metadata: BatchMetadata,
+  totalRowsFallback: number,
+): BatchReprocessProgress {
+  const processed = Number(metadata.identityReprocessProcessedRows ?? 0);
+  const total = Number(metadata.identityReprocessRunTotalRows ?? totalRowsFallback);
+
+  return {
+    phase:
+      typeof metadata.identityReprocessPhase === "string" ? metadata.identityReprocessPhase : null,
+    processed,
+    total,
+    counterDrift: total > 0 && processed > total,
+    resolved: Number(metadata.identityReprocessResolvedRows ?? 0),
+    duplicateSource: Number(metadata.identityReprocessDuplicateSourceRows ?? 0),
+    identityConflict: Number(metadata.identityReprocessIdentityConflictRows ?? 0),
+    insufficientIdentifiers: Number(metadata.identityReprocessInsufficientIdentifierRows ?? 0),
+    promotionQueued: Number(metadata.identityReprocessPromotionQueued ?? 0),
+    failedContacts: Number(metadata.identityReprocessFailedContactCount ?? 0),
+    startedAt:
+      typeof metadata.identityReprocessStartedAt === "string"
+        ? metadata.identityReprocessStartedAt
+        : null,
+    completedAt:
+      typeof metadata.identityReprocessCompletedAt === "string"
+        ? metadata.identityReprocessCompletedAt
+        : null,
+    failedAt:
+      typeof metadata.identityReprocessFailedAt === "string"
+        ? metadata.identityReprocessFailedAt
+        : null,
+    sessionStartedAt:
+      typeof metadata.identityReprocessSessionStartedAt === "string"
+        ? metadata.identityReprocessSessionStartedAt
+        : null,
+    mode:
+      typeof metadata.identityReprocessMode === "string" ? metadata.identityReprocessMode : null,
+  };
+}
+
+// ── Promote Job Heartbeat thresholds ────────────────────────────────────────
+const PROMOTE_STALE_THRESHOLD_MS = 5 * 60 * 1000;
+const PROMOTE_BACKLOG_THRESHOLD_MS = 60 * 1000;
+const PROMOTE_BACKLOG_WAIT_COUNT_THRESHOLD = 1000;
+
+async function lookupReprocessJobStatus(
+  queue: ReturnType<typeof createQueue>,
+  batchId: string,
+  reprocessStatus: string,
+  heartbeatAtMs: number,
+  lastProgressAtRaw: string | null,
+  allCounts: Record<string, number>,
+  extraProgress: BatchReprocessProgress,
+): Promise<Record<string, unknown>> {
+  const reprocessJobId = `reprocess-batch__${batchId}`;
+  const job = await queue.getJob(reprocessJobId);
+
+  if (job) {
+    const state = await job.getState();
+    const now = Date.now();
+    const waitingDurationMs = typeof job.timestamp === "number" ? now - job.timestamp : 0;
+    const waitingJobs = Number(allCounts.wait ?? 0) + Number(allCounts.prioritized ?? 0);
+    const isStale =
+      state === "active" &&
+      Number.isFinite(heartbeatAtMs) &&
+      now - heartbeatAtMs > PROMOTE_STALE_THRESHOLD_MS;
+    const isBacklogged =
+      state === "waiting" &&
+      waitingDurationMs > PROMOTE_BACKLOG_THRESHOLD_MS &&
+      waitingJobs > PROMOTE_BACKLOG_WAIT_COUNT_THRESHOLD;
+
+    return {
+      ...buildBullJobResponseData(
+        job,
+        state,
+        isStale,
+        isBacklogged,
+        waitingJobs,
+        lastProgressAtRaw,
+        reprocessStatus,
+      ),
+      ...extraProgress,
+    };
+  }
+
+  const derivedState = derivePromoteStateFromDb(
+    reprocessStatus,
+    heartbeatAtMs,
+    PROMOTE_STALE_THRESHOLD_MS,
+  );
+  return {
+    state: derivedState,
+    isStale: derivedState === "stale",
+    isBacklogged: false,
+    jobId: null,
+    attemptsMade: 0,
+    maxAttempts: 10,
+    failedReason: null,
+    stacktrace: null,
+    processedOn: null,
+    finishedOn: null,
+    lastProgressAt: lastProgressAtRaw,
+    dbStatus: reprocessStatus,
+    ...extraProgress,
   };
 }
 
@@ -971,7 +2890,10 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
       const offset = parseOffset(q.offset, 0);
       const orderSql = resolveBatchOrderSql(q.sortBy, q.sortDir);
 
-      const filters = [sql`${bronzeImportBatches.tenantId} = ${tenantId}`];
+      const filters = [
+        sql`${bronzeImportBatches.tenantId} = ${tenantId}`,
+        importVisibleSql(bronzeImportBatches.metadata),
+      ];
       if (q.status) filters.push(sql`${bronzeImportBatches.status} = ${q.status}`);
       if (q.sourceType)
         filters.push(
@@ -998,6 +2920,129 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
 
       const enrichedRows = await Promise.all(rows.map((row) => enrichImportBatch(tenantId, row)));
       return { success: true, data: enrichedRows, meta: { total, limit, offset } };
+    },
+  );
+
+  app.get(
+    "/imports/control",
+    {
+      ...authOpts,
+      schema: {
+        tags: ["etapa1-imports"],
+        summary: "Get global import control state",
+        response: {
+          200: successObjectResponseSchema,
+        },
+      },
+    },
+    async (request) => {
+      const tenantId = requireTenantId(request);
+      const [tenantRow] = await db
+        .select({ settings: tenants.settings })
+        .from(tenants)
+        .where(sql`${tenants.id} = ${tenantId}`)
+        .limit(1);
+
+      return {
+        success: true,
+        data: readTenantImportControlState(tenantRow?.settings),
+      };
+    },
+  );
+
+  app.post(
+    "/imports/control/pause",
+    {
+      ...operatorAuthOpts,
+      preHandler: [importMutationRateLimit],
+      schema: {
+        response: {
+          200: successObjectResponseSchema,
+        },
+      },
+    },
+    async (request) => {
+      const tenantId = requireTenantId(request);
+      await setTenantImportGlobalPause({
+        tenantId,
+        paused: true,
+        actorId: getActorId(request),
+      });
+
+      const [tenantRow] = await db
+        .select({ settings: tenants.settings })
+        .from(tenants)
+        .where(sql`${tenants.id} = ${tenantId}`)
+        .limit(1);
+
+      return {
+        success: true,
+        data: readTenantImportControlState(tenantRow?.settings),
+      };
+    },
+  );
+
+  app.post(
+    "/imports/control/resume",
+    {
+      ...operatorAuthOpts,
+      preHandler: [importMutationRateLimit],
+      schema: {
+        body: z.object({
+          mode: z.enum(["resume", "recover"]).optional(),
+        }),
+        response: {
+          200: successObjectResponseSchema,
+        },
+      },
+    },
+    async (request) => {
+      const tenantId = requireTenantId(request);
+      const actorId = getActorId(request);
+      const parsedBody = z
+        .object({ mode: z.enum(["resume", "recover"]).optional() })
+        .safeParse(request.body ?? {});
+      const mode = parsedBody.success ? parsedBody.data.mode : undefined;
+
+      await setTenantImportGlobalPause({
+        tenantId,
+        paused: false,
+        actorId,
+      });
+
+      const pausedRows = await db.execute<{ batchId: string }>(
+        sql`SELECT DISTINCT batch_id AS "batchId"
+            FROM bronze.import_runtime_jobs
+            WHERE tenant_id = ${tenantId}
+              AND state = ANY(${["paused", "stale", "failed"]})`,
+      );
+
+      let resumed = 0;
+      let skipped = 0;
+      for (const row of pausedRows) {
+        const result = await resumeImportRuntimeJobs({
+          tenantId,
+          batchId: row.batchId,
+          mode,
+        });
+        resumed += result.requeued;
+        skipped += result.skipped;
+      }
+
+      const [tenantRow] = await db
+        .select({ settings: tenants.settings })
+        .from(tenants)
+        .where(sql`${tenants.id} = ${tenantId}`)
+        .limit(1);
+
+      return {
+        success: true,
+        data: {
+          ...readTenantImportControlState(tenantRow?.settings),
+          resumed,
+          skipped,
+        },
+      };
     },
   );
 
@@ -1170,13 +3215,16 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
         return reply.code(404).send({ success: false, error: "Import batch not found" });
       }
 
-      const contacts = await db.query.bronzeContacts.findMany({
-        where: (t) =>
-          sql`${t.tenantId} = ${tenantId}
-            AND ${batchIdMetadataEquals(t.metadata, parsedParams.data.id)}`,
-      });
+      await setSessionTenantId(tenantId);
+      const [{ count: contactCount }] = await db
+        .select({ count: sql<number>`COUNT(*)` })
+        .from(bronzeContacts)
+        .where(
+          sql`${bronzeContacts.tenantId} = ${tenantId}
+            AND ${batchIdMetadataEquals(bronzeContacts.metadata, parsedParams.data.id)}`,
+        );
 
-      if (contacts.length === 0) {
+      if (Number(contactCount) === 0) {
         return { success: true, data: { id: parsedParams.data.id, requeued: 0 } };
       }
 
@@ -1192,16 +3240,17 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
       }
 
       if (!existingJob || canReuseTerminalJob) {
-        await queue.add(
-          "reprocess-batch",
-          {
+        await enqueueImportJob({
+          queueName: QUEUES.PIPELINE_PROMOTE_BRONZE_SILVER,
+          jobName: "reprocess-batch",
+          payload: {
             tenantId,
             batchId: parsedParams.data.id,
             correlationId: `re-promote-${parsedParams.data.id}-${Date.now()}`,
           },
-          {
+          opts: {
             jobId: reprocessJobId,
-            attempts: 3,
+            attempts: 10,
             backoff: {
               type: "exponential",
               delay: 5000,
@@ -1209,13 +3258,19 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
             removeOnComplete: 20,
             removeOnFail: 50,
           },
-        );
+          workerName: "promotion:bronze-silver",
+          stageKey: "promotion",
+          entityType: "batch",
+          entityId: parsedParams.data.id,
+          idempotencyScope: reprocessJobId,
+          sessionKind: "reprocess",
+        });
       }
       await queue.close();
 
       const nextMetadata = withIdentityReprocessQueuedMetadata(
         (existing.metadata as BatchMetadata | null) ?? {},
-        { preserveCheckpoint: false },
+        { preserveCheckpoint: false, runTotalRows: Number(contactCount) },
       );
       await db
         .update(bronzeImportBatches)
@@ -1229,7 +3284,7 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
         success: true,
         data: {
           id: parsedParams.data.id,
-          requeued: contacts.length,
+          requeued: Number(contactCount),
           alreadyQueued: Boolean(
             existingJob && !["completed", "failed"].includes(existingState ?? ""),
           ),
@@ -1239,10 +3294,6 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
   );
 
   // ── Promote Job Heartbeat ─────────────────────────────────────────────
-  // Stale threshold: job is "active" but has not made progress in > 5 min
-  const PROMOTE_STALE_THRESHOLD_MS = 5 * 60 * 1000;
-  const PROMOTE_BACKLOG_THRESHOLD_MS = 60 * 1000;
-  const PROMOTE_BACKLOG_WAIT_COUNT_THRESHOLD = 1000;
 
   app.get(
     "/imports/:id/promote-job-status",
@@ -1273,8 +3324,13 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
       if (!existing) {
         return reply.code(404).send({ success: false, error: "Import batch not found" });
       }
+      const batchMetadata = ((existing.metadata as Record<string, unknown> | null) ??
+        {}) as BatchMetadata;
+      if (isImportBatchHidden(batchMetadata)) {
+        return reply.code(404).send({ success: false, error: "Import batch not found" });
+      }
 
-      const metadata = (existing.metadata as BatchMetadata | null) ?? {};
+      const metadata = batchMetadata;
       const reprocessStatus =
         typeof metadata.identityReprocessStatus === "string"
           ? metadata.identityReprocessStatus
@@ -1355,6 +3411,180 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
     },
   );
 
+  app.get(
+    "/imports/:id/pipeline-status",
+    {
+      ...authOpts,
+      schema: {
+        tags: ["etapa1-imports"],
+        summary: "Full real-time pipeline status for a batch (identity resolution + promotions)",
+        params: idParamsSchema,
+        response: {
+          200: successObjectResponseSchema,
+          400: errorResponseSchema,
+          404: errorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const tenantId = requireTenantId(request);
+      const parsedParams = idParamsSchema.safeParse(request.params);
+      if (!parsedParams.success) {
+        return reply.code(400).send({ success: false, error: "Parametru id invalid" });
+      }
+
+      const batchId = parsedParams.data.id;
+      const existing = await db.query.bronzeImportBatches.findFirst({
+        where: (t, { and, eq }) => and(eq(t.tenantId, tenantId), eq(t.id, batchId)),
+      });
+      if (!existing) {
+        return reply.code(404).send({ success: false, error: "Import batch not found" });
+      }
+
+      const metadata = (existing.metadata as BatchMetadata | null) ?? {};
+      const reprocessStatus =
+        typeof metadata.identityReprocessStatus === "string"
+          ? metadata.identityReprocessStatus
+          : "";
+      const { lastProgressAtRaw, heartbeatAtMs } = extractReprocessHeartbeat(metadata);
+      const extraProgress = extractBatchReprocessProgress(
+        metadata,
+        Number(existing.totalRows ?? 0),
+      );
+
+      const queue = createQueue("pipeline:promote:bronze-silver");
+      try {
+        const runtimeTopology = await buildImportRuntimeTopology(
+          tenantId,
+          batchId,
+          existing.status,
+        );
+        const allCounts = await queue.getJobCounts(
+          "wait",
+          "active",
+          "completed",
+          "failed",
+          "delayed",
+          "prioritized",
+        );
+        const countsMap = allCounts as Record<string, number>;
+
+        const reprocessJobData = reprocessStatus
+          ? await lookupReprocessJobStatus(
+              queue,
+              batchId,
+              reprocessStatus,
+              heartbeatAtMs,
+              lastProgressAtRaw,
+              countsMap,
+              extraProgress,
+            )
+          : null;
+
+        return {
+          success: true,
+          data: {
+            batchId,
+            batchStatus: existing.status,
+            totalRows: Number(existing.totalRows ?? 0),
+            successRows: Number(existing.successRows ?? 0),
+            reprocessJob: reprocessJobData,
+            promotionQueue: {
+              waiting: Number(countsMap.wait ?? 0),
+              active: Number(countsMap.active ?? 0),
+              completed: Number(countsMap.completed ?? 0),
+              failed: Number(countsMap.failed ?? 0),
+              delayed: Number(countsMap.delayed ?? 0),
+            },
+            globalControl:
+              asRecord((runtimeTopology as Record<string, unknown>).control)?.global ?? null,
+            batchControl:
+              asRecord((runtimeTopology as Record<string, unknown>).control)?.batch ?? null,
+            workerControls: Array.isArray((runtimeTopology as Record<string, unknown>).workers)
+              ? (
+                  (runtimeTopology as Record<string, unknown>).workers as Array<
+                    Record<string, unknown>
+                  >
+                ).map((worker) => ({
+                  workerName: String(worker.workerName ?? ""),
+                  control: asRecord(worker.control) ?? {},
+                }))
+              : [],
+            anafProgress: (runtimeTopology as Record<string, unknown>).anafProgress ?? null,
+            promotionMetrics: (runtimeTopology as Record<string, unknown>).promotionMetrics ?? null,
+            legacyTelemetry: Boolean((runtimeTopology as Record<string, unknown>).legacyTelemetry),
+          },
+        };
+      } finally {
+        await queue.close();
+      }
+    },
+  );
+
+  app.get(
+    "/imports/:id/runtime-topology",
+    {
+      ...authOpts,
+      schema: {
+        tags: ["etapa1-imports"],
+        summary: "Live runtime topology for import workers and jobs",
+        params: idParamsSchema,
+        querystring: z.object({
+          session: z.uuid().optional(),
+          worker: z.string().min(1).optional(),
+          state: z.string().min(1).optional(),
+          search: z.string().min(1).optional(),
+          limit: z.coerce.number().int().min(10).max(500).optional(),
+        }),
+        response: {
+          200: successObjectResponseSchema,
+          400: errorResponseSchema,
+          404: errorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const tenantId = requireTenantId(request);
+      const parsedParams = idParamsSchema.safeParse(request.params);
+      const parsedQuery = z
+        .object({
+          session: z.uuid().optional(),
+          worker: z.string().min(1).optional(),
+          state: z.string().min(1).optional(),
+          search: z.string().min(1).optional(),
+          limit: z.coerce.number().int().min(10).max(500).optional(),
+        })
+        .safeParse(request.query);
+      if (!parsedParams.success) {
+        return reply.code(400).send({ success: false, error: "Parametru id invalid" });
+      }
+      if (!parsedQuery.success) {
+        return reply
+          .code(400)
+          .send({ success: false, error: "Query invalidă", details: parsedQuery.error.issues });
+      }
+
+      const batchId = parsedParams.data.id;
+      const batch = await db.query.bronzeImportBatches.findFirst({
+        where: (t, { and, eq }) => and(eq(t.tenantId, tenantId), eq(t.id, batchId)),
+        columns: { id: true, status: true },
+      });
+      if (!batch) {
+        return reply.code(404).send({ success: false, error: "Import batch not found" });
+      }
+      return {
+        success: true,
+        data: await buildImportRuntimeTopology(tenantId, batchId, batch.status, {
+          sessionId: parsedQuery.data.session ?? null,
+          worker: parsedQuery.data.worker ?? null,
+          state: parsedQuery.data.state ?? null,
+          search: parsedQuery.data.search ?? null,
+          limit: parsedQuery.data.limit,
+        }),
+      };
+    },
+  );
+
   app.post(
     "/imports/:id/resume-promote",
     {
@@ -1384,13 +3614,16 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
         return reply.code(404).send({ success: false, error: "Import batch not found" });
       }
 
-      const contacts = await db.query.bronzeContacts.findMany({
-        where: (t) =>
-          sql`${t.tenantId} = ${tenantId}
-            AND ${batchIdMetadataEquals(t.metadata, batchId)}`,
-      });
+      await setSessionTenantId(tenantId);
+      const [{ count: contactCount }] = await db
+        .select({ count: sql<number>`COUNT(*)` })
+        .from(bronzeContacts)
+        .where(
+          sql`${bronzeContacts.tenantId} = ${tenantId}
+            AND ${batchIdMetadataEquals(bronzeContacts.metadata, batchId)}`,
+        );
 
-      if (contacts.length === 0) {
+      if (Number(contactCount) === 0) {
         return { success: true, data: { id: batchId, requeued: 0 } };
       }
 
@@ -1400,40 +3633,50 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
         const existingJob = await queue.getJob(reprocessJobId);
 
         if (existingJob) {
-          // Remove regardless of state — we're forcing a fresh restart
+          const state = await existingJob.getState();
+          if (state === "active") {
+            throw new Error("Job activ in curs");
+          }
           await existingJob.remove();
         }
 
-        await queue.add(
-          "reprocess-batch",
-          {
+        await enqueueImportJob({
+          queueName: QUEUES.PIPELINE_PROMOTE_BRONZE_SILVER,
+          jobName: "reprocess-batch",
+          payload: {
             tenantId,
             batchId,
             correlationId: `resume-promote-${batchId}-${Date.now()}`,
           },
-          {
+          opts: {
             jobId: reprocessJobId,
-            attempts: 3,
+            attempts: 10,
             priority: 1,
             backoff: { type: "exponential", delay: 5000 },
             removeOnComplete: 20,
             removeOnFail: 50,
           },
-        );
+          workerName: "promotion:bronze-silver",
+          stageKey: "promotion",
+          entityType: "batch",
+          entityId: batchId,
+          idempotencyScope: reprocessJobId,
+          sessionKind: "recovery",
+        });
       } finally {
         await queue.close();
       }
 
       const nextMetadata = withIdentityReprocessQueuedMetadata(
         (existing.metadata as BatchMetadata | null) ?? {},
-        { preserveCheckpoint: true },
+        { preserveCheckpoint: true, runTotalRows: Number(contactCount) },
       );
       await db
         .update(bronzeImportBatches)
         .set({ metadata: nextMetadata, updatedAt: new Date() })
         .where(sql`${bronzeImportBatches.id} = ${batchId}`);
 
-      return { success: true, data: { id: batchId, requeued: contacts.length } };
+      return { success: true, data: { id: batchId, requeued: Number(contactCount) } };
     },
   );
 
@@ -1553,15 +3796,18 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
         return reply.code(404).send({ success: false, error: "Import batch not found" });
       }
 
-      const failedContacts = await db.query.bronzeContacts.findMany({
-        where: (t) =>
-          sql`${t.tenantId} = ${tenantId}
-            AND ${batchIdMetadataEquals(t.metadata, batchId)}
-            AND ${failedReprocessContactEquals(t.metadata)}`,
-        columns: { id: true },
-      });
+      await setSessionTenantId(tenantId);
+      const [{ count: failedCount }] = await db
+        .select({ count: sql<number>`COUNT(*)` })
+        .from(bronzeContacts)
+        .where(
+          sql`${bronzeContacts.tenantId} = ${tenantId}
+            AND ${batchIdMetadataEquals(bronzeContacts.metadata, batchId)}
+            AND ${failedReprocessContactEquals(bronzeContacts.metadata)}`,
+        );
+      const failedContactCount = Number(failedCount);
 
-      if (failedContacts.length === 0) {
+      if (failedContactCount === 0) {
         return { success: true, data: { id: batchId, requeued: 0 } };
       }
 
@@ -1570,26 +3816,37 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
         const reprocessJobId = `reprocess-errors-batch__${batchId}`;
         const existingJob = await queue.getJob(reprocessJobId);
         if (existingJob) {
+          const jobState = await existingJob.getState();
+          if (jobState === "active") {
+            throw new Error("Job activ in curs");
+          }
           await existingJob.remove();
         }
 
-        await queue.add(
-          "reprocess-errors-batch",
-          {
+        await enqueueImportJob({
+          queueName: QUEUES.PIPELINE_PROMOTE_BRONZE_SILVER,
+          jobName: "reprocess-errors-batch",
+          payload: {
             tenantId,
             batchId,
             reprocessErrorsOnly: true,
             correlationId: `resume-reprocess-errors-${batchId}-${Date.now()}`,
           },
-          {
+          opts: {
             jobId: reprocessJobId,
-            attempts: 1,
+            attempts: 5,
             priority: 1,
             backoff: { type: "exponential", delay: 5000 },
             removeOnComplete: 20,
             removeOnFail: 50,
           },
-        );
+          workerName: "promotion:bronze-silver",
+          stageKey: "promotion",
+          entityType: "batch",
+          entityId: batchId,
+          idempotencyScope: reprocessJobId,
+          sessionKind: "recovery",
+        });
       } finally {
         await queue.close();
       }
@@ -1607,7 +3864,10 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
         identityReprocessLastError: null,
         identityReprocessLastProgressAt: null,
         identityReprocessPhase: "resolve_identities",
+        identityReprocessCursorCreatedAt: null,
         identityReprocessCursorLastBronzeId: null,
+        identityReprocessCursorRowIndex: 0,
+        identityReprocessPromotionCursorCreatedAt: null,
         identityReprocessPromotionCursorLastBronzeId: null,
         identityReprocessMode: "errors_only",
         identityReprocessProcessedRows: 0,
@@ -1616,7 +3876,7 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
         identityReprocessIdentityConflictRows: 0,
         identityReprocessInsufficientIdentifierRows: 0,
         identityReprocessPromotionQueued: 0,
-        identityReprocessRunTotalRows: failedContacts.length,
+        identityReprocessRunTotalRows: failedContactCount,
       } satisfies BatchMetadata;
 
       await db
@@ -1624,7 +3884,7 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
         .set({ metadata: nextMetadata, updatedAt: new Date() })
         .where(sql`${bronzeImportBatches.id} = ${batchId}`);
 
-      return { success: true, data: { id: batchId, requeued: failedContacts.length } };
+      return { success: true, data: { id: batchId, requeued: failedContactCount } };
     },
   );
 
@@ -1721,7 +3981,7 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
       if (allCuis.length > 0) {
         await db.execute(
           sql`UPDATE bronze.bronze_contacts
-              SET metadata = COALESCE(metadata, '{}'::jsonb) || '{"anafBronzeEnrichmentStatus":"pending"}'::jsonb,
+              SET metadata = jsonb_set(COALESCE(metadata, '{}'::jsonb), '{anafBronzeEnrichmentStatus}', '"pending"'::jsonb),
                   updated_at = NOW()
               WHERE tenant_id = ${tenantId}
                 AND COALESCE(jsonb_extract_path_text(metadata, 'batchId'), '') = ${batchId}
@@ -1732,7 +3992,7 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
       if (nrRegComCount > 0) {
         await db.execute(
           sql`UPDATE bronze.bronze_contacts
-              SET metadata = COALESCE(metadata, '{}'::jsonb) || '{"anafBronzeEnrichmentStatus":"pending"}'::jsonb,
+              SET metadata = jsonb_set(COALESCE(metadata, '{}'::jsonb), '{anafBronzeEnrichmentStatus}', '"pending"'::jsonb),
                   updated_at = NOW()
               WHERE tenant_id = ${tenantId}
                 AND COALESCE(jsonb_extract_path_text(metadata, 'batchId'), '') = ${batchId}
@@ -1753,31 +4013,33 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
 
       const totalBatches = Math.ceil(allCuis.length / ANAF_BATCH_SIZE);
 
-      const queue = createQueue("enrich:bronze:anaf");
-      try {
-        for (let i = 0; i < totalBatches; i++) {
-          const cuiChunk = allCuis.slice(i * ANAF_BATCH_SIZE, (i + 1) * ANAF_BATCH_SIZE);
-          await queue.add(
-            "anaf-bronze-enrich",
-            {
-              tenantId,
-              batchId,
-              cuiList: cuiChunk,
-              bronzeContactIds: allBronzeIds,
-              correlationId: `manual-anaf-${batchId}-${Date.now()}`,
-              batchIndex: i,
-              totalBatches,
-            },
-            {
-              jobId: `anaf-bronze-${batchId}-manual-${i}`,
-              delay: i * ANAF_BATCH_DELAY_MS,
-              attempts: 5,
-              backoff: { type: "exponential", delay: 1000 },
-            },
-          );
-        }
-      } finally {
-        await queue.close();
+      for (let i = 0; i < totalBatches; i++) {
+        const cuiChunk = allCuis.slice(i * ANAF_BATCH_SIZE, (i + 1) * ANAF_BATCH_SIZE);
+        await enqueueImportJob({
+          queueName: QUEUES.ENRICH_BRONZE_ANAF,
+          jobName: "anaf-bronze-enrich",
+          payload: {
+            tenantId,
+            batchId,
+            cuiList: cuiChunk,
+            bronzeContactIds: allBronzeIds,
+            correlationId: `manual-anaf-${batchId}-${Date.now()}`,
+            batchIndex: i,
+            totalBatches,
+          },
+          opts: {
+            jobId: `anaf-bronze-${batchId}-manual-${i}`,
+            delay: i * ANAF_BATCH_DELAY_MS,
+            attempts: 5,
+            backoff: { type: "exponential", delay: 1000 },
+          },
+          workerName: "B5:anaf-bronze-enricher",
+          stageKey: "anaf_bronze",
+          entityType: "batch",
+          entityId: batchId,
+          idempotencyScope: `manual-anaf-${batchId}-${i}`,
+          sessionKind: "anaf",
+        });
       }
 
       // Update batch metadata
@@ -1834,7 +4096,378 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
         where: (t, { and, eq }) => and(eq(t.tenantId, tenantId), eq(t.id, parsed.data.id)),
       });
       if (!row) return reply.code(404).send({ success: false, error: "Import batch not found" });
+      if (
+        isImportBatchHidden(
+          ((row.metadata as Record<string, unknown> | null) ?? {}) as BatchMetadata,
+        )
+      ) {
+        return reply.code(404).send({ success: false, error: "Import batch not found" });
+      }
       return { success: true, data: await enrichImportBatch(tenantId, row) };
+    },
+  );
+
+  app.post(
+    "/imports/:id/pause",
+    {
+      ...operatorAuthOpts,
+      preHandler: [importMutationRateLimit],
+      schema: {
+        params: idParamsSchema,
+        response: {
+          200: successObjectResponseSchema,
+          400: errorResponseSchema,
+          404: errorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const tenantId = requireTenantId(request);
+      const actorId = getActorId(request);
+      const parsed = idParamsSchema.safeParse(request.params);
+      if (!parsed.success) {
+        return reply.code(400).send({ success: false, error: "Parametru id invalid" });
+      }
+
+      const batch = await db.query.bronzeImportBatches.findFirst({
+        where: (t, { and, eq }) => and(eq(t.tenantId, tenantId), eq(t.id, parsed.data.id)),
+      });
+      if (
+        !batch ||
+        isImportBatchHidden(
+          ((batch.metadata as Record<string, unknown> | null) ?? {}) as BatchMetadata,
+        )
+      ) {
+        return reply.code(404).send({ success: false, error: "Import batch not found" });
+      }
+
+      await setBatchImportPause({
+        tenantId,
+        batchId: parsed.data.id,
+        paused: true,
+        actorId,
+      });
+
+      const refreshed = await db.query.bronzeImportBatches.findFirst({
+        where: (t, { and, eq }) => and(eq(t.tenantId, tenantId), eq(t.id, parsed.data.id)),
+      });
+
+      return {
+        success: true,
+        data: {
+          id: parsed.data.id,
+          control: readBatchImportControlState(
+            ((refreshed?.metadata as Record<string, unknown> | null) ?? {}) as BatchMetadata,
+          ),
+        },
+      };
+    },
+  );
+
+  app.post(
+    "/imports/:id/resume",
+    {
+      ...operatorAuthOpts,
+      preHandler: [importMutationRateLimit],
+      schema: {
+        params: idParamsSchema,
+        body: z.object({
+          mode: z.enum(["resume", "recover"]).optional(),
+        }),
+        response: {
+          200: successObjectResponseSchema,
+          400: errorResponseSchema,
+          404: errorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const tenantId = requireTenantId(request);
+      const actorId = getActorId(request);
+      const parsed = idParamsSchema.safeParse(request.params);
+      const parsedBody = z
+        .object({ mode: z.enum(["resume", "recover"]).optional() })
+        .safeParse(request.body ?? {});
+      if (!parsed.success) {
+        return reply.code(400).send({ success: false, error: "Parametru id invalid" });
+      }
+
+      const batch = await db.query.bronzeImportBatches.findFirst({
+        where: (t, { and, eq }) => and(eq(t.tenantId, tenantId), eq(t.id, parsed.data.id)),
+      });
+      if (
+        !batch ||
+        isImportBatchHidden(
+          ((batch.metadata as Record<string, unknown> | null) ?? {}) as BatchMetadata,
+        )
+      ) {
+        return reply.code(404).send({ success: false, error: "Import batch not found" });
+      }
+
+      await setBatchImportPause({
+        tenantId,
+        batchId: parsed.data.id,
+        paused: false,
+        actorId,
+      });
+      const resumed = await resumeImportRuntimeJobs({
+        tenantId,
+        batchId: parsed.data.id,
+        mode: parsedBody.success ? parsedBody.data.mode : undefined,
+      });
+
+      const refreshed = await db.query.bronzeImportBatches.findFirst({
+        where: (t, { and, eq }) => and(eq(t.tenantId, tenantId), eq(t.id, parsed.data.id)),
+      });
+
+      return {
+        success: true,
+        data: {
+          id: parsed.data.id,
+          resumed,
+          control: readBatchImportControlState(
+            ((refreshed?.metadata as Record<string, unknown> | null) ?? {}) as BatchMetadata,
+          ),
+        },
+      };
+    },
+  );
+
+  app.post(
+    "/imports/:id/workers/:workerName/pause",
+    {
+      ...operatorAuthOpts,
+      preHandler: [importMutationRateLimit],
+      schema: {
+        params: z.object({ id: z.uuid(), workerName: z.string().min(1) }),
+        response: {
+          200: successObjectResponseSchema,
+          400: errorResponseSchema,
+          404: errorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const tenantId = requireTenantId(request);
+      const actorId = getActorId(request);
+      const parsed = z
+        .object({ id: z.uuid(), workerName: z.string().min(1) })
+        .safeParse(request.params);
+      if (!parsed.success) {
+        return reply.code(400).send({ success: false, error: "Parametri invalizi" });
+      }
+
+      const batch = await db.query.bronzeImportBatches.findFirst({
+        where: (t, { and, eq }) => and(eq(t.tenantId, tenantId), eq(t.id, parsed.data.id)),
+      });
+      if (
+        !batch ||
+        isImportBatchHidden(
+          ((batch.metadata as Record<string, unknown> | null) ?? {}) as BatchMetadata,
+        )
+      ) {
+        return reply.code(404).send({ success: false, error: "Import batch not found" });
+      }
+
+      await setBatchWorkerPause({
+        tenantId,
+        batchId: parsed.data.id,
+        workerName: parsed.data.workerName,
+        paused: true,
+        actorId,
+      });
+
+      return {
+        success: true,
+        data: {
+          id: parsed.data.id,
+          workerName: parsed.data.workerName,
+          paused: true,
+        },
+      };
+    },
+  );
+
+  app.post(
+    "/imports/:id/workers/:workerName/resume",
+    {
+      ...operatorAuthOpts,
+      preHandler: [importMutationRateLimit],
+      schema: {
+        params: z.object({ id: z.uuid(), workerName: z.string().min(1) }),
+        body: z.object({
+          mode: z.enum(["resume", "recover"]).optional(),
+        }),
+        response: {
+          200: successObjectResponseSchema,
+          400: errorResponseSchema,
+          404: errorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const tenantId = requireTenantId(request);
+      const actorId = getActorId(request);
+      const parsed = z
+        .object({ id: z.uuid(), workerName: z.string().min(1) })
+        .safeParse(request.params);
+      const parsedBody = z
+        .object({ mode: z.enum(["resume", "recover"]).optional() })
+        .safeParse(request.body ?? {});
+      if (!parsed.success) {
+        return reply.code(400).send({ success: false, error: "Parametri invalizi" });
+      }
+
+      const batch = await db.query.bronzeImportBatches.findFirst({
+        where: (t, { and, eq }) => and(eq(t.tenantId, tenantId), eq(t.id, parsed.data.id)),
+      });
+      if (
+        !batch ||
+        isImportBatchHidden(
+          ((batch.metadata as Record<string, unknown> | null) ?? {}) as BatchMetadata,
+        )
+      ) {
+        return reply.code(404).send({ success: false, error: "Import batch not found" });
+      }
+
+      await setBatchWorkerPause({
+        tenantId,
+        batchId: parsed.data.id,
+        workerName: parsed.data.workerName,
+        paused: false,
+        actorId,
+      });
+      const resumed = await resumeImportRuntimeJobs({
+        tenantId,
+        batchId: parsed.data.id,
+        workerName: parsed.data.workerName,
+        mode: parsedBody.success ? parsedBody.data.mode : undefined,
+      });
+
+      return {
+        success: true,
+        data: {
+          id: parsed.data.id,
+          workerName: parsed.data.workerName,
+          resumed,
+          paused: false,
+        },
+      };
+    },
+  );
+
+  app.delete(
+    "/imports/:id",
+    {
+      ...operatorAuthOpts,
+      preHandler: [importMutationRateLimit],
+      schema: {
+        params: idParamsSchema,
+        response: {
+          200: successObjectResponseSchema,
+          400: errorResponseSchema,
+          404: errorResponseSchema,
+          409: errorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const tenantId = requireTenantId(request);
+      const actorId = getActorId(request);
+      const parsed = idParamsSchema.safeParse(request.params);
+      if (!parsed.success) {
+        return reply.code(400).send({ success: false, error: "Parametru id invalid" });
+      }
+
+      const batch = await db.query.bronzeImportBatches.findFirst({
+        where: (t, { and, eq }) => and(eq(t.tenantId, tenantId), eq(t.id, parsed.data.id)),
+      });
+      if (!batch) {
+        return reply.code(404).send({ success: false, error: "Import batch not found" });
+      }
+      const currentMetadata = ((batch.metadata as Record<string, unknown> | null) ??
+        {}) as BatchMetadata;
+      if (isImportBatchHidden(currentMetadata)) {
+        return reply.code(404).send({ success: false, error: "Import batch not found" });
+      }
+      if (batch.status === "completed") {
+        return reply.code(409).send({
+          success: false,
+          error: "Doar importurile incomplete pot fi șterse",
+        });
+      }
+
+      await markImportBatchDeleteRequested({
+        tenantId,
+        batchId: parsed.data.id,
+        actorId,
+      });
+      await setBatchImportPause({
+        tenantId,
+        batchId: parsed.data.id,
+        paused: true,
+        actorId,
+      });
+
+      const activeRuntimeJobs = await db.execute<{ count: string }>(
+        sql`SELECT COUNT(*) AS count
+            FROM bronze.import_runtime_jobs
+            WHERE tenant_id = ${tenantId}
+              AND batch_id = ${parsed.data.id}
+              AND state = ANY(${["queued", "running", "recovering"]})`,
+      );
+      const hasActiveRuntimeJobs = Number(activeRuntimeJobs[0]?.count ?? 0) > 0;
+
+      let fileDeleted = false;
+      const storedPath =
+        typeof currentMetadata.storedPath === "string" ? currentMetadata.storedPath : null;
+      if (storedPath && !hasActiveRuntimeJobs) {
+        try {
+          await unlink(storedPath);
+          fileDeleted = true;
+        } catch (error) {
+          fileDeleted = (error as NodeJS.ErrnoException | undefined)?.code === "ENOENT";
+        }
+      }
+
+      const control = readBatchImportControlState(currentMetadata);
+      const nextMetadata: BatchMetadata = {
+        ...currentMetadata,
+        importExecutionControl: {
+          ...control,
+          batchPaused: true,
+          deleteRequested: true,
+          deleteRequestedAt: new Date().toISOString(),
+          deleteRequestedBy: actorId ?? null,
+          hidden: true,
+          deletedAt: new Date().toISOString(),
+          deletedBy: actorId ?? null,
+          fileDeleted,
+        },
+      };
+
+      const [updated] = await db
+        .update(bronzeImportBatches)
+        .set({
+          status: "cancelled",
+          metadata: nextMetadata,
+          updatedAt: new Date(),
+        })
+        .where(sql`${bronzeImportBatches.id} = ${parsed.data.id}`)
+        .returning();
+
+      return {
+        success: true,
+        data: {
+          id: parsed.data.id,
+          status: updated.status,
+          fileDeleted,
+          deletePending: hasActiveRuntimeJobs && !fileDeleted,
+          control: readBatchImportControlState(
+            ((updated.metadata as Record<string, unknown> | null) ?? {}) as BatchMetadata,
+          ),
+        },
+      };
     },
   );
 
@@ -1863,6 +4496,13 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
         where: (t, { and, eq }) => and(eq(t.tenantId, tenantId), eq(t.id, parsed.data.id)),
       });
       if (!batch) return reply.code(404).send({ success: false, error: "Import batch not found" });
+      if (
+        isImportBatchHidden(
+          ((batch.metadata as Record<string, unknown> | null) ?? {}) as BatchMetadata,
+        )
+      ) {
+        return reply.code(404).send({ success: false, error: "Import batch not found" });
+      }
 
       let resolvedFile;
       try {
@@ -1967,6 +4607,13 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
         where: (t, { and, eq }) => and(eq(t.tenantId, tenantId), eq(t.id, params.data.id)),
       });
       if (!batch) return reply.code(404).send({ success: false, error: "Import batch not found" });
+      if (
+        isImportBatchHidden(
+          ((batch.metadata as Record<string, unknown> | null) ?? {}) as BatchMetadata,
+        )
+      ) {
+        return reply.code(404).send({ success: false, error: "Import batch not found" });
+      }
 
       const limit = parseLimit(query.data.limit, 100);
       const offset = parseOffset(query.data.offset, 0);
@@ -2055,6 +4702,13 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
         where: (t, { and, eq }) => and(eq(t.tenantId, tenantId), eq(t.id, params.data.id)),
       });
       if (!batch) return reply.code(404).send({ success: false, error: "Import batch not found" });
+      if (
+        isImportBatchHidden(
+          ((batch.metadata as Record<string, unknown> | null) ?? {}) as BatchMetadata,
+        )
+      ) {
+        return reply.code(404).send({ success: false, error: "Import batch not found" });
+      }
 
       const limit = parseLimit(query.data.limit, 100);
       const offset = parseOffset(query.data.offset, 0);
@@ -2188,6 +4842,8 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
       const storedPath = `${IMPORT_DIR}/${randomUUID()}-${sanitizeImportFilename(part.filename)}`;
       await writeFile(storedPath, bytes);
 
+      const fileHash = createHash("sha256").update(bytes).digest("hex");
+
       const [batch] = await db
         .insert(bronzeImportBatches)
         .values({
@@ -2199,6 +4855,7 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
           metadata: {
             mimetype: part.mimetype,
             storedPath,
+            fileHash,
             uploadConfig: {
               hasHeader: uploadConfig.hasHeader,
               encoding: uploadConfig.encoding,
@@ -2212,21 +4869,29 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
         .returning();
 
       const queueName = isCsv ? "ingest:csv" : "ingest:excel";
-      const queue = createQueue(queueName);
-      await queue.add("ingest", {
-        tenantId,
-        batchId: batch.id,
-        filePath: storedPath,
-        fileName: part.filename,
-        fileSize: bytes.length,
-        hasHeader: uploadConfig.hasHeader,
-        encoding: uploadConfig.encoding,
-        delimiter: uploadConfig.delimiter,
-        sheetName: uploadConfig.sheetName,
-        columnMapping: uploadConfig.mapping,
-        correlationId: `import-${batch.id}`,
+      await enqueueImportJob({
+        queueName,
+        jobName: "ingest",
+        payload: {
+          tenantId,
+          batchId: batch.id,
+          filePath: storedPath,
+          fileName: part.filename,
+          fileSize: bytes.length,
+          hasHeader: uploadConfig.hasHeader,
+          encoding: uploadConfig.encoding,
+          delimiter: uploadConfig.delimiter,
+          sheetName: uploadConfig.sheetName,
+          columnMapping: uploadConfig.mapping,
+          correlationId: `import-${batch.id}`,
+        },
+        workerName: isCsv ? "A1:csv-parser" : "A2:excel-parser",
+        stageKey: "ingest",
+        entityType: "batch",
+        entityId: batch.id,
+        idempotencyScope: batch.id,
+        sessionKind: "ingest",
       });
-      await queue.close();
 
       return reply.code(201).send({ success: true, data: batch });
     },
@@ -2376,23 +5041,31 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
         .returning();
 
       const queueName = isExcel ? "ingest:excel" : "ingest:csv";
-      const queue = createQueue(queueName);
-      await queue.add("ingest", {
-        tenantId,
-        batchId: existing.id,
-        filePath: resolvedFile.storedPath,
-        fileName: existing.filename,
-        fileSize: existing.fileSizeBytes,
-        hasHeader: uploadConfig.hasHeader ?? true,
-        encoding: uploadConfig.encoding ?? "utf-8",
-        delimiter: uploadConfig.delimiter ?? null,
-        sheetName: uploadConfig.sheetName ?? null,
-        columnMapping: effectiveMapping,
-        skipRows: resumeFrom.processedRows,
-        resumeFrom,
-        correlationId: `retry-${existing.id}-${Date.now()}`,
+      await enqueueImportJob({
+        queueName,
+        jobName: "ingest",
+        payload: {
+          tenantId,
+          batchId: existing.id,
+          filePath: resolvedFile.storedPath,
+          fileName: existing.filename,
+          fileSize: existing.fileSizeBytes,
+          hasHeader: uploadConfig.hasHeader ?? true,
+          encoding: uploadConfig.encoding ?? "utf-8",
+          delimiter: uploadConfig.delimiter ?? null,
+          sheetName: uploadConfig.sheetName ?? null,
+          columnMapping: effectiveMapping,
+          skipRows: resumeFrom.processedRows,
+          resumeFrom,
+          correlationId: `retry-${existing.id}-${Date.now()}`,
+        },
+        workerName: isExcel ? "A2:excel-parser" : "A1:csv-parser",
+        stageKey: "ingest",
+        entityType: "batch",
+        entityId: existing.id,
+        idempotencyScope: `retry-${existing.id}`,
+        sessionKind: "retry",
       });
-      await queue.close();
 
       return { success: true, data: updated };
     },
@@ -2513,13 +5186,22 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
       if (!contact)
         return reply.code(404).send({ success: false, error: "Bronze contact not found" });
 
-      const queue = createQueue("pipeline:promote:bronze-silver");
-      await queue.add("reprocess", {
-        tenantId,
-        bronzeContactId: contact.id,
-        correlationId: `reprocess-${contact.id}`,
+      await enqueueImportJob({
+        queueName: QUEUES.PIPELINE_PROMOTE_BRONZE_SILVER,
+        jobName: "reprocess",
+        payload: {
+          tenantId,
+          bronzeContactId: contact.id,
+          correlationId: `reprocess-${contact.id}`,
+        },
+        workerName: "promotion:bronze-silver",
+        stageKey: "promotion",
+        entityType: "bronze_contact",
+        entityId: contact.id,
+        contactId: contact.id,
+        idempotencyScope: contact.id,
+        sessionKind: "recovery",
       });
-      await queue.close();
 
       await db
         .update(bronzeContacts)
@@ -2527,6 +5209,93 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
         .where(sql`${bronzeContacts.id} = ${contact.id}`);
 
       return { success: true, data: { id: contact.id, requeued: true } };
+    },
+  );
+
+  app.get(
+    "/imports/:id/job-logs",
+    {
+      ...authOpts,
+      schema: {
+        tags: ["etapa1-imports"],
+        summary: "Get per-worker job logs for a specific import batch",
+        params: idParamsSchema,
+        querystring: z.object({
+          level: z.enum(["info", "warn", "error", "step"]).optional(),
+          worker: z.string().optional(),
+          jobId: z.string().optional(),
+          bronzeContactId: z.uuid().optional(),
+          tail: z.coerce.boolean().optional(),
+          limit: z.coerce.number().int().min(1).max(2000).optional(),
+          offset: z.coerce.number().int().min(0).optional(),
+        }),
+        response: {
+          200: successListResponseSchema,
+          400: errorResponseSchema,
+          404: errorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const tenantId = requireTenantId(request);
+      const parsedParams = idParamsSchema.safeParse(request.params);
+      if (!parsedParams.success)
+        return reply.code(400).send({ success: false, error: "Parametru id invalid" });
+
+      const querySchema = z.object({
+        level: z.enum(["info", "warn", "error", "step"]).optional(),
+        worker: z.string().optional(),
+        jobId: z.string().optional(),
+        bronzeContactId: z.uuid().optional(),
+        tail: z.coerce.boolean().default(false),
+        limit: z.coerce.number().int().min(1).max(2000).default(100),
+        offset: z.coerce.number().int().min(0).default(0),
+      });
+      const parsedQuery = querySchema.safeParse(request.query);
+      if (!parsedQuery.success)
+        return reply
+          .code(400)
+          .send({ success: false, error: "Query invalid", details: parsedQuery.error.issues });
+
+      const batchId = parsedParams.data.id;
+      const { level, worker, jobId, bronzeContactId, tail, limit, offset } = parsedQuery.data;
+
+      const batch = await db.query.bronzeImportBatches.findFirst({
+        where: (t, { and, eq }) => and(eq(t.tenantId, tenantId), eq(t.id, batchId)),
+        columns: { id: true },
+      });
+      if (!batch) return reply.code(404).send({ success: false, error: "Import batch not found" });
+
+      const filters = [
+        sql`${jobLogs.tenantId} = ${tenantId}`,
+        sql`${jobLogs.batchId} = ${batchId}`,
+      ];
+      if (level) filters.push(sql`${jobLogs.level} = ${level === "step" ? "debug" : level}`);
+      if (worker) filters.push(sql`${jobLogs.workerName} = ${worker}`);
+      if (jobId) filters.push(sql`${jobLogs.jobId} = ${jobId}`);
+      if (bronzeContactId) filters.push(sql`${jobLogs.contactId} = ${bronzeContactId}`);
+      const where = sql.join(filters, sql` AND `);
+
+      await setSessionTenantId(tenantId);
+      const [rows, [{ total }]] = await Promise.all([
+        db
+          .select()
+          .from(jobLogs)
+          .where(where)
+          .orderBy(sql`${jobLogs.createdAt} ${sql.raw(tail ? "DESC" : "ASC")}`)
+          .limit(limit)
+          .offset(offset),
+        db
+          .select({ total: sql<number>`COUNT(*)` })
+          .from(jobLogs)
+          .where(where),
+      ]);
+
+      return {
+        success: true,
+        data: rows.map((row) => buildJobLogResponseRow(row)),
+        meta: { total: Number(total), limit, offset },
+      };
     },
   );
 }

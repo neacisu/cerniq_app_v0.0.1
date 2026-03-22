@@ -97,15 +97,15 @@ export const contactPageScraperProcessor: Processor<ContactPageScraperJobData> =
       email: mainEmail ?? undefined,
       telefon: mainPhone ?? undefined,
       adresa: found.address ?? undefined,
-      metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify({
-        contactScraper: {
+      metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{contactScraper}', ${JSON.stringify(
+        {
           sourceUrl: found.sourceUrl,
           emails: found.emails,
           phones: found.phones,
           address: found.address,
           scrapedAt: new Date().toISOString(),
         },
-      })}::jsonb`,
+      )}::jsonb)`,
       lastEnrichedAt: new Date(),
     })
     .where(sql`${silverCompanies.id} = ${job.data.companyId}`);

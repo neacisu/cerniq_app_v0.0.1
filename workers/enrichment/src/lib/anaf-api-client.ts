@@ -1,67 +1,8 @@
-import { webcrypto } from "node:crypto";
 import { createCircuitBreaker, withExternalApiMetrics } from "@cerniq/worker-shared";
 
-const ANAF_API_URL =
-  process.env.ANAF_API_URL || "https://webservicesp.anaf.ro/api/PlatitorTvaRest/v9/tva";
 const ANAF_TIMEOUT_MS = Number(process.env.ANAF_API_TIMEOUT_MS ?? "25000");
-const ANAF_MIN_DELAY_MS = Number(process.env.ANAF_MIN_DELAY_MS ?? "1000");
-const ANAF_MAX_DELAY_MS = Number(process.env.ANAF_MAX_DELAY_MS ?? "4000");
 
-function randomDelay(): Promise<void> {
-  // Use CSPRNG (WebCrypto) instead of Math.random() — Uint32 gives 32 bits
-  // of entropy; dividing by 0xFFFFFFFF maps uniformly to [0, 1].
-  const [rand] = webcrypto.getRandomValues(new Uint32Array(1));
-  const ms = ANAF_MIN_DELAY_MS + (rand / 0xffffffff) * (ANAF_MAX_DELAY_MS - ANAF_MIN_DELAY_MS);
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-export type AnafRecord = Record<string, unknown>;
-
-async function callAnaf(cleanCui: string): Promise<AnafRecord | null> {
-  await randomDelay();
-  const payload = [
-    { cui: Number.parseInt(cleanCui, 10), data: new Date().toISOString().split("T")[0] },
-  ];
-  const response = await fetch(ANAF_API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-    signal: AbortSignal.timeout(ANAF_TIMEOUT_MS),
-  });
-
-  if (!response.ok) {
-    throw new Error(`ANAF API error: ${response.status}`);
-  }
-
-  const data = (await response.json()) as unknown;
-  if (Array.isArray(data) && data.length > 0 && typeof data[0] === "object") {
-    return data[0] as AnafRecord;
-  }
-  if (
-    data &&
-    typeof data === "object" &&
-    "found" in data &&
-    Array.isArray((data as { found: unknown[] }).found) &&
-    (data as { found: unknown[] }).found.length > 0
-  ) {
-    return (data as { found: AnafRecord[] }).found[0];
-  }
-
-  return null;
-}
-
-const anafBreaker = createCircuitBreaker(callAnaf, "anaf-api-client", {
-  timeout: ANAF_TIMEOUT_MS,
-  errorThresholdPercentage: 50,
-  resetTimeout: 30000,
-  volumeThreshold: 5,
-});
-
-export async function fetchAnafRecordByCui(cleanCui: string): Promise<AnafRecord | null> {
-  return withExternalApiMetrics("anaf", () => anafBreaker.fire(cleanCui));
-}
-
-// ── ANAF v9 Batch API ───────────────────────────────────────────────
+// ── ANAF v9 Batch API (single source of truth) ─────────────────────
 
 const ANAF_V9_URL =
   process.env.ANAF_V9_URL ?? "https://webservicesp.anaf.ro/api/PlatitorTvaRest/v9/tva";
@@ -204,4 +145,10 @@ export async function fetchAnafBatchByCuis(cuis: string[]): Promise<AnafV9BatchR
   const numericCuis = cuis.map((c) => Number.parseInt(c, 10)).filter((n) => !Number.isNaN(n));
   if (numericCuis.length === 0) return { found: new Map(), notFound: [] };
   return withExternalApiMetrics("anaf_v9", () => anafV9Breaker.fire(numericCuis));
+}
+
+export async function fetchAnafSingleByCui(cleanCui: string): Promise<AnafV9CompanyRecord | null> {
+  const result = await fetchAnafBatchByCuis([cleanCui]);
+  const cuiNum = Number.parseInt(cleanCui, 10);
+  return result.found.get(cuiNum) ?? null;
 }

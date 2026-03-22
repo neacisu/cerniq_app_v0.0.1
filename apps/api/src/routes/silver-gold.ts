@@ -68,6 +68,12 @@ function buildGoldCompanyConditions(tenantId: string, q: GoldCompanyQuery) {
     )`;
     conditions.push(q.isAgricultural ? agriFilter : sql`NOT ${agriFilter}`);
   }
+  if (q.notInOutreach === true) {
+    conditions.push(sql`NOT EXISTS (
+      SELECT 1 FROM outreach.lead_journey lj
+      WHERE lj.tenant_id = ${tenantId}::uuid AND lj.lead_id = ${goldCompanies.id}
+    )`);
+  }
   return conditions;
 }
 

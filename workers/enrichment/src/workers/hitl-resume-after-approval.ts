@@ -13,6 +13,7 @@ import {
   hitlTasksResolvedTotal,
   hitlResolutionTimeSeconds,
   createQueue,
+  QUEUES,
 } from "@cerniq/worker-shared";
 import { addQueueJob, patchCompanyMetadata } from "./pipeline-utils.js";
 import { z } from "zod";
@@ -93,12 +94,14 @@ async function handleDedupReview(context: ApprovalContext): Promise<ResumeProces
       status: merged ? "merged" : "rejected",
       masterCompanyId: merged ? companyBId : undefined,
       updatedAt: new Date(),
-      metadata: sql`COALESCE(${silverDedupCandidates.metadata}, '{}'::jsonb) || ${JSON.stringify({
-        hitlDecision: merged ? "merge" : "reject",
-        approvalTaskId: context.task.id,
-        decidedAt: getDecisionTimestamp(context.task),
-        decisionMetadata: context.decisionMetadata,
-      })}::jsonb`,
+      metadata: sql`jsonb_set(COALESCE(${silverDedupCandidates.metadata}, '{}'::jsonb), '{hitlDecision}', ${JSON.stringify(
+        {
+          decision: merged ? "merge" : "reject",
+          approvalTaskId: context.task.id,
+          decidedAt: getDecisionTimestamp(context.task),
+          decisionMetadata: context.decisionMetadata,
+        },
+      )}::jsonb)`,
     })
     .where(
       sql`${silverDedupCandidates.tenantId} = ${context.task.tenantId}
@@ -111,7 +114,7 @@ async function handleDedupReview(context: ApprovalContext): Promise<ResumeProces
     .set({ dedupStatus: merged ? "merged" : "rejected", updatedAt: new Date() })
     .where(sql`${silverCompanies.id} = ${companyAId}`);
 
-  await addQueueJob("pipeline:orchestrate", {
+  await addQueueJob(QUEUES.PIPELINE_ORCHESTRATE, {
     tenantId: context.task.tenantId,
     companyId: companyAId,
     stage: "post_enrichment",
@@ -129,16 +132,18 @@ async function handleQualityReview(context: ApprovalContext): Promise<ResumeProc
     .set({
       promotionStatus: approved ? "eligible" : "blocked",
       updatedAt: new Date(),
-      metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify({
-        hitlQualityDecision: approved ? "approved" : "rejected",
-        approvalTaskId: context.task.id,
-        decisionMetadata: context.decisionMetadata,
-      })}::jsonb`,
+      metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{hitlQualityDecision}', ${JSON.stringify(
+        {
+          decision: approved ? "approved" : "rejected",
+          approvalTaskId: context.task.id,
+          decisionMetadata: context.decisionMetadata,
+        },
+      )}::jsonb)`,
     })
     .where(sql`${silverCompanies.id} = ${companyId}`);
 
   if (approved) {
-    await addQueueJob("pipeline:promote:gold", {
+    await addQueueJob(QUEUES.PIPELINE_PROMOTE_TO_GOLD, {
       tenantId: context.task.tenantId,
       companyId,
       force: true,
@@ -157,7 +162,7 @@ async function handleAiReview(context: ApprovalContext): Promise<ResumeProcessor
     hitlAiDecisionMetadata: context.decisionMetadata,
     hitlAiDecisionAt: getDecisionTimestamp(context.task),
   });
-  await addQueueJob("pipeline:orchestrate", {
+  await addQueueJob(QUEUES.PIPELINE_ORCHESTRATE, {
     tenantId: context.task.tenantId,
     companyId: context.task.entityId,
     stage: "post_enrichment",
@@ -363,7 +368,7 @@ async function handleIdentityConflict(context: ApprovalContext): Promise<ResumeP
     })
     .where(sql`${bronzeContacts.id} = ${bronzeContactId}`);
 
-  await addQueueJob("pipeline:promote:bronze-silver", {
+  await addQueueJob(QUEUES.PIPELINE_PROMOTE_BRONZE_SILVER, {
     tenantId: context.task.tenantId,
     bronzeContactId,
     correlationId: context.correlationId,
@@ -376,7 +381,7 @@ export const hitlResumeAfterApprovalProcessor: Processor<HitlResumeAfterApproval
   job,
 ) => {
   validateJobData(hitlResumeAfterApprovalJobDataSchema, job.data, {
-    queueName: "hitl:resume",
+    queueName: QUEUES.HITL_RESUME_AFTER_APPROVAL,
     jobId: job.id,
   });
   await setSessionTenantId(job.data.tenantId);

@@ -31,7 +31,7 @@ const ROMANIAN_PREFIXES: Record<string, { carrier: string; type: "MOBILE" | "FIX
 };
 
 function normalizeToNational(phone: string): string {
-  return phone.replace(/^\+40/, "0").replace(/^40/, "0").replace(/[^\d]/g, "");
+  return phone.replace(/^\+40/, "0").replace(/^40/, "0").replaceAll(/[^\d]/g, "");
 }
 
 function detectCarrier(phone: string): { carrier: string; type: "MOBILE" | "FIXED" } | null {
@@ -63,7 +63,7 @@ export const carrierDetectionProcessor: Processor<CarrierDetectionJobData> = asy
     await db
       .update(silverCompanies)
       .set({
-        metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify(patch)}::jsonb`,
+        metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{carrierDetection}', ${JSON.stringify(patch.carrierDetection)}::jsonb)`,
         updatedAt: new Date(),
       })
       .where(sql`${silverCompanies.id} = ${job.data.entityId}`);
@@ -71,7 +71,7 @@ export const carrierDetectionProcessor: Processor<CarrierDetectionJobData> = asy
     await db
       .update(silverContacts)
       .set({
-        metadata: sql`COALESCE(${silverContacts.metadata}, '{}'::jsonb) || ${JSON.stringify(patch)}::jsonb`,
+        metadata: sql`jsonb_set(COALESCE(${silverContacts.metadata}, '{}'::jsonb), '{carrierDetection}', ${JSON.stringify(patch.carrierDetection)}::jsonb)`,
         updatedAt: new Date(),
       })
       .where(sql`${silverContacts.id} = ${job.data.entityId}`);

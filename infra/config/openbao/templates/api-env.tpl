@@ -22,6 +22,7 @@ Version: 1.0
 {{- if eq $env "staging" -}}{{- $db = "cerniq_staging" -}}{{- end -}}
 {{- with secret "cerniq-db/creds/api-dynamic" }}
 DATABASE_URL=postgresql://{{ .Data.username }}:{{ .Data.password }}@pgbouncer:64033/{{ $db }}
+DATABASE_DIRECT_URL=postgresql://{{ .Data.username }}:{{ .Data.password }}@10.0.1.107:5432/{{ $db }}
 POSTGRES_USER={{ .Data.username }}
 POSTGRES_PASSWORD={{ .Data.password }}
 {{- end }}

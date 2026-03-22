@@ -7,7 +7,7 @@ import {
   silverEnrichmentLog,
   sql,
 } from "@cerniq/db";
-import { hunterDomainSearch } from "../lib/hunter-api-client.js";
+import { hunterDomainSearch, type HunterEmailRecord } from "../lib/hunter-api-client.js";
 
 export type HunterEmailJobData = {
   tenantId: string;
@@ -54,6 +54,64 @@ function extractDomain(input: string | null | undefined): string | null {
   }
 }
 
+function resolveContactFunctie(
+  emailData: HunterEmailRecord,
+  fallback?: string | null,
+): string | undefined {
+  if (emailData.position) return emailData.position;
+  if (emailData.department) return emailData.department;
+  return fallback || undefined;
+}
+
+async function upsertHunterContact(
+  tenantId: string,
+  companyId: string,
+  emailData: HunterEmailRecord,
+): Promise<{ value: string; confidence: number } | null> {
+  const email = (emailData.value ?? "").trim().toLowerCase();
+  if (!email || isGenericEmail(email)) return null;
+
+  const existing = await db.query.silverContacts.findFirst({
+    where: (t, { and, eq }) =>
+      and(eq(t.tenantId, tenantId), eq(t.companyId, companyId), eq(t.email, email)),
+  });
+
+  const confidence = Number(emailData.confidence ?? 0);
+  const emailVerified = (emailData.verification?.status ?? "").toLowerCase() === "valid";
+  const prenume = emailData.first_name;
+  const nume = emailData.last_name;
+  const linkedinUrl = emailData.linkedin;
+
+  if (existing) {
+    await db
+      .update(silverContacts)
+      .set({
+        emailVerified,
+        prenume: prenume ?? existing.prenume ?? undefined,
+        nume: nume ?? existing.nume ?? undefined,
+        functie: resolveContactFunctie(emailData, existing.functie),
+        linkedinUrl: linkedinUrl || existing.linkedinUrl || undefined,
+        metadata: sql`jsonb_set(jsonb_set(COALESCE(${silverContacts.metadata}, '{}'::jsonb), '{hunter}', ${JSON.stringify(emailData)}::jsonb), '{emailConfidence}', ${JSON.stringify(confidence)}::jsonb)`,
+        updatedAt: new Date(),
+      })
+      .where(sql`${silverContacts.id} = ${existing.id}`);
+  } else {
+    await db.insert(silverContacts).values({
+      tenantId,
+      companyId,
+      prenume,
+      nume,
+      email,
+      emailVerified,
+      functie: resolveContactFunctie(emailData),
+      linkedinUrl,
+      metadata: { source: "hunter_email", hunter: emailData, emailConfidence: confidence },
+    });
+  }
+
+  return { value: email, confidence };
+}
+
 export const hunterEmailFinderProcessor: Processor<HunterEmailJobData> = async (job) => {
   const startedAt = Date.now();
   await setSessionTenantId(job.data.tenantId);
@@ -61,14 +119,10 @@ export const hunterEmailFinderProcessor: Processor<HunterEmailJobData> = async (
   const company = await db.query.silverCompanies.findFirst({
     where: (t, { and, eq }) => and(eq(t.tenantId, job.data.tenantId), eq(t.id, job.data.companyId)),
   });
-  if (!company) {
-    return { ok: false, status: "not_found", reason: "company_missing" };
-  }
+  if (!company) return { ok: false, status: "not_found", reason: "company_missing" };
 
   const domain = extractDomain(job.data.domain ?? company.website);
-  if (!domain) {
-    return { ok: true, status: "skipped", reason: "missing_domain" };
-  }
+  if (!domain) return { ok: true, status: "skipped", reason: "missing_domain" };
 
   const response = await hunterDomainSearch(domain);
   if (!response || response.emails.length === 0) {
@@ -79,72 +133,9 @@ export const hunterEmailFinderProcessor: Processor<HunterEmailJobData> = async (
   let bestEmail: { value: string; confidence: number } | null = null;
 
   for (const emailData of response.emails) {
-    const email = String(emailData.value ?? "")
-      .trim()
-      .toLowerCase();
-    if (!email || isGenericEmail(email)) continue;
-
-    const existing = await db.query.silverContacts.findFirst({
-      where: (t, { and, eq }) =>
-        and(
-          eq(t.tenantId, job.data.tenantId),
-          eq(t.companyId, job.data.companyId),
-          eq(t.email, email),
-        ),
-    });
-
-    const confidence = Number(emailData.confidence ?? 0);
-    const emailVerified = String(emailData.verification?.status ?? "").toLowerCase() === "valid";
-    const prenume = typeof emailData.first_name === "string" ? emailData.first_name : undefined;
-    const nume = typeof emailData.last_name === "string" ? emailData.last_name : undefined;
-
-    if (existing) {
-      await db
-        .update(silverContacts)
-        .set({
-          emailVerified,
-          prenume: prenume ?? existing.prenume ?? undefined,
-          nume: nume ?? existing.nume ?? undefined,
-          functie:
-            (typeof emailData.position === "string" && emailData.position) ||
-            (typeof emailData.department === "string" && emailData.department) ||
-            existing.functie ||
-            undefined,
-          linkedinUrl:
-            (typeof emailData.linkedin === "string" && emailData.linkedin) ||
-            existing.linkedinUrl ||
-            undefined,
-          metadata: sql`COALESCE(${silverContacts.metadata}, '{}'::jsonb) || ${JSON.stringify({
-            hunter: emailData,
-            emailConfidence: confidence,
-          })}::jsonb`,
-          updatedAt: new Date(),
-        })
-        .where(sql`${silverContacts.id} = ${existing.id}`);
-    } else {
-      await db.insert(silverContacts).values({
-        tenantId: job.data.tenantId,
-        companyId: job.data.companyId,
-        prenume,
-        nume,
-        email,
-        emailVerified,
-        functie:
-          (typeof emailData.position === "string" && emailData.position) ||
-          (typeof emailData.department === "string" && emailData.department) ||
-          undefined,
-        linkedinUrl: typeof emailData.linkedin === "string" ? emailData.linkedin : undefined,
-        metadata: {
-          source: "hunter_email",
-          hunter: emailData,
-          emailConfidence: confidence,
-        },
-      });
-    }
-
-    if (!bestEmail || confidence > bestEmail.confidence) {
-      bestEmail = { value: email, confidence };
-    }
+    const stored = await upsertHunterContact(job.data.tenantId, job.data.companyId, emailData);
+    if (!stored) continue;
+    if (!bestEmail || stored.confidence > bestEmail.confidence) bestEmail = stored;
     storedCount += 1;
   }
 
@@ -154,14 +145,14 @@ export const hunterEmailFinderProcessor: Processor<HunterEmailJobData> = async (
       email: bestEmail?.value ?? company.email ?? undefined,
       enrichmentStatus: "in_progress",
       lastEnrichedAt: new Date(),
-      metadata: sql`COALESCE(${silverCompanies.metadata}, '{}'::jsonb) || ${JSON.stringify({
-        hunterEmail: {
+      metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{hunterEmail}', ${JSON.stringify(
+        {
           domain,
           found: response.emails.length,
           stored: storedCount,
           bestEmail,
         },
-      })}::jsonb`,
+      )}::jsonb)`,
     })
     .where(sql`${silverCompanies.id} = ${job.data.companyId}`);
 

@@ -5,6 +5,12 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
+function mockSharedTypes() {
+  vi.doMock("@cerniq/shared-types", () => ({
+    buildColumnAliasToTargetMap: vi.fn(() => new Map()),
+  }));
+}
+
 function mockWorkerShared() {
   return {
     QUEUES: {
@@ -25,6 +31,7 @@ function mockWorkerShared() {
 
 describe("ingest-utils", () => {
   it("splits oversized bronze inserts into smaller chunks", async () => {
+    mockSharedTypes();
     let currentPayload: Array<Record<string, unknown>> = [];
     let idCounter = 0;
 
@@ -75,6 +82,7 @@ describe("ingest-utils", () => {
   });
 
   it("turns a poison row into errorRows instead of failing the whole import", async () => {
+    mockSharedTypes();
     let currentPayload: Array<Record<string, unknown>> = [];
 
     const returning = vi.fn(async () => {
@@ -124,5 +132,89 @@ describe("ingest-utils", () => {
       }),
     ]);
     expect(values).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("normalizeRow", () => {
+  it("at target collision, keeps first value (not last)", async () => {
+    mockSharedTypes();
+    vi.doMock("@cerniq/db", () => ({
+      db: {},
+      bronzeContacts: { id: "id" },
+      bronzeImportBatches: { id: "id", metadata: "metadata" },
+      computeStableSourcePayloadHash: vi.fn(() => "hash"),
+      resolveBronzeContactIdentity: vi.fn(async () => ({ status: "resolved" as const })),
+      setSessionTenantId: vi.fn(async () => undefined),
+      sql: (parts: TemplateStringsArray) => parts.join(""),
+    }));
+    vi.doMock("@cerniq/worker-shared", mockWorkerShared);
+    vi.doMock("../lib/cui-validation.js", () => ({
+      sanitizeCui: vi.fn((v: string) => v || null),
+    }));
+    vi.doMock("./pipeline-utils.js", () => ({
+      createHitlApprovalTask: vi.fn(async () => undefined),
+    }));
+
+    const { normalizeRow } = await import("./ingest-utils.js");
+
+    const mapping = { col_a: "companyName", col_b: "companyName" };
+    const row = { col_a: "First Value", col_b: "Second Value" };
+    const result = normalizeRow(row, mapping);
+
+    expect(result.companyName).toBe("First Value");
+  });
+});
+
+describe("contentHash (order-independent)", () => {
+  it("produces the same hash regardless of key order", async () => {
+    const { createHash } = await import("node:crypto");
+
+    const row1 = { cui: "12345678", companyName: "Test SRL", email: "test@test.ro" };
+    const row2 = { email: "test@test.ro", companyName: "Test SRL", cui: "12345678" };
+
+    const hash1 = createHash("sha256")
+      .update(
+        JSON.stringify(
+          row1,
+          Object.keys(row1).sort((a, b) => a.localeCompare(b)),
+        ),
+      )
+      .digest("hex");
+    const hash2 = createHash("sha256")
+      .update(
+        JSON.stringify(
+          row2,
+          Object.keys(row2).sort((a, b) => a.localeCompare(b)),
+        ),
+      )
+      .digest("hex");
+
+    expect(hash1).toBe(hash2);
+  });
+
+  it("produces different hashes for different values", async () => {
+    const { createHash } = await import("node:crypto");
+
+    const row1 = { cui: "12345678", companyName: "Test SRL" };
+    const row2 = { cui: "87654321", companyName: "Test SRL" };
+
+    const hash1 = createHash("sha256")
+      .update(
+        JSON.stringify(
+          row1,
+          Object.keys(row1).sort((a, b) => a.localeCompare(b)),
+        ),
+      )
+      .digest("hex");
+    const hash2 = createHash("sha256")
+      .update(
+        JSON.stringify(
+          row2,
+          Object.keys(row2).sort((a, b) => a.localeCompare(b)),
+        ),
+      )
+      .digest("hex");
+
+    expect(hash1).not.toBe(hash2);
   });
 });

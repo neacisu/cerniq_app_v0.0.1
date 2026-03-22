@@ -71,6 +71,8 @@ export type GoldCompaniesParams = {
   assignedTo?: string;
   unassigned?: boolean;
   doNotContact?: boolean;
+  /** Exclude companii care au deja rând în Etapa 2 (`outreach.lead_journey`). */
+  notInOutreach?: boolean;
   minLeadScore?: number;
   maxLeadScore?: number;
   isAgricultural?: boolean;
@@ -344,6 +346,275 @@ export async function fetchPromoteJobStatus(id: string) {
   return api.get<ApiObjectResponse<PromoteJobStatus>>(`/api/v1/imports/${id}/promote-job-status`);
 }
 
+export type ImportPipelineStatus = {
+  batchId: string;
+  batchStatus: string;
+  totalRows: number;
+  successRows: number;
+  reprocessJob: {
+    state: string;
+    isStale: boolean;
+    isBacklogged: boolean;
+    jobId: string | null;
+    attemptsMade: number;
+    maxAttempts: number;
+    failedReason: string | null;
+    stacktrace: string | null;
+    processedOn: string | null;
+    finishedOn: string | null;
+    lastProgressAt: string | null;
+    dbStatus: string;
+    phase: string | null;
+    processed: number;
+    total: number;
+    counterDrift: boolean;
+    resolved: number;
+    duplicateSource: number;
+    identityConflict: number;
+    insufficientIdentifiers: number;
+    failedContacts: number;
+    promotionQueued: number;
+    startedAt: string | null;
+    completedAt: string | null;
+    failedAt: string | null;
+    sessionStartedAt: string | null;
+    mode: string | null;
+  } | null;
+  promotionQueue: {
+    waiting: number;
+    active: number;
+    completed: number;
+    failed: number;
+    delayed: number;
+  };
+  globalControl?: ImportGlobalControlState | null;
+  batchControl?: ImportBatchControlState | null;
+  workerControls?: ImportWorkerControlState[];
+  anafProgress?: ImportAnafProgress | null;
+  promotionMetrics?: ImportPromotionMetrics | null;
+  legacyTelemetry?: boolean;
+};
+
+export async function fetchImportPipelineStatus(id: string) {
+  return api.get<ApiObjectResponse<ImportPipelineStatus>>(`/api/v1/imports/${id}/pipeline-status`);
+}
+
+export type ImportRuntimeJob = {
+  key: string;
+  source: "bullmq" | "job_logs" | "silver_logs" | "runtime" | "merged";
+  state: string;
+  workerName: string;
+  queueName: string;
+  jobId: string | null;
+  bronzeContactId: string | null;
+  entityId: string | null;
+  entityType: string | null;
+  correlationId: string | null;
+  level: JobLogLevel | null;
+  step: string | null;
+  message: string | null;
+  progress: number | null;
+  attemptsMade: number;
+  maxAttempts: number;
+  failedReason: string | null;
+  createdAt: string | null;
+  processedOn: string | null;
+  finishedOn: string | null;
+  lastEventAt: string | null;
+  durationMs: number | null;
+};
+
+export type ImportRuntimeWorker = {
+  workerName: string;
+  label: string;
+  stage: string;
+  queueName: string;
+  description: string;
+  control?: {
+    globalPaused?: boolean;
+    batchPaused?: boolean;
+    workerPaused?: boolean;
+  };
+  counts: {
+    waiting: number;
+    active: number;
+    delayed: number;
+    prioritized: number;
+    failedLive: number;
+    observedCompleted: number;
+    observedWarnings: number;
+    observedErrors: number;
+    observedLogs: number;
+    observedJobs: number;
+    pausedJobs?: number;
+    skippedJobs?: number;
+    totalUnits?: number;
+    processedUnits?: number;
+    successUnits?: number;
+    failedUnits?: number;
+    insertedUnits?: number;
+    updatedUnits?: number;
+  };
+  jobs: ImportRuntimeJob[];
+};
+
+export type ImportGlobalControlState = {
+  globalPaused: boolean;
+  pausedAt: string | null;
+  pausedBy: string | null;
+  resumeRequestedAt: string | null;
+  version: number;
+};
+
+export type ImportBatchControlState = {
+  batchPaused: boolean;
+  pausedAt: string | null;
+  pausedBy: string | null;
+  resumeRequestedAt: string | null;
+  workerPauses: Record<string, boolean>;
+  deleteRequested: boolean;
+  deleteRequestedAt: string | null;
+  deleteRequestedBy: string | null;
+  hidden: boolean;
+  deletedAt: string | null;
+  deletedBy: string | null;
+  fileDeleted: boolean;
+};
+
+export type ImportWorkerControlState = {
+  workerName: string;
+  control: {
+    globalPaused?: boolean;
+    batchPaused?: boolean;
+    workerPaused?: boolean;
+  };
+};
+
+export type ImportAnafProgress = {
+  state: string;
+  totalCuis: number;
+  processedCuis: number;
+  totalBatches: number;
+  processedBatches: number;
+  failedBatches: number;
+  heartbeatAt: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  throughput: number | null;
+};
+
+export type ImportPromotionMetrics = {
+  scopeTotal: number;
+  processed: number;
+  completed: number;
+  failed: number;
+  skipped: number;
+  running: number;
+  paused: number;
+  silverContactsInitial: number;
+  silverContactsPromotedDuringSession: number;
+  silverContactsCurrent: number;
+  externalDelta: number;
+};
+
+export type ImportRuntimeTopology = {
+  batchId: string;
+  batchStatus: string;
+  legacyTelemetry?: boolean;
+  session?: {
+    id: string;
+    kind: string;
+    status: string;
+    label: string | null;
+    startedAt: string | null;
+    completedAt: string | null;
+    failedAt: string | null;
+    pausedAt: string | null;
+    lastHeartbeatAt: string | null;
+    updatedAt: string | null;
+  } | null;
+  control?: {
+    global: ImportGlobalControlState;
+    batch: ImportBatchControlState;
+  };
+  anafProgress?: ImportAnafProgress | null;
+  promotionMetrics?: ImportPromotionMetrics | null;
+  workers: ImportRuntimeWorker[];
+  totals: {
+    logsLoaded: number;
+    workersDefined: number;
+    liveWaiting: number;
+    liveActive: number;
+    liveDelayed: number;
+    liveFailed: number;
+    observedJobs: number;
+  };
+};
+
+export async function fetchImportRuntimeTopology(
+  id: string,
+  params: {
+    session?: string;
+    worker?: string;
+    state?: string;
+    search?: string;
+    limit?: number;
+  } = {},
+) {
+  const query = new URLSearchParams();
+  appendParams(query, params);
+  return api.get<ApiObjectResponse<ImportRuntimeTopology>>(
+    `/api/v1/imports/${id}/runtime-topology?${query}`,
+  );
+}
+
+export async function fetchImportControl() {
+  return api.get<ApiObjectResponse<ImportGlobalControlState>>("/api/v1/imports/control");
+}
+
+export async function pauseImportsGlobal() {
+  return api.post<ApiObjectResponse<ImportGlobalControlState>>("/api/v1/imports/control/pause");
+}
+
+export async function resumeImportsGlobal(mode?: "resume" | "recover") {
+  return api.post<ApiObjectResponse<Record<string, unknown>>>("/api/v1/imports/control/resume", {
+    ...(mode ? { mode } : {}),
+  });
+}
+
+export async function pauseImportBatch(id: string) {
+  return api.post<ApiObjectResponse<Record<string, unknown>>>(`/api/v1/imports/${id}/pause`);
+}
+
+export async function resumeImportBatch(id: string, mode?: "resume" | "recover") {
+  return api.post<ApiObjectResponse<Record<string, unknown>>>(`/api/v1/imports/${id}/resume`, {
+    ...(mode ? { mode } : {}),
+  });
+}
+
+export async function pauseImportWorker(id: string, workerName: string) {
+  return api.post<ApiObjectResponse<Record<string, unknown>>>(
+    `/api/v1/imports/${id}/workers/${encodeURIComponent(workerName)}/pause`,
+  );
+}
+
+export async function resumeImportWorker(
+  id: string,
+  workerName: string,
+  mode?: "resume" | "recover",
+) {
+  return api.post<ApiObjectResponse<Record<string, unknown>>>(
+    `/api/v1/imports/${id}/workers/${encodeURIComponent(workerName)}/resume`,
+    {
+      ...(mode ? { mode } : {}),
+    },
+  );
+}
+
+export async function deleteImportBatch(id: string) {
+  return api.delete<ApiObjectResponse<Record<string, unknown>>>(`/api/v1/imports/${id}`);
+}
+
 export async function resumePromoteJob(id: string) {
   return api.post<ApiObjectResponse<Record<string, unknown>>>(
     `/api/v1/imports/${id}/resume-promote`,
@@ -430,6 +701,7 @@ export async function fetchGoldCompanies(params: GoldCompaniesParams = {}) {
     assignedTo: params.assignedTo,
     unassigned: params.unassigned,
     doNotContact: params.doNotContact,
+    notInOutreach: params.notInOutreach,
     minLeadScore: params.minLeadScore,
     maxLeadScore: params.maxLeadScore,
     isAgricultural: params.isAgricultural,
@@ -682,4 +954,47 @@ export async function decideDedupPair(
       masterCompanyId,
     },
   );
+}
+
+// ── Job Logs ────────────────────────────────────────────────────────────────
+
+export type JobLogLevel = "info" | "warn" | "error" | "step";
+
+export type JobLog = {
+  id: string;
+  tenantId: string;
+  batchId: string | null;
+  bronzeContactId: string | null;
+  workerName: string;
+  jobId: string | null;
+  step: string;
+  level: JobLogLevel;
+  message: string;
+  details: Record<string, unknown> | null;
+  durationMs: number | null;
+  createdAt: string;
+};
+
+export type JobLogsParams = {
+  level?: JobLogLevel;
+  worker?: string;
+  jobId?: string;
+  bronzeContactId?: string;
+  tail?: boolean;
+  limit?: number;
+  offset?: number;
+};
+
+export async function fetchImportJobLogs(batchId: string, params: JobLogsParams = {}) {
+  const query = new URLSearchParams();
+  appendParams(query, {
+    level: params.level,
+    worker: params.worker,
+    jobId: params.jobId,
+    bronzeContactId: params.bronzeContactId,
+    tail: params.tail,
+    limit: params.limit ?? 200,
+    offset: params.offset ?? 0,
+  });
+  return api.get<ApiListResponse<JobLog>>(`/api/v1/imports/${batchId}/job-logs?${query}`);
 }
