@@ -140,13 +140,14 @@ describe("getImportExecutionContext", () => {
 
   it("returns the full context when all required fields are present", () => {
     const ctx = getImportExecutionContext({ importExecution: VALID_EXECUTION });
-    expect(ctx).not.toBeNull();
-    expect(ctx!.tenantId).toBe("tenant-aaa");
-    expect(ctx!.batchId).toBe("batch-bbb");
-    expect(ctx!.sessionId).toBe("session-ccc");
-    expect(ctx!.runtimeJobKey).toBe("a1-csv-parser:deadbeef012345678901abcd");
-    expect(ctx!.workerName).toBe("a1-csv-parser");
-    expect(ctx!.stageKey).toBe("parse");
+    expect(ctx).toMatchObject({
+      tenantId: "tenant-aaa",
+      batchId: "batch-bbb",
+      sessionId: "session-ccc",
+      runtimeJobKey: "a1-csv-parser:deadbeef012345678901abcd",
+      workerName: "a1-csv-parser",
+      stageKey: "parse",
+    });
   });
 
   it("sets optional string fields when provided", () => {
@@ -161,12 +162,14 @@ describe("getImportExecutionContext", () => {
         idempotencyScope: "scope-a",
       },
     });
-    expect(ctx!.entityType).toBe("company");
-    expect(ctx!.entityId).toBe("ent-001");
-    expect(ctx!.correlationId).toBe("corr-xyz");
-    expect(ctx!.queueName).toBe("ingest:csv");
-    expect(ctx!.parentRuntimeJobKey).toBe("parent-key");
-    expect(ctx!.idempotencyScope).toBe("scope-a");
+    expect(ctx).toMatchObject({
+      entityType: "company",
+      entityId: "ent-001",
+      correlationId: "corr-xyz",
+      queueName: "ingest:csv",
+      parentRuntimeJobKey: "parent-key",
+      idempotencyScope: "scope-a",
+    });
   });
 
   it("nullifies optional fields when their type is wrong", () => {
@@ -180,16 +183,19 @@ describe("getImportExecutionContext", () => {
       },
     });
     expect(ctx).not.toBeNull();
-    expect(ctx!.entityType).toBeNull();
-    expect(ctx!.entityId).toBeNull();
-    expect(ctx!.correlationId).toBeNull();
-    expect(ctx!.queueName).toBeNull();
+    expect(ctx).toMatchObject({
+      entityType: null,
+      entityId: null,
+      correlationId: null,
+      queueName: null,
+    });
   });
 
   it("returns null for parentRuntimeJobKey when its type is wrong", () => {
     const ctx = getImportExecutionContext({
       importExecution: { ...VALID_EXECUTION, parentRuntimeJobKey: 42 },
     });
-    expect(ctx!.parentRuntimeJobKey).toBeNull();
+    expect(ctx).not.toBeNull();
+    expect(ctx).toMatchObject({ parentRuntimeJobKey: null });
   });
 });
