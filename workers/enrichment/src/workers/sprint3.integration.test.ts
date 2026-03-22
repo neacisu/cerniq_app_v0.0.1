@@ -34,9 +34,16 @@ describe("S3.PR8 integration - full pipeline Bronze -> Silver -> Gold", () => {
       metadata: { agriculturalCrops: true },
     };
 
-    const insertReturning = vi.fn(async () => [{ id: GOLD_COMPANY_ID }]);
+    const insertReturning = vi.fn(async () => [
+      { id: GOLD_COMPANY_ID, silverId: SILVER_COMPANY_ID },
+    ]);
     const onConflictDoNothing = vi.fn(() => ({ returning: insertReturning }));
-    const insertValues = vi.fn(() => ({ onConflictDoNothing, returning: insertReturning }));
+    const onConflictDoUpdate = vi.fn(() => ({ returning: insertReturning }));
+    const insertValues = vi.fn(() => ({
+      onConflictDoNothing,
+      onConflictDoUpdate,
+      returning: insertReturning,
+    }));
     const whereUpdate = vi.fn(async () => undefined);
     const setUpdate = vi.fn(() => ({ where: whereUpdate }));
 
@@ -44,6 +51,7 @@ describe("S3.PR8 integration - full pipeline Bronze -> Silver -> Gold", () => {
       query: {
         silverCompanies: { findFirst: vi.fn(async () => silverRow) },
         goldCompanies: { findFirst: vi.fn(async () => null) },
+        silverContacts: { findMany: vi.fn(async () => []) },
       },
       insert: vi.fn(() => ({ values: insertValues })),
       update: vi.fn(() => ({ set: setUpdate })),
@@ -232,6 +240,12 @@ describe("S3.PR8 integration - HITL decision flow", () => {
         add: vi.fn(async () => undefined),
         close: vi.fn(async () => undefined),
       })),
+      QUEUES: {
+        PIPELINE_PROMOTE_BRONZE_SILVER: "pipeline:promote:bronze-silver",
+        PIPELINE_PROMOTE_TO_GOLD: "pipeline:promote:to-gold",
+        PIPELINE_ORCHESTRATE: "pipeline:orchestrate",
+        HITL_RESUME_AFTER_APPROVAL: "hitl:resume-after-approval",
+      },
     }));
     vi.doMock("@cerniq/db", () => ({
       db: {

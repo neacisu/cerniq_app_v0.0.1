@@ -38,6 +38,13 @@ function mockWorkerShared() {
       add: vi.fn(async () => undefined),
       close: vi.fn(async () => undefined),
     })),
+    enqueueImportJob: vi.fn(async () => ({
+      queued: true,
+      jobId: "test-job",
+      sessionId: null,
+      runtimeJobKey: null,
+    })),
+    enqueueImportJobBulk: vi.fn(async () => []),
     QUEUES: {
       VALIDATE_CUI_MOD11: "validate:cui:mod11",
       PIPELINE_PROMOTE_BRONZE_SILVER: "pipeline:promote:bronze-silver",

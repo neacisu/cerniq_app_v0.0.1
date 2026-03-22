@@ -5,9 +5,9 @@ describe("Navigation Config", () => {
   it("has 7 sections", () => {
     expect(navigation).toHaveLength(7);
   });
-  it("has 32 total items", () => {
+  it("has 35 total items", () => {
     const total = navigation.reduce((sum, s) => sum + s.items.length, 0);
-    expect(total).toBe(32);
+    expect(total).toBe(35);
   });
   it("Dashboard is first item", () => {
     expect(navigation[0].items[0].path).toBe("/dashboard");
@@ -18,7 +18,7 @@ describe("Navigation Config", () => {
     expect(approvals?.icon).toBe("ClipboardList");
   });
   it("Leads exists in Etapa 2 navigation", () => {
-    const leads = navigation[2].items.find((i) => i.path === "/leads");
+    const leads = navigation[2].items.find((i) => i.path === "/outreach/leads");
     expect(leads?.label).toBe("Leads");
     expect(leads?.icon).toBe("Users");
   });

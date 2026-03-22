@@ -44,6 +44,11 @@ describe("S4 integration - quality rollup", () => {
         add: vi.fn(async () => undefined),
         close: vi.fn(async () => undefined),
       })),
+      QUEUES: {
+        PIPELINE_PROMOTE_TO_GOLD: "pipeline:promote:to-gold",
+        PIPELINE_ORCHESTRATE: "pipeline:orchestrate",
+        PIPELINE_PROMOTE_BRONZE_SILVER: "pipeline:promote:bronze-silver",
+      },
     }));
     vi.doMock("./pipeline-utils.js", () => ({ createHitlApprovalTask: vi.fn(async () => "a1") }));
 
@@ -234,6 +239,12 @@ describe("S4 integration - HITL resume worker", () => {
         add: vi.fn(async () => undefined),
         close: vi.fn(async () => undefined),
       })),
+      QUEUES: {
+        PIPELINE_PROMOTE_TO_GOLD: "pipeline:promote:to-gold",
+        PIPELINE_ORCHESTRATE: "pipeline:orchestrate",
+        PIPELINE_PROMOTE_BRONZE_SILVER: "pipeline:promote:bronze-silver",
+        HITL_RESUME_AFTER_APPROVAL: "hitl:resume-after-approval",
+      },
     }));
     vi.doMock("@cerniq/db", () => ({
       db: {
@@ -276,7 +287,7 @@ describe("S4 integration - HITL resume worker", () => {
 
     expect(set).toHaveBeenCalled();
     expect(addQueueJob).toHaveBeenCalledWith(
-      "pipeline:promote:gold",
+      "pipeline:promote:to-gold",
       expect.objectContaining({ tenantId: TENANT_ID, companyId: COMPANY_ID, force: true }),
     );
     expect(patchCompanyMetadata).not.toHaveBeenCalled();

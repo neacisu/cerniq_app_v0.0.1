@@ -23,9 +23,18 @@ export function processSpintax(template: string, variables: Record<string, strin
 }
 
 function processSpintaxGroups(text: string): string {
+  // Protect {{variable}} double-brace placeholders from being consumed by
+  // the single-brace spintax regex. Each placeholder is replaced with a
+  // Unicode Private-Use-Area fence that cannot appear in normal template content.
+  const protected_vars: string[] = [];
+  const guarded = text.replace(/\{\{\w+\}\}/g, (match) => {
+    protected_vars.push(match);
+    return `\uE001${protected_vars.length - 1}\uE001`;
+  });
+
   // Find the innermost {a|b} groups first (no nested braces)
   const innerPattern = /\{([^{}]+)\}/g;
-  let result = text;
+  let result = guarded;
   let hasMore = true;
 
   while (hasMore) {
@@ -37,7 +46,8 @@ function processSpintaxGroups(text: string): string {
     });
   }
 
-  return result;
+  // Restore {{variable}} placeholders
+  return result.replace(/\uE001(\d+)\uE001/g, (_, idx) => protected_vars[Number(idx)] ?? "");
 }
 
 /**

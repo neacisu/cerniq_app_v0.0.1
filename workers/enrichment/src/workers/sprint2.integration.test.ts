@@ -54,13 +54,18 @@ describe("S2.PR8 integration - CSV -> Bronze", () => {
     }));
     vi.doMock("@cerniq/db", () => ({
       db: {
+        query: {
+          bronzeImportBatches: { findFirst: vi.fn(async () => null) },
+        },
         update: vi.fn(() => ({
           set: vi.fn(() => ({
             where: vi.fn(async () => undefined),
           })),
         })),
+        insert: vi.fn(() => ({ values: vi.fn(async () => undefined) })),
       },
       bronzeImportBatches: { id: "id", metadata: "metadata" },
+      jobLogs: {},
       sql: (parts: TemplateStringsArray) => parts.join(""),
     }));
 
@@ -207,6 +212,12 @@ describe("S2.PR8 integration - CSV -> Bronze -> Silver promotion", () => {
     };
 
     const addMock = vi.fn(async (_name: string, _payload: unknown) => undefined);
+    const enqueueImportJobMock = vi.fn(async () => ({
+      queued: true,
+      jobId: "promote-test",
+      sessionId: null,
+      runtimeJobKey: null,
+    }));
 
     vi.doMock("@cerniq/db", () => ({
       db: dbMock,
@@ -229,6 +240,11 @@ describe("S2.PR8 integration - CSV -> Bronze -> Silver promotion", () => {
         add: addMock,
         close: vi.fn(async () => undefined),
       })),
+      enqueueImportJob: enqueueImportJobMock,
+      enqueueImportJobBulk: vi.fn(async () => []),
+      QUEUES: {
+        PIPELINE_PROMOTE_BRONZE_SILVER: "pipeline:promote:bronze-silver",
+      },
       createCircuitBreaker: vi.fn((fn: (...a: unknown[]) => unknown) => ({
         fire: (...args: unknown[]) => fn(...args),
         on: vi.fn(),
@@ -257,10 +273,15 @@ describe("S2.PR8 integration - CSV -> Bronze -> Silver promotion", () => {
     } as never);
 
     expect(dbMock.transaction).toHaveBeenCalled();
-    expect(addMock).toHaveBeenCalledWith(
-      expect.stringContaining("promote"),
-      expect.objectContaining({ tenantId: TENANT_ID, bronzeContactId: BRONZE_CONTACT_ID }),
-      expect.objectContaining({ jobId: expect.stringContaining("promote-") }),
+    expect(enqueueImportJobMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        queueName: "pipeline:promote:bronze-silver",
+        jobName: expect.stringContaining("promote"),
+        payload: expect.objectContaining({
+          tenantId: TENANT_ID,
+          bronzeContactId: BRONZE_CONTACT_ID,
+        }),
+      }),
     );
     expect(result).toMatchObject({ ok: true });
   });
