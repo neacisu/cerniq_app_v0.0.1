@@ -9,6 +9,7 @@ import {
 } from "./normalization-utils.js";
 import { jobsProcessed, jobDuration, jobErrors } from "../lib/worker-metrics.js";
 import { classifyAndRethrow } from "../lib/error-classification.js";
+import { createJobLogger } from "../lib/job-logger.js";
 
 export type PhoneNormalizerJobData = BronzeNormalizationJobData & {
   countryCode?: string;
@@ -18,10 +19,28 @@ const MOBILE_PREFIXES = new Set(["72", "73", "74", "75", "76", "77", "78", "79"]
 
 export const phoneNormalizerProcessor: Processor<PhoneNormalizerJobData> = async (job) => {
   const startedAt = Date.now();
+  const batchId =
+    typeof job.data.batchId === "string" && job.data.batchId.length > 0
+      ? job.data.batchId
+      : undefined;
+  const log = createJobLogger({
+    batchId,
+    tenantId: job.data.tenantId,
+    workerName: "B3:phone-normalizer",
+    jobId: String(job.id ?? ""),
+    startedAt,
+  }).forContact(job.data.bronzeContactId);
   try {
+    log.step("start", "Pornire normalizare telefon", {
+      bronzeContactId: job.data.bronzeContactId,
+      countryCode: job.data.countryCode ?? "RO",
+    });
     const contact = await getBronzeContactForTenant(job.data.tenantId, job.data.bronzeContactId);
     const rawPhone = typeof contact.extractedPhone === "string" ? contact.extractedPhone : null;
     if (!rawPhone) {
+      log.done("phone_skip", "Telefon lipsă — normalizare sărită", {
+        bronzeContactId: job.data.bronzeContactId,
+      });
       return { ok: true, status: "skipped", reason: "empty_phone" };
     }
 
@@ -64,6 +83,14 @@ export const phoneNormalizerProcessor: Processor<PhoneNormalizerJobData> = async
       job.data.correlationId,
     );
 
+    log.done(isValid ? "done" : "phone_invalid", "Normalizare telefon finalizată", {
+      original: rawPhone,
+      e164,
+      national,
+      isValid,
+      phoneType,
+      country: parsed?.country ?? defaultCountry,
+    });
     return {
       ok: true,
       status: isValid ? "success" : "invalid",
@@ -74,6 +101,12 @@ export const phoneNormalizerProcessor: Processor<PhoneNormalizerJobData> = async
       phoneType,
     };
   } catch (error) {
+    const errMsg = error instanceof Error ? error.message : String(error);
+    log.error("fatal", `Normalizare telefon eșuată: ${errMsg}`, {
+      bronzeContactId: job.data.bronzeContactId,
+      errorMessage: errMsg,
+      errorStack: error instanceof Error ? error.stack : undefined,
+    });
     jobErrors.add(1, { worker: "b3-phone-normalizer" });
     classifyAndRethrow(error);
   } finally {

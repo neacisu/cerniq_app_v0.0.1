@@ -8,6 +8,7 @@ import {
 import { jobsProcessed, jobDuration, jobErrors } from "../lib/worker-metrics.js";
 import { classifyAndRethrow } from "../lib/error-classification.js";
 import { stripDiacritics } from "../lib/diacritics.js";
+import { createJobLogger } from "../lib/job-logger.js";
 
 export type AddressNormalizerJobData = BronzeNormalizationJobData;
 
@@ -81,11 +82,28 @@ const ADDRESS_ABBREVIATIONS: Record<string, string> = {
 
 export const addressNormalizerProcessor: Processor<AddressNormalizerJobData> = async (job) => {
   const startedAt = Date.now();
+  const batchId =
+    typeof job.data.batchId === "string" && job.data.batchId.length > 0
+      ? job.data.batchId
+      : undefined;
+  const log = createJobLogger({
+    batchId,
+    tenantId: job.data.tenantId,
+    workerName: "B4:address-normalizer",
+    jobId: String(job.id ?? ""),
+    startedAt,
+  }).forContact(job.data.bronzeContactId);
   try {
+    log.step("start", "Pornire normalizare adresă", {
+      bronzeContactId: job.data.bronzeContactId,
+    });
     const contact = await getBronzeContactForTenant(job.data.tenantId, job.data.bronzeContactId);
     const rawAddress =
       typeof contact.extractedAddress === "string" ? contact.extractedAddress : null;
     if (!rawAddress) {
+      log.done("address_skip", "Adresă lipsă — normalizare sărită", {
+        bronzeContactId: job.data.bronzeContactId,
+      });
       return { ok: true, status: "skipped", reason: "empty_address" };
     }
 
@@ -140,6 +158,11 @@ export const addressNormalizerProcessor: Processor<AddressNormalizerJobData> = a
       job.data.correlationId,
     );
 
+    log.done("done", "Normalizare adresă finalizată", {
+      original: rawAddress,
+      normalizedAddress,
+      countyCode: county,
+    });
     return {
       ok: true,
       status: "success",
@@ -147,6 +170,12 @@ export const addressNormalizerProcessor: Processor<AddressNormalizerJobData> = a
       countyCode: county,
     };
   } catch (error) {
+    const errMsg = error instanceof Error ? error.message : String(error);
+    log.error("fatal", `Normalizare adresă eșuată: ${errMsg}`, {
+      bronzeContactId: job.data.bronzeContactId,
+      errorMessage: errMsg,
+      errorStack: error instanceof Error ? error.stack : undefined,
+    });
     jobErrors.add(1, { worker: "b4-address-normalizer" });
     classifyAndRethrow(error);
   } finally {

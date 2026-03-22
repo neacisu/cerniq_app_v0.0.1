@@ -7,7 +7,14 @@ import {
   silverEnrichmentLog,
   sql,
 } from "@cerniq/db";
-import { createQueue, hitlTasksCreatedTotal, getRetryStrategy } from "@cerniq/worker-shared";
+import type { JobsOptions } from "bullmq";
+import {
+  enqueueImportJob,
+  getImportExecutionContext,
+  getRetryStrategy,
+  hitlTasksCreatedTotal,
+  type ImportRuntimeSessionKind,
+} from "@cerniq/worker-shared";
 
 export async function resolveRequesterUserId(tenantId: string): Promise<string | null> {
   if (process.env.SYSTEM_USER_ID) return process.env.SYSTEM_USER_ID;
@@ -95,26 +102,57 @@ export async function createHitlApprovalTask(args: {
   return taskId;
 }
 
-export async function addQueueJob(queueName: string, payload: Record<string, unknown>) {
-  const queue = createQueue(queueName);
+export async function addQueueJob(
+  queueName: string,
+  payload: Record<string, unknown>,
+  options?: {
+    jobName?: string;
+    opts?: JobsOptions;
+    workerName?: string;
+    stageKey?: string;
+    entityType?: string | null;
+    entityId?: string | null;
+    contactId?: string | null;
+    sessionKind?: ImportRuntimeSessionKind;
+    idempotencyScope?: string | null;
+  },
+) {
   const payloadForId = {
     tenantId: typeof payload.tenantId === "string" ? payload.tenantId : null,
     companyId: typeof payload.companyId === "string" ? payload.companyId : null,
     entityId: typeof payload.entityId === "string" ? payload.entityId : null,
     stage: typeof payload.stage === "string" ? payload.stage : null,
     source: typeof payload.source === "string" ? payload.source : null,
-    explicitKey: typeof payload.idempotencyKey === "string" ? payload.idempotencyKey : null,
+    explicitKey:
+      options?.idempotencyScope ??
+      (typeof payload.idempotencyKey === "string" ? payload.idempotencyKey : null),
   };
   const deterministicHash = createHash("sha256")
     .update(JSON.stringify(payloadForId))
     .digest("hex")
     .slice(0, 20);
+  const parentImportExecution = getImportExecutionContext(payload);
   const retryStrategy = getRetryStrategy(queueName);
-  await queue.add("process", payload, {
-    jobId: `${queueName}:${deterministicHash}`,
-    ...retryStrategy,
+
+  return enqueueImportJob({
+    queueName,
+    jobName: options?.jobName ?? "process",
+    payload,
+    opts: {
+      jobId: `${queueName}:${deterministicHash}`,
+      ...retryStrategy,
+      ...options?.opts,
+    },
+    parentImportExecution,
+    importExecution: parentImportExecution,
+    workerName: options?.workerName ?? queueName,
+    stageKey: options?.stageKey,
+    entityType: options?.entityType ?? null,
+    entityId: options?.entityId ?? null,
+    contactId: options?.contactId ?? null,
+    sessionKind: options?.sessionKind,
+    idempotencyScope: options?.idempotencyScope ?? payloadForId.explicitKey,
   });
-  await queue.close();
 }
 
 export async function patchCompanyMetadata(

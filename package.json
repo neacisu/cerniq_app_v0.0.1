@@ -7,6 +7,11 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
+    "db:generate": "pnpm --filter @cerniq/db db:generate",
+    "db:push": "pnpm --filter @cerniq/db db:push",
+    "db:studio": "pnpm --filter @cerniq/db db:studio",
+    "db:seed": "pnpm --filter @cerniq/db db:seed",
+    "db:migrate": "pnpm --filter @cerniq/db db:migrate",
     "diagnostics:inventory": "node ./infra/scripts/build-diagnostics-inventory.mjs",
     "diagnostics:inventory:all": "node ./infra/scripts/build-diagnostics-inventory.mjs",
     "diagnostics:inventory:ts": "node ./infra/scripts/build-diagnostics-inventory.mjs --extensions=.ts,.tsx",

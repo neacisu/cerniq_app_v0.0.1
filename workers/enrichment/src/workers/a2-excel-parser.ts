@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import type { Processor } from "bullmq";
 import ExcelJS from "exceljs";
 import { bronzeImportBatches, db, sql } from "@cerniq/db";
+import { updateImportRuntimeProgress, type ImportExecutionContext } from "@cerniq/worker-shared";
 import { jobsProcessed, jobDuration, jobErrors } from "../lib/worker-metrics.js";
 import { createJobLogger } from "../lib/job-logger.js";
 import {
@@ -35,6 +36,7 @@ export type ExcelParserJobData = {
     lastSheetIndex?: number;
     lastRowNumber?: number;
   };
+  importExecution?: ImportExecutionContext;
   correlationId: string;
 };
 
@@ -237,6 +239,36 @@ async function flushWorksheetBuffer(
     })
     .where(sql`${bronzeImportBatches.id} = ${job.data.batchId}`);
 
+  await updateImportRuntimeProgress(job as never, {
+    checkpointPayload: {
+      processedRows: state.totalRowsRead,
+      successRows: state.totalRowsInserted,
+      errorRows: state.totalErrorRows,
+      duplicateRows: state.totalDuplicateRows,
+      lastSheetIndex: currentSheetIndex,
+      lastRowNumber: currentRowNumber,
+    },
+    resumePayload: {
+      ...job.data,
+      skipRows: state.totalRowsRead,
+      resumeFrom: {
+        processedRows: state.totalRowsRead,
+        successRows: state.totalRowsInserted,
+        errorRows: state.totalErrorRows,
+        duplicateRows: state.totalDuplicateRows,
+        lastSheetIndex: currentSheetIndex,
+        lastRowNumber: currentRowNumber,
+      },
+    },
+    counterDelta: {
+      totalUnits: batch.length,
+      processedUnits: batch.length,
+      successUnits: rowsInserted,
+      failedUnits: errorRows,
+      skippedUnits: duplicateRows,
+    },
+  });
+
   return processableIds;
 }
 
@@ -422,12 +454,15 @@ export const excelParserProcessor: Processor<ExcelParserJobData> = async (job) =
       job.data.tenantId,
       state.allInsertedIds,
       job.data.correlationId,
+      job.data.batchId,
+      job.data.importExecution ?? null,
     );
     await triggerAnafBronzeEnrichment(
       job.data.tenantId,
       job.data.batchId,
       state.allInsertedIds,
       job.data.correlationId,
+      job.data.importExecution ?? null,
     );
 
     log.step(

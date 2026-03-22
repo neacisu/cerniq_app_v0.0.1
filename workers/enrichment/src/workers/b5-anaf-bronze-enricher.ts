@@ -1,6 +1,10 @@
 import type { Processor } from "bullmq";
 import { bronzeContacts, bronzeImportBatches, db, sql } from "@cerniq/db";
-import { sanitizeNrRegCom } from "@cerniq/worker-shared";
+import {
+  sanitizeNrRegCom,
+  type ImportExecutionContext,
+  updateImportRuntimeProgress,
+} from "@cerniq/worker-shared";
 import { jobsProcessed, jobDuration, jobErrors } from "../lib/worker-metrics.js";
 import { fetchAnafBatchByCuis, type AnafV9CompanyRecord } from "../lib/anaf-api-client.js";
 import { triggerCuiValidationIfPossible } from "./normalization-utils.js";
@@ -14,6 +18,7 @@ export type AnafBronzeEnricherJobData = {
   correlationId: string;
   batchIndex: number;
   totalBatches: number;
+  importExecution?: ImportExecutionContext;
 };
 
 type ContactTrigger = { bronzeContactId: string; cui: string | null; nrRegCom: string | null };
@@ -266,7 +271,14 @@ export const anafBronzeEnricherProcessor: Processor<AnafBronzeEnricherJobData> =
       if (triggeredCuis.has(dedupeKey)) continue;
       triggeredCuis.add(dedupeKey);
       triggeredCount++;
-      await triggerCuiValidationIfPossible(tenantId, bronzeContactId, cui, nrRegCom, correlationId);
+      await triggerCuiValidationIfPossible(
+        tenantId,
+        bronzeContactId,
+        cui,
+        nrRegCom,
+        correlationId,
+        job.data.importExecution ?? null,
+      );
     }
 
     log.step(
@@ -310,6 +322,28 @@ export const anafBronzeEnricherProcessor: Processor<AnafBronzeEnricherJobData> =
         { error: progressError instanceof Error ? progressError.message : String(progressError) },
       );
     }
+
+    await updateImportRuntimeProgress(job as never, {
+      checkpointPayload: {
+        batchIndex,
+        totalBatches,
+        processedBatches: batchIndex + 1,
+        processedCuis: batchIndex * 100 + cuiList.length,
+      },
+      resumePayload: job.data,
+      workerMetrics: {
+        totalBatches,
+        processedBatches: batchIndex + 1,
+        totalCuis: job.data.totalBatches * 100,
+        processedCuis: batchIndex * 100 + cuiList.length,
+      },
+      counterDelta: {
+        totalUnits: cuiList.length,
+        processedUnits: cuiList.length,
+        successUnits: result.found.size,
+        failedUnits: result.notFound.length,
+      },
+    });
 
     log.step("done", `Batch ANAF ${batchIndex + 1}/${totalBatches} procesat cu succes`, {
       batchIndex,

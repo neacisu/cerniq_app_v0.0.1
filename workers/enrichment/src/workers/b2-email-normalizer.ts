@@ -7,6 +7,7 @@ import {
 } from "./normalization-utils.js";
 import { jobsProcessed, jobDuration, jobErrors } from "../lib/worker-metrics.js";
 import { classifyAndRethrow } from "../lib/error-classification.js";
+import { createJobLogger } from "../lib/job-logger.js";
 
 export type EmailNormalizerJobData = BronzeNormalizationJobData;
 
@@ -48,10 +49,27 @@ function normalizeEmail(email: string, stripPlusAlias = true): string {
 
 export const emailNormalizerProcessor: Processor<EmailNormalizerJobData> = async (job) => {
   const startedAt = Date.now();
+  const batchId =
+    typeof job.data.batchId === "string" && job.data.batchId.length > 0
+      ? job.data.batchId
+      : undefined;
+  const log = createJobLogger({
+    batchId,
+    tenantId: job.data.tenantId,
+    workerName: "B2:email-normalizer",
+    jobId: String(job.id ?? ""),
+    startedAt,
+  }).forContact(job.data.bronzeContactId);
   try {
+    log.step("start", "Pornire normalizare email", {
+      bronzeContactId: job.data.bronzeContactId,
+    });
     const contact = await getBronzeContactForTenant(job.data.tenantId, job.data.bronzeContactId);
     const rawEmail = typeof contact.extractedEmail === "string" ? contact.extractedEmail : null;
     if (!rawEmail) {
+      log.done("email_skip", "Email lipsă — normalizare sărită", {
+        bronzeContactId: job.data.bronzeContactId,
+      });
       return { ok: true, status: "skipped", reason: "empty_email" };
     }
 
@@ -78,6 +96,11 @@ export const emailNormalizerProcessor: Processor<EmailNormalizerJobData> = async
           },
         },
       );
+      log.done("email_invalid", "Email invalid — câmpul a fost golit", {
+        original: rawEmail,
+        normalized: normalizedEmail,
+        reason,
+      });
       return { ok: true, status: "invalid", normalizedEmail, isValid: false };
     }
 
@@ -121,6 +144,12 @@ export const emailNormalizerProcessor: Processor<EmailNormalizerJobData> = async
       job.data.correlationId,
     );
 
+    log.done("done", "Normalizare email finalizată", {
+      original: rawEmail,
+      normalizedEmail,
+      emailType,
+      isRoleBased,
+    });
     return {
       ok: true,
       status: "success",
@@ -130,6 +159,12 @@ export const emailNormalizerProcessor: Processor<EmailNormalizerJobData> = async
       isRoleBased,
     };
   } catch (error) {
+    const errMsg = error instanceof Error ? error.message : String(error);
+    log.error("fatal", `Normalizare email eșuată: ${errMsg}`, {
+      bronzeContactId: job.data.bronzeContactId,
+      errorMessage: errMsg,
+      errorStack: error instanceof Error ? error.stack : undefined,
+    });
     jobErrors.add(1, { worker: "b2-email-normalizer" });
     classifyAndRethrow(error);
   } finally {

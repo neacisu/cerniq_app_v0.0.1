@@ -1,7 +1,8 @@
 import type { Processor } from "bullmq";
 import {
   createCircuitBreaker,
-  createQueue,
+  enqueueImportJob,
+  type ImportExecutionContext,
   sanitizeNrRegCom,
   withExternalApiMetrics,
   QUEUES,
@@ -23,7 +24,9 @@ export type CuiAnafJobData = {
   tenantId: string;
   companyId?: string;
   bronzeContactId?: string;
+  batchId?: string;
   cui: string;
+  importExecution?: ImportExecutionContext;
   correlationId: string;
 };
 
@@ -237,26 +240,30 @@ async function updateAnafBronzeContact(
   });
 }
 
-async function fanOutAnafResultToSiblings(
-  tenantId: string,
-  cleanedCui: string,
-  originContactId: string | undefined,
-  companyData: AnafCompanyResult,
-  nrRegCom: { raw: string | null; sanitized: string | null },
-  patch: Record<string, unknown>,
-) {
-  if (!originContactId) return;
+type AnafSiblingFanOutArgs = {
+  tenantId: string;
+  cleanedCui: string;
+  originContactId: string | undefined;
+  batchId: string | undefined;
+  companyData: AnafCompanyResult;
+  nrRegCom: { raw: string | null; sanitized: string | null };
+  patch: Record<string, unknown>;
+  importExecution?: ImportExecutionContext | null;
+};
+
+async function fanOutAnafResultToSiblings(args: AnafSiblingFanOutArgs) {
+  if (!args.originContactId) return;
 
   const siblings = await db.transaction(async (tx) => {
-    await tx.execute(sql`SELECT set_config('app.tenant_id', ${tenantId}, true)`);
+    await tx.execute(sql`SELECT set_config('app.tenant_id', ${args.tenantId}, true)`);
     return tx
       .select({ id: bronzeContacts.id })
       .from(bronzeContacts)
       .where(
         and(
-          eq(bronzeContacts.tenantId, tenantId),
-          eq(bronzeContacts.extractedCui, cleanedCui),
-          sql`${bronzeContacts.id} != ${originContactId}`,
+          eq(bronzeContacts.tenantId, args.tenantId),
+          eq(bronzeContacts.extractedCui, args.cleanedCui),
+          sql`${bronzeContacts.id} != ${args.originContactId}`,
           sql`(${bronzeContacts.metadata}->'anafValidation'->>'status') IS DISTINCT FROM 'valid'`,
         ),
       );
@@ -265,46 +272,52 @@ async function fanOutAnafResultToSiblings(
   if (siblings.length === 0) return;
 
   await db.transaction(async (tx) => {
-    await tx.execute(sql`SELECT set_config('app.tenant_id', ${tenantId}, true)`);
+    await tx.execute(sql`SELECT set_config('app.tenant_id', ${args.tenantId}, true)`);
     await tx
       .update(bronzeContacts)
       .set({
-        extractedCuiRaw: cleanedCui,
-        extractedCui: cleanedCui,
-        extractedNrRegComRaw: nrRegCom.raw ?? sql`${bronzeContacts.extractedNrRegComRaw}`,
-        extractedNrRegCom: nrRegCom.sanitized ?? sql`${bronzeContacts.extractedNrRegCom}`,
-        metadata: sql`jsonb_set(COALESCE(${bronzeContacts.metadata}, '{}'::jsonb), '{anafValidation}', ${JSON.stringify(patch.anafValidation)}::jsonb)`,
+        extractedCuiRaw: args.cleanedCui,
+        extractedCui: args.cleanedCui,
+        extractedNrRegComRaw: args.nrRegCom.raw ?? sql`${bronzeContacts.extractedNrRegComRaw}`,
+        extractedNrRegCom: args.nrRegCom.sanitized ?? sql`${bronzeContacts.extractedNrRegCom}`,
+        metadata: sql`jsonb_set(COALESCE(${bronzeContacts.metadata}, '{}'::jsonb), '{anafValidation}', ${JSON.stringify(args.patch.anafValidation)}::jsonb)`,
       })
       .where(
         and(
-          eq(bronzeContacts.tenantId, tenantId),
-          eq(bronzeContacts.extractedCui, cleanedCui),
-          sql`${bronzeContacts.id} != ${originContactId}`,
+          eq(bronzeContacts.tenantId, args.tenantId),
+          eq(bronzeContacts.extractedCui, args.cleanedCui),
+          sql`${bronzeContacts.id} != ${args.originContactId}`,
           sql`(${bronzeContacts.metadata}->'anafValidation'->>'status') IS DISTINCT FROM 'valid'`,
         ),
       );
   });
 
-  // Enqueue promotion for each sibling contact
-  const promotionQueue = createQueue(QUEUES.PIPELINE_PROMOTE_BRONZE_SILVER);
   for (const sibling of siblings) {
-    await promotionQueue.add(
-      `promote-${sibling.id}`,
-      {
-        tenantId,
+    await enqueueImportJob({
+      queueName: QUEUES.PIPELINE_PROMOTE_BRONZE_SILVER,
+      jobName: `promote-${sibling.id}`,
+      payload: {
+        tenantId: args.tenantId,
         bronzeContactId: sibling.id,
-        cui: cleanedCui,
-        correlationId: `fanout-${originContactId}`,
-        anafData: companyData,
+        batchId: args.batchId,
+        cui: args.cleanedCui,
+        correlationId: `fanout-${args.originContactId}`,
+        anafData: args.companyData,
       },
-      {
+      opts: {
         jobId: `promote-${sibling.id}`,
         attempts: 3,
         backoff: { type: "exponential", delay: 2000 },
       },
-    );
+      parentImportExecution: args.importExecution ?? null,
+      workerName: "promotion:bronze-silver",
+      stageKey: "promotion",
+      entityType: "bronze_contact",
+      entityId: sibling.id,
+      contactId: sibling.id,
+      idempotencyScope: sibling.id,
+    });
   }
-  await promotionQueue.close();
 }
 
 async function enqueueAnafPromotion(
@@ -317,19 +330,26 @@ async function enqueueAnafPromotion(
   }
 
   try {
-    const promotionQueue = createQueue(QUEUES.PIPELINE_PROMOTE_BRONZE_SILVER);
-    await promotionQueue.add(
-      `promote-${jobData.bronzeContactId}`,
-      {
+    await enqueueImportJob({
+      queueName: QUEUES.PIPELINE_PROMOTE_BRONZE_SILVER,
+      jobName: `promote-${jobData.bronzeContactId}`,
+      payload: {
         tenantId: jobData.tenantId,
         bronzeContactId: jobData.bronzeContactId,
+        batchId: jobData.batchId,
         cui: cleanedCui,
         correlationId: jobData.correlationId,
         anafData: companyData,
       },
-      { jobId: `promote-${jobData.bronzeContactId}` },
-    );
-    await promotionQueue.close();
+      opts: { jobId: `promote-${jobData.bronzeContactId}` },
+      parentImportExecution: jobData.importExecution ?? null,
+      workerName: "promotion:bronze-silver",
+      stageKey: "promotion",
+      entityType: "bronze_contact",
+      entityId: jobData.bronzeContactId,
+      contactId: jobData.bronzeContactId,
+      idempotencyScope: jobData.bronzeContactId,
+    });
   } catch {
     // Non-critical: promotion can be triggered manually if auto-enqueue fails
   }
@@ -371,9 +391,9 @@ export const cuiAnafValidatorProcessor: Processor<CuiAnafJobData> = async (job) 
   const startedAt = Date.now();
 
   const batchId =
-    typeof (job.data as Record<string, unknown>).batchId === "string"
-      ? String((job.data as Record<string, unknown>).batchId)
-      : "unknown";
+    typeof job.data.batchId === "string" && job.data.batchId.length > 0
+      ? job.data.batchId
+      : undefined;
   const log = createJobLogger({
     batchId,
     tenantId: job.data.tenantId,
@@ -484,14 +504,16 @@ export const cuiAnafValidatorProcessor: Processor<CuiAnafJobData> = async (job) 
   await updateAnafCompany(job.data, cleanedCui, companyData, nrRegCom, patch);
   await updateAnafBronzeContact(job.data, cleanedCui, companyData, nrRegCom, patch);
   // Fan-out: update all sibling bronze contacts with same CUI that haven't been validated yet
-  await fanOutAnafResultToSiblings(
-    job.data.tenantId,
+  await fanOutAnafResultToSiblings({
+    tenantId: job.data.tenantId,
     cleanedCui,
-    job.data.bronzeContactId,
+    originContactId: job.data.bronzeContactId,
+    batchId: job.data.batchId,
     companyData,
     nrRegCom,
     patch,
-  );
+    importExecution: job.data.importExecution ?? null,
+  });
   await enqueueAnafPromotion(job.data, cleanedCui, companyData);
   await logAnafValidation(job, cleanedCui, companyData, startedAt);
 

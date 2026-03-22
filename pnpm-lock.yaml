@@ -614,6 +614,9 @@ importers:
 
   workers/shared:
     dependencies:
+      '@cerniq/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@cerniq/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types

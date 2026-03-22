@@ -1,10 +1,13 @@
 import {
   assertQueueRegistryComplete,
+  beginImportRuntimeJob,
+  completeImportRuntimeJob,
   closeRedisConnections,
   createHealthServer,
   createQueue,
   createRedisConnections,
   createWorker,
+  failImportRuntimeJob,
   loadSecretsFromFile,
   queueDepth,
   queueRegistry,
@@ -386,9 +389,20 @@ function buildWorkers() {
       async (job: Job) => {
         const startedAt = Date.now();
         try {
+          const runtime = await beginImportRuntimeJob(queueName, job, queueName);
+          if (runtime.paused) {
+            stats.processed += 1;
+            stats.lastJob = {
+              name: job.name,
+              id: String(job.id),
+              timestamp: new Date().toISOString(),
+            };
+            return { ok: true, status: "paused" };
+          }
           const processor = processors[queueName];
           if (processor) {
             const result = await processor(job);
+            await completeImportRuntimeJob(job, result as Record<string, unknown> | undefined);
             stats.processed += 1;
             stats.lastJob = {
               name: job.name,
@@ -405,6 +419,7 @@ function buildWorkers() {
           };
           return { ok: true };
         } catch (error) {
+          await failImportRuntimeJob(job, error);
           stats.failed += 1;
           throw error;
         } finally {

@@ -189,22 +189,26 @@ function logCuiGateDecision(
 export const nameNormalizerProcessor: Processor<NameNormalizerJobData> = async (job) => {
   const startedAt = Date.now();
   const batchId =
-    typeof (job.data as Record<string, unknown>).batchId === "string"
-      ? String((job.data as Record<string, unknown>).batchId)
-      : "unknown";
+    typeof job.data.batchId === "string" && job.data.batchId.length > 0
+      ? job.data.batchId
+      : undefined;
   const log = createJobLogger({
     batchId,
     tenantId: job.data.tenantId,
     workerName: "B1:name-normalizer",
     jobId: String(job.id ?? ""),
+    startedAt,
   }).forContact(job.data.bronzeContactId);
 
   try {
+    log.step("start", "Pornire normalizare nume", {
+      bronzeContactId: job.data.bronzeContactId,
+    });
     const contact = await getBronzeContactForTenant(job.data.tenantId, job.data.bronzeContactId);
     const rawName = typeof contact.extractedName === "string" ? contact.extractedName : null;
 
     if (!rawName) {
-      log.info("normalize", "Nume lipsă — normalizare sărită", {
+      log.done("normalize_skip", "Nume lipsă — normalizare sărită", {
         bronzeContactId: job.data.bronzeContactId,
       });
       return { ok: true, status: "skipped", reason: "empty_name" };
@@ -213,7 +217,7 @@ export const nameNormalizerProcessor: Processor<NameNormalizerJobData> = async (
     const { normalized, formaJuridica } = normalizeName(rawName);
 
     if (!normalized) {
-      log.info("normalize", `Nume devine gol după normalizare — sărit`, { rawName });
+      log.done("normalize_skip", `Nume devine gol după normalizare — sărit`, { rawName });
       return { ok: true, status: "skipped", reason: "whitespace_only_name" };
     }
 
@@ -255,6 +259,18 @@ export const nameNormalizerProcessor: Processor<NameNormalizerJobData> = async (
       job.data.correlationId,
     );
 
+    let nextStep = "blocked";
+    if (cui) {
+      nextStep = "C1:cui-modulo11";
+    } else if (extractedNrRegCom) {
+      nextStep = "promotion:bronze-silver";
+    }
+
+    log.done("done", "Normalizare nume finalizată", {
+      normalized,
+      formaJuridica,
+      nextStep,
+    });
     return { ok: true, status: "success", normalized, formaJuridica };
   } catch (error) {
     const errMsg = error instanceof Error ? error.message : String(error);

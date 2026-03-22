@@ -12,10 +12,12 @@ import {
   sql,
 } from "@cerniq/db";
 import {
-  createQueue,
+  enqueueImportJob,
+  enqueueImportJobBulk,
   sanitizeNrRegCom,
   QUEUES,
   bronzeContactsIngestedTotal,
+  type ImportExecutionContext,
 } from "@cerniq/worker-shared";
 import { buildColumnAliasToTargetMap } from "@cerniq/shared-types";
 import { sanitizeCui } from "../lib/cui-validation.js";
@@ -41,6 +43,7 @@ export type IngestBaseJobData = {
   skipRows?: number;
   maxRows?: number;
   correlationId?: string;
+  importExecution?: ImportExecutionContext;
 };
 
 export async function readInputContent(jobData: IngestBaseJobData): Promise<string> {
@@ -631,10 +634,37 @@ export async function insertBronzeRows(
 
 const NORMALIZATION_BULK_CHUNK_SIZE = 500;
 
+/**
+ * Maps each normalization queue name to the canonical worker label used for
+ * BullMQ job telemetry, runtime topology, and structured logging.
+ *
+ * Declared as a module-level constant so the mapping is co-located with the
+ * queue definitions, is O(1), and avoids nested ternaries inside hot loop
+ * bodies (S3358 / S3776).
+ */
+const NORMALIZATION_WORKER_BY_QUEUE: ReadonlyMap<string, string> = new Map([
+  [QUEUES.NORMALIZE_NAME, "B1:name-normalizer"],
+  [QUEUES.NORMALIZE_EMAIL, "B2:email-normalizer"],
+  [QUEUES.NORMALIZE_PHONE, "B3:phone-normalizer"],
+  [QUEUES.NORMALIZE_ADDRESS, "B4:address-normalizer"],
+]);
+
+function resolveNormalizerWorkerName(queueName: string): string {
+  const workerName = NORMALIZATION_WORKER_BY_QUEUE.get(queueName);
+  if (!workerName) {
+    throw new Error(
+      `[ingest-utils] Unknown normalization queue "${queueName}". Update NORMALIZATION_WORKER_BY_QUEUE.`,
+    );
+  }
+  return workerName;
+}
+
 export async function triggerNormalizationForContacts(
   tenantId: string,
   bronzeContactIds: string[],
   correlationId?: string,
+  batchId?: string,
+  importExecution?: ImportExecutionContext | null,
 ): Promise<void> {
   if (bronzeContactIds.length === 0) return;
   const targetQueues = [
@@ -645,22 +675,30 @@ export async function triggerNormalizationForContacts(
   ] as const;
 
   for (const queueName of targetQueues) {
-    const queue = createQueue(queueName);
     for (let i = 0; i < bronzeContactIds.length; i += NORMALIZATION_BULK_CHUNK_SIZE) {
       const chunk = bronzeContactIds.slice(i, i + NORMALIZATION_BULK_CHUNK_SIZE);
-      await queue.addBulk(
-        chunk.map((bronzeContactId) => ({
-          name: "normalize",
-          data: { tenantId, bronzeContactId, correlationId },
+      await enqueueImportJobBulk({
+        queueName,
+        importExecution: importExecution ?? undefined,
+        parentImportExecution: importExecution ?? null,
+        workerName: resolveNormalizerWorkerName(queueName),
+        stageKey: "normalization",
+        sessionKind: "ingest",
+        items: chunk.map((bronzeContactId) => ({
+          jobName: "normalize",
+          payload: { tenantId, bronzeContactId, correlationId, batchId },
           opts: {
             jobId: `${queueName}-${bronzeContactId}`,
             attempts: 2,
             backoff: { type: "fixed" as const, delay: 500 },
           },
+          entityType: "bronze_contact",
+          entityId: bronzeContactId,
+          contactId: bronzeContactId,
+          idempotencyScope: `${queueName}-${bronzeContactId}`,
         })),
-      );
+      });
     }
-    await queue.close();
   }
 }
 
@@ -793,6 +831,7 @@ export async function triggerAnafBronzeEnrichment(
   batchId: string,
   bronzeContactIds: string[],
   correlationId?: string,
+  importExecution?: ImportExecutionContext | null,
 ): Promise<void> {
   if (bronzeContactIds.length === 0) return;
 
@@ -836,37 +875,41 @@ export async function triggerAnafBronzeEnrichment(
 
   const nrRegComOnlyIds = contactsNrRegComOnly.map((c) => c.id);
   const totalBatches = Math.ceil(allCuis.length / ANAF_BATCH_SIZE);
-  const queue = createQueue(QUEUES.ENRICH_BRONZE_ANAF);
-  try {
-    for (let i = 0; i < totalBatches; i++) {
-      const cuiChunk = allCuis.slice(i * ANAF_BATCH_SIZE, (i + 1) * ANAF_BATCH_SIZE);
-      const chunkBronzeIds = collectBronzeIdsForChunk(
-        cuiChunk,
-        cuiToBronzeIds,
-        nrRegComOnlyIds,
-        i === 0,
-      );
-      await queue.add(
-        "anaf-bronze-enrich",
-        {
-          tenantId,
-          batchId,
-          cuiList: cuiChunk,
-          bronzeContactIds: chunkBronzeIds,
-          correlationId: correlationId ?? batchId,
-          batchIndex: i,
-          totalBatches,
-        },
-        {
-          jobId: `anaf-bronze-${batchId}-${i}`,
-          delay: i * ANAF_BATCH_DELAY_MS,
-          attempts: 5,
-          backoff: { type: "exponential", delay: 1000 },
-        },
-      );
-    }
-  } finally {
-    await queue.close();
+  for (let i = 0; i < totalBatches; i++) {
+    const cuiChunk = allCuis.slice(i * ANAF_BATCH_SIZE, (i + 1) * ANAF_BATCH_SIZE);
+    const chunkBronzeIds = collectBronzeIdsForChunk(
+      cuiChunk,
+      cuiToBronzeIds,
+      nrRegComOnlyIds,
+      i === 0,
+    );
+    await enqueueImportJob({
+      queueName: QUEUES.ENRICH_BRONZE_ANAF,
+      jobName: "anaf-bronze-enrich",
+      payload: {
+        tenantId,
+        batchId,
+        cuiList: cuiChunk,
+        bronzeContactIds: chunkBronzeIds,
+        correlationId: correlationId ?? batchId,
+        batchIndex: i,
+        totalBatches,
+      },
+      opts: {
+        jobId: `anaf-bronze-${batchId}-${i}`,
+        delay: i * ANAF_BATCH_DELAY_MS,
+        attempts: 5,
+        backoff: { type: "exponential", delay: 1000 },
+      },
+      importExecution: importExecution ?? undefined,
+      parentImportExecution: importExecution ?? null,
+      workerName: "B5:anaf-bronze-enricher",
+      stageKey: "anaf_bronze",
+      entityType: "batch",
+      entityId: `${batchId}:${i}`,
+      sessionKind: "ingest",
+      idempotencyScope: `anaf-bronze-${batchId}-${i}`,
+    });
   }
 }
 

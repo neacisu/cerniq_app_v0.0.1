@@ -1,6 +1,7 @@
 import Papa from "papaparse";
 import type { Processor } from "bullmq";
 import { bronzeImportBatches, db, sql } from "@cerniq/db";
+import { updateImportRuntimeProgress, type ImportExecutionContext } from "@cerniq/worker-shared";
 import { jobsProcessed, jobDuration, jobErrors } from "../lib/worker-metrics.js";
 import { createJobLogger } from "../lib/job-logger.js";
 import { type JobLogger } from "../lib/job-logger.js";
@@ -38,6 +39,7 @@ export type CsvParserJobData = {
     errorRows?: number;
     duplicateRows?: number;
   };
+  importExecution?: ImportExecutionContext;
   correlationId: string;
 };
 
@@ -240,6 +242,8 @@ async function parseSmallFile(job: { data: CsvParserJobData }) {
       job.data.tenantId,
       result.processableIds,
       job.data.correlationId,
+      job.data.batchId,
+      job.data.importExecution ?? null,
     );
 
     log.step(
@@ -254,6 +258,7 @@ async function parseSmallFile(job: { data: CsvParserJobData }) {
       job.data.batchId,
       result.processableIds,
       job.data.correlationId,
+      job.data.importExecution ?? null,
     );
 
     log.step("done", `Parsare CSV finalizată cu succes`, {
@@ -419,6 +424,35 @@ async function parseLargeFileStreaming(job: { data: CsvParserJobData }) {
           insufficientIdentifierRows: totalInsufficientIdentifierRows,
         },
       });
+
+      const runtimeProgress = await updateImportRuntimeProgress(job as never, {
+        checkpointPayload: {
+          processedRows: totalRowsRead,
+          successRows: totalRowsInserted,
+          errorRows: totalErrorRows,
+          duplicateRows: totalDuplicateRows,
+        },
+        resumePayload: {
+          ...job.data,
+          skipRows: totalRowsRead,
+          resumeFrom: {
+            processedRows: totalRowsRead,
+            successRows: totalRowsInserted,
+            errorRows: totalErrorRows,
+            duplicateRows: totalDuplicateRows,
+          },
+        },
+        counterDelta: {
+          totalUnits: batch.length,
+          processedUnits: batch.length,
+          successUnits: rowsInserted,
+          failedUnits: errorRows,
+          skippedUnits: duplicateRows,
+        },
+      });
+      if (runtimeProgress.paused) {
+        return;
+      }
     }
 
     await updateImportBatchCounters({
@@ -441,12 +475,15 @@ async function parseLargeFileStreaming(job: { data: CsvParserJobData }) {
       job.data.tenantId,
       allInsertedIds,
       job.data.correlationId,
+      job.data.batchId,
+      job.data.importExecution ?? null,
     );
     await triggerAnafBronzeEnrichment(
       job.data.tenantId,
       job.data.batchId,
       allInsertedIds,
       job.data.correlationId,
+      job.data.importExecution ?? null,
     );
 
     if (job.data.batchId && autoMapping && Object.keys(autoMapping).length > 0) {

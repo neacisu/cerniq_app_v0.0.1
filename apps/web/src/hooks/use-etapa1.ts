@@ -5,7 +5,9 @@ import {
   type BronzeContactsParams,
   type DailyStatsParams,
   type GoldCompaniesParams,
+  type ImportGlobalControlState,
   type ImportListParams,
+  type ImportRuntimeTopology,
   type SilverCompaniesParams,
   type DedupCandidatesParams,
   type PromoteJobStatus,
@@ -30,6 +32,7 @@ import {
   fetchGoldCompanyById,
   fetchGoldCompanyJourney,
   fetchGoldCompanies,
+  fetchImportControl,
   fetchImportById,
   fetchImportEntities,
   fetchImportReprocessErrors,
@@ -37,8 +40,16 @@ import {
   fetchImportRows,
   fetchImports,
   fetchImportPipelineStatus,
+  fetchImportRuntimeTopology,
   fetchPromoteJobStatus,
+  deleteImportBatch,
+  pauseImportBatch,
+  pauseImportWorker,
+  pauseImportsGlobal,
   resumeImportReprocessErrors,
+  resumeImportBatch,
+  resumeImportWorker,
+  resumeImportsGlobal,
   resumePromoteJob,
   fetchQueueStatusByName,
   fetchQueueStatuses,
@@ -393,6 +404,144 @@ export function useImportPipelineStatus(
       if (error instanceof ApiError && error.status === 401) return false;
       if (isTransientApiUnavailable(error)) return false;
       return failureCount < 3;
+    },
+  });
+}
+
+export function useImportRuntimeTopology(
+  batchId: string | undefined,
+  opts?: {
+    enabled?: boolean;
+    isActive?: boolean;
+    session?: string;
+    worker?: string;
+    state?: string;
+    search?: string;
+    limit?: number;
+  },
+) {
+  return useQuery({
+    queryKey: ["etapa1", "runtime-topology", batchId, opts ?? {}],
+    queryFn: () =>
+      fetchImportRuntimeTopology(String(batchId), {
+        session: opts?.session,
+        worker: opts?.worker,
+        state: opts?.state,
+        search: opts?.search,
+        limit: opts?.limit,
+      }),
+    enabled: Boolean(batchId) && (opts?.enabled ?? true),
+    refetchInterval: opts?.isActive ? 3000 : false,
+    refetchIntervalInBackground: true,
+    staleTime: opts?.isActive ? 0 : 30_000,
+    retry: (failureCount, error) => {
+      if (error instanceof ApiError && error.status === 401) return false;
+      if (isTransientApiUnavailable(error)) return false;
+      return failureCount < 3;
+    },
+    select: (response): { success: boolean; data: ImportRuntimeTopology } => response,
+  });
+}
+
+export function useImportControl() {
+  return useQuery({
+    queryKey: ["etapa1", "imports", "control"],
+    queryFn: () => fetchImportControl(),
+    refetchInterval: 3000,
+    refetchIntervalInBackground: true,
+    select: (response): { success: boolean; data: ImportGlobalControlState } => response,
+  });
+}
+
+export function usePauseImportsGlobal() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: pauseImportsGlobal,
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["etapa1", "imports", "control"] });
+      await qc.invalidateQueries({ queryKey: ["etapa1", "imports"] });
+    },
+  });
+}
+
+export function useResumeImportsGlobal() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (mode?: "resume" | "recover") => resumeImportsGlobal(mode),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["etapa1", "imports", "control"] });
+      await qc.invalidateQueries({ queryKey: ["etapa1", "imports"] });
+    },
+  });
+}
+
+export function usePauseImportBatch() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: pauseImportBatch,
+    onSuccess: async (_data, batchId) => {
+      await qc.invalidateQueries({ queryKey: ["etapa1", "imports"] });
+      await qc.invalidateQueries({ queryKey: ["etapa1", "imports", "detail", batchId] });
+      await qc.invalidateQueries({ queryKey: ["etapa1", "pipeline-status", batchId] });
+      await qc.invalidateQueries({ queryKey: ["etapa1", "runtime-topology", batchId] });
+    },
+  });
+}
+
+export function useResumeImportBatch() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ batchId, mode }: { batchId: string; mode?: "resume" | "recover" }) =>
+      resumeImportBatch(batchId, mode),
+    onSuccess: async (_data, { batchId }) => {
+      await qc.invalidateQueries({ queryKey: ["etapa1", "imports"] });
+      await qc.invalidateQueries({ queryKey: ["etapa1", "imports", "detail", batchId] });
+      await qc.invalidateQueries({ queryKey: ["etapa1", "pipeline-status", batchId] });
+      await qc.invalidateQueries({ queryKey: ["etapa1", "runtime-topology", batchId] });
+    },
+  });
+}
+
+export function usePauseImportWorker() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ batchId, workerName }: { batchId: string; workerName: string }) =>
+      pauseImportWorker(batchId, workerName),
+    onSuccess: async (_data, { batchId }) => {
+      await qc.invalidateQueries({ queryKey: ["etapa1", "pipeline-status", batchId] });
+      await qc.invalidateQueries({ queryKey: ["etapa1", "runtime-topology", batchId] });
+      await qc.invalidateQueries({ queryKey: ["etapa1", "imports"] });
+    },
+  });
+}
+
+export function useResumeImportWorker() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      batchId,
+      workerName,
+      mode,
+    }: {
+      batchId: string;
+      workerName: string;
+      mode?: "resume" | "recover";
+    }) => resumeImportWorker(batchId, workerName, mode),
+    onSuccess: async (_data, { batchId }) => {
+      await qc.invalidateQueries({ queryKey: ["etapa1", "pipeline-status", batchId] });
+      await qc.invalidateQueries({ queryKey: ["etapa1", "runtime-topology", batchId] });
+      await qc.invalidateQueries({ queryKey: ["etapa1", "imports"] });
+    },
+  });
+}
+
+export function useDeleteImportBatch() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: deleteImportBatch,
+    onSuccess: async (_data, batchId) => {
+      await qc.invalidateQueries({ queryKey: ["etapa1", "imports"] });
+      await qc.invalidateQueries({ queryKey: ["etapa1", "imports", "detail", batchId] });
     },
   });
 }

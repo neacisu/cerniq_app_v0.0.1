@@ -3,5 +3,11 @@
   "compilerOptions": {
     "baseUrl": ".."
   },
-  "include": ["./App.tsx", "./pages/**/*.tsx", "../apps/web/src/App.tsx"]
+  "include": [
+    "./App.tsx",
+    "./pages/**/*.tsx",
+    "./components/**/*.ts",
+    "./components/**/*.tsx",
+    "../apps/web/src/App.tsx"
+  ]
 }

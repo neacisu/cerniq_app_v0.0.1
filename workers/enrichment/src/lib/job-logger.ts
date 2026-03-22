@@ -124,7 +124,7 @@ export function createJobLogger(opts: JobLoggerOpts): JobLogger {
     },
     step(step, message, context) {
       // Both DB + stdout for important milestones
-      writeLog(opts, "info", step, message, context);
+      writeLog(opts, "debug", step, message, context);
       const ctxStr = context ? ` ${JSON.stringify(context)}` : "";
       process.stdout.write(`[${opts.workerName}] [${batchLabel}] ${step}: ${message}${ctxStr}\n`);
     },
@@ -149,7 +149,7 @@ export function createJobLogger(opts: JobLoggerOpts): JobLogger {
           writeLog(opts, "error", step, message, context, contactId);
         },
         step(step, message, context) {
-          writeLog(opts, "info", step, message, context, contactId);
+          writeLog(opts, "debug", step, message, context, contactId);
           const ctxStr = context ? ` ${JSON.stringify(context)}` : "";
           process.stdout.write(
             `[${opts.workerName}] [${batchLabel}] [contact:${contactId.slice(0, 8)}] ${step}: ${message}${ctxStr}\n`,
