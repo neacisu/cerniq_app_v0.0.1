@@ -46,7 +46,7 @@
     "@testing-library/user-event": "^14.6.1",
     "@types/node": "^25.5.0",
     "@typescript-eslint/eslint-plugin": "^8.57.0",
-    "@typescript-eslint/parser": "^8.57.0",
+    "@typescript-eslint/parser": "^8.57.1",
     "@vitest/coverage-v8": "^4.1.0",
     "bullmq": "5.71.0",
     "eslint": "^10.0.3",
