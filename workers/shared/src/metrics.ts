@@ -105,6 +105,39 @@ export const hitlSlaBreachTotal = new Counter({
   registers: [metricsRegistry],
 });
 
+// ── Queue depth metrics (all 6 BullMQ states) ───────────────────────────────
+
+export const queueDepthByState = new Gauge({
+  name: "cerniq_worker_queue_depth_by_state",
+  help: "Queue depth broken down by BullMQ state",
+  labelNames: ["queue", "state"],
+  registers: [metricsRegistry],
+});
+
+export const dlqDepth = new Gauge({
+  name: "cerniq_worker_dlq_depth",
+  help: "Dead Letter Queue depth",
+  labelNames: ["queue"],
+  registers: [metricsRegistry],
+});
+
+// ── Pipeline stage metrics ───────────────────────────────────────────────────
+
+export const pipelineCompanyStageDuration = new Histogram({
+  name: "cerniq_pipeline_company_stage_duration_seconds",
+  help: "Time a company spends in each pipeline stage",
+  labelNames: ["stage", "tenant_id"],
+  buckets: [60, 300, 600, 1800, 3600, 7200, 14400],
+  registers: [metricsRegistry],
+});
+
+export const importMutationTotal = new Counter({
+  name: "cerniq_import_mutation_total",
+  help: "Total data mutations during import",
+  labelNames: ["operation", "table", "tenant_id"],
+  registers: [metricsRegistry],
+});
+
 // ── External API metrics ──────────────────────────────────────────────────────
 
 export const externalApiRequestsTotal = new Counter({

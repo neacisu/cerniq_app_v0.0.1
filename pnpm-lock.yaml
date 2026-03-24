@@ -617,6 +617,9 @@ importers:
       '@cerniq/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@cerniq/observability':
+        specifier: workspace:*
+        version: link:../../packages/observability
       '@cerniq/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types

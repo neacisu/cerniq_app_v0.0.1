@@ -4,6 +4,7 @@ export * from "./circuit-breaker.js";
 export * from "./redis.js";
 export * from "./secrets.js";
 export * from "./metrics.js";
+export * from "./otel-metrics.js";
 export * from "./health.js";
 export * from "./queue-registry.js";
 export * from "./identifiers.js";
