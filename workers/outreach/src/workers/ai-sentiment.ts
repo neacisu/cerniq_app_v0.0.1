@@ -3,9 +3,8 @@
  * Source: etapa2-workers-F-L-remaining.md Cat. J, ADR-0063
  *
  * Workers:
- * - ai:sentiment:analyze  — score -100..100, requiresHuman detection
+ * - ai:sentiment:analyze  — score -100..100, requiresHuman detection, intent (same enum as legacy classify)
  * - ai:response:generate  — max 2-3 propozitii (Romanian)
- * - ai:intent:classify    — INTERESTED|NOT_INTERESTED|QUESTION|COMPLAINT|NEUTRAL
  * - Sentiment-Based Router (ADR-0063)
  * - AI Response Cache (Redis)
  */
@@ -59,14 +58,6 @@ export interface SentimentResult {
   requiresHuman: boolean;
   routedTo: "AI" | "HUMAN";
   cached?: boolean;
-}
-
-export interface IntentClassifyJobData {
-  tenantId: string;
-  leadId: string;
-  journeyId: string;
-  content: string;
-  channel: string;
 }
 
 export interface ResponseGenerateJobData {
@@ -267,59 +258,5 @@ Sentiment: ${analysis.intent}. Generează un răspuns natural care continuă con
       return { response: generatedResponse, sent: false };
     },
     { connection: conn, concurrency: 20 },
-  ).worker;
-}
-
-// =============================================================================
-// Worker: ai:intent:classify
-// INTERESTED | NOT_INTERESTED | QUESTION | COMPLAINT | NEUTRAL
-// =============================================================================
-
-export function createIntentClassifierWorker(redis: Redis): Worker {
-  const conn = asBullmqConnection(redis);
-  return createWorker(
-    QUEUES.AI_INTENT_CLASSIFY,
-    async (
-      job: Job<IntentClassifyJobData>,
-    ): Promise<{ intent: SentimentIntent; confidence: number }> => {
-      const { content, journeyId } = job.data;
-
-      const { default: Anthropic } = await import("@anthropic-ai/sdk");
-      const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
-      const response = await anthropic.messages.create({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 100,
-        messages: [
-          {
-            role: "user",
-            content: `Clasifică intenția mesajului: "${content.slice(0, 400)}"
-Returnează JSON: {"intent": "INTERESTED"|"NOT_INTERESTED"|"QUESTION"|"COMPLAINT"|"NEUTRAL", "confidence": 0.0-1.0}
-Răspunde DOAR cu JSON.`,
-          },
-        ],
-      });
-
-      const result = JSON.parse(anthropicFirstTextBlock(response.content, "{}"));
-
-      const { db, setSessionTenantId } = await import("@cerniq/db");
-      await setSessionTenantId(job.data.tenantId);
-      const { leadJourney } = await import("@cerniq/db");
-      const { eq } = await import("@cerniq/db");
-
-      if (result.intent === "NOT_INTERESTED") {
-        await db
-          .update(leadJourney)
-          .set({
-            requiresHumanReview: true,
-            humanReviewReason: "AI_UNCERTAIN",
-            updatedAt: new Date(),
-          })
-          .where(eq(leadJourney.id, journeyId));
-      }
-
-      return { intent: result.intent, confidence: result.confidence ?? 0.5 };
-    },
-    { connection: conn, concurrency: 30 },
   ).worker;
 }

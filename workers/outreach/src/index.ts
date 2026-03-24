@@ -72,7 +72,6 @@ import {
 import {
   createSentimentAnalyzerWorker,
   createResponseGeneratorWorker,
-  createIntentClassifierWorker,
 } from "./workers/ai-sentiment.js";
 import { createStateTransitionWorker, createStateValidateWorker } from "./workers/lead-fsm.js";
 import {
@@ -182,7 +181,6 @@ async function bootstrap(): Promise<void> {
 
   push(createSentimentAnalyzerWorker(redis));
   push(createResponseGeneratorWorker(redis));
-  push(createIntentClassifierWorker(redis));
 
   push(createStateTransitionWorker(redis));
   push(createStateValidateWorker(redis));
