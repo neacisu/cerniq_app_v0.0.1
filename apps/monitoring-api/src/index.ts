@@ -2,34 +2,15 @@ import Fastify, { type FastifyReply, type FastifyRequest } from "fastify";
 import cors from "@fastify/cors";
 import websocket from "@fastify/websocket";
 import { readFileSync, existsSync, watchFile, unwatchFile } from "node:fs";
+import { loadSecretsFromFile } from "@cerniq/worker-shared";
 import { queueMonitor, type QueueControlAction } from "./queue-monitor.js";
 import { systemMetrics } from "./system-metrics.js";
 
 const OPENBAO_READY_MARKER = "OPENBAO_SECRETS_LOADED=true";
 
-function loadSecrets(forceOverwrite = false): void {
-  const secretsPath = process.env.SECRETS_PATH ?? "/secrets/api.env";
-  if (!existsSync(secretsPath)) {
-    console.warn(`Secrets file not found: ${secretsPath} — using env vars only`);
-    return;
-  }
-  const content = readFileSync(secretsPath, "utf-8");
-  for (const line of content.split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const eqIndex = trimmed.indexOf("=");
-    if (eqIndex === -1) continue;
-    const key = trimmed.slice(0, eqIndex).trim();
-    const value = trimmed.slice(eqIndex + 1).trim();
-    if (forceOverwrite) {
-      process.env[key] = value;
-    } else if (!process.env[key]) {
-      process.env[key] = value;
-    }
-  }
-}
-
-loadSecrets();
+loadSecretsFromFile(false, process.env.SECRETS_PATH ?? "/secrets/api.env", {
+  universalOverwrite: false,
+});
 
 const PORT = Number(process.env.PORT ?? 64080);
 const REDIS_URL: string = process.env.REDIS_URL ?? "";
@@ -58,7 +39,7 @@ async function start() {
     if (!existsSync(secretsPath)) return;
     const content = readFileSync(secretsPath, "utf-8");
     if (!content.includes(OPENBAO_READY_MARKER)) return;
-    loadSecrets(true);
+    loadSecretsFromFile(true, secretsPath, { universalOverwrite: true });
     const nextRedisUrl = process.env.REDIS_URL ?? "";
     if (!nextRedisUrl) return;
     monitor = queueMonitor(nextRedisUrl);
