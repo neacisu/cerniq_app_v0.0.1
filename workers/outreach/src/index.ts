@@ -6,8 +6,10 @@ import type { Worker } from "bullmq";
 import {
   assertQueueRegistryComplete,
   createHealthServer,
+  createQueue,
   loadSecretsFromFile,
   queueRegistry,
+  QUEUES,
 } from "@cerniq/worker-shared";
 import { QUOTA_CHECK_LUA } from "./utils/quota-lua.js";
 import {
@@ -118,6 +120,16 @@ async function bootstrap(): Promise<void> {
   push(createQuotaCheckWorker(redis, luaSha));
   push(await createQuotaIncrementWorker(redis));
   push(createQuotaDailyResetWorker(redis));
+
+  const resetQueue = createQueue(QUEUES.QUOTA_GUARDIAN_RESET, { redisDb: 2 });
+  await resetQueue.add(
+    "daily-reset",
+    {},
+    {
+      repeat: { pattern: "0 0 * * *", tz: "Europe/Bucharest" },
+      jobId: "cron:quota-guardian:reset",
+    },
+  );
 
   push(createDispatchWorker(redis));
   push(createPhoneAllocatorWorker(redis));

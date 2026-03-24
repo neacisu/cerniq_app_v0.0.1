@@ -29,25 +29,50 @@ export function toBullMqQueueName(name: string): string {
   return name.replaceAll(":", BULLMQ_QUEUE_SEPARATOR);
 }
 
-export function createQueue<T = unknown>(name: string, options?: Partial<QueueOptions>) {
+export function createQueue<T = unknown>(name: string, options?: Partial<QueueOptions> & { redisDb?: number }) {
+  const { redisDb, ...queueOpts } = options ?? {};
+  const connectionOptions = getRedisConnectionOptions();
+  if (redisDb !== undefined) {
+    connectionOptions.db = redisDb;
+  }
+
   return new Queue<T>(toBullMqQueueName(name), {
-    connection: getRedisConnectionOptions(),
+    connection: connectionOptions,
     prefix: getQueuePrefix(),
     defaultJobOptions: DEFAULT_JOB_OPTIONS,
-    ...options,
+    ...queueOpts,
   });
+}
+
+export interface CreateWorkerExtraOptions {
+  redisDb?: number;
+  /** Pass an existing ioredis connection instead of creating a new one from env vars */
+  externalConnection?: WorkerOptions["connection"];
 }
 
 export function createWorker<T = unknown>(
   name: string,
   processor: Processor<T>,
-  options?: Partial<WorkerOptions>,
+  options?: Partial<WorkerOptions> & CreateWorkerExtraOptions,
 ) {
+  const { redisDb, externalConnection, ...workerOpts } = options ?? {};
+
+  let connection: WorkerOptions["connection"];
+  if (externalConnection) {
+    connection = externalConnection;
+  } else {
+    const connectionOptions = getRedisConnectionOptions();
+    if (redisDb !== undefined) {
+      connectionOptions.db = redisDb;
+    }
+    connection = connectionOptions;
+  }
+
   const worker = new Worker<T>(toBullMqQueueName(name), processor, {
-    connection: getRedisConnectionOptions(),
+    connection,
     prefix: getQueuePrefix(),
     ...DEFAULT_WORKER_OPTIONS,
-    ...options,
+    ...workerOpts,
   });
 
   worker.on("active", () => jobsActiveGauge.inc({ queue: name }));
