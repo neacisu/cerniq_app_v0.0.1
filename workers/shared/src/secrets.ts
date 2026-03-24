@@ -3,17 +3,74 @@ import fs from "node:fs";
 const DEFAULT_SECRETS_PATH = "/secrets/workers.env";
 const SENSITIVE_KEYS = new Set([
   "DATABASE_URL",
+  "DATABASE_DIRECT_URL",
   "REDIS_URL",
   "REDIS_PASSWORD",
   "REDIS_PREFIX",
   "BULLMQ_PREFIX",
+  "JWT_SECRET",
+  "JWT_REFRESH_SECRET",
+  "POSTGRES_USER",
+  "POSTGRES_PASSWORD",
 ]);
 const OPENBAO_READY_MARKER = "OPENBAO_SECRETS_LOADED=true";
 
-export function loadSecretsFromFile(forceOverwrite = false, path = DEFAULT_SECRETS_PATH): void {
-  if (!fs.existsSync(path)) return;
+export interface LoadSecretsOptions {
+  /** Overwrite existing env vars for sensitive keys (default: false). */
+  forceOverwrite?: boolean;
+  /**
+   * When true, forceOverwrite applies to ALL keys, not just SENSITIVE_KEYS.
+   * Used by monitoring-api which needs universal overwrite on reload.
+   */
+  universalOverwrite?: boolean;
+  /**
+   * Exit process if the secrets file is missing (default: false).
+   * API server sets this to true because it cannot start without secrets.
+   */
+  exitOnMissing?: boolean;
+  /**
+   * Ordered list of paths to search for the secrets file (first existing wins).
+   * Used by migrate-cli which searches multiple locations.
+   */
+  searchPaths?: string[];
+}
 
-  const content = fs.readFileSync(path, "utf-8");
+/**
+ * Unified secrets loader — consolidates 4 previous implementations.
+ *
+ * Usage examples:
+ *   loadSecretsFromFile(false, '/secrets/workers.env')  // workers (original API)
+ *   loadSecretsFromFile(false, '/secrets/api.env', { exitOnMissing: true })  // API
+ *   loadSecretsFromFile(true, '/secrets/api.env', { universalOverwrite: true })  // monitoring-api reload
+ *   loadSecretsFromFile(false, undefined, { searchPaths: ['/opt/...', '/secrets/...'] })  // migrate-cli
+ */
+export function loadSecretsFromFile(
+  forceOverwrite = false,
+  path = DEFAULT_SECRETS_PATH,
+  options?: LoadSecretsOptions,
+): void {
+  const { universalOverwrite = false, exitOnMissing = false, searchPaths } = options ?? {};
+
+  const shouldForceOverwrite = forceOverwrite || options?.forceOverwrite === true;
+
+  let resolvedPath = path;
+  if (searchPaths && searchPaths.length > 0) {
+    const found = searchPaths.find((p) => fs.existsSync(p));
+    if (!found) {
+      if (exitOnMissing) {
+        process.exit(1);
+      }
+      return;
+    }
+    resolvedPath = found;
+  } else if (!fs.existsSync(resolvedPath)) {
+    if (exitOnMissing) {
+      process.exit(1);
+    }
+    return;
+  }
+
+  const content = fs.readFileSync(resolvedPath, "utf-8");
   for (const line of content.split("\n")) {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith("#")) continue;
@@ -22,9 +79,8 @@ export function loadSecretsFromFile(forceOverwrite = false, path = DEFAULT_SECRE
 
     const key = trimmed.slice(0, eq).trim();
     const value = trimmed.slice(eq + 1).trim();
-    const isSensitive = SENSITIVE_KEYS.has(key);
 
-    if (forceOverwrite && isSensitive) {
+    if (shouldForceOverwrite && (universalOverwrite || SENSITIVE_KEYS.has(key))) {
       process.env[key] = value;
       continue;
     }
