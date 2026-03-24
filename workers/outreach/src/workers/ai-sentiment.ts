@@ -9,10 +9,11 @@
  * - Sentiment-Based Router (ADR-0063)
  * - AI Response Cache (Redis)
  */
-import { Worker, Job, Queue } from "bullmq";
+import { Job, Queue } from "bullmq";
+import type { Worker } from "bullmq";
 import { createHash } from "node:crypto";
 import { Redis } from "ioredis";
-import { QUEUES } from "@cerniq/worker-shared";
+import { QUEUES, createWorker } from "@cerniq/worker-shared";
 import { asBullmqConnection } from "../utils/bullmq-connection.js";
 
 /** Primul bloc `text` din `message.content` (Messages API); altfel `fallback`. */
@@ -95,7 +96,7 @@ export function createSentimentAnalyzerWorker(redis: Redis): Worker {
   const responseQueue = new Queue(QUEUES.AI_RESPONSE_GENERATE, { connection: conn });
   const reviewQueue = new Queue(QUEUES.HUMAN_REVIEW_QUEUE, { connection: conn });
 
-  return new Worker(
+  const { worker } = createWorker(
     QUEUES.AI_SENTIMENT_ANALYZE,
     async (job: Job<SentimentJobData>): Promise<SentimentResult> => {
       const { tenantId, leadId, journeyId, content, channel } = job.data;
@@ -161,8 +162,9 @@ export function createSentimentAnalyzerWorker(redis: Redis): Worker {
 
       return { ...analysis, routedTo };
     },
-    { connection: conn, concurrency: 60 }, // rate 60/min matches 60 concurrent max
+    { externalConnection: conn, concurrency: 60 }, // rate 60/min matches 60 concurrent max
   );
+  return worker;
 }
 
 async function callAIForSentiment(content: string): Promise<{
@@ -203,7 +205,7 @@ Răspunde doar cu JSON valid.`,
 
 export function createResponseGeneratorWorker(redis: Redis): Worker {
   const conn = asBullmqConnection(redis);
-  return new Worker(
+  const { worker } = createWorker(
     QUEUES.AI_RESPONSE_GENERATE,
     async (job: Job<ResponseGenerateJobData>): Promise<{ response: string; sent: boolean }> => {
       const { tenantId, leadId, journeyId, content, analysis, companyName, phoneLabel, chatId } =
@@ -265,8 +267,9 @@ Sentiment: ${analysis.intent}. Generează un răspuns natural care continuă con
 
       return { response: generatedResponse, sent: false };
     },
-    { connection: conn, concurrency: 20 },
+    { externalConnection: conn, concurrency: 20 },
   );
+  return worker;
 }
 
 // =============================================================================
@@ -276,7 +279,7 @@ Sentiment: ${analysis.intent}. Generează un răspuns natural care continuă con
 
 export function createIntentClassifierWorker(redis: Redis): Worker {
   const conn = asBullmqConnection(redis);
-  return new Worker(
+  const { worker } = createWorker(
     QUEUES.AI_INTENT_CLASSIFY,
     async (
       job: Job<IntentClassifyJobData>,
@@ -319,6 +322,7 @@ Răspunde DOAR cu JSON.`,
 
       return { intent: result.intent, confidence: result.confidence ?? 0.5 };
     },
-    { connection: conn, concurrency: 30 },
+    { externalConnection: conn, concurrency: 30 },
   );
+  return worker;
 }

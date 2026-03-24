@@ -14,10 +14,11 @@
  * - email:warm:reply     — Email Warm Reply Processor
  * - email:warm:tracking  — Email Warm Tracking
  */
-import { Worker, Job, Queue } from "bullmq";
+import { Job, Queue } from "bullmq";
+import type { Worker } from "bullmq";
 import { v4 as uuidv4 } from "uuid";
 import { Redis } from "ioredis";
-import { QUEUES } from "@cerniq/worker-shared";
+import { QUEUES, createWorker } from "@cerniq/worker-shared";
 import { messageStatusEnum } from "@cerniq/db";
 import { asBullmqConnection } from "../utils/bullmq-connection.js";
 
@@ -117,7 +118,7 @@ export function createEmailColdSenderWorker(redis: Redis): Worker {
   const connection = asBullmqConnection(redis);
   const stateTransitionQueue = new Queue(QUEUES.LEAD_STATE_TRANSITION, { connection });
 
-  return new Worker(
+  const { worker } = createWorker(
     QUEUES.EMAIL_COLD, // q:email:cold
     async (job: Job<EmailColdSendJobData>): Promise<void> => {
       const {
@@ -198,8 +199,9 @@ export function createEmailColdSenderWorker(redis: Redis): Worker {
         );
       }
     },
-    { connection, concurrency: 50 },
+    { externalConnection: connection, concurrency: 50 },
   );
+  return worker;
 }
 
 // =============================================================================
@@ -214,7 +216,7 @@ export function createEmailColdTrackingWorker(redis: Redis): Worker {
   const sequenceStopQueue = new Queue(QUEUES.SEQUENCE_STOP, { connection });
   const bounceMonitorQueue = new Queue(QUEUES.MONITOR_EMAIL_DELIVERABILITY, { connection });
 
-  return new Worker(
+  const { worker } = createWorker(
     QUEUES.EMAIL_COLD_LEAD_STATUS,
     async (job: Job<EmailColdTrackingJobData>): Promise<void> => {
       const { tenantId, leadId, journeyId, eventType, campaignId, timestamp, replyContent } =
@@ -343,8 +345,9 @@ export function createEmailColdTrackingWorker(redis: Redis): Worker {
           break;
       }
     },
-    { connection, concurrency: 50 },
+    { externalConnection: connection, concurrency: 50 },
   );
+  return worker;
 }
 
 // =============================================================================
@@ -358,7 +361,7 @@ export function createBounceRateMonitorWorker(redis: Redis): Worker {
   const campaignPauseQueue = new Queue(QUEUES.EMAIL_COLD_CAMPAIGN_PAUSE, { connection });
   const bounceAlertQueue = new Queue(QUEUES.ALERT_BOUNCE_HIGH, { connection });
 
-  return new Worker(
+  const { worker } = createWorker(
     QUEUES.MONITOR_EMAIL_DELIVERABILITY,
     async (job: Job<BounceMonitorJobData>): Promise<void> => {
       const { tenantId, campaignId } = job.data;
@@ -403,8 +406,9 @@ export function createBounceRateMonitorWorker(redis: Redis): Worker {
         );
       }
     },
-    { connection, concurrency: 10 },
+    { externalConnection: connection, concurrency: 10 },
   );
+  return worker;
 }
 
 // =============================================================================
@@ -414,7 +418,7 @@ export function createBounceRateMonitorWorker(redis: Redis): Worker {
 
 export function createEmailWarmSenderWorker(redis: Redis): Worker {
   const connection = asBullmqConnection(redis);
-  return new Worker(
+  const { worker } = createWorker(
     QUEUES.EMAIL_WARM, // q:email:warm
     async (job: Job<EmailWarmSendJobData>): Promise<void> => {
       const {
@@ -477,8 +481,9 @@ export function createEmailWarmSenderWorker(redis: Redis): Worker {
         quotaCost: 0,
       });
     },
-    { connection, concurrency: 50 },
+    { externalConnection: connection, concurrency: 50 },
   );
+  return worker;
 }
 
 // =============================================================================
@@ -492,7 +497,7 @@ export function createEmailWarmReplyWorker(redis: Redis): Worker {
   const stateTransitionQueue = new Queue(QUEUES.LEAD_STATE_TRANSITION, { connection });
   const sequenceStopQueue = new Queue(QUEUES.SEQUENCE_STOP, { connection });
 
-  return new Worker(
+  const { worker } = createWorker(
     QUEUES.EMAIL_WARM_PROFORMA, // reused for warm reply processing
     async (job: Job<EmailWarmReplyJobData>): Promise<void> => {
       const { tenantId, leadId, journeyId, emailId, replyContent, timestamp } = job.data;
@@ -540,8 +545,9 @@ export function createEmailWarmReplyWorker(redis: Redis): Worker {
         { removeOnComplete: 100 },
       );
     },
-    { connection, concurrency: 50 },
+    { externalConnection: connection, concurrency: 50 },
   );
+  return worker;
 }
 
 // =============================================================================
@@ -560,7 +566,7 @@ export interface EmailWarmTrackingJobData {
 
 export function createEmailWarmTrackingWorker(redis: Redis): Worker {
   const connection = asBullmqConnection(redis);
-  return new Worker(
+  const { worker } = createWorker(
     QUEUES.EMAIL_WARM_DOCUMENT, // reused for warm email tracking
     async (job: Job<EmailWarmTrackingJobData>): Promise<void> => {
       const { tenantId, journeyId, emailId, eventType, timestamp } = job.data;
@@ -615,6 +621,7 @@ export function createEmailWarmTrackingWorker(redis: Redis): Worker {
           .where(eq(leadJourney.id, journeyId));
       }
     },
-    { connection, concurrency: 50 },
+    { externalConnection: connection, concurrency: 50 },
   );
+  return worker;
 }

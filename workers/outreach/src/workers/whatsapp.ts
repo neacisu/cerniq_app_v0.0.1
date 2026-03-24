@@ -8,10 +8,11 @@
  * - WA Delivery Status (SENT/DELIVERED/READ/FAILED)
  * - WA Read Receipt (update engagement_score)
  */
-import { Worker, Job, Queue } from "bullmq";
+import { Job, Queue } from "bullmq";
+import type { Worker } from "bullmq";
 import { v4 as uuidv4 } from "uuid";
 import { Redis } from "ioredis";
-import { QUEUES, WA_PHONE_COUNT } from "@cerniq/worker-shared";
+import { QUEUES, WA_PHONE_COUNT, createWorker } from "@cerniq/worker-shared";
 import { asBullmqConnection } from "../utils/bullmq-connection.js";
 
 // =============================================================================
@@ -93,7 +94,7 @@ export function createWaWorker(redis: Redis, phoneIndex: number, isFollowup: boo
     ? `q:wa:phone-${String(phoneIndex).padStart(2, "0")}:followup`
     : `q:wa:phone-${String(phoneIndex).padStart(2, "0")}`;
 
-  return new Worker(
+  const { worker } = createWorker(
     queueName,
     async (job: Job<WaSendInitialJobData>): Promise<WaSendResult> => {
       const {
@@ -199,11 +200,12 @@ export function createWaWorker(redis: Redis, phoneIndex: number, isFollowup: boo
       };
     },
     {
-      connection: asBullmqConnection(redis),
+      externalConnection: asBullmqConnection(redis),
       concurrency: 1, // CRITICAL: ADR-0060 mandates concurrency=1 per phone queue
       lockDuration: 60_000,
     },
   );
+  return worker;
 }
 
 /**
@@ -225,7 +227,7 @@ export function createAllWaWorkers(redis: Redis): Worker[] {
 
 export function createWaDeliveryStatusWorker(redis: Redis): Worker {
   const connection = asBullmqConnection(redis);
-  return new Worker(
+  const { worker } = createWorker(
     QUEUES.WA_REPLY, // delivery status from TimelinesAI webhook ingest
     async (job: Job<WaDeliveryStatusJobData>): Promise<void> => {
       const { tenantId, externalMessageId, status, timestamp, failureReason } = job.data;
@@ -270,8 +272,9 @@ export function createWaDeliveryStatusWorker(redis: Redis): Worker {
         );
       }
     },
-    { connection, concurrency: 100 },
+    { externalConnection: connection, concurrency: 100 },
   );
+  return worker;
 }
 
 // =============================================================================
@@ -281,7 +284,7 @@ export function createWaDeliveryStatusWorker(redis: Redis): Worker {
 
 export function createWaReadReceiptWorker(redis: Redis): Worker {
   const connection = asBullmqConnection(redis);
-  return new Worker(
+  const { worker } = createWorker(
     QUEUES.WA_CHAT_HISTORY_FETCH, // read receipts processed after chat history fetch
     async (job: Job<WaReadReceiptJobData>): Promise<void> => {
       const { tenantId, externalMessageId, readAt, journeyId } = job.data;
@@ -349,6 +352,7 @@ export function createWaReadReceiptWorker(redis: Redis): Worker {
         })
         .where(eq(leadJourney.id, journeyId));
     },
-    { connection, concurrency: 100 },
+    { externalConnection: connection, concurrency: 100 },
   );
+  return worker;
 }
