@@ -9,11 +9,12 @@
  * - sequence:create            — enrollment manager
  * - Sequence Stats Aggregator
  */
-import { Worker, Job, Queue } from "bullmq";
+import { Job, Queue } from "bullmq";
+import type { Worker } from "bullmq";
 import { DateTime } from "luxon";
 import { v4 as uuidv4 } from "uuid";
 import { Redis } from "ioredis";
-import { QUEUES } from "@cerniq/worker-shared";
+import { QUEUES, createWorker } from "@cerniq/worker-shared";
 import { ROMANIAN_HOLIDAYS_2026, BUSINESS_HOURS } from "./resilience.js";
 import { asBullmqConnection } from "../utils/bullmq-connection.js";
 
@@ -72,7 +73,7 @@ export function createSequenceSchedulerWorker(redis: Redis): Worker {
   const connection = asBullmqConnection(redis);
   const advanceQueue = new Queue(QUEUES.SEQUENCE_ADVANCE, { connection });
 
-  return new Worker(
+  return createWorker(
     QUEUES.SEQUENCE_SCHEDULE_FOLLOWUP,
     async (job: Job<ScheduleFollowupJobData>): Promise<ScheduleFollowupResult> => {
       const { tenantId, journeyId, sequenceId, sequenceEnrollmentId, currentStep } = job.data;
@@ -180,7 +181,7 @@ export function createSequenceSchedulerWorker(redis: Redis): Worker {
       };
     },
     { connection, concurrency: 50 },
-  );
+  ).worker;
 }
 
 // =============================================================================
@@ -190,7 +191,7 @@ export function createSequenceSchedulerWorker(redis: Redis): Worker {
 
 export function createSequenceStopWorker(redis: Redis): Worker {
   const connection = asBullmqConnection(redis);
-  return new Worker(
+  return createWorker(
     QUEUES.SEQUENCE_STOP,
     async (job: Job<SequenceStopJobData>): Promise<void> => {
       const { journeyId, reason = "LEAD_REPLIED" } = job.data;
@@ -225,7 +226,7 @@ export function createSequenceStopWorker(redis: Redis): Worker {
         .where(eq(leadJourney.id, journeyId));
     },
     { connection, concurrency: 50 },
-  );
+  ).worker;
 }
 
 // =============================================================================
@@ -237,7 +238,7 @@ export function createSequenceAdvanceWorker(redis: Redis): Worker {
   const connection = asBullmqConnection(redis);
   const channelSelectorQueue = new Queue(QUEUES.OUTREACH_CHANNEL_SELECTOR, { connection });
 
-  return new Worker(
+  return createWorker(
     QUEUES.SEQUENCE_ADVANCE,
     async (job: Job<SequenceAdvanceJobData>): Promise<void> => {
       const { tenantId, journeyId, sequenceEnrollmentId } = job.data;
@@ -280,7 +281,7 @@ export function createSequenceAdvanceWorker(redis: Redis): Worker {
       );
     },
     { connection, concurrency: 50 },
-  );
+  ).worker;
 }
 
 // =============================================================================
@@ -292,7 +293,7 @@ export function createEnrollmentManagerWorker(redis: Redis): Worker {
   const connection = asBullmqConnection(redis);
   const schedulerQueue = new Queue(QUEUES.SEQUENCE_SCHEDULE_FOLLOWUP, { connection });
 
-  return new Worker(
+  return createWorker(
     QUEUES.SEQUENCE_CREATE,
     async (job: Job<EnrollmentCreateJobData>): Promise<{ enrollmentId: string }> => {
       const { tenantId, leadId, journeyId, sequenceId, startAt } = job.data;
@@ -343,7 +344,7 @@ export function createEnrollmentManagerWorker(redis: Redis): Worker {
       return { enrollmentId };
     },
     { connection, concurrency: 20 },
-  );
+  ).worker;
 }
 
 // =============================================================================
@@ -428,7 +429,7 @@ export async function executeSequenceStatsJob(
 /** Un singur worker pe `EMAIL_COLD_ANALYTICS_FETCH`: raport zilnic vs. agregare stats secvență. */
 export function createMergedEmailColdAnalyticsWorker(redis: Redis): Worker {
   const connection = asBullmqConnection(redis);
-  return new Worker(
+  return createWorker(
     QUEUES.EMAIL_COLD_ANALYTICS_FETCH,
     async (
       job: Job<SequenceStatsJobData | import("./monitoring.js").DailyReportJobData>,
@@ -441,5 +442,5 @@ export function createMergedEmailColdAnalyticsWorker(redis: Redis): Worker {
       return executeDailyReportJob(job as Job<import("./monitoring.js").DailyReportJobData>);
     },
     { connection, concurrency: 10 },
-  );
+  ).worker;
 }
