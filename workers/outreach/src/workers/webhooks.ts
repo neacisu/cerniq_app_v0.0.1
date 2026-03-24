@@ -10,10 +10,11 @@
  * - Event Deduplication        — Redis-based idempotency
  * - Event Archive              — outreach.webhook_event_archive (ADR-0061; not hitl_audit_log)
  */
-import { Worker, Job, Queue } from "bullmq";
+import type { Worker } from "bullmq";
+import { Job, Queue } from "bullmq";
 import { v4 as uuidv4 } from "uuid";
 import { Redis } from "ioredis";
-import { QUEUES } from "@cerniq/worker-shared";
+import { QUEUES, createWorker } from "@cerniq/worker-shared";
 import { asBullmqConnection } from "../utils/bullmq-connection.js";
 import type { CleanupJobData, HealthCheckJobData } from "./monitoring.js";
 import type { PriorityJobData } from "./resilience.js";
@@ -98,7 +99,7 @@ export function createWebhookNormalizerWorker(redis: Redis): Worker {
   const instantlyQueue = new Queue(QUEUES.WEBHOOK_INSTANTLY_INGEST, { connection });
   const resendQueue = new Queue(QUEUES.WEBHOOK_RESEND_INGEST, { connection });
 
-  return new Worker(
+  return createWorker(
     QUEUES.WEBHOOK_NORMALIZE,
     async (
       job: Job<{ source: string; tenantId: string; rawEvent: unknown }>,
@@ -133,7 +134,7 @@ export function createWebhookNormalizerWorker(redis: Redis): Worker {
       return event;
     },
     { connection, concurrency: 100 },
-  );
+  ).worker;
 }
 
 function extractEventType(source: string, rawEvent: unknown): string {
@@ -164,7 +165,7 @@ export function createTimelinesAIEventProcessorWorker(redis: Redis): Worker {
   const sentimentQueue = new Queue(QUEUES.AI_SENTIMENT_ANALYZE, { connection });
   const deliveryQueue = new Queue(QUEUES.WA_REPLY, { connection });
 
-  return new Worker(
+  return createWorker(
     QUEUES.WEBHOOK_TIMELINESAI_INGEST,
     async (job: Job<TimelinesAIWebhookJobData>): Promise<void> => {
       const { tenantId, rawEvent } = job.data;
@@ -265,7 +266,7 @@ export function createTimelinesAIEventProcessorWorker(redis: Redis): Worker {
       );
     },
     { connection, concurrency: 100 },
-  );
+  ).worker;
 }
 
 // =============================================================================
@@ -277,7 +278,7 @@ export function createInstantlyEventProcessorWorker(redis: Redis): Worker {
   const connection = asBullmqConnection(redis);
   const trackingQueue = new Queue(QUEUES.EMAIL_COLD_LEAD_STATUS, { connection });
 
-  return new Worker(
+  return createWorker(
     QUEUES.WEBHOOK_INSTANTLY_INGEST,
     async (job: Job<InstantlyWebhookJobData>): Promise<void> => {
       const { tenantId, rawEvent } = job.data;
@@ -324,7 +325,7 @@ export function createInstantlyEventProcessorWorker(redis: Redis): Worker {
       );
     },
     { connection, concurrency: 100 },
-  );
+  ).worker;
 }
 
 // =============================================================================
@@ -338,7 +339,7 @@ export function createResendEventProcessorWorker(redis: Redis): Worker {
   const warmTrackingQueue = new Queue(QUEUES.EMAIL_WARM_DOCUMENT, { connection });
   const warmReplyQueue = new Queue(QUEUES.EMAIL_WARM_PROFORMA, { connection });
 
-  return new Worker(
+  return createWorker(
     QUEUES.WEBHOOK_RESEND_INGEST,
     async (job: Job<ResendWebhookJobData>): Promise<void> => {
       const { tenantId, rawEvent } = job.data;
@@ -396,7 +397,7 @@ export function createResendEventProcessorWorker(redis: Redis): Worker {
       );
     },
     { connection, concurrency: 100 },
-  );
+  ).worker;
 }
 
 // =============================================================================
@@ -462,7 +463,7 @@ export async function executeEventArchiveJob(job: Job<EventArchiveJobData>): Pro
 /** Dedup + cleanup pe `PIPELINE_OUTREACH_HEALTH`. */
 export function createMergedPipelineHealthWorker(redis: Redis): Worker {
   const connection = asBullmqConnection(redis);
-  return new Worker(
+  return createWorker(
     QUEUES.PIPELINE_OUTREACH_HEALTH,
     async (job: Job<EventDeduplicateJobData | CleanupJobData>) => {
       const d = job.data as { eventId?: string };
@@ -473,13 +474,13 @@ export function createMergedPipelineHealthWorker(redis: Redis): Worker {
       return executeCleanupJob(job as Job<CleanupJobData>);
     },
     { connection, concurrency: 50 },
-  );
+  ).worker;
 }
 
 /** Priority router + archive + health pe `PIPELINE_OUTREACH_METRICS`. */
 export function createMergedPipelineMetricsWorker(redis: Redis): Worker {
   const connection = asBullmqConnection(redis);
-  return new Worker(
+  return createWorker(
     QUEUES.PIPELINE_OUTREACH_METRICS,
     async (
       job: Job<PriorityJobData | EventArchiveJobData | HealthCheckJobData>,
@@ -496,5 +497,5 @@ export function createMergedPipelineMetricsWorker(redis: Redis): Worker {
       return executeHealthCheckAggregatorJob(redis, job as Job<HealthCheckJobData>);
     },
     { connection, concurrency: 10 },
-  );
+  ).worker;
 }
