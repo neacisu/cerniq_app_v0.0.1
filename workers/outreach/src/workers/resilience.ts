@@ -7,10 +7,10 @@
  * - Business Hours Scheduler (09-18 Europe/Bucharest, weekends+holidays skip)
  * - Priority Queue Manager (1=alerts, 2=outreach, 3=cleanup)
  */
-import { Worker, Job, Queue } from "bullmq";
+import { Job, Queue } from "bullmq";
 import { DateTime } from "luxon";
 import { Redis } from "ioredis";
-import { QUEUES } from "@cerniq/worker-shared";
+import { QUEUES, createWorker } from "@cerniq/worker-shared";
 import { asBullmqConnection } from "../utils/bullmq-connection.js";
 
 // =============================================================================
@@ -157,11 +157,11 @@ function computeRetryDelayMs(
 // Classifies errors and re-queues with correct backoff
 // =============================================================================
 
-export function createRetryOrchestratorWorker(redis: Redis): Worker {
+export function createRetryOrchestratorWorker(redis: Redis) {
   const connection = asBullmqConnection(redis);
   const dlqQueue = new Queue(DLQ_CONFIG.OUTREACH_DLQ, { connection });
 
-  return new Worker(
+  return createWorker(
     QUEUES.WA_MESSAGE_RETRY,
     async (job: Job<RetryJobData>): Promise<void> => {
       const { originalQueue, originalJobData, errorType, errorMessage, statusCode, attemptsMade } =
@@ -202,7 +202,7 @@ export function createRetryOrchestratorWorker(redis: Redis): Worker {
       });
     },
     { connection, concurrency: 50 },
-  );
+  ).worker;
 }
 
 // =============================================================================
@@ -210,9 +210,9 @@ export function createRetryOrchestratorWorker(redis: Redis): Worker {
 // Enforces 09-18 Europe/Bucharest, no weekends, no RO holidays
 // =============================================================================
 
-export function createBusinessHoursSchedulerWorker(redis: Redis): Worker {
+export function createBusinessHoursSchedulerWorker(redis: Redis) {
   const connection = asBullmqConnection(redis);
-  return new Worker(
+  return createWorker(
     QUEUES.QUOTA_BUSINESS_HOURS_CHECK,
     async (job: Job<SchedulerJobData>): Promise<SchedulerResult> => {
       const { targetQueue, jobData, jobName = "scheduled", enforceBusinessHours = true } = job.data;
@@ -248,7 +248,7 @@ export function createBusinessHoursSchedulerWorker(redis: Redis): Worker {
       return { scheduled: true };
     },
     { connection, concurrency: 20 },
-  );
+  ).worker;
 }
 
 // =============================================================================
