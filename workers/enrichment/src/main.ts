@@ -9,7 +9,9 @@ import {
   createWorker,
   failImportRuntimeJob,
   loadSecretsFromFile,
+  dlqDepth,
   queueDepth,
+  queueDepthByState,
   queueRegistry,
   watchSecretsFile,
 } from "@cerniq/worker-shared";
@@ -475,14 +477,43 @@ try {
 }
 
 const monitorQueues = queueNames.map((name) => ({ name, queue: createQueue(name) }));
+const DLQ_QUEUE_NAME = "dlq:outreach";
+const dlqQueue = createQueue(DLQ_QUEUE_NAME);
+
 const queueDepthInterval = setInterval(async () => {
   for (const { name, queue } of monitorQueues) {
     try {
-      const counts = await queue.getJobCounts("waiting");
+      const counts = await queue.getJobCounts(
+        "waiting",
+        "active",
+        "completed",
+        "failed",
+        "delayed",
+        "paused",
+      );
       queueDepth.set({ queue: name }, counts.waiting ?? 0);
+      for (const state of [
+        "waiting",
+        "active",
+        "completed",
+        "failed",
+        "delayed",
+        "paused",
+      ] as const) {
+        queueDepthByState.set({ queue: name, state }, counts[state] ?? 0);
+      }
     } catch {
       // silently skip unreachable queues
     }
+  }
+  try {
+    const dlqCounts = await dlqQueue.getJobCounts("waiting", "failed", "delayed");
+    dlqDepth.set(
+      { queue: DLQ_QUEUE_NAME },
+      (dlqCounts.waiting ?? 0) + (dlqCounts.failed ?? 0) + (dlqCounts.delayed ?? 0),
+    );
+  } catch {
+    // DLQ may not exist yet
   }
 }, 15_000);
 
@@ -502,7 +533,7 @@ async function shutdown() {
   stopWatchingSecrets();
   clearInterval(queueDepthInterval);
   server.close();
-  await Promise.all(monitorQueues.map(({ queue }) => queue.close()));
+  await Promise.all([...monitorQueues.map(({ queue }) => queue.close()), dlqQueue.close()]);
   await stopWorkers();
   await closeRedisConnections(redisConnections);
   await closeDbConnection();
