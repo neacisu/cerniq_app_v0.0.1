@@ -1308,6 +1308,9 @@ export async function outreachRoutes(app: FastifyInstance) {
         fromState: existing[0].currentState,
         toState: body.currentState,
         tenantId,
+        correlationId: req.id,
+        sourceEndpoint: `${req.method} ${(req as any).routerPath}`,
+        actorId: (req as any).userId ?? (req as any).user?.id,
       });
     }
 
@@ -1364,6 +1367,9 @@ export async function outreachRoutes(app: FastifyInstance) {
           subject: body.subject,
           templateId: body.templateId,
           scheduledAt: body.scheduledAt ?? null,
+          correlationId: req.id,
+          sourceEndpoint: `${req.method} ${(req as any).routerPath}`,
+          actorId: (req as any).userId ?? (req as any).user?.id,
         },
         delayMs > 0 ? { delay: delayMs } : {},
       );
@@ -1411,6 +1417,9 @@ export async function outreachRoutes(app: FastifyInstance) {
         tenantId,
         userId: actorId,
         reason: body.reason,
+        correlationId: req.id,
+        sourceEndpoint: `${req.method} ${(req as any).routerPath}`,
+        actorId: (req as any).userId ?? (req as any).user?.id,
       });
 
       return reply.send({ success: true, data: { success: true } });
@@ -1657,6 +1666,9 @@ export async function outreachRoutes(app: FastifyInstance) {
             journeyId: row.journeyPk,
             leadId: row.leadId,
             startAt: body.scheduledStart,
+            correlationId: req.id,
+            sourceEndpoint: `${req.method} ${(req as any).routerPath}`,
+            actorId: (req as any).userId ?? (req as any).user?.id,
           },
           { removeOnComplete: 100 },
         );
@@ -1835,6 +1847,8 @@ export async function outreachRoutes(app: FastifyInstance) {
         action: body.action,
         editedContent: body.editedContent,
         notes: body.notes,
+        correlationId: req.id,
+        sourceEndpoint: `${req.method} ${(req as any).routerPath}`,
       });
 
       return reply.send({ success: true, data: updated });
@@ -2168,7 +2182,13 @@ export async function outreachRoutes(app: FastifyInstance) {
     const { id } = idParamSchema.parse(req.params);
 
     const healthQueue = createQueue("monitor:phone:health");
-    await healthQueue.add("manual-health-check", { phoneId: id, tenantId });
+    await healthQueue.add("manual-health-check", {
+      phoneId: id,
+      tenantId,
+      correlationId: req.id,
+      sourceEndpoint: `${req.method} ${(req as any).routerPath}`,
+      actorId: (req as any).userId ?? (req as any).user?.id,
+    });
 
     return reply.send({ success: true, data: { queued: true } });
   });
