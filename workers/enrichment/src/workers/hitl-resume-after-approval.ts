@@ -412,11 +412,20 @@ export const hitlResumeAfterApprovalProcessor: Processor<HitlResumeAfterApproval
     tenant_id: job.data.tenantId,
   });
   if (task.createdAt) {
-    const resolutionSeconds = (Date.now() - new Date(task.createdAt).getTime()) / 1000;
-    hitlResolutionTimeSeconds.observe(
-      { approval_type: approvalType, tenant_id: job.data.tenantId },
-      resolutionSeconds,
-    );
+    const createdMs = new Date(task.createdAt).getTime();
+    const resolvedMs =
+      task.decidedAt != null
+        ? new Date(task.decidedAt).getTime()
+        : task.updatedAt != null
+          ? new Date(task.updatedAt).getTime()
+          : Date.now();
+    const resolutionSeconds = (resolvedMs - createdMs) / 1000;
+    if (resolutionSeconds >= 0) {
+      hitlResolutionTimeSeconds.observe(
+        { approval_type: approvalType, tenant_id: job.data.tenantId },
+        resolutionSeconds,
+      );
+    }
   }
 
   if (context.resolvedApprovalType === "dedup_review") {
