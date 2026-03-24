@@ -7,10 +7,13 @@ import {
   createQueue,
   createRedisConnections,
   createWorker,
+  dlqDepth,
   failImportRuntimeJob,
   loadSecretsFromFile,
   queueDepth,
+  queueDepthByState,
   queueRegistry,
+  QUEUES,
   watchSecretsFile,
 } from "@cerniq/worker-shared";
 import { closeDbConnection, db, inArray, refreshDbConnection, tenants } from "@cerniq/db";
@@ -474,15 +477,34 @@ try {
   console.error("[cron-scheduler] failed", error);
 }
 
+const BULLMQ_DEPTH_STATES = [
+  "waiting",
+  "active",
+  "completed",
+  "failed",
+  "delayed",
+  "paused",
+] as const;
+
 const monitorQueues = queueNames.map((name) => ({ name, queue: createQueue(name) }));
+const dlqOutreachQueue = createQueue(QUEUES.OUTREACH_DLQ);
 const queueDepthInterval = setInterval(async () => {
   for (const { name, queue } of monitorQueues) {
     try {
-      const counts = await queue.getJobCounts("waiting");
+      const counts = await queue.getJobCounts(...BULLMQ_DEPTH_STATES);
       queueDepth.set({ queue: name }, counts.waiting ?? 0);
+      for (const state of BULLMQ_DEPTH_STATES) {
+        queueDepthByState.set({ queue: name, state }, counts[state] ?? 0);
+      }
     } catch {
       // silently skip unreachable queues
     }
+  }
+  try {
+    const depth = await dlqOutreachQueue.count();
+    dlqDepth.set({ queue: QUEUES.OUTREACH_DLQ }, depth);
+  } catch {
+    // skip unreachable DLQ
   }
 }, 15_000);
 
@@ -502,7 +524,7 @@ async function shutdown() {
   stopWatchingSecrets();
   clearInterval(queueDepthInterval);
   server.close();
-  await Promise.all(monitorQueues.map(({ queue }) => queue.close()));
+  await Promise.all([...monitorQueues.map(({ queue }) => queue.close()), dlqOutreachQueue.close()]);
   await stopWorkers();
   await closeRedisConnections(redisConnections);
   await closeDbConnection();

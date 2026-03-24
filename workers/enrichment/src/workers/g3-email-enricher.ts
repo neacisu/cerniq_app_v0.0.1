@@ -5,20 +5,22 @@ import { createCircuitBreaker, withExternalApiMetrics } from "@cerniq/worker-sha
 
 const clearbitBreaker = createCircuitBreaker(
   async (email: string, apiKey: string) => {
-    const response = await fetch(
-      `https://person.clearbit.com/v2/people/find?email=${encodeURIComponent(email)}`,
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          Accept: "application/json",
+    return withExternalApiMetrics("clearbit", async () => {
+      const response = await fetch(
+        `https://person.clearbit.com/v2/people/find?email=${encodeURIComponent(email)}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            Accept: "application/json",
+          },
+          signal: AbortSignal.timeout(Number(process.env.CLEARBIT_TIMEOUT_MS ?? "12000")),
         },
-        signal: AbortSignal.timeout(Number(process.env.CLEARBIT_TIMEOUT_MS ?? "12000")),
-      },
-    );
-    if (response.status === 404) return null;
-    if (!response.ok) throw new Error(`Clearbit API error: ${response.status}`);
-    return (await response.json()) as Record<string, unknown>;
+      );
+      if (response.status === 404) return null;
+      if (!response.ok) throw new Error(`Clearbit API error: ${response.status}`);
+      return (await response.json()) as Record<string, unknown>;
+    });
   },
   "clearbit",
   { timeout: 12000, errorThresholdPercentage: 50, resetTimeout: 60000 },
@@ -26,19 +28,21 @@ const clearbitBreaker = createCircuitBreaker(
 
 const fullcontactBreaker = createCircuitBreaker(
   async (email: string, apiKey: string) => {
-    const response = await fetch("https://api.fullcontact.com/v3/person.enrich", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify({ email }),
-      signal: AbortSignal.timeout(Number(process.env.FULLCONTACT_TIMEOUT_MS ?? "12000")),
+    return withExternalApiMetrics("fullcontact", async () => {
+      const response = await fetch("https://api.fullcontact.com/v3/person.enrich", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({ email }),
+        signal: AbortSignal.timeout(Number(process.env.FULLCONTACT_TIMEOUT_MS ?? "12000")),
+      });
+      if (response.status === 404) return null;
+      if (!response.ok) throw new Error(`FullContact API error: ${response.status}`);
+      return (await response.json()) as Record<string, unknown>;
     });
-    if (response.status === 404) return null;
-    if (!response.ok) throw new Error(`FullContact API error: ${response.status}`);
-    return (await response.json()) as Record<string, unknown>;
   },
   "fullcontact",
   { timeout: 12000, errorThresholdPercentage: 50, resetTimeout: 60000 },
@@ -47,13 +51,13 @@ const fullcontactBreaker = createCircuitBreaker(
 async function fetchClearbit(email: string): Promise<Record<string, unknown> | null> {
   const apiKey = process.env.CLEARBIT_API_KEY;
   if (!apiKey) return null;
-  return withExternalApiMetrics("clearbit", () => clearbitBreaker.fire(email, apiKey));
+  return clearbitBreaker.fire(email, apiKey);
 }
 
 async function fetchFullContact(email: string): Promise<Record<string, unknown> | null> {
   const apiKey = process.env.FULLCONTACT_API_KEY;
   if (!apiKey) return null;
-  return withExternalApiMetrics("fullcontact", () => fullcontactBreaker.fire(email, apiKey));
+  return fullcontactBreaker.fire(email, apiKey);
 }
 
 export type EmailEnricherJobData = {
