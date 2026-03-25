@@ -636,9 +636,15 @@ importers:
       '@cerniq/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types
+      '@opentelemetry/api':
+        specifier: ^1.9.0
+        version: 1.9.0
       bullmq:
         specifier: ^5.71.0
         version: 5.71.0
+      drizzle-orm:
+        specifier: ^0.45.1
+        version: 0.45.1(@opentelemetry/api@1.9.0)(postgres@3.4.8)
       ioredis:
         specifier: ^5.10.0
         version: 5.10.0

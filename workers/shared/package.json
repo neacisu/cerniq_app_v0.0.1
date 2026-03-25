@@ -28,6 +28,8 @@
   "dependencies": {
     "@cerniq/db": "workspace:*",
     "@cerniq/shared-types": "workspace:*",
+    "@opentelemetry/api": "^1.9.0",
+    "drizzle-orm": "^0.45.1",
     "bullmq": "^5.71.0",
     "ioredis": "^5.10.0",
     "opossum": "^9.0.0",
