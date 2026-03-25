@@ -8,9 +8,10 @@
  * - Phone Quarantine       — triggered on BANNED or reputation < 20
  * - Phone Reputation       — score 0-100, factors: delivery+reply-bounce-block
  */
-import { Worker, Job, Queue } from "bullmq";
+import { Job, Queue } from "bullmq";
+import type { Worker } from "bullmq";
 import { Redis } from "ioredis";
-import { QUEUES } from "@cerniq/worker-shared";
+import { QUEUES, createWorker } from "@cerniq/worker-shared";
 import type { AccountStatusResponse } from "@cerniq/integrations";
 import { getTimelinesAIClient } from "@cerniq/integrations";
 import { phoneStatusEnum } from "@cerniq/db";
@@ -101,7 +102,7 @@ export function createPhoneHealthMonitorWorker(redis: Redis): Worker {
   const alertQueue = new Queue(QUEUES.ALERT_PHONE_OFFLINE, { connection });
   const bannedAlertQueue = new Queue(QUEUES.ALERT_PHONE_BANNED, { connection });
 
-  return new Worker(
+  const { worker } = createWorker(
     QUEUES.MONITOR_PHONE_HEALTH,
     async (job: Job<PhoneHealthCheckJobData>): Promise<PhoneHealthCheckResult> => {
       const { tenantId } = job.data;
@@ -167,8 +168,9 @@ export function createPhoneHealthMonitorWorker(redis: Redis): Worker {
 
       return { checked: phones.length, alerts };
     },
-    { connection, concurrency: 5 },
+    { externalConnection: connection, concurrency: 5 },
   );
+  return worker;
 }
 
 // =============================================================================
@@ -180,7 +182,7 @@ export function createPhoneHealthMonitorWorker(redis: Redis): Worker {
 
 export function createPhoneStatusSyncWorker(redis: Redis): Worker {
   const connection = asBullmqConnection(redis);
-  return new Worker(
+  const { worker } = createWorker(
     QUEUES.WA_STATUS_SYNC,
     async (job: Job<PhoneStatusSyncJobData>): Promise<{ synced: number }> => {
       const { tenantId } = job.data;
@@ -224,8 +226,9 @@ export function createPhoneStatusSyncWorker(redis: Redis): Worker {
 
       return { synced };
     },
-    { connection, concurrency: 5 },
+    { externalConnection: connection, concurrency: 5 },
   );
+  return worker;
 }
 
 // =============================================================================
@@ -238,7 +241,7 @@ export function createPhoneQuarantineWorker(redis: Redis): Worker {
   const connection = asBullmqConnection(redis);
   const allocatorQueue = new Queue(QUEUES.OUTREACH_PHONE_ALLOCATOR, { connection });
 
-  return new Worker(
+  const { worker } = createWorker(
     QUEUES.ALERT_PHONE_BANNED, // reuses alert queue as trigger mechanism
     async (job: Job<PhoneQuarantineJobData>): Promise<void> => {
       const { tenantId, phoneId, reason } = job.data;
@@ -285,8 +288,9 @@ export function createPhoneQuarantineWorker(redis: Redis): Worker {
         );
       }
     },
-    { connection, concurrency: 5 },
+    { externalConnection: connection, concurrency: 5 },
   );
+  return worker;
 }
 
 // =============================================================================

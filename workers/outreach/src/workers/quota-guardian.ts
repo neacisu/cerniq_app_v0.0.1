@@ -7,9 +7,10 @@
  * - quota:guardian:increment (persist to PG)
  * - quota:guardian:reset (cron 0 0 * * *)
  */
-import { Worker, Job } from "bullmq";
+import { Job } from "bullmq";
+import type { Worker } from "bullmq";
 import { Redis } from "ioredis";
-import { QUEUES } from "@cerniq/worker-shared";
+import { QUEUES, createWorker } from "@cerniq/worker-shared";
 import { getQuotaKey, getPhoneStatusKey, DAILY_QUOTA_LIMIT } from "../utils/quota-lua.js";
 
 // =============================================================================
@@ -100,18 +101,19 @@ export async function executeQuotaCheck(
 }
 
 export function createQuotaCheckWorker(redis: Redis, luaSha: string): Worker {
-  return new Worker(
+  const { worker } = createWorker<QuotaCheckJobData>(
     QUEUES.QUOTA_GUARDIAN_CHECK,
     async (job: Job<QuotaCheckJobData>): Promise<QuotaCheckResult> => {
       return executeQuotaCheck(redis, luaSha, job.data);
     },
     {
-      connection: redis,
+      externalConnection: redis,
       concurrency: 100,
       removeOnFail: { count: 1000 },
       removeOnComplete: { count: 1000 },
     },
   );
+  return worker;
 }
 
 // =============================================================================
@@ -126,17 +128,15 @@ export interface QuotaIncrementResult {
 }
 
 export async function createQuotaIncrementWorker(redis: Redis): Promise<Worker> {
-  // Dynamic import to avoid circular deps
   const { db, sql, setSessionTenantId } = await import("@cerniq/db");
   const { waQuotaUsage } = await import("@cerniq/db");
 
-  return new Worker(
+  const { worker } = createWorker<QuotaIncrementJobData>(
     QUEUES.QUOTA_GUARDIAN_INCREMENT,
     async (job: Job<QuotaIncrementJobData>): Promise<QuotaIncrementResult> => {
       const { phoneId, dateIso, cost, tenantId } = job.data;
       await setSessionTenantId(tenantId);
 
-      // UPSERT quota usage — Redis is source of truth, this persists to PG
       await db
         .insert(waQuotaUsage)
         .values({
@@ -157,7 +157,6 @@ export async function createQuotaIncrementWorker(redis: Redis): Promise<Worker> 
           },
         });
 
-      // Read back current value from Redis for response
       const quotaKey = getQuotaKey(phoneId, dateIso);
       const current = await redis.get(quotaKey);
 
@@ -168,12 +167,13 @@ export async function createQuotaIncrementWorker(redis: Redis): Promise<Worker> 
       };
     },
     {
-      connection: redis,
+      externalConnection: redis,
       concurrency: 50,
       removeOnFail: { count: 1000 },
       removeOnComplete: { count: 500 },
     },
   );
+  return worker;
 }
 
 // =============================================================================
@@ -183,10 +183,9 @@ export async function createQuotaIncrementWorker(redis: Redis): Promise<Worker> 
 // =============================================================================
 
 export function createQuotaDailyResetWorker(redis: Redis): Worker {
-  return new Worker(
+  const { worker } = createWorker(
     QUEUES.QUOTA_GUARDIAN_RESET,
     async (): Promise<{ keysDeleted: number }> => {
-      // Reset all quota:wa:* keys in Redis DB 2
       const pattern = "quota:wa:*";
       let cursor = "0";
       let keysDeleted = 0;
@@ -203,12 +202,13 @@ export function createQuotaDailyResetWorker(redis: Redis): Worker {
       return { keysDeleted };
     },
     {
-      connection: redis,
+      externalConnection: redis,
       concurrency: 1,
       removeOnFail: { count: 100 },
       removeOnComplete: { count: 100 },
     },
   );
+  return worker;
 }
 
 // =============================================================================

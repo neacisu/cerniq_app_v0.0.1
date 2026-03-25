@@ -9,10 +9,11 @@
  * - Sentiment-Based Router (ADR-0063)
  * - AI Response Cache (Redis)
  */
-import { Worker, Job, Queue } from "bullmq";
+import { Job, Queue } from "bullmq";
+import type { Worker } from "bullmq";
 import { createHash } from "node:crypto";
 import { Redis } from "ioredis";
-import { QUEUES } from "@cerniq/worker-shared";
+import { QUEUES, createWorker } from "@cerniq/worker-shared";
 import { asBullmqConnection } from "../utils/bullmq-connection.js";
 
 /** Primul bloc `text` din `message.content` (Messages API); altfel `fallback`. */
@@ -95,7 +96,7 @@ export function createSentimentAnalyzerWorker(redis: Redis): Worker {
   const responseQueue = new Queue(QUEUES.AI_RESPONSE_GENERATE, { connection: conn });
   const reviewQueue = new Queue(QUEUES.HUMAN_REVIEW_QUEUE, { connection: conn });
 
-  return new Worker(
+  const { worker } = createWorker(
     QUEUES.AI_SENTIMENT_ANALYZE,
     async (job: Job<SentimentJobData>): Promise<SentimentResult> => {
       const { tenantId, leadId, journeyId, content, channel } = job.data;
@@ -133,36 +134,44 @@ export function createSentimentAnalyzerWorker(redis: Redis): Worker {
         })
         .where(eq(leadJourney.id, journeyId));
 
-      // ADR-0063 routing
+      // ADR-0063 routing (includes intent-based routing, replaces ai:intent:classify)
       let routedTo: "AI" | "HUMAN" = "AI";
 
-      if (analysis.score >= 50 && !analysis.requiresHuman) {
-        await responseQueue.add(
-          "generate",
-          { tenantId, leadId, journeyId, content, analysis },
-          { priority: 2, removeOnComplete: 100 },
-        );
-      } else if (analysis.requiresHuman || analysis.score < 0) {
+      if (analysis.intent === "NOT_INTERESTED" || analysis.requiresHuman || analysis.score < 0) {
         routedTo = "HUMAN";
+        const reason =
+          analysis.intent === "NOT_INTERESTED"
+            ? "NOT_INTERESTED"
+            : analysis.score < 0
+              ? "NEGATIVE_SENTIMENT"
+              : "AI_UNCERTAIN";
         await reviewQueue.add(
           "queue",
           {
             tenantId,
             leadId,
             journeyId,
-            reason: analysis.score < 0 ? "NEGATIVE_SENTIMENT" : "AI_UNCERTAIN",
+            reason,
             priority: analysis.urgency,
             content,
             channel,
+            intent: analysis.intent,
           },
           { priority: 1, removeOnComplete: 100 },
+        );
+      } else if (analysis.score >= 50) {
+        await responseQueue.add(
+          "generate",
+          { tenantId, leadId, journeyId, content, analysis },
+          { priority: 2, removeOnComplete: 100 },
         );
       }
 
       return { ...analysis, routedTo };
     },
-    { connection: conn, concurrency: 60 }, // rate 60/min matches 60 concurrent max
+    { externalConnection: conn, concurrency: 60 }, // rate 60/min matches 60 concurrent max
   );
+  return worker;
 }
 
 async function callAIForSentiment(content: string): Promise<{
@@ -203,7 +212,7 @@ Răspunde doar cu JSON valid.`,
 
 export function createResponseGeneratorWorker(redis: Redis): Worker {
   const conn = asBullmqConnection(redis);
-  return new Worker(
+  const { worker } = createWorker(
     QUEUES.AI_RESPONSE_GENERATE,
     async (job: Job<ResponseGenerateJobData>): Promise<{ response: string; sent: boolean }> => {
       const { tenantId, leadId, journeyId, content, analysis, companyName, phoneLabel, chatId } =
@@ -265,60 +274,14 @@ Sentiment: ${analysis.intent}. Generează un răspuns natural care continuă con
 
       return { response: generatedResponse, sent: false };
     },
-    { connection: conn, concurrency: 20 },
+    { externalConnection: conn, concurrency: 20 },
   );
+  return worker;
 }
 
 // =============================================================================
-// Worker: ai:intent:classify
-// INTERESTED | NOT_INTERESTED | QUESTION | COMPLAINT | NEUTRAL
+// Worker: ai:intent:classify — DEPRECATED
+// Intent is already returned by ai:sentiment:analyze (field: intent).
+// This worker was a functional duplicate making a separate LLM call for the same
+// content. Removed in Faza 0c per plan. Queue kept in registry for backward compat.
 // =============================================================================
-
-export function createIntentClassifierWorker(redis: Redis): Worker {
-  const conn = asBullmqConnection(redis);
-  return new Worker(
-    QUEUES.AI_INTENT_CLASSIFY,
-    async (
-      job: Job<IntentClassifyJobData>,
-    ): Promise<{ intent: SentimentIntent; confidence: number }> => {
-      const { content, journeyId } = job.data;
-
-      const { default: Anthropic } = await import("@anthropic-ai/sdk");
-      const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
-      const response = await anthropic.messages.create({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 100,
-        messages: [
-          {
-            role: "user",
-            content: `Clasifică intenția mesajului: "${content.slice(0, 400)}"
-Returnează JSON: {"intent": "INTERESTED"|"NOT_INTERESTED"|"QUESTION"|"COMPLAINT"|"NEUTRAL", "confidence": 0.0-1.0}
-Răspunde DOAR cu JSON.`,
-          },
-        ],
-      });
-
-      const result = JSON.parse(anthropicFirstTextBlock(response.content, "{}"));
-
-      const { db, setSessionTenantId } = await import("@cerniq/db");
-      await setSessionTenantId(job.data.tenantId);
-      const { leadJourney } = await import("@cerniq/db");
-      const { eq } = await import("@cerniq/db");
-
-      if (result.intent === "NOT_INTERESTED") {
-        await db
-          .update(leadJourney)
-          .set({
-            requiresHumanReview: true,
-            humanReviewReason: "AI_UNCERTAIN",
-            updatedAt: new Date(),
-          })
-          .where(eq(leadJourney.id, journeyId));
-      }
-
-      return { intent: result.intent, confidence: result.confidence ?? 0.5 };
-    },
-    { connection: conn, concurrency: 30 },
-  );
-}

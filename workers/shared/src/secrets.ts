@@ -3,17 +3,64 @@ import fs from "node:fs";
 const DEFAULT_SECRETS_PATH = "/secrets/workers.env";
 const SENSITIVE_KEYS = new Set([
   "DATABASE_URL",
+  "DATABASE_DIRECT_URL",
+  "POSTGRES_USER",
+  "POSTGRES_PASSWORD",
   "REDIS_URL",
   "REDIS_PASSWORD",
   "REDIS_PREFIX",
   "BULLMQ_PREFIX",
+  "JWT_SECRET",
+  "JWT_REFRESH_SECRET",
 ]);
 const OPENBAO_READY_MARKER = "OPENBAO_SECRETS_LOADED=true";
 
-export function loadSecretsFromFile(forceOverwrite = false, path = DEFAULT_SECRETS_PATH): void {
-  if (!fs.existsSync(path)) return;
+export interface LoadSecretsOptions {
+  /** Overwrite existing env vars for sensitive keys (default: false) */
+  forceOverwrite?: boolean;
+  /** Overwrite ALL env vars, not just sensitive ones (default: false) */
+  universalOverwrite?: boolean;
+  /** Exit process if secrets file is missing (default: false) */
+  exitOnMissing?: boolean;
+  /** Multiple paths to search, first existing wins (default: [path]) */
+  searchPaths?: string[];
+  /** Skip loading if these env vars are already set (default: []) */
+  skipIfEnvSet?: string[];
+}
 
-  const content = fs.readFileSync(path, "utf-8");
+function resolveSecretsFilePath(path: string, searchPaths?: string[]): string | null {
+  if (searchPaths && searchPaths.length > 0) {
+    const envOverride = process.env.SECRETS_PATH?.trim();
+    if (envOverride && fs.existsSync(envOverride)) return envOverride;
+    return searchPaths.find((p) => fs.existsSync(p)) ?? null;
+  }
+  return fs.existsSync(path) ? path : null;
+}
+
+export function loadSecretsFromFile(
+  forceOverwrite = false,
+  path = DEFAULT_SECRETS_PATH,
+  options?: LoadSecretsOptions,
+): void {
+  const opts: LoadSecretsOptions = { forceOverwrite, ...options };
+
+  if (opts.skipIfEnvSet?.some((key) => !!process.env[key]?.trim())) return;
+
+  const resolvedPath = resolveSecretsFilePath(path, opts.searchPaths);
+
+  if (!resolvedPath) {
+    if (opts.exitOnMissing && process.env.NODE_ENV !== "test") {
+      console.error(
+        `Secrets file not found: ${path}${opts.searchPaths ? ` (searched: ${opts.searchPaths.join(", ")})` : ""}. ` +
+          "OpenBao agent must render secrets before the process starts. " +
+          "Set SECRETS_PATH env var to override the default path.",
+      );
+      process.exit(1);
+    }
+    return;
+  }
+
+  const content = fs.readFileSync(resolvedPath, "utf-8");
   for (const line of content.split("\n")) {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith("#")) continue;
@@ -22,14 +69,16 @@ export function loadSecretsFromFile(forceOverwrite = false, path = DEFAULT_SECRE
 
     const key = trimmed.slice(0, eq).trim();
     const value = trimmed.slice(eq + 1).trim();
-    const isSensitive = SENSITIVE_KEYS.has(key);
 
-    if (forceOverwrite && isSensitive) {
+    if (opts.universalOverwrite) {
       process.env[key] = value;
       continue;
     }
 
-    if (!process.env[key]) process.env[key] = value;
+    const isSensitive = SENSITIVE_KEYS.has(key);
+    if ((opts.forceOverwrite && isSensitive) || !process.env[key]) {
+      process.env[key] = value;
+    }
   }
 }
 

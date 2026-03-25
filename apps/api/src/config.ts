@@ -1,45 +1,9 @@
 import { z } from "zod";
-import { readFileSync, existsSync } from "node:fs";
+import { loadSecretsFromFile } from "@cerniq/worker-shared";
 
-const SECRET_KEYS = [
-  "DATABASE_URL",
-  "POSTGRES_USER",
-  "POSTGRES_PASSWORD",
-  "REDIS_URL",
-  "REDIS_PASSWORD",
-  "REDIS_PREFIX",
-  "BULLMQ_PREFIX",
-  "JWT_SECRET",
-  "JWT_REFRESH_SECRET",
-] as const;
-
-function loadSecretsFromFile(forceOverwrite = false): void {
-  const secretsPath = process.env.SECRETS_PATH ?? "/secrets/api.env";
-
-  if (!existsSync(secretsPath)) {
-    if (process.env.NODE_ENV === "test") return;
-    console.error(`Secrets file not found: ${secretsPath}`);
-    console.error("OpenBao agent must render secrets before the API starts.");
-    console.error("Set SECRETS_PATH env var to override the default path.");
-    process.exit(1);
-  }
-
-  const content = readFileSync(secretsPath, "utf-8");
-  for (const line of content.split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const eqIndex = trimmed.indexOf("=");
-    if (eqIndex === -1) continue;
-    const key = trimmed.slice(0, eqIndex).trim();
-    const value = trimmed.slice(eqIndex + 1).trim();
-    const isSecret = SECRET_KEYS.includes(key as (typeof SECRET_KEYS)[number]);
-    if ((forceOverwrite && isSecret) || !process.env[key]) {
-      process.env[key] = value;
-    }
-  }
-}
-
-loadSecretsFromFile();
+loadSecretsFromFile(false, process.env.SECRETS_PATH ?? "/secrets/api.env", {
+  exitOnMissing: true,
+});
 
 if (!process.env.JWT_REFRESH_SECRET && process.env.JWT_SECRET) {
   process.env.JWT_REFRESH_SECRET = process.env.JWT_SECRET;
@@ -47,7 +11,7 @@ if (!process.env.JWT_REFRESH_SECRET && process.env.JWT_SECRET) {
 
 /** Reload secrets from file (e.g. on SIGHUP). Overwrites secret keys so new credentials take effect. */
 export function reloadSecretsFromFile(): void {
-  loadSecretsFromFile(true);
+  loadSecretsFromFile(true, process.env.SECRETS_PATH ?? "/secrets/api.env");
 }
 
 const EnvSchema = z.object({
@@ -100,7 +64,7 @@ export type EnvConfig = z.infer<typeof EnvSchema>;
 
 /** Re-parse env after reloadSecretsFromFile (e.g. on SIGHUP). Updates envConfig in place. */
 export function refreshEnvConfig(): void {
-  loadSecretsFromFile(true);
+  loadSecretsFromFile(true, process.env.SECRETS_PATH ?? "/secrets/api.env");
   if (!process.env.JWT_REFRESH_SECRET && process.env.JWT_SECRET) {
     process.env.JWT_REFRESH_SECRET = process.env.JWT_SECRET;
   }

@@ -32,6 +32,7 @@ export * from "./schemas/audit.js";
 export * from "./schemas/consent.js";
 export * from "./schemas/invite-codes.js";
 export * from "./schemas/bronze.js";
+export * from "./schemas/bronze-cognitive.js";
 export * from "./schemas/silver.js";
 export * from "./schemas/gold.js";
 export * from "./schemas/outreach-enums.js";

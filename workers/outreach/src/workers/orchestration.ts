@@ -7,9 +7,10 @@
  * - outreach:phone:allocator (STICKY ADR-0055)
  * - outreach:channel:selector (channel routing with scoring)
  */
-import { Worker, Job, Queue } from "bullmq";
+import { Job, Queue } from "bullmq";
+import type { Worker } from "bullmq";
 import { Redis } from "ioredis";
-import { QUEUES, getWaPhoneQueueName } from "@cerniq/worker-shared";
+import { QUEUES, getWaPhoneQueueName, createWorker } from "@cerniq/worker-shared";
 import { getPhoneStatusKey } from "../utils/quota-lua.js";
 import { asBullmqConnection } from "../utils/bullmq-connection.js";
 
@@ -74,7 +75,7 @@ export function createDispatchWorker(redis: Redis): Worker {
   const conn = asBullmqConnection(redis);
   const phoneAllocatorQueue = new Queue(QUEUES.OUTREACH_PHONE_ALLOCATOR, { connection: conn });
 
-  return new Worker(
+  const { worker } = createWorker(
     QUEUES.OUTREACH_ORCHESTRATOR_DISPATCH,
     async (job: Job<DispatchJobData>): Promise<DispatchResult> => {
       const { tenantId, batchSize = 100 } = job.data;
@@ -153,8 +154,9 @@ export function createDispatchWorker(redis: Redis): Worker {
       result.processingTimeMs = Date.now() - startTime;
       return result;
     },
-    { connection: conn, concurrency: 20 },
+    { externalConnection: conn, concurrency: 20 },
   );
+  return worker;
 }
 
 // =============================================================================
@@ -167,7 +169,7 @@ export function createPhoneAllocatorWorker(redis: Redis): Worker {
   const conn = asBullmqConnection(redis);
   const channelSelectorQueue = new Queue(QUEUES.OUTREACH_CHANNEL_SELECTOR, { connection: conn });
 
-  return new Worker(
+  const { worker } = createWorker(
     QUEUES.OUTREACH_PHONE_ALLOCATOR,
     async (job: Job<PhoneAllocatorJobData>): Promise<PhoneAllocatorResult> => {
       const { tenantId, leadId, journeyId, currentAssignedPhoneId } = job.data;
@@ -274,13 +276,14 @@ export function createPhoneAllocatorWorker(redis: Redis): Worker {
       );
 
       return {
-        phoneId: selectedPhone.id,
-        phoneNumber: selectedPhone.phoneNumber,
-        isNewAssignment: true,
-      };
+      phoneId: selectedPhone.id,
+      phoneNumber: selectedPhone.phoneNumber,
+      isNewAssignment: true,
+    };
     },
-    { connection: conn, concurrency: 20 },
+    { externalConnection: conn, concurrency: 20 },
   );
+  return worker;
 }
 
 // =============================================================================
@@ -303,7 +306,7 @@ const EMAIL_WARM_STAGES = new Set(["WARM_REPLY", "NEGOTIATION"]);
 
 export function createChannelSelectorWorker(redis: Redis): Worker {
   const conn = asBullmqConnection(redis);
-  return new Worker(
+  const { worker } = createWorker(
     QUEUES.OUTREACH_CHANNEL_SELECTOR,
     async (job: Job<ChannelSelectorJobData>): Promise<ChannelSelectorResult> => {
       const { tenantId, leadId, currentState, hasPhone, phoneId, journeyId } = job.data;
@@ -397,10 +400,11 @@ export function createChannelSelectorWorker(redis: Redis): Worker {
         };
       }
 
-      throw new Error(
-        `No available channel for state=${currentState}, waBlocked=${waBlocked}, emailBlocked=${emailBlocked}`,
-      );
+    throw new Error(
+      `No available channel for state=${currentState}, waBlocked=${waBlocked}, emailBlocked=${emailBlocked}`,
+    );
     },
-    { connection: conn, concurrency: 20 },
+    { externalConnection: conn, concurrency: 20 },
   );
+  return worker;
 }

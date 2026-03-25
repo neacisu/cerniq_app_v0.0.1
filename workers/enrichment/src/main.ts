@@ -9,7 +9,9 @@ import {
   createWorker,
   failImportRuntimeJob,
   loadSecretsFromFile,
+  dlqDepth,
   queueDepth,
+  queueDepthByState,
   queueRegistry,
   watchSecretsFile,
 } from "@cerniq/worker-shared";
@@ -27,6 +29,7 @@ import { addressNormalizerProcessor } from "./workers/b4-address-normalizer.js";
 import { anafBronzeEnricherProcessor } from "./workers/b5-anaf-bronze-enricher.js";
 import { cuiModulo11ValidatorProcessor } from "./workers/c1-cui-modulo11-validator.js";
 import { cuiAnafValidatorProcessor } from "./workers/c2-cui-anaf-validator.js";
+import { createAnafFullFetchProcessor } from "./workers/d0-anaf-full-fetch.js";
 import { anafFiscalProcessor } from "./workers/d1-anaf-fiscal.js";
 import { anafTvaProcessor } from "./workers/d2-anaf-tva.js";
 import { anafEfacturaProcessor } from "./workers/d3-anaf-efactura.js";
@@ -306,6 +309,7 @@ const processors: Partial<Record<string, (job: Job) => Promise<unknown>>> = {
   "enrich:bronze:anaf": anafBronzeEnricherProcessor as (job: Job) => Promise<unknown>,
   "validate:cui:mod11": cuiModulo11ValidatorProcessor as (job: Job) => Promise<unknown>,
   "validate:cui:anaf": cuiAnafValidatorProcessor as (job: Job) => Promise<unknown>,
+  "enrich:anaf:full": null as unknown as (job: Job) => Promise<unknown>,
   "enrich:anaf:fiscal-status": anafFiscalProcessor as (job: Job) => Promise<unknown>,
   "enrich:anaf:tva-status": anafTvaProcessor as (job: Job) => Promise<unknown>,
   "enrich:anaf:efactura": anafEfacturaProcessor as (job: Job) => Promise<unknown>,
@@ -464,9 +468,15 @@ async function reloadSecretsAndConnections() {
   await closeRedisConnections(redisConnections);
   await refreshDbConnection();
   redisConnections = createRedisConnections();
+  processors["enrich:anaf:full"] = createAnafFullFetchProcessor(redisConnections.producer) as (
+    job: Job,
+  ) => Promise<unknown>;
   buildWorkers();
 }
 
+processors["enrich:anaf:full"] = createAnafFullFetchProcessor(redisConnections.producer) as (
+  job: Job,
+) => Promise<unknown>;
 buildWorkers();
 try {
   await scheduleRecurringControlJobs();
@@ -475,14 +485,43 @@ try {
 }
 
 const monitorQueues = queueNames.map((name) => ({ name, queue: createQueue(name) }));
+const DLQ_QUEUE_NAME = "dlq:outreach";
+const dlqQueue = createQueue(DLQ_QUEUE_NAME);
+
 const queueDepthInterval = setInterval(async () => {
   for (const { name, queue } of monitorQueues) {
     try {
-      const counts = await queue.getJobCounts("waiting");
+      const counts = await queue.getJobCounts(
+        "waiting",
+        "active",
+        "completed",
+        "failed",
+        "delayed",
+        "paused",
+      );
       queueDepth.set({ queue: name }, counts.waiting ?? 0);
+      for (const state of [
+        "waiting",
+        "active",
+        "completed",
+        "failed",
+        "delayed",
+        "paused",
+      ] as const) {
+        queueDepthByState.set({ queue: name, state }, counts[state] ?? 0);
+      }
     } catch {
       // silently skip unreachable queues
     }
+  }
+  try {
+    const dlqCounts = await dlqQueue.getJobCounts("waiting", "failed", "delayed");
+    dlqDepth.set(
+      { queue: DLQ_QUEUE_NAME },
+      (dlqCounts.waiting ?? 0) + (dlqCounts.failed ?? 0) + (dlqCounts.delayed ?? 0),
+    );
+  } catch {
+    // DLQ may not exist yet
   }
 }, 15_000);
 
@@ -502,7 +541,7 @@ async function shutdown() {
   stopWatchingSecrets();
   clearInterval(queueDepthInterval);
   server.close();
-  await Promise.all(monitorQueues.map(({ queue }) => queue.close()));
+  await Promise.all([...monitorQueues.map(({ queue }) => queue.close()), dlqQueue.close()]);
   await stopWorkers();
   await closeRedisConnections(redisConnections);
   await closeDbConnection();
