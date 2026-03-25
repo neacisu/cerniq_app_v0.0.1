@@ -1,6 +1,7 @@
 packages:
   - apps/*
   - packages/*
+  - workers/ai
   - workers/enrichment
   - workers/outreach
   - workers/shared
