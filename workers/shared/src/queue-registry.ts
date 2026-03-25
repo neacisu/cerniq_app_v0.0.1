@@ -386,8 +386,8 @@ export function isKnownQueueName(name: string): boolean {
 }
 
 export function assertQueueRegistryComplete() {
-  // 64 Etapa 1 queues + 54 Etapa 2 static queues + 40 Etapa 2 per-phone queues = 158
-  const expected = 158;
+  // 65 Etapa 1 queues (including D0 ANAF full) + 54 Etapa 2 static queues + 40 Etapa 2 per-phone queues = 159
+  const expected = 159;
   if (queueRegistry.length !== expected) {
     throw new Error(`Expected ${expected} queues, got ${queueRegistry.length}`);
   }
