@@ -239,6 +239,20 @@
       "when": 1772330000000,
       "tag": "0032_import_runtime_control",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1772340000000,
+      "tag": "0033_cognitive_brain",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1772350000000,
+      "tag": "0034_cognitive_anomalies",
+      "breakpoints": true
     }
   ]
 }
