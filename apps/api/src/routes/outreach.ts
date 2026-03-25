@@ -1308,6 +1308,9 @@ export async function outreachRoutes(app: FastifyInstance) {
         fromState: existing[0].currentState,
         toState: body.currentState,
         tenantId,
+        correlationId: req.id,
+        sourceEndpoint: `${req.method} ${req.routeOptions?.url ?? req.url}`,
+        actorId: (req as any).userId,
       });
     }
 
@@ -1364,6 +1367,9 @@ export async function outreachRoutes(app: FastifyInstance) {
           subject: body.subject,
           templateId: body.templateId,
           scheduledAt: body.scheduledAt ?? null,
+          correlationId: req.id,
+          sourceEndpoint: `${req.method} ${req.routeOptions?.url ?? req.url}`,
+          actorId: (req as any).userId,
         },
         delayMs > 0 ? { delay: delayMs } : {},
       );
@@ -1657,6 +1663,9 @@ export async function outreachRoutes(app: FastifyInstance) {
             journeyId: row.journeyPk,
             leadId: row.leadId,
             startAt: body.scheduledStart,
+            correlationId: req.id,
+            sourceEndpoint: `${req.method} ${req.routeOptions?.url ?? req.url}`,
+            actorId: (req as any).userId,
           },
           { removeOnComplete: 100 },
         );

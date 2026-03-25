@@ -90,6 +90,9 @@ export async function webhooksRoutes(app: FastifyInstance) {
       source: "timelinesai",
       body: request.body,
       receivedAt: new Date().toISOString(),
+      correlationId: request.id,
+      sourceEndpoint: `${request.method} ${request.routeOptions?.url ?? request.url}`,
+      actorId: (request as any).userId,
     });
     return reply.status(200).send({ success: true, accepted: true });
   });
@@ -117,6 +120,9 @@ export async function webhooksRoutes(app: FastifyInstance) {
       source: "instantly",
       body: request.body,
       receivedAt: new Date().toISOString(),
+      correlationId: request.id,
+      sourceEndpoint: `${request.method} ${request.routeOptions?.url ?? request.url}`,
+      actorId: (request as any).userId,
     });
     return reply.status(200).send({ success: true, accepted: true });
   });
@@ -141,6 +147,9 @@ export async function webhooksRoutes(app: FastifyInstance) {
       source: "resend",
       body: request.body,
       receivedAt: new Date().toISOString(),
+      correlationId: request.id,
+      sourceEndpoint: `${request.method} ${request.routeOptions?.url ?? request.url}`,
+      actorId: (request as any).userId,
     });
     return reply.status(200).send({ success: true, accepted: true });
   });

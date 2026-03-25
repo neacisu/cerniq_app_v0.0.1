@@ -293,6 +293,8 @@ export async function enrichmentRoutes(app: FastifyInstance) {
         tenantId,
         approvalTaskId: task.id,
         correlationId: `api-${task.id}`,
+        sourceEndpoint: `${request.method} ${request.routeOptions?.url ?? request.url}`,
+        actorId: (request as any).userId,
       });
       await resumeQueue.close();
 
