@@ -134,29 +134,36 @@ export function createSentimentAnalyzerWorker(redis: Redis): Worker {
         })
         .where(eq(leadJourney.id, journeyId));
 
-      // ADR-0063 routing
+      // ADR-0063 routing (includes intent-based routing, replaces ai:intent:classify)
       let routedTo: "AI" | "HUMAN" = "AI";
 
-      if (analysis.score >= 50 && !analysis.requiresHuman) {
-        await responseQueue.add(
-          "generate",
-          { tenantId, leadId, journeyId, content, analysis },
-          { priority: 2, removeOnComplete: 100 },
-        );
-      } else if (analysis.requiresHuman || analysis.score < 0) {
+      if (analysis.intent === "NOT_INTERESTED" || analysis.requiresHuman || analysis.score < 0) {
         routedTo = "HUMAN";
+        const reason =
+          analysis.intent === "NOT_INTERESTED"
+            ? "NOT_INTERESTED"
+            : analysis.score < 0
+              ? "NEGATIVE_SENTIMENT"
+              : "AI_UNCERTAIN";
         await reviewQueue.add(
           "queue",
           {
             tenantId,
             leadId,
             journeyId,
-            reason: analysis.score < 0 ? "NEGATIVE_SENTIMENT" : "AI_UNCERTAIN",
+            reason,
             priority: analysis.urgency,
             content,
             channel,
+            intent: analysis.intent,
           },
           { priority: 1, removeOnComplete: 100 },
+        );
+      } else if (analysis.score >= 50) {
+        await responseQueue.add(
+          "generate",
+          { tenantId, leadId, journeyId, content, analysis },
+          { priority: 2, removeOnComplete: 100 },
         );
       }
 
@@ -273,56 +280,8 @@ Sentiment: ${analysis.intent}. Generează un răspuns natural care continuă con
 }
 
 // =============================================================================
-// Worker: ai:intent:classify
-// INTERESTED | NOT_INTERESTED | QUESTION | COMPLAINT | NEUTRAL
+// Worker: ai:intent:classify — DEPRECATED
+// Intent is already returned by ai:sentiment:analyze (field: intent).
+// This worker was a functional duplicate making a separate LLM call for the same
+// content. Removed in Faza 0c per plan. Queue kept in registry for backward compat.
 // =============================================================================
-
-export function createIntentClassifierWorker(redis: Redis): Worker {
-  const conn = asBullmqConnection(redis);
-  const { worker } = createWorker(
-    QUEUES.AI_INTENT_CLASSIFY,
-    async (
-      job: Job<IntentClassifyJobData>,
-    ): Promise<{ intent: SentimentIntent; confidence: number }> => {
-      const { content, journeyId } = job.data;
-
-      const { default: Anthropic } = await import("@anthropic-ai/sdk");
-      const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
-      const response = await anthropic.messages.create({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 100,
-        messages: [
-          {
-            role: "user",
-            content: `Clasifică intenția mesajului: "${content.slice(0, 400)}"
-Returnează JSON: {"intent": "INTERESTED"|"NOT_INTERESTED"|"QUESTION"|"COMPLAINT"|"NEUTRAL", "confidence": 0.0-1.0}
-Răspunde DOAR cu JSON.`,
-          },
-        ],
-      });
-
-      const result = JSON.parse(anthropicFirstTextBlock(response.content, "{}"));
-
-      const { db, setSessionTenantId } = await import("@cerniq/db");
-      await setSessionTenantId(job.data.tenantId);
-      const { leadJourney } = await import("@cerniq/db");
-      const { eq } = await import("@cerniq/db");
-
-      if (result.intent === "NOT_INTERESTED") {
-        await db
-          .update(leadJourney)
-          .set({
-            requiresHumanReview: true,
-            humanReviewReason: "AI_UNCERTAIN",
-            updatedAt: new Date(),
-          })
-          .where(eq(leadJourney.id, journeyId));
-      }
-
-      return { intent: result.intent, confidence: result.confidence ?? 0.5 };
-    },
-    { externalConnection: conn, concurrency: 30 },
-  );
-  return worker;
-}
