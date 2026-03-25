@@ -7,9 +7,9 @@
  * - quota:guardian:increment (persist to PG)
  * - quota:guardian:reset (cron 0 0 * * *)
  */
-import { Worker, Job } from "bullmq";
+import { Job } from "bullmq";
 import { Redis } from "ioredis";
-import { QUEUES } from "@cerniq/worker-shared";
+import { QUEUES, createWorker } from "@cerniq/worker-shared";
 import { getQuotaKey, getPhoneStatusKey, DAILY_QUOTA_LIMIT } from "../utils/quota-lua.js";
 
 // =============================================================================
@@ -99,8 +99,8 @@ export async function executeQuotaCheck(
   };
 }
 
-export function createQuotaCheckWorker(redis: Redis, luaSha: string): Worker {
-  return new Worker(
+export function createQuotaCheckWorker(redis: Redis, luaSha: string) {
+  return createWorker(
     QUEUES.QUOTA_GUARDIAN_CHECK,
     async (job: Job<QuotaCheckJobData>): Promise<QuotaCheckResult> => {
       return executeQuotaCheck(redis, luaSha, job.data);
@@ -111,7 +111,7 @@ export function createQuotaCheckWorker(redis: Redis, luaSha: string): Worker {
       removeOnFail: { count: 1000 },
       removeOnComplete: { count: 1000 },
     },
-  );
+  ).worker;
 }
 
 // =============================================================================
@@ -125,12 +125,12 @@ export interface QuotaIncrementResult {
   newTotal: number;
 }
 
-export async function createQuotaIncrementWorker(redis: Redis): Promise<Worker> {
+export async function createQuotaIncrementWorker(redis: Redis) {
   // Dynamic import to avoid circular deps
   const { db, sql, setSessionTenantId } = await import("@cerniq/db");
   const { waQuotaUsage } = await import("@cerniq/db");
 
-  return new Worker(
+  return createWorker(
     QUEUES.QUOTA_GUARDIAN_INCREMENT,
     async (job: Job<QuotaIncrementJobData>): Promise<QuotaIncrementResult> => {
       const { phoneId, dateIso, cost, tenantId } = job.data;
@@ -173,7 +173,7 @@ export async function createQuotaIncrementWorker(redis: Redis): Promise<Worker> 
       removeOnFail: { count: 1000 },
       removeOnComplete: { count: 500 },
     },
-  );
+  ).worker;
 }
 
 // =============================================================================
@@ -182,8 +182,8 @@ export async function createQuotaIncrementWorker(redis: Redis): Promise<Worker> 
 // Does NOT touch PostgreSQL (wa_quota_usage preserves history)
 // =============================================================================
 
-export function createQuotaDailyResetWorker(redis: Redis): Worker {
-  return new Worker(
+export function createQuotaDailyResetWorker(redis: Redis) {
+  return createWorker(
     QUEUES.QUOTA_GUARDIAN_RESET,
     async (): Promise<{ keysDeleted: number }> => {
       // Reset all quota:wa:* keys in Redis DB 2
@@ -208,7 +208,7 @@ export function createQuotaDailyResetWorker(redis: Redis): Worker {
       removeOnFail: { count: 100 },
       removeOnComplete: { count: 100 },
     },
-  );
+  ).worker;
 }
 
 // =============================================================================

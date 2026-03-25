@@ -7,14 +7,17 @@ import {
   createQueue,
   createRedisConnections,
   createWorker,
+  dlqDepth,
   failImportRuntimeJob,
   loadSecretsFromFile,
   queueDepth,
+  queueDepthByState,
   queueRegistry,
+  QUEUES,
   watchSecretsFile,
 } from "@cerniq/worker-shared";
 import { closeDbConnection, db, inArray, refreshDbConnection, tenants } from "@cerniq/db";
-import type { Job } from "bullmq";
+import type { Job, Worker } from "bullmq";
 import { csvParserProcessor } from "./workers/a1-csv-parser.js";
 import { excelParserProcessor } from "./workers/a2-excel-parser.js";
 import { webhookReceiverProcessor } from "./workers/a3-webhook-receiver.js";
@@ -27,6 +30,7 @@ import { addressNormalizerProcessor } from "./workers/b4-address-normalizer.js";
 import { anafBronzeEnricherProcessor } from "./workers/b5-anaf-bronze-enricher.js";
 import { cuiModulo11ValidatorProcessor } from "./workers/c1-cui-modulo11-validator.js";
 import { cuiAnafValidatorProcessor } from "./workers/c2-cui-anaf-validator.js";
+import { createAnafFullFetchWorker } from "./workers/d0-anaf-full-fetch.js";
 import { anafFiscalProcessor } from "./workers/d1-anaf-fiscal.js";
 import { anafTvaProcessor } from "./workers/d2-anaf-tva.js";
 import { anafEfacturaProcessor } from "./workers/d3-anaf-efactura.js";
@@ -103,7 +107,7 @@ const stats = {
 };
 
 let redisConnections = createRedisConnections();
-let workers: Array<ReturnType<typeof createWorker>["worker"]> = [];
+let workers: Worker[] = [];
 
 async function scheduleRecurringControlJobs() {
   // Fetch all active (and trial) tenants to schedule cron jobs for each
@@ -382,7 +386,8 @@ function getWorkerOptions(
 }
 
 function buildWorkers() {
-  workers = queueNames.map((queueName) => {
+  const queueNamesWithDedicatedWorker = queueNames.filter((n) => n !== QUEUES.ENRICH_ANAF_FULL);
+  workers = queueNamesWithDedicatedWorker.map((queueName) => {
     const queueConfig = queueRegistry.find((q) => q.name === queueName);
     const { worker, observeDuration } = createWorker(
       queueName,
@@ -451,6 +456,28 @@ function buildWorkers() {
 
     return worker;
   });
+
+  const anafFullFetchWorker = createAnafFullFetchWorker(redisConnections.worker);
+  anafFullFetchWorker.on("failed", async (job, err) => {
+    try {
+      await enqueuePipelineError({
+        queueName: QUEUES.ENRICH_ANAF_FULL,
+        job,
+        error: err,
+      });
+    } catch (enqueueError) {
+      console.error(
+        `[worker:${QUEUES.ENRICH_ANAF_FULL}] failed to enqueue pipeline error`,
+        enqueueError,
+      );
+    }
+  });
+  anafFullFetchWorker.on("stalled", (jobId: string) => {
+    console.warn(
+      `[worker:${QUEUES.ENRICH_ANAF_FULL}] job stalled: ${jobId} — BullMQ will requeue automatically on the next stalledInterval cycle`,
+    );
+  });
+  workers.push(anafFullFetchWorker);
 }
 
 async function stopWorkers() {
@@ -474,15 +501,34 @@ try {
   console.error("[cron-scheduler] failed", error);
 }
 
+const BULLMQ_DEPTH_STATES = [
+  "waiting",
+  "active",
+  "completed",
+  "failed",
+  "delayed",
+  "paused",
+] as const;
+
 const monitorQueues = queueNames.map((name) => ({ name, queue: createQueue(name) }));
+const dlqOutreachQueue = createQueue(QUEUES.OUTREACH_DLQ);
 const queueDepthInterval = setInterval(async () => {
   for (const { name, queue } of monitorQueues) {
     try {
-      const counts = await queue.getJobCounts("waiting");
+      const counts = await queue.getJobCounts(...BULLMQ_DEPTH_STATES);
       queueDepth.set({ queue: name }, counts.waiting ?? 0);
+      for (const state of BULLMQ_DEPTH_STATES) {
+        queueDepthByState.set({ queue: name, state }, counts[state] ?? 0);
+      }
     } catch {
       // silently skip unreachable queues
     }
+  }
+  try {
+    const depth = await dlqOutreachQueue.count();
+    dlqDepth.set({ queue: QUEUES.OUTREACH_DLQ }, depth);
+  } catch {
+    // skip unreachable DLQ
   }
 }, 15_000);
 
@@ -502,7 +548,7 @@ async function shutdown() {
   stopWatchingSecrets();
   clearInterval(queueDepthInterval);
   server.close();
-  await Promise.all(monitorQueues.map(({ queue }) => queue.close()));
+  await Promise.all([...monitorQueues.map(({ queue }) => queue.close()), dlqOutreachQueue.close()]);
   await stopWorkers();
   await closeRedisConnections(redisConnections);
   await closeDbConnection();

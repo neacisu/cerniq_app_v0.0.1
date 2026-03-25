@@ -6,7 +6,9 @@ import type { Worker } from "bullmq";
 import {
   assertQueueRegistryComplete,
   createHealthServer,
+  createQueue,
   loadSecretsFromFile,
+  QUEUES,
   queueRegistry,
 } from "@cerniq/worker-shared";
 import { QUOTA_CHECK_LUA } from "./utils/quota-lua.js";
@@ -70,7 +72,6 @@ import {
 import {
   createSentimentAnalyzerWorker,
   createResponseGeneratorWorker,
-  createIntentClassifierWorker,
 } from "./workers/ai-sentiment.js";
 import { createStateTransitionWorker, createStateValidateWorker } from "./workers/lead-fsm.js";
 import {
@@ -118,6 +119,18 @@ async function bootstrap(): Promise<void> {
   push(createQuotaCheckWorker(redis, luaSha));
   push(await createQuotaIncrementWorker(redis));
   push(createQuotaDailyResetWorker(redis));
+
+  const quotaResetQueue = createQueue(QUEUES.QUOTA_GUARDIAN_RESET, {
+    connection: redis,
+  });
+  await quotaResetQueue.add(
+    "daily-reset",
+    {},
+    {
+      repeat: { pattern: "0 0 * * *", tz: "Europe/Bucharest" },
+      jobId: "cron:quota-guardian:reset",
+    },
+  );
 
   push(createDispatchWorker(redis));
   push(createPhoneAllocatorWorker(redis));
@@ -168,7 +181,6 @@ async function bootstrap(): Promise<void> {
 
   push(createSentimentAnalyzerWorker(redis));
   push(createResponseGeneratorWorker(redis));
-  push(createIntentClassifierWorker(redis));
 
   push(createStateTransitionWorker(redis));
   push(createStateValidateWorker(redis));

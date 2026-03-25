@@ -46,6 +46,12 @@ export type ImportExecutionContext = {
   entityType?: string | null;
   entityId?: string | null;
   idempotencyScope?: string | null;
+  rootBatchId?: string;
+  traceId?: string;
+  nodeKey?: string;
+  mutationIntent?: "insert" | "update" | "merge" | "soft_delete" | "restore" | "noop";
+  causationKey?: string;
+  entityScope?: string[];
 };
 
 export type ImportExecutionControlState = {

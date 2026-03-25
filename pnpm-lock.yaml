@@ -520,6 +520,22 @@ importers:
         specifier: ^4.3.6
         version: 4.3.6
 
+  workers/ai:
+    dependencies:
+      '@cerniq/worker-shared':
+        specifier: workspace:*
+        version: link:../shared
+    devDependencies:
+      '@types/node':
+        specifier: ^22.15.3
+        version: 22.19.15
+      tsx:
+        specifier: ^4.21.0
+        version: 4.21.0
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+
   workers/enrichment:
     dependencies:
       '@cerniq/db':
@@ -620,9 +636,15 @@ importers:
       '@cerniq/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types
+      '@opentelemetry/api':
+        specifier: ^1.9.0
+        version: 1.9.0
       bullmq:
         specifier: ^5.71.0
         version: 5.71.0
+      drizzle-orm:
+        specifier: ^0.45.1
+        version: 0.45.1(@opentelemetry/api@1.9.0)(postgres@3.4.8)
       ioredis:
         specifier: ^5.10.0
         version: 5.10.0

@@ -28,6 +28,7 @@ export const QUEUES = {
   ENRICH_ANAF_EFACTURA: "enrich:anaf:efactura",
   ENRICH_ANAF_DATORII: "enrich:anaf:datorii",
   ENRICH_ANAF_CAEN: "enrich:anaf:caen",
+  ENRICH_ANAF_FULL: "enrich:anaf:full",
   ENRICH_TERMENE_BALANCE: "enrich:termene:balance",
   ENRICH_TERMENE_RISK: "enrich:termene:risk",
   ENRICH_TERMENE_DOSARE: "enrich:termene:dosare",
@@ -216,12 +217,13 @@ export const queueRegistry: QueueConfig[] = [
   // C (2)
   { name: QUEUES.VALIDATE_CUI_MOD11, concurrency: 50 },
   withProvider(QUEUES.VALIDATE_CUI_ANAF, 1, "anaf"),
-  // D (5)
+  // D (6)
   withProvider(QUEUES.ENRICH_ANAF_FISCAL_STATUS, 1, "anaf"),
   withProvider(QUEUES.ENRICH_ANAF_TVA_STATUS, 1, "anaf"),
   withProvider(QUEUES.ENRICH_ANAF_EFACTURA, 1, "anaf"),
   withProvider(QUEUES.ENRICH_ANAF_DATORII, 1, "anaf"),
   withProvider(QUEUES.ENRICH_ANAF_CAEN, 1, "anaf"),
+  withProvider(QUEUES.ENRICH_ANAF_FULL, 5, "anaf"),
   // E (4)
   withProvider(QUEUES.ENRICH_TERMENE_BALANCE, 10, "termene"),
   withProvider(QUEUES.ENRICH_TERMENE_RISK, 10, "termene"),
@@ -383,8 +385,8 @@ export function isKnownQueueName(name: string): boolean {
 }
 
 export function assertQueueRegistryComplete() {
-  // 64 Etapa 1 queues + 54 Etapa 2 static queues + 40 Etapa 2 per-phone queues = 158
-  const expected = 158;
+  // 65 Etapa 1 queues + 54 Etapa 2 static queues + 40 Etapa 2 per-phone queues = 159
+  const expected = 159;
   if (queueRegistry.length !== expected) {
     throw new Error(`Expected ${expected} queues, got ${queueRegistry.length}`);
   }

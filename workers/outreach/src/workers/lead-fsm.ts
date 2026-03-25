@@ -7,9 +7,9 @@
  * - lead:state:validate (validator, reject invalid)
  * - State Change Notifier (inline side effects)
  */
-import { Worker, Job, Queue } from "bullmq";
+import { Job, Queue } from "bullmq";
 import { Redis } from "ioredis";
-import { QUEUES } from "@cerniq/worker-shared";
+import { QUEUES, createWorker } from "@cerniq/worker-shared";
 import { asBullmqConnection } from "../utils/bullmq-connection.js";
 
 // =============================================================================
@@ -87,11 +87,11 @@ export interface StateTransitionResult {
 // Concurrency: 50
 // =============================================================================
 
-export function createStateTransitionWorker(redis: Redis): Worker {
+export function createStateTransitionWorker(redis: Redis) {
   const conn = asBullmqConnection(redis);
   const sequenceStopQueue = new Queue(QUEUES.SEQUENCE_STOP, { connection: conn });
 
-  return new Worker(
+  return createWorker(
     QUEUES.LEAD_STATE_TRANSITION,
     async (job: Job<StateTransitionJobData>): Promise<StateTransitionResult> => {
       const { tenantId, journeyId, newState, reason, trigger } = job.data;
@@ -168,7 +168,7 @@ export function createStateTransitionWorker(redis: Redis): Worker {
       };
     },
     { connection: conn, concurrency: 50 },
-  );
+  ).worker;
 }
 
 // =============================================================================
@@ -191,9 +191,9 @@ export interface StateValidateResult {
   error?: string;
 }
 
-export function createStateValidateWorker(redis: Redis): Worker {
+export function createStateValidateWorker(redis: Redis) {
   const conn = asBullmqConnection(redis);
-  return new Worker(
+  return createWorker(
     QUEUES.LEAD_STATE_VALIDATE,
     async (job: Job<StateValidateJobData>): Promise<StateValidateResult> => {
       const { fromState, toState } = job.data;
@@ -211,5 +211,5 @@ export function createStateValidateWorker(redis: Redis): Worker {
       };
     },
     { connection: conn, concurrency: 50 },
-  );
+  ).worker;
 }

@@ -360,6 +360,8 @@ export async function silverGoldRoutes(app: FastifyInstance) {
         force: body.data.force,
         sources: body.data.sources,
         correlationId: `api-enrich-${company.id}`,
+        sourceEndpoint: `${request.method} ${(request as any).routerPath}`,
+        actorId: (request as any).userId ?? (request as any).user?.id,
       });
       await queue.close();
 
@@ -406,6 +408,8 @@ export async function silverGoldRoutes(app: FastifyInstance) {
         companyId: params.data.id,
         force: body.data.force,
         correlationId: `api-promote-${params.data.id}`,
+        sourceEndpoint: `${request.method} ${(request as any).routerPath}`,
+        actorId: (request as any).userId ?? (request as any).user?.id,
       });
       await queue.close();
       return { success: true, data: { id: params.data.id, queued: true } };

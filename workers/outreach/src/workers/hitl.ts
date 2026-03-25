@@ -14,10 +14,11 @@
  * - Review Assignment
  * - Escalation Worker
  */
-import { Worker, Job, Queue } from "bullmq";
+import type { Worker } from "bullmq";
+import { Job, Queue } from "bullmq";
 import { v4 as uuidv4 } from "uuid";
 import { Redis } from "ioredis";
-import { QUEUES } from "@cerniq/worker-shared";
+import { QUEUES, createWorker } from "@cerniq/worker-shared";
 import { reviewReasonEnum } from "@cerniq/db";
 import { asBullmqConnection } from "../utils/bullmq-connection.js";
 
@@ -121,7 +122,7 @@ export function createReviewQueueManagerWorker(redis: Redis): Worker {
   const connection = asBullmqConnection(redis);
   const slaEnforcerQueue = new Queue(QUEUES.HUMAN_APPROVE_MESSAGE, { connection });
 
-  return new Worker(
+  return createWorker(
     QUEUES.HUMAN_REVIEW_QUEUE,
     async (job: Job<ReviewQueueJobData>): Promise<{ reviewId: string }> => {
       const { tenantId, journeyId, priority, content } = job.data;
@@ -171,7 +172,7 @@ export function createReviewQueueManagerWorker(redis: Redis): Worker {
       return { reviewId };
     },
     { connection, concurrency: 50 },
-  );
+  ).worker;
 }
 
 // =============================================================================
@@ -183,7 +184,7 @@ export function createSlaEnforcerWorker(redis: Redis): Worker {
   const connection = asBullmqConnection(redis);
   const escalationQueue = new Queue(QUEUES.HUMAN_REVIEW_ESCALATION, { connection });
 
-  return new Worker(
+  return createWorker(
     QUEUES.HUMAN_APPROVE_MESSAGE,
     async (job: Job<SlaEnforcerJobData>): Promise<void> => {
       const { tenantId, reviewId, priority } = job.data;
@@ -240,7 +241,7 @@ export function createSlaEnforcerWorker(redis: Redis): Worker {
       }
     },
     { connection, concurrency: 20 },
-  );
+  ).worker;
 }
 
 // =============================================================================
@@ -252,7 +253,7 @@ export function createHumanTakeoverWorker(redis: Redis): Worker {
   const connection = asBullmqConnection(redis);
   const sequenceStopQueue = new Queue(QUEUES.SEQUENCE_STOP, { connection });
 
-  return new Worker(
+  return createWorker(
     QUEUES.HUMAN_TAKEOVER_INITIATE,
     async (job: Job<TakeoverInitiateJobData>): Promise<void> => {
       const { tenantId, journeyId, reviewId, assignedUserId, reason } = job.data;
@@ -304,7 +305,7 @@ export function createHumanTakeoverWorker(redis: Redis): Worker {
       });
     },
     { connection, concurrency: 20 },
-  );
+  ).worker;
 }
 
 // =============================================================================
@@ -314,7 +315,7 @@ export function createHumanTakeoverWorker(redis: Redis): Worker {
 
 export function createResolutionHandlerWorker(redis: Redis): Worker {
   const connection = asBullmqConnection(redis);
-  return new Worker(
+  return createWorker(
     QUEUES.HUMAN_TAKEOVER_COMPLETE,
     async (job: Job<TakeoverCompleteJobData>): Promise<void> => {
       const { tenantId, journeyId, reviewId, resolution, resolvedByUserId } = job.data;
@@ -359,7 +360,7 @@ export function createResolutionHandlerWorker(redis: Redis): Worker {
       });
     },
     { connection, concurrency: 20 },
-  );
+  ).worker;
 }
 
 // =============================================================================
@@ -376,7 +377,7 @@ export interface HitlAuditJobData {
 
 export function createHitlAuditLoggerWorker(redis: Redis): Worker {
   const connection = asBullmqConnection(redis);
-  return new Worker(
+  return createWorker(
     QUEUES.HUMAN_REVIEW_AUDIT_LOG,
     async (job: Job<HitlAuditJobData>): Promise<void> => {
       const { tenantId, reviewId, actorUserId, eventType, payload } = job.data;
@@ -395,7 +396,7 @@ export function createHitlAuditLoggerWorker(redis: Redis): Worker {
       });
     },
     { connection, concurrency: 50 },
-  );
+  ).worker;
 }
 
 // =============================================================================
@@ -406,7 +407,7 @@ export function createReviewAssignmentWorker(redis: Redis): Worker {
   const connection = asBullmqConnection(redis);
   const takeoverQueue = new Queue(QUEUES.HUMAN_TAKEOVER_INITIATE, { connection });
 
-  return new Worker(
+  return createWorker(
     QUEUES.HUMAN_REVIEW_ASSIGN,
     async (job: Job<ReviewAssignJobData>): Promise<void> => {
       const { reviewId, assignedUserId } = job.data;
@@ -444,7 +445,7 @@ export function createReviewAssignmentWorker(redis: Redis): Worker {
       );
     },
     { connection, concurrency: 20 },
-  );
+  ).worker;
 }
 
 // =============================================================================
@@ -453,7 +454,7 @@ export function createReviewAssignmentWorker(redis: Redis): Worker {
 
 export function createEscalationWorker(redis: Redis): Worker {
   const connection = asBullmqConnection(redis);
-  return new Worker(
+  return createWorker(
     QUEUES.HUMAN_REVIEW_ESCALATION,
     async (job: Job<EscalationJobData>): Promise<void> => {
       const { tenantId, reviewId, escalationReason } = job.data;
@@ -478,5 +479,5 @@ export function createEscalationWorker(redis: Redis): Worker {
       });
     },
     { connection, concurrency: 10 },
-  );
+  ).worker;
 }

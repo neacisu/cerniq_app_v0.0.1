@@ -1,6 +1,7 @@
 import type { Processor } from "bullmq";
 import {
   db,
+  eq,
   goldCompanies,
   goldContacts,
   setSessionTenantId,
@@ -52,6 +53,14 @@ function initialFitScore(input: {
   if (input.riskCategory === "LOW") score += 25;
   else if (input.riskCategory === "MEDIUM") score += 15;
   return Math.min(100, score);
+}
+
+async function refreshGoldCompaniesTotal(tenantId: string) {
+  const [row] = await db
+    .select({ n: sql<number>`cast(count(*) as int)` })
+    .from(goldCompanies)
+    .where(eq(goldCompanies.tenantId, tenantId));
+  goldCompaniesTotal.set({ tenant_id: tenantId }, Number(row?.n ?? 0));
 }
 
 export const promoteToGoldProcessor: Processor<PromoteToGoldJobData> = async (job) => {
@@ -208,6 +217,8 @@ export const promoteToGoldProcessor: Processor<PromoteToGoldJobData> = async (jo
       durationMs: Date.now() - startedAt,
     });
 
+    await refreshGoldCompaniesTotal(job.data.tenantId);
+
     return {
       ok: true,
       status: "already_promoted_cui",
@@ -215,8 +226,6 @@ export const promoteToGoldProcessor: Processor<PromoteToGoldJobData> = async (jo
       reason: `Gold already exists with CUI ${silver.cui}`,
     };
   }
-
-  goldCompaniesTotal.inc({ tenant_id: job.data.tenantId });
 
   const silverContactRows = await db.query.silverContacts.findMany({
     where: (t, { eq: e }) => e(t.companyId, silver.id),
@@ -261,6 +270,8 @@ export const promoteToGoldProcessor: Processor<PromoteToGoldJobData> = async (jo
     jobId: String(job.id ?? ""),
     durationMs: Date.now() - startedAt,
   });
+
+  await refreshGoldCompaniesTotal(job.data.tenantId);
 
   return { ok: true, status: "success", goldId };
 };

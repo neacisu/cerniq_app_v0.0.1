@@ -9,10 +9,10 @@
  * - Cleanup Worker         — retain 90 days, delete older
  * - Health Check Aggregator — pipeline health every minute
  */
-import { Worker, Job, Queue } from "bullmq";
+import { Job, Queue } from "bullmq";
 import { v4 as uuidv4 } from "uuid";
 import { Redis } from "ioredis";
-import { QUEUES } from "@cerniq/worker-shared";
+import { QUEUES, createWorker } from "@cerniq/worker-shared";
 import { asBullmqConnection } from "../utils/bullmq-connection.js";
 
 // =============================================================================
@@ -190,9 +190,9 @@ export async function executeStatsAggregatorJob(job: Job<StatsAggregatorJobData>
 }
 
 /** Un singur procesor pe `MONITOR_QUOTA_USAGE`: stats zilnice vs. reputație telefon (după `phoneId` în payload). */
-export function createMergedMonitorQuotaWorker(redis: Redis): Worker {
+export function createMergedMonitorQuotaWorker(redis: Redis) {
   const connection = asBullmqConnection(redis);
-  return new Worker(
+  return createWorker(
     QUEUES.MONITOR_QUOTA_USAGE,
     async (
       job: Job<StatsAggregatorJobData | import("./phone-monitoring.js").PhoneReputationJobData>,
@@ -208,7 +208,7 @@ export function createMergedMonitorQuotaWorker(redis: Redis): Worker {
       await executeStatsAggregatorJob(job as Job<StatsAggregatorJobData>);
     },
     { connection, concurrency: 10 },
-  );
+  ).worker;
 }
 
 // =============================================================================
@@ -284,9 +284,9 @@ export async function executeDailyReportJob(
 // Worker: Alert Worker (threshold-based)
 // =============================================================================
 
-export function createAlertWorker(redis: Redis): Worker {
+export function createAlertWorker(redis: Redis) {
   const connection = asBullmqConnection(redis);
-  return new Worker(
+  return createWorker(
     QUEUES.ALERT_BOUNCE_HIGH,
     async (job: Job<AlertJobData>): Promise<void> => {
       const { tenantId, alertType, payload } = job.data;
@@ -325,7 +325,7 @@ export function createAlertWorker(redis: Redis): Worker {
       }
     },
     { connection, concurrency: 20 },
-  );
+  ).worker;
 }
 
 // =============================================================================

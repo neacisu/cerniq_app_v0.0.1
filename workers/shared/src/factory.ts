@@ -1,5 +1,5 @@
 import { Queue, Worker } from "bullmq";
-import type { Processor, QueueOptions, WorkerOptions } from "bullmq";
+import type { ConnectionOptions, Processor, QueueOptions, WorkerOptions } from "bullmq";
 import { getQueuePrefix, getRedisConnectionOptions } from "./redis.js";
 import {
   jobDurationSeconds,
@@ -29,25 +29,36 @@ export function toBullMqQueueName(name: string): string {
   return name.replaceAll(":", BULLMQ_QUEUE_SEPARATOR);
 }
 
-export function createQueue<T = unknown>(name: string, options?: Partial<QueueOptions>) {
+export interface CreateQueueOptions extends Partial<QueueOptions> {
+  connection?: ConnectionOptions;
+}
+
+export function createQueue<T = unknown>(name: string, options?: CreateQueueOptions) {
+  const { connection: externalConn, ...rest } = options ?? {};
   return new Queue<T>(toBullMqQueueName(name), {
-    connection: getRedisConnectionOptions(),
+    connection: externalConn ?? getRedisConnectionOptions(),
     prefix: getQueuePrefix(),
     defaultJobOptions: DEFAULT_JOB_OPTIONS,
-    ...options,
+    ...rest,
   });
+}
+
+export interface CreateWorkerOptions extends Partial<WorkerOptions> {
+  /** External Redis connection (e.g. shared ioredis instance for E2 workers on DB 2). */
+  connection?: ConnectionOptions;
 }
 
 export function createWorker<T = unknown>(
   name: string,
   processor: Processor<T>,
-  options?: Partial<WorkerOptions>,
+  options?: CreateWorkerOptions,
 ) {
+  const { connection: externalConn, ...rest } = options ?? {};
   const worker = new Worker<T>(toBullMqQueueName(name), processor, {
-    connection: getRedisConnectionOptions(),
+    connection: externalConn ?? getRedisConnectionOptions(),
     prefix: getQueuePrefix(),
     ...DEFAULT_WORKER_OPTIONS,
-    ...options,
+    ...rest,
   });
 
   worker.on("active", () => jobsActiveGauge.inc({ queue: name }));

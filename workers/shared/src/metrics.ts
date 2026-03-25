@@ -105,6 +105,22 @@ export const hitlSlaBreachTotal = new Counter({
   registers: [metricsRegistry],
 });
 
+// ── DLQ + Queue state metrics ─────────────────────────────────────────────────
+
+export const dlqDepth = new Gauge({
+  name: "cerniq_worker_dlq_depth",
+  help: "Dead letter queue depth",
+  labelNames: ["queue"],
+  registers: [metricsRegistry],
+});
+
+export const queueDepthByState = new Gauge({
+  name: "cerniq_worker_queue_depth_by_state",
+  help: "Queue depth broken down by BullMQ state",
+  labelNames: ["queue", "state"],
+  registers: [metricsRegistry],
+});
+
 // ── External API metrics ──────────────────────────────────────────────────────
 
 export const externalApiRequestsTotal = new Counter({
