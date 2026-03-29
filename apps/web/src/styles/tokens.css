@@ -29,6 +29,46 @@
   --color-tier-silver: oklch(0.75 0.03 260);
   --color-tier-gold: oklch(0.85 0.17 75);
 
+  /* Cognitive brain — neurons & synapses (React Flow, graph UI) */
+  --color-neuron-sensory: oklch(65% 0.15 145);
+  --color-neuron-motor: oklch(60% 0.15 25);
+  --color-neuron-deliberative: oklch(55% 0.18 280);
+  --color-neuron-reflex: oklch(70% 0.12 60);
+  --color-synapse-active: oklch(75% 0.15 160);
+  --color-synapse-idle: oklch(40% 0.05 250);
+  --color-synapse-error: oklch(60% 0.2 25);
+
+  /* Cognitive neurons — Dark Terroir extension (React Flow canvas node fills per NeuronType) */
+  --color-neuron-normal: oklch(0.28 0.04 270);
+  --color-neuron-factual: oklch(0.25 0.04 260);
+  --color-neuron-discover: oklch(0.28 0.05 290);
+  --color-neuron-deliberate: oklch(0.3 0.08 80);
+  --color-neuron-spatial: oklch(0.27 0.05 200);
+  --color-neuron-domain: oklch(0.27 0.05 150);
+  --color-neuron-pattern: oklch(0.28 0.06 340);
+  --color-neuron-meta: oklch(0.3 0.07 95);
+  --color-neuron-executive: oklch(0.35 0.12 85);
+  --color-neuron-emotion: oklch(0.28 0.07 300);
+  --color-neuron-procedural: oklch(0.28 0.06 350);
+  --color-neuron-human: oklch(0.45 0.02 260);
+  --color-neuron-maintenance: oklch(0.22 0.01 260);
+  --color-neuron-vigilance: oklch(0.32 0.09 75);
+
+  /* Cognitive neurons — runtime state colors (worker status indicators) */
+  --color-neuron-firing: oklch(0.5 0.15 85);
+  --color-neuron-idle: oklch(0.22 0.02 260);
+  --color-neuron-stale: var(--color-wa);
+  --color-neuron-failed: var(--color-er);
+  --color-neuron-paused: var(--color-in);
+  --color-neuron-deliberating: oklch(0.45 0.12 85);
+
+  /* Cognitive synapses — edge kind colors (React Flow edges per EdgeKind) */
+  --color-synapse-triggers: var(--color-b5);
+  --color-synapse-depends: oklch(0.55 0.08 220);
+  --color-synapse-mutates: var(--color-wa);
+  --color-synapse-blocks: var(--color-er);
+  --color-synapse-retries: oklch(0.55 0.06 50);
+
   /* Fonts */
   --font-display: "Bricolage Grotesque", "DM Sans", system-ui, sans-serif;
   --font-body: "DM Sans", system-ui, sans-serif;

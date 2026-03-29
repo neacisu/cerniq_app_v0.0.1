@@ -1,4 +1,5 @@
 import type { Processor } from "bullmq";
+import { withCognitiveSpan } from "@cerniq/worker-shared";
 import {
   getBronzeContactForTenant,
   markNormalizationResult,
@@ -81,105 +82,114 @@ const ADDRESS_ABBREVIATIONS: Record<string, string> = {
 };
 
 export const addressNormalizerProcessor: Processor<AddressNormalizerJobData> = async (job) => {
-  const startedAt = Date.now();
-  const batchId =
-    typeof job.data.batchId === "string" && job.data.batchId.length > 0
-      ? job.data.batchId
-      : undefined;
-  const log = createJobLogger({
-    batchId,
-    tenantId: job.data.tenantId,
-    workerName: "B4:address-normalizer",
-    jobId: String(job.id ?? ""),
-    startedAt,
-  }).forContact(job.data.bronzeContactId);
-  try {
-    log.step("start", "Pornire normalizare adresă", {
-      bronzeContactId: job.data.bronzeContactId,
-    });
-    const contact = await getBronzeContactForTenant(job.data.tenantId, job.data.bronzeContactId);
-    const rawAddress =
-      typeof contact.extractedAddress === "string" ? contact.extractedAddress : null;
-    if (!rawAddress) {
-      log.done("address_skip", "Adresă lipsă — normalizare sărită", {
-        bronzeContactId: job.data.bronzeContactId,
-      });
-      return { ok: true, status: "skipped", reason: "empty_address" };
-    }
+  return withCognitiveSpan(
+    "e1:normalize:address",
+    async (_span) => {
+      const startedAt = Date.now();
+      const batchId =
+        typeof job.data.batchId === "string" && job.data.batchId.length > 0
+          ? job.data.batchId
+          : undefined;
+      const log = createJobLogger({
+        batchId,
+        tenantId: job.data.tenantId,
+        workerName: "B4:address-normalizer",
+        jobId: String(job.id ?? ""),
+        startedAt,
+      }).forContact(job.data.bronzeContactId);
+      try {
+        log.step("start", "Pornire normalizare adresă", {
+          bronzeContactId: job.data.bronzeContactId,
+        });
+        const contact = await getBronzeContactForTenant(
+          job.data.tenantId,
+          job.data.bronzeContactId,
+        );
+        const rawAddress =
+          typeof contact.extractedAddress === "string" ? contact.extractedAddress : null;
+        if (!rawAddress) {
+          log.done("address_skip", "Adresă lipsă — normalizare sărită", {
+            bronzeContactId: job.data.bronzeContactId,
+          });
+          return { ok: true, status: "skipped", reason: "empty_address" };
+        }
 
-    let normalizedAddress = rawAddress.toUpperCase().trim().replaceAll(/\s+/g, " ");
-    for (const [abbr, full] of Object.entries(ADDRESS_ABBREVIATIONS)) {
-      const escaped = abbr.replaceAll(".", String.raw`\.`);
-      const regex = new RegExp(String.raw`\b${escaped}\b`, "g");
-      normalizedAddress = normalizedAddress.replaceAll(regex, full);
-    }
+        let normalizedAddress = rawAddress.toUpperCase().trim().replaceAll(/\s+/g, " ");
+        for (const [abbr, full] of Object.entries(ADDRESS_ABBREVIATIONS)) {
+          const escaped = abbr.replaceAll(".", String.raw`\.`);
+          const regex = new RegExp(String.raw`\b${escaped}\b`, "g");
+          normalizedAddress = normalizedAddress.replaceAll(regex, full);
+        }
 
-    const nrMatch = /\bNR\.?\s*(\d+[A-Z]?)/i.exec(normalizedAddress);
-    const blocMatch = /\bBL\.?\s*([A-Z0-9]+)/i.exec(normalizedAddress);
-    const scaraMatch = /\bSC\.?\s*([A-Z0-9]+)/i.exec(normalizedAddress);
-    const etajMatch = /\bET\.?\s*(\d+|P|PARTER|M|MANSARDA)/i.exec(normalizedAddress);
-    const apMatch = /\bAP\.?\s*(\d+)/i.exec(normalizedAddress);
-    const cpMatch = /\b(\d{6})\b/.exec(normalizedAddress);
-    const lowered = stripDiacritics(normalizedAddress.toLowerCase());
-    const sortedCounties = Object.entries(countyMap).sort((a, b) => b[0].length - a[0].length);
-    const county =
-      sortedCounties.find(([name]) => {
-        const escaped = name.replaceAll(/[-.*+?^${}()|[\]\\]/g, String.raw`\$&`);
-        return new RegExp(String.raw`\b${escaped}\b`).test(lowered);
-      })?.[1] ?? null;
-    await markNormalizationResult(
-      job.data.tenantId,
-      job.data.bronzeContactId,
-      { extractedAddress: normalizedAddress },
-      {
-        addressNormalization: {
+        const nrMatch = /\bNR\.?\s*(\d+[A-Z]?)/i.exec(normalizedAddress);
+        const blocMatch = /\bBL\.?\s*([A-Z0-9]+)/i.exec(normalizedAddress);
+        const scaraMatch = /\bSC\.?\s*([A-Z0-9]+)/i.exec(normalizedAddress);
+        const etajMatch = /\bET\.?\s*(\d+|P|PARTER|M|MANSARDA)/i.exec(normalizedAddress);
+        const apMatch = /\bAP\.?\s*(\d+)/i.exec(normalizedAddress);
+        const cpMatch = /\b(\d{6})\b/.exec(normalizedAddress);
+        const lowered = stripDiacritics(normalizedAddress.toLowerCase());
+        const sortedCounties = Object.entries(countyMap).sort((a, b) => b[0].length - a[0].length);
+        const county =
+          sortedCounties.find(([name]) => {
+            const escaped = name.replaceAll(/[-.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+            return new RegExp(String.raw`\b${escaped}\b`).test(lowered);
+          })?.[1] ?? null;
+        await markNormalizationResult(
+          job.data.tenantId,
+          job.data.bronzeContactId,
+          { extractedAddress: normalizedAddress },
+          {
+            addressNormalization: {
+              original: rawAddress,
+              normalized: normalizedAddress,
+              countyCode: county,
+              number: nrMatch?.[1] ?? null,
+              block: blocMatch?.[1] ?? null,
+              staircase: scaraMatch?.[1] ?? null,
+              floor: etajMatch?.[1] ?? null,
+              apartment: apMatch?.[1] ?? null,
+              postalCode: cpMatch?.[1] ?? null,
+            },
+          },
+        );
+
+        // GAP-B14: Safety net — trigger CUI validation if not yet triggered by B1
+        const cui = typeof contact.extractedCui === "string" ? contact.extractedCui : null;
+        const nrRegCom =
+          typeof contact.extractedNrRegCom === "string" ? contact.extractedNrRegCom : null;
+        await triggerCuiValidationIfPossible(
+          job.data.tenantId,
+          job.data.bronzeContactId,
+          cui,
+          nrRegCom,
+          job.data.correlationId,
+        );
+
+        log.done("done", "Normalizare adresă finalizată", {
           original: rawAddress,
-          normalized: normalizedAddress,
+          normalizedAddress,
           countyCode: county,
-          number: nrMatch?.[1] ?? null,
-          block: blocMatch?.[1] ?? null,
-          staircase: scaraMatch?.[1] ?? null,
-          floor: etajMatch?.[1] ?? null,
-          apartment: apMatch?.[1] ?? null,
-          postalCode: cpMatch?.[1] ?? null,
-        },
-      },
-    );
-
-    // GAP-B14: Safety net — trigger CUI validation if not yet triggered by B1
-    const cui = typeof contact.extractedCui === "string" ? contact.extractedCui : null;
-    const nrRegCom =
-      typeof contact.extractedNrRegCom === "string" ? contact.extractedNrRegCom : null;
-    await triggerCuiValidationIfPossible(
-      job.data.tenantId,
-      job.data.bronzeContactId,
-      cui,
-      nrRegCom,
-      job.data.correlationId,
-    );
-
-    log.done("done", "Normalizare adresă finalizată", {
-      original: rawAddress,
-      normalizedAddress,
-      countyCode: county,
-    });
-    return {
-      ok: true,
-      status: "success",
-      normalizedAddress,
-      countyCode: county,
-    };
-  } catch (error) {
-    const errMsg = error instanceof Error ? error.message : String(error);
-    log.error("fatal", `Normalizare adresă eșuată: ${errMsg}`, {
-      bronzeContactId: job.data.bronzeContactId,
-      errorMessage: errMsg,
-      errorStack: error instanceof Error ? error.stack : undefined,
-    });
-    jobErrors.add(1, { worker: "b4-address-normalizer" });
-    classifyAndRethrow(error);
-  } finally {
-    jobsProcessed.add(1, { worker: "b4-address-normalizer" });
-    jobDuration.record(Date.now() - startedAt, { worker: "b4-address-normalizer" });
-  }
+        });
+        return {
+          ok: true,
+          status: "success",
+          normalizedAddress,
+          countyCode: county,
+        };
+      } catch (error) {
+        const errMsg = error instanceof Error ? error.message : String(error);
+        log.error("fatal", `Normalizare adresă eșuată: ${errMsg}`, {
+          bronzeContactId: job.data.bronzeContactId,
+          errorMessage: errMsg,
+          errorStack: error instanceof Error ? error.stack : undefined,
+        });
+        jobErrors.add(1, { worker: "b4-address-normalizer" });
+        classifyAndRethrow(error);
+      } finally {
+        jobsProcessed.add(1, { worker: "b4-address-normalizer" });
+        jobDuration.record(Date.now() - startedAt, { worker: "b4-address-normalizer" });
+      }
+    },
+    { tenantId: job.data.tenantId },
+  );
 };

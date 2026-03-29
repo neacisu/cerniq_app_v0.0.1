@@ -8,11 +8,18 @@
  * - WA Delivery Status (SENT/DELIVERED/READ/FAILED)
  * - WA Read Receipt (update engagement_score)
  */
-import { Worker, Job, Queue } from "bullmq";
+import type { Job, Worker } from "bullmq";
+import type { Redis } from "ioredis";
 import { v4 as uuidv4 } from "uuid";
-import { Redis } from "ioredis";
-import { QUEUES, WA_PHONE_COUNT } from "@cerniq/worker-shared";
-import { asBullmqConnection } from "../utils/bullmq-connection.js";
+import {
+  QUEUES,
+  WA_PHONE_COUNT,
+  createWorker,
+  createQueue,
+  waSent,
+  outreachMessagesSentTotal,
+} from "@cerniq/worker-shared";
+import { quotaGuardianCheck } from "./quota-guardian.js";
 
 // =============================================================================
 // Jitter constants — EXACT from ADR-0057
@@ -88,16 +95,23 @@ export interface WaReadReceiptJobData {
 // ADR-0060: concurrency MUST be 1 per queue (Head-of-Line Blocking Prevention)
 // =============================================================================
 
-export function createWaWorker(redis: Redis, phoneIndex: number, isFollowup: boolean): Worker {
+export function createWaWorker(
+  phoneIndex: number,
+  isFollowup: boolean,
+  redis: Redis,
+  luaSha: string,
+): Worker {
   const queueName = isFollowup
     ? `q:wa:phone-${String(phoneIndex).padStart(2, "0")}:followup`
     : `q:wa:phone-${String(phoneIndex).padStart(2, "0")}`;
 
-  return new Worker(
+  const { worker } = createWorker(
     queueName,
     async (job: Job<WaSendInitialJobData>): Promise<WaSendResult> => {
       const {
+        correlationId,
         tenantId,
+        leadId,
         journeyId,
         phoneId,
         phoneNumber,
@@ -108,6 +122,31 @@ export function createWaWorker(redis: Redis, phoneIndex: number, isFollowup: boo
         sequenceStep,
         isFollowup: jobIsFollowup,
       } = job.data;
+
+      const quotaResult = await quotaGuardianCheck(redis, luaSha, phoneId, {
+        tenantId,
+        leadId,
+        isNewContact: !jobIsFollowup,
+        correlationId,
+      });
+      if (!quotaResult.allowed) {
+        if (quotaResult.reason === "QUOTA_EXCEEDED") {
+          console.warn(`quota exceeded for phone ${phoneId}, message skipped`);
+        }
+        return {
+          success: false,
+          messageId: "",
+          chatId: "",
+          deliveryStatus: "FAILED",
+          quotaCost: 0,
+          jitterAppliedMs: 0,
+          error: {
+            code: quotaResult.reason,
+            message: `WA send blocked: ${quotaResult.reason}`,
+            retryable: false,
+          },
+        };
+      }
 
       // 1. Apply jitter BEFORE sending — ADR-0057
       const jitterMs = applyJitter();
@@ -174,13 +213,21 @@ export function createWaWorker(redis: Redis, phoneIndex: number, isFollowup: boo
         rawResponse: sendResult as unknown as Record<string, unknown>,
       });
 
-      // 6. Update lead journey state (COLD -> CONTACTED_WA)
+      // 6. Update lead journey state: previousState = actual DB current_state (ADR-0062)
       if (!jobIsFollowup) {
+        const [journeyRow] = await db
+          .select({ currentState: leadJourney.currentState })
+          .from(leadJourney)
+          .where(eq(leadJourney.id, journeyId))
+          .limit(1);
+
+        const previousState = journeyRow?.currentState ?? "COLD";
+
         await db
           .update(leadJourney)
           .set({
             currentState: "CONTACTED_WA",
-            previousState: "COLD",
+            previousState,
             stateChangedAt: new Date(),
             lastChannelUsed: "WHATSAPP",
             lastContactAt: new Date(),
@@ -188,6 +235,9 @@ export function createWaWorker(redis: Redis, phoneIndex: number, isFollowup: boo
           })
           .where(eq(leadJourney.id, journeyId));
       }
+
+      outreachMessagesSentTotal.inc({ channel: "WHATSAPP", tenant_id: tenantId });
+      waSent.inc({ phone_id: phoneId });
 
       return {
         success: true,
@@ -199,21 +249,21 @@ export function createWaWorker(redis: Redis, phoneIndex: number, isFollowup: boo
       };
     },
     {
-      connection: asBullmqConnection(redis),
       concurrency: 1, // CRITICAL: ADR-0060 mandates concurrency=1 per phone queue
       lockDuration: 60_000,
     },
   );
+  return worker;
 }
 
 /**
  * Creates all 40 WA phone workers (20 initial + 20 followup).
  * ADR-0060: Each queue has concurrency=1.
  */
-export function createAllWaWorkers(redis: Redis): Worker[] {
+export function createAllWaWorkers(redis: Redis, luaSha: string): Worker[] {
   const workers: Worker[] = [];
   for (let i = 1; i <= WA_PHONE_COUNT; i++) {
-    workers.push(createWaWorker(redis, i, false), createWaWorker(redis, i, true));
+    workers.push(createWaWorker(i, false, redis, luaSha), createWaWorker(i, true, redis, luaSha));
   }
   return workers;
 }
@@ -223,9 +273,8 @@ export function createAllWaWorkers(redis: Redis): Worker[] {
 // Processes SENT/DELIVERED/READ/FAILED from TimelinesAI webhooks
 // =============================================================================
 
-export function createWaDeliveryStatusWorker(redis: Redis): Worker {
-  const connection = asBullmqConnection(redis);
-  return new Worker(
+export function createWaDeliveryStatusWorker(): Worker {
+  const { worker } = createWorker(
     QUEUES.WA_REPLY, // delivery status from TimelinesAI webhook ingest
     async (job: Job<WaDeliveryStatusJobData>): Promise<void> => {
       const { tenantId, externalMessageId, status, timestamp, failureReason } = job.data;
@@ -262,7 +311,7 @@ export function createWaDeliveryStatusWorker(redis: Redis): Worker {
 
       // FAILED: queue for retry evaluation
       if (status === "FAILED") {
-        const retryQueue = new Queue(QUEUES.WA_MESSAGE_RETRY, { connection });
+        const retryQueue = createQueue(QUEUES.WA_MESSAGE_RETRY);
         await retryQueue.add(
           "evaluate",
           { tenantId, externalMessageId, failureReason },
@@ -270,8 +319,9 @@ export function createWaDeliveryStatusWorker(redis: Redis): Worker {
         );
       }
     },
-    { connection, concurrency: 100 },
+    { concurrency: 100 },
   );
+  return worker;
 }
 
 // =============================================================================
@@ -279,9 +329,8 @@ export function createWaDeliveryStatusWorker(redis: Redis): Worker {
 // Tracks read events, updates engagement score (NO re-send trigger)
 // =============================================================================
 
-export function createWaReadReceiptWorker(redis: Redis): Worker {
-  const connection = asBullmqConnection(redis);
-  return new Worker(
+export function createWaReadReceiptWorker(): Worker {
+  const { worker } = createWorker(
     QUEUES.WA_CHAT_HISTORY_FETCH, // read receipts processed after chat history fetch
     async (job: Job<WaReadReceiptJobData>): Promise<void> => {
       const { tenantId, externalMessageId, readAt, journeyId } = job.data;
@@ -349,6 +398,7 @@ export function createWaReadReceiptWorker(redis: Redis): Worker {
         })
         .where(eq(leadJourney.id, journeyId));
     },
-    { connection, concurrency: 100 },
+    { concurrency: 100 },
   );
+  return worker;
 }

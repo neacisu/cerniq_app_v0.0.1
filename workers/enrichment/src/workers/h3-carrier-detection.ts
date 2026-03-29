@@ -1,4 +1,5 @@
 import type { Processor } from "bullmq";
+import { withCognitiveSpan } from "@cerniq/worker-shared";
 import {
   db,
   setSessionTenantId,
@@ -42,54 +43,60 @@ function detectCarrier(phone: string): { carrier: string; type: "MOBILE" | "FIXE
 }
 
 export const carrierDetectionProcessor: Processor<CarrierDetectionJobData> = async (job) => {
-  const startedAt = Date.now();
-  await setSessionTenantId(job.data.tenantId);
+  return withCognitiveSpan(
+    "e1:enrich:phone-carrier",
+    async (_span) => {
+      const startedAt = Date.now();
+      await setSessionTenantId(job.data.tenantId);
 
-  const detected = detectCarrier(job.data.phone);
-  if (!detected) {
-    return { ok: true, status: "unknown_carrier", phone: job.data.phone };
-  }
+      const detected = detectCarrier(job.data.phone);
+      if (!detected) {
+        return { ok: true, status: "unknown_carrier", phone: job.data.phone };
+      }
 
-  const patch = {
-    carrierDetection: {
-      phone: job.data.phone,
-      carrier: detected.carrier,
-      phoneType: detected.type,
-      detectedAt: new Date().toISOString(),
+      const patch = {
+        carrierDetection: {
+          phone: job.data.phone,
+          carrier: detected.carrier,
+          phoneType: detected.type,
+          detectedAt: new Date().toISOString(),
+        },
+      };
+
+      if (job.data.entityType === "company") {
+        await db
+          .update(silverCompanies)
+          .set({
+            metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{carrierDetection}', ${JSON.stringify(patch.carrierDetection)}::jsonb)`,
+            updatedAt: new Date(),
+          })
+          .where(sql`${silverCompanies.id} = ${job.data.entityId}`);
+      } else {
+        await db
+          .update(silverContacts)
+          .set({
+            metadata: sql`jsonb_set(COALESCE(${silverContacts.metadata}, '{}'::jsonb), '{carrierDetection}', ${JSON.stringify(patch.carrierDetection)}::jsonb)`,
+            updatedAt: new Date(),
+          })
+          .where(sql`${silverContacts.id} = ${job.data.entityId}`);
+      }
+
+      await db.insert(silverEnrichmentLog).values({
+        tenantId: job.data.tenantId,
+        entityType: job.data.entityType,
+        entityId: job.data.entityId,
+        source: "carrier_detection",
+        operation: "detect",
+        requestPayload: { phone: job.data.phone },
+        responsePayload: detected,
+        fieldsUpdated: ["metadata"],
+        correlationId: job.data.correlationId,
+        jobId: String(job.id ?? ""),
+        durationMs: Date.now() - startedAt,
+      });
+
+      return { ok: true, status: "success", carrier: detected.carrier, phoneType: detected.type };
     },
-  };
-
-  if (job.data.entityType === "company") {
-    await db
-      .update(silverCompanies)
-      .set({
-        metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{carrierDetection}', ${JSON.stringify(patch.carrierDetection)}::jsonb)`,
-        updatedAt: new Date(),
-      })
-      .where(sql`${silverCompanies.id} = ${job.data.entityId}`);
-  } else {
-    await db
-      .update(silverContacts)
-      .set({
-        metadata: sql`jsonb_set(COALESCE(${silverContacts.metadata}, '{}'::jsonb), '{carrierDetection}', ${JSON.stringify(patch.carrierDetection)}::jsonb)`,
-        updatedAt: new Date(),
-      })
-      .where(sql`${silverContacts.id} = ${job.data.entityId}`);
-  }
-
-  await db.insert(silverEnrichmentLog).values({
-    tenantId: job.data.tenantId,
-    entityType: job.data.entityType,
-    entityId: job.data.entityId,
-    source: "carrier_detection",
-    operation: "detect",
-    requestPayload: { phone: job.data.phone },
-    responsePayload: detected,
-    fieldsUpdated: ["metadata"],
-    correlationId: job.data.correlationId,
-    jobId: String(job.id ?? ""),
-    durationMs: Date.now() - startedAt,
-  });
-
-  return { ok: true, status: "success", carrier: detected.carrier, phoneType: detected.type };
+    { tenantId: job.data.tenantId },
+  );
 };

@@ -1,6 +1,6 @@
 import type { Processor } from "bullmq";
 import { db, setSessionTenantId, silverCompanies, silverEnrichmentLog, sql } from "@cerniq/db";
-import { createCircuitBreaker, createQueue } from "@cerniq/worker-shared";
+import { createCircuitBreaker, createQueue, withCognitiveSpan } from "@cerniq/worker-shared";
 
 export type WebsiteFinderJobData = {
   tenantId: string;
@@ -54,86 +54,93 @@ const bingSearchBreaker = createCircuitBreaker(
 );
 
 export const websiteFinderProcessor: Processor<WebsiteFinderJobData> = async (job) => {
-  const startedAt = Date.now();
-  await setSessionTenantId(job.data.tenantId);
+  return withCognitiveSpan(
+    "e1:scrape:website-finder",
+    async (_span) => {
+      const startedAt = Date.now();
+      await setSessionTenantId(job.data.tenantId);
 
-  const bingKey = process.env.BING_API_KEY;
-  if (!bingKey) {
-    return { ok: true, status: "skipped", reason: "missing_bing_api_key" };
-  }
+      const bingKey = process.env.BING_API_KEY;
+      if (!bingKey) {
+        return { ok: true, status: "skipped", reason: "missing_bing_api_key" };
+      }
 
-  const query = `${job.data.denumire} romania site oficial`;
-  const payload = await bingSearchBreaker.fire(query, bingKey);
-  const webPages =
-    payload.webPages && typeof payload.webPages === "object"
-      ? (((payload.webPages as Record<string, unknown>).value as
-          | Array<Record<string, unknown>>
-          | undefined) ?? [])
-      : [];
-  const excluded = [
-    "facebook.com",
-    "linkedin.com",
-    "twitter.com",
-    "youtube.com",
-    "listafirme.ro",
-    "risco.ro",
-    "termene.ro",
-  ];
-  const candidates = webPages
-    .map((r) => String(r.url ?? "").trim())
-    .filter(Boolean)
-    .filter((u) => !excluded.some((e) => u.toLowerCase().includes(e)));
+      const query = `${job.data.denumire} romania site oficial`;
+      const payload = await bingSearchBreaker.fire(query, bingKey);
+      const webPages =
+        payload.webPages && typeof payload.webPages === "object"
+          ? (((payload.webPages as Record<string, unknown>).value as
+              | Array<Record<string, unknown>>
+              | undefined) ?? [])
+          : [];
+      const excluded = [
+        "facebook.com",
+        "linkedin.com",
+        "twitter.com",
+        "youtube.com",
+        "listafirme.ro",
+        "risco.ro",
+        "termene.ro",
+      ];
+      const candidates = webPages
+        .map((r) => String(r.url ?? "").trim())
+        .filter(Boolean)
+        .filter((u) => !excluded.some((e) => u.toLowerCase().includes(e)));
 
-  if (candidates.length === 0) return { ok: true, status: "not_found", source: "website_finder" };
+      if (candidates.length === 0)
+        return { ok: true, status: "not_found", source: "website_finder" };
 
-  let selected: string | null = null;
-  for (const candidate of candidates.slice(0, 5)) {
-    const verified = await verifyCompanyWebsite(candidate, job.data.denumire, job.data.cui);
-    if (verified.isCompanyWebsite) {
-      selected = verified.normalizedUrl;
-      break;
-    }
-  }
-  if (!selected) return { ok: true, status: "not_verified", source: "website_finder" };
+      let selected: string | null = null;
+      for (const candidate of candidates.slice(0, 5)) {
+        const verified = await verifyCompanyWebsite(candidate, job.data.denumire, job.data.cui);
+        if (verified.isCompanyWebsite) {
+          selected = verified.normalizedUrl;
+          break;
+        }
+      }
+      if (!selected) return { ok: true, status: "not_verified", source: "website_finder" };
 
-  await db
-    .update(silverCompanies)
-    .set({
-      website: selected,
-      metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{websiteFinder}', ${JSON.stringify(
-        {
-          query,
-          selected,
-          candidates: candidates.slice(0, 5),
-          searchedAt: new Date().toISOString(),
-        },
-      )}::jsonb)`,
-      lastEnrichedAt: new Date(),
-    })
-    .where(sql`${silverCompanies.id} = ${job.data.companyId}`);
+      await db
+        .update(silverCompanies)
+        .set({
+          website: selected,
+          metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{websiteFinder}', ${JSON.stringify(
+            {
+              query,
+              selected,
+              candidates: candidates.slice(0, 5),
+              searchedAt: new Date().toISOString(),
+            },
+          )}::jsonb)`,
+          lastEnrichedAt: new Date(),
+        })
+        .where(sql`${silverCompanies.id} = ${job.data.companyId}`);
 
-  const queue = createQueue("scrape:website:contact-page");
-  await queue.add("scrape-contact-page", {
-    tenantId: job.data.tenantId,
-    companyId: job.data.companyId,
-    websiteUrl: selected,
-    correlationId: job.data.correlationId,
-  });
-  await queue.close();
+      const queue = createQueue("scrape:website:contact-page");
+      await queue.add("scrape-contact-page", {
+        tenantId: job.data.tenantId,
+        companyId: job.data.companyId,
+        websiteUrl: selected,
+        correlationId: job.data.correlationId,
+      });
+      await queue.close();
 
-  await db.insert(silverEnrichmentLog).values({
-    tenantId: job.data.tenantId,
-    entityType: "company",
-    entityId: job.data.companyId,
-    source: "website_finder",
-    operation: "search",
-    requestPayload: { query },
-    responsePayload: { selected, candidates: candidates.slice(0, 5) },
-    fieldsUpdated: ["website", "metadata"],
-    correlationId: job.data.correlationId,
-    jobId: String(job.id ?? ""),
-    durationMs: Date.now() - startedAt,
-  });
+      await db.insert(silverEnrichmentLog).values({
+        tenantId: job.data.tenantId,
+        entityType: "company",
+        entityId: job.data.companyId,
+        source: "website_finder",
+        operation: "search",
+        requestPayload: { query },
+        responsePayload: { selected, candidates: candidates.slice(0, 5) },
+        fieldsUpdated: ["website", "metadata"],
+        correlationId: job.data.correlationId,
+        jobId: String(job.id ?? ""),
+        durationMs: Date.now() - startedAt,
+      });
 
-  return { ok: true, status: "success", website: selected, domain: extractDomain(selected) };
+      return { ok: true, status: "success", website: selected, domain: extractDomain(selected) };
+    },
+    { tenantId: job.data.tenantId },
+  );
 };

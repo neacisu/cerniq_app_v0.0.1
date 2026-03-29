@@ -45,6 +45,7 @@ function mockWorkerShared() {
       runtimeJobKey: null,
     })),
     enqueueImportJobBulk: vi.fn(async () => []),
+    withCognitiveSpan: vi.fn(async (_name: string, fn: (s: null) => unknown) => fn(null)),
     QUEUES: {
       VALIDATE_CUI_MOD11: "validate:cui:mod11",
       PIPELINE_PROMOTE_BRONZE_SILVER: "pipeline:promote:bronze-silver",

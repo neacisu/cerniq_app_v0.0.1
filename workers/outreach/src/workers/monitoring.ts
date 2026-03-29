@@ -9,11 +9,10 @@
  * - Cleanup Worker         — retain 90 days, delete older
  * - Health Check Aggregator — pipeline health every minute
  */
-import { Worker, Job, Queue } from "bullmq";
+import type { Job, Worker } from "bullmq";
 import { v4 as uuidv4 } from "uuid";
-import { Redis } from "ioredis";
-import { QUEUES } from "@cerniq/worker-shared";
-import { asBullmqConnection } from "../utils/bullmq-connection.js";
+import type { Redis } from "ioredis";
+import { QUEUES, createWorker, createQueue } from "@cerniq/worker-shared";
 
 // =============================================================================
 // Constants
@@ -191,8 +190,7 @@ export async function executeStatsAggregatorJob(job: Job<StatsAggregatorJobData>
 
 /** Un singur procesor pe `MONITOR_QUOTA_USAGE`: stats zilnice vs. reputație telefon (după `phoneId` în payload). */
 export function createMergedMonitorQuotaWorker(redis: Redis): Worker {
-  const connection = asBullmqConnection(redis);
-  return new Worker(
+  const { worker } = createWorker(
     QUEUES.MONITOR_QUOTA_USAGE,
     async (
       job: Job<StatsAggregatorJobData | import("./phone-monitoring.js").PhoneReputationJobData>,
@@ -207,8 +205,9 @@ export function createMergedMonitorQuotaWorker(redis: Redis): Worker {
       }
       await executeStatsAggregatorJob(job as Job<StatsAggregatorJobData>);
     },
-    { connection, concurrency: 10 },
+    { concurrency: 10 },
   );
+  return worker;
 }
 
 // =============================================================================
@@ -285,8 +284,7 @@ export async function executeDailyReportJob(
 // =============================================================================
 
 export function createAlertWorker(redis: Redis): Worker {
-  const connection = asBullmqConnection(redis);
-  return new Worker(
+  const { worker } = createWorker(
     QUEUES.ALERT_BOUNCE_HIGH,
     async (job: Job<AlertJobData>): Promise<void> => {
       const { tenantId, alertType, payload } = job.data;
@@ -324,8 +322,9 @@ export function createAlertWorker(redis: Redis): Worker {
           });
       }
     },
-    { connection, concurrency: 20 },
+    { concurrency: 20 },
   );
+  return worker;
 }
 
 // =============================================================================
@@ -355,10 +354,9 @@ export async function executeCleanupJob(job: Job<CleanupJobData>): Promise<{ del
 // =============================================================================
 
 export async function executeHealthCheckAggregatorJob(
-  redis: Redis,
+  _redis: Redis,
   _job: Job<HealthCheckJobData>,
 ): Promise<Record<string, unknown>> {
-  const connection = asBullmqConnection(redis);
   const { db } = await import("@cerniq/db");
   const { waPhoneNumbers } = await import("@cerniq/db");
   const { sql } = await import("@cerniq/db");
@@ -376,7 +374,7 @@ export async function executeHealthCheckAggregatorJob(
   const phonesActive = p?.active ?? 0;
 
   if (phonesActive < LOW_PHONE_ALERT_THRESHOLD) {
-    const alertQueue = new Queue(QUEUES.ALERT_PHONE_OFFLINE, { connection });
+    const alertQueue = createQueue(QUEUES.ALERT_PHONE_OFFLINE);
     await alertQueue.add(
       "low-phones",
       {

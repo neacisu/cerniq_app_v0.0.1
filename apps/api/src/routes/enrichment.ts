@@ -2,8 +2,9 @@ import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { approvalService, approvalTasks, db, sql } from "@cerniq/db";
 import { createQueue } from "../lib/queue-factory.js";
-import { isKnownQueueName, queueRegistry } from "@cerniq/worker-shared";
+import { isKnownQueueName, queueRegistry, QUEUES } from "@cerniq/worker-shared";
 import { getActorId, parseOffset, requireTenantId } from "./utils.js";
+import { buildProvenanceContext } from "../lib/provenance.js";
 import {
   assignTaskSchema,
   decisionSchema,
@@ -288,11 +289,12 @@ export async function enrichmentRoutes(app: FastifyInstance) {
       });
 
       // Resume worker consumes the decision and continues the pipeline.
-      const resumeQueue = createQueue("hitl:resume");
+      const resumeQueue = createQueue(QUEUES.HITL_RESUME_AFTER_APPROVAL);
       await resumeQueue.add("resume", {
         tenantId,
         approvalTaskId: task.id,
         correlationId: `api-${task.id}`,
+        ...buildProvenanceContext(request),
       });
       await resumeQueue.close();
 

@@ -2,11 +2,9 @@
  * Template workers — Cat F (spintax, personalize, validate)
  * Source: etapa2-workers-F-L-remaining.md
  */
-import { Worker, Job } from "bullmq";
-import type { Redis } from "ioredis";
-import { QUEUES } from "@cerniq/worker-shared";
+import type { Job, Worker } from "bullmq";
+import { QUEUES, createWorker } from "@cerniq/worker-shared";
 import { and, db, eq, outreachTemplates, setSessionTenantId } from "@cerniq/db";
-import { asBullmqConnection } from "../utils/bullmq-connection.js";
 import { detectVariables, processSpintax } from "../utils/spintax.js";
 
 export interface SpintaxProcessJobData {
@@ -42,21 +40,20 @@ function validateSpintaxBalance(body: string): string[] {
   return errors;
 }
 
-export function createSpintaxProcessWorker(redis: Redis): Worker {
-  const connection = asBullmqConnection(redis);
-  return new Worker(
+export function createSpintaxProcessWorker(): Worker {
+  const { worker } = createWorker(
     QUEUES.TEMPLATE_SPINTAX_PROCESS,
     async (job: Job<SpintaxProcessJobData>) => {
       const { templateBody, variables = {} } = job.data;
       return { processed: processSpintax(templateBody, variables) };
     },
-    { connection, concurrency: 100 },
+    { concurrency: 100 },
   );
+  return worker;
 }
 
-export function createPersonalizeWorker(redis: Redis): Worker {
-  const connection = asBullmqConnection(redis);
-  return new Worker(
+export function createPersonalizeWorker(): Worker {
+  const { worker } = createWorker(
     QUEUES.TEMPLATE_PERSONALIZE,
     async (job: Job<PersonalizeJobData>) => {
       const { tenantId, templateId, leadData } = job.data;
@@ -71,13 +68,13 @@ export function createPersonalizeWorker(redis: Redis): Worker {
       const subject = tmpl.subject ? processSpintax(tmpl.subject, leadData) : null;
       return { body, subject, channel: tmpl.channel };
     },
-    { connection, concurrency: 50 },
+    { concurrency: 50 },
   );
+  return worker;
 }
 
-export function createValidateWorker(redis: Redis): Worker {
-  const connection = asBullmqConnection(redis);
-  return new Worker(
+export function createValidateWorker(): Worker {
+  const { worker } = createWorker(
     QUEUES.TEMPLATE_VALIDATE,
     async (job: Job<ValidateJobData>) => {
       const { templateBody, maxLength = 4000 } = job.data;
@@ -91,6 +88,7 @@ export function createValidateWorker(redis: Redis): Worker {
         errors: [...new Set(errors)],
       };
     },
-    { connection, concurrency: 20 },
+    { concurrency: 20 },
   );
+  return worker;
 }

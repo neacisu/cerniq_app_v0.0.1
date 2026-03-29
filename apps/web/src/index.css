@@ -1,0 +1,42 @@
+@import "./styles/globals.css";
+
+:root {
+  --neuron-sensory: oklch(65% 0.15 145);
+  --neuron-motor: oklch(60% 0.15 25);
+  --neuron-deliberative: oklch(55% 0.18 280);
+  --neuron-reflex: oklch(70% 0.12 60);
+  --synapse-active: oklch(75% 0.15 160);
+  --synapse-idle: oklch(40% 0.05 250);
+  --synapse-error: oklch(60% 0.2 25);
+
+  /* Dark Terroir — NeuronType canvas fills */
+  --neuron-normal: oklch(0.28 0.04 270);
+  --neuron-factual: oklch(0.25 0.04 260);
+  --neuron-discover: oklch(0.28 0.05 290);
+  --neuron-deliberate: oklch(0.3 0.08 80);
+  --neuron-spatial: oklch(0.27 0.05 200);
+  --neuron-domain: oklch(0.27 0.05 150);
+  --neuron-pattern: oklch(0.28 0.06 340);
+  --neuron-meta: oklch(0.3 0.07 95);
+  --neuron-executive: oklch(0.35 0.12 85);
+  --neuron-emotion: oklch(0.28 0.07 300);
+  --neuron-procedural: oklch(0.28 0.06 350);
+  --neuron-human: oklch(0.45 0.02 260);
+  --neuron-maintenance: oklch(0.22 0.01 260);
+  --neuron-vigilance: oklch(0.32 0.09 75);
+
+  /* Runtime state */
+  --neuron-firing: oklch(0.5 0.15 85);
+  --neuron-idle: oklch(0.22 0.02 260);
+  --neuron-stale: var(--color-wa);
+  --neuron-failed: var(--color-er);
+  --neuron-paused: var(--color-in);
+  --neuron-deliberating: oklch(0.45 0.12 85);
+
+  /* Synapse edge kinds */
+  --synapse-triggers: var(--color-b5);
+  --synapse-depends: oklch(0.55 0.08 220);
+  --synapse-mutates: var(--color-wa);
+  --synapse-blocks: var(--color-er);
+  --synapse-retries: oklch(0.55 0.06 50);
+}

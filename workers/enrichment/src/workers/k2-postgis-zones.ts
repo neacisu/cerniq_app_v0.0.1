@@ -1,6 +1,16 @@
 import type { Processor } from "bullmq";
 import { db, setSessionTenantId, silverCompanies, silverEnrichmentLog, sql } from "@cerniq/db";
-import { createQueue } from "@cerniq/worker-shared";
+import { createQueue, withCognitiveSpan } from "@cerniq/worker-shared";
+
+const logger = {
+  error(bindings: Record<string, unknown> & { err: unknown }, message: string): void {
+    const { err, ...ctx } = bindings;
+    console.error(`[k2-postgis-zones] ${message}`, {
+      ...ctx,
+      err: err instanceof Error ? { message: err.message, stack: err.stack } : err,
+    });
+  },
+};
 
 export type PostgisZonesJobData = {
   tenantId: string;
@@ -70,27 +80,32 @@ function resolveCountyCode(judet: string | null): string | null {
 }
 
 export const postgisZonesProcessor: Processor<PostgisZonesJobData> = async (job) => {
-  const startedAt = Date.now();
-  const { tenantId, companyId, latitude, longitude } = job.data;
-  await setSessionTenantId(tenantId);
+  return withCognitiveSpan(
+    "e1:geo:zones-postgis",
+    async (_span) => {
+      const startedAt = Date.now();
+      const { tenantId, companyId, latitude, longitude } = job.data;
+      await setSessionTenantId(tenantId);
 
-  const company = await db.query.silverCompanies.findFirst({
-    where: (t, { and, eq }) => and(eq(t.tenantId, tenantId), eq(t.id, companyId)),
-  });
-  if (!company) return { ok: false, status: "not_found" };
+      const company = await db.query.silverCompanies.findFirst({
+        where: (t, { and, eq }) => and(eq(t.tenantId, tenantId), eq(t.id, companyId)),
+      });
+      if (!company) return { ok: false, status: "not_found" };
 
-  const judetCod = resolveCountyCode(company.judet);
+      const judetCod = resolveCountyCode(company.judet);
 
-  let nearestCityName: string | null = null;
-  let nearestCityDistanceKm: number | null = null;
-  const isRuralArea = company.localitate ? !/municipiu|oras|oraș/i.test(company.localitate) : null;
+      let nearestCityName: string | null = null;
+      let nearestCityDistanceKm: number | null = null;
+      const isRuralArea = company.localitate
+        ? !/municipiu|oras|oraș/i.test(company.localitate)
+        : null;
 
-  try {
-    const nearestCityRows = await db.execute<{
-      id: string;
-      denumire: string | null;
-      distance_km: number;
-    }>(sql`
+      try {
+        const nearestCityRows = await db.execute<{
+          id: string;
+          denumire: string | null;
+          distance_km: number;
+        }>(sql`
       SELECT
         sc.id,
         sc.denumire,
@@ -114,58 +129,71 @@ export const postgisZonesProcessor: Processor<PostgisZonesJobData> = async (job)
       LIMIT 1
     `);
 
-    const cityArr = Array.isArray(nearestCityRows) ? nearestCityRows : [];
-    if (cityArr.length > 0) {
-      nearestCityName = cityArr[0].denumire;
-      nearestCityDistanceKm = Math.round(Number(cityArr[0].distance_km) * 100) / 100;
-    }
-  } catch {
-    // Non-critical: proceed with available data
-  }
+        const cityArr = Array.isArray(nearestCityRows) ? nearestCityRows : [];
+        if (cityArr.length > 0) {
+          nearestCityName = cityArr[0].denumire;
+          nearestCityDistanceKm = Math.round(Number(cityArr[0].distance_km) * 100) / 100;
+        }
+      } catch (err) {
+        logger.error(
+          {
+            err,
+            tenantId,
+            companyId,
+            latitude,
+            longitude,
+            context: "nearestCityPostgisQuery",
+          },
+          "Nearest-city PostGIS query failed; continuing with partial zone data",
+        );
+      }
 
-  const zoneData = {
-    latitude,
-    longitude,
-    judetCod,
-    comunaCod: null as string | null,
-    nearestCityName,
-    nearestCityDistanceKm,
-    isRuralArea,
-    calculatedAt: new Date().toISOString(),
-  };
+      const zoneData = {
+        latitude,
+        longitude,
+        judetCod,
+        comunaCod: null as string | null,
+        nearestCityName,
+        nearestCityDistanceKm,
+        isRuralArea,
+        calculatedAt: new Date().toISOString(),
+      };
 
-  await db
-    .update(silverCompanies)
-    .set({
-      judetCod: judetCod ?? undefined,
-      metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{postgisZones}', ${JSON.stringify(zoneData)}::jsonb)`,
-      updatedAt: new Date(),
-    })
-    .where(sql`${silverCompanies.id} = ${companyId}`);
+      await db
+        .update(silverCompanies)
+        .set({
+          judetCod: judetCod ?? undefined,
+          metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{postgisZones}', ${JSON.stringify(zoneData)}::jsonb)`,
+          updatedAt: new Date(),
+        })
+        .where(sql`${silverCompanies.id} = ${companyId}`);
 
-  const proximityQueue = createQueue("geo:proximity");
-  await proximityQueue.add("proximity", {
-    tenantId,
-    companyId,
-    latitude,
-    longitude,
-    correlationId: job.data.correlationId,
-  });
-  await proximityQueue.close();
+      const proximityQueue = createQueue("geo:proximity");
+      await proximityQueue.add("proximity", {
+        tenantId,
+        companyId,
+        latitude,
+        longitude,
+        correlationId: job.data.correlationId,
+      });
+      await proximityQueue.close();
 
-  await db.insert(silverEnrichmentLog).values({
-    tenantId,
-    entityType: "company",
-    entityId: companyId,
-    source: "postgis_zones",
-    operation: "calculate",
-    requestPayload: { latitude, longitude },
-    responsePayload: zoneData,
-    fieldsUpdated: ["judetCod", "metadata"],
-    correlationId: job.data.correlationId,
-    jobId: String(job.id ?? ""),
-    durationMs: Date.now() - startedAt,
-  });
+      await db.insert(silverEnrichmentLog).values({
+        tenantId,
+        entityType: "company",
+        entityId: companyId,
+        source: "postgis_zones",
+        operation: "calculate",
+        requestPayload: { latitude, longitude },
+        responsePayload: zoneData,
+        fieldsUpdated: ["judetCod", "metadata"],
+        correlationId: job.data.correlationId,
+        jobId: String(job.id ?? ""),
+        durationMs: Date.now() - startedAt,
+      });
 
-  return { ok: true, status: "success", judetCod, nearestCityName, nearestCityDistanceKm };
+      return { ok: true, status: "success", judetCod, nearestCityName, nearestCityDistanceKm };
+    },
+    { tenantId: job.data.tenantId },
+  );
 };

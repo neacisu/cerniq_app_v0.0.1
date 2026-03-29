@@ -10,11 +10,15 @@
  * - Event Deduplication        — Redis-based idempotency
  * - Event Archive              — outreach.webhook_event_archive (ADR-0061; not hitl_audit_log)
  */
-import { Worker, Job, Queue } from "bullmq";
+import type { Job, Worker } from "bullmq";
 import { v4 as uuidv4 } from "uuid";
-import { Redis } from "ioredis";
-import { QUEUES } from "@cerniq/worker-shared";
-import { asBullmqConnection } from "../utils/bullmq-connection.js";
+import type { Redis } from "ioredis";
+import {
+  QUEUES,
+  createWorker,
+  createQueue,
+  outreachRepliesReceivedTotal,
+} from "@cerniq/worker-shared";
 import type { CleanupJobData, HealthCheckJobData } from "./monitoring.js";
 import type { PriorityJobData } from "./resilience.js";
 
@@ -92,13 +96,12 @@ export interface ResendWebhookJobData {
 // Routes normalized SystemEvents to their specific processors
 // =============================================================================
 
-export function createWebhookNormalizerWorker(redis: Redis): Worker {
-  const connection = asBullmqConnection(redis);
-  const timelinesQueue = new Queue(QUEUES.WEBHOOK_TIMELINESAI_INGEST, { connection });
-  const instantlyQueue = new Queue(QUEUES.WEBHOOK_INSTANTLY_INGEST, { connection });
-  const resendQueue = new Queue(QUEUES.WEBHOOK_RESEND_INGEST, { connection });
+export function createWebhookNormalizerWorker(): Worker {
+  const timelinesQueue = createQueue(QUEUES.WEBHOOK_TIMELINESAI_INGEST);
+  const instantlyQueue = createQueue(QUEUES.WEBHOOK_INSTANTLY_INGEST);
+  const resendQueue = createQueue(QUEUES.WEBHOOK_RESEND_INGEST);
 
-  return new Worker(
+  const { worker } = createWorker(
     QUEUES.WEBHOOK_NORMALIZE,
     async (
       job: Job<{ source: string; tenantId: string; rawEvent: unknown }>,
@@ -132,8 +135,9 @@ export function createWebhookNormalizerWorker(redis: Redis): Worker {
 
       return event;
     },
-    { connection, concurrency: 100 },
+    { concurrency: 100 },
   );
+  return worker;
 }
 
 function extractEventType(source: string, rawEvent: unknown): string {
@@ -158,13 +162,12 @@ function getChannel(source: string): SystemEvent["channel"] {
 // Trigger: lead:state:transition + ai:sentiment:analyze
 // =============================================================================
 
-export function createTimelinesAIEventProcessorWorker(redis: Redis): Worker {
-  const connection = asBullmqConnection(redis);
-  const stateQueue = new Queue(QUEUES.LEAD_STATE_TRANSITION, { connection });
-  const sentimentQueue = new Queue(QUEUES.AI_SENTIMENT_ANALYZE, { connection });
-  const deliveryQueue = new Queue(QUEUES.WA_REPLY, { connection });
+export function createTimelinesAIEventProcessorWorker(): Worker {
+  const stateQueue = createQueue(QUEUES.LEAD_STATE_TRANSITION);
+  const sentimentQueue = createQueue(QUEUES.AI_SENTIMENT_ANALYZE);
+  const deliveryQueue = createQueue(QUEUES.WA_REPLY);
 
-  return new Worker(
+  const { worker } = createWorker(
     QUEUES.WEBHOOK_TIMELINESAI_INGEST,
     async (job: Job<TimelinesAIWebhookJobData>): Promise<void> => {
       const { tenantId, rawEvent } = job.data;
@@ -263,9 +266,12 @@ export function createTimelinesAIEventProcessorWorker(redis: Redis): Worker {
         { tenantId, leadId, journeyId, content: rawEvent.message, channel: "WHATSAPP" },
         { priority: 2, removeOnComplete: 100 },
       );
+
+      outreachRepliesReceivedTotal.inc({ channel: "WHATSAPP", tenant_id: tenantId });
     },
-    { connection, concurrency: 100 },
+    { concurrency: 100 },
   );
+  return worker;
 }
 
 // =============================================================================
@@ -273,39 +279,52 @@ export function createTimelinesAIEventProcessorWorker(redis: Redis): Worker {
 // Events: email_sent, email_opened, reply_received, email_bounced, lead_unsubscribed
 // =============================================================================
 
-export function createInstantlyEventProcessorWorker(redis: Redis): Worker {
-  const connection = asBullmqConnection(redis);
-  const trackingQueue = new Queue(QUEUES.EMAIL_COLD_LEAD_STATUS, { connection });
+export function createInstantlyEventProcessorWorker(): Worker {
+  const trackingQueue = createQueue(QUEUES.EMAIL_COLD_LEAD_STATUS);
 
-  return new Worker(
+  const { worker } = createWorker(
     QUEUES.WEBHOOK_INSTANTLY_INGEST,
     async (job: Job<InstantlyWebhookJobData>): Promise<void> => {
       const { tenantId, rawEvent } = job.data;
       const { db, setSessionTenantId } = await import("@cerniq/db");
       await setSessionTenantId(tenantId);
-      const { communicationLog } = await import("@cerniq/db");
-      const { leadJourney } = await import("@cerniq/db");
-      const { eq, and } = await import("@cerniq/db");
+      const { goldContacts, leadJourney } = await import("@cerniq/db");
+      const { eq, and, sql, isNotNull } = await import("@cerniq/db");
 
-      // Find lead by recipient email
-      const logs = await db
-        .select({ leadJourneyId: communicationLog.leadJourneyId })
-        .from(communicationLog)
-        .where(
-          and(eq(communicationLog.tenantId, tenantId), eq(communicationLog.channel, "EMAIL_COLD")),
-        )
-        .limit(1);
+      const emailRaw = rawEvent.lead_email?.trim() ?? "";
+      let journeyId: string | undefined;
+      let leadId: string | undefined;
 
-      const journeyId = logs[0]?.leadJourneyId;
-      const leadId = journeyId
-        ? (
-            await db
-              .select({ leadId: leadJourney.leadId })
-              .from(leadJourney)
-              .where(eq(leadJourney.id, journeyId))
-              .limit(1)
-          )[0]?.leadId
-        : undefined;
+      if (emailRaw) {
+        const matched = await db
+          .select({
+            journeyId: leadJourney.id,
+            leadId: leadJourney.leadId,
+          })
+          .from(leadJourney)
+          .innerJoin(
+            goldContacts,
+            and(
+              eq(goldContacts.companyId, leadJourney.leadId),
+              eq(goldContacts.tenantId, tenantId),
+              isNotNull(goldContacts.email),
+              sql`LOWER(TRIM(${goldContacts.email})) = LOWER(${emailRaw})`,
+            ),
+          )
+          .where(eq(leadJourney.tenantId, tenantId))
+          .limit(1);
+
+        if (matched.length === 0) {
+          console.warn(
+            `[webhook:instantly] lead not found for email (case-insensitive): ${emailRaw}`,
+          );
+        } else {
+          journeyId = matched[0].journeyId;
+          leadId = matched[0].leadId;
+        }
+      } else {
+        console.warn("[webhook:instantly] lead_email missing, cannot resolve lead");
+      }
 
       // Route to email cold tracking worker
       await trackingQueue.add(
@@ -322,9 +341,14 @@ export function createInstantlyEventProcessorWorker(redis: Redis): Worker {
         },
         { priority: rawEvent.event_type === "reply_received" ? 1 : 3, removeOnComplete: 100 },
       );
+
+      if (rawEvent.event_type === "reply_received") {
+        outreachRepliesReceivedTotal.inc({ channel: "EMAIL_COLD", tenant_id: tenantId });
+      }
     },
-    { connection, concurrency: 100 },
+    { concurrency: 100 },
   );
+  return worker;
 }
 
 // =============================================================================
@@ -333,12 +357,11 @@ export function createInstantlyEventProcessorWorker(redis: Redis): Worker {
 // Lookup by tags lead_id,tenant_id
 // =============================================================================
 
-export function createResendEventProcessorWorker(redis: Redis): Worker {
-  const connection = asBullmqConnection(redis);
-  const warmTrackingQueue = new Queue(QUEUES.EMAIL_WARM_DOCUMENT, { connection });
-  const warmReplyQueue = new Queue(QUEUES.EMAIL_WARM_PROFORMA, { connection });
+export function createResendEventProcessorWorker(): Worker {
+  const warmTrackingQueue = createQueue(QUEUES.EMAIL_WARM_DOCUMENT);
+  const warmReplyQueue = createQueue(QUEUES.EMAIL_WARM_PROFORMA);
 
-  return new Worker(
+  const { worker } = createWorker(
     QUEUES.WEBHOOK_RESEND_INGEST,
     async (job: Job<ResendWebhookJobData>): Promise<void> => {
       const { tenantId, rawEvent } = job.data;
@@ -395,8 +418,9 @@ export function createResendEventProcessorWorker(redis: Redis): Worker {
         { removeOnComplete: 100 },
       );
     },
-    { connection, concurrency: 100 },
+    { concurrency: 100 },
   );
+  return worker;
 }
 
 // =============================================================================
@@ -461,8 +485,7 @@ export async function executeEventArchiveJob(job: Job<EventArchiveJobData>): Pro
 
 /** Dedup + cleanup pe `PIPELINE_OUTREACH_HEALTH`. */
 export function createMergedPipelineHealthWorker(redis: Redis): Worker {
-  const connection = asBullmqConnection(redis);
-  return new Worker(
+  const { worker } = createWorker(
     QUEUES.PIPELINE_OUTREACH_HEALTH,
     async (job: Job<EventDeduplicateJobData | CleanupJobData>) => {
       const d = job.data as { eventId?: string };
@@ -472,14 +495,14 @@ export function createMergedPipelineHealthWorker(redis: Redis): Worker {
       const { executeCleanupJob } = await import("./monitoring.js");
       return executeCleanupJob(job as Job<CleanupJobData>);
     },
-    { connection, concurrency: 50 },
+    { concurrency: 50 },
   );
+  return worker;
 }
 
 /** Priority router + archive + health pe `PIPELINE_OUTREACH_METRICS`. */
 export function createMergedPipelineMetricsWorker(redis: Redis): Worker {
-  const connection = asBullmqConnection(redis);
-  return new Worker(
+  const { worker } = createWorker(
     QUEUES.PIPELINE_OUTREACH_METRICS,
     async (
       job: Job<PriorityJobData | EventArchiveJobData | HealthCheckJobData>,
@@ -495,6 +518,7 @@ export function createMergedPipelineMetricsWorker(redis: Redis): Worker {
       const { executeHealthCheckAggregatorJob } = await import("./monitoring.js");
       return executeHealthCheckAggregatorJob(redis, job as Job<HealthCheckJobData>);
     },
-    { connection, concurrency: 10 },
+    { concurrency: 10 },
   );
+  return worker;
 }

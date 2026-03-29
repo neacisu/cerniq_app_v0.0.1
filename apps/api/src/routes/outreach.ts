@@ -41,8 +41,10 @@ import {
   getWaPhoneFollowupQueueName,
   getWaPhoneQueueName,
   WA_PHONE_COUNT,
+  QUEUES,
 } from "@cerniq/worker-shared";
 import { requireTenantId, getActorId } from "./utils.js";
+import { buildProvenanceContext } from "../lib/provenance.js";
 import type { Campaign } from "@cerniq/integrations/instantly";
 
 // ─── Validation Schemas ───────────────────────────────────────────────────────
@@ -1302,12 +1304,13 @@ export async function outreachRoutes(app: FastifyInstance) {
       .returning();
 
     if (body.currentState) {
-      const stateQueue = createQueue("lead:state:transition");
+      const stateQueue = createQueue(QUEUES.LEAD_STATE_TRANSITION);
       await stateQueue.add("state-change", {
         journeyId: id,
         fromState: existing[0].currentState,
         toState: body.currentState,
         tenantId,
+        ...buildProvenanceContext(req),
       });
     }
 
@@ -1364,6 +1367,7 @@ export async function outreachRoutes(app: FastifyInstance) {
           subject: body.subject,
           templateId: body.templateId,
           scheduledAt: body.scheduledAt ?? null,
+          ...buildProvenanceContext(req),
         },
         delayMs > 0 ? { delay: delayMs } : {},
       );
@@ -1405,12 +1409,13 @@ export async function outreachRoutes(app: FastifyInstance) {
         });
       }
 
-      const takeoverQueue = createQueue("human:takeover:initiate");
+      const takeoverQueue = createQueue(QUEUES.HUMAN_TAKEOVER_INITIATE);
       await takeoverQueue.add("initiate-takeover", {
         journeyId: id,
         tenantId,
         userId: actorId,
         reason: body.reason,
+        ...buildProvenanceContext(req),
       });
 
       return reply.send({ success: true, data: { success: true } });
@@ -1604,7 +1609,7 @@ export async function outreachRoutes(app: FastifyInstance) {
         return reply.status(404).send({ success: false, error: "Sequence not found" });
       }
 
-      const queue = createQueue("sequence:create");
+      const queue = createQueue(QUEUES.SEQUENCE_CREATE);
       let enrolled = 0;
       let skippedNotFound = 0;
       let skippedDnc = 0;
@@ -1657,6 +1662,7 @@ export async function outreachRoutes(app: FastifyInstance) {
             journeyId: row.journeyPk,
             leadId: row.leadId,
             startAt: body.scheduledStart,
+            ...buildProvenanceContext(req),
           },
           { removeOnComplete: 100 },
         );
@@ -1827,7 +1833,7 @@ export async function outreachRoutes(app: FastifyInstance) {
 
       if (!updated) return reply.status(404).send({ success: false, error: "Review not found" });
 
-      const resolveQueue = createQueue("human:approve:message");
+      const resolveQueue = createQueue(QUEUES.HUMAN_APPROVE_MESSAGE);
       await resolveQueue.add("resolve-review", {
         reviewId: id,
         tenantId,
@@ -1835,6 +1841,7 @@ export async function outreachRoutes(app: FastifyInstance) {
         action: body.action,
         editedContent: body.editedContent,
         notes: body.notes,
+        ...buildProvenanceContext(req),
       });
 
       return reply.send({ success: true, data: updated });
@@ -2167,8 +2174,12 @@ export async function outreachRoutes(app: FastifyInstance) {
     const tenantId = requireTenantId(req);
     const { id } = idParamSchema.parse(req.params);
 
-    const healthQueue = createQueue("monitor:phone:health");
-    await healthQueue.add("manual-health-check", { phoneId: id, tenantId });
+    const healthQueue = createQueue(QUEUES.MONITOR_PHONE_HEALTH);
+    await healthQueue.add("manual-health-check", {
+      phoneId: id,
+      tenantId,
+      ...buildProvenanceContext(req),
+    });
 
     return reply.send({ success: true, data: { queued: true } });
   });

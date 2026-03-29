@@ -166,3 +166,63 @@ scrape_configs:
           - __address__
         target_label: instance
         replacement: ct107-postgres:9187
+  - job_name: vllm-reasoning
+    scrape_interval: 15s
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - infraq.app:443
+        labels:
+          project: cerniq
+          model: reasoning
+          model_id: Qwen/QwQ-32B-AWQ
+    scheme: https
+    tls_config:
+      insecure_skip_verify: false
+    relabel_configs:
+      - target_label: __metrics_path__
+        replacement: /llm/v1/reasoning/metrics
+      - source_labels:
+          - __address__
+        target_label: instance
+        replacement: vllm-reasoning
+  - job_name: vllm-fast
+    scrape_interval: 15s
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - infraq.app:443
+        labels:
+          project: cerniq
+          model: fast
+          model_id: Qwen/Qwen2.5-14B-Instruct-AWQ
+    scheme: https
+    tls_config:
+      insecure_skip_verify: false
+    relabel_configs:
+      - target_label: __metrics_path__
+        replacement: /llm/v1/fast/metrics
+      - source_labels:
+          - __address__
+        target_label: instance
+        replacement: vllm-fast
+  - job_name: ollama-embeddings
+    scrape_interval: 30s
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - infraq.app:443
+        labels:
+          project: cerniq
+          model: embeddings
+          model_id: qwen3-embedding-8b-q5km
+    scheme: https
+    tls_config:
+      insecure_skip_verify: false
+    relabel_configs:
+      - target_label: __metrics_path__
+        replacement: /llm/v1/embeddings/metrics
+      - source_labels:
+          - __address__
+        target_label: instance
+        replacement: ollama-embeddings

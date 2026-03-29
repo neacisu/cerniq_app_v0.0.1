@@ -106,6 +106,8 @@ function mockWorkerShared() {
       on: vi.fn(),
     })),
     withExternalApiMetrics: vi.fn(async (_p: string, fn: () => unknown) => fn()),
+    withCognitiveSpan: vi.fn(async (_name: string, fn: (s: null) => unknown) => fn(null)),
+    importMutationTotal: { inc: vi.fn() },
   }));
 }
 

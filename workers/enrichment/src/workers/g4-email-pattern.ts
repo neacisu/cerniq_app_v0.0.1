@@ -1,4 +1,5 @@
 import type { Processor } from "bullmq";
+import { withCognitiveSpan } from "@cerniq/worker-shared";
 import { db, setSessionTenantId, silverCompanies, silverEnrichmentLog, sql } from "@cerniq/db";
 
 export type EmailPatternJobData = {
@@ -66,58 +67,64 @@ function detectEmailPatterns(contacts: ContactForPattern[]) {
 }
 
 export const emailPatternProcessor: Processor<EmailPatternJobData> = async (job) => {
-  const startedAt = Date.now();
-  await setSessionTenantId(job.data.tenantId);
+  return withCognitiveSpan(
+    "e1:discover:email-pattern",
+    async (_span) => {
+      const startedAt = Date.now();
+      await setSessionTenantId(job.data.tenantId);
 
-  const contacts = await db.query.silverContacts.findMany({
-    where: (t, { and, eq }) =>
-      and(eq(t.tenantId, job.data.tenantId), eq(t.companyId, job.data.companyId)),
-  });
-  if (contacts.length < 2) {
-    return { ok: true, status: "skipped", reason: "insufficient_contacts" };
-  }
+      const contacts = await db.query.silverContacts.findMany({
+        where: (t, { and, eq }) =>
+          and(eq(t.tenantId, job.data.tenantId), eq(t.companyId, job.data.companyId)),
+      });
+      if (contacts.length < 2) {
+        return { ok: true, status: "skipped", reason: "insufficient_contacts" };
+      }
 
-  const dataset: ContactForPattern[] = contacts
-    .filter((c) => Boolean(c.email))
-    .map((c) => ({ email: c.email ?? "", prenume: c.prenume ?? null, nume: c.nume ?? null }));
-  const patterns = detectEmailPatterns(dataset);
-  if (!patterns.bestPattern) {
-    return { ok: true, status: "no_pattern_detected" };
-  }
+      const dataset: ContactForPattern[] = contacts
+        .filter((c) => Boolean(c.email))
+        .map((c) => ({ email: c.email ?? "", prenume: c.prenume ?? null, nume: c.nume ?? null }));
+      const patterns = detectEmailPatterns(dataset);
+      if (!patterns.bestPattern) {
+        return { ok: true, status: "no_pattern_detected" };
+      }
 
-  await db
-    .update(silverCompanies)
-    .set({
-      metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{emailPattern}', ${JSON.stringify(
-        {
-          pattern: patterns.bestPattern,
-          confidence: patterns.confidence,
-          observedContacts: patterns.observedContacts,
-          detectedAt: new Date().toISOString(),
-        },
-      )}::jsonb)`,
-      lastEnrichedAt: new Date(),
-    })
-    .where(sql`${silverCompanies.id} = ${job.data.companyId}`);
+      await db
+        .update(silverCompanies)
+        .set({
+          metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{emailPattern}', ${JSON.stringify(
+            {
+              pattern: patterns.bestPattern,
+              confidence: patterns.confidence,
+              observedContacts: patterns.observedContacts,
+              detectedAt: new Date().toISOString(),
+            },
+          )}::jsonb)`,
+          lastEnrichedAt: new Date(),
+        })
+        .where(sql`${silverCompanies.id} = ${job.data.companyId}`);
 
-  await db.insert(silverEnrichmentLog).values({
-    tenantId: job.data.tenantId,
-    entityType: "company",
-    entityId: job.data.companyId,
-    source: "email_pattern",
-    operation: "detect",
-    requestPayload: { domain: job.data.domain ?? null, contacts: dataset.length },
-    responsePayload: patterns,
-    fieldsUpdated: ["metadata"],
-    correlationId: job.data.correlationId,
-    jobId: String(job.id ?? ""),
-    durationMs: Date.now() - startedAt,
-  });
+      await db.insert(silverEnrichmentLog).values({
+        tenantId: job.data.tenantId,
+        entityType: "company",
+        entityId: job.data.companyId,
+        source: "email_pattern",
+        operation: "detect",
+        requestPayload: { domain: job.data.domain ?? null, contacts: dataset.length },
+        responsePayload: patterns,
+        fieldsUpdated: ["metadata"],
+        correlationId: job.data.correlationId,
+        jobId: String(job.id ?? ""),
+        durationMs: Date.now() - startedAt,
+      });
 
-  return {
-    ok: true,
-    status: "success",
-    pattern: patterns.bestPattern,
-    confidence: patterns.confidence,
-  };
+      return {
+        ok: true,
+        status: "success",
+        pattern: patterns.bestPattern,
+        confidence: patterns.confidence,
+      };
+    },
+    { tenantId: job.data.tenantId },
+  );
 };

@@ -14,6 +14,8 @@ import {
   hitlResolutionTimeSeconds,
   createQueue,
   QUEUES,
+  withCognitiveSpan,
+  recordDataMutation,
 } from "@cerniq/worker-shared";
 import { addQueueJob, patchCompanyMetadata } from "./pipeline-utils.js";
 import { z } from "zod";
@@ -22,12 +24,20 @@ export type HitlResumeAfterApprovalJobData = {
   tenantId: string;
   approvalTaskId: string;
   correlationId?: string;
+  traceId?: string;
+  causationKey?: string;
+  sourceEndpoint?: string;
+  actorId?: string;
 };
 
 const hitlResumeAfterApprovalJobDataSchema = z.object({
   tenantId: z.uuid(),
   approvalTaskId: z.uuid(),
   correlationId: z.string().trim().min(1).optional(),
+  traceId: z.string().optional(),
+  causationKey: z.string().optional(),
+  sourceEndpoint: z.string().optional(),
+  actorId: z.string().optional(),
 });
 
 function readMetadataObject(input: unknown): Record<string, unknown> {
@@ -380,66 +390,92 @@ async function handleIdentityConflict(context: ApprovalContext): Promise<ResumeP
 export const hitlResumeAfterApprovalProcessor: Processor<HitlResumeAfterApprovalJobData> = async (
   job,
 ) => {
-  validateJobData(hitlResumeAfterApprovalJobDataSchema, job.data, {
-    queueName: QUEUES.HITL_RESUME_AFTER_APPROVAL,
-    jobId: job.id,
-  });
-  await setSessionTenantId(job.data.tenantId);
-  const task = await db.query.approvalTasks.findFirst({
-    where: (t, { and, eq }) =>
-      and(eq(t.tenantId, job.data.tenantId), eq(t.id, job.data.approvalTaskId)),
-  });
+  return withCognitiveSpan(
+    "e1:hitl:resume",
+    async (_span) => {
+      validateJobData(hitlResumeAfterApprovalJobDataSchema, job.data, {
+        queueName: QUEUES.HITL_RESUME_AFTER_APPROVAL,
+        jobId: job.id,
+      });
+      await setSessionTenantId(job.data.tenantId);
+      const task = await db.query.approvalTasks.findFirst({
+        where: (t, { and, eq }) =>
+          and(eq(t.tenantId, job.data.tenantId), eq(t.id, job.data.approvalTaskId)),
+      });
 
-  if (!task) return { ok: false, status: "task_not_found" };
-  if (!["approved", "rejected"].includes(task.status)) {
-    return { ok: true, status: "skipped", reason: `task_status_${task.status}` };
-  }
+      if (!task) return { ok: false, status: "task_not_found" };
+      if (!["approved", "rejected"].includes(task.status)) {
+        return { ok: true, status: "skipped", reason: `task_status_${task.status}` };
+      }
 
-  const context: ApprovalContext = {
-    task,
-    decision: task.decision ?? (task.status === "approved" ? "approve" : "reject"),
-    taskMetadata: readMetadataObject(task.metadata),
-    decisionMetadata: getDecisionMetadata(task),
-    resolvedApprovalType: getResolvedApprovalType(task),
-    correlationId: job.data.correlationId,
-  };
+      const context: ApprovalContext = {
+        task,
+        decision: task.decision ?? (task.status === "approved" ? "approve" : "reject"),
+        taskMetadata: readMetadataObject(task.metadata),
+        decisionMetadata: getDecisionMetadata(task),
+        resolvedApprovalType: getResolvedApprovalType(task),
+        correlationId: job.data.correlationId,
+      };
 
-  // Track HITL resolution metrics
-  const approvalType = context.resolvedApprovalType ?? task.type;
-  hitlTasksResolvedTotal.inc({
-    approval_type: approvalType,
-    decision: context.decision ?? "unknown",
-    tenant_id: job.data.tenantId,
-  });
-  if (task.createdAt) {
-    const resolutionSeconds = (Date.now() - new Date(task.createdAt).getTime()) / 1000;
-    hitlResolutionTimeSeconds.observe(
-      { approval_type: approvalType, tenant_id: job.data.tenantId },
-      resolutionSeconds,
-    );
-  }
+      // Track HITL resolution metrics
+      const approvalType = context.resolvedApprovalType ?? task.type;
+      hitlTasksResolvedTotal.inc({
+        approval_type: approvalType,
+        decision: context.decision ?? "unknown",
+        tenant_id: job.data.tenantId,
+      });
+      if (task.createdAt) {
+        const resolutionSeconds = (Date.now() - new Date(task.createdAt).getTime()) / 1000;
+        hitlResolutionTimeSeconds.observe(
+          { approval_type: approvalType, tenant_id: job.data.tenantId },
+          resolutionSeconds,
+        );
+      }
+      void recordDataMutation(
+        {
+          tenantId: job.data.tenantId,
+          batchId: job.data.correlationId ?? "system",
+          nodeKey: "e1:hitl:resume",
+          entityType: "approval_task",
+          entityId: job.data.approvalTaskId,
+          mutationIntent: "ENRICH",
+          beforeData: { status: task.status, approvalType },
+          afterData: {
+            decision: context.decision,
+            resolvedApprovalType: context.resolvedApprovalType,
+          },
+        },
+        {
+          traceId: job.data.traceId,
+          causationKey: job.data.causationKey,
+          actorId: job.data.actorId,
+        },
+      ).catch(() => undefined);
 
-  if (context.resolvedApprovalType === "dedup_review") {
-    return handleDedupReview(context);
-  }
-  if (context.resolvedApprovalType === "quality_review") {
-    return handleQualityReview(context);
-  }
-  if (
-    context.resolvedApprovalType === "ai_structuring_review" ||
-    context.resolvedApprovalType === "ai_merge_review" ||
-    context.resolvedApprovalType === "low_confidence_review" ||
-    context.resolvedApprovalType === "manual_verification" ||
-    context.resolvedApprovalType === "data_anomaly"
-  ) {
-    return handleAiReview(context);
-  }
-  if (context.resolvedApprovalType === "error_review") {
-    return handleErrorReview(context);
-  }
-  if (context.resolvedApprovalType === "identity_conflict") {
-    return handleIdentityConflict(context);
-  }
+      if (context.resolvedApprovalType === "dedup_review") {
+        return handleDedupReview(context);
+      }
+      if (context.resolvedApprovalType === "quality_review") {
+        return handleQualityReview(context);
+      }
+      if (
+        context.resolvedApprovalType === "ai_structuring_review" ||
+        context.resolvedApprovalType === "ai_merge_review" ||
+        context.resolvedApprovalType === "low_confidence_review" ||
+        context.resolvedApprovalType === "manual_verification" ||
+        context.resolvedApprovalType === "data_anomaly"
+      ) {
+        return handleAiReview(context);
+      }
+      if (context.resolvedApprovalType === "error_review") {
+        return handleErrorReview(context);
+      }
+      if (context.resolvedApprovalType === "identity_conflict") {
+        return handleIdentityConflict(context);
+      }
 
-  return { ok: true, status: "skipped", reason: "unknown_approval_type" };
+      return { ok: true, status: "skipped", reason: "unknown_approval_type" };
+    },
+    { tenantId: job.data.tenantId },
+  );
 };

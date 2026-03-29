@@ -1,4 +1,5 @@
 import type { Processor } from "bullmq";
+import { withCognitiveSpan } from "@cerniq/worker-shared";
 import {
   getBronzeContactForTenant,
   markNormalizationResult,
@@ -187,103 +188,112 @@ function logCuiGateDecision(
 // ---------------------------------------------------------------------------
 
 export const nameNormalizerProcessor: Processor<NameNormalizerJobData> = async (job) => {
-  const startedAt = Date.now();
-  const batchId =
-    typeof job.data.batchId === "string" && job.data.batchId.length > 0
-      ? job.data.batchId
-      : undefined;
-  const log = createJobLogger({
-    batchId,
-    tenantId: job.data.tenantId,
-    workerName: "B1:name-normalizer",
-    jobId: String(job.id ?? ""),
-    startedAt,
-  }).forContact(job.data.bronzeContactId);
+  return withCognitiveSpan(
+    "e1:normalize:name",
+    async (_span) => {
+      const startedAt = Date.now();
+      const batchId =
+        typeof job.data.batchId === "string" && job.data.batchId.length > 0
+          ? job.data.batchId
+          : undefined;
+      const log = createJobLogger({
+        batchId,
+        tenantId: job.data.tenantId,
+        workerName: "B1:name-normalizer",
+        jobId: String(job.id ?? ""),
+        startedAt,
+      }).forContact(job.data.bronzeContactId);
 
-  try {
-    log.step("start", "Pornire normalizare nume", {
-      bronzeContactId: job.data.bronzeContactId,
-    });
-    const contact = await getBronzeContactForTenant(job.data.tenantId, job.data.bronzeContactId);
-    const rawName = typeof contact.extractedName === "string" ? contact.extractedName : null;
+      try {
+        log.step("start", "Pornire normalizare nume", {
+          bronzeContactId: job.data.bronzeContactId,
+        });
+        const contact = await getBronzeContactForTenant(
+          job.data.tenantId,
+          job.data.bronzeContactId,
+        );
+        const rawName = typeof contact.extractedName === "string" ? contact.extractedName : null;
 
-    if (!rawName) {
-      log.done("normalize_skip", "Nume lipsă — normalizare sărită", {
-        bronzeContactId: job.data.bronzeContactId,
-      });
-      return { ok: true, status: "skipped", reason: "empty_name" };
-    }
+        if (!rawName) {
+          log.done("normalize_skip", "Nume lipsă — normalizare sărită", {
+            bronzeContactId: job.data.bronzeContactId,
+          });
+          return { ok: true, status: "skipped", reason: "empty_name" };
+        }
 
-    const { normalized, formaJuridica } = normalizeName(rawName);
+        const { normalized, formaJuridica } = normalizeName(rawName);
 
-    if (!normalized) {
-      log.done("normalize_skip", `Nume devine gol după normalizare — sărit`, { rawName });
-      return { ok: true, status: "skipped", reason: "whitespace_only_name" };
-    }
+        if (!normalized) {
+          log.done("normalize_skip", `Nume devine gol după normalizare — sărit`, { rawName });
+          return { ok: true, status: "skipped", reason: "whitespace_only_name" };
+        }
 
-    log.info("normalize", `Nume normalizat cu succes`, { rawName, normalized, formaJuridica });
+        log.info("normalize", `Nume normalizat cu succes`, { rawName, normalized, formaJuridica });
 
-    const cui = typeof contact.extractedCui === "string" ? contact.extractedCui : null;
-    const extractedNrRegCom =
-      typeof contact.extractedNrRegCom === "string" ? contact.extractedNrRegCom : null;
-    await markNormalizationResult(
-      job.data.tenantId,
-      job.data.bronzeContactId,
-      { extractedName: titleCase(normalized), extractedCui: cui },
-      {
-        nameNormalization: {
-          original: rawName,
+        const cui = typeof contact.extractedCui === "string" ? contact.extractedCui : null;
+        const extractedNrRegCom =
+          typeof contact.extractedNrRegCom === "string" ? contact.extractedNrRegCom : null;
+        await markNormalizationResult(
+          job.data.tenantId,
+          job.data.bronzeContactId,
+          { extractedName: titleCase(normalized), extractedCui: cui },
+          {
+            nameNormalization: {
+              original: rawName,
+              normalized,
+              formaJuridica,
+              normalizedAt: new Date().toISOString(),
+            },
+          },
+        );
+
+        // Route contact: validate CUI (C1 → C2) or go straight to promotion
+        const bronzeMeta = (contact.metadata as Record<string, unknown> | null) ?? {};
+        const anafStatus = resolveAnafStatus(bronzeMeta);
+
+        logCuiGateDecision(log, {
+          cui,
+          nrRegCom: extractedNrRegCom,
+          anafStatus,
+          bronzeContactId: job.data.bronzeContactId,
+        });
+
+        await triggerCuiValidationIfPossible(
+          job.data.tenantId,
+          job.data.bronzeContactId,
+          cui,
+          extractedNrRegCom,
+          job.data.correlationId,
+        );
+
+        let nextStep = "blocked";
+        if (cui) {
+          nextStep = "C1:cui-modulo11";
+        } else if (extractedNrRegCom) {
+          nextStep = "promotion:bronze-silver";
+        }
+
+        log.done("done", "Normalizare nume finalizată", {
           normalized,
           formaJuridica,
-          normalizedAt: new Date().toISOString(),
-        },
-      },
-    );
-
-    // Route contact: validate CUI (C1 → C2) or go straight to promotion
-    const bronzeMeta = (contact.metadata as Record<string, unknown> | null) ?? {};
-    const anafStatus = resolveAnafStatus(bronzeMeta);
-
-    logCuiGateDecision(log, {
-      cui,
-      nrRegCom: extractedNrRegCom,
-      anafStatus,
-      bronzeContactId: job.data.bronzeContactId,
-    });
-
-    await triggerCuiValidationIfPossible(
-      job.data.tenantId,
-      job.data.bronzeContactId,
-      cui,
-      extractedNrRegCom,
-      job.data.correlationId,
-    );
-
-    let nextStep = "blocked";
-    if (cui) {
-      nextStep = "C1:cui-modulo11";
-    } else if (extractedNrRegCom) {
-      nextStep = "promotion:bronze-silver";
-    }
-
-    log.done("done", "Normalizare nume finalizată", {
-      normalized,
-      formaJuridica,
-      nextStep,
-    });
-    return { ok: true, status: "success", normalized, formaJuridica };
-  } catch (error) {
-    const errMsg = error instanceof Error ? error.message : String(error);
-    const errStack = error instanceof Error ? error.stack : undefined;
-    log.error("fatal", `Normalizare nume eșuată: ${errMsg}`, {
-      errorMessage: errMsg,
-      errorStack: errStack,
-      bronzeContactId: job.data.bronzeContactId,
-    });
-    jobErrors.add(1, { worker: "b1-name-normalizer" });
-    classifyAndRethrow(error);
-  } finally {
-    jobsProcessed.add(1, { worker: "b1-name-normalizer" });
-    jobDuration.record(Date.now() - startedAt, { worker: "b1-name-normalizer" });
-  }
+          nextStep,
+        });
+        return { ok: true, status: "success", normalized, formaJuridica };
+      } catch (error) {
+        const errMsg = error instanceof Error ? error.message : String(error);
+        const errStack = error instanceof Error ? error.stack : undefined;
+        log.error("fatal", `Normalizare nume eșuată: ${errMsg}`, {
+          errorMessage: errMsg,
+          errorStack: errStack,
+          bronzeContactId: job.data.bronzeContactId,
+        });
+        jobErrors.add(1, { worker: "b1-name-normalizer" });
+        classifyAndRethrow(error);
+      } finally {
+        jobsProcessed.add(1, { worker: "b1-name-normalizer" });
+        jobDuration.record(Date.now() - startedAt, { worker: "b1-name-normalizer" });
+      }
+    },
+    { tenantId: job.data.tenantId },
+  );
 };

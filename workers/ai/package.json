@@ -3,14 +3,21 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
+  "main": "dist/index.js",
   "scripts": {
-    "dev": "node worker.js",
-    "start": "node worker.js",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "node dist/index.js",
     "lint": "echo 'No lint'",
     "test": "echo 'No tests'"
   },
   "dependencies": {
+    "@cerniq/worker-shared": "workspace:*",
     "bullmq": "^5.70.1",
     "ioredis": "^5.10.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "typescript": "^5.7.3"
   }
 }

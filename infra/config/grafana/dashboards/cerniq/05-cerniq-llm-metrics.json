@@ -1,0 +1,143 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "title": "KV Cache Utilization",
+      "type": "gauge",
+      "gridPos": { "h": 8, "w": 6, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.6 },
+              { "color": "orange", "value": 0.75 },
+              { "color": "red", "value": 0.85 }
+            ]
+          },
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1
+        }
+      },
+      "targets": [
+        {
+          "expr": "vllm:gpu_cache_usage_perc{project=\"cerniq\",instance=~\"$instance\"}",
+          "legendFormat": "{{ instance }}"
+        }
+      ]
+    },
+    {
+      "title": "TTFT Histogram (P50 / P95 / P99)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 10, "x": 6, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": { "unit": "s", "custom": { "lineWidth": 2, "fillOpacity": 10 } }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, rate(vllm:time_to_first_token_seconds_bucket{project=\"cerniq\",instance=~\"$instance\"}[$__rate_interval]))",
+          "legendFormat": "P50 {{ instance }}"
+        },
+        {
+          "expr": "histogram_quantile(0.95, rate(vllm:time_to_first_token_seconds_bucket{project=\"cerniq\",instance=~\"$instance\"}[$__rate_interval]))",
+          "legendFormat": "P95 {{ instance }}"
+        },
+        {
+          "expr": "histogram_quantile(0.99, rate(vllm:time_to_first_token_seconds_bucket{project=\"cerniq\",instance=~\"$instance\"}[$__rate_interval]))",
+          "legendFormat": "P99 {{ instance }}"
+        }
+      ]
+    },
+    {
+      "title": "Requests: Pending / Running",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "custom": { "lineWidth": 2, "fillOpacity": 20 } }
+      },
+      "targets": [
+        {
+          "expr": "vllm:num_requests_running{project=\"cerniq\",instance=~\"$instance\"}",
+          "legendFormat": "Running {{ instance }}"
+        },
+        {
+          "expr": "vllm:num_requests_waiting{project=\"cerniq\",instance=~\"$instance\"}",
+          "legendFormat": "Pending {{ instance }}"
+        }
+      ]
+    },
+    {
+      "title": "Token Generation Rate (tokens/sec)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "custom": { "lineWidth": 2, "fillOpacity": 15 } }
+      },
+      "targets": [
+        {
+          "expr": "rate(vllm:generation_tokens_total{project=\"cerniq\",instance=~\"$instance\"}[$__rate_interval])",
+          "legendFormat": "Gen tokens/s {{ instance }}"
+        },
+        {
+          "expr": "rate(vllm:prompt_tokens_total{project=\"cerniq\",instance=~\"$instance\"}[$__rate_interval])",
+          "legendFormat": "Prompt tokens/s {{ instance }}"
+        }
+      ]
+    },
+    {
+      "title": "Request Success / Failure Rate",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": { "unit": "reqps", "custom": { "lineWidth": 2, "fillOpacity": 15 } }
+      },
+      "targets": [
+        {
+          "expr": "rate(vllm:request_success_total{project=\"cerniq\",finished=\"true\",instance=~\"$instance\"}[$__rate_interval])",
+          "legendFormat": "Success {{ instance }}"
+        },
+        {
+          "expr": "rate(vllm:request_success_total{project=\"cerniq\",finished=\"false\",instance=~\"$instance\"}[$__rate_interval])",
+          "legendFormat": "Failed {{ instance }}"
+        }
+      ]
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["cerniq", "llm", "vllm", "ai"],
+  "templating": {
+    "list": [
+      {
+        "name": "DS_PROMETHEUS",
+        "type": "datasource",
+        "query": "prometheus"
+      },
+      {
+        "name": "instance",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+        "query": "label_values(up{job=~\"vllm-.*|ollama-.*\",project=\"cerniq\"}, instance)",
+        "multi": true,
+        "includeAll": true,
+        "current": { "selected": true, "text": "All", "value": "$__all" }
+      }
+    ]
+  },
+  "time": { "from": "now-1h", "to": "now" },
+  "title": "CerniqAPP LLM Metrics",
+  "uid": "cerniq-llm-metrics",
+  "version": 1
+}

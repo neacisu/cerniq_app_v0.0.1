@@ -7,11 +7,23 @@
  * - outreach:phone:allocator (STICKY ADR-0055)
  * - outreach:channel:selector (channel routing with scoring)
  */
-import { Worker, Job, Queue } from "bullmq";
-import { Redis } from "ioredis";
-import { QUEUES, getWaPhoneQueueName } from "@cerniq/worker-shared";
+import type { Job, Queue, Worker } from "bullmq";
+import type { Redis } from "../utils/bullmq-connection.js";
+import type * as CerniqDb from "@cerniq/db";
+import {
+  QUEUES,
+  getWaPhoneQueueName,
+  createWorker,
+  createQueue,
+  withCognitiveSpan,
+  outreachDispatched,
+} from "@cerniq/worker-shared";
 import { getPhoneStatusKey } from "../utils/quota-lua.js";
-import { asBullmqConnection } from "../utils/bullmq-connection.js";
+import { isRedisStatusAllowingStickyWa } from "../utils/wa-sticky-redis-status.js";
+
+type DbClient = typeof CerniqDb.db;
+type EqFn = typeof CerniqDb.eq;
+type AndFn = typeof CerniqDb.and;
 
 // =============================================================================
 // Types
@@ -70,91 +82,283 @@ export interface ChannelSelectorResult {
 //                 AND is_human_controlled = false
 // =============================================================================
 
-export function createDispatchWorker(redis: Redis): Worker {
-  const conn = asBullmqConnection(redis);
-  const phoneAllocatorQueue = new Queue(QUEUES.OUTREACH_PHONE_ALLOCATOR, { connection: conn });
+export function createDispatchWorker(): Worker {
+  const phoneAllocatorQueue = createQueue(QUEUES.OUTREACH_PHONE_ALLOCATOR);
 
-  return new Worker(
+  const { worker } = createWorker(
     QUEUES.OUTREACH_ORCHESTRATOR_DISPATCH,
     async (job: Job<DispatchJobData>): Promise<DispatchResult> => {
-      const { tenantId, batchSize = 100 } = job.data;
-      const startTime = Date.now();
+      return withCognitiveSpan("e2:outreach:orchestrator-dispatch", async () => {
+        const { tenantId, batchSize = 100 } = job.data;
+        const startTime = Date.now();
 
-      const { db, setSessionTenantId } = await import("@cerniq/db");
-      await setSessionTenantId(tenantId);
-      const { leadJourney, goldCompanies } = await import("@cerniq/db");
-      const { and, eq, lte, inArray, isNull, or } = await import("@cerniq/db");
+        const { db, setSessionTenantId } = await import("@cerniq/db");
+        await setSessionTenantId(tenantId);
+        const { leadJourney, goldCompanies } = await import("@cerniq/db");
+        const { and, eq, lte, inArray, isNull, or } = await import("@cerniq/db");
 
-      // Fetch eligible leads — EXACT query from etapa2-workers-B-orchestration.md sec. 2
-      const eligibleLeads = await db
-        .select()
-        .from(leadJourney)
-        .where(
-          and(
-            eq(leadJourney.tenantId, tenantId),
-            inArray(leadJourney.currentState, ["COLD", "CONTACTED_WA", "CONTACTED_EMAIL"]),
-            or(isNull(leadJourney.nextActionAt), lte(leadJourney.nextActionAt, new Date())),
-            eq(leadJourney.requiresHumanReview, false),
-            eq(leadJourney.isHumanControlled, false),
-          ),
-        )
-        .limit(batchSize);
+        // Fetch eligible leads — EXACT query from etapa2-workers-B-orchestration.md sec. 2
+        const eligibleLeads = await db
+          .select()
+          .from(leadJourney)
+          .where(
+            and(
+              eq(leadJourney.tenantId, tenantId),
+              inArray(leadJourney.currentState, ["COLD", "CONTACTED_WA", "CONTACTED_EMAIL"]),
+              or(isNull(leadJourney.nextActionAt), lte(leadJourney.nextActionAt, new Date())),
+              eq(leadJourney.requiresHumanReview, false),
+              eq(leadJourney.isHumanControlled, false),
+            ),
+          )
+          .limit(batchSize);
 
-      const goldIds = eligibleLeads.map((l) => l.leadId);
-      const dncRows =
-        goldIds.length === 0
-          ? []
-          : await db
-              .select({ id: goldCompanies.id })
-              .from(goldCompanies)
-              .where(
-                and(
-                  eq(goldCompanies.tenantId, tenantId),
-                  inArray(goldCompanies.id, goldIds),
-                  eq(goldCompanies.doNotContact, true),
-                ),
-              );
-      const doNotContactSet = new Set(dncRows.map((r) => r.id));
+        const goldIds = eligibleLeads.map((l) => l.leadId);
+        const dncRows =
+          goldIds.length === 0
+            ? []
+            : await db
+                .select({ id: goldCompanies.id })
+                .from(goldCompanies)
+                .where(
+                  and(
+                    eq(goldCompanies.tenantId, tenantId),
+                    inArray(goldCompanies.id, goldIds),
+                    eq(goldCompanies.doNotContact, true),
+                  ),
+                );
+        const doNotContactSet = new Set(dncRows.map((r) => r.id));
 
-      const result: DispatchResult = {
-        totalEligibleLeads: eligibleLeads.length,
-        dispatchedToWhatsApp: 0,
-        dispatchedToEmail: 0,
-        skippedQuotaExceeded: 0,
-        skippedHumanReview: 0,
-        jobsCreated: [],
-        processingTimeMs: 0,
-      };
+        const result: DispatchResult = {
+          totalEligibleLeads: eligibleLeads.length,
+          dispatchedToWhatsApp: 0,
+          dispatchedToEmail: 0,
+          skippedQuotaExceeded: 0,
+          skippedHumanReview: 0,
+          jobsCreated: [],
+          processingTimeMs: 0,
+        };
 
-      // Dispatch each lead to phone allocator
-      for (const lead of eligibleLeads) {
-        if (doNotContactSet.has(lead.leadId)) {
-          continue;
-        }
-        const allocJob = await phoneAllocatorQueue.add(
-          "allocate",
-          {
-            tenantId,
+        // Dispatch each lead to phone allocator
+        for (const lead of eligibleLeads) {
+          if (doNotContactSet.has(lead.leadId)) {
+            continue;
+          }
+          const allocJob = await phoneAllocatorQueue.add(
+            "allocate",
+            {
+              tenantId,
+              leadId: lead.leadId,
+              journeyId: lead.id,
+              currentAssignedPhoneId: lead.assignedPhoneId ?? undefined,
+            } satisfies PhoneAllocatorJobData,
+            { removeOnComplete: 100 },
+          );
+
+          outreachDispatched.inc({ channel: "PENDING" });
+
+          result.jobsCreated.push({
+            jobId: allocJob.id ?? "",
             leadId: lead.leadId,
-            journeyId: lead.id,
-            currentAssignedPhoneId: lead.assignedPhoneId ?? undefined,
-          } satisfies PhoneAllocatorJobData,
-          { removeOnComplete: 100 },
-        );
+            channel: "PENDING",
+            queue: QUEUES.OUTREACH_PHONE_ALLOCATOR,
+          });
+        }
 
-        result.jobsCreated.push({
-          jobId: allocJob.id ?? "",
-          leadId: lead.leadId,
-          channel: "PENDING",
-          queue: QUEUES.OUTREACH_PHONE_ALLOCATOR,
-        });
-      }
-
-      result.processingTimeMs = Date.now() - startTime;
-      return result;
+        result.processingTimeMs = Date.now() - startTime;
+        return result;
+      });
     },
-    { connection: conn, concurrency: 20 },
+    { concurrency: 20 },
   );
+  return worker;
+}
+
+async function fetchJourneyCurrentStateForPhoneAllocator(
+  db: DbClient,
+  leadJourney: typeof CerniqDb.leadJourney,
+  eq: EqFn,
+  and: AndFn,
+  journeyId: string,
+  tenantId: string,
+): Promise<string> {
+  const [journeyStateRow] = await db
+    .select({ currentState: leadJourney.currentState })
+    .from(leadJourney)
+    .where(and(eq(leadJourney.id, journeyId), eq(leadJourney.tenantId, tenantId)))
+    .limit(1);
+  return journeyStateRow?.currentState ?? "COLD";
+}
+
+async function tryReuseStickyWaPhoneAssignment(params: {
+  tenantId: string;
+  leadId: string;
+  journeyId: string;
+  journeyCurrentState: string;
+  currentAssignedPhoneId: string | undefined;
+  redis: Redis;
+  channelSelectorQueue: Queue;
+  db: DbClient;
+  waPhoneNumbers: typeof CerniqDb.waPhoneNumbers;
+  eq: EqFn;
+  and: AndFn;
+}): Promise<PhoneAllocatorResult | null> {
+  const {
+    tenantId,
+    leadId,
+    journeyId,
+    journeyCurrentState,
+    currentAssignedPhoneId,
+    redis,
+    channelSelectorQueue,
+    db,
+    waPhoneNumbers,
+    eq,
+    and,
+  } = params;
+
+  if (!currentAssignedPhoneId) {
+    return null;
+  }
+
+  const existingPhone = await db
+    .select()
+    .from(waPhoneNumbers)
+    .where(
+      and(
+        eq(waPhoneNumbers.id, currentAssignedPhoneId),
+        eq(waPhoneNumbers.status, "ACTIVE"),
+        eq(waPhoneNumbers.isEnabled, true),
+      ),
+    )
+    .limit(1);
+
+  if (existingPhone.length === 0) {
+    return null;
+  }
+
+  const statusKey = getPhoneStatusKey(currentAssignedPhoneId);
+  const status = await redis.get(statusKey);
+  if (!isRedisStatusAllowingStickyWa(status)) {
+    return null;
+  }
+
+  await channelSelectorQueue.add(
+    "select",
+    {
+      tenantId,
+      leadId,
+      journeyId,
+      currentState: journeyCurrentState,
+      hasPhone: true,
+      phoneId: currentAssignedPhoneId,
+    } satisfies ChannelSelectorJobData,
+    { removeOnComplete: 100 },
+  );
+
+  return {
+    phoneId: currentAssignedPhoneId,
+    phoneNumber: existingPhone[0].phoneNumber,
+    isNewAssignment: false,
+  };
+}
+
+async function allocateNewWaPhoneWithMinimumQuota(params: {
+  tenantId: string;
+  leadId: string;
+  journeyId: string;
+  journeyCurrentState: string;
+  redis: Redis;
+  channelSelectorQueue: Queue;
+  db: DbClient;
+  waPhoneNumbers: typeof CerniqDb.waPhoneNumbers;
+  leadJourney: typeof CerniqDb.leadJourney;
+  eq: EqFn;
+  and: AndFn;
+}): Promise<PhoneAllocatorResult> {
+  const {
+    tenantId,
+    leadId,
+    journeyId,
+    journeyCurrentState,
+    redis,
+    channelSelectorQueue,
+    db,
+    waPhoneNumbers,
+    leadJourney,
+    eq,
+    and,
+  } = params;
+
+  const today = new Date().toISOString().split("T")[0];
+  const activePhones = await db
+    .select()
+    .from(waPhoneNumbers)
+    .where(
+      and(
+        eq(waPhoneNumbers.tenantId, tenantId),
+        eq(waPhoneNumbers.isEnabled, true),
+        eq(waPhoneNumbers.status, "ACTIVE"),
+      ),
+    );
+
+  if (activePhones.length === 0) {
+    throw new Error(`No active phones available for tenant ${tenantId}`);
+  }
+
+  let candidates = activePhones.slice();
+  let selectedPhone: (typeof activePhones)[0] | null = null;
+
+  while (candidates.length > 0) {
+    let best = candidates[0];
+    let minUsage = Infinity;
+    for (const phone of candidates) {
+      const quotaKey = `quota:wa:${phone.id}:${today}`;
+      const usage = Number((await redis.get(quotaKey)) ?? 0);
+      if (usage < minUsage) {
+        minUsage = usage;
+        best = phone;
+      }
+    }
+    const lockKey = `phone:lock:${best.id}`;
+    const acquired = await redis.set(lockKey, leadId, "EX", 30, "NX");
+    if (acquired === "OK") {
+      selectedPhone = best;
+      break;
+    }
+    candidates = candidates.filter((p) => p.id !== best.id);
+  }
+
+  if (!selectedPhone) {
+    throw new Error(`Could not acquire phone allocation lock for tenant ${tenantId}`);
+  }
+
+  await db
+    .update(leadJourney)
+    .set({
+      assignedPhoneId: selectedPhone.id,
+      assignedAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(eq(leadJourney.id, journeyId));
+
+  await channelSelectorQueue.add(
+    "select",
+    {
+      tenantId,
+      leadId,
+      journeyId,
+      currentState: journeyCurrentState,
+      hasPhone: true,
+      phoneId: selectedPhone.id,
+    } satisfies ChannelSelectorJobData,
+    { removeOnComplete: 100 },
+  );
+
+  return {
+    phoneId: selectedPhone.id,
+    phoneNumber: selectedPhone.phoneNumber,
+    isNewAssignment: true,
+  };
 }
 
 // =============================================================================
@@ -164,123 +368,63 @@ export function createDispatchWorker(redis: Redis): Worker {
 // =============================================================================
 
 export function createPhoneAllocatorWorker(redis: Redis): Worker {
-  const conn = asBullmqConnection(redis);
-  const channelSelectorQueue = new Queue(QUEUES.OUTREACH_CHANNEL_SELECTOR, { connection: conn });
+  const channelSelectorQueue = createQueue(QUEUES.OUTREACH_CHANNEL_SELECTOR);
 
-  return new Worker(
+  const { worker } = createWorker(
     QUEUES.OUTREACH_PHONE_ALLOCATOR,
     async (job: Job<PhoneAllocatorJobData>): Promise<PhoneAllocatorResult> => {
-      const { tenantId, leadId, journeyId, currentAssignedPhoneId } = job.data;
+      return withCognitiveSpan("e2:outreach:phone-allocator", async () => {
+        const { tenantId, leadId, journeyId, currentAssignedPhoneId } = job.data;
 
-      const { db, setSessionTenantId } = await import("@cerniq/db");
-      await setSessionTenantId(tenantId);
-      const { waPhoneNumbers, leadJourney } = await import("@cerniq/db");
-      const { eq, and } = await import("@cerniq/db");
+        const { db, setSessionTenantId } = await import("@cerniq/db");
+        await setSessionTenantId(tenantId);
+        const { waPhoneNumbers, leadJourney } = await import("@cerniq/db");
+        const { eq, and } = await import("@cerniq/db");
 
-      // STICKY: Reuse existing assignment if phone is still ACTIVE (ADR-0055)
-      if (currentAssignedPhoneId) {
-        const existingPhone = await db
-          .select()
-          .from(waPhoneNumbers)
-          .where(
-            and(
-              eq(waPhoneNumbers.id, currentAssignedPhoneId),
-              eq(waPhoneNumbers.status, "ACTIVE"),
-              eq(waPhoneNumbers.isEnabled, true),
-            ),
-          )
-          .limit(1);
-
-        if (existingPhone.length > 0) {
-          // Verify quota before confirming sticky assignment
-          const statusKey = getPhoneStatusKey(currentAssignedPhoneId);
-          const status = await redis.get(statusKey);
-          if (!status || status === "ACTIVE") {
-            // Dispatch to channel selector
-            await channelSelectorQueue.add(
-              "select",
-              {
-                tenantId,
-                leadId,
-                journeyId,
-                currentState: "COLD",
-                hasPhone: true,
-                phoneId: currentAssignedPhoneId,
-              } satisfies ChannelSelectorJobData,
-              { removeOnComplete: 100 },
-            );
-
-            return {
-              phoneId: currentAssignedPhoneId,
-              phoneNumber: existingPhone[0].phoneNumber,
-              isNewAssignment: false,
-            };
-          }
-        }
-      }
-
-      // New assignment: select phone with minimum usage today that is ACTIVE
-      const today = new Date().toISOString().split("T")[0];
-      const activePhones = await db
-        .select()
-        .from(waPhoneNumbers)
-        .where(
-          and(
-            eq(waPhoneNumbers.tenantId, tenantId),
-            eq(waPhoneNumbers.isEnabled, true),
-            eq(waPhoneNumbers.status, "ACTIVE"),
-          ),
+        const journeyCurrentState = await fetchJourneyCurrentStateForPhoneAllocator(
+          db,
+          leadJourney,
+          eq,
+          and,
+          journeyId,
+          tenantId,
         );
 
-      if (activePhones.length === 0) {
-        throw new Error(`No active phones available for tenant ${tenantId}`);
-      }
-
-      // Find phone with minimum current quota usage from Redis
-      let selectedPhone = activePhones[0];
-      let minUsage = Infinity;
-
-      for (const phone of activePhones) {
-        const quotaKey = `quota:wa:${phone.id}:${today}`;
-        const usage = Number((await redis.get(quotaKey)) ?? 0);
-        if (usage < minUsage) {
-          minUsage = usage;
-          selectedPhone = phone;
-        }
-      }
-
-      // Update journey with new phone assignment
-      await db
-        .update(leadJourney)
-        .set({
-          assignedPhoneId: selectedPhone.id,
-          assignedAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .where(eq(leadJourney.id, journeyId));
-
-      // Dispatch to channel selector
-      await channelSelectorQueue.add(
-        "select",
-        {
+        const sticky = await tryReuseStickyWaPhoneAssignment({
           tenantId,
           leadId,
           journeyId,
-          currentState: "COLD",
-          hasPhone: true,
-          phoneId: selectedPhone.id,
-        } satisfies ChannelSelectorJobData,
-        { removeOnComplete: 100 },
-      );
+          journeyCurrentState,
+          currentAssignedPhoneId,
+          redis,
+          channelSelectorQueue,
+          db,
+          waPhoneNumbers,
+          eq,
+          and,
+        });
+        if (sticky) {
+          return sticky;
+        }
 
-      return {
-        phoneId: selectedPhone.id,
-        phoneNumber: selectedPhone.phoneNumber,
-        isNewAssignment: true,
-      };
+        return allocateNewWaPhoneWithMinimumQuota({
+          tenantId,
+          leadId,
+          journeyId,
+          journeyCurrentState,
+          redis,
+          channelSelectorQueue,
+          db,
+          waPhoneNumbers,
+          leadJourney,
+          eq,
+          and,
+        });
+      });
     },
-    { connection: conn, concurrency: 20 },
+    { concurrency: 20 },
   );
+  return worker;
 }
 
 // =============================================================================
@@ -301,106 +445,108 @@ const CHANNEL_SCORES = {
 const EMAIL_COLD_STAGES = new Set(["COLD", "CONTACTED_WA", "CONTACTED_EMAIL"]);
 const EMAIL_WARM_STAGES = new Set(["WARM_REPLY", "NEGOTIATION"]);
 
-export function createChannelSelectorWorker(redis: Redis): Worker {
-  const conn = asBullmqConnection(redis);
-  return new Worker(
+export function createChannelSelectorWorker(): Worker {
+  const { worker } = createWorker(
     QUEUES.OUTREACH_CHANNEL_SELECTOR,
     async (job: Job<ChannelSelectorJobData>): Promise<ChannelSelectorResult> => {
-      const { tenantId, leadId, currentState, hasPhone, phoneId, journeyId } = job.data;
+      return withCognitiveSpan("e2:outreach:channel-selector", async () => {
+        const { tenantId, leadId, currentState, hasPhone, phoneId, journeyId } = job.data;
 
-      const { db, setSessionTenantId } = await import("@cerniq/db");
-      await setSessionTenantId(tenantId);
-      const { waPhoneNumbers, goldCompanies, leadJourney } = await import("@cerniq/db");
-      const { eq, and } = await import("@cerniq/db");
+        const { db, setSessionTenantId } = await import("@cerniq/db");
+        await setSessionTenantId(tenantId);
+        const { waPhoneNumbers, goldCompanies, leadJourney } = await import("@cerniq/db");
+        const { eq, and } = await import("@cerniq/db");
 
-      // ── GDPR / DNC per-channel gate (real-time query, not stale data) ──
-      const [dncFlags] = await db
-        .select({
-          doNotWhatsapp: goldCompanies.doNotWhatsapp,
-          doNotEmail: goldCompanies.doNotEmail,
-          consentWhatsapp: goldCompanies.consentWhatsapp,
-          consentEmailMarketing: goldCompanies.consentEmailMarketing,
-          emailOptedOut: leadJourney.emailOptedOut,
-          whatsappOptedOut: leadJourney.whatsappOptedOut,
-        })
-        .from(leadJourney)
-        .innerJoin(goldCompanies, eq(leadJourney.leadId, goldCompanies.id))
-        .where(and(eq(leadJourney.id, journeyId), eq(leadJourney.tenantId, tenantId)))
-        .limit(1);
+        // ── GDPR / DNC per-channel gate (real-time query, not stale data) ──
+        const [dncFlags] = await db
+          .select({
+            doNotWhatsapp: goldCompanies.doNotWhatsapp,
+            doNotEmail: goldCompanies.doNotEmail,
+            consentWhatsapp: goldCompanies.consentWhatsapp,
+            consentEmailMarketing: goldCompanies.consentEmailMarketing,
+            emailOptedOut: leadJourney.emailOptedOut,
+            whatsappOptedOut: leadJourney.whatsappOptedOut,
+          })
+          .from(leadJourney)
+          .innerJoin(goldCompanies, eq(leadJourney.leadId, goldCompanies.id))
+          .where(and(eq(leadJourney.id, journeyId), eq(leadJourney.tenantId, tenantId)))
+          .limit(1);
 
-      const waBlocked =
-        dncFlags?.doNotWhatsapp === true ||
-        dncFlags?.whatsappOptedOut === true ||
-        dncFlags?.consentWhatsapp === false;
-      const emailBlocked =
-        dncFlags?.doNotEmail === true ||
-        dncFlags?.emailOptedOut === true ||
-        dncFlags?.consentEmailMarketing === false;
+        const waBlocked =
+          dncFlags?.doNotWhatsapp === true ||
+          dncFlags?.whatsappOptedOut === true ||
+          dncFlags?.consentWhatsapp === false;
+        const emailBlocked =
+          dncFlags?.doNotEmail === true ||
+          dncFlags?.emailOptedOut === true ||
+          dncFlags?.consentEmailMarketing === false;
 
-      if (waBlocked && emailBlocked) {
+        if (waBlocked && emailBlocked) {
+          throw new Error(
+            `All channels blocked by DNC/consent for lead ${leadId} (journey ${journeyId}). ` +
+              `WA blocked=${waBlocked}, Email blocked=${emailBlocked}`,
+          );
+        }
+
+        // ── Phone index for WA queue routing ──
+        let phoneIndex = 1;
+        if (phoneId) {
+          const phones = await db
+            .select()
+            .from(waPhoneNumbers)
+            .where(
+              and(
+                eq(waPhoneNumbers.tenantId, tenantId),
+                eq(waPhoneNumbers.status, "ACTIVE"),
+                eq(waPhoneNumbers.isEnabled, true),
+              ),
+            )
+            .orderBy(waPhoneNumbers.priority);
+
+          const phoneIdx = phones.findIndex((p) => p.id === phoneId);
+          phoneIndex = phoneIdx >= 0 ? phoneIdx + 1 : 1;
+        }
+
+        // ── Route by channel scoring (ADR-0059) with GDPR enforcement ──
+        if (hasPhone && phoneId && !waBlocked) {
+          return {
+            channel: "WHATSAPP",
+            targetQueue: getWaPhoneQueueName(Math.min(phoneIndex, 20)),
+            score: CHANNEL_SCORES.WHATSAPP,
+          };
+        }
+
+        if (EMAIL_WARM_STAGES.has(currentState) && !emailBlocked) {
+          return {
+            channel: "EMAIL_WARM",
+            targetQueue: QUEUES.EMAIL_WARM,
+            score: CHANNEL_SCORES.EMAIL_WARM,
+          };
+        }
+
+        if (EMAIL_COLD_STAGES.has(currentState) && !emailBlocked) {
+          return {
+            channel: "EMAIL_COLD",
+            targetQueue: QUEUES.EMAIL_COLD,
+            score: CHANNEL_SCORES.EMAIL_COLD,
+          };
+        }
+
+        // Fallback: WA was preferred but blocked → email cold if allowed by ADR-0059
+        if (!emailBlocked && EMAIL_COLD_STAGES.has(currentState)) {
+          return {
+            channel: "EMAIL_COLD",
+            targetQueue: QUEUES.EMAIL_COLD,
+            score: CHANNEL_SCORES.EMAIL_COLD,
+          };
+        }
+
         throw new Error(
-          `All channels blocked by DNC/consent for lead ${leadId} (journey ${journeyId}). ` +
-            `WA blocked=${waBlocked}, Email blocked=${emailBlocked}`,
+          `No available channel for state=${currentState}, waBlocked=${waBlocked}, emailBlocked=${emailBlocked}`,
         );
-      }
-
-      // ── Phone index for WA queue routing ──
-      let phoneIndex = 1;
-      if (phoneId) {
-        const phones = await db
-          .select()
-          .from(waPhoneNumbers)
-          .where(
-            and(
-              eq(waPhoneNumbers.tenantId, tenantId),
-              eq(waPhoneNumbers.status, "ACTIVE"),
-              eq(waPhoneNumbers.isEnabled, true),
-            ),
-          )
-          .orderBy(waPhoneNumbers.priority);
-
-        const phoneIdx = phones.findIndex((p) => p.id === phoneId);
-        phoneIndex = phoneIdx >= 0 ? phoneIdx + 1 : 1;
-      }
-
-      // ── Route by channel scoring (ADR-0059) with GDPR enforcement ──
-      if (hasPhone && phoneId && !waBlocked) {
-        return {
-          channel: "WHATSAPP",
-          targetQueue: getWaPhoneQueueName(Math.min(phoneIndex, 20)),
-          score: CHANNEL_SCORES.WHATSAPP,
-        };
-      }
-
-      if (EMAIL_WARM_STAGES.has(currentState) && !emailBlocked) {
-        return {
-          channel: "EMAIL_WARM",
-          targetQueue: QUEUES.EMAIL_WARM,
-          score: CHANNEL_SCORES.EMAIL_WARM,
-        };
-      }
-
-      if (EMAIL_COLD_STAGES.has(currentState) && !emailBlocked) {
-        return {
-          channel: "EMAIL_COLD",
-          targetQueue: QUEUES.EMAIL_COLD,
-          score: CHANNEL_SCORES.EMAIL_COLD,
-        };
-      }
-
-      // Fallback: WA was preferred but blocked → email cold if allowed by ADR-0059
-      if (!emailBlocked && EMAIL_COLD_STAGES.has(currentState)) {
-        return {
-          channel: "EMAIL_COLD",
-          targetQueue: QUEUES.EMAIL_COLD,
-          score: CHANNEL_SCORES.EMAIL_COLD,
-        };
-      }
-
-      throw new Error(
-        `No available channel for state=${currentState}, waBlocked=${waBlocked}, emailBlocked=${emailBlocked}`,
-      );
+      });
     },
-    { connection: conn, concurrency: 20 },
+    { concurrency: 20 },
   );
+  return worker;
 }

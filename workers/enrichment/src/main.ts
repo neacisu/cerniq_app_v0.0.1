@@ -9,8 +9,8 @@ import {
   createWorker,
   failImportRuntimeJob,
   loadSecretsFromFile,
-  queueDepth,
   queueRegistry,
+  startQueueDepthMonitor,
   watchSecretsFile,
 } from "@cerniq/worker-shared";
 import { closeDbConnection, db, inArray, refreshDbConnection, tenants } from "@cerniq/db";
@@ -27,11 +27,7 @@ import { addressNormalizerProcessor } from "./workers/b4-address-normalizer.js";
 import { anafBronzeEnricherProcessor } from "./workers/b5-anaf-bronze-enricher.js";
 import { cuiModulo11ValidatorProcessor } from "./workers/c1-cui-modulo11-validator.js";
 import { cuiAnafValidatorProcessor } from "./workers/c2-cui-anaf-validator.js";
-import { anafFiscalProcessor } from "./workers/d1-anaf-fiscal.js";
-import { anafTvaProcessor } from "./workers/d2-anaf-tva.js";
-import { anafEfacturaProcessor } from "./workers/d3-anaf-efactura.js";
-import { anafDatoriiProcessor } from "./workers/d4-anaf-datorii.js";
-import { anafCaenProcessor } from "./workers/d5-anaf-caen.js";
+import { anafFullFetchProcessor } from "./workers/d0-anaf-full-fetch.js";
 import { termeneBalanceProcessor } from "./workers/e1-termene-balance.js";
 import { termeneRiskProcessor } from "./workers/e2-termene-risk.js";
 import { termeneDosareProcessor } from "./workers/e3-termene-dosare.js";
@@ -306,11 +302,7 @@ const processors: Partial<Record<string, (job: Job) => Promise<unknown>>> = {
   "enrich:bronze:anaf": anafBronzeEnricherProcessor as (job: Job) => Promise<unknown>,
   "validate:cui:mod11": cuiModulo11ValidatorProcessor as (job: Job) => Promise<unknown>,
   "validate:cui:anaf": cuiAnafValidatorProcessor as (job: Job) => Promise<unknown>,
-  "enrich:anaf:fiscal-status": anafFiscalProcessor as (job: Job) => Promise<unknown>,
-  "enrich:anaf:tva-status": anafTvaProcessor as (job: Job) => Promise<unknown>,
-  "enrich:anaf:efactura": anafEfacturaProcessor as (job: Job) => Promise<unknown>,
-  "enrich:anaf:datorii": anafDatoriiProcessor as (job: Job) => Promise<unknown>,
-  "enrich:anaf:caen": anafCaenProcessor as (job: Job) => Promise<unknown>,
+  "enrich:anaf:full": anafFullFetchProcessor as (job: Job) => Promise<unknown>,
   "enrich:termene:balance": termeneBalanceProcessor as (job: Job) => Promise<unknown>,
   "enrich:termene:risk": termeneRiskProcessor as (job: Job) => Promise<unknown>,
   "enrich:termene:dosare": termeneDosareProcessor as (job: Job) => Promise<unknown>,
@@ -474,17 +466,10 @@ try {
   console.error("[cron-scheduler] failed", error);
 }
 
-const monitorQueues = queueNames.map((name) => ({ name, queue: createQueue(name) }));
-const queueDepthInterval = setInterval(async () => {
-  for (const { name, queue } of monitorQueues) {
-    try {
-      const counts = await queue.getJobCounts("waiting");
-      queueDepth.set({ queue: name }, counts.waiting ?? 0);
-    } catch {
-      // silently skip unreachable queues
-    }
-  }
-}, 15_000);
+const stopQueueMonitor = startQueueDepthMonitor({
+  queueNames,
+  dlqNames: ["dlq:outreach"],
+});
 
 const server = createHealthServer(PORT, () => ({
   service: "cerniq-worker-enrichment",
@@ -500,9 +485,8 @@ const stopWatchingSecrets = watchSecretsFile(SECRETS_PATH, async () => {
 
 async function shutdown() {
   stopWatchingSecrets();
-  clearInterval(queueDepthInterval);
+  await stopQueueMonitor();
   server.close();
-  await Promise.all(monitorQueues.map(({ queue }) => queue.close()));
   await stopWorkers();
   await closeRedisConnections(redisConnections);
   await closeDbConnection();

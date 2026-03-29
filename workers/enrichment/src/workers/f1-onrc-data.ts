@@ -7,7 +7,7 @@ import {
   sql,
   upsertCompanyIdentityKey,
 } from "@cerniq/db";
-import { sanitizeNrRegCom } from "@cerniq/worker-shared";
+import { sanitizeNrRegCom, withCognitiveSpan, importMutationTotal } from "@cerniq/worker-shared";
 import { sanitizeCui } from "../lib/cui-validation.js";
 import { getOnrcData } from "../lib/onrc-api-client.js";
 import { markEnrichmentSourceComplete } from "../lib/enrichment-completion.js";
@@ -52,73 +52,90 @@ function mapFormaJuridica(
 }
 
 export const onrcDataProcessor: Processor<OnrcDataJobData> = async (job) => {
-  const startedAt = Date.now();
-  const cleanedCui = sanitizeCui(job.data.cui);
-  await setSessionTenantId(job.data.tenantId);
+  return withCognitiveSpan(
+    "e1:enrich:onrc-data",
+    async (_span) => {
+      const startedAt = Date.now();
+      const cleanedCui = sanitizeCui(job.data.cui);
+      await setSessionTenantId(job.data.tenantId);
 
-  const payload = await getOnrcData(cleanedCui);
-  const denumire = String(payload?.denumire ?? payload?.name ?? "").trim();
-  const formaJuridica = mapFormaJuridica(String(payload?.forma_juridica ?? ""));
-  const formaJuridicaValue = formaJuridica === "OTHER" ? undefined : formaJuridica;
-  const adresa = String(payload?.adresa ?? payload?.address ?? "").trim();
-  const nrRegCom = extractOnrcNrRegCom(payload);
+      const payload = await getOnrcData(cleanedCui);
+      const denumire = String(payload?.denumire ?? payload?.name ?? "").trim();
+      const formaJuridica = mapFormaJuridica(String(payload?.forma_juridica ?? ""));
+      const formaJuridicaValue = formaJuridica === "OTHER" ? undefined : formaJuridica;
+      const adresa = String(payload?.adresa ?? payload?.address ?? "").trim();
+      const nrRegCom = extractOnrcNrRegCom(payload);
 
-  await db
-    .update(silverCompanies)
-    .set({
-      cui: cleanedCui,
-      denumire: denumire || undefined,
-      formaJuridica: formaJuridicaValue,
-      adresa: adresa || undefined,
-      nrRegCom: nrRegCom.raw || undefined,
-      nrRegComOriginal: nrRegCom.raw || undefined,
-      // nrRegComCanonical: only set when ONRC provides new canonical format directly
-      nrRegComCanonical: nrRegCom.canonical || undefined,
-      metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{onrcData}', ${JSON.stringify(payload)}::jsonb)`,
-      lastEnrichedAt: new Date(),
-    })
-    .where(sql`${silverCompanies.id} = ${job.data.companyId}`);
+      await db
+        .update(silverCompanies)
+        .set({
+          cui: cleanedCui,
+          denumire: denumire || undefined,
+          formaJuridica: formaJuridicaValue,
+          adresa: adresa || undefined,
+          nrRegCom: nrRegCom.raw || undefined,
+          nrRegComOriginal: nrRegCom.raw || undefined,
+          // nrRegComCanonical: only set when ONRC provides new canonical format directly
+          nrRegComCanonical: nrRegCom.canonical || undefined,
+          metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{onrcData}', ${JSON.stringify(payload)}::jsonb)`,
+          lastEnrichedAt: new Date(),
+        })
+        .where(sql`${silverCompanies.id} = ${job.data.companyId}`);
 
-  await upsertCompanyIdentityKey({
-    tenantId: job.data.tenantId,
-    companyId: job.data.companyId,
-    keyType: "cui",
-    keyValueCanonical: cleanedCui,
-    keyValueOriginal: cleanedCui,
-    sourceAuthority: "onrc",
-  });
-  if (nrRegCom.raw) {
-    await upsertCompanyIdentityKey({
-      tenantId: job.data.tenantId,
-      companyId: job.data.companyId,
-      keyType: "nr_reg_com",
-      // Use canonical (new format) if ONRC provided it directly; otherwise raw
-      keyValueCanonical: nrRegCom.canonical ?? nrRegCom.raw,
-      keyValueOriginal: nrRegCom.raw,
-      sourceAuthority: "onrc",
-      isAuthoritative: true,
-    });
-  }
+      importMutationTotal.inc({
+        operation: "update",
+        table: "silver_companies",
+        tenant_id: job.data.tenantId,
+      });
 
-  await db.insert(silverEnrichmentLog).values({
-    tenantId: job.data.tenantId,
-    entityType: "company",
-    entityId: job.data.companyId,
-    source: "onrc_data",
-    operation: "fetch",
-    requestPayload: { cui: cleanedCui },
-    responsePayload: payload,
-    fieldsUpdated: ["denumire", "formaJuridica", "adresa", "cui", "nrRegCom", "metadata"],
-    correlationId: job.data.correlationId,
-    jobId: String(job.id ?? ""),
-    durationMs: Date.now() - startedAt,
-  });
-  await markEnrichmentSourceComplete(
-    job.data.tenantId,
-    job.data.companyId,
-    "onrc_data",
-    job.data.correlationId,
+      await upsertCompanyIdentityKey({
+        tenantId: job.data.tenantId,
+        companyId: job.data.companyId,
+        keyType: "cui",
+        keyValueCanonical: cleanedCui,
+        keyValueOriginal: cleanedCui,
+        sourceAuthority: "onrc",
+      });
+      if (nrRegCom.raw) {
+        await upsertCompanyIdentityKey({
+          tenantId: job.data.tenantId,
+          companyId: job.data.companyId,
+          keyType: "nr_reg_com",
+          // Use canonical (new format) if ONRC provided it directly; otherwise raw
+          keyValueCanonical: nrRegCom.canonical ?? nrRegCom.raw,
+          keyValueOriginal: nrRegCom.raw,
+          sourceAuthority: "onrc",
+          isAuthoritative: true,
+        });
+      }
+
+      await db.insert(silverEnrichmentLog).values({
+        tenantId: job.data.tenantId,
+        entityType: "company",
+        entityId: job.data.companyId,
+        source: "onrc_data",
+        operation: "fetch",
+        requestPayload: { cui: cleanedCui },
+        responsePayload: payload,
+        fieldsUpdated: ["denumire", "formaJuridica", "adresa", "cui", "nrRegCom", "metadata"],
+        correlationId: job.data.correlationId,
+        jobId: String(job.id ?? ""),
+        durationMs: Date.now() - startedAt,
+      });
+      await markEnrichmentSourceComplete(
+        job.data.tenantId,
+        job.data.companyId,
+        "onrc_data",
+        job.data.correlationId,
+      );
+
+      return {
+        ok: true,
+        status: payload ? "success" : "not_found",
+        source: "onrc_data",
+        cleanedCui,
+      };
+    },
+    { tenantId: job.data.tenantId },
   );
-
-  return { ok: true, status: payload ? "success" : "not_found", source: "onrc_data", cleanedCui };
 };

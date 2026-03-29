@@ -38,6 +38,20 @@ export const queueDepth = new Gauge({
   registers: [metricsRegistry],
 });
 
+export const queueDepthByState = new Gauge({
+  name: "cerniq_worker_queue_depth_by_state",
+  help: "Queue depth by BullMQ state",
+  labelNames: ["queue", "state"],
+  registers: [metricsRegistry],
+});
+
+export const dlqDepth = new Gauge({
+  name: "cerniq_worker_dlq_depth",
+  help: "Dead letter queue depth",
+  labelNames: ["queue"],
+  registers: [metricsRegistry],
+});
+
 export const jobsActiveGauge = new Gauge({
   name: "cerniq_worker_jobs_active",
   help: "Currently active jobs per queue",
@@ -105,6 +119,21 @@ export const hitlSlaBreachTotal = new Counter({
   registers: [metricsRegistry],
 });
 
+export const pipelineStageDurationSeconds = new Histogram({
+  name: "cerniq_pipeline_company_stage_duration_seconds",
+  help: "Duration in seconds for a company to transition between pipeline stages",
+  labelNames: ["stage", "tenant_id"],
+  buckets: [1, 5, 30, 60, 300, 600, 1800, 3600, 7200, 14400, 86400],
+  registers: [metricsRegistry],
+});
+
+export const importMutationTotal = new Counter({
+  name: "cerniq_import_mutation_total",
+  help: "Total DB mutations from enrichment pipeline",
+  labelNames: ["operation", "table", "tenant_id"],
+  registers: [metricsRegistry],
+});
+
 // ── External API metrics ──────────────────────────────────────────────────────
 
 export const externalApiRequestsTotal = new Counter({
@@ -165,3 +194,74 @@ export async function withExternalApiMetrics<T>(
     throw err;
   }
 }
+
+// ── Etapa 2 / cognitive outreach observability ────────────────────────────────
+
+export const outreachDispatched = new Counter({
+  name: "cerniq_cognitive_outreach_dispatched",
+  help: "Total outreach dispatches",
+  labelNames: ["channel"],
+  registers: [metricsRegistry],
+});
+
+export const waSent = new Counter({
+  name: "cerniq_cognitive_wa_sent",
+  help: "Total WhatsApp messages sent",
+  labelNames: ["phone_id"],
+  registers: [metricsRegistry],
+});
+
+export const fsmTransitions = new Counter({
+  name: "cerniq_cognitive_fsm_transitions",
+  help: "FSM state transitions",
+  labelNames: ["from", "to"],
+  registers: [metricsRegistry],
+});
+
+// ── Etapa 2 / outreach operational metrics ────────────────────────────────────
+
+/**
+ * Gauge — utilizare cotă WA per telefon.
+ * Setat după fiecare verificare Redis quota (executeQuotaCheck).
+ * Permite vizualizarea Grafana a utilizării reale vs limita zilnică.
+ */
+export const outreachWaQuotaUsage = new Gauge({
+  name: "cerniq_outreach_wa_quota_usage",
+  help: "Current WA quota usage per phone (vs daily limit)",
+  labelNames: ["phone_id", "tenant_id"],
+  registers: [metricsRegistry],
+});
+
+/**
+ * Counter — mesaje outreach trimise per canal.
+ * Incrementat după trimitere reușită (WA/EMAIL_COLD/EMAIL_WARM).
+ */
+export const outreachMessagesSentTotal = new Counter({
+  name: "cerniq_outreach_messages_sent_total",
+  help: "Total outreach messages sent per channel",
+  labelNames: ["channel", "tenant_id"],
+  registers: [metricsRegistry],
+});
+
+/**
+ * Gauge — starea curentă a unui telefon WA.
+ * 1 = ACTIVE, 0 = orice alt status (OFFLINE/BANNED/SUSPENDED).
+ * Actualizat de phone-monitoring worker la fiecare health check.
+ */
+export const outreachPhoneStatus = new Gauge({
+  name: "cerniq_outreach_phone_status",
+  help: "WA phone status (1=ACTIVE, 0=not-active) per phone",
+  labelNames: ["phone_id", "status", "tenant_id"],
+  registers: [metricsRegistry],
+});
+
+/**
+ * Counter — răspunsuri primite de la lead-uri, per canal.
+ * Incrementat la recepție webhook INBOUND (TimelinesAI/Instantly/Resend).
+ */
+export const outreachRepliesReceivedTotal = new Counter({
+  name: "cerniq_outreach_replies_received_total",
+  help: "Total inbound replies received per channel",
+  labelNames: ["channel", "tenant_id"],
+  registers: [metricsRegistry],
+});

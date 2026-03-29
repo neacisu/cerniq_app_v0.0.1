@@ -23,10 +23,16 @@ export const QUEUES = {
   ENRICH_BRONZE_ANAF: "enrich:bronze:anaf",
   VALIDATE_CUI_MOD11: "validate:cui:mod11",
   VALIDATE_CUI_ANAF: "validate:cui:anaf",
+  ENRICH_ANAF_FULL: "enrich:anaf:full",
+  /** @deprecated Use ENRICH_ANAF_FULL — kept for backward compat references. */
   ENRICH_ANAF_FISCAL_STATUS: "enrich:anaf:fiscal-status",
+  /** @deprecated Use ENRICH_ANAF_FULL */
   ENRICH_ANAF_TVA_STATUS: "enrich:anaf:tva-status",
+  /** @deprecated Use ENRICH_ANAF_FULL */
   ENRICH_ANAF_EFACTURA: "enrich:anaf:efactura",
+  /** @deprecated Use ENRICH_ANAF_FULL */
   ENRICH_ANAF_DATORII: "enrich:anaf:datorii",
+  /** @deprecated Use ENRICH_ANAF_FULL */
   ENRICH_ANAF_CAEN: "enrich:anaf:caen",
   ENRICH_TERMENE_BALANCE: "enrich:termene:balance",
   ENRICH_TERMENE_RISK: "enrich:termene:risk",
@@ -134,10 +140,9 @@ export const QUEUES = {
   LEAD_STATE_VALIDATE: "lead:state:validate",
   LEAD_ASSIGN_USER: "lead:assign:user",
 
-  // J — AI (3 queues)
+  // J — AI (2 queues — ai:intent:classify removed; intent merged into ai:sentiment:analyze)
   AI_SENTIMENT_ANALYZE: "ai:sentiment:analyze",
   AI_RESPONSE_GENERATE: "ai:response:generate",
-  AI_INTENT_CLASSIFY: "ai:intent:classify",
 
   // K — Monitoring & Alerts (6 queues)
   MONITOR_PHONE_HEALTH: "monitor:phone:health",
@@ -216,12 +221,8 @@ export const queueRegistry: QueueConfig[] = [
   // C (2)
   { name: QUEUES.VALIDATE_CUI_MOD11, concurrency: 50 },
   withProvider(QUEUES.VALIDATE_CUI_ANAF, 1, "anaf"),
-  // D (5)
-  withProvider(QUEUES.ENRICH_ANAF_FISCAL_STATUS, 1, "anaf"),
-  withProvider(QUEUES.ENRICH_ANAF_TVA_STATUS, 1, "anaf"),
-  withProvider(QUEUES.ENRICH_ANAF_EFACTURA, 1, "anaf"),
-  withProvider(QUEUES.ENRICH_ANAF_DATORII, 1, "anaf"),
-  withProvider(QUEUES.ENRICH_ANAF_CAEN, 1, "anaf"),
+  // D (1 — unified ANAF full-fetch replaces D1-D5)
+  withProvider(QUEUES.ENRICH_ANAF_FULL, 1, "anaf"),
   // E (4)
   withProvider(QUEUES.ENRICH_TERMENE_BALANCE, 10, "termene"),
   withProvider(QUEUES.ENRICH_TERMENE_RISK, 10, "termene"),
@@ -344,7 +345,6 @@ export const queueRegistry: QueueConfig[] = [
   // J — AI
   { name: QUEUES.AI_SENTIMENT_ANALYZE, concurrency: 20 },
   { name: QUEUES.AI_RESPONSE_GENERATE, concurrency: 10 },
-  { name: QUEUES.AI_INTENT_CLASSIFY, concurrency: 20 },
 
   // K — Monitoring & Alerts
   { name: QUEUES.MONITOR_PHONE_HEALTH, concurrency: 5 },
@@ -383,8 +383,9 @@ export function isKnownQueueName(name: string): boolean {
 }
 
 export function assertQueueRegistryComplete() {
-  // 64 Etapa 1 queues + 54 Etapa 2 static queues + 40 Etapa 2 per-phone queues = 158
-  const expected = 158;
+  // 60 Etapa 1 queues (D0 replaces D1-D5) + 53 Etapa 2 static queues + 40 Etapa 2 per-phone queues = 153
+  // (ai:intent:classify removed — intent merged into ai:sentiment:analyze)
+  const expected = 153;
   if (queueRegistry.length !== expected) {
     throw new Error(`Expected ${expected} queues, got ${queueRegistry.length}`);
   }

@@ -1,5 +1,6 @@
 import { Queue, Worker } from "bullmq";
 import type { Processor, QueueOptions, WorkerOptions } from "bullmq";
+import { BullMQOtel } from "bullmq-otel";
 import { getQueuePrefix, getRedisConnectionOptions } from "./redis.js";
 import {
   jobDurationSeconds,
@@ -8,6 +9,12 @@ import {
   jobsProcessedTotal,
   jobsRetriedTotal,
 } from "./metrics.js";
+
+const SERVICE_NAME = process.env.OTEL_SERVICE_NAME ?? "cerniq-workers";
+const otelEnabled = !!(
+  process.env.OTEL_EXPORTER_OTLP_ENDPOINT || process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+);
+const bullmqOtel = otelEnabled ? new BullMQOtel(SERVICE_NAME) : undefined;
 
 const DEFAULT_WORKER_OPTIONS: Partial<WorkerOptions> = {
   concurrency: 5,
@@ -29,25 +36,32 @@ export function toBullMqQueueName(name: string): string {
   return name.replaceAll(":", BULLMQ_QUEUE_SEPARATOR);
 }
 
-export function createQueue<T = unknown>(name: string, options?: Partial<QueueOptions>) {
+export function createQueue<T = unknown>(
+  name: string,
+  options?: Partial<QueueOptions> & { db?: number },
+) {
+  const { db, ...queueOpts } = options ?? {};
   return new Queue<T>(toBullMqQueueName(name), {
-    connection: getRedisConnectionOptions(),
+    connection: getRedisConnectionOptions({ db }),
     prefix: getQueuePrefix(),
     defaultJobOptions: DEFAULT_JOB_OPTIONS,
-    ...options,
+    ...(bullmqOtel ? { telemetry: bullmqOtel } : {}),
+    ...queueOpts,
   });
 }
 
 export function createWorker<T = unknown>(
   name: string,
   processor: Processor<T>,
-  options?: Partial<WorkerOptions>,
+  options?: Partial<WorkerOptions> & { db?: number },
 ) {
+  const { db, ...workerOpts } = options ?? {};
   const worker = new Worker<T>(toBullMqQueueName(name), processor, {
-    connection: getRedisConnectionOptions(),
+    connection: getRedisConnectionOptions({ db }),
     prefix: getQueuePrefix(),
     ...DEFAULT_WORKER_OPTIONS,
-    ...options,
+    ...(bullmqOtel ? { telemetry: bullmqOtel } : {}),
+    ...workerOpts,
   });
 
   worker.on("active", () => jobsActiveGauge.inc({ queue: name }));

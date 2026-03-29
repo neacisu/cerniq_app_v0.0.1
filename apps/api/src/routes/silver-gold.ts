@@ -25,6 +25,8 @@ import { z } from "zod";
 import { getActorId, parseLimit, parseOffset, requireTenantId } from "./utils.js";
 import { requireRole } from "../middleware/authz.js";
 import { createQueue } from "../lib/queue-factory.js";
+import { buildProvenanceContext } from "../lib/provenance.js";
+import { QUEUES } from "@cerniq/worker-shared";
 import {
   assignLeadSchema,
   dedupDecisionSchema,
@@ -352,7 +354,7 @@ export async function silverGoldRoutes(app: FastifyInstance) {
       if (!company)
         return reply.code(404).send({ success: false, error: "Silver company not found" });
 
-      const queue = createQueue("pipeline:orchestrate");
+      const queue = createQueue(QUEUES.PIPELINE_ORCHESTRATE);
       await queue.add("orchestrate", {
         tenantId,
         companyId: company.id,
@@ -360,6 +362,7 @@ export async function silverGoldRoutes(app: FastifyInstance) {
         force: body.data.force,
         sources: body.data.sources,
         correlationId: `api-enrich-${company.id}`,
+        ...buildProvenanceContext(request),
       });
       await queue.close();
 
@@ -400,12 +403,13 @@ export async function silverGoldRoutes(app: FastifyInstance) {
       if (!company)
         return reply.code(404).send({ success: false, error: "Silver company not found" });
 
-      const queue = createQueue("pipeline:promote:gold");
+      const queue = createQueue(QUEUES.PIPELINE_PROMOTE_TO_GOLD);
       await queue.add("promote", {
         tenantId,
         companyId: params.data.id,
         force: body.data.force,
         correlationId: `api-promote-${params.data.id}`,
+        ...buildProvenanceContext(request),
       });
       await queue.close();
       return { success: true, data: { id: params.data.id, queued: true } };

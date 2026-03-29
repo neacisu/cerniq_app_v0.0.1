@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { createQueue } from "../lib/queue-factory.js";
 import { QUEUES } from "@cerniq/worker-shared";
+import { buildWebhookProvenanceContext } from "../lib/provenance.js";
 import { verifyTimelinesAIWebhookSignature } from "@cerniq/integrations/timelinesai";
 import { verifyInstantlyWebhookSignature } from "@cerniq/integrations/instantly";
 import { verifyResendWebhook } from "@cerniq/integrations/resend";
@@ -90,6 +91,7 @@ export async function webhooksRoutes(app: FastifyInstance) {
       source: "timelinesai",
       body: request.body,
       receivedAt: new Date().toISOString(),
+      ...buildWebhookProvenanceContext(request.body, "timelinesai"),
     });
     return reply.status(200).send({ success: true, accepted: true });
   });
@@ -117,6 +119,7 @@ export async function webhooksRoutes(app: FastifyInstance) {
       source: "instantly",
       body: request.body,
       receivedAt: new Date().toISOString(),
+      ...buildWebhookProvenanceContext(request.body, "instantly"),
     });
     return reply.status(200).send({ success: true, accepted: true });
   });
@@ -141,6 +144,7 @@ export async function webhooksRoutes(app: FastifyInstance) {
       source: "resend",
       body: request.body,
       receivedAt: new Date().toISOString(),
+      ...buildWebhookProvenanceContext(request.body, "resend"),
     });
     return reply.status(200).send({ success: true, accepted: true });
   });

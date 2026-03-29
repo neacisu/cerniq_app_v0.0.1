@@ -1,8 +1,13 @@
 import { createHash } from "node:crypto";
 import type { Processor } from "bullmq";
-import { createCircuitBreaker, createQueue, QUEUES } from "@cerniq/worker-shared";
+import {
+  createCircuitBreaker,
+  createQueue,
+  QUEUES,
+  withCognitiveSpan,
+} from "@cerniq/worker-shared";
 import { bronzeContacts, db, sql } from "@cerniq/db";
-import { jobsProcessed, jobDuration, jobErrors } from "../lib/worker-metrics.js";
+import { jobsProcessed, jobDuration, jobErrors, jobsFailed } from "../lib/worker-metrics.js";
 import { insertBronzeRows, triggerNormalizationForContacts } from "./ingest-utils.js";
 import { createJobLogger, type JobLogger } from "../lib/job-logger.js";
 
@@ -208,83 +213,96 @@ async function scheduleNextPageIfNeeded(
 // ---------------------------------------------------------------------------
 
 export const apiPollerProcessor: Processor<ApiPollerJobData> = async (job) => {
-  const startedAt = Date.now();
-  const log = createJobLogger({
-    tenantId: job.data.tenantId,
-    workerName: "A4:api-poller",
-    jobId: String(job.id ?? ""),
-    startedAt,
-  });
+  return withCognitiveSpan(
+    "e1:ingest:api",
+    async (_span) => {
+      const startedAt = Date.now();
+      const log = createJobLogger({
+        tenantId: job.data.tenantId,
+        workerName: "A4:api-poller",
+        jobId: String(job.id ?? ""),
+        startedAt,
+      });
 
-  try {
-    const currentPage = job.data.pagination?.page ?? 1;
-    const method = job.data.method ?? "GET";
+      try {
+        const currentPage = job.data.pagination?.page ?? 1;
+        const method = job.data.method ?? "GET";
 
-    log.step("start", `Polling API extern: ${job.data.apiSource} — pagina ${currentPage}`, {
-      endpoint: job.data.endpoint,
-      method,
-      page: currentPage,
-      deltaDetection: job.data.enableDeltaDetection !== false,
-    });
+        log.step("start", `Polling API extern: ${job.data.apiSource} — pagina ${currentPage}`, {
+          endpoint: job.data.endpoint,
+          method,
+          page: currentPage,
+          deltaDetection: job.data.enableDeltaDetection !== false,
+        });
 
-    const response: Response = await apiPollerBreaker.fire(job.data.endpoint, {
-      method,
-      headers: job.data.headers,
-      body: job.data.body === undefined ? undefined : JSON.stringify(job.data.body),
-    });
+        const response: Response = await apiPollerBreaker.fire(job.data.endpoint, {
+          method,
+          headers: job.data.headers,
+          body: job.data.body === undefined ? undefined : JSON.stringify(job.data.body),
+        });
 
-    const payload = (await response.json()) as unknown;
-    const rows = extractRowsFromPayload(payload);
+        const payload = (await response.json()) as unknown;
+        const rows = extractRowsFromPayload(payload);
 
-    log.info("api_response", `API a returnat ${rows.length} înregistrări (pagina ${currentPage})`, {
-      rowCount: rows.length,
-      page: currentPage,
-    });
+        log.info(
+          "api_response",
+          `API a returnat ${rows.length} înregistrări (pagina ${currentPage})`,
+          {
+            rowCount: rows.length,
+            page: currentPage,
+          },
+        );
 
-    const { filteredRows, skippedDuplicates } = await filterByDeltaDetection(
-      job.data.tenantId,
-      rows,
-      job.data.enableDeltaDetection !== false,
-      log,
-    );
+        const { filteredRows, skippedDuplicates } = await filterByDeltaDetection(
+          job.data.tenantId,
+          rows,
+          job.data.enableDeltaDetection !== false,
+          log,
+        );
 
-    const rowsInserted = await ingestFilteredRows(
-      job.data.tenantId,
-      filteredRows,
-      rows.length,
-      skippedDuplicates,
-      job.data.correlationId,
-      log,
-    );
+        const rowsInserted = await ingestFilteredRows(
+          job.data.tenantId,
+          filteredRows,
+          rows.length,
+          skippedDuplicates,
+          job.data.correlationId,
+          log,
+        );
 
-    const hasMore = await scheduleNextPageIfNeeded(currentPage, payload, job.data, log);
+        const hasMore = await scheduleNextPageIfNeeded(currentPage, payload, job.data, log);
 
-    log.done(
-      "done",
-      `Polling API finalizat: ${rowsInserted} contacte noi, ${skippedDuplicates} duplicate sărite`,
-      { rowsFetched: rows.length, rowsInserted, skippedDuplicates, page: currentPage, hasMore },
-    );
+        log.done(
+          "done",
+          `Polling API finalizat: ${rowsInserted} contacte noi, ${skippedDuplicates} duplicate sărite`,
+          { rowsFetched: rows.length, rowsInserted, skippedDuplicates, page: currentPage, hasMore },
+        );
 
-    await job.updateProgress(100);
-    return {
-      ok: true,
-      rowsFetched: rows.length,
-      rowsInserted,
-      skippedDuplicates,
-      page: currentPage,
-      hasMore,
-      deltaDetectionEnabled: job.data.enableDeltaDetection !== false,
-    };
-  } catch (error) {
-    jobErrors.add(1, { worker: "a4-api-poller" });
-    log.error("fatal", `Eroare critică la polling API ${job.data.apiSource}`, {
-      endpoint: job.data.endpoint,
-      error: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined,
-    });
-    throw error;
-  } finally {
-    jobsProcessed.add(1, { worker: "a4-api-poller" });
-    jobDuration.record(Date.now() - startedAt, { worker: "a4-api-poller" });
-  }
+        await job.updateProgress(100);
+
+        jobsProcessed.add(1, { worker: "a4-api-poller" });
+
+        return {
+          ok: true,
+          rowsFetched: rows.length,
+          rowsInserted,
+          skippedDuplicates,
+          page: currentPage,
+          hasMore,
+          deltaDetectionEnabled: job.data.enableDeltaDetection !== false,
+        };
+      } catch (error) {
+        jobErrors.add(1, { worker: "a4-api-poller" });
+        jobsFailed.add(1, { worker: "a4-api-poller" });
+        log.error("fatal", `Eroare critică la polling API ${job.data.apiSource}`, {
+          endpoint: job.data.endpoint,
+          error: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+        });
+        throw error;
+      } finally {
+        jobDuration.record(Date.now() - startedAt, { worker: "a4-api-poller" });
+      }
+    },
+    { tenantId: job.data.tenantId },
+  );
 };

@@ -15,48 +15,103 @@
  *   2. /opt/cerniq/runtime-secrets/api/api.env  (host — OpenBao agent bind-mount)
  *   3. /secrets/api.env                          (in-container path)
  */
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { runAllMigrations, closeMigrationDb } from "./migrate.js";
 
 const SECRETS_SEARCH_PATHS = ["/opt/cerniq/runtime-secrets/api/api.env", "/secrets/api.env"];
 
-function resolveSecretsPath(): string | null {
-  if (process.env.SECRETS_PATH) {
-    return existsSync(process.env.SECRETS_PATH) ? process.env.SECRETS_PATH : null;
-  }
-  return SECRETS_SEARCH_PATHS.find((p) => existsSync(p)) ?? null;
-}
-
+/**
+ * Inline secrets loader for migrate-cli — avoids a circular workspace
+ * dependency (@cerniq/db ↔ @cerniq/worker-shared).
+ * Parses KEY=VALUE lines, ignores comments/empty lines.
+ * Skips load entirely if DATABASE_DIRECT_URL or DATABASE_URL already set.
+ */
 function loadSecretsFile(): void {
   if (process.env.DATABASE_DIRECT_URL || process.env.DATABASE_URL) return;
 
-  const secretsPath = resolveSecretsPath();
-  if (!secretsPath) {
-    throw new Error(
-      "Neither DATABASE_DIRECT_URL nor DATABASE_URL is set and no secrets file found.\n" +
-        `  Searched: ${SECRETS_SEARCH_PATHS.join(", ")}\n` +
-        "  Set DATABASE_DIRECT_URL directly or point SECRETS_PATH to the correct secrets file.",
-    );
-  }
+  const explicitPath = process.env.SECRETS_PATH;
+  const candidates = explicitPath ? [explicitPath] : SECRETS_SEARCH_PATHS;
+  const found = candidates.find((p) => existsSync(p));
 
-  console.log(`Loading secrets from ${secretsPath}`);
-  const content = readFileSync(secretsPath, "utf-8");
-  for (const line of content.split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const eqIndex = trimmed.indexOf("=");
-    if (eqIndex === -1) continue;
-    const key = trimmed.slice(0, eqIndex).trim();
-    const value = trimmed.slice(eqIndex + 1).trim();
-    if (!process.env[key]) {
-      process.env[key] = value;
+  if (found) {
+    const lines = readFileSync(found, "utf8").split("\n");
+    for (const raw of lines) {
+      const line = raw.trim();
+      if (!line || line.startsWith("#")) continue;
+      const eqIdx = line.indexOf("=");
+      if (eqIdx < 1) continue;
+      const key = line.slice(0, eqIdx).trim();
+      const val = line.slice(eqIdx + 1).trim();
+      if (key && !(key in process.env)) {
+        process.env[key] = val;
+      }
     }
   }
 
   if (!process.env.DATABASE_DIRECT_URL && !process.env.DATABASE_URL) {
     throw new Error(
-      `Neither DATABASE_DIRECT_URL nor DATABASE_URL found in secrets file: ${secretsPath}`,
+      "Neither DATABASE_DIRECT_URL nor DATABASE_URL is set and no secrets file found.\n" +
+        `  Searched: ${candidates.join(", ")}\n` +
+        "  Set DATABASE_DIRECT_URL directly or point SECRETS_PATH to the correct secrets file.",
     );
+  }
+}
+
+type ConnectErr = NodeJS.ErrnoException & { address?: string; port?: number };
+
+/** Walk Error.cause (incl. DrizzleQueryError → ECONNREFUSED etc.) */
+function findNodeConnectError(err: unknown): ConnectErr | null {
+  let current: unknown = err;
+  const seen = new Set<unknown>();
+  for (let depth = 0; depth < 12 && current !== undefined && current !== null; depth++) {
+    if (seen.has(current)) break;
+    seen.add(current);
+    if (typeof current === "object" && current !== null && "code" in current) {
+      const code = (current as { code: unknown }).code;
+      if (
+        code === "ECONNREFUSED" ||
+        code === "ENOTFOUND" ||
+        code === "ETIMEDOUT" ||
+        code === "EHOSTUNREACH"
+      ) {
+        return current as ConnectErr;
+      }
+    }
+    if (current instanceof Error && current.cause !== undefined) {
+      current = current.cause;
+      continue;
+    }
+    break;
+  }
+  return null;
+}
+
+function printConnectFailureHint(sys: ConnectErr, connUrl: string): void {
+  const host = sys.address ?? "(unknown host)";
+  const port = sys.port ?? 5432;
+  const safeUrl = connUrl.replace(/\/\/[^@]+@/, "//***@");
+  if (sys.code === "ECONNREFUSED") {
+    console.error(`
+[migrate] TCP connection refused at ${host}:${port}
+  This is not a SQL migration failure — PostgreSQL did not accept the connection.
+  Check: service running on that host, listen_addresses, firewall, VPN/network route.
+  URL in use (redacted): ${safeUrl}
+  Override for local/staging: export DATABASE_DIRECT_URL='postgresql://user:pass@reachable-host:5432/cerniq'
+`);
+    return;
+  }
+  if (sys.code === "ENOTFOUND") {
+    console.error(`
+[migrate] Host not found (DNS): ${host}
+  Verify DATABASE_DIRECT_URL / DATABASE_URL hostname. URL (redacted): ${safeUrl}
+`);
+    return;
+  }
+  if (sys.code === "ETIMEDOUT" || sys.code === "EHOSTUNREACH") {
+    console.error(`
+[migrate] Network unreachable or timed out (${sys.code}) toward ${host}:${port}
+  Check routing, security groups, and whether PostgreSQL listens on that interface.
+`);
   }
 }
 
@@ -81,7 +136,14 @@ async function main() {
   process.exit(0);
 }
 
-main().catch((err) => {
+try {
+  await main();
+} catch (err) {
   console.error(err);
+  const sys = findNodeConnectError(err);
+  if (sys) {
+    const connUrl = process.env.DATABASE_DIRECT_URL ?? process.env.DATABASE_URL ?? "";
+    printConnectFailureHint(sys, connUrl);
+  }
   process.exit(1);
-});
+}

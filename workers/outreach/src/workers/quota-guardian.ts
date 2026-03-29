@@ -7,9 +7,9 @@
  * - quota:guardian:increment (persist to PG)
  * - quota:guardian:reset (cron 0 0 * * *)
  */
-import { Worker, Job } from "bullmq";
+import type { Job, Worker } from "bullmq";
 import { Redis } from "ioredis";
-import { QUEUES } from "@cerniq/worker-shared";
+import { QUEUES, createWorker, outreachWaQuotaUsage } from "@cerniq/worker-shared";
 import { getQuotaKey, getPhoneStatusKey, DAILY_QUOTA_LIMIT } from "../utils/quota-lua.js";
 
 // =============================================================================
@@ -65,6 +65,57 @@ function createRedisClient(): Redis {
 // Concurrency: 100, Timeout: 2000ms
 // =============================================================================
 
+/** Bucharest calendar date + hour for quota Lua (ADR-0056). */
+export function getBucharestQuotaContext(now = new Date()): {
+  dateIso: string;
+  currentHour: number;
+} {
+  const fmt = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Bucharest",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    hour12: false,
+  });
+  const parts = fmt.formatToParts(now);
+  const y = parts.find((p) => p.type === "year")?.value;
+  const m = parts.find((p) => p.type === "month")?.value;
+  const d = parts.find((p) => p.type === "day")?.value;
+  const h = parts.find((p) => p.type === "hour")?.value;
+  return {
+    dateIso: `${y}-${m}-${d}`,
+    currentHour: Number(h ?? "12"),
+  };
+}
+
+/**
+ * Pre-send WA quota gate (same Lua as queue `quota:guardian:check`).
+ * For new contacts (isNewContact=true), increments Redis usage when allowed.
+ */
+export async function quotaGuardianCheck(
+  redis: Redis,
+  luaSha: string,
+  phoneId: string,
+  ctx: {
+    tenantId: string;
+    leadId: string;
+    isNewContact: boolean;
+    correlationId?: string;
+  },
+): Promise<QuotaCheckResult> {
+  const { dateIso, currentHour } = getBucharestQuotaContext();
+  return executeQuotaCheck(redis, luaSha, {
+    correlationId: ctx.correlationId ?? "",
+    tenantId: ctx.tenantId,
+    phoneId,
+    leadId: ctx.leadId,
+    isNewContact: ctx.isNewContact,
+    dateIso,
+    currentHour,
+  });
+}
+
 /**
  * Core quota check logic — exported for testing without BullMQ.
  * Executes the Lua script atomically on Redis.
@@ -90,28 +141,35 @@ export async function executeQuotaCheck(
 
   const parsed = JSON.parse(rawResult as string);
 
-  return {
+  const result = {
     allowed: parsed.allowed === true,
     reason: parsed.reason as QuotaCheckReason,
     currentUsage: Number(parsed.current_usage ?? 0),
     remaining: Number(parsed.remaining ?? 0),
     costApplied: Number(parsed.cost_applied ?? 0),
   };
+
+  outreachWaQuotaUsage.set(
+    { phone_id: data.phoneId, tenant_id: data.tenantId },
+    result.currentUsage,
+  );
+
+  return result;
 }
 
 export function createQuotaCheckWorker(redis: Redis, luaSha: string): Worker {
-  return new Worker(
+  const { worker } = createWorker(
     QUEUES.QUOTA_GUARDIAN_CHECK,
     async (job: Job<QuotaCheckJobData>): Promise<QuotaCheckResult> => {
       return executeQuotaCheck(redis, luaSha, job.data);
     },
     {
-      connection: redis,
       concurrency: 100,
       removeOnFail: { count: 1000 },
       removeOnComplete: { count: 1000 },
     },
   );
+  return worker;
 }
 
 // =============================================================================
@@ -130,13 +188,12 @@ export async function createQuotaIncrementWorker(redis: Redis): Promise<Worker> 
   const { db, sql, setSessionTenantId } = await import("@cerniq/db");
   const { waQuotaUsage } = await import("@cerniq/db");
 
-  return new Worker(
+  const { worker } = createWorker(
     QUEUES.QUOTA_GUARDIAN_INCREMENT,
     async (job: Job<QuotaIncrementJobData>): Promise<QuotaIncrementResult> => {
       const { phoneId, dateIso, cost, tenantId } = job.data;
       await setSessionTenantId(tenantId);
 
-      // UPSERT quota usage — Redis is source of truth, this persists to PG
       await db
         .insert(waQuotaUsage)
         .values({
@@ -157,7 +214,6 @@ export async function createQuotaIncrementWorker(redis: Redis): Promise<Worker> 
           },
         });
 
-      // Read back current value from Redis for response
       const quotaKey = getQuotaKey(phoneId, dateIso);
       const current = await redis.get(quotaKey);
 
@@ -168,12 +224,12 @@ export async function createQuotaIncrementWorker(redis: Redis): Promise<Worker> 
       };
     },
     {
-      connection: redis,
       concurrency: 50,
       removeOnFail: { count: 1000 },
       removeOnComplete: { count: 500 },
     },
   );
+  return worker;
 }
 
 // =============================================================================
@@ -183,10 +239,9 @@ export async function createQuotaIncrementWorker(redis: Redis): Promise<Worker> 
 // =============================================================================
 
 export function createQuotaDailyResetWorker(redis: Redis): Worker {
-  return new Worker(
+  const { worker } = createWorker(
     QUEUES.QUOTA_GUARDIAN_RESET,
     async (): Promise<{ keysDeleted: number }> => {
-      // Reset all quota:wa:* keys in Redis DB 2
       const pattern = "quota:wa:*";
       let cursor = "0";
       let keysDeleted = 0;
@@ -203,12 +258,12 @@ export function createQuotaDailyResetWorker(redis: Redis): Worker {
       return { keysDeleted };
     },
     {
-      connection: redis,
       concurrency: 1,
       removeOnFail: { count: 100 },
       removeOnComplete: { count: 100 },
     },
   );
+  return worker;
 }
 
 // =============================================================================

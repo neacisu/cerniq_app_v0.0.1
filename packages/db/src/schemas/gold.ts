@@ -13,7 +13,6 @@ import {
   unique,
   uuid,
   varchar,
-  vector,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { tenants } from "./tenants.js";
@@ -21,6 +20,7 @@ import { users } from "./users.js";
 import { silverCompanies } from "./silver.js";
 import { bronzeContacts } from "./bronze.js";
 import { geographyPoint } from "./postgis.js";
+import { halfvec } from "./pgvector.js";
 
 export const goldSchema = pgSchema("gold");
 
@@ -250,7 +250,7 @@ export const goldCompanies = goldSchema.table(
     doNotWhatsapp: boolean("do_not_whatsapp").notNull().default(false),
 
     // --- SECȚIUNEA 9: AI/ML ---
-    aiEmbedding: vector("ai_embedding", { dimensions: 1536 }),
+    aiEmbedding: halfvec("ai_embedding", { dimensions: 3072 }),
     embeddingUpdatedAt: timestamp("embedding_updated_at", { withTimezone: true }),
     segmentAi: varchar("segment_ai", { length: 50 }),
     clusterId: integer("cluster_id"),
@@ -297,7 +297,7 @@ export const goldCompanies = goldSchema.table(
       t.leadScore,
     ),
     index("idx_gold_companies_assigned").on(t.assignedTo),
-    index("idx_gold_companies_embedding").using("hnsw", t.aiEmbedding.op("vector_cosine_ops")),
+    index("idx_gold_companies_embedding").using("hnsw", t.aiEmbedding.op("halfvec_cosine_ops")),
     check(
       "chk_gold_state",
       sql`${t.currentState} IN (${sql.raw(leadStates.map((s) => "'" + s + "'").join(","))})`,

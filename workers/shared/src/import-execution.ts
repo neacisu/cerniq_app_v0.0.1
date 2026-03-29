@@ -46,6 +46,22 @@ export type ImportExecutionContext = {
   entityType?: string | null;
   entityId?: string | null;
   idempotencyScope?: string | null;
+  rootBatchId?: string;
+  traceId?: string;
+  parentTraceId?: string;
+  nodeKey?: string;
+  mutationIntent?:
+    | "CREATE"
+    | "UPDATE"
+    | "ENRICH"
+    | "PROMOTE"
+    | "MERGE"
+    | "SOFT_DELETE"
+    | "RESTORE"
+    | "NOOP";
+  causationKey?: string;
+  sourceEndpoint?: string;
+  entityScope?: string[];
 };
 
 export type ImportExecutionControlState = {
@@ -249,6 +265,26 @@ function extractTenantBatchContext(payload: JsonRecord) {
   return { tenantId, batchId, correlationId };
 }
 
+const MUTATION_INTENT_VALUES: ReadonlySet<string> = new Set([
+  "CREATE",
+  "UPDATE",
+  "ENRICH",
+  "PROMOTE",
+  "MERGE",
+  "SOFT_DELETE",
+  "RESTORE",
+  "NOOP",
+]);
+
+function isMutationIntent(value: unknown): value is ImportExecutionContext["mutationIntent"] {
+  return typeof value === "string" && MUTATION_INTENT_VALUES.has(value);
+}
+
+function parseStringArray(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  return value.every((item): item is string => typeof item === "string") ? value : undefined;
+}
+
 export function getImportExecutionContext(payload: unknown): ImportExecutionContext | null {
   const record = asRecord(payload);
   const importExecution = asRecord(record.importExecution);
@@ -283,6 +319,22 @@ export function getImportExecutionContext(payload: unknown): ImportExecutionCont
       typeof importExecution.idempotencyScope === "string"
         ? importExecution.idempotencyScope
         : null,
+    rootBatchId:
+      typeof importExecution.rootBatchId === "string" ? importExecution.rootBatchId : undefined,
+    traceId: typeof importExecution.traceId === "string" ? importExecution.traceId : undefined,
+    parentTraceId:
+      typeof importExecution.parentTraceId === "string" ? importExecution.parentTraceId : undefined,
+    nodeKey: typeof importExecution.nodeKey === "string" ? importExecution.nodeKey : undefined,
+    mutationIntent: isMutationIntent(importExecution.mutationIntent)
+      ? importExecution.mutationIntent
+      : undefined,
+    causationKey:
+      typeof importExecution.causationKey === "string" ? importExecution.causationKey : undefined,
+    sourceEndpoint:
+      typeof importExecution.sourceEndpoint === "string"
+        ? importExecution.sourceEndpoint
+        : undefined,
+    entityScope: parseStringArray(importExecution.entityScope),
   };
 }
 
@@ -845,6 +897,14 @@ async function createExecutionContextFromArgs<TPayload extends JsonRecord>(
     entityType,
     entityId,
     idempotencyScope,
+    rootBatchId: explicit?.rootBatchId ?? parent?.rootBatchId,
+    traceId: explicit?.traceId ?? parent?.traceId,
+    parentTraceId: explicit?.parentTraceId ?? parent?.traceId ?? parent?.parentTraceId,
+    nodeKey: explicit?.nodeKey ?? parent?.nodeKey,
+    mutationIntent: explicit?.mutationIntent ?? parent?.mutationIntent,
+    causationKey: explicit?.causationKey ?? parent?.causationKey,
+    sourceEndpoint: explicit?.sourceEndpoint ?? parent?.sourceEndpoint,
+    entityScope: explicit?.entityScope ?? parent?.entityScope,
   };
 }
 

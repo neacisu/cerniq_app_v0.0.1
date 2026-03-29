@@ -3,33 +3,74 @@ import fs from "node:fs";
 const DEFAULT_SECRETS_PATH = "/secrets/workers.env";
 const SENSITIVE_KEYS = new Set([
   "DATABASE_URL",
+  "DATABASE_DIRECT_URL",
+  "POSTGRES_USER",
+  "POSTGRES_PASSWORD",
   "REDIS_URL",
   "REDIS_PASSWORD",
   "REDIS_PREFIX",
   "BULLMQ_PREFIX",
+  "JWT_SECRET",
+  "JWT_REFRESH_SECRET",
 ]);
 const OPENBAO_READY_MARKER = "OPENBAO_SECRETS_LOADED=true";
 
-export function loadSecretsFromFile(forceOverwrite = false, path = DEFAULT_SECRETS_PATH): void {
-  if (!fs.existsSync(path)) return;
+export interface LoadSecretsOptions {
+  exitOnMissing?: boolean;
+  /**
+   * When true, overwrites ALL env keys from the secrets file — not just SENSITIVE_KEYS.
+   * Use for full SIGHUP reloads where non-sensitive config values may also have changed.
+   */
+  universalOverwrite?: boolean;
+  searchPaths?: string[];
+}
 
-  const content = fs.readFileSync(path, "utf-8");
-  for (const line of content.split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const eq = trimmed.indexOf("=");
-    if (eq < 0) continue;
+function resolveSecretsFilePath(path: string, searchPaths?: string[]): string | null {
+  if (searchPaths?.length) {
+    const envOverride = process.env.SECRETS_PATH;
+    if (envOverride && fs.existsSync(envOverride)) return envOverride;
+    return searchPaths.find((p) => fs.existsSync(p)) ?? null;
+  }
+  return fs.existsSync(path) ? path : null;
+}
 
-    const key = trimmed.slice(0, eq).trim();
-    const value = trimmed.slice(eq + 1).trim();
-    const isSensitive = SENSITIVE_KEYS.has(key);
+function applyEnvLine(line: string, forceOverwrite: boolean, universalOverwrite = false): void {
+  const trimmed = line.trim();
+  if (!trimmed || trimmed.startsWith("#")) return;
+  const eq = trimmed.indexOf("=");
+  if (eq < 0) return;
 
-    if (forceOverwrite && isSensitive) {
-      process.env[key] = value;
-      continue;
+  const key = trimmed.slice(0, eq).trim();
+  const value = trimmed.slice(eq + 1).trim();
+
+  if (universalOverwrite || (forceOverwrite && SENSITIVE_KEYS.has(key))) {
+    process.env[key] = value;
+    return;
+  }
+  if (!process.env[key]) process.env[key] = value;
+}
+
+export function loadSecretsFromFile(
+  forceOverwrite = false,
+  path = DEFAULT_SECRETS_PATH,
+  options?: LoadSecretsOptions,
+): void {
+  const { exitOnMissing = false, universalOverwrite = false, searchPaths } = options ?? {};
+  const resolvedPath = resolveSecretsFilePath(path, searchPaths);
+
+  if (!resolvedPath) {
+    if (exitOnMissing && process.env.NODE_ENV !== "test") {
+      const searched = searchPaths ? searchPaths.join(", ") : path;
+      console.error(`Secrets file not found: ${searched}`);
+      console.error("Ensure OpenBao agent has rendered secrets before the service starts.");
+      process.exit(1);
     }
+    return;
+  }
 
-    if (!process.env[key]) process.env[key] = value;
+  const content = fs.readFileSync(resolvedPath, "utf-8");
+  for (const line of content.split("\n")) {
+    applyEnvLine(line, forceOverwrite, universalOverwrite);
   }
 }
 

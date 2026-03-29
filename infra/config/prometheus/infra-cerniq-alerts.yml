@@ -25,6 +25,39 @@ groups:
           summary: "Cerniq disk low (<15%)"
           description: "Disk free is below 15% on {{ $labels.instance }} (mount={{ $labels.mountpoint }})"
 
+      - alert: CerniqDiskCritical
+        expr: |
+          (
+            node_filesystem_avail_bytes{job="cerniq-nodes",project="cerniq",fstype!~"tmpfs|overlay"}
+            / node_filesystem_size_bytes{job="cerniq-nodes",project="cerniq",fstype!~"tmpfs|overlay"}
+          ) < 0.05
+        for: 5m
+        labels:
+          severity: critical
+          project: cerniq
+        annotations:
+          summary: "Cerniq disk CRITICAL (<5%) — PostgreSQL crash risk"
+          description: |
+            Disk free is below 5% on {{ $labels.instance }} (mount={{ $labels.mountpoint }}).
+            IMMEDIATE ACTION REQUIRED: CT107 crashed on 2026-03-25 due to disk 100% from WAL accumulation.
+            Run: ssh root@10.0.1.107 pg_archivecleanup /var/lib/postgresql/18/main/pg_wal <REDO_WAL_from_pg_controldata>
+
+      - alert: CerniqPostgresWalDirLarge
+        expr: |
+          node_filesystem_avail_bytes{job="cerniq-nodes",project="cerniq",mountpoint="/",instance="10.0.1.107:9100"}
+          < 20 * 1024 * 1024 * 1024
+        for: 15m
+        labels:
+          severity: warning
+          project: cerniq
+          host: ct107-postgres-main
+        annotations:
+          summary: "CT107 PostgreSQL: less than 20GB free — WAL accumulation risk"
+          description: |
+            CT107 (10.0.1.107) has less than 20GB free disk. WAL spike risk.
+            Check: ssh root@10.0.1.107 'du -sh /var/lib/postgresql/18/main/pg_wal/'
+            If excessive: pg_archivecleanup after verifying all WAL is archived in pgbackrest.
+
       - alert: CerniqMemoryLow
         expr: |
           (
@@ -219,3 +252,95 @@ groups:
         annotations:
           summary: "Slow queries detected"
           description: "Mean query time above 5 seconds on {{ $labels.instance }}"
+
+  - name: cerniq-llm
+    rules:
+      - alert: VLLMKVCacheHigh
+        expr: vllm:gpu_cache_usage_perc{project="cerniq"} > 0.85
+        for: 5m
+        labels:
+          severity: critical
+          project: cerniq
+        annotations:
+          summary: "vLLM KV cache utilization critical (>85%)"
+          description: "KV cache usage is {{ $value | humanizePercentage }} on {{ $labels.instance }} ({{ $labels.model }}). Requests may start queuing or being rejected."
+
+      - alert: LLMPendingRequests
+        expr: vllm:num_requests_waiting{project="cerniq"} > 20
+        for: 5m
+        labels:
+          severity: warning
+          project: cerniq
+        annotations:
+          summary: "vLLM pending requests high (>20)"
+          description: "{{ $value }} requests waiting in queue on {{ $labels.instance }}. Consider scaling or rate limiting."
+
+      - alert: VLLMTTFTDegradation
+        expr: histogram_quantile(0.95, rate(vllm:time_to_first_token_seconds_bucket{project="cerniq"}[5m])) > 5
+        for: 5m
+        labels:
+          severity: warning
+          project: cerniq
+        annotations:
+          summary: "vLLM TTFT P95 degradation (>5s)"
+          description: "Time to first token P95 is {{ $value }}s on {{ $labels.instance }}. Expected < 5s."
+
+      - alert: LLMFailureRateHigh
+        expr: |
+          sum(rate(vllm:request_success_total{project="cerniq",finished="false"}[5m]))
+          /
+          clamp_min(sum(rate(vllm:request_success_total{project="cerniq"}[5m])), 0.001)
+          > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          project: cerniq
+        annotations:
+          summary: "LLM request failure rate high (>5%)"
+          description: "LLM request failure rate is above 5% in the last 5 minutes"
+
+      - alert: LLMEndpointDown
+        expr: up{job=~"vllm-.*|ollama-.*",project="cerniq"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          project: cerniq
+        annotations:
+          summary: "LLM endpoint unreachable"
+          description: "LLM endpoint {{ $labels.instance }} ({{ $labels.job }}) is not responding to scrapes"
+
+  - name: cerniq-cognitive
+    rules:
+      - alert: NeuronStaleFiring
+        expr: absent(increase(cerniq_worker_jobs_processed_total[5m]))
+        for: 10m
+        labels:
+          severity: warning
+          project: cerniq
+        annotations:
+          summary: "Worker job counters missing or stale (cognitive pipeline)"
+          description: "Prometheus sees no cerniq_worker_jobs_processed_total series for increase(5m) — scrape or worker metrics may be absent."
+
+      - alert: DeliberativeNeuronFail
+        expr: |
+          sum(rate(cerniq_worker_jobs_failed_total{queue=~"ai:.*"}[5m]))
+          /
+          clamp_min(sum(rate(cerniq_worker_jobs_processed_total{queue=~"ai:.*"}[5m])), 0.001)
+          > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          project: cerniq
+        annotations:
+          summary: "Deliberative (AI) worker failure rate above 5%"
+          description: "Failed / processed ratio for queues matching ai:* exceeded 5% over 5m."
+
+      - alert: GuardrailBreachSpike
+        expr: sum(rate(cerniq_hitl_sla_breach_total[5m])) * 60 > 10
+        for: 3m
+        labels:
+          severity: critical
+          project: cerniq
+        annotations:
+          summary: "Guardrail / HITL SLA breach rate spike (>10/min)"
+          description: "Estimated HITL SLA breaches per minute from cerniq_hitl_sla_breach_total exceeded 10 (5m rate × 60)."

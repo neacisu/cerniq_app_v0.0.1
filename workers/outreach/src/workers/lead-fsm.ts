@@ -7,10 +7,14 @@
  * - lead:state:validate (validator, reject invalid)
  * - State Change Notifier (inline side effects)
  */
-import { Worker, Job, Queue } from "bullmq";
-import { Redis } from "ioredis";
-import { QUEUES } from "@cerniq/worker-shared";
-import { asBullmqConnection } from "../utils/bullmq-connection.js";
+import type { Job, Worker } from "bullmq";
+import {
+  QUEUES,
+  createWorker,
+  createQueue,
+  withCognitiveSpan,
+  fsmTransitions,
+} from "@cerniq/worker-shared";
 
 // =============================================================================
 // VALID_TRANSITIONS — EXACT from ADR-0062
@@ -72,6 +76,10 @@ export interface StateTransitionJobData {
   newState: string;
   reason?: string;
   trigger: TransitionTrigger;
+  traceId?: string;
+  causationKey?: string;
+  sourceEndpoint?: string;
+  actorId?: string;
 }
 
 export interface StateTransitionResult {
@@ -87,88 +95,88 @@ export interface StateTransitionResult {
 // Concurrency: 50
 // =============================================================================
 
-export function createStateTransitionWorker(redis: Redis): Worker {
-  const conn = asBullmqConnection(redis);
-  const sequenceStopQueue = new Queue(QUEUES.SEQUENCE_STOP, { connection: conn });
+export function createStateTransitionWorker(): Worker {
+  const sequenceStopQueue = createQueue(QUEUES.SEQUENCE_STOP);
 
-  return new Worker(
+  const { worker } = createWorker(
     QUEUES.LEAD_STATE_TRANSITION,
     async (job: Job<StateTransitionJobData>): Promise<StateTransitionResult> => {
-      const { tenantId, journeyId, newState, reason, trigger } = job.data;
+      return withCognitiveSpan("e2:lead:state-transition", async () => {
+        const { tenantId, leadId, journeyId, newState, reason, trigger } = job.data;
 
-      const { db, setSessionTenantId } = await import("@cerniq/db");
-      await setSessionTenantId(tenantId);
-      const { leadJourney } = await import("@cerniq/db");
-      const { eq, and } = await import("@cerniq/db");
+        const { db, setSessionTenantId } = await import("@cerniq/db");
+        await setSessionTenantId(tenantId);
+        const { leadJourney } = await import("@cerniq/db");
+        const { eq, and } = await import("@cerniq/db");
 
-      // Fetch current state
-      const journeys = await db
-        .select()
-        .from(leadJourney)
-        .where(and(eq(leadJourney.id, journeyId), eq(leadJourney.tenantId, tenantId)))
-        .limit(1);
+        // Fetch current state
+        const journeys = await db
+          .select()
+          .from(leadJourney)
+          .where(and(eq(leadJourney.id, journeyId), eq(leadJourney.tenantId, tenantId)))
+          .limit(1);
 
-      if (journeys.length === 0) {
-        throw new Error(`Journey ${journeyId} not found for tenant ${tenantId}`);
-      }
+        if (journeys.length === 0) {
+          throw new Error(`Journey ${journeyId} not found for tenant ${tenantId}`);
+        }
 
-      const journey = journeys[0];
-      const currentState = journey.currentState;
+        const journey = journeys[0];
+        const currentState = journey.currentState;
 
-      // Validate transition
-      if (!validateTransition(currentState, newState)) {
+        // Validate transition
+        if (!validateTransition(currentState, newState)) {
+          throw new Error(
+            `FSM invalid transition from ${currentState} to ${newState} for lead ${leadId}`,
+          );
+        }
+
+        // Execute transition
+        await db
+          .update(leadJourney)
+          .set({
+            currentState: newState as LeadJourneyFsmState,
+            previousState: currentState as LeadJourneyFsmState,
+            stateChangedAt: new Date(),
+            stateChangeReason: reason ?? `Triggered by ${trigger}`,
+            updatedAt: new Date(),
+            ...(newState === "CONVERTED" ? { convertedAt: new Date() } : {}),
+          })
+          .where(eq(leadJourney.id, journeyId));
+
+        fsmTransitions.inc({ from: currentState, to: newState });
+
+        // Side effects
+        const sideEffects: string[] = [];
+
+        if (newState === "WARM_REPLY") {
+          // Stop active sequences for this lead
+          await sequenceStopQueue.add(
+            "stop",
+            { tenantId, journeyId, reason: "LEAD_REPLIED" },
+            { removeOnComplete: 100 },
+          );
+          sideEffects.push("STOPPED_SEQUENCE");
+        }
+
+        if (newState === "CONVERTED") {
+          sideEffects.push("CONVERSION_NOTIFICATION");
+        }
+
+        if (newState === "DEAD") {
+          sideEffects.push("LOGGED_DEAD");
+        }
+
         return {
-          success: false,
+          success: true,
           previousState: currentState,
           newState,
-          sideEffects: [],
-          error: `Invalid transition from ${currentState} to ${newState}`,
+          sideEffects,
         };
-      }
-
-      // Execute transition
-      await db
-        .update(leadJourney)
-        .set({
-          currentState: newState as LeadJourneyFsmState,
-          previousState: currentState as LeadJourneyFsmState,
-          stateChangedAt: new Date(),
-          stateChangeReason: reason ?? `Triggered by ${trigger}`,
-          updatedAt: new Date(),
-          ...(newState === "CONVERTED" ? { convertedAt: new Date() } : {}),
-        })
-        .where(eq(leadJourney.id, journeyId));
-
-      // Side effects
-      const sideEffects: string[] = [];
-
-      if (newState === "WARM_REPLY") {
-        // Stop active sequences for this lead
-        await sequenceStopQueue.add(
-          "stop",
-          { journeyId, reason: "LEAD_REPLIED" },
-          { removeOnComplete: 100 },
-        );
-        sideEffects.push("STOPPED_SEQUENCE");
-      }
-
-      if (newState === "CONVERTED") {
-        sideEffects.push("CONVERSION_NOTIFICATION");
-      }
-
-      if (newState === "DEAD") {
-        sideEffects.push("LOGGED_DEAD");
-      }
-
-      return {
-        success: true,
-        previousState: currentState,
-        newState,
-        sideEffects,
-      };
+      });
     },
-    { connection: conn, concurrency: 50 },
+    { concurrency: 50 },
   );
+  return worker;
 }
 
 // =============================================================================
@@ -191,25 +199,27 @@ export interface StateValidateResult {
   error?: string;
 }
 
-export function createStateValidateWorker(redis: Redis): Worker {
-  const conn = asBullmqConnection(redis);
-  return new Worker(
+export function createStateValidateWorker(): Worker {
+  const { worker } = createWorker(
     QUEUES.LEAD_STATE_VALIDATE,
     async (job: Job<StateValidateJobData>): Promise<StateValidateResult> => {
-      const { fromState, toState } = job.data;
-      const valid = validateTransition(fromState, toState);
-      const validTransitions = (VALID_TRANSITIONS[fromState] as string[]) ?? [];
+      return withCognitiveSpan("e2:lead:state-validate", async () => {
+        const { fromState, toState } = job.data;
+        const valid = validateTransition(fromState, toState);
+        const validTransitions = (VALID_TRANSITIONS[fromState] as string[]) ?? [];
 
-      return {
-        valid,
-        fromState,
-        toState,
-        validTransitions,
-        ...(!valid && {
-          error: `Invalid transition from ${fromState} to ${toState}. Valid: [${validTransitions.join(", ")}]`,
-        }),
-      };
+        return {
+          valid,
+          fromState,
+          toState,
+          validTransitions,
+          ...(!valid && {
+            error: `Invalid transition from ${fromState} to ${toState}. Valid: [${validTransitions.join(", ")}]`,
+          }),
+        };
+      });
     },
-    { connection: conn, concurrency: 50 },
+    { concurrency: 50 },
   );
+  return worker;
 }

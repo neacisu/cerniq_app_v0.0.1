@@ -1,0 +1,383 @@
+---
+name: Enterprise Audit Logging Complete
+overview: "Sistem complet enterprise-grade de audit, logging structurat si tracing pentru 100% din componentele aplicatiei. 126 todo-uri granulare cu instructiuni anti-halucinare detaliate la FIECARE, acoperind ~160+ fisiere. Verificat prin 3 runde de audit."
+todos:
+  - id: f0.1
+    content: "FAZA 0.1: Creare createServiceLogger(serviceName, opts) in packages/observability/src/logger.ts. Pino wrapper universal cu auto-inject service/hostname/pid/version, child logger, serializoare Error cu cause chain recursiv, redactare PII (email, phone, token, password, cookie, creditCard). FISIERE: packages/observability/src/logger.ts (NOU). AUDIT FIRST: (1) Citeste packages/observability/package.json pt dependente existente, (2) Citeste packages/observability/src/init.ts pt structura existenta, (3) Citeste apps/api/src/app.ts pt cum Pino e configurat acum in Fastify. REGULI: NU reinitializa Pino daca e deja configurat de Fastify. NU presupune ce exporta pachetul - verifica cu Read. NU adauga dependente fara a verifica package.json. Transport: stdout JSON prod, pino-pretty dev."
+    status: pending
+  - id: f0.2
+    content: "FAZA 0.2: Creare createJobLogger(opts) universal in packages/observability/src/job-logger.ts. Muta logica din workers/enrichment/src/lib/job-logger.ts dar scrie in observability.job_logs (etapa-agnostic). batchId devine OPTIONAL. Campuri noi: correlationId, traceId, spanId, entityType, entityId, queueName, etapa, errorFingerprint. Batch insert (max 100 entries sau 2s). Fallback stdout JSON cand DB e down. Circuit breaker pe scriere DB. FISIERE: packages/observability/src/job-logger.ts (NOU). AUDIT FIRST: (1) Citeste COMPLET workers/enrichment/src/lib/job-logger.ts (toate 86 liniile), (2) Identifica API-ul existent: debug/info/warn/error/step/done/forContact, (3) Citeste packages/db/src/schemas/bronze.ts pt structura job_logs. REGULI: Pastreaza API-ul existent identic (backward compat). NU sterge functii existente. Adauga noi metode pe langa cele existente."
+    status: pending
+  - id: f0.3
+    content: "FAZA 0.3: Creare enrichError(error, context) in packages/observability/src/error-enrichment.ts. Fingerprint SHA-256, cause chain traversal recursiv, clasificare transient/permanent/validation/infrastructure. FISIERE: packages/observability/src/error-enrichment.ts (NOU). AUDIT FIRST: Citeste COMPLET workers/enrichment/src/lib/error-classification.ts, identifica isTransientError() si classifyAndRethrow(). REGULI: EXTINDE logica existenta, NU duplica. NU modifica error-classification.ts."
+    status: pending
+  - id: f0.4
+    content: "FAZA 0.4: Creare withSpan(name, fn, attributes) in packages/observability/src/tracing.ts. OTel span wrapper, error recording, propagare traceId/spanId in Pino. FISIERE: packages/observability/src/tracing.ts (NOU). AUDIT FIRST: Citeste COMPLET packages/observability/src/init.ts, verifica @opentelemetry/api in package.json. REGULI: NU reinitializa SDK-ul. Foloseste @opentelemetry/api.trace.getTracer() existent."
+    status: pending
+  - id: f0.5
+    content: "FAZA 0.5: Creare CorrelationContext in packages/observability/src/correlation.ts. AsyncLocalStorage pt context per-request/per-job. FISIERE: packages/observability/src/correlation.ts (NOU). AUDIT FIRST: Verifica daca AsyncLocalStorage e deja folosit in codebase, citeste request-logging.ts. REGULI: NU confunda correlationId cu requestId - sunt concepte diferite."
+    status: pending
+  - id: f0.6
+    content: "FAZA 0.6: Creare AuditWriter in packages/observability/src/audit-writer.ts. Scrie in audit.audit_log, async batch insert, hash chain optional. FISIERE: packages/observability/src/audit-writer.ts (NOU). AUDIT FIRST: Citeste packages/db/src/schemas/audit.ts pt structura existenta. REGULI: NU modifica tabelul approval_audit_log existent. Noul audit_log e SEPARAT."
+    status: pending
+  - id: f0.7
+    content: "FAZA 0.7: Export index @cerniq/observability. Re-exporta toate modulele noi. FISIERE: packages/observability/src/index.ts (MODIFICAT). AUDIT FIRST: Citeste index.ts actual pt exporturi existente. REGULI: NU sterge exporturi existente."
+    status: pending
+  - id: f0.8
+    content: "FAZA 0.8: Upgrade StructuredLogSchema cu campuri noi: traceId, spanId, workerName, queueName, jobId, entityType, entityId, errorFingerprint, errorClassification, hostname, pid, etapa. FISIERE: packages/shared-types/src/schemas/structured-logs.ts (MODIFICAT). AUDIT FIRST: Citeste fisierul COMPLET. REGULI: NU sterge campuri existente. Adauga ca OPTIONALE."
+    status: pending
+  - id: f1.1
+    content: "FAZA 1.1: Migrare Drizzle SQL. CREATE SCHEMA observability + 3 tabele (observability.job_logs, audit.audit_log, observability.error_log) + view bronze.job_logs_v. FISIERE: packages/db/drizzle/XXXX_observability_audit_logging.sql (NOU). AUDIT FIRST: Citeste _journal.json pt ultimul nr migrare, citeste bronze.ts si audit.ts pt schema existenta. REGULI: NU modifica tabele existente."
+    status: pending
+  - id: f1.2
+    content: "FAZA 1.2: Schema Drizzle ORM pt tabelele noi. FISIERE: packages/db/src/schemas/observability.ts (NOU), audit.ts (MODIFICAT). AUDIT FIRST: Citeste audit.ts si bronze.ts pt conventii naming. REGULI: Foloseste pgTable/pgSchema exact ca in fisierele existente."
+    status: pending
+  - id: f1.3
+    content: "FAZA 1.3: Export din @cerniq/db. Adauga export pt noile tabele. FISIERE: packages/db/src/index.ts (MODIFICAT). AUDIT FIRST: Citeste index.ts pt pattern-ul de export existent. REGULI: Urmeaza exact pattern-ul existent."
+    status: pending
+  - id: f2.1
+    content: "FAZA 2.1: Refactor error handler API. Elimina mesaj generic prod, adauga errorId UUID, enrichError, log complet, raspuns cu errorId. FISIERE: apps/api/src/errors/handler.ts (MODIFICAT). AUDIT FIRST: Citeste handler.ts COMPLET, identifica TOATE cazurile speciale (AppError, ZodError, JWT, DB). REGULI: Pastreaza TOATE cazurile speciale NEATINSE. Modifica DOAR cazul generic (liniile 123-131)."
+    status: pending
+  - id: f2.2
+    content: "FAZA 2.2: Upgrade request-logging plugin. Adauga correlationId, AsyncLocalStorage, log request body hash. FISIERE: apps/api/src/plugins/request-logging.ts (MODIFICAT). AUDIT FIRST: Citeste fisierul COMPLET, identifica hook-urile onRequest si onResponse. REGULI: Pastreaza hook-urile existente. Adauga, nu inlocuieste."
+    status: pending
+  - id: f2.3
+    content: "FAZA 2.3: Creare audit-trail plugin Fastify. Hook onResponse pt POST/PUT/PATCH/DELETE, scrie in audit.audit_log. FISIERE: apps/api/src/plugins/audit-trail.ts (NOU), plugins/index.ts (MODIFICAT). AUDIT FIRST: Citeste plugins/index.ts pt ordine, tenant-context.ts pt userId/tenantId. REGULI: Inregistreaza DUPA tenant-context."
+    status: pending
+  - id: f3.1
+    content: "FAZA 3.1: Upgrade workers A1-A5 (ingest). Schimba import la @cerniq/observability, adauga correlationId, enrichError, withSpan. FISIERE: a1-csv-parser.ts, a2-excel-parser.ts, a3-webhook-receiver.ts, a4-api-poller.ts, a5-manual-entry.ts. AUDIT FIRST: Citeste FIECARE fisier COMPLET, identifica importul job-logger vechi. REGULI: Schimba DOAR importul. NU modifica logica de parsare/ingest."
+    status: pending
+  - id: f3.2
+    content: "FAZA 3.2: Upgrade workers B1-B5 (normalize). Schimba import, adauga enrichError in catch. FISIERE: b1-b5 in workers/enrichment/src/workers/. AUDIT FIRST: Citeste fiecare fisier, verifica createJobLogger existent. REGULI: NU modifica logica de normalizare."
+    status: pending
+  - id: f3.3
+    content: "FAZA 3.3: Upgrade workers C1-C2 (validate) + inlocuire console.error in c2 (linii 116, 119). FISIERE: c1-cui-modulo11-validator.ts, c2-cui-anaf-validator.ts. AUDIT FIRST: Citeste fiecare fisier COMPLET. REGULI: NU modifica logica validare CUI/ANAF."
+    status: pending
+  - id: f3.4
+    content: "FAZA 3.4: ADAUGA logging de la ZERO in workers D1-D5 (ANAF enrichment). NU au NICIUN logging. FISIERE: d1-d5 in workers/enrichment/src/workers/. AUDIT FIRST: Citeste FIECARE fisier COMPLET, identifica processor, try/catch, job.data params. REGULI: Adauga createJobLogger etapa:'e1'. NU modifica logica parsare ANAF."
+    status: pending
+  - id: f3.5
+    content: "FAZA 3.5: ADAUGA logging in workers E1-E4 (Termene). FISIERE: e1-e4 in workers/enrichment/src/workers/. AUDIT FIRST: Citeste fiecare fisier COMPLET. REGULI: NU modifica URL-uri API sau headers Termene."
+    status: pending
+  - id: f3.6
+    content: "FAZA 3.6: ADAUGA logging in workers F1-F3 (ONRC). FISIERE: f1-f3 in workers/enrichment/src/workers/. AUDIT FIRST: Citeste fiecare COMPLET. REGULI: NU modifica interactiunea ONRC."
+    status: pending
+  - id: f3.7
+    content: "FAZA 3.7: ADAUGA logging in workers G1-G5+G2b (email discovery). In g3, catch-uri Clearbit/FullContact (linii 87-95) nu logheaza. FISIERE: g1-g5 + g2b in workers/enrichment/src/workers/. AUDIT FIRST: Citeste fiecare COMPLET. REGULI: In g3 adauga log in catch existente."
+    status: pending
+  - id: f3.8
+    content: "FAZA 3.8: ADAUGA logging in workers H1-H3 (phone). h1 creeaza child jobs HLR/carrier. FISIERE: h1-h3. AUDIT FIRST: Citeste fiecare COMPLET. REGULI: NU modifica child job creation."
+    status: pending
+  - id: f3.9
+    content: "FAZA 3.9: ADAUGA logging in workers I1-I4 (scraping). i3 creeaza child job scrape:website:contact-page. FISIERE: i1-i4. AUDIT FIRST: Citeste fiecare COMPLET. REGULI: NU modifica scraping sau URL-uri."
+    status: pending
+  - id: f3.10
+    content: "FAZA 3.10: ADAUGA logging in workers J1-J4 (AI/xAI). FISIERE: j1-j4. AUDIT FIRST: Citeste fiecare COMPLET. REGULI: NU modifica prompt-uri sau parsing raspuns AI."
+    status: pending
+  - id: f3.11
+    content: "FAZA 3.11: ADAUGA logging in workers K1-K3 (geo). k1->zones, k2->proximity child jobs. FISIERE: k1-k3. AUDIT FIRST: Citeste fiecare COMPLET. REGULI: NU modifica query-uri PostGIS."
+    status: pending
+  - id: f3.12
+    content: "FAZA 3.12: ADAUGA logging in workers L1-L5 (agri). FISIERE: l1-l5. AUDIT FIRST: Citeste fiecare COMPLET. REGULI: NU modifica clasificare agricola."
+    status: pending
+  - id: f3.13
+    content: "FAZA 3.13: ADAUGA logging in workers M1-M2 (dedup). FISIERE: m1-dedup-exact-hash.ts, m2-dedup-fuzzy-match.ts. AUDIT FIRST: Citeste fiecare COMPLET. REGULI: NU modifica thresholds dedup sau logica merge."
+    status: pending
+  - id: f3.14
+    content: "FAZA 3.14: ADAUGA logging in workers N1-N3 (score). Chain: N1->N2->N3->orchestrate. FISIERE: n1-n3. AUDIT FIRST: Citeste fiecare COMPLET. REGULI: NU modifica formulele de scoring."
+    status: pending
+  - id: f3.15
+    content: "FAZA 3.15: ADAUGA logging in workers O1-O3 (aggregate). o3 are console.log pe linii 53, 95, 141. FISIERE: o1-o3. AUDIT FIRST: Citeste fiecare COMPLET. REGULI: Inlocuieste console.log in o3."
+    status: pending
+  - id: f3.16
+    content: "FAZA 3.16: ADAUGA logging in workers P1-P4 (pipeline). p1 creeaza multe child jobs. p3 creeaza jobs stuck. p4 face retry/replay. FISIERE: p1-p4. AUDIT FIRST: Citeste fiecare COMPLET. REGULI: NU modifica logica orchestrare/retry."
+    status: pending
+  - id: f3.17
+    content: "FAZA 3.17: Upgrade HITL workers. hitl-resume creeaza child jobs. Are console.log linia 197. FISIERE: hitl-escalation.ts, hitl-resume-after-approval.ts. AUDIT FIRST: Citeste fiecare COMPLET. REGULI: NU modifica logica HITL."
+    status: pending
+  - id: f3.18
+    content: "FAZA 3.18: Upgrade Promotion B-S. Are console.warn/error pe linii 208, 704, 823, 996, 1389. FISIERE: promotion-bronze-silver.ts. AUDIT FIRST: Citeste COMPLET. REGULI: NU modifica logica promotie."
+    status: pending
+  - id: f3.19
+    content: "FAZA 3.19: Instrumentare utilitare enrichment + activeaza logEnrichmentAudit(). ingest-utils are console pe 187, 833. FISIERE: ingest-utils.ts, normalization-utils.ts, pipeline-utils.ts, company-enrichment-utils.ts. AUDIT FIRST: Citeste FIECARE COMPLET. REGULI: Activeaza logEnrichmentAudit. NU modifica logica ingest/normalizare."
+    status: pending
+  - id: f3.20
+    content: "FAZA 3.20: Upgrade Main Enrichment Worker. ~10 console calls. FISIERE: workers/enrichment/src/main.ts. AUDIT FIRST: Citeste COMPLET, identifica console calls si job-uri recurente. REGULI: Inlocuieste console cu createServiceLogger. NU modifica startup/shutdown."
+    status: pending
+  - id: f4.1
+    content: "FAZA 4.1: Instrumentare quota-guardian.ts (3 workers). FISIERE: workers/outreach/src/workers/quota-guardian.ts. AUDIT FIRST: Citeste COMPLET, identifica fiecare new Worker(). REGULI: NU modifica logica Lua Redis."
+    status: pending
+  - id: f4.2
+    content: "FAZA 4.2: Instrumentare orchestration.ts (3 workers: dispatch, phone-allocator, channel-selector). FISIERE: workers/outreach/src/workers/orchestration.ts. AUDIT FIRST: Citeste COMPLET. REGULI: NU modifica logica alocare."
+    status: pending
+  - id: f4.3
+    content: "FAZA 4.3: Instrumentare whatsapp.ts (42 workers: 40 per-phone + delivery + receipt). Logging TREBUIE sa includa phoneNumber in context. FISIERE: workers/outreach/src/workers/whatsapp.ts. AUDIT FIRST: Citeste COMPLET. REGULI: NU modifica logica TimelinesAI."
+    status: pending
+  - id: f4.4
+    content: "FAZA 4.4: Instrumentare webhooks.ts outreach (6 workers). Creeaza child jobs FARA correlationId. FISIERE: workers/outreach/src/workers/webhooks.ts. AUDIT FIRST: Citeste COMPLET. REGULI: Adauga correlationId la FIECARE queue.add()."
+    status: pending
+  - id: f4.5
+    content: "FAZA 4.5: Instrumentare sequences.ts (5 workers). Creeaza child jobs fara correlationId. FISIERE: workers/outreach/src/workers/sequences.ts. AUDIT FIRST: Citeste COMPLET. REGULI: Adauga correlationId la child jobs."
+    status: pending
+  - id: f4.6
+    content: "FAZA 4.6: Instrumentare resilience.ts (2 workers: retry orchestrator, business hours). FISIERE: workers/outreach/src/workers/resilience.ts. AUDIT FIRST: Citeste COMPLET. REGULI: NU modifica retry strategy."
+    status: pending
+  - id: f4.7
+    content: "FAZA 4.7: Instrumentare phone-monitoring.ts (3 workers). Child jobs FARA correlationId (linii 148, 155, 276, 366). FISIERE: workers/outreach/src/workers/phone-monitoring.ts. AUDIT FIRST: Citeste COMPLET. REGULI: Adauga correlationId la FIECARE queue.add()."
+    status: pending
+  - id: f4.8
+    content: "FAZA 4.8: Instrumentare monitoring.ts outreach (2 workers). createAlertWorker are console.warn. FISIERE: workers/outreach/src/workers/monitoring.ts. AUDIT FIRST: Citeste COMPLET. REGULI: Inlocuieste console.warn. Adauga correlationId."
+    status: pending
+  - id: f4.9
+    content: "FAZA 4.9: Instrumentare hitl.ts outreach (7 workers). Child jobs FARA correlationId. FISIERE: workers/outreach/src/workers/hitl.ts. AUDIT FIRST: Citeste COMPLET, identifica TOATE 7 factories. REGULI: Adauga correlationId la FIECARE child job."
+    status: pending
+  - id: f4.10
+    content: "FAZA 4.10: Instrumentare email.ts (6 workers). Child jobs FARA correlationId. FISIERE: workers/outreach/src/workers/email.ts. AUDIT FIRST: Citeste COMPLET. REGULI: Adauga correlationId la child jobs."
+    status: pending
+  - id: f4.11
+    content: "FAZA 4.11: Instrumentare ai-sentiment.ts (3 workers). Child jobs FARA correlationId (linii 140, 147, 249). FISIERE: workers/outreach/src/workers/ai-sentiment.ts. AUDIT FIRST: Citeste COMPLET. REGULI: Adauga correlationId la FIECARE queue.add()."
+    status: pending
+  - id: f4.12
+    content: "FAZA 4.12: Instrumentare lead-fsm.ts (2 workers). Child job sequenceStopQueue (linia 147) FARA correlationId. FISIERE: workers/outreach/src/workers/lead-fsm.ts. AUDIT FIRST: Citeste COMPLET. REGULI: Log tranzitii stare (from->to). Adauga correlationId."
+    status: pending
+  - id: f4.13
+    content: "FAZA 4.13: Instrumentare templates.ts (3 workers: spintax, personalize, validate). FISIERE: workers/outreach/src/workers/templates.ts. AUDIT FIRST: Citeste COMPLET. REGULI: NU loga continut template (PII)."
+    status: pending
+  - id: f4.14
+    content: "FAZA 4.14: Instrumentare extra-dispatch.ts (5 workers). console.warn linia 66. Router worker trece payload nemodificat. FISIERE: workers/outreach/src/workers/extra-dispatch.ts. AUDIT FIRST: Citeste COMPLET. REGULI: In router, verifica/adauga correlationId."
+    status: pending
+  - id: f4.15
+    content: "FAZA 4.15: Upgrade outreach main + bullmq-connection. console.info/error pe linii 194, 208, 216. FISIERE: workers/outreach/src/index.ts, utils/bullmq-connection.ts. AUDIT FIRST: Citeste AMBELE COMPLET. REGULI: Pastreaza process.exit logic."
+    status: pending
+  - id: f5.1
+    content: "FAZA 5.1: Instrumentare routes/auth.ts (5 rute). Audit login/register/logout. FISIERE: apps/api/src/routes/auth.ts. AUDIT FIRST: Citeste COMPLET. REGULI: NU modifica JWT/bcrypt. NU loga parole/tokens."
+    status: pending
+  - id: f5.2
+    content: "FAZA 5.2: Instrumentare routes/imports-bronze.ts (22 rute, 7 enqueueImportJob calls). FISIERE: apps/api/src/routes/imports-bronze.ts. AUDIT FIRST: Citeste COMPLET (5000+ linii). Identifica TOATE enqueueImportJob. REGULI: Adauga requestId la fiecare job payload."
+    status: pending
+  - id: f5.3
+    content: "FAZA 5.3: Instrumentare routes/silver-gold.ts (12 rute, 2 queue.add). FISIERE: apps/api/src/routes/silver-gold.ts. AUDIT FIRST: Citeste COMPLET. REGULI: Adauga requestId la job payloads."
+    status: pending
+  - id: f5.4
+    content: "FAZA 5.4: Instrumentare routes/enrichment.ts (10 rute, 1 resumeQueue.add). FISIERE: apps/api/src/routes/enrichment.ts. AUDIT FIRST: Citeste COMPLET. REGULI: Adauga requestId."
+    status: pending
+  - id: f5.5
+    content: "FAZA 5.5: Instrumentare routes/outreach.ts (35+ rute, 6 queue.add FARA correlationId). FISIERE: apps/api/src/routes/outreach.ts. AUDIT FIRST: Citeste COMPLET. REGULI: Adauga correlationId + requestId la FIECARE queue.add."
+    status: pending
+  - id: f5.6
+    content: "FAZA 5.6: Instrumentare routes/webhooks.ts API (3 rute, 3 queue.add FARA correlationId). FISIERE: apps/api/src/routes/webhooks.ts. AUDIT FIRST: Citeste COMPLET. REGULI: Adauga correlationId + requestId."
+    status: pending
+  - id: f5.7
+    content: "FAZA 5.7: Instrumentare routes/dashboard.ts (3 rute). queue.close().catch gol linia 68. FISIERE: apps/api/src/routes/dashboard.ts. AUDIT FIRST: Citeste COMPLET. REGULI: Adauga logging in catch."
+    status: pending
+  - id: f5.8
+    content: "FAZA 5.8: Instrumentare routes/admin-monitoring.ts (9 rute). Catch blocks goale linii 27, 46, 92. FISIERE: apps/api/src/routes/admin-monitoring.ts. AUDIT FIRST: Citeste COMPLET. REGULI: Adauga logging in catch + audit write pt queue control."
+    status: pending
+  - id: f6.1
+    content: "FAZA 6.1: Instrumentare anaf-api-client.ts. Log request/response/duration. Fix throw fara cause. FISIERE: workers/enrichment/src/lib/anaf-api-client.ts. AUDIT FIRST: Citeste COMPLET. REGULI: Adauga { cause: err } la throw. NU schimba URL-uri/headers/retry."
+    status: pending
+  - id: f6.2
+    content: "FAZA 6.2: Instrumentare hunter-api-client.ts. Log + fix throw fara cause. FISIERE: workers/enrichment/src/lib/hunter-api-client.ts. AUDIT FIRST: Citeste COMPLET. REGULI: Ca f6.1."
+    status: pending
+  - id: f6.3
+    content: "FAZA 6.3: Instrumentare termene-api-client.ts. Log + fix throw fara cause. FISIERE: workers/enrichment/src/lib/termene-api-client.ts. AUDIT FIRST: Citeste COMPLET. REGULI: Ca f6.1."
+    status: pending
+  - id: f6.4
+    content: "FAZA 6.4: Instrumentare onrc-api-client.ts. Log + fix throw fara cause. FISIERE: workers/enrichment/src/lib/onrc-api-client.ts. AUDIT FIRST: Citeste COMPLET. REGULI: Ca f6.1."
+    status: pending
+  - id: f6.5
+    content: "FAZA 6.5: Instrumentare zerobounce-api-client.ts. Log + fix throw fara cause. FISIERE: workers/enrichment/src/lib/zerobounce-api-client.ts. AUDIT FIRST: Citeste COMPLET. REGULI: Ca f6.1."
+    status: pending
+  - id: f6.6
+    content: "FAZA 6.6: Instrumentare hlr-api-client.ts. Log + fix throw fara cause. FISIERE: workers/enrichment/src/lib/hlr-api-client.ts. AUDIT FIRST: Citeste COMPLET. REGULI: Ca f6.1."
+    status: pending
+  - id: f6.7
+    content: "FAZA 6.7: Instrumentare xai-client.ts. Log + fix throw fara cause. FISIERE: workers/enrichment/src/lib/xai-client.ts. AUDIT FIRST: Citeste COMPLET. REGULI: NU modifica prompt-uri/model config."
+    status: pending
+  - id: f6.8
+    content: "FAZA 6.8: Instrumentare timelinesai client. FISIERE: packages/integrations/src/timelinesai/client.ts. AUDIT FIRST: Citeste COMPLET. REGULI: NU modifica WebSocket handling."
+    status: pending
+  - id: f6.9
+    content: "FAZA 6.9: Instrumentare instantly client. FISIERE: packages/integrations/src/instantly/client.ts. AUDIT FIRST: Citeste COMPLET. REGULI: NU modifica campaign logic."
+    status: pending
+  - id: f6.10
+    content: "FAZA 6.10: Instrumentare resend client. FISIERE: packages/integrations/src/resend/client.ts. AUDIT FIRST: Citeste COMPLET. REGULI: NU loga email body (PII)."
+    status: pending
+  - id: f6.11
+    content: "FAZA 6.11: Instrumentare ingest-utils.ts. Console pe linii 187, 833. FISIERE: workers/enrichment/src/workers/ingest-utils.ts. AUDIT FIRST: Citeste COMPLET. REGULI: Inlocuieste console. NU modifica logica trigger."
+    status: pending
+  - id: f6.12
+    content: "FAZA 6.12: Instrumentare normalization-utils.ts. Job creation linii 94, 120. FISIERE: workers/enrichment/src/workers/normalization-utils.ts. AUDIT FIRST: Citeste COMPLET. REGULI: NU modifica normalizare."
+    status: pending
+  - id: f6.13
+    content: "FAZA 6.13: Instrumentare pipeline-utils.ts + activeaza logEnrichmentAudit() (functie moarta). FISIERE: workers/enrichment/src/workers/pipeline-utils.ts. AUDIT FIRST: Citeste COMPLET, gaseste logEnrichmentAudit. REGULI: NU modifica addQueueJob."
+    status: pending
+  - id: f6.14
+    content: "FAZA 6.14: Instrumentare company-enrichment-utils.ts. FISIERE: workers/enrichment/src/workers/company-enrichment-utils.ts. AUDIT FIRST: Citeste COMPLET. REGULI: NU modifica enrichment logic."
+    status: pending
+  - id: f6.15
+    content: "FAZA 6.15: Instrumentare approval-service.ts. Audit write pt fiecare decizie. FISIERE: packages/db/src/services/approval-service.ts. AUDIT FIRST: Citeste COMPLET. REGULI: NU modifica logica approval."
+    status: pending
+  - id: f6.16
+    content: "FAZA 6.16: Instrumentare company-identity.ts. FISIERE: packages/db/src/services/company-identity.ts. AUDIT FIRST: Citeste COMPLET. REGULI: NU modifica identity matching."
+    status: pending
+  - id: f6.17
+    content: "FAZA 6.17: Instrumentare error-classification.ts. Log la fiecare clasificare. FISIERE: workers/enrichment/src/lib/error-classification.ts. AUDIT FIRST: Citeste COMPLET. REGULI: NU modifica criteriile clasificare."
+    status: pending
+  - id: f6.18
+    content: "FAZA 6.18: Instrumentare circuit-breaker. Console pe linii 21-23. FISIERE: workers/shared/src/circuit-breaker.ts. AUDIT FIRST: Citeste COMPLET. REGULI: Log state transitions. NU modifica thresholds."
+    status: pending
+  - id: f6.19
+    content: "FAZA 6.19: Instrumentare DB client. Log connection lifecycle. FISIERE: packages/db/src/client.ts. AUDIT FIRST: Citeste COMPLET. REGULI: NU modifica postgres.js config. NU loga DATABASE_URL."
+    status: pending
+  - id: f7.1
+    content: "FAZA 7.1: Inlocuire console in enrichment workers. main.ts (~10), promotion (5), c2 (2), ingest-utils (2), o3 (3), hitl-resume (1). AUDIT FIRST: Identifica EXACT fiecare linie console. REGULI: console.error->log.error, console.warn->log.warn."
+    status: pending
+  - id: f7.2
+    content: "FAZA 7.2: Inlocuire console in outreach. index.ts (3), extra-dispatch (1), monitoring (1). AUDIT FIRST: Identifica EXACT liniile. REGULI: Inlocuieste cu createServiceLogger."
+    status: pending
+  - id: f7.3
+    content: "FAZA 7.3: Inlocuire console in shared. secrets.ts (1), circuit-breaker.ts (3). AUDIT FIRST: Citeste fiecare fisier. REGULI: NU loga valori secrete."
+    status: pending
+  - id: f7.4
+    content: "FAZA 7.4: Inlocuire console in apps. config.ts (4), monitoring-api/index.ts (3). AUDIT FIRST: In config.ts console e la startup inainte de Pino - poate ramane pt erori fatale."
+    status: pending
+  - id: f7.5
+    content: "FAZA 7.5: Inlocuire console in packages. migrate.ts, migrate-cli.ts (4), seed.ts (3). AUDIT FIRST: Citeste fiecare COMPLET. REGULI: Pastreaza process.exit calls."
+    status: pending
+  - id: f8.1
+    content: "FAZA 8.1: Upgrade ErrorBoundary. Trimite erori la POST /api/v1/errors/client. FISIERE: apps/web/src/components/feedback/ErrorBoundary.tsx. AUDIT FIRST: Citeste COMPLET (acum doar console.error). REGULI: Pastreaza UI. Adauga DOAR trimiterea."
+    status: pending
+  - id: f8.2
+    content: "FAZA 8.2: Upgrade API client web. x-correlation-id header + errorId in toast. FISIERE: apps/web/src/lib/api.ts. AUDIT FIRST: Citeste COMPLET. REGULI: NU modifica refresh token sau redirect login."
+    status: pending
+  - id: f8.3
+    content: "FAZA 8.3: Creare POST /api/v1/errors/client. Validare Zod, scrie in error_log source_type:'frontend'. Rate limit 10/min per IP. FISIERE: apps/api/src/routes/ (NOU). AUDIT FIRST: Citeste routes/index.ts pt pattern."
+    status: pending
+  - id: f8.4
+    content: "FAZA 8.4: Instrumentare hooks frontend use-etapa1.ts + use-etapa2.ts. Adauga correlationId, log erori. FISIERE: apps/web/src/hooks/use-etapa1.ts, use-etapa2.ts. AUDIT FIRST: Citeste FIECARE COMPLET. REGULI: NU modifica retry/cache."
+    status: pending
+  - id: f8.5
+    content: "FAZA 8.5: Instrumentare API client libraries etapa1-api.ts + etapa2-api.ts. x-correlation-id header. FISIERE: apps/web/src/lib/etapa1-api.ts, etapa2-api.ts. AUDIT FIRST: Citeste COMPLET. REGULI: NU modifica return types."
+    status: pending
+  - id: f8.6a
+    content: "FAZA 8.6a: Instrumentare auth-provider.tsx. Log auth events. Catch gol pt logout (1 loc). FISIERE: apps/web/src/providers/auth-provider.tsx. AUDIT FIRST: Citeste COMPLET. REGULI: NU modifica state/routing."
+    status: pending
+  - id: f8.6b
+    content: "FAZA 8.6b: Instrumentare data-provider.tsx. Log data errors cu context. FISIERE: apps/web/src/providers/data-provider.tsx. AUDIT FIRST: Citeste COMPLET. REGULI: NU modifica Refine integration."
+    status: pending
+  - id: f8.7
+    content: "FAZA 8.7: Instrumentare apps/web-admin/ (7 fisiere: api.ts, useWebSocket.ts, use-admin-auth.ts, admin-auth-provider.tsx, Queues.tsx, Dashboard.tsx, Logs.tsx). AUDIT FIRST: Citeste FIECARE COMPLET. Admin foloseste x-admin-key NU JWT."
+    status: pending
+  - id: f8.8
+    content: "FAZA 8.8: Instrumentare import-execution.ts (1394 linii MASIV). Sesiuni import, job creation, recovery. FISIERE: workers/shared/src/import-execution.ts. AUDIT FIRST: Citeste COMPLET. Identifica FIECARE operatie DB si createQueue/add call. REGULI: NU modifica recovery/counter logic."
+    status: pending
+  - id: f8.9
+    content: "FAZA 8.9: Instrumentare redis.ts shared. Log connection events. FISIERE: workers/shared/src/redis.ts. AUDIT FIRST: Citeste COMPLET. REGULI: Adauga event listeners. NU modifica config Redis."
+    status: pending
+  - id: f8.10
+    content: "FAZA 8.10: Instrumentare health.ts shared. Log startup/shutdown. FISIERE: workers/shared/src/health.ts. AUDIT FIRST: Citeste COMPLET. REGULI: Log la nivel debug."
+    status: pending
+  - id: f8.11
+    content: "FAZA 8.11: Instrumentare rate-limiter.ts. Log rate limit hits. FISIERE: workers/shared/src/rate-limiter.ts. AUDIT FIRST: Citeste COMPLET. REGULI: NU modifica rate limit values."
+    status: pending
+  - id: f8.12
+    content: "FAZA 8.12: Instrumentare job-validation.ts. Log validation failures. FISIERE: workers/shared/src/job-validation.ts. AUDIT FIRST: Citeste COMPLET. REGULI: NU loga payload complet (PII)."
+    status: pending
+  - id: f8.13
+    content: "FAZA 8.13: Instrumentare metrics.ts shared. Verifica console calls. FISIERE: workers/shared/src/metrics.ts. AUDIT FIRST: Citeste COMPLET. REGULI: NU modifica metrici Prometheus."
+    status: pending
+  - id: f8.14
+    content: "FAZA 8.14: Instrumentare enrichment-completion.ts (77 linii). Log surse enrichment complete. FISIERE: workers/enrichment/src/lib/enrichment-completion.ts. AUDIT FIRST: Citeste COMPLET. REGULI: NU modifica logica completare."
+    status: pending
+  - id: f8.15
+    content: "FAZA 8.15: Instrumentare monitoring-alerts.ts. Log fiecare alerta. FISIERE: workers/enrichment/src/lib/monitoring-alerts.ts. AUDIT FIRST: Citeste COMPLET. REGULI: NU modifica SQL queries."
+    status: pending
+  - id: f8.16
+    content: "FAZA 8.16: Instrumentare monitoring-api complet (queue-monitor.ts, system-metrics.ts, index.ts). FISIERE: apps/monitoring-api/src/*. AUDIT FIRST: Citeste FIECARE COMPLET. Foloseste x-admin-key."
+    status: pending
+  - id: f8.17
+    content: "FAZA 8.17: Instrumentare migrate-runner.ts. console.log linia 16, console.error linia 18. FISIERE: apps/api/src/migrate-runner.ts (24 linii). AUDIT FIRST: Citeste COMPLET. REGULI: Pastreaza process.exit."
+    status: pending
+  - id: f8.18
+    content: "FAZA 8.18: Instrumentare webhook-verify (instantly + timelinesai). Log HMAC verification. FISIERE: packages/integrations/src/instantly/webhook-verify.ts, timelinesai/webhook-verify.ts. AUDIT FIRST: Citeste fiecare COMPLET. REGULI: NU modifica HMAC logic."
+    status: pending
+  - id: f8.19
+    content: "FAZA 8.19: Instrumentare workers/ai/worker.js. 3 BullMQ workers stub. FISIERE: workers/ai/worker.js. AUDIT FIRST: Citeste COMPLET. NOTA: .js nu .ts. REGULI: NU adauga functionalitate inexistenta."
+    status: pending
+  - id: f8.20
+    content: "FAZA 8.20: Instrumentare 4 servicii Python. Logging JSON structurat. FISIERE: services/python-mcp/main.py, python-graph/main.py, python-document/main.py, python-pdf/main.py. AUDIT FIRST: Citeste FIECARE COMPLET. Identifica framework. REGULI: Foloseste python3. Output JSON stdout."
+    status: pending
+  - id: f8.21
+    content: "FAZA 8.21 GAP CRITIC: Adauga correlationId in TOATE ~30+ queue.add() din outreach. FISIERE: outreach.ts API (6), webhooks.ts API (3), webhooks.ts worker (5), email.ts, orchestration.ts, sequences.ts, ai-sentiment.ts (3), phone-monitoring.ts (4), hitl.ts, whatsapp.ts, lead-fsm.ts, monitoring.ts. AUDIT FIRST: Citeste FIECARE fisier, identifica FIECARE .add(). REGULI: Adauga correlationId FARA modificare campuri existente."
+    status: pending
+  - id: f8.22
+    content: "FAZA 8.22 GAP CRITIC: Adauga requestId la TOATE 19 job creation din API routes. FISIERE: imports-bronze.ts (7), outreach.ts (6), silver-gold.ts (2), enrichment.ts (1), webhooks.ts (3). AUDIT FIRST: Identifica EXACT fiecare queue.add/enqueueImportJob. REGULI: requestId != correlationId. Ambele trebuie transmise."
+    status: pending
+  - id: f8.23
+    content: "FAZA 8.23: Instrumentare workers/outreach/worker.js. FISIERE: workers/outreach/worker.js. AUDIT FIRST: Citeste COMPLET. REGULI: NU adauga functionalitate inexistenta."
+    status: pending
+  - id: f8.24
+    content: "FAZA 8.24 GAP CRITIC: Adauga { cause: err } la throw new Error() in ~10 fisiere. FISIERE: a1-csv-parser (L129), a2-excel-parser (L397), promotion (L243), + 7 API clients. AUDIT FIRST: Identifica FIECARE throw new Error(. REGULI: Adauga cause DOAR daca exista eroare in scope."
+    status: pending
+  - id: f8.25
+    content: "FAZA 8.25: Inlocuieste ~20+ .catch(()=>undefined) din frontend. FISIERE: import.tsx (3), silver.tsx (6), gold-company-detail.tsx (4), approvals.tsx (1), use-etapa2.ts (3), ConversationMessageBar.tsx (2), auth-provider.tsx (1). REGULI: DOAR logging, NU throw err."
+    status: pending
+  - id: f8.26
+    content: "FAZA 8.26: Adauga logging in ~9 catch blocks goale. LOCATII: plugins/index.ts L128, dashboard.ts L68, imports-bronze.ts L4386/4464/4951, admin-monitoring.ts L46/27/92, outreach.ts L1020, g3 L87-95, p1 L223-228. REGULI: NU modifica flow-ul."
+    status: pending
+  - id: f8.27
+    content: "FAZA 8.27: Standardizeaza unhandledRejection. enrichment main.ts NU face exit (inconsistent cu API). FISIERE: main.ts enrichment, index.ts outreach. AUDIT FIRST: Compara cu apps/api/src/index.ts. REGULI: Decide si documenta."
+    status: pending
+  - id: f8.28
+    content: "FAZA 8.28: Adauga ErrorBoundary la 14 pagini stub E3/E4/E5/system. FISIERE: apps/web/src/pages/etapa3/*.tsx, etapa4/*.tsx, etapa5/*.tsx, system/*.tsx. AUDIT FIRST: Verifica import ErrorBoundary."
+    status: pending
+  - id: f8.29
+    content: "FAZA 8.29: Extinde createWorker() cu auto-propagare context AsyncLocalStorage. FISIERE: workers/shared/src/factory.ts. AUDIT FIRST: Citeste COMPLET, verifica cum e folosit in main.ts enrichment si index.ts outreach. REGULI: NU modifica signatura."
+    status: pending
+  - id: f8.30
+    content: "FAZA 8.30: Logging structurat in 4 scripturi Python critice infra. FISIERE: infra/scripts/cloudflare_sync_dns.py, staging_health_responder.py, staging_validate_ingress.py. REGULI: python3, JSON formatter."
+    status: pending
+  - id: f8.31
+    content: "FAZA 8.31 GAP SECURITY: Instrumentare refresh-token-store.ts. Redis error handler GOL, zero audit token consumption. FISIERE: apps/api/src/lib/refresh-token-store.ts. AUDIT FIRST: Citeste COMPLET. REGULI: NU loga token values (doar hash partial 8 chars). NU modifica token rotation."
+    status: pending
+  - id: f8.32
+    content: "FAZA 8.32 GAP SECURITY: Audit 401/403 in authz.ts. FISIERE: apps/api/src/middleware/authz.ts. AUDIT FIRST: Citeste COMPLET. REGULI: request.log.warn cu userId/requiredRoles/actualRole/endpoint. NU modifica RBAC."
+    status: pending
+  - id: f8.33
+    content: "FAZA 8.33: Log validare esuata in validation.ts. FISIERE: apps/api/src/middleware/validation.ts. AUDIT FIRST: Citeste COMPLET. REGULI: NU loga payload (PII). Log doar campuri invalide."
+    status: pending
+  - id: f8.34
+    content: "FAZA 8.34: Log tranzitii healthy/unhealthy in health.ts route. FISIERE: apps/api/src/routes/health.ts. AUDIT FIRST: Citeste COMPLET. REGULI: Log DOAR tranzitii, NU fiecare check."
+    status: pending
+  - id: f8.35
+    content: "FAZA 8.35: Log TENANT_MISSING/ACTOR_MISSING in routes/utils.ts. FISIERE: apps/api/src/routes/utils.ts. AUDIT FIRST: Citeste COMPLET. REGULI: request.log.warn INAINTE de throw."
+    status: pending
+  - id: f8.36
+    content: "FAZA 8.36: Try/catch cu logging in /metrics handler. FISIERE: apps/api/src/plugins/metrics.ts. AUDIT FIRST: Citeste COMPLET. REGULI: NU modifica definitii metrici."
+    status: pending
+  - id: f8.37
+    content: "FAZA 8.37 GAP CRITIC: window.onerror + unhandledrejection in AMBELE main.tsx. FISIERE: apps/web/src/main.tsx, apps/web-admin/src/main.tsx. REGULI: Limiteaza 5 erori/sesiune. NU arunca erori in handlers."
+    status: pending
+  - id: f8.38
+    content: "FAZA 8.38: Adauga ErrorBoundary in web-admin App.tsx (ZERO acum). FISIERE: apps/web-admin/src/App.tsx. AUDIT FIRST: Compara cu apps/web/src/App.tsx. REGULI: Wrap Routes cu ErrorBoundary."
+    status: pending
+  - id: f9.1
+    content: "FAZA 9.1: Documentare pattern logging pt workers noi E3-E5. Template cod + checklist. FISIERE: docs/developer-guide/patterns/worker-logging-pattern.md (NOU). REGULI: Exemple din cod REAL."
+    status: pending
+  - id: f9.2
+    content: "FAZA 9.2: Queue registry cu metadata etapa. FISIERE: workers/shared/src/queue-registry.ts (MODIFICAT). AUDIT FIRST: Citeste COMPLET. REGULI: NU modifica queue names."
+    status: pending
+  - id: f9.3
+    content: "FAZA 9.3: Worker factory auto-logging. createWorker() injecteaza createJobLogger automat. FISIERE: workers/shared/src/factory.ts (MODIFICAT). AUDIT FIRST: Citeste COMPLET. REGULI: NU modifica signatura. NU duplica logging in workers care au deja."
+    status: pending
+  - id: f10.1
+    content: "FAZA 10.1: ADR-0108 Enterprise Audit Logging. FISIERE: docs/adr/ (NOU). AUDIT FIRST: Citeste un ADR existent pt format. REGULI: NU inventa alternative."
+    status: pending
+  - id: f10.2
+    content: "FAZA 10.2: Teste unitare @cerniq/observability. 5 fisiere test. FISIERE: packages/observability/src/*.test.ts (NOI). AUDIT FIRST: Citeste vitest.config.ts. REGULI: Testeaza edge cases."
+    status: pending
+  - id: f10.3
+    content: "FAZA 10.3: Teste integrare audit trail end-to-end. API->correlationId->worker->job_log->audit_log. FISIERE: tests/ (NOU). AUDIT FIRST: Citeste e2e existente. REGULI: Teste cu DB+Redis reale."
+    status: pending
+isProject: false

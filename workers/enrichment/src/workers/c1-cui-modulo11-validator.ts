@@ -7,7 +7,12 @@ import {
   silverEnrichmentLog,
   sql,
 } from "@cerniq/db";
-import { enqueueImportJob, QUEUES, type ImportExecutionContext } from "@cerniq/worker-shared";
+import {
+  enqueueImportJob,
+  QUEUES,
+  type ImportExecutionContext,
+  withCognitiveSpan,
+} from "@cerniq/worker-shared";
 import { validateCuiModulo11 } from "../lib/cui-validation.js";
 import { createJobLogger } from "../lib/job-logger.js";
 
@@ -150,69 +155,79 @@ async function persistModulo11EnrichmentLog(
 }
 
 export const cuiModulo11ValidatorProcessor: Processor<CuiModulo11JobData> = async (job) => {
-  const startedAt = Date.now();
-  const batchId =
-    typeof job.data.batchId === "string" && job.data.batchId.length > 0
-      ? job.data.batchId
-      : undefined;
-  const log = createJobLogger({
-    batchId,
-    tenantId: job.data.tenantId,
-    workerName: "C1:cui-modulo11",
-    jobId: String(job.id ?? ""),
-    startedAt,
-  });
-  const contactLog = job.data.bronzeContactId ? log.forContact(job.data.bronzeContactId) : log;
+  return withCognitiveSpan(
+    "e1:validate:cui-mod11",
+    async (_span) => {
+      const startedAt = Date.now();
+      const batchId =
+        typeof job.data.batchId === "string" && job.data.batchId.length > 0
+          ? job.data.batchId
+          : undefined;
+      const log = createJobLogger({
+        batchId,
+        tenantId: job.data.tenantId,
+        workerName: "C1:cui-modulo11",
+        jobId: String(job.id ?? ""),
+        startedAt,
+      });
+      const contactLog = job.data.bronzeContactId ? log.forContact(job.data.bronzeContactId) : log;
 
-  contactLog.step("start", "Pornire validare CUI modulo-11", {
-    cui: job.data.cui,
-    bronzeContactId: job.data.bronzeContactId ?? null,
-  });
-
-  const result = validateCuiModulo11(job.data.cui);
-
-  if (result.isValid) {
-    contactLog.info(
-      "modulo11_valid",
-      `CUI ${job.data.cui} valid matematic (modulo-11) — trimis la confirmare ANAF (C2)`,
-      { cui: job.data.cui, cleaned: result.cleaned },
-    );
-  } else {
-    contactLog.error(
-      "modulo11_invalid",
-      `CUI ${job.data.cui} INVALID matematic (modulo-11) — contactul va fi blocat, nu va fi promovat`,
-      {
+      contactLog.step("start", "Pornire validare CUI modulo-11", {
         cui: job.data.cui,
+        bronzeContactId: job.data.bronzeContactId ?? null,
+      });
+
+      const result = validateCuiModulo11(job.data.cui);
+
+      if (result.isValid) {
+        contactLog.info(
+          "modulo11_valid",
+          `CUI ${job.data.cui} valid matematic (modulo-11) — trimis la confirmare ANAF (C2)`,
+          { cui: job.data.cui, cleaned: result.cleaned },
+        );
+      } else {
+        contactLog.error(
+          "modulo11_invalid",
+          `CUI ${job.data.cui} INVALID matematic (modulo-11) — contactul va fi blocat, nu va fi promovat`,
+          {
+            cui: job.data.cui,
+            reason: result.reason,
+            cleaned: result.cleaned,
+            companyId: job.data.companyId,
+            bronzeContactId: job.data.bronzeContactId,
+          },
+        );
+      }
+
+      await setSessionTenantId(job.data.tenantId);
+      await persistModulo11Validation(job.data, result);
+      await enqueueAnafValidation(job.data, result, batchId);
+
+      contactLog.done(
+        result.isValid ? "done" : "done_invalid",
+        "Validare CUI modulo-11 finalizată",
+        {
+          isValid: result.isValid,
+          cleanedCui: result.cleaned,
+          reason: result.reason,
+          nextStep: result.isValid ? "C2:cui-anaf-validator" : "blocked",
+        },
+      );
+
+      await persistModulo11EnrichmentLog(job.data, result, String(job.id ?? ""), startedAt);
+
+      return {
+        ok: true,
+        companyId: job.data.companyId ?? null,
+        bronzeContactId: job.data.bronzeContactId ?? null,
+        source: "modulo11",
+        isValid: result.isValid,
         reason: result.reason,
-        cleaned: result.cleaned,
-        companyId: job.data.companyId,
-        bronzeContactId: job.data.bronzeContactId,
-      },
-    );
-  }
-
-  await setSessionTenantId(job.data.tenantId);
-  await persistModulo11Validation(job.data, result);
-  await enqueueAnafValidation(job.data, result, batchId);
-
-  contactLog.done(result.isValid ? "done" : "done_invalid", "Validare CUI modulo-11 finalizată", {
-    isValid: result.isValid,
-    cleanedCui: result.cleaned,
-    reason: result.reason,
-    nextStep: result.isValid ? "C2:cui-anaf-validator" : "blocked",
-  });
-
-  await persistModulo11EnrichmentLog(job.data, result, String(job.id ?? ""), startedAt);
-
-  return {
-    ok: true,
-    companyId: job.data.companyId ?? null,
-    bronzeContactId: job.data.bronzeContactId ?? null,
-    source: "modulo11",
-    isValid: result.isValid,
-    reason: result.reason,
-    cleanedCui: result.cleaned,
-    checkDigit: result.checkDigit,
-    expectedCheckDigit: result.expectedCheckDigit,
-  };
+        cleanedCui: result.cleaned,
+        checkDigit: result.checkDigit,
+        expectedCheckDigit: result.expectedCheckDigit,
+      };
+    },
+    { tenantId: job.data.tenantId },
+  );
 };

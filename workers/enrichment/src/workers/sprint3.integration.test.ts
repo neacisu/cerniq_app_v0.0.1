@@ -55,6 +55,11 @@ describe("S3.PR8 integration - full pipeline Bronze -> Silver -> Gold", () => {
       },
       insert: vi.fn(() => ({ values: insertValues })),
       update: vi.fn(() => ({ set: setUpdate })),
+      select: vi.fn(() => ({
+        from: vi.fn(() => ({
+          where: vi.fn(async () => [{ count: 1 }]),
+        })),
+      })),
     };
 
     vi.doMock("@cerniq/db", () => ({
@@ -67,7 +72,8 @@ describe("S3.PR8 integration - full pipeline Bronze -> Silver -> Gold", () => {
     }));
     vi.doMock("@cerniq/worker-shared", () => ({
       validateJobData: vi.fn(),
-      goldCompaniesTotal: { inc: vi.fn() },
+      goldCompaniesTotal: { set: vi.fn(), inc: vi.fn() },
+      withCognitiveSpan: vi.fn(async (_name: string, fn: (s: null) => unknown) => fn(null)),
     }));
 
     const { promoteToGoldProcessor } = await import("./p2-promote-to-gold.js");
@@ -240,6 +246,7 @@ describe("S3.PR8 integration - HITL decision flow", () => {
         add: vi.fn(async () => undefined),
         close: vi.fn(async () => undefined),
       })),
+      withCognitiveSpan: vi.fn(async (_name: string, fn: (s: null) => unknown) => fn(null)),
       QUEUES: {
         PIPELINE_PROMOTE_BRONZE_SILVER: "pipeline:promote:bronze-silver",
         PIPELINE_PROMOTE_TO_GOLD: "pipeline:promote:to-gold",

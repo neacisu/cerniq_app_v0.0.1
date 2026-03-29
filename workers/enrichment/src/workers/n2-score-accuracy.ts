@@ -1,6 +1,6 @@
 import type { Processor } from "bullmq";
 import { db, setSessionTenantId, silverCompanies, silverEnrichmentLog, sql } from "@cerniq/db";
-import { createQueue, QUEUES } from "@cerniq/worker-shared";
+import { createQueue, QUEUES, withCognitiveSpan } from "@cerniq/worker-shared";
 import { validateCuiModulo11 } from "../lib/cui-validation.js";
 
 export type AccuracyJobData = {
@@ -49,46 +49,53 @@ function computeAccuracyScore(company: {
 }
 
 export const scoreAccuracyProcessor: Processor<AccuracyJobData> = async (job) => {
-  const startedAt = Date.now();
-  await setSessionTenantId(job.data.tenantId);
-  const company = await db.query.silverCompanies.findFirst({
-    where: (t, { and, eq }) => and(eq(t.tenantId, job.data.tenantId), eq(t.id, job.data.companyId)),
-  });
-  if (!company) return { ok: false, status: "not_found" };
+  return withCognitiveSpan(
+    "e1:score:accuracy",
+    async (_span) => {
+      const startedAt = Date.now();
+      await setSessionTenantId(job.data.tenantId);
+      const company = await db.query.silverCompanies.findFirst({
+        where: (t, { and, eq }) =>
+          and(eq(t.tenantId, job.data.tenantId), eq(t.id, job.data.companyId)),
+      });
+      if (!company) return { ok: false, status: "not_found" };
 
-  const { score, issues } = computeAccuracyScore(company);
+      const { score, issues } = computeAccuracyScore(company);
 
-  await db
-    .update(silverCompanies)
-    .set({
-      accuracyScore: String(score),
-      metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{qualityAccuracy}', ${JSON.stringify({ score, issues, calculatedAt: new Date().toISOString() })}::jsonb)`,
-      updatedAt: new Date(),
-    })
-    .where(sql`${silverCompanies.id} = ${job.data.companyId}`);
+      await db
+        .update(silverCompanies)
+        .set({
+          accuracyScore: String(score),
+          metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{qualityAccuracy}', ${JSON.stringify({ score, issues, calculatedAt: new Date().toISOString() })}::jsonb)`,
+          updatedAt: new Date(),
+        })
+        .where(sql`${silverCompanies.id} = ${job.data.companyId}`);
 
-  await db.insert(silverEnrichmentLog).values({
-    tenantId: job.data.tenantId,
-    entityType: "company",
-    entityId: job.data.companyId,
-    source: "score_accuracy",
-    operation: "score",
-    requestPayload: null,
-    responsePayload: { score, issues },
-    fieldsUpdated: ["accuracyScore", "metadata"],
-    correlationId: job.data.correlationId,
-    jobId: String(job.id ?? ""),
-    durationMs: Date.now() - startedAt,
-  });
+      await db.insert(silverEnrichmentLog).values({
+        tenantId: job.data.tenantId,
+        entityType: "company",
+        entityId: job.data.companyId,
+        source: "score_accuracy",
+        operation: "score",
+        requestPayload: null,
+        responsePayload: { score, issues },
+        fieldsUpdated: ["accuracyScore", "metadata"],
+        correlationId: job.data.correlationId,
+        jobId: String(job.id ?? ""),
+        durationMs: Date.now() - startedAt,
+      });
 
-  // Sequential scoring: accuracy -> freshness (spec: N.1 -> N.2 -> N.3)
-  const freshnessQueue = createQueue(QUEUES.SCORE_FRESHNESS);
-  await freshnessQueue.add("score", {
-    tenantId: job.data.tenantId,
-    companyId: job.data.companyId,
-    correlationId: job.data.correlationId,
-  });
-  await freshnessQueue.close();
+      // Sequential scoring: accuracy -> freshness (spec: N.1 -> N.2 -> N.3)
+      const freshnessQueue = createQueue(QUEUES.SCORE_FRESHNESS);
+      await freshnessQueue.add("score", {
+        tenantId: job.data.tenantId,
+        companyId: job.data.companyId,
+        correlationId: job.data.correlationId,
+      });
+      await freshnessQueue.close();
 
-  return { ok: true, status: "success", score, issues: issues.length };
+      return { ok: true, status: "success", score, issues: issues.length };
+    },
+    { tenantId: job.data.tenantId },
+  );
 };

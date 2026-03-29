@@ -1,4 +1,5 @@
 import { readdir, stat, unlink } from "node:fs/promises";
+import { withCognitiveSpan } from "@cerniq/worker-shared";
 import { join } from "node:path";
 import type { Processor } from "bullmq";
 import { bronzeImportBatches, db, eq, sql } from "@cerniq/db";
@@ -117,7 +118,7 @@ async function cleanupOrphanedFiles(cutoffMs: number) {
     try {
       const result = await tryDeleteOldFile(join(IMPORT_DIR, entry), cutoffMs);
       if (result === "deleted") fsDeleted++;
-      if (result !== "skipped" || result === "skipped") fsScanned++;
+      fsScanned++;
     } catch (err: unknown) {
       fsFailed++;
       const msg = errMsg(err);
@@ -129,28 +130,34 @@ async function cleanupOrphanedFiles(cutoffMs: number) {
 }
 
 export const importFileCleanupProcessor: Processor<ImportFileCleanupJobData> = async (job) => {
-  const retentionDays = job.data.olderThanDays ?? DEFAULT_RETENTION_DAYS;
-  const cutoffMs = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
-  const cutoff = new Date(cutoffMs);
+  return withCognitiveSpan(
+    "e1:maintenance:import-cleanup",
+    async (_span) => {
+      const retentionDays = job.data.olderThanDays ?? DEFAULT_RETENTION_DAYS;
+      const cutoffMs = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
+      const cutoff = new Date(cutoffMs);
 
-  const dbResult = await cleanupTrackedFiles(job.data.tenantId, cutoff);
-  const fsResult = await cleanupOrphanedFiles(cutoffMs);
+      const dbResult = await cleanupTrackedFiles(job.data.tenantId, cutoff);
+      const fsResult = await cleanupOrphanedFiles(cutoffMs);
 
-  const allErrors = [...dbResult.errors, ...fsResult.errors];
+      const allErrors = [...dbResult.errors, ...fsResult.errors];
 
-  console.log(
-    `[import-cleanup] done: db=${dbResult.deleted} deleted/${dbResult.scanned} scanned, fs=${fsResult.fsDeleted} deleted/${fsResult.fsScanned} scanned, retention=${retentionDays}d`,
+      console.log(
+        `[import-cleanup] done: db=${dbResult.deleted} deleted/${dbResult.scanned} scanned, fs=${fsResult.fsDeleted} deleted/${fsResult.fsScanned} scanned, retention=${retentionDays}d`,
+      );
+
+      return {
+        ok: true,
+        status: "success",
+        scanned: dbResult.scanned,
+        deleted: dbResult.deleted,
+        failed: dbResult.failed,
+        fsScanned: fsResult.fsScanned,
+        fsDeleted: fsResult.fsDeleted,
+        fsFailed: fsResult.fsFailed,
+        errors: allErrors.slice(0, 10),
+      };
+    },
+    { tenantId: job.data.tenantId },
   );
-
-  return {
-    ok: true,
-    status: "success",
-    scanned: dbResult.scanned,
-    deleted: dbResult.deleted,
-    failed: dbResult.failed,
-    fsScanned: fsResult.fsScanned,
-    fsDeleted: fsResult.fsDeleted,
-    fsFailed: fsResult.fsFailed,
-    errors: allErrors.slice(0, 10),
-  };
 };

@@ -252,6 +252,7 @@ describe("S2.PR8 integration - CSV -> Bronze -> Silver promotion", () => {
       })),
       sanitizeNrRegCom: vi.fn((value: string) => value),
       withExternalApiMetrics: vi.fn(async (_provider: string, fn: () => unknown) => fn()),
+      withCognitiveSpan: vi.fn(async (_name: string, fn: (s: null) => unknown) => fn(null)),
     }));
 
     const mockFetch = vi.fn(async () => ({
@@ -313,6 +314,11 @@ describe("S2.PR8 integration - Termene mock", () => {
         profit_net: 125000,
         numar_angajati: 22,
       })),
+    }));
+
+    vi.doMock("@cerniq/worker-shared", () => ({
+      importMutationTotal: { inc: vi.fn() },
+      withCognitiveSpan: vi.fn(async (_name: string, fn: (s: null) => unknown) => fn(null)),
     }));
 
     const { termeneBalanceProcessor } = await import("./e1-termene-balance.js");

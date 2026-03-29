@@ -8,16 +8,24 @@
  * - Phone Quarantine       — triggered on BANNED or reputation < 20
  * - Phone Reputation       — score 0-100, factors: delivery+reply-bounce-block
  */
-import { Worker, Job, Queue } from "bullmq";
-import { Redis } from "ioredis";
-import { QUEUES } from "@cerniq/worker-shared";
+import type { Job, Worker } from "bullmq";
+import { QUEUES, createWorker, createQueue, outreachPhoneStatus } from "@cerniq/worker-shared";
 import type { AccountStatusResponse } from "@cerniq/integrations";
 import { getTimelinesAIClient } from "@cerniq/integrations";
 import { phoneStatusEnum } from "@cerniq/db";
-import { asBullmqConnection } from "../utils/bullmq-connection.js";
 
 /** Valori `phone_status_enum` din DB (sursă: `outreach-enums.ts`). */
 type WaPhoneRowStatus = (typeof phoneStatusEnum.enumValues)[number];
+
+const logger = {
+  error(bindings: Record<string, unknown> & { err: unknown }, message: string): void {
+    const { err, ...ctx } = bindings;
+    console.error(`[phone-monitoring] ${message}`, {
+      ...ctx,
+      err: err instanceof Error ? { message: err.message, stack: err.stack } : err,
+    });
+  },
+};
 
 /**
  * TimelinesAI raportează `DISCONNECTED`; în Postgres folosim `OFFLINE` (ADR / schema outreach).
@@ -52,6 +60,11 @@ const PHONE_OFFLINE_ALERT_AFTER_MINUTES = 30; // Alert after 30 min offline
 
 export interface PhoneHealthCheckJobData {
   tenantId: string;
+  phoneId?: string;
+  traceId?: string;
+  causationKey?: string;
+  sourceEndpoint?: string;
+  actorId?: string;
 }
 
 export interface PhoneHealthCheckResult {
@@ -96,12 +109,11 @@ export interface PhoneReputationResult {
 // Pings TimelinesAI for each enabled phone; alerts if offline
 // =============================================================================
 
-export function createPhoneHealthMonitorWorker(redis: Redis): Worker {
-  const connection = asBullmqConnection(redis);
-  const alertQueue = new Queue(QUEUES.ALERT_PHONE_OFFLINE, { connection });
-  const bannedAlertQueue = new Queue(QUEUES.ALERT_PHONE_BANNED, { connection });
+export function createPhoneHealthMonitorWorker(): Worker {
+  const alertQueue = createQueue(QUEUES.ALERT_PHONE_OFFLINE);
+  const bannedAlertQueue = createQueue(QUEUES.ALERT_PHONE_BANNED);
 
-  return new Worker(
+  const { worker } = createWorker(
     QUEUES.MONITOR_PHONE_HEALTH,
     async (job: Job<PhoneHealthCheckJobData>): Promise<PhoneHealthCheckResult> => {
       const { tenantId } = job.data;
@@ -145,30 +157,54 @@ export function createPhoneHealthMonitorWorker(redis: Redis): Worker {
               .where(eq(waPhoneNumbers.id, phone.id));
 
             if (newStatus === "BANNED") {
+              const bannedAt = new Date().toISOString();
               await bannedAlertQueue.add(
                 "banned",
-                { tenantId, phoneId: phone.id, phoneNumber: phone.phoneNumber },
+                {
+                  tenantId,
+                  phoneId: phone.id,
+                  phoneNumber: phone.phoneNumber,
+                  reason: "BANNED",
+                  bannedAt,
+                },
                 { priority: 1 },
               );
               alerts.push(`BANNED:${phone.id}`);
             } else if (newStatus === "OFFLINE" && phone.status === "ACTIVE") {
+              const offlineSince = new Date().toISOString();
               await alertQueue.add(
                 "offline",
-                { tenantId, phoneId: phone.id, offlineSince: new Date().toISOString() },
+                {
+                  tenantId,
+                  phoneId: phone.id,
+                  phoneNumber: phone.phoneNumber,
+                  offlineSince,
+                  status: "OFFLINE",
+                  message: `WhatsApp phone ${phone.phoneNumber} (${phone.id}) reported OFFLINE; was ACTIVE until ${offlineSince}`,
+                },
                 { delay: PHONE_OFFLINE_ALERT_AFTER_MINUTES * 60 * 1000, priority: 2 },
               );
               alerts.push(`OFFLINE:${phone.id}`);
             }
+            outreachPhoneStatus.set(
+              { phone_id: phone.id, status: newStatus, tenant_id: tenantId },
+              newStatus === "ACTIVE" ? 1 : 0,
+            );
           }
-        } catch {
+        } catch (err) {
+          logger.error(
+            { err, tenantId, phoneId: phone.id, context: "monitor:phone:health" },
+            "Health check failed for phone",
+          );
           alerts.push(`ERROR:${phone.id}`);
         }
       }
 
       return { checked: phones.length, alerts };
     },
-    { connection, concurrency: 5 },
+    { concurrency: 5 },
   );
+  return worker;
 }
 
 // =============================================================================
@@ -178,9 +214,8 @@ export function createPhoneHealthMonitorWorker(redis: Redis): Worker {
 // Status enum EXACT: ACTIVE, PAUSED, OFFLINE, BANNED, RECONNECTING
 // =============================================================================
 
-export function createPhoneStatusSyncWorker(redis: Redis): Worker {
-  const connection = asBullmqConnection(redis);
-  return new Worker(
+export function createPhoneStatusSyncWorker(): Worker {
+  const { worker } = createWorker(
     QUEUES.WA_STATUS_SYNC,
     async (job: Job<PhoneStatusSyncJobData>): Promise<{ synced: number }> => {
       const { tenantId } = job.data;
@@ -217,15 +252,19 @@ export function createPhoneStatusSyncWorker(redis: Redis): Worker {
               .where(eq(waPhoneNumbers.id, phone.id));
           }
           synced++;
-        } catch {
-          // Log but continue with other phones
+        } catch (err) {
+          logger.error(
+            { err, tenantId, phoneId: phone.id, context: "wa:status:sync" },
+            "Status sync failed for phone",
+          );
         }
       }
 
       return { synced };
     },
-    { connection, concurrency: 5 },
+    { concurrency: 5 },
   );
+  return worker;
 }
 
 // =============================================================================
@@ -234,11 +273,10 @@ export function createPhoneStatusSyncWorker(redis: Redis): Worker {
 // Sets is_enabled=false, redistributes leads
 // =============================================================================
 
-export function createPhoneQuarantineWorker(redis: Redis): Worker {
-  const connection = asBullmqConnection(redis);
-  const allocatorQueue = new Queue(QUEUES.OUTREACH_PHONE_ALLOCATOR, { connection });
+export function createPhoneQuarantineWorker(): Worker {
+  const allocatorQueue = createQueue(QUEUES.OUTREACH_PHONE_ALLOCATOR);
 
-  return new Worker(
+  const { worker } = createWorker(
     QUEUES.ALERT_PHONE_BANNED, // reuses alert queue as trigger mechanism
     async (job: Job<PhoneQuarantineJobData>): Promise<void> => {
       const { tenantId, phoneId, reason } = job.data;
@@ -285,8 +323,9 @@ export function createPhoneQuarantineWorker(redis: Redis): Worker {
         );
       }
     },
-    { connection, concurrency: 5 },
+    { concurrency: 5 },
   );
+  return worker;
 }
 
 // =============================================================================
@@ -298,11 +337,10 @@ export function createPhoneQuarantineWorker(redis: Redis): Worker {
 
 /** Logica reutilizabilă — un singur worker BullMQ pe `MONITOR_QUOTA_USAGE` (merge cu stats). */
 export async function executePhoneReputationJob(
-  redis: Redis,
+  _redis: unknown,
   job: Job<PhoneReputationJobData>,
 ): Promise<PhoneReputationResult> {
-  const connection = asBullmqConnection(redis);
-  const quarantineQueue = new Queue(QUEUES.ALERT_PHONE_BANNED, { connection });
+  const quarantineQueue = createQueue(QUEUES.ALERT_PHONE_BANNED);
 
   const { tenantId, phoneId, windowHours = 24 } = job.data;
 

@@ -23,8 +23,55 @@ mkdirSync(resultsDir, { recursive: true });
 const summary = [];
 let failed = false;
 
+{
+  const outputFile = path.join(resultsDir, "root-plan-contracts.json");
+  const result = spawnSync(
+    "pnpm",
+    [
+      "exec",
+      "vitest",
+      "run",
+      "tests/plans",
+      "--reporter=json",
+      `--outputFile=${outputFile}`,
+    ],
+    {
+      cwd: rootDir,
+      stdio: "inherit",
+      env: {
+        ...process.env,
+        CI: "1",
+      },
+    },
+  );
+
+  const entry = {
+    package: "@root/plan-contracts",
+    outputFile: path.relative(rootDir, outputFile),
+    exitCode: result.status ?? 1,
+  };
+
+  if (result.status === 0) {
+    try {
+      const report = JSON.parse(readFileSync(outputFile, "utf-8"));
+      summary.push({
+        ...entry,
+        numTotalTests: report.numTotalTests ?? null,
+        numPassedTests: report.numPassedTests ?? null,
+        numFailedTests: report.numFailedTests ?? null,
+        success: report.success ?? result.status === 0,
+      });
+    } catch {
+      summary.push(entry);
+    }
+  } else {
+    failed = true;
+    summary.push(entry);
+  }
+}
+
 for (const pkg of packages) {
-  const safeName = pkg.replace(/^@/, "").replace(/\//g, "-");
+  const safeName = pkg.replace(/^@/, "").replaceAll("/", "-");
   const outputFile = path.join(resultsDir, `${safeName}.json`);
   const args = [
     "--filter",
@@ -51,22 +98,21 @@ for (const pkg of packages) {
     exitCode: result.status ?? 1,
   };
 
-  if (result.status !== 0) {
+  if (result.status === 0) {
+    try {
+      const report = JSON.parse(readFileSync(outputFile, "utf-8"));
+      summary.push({
+        ...entry,
+        numTotalTests: report.numTotalTests ?? null,
+        numPassedTests: report.numPassedTests ?? null,
+        numFailedTests: report.numFailedTests ?? null,
+        success: report.success ?? result.status === 0,
+      });
+    } catch {
+      summary.push(entry);
+    }
+  } else {
     failed = true;
-    summary.push(entry);
-    continue;
-  }
-
-  try {
-    const report = JSON.parse(readFileSync(outputFile, "utf-8"));
-    summary.push({
-      ...entry,
-      numTotalTests: report.numTotalTests ?? null,
-      numPassedTests: report.numPassedTests ?? null,
-      numFailedTests: report.numFailedTests ?? null,
-      success: report.success ?? result.status === 0,
-    });
-  } catch {
     summary.push(entry);
   }
 }

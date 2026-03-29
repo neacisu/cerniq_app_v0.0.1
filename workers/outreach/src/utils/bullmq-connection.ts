@@ -8,6 +8,8 @@
 import type { ConnectionOptions } from "bullmq";
 import type { Redis } from "ioredis";
 
+export type { Redis } from "ioredis";
+
 export function asBullmqConnection(redis: Redis): ConnectionOptions {
   return redis as unknown as ConnectionOptions;
 }

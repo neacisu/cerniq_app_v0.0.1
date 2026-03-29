@@ -1,7 +1,11 @@
 import Papa from "papaparse";
 import type { Processor } from "bullmq";
 import { bronzeImportBatches, db, sql } from "@cerniq/db";
-import { updateImportRuntimeProgress, type ImportExecutionContext } from "@cerniq/worker-shared";
+import {
+  updateImportRuntimeProgress,
+  type ImportExecutionContext,
+  withCognitiveSpan,
+} from "@cerniq/worker-shared";
 import { jobsProcessed, jobDuration, jobErrors } from "../lib/worker-metrics.js";
 import { createJobLogger } from "../lib/job-logger.js";
 import { type JobLogger } from "../lib/job-logger.js";
@@ -542,11 +546,17 @@ async function detectFileEncoding(filePath: string): Promise<string> {
 }
 
 export const csvParserProcessor: Processor<CsvParserJobData> = async (job) => {
-  const startedAt = Date.now();
-  const useStreaming = await shouldUseStreaming(job.data);
+  return withCognitiveSpan(
+    "e1:ingest:csv",
+    async (_span) => {
+      const startedAt = Date.now();
+      const useStreaming = await shouldUseStreaming(job.data);
 
-  const result = useStreaming ? await parseLargeFileStreaming(job) : await parseSmallFile(job);
-  jobsProcessed.add(1, { worker: "a1-csv-parser", status: "success" });
-  jobDuration.record(Date.now() - startedAt, { worker: "a1-csv-parser" });
-  return result;
+      const result = useStreaming ? await parseLargeFileStreaming(job) : await parseSmallFile(job);
+      jobsProcessed.add(1, { worker: "a1-csv-parser", status: "success" });
+      jobDuration.record(Date.now() - startedAt, { worker: "a1-csv-parser" });
+      return result;
+    },
+    { tenantId: job.data.tenantId },
+  );
 };

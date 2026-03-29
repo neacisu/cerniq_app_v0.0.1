@@ -44,6 +44,7 @@ describe("S4 integration - quality rollup", () => {
         add: vi.fn(async () => undefined),
         close: vi.fn(async () => undefined),
       })),
+      withCognitiveSpan: vi.fn(async (_name: string, fn: (s: null) => unknown) => fn(null)),
       QUEUES: {
         PIPELINE_PROMOTE_TO_GOLD: "pipeline:promote:to-gold",
         PIPELINE_ORCHESTRATE: "pipeline:orchestrate",
@@ -98,6 +99,7 @@ describe("S4 integration - orchestrator", () => {
       validateJobData: vi.fn(),
       silverEnrichmentDurationSeconds: { observe: vi.fn() },
       silverEnrichmentErrorsTotal: { inc: vi.fn() },
+      withCognitiveSpan: vi.fn(async (_name: string, fn: (s: null) => unknown) => fn(null)),
     }));
     vi.doMock("./pipeline-utils.js", () => ({ addQueueJob: add }));
 
@@ -140,6 +142,7 @@ describe("S4 integration - error handler replay", () => {
         add,
         close: vi.fn(async () => undefined),
       })),
+      withCognitiveSpan: vi.fn(async (_name: string, fn: (s: null) => unknown) => fn(null)),
     }));
     vi.doMock("./pipeline-utils.js", () => ({ createHitlApprovalTask: vi.fn(async () => "a1") }));
 
@@ -239,6 +242,7 @@ describe("S4 integration - HITL resume worker", () => {
         add: vi.fn(async () => undefined),
         close: vi.fn(async () => undefined),
       })),
+      withCognitiveSpan: vi.fn(async (_name: string, fn: (s: null) => unknown) => fn(null)),
       QUEUES: {
         PIPELINE_PROMOTE_TO_GOLD: "pipeline:promote:to-gold",
         PIPELINE_ORCHESTRATE: "pipeline:orchestrate",

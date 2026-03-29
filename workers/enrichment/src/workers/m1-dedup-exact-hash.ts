@@ -1,4 +1,5 @@
 import type { Processor } from "bullmq";
+import { withCognitiveSpan } from "@cerniq/worker-shared";
 
 import {
   db,
@@ -136,117 +137,124 @@ async function findExactMatches(
 }
 
 export const dedupExactHashProcessor: Processor<DedupExactJobData> = async (job) => {
-  const startedAt = Date.now();
-  await setSessionTenantId(job.data.tenantId);
+  return withCognitiveSpan(
+    "e1:dedup:exact",
+    async (_span) => {
+      const startedAt = Date.now();
+      await setSessionTenantId(job.data.tenantId);
 
-  const company = await db.query.silverCompanies.findFirst({
-    where: (t, { and, eq }) => and(eq(t.tenantId, job.data.tenantId), eq(t.id, job.data.companyId)),
-  });
-  if (!company) return { ok: true, status: "skipped", reason: "not_found" };
+      const company = await db.query.silverCompanies.findFirst({
+        where: (t, { and, eq }) =>
+          and(eq(t.tenantId, job.data.tenantId), eq(t.id, job.data.companyId)),
+      });
+      if (!company) return { ok: true, status: "skipped", reason: "not_found" };
 
-  const hasIdentifier = company.cui || company.nrRegCom || company.email || company.telefon;
-  if (!hasIdentifier) return { ok: true, status: "skipped", reason: "no_identifiers" };
+      const hasIdentifier = company.cui || company.nrRegCom || company.email || company.telefon;
+      if (!hasIdentifier) return { ok: true, status: "skipped", reason: "no_identifiers" };
 
-  const matches = await findExactMatches(
-    job.data.tenantId,
-    job.data.companyId,
-    company.cui,
-    company.nrRegCom,
-    company.email,
-    company.telefon,
-  );
+      const matches = await findExactMatches(
+        job.data.tenantId,
+        job.data.companyId,
+        company.cui,
+        company.nrRegCom,
+        company.email,
+        company.telefon,
+      );
 
-  if (matches.length === 0) return { ok: true, status: "unique" };
+      if (matches.length === 0) return { ok: true, status: "unique" };
 
-  const best = matches[0];
-  const duplicate = await db.query.silverCompanies.findFirst({
-    where: (t, { eq }) => eq(t.id, best.matchedCompanyId),
-  });
-  if (!duplicate) return { ok: true, status: "unique" };
+      const best = matches[0];
+      const duplicate = await db.query.silverCompanies.findFirst({
+        where: (t, { eq }) => eq(t.id, best.matchedCompanyId),
+      });
+      if (!duplicate) return { ok: true, status: "unique" };
 
-  const allRecords = [company, duplicate].sort(
-    (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
-  );
-  const master = allRecords[0];
-  const slave = allRecords[1];
+      const allRecords = [company, duplicate].sort(
+        (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
+      );
+      const master = allRecords[0];
+      const slave = allRecords[1];
 
-  const isAutoMerge = best.matchType === "cui" || best.matchType === "nrRegCom";
+      const isAutoMerge = best.matchType === "cui" || best.matchType === "nrRegCom";
 
-  await db.insert(silverDedupCandidates).values({
-    tenantId: job.data.tenantId,
-    companyAId: master.id,
-    companyBId: slave.id,
-    cuiMatch: best.matchType === "cui",
-    phoneMatch: best.matchType === "phone",
-    overallConfidence: "1",
-    status: isAutoMerge ? "auto_merged" : "hitl_pending",
-    masterCompanyId: master.id,
-    matchingFields: { method: "exact", type: best.matchType, value: best.matchValue },
-    metadata: { method: `exact_${best.matchType}`, allMatches: matches },
-  });
+      await db.insert(silverDedupCandidates).values({
+        tenantId: job.data.tenantId,
+        companyAId: master.id,
+        companyBId: slave.id,
+        cuiMatch: best.matchType === "cui",
+        phoneMatch: best.matchType === "phone",
+        overallConfidence: "1",
+        status: isAutoMerge ? "auto_merged" : "hitl_pending",
+        masterCompanyId: master.id,
+        matchingFields: { method: "exact", type: best.matchType, value: best.matchValue },
+        metadata: { method: `exact_${best.matchType}`, allMatches: matches },
+      });
 
-  if (isAutoMerge) {
-    await db
-      .update(silverCompanies)
-      .set({
-        dedupStatus: "auto_merged",
-        isMasterRecord: false,
-        masterRecordId: master.id,
-        duplicateConfidence: "1",
-        mergeHistory: sql`COALESCE(${silverCompanies.mergeHistory}, '[]'::jsonb) || ${JSON.stringify(
-          [
-            {
-              masterCompanyId: master.id,
-              matchType: best.matchType,
-              matchValue: best.matchValue,
-              mergedAt: new Date().toISOString(),
-            },
-          ],
-        )}::jsonb`,
-        updatedAt: new Date(),
-      })
-      .where(sql`${silverCompanies.id} = ${slave.id}`);
-  } else {
-    await db
-      .update(silverCompanies)
-      .set({
-        dedupStatus: "hitl_pending",
-        duplicateConfidence: best.matchType === "email" ? "0.8" : "0.7",
-        updatedAt: new Date(),
-      })
-      .where(sql`${silverCompanies.id} = ${slave.id}`);
-  }
+      if (isAutoMerge) {
+        await db
+          .update(silverCompanies)
+          .set({
+            dedupStatus: "auto_merged",
+            isMasterRecord: false,
+            masterRecordId: master.id,
+            duplicateConfidence: "1",
+            mergeHistory: sql`COALESCE(${silverCompanies.mergeHistory}, '[]'::jsonb) || ${JSON.stringify(
+              [
+                {
+                  masterCompanyId: master.id,
+                  matchType: best.matchType,
+                  matchValue: best.matchValue,
+                  mergedAt: new Date().toISOString(),
+                },
+              ],
+            )}::jsonb`,
+            updatedAt: new Date(),
+          })
+          .where(sql`${silverCompanies.id} = ${slave.id}`);
+      } else {
+        await db
+          .update(silverCompanies)
+          .set({
+            dedupStatus: "hitl_pending",
+            duplicateConfidence: best.matchType === "email" ? "0.8" : "0.7",
+            updatedAt: new Date(),
+          })
+          .where(sql`${silverCompanies.id} = ${slave.id}`);
+      }
 
-  await db.insert(silverEnrichmentLog).values({
-    tenantId: job.data.tenantId,
-    entityType: "company",
-    entityId: job.data.companyId,
-    source: "dedup_exact",
-    operation: "deduplicate",
-    status: "success",
-    requestPayload: { cui: company.cui, email: company.email, telefon: company.telefon },
-    responsePayload: {
-      masterCompanyId: master.id,
-      mergedCompanyId: isAutoMerge ? slave.id : null,
-      matchType: best.matchType,
-      decision: isAutoMerge ? "auto_merge" : "hitl_pending",
+      await db.insert(silverEnrichmentLog).values({
+        tenantId: job.data.tenantId,
+        entityType: "company",
+        entityId: job.data.companyId,
+        source: "dedup_exact",
+        operation: "deduplicate",
+        status: "success",
+        requestPayload: { cui: company.cui, email: company.email, telefon: company.telefon },
+        responsePayload: {
+          masterCompanyId: master.id,
+          mergedCompanyId: isAutoMerge ? slave.id : null,
+          matchType: best.matchType,
+          decision: isAutoMerge ? "auto_merge" : "hitl_pending",
+        },
+        fieldsUpdated: [
+          "dedupStatus",
+          "isMasterRecord",
+          "masterRecordId",
+          "duplicateConfidence",
+          "mergeHistory",
+        ],
+        correlationId: job.data.correlationId,
+        jobId: String(job.id ?? ""),
+        durationMs: Date.now() - startedAt,
+      });
+
+      return {
+        ok: true,
+        status: isAutoMerge ? "merged" : "hitl_pending",
+        masterId: master.id,
+        matchType: best.matchType,
+      };
     },
-    fieldsUpdated: [
-      "dedupStatus",
-      "isMasterRecord",
-      "masterRecordId",
-      "duplicateConfidence",
-      "mergeHistory",
-    ],
-    correlationId: job.data.correlationId,
-    jobId: String(job.id ?? ""),
-    durationMs: Date.now() - startedAt,
-  });
-
-  return {
-    ok: true,
-    status: isAutoMerge ? "merged" : "hitl_pending",
-    masterId: master.id,
-    matchType: best.matchType,
-  };
+    { tenantId: job.data.tenantId },
+  );
 };

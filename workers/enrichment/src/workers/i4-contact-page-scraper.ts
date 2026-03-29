@@ -1,6 +1,6 @@
 import type { Processor } from "bullmq";
 import { db, setSessionTenantId, silverCompanies, silverEnrichmentLog, sql } from "@cerniq/db";
-import { createCircuitBreaker } from "@cerniq/worker-shared";
+import { createCircuitBreaker, withCognitiveSpan } from "@cerniq/worker-shared";
 
 export type ContactPageScraperJobData = {
   tenantId: string;
@@ -53,82 +53,88 @@ const contactPageBreaker = createCircuitBreaker(
 );
 
 export const contactPageScraperProcessor: Processor<ContactPageScraperJobData> = async (job) => {
-  const startedAt = Date.now();
-  await setSessionTenantId(job.data.tenantId);
+  return withCognitiveSpan(
+    "e1:scrape:website-contact",
+    async (_span) => {
+      const startedAt = Date.now();
+      await setSessionTenantId(job.data.tenantId);
 
-  const base = job.data.websiteUrl.replace(/\/+$/, "");
-  const paths = ["/contact", "/contacte", "/contact-us", "/despre-noi", "/about", "/"];
+      const base = job.data.websiteUrl.replace(/\/+$/, "");
+      const paths = ["/contact", "/contacte", "/contact-us", "/despre-noi", "/about", "/"];
 
-  let found: {
-    emails: string[];
-    phones: string[];
-    address: string | null;
-    sourceUrl: string;
-  } | null = null;
-  for (const path of paths) {
-    const url = `${base}${path}`;
-    try {
-      const extracted = await contactPageBreaker.fire(url);
-      if (
-        extracted &&
-        (extracted.emails.length > 0 || extracted.phones.length > 0 || extracted.address)
-      ) {
-        found = { ...extracted, sourceUrl: url };
-        break;
+      let found: {
+        emails: string[];
+        phones: string[];
+        address: string | null;
+        sourceUrl: string;
+      } | null = null;
+      for (const path of paths) {
+        const url = `${base}${path}`;
+        try {
+          const extracted = await contactPageBreaker.fire(url);
+          if (
+            extracted &&
+            (extracted.emails.length > 0 || extracted.phones.length > 0 || extracted.address)
+          ) {
+            found = { ...extracted, sourceUrl: url };
+            break;
+          }
+        } catch {
+          // try next path
+        }
       }
-    } catch {
-      // try next path
-    }
-  }
 
-  if (!found) return { ok: true, status: "no_contact_info", source: "contact_scraper" };
+      if (!found) return { ok: true, status: "no_contact_info", source: "contact_scraper" };
 
-  const mainEmail =
-    found.emails.find(
-      (e) => !e.toLowerCase().startsWith("info@") && !e.toLowerCase().startsWith("contact@"),
-    ) ??
-    found.emails[0] ??
-    null;
-  const mainPhone = found.phones[0] ?? null;
+      const mainEmail =
+        found.emails.find(
+          (e) => !e.toLowerCase().startsWith("info@") && !e.toLowerCase().startsWith("contact@"),
+        ) ??
+        found.emails[0] ??
+        null;
+      const mainPhone = found.phones[0] ?? null;
 
-  await db
-    .update(silverCompanies)
-    .set({
-      email: mainEmail ?? undefined,
-      telefon: mainPhone ?? undefined,
-      adresa: found.address ?? undefined,
-      metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{contactScraper}', ${JSON.stringify(
-        {
-          sourceUrl: found.sourceUrl,
-          emails: found.emails,
-          phones: found.phones,
-          address: found.address,
-          scrapedAt: new Date().toISOString(),
-        },
-      )}::jsonb)`,
-      lastEnrichedAt: new Date(),
-    })
-    .where(sql`${silverCompanies.id} = ${job.data.companyId}`);
+      await db
+        .update(silverCompanies)
+        .set({
+          email: mainEmail ?? undefined,
+          telefon: mainPhone ?? undefined,
+          adresa: found.address ?? undefined,
+          metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{contactScraper}', ${JSON.stringify(
+            {
+              sourceUrl: found.sourceUrl,
+              emails: found.emails,
+              phones: found.phones,
+              address: found.address,
+              scrapedAt: new Date().toISOString(),
+            },
+          )}::jsonb)`,
+          lastEnrichedAt: new Date(),
+        })
+        .where(sql`${silverCompanies.id} = ${job.data.companyId}`);
 
-  await db.insert(silverEnrichmentLog).values({
-    tenantId: job.data.tenantId,
-    entityType: "company",
-    entityId: job.data.companyId,
-    source: "contact_scraper",
-    operation: "scrape",
-    requestPayload: { websiteUrl: job.data.websiteUrl },
-    responsePayload: found,
-    fieldsUpdated: ["email", "telefon", "adresa", "metadata"],
-    correlationId: job.data.correlationId,
-    jobId: String(job.id ?? ""),
-    durationMs: Date.now() - startedAt,
-  });
+      await db.insert(silverEnrichmentLog).values({
+        tenantId: job.data.tenantId,
+        entityType: "company",
+        entityId: job.data.companyId,
+        source: "contact_scraper",
+        operation: "scrape",
+        requestPayload: { websiteUrl: job.data.websiteUrl },
+        responsePayload: found,
+        fieldsUpdated: ["email", "telefon", "adresa", "metadata"],
+        correlationId: job.data.correlationId,
+        jobId: String(job.id ?? ""),
+        durationMs: Date.now() - startedAt,
+      });
 
-  return {
-    ok: true,
-    status: "success",
-    source: "contact_scraper",
-    emailsFound: found.emails.length,
-    phonesFound: found.phones.length,
-  };
+      return {
+        ok: true,
+        status: "success",
+        source: "contact_scraper",
+        emailsFound: found.emails.length,
+        phonesFound: found.phones.length,
+      };
+    },
+    { tenantId: job.data.tenantId },
+  );
 };

@@ -28,7 +28,11 @@ import {
   sanitizeNrRegCom,
   QUEUES,
   validateJobData,
+  pipelineStageDurationSeconds,
+  importMutationTotal,
   type ImportExecutionContext,
+  withCognitiveSpan,
+  recordDataMutation,
 } from "@cerniq/worker-shared";
 import { sanitizeCui } from "../lib/cui-validation.js";
 import { normalizeRow } from "./ingest-utils.js";
@@ -65,11 +69,7 @@ const JOB_HEARTBEAT_MIN_INTERVAL_MS = 10_000;
 const JOB_HEARTBEAT_CONTACT_INTERVAL = 25;
 
 const NEXT_ENRICHMENT_QUEUES = [
-  QUEUES.ENRICH_ANAF_FISCAL_STATUS,
-  QUEUES.ENRICH_ANAF_TVA_STATUS,
-  QUEUES.ENRICH_ANAF_EFACTURA,
-  QUEUES.ENRICH_ANAF_DATORII,
-  QUEUES.ENRICH_ANAF_CAEN,
+  QUEUES.ENRICH_ANAF_FULL,
   QUEUES.ENRICH_TERMENE_BALANCE,
   QUEUES.ENRICH_TERMENE_RISK,
   QUEUES.ENRICH_TERMENE_DOSARE,
@@ -82,11 +82,7 @@ const NEXT_ENRICHMENT_QUEUES = [
 ] as const;
 
 const NEXT_ENRICHMENT_WORKER_BY_QUEUE: Record<(typeof NEXT_ENRICHMENT_QUEUES)[number], string> = {
-  [QUEUES.ENRICH_ANAF_FISCAL_STATUS]: "D1:anaf-fiscal-status",
-  [QUEUES.ENRICH_ANAF_TVA_STATUS]: "D2:anaf-tva-status",
-  [QUEUES.ENRICH_ANAF_EFACTURA]: "D3:anaf-efactura",
-  [QUEUES.ENRICH_ANAF_DATORII]: "D4:anaf-datorii",
-  [QUEUES.ENRICH_ANAF_CAEN]: "D5:anaf-caen",
+  [QUEUES.ENRICH_ANAF_FULL]: "D0:anaf-full-fetch",
   [QUEUES.ENRICH_TERMENE_BALANCE]: "E1:termene-balance",
   [QUEUES.ENRICH_TERMENE_RISK]: "E2:termene-risk",
   [QUEUES.ENRICH_TERMENE_DOSARE]: "E3:termene-dosare",
@@ -2512,6 +2508,19 @@ async function handleCompanyPromotion(args: {
     importExecution: jobData.importExecution ?? null,
   });
 
+  if (bronze.createdAt) {
+    const stageDuration = (Date.now() - new Date(bronze.createdAt).getTime()) / 1000;
+    pipelineStageDurationSeconds.observe(
+      { stage: "bronze_to_silver", tenant_id: jobData.tenantId },
+      stageDuration,
+    );
+  }
+  importMutationTotal.inc({
+    operation: existingSilver ? "update" : "insert",
+    table: "silver_companies",
+    tenant_id: jobData.tenantId,
+  });
+
   contactLog.step(
     "done",
     `Contact promovat cu succes în silver — ${NEXT_ENRICHMENT_QUEUES.length} cozi de enrichment declanșate`,
@@ -2853,98 +2862,116 @@ async function handleTermeneDosareDetail(args: {
 export const promotionBronzeSilverProcessor: Processor<PromotionBronzeSilverJobData> = async (
   job,
 ) => {
-  const startedAt = Date.now();
-  validateJobData(promotionBronzeSilverJobDataSchema, job.data, {
-    queueName: QUEUES.PIPELINE_PROMOTE_BRONZE_SILVER,
-    jobId: job.id,
-  });
-  await setSessionTenantId(job.data.tenantId);
+  return withCognitiveSpan(
+    "e1:pipeline:promote-bronze-silver",
+    async (_span) => {
+      const startedAt = Date.now();
+      validateJobData(promotionBronzeSilverJobDataSchema, job.data, {
+        queueName: QUEUES.PIPELINE_PROMOTE_BRONZE_SILVER,
+        jobId: job.id,
+      });
+      await setSessionTenantId(job.data.tenantId);
 
-  // Batch reprocess mode: no per-contact logging here, handled inside handleBatchReprocess
-  if (job.data.batchId && !job.data.bronzeContactId) {
-    const log = createJobLogger({
-      batchId: job.data.batchId,
-      tenantId: job.data.tenantId,
-      workerName: "promotion:bronze-silver",
-      jobId: String(job.id ?? ""),
-      startedAt,
-    });
-    log.step("batch_reprocess_start", `Reprocesare batch ${job.data.batchId} declanșată`, {
-      batchId: job.data.batchId,
-      errorsOnly: job.data.reprocessErrorsOnly ?? false,
-    });
-    const result = await handleBatchReprocessJob(job, job.data);
-    log.step("batch_reprocess_done", `Reprocesare batch finalizată`, {
-      ...result,
-      durationMs: Date.now() - startedAt,
-    });
-    return result;
-  }
+      // Batch reprocess mode: no per-contact logging here, handled inside handleBatchReprocess
+      if (job.data.batchId && !job.data.bronzeContactId) {
+        const log = createJobLogger({
+          batchId: job.data.batchId,
+          tenantId: job.data.tenantId,
+          workerName: "promotion:bronze-silver",
+          jobId: String(job.id ?? ""),
+          startedAt,
+        });
+        log.step("batch_reprocess_start", `Reprocesare batch ${job.data.batchId} declanșată`, {
+          batchId: job.data.batchId,
+          errorsOnly: job.data.reprocessErrorsOnly ?? false,
+        });
+        const result = await handleBatchReprocessJob(job, job.data);
+        log.step("batch_reprocess_done", `Reprocesare batch finalizată`, {
+          ...result,
+          durationMs: Date.now() - startedAt,
+        });
+        return result;
+      }
 
-  const bronze = (
-    await db
-      .select()
-      .from(bronzeContacts)
-      .where(sql`${bronzeContacts.id} = ${job.data.bronzeContactId}`)
-      .limit(1)
-  )[0];
+      const bronze = (
+        await db
+          .select()
+          .from(bronzeContacts)
+          .where(sql`${bronzeContacts.id} = ${job.data.bronzeContactId}`)
+          .limit(1)
+      )[0];
 
-  if (!bronze) {
-    return { ok: false, status: "not_found", reason: "bronze_contact_missing" };
-  }
+      if (!bronze) {
+        return { ok: false, status: "not_found", reason: "bronze_contact_missing" };
+      }
 
-  if (bronze.doNotProcess) {
-    return {
-      ok: true,
-      status: "skipped",
-      reason: `bronze_${bronze.identityStatus ?? "blocked"}`,
-    };
-  }
+      if (bronze.doNotProcess) {
+        return {
+          ok: true,
+          status: "skipped",
+          reason: `bronze_${bronze.identityStatus ?? "blocked"}`,
+        };
+      }
 
-  const payload = bronze.rawPayload as Payload;
-  const bronzeMetadata = (bronze.metadata as Record<string, unknown>) ?? {};
-  const batchIdFromMeta =
-    typeof bronzeMetadata.batchId === "string" ? bronzeMetadata.batchId : job.data.batchId;
-  const mapping = await loadBatchMapping(job.data.tenantId, batchIdFromMeta ?? null);
-  const sheetType = detectSheetType(
-    typeof bronzeMetadata.sheetName === "string" ? bronzeMetadata.sheetName : null,
-    Object.keys(payload),
+      const payload = bronze.rawPayload as Payload;
+      const bronzeMetadata = (bronze.metadata as Record<string, unknown>) ?? {};
+      const batchIdFromMeta =
+        typeof bronzeMetadata.batchId === "string" ? bronzeMetadata.batchId : job.data.batchId;
+      const mapping = await loadBatchMapping(job.data.tenantId, batchIdFromMeta ?? null);
+      const sheetType = detectSheetType(
+        typeof bronzeMetadata.sheetName === "string" ? bronzeMetadata.sheetName : null,
+        Object.keys(payload),
+      );
+
+      // GAP-B5: Wrap single promotion in retry logic for serialization/deadlock errors
+      const promotionArgs = { jobData: job.data, bronze, payload, mapping };
+      void recordDataMutation(
+        {
+          tenantId: job.data.tenantId,
+          batchId: batchIdFromMeta ?? job.data.correlationId ?? "system",
+          nodeKey: "e1:pipeline:promote-bronze-silver",
+          entityType: "contact",
+          entityId: String(bronze.id),
+          mutationIntent: "PROMOTE",
+          beforeData: { status: "bronze" },
+        },
+        { traceId: job.data.importExecution?.traceId },
+      ).catch(() => undefined);
+      switch (sheetType) {
+        case "company":
+          return withBatchMetadataRetry(job.data.tenantId, "single-promote-company", () =>
+            handleCompanyPromotion(promotionArgs),
+          );
+        case "anaf_debts":
+          return withBatchMetadataRetry(job.data.tenantId, "single-promote-anaf-debts", () =>
+            handleAnafDebtDetail(promotionArgs),
+          );
+        case "bpi":
+          return withBatchMetadataRetry(job.data.tenantId, "single-promote-bpi", () =>
+            handleBpiDetail(promotionArgs),
+          );
+        case "cip":
+          return withBatchMetadataRetry(job.data.tenantId, "single-promote-cip", () =>
+            handleCipDetail(promotionArgs),
+          );
+        case "dosare":
+          return withBatchMetadataRetry(job.data.tenantId, "single-promote-dosare", () =>
+            handleDosareDetail(promotionArgs),
+          );
+        case "parti_dosare":
+          return withBatchMetadataRetry(job.data.tenantId, "single-promote-parti-dosare", () =>
+            handlePartiDosareDetail(promotionArgs),
+          );
+        case "termene_dosare":
+          return withBatchMetadataRetry(job.data.tenantId, "single-promote-termene-dosare", () =>
+            handleTermeneDosareDetail(promotionArgs),
+          );
+        default:
+          return withBatchMetadataRetry(job.data.tenantId, "single-promote-default", () =>
+            handleCompanyPromotion(promotionArgs),
+          );
+      }
+    },
+    { tenantId: job.data.tenantId },
   );
-
-  // GAP-B5: Wrap single promotion in retry logic for serialization/deadlock errors
-  const promotionArgs = { jobData: job.data, bronze, payload, mapping };
-  switch (sheetType) {
-    case "company":
-      return withBatchMetadataRetry(job.data.tenantId, "single-promote-company", () =>
-        handleCompanyPromotion(promotionArgs),
-      );
-    case "anaf_debts":
-      return withBatchMetadataRetry(job.data.tenantId, "single-promote-anaf-debts", () =>
-        handleAnafDebtDetail(promotionArgs),
-      );
-    case "bpi":
-      return withBatchMetadataRetry(job.data.tenantId, "single-promote-bpi", () =>
-        handleBpiDetail(promotionArgs),
-      );
-    case "cip":
-      return withBatchMetadataRetry(job.data.tenantId, "single-promote-cip", () =>
-        handleCipDetail(promotionArgs),
-      );
-    case "dosare":
-      return withBatchMetadataRetry(job.data.tenantId, "single-promote-dosare", () =>
-        handleDosareDetail(promotionArgs),
-      );
-    case "parti_dosare":
-      return withBatchMetadataRetry(job.data.tenantId, "single-promote-parti-dosare", () =>
-        handlePartiDosareDetail(promotionArgs),
-      );
-    case "termene_dosare":
-      return withBatchMetadataRetry(job.data.tenantId, "single-promote-termene-dosare", () =>
-        handleTermeneDosareDetail(promotionArgs),
-      );
-    default:
-      return withBatchMetadataRetry(job.data.tenantId, "single-promote-default", () =>
-        handleCompanyPromotion(promotionArgs),
-      );
-  }
 };

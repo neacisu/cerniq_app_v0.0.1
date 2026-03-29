@@ -7,11 +7,9 @@
  * - Business Hours Scheduler (09-18 Europe/Bucharest, weekends+holidays skip)
  * - Priority Queue Manager (1=alerts, 2=outreach, 3=cleanup)
  */
-import { Worker, Job, Queue } from "bullmq";
+import type { Job, Worker } from "bullmq";
 import { DateTime } from "luxon";
-import { Redis } from "ioredis";
-import { QUEUES } from "@cerniq/worker-shared";
-import { asBullmqConnection } from "../utils/bullmq-connection.js";
+import { QUEUES, createWorker, createQueue } from "@cerniq/worker-shared";
 
 // =============================================================================
 // Romanian public holidays 2026 — EXACT from ADR-0056 specification
@@ -157,11 +155,10 @@ function computeRetryDelayMs(
 // Classifies errors and re-queues with correct backoff
 // =============================================================================
 
-export function createRetryOrchestratorWorker(redis: Redis): Worker {
-  const connection = asBullmqConnection(redis);
-  const dlqQueue = new Queue(DLQ_CONFIG.OUTREACH_DLQ, { connection });
+export function createRetryOrchestratorWorker(): Worker {
+  const dlqQueue = createQueue(DLQ_CONFIG.OUTREACH_DLQ);
 
-  return new Worker(
+  const { worker } = createWorker(
     QUEUES.WA_MESSAGE_RETRY,
     async (job: Job<RetryJobData>): Promise<void> => {
       const { originalQueue, originalJobData, errorType, errorMessage, statusCode, attemptsMade } =
@@ -192,7 +189,7 @@ export function createRetryOrchestratorWorker(redis: Redis): Worker {
         return;
       }
 
-      const targetQueue = new Queue(originalQueue, { connection });
+      const targetQueue = createQueue(originalQueue);
       const delay = computeRetryDelayMs(policy, attemptsMade);
 
       await targetQueue.add("retry", originalJobData, {
@@ -201,8 +198,9 @@ export function createRetryOrchestratorWorker(redis: Redis): Worker {
         backoff: "backoff" in policy ? policy.backoff : undefined,
       });
     },
-    { connection, concurrency: 50 },
+    { concurrency: 50 },
   );
+  return worker;
 }
 
 // =============================================================================
@@ -210,9 +208,8 @@ export function createRetryOrchestratorWorker(redis: Redis): Worker {
 // Enforces 09-18 Europe/Bucharest, no weekends, no RO holidays
 // =============================================================================
 
-export function createBusinessHoursSchedulerWorker(redis: Redis): Worker {
-  const connection = asBullmqConnection(redis);
-  return new Worker(
+export function createBusinessHoursSchedulerWorker(): Worker {
+  const { worker } = createWorker(
     QUEUES.QUOTA_BUSINESS_HOURS_CHECK,
     async (job: Job<SchedulerJobData>): Promise<SchedulerResult> => {
       const { targetQueue, jobData, jobName = "scheduled", enforceBusinessHours = true } = job.data;
@@ -227,7 +224,7 @@ export function createBusinessHoursSchedulerWorker(redis: Redis): Worker {
           );
         }
 
-        const queue = new Queue(targetQueue, { connection });
+        const queue = createQueue(targetQueue);
         await queue.add(jobName, jobData as object, {
           delay: Math.max(delayMs, 0),
           removeOnComplete: { count: 1000 },
@@ -240,15 +237,16 @@ export function createBusinessHoursSchedulerWorker(redis: Redis): Worker {
         };
       }
 
-      const queue = new Queue(targetQueue, { connection });
+      const queue = createQueue(targetQueue);
       await queue.add(jobName, jobData as object, {
         removeOnComplete: { count: 1000 },
       });
 
       return { scheduled: true };
     },
-    { connection, concurrency: 20 },
+    { concurrency: 20 },
   );
+  return worker;
 }
 
 // =============================================================================
@@ -258,17 +256,16 @@ export function createBusinessHoursSchedulerWorker(redis: Redis): Worker {
 // =============================================================================
 
 export async function executePriorityRouteJob(
-  redis: Redis,
+  _redis: unknown,
   job: Job<PriorityJobData>,
 ): Promise<void> {
-  const connection = asBullmqConnection(redis);
   const { targetQueue, jobData, jobName, priority } = job.data;
 
   if (![1, 2, 3].includes(priority)) {
     throw new Error(`Invalid priority ${priority}. Must be 1, 2, or 3.`);
   }
 
-  const queue = new Queue(targetQueue, { connection });
+  const queue = createQueue(targetQueue);
   await queue.add(jobName, jobData as object, {
     priority,
     removeOnComplete: { count: 1000 },

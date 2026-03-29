@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { REDIRECT_LOGIN_EVENT } from "./lib/api-url.js";
 import { Refine } from "@refinedev/core";
@@ -66,6 +66,11 @@ import { Workers } from "./pages/system/workers.js";
 import { Settings } from "./pages/system/settings.js";
 import { NotFound } from "./pages/NotFound.js";
 import { ErrorBoundary } from "./components/feedback/ErrorBoundary.js";
+
+const CognitiveBrainPage = lazy(async () => {
+  const m = await import("./pages/CognitiveBrain.js");
+  return { default: m.CognitiveBrainPage };
+});
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -185,6 +190,16 @@ export function App() {
                     <Route path="/geo-map" element={<GeoMap />} />
                     <Route path="/workers" element={<Workers />} />
                     <Route path="/settings" element={<Settings />} />
+                    <Route
+                      path="/brain"
+                      element={
+                        <Suspense
+                          fallback={<div className="p-6 text-muted-foreground">Se încarcă…</div>}
+                        >
+                          <CognitiveBrainPage />
+                        </Suspense>
+                      }
+                    />
                   </Route>
                   <Route path="*" element={<NotFound />} />
                 </Routes>

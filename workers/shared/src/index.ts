@@ -10,3 +10,6 @@ export * from "./identifiers.js";
 export * from "./job-validation.js";
 export * from "./event-contract.js";
 export * from "./import-execution.js";
+export * from "./semantic-entropy.js";
+export * from "./cognitive-helpers.js";
+export * from "./queue-monitor.js";

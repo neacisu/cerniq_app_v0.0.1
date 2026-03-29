@@ -84,6 +84,39 @@ telemetry {
 }
 
 # =============================================================================
+# Auto-Unseal Configuration
+# =============================================================================
+# Eliminates manual unsealing after server restart.
+# Without auto-unseal: server restart = total downtime for all 313+ workers
+# until manual intervention.
+#
+# Option A (recommended for production HA): Transit seal via secondary OpenBao
+# Option B (single-node): AES-GCM key from environment variable
+#
+# Uncomment ONE seal block below based on deployment topology.
+# After enabling auto-unseal, existing data must be migrated:
+#   bao operator unseal -migrate
+# =============================================================================
+
+# --- Option A: Transit auto-unseal (requires secondary OpenBao instance) ---
+# seal "transit" {
+#   address         = "https://secondary-openbao:8200"
+#   token           = "s.TRANSIT_TOKEN_HERE"
+#   disable_renewal = false
+#   key_name        = "autounseal"
+#   mount_path      = "transit/"
+#   tls_skip_verify = false
+# }
+
+# --- Option B: AES-GCM auto-unseal via environment variable ---
+# Requires: OPENBAO_SEAL_KEY env var set to a 32-byte base64 key
+# Generate key: openssl rand -base64 32
+# WARNING: Store key separately from OpenBao data volume
+seal "aes-gcm" {
+  key = "env://OPENBAO_SEAL_KEY"
+}
+
+# =============================================================================
 # Default Lease TTL Configuration
 # =============================================================================
 # These can be overridden per-mount or per-role

@@ -25,14 +25,16 @@ export function getQueuePrefix(): string {
   return prefix;
 }
 
-export function getRedisConnectionOptions() {
+export function getRedisConnectionOptions(opts?: { db?: number }) {
   const url = getRedisUrl();
+  const dbFromUrl = url.pathname && url.pathname !== "/" ? Number(url.pathname.slice(1)) || 0 : 0;
+  const dbFromEnv = process.env.REDIS_DB ? Number(process.env.REDIS_DB) : undefined;
   return {
     host: url.hostname,
     port: Number(url.port || "6379"),
     username: url.username || undefined,
     password: url.password || undefined,
-    db: url.pathname && url.pathname !== "/" ? Number(url.pathname.slice(1)) || 0 : 0,
+    db: opts?.db ?? dbFromEnv ?? dbFromUrl,
     maxRetriesPerRequest: null,
     enableReadyCheck: false,
   };

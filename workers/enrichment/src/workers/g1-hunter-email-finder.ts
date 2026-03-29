@@ -1,4 +1,5 @@
 import type { Processor } from "bullmq";
+import { withCognitiveSpan } from "@cerniq/worker-shared";
 import {
   db,
   setSessionTenantId,
@@ -113,69 +114,76 @@ async function upsertHunterContact(
 }
 
 export const hunterEmailFinderProcessor: Processor<HunterEmailJobData> = async (job) => {
-  const startedAt = Date.now();
-  await setSessionTenantId(job.data.tenantId);
+  return withCognitiveSpan(
+    "e1:discover:email-hunter",
+    async (_span) => {
+      const startedAt = Date.now();
+      await setSessionTenantId(job.data.tenantId);
 
-  const company = await db.query.silverCompanies.findFirst({
-    where: (t, { and, eq }) => and(eq(t.tenantId, job.data.tenantId), eq(t.id, job.data.companyId)),
-  });
-  if (!company) return { ok: false, status: "not_found", reason: "company_missing" };
+      const company = await db.query.silverCompanies.findFirst({
+        where: (t, { and, eq }) =>
+          and(eq(t.tenantId, job.data.tenantId), eq(t.id, job.data.companyId)),
+      });
+      if (!company) return { ok: false, status: "not_found", reason: "company_missing" };
 
-  const domain = extractDomain(job.data.domain ?? company.website);
-  if (!domain) return { ok: true, status: "skipped", reason: "missing_domain" };
+      const domain = extractDomain(job.data.domain ?? company.website);
+      if (!domain) return { ok: true, status: "skipped", reason: "missing_domain" };
 
-  const response = await hunterDomainSearch(domain);
-  if (!response || response.emails.length === 0) {
-    return { ok: true, status: "not_found", source: "hunter_email", domain };
-  }
+      const response = await hunterDomainSearch(domain);
+      if (!response || response.emails.length === 0) {
+        return { ok: true, status: "not_found", source: "hunter_email", domain };
+      }
 
-  let storedCount = 0;
-  let bestEmail: { value: string; confidence: number } | null = null;
+      let storedCount = 0;
+      let bestEmail: { value: string; confidence: number } | null = null;
 
-  for (const emailData of response.emails) {
-    const stored = await upsertHunterContact(job.data.tenantId, job.data.companyId, emailData);
-    if (!stored) continue;
-    if (!bestEmail || stored.confidence > bestEmail.confidence) bestEmail = stored;
-    storedCount += 1;
-  }
+      for (const emailData of response.emails) {
+        const stored = await upsertHunterContact(job.data.tenantId, job.data.companyId, emailData);
+        if (!stored) continue;
+        if (!bestEmail || stored.confidence > bestEmail.confidence) bestEmail = stored;
+        storedCount += 1;
+      }
 
-  await db
-    .update(silverCompanies)
-    .set({
-      email: bestEmail?.value ?? company.email ?? undefined,
-      enrichmentStatus: "in_progress",
-      lastEnrichedAt: new Date(),
-      metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{hunterEmail}', ${JSON.stringify(
-        {
-          domain,
-          found: response.emails.length,
-          stored: storedCount,
-          bestEmail,
-        },
-      )}::jsonb)`,
-    })
-    .where(sql`${silverCompanies.id} = ${job.data.companyId}`);
+      await db
+        .update(silverCompanies)
+        .set({
+          email: bestEmail?.value ?? company.email ?? undefined,
+          enrichmentStatus: "in_progress",
+          lastEnrichedAt: new Date(),
+          metadata: sql`jsonb_set(COALESCE(${silverCompanies.metadata}, '{}'::jsonb), '{hunterEmail}', ${JSON.stringify(
+            {
+              domain,
+              found: response.emails.length,
+              stored: storedCount,
+              bestEmail,
+            },
+          )}::jsonb)`,
+        })
+        .where(sql`${silverCompanies.id} = ${job.data.companyId}`);
 
-  await db.insert(silverEnrichmentLog).values({
-    tenantId: job.data.tenantId,
-    entityType: "company",
-    entityId: job.data.companyId,
-    source: "hunter_email",
-    operation: "fetch",
-    requestPayload: { domain },
-    responsePayload: response,
-    fieldsUpdated: ["email", "metadata"],
-    correlationId: job.data.correlationId,
-    jobId: String(job.id ?? ""),
-    durationMs: Date.now() - startedAt,
-  });
+      await db.insert(silverEnrichmentLog).values({
+        tenantId: job.data.tenantId,
+        entityType: "company",
+        entityId: job.data.companyId,
+        source: "hunter_email",
+        operation: "fetch",
+        requestPayload: { domain },
+        responsePayload: response,
+        fieldsUpdated: ["email", "metadata"],
+        correlationId: job.data.correlationId,
+        jobId: String(job.id ?? ""),
+        durationMs: Date.now() - startedAt,
+      });
 
-  return {
-    ok: true,
-    status: "success",
-    source: "hunter_email",
-    domain,
-    emailsFound: response.emails.length,
-    stored: storedCount,
-  };
+      return {
+        ok: true,
+        status: "success",
+        source: "hunter_email",
+        domain,
+        emailsFound: response.emails.length,
+        stored: storedCount,
+      };
+    },
+    { tenantId: job.data.tenantId },
+  );
 };

@@ -5,15 +5,12 @@
  * - alert:phone:offline — log structurat (extensibil Slack/email)
  * - outreach:orchestrator:router — redirecționare job către coada finală
  */
-import { Worker, Job, Queue } from "bullmq";
-import type { Redis } from "ioredis";
-import { QUEUES } from "@cerniq/worker-shared";
+import type { Job, Worker } from "bullmq";
+import { QUEUES, createWorker, createQueue } from "@cerniq/worker-shared";
 import { getInstantlyClient, getTimelinesAIClient } from "@cerniq/integrations";
-import { asBullmqConnection } from "../utils/bullmq-connection.js";
 
-export function createWaMediaSendWorker(redis: Redis): Worker {
-  const conn = asBullmqConnection(redis);
-  return new Worker(
+export function createWaMediaSendWorker(): Worker {
+  const { worker } = createWorker(
     QUEUES.WA_MEDIA_SEND,
     async (
       job: Job<{
@@ -29,50 +26,59 @@ export function createWaMediaSendWorker(redis: Redis): Worker {
       const client = getTimelinesAIClient();
       return client.sendMessage(job.data);
     },
-    { connection: conn, concurrency: 5 },
+    { concurrency: 5 },
   );
+  return worker;
 }
 
-export function createEmailColdCampaignCreateWorker(redis: Redis): Worker {
-  const conn = asBullmqConnection(redis);
-  return new Worker(
+export function createEmailColdCampaignCreateWorker(): Worker {
+  const { worker } = createWorker(
     QUEUES.EMAIL_COLD_CAMPAIGN_CREATE,
     async (job: Job<{ name: string; daily_sending_limit?: number }>) => {
       const client = getInstantlyClient();
       return client.createCampaign(job.data);
     },
-    { connection: conn, concurrency: 2 },
+    { concurrency: 2 },
   );
+  return worker;
 }
 
-export function createEmailColdCampaignPauseWorker(redis: Redis): Worker {
-  const conn = asBullmqConnection(redis);
-  return new Worker(
+export function createEmailColdCampaignPauseWorker(): Worker {
+  const { worker } = createWorker(
     QUEUES.EMAIL_COLD_CAMPAIGN_PAUSE,
     async (job: Job<{ campaignId: string }>) => {
       const client = getInstantlyClient();
       await client.pauseCampaign(job.data.campaignId);
       return { paused: job.data.campaignId };
     },
-    { connection: conn, concurrency: 5 },
+    { concurrency: 5 },
   );
+  return worker;
 }
 
-export function createAlertPhoneOfflineWorker(redis: Redis): Worker {
-  const conn = asBullmqConnection(redis);
-  return new Worker(
+export type AlertPhoneOfflineJobData = {
+  tenantId?: string;
+  phoneId: string;
+  phoneNumber?: string;
+  offlineSince?: string;
+  status: string;
+  message?: string;
+};
+
+export function createAlertPhoneOfflineWorker(): Worker {
+  const { worker } = createWorker(
     QUEUES.ALERT_PHONE_OFFLINE,
-    async (job: Job<{ phoneId: string; status: string; message?: string }>) => {
+    async (job: Job<AlertPhoneOfflineJobData>) => {
       console.warn("[alert:phone:offline]", JSON.stringify(job.data));
       return { logged: true };
     },
-    { connection: conn, concurrency: 2 },
+    { concurrency: 2 },
   );
+  return worker;
 }
 
-export function createOutreachOrchestratorRouterWorker(redis: Redis): Worker {
-  const conn = asBullmqConnection(redis);
-  return new Worker(
+export function createOutreachOrchestratorRouterWorker(): Worker {
+  const { worker } = createWorker(
     QUEUES.OUTREACH_ORCHESTRATOR_ROUTER,
     async (
       job: Job<{
@@ -82,7 +88,7 @@ export function createOutreachOrchestratorRouterWorker(redis: Redis): Worker {
       }>,
     ) => {
       const { targetQueue, jobName = "dispatch", payload } = job.data;
-      const q = new Queue(targetQueue, { connection: conn });
+      const q = createQueue(targetQueue);
       try {
         await q.add(jobName, payload);
       } finally {
@@ -90,6 +96,7 @@ export function createOutreachOrchestratorRouterWorker(redis: Redis): Worker {
       }
       return { forwarded: targetQueue, jobName };
     },
-    { connection: conn, concurrency: 20 },
+    { concurrency: 20 },
   );
+  return worker;
 }

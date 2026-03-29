@@ -6,8 +6,12 @@ import type { Worker } from "bullmq";
 import {
   assertQueueRegistryComplete,
   createHealthServer,
+  createQueue,
+  getRedisConnectionOptions,
   loadSecretsFromFile,
+  QUEUES,
   queueRegistry,
+  startQueueDepthMonitor,
 } from "@cerniq/worker-shared";
 import { QUOTA_CHECK_LUA } from "./utils/quota-lua.js";
 import {
@@ -70,7 +74,6 @@ import {
 import {
   createSentimentAnalyzerWorker,
   createResponseGeneratorWorker,
-  createIntentClassifierWorker,
 } from "./workers/ai-sentiment.js";
 import { createStateTransitionWorker, createStateValidateWorker } from "./workers/lead-fsm.js";
 import {
@@ -89,14 +92,12 @@ import {
 const PORT = Number(process.env.PORT || "3000");
 const SECRETS_PATH = process.env.SECRETS_PATH?.trim() || "/secrets/workers.env";
 
+const OUTREACH_REDIS_DB = Number(process.env.REDIS_DB || "2");
+
 function getOutreachRedis(): Redis {
-  const url = process.env.REDIS_URL?.trim();
-  if (!url) throw new Error("REDIS_URL is required");
-  return new Redis(url, {
-    db: 2,
+  return new Redis({
+    ...getRedisConnectionOptions({ db: OUTREACH_REDIS_DB }),
     enableOfflineQueue: false,
-    maxRetriesPerRequest: null,
-    enableReadyCheck: false,
   });
 }
 
@@ -119,69 +120,100 @@ async function bootstrap(): Promise<void> {
   push(await createQuotaIncrementWorker(redis));
   push(createQuotaDailyResetWorker(redis));
 
-  push(createDispatchWorker(redis));
+  push(createDispatchWorker());
   push(createPhoneAllocatorWorker(redis));
-  push(createChannelSelectorWorker(redis));
+  push(createChannelSelectorWorker());
 
-  for (const w of createAllWaWorkers(redis)) {
+  for (const w of createAllWaWorkers(redis, luaSha)) {
     push(w);
   }
-  push(createWaDeliveryStatusWorker(redis));
-  push(createWaReadReceiptWorker(redis));
+  push(createWaDeliveryStatusWorker());
+  push(createWaReadReceiptWorker());
 
-  push(createWebhookNormalizerWorker(redis));
-  push(createTimelinesAIEventProcessorWorker(redis));
-  push(createInstantlyEventProcessorWorker(redis));
-  push(createResendEventProcessorWorker(redis));
+  push(createWebhookNormalizerWorker());
+  push(createTimelinesAIEventProcessorWorker());
+  push(createInstantlyEventProcessorWorker());
+  push(createResendEventProcessorWorker());
   push(createMergedPipelineHealthWorker(redis));
   push(createMergedPipelineMetricsWorker(redis));
 
-  push(createSequenceSchedulerWorker(redis));
-  push(createSequenceStopWorker(redis));
-  push(createSequenceAdvanceWorker(redis));
-  push(createEnrollmentManagerWorker(redis));
-  push(createMergedEmailColdAnalyticsWorker(redis));
+  push(createSequenceSchedulerWorker());
+  push(createSequenceStopWorker());
+  push(createSequenceAdvanceWorker());
+  push(createEnrollmentManagerWorker());
+  push(createMergedEmailColdAnalyticsWorker());
 
-  push(createRetryOrchestratorWorker(redis));
-  push(createBusinessHoursSchedulerWorker(redis));
+  push(createRetryOrchestratorWorker());
+  push(createBusinessHoursSchedulerWorker());
 
-  push(createPhoneHealthMonitorWorker(redis));
-  push(createPhoneStatusSyncWorker(redis));
-  push(createPhoneQuarantineWorker(redis));
+  push(createPhoneHealthMonitorWorker());
+  push(createPhoneStatusSyncWorker());
+  push(createPhoneQuarantineWorker());
   push(createMergedMonitorQuotaWorker(redis));
   push(createAlertWorker(redis));
 
-  push(createReviewQueueManagerWorker(redis));
-  push(createSlaEnforcerWorker(redis));
-  push(createHumanTakeoverWorker(redis));
-  push(createResolutionHandlerWorker(redis));
-  push(createHitlAuditLoggerWorker(redis));
-  push(createReviewAssignmentWorker(redis));
-  push(createEscalationWorker(redis));
+  push(createReviewQueueManagerWorker());
+  push(createSlaEnforcerWorker());
+  push(createHumanTakeoverWorker());
+  push(createResolutionHandlerWorker());
+  push(createHitlAuditLoggerWorker());
+  push(createReviewAssignmentWorker());
+  push(createEscalationWorker());
 
-  push(createEmailColdSenderWorker(redis));
-  push(createEmailColdTrackingWorker(redis));
-  push(createBounceRateMonitorWorker(redis));
-  push(createEmailWarmSenderWorker(redis));
-  push(createEmailWarmReplyWorker(redis));
-  push(createEmailWarmTrackingWorker(redis));
+  push(createEmailColdSenderWorker());
+  push(createEmailColdTrackingWorker());
+  push(createBounceRateMonitorWorker());
+  push(createEmailWarmSenderWorker());
+  push(createEmailWarmReplyWorker());
+  push(createEmailWarmTrackingWorker());
 
   push(createSentimentAnalyzerWorker(redis));
   push(createResponseGeneratorWorker(redis));
-  push(createIntentClassifierWorker(redis));
 
-  push(createStateTransitionWorker(redis));
-  push(createStateValidateWorker(redis));
+  push(createStateTransitionWorker());
+  push(createStateValidateWorker());
 
-  push(createSpintaxProcessWorker(redis));
-  push(createPersonalizeWorker(redis));
-  push(createValidateWorker(redis));
+  push(createSpintaxProcessWorker());
+  push(createPersonalizeWorker());
+  push(createValidateWorker());
 
-  push(createWaMediaSendWorker(redis));
-  push(createEmailColdCampaignCreateWorker(redis));
-  push(createEmailColdCampaignPauseWorker(redis));
-  push(createAlertPhoneOfflineWorker(redis));
-  push(createOutreachOrchestratorRouterWorker(redis));
+  push(createWaMediaSendWorker());
+  push(createEmailColdCampaignCreateWorker());
+  push(createEmailColdCampaignPauseWorker());
+  push(createAlertPhoneOfflineWorker());
+  push(createOutreachOrchestratorRouterWorker());
+
+  // quota:guardian:reset — daily cron at 00:00 Europe/Bucharest
+  const quotaResetQueue = createQueue(QUEUES.QUOTA_GUARDIAN_RESET);
+  await quotaResetQueue.add(
+    "reset",
+    {},
+    {
+      repeat: { pattern: "0 0 * * *", tz: "Europe/Bucharest" },
+    },
+  );
+
+  const outreachQueueNames = queueRegistry
+    .map((q) => q.name)
+    .filter(
+      (n) =>
+        !n.startsWith("ingest:") &&
+        !n.startsWith("normalize:") &&
+        !n.startsWith("enrich:") &&
+        !n.startsWith("validate:") &&
+        !n.startsWith("discover:") &&
+        !n.startsWith("scrape:") &&
+        !n.startsWith("geo:") &&
+        !n.startsWith("agri:") &&
+        !n.startsWith("dedup:") &&
+        !n.startsWith("score:") &&
+        !n.startsWith("aggregate:") &&
+        !n.startsWith("maintenance:"),
+    );
+  const stopQueueMonitor = startQueueDepthMonitor({
+    queueNames: outreachQueueNames,
+    dlqNames: [QUEUES.OUTREACH_DLQ],
+  });
 
   const healthServer = createHealthServer(PORT, () => ({
     ok: true,
@@ -192,7 +224,9 @@ async function bootstrap(): Promise<void> {
 
   const shutdown = async () => {
     console.info("[worker-outreach] shutdown...");
+    await stopQueueMonitor();
     await Promise.allSettled(workers.map((w) => w.close()));
+    await quotaResetQueue.close();
     healthServer.close();
     await redis.quit();
     process.exit(0);

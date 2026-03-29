@@ -2,7 +2,11 @@ import { readFile } from "node:fs/promises";
 import type { Processor } from "bullmq";
 import ExcelJS from "exceljs";
 import { bronzeImportBatches, db, sql } from "@cerniq/db";
-import { updateImportRuntimeProgress, type ImportExecutionContext } from "@cerniq/worker-shared";
+import {
+  updateImportRuntimeProgress,
+  type ImportExecutionContext,
+  withCognitiveSpan,
+} from "@cerniq/worker-shared";
 import { jobsProcessed, jobDuration, jobErrors } from "../lib/worker-metrics.js";
 import { createJobLogger } from "../lib/job-logger.js";
 import {
@@ -360,153 +364,163 @@ async function persistBatchMappingMetadata(
 }
 
 export const excelParserProcessor: Processor<ExcelParserJobData> = async (job) => {
-  const startedAt = Date.now();
-  const state = createExcelImportState(job.data);
-  const log = createJobLogger({
-    batchId: job.data.batchId,
-    tenantId: job.data.tenantId,
-    workerName: "A2:excel-parser",
-    jobId: String(job.id ?? ""),
-    startedAt,
-  });
-
-  try {
-    log.step("start", `Parsare fișier Excel: ${job.data.fileName}`, {
-      filePath: job.data.filePath,
-      sheetName: job.data.sheetName,
-      sheetIndex: job.data.sheetIndex,
-      resumeFrom: job.data.resumeFrom,
-    });
-
-    const fileBuffer = await readFile(job.data.filePath);
-
-    await assertFileIntegrity(job.data.batchId, job.data.filePath);
-    log.info("file_integrity", `Integritate fișier verificată (SHA-256 ok)`, {
-      filePath: job.data.filePath,
-    });
-
-    const workbook = new ExcelJS.Workbook();
-    // ExcelJS 4.x types expect legacy Buffer; incompatible with Node 22+ resizable ArrayBuffer
-    await workbook.xlsx.load(fileBuffer as unknown as import("exceljs").Buffer);
-
-    const targetSheets = resolveTargetSheets(workbook, job.data);
-    if (targetSheets.length === 0) {
-      log.error("no_sheets", `Nu s-au găsit foi cu date în fișierul Excel`, {
-        fileName: job.data.fileName,
+  return withCognitiveSpan(
+    "e1:ingest:excel",
+    async (_span) => {
+      const startedAt = Date.now();
+      const state = createExcelImportState(job.data);
+      const log = createJobLogger({
+        batchId: job.data.batchId,
+        tenantId: job.data.tenantId,
+        workerName: "A2:excel-parser",
+        jobId: String(job.id ?? ""),
+        startedAt,
       });
-      throw new Error("Excel parse failed: no sheets with data found");
-    }
 
-    log.info(
-      "sheets_detected",
-      `${targetSheets.length} foi detectate: ${targetSheets.join(", ")}`,
-      {
-        sheets: targetSheets,
-      },
-    );
-    await job.log(`Processing ${targetSheets.length} sheet(s): ${targetSheets.join(", ")}`);
+      try {
+        log.step("start", `Parsare fișier Excel: ${job.data.fileName}`, {
+          filePath: job.data.filePath,
+          sheetName: job.data.sheetName,
+          sheetIndex: job.data.sheetIndex,
+          resumeFrom: job.data.resumeFrom,
+        });
 
-    const batchSize = getInsertBatchSize();
-    const dataStartRowNum = job.data.dataStartRow ?? 2;
-    state.totalRowsExpected = calculateExpectedRows(workbook, targetSheets, dataStartRowNum);
+        const fileBuffer = await readFile(job.data.filePath);
 
-    for (let sheetIdx = 0; sheetIdx < targetSheets.length; sheetIdx++) {
-      if (state.resumeSheetIndex >= 0 && sheetIdx < state.resumeSheetIndex) {
-        continue;
-      }
-      const sheetName = targetSheets[sheetIdx];
-      const worksheet = workbook.getWorksheet(sheetName);
-      if (!worksheet || worksheet.rowCount === 0) {
-        continue;
-      }
-      log.info("sheet_start", `Procesare foaie "${sheetName}" (index ${sheetIdx})`, {
-        sheetName,
-        sheetIdx,
-        rowCount: worksheet.rowCount,
-      });
-      await processWorksheet(job, worksheet, sheetName, sheetIdx, state, batchSize);
-      log.info(
-        "sheet_done",
-        `Foaie "${sheetName}" procesată — ${state.totalRowsInserted} rânduri salvate total`,
-        {
-          sheetName,
+        await assertFileIntegrity(job.data.batchId, job.data.filePath);
+        log.info("file_integrity", `Integritate fișier verificată (SHA-256 ok)`, {
+          filePath: job.data.filePath,
+        });
+
+        const workbook = new ExcelJS.Workbook();
+        // ExcelJS 4.x types expect legacy Buffer; incompatible with Node 22+ resizable ArrayBuffer
+        await workbook.xlsx.load(fileBuffer as unknown as import("exceljs").Buffer);
+
+        const targetSheets = resolveTargetSheets(workbook, job.data);
+        if (targetSheets.length === 0) {
+          log.error("no_sheets", `Nu s-au găsit foi cu date în fișierul Excel`, {
+            fileName: job.data.fileName,
+          });
+          throw new Error("Excel parse failed: no sheets with data found");
+        }
+
+        log.info(
+          "sheets_detected",
+          `${targetSheets.length} foi detectate: ${targetSheets.join(", ")}`,
+          {
+            sheets: targetSheets,
+          },
+        );
+        await job.log(`Processing ${targetSheets.length} sheet(s): ${targetSheets.join(", ")}`);
+
+        const batchSize = getInsertBatchSize();
+        const dataStartRowNum = job.data.dataStartRow ?? 2;
+        state.totalRowsExpected = calculateExpectedRows(workbook, targetSheets, dataStartRowNum);
+
+        for (let sheetIdx = 0; sheetIdx < targetSheets.length; sheetIdx++) {
+          if (state.resumeSheetIndex >= 0 && sheetIdx < state.resumeSheetIndex) {
+            continue;
+          }
+          const sheetName = targetSheets[sheetIdx];
+          const worksheet = workbook.getWorksheet(sheetName);
+          if (!worksheet || worksheet.rowCount === 0) {
+            continue;
+          }
+          log.info("sheet_start", `Procesare foaie "${sheetName}" (index ${sheetIdx})`, {
+            sheetName,
+            sheetIdx,
+            rowCount: worksheet.rowCount,
+          });
+          await processWorksheet(job, worksheet, sheetName, sheetIdx, state, batchSize);
+          log.info(
+            "sheet_done",
+            `Foaie "${sheetName}" procesată — ${state.totalRowsInserted} rânduri salvate total`,
+            {
+              sheetName,
+              rowsRead: state.totalRowsRead,
+              rowsInserted: state.totalRowsInserted,
+              errorRows: state.totalErrorRows,
+            },
+          );
+        }
+
+        await persistBatchMappingMetadata(
+          job.data.batchId,
+          state.autoDetectedMapping,
+          targetSheets,
+        );
+
+        await updateImportBatchCounters({
+          tenantId: job.data.tenantId,
+          batchId: job.data.batchId,
+          processedRows: state.totalRowsRead,
+          successRows: state.totalRowsInserted,
+          errorRows: state.totalErrorRows,
+          duplicateRows: state.totalDuplicateRows,
+          totalRows: state.totalRowsExpected,
+          status: "completed",
+          identityMetrics: buildIdentityMetrics(state),
+        });
+        await triggerNormalizationForContacts(
+          job.data.tenantId,
+          state.allInsertedIds,
+          job.data.correlationId,
+          job.data.batchId,
+          job.data.importExecution ?? null,
+        );
+        await triggerAnafBronzeEnrichment(
+          job.data.tenantId,
+          job.data.batchId,
+          state.allInsertedIds,
+          job.data.correlationId,
+          job.data.importExecution ?? null,
+        );
+
+        log.step(
+          "done",
+          `Import Excel finalizat: ${state.totalRowsInserted} contacte salvate în bronze`,
+          {
+            sheetsParsed: targetSheets.length,
+            rowsRead: state.totalRowsRead,
+            rowsInserted: state.totalRowsInserted,
+            duplicateRows: state.totalDuplicateRows,
+            errorRows: state.totalErrorRows,
+            durationMs: Date.now() - startedAt,
+          },
+        );
+
+        jobsProcessed.add(1, { worker: "a2-excel-parser", status: "success" });
+        jobDuration.record(Date.now() - startedAt, { worker: "a2-excel-parser" });
+        return {
+          ok: true,
+          sheetsParsed: targetSheets.length,
           rowsRead: state.totalRowsRead,
           rowsInserted: state.totalRowsInserted,
+          duplicateRows: state.totalDuplicateRows,
           errorRows: state.totalErrorRows,
-        },
-      );
-    }
-
-    await persistBatchMappingMetadata(job.data.batchId, state.autoDetectedMapping, targetSheets);
-
-    await updateImportBatchCounters({
-      tenantId: job.data.tenantId,
-      batchId: job.data.batchId,
-      processedRows: state.totalRowsRead,
-      successRows: state.totalRowsInserted,
-      errorRows: state.totalErrorRows,
-      duplicateRows: state.totalDuplicateRows,
-      totalRows: state.totalRowsExpected,
-      status: "completed",
-      identityMetrics: buildIdentityMetrics(state),
-    });
-    await triggerNormalizationForContacts(
-      job.data.tenantId,
-      state.allInsertedIds,
-      job.data.correlationId,
-      job.data.batchId,
-      job.data.importExecution ?? null,
-    );
-    await triggerAnafBronzeEnrichment(
-      job.data.tenantId,
-      job.data.batchId,
-      state.allInsertedIds,
-      job.data.correlationId,
-      job.data.importExecution ?? null,
-    );
-
-    log.step(
-      "done",
-      `Import Excel finalizat: ${state.totalRowsInserted} contacte salvate în bronze`,
-      {
-        sheetsParsed: targetSheets.length,
-        rowsRead: state.totalRowsRead,
-        rowsInserted: state.totalRowsInserted,
-        duplicateRows: state.totalDuplicateRows,
-        errorRows: state.totalErrorRows,
-        durationMs: Date.now() - startedAt,
-      },
-    );
-
-    jobsProcessed.add(1, { worker: "a2-excel-parser", status: "success" });
-    jobDuration.record(Date.now() - startedAt, { worker: "a2-excel-parser" });
-    return {
-      ok: true,
-      sheetsParsed: targetSheets.length,
-      rowsRead: state.totalRowsRead,
-      rowsInserted: state.totalRowsInserted,
-      duplicateRows: state.totalDuplicateRows,
-      errorRows: state.totalErrorRows,
-    };
-  } catch (error) {
-    jobErrors.add(1, { worker: "a2-excel-parser" });
-    log.error("fatal", `Eroare critică la parsare Excel — importul a eșuat`, {
-      fileName: job.data.fileName,
-      error: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined,
-      rowsReadSoFar: state.totalRowsRead,
-      rowsInsertedSoFar: state.totalRowsInserted,
-    });
-    await markImportBatchFailed({
-      tenantId: job.data.tenantId,
-      batchId: job.data.batchId,
-      processedRows: state.totalRowsRead,
-      successRows: state.totalRowsInserted,
-      errorRows: state.totalErrorRows,
-      duplicateRows: state.totalDuplicateRows,
-      totalRows: state.totalRowsExpected || undefined,
-      errorMessage: error instanceof Error ? error.message : String(error),
-    });
-    throw error;
-  }
+        };
+      } catch (error) {
+        jobErrors.add(1, { worker: "a2-excel-parser" });
+        log.error("fatal", `Eroare critică la parsare Excel — importul a eșuat`, {
+          fileName: job.data.fileName,
+          error: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+          rowsReadSoFar: state.totalRowsRead,
+          rowsInsertedSoFar: state.totalRowsInserted,
+        });
+        await markImportBatchFailed({
+          tenantId: job.data.tenantId,
+          batchId: job.data.batchId,
+          processedRows: state.totalRowsRead,
+          successRows: state.totalRowsInserted,
+          errorRows: state.totalErrorRows,
+          duplicateRows: state.totalDuplicateRows,
+          totalRows: state.totalRowsExpected || undefined,
+          errorMessage: error instanceof Error ? error.message : String(error),
+        });
+        throw error;
+      }
+    },
+    { tenantId: job.data.tenantId },
+  );
 };
