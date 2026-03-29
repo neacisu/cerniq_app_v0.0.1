@@ -493,7 +493,7 @@ jobs:
 
       - name: 🏗️ Build API image
         if: steps.check-dockerfiles.outputs.dockerfiles_exist == 'true'
-        uses: docker/build-push-action@v6.19.2
+        uses: docker/build-push-action@v7.0.0
         with:
           context: .
           file: ./apps/api/Dockerfile
@@ -504,7 +504,7 @@ jobs:
 
       - name: 🏗️ Build Web image
         if: steps.check-dockerfiles.outputs.dockerfiles_exist == 'true'
-        uses: docker/build-push-action@v6.19.2
+        uses: docker/build-push-action@v7.0.0
         with:
           context: .
           file: ./apps/web/Dockerfile
@@ -515,7 +515,7 @@ jobs:
 
       - name: 🏗️ Build Web Admin image
         if: steps.check-dockerfiles.outputs.dockerfiles_exist == 'true'
-        uses: docker/build-push-action@v6.19.2
+        uses: docker/build-push-action@v7.0.0
         with:
           context: .
           file: ./apps/web-admin/Dockerfile
@@ -526,7 +526,7 @@ jobs:
 
       - name: 🏗️ Build Monitoring API image
         if: steps.check-dockerfiles.outputs.dockerfiles_exist == 'true'
-        uses: docker/build-push-action@v6.19.2
+        uses: docker/build-push-action@v7.0.0
         with:
           context: .
           file: ./apps/monitoring-api/Dockerfile
