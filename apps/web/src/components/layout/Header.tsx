@@ -1,6 +1,7 @@
 import { Bell, Settings, User } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useOutreachNotifications, useMarkNotificationRead } from "@/hooks/use-etapa2.js";
+import { useAuth } from "@/providers/auth-provider.js";
 
 export function Header() {
   const location = useLocation();
@@ -8,7 +9,8 @@ export function Header() {
   const pathSegments = location.pathname.split("/").filter(Boolean);
   const currentPage = pathSegments[pathSegments.length - 1] ?? "dashboard";
 
-  const { data: notifResp } = useOutreachNotifications(true);
+  const { token } = useAuth();
+  const { data: notifResp } = useOutreachNotifications(true, { enabled: !!token });
   const unread = notifResp?.data?.unreadCount ?? 0;
   const markRead = useMarkNotificationRead();
 

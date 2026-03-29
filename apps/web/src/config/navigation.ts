@@ -77,6 +77,10 @@ export const navigation: NavSection[] = [
     ],
   },
   {
+    title: "COGNITIVE BRAIN",
+    items: [{ label: "Cognitive Brain", path: "/brain", icon: "Brain" }],
+  },
+  {
     title: "SISTEM",
     items: [
       { label: "Workers Status", path: "/workers", icon: "Activity" },

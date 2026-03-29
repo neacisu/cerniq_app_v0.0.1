@@ -1,7 +1,10 @@
+import { Link } from "react-router-dom";
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
 import { KpiCard } from "@/components/data/KpiCard.js";
 import { StatusDot } from "@/components/data/StatusDot.js";
 import { Card, CardHeader, CardTitle, CardBody, SBadge } from "@/components/ui/index.js";
+import { Button } from "@/components/ui/button.js";
+import { Brain } from "lucide-react";
 import { cn } from "@/lib/utils.js";
 
 const kpis = [
@@ -111,6 +114,18 @@ export function Workers() {
         {kpis.map((k, i) => (
           <KpiCard key={k.label} {...k} delay={i * 80} />
         ))}
+      </div>
+
+      <div className="mb-6">
+        <Link to="/brain">
+          <Button
+            variant="outline"
+            className="flex items-center gap-2 border-[var(--color-neuron-executive)] text-[var(--color-neuron-executive)] hover:bg-[var(--color-neuron-executive)]/10"
+          >
+            <Brain size={16} />
+            Vizualizare Cognitive Brain
+          </Button>
+        </Link>
       </div>
 
       <Card>

@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from "react";
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams } from "react-router-dom";
 import { REDIRECT_LOGIN_EVENT } from "./lib/api-url.js";
 import { Refine } from "@refinedev/core";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -71,6 +71,12 @@ const CognitiveBrainPage = lazy(async () => {
   const m = await import("./pages/CognitiveBrain.js");
   return { default: m.CognitiveBrainPage };
 });
+
+function BrainBatchRedirect() {
+  const { batchId } = useParams<{ batchId: string }>();
+  if (!batchId) return <Navigate to="/brain" replace />;
+  return <Navigate to={`/brain?batch=${encodeURIComponent(batchId)}`} replace />;
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -200,6 +206,7 @@ export function App() {
                         </Suspense>
                       }
                     />
+                    <Route path="/brain/:batchId" element={<BrainBatchRedirect />} />
                   </Route>
                   <Route path="*" element={<NotFound />} />
                 </Routes>

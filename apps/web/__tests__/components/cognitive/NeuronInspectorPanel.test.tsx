@@ -1,8 +1,8 @@
 /**
  * Tests for NeuronInspectorPanel — right rail inspector with tabs
  */
-import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { NeuronInspectorPanel } from "@/components/cognitive/NeuronInspectorPanel.js";
 
@@ -11,8 +11,22 @@ vi.mock("@/lib/api-url.js", () => ({ getApiBase: () => "http://127.0.0.1:64010" 
 vi.mock("@/lib/api.js", () => ({
   api: {
     get: vi.fn().mockResolvedValue({ data: [] }),
-    post: vi.fn().mockResolvedValue({ success: true, data: { paused: true, propagated: true } }),
-    put: vi.fn().mockResolvedValue({ success: true, data: { applyStatus: "immediate" } }),
+    post: vi
+      .fn()
+      .mockResolvedValue({
+        success: true,
+        nodeKey: "e1:csv:parse",
+        status: "PAUSED",
+        propagated: false,
+        batchId: null,
+      }),
+    put: vi
+      .fn()
+      .mockResolvedValue({
+        success: true,
+        data: {},
+        meta: { applyStatus: "immediate", requiresWorkerRestart: false },
+      }),
   },
   ApiError: class ApiError extends Error {
     status: number;
@@ -23,6 +37,14 @@ vi.mock("@/lib/api.js", () => ({
   },
 }));
 
+// ─── Hoisted mock functions for useNeuronControl ──────────────────────────────
+
+const { mockPause, mockResume, mockUpdateConfig } = vi.hoisted(() => ({
+  mockPause: vi.fn(),
+  mockResume: vi.fn(),
+  mockUpdateConfig: vi.fn(),
+}));
+
 vi.mock("@/hooks/use-cognitive-brain.js", () => ({
   useNeuronInspector: () => ({
     traces: [],
@@ -30,22 +52,43 @@ vi.mock("@/hooks/use-cognitive-brain.js", () => ({
     isLoading: false,
     error: null,
   }),
+  useNeuronControl: () => ({
+    pause: mockPause,
+    resume: mockResume,
+    updateConfig: mockUpdateConfig,
+    isPausing: false,
+    isResuming: false,
+    isUpdatingConfig: false,
+    pauseError: null,
+    resumeError: null,
+    configError: null,
+    optimisticPaused: null,
+    configResult: null,
+    lastPauseResult: null,
+    lastResumeResult: null,
+  }),
 }));
 
 function makeQC() {
   return new QueryClient({ defaultOptions: { queries: { retry: false } } });
 }
 
-function renderPanel(selectedNodeKey: string | null, onClose = vi.fn()) {
+function renderPanel(selectedNodeKey: string | null, onClose = vi.fn(), batchId?: string) {
   const qc = makeQC();
   return render(
     <QueryClientProvider client={qc}>
-      <NeuronInspectorPanel selectedNodeKey={selectedNodeKey} onClose={onClose} />
+      <NeuronInspectorPanel selectedNodeKey={selectedNodeKey} onClose={onClose} batchId={batchId} />
     </QueryClientProvider>,
   );
 }
 
 describe("NeuronInspectorPanel", () => {
+  beforeEach(() => {
+    mockPause.mockClear();
+    mockResume.mockClear();
+    mockUpdateConfig.mockClear();
+  });
+
   describe("empty state (no node selected)", () => {
     it("renders with data-testid", () => {
       renderPanel(null);
@@ -82,7 +125,6 @@ describe("NeuronInspectorPanel", () => {
 
     it("shows catalog cognitiveFunction when available", () => {
       renderPanel("e1:csv:parse");
-      // Catalog should have cognitiveFunction for e1:csv:parse
       expect(screen.getByTestId("neuron-inspector-panel")).toBeInTheDocument();
     });
 
@@ -102,7 +144,6 @@ describe("NeuronInspectorPanel", () => {
     it("switches to Metrici tab on click", () => {
       renderPanel("e1:csv:parse");
       fireEvent.click(screen.getByText("Metrici"));
-      // MetricsSparkline renders (multiple sparklines)
       expect(screen.getAllByTestId("metrics-sparkline").length).toBeGreaterThanOrEqual(1);
     });
 
@@ -118,43 +159,39 @@ describe("NeuronInspectorPanel", () => {
       expect(screen.getByText("Niciun trace înregistrat")).toBeInTheDocument();
     });
 
-    it("calls api.post pause when Pauză is clicked", async () => {
-      const { api } = await import("@/lib/api.js");
+    it("calls control.pause when Pauză is clicked", () => {
       renderPanel("e1:csv:parse");
       fireEvent.click(screen.getByText("Control"));
       fireEvent.click(screen.getByText("Pauză"));
-      await waitFor(() => {
-        expect(vi.mocked(api.post)).toHaveBeenCalledWith(
-          expect.stringContaining("/pause"),
-          expect.any(Object),
-        );
-      });
+      expect(mockPause).toHaveBeenCalledOnce();
     });
 
-    it("calls api.post resume when Reluare is clicked", async () => {
-      const { api } = await import("@/lib/api.js");
+    it("calls control.resume when Reluare is clicked", () => {
       renderPanel("e1:csv:parse");
       fireEvent.click(screen.getByText("Control"));
       fireEvent.click(screen.getByText("Reluare"));
-      await waitFor(() => {
-        expect(vi.mocked(api.post)).toHaveBeenCalledWith(
-          expect.stringContaining("/resume"),
-          expect.any(Object),
-        );
-      });
+      expect(mockResume).toHaveBeenCalledOnce();
     });
 
-    it("calls api.put config when 'Aplică configurare' is clicked", async () => {
-      const { api } = await import("@/lib/api.js");
+    it("calls control.updateConfig when 'Aplică configurare' is clicked", () => {
       renderPanel("e1:csv:parse");
       fireEvent.click(screen.getByText("Control"));
       fireEvent.click(screen.getByText("Aplică configurare"));
-      await waitFor(() => {
-        expect(vi.mocked(api.put)).toHaveBeenCalledWith(
-          expect.stringContaining("/config"),
-          expect.any(Object),
-        );
-      });
+      expect(mockUpdateConfig).toHaveBeenCalledOnce();
+    });
+
+    it("passes concurrency to updateConfig when filled", () => {
+      renderPanel("e1:csv:parse");
+      fireEvent.click(screen.getByText("Control"));
+      const concurrencyInput = screen.getByPlaceholderText("ex: 5");
+      fireEvent.change(concurrencyInput, { target: { value: "8" } });
+      fireEvent.click(screen.getByText("Aplică configurare"));
+      expect(mockUpdateConfig).toHaveBeenCalledWith(expect.objectContaining({ concurrency: 8 }));
+    });
+
+    it("accepts batchId prop without crashing", () => {
+      renderPanel("e1:csv:parse", vi.fn(), "batch-123");
+      expect(screen.getByTestId("neuron-inspector-panel")).toBeInTheDocument();
     });
   });
 });

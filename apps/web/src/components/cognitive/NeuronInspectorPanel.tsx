@@ -1,5 +1,4 @@
 import { memo, useMemo, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   X,
   Activity,
@@ -11,9 +10,13 @@ import {
   AlertTriangle,
   Clock,
   ChevronRight,
+  RefreshCw,
 } from "lucide-react";
-import { useNeuronInspector } from "@/hooks/use-cognitive-brain.js";
-import { api } from "@/lib/api.js";
+import {
+  useNeuronInspector,
+  useNeuronControl,
+  type NodeConfigInput,
+} from "@/hooks/use-cognitive-brain.js";
 import { COGNITIVE_NODE_CATALOG } from "@cerniq/shared";
 import type { CognitiveNodeEntry, CognitiveEvent } from "@cerniq/shared";
 import { MetricsSparkline, type SparklinePoint } from "./MetricsSparkline.js";
@@ -29,6 +32,28 @@ const TABS: Array<{ id: TabId; label: string; Icon: React.ElementType }> = [
   { id: "metrics", label: "Metrici", Icon: BarChart2 },
   { id: "controls", label: "Control", Icon: Settings },
 ];
+
+// ─── NeuronControl interface — subset of useNeuronControl return ───────────────
+
+interface NeuronControl {
+  pause(batchId?: string): void;
+  resume(): void;
+  updateConfig(config: NodeConfigInput): void;
+  isPausing: boolean;
+  isResuming: boolean;
+  isUpdatingConfig: boolean;
+  pauseError: Error | null;
+  resumeError: Error | null;
+  configError: Error | null;
+  /** true = pauza optimistă în curs; false = reluare optimistă; null = stare reală server */
+  optimisticPaused: boolean | null;
+  /** Metadatele aplicate la ultima config (applyStatus + requiresWorkerRestart). */
+  configResult: { applyStatus: string; requiresWorkerRestart: boolean } | null;
+  /** Răspunsul serverului la ultimul pause. */
+  lastPauseResult: { status: "PAUSED"; propagated: boolean; batchId: string | null } | null;
+  /** Răspunsul serverului la ultimul resume. */
+  lastResumeResult: { status: "ACTIVE" } | null;
+}
 
 // ─── Metrics helpers ──────────────────────────────────────────────────────────
 
@@ -62,11 +87,14 @@ function buildThroughputSparkline(traces: CognitiveEvent[]): SparklinePoint[] {
 interface NeuronInspectorPanelProps {
   readonly selectedNodeKey: string | null;
   readonly onClose: () => void;
+  /** batchId activ — activează query-ul de mutations per batch. */
+  readonly batchId?: string;
 }
 
 export const NeuronInspectorPanel = memo(function NeuronInspectorPanel({
   selectedNodeKey,
   onClose,
+  batchId,
 }: NeuronInspectorPanelProps) {
   const [activeTab, setActiveTab] = useState<TabId>("traces");
 
@@ -74,7 +102,10 @@ export const NeuronInspectorPanel = memo(function NeuronInspectorPanel({
     ? (COGNITIVE_NODE_CATALOG.find((e) => e.nodeKey === selectedNodeKey) ?? null)
     : null;
 
-  const { traces, mutations, isLoading } = useNeuronInspector(selectedNodeKey);
+  const { traces, mutations, isLoading } = useNeuronInspector(selectedNodeKey, batchId);
+
+  // Control hook — pausă/reluare/config cu optimistic UI și invalidare topology
+  const control = useNeuronControl(selectedNodeKey);
 
   // Sparkline data derived deterministically from trace timestamps
   const metricsData = useMemo(() => buildThroughputSparkline(traces), [traces]);
@@ -91,6 +122,7 @@ export const NeuronInspectorPanel = memo(function NeuronInspectorPanel({
         background: "var(--color-s900)",
         borderLeft: "1px solid oklch(0.2 0.018 255 / 60%)",
         overflow: "hidden",
+        animation: "inspectorSlideIn 0.18s ease",
       }}
     >
       {/* Header */}
@@ -173,7 +205,9 @@ export const NeuronInspectorPanel = memo(function NeuronInspectorPanel({
               <MutationProvenanceTimeline mutations={mutations} />
             )}
             {!isLoading && activeTab === "metrics" && <MetricsTab data={metricsData} />}
-            {!isLoading && activeTab === "controls" && <ControlsTab nodeKey={selectedNodeKey} />}
+            {!isLoading && activeTab === "controls" && (
+              <ControlsTab nodeKey={selectedNodeKey} control={control} />
+            )}
           </div>
         </>
       )}
@@ -365,52 +399,28 @@ function MetricsTab({ data }: MetricsTabProps) {
 
 // ─── Controls tab ────────────────────────────────────────────────────────────
 
-type PauseResponse = { success: true; data: { paused: boolean; propagated?: boolean } };
-type ConfigResponse = { success: true; data: { applyStatus: string } };
-
 interface ControlsTabProps {
   readonly nodeKey: string;
+  readonly control: NeuronControl;
 }
 
-function ControlsTab({ nodeKey }: ControlsTabProps) {
-  const queryClient = useQueryClient();
+function ControlsTab({ nodeKey: _nodeKey, control }: ControlsTabProps) {
   const [configValues, setConfigValues] = useState({
     concurrency: "",
     rateLimitMax: "",
     rateLimitDuration: "",
-    attempts: "",
   });
 
-  const pauseMutation = useMutation({
-    mutationFn: (paused: boolean) =>
-      api.post<PauseResponse>(
-        `/api/v1/brain/nodes/${encodeURIComponent(nodeKey)}/${paused ? "pause" : "resume"}`,
-        {},
-      ),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["cognitive-brain", "topology"] });
-    },
-  });
+  const isAnyPauseLoading = control.isPausing || control.isResuming;
 
-  const configMutation = useMutation({
-    mutationFn: (values: typeof configValues) => {
-      const payload: Record<string, unknown> = {};
-      if (values.concurrency) payload.concurrency = Number(values.concurrency);
-      if (values.rateLimitMax) payload.rateLimitMax = Number(values.rateLimitMax);
-      if (values.rateLimitDuration) payload.rateLimitDuration = Number(values.rateLimitDuration);
-      if (values.attempts) payload.attempts = Number(values.attempts);
-      return api.put<ConfigResponse>(
-        `/api/v1/brain/nodes/${encodeURIComponent(nodeKey)}/config`,
-        payload,
-      );
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["cognitive-brain", "topology"] });
-    },
-  });
-
-  const isPauseLoading = pauseMutation.isPending;
-  const isConfigLoading = configMutation.isPending;
+  function handleSubmitConfig() {
+    const config: NodeConfigInput = {};
+    if (configValues.concurrency) config.concurrency = Number(configValues.concurrency);
+    if (configValues.rateLimitMax) config.rateLimitMax = Number(configValues.rateLimitMax);
+    if (configValues.rateLimitDuration)
+      config.rateLimitDuration = Number(configValues.rateLimitDuration);
+    control.updateConfig(config);
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -428,29 +438,53 @@ function ControlsTab({ nodeKey }: ControlsTabProps) {
         >
           Pauză / Reluare
         </div>
+
+        {/* Optimistic state indicator */}
+        {control.optimisticPaused !== null && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 5,
+              fontSize: 10,
+              color: "var(--color-in)",
+              marginBottom: 6,
+            }}
+          >
+            <RefreshCw size={10} style={{ animation: "spin 1s linear infinite" }} />
+            {control.optimisticPaused ? "Se aplică pauza…" : "Se reia execuția…"}
+          </div>
+        )}
+
         <div style={{ display: "flex", gap: 8 }}>
           <ControlButton
             icon={<Pause size={12} />}
             label="Pauză"
             color="var(--color-wa)"
-            loading={isPauseLoading}
-            onClick={() => pauseMutation.mutate(true)}
+            loading={control.isPausing}
+            onClick={() => control.pause()}
           />
           <ControlButton
             icon={<Play size={12} />}
             label="Reluare"
             color="var(--color-ok)"
-            loading={isPauseLoading}
-            onClick={() => pauseMutation.mutate(false)}
+            loading={control.isResuming}
+            onClick={() => control.resume()}
           />
         </div>
-        {pauseMutation.error && <MutationError error={pauseMutation.error} />}
-        {pauseMutation.data && (
+
+        {isAnyPauseLoading && null}
+        {control.pauseError && <MutationError error={control.pauseError} />}
+        {control.resumeError && <MutationError error={control.resumeError} />}
+        {control.lastPauseResult && control.optimisticPaused === null && (
           <div style={{ fontSize: 10, color: "var(--color-ok)", marginTop: 4 }}>
-            ✓ {pauseMutation.data.data.paused ? "Pauză" : "Reluare"} aplicată
-            {pauseMutation.data.data.propagated !== undefined && (
-              <span> (propagat: {String(pauseMutation.data.data.propagated)})</span>
-            )}
+            ✓ Pauză aplicată
+            {control.lastPauseResult.propagated && <span> (propagat în graf)</span>}
+          </div>
+        )}
+        {control.lastResumeResult && control.optimisticPaused === null && (
+          <div style={{ fontSize: 10, color: "var(--color-ok)", marginTop: 4 }}>
+            ✓ Reluare aplicată
           </div>
         )}
       </section>
@@ -473,7 +507,6 @@ function ControlsTab({ nodeKey }: ControlsTabProps) {
           {(
             [
               { key: "concurrency", label: "Concurrency", placeholder: "ex: 5" },
-              { key: "attempts", label: "Retry attempts", placeholder: "ex: 3" },
               { key: "rateLimitMax", label: "Rate limit max", placeholder: "ex: 100" },
               { key: "rateLimitDuration", label: "Rate limit ms", placeholder: "ex: 1000" },
             ] as const
@@ -489,8 +522,8 @@ function ControlsTab({ nodeKey }: ControlsTabProps) {
         </div>
 
         <button
-          onClick={() => configMutation.mutate(configValues)}
-          disabled={isConfigLoading}
+          onClick={handleSubmitConfig}
+          disabled={control.isUpdatingConfig}
           style={{
             marginTop: 10,
             padding: "7px 14px",
@@ -500,18 +533,21 @@ function ControlsTab({ nodeKey }: ControlsTabProps) {
             color: "#fff",
             fontSize: 11,
             fontWeight: 600,
-            cursor: isConfigLoading ? "wait" : "pointer",
-            opacity: isConfigLoading ? 0.6 : 1,
+            cursor: control.isUpdatingConfig ? "wait" : "pointer",
+            opacity: control.isUpdatingConfig ? 0.6 : 1,
             width: "100%",
           }}
         >
-          {isConfigLoading ? "Se aplică…" : "Aplică configurare"}
+          {control.isUpdatingConfig ? "Se aplică…" : "Aplică configurare"}
         </button>
 
-        {configMutation.error && <MutationError error={configMutation.error} />}
-        {configMutation.data && (
+        {control.configError && <MutationError error={control.configError} />}
+        {control.configResult && (
           <div style={{ fontSize: 10, color: "var(--color-ok)", marginTop: 4 }}>
-            ✓ Configurare aplicată (applyStatus: {configMutation.data.data.applyStatus})
+            ✓ Configurare aplicată (applyStatus: {control.configResult.applyStatus})
+            {control.configResult.requiresWorkerRestart && (
+              <span style={{ color: "var(--color-wa)" }}> · necesită restart worker</span>
+            )}
           </div>
         )}
       </section>

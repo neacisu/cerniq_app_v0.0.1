@@ -41,6 +41,10 @@ const nodeKeyParamsSchema = z.object({
 const topologyQuerySchema = z.object({
   batchId: z.uuid().optional(),
 });
+const sseQuerySchema = z.object({
+  /** Token JWT ca fallback pentru EventSource care nu poate trimite Authorization header. */
+  token: z.string().min(1).optional(),
+});
 const pauseBodySchema = z
   .object({
     batchId: z.uuid().optional(),
@@ -374,9 +378,15 @@ export default async function cognitiveBrainRoutes(app: FastifyInstance) {
       }
 
       // ── Topology globală: catalog + Redis pause flags ──
-      const redis = getCommandRedis();
-      const keys = COGNITIVE_NODE_CATALOG.map((e) => pauseKey(e.nodeKey));
-      const pausedFlags = await redis.mget(keys);
+      let pausedFlags: (string | null)[];
+      try {
+        const redis = getCommandRedis();
+        const keys = COGNITIVE_NODE_CATALOG.map((e) => pauseKey(e.nodeKey));
+        pausedFlags = await redis.mget(keys);
+      } catch {
+        // Redis indisponibil — degradare grațioasă: toți neuronii ACTIVE din catalog
+        pausedFlags = COGNITIVE_NODE_CATALOG.map(() => null);
+      }
 
       const nodes: CognitiveNode[] = COGNITIVE_NODE_CATALOG.map((e, i) => {
         const paused = pausedFlags[i] === "1";
@@ -409,14 +419,35 @@ export default async function cognitiveBrainRoutes(app: FastifyInstance) {
   app.get(
     "/events/stream",
     {
-      ...viewerAuth,
+      // Fără viewerAuth predefint — facem verificare manuală pentru a suporta
+      // ?token= query param (EventSource nativ nu poate trimite Authorization header)
       schema: {
         tags: ["cognitive-brain"],
         summary: "SSE stream of cognitive events — supports Last-Event-ID replay from DB",
+        querystring: sseQuerySchema,
         response: { 401: errorResponseSchema, 403: errorResponseSchema },
       },
     },
     async (request, reply) => {
+      // ── Autentificare SSE: Authorization header sau ?token= query param ──────
+      // EventSource nativ (browser) nu poate trimite headere custom.
+      // Token-ul JWT din localStorage este pasat ca query param.
+      const queryParsed = sseQuerySchema.safeParse(request.query);
+      const queryToken = queryParsed.success ? queryParsed.data.token : undefined;
+
+      try {
+        if (queryToken) {
+          // Injectează token-ul din query param ca header virtual pentru jwtVerify
+          (request.headers as Record<string, string>).authorization = `Bearer ${queryToken}`;
+        }
+        await request.jwtVerify();
+        await requireRole("viewer")(request, reply);
+      } catch {
+        return reply
+          .code(401)
+          .send({ success: false, error: "Autentificare SSE eșuată — token lipsă sau expirat" });
+      }
+
       // Extrage tenantId ÎNAINTE de hijack — necesitar pentru DB replay
       let tenantId: string | undefined;
       try {

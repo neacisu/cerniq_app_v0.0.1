@@ -703,12 +703,20 @@ function ImportDetailActions({
   return (
     <div className="flex gap-2">
       {id ? (
-        <Link
-          to={`/etapa1/bronze?batchId=${id}`}
-          className="inline-flex items-center justify-center rounded-md border border-s600 bg-transparent px-3 py-1.5 text-sm font-medium text-t1 hover:bg-s700"
-        >
-          Vezi contacte Bronze
-        </Link>
+        <>
+          <Link
+            to={`/brain?batch=${id}`}
+            className="inline-flex items-center justify-center rounded-md border border-s600 bg-transparent px-3 py-1.5 text-sm font-medium text-t1 hover:bg-s700"
+          >
+            Cognitive Brain
+          </Link>
+          <Link
+            to={`/etapa1/bronze?batchId=${id}`}
+            className="inline-flex items-center justify-center rounded-md border border-s600 bg-transparent px-3 py-1.5 text-sm font-medium text-t1 hover:bg-s700"
+          >
+            Vezi contacte Bronze
+          </Link>
+        </>
       ) : null}
       {isCompleted ? (
         <Button

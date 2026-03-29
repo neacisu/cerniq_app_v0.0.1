@@ -26,13 +26,14 @@ import {
   type CognitiveEdge,
   type CognitiveEvent,
 } from "@cerniq/shared";
-import { api } from "@/lib/api.js";
-import { useQuery } from "@tanstack/react-query";
-import { useCognitiveEventStream, useCognitiveLOD } from "@/hooks/use-cognitive-brain.js";
+import {
+  useCognitiveBrain,
+  useCognitiveEventStream,
+  useCognitiveLOD,
+} from "@/hooks/use-cognitive-brain.js";
 import { NeuronNodeComponent, type NeuronNodeType } from "./NeuronNode.js";
 import { NEURON_COLORS } from "./neuron-tokens.js";
 import { QueueSynapseComponent } from "./QueueSynapse.js";
-import type { ApiError } from "@/lib/api.js";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -137,6 +138,27 @@ const CATALOG_NODES: CognitiveNode[] = COGNITIVE_NODE_CATALOG.map((e) => ({
   status: "ACTIVE" as const,
   metrics: { processed: 0, failed: 0, avgLatency: 0 },
 }));
+
+/**
+ * Muchii statice de fallback — o sinapsă reprezentativă per pereche consecutivă de swimlane-uri.
+ * Vizualizează fluxul cognitiv al pipeline-ului când API-ul nu răspunde.
+ */
+const CATALOG_EDGES: CognitiveEdge[] = (() => {
+  const edges: CognitiveEdge[] = [];
+  for (let i = 0; i < SWIMLANES.length - 1; i++) {
+    const from = COGNITIVE_NODE_CATALOG.find((n) => n.swimlane === SWIMLANES[i]);
+    const to = COGNITIVE_NODE_CATALOG.find((n) => n.swimlane === SWIMLANES[i + 1]);
+    if (from && to) {
+      edges.push({
+        sourceNodeKey: from.nodeKey,
+        targetNodeKey: to.nodeKey,
+        edgeType: "DATA_FLOW",
+        weight: 1,
+      });
+    }
+  }
+  return edges;
+})();
 
 // ─── Swimlane background node ─────────────────────────────────────────────────
 
@@ -388,34 +410,6 @@ function buildFlowEdges(
 
 // ─── Topology query ───────────────────────────────────────────────────────────
 
-type TopologyResponse = {
-  success: true;
-  data: { nodes: CognitiveNode[]; edges: CognitiveEdge[]; metadata?: Record<string, unknown> };
-};
-
-function useTopology(batchId: string | null) {
-  return useQuery({
-    queryKey: ["cognitive-brain", "topology", batchId],
-    queryFn: () => {
-      const url = batchId
-        ? `/api/v1/brain/topology?batchId=${encodeURIComponent(batchId)}`
-        : "/api/v1/brain/topology";
-      return api.get<TopologyResponse>(url);
-    },
-    refetchInterval: (q) => {
-      const err = q.state.error as ApiError | null;
-      if (err && "status" in err && err.status === 401) return false;
-      return 30_000;
-    },
-    staleTime: 10_000,
-    retry: (failureCount, err) => {
-      const e = err as ApiError | null;
-      if (e && "status" in e && e.status === 401) return false;
-      return failureCount < 3;
-    },
-  });
-}
-
 // ─── Connection status badge ──────────────────────────────────────────────────
 
 interface ConnectionBadgeProps {
@@ -518,7 +512,6 @@ export function CognitiveBrainCanvas({
   onNodeSelect,
 }: CognitiveBrainCanvasProps) {
   const [zoom, setZoom] = useState(0.7);
-  const { lod, showEdgeLabels } = useCognitiveLOD(zoom);
 
   // Status overrides from live SSE stream — useReducer makes state transitions
   // explicit and ensures SonarQube can track that statusOverrides is consumed.
@@ -544,19 +537,26 @@ export function CognitiveBrainCanvas({
 
   const { connected } = useCognitiveEventStream(handleCognitiveEvent);
 
-  // Fetch topology
-  const topologyQuery = useTopology(batchId);
-  const topologyData = topologyQuery.data?.data;
+  // Fetch topology — uses shared hook (single query, no duplicate fetches)
+  const {
+    nodes: remoteNodes,
+    edges: remoteEdges,
+    isLoading: topologyLoading,
+  } = useCognitiveBrain(batchId ?? undefined);
 
-  // Resolved display nodes
+  // Resolved display nodes — fallback to catalog when API returns empty
   const displayNodes = useMemo<CognitiveNode[]>(() => {
-    if (topologyData?.nodes && topologyData.nodes.length > 0) {
-      return topologyData.nodes;
-    }
+    if (remoteNodes.length > 0) return remoteNodes;
     return CATALOG_NODES;
-  }, [topologyData]);
+  }, [remoteNodes]);
 
-  const displayEdges = useMemo<CognitiveEdge[]>(() => topologyData?.edges ?? [], [topologyData]);
+  const displayEdges = useMemo<CognitiveEdge[]>(() => {
+    if (remoteEdges.length > 0) return remoteEdges;
+    return CATALOG_EDGES;
+  }, [remoteEdges]);
+
+  // LOD — zoom AND node count both influence detail level
+  const { lod, showEdgeLabels } = useCognitiveLOD(zoom, displayNodes.length);
 
   // Layout — recomputed only when node set changes
   const layout = useMemo(() => computeLayout(displayNodes), [displayNodes]);
@@ -590,7 +590,7 @@ export function CognitiveBrainCanvas({
         data-testid="cognitive-brain-canvas"
         style={{ width: "100%", height: "100%", position: "relative" }}
       >
-        <LoadingOverlay visible={topologyQuery.isLoading} />
+        <LoadingOverlay visible={topologyLoading} />
 
         <ReactFlow
           nodes={flowNodes}
@@ -602,7 +602,7 @@ export function CognitiveBrainCanvas({
           defaultViewport={{ x: 0, y: 0, zoom: 0.7 }}
           minZoom={0.15}
           maxZoom={3}
-          fitView={!topologyQuery.isLoading && flowNodes.length > 0}
+          fitView={!topologyLoading && flowNodes.length > 0}
           fitViewOptions={{ padding: 0.15 }}
           nodesDraggable={false}
           nodesConnectable={false}
@@ -629,8 +629,8 @@ export function CognitiveBrainCanvas({
               borderRadius: 8,
             }}
             nodeColor={(n: Node) => {
-              const color = NEURON_COLORS[(n.data as NeuronNodeType["data"]).neuronType ?? ""];
-              return color ?? "var(--color-s700)";
+              const neuronType = n.data.neuronType as string | undefined;
+              return NEURON_COLORS[neuronType ?? ""] ?? "var(--color-s700)";
             }}
           />
 

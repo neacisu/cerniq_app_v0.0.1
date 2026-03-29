@@ -344,3 +344,164 @@ groups:
         annotations:
           summary: "Guardrail / HITL SLA breach rate spike (>10/min)"
           description: "Estimated HITL SLA breaches per minute from cerniq_hitl_sla_breach_total exceeded 10 (5m rate × 60)."
+
+      - alert: ANAFCacheHitRateLow
+        expr: |
+          sum(rate(cerniq_external_api_requests_total{provider="anaf",status!="success"}[10m]))
+          /
+          clamp_min(sum(rate(cerniq_external_api_requests_total{provider="anaf"}[10m])), 0.001)
+          > 0.3
+        for: 10m
+        labels:
+          severity: warning
+          project: cerniq
+        annotations:
+          summary: "ANAF external API error rate above 30% (cache/API degraded)"
+          description: "ANAF API call error ratio exceeded 30% over 10m — indicates cache misses combined with API unavailability."
+
+      - alert: MutationWithoutProvenance
+        expr: |
+          sum(rate(cerniq_bronze_contacts_ingested[5m])) > 0
+          and
+          sum(rate(cerniq_import_mutation_total[5m])) == 0
+        for: 10m
+        labels:
+          severity: warning
+          project: cerniq
+        annotations:
+          summary: "Bronze contacts ingested but zero DB mutations tracked (provenance gap)"
+          description: "cerniq_bronze_contacts_ingested is positive while cerniq_import_mutation_total rate is 0 — mutations may lack provenance tracking."
+
+      - alert: DLQDepthGrowing
+        expr: sum by (queue) (cerniq_worker_dlq_depth) > 5
+        for: 5m
+        labels:
+          severity: warning
+          project: cerniq
+        annotations:
+          summary: "Dead Letter Queue depth above 5 (node retry exhaustion)"
+          description: "Queue {{ $labels.queue }} DLQ has {{ $value }} items — jobs exhausted all retries and are accumulating."
+
+      - alert: CronQuotaResetMissing
+        expr: |
+          min_over_time(sum by (phone_id) (cerniq_outreach_wa_quota_usage)[25h:5m]) > 50
+        for: 30m
+        labels:
+          severity: warning
+          project: cerniq
+        annotations:
+          summary: "WA quota usage never reset in 25h (cron may have missed)"
+          description: "Phone {{ $labels.phone_id }} quota usage minimum over 25h is {{ $value }} — expected daily reset to near-zero did not occur."
+
+      - alert: SynapseBreachThreshold
+        expr: |
+          count(
+            sum by (queue) (rate(cerniq_worker_jobs_failed_total[5m])) > 0.1
+          ) > 3
+        for: 5m
+        labels:
+          severity: critical
+          project: cerniq
+        annotations:
+          summary: "More than 3 queues simultaneously failing at >0.1 jobs/s (synapse breach)"
+          description: "{{ $value }} worker queues have failure rate above 0.1 jobs/sec — multi-queue failure indicates systemic synapse degradation."
+
+      - alert: GoldNeuronBlocked
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum(rate(cerniq_pipeline_company_stage_duration_seconds_bucket[5m])) by (le)
+          ) > 86400
+        for: 30m
+        labels:
+          severity: warning
+          project: cerniq
+        annotations:
+          summary: "Pipeline company stage P95 duration > 24h (Gold neuron blocked)"
+          description: "P95 company pipeline stage duration exceeded 24h — indicates companies are stuck in enrichment/gold promotion path."
+
+      - alert: NodeRetryExhausted
+        expr: |
+          sum(rate(cerniq_worker_jobs_retried_total[5m]))
+          /
+          clamp_min(sum(rate(cerniq_worker_jobs_processed_total[5m])), 0.001)
+          > 0.5
+        for: 10m
+        labels:
+          severity: warning
+          project: cerniq
+        annotations:
+          summary: "Node retry ratio above 50% (retries near exhaustion)"
+          description: "Ratio of retried / processed jobs exceeded 50% over 5m — nodes are consuming retry budget and may reach DLQ soon."
+
+      - alert: ConfigPendingApply
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum(rate(cerniq_hitl_resolution_time_seconds_bucket[1h])) by (le)
+          ) > 86400
+        for: 30m
+        labels:
+          severity: warning
+          project: cerniq
+        annotations:
+          summary: "HITL task P95 resolution time > 24h (config change pending apply)"
+          description: "HITL resolution time P95 exceeded 24h — node config changes or approval tasks remain unresolved, blocking pipeline progress."
+
+      - alert: CompanyPipelineStuck
+        expr: |
+          histogram_quantile(
+            0.99,
+            sum(rate(cerniq_pipeline_company_stage_duration_seconds_bucket[2h])) by (le)
+          ) > 86400
+        for: 30m
+        labels:
+          severity: critical
+          project: cerniq
+        annotations:
+          summary: "Company pipeline P99 stage duration > 24h (pipeline stuck)"
+          description: "P99 company stage transition time exceeded 24h over a 2h window — at least 1% of companies are stuck in the enrichment pipeline."
+
+      - alert: QuotaExhausted
+        expr: max by (phone_id, tenant_id) (cerniq_outreach_wa_quota_usage) > 900
+        for: 5m
+        labels:
+          severity: critical
+          project: cerniq
+        annotations:
+          summary: "WA quota usage above 900 for phone {{ $labels.phone_id }} (quota near exhaustion)"
+          description: "Phone {{ $labels.phone_id }} (tenant {{ $labels.tenant_id }}) has {{ $value }} WA messages used — approaching daily limit, outreach will be throttled."
+
+      - alert: PhoneBanned
+        expr: cerniq_outreach_phone_status{status="ACTIVE"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          project: cerniq
+        annotations:
+          summary: "WA phone {{ $labels.phone_id }} status ACTIVE=0 (banned / suspended)"
+          description: "Phone {{ $labels.phone_id }} (tenant {{ $labels.tenant_id }}) reported ACTIVE=0 — phone may be banned, suspended, or offline. Outreach stopped for this phone."
+
+      - alert: EInvoiceDeadlineRisk
+        expr: |
+          increase(cerniq_hitl_sla_breach_total{approval_type=~"einvoice.*|invoice.*|e-invoice.*"}[1h]) > 0
+        for: 0m
+        labels:
+          severity: critical
+          project: cerniq
+        annotations:
+          summary: "e-Invoice HITL SLA breached (deadline risk)"
+          description: "HITL task of type {{ $labels.approval_type }} breached SLA — e-Invoice submission deadline may be at risk. Immediate review required."
+
+      - alert: DeliberativeNeuronCostCap
+        expr: |
+          sum(cerniq_worker_queue_depth{queue=~"ai:.*"}) > 200
+          and
+          sum(rate(cerniq_worker_jobs_processed_total{queue=~"ai:.*"}[10m])) < 0.01
+        for: 10m
+        labels:
+          severity: critical
+          project: cerniq
+        annotations:
+          summary: "AI queue backed up with near-zero throughput (cost cap / rate limit)"
+          description: "AI worker queues have {{ $value }} jobs waiting but processed rate dropped below 0.01 jobs/s — indicates LLM cost cap, rate limiting, or deliberative neuron stall."

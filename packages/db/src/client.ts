@@ -13,6 +13,7 @@ import * as inviteCodesSchema from "./schemas/invite-codes.js";
 import * as bronze from "./schemas/bronze.js";
 import * as silver from "./schemas/silver.js";
 import * as gold from "./schemas/gold.js";
+import * as cognitive from "./schemas/cognitive.js";
 import * as outreachEnums from "./schemas/outreach-enums.js";
 import * as outreach from "./schemas/outreach.js";
 
@@ -27,6 +28,7 @@ const schema = {
   ...bronze,
   ...silver,
   ...gold,
+  ...cognitive,
   ...outreachEnums,
   ...outreach,
 };
@@ -70,30 +72,41 @@ function requireDatabaseUrl(): string {
   return url.trim();
 }
 
-const connectionString = requireDatabaseUrl();
+let connection: ReturnType<typeof createDbClient> | null = null;
 
-let connection = createDbClient(connectionString);
+function getConnection(): ReturnType<typeof createDbClient> {
+  connection ??= createDbClient(requireDatabaseUrl());
+  return connection;
+}
+
+function getSqlClient() {
+  return getConnection().sql;
+}
 
 /** Proxy so that all consumers always see the current DB client after refreshDbConnection(). */
-export const db = new Proxy(connection.db, {
+export const db = new Proxy({} as PostgresJsDatabase<typeof schema>, {
   get(_, prop: string) {
-    return Reflect.get(connection.db, prop);
+    return Reflect.get(getConnection().db, prop);
   },
-}) as PostgresJsDatabase<typeof schema>;
+});
 
 /**
  * Reload DB connection using current process.env.DATABASE_URL.
  * Call this after reloading secrets (e.g. on SIGHUP) so the pool uses new credentials.
  */
 export async function refreshDbConnection(): Promise<void> {
-  await connection.sql.end();
+  if (connection) {
+    await connection.sql.end();
+  }
   const url = requireDatabaseUrl();
   connection = createDbClient(url);
 }
 
 /** Close the DB connection (e.g. on graceful shutdown). Call once before process exit. */
 export async function closeDbConnection(): Promise<void> {
+  if (!connection) return;
   await connection.sql.end();
+  connection = null;
 }
 
 /**
@@ -104,7 +117,7 @@ export async function closeDbConnection(): Promise<void> {
 export async function setSessionTenantId(tenantId: string | null): Promise<void> {
   const value = tenantId ?? SENTINEL_TENANT_ID;
   // Session-level scope is required because request queries are not wrapped in a single DB transaction.
-  await connection.sql`SELECT set_config('app.tenant_id', ${value}, false)`;
+  await getSqlClient()`SELECT set_config('app.tenant_id', ${value}, false)`;
 }
 
 /**
@@ -117,7 +130,7 @@ export async function setSessionRequestContext(args: {
 }): Promise<void> {
   const tenantValue = args.tenantId ?? SENTINEL_TENANT_ID;
   const userValue = args.userId ?? SENTINEL_USER_ID;
-  await connection.sql`
+  await getSqlClient()`
     SELECT
       set_config('app.tenant_id', ${tenantValue}, false),
       set_config('app.current_user_id', ${userValue}, false)
@@ -130,7 +143,7 @@ export async function setSessionRequestContext(args: {
  * to prevent tenant context from leaking to the next connection consumer.
  */
 export async function resetSessionContext(): Promise<void> {
-  await connection.sql`
+  await getSqlClient()`
     SELECT
       set_config('app.tenant_id', ${SENTINEL_TENANT_ID}, false),
       set_config('app.current_user_id', ${SENTINEL_USER_ID}, false)
@@ -152,7 +165,8 @@ export async function get_user_by_email(
     created_at: Date;
     updated_at: Date;
   };
-  const rows = await connection.sql<[RawRow]>`SELECT * FROM get_user_by_email(${email}::text)`;
+  const sqlClient = getSqlClient();
+  const rows = await sqlClient<[RawRow]>`SELECT * FROM get_user_by_email(${email}::text)`;
   const row = rows[0];
   if (!row) return null;
   return {
@@ -172,7 +186,8 @@ export type InsertTenantResult = { id: string; name: string; slug: string; statu
 
 /** Insert tenant (raw SQL, bypasses RLS). Use for register only. */
 export async function insert_tenant(name: string, slug: string): Promise<InsertTenantResult> {
-  const rows = await connection.sql<[InsertTenantResult]>`
+  const sqlClient = getSqlClient();
+  const rows = await sqlClient<[InsertTenantResult]>`
     INSERT INTO tenants (name, slug, status)
     VALUES (${name}, ${slug}, 'trial')
     RETURNING id::text, name, slug, status
@@ -200,7 +215,8 @@ export async function insert_user(
   role: string,
   status: string,
 ): Promise<InsertUserResult> {
-  const rows = await connection.sql<[InsertUserResult]>`
+  const sqlClient = getSqlClient();
+  const rows = await sqlClient<[InsertUserResult]>`
     INSERT INTO users (tenant_id, email, password_hash, name, role, status)
     VALUES (${tenantId}::uuid, ${email}, ${passwordHash}, ${name}, ${role}::user_role, ${status}::user_status)
     RETURNING id::text, tenant_id::text AS "tenantId", email, name, role, status
@@ -221,7 +237,8 @@ export type InviteCodeRow = {
 
 /** Get invite code by code string if valid (not expired, under max uses). Returns null if not found or invalid. */
 export async function get_invite_code(code: string): Promise<InviteCodeRow | null> {
-  const rows = await connection.sql<[InviteCodeRow]>`
+  const sqlClient = getSqlClient();
+  const rows = await sqlClient<[InviteCodeRow]>`
     SELECT id::text, tenant_id::text, code, max_uses, used_count, expires_at
     FROM invite_codes
     WHERE code = ${code}
@@ -241,7 +258,7 @@ export async function get_invite_code(code: string): Promise<InviteCodeRow | nul
 
 /** Increment used_count for an invite code. */
 export async function increment_invite_code_usage(codeId: string): Promise<void> {
-  await connection.sql`
+  await getSqlClient()`
     UPDATE invite_codes
     SET used_count = used_count + 1
     WHERE id = ${codeId}::uuid
@@ -257,7 +274,8 @@ export async function generate_invite_code(
 ): Promise<GenerateInviteCodeResult> {
   const { randomBytes } = await import("node:crypto");
   const code = randomBytes(4).toString("hex");
-  const rows = await connection.sql<[{ id: string; code: string }]>`
+  const sqlClient = getSqlClient();
+  const rows = await sqlClient<[{ id: string; code: string }]>`
     INSERT INTO invite_codes (tenant_id, code, max_uses, used_count, created_by)
     VALUES (${tenantId}::uuid, ${code}, 10, 0, ${createdBy ?? null}::uuid)
     RETURNING id::text, code
@@ -277,8 +295,9 @@ export async function register_new_company(
 ): Promise<InsertUserResult> {
   const { randomBytes } = await import("node:crypto");
   const inviteCode = randomBytes(4).toString("hex");
-  return connection.sql.begin(async (sql: unknown) => {
-    const tx = sql as typeof connection.sql;
+  const sqlClient = getSqlClient();
+  return sqlClient.begin(async (sql: unknown) => {
+    const tx = sql as typeof sqlClient;
     const [tenantRow] = await tx<[{ id: string }]>`
       INSERT INTO tenants (name, slug, status)
       VALUES (${companyName}, ${slug}, 'trial')
@@ -308,8 +327,9 @@ export async function register_with_invite_code(
   passwordHash: string,
   name: string,
 ): Promise<InsertUserResult> {
-  return connection.sql.begin(async (sql: unknown) => {
-    const tx = sql as typeof connection.sql;
+  const sqlClient = getSqlClient();
+  return sqlClient.begin(async (sql: unknown) => {
+    const tx = sql as typeof sqlClient;
     await tx`SELECT set_config('app.tenant_id', ${inviteCodeRow.tenant_id}, true)`;
     const [userRow] = await tx<[InsertUserResult]>`
       INSERT INTO users (tenant_id, email, password_hash, name, role, status)

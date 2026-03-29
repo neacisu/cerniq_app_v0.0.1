@@ -276,6 +276,408 @@
           "refId": "B"
         }
       ]
+    },
+    {
+      "id": 13,
+      "title": "Queue Depth by State (waiting / active / delayed / failed)",
+      "description": "cerniq_worker_queue_depth_by_state per {queue, state} — shows BullMQ pipeline pressure by lifecycle state.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 38 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "custom": { "lineWidth": 2, "fillOpacity": 15 } }
+      },
+      "targets": [
+        {
+          "expr": "sum by (queue, state) (cerniq_worker_queue_depth_by_state)",
+          "legendFormat": "{{ queue }} / {{ state }}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "title": "Dead Letter Queue (DLQ) Depth",
+      "description": "cerniq_worker_dlq_depth — jobs that exhausted all retries per queue. Growing DLQ = systemic node failure.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 38 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": { "lineWidth": 2, "fillOpacity": 20 },
+          "color": { "mode": "palette-classic" },
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 5 },
+              { "color": "red", "value": 20 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum by (queue) (cerniq_worker_dlq_depth)",
+          "legendFormat": "DLQ {{ queue }}",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(cerniq_worker_dlq_depth)",
+          "legendFormat": "DLQ total",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "title": "External API Health — Request Rate & Error Rate",
+      "description": "cerniq_external_api_requests_total by provider and status (success/error). P95 latency overlay via cerniq_external_api_duration_seconds.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 46 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "ops", "custom": { "lineWidth": 2, "fillOpacity": 10 } }
+      },
+      "targets": [
+        {
+          "expr": "sum by (provider) (rate(cerniq_external_api_requests_total{status=\"success\"}[$__rate_interval]))",
+          "legendFormat": "✓ {{ provider }}",
+          "refId": "A"
+        },
+        {
+          "expr": "sum by (provider) (rate(cerniq_external_api_requests_total{status!=\"success\"}[$__rate_interval]))",
+          "legendFormat": "✗ {{ provider }}",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum by (provider, le) (rate(cerniq_external_api_duration_seconds_bucket[$__rate_interval])))",
+          "legendFormat": "P95 {{ provider }}",
+          "refId": "C"
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "title": "ANAF API Health & Cache Proxy",
+      "description": "cerniq_external_api_requests_total{provider='anaf'} — success vs error rate as proxy for ANAF availability. High error rate = cache misses + API degraded.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 46 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "ops", "custom": { "lineWidth": 2, "fillOpacity": 15 } }
+      },
+      "targets": [
+        {
+          "expr": "rate(cerniq_external_api_requests_total{provider=\"anaf\",status=\"success\"}[$__rate_interval])",
+          "legendFormat": "ANAF success/s",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(cerniq_external_api_requests_total{provider=\"anaf\",status!=\"success\"}[$__rate_interval])",
+          "legendFormat": "ANAF error/s",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(rate(cerniq_external_api_errors_total{provider=\"anaf\"}[$__rate_interval]))",
+          "legendFormat": "ANAF classified errors/s",
+          "refId": "C"
+        },
+        {
+          "expr": "histogram_quantile(0.95, rate(cerniq_external_api_duration_seconds_bucket{provider=\"anaf\"}[$__rate_interval]))",
+          "legendFormat": "ANAF P95 latency",
+          "refId": "D"
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "title": "Cognitive Load by Type (Sensory / Motor / Deliberative / Reflex)",
+      "description": "Active jobs per cognitive neuron family — cerniq_worker_jobs_active grouped by queue pattern.",
+      "type": "bargauge",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 54 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "palette-classic" },
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 10 },
+              { "color": "red", "value": 50 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "orientation": "horizontal",
+        "displayMode": "gradient"
+      },
+      "targets": [
+        {
+          "expr": "sum(cerniq_worker_jobs_active{queue=~\"ingest:.*|webhook:.*\"})",
+          "legendFormat": "Sensory",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(cerniq_worker_jobs_active{queue=~\"q:email:.*|q:wa:.*|outreach:.*|wa:.*|email:.*\"})",
+          "legendFormat": "Motor",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(cerniq_worker_jobs_active{queue=~\"ai:.*\"})",
+          "legendFormat": "Deliberative",
+          "refId": "C"
+        },
+        {
+          "expr": "sum(cerniq_worker_jobs_active{queue=~\"normalize:.*|validate:.*|quota:.*\"})",
+          "legendFormat": "Reflex",
+          "refId": "D"
+        },
+        {
+          "expr": "sum(cerniq_worker_jobs_active{queue=~\"silver:.*|pipeline:.*\"})",
+          "legendFormat": "Enrichment",
+          "refId": "E"
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "title": "HITL SLA Compliance",
+      "description": "HITL tasks created vs resolved per hour + SLA breach rate. cerniq_hitl_tasks_created_total, cerniq_hitl_tasks_resolved_total, cerniq_hitl_sla_breach_total, P95 resolution time.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 54 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "ops", "custom": { "lineWidth": 2, "fillOpacity": 10 } }
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(cerniq_hitl_tasks_created_total[$__rate_interval]))",
+          "legendFormat": "created/s",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(cerniq_hitl_tasks_resolved_total[$__rate_interval]))",
+          "legendFormat": "resolved/s",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(rate(cerniq_hitl_sla_breach_total[$__rate_interval]))",
+          "legendFormat": "SLA breach/s",
+          "refId": "C"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(cerniq_hitl_resolution_time_seconds_bucket[$__rate_interval])) by (le))",
+          "legendFormat": "P95 resolution time (s)",
+          "refId": "D"
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "title": "Bottleneck Heatmap — Job Duration P50/P95/P99 by Queue Group",
+      "description": "histogram_quantile on cerniq_worker_job_duration_seconds across all queue families. Identifies latency bottlenecks.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 14, "x": 0, "y": 62 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "s", "custom": { "lineWidth": 2, "fillOpacity": 8 } }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(cerniq_worker_job_duration_seconds_bucket[$__rate_interval])) by (le))",
+          "legendFormat": "All queues P50",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(cerniq_worker_job_duration_seconds_bucket[$__rate_interval])) by (le))",
+          "legendFormat": "All queues P95",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(cerniq_worker_job_duration_seconds_bucket[$__rate_interval])) by (le))",
+          "legendFormat": "All queues P99",
+          "refId": "C"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(cerniq_worker_job_duration_seconds_bucket{queue=~\"silver:.*|pipeline:.*\"}[$__rate_interval])) by (le))",
+          "legendFormat": "Enrichment P95",
+          "refId": "D"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(cerniq_worker_job_duration_seconds_bucket{queue=~\"ai:.*\"}[$__rate_interval])) by (le))",
+          "legendFormat": "Deliberative (ai:*) P95",
+          "refId": "E"
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "title": "Gold Promotion Rate",
+      "description": "cerniq_gold_companies_total (gauge delta = promotions) + cerniq_pipeline_company_stage_duration_seconds P95 for enrichment pipeline velocity.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 10, "x": 14, "y": 62 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "custom": { "lineWidth": 2, "fillOpacity": 12 } }
+      },
+      "targets": [
+        {
+          "expr": "sum(cerniq_gold_companies_total)",
+          "legendFormat": "gold total",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(cerniq_pipeline_company_stage_duration_seconds_bucket[$__rate_interval])) by (le, stage))",
+          "legendFormat": "stage P50 {{ stage }}",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(cerniq_pipeline_company_stage_duration_seconds_bucket[$__rate_interval])) by (le))",
+          "legendFormat": "pipeline P95 duration",
+          "refId": "C"
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "title": "Mutation Provenance Funnel (Bronze → Mutations → Gold)",
+      "description": "Pipeline funnel: cerniq_bronze_contacts_ingested → cerniq_import_mutation_total → cerniq_gold_companies_total. Ratio drop = provenance gap.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 70 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "ops", "custom": { "lineWidth": 2, "fillOpacity": 12 } }
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(cerniq_bronze_contacts_ingested[$__rate_interval]))",
+          "legendFormat": "Bronze ingested/s",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(cerniq_import_mutation_total[$__rate_interval]))",
+          "legendFormat": "DB mutations/s",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(rate(cerniq_silver_enrichment_errors_total[$__rate_interval]))",
+          "legendFormat": "Silver enrichment errors/s",
+          "refId": "C"
+        },
+        {
+          "expr": "sum(cerniq_gold_companies_total)",
+          "legendFormat": "Gold companies (cumulative)",
+          "refId": "D"
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "title": "Background Process Health",
+      "description": "Worker health for background processes (phone monitoring, quota checks, enrichment background). Uses cerniq_worker_jobs_active and failed rates.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 70 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "ops", "custom": { "lineWidth": 2, "fillOpacity": 10 } }
+      },
+      "targets": [
+        {
+          "expr": "sum by (queue) (rate(cerniq_worker_jobs_processed_total{queue=~\"quota:.*|phone:.*|monitor:.*|cron:.*|scheduler:.*\"}[$__rate_interval]))",
+          "legendFormat": "processed {{ queue }}",
+          "refId": "A"
+        },
+        {
+          "expr": "sum by (queue) (rate(cerniq_worker_jobs_failed_total{queue=~\"quota:.*|phone:.*|monitor:.*|cron:.*|scheduler:.*\"}[$__rate_interval]))",
+          "legendFormat": "failed {{ queue }}",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(cerniq_outreach_phone_status{status=\"ACTIVE\"})",
+          "legendFormat": "active phones",
+          "refId": "C"
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "title": "Cron Execution Log",
+      "description": "Cron / scheduler job execution rate and failures. cerniq_worker_jobs_processed_total + failed for cron:*, quota:* queues. Zero-rate gap = cron missed.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 78 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "ops", "custom": { "lineWidth": 2, "fillOpacity": 18 } }
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(cerniq_worker_jobs_processed_total{queue=~\"cron:.*|scheduler:.*\"}[$__rate_interval]))",
+          "legendFormat": "cron processed/s",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(cerniq_worker_jobs_failed_total{queue=~\"cron:.*|scheduler:.*\"}[$__rate_interval]))",
+          "legendFormat": "cron failed/s",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(rate(cerniq_worker_jobs_retried_total{queue=~\"quota:.*\"}[$__rate_interval]))",
+          "legendFormat": "quota retries/s",
+          "refId": "C"
+        },
+        {
+          "expr": "min_over_time(sum by (phone_id) (cerniq_outreach_wa_quota_usage)[25h:])",
+          "legendFormat": "WA quota min-over-25h {{ phone_id }}",
+          "refId": "D"
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "title": "Cognitive Anomaly Timeline (Multi-Signal)",
+      "description": "Extended anomaly timeline: FSM transitions + WA sends + outreach dispatched + DLQ + SLA breaches. Correlate spikes across cognitive dimensions.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 78 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "ops", "custom": { "lineWidth": 2, "fillOpacity": 10 } }
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(cerniq_cognitive_fsm_transitions[$__rate_interval]))",
+          "legendFormat": "FSM transitions/s",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(cerniq_cognitive_wa_sent[$__rate_interval]))",
+          "legendFormat": "WA sent/s",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(rate(cerniq_cognitive_outreach_dispatched[$__rate_interval]))",
+          "legendFormat": "outreach dispatched/s",
+          "refId": "C"
+        },
+        {
+          "expr": "sum(cerniq_worker_dlq_depth)",
+          "legendFormat": "DLQ total depth",
+          "refId": "D"
+        },
+        {
+          "expr": "sum(rate(cerniq_hitl_sla_breach_total[$__rate_interval])) * 60",
+          "legendFormat": "SLA breaches/min",
+          "refId": "E"
+        },
+        {
+          "expr": "sum(rate(cerniq_worker_jobs_failed_total[1m])) / clamp_min(sum(rate(cerniq_worker_jobs_processed_total[1m])), 0.001)",
+          "legendFormat": "global error ratio",
+          "refId": "F"
+        }
+      ]
     }
   ],
   "refresh": "30s",
@@ -286,5 +688,5 @@
   "timezone": "utc",
   "title": "Cerniq Cognitive Brain",
   "uid": "cerniq-cognitive-brain",
-  "version": 1
+  "version": 2
 }

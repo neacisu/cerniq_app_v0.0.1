@@ -215,3 +215,12 @@ export const api = {
     apiFetch<T>(path, { method: "PATCH", body: serializeBody(body) }),
   delete: <T>(path: string) => apiFetch<T>(path, { method: "DELETE" }),
 };
+
+/**
+ * Returnează access token-ul JWT stocat, sau null dacă utilizatorul nu e autentificat.
+ * Folosit de mecanismele care nu pot trimite Authorization header (ex: EventSource SSE).
+ */
+export function getStoredToken(): string | null {
+  if (globalThis.window === undefined) return null;
+  return localStorage.getItem(STORAGE_KEY);
+}

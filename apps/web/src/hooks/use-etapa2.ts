@@ -84,12 +84,25 @@ export function usePatchOutreachSettings() {
   });
 }
 
-export function useOutreachNotifications(unread?: boolean) {
+export function useOutreachNotifications(unread?: boolean, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ["etapa2", "notifications", unread ?? "all"],
     queryFn: () => fetchOutreachNotifications(unread),
+    enabled: options?.enabled !== false,
     refetchInterval: 30_000,
     staleTime: 15_000,
+    /**
+     * Nu reîncercăm la erori de autentificare (401).
+     * api.ts face deja un singur retry cu token refresh; un al doilea retry
+     * din React Query ar genera log-uri duplicat în consolă.
+     */
+    retry: (failureCount, error) => {
+      if (error && typeof error === "object" && "status" in error) {
+        const status = (error as { status: number }).status;
+        if (status === 401 || status === 403) return false;
+      }
+      return failureCount < 2;
+    },
   });
 }
 

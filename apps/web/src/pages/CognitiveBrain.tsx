@@ -1,11 +1,25 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { BatchSelectorRail } from "@/components/cognitive/BatchSelectorRail.js";
 import { CognitiveBrainCanvas } from "@/components/cognitive/CognitiveBrainCanvas.js";
 import { NeuronInspectorPanel } from "@/components/cognitive/NeuronInspectorPanel.js";
 
 export function CognitiveBrainPage() {
-  const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const batchParam = searchParams.get("batch") || null;
+
+  const [selectedBatchId, setSelectedBatchId] = useState<string | null>(batchParam);
   const [selectedNodeKey, setSelectedNodeKey] = useState<string | null>(null);
+
+  function handleBatchSelect(id: string | null) {
+    setSelectedBatchId(id);
+    setSelectedNodeKey(null);
+    if (id) {
+      setSearchParams({ batch: id }, { replace: true });
+    } else {
+      setSearchParams({}, { replace: true });
+    }
+  }
 
   return (
     <div
@@ -18,13 +32,7 @@ export function CognitiveBrainPage() {
       }}
     >
       {/* Left rail — 280px */}
-      <BatchSelectorRail
-        selectedBatchId={selectedBatchId}
-        onSelect={(id) => {
-          setSelectedBatchId(id);
-          setSelectedNodeKey(null);
-        }}
-      />
+      <BatchSelectorRail selectedBatchId={selectedBatchId} onSelect={handleBatchSelect} />
 
       {/* Center canvas — flex */}
       <div
@@ -42,11 +50,14 @@ export function CognitiveBrainPage() {
         />
       </div>
 
-      {/* Right inspector — 360px (only when node selected) */}
-      <NeuronInspectorPanel
-        selectedNodeKey={selectedNodeKey}
-        onClose={() => setSelectedNodeKey(null)}
-      />
+      {/* Right inspector — 360px, montat exclusiv când un nod este selectat */}
+      {selectedNodeKey !== null && (
+        <NeuronInspectorPanel
+          selectedNodeKey={selectedNodeKey}
+          batchId={selectedBatchId ?? undefined}
+          onClose={() => setSelectedNodeKey(null)}
+        />
+      )}
     </div>
   );
 }

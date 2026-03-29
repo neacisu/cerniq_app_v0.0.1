@@ -2,12 +2,18 @@ import { describe, it, expect } from "vitest";
 import { navigation } from "@/config/navigation";
 
 describe("Navigation Config", () => {
-  it("has 7 sections", () => {
-    expect(navigation).toHaveLength(7);
+  it("has 8 sections", () => {
+    expect(navigation).toHaveLength(8);
   });
-  it("has 35 total items", () => {
+  it("has 36 total items", () => {
     const total = navigation.reduce((sum, s) => sum + s.items.length, 0);
-    expect(total).toBe(35);
+    expect(total).toBe(36);
+  });
+  it("Cognitive Brain section exists with /brain path", () => {
+    const cogSection = navigation.find((s) => s.title === "COGNITIVE BRAIN");
+    expect(cogSection).toBeDefined();
+    expect(cogSection?.items[0].path).toBe("/brain");
+    expect(cogSection?.items[0].icon).toBe("Brain");
   });
   it("Dashboard is first item", () => {
     expect(navigation[0].items[0].path).toBe("/dashboard");
