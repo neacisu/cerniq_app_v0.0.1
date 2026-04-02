@@ -403,9 +403,12 @@ export const jobLogs = bronzeSchema.table(
       .references(() => tenants.id, { onDelete: "cascade" }),
     // Loose reference (no FK constraint) so logs survive batch deletion gracefully.
     batchId: uuid("batch_id").notNull(),
+    sessionId: uuid("session_id"),
     contactId: uuid("contact_id"),
     workerName: varchar("worker_name", { length: 64 }).notNull(),
     jobId: varchar("job_id", { length: 255 }),
+    runtimeJobKey: varchar("runtime_job_key", { length: 255 }),
+    parentRuntimeJobKey: varchar("parent_runtime_job_key", { length: 255 }),
     level: jobLogLevelEnum("level").notNull().default("info"),
     step: varchar("step", { length: 128 }),
     message: text("message").notNull(),
@@ -416,5 +419,73 @@ export const jobLogs = bronzeSchema.table(
     index("idx_job_logs_batch_created").on(t.batchId, t.createdAt),
     index("idx_job_logs_batch_level").on(t.batchId, t.level),
     index("idx_job_logs_tenant_batch").on(t.tenantId, t.batchId),
+    index("idx_job_logs_batch_session_created").on(t.batchId, t.sessionId, t.createdAt),
+    index("idx_job_logs_runtime_job_key").on(t.tenantId, t.runtimeJobKey),
+  ],
+);
+
+export const importRowQuarantine = bronzeSchema.table(
+  "import_row_quarantine",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    batchId: uuid("batch_id")
+      .notNull()
+      .references(() => bronzeImportBatches.id, { onDelete: "cascade" }),
+    sessionId: uuid("session_id").references(() => importRuntimeSessions.id, {
+      onDelete: "set null",
+    }),
+    runtimeJobKey: varchar("runtime_job_key", { length: 255 }),
+    sourceType: bronzeSourceTypeEnum("source_type").notNull(),
+    sourceIdentifier: varchar("source_identifier", { length: 500 }).notNull(),
+    sheetName: varchar("sheet_name", { length: 255 }),
+    worksheetRow: integer("worksheet_row"),
+    globalRow: integer("global_row"),
+    fieldName: varchar("field_name", { length: 255 }),
+    reasonCode: varchar("reason_code", { length: 80 }).notNull(),
+    rowPayloadEscaped: jsonb("row_payload_escaped").notNull(),
+    sanitizedPayload: jsonb("sanitized_payload"),
+    violations: jsonb("violations").notNull().default([]),
+    metadata: jsonb("metadata").notNull().default({}),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("idx_import_row_quarantine_batch").on(t.batchId, t.createdAt),
+    index("idx_import_row_quarantine_session").on(t.sessionId, t.createdAt),
+    index("idx_import_row_quarantine_reason").on(t.reasonCode, t.createdAt),
+    index("idx_import_row_quarantine_source_identifier").on(t.tenantId, t.sourceIdentifier),
+  ],
+);
+
+export const sourceIdentifierRepairAudit = bronzeSchema.table(
+  "source_identifier_repair_audit",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    repairRunId: uuid("repair_run_id").notNull(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    batchId: uuid("batch_id").references(() => bronzeImportBatches.id, { onDelete: "set null" }),
+    sourceIdentifier: varchar("source_identifier", { length: 500 }).notNull(),
+    canonicalBronzeId: uuid("canonical_bronze_id").references(() => bronzeContacts.id, {
+      onDelete: "set null",
+    }),
+    duplicateBronzeId: uuid("duplicate_bronze_id").references(() => bronzeContacts.id, {
+      onDelete: "set null",
+    }),
+    classification: varchar("classification", { length: 40 }).notNull(),
+    reason: text("reason"),
+    metadata: jsonb("metadata").notNull().default({}),
+    appliedAt: timestamp("applied_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("idx_source_identifier_repair_run").on(t.repairRunId, t.createdAt),
+    index("idx_source_identifier_repair_source").on(t.tenantId, t.sourceIdentifier),
+    index("idx_source_identifier_repair_classification").on(t.classification, t.createdAt),
   ],
 );

@@ -169,6 +169,7 @@ export const cuiModulo11ValidatorProcessor: Processor<CuiModulo11JobData> = asyn
         workerName: "C1:cui-modulo11",
         jobId: String(job.id ?? ""),
         startedAt,
+        importExecution: job.data.importExecution ?? null,
       });
       const contactLog = job.data.bronzeContactId ? log.forContact(job.data.bronzeContactId) : log;
 

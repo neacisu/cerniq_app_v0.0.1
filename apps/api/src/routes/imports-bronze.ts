@@ -6,9 +6,11 @@ import {
   bronzeContacts,
   bronzeImportBatches,
   db,
+  importRowQuarantine,
   importRuntimeJobs,
   importRuntimeSessions,
   importRuntimeWorkerCounters,
+  inArray,
   jobLogs,
   silverContacts,
   silverEnrichmentLog,
@@ -17,6 +19,7 @@ import {
   tenants,
   batchIdMetadataEquals,
   failedReprocessContactEquals,
+  type SQL,
 } from "@cerniq/db";
 import ExcelJS from "exceljs";
 import Papa from "papaparse";
@@ -106,6 +109,14 @@ type ImportGlobalControlState = {
   version: number;
 };
 
+type IdentitySummary = {
+  resolvedCompanies: number;
+  duplicateSourceRows: number;
+  identityConflictRows: number;
+  insufficientIdentifierRows: number;
+  resolvedRows: number;
+};
+
 type ImportBatchControlState = {
   batchPaused: boolean;
   pausedAt: string | null;
@@ -123,6 +134,34 @@ type ImportBatchControlState = {
 
 const IMPORT_CONTROL_SETTINGS_KEY = "importContactsControl";
 const IMPORT_RUNTIME_STALE_THRESHOLD_MS = 5 * 60 * 1000;
+const SCHEMA_COMPATIBILITY_ERROR_CODES = new Set(["42P01", "42703"]);
+
+function getPgErrorCode(err: unknown): string {
+  if (!err || typeof err !== "object") return "";
+  const record = err as Record<string, unknown>;
+  if (typeof record.code === "string") return record.code;
+  if (record.cause && typeof record.cause === "object") {
+    const cause = record.cause as Record<string, unknown>;
+    if (typeof cause.code === "string") return cause.code;
+  }
+  return "";
+}
+
+function isSchemaCompatibilityError(err: unknown): boolean {
+  return SCHEMA_COMPATIBILITY_ERROR_CODES.has(getPgErrorCode(err));
+}
+
+function logSchemaCompatibilityFallback(
+  request: FastifyRequest,
+  err: unknown,
+  label: string,
+  extra: Record<string, unknown> = {},
+) {
+  request.log.warn(
+    { err, pgCode: getPgErrorCode(err), ...extra },
+    `${label}: schema compatibility fallback`,
+  );
+}
 
 function readTenantImportControlState(settings: unknown): ImportGlobalControlState {
   const settingsRecord = asRecord(settings) ?? {};
@@ -134,6 +173,16 @@ function readTenantImportControlState(settings: unknown): ImportGlobalControlSta
     resumeRequestedAt:
       typeof control.resumeRequestedAt === "string" ? control.resumeRequestedAt : null,
     version: Number(control.version ?? 0),
+  };
+}
+
+function createEmptyIdentitySummary(): IdentitySummary {
+  return {
+    resolvedCompanies: 0,
+    duplicateSourceRows: 0,
+    identityConflictRows: 0,
+    insufficientIdentifierRows: 0,
+    resolvedRows: 0,
   };
 }
 
@@ -202,6 +251,80 @@ function resolveBatchOrderSql(sortBy: "createdAt" | "updatedAt", sortDir: "asc" 
   return sortDir === "asc"
     ? sql`${bronzeImportBatches.createdAt} ASC`
     : sql`${bronzeImportBatches.createdAt} DESC`;
+}
+
+async function listImportBatchesWithCompatibility(args: {
+  request: FastifyRequest;
+  tenantId: string;
+  limit: number;
+  offset: number;
+  status?: z.infer<typeof importStatusSchema>;
+  sourceType?: z.infer<typeof sourceTypeSchema>;
+  dateFrom?: Date;
+  dateTo?: Date;
+  orderSql: ReturnType<typeof resolveBatchOrderSql>;
+}) {
+  const primaryFilters = [
+    sql`${bronzeImportBatches.tenantId} = ${args.tenantId}`,
+    importVisibleSql(bronzeImportBatches.metadata),
+  ];
+  if (args.status) primaryFilters.push(sql`${bronzeImportBatches.status} = ${args.status}`);
+  if (args.sourceType) {
+    primaryFilters.push(
+      sql`COALESCE(${bronzeImportBatches.metadata}->>'sourceType', '') = ${args.sourceType}`,
+    );
+  }
+  if (args.dateFrom) primaryFilters.push(sql`${bronzeImportBatches.createdAt} >= ${args.dateFrom}`);
+  if (args.dateTo) primaryFilters.push(sql`${bronzeImportBatches.createdAt} <= ${args.dateTo}`);
+  const primaryWhere = sql.join(primaryFilters, sql` AND `);
+
+  try {
+    return await db.transaction(async (tx) => {
+      await tx.execute(sql`SELECT set_config('app.tenant_id', ${args.tenantId}, true)`);
+      const resultRows = await tx.query.bronzeImportBatches.findMany({
+        where: primaryWhere,
+        orderBy: () => [args.orderSql],
+        limit: args.limit,
+        offset: args.offset,
+      });
+      const [{ total: totalCount }] = await tx
+        .select({ total: sql<number>`COUNT(*)` })
+        .from(bronzeImportBatches)
+        .where(primaryWhere);
+      return [resultRows, Number(totalCount)] as const;
+    });
+  } catch (err) {
+    if (!isSchemaCompatibilityError(err) || args.sourceType) {
+      throw err;
+    }
+
+    logSchemaCompatibilityFallback(args.request, err, "imports list query", {
+      tenantId: args.tenantId,
+      sourceTypeFilterIgnored: Boolean(args.sourceType),
+    });
+
+    const legacyFilters = [sql`${bronzeImportBatches.tenantId} = ${args.tenantId}`];
+    if (args.status) legacyFilters.push(sql`${bronzeImportBatches.status} = ${args.status}`);
+    if (args.dateFrom)
+      legacyFilters.push(sql`${bronzeImportBatches.createdAt} >= ${args.dateFrom}`);
+    if (args.dateTo) legacyFilters.push(sql`${bronzeImportBatches.createdAt} <= ${args.dateTo}`);
+    const legacyWhere = sql.join(legacyFilters, sql` AND `);
+
+    return db.transaction(async (tx) => {
+      await tx.execute(sql`SELECT set_config('app.tenant_id', ${args.tenantId}, true)`);
+      const resultRows = await tx.query.bronzeImportBatches.findMany({
+        where: legacyWhere,
+        orderBy: () => [args.orderSql],
+        limit: args.limit,
+        offset: args.offset,
+      });
+      const [{ total: totalCount }] = await tx
+        .select({ total: sql<number>`COUNT(*)` })
+        .from(bronzeImportBatches)
+        .where(legacyWhere);
+      return [resultRows, Number(totalCount)] as const;
+    });
+  }
 }
 
 function extractFormulaResult(result: ExcelJS.CellFormulaValue["result"]): string {
@@ -622,7 +745,10 @@ async function buildTemplateXlsx(): Promise<Buffer> {
   return Buffer.from(buf);
 }
 
-async function loadImportIdentitySummary(tenantId: string, batchId: string) {
+async function loadImportIdentitySummary(
+  tenantId: string,
+  batchId: string,
+): Promise<IdentitySummary> {
   await setSessionTenantId(tenantId);
   const [row] = await db
     .select({
@@ -647,54 +773,417 @@ async function loadImportIdentitySummary(tenantId: string, batchId: string) {
   };
 }
 
-async function enrichImportBatch(tenantId: string, row: typeof bronzeImportBatches.$inferSelect) {
-  const metadata = (row.metadata as Record<string, unknown> | null) ?? {};
-  const uploadConfig = (metadata.uploadConfig as Record<string, unknown> | undefined) ?? {};
-  const [tenantRow, latestSession] = await Promise.all([
-    db
+async function loadImportIdentitySummaryCompat(
+  tenantId: string,
+  batchId: string,
+  request?: FastifyRequest,
+): Promise<IdentitySummary> {
+  try {
+    return await loadImportIdentitySummary(tenantId, batchId);
+  } catch (err) {
+    if (!isSchemaCompatibilityError(err)) {
+      throw err;
+    }
+    if (request) {
+      logSchemaCompatibilityFallback(request, err, "imports identity summary", { batchId });
+    }
+    return createEmptyIdentitySummary();
+  }
+}
+
+async function loadTenantImportControlStateCompat(
+  tenantId: string,
+  request?: FastifyRequest,
+): Promise<ImportGlobalControlState> {
+  try {
+    const [tenantRow] = await db
       .select({ settings: tenants.settings })
       .from(tenants)
       .where(sql`${tenants.id} = ${tenantId}`)
-      .limit(1)
-      .then((rows) => rows[0] ?? null),
+      .limit(1);
+    return readTenantImportControlState(tenantRow?.settings);
+  } catch (err) {
+    if (!isSchemaCompatibilityError(err)) {
+      throw err;
+    }
+    if (request) {
+      logSchemaCompatibilityFallback(request, err, "imports global control", { tenantId });
+    }
+    return readTenantImportControlState(null);
+  }
+}
+
+type ImportAttemptSummary = {
+  id: string;
+  kind: string;
+  status: string;
+  label: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  failedAt: string | null;
+  pausedAt: string | null;
+  lastHeartbeatAt: string | null;
+  updatedAt: string | null;
+  totalRows: number;
+  processedRows: number;
+  successRows: number;
+  errorRows: number;
+  duplicateRows: number;
+  quarantineRows: number;
+};
+
+type ImportQuarantineSummary = {
+  totalRows: number;
+  disallowedControlCharacterRows: number;
+  sourceIdentifierHashConflictRows: number;
+};
+
+function createEmptyQuarantineSummary(): ImportQuarantineSummary {
+  return {
+    totalRows: 0,
+    disallowedControlCharacterRows: 0,
+    sourceIdentifierHashConflictRows: 0,
+  };
+}
+
+const INGEST_ATTEMPT_WORKERS = new Set(["A1:csv-parser", "A2:excel-parser"]);
+
+type RuntimeSessionLike = {
+  id: string;
+  kind: typeof importRuntimeSessions.$inferSelect.kind;
+  status: typeof importRuntimeSessions.$inferSelect.status;
+  label?: string | null;
+  startedAt?: Date | null;
+  completedAt?: Date | null;
+  failedAt?: Date | null;
+  pausedAt?: Date | null;
+  lastHeartbeatAt?: Date | null;
+  updatedAt?: Date | null;
+} | null;
+
+function serializeRuntimeSessionRow(row: RuntimeSessionLike) {
+  if (!row) {
+    return null;
+  }
+
+  return {
+    id: row.id,
+    kind: row.kind,
+    status: normalizeRuntimeHeartbeatState(row.status, row.lastHeartbeatAt),
+    label: row.label ?? null,
+    startedAt: row.startedAt?.toISOString?.() ?? null,
+    completedAt: row.completedAt?.toISOString?.() ?? null,
+    failedAt: row.failedAt?.toISOString?.() ?? null,
+    pausedAt: row.pausedAt?.toISOString?.() ?? null,
+    lastHeartbeatAt: row.lastHeartbeatAt?.toISOString?.() ?? null,
+    updatedAt: row.updatedAt?.toISOString?.() ?? null,
+  };
+}
+
+function buildBatchAttemptFallback(
+  row: typeof bronzeImportBatches.$inferSelect,
+  latestSession: RuntimeSessionLike,
+): ImportAttemptSummary {
+  const serialized = serializeRuntimeSessionRow(latestSession);
+  return {
+    id: serialized?.id ?? `batch-${row.id}`,
+    kind: serialized?.kind ?? "legacy",
+    status: serialized?.status ?? row.status,
+    label: serialized?.label ?? null,
+    startedAt: serialized?.startedAt ?? row.createdAt?.toISOString?.() ?? null,
+    completedAt: serialized?.completedAt ?? null,
+    failedAt: serialized?.failedAt ?? null,
+    pausedAt: serialized?.pausedAt ?? null,
+    lastHeartbeatAt: serialized?.lastHeartbeatAt ?? null,
+    updatedAt: serialized?.updatedAt ?? row.updatedAt?.toISOString?.() ?? null,
+    totalRows: Number(row.totalRows ?? 0),
+    processedRows: Number(row.processedRows ?? 0),
+    successRows: Number(row.successRows ?? 0),
+    errorRows: Number(row.errorRows ?? 0),
+    duplicateRows: Number(row.duplicateRows ?? 0),
+    quarantineRows: 0,
+  };
+}
+
+async function loadImportQuarantineSummary(
+  tenantId: string,
+  batchId: string,
+  sessionId?: string | null,
+): Promise<ImportQuarantineSummary> {
+  const filters = [
+    sql`${importRowQuarantine.tenantId} = ${tenantId}`,
+    sql`${importRowQuarantine.batchId} = ${batchId}`,
+  ];
+  if (sessionId) {
+    filters.push(sql`${importRowQuarantine.sessionId} = ${sessionId}`);
+  }
+
+  const [row] = await db
+    .select({
+      totalRows: sql<number>`COUNT(*)`,
+      disallowedControlCharacterRows: sql<number>`COUNT(*) FILTER (WHERE ${importRowQuarantine.reasonCode} = 'disallowed_control_character')`,
+      sourceIdentifierHashConflictRows: sql<number>`COUNT(*) FILTER (WHERE ${importRowQuarantine.reasonCode} = 'source_identifier_hash_conflict')`,
+    })
+    .from(importRowQuarantine)
+    .where(sql.join(filters, sql` AND `));
+
+  return {
+    totalRows: Number(row?.totalRows ?? 0),
+    disallowedControlCharacterRows: Number(row?.disallowedControlCharacterRows ?? 0),
+    sourceIdentifierHashConflictRows: Number(row?.sourceIdentifierHashConflictRows ?? 0),
+  };
+}
+
+async function loadImportQuarantineSummaryCompat(
+  tenantId: string,
+  batchId: string,
+  sessionId?: string | null,
+  request?: FastifyRequest,
+): Promise<ImportQuarantineSummary> {
+  try {
+    return await loadImportQuarantineSummary(tenantId, batchId, sessionId);
+  } catch (err) {
+    if (!isSchemaCompatibilityError(err)) {
+      throw err;
+    }
+    if (request) {
+      logSchemaCompatibilityFallback(request, err, "imports quarantine summary", {
+        batchId,
+        sessionId: sessionId ?? null,
+      });
+    }
+    return createEmptyQuarantineSummary();
+  }
+}
+
+async function loadImportRuntimeAttempts(
+  tenantId: string,
+  batchId: string,
+  totalRowsFallback: number,
+): Promise<ImportAttemptSummary[]> {
+  const sessions = await db
+    .select()
+    .from(importRuntimeSessions)
+    .where(
+      sql`${importRuntimeSessions.tenantId} = ${tenantId}
+        AND ${importRuntimeSessions.batchId} = ${batchId}`,
+    )
+    .orderBy(sql`${importRuntimeSessions.updatedAt} DESC`);
+
+  if (sessions.length === 0) {
+    return [];
+  }
+
+  const sessionIds = sessions.map((session) => session.id);
+  const [counterRows, quarantineRows] = await Promise.all([
     db
       .select({
-        id: importRuntimeSessions.id,
-        kind: importRuntimeSessions.kind,
-        status: importRuntimeSessions.status,
-        lastHeartbeatAt: importRuntimeSessions.lastHeartbeatAt,
-        updatedAt: importRuntimeSessions.updatedAt,
+        sessionId: importRuntimeWorkerCounters.sessionId,
+        workerName: importRuntimeWorkerCounters.workerName,
+        totalUnits: importRuntimeWorkerCounters.totalUnits,
+        processedUnits: importRuntimeWorkerCounters.processedUnits,
+        successUnits: importRuntimeWorkerCounters.successUnits,
+        failedUnits: importRuntimeWorkerCounters.failedUnits,
+        skippedUnits: importRuntimeWorkerCounters.skippedUnits,
       })
-      .from(importRuntimeSessions)
+      .from(importRuntimeWorkerCounters)
+      .where(inArray(importRuntimeWorkerCounters.sessionId, sessionIds)),
+    db
+      .select({
+        sessionId: importRowQuarantine.sessionId,
+        totalRows: sql<number>`COUNT(*)`,
+      })
+      .from(importRowQuarantine)
       .where(
-        sql`${importRuntimeSessions.tenantId} = ${tenantId}
-          AND ${importRuntimeSessions.batchId} = ${row.id}`,
+        sql`${importRowQuarantine.tenantId} = ${tenantId}
+          AND ${importRowQuarantine.batchId} = ${batchId}
+          AND ${importRowQuarantine.sessionId} IS NOT NULL
+          AND ${inArray(importRowQuarantine.sessionId, sessionIds)}`,
       )
-      .orderBy(sql`${importRuntimeSessions.updatedAt} DESC`)
-      .limit(1)
-      .then((rows) => rows[0] ?? null),
+      .groupBy(importRowQuarantine.sessionId),
   ]);
+
+  const countersBySession = new Map<
+    string,
+    {
+      totalRows: number;
+      processedRows: number;
+      successRows: number;
+      errorRows: number;
+      duplicateRows: number;
+    }
+  >();
+  for (const counter of counterRows) {
+    if (!INGEST_ATTEMPT_WORKERS.has(counter.workerName)) {
+      continue;
+    }
+    const current = countersBySession.get(counter.sessionId) ?? {
+      totalRows: 0,
+      processedRows: 0,
+      successRows: 0,
+      errorRows: 0,
+      duplicateRows: 0,
+    };
+    current.totalRows += Number(counter.totalUnits ?? 0);
+    current.processedRows += Number(counter.processedUnits ?? 0);
+    current.successRows += Number(counter.successUnits ?? 0);
+    current.errorRows += Number(counter.failedUnits ?? 0);
+    current.duplicateRows += Number(counter.skippedUnits ?? 0);
+    countersBySession.set(counter.sessionId, current);
+  }
+
+  const quarantineBySession = new Map(
+    quarantineRows
+      .filter((row): row is typeof row & { sessionId: string } => typeof row.sessionId === "string")
+      .map((row) => [row.sessionId, Number(row.totalRows ?? 0)] as const),
+  );
+
+  return sessions.map((session) => {
+    const counters = countersBySession.get(session.id);
+    const totalRows = Math.max(Number(counters?.totalRows ?? 0), totalRowsFallback);
+    return {
+      id: session.id,
+      kind: session.kind,
+      status: normalizeRuntimeHeartbeatState(session.status, session.lastHeartbeatAt),
+      label: session.label ?? null,
+      startedAt: session.startedAt?.toISOString?.() ?? null,
+      completedAt: session.completedAt?.toISOString?.() ?? null,
+      failedAt: session.failedAt?.toISOString?.() ?? null,
+      pausedAt: session.pausedAt?.toISOString?.() ?? null,
+      lastHeartbeatAt: session.lastHeartbeatAt?.toISOString?.() ?? null,
+      updatedAt: session.updatedAt?.toISOString?.() ?? null,
+      totalRows,
+      processedRows: Number(counters?.processedRows ?? 0),
+      successRows: Number(counters?.successRows ?? 0),
+      errorRows: Number(counters?.errorRows ?? 0),
+      duplicateRows: Number(counters?.duplicateRows ?? 0),
+      quarantineRows: Number(quarantineBySession.get(session.id) ?? 0),
+    };
+  });
+}
+
+async function loadImportRuntimeAttemptsCompat(
+  tenantId: string,
+  batchId: string,
+  totalRowsFallback: number,
+  request?: FastifyRequest,
+): Promise<ImportAttemptSummary[]> {
+  try {
+    return await loadImportRuntimeAttempts(tenantId, batchId, totalRowsFallback);
+  } catch (err) {
+    if (!isSchemaCompatibilityError(err)) {
+      throw err;
+    }
+    if (request) {
+      logSchemaCompatibilityFallback(request, err, "imports runtime attempts", { batchId });
+    }
+    return [];
+  }
+}
+
+async function enrichImportBatch(tenantId: string, row: typeof bronzeImportBatches.$inferSelect) {
+  const metadata = (row.metadata as Record<string, unknown> | null) ?? {};
+  const uploadConfig = (metadata.uploadConfig as Record<string, unknown> | undefined) ?? {};
+  const [tenantRow, latestSession, historicalSummary, quarantineSummary, attempts] =
+    await Promise.all([
+      db
+        .select({ settings: tenants.settings })
+        .from(tenants)
+        .where(sql`${tenants.id} = ${tenantId}`)
+        .limit(1)
+        .then((rows) => rows[0] ?? null),
+      db
+        .select({
+          id: importRuntimeSessions.id,
+          kind: importRuntimeSessions.kind,
+          status: importRuntimeSessions.status,
+          lastHeartbeatAt: importRuntimeSessions.lastHeartbeatAt,
+          updatedAt: importRuntimeSessions.updatedAt,
+        })
+        .from(importRuntimeSessions)
+        .where(
+          sql`${importRuntimeSessions.tenantId} = ${tenantId}
+          AND ${importRuntimeSessions.batchId} = ${row.id}`,
+        )
+        .orderBy(sql`${importRuntimeSessions.updatedAt} DESC`)
+        .limit(1)
+        .then((rows) => rows[0] ?? null),
+      loadImportIdentitySummary(tenantId, row.id),
+      loadImportQuarantineSummary(tenantId, row.id),
+      loadImportRuntimeAttempts(tenantId, row.id, Number(row.totalRows ?? 0)),
+    ]);
+  const latestAttemptSummary = attempts[0] ?? buildBatchAttemptFallback(row, latestSession);
+  const serializedSession = serializeRuntimeSessionRow(latestSession);
 
   return {
     ...row,
-    identitySummary: await loadImportIdentitySummary(tenantId, row.id),
+    identitySummary: historicalSummary,
+    historicalSummary,
+    latestAttemptSummary,
+    selectedAttemptSummary: latestAttemptSummary,
+    quarantineSummary,
+    attempts,
     globalControl: readTenantImportControlState(tenantRow?.settings),
     control: readBatchImportControlState(metadata),
     hidden: isImportBatchHidden(metadata),
-    activeRuntimeSession: latestSession
-      ? {
-          id: latestSession.id,
-          kind: latestSession.kind,
-          status: latestSession.status,
-          lastHeartbeatAt: latestSession.lastHeartbeatAt?.toISOString?.() ?? null,
-          updatedAt: latestSession.updatedAt?.toISOString?.() ?? null,
-        }
-      : null,
+    activeRuntimeSession: serializedSession,
+    selectedRuntimeSession: serializedSession,
     appliedMapping:
       (metadata.columnMapping as Record<string, string> | undefined) ??
       (uploadConfig.mapping as Record<string, string> | undefined) ??
       null,
   };
+}
+
+async function buildLegacyImportBatchResponse(
+  tenantId: string,
+  row: typeof bronzeImportBatches.$inferSelect,
+  request: FastifyRequest,
+) {
+  const metadata = (row.metadata as Record<string, unknown> | null) ?? {};
+  const uploadConfig = (metadata.uploadConfig as Record<string, unknown> | undefined) ?? {};
+  const [globalControl, historicalSummary, latestSession] = await Promise.all([
+    loadTenantImportControlStateCompat(tenantId, request),
+    loadImportIdentitySummaryCompat(tenantId, row.id, request),
+    loadImportRuntimeSessionForBatchCompat(tenantId, row.id, null, request),
+  ]);
+  const latestAttemptSummary = buildBatchAttemptFallback(row, latestSession);
+  const serializedSession = serializeRuntimeSessionRow(latestSession);
+
+  return {
+    ...row,
+    identitySummary: historicalSummary,
+    historicalSummary,
+    latestAttemptSummary,
+    selectedAttemptSummary: latestAttemptSummary,
+    quarantineSummary: createEmptyQuarantineSummary(),
+    attempts: [],
+    globalControl,
+    control: readBatchImportControlState(metadata),
+    hidden: isImportBatchHidden(metadata),
+    activeRuntimeSession: serializedSession,
+    selectedRuntimeSession: serializedSession,
+    appliedMapping:
+      (metadata.columnMapping as Record<string, string> | undefined) ??
+      (uploadConfig.mapping as Record<string, string> | undefined) ??
+      null,
+  };
+}
+
+async function enrichImportBatchCompat(
+  tenantId: string,
+  row: typeof bronzeImportBatches.$inferSelect,
+  request: FastifyRequest,
+) {
+  try {
+    return await enrichImportBatch(tenantId, row);
+  } catch (err) {
+    if (!isSchemaCompatibilityError(err)) {
+      throw err;
+    }
+    logSchemaCompatibilityFallback(request, err, "imports list enrichment", { batchId: row.id });
+    return buildLegacyImportBatchResponse(tenantId, row, request);
+  }
 }
 
 function withIdentityReprocessQueuedMetadata(
@@ -897,9 +1386,129 @@ type BullJobLike = {
 };
 
 type JobLogsApiLevel = "info" | "warn" | "error" | "step";
+type JobLogsStoredLevel = (typeof jobLogs.$inferSelect)["level"];
+
+const importJobLogsQuerySchema = z.object({
+  level: z.enum(["info", "warn", "error", "step"]).optional(),
+  worker: z.string().optional(),
+  jobId: z.string().optional(),
+  bronzeContactId: z.uuid().optional(),
+  sessionId: z.uuid().optional(),
+  includeLegacy: z.coerce.boolean().default(false),
+  tail: z.coerce.boolean().default(false),
+  limit: z.coerce.number().int().min(1).max(2000).default(100),
+  offset: z.coerce.number().int().min(0).default(0),
+});
+
+type ImportJobLogsQuery = z.infer<typeof importJobLogsQuerySchema>;
+type ImportJobLogsListArgs = ImportJobLogsQuery & {
+  tenantId: string;
+  batchId: string;
+  targetSessionId: string | null;
+};
 
 function normalizeJobLogLevel(level: string): JobLogsApiLevel {
   return level === "debug" ? "step" : (level as JobLogsApiLevel);
+}
+
+function resolveStoredJobLogLevel(level?: JobLogsApiLevel): JobLogsStoredLevel | null {
+  if (!level) {
+    return null;
+  }
+  return level === "step" ? "debug" : level;
+}
+
+function buildCommonJobLogFilters(args: ImportJobLogsListArgs): SQL[] {
+  const filters: SQL[] = [
+    sql`${jobLogs.tenantId} = ${args.tenantId}`,
+    sql`${jobLogs.batchId} = ${args.batchId}`,
+  ];
+  const storedLevel = resolveStoredJobLogLevel(args.level);
+
+  if (storedLevel) {
+    filters.push(sql`${jobLogs.level} = ${storedLevel}`);
+  }
+  if (args.worker) {
+    filters.push(sql`${jobLogs.workerName} = ${args.worker}`);
+  }
+  if (args.jobId) {
+    filters.push(sql`${jobLogs.jobId} = ${args.jobId}`);
+  }
+  if (args.bronzeContactId) {
+    filters.push(sql`${jobLogs.contactId} = ${args.bronzeContactId}`);
+  }
+
+  return filters;
+}
+
+function buildJobLogsWhereClause(args: ImportJobLogsListArgs): SQL {
+  const filters = buildCommonJobLogFilters(args);
+
+  if (args.targetSessionId) {
+    filters.push(
+      args.includeLegacy
+        ? sql`(${jobLogs.sessionId} = ${args.targetSessionId} OR ${jobLogs.sessionId} IS NULL)`
+        : sql`${jobLogs.sessionId} = ${args.targetSessionId}`,
+    );
+  }
+
+  return sql.join(filters, sql` AND `);
+}
+
+function buildLegacyJobLogsWhereClause(args: ImportJobLogsListArgs): SQL {
+  return sql.join(buildCommonJobLogFilters(args), sql` AND `);
+}
+
+async function fetchImportJobLogsPage(
+  whereClause: SQL,
+  args: Pick<ImportJobLogsListArgs, "tail" | "limit" | "offset">,
+) {
+  const [rows, [countRow]] = await Promise.all([
+    db
+      .select()
+      .from(jobLogs)
+      .where(whereClause)
+      .orderBy(sql`${jobLogs.createdAt} ${sql.raw(args.tail ? "DESC" : "ASC")}`)
+      .limit(args.limit)
+      .offset(args.offset),
+    db
+      .select({ total: sql<number>`COUNT(*)` })
+      .from(jobLogs)
+      .where(whereClause),
+  ]);
+
+  return {
+    rows,
+    total: Number(countRow?.total ?? 0),
+  };
+}
+
+async function listImportJobLogs(args: ImportJobLogsListArgs) {
+  return fetchImportJobLogsPage(buildJobLogsWhereClause(args), args);
+}
+
+async function listImportJobLogsLegacy(args: ImportJobLogsListArgs) {
+  return fetchImportJobLogsPage(buildLegacyJobLogsWhereClause(args), args);
+}
+
+async function listImportJobLogsWithCompatibility(
+  request: FastifyRequest,
+  args: ImportJobLogsListArgs,
+) {
+  try {
+    return await listImportJobLogs(args);
+  } catch (err) {
+    if (!isSchemaCompatibilityError(err)) {
+      throw err;
+    }
+
+    logSchemaCompatibilityFallback(request, err, "imports job logs", {
+      batchId: args.batchId,
+      targetSessionId: args.targetSessionId,
+    });
+
+    return listImportJobLogsLegacy(args);
+  }
 }
 
 function buildJobLogResponseRow(row: typeof jobLogs.$inferSelect) {
@@ -914,9 +1523,12 @@ function buildJobLogResponseRow(row: typeof jobLogs.$inferSelect) {
     id: row.id,
     tenantId: row.tenantId,
     batchId: row.batchId,
+    sessionId: row.sessionId ?? null,
     bronzeContactId: row.contactId ?? null,
     workerName: row.workerName,
     jobId: row.jobId ?? null,
+    runtimeJobKey: row.runtimeJobKey ?? null,
+    parentRuntimeJobKey: row.parentRuntimeJobKey ?? null,
     level: normalizeJobLogLevel(row.level),
     step: row.step ?? "event",
     message: row.message,
@@ -1053,7 +1665,7 @@ function groupObservedLogsByWorker<T extends { workerName: string }>(
   return logsByWorker;
 }
 
-const IMPORT_RUNTIME_WORKERS: ImportRuntimeWorkerDef[] = [
+export const IMPORT_RUNTIME_WORKERS: ImportRuntimeWorkerDef[] = [
   defineRuntimeWorker(
     "A1:csv-parser",
     "A1 CSV Parser",
@@ -1146,39 +1758,11 @@ const IMPORT_RUNTIME_WORKERS: ImportRuntimeWorkerDef[] = [
     "Reproceseaza identitatea, promoveaza contactul si porneste enrichment-ul Silver.",
   ),
   defineRuntimeWorker(
-    "D1:anaf-fiscal-status",
-    "D1 ANAF Fiscal",
+    "D0:anaf-full-fetch",
+    "D0 ANAF Full Fetch",
     "ANAF",
-    QUEUES.ENRICH_ANAF_FISCAL_STATUS,
-    "Completeaza status fiscal, nume, adresa si identitatea fiscala Silver.",
-  ),
-  defineRuntimeWorker(
-    "D2:anaf-tva-status",
-    "D2 ANAF TVA",
-    "ANAF",
-    QUEUES.ENRICH_ANAF_TVA_STATUS,
-    "Actualizeaza starea TVA si perioadele fiscale.",
-  ),
-  defineRuntimeWorker(
-    "D3:anaf-efactura",
-    "D3 ANAF eFactura",
-    "ANAF",
-    QUEUES.ENRICH_ANAF_EFACTURA,
-    "Verifica inregistrarea RO e-Factura.",
-  ),
-  defineRuntimeWorker(
-    "D4:anaf-datorii",
-    "D4 ANAF Datorii",
-    "ANAF",
-    QUEUES.ENRICH_ANAF_DATORII,
-    "Adauga restantele ANAF si descompunerea obligatiilor.",
-  ),
-  defineRuntimeWorker(
-    "D5:anaf-caen",
-    "D5 ANAF CAEN",
-    "ANAF",
-    QUEUES.ENRICH_ANAF_CAEN,
-    "Imbogateste codurile CAEN si denumirile asociate.",
+    QUEUES.ENRICH_ANAF_FULL,
+    "Fetch complet ANAF v9 unificat — D1-D5 într-un singur apel cu cache Redis 5 min.",
   ),
   defineRuntimeWorker(
     "E1:termene-balance",
@@ -1483,19 +2067,20 @@ const IMPORT_RUNTIME_WORKERS: ImportRuntimeWorkerDef[] = [
   ),
 ];
 
-const IMPORT_RUNTIME_WORKER_BY_NAME = new Map(
+export const IMPORT_RUNTIME_WORKER_BY_NAME = new Map(
   IMPORT_RUNTIME_WORKERS.map((worker) => [worker.workerName, worker] as const),
 );
 
-const SILVER_LOG_SOURCE_TO_WORKER_NAME: Record<string, string> = {
+export const SILVER_LOG_SOURCE_TO_WORKER_NAME: Record<string, string> = {
   cui_modulo11: "C1:cui-modulo11",
   anaf_cui_validation: "C2:cui-anaf-validator",
   batch_reprocess: "promotion:bronze-silver",
-  anaf_fiscal: "D1:anaf-fiscal-status",
-  anaf_tva: "D2:anaf-tva-status",
-  anaf_efactura: "D3:anaf-efactura",
-  anaf_datorii: "D4:anaf-datorii",
-  anaf_caen: "D5:anaf-caen",
+  anaf_full: "D0:anaf-full-fetch",
+  anaf_fiscal: "D0:anaf-full-fetch",
+  anaf_tva: "D0:anaf-full-fetch",
+  anaf_efactura: "D0:anaf-full-fetch",
+  anaf_datorii: "D0:anaf-full-fetch",
+  anaf_caen: "D0:anaf-full-fetch",
   termene_balance: "E1:termene-balance",
   termene_risk: "E2:termene-risk",
   termene_dosare: "E3:termene-dosare",
@@ -2291,13 +2876,8 @@ function runtimeJobMatchesSearch(job: ImportRuntimeJobSnapshot, search: string |
 }
 
 async function loadImportRuntimeBatchContext(tenantId: string, batchId: string) {
-  const [tenantRow, batchRow] = await Promise.all([
-    db
-      .select({ settings: tenants.settings })
-      .from(tenants)
-      .where(sql`${tenants.id} = ${tenantId}`)
-      .limit(1)
-      .then((rows) => rows[0] ?? null),
+  const [globalControl, batchRow] = await Promise.all([
+    loadTenantImportControlStateCompat(tenantId),
     db
       .select({ metadata: bronzeImportBatches.metadata })
       .from(bronzeImportBatches)
@@ -2313,7 +2893,7 @@ async function loadImportRuntimeBatchContext(tenantId: string, batchId: string) 
     {}) as BatchMetadata;
   return {
     batchMetadata,
-    globalControl: readTenantImportControlState(tenantRow?.settings),
+    globalControl,
     batchControl: readBatchImportControlState(batchMetadata),
   };
 }
@@ -2338,6 +2918,44 @@ async function loadImportRuntimeSessionForBatch(
     .limit(1);
 
   return session ?? null;
+}
+
+async function loadImportRuntimeSessionForBatchCompat(
+  tenantId: string,
+  batchId: string,
+  sessionId?: string | null,
+  request?: FastifyRequest,
+) {
+  try {
+    return await loadImportRuntimeSessionForBatch(tenantId, batchId, sessionId);
+  } catch (err) {
+    if (!isSchemaCompatibilityError(err)) {
+      throw err;
+    }
+    if (request) {
+      logSchemaCompatibilityFallback(request, err, "imports runtime session", {
+        batchId,
+        sessionId: sessionId ?? null,
+      });
+    }
+    return null;
+  }
+}
+
+async function resolveRequestedRuntimeSessionId(
+  tenantId: string,
+  batchId: string,
+  requestedSessionId?: string | null,
+  allSessions = false,
+) {
+  if (allSessions) {
+    return null;
+  }
+  if (requestedSessionId) {
+    return requestedSessionId;
+  }
+  const latestSession = await loadImportRuntimeSessionForBatchCompat(tenantId, batchId);
+  return latestSession?.id ?? null;
 }
 
 type RuntimeTopologyFilters = {
@@ -2670,12 +3288,19 @@ async function buildImportRuntimeTopology(
     limit?: number;
   },
 ) {
-  const runtimeBacked = await buildImportRuntimeTopologyFromRuntime(
-    tenantId,
-    batchId,
-    batchStatus,
-    options,
-  );
+  let runtimeBacked = null;
+  try {
+    runtimeBacked = await buildImportRuntimeTopologyFromRuntime(
+      tenantId,
+      batchId,
+      batchStatus,
+      options,
+    );
+  } catch (err) {
+    if (!isSchemaCompatibilityError(err)) {
+      throw err;
+    }
+  }
   if (runtimeBacked) {
     return runtimeBacked;
   }
@@ -2890,35 +3515,21 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
       const offset = parseOffset(q.offset, 0);
       const orderSql = resolveBatchOrderSql(q.sortBy, q.sortDir);
 
-      const filters = [
-        sql`${bronzeImportBatches.tenantId} = ${tenantId}`,
-        importVisibleSql(bronzeImportBatches.metadata),
-      ];
-      if (q.status) filters.push(sql`${bronzeImportBatches.status} = ${q.status}`);
-      if (q.sourceType)
-        filters.push(
-          sql`COALESCE(${bronzeImportBatches.metadata}->>'sourceType', '') = ${q.sourceType}`,
-        );
-      if (q.dateFrom) filters.push(sql`${bronzeImportBatches.createdAt} >= ${q.dateFrom}`);
-      if (q.dateTo) filters.push(sql`${bronzeImportBatches.createdAt} <= ${q.dateTo}`);
-      const whereSql = sql.join(filters, sql` AND `);
-
-      const [rows, total] = await db.transaction(async (tx) => {
-        await tx.execute(sql`SELECT set_config('app.tenant_id', ${tenantId}, true)`);
-        const resultRows = await tx.query.bronzeImportBatches.findMany({
-          where: whereSql,
-          orderBy: () => [orderSql],
-          limit,
-          offset,
-        });
-        const [{ total: totalCount }] = await tx
-          .select({ total: sql<number>`COUNT(*)` })
-          .from(bronzeImportBatches)
-          .where(whereSql);
-        return [resultRows, Number(totalCount)] as const;
+      const [rows, total] = await listImportBatchesWithCompatibility({
+        request,
+        tenantId,
+        limit,
+        offset,
+        status: q.status,
+        sourceType: q.sourceType,
+        dateFrom: q.dateFrom,
+        dateTo: q.dateTo,
+        orderSql,
       });
 
-      const enrichedRows = await Promise.all(rows.map((row) => enrichImportBatch(tenantId, row)));
+      const enrichedRows = await Promise.all(
+        rows.map((row) => enrichImportBatchCompat(tenantId, row, request)),
+      );
       return { success: true, data: enrichedRows, meta: { total, limit, offset } };
     },
   );
@@ -2937,15 +3548,10 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
     },
     async (request) => {
       const tenantId = requireTenantId(request);
-      const [tenantRow] = await db
-        .select({ settings: tenants.settings })
-        .from(tenants)
-        .where(sql`${tenants.id} = ${tenantId}`)
-        .limit(1);
 
       return {
         success: true,
-        data: readTenantImportControlState(tenantRow?.settings),
+        data: await loadTenantImportControlStateCompat(tenantId, request),
       };
     },
   );
@@ -3014,7 +3620,7 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
         sql`SELECT DISTINCT batch_id AS "batchId"
             FROM bronze.import_runtime_jobs
             WHERE tenant_id = ${tenantId}
-              AND state = ANY(${["paused", "stale", "failed"]})`,
+              AND state IN ('paused', 'stale', 'failed')`,
       );
 
       let resumed = 0;
@@ -3194,6 +3800,11 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
       preHandler: [importMutationRateLimit],
       schema: {
         params: idParamsSchema,
+        body: z
+          .object({
+            mapping: z.record(z.string(), z.string()).optional(),
+          })
+          .optional(),
         response: {
           200: successObjectResponseSchema,
           400: errorResponseSchema,
@@ -3419,6 +4030,9 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
         tags: ["etapa1-imports"],
         summary: "Full real-time pipeline status for a batch (identity resolution + promotions)",
         params: idParamsSchema,
+        querystring: z.object({
+          session: z.uuid().optional(),
+        }),
         response: {
           200: successObjectResponseSchema,
           400: errorResponseSchema,
@@ -3434,6 +4048,15 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
       }
 
       const batchId = parsedParams.data.id;
+      const parsedQuery = z
+        .object({
+          session: z.uuid().optional(),
+        })
+        .safeParse(request.query ?? {});
+      if (!parsedQuery.success) {
+        return reply.code(400).send({ success: false, error: "Query invalid" });
+      }
+
       const existing = await db.query.bronzeImportBatches.findFirst({
         where: (t, { and, eq }) => and(eq(t.tenantId, tenantId), eq(t.id, batchId)),
       });
@@ -3442,6 +4065,7 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
       }
 
       const metadata = (existing.metadata as BatchMetadata | null) ?? {};
+      const selectedSessionId = parsedQuery.data.session ?? null;
       const reprocessStatus =
         typeof metadata.identityReprocessStatus === "string"
           ? metadata.identityReprocessStatus
@@ -3458,7 +4082,38 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
           tenantId,
           batchId,
           existing.status,
+          { sessionId: selectedSessionId },
         );
+        const [attempts, historicalSummary, latestQuarantineSummary, selectedQuarantineSummary] =
+          await Promise.all([
+            loadImportRuntimeAttemptsCompat(
+              tenantId,
+              batchId,
+              Number(existing.totalRows ?? 0),
+              request,
+            ),
+            loadImportIdentitySummaryCompat(tenantId, batchId, request),
+            loadImportQuarantineSummaryCompat(tenantId, batchId, null, request),
+            loadImportQuarantineSummaryCompat(
+              tenantId,
+              batchId,
+              "session" in runtimeTopology ? (runtimeTopology.session?.id ?? null) : null,
+              request,
+            ),
+          ]);
+        const latestAttemptSummary =
+          attempts[0] ??
+          buildBatchAttemptFallback(
+            existing,
+            await loadImportRuntimeSessionForBatchCompat(tenantId, batchId, null, request),
+          );
+        const selectedAttemptSummary =
+          attempts.find(
+            (attempt) =>
+              attempt.id ===
+              (("session" in runtimeTopology ? runtimeTopology.session?.id : null) ??
+                selectedSessionId),
+          ) ?? latestAttemptSummary;
         const allCounts = await queue.getJobCounts(
           "wait",
           "active",
@@ -3488,6 +4143,14 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
             batchStatus: existing.status,
             totalRows: Number(existing.totalRows ?? 0),
             successRows: Number(existing.successRows ?? 0),
+            selectedRuntimeSession:
+              "session" in runtimeTopology ? (runtimeTopology.session ?? null) : null,
+            attempts,
+            selectedAttemptSummary,
+            latestAttemptSummary,
+            historicalSummary,
+            quarantineSummary: latestQuarantineSummary,
+            selectedQuarantineSummary,
             reprocessJob: reprocessJobData,
             promotionQueue: {
               waiting: Number(countsMap.wait ?? 0),
@@ -4173,6 +4836,8 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
         params: idParamsSchema,
         body: z.object({
           mode: z.enum(["resume", "recover"]).optional(),
+          sessionId: z.uuid().optional(),
+          allSessions: z.coerce.boolean().optional(),
         }),
         response: {
           200: successObjectResponseSchema,
@@ -4186,7 +4851,11 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
       const actorId = getActorId(request);
       const parsed = idParamsSchema.safeParse(request.params);
       const parsedBody = z
-        .object({ mode: z.enum(["resume", "recover"]).optional() })
+        .object({
+          mode: z.enum(["resume", "recover"]).optional(),
+          sessionId: z.uuid().optional(),
+          allSessions: z.coerce.boolean().optional(),
+        })
         .safeParse(request.body ?? {});
       if (!parsed.success) {
         return reply.code(400).send({ success: false, error: "Parametru id invalid" });
@@ -4204,6 +4873,12 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
         return reply.code(404).send({ success: false, error: "Import batch not found" });
       }
 
+      const targetSessionId = await resolveRequestedRuntimeSessionId(
+        tenantId,
+        parsed.data.id,
+        parsedBody.success ? parsedBody.data.sessionId : null,
+        parsedBody.success ? Boolean(parsedBody.data.allSessions) : false,
+      );
       await setBatchImportPause({
         tenantId,
         batchId: parsed.data.id,
@@ -4213,6 +4888,7 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
       const resumed = await resumeImportRuntimeJobs({
         tenantId,
         batchId: parsed.data.id,
+        sessionId: targetSessionId,
         mode: parsedBody.success ? parsedBody.data.mode : undefined,
       });
 
@@ -4224,6 +4900,7 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
         success: true,
         data: {
           id: parsed.data.id,
+          sessionId: targetSessionId,
           resumed,
           control: readBatchImportControlState(
             ((refreshed?.metadata as Record<string, unknown> | null) ?? {}) as BatchMetadata,
@@ -4297,6 +4974,8 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
         params: z.object({ id: z.uuid(), workerName: z.string().min(1) }),
         body: z.object({
           mode: z.enum(["resume", "recover"]).optional(),
+          sessionId: z.uuid().optional(),
+          allSessions: z.coerce.boolean().optional(),
         }),
         response: {
           200: successObjectResponseSchema,
@@ -4312,7 +4991,11 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
         .object({ id: z.uuid(), workerName: z.string().min(1) })
         .safeParse(request.params);
       const parsedBody = z
-        .object({ mode: z.enum(["resume", "recover"]).optional() })
+        .object({
+          mode: z.enum(["resume", "recover"]).optional(),
+          sessionId: z.uuid().optional(),
+          allSessions: z.coerce.boolean().optional(),
+        })
         .safeParse(request.body ?? {});
       if (!parsed.success) {
         return reply.code(400).send({ success: false, error: "Parametri invalizi" });
@@ -4330,6 +5013,12 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
         return reply.code(404).send({ success: false, error: "Import batch not found" });
       }
 
+      const targetSessionId = await resolveRequestedRuntimeSessionId(
+        tenantId,
+        parsed.data.id,
+        parsedBody.success ? parsedBody.data.sessionId : null,
+        parsedBody.success ? Boolean(parsedBody.data.allSessions) : false,
+      );
       await setBatchWorkerPause({
         tenantId,
         batchId: parsed.data.id,
@@ -4340,6 +5029,7 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
       const resumed = await resumeImportRuntimeJobs({
         tenantId,
         batchId: parsed.data.id,
+        sessionId: targetSessionId,
         workerName: parsed.data.workerName,
         mode: parsedBody.success ? parsedBody.data.mode : undefined,
       });
@@ -4349,6 +5039,7 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
         data: {
           id: parsed.data.id,
           workerName: parsed.data.workerName,
+          sessionId: targetSessionId,
           resumed,
           paused: false,
         },
@@ -4390,12 +5081,6 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
       if (isImportBatchHidden(currentMetadata)) {
         return reply.code(404).send({ success: false, error: "Import batch not found" });
       }
-      if (batch.status === "completed") {
-        return reply.code(409).send({
-          success: false,
-          error: "Doar importurile incomplete pot fi șterse",
-        });
-      }
 
       await markImportBatchDeleteRequested({
         tenantId,
@@ -4414,7 +5099,7 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
             FROM bronze.import_runtime_jobs
             WHERE tenant_id = ${tenantId}
               AND batch_id = ${parsed.data.id}
-              AND state = ANY(${["queued", "running", "recovering"]})`,
+              AND state IN ('queued', 'running', 'recovering')`,
       );
       const hasActiveRuntimeJobs = Number(activeRuntimeJobs[0]?.count ?? 0) > 0;
 
@@ -5017,23 +5702,22 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
           .where(sql`${bronzeImportBatches.id} = ${parsed.data.id}`);
       }
 
-      const resumeFrom = {
-        processedRows: Number(existing.processedRows ?? 0),
-        successRows: Number(existing.successRows ?? 0),
-        errorRows: Number(existing.errorRows ?? 0),
-        duplicateRows: Number(existing.duplicateRows ?? 0),
-      };
       const refreshedMeta: BatchMetadata = {
         ...resolvedFile.metadata,
         retryQueuedAt: new Date().toISOString(),
         lastError: null,
         failedAt: null,
+        resumeCursor: null,
       };
 
       const [updated] = await db
         .update(bronzeImportBatches)
         .set({
           status: "pending",
+          processedRows: 0,
+          successRows: 0,
+          errorRows: 0,
+          duplicateRows: 0,
           metadata: refreshedMeta,
           updatedAt: new Date(),
         })
@@ -5055,8 +5739,6 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
           delimiter: uploadConfig.delimiter ?? null,
           sheetName: uploadConfig.sheetName ?? null,
           columnMapping: effectiveMapping,
-          skipRows: resumeFrom.processedRows,
-          resumeFrom,
           correlationId: `retry-${existing.id}-${Date.now()}`,
         },
         workerName: isExcel ? "A2:excel-parser" : "A1:csv-parser",
@@ -5213,6 +5895,116 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
   );
 
   app.get(
+    "/imports/:id/quarantine",
+    {
+      ...authOpts,
+      schema: {
+        tags: ["etapa1-imports"],
+        summary: "List quarantined import rows for a batch",
+        params: idParamsSchema,
+        querystring: z.object({
+          sessionId: z.uuid().optional(),
+          reasonCode: z.string().optional(),
+          sheet: z.string().optional(),
+          limit: z.coerce.number().int().min(1).max(1000).optional(),
+          offset: z.coerce.number().int().min(0).optional(),
+        }),
+        response: {
+          200: successListResponseSchema,
+          400: errorResponseSchema,
+          404: errorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const tenantId = requireTenantId(request);
+      const parsedParams = idParamsSchema.safeParse(request.params);
+      const parsedQuery = z
+        .object({
+          sessionId: z.uuid().optional(),
+          reasonCode: z.string().optional(),
+          sheet: z.string().optional(),
+          limit: z.coerce.number().int().min(1).max(1000).default(100),
+          offset: z.coerce.number().int().min(0).default(0),
+        })
+        .safeParse(request.query ?? {});
+      if (!parsedParams.success) {
+        return reply.code(400).send({ success: false, error: "Parametru id invalid" });
+      }
+      if (!parsedQuery.success) {
+        return reply.code(400).send({ success: false, error: "Query invalid" });
+      }
+
+      const batchId = parsedParams.data.id;
+      const batch = await db.query.bronzeImportBatches.findFirst({
+        where: (t, { and, eq }) => and(eq(t.tenantId, tenantId), eq(t.id, batchId)),
+        columns: { id: true },
+      });
+      if (!batch) {
+        return reply.code(404).send({ success: false, error: "Import batch not found" });
+      }
+
+      const { sessionId, reasonCode, sheet, limit, offset } = parsedQuery.data;
+      const filters = [
+        sql`${importRowQuarantine.tenantId} = ${tenantId}`,
+        sql`${importRowQuarantine.batchId} = ${batchId}`,
+      ];
+      if (sessionId) filters.push(sql`${importRowQuarantine.sessionId} = ${sessionId}`);
+      if (reasonCode) filters.push(sql`${importRowQuarantine.reasonCode} = ${reasonCode}`);
+      if (sheet) filters.push(sql`${importRowQuarantine.sheetName} = ${sheet}`);
+      const where = sql.join(filters, sql` AND `);
+
+      let rows: (typeof importRowQuarantine.$inferSelect)[] = [];
+      let total = 0;
+      try {
+        const [resultRows, [countRow]] = await Promise.all([
+          db
+            .select()
+            .from(importRowQuarantine)
+            .where(where)
+            .orderBy(sql`${importRowQuarantine.createdAt} DESC`)
+            .limit(limit)
+            .offset(offset),
+          db
+            .select({ total: sql<number>`COUNT(*)` })
+            .from(importRowQuarantine)
+            .where(where),
+        ]);
+        rows = resultRows;
+        total = Number(countRow?.total ?? 0);
+      } catch (err) {
+        if (!isSchemaCompatibilityError(err)) {
+          throw err;
+        }
+        logSchemaCompatibilityFallback(request, err, "imports quarantine list", { batchId });
+      }
+
+      return {
+        success: true,
+        data: rows.map((row) => ({
+          id: row.id,
+          batchId: row.batchId,
+          sessionId: row.sessionId ?? null,
+          runtimeJobKey: row.runtimeJobKey ?? null,
+          sourceType: row.sourceType,
+          sourceIdentifier: row.sourceIdentifier,
+          sheetName: row.sheetName ?? null,
+          worksheetRow: row.worksheetRow ?? null,
+          globalRow: row.globalRow ?? null,
+          fieldName: row.fieldName ?? null,
+          reasonCode: row.reasonCode,
+          rowPayloadEscaped: row.rowPayloadEscaped,
+          sanitizedPayload: row.sanitizedPayload,
+          violations: row.violations,
+          metadata: row.metadata,
+          createdAt: row.createdAt.toISOString(),
+        })),
+        meta: { total, limit, offset },
+      };
+    },
+  );
+
+  app.get(
     "/imports/:id/job-logs",
     {
       ...authOpts,
@@ -5220,15 +6012,7 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
         tags: ["etapa1-imports"],
         summary: "Get per-worker job logs for a specific import batch",
         params: idParamsSchema,
-        querystring: z.object({
-          level: z.enum(["info", "warn", "error", "step"]).optional(),
-          worker: z.string().optional(),
-          jobId: z.string().optional(),
-          bronzeContactId: z.uuid().optional(),
-          tail: z.coerce.boolean().optional(),
-          limit: z.coerce.number().int().min(1).max(2000).optional(),
-          offset: z.coerce.number().int().min(0).optional(),
-        }),
+        querystring: importJobLogsQuerySchema,
         response: {
           200: successListResponseSchema,
           400: errorResponseSchema,
@@ -5242,59 +6026,38 @@ export async function importsBronzeRoutes(app: FastifyInstance) {
       if (!parsedParams.success)
         return reply.code(400).send({ success: false, error: "Parametru id invalid" });
 
-      const querySchema = z.object({
-        level: z.enum(["info", "warn", "error", "step"]).optional(),
-        worker: z.string().optional(),
-        jobId: z.string().optional(),
-        bronzeContactId: z.uuid().optional(),
-        tail: z.coerce.boolean().default(false),
-        limit: z.coerce.number().int().min(1).max(2000).default(100),
-        offset: z.coerce.number().int().min(0).default(0),
-      });
-      const parsedQuery = querySchema.safeParse(request.query);
+      const parsedQuery = importJobLogsQuerySchema.safeParse(request.query);
       if (!parsedQuery.success)
         return reply
           .code(400)
           .send({ success: false, error: "Query invalid", details: parsedQuery.error.issues });
 
       const batchId = parsedParams.data.id;
-      const { level, worker, jobId, bronzeContactId, tail, limit, offset } = parsedQuery.data;
+      const query = parsedQuery.data;
 
       const batch = await db.query.bronzeImportBatches.findFirst({
         where: (t, { and, eq }) => and(eq(t.tenantId, tenantId), eq(t.id, batchId)),
         columns: { id: true },
       });
       if (!batch) return reply.code(404).send({ success: false, error: "Import batch not found" });
-
-      const filters = [
-        sql`${jobLogs.tenantId} = ${tenantId}`,
-        sql`${jobLogs.batchId} = ${batchId}`,
-      ];
-      if (level) filters.push(sql`${jobLogs.level} = ${level === "step" ? "debug" : level}`);
-      if (worker) filters.push(sql`${jobLogs.workerName} = ${worker}`);
-      if (jobId) filters.push(sql`${jobLogs.jobId} = ${jobId}`);
-      if (bronzeContactId) filters.push(sql`${jobLogs.contactId} = ${bronzeContactId}`);
-      const where = sql.join(filters, sql` AND `);
+      const targetSessionId = await resolveRequestedRuntimeSessionId(
+        tenantId,
+        batchId,
+        query.sessionId,
+      );
 
       await setSessionTenantId(tenantId);
-      const [rows, [{ total }]] = await Promise.all([
-        db
-          .select()
-          .from(jobLogs)
-          .where(where)
-          .orderBy(sql`${jobLogs.createdAt} ${sql.raw(tail ? "DESC" : "ASC")}`)
-          .limit(limit)
-          .offset(offset),
-        db
-          .select({ total: sql<number>`COUNT(*)` })
-          .from(jobLogs)
-          .where(where),
-      ]);
+      const { rows, total } = await listImportJobLogsWithCompatibility(request, {
+        ...query,
+        tenantId,
+        batchId,
+        targetSessionId,
+      });
 
       return {
         success: true,
         data: rows.map((row) => buildJobLogResponseRow(row)),
-        meta: { total: Number(total), limit, offset },
+        meta: { total, limit: query.limit, offset: query.offset },
       };
     },
   );

@@ -202,6 +202,7 @@ export const nameNormalizerProcessor: Processor<NameNormalizerJobData> = async (
         workerName: "B1:name-normalizer",
         jobId: String(job.id ?? ""),
         startedAt,
+        importExecution: job.data.importExecution ?? null,
       }).forContact(job.data.bronzeContactId);
 
       try {

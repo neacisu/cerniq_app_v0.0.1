@@ -12,6 +12,7 @@
  */
 
 import { db, jobLogs } from "@cerniq/db";
+import type { ImportExecutionContext } from "@cerniq/worker-shared";
 
 export type JobLogLevel = "debug" | "info" | "warn" | "error";
 
@@ -33,6 +34,10 @@ export interface JobLoggerOpts {
    * calculations in worker code.
    */
   startedAt?: number;
+  sessionId?: string;
+  runtimeJobKey?: string;
+  parentRuntimeJobKey?: string | null;
+  importExecution?: ImportExecutionContext | null;
 }
 
 export interface JobLogger {
@@ -69,9 +74,13 @@ function writeLog(
     .values({
       tenantId: opts.tenantId,
       batchId: opts.batchId,
+      sessionId: opts.importExecution?.sessionId ?? opts.sessionId ?? undefined,
       contactId: contactId ?? undefined,
       workerName: opts.workerName,
       jobId: opts.jobId ?? undefined,
+      runtimeJobKey: opts.importExecution?.runtimeJobKey ?? opts.runtimeJobKey ?? undefined,
+      parentRuntimeJobKey:
+        opts.importExecution?.parentRuntimeJobKey ?? opts.parentRuntimeJobKey ?? undefined,
       level,
       step,
       message,

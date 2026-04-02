@@ -11,6 +11,29 @@ function mockSharedTypes() {
   }));
 }
 
+function createDbMock(overrides?: Record<string, unknown>) {
+  const bronzeQuery = {
+    findMany: vi.fn(async () => []),
+  };
+
+  return {
+    db: {
+      insert: vi.fn(),
+      query: {
+        bronzeContacts: bronzeQuery,
+      },
+    },
+    bronzeContacts: { id: "id", sourceIdentifier: "sourceIdentifier", tenantId: "tenantId" },
+    bronzeImportBatches: { id: "id", metadata: "metadata" },
+    importRowQuarantine: { id: "id" },
+    computeStableSourcePayloadHash: vi.fn((row: Record<string, unknown>) => JSON.stringify(row)),
+    resolveBronzeContactIdentity: vi.fn(async () => ({ status: "resolved" as const })),
+    setSessionTenantId: vi.fn(async () => undefined),
+    sql: (parts: TemplateStringsArray) => parts.join(""),
+    ...overrides,
+  };
+}
+
 function mockWorkerShared() {
   return {
     QUEUES: {
@@ -47,15 +70,13 @@ describe("ingest-utils", () => {
     });
     const insert = vi.fn(() => ({ values }));
 
-    vi.doMock("@cerniq/db", () => ({
-      db: { insert },
-      bronzeContacts: { id: "id" },
-      bronzeImportBatches: { id: "id", metadata: "metadata" },
-      computeStableSourcePayloadHash: vi.fn((row: Record<string, unknown>) => JSON.stringify(row)),
-      resolveBronzeContactIdentity: vi.fn(async () => ({ status: "resolved" as const })),
-      setSessionTenantId: vi.fn(async () => undefined),
-      sql: (parts: TemplateStringsArray) => parts.join(""),
-    }));
+    vi.doMock("@cerniq/db", () => {
+      const mock = createDbMock();
+      return {
+        ...mock,
+        db: { ...mock.db, insert },
+      };
+    });
 
     vi.doMock("@cerniq/worker-shared", mockWorkerShared);
 
@@ -94,15 +115,13 @@ describe("ingest-utils", () => {
     });
     const insert = vi.fn(() => ({ values }));
 
-    vi.doMock("@cerniq/db", () => ({
-      db: { insert },
-      bronzeContacts: { id: "id" },
-      bronzeImportBatches: { id: "id", metadata: "metadata" },
-      computeStableSourcePayloadHash: vi.fn((row: Record<string, unknown>) => JSON.stringify(row)),
-      resolveBronzeContactIdentity: vi.fn(async () => ({ status: "resolved" as const })),
-      setSessionTenantId: vi.fn(async () => undefined),
-      sql: (parts: TemplateStringsArray) => parts.join(""),
-    }));
+    vi.doMock("@cerniq/db", () => {
+      const mock = createDbMock();
+      return {
+        ...mock,
+        db: { ...mock.db, insert },
+      };
+    });
 
     vi.doMock("@cerniq/worker-shared", mockWorkerShared);
 
@@ -138,15 +157,11 @@ describe("ingest-utils", () => {
 describe("normalizeRow", () => {
   it("at target collision, keeps first value (not last)", async () => {
     mockSharedTypes();
-    vi.doMock("@cerniq/db", () => ({
-      db: {},
-      bronzeContacts: { id: "id" },
-      bronzeImportBatches: { id: "id", metadata: "metadata" },
-      computeStableSourcePayloadHash: vi.fn(() => "hash"),
-      resolveBronzeContactIdentity: vi.fn(async () => ({ status: "resolved" as const })),
-      setSessionTenantId: vi.fn(async () => undefined),
-      sql: (parts: TemplateStringsArray) => parts.join(""),
-    }));
+    vi.doMock("@cerniq/db", () =>
+      createDbMock({
+        computeStableSourcePayloadHash: vi.fn(() => "hash"),
+      }),
+    );
     vi.doMock("@cerniq/worker-shared", mockWorkerShared);
     vi.doMock("../lib/cui-validation.js", () => ({
       sanitizeCui: vi.fn((v: string) => v || null),
@@ -216,5 +231,239 @@ describe("contentHash (order-independent)", () => {
       .digest("hex");
 
     expect(hash1).not.toBe(hash2);
+  });
+});
+
+describe("ingest-utils control chars and idempotency", () => {
+  it("quarantines rows with disallowed control chars before Bronze insert", async () => {
+    mockSharedTypes();
+    const quarantineValues = vi.fn(async () => undefined);
+    const bronzeValues = vi.fn(async () => {
+      throw new Error("Bronze insert should not be reached for quarantined rows");
+    });
+    const insert = vi
+      .fn()
+      .mockImplementationOnce(() => ({ values: quarantineValues }))
+      .mockImplementationOnce(() => ({ values: bronzeValues }));
+
+    vi.doMock("@cerniq/db", () => {
+      const mock = createDbMock();
+      return {
+        ...mock,
+        db: { ...mock.db, insert },
+      };
+    });
+    vi.doMock("@cerniq/worker-shared", mockWorkerShared);
+    vi.doMock("../lib/cui-validation.js", () => ({
+      sanitizeCui: vi.fn((value: string) => value || null),
+    }));
+    vi.doMock("./pipeline-utils.js", () => ({
+      createHitlApprovalTask: vi.fn(async () => undefined),
+    }));
+
+    const { insertBronzeRows } = await import("./ingest-utils.js");
+    const result = await insertBronzeRows(
+      "tenant-1",
+      [{ companyName: "Broken\u0007 Row" }],
+      "excel_import",
+      "batch-3",
+      "Sheet1",
+      {
+        startingRowNumber: 9,
+      },
+    );
+
+    expect(result.rowsInserted).toBe(0);
+    expect(result.quarantineRows).toBe(1);
+    expect(result.errorRows).toBe(1);
+    expect(quarantineValues).toHaveBeenCalledTimes(1);
+    expect(bronzeValues).not.toHaveBeenCalled();
+  });
+
+  it("reuses an existing Bronze row when sourceIdentifier hash matches", async () => {
+    mockSharedTypes();
+    const { createHash } = await import("node:crypto");
+    const contentHash = createHash("sha256")
+      .update(JSON.stringify({ companyName: "A" }, ["companyName"]))
+      .digest("hex");
+    const insert = vi.fn(() => ({
+      values: vi.fn(async () => {
+        throw new Error("Insert should not run when the row already exists with the same hash");
+      }),
+    }));
+
+    vi.doMock("@cerniq/db", () => {
+      const hashFn = vi.fn((row: Record<string, unknown>) => JSON.stringify(row));
+      const existingQuery = {
+        findMany: vi.fn(async () => [
+          {
+            id: "bronze-existing-1",
+            sourceIdentifier: "csv_import:batch-1:default:1",
+            contentHash,
+            sourcePayloadHash: '{"companyName":"A"}',
+            identityStatus: "resolved",
+            doNotProcess: false,
+            processingStatus: "pending",
+          },
+        ]),
+      };
+
+      return {
+        db: {
+          insert,
+          query: {
+            bronzeContacts: existingQuery,
+          },
+        },
+        bronzeContacts: { id: "id", sourceIdentifier: "sourceIdentifier", tenantId: "tenantId" },
+        bronzeImportBatches: { id: "id", metadata: "metadata" },
+        importRowQuarantine: { id: "id" },
+        computeStableSourcePayloadHash: hashFn,
+        resolveBronzeContactIdentity: vi.fn(async () => ({ status: "resolved" as const })),
+        setSessionTenantId: vi.fn(async () => undefined),
+        sql: (parts: TemplateStringsArray) => parts.join(""),
+      };
+    });
+    vi.doMock("@cerniq/worker-shared", mockWorkerShared);
+    vi.doMock("../lib/cui-validation.js", () => ({
+      sanitizeCui: vi.fn((value: string) => value || null),
+    }));
+    vi.doMock("./pipeline-utils.js", () => ({
+      createHitlApprovalTask: vi.fn(async () => undefined),
+    }));
+
+    const { insertBronzeRows } = await import("./ingest-utils.js");
+    const result = await insertBronzeRows(
+      "tenant-1",
+      [{ companyName: "A" }],
+      "csv_import",
+      "batch-1",
+      undefined,
+      { startingRowNumber: 1 },
+    );
+
+    expect(result.rowsInserted).toBe(0);
+    expect(result.duplicateRows).toBe(1);
+    expect(result.processableIds).toEqual(["bronze-existing-1"]);
+    expect(insert).not.toHaveBeenCalled();
+  });
+
+  it("strips U+0000 before Bronze insert and keeps the row processable", async () => {
+    mockSharedTypes();
+    let insertedPayload: Array<Record<string, unknown>> = [];
+    const returning = vi.fn(async () => [{ id: "bronze-1" }]);
+    const values = vi.fn((payload: Array<Record<string, unknown>>) => {
+      insertedPayload = payload;
+      return { returning };
+    });
+    const insert = vi.fn(() => ({ values }));
+
+    vi.doMock("@cerniq/db", () => {
+      const mock = createDbMock();
+      return {
+        ...mock,
+        db: { ...mock.db, insert },
+      };
+    });
+    vi.doMock("@cerniq/worker-shared", mockWorkerShared);
+    vi.doMock("../lib/cui-validation.js", () => ({
+      sanitizeCui: vi.fn((value: string) => value || null),
+    }));
+    vi.doMock("./pipeline-utils.js", () => ({
+      createHitlApprovalTask: vi.fn(async () => undefined),
+    }));
+
+    const { insertBronzeRows } = await import("./ingest-utils.js");
+    const result = await insertBronzeRows(
+      "tenant-1",
+      [{ companyName: "Parat\u0000", note: "clean" }],
+      "excel_import",
+      "batch-4",
+      "Sheet1",
+      { startingRowNumber: 11 },
+    );
+
+    expect(result.rowsInserted).toBe(1);
+    expect(result.sanitizedRows).toBe(1);
+    expect(result.quarantineRows).toBe(0);
+    expect(insertedPayload).toHaveLength(1);
+    expect(insertedPayload[0]).toEqual(
+      expect.objectContaining({
+        rawPayload: expect.objectContaining({
+          companyName: "Parat",
+          note: "clean",
+        }),
+      }),
+    );
+  });
+
+  it("quarantines sourceIdentifier conflicts when the existing hashes differ", async () => {
+    mockSharedTypes();
+    const quarantineValues = vi.fn(async () => undefined);
+    const bronzeValues = vi.fn(async () => {
+      throw new Error("Bronze insert should not run for hash conflicts");
+    });
+    const insert = vi
+      .fn()
+      .mockImplementationOnce(() => ({ values: quarantineValues }))
+      .mockImplementationOnce(() => ({ values: bronzeValues }));
+
+    vi.doMock("@cerniq/db", () => {
+      const existingQuery = {
+        findMany: vi.fn(async () => [
+          {
+            id: "bronze-existing-2",
+            sourceIdentifier: "csv_import:batch-1:default:1",
+            contentHash: "existing-content-hash",
+            sourcePayloadHash: "existing-source-payload-hash",
+            identityStatus: "resolved",
+            doNotProcess: false,
+            processingStatus: "pending",
+          },
+        ]),
+      };
+
+      return {
+        db: {
+          insert,
+          query: {
+            bronzeContacts: existingQuery,
+          },
+        },
+        bronzeContacts: { id: "id", sourceIdentifier: "sourceIdentifier", tenantId: "tenantId" },
+        bronzeImportBatches: { id: "id", metadata: "metadata" },
+        importRowQuarantine: { id: "id" },
+        computeStableSourcePayloadHash: vi.fn((row: Record<string, unknown>) =>
+          JSON.stringify(row),
+        ),
+        resolveBronzeContactIdentity: vi.fn(async () => ({ status: "resolved" as const })),
+        setSessionTenantId: vi.fn(async () => undefined),
+        sql: (parts: TemplateStringsArray) => parts.join(""),
+      };
+    });
+    vi.doMock("@cerniq/worker-shared", mockWorkerShared);
+    vi.doMock("../lib/cui-validation.js", () => ({
+      sanitizeCui: vi.fn((value: string) => value || null),
+    }));
+    vi.doMock("./pipeline-utils.js", () => ({
+      createHitlApprovalTask: vi.fn(async () => undefined),
+    }));
+
+    const { insertBronzeRows } = await import("./ingest-utils.js");
+    const result = await insertBronzeRows(
+      "tenant-1",
+      [{ companyName: "Changed payload" }],
+      "csv_import",
+      "batch-1",
+      undefined,
+      { startingRowNumber: 1 },
+    );
+
+    expect(result.rowsInserted).toBe(0);
+    expect(result.errorRows).toBe(1);
+    expect(result.quarantineRows).toBe(1);
+    expect(result.invariantConflictRows).toBe(1);
+    expect(quarantineValues).toHaveBeenCalledTimes(1);
+    expect(bronzeValues).not.toHaveBeenCalled();
   });
 });

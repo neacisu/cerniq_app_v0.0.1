@@ -7,6 +7,7 @@ import {
   bronzeImportBatches,
   computeStableSourcePayloadHash,
   db,
+  importRowQuarantine,
   resolveBronzeContactIdentity,
   setSessionTenantId,
   sql,
@@ -216,18 +217,91 @@ type BronzeInsertResult = {
   processableIds: string[];
   errorRows: number;
   duplicateRows: number;
+  quarantineRows: number;
+  sanitizedRows: number;
+  invariantConflictRows: number;
   resolvedRows: number;
   identityConflictRows: number;
   insufficientIdentifierRows: number;
   rowErrors: Array<{ rowNumber: number | null; message: string }>;
 };
 
+type BronzeRowCoordinate = {
+  rowNumber?: number | null;
+  worksheetRow?: number | null;
+  globalRow?: number | null;
+};
+
+type ImportRowViolation = {
+  action: "removed" | "quarantined";
+  codePoint: string;
+  count: number;
+  fieldName: string;
+  path: string;
+};
+
 type InsertBronzeRowsOptions = {
   startingRowNumber?: number;
   columnMapping?: Record<string, string>;
+  rowCoordinates?: BronzeRowCoordinate[];
+  importExecution?: ImportExecutionContext | null;
 };
 
 type BronzeContactInsert = typeof bronzeContacts.$inferInsert;
+
+type ExistingBronzeContactSummary = Pick<
+  typeof bronzeContacts.$inferSelect,
+  | "id"
+  | "sourceIdentifier"
+  | "contentHash"
+  | "sourcePayloadHash"
+  | "identityStatus"
+  | "doNotProcess"
+> & {
+  processingStatus: typeof bronzeContacts.$inferSelect.processingStatus | null;
+};
+
+type SanitizedRowInspection = {
+  sanitizedRow: Record<string, unknown>;
+  auditEscapedRow: Record<string, unknown>;
+  violations: ImportRowViolation[];
+  removedControlCount: number;
+  quarantinedControlCount: number;
+  firstQuarantineField: string | null;
+};
+
+type InsertBronzePayloadContext = {
+  batchId?: string;
+  importExecution?: ImportExecutionContext | null;
+  sourceType: "csv_import" | "excel_import" | "webhook" | "manual" | "api";
+};
+
+type QuarantinedImportRow = Parameters<typeof persistQuarantinedImportRows>[0][number];
+
+type ExistingBronzePrehandleResult = {
+  rowsToInsert: BronzeContactInsert[];
+  quarantinedRows: QuarantinedImportRow[];
+  prehandledResult: BronzeInsertResult;
+};
+
+type InsertedBronzeResolutionResult = Pick<
+  BronzeInsertResult,
+  | "rowsRead"
+  | "rowsInserted"
+  | "insertedIds"
+  | "processableIds"
+  | "errorRows"
+  | "duplicateRows"
+  | "quarantineRows"
+  | "sanitizedRows"
+  | "invariantConflictRows"
+  | "resolvedRows"
+  | "identityConflictRows"
+  | "insufficientIdentifierRows"
+  | "rowErrors"
+>;
+
+const ALLOWED_CONTROL_CHAR_CODES = new Set([9, 10, 13]);
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error && typeof error.message === "string") {
@@ -271,6 +345,9 @@ function createEmptyBronzeInsertResult(): BronzeInsertResult {
     processableIds: [],
     errorRows: 0,
     duplicateRows: 0,
+    quarantineRows: 0,
+    sanitizedRows: 0,
+    invariantConflictRows: 0,
     resolvedRows: 0,
     identityConflictRows: 0,
     insufficientIdentifierRows: 0,
@@ -280,9 +357,242 @@ function createEmptyBronzeInsertResult(): BronzeInsertResult {
 
 function getMetadataRowNumber(metadataInput: unknown): number | null {
   const metadata = (metadataInput as Record<string, unknown> | undefined) ?? {};
+  if (typeof metadata.globalRow === "number" && Number.isFinite(metadata.globalRow)) {
+    return metadata.globalRow;
+  }
   return typeof metadata.rowNumber === "number" && Number.isFinite(metadata.rowNumber)
     ? metadata.rowNumber
     : null;
+}
+
+function getMetadataWorksheetRow(metadataInput: unknown): number | null {
+  const metadata = (metadataInput as Record<string, unknown> | undefined) ?? {};
+  return typeof metadata.worksheetRow === "number" && Number.isFinite(metadata.worksheetRow)
+    ? metadata.worksheetRow
+    : null;
+}
+
+function getMetadataSheetName(metadataInput: unknown): string | null {
+  const metadata = (metadataInput as Record<string, unknown> | undefined) ?? {};
+  return typeof metadata.sheetName === "string" && metadata.sheetName.trim().length > 0
+    ? metadata.sheetName
+    : null;
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return value != null && typeof value === "object" && !Array.isArray(value);
+}
+
+function escapeCodePoint(codePoint: number): string {
+  return `U+${codePoint.toString(16).toUpperCase().padStart(4, "0")}`;
+}
+
+const AUDIT_UNICODE_ESCAPE_PREFIX = String.raw`\u`;
+
+function escapeControlCharsForAudit(value: string): string {
+  let escaped = "";
+  for (const char of value) {
+    const codePoint = char.codePointAt(0) ?? 0;
+    escaped +=
+      codePoint < 0x20
+        ? AUDIT_UNICODE_ESCAPE_PREFIX + codePoint.toString(16).padStart(4, "0")
+        : char;
+  }
+  return escaped;
+}
+
+function fieldNameFromPath(path: string): string {
+  const fieldName = path.split(/[.[\]]/).find(Boolean);
+  return fieldName ?? "row";
+}
+
+function recordViolation(
+  violations: Map<string, ImportRowViolation>,
+  action: ImportRowViolation["action"],
+  path: string,
+  codePoint: number,
+) {
+  const code = escapeCodePoint(codePoint);
+  const key = `${action}:${path}:${code}`;
+  const existing = violations.get(key);
+  if (existing) {
+    existing.count += 1;
+    return;
+  }
+  violations.set(key, {
+    action,
+    codePoint: code,
+    count: 1,
+    fieldName: fieldNameFromPath(path),
+    path,
+  });
+}
+
+function sanitizeStringControls(
+  value: string,
+  path: string,
+  violations: Map<string, ImportRowViolation>,
+  counters: { removed: number; quarantined: number },
+): string {
+  let sanitized = "";
+  for (const char of value) {
+    const codePoint = char.codePointAt(0) ?? 0;
+    if (codePoint === 0) {
+      counters.removed += 1;
+      recordViolation(violations, "removed", path, codePoint);
+      continue;
+    }
+    if (codePoint < 0x20 && !ALLOWED_CONTROL_CHAR_CODES.has(codePoint)) {
+      counters.quarantined += 1;
+      recordViolation(violations, "quarantined", path, codePoint);
+      continue;
+    }
+    sanitized += char;
+  }
+  return sanitized;
+}
+
+function sanitizeValueDeep(
+  value: unknown,
+  path: string,
+  violations: Map<string, ImportRowViolation>,
+  counters: { removed: number; quarantined: number },
+): unknown {
+  if (typeof value === "string") {
+    return sanitizeStringControls(value, path || "row", violations, counters);
+  }
+  if (Array.isArray(value)) {
+    return value.map((entry, index) =>
+      sanitizeValueDeep(entry, `${path || "row"}[${index}]`, violations, counters),
+    );
+  }
+  if (isPlainObject(value)) {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, entry]) => [
+        key,
+        sanitizeValueDeep(entry, path ? `${path}.${key}` : key, violations, counters),
+      ]),
+    );
+  }
+  return value;
+}
+
+function escapeValueForAudit(value: unknown): unknown {
+  if (typeof value === "string") {
+    return escapeControlCharsForAudit(value);
+  }
+  if (Array.isArray(value)) {
+    return value.map((entry) => escapeValueForAudit(entry));
+  }
+  if (isPlainObject(value)) {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, entry]) => [key, escapeValueForAudit(entry)]),
+    );
+  }
+  return value;
+}
+
+function inspectAndSanitizeRow(row: Record<string, unknown>): SanitizedRowInspection {
+  const violations = new Map<string, ImportRowViolation>();
+  const counters = { removed: 0, quarantined: 0 };
+  const sanitizedRow = sanitizeValueDeep(row, "", violations, counters);
+  const auditEscapedRow = escapeValueForAudit(row);
+  const allViolations = [...violations.values()];
+
+  return {
+    sanitizedRow: isPlainObject(sanitizedRow) ? sanitizedRow : {},
+    auditEscapedRow: isPlainObject(auditEscapedRow) ? auditEscapedRow : {},
+    violations: allViolations,
+    removedControlCount: counters.removed,
+    quarantinedControlCount: counters.quarantined,
+    firstQuarantineField:
+      allViolations.find((violation) => violation.action === "quarantined")?.fieldName ?? null,
+  };
+}
+
+function isExistingBronzeProcessable(contact: ExistingBronzeContactSummary): boolean {
+  if (contact.doNotProcess) {
+    return false;
+  }
+  if (contact.processingStatus === "promoted") {
+    return false;
+  }
+  return (
+    contact.identityStatus === "unresolved" ||
+    contact.identityStatus === "resolved" ||
+    contact.identityStatus == null
+  );
+}
+
+async function loadExistingBronzeContactsBySourceIdentifier(
+  tenantId: string,
+  sourceIdentifiers: string[],
+): Promise<Map<string, ExistingBronzeContactSummary>> {
+  if (sourceIdentifiers.length === 0) {
+    return new Map();
+  }
+
+  const existing = await db.query.bronzeContacts.findMany({
+    where: (t, { and, eq, inArray }) =>
+      and(eq(t.tenantId, tenantId), inArray(t.sourceIdentifier, sourceIdentifiers)),
+    columns: {
+      id: true,
+      sourceIdentifier: true,
+      contentHash: true,
+      sourcePayloadHash: true,
+      identityStatus: true,
+      doNotProcess: true,
+      processingStatus: true,
+    },
+  });
+
+  return new Map(existing.map((row) => [row.sourceIdentifier, row]));
+}
+
+async function persistQuarantinedImportRows(
+  rows: Array<{
+    tenantId: string;
+    batchId?: string | null;
+    sourceType: "csv_import" | "excel_import" | "webhook" | "manual" | "api";
+    sourceIdentifier: string;
+    metadata: Record<string, unknown>;
+    auditEscapedRow: Record<string, unknown>;
+    sanitizedPayload: Record<string, unknown> | null;
+    violations: ImportRowViolation[];
+    reasonCode: string;
+    message: string;
+    importExecution?: ImportExecutionContext | null;
+  }>,
+): Promise<void> {
+  const persistedRows = rows
+    .filter((row) => typeof row.batchId === "string" && row.batchId.length > 0)
+    .map((row) => ({
+      tenantId: row.tenantId,
+      batchId: row.batchId as string,
+      sessionId: row.importExecution?.sessionId ?? null,
+      runtimeJobKey: row.importExecution?.runtimeJobKey ?? null,
+      sourceType: row.sourceType,
+      sourceIdentifier: row.sourceIdentifier,
+      sheetName: getMetadataSheetName(row.metadata),
+      worksheetRow: getMetadataWorksheetRow(row.metadata),
+      globalRow: getMetadataRowNumber(row.metadata),
+      fieldName: row.violations[0]?.fieldName ?? null,
+      reasonCode: row.reasonCode,
+      rowPayloadEscaped: row.auditEscapedRow,
+      sanitizedPayload: row.sanitizedPayload,
+      violations: row.violations,
+      metadata: {
+        ...row.metadata,
+        message: row.message,
+        hiddenViolationCount: row.violations.length,
+      },
+    }));
+
+  if (persistedRows.length === 0) {
+    return;
+  }
+
+  await db.insert(importRowQuarantine).values(persistedRows);
 }
 
 async function handleIdentityConflictRow(
@@ -407,6 +717,9 @@ function createSingleRowInsertFailure(
     processableIds: [],
     errorRows: 1,
     duplicateRows: 0,
+    quarantineRows: 0,
+    sanitizedRows: 0,
+    invariantConflictRows: 0,
     resolvedRows: 0,
     identityConflictRows: 0,
     insufficientIdentifierRows: 0,
@@ -417,6 +730,163 @@ function createSingleRowInsertFailure(
       },
     ],
   };
+}
+
+function getRawPayloadObject(value: unknown): Record<string, unknown> | null {
+  return isPlainObject(value) ? value : null;
+}
+
+function createSourceIdentifierHashConflictMessage(sourceIdentifier: string): string {
+  return truncateErrorMessage(
+    `Source identifier conflict for ${sourceIdentifier}: existing row has a different payload hash`,
+  );
+}
+
+function createHashConflictQuarantineRow(
+  sourceRow: BronzeContactInsert,
+  tenantId: string,
+  context: InsertBronzePayloadContext,
+): QuarantinedImportRow {
+  const metadata = (sourceRow.metadata as Record<string, unknown> | undefined) ?? {};
+  const rawPayload = getRawPayloadObject(sourceRow.rawPayload);
+
+  return {
+    tenantId,
+    batchId: context.batchId ?? null,
+    sourceType: context.sourceType,
+    sourceIdentifier: String(sourceRow.sourceIdentifier),
+    metadata,
+    auditEscapedRow: rawPayload ?? {},
+    sanitizedPayload: rawPayload,
+    violations: [
+      {
+        action: "quarantined",
+        codePoint: "HASH_CONFLICT",
+        count: 1,
+        fieldName: "sourceIdentifier",
+        path: "sourceIdentifier",
+      },
+    ],
+    reasonCode: "source_identifier_hash_conflict",
+    message: createSourceIdentifierHashConflictMessage(String(sourceRow.sourceIdentifier)),
+    importExecution: context.importExecution ?? null,
+  };
+}
+
+function applySourceIdentifierHashConflict(
+  result: BronzeInsertResult,
+  sourceRow: BronzeContactInsert,
+): void {
+  const metadata = (sourceRow.metadata as Record<string, unknown> | undefined) ?? {};
+  result.errorRows += 1;
+  result.quarantineRows += 1;
+  result.invariantConflictRows += 1;
+  result.rowErrors.push({
+    rowNumber: getMetadataRowNumber(metadata),
+    message: createSourceIdentifierHashConflictMessage(String(sourceRow.sourceIdentifier)),
+  });
+}
+
+async function prehandleExistingBronzeRows(
+  payload: BronzeContactInsert[],
+  context: InsertBronzePayloadContext,
+): Promise<ExistingBronzePrehandleResult> {
+  const tenantId = String(payload[0]?.tenantId ?? "");
+  const existingBySourceIdentifier = await loadExistingBronzeContactsBySourceIdentifier(
+    tenantId,
+    payload.map((row) => String(row.sourceIdentifier)),
+  );
+  const rowsToInsert: BronzeContactInsert[] = [];
+  const prehandledResult = createEmptyBronzeInsertResult();
+  const quarantinedRows: QuarantinedImportRow[] = [];
+
+  for (const sourceRow of payload) {
+    const existing = existingBySourceIdentifier.get(String(sourceRow.sourceIdentifier));
+    if (!existing) {
+      rowsToInsert.push(sourceRow);
+      continue;
+    }
+
+    prehandledResult.rowsRead += 1;
+
+    if (
+      existing.contentHash === sourceRow.contentHash &&
+      existing.sourcePayloadHash === sourceRow.sourcePayloadHash
+    ) {
+      prehandledResult.duplicateRows += 1;
+      if (isExistingBronzeProcessable(existing)) {
+        prehandledResult.processableIds.push(existing.id);
+      }
+      continue;
+    }
+
+    quarantinedRows.push(createHashConflictQuarantineRow(sourceRow, tenantId, context));
+    applySourceIdentifierHashConflict(prehandledResult, sourceRow);
+  }
+
+  return {
+    rowsToInsert,
+    quarantinedRows,
+    prehandledResult,
+  };
+}
+
+async function resolveInsertedBronzeRows(
+  insertedRows: Array<{ id: string }>,
+  rowsToInsert: BronzeContactInsert[],
+): Promise<InsertedBronzeResolutionResult> {
+  const processableIds: string[] = [];
+  const rowErrors: Array<{ rowNumber: number | null; message: string }> = [];
+  let duplicateRows = 0;
+  let resolvedRows = 0;
+  let identityConflictRows = 0;
+  let insufficientIdentifierRows = 0;
+
+  for (const [index, inserted] of insertedRows.entries()) {
+    const sourceRow = rowsToInsert[index];
+    if (!inserted || !sourceRow) continue;
+
+    const rowResolution = await resolveInsertedBronzeRow(inserted.id, sourceRow);
+    if (rowResolution.processableId) {
+      processableIds.push(rowResolution.processableId);
+    }
+    duplicateRows += rowResolution.duplicateRows;
+    resolvedRows += rowResolution.resolvedRows;
+    identityConflictRows += rowResolution.identityConflictRows;
+    insufficientIdentifierRows += rowResolution.insufficientIdentifierRows;
+    if (rowResolution.rowError) {
+      rowErrors.push(rowResolution.rowError);
+    }
+  }
+
+  const errorRows = rowErrors.length;
+
+  return {
+    rowsRead: rowsToInsert.length,
+    rowsInserted: Math.max(0, insertedRows.length - duplicateRows - errorRows),
+    insertedIds: insertedRows.map((row) => row.id),
+    processableIds,
+    errorRows,
+    duplicateRows,
+    quarantineRows: 0,
+    sanitizedRows: 0,
+    invariantConflictRows: 0,
+    resolvedRows,
+    identityConflictRows,
+    insufficientIdentifierRows,
+    rowErrors,
+  };
+}
+
+async function insertAndResolveBronzePayload(
+  rowsToInsert: BronzeContactInsert[],
+): Promise<InsertedBronzeResolutionResult> {
+  const insertedRows = await db
+    .insert(bronzeContacts)
+    .values(rowsToInsert)
+    .returning({ id: bronzeContacts.id });
+
+  return resolveInsertedBronzeRows(insertedRows, rowsToInsert);
 }
 
 function mergeBronzeInsertResults(
@@ -430,6 +900,9 @@ function mergeBronzeInsertResults(
     processableIds: [...left.processableIds, ...right.processableIds],
     errorRows: left.errorRows + right.errorRows,
     duplicateRows: left.duplicateRows + right.duplicateRows,
+    quarantineRows: left.quarantineRows + right.quarantineRows,
+    sanitizedRows: left.sanitizedRows + right.sanitizedRows,
+    invariantConflictRows: left.invariantConflictRows + right.invariantConflictRows,
     resolvedRows: left.resolvedRows + right.resolvedRows,
     identityConflictRows: left.identityConflictRows + right.identityConflictRows,
     insufficientIdentifierRows: left.insufficientIdentifierRows + right.insufficientIdentifierRows,
@@ -439,71 +912,43 @@ function mergeBronzeInsertResults(
 
 async function insertBronzePayloadSafely(
   payload: BronzeContactInsert[],
+  context: InsertBronzePayloadContext,
 ): Promise<BronzeInsertResult> {
   if (payload.length === 0) {
     return createEmptyBronzeInsertResult();
   }
 
+  const { rowsToInsert, quarantinedRows, prehandledResult } = await prehandleExistingBronzeRows(
+    payload,
+    context,
+  );
+
+  await persistQuarantinedImportRows(quarantinedRows);
+
+  if (rowsToInsert.length === 0) {
+    return prehandledResult;
+  }
+
   try {
-    const insertedRows = await db
-      .insert(bronzeContacts)
-      .values(payload)
-      .returning({ id: bronzeContacts.id });
-
-    const processableIds: string[] = [];
-    const rowErrors: Array<{ rowNumber: number | null; message: string }> = [];
-    let duplicateRows = 0;
-    let resolvedRows = 0;
-    let identityConflictRows = 0;
-    let insufficientIdentifierRows = 0;
-
-    for (let index = 0; index < insertedRows.length; index++) {
-      const inserted = insertedRows[index];
-      const sourceRow = payload[index];
-      if (!inserted || !sourceRow) continue;
-
-      const rowResolution = await resolveInsertedBronzeRow(inserted.id, sourceRow);
-      if (rowResolution.processableId) {
-        processableIds.push(rowResolution.processableId);
-      }
-      duplicateRows += rowResolution.duplicateRows;
-      resolvedRows += rowResolution.resolvedRows;
-      identityConflictRows += rowResolution.identityConflictRows;
-      insufficientIdentifierRows += rowResolution.insufficientIdentifierRows;
-      if (rowResolution.rowError) {
-        rowErrors.push(rowResolution.rowError);
-      }
-    }
-
-    const errorRows = rowErrors.length;
-    const rowsInserted = Math.max(0, insertedRows.length - duplicateRows - errorRows);
-
-    return {
-      rowsRead: payload.length,
-      rowsInserted,
-      insertedIds: insertedRows.map((x) => x.id),
-      processableIds,
-      errorRows,
-      duplicateRows,
-      resolvedRows,
-      identityConflictRows,
-      insufficientIdentifierRows,
-      rowErrors,
-    };
+    const insertedResult = await insertAndResolveBronzePayload(rowsToInsert);
+    return mergeBronzeInsertResults(prehandledResult, insertedResult);
   } catch (error) {
-    if (!shouldSplitInsertBatch(error, payload.length)) {
+    if (!shouldSplitInsertBatch(error, rowsToInsert.length)) {
       throw error;
     }
 
-    if (payload.length === 1) {
-      return createSingleRowInsertFailure(payload, error);
+    if (rowsToInsert.length === 1) {
+      return mergeBronzeInsertResults(
+        prehandledResult,
+        createSingleRowInsertFailure(rowsToInsert, error),
+      );
     }
 
-    const mid = Math.ceil(payload.length / 2);
-    const left = await insertBronzePayloadSafely(payload.slice(0, mid));
-    const right = await insertBronzePayloadSafely(payload.slice(mid));
+    const mid = Math.ceil(rowsToInsert.length / 2);
+    const left = await insertBronzePayloadSafely(rowsToInsert.slice(0, mid), context);
+    const right = await insertBronzePayloadSafely(rowsToInsert.slice(mid), context);
 
-    return mergeBronzeInsertResults(left, right);
+    return mergeBronzeInsertResults(prehandledResult, mergeBronzeInsertResults(left, right));
   }
 }
 
@@ -517,8 +962,20 @@ export async function insertBronzeRows(
 ): Promise<BronzeInsertResult> {
   await setSessionTenantId(tenantId);
   const columnMapping = options?.columnMapping ?? {};
-  const payload = rows.map((row, index) => {
-    const mappedRow = normalizeRow(row, columnMapping);
+  const payload: BronzeContactInsert[] = [];
+  const quarantinedRows: Array<Parameters<typeof persistQuarantinedImportRows>[0][number]> = [];
+  const preflightResult = createEmptyBronzeInsertResult();
+
+  for (const [index, row] of rows.entries()) {
+    const rowCoordinate = options?.rowCoordinates?.[index];
+    const globalRow =
+      rowCoordinate?.globalRow ??
+      rowCoordinate?.rowNumber ??
+      (options?.startingRowNumber ?? 1) + index;
+    const worksheetRow = rowCoordinate?.worksheetRow ?? rowCoordinate?.rowNumber ?? globalRow;
+    const sanitizedInspection = inspectAndSanitizeRow(row);
+    const sanitizedRow = sanitizedInspection.sanitizedRow;
+    const mappedRow = normalizeRow(sanitizedRow, columnMapping);
     const extractedCuiRaw =
       extractField(mappedRow, "cui", "CUI", "cif", "CIF", "cod_fiscal", "vat_number") ?? null;
     const extractedNrRegComRaw =
@@ -534,16 +991,68 @@ export async function insertBronzeRows(
         "j_number",
       ) ?? null;
 
-    return {
+    const metadata = {
+      batchId: batchId ?? null,
+      sourceType,
+      sheetName: sheetName ?? null,
+      rowNumber: globalRow,
+      worksheetRow,
+      globalRow,
+      importedAt: new Date().toISOString(),
+      columnMapping,
+      controlCharSanitization:
+        sanitizedInspection.removedControlCount > 0
+          ? {
+              removedControlCount: sanitizedInspection.removedControlCount,
+              violations: sanitizedInspection.violations.filter(
+                (violation) => violation.action === "removed",
+              ),
+            }
+          : undefined,
+    };
+    const sourceIdentifier = `${sourceType}:${batchId ?? "adhoc"}:${sheetName ?? "default"}:${globalRow}`;
+
+    if (sanitizedInspection.removedControlCount > 0) {
+      preflightResult.sanitizedRows += 1;
+    }
+
+    if (sanitizedInspection.quarantinedControlCount > 0) {
+      const message = truncateErrorMessage(
+        `Row contains disallowed control characters in ${sanitizedInspection.firstQuarantineField ?? "unknown field"}`,
+      );
+      quarantinedRows.push({
+        tenantId,
+        batchId: batchId ?? null,
+        sourceType,
+        sourceIdentifier,
+        metadata,
+        auditEscapedRow: sanitizedInspection.auditEscapedRow,
+        sanitizedPayload: sanitizedRow,
+        violations: sanitizedInspection.violations,
+        reasonCode: "disallowed_control_character",
+        message,
+        importExecution: options?.importExecution ?? null,
+      });
+      preflightResult.rowsRead += 1;
+      preflightResult.errorRows += 1;
+      preflightResult.quarantineRows += 1;
+      preflightResult.rowErrors.push({
+        rowNumber: globalRow,
+        message,
+      });
+      continue;
+    }
+
+    payload.push({
       tenantId,
       sourceType,
-      sourceIdentifier: `${sourceType}:${batchId ?? "adhoc"}:${sheetName ?? "default"}:${(options?.startingRowNumber ?? 1) + index}`,
-      rawPayload: row,
+      sourceIdentifier,
+      rawPayload: sanitizedRow,
       contentHash: createHash("sha256")
         .update(
           JSON.stringify(
-            row,
-            Object.keys(row).sort((a, b) => a.localeCompare(b)),
+            sanitizedRow,
+            Object.keys(sanitizedRow).sort((a, b) => a.localeCompare(b)),
           ),
         )
         .digest("hex"),
@@ -611,25 +1120,25 @@ export async function insertBronzeRows(
         "cod_caen",
         "CAEN",
       ),
-      metadata: {
-        batchId: batchId ?? null,
-        sourceType,
-        sheetName: sheetName ?? null,
-        rowNumber: (options?.startingRowNumber ?? 1) + index,
-        importedAt: new Date().toISOString(),
-        columnMapping,
-      },
-    };
-  });
+      metadata,
+    });
+  }
 
-  const result = await insertBronzePayloadSafely(payload);
+  await persistQuarantinedImportRows(quarantinedRows);
+
+  const result = await insertBronzePayloadSafely(payload, {
+    batchId,
+    importExecution: options?.importExecution ?? null,
+    sourceType,
+  });
+  const mergedResult = mergeBronzeInsertResults(preflightResult, result);
   if (result.rowsInserted > 0) {
     bronzeContactsIngestedTotal.inc(
       { source: sourceType, tenant_id: tenantId },
       result.rowsInserted,
     );
   }
-  return result;
+  return mergedResult;
 }
 
 const NORMALIZATION_BULK_CHUNK_SIZE = 500;
@@ -679,7 +1188,6 @@ export async function triggerNormalizationForContacts(
       const chunk = bronzeContactIds.slice(i, i + NORMALIZATION_BULK_CHUNK_SIZE);
       await enqueueImportJobBulk({
         queueName,
-        importExecution: importExecution ?? undefined,
         parentImportExecution: importExecution ?? null,
         workerName: resolveNormalizerWorkerName(queueName),
         stageKey: "normalization",
@@ -901,7 +1409,6 @@ export async function triggerAnafBronzeEnrichment(
         attempts: 5,
         backoff: { type: "exponential", delay: 1000 },
       },
-      importExecution: importExecution ?? undefined,
       parentImportExecution: importExecution ?? null,
       workerName: "B5:anaf-bronze-enricher",
       stageKey: "anaf_bronze",

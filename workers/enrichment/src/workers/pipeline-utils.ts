@@ -144,7 +144,6 @@ export async function addQueueJob(
       ...options?.opts,
     },
     parentImportExecution,
-    importExecution: parentImportExecution,
     workerName: options?.workerName ?? queueName,
     stageKey: options?.stageKey,
     entityType: options?.entityType ?? null,

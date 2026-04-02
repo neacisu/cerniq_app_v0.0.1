@@ -822,8 +822,11 @@ export async function outreachRoutes(app: FastifyInstance) {
         err && typeof err === "object" && "code" in err
           ? String((err as { code: unknown }).code)
           : "";
-      if (pgCode === "42P01") {
-        req.log.error({ err }, "outreach/notifications: table missing — migrations not applied");
+      if (pgCode === "42P01" || pgCode === "42703") {
+        req.log.error(
+          { err, pgCode },
+          "outreach/notifications: schema missing or partial — migrations not applied",
+        );
         return reply.status(503).send({
           success: false,
           error: "Service temporarily unavailable. Database migrations pending.",

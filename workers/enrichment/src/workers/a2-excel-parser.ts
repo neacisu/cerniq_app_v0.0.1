@@ -179,6 +179,7 @@ async function flushWorksheetBuffer(
   state: ExcelImportState,
   sheetName: string,
   rowBuffer: Array<Record<string, unknown>>,
+  rowCoordinates: Array<{ worksheetRow: number; globalRow: number }>,
   currentSheetIndex: number,
   currentRowNumber: number,
 ) {
@@ -187,8 +188,9 @@ async function flushWorksheetBuffer(
   }
 
   const batch = [...rowBuffer];
+  const coordinates = [...rowCoordinates];
   rowBuffer.length = 0;
-  const startingRowNumber = state.totalRowsRead - batch.length + 1;
+  rowCoordinates.length = 0;
   const {
     rowsInserted,
     processableIds,
@@ -205,8 +207,14 @@ async function flushWorksheetBuffer(
     job.data.batchId,
     sheetName,
     {
-      startingRowNumber,
+      startingRowNumber: coordinates[0]?.globalRow ?? state.totalRowsRead - batch.length + 1,
       columnMapping: state.autoDetectedMapping,
+      rowCoordinates: coordinates.map((coordinate) => ({
+        rowNumber: coordinate.globalRow,
+        worksheetRow: coordinate.worksheetRow,
+        globalRow: coordinate.globalRow,
+      })),
+      importExecution: job.data.importExecution ?? null,
     },
   );
 
@@ -314,6 +322,7 @@ async function processWorksheet(
   const resumeAfterRow = isResumeSheet ? state.resumeRowNumber : -1;
 
   const rowBuffer: Array<Record<string, unknown>> = [];
+  const rowCoordinates: Array<{ worksheetRow: number; globalRow: number }> = [];
   let lastRowNum = dataStartRowNum;
   for (let rowNum = dataStartRowNum; rowNum <= worksheet.rowCount; rowNum++) {
     const row = worksheet.getRow(rowNum);
@@ -324,13 +333,33 @@ async function processWorksheet(
 
     rowBuffer.push(rowObject);
     state.totalRowsRead += 1;
+    rowCoordinates.push({
+      worksheetRow: rowNum,
+      globalRow: state.totalRowsRead,
+    });
     lastRowNum = rowNum;
     if (rowBuffer.length >= batchSize) {
-      await flushWorksheetBuffer(job, state, sheetName, rowBuffer, sheetIndex, lastRowNum);
+      await flushWorksheetBuffer(
+        job,
+        state,
+        sheetName,
+        rowBuffer,
+        rowCoordinates,
+        sheetIndex,
+        lastRowNum,
+      );
     }
   }
 
-  await flushWorksheetBuffer(job, state, sheetName, rowBuffer, sheetIndex, lastRowNum);
+  await flushWorksheetBuffer(
+    job,
+    state,
+    sheetName,
+    rowBuffer,
+    rowCoordinates,
+    sheetIndex,
+    lastRowNum,
+  );
 }
 
 async function assertFileIntegrity(batchId: string, filePath: string): Promise<void> {
@@ -375,6 +404,7 @@ export const excelParserProcessor: Processor<ExcelParserJobData> = async (job) =
         workerName: "A2:excel-parser",
         jobId: String(job.id ?? ""),
         startedAt,
+        importExecution: job.data.importExecution ?? null,
       });
 
       try {

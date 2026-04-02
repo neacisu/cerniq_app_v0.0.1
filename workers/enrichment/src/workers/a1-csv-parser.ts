@@ -92,6 +92,7 @@ async function parseSmallFile(job: { data: CsvParserJobData }) {
     tenantId: job.data.tenantId,
     workerName: "A1:csv-parser",
     jobId: String((job as unknown as { id?: string }).id ?? ""),
+    importExecution: job.data.importExecution ?? null,
   });
   const resumeFrom = job.data.resumeFrom ?? {};
   let processedRows = Number(resumeFrom.processedRows ?? 0);
@@ -173,6 +174,7 @@ async function parseSmallFile(job: { data: CsvParserJobData }) {
       {
         startingRowNumber: processedRows + 1,
         columnMapping: autoMapping,
+        importExecution: job.data.importExecution ?? null,
       },
     );
     processedRows += rowsInThisRun;
@@ -403,6 +405,7 @@ async function parseLargeFileStreaming(job: { data: CsvParserJobData }) {
         {
           startingRowNumber: totalRowsRead - batch.length + 1,
           columnMapping: autoMapping,
+          importExecution: job.data.importExecution ?? null,
         },
       );
       totalRowsInserted += rowsInserted;

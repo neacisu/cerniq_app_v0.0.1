@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { navigation } from "@/config/navigation";
+import { resolveEffectiveSessionId } from "@/components/etapa1/pipeline-session.js";
 
 describe("Navigation Config", () => {
   it("has 8 sections", () => {
@@ -36,5 +37,30 @@ describe("Navigation Config", () => {
   it("all items have unique paths", () => {
     const paths = navigation.flatMap((s) => s.items.map((i) => i.path));
     expect(new Set(paths).size).toBe(paths.length);
+  });
+});
+
+describe("resolveEffectiveSessionId", () => {
+  it("falls back to the runtime-selected session when the user did not pick one", () => {
+    expect(resolveEffectiveSessionId("batch-1", {}, "session-default")).toBe("session-default");
+  });
+
+  it("prefers the user-selected attempt for the current batch", () => {
+    expect(
+      resolveEffectiveSessionId(
+        "batch-1",
+        {
+          "batch-1": "session-user",
+          "batch-2": "session-other",
+        },
+        "session-default",
+      ),
+    ).toBe("session-user");
+  });
+
+  it("keeps selections isolated per batch", () => {
+    expect(
+      resolveEffectiveSessionId("batch-2", { "batch-1": "session-user" }, "session-default"),
+    ).toBe("session-default");
   });
 });

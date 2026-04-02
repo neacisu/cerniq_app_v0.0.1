@@ -2,6 +2,54 @@ import { Bell, Settings, User } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useOutreachNotifications, useMarkNotificationRead } from "@/hooks/use-etapa2.js";
 import { useAuth } from "@/providers/auth-provider.js";
+import type { OutreachNotificationRow } from "@/lib/etapa2-api.js";
+
+// ─── NotificationItem ─────────────────────────────────────────────────────────
+
+interface NotificationItemProps {
+  readonly item: OutreachNotificationRow;
+  readonly onRead: (item: OutreachNotificationRow) => void;
+}
+
+function NotificationItem({ item, onRead }: NotificationItemProps) {
+  return (
+    <li>
+      <button
+        type="button"
+        className="w-full text-left rounded px-2 py-1 hover:bg-s700 text-t2"
+        onClick={() => onRead(item)}
+      >
+        <span className="font-medium text-t1 block">{item.title}</span>
+        {item.body && <span className="text-t3 line-clamp-2">{item.body}</span>}
+      </button>
+    </li>
+  );
+}
+
+// ─── NotificationDropdown ─────────────────────────────────────────────────────
+
+interface NotificationDropdownProps {
+  readonly unread: number;
+  readonly items: OutreachNotificationRow[];
+  readonly onRead: (item: OutreachNotificationRow) => void;
+}
+
+function NotificationDropdown({ unread, items, onRead }: NotificationDropdownProps) {
+  if (unread === 0) return null;
+
+  return (
+    <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-50 w-72 rounded-md border border-s600 bg-s800 shadow-lg p-2 text-xs">
+      <p className="text-t3 mb-2">{`Notificări necitite (${unread})`}</p>
+      <ul className="max-h-48 overflow-y-auto space-y-1">
+        {items.slice(0, 8).map((n) => (
+          <NotificationItem key={n.id} item={n} onRead={onRead} />
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+// ─── Header ───────────────────────────────────────────────────────────────────
 
 export function Header() {
   const location = useLocation();
@@ -12,13 +60,25 @@ export function Header() {
   const { token } = useAuth();
   const { data: notifResp } = useOutreachNotifications(true, { enabled: !!token });
   const unread = notifResp?.data?.unreadCount ?? 0;
+  const items = notifResp?.data?.items ?? [];
   const markRead = useMarkNotificationRead();
+
+  function handleNotificationRead(item: OutreachNotificationRow) {
+    markRead
+      .mutateAsync(item.id)
+      .then(() => {
+        if (item.resourceType === "lead_journey" && item.resourceId) {
+          navigate(`/outreach/leads/${item.resourceId}`);
+        }
+      })
+      .catch(() => undefined);
+  }
 
   return (
     <header className="hdr">
       <div className="bc">
         <span>cerniq.app</span>
-        <span className="t4">&gt;</span>
+        <span className="t4">{">"}</span>
         <span className="bcc">{currentPage.replaceAll("-", " ")}</span>
       </div>
 
@@ -26,10 +86,10 @@ export function Header() {
         <div className="relative group">
           <button
             className="hb"
-            aria-label="Notificări outreach"
+            aria-label="Notificari outreach"
             onClick={() => navigate("/outreach/leads")}
             type="button"
-            title="Notificări (răspunsuri noi)"
+            title="Notificari (raspunsuri noi)"
           >
             <Bell size={18} />
             {unread > 0 && (
@@ -38,32 +98,9 @@ export function Header() {
               </span>
             )}
           </button>
-          {unread > 0 && (
-            <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-50 w-72 rounded-md border border-s600 bg-s800 shadow-lg p-2 text-xs">
-              <p className="text-t3 mb-2">Notificări necitite ({unread})</p>
-              <ul className="max-h-48 overflow-y-auto space-y-1">
-                {(notifResp?.data?.items ?? []).slice(0, 8).map((n) => (
-                  <li key={n.id}>
-                    <button
-                      type="button"
-                      className="w-full text-left rounded px-2 py-1 hover:bg-s700 text-t2"
-                      onClick={() => {
-                        markRead.mutateAsync(n.id).then(() => {
-                          if (n.resourceType === "lead_journey" && n.resourceId) {
-                            navigate(`/outreach/leads/${n.resourceId}`);
-                          }
-                        });
-                      }}
-                    >
-                      <span className="font-medium text-t1 block">{n.title}</span>
-                      {n.body && <span className="text-t3 line-clamp-2">{n.body}</span>}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+          <NotificationDropdown unread={unread} items={items} onRead={handleNotificationRead} />
         </div>
+
         <button
           className="hb"
           aria-label="Settings"
@@ -72,6 +109,7 @@ export function Header() {
         >
           <Settings size={18} />
         </button>
+
         <div className="av" style={{ width: 32, height: 32, fontSize: 10 }}>
           <User size={16} />
         </div>

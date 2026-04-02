@@ -9,6 +9,9 @@ import {
   setSessionTenantId,
   silverContacts,
   sql,
+  and,
+  eq,
+  inArray,
   tenants,
 } from "@cerniq/db";
 import { createQueue } from "./factory.js";
@@ -74,6 +77,25 @@ export type ImportExecutionControlState = {
 };
 
 type JsonRecord = Record<string, unknown>;
+
+type DerivedChildExecutionOverrides = Partial<
+  Pick<
+    ImportExecutionContext,
+    | "workerName"
+    | "stageKey"
+    | "entityType"
+    | "entityId"
+    | "idempotencyScope"
+    | "queueName"
+    | "correlationId"
+    | "traceId"
+    | "nodeKey"
+    | "mutationIntent"
+    | "causationKey"
+    | "sourceEndpoint"
+    | "entityScope"
+  >
+>;
 
 type WorkerCounterDelta = Partial<{
   totalJobs: number;
@@ -256,6 +278,33 @@ export function buildImportRuntimeJobKey(args: {
 function buildImportResumeJobId(runtimeJobKey: string, attempt: number) {
   const hash = buildHashKey([runtimeJobKey, String(attempt)]);
   return `resume__${hash}`;
+}
+
+export function deriveChildImportExecution(
+  parent: ImportExecutionContext,
+  overrides: DerivedChildExecutionOverrides = {},
+): Partial<ImportExecutionContext> {
+  return {
+    tenantId: parent.tenantId,
+    batchId: parent.batchId,
+    sessionId: parent.sessionId,
+    parentRuntimeJobKey: parent.runtimeJobKey,
+    correlationId: overrides.correlationId ?? parent.correlationId ?? null,
+    queueName: overrides.queueName ?? null,
+    workerName: overrides.workerName,
+    stageKey: overrides.stageKey,
+    entityType: overrides.entityType,
+    entityId: overrides.entityId,
+    idempotencyScope: overrides.idempotencyScope,
+    rootBatchId: parent.rootBatchId ?? parent.batchId,
+    traceId: overrides.traceId ?? parent.traceId,
+    parentTraceId: parent.traceId ?? parent.parentTraceId,
+    nodeKey: overrides.nodeKey ?? parent.nodeKey,
+    mutationIntent: overrides.mutationIntent ?? parent.mutationIntent,
+    causationKey: overrides.causationKey ?? parent.causationKey,
+    sourceEndpoint: overrides.sourceEndpoint ?? parent.sourceEndpoint,
+    entityScope: overrides.entityScope ?? parent.entityScope,
+  };
 }
 
 function extractTenantBatchContext(payload: JsonRecord) {
@@ -812,6 +861,161 @@ function resolveEntityIdFromPayload(payload: JsonRecord): string | null {
   return null;
 }
 
+function assertNoParentRuntimeReuse(
+  explicit: Partial<ImportExecutionContext> | null | undefined,
+  parent: ImportExecutionContext | null | undefined,
+  queueName: string,
+  jobName: string,
+) {
+  if (!parent || !explicit?.runtimeJobKey) return;
+  if (explicit.runtimeJobKey !== parent.runtimeJobKey) return;
+  throw new Error(
+    `Child enqueue ${queueName}/${jobName} attempted to reuse parent runtimeJobKey ${parent.runtimeJobKey}`,
+  );
+}
+
+async function reconcileImportRuntimeSessionStatus(args: { tenantId: string; sessionId: string }) {
+  await setSessionTenantId(args.tenantId);
+  const [row] = await db
+    .select({
+      totalJobs: sql<number>`COUNT(*)`,
+      runningJobs: sql<number>`COUNT(*) FILTER (WHERE ${importRuntimeJobs.state} = 'running')`,
+      recoveringJobs: sql<number>`COUNT(*) FILTER (WHERE ${importRuntimeJobs.state} = 'recovering')`,
+      pausedJobs: sql<number>`COUNT(*) FILTER (WHERE ${importRuntimeJobs.state} = 'paused')`,
+      queuedJobs: sql<number>`COUNT(*) FILTER (WHERE ${importRuntimeJobs.state} = 'queued')`,
+      failedJobs: sql<number>`COUNT(*) FILTER (WHERE ${importRuntimeJobs.state} IN ('failed', 'stale', 'terminal_error_skipped'))`,
+      deletedJobs: sql<number>`COUNT(*) FILTER (WHERE ${importRuntimeJobs.state} = 'deleted')`,
+      cancelledJobs: sql<number>`COUNT(*) FILTER (WHERE ${importRuntimeJobs.state} = 'cancelled')`,
+    })
+    .from(importRuntimeJobs)
+    .where(
+      and(
+        eq(importRuntimeJobs.tenantId, args.tenantId),
+        eq(importRuntimeJobs.sessionId, args.sessionId),
+      ),
+    );
+
+  const totalJobs = Number(row?.totalJobs ?? 0);
+  if (totalJobs === 0) {
+    return;
+  }
+
+  const recoveringJobs = Number(row?.recoveringJobs ?? 0);
+  const runningJobs = Number(row?.runningJobs ?? 0);
+  const pausedJobs = Number(row?.pausedJobs ?? 0);
+  const queuedJobs = Number(row?.queuedJobs ?? 0);
+  const failedJobs = Number(row?.failedJobs ?? 0);
+  const deletedJobs = Number(row?.deletedJobs ?? 0);
+  const cancelledJobs = Number(row?.cancelledJobs ?? 0);
+  const terminalJobs = failedJobs + deletedJobs + cancelledJobs;
+
+  if (recoveringJobs > 0) {
+    await patchImportRuntimeSession({
+      sessionId: args.sessionId,
+      tenantId: args.tenantId,
+      status: "recovering",
+    });
+    return;
+  }
+  if (runningJobs > 0) {
+    await patchImportRuntimeSession({
+      sessionId: args.sessionId,
+      tenantId: args.tenantId,
+      status: "running",
+    });
+    return;
+  }
+  if (pausedJobs > 0) {
+    await patchImportRuntimeSession({
+      sessionId: args.sessionId,
+      tenantId: args.tenantId,
+      status: "paused",
+      paused: true,
+    });
+    return;
+  }
+  if (queuedJobs > 0) {
+    await patchImportRuntimeSession({
+      sessionId: args.sessionId,
+      tenantId: args.tenantId,
+      status: "queued",
+    });
+    return;
+  }
+  if (failedJobs > 0) {
+    await patchImportRuntimeSession({
+      sessionId: args.sessionId,
+      tenantId: args.tenantId,
+      status: "failed",
+      failed: true,
+    });
+    return;
+  }
+  if (terminalJobs > 0 || totalJobs > 0) {
+    await patchImportRuntimeSession({
+      sessionId: args.sessionId,
+      tenantId: args.tenantId,
+      status: "completed",
+      completed: true,
+    });
+  }
+}
+
+async function markImportRuntimeEnqueueFailure(args: {
+  tenantId: string;
+  sessionId: string;
+  runtimeJobKeys: string[];
+  rowsByWorker: Map<string, number>;
+  error: unknown;
+}) {
+  if (args.runtimeJobKeys.length === 0) return;
+  const errorMessage = truncateString(toErrorMessage(args.error), 4000);
+  const now = new Date();
+
+  await db
+    .update(importRuntimeJobs)
+    .set({
+      state: "failed",
+      failedAt: now,
+      updatedAt: now,
+      lastError: errorMessage,
+      metadata: sql`COALESCE(${importRuntimeJobs.metadata}, '{}'::jsonb) || ${JSON.stringify({
+        lastIncident: {
+          type: "enqueue_failed",
+          message: errorMessage,
+          at: now.toISOString(),
+        },
+      })}::jsonb`,
+    })
+    .where(
+      and(
+        eq(importRuntimeJobs.tenantId, args.tenantId),
+        inArray(importRuntimeJobs.runtimeJobKey, args.runtimeJobKeys),
+      ),
+    );
+
+  for (const [workerName, count] of args.rowsByWorker) {
+    await applyWorkerCounterDelta({
+      tenantId: args.tenantId,
+      sessionId: args.sessionId,
+      workerName,
+      delta: {
+        queuedJobs: -count,
+        failedJobs: count,
+      },
+    });
+  }
+
+  await reconcileImportRuntimeSessionStatus({
+    tenantId: args.tenantId,
+    sessionId: args.sessionId,
+  });
+}
+
+function truncateString(value: string, maxLength = 4000) {
+  return value.length > maxLength ? `${value.slice(0, maxLength - 3)}...` : value;
+}
+
 async function createExecutionContextFromArgs<TPayload extends JsonRecord>(
   args: EnqueueCommonArgs<TPayload>,
 ): Promise<ImportExecutionContext | null> {
@@ -826,6 +1030,7 @@ async function createExecutionContextFromArgs<TPayload extends JsonRecord>(
 
   const explicit = args.importExecution;
   const parent = args.parentImportExecution;
+  assertNoParentRuntimeReuse(explicit, parent, args.queueName, args.jobName);
   const {
     tenantId: payloadTenantId,
     batchId: payloadBatchId,
@@ -997,10 +1202,22 @@ export async function enqueueImportJob<TPayload extends JsonRecord>(
       };
     }
 
-    const job = await queue.add(args.jobName, payloadWithContext, {
-      ...args.opts,
-      jobId,
-    });
+    let job;
+    try {
+      job = await queue.add(args.jobName, payloadWithContext, {
+        ...args.opts,
+        jobId,
+      });
+    } catch (error) {
+      await markImportRuntimeEnqueueFailure({
+        tenantId: importExecution.tenantId,
+        sessionId: importExecution.sessionId,
+        runtimeJobKeys: [importExecution.runtimeJobKey],
+        rowsByWorker: new Map([[importExecution.workerName, 1]]),
+        error,
+      });
+      throw error;
+    }
     return {
       queued: true,
       sessionId: importExecution.sessionId,
@@ -1016,6 +1233,24 @@ type BulkJobEntry = {
   runtimeRow: typeof importRuntimeJobs.$inferInsert;
   queueItem: { name: string; data: JsonRecord; opts: JobsOptions } | null;
 };
+
+type BulkQueueItem = NonNullable<BulkJobEntry["queueItem"]>;
+
+type BulkBuildResult = {
+  runtimeRows: Array<typeof importRuntimeJobs.$inferInsert>;
+  queueItems: BulkQueueItem[];
+};
+
+type ResumeImportRuntimeArgs = {
+  tenantId: string;
+  batchId: string;
+  sessionId?: string | null;
+  workerName?: string | null;
+  mode?: "resume" | "recover";
+  states?: ImportRuntimeStatus[];
+};
+
+type ManagedQueue = ReturnType<typeof createQueue>;
 
 /**
  * Builds the DB row and optional queue item for a single entry in a bulk enqueue.
@@ -1068,58 +1303,31 @@ function buildBulkJobEntry<TPayload extends JsonRecord>(
   return { runtimeRow, queueItem };
 }
 
-export async function enqueueImportJobBulk<TPayload extends JsonRecord>(
+async function enqueueBulkWithoutRuntimeContext<TPayload extends JsonRecord>(
   args: EnqueueBulkArgs<TPayload>,
 ) {
-  if (args.items.length === 0) return { queued: 0, paused: 0, sessionId: null };
-  const firstContext = await createExecutionContextFromArgs({
-    queueName: args.queueName,
-    jobName: args.items[0]?.jobName ?? "process",
-    payload: args.items[0]?.payload ?? ({} as TPayload),
-    importExecution: args.importExecution,
-    parentImportExecution: args.parentImportExecution,
-    sessionKind: args.sessionKind,
-    workerName: args.workerName ?? args.items[0]?.workerName,
-    stageKey: args.stageKey ?? args.items[0]?.stageKey,
-    correlationId: args.items[0]?.correlationId ?? null,
-  });
-  if (!firstContext) {
-    const queue = createQueue(args.queueName);
-    try {
-      await queue.addBulk(
-        args.items.map((item) => ({
-          name: item.jobName,
-          data: item.payload,
-          opts: item.opts,
-        })),
-      );
-      return { queued: args.items.length, paused: 0, sessionId: null };
-    } finally {
-      await queue.close();
-    }
+  const queue = createQueue(args.queueName);
+  try {
+    await queue.addBulk(
+      args.items.map((item) => ({
+        name: item.jobName,
+        data: item.payload,
+        opts: item.opts,
+      })),
+    );
+    return { queued: args.items.length, paused: 0, sessionId: null };
+  } finally {
+    await queue.close();
   }
+}
 
-  await ensureWorkerCounterRow({
-    tenantId: firstContext.tenantId,
-    batchId: firstContext.batchId,
-    sessionId: firstContext.sessionId,
-    workerName: args.workerName ?? firstContext.workerName,
-    queueName: args.queueName,
-    stageKey: getStageKey(args.queueName, args.stageKey ?? firstContext.stageKey),
-  });
-
-  const control = await getTenantAndBatchControlState(
-    firstContext.tenantId,
-    firstContext.batchId,
-    args.workerName ?? firstContext.workerName,
-  );
-  const isPaused = control.globalPaused || control.batchPaused || control.workerPaused;
+async function collectBulkJobEntries<TPayload extends JsonRecord>(
+  args: EnqueueBulkArgs<TPayload>,
+  firstContext: ImportExecutionContext,
+  isPaused: boolean,
+): Promise<BulkBuildResult> {
   const runtimeRows: Array<typeof importRuntimeJobs.$inferInsert> = [];
-  const queueItems: Array<{
-    name: string;
-    data: JsonRecord;
-    opts: JobsOptions;
-  }> = [];
+  const queueItems: BulkQueueItem[] = [];
 
   for (const item of args.items) {
     const context = await createExecutionContextFromArgs({
@@ -1149,27 +1357,115 @@ export async function enqueueImportJobBulk<TPayload extends JsonRecord>(
       args.maxRecoveryAttempts ?? DEFAULT_RECOVERY_ATTEMPTS,
     );
     runtimeRows.push(runtimeRow);
-    if (queueItem) queueItems.push(queueItem);
+    if (queueItem) {
+      queueItems.push(queueItem);
+    }
   }
 
-  if (runtimeRows.length > 0) {
-    await db
-      .insert(importRuntimeJobs)
-      .values(runtimeRows)
-      .onConflictDoUpdate({
-        target: [importRuntimeJobs.tenantId, importRuntimeJobs.runtimeJobKey],
-        set: {
-          state: isPaused ? "paused" : "queued",
-          queueName: args.queueName,
-          bullJobId: sql`excluded.bull_job_id`,
-          resumePayload: sql`excluded.resume_payload`,
-          checkpointPayload: sql`excluded.checkpoint_payload`,
-          metadata: sql`excluded.metadata`,
-          updatedAt: new Date(),
-          heartbeatAt: new Date(),
-        },
-      });
+  return { runtimeRows, queueItems };
+}
+
+async function persistBulkRuntimeRows(
+  runtimeRows: Array<typeof importRuntimeJobs.$inferInsert>,
+  queueName: string,
+  isPaused: boolean,
+) {
+  if (runtimeRows.length === 0) {
+    return;
   }
+
+  await db
+    .insert(importRuntimeJobs)
+    .values(runtimeRows)
+    .onConflictDoUpdate({
+      target: [importRuntimeJobs.tenantId, importRuntimeJobs.runtimeJobKey],
+      set: {
+        state: isPaused ? "paused" : "queued",
+        queueName,
+        bullJobId: sql`excluded.bull_job_id`,
+        resumePayload: sql`excluded.resume_payload`,
+        checkpointPayload: sql`excluded.checkpoint_payload`,
+        metadata: sql`excluded.metadata`,
+        updatedAt: new Date(),
+        heartbeatAt: new Date(),
+      },
+    });
+}
+
+function countRuntimeRowsByWorker(
+  runtimeRows: Array<typeof importRuntimeJobs.$inferInsert>,
+): Map<string, number> {
+  const rowsByWorker = new Map<string, number>();
+  for (const row of runtimeRows) {
+    rowsByWorker.set(row.workerName, (rowsByWorker.get(row.workerName) ?? 0) + 1);
+  }
+  return rowsByWorker;
+}
+
+async function enqueueBulkQueueItems(
+  queueName: string,
+  queueItems: BulkQueueItem[],
+  runtimeRows: Array<typeof importRuntimeJobs.$inferInsert>,
+  firstContext: ImportExecutionContext,
+) {
+  if (queueItems.length === 0) {
+    return;
+  }
+
+  const queue = createQueue(queueName);
+  try {
+    await queue.addBulk(queueItems);
+  } catch (error) {
+    await markImportRuntimeEnqueueFailure({
+      tenantId: firstContext.tenantId,
+      sessionId: firstContext.sessionId,
+      runtimeJobKeys: runtimeRows.map((row) => String(row.runtimeJobKey)),
+      rowsByWorker: countRuntimeRowsByWorker(runtimeRows),
+      error,
+    });
+    throw error;
+  } finally {
+    await queue.close();
+  }
+}
+
+export async function enqueueImportJobBulk<TPayload extends JsonRecord>(
+  args: EnqueueBulkArgs<TPayload>,
+) {
+  if (args.items.length === 0) return { queued: 0, paused: 0, sessionId: null };
+  const firstContext = await createExecutionContextFromArgs({
+    queueName: args.queueName,
+    jobName: args.items[0]?.jobName ?? "process",
+    payload: args.items[0]?.payload ?? ({} as TPayload),
+    importExecution: args.importExecution,
+    parentImportExecution: args.parentImportExecution,
+    sessionKind: args.sessionKind,
+    workerName: args.workerName ?? args.items[0]?.workerName,
+    stageKey: args.stageKey ?? args.items[0]?.stageKey,
+    correlationId: args.items[0]?.correlationId ?? null,
+  });
+  if (!firstContext) {
+    return enqueueBulkWithoutRuntimeContext(args);
+  }
+
+  await ensureWorkerCounterRow({
+    tenantId: firstContext.tenantId,
+    batchId: firstContext.batchId,
+    sessionId: firstContext.sessionId,
+    workerName: args.workerName ?? firstContext.workerName,
+    queueName: args.queueName,
+    stageKey: getStageKey(args.queueName, args.stageKey ?? firstContext.stageKey),
+  });
+
+  const control = await getTenantAndBatchControlState(
+    firstContext.tenantId,
+    firstContext.batchId,
+    args.workerName ?? firstContext.workerName,
+  );
+  const isPaused = control.globalPaused || control.batchPaused || control.workerPaused;
+  const { runtimeRows, queueItems } = await collectBulkJobEntries(args, firstContext, isPaused);
+
+  await persistBulkRuntimeRows(runtimeRows, args.queueName, isPaused);
 
   await applyWorkerCounterDelta({
     tenantId: firstContext.tenantId,
@@ -1187,13 +1483,8 @@ export async function enqueueImportJobBulk<TPayload extends JsonRecord>(
     status: isPaused ? "paused" : "queued",
   });
 
-  if (!isPaused && queueItems.length > 0) {
-    const queue = createQueue(args.queueName);
-    try {
-      await queue.addBulk(queueItems);
-    } finally {
-      await queue.close();
-    }
+  if (!isPaused) {
+    await enqueueBulkQueueItems(args.queueName, queueItems, runtimeRows, firstContext);
   }
 
   return {
@@ -1208,99 +1499,183 @@ function getResumePayloadFromRow(row: typeof importRuntimeJobs.$inferSelect): Js
   return Object.keys(payload).length > 0 ? payload : null;
 }
 
-export async function resumeImportRuntimeJobs(args: {
-  tenantId: string;
-  batchId: string;
-  workerName?: string | null;
-  mode?: "resume" | "recover";
-  states?: ImportRuntimeStatus[];
-}) {
-  await setSessionTenantId(args.tenantId);
-  const states = args.states ?? ["paused", "stale", "failed"];
-  const rows = await db
+function buildResumeRuntimeJobsWhereClause(
+  args: ResumeImportRuntimeArgs,
+  states: ImportRuntimeStatus[],
+) {
+  return and(
+    eq(importRuntimeJobs.tenantId, args.tenantId),
+    eq(importRuntimeJobs.batchId, args.batchId),
+    inArray(importRuntimeJobs.state, states),
+    ...(args.sessionId ? [eq(importRuntimeJobs.sessionId, args.sessionId)] : []),
+    ...(args.workerName ? [eq(importRuntimeJobs.workerName, args.workerName)] : []),
+  );
+}
+
+async function loadResumeRuntimeJobsChunk(
+  args: ResumeImportRuntimeArgs,
+  states: ImportRuntimeStatus[],
+) {
+  return db
     .select()
     .from(importRuntimeJobs)
-    .where(
-      args.workerName
-        ? sql`${importRuntimeJobs.tenantId} = ${args.tenantId}
-            AND ${importRuntimeJobs.batchId} = ${args.batchId}
-            AND ${importRuntimeJobs.state} = ANY(${states})
-            AND ${importRuntimeJobs.workerName} = ${args.workerName}`
-        : sql`${importRuntimeJobs.tenantId} = ${args.tenantId}
-            AND ${importRuntimeJobs.batchId} = ${args.batchId}
-            AND ${importRuntimeJobs.state} = ANY(${states})`,
-    )
+    .where(buildResumeRuntimeJobsWhereClause(args, states))
     .orderBy(importRuntimeJobs.updatedAt)
-    .limit(1000);
+    .limit(500);
+}
+
+function shouldRecoverRuntimeRow(
+  mode: ResumeImportRuntimeArgs["mode"],
+  state: ImportRuntimeStatus,
+) {
+  return mode === "recover" || state === "failed" || state === "stale";
+}
+
+async function markRuntimeRowTerminalSkipped(rowId: string) {
+  await db
+    .update(importRuntimeJobs)
+    .set({
+      state: "terminal_error_skipped",
+      failedAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(sql`${importRuntimeJobs.id} = ${rowId}`);
+}
+
+function getOrCreateManagedQueue(
+  queues: Map<string, ManagedQueue>,
+  queueName: string,
+): ManagedQueue {
+  const existing = queues.get(queueName);
+  if (existing) {
+    return existing;
+  }
+
+  const created = createQueue(queueName);
+  queues.set(queueName, created);
+  return created;
+}
+
+async function enqueueRuntimeResumeJob(
+  queue: ManagedQueue,
+  row: typeof importRuntimeJobs.$inferSelect,
+  payload: JsonRecord,
+  attemptsUsed: number,
+) {
+  const resumeJobId = buildImportResumeJobId(row.runtimeJobKey, attemptsUsed + 1);
+
+  try {
+    await queue.add(row.jobName, payload, {
+      jobId: resumeJobId,
+      attempts: 1,
+      backoff: { type: "fixed", delay: 1000 },
+    });
+  } catch (error) {
+    await markImportRuntimeEnqueueFailure({
+      tenantId: row.tenantId,
+      sessionId: row.sessionId,
+      runtimeJobKeys: [row.runtimeJobKey],
+      rowsByWorker: new Map([[row.workerName, 1]]),
+      error,
+    });
+    throw error;
+  }
+
+  return resumeJobId;
+}
+
+async function markRuntimeRowRequeued(
+  row: typeof importRuntimeJobs.$inferSelect,
+  isRecover: boolean,
+  attemptsUsed: number,
+  resumeJobId: string,
+) {
+  await db
+    .update(importRuntimeJobs)
+    .set({
+      state: isRecover ? "recovering" : "queued",
+      bullJobId: resumeJobId,
+      attemptsUsed: isRecover ? attemptsUsed + 1 : attemptsUsed,
+      updatedAt: new Date(),
+      heartbeatAt: new Date(),
+      pausedAt: null,
+    })
+    .where(sql`${importRuntimeJobs.id} = ${row.id}`);
+}
+
+async function syncResumeWorkerCounters(row: typeof importRuntimeJobs.$inferSelect) {
+  await ensureWorkerCounterRow({
+    tenantId: row.tenantId,
+    batchId: row.batchId,
+    sessionId: row.sessionId,
+    workerName: row.workerName,
+    queueName: row.queueName,
+    stageKey: row.stageKey ?? getStageKey(row.queueName),
+  });
+  await applyWorkerCounterDelta({
+    tenantId: row.tenantId,
+    sessionId: row.sessionId,
+    workerName: row.workerName,
+    delta: {
+      queuedJobs: 1,
+      pausedJobs: row.state === "paused" ? -1 : 0,
+      failedJobs: row.state === "failed" || row.state === "stale" ? -1 : 0,
+    },
+  });
+}
+
+async function resumeSingleRuntimeJob(
+  row: typeof importRuntimeJobs.$inferSelect,
+  mode: ResumeImportRuntimeArgs["mode"],
+  queues: Map<string, ManagedQueue>,
+) {
+  const payload = getResumePayloadFromRow(row);
+  if (!payload) {
+    return { requeued: 0, skipped: 1 };
+  }
+
+  const attemptsUsed = Number(row.attemptsUsed ?? 0);
+  const maxAttempts = Number(row.maxRecoveryAttempts ?? DEFAULT_RECOVERY_ATTEMPTS);
+  const isRecover = shouldRecoverRuntimeRow(mode, row.state);
+  if (isRecover && attemptsUsed >= maxAttempts) {
+    await markRuntimeRowTerminalSkipped(row.id);
+    return { requeued: 0, skipped: 1 };
+  }
+
+  const queue = getOrCreateManagedQueue(queues, row.queueName);
+  const resumeJobId = await enqueueRuntimeResumeJob(queue, row, payload, attemptsUsed);
+  await markRuntimeRowRequeued(row, isRecover, attemptsUsed, resumeJobId);
+  await syncResumeWorkerCounters(row);
+
+  return { requeued: 1, skipped: 0 };
+}
+
+export async function resumeImportRuntimeJobs(args: ResumeImportRuntimeArgs) {
+  await setSessionTenantId(args.tenantId);
+  const states = args.states ?? ["paused", "stale", "failed"];
 
   let requeued = 0;
   let skipped = 0;
+  const queues = new Map<string, ManagedQueue>();
 
-  for (const row of rows) {
-    const payload = getResumePayloadFromRow(row);
-    if (!payload) {
-      skipped += 1;
-      continue;
+  try {
+    while (true) {
+      const rows = await loadResumeRuntimeJobsChunk(args, states);
+
+      if (rows.length === 0) {
+        break;
+      }
+
+      for (const row of rows) {
+        const result = await resumeSingleRuntimeJob(row, args.mode, queues);
+        requeued += result.requeued;
+        skipped += result.skipped;
+      }
     }
-
-    const attemptsUsed = Number(row.attemptsUsed ?? 0);
-    const maxAttempts = Number(row.maxRecoveryAttempts ?? DEFAULT_RECOVERY_ATTEMPTS);
-    const isRecover = args.mode === "recover" || row.state === "failed" || row.state === "stale";
-    if (isRecover && attemptsUsed >= maxAttempts) {
-      await db
-        .update(importRuntimeJobs)
-        .set({
-          state: "terminal_error_skipped",
-          failedAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .where(sql`${importRuntimeJobs.id} = ${row.id}`);
-      skipped += 1;
-      continue;
-    }
-
-    const queue = createQueue(row.queueName);
-    try {
-      await queue.add(row.jobName, payload, {
-        jobId: buildImportResumeJobId(row.runtimeJobKey, attemptsUsed + 1),
-        attempts: 1,
-        backoff: { type: "fixed", delay: 1000 },
-      });
-    } finally {
+  } finally {
+    for (const queue of queues.values()) {
       await queue.close();
     }
-
-    await db
-      .update(importRuntimeJobs)
-      .set({
-        state: isRecover ? "recovering" : "queued",
-        bullJobId: buildImportResumeJobId(row.runtimeJobKey, attemptsUsed + 1),
-        attemptsUsed: isRecover ? attemptsUsed + 1 : attemptsUsed,
-        updatedAt: new Date(),
-        heartbeatAt: new Date(),
-        pausedAt: null,
-      })
-      .where(sql`${importRuntimeJobs.id} = ${row.id}`);
-
-    await ensureWorkerCounterRow({
-      tenantId: row.tenantId,
-      batchId: row.batchId,
-      sessionId: row.sessionId,
-      workerName: row.workerName,
-      queueName: row.queueName,
-      stageKey: row.stageKey ?? getStageKey(row.queueName),
-    });
-    await applyWorkerCounterDelta({
-      tenantId: row.tenantId,
-      sessionId: row.sessionId,
-      workerName: row.workerName,
-      delta: {
-        queuedJobs: 1,
-        pausedJobs: row.state === "paused" ? -1 : 0,
-        failedJobs: row.state === "failed" || row.state === "stale" ? -1 : 0,
-      },
-    });
-    requeued += 1;
   }
 
   return { requeued, skipped };
@@ -1477,6 +1852,10 @@ export async function completeImportRuntimeJob(job: Job, result?: JsonRecord) {
     tenantId: context.tenantId,
     status: "running",
   });
+  await reconcileImportRuntimeSessionStatus({
+    tenantId: context.tenantId,
+    sessionId: context.sessionId,
+  });
 }
 
 export async function failImportRuntimeJob(job: Job, error: unknown) {
@@ -1516,5 +1895,9 @@ export async function failImportRuntimeJob(job: Job, error: unknown) {
     tenantId: context.tenantId,
     status: "failed",
     failed: true,
+  });
+  await reconcileImportRuntimeSessionStatus({
+    tenantId: context.tenantId,
+    sessionId: context.sessionId,
   });
 }

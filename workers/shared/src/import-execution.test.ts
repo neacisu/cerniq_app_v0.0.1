@@ -26,7 +26,11 @@ vi.mock("./factory.js", () => ({
   createQueue: vi.fn(),
 }));
 
-import { buildImportRuntimeJobKey, getImportExecutionContext } from "./import-execution.js";
+import {
+  buildImportRuntimeJobKey,
+  deriveChildImportExecution,
+  getImportExecutionContext,
+} from "./import-execution.js";
 
 // ─── buildImportRuntimeJobKey ─────────────────────────────────────────────────
 
@@ -197,5 +201,56 @@ describe("getImportExecutionContext", () => {
     });
     expect(ctx).not.toBeNull();
     expect(ctx).toMatchObject({ parentRuntimeJobKey: null });
+  });
+});
+
+describe("deriveChildImportExecution", () => {
+  it("keeps the parent session lineage but never copies the parent runtimeJobKey", () => {
+    const child = deriveChildImportExecution(
+      {
+        ...VALID_EXECUTION,
+        correlationId: "corr-parent",
+        traceId: "trace-parent",
+      },
+      {
+        workerName: "b1-name-normalizer",
+        stageKey: "normalization",
+      },
+    );
+
+    expect(child).toMatchObject({
+      tenantId: "tenant-aaa",
+      batchId: "batch-bbb",
+      sessionId: "session-ccc",
+      parentRuntimeJobKey: "a1-csv-parser:deadbeef012345678901abcd",
+      workerName: "b1-name-normalizer",
+      stageKey: "normalization",
+      correlationId: "corr-parent",
+      traceId: "trace-parent",
+    });
+    expect(child).not.toHaveProperty("runtimeJobKey");
+  });
+
+  it("lets child overrides replace correlation lineage fields explicitly", () => {
+    const child = deriveChildImportExecution(
+      {
+        ...VALID_EXECUTION,
+        correlationId: "corr-parent",
+        traceId: "trace-parent",
+        mutationIntent: "CREATE",
+      },
+      {
+        correlationId: "corr-child",
+        traceId: "trace-child",
+        mutationIntent: "ENRICH",
+      },
+    );
+
+    expect(child).toMatchObject({
+      correlationId: "corr-child",
+      traceId: "trace-child",
+      parentTraceId: "trace-parent",
+      mutationIntent: "ENRICH",
+    });
   });
 });

@@ -274,6 +274,125 @@
       "when": 1772380000000,
       "tag": "0037_cognitive_anomalies",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1772390000000,
+      "tag": "0038_e3_sql_functions",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1772400000000,
+      "tag": "0039_e3_fsm_seed",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1743254400000,
+      "tag": "0040_e3_negotiation_phone_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1743340800000,
+      "tag": "0041_e3_sentiment_feedback",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1743427200000,
+      "tag": "0042_mcp_session_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1743513600000,
+      "tag": "0043_e4_orders",
+      "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1743600000000,
+      "tag": "0044_e4_credit",
+      "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1743686400000,
+      "tag": "0045_e4_logistics",
+      "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1743772800000,
+      "tag": "0046_e4_contracts",
+      "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1743859200000,
+      "tag": "0047_e4_payment_due_date",
+      "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1775000000000,
+      "tag": "0048_import_quarantine_and_runtime_observability",
+      "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1775086400000,
+      "tag": "0049_e5_nurturing",
+      "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1775172800000,
+      "tag": "0050_e5_churn",
+      "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "7",
+      "when": 1775259200000,
+      "tag": "0051_e5_referrals",
+      "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1775345600000,
+      "tag": "0052_e5_clusters",
+      "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1775432000000,
+      "tag": "0053_e5_kol_winback",
+      "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1775518400000,
+      "tag": "0054_e5_geospatial",
+      "breakpoints": true
     }
   ]
 }

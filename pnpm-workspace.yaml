@@ -2,6 +2,9 @@ packages:
   - apps/*
   - packages/*
   - workers/ai
+  - workers/e3-ai-sales
+  - workers/e4-postsale
+  - workers/e5-nurturing
   - workers/enrichment
   - workers/outreach
   - workers/shared

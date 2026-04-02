@@ -265,3 +265,334 @@ export const outreachRepliesReceivedTotal = new Counter({
   labelNames: ["channel", "tenant_id"],
   registers: [metricsRegistry],
 });
+
+// ── Etapa 3 — E3 AI Sales guardrail observability ────────────────────────────
+
+/**
+ * Counter — breach-uri guardrail DETERMINISTIC (M71-M75).
+ * Sursă pentru alertă HighHallucinationRate >10%/5min (plan L8701).
+ * Utilizat de N76 (human:escalate) și N77 (human:takeover) pentru
+ * semnalizarea escaladărilor AI → uman în workflow-ul HITL E3.
+ * Exportat din @cerniq/worker-shared pentru rezolvare corectă TypeScript LSP.
+ */
+export const aiGuardrailBreachesTotal = new Counter({
+  name: "cerniq_ai_guardrail_breaches_total",
+  help: "Total AI guardrail violations detected (M71-M75 deterministic checks)",
+  labelNames: ["guardrail_type", "severity"] as const,
+  registers: [metricsRegistry],
+});
+
+// ── Etapa 4 — E4 Post-Sale Revolut observability ─────────────────────────────
+
+/**
+ * Gauge — soldul curent per cont Revolut Business.
+ * Actualizat de A5 (revolut:balance:sync) cron la fiecare 30 minute.
+ * Permite alerte Grafana la diferențe >threshold față de snapshot anterior.
+ * Plan FAZA 8b §XII A5.
+ */
+export const e4RevolutBalanceGauge = new Gauge({
+  name: "cerniq_etapa4_revolut_balance",
+  help: "Revolut Business account balance per account (E4 A5 sync)",
+  labelNames: ["account_id", "currency", "tenant_id"],
+  registers: [metricsRegistry],
+});
+
+/**
+ * Counter — webhook-uri Revolut procesate per tip eveniment.
+ * Incrementat în A1 (revolut:webhook:ingest) la ingestie reușită.
+ */
+export const e4RevolutWebhooksTotal = new Counter({
+  name: "cerniq_etapa4_revolut_webhooks_total",
+  help: "Total Revolut webhooks ingested by event type",
+  labelNames: ["event_type", "action"],
+  registers: [metricsRegistry],
+});
+
+/**
+ * Counter — plăți înregistrate Revolut (A3).
+ * Incrementat la INSERT gold_payments cu externalSource='REVOLUT'.
+ */
+export const e4RevolutPaymentsRecordedTotal = new Counter({
+  name: "cerniq_etapa4_revolut_payments_recorded_total",
+  help: "Total Revolut payments recorded in gold_payments",
+  labelNames: ["currency", "tenant_id"],
+  registers: [metricsRegistry],
+});
+
+/**
+ * Counter — validări HMAC A6.
+ * Label status: 'valid' | 'invalid' — pentru alertă SecurityEvent.
+ */
+export const e4RevolutHmacValidationsTotal = new Counter({
+  name: "cerniq_etapa4_revolut_hmac_validations_total",
+  help: "Total Revolut webhook HMAC-SHA256 validations (A6)",
+  labelNames: ["status"],
+  registers: [metricsRegistry],
+});
+
+// ---------------------------------------------------------------------------
+// E4 — Reconciliere Plăți Three-Tier (B7-B12)
+// Plan FAZA 8c §IX L2037-2047
+// ---------------------------------------------------------------------------
+
+/**
+ * Histogram — durată reconciliere plăți per match_type.
+ * Înregistrat în B7 (Tier1), B8 (Tier2), B9 (Tier3).
+ * Label match_type: 'EXACT_REFERENCE' | 'FUZZY_NAME_AMOUNT' | 'MANUAL' | 'UNMATCHED'
+ */
+export const e4ReconciliationDurationSeconds = new Histogram({
+  name: "cerniq_etapa4_payments_reconciliation_duration_seconds",
+  help: "Duration of payment reconciliation processing per match type",
+  labelNames: ["match_type", "tenant_id"],
+  buckets: [0.01, 0.05, 0.1, 0.5, 1, 2, 5, 10],
+  registers: [metricsRegistry],
+});
+
+/**
+ * Counter — reconcilieri per match_type și result.
+ * Label result: 'matched' | 'enqueued_fuzzy' | 'enqueued_manual' | 'unmatched'
+ */
+export const e4ReconciliationTotal = new Counter({
+  name: "cerniq_etapa4_reconciliation_total",
+  help: "Total payment reconciliation attempts per match type and result",
+  labelNames: ["match_type", "result", "tenant_id"],
+  registers: [metricsRegistry],
+});
+
+/**
+ * Counter — comenzi overdue detectate de B11 (cron 0 9 * * *).
+ */
+export const e4OverdueOrdersDetectedTotal = new Counter({
+  name: "cerniq_etapa4_overdue_orders_detected_total",
+  help: "Total overdue orders detected by B11 cron",
+  labelNames: ["tenant_id"],
+  registers: [metricsRegistry],
+});
+
+/**
+ * Counter — comenzi overdue escalate de B12 (alerte graduated).
+ * Label severity: 'WARNING' | 'REMINDER' | 'CRITICAL'
+ */
+export const e4OverdueOrdersEscalatedTotal = new Counter({
+  name: "cerniq_etapa4_overdue_orders_escalated_total",
+  help: "Total overdue order escalations by severity level",
+  labelNames: ["severity", "tenant_id"],
+  registers: [metricsRegistry],
+});
+
+// ============================================================================
+// ETAPA 4 — Credit Scoring 100p (C13-D21)
+// Plan FAZA 8d §IX L2048-2070
+// ============================================================================
+
+/**
+ * Histogram durata calculare scor credit (C17).
+ * Label tenant_id pentru multi-tenancy.
+ */
+export const e4CreditScoringDurationSeconds = new Histogram({
+  name: "cerniq_etapa4_credit_scoring_duration_seconds",
+  help: "Duration of credit score calculation (C17) in seconds",
+  buckets: [0.05, 0.1, 0.5, 1, 2, 5, 10],
+  labelNames: ["tenant_id"],
+  registers: [metricsRegistry],
+});
+
+/**
+ * Counter total scoruri calculate, pe risk_tier rezultat.
+ */
+export const e4CreditScoreCalculatedTotal = new Counter({
+  name: "cerniq_etapa4_credit_score_calculated_total",
+  help: "Total credit scores calculated, by resulting risk tier",
+  labelNames: ["risk_tier", "tenant_id"],
+  registers: [metricsRegistry],
+});
+
+/**
+ * Counter verificări limită credit D19, pe result (approved/rejected).
+ */
+export const e4CreditLimitChecksTotal = new Counter({
+  name: "cerniq_etapa4_credit_limit_checks_total",
+  help: "Total D19 credit limit checks, by result",
+  labelNames: ["result", "tenant_id"],
+  registers: [metricsRegistry],
+});
+
+/**
+ * Counter rezervări credit (D20/D21/expire), pe action.
+ * Label action: 'reserve' | 'release' | 'expire'
+ */
+export const e4CreditReservationsTotal = new Counter({
+  name: "cerniq_etapa4_credit_reservations_total",
+  help: "Total credit reservation actions (reserve/release/expire)",
+  labelNames: ["action", "tenant_id"],
+  registers: [metricsRegistry],
+});
+
+// ============================================================================
+// ETAPA 4 — Sameday Logistics AWB + Tracking (E22-E27)
+// Plan FAZA 8e §IX L2072-2087
+// ============================================================================
+
+/**
+ * Counter expedieri create (E22: sameday:awb:create), pe carrier și tenant.
+ * Label carrier: 'SAMEDAY' | 'FAN_COURIER' | ...
+ * Plan: cerniq_etapa4_shipments_created_total{carrier="SAMEDAY"}
+ */
+export const e4ShipmentsCreatedTotal = new Counter({
+  name: "cerniq_etapa4_shipments_created_total",
+  help: "Total AWB shipments created, by carrier",
+  labelNames: ["carrier", "tenant_id"],
+  registers: [metricsRegistry],
+});
+
+/**
+ * Counter schimbări de status livrare (E24: sameday:status:process), pe status și tenant.
+ * Label status: 'PICKED_UP' | 'IN_TRANSIT' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'DELIVERY_FAILED' | 'RETURNED'
+ */
+export const e4ShipmentStatusChangesTotal = new Counter({
+  name: "cerniq_etapa4_shipment_status_changes_total",
+  help: "Total shipment status transitions processed by E24",
+  labelNames: ["status", "tenant_id"],
+  registers: [metricsRegistry],
+});
+
+/**
+ * Counter colectări COD procesate (E25: sameday:cod:process), pe tenant.
+ */
+export const e4CodCollectionsTotal = new Counter({
+  name: "cerniq_etapa4_cod_collections_total",
+  help: "Total COD (cash-on-delivery) collections processed by E25",
+  labelNames: ["tenant_id"],
+  registers: [metricsRegistry],
+});
+
+/**
+ * Counter returnări inițiate automat (E26: sameday:return:initiate), pe tenant.
+ * Trigger: 3× DELIVERY_FAILED
+ */
+export const e4ShipmentReturnsTotal = new Counter({
+  name: "cerniq_etapa4_shipment_returns_total",
+  help: "Total auto-initiated shipment returns (3x DELIVERY_FAILED threshold)",
+  labelNames: ["tenant_id"],
+  registers: [metricsRegistry],
+});
+
+/**
+ * Histogram durată batch E23 (sameday:status:poll) — nr. expedieri procesate per ciclu.
+ */
+export const e4SamedayPollBatchSize = new Histogram({
+  name: "cerniq_etapa4_sameday_poll_batch_size",
+  help: "Number of active SAMEDAY shipments processed per E23 poll cycle",
+  buckets: [0, 1, 5, 10, 25, 50, 100, 250, 500],
+  labelNames: ["tenant_id"],
+  registers: [metricsRegistry],
+});
+
+// =============================================================================
+// FAZA 8f — G32-G36 Contracte DocuSign
+// =============================================================================
+
+/**
+ * Counter contracte generate (G32: contract:generate), pe tenant + risk_tier.
+ */
+export const e4ContractsGeneratedTotal = new Counter({
+  name: "cerniq_etapa4_contracts_generated_total",
+  help: "Total contracts generated (DOCX → PDF) by G32",
+  labelNames: ["tenant_id", "risk_tier"],
+  registers: [metricsRegistry],
+});
+
+/**
+ * Counter contracte semnate (G36: contract:signed:process), pe tenant.
+ */
+export const e4ContractsSignedTotal = new Counter({
+  name: "cerniq_etapa4_contracts_signed_total",
+  help: "Total contracts signed (DocuSign status=signed) by G36",
+  labelNames: ["tenant_id"],
+  registers: [metricsRegistry],
+});
+
+/**
+ * Counter alerte expirare contracte (G35: contract:status:poll, expiresAt < NOW()+24h).
+ */
+export const e4ContractExpiryAlertsTotal = new Counter({
+  name: "cerniq_etapa4_contract_expiry_alerts_total",
+  help: "Total contract expiry alerts raised by G35 (expiresAt within 24h)",
+  labelNames: ["tenant_id"],
+  registers: [metricsRegistry],
+});
+
+// =============================================================================
+// FAZA 8g — F28-F31 Stock, H37-H38 Returns, I39-I44 Alerts, J45-J47 Audit, K48-K53 HITL
+// =============================================================================
+
+/**
+ * Gauge integritate lanț audit (J46: audit:chain:verify).
+ * 1 = OK, 0 = BROKEN — monitorizat ca alert CRITICAL AuditChainIntegrity (Plan L2167).
+ */
+export const e4AuditChainIntegrityGauge = new Gauge({
+  name: "cerniq_etapa4_audit_chain_integrity",
+  help: "Audit chain integrity status per tenant (1=OK, 0=BROKEN), updated by J46",
+  labelNames: ["tenant_id"],
+  registers: [metricsRegistry],
+});
+
+/**
+ * Counter task-uri HITL create de workerii K48-K53.
+ */
+export const e4HitlTasksCreatedTotal = new Counter({
+  name: "cerniq_etapa4_hitl_tasks_created_total",
+  help: "Total HITL approval tasks created by E4 HITL workers K48-K53",
+  labelNames: ["tenant_id", "task_type", "priority"],
+  registers: [metricsRegistry],
+});
+
+/**
+ * Counter sincronizări stoc Oblio (F28: stock:sync:oblio).
+ */
+export const e4StockSyncTotal = new Counter({
+  name: "cerniq_etapa4_stock_sync_total",
+  help: "Total stock items synced from Oblio ERP by F28",
+  labelNames: ["tenant_id"],
+  registers: [metricsRegistry],
+});
+
+/**
+ * Counter deduceri stoc la DELIVERED (F29: stock:deduct).
+ */
+export const e4StockDeductionsTotal = new Counter({
+  name: "cerniq_etapa4_stock_deductions_total",
+  help: "Total stock deductions (on order DELIVERED) by F29",
+  labelNames: ["tenant_id"],
+  registers: [metricsRegistry],
+});
+
+/**
+ * Counter retururi stoc la RETURNED (F30: stock:return).
+ */
+export const e4StockReturnsTotal = new Counter({
+  name: "cerniq_etapa4_stock_returns_total",
+  help: "Total stock returns (on order RETURNED) by F30",
+  labelNames: ["tenant_id"],
+  registers: [metricsRegistry],
+});
+
+/**
+ * Counter alerte stoc scăzut (F31: stock:low:alert).
+ */
+export const e4StockAlertsTotal = new Counter({
+  name: "cerniq_etapa4_stock_alerts_total",
+  help: "Total low-stock alerts generated by F31",
+  labelNames: ["tenant_id"],
+  registers: [metricsRegistry],
+});
+
+/**
+ * Counter alerte dispatched (I39-I44: alert:* workers).
+ */
+export const e4AlertsDispatchedTotal = new Counter({
+  name: "cerniq_etapa4_alerts_dispatched_total",
+  help: "Total alerts dispatched by I39-I44 alert workers",
+  labelNames: ["tenant_id", "alert_type"],
+  registers: [metricsRegistry],
+});

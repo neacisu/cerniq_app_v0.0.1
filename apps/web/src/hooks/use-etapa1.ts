@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiError } from "@/lib/api.js";
+import { useAuth } from "@/providers/auth-provider.js";
 import {
   type ApprovalListParams,
   type BronzeContactsParams,
@@ -36,6 +37,7 @@ import {
   fetchImportById,
   fetchImportEntities,
   fetchImportReprocessErrors,
+  fetchImportQuarantine,
   fetchImportJobLogs,
   fetchImportRows,
   fetchImports,
@@ -47,8 +49,6 @@ import {
   pauseImportWorker,
   pauseImportsGlobal,
   resumeImportReprocessErrors,
-  resumeImportBatch,
-  resumeImportWorker,
   resumeImportsGlobal,
   resumePromoteJob,
   fetchQueueStatusByName,
@@ -61,7 +61,9 @@ import {
   patchGoldCompany,
   pauseQueue,
   reprocessBronzeContact,
+  resumeImportBatchScoped,
   resumeQueue,
+  resumeImportWorkerScoped,
   transitionGoldCompany,
   triggerSilverEnrich,
   triggerSilverPromote,
@@ -79,6 +81,24 @@ function getPollingBackoffMs(error: unknown, failureCount: number, baseIntervalM
 
   const retryStep = Math.max(0, failureCount - 1);
   return Math.min(60_000, baseIntervalMs * 2 ** retryStep);
+}
+
+export function getImportControlPollingInterval(
+  error: unknown,
+  failureCount: number,
+): number | false {
+  if (error instanceof ApiError && error.status === 401) return false;
+  if (isTransientApiUnavailable(error)) {
+    return getPollingBackoffMs(error, failureCount, 3000);
+  }
+
+  return 3000;
+}
+
+export function shouldRetryEtapa1PollingQuery(failureCount: number, error: unknown): boolean {
+  if (error instanceof ApiError && error.status === 401) return false;
+  if (isTransientApiUnavailable(error)) return false;
+  return failureCount < 3;
 }
 
 /**
@@ -242,6 +262,24 @@ export function useImportEntities(id?: string, limit = 100, offset = 0) {
   });
 }
 
+export function useImportQuarantine(id?: string, limit = 100, offset = 0, sessionId?: string) {
+  return useQuery({
+    queryKey: ["etapa1", "imports", "quarantine", id, limit, offset, sessionId ?? null],
+    queryFn: () =>
+      fetchImportQuarantine(String(id), {
+        limit,
+        offset,
+        sessionId,
+      }),
+    enabled: Boolean(id),
+    refetchInterval: (query) => {
+      if (query.state.error instanceof ApiError && query.state.error.status === 401) return false;
+      return 5000;
+    },
+    refetchIntervalInBackground: true,
+  });
+}
+
 export function useUploadImport() {
   const qc = useQueryClient();
   return useMutation({
@@ -367,11 +405,20 @@ export function useResumeImportReprocessErrors() {
 /** Poll full real-time pipeline status for a batch (identity resolution + contact promotions). */
 export function useImportPipelineStatus(
   batchId: string | undefined,
-  opts?: { enabled?: boolean; expectedDbStatus?: string | null },
+  opts?: { enabled?: boolean; expectedDbStatus?: string | null; session?: string },
 ) {
   return useQuery({
-    queryKey: ["etapa1", "pipeline-status", batchId, opts?.expectedDbStatus ?? null],
-    queryFn: () => fetchImportPipelineStatus(String(batchId)),
+    queryKey: [
+      "etapa1",
+      "pipeline-status",
+      batchId,
+      opts?.expectedDbStatus ?? null,
+      opts?.session ?? null,
+    ],
+    queryFn: () =>
+      fetchImportPipelineStatus(String(batchId), {
+        session: opts?.session,
+      }),
     enabled: Boolean(batchId) && (opts?.enabled ?? true),
     refetchInterval: (query) => {
       if (query.state.error instanceof ApiError && query.state.error.status === 401) return false;
@@ -444,11 +491,16 @@ export function useImportRuntimeTopology(
 }
 
 export function useImportControl() {
+  const { token } = useAuth();
+
   return useQuery({
     queryKey: ["etapa1", "imports", "control"],
     queryFn: () => fetchImportControl(),
-    refetchInterval: 3000,
+    enabled: Boolean(token),
+    refetchInterval: (query) =>
+      getImportControlPollingInterval(query.state.error, query.state.fetchFailureCount),
     refetchIntervalInBackground: true,
+    retry: shouldRetryEtapa1PollingQuery,
     select: (response): { success: boolean; data: ImportGlobalControlState } => response,
   });
 }
@@ -491,8 +543,17 @@ export function usePauseImportBatch() {
 export function useResumeImportBatch() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ batchId, mode }: { batchId: string; mode?: "resume" | "recover" }) =>
-      resumeImportBatch(batchId, mode),
+    mutationFn: ({
+      batchId,
+      mode,
+      sessionId,
+      allSessions,
+    }: {
+      batchId: string;
+      mode?: "resume" | "recover";
+      sessionId?: string;
+      allSessions?: boolean;
+    }) => resumeImportBatchScoped(batchId, { mode, sessionId, allSessions }),
     onSuccess: async (_data, { batchId }) => {
       await qc.invalidateQueries({ queryKey: ["etapa1", "imports"] });
       await qc.invalidateQueries({ queryKey: ["etapa1", "imports", "detail", batchId] });
@@ -522,11 +583,15 @@ export function useResumeImportWorker() {
       batchId,
       workerName,
       mode,
+      sessionId,
+      allSessions,
     }: {
       batchId: string;
       workerName: string;
       mode?: "resume" | "recover";
-    }) => resumeImportWorker(batchId, workerName, mode),
+      sessionId?: string;
+      allSessions?: boolean;
+    }) => resumeImportWorkerScoped(batchId, workerName, { mode, sessionId, allSessions }),
     onSuccess: async (_data, { batchId }) => {
       await qc.invalidateQueries({ queryKey: ["etapa1", "pipeline-status", batchId] });
       await qc.invalidateQueries({ queryKey: ["etapa1", "runtime-topology", batchId] });

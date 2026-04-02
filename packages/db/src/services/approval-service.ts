@@ -26,6 +26,8 @@ export type CreateApprovalTaskInput = {
   title: string;
   description?: string;
   pipelineStage?: string;
+  /** Override etapa identifier (default "E1"). Pass "E3", "E4", "E5" for higher etapa tasks. */
+  etapa?: string;
   priority?: ApprovalPriority;
   metadata?: TaskMetadata;
   blockedJobId?: string;
@@ -160,7 +162,7 @@ export class ApprovalService {
           expiresAt: dueAt,
           blockedJobId: input.blockedJobId,
           blockedQueueName: input.blockedQueueName,
-          etapa: "E1",
+          etapa: input.etapa ?? "E1",
           metadata: input.metadata ?? {},
         })
         .returning();

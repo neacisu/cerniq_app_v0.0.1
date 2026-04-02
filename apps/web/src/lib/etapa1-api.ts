@@ -347,8 +347,15 @@ export async function fetchPromoteJobStatus(id: string) {
 }
 
 export type ImportPipelineStatus = {
+  attempts?: ImportAttemptSummary[];
   batchId: string;
   batchStatus: string;
+  selectedRuntimeSession?: ImportRuntimeSessionSummary | null;
+  selectedAttemptSummary?: ImportAttemptSummary | null;
+  latestAttemptSummary?: ImportAttemptSummary | null;
+  historicalSummary?: Record<string, number> | null;
+  quarantineSummary?: ImportQuarantineSummary | null;
+  selectedQuarantineSummary?: ImportQuarantineSummary | null;
   totalRows: number;
   successRows: number;
   reprocessJob: {
@@ -395,8 +402,55 @@ export type ImportPipelineStatus = {
   legacyTelemetry?: boolean;
 };
 
-export async function fetchImportPipelineStatus(id: string) {
-  return api.get<ApiObjectResponse<ImportPipelineStatus>>(`/api/v1/imports/${id}/pipeline-status`);
+export type ImportAttemptSummary = {
+  id: string;
+  kind: string;
+  status: string;
+  label: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  failedAt: string | null;
+  pausedAt: string | null;
+  lastHeartbeatAt: string | null;
+  updatedAt: string | null;
+  totalRows: number;
+  processedRows: number;
+  successRows: number;
+  errorRows: number;
+  duplicateRows: number;
+  quarantineRows: number;
+};
+
+export type ImportRuntimeSessionSummary = {
+  id: string;
+  kind: string;
+  status: string;
+  label: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  failedAt: string | null;
+  pausedAt: string | null;
+  lastHeartbeatAt: string | null;
+  updatedAt: string | null;
+};
+
+export type ImportQuarantineSummary = {
+  totalRows: number;
+  disallowedControlCharacterRows: number;
+  sourceIdentifierHashConflictRows: number;
+};
+
+export async function fetchImportPipelineStatus(
+  id: string,
+  params: {
+    session?: string;
+  } = {},
+) {
+  const query = new URLSearchParams();
+  appendParams(query, params);
+  return api.get<ApiObjectResponse<ImportPipelineStatus>>(
+    `/api/v1/imports/${id}/pipeline-status?${query}`,
+  );
 }
 
 export type ImportRuntimeJob = {
@@ -592,6 +646,20 @@ export async function resumeImportBatch(id: string, mode?: "resume" | "recover")
   });
 }
 
+export async function resumeImportBatchScoped(
+  id: string,
+  params: {
+    mode?: "resume" | "recover";
+    sessionId?: string;
+    allSessions?: boolean;
+  } = {},
+) {
+  return api.post<ApiObjectResponse<Record<string, unknown>>>(
+    `/api/v1/imports/${id}/resume`,
+    params,
+  );
+}
+
 export async function pauseImportWorker(id: string, workerName: string) {
   return api.post<ApiObjectResponse<Record<string, unknown>>>(
     `/api/v1/imports/${id}/workers/${encodeURIComponent(workerName)}/pause`,
@@ -608,6 +676,21 @@ export async function resumeImportWorker(
     {
       ...(mode ? { mode } : {}),
     },
+  );
+}
+
+export async function resumeImportWorkerScoped(
+  id: string,
+  workerName: string,
+  params: {
+    mode?: "resume" | "recover";
+    sessionId?: string;
+    allSessions?: boolean;
+  } = {},
+) {
+  return api.post<ApiObjectResponse<Record<string, unknown>>>(
+    `/api/v1/imports/${id}/workers/${encodeURIComponent(workerName)}/resume`,
+    params,
   );
 }
 
@@ -964,9 +1047,12 @@ export type JobLog = {
   id: string;
   tenantId: string;
   batchId: string | null;
+  sessionId: string | null;
   bronzeContactId: string | null;
   workerName: string;
   jobId: string | null;
+  runtimeJobKey: string | null;
+  parentRuntimeJobKey: string | null;
   step: string;
   level: JobLogLevel;
   message: string;
@@ -980,6 +1066,8 @@ export type JobLogsParams = {
   worker?: string;
   jobId?: string;
   bronzeContactId?: string;
+  sessionId?: string;
+  includeLegacy?: boolean;
   tail?: boolean;
   limit?: number;
   offset?: number;
@@ -992,9 +1080,53 @@ export async function fetchImportJobLogs(batchId: string, params: JobLogsParams 
     worker: params.worker,
     jobId: params.jobId,
     bronzeContactId: params.bronzeContactId,
+    sessionId: params.sessionId,
+    includeLegacy: params.includeLegacy,
     tail: params.tail,
     limit: params.limit ?? 200,
     offset: params.offset ?? 0,
   });
   return api.get<ApiListResponse<JobLog>>(`/api/v1/imports/${batchId}/job-logs?${query}`);
+}
+
+export type QuarantinedImportRow = {
+  id: string;
+  batchId: string;
+  sessionId: string | null;
+  runtimeJobKey: string | null;
+  sourceType: string;
+  sourceIdentifier: string;
+  sheetName: string | null;
+  worksheetRow: number | null;
+  globalRow: number | null;
+  fieldName: string | null;
+  reasonCode: string;
+  rowPayloadEscaped: Record<string, unknown>;
+  sanitizedPayload: Record<string, unknown> | null;
+  violations: Array<Record<string, unknown>>;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+};
+
+export async function fetchImportQuarantine(
+  batchId: string,
+  params: {
+    sessionId?: string;
+    reasonCode?: string;
+    sheet?: string;
+    limit?: number;
+    offset?: number;
+  } = {},
+) {
+  const query = new URLSearchParams();
+  appendParams(query, {
+    sessionId: params.sessionId,
+    reasonCode: params.reasonCode,
+    sheet: params.sheet,
+    limit: params.limit ?? 100,
+    offset: params.offset ?? 0,
+  });
+  return api.get<ApiListResponse<QuarantinedImportRow>>(
+    `/api/v1/imports/${batchId}/quarantine?${query}`,
+  );
 }

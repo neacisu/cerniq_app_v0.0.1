@@ -1,0 +1,133 @@
+groups:
+  - name: cerniq-e3-ai-sales
+    rules:
+
+      # ── AI Hallucination & Guardrails ─────────────────────────────────────────
+
+      - alert: HighHallucinationRate
+        expr: |
+          (
+            increase(cerniq_ai_guardrail_breaches_total[5m])
+            /
+            (increase(cerniq_ai_guardrail_breaches_total[5m]) + increase(cerniq_ai_guardrail_pass_rate[5m]) + 1)
+          ) > 0.10
+        for: 1m
+        labels:
+          severity: critical
+          etapa: E3
+          project: cerniq
+        annotations:
+          summary: "E3 AI hallucination rate >10% în ultimele 5 minute"
+          description: |
+            Rata de breach guardrail depășește 10% pe instanța {{ $labels.instance }}.
+            Guardrail type: {{ $labels.guardrail_type }}, Severity: {{ $labels.severity }}.
+            Verificați M71-M75 (deterministic checks) și C15 (ai:response:generate).
+
+      - alert: GuardrailNeuronSilent
+        expr: |
+          increase(cerniq_ai_guardrail_breaches_total[30m]) == 0
+          and
+          increase(cerniq_ai_guardrail_pass_rate[30m]) == 0
+        for: 5m
+        labels:
+          severity: critical
+          etapa: E3
+          project: cerniq
+        annotations:
+          summary: "E3 Guardrail neurons M71-M75 silențioși 30 minute — posibil worker down"
+          description: |
+            Niciun eveniment guardrail (breach sau pass) în ultimele 30 minute.
+            Verificați că workerii M71-M75 (guardrail:*) sunt activi și procesează joburi.
+            Aceasta poate indica o defecțiune critică de observabilitate AI.
+
+      # ── LLM Performance ───────────────────────────────────────────────────────
+
+      - alert: LLMHighLatency
+        expr: |
+          histogram_quantile(0.95,
+            rate(cerniq_ai_llm_latency_seconds_bucket[10m])
+          ) > 10
+        for: 5m
+        labels:
+          severity: warning
+          etapa: E3
+          project: cerniq
+        annotations:
+          summary: "E3 LLM latency P95 > 10s pe ultimele 10 minute"
+          description: |
+            Model {{ $labels.model }}, operație {{ $labels.operation }}: P95={{ $value | humanizeDuration }}.
+            Verificați C15 (ai:response:generate) și fallback pe frontier model (Grok-4 / GPT-4o).
+            Dacă selfhosted, verificați resurse GPU pe infraq.app.
+
+      # ── Fiscal & eFactura ─────────────────────────────────────────────────────
+
+      - alert: FiscalErrorSpike
+        expr: increase(cerniq_einvoice_errors_total[10m]) > 5
+        for: 2m
+        labels:
+          severity: critical
+          etapa: E3
+          project: cerniq
+        annotations:
+          summary: "E3 eFactura SPV — spike erori >5 în 10 minute"
+          description: |
+            Erori eFactura ANAF SPV: {{ $value }} în ultimele 10 minute.
+            Tenant: {{ $labels.tenant_id }}, Tip eroare: {{ $labels.error_type }}.
+            Verificați H46 (einvoice:send) și statutul API-ului ANAF SPV.
+            Riscul de amendă 15-20% pentru facturi nesubmise în 5 zile lucrătoare.
+
+      - alert: EInvoiceDeadlineRisk
+        expr: cerniq_einvoice_deadline_risk_count > 4
+        for: 30m
+        labels:
+          severity: critical
+          etapa: E3
+          project: cerniq
+        annotations:
+          summary: "E3 eFactura — {{ $value }} facturi cu risc depășire deadline 5 zile SPV"
+          description: |
+            Tenant: {{ $labels.tenant_id }} are {{ $value }} facturi la risc deadline SPV ANAF.
+            Amendă: 15-20% din valoarea facturii pentru depășire termen 5 zile lucrătoare.
+            Acționați imediat: verificați H48 (einvoice:deadline:monitor) și H50 (einvoice:retry:failed).
+
+      # ── Negocieri & Discount ──────────────────────────────────────────────────
+
+      - alert: LowMarginDetected
+        expr: |
+          histogram_quantile(0.50,
+            rate(cerniq_negotiation_discount_avg_bucket[30m])
+          ) > 0.30
+        for: 10m
+        labels:
+          severity: warning
+          etapa: E3
+          project: cerniq
+        annotations:
+          summary: "E3 Discount median >30% — risc marjă scăzută sub prag acceptabil"
+          description: |
+            Discountul median al negocierilor active depășește 30% (threshold director).
+            Tenant: {{ $labels.tenant_id }}.
+            Verificați E30 (pricing:margin:check) și M73 (guardrail:discount:check).
+            Escaladare automată N76 (human:escalate) ar trebui să fie activă.
+
+      # ── MCP Server ────────────────────────────────────────────────────────────
+
+      - alert: MCPSessionExpiry
+        expr: |
+          (
+            increase(cerniq_mcp_tool_calls_total{status="error"}[10m])
+            /
+            (increase(cerniq_mcp_tool_calls_total[10m]) + 1)
+          ) > 0.20
+        for: 5m
+        labels:
+          severity: warning
+          etapa: E3
+          project: cerniq
+        annotations:
+          summary: "E3 MCP tool call error rate >20% — posibil sesiuni expirate"
+          description: |
+            Rata de erori MCP depășește 20% în ultimele 10 minute.
+            Tool: {{ $labels.tool_name }}.
+            Verificați L68 (mcp:session:manage) și L69 (mcp:health:check).
+            Sesiunile expirate provoacă erori 401/403 pe apeluri MCP agent AI.

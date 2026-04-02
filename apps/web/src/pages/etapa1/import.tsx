@@ -35,6 +35,7 @@ import {
   usePauseImportBatch,
   useResumeImportBatch,
   useDeleteImportBatch,
+  useCancelImport,
   useResumeImportReprocessErrors,
   useResumePromoteJob,
 } from "@/hooks/use-etapa1.js";
@@ -395,6 +396,18 @@ function buildImportIdentitySummaryLine(identitySummary: Record<string, unknown>
   );
 
   return `Entități rezolvate: ${resolvedCompanies} · Duplicate sursă: ${duplicateSourceRows} · Conflicte identitate: ${identityConflictRows}`;
+}
+
+function buildImportLatestAttemptLine(
+  latestAttemptSummary: Record<string, unknown>,
+  quarantineSummary: Record<string, unknown>,
+) {
+  const successRows = Number(latestAttemptSummary.successRows ?? 0).toLocaleString("ro-RO");
+  const duplicateRows = Number(latestAttemptSummary.duplicateRows ?? 0).toLocaleString("ro-RO");
+  const errorRows = Number(latestAttemptSummary.errorRows ?? 0).toLocaleString("ro-RO");
+  const quarantineRows = Number(quarantineSummary.totalRows ?? 0).toLocaleString("ro-RO");
+
+  return `Ultima încercare: ${successRows} salvate · ${duplicateRows} duplicate · ${errorRows} erori · ${quarantineRows} quarantine`;
 }
 
 type IdentityReprocessDisplay = {
@@ -1401,6 +1414,7 @@ type ImportRowProps = {
   readonly onRetry: (id: string) => Promise<void>;
   readonly onPause: (id: string) => Promise<void>;
   readonly onResume: (id: string, mode?: "resume" | "recover") => Promise<void>;
+  readonly onCancel: (id: string) => Promise<void>;
   readonly onDelete: (id: string) => Promise<void>;
   readonly onImportRefetch: () => void;
 };
@@ -1417,9 +1431,39 @@ type ImportRowActionsProps = {
   readonly onRetry: (id: string) => Promise<void>;
   readonly onPause: (id: string) => Promise<void>;
   readonly onResume: (id: string, mode?: "resume" | "recover") => Promise<void>;
+  readonly onCancel: (id: string) => Promise<void>;
   readonly onDelete: (id: string) => Promise<void>;
   readonly className?: string;
 };
+
+type ImportRowCancelActionProps = ImportRowActionButtonProps & {
+  readonly canCancel: boolean;
+  readonly onCancel: (id: string) => Promise<void>;
+};
+
+function ImportRowCancelAction({
+  id,
+  actionInProgress,
+  canCancel,
+  onCancel,
+}: ImportRowCancelActionProps) {
+  if (!canCancel) {
+    return null;
+  }
+
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      disabled={actionInProgress !== null}
+      onClick={async () => {
+        await onCancel(id);
+      }}
+    >
+      {actionInProgress === `cancel-${id}` ? "…" : "Anuleaza"}
+    </Button>
+  );
+}
 
 type ImportRowActionButtonProps = {
   readonly id: string;
@@ -1569,13 +1613,18 @@ function ImportRowActions({
   onRetry,
   onPause,
   onResume,
+  onCancel,
   onDelete,
   className,
 }: ImportRowActionsProps) {
   const canRetry = ["pending", "failed", "cancelled"].includes(status);
+  const canCancel = ["pending", "processing"].includes(status);
   const batchPaused = Boolean(control.batchPaused);
-  const deleteRequested = Boolean(control.deleteRequested);
-  const canDelete = status !== "completed" && deleteRequested === false;
+  // Orice batch vizibil în UI are hidden=false (API filtrează hidden=true la sursă).
+  // Folosim `hidden` ca gate pentru canDelete, nu `deleteRequested`, astfel
+  // un batch prins în starea de limbo (deleteRequested=true, hidden=false după
+  // un delete eșuat parțial) poate fi reîncercat fără intervenție manuală în DB.
+  const canDelete = !control.hidden;
   return (
     <div className={cn("flex shrink-0 flex-wrap items-center gap-1.5 lg:justify-end", className)}>
       <Button
@@ -1618,6 +1667,12 @@ function ImportRowActions({
         onPause={onPause}
         onResume={onResume}
       />
+      <ImportRowCancelAction
+        id={id}
+        actionInProgress={actionInProgress}
+        canCancel={canCancel}
+        onCancel={onCancel}
+      />
       <ImportRowDeleteAction
         id={id}
         actionInProgress={actionInProgress}
@@ -1637,6 +1692,7 @@ function ImportHistoryRow({
   onRetry,
   onPause,
   onResume,
+  onCancel,
   onDelete,
   onImportRefetch,
 }: ImportRowProps) {
@@ -1653,8 +1709,14 @@ function ImportHistoryRow({
   const isProcessing = status === "processing";
   const hasKnownTotal = total > 0;
   const identitySummary = (imp.identitySummary as Record<string, unknown> | undefined) ?? {};
+  const historicalSummary =
+    (imp.historicalSummary as Record<string, unknown> | undefined) ?? identitySummary;
+  const latestAttemptSummary =
+    (imp.latestAttemptSummary as Record<string, unknown> | undefined) ?? {};
+  const quarantineSummary = (imp.quarantineSummary as Record<string, unknown> | undefined) ?? {};
   const control = (imp.control as Record<string, unknown> | undefined) ?? {};
-  const identitySummaryLine = buildImportIdentitySummaryLine(identitySummary);
+  const identitySummaryLine = buildImportIdentitySummaryLine(historicalSummary);
+  const latestAttemptLine = buildImportLatestAttemptLine(latestAttemptSummary, quarantineSummary);
   const identityReprocess = buildIdentityReprocessDisplay(metadata, total);
 
   return (
@@ -1668,6 +1730,7 @@ function ImportHistoryRow({
           <p className="text-xs text-t3">
             {progressLabel} · {timeLabel}
           </p>
+          <p className="text-[10px] leading-relaxed text-t3 sm:text-[11px]">{latestAttemptLine}</p>
           <p className="text-[10px] leading-relaxed text-t3 sm:text-[11px]">
             {identitySummaryLine}
           </p>
@@ -1734,6 +1797,7 @@ function ImportHistoryRow({
             onRetry={onRetry}
             onPause={onPause}
             onResume={onResume}
+            onCancel={onCancel}
             onDelete={onDelete}
             className="w-full justify-start sm:justify-end lg:w-full lg:justify-start"
           />
@@ -1857,6 +1921,7 @@ type ImportHistoryCardProps = {
   readonly onRetry: (id: string) => Promise<void>;
   readonly onPause: (id: string) => Promise<void>;
   readonly onResume: (id: string, mode?: "resume" | "recover") => Promise<void>;
+  readonly onCancel: (id: string) => Promise<void>;
   readonly onDelete: (id: string) => Promise<void>;
   readonly onImportRefetch: () => void;
 };
@@ -1873,6 +1938,7 @@ function ImportHistoryCard({
   onRetry,
   onPause,
   onResume,
+  onCancel,
   onDelete,
   onImportRefetch,
 }: ImportHistoryCardProps) {
@@ -1932,6 +1998,7 @@ function ImportHistoryCard({
                 onRetry={onRetry}
                 onPause={onPause}
                 onResume={onResume}
+                onCancel={onCancel}
                 onDelete={onDelete}
                 onImportRefetch={onImportRefetch}
               />
@@ -2074,6 +2141,7 @@ type ImportPageContentProps = {
   readonly onRetry: (id: string) => Promise<void>;
   readonly onPauseImportBatch: (id: string) => Promise<void>;
   readonly onResumeImportBatch: (id: string, mode?: "resume" | "recover") => Promise<void>;
+  readonly onCancelImportBatch: (id: string) => Promise<void>;
   readonly onDeleteImportBatch: (id: string) => Promise<void>;
   readonly onImportRefetch: () => void;
   readonly mappingDialogId: string | null;
@@ -2109,6 +2177,7 @@ function ImportPageContent({
   onRetry,
   onPauseImportBatch,
   onResumeImportBatch,
+  onCancelImportBatch,
   onDeleteImportBatch,
   onImportRefetch,
   mappingDialogId,
@@ -2159,6 +2228,7 @@ function ImportPageContent({
         onRetry={onRetry}
         onPause={onPauseImportBatch}
         onResume={onResumeImportBatch}
+        onCancel={onCancelImportBatch}
         onDelete={onDeleteImportBatch}
         onImportRefetch={onImportRefetch}
       />
@@ -2204,6 +2274,7 @@ export function Import() {
   const resumeGlobalMutation = useResumeImportsGlobal();
   const pauseBatchMutation = usePauseImportBatch();
   const resumeBatchMutation = useResumeImportBatch();
+  const cancelBatchMutation = useCancelImport();
   const deleteBatchMutation = useDeleteImportBatch();
   const globalControl = importControlQuery.data?.data;
 
@@ -2323,6 +2394,19 @@ export function Import() {
         await importsQuery.refetch();
       },
       fallbackErrorMessage: "Eroare la ștergerea importului.",
+      setActionInProgress,
+      setUploadMessage,
+    });
+  };
+
+  const handleCancelImportBatch = async (id: string) => {
+    await runTrackedImportAction({
+      actionKey: `cancel-${id}`,
+      action: async () => {
+        await cancelBatchMutation.mutateAsync(id);
+        await importsQuery.refetch();
+      },
+      fallbackErrorMessage: "Eroare la anularea importului.",
       setActionInProgress,
       setUploadMessage,
     });
@@ -2483,6 +2567,7 @@ export function Import() {
       onRetry={handleRetry}
       onPauseImportBatch={handlePauseImportBatch}
       onResumeImportBatch={handleResumeImportBatch}
+      onCancelImportBatch={handleCancelImportBatch}
       onDeleteImportBatch={handleDeleteImportBatch}
       onImportRefetch={handleImportRefetch}
       mappingDialogId={mappingDialogId}

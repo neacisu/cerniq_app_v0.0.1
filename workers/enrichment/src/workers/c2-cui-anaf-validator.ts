@@ -423,6 +423,7 @@ export const cuiAnafValidatorProcessor: Processor<CuiAnafJobData> = async (job) 
         workerName: "C2:cui-anaf-validator",
         jobId: String(job.id ?? ""),
         startedAt,
+        importExecution: job.data.importExecution ?? null,
       });
       const contactLog = job.data.bronzeContactId ? log.forContact(job.data.bronzeContactId) : log;
 

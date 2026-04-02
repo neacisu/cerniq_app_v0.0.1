@@ -8,6 +8,7 @@ import {
   createRedisConnections,
   createWorker,
   failImportRuntimeJob,
+  QUEUES,
   loadSecretsFromFile,
   queueRegistry,
   startQueueDepthMonitor,
@@ -83,8 +84,90 @@ const PROMOTE_BRONZE_SILVER_WORKER_OPTIONS = {
   stalledInterval: 2 * 60 * 1000,
   maxStalledCount: 20,
 } as const;
+const EXCEL_INGEST_WORKER_OPTIONS = {
+  lockDuration: 5 * 60 * 1000,
+  stalledInterval: Math.floor((5 * 60 * 1000) / 2),
+  maxStalledCount: 1,
+} as const;
+const EXCEL_SANDBOX_PROCESSOR_FILE = import.meta.url.endsWith(".js")
+  ? new URL("./workers/a2-excel-parser.processor.js", import.meta.url)
+  : null;
+
+// Processors map must be declared before queueNames to avoid TDZ
+// (queueNames filters by Object.hasOwn(processors, n) at module init time).
+const processors: Partial<Record<string, (job: Job) => Promise<unknown>>> = {
+  "ingest:csv": csvParserProcessor as (job: Job) => Promise<unknown>,
+  "ingest:excel": excelParserProcessor as (job: Job) => Promise<unknown>,
+  "ingest:webhook": webhookReceiverProcessor as (job: Job) => Promise<unknown>,
+  "ingest:api": apiPollerProcessor as (job: Job) => Promise<unknown>,
+  "ingest:manual": manualEntryProcessor as (job: Job) => Promise<unknown>,
+  "normalize:name": nameNormalizerProcessor as (job: Job) => Promise<unknown>,
+  "normalize:email": emailNormalizerProcessor as (job: Job) => Promise<unknown>,
+  "normalize:phone": phoneNormalizerProcessor as (job: Job) => Promise<unknown>,
+  "normalize:address": addressNormalizerProcessor as (job: Job) => Promise<unknown>,
+  "enrich:bronze:anaf": anafBronzeEnricherProcessor as (job: Job) => Promise<unknown>,
+  "validate:cui:mod11": cuiModulo11ValidatorProcessor as (job: Job) => Promise<unknown>,
+  "validate:cui:anaf": cuiAnafValidatorProcessor as (job: Job) => Promise<unknown>,
+  "enrich:anaf:full": anafFullFetchProcessor as (job: Job) => Promise<unknown>,
+  "enrich:termene:balance": termeneBalanceProcessor as (job: Job) => Promise<unknown>,
+  "enrich:termene:risk": termeneRiskProcessor as (job: Job) => Promise<unknown>,
+  "enrich:termene:dosare": termeneDosareProcessor as (job: Job) => Promise<unknown>,
+  "enrich:termene:actionari": termeneAssociatesProcessor as (job: Job) => Promise<unknown>,
+  "enrich:onrc:data": onrcDataProcessor as (job: Job) => Promise<unknown>,
+  "enrich:onrc:administratori": onrcAdministratoriProcessor as (job: Job) => Promise<unknown>,
+  "enrich:onrc:sedii": onrcSediiProcessor as (job: Job) => Promise<unknown>,
+  "discover:email:hunter": hunterEmailFinderProcessor as (job: Job) => Promise<unknown>,
+  "discover:email:hunter-verify": hunterVerifierProcessor as (job: Job) => Promise<unknown>,
+  "discover:email:zerobounce": zerobounceValidationProcessor as (job: Job) => Promise<unknown>,
+  "enrich:email:enricher": emailEnricherProcessor as (job: Job) => Promise<unknown>,
+  "discover:email:pattern": emailPatternProcessor as (job: Job) => Promise<unknown>,
+  "discover:email:generate": emailGeneratorProcessor as (job: Job) => Promise<unknown>,
+  "enrich:phone:normalize": phoneNormalizerSilverProcessor as (job: Job) => Promise<unknown>,
+  "enrich:phone:hlr": hlrLookupProcessor as (job: Job) => Promise<unknown>,
+  "enrich:phone:carrier": carrierDetectionProcessor as (job: Job) => Promise<unknown>,
+  "scrape:legal:daj": dajScraperProcessor as (job: Job) => Promise<unknown>,
+  "scrape:legal:anif": anifScraperProcessor as (job: Job) => Promise<unknown>,
+  "scrape:website:finder": websiteFinderProcessor as (job: Job) => Promise<unknown>,
+  "scrape:website:contact-page": contactPageScraperProcessor as (job: Job) => Promise<unknown>,
+  "ai:structure:xai": grokStructuringProcessor as (job: Job) => Promise<unknown>,
+  "ai:merge:xai": aiDataMergerProcessor as (job: Job) => Promise<unknown>,
+  "ai:score:confidence": aiConfidenceScorerProcessor as (job: Job) => Promise<unknown>,
+  "ai:fallback": aiFallbackProcessor as (job: Job) => Promise<unknown>,
+  "geo:geocode:nominatim": nominatimGeocodingProcessor as (job: Job) => Promise<unknown>,
+  "geo:zones:postgis": postgisZonesProcessor as (job: Job) => Promise<unknown>,
+  "geo:proximity": proximityCalculatorProcessor as (job: Job) => Promise<unknown>,
+  "agri:apia": apiaDataProcessor as (job: Job) => Promise<unknown>,
+  "agri:ouai": ouaiMembershipProcessor as (job: Job) => Promise<unknown>,
+  "agri:cooperative": cooperativeMembershipProcessor as (job: Job) => Promise<unknown>,
+  "agri:culturi": culturiClassifierProcessor as (job: Job) => Promise<unknown>,
+  "agri:animale": animaleClassifierProcessor as (job: Job) => Promise<unknown>,
+  "dedup:exact": dedupExactHashProcessor as (job: Job) => Promise<unknown>,
+  "dedup:fuzzy": dedupFuzzyMatchProcessor as (job: Job) => Promise<unknown>,
+  "score:completeness": scoreCompletenessProcessor as (job: Job) => Promise<unknown>,
+  "score:accuracy": scoreAccuracyProcessor as (job: Job) => Promise<unknown>,
+  "score:freshness": scoreFreshnessProcessor as (job: Job) => Promise<unknown>,
+  "aggregate:daily-stats": dailyStatsProcessor as (job: Job) => Promise<unknown>,
+  "aggregate:quality-rollup": qualityRollupProcessor as (job: Job) => Promise<unknown>,
+  "pipeline:orchestrate": pipelineOrchestratorProcessor as (job: Job) => Promise<unknown>,
+  "pipeline:promote:gold": promoteToGoldProcessor as (job: Job) => Promise<unknown>,
+  "pipeline:monitor": pipelineMonitorProcessor as (job: Job) => Promise<unknown>,
+  "pipeline:error-handler": pipelineErrorHandlerProcessor as (job: Job) => Promise<unknown>,
+  "pipeline:promote:bronze-silver": promotionBronzeSilverProcessor as (
+    job: Job,
+  ) => Promise<unknown>,
+  "hitl:escalate": hitlEscalationProcessor as (job: Job) => Promise<unknown>,
+  "hitl:resume": hitlResumeAfterApprovalProcessor as (job: Job) => Promise<unknown>,
+  "maintenance:import-file-cleanup": importFileCleanupProcessor as (job: Job) => Promise<unknown>,
+};
+
 assertQueueRegistryComplete();
-const queueNames = queueRegistry.map((q) => q.name);
+// BUG-FIX: filter to only E1 queues that have registered processors.
+// workers/enrichment must NOT create BullMQ workers for E2/E3 queues — doing so
+// creates a Redis BLPOP race where the enrichment worker steals E2/E3 jobs and
+// silently acknowledges them with { ok: true } without processing.
+const queueNames = Array.from(new Set(queueRegistry.map((q) => q.name))).filter((n) =>
+  Object.hasOwn(processors, n),
+);
 const defaultTenantId = process.env.DEFAULT_TENANT_ID?.trim() ?? null;
 if (!defaultTenantId) {
   console.warn(
@@ -289,71 +372,6 @@ async function enqueuePipelineError(args: {
   await queue.close();
 }
 
-const processors: Partial<Record<string, (job: Job) => Promise<unknown>>> = {
-  "ingest:csv": csvParserProcessor as (job: Job) => Promise<unknown>,
-  "ingest:excel": excelParserProcessor as (job: Job) => Promise<unknown>,
-  "ingest:webhook": webhookReceiverProcessor as (job: Job) => Promise<unknown>,
-  "ingest:api": apiPollerProcessor as (job: Job) => Promise<unknown>,
-  "ingest:manual": manualEntryProcessor as (job: Job) => Promise<unknown>,
-  "normalize:name": nameNormalizerProcessor as (job: Job) => Promise<unknown>,
-  "normalize:email": emailNormalizerProcessor as (job: Job) => Promise<unknown>,
-  "normalize:phone": phoneNormalizerProcessor as (job: Job) => Promise<unknown>,
-  "normalize:address": addressNormalizerProcessor as (job: Job) => Promise<unknown>,
-  "enrich:bronze:anaf": anafBronzeEnricherProcessor as (job: Job) => Promise<unknown>,
-  "validate:cui:mod11": cuiModulo11ValidatorProcessor as (job: Job) => Promise<unknown>,
-  "validate:cui:anaf": cuiAnafValidatorProcessor as (job: Job) => Promise<unknown>,
-  "enrich:anaf:full": anafFullFetchProcessor as (job: Job) => Promise<unknown>,
-  "enrich:termene:balance": termeneBalanceProcessor as (job: Job) => Promise<unknown>,
-  "enrich:termene:risk": termeneRiskProcessor as (job: Job) => Promise<unknown>,
-  "enrich:termene:dosare": termeneDosareProcessor as (job: Job) => Promise<unknown>,
-  "enrich:termene:actionari": termeneAssociatesProcessor as (job: Job) => Promise<unknown>,
-  "enrich:onrc:data": onrcDataProcessor as (job: Job) => Promise<unknown>,
-  "enrich:onrc:administratori": onrcAdministratoriProcessor as (job: Job) => Promise<unknown>,
-  "enrich:onrc:sedii": onrcSediiProcessor as (job: Job) => Promise<unknown>,
-  "discover:email:hunter": hunterEmailFinderProcessor as (job: Job) => Promise<unknown>,
-  "discover:email:hunter-verify": hunterVerifierProcessor as (job: Job) => Promise<unknown>,
-  "discover:email:zerobounce": zerobounceValidationProcessor as (job: Job) => Promise<unknown>,
-  "enrich:email:enricher": emailEnricherProcessor as (job: Job) => Promise<unknown>,
-  "discover:email:pattern": emailPatternProcessor as (job: Job) => Promise<unknown>,
-  "discover:email:generate": emailGeneratorProcessor as (job: Job) => Promise<unknown>,
-  "enrich:phone:normalize": phoneNormalizerSilverProcessor as (job: Job) => Promise<unknown>,
-  "enrich:phone:hlr": hlrLookupProcessor as (job: Job) => Promise<unknown>,
-  "enrich:phone:carrier": carrierDetectionProcessor as (job: Job) => Promise<unknown>,
-  "scrape:legal:daj": dajScraperProcessor as (job: Job) => Promise<unknown>,
-  "scrape:legal:anif": anifScraperProcessor as (job: Job) => Promise<unknown>,
-  "scrape:website:finder": websiteFinderProcessor as (job: Job) => Promise<unknown>,
-  "scrape:website:contact-page": contactPageScraperProcessor as (job: Job) => Promise<unknown>,
-  "ai:structure:xai": grokStructuringProcessor as (job: Job) => Promise<unknown>,
-  "ai:merge:xai": aiDataMergerProcessor as (job: Job) => Promise<unknown>,
-  "ai:score:confidence": aiConfidenceScorerProcessor as (job: Job) => Promise<unknown>,
-  "ai:fallback": aiFallbackProcessor as (job: Job) => Promise<unknown>,
-  "geo:geocode:nominatim": nominatimGeocodingProcessor as (job: Job) => Promise<unknown>,
-  "geo:zones:postgis": postgisZonesProcessor as (job: Job) => Promise<unknown>,
-  "geo:proximity": proximityCalculatorProcessor as (job: Job) => Promise<unknown>,
-  "agri:apia": apiaDataProcessor as (job: Job) => Promise<unknown>,
-  "agri:ouai": ouaiMembershipProcessor as (job: Job) => Promise<unknown>,
-  "agri:cooperative": cooperativeMembershipProcessor as (job: Job) => Promise<unknown>,
-  "agri:culturi": culturiClassifierProcessor as (job: Job) => Promise<unknown>,
-  "agri:animale": animaleClassifierProcessor as (job: Job) => Promise<unknown>,
-  "dedup:exact": dedupExactHashProcessor as (job: Job) => Promise<unknown>,
-  "dedup:fuzzy": dedupFuzzyMatchProcessor as (job: Job) => Promise<unknown>,
-  "score:completeness": scoreCompletenessProcessor as (job: Job) => Promise<unknown>,
-  "score:accuracy": scoreAccuracyProcessor as (job: Job) => Promise<unknown>,
-  "score:freshness": scoreFreshnessProcessor as (job: Job) => Promise<unknown>,
-  "aggregate:daily-stats": dailyStatsProcessor as (job: Job) => Promise<unknown>,
-  "aggregate:quality-rollup": qualityRollupProcessor as (job: Job) => Promise<unknown>,
-  "pipeline:orchestrate": pipelineOrchestratorProcessor as (job: Job) => Promise<unknown>,
-  "pipeline:promote:gold": promoteToGoldProcessor as (job: Job) => Promise<unknown>,
-  "pipeline:monitor": pipelineMonitorProcessor as (job: Job) => Promise<unknown>,
-  "pipeline:error-handler": pipelineErrorHandlerProcessor as (job: Job) => Promise<unknown>,
-  "pipeline:promote:bronze-silver": promotionBronzeSilverProcessor as (
-    job: Job,
-  ) => Promise<unknown>,
-  "hitl:escalate": hitlEscalationProcessor as (job: Job) => Promise<unknown>,
-  "hitl:resume": hitlResumeAfterApprovalProcessor as (job: Job) => Promise<unknown>,
-  "maintenance:import-file-cleanup": importFileCleanupProcessor as (job: Job) => Promise<unknown>,
-};
-
 function getWorkerOptions(
   queueName: string,
   queueConfig?: { concurrency?: number; rateLimit?: { max: number; duration: number } },
@@ -370,56 +388,66 @@ function getWorkerOptions(
     };
   }
 
+  if (queueName === QUEUES.INGEST_EXCEL) {
+    return {
+      ...baseOptions,
+      ...EXCEL_INGEST_WORKER_OPTIONS,
+      ...(EXCEL_SANDBOX_PROCESSOR_FILE ? { useWorkerThreads: true } : {}),
+    };
+  }
+
   return baseOptions;
 }
 
 function buildWorkers() {
   workers = queueNames.map((queueName) => {
     const queueConfig = queueRegistry.find((q) => q.name === queueName);
-    const { worker, observeDuration } = createWorker(
-      queueName,
-      async (job: Job) => {
-        const startedAt = Date.now();
-        try {
-          const runtime = await beginImportRuntimeJob(queueName, job, queueName);
-          if (runtime.paused) {
-            stats.processed += 1;
-            stats.lastJob = {
-              name: job.name,
-              id: String(job.id),
-              timestamp: new Date().toISOString(),
-            };
-            return { ok: true, status: "paused" };
-          }
-          const processor = processors[queueName];
-          if (processor) {
-            const result = await processor(job);
-            await completeImportRuntimeJob(job, result as Record<string, unknown> | undefined);
-            stats.processed += 1;
-            stats.lastJob = {
-              name: job.name,
-              id: String(job.id),
-              timestamp: new Date().toISOString(),
-            };
-            return result;
-          }
-          stats.processed += 1;
-          stats.lastJob = {
-            name: job.name,
-            id: String(job.id),
-            timestamp: new Date().toISOString(),
+    const processor = processors[queueName];
+    if (!processor) {
+      throw new Error(`Missing processor for queue ${queueName}`);
+    }
+    let observeDuration: (startMs: number) => void = () => {};
+    const workerProcessor =
+      queueName === QUEUES.INGEST_EXCEL && EXCEL_SANDBOX_PROCESSOR_FILE
+        ? EXCEL_SANDBOX_PROCESSOR_FILE
+        : async (job: Job) => {
+            const startedAt = Date.now();
+            try {
+              const runtime = await beginImportRuntimeJob(queueName, job, queueName);
+              if (runtime.paused) {
+                stats.processed += 1;
+                stats.lastJob = {
+                  name: job.name,
+                  id: String(job.id),
+                  timestamp: new Date().toISOString(),
+                };
+                return { ok: true, status: "paused" };
+              }
+              const result = await processor(job);
+              await completeImportRuntimeJob(job, result as Record<string, unknown> | undefined);
+              stats.processed += 1;
+              stats.lastJob = {
+                name: job.name,
+                id: String(job.id),
+                timestamp: new Date().toISOString(),
+              };
+              return result;
+            } catch (error) {
+              await failImportRuntimeJob(job, error);
+              stats.failed += 1;
+              throw error;
+            } finally {
+              observeDuration(startedAt);
+            }
           };
-          return { ok: true };
-        } catch (error) {
-          await failImportRuntimeJob(job, error);
-          stats.failed += 1;
-          throw error;
-        } finally {
-          observeDuration(startedAt);
-        }
-      },
+
+    const createdWorker = createWorker(
+      queueName,
+      workerProcessor,
       getWorkerOptions(queueName, queueConfig),
     );
+    const { worker } = createdWorker;
+    observeDuration = createdWorker.observeDuration;
 
     worker.on("error", (err: Error) => {
       console.error(`[worker:${queueName}]`, err);

@@ -1,0 +1,144 @@
+groups:
+  - name: cerniq-e4-postsale
+    rules:
+
+      # ── 1. Payment Reconciliation ──────────────────────────────────────────
+
+      # PaymentReconciliationFailure: rata plăți UNMATCHED > 20% pentru 15 minute → CRITICAL
+      # Plan §IX L2159 — threshold EXACT 0.20 / 15m
+      - alert: PaymentReconciliationFailure
+        expr: |
+          sum(rate(cerniq_etapa4_reconciliation_total{result="unmatched"}[5m]))
+          /
+          clamp_min(sum(rate(cerniq_etapa4_reconciliation_total[5m])), 0.001)
+          > 0.20
+        for: 15m
+        labels:
+          severity: critical
+          etapa: E4
+          project: cerniq
+        annotations:
+          summary: "E4 PaymentReconciliationFailure — rata plăți nereconciliate > 20%"
+          description: |
+            Rata plăților UNMATCHED depășește 20% din totalul reconcilierilor în ultimele 15 minute.
+            Verificați workerii B7 (Tier1 exact), B8 (Tier2 fuzzy), B9 (Tier3 HITL).
+            Posibil: format IBAN incorect, referință lipsă, plăți duplicate Revolut.
+
+      # ── 2. HITL Queue ─────────────────────────────────────────────────────
+
+      # HITLQueueBacklog: task-uri HITL pending > 20 pentru 30 minute → WARNING
+      # Plan §IX L2160 — threshold EXACT 20 / 30m
+      - alert: HITLQueueBacklog
+        expr: sum(cerniq_etapa4_hitl_tasks_pending) > 20
+        for: 30m
+        labels:
+          severity: warning
+          etapa: E4
+          project: cerniq
+        annotations:
+          summary: "E4 HITLQueueBacklog — {{ $value }} task-uri HITL pending > 30 minute"
+          description: |
+            Mai mult de 20 task-uri HITL rămân nerezolvate mai mult de 30 de minute.
+            Tenant: {{ $labels.tenant_id }}, Tip: {{ $labels.task_type }}.
+            Verificați K48-K53 (credit override, credit limit, refund large, payment investigation).
+            SLA: CRITICAL=2h, HIGH=8h conform Plan §IX L2160.
+
+      # ── 3. Credit Scoring ─────────────────────────────────────────────────
+
+      # CreditScoringDown: rata erori API Termene > 50% pentru 5 minute → CRITICAL
+      # Plan §IX L2161 — threshold EXACT 0.50 / 5m, service="termene"
+      - alert: CreditScoringDown
+        expr: |
+          sum(rate(cerniq_etapa4_external_api_calls_total{service="termene",status="error"}[5m]))
+          /
+          clamp_min(sum(rate(cerniq_etapa4_external_api_calls_total{service="termene"}[5m])), 0.001)
+          > 0.50
+        for: 5m
+        labels:
+          severity: critical
+          etapa: E4
+          project: cerniq
+        annotations:
+          summary: "E4 CreditScoringDown — API Termene.ro error rate > 50%"
+          description: |
+            Rata de erori la apelurile Termene.ro depășește 50% în ultimele 5 minute.
+            Scoring credit este blocat — C14/C15/C16 nu pot obține date bilanț/dosare.
+            Verificați TERMENE_API_KEY, quota API Termene, disponibilitate termene.ro.
+
+      # ── 4. Logistics ──────────────────────────────────────────────────────
+
+      # DeliveryFailureSpike: spike livrări eșuate > 10 în 1 oră → WARNING
+      # Plan §IX L2162 — threshold EXACT 10 / 1h, status="DELIVERY_FAILED"
+      - alert: DeliveryFailureSpike
+        expr: increase(cerniq_etapa4_shipment_status_changes_total{status="DELIVERY_FAILED"}[1h]) > 10
+        for: 1h
+        labels:
+          severity: warning
+          etapa: E4
+          project: cerniq
+        annotations:
+          summary: "E4 DeliveryFailureSpike — {{ $value }} livrări eșuate în 1 oră"
+          description: |
+            Numărul de tranziții DELIVERY_FAILED depășește 10 în ultima oră.
+            Tenant: {{ $labels.tenant_id }}.
+            Verificați E24 (sameday:status:process) și statusul API Sameday.
+            La 3x DELIVERY_FAILED se declanșează returnare automată E26.
+
+      # ── 5. Worker Health ──────────────────────────────────────────────────
+
+      # WorkerJobFailures: rata eșecuri workeri E4 > 10% pentru 5 minute → WARNING
+      # Plan §IX L2163 — threshold EXACT 0.10 / 5m, regex ".*e4.*"
+      - alert: WorkerJobFailures
+        expr: |
+          sum(rate(cerniq_worker_jobs_failed_total{queue=~".*e4.*"}[5m]))
+          > 0.10
+        for: 5m
+        labels:
+          severity: warning
+          etapa: E4
+          project: cerniq
+        annotations:
+          summary: "E4 WorkerJobFailures — rata eșecuri > 0.10 jobs/s pe cozile E4"
+          description: |
+            Rata de eșecuri pe cozile worker E4 (pattern .*e4.*) depășește 0.10 jobs/s în 5 minute.
+            Queue: {{ $labels.queue }}.
+            Verificați log-urile workerilor A1-K53 și DLQ depth.
+
+      # ── 6. Contracts ──────────────────────────────────────────────────────
+
+      # ContractExpirySoon: contracte DocuSign care expiră în < 24h → WARNING
+      # Plan §IX L2164 — orice contract cu expirare iminentă
+      - alert: ContractExpirySoon
+        expr: increase(cerniq_etapa4_contract_expiry_alerts_total[1h]) > 0
+        for: 0m
+        labels:
+          severity: warning
+          etapa: E4
+          project: cerniq
+        annotations:
+          summary: "E4 ContractExpirySoon — contracte DocuSign cu expirare în < 24h"
+          description: |
+            Workerul G35 (contract:status:poll) a detectat contracte care expiră în mai puțin de 24 ore.
+            Tenant: {{ $labels.tenant_id }}.
+            Status DocuSign: SENT_DOCUSIGN — client nu a semnat încă.
+            Acționați: retrimeți reminder DocuSign sau escaladați la account manager.
+
+      # ── 7. Audit Chain ────────────────────────────────────────────────────
+
+      # AuditChainIntegrity: lanț audit hash-chain rupt → CRITICAL
+      # Plan §IX L2165 — == 0 înseamnă BROKEN (J46: audit:chain:verify)
+      - alert: AuditChainIntegrity
+        expr: cerniq_etapa4_audit_chain_integrity == 0
+        for: 0m
+        labels:
+          severity: critical
+          etapa: E4
+          project: cerniq
+        annotations:
+          summary: "E4 AuditChainIntegrity — lanț hash-chain RUPT pentru tenant {{ $labels.tenant_id }}"
+          description: |
+            Workerul J46 (audit:chain:verify) a detectat o ruptură în lanțul hash-chain audit E4.
+            Tenant: {{ $labels.tenant_id }}.
+            ACȚIUNE IMEDIATĂ: investigați integritatea tabelei gold_audit_logs_etapa4.
+            Posibil: ștergere neautorizată, corupție date, atac de tip tampering.
+            Blocați orice operațiuni financiare E4 până la investigarea completă.

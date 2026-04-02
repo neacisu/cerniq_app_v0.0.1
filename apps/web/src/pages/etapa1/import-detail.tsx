@@ -18,6 +18,7 @@ import {
   useDeleteImportBatch,
   useImportDetail,
   useImportEntities,
+  useImportQuarantine,
   useImportReprocessErrors,
   useImportRows,
   useAnafEnrichImport,
@@ -675,6 +676,7 @@ type ImportDetailActionsProps = Readonly<{
   id: string;
   isCompleted: boolean;
   canCancel: boolean;
+  batchHidden: boolean;
   isPaused: boolean;
   anafState: AnafEnrichmentState;
   anafEnrichMutation: AnafEnrichImportMutation;
@@ -689,6 +691,7 @@ function ImportDetailActions({
   id,
   isCompleted,
   canCancel,
+  batchHidden,
   isPaused,
   anafState,
   anafEnrichMutation,
@@ -698,7 +701,7 @@ function ImportDetailActions({
   deleteMutation,
   refetch,
 }: ImportDetailActionsProps) {
-  const canDelete = isCompleted === false;
+  const canDelete = !batchHidden;
 
   return (
     <div className="flex gap-2">
@@ -822,6 +825,7 @@ export function ImportDetail() {
   const { id } = useParams();
   const detailQuery = useImportDetail(id);
   const entitiesQuery = useImportEntities(id, 100, 0);
+  const quarantineQuery = useImportQuarantine(id, 25, 0);
   const rowsQuery = useImportRows(id, 100, 0);
   const reprocessErrorsQuery = useImportReprocessErrors(id, 100, 0);
   const cancelMutation = useCancelImport();
@@ -855,11 +859,22 @@ export function ImportDetail() {
   const metadata = (item.metadata as Record<string, unknown> | undefined) ?? {};
   const uploadConfig = (metadata.uploadConfig as Record<string, unknown> | undefined) ?? {};
   const identitySummary = (item.identitySummary as Record<string, unknown> | undefined) ?? {};
+  const historicalSummary =
+    (item.historicalSummary as Record<string, unknown> | undefined) ?? identitySummary;
+  const latestAttemptSummary =
+    (item.latestAttemptSummary as Record<string, unknown> | undefined) ?? {};
+  const quarantineSummary = (item.quarantineSummary as Record<string, unknown> | undefined) ?? {};
   const status = String(item.status ?? "unknown");
   const canCancel = status === "pending" || status === "processing";
   const isCompleted = status === "completed";
   const isPaused = Boolean(
     (item.control as Record<string, unknown> | undefined)?.batchPaused ?? false,
+  );
+  // Folosim `hidden` ca gate pentru canDelete — batch-ul este soft-deleted complet
+  // doar când hidden=true. Un batch cu deleteRequested=true dar hidden=false este
+  // în stare de limbo (delete eșuat parțial) și trebuie să permită retry.
+  const batchHidden = Boolean(
+    (item.control as Record<string, unknown> | undefined)?.hidden ?? false,
   );
   const processedRows = Number(item.processedRows ?? 0);
   const totalRows = Number(item.totalRows ?? 0);
@@ -885,6 +900,7 @@ export function ImportDetail() {
             id={id}
             isCompleted={isCompleted}
             canCancel={canCancel}
+            batchHidden={batchHidden}
             isPaused={isPaused}
             anafState={anafState}
             anafEnrichMutation={anafEnrichMutation}
@@ -907,16 +923,26 @@ export function ImportDetail() {
             <SummaryCard label="Randuri" value={rowsLabel} />
             <SummaryCard label="Progres" value={`${progress}%`} />
             <SummaryCard
-              label="Entități rezolvate"
-              value={Number(identitySummary.resolvedCompanies ?? 0).toLocaleString("ro-RO")}
+              label="Ultima încercare salvate"
+              value={Number(
+                latestAttemptSummary.successRows ?? item.successRows ?? 0,
+              ).toLocaleString("ro-RO")}
+            />
+            <SummaryCard
+              label="Istoric entități"
+              value={Number(historicalSummary.resolvedCompanies ?? 0).toLocaleString("ro-RO")}
+            />
+            <SummaryCard
+              label="Quarantine"
+              value={Number(quarantineSummary.totalRows ?? 0).toLocaleString("ro-RO")}
             />
             <SummaryCard
               label="Conflicte identitate"
-              value={Number(identitySummary.identityConflictRows ?? 0).toLocaleString("ro-RO")}
+              value={Number(historicalSummary.identityConflictRows ?? 0).toLocaleString("ro-RO")}
             />
             <SummaryCard
               label="Rânduri insuficiente"
-              value={Number(identitySummary.insufficientIdentifierRows ?? 0).toLocaleString(
+              value={Number(historicalSummary.insufficientIdentifierRows ?? 0).toLocaleString(
                 "ro-RO",
               )}
             />
@@ -933,6 +959,46 @@ export function ImportDetail() {
               </p>
             ) : null}
           </div>
+
+          {Number(quarantineSummary.totalRows ?? 0) > 0 ? (
+            <div className="mb-4 rounded-lg border border-wa/30 bg-wa/8 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-sm font-semibold text-t1">Quarantine</div>
+                  <div className="mt-1 text-xs text-t3">
+                    Primele rânduri izolate automat pentru control chars sau conflicte de
+                    invarianta.
+                  </div>
+                </div>
+                <div className="text-xs font-medium text-wa">
+                  {Number(quarantineSummary.totalRows ?? 0).toLocaleString("ro-RO")} rânduri
+                </div>
+              </div>
+              <div className="mt-3 space-y-2">
+                {((quarantineQuery.data?.data ?? []) as Array<Record<string, unknown>>).map(
+                  (row) => (
+                    <div
+                      key={String(row.id)}
+                      className="rounded-md border border-s700/60 bg-surface-2 px-3 py-2 text-xs"
+                    >
+                      <div className="flex flex-wrap items-center gap-2 text-t2">
+                        <span className="font-semibold text-t1">
+                          {String(row.reasonCode ?? "-")}
+                        </span>
+                        <span>sheet {String(row.sheetName ?? "-")}</span>
+                        <span>worksheet {String(row.worksheetRow ?? "-")}</span>
+                        <span>global {String(row.globalRow ?? "-")}</span>
+                        <span>field {String(row.fieldName ?? "-")}</span>
+                      </div>
+                      <div className="mt-1 text-[11px] text-t3">
+                        {String(row.sourceIdentifier ?? "-")}
+                      </div>
+                    </div>
+                  ),
+                )}
+              </div>
+            </div>
+          ) : null}
 
           <ImportErrorCard lastError={lastError} failedAt={failedAt} />
 

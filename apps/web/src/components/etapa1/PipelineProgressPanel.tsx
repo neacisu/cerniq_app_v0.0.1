@@ -5,6 +5,7 @@ import { Select } from "@/components/ui/select.js";
 import { Input } from "@/components/ui/input.js";
 import { Button } from "@/components/ui/button.js";
 import { toast } from "@/components/ui/toast-api.js";
+import { resolveEffectiveSessionId } from "@/components/etapa1/pipeline-session.js";
 import {
   useImportJobLogs,
   usePauseImportBatch,
@@ -16,6 +17,7 @@ import {
 } from "@/hooks/use-etapa1.js";
 import type {
   ImportAnafProgress,
+  ImportAttemptSummary,
   ImportPipelineStatus,
   ImportPromotionMetrics,
   ImportRuntimeJob,
@@ -691,6 +693,13 @@ function buildStageOptions(workers: ImportRuntimeWorker[]) {
   );
 }
 
+function buildAttemptOptions(attempts: ImportAttemptSummary[]) {
+  return attempts.map((attempt, index) => ({
+    value: attempt.id,
+    label: `Attempt ${attempts.length - index} · ${attempt.kind} · ${attempt.status}`,
+  }));
+}
+
 function EmptyState({ isActive }: Readonly<{ isActive: boolean }>) {
   return (
     <div className="py-10 text-center text-sm text-t3">
@@ -702,20 +711,35 @@ function EmptyState({ isActive }: Readonly<{ isActive: boolean }>) {
 }
 
 export function PipelineProgressPanel({ batchId, isActive }: Readonly<Props>) {
+  const [selectedSessionIdsByBatch, setSelectedSessionIdsByBatch] = useState<
+    Record<string, string>
+  >({});
   const [levelFilter, setLevelFilter] = useState("");
   const [stageFilter, setStageFilter] = useState("");
   const [workerFilter, setWorkerFilter] = useState("");
   const [search, setSearch] = useState("");
+  const selectedSessionId = selectedSessionIdsByBatch[batchId] ?? "";
 
+  const pipelineQuery = useImportPipelineStatus(batchId, {
+    enabled: Boolean(batchId),
+    session: selectedSessionId || undefined,
+  });
+  const pipeline = pipelineQuery.data?.data ?? null;
+  const effectiveSessionId = resolveEffectiveSessionId(
+    batchId,
+    selectedSessionIdsByBatch,
+    pipeline?.selectedRuntimeSession?.id,
+  );
   const logsQuery = useImportJobLogs(batchId, {
     limit: 500,
     tail: true,
     isActive,
+    sessionId: effectiveSessionId,
   });
-  const pipelineQuery = useImportPipelineStatus(batchId, { enabled: Boolean(batchId) });
   const runtimeQuery = useImportRuntimeTopology(batchId, {
     enabled: Boolean(batchId),
     isActive,
+    session: effectiveSessionId,
   });
   const pauseBatchMutation = usePauseImportBatch();
   const resumeBatchMutation = useResumeImportBatch();
@@ -769,9 +793,12 @@ export function PipelineProgressPanel({ batchId, isActive }: Readonly<Props>) {
   const visibleWorkers = filteredWorkers.length;
   const errorCount = timelineLogs.filter((log) => log.level === "error").length;
   const warnCount = timelineLogs.filter((log) => log.level === "warn").length;
-  const pipeline = pipelineQuery.data?.data ?? null;
   const topology = runtimeQuery.data?.data ?? null;
   const logsLoaded = runtimeQuery.data?.data?.totals.logsLoaded ?? timelineLogs.length;
+  const attemptOptions = useMemo(
+    () => buildAttemptOptions(pipeline?.attempts ?? []),
+    [pipeline?.attempts],
+  );
 
   async function handlePauseBatch(targetBatchId: string) {
     try {
@@ -784,7 +811,11 @@ export function PipelineProgressPanel({ batchId, isActive }: Readonly<Props>) {
 
   async function handleResumeBatch(targetBatchId: string, mode: "resume" | "recover") {
     try {
-      await resumeBatchMutation.mutateAsync({ batchId: targetBatchId, mode });
+      await resumeBatchMutation.mutateAsync({
+        batchId: targetBatchId,
+        mode,
+        sessionId: effectiveSessionId,
+      });
       toast.success(
         mode === "recover" ? "Importul a fost reluat în modul recover." : "Importul a fost reluat.",
       );
@@ -808,7 +839,12 @@ export function PipelineProgressPanel({ batchId, isActive }: Readonly<Props>) {
     mode: "resume" | "recover",
   ) {
     try {
-      await resumeWorkerMutation.mutateAsync({ batchId: targetBatchId, workerName, mode });
+      await resumeWorkerMutation.mutateAsync({
+        batchId: targetBatchId,
+        workerName,
+        mode,
+        sessionId: effectiveSessionId,
+      });
       toast.success(
         mode === "recover"
           ? `Workerul ${workerName} a fost reluat în recover.`
@@ -845,6 +881,20 @@ export function PipelineProgressPanel({ batchId, isActive }: Readonly<Props>) {
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
+        {attemptOptions.length > 0 ? (
+          <div className="w-60">
+            <Select
+              value={effectiveSessionId ?? ""}
+              onValueChange={(value) =>
+                setSelectedSessionIdsByBatch((current) => ({
+                  ...current,
+                  [batchId]: value,
+                }))
+              }
+              options={attemptOptions}
+            />
+          </div>
+        ) : null}
         <div className="w-44">
           <Select
             value={levelFilter}

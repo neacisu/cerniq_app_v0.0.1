@@ -220,6 +220,7 @@ export const anafBronzeEnricherProcessor: Processor<AnafBronzeEnricherJobData> =
         tenantId: job.data.tenantId,
         workerName: "B5:anaf-bronze-enricher",
         jobId: String(job.id ?? ""),
+        importExecution: job.data.importExecution ?? null,
       });
 
       try {

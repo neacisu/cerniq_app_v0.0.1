@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ESNext"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "noEmit": true,
+    "baseUrl": "../..",
+    "paths": {
+      "@cerniq/db": ["./packages/db/src/index.ts"],
+      "@cerniq/db/*": ["./packages/db/src/*"],
+      "@cerniq/shared-types": ["./packages/shared-types/src/index.ts"],
+      "@cerniq/shared-types/*": ["./packages/shared-types/src/*"],
+      "@cerniq/worker-shared": ["./workers/shared/src/index.ts"],
+      "@cerniq/worker-shared/*": ["./workers/shared/src/*"]
+    }
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

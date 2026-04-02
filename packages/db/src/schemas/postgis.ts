@@ -5,3 +5,9 @@ export const geographyPoint = customType<{ data: string | null; driverData: stri
     return "geography(POINT,4326)";
   },
 });
+
+export const geometryPolygon = customType<{ data: string | null; driverData: string | null }>({
+  dataType() {
+    return "geometry(POLYGON,4326)";
+  },
+});

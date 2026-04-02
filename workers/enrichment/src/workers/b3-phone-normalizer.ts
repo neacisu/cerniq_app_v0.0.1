@@ -33,6 +33,7 @@ export const phoneNormalizerProcessor: Processor<PhoneNormalizerJobData> = async
         workerName: "B3:phone-normalizer",
         jobId: String(job.id ?? ""),
         startedAt,
+        importExecution: job.data.importExecution ?? null,
       }).forContact(job.data.bronzeContactId);
       try {
         log.step("start", "Pornire normalizare telefon", {

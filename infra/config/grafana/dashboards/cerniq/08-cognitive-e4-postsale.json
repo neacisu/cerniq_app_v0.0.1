@@ -1,0 +1,374 @@
+{
+  "annotations": { "list": [] },
+  "description": "CerniqAPP E4 Post-Sale — Payments, Credit, Logistics, Contracts, HITL, External APIs (Plan §IX FAZA 8i)",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "title": "Orders Overview",
+      "type": "row"
+    },
+    {
+      "title": "Orders Created (rate/s)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 1 },
+      "id": 1,
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum by (tenant_id, payment_method) (rate(cerniq_etapa4_orders_created_total{tenant_id=~\"$tenant_id\"}[$__rate_interval]))",
+          "legendFormat": "{{ tenant_id }} / {{ payment_method }}"
+        },
+        {
+          "expr": "sum by (tenant_id) (rate(cerniq_etapa4_payments_received_total{tenant_id=~\"$tenant_id\"}[$__rate_interval]))",
+          "legendFormat": "Received {{ tenant_id }}"
+        }
+      ]
+    },
+    {
+      "title": "Orders Value Total (RON/s)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 1 },
+      "id": 2,
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyRON",
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum by (tenant_id, currency) (rate(cerniq_etapa4_orders_value_total{tenant_id=~\"$tenant_id\"}[$__rate_interval]))",
+          "legendFormat": "{{ tenant_id }} {{ currency }}"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 },
+      "id": 101,
+      "title": "Payment Reconciliation",
+      "type": "row"
+    },
+    {
+      "title": "Reconciliation Rate by Match Type",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 10 },
+      "id": 3,
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "lineWidth": 2, "fillOpacity": 15 }
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum by (match_type, result) (rate(cerniq_etapa4_reconciliation_total[$__rate_interval]))",
+          "legendFormat": "{{ match_type }} / {{ result }}"
+        }
+      ]
+    },
+    {
+      "title": "Reconciliation Duration P50 / P95 / P99",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 10 },
+      "id": 4,
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum by (le, match_type) (rate(cerniq_etapa4_payments_reconciliation_duration_seconds_bucket[$__rate_interval])))",
+          "legendFormat": "P50 {{ match_type }}"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, match_type) (rate(cerniq_etapa4_payments_reconciliation_duration_seconds_bucket[$__rate_interval])))",
+          "legendFormat": "P95 {{ match_type }}"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum by (le, match_type) (rate(cerniq_etapa4_payments_reconciliation_duration_seconds_bucket[$__rate_interval])))",
+          "legendFormat": "P99 {{ match_type }}"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 18 },
+      "id": 102,
+      "title": "Credit Scoring",
+      "type": "row"
+    },
+    {
+      "title": "Credit Score Distribution (risk tiers)",
+      "type": "bargauge",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 19 },
+      "id": 5,
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "orientation": "horizontal",
+        "displayMode": "gradient"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "palette-classic" },
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 10 },
+              { "color": "red", "value": 50 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum by (risk_tier) (cerniq_etapa4_credit_score_distribution{tenant_id=~\"$tenant_id\"})",
+          "legendFormat": "{{ risk_tier }}"
+        }
+      ]
+    },
+    {
+      "title": "Credit Utilization Ratio (P95 per tenant)",
+      "type": "gauge",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 19 },
+      "id": 6,
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1,
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.7 },
+              { "color": "red", "value": 0.9 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "expr": "quantile by (tenant_id) (0.95, cerniq_etapa4_credit_utilization_ratio{tenant_id=~\"$tenant_id\"})",
+          "legendFormat": "P95 {{ tenant_id }}"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 27 },
+      "id": 103,
+      "title": "Logistics (Sameday AWB + Stock)",
+      "type": "row"
+    },
+    {
+      "title": "Shipments Created & Status Changes",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 28 },
+      "id": 7,
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum by (carrier) (rate(cerniq_etapa4_shipments_created_total[$__rate_interval]))",
+          "legendFormat": "Created {{ carrier }}"
+        },
+        {
+          "expr": "sum by (status) (rate(cerniq_etapa4_shipment_status_changes_total[$__rate_interval]))",
+          "legendFormat": "Status {{ status }}"
+        }
+      ]
+    },
+    {
+      "title": "Delivery Time P50 / P95 (hours)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 28 },
+      "id": 8,
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "h",
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum by (le, carrier) (rate(cerniq_etapa4_shipment_delivery_time_hours_bucket[$__rate_interval])))",
+          "legendFormat": "P50 {{ carrier }}"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, carrier) (rate(cerniq_etapa4_shipment_delivery_time_hours_bucket[$__rate_interval])))",
+          "legendFormat": "P95 {{ carrier }}"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 36 },
+      "id": 104,
+      "title": "HITL Queue",
+      "type": "row"
+    },
+    {
+      "title": "HITL Tasks Pending (current)",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 37 },
+      "id": 9,
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 10 },
+              { "color": "red", "value": 20 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum by (task_type) (cerniq_etapa4_hitl_tasks_pending{tenant_id=~\"$tenant_id\"})",
+          "legendFormat": "{{ task_type }}"
+        }
+      ]
+    },
+    {
+      "title": "HITL Resolution Time P50 / P95 (seconds)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 37 },
+      "id": 10,
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum by (le, task_type) (rate(cerniq_etapa4_hitl_resolution_time_seconds_bucket[$__rate_interval])))",
+          "legendFormat": "P50 {{ task_type }}"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, task_type) (rate(cerniq_etapa4_hitl_resolution_time_seconds_bucket[$__rate_interval])))",
+          "legendFormat": "P95 {{ task_type }}"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 45 },
+      "id": 105,
+      "title": "External APIs (Revolut, Sameday, DocuSign, Termene, ANAF)",
+      "type": "row"
+    },
+    {
+      "title": "External API Call Rate (by service)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 46 },
+      "id": 11,
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum by (service, status) (rate(cerniq_etapa4_external_api_calls_total[$__rate_interval]))",
+          "legendFormat": "{{ service }} / {{ status }}"
+        }
+      ]
+    },
+    {
+      "title": "External API Duration P95 (by service)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 46 },
+      "id": 12,
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, service) (rate(cerniq_etapa4_external_api_duration_seconds_bucket[$__rate_interval])))",
+          "legendFormat": "P95 {{ service }}"
+        },
+        {
+          "expr": "histogram_quantile(0.50, sum by (le, service) (rate(cerniq_etapa4_external_api_duration_seconds_bucket[$__rate_interval])))",
+          "legendFormat": "P50 {{ service }}"
+        }
+      ]
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["cerniq", "e4", "post-sale", "payments", "logistics", "credit", "hitl"],
+  "templating": {
+    "list": [
+      {
+        "current": {},
+        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+        "definition": "label_values(cerniq_etapa4_orders_created_total, tenant_id)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Tenant",
+        "multi": true,
+        "name": "tenant_id",
+        "options": [],
+        "query": {
+          "query": "label_values(cerniq_etapa4_orders_created_total, tenant_id)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
+      }
+    ]
+  },
+  "time": { "from": "now-3h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "CerniqAPP — E4 Post-Sale (FAZA 8i)",
+  "uid": "cerniq-e4-postsale",
+  "version": 1
+}

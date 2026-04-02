@@ -52,7 +52,7 @@ export function createQueue<T = unknown>(
 
 export function createWorker<T = unknown>(
   name: string,
-  processor: Processor<T>,
+  processor: Processor<T> | string | URL,
   options?: Partial<WorkerOptions> & { db?: number },
 ) {
   const { db, ...workerOpts } = options ?? {};

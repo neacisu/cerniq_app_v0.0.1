@@ -63,6 +63,7 @@ export const emailNormalizerProcessor: Processor<EmailNormalizerJobData> = async
         workerName: "B2:email-normalizer",
         jobId: String(job.id ?? ""),
         startedAt,
+        importExecution: job.data.importExecution ?? null,
       }).forContact(job.data.bronzeContactId);
       try {
         log.step("start", "Pornire normalizare email", {

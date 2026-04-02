@@ -189,10 +189,33 @@ export const goldNegotiations = goldSchema.table(
       .notNull()
       .references(() => goldCompanies.id, { onDelete: "cascade" }),
     assignedUserId: uuid("assigned_user_id").references(() => users.id, { onDelete: "set null" }),
+    /**
+     * Sticky WA phone assigned to this negotiation.
+     * References outreach.wa_phone_numbers(id) — cross-schema, no FK constraint (plan L8409).
+     * Used by J59 channel:whatsapp:send for consistent client communication.
+     */
+    assignedPhoneId: uuid("assigned_phone_id"),
     currentState: text("current_state").notNull().default("DISCOVERY"),
+    /**
+     * AI confidence score [0..1] from last C15 response:generate.
+     * J56 handover:detect triggers handover when confidence < 0.3.
+     */
+    aiConfidenceScore: numeric("ai_confidence_score", { precision: 5, scale: 4 }),
     engagementScore: numeric("engagement_score", { precision: 5, scale: 2 }),
     closeProbability: numeric("close_probability", { precision: 5, scale: 2 }),
     totalValue: numeric("total_value", { precision: 14, scale: 2 }),
+    /** Maximum discount offered during negotiation — J56 triggers handover if > 30%. */
+    maxDiscountOffered: numeric("max_discount_offered", { precision: 5, scale: 2 }),
+    /**
+     * L68 mcp:session:manage — ID sesiune MCP activă (TTL 30min).
+     * Corelat cu mcp_session_expires_at; NULL = nicio sesiune activă.
+     */
+    mcpSessionId: text("mcp_session_id"),
+    /**
+     * Timestamp expirare sesiune MCP. L68 expire curăță câmpul când < now().
+     * L69 health:check numără negocierile cu sesiune activă (> now()).
+     */
+    mcpSessionExpiresAt: timestamp("mcp_session_expires_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -311,6 +334,11 @@ export const aiConversations = goldSchema.table(
       onDelete: "set null",
     }),
     sessionId: text("session_id"),
+    /**
+     * L68 mcp:session:manage — ID sesiune MCP asociată conversației.
+     * Legat de mcp_session_id pe gold_negotiations.
+     */
+    mcpSessionId: text("mcp_session_id"),
     modelUsed: text("model_used"),
     startedAt: timestamp("started_at", { withTimezone: true }),
     endedAt: timestamp("ended_at", { withTimezone: true }),
@@ -337,6 +365,13 @@ export const aiConversationMessages = goldSchema.table(
     role: text("role").notNull(),
     content: text("content"),
     tokens: integer("tokens"),
+    /**
+     * K61 sentiment:analyze rezultat — stocat pe mesaj pentru K64 trend analysis.
+     * Score -1..1: -1=extrem negativ, 0=neutru, 1=extrem pozitiv.
+     */
+    sentimentScore: numeric("sentiment_score", { precision: 4, scale: 3 }),
+    /** K61 label: POSITIVE | NEUTRAL | NEGATIVE */
+    sentimentLabel: text("sentiment_label"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -345,6 +380,7 @@ export const aiConversationMessages = goldSchema.table(
       sql`${t.role} IN (${sql.raw(sqlInList(aiMessageRoles))})`,
     ),
     index("idx_ai_conversation_messages_conversation").on(t.conversationId),
+    index("idx_ai_conversation_messages_sentiment").on(t.sentimentScore, t.createdAt),
   ],
 );
 
@@ -505,5 +541,39 @@ export const fsmStateAllowedTools = goldSchema.table(
   (t) => [
     unique("uq_fsm_state_allowed_tools").on(t.fsmType, t.state, t.toolName),
     index("idx_fsm_state_allowed_tools_fsm_state").on(t.fsmType, t.state),
+  ],
+);
+
+/**
+ * K65 feedback:collect — NPS 1-5 + free text per negociere.
+ * Stochează feedback-ul colectat după fiecare interacțiune AI sau la finalul
+ * negocierii pentru quality monitoring și model improvement.
+ *
+ * FAZA 7l — Plan L1905.
+ */
+export const goldNegotiationFeedback = goldSchema.table(
+  "gold_negotiation_feedback",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    negotiationId: uuid("negotiation_id")
+      .notNull()
+      .references(() => goldNegotiations.id, { onDelete: "cascade" }),
+    /** NPS score 1-5 (1=very dissatisfied, 5=very satisfied). */
+    nps: integer("nps").notNull(),
+    freeText: text("free_text"),
+    /** Channel-ul de unde a venit feedback-ul: WA, EMAIL, IN_APP, API. */
+    sourceChannel: text("source_channel"),
+    /** ID-ul mesajului AI care a declanșat colectarea feedback-ului. */
+    triggerMessageId: uuid("trigger_message_id"),
+    metadata: jsonb("metadata"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    check("chk_negotiation_feedback_nps", sql`${t.nps} BETWEEN 1 AND 5`),
+    index("idx_negotiation_feedback_negotiation").on(t.negotiationId),
+    index("idx_negotiation_feedback_tenant_created").on(t.tenantId, t.createdAt),
   ],
 );

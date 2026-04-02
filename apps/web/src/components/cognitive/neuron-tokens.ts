@@ -25,6 +25,20 @@ export const NEURON_COLORS: Record<string, string> = {
   HumanNeuron: "var(--color-neuron-human)",
   PredictiveNeuron: "var(--color-neuron-meta)",
   ToolNeuron: "var(--color-neuron-factual)",
+  // ── E4 new types ─────────────────────────────────────────────────────────
+  PerceptionNeuron: "var(--color-neuron-sensory)",
+  ReconciliationNeuron: "var(--color-neuron-reconcile)",
+  CreditNeuron: "var(--color-neuron-credit)",
+  LimitNeuron: "var(--color-neuron-normal)",
+  LogisticsNeuron: "var(--color-neuron-logistics)",
+  StockNeuron: "var(--color-neuron-domain)",
+  ContractNeuron: "var(--color-neuron-contract)",
+  ReturnNeuron: "var(--color-neuron-procedural)",
+  AlertNeuron: "var(--color-neuron-vigilance)",
+  ComplianceNeuron: "var(--color-neuron-guardrail)",
+  MetaNeuron: "var(--color-neuron-meta)",
+  MaintenanceNeuron: "var(--color-neuron-maintenance)",
+  VigilanceNeuron: "var(--color-neuron-vigilance)",
 } as const;
 
 /** Maps runtime status → CSS custom property for the status-dot color. */

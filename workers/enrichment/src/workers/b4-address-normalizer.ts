@@ -96,6 +96,7 @@ export const addressNormalizerProcessor: Processor<AddressNormalizerJobData> = a
         workerName: "B4:address-normalizer",
         jobId: String(job.id ?? ""),
         startedAt,
+        importExecution: job.data.importExecution ?? null,
       }).forContact(job.data.bronzeContactId);
       try {
         log.step("start", "Pornire normalizare adresă", {

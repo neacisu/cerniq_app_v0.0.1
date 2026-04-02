@@ -2394,6 +2394,7 @@ async function handleCompanyPromotion(args: {
     batchId: batchIdForLog,
     tenantId: jobData.tenantId,
     workerName: "promotion:bronze-silver",
+    importExecution: jobData.importExecution ?? null,
   }).forContact(bronze.id);
 
   const rawCui = bronze.extractedCui ?? resolveField(payload, mapping, "cui", "CUI", "cif");
@@ -2880,6 +2881,7 @@ export const promotionBronzeSilverProcessor: Processor<PromotionBronzeSilverJobD
           workerName: "promotion:bronze-silver",
           jobId: String(job.id ?? ""),
           startedAt,
+          importExecution: job.data.importExecution ?? null,
         });
         log.step("batch_reprocess_start", `Reprocesare batch ${job.data.batchId} declanșată`, {
           batchId: job.data.batchId,
