@@ -156,6 +156,86 @@ export async function negotiationRoutes(app: FastifyInstance) {
     });
   });
 
+  // ── GET /negotiations/stats (dashboard) — înainte de /:id (uuid) ───────────
+
+  app.get("/stats", { ...authOpts }, async (req, reply) => {
+    const tenantId = requireTenantId(req);
+
+    const byState = await db
+      .select({
+        state: goldNegotiations.currentState,
+        count: sql<number>`count(*)::int`,
+        totalValue: sql<string>`coalesce(sum(${goldNegotiations.totalValue}), 0)::text`,
+      })
+      .from(goldNegotiations)
+      .where(eq(goldNegotiations.tenantId, tenantId))
+      .groupBy(goldNegotiations.currentState);
+
+    const [avgConf] = await db
+      .select({
+        avgConfidence: sql<string>`coalesce(avg(${goldNegotiations.aiConfidenceScore}), 0)::text`,
+        avgClose: sql<string>`coalesce(avg(${goldNegotiations.closeProbability}), 0)::text`,
+      })
+      .from(goldNegotiations)
+      .where(eq(goldNegotiations.tenantId, tenantId));
+
+    return reply.send({
+      success: true,
+      data: {
+        byState,
+        avgAiConfidence: avgConf?.avgConfidence ?? "0",
+        avgCloseProbability: avgConf?.avgClose ?? "0",
+      },
+    });
+  });
+
+  // ── GET /negotiations/guardrails (tenant-wide) ─────────────────────────────
+
+  app.get("/guardrails", { ...authOpts }, async (req, reply) => {
+    const tenantId = requireTenantId(req);
+    const query = guardrailsQuerySchema.parse(req.query);
+    const offset = (query.page - 1) * query.limit;
+
+    const conditions = [eq(guardrailViolations.tenantId, tenantId)];
+    if (query.severity) conditions.push(eq(guardrailViolations.severity, query.severity));
+
+    const [rows, countResult] = await Promise.all([
+      db
+        .select()
+        .from(guardrailViolations)
+        .where(and(...conditions))
+        .orderBy(desc(guardrailViolations.createdAt))
+        .limit(query.limit)
+        .offset(offset),
+      db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(guardrailViolations)
+        .where(and(...conditions)),
+    ]);
+
+    const total = countResult[0]?.count ?? 0;
+    return reply.send({
+      success: true,
+      data: rows,
+      meta: { page: query.page, limit: query.limit, total },
+    });
+  });
+
+  // ── GET /negotiations/by-lead/:leadId ─────────────────────────────────────
+
+  app.get("/by-lead/:leadId", { ...authOpts }, async (req, reply) => {
+    const tenantId = requireTenantId(req);
+    const { leadId } = leadIdParamSchema.parse(req.params);
+
+    const rows = await db
+      .select()
+      .from(goldNegotiations)
+      .where(and(eq(goldNegotiations.tenantId, tenantId), eq(goldNegotiations.leadId, leadId)))
+      .orderBy(desc(goldNegotiations.createdAt));
+
+    return reply.send({ success: true, data: rows });
+  });
+
   // ── GET /negotiations/:id ──────────────────────────────────────────────────
 
   app.get("/:id", { ...authOpts }, async (req, reply) => {
@@ -429,21 +509,26 @@ export async function negotiationRoutes(app: FastifyInstance) {
 
     if (!neg) return reply.status(404).send({ success: false, error: "Negotiation not found" });
 
-    const conditions = [eq(guardrailViolations.tenantId, tenantId)];
+    const conditions = [
+      eq(guardrailViolations.tenantId, tenantId),
+      sql`${guardrailViolations.details}->>'negotiationId' = ${id}`,
+    ];
     if (query.severity) conditions.push(eq(guardrailViolations.severity, query.severity));
+
+    const whereClause = and(...conditions);
 
     const [rows, countResult] = await Promise.all([
       db
         .select()
         .from(guardrailViolations)
-        .where(and(...conditions))
+        .where(whereClause)
         .orderBy(desc(guardrailViolations.createdAt))
         .limit(query.limit)
         .offset(offset),
       db
         .select({ count: sql<number>`count(*)::int` })
         .from(guardrailViolations)
-        .where(and(...conditions)),
+        .where(whereClause),
     ]);
 
     const total = countResult[0]?.count ?? 0;
@@ -452,21 +537,6 @@ export async function negotiationRoutes(app: FastifyInstance) {
       data: rows,
       meta: { page: query.page, limit: query.limit, total },
     });
-  });
-
-  // ── GET /negotiations/by-lead/:leadId ─────────────────────────────────────
-
-  app.get("/by-lead/:leadId", { ...authOpts }, async (req, reply) => {
-    const tenantId = requireTenantId(req);
-    const { leadId } = leadIdParamSchema.parse(req.params);
-
-    const rows = await db
-      .select()
-      .from(goldNegotiations)
-      .where(and(eq(goldNegotiations.tenantId, tenantId), eq(goldNegotiations.leadId, leadId)))
-      .orderBy(desc(goldNegotiations.createdAt));
-
-    return reply.send({ success: true, data: rows });
   });
 
   // ── POST /negotiations/:id/reminder ───────────────────────────────────────
@@ -519,38 +589,5 @@ export async function negotiationRoutes(app: FastifyInstance) {
     });
 
     return reply.send({ success: true, data: { queued: true } });
-  });
-
-  // ── GET /negotiations/stats (dashboard) ────────────────────────────────────
-
-  app.get("/stats", { ...authOpts }, async (req, reply) => {
-    const tenantId = requireTenantId(req);
-
-    const byState = await db
-      .select({
-        state: goldNegotiations.currentState,
-        count: sql<number>`count(*)::int`,
-        totalValue: sql<string>`coalesce(sum(${goldNegotiations.totalValue}), 0)::text`,
-      })
-      .from(goldNegotiations)
-      .where(eq(goldNegotiations.tenantId, tenantId))
-      .groupBy(goldNegotiations.currentState);
-
-    const [avgConf] = await db
-      .select({
-        avgConfidence: sql<string>`coalesce(avg(${goldNegotiations.aiConfidenceScore}), 0)::text`,
-        avgClose: sql<string>`coalesce(avg(${goldNegotiations.closeProbability}), 0)::text`,
-      })
-      .from(goldNegotiations)
-      .where(eq(goldNegotiations.tenantId, tenantId));
-
-    return reply.send({
-      success: true,
-      data: {
-        byState,
-        avgAiConfidence: avgConf?.avgConfidence ?? "0",
-        avgCloseProbability: avgConf?.avgClose ?? "0",
-      },
-    });
   });
 }

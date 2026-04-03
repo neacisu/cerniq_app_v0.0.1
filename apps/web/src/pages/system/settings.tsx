@@ -23,95 +23,15 @@ interface TeamMember {
   status: "ACTIVE" | "PENDING" | "INACTIVE";
 }
 
+/** Integrările reale sunt în OpenBao / mediu — UI afișează doar ghidul operațional. */
 const INITIAL_APIS: ApiConfig[] = [
   {
-    id: "infraq",
-    name: "infraq.app (LLM)",
-    status: "ok",
-    key: "iq_••••••••••••3a9f",
-    description: "QwQ-32B, Qwen2.5-14B, qwen3-embedding",
-  },
-  {
-    id: "anaf",
-    name: "ANAF SPV e-Factura",
-    status: "ok",
-    key: "sk_••••••••••••a3f2",
-    description: "SPV OAuth2 + eFactura XML",
-  },
-  {
-    id: "termene",
-    name: "Termene.ro",
-    status: "ok",
-    key: "••••••••••••",
-    description: "Bilanțuri + Dosare + Acționari",
-  },
-  {
-    id: "hunter",
-    name: "Hunter.io",
-    status: "ok",
-    key: "••••••••••••",
-    description: "Email discover + verify",
-  },
-  {
-    id: "timelines",
-    name: "TimelinesAI (WhatsApp)",
+    id: "openbao",
+    name: "Secrets & integrări (OpenBao)",
     status: "warning",
-    key: "••••••••••••",
-    description: "WhatsApp Business API",
-  },
-  {
-    id: "instantly",
-    name: "Instantly.ai",
-    status: "ok",
-    key: "••••••••••••",
-    description: "Email outreach sequences",
-  },
-  {
-    id: "resend",
-    name: "Resend",
-    status: "ok",
-    key: "re_••••••••••••",
-    description: "Transactional email",
-  },
-  {
-    id: "sameday",
-    name: "Sameday Courier",
-    status: "ok",
-    key: "sd_••••••••••••",
-    description: "AWB create + tracking",
-  },
-  {
-    id: "revolut",
-    name: "Revolut Business",
-    status: "ok",
-    key: "rvl_••••••••••••",
-    description: "Reconciliere plăți",
-  },
-  {
-    id: "docusign",
-    name: "DocuSign",
-    status: "warning",
-    key: "dcs_••••••••••••",
-    description: "Semnătură electronică contracte",
-  },
-];
-
-const INITIAL_TEAM: TeamMember[] = [
-  { id: "u1", name: "Alexandru Ionescu", email: "alex@cerniq.ro", role: "ADMIN", status: "ACTIVE" },
-  { id: "u2", name: "Maria Popescu", email: "maria@cerniq.ro", role: "MANAGER", status: "ACTIVE" },
-  {
-    id: "u3",
-    name: "Andrei Constantin",
-    email: "andrei@cerniq.ro",
-    role: "AGENT",
-    status: "ACTIVE",
-  },
-  {
-    id: "u4",
-    name: "Elena Dumitrescu",
-    email: "elena@cerniq.ro",
-    role: "AGENT",
-    status: "PENDING",
+    key: "—",
+    description:
+      "Cheile furnizorilor (LLM, ANAF, email, curier etc.) nu se editează din această pagină. Vezi etapa1/settings-integrations și runbook-ul de deployment.",
   },
 ];
 
@@ -134,25 +54,27 @@ const planFeatures = [
 ];
 
 function handleSaveGeneral() {
-  toast.success("Setări salvate cu succes!");
+  toast.info(
+    "Persistența setărilor tenant în API nu este încă cablată — valorile rămân doar locale în această sesiune.",
+  );
 }
 
 export function Settings() {
   const [generalForm, setGeneralForm] = useState({
-    companyName: "Cerniq SRL",
-    domain: "cerniq.ro",
+    companyName: "",
+    domain: "",
     timezone: "Europe/Bucharest",
     locale: "ro-RO",
-    churnRisk: "40",
-    npsAlert: "7",
-    cltvTarget: "5000",
-    contactInterval: "30",
+    churnRisk: "",
+    npsAlert: "",
+    cltvTarget: "",
+    contactInterval: "",
   });
 
   const [apis, setApis] = useState<ApiConfig[]>(INITIAL_APIS);
   const [editingApi, setEditingApi] = useState<string | null>(null);
   const [editKey, setEditKey] = useState("");
-  const [team, setTeam] = useState<TeamMember[]>(INITIAL_TEAM);
+  const team: TeamMember[] = [];
   const [newMemberEmail, setNewMemberEmail] = useState("");
   const [newMemberName, setNewMemberName] = useState("");
   const [newMemberRole, setNewMemberRole] = useState<TeamMember["role"]>("AGENT");
@@ -189,23 +111,13 @@ export function Settings() {
       toast.error("Completează numele și emailul.");
       return;
     }
-    const newMember: TeamMember = {
-      id: `u${Date.now()}`,
-      name: newMemberName,
-      email: newMemberEmail,
-      role: newMemberRole,
-      status: "PENDING",
-    };
-    setTeam((prev) => [...prev, newMember]);
-    setNewMemberEmail("");
-    setNewMemberName("");
-    toast.success(`Invitație trimisă la ${newMemberEmail}`);
+    toast.info(
+      "Invitațiile de echipă necesită endpoint dedicat în API — momentan nu sunt persistate.",
+    );
   }
 
-  function handleRemoveMember(memberId: string) {
-    const member = team.find((m) => m.id === memberId);
-    setTeam((prev) => prev.filter((m) => m.id !== memberId));
-    toast.success(`${member?.name ?? "Membru"} eliminat din echipă.`);
+  function handleRemoveMember(_memberId: string) {
+    toast.info("Gestionarea membrilor din API nu este încă disponibilă.");
   }
 
   return (
@@ -409,6 +321,14 @@ export function Settings() {
                   </tr>
                 </thead>
                 <tbody>
+                  {team.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="px-5 py-8 text-center text-t3 text-sm">
+                        Lista echipei va fi încărcată din API când există rute tenant/users.
+                        Utilizatorul curent este în meniul din stânga (sesiune).
+                      </td>
+                    </tr>
+                  ) : null}
                   {team.map((m) => (
                     <tr key={m.id} className="border-b border-s700 last:border-0 hover:bg-s800/50">
                       <td className="px-5 py-3">
@@ -468,8 +388,11 @@ export function Settings() {
               <CardTitle>Pro Plan</CardTitle>
             </CardHeader>
             <CardBody>
-              <div className="text-2xl font-bold text-t1 mb-1">EUR 499/mo</div>
-              <div className="text-xs text-t3 mb-4">Facturare lunară · Anulare oricând</div>
+              <div className="text-2xl font-bold text-t1 mb-1">—</div>
+              <div className="text-xs text-t3 mb-4">
+                Informații de facturare reale: contact comercial / contract — nu sunt încărcate din
+                API.
+              </div>
               <ul className="space-y-2 mb-6">
                 {planFeatures.map((f) => (
                   <li key={f} className="flex items-center gap-2 text-sm text-t2">

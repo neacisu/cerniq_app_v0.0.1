@@ -88,6 +88,12 @@ vi.mock("@/hooks/use-etapa1.js", () => ({
     data: { data: [] },
     refetch: vi.fn(),
   })),
+  useImportQuarantine: vi.fn(() => ({
+    isPending: false,
+    data: { data: [] },
+    error: null,
+    refetch: vi.fn(),
+  })),
   useCancelImport: vi.fn(() => ({ mutateAsync: vi.fn(), isPending: false })),
   useDeleteImportBatch: vi.fn(() => ({ mutateAsync: vi.fn(), isPending: false })),
   useAnafEnrichImport: vi.fn(() => ({ mutateAsync: vi.fn(), isPending: false })),

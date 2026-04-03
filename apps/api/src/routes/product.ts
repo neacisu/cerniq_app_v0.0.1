@@ -11,8 +11,11 @@ import {
   and,
   desc,
   asc,
+  inArray,
   goldProducts,
   goldProductCategories,
+  goldProductChunks,
+  goldProductEmbeddings,
   stockInventory,
 } from "@cerniq/db";
 import { createQueue } from "../lib/queue-factory.js";
@@ -99,9 +102,15 @@ export async function productRoutes(app: FastifyInstance) {
         .select({
           product: goldProducts,
           categoryName: goldProductCategories.name,
+          stockTotal: stockInventory.totalQuantity,
+          stockReserved: stockInventory.reservedQuantity,
         })
         .from(goldProducts)
         .leftJoin(goldProductCategories, eq(goldProducts.categoryId, goldProductCategories.id))
+        .leftJoin(
+          stockInventory,
+          and(eq(stockInventory.tenantId, tenantId), eq(stockInventory.productId, goldProducts.id)),
+        )
         .where(and(...conditions))
         .orderBy(desc(goldProducts.createdAt))
         .limit(query.limit)
@@ -112,10 +121,58 @@ export async function productRoutes(app: FastifyInstance) {
         .where(and(...conditions)),
     ]);
 
+    const productIds = rows.map((r) => r.product.id);
+    const chunkCounts = new Map<string, number>();
+    const embeddedIds = new Set<string>();
+    if (productIds.length > 0) {
+      const [chunkAgg, embRows] = await Promise.all([
+        db
+          .select({
+            productId: goldProductChunks.productId,
+            cnt: sql<number>`count(*)::int`.mapWith(Number),
+          })
+          .from(goldProductChunks)
+          .where(
+            and(
+              eq(goldProductChunks.tenantId, tenantId),
+              inArray(goldProductChunks.productId, productIds),
+            ),
+          )
+          .groupBy(goldProductChunks.productId),
+        db
+          .select({ productId: goldProductEmbeddings.productId })
+          .from(goldProductEmbeddings)
+          .where(
+            and(
+              eq(goldProductEmbeddings.tenantId, tenantId),
+              inArray(goldProductEmbeddings.productId, productIds),
+            ),
+          ),
+      ]);
+      for (const c of chunkAgg) {
+        if (c.productId) chunkCounts.set(c.productId, c.cnt);
+      }
+      for (const e of embRows) {
+        if (e.productId) embeddedIds.add(e.productId);
+      }
+    }
+
     const total = countResult[0]?.count ?? 0;
     return reply.send({
       success: true,
-      data: rows.map((r) => ({ ...r.product, categoryName: r.categoryName })),
+      data: rows.map((r) => {
+        const totalQty = r.stockTotal ?? 0;
+        const reserved = r.stockReserved ?? 0;
+        const available = Math.max(0, totalQty - reserved);
+        const pid = r.product.id;
+        return {
+          ...r.product,
+          categoryName: r.categoryName,
+          stockAvailable: available,
+          chunkCount: chunkCounts.get(pid) ?? 0,
+          hasEmbedding: embeddedIds.has(pid),
+        };
+      }),
       meta: {
         page: query.page,
         limit: query.limit,

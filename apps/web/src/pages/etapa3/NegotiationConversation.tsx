@@ -1,24 +1,19 @@
 /**
  * NegotiationConversation — E3 AI Sales Agent
  *
- * Layout: 3 coloane
- * - Stânga (320px): Lista negocieri + FSM state badges
- * - Centru: Chat AI cu mesaje, input, guardrail badges inline
- * - Dreapta (300px): Sidebar Gold (detalii companie + scor credit)
- *
- * Plan: §XII L9476 — "chat AI + FSM state + guardrail indicators"
- * Guardrails: M71 price ✓, M72 stock ✓, M73 discount ⚠, M74 SKU ✓, M75 fiscal ✓
- * FSM: DISCOVERY → PROPOSAL → NEGOTIATION → CLOSING → PROFORMA_SENT → INVOICED → PAID
+ * Date din API: listă negocieri, detaliu (+ companie Gold), mesaje AI, violări guardrail.
  */
-import { useState, useRef } from "react";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
 import { Card, CardBody, CardHeader } from "@/components/ui/card.js";
 import { Button } from "@/components/ui/button.js";
 import { Input } from "@/components/ui/input.js";
-import { SBadge } from "@/components/ui/badge.js";
 import { ChatMessage } from "@/components/data/ChatMessage.js";
 import { EtapaBadge } from "@/components/brand/EtapaBadge.js";
 import { cn } from "@/lib/utils.js";
+import { api } from "@/lib/api.js";
+import { toast } from "sonner";
 import {
   Shield,
   Package,
@@ -35,8 +30,6 @@ import {
   Info,
 } from "lucide-react";
 
-// ─── FSM States ───────────────────────────────────────────────────────────────
-
 const FSM_STATES = [
   "DISCOVERY",
   "PROPOSAL",
@@ -45,6 +38,7 @@ const FSM_STATES = [
   "PROFORMA_SENT",
   "INVOICED",
   "PAID",
+  "DEAD",
 ] as const;
 type FsmState = (typeof FSM_STATES)[number];
 
@@ -57,11 +51,10 @@ function fsmStateColor(state: FsmState): string {
     PROFORMA_SENT: "oklch(0.5 0.15 200)",
     INVOICED: "var(--color-ok)",
     PAID: "var(--color-ok)",
+    DEAD: "var(--color-er)",
   };
   return map[state] ?? "var(--color-t3)";
 }
-
-// ─── Guardrail Badge ──────────────────────────────────────────────────────────
 
 type GuardrailStatus = "PASS" | "WARN" | "FAIL" | "PENDING";
 
@@ -106,170 +99,64 @@ function GuardrailBadge({ label, icon: Icon, status, detail }: GuardrailBadgePro
   );
 }
 
-// ─── Mock Data ────────────────────────────────────────────────────────────────
+function parseFsmState(raw: string | undefined): FsmState {
+  const s = (raw ?? "DISCOVERY").toUpperCase();
+  return (FSM_STATES as readonly string[]).includes(s) ? (s as FsmState) : "DISCOVERY";
+}
 
-interface NegotiationItem {
-  id: string;
-  company: string;
-  cui: string;
-  state: FsmState;
-  value: string;
-  assignedTo: string;
-  lastMessage: string;
-  guardrails: {
-    price: GuardrailStatus;
-    stock: GuardrailStatus;
-    discount: GuardrailStatus;
-    sku: GuardrailStatus;
-    fiscal: GuardrailStatus;
+function formatMoney(v: string | number | null | undefined): string {
+  if (v == null || v === "") return "—";
+  const n = typeof v === "number" ? v : Number.parseFloat(String(v));
+  if (!Number.isFinite(n)) return String(v);
+  return `RON ${n.toLocaleString("ro-RO", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+}
+
+function mapMessageRole(role: string | undefined): "outgoing" | "incoming" | "ai" | "system" {
+  const r = (role ?? "").toLowerCase();
+  if (r === "assistant" || r === "ai" || r === "model") return "ai";
+  if (r === "user" || r === "human") return "outgoing";
+  if (r === "system" || r === "tool") return "system";
+  return "incoming";
+}
+
+type GuardKey = "price" | "stock" | "discount" | "sku" | "fiscal";
+
+function defaultGuardrails(): Record<GuardKey, GuardrailStatus> {
+  return {
+    price: "PENDING",
+    stock: "PENDING",
+    discount: "PENDING",
+    sku: "PENDING",
+    fiscal: "PENDING",
   };
 }
 
-const MOCK_NEGOTIATIONS: NegotiationItem[] = [
-  {
-    id: "neg-001",
-    company: "SC AgroSud SRL",
-    cui: "12345678",
-    state: "NEGOTIATION",
-    value: "EUR 23.400",
-    assignedTo: "AI Agent",
-    lastMessage: "Reducerea solicitată de 25% este sub limita aprobată automat.",
-    guardrails: { price: "PASS", stock: "PASS", discount: "WARN", sku: "PASS", fiscal: "PASS" },
-  },
-  {
-    id: "neg-002",
-    company: "Cooperativa Agriland",
-    cui: "87654321",
-    state: "PROPOSAL",
-    value: "EUR 12.000",
-    assignedTo: "AI Agent",
-    lastMessage: "Ofertă trimisă cu prețuri standard.",
-    guardrails: { price: "PASS", stock: "PASS", discount: "PASS", sku: "PASS", fiscal: "PASS" },
-  },
-  {
-    id: "neg-003",
-    company: "OUAI Ialomița Nord",
-    cui: "11223344",
-    state: "CLOSING",
-    value: "EUR 8.200",
-    assignedTo: "AI Agent",
-    lastMessage: "Client confirmă comanda. Se generează proforma.",
-    guardrails: { price: "PASS", stock: "PASS", discount: "PASS", sku: "PASS", fiscal: "PENDING" },
-  },
-  {
-    id: "neg-004",
-    company: "SC Ferma Dunărea SA",
-    cui: "99887766",
-    state: "DISCOVERY",
-    value: "EUR 45.000+",
-    assignedTo: "AI Agent",
-    lastMessage: "Client interesat de produse premium. Solicită catalog.",
-    guardrails: {
-      price: "PENDING",
-      stock: "PENDING",
-      discount: "PENDING",
-      sku: "PENDING",
-      fiscal: "PENDING",
-    },
-  },
-];
-
-interface ConversationMessage {
-  type: "outgoing" | "incoming" | "ai" | "system";
-  content: string;
-  timestamp?: string;
-  guardrailsPassed?: boolean;
+function severityToStatus(sev: string | undefined): GuardrailStatus {
+  const u = (sev ?? "").toUpperCase();
+  if (u === "CRITICAL" || u === "HIGH") return "FAIL";
+  if (u === "MEDIUM") return "WARN";
+  if (u === "LOW") return "WARN";
+  return "FAIL";
 }
 
-const MOCK_CONVERSATIONS: Record<string, ConversationMessage[]> = {
-  "neg-001": [
-    {
-      type: "incoming",
-      content: "Bună ziua! Suntem interesați de produsele dvs. de semințe pentru sezonul următor.",
-      timestamp: "09:12",
-    },
-    {
-      type: "ai",
-      content:
-        "Am analizat profilul companiei. Recomand ofertă personalizată cu -15% discount sezonier (sub pragul auto-approve 15%).",
-      timestamp: "09:12",
-    },
-    {
-      type: "outgoing",
-      content:
-        "Bună ziua! Vă mulțumim pentru interes. Am pregătit o ofertă adaptată pentru sezonul 2026.",
-      timestamp: "09:13",
-    },
-    {
-      type: "incoming",
-      content: "Mulțumim pentru ofertă. Puteți oferi discount 25%? Avem un buget limitat.",
-      timestamp: "09:45",
-    },
-    {
-      type: "ai",
-      content:
-        "⚠️ Guardrail M73: Discount 25% > prag auto-approve 15%. Necesită HITL manager (SLA 4h). Margin check: 18% > 8% minim ✓",
-      timestamp: "09:45",
-      guardrailsPassed: false,
-    },
-    { type: "system", content: "HITL escalat — manager notificat. SLA: 4h." },
-  ],
-  "neg-002": [
-    {
-      type: "ai",
-      content:
-        "Lead calificat: scor credit 8.2/10, fără litigii ANAF. Ofertă standard recomandată.",
-      timestamp: "10:00",
-    },
-    {
-      type: "outgoing",
-      content: "Bună ziua! Vă trimitem oferta pentru sezonul 2026. Prețuri valabile 30 zile.",
-      timestamp: "10:02",
-    },
-    { type: "incoming", content: "Mulțumesc, analizăm oferta.", timestamp: "10:30" },
-  ],
-  "neg-003": [
-    { type: "incoming", content: "Confirmăm comanda conform ultimei oferte.", timestamp: "14:00" },
-    {
-      type: "ai",
-      content:
-        "✓ Toate guardrailele PASS. Se inițiază tranziție FSM: CLOSING → PROFORMA_SENT. Oblio API call pregătit.",
-      timestamp: "14:00",
-    },
-    {
-      type: "outgoing",
-      content: "Excelent! Vă transmitem proforma în câteva minute.",
-      timestamp: "14:01",
-    },
-    { type: "system", content: "Proforma generată via Oblio. eFactura SPV — deadline D+5." },
-  ],
-  "neg-004": [
-    {
-      type: "ai",
-      content:
-        "Lead nou identificat. Profil Gold complet. Se inițiază context window pentru agent.",
-      timestamp: "15:00",
-    },
-    {
-      type: "outgoing",
-      content: "Bună ziua! Mulțumim pentru interes în produsele noastre premium.",
-      timestamp: "15:01",
-    },
-    {
-      type: "incoming",
-      content: "Bună! Da, suntem interesați. Puteți trimite catalogul complet?",
-      timestamp: "15:20",
-    },
-  ],
+type ViolationRow = {
+  violationType?: string | null;
+  severity?: string | null;
 };
 
-function getFsmStepColor(state: FsmState, isActive: boolean, isPast: boolean): string {
-  if (isActive) return fsmStateColor(state);
-  if (isPast) return "var(--color-ok)";
-  return "var(--color-t4)";
+function buildGuardrailsFromViolations(rows: ViolationRow[]): Record<GuardKey, GuardrailStatus> {
+  const g = defaultGuardrails();
+  for (const row of rows) {
+    const t = (row.violationType ?? "").toLowerCase();
+    const st = severityToStatus(row.severity ?? undefined);
+    if (t === "price") g.price = st;
+    else if (t === "stock") g.stock = st;
+    else if (t === "discount") g.discount = st;
+    else if (t === "sku") g.sku = st;
+    else if (t === "fiscal") g.fiscal = st;
+  }
+  return g;
 }
-
-// ─── Guardrail Status Color ────────────────────────────────────────────────────
 
 function getGuardrailColor(s: GuardrailStatus): string {
   if (s === "PASS") return "var(--color-ok)";
@@ -278,15 +165,17 @@ function getGuardrailColor(s: GuardrailStatus): string {
   return "var(--color-t4)";
 }
 
-// ─── Negotiation Card Border Color ────────────────────────────────────────────
-
 function getNegotiationCardBorderColor(isActive: boolean, hasWarn: boolean): string | undefined {
   if (isActive) return "var(--color-b5)";
   if (hasWarn) return "color-mix(in oklch, var(--color-wa) 50%, transparent)";
   return undefined;
 }
 
-// ─── FSM Stepper ──────────────────────────────────────────────────────────────
+function getFsmStepColor(state: FsmState, isActive: boolean, isPast: boolean): string {
+  if (isActive) return fsmStateColor(state);
+  if (isPast) return "var(--color-ok)";
+  return "var(--color-t4)";
+}
 
 function FsmStepper({ currentState }: { readonly currentState: FsmState }) {
   const currentIdx = FSM_STATES.indexOf(currentState);
@@ -327,12 +216,45 @@ function FsmStepper({ currentState }: { readonly currentState: FsmState }) {
   );
 }
 
-// ─── Gold Sidebar ─────────────────────────────────────────────────────────────
+type CompanyGold = {
+  denumire?: string | null;
+  denumireComerciala?: string | null;
+  cui?: string | null;
+  limitaCreditEur?: string | null;
+  limitaCreditCalculata?: string | null;
+  limitaCreditAprobata?: string | null;
+  leadScore?: string | number | null;
+  categorieRisc?: string | null;
+};
 
-function GoldSidebar({ negotiation }: { readonly negotiation: NegotiationItem }) {
+type NegotiationDetail = {
+  currentState?: string;
+  totalValue?: string | number | null;
+  company?: CompanyGold | null;
+  companyName?: string | null;
+};
+
+type ListRow = {
+  id: string;
+  currentState?: string;
+  companyName?: string | null;
+  totalValue?: string | number | null;
+};
+
+type SidebarModel = {
+  company: string;
+  cui: string;
+  value: string;
+  state: FsmState;
+  guardrails: Record<GuardKey, GuardrailStatus>;
+  creditLimitLabel: string;
+  scoreLabel: string;
+  riskTier: string | null;
+};
+
+function GoldSidebar({ model }: { readonly model: SidebarModel }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      {/* Company header */}
       <Card>
         <CardBody className="py-3 px-4">
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
@@ -351,12 +273,12 @@ function GoldSidebar({ negotiation }: { readonly negotiation: NegotiationItem })
             </div>
             <div>
               <div style={{ fontSize: 13, fontWeight: 700, color: "var(--color-t1)" }}>
-                {negotiation.company}
+                {model.company}
               </div>
               <div
                 style={{ fontSize: 10, color: "var(--color-t3)", fontFamily: "var(--font-mono)" }}
               >
-                CUI: {negotiation.cui}
+                CUI: {model.cui}
               </div>
             </div>
           </div>
@@ -371,7 +293,7 @@ function GoldSidebar({ negotiation }: { readonly negotiation: NegotiationItem })
           >
             <div>
               <div style={{ color: "var(--color-t3)", fontSize: 9, marginBottom: 1 }}>VALOARE</div>
-              <div style={{ color: "var(--color-b5)", fontWeight: 600 }}>{negotiation.value}</div>
+              <div style={{ color: "var(--color-b5)", fontWeight: 600 }}>{model.value}</div>
             </div>
             <div>
               <div style={{ color: "var(--color-t3)", fontSize: 9, marginBottom: 1 }}>AGENT</div>
@@ -379,14 +301,13 @@ function GoldSidebar({ negotiation }: { readonly negotiation: NegotiationItem })
                 style={{ color: "var(--color-t2)", display: "flex", alignItems: "center", gap: 3 }}
               >
                 <Bot size={10} />
-                {negotiation.assignedTo}
+                AI Agent
               </div>
             </div>
           </div>
         </CardBody>
       </Card>
 
-      {/* Guardrails panel */}
       <Card>
         <CardHeader className="py-2 px-4">
           <div style={{ fontSize: 11, fontWeight: 600, color: "var(--color-t2)" }}>
@@ -400,8 +321,8 @@ function GoldSidebar({ negotiation }: { readonly negotiation: NegotiationItem })
               <GuardrailBadge
                 label="PRICE"
                 icon={Tag}
-                status={negotiation.guardrails.price}
-                detail="Preț AI validat contra gold_products.unit_price"
+                status={model.guardrails.price}
+                detail="Violări din guardrail_violations (API)"
               />
             </div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -409,8 +330,8 @@ function GoldSidebar({ negotiation }: { readonly negotiation: NegotiationItem })
               <GuardrailBadge
                 label="STOCK"
                 icon={Package}
-                status={negotiation.guardrails.stock}
-                detail="Stoc disponibil verificat contra get_available_stock(sku)"
+                status={model.guardrails.stock}
+                detail="Violări din guardrail_violations (API)"
               />
             </div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -418,12 +339,8 @@ function GoldSidebar({ negotiation }: { readonly negotiation: NegotiationItem })
               <GuardrailBadge
                 label="DISC"
                 icon={Percent}
-                status={negotiation.guardrails.discount}
-                detail={
-                  negotiation.guardrails.discount === "WARN"
-                    ? "Discount > 15%: necesită HITL manager"
-                    : "Discount în limite automate"
-                }
+                status={model.guardrails.discount}
+                detail="Violări din guardrail_violations (API)"
               />
             </div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -431,8 +348,8 @@ function GoldSidebar({ negotiation }: { readonly negotiation: NegotiationItem })
               <GuardrailBadge
                 label="SKU"
                 icon={FileCheck}
-                status={negotiation.guardrails.sku}
-                detail="SKU validat în gold_products"
+                status={model.guardrails.sku}
+                detail="Violări din guardrail_violations (API)"
               />
             </div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -440,19 +357,18 @@ function GoldSidebar({ negotiation }: { readonly negotiation: NegotiationItem })
               <GuardrailBadge
                 label="FISC"
                 icon={Shield}
-                status={negotiation.guardrails.fiscal}
-                detail="CUI valid modulo-11 + TVA rate + totale"
+                status={model.guardrails.fiscal}
+                detail="Violări din guardrail_violations (API)"
               />
             </div>
           </div>
         </CardBody>
       </Card>
 
-      {/* Credit info */}
       <Card>
         <CardHeader className="py-2 px-4">
           <div style={{ fontSize: 11, fontWeight: 600, color: "var(--color-t2)" }}>
-            Profil Credit
+            Profil Gold — credit
           </div>
         </CardHeader>
         <CardBody className="py-2 px-4">
@@ -461,27 +377,32 @@ function GoldSidebar({ negotiation }: { readonly negotiation: NegotiationItem })
               <span
                 style={{ color: "var(--color-t3)", display: "flex", alignItems: "center", gap: 3 }}
               >
-                <CreditCard size={10} /> Limită
+                <CreditCard size={10} /> Limită (EUR)
               </span>
-              <span style={{ color: "var(--color-t1)", fontWeight: 600 }}>EUR 50.000</span>
+              <span style={{ color: "var(--color-t1)", fontWeight: 600 }}>
+                {model.creditLimitLabel}
+              </span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span
                 style={{ color: "var(--color-t3)", display: "flex", alignItems: "center", gap: 3 }}
               >
-                <TrendingUp size={10} /> Scor
+                <TrendingUp size={10} /> Scor lead
               </span>
-              <span style={{ color: "var(--color-ok)", fontWeight: 600 }}>82/100 HIGH</span>
+              <span style={{ color: "var(--color-ok)", fontWeight: 600 }}>{model.scoreLabel}</span>
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ color: "var(--color-t3)" }}>Tier</span>
-              <SBadge status="PREMIUM" />
-            </div>
+            {model.riskTier ? (
+              <div
+                style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
+              >
+                <span style={{ color: "var(--color-t3)" }}>Risc</span>
+                <span style={{ color: "var(--color-t2)", fontWeight: 600 }}>{model.riskTier}</span>
+              </div>
+            ) : null}
           </div>
         </CardBody>
       </Card>
 
-      {/* AI info badge */}
       <div
         style={{
           display: "flex",
@@ -497,61 +418,130 @@ function GoldSidebar({ negotiation }: { readonly negotiation: NegotiationItem })
         title="Conform Art.13 EU AI Act - transparență AI"
       >
         <Bot size={12} color="var(--color-neuron-tool)" />
-        <span>Mesajele marcate cu ✦ sunt generate de AI (QwQ-32B). Conform EU AI Act Art.13.</span>
+        <span>Mesajele marcate cu ✦ sunt generate de AI. Conform EU AI Act Art.13.</span>
         <Info size={10} color="var(--color-neuron-tool)" />
       </div>
     </div>
   );
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
-
-const AI_AUTO_REPLIES: string[] = [
-  "✦ Am recepționat mesajul. Analizez contextul negocierii și istoricul clientului...",
-  "✦ Pe baza profilului Gold al clientului, recomand o abordare consultativă. Limita de discount aprobată automat: 15%.",
-  "✦ Guardrail M71 verificat: prețul propus este în parametri (±0% față de gold_products.unit_price).",
-  "✦ Context window actualizat. Următorul pas recomandat în FSM: tranziție la PROPOSAL cu ofertă personalizată.",
-  "✦ Am identificat pattern de cumpărare sezonier. Recomand bundle promotie Sezon 2026 pentru fidelizare.",
-];
+function formatEurLimit(v: string | number | null | undefined): string {
+  if (v == null || v === "") return "—";
+  const n = typeof v === "number" ? v : Number.parseFloat(String(v));
+  if (!Number.isFinite(n)) return String(v);
+  return `EUR ${n.toLocaleString("ro-RO", { maximumFractionDigits: 0 })}`;
+}
 
 export function NegotiationConversation() {
-  const [selectedId, setSelectedId] = useState<string | null>("neg-001");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [inputValue, setInputValue] = useState("");
-  const [extraMessages, setExtraMessages] = useState<Record<string, ConversationMessage[]>>({});
-  const aiReplyIndexRef = useRef(0);
 
-  const selected = selectedId ? MOCK_NEGOTIATIONS.find((n) => n.id === selectedId) : null;
-  const baseMessages = selectedId ? (MOCK_CONVERSATIONS[selectedId] ?? []) : [];
-  const extras = selectedId ? (extraMessages[selectedId] ?? []) : [];
-  const messages = [...baseMessages, ...extras];
+  const listQuery = useQuery({
+    queryKey: ["negotiation", "conversation", "list"],
+    queryFn: () =>
+      api.get<{ success?: boolean; data?: ListRow[] }>("/api/v1/negotiation?page=1&limit=100"),
+  });
+
+  const negotiations = useMemo(() => listQuery.data?.data ?? [], [listQuery.data?.data]);
+
+  const effectiveId = useMemo(() => {
+    if (negotiations.length === 0) return null;
+    if (selectedId && negotiations.some((n) => n.id === selectedId)) return selectedId;
+    return negotiations[0]?.id ?? null;
+  }, [negotiations, selectedId]);
+
+  const detailQuery = useQuery({
+    queryKey: ["negotiation", "conversation", "detail", effectiveId],
+    queryFn: () =>
+      api.get<{ success?: boolean; data?: NegotiationDetail }>(
+        `/api/v1/negotiation/${effectiveId}`,
+      ),
+    enabled: Boolean(effectiveId),
+  });
+
+  const messagesQuery = useQuery({
+    queryKey: ["negotiation", "conversation", "messages", effectiveId],
+    queryFn: () =>
+      api.get<{
+        success?: boolean;
+        data?: { role?: string; content?: string | null; createdAt?: string }[];
+      }>(`/api/v1/negotiation/${effectiveId}/messages?limit=80`),
+    enabled: Boolean(effectiveId),
+  });
+
+  const guardrailsQuery = useQuery({
+    queryKey: ["negotiation", "conversation", "guardrails", effectiveId],
+    queryFn: () =>
+      api.get<{ success?: boolean; data?: ViolationRow[] }>(
+        `/api/v1/negotiation/${effectiveId}/guardrails?limit=50`,
+      ),
+    enabled: Boolean(effectiveId),
+  });
+
+  const sidebarModel = useMemo((): SidebarModel | null => {
+    if (!effectiveId) return null;
+    const d = detailQuery.data?.data;
+    const row = negotiations.find((n) => n.id === effectiveId);
+    const comp = d?.company;
+    const company =
+      comp?.denumire ?? comp?.denumireComerciala ?? d?.companyName ?? row?.companyName ?? "—";
+    const cui = comp?.cui ?? "—";
+    const state = parseFsmState(d?.currentState ?? row?.currentState);
+    const value = formatMoney(d?.totalValue ?? row?.totalValue);
+    const violations = guardrailsQuery.data?.data ?? [];
+    const guardrails =
+      violations.length > 0 ? buildGuardrailsFromViolations(violations) : defaultGuardrails();
+    const credit =
+      comp?.limitaCreditAprobata ?? comp?.limitaCreditCalculata ?? comp?.limitaCreditEur;
+    const scoreRaw = comp?.leadScore;
+    let scoreLabel = "—";
+    if (scoreRaw != null && scoreRaw !== "") {
+      const n = typeof scoreRaw === "number" ? scoreRaw : Number.parseFloat(String(scoreRaw));
+      scoreLabel = Number.isFinite(n) ? `${n.toFixed(0)}/100` : String(scoreRaw);
+    }
+    return {
+      company,
+      cui,
+      value,
+      state,
+      guardrails,
+      creditLimitLabel: formatEurLimit(credit ?? undefined),
+      scoreLabel,
+      riskTier: comp?.categorieRisc ?? null,
+    };
+  }, [effectiveId, detailQuery.data, guardrailsQuery.data, negotiations]);
+
+  const messages = useMemo(() => {
+    const raw = messagesQuery.data?.data ?? [];
+    return raw.map((m) => ({
+      type: mapMessageRole(m.role),
+      content: m.content ?? "",
+      timestamp: m.createdAt
+        ? new Date(m.createdAt).toLocaleTimeString("ro-RO", { hour: "2-digit", minute: "2-digit" })
+        : undefined,
+    }));
+  }, [messagesQuery.data]);
 
   function handleSend() {
     const text = inputValue.trim();
-    if (!text || !selectedId) return;
-
-    const now = new Date();
-    const ts = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
-
-    const userMsg: ConversationMessage = { type: "outgoing", content: text, timestamp: ts };
-    const aiReply: ConversationMessage = {
-      type: "ai",
-      content:
-        AI_AUTO_REPLIES[aiReplyIndexRef.current % AI_AUTO_REPLIES.length] ??
-        AI_AUTO_REPLIES[0] ??
-        "",
-      timestamp: ts,
-    };
-    aiReplyIndexRef.current++;
-
-    setExtraMessages((prev) => ({
-      ...prev,
-      [selectedId]: [...(prev[selectedId] ?? []), userMsg, aiReply],
-    }));
+    if (!text || !effectiveId) return;
+    toast.info(
+      "Trimiterea mesajelor din UI nu are încă endpoint POST pe API — mesajele reale provin din conversațiile înregistrate de workeri.",
+    );
     setInputValue("");
   }
 
+  const listErr = listQuery.error instanceof Error ? listQuery.error.message : null;
+  const selectedState = sidebarModel?.state ?? "DISCOVERY";
+  const selectedCompany = sidebarModel?.company ?? "";
+
   return (
     <PageWrapper title="AI Sales — Conversation" actions={<EtapaBadge label="Etapa 3" />}>
+      {listErr ? (
+        <p className="text-sm text-er mb-4" role="alert">
+          {listErr}
+        </p>
+      ) : null}
       <div
         style={{
           display: "grid",
@@ -561,7 +551,6 @@ export function NegotiationConversation() {
           minHeight: 500,
         }}
       >
-        {/* ── Left: Negotiations list ─────────────────────────────────────── */}
         <div style={{ display: "flex", flexDirection: "column", gap: 8, overflowY: "auto" }}>
           <div
             style={{
@@ -574,9 +563,21 @@ export function NegotiationConversation() {
           >
             NEGOCIERI ACTIVE
           </div>
-          {MOCK_NEGOTIATIONS.map((n) => {
-            const isActive = selectedId === n.id;
-            const hasWarn = Object.values(n.guardrails).some((s) => s === "WARN" || s === "FAIL");
+          {listQuery.isLoading ? (
+            <div style={{ fontSize: 12, color: "var(--color-t3)" }}>Se încarcă…</div>
+          ) : null}
+          {!listQuery.isLoading && negotiations.length === 0 ? (
+            <div style={{ fontSize: 12, color: "var(--color-t3)" }}>
+              Nu există negocieri pentru acest tenant.
+            </div>
+          ) : null}
+          {negotiations.map((n) => {
+            const isActive = n.id === effectiveId;
+            const st = parseFsmState(n.currentState);
+            const gr = isActive && sidebarModel ? sidebarModel.guardrails : null;
+            const hasWarn = gr
+              ? Object.values(gr).some((s) => s === "WARN" || s === "FAIL")
+              : false;
 
             return (
               <Card
@@ -598,28 +599,27 @@ export function NegotiationConversation() {
                     }}
                   >
                     <div style={{ fontSize: 12, fontWeight: 600, color: "var(--color-t1)" }}>
-                      {n.company}
+                      {n.companyName ?? "—"}
                     </div>
                     <div
                       style={{
                         fontSize: 9,
                         fontWeight: 700,
-                        color: fsmStateColor(n.state),
+                        color: fsmStateColor(st),
                         padding: "1px 5px",
-                        border: `1px solid ${fsmStateColor(n.state)}`,
+                        border: `1px solid ${fsmStateColor(st)}`,
                         borderRadius: 3,
                         whiteSpace: "nowrap",
                       }}
                     >
-                      {n.state}
+                      {st}
                     </div>
                   </div>
                   <div style={{ fontSize: 11, color: "var(--color-t3)", marginBottom: 6 }}>
-                    {n.value}
+                    {formatMoney(n.totalValue)}
                   </div>
                   <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
                     {(["price", "stock", "discount", "sku", "fiscal"] as const).map((g) => {
-                      const s = n.guardrails[g];
                       const iconMap = {
                         price: Tag,
                         stock: Package,
@@ -628,8 +628,8 @@ export function NegotiationConversation() {
                         fiscal: Shield,
                       };
                       const Icon = iconMap[g];
-                      const color = getGuardrailColor(s);
-                      return <Icon key={g} size={10} color={color} aria-label={`${g}: ${s}`} />;
+                      const color = gr ? getGuardrailColor(gr[g]) : "var(--color-t4)";
+                      return <Icon key={g} size={10} color={color} aria-label={g} />;
                     })}
                   </div>
                 </CardBody>
@@ -638,11 +638,9 @@ export function NegotiationConversation() {
           })}
         </div>
 
-        {/* ── Center: Chat ────────────────────────────────────────────────── */}
         <div style={{ display: "flex", flexDirection: "column", gap: 0, minHeight: 0 }}>
-          {selected ? (
+          {effectiveId && sidebarModel ? (
             <Card style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
-              {/* FSM header */}
               <div style={{ padding: "10px 16px", borderBottom: "1px solid var(--color-s700)" }}>
                 <div
                   style={{
@@ -652,12 +650,11 @@ export function NegotiationConversation() {
                     marginBottom: 4,
                   }}
                 >
-                  {selected.company}
+                  {selectedCompany}
                 </div>
-                <FsmStepper currentState={selected.state} />
+                <FsmStepper currentState={selectedState} />
               </div>
 
-              {/* Messages */}
               <div
                 style={{
                   flex: 1,
@@ -668,27 +665,24 @@ export function NegotiationConversation() {
                   gap: 8,
                 }}
               >
+                {messagesQuery.isLoading ? (
+                  <div style={{ fontSize: 12, color: "var(--color-t3)" }}>Se încarcă mesaje…</div>
+                ) : null}
+                {!messagesQuery.isLoading && messages.length === 0 ? (
+                  <div style={{ fontSize: 12, color: "var(--color-t3)" }}>
+                    Nu există mesaje în conversațiile AI pentru această negociere.
+                  </div>
+                ) : null}
                 {messages.map((m, idx) => (
                   <ChatMessage key={`${m.type}-${idx}`} type={m.type} timestamp={m.timestamp}>
                     <span>
                       {m.type === "ai" && "✦ "}
                       {m.content}
                     </span>
-                    {m.guardrailsPassed === false && (
-                      <div style={{ marginTop: 4, display: "flex", gap: 4 }}>
-                        <GuardrailBadge
-                          label="HITL"
-                          icon={AlertTriangle}
-                          status="WARN"
-                          detail="Escalat pentru aprobare manuală"
-                        />
-                      </div>
-                    )}
                   </ChatMessage>
                 ))}
               </div>
 
-              {/* Input */}
               <div
                 style={{
                   padding: "10px 16px",
@@ -727,10 +721,9 @@ export function NegotiationConversation() {
           )}
         </div>
 
-        {/* ── Right: Gold sidebar ─────────────────────────────────────────── */}
         <div style={{ overflowY: "auto" }}>
-          {selected ? (
-            <GoldSidebar negotiation={selected} />
+          {sidebarModel ? (
+            <GoldSidebar model={sidebarModel} />
           ) : (
             <div
               style={{

@@ -1,14 +1,15 @@
 import { describe, it, expect } from "vitest";
 import { navigation } from "@/config/navigation";
+import { getNavigationForRole } from "@/config/navigation-helpers";
 import { resolveEffectiveSessionId } from "@/components/etapa1/pipeline-session.js";
 
 describe("Navigation Config", () => {
   it("has 8 sections", () => {
     expect(navigation).toHaveLength(8);
   });
-  it("has 36 total items", () => {
+  it("has expected total nav items (incl. Dashboard E1)", () => {
     const total = navigation.reduce((sum, s) => sum + s.items.length, 0);
-    expect(total).toBe(36);
+    expect(total).toBe(45);
   });
   it("Cognitive Brain section exists with /brain path", () => {
     const cogSection = navigation.find((s) => s.title === "COGNITIVE BRAIN");
@@ -37,6 +38,20 @@ describe("Navigation Config", () => {
   it("all items have unique paths", () => {
     const paths = navigation.flatMap((s) => s.items.map((i) => i.path));
     expect(new Set(paths).size).toBe(paths.length);
+  });
+});
+
+describe("getNavigationForRole", () => {
+  it("hides admin-only routes for viewer", () => {
+    const nav = getNavigationForRole("viewer");
+    const paths = nav.flatMap((s) => s.items.map((i) => i.path));
+    expect(paths).not.toContain("/workers");
+  });
+
+  it("shows workers for admin", () => {
+    const nav = getNavigationForRole("admin");
+    const paths = nav.flatMap((s) => s.items.map((i) => i.path));
+    expect(paths).toContain("/workers");
   });
 });
 

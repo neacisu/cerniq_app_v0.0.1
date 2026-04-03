@@ -44,7 +44,10 @@ function loadPersistedAuth(): AuthState {
     const userJson = localStorage.getItem(USER_KEY);
     if (token && userJson) {
       const user = JSON.parse(userJson) as User;
-      return { user, token, loading: false };
+      return { user, token, loading: true };
+    }
+    if (token) {
+      return { user: null, token, loading: true };
     }
   } catch {
     localStorage.removeItem(STORAGE_KEY);
@@ -53,8 +56,56 @@ function loadPersistedAuth(): AuthState {
   return { user: null, token: null, loading: false };
 }
 
+function normalizeMeUser(raw: Record<string, unknown>, fallback: User | null): User {
+  return {
+    id: typeof raw.id === "string" ? raw.id : fallback?.id,
+    email: typeof raw.email === "string" ? raw.email : (fallback?.email ?? ""),
+    name: typeof raw.name === "string" ? raw.name : fallback?.name,
+    tenantId: typeof raw.tenantId === "string" ? raw.tenantId : (fallback?.tenantId ?? ""),
+    role: typeof raw.role === "string" ? raw.role : (fallback?.role ?? "viewer"),
+  };
+}
+
 export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   const [state, setState] = useState<AuthState>(loadPersistedAuth);
+
+  useEffect(() => {
+    const token = state.token;
+    if (!token) {
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await api.get<{
+          success?: boolean;
+          data?: { user?: Record<string, unknown> };
+        }>("/api/v1/auth/me");
+        const raw = res?.data?.user;
+        if (cancelled || !raw || typeof raw !== "object") {
+          if (!cancelled) {
+            setState((prev) => ({ ...prev, loading: false }));
+          }
+          return;
+        }
+        setState((prev) => {
+          if (cancelled || !prev.token) return prev;
+          const user = normalizeMeUser(raw, prev.user);
+          localStorage.setItem(USER_KEY, JSON.stringify(user));
+          return { user, token: prev.token, loading: false };
+        });
+      } catch {
+        if (!cancelled) {
+          localStorage.removeItem(STORAGE_KEY);
+          localStorage.removeItem(USER_KEY);
+          setState({ user: null, token: null, loading: false });
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [state.token]);
 
   const login = useCallback(async (email: string, password: string) => {
     try {
@@ -147,6 +198,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   const value = useMemo<AuthContextValue>(
     () => ({
       ...state,
+      loading: Boolean(state.token) && state.loading,
       login,
       register,
       logout,

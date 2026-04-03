@@ -62,6 +62,12 @@ const statusToVariant: Record<string, BadgeVariant> = {
   RISK_LOW: "ok",
   RISK_MED: "warning",
   AT_RISK: "warning",
+  NOT_SENT: "neutral",
+  SENDING: "info",
+  VALIDATED: "ok",
+  REJECTED: "error",
+  ERROR: "error",
+  CREDIT_NOTE: "warning",
 };
 
 export function Badge({
