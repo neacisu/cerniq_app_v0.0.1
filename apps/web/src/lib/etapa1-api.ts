@@ -1,4 +1,5 @@
 import { api } from "./api.js";
+import type { ApiDataEnvelope, DashboardStatsPayload } from "@/types/api.js";
 
 type ApiListResponse<T> = {
   success: boolean;
@@ -119,7 +120,7 @@ function appendParams(params: URLSearchParams, values: Record<string, QueryParam
 }
 
 export async function fetchDashboardStats() {
-  return api.get<ApiObjectResponse<Record<string, unknown>>>("/api/v1/dashboard/stats");
+  return api.get<ApiDataEnvelope<DashboardStatsPayload>>("/api/v1/dashboard/stats");
 }
 
 export type DashboardActivityItem = {

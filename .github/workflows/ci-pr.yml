@@ -78,6 +78,12 @@ jobs:
       - name: 📝 TypeScript Type Check
         run: pnpm typecheck
 
+      - name: ☁️ Verify SonarCloud config (lcov paths + chei obligatorii)
+        run: pnpm verify:sonar-config
+
+      - name: 🔧 Smoke test scripturi audit (Node)
+        run: node --test tests/infra/audit-metadata-scripts.test.mjs
+
       - name: ❌ Cancel workflow on failure
         if: failure()
         run: gh run cancel ${{ github.run_id }}
@@ -233,6 +239,16 @@ jobs:
         with:
           fail_ci_if_error: false
 
+      - name: 📤 Upload LCOV for SonarCloud
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-lcov
+          path: |
+            apps/web/coverage/lcov.info
+            apps/api/coverage/lcov.info
+          if-no-files-found: ignore
+
       - name: ❌ Cancel workflow on failure
         if: failure()
         run: gh run cancel ${{ github.run_id }}
@@ -307,7 +323,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: 🔒 Setup Trivy
-        uses: aquasecurity/setup-trivy@v0.2.2
+        uses: aquasecurity/setup-trivy@v0.2.6
         with:
           version: v0.69.1
           cache: true
@@ -603,6 +619,39 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
+  # ==========================================================================
+  # JOB 10: SonarCloud (opțional — variabilă repo SONAR_SCAN=true + secret SONAR_TOKEN)
+  # ==========================================================================
+  sonarcloud:
+    name: ☁️ SonarCloud
+    runs-on: self-hosted
+    timeout-minutes: 20
+    needs: [test]
+    # Notă: `env` nu e disponibil în `jobs.*.if` (evaluare înainte de contextul env al jobului).
+    # Folosim `vars` — definește în repo: Settings → Actions → Variables → SONAR_SCAN = true
+    if: vars.SONAR_SCAN == 'true'
+    permissions:
+      contents: read
+      pull-requests: read
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 📥 Download LCOV artifacts
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: coverage-lcov
+          path: .
+
+      - name: ☁️ SonarCloud Scan
+        uses: SonarSource/sonarqube-scan-action@v4.2.1
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
   # ===========================================================================
   # Final Status Check (for branch protection)
   # ===========================================================================
@@ -610,7 +659,17 @@ jobs:
     name: ✅ CI Status
     runs-on: self-hosted
     needs:
-      [lint, test, build-verify, security, docker-config, docker-build, shellcheck, python-lint]
+      [
+        lint,
+        test,
+        build-verify,
+        security,
+        docker-config,
+        docker-build,
+        shellcheck,
+        python-lint,
+        sonarcloud,
+      ]
     if: always()
 
     steps:
@@ -625,6 +684,7 @@ jobs:
           echo "  docker-build: ${{ needs.docker-build.result }}"
           echo "  shellcheck:   ${{ needs.shellcheck.result }}"
           echo "  python-lint:  ${{ needs.python-lint.result }}"
+          echo "  sonarcloud:   ${{ needs.sonarcloud.result }}"
 
           FAILED=0
           for job in lint test build-verify security docker-config docker-build shellcheck; do
@@ -648,6 +708,13 @@ jobs:
           if [[ "${{ needs.python-lint.result }}" == "failure" ]] || \
              [[ "${{ needs.python-lint.result }}" == "cancelled" ]]; then
             echo "❌ Job 'python-lint' failed (result: ${{ needs.python-lint.result }})"
+            FAILED=1
+          fi
+
+          # sonarcloud rulează doar când variabila repo SONAR_SCAN=true — skipped e acceptabil
+          if [[ "${{ needs.sonarcloud.result }}" == "failure" ]] || \
+             [[ "${{ needs.sonarcloud.result }}" == "cancelled" ]]; then
+            echo "❌ Job 'sonarcloud' failed (result: ${{ needs.sonarcloud.result }})"
             FAILED=1
           fi
 

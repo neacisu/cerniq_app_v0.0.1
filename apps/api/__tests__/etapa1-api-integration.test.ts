@@ -214,6 +214,54 @@ describe("Etapa 1 API Integration Tests", () => {
     });
   });
 
+  describe("GET /api/v1/dashboard/activity", () => {
+    it("returns 400 for invalid limit (Zod, fără query DB)", async () => {
+      const res = await app.inject({
+        method: "GET",
+        url: "/api/v1/dashboard/activity?limit=0",
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          "X-Tenant-ID": testTenantId,
+        },
+      });
+      expect(res.statusCode).toBe(400);
+    });
+  });
+
+  describe("GET /api/v1/dashboard/daily-stats", () => {
+    it("returns success, data array and meta", async () => {
+      const res = await app.inject({
+        method: "GET",
+        url: "/api/v1/dashboard/daily-stats?days=7",
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          "X-Tenant-ID": testTenantId,
+        },
+      });
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.payload);
+      expect(body.success).toBe(true);
+      expect(Array.isArray(body.data)).toBe(true);
+      expect(body.meta).toMatchObject({
+        total: expect.any(Number),
+        limit: expect.any(Number),
+        offset: expect.any(Number),
+      });
+    });
+
+    it("returns 400 for invalid days", async () => {
+      const res = await app.inject({
+        method: "GET",
+        url: "/api/v1/dashboard/daily-stats?days=0",
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          "X-Tenant-ID": testTenantId,
+        },
+      });
+      expect(res.statusCode).toBe(400);
+    });
+  });
+
   describe("GET /api/v1/enrichment/approvals", () => {
     it("should list approval tasks", async () => {
       // Create test approval task

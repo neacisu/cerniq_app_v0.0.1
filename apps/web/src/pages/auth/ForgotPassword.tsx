@@ -1,30 +1,12 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
-import { toast } from "sonner";
 import { CerniqLogo } from "@/components/brand/CerniqLogo.js";
-import { Mail, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { Mail, ArrowLeft, Info } from "lucide-react";
 
+/**
+ * Resetare parolă: backend-ul nu expune încă POST /api/v1/auth/forgot-password (sau echivalent).
+ * Nu simulăm succes HTTP — utilizatorul vede starea reală (self-service indisponibil).
+ */
 export function ForgotPassword() {
-  const [email, setEmail] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [sent, setSent] = useState(false);
-  const [error, setError] = useState("");
-
-  async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setError("");
-    if (!email.trim() || !email.includes("@")) {
-      setError("Introduceți o adresă de email validă.");
-      return;
-    }
-    setLoading(true);
-    // Simulate API call — backend endpoint not yet available
-    await new Promise((r) => setTimeout(r, 800));
-    setLoading(false);
-    setSent(true);
-    toast.success("Cerere de resetare înregistrată.");
-  }
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-s950">
       <div className="w-full max-w-[420px] rounded-lg border border-s700 bg-s900/80 p-8 backdrop-blur-md">
@@ -38,74 +20,31 @@ export function ForgotPassword() {
           Resetare Parolă
         </h2>
 
-        {sent ? (
-          <div className="text-center py-4 space-y-4">
-            <div className="flex justify-center">
-              <CheckCircle2 size={48} className="text-ok" />
-            </div>
-            <p className="text-sm text-t2">
-              Cererea de resetare a parolei a fost înregistrată pentru{" "}
-              <span className="font-semibold text-t1">{email}</span>.
+        <aside className="mb-6 flex gap-3 rounded-md border border-s600 bg-s800/60 p-4 text-left">
+          <Info className="h-5 w-5 shrink-0 text-b5 mt-0.5" aria-hidden />
+          <div className="space-y-2 text-sm text-t2">
+            <p className="font-medium text-t1">Resetarea automată nu este disponibilă momentan</p>
+            <p>
+              Platforma nu are încă endpoint API pentru cereri de resetare parolă. Pentru acces,
+              contactați administratorul tenantului sau echipa de suport.
             </p>
-            <p className="text-xs text-t3">
-              Administratorul de sistem vă va contacta în curând cu instrucțiunile de resetare.
-            </p>
-            <Link
-              to="/login"
-              className="inline-flex items-center gap-2 text-sm text-b5 hover:underline mt-2"
-            >
-              <ArrowLeft size={14} />
-              Înapoi la autentificare
-            </Link>
           </div>
-        ) : (
-          <>
-            <p className="text-sm text-t3 text-center mb-6">
-              Introduceți adresa de email asociată contului. Vă vom contacta cu instrucțiunile de
-              resetare.
-            </p>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label htmlFor="reset-email" className="text-xs text-t3 block mb-1">
-                  Adresă Email
-                </label>
-                <div className="relative">
-                  <Mail
-                    size={15}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-t3 pointer-events-none"
-                  />
-                  <input
-                    id="reset-email"
-                    type="email"
-                    autoComplete="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="email@companie.ro"
-                    className="w-full rounded-md border border-s600 bg-s800 pl-9 pr-3 py-2 text-sm text-t1 placeholder:text-t3 focus:outline-none focus:border-b5 transition-colors"
-                  />
-                </div>
-                {error && <p className="text-xs text-er mt-1">{error}</p>}
-              </div>
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full rounded-md bg-b5 hover:bg-b5/90 disabled:opacity-60 disabled:cursor-not-allowed px-4 py-2 text-sm font-medium text-white transition-colors"
-              >
-                {loading ? "Se trimite..." : "Trimite Cerere Reset"}
-              </button>
-            </form>
-            <div className="mt-4 text-center">
-              <Link
-                to="/login"
-                className="inline-flex items-center gap-1 text-sm text-t3 hover:text-b5 transition-colors"
-              >
-                <ArrowLeft size={13} />
-                Înapoi la autentificare
-              </Link>
-            </div>
-          </>
-        )}
+        </aside>
+
+        <div className="flex items-center justify-center gap-2 text-sm text-t3 mb-4">
+          <Mail size={15} className="text-t3" aria-hidden />
+          <span>Nu se trimite niciun email din această pagină până la activarea API-ului.</span>
+        </div>
+
+        <div className="text-center">
+          <Link
+            to="/login"
+            className="inline-flex items-center gap-2 text-sm text-b5 hover:underline"
+          >
+            <ArrowLeft size={14} aria-hidden />
+            Înapoi la autentificare
+          </Link>
+        </div>
       </div>
     </div>
   );

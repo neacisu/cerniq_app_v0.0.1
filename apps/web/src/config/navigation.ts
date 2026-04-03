@@ -15,14 +15,12 @@ export interface NavSection {
 export const navigation: NavSection[] = [
   {
     title: "PRINCIPAL",
-    items: [
-      { label: "Dashboard", path: "/dashboard", icon: "Home" },
-      { label: "Dashboard E1", path: "/etapa1/dashboard", icon: "LayoutDashboard" },
-    ],
+    items: [{ label: "Dashboard general", path: "/dashboard", icon: "Home" }],
   },
   {
     title: "ETAPA 1 — ENRICHMENT",
     items: [
+      { label: "Dashboard E1", path: "/etapa1/dashboard", icon: "LayoutDashboard" },
       { label: "Import", path: "/import", icon: "Upload" },
       { label: "Bronze", path: "/bronze", icon: "Database" },
       { label: "Silver", path: "/silver", icon: "Building2" },

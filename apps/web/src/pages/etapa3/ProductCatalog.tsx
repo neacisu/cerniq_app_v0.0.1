@@ -99,6 +99,123 @@ function maxDiscountFromMetadata(meta: Record<string, unknown> | undefined): num
   return null;
 }
 
+function unknownToErrorMessage(err: unknown): string | null {
+  if (err instanceof Error) return err.message;
+  if (err !== undefined && err !== null) return String(err);
+  return null;
+}
+
+type ProductCatalogDisplayRow = {
+  id: string;
+  sku: string;
+  name: string;
+  category: string;
+  unitPrice: number;
+  currency: string;
+  stock: number;
+  status: ProductStatus;
+  embeddingStatus: EmbeddingStatus;
+  embeddingDim: number;
+  chunkCount: number;
+  lastIndexed: string;
+  maxDiscount: number | null;
+  score?: number;
+};
+
+interface ProductCatalogTableBodyProps {
+  readonly isLoading: boolean;
+  readonly colCount: number;
+  readonly displayRows: ProductCatalogDisplayRow[];
+  readonly showRelevanceColumn: boolean;
+}
+
+function ProductCatalogTableBody({
+  isLoading,
+  colCount,
+  displayRows,
+  showRelevanceColumn,
+}: ProductCatalogTableBodyProps) {
+  if (isLoading) {
+    return (
+      <tr>
+        <td colSpan={colCount} className="px-4 py-8 text-center text-t3">
+          Se încarcă…
+        </td>
+      </tr>
+    );
+  }
+  if (displayRows.length === 0) {
+    return (
+      <tr>
+        <td colSpan={colCount} className="px-4 py-8 text-center text-t3">
+          Niciun produs. Importați date sau ajustați filtrele.
+        </td>
+      </tr>
+    );
+  }
+  return (
+    <>
+      {displayRows.map((p) => (
+        <tr key={p.id} className="border-b border-s800 hover:bg-s800/50">
+          <td
+            className="px-4 py-3"
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 11,
+              color: "var(--color-t3)",
+            }}
+          >
+            {p.sku}
+          </td>
+          <td className="px-4 py-3">
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <Package size={14} color="var(--color-neuron-knowledge)" />
+              <span style={{ fontWeight: 500, color: "var(--color-t1)" }}>{p.name}</span>
+            </div>
+          </td>
+          <td className="px-4 py-3 text-t3 text-xs">{p.category}</td>
+          <td className="px-4 py-3 text-right font-mono text-t2">
+            {p.currency} {p.unitPrice.toFixed(2)}
+            {typeof p.maxDiscount === "number" ? (
+              <div style={{ fontSize: 9, color: "var(--color-t4)" }}>max -{p.maxDiscount}%</div>
+            ) : null}
+          </td>
+          <td
+            className="px-4 py-3 text-right font-mono"
+            style={{ color: stockDisplayColor(p.stock) }}
+          >
+            {p.stock.toLocaleString()}
+          </td>
+          <td className="px-4 py-3 text-center">
+            <SBadge status={p.status} />
+          </td>
+          <td className="px-4 py-3 text-center">
+            <EmbeddingBadge status={p.embeddingStatus} dim={p.embeddingDim} />
+          </td>
+          <td className="px-4 py-3 text-center text-xs text-t3">{p.chunkCount || "—"}</td>
+          {showRelevanceColumn ? (
+            <td className="px-4 py-3 text-right">
+              {p.score === undefined ? (
+                <span style={{ color: "var(--color-t4)", fontSize: 10 }}>N/A</span>
+              ) : (
+                <span
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: 11,
+                    color: scoreDisplayColor(p.score),
+                  }}
+                >
+                  {p.score.toFixed(2)}
+                </span>
+              )}
+            </td>
+          ) : null}
+        </tr>
+      ))}
+    </>
+  );
+}
+
 interface EmbeddingBadgeProps {
   readonly status: EmbeddingStatus;
   readonly dim: number;
@@ -220,7 +337,7 @@ export function ProductCatalog() {
     ];
   }, [categoriesQuery.data]);
 
-  const rows = productsQuery.data?.data ?? [];
+  const rows = useMemo(() => productsQuery.data?.data ?? [], [productsQuery.data?.data]);
   const meta = productsQuery.data?.meta;
   const total = meta?.total ?? rows.length;
 
@@ -243,11 +360,14 @@ export function ProductCatalog() {
       return;
     }
     try {
-      await api.post("/api/v1/products/search", {
+      const searchBody: { query: string; limit: number; categoryId?: string } = {
         query: q,
         limit: 20,
-        ...(categoryFilter !== "all" ? { categoryId: categoryFilter } : {}),
-      });
+      };
+      if (categoryFilter !== "all") {
+        searchBody.categoryId = categoryFilter;
+      }
+      await api.post("/api/v1/products/search", searchBody);
       toast.success(
         `Căutare ${searchModeSummaryLabel(searchMode)} în coadă — rezultatele apar după procesare. Folosiți lista sau reîncărcați.`,
       );
@@ -306,14 +426,13 @@ export function ProductCatalog() {
       .sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
   }, [rows, appliedSearch, statusFilter]);
 
-  const error =
-    productsQuery.error instanceof Error
-      ? productsQuery.error.message
-      : productsQuery.error
-        ? String(productsQuery.error)
-        : null;
+  const productsErrorMessage = useMemo(
+    () => unknownToErrorMessage(productsQuery.error),
+    [productsQuery.error],
+  );
 
   const colCount = appliedSearch ? 9 : 8;
+  const showRelevanceColumn = Boolean(appliedSearch);
 
   return (
     <PageWrapper title="Catalog Produse" actions={<EtapaBadge label="Etapa 3" />}>
@@ -444,11 +563,11 @@ export function ProductCatalog() {
         </CardBody>
       </Card>
 
-      {error && (
+      {productsErrorMessage ? (
         <p className="text-sm text-er mb-4" role="alert">
-          {error}
+          {productsErrorMessage}
         </p>
-      )}
+      ) : null}
 
       <Card>
         <CardHeader>
@@ -477,79 +596,12 @@ export function ProductCatalog() {
               </tr>
             </thead>
             <tbody>
-              {productsQuery.isLoading ? (
-                <tr>
-                  <td colSpan={colCount} className="px-4 py-8 text-center text-t3">
-                    Se încarcă…
-                  </td>
-                </tr>
-              ) : displayRows.length === 0 ? (
-                <tr>
-                  <td colSpan={colCount} className="px-4 py-8 text-center text-t3">
-                    Niciun produs. Importați date sau ajustați filtrele.
-                  </td>
-                </tr>
-              ) : (
-                displayRows.map((p) => (
-                  <tr key={p.id} className="border-b border-s800 hover:bg-s800/50">
-                    <td
-                      className="px-4 py-3"
-                      style={{
-                        fontFamily: "var(--font-mono)",
-                        fontSize: 11,
-                        color: "var(--color-t3)",
-                      }}
-                    >
-                      {p.sku}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <Package size={14} color="var(--color-neuron-knowledge)" />
-                        <span style={{ fontWeight: 500, color: "var(--color-t1)" }}>{p.name}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-t3 text-xs">{p.category}</td>
-                    <td className="px-4 py-3 text-right font-mono text-t2">
-                      {p.currency} {p.unitPrice.toFixed(2)}
-                      {p.maxDiscount != null ? (
-                        <div style={{ fontSize: 9, color: "var(--color-t4)" }}>
-                          max -{p.maxDiscount}%
-                        </div>
-                      ) : null}
-                    </td>
-                    <td
-                      className="px-4 py-3 text-right font-mono"
-                      style={{ color: stockDisplayColor(p.stock) }}
-                    >
-                      {p.stock.toLocaleString()}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <SBadge status={p.status} />
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <EmbeddingBadge status={p.embeddingStatus} dim={p.embeddingDim} />
-                    </td>
-                    <td className="px-4 py-3 text-center text-xs text-t3">{p.chunkCount || "—"}</td>
-                    {appliedSearch ? (
-                      <td className="px-4 py-3 text-right">
-                        {p.score === undefined ? (
-                          <span style={{ color: "var(--color-t4)", fontSize: 10 }}>N/A</span>
-                        ) : (
-                          <span
-                            style={{
-                              fontFamily: "var(--font-mono)",
-                              fontSize: 11,
-                              color: scoreDisplayColor(p.score),
-                            }}
-                          >
-                            {p.score.toFixed(2)}
-                          </span>
-                        )}
-                      </td>
-                    ) : null}
-                  </tr>
-                ))
-              )}
+              <ProductCatalogTableBody
+                isLoading={productsQuery.isLoading}
+                colCount={colCount}
+                displayRows={displayRows}
+                showRelevanceColumn={showRelevanceColumn}
+              />
             </tbody>
           </table>
         </CardBody>

@@ -90,3 +90,8 @@ async function resolveDatabaseUrl() {
 }
 
 await resolveDatabaseUrl();
+
+/** URL fix pentru teste proxy admin → Monitoring API (fetch mock în __tests__/admin-monitoring-proxy.test.ts). */
+process.env.MONITORING_API_INTERNAL_URL ??= "http://127.0.0.1:65520";
+/** Necesar pentru POST pause|resume|retry-failed|drain prin proxy (alinia Monitoring API). */
+process.env.ADMIN_KEY ??= "test-monitoring-admin-key";

@@ -1,0 +1,269 @@
+{
+  "generatedAt": "2026-04-03T20:35:24.698Z",
+  "totalHandlers": 224,
+  "routeRegistrations": [
+    {
+      "exportSymbol": "healthRoutes",
+      "prefix": "/health"
+    },
+    {
+      "exportSymbol": "authRoutes",
+      "prefix": "/api/v1/auth"
+    },
+    {
+      "exportSymbol": "adminMonitoringRoutes",
+      "prefix": "/api/admin"
+    },
+    {
+      "exportSymbol": "enrichmentRoutes",
+      "prefix": "/api/v1/enrichment"
+    },
+    {
+      "exportSymbol": "dashboardRoutes",
+      "prefix": "/api/v1/dashboard"
+    },
+    {
+      "exportSymbol": "importsBronzeRoutes",
+      "prefix": "/api/v1"
+    },
+    {
+      "exportSymbol": "silverGoldRoutes",
+      "prefix": "/api/v1"
+    },
+    {
+      "exportSymbol": "outreachRoutes",
+      "prefix": "/api/v1/outreach"
+    },
+    {
+      "exportSymbol": "webhooksRoutes",
+      "prefix": "/api/v1/webhooks"
+    },
+    {
+      "exportSymbol": "complianceRoutes",
+      "prefix": "/api/v1/ai"
+    },
+    {
+      "exportSymbol": "cognitiveBrainRoutes",
+      "prefix": "/api/v1/brain"
+    },
+    {
+      "exportSymbol": "negotiationRoutes",
+      "prefix": "/api/v1/negotiation"
+    },
+    {
+      "exportSymbol": "productRoutes",
+      "prefix": "/api/v1/products"
+    },
+    {
+      "exportSymbol": "fiscalRoutes",
+      "prefix": "/api/v1/fiscal"
+    },
+    {
+      "exportSymbol": "orderRoutes",
+      "prefix": "/api/v1/orders"
+    },
+    {
+      "exportSymbol": "creditRoutes",
+      "prefix": "/api/v1/credit"
+    },
+    {
+      "exportSymbol": "contractRoutes",
+      "prefix": "/api/v1/contracts"
+    },
+    {
+      "exportSymbol": "shipmentRoutes",
+      "prefix": "/api/v1/shipments"
+    },
+    {
+      "exportSymbol": "nurturingRoutes",
+      "prefix": "/api/v1/nurturing"
+    },
+    {
+      "exportSymbol": "referralRoutes",
+      "prefix": "/api/v1/referrals"
+    },
+    {
+      "exportSymbol": "churnRoutes",
+      "prefix": "/api/v1/churn"
+    },
+    {
+      "exportSymbol": "graphRoutes",
+      "prefix": "/api/v1/graph"
+    },
+    {
+      "exportSymbol": "e5AlertRoutes",
+      "prefix": "/api/v1/e5/alerts"
+    }
+  ],
+  "byFile": {
+    "admin-monitoring.ts": {
+      "count": 8,
+      "methods": {
+        "GET": 4,
+        "POST": 4
+      }
+    },
+    "auth.ts": {
+      "count": 5,
+      "methods": {
+        "POST": 4,
+        "GET": 1
+      }
+    },
+    "churn.ts": {
+      "count": 6,
+      "methods": {
+        "GET": 5,
+        "POST": 1
+      }
+    },
+    "cognitive-brain.ts": {
+      "count": 9,
+      "methods": {
+        "GET": 6,
+        "POST": 2,
+        "PUT": 1
+      }
+    },
+    "compliance.ts": {
+      "count": 1,
+      "methods": {
+        "GET": 1
+      }
+    },
+    "contract.ts": {
+      "count": 8,
+      "methods": {
+        "GET": 6,
+        "POST": 2
+      }
+    },
+    "credit.ts": {
+      "count": 8,
+      "methods": {
+        "GET": 5,
+        "POST": 3
+      }
+    },
+    "dashboard.ts": {
+      "count": 3,
+      "methods": {
+        "GET": 3
+      }
+    },
+    "e5-alert.ts": {
+      "count": 7,
+      "methods": {
+        "GET": 3,
+        "POST": 4
+      }
+    },
+    "enrichment.ts": {
+      "count": 10,
+      "methods": {
+        "GET": 5,
+        "POST": 5
+      }
+    },
+    "fiscal.ts": {
+      "count": 9,
+      "methods": {
+        "GET": 6,
+        "POST": 3
+      }
+    },
+    "graph.ts": {
+      "count": 7,
+      "methods": {
+        "GET": 6,
+        "POST": 1
+      }
+    },
+    "health.ts": {
+      "count": 3,
+      "methods": {
+        "GET": 3
+      }
+    },
+    "imports-bronze.ts": {
+      "count": 33,
+      "methods": {
+        "GET": 17,
+        "POST": 14,
+        "PUT": 1,
+        "DELETE": 1
+      }
+    },
+    "negotiation.ts": {
+      "count": 12,
+      "methods": {
+        "GET": 7,
+        "POST": 3,
+        "PATCH": 1,
+        "PUT": 1
+      }
+    },
+    "nurturing.ts": {
+      "count": 10,
+      "methods": {
+        "GET": 6,
+        "POST": 3,
+        "PATCH": 1
+      }
+    },
+    "order.ts": {
+      "count": 8,
+      "methods": {
+        "GET": 5,
+        "POST": 1,
+        "PATCH": 1,
+        "DELETE": 1
+      }
+    },
+    "outreach.ts": {
+      "count": 38,
+      "methods": {
+        "GET": 20,
+        "PATCH": 6,
+        "POST": 12
+      }
+    },
+    "product.ts": {
+      "count": 12,
+      "methods": {
+        "GET": 5,
+        "POST": 6,
+        "PATCH": 1
+      }
+    },
+    "referral.ts": {
+      "count": 6,
+      "methods": {
+        "GET": 3,
+        "POST": 2,
+        "PATCH": 1
+      }
+    },
+    "shipment.ts": {
+      "count": 6,
+      "methods": {
+        "GET": 4,
+        "POST": 2
+      }
+    },
+    "silver-gold.ts": {
+      "count": 12,
+      "methods": {
+        "GET": 7,
+        "POST": 4,
+        "PATCH": 1
+      }
+    },
+    "webhooks.ts": {
+      "count": 3,
+      "methods": {
+        "POST": 3
+      }
+    }
+  }
+}

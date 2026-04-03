@@ -1,17 +1,7 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
-import {
-  approvalTasks,
-  bronzeContacts,
-  dailyStats,
-  db,
-  goldCompanies,
-  pipelineErrors,
-  silverCompanies,
-  sql,
-} from "@cerniq/db";
-import { queueRegistry } from "@cerniq/worker-shared";
+import { dailyStats, db, sql } from "@cerniq/db";
 import { z } from "zod";
-import { createQueue } from "../lib/queue-factory.js";
+import { loadDashboardStatsPayload } from "../lib/dashboard-stats-payload.js";
 import { parseLimit, parseOffset, requireTenantId } from "./utils.js";
 
 function getErrorMessage(err: unknown): string {
@@ -39,164 +29,98 @@ function isSchemaPermissionError(err: unknown): boolean {
   return /permission denied for schema/i.test(values) || /\b42501\b/.test(values);
 }
 
+const kpiStreamQuerySchema = z.object({
+  token: z.string().min(1).optional(),
+});
+
+function formatSsePayload(payload: string): string {
+  const lines = payload.split("\n");
+  const body = lines.map((line) => "data: " + line).join("\n");
+  return body + "\n\n";
+}
+
 export async function dashboardRoutes(app: FastifyInstance) {
   const authOpts = { onRequest: [async (req: FastifyRequest) => req.jwtVerify()] };
 
   app.get("/stats", authOpts, async (request) => {
     const tenantId = requireTenantId(request);
+    const data = await loadDashboardStatsPayload(tenantId, app.log);
+    return { success: true, data };
+  });
+
+  /**
+   * SSE: același payload ca GET /stats, trimis imediat și apoi la fiecare 15s.
+   * Autentificare: Authorization sau ?token= (EventSource).
+   */
+  app.get("/kpi-stream", async (request, reply) => {
+    const queryParsed = kpiStreamQuerySchema.safeParse(request.query);
+    const queryToken = queryParsed.success ? queryParsed.data.token : undefined;
     try {
-      const queueDepthsSettled = await Promise.allSettled(
-        queueRegistry.map(async (q) => {
-          const queue = createQueue(q.name);
-          try {
-            const counts = await queue.getJobCounts(
-              "waiting",
-              "active",
-              "completed",
-              "failed",
-              "delayed",
-              "paused",
-            );
-            return {
-              name: q.name,
-              waiting: counts.waiting ?? 0,
-              active: counts.active ?? 0,
-              delayed: counts.delayed ?? 0,
-              failed: counts.failed ?? 0,
-            };
-          } finally {
-            await queue.close().catch(() => undefined);
-          }
-        }),
-      );
-
-      const queueDepths = queueDepthsSettled.flatMap((result) => {
-        if (result.status === "fulfilled") return [result.value];
-        throw result.reason;
-      });
-
-      const [
-        bronzeStats,
-        silverStats,
-        goldStats,
-        approvalStats,
-        errorStats,
-        hitlResolvedToday,
-        qualityStats,
-      ] = await db.transaction(async (tx) => {
-        await tx.execute(sql`SELECT set_config('app.tenant_id', ${tenantId}, true)`);
-
-        return Promise.all([
-          tx
-            .select({
-              total: sql<number>`COUNT(*)`,
-              pending: sql<number>`COUNT(*) FILTER (WHERE ${bronzeContacts.processingStatus} = 'pending')`,
-              processing: sql<number>`COUNT(*) FILTER (WHERE ${bronzeContacts.processingStatus} = 'processing')`,
-              promoted: sql<number>`COUNT(*) FILTER (WHERE ${bronzeContacts.processingStatus} = 'promoted')`,
-            })
-            .from(bronzeContacts)
-            .where(sql`${bronzeContacts.tenantId} = ${tenantId}`),
-          tx
-            .select({
-              total: sql<number>`COUNT(*)`,
-              pending: sql<number>`COUNT(*) FILTER (WHERE ${silverCompanies.enrichmentStatus} = 'pending')`,
-              inProgress: sql<number>`COUNT(*) FILTER (WHERE ${silverCompanies.enrichmentStatus} = 'in_progress')`,
-              complete: sql<number>`COUNT(*) FILTER (WHERE ${silverCompanies.enrichmentStatus} = 'complete')`,
-              eligible: sql<number>`COUNT(*) FILTER (WHERE ${silverCompanies.promotionStatus} = 'eligible')`,
-            })
-            .from(silverCompanies)
-            .where(sql`${silverCompanies.tenantId} = ${tenantId}`),
-          tx
-            .select({
-              total: sql<number>`COUNT(*)`,
-              cold: sql<number>`COUNT(*) FILTER (WHERE ${goldCompanies.currentState} = 'COLD')`,
-              engaged: sql<number>`COUNT(*) FILTER (WHERE ${goldCompanies.currentState} IN ('WARM_REPLY','ENGAGED','NEGOTIATION','PROPOSAL','CLOSING'))`,
-              converted: sql<number>`COUNT(*) FILTER (WHERE ${goldCompanies.currentState} = 'CONVERTED')`,
-            })
-            .from(goldCompanies)
-            .where(sql`${goldCompanies.tenantId} = ${tenantId}`),
-          tx
-            .select({
-              pending: sql<number>`COUNT(*) FILTER (WHERE ${approvalTasks.status} IN ('pending','assigned','escalated'))`,
-              overdue: sql<number>`COUNT(*) FILTER (WHERE ${approvalTasks.status} IN ('pending','assigned','escalated') AND COALESCE(${approvalTasks.dueAt}, ${approvalTasks.expiresAt}) < NOW())`,
-            })
-            .from(approvalTasks)
-            .where(sql`${approvalTasks.tenantId} = ${tenantId}`),
-          tx
-            .select({
-              last24h: sql<number>`COUNT(*) FILTER (WHERE ${pipelineErrors.createdAt} >= NOW() - INTERVAL '24 hours')`,
-              critical: sql<number>`COUNT(*) FILTER (WHERE ${pipelineErrors.severity} = 'critical')`,
-            })
-            .from(pipelineErrors)
-            .where(sql`${pipelineErrors.tenantId} = ${tenantId}`),
-          tx
-            .select({
-              resolvedToday: sql<number>`COUNT(*) FILTER (WHERE ${approvalTasks.status} IN ('approved', 'rejected', 'cancelled', 'expired') AND DATE(${approvalTasks.decidedAt}) = CURRENT_DATE)`,
-            })
-            .from(approvalTasks)
-            .where(sql`${approvalTasks.tenantId} = ${tenantId}`),
-          tx
-            .select({
-              avgScore: sql<number>`AVG(${silverCompanies.totalQualityScore})`,
-              eligible: sql<number>`COUNT(*) FILTER (WHERE ${silverCompanies.promotionStatus} = 'eligible')`,
-              blocked: sql<number>`COUNT(*) FILTER (WHERE ${silverCompanies.promotionStatus} = 'blocked')`,
-            })
-            .from(silverCompanies)
-            .where(
-              sql`${silverCompanies.tenantId} = ${tenantId} AND ${silverCompanies.totalQualityScore} IS NOT NULL`,
-            ),
-        ]);
-      });
-
-      const queueDepth = queueDepths.reduce((sum, q) => sum + q.waiting + q.active + q.delayed, 0);
-      const failingQueues = queueDepths.filter((q) => q.failed > 0).length;
-
-      return {
-        success: true,
-        data: {
-          bronze: bronzeStats[0],
-          silver: silverStats[0],
-          gold: goldStats[0],
-          approvals: approvalStats[0],
-          errors: errorStats[0],
-          pipeline: {
-            queueDepth,
-            failingQueues,
-          },
-          hitl: {
-            pending: Number(approvalStats[0]?.pending ?? 0),
-            resolvedToday: Number(hitlResolvedToday[0]?.resolvedToday ?? 0),
-            overdue: Number(approvalStats[0]?.overdue ?? 0),
-          },
-          quality: {
-            avgScore: Number(qualityStats[0]?.avgScore ?? 0),
-            eligible: Number(qualityStats[0]?.eligible ?? 0),
-            blocked: Number(qualityStats[0]?.blocked ?? 0),
-          },
-        },
-      };
-    } catch (err) {
-      if (isSchemaPermissionError(err)) {
-        app.log.warn(
-          { err, tenantId },
-          "Dashboard stats degraded: DB role lacks schema permissions for tenant analytics tables",
-        );
-        return {
-          success: true,
-          data: {
-            bronze: { total: 0, pending: 0, processing: 0, promoted: 0 },
-            silver: { total: 0, pending: 0, inProgress: 0, complete: 0, eligible: 0 },
-            gold: { total: 0, cold: 0, engaged: 0, converted: 0 },
-            approvals: { pending: 0, overdue: 0 },
-            errors: { last24h: 0, critical: 0 },
-            pipeline: { queueDepth: 0, failingQueues: 0 },
-            hitl: { pending: 0, resolvedToday: 0, overdue: 0 },
-            quality: { avgScore: 0, eligible: 0, blocked: 0 },
-          },
-        };
+      if (queryToken) {
+        (request.headers as Record<string, string>).authorization = `Bearer ${queryToken}`;
       }
-      throw err;
+      await request.jwtVerify();
+    } catch {
+      return reply.code(401).send({
+        success: false,
+        error: "Autentificare SSE eșuată — token lipsă sau expirat",
+      });
     }
+    let tenantId: string;
+    try {
+      tenantId = requireTenantId(request);
+    } catch {
+      return reply.code(401).send({ success: false, error: "Tenant lipsă în context" });
+    }
+
+    reply.hijack();
+    reply.raw.writeHead(200, {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache, no-transform",
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no",
+    });
+    reply.raw.write(": connected\n\n");
+
+    const push = (payload: unknown) => {
+      const body = JSON.stringify({
+        type: "kpi" as const,
+        ts: new Date().toISOString(),
+        data: payload,
+      });
+      try {
+        reply.raw.write(formatSsePayload(body));
+      } catch {
+        /* client disconnected */
+      }
+    };
+
+    try {
+      push(await loadDashboardStatsPayload(tenantId, app.log));
+    } catch (err) {
+      app.log.error({ err, tenantId }, "dashboard kpi-stream: primul push a eșuat");
+      try {
+        reply.raw.end();
+      } catch {
+        /* ignore */
+      }
+      return;
+    }
+
+    const intervalMs = 15_000;
+    const timer = setInterval(() => {
+      loadDashboardStatsPayload(tenantId, app.log)
+        .then((payload) => push(payload))
+        .catch((err) => {
+          app.log.warn({ err, tenantId }, "dashboard kpi-stream: tick eșuat");
+        });
+    }, intervalMs);
+
+    const onClose = () => {
+      clearInterval(timer);
+    };
+    request.raw.on("close", onClose);
+    request.raw.on("aborted", onClose);
   });
 
   app.get("/activity", authOpts, async (request, reply) => {

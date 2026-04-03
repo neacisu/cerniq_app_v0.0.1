@@ -36,7 +36,7 @@ describe("Page Rendering", () => {
   });
   it("Dashboard renders title", () => {
     wrap(<Dashboard />);
-    expect(screen.getByText("Dashboard")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Dashboard general/i })).toBeInTheDocument();
   });
   it("Dashboard shows loading state", () => {
     wrap(<Dashboard />);

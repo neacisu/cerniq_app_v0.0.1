@@ -17,8 +17,15 @@ describe("Navigation Config", () => {
     expect(cogSection?.items[0].path).toBe("/brain");
     expect(cogSection?.items[0].icon).toBe("Brain");
   });
-  it("Dashboard is first item", () => {
+  it("Dashboard general is first item", () => {
     expect(navigation[0].items[0].path).toBe("/dashboard");
+    expect(navigation[0].items[0].label).toBe("Dashboard general");
+  });
+  it("Dashboard E1 is first item in Etapa 1 section", () => {
+    const e1 = navigation[1];
+    expect(e1.title).toContain("ETAPA 1");
+    expect(e1.items[0].path).toBe("/etapa1/dashboard");
+    expect(e1.items[0].label).toBe("Dashboard E1");
   });
   it("Approvals HITL exists in Etapa 1 navigation", () => {
     const approvals = navigation[1].items.find((i) => i.path === "/approvals");

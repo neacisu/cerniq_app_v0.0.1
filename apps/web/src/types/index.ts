@@ -1,5 +1,13 @@
 /** NavItem and NavSection are defined in @/config/navigation. */
 
+export type {
+  ApiDataEnvelope,
+  ApiListEnvelope,
+  ApiListMeta,
+  DashboardStatsPayload,
+} from "./api.js";
+export { REFINE_RESOURCE_EXAMPLES } from "./api.js";
+
 export interface KpiData {
   label: string;
   value: string | number;

@@ -1,92 +1,166 @@
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { PageWrapper } from "@/components/layout/PageWrapper.js";
-import { Spinner } from "@/components/ui/spinner.js";
-import { Card, CardHeader, CardTitle, CardBody } from "@/components/ui/card.js";
 import {
   fetchDashboardActivity,
   fetchDashboardDailyStats,
   fetchDashboardStats,
   type DashboardActivityItem,
 } from "@/lib/etapa1-api.js";
-import { FunnelChart } from "@/components/charts/FunnelChart.js";
-import { BarTrendChart } from "@/components/charts/BarTrendChart.js";
-import { LineTrendChart } from "@/components/charts/LineTrendChart.js";
-import { GaugeChart } from "@/components/charts/GaugeChart.js";
-import { StatsGrid } from "@/components/widgets/StatsGrid.js";
-import { ActivityFeed } from "@/components/widgets/ActivityFeed.js";
-
-function getActivityStatus(item: DashboardActivityItem): "error" | "warning" | "info" {
-  const severity = (item.severity ?? "").toLowerCase();
-  if (severity.includes("critical") || severity.includes("error")) return "error";
-  if (item.type.includes("approval")) return "warning";
-  return "info";
-}
-
-function getTrendValue(status: "error" | "warning" | "info"): number {
-  if (status === "error") return 3;
-  if (status === "warning") return 2;
-  return 1;
-}
-
-const kpiTemplates = [
-  {
-    label: "Bronze Contacts",
-    icon: "Database",
-    color: "var(--color-tier-bronze)",
-    path: "/bronze",
-  },
-  {
-    label: "Silver Companies",
-    icon: "Building2",
-    color: "var(--color-tier-silver)",
-    path: "/silver",
-  },
-  { label: "Gold Leads", icon: "Star", color: "var(--color-tier-gold)", path: "/gold" },
-  {
-    label: "Queue Depth",
-    icon: "TrendingUp",
-    color: "var(--color-ok)",
-    path: "/enrichment/queue",
-  },
-];
+import { fetchOutreachDashboard } from "@/lib/etapa2-api.js";
+import {
+  fetchBrainCatalog,
+  fetchBrainTopologyGlobal,
+  fetchChurnStats,
+  fetchContractStats,
+  fetchCreditStats,
+  fetchE5ComplianceAlertStats,
+  fetchFiscalOblioStats,
+  fetchGraphStats,
+  fetchNegotiationStats,
+  fetchNurturingStats,
+  fetchOrderStats,
+  fetchProductStats,
+  fetchReferralStats,
+  fetchShipmentStats,
+} from "@/lib/unified-dashboard-api.js";
+import type { DashboardStatsPayload } from "@/types/api.js";
+import { useDashboardKpiStream } from "@/hooks/use-dashboard-kpi-stream.js";
+import { LIVE_QUERY, e1KpiTemplates } from "./constants.js";
+import { getActivityStatus } from "./utils.js";
+import { DashboardHeader } from "./DashboardHeader.js";
+import { DashboardE1Section } from "./DashboardE1Section.js";
+import { DashboardE2Section } from "./DashboardE2Section.js";
+import { DashboardE3Section } from "./DashboardE3Section.js";
+import { DashboardE4Section } from "./DashboardE4Section.js";
+import { DashboardE5Section } from "./DashboardE5Section.js";
+import { DashboardBrainSection } from "./DashboardBrainSection.js";
 
 export function Dashboard() {
   const navigate = useNavigate();
+  const { sseConnected } = useDashboardKpiStream(true);
+
   const statsQuery = useQuery({
     queryKey: ["etapa1", "dashboard", "stats"],
     queryFn: fetchDashboardStats,
+    refetchInterval: sseConnected ? false : LIVE_QUERY.refetchInterval,
+    staleTime: LIVE_QUERY.staleTime,
+    retry: LIVE_QUERY.retry,
   });
   const activityQuery = useQuery({
     queryKey: ["etapa1", "dashboard", "activity"],
     queryFn: () => fetchDashboardActivity(20),
+    ...LIVE_QUERY,
   });
   const dailyStatsQuery = useQuery({
     queryKey: ["etapa1", "dashboard", "daily-stats"],
     queryFn: () => fetchDashboardDailyStats({ days: 30 }),
+    ...LIVE_QUERY,
   });
-  const statsData = statsQuery.data?.data ?? {};
-  const bronzeTotal = Number((statsData.bronze as Record<string, unknown> | undefined)?.total ?? 0);
-  const silverTotal = Number((statsData.silver as Record<string, unknown> | undefined)?.total ?? 0);
-  const goldTotal = Number((statsData.gold as Record<string, unknown> | undefined)?.total ?? 0);
-  const queueDepth = Number(
-    (statsData.pipeline as Record<string, unknown> | undefined)?.queueDepth ?? 0,
-  );
+
+  const outreachQuery = useQuery({
+    queryKey: ["dashboard", "outreach", "7d"],
+    queryFn: () => fetchOutreachDashboard("7d"),
+    ...LIVE_QUERY,
+  });
+  const negotiationQuery = useQuery({
+    queryKey: ["dashboard", "negotiation", "stats"],
+    queryFn: fetchNegotiationStats,
+    ...LIVE_QUERY,
+  });
+  const productQuery = useQuery({
+    queryKey: ["dashboard", "products", "stats"],
+    queryFn: fetchProductStats,
+    ...LIVE_QUERY,
+  });
+  const fiscalQuery = useQuery({
+    queryKey: ["dashboard", "fiscal", "oblio", "stats"],
+    queryFn: fetchFiscalOblioStats,
+    ...LIVE_QUERY,
+  });
+  const orderQuery = useQuery({
+    queryKey: ["dashboard", "orders", "stats"],
+    queryFn: fetchOrderStats,
+    ...LIVE_QUERY,
+  });
+  const creditQuery = useQuery({
+    queryKey: ["dashboard", "credit", "stats"],
+    queryFn: fetchCreditStats,
+    ...LIVE_QUERY,
+  });
+  const contractQuery = useQuery({
+    queryKey: ["dashboard", "contracts", "stats"],
+    queryFn: fetchContractStats,
+    ...LIVE_QUERY,
+  });
+  const shipmentQuery = useQuery({
+    queryKey: ["dashboard", "shipments", "stats"],
+    queryFn: fetchShipmentStats,
+    ...LIVE_QUERY,
+  });
+  const nurturingQuery = useQuery({
+    queryKey: ["dashboard", "nurturing", "stats"],
+    queryFn: fetchNurturingStats,
+    ...LIVE_QUERY,
+  });
+  const churnQuery = useQuery({
+    queryKey: ["dashboard", "churn", "stats"],
+    queryFn: fetchChurnStats,
+    ...LIVE_QUERY,
+  });
+  const referralQuery = useQuery({
+    queryKey: ["dashboard", "referrals", "stats"],
+    queryFn: fetchReferralStats,
+    ...LIVE_QUERY,
+  });
+  const graphQuery = useQuery({
+    queryKey: ["dashboard", "graph", "stats"],
+    queryFn: fetchGraphStats,
+    ...LIVE_QUERY,
+  });
+  const e5ComplianceQuery = useQuery({
+    queryKey: ["dashboard", "e5", "compliance", "stats"],
+    queryFn: fetchE5ComplianceAlertStats,
+    ...LIVE_QUERY,
+  });
+  const brainCatalogQuery = useQuery({
+    queryKey: ["dashboard", "brain", "catalog"],
+    queryFn: fetchBrainCatalog,
+    staleTime: 300_000,
+    retry: 1,
+  });
+  const brainTopologyQuery = useQuery({
+    queryKey: ["dashboard", "brain", "topology"],
+    queryFn: fetchBrainTopologyGlobal,
+    ...LIVE_QUERY,
+  });
+
+  const statsData: Partial<DashboardStatsPayload> = statsQuery.data?.data ?? {};
+  const bronzeTotal = Number(statsData.bronze?.total ?? 0);
+  const silverTotal = Number(statsData.silver?.total ?? 0);
+  const goldTotal = Number(statsData.gold?.total ?? 0);
+  const queueDepth = Number(statsData.pipeline?.queueDepth ?? 0);
+  const failingQueues = Number(statsData.pipeline?.failingQueues ?? 0);
+  const errorsLast24h = Number(statsData.errors?.last24h ?? 0);
+  const errorsCritical = Number(statsData.errors?.critical ?? 0);
+
   const dynamicKpis = [
-    { ...kpiTemplates[0], value: bronzeTotal.toLocaleString("ro-RO"), change: "" },
-    { ...kpiTemplates[1], value: silverTotal.toLocaleString("ro-RO"), change: "" },
-    { ...kpiTemplates[2], value: goldTotal.toLocaleString("ro-RO"), change: "" },
+    { ...e1KpiTemplates[0], value: bronzeTotal.toLocaleString("ro-RO"), change: "" },
+    { ...e1KpiTemplates[1], value: silverTotal.toLocaleString("ro-RO"), change: "" },
+    { ...e1KpiTemplates[2], value: goldTotal.toLocaleString("ro-RO"), change: "" },
     {
-      ...kpiTemplates[3],
+      ...e1KpiTemplates[3],
       value: queueDepth >= 1000 ? `${Math.round(queueDepth / 1000)}K` : String(queueDepth),
       change: "",
     },
   ];
+
   const activity = (activityQuery.data?.data ?? []).map((item: DashboardActivityItem) => ({
     status: getActivityStatus(item),
     text: item.message,
-    time: new Date(item.timestamp).toLocaleString(),
+    time: new Date(item.timestamp).toLocaleString("ro-RO"),
   }));
+
   const pipeline = [
     { label: "Bronze", value: bronzeTotal, color: "var(--color-tier-bronze)" },
     { label: "Silver", value: silverTotal, color: "var(--color-tier-silver)" },
@@ -94,10 +168,7 @@ export function Dashboard() {
     { label: "Queue Depth", value: queueDepth, color: "var(--color-in)" },
   ];
   const funnelChartData = pipeline.map((p) => ({ name: p.label, value: p.value, fill: p.color }));
-  const activityTrendData = activity.slice(0, 8).map((item, i) => ({
-    label: String(i + 1),
-    value: getTrendValue(item.status),
-  }));
+
   const dailyStatsData = (dailyStatsQuery.data?.data ?? [])
     .sort((a, b) => (a.statDate ?? "").localeCompare(b.statDate ?? ""))
     .map((row) => ({
@@ -110,177 +181,157 @@ export function Dashboard() {
       value: row.enrichmentJobsCompleted,
     }));
 
-  if (statsQuery.isPending) {
-    return (
-      <PageWrapper title="Dashboard">
-        <div className="flex items-center justify-center py-12">
-          <Spinner size={32} />
-        </div>
-      </PageWrapper>
-    );
+  const outreach = outreachQuery.data?.data;
+  const sentimentBar =
+    outreach?.sentimentDistribution.map((s) => ({
+      label: s.category,
+      value: s.count,
+    })) ?? [];
+  const leadFunnelBar = outreach?.leadFunnel.map((f) => ({ label: f.state, value: f.count })) ?? [];
+
+  const neg = negotiationQuery.data?.data;
+  const negotiationBars = neg?.byState.map((r) => ({ label: r.state, value: r.count })) ?? [];
+
+  const orders = orderQuery.data?.data;
+  const orderBars = orders?.byStatus.map((r) => ({ label: r.status, value: r.count })) ?? [];
+  const ordersTotalCount = orders?.byStatus.reduce((a, r) => a + r.count, 0) ?? 0;
+
+  const churn = churnQuery.data?.data;
+  const churnRiskBars =
+    churn?.byRisk.map((r) => ({
+      label: r.riskLevel ?? "—",
+      value: r.count,
+    })) ?? [];
+  const churnSentimentBar = churn
+    ? [
+        { label: "pozitiv", value: churn.sentiment.positive },
+        { label: "neutru", value: churn.sentiment.neutral },
+        { label: "negativ", value: churn.sentiment.negative },
+      ]
+    : [];
+
+  const brainCat = brainCatalogQuery.data?.data?.stats;
+  const brainByEtapaBar = brainCat
+    ? Object.entries(brainCat.byEtapa).map(([k, v]) => ({ label: k.toUpperCase(), value: v }))
+    : [];
+
+  const negTotal =
+    negotiationBars.length > 0 ? negotiationBars.reduce((a, b) => a + b.value, 0) : 0;
+  const brainMeta = brainTopologyQuery.data?.data?.metadata;
+
+  let brainKpiDisplay = "—";
+  if (brainTopologyQuery.isPending) brainKpiDisplay = "…";
+  else if (brainMeta != null) {
+    brainKpiDisplay = `${brainMeta.activeNeurons}/${brainMeta.totalNeurons}`;
   }
 
-  if (statsQuery.isError) {
-    return (
-      <PageWrapper title="Dashboard">
-        <div className="rounded-lg border border-er/30 bg-er/10 p-4 text-sm text-er">
-          Eroare la încărcarea datelor: {statsQuery.error?.message ?? "Eroare necunoscută"}
-        </div>
-      </PageWrapper>
-    );
-  }
+  const crossStageKpis = [
+    {
+      label: "Outreach mesaje (7z)",
+      icon: "Send",
+      color: "var(--color-b5)",
+      path: "/outreach/dashboard",
+      value: outreachQuery.isPending
+        ? "…"
+        : (outreach?.kpis.messagesSent ?? 0).toLocaleString("ro-RO"),
+      change: "",
+    },
+    {
+      label: "Negocieri (total)",
+      icon: "MessagesSquare",
+      color: "var(--color-b5)",
+      path: "/negotiations",
+      value: negotiationQuery.isPending ? "…" : negTotal.toLocaleString("ro-RO"),
+      change: "",
+    },
+    {
+      label: "Comenzi (total)",
+      icon: "ShoppingCart",
+      color: "var(--color-b5)",
+      path: "/orders/board",
+      value: orderQuery.isPending ? "…" : ordersTotalCount.toLocaleString("ro-RO"),
+      change: "",
+    },
+    {
+      label: "Neuroni activi (Brain)",
+      icon: "Brain",
+      color: "var(--color-b5)",
+      path: "/brain",
+      value: brainKpiDisplay,
+      change: "",
+    },
+  ];
+
+  const e1Loading = statsQuery.isPending;
 
   return (
-    <PageWrapper title="Dashboard">
-      <StatsGrid items={dynamicKpis} onNavigate={(path) => navigate(path)} />
+    <PageWrapper
+      title="Dashboard general"
+      subtitle="Vedere transversală pe Etapa 1–5, Cognitive Brain și indicatori încrucișați. Pentru operațiuni detaliate numai pe enrichment, folosiți Dashboard Etapa 1 din meniu. KPI Etapa 1: SSE /api/v1/dashboard/kpi-stream (~15s) + React Query; celelalte secțiuni ~30s polling."
+    >
+      <DashboardHeader
+        statsQueryError={statsQuery.isError ? statsQuery.error : null}
+        e1Loading={e1Loading}
+        sseConnected={sseConnected}
+        crossStageKpis={crossStageKpis}
+        dynamicKpis={dynamicKpis}
+        onNavigate={(path) => navigate(path)}
+      />
 
-      <div className="grid grid-cols-2 gap-4 mb-6 max-[1100px]:grid-cols-1">
-        <Card>
-          <CardHeader>
-            <CardTitle>Pipeline Funnel</CardTitle>
-          </CardHeader>
-          <CardBody>
-            <FunnelChart data={funnelChartData} />
-          </CardBody>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Activitate Recentă</CardTitle>
-          </CardHeader>
-          <CardBody>
-            <BarTrendChart data={activityTrendData} />
-            <ActivityFeed items={activity} />
-          </CardBody>
-        </Card>
-      </div>
-
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Enrichment Jobs (30 zile)</CardTitle>
-        </CardHeader>
-        <CardBody>
-          {dailyStatsData.length > 0 ? (
-            <LineTrendChart data={dailyStatsData} />
-          ) : (
-            <p className="py-4 text-center text-sm text-t3">Nu sunt date disponibile.</p>
-          )}
-        </CardBody>
-      </Card>
-
-      <div className="grid grid-cols-3 gap-4 max-[1100px]:grid-cols-1">
-        <Card>
-          <CardHeader>
-            <CardTitle>Pipeline Stats</CardTitle>
-          </CardHeader>
-          <CardBody className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-t3">Bronze → Silver</span>
-              <span className="text-t1">
-                {silverTotal > 0 && bronzeTotal > 0
-                  ? `${Math.round((silverTotal / bronzeTotal) * 100)}%`
-                  : "—"}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-t3">Silver → Gold</span>
-              <span className="text-t1">
-                {goldTotal > 0 && silverTotal > 0
-                  ? `${Math.round((goldTotal / silverTotal) * 100)}%`
-                  : "—"}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-t3">Total Pipeline</span>
-              <span className="text-t1">
-                {(bronzeTotal + silverTotal + goldTotal).toLocaleString("ro-RO")}
-              </span>
-            </div>
-          </CardBody>
-        </Card>
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>HITL Approvals</CardTitle>
-              <button
-                type="button"
-                onClick={() => navigate("/approvals")}
-                className="text-xs text-b5 hover:underline"
-              >
-                View all →
-              </button>
-            </div>
-          </CardHeader>
-          <CardBody className="space-y-2 text-sm">
-            <div className="flex justify-between items-center">
-              <span className="text-t3">Pending</span>
-              <span className="flex items-center gap-1 text-t1">
-                {Number((statsData.hitl as Record<string, unknown> | undefined)?.pending ?? 0) >
-                  0 && <span className="inline-block h-2 w-2 rounded-full bg-amber-500" />}
-                {Number((statsData.hitl as Record<string, unknown> | undefined)?.pending ?? 0)}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-t3">Resolved Today</span>
-              <span className="text-t1">
-                {Number(
-                  (statsData.hitl as Record<string, unknown> | undefined)?.resolvedToday ?? 0,
-                )}
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-t3">Overdue</span>
-              <span className="flex items-center gap-1 text-t1">
-                {Number((statsData.hitl as Record<string, unknown> | undefined)?.overdue ?? 0) >
-                  0 && <span className="inline-block h-2 w-2 rounded-full bg-red-500" />}
-                {Number((statsData.hitl as Record<string, unknown> | undefined)?.overdue ?? 0)}
-              </span>
-            </div>
-          </CardBody>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Enrichment Quality</CardTitle>
-          </CardHeader>
-          <CardBody className="space-y-2 text-sm">
-            <div className="flex items-center gap-4">
-              <GaugeChart
-                value={Number(
-                  (statsData.quality as Record<string, unknown> | undefined)?.avgScore ?? 0,
-                )}
-                size="sm"
-              />
-              <div className="flex-1 space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-t3">Avg Quality Score</span>
-                  <span className="text-t1">
-                    {Number(
-                      (statsData.quality as Record<string, unknown> | undefined)?.avgScore ?? 0,
-                    ).toFixed(1)}
-                    %
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-t3">Eligible for Gold</span>
-                  <span className="text-t1">
-                    {Number(
-                      (statsData.quality as Record<string, unknown> | undefined)?.eligible ?? 0,
-                    )}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-t3">Blocked</span>
-                  <span className="text-t1">
-                    {Number(
-                      (statsData.quality as Record<string, unknown> | undefined)?.blocked ?? 0,
-                    )}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </CardBody>
-        </Card>
-      </div>
+      {!e1Loading && (
+        <>
+          <DashboardE1Section
+            navigate={navigate}
+            statsData={statsData}
+            funnelChartData={funnelChartData}
+            activity={activity}
+            dailyStatsData={dailyStatsData}
+            dailyStatsQuery={dailyStatsQuery}
+            activityQuery={activityQuery}
+            bronzeTotal={bronzeTotal}
+            silverTotal={silverTotal}
+            goldTotal={goldTotal}
+            errorsLast24h={errorsLast24h}
+            errorsCritical={errorsCritical}
+            failingQueues={failingQueues}
+          />
+          <DashboardE2Section
+            navigate={navigate}
+            outreachQuery={outreachQuery}
+            sentimentBar={sentimentBar}
+            leadFunnelBar={leadFunnelBar}
+          />
+          <DashboardE3Section
+            negotiationQuery={negotiationQuery}
+            productQuery={productQuery}
+            fiscalQuery={fiscalQuery}
+            negotiationBars={negotiationBars}
+          />
+          <DashboardE4Section
+            orderQuery={orderQuery}
+            creditQuery={creditQuery}
+            contractQuery={contractQuery}
+            shipmentQuery={shipmentQuery}
+            orderBars={orderBars}
+          />
+          <DashboardE5Section
+            nurturingQuery={nurturingQuery}
+            churnQuery={churnQuery}
+            e5ComplianceQuery={e5ComplianceQuery}
+            referralQuery={referralQuery}
+            graphQuery={graphQuery}
+            churnRiskBars={churnRiskBars}
+            churnSentimentBar={churnSentimentBar}
+          />
+          <DashboardBrainSection
+            navigate={navigate}
+            brainTopologyQuery={brainTopologyQuery}
+            brainCatalogQuery={brainCatalogQuery}
+            brainByEtapaBar={brainByEtapaBar}
+            brainCat={brainCat}
+          />
+        </>
+      )}
     </PageWrapper>
   );
 }

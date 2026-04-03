@@ -32,7 +32,9 @@ pnpm test:e2e   # Playwright (env + URL)
 ## Calitate
 
 - Rezolvați erorile din panoul **Problems** (IDE) pe fișierele modificate.
-- **SonarCloud / Quality Gate**: vezi [`sonar-project.properties`](sonar-project.properties) și pipeline-ul CI; `pnpm diagnostics:sonar:fetch` poate fi folosit local dacă aveți token.
+- **SonarCloud / Quality Gate**: config în [`sonar-project.properties`](sonar-project.properties). CI rulează `pnpm verify:sonar-config` în job-ul **Lint** (validare chei + căi LCOV declarate). **Scanarea efectivă și Quality Gate** pe cod nou au loc în SonarCloud când activați job-ul **SonarCloud** (`SONAR_SCAN=true` + secret `SONAR_TOKEN`); fără acestea, QG nu este evaluat automat la fiecare PR — verificați manual în SonarCloud înainte de release. Local: `pnpm diagnostics:sonar:fetch` cu token.
+- **Inventar generat (sincron cu codul)**: după schimbări la rute sau metrici Prometheus, rulați `pnpm audit:api-routes:write` și `pnpm audit:prometheus-metrics:write`, apoi comitați [`docs/generated/api-routes-inventory.json`](docs/generated/api-routes-inventory.json) și [`docs/generated/prometheus-metrics-inventory.json`](docs/generated/prometheus-metrics-inventory.json). `pnpm audit:api-routes` afișează același JSON la stdout fără a scrie fișierul.
+- **Health `/health/*`**: în SPA-ul principal operațiunile de sănătate nu sunt expuse în meniu; consumatorul suportat este [`apps/web-admin`](apps/web-admin) (ex. `fetchHealthDeps` → `/health/deps`). **Auth `/api/v1/auth/*`**: [`apps/web`](apps/web) prin `AuthProvider` + pagini Login / ForgotPassword.
 
 ## Git hooks
 

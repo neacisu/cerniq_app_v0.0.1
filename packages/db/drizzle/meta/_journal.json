@@ -393,6 +393,13 @@
       "when": 1775518400000,
       "tag": "0054_e5_geospatial",
       "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1775604800000,
+      "tag": "0055_silver_denumire_normalizata_repair",
+      "breakpoints": true
     }
   ]
 }
