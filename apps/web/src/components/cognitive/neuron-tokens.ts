@@ -20,11 +20,14 @@ export const NEURON_COLORS: Record<string, string> = {
   ExecutiveNeuron: "var(--color-neuron-executive)",
   AttentionNeuron: "var(--color-neuron-vigilance)",
   EmotionNeuron: "var(--color-neuron-emotion)",
-  KnowledgeNeuron: "var(--color-neuron-domain)",
-  GuardrailNeuron: "var(--color-neuron-reflex)",
   HumanNeuron: "var(--color-neuron-human)",
   PredictiveNeuron: "var(--color-neuron-meta)",
-  ToolNeuron: "var(--color-neuron-factual)",
+  // ── E3 new types — §XI plan L2431-2437 ────────────────────────────────────
+  KnowledgeNeuron: "var(--color-neuron-knowledge)",
+  GuardrailNeuron: "var(--color-neuron-guardrail)",
+  ToolNeuron: "var(--color-neuron-tool)",
+  FiscalNeuron: "var(--color-neuron-fiscal)",
+  SafetyNeuron: "var(--color-neuron-safety)",
   // ── E4 new types ─────────────────────────────────────────────────────────
   PerceptionNeuron: "var(--color-neuron-sensory)",
   ReconciliationNeuron: "var(--color-neuron-reconcile)",
@@ -35,10 +38,20 @@ export const NEURON_COLORS: Record<string, string> = {
   ContractNeuron: "var(--color-neuron-contract)",
   ReturnNeuron: "var(--color-neuron-procedural)",
   AlertNeuron: "var(--color-neuron-vigilance)",
-  ComplianceNeuron: "var(--color-neuron-guardrail)",
+  ComplianceNeuron: "var(--color-neuron-compliance)",
   MetaNeuron: "var(--color-neuron-meta)",
   MaintenanceNeuron: "var(--color-neuron-maintenance)",
   VigilanceNeuron: "var(--color-neuron-vigilance)",
+  // ── E5 new types — §XI plan L2445-2451 ────────────────────────────────────
+  LifecycleNeuron: "var(--color-neuron-lifecycle)",
+  ChurnNeuron: "var(--color-neuron-churn)",
+  SocialNeuron: "var(--color-neuron-social)",
+  GraphNeuron: "var(--color-neuron-graph)",
+  EnvironmentNeuron: "var(--color-neuron-environment)",
+  FeedbackNeuron: "var(--color-neuron-feedback)",
+  // ── Extra neuron types (MemoryNeuron, SpatialNeuron) ──────────────────────
+  MemoryNeuron: "var(--color-neuron-lifecycle)",
+  SpatialNeuron: "var(--color-neuron-social)",
 } as const;
 
 /** Maps runtime status → CSS custom property for the status-dot color. */

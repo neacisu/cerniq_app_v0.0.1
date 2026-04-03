@@ -62,6 +62,14 @@ import { Nurturing } from "./pages/etapa5/nurturing.js";
 import { Referrals } from "./pages/etapa5/referrals.js";
 import { Churn } from "./pages/etapa5/churn.js";
 import { GeoMap } from "./pages/etapa5/geo-map.js";
+import { NegotiationConversation } from "./pages/etapa3/NegotiationConversation.js";
+import { ProductCatalog } from "./pages/etapa3/ProductCatalog.js";
+import { FiscalDocuments } from "./pages/etapa3/FiscalDocuments.js";
+import { OrderDashboard } from "./pages/etapa4/OrderDashboard.js";
+import { CreditProfile } from "./pages/etapa4/CreditProfile.js";
+import { ContractBuilder } from "./pages/etapa4/ContractBuilder.js";
+import { NurturingDashboard } from "./pages/etapa5/NurturingDashboard.js";
+import { ReferralManager } from "./pages/etapa5/ReferralManager.js";
 import { Workers } from "./pages/system/workers.js";
 import { Settings } from "./pages/system/settings.js";
 import { NotFound } from "./pages/NotFound.js";
@@ -194,6 +202,17 @@ export function App() {
                     <Route path="/referrals" element={<Referrals />} />
                     <Route path="/churn" element={<Churn />} />
                     <Route path="/geo-map" element={<GeoMap />} />
+                    <Route
+                      path="/negotiations/conversation"
+                      element={<NegotiationConversation />}
+                    />
+                    <Route path="/products" element={<ProductCatalog />} />
+                    <Route path="/fiscal/documents" element={<FiscalDocuments />} />
+                    <Route path="/orders/board" element={<OrderDashboard />} />
+                    <Route path="/credit/profile" element={<CreditProfile />} />
+                    <Route path="/contracts/builder" element={<ContractBuilder />} />
+                    <Route path="/nurturing/dashboard" element={<NurturingDashboard />} />
+                    <Route path="/referral/manager" element={<ReferralManager />} />
                     <Route path="/workers" element={<Workers />} />
                     <Route path="/settings" element={<Settings />} />
                     <Route

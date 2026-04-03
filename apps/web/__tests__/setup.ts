@@ -1,10 +1,12 @@
-import "@testing-library/jest-dom/vitest";
-import { toHaveNoViolations } from "jest-axe";
 import React from "react";
+import * as jestDomMatchers from "@testing-library/jest-dom/matchers";
 import { expect, vi } from "vitest";
 import { server } from "../src/test-utils/msw/server.js";
 
-expect.extend(toHaveNoViolations);
+// `@testing-library/jest-dom/vitest` poate intra în conflict cu Vitest 4.x (callCount read-only pe Assertion).
+expect.extend(jestDomMatchers);
+
+// jest-axe `expect.extend(toHaveNoViolations)` rămâne incompatibil — axe.test.tsx folosește `results.violations`.
 
 class ResizeObserverMock implements ResizeObserver {
   private readonly observedElements = new Set<Element>();

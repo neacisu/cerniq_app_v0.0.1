@@ -642,12 +642,18 @@ importers:
       '@cerniq/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@cerniq/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       '@cerniq/worker-shared':
         specifier: workspace:*
         version: link:../shared
       bullmq:
         specifier: ^5.71.0
         version: 5.71.0
+      date-fns:
+        specifier: ^4.1.0
+        version: 4.1.0
       ioredis:
         specifier: ^5.10.0
         version: 5.10.0
@@ -3419,6 +3425,9 @@ packages:
   data-urls@7.0.0:
     resolution: {integrity: sha512-23XHcCF+coGYevirZceTVD7NdJOqVn+49IHyxgszm+JIiHLoB2TkmPtsYkNWT1pvRSGkc35L6NHs0yHkN2SumA==}
     engines: {node: ^20.19.0 || ^22.12.0 || >=24.0.0}
+
+  date-fns@4.1.0:
+    resolution: {integrity: sha512-Ukq0owbQXxa/U3EGtsdVBkR1w7KOQ5gIBqdH2hkvknzZPYvBxb/aa6E8L7tmjFtkwZBu3UXBbjIgPo/Ez4xaNg==}
 
   dateformat@4.6.3:
     resolution: {integrity: sha512-2P0p0pFGzHS5EMnhdxQi7aJN+iMheud0UhG4dlE1DLAlvL8JHjJJTX/CSm4JXwV0Ka5nGk3zC5mcb5bUQUxxMA==}
@@ -8562,6 +8571,8 @@ snapshots:
       whatwg-url: 16.0.1
     transitivePeerDependencies:
       - '@noble/hashes'
+
+  date-fns@4.1.0: {}
 
   dateformat@4.6.3: {}
 

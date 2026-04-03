@@ -1,0 +1,22 @@
+# Python dependencies pentru leiden_service.py (FAZA 9e — Plan §X L2028-2033)
+# Instalare: pip3 install -r requirements.txt
+# Docker: RUN pip3 install -r workers/e5-nurturing/python/requirements.txt
+
+# Graph library — igraph C-backed, performant pentru grafuri mari
+python-igraph>=0.10.0
+
+# Community detection algorithms — cdlib include algoritmi wrapper (Leiden via leidenalg)
+cdlib>=0.4.0
+
+# Leiden algorithm core — leidenalg C-extension, furnizor direct al resolution_parameter
+# cdlib 0.4.0 a eliminat resolution_parameter din wrapper-ul seu, folosim leidenalg direct
+leidenalg>=0.11.0
+
+# Network analysis — folosit pentru validare și utilitare suplimentare
+networkx>=3.0
+
+# Numeric — utilizat pentru normalizare și operații vectoriale
+numpy>=1.24.0
+
+# PDF scraping pentru OUAI (FAZA 9f) — inclus în același requirements.txt
+pdfplumber>=0.10.0

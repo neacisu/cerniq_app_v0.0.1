@@ -1,0 +1,218 @@
+# Alert rules Prometheus — Etapa 5 Nurturing (FAZA 9j)
+# Plan §X L2377-2387
+#
+# ANTI-HALUCINARE:
+# (B) GDPRConsentViolation și CompetitionLawViolation sunt CRITICAL — NU WARNING
+# (C) LLM latency threshold: 30s (NU 10s — acela e E3)
+# (E) metric names: cerniq_e5_* prefix (conform implementare e5-metrics.ts)
+
+groups:
+  - name: e5-nurturing-business
+    interval: 60s
+    rules:
+
+      # ─── 1. HighChurnRiskClients ─────────────────────────────────────────────
+      # CRITICAL risk clients > 5 clienți per tenant per 1h → WARNING
+      # Sursa: nurturingClientsAtRisk (B10 churn:score:calculate)
+      - alert: HighChurnRiskClients
+        expr: |
+          sum by (tenant_id) (
+            cerniq_e5_nurturing_clients_at_risk{risk_level="CRITICAL"}
+          ) > 5
+        for: 1h
+        labels:
+          severity: warning
+          etapa: E5
+          swimlane: churn-prevention
+        annotations:
+          summary: "Clienți cu risc churn CRITICAL depășesc pragul ({{ $value }} clienți)"
+          description: >
+            Tenant {{ $labels.tenant_id }}: {{ $value }} clienți cu risc CRITICAL de churn.
+            Verificați workerii B9-B11 și campanii winback F32-F36.
+          runbook_url: "https://cerniq.app/runbooks/e5/high-churn-risk"
+
+      # ─── 2. LowNPSScore ──────────────────────────────────────────────────────
+      # NPS score mediu < 6 per tenant per 24h → WARNING
+      # Sursa: e5NpsScoreAvg (H47 feedback:report:generate)
+      - alert: LowNPSScore
+        expr: |
+          cerniq_e5_nps_score_avg < 6
+        for: 24h
+        labels:
+          severity: warning
+          etapa: E5
+          swimlane: lifecycle-nurturing
+        annotations:
+          summary: "NPS score mediu scăzut: {{ $value | printf \"%.1f\" }} (prag: 6)"
+          description: >
+            Tenant {{ $labels.tenant_id }}: NPS score mediu {{ $value | printf "%.1f" }}
+            sub pragul de 6 timp de 24h. Verificați distribuția Detractori (H44-H46).
+          runbook_url: "https://cerniq.app/runbooks/e5/low-nps-score"
+
+      # ─── 3. ReferralConversionDrop ───────────────────────────────────────────
+      # Rata conversie referral < 10% per tenant per 7d → WARNING
+      # Sursa: nurturingReferralConversionRate (E29 referral:tracking:conversion)
+      - alert: ReferralConversionDrop
+        expr: |
+          cerniq_e5_nurturing_referral_conversion_rate < 0.10
+        for: 168h
+        labels:
+          severity: warning
+          etapa: E5
+          swimlane: social-graph
+        annotations:
+          summary: "Rată conversie referral scăzută: {{ $value | printf \"%.1%\" }} (prag: 10%)"
+          description: >
+            Tenant {{ $labels.tenant_id }}: rata conversie referral
+            {{ $value | printf "%.1%" }} sub 10% timp de 7 zile.
+            Verificați fluxul GDPR E25-E31 și recompensele E30-E31.
+          runbook_url: "https://cerniq.app/runbooks/e5/referral-conversion-drop"
+
+      # ─── 4. SentimentWorkerBacklog ───────────────────────────────────────────
+      # Queue sentiment:analyze > 200 jobs pending per 15min → WARNING
+      # Sursa: cerniq_worker_queue_depth_by_state (shared metric, B12)
+      - alert: SentimentWorkerBacklog
+        expr: |
+          cerniq_worker_queue_depth_by_state{
+            queue="sentiment:analyze",
+            state="waiting"
+          } > 200
+        for: 15m
+        labels:
+          severity: warning
+          etapa: E5
+          swimlane: churn-prevention
+        annotations:
+          summary: "Backlog worker sentiment prea mare: {{ $value }} jobs în așteptare"
+          description: >
+            Queue sentiment:analyze are {{ $value }} jobs pending timp de 15 minute.
+            Verificați concurrency B12 (max 10) și disponibilitatea LLM infraq.app.
+          runbook_url: "https://cerniq.app/runbooks/e5/sentiment-backlog"
+
+  - name: e5-nurturing-technical
+    interval: 60s
+    rules:
+
+      # ─── 5. LLMHighLatency ───────────────────────────────────────────────────
+      # P95 latency LLM E5 > 30s per 10min → WARNING
+      # Anti-halucinare (C): threshold = 30s (NU 10s — acela este E3)
+      # Sursa: etapa5LlmLatencySeconds (B12 sentiment, E25 referral detect)
+      - alert: LLMHighLatency
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (model, le) (
+              rate(cerniq_e5_etapa5_llm_latency_seconds_bucket[10m])
+            )
+          ) > 30
+        for: 10m
+        labels:
+          severity: warning
+          etapa: E5
+          swimlane: churn-prevention
+        annotations:
+          summary: "Latență LLM E5 P95 ridicată: {{ $value | printf \"%.1f\" }}s (prag: 30s)"
+          description: >
+            Model {{ $labels.model }}: P95 latency {{ $value | printf "%.1f" }}s
+            depășește pragul de 30s timp de 10 minute.
+            Verificați disponibilitatea infraq.app și circuit breaker-ul LLM.
+          runbook_url: "https://cerniq.app/runbooks/e5/llm-high-latency"
+
+      # ─── 6. HITLSLABreachRate ────────────────────────────────────────────────
+      # Rata breach HITL E5 > 0.1 breach/oră per 30min → CRITICAL
+      # Anti-halucinare (B): CRITICAL (plan L2386)
+      # Sursa: etapa5HitlSlaBreachesTotal (F36, H46, B11)
+      - alert: HITLSLABreachRate
+        expr: |
+          sum by (task_type) (
+            rate(cerniq_e5_etapa5_hitl_sla_breaches_total[30m])
+          ) * 3600 > 0.1
+        for: 30m
+        labels:
+          severity: critical
+          etapa: E5
+          swimlane: lifecycle-nurturing
+        annotations:
+          summary: "Rată breach SLA HITL E5 ridicată: {{ $value | printf \"%.2f\" }}/h (prag: 0.1/h)"
+          description: >
+            Task type {{ $labels.task_type }}: rata breach SLA E5
+            {{ $value | printf "%.2f" }} breach/h în ultimele 30 minute.
+            Investigați imediat task-urile HITL expirate F36/H46.
+          runbook_url: "https://cerniq.app/runbooks/e5/hitl-sla-breach"
+
+      # ─── 7. GraphBuildFailure ────────────────────────────────────────────────
+      # Orice eșec Leiden community detection (D21) per 24h → WARNING
+      # Sursa: cerniq_worker_jobs_failed_total (shared, queue=community:detect:leiden)
+      - alert: GraphBuildFailure
+        expr: |
+          increase(
+            cerniq_worker_jobs_failed_total{
+              queue="community:detect:leiden"
+            }[24h]
+          ) > 0
+        for: 0m
+        labels:
+          severity: warning
+          etapa: E5
+          swimlane: community-intelligence
+        annotations:
+          summary: "Eșec community detection Leiden în ultimele 24h: {{ $value }} eșecuri"
+          description: >
+            Worker D21 (community:detect:leiden) a înregistrat {{ $value }} eșecuri
+            în ultimele 24h. Verificați subprocess Python3 leiden_service.py,
+            dimensiunea grafului și timeout-ul de 600s.
+          runbook_url: "https://cerniq.app/runbooks/e5/graph-build-failure"
+
+  - name: e5-nurturing-compliance
+    interval: 30s
+    rules:
+
+      # ─── 8. GDPRConsentViolation ─────────────────────────────────────────────
+      # Outreach referral fără consimțământ GDPR detectat → CRITICAL
+      # Anti-halucinare (B): CRITICAL (plan L2386) — NU WARNING
+      # Sursa: e5ComplianceViolationsTotal (K56 compliance:gdpr:check)
+      - alert: GDPRConsentViolation
+        expr: |
+          increase(
+            cerniq_e5_compliance_violations_total{
+              violation_type="GDPR_CONSENT"
+            }[5m]
+          ) > 0
+        for: 0m
+        labels:
+          severity: critical
+          etapa: E5
+          swimlane: compliance-gdpr
+          gdpr_article: "Art.7"
+        annotations:
+          summary: "[CRITICAL] Violare GDPR Art.7 detectată: outreach fără consimțământ"
+          description: >
+            Workerul K56 (compliance:gdpr:check) a detectat {{ $value }} referral-uri
+            cu consentGiven=false și status activ în ultimele 5 minute.
+            ACȚIUNE IMEDIATĂ NECESARĂ — verificați goldReferrals și blocați outreach-ul.
+          runbook_url: "https://cerniq.app/runbooks/e5/gdpr-consent-violation"
+
+      # ─── 9. CompetitionLawViolation ──────────────────────────────────────────
+      # Safe-harbor breach (price-fixing pattern) detectat → CRITICAL
+      # Anti-halucinare (B): CRITICAL (plan L2387) — NU WARNING
+      # Sursa: e5ComplianceViolationsTotal (K57 compliance:competition:law)
+      - alert: CompetitionLawViolation
+        expr: |
+          increase(
+            cerniq_e5_compliance_violations_total{
+              violation_type="COMPETITION_LAW"
+            }[5m]
+          ) > 0
+        for: 0m
+        labels:
+          severity: critical
+          etapa: E5
+          swimlane: compliance-gdpr
+          regulation: "competition-law-ro"
+        annotations:
+          summary: "[CRITICAL] Violare legislație concurență detectată (price-fixing pattern)"
+          description: >
+            Workerul K57 (compliance:competition:law) a detectat {{ $value }}
+            pattern-uri de price-fixing sau partajare date concurenți
+            în ultimele 5 minute. ACȚIUNE IMEDIATĂ — notificați echipa juridică.
+          runbook_url: "https://cerniq.app/runbooks/e5/competition-law-violation"

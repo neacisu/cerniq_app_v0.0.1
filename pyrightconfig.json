@@ -1,0 +1,9 @@
+{
+  "pythonVersion": "3.12",
+  "pythonPlatform": "Linux",
+  "extraPaths": [
+    "workers/e5-nurturing/python/.venv/lib/python3.12/site-packages"
+  ],
+  "include": ["workers/e5-nurturing/python"],
+  "exclude": ["**/node_modules", "**/__pycache__", "**/.venv"]
+}

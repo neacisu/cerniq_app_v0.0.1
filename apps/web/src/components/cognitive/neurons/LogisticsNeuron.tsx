@@ -94,7 +94,9 @@ export const LogisticsNeuronComponent = memo(function LogisticsNeuronComponent({
           style={{ marginTop: 6, display: "flex", gap: 8, fontSize: 9.5, color: "var(--color-t3)" }}
         >
           <span>✓ {data.metrics.processed}</span>
-          <span style={{ color: "var(--color-er)" }}>✗ {data.metrics.failed}</span>
+          {data.metrics.failed > 0 && (
+            <span style={{ color: "var(--color-er)" }}>✗ {data.metrics.failed}</span>
+          )}
           <span>{data.metrics.avgLatency}ms</span>
         </div>
       )}

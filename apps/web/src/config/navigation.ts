@@ -52,8 +52,11 @@ export const navigation: NavSection[] = [
     title: "ETAPA 3 — AI SALES",
     items: [
       { label: "AI Dashboard", path: "/ai-dashboard", icon: "Bot" },
-      { label: "Negotiations", path: "/negotiations", icon: "MessageSquare" },
-      { label: "Offers", path: "/offers", icon: "FileText" },
+      { label: "Conversație AI", path: "/negotiations/conversation", icon: "MessageSquare" },
+      { label: "Catalog Produse", path: "/products", icon: "Package" },
+      { label: "Documente Fiscale", path: "/fiscal/documents", icon: "FileText" },
+      { label: "Negotiations", path: "/negotiations", icon: "MessagesSquare" },
+      { label: "Offers", path: "/offers", icon: "ScrollText" },
       { label: "Invoices", path: "/invoices", icon: "CreditCard" },
       { label: "Guardrails", path: "/guardrails", icon: "Shield" },
     ],
@@ -61,17 +64,22 @@ export const navigation: NavSection[] = [
   {
     title: "ETAPA 4 — POST-VÂNZARE",
     items: [
+      { label: "Order Board (Kanban)", path: "/orders/board", icon: "LayoutDashboard" },
+      { label: "Credit Profiles", path: "/credit/profile", icon: "BarChart3" },
+      { label: "Contract Builder", path: "/contracts/builder", icon: "FileCheck" },
       { label: "Payments Revolut", path: "/payments", icon: "CreditCard" },
       { label: "Credit Scoring", path: "/credit", icon: "TrendingUp" },
       { label: "Logistics AWB", path: "/logistics", icon: "Truck" },
-      { label: "Returns RMA", path: "/returns", icon: "Package" },
+      { label: "Returns RMA", path: "/returns", icon: "PackageX" },
     ],
   },
   {
     title: "ETAPA 5 — NURTURING",
     items: [
+      { label: "Nurturing Dashboard", path: "/nurturing/dashboard", icon: "Brain" },
+      { label: "Referral Manager (GDPR)", path: "/referral/manager", icon: "Gift" },
       { label: "Retenție", path: "/nurturing", icon: "Heart" },
-      { label: "Referrals", path: "/referrals", icon: "Gift" },
+      { label: "Referrals KOL", path: "/referrals", icon: "Share2" },
       { label: "Churn Risk", path: "/churn", icon: "AlertTriangle" },
       { label: "Hartă Geografică", path: "/geo-map", icon: "Globe" },
     ],

@@ -521,6 +521,97 @@ export const QUEUES = {
   E5_GEO_COVERAGE_ANALYZE: "geo:coverage:analyze",
   /** C19: Catchment zones Voronoi-like — nearest anchor per prospect (KNN) */
   E5_GEO_CATCHMENT_BUILD: "geo:catchment:build",
+  // ── E5 Graph Community Detection (D20-D24) ────────────────────────────────
+  /** D20: Build relationship graph nodes+edges from orders+referrals */
+  E5_GRAPH_BUILD_RELATIONSHIPS: "graph:build:relationships",
+  /** D21: Community detection via Leiden algorithm (Python subprocess) */
+  E5_COMMUNITY_DETECT_LEIDEN: "community:detect:leiden",
+  /** D22: Centrality calculation (degree/betweenness/pagerank) per node */
+  E5_CENTRALITY_CALCULATE: "centrality:calculate",
+  /** D23: KOL identification based on centrality + order volume + NPS */
+  E5_KOL_IDENTIFY: "kol:identify",
+  /** D24: Implicit cluster detection (Jaccard-based affinity scoring) */
+  E5_CLUSTER_IMPLICIT_DETECT: "cluster:implicit:detect",
+  // ── E5 Referral GDPR + Outreach (E25-E31) ────────────────────────────────
+  /** E25: Detect new referral candidates from advocate activity */
+  E5_REFERRAL_DETECT: "referral:detect",
+  /** E26: GDPR consent request send to referral candidate */
+  E5_REFERRAL_CONSENT_REQUEST: "referral:consent:request",
+  /** E27: Confirm GDPR consent received (webhook/click) */
+  E5_REFERRAL_CONSENT_CONFIRM: "referral:consent:confirm",
+  /** E28: Outreach to referred prospect post-consent */
+  E5_REFERRAL_OUTREACH_PROSPECT: "referral:outreach:prospect",
+  /** E29: Track referral click/visit → conversion events */
+  E5_REFERRAL_TRACKING_CONVERSION: "referral:tracking:conversion",
+  /** E30: Issue referral reward (voucher/credit/commission) post-conversion */
+  E5_REFERRAL_REWARD_ISSUE: "referral:reward:issue",
+  /** E31: Notify advocate of reward issuance */
+  E5_REFERRAL_REWARD_NOTIFY: "referral:reward:notify",
+  // ── E5 Win-Back Campaigns (F32-F36) ──────────────────────────────────────
+  /** F32: Create win-back campaign for AT_RISK/CHURNED clients */
+  E5_WINBACK_CAMPAIGN_CREATE: "winback:campaign:create",
+  /** F33: Execute individual win-back campaign step */
+  E5_WINBACK_STEP_EXECUTE: "winback:step:execute",
+  /** F34: Generate personalized win-back offer (LLM-assisted) */
+  E5_WINBACK_OFFER_GENERATE: "winback:offer:generate",
+  /** F35: Track win-back campaign result (response/conversion) */
+  E5_WINBACK_RESULT_TRACK: "winback:result:track",
+  /** F36: Escalate win-back to HITL when automated fails */
+  E5_WINBACK_ESCALATE_HITL: "winback:escalate:hitl",
+  // ── E5 Association Scraping (G37-G42) ────────────────────────────────────
+  /** G37: Scrape OUAI (Organizații Utilizatori Apă pentru Irigații) member lists */
+  E5_ASSOCIATION_OUAI_SCRAPE: "association:ouai:scrape",
+  /** G38: Scrape MADR (Ministerul Agriculturii) registered associations */
+  E5_ASSOCIATION_MADR_SCRAPE: "association:madr:scrape",
+  /** G39: Normalize scraped association data (SIRUTA, CUI, name dedup) */
+  E5_ASSOCIATION_NORMALIZE: "association:normalize",
+  /** G40: CUI lookup via ANAF OpenAPI for scraped association entities */
+  E5_ASSOCIATION_CUI_LOOKUP: "association:cui:lookup",
+  /** G41: Match association members with CerniqApp client records */
+  E5_ASSOCIATION_MEMBER_MATCH: "association:member:match",
+  /** G42: Update gold_association_coverage with matched member territories */
+  E5_ASSOCIATION_COVERAGE_UPDATE: "association:coverage:update",
+  // ── E5 Feedback NPS + Satisfaction (H43-H47) ─────────────────────────────
+  /** H43: Send NPS survey to client post-interaction */
+  E5_FEEDBACK_NPS_SEND: "feedback:nps:send",
+  /** H44: Process incoming NPS response, classify promotor/pasiv/detractor */
+  E5_FEEDBACK_NPS_PROCESS: "feedback:nps:process",
+  /** H45: Track satisfaction score per interaction touchpoint */
+  E5_FEEDBACK_SATISFACTION_TRACK: "feedback:satisfaction:track",
+  /** H46: Route complaint to appropriate handler (agent/HITL/escalation) */
+  E5_FEEDBACK_COMPLAINT_ROUTE: "feedback:complaint:route",
+  /** H47: Generate periodic feedback report per tenant */
+  E5_FEEDBACK_REPORT_GENERATE: "feedback:report:generate",
+  // ── E5 Content Drip (I48-I51) ────────────────────────────────────────────
+  /** I48: Schedule content drip sequence for client lifecycle stage */
+  E5_CONTENT_DRIP_SCHEDULE: "content:drip:schedule",
+  /** I49: Execute individual drip step (email/sms/push) */
+  E5_CONTENT_DRIP_EXECUTE: "content:drip:execute",
+  /** I50: Render content template with client-specific personalization */
+  E5_CONTENT_TEMPLATE_RENDER: "content:template:render",
+  /** I51: Track content delivery and open/click events */
+  E5_CONTENT_DELIVERY_TRACK: "content:delivery:track",
+  // ── E5 Alerts Weather + APIA + Campaigns (J52-J55) ───────────────────────
+  /** J52: Monitor weather API for agri alerts (ANM/OpenMeteo) */
+  E5_ALERT_WEATHER_MONITOR: "alerts:weather:monitor",
+  /** J53: Match weather alerts with affected client geo-zones */
+  E5_ALERT_WEATHER_MATCH: "alerts:weather:match",
+  /** J54: APIA seasonal subsidy alert generation */
+  E5_ALERT_APIA_SEASONAL: "alerts:apia:seasonal",
+  /** J55: Campaign trigger based on alert conditions */
+  E5_ALERT_CAMPAIGN_TRIGGER: "alerts:campaign:trigger",
+  // ── E5 Compliance GDPR + Competition Law (K56-K58) ───────────────────────
+  /** K56: GDPR consent check and enforcement */
+  E5_COMPLIANCE_GDPR_CHECK: "compliance:gdpr:check",
+  /** K57: Competition law review for campaigns */
+  E5_COMPLIANCE_COMPETITION_LAW: "compliance:competition:law",
+  /** K58: Data retention enforcement (purge expired) */
+  E5_COMPLIANCE_DATA_RETENTION: "compliance:data:retention",
+  // ── E5 HITL Tasks (winback + complaint review) ────────────────────────────
+  /** HITL: Human review for escalated win-back campaigns */
+  E5_HITL_WINBACK_REVIEW: "hitl:winback:review",
+  /** HITL: Human review for complaint routing decisions */
+  E5_HITL_COMPLAINT_REVIEW: "hitl:complaint:review",
 } as const;
 
 const withProvider = (name: string, concurrency: number, provider: string): QueueConfig => ({
@@ -1118,6 +1209,91 @@ export const queueRegistry: QueueConfig[] = [
   { name: QUEUES.E5_GEO_COVERAGE_ANALYZE, concurrency: 5 },
   // C19: catchment zones Voronoi-like — 5 concurrent (KNN per prospect set)
   { name: QUEUES.E5_GEO_CATCHMENT_BUILD, concurrency: 5 },
+  // D20: Build relationship graph nodes+edges — concurrency=1 (CPU intensive), rateLimit=10/min
+  {
+    name: QUEUES.E5_GRAPH_BUILD_RELATIONSHIPS,
+    concurrency: 1,
+    rateLimit: { max: 10, duration: 60_000 },
+  },
+  // D21: Community detection Leiden (Python subprocess) — concurrency=1, rateLimit=10/min
+  {
+    name: QUEUES.E5_COMMUNITY_DETECT_LEIDEN,
+    concurrency: 1,
+    rateLimit: { max: 10, duration: 60_000 },
+  },
+  // D22: Centrality calculation (degree/betweenness/pagerank) — concurrency=1, rateLimit=10/min
+  {
+    name: QUEUES.E5_CENTRALITY_CALCULATE,
+    concurrency: 1,
+    rateLimit: { max: 10, duration: 60_000 },
+  },
+  // D23: KOL identification — concurrency=1, rateLimit=10/min
+  { name: QUEUES.E5_KOL_IDENTIFY, concurrency: 1, rateLimit: { max: 10, duration: 60_000 } },
+  // D24: Implicit cluster detection (Jaccard affinity) — concurrency=1, rateLimit=10/min
+  {
+    name: QUEUES.E5_CLUSTER_IMPLICIT_DETECT,
+    concurrency: 1,
+    rateLimit: { max: 10, duration: 60_000 },
+  },
+  // E25: Referral detect (advocate activity pattern) — 10 concurrent
+  { name: QUEUES.E5_REFERRAL_DETECT, concurrency: 10 },
+  // E26-E28: Referral GDPR consent + outreach
+  { name: QUEUES.E5_REFERRAL_CONSENT_REQUEST, concurrency: 10 },
+  { name: QUEUES.E5_REFERRAL_CONSENT_CONFIRM, concurrency: 10 },
+  { name: QUEUES.E5_REFERRAL_OUTREACH_PROSPECT, concurrency: 10 },
+  // E29-E31: Referral tracking + reward
+  { name: QUEUES.E5_REFERRAL_TRACKING_CONVERSION, concurrency: 20 },
+  { name: QUEUES.E5_REFERRAL_REWARD_ISSUE, concurrency: 10 },
+  { name: QUEUES.E5_REFERRAL_REWARD_NOTIFY, concurrency: 10 },
+  // F32-F36: Win-Back campaigns
+  { name: QUEUES.E5_WINBACK_CAMPAIGN_CREATE, concurrency: 5 },
+  { name: QUEUES.E5_WINBACK_STEP_EXECUTE, concurrency: 10 },
+  { name: QUEUES.E5_WINBACK_OFFER_GENERATE, concurrency: 5 },
+  { name: QUEUES.E5_WINBACK_RESULT_TRACK, concurrency: 20 },
+  { name: QUEUES.E5_WINBACK_ESCALATE_HITL, concurrency: 5 },
+  // G37-G38: Association scraping (rate limited — 5 req/min per OUAI/MADR)
+  {
+    name: QUEUES.E5_ASSOCIATION_OUAI_SCRAPE,
+    concurrency: 2,
+    rateLimit: { max: 5, duration: 60_000 },
+  },
+  {
+    name: QUEUES.E5_ASSOCIATION_MADR_SCRAPE,
+    concurrency: 2,
+    rateLimit: { max: 5, duration: 60_000 },
+  },
+  // G39-G42: Association normalization + CUI lookup + member match + coverage update
+  { name: QUEUES.E5_ASSOCIATION_NORMALIZE, concurrency: 10 },
+  {
+    name: QUEUES.E5_ASSOCIATION_CUI_LOOKUP,
+    concurrency: 5,
+    rateLimit: { max: 10, duration: 60_000 },
+  },
+  { name: QUEUES.E5_ASSOCIATION_MEMBER_MATCH, concurrency: 10 },
+  { name: QUEUES.E5_ASSOCIATION_COVERAGE_UPDATE, concurrency: 5 },
+  // H43-H47: NPS feedback + satisfaction + complaint
+  { name: QUEUES.E5_FEEDBACK_NPS_SEND, concurrency: 10 },
+  { name: QUEUES.E5_FEEDBACK_NPS_PROCESS, concurrency: 20 },
+  { name: QUEUES.E5_FEEDBACK_SATISFACTION_TRACK, concurrency: 20 },
+  { name: QUEUES.E5_FEEDBACK_COMPLAINT_ROUTE, concurrency: 10 },
+  { name: QUEUES.E5_FEEDBACK_REPORT_GENERATE, concurrency: 3 },
+  // I48-I51: Content drip schedule + execute + render + track
+  { name: QUEUES.E5_CONTENT_DRIP_SCHEDULE, concurrency: 10 },
+  { name: QUEUES.E5_CONTENT_DRIP_EXECUTE, concurrency: 20 },
+  { name: QUEUES.E5_CONTENT_TEMPLATE_RENDER, concurrency: 10 },
+  { name: QUEUES.E5_CONTENT_DELIVERY_TRACK, concurrency: 30 },
+  // J52-J55: Weather + APIA + Campaign alerts
+  { name: QUEUES.E5_ALERT_WEATHER_MONITOR, concurrency: 3 },
+  { name: QUEUES.E5_ALERT_WEATHER_MATCH, concurrency: 10 },
+  { name: QUEUES.E5_ALERT_APIA_SEASONAL, concurrency: 3 },
+  { name: QUEUES.E5_ALERT_CAMPAIGN_TRIGGER, concurrency: 10 },
+  // K56-K58: Compliance GDPR + Competition Law + Data Retention
+  { name: QUEUES.E5_COMPLIANCE_GDPR_CHECK, concurrency: 5 },
+  { name: QUEUES.E5_COMPLIANCE_COMPETITION_LAW, concurrency: 2 },
+  { name: QUEUES.E5_COMPLIANCE_DATA_RETENTION, concurrency: 2 },
+  // HITL: Win-back + Complaint review
+  { name: QUEUES.E5_HITL_WINBACK_REVIEW, concurrency: 5 },
+  { name: QUEUES.E5_HITL_COMPLAINT_REVIEW, concurrency: 5 },
 ];
 
 export const queueNameSet = new Set(queueRegistry.map((queue) => queue.name));
@@ -1156,9 +1332,19 @@ export function assertQueueRegistryComplete() {
   // + 8 Etapa 5 E5 Nurturing FSM A1-A8 = 293
   // + 6 Etapa 5 E5 Churn Detection B9-B14 = 299
   // + 5 Etapa 5 E5 PostGIS Proximity C15-C19 = 304
-  // (ai:intent:classify removed — intent merged into ai:sentiment:analyze)
-  // (AI_RESPONSE_GENERATE removed from E2 static — E3 uses separate ai:e3:response:generate)
-  const expected = 304;
+  // + 1 E5 Graph Build Relationships (D20) = 305
+  // + 3 E5 Referral GDPR Consent+Outreach (E26-E28) = 308
+  // + 1 E5 Feedback NPS Send (H43) = 309
+  // + 5 Etapa 5 E5 Graph Community Detection D20-D24 = 309
+  // + 7 E5 Referral E25-E31 (detect+consent+outreach+tracking+reward) = 316
+  // + 5 E5 Win-Back F32-F36 = 321
+  // + 6 E5 Association Scraping G37-G42 = 327
+  // + 5 E5 Feedback NPS + Satisfaction H43-H47 = 332
+  // + 4 E5 Content Drip I48-I51 = 336
+  // + 4 E5 Alerts Weather+APIA+Campaign J52-J55 = 340
+  // + 3 E5 Compliance GDPR+Competition+Retention K56-K58 = 343
+  // + 2 E5 HITL Winback+Complaint review = 345
+  const expected = 345;
   if (queueRegistry.length !== expected) {
     throw new Error(`Expected ${expected} queues, got ${queueRegistry.length}`);
   }

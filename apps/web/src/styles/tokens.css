@@ -84,6 +84,22 @@
   /* --neuron-contract: DocuSign contracts — violet legal execution */
   --color-neuron-contract: oklch(0.28 0.07 290);
 
+  /* Cognitive neurons — E5 Nurturing & Community swimlane design tokens (plan §XI L2445-2451) */
+  /* --neuron-lifecycle: client lifecycle management — teal-green vitality pulse */
+  --color-neuron-lifecycle: oklch(0.32 0.09 165);
+  /* --neuron-churn: churn detection & win-back — red-orange risk signal */
+  --color-neuron-churn: oklch(0.38 0.14 30);
+  /* --neuron-social: KOL graph & social relationships — blue-violet community */
+  --color-neuron-social: oklch(0.3 0.08 255);
+  /* --neuron-graph: Leiden community graph algorithms — cyan-teal analytics */
+  --color-neuron-graph: oklch(0.35 0.1 190);
+  /* --neuron-environment: weather & seasonal monitoring — sky-blue ambient */
+  --color-neuron-environment: oklch(0.38 0.08 220);
+  /* --neuron-compliance: GDPR & competition law — muted violet regulation */
+  --color-neuron-compliance: oklch(0.3 0.07 295);
+  /* --neuron-feedback: NPS & satisfaction tracking — warm amber feedback loop */
+  --color-neuron-feedback: oklch(0.35 0.1 65);
+
   /* Cognitive synapses — edge kind colors (React Flow edges per EdgeKind) */
   --color-synapse-triggers: var(--color-b5);
   --color-synapse-depends: oklch(0.55 0.08 220);
@@ -122,4 +138,10 @@
   --z-modal: 400;
   --z-toast: 500;
   --z-tooltip: 600;
+}
+
+/* ── Neuron animations (global — defined once to avoid per-instance DOM cost) ── */
+@keyframes graphNeuronPulse {
+  0%, 100% { box-shadow: 0 0 6px color-mix(in oklch, var(--color-neuron-graph) 30%, transparent); }
+  50%       { box-shadow: 0 0 18px color-mix(in oklch, var(--color-neuron-graph) 60%, transparent); }
 }

@@ -1,0 +1,291 @@
+{
+  "annotations": { "list": [] },
+  "description": "E5 Nurturing Lifecycle — Business & Technical observability (FAZA 9j)",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "id": 1,
+      "title": "Lifecycle States",
+      "description": "Distribuția clienților per stare FSM nurturing (A7 state:metrics:update)",
+      "type": "bargauge",
+      "targets": [
+        {
+          "expr": "sum by (state) (cerniq_e5_nurturing_clients_by_state{tenant_id=~\"$tenant_id\"})",
+          "legendFormat": "{{state}}"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "reduceOptions": { "calcs": ["lastNotNull"] }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 50 },
+              { "color": "red", "value": 100 }
+            ]
+          }
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 }
+    },
+    {
+      "id": 2,
+      "title": "Churn Risk",
+      "description": "Clienți la risc per nivel (B10 churn:score:calculate) — alert > 5 CRITICAL",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum by (risk_level) (cerniq_e5_nurturing_clients_at_risk{tenant_id=~\"$tenant_id\"})",
+          "legendFormat": "Risc {{risk_level}}"
+        },
+        {
+          "expr": "sum by (tenant_id) (rate(cerniq_e5_churn_signals_detected_total{tenant_id=~\"$tenant_id\"}[$__rate_interval]))",
+          "legendFormat": "Semnale churn/s"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "lineWidth": 2 },
+          "color": { "mode": "palette-classic" }
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 }
+    },
+    {
+      "id": 3,
+      "title": "NPS Distribution",
+      "description": "Distribuție Promoter/Passive/Detractor (H44 feedback:nps:process)",
+      "type": "piechart",
+      "targets": [
+        {
+          "expr": "sum by (category) (cerniq_e5_nps_distribution_total{tenant_id=~\"$tenant_id\"})",
+          "legendFormat": "{{category}}"
+        }
+      ],
+      "options": {
+        "pieType": "donut",
+        "displayLabels": ["name", "percent"]
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 8 }
+    },
+    {
+      "id": 4,
+      "title": "NPS Score Avg",
+      "description": "NPS score mediu per tenant (H47 feedback:report:generate) — alert < 6",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "cerniq_e5_nps_score_avg{tenant_id=~\"$tenant_id\"}",
+          "legendFormat": "NPS Avg"
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "orientation": "horizontal",
+        "colorMode": "background"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 6 },
+              { "color": "green", "value": 8 }
+            ]
+          },
+          "min": -100,
+          "max": 100,
+          "unit": "none"
+        }
+      },
+      "gridPos": { "h": 8, "w": 4, "x": 8, "y": 8 }
+    },
+    {
+      "id": 5,
+      "title": "Referral Funnel",
+      "description": "Funnel referral: create → consent → conversie → recompensă (E25-E31)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum by (tenant_id) (rate(cerniq_e5_referrals_created_total{tenant_id=~\"$tenant_id\"}[$__rate_interval]))",
+          "legendFormat": "Referrals create/s"
+        },
+        {
+          "expr": "cerniq_e5_nurturing_referral_conversion_rate{tenant_id=~\"$tenant_id\"} * 100",
+          "legendFormat": "Rată conversie %"
+        },
+        {
+          "expr": "sum by (tenant_id) (rate(cerniq_e5_nurturing_referral_revenue_total{tenant_id=~\"$tenant_id\"}[$__rate_interval]))",
+          "legendFormat": "Venit referral/s"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "lineWidth": 2 }
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 }
+    },
+    {
+      "id": 6,
+      "title": "Graph Communities",
+      "description": "Comunități Leiden detectate și KOL profiles per tier (D20-D24)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum by (tenant_id) (cerniq_e5_communities_detected_total{tenant_id=~\"$tenant_id\"})",
+          "legendFormat": "Comunități Leiden"
+        },
+        {
+          "expr": "sum by (tier) (cerniq_e5_kol_profiles_total{tenant_id=~\"$tenant_id\"})",
+          "legendFormat": "KOL {{tier}}"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum by (algorithm, le) (rate(cerniq_e5_etapa5_graph_build_seconds_bucket[$__rate_interval])))",
+          "legendFormat": "P95 build seconds {{algorithm}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 }
+    },
+    {
+      "id": 7,
+      "title": "LLM Usage",
+      "description": "Utilizare LLM E5: latență P95, tokeni, cereri (B12 sentiment, E25 referral detect)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (model, le) (rate(cerniq_e5_etapa5_llm_latency_seconds_bucket[$__rate_interval])))",
+          "legendFormat": "P95 latency {{model}}"
+        },
+        {
+          "expr": "sum by (model) (rate(cerniq_e5_etapa5_llm_tokens_total[$__rate_interval]))",
+          "legendFormat": "Tokeni/s {{model}}"
+        },
+        {
+          "expr": "sum by (model) (rate(cerniq_e5_llm_requests_total[$__rate_interval]))",
+          "legendFormat": "Cereri/s {{model}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "lineWidth": 2 },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 10 },
+              { "color": "red", "value": 30 }
+            ]
+          }
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 }
+    },
+    {
+      "id": 8,
+      "title": "Winback Campaigns & HITL Queue",
+      "description": "Campanii winback active, succese, și coadă HITL E5 (F32-F36, B11, H46)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum by (campaign_type) (cerniq_e5_winback_campaigns_active{tenant_id=~\"$tenant_id\"})",
+          "legendFormat": "Campanii active {{campaign_type}}"
+        },
+        {
+          "expr": "cerniq_e5_nurturing_winback_success_rate{tenant_id=~\"$tenant_id\"} * 100",
+          "legendFormat": "Rată succes winback %"
+        },
+        {
+          "expr": "sum by (task_type) (rate(cerniq_e5_etapa5_hitl_tasks_created_total[$__rate_interval]))",
+          "legendFormat": "HITL tasks/s {{task_type}}"
+        },
+        {
+          "expr": "sum by (task_type) (rate(cerniq_e5_etapa5_hitl_sla_breaches_total[$__rate_interval])) * 3600",
+          "legendFormat": "HITL SLA breaches/h {{task_type}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "lineWidth": 2 }
+        }
+      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 24 }
+    }
+  ],
+  "refresh": "60s",
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": ["e5", "nurturing", "lifecycle", "churn", "referral", "compliance"],
+  "templating": {
+    "list": [
+      {
+        "name": "tenant_id",
+        "type": "query",
+        "label": "Tenant",
+        "datasource": { "type": "prometheus", "uid": "${datasource}" },
+        "definition": "label_values(cerniq_e5_nurturing_clients_by_state, tenant_id)",
+        "query": "label_values(cerniq_e5_nurturing_clients_by_state, tenant_id)",
+        "current": { "selected": false, "text": "All", "value": "$__all" },
+        "includeAll": true,
+        "multi": true,
+        "options": [],
+        "refresh": 2,
+        "sort": 1
+      },
+      {
+        "name": "time_range",
+        "type": "interval",
+        "label": "Interval",
+        "auto": true,
+        "auto_count": 30,
+        "auto_min": "10s",
+        "current": { "selected": false, "text": "auto", "value": "$__auto_interval_time_range" },
+        "options": [
+          { "selected": false, "text": "1m", "value": "1m" },
+          { "selected": false, "text": "5m", "value": "5m" },
+          { "selected": false, "text": "15m", "value": "15m" },
+          { "selected": false, "text": "1h", "value": "1h" },
+          { "selected": false, "text": "6h", "value": "6h" },
+          { "selected": false, "text": "24h", "value": "24h" },
+          { "selected": true, "text": "auto", "value": "$__auto_interval_time_range" }
+        ],
+        "query": "1m,5m,15m,1h,6h,24h",
+        "refresh": 2
+      },
+      {
+        "name": "state",
+        "type": "custom",
+        "label": "State FSM",
+        "current": { "selected": false, "text": "All", "value": "$__all" },
+        "includeAll": true,
+        "multi": true,
+        "options": [
+          { "selected": true, "text": "All", "value": "$__all" },
+          { "selected": false, "text": "LEAD", "value": "LEAD" },
+          { "selected": false, "text": "ONBOARDING", "value": "ONBOARDING" },
+          { "selected": false, "text": "ACTIVE", "value": "ACTIVE" },
+          { "selected": false, "text": "AT_RISK", "value": "AT_RISK" },
+          { "selected": false, "text": "WINBACK", "value": "WINBACK" },
+          { "selected": false, "text": "CHURNED", "value": "CHURNED" },
+          { "selected": false, "text": "ADVOCATE", "value": "ADVOCATE" }
+        ],
+        "query": "LEAD,ONBOARDING,ACTIVE,AT_RISK,WINBACK,CHURNED,ADVOCATE"
+      }
+    ]
+  },
+  "time": { "from": "now-6h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "E5 Nurturing — Lifecycle & Community",
+  "uid": "cognitive-e5-nurturing",
+  "version": 1
+}

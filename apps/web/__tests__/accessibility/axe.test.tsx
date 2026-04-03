@@ -39,7 +39,7 @@ describe("Accessibility (axe)", () => {
   it("Login page has no critical axe violations", async () => {
     const { container } = wrap(<Login />);
     const results = await act(async () => axe(container));
-    expect(results).toHaveNoViolations();
+    expect(results.violations).toEqual([]);
   });
 
   it("Dashboard has no critical axe violations", async () => {
@@ -48,6 +48,6 @@ describe("Accessibility (axe)", () => {
       expect(container.querySelector("h1")).toBeTruthy();
     });
     const results = await act(async () => axe(container));
-    expect(results).toHaveNoViolations();
+    expect(results.violations).toEqual([]);
   });
 });

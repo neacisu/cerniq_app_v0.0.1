@@ -75,6 +75,100 @@ export const secretsFileAgeSeconds = new Gauge({
   registers: [register],
 });
 
+// ── E3 AI Sales metrics ────────────────────────────────────────────────────
+export const e3NegotiationsTotal = new Counter({
+  name: "cerniq_e3_negotiations_total",
+  help: "Total E3 negotiations created/transitioned",
+  labelNames: ["action", "fsm_state"],
+  registers: [register],
+});
+
+export const e3ProductsCreatedTotal = new Counter({
+  name: "cerniq_e3_products_created_total",
+  help: "Total E3 product catalog entries created",
+  labelNames: ["action"],
+  registers: [register],
+});
+
+export const e3FiscalDocumentsTotal = new Counter({
+  name: "cerniq_e3_fiscal_documents_total",
+  help: "Total E3 fiscal documents processed (Oblio + SPV ANAF)",
+  labelNames: ["type", "status"],
+  registers: [register],
+});
+
+// ── E4 Post-Sale metrics ───────────────────────────────────────────────────
+export const e4OrdersCreatedTotal = new Counter({
+  name: "cerniq_e4_orders_created_total",
+  help: "Total E4 orders created",
+  labelNames: ["status"],
+  registers: [register],
+});
+
+export const e4OrdersSoftDeletedTotal = new Counter({
+  name: "cerniq_e4_orders_soft_deleted_total",
+  help: "Total E4 orders soft-deleted",
+  labelNames: [],
+  registers: [register],
+});
+
+export const e4CreditEvaluationsTotal = new Counter({
+  name: "cerniq_e4_credit_evaluations_total",
+  help: "Total E4 credit score evaluations",
+  labelNames: ["tier"],
+  registers: [register],
+});
+
+export const e4ContractsGeneratedTotal = new Counter({
+  name: "cerniq_e4_contracts_generated_total",
+  help: "Total E4 contracts generated/signed",
+  labelNames: ["action", "status"],
+  registers: [register],
+});
+
+// ── E5 Nurturing metrics ───────────────────────────────────────────────────
+export const e5NpsRequestsTotal = new Counter({
+  name: "cerniq_e5_nps_requests_total",
+  help: "Total E5 NPS survey requests sent",
+  labelNames: ["channel"],
+  registers: [register],
+});
+
+export const e5ChurnEvaluationsTotal = new Counter({
+  name: "cerniq_e5_churn_evaluations_total",
+  help: "Total E5 churn risk evaluations",
+  labelNames: ["risk_level"],
+  registers: [register],
+});
+
+export const e5ReferralsCreatedTotal = new Counter({
+  name: "cerniq_e5_referrals_created_total",
+  help: "Total E5 referral programs created",
+  labelNames: ["status"],
+  registers: [register],
+});
+
+export const e5GraphDetectionsTotal = new Counter({
+  name: "cerniq_e5_graph_detections_total",
+  help: "Total E5 graph community detection runs",
+  labelNames: ["algorithm"],
+  registers: [register],
+});
+
+export const e5AlertsTriggeredTotal = new Counter({
+  name: "cerniq_e5_alerts_triggered_total",
+  help: "Total E5 alerts triggered (weather/APIA/campaign/compliance)",
+  labelNames: ["type", "severity"],
+  registers: [register],
+});
+
+export const e4ShipmentsRequestedTotal = new Counter({
+  name: "cerniq_e4_shipments_requested_total",
+  help: "Total E4 Sameday AWB shipments requested",
+  labelNames: ["action", "status"],
+  registers: [register],
+});
+
 const metricsPluginFn: FastifyPluginCallback = (app, _opts, done) => {
   app.addHook("onResponse", (request, reply, hookDone) => {
     const route = request.routeOptions?.url ?? request.url;
